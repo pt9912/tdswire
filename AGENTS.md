@@ -88,8 +88,9 @@ Kein lokales JDK-, Gradle- oder Kotlin-Install. Alles läuft über `make`
 
 
 
-Inline-Suppression bricht das `<suppression>-gate`. Ausnahmen leben in
-<zentraler Konfigurations-Datei> mit Begründung.
+Inline-Suppression bricht das detekt-Gate (`make detekt`): `@Suppress` und
+`@SuppressWarnings` im Kotlin-Quelltext sind verboten. Ausnahmen leben in
+`config/detekt/detekt.yml` mit Begründung.
 
 ### 3.3 git mv + Inhaltsänderung = zwei Commits
 

@@ -61,8 +61,8 @@ Diese Datei dupliziert sie nicht.
 | Target | Vertrag | Bindung |
 |---|---|---|
 | `make docs-check` | Doku-Referenzen (d-check); das Gate, das die Vorlage mitbringt | — |
-| `make detekt` | Statische Analyse (detekt) samt Importregeln der Schichten, in Docker; keine Baseline | — |
-| `make detekt-selbsttest` | Importregeln der Schichten gegen Testdaten prüfen; läuft nur bei geänderten Eingängen | — |
+| `make detekt` | Suppression-Verbot (`@Suppress`) und statische Analyse (detekt) samt Importregeln der Schichten, in Docker; keine Baseline | — |
+| `make detekt-selbsttest` | Importregeln der Schichten und Suppression-Verbot gegen Testdaten prüfen; läuft nur bei geänderten Eingängen | — |
 | `make build` | Compile und Jar in Docker, ohne Tests; Basis-Images per Digest gepinnt | — |
 | `<make-target>` | <…> | ADR-<NNNN> |
 | `<make-target>` | <…>, bootstrap-aware | Schwelle X %, M<n> → Y % |

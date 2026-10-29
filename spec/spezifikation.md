@@ -347,7 +347,8 @@ werden vor der Implementierung festgelegt. Festgelegt ist die Bedeutung:
 - `FilterTerm.In` bildet `=` (ein Wert) und `IN (…)` ab. Alle Terme eines `RowFilter` gelten
   gemeinsam (UND). Dieselbe Spalte darf in mehreren Termen stehen; ein Widerspruch trifft keine
   Zeile. `NULL` in einem Vergleich oder einer Werteliste trifft nie (dreiwertige Logik,
-  `ANSI_NULLS ON`); `IsNull` ist der einzige Weg zu NULL-Zeilen.
+  `ANSI_NULLS ON`, vorläufig und an der Referenzinstanz zu messen, `SPEC-045`); `IsNull` ist der
+  einzige Weg zu NULL-Zeilen.
 - `onUpdate` und `onDelete` bekommen `where = null` für eine Anweisung ohne `WHERE`, also für alle
   Zeilen. Die Zahl, die ein Callback liefert, ist die Zahl der betroffenen Zeilen.
 - `SimQuery.filter` ist ein Hinweis zum Vorfiltern (Schritt 5 in `TDS-FA-11.a`), kein Ersatz für die
@@ -366,7 +367,9 @@ werden vor der Implementierung festgelegt. Festgelegt ist die Bedeutung:
 - **Term:** `<Spalte> = <Wert>`, `<Spalte> IN (<Wert> {, <Wert>})` oder `<Spalte> IS [NOT] NULL`.
 - **Wert:** Zahl, `'…'`, `N'…'`, `NULL` oder `@<Parametername>`.
 - **Bezeichner:** unquotiert, `[…]` oder `"…"`; Tabellen- und Spaltennamen werden ohne Beachtung der
-  Groß-/Kleinschreibung verglichen (vorläufig, wie die übliche Server-Collation).
+  Groß-/Kleinschreibung verglichen (vorläufig, wie die übliche Server-Collation). `"…"` als
+  Bezeichner setzt `QUOTED_IDENTIFIER ON` voraus; beides ist an der Referenzinstanz zu messen
+  (`SPEC-045`).
 - **Nicht erkannt** (`TDS_UNSUPPORTED_SQL`): `JOIN` und weitere Relationen, Unterabfragen, `WITH`,
   Aggregate und `GROUP BY`, `DISTINCT`, `TOP`, `ORDER BY`, `OFFSET`/`FETCH`, Aliase für Tabellen und
   Spalten, Ausdrücke und Funktionen in Listen und Bedingungen, `OR`, `NOT`, `<`, `>`, `LIKE`, `BETWEEN`,
@@ -481,7 +484,7 @@ Abnahmegrenzen.
 | `SPEC-016` | `TDS_TIMEOUT` | Frist überschritten | Cancel, Cleanup, Fehler/Disconnect |
 | `SPEC-037` | `TDS_UNSUPPORTED_SQL` | Anweisung oder Bedingung außerhalb von `SPEC-036`; Schreibzugriff ohne Callback | ERROR und DONE mit Fehlerstatus, Zeilenquelle nicht gelesen |
 | `SPEC-038` | `TDS_SIM_UNKNOWN_OBJECT` | Tabelle oder Spalte ist nicht beschrieben | ERROR und DONE mit Fehlerstatus; vorgesehene SQL-Server-Nummern 208 (Objekt) und 207 (Spalte) |
-| `SPEC-039` | `TDS_SIM_INVALID_VALUE` | Wert nicht in den Spaltentyp überführbar | ERROR und DONE mit Fehlerstatus; vorgesehene SQL-Server-Nummer 245 |
+| `SPEC-039` | `TDS_SIM_INVALID_VALUE` | Wert nicht in den Spaltentyp überführbar | ERROR und DONE mit Fehlerstatus; vorgesehene SQL-Server-Nummern 245 (Konvertierung) und 8115 (Überlauf), an der Referenzinstanz zu messen |
 | `SPEC-048` | `TDS_INTERNAL_ERROR` | unerwartete Ausnahme im Server oder im Backend-Adapter | ERROR und DONE mit Fehlerstatus, fester Text ohne den Text der Ausnahme; die Ausnahme geht ins Log, ohne Parameterwerte |
 | `SPEC-049` | `TDS_SHUTDOWN` | Anfrage nach Beginn des geordneten Beendens (`SPEC-044`) | ERROR, danach Verbindungsende; vorgesehen: die SQL-Server-Meldung für ein Herunterfahren, Nummer im Mapping nach `TDS-FA-06.a` festlegen |
 
@@ -524,7 +527,7 @@ Die genannten Vertragsdateien sind **geplante Artefakte**, keine bereits vorhand
 | `SPEC-026` | `make gates` | Aggregator: führt alle eingerichteten Gates aus; neue Gates für Formatierung, statische Prüfung und Tests werden in ihn aufgenommen |
 | `SPEC-027` | Fuzz-/Property-Tests | Defekte Paketlängen, Offsets, Fragmentierung und Typwerte dürfen keinen ungefangenen Prozessabsturz verursachen |
 | `SPEC-040` | Simulations-Test-Gate | Unit-Tests der Anweisungserkennung (jede Form aus `SPEC-036` positiv und negativ, Grenzen bei Literalen, Bezeichnern und Kommentaren) und Integrationstest mit dem .NET-Referenzclient: Auswahl, leeres Ergebnis, Zeilenquelle über der Speichergrenze, Fehler der Zeilenquelle, Cancel; Gate noch einzurichten |
-| `SPEC-041` | Static-Analysis-Gate (`make detekt`, `make detekt-selbsttest`) | detekt in Docker, Konfiguration auf Standardbasis (`config/detekt/detekt.yml`) mit den Importregeln der Schichten; keine Baseline; jeder Befund bricht den Lauf. Ein Selbsttest belegt, dass jede Importregel ihre verbotenen Importe meldet und die erlaubten Testdaten nicht; er läuft nur bei geänderten Eingängen |
+| `SPEC-041` | Static-Analysis-Gate (`make detekt`, `make detekt-selbsttest`) | detekt in Docker, Konfiguration auf Standardbasis (`config/detekt/detekt.yml`) mit den Importregeln der Schichten, im Kern als Erlaubnisliste ohne Fremdbibliothek; keine Baseline; jeder Befund bricht den Lauf. `@Suppress` und `@SuppressWarnings` im Quelltext brechen den Lauf vor detekt (Textprüfung `tools/suppression-check.sh`). Ein Selbsttest belegt, dass jede Importregel ihre verbotenen Importe meldet, die erlaubten Testdaten nicht und das Suppression-Verbot jede Form meldet; er läuft nur bei geänderten Eingängen |
 | `SPEC-042` | Build-Gate (`make build`) | Compile und Jar in Docker, ohne Tests; Basis-Images per Digest gepinnt, Abhängigkeitsversionen per Lock und Prüfsummen fixiert |
 | `SPEC-050` | Referenzabgleich-Gate | Live-Lauf und Mitschnitt-Lauf nach `SPEC-045` gegen eine SQL-Server-Referenzinstanz in Docker; Abweichungen nur über die Ausnahmeliste; Gate noch einzurichten |
 | `SPEC-032` | Kompatibilitätstest-Gate | Echter .NET-SqlClient prüft LOGINACK/ENVCHANGE/DONE, TLS-Profil, RPC-Parameter, Streaming-Fehler, ATTENTION und Wiederverwendung; Gate noch einzurichten |

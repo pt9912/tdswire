@@ -1,9 +1,11 @@
 # Nur die Abweichungen von detekts Standardkonfiguration - build.gradle.kts setzt
 # buildUponDefaultConfig = true, alles hier nicht Genannte behaelt den Standard (die ganze
 # Standardkonfiguration: `gradle detektGenerateConfig`). Keine Baseline, kein @Suppress: ein
-# Befund wird im Code behoben, nicht stummgeschaltet. detekt kann die Prinzipien nicht selbst
-# pruefen, nur Stellvertreter: Groesse und Komplexitaet fuer S, Schnittstellenbreite fuer I,
-# Paketabhaengigkeiten fuer D, fehlende Implementierungen fuer L.
+# Befund wird im Code behoben, nicht stummgeschaltet; @Suppress und @SuppressWarnings im Quelltext
+# bricht tools/suppression-check.sh (Stage `detekt`). detekt kann die SOLID-Prinzipien nicht selbst
+# pruefen, nur Stellvertreter: Groesse und Komplexitaet fuer S (Single Responsibility),
+# Schnittstellenbreite fuer I (Interface Segregation), Paketabhaengigkeiten fuer D (Dependency
+# Inversion), fehlende Implementierungen fuer L (Liskov).
 
 complexity:
   # S: eine schwer lesbare Methode tut meist mehr als eine Sache - ergaenzt
@@ -24,10 +26,16 @@ style:
   # D: Importrichtung der Schichten. Quelle ist die Tabelle in spec/architecture.md Abschnitt 2
   # (Spalte Package): was dort unter "Darf importieren" nicht steht, ist hier verboten.
   # runtime ist der Composition Root und hat keine Regel.
-  # `make detekt-selbsttest` prueft die Regeln: aus den Werten hier erzeugt tools/detekt-selbsttest.sh
-  # je Regel verbotene Imports, die alle gemeldet werden muessen; die handgeschriebenen
-  # Allowed.kt unter config/detekt/selbsttest/ nennen je Package die erlaubten, die nichts
-  # melden duerfen. Die Package-Verzeichnisse dort sind die Packages der Architekturtabelle.
+  # Der Kern (domain, port) ist eine Erlaubnisliste: alles ist verboten ausser den Imports unter
+  # allowedImports, also auch jede Fremdbibliothek. Die uebrigen Schichten sind Verbotslisten
+  # ueber die Packages des Projekts; sie duerfen Fremdbibliotheken nutzen.
+  # `make detekt-selbsttest` prueft die Regeln: aus den Werten hier erzeugt
+  # tools/detekt-selbsttest.sh je Regel verbotene Imports, die alle gemeldet werden muessen; die
+  # handgeschriebenen Dateien unter config/detekt/selbsttest/ nennen je Package die erlaubten
+  # Imports (Allowed.kt, melden nichts) und fuer den Kern Fremdbibliotheken (Fremd.kt, melden
+  # alles). Fuer jede Verbotsliste muessen verbotene, erlaubte und das eigene Package zusammen
+  # alle Packages der Testdaten ergeben; ein fehlender Wert faellt so auf. Die Package-
+  # Verzeichnisse der Testdaten sind die Packages der Architekturtabelle.
   # Grenzen: ForbiddenImport liest nur import-Zeilen, ein voll qualifizierter Name im Code
   # umgeht die Regel. Schnittstelle und Implementierung von transport und observability sind
   # noch kein Package-Schnitt: protocol darf daher alles ausser simulation und runtime
@@ -36,20 +44,30 @@ style:
     active: true
     includes: ['**/io/github/pt9912/tdswire/domain/**']
     forbiddenImports:
-      - value: 'io.github.pt9912.tdswire.config.*'
-        reason: 'domain kennt nur die Standardbibliothek.'
-      - value: 'io.github.pt9912.tdswire.port.*'
-        reason: 'domain kennt nur die Standardbibliothek.'
-      - value: 'io.github.pt9912.tdswire.protocol.*'
-        reason: 'domain kennt nur die Standardbibliothek.'
-      - value: 'io.github.pt9912.tdswire.transport.*'
-        reason: 'domain kennt nur die Standardbibliothek.'
-      - value: 'io.github.pt9912.tdswire.observability.*'
-        reason: 'domain kennt nur die Standardbibliothek.'
-      - value: 'io.github.pt9912.tdswire.simulation.*'
-        reason: 'domain kennt nur die Standardbibliothek.'
-      - value: 'io.github.pt9912.tdswire.runtime.*'
-        reason: 'domain kennt nur die Standardbibliothek.'
+      - value: '*'
+        reason: 'domain kennt nur die Standardbibliothek ohne Netzwerk, keine Fremdbibliothek und kein anderes Package.'
+    allowedImports:
+      - 'kotlin.*'
+      - 'java.lang.*'
+      - 'java.util.*'
+      - 'java.time.*'
+      - 'java.math.*'
+      - 'io.github.pt9912.tdswire.domain.*'
+  ForbiddenImport/port:
+    active: true
+    includes: ['**/io/github/pt9912/tdswire/port/**']
+    forbiddenImports:
+      - value: '*'
+        reason: 'port kennt domain, die Standardbibliothek und die Laufzeitbibliothek fuer asynchrone Streams, sonst nichts.'
+    allowedImports:
+      - 'kotlin.*'
+      - 'kotlinx.coroutines.*'
+      - 'java.lang.*'
+      - 'java.util.*'
+      - 'java.time.*'
+      - 'java.math.*'
+      - 'io.github.pt9912.tdswire.domain.*'
+      - 'io.github.pt9912.tdswire.port.*'
   ForbiddenImport/config:
     active: true
     includes: ['**/io/github/pt9912/tdswire/config/**']
@@ -66,22 +84,6 @@ style:
         reason: 'config darf nur domain importieren.'
       - value: 'io.github.pt9912.tdswire.runtime.*'
         reason: 'config darf nur domain importieren.'
-  ForbiddenImport/port:
-    active: true
-    includes: ['**/io/github/pt9912/tdswire/port/**']
-    forbiddenImports:
-      - value: 'io.github.pt9912.tdswire.config.*'
-        reason: 'port darf nur domain und eine Laufzeitbibliothek fuer asynchrone Streams importieren.'
-      - value: 'io.github.pt9912.tdswire.protocol.*'
-        reason: 'der Backend-Port kennt keine TDS-Paketbytes.'
-      - value: 'io.github.pt9912.tdswire.transport.*'
-        reason: 'der Backend-Port kennt keinen Transport.'
-      - value: 'io.github.pt9912.tdswire.observability.*'
-        reason: 'port darf nur domain und eine Laufzeitbibliothek fuer asynchrone Streams importieren.'
-      - value: 'io.github.pt9912.tdswire.simulation.*'
-        reason: 'der Port kennt seine Adapter nicht.'
-      - value: 'io.github.pt9912.tdswire.runtime.*'
-        reason: 'port darf nur domain und eine Laufzeitbibliothek fuer asynchrone Streams importieren.'
   ForbiddenImport/protocol:
     active: true
     includes: ['**/io/github/pt9912/tdswire/protocol/**']

@@ -8,7 +8,7 @@
 
 **Bezug:** [TDS-FA-01](../../../spec/lastenheft.md#tds-fa-01--verbindungsaufbau-und-protokollverhandlung), [TDS-QA-03](../../../spec/lastenheft.md#tds-qa-03--sicherheit)
 
-**Schärft:** [SPEC-028](../../../spec/spezifikation.md#spec-028--prelogin-tls-und-login7-zustands--und-antwortvertrag), [SPEC-010](../../../spec/spezifikation.md#3-defaults-und-konstanten), [SPEC-023](../../../spec/spezifikation.md#6-externe-verträge), [ARC-002](../../../spec/architecture.md#1-komponenten-übersicht), [ARC-013](../../../spec/architecture.md#3-externe-abhängigkeiten), [TDS-FA-01.a](../../../spec/spezifikation.md#tds-fa-01a--tcp-verbindung-und-prelogin)
+**Schärft:** [SPEC-043](../../../spec/spezifikation.md#spec-043--startprüfung-tls-konfiguration-und-port), [TDS-FA-09.a](../../../spec/spezifikation.md#tds-fa-09a--konfiguration-und-diagnose), [SPEC-028](../../../spec/spezifikation.md#spec-028--prelogin-tls-und-login7-zustands--und-antwortvertrag), [SPEC-010](../../../spec/spezifikation.md#3-defaults-und-konstanten), [SPEC-023](../../../spec/spezifikation.md#6-externe-verträge), [ARC-002](../../../spec/architecture.md#1-komponenten-übersicht), [ARC-013](../../../spec/architecture.md#3-externe-abhängigkeiten), [TDS-FA-01.a](../../../spec/spezifikation.md#tds-fa-01a--tcp-verbindung-und-prelogin)
 
 ---
 
@@ -51,3 +51,4 @@ TDS PRELOGIN handelt Verschlüsselung aus. Moderne .NET-Clients können Verschl�
 | Datum      | Ereignis                      | Verweis |
 | ---------- | ----------------------------- | ------- |
 | 2026-10-29 | Proposed – Entscheidung offen | —       |
+| 2026-10-29 | Bezug auf `SPEC-043` und `TDS-FA-09.a` ergänzt; Entscheidung weiter offen | [SPEC-043](../../../spec/spezifikation.md#spec-043--startprüfung-tls-konfiguration-und-port) |

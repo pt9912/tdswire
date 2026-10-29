@@ -1,8 +1,8 @@
-# Reviewer-Skill — <Repo-Name>
+# Reviewer-Skill — tdswire
 
 * Status: Accepted
-* Bezug: <ADR-NNNN, AGENTS.md §"Review-Regeln"> · <!-- d-check:ignore (Kurs-/ADR-Referenzen; Anker gelten im Ziel-Repo) -->
-* Gilt für: `<agent-review-Make-Target>`
+* Bezug: `AGENTS.md` §3 (Harte Regeln) und §6 (Workflow), `harness/README.md` §Source precedence
+* Gilt für: die Reviewer-Rolle (Agent-Typ `reviewer`); ein Make-Target für den Review gibt es nicht
 
 ## Kontext-Eingang (Pflicht)
 
@@ -25,7 +25,9 @@ bewusst kurz (Ergänzungs-Kanal, nicht Hauptkanal).
 **HIGH** — eines der folgenden:
 - ADR-Verstoß (Layer, Tool, Hard Rule)
 - Sicherheits-Anti-Pattern (Injection, fehlende Auth-Prüfung)
-- Korrektheitsfehler im *kritischen* Pfad (<z. B. Index-Schreiben, Auth>)
+- Korrektheitsfehler im *kritischen* Pfad (Protokoll-Synchronität: eine Antwort wird einer
+  späteren Anfrage zugeordnet, `TDS-QA-07`; Anmeldung: Zugangsdaten im Log oder eine Sitzung ohne
+  abgeschlossene Authentifizierung, `TDS-QA-03`)
 - Suppression eines Gates (`#noqa`, `//nolint`, `[SuppressMessage]`) ohne ADR
 - **Norm nur im Template-Kommentar** — eine Regel steht im `<!-- -->`-Block
   eines `.template.md` und nirgends sonst. Sie ist beim Adopter weg, sobald er
@@ -42,9 +44,19 @@ bewusst kurz (Ergänzungs-Kanal, nicht Hauptkanal).
   Schließungen und erreichte Meilensteine. Kein Gate fängt das (siehe
   Baseline-Regelwerk `grundlagen-harness-dateien.md` §Was ein Kommentar trägt,
   *Dieselbe Regel für Zustandsfelder*)
-- <**repo-spezifisch #1** — eine Regel, die ein generischer Skill nicht abdeckt,
-  z. B. „git mv + Inhalt = zwei Commits" oder „Accepted-ADRs immutable">
-- <**repo-spezifisch #2** — eine zweite solche Regel>
+- **Schichtregel gebrochen oder umgangen** — ein Import entgegen der Tabelle in
+  `spec/architecture.md` §2, eine Fremdbibliothek in `domain` oder `port`, oder eine Änderung an
+  `config/detekt/detekt.yml`, die eine Importregel lockert, ohne dass die Tabelle dasselbe sagt
+  (Quelle ist die Tabelle, die Regeln leiten sich ab). Kein anderes Gate fängt eine Tabelle, die
+  der Regel widerspricht
+- **Die untere Spec-Schicht erweitert die obere** — ein Abschnitt in `spec/spezifikation.md` oder
+  `spec/architecture.md` führt eine Zusage ein, die im Lastenheft keinen Anker hat, oder
+  `spec/lastenheft.md` und `spec/spezifikation.md` nennen eine ID einer tieferen Schicht
+  (`SPEC-`, `ARC-`, `ADR-`). Die untere Schicht präzisiert, sie erweitert nie
+- **Host statt Docker** — ein Skript, Make-Target oder eine Anleitung ruft `gradle`, `java` oder
+  eine Kotlin-Toolchain auf dem Host auf (`AGENTS.md` §3.1)
+- **Accepted-ADR inhaltlich geändert** statt durch eine neue ADR mit `Supersedes` ersetzt
+  (`AGENTS.md` §3.5)
 
 **MEDIUM** — eines der folgenden:
 - unklare Fehlerbehandlung am Rand des Spec-Bereichs

@@ -8,7 +8,7 @@
 
 **Bezug:** [TDS-FA-06](../../../spec/lastenheft.md#tds-fa-06--fehler-und-abschlusszustände), [TDS-FA-07](../../../spec/lastenheft.md#tds-fa-07--abbruch-und-ressourcenfreigabe), [TDS-QA-07](../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität)
 
-**Schärft:** [SPEC-029](../../../spec/spezifikation.md#spec-029--attention-und-wiederverwendung-der-verbindung), [SPEC-031](../../../spec/spezifikation.md#spec-031--streaming-fehler-und-atomarität), [SPEC-011](../../../spec/spezifikation.md#4-fehler-codes-und-logging-felder), [SPEC-016](../../../spec/spezifikation.md#4-fehler-codes-und-logging-felder), [ARC-015](../../../spec/architecture.md#1-komponenten-übersicht), [TDS-FA-06.a](../../../spec/spezifikation.md#tds-fa-06a--fehlerabbildung), [TDS-FA-07.a](../../../spec/spezifikation.md#tds-fa-07a--attention-und-cleanup)
+**Schärft:** [SPEC-044](../../../spec/spezifikation.md#spec-044--geordnetes-beenden), [SPEC-047](../../../spec/spezifikation.md#3-defaults-und-konstanten), [SPEC-048](../../../spec/spezifikation.md#4-fehler-codes-und-logging-felder), [SPEC-049](../../../spec/spezifikation.md#4-fehler-codes-und-logging-felder), [SPEC-029](../../../spec/spezifikation.md#spec-029--attention-und-wiederverwendung-der-verbindung), [SPEC-031](../../../spec/spezifikation.md#spec-031--streaming-fehler-und-atomarität), [SPEC-011](../../../spec/spezifikation.md#4-fehler-codes-und-logging-felder), [SPEC-016](../../../spec/spezifikation.md#4-fehler-codes-und-logging-felder), [ARC-015](../../../spec/architecture.md#1-komponenten-übersicht), [TDS-FA-06.a](../../../spec/spezifikation.md#tds-fa-06a--fehlerabbildung), [TDS-FA-07.a](../../../spec/spezifikation.md#tds-fa-07a--attention-und-cleanup)
 
 ---
 
@@ -51,3 +51,4 @@ Neue Recovery-Lücke oder reproduzierbare Desynchronisation.
 | Datum      | Ereignis                      | Verweis |
 | ---------- | ----------------------------- | ------- |
 | 2026-10-29 | Proposed – Entscheidung offen | —       |
+| 2026-10-29 | Bezug auf `SPEC-044`, `SPEC-047`, `SPEC-048`, `SPEC-049` (geordnetes Beenden, interne Fehler) ergänzt; Entscheidung weiter offen | [SPEC-044](../../../spec/spezifikation.md#spec-044--geordnetes-beenden) |

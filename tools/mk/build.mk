@@ -8,12 +8,12 @@ TAG   ?= latest
 build: ## Jar bauen (Dockerfile-Stage `build`, ohne Tests)
 	docker build -t $(IMAGE):$(TAG) .
 
-detekt: ## Statische Analyse samt Importregeln der Schichten (Dockerfile-Stage `detekt`)
+detekt: ## Suppression-Verbot und statische Analyse samt Importregeln der Schichten (Dockerfile-Stage `detekt`)
 	docker build --target detekt --progress=plain .
 
-# Alle Tasks, die lokal, im Dockerfile und in CI laufen: manche Konfigurationen loest Gradle
-# erst waehrend der Ausfuehrung auf, sie fehlten sonst in Lock und Pruefsummen.
-DEPS_TASKS = dependencies help classes detekt assemble
+# Alle Gradle-Tasks, die das Dockerfile ausfuehrt. Manche Konfigurationen loest Gradle erst
+# waehrend der Ausfuehrung auf; Lock und Pruefsummen brauchen darum jede dieser Tasks.
+DEPS_TASKS = dependencies help classes detekt detektSelbsttest assemble
 
 # Das Gradle-Image des Locks ist das der Stage `deps` im Dockerfile: ein Digest, eine Stelle.
 GRADLE_IMAGE = $(shell sed -n 's/^FROM \(gradle[^ ]*\) AS deps$$/\1/p' Dockerfile)

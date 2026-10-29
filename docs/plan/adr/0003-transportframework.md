@@ -8,7 +8,7 @@
 
 **Bezug:** [TDS-FA-01](../../../spec/lastenheft.md#tds-fa-01--verbindungsaufbau-und-protokollverhandlung), [TDS-QA-02](../../../spec/lastenheft.md#tds-qa-02--stabilität), [TDS-RB-01](../../../spec/lastenheft.md#tds-rb-01--implementierungssprache)
 
-**Schärft:** [ARC-003](../../../spec/architecture.md#1-komponenten-übersicht), [ARC-008](../../../spec/architecture.md#1-komponenten-übersicht), [ARC-013](../../../spec/architecture.md#3-externe-abhängigkeiten), [SPEC-027](../../../spec/spezifikation.md#7-festlegungen-der-harness-werkzeuge), [TDS-FA-01.a](../../../spec/spezifikation.md#tds-fa-01a--tcp-verbindung-und-prelogin)
+**Schärft:** [SPEC-046](../../../spec/spezifikation.md#3-defaults-und-konstanten), [ARC-003](../../../spec/architecture.md#1-komponenten-übersicht), [ARC-008](../../../spec/architecture.md#1-komponenten-übersicht), [ARC-013](../../../spec/architecture.md#3-externe-abhängigkeiten), [SPEC-027](../../../spec/spezifikation.md#7-festlegungen-der-harness-werkzeuge), [TDS-FA-01.a](../../../spec/spezifikation.md#tds-fa-01a--tcp-verbindung-und-prelogin)
 
 ---
 
@@ -51,3 +51,4 @@ Nachweisbare Leaks, unzureichende Backpressure oder neue JVM-Runtime-Anforderung
 | Datum      | Ereignis                      | Verweis |
 | ---------- | ----------------------------- | ------- |
 | 2026-10-29 | Proposed – Entscheidung offen | —       |
+| 2026-10-29 | Bezug auf `SPEC-046` (Größengrenze vor dem Login) ergänzt; Entscheidung weiter offen | [SPEC-046](../../../spec/spezifikation.md#3-defaults-und-konstanten) |

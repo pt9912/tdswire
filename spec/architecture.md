@@ -68,10 +68,11 @@ Pfeile zeigen Datenfluss und Aufrufrichtung zur Laufzeit, nicht die Import-Richt
 
 ## 2. Schichten und Constraints
 
-Jede Komponente liegt in einem Package unter `io.github.pt9912.tdswire`
-(`src/main/kotlin/io/github/pt9912/tdswire/<Package>/`). Importiert wird nur, was die Spalte
-„Darf importieren“ nennt; die Spalte „Darf NICHT importieren“ nennt die wichtigsten Ausschlüsse.
-Die Importregeln in `config/detekt/detekt.yml` leiten sich aus dieser Tabelle ab.
+Jede Komponente liegt in einem Package unter `io.github.pt9912.tdswire` (Spalte „Package“).
+Importiert wird nur, was die Spalte „Darf importieren“ nennt; die Spalte „Darf NICHT importieren“
+nennt die wichtigsten Ausschlüsse. Im Kern (`domain`, `port`) gilt das auch für
+Fremdbibliotheken: erlaubt sind nur die Standardbibliothek und im Port die Laufzeitbibliothek für
+asynchrone Streams.
 
 | Komponente(n) | Package | Schicht | Verantwortlichkeit | Darf importieren | Darf NICHT importieren |
 |---|---|---|---|---|---|
@@ -81,7 +82,7 @@ Die Importregeln in `config/detekt/detekt.yml` leiten sich aus dieser Tabelle ab
 | `ARC-004`, `ARC-005`, `ARC-007`, `ARC-015` | `protocol` | Protocol | TDS-Semantik, Session, Anfrage-/Antwortabbildung | Domain, Backend Port, Security-Verträge, Observability-Schnittstellen, Transport-Schnittstellen (Antwortausgabe) | konkrete Backend-Engine, TCP-Transport-Implementierung, Bootstrap |
 | `ARC-003` | `transport` | Transport | Netzwerk-I/O, Framing und TLS-Kapselung | Domain, Security-Verträge, Observability-Schnittstellen, Protocol-Schnittstellen | konkrete Backend-Engine |
 | `ARC-009` | `observability` | Observability | Telemetrie-Adapter | Domain, Observability-Schnittstellen | fachliche Entscheidungen |
-| `ARC-016` | `simulation` | Backend-Adapter | Simulations-Backend hinter dem Backend Port | Domain, Backend Port | Protocol, Transport, Security-Verträge, Observability, Bootstrap, externe Engine |
+| `ARC-016` | `simulation` | Backend-Adapter | Simulations-Backend hinter dem Backend Port | Domain, Backend Port, Laufzeitbibliothek für asynchrone Streams | Protocol, Transport, Security-Verträge, Observability, Bootstrap, externe Engine |
 | `ARC-008` | `runtime` | Runtime | Composition Root | alle benötigten Module | — |
 
 **Constraints:** Kein Package außer Runtime importiert das Simulations-Backend; der Protokollkern

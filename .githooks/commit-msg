@@ -23,10 +23,12 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # des Vertrags-Praefix TDS (TDS-FA|QA|RB-NN, MR-000) zaehlt wie eine der Menge in
 # tools/harness/commit-msg-traceability.sh. Alles andere — die uebrige Kennungs-Menge, Merge- und
 # Revert-Ausnahme, Exit-Codes — entscheidet jenes Skript; es wird bei jedem Bootstrap neu
-# geschrieben, dieser Traeger nicht. Kommentarzeilen zaehlen nicht. Ohne pipefail-Falle:
-# `grep | grep -q` wuerde bei einem Treffer mit 141 enden.
+# geschrieben, dieser Traeger nicht. Kommentarzeilen zaehlen nicht. Die Kennung steht allein: links
+# kein Buchstabe, keine Ziffer, kein _ oder -, rechts keine Ziffer. Der Rumpf liegt in einer
+# Variablen, die zweite grep liest sie per Here-String: eine Pipe endet unter pipefail bei einem
+# Treffer mit Exit 141.
 body="$(grep -vE '^[[:space:]]*#' "$1" || true)"
-if grep -qE 'TDS-(FA|QA|RB)-[0-9]{2}' <<<"$body"; then
+if grep -qE '(^|[^[:alnum:]_-])TDS-(FA|QA|RB)-[0-9]{2}([^0-9]|$)' <<<"$body"; then
   exit 0
 fi
 
