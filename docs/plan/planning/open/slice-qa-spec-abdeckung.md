@@ -31,7 +31,7 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Jede Festlegung der Spezifikation (`SPEC-*`) ist durch Modul-Tests, E2E-Tests oder ein Gate belegt, und eine Abdeckungsmatrix unter `docs/plan/` zeigt je `SPEC-*` ihre Belege und die Festlegungen ohne Beleg.
+**Ziel:** Jede Festlegung der Spezifikation (`SPEC-*`) ist durch Modul-Tests, E2E-Tests oder ein Gate nachgewiesen, und eine Abdeckungsmatrix unter `docs/plan/` zeigt je `SPEC-*` ihre Nachweise und die Festlegungen ohne Nachweis. Ein Nachweis ist ein bestandener Lauf; die bloße Nennung der `SPEC-*` in einem Test belegt nichts.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -46,8 +46,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] Konvention, mit der ein Test die `SPEC-*` nennt, die er belegt (Modul-Test, E2E-Test), festgelegt und im Selbsttest belegt.
-- [ ] Erzeuger schreibt die Abdeckungsmatrix nach `docs/plan/` (je `SPEC-*`: Belege nach Art, Waisen sichtbar), analog zu `make e2e-abdeckung`.
+- [ ] Konvention, mit der ein Test die `SPEC-*` nennt, die er nachweist (Modul-Test, E2E-Test), festgelegt und im Selbsttest belegt.
+- [ ] Erzeuger schreibt die Abdeckungsmatrix nach `docs/plan/` (je `SPEC-*`: Nachweise nach Art, Festlegungen ohne Nachweis sichtbar), analog zu `make e2e-abdeckung`. Er wertet die Berichte der Testläufe aus: nur ein bestandener Test zählt, ein nicht gelaufener oder roter nicht.
 - [ ] Entscheidung, ob Waisen das Gate brechen, getroffen; bei einem Gate steht die Bindung in `harness/README.md`.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -105,7 +105,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Ein Gate auf Waisen färbt `make gates` rot, solange Tests fehlen (wie bei der E2E-Sicht, die ausdrücklich kein Gate ist). — **Ausgang:** offen bis zur Closure.
+- Die Testberichte liegen nach dem Lauf in Docker nicht auf dem Host; der Erzeuger braucht sie als Ausgabe der Test-Stage. — **Ausgang:** offen bis zur Closure.
+- Ein Gate auf Festlegungen ohne Nachweis färbt `make gates` rot, solange Tests fehlen (wie bei der E2E-Sicht, die ausdrücklich kein Gate ist). — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 

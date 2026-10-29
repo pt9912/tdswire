@@ -183,7 +183,7 @@ Kein Target nennen, das im Makefile nicht existiert — auch nicht in Prosa.
 | 3 | Neue ADRs müssen den ADR-Index aktualisieren. | — |
 | 4 | Roadmap/Status-Geschichte lebt in `docs/plan/planning/`, nicht in `spec/architecture.md`. | — |
 | 5 | Nutzer-Doku liegt in `docs/user/` und bildet den Ist-Zustand ab: keine Chronik, keine Forensik, keine Planung. Was war, steht in `git`; was kommt, in `docs/plan/planning/`. <!-- d-check:ignore (Verzeichnis entsteht mit der ersten Nutzer-Doku) --> | — |
-| 6 | Abdeckungs-Dokumente liegen in `docs/plan/` (z. B. die E2E-Abdeckungs-Sicht aus `make e2e-abdeckung` und die Kompatibilitätsmatrix der Spezifikation). Die Requirements Traceability Matrix ist davon ausgenommen: `make doc-trace` erzeugt sie bei Bedarf auf stdout, sie wird nicht abgespeichert. | — |
+| 6 | Abdeckungs-Dokumente liegen in `docs/plan/` (z. B. die E2E-Abdeckungs-Sicht aus `make e2e-abdeckung` und die Kompatibilitätsmatrix der Spezifikation). Die Requirements Traceability Matrix ist davon ausgenommen: sie verfolgt Anforderungen nach (`make doc-trace` erzeugt sie bei Bedarf auf stdout, sie wird nicht abgespeichert). Eine Abdeckungsmatrix dagegen weist nach: ein Beleg ist ein bestandener Test- oder Gate-Lauf, nicht ein Verweis. | — |
 
 ## 6. Minimal Agent Workflow
 
