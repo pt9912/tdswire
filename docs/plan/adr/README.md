@@ -3,7 +3,7 @@
 | ID | Titel | Status | Bezug |
 |---|---|---|---|
 | [ADR-0001](0001-tds-version-und-clientprofil.md) | TDS-Version und .NET-Kompatibilitätsprofil | Accepted | [TDS-FA-01](../../../spec/lastenheft.md), [TDS-QA-01](../../../spec/lastenheft.md), [TDS-RB-02](../../../spec/lastenheft.md), [TDS-RB-03](../../../spec/lastenheft.md) |
-| [ADR-0002](0002-tls-und-verschluesselung.md) | TLS-Strategie und Verschlüsselungsmodi | Proposed | [TDS-FA-01](../../../spec/lastenheft.md), [TDS-QA-03](../../../spec/lastenheft.md) |
+| [ADR-0002](0002-tls-und-verschluesselung.md) | TLS-Strategie und Verschlüsselungsmodi | Accepted | [TDS-FA-01](../../../spec/lastenheft.md), [TDS-QA-03](../../../spec/lastenheft.md) |
 | [ADR-0003](0003-transportframework.md) | Transportframework und Netzwerk-Laufzeit | Proposed | [TDS-FA-01](../../../spec/lastenheft.md), [TDS-QA-02](../../../spec/lastenheft.md), [TDS-RB-01](../../../spec/lastenheft.md) |
 | [ADR-0004](0004-session-zustandsautomat.md) | Session-Zustandsautomat und Protokollverarbeitung | Proposed | [TDS-FA-01](../../../spec/lastenheft.md), [TDS-FA-02](../../../spec/lastenheft.md), [TDS-FA-07](../../../spec/lastenheft.md) |
 | [ADR-0005](0005-rpc-und-prepared-statements.md) | RPC-Unterstützung und Prepared Statements | Proposed | [TDS-FA-04](../../../spec/lastenheft.md), [TDS-FA-10](../../../spec/lastenheft.md) |

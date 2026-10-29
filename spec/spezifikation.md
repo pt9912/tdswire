@@ -514,7 +514,7 @@ aktive Backendoperationen, Abbrüche, Protokollfehler. Keine SQL-Texte als Metri
 | `SPEC-020` | Microsoft TDS | TDS 7.4 und TDS 8.0 (Strict-Encryption) | [MS-TDS](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tds/) |
 | `SPEC-021` | .NET SQL-Client | `Microsoft.Data.SqlClient` 7.1.1 auf .NET 10 | `contracts/client-profile.md` |
 | `SPEC-022` | Query-Backend | Projektvertrag v0 (Entwurf) | `contracts/query-backend.md` (anzulegen) |
-| `SPEC-023` | TLS | durch Clientprofil und Betriebsrichtlinie bestimmt | `contracts/security-profile.md` (anzulegen) |
+| `SPEC-023` | TLS | durch Clientprofil und Betriebsrichtlinie bestimmt; Standard `REQUIRED` | `contracts/security-profile.md` |
 
 Die genannten Vertragsdateien sind **geplante Artefakte**, keine bereits vorhandenen Dateien.
 
