@@ -74,6 +74,18 @@ Aussagen-Berührung steht hier gar nicht.
 | Spike (temporär, nicht im Repo behalten) | neu, danach löschen | Ergebnisse gehen in die ADR |
 | `spec/spezifikation.md` | update | Stellen aus `Schärft:` |
 
+**Zwischenstand der Messung** (Spike per Dockerfile ohne Mount; .NET SDK 10.0.403 und 8.0, Listener im Spike beantwortet PRELOGIN mit ENCRYPT_NOT_SUP und liest LOGIN7):
+
+- `Microsoft.Data.SqlClient` 7.1.1 und `System.Data.SqlClient` 4.9.1 senden in LOGIN7 dieselbe TDS-Version `0x74000004` (TDS 7.4) und Paketgröße 8000, bei `Encrypt=false` wie bei `Encrypt=true`; das Ergebnis ist unter .NET 8 und .NET 10 gleich.
+- PRELOGIN: Option 0 (VERSION) `07010001A066` (MDS) bzw. `0484007E5F2B` (SDS), Option 1 (ENCRYPTION) `00` bei `Encrypt=false`, `01` bei `Encrypt=true`, Option 6 (FEDAUTHREQUIRED) `01`. Bei `Encrypt=true` bricht der Client nach `ENCRYPT_NOT_SUP` ab, es folgt kein LOGIN7.
+- `Encrypt=Strict` (TDS 8.0): Der erste Byte-Block ist ein TLS-ClientHello (`1603010…`), kein PRELOGIN.
+- AppName/CltIntName: `Core Microsoft SqlClient Data Provider` (MDS) bzw. `Core .Net SqlClient Data Provider` (SDS).
+- TLS-Abläufe (`Microsoft.Data.SqlClient` 7.1.1, .NET 10, Testserver mit selbstsigniertem Zertifikat im Trust-Store des Containers):
+  - TDS 7.4 mit TLS (`Encrypt=true`, oder `Encrypt=false` gegen einen Server, der ENCRYPT_REQ antwortet): Der TLS-Handshake läuft eingepackt in TDS-Pakete vom Typ `0x12` (PRELOGIN); die Nutzlast beginnt mit dem TLS-Record `160301` (ClientHello, 290 Byte).
+  - TDS 8.0 (`Encrypt=Strict`): TLS 1.3 ab dem ersten Byte ohne TDS-Hülle, ALPN `tds/8.0`; danach PRELOGIN (ENCRYPTION-Option `02`), danach LOGIN7 mit `TDSVersion=0x08000000`.
+  - `Encrypt=Strict` ignoriert `TrustServerCertificate`: Ein selbstsigniertes Zertifikat scheitert mit „Certificate failed chain validation … UntrustedRoot“; der Server braucht ein Zertifikat, dem der Client vertraut, und `HostNameInCertificate` muss passen.
+- Offen: Die Wahl zwischen TDS 7.4 und TDS 8.0 im Profil hängt an der TLS-Strategie ([ADR-0002](../../adr/0002-tls-und-verschluesselung.md)); die Messung oben nimmt diesen Slice mit, `slice-adr-tls` entscheidet darauf.
+
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 
 ## 4. Trigger
