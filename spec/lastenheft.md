@@ -1,6 +1,6 @@
 # Lastenheft — JVM TDS Server
 
-**Version:** 0.2.0  
+**Version:** 0.3.0  
 **Status:** Draft  
 **Autor:** pt9912
 **Datum:** 2026-10-29
@@ -11,7 +11,7 @@
 
 Das Projekt stellt einen eigenständigen Serverendpunkt bereit, über den .NET-Anwendungen mit einem Microsoft-SQL-Server-kompatiblen Clienttreiber mittels Tabular Data Stream (TDS) auf eine kundenseitig bereitgestellte Abfrage- und Datenverarbeitung zugreifen können. Der Server nimmt Verbindungen entgegen, authentifiziert Clients, übergibt unterstützte Anfragen an ein angebundenes Backend und liefert Resultate und Fehler im erwarteten Protokollformat zurück. Ziel ist Interoperabilität für einen klar abgegrenzten Funktionsumfang, nicht die vollständige Nachbildung von Microsoft SQL Server.
 
-Primärer Client ist eine .NET-Anwendung. Die konkrete Treiberversion, erforderliche Verbindungsoptionen und der tatsächlich genutzte SQL-/RPC-Funktionsumfang werden vor Abnahme in einem Client-Kompatibilitätsprofil festgelegt. Die interne Abfrage-Engine und Datenhaltung sind nicht Bestandteil des TDS-Servers; ihre Anbindung gehört zur Systemgrenze. Die konkrete Implementierung ist nicht Gegenstand dieses Dokuments.
+Primärer Client ist eine .NET-Anwendung. Die konkrete Treiberversion, erforderliche Verbindungsoptionen und der tatsächlich genutzte SQL-/RPC-Funktionsumfang werden vor Abnahme in einem Client-Kompatibilitätsprofil festgelegt. Die interne Abfrage-Engine und Datenhaltung sind nicht Bestandteil des TDS-Servers; ihre Anbindung gehört zur Systemgrenze. Mitgeliefert wird ein optionales Simulations-Backend (`TDS-FA-11`), das einen abgegrenzten Satz einfacher Anweisungsformen aus deklarativ beschriebenen Tabellen beantwortet; es ist keine SQL-Engine. Die konkrete Implementierung ist nicht Gegenstand dieses Dokuments.
 
 ## 2. Stakeholder
 
@@ -122,7 +122,7 @@ Primärer Client ist eine .NET-Anwendung. Die konkrete Treiberversion, erforderl
 - **Boundary:** Given ein leeres Resultset, when das Backend antwortet, then kann der Server dieses korrekt übertragen.
 - **Negative:** Given eine nicht erreichbare oder fehlerhafte Backendimplementierung, when eine Anfrage ausgeführt wird, then erhält der Client einen definierten Fehler und der Server bleibt verfügbar.
 
-**Out-of-Scope:** Entwicklung einer SQL-Engine, eines Query-Optimizers oder einer Persistenzschicht.
+**Out-of-Scope:** Entwicklung einer SQL-Engine, eines Query-Optimizers oder einer Persistenzschicht. Das mitgelieferte Simulations-Backend (`TDS-FA-11`) ist keine SQL-Engine im Sinne dieses Ausschlusses.
 
 ### TDS-FA-09 — Konfiguration und Diagnose
 
@@ -134,6 +134,17 @@ Primärer Client ist eine .NET-Anwendung. Die konkrete Treiberversion, erforderl
 - **Negative:** Given eine ungültige sicherheitsrelevante Konfiguration, when der Server startet, then wird sie abgewiesen, ohne unsichere Defaults stillschweigend zu aktivieren.
 
 **Out-of-Scope:** Grafische Administrationsoberfläche.
+
+### TDS-FA-11 — Mitgeliefertes Simulations-Backend
+
+**Beschreibung:** Das Projekt liefert ein optionales Backend mit, das den Backend-Vertrag (`TDS-FA-08`) implementiert und Anfragen aus deklarativ beschriebenen Tabellen beantwortet (Spalten, Typen, Schlüssel; Zeilen aus einer vom Integrator bereitgestellten Zeilenquelle). Es erkennt eine abgegrenzte Menge einfacher Anweisungsformen anhand ihres Textes: Auswahl von Spalten einer Tabelle mit einfachen Gleichheits- und Mengenbedingungen, verknüpft durch UND; einfache Einfüge-, Änderungs- und Löschanweisungen, die an den Integrator weitergegeben werden; sowie die Abfragen, die der Referenzclient laut Clientprofil beim Verbindungsaufbau oder für seine Metadaten stellt. Es wertet kein SQL aus und speichert keine Daten: Was gespeichert wird, entscheidet der Integrator. Der Protokollkern ist vom Simulations-Backend unabhängig und läuft ohne es.
+
+**Akzeptanzkriterien:**
+- **Happy Path:** Given eine beschriebene Tabelle mit Zeilen und eine erkannte Auswahl mit Bedingung, when der Referenzclient sie ausführt, then erhält er genau die passenden Zeilen mit den beschriebenen Spaltentypen und NULL-Werten.
+- **Boundary:** Given eine Zeilenquelle, deren Zeilen nicht gleichzeitig in den Speicher des Servers passen, when der Client das Resultset liest, then überträgt der Server es schrittweise, ohne es vollständig zu halten; Given eine Bedingung, die keine Zeile trifft, then erhält der Client gültige Spaltenmetadaten und einen ordnungsgemäßen Abschluss.
+- **Negative:** Given eine Anweisung oder Bedingung außerhalb der erkannten Formen (Verbund, Aggregat, Ausdruck, Unterabfrage), when sie ausgeführt wird, then erhält der Client einen definierten SQL-Fehler statt eines stillen Erfolgs oder eines falschen Ergebnisses; Given ein Fehler beim Lesen der Zeilenquelle, then erhält der Client einen definierten Fehler und die Sitzung bleibt, soweit zulässig, nutzbar.
+
+**Out-of-Scope:** Auswertung beliebigen SQLs (Verbunde, Aggregate, Ausdrücke, Unterabfragen, Sortierung), Persistenz, Transaktionssemantik über die Weitergabe an den Integrator hinaus und SQL-Server-Systemkataloge, soweit sie der Referenzclient nach Clientprofil nicht selbst abfragt.
 
 ## 4. Nichtfunktionale Anforderungen und Randbedingungen
 
@@ -185,6 +196,11 @@ Primärer Client ist eine .NET-Anwendung. Die konkrete Treiberversion, erforderl
 - **Vorgabe:** Das Backend ist austauschbar und darf keine TDS-Paketkodierung implementieren müssen.
 - **Nachweis:** Integration mit einem In-Memory-Testbackend.
 
+### TDS-RB-05 — Lizenz
+- **Art:** rechtlich
+- **Vorgabe:** Das Projekt steht unter der MIT-Lizenz.
+- **Nachweis:** `LICENSE` im Wurzelverzeichnis des Repositories.
+
 ### Offene Entscheidungen
 
 Jede offene Festlegung hat eine verantwortliche Rolle und einen Trigger; ohne die Festlegung gilt die jeweilige Anforderung als nicht abnehmbar.
@@ -196,14 +212,15 @@ Jede offene Festlegung hat eine verantwortliche Rolle und einen Trigger; ohne di
 | TLS-Modus für den Produktivbetrieb               | `TDS-QA-03`              | Betrieb / DevOps             | vor Implementierung des Verbindungsaufbaus |
 | Protokollversion und Funktionsmenge              | `TDS-RB-03`              | Serverentwicklung            | vor Implementierung des Verbindungsaufbaus |
 | Grenzwerte für Durchsatz, p95-Latenz, Sitzungen und Lastprofil | `TDS-QA-04`              | Betreiber der .NET-Anwendung | vor Abnahme                                |
+| Erkannte Anweisungsformen, Bedingungen und Typen des Simulations-Backends | `TDS-FA-11`              | Serverentwicklung            | vor Implementierung des Simulations-Backends |
 
 ## 5. Globale Out-of-Scope-Punkte
 
 - Kein vollständiger Ersatz für Microsoft SQL Server.
-- Keine vollständige T-SQL-Kompatibilität, keine SQL-Server-Systemkataloge oder Administrationsfunktionen.
+- Keine vollständige T-SQL-Kompatibilität, keine SQL-Server-Systemkataloge oder Administrationsfunktionen, außer den Abfragen des Referenzclients, die das Clientprofil festlegt (`TDS-FA-11`).
 - Keine Unterstützung für Entity Framework Core, SSMS, Power BI oder DBeaver als eigenständiges Abnahmeziel, sofern nicht später vereinbart.
 - Keine Hochverfügbarkeit, Replikation, Clustering oder verteilte Transaktionen in der ersten Version.
-- Keine integrierte SQL-Engine oder persistente Datenbank.
+- Keine integrierte SQL-Engine oder persistente Datenbank; das mitgelieferte Simulations-Backend (`TDS-FA-11`) erkennt nur abgegrenzte Anweisungsformen und speichert nichts.
 - Keine Zusage für beliebige TDS-/SqlClient-Versionen.
 - Keine Windows-Authentifizierung in der ersten Version.
 
@@ -220,9 +237,12 @@ Jede offene Festlegung hat eine verantwortliche Rolle und einen Trigger; ohne di
 | Backend        | Vom TDS-Server getrennte Abfrage- und Datenverarbeitung                                          |
 | Clientprofil   | Festgelegte Kombination aus .NET-/Treiber-Version, Connection String und unterstützten Szenarien |
 | Referenzclient | Testanwendung, die das verbindliche Clientprofil ausführt                                        |
+| Simulations-Backend | Mitgeliefertes optionales Backend, das einfache Anweisungsformen aus deklarativ beschriebenen Tabellen beantwortet; keine SQL-Engine |
+| Zeilenquelle   | Vom Integrator bereitgestellte Quelle der Zeilen einer Tabelle, die schrittweise gelesen wird    |
 
 ## 7. Historie
 
 | Version | Datum      | Änderung                                                                | Verweis |
 | ------- | ---------- | ----------------------------------------------------------------------- | ------- |
 | 0.2.0   | 2026-10-29 | Entwurf überarbeitet: mehrteilige Antworten und Synchronität präzisiert | —       |
+| 0.3.0   | 2026-10-29 | Simulations-Backend als Anforderung aufgenommen; Ausschluss der SQL-Engine abgegrenzt; Lizenz als Randbedingung | `TDS-FA-11`, `TDS-RB-05` |

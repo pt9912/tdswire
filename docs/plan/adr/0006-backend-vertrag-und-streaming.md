@@ -6,15 +6,17 @@
 
 **Autor:** pt9912
 
-**Bezug:** [TDS-FA-05](../../../spec/lastenheft.md#tds-fa-05--resultsets-und-datentypen), [TDS-FA-08](../../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-FA-10](../../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte)
+**Bezug:** [TDS-FA-05](../../../spec/lastenheft.md#tds-fa-05--resultsets-und-datentypen), [TDS-FA-08](../../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-FA-10](../../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte), [TDS-FA-11](../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend)
 
-**Schärft:** [SPEC-002](../../../spec/spezifikation.md#spec-002--interner-query-vertrag), [SPEC-031](../../../spec/spezifikation.md#spec-031--streaming-fehler-und-atomarität), [ARC-006](../../../spec/architecture.md#1-komponenten-übersicht), [ARC-007](../../../spec/architecture.md#1-komponenten-übersicht), [ARC-015](../../../spec/architecture.md#1-komponenten-übersicht), [TDS-FA-05.a](../../../spec/spezifikation.md#tds-fa-05a--ergebniskodierung), [TDS-FA-08.a](../../../spec/spezifikation.md#tds-fa-08a--backend-vertrag), [TDS-FA-10.a](../../../spec/spezifikation.md#tds-fa-10a--mehrteilige-antworten-und-rpc-ausgabewerte)
+**Schärft:** [SPEC-002](../../../spec/spezifikation.md#spec-002--interner-query-vertrag), [SPEC-035](../../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends), [TDS-FA-11.a](../../../spec/spezifikation.md#tds-fa-11a--simulations-backend), [SPEC-031](../../../spec/spezifikation.md#spec-031--streaming-fehler-und-atomarität), [ARC-006](../../../spec/architecture.md#1-komponenten-übersicht), [ARC-007](../../../spec/architecture.md#1-komponenten-übersicht), [ARC-015](../../../spec/architecture.md#1-komponenten-übersicht), [TDS-FA-05.a](../../../spec/spezifikation.md#tds-fa-05a--ergebniskodierung), [TDS-FA-08.a](../../../spec/spezifikation.md#tds-fa-08a--backend-vertrag), [TDS-FA-10.a](../../../spec/spezifikation.md#tds-fa-10a--mehrteilige-antworten-und-rpc-ausgabewerte)
 
 ---
 
 ## Kontext
 
 Die eigene Query-Engine soll unabhängig vom TDS-Codec bleiben. Mehrere Resultsets, Update-Counts und Fehler während des Streamings müssen korrekt sequenziert werden.
+
+`SPEC-002` skizziert den Backend-Vertrag mit einem `Flow<QueryEvent>` und `TDS-FA-08.a` verlangt Backpressure bis zum Transport. Die Zeilenquelle des Simulations-Backends (`SPEC-035`, `TDS-FA-11.a`) ist ein suspendierendes Pull-Interface; `TDS-FA-11` verlangt, dass eine Zeilenquelle über der Speichergrenze schrittweise übertragen wird. Beide Skizzen sprechen gegen Option A für große Ergebnisse. Sie entscheiden nichts: Die Wahl des Ergebnismodells bleibt offen.
 
 ## Entscheidung
 
@@ -51,3 +53,4 @@ Backpressure-Probleme oder zusätzliche Backend-Ergebnisarten.
 | Datum      | Ereignis                      | Verweis |
 | ---------- | ----------------------------- | ------- |
 | 2026-10-29 | Proposed – Entscheidung offen | —       |
+| 2026-10-29 | Bezug auf `TDS-FA-11` und `SPEC-035` ergänzt; Entscheidung weiter offen | [TDS-FA-11](../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) |

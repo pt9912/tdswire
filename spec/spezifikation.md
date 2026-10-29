@@ -1,6 +1,6 @@
 # Spezifikation — JVM TDS Server
 
-**Bezug zum Lastenheft:** `spec/lastenheft.md`, Anforderungen `TDS-FA-01` bis `TDS-FA-10` sowie
+**Bezug zum Lastenheft:** `spec/lastenheft.md`, Anforderungen `TDS-FA-01` bis `TDS-FA-11` sowie
 `TDS-QA-*` und `TDS-RB-*`. Bei Widerspruch hat das Lastenheft Vorrang.  
 **Rolle:** Technik-Stratum; technische Präzisierung ohne Erweiterung des Lastenhefts.
 
@@ -136,6 +136,42 @@ TDS-Tokenstrom.
 **Fehlermodi:** unzulässige Ereignisfolge, Typfehler, nicht abschließbarer Stream. **Komplexität:**
 O(übertragene Bytes).
 
+### TDS-FA-11.a — Simulations-Backend
+**Eingabe:** `QueryRequest` (`SPEC-002`) mit SQL-Text, typisierten Parametern und Session-Kontext.
+**Ausgabe:** `QueryExecution` mit geordneten Ereignissen (Metadaten, Zeilen, Abschluss oder
+Änderungszähler) oder typisierter Fehler. Das Simulations-Backend ist eine Implementierung von
+`QueryBackend`; der Protokollkern kennt es nicht und läuft ohne es.
+
+1. Anweisungstext normalisieren: Leerraum und Kommentare außerhalb von Literalen und Bezeichnern
+   überlesen, ein einzelnes abschließendes `;` entfernen. Mehrere Anweisungen in einem Text gelten
+   als nicht erkannt, solange das Clientprofil sie nicht verlangt.
+2. Die Anweisung anhand ihres Textes genau einer Form aus `SPEC-036` zuordnen. Das geschieht mit
+   einem Zeichenscanner, der Literale, Bezeichner und Kommentare erkennt, nicht mit einer
+   Auswertung von SQL. Ohne Zuordnung endet die Anfrage mit `TDS_UNSUPPORTED_SQL`, bevor eine
+   Zeilenquelle gelesen oder ein Callback gerufen wird.
+3. Tabelle (Schema, Name) und alle genannten Spalten gegen die Tabellenbeschreibungen (`SPEC-035`)
+   prüfen. Unbekanntes endet mit `TDS_SIM_UNKNOWN_OBJECT`, ebenfalls vor dem Lesen. Ohne Schema gilt
+   `dbo`.
+4. Parameter (`@name`) aus `QueryRequest.parameters` als typisierte Werte einsetzen, nie als Text.
+   Jeden Wert in den Typ seiner Spalte überführen; was die Spalte nicht halten kann, endet mit
+   `TDS_SIM_INVALID_VALUE`.
+5. Auswahl: `ResultStart` mit den Spalten der Auswahlliste (bei `*` alle, in der Reihenfolge der
+   Beschreibung) senden, auch wenn keine Zeile passt. Danach Zeilen einzeln aus der Zeilenquelle
+   lesen, die Bedingung auf jede Zeile anwenden, passende als `Row` senden und mit `ResultEnd` und
+   der Zeilenzahl abschließen. Das Backend wendet die Bedingung immer selbst an; ein Vorfilter der
+   Zeilenquelle ist nur eine Optimierung. Gelesen wird nur so schnell, wie der Transport Zeilen
+   abnimmt (Backpressure, `TDS-FA-08.a`); das Resultset wird nicht vollständig gehalten.
+6. Einfügen, Ändern, Löschen: Werte nach Schritt 4 prüfen, den Callback der Tabelle rufen und dessen
+   Zahl als `UpdateCount` senden. Hat die Tabelle für die Anweisung keinen Callback, endet sie mit
+   `TDS_UNSUPPORTED_SQL`. Das Backend speichert nichts.
+7. Fehler der Zeilenquelle oder eines Callbacks vor `ResultStart` sind `Failure` ohne Metadaten
+   (`TDS_BACKEND_ERROR`). Nach `ResultStart` gilt `SPEC-031`. Cancel und Disconnect beenden das
+   Lesen und schließen die Zeilenquelle (`SPEC-029`).
+
+**Komplexität:** O(gelesene Zeilen) je Auswahl, O(n) für die Erkennung des Textes. **Fehlermodi:**
+nicht erkannte Anweisung, unbekannte Tabelle oder Spalte, nicht überführbarer Wert, Fehler der
+Zeilenquelle, Abbruch.
+
 ## 2. Datenstrukturen und Schemas
 
 ### SPEC-001 — Zustandsautomat einer Verbindung
@@ -180,7 +216,8 @@ sealed interface QueryEvent {
     data class Row(val values: List<Any?>) : QueryEvent
     data class ResultEnd(val affectedRows: Long?) : QueryEvent
     data class UpdateCount(val affectedRows: Long) : QueryEvent
-    data class ReturnStatus(val value: Int) : QueryEvent    data class OutputParameter(val name: String, val type: SqlType, val value: Any?) : QueryEvent
+    data class ReturnStatus(val value: Int) : QueryEvent
+    data class OutputParameter(val name: String, val type: SqlType, val value: Any?) : QueryEvent
     data class Failure(val code: String, val message: String) : QueryEvent
 }
 data class ResultColumn(val name: String, val type: SqlType, val nullable: Boolean)
@@ -265,6 +302,67 @@ wenn der Strom synchron bleibt; andernfalls wird die Verbindung geschlossen. Nie
 Teilantwort einen zweiten vollständigen Resultset-Anfang vortäuschen. Backpressure begrenzt Puffer;
 Cancel und Disconnect schließen den Backendstream.
 
+### SPEC-035 — Tabellenbeschreibung und Zeilenquelle des Simulations-Backends
+```kotlin
+data class SimTable(
+    val schema: String = "dbo",
+    val name: String,
+    val columns: List<SimColumn>,
+    val rows: suspend (SimQuery) -> RowSource,
+    val onInsert: (suspend (values: Map<String, Any?>) -> Long)? = null,
+    val onUpdate: (suspend (set: Map<String, Any?>, where: RowFilter?) -> Long)? = null,
+    val onDelete: (suspend (where: RowFilter?) -> Long)? = null
+)
+data class SimColumn(val name: String, val type: SqlType, val nullable: Boolean = true)
+data class SimQuery(val columns: List<SimColumn>, val filter: RowFilter?)
+data class RowFilter(val terms: List<FilterTerm>)
+sealed interface FilterTerm {
+    data class In(val column: String, val values: List<Any?>) : FilterTerm
+    data class IsNull(val column: String, val negated: Boolean) : FilterTerm
+}
+fun interface RowSource {
+    suspend fun next(): List<Any?>?
+    fun close() {}
+}
+```
+Dies ist eine **Vertragsskizze**, kein bereits implementierter Code; Typen und Lebensdauerregeln
+werden vor der Implementierung festgelegt. Festgelegt ist die Bedeutung:
+
+- `next()` liefert die Werte einer Zeile in der Reihenfolge von `SimQuery.columns`, `null` am Ende.
+  Jeder Aufruf darf suspendieren; die Zeilenquelle liest nie mehr voraus, als der Aufrufer abnimmt.
+- `close()` wird genau einmal gerufen, nach dem Ende, einem Fehler oder einem Abbruch.
+- `FilterTerm.In` bildet `=` (ein Wert) und `IN (…)` ab. Alle Terme eines `RowFilter` gelten
+  gemeinsam (UND). Dieselbe Spalte darf in mehreren Termen stehen; ein Widerspruch trifft keine
+  Zeile. `NULL` in einem Vergleich oder einer Werteliste trifft nie (dreiwertige Logik,
+  `ANSI_NULLS ON`); `IsNull` ist der einzige Weg zu NULL-Zeilen.
+- `onUpdate` und `onDelete` bekommen `where = null` für eine Anweisung ohne `WHERE`, also für alle
+  Zeilen. Die Zahl, die ein Callback liefert, ist die Zahl der betroffenen Zeilen.
+- `SimQuery.filter` ist ein Hinweis zum Vorfiltern (Schritt 5 in `TDS-FA-11.a`), kein Ersatz für die
+  Prüfung durch das Backend.
+
+### SPEC-036 — Erkannte Anweisungsformen des Simulations-Backends (vorläufig)
+
+| Form | Muster | Antwort |
+|---|---|---|
+| S1 | `SELECT <Spaltenliste \| *> FROM [<Schema>.]<Tabelle> [WHERE <Term> {AND <Term>}]` | Resultset |
+| W1 | `INSERT INTO [<Schema>.]<Tabelle> (<Spalten>) VALUES (<Werte>)` | Änderungszähler |
+| W2 | `UPDATE [<Schema>.]<Tabelle> SET <Spalte> = <Wert> {, <Spalte> = <Wert>} [WHERE <Term> {AND <Term>}]` | Änderungszähler |
+| W3 | `DELETE FROM [<Schema>.]<Tabelle> [WHERE <Term> {AND <Term>}]` | Änderungszähler |
+| C | genau die Texte, die das Clientprofil dem Referenzclient zuschreibt (z. B. ein Verbindungstest, falls das Profil ihn nennt) | im Profil festgelegtes Ergebnis |
+
+- **Term:** `<Spalte> = <Wert>`, `<Spalte> IN (<Wert> {, <Wert>})` oder `<Spalte> IS [NOT] NULL`.
+- **Wert:** Zahl, `'…'`, `N'…'`, `NULL` oder `@<Parametername>`.
+- **Bezeichner:** unquotiert, `[…]` oder `"…"`; Tabellen- und Spaltennamen werden ohne Beachtung der
+  Groß-/Kleinschreibung verglichen (vorläufig, wie die übliche Server-Collation).
+- **Nicht erkannt** (`TDS_UNSUPPORTED_SQL`): `JOIN` und weitere Relationen, Unterabfragen, `WITH`,
+  Aggregate und `GROUP BY`, `DISTINCT`, `TOP`, `ORDER BY`, `OFFSET`/`FETCH`, Aliase für Tabellen und
+  Spalten, Ausdrücke und Funktionen in Listen und Bedingungen, `OR`, `NOT`, `<`, `>`, `LIKE`, `BETWEEN`,
+  `OUTPUT`-Klauseln, mehrere Anweisungen in einem Text und alles, was keine Form der Tabelle ist.
+- Form C wird erst mit dem Clientprofil (`SPEC-004`) gefüllt; bis dahin ist sie leer.
+
+Der Katalog ist ein Entwurf. Verbindlich wird er mit der Festlegung, die das Lastenheft unter
+„Offene Entscheidungen“ führt.
+
 ## 3. Defaults und Konstanten
 
 | ID | Name | Wert | Begründung |
@@ -291,6 +389,13 @@ Abnahmegrenzen.
 | `SPEC-014` | `TDS_UNSUPPORTED_TYPE` | Wert nicht serialisierbar | definierter Fehler, kein fehlerhaftes Resultset |
 | `SPEC-015` | `TDS_BACKEND_ERROR` | Backend-Ausführung fehlgeschlagen | Fehlerabbildung in TDS |
 | `SPEC-016` | `TDS_TIMEOUT` | Frist überschritten | Cancel, Cleanup, Fehler/Disconnect |
+| `SPEC-037` | `TDS_UNSUPPORTED_SQL` | Anweisung oder Bedingung außerhalb von `SPEC-036`; Schreibzugriff ohne Callback | ERROR und DONE mit Fehlerstatus, Zeilenquelle nicht gelesen |
+| `SPEC-038` | `TDS_SIM_UNKNOWN_OBJECT` | Tabelle oder Spalte ist nicht beschrieben | ERROR und DONE mit Fehlerstatus; vorgesehene SQL-Server-Nummern 208 (Objekt) und 207 (Spalte) |
+| `SPEC-039` | `TDS_SIM_INVALID_VALUE` | Wert nicht in den Spaltentyp überführbar | ERROR und DONE mit Fehlerstatus; vorgesehene SQL-Server-Nummer 245 |
+
+Die Nummern in der Aktionsspalte sind ein Vorschlag für das Mapping nach `TDS-FA-06.a`. Für
+`TDS_UNSUPPORTED_SQL` gibt es keine SQL-Server-Entsprechung, denn dort ist die Anweisung gültig; die
+Nummer kommt aus dem Benutzerbereich (ab 50001).
 
 Pflicht-Logfelder: `connection_id`, `session_id` (falls vorhanden), `request_id` (falls vorhanden),
 `event`, `duration_ms`, `error_code`, `client_profile`. Keine Zugangsdaten oder Parameterwerte im
@@ -326,6 +431,7 @@ Die genannten Vertragsdateien sind **geplante Artefakte**, keine bereits vorhand
 | `SPEC-025` | Integrationstest-Gate | Containerisierter Server + echter .NET-Referenzclient prüfen Login, SQL_BATCH, RPC, Typen, Fehler, Cancel; Gate noch einzurichten |
 | `SPEC-026` | `make gates` | Aggregator: führt alle eingerichteten Gates aus; neue Gates für Formatierung, statische Prüfung und Tests werden in ihn aufgenommen |
 | `SPEC-027` | Fuzz-/Property-Tests | Defekte Paketlängen, Offsets, Fragmentierung und Typwerte dürfen keinen ungefangenen Prozessabsturz verursachen |
+| `SPEC-040` | Simulations-Test-Gate | Unit-Tests der Anweisungserkennung (jede Form aus `SPEC-036` positiv und negativ, Grenzen bei Literalen, Bezeichnern und Kommentaren) und Integrationstest mit dem .NET-Referenzclient: Auswahl, leeres Ergebnis, Zeilenquelle über der Speichergrenze, Fehler der Zeilenquelle, Cancel; Gate noch einzurichten |
 | `SPEC-032` | Kompatibilitätstest-Gate | Echter .NET-SqlClient prüft LOGINACK/ENVCHANGE/DONE, TLS-Profil, RPC-Parameter, Streaming-Fehler, ATTENTION und Wiederverwendung; Gate noch einzurichten |
 
 ## 8. Historie
@@ -333,3 +439,4 @@ Die genannten Vertragsdateien sind **geplante Artefakte**, keine bereits vorhand
 | Datum | Änderung |
 |---|---|
 | 2026-10-29 | Überarbeitung: TLS-Kapselung, Login-Token, RPC, Streaming, ATTENTION, Mehrfachergebnisse und Abnahmetests präzisiert |
+| 2026-10-29 | `TDS-FA-11.a` ergänzt: Simulations-Backend mit Ablauf, Tabellenbeschreibung, Anweisungsformen, Fehlercodes und Test-Gate (`SPEC-035` bis `SPEC-040`) |
