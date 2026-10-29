@@ -5,14 +5,16 @@
 # Der Selbsttest laeuft nur, wenn sich ein Eingang geaendert hat. Ein Stempel in build/ haelt
 # fest, dass er fuer diese Eingaenge gruen war; sonst bleibt auch der docker-Aufruf aus. Die
 # Verzeichnisse stehen mit in der Liste, damit eine geloeschte Testdatei ihn ausloest. Ein
-# frischer Klon hat keinen Stempel und fuehrt ihn einmal aus.
+# frischer Klon hat keinen Stempel und fuehrt ihn einmal aus. Der Stempel liegt in
+# .harness/state/ (nicht versioniert), nicht in einem build/: auf dem Host baut nichts.
 .PHONY: detekt-selbsttest
 
-SELBSTTEST_STEMPEL = build/detekt-selbsttest.ok
+SELBSTTEST_STEMPEL = .harness/state/detekt-selbsttest.ok
 SELBSTTEST_EINGAENGE = Dockerfile settings.gradle.kts build.gradle.kts gradle.properties \
 	gradle/libs.versions.toml gradle.lockfile settings-gradle.lockfile \
 	gradle/verification-metadata.xml config/detekt/detekt.yml \
-	tools/detekt-selbsttest.sh tools/suppression-check.sh $(shell find config/detekt/selbsttest)
+	tools/detekt-selbsttest.sh tools/suppression-check.sh \
+	$(shell find config/detekt/selbsttest config/detekt/selbsttest-aufrufe)
 
 detekt-selbsttest: $(SELBSTTEST_STEMPEL) ## Importregeln der Schichten und Suppression-Verbot gegen Testdaten pruefen; laeuft nur bei geaenderten Eingaengen
 

@@ -6,6 +6,10 @@
 kotlin = "2.4.10"
 detekt = "2.0.0-alpha.6"
 
+[libraries]
+# Der ktlint-Regelsatz fuer detekt; seine Version ist die des Plugins.
+detekt-ktlint = { module = "dev.detekt:detekt-rules-ktlint-wrapper", version.ref = "detekt" }
+
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 detekt = { id = "dev.detekt", version.ref = "detekt" }

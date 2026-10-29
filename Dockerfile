@@ -13,7 +13,9 @@
 
 # --- Deps: Gradle-Metadaten zuerst, damit die Aufloesung der Abhaengigkeiten unabhaengig von
 # Quelltextaenderungen aus dem Cache kommt. ----------------------------------
-FROM gradle:8.14-jdk21@sha256:b3453e88792ea90b526f5d04fa2961bba183ae57ded4ad3437a49fb4e8381c06 AS deps
+FROM gradle:8.14-jdk21@sha256:b3453e88792ea90b526f5d04fa2961bba183ae57ded4ad3437a49fb4e8381c06 AS basis
+
+FROM basis AS deps
 WORKDIR /src
 COPY --chown=gradle:gradle settings.gradle.kts build.gradle.kts gradle.properties gradle.lockfile settings-gradle.lockfile ./
 COPY --chown=gradle:gradle gradle/libs.versions.toml gradle/verification-metadata.xml gradle/
@@ -26,27 +28,47 @@ COPY --chown=gradle:gradle src src
 RUN gradle --no-daemon classes
 
 # --- Detekt: `docker build --target detekt .` - zuerst das Suppression-Verbot (AGENTS.md 3.2,
-# tools/suppression-check.sh), dann die statische Analyse samt Importregeln der Schichten
-# (config/detekt/detekt.yml). Baut auf `deps` auf: detekt ohne Typaufloesung liest nur Quelltext.
-# Jeder Befund bricht den Build, es gibt keine Baseline. ----------------------------
+# tools/suppression-check.sh), dann die statische Analyse samt ktlint-Regelsatz und Regeln der
+# Schichten (config/detekt/detekt.yml). `detekt` liest nur Quelltext; `detektMain` und
+# `detektTest` loesen Typen auf und kompilieren dafuer, ForbiddenMethodCall wirkt nur dort. Jeder
+# Befund bricht den Build, es gibt keine Baseline. ----------------------------
 FROM deps AS detekt
 COPY --chown=gradle:gradle src src
 COPY --chown=gradle:gradle config config
 COPY --chown=gradle:gradle tools/suppression-check.sh tools/suppression-check.sh
 RUN sh tools/suppression-check.sh src \
- && gradle --no-daemon detekt
+ && gradle --no-daemon detekt detektMain detektTest
 
 # --- Detekt-Selbsttest: `docker build --target detekt-selbsttest .` - belegt, dass jede
-# Importregel verbotene Importe meldet und erlaubte nicht, und dass das Suppression-Verbot jede
-# Form von @Suppress meldet (tools/detekt-selbsttest.sh). Kopiert weder src/ noch Doku: die Stage
+# Importregel verbotene Importe meldet und erlaubte nicht, dass jeder verbotene Aufruf gemeldet
+# wird, und dass das Suppression-Verbot die Formen von @Suppress meldet, die das Skript nennt
+# (tools/detekt-selbsttest.sh). Kopiert weder src/ noch Doku: die Stage
 # laeuft nur neu, wenn sich Regeln, Testdaten, Skripte oder Toolchain aendern. -----
 FROM deps AS detekt-selbsttest
 COPY --chown=gradle:gradle config config
 COPY --chown=gradle:gradle tools/detekt-selbsttest.sh tools/suppression-check.sh tools/
 RUN sh tools/detekt-selbsttest.sh generate \
- && gradle --no-daemon detektSelbsttest \
+ && gradle --no-daemon detektSelbsttest detektSelbsttestAufrufe \
  && sh tools/detekt-selbsttest.sh check \
+ && sh tools/detekt-selbsttest.sh aufrufe \
  && sh tools/detekt-selbsttest.sh suppression
+
+# --- Lock: schreibt gradle.lockfile, settings-gradle.lockfile und gradle/verification-metadata.xml
+# neu (`make deps-lock`, braucht Netz). Es wird nichts gemountet: die Stage `lock-export` liefert
+# die drei Dateien per `docker build --output`. DEPS_TASKS nennt die Gradle-Tasks, die dieses
+# Dockerfile ausfuehrt; manche Konfigurationen loest Gradle erst dabei auf. ---------------
+FROM basis AS lock
+ARG DEPS_TASKS
+WORKDIR /src
+COPY --chown=gradle:gradle settings.gradle.kts build.gradle.kts gradle.properties ./
+COPY --chown=gradle:gradle gradle/libs.versions.toml gradle/
+COPY --chown=gradle:gradle src src
+COPY --chown=gradle:gradle config config
+RUN gradle --no-daemon -q --write-locks --write-verification-metadata sha256 ${DEPS_TASKS}
+
+FROM scratch AS lock-export
+COPY --from=lock /src/gradle.lockfile /src/settings-gradle.lockfile /
+COPY --from=lock /src/gradle/verification-metadata.xml /gradle/
 
 # --- Build-Jar: der Jar mit vollem Gradle/JDK - nur ein Zwischenschritt fuer `build`. -------
 FROM compile AS build-jar

@@ -13,14 +13,11 @@ detekt: ## Suppression-Verbot und statische Analyse samt Importregeln der Schich
 
 # Alle Gradle-Tasks, die das Dockerfile ausfuehrt. Manche Konfigurationen loest Gradle erst
 # waehrend der Ausfuehrung auf; Lock und Pruefsummen brauchen darum jede dieser Tasks.
-DEPS_TASKS = dependencies help classes detekt detektSelbsttest assemble
+DEPS_TASKS = dependencies help classes detekt detektMain detektTest detektSelbsttest detektSelbsttestAufrufe assemble
 
-# Das Gradle-Image des Locks ist das der Stage `deps` im Dockerfile: ein Digest, eine Stelle.
-GRADLE_IMAGE = $(shell sed -n 's/^FROM \(gradle[^ ]*\) AS deps$$/\1/p' Dockerfile)
-
+# Die Stage `lock` im Dockerfile schreibt die Dateien, `lock-export` gibt sie per --output heraus:
+# nichts wird gemountet, auf dem Host entsteht kein build/ und kein .gradle/.
 deps-lock: ## Nach einer Versionsaenderung in gradle/libs.versions.toml: gradle.lockfile und gradle/verification-metadata.xml neu schreiben
-	rm -f gradle/verification-metadata.xml
-	docker run --rm -v "$(CURDIR)":/home/gradle/project -w /home/gradle/project $(GRADLE_IMAGE) \
-		gradle --no-daemon -q --write-locks --write-verification-metadata sha256 $(DEPS_TASKS) >/dev/null
+	docker build --target lock-export --build-arg DEPS_TASKS="$(DEPS_TASKS)" --output type=local,dest=. .
 
 GATE_CHECKS += detekt build

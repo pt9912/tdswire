@@ -1,11 +1,126 @@
-# Nur die Abweichungen von detekts Standardkonfiguration - build.gradle.kts setzt
-# buildUponDefaultConfig = true, alles hier nicht Genannte behaelt den Standard (die ganze
-# Standardkonfiguration: `gradle detektGenerateConfig`). Keine Baseline, kein @Suppress: ein
-# Befund wird im Code behoben, nicht stummgeschaltet; @Suppress und @SuppressWarnings im Quelltext
-# bricht tools/suppression-check.sh (Stage `detekt`). detekt kann die SOLID-Prinzipien nicht selbst
-# pruefen, nur Stellvertreter: Groesse und Komplexitaet fuer S (Single Responsibility),
-# Schnittstellenbreite fuer I (Interface Segregation), Paketabhaengigkeiten fuer D (Dependency
-# Inversion), fehlende Implementierungen fuer L (Liskov).
+# detekt-Konfiguration. Sie baut auf der Standardkonfiguration der gepinnten Version auf
+# (buildUponDefaultConfig, Pin in gradle/libs.versions.toml) und senkt keinen Standard: kein
+# `active: false` auf einer Standardregel, keine laxere Schwelle, kein Pfad-Ausschluss. Eine
+# Ausnahme steht nur hier, mit Begruendung am Eintrag, und braucht eine ADR (dauerhaft) oder einen
+# Carveout mit Trigger (befristet, AGENTS.md 3.6). Es gibt keine Baseline und keine
+# Inline-Unterdrueckung (AGENTS.md 3.2): @Suppress und @SuppressWarnings im Quelltext bricht
+# tools/suppression-check.sh in der Stage `detekt`.
+# detekt kann die SOLID-Prinzipien nicht selbst pruefen, nur Stellvertreter: Groesse und
+# Komplexitaet fuer S (Single Responsibility), Schnittstellenbreite fuer I (Interface Segregation),
+# Paketabhaengigkeiten fuer D (Dependency Inversion), fehlende Implementierungen fuer L (Liskov).
+
+config:
+  # Eine zwischen Alphas umbenannte oder entfernte Option macht den Lauf rot statt still wirkungslos.
+  warningsAsErrors: true
+
+# Format: der ktlint-Regelsatz des Wrappers (detektPlugins in build.gradle.kts, Version wie das
+# Plugin). Im Gate wird geprueft, nichts umgeschrieben. Jede Regel steht einzeln mit
+# ausdruecklichem `active`; die Werte sind gleich dem Standard der gepinnten Version
+# (config/config.yml im Jar detekt-rules-ktlint-wrapper), die dort inaktiven bleiben inaktiv. Nach
+# einem Pin-Wechsel gehoert der Block neu aus dieser Datei erzeugt.
+ktlint:
+  active: true
+  autoCorrect: false
+  AnnotationOnSeparateLine: { active: true }
+  AnnotationSpacing: { active: true }
+  ArgumentListWrapping: { active: true }
+  BackingPropertyNaming: { active: true }
+  BinaryExpressionWrapping: { active: true }
+  BlankLineBeforeDeclaration: { active: false }
+  BlankLineBetweenWhenConditions: { active: true }
+  BlockCommentInitialStarAlignment: { active: true }
+  ChainMethodContinuation: { active: false }
+  ChainWrapping: { active: true }
+  ClassName: { active: false }
+  ClassSignature: { active: true }
+  CommentSpacing: { active: true }
+  CommentWrapping: { active: true }
+  ConditionWrapping: { active: true }
+  ContextReceiverListWrapping: { active: true }
+  ContextReceiverMapping: { active: true }
+  EnumEntryNameCase: { active: true }
+  EnumWrapping: { active: true }
+  ExpressionOperandWrapping: { active: false }
+  Filename: { active: true }
+  FinalNewline: { active: true }
+  FunKeywordSpacing: { active: true }
+  FunctionExpressionBody: { active: true }
+  FunctionLiteral: { active: true }
+  FunctionName: { active: false }
+  FunctionReturnTypeSpacing: { active: true }
+  FunctionSignature: { active: true }
+  FunctionStartOfBodySpacing: { active: true }
+  FunctionTypeModifierSpacing: { active: true }
+  FunctionTypeReferenceSpacing: { active: true }
+  IfElseBracing: { active: false }
+  IfElseWrapping: { active: false }
+  ImportOrdering: { active: true }
+  Indentation: { active: true }
+  Kdoc: { active: true }
+  KdocWrapping: { active: true }
+  MaximumLineLength: { active: true }
+  MixedConditionOperators: { active: true }
+  ModifierListSpacing: { active: true }
+  ModifierOrdering: { active: true }
+  MultiLineIfElse: { active: true }
+  MultilineExpressionWrapping: { active: false }
+  MultilineLoop: { active: true }
+  NoBlankLineBeforeRbrace: { active: true }
+  NoBlankLineInList: { active: false }
+  NoBlankLinesInChainedMethodCalls: { active: true }
+  NoConsecutiveBlankLines: { active: true }
+  NoConsecutiveComments: { active: false }
+  NoEmptyClassBody: { active: true }
+  NoEmptyFile: { active: true }
+  NoEmptyFirstLineInClassBody: { active: false }
+  NoEmptyFirstLineInMethodBlock: { active: true }
+  NoLineBreakAfterElse: { active: true }
+  NoLineBreakBeforeAssignment: { active: true }
+  NoMultipleSpaces: { active: true }
+  NoSemicolons: { active: true }
+  NoSingleLineBlockComment: { active: false }
+  NoTrailingSpaces: { active: true }
+  NoUnitReturn: { active: true }
+  NoUnusedImports: { active: true }
+  NoWildcardImports: { active: true }
+  NullableTypeSpacing: { active: true }
+  PackageName: { active: true }
+  ParameterListSpacing: { active: true }
+  ParameterListWrapping: { active: true }
+  ParameterWrapping: { active: true }
+  PropertyName: { active: true }
+  PropertyWrapping: { active: true }
+  SpacingAroundAngleBrackets: { active: true }
+  SpacingAroundColon: { active: true }
+  SpacingAroundComma: { active: true }
+  SpacingAroundCurly: { active: true }
+  SpacingAroundDot: { active: true }
+  SpacingAroundDoubleColon: { active: true }
+  SpacingAroundKeyword: { active: true }
+  SpacingAroundOperators: { active: true }
+  SpacingAroundParens: { active: true }
+  SpacingAroundRangeOperator: { active: true }
+  SpacingAroundSquareBrackets: { active: true }
+  SpacingAroundUnaryOperator: { active: true }
+  SpacingBetweenDeclarationsWithAnnotations: { active: true }
+  SpacingBetweenDeclarationsWithComments: { active: true }
+  SpacingBetweenFunctionNameAndOpeningParenthesis: { active: true }
+  StatementWrapping: { active: true }
+  StringTemplate: { active: true }
+  StringTemplateIndent: { active: false }
+  ThenSpacing: { active: true }
+  TrailingCommaOnCallSite: { active: true }
+  TrailingCommaOnDeclarationSite: { active: true }
+  TryCatchFinallySpacing: { active: false }
+  TypeArgumentComment: { active: true }
+  TypeArgumentListSpacing: { active: true }
+  TypeParameterComment: { active: true }
+  TypeParameterListSpacing: { active: true }
+  UnnecessaryParenthesesBeforeTrailingLambda: { active: true }
+  ValueArgumentComment: { active: true }
+  ValueParameterComment: { active: true }
+  WhenEntryBracing: { active: false }
+  Wrapping: { active: true }
 
 complexity:
   # S: eine schwer lesbare Methode tut meist mehr als eine Sache - ergaenzt
@@ -27,15 +142,19 @@ style:
   # (Spalte Package): was dort unter "Darf importieren" nicht steht, ist hier verboten.
   # runtime ist der Composition Root und hat keine Regel.
   # Der Kern (domain, port) ist eine Erlaubnisliste: alles ist verboten ausser den Imports unter
-  # allowedImports, also auch jede Fremdbibliothek. Die uebrigen Schichten sind Verbotslisten
-  # ueber die Packages des Projekts; sie duerfen Fremdbibliotheken nutzen.
+  # allowedImports, also auch jede Fremdbibliothek. Daneben sperrt je eine Regel `<package>-technik`
+  # Technik, die unter den erlaubten Globs liegt (Threads, Dateisystem, Prozess, Reflection,
+  # Logging). Die uebrigen Schichten sind Verbotslisten ueber die Packages des Projekts; sie duerfen
+  # Fremdbibliotheken nutzen. Die Kernregeln gelten ueber `includes` fuer Main- und Test-Quellsatz:
+  # auch ein Test im Kern importiert nur, was die Erlaubnisliste nennt (kotlin.test statt JUnit).
   # `make detekt-selbsttest` prueft die Regeln: aus den Werten hier erzeugt
   # tools/detekt-selbsttest.sh je Regel verbotene Imports, die alle gemeldet werden muessen; die
   # handgeschriebenen Dateien unter config/detekt/selbsttest/ nennen je Package die erlaubten
   # Imports (Allowed.kt, melden nichts) und fuer den Kern Fremdbibliotheken (Fremd.kt, melden
   # alles). Fuer jede Verbotsliste muessen verbotene, erlaubte und das eigene Package zusammen
-  # alle Packages der Testdaten ergeben; ein fehlender Wert faellt so auf. Die Package-
-  # Verzeichnisse der Testdaten sind die Packages der Architekturtabelle.
+  # alle Packages der Testdaten ergeben, fuer jede Erlaubnisliste die erlaubten Projekt-Packages
+  # genau die Imports von Allowed.kt plus das eigene Package; ein fehlender oder zusaetzlicher Wert
+  # faellt so auf. Die Package-Verzeichnisse der Testdaten sind die Packages der Architekturtabelle.
   # Grenzen: ForbiddenImport liest nur import-Zeilen, ein voll qualifizierter Name im Code
   # umgeht die Regel. Schnittstelle und Implementierung von transport und observability sind
   # noch kein Package-Schnitt: protocol darf daher alles ausser simulation und runtime
@@ -53,6 +172,30 @@ style:
       - 'java.time.*'
       - 'java.math.*'
       - 'io.github.pt9912.tdswire.domain.*'
+  ForbiddenImport/domain-technik:
+    active: true
+    includes: ['**/io/github/pt9912/tdswire/domain/**']
+    forbiddenImports:
+      - value: 'java.lang.Runtime'
+        reason: 'Prozess: Start und Ende des Dienstes gehoeren der Composition Root, nicht dem Kern.'
+      - value: 'java.lang.ProcessBuilder'
+        reason: 'Prozess: Start und Ende des Dienstes gehoeren der Composition Root, nicht dem Kern.'
+      - value: 'java.lang.ProcessHandle'
+        reason: 'Prozess: Start und Ende des Dienstes gehoeren der Composition Root, nicht dem Kern.'
+      - value: 'java.lang.reflect.*'
+        reason: 'Reflection: der Kern ist ein reines Modell ohne Laufzeit-Introspektion.'
+      - value: 'java.util.concurrent.*'
+        reason: 'Threads: Nebenlaeufigkeit liegt im Transport, im Kern gibt es nur Werte.'
+      - value: 'java.util.logging.*'
+        reason: 'Logging: Telemetrie liegt in observability, nicht im Kern.'
+      - value: 'java.util.zip.*'
+        reason: 'Technik: Kompression liegt nicht im Kern.'
+      - value: 'kotlin.concurrent.*'
+        reason: 'Threads: Nebenlaeufigkeit liegt im Transport, im Kern gibt es nur Werte.'
+      - value: 'kotlin.io.*'
+        reason: 'Dateisystem und Konsole: Ein- und Ausgabe liegt ausserhalb des Kerns.'
+      - value: 'kotlin.system.*'
+        reason: 'Prozess: Start und Ende des Dienstes gehoeren der Composition Root, nicht dem Kern.'
   ForbiddenImport/port:
     active: true
     includes: ['**/io/github/pt9912/tdswire/port/**']
@@ -68,6 +211,40 @@ style:
       - 'java.math.*'
       - 'io.github.pt9912.tdswire.domain.*'
       - 'io.github.pt9912.tdswire.port.*'
+  ForbiddenImport/port-technik:
+    active: true
+    includes: ['**/io/github/pt9912/tdswire/port/**']
+    forbiddenImports:
+      - value: 'java.lang.Runtime'
+        reason: 'Prozess: Start und Ende des Dienstes gehoeren der Composition Root, nicht dem Port.'
+      - value: 'java.lang.ProcessBuilder'
+        reason: 'Prozess: Start und Ende des Dienstes gehoeren der Composition Root, nicht dem Port.'
+      - value: 'java.lang.ProcessHandle'
+        reason: 'Prozess: Start und Ende des Dienstes gehoeren der Composition Root, nicht dem Port.'
+      - value: 'java.lang.reflect.*'
+        reason: 'Reflection: der Port ist ein Vertrag ohne Laufzeit-Introspektion.'
+      - value: 'java.util.concurrent.*'
+        reason: 'Threads: die Nebenlaeufigkeit des Ports ist die der Laufzeitbibliothek fuer Streams.'
+      - value: 'java.util.logging.*'
+        reason: 'Logging: Telemetrie liegt in observability, nicht im Port.'
+      - value: 'java.util.zip.*'
+        reason: 'Technik: Kompression liegt nicht im Port.'
+      - value: 'kotlin.concurrent.*'
+        reason: 'Threads: die Nebenlaeufigkeit des Ports ist die der Laufzeitbibliothek fuer Streams.'
+      - value: 'kotlin.io.*'
+        reason: 'Dateisystem und Konsole: Ein- und Ausgabe liegt ausserhalb des Ports.'
+      - value: 'kotlin.system.*'
+        reason: 'Prozess: Start und Ende des Dienstes gehoeren der Composition Root, nicht dem Port.'
+      - value: 'kotlinx.coroutines.reactive.*'
+        reason: 'Fremdtechnik: eine Brueckenbibliothek zu Reactive Streams gehoert in einen Adapter.'
+      - value: 'kotlinx.coroutines.reactor.*'
+        reason: 'Fremdtechnik: eine Brueckenbibliothek zu Reactor gehoert in einen Adapter.'
+      - value: 'kotlinx.coroutines.rx2.*'
+        reason: 'Fremdtechnik: eine Brueckenbibliothek zu RxJava gehoert in einen Adapter.'
+      - value: 'kotlinx.coroutines.rx3.*'
+        reason: 'Fremdtechnik: eine Brueckenbibliothek zu RxJava gehoert in einen Adapter.'
+      - value: 'kotlinx.coroutines.slf4j.*'
+        reason: 'Logging: Telemetrie liegt in observability, nicht im Port.'
   ForbiddenImport/config:
     active: true
     includes: ['**/io/github/pt9912/tdswire/config/**']
@@ -132,3 +309,27 @@ style:
         reason: 'simulation darf nur domain und port importieren.'
       - value: 'io.github.pt9912.tdswire.runtime.*'
         reason: 'runtime ist der Composition Root - simulation darf ihn nicht kennen.'
+  # Aufrufe im Kern, die keinen Import brauchen (java.lang) und die ForbiddenImport darum nicht
+  # sieht. ForbiddenMethodCall wirkt nur mit Typaufloesung: im Gate laufen detektMain und
+  # detektTest, das normale detekt meldet hier nichts. Die Liste ersetzt die Standardliste des
+  # Pins (dort ist die Regel inaktiv). Eine Verbotsliste: ein hier nicht genannter Aufruf bleibt
+  # gruen. `make detekt-selbsttest` fuehrt je Eintrag einen Rot-Fall in den Beispielen unter
+  # config/detekt/selbsttest-aufrufe/.
+  ForbiddenMethodCall:
+    active: true
+    includes:
+      - '**/io/github/pt9912/tdswire/domain/**'
+      - '**/io/github/pt9912/tdswire/port/**'
+    methods:
+      - value: 'java.lang.System.exit'
+        reason: 'Prozess: Start und Ende des Dienstes gehoeren der Composition Root, nicht dem Kern.'
+      - value: 'kotlin.system.exitProcess'
+        reason: 'Prozess: Start und Ende des Dienstes gehoeren der Composition Root, nicht dem Kern.'
+      - value: 'java.lang.Runtime.getRuntime'
+        reason: 'Prozess: Start und Ende des Dienstes gehoeren der Composition Root, nicht dem Kern (exec, halt, addShutdownHook).'
+      - value: 'java.lang.Runtime.exec'
+        reason: 'Prozess: Start und Ende des Dienstes gehoeren der Composition Root, nicht dem Kern.'
+      - value: 'java.lang.ProcessBuilder.<init>'
+        reason: 'Prozess: Start und Ende des Dienstes gehoeren der Composition Root, nicht dem Kern.'
+      - value: 'java.lang.ProcessHandle.current'
+        reason: 'Prozess: Start und Ende des Dienstes gehoeren der Composition Root, nicht dem Kern.'
