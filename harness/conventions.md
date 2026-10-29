@@ -26,9 +26,9 @@ bringend für *Form*-Fragen, nicht autoritativ über Inhalt.
 
 
 
-- **Konvention:** <Name, z. B. "AI-Harness-Kurs", interner Standard, Industrie-Norm>
-- **Stand:** <Version/Tag des adoptierten Standes, z. B. "v5.13.1">
-- **Datum der Adoption:** <Datum>
+- **Konvention:** AI-Harness-Kurs
+- **Stand:** v6.18.1
+- **Datum der Adoption:** 2026-10-29
 
 
 
@@ -156,7 +156,7 @@ Agentenlauf — aufgelöste Adaptionen gehören nicht in diesen Pfad
 Bleibt hier: Sie ist keine Adaption, sondern die Adoptions-Erklärung, und
 sie gilt für jeden Lauf.
 
-- **Datum:** <Datum>
+- **Datum:** 2026-10-29
 - **Geltungsbereich:** gesamtes Repo
 - **Ersetzt-Baseline-Regel:** — *(keine; dieser Eintrag ist die
   Adoptions-Erklärung, keine Adaption)*
@@ -164,7 +164,7 @@ sie gilt für jeden Lauf.
   für Verzeichniskonvention, Lifecycle-Regeln, Carveout-Disziplin,
   ID-Schema (`<PREFIX>-FA-*`, `<PREFIX>-QA-*`, `<PREFIX>-RB-*`, `SPEC-<NNN>`, `ARC-<NNN>`,
   `ADR-<NNNN>`, `CO-<NNN>`, `slice-<Kennung>`, `MR-<NNN>`, `BEO-<KUERZEL>/<slug>`, `RC-<NNN>` — nur das
-  Vertrags-Präfix wird repo-weit festgelegt, z. B. `LH`; `SPEC-*` und
+  Vertrags-Präfix wird repo-weit festgelegt, hier `TDS` (`TDS-FA-<NN>`, `TDS-QA-<NN>`, `TDS-RB-<NN>`); `SPEC-*` und
   `ARC-*` kodieren das Stratum und sind fest, siehe Baseline-Regelwerk
   `grundlagen-source-precedence.md` §ID-Schema als Klammer;
   bei mehreren gleichzeitig schreibenden Entwicklern für die Artefakte mit

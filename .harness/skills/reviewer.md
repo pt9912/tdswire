@@ -9,7 +9,7 @@
 Was der Reviewer *immer* mitbringt, bevor er den Diff liest:
 
 - Diff des PR
-- `spec/lastenheft.md` (für referenzierte `LH-*`-IDs)
+- `spec/lastenheft.md` (für referenzierte `TDS-*`-IDs)
 - ADRs, deren ID im PR oder in der Commit-Message vorkommt
 - `AGENTS.md` §"Hard Rules"
 - vorherige Findings am gleichen Modul (letzte ~5 PRs)
@@ -83,7 +83,7 @@ auf die zuständige Rolle.
 Jedes Finding:
 
 - `kategorie`: HIGH | MEDIUM | LOW | INFO
-- `quelle`: ADR-ID, `LH-*`-ID, Hard-Rule-Name oder „Maintainability"
+- `quelle`: ADR-ID, `TDS-*`-ID, Hard-Rule-Name oder „Maintainability"
 - `pfad`: Datei · wörtliches, in der Datei eindeutig auffindbares Kurzzitat
   der Stelle als Anker; die Zeile darf als Lesehilfe dazu, ist aber nicht der Anker
 - `befund`: 1–2 Sätze, beobachtbar, ohne Lösungsvorschlag

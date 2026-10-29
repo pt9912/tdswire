@@ -1,111 +1,197 @@
-# Architektur — <Projektname>
+# Architektur — JVM TDS Server
 
-**Status:** Aktiv. **Letzte Änderung:** YYYY-MM-DD.
-
-**Rolle:** Sicht-Stratum — *keine* eigenen Anforderungen, derivativ. Regeln:
-Baseline-Regelwerk `modul-03-spec.md` §Ziel-Form: Architektur-Sicht.
-
-**Hard Rule:** Diese Datei enthält *keine* Wellen, Slices, Commit-Hashes
-oder Closure-Daten, **keine ADR-Bezüge** — die Sicht steht im
-Stabilitäts-Rang über der ADR — und **keine Historie**: `Letzte Änderung`
-oben ist ein Frische-Marker, kein Protokoll. Die zeitliche Schicht lebt in
-`docs/plan/planning/in-progress/roadmap.md` und den späteren Closure-Notizen.
-Baseline-Regelwerk `modul-03-spec.md` §Ziel-Form: Architektur-Sicht.
-
----
+**Status:** Aktiv (Entwurf). **Letzte Änderung:** 2026-10-29.  
+**Rolle:** Abgeleitete Architektursicht zu `spec/lastenheft.md` und `spec/spezifikation.md`. Diese Datei enthält keine eigenständigen Anforderungen.
 
 ## 1. Komponenten-Übersicht
 
-Regeln dieser Sektion: **Hier werden die `ARC-*` für Komponenten vergeben** —
-eine Zeile je Kasten des Diagramms, damit es *eine* Stelle gibt. Die Kennung
-ist eine Adresse, damit ein Slice sagen kann, welche Komponente er
-berührt; sie ist **keine** Anforderung. Gezählt wird fortlaufend je Datei —
-§3 setzt die Reihe fort, statt neu zu beginnen (Baseline-Regelwerk
-`grundlagen-source-precedence.md` §ID-Schema als Klammer, §Vergabe).
-
-
-
 ```mermaid
+%%{init: {'theme': 'base', 'flowchart': {'curve': 'basis', 'nodeSpacing': 30, 'rankSpacing': 45}, 'themeVariables': {'lineColor': '#8a94a6', 'primaryColor': '#e8ecf8', 'primaryTextColor': '#1b2333', 'primaryBorderColor': '#5b6b9a', 'clusterBkg': 'transparent', 'clusterBorder': '#8a94a6', 'titleColor': '#8a94a6'}}}%%
 flowchart TB
-    UI[UI / API-Layer]
-    Runtime[Runtime / Bootstrap]
-    Service[Service-Layer]
-    Repo[Repository-Layer]
-    Config[Config-Layer]
-    Types[Types / Domain]
-
-    UI --> Service
-    Runtime --> Service
-    Service --> Repo
-    Service --> Types
-    Repo --> Config
-    Repo --> Types
-    Config --> Types
+    subgraph Extern["Extern"]
+        NET[".NET SqlClient"]
+        Engine["Externe Query Engine"]
+    end
+    subgraph Protokoll["Protokollpfad"]
+        Transport["TDS Transport / Framing"]
+        Session["Handshake / Auth / Session"]
+        Dispatch["SQL Batch / RPC Dispatch"]
+        Stream["Response Sequencer / Cancel State"]
+        Codec["Result / Error Encoder"]
+    end
+    subgraph Kern["Kern"]
+        Backend["Query Backend Port"]
+        Model["Domain / Types"]
+    end
+    subgraph Quer["Querschnitt"]
+        Runtime["Runtime / Bootstrap"]
+        Config["Config / Security"]
+        Obs["Observability"]
+    end
+    NET <--> Transport
+    Transport <--> Session    Session --> Dispatch
+    Session --> Config
+    Dispatch --> Stream
+    Stream --> Codec
+    Codec --> Transport
+    Dispatch --> Backend
+    Backend <--> Engine
+    Session --> Model
+    Dispatch --> Model
+    Backend --> Model
+    Runtime --> Transport
+    Runtime --> Config
+    Transport --> Obs
+    Dispatch --> Obs
 ```
+
+Pfeile zeigen Datenfluss und Aufrufrichtung zur Laufzeit, nicht die Import-Richtung; die Import-Regeln stehen in Abschnitt 2.
 
 | ID | Komponente | Rolle |
 |---|---|---|
-| `ARC-001` | Types / Domain | <…> |
-| `ARC-002` | Config-Layer | <…> |
-| `ARC-003` | Repository-Layer | <…> |
-| `ARC-004` | Service-Layer | <…> |
-| `ARC-005` | Runtime / Bootstrap | <…> |
-| `ARC-006` | UI / API-Layer | <…> |
+| `ARC-001` | Domain / Types | Sitzungs-, Anfrage-, Ergebnis-, Fehler- und Typmodelle ohne Netzwerkabhängigkeit |
+| `ARC-002` | Config / Security | Konfigurationsvalidierung, TLS- und Authentifizierungsadapter |
+| `ARC-003` | TDS Transport / Framing | TCP, TDS-Header, Fragmentierung, Backpressure, I/O |
+| `ARC-004` | Handshake / Session | PRELOGIN, LOGIN7, Verbindungs-Zustandsautomat, Session-Lebensdauer |
+| `ARC-005` | SQL Batch / RPC Dispatch | TDS-Anfragen in interne QueryRequests übersetzen |
+| `ARC-006` | Query Backend Port | Austauschbare, asynchrone Ausführungs- und Abbruchschnittstelle |
+| `ARC-007` | Result / Error Encoder | COLMETADATA, ROW, DONE, ERROR und Login-Antworten |
+| `ARC-008` | Runtime / Bootstrap | Verdrahtung, Listener-Start, Shutdown und Ressourcenverwaltung |
+| `ARC-009` | Observability | Strukturierte Logs, Metriken und Traces ohne Geheimnisse |
+| `ARC-015` | Response Sequencer / Cancel State | Hält den Anfragezustand; serialisiert Ergebnisereignisse, DONE-Familie und Abbruch; garantiert Antwortgrenzen |
 
 ## 2. Schichten und Constraints
 
-Regeln dieser Sektion: Welche ADR eine Layering-Regel verbindlich macht,
-deklariert die ADR aufwärts in ihrem `Schärft:`-Feld — kein ADR-Bezug in dieser
-Sicht (Baseline-Regelwerk `grundlagen-referenz-richtung.md` §Referenz-Richtung (SDP)).
-
-
-
-Eine Schicht ist eine *Gruppierung* über Komponenten, keine eigene Sache:
-Fällt sie mit einer Komponente zusammen, nennt die Zeile deren `ARC-*` aus §1;
-umfasst sie mehrere, bleibt die Spalte leer und die Constraint gilt für alle.
-
 | Komponente(n) | Schicht | Verantwortlichkeit | Darf importieren | Darf NICHT importieren |
 |---|---|---|---|---|
-| `ARC-001` | Types | Domain-Modell, Pure | — | alles andere |
-| `ARC-002` | Config | Konfiguration laden/validieren | Types | Service, Runtime, UI |
-| `ARC-003` | Repo | Datenzugriff | Types, Config | Service, Runtime, UI |
-| `ARC-004` | Service | Geschäftslogik | Types, Config, Repo | Runtime, UI |
-| `ARC-005` | Runtime | Bootstrap, DI | alles oben | — |
-| `ARC-006` | UI | API / CLI / GUI | alles oben außer Repo | Repo direkt |
+| `ARC-001` | Domain | reine Modelle und Verträge | Standardbibliothek | Transport, Runtime, externe Engine |
+| `ARC-002` | Configuration | validierte Einstellungen und Security-Verträge | Domain | Transport-Implementierung, Dispatch |
+| `ARC-006` | Backend Port | Backend-Abstraktion | Domain, Laufzeitbibliothek für asynchrone Streams | TDS-Codec, TCP-Transport |
+| `ARC-004`, `ARC-005`, `ARC-007`, `ARC-015` | Protocol | TDS-Semantik, Session, Anfrage-/Antwortabbildung | Domain, Backend Port, Security-Verträge, Observability-Schnittstellen, Transport-Schnittstellen (Antwortausgabe) | konkrete Backend-Engine, TCP-Transport-Implementierung, Bootstrap |
+| `ARC-003` | Transport | Netzwerk-I/O, Framing und TLS-Kapselung | Domain, Security-Verträge, Observability-Schnittstellen, Protocol-Schnittstellen | konkrete Backend-Engine |
+| `ARC-009` | Observability | Telemetrie-Adapter | Domain, Observability-Schnittstellen | fachliche Entscheidungen |
+| `ARC-008` | Runtime | Composition Root | alle benötigten Module | — |
+
+**Constraints:** Protokollparser dürfen keine Query-Engine aufrufen. Der Backend-Port kennt keine TDS-Paketbytes. Die Typabbildung ist zentral und deterministisch. Jede Verbindung besitzt ihren eigenen Zustandsautomaten. Fehlerhafte Eingaben dürfen keine andere Session beeinflussen. TLS und Authentifizierung werden vor Freigabe von Query-Anfragen abgeschlossen. Backpressure und Cancel werden bis zum Backend durchgereicht.
 
 ## 3. Externe Abhängigkeiten
 
-Regeln dieser Sektion: Auch die Schnittstelle zu einem externen System trägt
-eine `ARC-*` — die Kennung benennt den *Berührungspunkt*, nicht das fremde
-System (Baseline-Regelwerk `grundlagen-source-precedence.md` §ID-Schema als Klammer).
-
-
-
 | ID | System | Rolle | Substituierbarkeit |
 |---|---|---|---|
-| `ARC-007` | <…> | <…> | <…> |
+| `ARC-010` | .NET SqlClient | Externer Referenzclient für Kompatibilitätstests | Profilgebunden; anderer Client erfordert neue Validierung |
+| `ARC-011` | Microsoft TDS / MS-TDS | Verbindlicher Protokollvertrag | Nicht austauschbar ohne Änderung des Produktziels |
+| `ARC-012` | Query Engine | Externe Datenverarbeitung | Über `ARC-006` austauschbar |
+| `ARC-013` | Netzwerk-/TLS-Laufzeit | TCP und Verschlüsselung | Austauschbar hinter Transport-/Security-Schnittstellen |
+| `ARC-014` | Logging-/Tracing-Backend | Betriebsdaten | Über Observability-Schnittstellen austauschbar |
+
+Konkrete Bibliotheks- und Versionsentscheidungen sind nicht Teil dieser Sicht.
 
 ## 4. Sequenz-Diagramme
 
-
-
-### Use-Case: <LH-FA-NN — Titel>
+### Use-Case: TDS-FA-01 / TDS-FA-02 — Verbindungsaufbau und Login
 
 ```mermaid
 sequenceDiagram
-    participant UI
-    participant Service
-    participant Repo
-    UI->>Service: <Anfrage>
-    Service->>Repo: <Datenzugriff>
-    Repo-->>Service: <Antwort>
-    Service-->>UI: <Ergebnis>
+    participant C as .NET SqlClient
+    participant T as Transport
+    participant S as Handshake/Session
+    participant A as Auth Adapter
+    C->>T: TCP + PRELOGIN
+    T->>S: validierte PRELOGIN-Nachricht
+    S-->>C: PRELOGIN-Antwort / TLS-Verhandlung
+    C->>T: LOGIN7
+    T->>S: LOGIN7
+    S->>A: Credentials prüfen
+    A-->>S: Principal / Ablehnung
+    alt Erfolg
+        S-->>C: Login-Antworttokens
+    else Fehler
+        S-->>C: Login-Fehler / Disconnect
+    end
+```
+
+### Use-Case: TDS-FA-03 / TDS-FA-05 — SELECT als SQL_BATCH
+
+```mermaid
+sequenceDiagram
+    participant C as .NET SqlClient
+    participant T as Transport
+    participant D as SQL Dispatch
+    participant B as Backend Port
+    participant Q as Response Sequencer
+    participant E as Result Encoder
+    C->>T: SQL_BATCH
+    T->>D: SQL-Text + Session
+    D->>B: execute(QueryRequest)
+    B-->>D: Metadaten + Zeilenstream
+    D->>Q: Ergebnisereignisse
+    Q->>E: geordnetes Resultset
+    E-->>T: COLMETADATA / ROW / DONE
+    T-->>C: TDS-Tokenstrom
+```
+
+### Use-Case: TDS-FA-04 / TDS-FA-07 — Parametrisierter RPC und Abbruch
+
+```mermaid
+sequenceDiagram    participant C as .NET SqlClient
+    participant T as Transport
+    participant D as RPC Dispatch
+    participant B as Backend Port
+    participant Q as Response Sequencer
+    participant E as Result Encoder    C->>T: RPC sp_executesql + Parameter
+    T->>D: RPC-Nachricht + Session
+    D->>B: execute(typisierte Parameter)
+    opt Client bricht ab
+        C->>T: ATTENTION
+        T->>Q: cancel(sessionId, requestId)
+        Q->>B: cancel(sessionId, requestId)
+        Q->>E: Abbruchantwort nach Protokollzustand
+    end
+    B-->>D: Ergebnis oder Fehler
+    D->>Q: Ergebnisereignisse
+    Q->>E: Antwort ohne Vermischung mit Folgeanfrage    E-->>T: Resultset / ERROR / DONE
+    T-->>C: TDS-Tokenstrom
+```
+
+### Use-Case: TDS-FA-06 / TDS-FA-07 / TDS-FA-10 — Fehler während Streaming
+
+```mermaid
+sequenceDiagram
+    participant C as .NET SqlClient
+    participant T as Transport
+    participant Q as Response Sequencer    participant B as Backend Port
+    B-->>Q: ResultStart + Row
+    Q-->>T: COLMETADATA + ROW
+    T-->>C: partielle Antwort
+    alt Backend-Fehler, Strom synchron
+        B-->>Q: Fehler
+        Q-->>C: ERROR + DONE_ERROR
+    else ATTENTION
+        C->>T: ATTENTION
+        T->>Q: cancel
+        Q->>B: cancel / close
+        Q-->>C: ATTENTION-Abschluss nach Profil
+    else Synchronität nicht garantiert
+        Q->>T: Verbindung schließen
+        T-->>C: Disconnect
+    end
 ```
 
 ## 5. Fehlermodelle und Resilienz
 
-
+Die Logging-Spalte nennt die je Fehlerquelle wesentlichen Korrelationsfelder; zusätzlich gelten alle Pflicht-Logfelder der Spezifikation (Abschnitt Fehler-Codes und Logging-Felder).
 
 | Fehlerquelle | Behandlung-Schicht | Logging |
 |---|---|---|
-| <…> | <…> | <…> |
+| Ungültiger Paketheader / Fragmentierung | Transport | `connection_id`, `event`, `error_code`; keine Payload |
+| PRELOGIN / TLS-Inkompatibilität | Handshake / Security | `connection_id`, `event`, `error_code`; keine Secrets |
+| Ungültige Zugangsdaten | Session / Auth | `connection_id`, `event`, `error_code`; keine Passwörter |
+| Unbekannter RPC / SQL-Fehler | Dispatch / Encoder | `session_id`, `request_id`, `error_code` |
+| Teilantwort / fehlerhafte Ereignisfolge | Response Sequencer | `request_id`, `event`, `error_code`; keine Payload |
+| Nicht serialisierbarer Typ | Result Encoder | `request_id`, `event`, `error_code` |
+| Backend-Ausfall / Timeout | Backend Port / Dispatch | `request_id`, `duration_ms`, `error_code` |
+| Client-Disconnect / ATTENTION | Transport / Session / Backend | `request_id`, `event`, `error_code` |
+
+**Resilienzprinzipien:** Grenzen für Nachrichten- und Sitzungsspeicher; definierte Timeouts; kontrollierte Freigabe von Backendressourcen; keine ungefangenen Exceptions über Verbindungsgrenzen hinweg; geordneter Shutdown. Nicht unterstützte Protokollfunktionen werden explizit abgelehnt und nicht stillschweigend simuliert.
+
+**Zustands- und Ownership-Grenzen:** Transport verantwortet Paketframing und TLS-Kapselung, Handshake die Login-Zustandsübergänge, Dispatch die fachliche Anfrageübersetzung, Response Sequencer die Reihenfolge der Antwortereignisse je aktiver Anfrage und die Cancel/DONE-Synchronität; ob mehrere Anfragen je Sitzung gleichzeitig aktiv sein dürfen (MARS), ist in `SPEC-004` offen. Backendoperationen und Ergebnisstreams sind sitzungsgebunden; bei Disconnect, Timeout und Shutdown werden sie geschlossen. Eine nach Cancel nicht eindeutig synchronisierbare Sitzung wird nicht wiederverwendet.

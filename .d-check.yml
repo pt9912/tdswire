@@ -20,7 +20,8 @@ ids:
     - {regex: 'ADR-([A-Z]+-)?\d{4}', target: docs/plan/adr/, link-policy: always}
     # Requirement-Praefix gehoert dem Adopter (er ist in einem frischen Ziel nicht
     # bekannt) — Muster setzen und aktivieren, sobald spec/lastenheft.md eigene
-    # Kennungen fuehrt: {regex: '<PREFIX>-[A-Z]{2}-\d{2}', target: spec/lastenheft.md, link-policy: always}
+    # Kennungen fuehrt.
+    - {regex: 'TDS-(FA|QA|RB)-\d{2}', target: spec/lastenheft.md, link-policy: prose}
 # codepaths: ein Pfad in Inline-Code, der mit einer der roots beginnt, muss im Repo
 # existieren (codepath-missing). Ein Pfad mit vorangestelltem ./ oder ../ wird vom Ort
 # der Datei aus aufgeloest und ebenso geprueft. Eine erst geplante Datei traegt den
