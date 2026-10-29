@@ -76,6 +76,21 @@ Aussagen-Berührung steht hier gar nicht.
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 
+**Zwischenstand der Messung** (Spike per Dockerfile ohne Mount; `Microsoft.Data.SqlClient` 7.1.1, .NET SDK 10.0.403; Testserver im Client-Container; Zertifikat `CN=localhost`, SAN `localhost`, selbstsigniert, für die „vertraut“-Fälle im Trust-Store des Containers):
+
+| Fall | Beobachtung |
+|---|---|
+| TDS 7.4, `Encrypt=true`, Server antwortet ENCRYPT_ON | TLS-Handshake in TDS-Paketen vom Typ `0x12` gelingt (TLS 1.3, `TLS_AES_256_GCM_SHA384`); LOGIN7 (Typ `0x10`, `TDSVersion=0x74000004`) kommt danach verschlüsselt im TLS-Tunnel |
+| TDS 7.4, Zertifikat nicht vertraut, `TrustServerCertificate=false` | Der Client bricht nach dem Handshake ab: „Certificate failed chain validation … UntrustedRoot“ |
+| TDS 7.4, vertrautes Zertifikat, `HostNameInCertificate=falsch.example` | Der Client beanstandet den Namen nicht, LOGIN7 wird erreicht; warum, ist nicht geklärt |
+| TDS 7.4, Server antwortet ENCRYPT_NOT_SUP auf `Encrypt=true` | Der Client bricht ab („does not support encryption“), kein LOGIN7 |
+| TDS 7.4, Server antwortet ENCRYPT_OFF, Client `Encrypt=true` oder `Encrypt=false` | Der Client beginnt trotzdem den TLS-Handshake (ClientHello in Paketen vom Typ `0x12`): das Login ist auch bei ENCRYPT_OFF verschlüsselt |
+| TDS 7.4, Server antwortet ENCRYPT_ON auf `Encrypt=false` | Der Handshake scheitert serverseitig („frame size“), Ursache nicht geklärt, möglicherweise der Testserver |
+| TDS 8.0, `Encrypt=Strict`, vertraut, richtiger Name | TLS 1.3, ALPN `tds/8.0`, PRELOGIN, LOGIN7 `TDSVersion=0x08000000` |
+| TDS 8.0, `Encrypt=Strict`, falscher Name | Der Server-Handshake gelingt, der Client bricht danach ab |
+| TDS 8.0, `Encrypt=Strict`, selbstsigniert nicht vertraut | Abbruch mit `UntrustedRoot`; `TrustServerCertificate` gilt nicht |
+
+
 ## 4. Trigger
 
 
