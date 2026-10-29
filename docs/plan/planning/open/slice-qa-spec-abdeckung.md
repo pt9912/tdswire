@@ -46,8 +46,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] Konvention, mit der ein Test die `SPEC-*` nennt, die er nachweist (Modul-Test, E2E-Test), festgelegt und im Selbsttest belegt.
-- [ ] Erzeuger schreibt die Abdeckungsmatrix nach `docs/plan/` (je `SPEC-*`: Nachweise nach Art, Festlegungen ohne Nachweis sichtbar), analog zu `make e2e-abdeckung`. Er wertet die Berichte der Testläufe aus: nur ein bestandener Test zählt, ein nicht gelaufener oder roter nicht.
+- [ ] Konvention festgelegt: Ein Test nennt die `SPEC-*`, die er nachweist, im KDoc über der Testfunktion mit dem Block-Tag `@spec SPEC-<NNN>` (mehrere Kennungen durch Leerzeichen getrennt); kein JUnit-`@Tag`, weil die Kernregeln in Tests nur `kotlin.test` erlauben. Der Selbsttest belegt, dass ein umbenannter oder verwaister Test auffällt.
+- [ ] Erzeuger schreibt die Abdeckungsmatrix nach `docs/plan/` (je `SPEC-*`: Nachweise nach Art, Festlegungen ohne Nachweis sichtbar), analog zu `make e2e-abdeckung`. Er liest den `@spec`-Tag aus dem Quelltext und gleicht Klasse und Methodenname mit den Berichten der Testläufe ab: nur ein bestandener Test zählt, ein nicht gelaufener oder roter nicht.
 - [ ] Entscheidung, ob Waisen das Gate brechen, getroffen; bei einem Gate steht die Bindung in `harness/README.md`.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
