@@ -19,7 +19,7 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 - [welle-qualitaet-grundlage](../welle-qualitaet-grundlage.md)
 - [welle-entscheidungen-grundlage](../welle-entscheidungen-grundlage.md)
 
-Nichts in Arbeit.
+In Arbeit: [slice-adr-tls](slice-adr-tls.md) der Welle welle-entscheidungen-grundlage.
 
 
 
