@@ -254,9 +254,9 @@ verifizieren.
 Ein versioniertes `client-profile` dokumentiert: .NET-Laufzeit, NuGet-Paket und Version, Connection
 String (ohne Secrets), Encrypt/TrustServerCertificate, Authentifizierung, verwendete
 SQL-/RPC-Operationen und erwartete Typen. Ohne dieses Profil ist die Kompatibilitätsabnahme nicht
-abgeschlossen. **Offene Freigabepunkte:** konkretes Paket (`Microsoft.Data.SqlClient` oder
-`System.Data.SqlClient`) und Version, .NET-Version, `Encrypt`/`TrustServerCertificate`,
-SQL-Authentifizierung, TDS-Variante, unterstützte RPCs, MARS ja/nein, Transaktionen ja/nein,
+abgeschlossen. Festgelegt sind Paket (`Microsoft.Data.SqlClient` 7.1.1), .NET-Version (10) und
+TDS-Variante (7.4 und 8.0). **Offene Freigabepunkte:** `Encrypt`/`TrustServerCertificate`,
+SQL-Authentifizierung, unterstützte RPCs, MARS ja/nein, Transaktionen ja/nein,
 Verbindungs-Pooling (einschließlich RESETCONNECTION-Statusbit der Paketheader) und Lastprofil.
 Verantwortliche Rolle und Trigger der Festlegungen stehen im
 Lastenheft (Abschnitt Offene Entscheidungen). Bis zur Entscheidung gilt: kein Anspruch auf
@@ -511,8 +511,8 @@ aktive Backendoperationen, Abbrüche, Protokollfehler. Keine SQL-Texte als Metri
 
 | ID | System | Version | Vertrag-Datei / Referenz |
 |---|---|---|---|
-| `SPEC-020` | Microsoft TDS | TDS 7.x; TDS 8.0 nur bei Profil mit Strict-Encryption; konkrete Variante offen | [MS-TDS](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tds/) |
-| `SPEC-021` | .NET SQL-Client | `Microsoft.Data.SqlClient` oder `System.Data.SqlClient`, Version offen | `contracts/client-profile.md` (anzulegen) |
+| `SPEC-020` | Microsoft TDS | TDS 7.4 und TDS 8.0 (Strict-Encryption) | [MS-TDS](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tds/) |
+| `SPEC-021` | .NET SQL-Client | `Microsoft.Data.SqlClient` 7.1.1 auf .NET 10 | `contracts/client-profile.md` |
 | `SPEC-022` | Query-Backend | Projektvertrag v0 (Entwurf) | `contracts/query-backend.md` (anzulegen) |
 | `SPEC-023` | TLS | durch Clientprofil und Betriebsrichtlinie bestimmt | `contracts/security-profile.md` (anzulegen) |
 
