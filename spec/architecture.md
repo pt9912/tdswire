@@ -79,7 +79,7 @@ asynchrone Streams.
 | `ARC-001` | `domain` | Domain | reine Modelle und Verträge | Standardbibliothek | Transport, Runtime, externe Engine |
 | `ARC-002` | `config` | Configuration | validierte Einstellungen und Security-Verträge | Domain | Transport-Implementierung, Dispatch |
 | `ARC-006` | `port` | Backend Port | Backend-Abstraktion | Domain, Laufzeitbibliothek für asynchrone Streams | TDS-Codec, TCP-Transport |
-| `ARC-004`, `ARC-005`, `ARC-007`, `ARC-015` | `protocol` | Protocol | TDS-Semantik, Session, Anfrage-/Antwortabbildung | Domain, Backend Port, Security-Verträge, Observability-Schnittstellen, Transport-Schnittstellen (Antwortausgabe) | konkrete Backend-Engine, TCP-Transport-Implementierung, Bootstrap |
+| `ARC-004`, `ARC-005`, `ARC-007`, `ARC-015` | `protocol` | Protocol | TDS-Semantik, Session, Anfrage-/Antwortabbildung | Domain, Backend Port, Laufzeitbibliothek für asynchrone Streams, Security-Verträge, Observability-Schnittstellen, Transport-Schnittstellen (Antwortausgabe) | konkrete Backend-Engine, TCP-Transport-Implementierung, Bootstrap |
 | `ARC-003` | `transport` | Transport | Netzwerk-I/O, Framing und TLS-Kapselung | Domain, Security-Verträge, Observability-Schnittstellen, Protocol-Schnittstellen | konkrete Backend-Engine |
 | `ARC-009` | `observability` | Observability | Telemetrie-Adapter | Domain, Observability-Schnittstellen | fachliche Entscheidungen |
 | `ARC-016` | `simulation` | Backend-Adapter | Simulations-Backend hinter dem Backend Port | Domain, Backend Port, Laufzeitbibliothek für asynchrone Streams | Protocol, Transport, Security-Verträge, Observability, Bootstrap, externe Engine |

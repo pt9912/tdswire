@@ -205,6 +205,12 @@ suppression() {
   printf 'package a\n\n@Suppress("X")\nclass A\n' > "$d/verboten/Suppress.kt"
   printf 'package a\n\n@SuppressWarnings("X")\nclass B\n' > "$d/verboten/Warnings.kt"
   printf 'package a\n\n@kotlin.Suppress("X")\nclass C\n' > "$d/verboten/Qualified.kt"
+  printf 'package a\n\n@get:Suppress("X")\nval d = 0\n' > "$d/verboten/Get.kt"
+  printf 'package a\n\nclass E(@field:Suppress("X") val e: Int)\n' > "$d/verboten/Field.kt"
+  printf '@file:[Suppress("X")]\npackage a\n' > "$d/verboten/FileList.kt"
+  printf 'package a\n\n@[Suppress("X")]\nclass F\n' > "$d/verboten/List.kt"
+  printf 'package a\n\n@[Deprecated("y") Suppress("X")]\nclass G\n' > "$d/verboten/ListLate.kt"
+  printf 'package a\n\n@java.lang.SuppressWarnings("X")\nclass H\n' > "$d/verboten/Java.kt"
   printf 'package a\n\nval unsuppressedCount = 0\n// Suppress ohne At-Zeichen\n' > "$d/erlaubt/Names.kt"
   n=0
   for f in "$d"/verboten/*.kt; do

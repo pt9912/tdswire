@@ -11,8 +11,10 @@ build: ## Jar bauen (Dockerfile-Stage `build`, ohne Tests)
 detekt: ## Suppression-Verbot und statische Analyse samt Importregeln der Schichten (Dockerfile-Stage `detekt`)
 	docker build --target detekt --progress=plain .
 
-# Alle Gradle-Tasks, die das Dockerfile ausfuehrt. Manche Konfigurationen loest Gradle erst
-# waehrend der Ausfuehrung auf; Lock und Pruefsummen brauchen darum jede dieser Tasks.
+# Alle Gradle-Tasks, die das Dockerfile ausfuehrt, plus `dependencies` (das Dockerfile fuehrt es
+# nicht aus; es steht hier, damit Lock und Pruefsummen auch die Konfigurationen erfassen, die es
+# aufloest). Manche Konfigurationen loest Gradle erst waehrend der Ausfuehrung auf; Lock und
+# Pruefsummen brauchen darum jede dieser Tasks.
 DEPS_TASKS = dependencies help classes detekt detektMain detektTest detektSelbsttest detektSelbsttestAufrufe assemble
 
 # Die Stage `lock` im Dockerfile schreibt die Dateien, `lock-export` gibt sie per --output heraus:
