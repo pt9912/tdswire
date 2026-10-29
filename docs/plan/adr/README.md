@@ -11,6 +11,7 @@
 | [ADR-0007](0007-fehler-und-attention.md) | Fehlerbehandlung und ATTENTION-Semantik | Proposed | [TDS-FA-06](../../../spec/lastenheft.md), [TDS-FA-07](../../../spec/lastenheft.md), [TDS-QA-07](../../../spec/lastenheft.md) |
 | [ADR-0008](0008-dotnet-kompatibilitaetstests.md) | Referenzclient und .NET-Kompatibilitätstests | Proposed | [TDS-QA-01](../../../spec/lastenheft.md), [TDS-QA-06](../../../spec/lastenheft.md), [TDS-FA-09](../../../spec/lastenheft.md) |
 | [ADR-0009](0009-authentifizierungsmodus.md) | Authentifizierungsmodus und Authentifizierungsadapter | Proposed | [TDS-FA-02](../../../spec/lastenheft.md#tds-fa-02--anmeldung-und-sitzungsverwaltung), [TDS-QA-03](../../../spec/lastenheft.md#tds-qa-03--sicherheit) |
+| [ADR-0010](0010-detekt-pre-release.md) | detekt 2.0 als Gate-Werkzeug (Pre-Release) | Proposed | [TDS-QA-05](../../../spec/lastenheft.md), [TDS-QA-06](../../../spec/lastenheft.md) |
 
 ## Konventionen
 

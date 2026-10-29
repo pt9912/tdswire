@@ -29,7 +29,7 @@ kotlin {
 // zusaetzlich Typen auf (ForbiddenMethodCall wirkt nur dort). Im Dockerfile laufen alle drei in der
 // Stage `detekt`, aufgerufen ueber `make detekt`. config/detekt/detekt.yml fuehrt nur die
 // Abweichungen von detekts Standard. Keine Baseline und kein @Suppress: ein Befund wird im Code
-// behoben. detekt 2.0 ist noch ein Pre-Release, die Wahl begruendet die zugehoerige ADR.
+// behoben. detekt 2.0 ist noch ein Pre-Release, die Wahl begruendet ADR-0010.
 detekt {
     buildUponDefaultConfig = true
     config.setFrom("config/detekt/detekt.yml")
