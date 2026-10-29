@@ -16,7 +16,7 @@ Zustand sind die flachen Welle-Dateien; woran gearbeitet wird, sagt das
 `Welle:`-Feld der Slices in `in-progress/`. Ziel, Trigger und
 Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 
-- <welle-id>
+- [welle-qualitaet-grundlage](../welle-qualitaet-grundlage.md)
 
 Nichts in Arbeit.
 
