@@ -15,10 +15,28 @@ TLS-Modi des Servers (`SPEC-010`, `SPEC-023`, `SPEC-028`, `SPEC-043`) für das C
 - `TrustServerCertificate=true` genügt im TDS-7.4-Pfad, auch bei einem nicht vertrauten Zertifikat.
 - Tests nutzen ein Testzertifikat im Trust-Store des Testcontainers.
 
+## Protokollversionen und Suiten
+
+| Version | Suiten |
+|---|---|
+| TLS 1.3 | `TLS_AES_256_GCM_SHA384`, `TLS_AES_128_GCM_SHA256` |
+| TLS 1.2 | `TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384`, `TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256` |
+
+Mindestversion ist TLS 1.2. TLS 1.1 und älter, CBC-Suiten, RSA-Schlüsselaustausch ohne Forward Secrecy sowie 3DES und RC4 sind nicht zugelassen. Die Startprobe (`SPEC-043`) nutzt genau diese Konfiguration.
+
 ## Gemessen
 
 TLS 1.3 mit `TLS_AES_256_GCM_SHA384` in beiden Pfaden (`Microsoft.Data.SqlClient` 7.1.1, .NET 10). Der unverschlüsselte Testmodus ist nur mit dem Referenzclient und `Encrypt=false` gemessen.
 
+Mit `Microsoft.Data.SqlClient` 7.1.1 gegen einen Testserver mit RSA-Zertifikat in beiden Pfaden (TDS 7.4 im Tunnel und `Encrypt=Strict`):
+
+- nur TLS 1.2 mit `TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384` und `…_AES_128_GCM_SHA256`: Handshake und LOGIN7 gelingen, der Client wählt die 256-Bit-Suite, wenn beide angeboten sind;
+- nur TLS 1.2 mit der 128-Bit-Suite: gelingt;
+- nur TLS 1.3 mit `TLS_AES_128_GCM_SHA256`: gelingt;
+- nur TLS 1.1: der Client lehnt ab („tlsv1 alert protocol version“).
+
+Nicht gemessen: ECDSA-Zertifikate, `TLS_CHACHA20_POLY1305_SHA256`, andere Clients.
+
 ## Offen
 
-Mindest-TLS-Version und zugelassene Suiten; das Verhalten von `HostNameInCertificate` im TDS-7.4-Pfad; ENCRYPT_ON gegen einen Client mit `Encrypt=false`.
+Das Verhalten von `HostNameInCertificate` im TDS-7.4-Pfad; ENCRYPT_ON gegen einen Client mit `Encrypt=false`.
