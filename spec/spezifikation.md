@@ -259,7 +259,7 @@ TDS-Variante (7.4 und 8.0). **Offene Freigabepunkte:** `Encrypt`/`TrustServerCer
 SQL-Authentifizierung, unterstützte RPCs, MARS ja/nein, Transaktionen ja/nein,
 Verbindungs-Pooling (einschließlich RESETCONNECTION-Statusbit der Paketheader) und Lastprofil.
 Verantwortliche Rolle und Trigger der Festlegungen stehen im
-Lastenheft (Abschnitt Offene Entscheidungen). Bis zur Entscheidung gilt: kein Anspruch auf
+Lastenheft (Abschnitt Offene Entscheidungen). Bis zur Entscheidung der offenen Freigabepunkte gilt: kein Anspruch auf
 Produktionskompatibilität. Das Referenzprojekt muss Connection.Open, SELECT mit/ohne Parameter,
 NULL/Unicode/Decimal/Datum, leere und mehrteilige Resultsets, Fehler vor/nach Zeilen,
 OUTPUT/RETURNSTATUS (falls freigegeben), Cancel/Timeout und Folgeabfrage nach Cancel prüfen.

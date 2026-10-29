@@ -13,8 +13,8 @@ Versioniertes Profil des Referenzclients für die Kompatibilitätsabnahme (`SPEC
 
 | Modus | Connection-String-Optionen | Protokollverhalten |
 |---|---|---|
-| TDS 7.4, ohne TLS | `Encrypt=false` | PRELOGIN-Option ENCRYPTION `00`, LOGIN7 `TDSVersion=0x74000004`, Paketgröße 8000 |
-| TDS 7.4, mit TLS | `Encrypt=true;TrustServerCertificate=true` | ENCRYPTION `01`, TLS-Handshake in TDS-Paketen vom Typ `0x12` |
+| TDS 7.4, ohne TLS (Testmodus; ob und wo erlaubt, entscheidet die TLS-Strategie) | `Encrypt=false` | PRELOGIN-Option ENCRYPTION `00`, LOGIN7 `TDSVersion=0x74000004`, Paketgröße 8000 |
+| TDS 7.4, mit TLS | `Encrypt=true;TrustServerCertificate=true` | ENCRYPTION `01`, der TLS-Handshake beginnt in TDS-Paketen vom Typ `0x12` (ClientHello gemessen, Abschluss nicht) |
 | TDS 8.0 | `Encrypt=Strict;HostNameInCertificate=<Name>` | TLS 1.3 ab dem ersten Byte, ALPN `tds/8.0`, danach PRELOGIN und LOGIN7 `TDSVersion=0x08000000`; `TrustServerCertificate` gilt nicht, das Zertifikat muss dem Client vertrauenswürdig sein |
 
 ## Beobachtete Werte

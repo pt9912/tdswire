@@ -16,7 +16,7 @@
 
 Der .NET-SqlClient bestimmt durch Version, Verbindungsoptionen und tatsächlich gesendete Nachrichten den zu unterstützenden TDS-Funktionsumfang. Ohne ein reproduzierbares Profil sind Konformitätsaussagen nicht prüfbar.
 
-Gemessen mit dem Referenzclient (.NET 10, `Microsoft.Data.SqlClient` 7.1.1; .NET 8 und `System.Data.SqlClient` 4.9.1 liefern dasselbe Ergebnis): LOGIN7 trägt `TDSVersion=0x74000004` und Paketgröße 8000, mit `Encrypt=false` wie mit `Encrypt=true`. Bei TLS in TDS 7.4 steckt der Handshake in Paketen vom Typ `0x12` (Nutzlast beginnt mit `160301`). Bei `Encrypt=Strict` beginnt die Verbindung mit TLS 1.3 und ALPN `tds/8.0`, danach folgen PRELOGIN und LOGIN7 mit `TDSVersion=0x08000000`; `TrustServerCertificate` gilt dort nicht, das Serverzertifikat muss dem Client vertrauenswürdig sein.
+Gemessen mit dem Referenzclient (.NET 10, `Microsoft.Data.SqlClient` 7.1.1): LOGIN7 trägt bei `Encrypt=false` `TDSVersion=0x74000004` und Paketgröße 8000; unter .NET 8 und mit `System.Data.SqlClient` 4.9.1 sind diese beiden Werte gleich, PRELOGIN-Option VERSION und AppName unterscheiden sich. Bei `Encrypt=true` bricht der Testserver ohne TLS-Unterstützung ab, es folgt kein LOGIN7; der Client beginnt den TLS-Handshake in Paketen vom Typ `0x12` (Nutzlast beginnt mit `160301`, der Abschluss des Handshakes ist nicht gemessen). Mit `Microsoft.Data.SqlClient` 7.1.1 auf .NET 10 gemessen: Bei `Encrypt=Strict` beginnt die Verbindung mit TLS 1.3 und ALPN `tds/8.0`, danach folgen PRELOGIN und LOGIN7 mit `TDSVersion=0x08000000`; `TrustServerCertificate` gilt dort nicht, das Serverzertifikat muss dem Client vertrauenswürdig sein.
 
 Diese ADR legt fest, **was** das Profil enthält (Protokollversion, Clientpaket und -version, Verbindungsoptionen); die Testmatrix und ihre Ausführung in der CI entscheidet ADR-0008.
 
@@ -24,7 +24,7 @@ Diese ADR legt fest, **was** das Profil enthält (Protokollversion, Clientpaket 
 
 Wir wählen **Option B**: ein ausgehandeltes Profil für definierte Clientversionen. Das Profil umfasst:
 
-- **Client:** `Microsoft.Data.SqlClient` 7.1.1 (exakt) auf .NET 10 (SDK 10.0.403). `System.Data.SqlClient` ist nicht Teil des Profils; es ist als veraltet markiert und sendet im Spike dasselbe wie `Microsoft.Data.SqlClient`.
+- **Client:** `Microsoft.Data.SqlClient` 7.1.1 (exakt) auf .NET 10 (SDK 10.0.403). `System.Data.SqlClient` ist nicht Teil des Profils; der Compiler meldet `SqlConnection` dieses Pakets als veraltet (CS0618: „Use the Microsoft.Data.SqlClient package instead“), und es sendet bei `Encrypt=false` dieselbe TDS-Version.
 - **Protokoll:** TDS 7.4 (LOGIN7 `TDSVersion=0x74000004`, klassischer Weg mit PRELOGIN und TLS in TDS-Paketen) und TDS 8.0 (`Encrypt=Strict`, TLS ab dem ersten Byte mit ALPN `tds/8.0`, LOGIN7 `TDSVersion=0x08000000`).
 - **Nachweis:** Ein Spike mit einem Testserver und dem Referenzclient hat die Handshake-Abläufe beider Pfade gemessen (siehe Kontext). Die TLS-Strategie im Einzelnen (erlaubte Testmodi, Zertifikatsvorgaben) entscheidet [ADR-0002](0002-tls-und-verschluesselung.md).
 
@@ -58,4 +58,4 @@ Ein neuer unterstützter .NET-Client oder ein fehlgeschlagener Handshake im verb
 | Datum      | Ereignis                      | Verweis |
 | ---------- | ----------------------------- | ------- |
 | 2026-10-29 | Proposed – Entscheidung offen | —       |
-| 2026-10-29 | Accepted – Option B; Messung mit .NET 10 und `Microsoft.Data.SqlClient` 7.1.1 | —       |
+| 2026-10-29 | Accepted – Option B; Messung mit .NET 10 und `Microsoft.Data.SqlClient` 7.1.1; Messaussagen vor Abschluss des Slice auf das Gemessene begrenzt | —       |
