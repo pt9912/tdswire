@@ -19,7 +19,7 @@
 
 Das Static-Analysis-Gate (`SPEC-041`) prüft die Schichtgrenzen der Architektur und das Format des Quelltexts. Es stützt sich auf drei Fähigkeiten von detekt: Importregeln je Package (`ForbiddenImport`), Aufrufregeln mit Typauflösung (`ForbiddenMethodCall`, nur über `detektMain` und `detektTest`) und den ktlint-Regelsatz als Wrapper.
 
-Gepinnt ist `2.0.0-alpha.6` (`gradle/libs.versions.toml`), ein Pre-Release. Die Version wurde mit dem Gradle-Gerüst übernommen; die Wahl stand bisher nur in einem Kommentar in `build.gradle.kts`.
+Gepinnt ist `2.0.0-alpha.6` (`gradle/libs.versions.toml`), ein Pre-Release. Die Version wurde mit dem Gradle-Gerüst aus dem Schwesterprojekt pgwire übernommen (Commit-Nachricht von `5d2236d`: „Gradle/Kotlin/detekt wie in pgwire“); die Wahl stand bisher nur in einem Kommentar in `build.gradle.kts`.
 
 Annahmen: Der Pin ist exakt, `gradle.lockfile` und `gradle/verification-metadata.xml` fixieren Version und Prüfsummen. Die Konfiguration kennt keine Baseline und senkt keinen Standard. Fällt eine dieser Annahmen, ist die Entscheidung neu zu prüfen.
 
@@ -33,7 +33,7 @@ Ein Pre-Release trägt das Risiko, dass sich Optionen zwischen Alphas umbenennen
 
 | Option | Pro | Contra |
 |---|---|---|
-| A — detekt 1.x (Stabil-Release) | Keine Pre-Release-Risiken, breit eingesetzt | Verträglichkeit mit der gepinnten Kotlin-Version und der Typauflösung der Technik-Regeln in diesem Repo nicht geprüft |
+| A — detekt 1.x (Stabil-Release) | Keine Pre-Release-Risiken, breit eingesetzt | Gemessen (detekt `1.23.8` mit Kotlin `2.4.10` in Docker): `detekt` und `detektMain` laufen ohne Fehler. Offen bleibt, ob `ForbiddenMethodCall` unter Kotlin 2.4 meldet: auch die Kontrolle mit Kotlin 2.0.21 meldete den Testaufruf nicht, die Messung ist damit unentschieden. Die Gradle-API unterscheidet sich (Plugin-ID `io.gitlab.arturbosch.detekt`, Berichtsformat `checkstyle` entfällt in 1.x), `build.gradle.kts` und `detekt.yml` sind umzuschreiben |
 | **B — detekt `2.0.0-alpha.6`, exakt gepinnt** | Läuft nachweislich mit dem Gerüst; Selbsttest belegt alle Regeln | Pre-Release: Optionen und Regelsätze können sich zwischen Alphas ändern; ein Wechsel kostet Nacharbeit an `detekt.yml` |
 | C — kein detekt, Schichtgrenzen nur per Review | Keine Werkzeugabhängigkeit | Importgrenzen und das Suppression-Verbot hängen an Aufmerksamkeit; widerspricht `TDS-QA-05` als maschinell prüfbarer Eigenschaft |
 
@@ -42,7 +42,7 @@ Ein Pre-Release trägt das Risiko, dass sich Optionen zwischen Alphas umbenennen
 - **Positiv:** Das Gate läuft heute, die Schichtregeln und Technik-Regeln sind belegt. Die Wahl ist an einer Stelle begründet und auffindbar.
 - **Negativ / Risiko:** Jeder Versionswechsel kann `detekt.yml` brechen; der ktlint-Block ist gleich dem Standard der gepinnten Version und gehört nach einem Pin-Wechsel neu erzeugt (Kommentar in `config/detekt/detekt.yml`).
 - **Folgepflicht:** `build.gradle.kts` verweist auf diese ADR statt auf „die zugehörige ADR". Bei Annahme `SPEC-041` unverändert lassen; die Entscheidung schärft sie nur.
-- **Offen:** Der Beweggrund für das Pre-Release (Verträglichkeit mit der Kotlin-Version, Funktionsumfang) ist hier nicht belegt; der Autor ergänzt ihn vor `Accepted`, und Option A wird bei dieser Gelegenheit gegen die gepinnte Kotlin-Version gemessen.
+- **Offen:** Ob pgwire die Alpha aus einem eigenen Grund wählte (Funktionsumfang, Kotlin-Verträglichkeit), ist hier nicht belegt; der Autor bestätigt oder ergänzt das Motiv vor `Accepted`. Die Messung von Option A ist unvollständig (`ForbiddenMethodCall` unter Typauflösung).
 
 ## Fitness Function (falls maschinell prüfbar)
 

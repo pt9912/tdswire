@@ -204,16 +204,13 @@ sie gilt für jeden Lauf.
 
 ## Modus-Deklaration pro Sub-Area
 
-Die **Kürzel**-Spalte tragen nur Repos, deren Kennungen ein Bereichssegment
-führen (`ADR-<KUERZEL>-NNNN`, `slice-<KUERZEL>-NNN`); wer ohne Segment zählt,
-streicht sie. Regel: Baseline-Regelwerk `grundlagen-harness-dateien.md`
+Dieses Repo zählt ohne Bereichssegment (`ADR-NNNN`, `slice-<Kennung>`); die
+Kürzel-Spalte entfällt. Regel: Baseline-Regelwerk `grundlagen-harness-dateien.md`
 §Konventionsspeicher.
 
-
-
-| Sub-Area (Pfad / Modul) | Kürzel | Modus | Begründung | Graduation-Bedingung / Folge-Slice |
-|---|---|---|---|---|
-| `*` (Default für gesamtes Repo) | `<KUERZEL>` | <Greenfield / Brownfield / Hybrid> | <warum> | <Bedingung oder "n/a (GF)" oder "permanent + slice-Ref"> |
+| Sub-Area (Pfad / Modul) | Modus | Begründung | Graduation-Bedingung / Folge-Slice |
+|---|---|---|---|
+| `*` (Default für gesamtes Repo) | Greenfield | Spec und ADRs führen, Code folgt; es gibt keinen Bestandscode, der die Doku überstimmt. | n/a (GF) |
 
 ## Glossar (optional)
 
