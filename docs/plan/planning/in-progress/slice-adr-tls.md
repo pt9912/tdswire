@@ -46,18 +46,18 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] Spike durchgeführt; seine Ergebnisse (Messwerte, Matrix, Befund) stehen in der ADR. Der Spike-Code ist temporär und nach der Entscheidung gelöscht.
-- [ ] [ADR-0002](../../adr/0002-tls-und-verschluesselung.md) auf `Accepted`, Option gewählt, Geschichte und ADR-Index nachgezogen.
-- [ ] Spec-Stellen aus dem `Schärft:`-Feld der ADR an die Entscheidung angepasst.
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] Spike durchgeführt; seine Ergebnisse (Messwerte, Matrix, Befund) stehen in der ADR. Der Spike-Code ist temporär und nach der Entscheidung gelöscht.
+- [x] [ADR-0002](../../adr/0002-tls-und-verschluesselung.md) auf `Accepted`, Option gewählt, Geschichte und ADR-Index nachgezogen.
+- [x] Spec-Stellen aus dem `Schärft:`-Feld der ADR an die Entscheidung angepasst.
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Doku-Update, falls ein öffentlicher Vertrag berührt ist.
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Doku-Update, falls ein öffentlicher Vertrag berührt ist.
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -89,6 +89,11 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 | TDS 8.0, `Encrypt=Strict`, vertraut, richtiger Name | TLS 1.3, ALPN `tds/8.0`, PRELOGIN, LOGIN7 `TDSVersion=0x08000000` |
 | TDS 8.0, `Encrypt=Strict`, falscher Name | Der Server-Handshake gelingt, der Client bricht danach ab |
 | TDS 8.0, `Encrypt=Strict`, selbstsigniert nicht vertraut | Abbruch mit `UntrustedRoot`; `TrustServerCertificate` gilt nicht |
+| TDS 8.0, `Encrypt=Strict`, vertraut | TLS 1.3 mit `TLS_AES_256_GCM_SHA384` |
+| TDS 7.4, Server antwortet ENCRYPT_REQ, Client `Encrypt=true` oder `Encrypt=false` | Der Handshake in TDS-Paketen gelingt (TLS 1.3, `TLS_AES_256_GCM_SHA384`), LOGIN7 kommt verschlüsselt (`TDSVersion=0x74000004`) |
+| TDS 7.4, `Encrypt=true;TrustServerCertificate=true`, Zertifikat nicht vertraut | Der Handshake gelingt, LOGIN7 wird erreicht |
+| TDS 8.0, `Encrypt=Strict;TrustServerCertificate=true`, Zertifikat nicht vertraut | Abbruch mit `UntrustedRoot` |
+| TDS 7.4, `Encrypt=false`, Server antwortet ENCRYPT_NOT_SUP (Messung aus `slice-adr-clientprofil`) | Der Client sendet LOGIN7 unverschlüsselt (`TDSVersion=0x74000004`); mit `Encrypt=true` bricht er ab |
 
 
 ## 4. Trigger
@@ -121,7 +126,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Der Referenzclient lässt sich nicht gegen die Testmodi verbinden. — **Ausgang:** offen bis zur Closure.
+- Der Referenzclient lässt sich nicht gegen die Testmodi verbinden. — **Ausgang:** entfallen: Er verbindet sich in allen drei Modi (TLS in TDS 7.4, `Encrypt=Strict`, unverschlüsselter Testmodus mit `Encrypt=false`), siehe die Messtabelle in §3.
 
 ## 7. Closure-Notiz
 
@@ -138,7 +143,13 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-Wird bei der Closure gefüllt.
+- **Was hat funktioniert:** Der Testserver im Client-Container (Dockerfile, ohne Mount) deckte beide Protokollpfade ab; mit dem eingebauten TDS-Tunnel ließ sich der 7.4-Handshake bis LOGIN7 messen.
+- **Was ging anders als geplant:** Review und Verifikation fanden Aussagen in ADR und Sicherheitsprofil ohne Messzeile. Zwei davon waren gemessen und fehlten nur in der Tabelle, zwei wurden nachgemessen (ENCRYPT_REQ, `TrustServerCertificate=true` mit nicht vertrautem Zertifikat). SPEC-028 und der Folgesatz zu den Vertragsdateien in der Spezifikation wurden nachgezogen. Die Messung liegt als Tabelle im Slice, in der ADR als Aufzählung.
+- **Steering-Loop-Eintrag:** Aussagen über die Messung hinaus, gezählt 2×, noch nicht verkörpert; Auslöser: `BEO-TDS/aussagen-ueber-messung-hinaus` (slice-adr-clientprofil, slice-adr-tls — 2×).
+- **Beobachtungs-Register (`../observations/`):** `BEO-TDS/aussagen-ueber-messung-hinaus/` neu angelegt, Beleg `evidence/slice-adr-tls.md` und `evidence/slice-adr-clientprofil.md`; Zähler steht damit bei 2x. `BEO-TDS/kennungen-ohne-link-in-neuen-dokumenten/` ist nicht wieder aufgetreten (Zähler bleibt bei 1x).
+- **Folge-Slices:** `slice-adr-transport` und die weiteren Entscheidungs-Slices der Welle — liegen als Dateien in `open/`.
+- **Risiken aus §6:** Das eine Risiko ist entfallen, siehe §6.
+- **Drei Paarungen:** Das Repo führt Wellen; die Paarungen prüft die Closure von `welle-entscheidungen-grundlage`.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

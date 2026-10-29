@@ -275,6 +275,10 @@ wird nach dem ausgehandelten Clientprofil behandelt; kein stilles Downgrade. Fü
 TDS-7.x-Profile werden TLS-Handshake-Daten in der PRELOGIN/TDS-Transportphase entsprechend MS-TDS
 gekapselt; ein bloßes TLS-Upgrade auf dem rohen TCP-Stream ist nicht allgemein ausreichend. Der
 Übergang in verschlüsselte LOGIN7-/Nutzdaten erfolgt ausschließlich nach erfolgreicher Aushandlung.
+Im TDS-8.0-Profil (`Encrypt=Strict`) läuft TLS vor jedem PRELOGIN ab dem ersten Byte, mit ALPN `tds/8.0`;
+PRELOGIN und LOGIN7 folgen im Tunnel. Verlangt die Konfiguration TLS (`SPEC-010`), antwortet der Server
+im TDS-7.x-Pfad mit ENCRYPT_REQ oder ENCRYPT_ON; ENCRYPT_NOT_SUP sendet er nur im ausdrücklich
+konfigurierten unverschlüsselten Testmodus.
 
 Erfolgreiches LOGIN7 erfordert eine durch Referenztests bestätigte Folge zulässiger Tokens
 einschließlich LOGINACK, relevanter ENVCHANGE-Ereignisse (z. B. Datenbank/Packet Size, soweit
@@ -516,7 +520,7 @@ aktive Backendoperationen, Abbrüche, Protokollfehler. Keine SQL-Texte als Metri
 | `SPEC-022` | Query-Backend | Projektvertrag v0 (Entwurf) | `contracts/query-backend.md` (anzulegen) |
 | `SPEC-023` | TLS | durch Clientprofil und Betriebsrichtlinie bestimmt; Standard `REQUIRED` | `contracts/security-profile.md` |
 
-Die genannten Vertragsdateien sind **geplante Artefakte**, keine bereits vorhandenen Dateien.
+`contracts/query-backend.md` ist ein **geplantes Artefakt**, keine bereits vorhandene Datei.
 
 ## 7. Festlegungen der Harness-Werkzeuge
 
