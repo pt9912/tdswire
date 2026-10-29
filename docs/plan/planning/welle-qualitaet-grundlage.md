@@ -19,7 +19,7 @@ zwei Positionen, nicht drei.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Wann Arbeit eine Welle braucht.
 
-Jede der sieben Qualitätsanforderungen (`TDS-QA-01` bis `TDS-QA-07`) hat eine laufende, belegte Messung; `make doc-complete` meldet keine Waise mehr.
+Jede der sieben Qualitätsanforderungen (`TDS-QA-01` bis `TDS-QA-07`) hat eine laufende, belegte Messung, und jede Festlegung der Spezifikation (`SPEC-*`) ist durch Tests belegt; `make doc-complete` meldet keine Waise mehr.
 
 ## 2. Trigger (Welle startet)
 
@@ -59,6 +59,7 @@ Lifecycle-Verzeichnis und wird hier **nicht** gespiegelt.
 | slice-qa-wartbarkeit | Wartbarkeit: Modulgrenzen und Kompatibilitätsmatrix | [TDS-QA-05](../../../spec/lastenheft.md#tds-qa-05--wartbarkeit) |
 | slice-qa-reproduzierbarkeit | Reproduzierbarkeit: Clean-Build und Tests in CI | [TDS-QA-06](../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
 | slice-qa-synchronitaet | Protokoll-Synchronität nach Fehler und Abbruch | [TDS-QA-07](../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität) |
+| slice-qa-spec-abdeckung | Spezifikations-Abdeckungsmatrix: jede Festlegung durch Tests belegt | [TDS-QA-05](../../../spec/lastenheft.md#tds-qa-05--wartbarkeit) |
 
 ## 5. Abhängigkeiten
 
