@@ -1,0 +1,132 @@
+# Nur die Abweichungen von detekts Standardkonfiguration - build.gradle.kts setzt
+# buildUponDefaultConfig = true, alles hier nicht Genannte behaelt den Standard (die ganze
+# Standardkonfiguration: `gradle detektGenerateConfig`). Keine Baseline, kein @Suppress: ein
+# Befund wird im Code behoben, nicht stummgeschaltet. detekt kann die Prinzipien nicht selbst
+# pruefen, nur Stellvertreter: Groesse und Komplexitaet fuer S, Schnittstellenbreite fuer I,
+# Paketabhaengigkeiten fuer D, fehlende Implementierungen fuer L.
+
+complexity:
+  # S: eine schwer lesbare Methode tut meist mehr als eine Sache - ergaenzt
+  # CyclomaticComplexMethod (zaehlt Pfade, nicht Verschachtelung).
+  CognitiveComplexMethod:
+    active: true
+  # I: eine breite Schnittstelle zwingt jede Implementierung (ein Backend, ein
+  # Authentifizierungsadapter, ...) zu Mitgliedern, die sie nicht braucht.
+  ComplexInterface:
+    active: true
+
+exceptions:
+  # L: eine Ueberschreibung, die NotImplementedError/TODO() wirft, ersetzt ihren Obertyp nicht.
+  NotImplementedDeclaration:
+    active: true
+
+style:
+  # D: Importrichtung der Schichten. Quelle ist die Tabelle in spec/architecture.md Abschnitt 2
+  # (Spalte Package): was dort unter "Darf importieren" nicht steht, ist hier verboten.
+  # runtime ist der Composition Root und hat keine Regel.
+  # `make detekt-selbsttest` prueft die Regeln: aus den Werten hier erzeugt tools/detekt-selbsttest.sh
+  # je Regel verbotene Imports, die alle gemeldet werden muessen; die handgeschriebenen
+  # Allowed.kt unter config/detekt/selbsttest/ nennen je Package die erlaubten, die nichts
+  # melden duerfen. Die Package-Verzeichnisse dort sind die Packages der Architekturtabelle.
+  # Grenzen: ForbiddenImport liest nur import-Zeilen, ein voll qualifizierter Name im Code
+  # umgeht die Regel. Schnittstelle und Implementierung von transport und observability sind
+  # noch kein Package-Schnitt: protocol darf daher alles ausser simulation und runtime
+  # importieren, auch die Transport-Implementierung, die die Architektur ihm verbietet.
+  ForbiddenImport/domain:
+    active: true
+    includes: ['**/io/github/pt9912/tdswire/domain/**']
+    forbiddenImports:
+      - value: 'io.github.pt9912.tdswire.config.*'
+        reason: 'domain kennt nur die Standardbibliothek.'
+      - value: 'io.github.pt9912.tdswire.port.*'
+        reason: 'domain kennt nur die Standardbibliothek.'
+      - value: 'io.github.pt9912.tdswire.protocol.*'
+        reason: 'domain kennt nur die Standardbibliothek.'
+      - value: 'io.github.pt9912.tdswire.transport.*'
+        reason: 'domain kennt nur die Standardbibliothek.'
+      - value: 'io.github.pt9912.tdswire.observability.*'
+        reason: 'domain kennt nur die Standardbibliothek.'
+      - value: 'io.github.pt9912.tdswire.simulation.*'
+        reason: 'domain kennt nur die Standardbibliothek.'
+      - value: 'io.github.pt9912.tdswire.runtime.*'
+        reason: 'domain kennt nur die Standardbibliothek.'
+  ForbiddenImport/config:
+    active: true
+    includes: ['**/io/github/pt9912/tdswire/config/**']
+    forbiddenImports:
+      - value: 'io.github.pt9912.tdswire.port.*'
+        reason: 'config darf nur domain importieren.'
+      - value: 'io.github.pt9912.tdswire.protocol.*'
+        reason: 'config darf nur domain importieren.'
+      - value: 'io.github.pt9912.tdswire.transport.*'
+        reason: 'config darf nur domain importieren.'
+      - value: 'io.github.pt9912.tdswire.observability.*'
+        reason: 'config darf nur domain importieren.'
+      - value: 'io.github.pt9912.tdswire.simulation.*'
+        reason: 'config darf nur domain importieren.'
+      - value: 'io.github.pt9912.tdswire.runtime.*'
+        reason: 'config darf nur domain importieren.'
+  ForbiddenImport/port:
+    active: true
+    includes: ['**/io/github/pt9912/tdswire/port/**']
+    forbiddenImports:
+      - value: 'io.github.pt9912.tdswire.config.*'
+        reason: 'port darf nur domain und eine Laufzeitbibliothek fuer asynchrone Streams importieren.'
+      - value: 'io.github.pt9912.tdswire.protocol.*'
+        reason: 'der Backend-Port kennt keine TDS-Paketbytes.'
+      - value: 'io.github.pt9912.tdswire.transport.*'
+        reason: 'der Backend-Port kennt keinen Transport.'
+      - value: 'io.github.pt9912.tdswire.observability.*'
+        reason: 'port darf nur domain und eine Laufzeitbibliothek fuer asynchrone Streams importieren.'
+      - value: 'io.github.pt9912.tdswire.simulation.*'
+        reason: 'der Port kennt seine Adapter nicht.'
+      - value: 'io.github.pt9912.tdswire.runtime.*'
+        reason: 'port darf nur domain und eine Laufzeitbibliothek fuer asynchrone Streams importieren.'
+  ForbiddenImport/protocol:
+    active: true
+    includes: ['**/io/github/pt9912/tdswire/protocol/**']
+    forbiddenImports:
+      - value: 'io.github.pt9912.tdswire.simulation.*'
+        reason: 'der Protokollkern laeuft ohne das Simulations-Backend.'
+      - value: 'io.github.pt9912.tdswire.runtime.*'
+        reason: 'runtime ist der Composition Root - protocol darf ihn nicht kennen.'
+  ForbiddenImport/transport:
+    active: true
+    includes: ['**/io/github/pt9912/tdswire/transport/**']
+    forbiddenImports:
+      - value: 'io.github.pt9912.tdswire.port.*'
+        reason: 'transport kennt keine Backend-Engine und keinen Backend-Port.'
+      - value: 'io.github.pt9912.tdswire.simulation.*'
+        reason: 'transport kennt keine Backend-Engine.'
+      - value: 'io.github.pt9912.tdswire.runtime.*'
+        reason: 'runtime ist der Composition Root - transport darf ihn nicht kennen.'
+  ForbiddenImport/observability:
+    active: true
+    includes: ['**/io/github/pt9912/tdswire/observability/**']
+    forbiddenImports:
+      - value: 'io.github.pt9912.tdswire.config.*'
+        reason: 'observability darf nur domain importieren und trifft keine fachlichen Entscheidungen.'
+      - value: 'io.github.pt9912.tdswire.port.*'
+        reason: 'observability darf nur domain importieren und trifft keine fachlichen Entscheidungen.'
+      - value: 'io.github.pt9912.tdswire.protocol.*'
+        reason: 'observability darf nur domain importieren und trifft keine fachlichen Entscheidungen.'
+      - value: 'io.github.pt9912.tdswire.transport.*'
+        reason: 'observability darf nur domain importieren und trifft keine fachlichen Entscheidungen.'
+      - value: 'io.github.pt9912.tdswire.simulation.*'
+        reason: 'observability darf nur domain importieren und trifft keine fachlichen Entscheidungen.'
+      - value: 'io.github.pt9912.tdswire.runtime.*'
+        reason: 'observability darf nur domain importieren und trifft keine fachlichen Entscheidungen.'
+  ForbiddenImport/simulation:
+    active: true
+    includes: ['**/io/github/pt9912/tdswire/simulation/**']
+    forbiddenImports:
+      - value: 'io.github.pt9912.tdswire.config.*'
+        reason: 'simulation darf nur domain und port importieren.'
+      - value: 'io.github.pt9912.tdswire.protocol.*'
+        reason: 'ein Backend-Adapter kennt keine TDS-Paketbytes.'
+      - value: 'io.github.pt9912.tdswire.transport.*'
+        reason: 'ein Backend-Adapter kennt keinen Transport.'
+      - value: 'io.github.pt9912.tdswire.observability.*'
+        reason: 'simulation darf nur domain und port importieren.'
+      - value: 'io.github.pt9912.tdswire.runtime.*'
+        reason: 'runtime ist der Composition Root - simulation darf ihn nicht kennen.'

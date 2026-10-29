@@ -22,6 +22,7 @@ flowchart TB
     subgraph Kern["Kern"]
         Backend["Query Backend Port"]
         Model["Domain / Types"]
+        Sim["Simulations-Backend (optional)"]
     end
     subgraph Quer["Querschnitt"]
         Runtime["Runtime / Bootstrap"]
@@ -29,18 +30,22 @@ flowchart TB
         Obs["Observability"]
     end
     NET <--> Transport
-    Transport <--> Session    Session --> Dispatch
+    Transport <--> Session
+    Session --> Dispatch
     Session --> Config
     Dispatch --> Stream
     Stream --> Codec
     Codec --> Transport
     Dispatch --> Backend
     Backend <--> Engine
+    Backend <--> Sim
     Session --> Model
     Dispatch --> Model
     Backend --> Model
+    Sim --> Model
     Runtime --> Transport
     Runtime --> Config
+    Runtime -.-> Sim
     Transport --> Obs
     Dispatch --> Obs
 ```
@@ -59,20 +64,28 @@ Pfeile zeigen Datenfluss und Aufrufrichtung zur Laufzeit, nicht die Import-Richt
 | `ARC-008` | Runtime / Bootstrap | Verdrahtung, Listener-Start, Shutdown und Ressourcenverwaltung |
 | `ARC-009` | Observability | Strukturierte Logs, Metriken und Traces ohne Geheimnisse |
 | `ARC-015` | Response Sequencer / Cancel State | Hält den Anfragezustand; serialisiert Ergebnisereignisse, DONE-Familie und Abbruch; garantiert Antwortgrenzen |
+| `ARC-016` | Simulations-Backend | Optionaler Backend-Adapter hinter `ARC-006`: beantwortet abgegrenzte Anweisungsformen aus beschriebenen Tabellen; keine SQL-Engine, keine Persistenz |
 
 ## 2. Schichten und Constraints
 
-| Komponente(n) | Schicht | Verantwortlichkeit | Darf importieren | Darf NICHT importieren |
-|---|---|---|---|---|
-| `ARC-001` | Domain | reine Modelle und Verträge | Standardbibliothek | Transport, Runtime, externe Engine |
-| `ARC-002` | Configuration | validierte Einstellungen und Security-Verträge | Domain | Transport-Implementierung, Dispatch |
-| `ARC-006` | Backend Port | Backend-Abstraktion | Domain, Laufzeitbibliothek für asynchrone Streams | TDS-Codec, TCP-Transport |
-| `ARC-004`, `ARC-005`, `ARC-007`, `ARC-015` | Protocol | TDS-Semantik, Session, Anfrage-/Antwortabbildung | Domain, Backend Port, Security-Verträge, Observability-Schnittstellen, Transport-Schnittstellen (Antwortausgabe) | konkrete Backend-Engine, TCP-Transport-Implementierung, Bootstrap |
-| `ARC-003` | Transport | Netzwerk-I/O, Framing und TLS-Kapselung | Domain, Security-Verträge, Observability-Schnittstellen, Protocol-Schnittstellen | konkrete Backend-Engine |
-| `ARC-009` | Observability | Telemetrie-Adapter | Domain, Observability-Schnittstellen | fachliche Entscheidungen |
-| `ARC-008` | Runtime | Composition Root | alle benötigten Module | — |
+Jede Komponente liegt in einem Package unter `io.github.pt9912.tdswire`
+(`src/main/kotlin/io/github/pt9912/tdswire/<Package>/`). Importiert wird nur, was die Spalte
+„Darf importieren“ nennt; die Spalte „Darf NICHT importieren“ nennt die wichtigsten Ausschlüsse.
+Die Importregeln in `config/detekt/detekt.yml` leiten sich aus dieser Tabelle ab.
 
-**Constraints:** Protokollparser dürfen keine Query-Engine aufrufen. Der Backend-Port kennt keine TDS-Paketbytes. Die Typabbildung ist zentral und deterministisch. Jede Verbindung besitzt ihren eigenen Zustandsautomaten. Fehlerhafte Eingaben dürfen keine andere Session beeinflussen. TLS und Authentifizierung werden vor Freigabe von Query-Anfragen abgeschlossen. Backpressure und Cancel werden bis zum Backend durchgereicht.
+| Komponente(n) | Package | Schicht | Verantwortlichkeit | Darf importieren | Darf NICHT importieren |
+|---|---|---|---|---|---|
+| `ARC-001` | `domain` | Domain | reine Modelle und Verträge | Standardbibliothek | Transport, Runtime, externe Engine |
+| `ARC-002` | `config` | Configuration | validierte Einstellungen und Security-Verträge | Domain | Transport-Implementierung, Dispatch |
+| `ARC-006` | `port` | Backend Port | Backend-Abstraktion | Domain, Laufzeitbibliothek für asynchrone Streams | TDS-Codec, TCP-Transport |
+| `ARC-004`, `ARC-005`, `ARC-007`, `ARC-015` | `protocol` | Protocol | TDS-Semantik, Session, Anfrage-/Antwortabbildung | Domain, Backend Port, Security-Verträge, Observability-Schnittstellen, Transport-Schnittstellen (Antwortausgabe) | konkrete Backend-Engine, TCP-Transport-Implementierung, Bootstrap |
+| `ARC-003` | `transport` | Transport | Netzwerk-I/O, Framing und TLS-Kapselung | Domain, Security-Verträge, Observability-Schnittstellen, Protocol-Schnittstellen | konkrete Backend-Engine |
+| `ARC-009` | `observability` | Observability | Telemetrie-Adapter | Domain, Observability-Schnittstellen | fachliche Entscheidungen |
+| `ARC-016` | `simulation` | Backend-Adapter | Simulations-Backend hinter dem Backend Port | Domain, Backend Port | Protocol, Transport, Security-Verträge, Observability, Bootstrap, externe Engine |
+| `ARC-008` | `runtime` | Runtime | Composition Root | alle benötigten Module | — |
+
+**Constraints:** Kein Package außer Runtime importiert das Simulations-Backend; der Protokollkern
+läuft ohne es. Protokollparser dürfen keine Query-Engine aufrufen. Der Backend-Port kennt keine TDS-Paketbytes. Die Typabbildung ist zentral und deterministisch. Jede Verbindung besitzt ihren eigenen Zustandsautomaten. Fehlerhafte Eingaben dürfen keine andere Session beeinflussen. TLS und Authentifizierung werden vor Freigabe von Query-Anfragen abgeschlossen. Backpressure und Cancel werden bis zum Backend durchgereicht.
 
 ## 3. Externe Abhängigkeiten
 

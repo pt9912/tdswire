@@ -61,8 +61,9 @@ Diese Datei dupliziert sie nicht.
 | Target | Vertrag | Bindung |
 |---|---|---|
 | `make docs-check` | Doku-Referenzen (d-check); das Gate, das die Vorlage mitbringt | — |
-| `<make-target>` | <was prüft es> | — |
-| `<make-target>` | <…> | — |
+| `make detekt` | Statische Analyse (detekt) samt Importregeln der Schichten, in Docker; keine Baseline | — |
+| `make detekt-selbsttest` | Importregeln der Schichten gegen Testdaten prüfen; läuft nur bei geänderten Eingängen | — |
+| `make build` | Compile und Jar in Docker, ohne Tests; Basis-Images per Digest gepinnt | — |
 | `<make-target>` | <…> | ADR-<NNNN> |
 | `<make-target>` | <…>, bootstrap-aware | Schwelle X %, M<n> → Y % |
 | `<make-target>` | <…> | bootstrap via `CO-<NNN>` bis <Slice/Welle> |
@@ -75,7 +76,7 @@ Diese Datei dupliziert sie nicht.
 
 | Target | Tut was | Bindung |
 |---|---|---|
-| `make <mover>` | bewegt <…>, prüft nichts | kein Gate |
+| `make deps-lock` | schreibt `gradle.lockfile` und `gradle/verification-metadata.xml` neu (braucht Netz), prüft nichts | kein Gate |
 | `make <messung>` | misst <…> gegen <Schwelle> | kein Gate, ADR-<NNNN> |
 | `make <vorschau>` | sagt, was <schreibender Lauf> täte; Ausgänge und Sperren in der verlinkten Datei | kein Gate |
 
@@ -84,6 +85,8 @@ Diese Datei dupliziert sie nicht.
 **Nicht behauptet** (geplant): `<make-target-1>`, `<make-target-2>` (Welle <n>).
 
 **Targets der Werkzeug-Fragmente:** [`mk/ai-harness-init.md`](mk/ai-harness-init.md) — der Teil dieses Index, den `ai-harness-init` bei jedem Lauf neu schreibt; was das Repo über eines dieser Targets entscheidet, steht in dieser Zeile.
+
+**Targets des Repos:** repo-eigene Make-Fragmente liegen in `tools/mk/`. `repo.mk` bindet sie mit `-include tools/mk/*.mk` ein, und `.d-check.yml` führt den Pfad unter `makefiles:`. Jedes ihrer Targets hat seine Zeile in den Tabellen oben; ein Gate hängt sich mit `GATE_CHECKS += <target>` in `make gates`. `harness/mk/` gehört dem Werkzeug und enthält nur dessen Fragmente.
 
 ## Traceability rules
 

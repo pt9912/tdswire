@@ -76,11 +76,11 @@ In dieser Reihenfolge:
 
 
 
-Kein lokales <venv/SDK/Toolchain-Install>. Alles läuft über `make`
+Kein lokales JDK-, Gradle- oder Kotlin-Install. Alles läuft über `make`
 (das Docker nutzt). Host braucht nur Docker und GNU `make`.
 
-**Falsch:** <z.B. `pip install ...`>
-**Richtig:** <z.B. `<make-target>`>
+**Falsch:** `gradle detekt` oder `./gradlew build` auf dem Host
+**Richtig:** `make detekt`, `make build`
 
 **Begründung:** Toolchain-Reproduzierbarkeit + Supply-Chain-Defense.
 

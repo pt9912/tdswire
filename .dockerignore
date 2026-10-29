@@ -1,0 +1,8 @@
+.git
+.gradle
+.kotlin
+.harness
+build
+out
+*.iml
+.idea

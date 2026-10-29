@@ -1,0 +1,11 @@
+# Jede Abhaengigkeits- und Plugin-Version steht hier; build.gradle.kts verweist als libs.* darauf.
+# Die aufgeloesten Versionen sind in gradle.lockfile festgehalten, ihre Pruefsummen in
+# gradle/verification-metadata.xml.
+
+[versions]
+kotlin = "2.4.10"
+detekt = "2.0.0-alpha.6"
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+detekt = { id = "dev.detekt", version.ref = "detekt" }
