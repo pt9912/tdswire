@@ -30,9 +30,9 @@ Herabstufung einer geforderten Verschlüsselung.
 
 1. LOGIN7-Felder unter Beachtung ihrer Offsets und Zeichencodierung validieren.
 2. Identität über konfigurierten Authentifizierungsadapter prüfen; Geheimnisse nicht protokollieren.
-   Für eine unbekannte Kennung läuft dieselbe Prüfung wie für eine bekannte (Vergleich gegen ein
-   Scheingeheimnis, in konstanter Zeit). Meldung und State der Ablehnung sind für eine unbekannte
-   Kennung und ein falsches Passwort gleich; der Grund steht nur im Server-Log (`SPEC-012`).
+   Meldung und State der Ablehnung sind für eine unbekannte Kennung und ein falsches Passwort
+   gleich; der Grund steht nur im Server-Log (`SPEC-012`). Ein Zeitunterschied zwischen beiden
+   Fällen ist nicht zugesichert; er gehört zum Authentifizierungsadapter, sobald der Modus feststeht.
 3. Bei Erfolg isolierte Session mit ID, Principal, Datenbankkontext und Abbruchstatus erzeugen.
 4. Die für den Referenzclient erforderlichen Login-Antworttokens (insbesondere LOGINACK und DONE;
    erforderliche ENVCHANGE/INFO nach Profil) senden.
