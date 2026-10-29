@@ -46,7 +46,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] Nachweis zur offenen Frage erbracht und im Repo abgelegt (Ablageort im ersten Lauf festgelegt).
+- [ ] Spike durchgeführt; seine Ergebnisse (Messwerte, Matrix, Befund) stehen in der ADR. Der Spike-Code ist temporär und nach der Entscheidung gelöscht.
 - [ ] [ADR-0003](../../adr/0003-transportframework.md) auf `Accepted`, Option gewählt, Geschichte und ADR-Index nachgezogen.
 - [ ] Spec-Stellen aus dem `Schärft:`-Feld der ADR an die Entscheidung angepasst.
 - [ ] `make gates` grün.
@@ -71,7 +71,7 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `docs/plan/adr/0003-transportframework.md` | update | Entscheidung, Status, Geschichte |
 | `docs/plan/adr/README.md` | update | Indexzeile |
-| Nachweis des Spike | neu | Ablage im ersten Lauf festlegen |
+| Spike (temporär, nicht im Repo behalten) | neu, danach löschen | Ergebnisse gehen in die ADR |
 | `spec/spezifikation.md` | update | Stellen aus `Schärft:` |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
