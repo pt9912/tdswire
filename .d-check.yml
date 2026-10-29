@@ -135,8 +135,9 @@ codepaths:
 # der Sensor erst, wenn das Repo sie angelegt hat;
 # jede andere .mk-Datei an der Wurzel liest der Glob mit,
 # ihre Targets brauchen eine Zeile in harness/README.md, auch wenn kein Makefile sie einbindet;
-# eine .mk-Datei in einem Unterverzeichnis ausser harness/mk/ liest er nicht, auch wenn repo.mk
-# sie per include einbindet — ihre Targets laufen mit make und bleiben ungeprueft. Ein
+# eine .mk-Datei in einem Unterverzeichnis ausser harness/mk/ und tools/mk/ (repo-eigen, hier
+# eigens eingetragen) liest er nicht, auch wenn repo.mk sie per include einbindet — ihre Targets
+# laufen mit make und bleiben ungeprueft. Ein
 # rekursiver Glob schliesst die Luecke nicht: makefiles: folgt scan.ignore nicht und liest dann
 # auch .mk-Dateien unter test/ und .harness/.
 # Die achte Position ist das Modul planning samt Block (vor dem targets-Block), das die
@@ -219,7 +220,7 @@ planning:
 # targets (hermetisch, kein git): jedes Make-Target hat eine Tabellenzeile im Gate-Index und
 # jede Zeile ein Target; Herkunft und Grenzen im Kopfkommentar oben.
 targets:
-  makefiles: [Makefile, "harness/mk/*.mk", "*.mk"]
+  makefiles: [Makefile, "harness/mk/*.mk", "*.mk", "tools/mk/*.mk"]
   doc-tables: [harness/README.md, harness/mk/ai-harness-init.md]
   authority: [harness/README.md, harness/mk/ai-harness-init.md]
   authority-disjoint: true

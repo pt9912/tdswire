@@ -182,7 +182,7 @@ sie gilt für jeden Lauf.
 
 | MR | Titel | Geltungsbereich | Ersetzt-Baseline-Regel |
 |---|---|---|---|
-| \<NNN\> <a id="mr-<NNN>"></a> | <Titel> | <Dateien / Sub-Areas> | <§Abschnitt der Baseline> |
+| 001 <a id="mr-001"></a> | [Commit-Hook erkennt das Vertrags-Präfix TDS](conventions/MR-001-commit-hook-tds-praefix.md) | `.githooks/commit-msg` | `grundlagen-traceability.md` §Traceability-Constraint |
 
 ### Aufgelöste Adaptionen
 
