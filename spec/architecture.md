@@ -56,7 +56,7 @@ Pfeile zeigen Datenfluss und Aufrufrichtung zur Laufzeit, nicht die Import-Richt
 |---|---|---|
 | `ARC-001` | Domain / Types | Sitzungs-, Anfrage-, Ergebnis-, Fehler- und Typmodelle ohne Netzwerkabhängigkeit |
 | `ARC-002` | Config / Security | Konfigurationsvalidierung, TLS- und Authentifizierungsadapter |
-| `ARC-003` | TDS Transport / Framing | TCP, TDS-Header, Fragmentierung, Backpressure, I/O |
+| `ARC-003` | TDS Transport / Framing | TCP, TDS-Header, Fragmentierung, Backpressure, I/O mit Kotlin-Coroutines über `java.nio.channels.AsynchronousSocketChannel` |
 | `ARC-004` | Handshake / Session | PRELOGIN, LOGIN7, Verbindungs-Zustandsautomat, Session-Lebensdauer |
 | `ARC-005` | SQL Batch / RPC Dispatch | TDS-Anfragen in interne QueryRequests übersetzen |
 | `ARC-006` | Query Backend Port | Austauschbare, asynchrone Ausführungs- und Abbruchschnittstelle |
@@ -95,7 +95,7 @@ läuft ohne es. Protokollparser dürfen keine Query-Engine aufrufen. Der Backend
 | `ARC-010` | .NET SqlClient | Externer Referenzclient für Kompatibilitätstests | Profilgebunden; anderer Client erfordert neue Validierung |
 | `ARC-011` | Microsoft TDS / MS-TDS | Verbindlicher Protokollvertrag | Nicht austauschbar ohne Änderung des Produktziels |
 | `ARC-012` | Query Engine | Externe Datenverarbeitung | Über `ARC-006` austauschbar |
-| `ARC-013` | Netzwerk-/TLS-Laufzeit | TCP und Verschlüsselung | Austauschbar hinter Transport-/Security-Schnittstellen |
+| `ARC-013` | Netzwerk-/TLS-Laufzeit | TCP (`java.nio.channels`) und Verschlüsselung (`SSLEngine`) | Austauschbar hinter Transport-/Security-Schnittstellen |
 | `ARC-014` | Logging-/Tracing-Backend | Betriebsdaten | Über Observability-Schnittstellen austauschbar |
 
 Konkrete Bibliotheks- und Versionsentscheidungen sind nicht Teil dieser Sicht.
