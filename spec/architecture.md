@@ -105,6 +105,7 @@ Konkrete Bibliotheks- und Versionsentscheidungen sind nicht Teil dieser Sicht.
 ### Use-Case: TDS-FA-01 / TDS-FA-02 — Verbindungsaufbau und Login
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'lineColor': '#7d8799', 'primaryColor': '#e8ecf8', 'primaryTextColor': '#1b2333', 'primaryBorderColor': '#5b6b9a', 'actorBkg': '#e8ecf8', 'actorBorder': '#5b6b9a', 'actorTextColor': '#1b2333', 'actorLineColor': '#7d8799', 'signalColor': '#7d8799', 'signalTextColor': '#7d8799', 'labelBoxBkgColor': '#e8ecf8', 'labelBoxBorderColor': '#5b6b9a', 'labelTextColor': '#1b2333', 'loopTextColor': '#7d8799', 'noteBkgColor': '#e8ecf8', 'noteTextColor': '#1b2333', 'noteBorderColor': '#5b6b9a'}}}%%
 sequenceDiagram
     participant C as .NET SqlClient
     participant T as Transport
@@ -127,6 +128,7 @@ sequenceDiagram
 ### Use-Case: TDS-FA-03 / TDS-FA-05 — SELECT als SQL_BATCH
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'lineColor': '#7d8799', 'primaryColor': '#e8ecf8', 'primaryTextColor': '#1b2333', 'primaryBorderColor': '#5b6b9a', 'actorBkg': '#e8ecf8', 'actorBorder': '#5b6b9a', 'actorTextColor': '#1b2333', 'actorLineColor': '#7d8799', 'signalColor': '#7d8799', 'signalTextColor': '#7d8799', 'labelBoxBkgColor': '#e8ecf8', 'labelBoxBorderColor': '#5b6b9a', 'labelTextColor': '#1b2333', 'loopTextColor': '#7d8799', 'noteBkgColor': '#e8ecf8', 'noteTextColor': '#1b2333', 'noteBorderColor': '#5b6b9a'}}}%%
 sequenceDiagram
     participant C as .NET SqlClient
     participant T as Transport
@@ -147,12 +149,15 @@ sequenceDiagram
 ### Use-Case: TDS-FA-04 / TDS-FA-07 — Parametrisierter RPC und Abbruch
 
 ```mermaid
-sequenceDiagram    participant C as .NET SqlClient
+%%{init: {'theme': 'base', 'themeVariables': {'lineColor': '#7d8799', 'primaryColor': '#e8ecf8', 'primaryTextColor': '#1b2333', 'primaryBorderColor': '#5b6b9a', 'actorBkg': '#e8ecf8', 'actorBorder': '#5b6b9a', 'actorTextColor': '#1b2333', 'actorLineColor': '#7d8799', 'signalColor': '#7d8799', 'signalTextColor': '#7d8799', 'labelBoxBkgColor': '#e8ecf8', 'labelBoxBorderColor': '#5b6b9a', 'labelTextColor': '#1b2333', 'loopTextColor': '#7d8799', 'noteBkgColor': '#e8ecf8', 'noteTextColor': '#1b2333', 'noteBorderColor': '#5b6b9a'}}}%%
+sequenceDiagram
+    participant C as .NET SqlClient
     participant T as Transport
     participant D as RPC Dispatch
     participant B as Backend Port
     participant Q as Response Sequencer
-    participant E as Result Encoder    C->>T: RPC sp_executesql + Parameter
+    participant E as Result Encoder
+    C->>T: RPC sp_executesql + Parameter
     T->>D: RPC-Nachricht + Session
     D->>B: execute(typisierte Parameter)
     opt Client bricht ab
@@ -163,17 +168,20 @@ sequenceDiagram    participant C as .NET SqlClient
     end
     B-->>D: Ergebnis oder Fehler
     D->>Q: Ergebnisereignisse
-    Q->>E: Antwort ohne Vermischung mit Folgeanfrage    E-->>T: Resultset / ERROR / DONE
+    Q->>E: Antwort ohne Vermischung mit Folgeanfrage
+    E-->>T: Resultset / ERROR / DONE
     T-->>C: TDS-Tokenstrom
 ```
 
 ### Use-Case: TDS-FA-06 / TDS-FA-07 / TDS-FA-10 — Fehler während Streaming
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'lineColor': '#7d8799', 'primaryColor': '#e8ecf8', 'primaryTextColor': '#1b2333', 'primaryBorderColor': '#5b6b9a', 'actorBkg': '#e8ecf8', 'actorBorder': '#5b6b9a', 'actorTextColor': '#1b2333', 'actorLineColor': '#7d8799', 'signalColor': '#7d8799', 'signalTextColor': '#7d8799', 'labelBoxBkgColor': '#e8ecf8', 'labelBoxBorderColor': '#5b6b9a', 'labelTextColor': '#1b2333', 'loopTextColor': '#7d8799', 'noteBkgColor': '#e8ecf8', 'noteTextColor': '#1b2333', 'noteBorderColor': '#5b6b9a'}}}%%
 sequenceDiagram
     participant C as .NET SqlClient
     participant T as Transport
-    participant Q as Response Sequencer    participant B as Backend Port
+    participant Q as Response Sequencer
+    participant B as Backend Port
     B-->>Q: ResultStart + Row
     Q-->>T: COLMETADATA + ROW
     T-->>C: partielle Antwort
