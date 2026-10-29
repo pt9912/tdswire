@@ -28,7 +28,9 @@ bewusst kurz (Ergänzungs-Kanal, nicht Hauptkanal).
 - Korrektheitsfehler im *kritischen* Pfad (Protokoll-Synchronität: eine Antwort wird einer
   späteren Anfrage zugeordnet, `TDS-QA-07`; Anmeldung: Zugangsdaten im Log oder eine Sitzung ohne
   abgeschlossene Authentifizierung, `TDS-QA-03`)
-- Suppression eines Gates (`#noqa`, `//nolint`, `[SuppressMessage]`) ohne ADR
+- Suppression eines Gates: `@Suppress` oder `@SuppressWarnings` im Kotlin-Quelltext (`AGENTS.md` §3.2,
+  `SPEC-041` kennt keine Ausnahme), ebenso `#noqa`, `//nolint`, `[SuppressMessage]`. Eine Ausnahme für
+  eine Regel steht nur in `config/detekt/detekt.yml`, mit ADR oder Carveout
 - **Norm nur im Template-Kommentar** — eine Regel steht im `<!-- -->`-Block
   eines `.template.md` und nirgends sonst. Sie ist beim Adopter weg, sobald er
   die Kommentare entfernt. Kein Gate fängt das (siehe Baseline-Regelwerk
@@ -45,14 +47,20 @@ bewusst kurz (Ergänzungs-Kanal, nicht Hauptkanal).
   Baseline-Regelwerk `grundlagen-harness-dateien.md` §Was ein Kommentar trägt,
   *Dieselbe Regel für Zustandsfelder*)
 - **Schichtregel gebrochen oder umgangen** — ein Import entgegen der Tabelle in
-  `spec/architecture.md` §2, eine Fremdbibliothek in `domain` oder `port`, oder eine Änderung an
-  `config/detekt/detekt.yml`, die eine Importregel lockert, ohne dass die Tabelle dasselbe sagt
+  `spec/architecture.md` §2, eine Fremdbibliothek in `domain` oder `port` (ausgenommen die
+  Laufzeitbibliothek für asynchrone Streams in `port`, die die Tabelle nennt), oder eine Änderung
+  an `config/detekt/detekt.yml`, die eine Importregel lockert, ohne dass die Tabelle dasselbe sagt
   (Quelle ist die Tabelle, die Regeln leiten sich ab). Kein anderes Gate fängt eine Tabelle, die
-  der Regel widerspricht
-- **Die untere Spec-Schicht erweitert die obere** — ein Abschnitt in `spec/spezifikation.md` oder
-  `spec/architecture.md` führt eine Zusage ein, die im Lastenheft keinen Anker hat, oder
-  `spec/lastenheft.md` und `spec/spezifikation.md` nennen eine ID einer tieferen Schicht
-  (`SPEC-`, `ARC-`, `ADR-`). Die untere Schicht präzisiert, sie erweitert nie
+  der Regel widerspricht. Das Gate lässt sich auch an anderer Stelle abschalten: `detekt { … }`,
+  `ignoreFailures` und Quellmengen in `build.gradle.kts`, `tools/suppression-check.sh` und die
+  Stage `detekt` im `Dockerfile` zählen wie `detekt.yml`
+- **Die untere Spec-Schicht erweitert die obere** — ein Abschnitt in `spec/spezifikation.md` führt
+  eine Zusage ein, die im Lastenheft keinen Anker hat, oder `spec/architecture.md` eine, die weder
+  im Lastenheft noch in der Spezifikation einen Anker hat (die Sicht darf Technik normativ nennen,
+  `grundlagen-referenz-richtung.md`). Oder `spec/lastenheft.md` nennt eine ID einer tieferen Schicht
+  (`SPEC-`, `ARC-`, `ADR-`), `spec/spezifikation.md` eine der Sicht oder der ADRs (`ARC-`, `ADR-`);
+  eine `SPEC-`-ID in der Spezifikation ist ihre eigene Schicht. Die untere Schicht präzisiert, sie
+  erweitert nie
 - **Host statt Docker** — ein Skript, Make-Target oder eine Anleitung ruft `gradle`, `java` oder
   eine Kotlin-Toolchain auf dem Host auf (`AGENTS.md` §3.1)
 - **Accepted-ADR inhaltlich geändert** statt durch eine neue ADR mit `Supersedes` ersetzt
@@ -69,11 +77,6 @@ Tippfehler, unbenutzte Imports.
 
 **INFO** — Hinweis ohne erwartete Aktion (z. B. „diese Stelle hat ein passendes
 ArchUnit-Pendant, das du nicht kennst").
-
-> **Pflicht beim Ausfüllen (Modul 10 §Übungen):** Die HIGH-Liste muss mindestens
-> *zwei* repo-spezifische Regeln nennen, die ein generischer Skill nicht abdeckt.
-> Ist der Skill ohne sie, ist er noch nicht scharf genug — dann kommt bei einem
-> Lauf auf einem realen Diff keines deiner Repo-HIGHs zur Anwendung.
 
 ## Was dieser Skill NICHT macht
 

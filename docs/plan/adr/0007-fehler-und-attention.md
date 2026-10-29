@@ -16,6 +16,8 @@
 
 Ein Cancel oder Streaming-Fehler darf den TDS-Antwortstrom nicht desynchronisieren. ERROR, DONE und ATTENTION-Bestätigung müssen zum Sessionzustand passen.
 
+Dasselbe gilt für zwei Fälle, die keinen Client-Abbruch voraussetzen: das geordnete Beenden des Servers (`SPEC-044`, Frist `SPEC-047`, Fehler `TDS_SHUTDOWN` nach `SPEC-049`) und interne Fehler (`SPEC-048`). Auch dort endet eine laufende Antwort regulär oder die Verbindung wird getrennt, nie mit einem halben Tokenstrom, und ein Fehler nach Beginn des Beendens führt nie zur Weiterverwendung der Verbindung.
+
 ## Entscheidung
 
 **Offen — noch keine Option gewählt.** Diese ADR dokumentiert die zu treffende Entscheidung, nicht bereits einen Beschluss. Vor `Accepted` ist eine Fehler-/Cancel-Matrix gegen einen echten .NET-Client zu prüfen, einschließlich der Wiederverwendung derselben Verbindung.
@@ -34,7 +36,7 @@ Ein Cancel oder Streaming-Fehler darf den TDS-Antwortstrom nicht desynchronisier
 - **Positiv nach Entscheidung:** Nach jedem Fehlerfall ist definiert, ob die Verbindung weiterverwendet werden darf.
 - **Negativ / Risiko:** Zustandsabhängige Recovery erhöht die Zahl der zu testenden Token- und Cancel-Sequenzen.
 - **Folgepflicht:** `SPEC-029`, `SPEC-031`, `SPEC-011` und `SPEC-016` auf die gewählte Recovery-Regel festlegen.
-- **Offen:** Fehlerklassen, die eine Wiederverwendung der Verbindung erlauben.
+- **Offen:** Fehlerklassen, die eine Wiederverwendung der Verbindung erlauben; ob nach `TDS_SHUTDOWN` und nach einem internen Fehler (`SPEC-048`) die Verbindung stets endet, wie `SPEC-044` und `SPEC-049` es vorsehen, oder die Recovery-Regel Ausnahmen kennt.
 
 ## Fitness Function (falls maschinell prüfbar)
 
