@@ -182,6 +182,7 @@ Kein Target nennen, das im Makefile nicht existiert — auch nicht in Prosa.
 | 2 | Vergeben werden IDs beim Spec-/ADR-Schreiben nach dem in `harness/conventions.md` deklarierten ID-Schema (Default: `<PREFIX>-FA-<NN>` / `<PREFIX>-QA-<NN>` / `<PREFIX>-RB-<NN>` aus dem Lastenheft, `SPEC-<NNN>` in der Spezifikation, `ARC-<NNN>` in der Sicht, ADR-Nummern über den ADR-Index) — nie ad hoc im PR. | — |
 | 3 | Neue ADRs müssen den ADR-Index aktualisieren. | — |
 | 4 | Roadmap/Status-Geschichte lebt in `docs/plan/planning/`, nicht in `spec/architecture.md`. | — |
+| 5 | Nutzer-Doku liegt in `docs/user/` und bildet den Ist-Zustand ab: keine Chronik, keine Forensik, keine Planung. Was war, steht in `git`; was kommt, in `docs/plan/planning/`. | — |
 
 ## 6. Minimal Agent Workflow
 
