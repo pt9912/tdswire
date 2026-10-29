@@ -17,6 +17,7 @@ Zustand sind die flachen Welle-Dateien; woran gearbeitet wird, sagt das
 Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 
 - [welle-qualitaet-grundlage](../welle-qualitaet-grundlage.md)
+- [welle-entscheidungen-grundlage](../welle-entscheidungen-grundlage.md)
 
 Nichts in Arbeit.
 
