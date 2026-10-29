@@ -12,7 +12,9 @@ kontrollierte Ablehnung.
 
 1. TCP-Verbindung annehmen und einen verbindungslokalen Paketdecoder initialisieren.
 2. TDS-Paketheader (8 Byte) lesen, deklarierte Länge validieren, fragmentierte Nachrichten
-   zusammensetzen.
+   zusammensetzen. Die Größengrenzen (`SPEC-007`, vor abgeschlossenem Login `SPEC-046`) gelten
+   während des Zusammensetzens: übersteigt die Summe der Paketlängen die Grenze, wird abgebrochen,
+   bevor die Nachricht vollständig gepuffert ist.
 3. PRELOGIN-Optionen anhand von Offsets und Längen prüfen; unbekannte Optionen nur nach definiertem
    Kompatibilitätsprofil behandeln.
 4. Verschlüsselungsoptionen und TLS-Anforderungen des Referenzclients abgleichen; bei
@@ -28,6 +30,9 @@ Herabstufung einer geforderten Verschlüsselung.
 
 1. LOGIN7-Felder unter Beachtung ihrer Offsets und Zeichencodierung validieren.
 2. Identität über konfigurierten Authentifizierungsadapter prüfen; Geheimnisse nicht protokollieren.
+   Für eine unbekannte Kennung läuft dieselbe Prüfung wie für eine bekannte (Vergleich gegen ein
+   Scheingeheimnis, in konstanter Zeit). Meldung und State der Ablehnung sind für eine unbekannte
+   Kennung und ein falsches Passwort gleich; der Grund steht nur im Server-Log (`SPEC-012`).
 3. Bei Erfolg isolierte Session mit ID, Principal, Datenbankkontext und Abbruchstatus erzeugen.
 4. Die für den Referenzclient erforderlichen Login-Antworttokens (insbesondere LOGINACK und DONE;
    erforderliche ENVCHANGE/INFO nach Profil) senden.
@@ -81,6 +86,10 @@ ERROR-/DONE-Token oder Verbindungsabbruch, falls Protokollzustand keine Antwort 
 2. Fehlernummer, Severity, State und Meldung gemäß vereinbartem Mapping serialisieren.
 3. Nach ERROR einen passenden Abschlussstatus ausgeben, sofern der Kanal intakt ist.
 4. Fehler nicht als erfolgreiches leeres Resultset tarnen.
+5. Eine Ausnahme, die keine erwartete Ablehnung des Backends oder der Protokollschicht ist
+   (`Failure` mit Code), erreicht den Client nur als `TDS_INTERNAL_ERROR` mit festem Text, nie mit
+   dem Text der Ausnahme; dieser kann Konfigurationswerte enthalten und geht ins Log, ohne
+   Parameterwerte (`SPEC-048`).
 
 **Komplexität:** O(Meldungslänge). **Fehlermodi:** Transport bereits geschlossen, Encoderfehler.
 
@@ -92,6 +101,9 @@ freigegebene Ressourcen.
 2. Bereits erzeugte Ergebnisressourcen und Session-Kontext schließen.
 3. Soweit protokollkonform möglich, ATTENTION bestätigen; keine weitere Antwort einer abgebrochenen
    Abfrage mit der nächsten vermischen.
+4. Shutdown: der Server beendet sich geordnet nach `SPEC-044`. Der Listener schließt zuerst, eine
+   laufende Anfrage darf bis `SHUTDOWN_GRACE` zu Ende laufen, danach wird sie wie bei ATTENTION
+   abgebrochen, und jede Verbindung endet.
 
 **Komplexität:** O(Anzahl sitzungseigener Ressourcen). **Fehlermodi:** nicht abbrechbares Backend;
 dann nach `SPEC-033` Verbindung schließen.
@@ -113,7 +125,8 @@ Betriebsdaten.
 
 1. Bind-Adresse, Port, TLS-Modus, Authentifizierungsadapter, Größenlimits und Timeouts beim Start
    validieren.
-2. Fehlerhafte sicherheitsrelevante Konfiguration führt zu Startabbruch.
+2. Fehlerhafte sicherheitsrelevante Konfiguration führt zu Startabbruch. Die TLS-Konfiguration
+   prüft eine Startprobe vor dem Binden des Ports (`SPEC-043`).
 3. Sitzungs-, Anfrage- und Fehlerereignisse mit Korrelations-IDs erfassen, ohne Passwörter oder
    Parameterwerte standardmäßig zu loggen.
 
@@ -363,14 +376,91 @@ werden vor der Implementierung festgelegt. Festgelegt ist die Bedeutung:
 Der Katalog ist ein Entwurf. Verbindlich wird er mit der Festlegung, die das Lastenheft unter
 „Offene Entscheidungen“ führt.
 
+### SPEC-043 — Startprüfung: TLS-Konfiguration und Port
+
+Vor dem Binden des Ports führt der Server mit der konfigurierten TLS-Konfiguration einen
+vollständigen Handschlag im Speicher aus, gegen eine Gegenstelle, die nur prüft, dass jedes
+Zertifikat der Kette jetzt gültig ist. Wem ein Client vertraut, ist seine Sache; ein abgelaufenes
+oder noch nicht gültiges Zertifikat scheitert aber an jedem prüfenden Client. Die Probe nutzt genau
+die konfigurierten Protokollversionen und Suiten (`SPEC-023`), nicht die Voreinstellung der
+Laufzeit. Scheitert sie, bricht der Start ab, bevor ein Port gebunden ist, und die Diagnose nennt den
+Teil:
+
+- `CERTIFICATE`: Kette unlesbar oder jetzt nicht gültig,
+- `PRIVATE_KEY`: Schlüssel unlesbar, verschlüsselt oder in einer nicht zugelassenen Form,
+- `PAIR`: der Schlüssel gehört nicht zum Zertifikat, oder der Handschlag scheitert aus anderem Grund.
+
+Meldung und Log nennen die gefundene Form, nie einen Dateipfad und nie den Inhalt von Zertifikat
+oder Schlüssel, sodass sich die Diagnose protokollieren und dem Konfigurationsschlüssel zuordnen
+lässt. Es gibt keinen Rückfall auf eine unverschlüsselte Verbindung; eine Abschwächung folgt nur aus
+der ausdrücklichen Konfiguration nach `SPEC-010`. Ein belegter Port beendet den Start mit einer
+eigenen Diagnose, die Adresse und Port nennt. Nach jedem fehlgeschlagenen Start laufen keine Threads
+und kein Listener des Servers weiter; ein neuer Versuch legt einen neuen Server an. Die Probe prüft
+weder, ob ein Client dem Zertifikat vertraut, noch die TDS-Kapselung des Handschlags (`SPEC-028`).
+
+### SPEC-044 — Geordnetes Beenden
+
+Beginn ist die Shutdown-Anforderung mit der Frist `SHUTDOWN_GRACE` (`SPEC-047`; 0 = sofort).
+
+1. Der Listener schließt als Erstes; neue Verbindungen werden nicht mehr angenommen, eine im selben
+   Moment angenommene endet sofort.
+2. Eine Verbindung ohne laufende Anfrage und ohne unvollständig empfangene Nachricht endet sofort.
+3. Eine laufende Anfrage darf bis zu ihrem Abschluss laufen, höchstens bis zum Ablauf der Frist; ihr
+   Abschluss wird regulär gesendet, nie ein halber Tokenstrom (`SPEC-031`). Danach beginnt keine
+   weitere Anfrage derselben Verbindung: eine nach dem Beginn eingetroffene Anfrage wird mit
+   `TDS_SHUTDOWN` beantwortet, danach endet die Verbindung. Von den übrigen Anweisungen eines
+   Batches läuft nach dem Beginn nichts mehr.
+4. Nach Ablauf der Frist wird jede noch laufende Anfrage wie bei ATTENTION abgebrochen (`SPEC-029`,
+   Cancel an das Backend); gelingt das nicht innerhalb `CANCEL_TIMEOUT` (`SPEC-033`), wird die
+   Verbindung getrennt.
+5. Die Shutdown-Anforderung kehrt zurück, wenn alle Verbindungen beendet sind, spätestens
+   `SHUTDOWN_GRACE` plus `CANCEL_TIMEOUT` nach dem Beginn. Eine zweite ist wirkungslos.
+
+Eine Verbindung, die mitten in einer Nachricht kein EOM mehr sendet, bleibt bis zum Ablauf der Frist
+offen und wird dann getrennt. Eine Verbindung ohne laufende Anfrage wird ohne Meldung getrennt,
+solange das Clientprofil (`SPEC-004`) keine unaufgeforderte Server-Meldung außerhalb einer Antwort
+belegt: TDS-Antworten folgen auf Anfragen.
+
+### SPEC-045 — Referenzabgleich: Ablauf und Ausnahmeliste (vorläufig)
+
+Erwartungen an das Verhalten des Servers werden an einer echten SQL-Server-Instanz gemessen, nicht
+angenommen. Dieselben Szenarien des Referenzclients laufen gegen die Referenzinstanz (Container, mit
+einem Testschema ohne echte Daten) und gegen den Server mit dem Simulations-Backend, das dasselbe
+Schema beschreibt (`TDS-FA-11.a`). Es gibt zwei Läufe:
+
+- **Live-Lauf:** Der Referenzclient führt ein Szenario nacheinander gegen beide aus und gibt je
+  Schritt eine Zeile aus. Das Szenario umfasst Anmeldung, SELECT mit und ohne Parameter, NULL,
+  Unicode, Decimal, Datum, leere und mehrteilige Ergebnisse, Fehler vor und nach Zeilen,
+  OUTPUT/RETURNSTATUS (falls freigegeben) sowie Cancel mit Folgeabfrage. Grün ist der Lauf, wenn
+  beide Ausgaben gleich sind oder genau der dokumentierten Abweichung entsprechen; eine kleinere
+  oder größere Abweichung macht ihn rot.
+- **Mitschnitt-Lauf:** Redigierte Paketmitschnitte des Referenzclients gegen die Referenzinstanz
+  (`SPEC-004`) werden gegen einen frisch gestarteten Server abgespielt und feldweise verglichen:
+  Nachrichten- und Tokenfolge, COLMETADATA (Typ, Länge, Precision/Scale, Nullbarkeit), Zeilenwerte
+  und -zahl, DONE-Status und Zählung, ERROR (Nummer, State, Klasse, Text) und ENVCHANGE.
+
+Abweichungen stehen in einer Ausnahmeliste, jede mit Grund und in einer von zwei Arten: *so gewollt*
+(der Server weicht bewusst ab und bleibt dabei) oder *Lücke* (ein Fund mit Verweis auf offene
+Arbeit; wird er behoben, entfällt die Regel). Eine Regel ist so eng wie möglich: der Pfad der
+Abweichung, dazu die Anweisung oder das Szenario. Werte, die der Server selbst vergibt (Objekt-IDs,
+Sitzungs-IDs, Zeitstempel, Versionstext), werden nur auf „vorhanden / nicht vorhanden“ verglichen.
+
+Grenzen: Ein Mitschnitt spielt die Anfragen des Clients ab, nicht den Client; fragt der Client wegen
+einer anderen Antwort anders, zeigt das nur der Live-Lauf. Das Schema der Referenzinstanz und die
+Tabellenbeschreibung des Simulations-Backends werden getrennt gepflegt und müssen gemeinsam
+geändert werden. Mitschnitte enthalten nur Testdaten und keine Secrets. Bezug und Lizenz des
+SQL-Server-Images sind vor der Einrichtung zu klären.
+
 ## 3. Defaults und Konstanten
 
 | ID | Name | Wert | Begründung |
 |---|---|---|---|
 | `SPEC-005` | `LISTEN_PORT` | 1433 (konfigurierbar) | TDS-Standardport |
 | `SPEC-006` | `MAX_TDS_PACKET_BYTES` | 65535, zusätzlich protokollkonforme Headerprüfung | Obergrenze des 16-Bit-Längenfelds |
-| `SPEC-007` | `MAX_MESSAGE_BYTES` | 16 MiB (vorläufig) | Speicherbegrenzung; mit Clientprofil abgleichen |
-| `SPEC-008` | `LOGIN_TIMEOUT` | 15 s (vorläufig) | Hängende Logins begrenzen |
+| `SPEC-007` | `MAX_MESSAGE_BYTES` | 16 MiB (vorläufig) | Speicherbegrenzung, gilt während des Zusammensetzens (`TDS-FA-01.a`); mit Clientprofil abgleichen |
+| `SPEC-008` | `LOGIN_TIMEOUT` | 15 s (vorläufig) | Hängende Logins begrenzen; die Frist gilt ab Verbindungsaufbau über PRELOGIN, TLS-Handschlag und LOGIN7, danach schließt der Server ohne Antwort; für eine angemeldete Verbindung gilt sie nicht |
+| `SPEC-046` | `MAX_PRELOGIN_MESSAGE_BYTES` | 65536 (vorläufig) | Vor abgeschlossenem Login kein großer Puffer: PRELOGIN und LOGIN7 sind klein, eine größere Nachricht wird abgewiesen |
+| `SPEC-047` | `SHUTDOWN_GRACE` | 10 s (vorläufig, konfigurierbar; 0 = sofort) | Frist für laufende Anfragen beim geordneten Beenden (`SPEC-044`) |
 | `SPEC-009` | `QUERY_TIMEOUT` | 30 s (vorläufig, konfigurierbar) | Backend-Timeout |
 | `SPEC-010` | `ENCRYPTION_POLICY` | Standard `REQUIRED`; Abschwächung nur durch ausdrückliche, im Log sichtbare Konfiguration, je Clientprofil | Keine unbemerkte TLS-Herabstufung |
 | `SPEC-033` | `CANCEL_TIMEOUT` | 5 s (vorläufig, konfigurierbar) | Frist für nicht abbrechbare Backendoperationen, danach Verbindung schließen |
@@ -384,7 +474,7 @@ Abnahmegrenzen.
 | ID | Interner Code | Bedingung | Aktion |
 |---|---|---|---|
 | `SPEC-011` | `TDS_PROTOCOL_ERROR` | Paket/Token ungültig | Abbruch oder ERROR, je nach Zustand |
-| `SPEC-012` | `TDS_LOGIN_FAILED` | Authentifizierung fehlgeschlagen | Login-Fehler, Session nicht erstellen |
+| `SPEC-012` | `TDS_LOGIN_FAILED` | Authentifizierung fehlgeschlagen | Login-Fehler, Session nicht erstellen; Meldung und State für unbekannte Kennung und falsches Passwort identisch; vorgesehen: SQL-Server-Nummer 18456 mit einheitlichem State, an der Referenzinstanz zu messen (`SPEC-045`) |
 | `SPEC-013` | `TDS_UNSUPPORTED_RPC` | RPC nicht unterstützt | ERROR und DONE mit Fehlerstatus |
 | `SPEC-014` | `TDS_UNSUPPORTED_TYPE` | Wert nicht serialisierbar | definierter Fehler, kein fehlerhaftes Resultset |
 | `SPEC-015` | `TDS_BACKEND_ERROR` | Backend-Ausführung fehlgeschlagen | Fehlerabbildung in TDS |
@@ -392,6 +482,8 @@ Abnahmegrenzen.
 | `SPEC-037` | `TDS_UNSUPPORTED_SQL` | Anweisung oder Bedingung außerhalb von `SPEC-036`; Schreibzugriff ohne Callback | ERROR und DONE mit Fehlerstatus, Zeilenquelle nicht gelesen |
 | `SPEC-038` | `TDS_SIM_UNKNOWN_OBJECT` | Tabelle oder Spalte ist nicht beschrieben | ERROR und DONE mit Fehlerstatus; vorgesehene SQL-Server-Nummern 208 (Objekt) und 207 (Spalte) |
 | `SPEC-039` | `TDS_SIM_INVALID_VALUE` | Wert nicht in den Spaltentyp überführbar | ERROR und DONE mit Fehlerstatus; vorgesehene SQL-Server-Nummer 245 |
+| `SPEC-048` | `TDS_INTERNAL_ERROR` | unerwartete Ausnahme im Server oder im Backend-Adapter | ERROR und DONE mit Fehlerstatus, fester Text ohne den Text der Ausnahme; die Ausnahme geht ins Log, ohne Parameterwerte |
+| `SPEC-049` | `TDS_SHUTDOWN` | Anfrage nach Beginn des geordneten Beendens (`SPEC-044`) | ERROR, danach Verbindungsende; vorgesehen: die SQL-Server-Meldung für ein Herunterfahren, Nummer im Mapping nach `TDS-FA-06.a` festlegen |
 
 Die Nummern in der Aktionsspalte sind ein Vorschlag für das Mapping nach `TDS-FA-06.a`. Für
 `TDS_UNSUPPORTED_SQL` gibt es keine SQL-Server-Entsprechung, denn dort ist die Anweisung gültig; die
@@ -434,6 +526,7 @@ Die genannten Vertragsdateien sind **geplante Artefakte**, keine bereits vorhand
 | `SPEC-040` | Simulations-Test-Gate | Unit-Tests der Anweisungserkennung (jede Form aus `SPEC-036` positiv und negativ, Grenzen bei Literalen, Bezeichnern und Kommentaren) und Integrationstest mit dem .NET-Referenzclient: Auswahl, leeres Ergebnis, Zeilenquelle über der Speichergrenze, Fehler der Zeilenquelle, Cancel; Gate noch einzurichten |
 | `SPEC-041` | Static-Analysis-Gate (`make detekt`, `make detekt-selbsttest`) | detekt in Docker, Konfiguration auf Standardbasis (`config/detekt/detekt.yml`) mit den Importregeln der Schichten; keine Baseline; jeder Befund bricht den Lauf. Ein Selbsttest belegt, dass jede Importregel ihre verbotenen Importe meldet und die erlaubten Testdaten nicht; er läuft nur bei geänderten Eingängen |
 | `SPEC-042` | Build-Gate (`make build`) | Compile und Jar in Docker, ohne Tests; Basis-Images per Digest gepinnt, Abhängigkeitsversionen per Lock und Prüfsummen fixiert |
+| `SPEC-050` | Referenzabgleich-Gate | Live-Lauf und Mitschnitt-Lauf nach `SPEC-045` gegen eine SQL-Server-Referenzinstanz in Docker; Abweichungen nur über die Ausnahmeliste; Gate noch einzurichten |
 | `SPEC-032` | Kompatibilitätstest-Gate | Echter .NET-SqlClient prüft LOGINACK/ENVCHANGE/DONE, TLS-Profil, RPC-Parameter, Streaming-Fehler, ATTENTION und Wiederverwendung; Gate noch einzurichten |
 
 ## 8. Historie
@@ -443,3 +536,4 @@ Die genannten Vertragsdateien sind **geplante Artefakte**, keine bereits vorhand
 | 2026-10-29 | Überarbeitung: TLS-Kapselung, Login-Token, RPC, Streaming, ATTENTION, Mehrfachergebnisse und Abnahmetests präzisiert |
 | 2026-10-29 | `TDS-FA-11.a` ergänzt: Simulations-Backend mit Ablauf, Tabellenbeschreibung, Anweisungsformen, Fehlercodes und Test-Gate (`SPEC-035` bis `SPEC-040`) |
 | 2026-10-29 | Static-Analysis-Gate und Build-Gate festgelegt (`SPEC-041`, `SPEC-042`) |
+| 2026-10-29 | Startprüfung, geordnetes Beenden, Referenzabgleich, Größengrenzen vor dem Login, Fehlerabbildung ohne Ausnahmetext und gleiche Ablehnung unbekannter Kennungen präzisiert (`SPEC-043` bis `SPEC-050`) |

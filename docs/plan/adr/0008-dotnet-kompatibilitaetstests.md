@@ -8,7 +8,7 @@
 
 **Bezug:** [TDS-QA-01](../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [TDS-QA-06](../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [TDS-FA-09](../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose)
 
-**Schärft:** [SPEC-021](../../../spec/spezifikation.md#6-externe-verträge), [SPEC-025](../../../spec/spezifikation.md#7-festlegungen-der-harness-werkzeuge), [SPEC-032](../../../spec/spezifikation.md#7-festlegungen-der-harness-werkzeuge), [ARC-010](../../../spec/architecture.md#3-externe-abhängigkeiten)
+**Schärft:** [SPEC-045](../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig), [SPEC-050](../../../spec/spezifikation.md#7-festlegungen-der-harness-werkzeuge), [SPEC-021](../../../spec/spezifikation.md#6-externe-verträge), [SPEC-025](../../../spec/spezifikation.md#7-festlegungen-der-harness-werkzeuge), [SPEC-032](../../../spec/spezifikation.md#7-festlegungen-der-harness-werkzeuge), [ARC-010](../../../spec/architecture.md#3-externe-abhängigkeiten)
 
 ---
 
@@ -29,6 +29,7 @@ Diese ADR legt fest, **wie** die Kompatibilität nachgewiesen wird (Testmatrix u
 | A — ausschließlich JVM-Protokolltests   | Schnell und deterministisch        | Keine echte Client-Kompatibilitätsaussage |
 | B — containerisierte .NET-Referenztests | Reproduzierbare End-to-End-Evidenz | CI-Laufzeit und Pflege                    |
 | C — manuelle Tests gegen .NET-Anwendung | Realitätsnah                       | Nicht zuverlässig reproduzierbar          |
+| D — B plus Referenzabgleich gegen eine echte SQL-Server-Instanz (`SPEC-045`) | Erwartungen sind gemessen, nicht angenommen; Abweichungen stehen mit Grund in einer Ausnahmeliste | Referenzinstanz in der CI, Pflege von Schema und Ausnahmeliste, Bezug und Lizenz des Images offen |
 | 0 — keine Festlegung vor dem ersten CI-Versuch | Keine Vorfestlegung der Testumgebung | Blockiert `SPEC-025` und `SPEC-032` |
 
 ## Konsequenzen
@@ -53,3 +54,4 @@ Neue SqlClient-Hauptversion oder nicht reproduzierbarer Kompatibilitätsfehler.
 | Datum      | Ereignis                      | Verweis |
 | ---------- | ----------------------------- | ------- |
 | 2026-10-29 | Proposed – Entscheidung offen | —       |
+| 2026-10-29 | Option D (Referenzabgleich) und Bezug auf `SPEC-045`, `SPEC-050` ergänzt; Entscheidung weiter offen | [SPEC-045](../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig) |
