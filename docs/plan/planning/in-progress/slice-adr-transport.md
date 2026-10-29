@@ -76,6 +76,30 @@ Aussagen-Berührung steht hier gar nicht.
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 
+**Zwischenstand der Messung** (Spike per Dockerfile ohne Mount, Prototypen in Kotlin auf JDK 21 mit `-Xmx256m`, Server mit 4 CPUs und 4 Threads; echter Client `Microsoft.Data.SqlClient` 7.1.1 auf .NET 10 im selben Docker-Netzwerk; Zahlen aus dem Bericht des Spike-Agenten, bislang nicht wiederholt):
+
+| Messung | A Netty 4.1.118 | B Java NIO (Selector, `SSLEngine`) | C Coroutines 1.10.1 (`AsynchronousSocketChannel`, `SSLEngine`) |
+|---|---|---|---|
+| Echter Client, TDS 7.4 (`Encrypt=true`): Server loggt LOGIN7 `0x74000004` | ja | ja | ja |
+| Echter Client, TDS 8.0 (`Encrypt=Strict`): Server loggt LOGIN7 `0x08000000` | ja | ja | ja |
+| Fragmentierung (byteweise, 1 bis 40 und 1 bis 3000 Byte), 1000 Wiederholungen je Pfad | 1000/1000 | 1000/1000 | 1000/1000 |
+| 100 defekte Verbindungen (falsche Längen, abgeschnitten, Abbruch im Handshake) | alle geschlossen, Prozess lebt | alle geschlossen, Prozess lebt | alle geschlossen, Prozess lebt |
+| 100 MiB an einen mit 1 MiB/s lesenden Client: Heap / Direct (Maximum) | 10 MB / 4 MB | 4 MB / unter 1 MB | 4 MB / unter 1 MB |
+| Kontrolle A ohne `isWritable`-Prüfung (nach 25 s abgebrochen) | Direct 128 MB, wächst mit der Antwort | nicht gebaut | nicht gebaut |
+| 200 gleichzeitige Verbindungen × 64 KiB, Runde 3: Verbindungen/s; MiB/s | 474; 59,3 | 672; 84,0 | 660; 82,5 |
+| Zeilen Prototyp (ohne Test-Client) | 120 | 157 | 126 |
+| Direkte Abhängigkeiten (ohne Kotlin-Stdlib) | 1 (`netty-handler`, 6 weitere Netty-Jars) | 0 | 1 (`kotlinx-coroutines-core`) |
+| Code für die TDS-Kapselung des TLS-Handshakes | ca. 32 Zeilen, drei zusätzliche Handler | 8 Zeilen plus geteilter `Stripper` (19 Zeilen) | 9 Zeilen plus `Stripper` |
+
+Befunde:
+
+- Mit TLS 1.3 sendet der JDK-Server noch im Handshake ein NewSessionTicket; es landet im TDS-Paket vom Typ `0x12`, der Client liest danach rohes TLS und bricht mit „Unrecognized record version“ ab. Das JVM-Flag `-Djdk.tls.server.newSessionTicketCount=0` löst das in allen drei Optionen. Mit erzwungenem TLS 1.2 tritt der Fehler nicht auf. Eine Lösung ohne Flag ist nicht gebaut.
+- Rückstau hält den Speicher in allen drei Optionen begrenzt, aber nur, wenn der Schreiber ihn beachtet: bei A über `isWritable`, bei B über High-Water-Mark 256 KiB und OP_WRITE, bei C über das suspendierende Schreiben.
+- Die Unterschiede im Durchsatz stammen aus einem einzelnen Lauf, Runde 1 enthält JIT-Anlauf.
+
+Nicht gemessen: Latenz-Perzentile, Last über 200 Verbindungen, CPU, Live-Heap bei 200 Verbindungen (der Spitzenwert 167 bis 180 MB ist unbereinigter Müll), ob die Fragmentierung beim Server als kleine Lese-Stücke ankam, Neuverhandlung und Wiederaufnahme, Idle-Timeouts, Langzeitlauf. Bei A fehlt der Fall, dass nach dem PRELOGIN schon TLS-Bytes im Lesepuffer liegen. Warum der .NET-Client nach LOGIN7 bei A mit einem anderen Fehler endet als bei B und C, ist nicht geklärt (die Dummy-Antwort ist gleich). Der Spike deckt Framing, Handshake und Streaming ab, nicht TDS-Tokens, ATTENTION oder MARS.
+
+
 ## 4. Trigger
 
 
