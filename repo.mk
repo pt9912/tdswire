@@ -27,3 +27,7 @@
 # weiteres Verzeichnis braucht dort ebenfalls einen Eintrag. -include, damit make ohne eine
 # solche Datei nicht bricht.
 -include tools/mk/*.mk
+
+# Die E2E-Abdeckungs-Sicht beschreibt Plan und Abdeckung, nicht den Betrieb: sie liegt unter
+# docs/plan/, nicht in der Vorgabe docs/user/ des Fragments.
+E2E_ABDECKUNG_ZIEL = docs/plan/e2e-abdeckung.md
