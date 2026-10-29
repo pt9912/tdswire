@@ -93,12 +93,13 @@ Primärer Client ist eine .NET-Anwendung. Die konkrete Treiberversion, erforderl
 
 ### TDS-FA-07 — Abbruch und Ressourcenfreigabe
 
-**Beschreibung:** Der Server verarbeitet Verbindungsabbrüche und die vom Referenzclient genutzten Abbruchmechanismen, einschließlich ATTENTION, sofern dieser gesendet wird.
+**Beschreibung:** Der Server verarbeitet Verbindungsabbrüche und die vom Referenzclient genutzten Abbruchmechanismen, einschließlich ATTENTION, sofern dieser gesendet wird. Beim Beenden des Servers lässt er laufende Anfragen innerhalb einer konfigurierbaren Frist abschließen, bricht danach die übrigen ab und beantwortet Anfragen nach Beginn des Beendens mit einem definierten Fehler.
 
 **Akzeptanzkriterien:**
 - **Happy Path:** Given eine laufende Abfrage, when der Client sie abbricht, then wird der Abbruch erkannt und die Sitzung erreicht einen definierten Zustand.
 - **Boundary:** Given einen Abbruch unmittelbar nach Abschluss, when er eintrifft, then entstehen keine doppelten Antworten oder Ressourcenlecks.
 - **Negative:** Given einen abrupten TCP-Abbruch, when die Verbindung endet, then werden zugehörige Sitzungsressourcen freigegeben.
+- **Beenden:** Given eine laufende Anfrage, when der Server beendet wird, then schließt sie innerhalb der Frist regulär ab oder wird danach abgebrochen, und das Beenden kehrt nach spätestens Frist plus Abbruchfrist zurück.
 
 **Out-of-Scope:** Garantierte Unterbrechbarkeit beliebiger externer Backendoperationen.
 
@@ -150,7 +151,7 @@ Primärer Client ist eine .NET-Anwendung. Die konkrete Treiberversion, erforderl
 
 ### TDS-QA-01 — Kompatibilität
 - **Anforderung:** Alle freigegebenen Ende-zu-Ende-Szenarien laufen mit der festgelegten .NET-Runtime, SqlClient-Version und Connection String-Konfiguration erfolgreich.
-- **Messmethode:** Automatisierte Integrationstests mit echtem .NET-Client gegen den Server, inklusive Anmeldung, SELECT, parametrisierter Abfrage (RPC-Form gemäß Clientprofil, `TDS-FA-04`), NULL, Fehler und Abbruch.
+- **Messmethode:** Automatisierte Integrationstests mit echtem .NET-Client gegen den Server, inklusive Anmeldung, SELECT, parametrisierter Abfrage (RPC-Form gemäß Clientprofil, `TDS-FA-04`), NULL, Fehler und Abbruch. Ergänzend kann das Verhalten des Servers an einer echten SQL-Server-Instanz als Referenz gemessen werden (Referenzabgleich); ob und in welcher Form, steht mit der Entscheidung über die Kompatibilitätstests aus, bis dahin ist der Abgleich vorläufig.
 
 ### TDS-QA-02 — Stabilität
 - **Anforderung:** Ungültige, unvollständige oder unerwartet getrennte Clientverbindungen dürfen den Gesamtprozess nicht zum Absturz bringen.
@@ -246,3 +247,4 @@ Jede offene Festlegung hat eine verantwortliche Rolle und einen Trigger; ohne di
 | ------- | ---------- | ----------------------------------------------------------------------- | ------- |
 | 0.2.0   | 2026-10-29 | Entwurf überarbeitet: mehrteilige Antworten und Synchronität präzisiert | —       |
 | 0.3.0   | 2026-10-29 | Simulations-Backend als Anforderung aufgenommen; Ausschluss der SQL-Engine abgegrenzt; Lizenz als Randbedingung | `TDS-FA-11`, `TDS-RB-05` |
+| 0.4.0   | 2026-10-29 | Anker für geordnetes Beenden und Referenzabgleich ergänzt               | `TDS-FA-07`, `TDS-QA-01` |
