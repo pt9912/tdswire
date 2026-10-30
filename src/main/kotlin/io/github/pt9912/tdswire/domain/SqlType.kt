@@ -26,7 +26,9 @@ sealed interface SqlType {
     /**
      * Dezimalzahl mit [precision] Stellen insgesamt, davon [scale] hinter dem Komma. Gefordert ist
      * `precision >= 1` und `0 <= scale <= precision`; eine obere Grenze von [precision] ist nicht
-     * festgelegt.
+     * festgelegt. Offen (Abstimmung zu `SPEC-003`, Nutzerentscheidung): der Codec
+     * (`TypeInfoWriter.MAX_PRECISION`) erlaubt 1 bis 38, dieses Modell nimmt auch größere Werte an;
+     * der Widerspruch ist nicht aufgelöst.
      */
     data class Decimal(val precision: Int, val scale: Int) : SqlType {
         init {
@@ -41,6 +43,6 @@ sealed interface SqlType {
     /** Uhrzeit ohne Datum. */
     data object Time : SqlType
 
-    /** Datum mit Uhrzeit, ohne Zeitzone. */
+    /** Datum mit Uhrzeit. Das Modell trägt keine Zone; die Zeitzonenannahme ist offen (`SPEC-003`). */
     data object DateTime : SqlType
 }
