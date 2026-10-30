@@ -50,7 +50,7 @@ Liefer-Punkte (drei):
 
 - [ ] **PLP** (SPEC-003, SPEC-028): MAX-Typen (`nvarchar(max)`, `varchar(max)`, `varbinary(max)`) in COLMETADATA, ROW und RETURNVALUE als Stück-Folge mit Terminator; Längenprüfung vor dem Puffern. **Auch als RPC-Parameter** im Parser aus `slice-codec-rpc-parser`, samt SQL-Text und Deklarationsliste von `sp_executesql` als MAX: das ist die Abweichung von [ADR-0005](../../adr/0005-rpc-und-prepared-statements.md) und SPEC-003, die jener Slice benennt (er lehnt heute die ganze Nachricht als `INVALID_TYPE` ab); der Test `PLP lehnt die ganze Nachricht ab, auch als SQL-Text und Deklaration` wechselt mit diesem Punkt von „abgelehnt“ zu „gelesen“.
 - [ ] **NBCROW** (SPEC-028): Null-Bitmap-Zeile neben ROW; Encoder wählt nicht selbst, sondern schreibt, was man ihm gibt.
-- [ ] **Weitere Typen** (SPEC-003, SPEC-014): `text`, `ntext`, `image`, `sql_variant` nur, soweit `contracts/client-profile.md` sie als gesendet führt; alles andere bleibt `TDS_UNSUPPORTED_TYPE`.
+- [ ] **Weitere Typen** (SPEC-003, SPEC-014): `text`, `ntext`, `image`, `sql_variant` nur, soweit `spec/spezifikation.md` `SPEC-021` sie als gesendet führt; alles andere bleibt `TDS_UNSUPPORTED_TYPE`.
 
 Nachweis-Pflichten für alle drei Punkte:
 
@@ -88,7 +88,7 @@ Der Implementer liest den Stand des Token-Packages aus `done/` (`slice-codec-tds
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-codec-tds-paket` liegt in `done/`, `make gates` ist auf `main` grün, und `contracts/client-profile.md` oder der Referenzabgleich nennt mindestens einen der Gegenstände als gesendet oder verlangt; ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): `slice-codec-tds-paket` liegt in `done/`, `make gates` ist auf `main` grün, und `spec/spezifikation.md` `SPEC-021` oder der Referenzabgleich nennt mindestens einen der Gegenstände als gesendet oder verlangt; ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

@@ -88,7 +88,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): mehr als drei Liefer-Punkte in §2.
-- `in-progress` → `open` (blockiert — Carveout?): Der Port bietet kein `cancel`, das ein Fake-Backend beobachtbar macht (`contracts/query-backend.md` führt `cancel(sessionId, requestId)` als Entwurf), oder der Anfragezustand der Welle `welle-anfrageverarbeitung` lässt `CANCELLING` nicht zu.
+- `in-progress` → `open` (blockiert — Carveout?): Der Port bietet kein `cancel`, das ein Fake-Backend beobachtbar macht (`spec/spezifikation.md` `SPEC-022` führt `cancel(sessionId, requestId)` als Entwurf), oder der Anfragezustand der Welle `welle-anfrageverarbeitung` lässt `CANCELLING` nicht zu.
 
 ## 5. Closure-Trigger
 

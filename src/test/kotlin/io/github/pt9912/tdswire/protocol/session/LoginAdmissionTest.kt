@@ -77,7 +77,7 @@ class LoginAdmissionTest {
 
     /**
      * Genau 128 UTF-16-Einheiten bei Kennung und Passwort sind zulässig, 129 werden abgelehnt
-     * (`contracts/auth-adapter.md`); die Grenze gilt je Feld.
+     * (`spec/spezifikation.md` `SPEC-051`); die Grenze gilt je Feld.
      *
      * @spec SPEC-012
      */

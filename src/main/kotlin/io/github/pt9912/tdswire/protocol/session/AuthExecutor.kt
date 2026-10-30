@@ -21,7 +21,7 @@ internal sealed interface AuthOutcome {
 }
 
 /**
- * Ruft den blockierenden [AuthAdapter] abseits des Transport-Threads (`contracts/auth-adapter.md`,
+ * Ruft den blockierenden [AuthAdapter] abseits des Transport-Threads (`spec/spezifikation.md` `SPEC-051`,
  * `SPEC-008`). Der Aufruf läuft auf [dispatcher] in einem eigenen Geltungsbereich, nicht als Kind des
  * Wartenden. Bricht der Aufrufer ab ([Deferred.cancel], etwa nach Fristablauf), gilt:
  *

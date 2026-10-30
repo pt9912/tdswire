@@ -3,7 +3,7 @@ package io.github.pt9912.tdswire.config.auth
 import io.github.pt9912.tdswire.domain.Principal
 
 /**
- * Die Schnittstelle zur Benutzerverwaltung nach `contracts/auth-adapter.md` (`SPEC-051`). Der
+ * Die Schnittstelle zur Benutzerverwaltung nach `spec/spezifikation.md` (`SPEC-051`). Der
  * Adapter entscheidet allein über Annahme oder Ablehnung; Text und Nummer für den Client liefert er
  * nicht (`SPEC-012`).
  *

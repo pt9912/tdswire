@@ -82,7 +82,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `src/test/kotlin/io/github/pt9912/tdswire/testsupport/` | update | Test-Backend: Generator für große Ergebnisse (Zeilen on demand), Zähler der vorausgelieferten Ereignisse; langsame und angehaltene Testsenke |
 | `src/test/kotlin/io/github/pt9912/tdswire/smoke/` | neu | Ende-zu-Ende-Lauf der Welle; `@spec`-Tag je Test; der Smoke-Test darf die Schichten im Test-Quelltext verbinden, die Importregeln für Produktionscode gelten unverändert |
 | `build.gradle.kts` | update, falls nötig | Heap-Einstellung des Testlaufs für den Speicher-Beleg; eine Einstellung, die das Gate verschärft, braucht keine ADR, eine Lockerung ja (`AGENTS.md` §3.6) |
-| `contracts/query-backend.md` | update | §Pflichten: „nicht beliebig voraus“ mit dem gebauten Stand und der Grenze der Aussage |
+| `spec/spezifikation.md` `SPEC-022` | update | §Pflichten: „nicht beliebig voraus“ mit dem gebauten Stand und der Grenze der Aussage |
 
 - Reihenfolge: Senke und Verdrahtung, dann Zähler-Beleg, dann Heap-Beleg, dann Abbruch, zuletzt der Ende-zu-Ende-Lauf.
 - Der Implementer liest `PacketWriter` und die Senken-Schnittstelle aus `slice-transport-coroutines-geruest` und passt diese Tabelle an.

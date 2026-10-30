@@ -50,7 +50,7 @@ Liefer-Punkte (drei):
 
 - [ ] **Spikes** (S1 bis S3 aus §3) durchgeführt; Messwerte, Optionen und Befund stehen als Tabelle in diesem Slice und in der Entscheidung. Der Spike-Code liegt im Scratchpad, ist temporär und nie im Repo.
 - [ ] **Entscheidung des Nutzers** zu den fünf Punkten aus §1 (Optionen aus §3), festgehalten als neue ADR (nächste freie Nummer laut ADR-Index, Status `Accepted` nach Review und Verifikation, `Bezug` auf [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md), ohne `Supersedes`, Index und Geschichte nachgezogen); jede Aussage der Entscheidung trägt eine Messzeile oder ist als Setzung des Nutzers gekennzeichnet.
-- [ ] **Anschlussstellen** nachgezogen: `SPEC-002` und `contracts/query-backend.md` (Frist, Zeilendarstellung) sowie die Slices `slice-backend-port-vertrag`, `slice-backend-sequenzierer`, `slice-backend-streaming-nachweis` und `slice-sql-batch-dispatch` (Start-Trigger, Risiken, Aufteilung der Verantwortung).
+- [ ] **Anschlussstellen** nachgezogen: `SPEC-002` und `spec/spezifikation.md` `SPEC-022` (Frist, Zeilendarstellung) sowie die Slices `slice-backend-port-vertrag`, `slice-backend-sequenzierer`, `slice-backend-streaming-nachweis` und `slice-sql-batch-dispatch` (Start-Trigger, Risiken, Aufteilung der Verantwortung).
 
 Nachweis-Pflichten für alle drei Punkte:
 
@@ -58,7 +58,7 @@ Nachweis-Pflichten für alle drei Punkte:
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Doku-Update für `contracts/query-backend.md` und `SPEC-002`, falls ein öffentlicher Vertrag berührt ist.
+- [ ] Doku-Update für `spec/spezifikation.md` `SPEC-022` und `SPEC-002`, falls ein öffentlicher Vertrag berührt ist.
 - [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
 - [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
 - [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
@@ -75,7 +75,7 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | Spikes im Scratchpad (Dockerfile je Spike, ohne Mount, Basis-Images per Digest) | neu, danach löschen | nie im Repo; Ergebnisse gehen als Tabelle in diesen Slice und in die Entscheidung |
 | `docs/plan/adr/` (neue ADR) und `docs/plan/adr/README.md` | neu / update | Entscheidung, Status, Geschichte, Indexzeile |
-| `spec/spezifikation.md` (`SPEC-002`), `contracts/query-backend.md` | update | Stellen aus `Schärft:` der neuen ADR |
+| `spec/spezifikation.md` (`SPEC-002`, `SPEC-022`) | update | Stellen aus `Schärft:` der neuen ADR |
 | `docs/plan/planning/` (die vier Backend-Slices, `slice-sql-batch-dispatch`) | update | Anschlussstellen |
 
 **Spikes (Scratchpad, Docker-only, nichts mounten)** — gemessen wird im Maßstab von [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md) (JDK 21, Kotlin, `kotlinx-coroutines-core`, `-Xmx256m`, fingiertes Backend); der Nutzer sieht die Optionen erst nach den Messwerten:

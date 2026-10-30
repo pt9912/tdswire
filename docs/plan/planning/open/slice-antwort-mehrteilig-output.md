@@ -78,7 +78,7 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/` (Unterpackage `dispatch`) <!-- d-check:ignore (geplant: neues Package) --> | update | Anbindung der Antwort an den Sequenzierer für mehrere Ergebnisse und für RPC (RETURNSTATUS, RETURNVALUE, DONEPROC bzw. DONEINPROC) (ARC-005, ARC-007, ARC-015); Prüfung der Ereignisreihenfolge, soweit die Nachbarwelle sie nicht liefert |
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/` (Sequenzierer aus `welle-backend-streaming`) | update, nur falls nötig | RPC-spezifische Ereignisse ergänzen, falls der Kern sie nicht trägt; die Änderung stimmt die Welle `welle-backend-streaming` ab |
-| `contracts/client-profile.md` | update | Antwortformen, die der Server liefert, und die ausdrücklich nicht unterstützten ([TDS-FA-10](../../../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte) verlangt die Dokumentation nicht benötigter Varianten) |
+| `spec/spezifikation.md` `SPEC-021` | update | Antwortformen, die der Server liefert, und die ausdrücklich nicht unterstützten ([TDS-FA-10](../../../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte) verlangt die Dokumentation nicht benötigter Varianten) |
 | `src/test/kotlin/io/github/pt9912/tdswire/protocol/` (Unterpackage `dispatch`) <!-- d-check:ignore (geplant: neues Package) --> | neu | Byte-Vektoren der Antworten, Ergebnisgrenzen, OUTPUT und RETURNSTATUS, nicht unterstützte Form; nach [TDS-FA-10](../../../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte); `@spec`-Tag je Test |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
