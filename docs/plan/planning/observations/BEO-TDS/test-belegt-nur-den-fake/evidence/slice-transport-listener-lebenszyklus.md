@@ -1,0 +1,2 @@
+**Vorgang:** slice-transport-listener-lebenszyklus
+**Fund:** Fristen, Trennen und geordnetes Schließen sind mit Test-Handlern (Echo, Handler mit steuerbarer „läuft“-Meldung) belegt, nicht gegen eine echte Anfrage einer Session; die Einordnung einer Abbruchausnahme als `HANDLER_FAILED` ist an Test-Handlern gemessen, nicht am Handshake-Handler; ein Handler, der den Abbruch ignoriert, hält `shutdown()` ohne Obergrenze auf (Review F-10). Träger: `slice-abbruch-ressourcen-shutdown` (Ablauf mit Session) und `slice-bootstrap-konfiguration` (Anbindung des Handlers).

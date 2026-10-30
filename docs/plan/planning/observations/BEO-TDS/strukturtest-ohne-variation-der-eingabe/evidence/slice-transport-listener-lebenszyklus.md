@@ -1,0 +1,2 @@
+**Vorgang:** slice-transport-listener-lebenszyklus
+**Fund:** Die Testketten der Startprobe bestanden aus einem Zertifikat; die Mutation „nur das erste Zertifikat der Kette prüfen“ blieb grün, obwohl SPEC-043 und das KDoc „jedes Zertifikat der Kette“ sagen (Review F-5). Behoben durch einen Test mit abgelaufenem Zwischenzertifikat (Stage `testkeys`) und Gegenprobe; die Mutation färbt ihn rot (Nachverifikation M4).
