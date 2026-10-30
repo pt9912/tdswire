@@ -75,7 +75,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `spec/spezifikation.md` (SPEC-051, ggf. Konfigurationsschlüssel in §3, Historie) | update | Fortschreibung, falls der Nutzer sie statt einer ADR wählt, sonst nur Stellen aus dem `Schärft:`-Feld |
 | `contracts/auth-adapter.md` (§Einstiegsimplementierung: „Konfigurationsweg und Format sind noch festzulegen“, §Gemessen) | update | festgelegtes Format und Weg; Entwurfs-Hinweise bleiben, wo nichts gemessen ist |
 | `docs/plan/adr/<nächste Nummer>-….md` und `docs/plan/adr/README.md` | neu / update, nur bei ADR-Weg | Entscheidung mit Alternativen, Fitness Function, Geschichte; Index |
-| `docs/plan/planning/open/slice-auth-adapter-benutzerliste.md`, `slice-bootstrap-konfiguration.md` | update | Verweis auf die Entscheidung, Aufteilung (siehe unten) |
+| `docs/plan/planning/next/slice-auth-adapter-benutzerliste.md`, `slice-bootstrap-konfiguration.md` | update | Verweis auf die Entscheidung, Aufteilung (siehe unten) |
 | `docs/plan/planning/open/slice-qa-sicherheit.md` | update, nur falls nötig | Prüfwertformat-Punkt in §2; Begründung in §7 dieses Slice |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
