@@ -6,7 +6,7 @@ Vertrag zwischen Anmeldepfad und Benutzerverwaltung (`TDS-FA-02.a`, `SPEC-012`, 
 
 | Feld | Inhalt | Grenzen (gemessen) |
 |---|---|---|
-| Kennung | UTF-16, nach LOGIN7 `UserName` | 0 bis 128 UTF-16-Einheiten, auch leer; der Client wirft vor dem Verbindungsaufbau, wenn sie länger ist (128 und 129 nur mit ASCII gemessen) |
+| Benutzername (in der Spezifikation und in der Messmatrix „Kennung“) | UTF-16, nach LOGIN7 `UserName` | 0 bis 128 UTF-16-Einheiten, auch leer; der Client wirft vor dem Verbindungsaufbau, wenn sie länger ist (128 und 129 nur mit ASCII gemessen) |
 | Passwort | UTF-16, entschleiert (`Password`, je Byte XOR `0xA5`, dann Nibble-Tausch) | 0 bis 128 UTF-16-Einheiten, auch leer (128 und 129 nur mit ASCII gemessen; Unicode, Sonderzeichen und Surrogatpaar nur mit kürzeren Passwörtern, das mit Nicht-BMP-Zeichen hat 15 Einheiten). Entwurf: ein Zeichenfeld, das der Anmeldepfad nach dem Aufruf überschreibt; erfasst ist nur dieses Feld, nicht der Paket- oder TLS-Puffer |
 | Verbindungskontext | Datenbank, Anwendungsname, Rechnername, Intent | Werte aus LOGIN7; der Rechnername ist vom Client frei gesetzt und kein Beleg einer Herkunft |
 | Verschlüsselungsmodus | Entwurf: der ausgehandelte Modus aus PRELOGIN, nicht aus LOGIN7 | nicht gemessen |
@@ -21,29 +21,29 @@ Nicht unterstützte Modi (SSPI/Kerberos, Entra-ID-Token) erkennt der Anmeldepfad
 | `Accepted(principal)` | Anmeldung gelungen; der Principal geht in die Session |
 | `Rejected(reason)` | abgelehnt; `reason` dient nur dem Server-Log |
 
-Der Adapter liefert keinen Text und keine Nummer für den Client. Die Antwort an den Client ist ein festes Muster des Anmeldepfads (ERROR 18456, einheitlicher State, Class 14, feste Meldung ohne Kennung, danach DONE mit Fehlerstatus; `SPEC-012`). Danach schließt der Server die Verbindung; ein weiteres LOGIN7 wird nicht angenommen (Setzung, nicht gemessen: am echten SQL Server wurde nur die Fehlerantwort einmal beobachtet). Ein Ausnahmefall im Adapter wird wie `Rejected` beantwortet und als interner Fehler geloggt (`SPEC-048`).
+Der Adapter liefert keinen Text und keine Nummer für den Client. Die Antwort an den Client ist ein festes Muster des Anmeldepfads (ERROR 18456, einheitlicher State, Class 14, feste Meldung ohne Benutzernamen, danach DONE mit Fehlerstatus; `SPEC-012`). Danach schließt der Server die Verbindung; ein weiteres LOGIN7 wird nicht angenommen (Setzung, nicht gemessen: am echten SQL Server wurde nur die Fehlerantwort einmal beobachtet). Ein Ausnahmefall im Adapter wird wie `Rejected` beantwortet und als interner Fehler geloggt (`SPEC-048`).
 
 ## Pflichten
 
-- Das Passwort erscheint in keinem Log und in keiner Fehlermeldung, auch nicht gekürzt oder verschleiert. Die Kennung erscheint in keiner Antwort an den Client und im Log nur in einem Feld, das die Spezifikation festlegt (bisher keines; `TDS-FA-09.a`). `Rejected(reason)` trägt den Grund ohne Passwort und ohne Kennung.
+- Das Passwort erscheint in keinem Log und in keiner Fehlermeldung, auch nicht gekürzt oder verschleiert. Der Benutzername erscheint in keiner Antwort an den Client und im Log nur in einem Feld, das die Spezifikation festlegt (bisher keines; `TDS-FA-09.a`). `Rejected(reason)` trägt den Grund ohne Passwort und ohne Benutzernamen.
 - Anforderung an den Produktivcode der Einstiegsimplementierung: Der Passwortvergleich läuft in konstanter Zeit über die Länge hinaus; bei unbekannter Kennung läuft ein Scheinvergleich. Weder gebaut noch gemessen; ein Test muss es belegen. Ein Adapter mit eigener Benutzerverwaltung unterliegt derselben Anforderung, der Vertrag kann sie nicht erzwingen.
-- Die Antwort an den Client ist für unbekannte Kennung und falsches Passwort in den Antwortbytes gleich (gemessen am Spike-Testserver, nicht am Produkt); das ist Sache des festen Antwortmusters des Anmeldepfads, nicht des Adapters.
+- Die Antwort an den Client ist für unbekannten Benutzernamen und falsches Passwort in den Antwortbytes gleich (gemessen am Spike-Testserver, nicht am Produkt); das ist Sache des festen Antwortmusters des Anmeldepfads, nicht des Adapters.
 - Ein Adapter blockiert den Anmeldepfad nicht länger als `LOGIN_TIMEOUT` (`SPEC-008`).
 
 ## Einstiegsimplementierung
 
-Feste Benutzerliste aus der Konfiguration (Kennung, Passwortprüfwert). Die Liste wird beim Start validiert (`TDS-FA-09.a`); eine fehlerhafte Liste bricht den Start ab. Für Test und kleine Betriebe gedacht.
+Feste Benutzerliste aus der Konfiguration (Benutzername, Passwortprüfwert). Die Liste wird beim Start validiert (`TDS-FA-09.a`); eine fehlerhafte Liste bricht den Start ab. Für Test und kleine Betriebe gedacht.
 
 Prüfwertformat und Konfigurationsweg (vom Nutzer entschieden, 2026-10-30; was unter „Offen“ steht, ist nicht entschieden):
 
-- **Kennungsschema:** Jeder Eintrag trägt vor dem Prüfwert eine Verfahrenskennung, `{kennung}Wert`. Ein Eintrag ohne Kennung und eine unbekannte Kennung brechen den Start ab (Setzung, nicht gemessen). Die Kennung ist case-sensitiv und klein: `plain`, `pbkdf2-sha256`; `{PBKDF2-SHA256}` wird abgewiesen.
+- **Verfahrenskennung:** Jeder Eintrag trägt vor dem Prüfwert eine Verfahrenskennung, `{kennung}Wert`. Ein Eintrag ohne Verfahrenskennung und eine unbekannte Verfahrenskennung brechen den Start ab (Setzung, nicht gemessen). Die Verfahrenskennung ist case-sensitiv und klein: `plain`, `pbkdf2-sha256`; `{PBKDF2-SHA256}` wird abgewiesen.
 - **Verfahren:** `plain` nur bei ausdrücklich eingeschaltetem Testmodus, sonst Startabbruch vor dem Binden des Ports; ein leerer `plain`-Wert ist zulässig (nur im Testmodus). `pbkdf2-sha256` (`PBKDF2WithHmacSHA256` des JDK, keine Fremdbibliothek), Wert `Salz$Iterationen$Hash`; Salz und Hash sind Standard-Base64 mit verlangtem Padding.
-- **Iterationszahl (Setzung):** Boden 210 000, Standard 600 000, Obergrenze 10 000 000; der Betreiber unterschreitet den Boden nicht. Dauer je Ableitung 54 ms, 125 ms und 2,1 s (gemessen, nur in einem Spike-Image auf einem Host, kein Produktivwert). Die Obergrenze schützt nicht vor gleichzeitiger Last: 64 gleichzeitige Ableitungen mit 600 000 und `--cpus=1` erreichten im Spike bis 23,6 s. Die Iterationen bestehen nur aus ASCII-Ziffern (keine Vorzeichen, keine anderen Ziffernschriften).
+- **Iterationszahl (Setzung):** Boden 210 000, Standard 600 000, Obergrenze 10 000 000; der Betreiber unterschreitet den Boden nicht. Gemessen (nur in einem Spike-Image auf einem Host, kein Produktivwert) ist die Dauer je Ableitung: 54 ms bei 210 000, 125 ms bei 600 000, 2,1 s bei 10 000 000. Die Werte für Boden, Standard und Obergrenze sind gesetzt, nicht gemessen. Die Obergrenze schützt nicht vor gleichzeitiger Last: 64 gleichzeitige Ableitungen mit 600 000 und `--cpus=1` erreichten im Spike bis 23,6 s. Die Iterationen bestehen nur aus ASCII-Ziffern (keine Vorzeichen, keine anderen Ziffernschriften).
 - **Passwort-Randfälle:** Die Ableitung nimmt die UTF-8-Bytes des vom Client gelieferten Passworts (UTF-16 nach UTF-8 wie im JDK). Ein alleinstehendes Hochsurrogat ergibt denselben Hash wie `?` (gemessen); das ist eine bekannte Eigenschaft. Es gibt keine Unicode-Normalisierung (NFC und NFD ergeben verschiedene Hashes, gemessen). Ein leeres Passwort ist zulässig und wird abgeleitet.
-- **Konfigurationsweg:** eigene Datei nur für die Benutzerliste, eigenes Zeilenformat, eigener Parser; Pfad in `AUTH_USERS_FILE`. Eine Zeile je Eintrag, `Kennung<TAB>Prüfwert`, UTF-8, kein Escaping, Aufteilung am ersten TAB. Kennungen mit TAB, LF, CR oder alleinstehendem Hochsurrogat sind nicht darstellbar und ein Ladefehler. Eine doppelte Kennung bricht den Start ab.
+- **Konfigurationsweg:** eigene Datei nur für die Benutzerliste, eigenes Zeilenformat, eigener Parser. Der Pfad hat den Schlüsselnamen `AUTH_USERS_FILE`; ob er als Umgebungsvariable oder als Argument übergeben wird, ist offen. Eine Zeile je Eintrag, `Benutzername<TAB>Prüfwert`, UTF-8, kein Escaping, Aufteilung am ersten TAB. Benutzernamen mit TAB, LF, CR oder alleinstehendem Hochsurrogat sind nicht darstellbar und ein Ladefehler. Ein doppelter Benutzername bricht den Start ab.
 - **Testmodus-Schalter:** `AUTH_PLAIN_TESTMODE`, gilt nur bei genau `true`; eigener Schalter nur für `plain`; der Start-Log nennt den Modus.
-- **Fehlerwerte:** je Abweichung genau eine Fehlerart mit Listenplatz, ohne Prüfwert und ohne Passwort.
-- **Offen** (Entscheidung oder Messung im Authentifizierungs-Slice): niedrigerer Iterationsboden im Testmodus, Kommentare und Leerzeilen, Zeilenenden (CRLF), Hashlänge, Mindestlänge des Salzes, Dateirechte im Betrieb, Länge der Ziffernfolge der Iterationen.
+- **Fehlerwerte:** je Abweichung genau eine Fehlerart mit Listenplatz, ohne Prüfwert und ohne Passwort. Was der Listenplatz im Produkt ist (Dateizeile oder Position nach Sortierung), ist offen; gemessen ist im Spike die Position nach Sortierung.
+- **Offen** (Entscheidung oder Messung im Authentifizierungs-Slice): niedrigerer Iterationsboden im Testmodus, Kommentare und Leerzeilen, Zeilenenden (CRLF), Hashlänge, Mindestlänge des Salzes, Dateirechte im Betrieb, Länge der Ziffernfolge der Iterationen, Übergabeweg des Pfades `AUTH_USERS_FILE` (Umgebungsvariable oder Argument), Bedeutung des Listenplatzes (Dateizeile oder Position nach Sortierung).
 
 ## Gemessen
 
