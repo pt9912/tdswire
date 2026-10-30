@@ -213,7 +213,7 @@ class ValueMappingTest {
     /**
      * Eine Mantisse mit sehr vielen Stellen (10^100000, 100001 Stellen) wird in kurzer Zeit abgewiesen; das
      * Kürzen nachlaufender Nullen läuft nicht über sie (Festlegung: Grenze 1000 Stellen). 1000 Stellen mit
-     * Nullen am Ende passen weiter.
+     * Nullen am Ende passen weiter, 1001 Stellen werden auch dann abgewiesen, wenn der Wert nach dem Kürzen passt.
      *
      * @spec SPEC-014
      */
@@ -228,7 +228,11 @@ class ValueMappingTest {
         worker.join(2_000)
         assertFalse(worker.isAlive, "nicht innerhalb der Frist")
         assertEquals(ProtocolFailure.VALUE_OUT_OF_RANGE, MappingSupport.error(assertNotNull(outcome)).failure)
+        val tooLong = BigDecimal("1.5").setScale(DecimalMapping.MAX_MANTISSA_DIGITS)
+        assertEquals(DecimalMapping.MAX_MANTISSA_DIGITS + 1, tooLong.precision())
+        assertEquals(ProtocolFailure.VALUE_OUT_OF_RANGE, failureOf(SqlType.Decimal(5, 2), tooLong))
         val padded = BigDecimal("1.5").setScale(DecimalMapping.MAX_MANTISSA_DIGITS - 1)
+        assertEquals(DecimalMapping.MAX_MANTISSA_DIGITS, padded.precision())
         assertEquals(TdsValue.DecimalValue(BigDecimal("1.50")), mapped(SqlType.Decimal(5, 2), padded))
     }
 
@@ -328,6 +332,8 @@ class ValueMappingTest {
                 assertEquals(expected, encoded(SqlType.DateTime, stamp), zone)
                 assertEquals("D1 05 00 04 6B F4 14", encoded(SqlType.Time, stamp.toLocalTime()), zone)
                 assertEquals(TdsValue.DateTime2Value(stamp), mapped(SqlType.DateTime, stamp), zone)
+                assertEquals(TdsValue.DateValue(stamp.toLocalDate()), mapped(SqlType.Date, stamp.toLocalDate()), zone)
+                assertEquals(expected.takeLast(8), encoded(SqlType.Date, stamp.toLocalDate()).takeLast(8), zone)
             }
         } finally {
             TimeZone.setDefault(saved)
@@ -353,11 +359,42 @@ class ValueMappingTest {
     }
 
     /**
+     * Die Zeile bricht beim ersten Fehler ab: die zweite fehlerhafte Spalte wird nicht mehr angesehen (ein
+     * BigDecimal, der jeden Aufruf von `precision()` zählt, wird nicht berührt), und der Fehler nennt die
+     * erste Spalte.
+     *
+     * @spec SPEC-014
+     */
+    @Test
+    fun `Zeile bricht beim ersten Fehler ab`() {
+        class Counting : BigDecimal("1.5") {
+            var calls = 0
+
+            override fun precision(): Int {
+                calls++
+                return super.precision()
+            }
+
+            override fun toByte(): Byte = intValueExact().toByte()
+
+            override fun toShort(): Short = intValueExact().toShort()
+        }
+        val later = Counting()
+        val defs = MappingSupport.defs(col(SqlType.Int32), col(SqlType.Int32), col(SqlType.Decimal(5, 2)))
+        val bad = MappingSupport.error(ValueMapping.row(defs, listOf(1, "x", later)))
+        assertTrue("Spalte 1" in bad.detail, bad.detail)
+        assertEquals(0, later.calls)
+        val control = Counting()
+        assertIs<ProtocolResult.Ok<List<TdsValue>>>(ValueMapping.row(defs, listOf(1, 2, control)))
+        assertTrue(control.calls > 0, "Zaehler zaehlt nicht")
+    }
+
+    /**
      * Die Textdarstellung eines Fehlers enthält keinen Wert der Zeile, auf jedem Fehlerpfad der
      * Wertabbildung: Text zu lang, unpaares Surrogat, Uhrzeit zu fein (Time und DateTime), Datum außerhalb
-     * des Bereichs (Date und DateTime), Decimal mit zu vielen Nachkommastellen und Überlauf, Typkonflikt
-     * mit Text, Zahl und Datum als falschem Wert. Jede Zeile trägt eine Markierung, die nur im Wert steht;
-     * die Position der Spalte steht im Fehler.
+     * des Bereichs (Date und DateTime), Decimal mit zu vielen Nachkommastellen, Überlauf und Mantisse
+     * über 1000 Stellen, Typkonflikt mit Text, Zahl und Datum als falschem Wert. Jede Zeile trägt eine
+     * Markierung, die nur im Wert steht; die Position der Spalte steht im Fehler.
      *
      * @spec SPEC-014
      */
@@ -375,6 +412,7 @@ class ValueMappingTest {
             Triple(SqlType.DateTime, oddDate.atStartOfDay(), listOf("12345", "06-07")),
             Triple(SqlType.Decimal(5, 2), BigDecimal("98765.4321"), listOf("98765", "4321")),
             Triple(SqlType.Decimal(5, 2), BigDecimal("98765.43"), listOf("98765", "43")),
+            Triple(SqlType.Decimal(5, 2), BigDecimal("1".repeat(1001)), listOf("1111111111")),
             Triple(SqlType.Int32, "pw-0815", listOf("pw-0815", "0815")),
             Triple(SqlType.Int32, BigDecimal("98765.4321"), listOf("98765", "4321")),
             Triple(SqlType.UnicodeText, oddDate, listOf("12345", "06-07")),
