@@ -500,7 +500,7 @@ werden vor der Implementierung festgelegt. Festgelegt ist die Bedeutung:
   `compareTo` verglichen (1.0 gleich 1.00), Textwerte ohne Beachtung der Groß-/Kleinschreibung
   (Setzung, wie die Bezeichner). Texte begrenzt das Backend selbst nicht; ein Text von mehr als 4000
   UTF-16-Einheiten, den eine Zeilenquelle liefert, weist die Typabbildung mit `TDS_UNSUPPORTED_TYPE` ab
-  (`SPEC-003`; Setzung, nicht gemessen).
+  (Limit: `SPEC-003`; Code: `SPEC-014` und Typabbildung; Setzung, nicht gemessen).
 
 **Beschreibung als Datei.** Zusätzlich zur Kotlin-Schnittstelle kann der Server Tabellen aus einer Datei
 laden. Das Format ist das neutrale Schema-Modell von d-migrate in YAML, `schema_format` `1.0`; maßgeblich
