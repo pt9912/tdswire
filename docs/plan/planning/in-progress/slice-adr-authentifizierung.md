@@ -47,7 +47,7 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [x] Spike durchgeführt; seine Ergebnisse (Messwerte, Matrix, Befund) stehen in der ADR. Der Spike-Code ist temporär und nach der Entscheidung gelöscht.
-- [ ] [ADR-0009](../../adr/0009-authentifizierungsmodus.md) auf `Accepted`, Option gewählt, Geschichte und ADR-Index nachgezogen (ADR und Index stehen auf `Proposed`; das Häkchen folgt dem Statuswechsel).
+- [x] [ADR-0009](../../adr/0009-authentifizierungsmodus.md) auf `Accepted`, Option gewählt, Geschichte und ADR-Index nachgezogen (ADR und Index stehen auf `Proposed`; das Häkchen folgt dem Statuswechsel).
 - [x] Spec-Stellen aus dem `Schärft:`-Feld der ADR an die Entscheidung angepasst.
 - [x] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor

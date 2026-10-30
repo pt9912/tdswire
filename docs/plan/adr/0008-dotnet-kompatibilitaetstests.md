@@ -1,6 +1,6 @@
 # ADR-0008: Referenzclient und .NET-Kompatibilitätstests
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-29
 
@@ -120,3 +120,4 @@ Neue SqlClient-Hauptversion, nicht reproduzierbarer Kompatibilitätsfehler, geä
 | 2026-10-30 | Accepted – Option B (Pflicht-Matrix) zusätzlich Option D (Vergleichslauf); Spike mit Stub-Server und echtem SQL-Server-Container gemessen; EULA-Zustimmung des Repo-Inhabers festgehalten; NuGet-Audit und `trustedSigners` offen | [SPEC-025](../../../spec/spezifikation.md#7-festlegungen-der-harness-werkzeuge) |
 | 2026-10-30 | Zurück auf Proposed – Review fordert Korrekturen vor erneutem Accepted | [Review](../../reviews/2026-10-30-7fe5583-052712d-adr-0008.md) |
 | 2026-10-30 | Korrektur nach Review (F-1 bis F-9) im Status Proposed: D als eigenes Make-Target, Messaussagen an die Messung gebunden, EULA auf Entscheidung beschränkt; ADR war `Accepted`, per Nutzerentscheidung 2026-10-30 zurückgestuft, vor Folgearbeit korrigiert; Hard Rule 3.5 bindet `Accepted`; kein Präzedenzfall | [Review](../../reviews/2026-10-30-7fe5583-052712d-adr-0008.md) |
+| 2026-10-30 | Accepted – nach Review, Verifikation und Re-Review (Entscheidung der Optionen: Nutzer, 2026-10-30) | [Verifikation](../../reviews/2026-10-30-728c65f-verifikation-adr-0008.md) |

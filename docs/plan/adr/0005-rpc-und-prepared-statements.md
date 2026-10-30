@@ -1,6 +1,6 @@
 # ADR-0005: RPC-Unterstützung und Prepared Statements
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-29
 
@@ -106,3 +106,4 @@ Neuer .NET-Aufruftyp erzeugt bisher nicht unterstützte RPC-Nachricht (etwa `sp_
 | 2026-10-30 | Accepted – Option B (Mindestkatalog); Spike mit Testserver und Referenzclient, ohne echten SQL Server; Messaussagen auf die Messgrenzen im Abschnitt Kontext begrenzt | [Kontext](#kontext) |
 | 2026-10-30 | Zurück auf Proposed – Review fordert Korrekturen vor erneutem Accepted | [Review](../../reviews/2026-10-30-7fe5583-052712d-adr-0005.md) |
 | 2026-10-30 | Korrektur nach Review (F-1 bis F-8): Messmatrix und Messgrenzen in die ADR, Abdeckungsaussage auf die gemessenen RPC-Formen begrenzt, KeyInfo und Transaktionen als offen geführt. ADR war `Accepted`, per Nutzerentscheidung 2026-10-30 zurückgestuft, vor Folgearbeit korrigiert; Hard Rule 3.5 bindet `Accepted`; kein Präzedenzfall | [Review](../../reviews/2026-10-30-7fe5583-052712d-adr-0005.md) |
+| 2026-10-30 | Accepted – nach Review, Verifikation und Re-Review (Entscheidung der Optionen: Nutzer, 2026-10-30) | [Verifikation](../../reviews/2026-10-30-728c65f-verifikation-adr-0005.md) |
