@@ -93,7 +93,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md) steht auf `Accepted`, der Slice `slice-transport-coroutines-geruest` (Pin von `kotlinx-coroutines-core` in `gradle/libs.versions.toml`, `gradle.lockfile` und `gradle/verification-metadata.xml`) liegt in `done/`, `make gates` ist auf `main` grün, die Nutzerentscheidungen zum Ort der Typen (`domain` oder `port`) und zur Fehlerform beim Start (§6) liegen vor, und ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md) steht auf `Accepted`, der Slice `slice-transport-coroutines-geruest` (Pin von `kotlinx-coroutines-core` in `gradle/libs.versions.toml`, `gradle.lockfile` und `gradle/verification-metadata.xml`) liegt in `done/` (erfüllt: der Pin steht), `make gates` ist auf `main` grün, die Nutzerentscheidungen zum Ort der Typen (`domain` oder `port`) und zur Fehlerform beim Start (§6) liegen vor, und ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

@@ -25,7 +25,6 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 
 In Arbeit (Welle welle-transport-tls):
 
-- [slice-transport-coroutines-geruest](slice-transport-coroutines-geruest.md)
 - [slice-transport-tls-schleife](slice-transport-tls-schleife.md)
 
 In Arbeit (Welle welle-qualitaet-grundlage):
