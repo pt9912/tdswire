@@ -1,7 +1,7 @@
 # Review-Report: slice-qa-reproduzierbarkeit (CI, workflow-lint, clean-build, Stage deps)
 
 * Gegenstand: Merge `ba9a525` (CI-Workflow, `make workflow-lint`, `make clean-build`), Nachzug 34393a5 (Stage `deps`, Task `abhaengigkeitenLaden`) und die Kürzungen im Slice (a307dd6). Stand: HEAD `cff52a9`. Skill `.harness/skills/reviewer.md`.
-* Plan: [slice-qa-reproduzierbarkeit](../plan/planning/in-progress/slice-qa-reproduzierbarkeit.md), Welle `welle-qualitaet-grundlage`. Grundlage: [TDS-QA-06](../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [ADR-0008](../plan/adr/0008-dotnet-kompatibilitaetstests.md), [ADR-0010](../plan/adr/0010-detekt-pre-release.md), `AGENTS.md` §3.1 bis §3.8.
+* Plan: [slice-qa-reproduzierbarkeit](../plan/planning/done/slice-qa-reproduzierbarkeit.md), Welle `welle-qualitaet-grundlage`. Grundlage: [TDS-QA-06](../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [ADR-0008](../plan/adr/0008-dotnet-kompatibilitaetstests.md), [ADR-0010](../plan/adr/0010-detekt-pre-release.md), `AGENTS.md` §3.1 bis §3.8.
 * Lauf: `make workflow-lint` Exit 0; `make gates` Exit 0 (1 min 35 s, Docker-Cache warm). Kein `@Suppress`/`@SuppressWarnings` in `build.gradle.kts`; keine Gate-Lockerung (§3.6): `deps` ergänzt, `config/detekt/detekt.yml` unberührt.
 * Ergebnis: 0 HIGH, 3 MEDIUM, 4 LOW, 5 INFO. Nicht merge-blockierend.
 

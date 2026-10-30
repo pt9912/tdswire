@@ -59,6 +59,8 @@ Lifecycle-Verzeichnis und wird hier **nicht** gespiegelt.
 | slice-qa-performance | Performance: Referenz-Workload und Messung | [TDS-QA-04](../../../spec/lastenheft.md#tds-qa-04--performance) |
 | slice-qa-wartbarkeit | Wartbarkeit: Modulgrenzen und Kompatibilitätsmatrix | [TDS-QA-05](../../../spec/lastenheft.md#tds-qa-05--wartbarkeit) |
 | slice-qa-reproduzierbarkeit | Reproduzierbarkeit: Clean-Build und Tests in CI | [TDS-QA-06](../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
+| slice-qa-vergleichslauf-d | Vergleichslauf D: Referenzabgleich gegen einen echten SQL Server | [TDS-QA-06](../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [TDS-QA-01](../../../spec/lastenheft.md#tds-qa-01--kompatibilität) |
+| slice-qa-dotnet-lieferkette-haerten | .NET-Restore: Signaturprüfung und Schwachstellenprüfung entscheiden | [TDS-QA-06](../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
 | slice-qa-synchronitaet | Protokoll-Synchronität nach Fehler und Abbruch | [TDS-QA-07](../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität) |
 | slice-qa-spec-abdeckung | Spezifikations-Abdeckungsmatrix: jede Festlegung durch Tests belegt | [TDS-QA-05](../../../spec/lastenheft.md#tds-qa-05--wartbarkeit) |
 

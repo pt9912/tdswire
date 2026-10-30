@@ -150,7 +150,7 @@ Hälften.
 **Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen (`../observations/BEO-TDS/`, 19 Beobachtungen, Stand des Worktrees auf `main`); alle tragen die Sub-Area `*`. Treffer mit Zähler-Stand (Zahl der Dateien unter `evidence/`):
 
 - `BEO-TDS/aussagen-ueber-messung-hinaus` — 16×, Stand *verkörpert* (`AGENTS.md` §3.8, Reviewer-Skill). Betrifft diesen Slice: Jede Aussage der ADR trägt eine Messzeile oder ist als Setzung gekennzeichnet (§2, §6).
-- `BEO-TDS/messung-am-echten-sql-server-fehlt` — 9×, Stand *geplant* (Träger [slice-qa-reproduzierbarkeit](../in-progress/slice-qa-reproduzierbarkeit.md)). Betrifft die Semantik-Annahmen (SPEC-036): gemessen ist eine Stichprobe, die Breite folgt im Referenzabgleich; die ADR sagt nichts über das Verhalten eines echten Servers über die Stichprobe hinaus.
+- `BEO-TDS/messung-am-echten-sql-server-fehlt` — 9×, Stand *geplant* (Träger [slice-qa-reproduzierbarkeit](../done/slice-qa-reproduzierbarkeit.md)). Betrifft die Semantik-Annahmen (SPEC-036): gemessen ist eine Stichprobe, die Breite folgt im Referenzabgleich; die ADR sagt nichts über das Verhalten eines echten Servers über die Stichprobe hinaus.
 - `BEO-TDS/offene-punkte-ohne-traeger` — 6×, Stand *verkörpert* (`.claude/commands/implement-slice.md`). Betrifft die Offen-Liste der neuen ADR (§6).
 - `BEO-TDS/spec-einzelfaelle-ohne-lastenheft-deckung` — 2×, offen. Betrifft die Liste „Nicht erkannt“ in SPEC-036 (§6).
 - `BEO-TDS/kennungen-ohne-link-in-neuen-dokumenten` — 1×, offen. ADR, Slice und Closure-Notiz nennen `ADR-*`- und `TDS-*`-Kennungen als Link.

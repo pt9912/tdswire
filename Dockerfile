@@ -16,9 +16,12 @@ FROM gradle:8.14-jdk21@sha256:b3453e88792ea90b526f5d04fa2961bba183ae57ded4ad3437
 # --- Deps: laedt die Artefakte aller Konfigurationen, die compile, test, detekt und assemble
 # brauchen (Gradle-Task `abhaengigkeitenLaden`, build.gradle.kts), mit aktiver Sperre und
 # Verifikation. Die Stage steht direkt nach `basis` und kopiert genau die Dateien, die die
-# Aufloesung bestimmen; src/, config/, tools/, Doku und Harness liegen nicht im Eingang. Alle
-# Stages darunter erben von ihr, eine Quelltextaenderung loest also keinen Download aus. Eine neue
-# Eingangsdatei der Aufloesung gehoert in die COPY-Zeilen dieser Stage und nirgends sonst hin. ----
+# Aufloesung bestimmen; src/, config/, tools/, Doku und Harness liegen nicht im Eingang. compile,
+# test, detekt, detekt-selbsttest und spec-abdeckung erben von ihr, eine Quelltextaenderung loest dort
+# also keinen Download aus; testkeys, lock und spec-abdeckung-selbsttest erben von `basis`. Eine neue
+# Eingangsdatei der Aufloesung gehoert in die COPY-Zeilen dieser Stage und nirgends sonst hin.
+# Kopplung: build.gradle.kts ist Eingang; jede Aenderung dort, auch an einem Kommentar, laesst die
+# Stage neu laufen und laedt alles neu. ----
 FROM basis AS deps
 WORKDIR /src
 COPY --chown=gradle:gradle settings.gradle.kts build.gradle.kts gradle.properties gradle.lockfile settings-gradle.lockfile ./

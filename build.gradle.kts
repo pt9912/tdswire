@@ -92,6 +92,8 @@ tasks.withType<dev.detekt.gradle.Detekt>().matching { it.name == "detektSelbstte
 // Stages, ihre Artefakte waeren tote Last. Sperre und Verifikation bleiben aktiv; eine Version,
 // die nicht aufloest, bricht die Task. Sie schreibt weder Sperre noch Pruefsummen.
 // Kopplung: `-PnurNamen=<a,b>` schraenkt die Menge ein (Pruefung der Task ohne Netz).
+// Grenze: Ein Name, den `findByName` nicht findet, und eine nicht aufloesbare Konfiguration werden
+// uebersprungen; kein Sensor meldet das, die Task laeuft auch mit null geladenen Konfigurationen gruen.
 tasks.register("abhaengigkeitenLaden") {
     val sperre = layout.projectDirectory.file("gradle.lockfile").asFile
     val nichtGebraucht = setOf(

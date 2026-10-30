@@ -28,7 +28,6 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 
 In Arbeit (Welle welle-qualitaet-grundlage):
 
-- [slice-qa-reproduzierbarkeit](slice-qa-reproduzierbarkeit.md)
 - [slice-qa-wartbarkeit](slice-qa-wartbarkeit.md)
 
 In Arbeit (Welle welle-transport-tls):

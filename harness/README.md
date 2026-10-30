@@ -81,14 +81,14 @@ Diese Datei dupliziert sie nicht.
 | `make deps-lock` | schreibt `gradle.lockfile` und `gradle/verification-metadata.xml` neu (braucht Netz), prüft nichts | kein Gate |
 | `make spec-abdeckung` | führt die Tests aus, schreibt `docs/plan/spec-abdeckung.md` (je `SPEC-*` bestandene Tests, Waisen); `SPEC_ABDECKUNG_STRENG=1` bricht bei Waisen; Tag `@spec`: Kopf von `tools/spec-abdeckung.sh` | kein Gate |
 | `make spec-abdeckung-selbsttest` | prüft den Erzeuger der Abdeckungsmatrix an einem erzeugten Mini-Bestand: roter, nicht gelaufener, übersprungener und unbekannt getaggter Test zählen nicht | kein Gate |
-| `make workflow-lint` | prüft `.github/workflows/*.yml` mit actionlint (Image per Digest, Datei über stdin, kein Mount) | kein Gate, [TDS-QA-06](../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
-| `make clean-build` | baut Jar, Tests und detekt mit `--no-cache` in Docker; für den Clean-Build-Nachweis | kein Gate, [TDS-QA-06](../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
+| `make workflow-lint` | prüft Syntax und Ausdrücke von `.github/workflows/*.yml` mit actionlint (Image per Digest, über stdin); prüft weder die SHA-Pins der Actions noch, dass der Workflow `make gates` aufruft | kein Gate, [TDS-QA-06](../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
+| `make clean-build` | baut Jar, Tests und detekt (Gradle-Stages) mit `--no-cache` in Docker; der .NET-Restore gehört nicht dazu, auf dem Runner deckt ihn `make gates` | kein Gate, [TDS-QA-06](../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
 | `make referenztest-dotnet-lock` | schreibt `referenztest-dotnet/packages.lock.json` neu (braucht Netz; das erste Lock vertraut nuget.org beim Schreiben), prüft nichts | kein Gate, [CO-002](../docs/plan/carveouts/CO-002-nuget-signaturpruefung-fehlt.md) |
 | `make referenztest-dotnet-audit` | meldet bekannte Schwachstellen der .NET-Pakete am Tag des Laufs; Ergebnis hängt am Abfragetag, nicht reproduzierbar, Exit 0 auch bei Fund | kein Gate, [CO-001](../docs/plan/carveouts/CO-001-nuget-audit-aus.md) |
 | `make <messung>` | misst <…> gegen <Schwelle> | kein Gate, ADR-<NNNN> |
 | `make <vorschau>` | sagt, was <schreibender Lauf> täte; Ausgänge und Sperren in der verlinkten Datei | kein Gate |
 
-**Aktueller Lauf-Status:** lokal `make help` / `make gates`. Die CI-Datei `.github/workflows/gates.yml` führt `make gates`; ein Lauf auf dem Runner ist nicht belegt, ein Badge steht deshalb nicht hier.
+**Aktueller Lauf-Status:** lokal `make help` / `make gates`. Die CI-Datei `.github/workflows/gates.yml` führt `make gates`; sieben Läufe auf `main` sind `success` (jüngster abgeschlossener: 41053892627 auf `cbdbd80`, ältester: 41023977695; Abfrage `gh run list --workflow gates`). Ein Badge steht nicht hier; der Stand ist die Abfrage.
 **Rote Gates:** Begründung im verlinkten `CO-<NNN>` (siehe Bindung-Spalte), Modul 7.
 **Nicht behauptet:** ein Target für den Vergleichslauf D (kein Referenzclient gebaut), die Signaturprüfung der .NET-Pakete (`CO-002`) und ein Gate für die Schwachstellenprüfung (`CO-001`; `make referenztest-dotnet-audit` meldet nur).
 

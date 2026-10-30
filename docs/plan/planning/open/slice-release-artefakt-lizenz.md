@@ -87,7 +87,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-bootstrap-konfiguration](slice-bootstrap-konfiguration.md) und [slice-qa-reproduzierbarkeit](../in-progress/slice-qa-reproduzierbarkeit.md) liegen in `done/` (`main` und CI), und ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): [slice-bootstrap-konfiguration](slice-bootstrap-konfiguration.md) und [slice-qa-reproduzierbarkeit](../done/slice-qa-reproduzierbarkeit.md) liegen in `done/` (`main` und CI), und ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

@@ -1,0 +1,2 @@
+**Vorgang:** slice-qa-reproduzierbarkeit
+**Fund:** Der Review nannte Aussagen über das Gemessene hinaus: „Exakte Runner-Version“ (Label statt Image-Version), „Alle Stages darunter erben“ (drei Stages erben von `basis`), die README-Zeile zum Clean-Build-Nachweis (deckt den .NET-Restore nicht), der Lauf-Status „nicht belegt“ (sieben grüne Läufe) und die Slice-Aussage zum Register (zwei Treffer übersehen); sie wurden auf das Gemessene begrenzt.
