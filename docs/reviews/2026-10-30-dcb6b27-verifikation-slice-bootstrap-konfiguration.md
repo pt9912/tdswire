@@ -12,7 +12,7 @@
 
 - Alle neun Mutationen (M07, M08, M09, M11, M14, M19, M21, X1, F-8) wurden von mir selbst einzeln gefahren und sind rot; X1 ist jetzt von genau einem eigenen Test rot (Abschnitt 4).
 - Von den Befunden des Reviews sind F-1, F-2, F-3, F-4, F-8 behoben, F-9 zur Hälfte (Abschnitt 3). F-5, F-6, F-7 sind nicht angefasst (LOW/INFO, bewusst), aber auch nicht mit Begründung angenommen; das gehört in die Closure.
-- Verhalten ohne Backend (nach [slice-sql-batch-dispatch](../plan/planning/in-progress/slice-sql-batch-dispatch.md)) ist unverändert (Abschnitt 6).
+- Verhalten ohne Backend (nach [slice-sql-batch-dispatch](../plan/planning/done/slice-sql-batch-dispatch.md)) ist unverändert (Abschnitt 6).
 - Kein Flake beobachtet (Abschnitt 7); die Ursache des einen roten Laufs der Fix-Runde bleibt ungeklärt.
 
 ## 2. DoD Punkt für Punkt
@@ -89,7 +89,7 @@ Anmerkungen:
 
 **Out-of-Scope** (Listener-Interna, Shutdown-Frist, Observability, Backend, Referenzclient/TLS-Smoke, Neu laden): eingehalten. Kein Package `observability`, keine Frist-Logik im Stop, keine Neu-Laden-Schleife. Der Smoke läuft nur im Modus `TEST_UNENCRYPTED`; der TLS-Pfad ist nur in `TlsWiringTest` belegt (nicht im `main`-Prozess).
 
-**Backend aus [slice-sql-batch-dispatch](../plan/planning/in-progress/slice-sql-batch-dispatch.md):** `Wiring.backend` ist `QueryBackend?` mit Voreinstellung `null`; `Main.kt` baut `Wiring(log = ServerLog.STDOUT)` ohne Backend. Mit `backend == null` verhält sich der Handler wie im Plan beschrieben: nach dem Login `loginCompleted()`, dann `channel.receive()`, die erste Nachricht beendet die Verbindung als `HANDLER_RETURNED`. Beleg: `HandshakeWiringTest > Nach dem Login gilt LOGIN_TIMEOUT nicht mehr` läuft ohne Backend und ist grün. Die Anfrageschleife ist nur mit gesetztem Backend erreichbar und nur über `RequestWiringTest` (Test-Backend) verdrahtet; der Produktstart verdrahtet kein Simulations-Backend. Die KDoc des Handlers nennt beide Zweige. Sachlich offen für die Folgearbeit (nicht dieser Slice): ein SQL_BATCH im laufenden Produktprozess bleibt unbeantwortet, bis ein Backend verdrahtet wird.
+**Backend aus [slice-sql-batch-dispatch](../plan/planning/done/slice-sql-batch-dispatch.md):** `Wiring.backend` ist `QueryBackend?` mit Voreinstellung `null`; `Main.kt` baut `Wiring(log = ServerLog.STDOUT)` ohne Backend. Mit `backend == null` verhält sich der Handler wie im Plan beschrieben: nach dem Login `loginCompleted()`, dann `channel.receive()`, die erste Nachricht beendet die Verbindung als `HANDLER_RETURNED`. Beleg: `HandshakeWiringTest > Nach dem Login gilt LOGIN_TIMEOUT nicht mehr` läuft ohne Backend und ist grün. Die Anfrageschleife ist nur mit gesetztem Backend erreichbar und nur über `RequestWiringTest` (Test-Backend) verdrahtet; der Produktstart verdrahtet kein Simulations-Backend. Die KDoc des Handlers nennt beide Zweige. Sachlich offen für die Folgearbeit (nicht dieser Slice): ein SQL_BATCH im laufenden Produktprozess bleibt unbeantwortet, bis ein Backend verdrahtet wird.
 
 ## 7. Flake
 
