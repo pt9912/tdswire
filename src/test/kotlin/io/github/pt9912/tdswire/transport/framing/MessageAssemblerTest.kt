@@ -44,6 +44,20 @@ class MessageAssemblerTest {
     }
 
     /**
+     * Festlegung ohne Messung: Der Leser prüft die Packet-ID nicht; Pakete mit nicht fortlaufenden
+     * IDs (7, dann 2, dann 255) ergeben dieselbe Nachricht wie fortlaufende.
+     *
+     * @spec SPEC-028
+     */
+    @Test
+    fun `Nicht fortlaufende Packet-IDs werden angenommen`() {
+        val wire = hex("01 00 00 09 00 00 07 00 11 01 00 00 09 00 00 02 00 22 01 01 00 09 00 00 FF 00 33")
+        val step = MessageAssembler().feed(wire)
+        assertNull(step.error)
+        assertContentEquals(hex("11 22 33"), step.messages.single().payload)
+    }
+
+    /**
      * Die Zerstückelung ändert das Ergebnis nicht: byteweise und mit zufälligen Stücklängen
      * (fester Startwert) kommt dieselbe Nachricht heraus wie am Stück.
      *

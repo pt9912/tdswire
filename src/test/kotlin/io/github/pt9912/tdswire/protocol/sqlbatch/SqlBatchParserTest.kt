@@ -1,5 +1,6 @@
 package io.github.pt9912.tdswire.protocol.sqlbatch
 
+import io.github.pt9912.tdswire.protocol.wire.ProtocolErrorCategory
 import io.github.pt9912.tdswire.protocol.wire.ProtocolFailure
 import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
 import io.github.pt9912.tdswire.testsupport.hex
@@ -19,6 +20,12 @@ class SqlBatchParserTest {
     private val selectOne = hex(allHeaders + "73 00 65 00 6C 00 65 00 63 00 74 00 20 00 31 00")
 
     private fun parse(bytes: ByteArray): ProtocolResult<SqlBatchRequest> = SqlBatchParser.parse(bytes)
+
+    private fun assertFailureIsProtocolError(result: ProtocolResult<*>) {
+        if (result is ProtocolResult.Failed) {
+            assertEquals(ProtocolErrorCategory.TDS_PROTOCOL_ERROR, result.error.category)
+        }
+    }
 
     private fun failureOf(bytes: ByteArray): ProtocolFailure =
         assertIs<ProtocolResult.Failed>(parse(bytes)).error.failure
@@ -92,7 +99,8 @@ class SqlBatchParserTest {
     }
 
     /**
-     * Fuzz mit festem Startwert (`SPEC-027`): zufällige und veränderte Eingaben enden in einem Ergebniswert.
+     * Fuzz mit festem Startwert (`SPEC-027`): zufällige und veränderte Eingaben enden in einem
+     * Ergebniswert; ein Fehler trägt `TDS_PROTOCOL_ERROR`.
      *
      * @spec SPEC-027
      */
@@ -100,11 +108,11 @@ class SqlBatchParserTest {
     fun `Zufaellige und veraenderte Eingaben enden in einem Ergebniswert`() {
         val random = Random(SEED)
         repeat(RUNS) {
-            parse(random.nextBytes(random.nextInt(0, 80)))
+            assertFailureIsProtocolError(parse(random.nextBytes(random.nextInt(0, 80))))
             val mutated = selectOne.copyOf()
             repeat(random.nextInt(1, 4)) { mutated[random.nextInt(mutated.size)] = random.nextInt().toByte() }
-            parse(mutated)
-            parse(selectOne.copyOf(random.nextInt(0, selectOne.size)))
+            assertFailureIsProtocolError(parse(mutated))
+            assertFailureIsProtocolError(parse(selectOne.copyOf(random.nextInt(0, selectOne.size))))
         }
     }
 
