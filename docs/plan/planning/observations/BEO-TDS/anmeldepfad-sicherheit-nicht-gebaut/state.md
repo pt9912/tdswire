@@ -1,1 +1,1 @@
-**Stand:** geplant — `slice-qa-sicherheit` (DoD nennt Zeitgleichheit, Drosselung und den Scheinvergleich bei unbekanntem Benutzernamen)
+**Stand:** geplant — `slice-qa-sicherheit` (DoD nennt Zeitgleichheit, Drosselung, den Scheinvergleich bei unbekanntem Benutzernamen und seit `slice-handshake-login` die Belegung der Plätze des `AuthPool`)

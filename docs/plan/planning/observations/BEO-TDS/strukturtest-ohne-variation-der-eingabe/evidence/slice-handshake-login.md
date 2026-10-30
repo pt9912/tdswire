@@ -1,0 +1,2 @@
+**Vorgang:** slice-handshake-login
+**Fund:** Zwei Zusagen waren mit nicht variierter Eingabe belegt: Der Matrixtest färbte die Mutation „zweites PRELOGIN im Zustand `LOGIN7` zulässig“ nur über die Zählung, weil der Test kein gültiges LOGIN7 als Nutzlast eines Pakets falschen Typs sendete (Review F-5, Verifikation L-2, M01 und M02); die Obergrenze der Adapteraufrufe war mit einem Treiber belegt, nicht mit zwei (Nachverifikation N-1). Behoben durch Tests mit variierter Eingabe (fünf Pakettypen; zwei Treiber an einem Pool).

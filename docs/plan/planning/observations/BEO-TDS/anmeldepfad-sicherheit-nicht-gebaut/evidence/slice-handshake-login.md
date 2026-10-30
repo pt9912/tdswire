@@ -1,0 +1,2 @@
+**Vorgang:** slice-handshake-login
+**Fund:** Der Anmeldepfad ruft den blockierenden Adapter über einen `AuthPool` mit 4 Plätzen; ein nicht angemeldeter Client kann mit mehreren Verbindungen alle Plätze für die Dauer einer Ableitung belegen, regulär anmeldende Clients warten dahinter. Zahl der Plätze und Wirkung auf den Transport unter Last sind ungemessen, eine Drosselung wiederholter Anmeldeversuche gibt es nicht (Review F-1, Nachverifikation N-1). Träger bleibt `slice-qa-sicherheit`, dessen DoD und §6 den Punkt seit dieser Closure nennen.

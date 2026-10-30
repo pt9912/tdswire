@@ -1,0 +1,2 @@
+**Vorgang:** slice-handshake-login
+**Fund:** Die Festlegung zur Abbruchausnahme des Adapters (Nachverifikation N-3) hat eine Folge in `ManagedConnection.finish` des Listener-Slice: jede `CancellationException` aus dem Handler gilt dort als `SHUTDOWN`, ohne Typ im Ereignis. Der Plan des Handshake-Slice nannte die Folge nicht, der Plan des Listener-Slice kannte den Treiber nicht. Die Closure hat die Folge in §6 von `slice-transport-listener-lebenszyklus` eingetragen.

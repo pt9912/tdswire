@@ -1,0 +1,2 @@
+**Vorgang:** slice-handshake-login
+**Fund:** Das Passwort eines bei Fristablauf wartenden, abgebrochenen Adapteraufrufs ist erst überschrieben, wenn die Warteschlange ihn erreicht; bei belegten Plätzen liegt es entsprechend länger im Speicher (Nachverifikation N-2, Sonde 2: 300 ms nach dem Abbruch nicht überschrieben). Das Zeitfenster ist nicht gemessen, ein Speicherabzug liegt nicht vor. Der Wipe im `finally` des `AuthExecutor` ist neben dem Wipe in `invokeOnCompletion` verhaltensgleich redundant (Mutation a10 überlebt).

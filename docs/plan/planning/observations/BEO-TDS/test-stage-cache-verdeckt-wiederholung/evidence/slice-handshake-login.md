@@ -1,0 +1,2 @@
+**Vorgang:** slice-handshake-login
+**Fund:** `make test` war ein Cache-Treffer und belegte keinen frischen Lauf (Verifikation L-7); die Nachverifikation führte `make gates` nur als Cache-Lauf und stützte die Aussage „340 Tests grün“ und die Stabilität der Wanduhr-Tests (Fristen 150 bis 300 ms, Ticker 400 ms) auf Läufe mit `--no-cache-filter test` und `docker run` des Test-Image. Mit diesem Vorgang trägt die Beobachtung drei Belege.
