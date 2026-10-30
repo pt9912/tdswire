@@ -60,7 +60,7 @@ class AuthPrimitivesTest {
     }
 
     /**
-     * Orakel: ADR-0011 dokumiert als Eigenschaft (M1-10): ein alleinstehendes Hochsurrogat ergibt denselben
+     * Orakel: ADR-0011 dokumentiert als Eigenschaft (M1-10): ein alleinstehendes Hochsurrogat ergibt denselben
      * Hash wie `?`, NFC und NFD ergeben verschiedene Hashes, ein leeres Passwort wird abgeleitet.
      *
      * @spec SPEC-051

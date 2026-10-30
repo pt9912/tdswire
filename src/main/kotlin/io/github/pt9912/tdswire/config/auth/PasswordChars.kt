@@ -5,6 +5,8 @@ package io.github.pt9912.tdswire.config.auth
  * noch Länge (`TDS-QA-03`); [reveal] gibt eine Kopie, [wipe] überschreibt die gehaltenen Einheiten.
  * Festlegung ohne Messung: Das Überschreiben schützt nur dieses Feld, nicht den Paket-, Lese- oder
  * TLS-Puffer des Aufrufers und nicht jede Kopie der JVM (`ADR-0009`, Geheimnisschutz).
+ * Der Konstruktor kopiert: Wer ein Passwort aus einem anderen Typ abbildet (der Anmeldepfad aus `SecretChars`),
+ * überschreibt das Zwischenfeld und das Feld des Quelltyps selbst.
  */
 class PasswordChars(chars: CharArray) {
     private val units: CharArray = chars.copyOf()
