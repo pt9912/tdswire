@@ -9,7 +9,7 @@
 | [ADR-0005](0005-rpc-und-prepared-statements.md) | RPC-Unterstützung und Prepared Statements | Accepted | [TDS-FA-04](../../../spec/lastenheft.md), [TDS-FA-10](../../../spec/lastenheft.md) |
 | [ADR-0006](0006-backend-vertrag-und-streaming.md) | Backend-Schnittstelle und Resultset-Streaming | Proposed | [TDS-FA-05](../../../spec/lastenheft.md), [TDS-FA-08](../../../spec/lastenheft.md), [TDS-FA-10](../../../spec/lastenheft.md), [TDS-FA-11](../../../spec/lastenheft.md) |
 | [ADR-0007](0007-fehler-und-attention.md) | Fehlerbehandlung und ATTENTION-Semantik | Proposed | [TDS-FA-06](../../../spec/lastenheft.md), [TDS-FA-07](../../../spec/lastenheft.md), [TDS-QA-07](../../../spec/lastenheft.md) |
-| [ADR-0008](0008-dotnet-kompatibilitaetstests.md) | Referenzclient und .NET-Kompatibilitätstests | Proposed | [TDS-QA-01](../../../spec/lastenheft.md), [TDS-QA-06](../../../spec/lastenheft.md), [TDS-FA-09](../../../spec/lastenheft.md) |
+| [ADR-0008](0008-dotnet-kompatibilitaetstests.md) | Referenzclient und .NET-Kompatibilitätstests | Accepted | [TDS-QA-01](../../../spec/lastenheft.md), [TDS-QA-06](../../../spec/lastenheft.md), [TDS-FA-09](../../../spec/lastenheft.md) |
 | [ADR-0009](0009-authentifizierungsmodus.md) | Authentifizierungsmodus und Authentifizierungsadapter | Accepted | [TDS-FA-02](../../../spec/lastenheft.md#tds-fa-02--anmeldung-und-sitzungsverwaltung), [TDS-QA-03](../../../spec/lastenheft.md#tds-qa-03--sicherheit) |
 | [ADR-0010](0010-detekt-pre-release.md) | detekt 2.0 als Gate-Werkzeug (Pre-Release) | Proposed | [TDS-QA-05](../../../spec/lastenheft.md), [TDS-QA-06](../../../spec/lastenheft.md) |
 
