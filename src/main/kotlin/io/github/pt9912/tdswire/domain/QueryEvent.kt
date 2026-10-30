@@ -7,9 +7,9 @@ data class ResultColumn(val name: String, val type: SqlType, val nullable: Boole
  * Ein Ereignis im Ergebnisstrom eines Backend-Aufrufs (`SPEC-002`). Das Backend kennt weder
  * Tokens noch das Bit `DONE_MORE`; beides gehört dem Sequenzierer.
  *
- * Offen (ADR-0006): ob ein [Failure] für die Vorschau von `DONE_MORE` als nächstes Ereignis zählt,
- * die Unterscheidung statement- und batch-abbrechender Fehler und die Prüfung der Ereignisreihenfolge.
- * Dieses Modell trägt dazu nichts.
+ * Festlegung (nicht gemessen): der Response Sequencer zählt ein [Failure] in der Vorschau als nächstes
+ * Ereignis und prüft die Ereignisreihenfolge. Offen (ADR-0006): die Unterscheidung statement- und
+ * batch-abbrechender Fehler; dieses Modell trägt dazu nichts.
  */
 sealed interface QueryEvent {
     /** Beginn eines Ergebnisses mit seinen Spalten; kommt vor den [Row] dieses Ergebnisses. */

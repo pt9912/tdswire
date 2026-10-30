@@ -21,9 +21,9 @@ interface QueryBackend {
 
     /**
      * Beendet die laufende Operation der Anfrage; die Wirkung auf einen laufenden Strom ist die des
-     * Backends. Offen (ADR-0006): was mit einem vom Sequenzierer zurückgehaltenen Abschluss
+     * Backends. Festlegung (nicht gemessen, Nutzer): ein vom Sequenzierer zurückgehaltener Abschluss
      * ([io.github.pt9912.tdswire.domain.QueryEvent.ResultEnd] oder
-     * [io.github.pt9912.tdswire.domain.QueryEvent.UpdateCount]) bei Cancel geschieht.
+     * [io.github.pt9912.tdswire.domain.QueryEvent.UpdateCount]) wird bei Cancel verworfen.
      */
     suspend fun cancel(sessionId: String, requestId: String)
 }

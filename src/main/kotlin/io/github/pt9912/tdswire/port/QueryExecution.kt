@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.Flow
 interface QueryExecution {
     /**
      * Der Ergebnisstrom. Pflicht (`contracts/query-backend.md`): `ResultStart` kommt vor den Zeilen
-     * seines Ergebnisses. Die Prüfung dieser Reihenfolge gehört nicht zum Port (offen, ADR-0006).
+     * seines Ergebnisses. Die Prüfung dieser Reihenfolge gehört nicht zum Port, sondern dem Response Sequencer.
      *
      * Festlegung ohne Messung: der Strom wird genau einmal gesammelt. Ob ein zweites Sammeln den
      * Strom neu beginnt (kalt) oder fortsetzt, legt der Port nicht fest; kein Aufrufer und keine

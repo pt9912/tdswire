@@ -432,6 +432,19 @@ wenn der Strom synchron bleibt; andernfalls wird die Verbindung ohne ERROR und A
 Teilantwort einen zweiten vollständigen Resultset-Anfang vortäuschen. Backpressure begrenzt Puffer;
 Cancel und Disconnect schließen den Backendstream.
 
+Festlegungen des Response Sequencers (Setzungen des Nutzers und des Implementers, nicht gemessen,
+Handvektor statt Messung am echten Server): „synchron“ heißt, dass der Transport jedes bisher
+erzeugte Token vollständig angenommen hat; sonst wird nichts mehr geschrieben und die Verbindung ohne
+ERROR und DONE geschlossen. Ein Fehler im Strom zählt für `DONE_MORE` als nächstes Ereignis: ein
+zurückgehaltenes DONE bekommt `DONE_MORE`, danach folgen ERROR und DONE mit Fehlerstatus. Bei Cancel
+oder Disconnect wird ein zurückgehaltenes DONE verworfen. Ein Verstoß des Backends gegen die
+Ereignisreihenfolge (Zeile oder Ergebnisende ohne offenes Ergebnis, Ergebnisanfang oder
+Update-Count im offenen Ergebnis, Strom endet im offenen Ergebnis) und eine Ausnahme des Backends
+sind ein Fall von `SPEC-048`. Ein Fehler beendet den Lauf; weitere Ereignisse werden nicht gelesen.
+Return Status und Ausgabeparameter werden bis zu ihrer Abbildung mit einem Fehler der Typabbildung
+(`SPEC-014`) abgelehnt. Die Befehlskennung (`curCmd`) der DONE-Tokens ist 0; woher sie kommt, ist
+nicht festgelegt (Spec-Lücke).
+
 ### SPEC-035 — Tabellenbeschreibung und Zeilenquelle des Simulations-Backends
 ```kotlin
 data class SimTable(
