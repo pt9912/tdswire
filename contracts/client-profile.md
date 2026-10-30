@@ -23,6 +23,10 @@ Versioniertes Profil des Referenzclients für die Kompatibilitätsabnahme (`SPEC
 - PRELOGIN-Option FEDAUTHREQUIRED: `01`.
 - LOGIN7 AppName und CltIntName: `Core Microsoft SqlClient Data Provider`.
 
+## RPC-Katalog
+
+Der Referenzclient sendet in den gemessenen Szenarien (nur gegen einen Testserver, ohne echten SQL Server): Batch (`0x01`) für Text ohne Parameter; `sp_executesql` (ProcID 10) für Text mit Parametern; `sp_prepexec` (ProcID 13) und `sp_execute` (ProcID 12) bei `Prepare()` mit Parametern; RPC mit Prozedurnamen für `CommandType.StoredProcedure`. `sp_prepare`, `sp_unprepare` und `sp_cursor*` erschienen nicht. Die Festlegung steht in `SPEC-030`.
+
 ## Offen
 
-`Encrypt`/`TrustServerCertificate`-Details, SQL-Authentifizierung, unterstützte RPCs, MARS, Transaktionen, Verbindungs-Pooling und Lastprofil stehen in `SPEC-004` als offene Freigabepunkte.
+`Encrypt`/`TrustServerCertificate`-Details, SQL-Authentifizierung, MARS, Transaktionen, Verbindungs-Pooling und Lastprofil stehen in `SPEC-004` als offene Freigabepunkte.
