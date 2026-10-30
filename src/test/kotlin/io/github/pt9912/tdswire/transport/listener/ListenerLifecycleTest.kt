@@ -9,6 +9,7 @@ import io.github.pt9912.tdswire.transport.tls.TlsPath
 import kotlinx.coroutines.withTimeout
 import java.nio.ByteBuffer
 import java.util.concurrent.ExecutionException
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -106,6 +107,32 @@ class ListenerLifecycleTest : ListenerTestBase() {
         good.forEach { it.echoes('b'.code.toByte()) }
         connectTo(listener.port).echoes('c'.code.toByte())
         assertEquals(3, listener.activeConnections)
+        listener.shutdown()
+    }
+
+    /**
+     * Eine `CancellationException`, die der Handler wirft, während der Scope der Verbindung nicht
+     * abgebrochen ist (kein Trennen durch den Listener), ist ein Handlerfehler: Ende `HANDLER_FAILED`
+     * mit dem Typnamen, die Verbindung schließt, zwei andere Verbindungen arbeiten weiter und es gibt
+     * kein Ende `SHUTDOWN`. Die Einordnung ist eine Setzung (`ManagedConnection`), nicht gemessen.
+     *
+     * @spec SPEC-005
+     */
+    @Test
+    fun `a cancellation thrown by the handler on its own is a handler failure`() = blocking {
+        val events = RecordingEvents()
+        val thrown = CancellationException("Handler bricht von selbst ab")
+        val listener = startOnLoopback(ScriptedHandler(crashOnFirstByte = 'X'.code, crash = { thrown }), events)
+        val good = listOf(connectTo(listener.port), connectTo(listener.port))
+        good.forEach { it.echoes('a'.code.toByte()) }
+        val bad = connectTo(listener.port)
+        bad.writeFully(ByteBuffer.wrap(byteArrayOf('X'.code.toByte())))
+        assertTrue(bad.awaitClosedByPeer())
+        eventually("Ende HANDLER_FAILED") { events.endsOf(ConnectionEnd.HANDLER_FAILED).size == 1 }
+        assertEquals(thrown.javaClass.name, events.endsOf(ConnectionEnd.HANDLER_FAILED).single().failure)
+        assertTrue(events.endsOf(ConnectionEnd.SHUTDOWN).isEmpty())
+        good.forEach { it.echoes('b'.code.toByte()) }
+        assertEquals(2, listener.activeConnections)
         listener.shutdown()
     }
 
