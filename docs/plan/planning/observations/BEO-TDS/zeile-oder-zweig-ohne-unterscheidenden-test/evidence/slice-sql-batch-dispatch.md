@@ -1,0 +1,2 @@
+**Vorgang:** slice-sql-batch-dispatch
+**Fund:** Der Ausgang `CLOSE_WITHOUT_COMPLETION` (Senke lehnt ein Token ab) wurde nie durch die Schleife gefahren; der Review-Mutant K (Fehler der Senke ignoriert) überlebte alle Tests (Review F-4). Behoben mit `DispatchClosingTest` über die Naht `sinkAround`; K, K2, K3, M14 und M1 sind rot (Verifikation). Der Zusatzmutant K5 (`onResultStart()` vor dem Schreiben des COLMETADATA) überlebt auch nach der Fix-Runde, weil kein erreichbares Ereignis den Unterschied zeigt (Verifikation V-3, folgenlos).

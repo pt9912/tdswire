@@ -44,7 +44,7 @@ Stand: 27 von 51 Festlegungen mit mindestens einem bestandenen Test, 7 Gate-Fest
 | `SPEC-028` | PRELOGIN, TLS und LOGIN7: Zustands- und Antwortvertrag | 120 | 2 | 0 | 0 | DispatchFailureTest, Login7ParserTest, PreloginCodecTest, HandshakeDriverTest, HandshakeMatrixTest, HandshakeTransportTest, LoginAdmissionTest, LoginResponseTest, PreloginNegotiationTest, SqlBatchParserTest, TokenEncoderTest, TokenRoundtripTest, BootstrapTest, ServerSmokeTest, TlsWiringTest, CodecSmokeTest, ConnectionStormTest, FramingFuzzTest, HandshakeFuzzTest, StreamCutoffTest, SocketChannelLoopbackTest, SwitchableChannelTest, MessageAssemblerTest, PacketHeaderTest, PacketWriterTest, ListenerSmokeTest, MessageReaderTest, MessageWriterTest, TlsDataPhaseTest, TlsLoopbackTest, TlsNegativeTest, TlsTicketFlagTest | mindestens ein bestandener getaggter Test |
 | `SPEC-029` | ATTENTION und Wiederverwendung der Verbindung | 5 | 0 | 0 | 0 | ResponseFailureTest, ResponseMappingTest, MessageAssemblerTest | mindestens ein bestandener getaggter Test |
 | `SPEC-030` | RPC-Varianten und Parameter-Metadaten | 14 | 1 | 0 | 0 | RpcCatalogFormsTest, RpcFailureTest, RpcTypesTest, TokenEncoderTest, CodecSmokeTest | mindestens ein bestandener getaggter Test |
-| `SPEC-031` | Streaming-Fehler und Atomarität | 54 | 0 | 0 | 3 | DispatchFailureTest, SqlBatchDispatchTest, ErrorMapperTest, ResponseDecoderTest, ResponseErrorMapperTest, ResponseFailureTest, ResponseMappingTest, ResponseOrderTest, ColumnMappingTest, MappingFuzzTest, ValueMappingTest, RequestWiringTest | mindestens ein bestandener getaggter Test |
+| `SPEC-031` | Streaming-Fehler und Atomarität | 57 | 0 | 0 | 3 | DispatchClosingTest, DispatchFailureTest, SqlBatchDispatchTest, ErrorMapperTest, ResponseDecoderTest, ResponseErrorMapperTest, ResponseFailureTest, ResponseMappingTest, ResponseOrderTest, ColumnMappingTest, MappingFuzzTest, ValueMappingTest, RequestWiringTest | mindestens ein bestandener getaggter Test |
 | `SPEC-035` | Tabellenbeschreibung und Zeilenquelle des Simulations-Backends | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-036` | Erkannte Anweisungsformen des Simulations-Backends (vorläufig) | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-043` | Startprüfung: TLS-Konfiguration und Port | 20 | 0 | 0 | 0 | BootstrapTest, ServerSmokeTest, IoGroupTest, ListenerStartTest, TlsStartProbeTest | mindestens ein bestandener getaggter Test |
@@ -69,7 +69,7 @@ Stand: 27 von 51 Festlegungen mit mindestens einem bestandenen Test, 7 Gate-Fest
 | `SPEC-037` | `TDS_UNSUPPORTED_SQL` | 1 | 0 | 0 | 0 | ErrorMapperTest | mindestens ein bestandener getaggter Test |
 | `SPEC-038` | `TDS_SIM_UNKNOWN_OBJECT` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-039` | `TDS_SIM_INVALID_VALUE` | 1 | 0 | 0 | 0 | ErrorMapperTest | mindestens ein bestandener getaggter Test |
-| `SPEC-048` | `TDS_INTERNAL_ERROR` | 23 | 0 | 0 | 0 | DispatchFailureTest, ErrorMapperTest, ResponseErrorMapperTest, ResponseFailureTest, ResponseOrderTest, HandshakeDriverTest, HandshakeWiringTest, RequestWiringTest | mindestens ein bestandener getaggter Test |
+| `SPEC-048` | `TDS_INTERNAL_ERROR` | 24 | 0 | 0 | 0 | DispatchClosingTest, DispatchFailureTest, ErrorMapperTest, ResponseErrorMapperTest, ResponseFailureTest, ResponseOrderTest, HandshakeDriverTest, HandshakeWiringTest, RequestWiringTest | mindestens ein bestandener getaggter Test |
 | `SPEC-049` | `TDS_SHUTDOWN` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-017` | `tds.connection` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-018` | `tds.query` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |

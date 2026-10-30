@@ -30,10 +30,6 @@ In Arbeit (Welle welle-qualitaet-grundlage):
 
 - [slice-qa-wartbarkeit](slice-qa-wartbarkeit.md)
 
-In Arbeit (Welle welle-anfrageverarbeitung):
-
-- [slice-sql-batch-dispatch](slice-sql-batch-dispatch.md)
-
 In Arbeit (Welle welle-simulations-backend):
 
 - [slice-adr-simulation-formen](slice-adr-simulation-formen.md)

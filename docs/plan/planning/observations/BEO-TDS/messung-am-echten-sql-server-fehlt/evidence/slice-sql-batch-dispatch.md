@@ -1,0 +1,2 @@
+**Vorgang:** slice-sql-batch-dispatch
+**Fund:** Tokenfolge und DONE-Statusbits der Antwort auf einen Batch (COLMETADATA, ROW, DONE; leeres Ergebnis; ERROR mit DONE-Fehlerstatus) sind Handvektoren, von Hand und unabhängig vom Codec gebaut, und nicht am echten SQL Server oder am Referenzclient gemessen. Dasselbe gilt für „Verbindung bleibt offen nach einem Anfragefehler“ (Setzung des Nutzers) und für das Schließen bei ATTENTION, RPC und Transaction Manager in `READY` (Festlegung). Träger sind `slice-qa-vergleichslauf-d` und `slice-qa-kompatibilitaet`.
