@@ -34,7 +34,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Enumerationsfestigkeit als Abnahmekriterium — [TDS-QA-03](../../../../spec/lastenheft.md#tds-qa-03--sicherheit) verlangt sie nicht; `SPEC-012` sichert nur die gleiche Ablehnung zu. Die Zeitgleichheit des Passwortvergleichs, die Drosselung wiederholter Anmeldeversuche und das Prüfwertformat der Benutzerliste aus [ADR-0009](../../adr/0009-authentifizierungsmodus.md) §Offen sind dagegen Gegenstand dieses Slice (Test bzw. Entscheidung, nicht Abnahmekriterium).
+- Enumerationsfestigkeit als Abnahmekriterium — [TDS-QA-03](../../../../spec/lastenheft.md#tds-qa-03--sicherheit) verlangt sie nicht; `SPEC-012` sichert nur die gleiche Ablehnung zu. Die Zeitgleichheit des Passwortvergleichs und die Drosselung wiederholter Anmeldeversuche aus [ADR-0009](../../adr/0009-authentifizierungsmodus.md) §Offen sind dagegen Gegenstand dieses Slice (Test bzw. Entscheidung, nicht Abnahmekriterium); das Prüfwertformat der Benutzerliste ist in [ADR-0011](../../adr/0011-pruefwertformat.md) (`Accepted`) entschieden und gehört nicht mehr dazu.
 - Der Authentifizierungsmodus selbst — [ADR-0009](../../adr/0009-authentifizierungsmodus.md) wählt SQL-Authentifizierung über einen Adapter (Status `Proposed`, wird `Accepted`); dieser Slice entscheidet ihn nicht.
 
 ## 2. Definition of Done
@@ -45,7 +45,7 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] Loginspektion: kein Geheimnis im Log (Test).
-- [ ] Zeitgleichheit des Passwortvergleichs (Test), Drosselung und Prüfwertformat der Benutzerliste ([ADR-0009](../../adr/0009-authentifizierungsmodus.md) §Offen) entschieden oder als Carveout geführt.
+- [ ] Zeitgleichheit des Passwortvergleichs (Test) und Drosselung ([ADR-0009](../../adr/0009-authentifizierungsmodus.md) §Offen) entschieden oder als Carveout geführt; die Zeitgleichheit von unbekanntem Benutzernamen und falschem Passwort, die Drosselung und der Scheinvergleich bei unbekanntem Benutzernamen sind laut [ADR-0011](../../adr/0011-pruefwertformat.md) weder entschieden noch gemessen. Das Prüfwertformat ist dort entschieden.
 - [ ] TLS-Handshake- und Konfigurationsnegativtests nach `SPEC-043` und `SPEC-010`.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
