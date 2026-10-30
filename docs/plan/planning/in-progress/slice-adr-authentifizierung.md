@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [TDS-FA-02](../../../../spec/lastenheft.md#tds-fa-02--anmeldung-und-sitzungsverwaltung), [TDS-QA-03](../../../../spec/lastenheft.md#tds-qa-03--sicherheit), [ADR-0009](../../adr/0009-authentifizierungsmodus.md)
 
-**Berührte Spec-Stellen:** SPEC-004 · SPEC-012 · ARC-002 · ARC-004
+**Berührte Spec-Stellen:** [SPEC-004](../../../../spec/spezifikation.md#spec-004--testprofil) · [SPEC-012](../../../../spec/spezifikation.md#4-fehler-codes-und-logging-felder) · [SPEC-051](../../../../spec/spezifikation.md#6-externe-verträge) · [TDS-FA-02.a](../../../../spec/spezifikation.md#tds-fa-02a--login7-und-sitzung) · [TDS-FA-09.a](../../../../spec/spezifikation.md#tds-fa-09a--konfiguration-und-diagnose)
 
 **Verantwortlich:** pt9912.
 

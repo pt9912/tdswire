@@ -31,9 +31,10 @@ Herabstufung einer geforderten Verschlüsselung.
 1. LOGIN7-Felder unter Beachtung ihrer Offsets und Zeichencodierung validieren.
 2. Identität über konfigurierten Authentifizierungsadapter prüfen; Geheimnisse nicht protokollieren.
    Meldung und State der Ablehnung sind für eine unbekannte Kennung und ein falsches Passwort
-   gleich; der Grund steht nur im Server-Log (`SPEC-012`). Ein Zeitunterschied zwischen beiden
-   Fällen ist nicht zugesichert; die Einstiegsimplementierung vergleicht in konstanter Zeit und führt bei
-   unbekannter Kennung einen Scheinvergleich aus, gemessen ist das nicht. Der Adapter hat die Schnittstelle
+   gleich; der Grund steht nur im Server-Log (`SPEC-012`). Gemessen ist nur die Gleichheit der
+   Antwortbytes. Als Anforderung an den Produktivcode gilt: Die Einstiegsimplementierung vergleicht in
+   konstanter Zeit und führt bei unbekannter Kennung einen Scheinvergleich aus; das ist weder gebaut
+   noch gemessen, ein Test muss es belegen. Der Adapter hat die Schnittstelle
    aus `contracts/auth-adapter.md` (`SPEC-051`); die Einstiegsimplementierung ist eine feste
    Benutzerliste aus der Konfiguration, SSPI/Kerberos und Entra-ID werden am LOGIN7 erkannt und abgelehnt.
 3. Bei Erfolg isolierte Session mit ID, Principal, Datenbankkontext und Abbruchstatus erzeugen.
@@ -132,8 +133,10 @@ Betriebsdaten.
    validieren.
 2. Fehlerhafte sicherheitsrelevante Konfiguration führt zu Startabbruch. Die TLS-Konfiguration
    prüft eine Startprobe vor dem Binden des Ports (`SPEC-043`).
-3. Sitzungs-, Anfrage- und Fehlerereignisse mit Korrelations-IDs erfassen, ohne Passwörter oder
-   Parameterwerte standardmäßig zu loggen.
+3. Sitzungs-, Anfrage- und Fehlerereignisse mit Korrelations-IDs erfassen. Passwörter werden nie
+   geloggt, auch nicht gekürzt oder verschleiert; Parameterwerte standardmäßig nicht. Die
+   Anmeldekennung erscheint in keiner Antwort an den Client und im Log nur in einem Feld, das die
+   Spezifikation dafür festlegt (bisher keines).
 
 **Komplexität:** O(Anzahl Konfigurationswerte). **Fehlermodi:** ungültiges Zertifikat, Port belegt,
 fehlende Pflichtoption.
@@ -563,7 +566,6 @@ aktive Backendoperationen, Abbrüche, Protokollfehler. Keine SQL-Texte als Metri
 | `SPEC-021` | .NET SQL-Client | `Microsoft.Data.SqlClient` 7.1.1 auf .NET 10 (SDK 10.0.403), im Container ausgeführt | `contracts/client-profile.md` |
 | `SPEC-022` | Query-Backend | Projektvertrag v0 (Entwurf) | `contracts/query-backend.md` (anzulegen) |
 | `SPEC-023` | TLS | TLS 1.3 und TLS 1.2 (Mindestversion 1.2); Suiten TLS 1.3: `TLS_AES_256_GCM_SHA384`, `TLS_AES_128_GCM_SHA256`; TLS 1.2: ECDHE mit AES-GCM; Standard `REQUIRED` | `contracts/security-profile.md` |
-
 | `SPEC-051` | Authentifizierungsadapter | Entwurf der Schnittstelle | `contracts/auth-adapter.md` |
 
 `contracts/query-backend.md` ist ein **geplantes Artefakt**, keine bereits vorhandene Datei.
@@ -591,4 +593,5 @@ aktive Backendoperationen, Abbrüche, Protokollfehler. Keine SQL-Texte als Metri
 | 2026-10-29 | Static-Analysis-Gate und Build-Gate festgelegt (`SPEC-041`, `SPEC-042`) |
 | 2026-10-29 | Startprüfung, geordnetes Beenden, Referenzabgleich, Größengrenzen vor dem Login, Fehlerabbildung ohne Ausnahmetext und gleiche Ablehnung unbekannter Kennungen präzisiert (`SPEC-043` bis `SPEC-050`) |
 | 2026-10-30 | Authentifizierungsadapter festgelegt: SQL-Authentifizierung über Schnittstelle, Einstiegsimplementierung mit fester Benutzerliste, feste Ablehnungsantwort (`SPEC-051`, `SPEC-012`, `TDS-FA-02.a`) |
+| 2026-10-30 | Korrektur nach Review: Zeitgleichheit als Anforderung an den Produktivcode, Log-Pflicht für Passwort und Kennung (`TDS-FA-02.a`, `TDS-FA-09.a`) |
 | 2026-10-30 | Testumgebung für den Referenzclient und den Referenzabgleich festgelegt (`SPEC-021`, `SPEC-025`, `SPEC-032`, `SPEC-045`, `SPEC-050`) |
