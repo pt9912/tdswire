@@ -48,7 +48,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] Konvention festgelegt: Ein Test nennt die `SPEC-*`, die er nachweist, im KDoc über der Testfunktion mit dem Block-Tag `@spec SPEC-<NNN>` (mehrere Kennungen durch Leerzeichen getrennt); kein JUnit-`@Tag`, weil die Kernregeln in Tests nur `kotlin.test` erlauben. Der Selbsttest belegt, dass ein umbenannter oder verwaister Test auffällt.
 - [ ] Erzeuger schreibt die Abdeckungsmatrix nach `docs/plan/` (je `SPEC-*`: Nachweise nach Art, Festlegungen ohne Nachweis sichtbar), analog zu `make e2e-abdeckung`. Er liest den `@spec`-Tag aus dem Quelltext und gleicht Klasse und Methodenname mit den Berichten der Testläufe ab: nur ein bestandener Test zählt, ein nicht gelaufener oder roter nicht.
-- [ ] Entscheidung, ob Waisen das Gate brechen, getroffen; bei einem Gate steht die Bindung in `harness/README.md`.
+- [x] Entscheidung, ob Waisen das Gate brechen, getroffen; bei einem Gate steht die Bindung in `harness/README.md`. Beleg: Nutzer 2026-10-30, Option D: nur berichten, kein Gate; `SPEC_ABDECKUNG_STRENG=1` bleibt optionaler Schalter, nichts in `GATE_CHECKS`.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -106,7 +106,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 - Die Testberichte liegen nach dem Lauf in Docker nicht auf dem Host; der Erzeuger braucht sie als Ausgabe der Test-Stage. — **Ausgang:** offen bis zur Closure.
-- Ein Gate auf Festlegungen ohne Nachweis färbt `make gates` rot, solange Tests fehlen (wie bei der E2E-Sicht, die ausdrücklich kein Gate ist). — **Ausgang:** offen bis zur Closure.
+- Ein Gate auf Festlegungen ohne Nachweis färbt `make gates` rot, solange Tests fehlen (wie bei der E2E-Sicht, die ausdrücklich kein Gate ist). — **Ausgang:** entfallen: Entscheidung gefallen (Nutzer 2026-10-30, Option D: nur berichten, kein Gate).
 
 ## 7. Closure-Notiz
 
