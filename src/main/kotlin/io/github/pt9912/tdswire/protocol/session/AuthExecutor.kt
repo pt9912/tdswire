@@ -5,11 +5,13 @@ import io.github.pt9912.tdswire.config.auth.AuthRequest
 import io.github.pt9912.tdswire.config.auth.AuthResult
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -33,7 +35,8 @@ internal sealed interface AuthOutcome {
  * Executor und Treiber hinweg (Obergrenze der verwaisten Aufrufe). Die
  * Wartenden reihen sich dahinter ein, ihre Zahl begrenzt nur die Zahl der Verbindungen; eine
  * Drosselung wiederholter Anmeldeversuche ist das nicht (`slice-qa-sicherheit`). Das Passwort ist
- * überschrieben, sobald der Aufruf endet, auch bei einer Ausnahme und auch wenn er nie begann; bei einem
+ * überschrieben, bevor der Job des Aufrufs als abgeschlossen gilt (`join()` und `await()` kehren erst
+ * danach zurück), auch bei einer Ausnahme und auch wenn der Adapter nie gerufen wurde; bei einem
  * wartenden, abgebrochenen Aufruf ist das erst, wenn die Warteschlange ihn erreicht.
  *
  * Eine `CancellationException` des Adapters gilt als Abbruch nur, wenn der Aufruf selbst abgebrochen ist
@@ -48,8 +51,12 @@ internal class AuthExecutor(pool: AuthPool) {
     private val scope = CoroutineScope(SupervisorJob() + pool.limited)
 
     fun start(adapter: AuthAdapter, request: AuthRequest): Deferred<AuthOutcome> {
-        val call = scope.async {
+        // ATOMIC: der Rumpf beginnt auch für einen schon abgebrochenen Aufruf, sobald die Warteschlange ihn
+        // erreicht, und prüft dann selbst; so überschreibt das finally das Passwort in jedem Fall vor dem
+        // Abschluss des Jobs (ein Abschluss-Handler liefe erst danach).
+        return scope.async(start = CoroutineStart.ATOMIC) {
             try {
+                ensureActive()
                 val attempt = runCatching { adapter.authenticate(request) }
                 val failure = attempt.exceptionOrNull()
                 if (failure is CancellationException && !currentCoroutineContext().isActive) throw failure
@@ -62,9 +69,6 @@ internal class AuthExecutor(pool: AuthPool) {
                 request.password.wipe()
             }
         }
-        // Ein vor dem Start abgebrochener Aufruf führt seinen Rumpf nicht aus; das Passwort wird hier überschrieben.
-        call.invokeOnCompletion { request.password.wipe() }
-        return call
     }
 }
 
