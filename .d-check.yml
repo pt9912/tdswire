@@ -15,6 +15,12 @@ scan:
   # auf). Daneben liegen dort das Sprachskelett-Staging und der Zustands-Bereich .harness/state/.
   ignore: ["**/*.template.md", ".tmp/**", ".harness/**", ".claude/worktrees/**"]
 modules: [links, anchors, ids, matrix, codepaths, spans, planning, structure, targets]
+# ignore-refs: Verweise auf den entfernten Ordner contracts/ (die Vertraege stehen in spec/spezifikation.md,
+# Abschnitt 6). Accepted ADRs sind unveraenderlich, Review-Berichte Zeitdokumente; beide nennen den Pfad im
+# Stand ihres Entstehens. Die Ausnahme gilt nur fuer diese Quellen und nur fuer Ziele contracts/*.md.
+ignore-refs:
+  - {in: "docs/plan/adr/**", refs: ["contracts/*.md"]}
+  - {in: "docs/reviews/**", refs: ["contracts/*.md"]}
 ids:
   patterns:
     - {regex: 'ADR-([A-Z]+-)?\d{4}', target: docs/plan/adr/, link-policy: always}
