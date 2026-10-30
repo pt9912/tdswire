@@ -4,8 +4,8 @@
 #
 # Build und statische Analyse laufen nur hier, nie auf dem Host (TDS-QA-06):
 #   make detekt   -> docker build --target detekt --progress=plain .
+#   make test     -> docker build --target test --progress=plain .
 #   make build    -> docker build -t tdswire:latest .   (Jar, ohne Tests)
-# Einen Test-Stage gibt es noch nicht; er entsteht mit dem ersten Test.
 # Das Dockerfile-Frontend und beide Basis-Images (Gradle, Distroless) sind per Digest gepinnt,
 # damit der Build reproduzierbar bleibt; ein neuer Digest ist eine bewusste Aenderung dieser
 # Datei.
@@ -26,6 +26,12 @@ RUN gradle --no-daemon help
 FROM deps AS compile
 COPY --chown=gradle:gradle src src
 RUN gradle --no-daemon classes
+
+# --- Test: `docker build --target test .` - fuehrt die Unit-Tests aus (kotlin.test auf der
+# JUnit-Plattform, SPEC-024). Es kommt nur src/ hinzu; ein roter Test bricht den Build. -----------
+FROM deps AS test
+COPY --chown=gradle:gradle src src
+RUN gradle --no-daemon test
 
 # --- Detekt: `docker build --target detekt .` - zuerst das Suppression-Verbot (AGENTS.md 3.2,
 # tools/suppression-check.sh), dann die statische Analyse samt ktlint-Regelsatz und Regeln der

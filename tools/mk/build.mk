@@ -3,7 +3,7 @@
 IMAGE ?= tdswire
 TAG   ?= latest
 
-.PHONY: build detekt deps-lock
+.PHONY: build detekt test deps-lock
 
 build: ## Jar bauen (Dockerfile-Stage `build`, ohne Tests)
 	docker build -t $(IMAGE):$(TAG) .
@@ -15,7 +15,7 @@ detekt: ## Suppression-Verbot und statische Analyse samt Importregeln der Schich
 # nicht aus; es steht hier, damit Lock und Pruefsummen auch die Konfigurationen erfassen, die es
 # aufloest). Manche Konfigurationen loest Gradle erst waehrend der Ausfuehrung auf; Lock und
 # Pruefsummen brauchen darum jede dieser Tasks.
-DEPS_TASKS = dependencies help classes detekt detektMain detektTest detektSelbsttest detektSelbsttestAufrufe assemble
+DEPS_TASKS = dependencies help classes test detekt detektMain detektTest detektSelbsttest detektSelbsttestAufrufe assemble
 
 # Die Stage `lock` im Dockerfile schreibt die Dateien, `lock-export` gibt sie per --output heraus:
 # nichts wird gemountet, auf dem Host entsteht kein build/ und kein .gradle/.

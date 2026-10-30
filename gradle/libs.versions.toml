@@ -5,10 +5,17 @@
 [versions]
 kotlin = "2.4.10"
 detekt = "2.0.0-alpha.6"
+junit = "5.13.4"
 
 [libraries]
 # Der ktlint-Regelsatz fuer detekt; seine Version ist die des Plugins.
 detekt-ktlint = { module = "dev.detekt:detekt-rules-ktlint-wrapper", version.ref = "detekt" }
+
+# Testlaufzeit: kotlin.test ueber die JUnit-Plattform; die Tests selbst importieren nur kotlin.test.
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
