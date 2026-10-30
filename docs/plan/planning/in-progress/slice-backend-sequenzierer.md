@@ -111,6 +111,20 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
+**Nutzerentscheidungen vom 2026-10-30** (Quelle: Anweisung des Nutzers an den Implementer der Fix-Runde; sie liegen nur hier und in den Texten von KDoc, `SPEC-031` und `contracts/query-backend.md` vor, nicht als eigenes Dokument). Sie betreffen die ersten Risiken dieser Liste; der Ausgang je Risiko bleibt der Closure vorbehalten:
+
+1. `Failure` zählt als nächstes Ereignis der `DONE_MORE`-Vorschau. Beleg nur für das Bit vor dem ERROR: Referenzclient gegen einen echten SQL Server, [ADR-0007](../../adr/0007-fehler-und-attention.md) R05; am Produkt nicht gemessen. Für statement-abbrechende Fehler (R04: `DONE[MORE|ERR]`) schreibt der Sequenzierer die Variante ohne `MORE`.
+2. Ein zurückgehaltener Abschluss wird bei Cancel oder Disconnect verworfen.
+3. Ein Reihenfolgeverstoß des Backends ist ein Fall von `SPEC-048`.
+4. `ReturnStatus` und `OutputParameter` werden abgelehnt (Fehler der Typabbildung), nicht abgebildet.
+
+**Rest nach der Fix-Runde zum Review** ([Report](../../../reviews/2026-10-30-d7a7536-slice-backend-sequenzierer.md)), was nicht aufgelöst ist:
+
+- Zwei Vokabulare für „Strom nicht synchron“ bleiben: `streamSynchronous = false` am `ErrorMapper` (Einstieg für Aufrufer ohne Sequenzierer) und `SequenceOutcome.CLOSE_WITHOUT_COMPLETION`. Die Folge ist eine: `ErrorMapper.fateOf(outcome)` bildet den Ausgang auf `CLOSE_WITHOUT_REPLY` ab, ein Test belegt die Entsprechung. Das DONE mit Fehlerstatus wird nur noch an einer Stelle gebildet.
+- `SequenceOutcome` trägt die Verbindungsfolge vollständig (`FAILED` offen, `FAILED_CLOSE_CONNECTION` schließt nach der Antwort), weil die Abbildung sie je Fall mitgibt (`MappedError.closesConnection`); ein Aufrufer muss die Meldung im Tokenstrom nicht suchen und nicht per Gleichheit einer Regel zuordnen.
+- Das Fuzz-Orakel ist ein zweiter Leser derselben Festlegungen (getrenntes Modell), keine Messung. Die Zusage „kein `detail` eines `ProtocolError` erreicht den Client“ steht am Parameter von `ErrorMapping` (KDoc) und hängt am Mapper; ein Test, der einen Mapper mit Übernahme von `detail` rot macht, gibt es im Sequenzierer nicht.
+- Unverändert offen: `OutOfMemoryError`, Zuordnung `curCmd`, Messung am echten Server und die Verzögerung durch den zurückgehaltenen Abschluss (siehe unten).
+
 - **`Failure` in der `DONE_MORE`-Vorschau — Entscheidungsbedarf (Nutzer):** Zählt ein `Failure` als „nächstes Ereignis“ (ein zurückgehaltenes `ResultEnd` oder `UpdateCount` bekommt `DONE_MORE`) oder nicht? [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md) weist das diesem Slice zu, „nach Messung am echten Server“; eine solche Messung gibt es im Repo nicht ([ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md): nicht gemessen). Eine Entscheidung ist eine Setzung und als *Festlegung* zu kennzeichnen. — **Ausgang:** offen bis zur Closure.
 - **Statement- gegen batch-abbrechende Fehler — Entscheidungsbedarf (Nutzer):** R04 gegen R05 bis R07 ([ADR-0007](../../adr/0007-fehler-und-attention.md)) unterscheiden sich in dem, was nach dem Fehler noch läuft; `Failure` trägt keine Klasse. Der Sequenzierer kann nur eine Variante schreiben, solange der Port nichts anderes trägt. — **Ausgang:** offen bis zur Closure; Übergabe an `welle-fehler-abbruch` ist ein möglicher Ausgang, kein beschlossener.
 - **Schicksal eines zurückgehaltenen Abschlusses bei Cancel oder Disconnect** ([ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md) §Offen): wird er verworfen, mit oder ohne `DONE_MORE` geschrieben? Die Cancel-Seite (ATTENTION-Bestätigung) gehört zu `welle-fehler-abbruch`. — **Ausgang:** offen bis zur Closure.

@@ -288,7 +288,7 @@ Precision über 38 vor COLMETADATA mit `TDS_UNSUPPORTED_TYPE` ab; das Modell ble
 **Offen:**
 - Die JVM-Typen der Werte in `OutputParameter` und die endgültige Zeilendarstellung (`Row`,
   `QueryParameter`); die Typabbildung setzt für Zeilenwerte eine Zwischenfestlegung (`SPEC-003`).
-- Ob ein `Failure` als „nächstes Ereignis“ der `DONE_MORE`-Vorschau zählt; die Unterscheidung statement-
+- Die Unterscheidung statement-
   und batch-abbrechender Fehler im Strom, die `Failure` nicht trägt; die Grenze für ein „kleines“
   Ergebnis; die Behandlung von `OutOfMemoryError`; ein blockierendes Backend hinter dem `Flow`; die
   Semantik der Frist `deadlineEpochMillis` (wer sie durchsetzt, was bei Ablauf geschieht). Nicht
@@ -436,7 +436,11 @@ Festlegungen des Response Sequencers (Setzungen des Nutzers und des Implementers
 Handvektor statt Messung am echten Server): „synchron“ heißt, dass der Transport jedes bisher
 erzeugte Token vollständig angenommen hat; sonst wird nichts mehr geschrieben und die Verbindung ohne
 ERROR und DONE geschlossen. Ein Fehler im Strom zählt für `DONE_MORE` als nächstes Ereignis: ein
-zurückgehaltenes DONE bekommt `DONE_MORE`, danach folgen ERROR und DONE mit Fehlerstatus. Bei Cancel
+zurückgehaltenes DONE bekommt `DONE_MORE`, danach folgen ERROR und DONE mit Fehlerstatus. Belegt
+ist nur das Bit vor dem ERROR: ein Referenzclient gegen einen echten SQL Server zeigt `DONE_MORE` vor
+dem ERROR eines batch-abbrechenden Fehlers; am Produkt ist es nicht gemessen, und bei einem
+statement-abbrechenden Fehler (echter Server: `DONE_MORE` auch am Abschluss mit Fehlerstatus)
+schreibt der Sequenzierer die Variante ohne `DONE_MORE`. Bei Cancel
 oder Disconnect wird ein zurückgehaltenes DONE verworfen. Ein Verstoß des Backends gegen die
 Ereignisreihenfolge (Zeile oder Ergebnisende ohne offenes Ergebnis, Ergebnisanfang oder
 Update-Count im offenen Ergebnis, Strom endet im offenen Ergebnis) und eine Ausnahme des Backends
