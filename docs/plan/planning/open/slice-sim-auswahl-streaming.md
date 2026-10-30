@@ -11,7 +11,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-simulations-backend
 
-**Bezug:** [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-FA-08](../../../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität), [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md)
+**Bezug:** [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-FA-08](../../../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität), [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md), [ADR-0012](../../adr/0012-simulations-backend-beschreibung-und-formen.md)
 
 **Berührte Spec-Stellen:** SPEC-002 · SPEC-029 · SPEC-031 · SPEC-035 · SPEC-036 · SPEC-039 · ARC-006 · ARC-016 · [TDS-FA-11.a](../../../../spec/spezifikation.md#tds-fa-11a--simulations-backend)
 
@@ -49,7 +49,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 Liefer-Punkte (drei):
 
-- [ ] **Auswahl** ([TDS-FA-11.a](../../../../spec/spezifikation.md#tds-fa-11a--simulations-backend) Schritte 4 und 5): Parameter typisiert einsetzen (nie als Text) und in den Spaltentyp überführen, sonst `TDS_SIM_INVALID_VALUE` vor dem Lesen; `ResultStart` mit den Spalten der Auswahlliste (bei `*` alle in der Reihenfolge der Beschreibung) auch ohne Treffer; die Bedingung wendet das Backend auf jede Zeile an (`In`, `IsNull`, UND, NULL trifft nie, ein Widerspruch trifft keine Zeile); `ResultEnd` mit der Zeilenzahl.
+- [ ] **Auswahl** ([TDS-FA-11.a](../../../../spec/spezifikation.md#tds-fa-11a--simulations-backend) Schritte 4 und 5): Parameter typisiert einsetzen (nie als Text) und in den Spaltentyp überführen — streng und verlustfrei nach SPEC-035 und [ADR-0012](../../adr/0012-simulations-backend-beschreibung-und-formen.md) (gleiche Typfamilie, ISO-Formate, keine Rundung, keine Zahl↔Text-Überführung, Parameter nur verlustfrei erweitert, Überlauf immer ungültig), sonst `TDS_SIM_INVALID_VALUE` vor dem Lesen; Dezimalvergleich über `compareTo`, Textvergleich ohne Beachtung der Schreibweise; `ResultStart` mit den Spalten der Auswahlliste (bei `*` alle in der Reihenfolge der Beschreibung) auch ohne Treffer; die Bedingung wendet das Backend auf jede Zeile an (`In`, `IsNull`, UND, NULL trifft nie, ein Widerspruch trifft keine Zeile); `ResultEnd` mit der Zeilenzahl.
 - [ ] **Schrittweises Lesen und Ende** (Schritte 5 und 7, SPEC-029, SPEC-031): `next()` wird nur auf Abnahme gerufen, `close()` genau einmal nach Ende, Fehler, Cancel und Disconnect; ein Fehler der Zeilenquelle vor `ResultStart` ist ein `Failure` mit `TDS_BACKEND_ERROR` ohne Metadaten, nach `ResultStart` endet der Strom nach SPEC-031 (die Folge für die Verbindung hält der Sequenzierer).
 - [ ] **Port-Pflichten und Speichergrenze:** Die Pflichten, die die abstrakte Suite `QueryBackendContract` am Test-Backend prüft (`ScriptedBackendContractTest` ist ihre erste Implementierung), gelten auch für das Simulations-Backend (ein Backend durchläuft die Suite, indem es sie erbt; ein Gegenstück legt der Implementer fest); eine Zeilenquelle mit mehr Daten, als der gesetzte Heap eines Testlaufs hält, wird an einer langsamen Senke gelesen, der Heap bleibt unter der Grenze, und ein Zähler belegt, dass die Quelle bis zu einer bekannten Stelle gelesen wurde.
 
@@ -108,6 +108,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
+- Überführungsregel, Textvergleich und Dezimalvergleich sind Setzungen ([ADR-0012](../../adr/0012-simulations-backend-beschreibung-und-formen.md): Messung nur im JDK-Spike, nichts am echten SQL Server); der Slice testet sie als Festlegung, nicht als Messung, und führt sie in der Closure so (`BEO-TDS/aussagen-ueber-messung-hinaus`, `BEO-TDS/messung-am-echten-sql-server-fehlt`). Sie gelten für die JVM-Typen der Werte, die [slice-adr-backend-grenzen](slice-adr-backend-grenzen.md) festlegt, und sind bei einer anderen Zeilendarstellung neu zu prüfen. — **Ausgang:** offen bis zur Closure.
 - Die Heap-Aussage gilt für einen Testlauf mit gesetztem Heap und einer Test-Senke, nicht für das Produkt unter Last (Grenze der Aussage in [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md); `BEO-TDS/rueckstau-im-produktivbetrieb-nicht-gemessen`). — **Ausgang:** offen bis zur Closure.
 - Eine Zeilenquelle, die den Hinweis `SimQuery.filter` ignoriert oder mehr liefert, muss trotzdem zum richtigen Ergebnis führen; ein Test mit einer solchen Quelle belegt die Pflicht, dass das Backend die Bedingung selbst anwendet. Eine Quelle, die zu wenig liefert, ist Sache des Integrators und wird nicht erkannt. — **Ausgang:** offen bis zur Closure.
 - Die dreiwertige Logik (`ANSI_NULLS ON`) ist als vorläufig gekennzeichnet und nur in einer Stichprobe an einer Instanz bestätigt ([ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md)); die Tests führen sie als Festlegung. — **Ausgang:** offen bis zur Closure.

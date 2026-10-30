@@ -189,8 +189,8 @@ O(übertragene Bytes).
    prüfen. Unbekanntes endet mit `TDS_SIM_UNKNOWN_OBJECT`, ebenfalls vor dem Lesen. Ohne Schema gilt
    `dbo`.
 4. Parameter (`@name`) aus `QueryRequest.parameters` als typisierte Werte einsetzen, nie als Text.
-   Jeden Wert in den Typ seiner Spalte überführen; was die Spalte nicht halten kann, endet mit
-   `TDS_SIM_INVALID_VALUE`.
+   Jeden Wert in den Typ seiner Spalte überführen (streng und verlustfrei, `SPEC-035`); was die
+   Spalte nicht halten kann, endet mit `TDS_SIM_INVALID_VALUE`.
 5. Auswahl: `ResultStart` mit den Spalten der Auswahlliste (bei `*` alle, in der Reihenfolge der
    Beschreibung) senden, auch wenn keine Zeile passt. Danach Zeilen einzeln aus der Zeilenquelle
    lesen, die Bedingung auf jede Zeile anwenden, passende als `Row` senden und mit `ResultEnd` und
@@ -451,6 +451,7 @@ data class SimTable(
     val schema: String = "dbo",
     val name: String,
     val columns: List<SimColumn>,
+    val primaryKey: List<String>,
     val rows: suspend (SimQuery) -> RowSource,
     val onInsert: (suspend (values: Map<String, Any?>) -> Long)? = null,
     val onUpdate: (suspend (set: Map<String, Any?>, where: RowFilter?) -> Long)? = null,
@@ -478,11 +479,69 @@ werden vor der Implementierung festgelegt. Festgelegt ist die Bedeutung:
   gemeinsam (UND). Dieselbe Spalte darf in mehreren Termen stehen; ein Widerspruch trifft keine
   Zeile. `NULL` in einem Vergleich oder einer Werteliste trifft nie (dreiwertige Logik,
   `ANSI_NULLS ON`, vorläufig und an der Referenzinstanz zu messen, `SPEC-045`); `IsNull` ist der
-  einzige Weg zu NULL-Zeilen.
+  einzige Weg zu NULL-Zeilen. `IS [NOT] NULL` ist eine Setzung des Nutzers (2026-10-30): das
+  Lastenheft nennt es nicht wörtlich.
 - `onUpdate` und `onDelete` bekommen `where = null` für eine Anweisung ohne `WHERE`, also für alle
   Zeilen. Die Zahl, die ein Callback liefert, ist die Zahl der betroffenen Zeilen.
 - `SimQuery.filter` ist ein Hinweis zum Vorfiltern (Schritt 5 in `TDS-FA-11.a`), kein Ersatz für die
   Prüfung durch das Backend.
+- `primaryKey` nennt eine oder mehrere Spalten der Tabelle; sie müssen vorhanden und nicht nullbar
+  sein. Der Schlüssel ist nur Teil der Beschreibung: er wirkt weder auf das Resultset noch auf
+  Callbacks, das Backend speichert nichts und prüft keine Eindeutigkeit. Als Metadatum zum Client wird
+  er nicht gesendet.
+- **Validierung** (gilt für die Kotlin-Schnittstelle und die Datei): Tabellen- und Spaltennamen sind
+  ohne Beachtung der Groß-/Kleinschreibung eindeutig; jede Tabelle hat mindestens eine Spalte und
+  einen Schlüssel.
+- **Überführung eines Werts in den Spaltentyp** (`TDS-FA-11.a` Schritt 4; Literal und Parameter;
+  Setzung, nicht am Server gemessen): streng und verlustfrei. Gleiche Typfamilie; Datum, Zeit und
+  Zeitpunkt nur im ISO-Format (Zeitpunkt nur mit `T`); keine Rundung und keine Überführung zwischen
+  Zahl und Text; ein Parameter wird nur verlustfrei erweitert (Int32 zu Int64 zu Decimal). Überlauf
+  (Int32, Int64, Stellen der Dezimalzahl) ist immer `TDS_SIM_INVALID_VALUE`. Dezimalwerte werden mit
+  `compareTo` verglichen (1.0 gleich 1.00), Textwerte ohne Beachtung der Groß-/Kleinschreibung
+  (Setzung, wie die Bezeichner); `UnicodeText` hat kein Längenlimit.
+
+**Beschreibung als Datei.** Zusätzlich zur Kotlin-Schnittstelle kann der Server Tabellen aus einer Datei
+laden. Das Format ist das neutrale Schema-Modell von d-migrate in YAML, `schema_format` `1.0`; maßgeblich
+ist die formale Beschreibung
+[spec/schema.json von d-migrate](https://github.com/pt9912/d-migrate/blob/a33984910bc3c760ad2f7c9733f5da0f12e1abf7/spec/schema.json)
+(geprüft gegen den Stand dieses Commits, 2026-10-30). Dieses Dokument kopiert das Format nicht; es legt
+fest, was der Leser daraus liest. Ändert sich das Format dort, ist der Belegstand zu erneuern.
+
+- **Gelesen:** `schema_format` (muss `1.0` sein), `name` und `version` (Pflicht, nicht ausgewertet),
+  `tables`; je Tabelle `columns` und `primary_key` (beide Pflicht, jeder Eintrag des Schlüssels eine
+  vorhandene Spalte); je Spalte `type` (Pflicht), `required`, `max_length`, `precision`, `scale`,
+  `timezone`, `ordinal`. Sind alle Spalten einer Tabelle mit `ordinal` versehen, gilt diese Reihenfolge,
+  sonst die im Dokument; nur bei einem Teil ist die Datei abzuweisen (Setzung nach der Kurzreferenz von
+  d-migrate, an d-migrate nicht gemessen).
+- **Ignoriert** (im Schema bekannt, ohne Wirkung): `description`, `encoding`, `locale`, `custom_types`,
+  `procedures`, `functions`, `views`, `triggers`, `sequences` in der Datei; `description`, `indices`,
+  `constraints`, `partitioning`, `metadata` in der Tabelle; `unique`, `default`, `auto_increment`,
+  `generation`, `references` in der Spalte. Nicht erzwungen werden `UNIQUE`, `DEFAULT`, `CHECK`,
+  Fremdschlüssel, Indizes und Identität. **Abgewiesen:** jedes andere Feld.
+- **Nullbar** ist eine Spalte, die weder `required: true` trägt noch im Schlüssel steht noch den Typ
+  `identifier` hat. Der Tabellenname ist der Schlüssel unter `tables`, wörtlich (ein Punkt bleibt Teil
+  des Namens), das Schema ist `dbo`.
+- **Typabbildung:** `identifier` auf `Int32` (nicht nullbar), `integer` auf `Int32`, `biginteger` auf
+  `Int64`, `boolean` auf `Bool`, `text` und `email` auf `UnicodeText`, `decimal` auf
+  `Decimal(precision, scale)` bis Precision 38, `date` auf `Date`, `time` auf `Time`, `datetime` ohne
+  `timezone: true` auf `DateTime`. `max_length` wird auf eine positive Ganzzahl geprüft, aber weder
+  durchgesetzt noch gemeldet (der Client sieht `NVARCHAR(4000)`, `SPEC-003`). Jeder andere Typ
+  (`smallint`, `char`, `float`, `uuid`, `binary`, `xml`, `json`, `array`, `enum`, `geometry`,
+  `fulltext`, `datetime` mit `timezone: true`) und eine Precision über 38 weisen die Datei ab.
+- **Skalare und Dokument** (Setzung, nicht gemessen): `required` nur `true` oder `false`; Ganzzahlen
+  nur in kanonischer Schreibweise (`010`, `0x10` und `yes` werden abgewiesen). Ein Dokument, UTF-8,
+  keine Anker, Aliase, Tags und Merge-Schlüssel, nur Skalar-Schlüssel; höchstens 1 MiB, vor dem
+  Parsen geprüft.
+- **Eine Datei beschreibt nur das Schema:** eine aus ihr geladene Tabelle hat eine leere Zeilenquelle
+  und keine Callbacks. Auswahl liefert Metadaten und ein leeres Ergebnis; Einfügen, Ändern und Löschen
+  enden mit `TDS_UNSUPPORTED_SQL`. Zeilenquelle und Callbacks bleiben Code des Integrators.
+- **Ladefehler:** Ein Fehler (unbekanntes oder doppeltes Feld, Typ ohne Entsprechung, doppelter Name,
+  Schlüssel auf unbekannte Spalte, zu große oder unlesbare Datei) bricht den Start ab, bevor ein Port
+  gebunden wird, ohne Teilladen. Die Meldung nennt den Pfad im Dokument, Zeile und Spalte und nie den
+  Inhalt. Kein TDS-Fehlercode: beim Laden ist kein Client verbunden.
+- **Verdrahtung:** Die Kotlin-Schnittstelle und eine Umgebungsvariable mit dem Dateipfad (Name nicht
+  festgelegt). Die Datei liest `runtime`; das Package `simulation` bekommt einen Baum aus Abbildungen,
+  Listen und Skalaren mit Zeile und Spalte und kennt weder die Datei noch die YAML-Bibliothek.
 
 ### SPEC-036 — Erkannte Anweisungsformen des Simulations-Backends (vorläufig)
 
@@ -500,14 +559,29 @@ werden vor der Implementierung festgelegt. Festgelegt ist die Bedeutung:
   Groß-/Kleinschreibung verglichen (vorläufig, wie die übliche Server-Collation). `"…"` als
   Bezeichner setzt `QUOTED_IDENTIFIER ON` voraus; beides ist an der Referenzinstanz zu messen
   (`SPEC-045`).
-- **Nicht erkannt** (`TDS_UNSUPPORTED_SQL`): `JOIN` und weitere Relationen, Unterabfragen, `WITH`,
+- **Nicht erkannt** (`TDS_UNSUPPORTED_SQL`; gedeckt durch das Lastenheft: Verbund, Aggregat, Ausdruck,
+  Unterabfrage und Sortierung wörtlich, die übrigen Fälle durch die abgegrenzte Liste der Formen):
+  `JOIN` und weitere Relationen, Unterabfragen, `WITH`,
   Aggregate und `GROUP BY`, `DISTINCT`, `TOP`, `ORDER BY`, `OFFSET`/`FETCH`, Aliase für Tabellen und
   Spalten, Ausdrücke und Funktionen in Listen und Bedingungen, `OR`, `NOT`, `<`, `>`, `LIKE`, `BETWEEN`,
   `OUTPUT`-Klauseln, mehrere Anweisungen in einem Text und alles, was keine Form der Tabelle ist.
 - Form C wird erst mit dem Clientprofil (`SPEC-004`) gefüllt; bis dahin ist sie leer.
+- **Scanner** (Setzungen, nicht am Server gemessen): Leerraum sind Leerzeichen, Tab, CR und LF.
+  Blockkommentare dürfen sich schachteln; ein offenes Literal oder ein offener Kommentar ist nicht
+  erkannt. `N'…'` gilt nur mit `N` unmittelbar vor dem Hochkomma; ein verdoppeltes Hochkomma steht für
+  ein Hochkomma, `]]` in `[…]` und `""` in `"…"` ebenso. Zahlen: Ziffern mit optionalem Dezimalpunkt
+  und führendem `-`; Exponent, Hexzahl und `+` sind nicht erkannt, ebenso eine Zahl, an die sich
+  Buchstaben anschließen. Unquotierte Bezeichner bestehen aus Buchstaben, Ziffern, `_`, `#` und `$`;
+  `SELECT`, `FROM`, `WHERE`, `AND`, `OR`, `NOT`, `IN`, `IS`, `NULL`, `INSERT`, `INTO`, `VALUES`,
+  `UPDATE`, `SET` und `DELETE` sind nur quotiert Bezeichner; dreiteilige Namen sind nicht erkannt.
+  `INSERT` ohne Spaltenliste, `DELETE` ohne `FROM`, `<>`, `!=` und `NOT IN` sind nicht erkannt. Eine
+  Spalte darf in Liste und Bedingungen mehrfach stehen. Datum, Zeit und Zeitpunkt als Literal nur im
+  ISO-Format als `'…'`; Parameternamen werden ohne Beachtung der Groß-/Kleinschreibung verglichen. Eine
+  Obergrenze für die Länge des Anweisungstextes ist nicht festgelegt.
 
-Der Katalog ist ein Entwurf. Verbindlich wird er mit der Festlegung, die das Lastenheft unter
-„Offene Entscheidungen“ führt.
+Der Katalog der Formen, Terme und Werte ist festgelegt. Vorläufig bleiben die Aussagen, die an der
+Referenzinstanz zu messen sind (Vergleich von Bezeichnern und Werten, `QUOTED_IDENTIFIER`, Kommentare,
+Überführung); die Überschrift behält das Wort „vorläufig“ für sie.
 
 ### SPEC-043 — Startprüfung: TLS-Konfiguration und Port
 
@@ -711,3 +785,4 @@ aktive Backendoperationen, Abbrüche, Protokollfehler. Keine SQL-Texte als Metri
 | 2026-10-30 | Backend-Vertrag auf den gebauten Stand geschärft: `SqlType` definiert, Ort der Typen und Fehlerform beim Start als Setzung, Precision-Obergrenze und weitere Punkte als offen geführt (`SPEC-002`, `SPEC-022`, `TDS-FA-08.a`) |
 | 2026-10-30 | Typabbildung nachgeführt: Precision über 38 scheitert in der Typabbildung, Zeit ohne Zone mit Scale 7, Unicode-Text `NVARCHAR(4000)` und Decimal ohne Rundung als Setzungen (`SPEC-002`, `SPEC-003`) |
 | 2026-10-30 | Zuordnung des Fehler-Mappings je Code (Nummer, Class, State, Text, Verbindungsfolge) in §4 festgehalten, jede Zeile nach Herkunft gekennzeichnet; Einzelzuordnung der Codes ohne Gruppe offen (`TDS-FA-06.a`, `SPEC-011` bis `SPEC-016`, `SPEC-037` bis `SPEC-039`, `SPEC-048`, `SPEC-049`) |
+| 2026-10-30 | Simulations-Backend festgelegt: Beschreibung zusätzlich als Datei im neutralen Schema-Modell von d-migrate, Typabbildung, strenge Überführung, Schlüssel nur beschreibend, Scanner-Regeln (`SPEC-035`, `SPEC-036`, `TDS-FA-11.a`); Vergleich von Bezeichnern und Werten sowie Überführung bleiben Setzungen, nicht am echten SQL Server gemessen |

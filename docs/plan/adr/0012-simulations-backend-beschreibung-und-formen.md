@@ -1,0 +1,186 @@
+# ADR-0012: Beschreibung, Anweisungsformen und Typen des Simulations-Backends
+
+**Status:** Proposed
+
+**Datum:** 2026-10-30
+
+**Autor:** pt9912
+
+**Bezug:** [TDS-FA-11](../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-FA-08](../../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-QA-06](../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [ADR-0006](0006-backend-vertrag-und-streaming.md), [ADR-0008](0008-dotnet-kompatibilitaetstests.md)
+
+**Schärft:** [SPEC-035](../../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends), [SPEC-036](../../../spec/spezifikation.md#spec-036--erkannte-anweisungsformen-des-simulations-backends-vorläufig), [TDS-FA-11.a](../../../spec/spezifikation.md#tds-fa-11a--simulations-backend)
+
+---
+
+## Kontext
+
+Das Lastenheft führt unter „Offene Entscheidungen“ die Festlegung „Erkannte Anweisungsformen, Bedingungen und Typen des Simulations-Backends“ ([TDS-FA-11](../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend)); ohne sie gilt die Anforderung nach dem Lastenheft als nicht abnehmbar. [SPEC-035](../../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends) und [SPEC-036](../../../spec/spezifikation.md#spec-036--erkannte-anweisungsformen-des-simulations-backends-vorläufig) führten die Formen als Entwurf. Diese ADR entscheidet die Beschreibungsform, die Anweisungsformen, die Typabbildung und die Überführungsregel. Sie widerspricht [ADR-0006](0006-backend-vertrag-und-streaming.md) nicht und ändert sie nicht; deshalb steht `Bezug:` und kein `Supersedes`. Ob die Lastenheft-Zeile als erledigt geführt wird, entscheidet der Nutzer; diese ADR schärft die Spezifikation und nie das Lastenheft.
+
+**Eingabe.** Zwei Optionsberichte des Architect, beide ohne gesetzte Entscheidung: der [Optionsbericht](../../reviews/2026-10-30-e6bfd2d-optionen-adr-simulation-formen.md) (Stand `main` bei e6bfd2d) und der [Nachtrag zum Dateiformat](../../reviews/2026-10-30-13434ec-optionen-adr-simulation-formen-yaml.md) (Stand 13434ec). Wo beide sich widersprechen, gilt der Nachtrag. Der Nutzer hat am 2026-10-30 jede Frage beantwortet; die Wahl steht unter „Entscheidung“.
+
+**Messobjekt und Grenzen (gelten für jede Zahl unten).**
+
+- Zwei Spikes in Docker (`docker build`, nichts gemountet, Kotlin 2.4.10, JDK 21, Gradle-Image des Repos per Digest) und Läufe von d-migrate 1.12.0 als Image `ghcr.io/pt9912/d-migrate:1.12.0` (Digest `sha256:308f27753036c9cc423f716b9fc4c9e68016543a8003ecd2f8282e05a2ee6491`). Der Spike-Code liegt im Scratchpad und nicht im Repo.
+- **Der Autor der Spikes hat auch die Erwartungen geschrieben.** „Erkannt“ und „60 von 60“ heißen: der Spike tut, was der Autor erwartet; sie heißen nicht, dass ein echter Server es täte. Das ist ein einmaliges, harmlos genug zu akzeptierendes Negativ und bekommt keine eigene Pflicht.
+- **Nichts am echten SQL Server gemessen.** Die von d-migrate erzeugte DDL wurde gegen keinen SQL Server ausgeführt; was die Referenzinstanz mit dem Skript tut, ist Annahme. Überführungsregeln, Textvergleich, Kommentarschachtelung und Rundung sind Setzungen (`BEO-TDS/messung-am-echten-sql-server-fehlt`, `BEO-TDS/aussagen-ueber-messung-hinaus`); die Stichprobe in [ADR-0008](0008-dotnet-kompatibilitaetstests.md) deckt nur dreiwertige Logik, Groß-/Kleinschreibung von Spaltennamen und `"…"`-Bezeichner an einer Instanz.
+- Zeiten sind Mediane auf einem Rechner, auf dem andere Builds liefen; Werte über 1 s sind Größenordnungen, die Grenzfälle der Bibliotheken liefen parallel. Die Aussage „überlinear“ stützt sich auf drei Messpunkte je Bibliothek und ist keine Komplexitätsaussage.
+- **Belegstand von d-migrate:** Alle Aussagen über Format und Modell von d-migrate sind geprüft gegen den Stand `main` bei Commit `a33984910bc3c760ad2f7c9733f5da0f12e1abf7` (Release `v1.12.0` vom 2026-10-27), abgerufen am 2026-10-30; Laufzeitverhalten gegen das Image 1.12.0. Die Quelle ist die formale Beschreibung [spec/schema.json von d-migrate](https://github.com/pt9912/d-migrate/blob/a33984910bc3c760ad2f7c9733f5da0f12e1abf7/spec/schema.json) (JSON Schema 2020-12; `schema_format` ist dort die Konstante `"1.0"`). Dieses Repo kopiert keinen Text von d-migrate; es nennt Permalink, Abschnitt und die Feldnamen, die es liest. d-migrate steht unter der MIT-Lizenz (GitHub-Angabe und `LICENSE` dort; derselbe Rechteinhaber wie dieses Repo).
+
+## Messzeilen
+
+Kennzeichnung: **gemessen** = im Spike oder an d-migrate 1.12.0 beobachtet (Autor gleich Erwartender); **abgeleitet** = gefolgert; **Setzung** = Festlegung ohne Messung. Die Rohtabellen stehen in den beiden Berichten oben; hier steht, was die Entscheidung trägt.
+
+| ID | Gegenstand | Ergebnis | Art |
+|---|---|---|---|
+| M1 | Zeichenscanner gegenüber Regex auf Rohtext, 60 Eingaben mit `;`, `--`, `/* */`, `[…]`, `"…"`, `N'…'` mit verdoppeltem Hochkomma | Scanner mit Zuordnung 60 von 60 wie erwartet (rund 150 Zeilen); Regex-Variante nur für S1, 45 von 54 S1-nahen Eingaben (fünf zu Unrecht abgelehnt, drei zu Unrecht angenommen, eine mit still verändertem Wert: `/* */` im Literal ergibt `'a c'`) | gemessen |
+| M1b | Laufzeit des Scanners | `IN`-Liste mit 200 000 Werten (1,29 Mio Zeichen) 79 und 75 ms; Blockkommentar mit 1 Mio Schachtelungstiefe 7 und 4 ms ohne Stapelüberlauf; Literal mit 5 Mio Zeichen 40 und 43 ms. Ob der Transport die Größe eines SQL-Textes begrenzt, ist nicht geprüft | gemessen (zwei Läufe) |
+| M2 | Überführung Literal oder Parameter in den Spaltentyp, 40 Eingaben, zwei Regelsätze | 28 Eingaben ergeben in „streng“ und „nachsichtig“ dasselbe (Überlauf von Int32 und Int64, `1.5` in Int32, `2026-02-30`, `30.10.2026`, Zahl `2` in Bool, `123456789.12` in Dezimal(10,2), Parameter Int64 in Int32: abgelehnt); 12 unterscheiden sich (Zahl↔Text, Rundung, Zeitpunkt mit Leerzeichen, Date→DateTime, Text→Bool) | gemessen |
+| M2b | JDK-Vergleiche | `BigDecimal("1.0") == BigDecimal("1.00")` ist falsch, `compareTo` ergibt 0; `"abc"` gegen `"ABC"` ordinal ungleich, ohne Beachtung der Schreibweise gleich; `"a"` gegen `"a "` ungleich; `"ss"` gegen `"ß"` auch ohne Beachtung der Schreibweise ungleich; `"i"` gegen `"İ"` ohne Beachtung der Schreibweise gleich. Das Verhalten eines Servers ist nicht gemessen | gemessen (JDK) |
+| MD1 | Dieselbe Fixture als YAML und als JSON durch `schema generate --target mssql --deterministic` | byte-gleiche DDL (`cmp`) | gemessen |
+| MD2 | Eigenheiten des Lesers von d-migrate | `precision: 010` ergibt `DECIMAL(8,2)`, `max_length: 0x10` ergibt `NVARCHAR(16)`, `required: yes` ergibt `NOT NULL`; Schlüssel auf unbekannte Spalte, Tabellen oder Spalten doppelt bei anderer Schreibweise, eine Liste statt einer Abbildung unter `tables` ergeben keinen Fehler. d-migrate ist an diesen Stellen toleranter als das Schema von d-migrate selbst | gemessen (neun Läufe M-D1 bis M-D6 des Nachtrags) |
+| MD3 | Tabellenschlüssel `dbo.person` | `CREATE TABLE [dbo.person]`, also ein Tabellenname mit Punkt im Standardschema; das Modell kennt keine Schemas | gemessen |
+| MT | Typabbildung, 21 Werte der `column.type`-Enumeration, Datei `alltypes` mit 25 Spalten | 10 von 21 Typen sind auf `SqlType` abbildbar; 11 haben keinen Katalogtyp oder verlieren im YAML-Weg Semantik; dazu `datetime` mit `timezone: true`. `geometry` und `fulltext` wurden nicht erzeugt, ihre Zeile steht nach der Typabbildungs-Spezifikation von d-migrate (§6.1) | gemessen (außer `geometry`, `fulltext`: Dokumentation) |
+| ML | Lesewege (Fixture mit drei Tabellen), Laden im Median aus 300 Läufen nach 300 Aufwärmläufen | YAML mit Jackson-Strom-API 205 µs, Adapter 47 Zeilen (zugleich JSON); snakeyaml-engine 2.10 202 µs; 3.2 266 µs; snakeyaml 2.7 276 µs; kaml 320 µs; JSON mit eigenem Leser 38 µs (137 Zeilen); erzeugte DDL mit eigenem Leser 67 bis 70 µs (180 Zeilen). Alle Wege liefern auf der Fixture dieselbe Beschreibung. Der Leser vom Baum zur Tabellenbeschreibung hat rund 120 Zeilen | gemessen |
+| MF | Fehlerfälle E1 bis E6 und E3b (Tabelle doppelt, doppelt bei anderer Schreibweise, unbekannter Typ, Spalte doppelt, Tabelle ohne Spalten, Schlüssel auf unbekannte Spalte, abgeschnittene Datei) | YAML erkennt alle mit Zeile und Spalte (Jackson meldet bei E6 Zeile 26 Spalte 5); der DDL-Weg erkennt die abgeschnittene Datei nicht, wenn sie in einem übergangenen Stapel endet | gemessen |
+| MR | Robustheit der YAML-Bibliotheken | Jackson begrenzt die Tiefe selbst (1000) und expandiert Aliase in der Strom-API nicht; snakeyaml-engine 2.10 und 3.2 sowie kaml enden bei großer Tiefe im `StackOverflowError`; alle Bibliotheken verwerfen Dokumente über 3 MiB (3 145 728 Codepunkte); ein Skalar von 1 / 2,5 / 4 Mio Zeichen braucht je nach Bibliothek 0,4 bis 1,0 s / 2,8 bis 10 s / Fehler nach 7 bis 18 s; ein Dokument von 0,7 MB mit 20 000 Spalten lädt in 59 bis 253 ms. Konstruktor-Schnittstellen (`load`) wurden weder verwendet noch gemessen | gemessen |
+| MK | Lock-Versuch auf einer Kopie des Repos (Stage `lock-export`, dieselben Aufgaben wie `make deps-lock` ohne `test`) | `jackson-dataformat-yaml` 2.21.7 als `implementation`: `gradle.lockfile` 6 Zeilen neu; `gradle/verification-metadata.xml` 11 Komponenten neu (122 auf 133), 73 Zeilen, rund 4,5 KB, darunter die Eltern-POMs und ein `junit-bom`; `gradle/libs.versions.toml` und `build.gradle.kts` je eine Zeile; die Stage `deps` im `Dockerfile` bleibt unverändert; 5 Jars mit 2 788 997 Byte (`jackson-dataformat-yaml`, `jackson-databind`, `jackson-core`, `jackson-annotations`, `snakeyaml` 2.5). Das Repo wurde nicht geändert | gemessen |
+| MV | Maven-Katalog (`maven-metadata.xml`) | `jackson-dataformat-yaml`: neueste Version 2.22.4; 2.21.7 liegt im Katalog (POM abrufbar). Geprüft am Tag der Entscheidung (2026-10-30) und im Nachtrag | gemessen |
+
+## Entscheidung
+
+Jede Entscheidung trägt ihre Art: **Entscheidung des Nutzers (2026-10-30)**, **Setzung des Nutzers** oder **Setzung (Voreinstellung 2026-10-30, nicht gemessen)** (der Architect schlug sie vor, der Nutzer widersprach nicht; sie ist keine ausdrückliche Wahl). Eine Setzung ist eine Festlegung, keine Aussage über das Verhalten eines echten SQL Servers.
+
+### Entscheidungen des Nutzers (2026-10-30)
+
+1. **Beschreibungsform: Kotlin-Schnittstelle und zusätzlich eine Datei (Frage 1 B).** Die Kotlin-Skizze von SPEC-035 bleibt; Zeilenquelle und Callbacks bleiben Code, die Datei bindet Tabellen über Schema und Name an sie. Ohne Integrator-Code startet der Server mit Tabellen aus der Datei (alle leer, siehe Setzung 6).
+2. **Dateiformat: das neutrale Schema-Modell von d-migrate, als YAML.** Formal gilt [spec/schema.json von d-migrate](https://github.com/pt9912/d-migrate/blob/a33984910bc3c760ad2f7c9733f5da0f12e1abf7/spec/schema.json) in der Fassung des oben genannten Belegstands (`schema_format` `1.0`). Das Format ist nicht in diesem Repo beschrieben und nicht von hier kopiert; [SPEC-035](../../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends) nennt nur, was der Leser aus ihm liest. Die Datei ist die gemeinsame Quelle für das Simulations-Backend und, über `schema generate`, für das Schema der Referenzinstanz (zu Letzterem Wahl 10 unten).
+3. **Leseweg: YAML direkt (N1 A).** Der Server liest die Datei, die auch d-migrate liest. Der Weg über die erzeugte DDL (ML: 180 Zeilen ohne Bibliothek) entfällt.
+4. **Bibliothek: Jackson, `jackson-dataformat-yaml` 2.21.7 (N2 A)**, die Version, die d-migrate verwendet (`gradle.properties` dort). Die Version wurde vor dem Eintrag erneut am Maven-Katalog geprüft (MV): neueste ist 2.22.4; 2.21.7 liegt im Katalog. Der Nutzer wählt bewusst die Hauptlinie von d-migrate und nicht die neueste. Die Bibliothek wird mit der Strom-API als Parser benutzt; Objekte aus Tags werden nicht konstruiert.
+5. **`IS [NOT] NULL` bleibt (Frage 4 A) — Setzung des Nutzers.** Das Lastenheft nennt es nicht wörtlich; die Lesart ist „Teil der Gleichheitsbedingungen“. Die Ergänzung im Lastenheft (Rang 1) ist nicht Gegenstand dieser ADR.
+6. **Überführung von Literal und Parameter in den Spaltentyp: streng und verlustfrei (Frage 5 A).** Gleiche Typfamilie; ISO-Formate für Datum, Zeit und Zeitpunkt (Zeitpunkt nur mit `T`); keine Rundung, keine Überführung Zahl↔Text; Parameter nur verlustfrei erweitert (Int32 zu Int64 zu Dezimal). Was nicht überführbar ist, endet mit `TDS_SIM_INVALID_VALUE`. Beleg: M2 (der strenge Regelsatz weist die zwölf unterscheidenden Eingaben ab). Dass ein echter Server dieselben Fälle anders behandelt, ist möglich und nicht gemessen; Abweichungen laufen über die Ausnahmeliste von [SPEC-045](../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig).
+7. **Spaltenlänge `max_length` (N4a A):** lesen und auf eine positive Ganzzahl prüfen, nicht durchsetzen und nicht an den Client melden. Der Client sieht `NVARCHAR(4000)`; die Abweichung gegenüber `NVARCHAR(n)` der Referenzinstanz steht auf der Ausnahmeliste von SPEC-045 (Eintrag 1 der Liste unter „Folgen“).
+8. **Typen ohne Entsprechung (N4b A):** Das Laden weist die Datei ab (Ladefehler mit Pfad, Zeile, Spalte und Typname, kein Teilladen, kein TDS-Fehlercode, weil beim Laden kein Client verbunden ist). Abbildbar sind genau zehn Typen (MT):
+
+   | Neutraler Typ | `SqlType` |
+   |---|---|
+   | `identifier` | `Int32`, nicht nullbar (das Identitätsmerkmal geht verloren) |
+   | `integer` | `Int32` |
+   | `biginteger` | `Int64` |
+   | `boolean` | `Bool` |
+   | `text`, `email` | `UnicodeText` (die Länge geht verloren) |
+   | `decimal` | `Decimal(precision, scale)` bis `precision` 38; darüber abweisen (d-migrate kappt auf 38) |
+   | `date` | `Date` |
+   | `time` | `Time` |
+   | `datetime` ohne `timezone: true` | `DateTime` |
+
+   Abgewiesen werden `smallint`, `char`, `float`, `uuid`, `binary`, `xml`, `json`, `array`, `enum`, `geometry`, `fulltext` und `datetime` mit `timezone: true`. Der YAML-Weg weist `json`, `array` und `enum` ab, obwohl d-migrate sie als Text erzeugt; er ist hier strenger als die Referenzinstanz.
+
+### Setzungen (Voreinstellung 2026-10-30, nicht gemessen)
+
+Alle folgenden Punkte sind „Setzung (Voreinstellung 2026-10-30, nicht gemessen)“, soweit nicht anders vermerkt; der Nutzer hat der Voreinstellung nicht widersprochen.
+
+1. **Ort der Bibliothek (N3 A):** Ein Adapter in `runtime` (Composition Root, darf „alle benötigten Module“, [ARC-016](../../../spec/architecture.md#2-schichten-und-constraints)) liest die Datei mit der Bibliothek und erzeugt einen Baum aus Abbildung, Liste und Skalar mit Zeile und Spalte. In `simulation` macht ein reiner Leser, der keine Bibliothek kennt, daraus die Tabellenbeschreibung. `simulation` bleibt bei Domain, Port und der Laufzeitbibliothek für asynchrone Streams; ARC-016 und die Importregeln ändern sich nicht (die Regel `ForbiddenImport/simulation` sperrt nur Pakete des Repos, abgeleitet).
+2. **Gelesene Teilmenge** (Beleg: das Schema und das Handbuch von d-migrate, Belegstand oben): Pflicht sind `schema_format` (muss `1.0` sein), `name` und `version` (Zeichenketten, nicht ausgewertet) und `tables`; je Tabelle `columns` (mindestens eine Spalte) und `primary_key` (mindestens ein Eintrag, jeder eine vorhandene Spalte); je Spalte `type`. Gelesen werden `required`, `max_length`, `precision`, `scale`, `timezone` und `ordinal` (bei allen Spalten gesetzt: danach sortieren; nur bei einem Teil: abweisen; sonst die Reihenfolge im Dokument; `ordinal` ist an d-migrate nicht gemessen). Ignoriert werden die im Schema bekannten Felder ohne Wirkung auf Tabellen, Spalten und Schlüssel (`description`, `encoding`, `locale`, `custom_types`, `procedures`, `functions`, `views`, `triggers`, `sequences` in der Datei; `description`, `indices`, `constraints`, `partitioning`, `metadata` in der Tabelle; `unique`, `default`, `auto_increment`, `generation`, `references` in der Spalte). Jedes andere Feld wird abgewiesen (`additionalProperties: false` im Schema; d-migrate selbst liest tolerant, MD2).
+3. **Nur kanonische Skalare:** `required` nur `true` oder `false`; Ganzzahlen nur nach `0|[1-9][0-9]*`. `010`, `0x10` und `yes` werden abgewiesen, obwohl d-migrate sie liest (MD2); eine Abweisung ist hörbar, ein stilles Anderslesen nicht. Der Spike liest den Text der Skalare, nicht typisierte Werte; ein Wert `"true"` in Anführungszeichen wird im Spike ebenfalls als wahr gelesen, die Lesart ist also nachsichtiger als das Schema, bis der Leser Skalare mit ihrer Schreibweise prüft.
+4. **Tabellennamen wörtlich:** Der Schlüssel unter `tables` ist der Name, das Schema ist `dbo`; ein Punkt im Namen bleibt Teil des Namens (wie in der von d-migrate erzeugten DDL, MD3). Ein Schema ungleich `dbo` ist über die Datei nicht ausdrückbar, über die Kotlin-Schnittstelle (`SimTable.schema`) schon.
+5. **Nullbarkeit:** Nicht nullbar sind Spalten mit `required: true`, Spalten im `primary_key` und `identifier`.
+6. **Die Datei beschreibt nur das Schema (Frage 10 A):** Die Datei kann keine Zeilen tragen (das Schema kennt kein Feld dafür). Eine aus der Datei geladene Tabelle hat eine leere Zeilenquelle und keine Callbacks; Auswahl liefert Metadaten und ein leeres Ergebnis, Einfügen, Ändern und Löschen enden mit `TDS_UNSUPPORTED_SQL`. Zeilen oberhalb der Heap-Grenze kommen aus Testcode.
+7. **Schlüssel nur beschreibend (Frage 3 A):** `SimTable` bekommt ein Feld für den Schlüssel (eine oder mehrere Spalten, die es geben muss und die nicht nullbar sind); er hat keine Wirkung auf Resultset und Callbacks, das Backend speichert nichts und prüft keine Eindeutigkeit. Nicht erzwungen werden `UNIQUE`, `DEFAULT`, `CHECK`, Fremdschlüssel, Indizes, `auto_increment` und `generation`. Der Schlüssel als Metadatum zum Client (Frage 3 B) ist ein Folgeschritt nach der Messung von `KeyInfo` und `SchemaOnly` (Offen 5).
+8. **Eigene Prüfungen des Lesers, die d-migrate nicht macht:** Duplikate von Tabellen und Spalten ohne Beachtung der Schreibweise, Schlüsselspalten vorhanden, Tabelle mit mindestens einer Spalte und einem Schlüssel (MD2: d-migrate lässt die ersten drei ohne Befund passieren). Ein Schema, das d-migrate annimmt und der Leser abweist, ist ein Befund und kein Widerspruch.
+9. **Textvergleich in Bedingungen ohne Beachtung der Schreibweise** (Frage 6 B), nachgestellte Leerzeichen zählen; JDK-Vergleich mit den Randfällen aus M2b (`i` gleich `İ`, `ss` ungleich `ß`). Ob der Server Werte und Bezeichner gleich behandelt, ist nicht gemessen. Dezimalvergleich über `compareTo`; Überlauf (Int32, Int64, Stellen der Dezimalzahl) ist immer `TDS_SIM_INVALID_VALUE`; Werte von `UnicodeText` haben kein Längenlimit.
+10. **Form C bleibt leer** (Frage 7 A), bis die Messung der Texte des Referenzclients vorliegt. **Keine Vertragsdatei jetzt** (Frage 8 A): ADR und SPEC-035 tragen die Beschreibung; eine Vertragsdatei für Integratoren bleibt möglich, wenn einer sie braucht.
+11. **Verdrahtung (Frage 9 C):** Kotlin-API und eine Umgebungsvariable mit dem Dateipfad (Schreibweise wie `AUTH_USERS_FILE` in [ADR-0011](0011-pruefwertformat.md); der Name ist nicht festgelegt, Träger: Offen 9). `runtime` liest die Datei.
+12. **Datei: ein Dokument, UTF-8, keine Anker, Aliase, Tags und Merge-Keys, nur Skalar-Schlüssel; Größe höchstens 1 MiB, vor dem Parsen geprüft.** Beleg: MR (ein langer Skalar wird überlinear gescannt, die 3-MiB-Grenze der Bibliotheken greift erst nach Sekunden; 20 000 Spalten sind 0,7 MB und laden in 59 bis 253 ms). Die Zahl 1 MiB ist eine Voreinstellung und nicht aus einem Bedarf abgeleitet. Ein Byte Order Mark wird mit YAML gelesen (alle Bibliotheken außer kaml, MR).
+13. **Ein Ladefehler bricht den Start ab,** vor dem Binden des Ports, ohne Teilladen; die Meldung nennt den Pfad im Dokument, Zeile und Spalte und nie den Inhalt.
+14. **Gelesene Anweisungsformen** bleiben die Tabelle S1, W1, W2, W3 und C aus SPEC-036 (Term `=`, `IN`, `IS [NOT] NULL`; Wert Zahl, `'…'`, `N'…'`, `NULL`, `@Parameter`). **Zeichenscanner statt Regex** (M1: die Regex-Variante liefert in neun Fällen ein falsches Ergebnis, in einem davon einen still veränderten Wert). Die Einzelheiten des Scanners sind Setzungen (nicht am Server gemessen): Leerraum sind Leerzeichen, Tab, CR und LF (ein geschütztes Leerzeichen ist nicht erkannt); Blockkommentare dürfen sich schachteln; ein offenes Literal oder ein offener Kommentar ist nicht erkannt; `N'…'` gilt nur mit `N` unmittelbar vor dem Hochkomma; verdoppeltes Hochkomma steht für ein Hochkomma, `]]` in `[…]` und `""` in `"…"` ebenso; Zahlen sind Ziffern mit optionalem Dezimalpunkt und führendem `-` (kein Exponent, keine Hexzahl, kein `+`; eine Zahl, an die sich Buchstaben anschließen, ist nicht erkannt); unquotierte Bezeichner bestehen aus Buchstaben, Ziffern, `_`, `#`, `$`, die fünfzehn Wörter `SELECT`, `FROM`, `WHERE`, `AND`, `OR`, `NOT`, `IN`, `IS`, `NULL`, `INSERT`, `INTO`, `VALUES`, `UPDATE`, `SET`, `DELETE` nur quotiert als Bezeichner, dreiteilige Namen sind nicht erkannt; `INSERT` ohne Spaltenliste und `DELETE` ohne `FROM` sind nicht erkannt; `<>`, `!=` und `NOT IN` sind nicht erkannt; Datum, Zeit und Zeitpunkt als Literal nur im ISO-Format als `'…'`; Parameternamen werden ohne Beachtung der Schreibweise verglichen. Eine Obergrenze für die Länge des Anweisungstextes setzt diese ADR nicht (M1b; Offen 8).
+
+### Deckung der Liste „Nicht erkannt“ durch das Lastenheft
+
+Das Lastenheft schließt Verbund, Aggregat, Ausdruck, Unterabfrage und Sortierung aus und beschreibt als Gegenstück eine abgegrenzte Menge einfacher Anweisungsformen mit „einfachen Gleichheits- und Mengenbedingungen, verknüpft durch UND“. Die Liste in SPEC-036 erweitert das Lastenheft damit nur dann nicht, wenn man die positive Aufzählung als abschließend liest (Lesart des Architect, vom Nutzer nicht ausdrücklich bestätigt):
+
+| Einzelfall in SPEC-036 | Deckung |
+|---|---|
+| `JOIN` und weitere Relationen; Unterabfragen; Aggregate und `GROUP BY`; `ORDER BY`; Ausdrücke und Funktionen | wörtlich: Verbund, Unterabfrage, Aggregat, Sortierung, Ausdruck |
+| `WITH`, `DISTINCT`, `TOP`, `OFFSET`/`FETCH`, Aliase, `OUTPUT`-Klauseln, mehrere Anweisungen in einem Text | nicht wörtlich; gedeckt durch die abgegrenzte positive Liste (Lesart) |
+| `OR`, `NOT`, `<`, `>`, `LIKE`, `BETWEEN` | nicht wörtlich; gedeckt dadurch, dass nur Gleichheit und Menge, verknüpft durch UND, genannt sind (Lesart) |
+| `IS [NOT] NULL` (in der Gegenrichtung ein Term von SPEC-036) | nicht im Lastenheft; Setzung des Nutzers (Wahl 5) |
+
+### Nicht Gegenstand dieser ADR
+
+**N5 — die Quelle des Skripts für die Referenzinstanz** (`schema generate` im Lauf, eingechecktes Skript oder `schema migrate --execute`) ist keine Entscheidung dieser ADR. Sie liegt beim Referenzabgleich (Slice des Live-Laufs); diese ADR legt nur fest, dass die Datei das Format von d-migrate trägt.
+
+## Verglichene Alternativen
+
+Kennzeichnung wie oben; die Zahlen stehen in „Messzeilen“.
+
+| Punkt | Option | Pro | Contra |
+|---|---|---|---|
+| Beschreibungsform | A — nur Kotlin-Schnittstelle | kein Parser | Server startet nur mit Integrator-Code; der Referenzabgleich bräuchte eigenen Testcode für ein Schema (abgeleitet) |
+| | **B — Kotlin-Schnittstelle und Datei** (gewählt) | trägt „deklarativ beschriebene Tabellen“ für einen mitgelieferten Prozess und den Referenzabgleich ohne Sondercode (abgeleitet) | Leser, Bibliothek und Fehlerfälle als Aufwand (ML) |
+| | 0 — nichts festlegen | keine Vorfestlegung | [TDS-FA-11](../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) bleibt nach dem Lastenheft nicht abnehmbar |
+| Dateiformat | eigenes Zeilenformat, Teilmenge von `CREATE TABLE`, XML über das JDK (Optionsbericht F1 bis F3) | F1: rund 27 Zeilen, volle Fehlererkennung; F2: eigener Tokenizer ohnehin da; F3: Zeile und Spalte im Fehler (M3 des Optionsberichts) | ein weiteres Format, das nur dieses Repo kennt (F1); nur Tokenindex als Fehlerort und Lesartfrage zu „wertet kein SQL aus“ (F2); Laden ein Vielfaches langsamer, neuer Import `javax.xml` (F3) |
+| | **neutrales Schema-Modell von d-migrate** (gewählt) | eine Datei für Referenzinstanz und Simulations-Backend (abgeleitet, Wirkung auf der Referenzinstanz nicht gemessen); Fehlerort in der Datei, die der Nutzer pflegt | Leser von rund 120 Zeilen und Bibliothek statt 27 Zeilen (F1); Format gehört einem anderen Projekt, der Belegstand muss erneuert werden |
+| Leseweg | **YAML direkt** (gewählt) | eine Quelle; Fehlerort in der gepflegten Datei; gekappte Datei wird erkannt (MF) | eine Bibliothek |
+| | erzeugte DDL (E2) | keine Bibliothek, 180 Zeilen; liest `json`, `array`, `enum` und `decimal` über 38 so, wie die Referenzinstanz sie hat (abgeleitet aus MT) | ein erzeugtes Zwischenprodukt, kein dokumentierter Vertrag von d-migrate; Fehler zeigen auf die erzeugte Datei; eine gekappte Datei, die in einem übergangenen Stapel endet, lädt fehlerfrei (MF) |
+| | beides (E1 und E2) | Absicherung durch einen Gleichheitstest | doppelte Pflege und zwei Wege |
+| | zusätzlich JSON (E4) | im selben Artefakt, gleiche Semantik bei d-migrate (MD1) | keine Entscheidung dieser ADR; später möglich |
+| YAML-Bibliothek | **Jackson 2.21.7** (gewählt) | dieselbe Kette wie d-migrate; Tiefe 1000 und Dokumentgröße 3 MiB von sich aus begrenzt (MR); JSON im selben Artefakt | 6 Sperrzeilen, 11 Komponenten, 5 Jars mit 2,8 MB (MK); `databind` wird mitgezogen, obwohl nur die Strom-API genutzt wird |
+| | snakeyaml-engine 2.10 | 1 Sperrzeile, keine neue Prüfsumme, 1 Jar mit 0,3 MB (MK) | keine Tiefengrenze, `StackOverflowError` (MR); nicht die Kette von d-migrate (ob sie Oktalzahlen und `yes` ebenso typisiert, ist nicht gemessen) |
+| | snakeyaml 2.7, kaml 0.104.0 | snakeyaml: Tiefe 50 und Tag-Sperre eingebaut | snakeyaml: eigene Sperrzeile und Prüfsummen, nicht die Hauptlinie von Jackson; kaml: vier weitere Bibliotheken, Fehler bei Byte Order Mark, Stapelüberlauf schon bei Tiefe 1000 (MR) |
+| Ort der Bibliothek | **Adapter in `runtime`, reiner Leser in `simulation`** (Setzung) | `simulation` und ARC-016 unverändert; der Baum ist die Naht und die Bibliothek austauschbar | ein Adapter mehr (27 bis 47 Zeilen je Bibliothek, ML) |
+| | Bibliothek direkt in `simulation` | ein Baustein weniger | die Zeile von ARC-016 (Rang 3) müsste geändert werden, außerhalb einer ADR |
+| Überführung | **streng und verlustfrei** (gewählt) | eine strengere Regel später zu lockern bricht keinen Aufrufer (abgeleitet); Abweichungen laufen über die Ausnahmeliste | ein Server kann nachsichtiger sein (nicht gemessen) |
+| | streng plus Rundung, Zeitpunkt mit Leerzeichen, Date→DateTime | näher an einem nachsichtigen Server (nicht gemessen) | später zu verschärfen bricht Aufrufer (abgeleitet) |
+| | nachsichtig (Zahl↔Text, Text→Bool) | — | wie oben, weiter entfernt von „verlustfrei“ |
+| `max_length` | **lesen, nicht durchsetzen** (gewählt) | keine Änderung an `SqlType` und Port | Metadaten weichen von der Referenzinstanz ab (Ausnahmeliste) |
+| | `UnicodeText` um eine Länge erweitern | meldet `NVARCHAR(n)` | ändert Port und Protokoll; eigene Folge-Entscheidung |
+| | Dateien mit `max_length` abweisen | — | unbrauchbar, weil die Beispiele von d-migrate sie tragen |
+| Typlücken | **beim Laden abweisen** (gewählt) | erfindet nichts; der Fehler zeigt auf die Stelle, die der Nutzer pflegt | die gemeinsame Datei darf nur zehn Typen tragen |
+| | Tabelle laden, Spalte sperren | die Datei lädt | ein Schema, das lädt und beim ersten `SELECT *` scheitert; mehr Verhalten zu definieren |
+| | Typkatalog erweitern | schließt die Lücke | Folge-Entscheidung zu [SPEC-003](../../../spec/spezifikation.md#spec-003--typmapping-initialer-mindestkatalog), `SqlType` und Codec |
+
+## Konsequenzen
+
+- **Positiv:** Die Festlegung, die das Lastenheft verlangt, liegt vor; SPEC-035 und SPEC-036 sind auf sie fortgeschrieben. Ein Server mit Simulations-Backend startet aus einer Datei ohne Integrator-Code. Die Datei ist, wie von d-migrate gelesen, eine Quelle für die Referenzinstanz (nicht auf einem SQL Server gemessen).
+- **Negativ / Risiko:** Eine neue Abhängigkeit mit Lock und Prüfsummen (MK); `verify-signatures` steht im Repo auf `false`, die neuen Prüfsummen stammen also vom ersten Abruf und nicht aus einer geprüften Signatur (derselbe Zustand wie alle bisherigen Einträge). Das Format gehört einem anderen Projekt: ändert d-migrate es, ist der Belegstand zu erneuern und nicht der Text anzupassen. Das Backend ist an den Typen strenger als die Referenzinstanz (zehn von 21 Typen; `json`, `array`, `enum` werden abgewiesen, `decimal` über 38 ebenso). Textlängen und das Identitätsmerkmal gehen verloren; Ausnahmeliste siehe unten. Ein Schema ungleich `dbo` ist über die Datei nicht ausdrückbar. Die Datei ist ein Eingabepfad mit Dateigrenze und Bibliothek (Offen 11).
+- **Grenze der Aussage:** Die Messungen stammen von einem Autor mit eigenen Erwartungen. Sie belegen Machbarkeit, Aufwand, Randfälle des JDK und das Verhalten der Bibliotheken und von d-migrate, nicht die Übereinstimmung mit einem SQL Server.
+- **Folgepflicht (Änderungen, die aus der Entscheidung folgen; Träger je Zeile):**
+  - Abhängigkeit: `gradle/libs.versions.toml`, `build.gradle.kts`, `gradle.lockfile` und `gradle/verification-metadata.xml` ändern sich über `make deps-lock` (braucht Netz, [TDS-QA-06](../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit)) in einer Größenordnung von MK; kein Gate wird gelockert, [ADR-0010](0010-detekt-pre-release.md) wird nicht berührt. Träger: Slice für Änderungsweitergabe und Verdrahtung des Simulations-Backends (dort entsteht der Adapter; dort liegt auch die Verdrahtung).
+  - Lizenz: Alle verglichenen Kandidaten stehen unter Apache-2.0 (POMs; das POM von `jackson-dataformat-yaml` nennt keine eigene Lizenz) und sind mit MIT als Lizenz dieses Repos vereinbar (Lesart des Architect, keine Rechtsberatung). Ein Hinweisdokument für Abhängigkeiten gibt es im Repo nicht; das Jar enthält heute nur eigene Klassen. Ob ein Lizenz- oder Hinweisnachweis (Datei für Drittlizenzen) nötig wird, hängt am ausgelieferten Artefakt; Träger: Slice für Release-Artefakt und Lizenz (Risiko „Lizenzen der Abhängigkeiten im Artefakt“). Das ist keine neue Pflicht dieser Entscheidung, sie wird dort aber nicht mehr hypothetisch.
+  - Belegstand von d-migrate bei einem neuen Release erneuern (Abruf der Release-Liste, `schema_format`); Träger: Slice für Tabellenbeschreibung und Anweisungserkennung (Risikozeile dort).
+  - Typlücken: Die Erweiterung des Typkatalogs (`smallint`, `char`, `float`, GUID, binär, Zonenzeit, danach `json`, `array`, `enum` als Text) ist eine Folge-Entscheidung zu SPEC-003, `SqlType` und Codec. Träger: Slice für die Erweiterung der Codec-Datentypen; dessen Ziel nennt bisher nur Codec-Formen, ob er den Katalog aufnimmt, ist eine Entscheidung des Nutzers (Offen 1).
+  - Längenangabe: `UnicodeText` mit Länge (meldet `NVARCHAR(n)`, könnte Überlänge abweisen) ändert Port und Protokoll und ist eine Folge-Entscheidung; Träger ebenfalls Slice für die Erweiterung der Codec-Datentypen (Offen 2).
+  - SPEC-045 sagt, das Schema der Referenzinstanz und die Tabellenbeschreibung würden getrennt gepflegt; mit der gemeinsamen Datei stimmt das nicht mehr. Die Nachführung gehört zur Entscheidung N5 im Referenzabgleich (Slice des Live-Laufs).
+- **Ausnahmeliste von SPEC-045 (Abweichungen zwischen Referenzinstanz und Backend, abgeleitet aus dem Nachtrag, nicht gemessen am Server):** (1) Länge von Text: Referenz `NVARCHAR(n)`, Backend `NVARCHAR(4000)`; (2) Identität: `IDENTITY(1,1)` in der Referenz, kein Merkmal im Backend (sichtbar bei `KeyInfo`/`SchemaOnly`); (3) Dezimalzahl über 38: d-migrate kappt, der Leser weist ab; (4) `json`, `array`, `enum`: Text mit `CHECK` in der Referenz, abgewiesen im Backend; (5) Schemas: nur `dbo` und Tabellen mit Punkt im Namen (MD3); (6) nicht abgebildete Eigenschaften (`UNIQUE`, `DEFAULT`, `CHECK`, Fremdschlüssel, Indizes) erzwingt nur die Referenz, relevant für Vergleichsläufe mit Schreibzugriff; (7) Collation: keine `COLLATE`-Angabe in der DDL, das Backend nimmt `SQL_Latin1_General_CP1_CI_AS` ([SPEC-003](../../../spec/spezifikation.md#spec-003--typmapping-initialer-mindestkatalog), Setzung); (8) Sitzungsoptionen: das Skript beginnt mit `SET ANSI_NULLS ON` und weiteren, sie gelten für die Sitzung des Skripts und sagen nichts über die Sitzung des Referenzclients; (9) Zeilen: weder Datei noch DDL tragen welche. Die Einträge wandern in die Ausnahmeliste, wenn der Referenzabgleich sie aufnimmt.
+
+**Offen** (nicht entschieden; jeweils mit Träger als Datei). Träger ist ein Slice-Plan, der den Punkt in einer Risikozeile mit Verweis auf diese ADR führt; der Verweis läuft von dort hierher, weil die Referenzrichtung von der ADR zum Slice nicht erlaubt ist:
+
+1. Erweiterung des Typkatalogs über die zehn Typen hinaus. Träger: Slice für die Erweiterung der Codec-Datentypen (Risikozeile dort), Zuschnitt beim Nutzer.
+2. Länge von `UnicodeText` (N4a B). Träger: Slice für die Erweiterung der Codec-Datentypen (Risikozeile dort), Zuschnitt beim Nutzer.
+3. Quelle des Skripts für die Referenzinstanz (N5) und die Nachführung von SPEC-045. Träger: Slice des Live-Laufs im Referenzabgleich.
+4. Form C (Texte des Referenzclients). Träger: Slice der Kompatibilitätsszenarien.
+5. Schlüssel als Metadatum zum Client (Frage 3 B), Identitätsmerkmal in `KeyInfo`. Träger: Slice der Kompatibilitätsszenarien (Messung, was der Referenzclient bei `KeyInfo` und `SchemaOnly` erwartet).
+6. Servergleiche zu Überführung, Textvergleich, Kommentarschachtelung, Rundung, Collation, Sitzungsoptionen und dem Verhalten der Referenzinstanz mit dem erzeugten Skript. Träger: Slice des Live-Laufs im Referenzabgleich (`BEO-TDS/messung-am-echten-sql-server-fehlt`).
+7. Pflicht oder Vorgabe von `precision` und `scale` bei `decimal` und von der Genauigkeit der Zeittypen in der Datei: nicht gelesen und nicht gemessen. Träger: Slice für Tabellenbeschreibung und Anweisungserkennung (Risikozeile dort).
+8. Obergrenze für die Länge des Anweisungstextes am Transport (M1b: 1,29 Mio Zeichen in rund 79 ms; ob der Transport sie begrenzt, ist nicht geprüft). Träger: Slice für Tabellenbeschreibung und Anweisungserkennung (Risikozeile dort).
+9. Name der Umgebungsvariable mit dem Dateipfad. Träger: Slice für Änderungsweitergabe und Verdrahtung des Simulations-Backends.
+10. JVM-Typen der Werte je `SqlType`; die Überführungsregel (Wahl 6) gilt für sie und ist bei einer anderen Zeilendarstellung neu zu prüfen. Träger: Entscheidungs-Slice zu den Backend-Grenzen.
+11. Nicht gemessen und ohne eigenen Träger, akzeptiert, weil einmalig und folgenlos für die Entscheidung: Konstruktor-Schnittstellen der YAML-Bibliotheken (nicht verwendet), welche YAML-Fassung (1.1 oder 1.2) die Bibliotheken typisieren (der Spike liest den Text der Skalare), die Wirkung von Jackson 2.22.4 gegenüber 2.21.7, `schema migrate --execute` gegen SQL Server und `geometry`/`fulltext` in der erzeugten DDL. Der Re-Evaluierungs-Trigger fängt jede Änderung der Bibliothek oder des Formats.
+
+## Fitness Function (falls maschinell prüfbar)
+
+| Tooling | Regel | Make-Target |
+|---|---|---|
+| Unit-Tests des Lesers (`kotlin.test`) | Jedes Feld der gelesenen Teilmenge und jeder Fehlerfall der Messzeile MF (Duplikate, unbekannter Typ, Tabelle ohne Spalten, Schlüssel auf unbekannte Spalte, abgeschnittene Datei, Typlücke, Datei über 1 MiB) ergibt Beschreibung oder genau einen Ladefehler mit Pfad, Zeile und Spalte; die Meldung enthält nie den Inhalt. Noch kein bestandenes Gate. | — (Gate noch einzurichten) |
+| Import-Regeln (detekt) | `simulation` importiert die YAML-Bibliothek nicht; `ForbiddenImport/simulation` bleibt unverändert grün | `make detekt` |
+| Lock und Prüfsummen | Die Bibliothek steht in `gradle.lockfile` und `gradle/verification-metadata.xml` (Netz nur bei `make deps-lock`) | `make build`, `make test` |
+
+## Re-Evaluierungs-Trigger
+
+Ein neues Release von d-migrate mit geändertem `schema_format` oder geänderten Feldern; eine Messung am echten SQL Server, die die Überführungsregel, den Textvergleich oder die Typabbildung widerlegt; eine Entscheidung zum Typkatalog oder zur Länge von `UnicodeText`; ein Sicherheitsbefund zu `jackson-dataformat-yaml` oder `snakeyaml`; die Entscheidung, ein Jar mit eingebetteten Bibliotheken auszuliefern.
+
+## Geschichte
+
+| Datum | Ereignis | Verweis |
+|---|---|---|
+| 2026-10-30 | Proposed – Beschreibungsform B, neutrales Schema-Modell von d-migrate als YAML, Leseweg YAML direkt, Jackson 2.21.7, `IS [NOT] NULL` als Setzung des Nutzers, strenge Überführung, `max_length` lesen und nicht durchsetzen, Typlücken beim Laden abweisen (Entscheidung des Nutzers, 2026-10-30) nach Messung M1 bis MV; übrige Punkte als Setzung (Voreinstellung) gekennzeichnet; Quelle des Referenz-Skripts (N5) ausdrücklich nicht entschieden | [Optionsbericht](../../reviews/2026-10-30-e6bfd2d-optionen-adr-simulation-formen.md), [Nachtrag](../../reviews/2026-10-30-13434ec-optionen-adr-simulation-formen-yaml.md) |

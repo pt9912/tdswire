@@ -11,7 +11,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-simulations-backend
 
-**Bezug:** [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-FA-08](../../../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-QA-05](../../../../spec/lastenheft.md#tds-qa-05--wartbarkeit), [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md), [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md)
+**Bezug:** [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-FA-08](../../../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-QA-05](../../../../spec/lastenheft.md#tds-qa-05--wartbarkeit), [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md), [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md), [ADR-0012](../../adr/0012-simulations-backend-beschreibung-und-formen.md)
 
 **Berührte Spec-Stellen:** SPEC-025 · SPEC-035 · SPEC-036 · SPEC-040 · ARC-008 · ARC-016 · [TDS-FA-11.a](../../../../spec/spezifikation.md#tds-fa-11a--simulations-backend)
 
@@ -49,7 +49,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 Liefer-Punkte (drei):
 
 - [ ] **Änderungsweitergabe** ([TDS-FA-11.a](../../../../spec/spezifikation.md#tds-fa-11a--simulations-backend) Schritt 6): W1, W2 und W3 prüfen die Werte, rufen den Callback der Tabelle (`where = null` für eine Anweisung ohne `WHERE`) und senden dessen Zahl als `UpdateCount`; ohne Callback endet die Anweisung mit `TDS_UNSUPPORTED_SQL`, ein Fehler im Callback ist ein `Failure` mit `TDS_BACKEND_ERROR`; bei einem Fehler der Wertprüfung wird kein Callback gerufen (zählende Attrappe mit positivem Kontrollfall); jede Anweisung ruft ihren Callback genau einmal.
-- [ ] **Verdrahtung:** `runtime` (ARC-008) verdrahtet das Simulations-Backend optional, den Weg legt die ADR aus [slice-adr-simulation-formen](../in-progress/slice-adr-simulation-formen.md) fest; kein anderes Package importiert `simulation` (die Importregel in `config/detekt/detekt.yml` bleibt grün), und der Server startet und beantwortet den Login auch ohne das Simulations-Backend (Test).
+- [ ] **Verdrahtung:** `runtime` (ARC-008) verdrahtet das Simulations-Backend optional, den Weg legt [ADR-0012](../../adr/0012-simulations-backend-beschreibung-und-formen.md) aus [slice-adr-simulation-formen](../in-progress/slice-adr-simulation-formen.md) fest — Kotlin-Schnittstelle und eine Umgebungsvariable mit dem Pfad der Beschreibungsdatei (Name legt der Slice fest und trägt ihn in die Konfiguration ein). Hierher gehört die neue Abhängigkeit: `jackson-dataformat-yaml` 2.21.7 als `implementation` (`make deps-lock` schreibt `gradle.lockfile` und `gradle/verification-metadata.xml`; Größenordnung 6 Sperrzeilen und 11 Komponenten nach der ADR), der Adapter in `runtime`, der die Datei mit der Strom-API zu einem Baum aus Abbildung, Liste und Skalar mit Zeile und Spalte liest und an den Leser aus [slice-sim-erkennung](slice-sim-erkennung.md) übergibt, die Größengrenze von 1 MiB vor dem Parsen und der Startabbruch bei einem Ladefehler vor dem Binden des Ports (Test); geladene Tabellen haben eine leere Zeilenquelle und keine Callbacks; kein anderes Package importiert `simulation` (die Importregel in `config/detekt/detekt.yml` bleibt grün), und der Server startet und beantwortet den Login auch ohne das Simulations-Backend (Test).
 - [ ] **Test-Gate nach SPEC-040:** Ein Integrationstest mit dem Referenzclient gegen den Serverprozess mit Simulations-Backend prüft Auswahl mit Bedingung, leeres Ergebnis, eine Zeilenquelle oberhalb der Speichergrenze (Prozess mit gesetztem Heap), den Fehler der Zeilenquelle und Cancel mit Folgeabfrage; das Make-Target steht in `harness/README.md` §Sensors, und ob es in `make gates` aufgenommen wird, entscheidet die gemessene Laufzeit (Frage in §6).
 
 Nachweis-Pflichten für alle drei Punkte:
@@ -88,12 +88,12 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-sim-auswahl-streaming](slice-sim-auswahl-streaming.md), [slice-qa-dotnet-referenztest-geruest](../done/slice-qa-dotnet-referenztest-geruest.md), [slice-bootstrap-konfiguration](slice-bootstrap-konfiguration.md) und [slice-sql-batch-dispatch](slice-sql-batch-dispatch.md) liegen in `done/` (der Serverprozess startet und beantwortet SQL_BATCH), und ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): [ADR-0012](../../adr/0012-simulations-backend-beschreibung-und-formen.md) steht auf `Accepted`, [slice-sim-erkennung](slice-sim-erkennung.md) (der Leser vom Baum zur Beschreibung) und [slice-sim-auswahl-streaming](slice-sim-auswahl-streaming.md), [slice-qa-dotnet-referenztest-geruest](../done/slice-qa-dotnet-referenztest-geruest.md), [slice-bootstrap-konfiguration](slice-bootstrap-konfiguration.md) und [slice-sql-batch-dispatch](slice-sql-batch-dispatch.md) liegen in `done/` (der Serverprozess startet und beantwortet SQL_BATCH), und ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): mehr als drei Liefer-Punkte in §2 oder der Integrationstest sprengt den Rahmen; Schnittvorschlag: Änderungsweitergabe als eigener Slice.
-- `in-progress` → `open` (blockiert — Carveout?): der Serverprozess beantwortet SQL_BATCH noch nicht, oder der Weg der Verdrahtung ist nicht entschieden.
+- `in-progress` → `open` (blockiert — Carveout?): der Serverprozess beantwortet SQL_BATCH noch nicht, oder [ADR-0012](../../adr/0012-simulations-backend-beschreibung-und-formen.md) wird durch eine Folge-ADR abgelöst (Weg der Verdrahtung, Bibliothek oder Format).
 
 ## 5. Closure-Trigger
 
@@ -110,6 +110,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
+- Neue Abhängigkeit im Lock: `jackson-dataformat-yaml` zieht `databind`, `core`, `annotations` und `snakeyaml` mit (5 Jars, 2,8 MB; die Prüfsummen stammen vom ersten Abruf, `verify-signatures` steht auf `false`). Die Zahlen der ADR sind ein Lock-Versuch auf einer Kopie, kein Lauf in diesem Repo: Die Closure nennt die tatsächlichen Änderungen von `make deps-lock`. Ob ein Lizenznachweis nötig wird, trägt [slice-release-artefakt-lizenz](slice-release-artefakt-lizenz.md); der Slice fügt kein Hinweisdokument hinzu. — **Ausgang:** offen bis zur Closure.
+- Größe: Die Verdrahtung trägt jetzt Bibliothek, Adapter, Größengrenze, Startabbruch und Umgebungsvariable und ist der größte der drei Liefer-Punkte; wächst sie über den Rahmen, ist der Schnitt „Änderungsweitergabe“ und „Datei laden und verdrahten“ als zwei Slices (siehe §4). — **Ausgang:** offen bis zur Closure.
 - Callbacks schreiben beim Integrator; eine Wiederholung nach einem Teilerfolg würde sie doppelt rufen ([ADR-0007](../../adr/0007-fehler-und-attention.md), Option C ist nicht gewählt). Der Test belegt genau einen Aufruf je Anweisung; die Aussage gilt nur, solange der Server nicht wiederholt. — **Ausgang:** offen bis zur Closure.
 - Die Aussage „Zeilenquelle oberhalb der Speichergrenze“ gilt für den Heap des Serverprozesses im Test, nicht für den Speicher des Clients und nicht für das Produkt unter Last (`BEO-TDS/rueckstau-im-produktivbetrieb-nicht-gemessen`); die Closure nennt den gesetzten Heap und die Zeilenzahl. — **Ausgang:** offen bis zur Closure.
 - Laufzeit des Integrationstests im Gate: ungemessen; ein langsames Gate verleitet zum Herausnehmen — die Messung steht in der Closure, die Aufnahme in `make gates` folgt ihr. — **Ausgang:** offen bis zur Closure.
