@@ -21,12 +21,12 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotSame
@@ -360,22 +360,54 @@ class HandshakeDriverTest {
     }
 
     /**
-     * Wirft der Adapter eine `CancellationException`, zählt das nicht als Ablehnung: der Treiber sendet
-     * keine Login-Antwort und loggt keine Ablehnung, reicht die Ausnahme weiter und schließt den Kanal
-     * (die Verbindung bleibt nicht offen zurück). Das Passwort ist überschrieben.
+     * Wirft der Adapter eine `CancellationException`, ohne dass der Aufruf abgebrochen ist, ist das ein
+     * Adapterfehler und wird wie eine Ablehnung beantwortet (dieselben Bytes, `ADAPTER_FAILURE`, Typ der
+     * Ausnahme im Log). Festlegung, nicht gemessen.
      *
      * @spec SPEC-008
+     * @spec SPEC-012
      * @spec SPEC-048
      */
     @Test
-    fun `Eine Abbruchausnahme des Adapters wird weitergereicht und der Kanal geschlossen`() = blocking {
+    fun `Eine Abbruchausnahme des Adapters ohne Abbruch des Aufrufs ist ein Adapterfehler`() = blocking {
         val adapter = RecordingAdapter { throw CancellationException("Abbruch im Adapter") }
         val channel = FakeHandshakeChannel(happyScript())
-        assertFailsWith<CancellationException> { driver(adapter).run(channel) }
-        assertTrue(channel.closed, "Kanal nach dem Abbruch offen")
+        val outcome = driver(adapter).run(channel)
+        assertEquals(HandshakeOutcome.Closed(CloseReason.LOGIN_REJECTED), outcome)
+        assertContentEquals(LoginResponses.rejection.payload, channel.sent.last().payload)
+        val expectedLog: List<LogEntry> = listOf(
+            LogEntry.LoginRejected(LoginRejection.ADAPTER_FAILURE),
+            LogEntry.AdapterFailed(CancellationException::class.java.name),
+        )
+        assertEquals(expectedLog, log.entries.toList())
+        assertTrue(channel.closed)
+        assertTrue(checkNotNull(adapter.passwordChars).reveal().all { it == '\u0000' })
+    }
+
+    /**
+     * Stammt die `CancellationException` vom Abbruch des Aufrufers (Zustand des eigenen Jobs), wird sie
+     * weitergereicht: keine Login-Antwort, keine Ablehnung im Log, der Kanal ist geschlossen. Der Adapter
+     * wirft erst, nachdem der Aufrufer abgebrochen hat.
+     *
+     * @spec SPEC-008
+     */
+    @Test
+    fun `Eine Abbruchausnahme nach dem Abbruch des Aufrufers ist keine Ablehnung`() = blocking {
+        val started = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val adapter = RecordingAdapter {
+            started.countDown()
+            release.await()
+            throw CancellationException("Abbruch")
+        }
+        val channel = FakeHandshakeChannel(happyScript())
+        val running = launch { driver(adapter).run(channel) }
+        while (started.count > 0) delay(TICK_MILLIS)
+        running.cancelAndJoin()
+        release.countDown()
+        assertTrue(channel.closed, "Kanal nach dem Abbruch des Aufrufers offen")
         assertEquals(1, channel.sent.size, "keine Login-Antwort, nur die PRELOGIN-Antwort")
         assertTrue(log.entries.isEmpty(), "keine Ablehnung im Log")
-        assertTrue(checkNotNull(adapter.passwordChars).reveal().all { it == '\u0000' })
     }
 
     /**
@@ -427,37 +459,78 @@ class HandshakeDriverTest {
 
     /**
      * Verwaiste Adapteraufrufe sind begrenzt: bei ein Platz im `AuthPool` laufen nie zwei Aufrufe zugleich,
-     * und ein Aufruf, der bei Fristablauf noch auf seinen Platz wartet, beginnt nie. Der laufende Aufruf
-     * endet folgenlos (keine Antwort, Passwort überschrieben).
+     * und ein Aufruf, der beim Abbruch noch auf seinen Platz wartet, beginnt nie. Der Test wartet darauf,
+     * dass der erste Aufruf begonnen hat und alle drei Anmeldungen eingereiht sind, bevor er abbricht;
+     * der laufende Aufruf endet folgenlos (keine Antwort, Passwort überschrieben).
      *
      * @spec SPEC-008
      */
     @Test
-    fun `Verwaiste Adapteraufrufe sind begrenzt und beginnen nach der Frist nicht mehr`() = blocking {
+    fun `Verwaiste Adapteraufrufe sind begrenzt und beginnen nach dem Abbruch nicht mehr`() = blocking {
         val calls = AtomicInteger()
         val running = AtomicInteger()
         val maxRunning = AtomicInteger()
+        val release = CountDownLatch(1)
         val requests = ConcurrentLinkedQueue<AuthRequest>()
         val adapter = object : AuthAdapter {
             override fun authenticate(request: AuthRequest): AuthResult {
                 calls.incrementAndGet()
                 requests += request
                 maxRunning.accumulateAndGet(running.incrementAndGet(), ::maxOf)
-                Thread.sleep(BLOCKING_MILLIS)
+                release.await()
                 running.decrementAndGet()
                 return AuthResult.Accepted(Principal("sa"))
             }
         }
         val pool = AuthPool(parallelism = 1)
-        val limited = HandshakeDriver(HandshakeConfig(), adapter, log, 150.milliseconds, pool)
+        val limited = HandshakeDriver(HandshakeConfig(), adapter, log, authPool = pool)
         val channels = List(3) { FakeHandshakeChannel(happyScript()) }
-        val outcomes = channels.map { async { limited.run(it) } }.awaitAll()
-        outcomes.forEach { assertEquals(HandshakeOutcome.Closed(CloseReason.LOGIN_TIMEOUT), it) }
-        delay(BLOCKING_MILLIS * 2)
-        assertEquals(1, calls.get(), "Aufrufe, die bei Fristablauf noch warteten, begannen")
+        val runs = channels.map { channel ->
+            launch { limited.run(channel) }.also {
+                while (!channel.exhausted) yield()
+                repeat(SETTLE_YIELDS) { yield() }
+            }
+        }
+        while (calls.get() == 0) delay(TICK_MILLIS)
+        runs.forEach { it.cancelAndJoin() }
+        release.countDown()
+        awaitPassword(requests.first())
+        assertEquals(1, calls.get(), "Aufrufe, die beim Abbruch noch warteten, begannen")
         assertEquals(1, maxRunning.get(), "gleichzeitige Adapteraufrufe")
-        channels.forEach { assertEquals(1, it.sent.size, "Antwort nach Fristablauf") }
+        channels.forEach { assertEquals(1, it.sent.size, "Antwort nach dem Abbruch") }
         assertTrue(requests.all { it.password.reveal().all { c -> c == '\u0000' } }, "Passwort nicht ueberschrieben")
+    }
+
+    /**
+     * Die Obergrenze gilt je `AuthPool`: zwei Treiber auf einem Pool mit einem Platz lassen nie zwei
+     * Adapteraufrufe zugleich laufen.
+     *
+     * @spec SPEC-008
+     */
+    @Test
+    fun `Die Obergrenze der Adapteraufrufe gilt je Pool ueber Treiber hinweg`() = blocking {
+        val running = AtomicInteger()
+        val maxRunning = AtomicInteger()
+        val adapter = object : AuthAdapter {
+            override fun authenticate(request: AuthRequest): AuthResult {
+                maxRunning.accumulateAndGet(running.incrementAndGet(), ::maxOf)
+                Thread.sleep(TICK_MILLIS * 3)
+                running.decrementAndGet()
+                return AuthResult.Accepted(Principal("sa"))
+            }
+        }
+        val pool = AuthPool(parallelism = 1)
+        val first = HandshakeDriver(HandshakeConfig(), adapter, log, authPool = pool)
+        val second = HandshakeDriver(HandshakeConfig(), adapter, log, authPool = pool)
+        val outcomes = listOf(first, second).map { driver ->
+            async { driver.run(FakeHandshakeChannel(happyScript())) }
+        }.awaitAll()
+        outcomes.forEach { assertIs<HandshakeOutcome.Ready>(it) }
+        assertEquals(1, maxRunning.get(), "gleichzeitige Adapteraufrufe ueber zwei Treiber")
+    }
+
+    private suspend fun awaitPassword(request: AuthRequest) {
+        while (request.password.reveal().any { it != '\u0000' }) delay(TICK_MILLIS)
     }
 
     private companion object {
@@ -466,5 +539,6 @@ class HandshakeDriverTest {
         const val BLOCKING_MILLIS = 400L
         const val TICK_MILLIS = 10L
         const val MIN_TICKS = 10
+        const val SETTLE_YIELDS = 5
     }
 }

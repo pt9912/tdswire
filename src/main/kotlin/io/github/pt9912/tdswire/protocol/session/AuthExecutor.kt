@@ -9,6 +9,8 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.isActive
 import kotlin.coroutines.cancellation.CancellationException
 
 /** Was der Adapteraufruf ergab: ein Ergebnis oder der Typ einer Ausnahme. */
@@ -27,24 +29,30 @@ internal sealed interface AuthOutcome {
  *   verworfen, und er belegt bis dahin einen der [AuthPool.parallelism] Plätze.
  * - Ein Aufruf, der noch auf einen Platz wartet, beginnt nie; der Adapter wird nicht gerufen.
  *
- * Mehr als [AuthPool.parallelism] Adapteraufrufe laufen nie zugleich (Obergrenze der verwaisten Aufrufe). Die
+ * Je [AuthPool] laufen nie mehr als [AuthPool.parallelism] Adapteraufrufe zugleich, auch über mehrere
+ * Executor und Treiber hinweg (Obergrenze der verwaisten Aufrufe). Die
  * Wartenden reihen sich dahinter ein, ihre Zahl begrenzt nur die Zahl der Verbindungen; eine
  * Drosselung wiederholter Anmeldeversuche ist das nicht (`slice-qa-sicherheit`). Das Passwort ist
- * überschrieben, sobald der Aufruf endet, auch bei einer Ausnahme und auch wenn er nie begann.
+ * überschrieben, sobald der Aufruf endet, auch bei einer Ausnahme und auch wenn er nie begann; bei einem
+ * wartenden, abgebrochenen Aufruf ist das erst, wenn die Warteschlange ihn erreicht.
+ *
+ * Eine `CancellationException` des Adapters gilt als Abbruch nur, wenn der Aufruf selbst abgebrochen ist
+ * (Zustand des eigenen Jobs); sie wird dann weitergeworfen. Jede andere ist ein Adapterfehler und ergibt
+ * [AuthOutcome.Failed] wie jede andere Ausnahme. Das ist eine Festlegung, nicht gemessen.
  *
  * Festlegung ohne Messung: Voreinstellung sind [AuthPool.DEFAULT_PARALLELISM] Plätze auf
  * `Dispatchers.IO`; ein Pbkdf2-Aufruf ist CPU-gebunden, eine Messung der Wirkung auf den Transport
  * und der richtigen Zahl liegt nicht vor.
  */
 internal class AuthExecutor(pool: AuthPool) {
-    private val scope = CoroutineScope(SupervisorJob() + pool.dispatcher.limitedParallelism(pool.parallelism))
+    private val scope = CoroutineScope(SupervisorJob() + pool.limited)
 
     fun start(adapter: AuthAdapter, request: AuthRequest): Deferred<AuthOutcome> {
         val call = scope.async {
             try {
                 val attempt = runCatching { adapter.authenticate(request) }
                 val failure = attempt.exceptionOrNull()
-                if (failure is CancellationException) throw failure
+                if (failure is CancellationException && !currentCoroutineContext().isActive) throw failure
                 if (failure != null) {
                     AuthOutcome.Failed(failure.javaClass.name)
                 } else {
@@ -66,6 +74,9 @@ internal class AuthExecutor(pool: AuthPool) {
  * [DEFAULT_PARALLELISM] Plätzen.
  */
 class AuthPool(val dispatcher: CoroutineDispatcher = Dispatchers.IO, val parallelism: Int = DEFAULT_PARALLELISM) {
+    /** Die begrenzte Sicht auf [dispatcher]; sie entsteht einmal je Pool und gilt für alle Executor, die ihn teilen. */
+    internal val limited: CoroutineDispatcher = dispatcher.limitedParallelism(parallelism)
+
     companion object {
         const val DEFAULT_PARALLELISM = 4
     }

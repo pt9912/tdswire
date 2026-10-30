@@ -29,9 +29,10 @@ sealed interface HandshakeOutcome {
  * Annahme ein; läuft die Frist ab, schließt er ohne Antwort. Während der Adapter läuft, liest er
  * nicht weiter.
  *
- * Bricht der Aufrufer [run] ab oder endet [run] mit einer Ausnahme (auch mit der
- * `CancellationException` eines Adapters, die nicht als Ablehnung zählt), schließt der Treiber den
- * Kanal und reicht die Ausnahme weiter; die Verbindung bleibt nie offen zurück. Nur [HandshakeOutcome.Ready]
+ * Bricht der Aufrufer [run] ab oder endet [run] mit einer Ausnahme, schließt der Treiber den
+ * Kanal und reicht die Ausnahme weiter; die Verbindung bleibt nie offen zurück. Eine
+ * `CancellationException` des Adapters ist ein Adapterfehler und wird wie `Rejected` beantwortet, außer
+ * der Abbruch stammt vom Aufrufer (siehe [AuthExecutor]). Nur [HandshakeOutcome.Ready]
  * lässt den Kanal offen.
  *
  * Festlegung ohne Messung: [loginTimeout] hat den vorläufigen Wert 15 s aus `SPEC-008` und beginnt mit
