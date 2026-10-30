@@ -41,7 +41,7 @@
 | `transport/tls/TlsStartProbe.kt` | geprüft; Befund F-5 |
 | `src/test/.../transport/listener/` | geprüft; Befunde F-1, F-4, F-8, F-12 |
 | `src/test/.../transport/tls/TlsStartProbeTest.kt`, `testsupport/KeyVariants.kt` | geprüft, ohne Befund außer F-5 |
-| `docs/plan/planning/in-progress/slice-transport-listener-lebenszyklus.md` | geprüft, ohne Befund (Festlegungen gekennzeichnet) |
+| `docs/plan/planning/done/slice-transport-listener-lebenszyklus.md` | geprüft, ohne Befund (Festlegungen gekennzeichnet) |
 | `config/detekt/detekt.yml`, `build.gradle.kts`, `Dockerfile`, `gradle.lockfile` | im Diff unverändert |
 
 ## Summary

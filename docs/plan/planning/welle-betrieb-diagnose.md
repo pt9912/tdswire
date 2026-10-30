@@ -79,7 +79,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 Zielsetzung: Was nicht ausdrücklich ausgeschlossen ist, dehnt die Welle, bis
 der Closure-Trigger unerreichbar wird.
 
-- Startprobe der TLS-Konfiguration, Diagnose für einen belegten Port als Code, Listener: [welle-transport-tls](welle-transport-tls.md) ([slice-transport-listener-lebenszyklus](in-progress/slice-transport-listener-lebenszyklus.md)).
+- Startprobe der TLS-Konfiguration, Diagnose für einen belegten Port als Code, Listener: [welle-transport-tls](welle-transport-tls.md) ([slice-transport-listener-lebenszyklus](done/slice-transport-listener-lebenszyklus.md)).
 - Verhalten des geordneten Beendens (SPEC-044, `SHUTDOWN_GRACE`, `TDS_SHUTDOWN`) und Ressourcenfreigabe: [slice-abbruch-ressourcen-shutdown](open/slice-abbruch-ressourcen-shutdown.md) ([welle-fehler-abbruch](welle-fehler-abbruch.md)).
 - Semantik und Durchsetzung von `QUERY_TIMEOUT` und `CANCEL_TIMEOUT`, Zuordnung der Fehlercodes: [slice-attention-cancel-timeout](open/slice-attention-cancel-timeout.md), [slice-adr-backend-grenzen](open/slice-adr-backend-grenzen.md), [slice-fehler-mapping](in-progress/slice-fehler-mapping.md).
 - Loginspektion über das Gesamtsystem, Zeitgleichheit des Passwortvergleichs, Drosselung wiederholter Anmeldeversuche: [slice-qa-sicherheit](open/slice-qa-sicherheit.md).
