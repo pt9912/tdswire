@@ -69,8 +69,12 @@ internal class ServerProcess(environment: Map<String, String>, withFlag: Boolean
         return awaitExit()
     }
 
+    /** Beendet das Kind, falls es läuft, und wartet bis zu [WAIT_SECONDS] auf sein Ende. */
     override fun close() {
-        if (process.isAlive) process.destroyForcibly()
+        if (process.isAlive) {
+            process.destroyForcibly()
+            process.waitFor(WAIT_SECONDS, TimeUnit.SECONDS)
+        }
     }
 
     companion object {

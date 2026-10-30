@@ -181,6 +181,26 @@ internal class HandshakeWiringTest : RuntimeTestBase() {
     }
 
     /**
+     * Die Frist des Treibers beginnt mit `run` und trägt den konfigurierten Wert: bei `LOGIN_TIMEOUT=1` und einem
+     * Zeitgeber des Listeners, der nie freigegeben wird, beendet allein der Treiber die Verbindung binnen der
+     * Wartezeit von `eventually` (fünf Sekunden), und zwar als `HANDLER_RETURNED`, nicht als `LOGIN_TIMEOUT` des
+     * Listeners. Die Frist des Treibers läuft in Echtzeit (eine Sekunde), nicht über den Zeitgeber.
+     *
+     * @spec SPEC-008
+     */
+    @Test
+    fun `Die Frist des Treibers trägt den konfigurierten Wert`() = blocking {
+        val delayer = ManualDelayer()
+        val recorded = RecordingEvents()
+        val server = running(environment(ConfigKeys.LOGIN_TIMEOUT to "1"), Wiring(events = recorded, delayer = delayer))
+        RawClient(server.port).use {
+            eventually("Frist des Listeners läuft") { delayer.pending == listOf(1.seconds) }
+            eventually("Treiber beendet die Verbindung") { recorded.closed().isNotEmpty() }
+            assertEquals(ConnectionEnd.HANDLER_RETURNED, recorded.closed().single().end)
+        }
+    }
+
+    /**
      * Nach der Annahme meldet der Handler „Login abgeschlossen“: die Frist ist beendet, die Verbindung bleibt
      * offen. Die erste Nachricht danach beendet sie (es gibt noch keinen Anfragepfad; Festlegung): der Handler
      * kehrt zurück, `HANDLER_RETURNED`.
