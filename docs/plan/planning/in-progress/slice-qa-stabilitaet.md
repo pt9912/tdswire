@@ -43,10 +43,10 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] Negativ- und Fragmentierungstests nach `SPEC-027` laufen grün.
-- [ ] Fuzz-/Property-Tests: defekte Paketlängen, Offsets und Typwerte verursachen keinen ungefangenen Absturz.
-- [ ] Test mit parallelen Verbindungen bis `MAX_CONNECTIONS` (`SPEC-034`).
-- [ ] `make gates` grün.
+- [x] Negativ- und Fragmentierungstests nach `SPEC-027` laufen grün — für Paket-Codec, Leser und Anmeldepfad (Listener, Handshake-Treiber, Sockets am Loopback); der Anfragepfad nach dem Login ist nicht belegt, siehe §6.
+- [x] Fuzz-/Property-Tests: defekte Paketlängen, Offsets und Typwerte verursachen keinen ungefangenen Absturz — für Paketköpfe, Nachrichtengrenzen und Zerstückelung (Referenz `FramingOracle`) und für PRELOGIN/LOGIN7 durch den Treiber (überschriebene, eingefügte und herausgeschnittene Bytes, darunter Offsets und Längen innerhalb der Nachricht); RPC- und SQL_BATCH-Nachrichten belegen nur die Fuzz-Tests ihrer Parser ohne Transport.
+- [ ] Test mit parallelen Verbindungen bis `MAX_CONNECTIONS` (`SPEC-034`) — 105 parallele Verbindungen mit fehlerhaften und getrennten Clients sind belegt, die Grenze `MAX_CONNECTIONS` gibt es im Code nicht; offen bis `slice-abbruch-ressourcen-shutdown` sie liefert, siehe §6.
+- [x] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
@@ -66,9 +66,10 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | Testquellen des Protokollpfads | neu | Negativ-, Fragmentierungs-, Fuzz-Tests nach [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität) |
-| `tools/mk/` Make-Fragment | neu | Test-Gate (`SPEC-024`) |
+| `src/test/kotlin/io/github/pt9912/tdswire/stability/` | neu | Referenz der Nachrichtengrenzen (`FramingOracle`), Erzeuger beschädigter Ströme (`WireGenerator`), Fuzz des Paket-Codecs und des Anmeldepfads, Abbruch an jeder Byteposition, Verbindungssturm gegen den Listener mit dem Handshake-Treiber |
+| `tools/mk/` Make-Fragment | entfällt | `make test` (`tools/mk/test.mk`, `SPEC-024`) führt die neuen Tests bereits aus; ein zweites Target wäre eine Kopie |
 
-Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
+Ist-Zustand gegen den Plan gemessen: Es gibt keinen verdrahteten Serverprozess, keinen SQL_BATCH-Pfad und keine Begrenzung auf `MAX_CONNECTIONS` im Code (`grep` über `src/` findet weder `MAX_CONNECTIONS` noch `maxConnections`). Die Tests laufen deshalb gegen den Listener mit dem Handshake-Treiber und dem Paket-Codec im Prozess, mit JDK-Sockets am Loopback als Gegenstelle. Was dadurch nicht belegt ist, steht in §6 mit Träger.
 
 ## 4. Trigger
 
@@ -98,6 +99,11 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 - Das Transportframework ist nicht festgelegt, die Testart hängt daran. — **Ausgang:** offen bis zur Closure.
+- `MAX_CONNECTIONS` (`SPEC-034`) ist im Code nicht vorhanden: der Listener nimmt unbegrenzt an, keine Verbindung wird wegen des Limits abgewiesen. Der Test belegt 105 gleichzeitige Verbindungen (21 Fälle, 5 Läufe je Fall) und zusätzlich 21 in der Aufwärmrunde, aber keine Grenze und keine Abweisung über der Grenze. Träger der Grenze ist `slice-abbruch-ressourcen-shutdown` (führt `SPEC-034`); der Test „bis `MAX_CONNECTIONS`“ bleibt in diesem Slice offen, bis die Grenze existiert. — **Ausgang:** offen bis zur Closure.
+- Kein SQL_BATCH- und kein RPC-Pfad in der Sitzung, keine Anbindung des Sequenzierers: Nach dem Login verwirft der Handler der Tests jede Nachricht. Fuzz mit defekten SQL_BATCH-, RPC- und Attention-Nachrichten in einer angemeldeten Sitzung, Abbruch während eines Ergebnisstroms und Rücksetzung mitten in einer Antwort sind nicht belegt; die Parser (`SqlBatchParser`, `RpcParser`) haben eigene Fuzz-Tests ohne Transport. Träger: `slice-sql-batch-dispatch`, `slice-backend-sequenzierer`, `slice-attention-cancel-timeout`. — **Ausgang:** offen bis zur Closure.
+- Die Gegenstelle ist ein JDK-Socket, kein Referenzclient: wie `Microsoft.Data.SqlClient` trennt, zerstückelt und zurücksetzt, ist nicht gemessen. Träger: `slice-qa-kompatibilitaet`. — **Ausgang:** offen bis zur Closure.
+- TLS und Anmeldung sind nicht zusammen geprüft: der Verbindungssturm nutzt den unverschlüsselten Testmodus (`TEST_UNENCRYPTED`), der Anmelde-Fuzz ersetzt den TLS-Handschlag durch eine Zusage; defekte TLS-Records stehen in den Tests der TLS-Schleife, beschädigte LOGIN7-Nachrichten hinter echtem TLS nicht. Kein Träger beschlossen; Vorschlag `slice-qa-sicherheit`. — **Ausgang:** offen bis zur Closure.
+- Die Ressourcenfreigabe ist an Dateideskriptoren (`UnixOperatingSystemMXBean`, Linux im Container) und an die Threads des Listeners gemessen, nicht am Heap und nicht an den gemeinsamen Pools von `Dispatchers.Default` und `Dispatchers.IO`. — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 
