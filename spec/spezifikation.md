@@ -201,11 +201,15 @@ Zeilenquelle, Abbruch.
 `CONNECTED → PRELOGIN → TLS_NEGOTIATION (falls erforderlich) → LOGIN7 → READY → CLOSED`. Profile mit
 vorgelagertem TLS (TDS 8.0, Strict-Encryption) beginnen mit
 `CONNECTED → TLS_NEGOTIATION → PRELOGIN`. Nur `READY` akzeptiert SQL_BATCH/RPC; ATTENTION ist im
-passenden laufenden Anfragezustand zulässig. Ungültige Übergänge werden abgelehnt.
+passenden laufenden Anfragezustand zulässig. Der Zustand ist ein expliziter Automat: eine Aufzählung der
+Zustände und eine reine Übergangsfunktion (Zustand, Ereignisart) → (Folgezustand, Aktion). Ungültige
+Übergänge werden abgelehnt; die Antwort darauf (Verbindung ohne Antwort schließen oder ein Fehler) und
+die Reichweite von ATTENTION vor dem Login sind noch festzulegen.
 
 Anfragezustand (nur innerhalb von `READY`): `IDLE → RUNNING → STREAMING → COMPLETED → IDLE`. Bei
 ATTENTION führen `RUNNING` und `STREAMING` über `CANCELLING` nach `COMPLETED`. Der Response
-Sequencer hält den Anfragezustand und entscheidet jeden Übergang atomar je Sitzung; der Transport
+Sequencer hält den Anfragezustand und entscheidet jeden Übergang atomar je Sitzung: Übergang und das
+zugehörige Schreiben laufen unter einer Sperre je Sitzung. Der Transport
 meldet ein erkanntes ATTENTION-Paket an ihn, der Dispatch nimmt kein ATTENTION an. Bei
 gleichzeitigem DONE und ATTENTION gewinnt der erste Übergang. Trifft ATTENTION nach `COMPLETED` oder
 in `IDLE` ein, bleibt das bereits gesendete Ergebnis gültig, und der Server beantwortet das
