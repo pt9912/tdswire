@@ -32,8 +32,18 @@ Der Adapter liefert keinen Text und keine Nummer für den Client. Die Antwort an
 
 ## Einstiegsimplementierung
 
-Feste Benutzerliste aus der Konfiguration (Kennung, Passwortprüfwert). Die Liste wird beim Start validiert (`TDS-FA-09.a`); eine fehlerhafte Liste bricht den Start ab. Der Konfigurationsweg und das Format der Prüfwerte sind noch festzulegen. Für Test und kleine Betriebe gedacht.
+Feste Benutzerliste aus der Konfiguration (Kennung, Passwortprüfwert). Die Liste wird beim Start validiert (`TDS-FA-09.a`); eine fehlerhafte Liste bricht den Start ab. Für Test und kleine Betriebe gedacht.
+
+Prüfwertformat und Konfigurationsweg (vom Nutzer gewählt, 2026-10-30; Zahlen und Einzelheiten unten sind offen oder Vorschlag, keine Festlegung):
+
+- **Kennungsschema:** Jeder Eintrag trägt vor dem Prüfwert eine Verfahrenskennung, `{kennung}Wert`. Ein Eintrag ohne Kennung und eine unbekannte Kennung brechen den Start ab (Setzung, nicht gemessen).
+- **Verfahren:** `plain` nur bei ausdrücklich eingeschaltetem Testmodus, sonst Startabbruch vor dem Binden des Ports; `pbkdf2-sha256` (`PBKDF2WithHmacSHA256` des JDK, keine Fremdbibliothek), Wert `Salz$Iterationen$Hash`.
+- **Iterationszahl:** Standardwert mit hartem Boden, vom Betreiber nicht unterschreitbar, und eine Obergrenze. Die Zahlen sind offen.
+- **Konfigurationsweg:** eigene Datei nur für die Benutzerliste, eigenes Zeilenformat, eigener Parser; Duplikate sind erkennbar, die Reihenfolge ist stabil. Vorschlag: eine Zeile je Eintrag, `Kennung<TAB>Prüfwert`, UTF-8, kein Escaping.
+- **Testmodus-Schalter:** eigener Schalter nur für `plain`; der Start-Log nennt den Modus.
+- **Fehlerwerte:** Art und Listenplatz, ohne Prüfwert und ohne Passwort.
+- **Offen:** alleinstehendes Hochsurrogat im Passwort (derselbe Hash wie `?`), Unicode-Normalform, Strenge der Zahlenerkennung, Padding von Salz und Hash, leerer `plain`-Wert, Groß-/Kleinschreibung der Kennung, Zahlen der Iterationen, Einzelheiten des Zeilenformats.
 
 ## Gemessen
 
-Siehe die Messmatrix in [ADR-0009](../docs/plan/adr/0009-authentifizierungsmodus.md): LOGIN7-Felder, Entschleierung, Ablehnungsbytes, erkennbare Modi. Nicht gemessen: Zeitgleichheit von unbekannter Kennung und falschem Passwort, Windows-SSPI (NTLM), Verschlüsselungsmodus als Adaptereingabe, TDS 8.0 mit SQL-Authentifizierung, LOGIN7 über mehrere Pakete, Pooling mit `ResetConnection`, andere Clients.
+Siehe die Messmatrix in [ADR-0009](../docs/plan/adr/0009-authentifizierungsmodus.md): LOGIN7-Felder, Entschleierung, Ablehnungsbytes, erkennbare Modi. Die Messmatrix zu Prüfwert und Konfigurationsweg steht in [ADR-0011](../docs/plan/adr/0011-pruefwertformat.md): gemessen mit JDK 21 (Eclipse Adoptium 21.0.12.1) in einem Spike-Image auf einem Host (Intel Core i9-13900H): Ableitungsdauer je Iterationszahl, Kodierung des Passworts (wie UTF-8), Parser-Fälle, Sichtbarkeit des Prüfwerts je Weg; die Werte gelten nur für dieses Image und diese Hardware. Nicht gemessen: Dateirechte im Betrieb, Wirkung einer blockierenden Ableitung auf den Transport, Zeitgleichheit von unbekannter Kennung und falschem Passwort, Windows-SSPI (NTLM), Verschlüsselungsmodus als Adaptereingabe, TDS 8.0 mit SQL-Authentifizierung, LOGIN7 über mehrere Pakete, Pooling mit `ResetConnection`, andere Clients.

@@ -190,6 +190,8 @@ Jede Zeile nennt den Messbeleg (M1-… bis M3-…, Tabellen oben). „Abgeleitet
 
 Die Grenze zwischen den beiden Anschluss-Slices ist Teil der Entscheidung und wird dort festgehalten. Der Plan nimmt an, ohne es zu setzen: `slice-auth-adapter-benutzerliste` hält den Prüfwert als Wert (Verfahren, Parameter, Salz, Hash), parst und validiert ihn, vergleicht und kennt den Testmodus als Eingabewert (`plain` ohne Testmodus ergibt einen Fehlerwert); `slice-bootstrap-konfiguration` besitzt das Konfigurationsmodell, liest Datei oder Umgebung nach dem entschiedenen Weg, reicht die Einträge als Text an die Validierung des Auth-Slice weiter, führt den Testmodus-Schlüssel und bricht bei einem Fehlerwert den Start ab. Weicht die Entscheidung davon ab, werden beide Slices in §3/§4 angepasst.
 
+**Entscheidungsvermerk (2026-10-30):** Die Wahl des Nutzers (A1, B1, C2, D1 mit F2, E2) steht als [ADR-0011](../../adr/0011-pruefwertformat.md) im Status `Proposed`, `Bezug:` [ADR-0009](../../adr/0009-authentifizierungsmodus.md) ohne `Supersedes`, `Schärft:` [SPEC-051](../../../../spec/spezifikation.md#6-externe-verträge). Offen bleiben die Zahlen der Iterationszahl und neun Regelfragen ([ADR-0011](../../adr/0011-pruefwertformat.md) §Entscheidung, Offen). Anschlussstellen (Slices) sind noch nicht nachgezogen; das geschieht nach `Accepted`.
+
 ## 4. Trigger
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
