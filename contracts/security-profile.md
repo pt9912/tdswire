@@ -42,10 +42,11 @@ Setzung dieses Profils, nicht gemessen und nicht aus dem Referenzclient abgeleit
 - Speicher- und Schlüsselkennwort sind derselbe Wert; der Server nimmt den ersten Schlüsseleintrag.
 - Zugelassen sind RSA-Schlüssel ab 2048 Bit; andere Arten und kürzere Schlüssel weist der Start ab (`SPEC-043`).
 - Die Startprobe prüft jedes Zertifikat der Kette auf Gültigkeit zum Startzeitpunkt, nicht Vertrauen oder Namen.
+- Die Konfiguration nennt den Speicher mit `TLS_KEYSTORE_FILE` und das Kennwort als Datei mit `TLS_KEYSTORE_PASSWORD_FILE` (beides Umgebungsvariablen, ein Zeilenende am Ende der Kennwortdatei wird entfernt); `ENCRYPTION_POLICY=REQUIRED` verlangt beide, `TEST_UNENCRYPTED` lässt sie nicht zu. Der Handler verdrahtet den Pfad TDS 7.4 (gekapselt in Paketen vom Typ `0x12`); der Pfad ab dem ersten Byte (TDS 8.0) ist nicht verdrahtet.
 
 ## JVM-Flag
 
-Der Serverprozess läuft mit `-Djdk.tls.server.newSessionTicketCount=0`. Ohne das Flag sendet der JDK-Server bei TLS 1.3 ein NewSessionTicket noch im Handshake; im TDS-7.4-Pfad landet es in einem Paket vom Typ `0x12`, und der Client bricht ab („Unrecognized record version“). Das Flag gilt prozessweit, auch im TDS-8.0-Pfad; es ist beim Start des Serverprozesses zu setzen. Eine Lösung ohne das Flag ist nicht gebaut.
+Der Serverprozess läuft mit `-Djdk.tls.server.newSessionTicketCount=0`. Ohne das Flag sendet der JDK-Server bei TLS 1.3 ein NewSessionTicket noch im Handshake; im TDS-7.4-Pfad landet es in einem Paket vom Typ `0x12`, und der Client bricht ab („Unrecognized record version“). Das Flag gilt prozessweit, auch im TDS-8.0-Pfad; es ist beim Start des Serverprozesses zu setzen. Eine Lösung ohne das Flag ist nicht gebaut. `main` setzt das Flag nicht selbst: der Aufruf des Prozesses setzt es, und der Start bricht ab, wenn die Systemeigenschaft nicht genau `0` ist (Setzung). Geprüft ist der Wert der Eigenschaft beim Start vor dem ersten TLS-Aufruf, nicht die Wirkung auf dem Draht; sie belegt der Test mit Kind-JVM mit und ohne Flag.
 
 ## Gemessen
 

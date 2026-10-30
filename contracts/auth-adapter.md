@@ -44,8 +44,8 @@ Prüfwertformat und Konfigurationsweg (vom Nutzer entschieden, 2026-10-30; was u
 - **Testmodus-Schalter:** `AUTH_PLAIN_TESTMODE`, gilt nur bei genau `true`; eigener Schalter nur für `plain`; der Start-Log nennt den Modus.
 - **Fehlerwerte:** je Abweichung genau eine Fehlerart mit Listenplatz, ohne Prüfwert und ohne Passwort. Der Listenplatz ist die Zeilennummer der Datei, 1-basiert (Setzung (Voreinstellung 2026-10-30, nicht gemessen)); gemessen ist im Spike die Position nach Sortierung, nicht die Zeilennummer.
 - **Entschieden** (Nutzer, 2026-10-30; Setzungen, nicht gemessen): derselbe Iterationsboden im Testmodus, keine Kommentare und keine Leerzeilen, CRLF nicht toleriert, Hash genau 32 Byte und Salz mindestens 16 Byte ohne Obergrenze, Ziffernfolge der Iterationen 1 bis 8 Stellen ohne führende Null.
-- **Offen** (vom Nutzer nicht entschieden, nicht gemessen): Dateirechte im Betrieb; die Implementierung prüft sie nicht.
-- **Vormerkung für das Lesen der Datei** (Konfiguration): Ein UTF-8-BOM am Dateianfang entfernt der Parser nicht; er würde Teil des ersten Benutzernamens. Das Lesen der Datei entfernt ihn oder weist ihn ab (nicht entschieden).
+- **Offen** (vom Nutzer nicht entschieden, nicht gemessen): Dateirechte und Übergabe der Datei im Betrieb; weder der Lader noch der Start prüfen sie.
+- **Lesen der Datei** (Konfiguration, `ConfigFiles`; Setzung, nicht gemessen): Die Datei wird als UTF-8 gelesen, ungültiges UTF-8 ist ein Startfehler (`NOT_UTF8`). Ein UTF-8-BOM am Anfang wird abgewiesen (`BYTE_ORDER_MARK`), nicht entfernt; er würde Teil des ersten Benutzernamens. Die Zeilenenden werden nicht normalisiert, ein CR erreicht den Parser und ist dort ein Fehler. `AUTH_PLAIN_TESTMODE` schaltet nur bei genau `true` ein; fehlt der Schlüssel oder ist er leer oder `false`, ist `plain` verboten, jeder andere Wert (auch `TRUE`) ist ein Startfehler und schaltet nie ein. Die Diagnose nennt Schlüssel, Art und bei der Liste Fehlerart und Zeile, nie Pfad, Wert, Benutzername oder Prüfwert.
 
 ## Kotlin-Signatur
 
