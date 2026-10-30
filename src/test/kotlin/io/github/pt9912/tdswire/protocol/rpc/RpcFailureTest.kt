@@ -6,6 +6,7 @@ import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
 import io.github.pt9912.tdswire.testsupport.RpcVectors
 import io.github.pt9912.tdswire.testsupport.hex
 import io.github.pt9912.tdswire.testsupport.toHex
+import java.io.ByteArrayOutputStream
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -22,6 +23,11 @@ class RpcFailureTest {
 
     private fun failureOf(bytes: ByteArray): ProtocolFailure =
         assertIs<ProtocolResult.Failed>(RpcParser.parse(bytes)).error.failure
+
+    private fun textOf(bytes: ByteArray): String =
+        assertIs<ProtocolResult.Ok<RpcRequest>>(RpcParser.parse(bytes)).value.toString()
+
+    private fun hexByte(value: Int): String = RpcVectors.hexByte(value)
 
     private fun byName(typeAndValue: String): ProtocolFailure = failureOf(RpcVectors.byName(typeAndValue))
 
@@ -75,6 +81,55 @@ class RpcFailureTest {
                 assertEquals(ProtocolFailure.INVALID_TYPE, failure, it)
                 assertEquals(ProtocolErrorCategory.TDS_UNSUPPORTED_TYPE, failure.category)
             }
+    }
+
+    /**
+     * Festlegung (Abweichung von ADR-0005, Träger `slice-codec-datentypen-erweiterung`): ein
+     * PLP-Parameter lehnt die ganze Nachricht ab, auch hinter gültigen Parametern und als SQL-Text
+     * oder Deklarationsliste; es gibt kein Teilergebnis und der Parameter wird nicht übersprungen.
+     *
+     * @spec SPEC-003
+     */
+    @Test
+    fun `PLP lehnt die ganze Nachricht ab, auch als SQL-Text und Deklaration`() {
+        val plp = "00 00 E7 FF FF $coll"
+        val execSql = "$head FF FF 0A 00 00 00"
+        val intParam = "00 00 26 04 04 01 00 00 00"
+        assertAll(
+            ProtocolFailure.INVALID_TYPE,
+            "${RpcVectors.NAME_HEAD} ${RpcVectors.PARAM_A_42} $plp",
+            "${RpcVectors.NAME_HEAD} $plp ${RpcVectors.PARAM_A_42}",
+            "$execSql 00 00 E7 FF FF $coll  $intParam",
+            "$execSql 00 00 ${RpcVectors.STATEMENT}  $plp",
+            "${RpcVectors.EXECUTE_SQL} $plp",
+        )
+    }
+
+    /**
+     * Festlegung ohne Messung: höchstens [RpcParameterReader.MAX_PARAMETERS] Parameter je
+     * Nachricht; der nächste ist `INVALID_RPC_FORM` (Kategorie `TDS_PROTOCOL_ERROR`), auch bei
+     * einer Nachricht mit Hunderttausenden von Parametern.
+     *
+     * @spec SPEC-027
+     */
+    @Test
+    fun `Mehr Parameter als die Obergrenze sind INVALID_RPC_FORM`() {
+        val limit = RpcParameterReader.MAX_PARAMETERS
+        val prefix = hex("$head 01 00 70 00 00 00")
+        val parameter = hex("00 00 26 04 00")
+        fun message(count: Int): ByteArray {
+            val out = ByteArrayOutputStream()
+            out.write(prefix)
+            repeat(count) { out.write(parameter) }
+            return out.toByteArray()
+        }
+        val ok = assertIs<ProtocolResult.Ok<RpcRequest>>(RpcParser.parse(message(limit))).value
+        assertEquals(limit, assertIs<RpcCall.ByName>(ok.call).parameters.size)
+        listOf(limit + 1, 100_000).forEach { count ->
+            val failure = failureOf(message(count))
+            assertEquals(ProtocolFailure.INVALID_RPC_FORM, failure, "$count Parameter")
+            assertEquals(ProtocolErrorCategory.TDS_PROTOCOL_ERROR, failure.category)
+        }
     }
 
     /**
@@ -175,8 +230,9 @@ class RpcFailureTest {
     }
 
     /**
-     * Zusage: die Textdarstellung nennt nie Parameterwerte, SQL-Text oder Deklarationsliste, nur
-     * Längen, Namen und Typen.
+     * Zusage: die Textdarstellung nennt nie Parameterwerte, SQL-Text, Deklarationsliste, Prozedur-
+     * oder Parameternamen (client-gewählt, ohne Obergrenze der Zeichen), nur Längen und Typen. Ein
+     * `BITN`-Wert erscheint nicht als `true`.
      *
      * @spec SPEC-030
      */
@@ -185,9 +241,18 @@ class RpcFailureTest {
         val secret = "geheim"
         val secretHex = secret.toByteArray(Charsets.UTF_16LE).toHex()
         val value = "E7 0C 00 $coll 0C 00 $secretHex"
+        val nameSecret = "geheimproc"
+        val paramSecret = "geheimparam"
+        val named = hex(
+            "$head ${hexByte(nameSecret.length)} 00 ${nameSecret.toByteArray(Charsets.UTF_16LE).toHex()}  00 00  " +
+                "${hexByte(paramSecret.length)} ${paramSecret.toByteArray(Charsets.UTF_16LE).toHex()} 00  26 04 00",
+        )
+        assertFalse(textOf(named).contains("geheim"), textOf(named))
+        assertFalse(textOf(hex(RpcVectors.EXECUTE)).contains("true"), textOf(hex(RpcVectors.EXECUTE)))
         val vectors = listOf(
             hex(RpcVectors.EXECUTE_SQL),
             hex(RpcVectors.PREP_EXEC),
+            hex(RpcVectors.EXECUTE),
             RpcVectors.byName(value),
             RpcVectors.byName("26 04 04 15 CD 5B 07"),
             RpcVectors.byName("A5 08 00 06 00 DE AD BE EF 00 11"),

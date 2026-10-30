@@ -14,7 +14,9 @@ import kotlin.test.assertIs
  * Parameter ohne Namen. Die Wertbytes sind von Hand nach MS-TDS gerechnet, ohne dass der Text der
  * Spezifikation im Repo liegt; belegt sind sie damit nicht gegen eine Spezifikationsstelle. Die
  * Länge der Zeittypen übernimmt der Parser von `TypeInfoWriter.timeBytes` (Scale 0 bis 2: 3 Byte,
- * 3 bis 4: 4 Byte, 5 bis 7: 5 Byte) und der Test prüft sie dagegen (Selbstkonsistenz). Der Zuschlag
+ * 3 bis 4: 4 Byte, 5 bis 7: 5 Byte); die Wertbytes im Test sind Literale, die Klassengrenzen
+ * (Scale 0, 2, 3, 4, 5, 7) liegen in den Vektoren, die Zuordnung ist dem Encoder entnommen
+ * (Selbstkonsistenz, nicht unabhängig). Der Zuschlag
  * von 2 Byte für den Offset bei `DATETIMEOFFSETN` und die Dezimalgrößen sind Festlegungen dieses
  * Parsers.
  */
@@ -97,7 +99,7 @@ class RpcTypesTest {
     }
 
     /**
-     * Orakel: `DATEN` 3 Byte; `TIMEN` je Scale 3, 4 und 5 Byte (Scale 2, 3, 5); `DATETIME2N` mit
+     * Orakel: `DATEN` 3 Byte; `TIMEN` je Scale 3, 4 und 5 Byte (Scale 0, 1, 2 / 3, 4 / 5, 6, 7); `DATETIME2N` mit
      * Scale 7 acht Byte (3 + 5); `DATETIMEOFFSETN` mit Scale 7 zehn Byte (3 + 5 + 2).
      *
      * @spec SPEC-003
@@ -105,9 +107,15 @@ class RpcTypesTest {
     @Test
     fun `Datums- und Zeittypen lesen die Laenge aus dem Scale`() {
         assertContentEquals(hex("01 00 00"), raw("28 03 01 00 00"))
-        assertContentEquals(hex("11 22 33"), raw("29 02 03 11 22 33"))
-        assertContentEquals(hex("11 22 33 44"), raw("29 03 04 11 22 33 44"))
-        assertContentEquals(hex("11 22 33 44 55"), raw("29 05 05 11 22 33 44 55"))
+        listOf("00", "01", "02").forEach { scale ->
+            assertContentEquals(hex("11 22 33"), raw("29 $scale 03 11 22 33"), "Scale $scale")
+        }
+        listOf("03", "04").forEach { scale ->
+            assertContentEquals(hex("11 22 33 44"), raw("29 $scale 04 11 22 33 44"), "Scale $scale")
+        }
+        listOf("05", "06", "07").forEach { scale ->
+            assertContentEquals(hex("11 22 33 44 55"), raw("29 $scale 05 11 22 33 44 55"), "Scale $scale")
+        }
         assertContentEquals(hex("01 02 03 04 05 06 07 08"), raw("2A 07 08 01 02 03 04 05 06 07 08"))
         val offset = "01 02 03 04 05 06 07 08 09 0A"
         assertContentEquals(hex(offset), raw("2B 07 0A $offset"))
@@ -136,5 +144,26 @@ class RpcTypesTest {
         assertEquals(RpcValue.NullValue, parameter("A5 04 00 FF FF").value)
         assertEquals(RpcValue.NullValue, parameter("E7 08 00 ${RpcVectors.COLLATION} FF FF").value)
         assertEquals(0, raw("A5 04 00 00 00").size)
+    }
+
+    /**
+     * Festlegung: Das Statusbyte kommt unverändert; Bit 0 ist OUTPUT, Bit 1 verlangt den
+     * Standardwert (`useDefault`), die Bits sind unabhängig voneinander.
+     *
+     * @spec SPEC-030
+     */
+    @Test
+    fun `Statusbyte setzt output und useDefault unabhaengig`() {
+        fun named(status: String): RpcParameter {
+            val bytes = hex("${RpcVectors.HEADERS}  01 00 70 00  00 00  00 $status 26 04 00")
+            val request = assertIs<ProtocolResult.Ok<RpcRequest>>(RpcParser.parse(bytes)).value
+            return assertIs<RpcCall.ByName>(request.call).parameters.single()
+        }
+        listOf("00" to (false to false), "01" to (true to false), "02" to (false to true), "03" to (true to true))
+            .forEach { (status, expected) ->
+                val parameter = named(status)
+                assertEquals(expected, parameter.output to parameter.useDefault, "Status $status")
+                assertEquals(status.toInt(16), parameter.status)
+            }
     }
 }

@@ -20,8 +20,8 @@ import kotlin.test.assertTrue
  * Handvektoren der vier Katalogformen. Die Orakel sind von Hand nach MS-TDS gerechnet und nicht
  * an einem Server oder Client gemessen; die Form der Parameter folgt der Messmatrix in `ADR-0005`
  * (Testserver, TDS 7.4 unverschlüsselt, kein Microsoft-SQL-Server). Die ProcIDs 11 und 15 im Test
- * der unbekannten ProcID sind frei gewählte Werte außerhalb des Katalogs, keine benannten
- * Prozeduren.
+ * der unbekannten ProcID sind nach MS-TDS `sp_prepare` und `sp_unprepare` (Lesart, nicht gemessen;
+ * `SPEC-030` nennt beide als Fälle des Fehlerverhaltens, ohne ProcID); 0 ist frei gewählt.
  */
 class RpcCatalogFormsTest {
     private val latin1 = Collation(info = 0x00D00409, sortId = 0x34)
@@ -117,7 +117,7 @@ class RpcCatalogFormsTest {
     }
 
     /**
-     * Festlegung: Eine ProcID außerhalb von 10, 12 und 13 (hier 11 und 15) ist ein eigener
+     * Festlegung: Eine ProcID außerhalb von 10, 12 und 13 (hier 11, 15 und 0) ist ein eigener
      * Ergebniswert; die Parameter hinter den Optionsflags werden nicht gelesen, auch wenn sie
      * unlesbar sind.
      *

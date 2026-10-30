@@ -70,16 +70,19 @@ sealed interface RpcValue {
 
 /**
  * Ein Parameter einer RPC-Nachricht. `name` ist leer bei einem Parameter ohne Namen; `status` ist
- * das Statusbyte unverändert (Bit 0 `fByRefValue` = OUTPUT, Bit 1 `fDefaultValue`).
+ * das Statusbyte unverändert (Bit 0 OUTPUT, Bit 1 Standardwert). Die Bitnamen `fByRefValue` und
+ * `fDefaultValue` sind eine Lesart von MS-TDS, nicht gemessen und nicht in ADR-0005 belegt; gemessen
+ * ist nur Bit 0 (OUTPUT, `SPEC-030`). Die Textdarstellung nennt den Namen nur als Länge: er ist vom
+ * Client frei wählbar (bis 65534 Zeichen, auch Zeilenumbrüche).
  */
 class RpcParameter(val name: String, val status: Int, val type: RpcType, val value: RpcValue) {
-    /** `fByRefValue`: OUTPUT bzw. InputOutput. */
+    /** Bit 0: OUTPUT bzw. InputOutput. */
     val output: Boolean get() = status and STATUS_OUTPUT != 0
 
-    /** `fDefaultValue`: der Client verlangt den Standardwert des Parameters. */
+    /** Bit 1: der Client verlangt den Standardwert des Parameters (Lesart von MS-TDS, nicht gemessen). */
     val useDefault: Boolean get() = status and STATUS_DEFAULT != 0
 
-    override fun toString(): String = "RpcParameter(name=$name, output=$output, type=$type, value=$value)"
+    override fun toString(): String = "RpcParameter(nameChars=${name.length}, output=$output, type=$type, value=$value)"
 
     companion object {
         const val STATUS_OUTPUT = 0x01
@@ -119,9 +122,12 @@ sealed interface RpcCall {
         override fun toString(): String = "Execute(handle=$handle, parameters=$parameters)"
     }
 
-    /** RPC per Prozedurname, wie der Client ihn gesendet hat; der Name wird nicht gedeutet. */
+    /**
+     * RPC per Prozedurname, wie der Client ihn gesendet hat; der Name wird nicht gedeutet und
+     * erscheint in der Textdarstellung nur als Länge.
+     */
     class ByName(val name: String, val parameters: List<RpcParameter>) : RpcCall {
-        override fun toString(): String = "ByName(name=$name, parameters=$parameters)"
+        override fun toString(): String = "ByName(nameChars=${name.length}, parameters=$parameters)"
     }
 
     /**
@@ -133,8 +139,8 @@ sealed interface RpcCall {
 
 /**
  * Das Ergebnis des RPC-Parsers: Felder und Form, keine Entscheidung. `headerTypes` sind die
- * Kennungen der ALL_HEADERS-Header, `optionFlags` die Optionsflags unverändert (Bit 0
- * `fWithRecomp`, Bit 1 `fNoMetaData`, Bit 2 `fReuseMetaData`).
+ * Kennungen der ALL_HEADERS-Header, `optionFlags` die Optionsflags unverändert; der Parser deutet
+ * keines ihrer Bits (die Bitnamen aus MS-TDS sind weder gemessen noch in ADR-0005 belegt).
  */
 class RpcRequest(val headerTypes: List<Int>, val optionFlags: Int, val call: RpcCall) {
     override fun toString(): String = "RpcRequest(headerTypes=$headerTypes, optionFlags=0x" +
