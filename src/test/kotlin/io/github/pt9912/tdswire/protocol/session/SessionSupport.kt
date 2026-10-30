@@ -96,6 +96,9 @@ class FakeHandshakeChannel(
     var closed = false
         private set
 
+    /** Wahr, wenn die Gegenstelle alle Einträge des Drehbuchs geliefert hat. */
+    val exhausted: Boolean get() = script.isEmpty()
+
     override suspend fun receive(): Inbound = script.removeFirstOrNull() ?: awaitCancellation()
 
     override suspend fun send(message: TdsMessage): Boolean {
