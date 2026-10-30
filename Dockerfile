@@ -83,6 +83,15 @@ COPY --from=testkeys --chown=gradle:gradle /testkeys build/testkeys
 COPY --chown=gradle:gradle gradle/test-jvm.init.gradle.kts gradle/
 RUN gradle --no-daemon -I gradle/test-jvm.init.gradle.kts test
 
+# --- Smoke: `docker build --target smoke .` - der Rohbytes-Smoke der Welle allein (ServerSmokeTest): die
+# Kind-JVM startet `main` mit dem Flag der Test-JVM und einer Testkonfiguration, ein Rohbytes-Client spricht den
+# Login-Pfad. Dieselben Tests laufen auch in der Stage `test`; die Stage ist der engste Sensor dafuer. ----
+FROM deps AS smoke
+COPY --chown=gradle:gradle src src
+COPY --from=testkeys --chown=gradle:gradle /testkeys build/testkeys
+COPY --chown=gradle:gradle gradle/test-jvm.init.gradle.kts gradle/
+RUN gradle --no-daemon -I gradle/test-jvm.init.gradle.kts test --tests 'io.github.pt9912.tdswire.runtime.ServerSmokeTest'
+
 # --- Detekt: `docker build --target detekt .` - zuerst das Suppression-Verbot (AGENTS.md 3.2,
 # tools/suppression-check.sh), dann die statische Analyse samt ktlint-Regelsatz und Regeln der
 # Schichten (config/detekt/detekt.yml). `detekt` liest nur Quelltext; `detektMain` und
