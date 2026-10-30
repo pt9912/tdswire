@@ -110,7 +110,7 @@ class MessageReaderTest {
         val framing = assertIs<TransportError.Framing>(failed.error)
         assertEquals(FramingFailure.MESSAGE_ABOVE_LIMIT, framing.error.failure)
         val readAtFailure = counting.bytesRead
-        assertTrue(readAtFailure <= 4096 + 8 + 512, "gelesen: $readAtFailure")
+        assertTrue(readAtFailure in 4096 + 8..4096 + 8 + 512, "gelesen: $readAtFailure")
         assertTrue(readAtFailure < huge.size / 10)
         assertEquals(failed, reader.next())
         assertEquals(readAtFailure, counting.bytesRead)

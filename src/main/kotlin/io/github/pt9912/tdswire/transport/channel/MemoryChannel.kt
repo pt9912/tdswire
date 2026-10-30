@@ -8,10 +8,15 @@ import kotlin.coroutines.cancellation.CancellationException
  * Ein Ende eines Speicher-Kanals ohne Netz: [pair] liefert zwei verbundene Enden, was das eine
  * schreibt, liest das andere. Jede Richtung hält höchstens `capacity` Bytes; ein Schreiber
  * suspendiert, solange der Leser nichts abnimmt. Das macht den Rückstau ohne Socket messbar
- * ([bufferedBytes], [peakBufferedBytes]).
+ * ([bufferedBytes], [peakBufferedBytes]). Er kopiert byteweise und ist für Tests und Simulation
+ * gedacht, nicht für den Produktivbetrieb ausgelegt.
  *
  * Schließen eines Endes beendet die Richtung, die es schreibt: die Gegenstelle liest die
- * gepufferten Bytes und danach -1. Die Einschränkungen von [SuspendingChannel] gelten.
+ * gepufferten Bytes und danach -1.
+ *
+ * Die Anforderung von [SuspendingChannel] (höchstens ein Lese- und ein Schreibvorgang zugleich)
+ * erzwingt dieser Kanal nicht: zwei gleichzeitige Schreiber können ihre Bytes verschränken, zwei
+ * gleichzeitige Leser können einander die Weckung nehmen, sodass einer ohne Fehler wartet.
  */
 class MemoryChannel private constructor(private val incoming: Pipe, private val outgoing: Pipe) : SuspendingChannel {
     /** Bytes, die dieses Ende geschrieben und die Gegenstelle noch nicht gelesen hat. */

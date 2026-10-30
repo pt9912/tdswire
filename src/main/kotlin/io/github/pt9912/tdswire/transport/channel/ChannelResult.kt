@@ -23,7 +23,12 @@ data class ChannelError(val failure: ChannelFailure, val detail: String) {
     val category: ChannelErrorCategory get() = ChannelErrorCategory.TDS_INTERNAL_ERROR
 }
 
-/** Ausgang einer Kanal-Operation: ein Wert oder ein [ChannelError], nie eine Ausnahme des Kanals. */
+/**
+ * Ausgang einer Kanal-Operation: ein Wert oder ein [ChannelError]. E/A-Fehler und das Schließen
+ * sind nie eine Ausnahme, sondern [Failed]; Programmierfehler des Aufrufers (etwa ein zweiter
+ * gleichzeitiger Lesevorgang, ein nicht verbundener Kanal, ein schreibgeschützter Puffer) können
+ * als Ausnahme austreten.
+ */
 sealed interface ChannelResult<out T> {
     data class Ok<out T>(val value: T) : ChannelResult<T>
 

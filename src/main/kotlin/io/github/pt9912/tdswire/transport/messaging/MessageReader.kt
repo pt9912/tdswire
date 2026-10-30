@@ -10,12 +10,14 @@ import java.nio.ByteBuffer
 /**
  * Liest Nachrichten aus einem [SuspendingChannel] (`TDS-FA-01.a`, `SPEC-007`, `SPEC-046`). Die
  * Zusammensetzung und die Grenzprüfung gehören dem [MessageAssembler]; der Leser ruft ihn und
- * rechnet nichts nach. Mit `limits` aus [FramingLimits.preLogin] gilt die Grenze vor dem Login,
- * mit den Standardgrenzen die danach.
+ * rechnet nichts nach. `limits` ist ein Konstruktorparameter: mit [FramingLimits.preLogin] gilt die Grenze vor
+ * dem Login, mit den Standardgrenzen die danach. Ein Wechsel der Grenze an einem laufenden Leser ist
+ * nicht vorgesehen (Puffer und Assembler-Zustand gehören ihm); wer vor und nach dem Login liest,
+ * muss das lösen; vorgesehener Träger ist der Sitzungsautomat (`slice-handshake-login`).
  *
  * Der Assembler bricht am vollständigen Header des Pakets ab, das die Grenze überschreitet; der
- * Leser liest danach nicht weiter. Gelesen sind dann höchstens die Bytes bis zu diesem Header
- * plus die Bytes des letzten Lesevorgangs von höchstens `readBufferSize`.
+ * Leser liest danach nicht weiter. Gelesen sind dann mindestens die Bytes bis zu diesem Header
+ * und höchstens diese plus die Bytes des letzten Lesevorgangs von höchstens `readBufferSize`.
  *
  * Nach dem ersten Fehler oder dem Ende liefert [next] immer wieder dasselbe Ergebnis und liest
  * nicht mehr. Vor einem Fehler vollendete Nachrichten werden zuerst geliefert. Nicht thread-sicher:

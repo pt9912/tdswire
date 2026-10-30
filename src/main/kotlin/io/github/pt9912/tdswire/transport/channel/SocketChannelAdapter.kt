@@ -11,7 +11,9 @@ import kotlin.coroutines.resume
  * [SuspendingChannel] über einen verbundenen [AsynchronousSocketChannel] (`ADR-0003`).
  *
  * Lese- und Schreibfehler des Kanals werden zu [ChannelResult.Failed]; Programmierfehler
- * (gleichzeitiger zweiter Lesevorgang, nicht verbundener Kanal) bleiben Ausnahmen. Der Adapter
+ * (gleichzeitiger zweiter Lese- oder Schreibvorgang, nicht verbundener Kanal, schreibgeschützter
+ * Puffer) bleiben Ausnahmen: das JDK meldet sie als `ReadPendingException`,
+ * `WritePendingException`, `NotYetConnectedException` bzw. `IllegalArgumentException`. Der Adapter
  * puffert nichts: [writeFully] kehrt zurück, wenn das Betriebssystem alle Bytes angenommen hat.
  */
 class SocketChannelAdapter(private val channel: AsynchronousSocketChannel) : SuspendingChannel {
@@ -27,8 +29,16 @@ class SocketChannelAdapter(private val channel: AsynchronousSocketChannel) : Sus
         return ChannelResult.Ok(Unit)
     }
 
+    /**
+     * Schließt den Socket. Eine `IOException` beim Schließen wird verschluckt: der Aufrufer will den
+     * Kanal los sein und kann den Fehler nicht beheben; andere Ausnahmen treten aus.
+     */
     override fun close() {
-        runCatching { channel.close() }
+        try {
+            channel.close()
+        } catch (ignored: IOException) {
+            // Verschluckt nach Festlegung der KDoc von close().
+        }
     }
 
     private suspend fun operation(start: (CompletionHandler<Int, Nothing?>) -> Unit): ChannelResult<Int> =
