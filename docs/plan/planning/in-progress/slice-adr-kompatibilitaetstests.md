@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [TDS-FA-09](../../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose), [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md)
 
-**Berührte Spec-Stellen:** SPEC-045 · SPEC-050 · SPEC-021 · SPEC-025 · SPEC-032 · ARC-010
+**Berührte Spec-Stellen:** SPEC-045 · SPEC-050 · SPEC-021 · SPEC-025 · SPEC-032
 
 **Verantwortlich:** pt9912.
 
@@ -76,7 +76,7 @@ Aussagen-Berührung steht hier gar nicht.
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 
-**Zwischenstand der Messung** (Spike per Dockerfile ohne Mount; Option B gebaut und gemessen, Option A aus den Ergebnissen des Transport-Spikes ([ADR-0003](../../adr/0003-transportframework.md)) bewertet, Option C und D nicht gemessen; Testprojekt xUnit 2.9.3 mit `Microsoft.Data.SqlClient` 7.1.1 auf `mcr.microsoft.com/dotnet/sdk:10.0.403` (Digest `sha256:de4fe90a…`, derselbe wie das lokal vorhandene `sdk:10.0`), Docker 29.9.2 mit BuildKit auf einem Host mit 20 CPUs, Basis-Image lokal vorhanden; Zahlen aus einem einzelnen Lauf je Zeile, bislang nicht wiederholt). Der Stub-Server beantwortet PRELOGIN (`ENCRYPT_NOT_SUP`), LOGIN7 (LOGINACK, DONE) und ein `SELECT 1` (COLMETADATA, ROW, DONE); die Tests prüfen `Connection.Open` und `ExecuteScalar` mit `Encrypt=false`. TLS, TDS 8.0, Parameter und Cancel sind nicht Teil des Spikes.
+**Zwischenstand der Messung** (Spike per Dockerfile ohne Mount; Option B gebaut und gemessen, Option A aus den Ergebnissen des Transport-Spikes ([ADR-0003](../../adr/0003-transportframework.md)) bewertet, Option D als einzelner Lauf gemessen (Ergebnisse in der ADR), Option C nicht gemessen; Testprojekt xUnit 2.9.3 mit `Microsoft.Data.SqlClient` 7.1.1 auf `mcr.microsoft.com/dotnet/sdk:10.0.403` (Digest `sha256:de4fe90a…`, derselbe wie das lokal vorhandene `sdk:10.0`), Docker 29.9.2 mit BuildKit auf einem Host mit 20 CPUs, Basis-Image lokal vorhanden; Zahlen aus einem einzelnen Lauf je Zeile, bislang nicht wiederholt). Der Stub-Server beantwortet PRELOGIN (`ENCRYPT_NOT_SUP`), LOGIN7 (LOGINACK, DONE) und ein `SELECT 1` (COLMETADATA, ROW, DONE); die Tests prüfen `Connection.Open` und `ExecuteScalar` mit `Encrypt=false`. TLS, TDS 8.0, Parameter und Cancel sind nicht Teil des Spikes.
 
 | Messung | A nur JVM-Protokolltests | B .NET-Referenztests im Container |
 |---|---|---|
@@ -104,7 +104,7 @@ Befunde:
 - Der Transport-Spike zeigte, was erst der echte Client findet: der JDK-Server schickt bei TLS 1.3 ein NewSessionTicket, das der Client im TDS-Paket vom Typ `0x12` nicht lesen kann ([ADR-0003](../../adr/0003-transportframework.md)); ein JVM-Test mit einem JDK-Client, der denselben Strom anders liest, würde das voraussichtlich nicht melden (nicht gemessen). Gegenbeispiel aus dem Spike: ein Platzhalter-Server ohne gültige Antwort lässt den Client mit `FormatException` oder `InvalidOperationException` enden, Meldungen, die nur der Client kennt.
 - Der Stub antwortete mit einem Minimum an Tokens (LOGINACK ohne ENVCHANGE und ohne FEATUREEXTACK) und der Client akzeptierte es: `Open` und `SELECT 1` liefen beim ersten gebauten Stand grün. Das sagt nichts über die vollen Antworten des Servers.
 
-Nicht gemessen: Option C (manuelle Tests; kein Reproduzierbarkeitstest möglich). Option D: nicht gemessen und kein SQL-Server-Image gezogen oder gestartet, weil die Zustimmung zur Lizenz (EULA) bei einem Menschen liegt; Bezug, Größe, Startzeit, Speicherbedarf und Architektur des Images, die Pflege von Schema und Ausnahmeliste nach [SPEC-045](../../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig) und das Gate [SPEC-050](../../../../spec/spezifikation.md#7-festlegungen-der-harness-werkzeuge) sind offen. Für B und A: Kaltpull des Basis-Images, Zeit bei kaltem NuGet-Cache auf einem frischen Runner, Zeit des Gradle-Teils von A im Repo (es gibt noch keinen Test-Stage), TLS (7.4 und 8.0), Parameter, RPC, Cancel und Typen mit dem echten Client, ein Server-Image des Repos statt des Stubs, Verhalten bei langsamen oder sich wiederholenden Läufen in der CI, Wiederholbarkeit der Zahlen (ein Lauf je Zeile), Verhalten von zwei Containern ohne Bereitschaftsschleife, eine Laufzeitgrenze für den Server-Container (`docker run` ohne Zeitlimit lässt ihn bis zum Ende des Hosts laufen, wenn der Abbruch `SIGKILL` ist), eine funktionierende Liste der `trustedSigners`. Die Vorgaben [SPEC-025](../../../../spec/spezifikation.md#7-festlegungen-der-harness-werkzeuge) und [SPEC-032](../../../../spec/spezifikation.md#7-festlegungen-der-harness-werkzeuge) bleiben mit [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md) offen.
+Nicht gemessen: Option C (manuelle Tests; kein Reproduzierbarkeitstest möglich). Option D: einmal gemessen, Zahlen und Messhinweis (Wiederholung durch den Review, nicht Wiederholtes) stehen in der ADR; offen sind Pull-Dauer, arm64, die Pflege von Schema und Ausnahmeliste nach [SPEC-045](../../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig) und das Gate [SPEC-050](../../../../spec/spezifikation.md#7-festlegungen-der-harness-werkzeuge) (D ist ein eigenes Make-Target, nicht Teil von `make gates`) sind offen. Für B und A: Kaltpull des Basis-Images, Zeit bei kaltem NuGet-Cache auf einem frischen Runner, Zeit des Gradle-Teils von A im Repo (es gibt noch keinen Test-Stage), TLS (7.4 und 8.0), Parameter, RPC, Cancel und Typen mit dem echten Client, ein Server-Image des Repos statt des Stubs, Verhalten bei langsamen oder sich wiederholenden Läufen in der CI, Wiederholbarkeit der Zahlen (ein Lauf je Zeile), Verhalten von zwei Containern ohne Bereitschaftsschleife, eine Laufzeitgrenze für den Server-Container (`docker run` ohne Zeitlimit lässt ihn bis zum Ende des Hosts laufen, wenn der Abbruch `SIGKILL` ist), eine funktionierende Liste der `trustedSigners`. Die Vorgaben [SPEC-025](../../../../spec/spezifikation.md#7-festlegungen-der-harness-werkzeuge) und [SPEC-032](../../../../spec/spezifikation.md#7-festlegungen-der-harness-werkzeuge) bleiben mit [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md) offen.
 
 ## 4. Trigger
 
@@ -137,6 +137,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 - Die CI-Machbarkeit des Referenzclients (Laufzeit, Image-Bezug) ist nicht gegeben. — **Ausgang:** offen bis zur Closure.
+- NuGet-Audit und `trustedSigners` sind ohne Entscheidung; Träger ist der Folge-Slice [slice-qa-reproduzierbarkeit](../open/slice-qa-reproduzierbarkeit.md) oder ein Carveout. — **Ausgang:** weiter offen.
 
 ## 7. Closure-Notiz
 
