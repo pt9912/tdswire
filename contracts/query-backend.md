@@ -1,6 +1,6 @@
 # Query-Backend
 
-Vertrag zwischen Protokollkern und Backend (`TDS-FA-08.a`, `SPEC-002`, `SPEC-022`). Der Protokollkern erzeugt einen `QueryRequest` ohne TDS-Bytes und liest das Ergebnis als Strom von Ereignissen; das Backend kennt weder Pakete noch Tokens. Die Schnittstelle ist ein **Entwurf**: Die Typen stehen als Skizze in `SPEC-002`, gemessen ist das Ergebnismodell an einem Generator-Backend mit drei Spalten, nicht ein Kotlin-Vertrag.
+Vertrag zwischen Protokollkern und Backend (`TDS-FA-08.a`, `SPEC-002`, `SPEC-022`). Der Protokollkern erzeugt einen `QueryRequest` ohne TDS-Bytes und liest das Ergebnis als Strom von Ereignissen; das Backend kennt weder Pakete noch Tokens. Die Typen und Schnittstellen stehen als Kotlin-Quelltext (Abschnitt „Signatur“); alles darüber hinaus ist ein **Entwurf**. Gemessen ist das Ergebnismodell an einem Generator-Backend mit drei Spalten, nicht der Kotlin-Vertrag.
 
 ## Aufruf
 
@@ -10,6 +10,19 @@ Vertrag zwischen Protokollkern und Backend (`TDS-FA-08.a`, `SPEC-002`, `SPEC-022
 | `QueryRequest` | Sitzungs- und Anfragekennung, SQL-Text, typisierte Parameter, optionale Frist (`SPEC-002`) |
 | `cancel(sessionId, requestId)` | suspendierend; beendet die laufende Operation |
 | `QueryExecution.close()` | schließt Zeilenquelle und Ressourcen der Operation |
+
+## Signatur
+
+Stand des Quelltexts: Setzung des Aufrufers (2026-10-30), nicht gemessen.
+
+| Typ | Package | Anmerkung |
+|---|---|---|
+| `QueryRequest`, `QueryParameter`, `ParameterDirection`, `QueryEvent` (sieben Ereignisse), `ResultColumn`, `SqlType` | `domain` | reine Modelle; `domain` importiert keine Fremdbibliothek |
+| `QueryBackend`, `QueryExecution` | `port` | tragen den `Flow`; `port` importiert `domain`, die Standardbibliothek und `kotlinx.coroutines` |
+
+- **Fehler beim Start:** `execute()` wirft für Fehler des Backends keine Ausnahme; ein Fehler beim Start (zum Beispiel Backend nicht erreichbar) ist ein `Failure` im Strom `events`. Die Abbruchausnahme der Coroutine bleibt davon unberührt. Setzung, nicht gemessen.
+- **`SqlType`** (in `SPEC-002` nicht definiert, Spec-Lücke): `Int32`, `Int64`, `Bool`, `UnicodeText`, `Decimal(precision, scale)` mit `precision >= 1` und `0 <= scale <= precision`, `Date`, `Time`, `DateTime` (ohne Zeitzone) — der Mindestkatalog von `SPEC-003`. Breiten unter 32 Bit, Gleitkomma, Geld, GUID und Binärtypen gehören nicht dazu. Setzung, nicht gemessen. Offen: Längenlimit von `UnicodeText`, Genauigkeit der Zeittypen, Zeitzonenannahmen (`SPEC-003`), die JVM-Typen der Werte in `Row`, `QueryParameter` und `OutputParameter` je `SqlType` (Zeilendarstellung, siehe „Offen“).
+- **Belegt am Test-Backend** (Test-Quelltext, suspendierend): Metadaten vor Zeilen, leeres Ergebnis mit Metadaten, `Failure` vor und nach `ResultStart`, Fehler beim Start als `Failure`, `close()` und `cancel()` erreichen die Zeilenquelle des Test-Backends. Das ist keine Aussage über blockierende oder echte Backends.
 
 ## Ergebnis
 
