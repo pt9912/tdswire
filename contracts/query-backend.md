@@ -22,9 +22,13 @@ Das Ergebnis ist ein asynchroner Strom (`Flow`) von Ereignissen: `ResultStart` (
 - Cancel und Disconnect beenden das Lesen und schließen die Zeilenquelle (`SPEC-029`, `SPEC-031`). Ein Backend, dessen Operation sich nicht unterbrechen lässt, hält die Sitzung bis `CANCEL_TIMEOUT` (`SPEC-033`); danach schließt der Server die Verbindung.
 - Ein Backend, das blockiert, sorgt selbst für Abbruch und Thread-Verbrauch (Annahme). Gemessen ist das nur für einen blockierenden Iterator an einem fingierten Backend (Thread je laufendem Aufruf, Abbruch hängt am Interrupt), nicht für ein blockierendes Backend hinter dem `Flow` und nicht an einem echten Treiber; der Spike-Flow lief mit einem suspendierenden Backend.
 
+## Festgelegt
+
+- Fehlersemantik im Strom (Setzung des Nutzers, nicht am Produkt gemessen): Solange der Strom synchron ist, folgen auf Teilzeilen ein `Failure` und damit ERROR und DONE; lässt er sich nicht mehr abschließen, schließt der Server die Verbindung ohne ERROR und DONE (`SPEC-031`).
+
 ## Offen
 
-- Fehlersemantik im Strom: Teilzeilen, dann `Failure` und damit ERROR und DONE, oder Verbindungsende (`SPEC-031`); dazu die Unterscheidung statement- und batch-abbrechender Fehler, die `Failure` nicht trägt, und ob ein `Failure` als „nächstes Ereignis“ der `DONE_MORE`-Vorschau zählt (auch: Schicksal eines zurückgehaltenen Abschlusses bei Cancel oder Disconnect).
+- Unterscheidung statement- und batch-abbrechender Fehler im Strom, die `Failure` nicht trägt, und ob ein `Failure` als „nächstes Ereignis“ der `DONE_MORE`-Vorschau zählt (auch: Schicksal eines zurückgehaltenen Abschlusses bei Cancel oder Disconnect): Zuständigkeit Backend-/Mapping-Slice, nach Messung.
 - Prüfung der Ereignisreihenfolge im Sequencer (Zeile vor `ResultStart`, doppeltes `ResultEnd`): im Spike nicht gebaut.
 - Grenze für „kleines“ Ergebnis (fertige Liste), Zeilendarstellung.
 - Semantik der Frist: `deadlineEpochMillis` steht im `QueryRequest` (`SPEC-002`); offen ist, wer sie durchsetzt (Backend oder Protokollkern) und was bei Ablauf geschieht (`QUERY_TIMEOUT`, `TDS_TIMEOUT`), nicht das Vorhandensein des Feldes.
