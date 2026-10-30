@@ -65,8 +65,14 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | Kompatibilitätsmatrix, Datei unter docs/plan/ | neu | nach [TDS-QA-05](../../../../spec/lastenheft.md#tds-qa-05--wartbarkeit) |
+| `docs/plan/kompatibilitaetsmatrix.md` | neu | die Matrix als Abdeckungs-Dokument (`AGENTS.md` §5 Regel 6), von Hand gepflegt; jede „unterstützt“-Zeile nennt einen Test, der im frischen Lauf von `make test` bestanden steht; zweiter Teil: Ist-Abgleich der Importregeln in `config/detekt/detekt.yml` gegen `spec/architecture.md` §2 |
+| `docs/plan/planning/in-progress/slice-qa-wartbarkeit.md` | geändert | diese Tabelle |
 
-Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
+**Erster Lauf — Ist-Zustand gegen den Plan** (gemessen, nicht angenommen):
+
+- Das Unit-Test-Gate `make test` liegt (`tools/mk/test.mk`, in `GATE_CHECKS`); der frische Lauf (`docker build --target test --no-cache-filter test`) zeigt 280 Testfälle, alle bestanden. Die Dockerfile-Stage `test` ist damit der Beleg für die Spalte „Test“ der Matrix.
+- „Modulgrenzen“ meint nach [TDS-QA-05](../../../../spec/lastenheft.md#tds-qa-05--wartbarkeit) (Messmethode „Review der Modulgrenzen, automatisierte Tests“) und [SPEC-041](../../../../spec/spezifikation.md#7-festlegungen-der-harness-werkzeuge) die Importregeln der Schichten in `config/detekt/detekt.yml`; deren Quelle ist die Tabelle in `spec/architecture.md` §2. Das Gerüst-Gate steht (`make detekt`, `make detekt-selbsttest`) und ist nicht Gegenstand (§1); der Abgleich Tabelle gegen Konfiguration ist es.
+- Entscheidung Erzeuger oder Handpflege: Handpflege. Ein Erzeuger bräuchte ein neues Tag in jedem Testkopf unter `src/test` oder eine zweite Zuordnungsdatei; `make spec-abdeckung` führt die Abdeckung der Festlegungen und ist an Nachrichten und Typen nicht gebunden. Die Zitate prüft eine Wegwerf-Prüfung im Lauf (jeder zitierte Testfall steht im Bericht des Testlaufs als bestanden), kein Gate und kein Werkzeug-Target.
 
 ## 4. Trigger
 
