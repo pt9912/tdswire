@@ -11,8 +11,11 @@ import javax.net.ssl.SSLException
  * und wächst nie; ein Record, der nicht hineinpasst, beendet den Strom mit einem Fehler.
  *
  * Nach dem ersten Fehler oder dem Ende liefert [read] immer wieder dasselbe Ergebnis und liest nicht
- * mehr. Handshake-Daten der Datenphase (Antworten der Engine, etwa auf `close_notify`) gehen über
- * [writer]. Nicht thread-sicher: ein Leser.
+ * mehr. Handshake-Daten der Datenphase, die die Engine nach einem Record bereithält (etwa die Antwort auf
+ * ein KeyUpdate), gehen über [writer]; die Leseseite wartet dabei nicht auf eine Schreibsperre. Auf
+ * `close_notify` der Gegenstelle hält die JDK-Engine ohne `jdk.tls.acknowledgeCloseNotify` keine Antwort
+ * bereit; ob der Aufruf von [TlsWriter.answer] dort etwas schreibt, ist deshalb ungeprüft. Nicht
+ * thread-sicher: ein Leser.
  */
 internal class TlsReader(private val io: TlsRecordIo, private val writer: TlsWriter) {
     private val plain: ByteBuffer = ByteBuffer.allocate(io.applicationBufferSize).apply { limit(0) }

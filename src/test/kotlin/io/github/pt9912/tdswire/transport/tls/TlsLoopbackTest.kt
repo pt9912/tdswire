@@ -38,6 +38,11 @@ import kotlin.test.assertTrue
  * Prozess, nicht gegen den Referenzclient.
  */
 class TlsLoopbackTest {
+    private companion object {
+        const val RECORD_HEADER = 5
+        const val KEY_UPDATE_MAX = 64
+    }
+
     private val tls13 = listOf("TLSv1.3")
     private val tls12 = listOf("TLSv1.2")
 
@@ -275,8 +280,11 @@ class TlsLoopbackTest {
 
     /**
      * KeyUpdate: löst die Gegenstelle in TLS 1.3 nach dem Handshake ein KeyUpdate aus (JDK-Engine,
-     * `beginHandshake`), beantwortet der Server es, und die Nachrichten laufen in beiden Richtungen
-     * weiter (beide Pfade). Neuverhandlung in TLS 1.2 ist nicht Gegenstand und nicht getestet.
+     * `beginHandshake`) und schickt danach Daten, schreibt der Server die Antwort, ohne selbst Nutzdaten zu
+     * schreiben: Auf seinem Draht steht genau ein kurzer Record (Typ `0x17`, kleiner als 64 Bytes), der
+     * nicht von ihm als Nutzdaten stammt. Danach laufen die Nachrichten in beiden Richtungen weiter (beide
+     * Pfade). Beobachtet ist Ort und Größe der Antwort, nicht ihr Inhalt (er ist verschlüsselt).
+     * Neuverhandlung in TLS 1.2 ist nicht Gegenstand und nicht getestet.
      *
      * @spec SPEC-028
      */
@@ -285,7 +293,16 @@ class TlsLoopbackTest {
         listOf(TlsPath.FROM_FIRST_BYTE, TlsPath.ENCAPSULATED_IN_TDS).forEach { path ->
             val outcome = runHandshake(TlsSetup(path, tls13))
             val server = outcome.channel()
+            val before = outcome.serverWire.written.size
             outcome.peer.requestKeyUpdate()
+            assertEquals(ChannelResult.Ok(Unit), outcome.peer.writeFully(ByteBuffer.wrap(ByteArray(10))))
+            assertEquals(ChannelResult.Ok(10), server.read(ByteBuffer.allocate(10)))
+            val answer = outcome.serverWire.written.copyOfRange(before, outcome.serverWire.written.size)
+            val shown = "Antwort des Servers: ${answer.size} Bytes"
+            assertTrue(answer.size in RECORD_HEADER + 1 until KEY_UPDATE_MAX, shown)
+            assertEquals(0x17, answer[0].toInt(), "Record-Typ der Antwort")
+            val length = ((answer[3].toInt() and 0xFF) shl 8) or (answer[4].toInt() and 0xFF)
+            assertEquals(answer.size - RECORD_HEADER, length, "genau ein Record")
             exchangeMessages(server, outcome.peer)
         }
     }

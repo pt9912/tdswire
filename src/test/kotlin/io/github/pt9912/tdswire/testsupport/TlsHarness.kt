@@ -34,6 +34,10 @@ data class TlsSetup(
     val peerAlpn: List<String>? = null,
     val options: TlsOptions = TlsOptions(),
     val seed: Long = 1,
+    /** Protokolle des Servers; `null`: dieselben wie die der Gegenstelle. */
+    val serverProtocols: List<String>? = null,
+    /** Suiten des Servers; `null`: dieselben wie die der Gegenstelle. */
+    val serverSuites: List<String>? = null,
 ) {
     val encapsulated: Boolean get() = path == TlsPath.ENCAPSULATED_IN_TDS
 }
@@ -88,7 +92,7 @@ suspend fun runHandshake(setup: TlsSetup): TlsOutcome = coroutineScope {
     val (serverEnd, peerEnd) = MemoryChannel.pair(MEMORY_CAPACITY)
     val serverWire = RecordingChannel(serverEnd)
     val peer = peerFor(setup, peerEnd)
-    val parameters = TlsParameters(setup.protocols, setup.suites)
+    val parameters = TlsParameters(setup.serverProtocols ?: setup.protocols, setup.serverSuites ?: setup.suites)
     val server = async {
         val context = TestKeys.serverContext(setup.serverKeys)
         TlsChannel.accept(sliced(serverWire, setup, 0), context, setup.path, parameters, setup.options)

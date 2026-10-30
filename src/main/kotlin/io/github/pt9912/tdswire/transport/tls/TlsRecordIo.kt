@@ -10,9 +10,13 @@ import javax.net.ssl.SSLException
 /**
  * Die Einzelschritte der Schleife auf einer [SSLEngine]: `unwrap` aus dem Puffer der empfangenen
  * TLS-Bytes, `wrap` auf den [NetOutbound], Nachfüllen aus dem [NetInbound] und die ausgelagerten
- * Tasks der Engine. Beide Netzpuffer haben die Größe, die die Sitzung der Engine nennt; kein Puffer
- * wächst darüber hinaus, ein Record, der nicht hineinpasst, ist ein Fehler. Ein Aufruf von
- * [unwrap] und [pull] gehört dem Leser, [wrap] dem Schreiber.
+ * Tasks der Engine. Beide Netzpuffer haben die Größe, die die Sitzung der Engine nennt, und sind darauf
+ * ausgelegt, nur bis zur Größe der Sitzung zu wachsen; ein Record, der nicht hineinpasst, wäre ein
+ * Fehler. Festlegung ohne Beleg: Mit der JDK-Engine ist dieses Wachsen vermutlich nicht erreichbar
+ * (die Sitzung nennt ihre Höchstgröße schon vor dem Handshake, danach nicht mehr), und weder
+ * `adoptSession` noch der Zweig `BUFFER_OVERFLOW` in [wrap] noch das Nachwachsen in [pull] hat einen
+ * Test; Mutationen daran bleiben grün. Belegt ist nur, dass der Klartextpuffer der Leseseite nicht
+ * wächst. Ein Aufruf von [unwrap] und [pull] gehört dem Leser, [wrap] dem Schreiber.
  *
  * Ausnahmen der Engine (`SSLException`) werden zu [TlsResult.Failed]; ihr Text wird nicht übernommen,
  * er kann Namen aus dem Zertifikat tragen.
@@ -111,9 +115,5 @@ internal class TlsRecordIo(
         buffer.flip()
         larger.put(buffer)
         return larger
-    }
-
-    private companion object {
-        const val WRAP_ATTEMPTS = 2
     }
 }

@@ -96,6 +96,8 @@ class TlsChannel internal constructor(private val inner: SuspendingChannel, priv
          * mit dem Schlüssel des Servers; [parameters] bestimmt Versionen und Suiten, [path] den Pfad.
          * Ein Fehler ist ein [TlsResult.Failed]; ein `IllegalArgumentException` kommt nur, wenn die
          * JVM eine genannte Version oder Suite nicht kennt (Konfigurationsfehler des Aufrufers).
+         * Der innere Kanal ist geschlossen, wenn [accept] nicht mit einem Kanal endet: nach einem
+         * Fehlerwert, nach einem Abbruch und nach jeder anderen Ausnahme, die dann weiterläuft.
          */
         suspend fun accept(
             channel: SuspendingChannel,
@@ -104,14 +106,14 @@ class TlsChannel internal constructor(private val inner: SuspendingChannel, priv
             parameters: TlsParameters = TlsParameters.SPEC_023,
             options: TlsOptions = TlsOptions(),
         ): TlsResult<TlsChannel> {
-            val outcome = try {
-                TlsAcceptor.accept(channel, context, path, parameters, options)
-            } catch (cancelled: CancellationException) {
-                channel.close()
-                throw cancelled
+            var keep = false
+            try {
+                val outcome = TlsAcceptor.accept(channel, context, path, parameters, options)
+                keep = outcome is TlsResult.Ok
+                return outcome
+            } finally {
+                if (!keep) channel.close()
             }
-            if (outcome is TlsResult.Failed) channel.close()
-            return outcome
         }
     }
 }

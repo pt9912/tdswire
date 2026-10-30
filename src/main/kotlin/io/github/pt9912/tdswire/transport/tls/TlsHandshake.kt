@@ -11,8 +11,10 @@ import javax.net.ssl.SSLException
  * Vor jedem Warten auf die Gegenstelle schreibt die Schleife die gesammelte Sendefolge ([NetOutbound.flush]);
  * mit `FINISHED` ist auch die letzte Folge geschrieben.
  *
- * Anwendungsdaten der Gegenstelle im Handshake beenden ihn als Protokollverstoß; dieser Zweig ist
- * ungetestet (eine JDK-Gegenstelle sendet vor `FINISHED` keine).
+ * Anwendungsdaten der Gegenstelle im Handshake beenden ihn als Protokollverstoß. Dieser Zweig ist
+ * ungetestet und mit der JDK-Engine vermutlich nicht erreichbar: eine JDK-Gegenstelle sendet vor
+ * `FINISHED` keine, und ob handgebaute Records ihn auslösen, statt von der Engine als Fehler
+ * abgewiesen zu werden, ist nicht gemessen.
  */
 internal class TlsHandshake(private val io: TlsRecordIo) {
     private val scratch = ByteBuffer.allocate(io.applicationBufferSize)
