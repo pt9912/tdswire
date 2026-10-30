@@ -483,8 +483,8 @@ werden vor der Implementierung festgelegt. Festgelegt ist die Bedeutung:
   gemeinsam (UND). Dieselbe Spalte darf in mehreren Termen stehen; ein Widerspruch trifft keine
   Zeile. `NULL` in einem Vergleich oder einer Werteliste trifft nie (dreiwertige Logik,
   `ANSI_NULLS ON`, vorläufig und an der Referenzinstanz zu messen, `SPEC-045`); `IsNull` ist der
-  einzige Weg zu NULL-Zeilen. `IS [NOT] NULL` ist eine Setzung des Nutzers (2026-10-30): das
-  Lastenheft nennt es nicht wörtlich.
+  einzige Weg zu NULL-Zeilen. `IS [NOT] NULL` ist als erkannte Bedingung durch das Lastenheft
+  (Version 0.5.0, `TDS-FA-11`) gedeckt.
 - `onUpdate` und `onDelete` bekommen `where = null` für eine Anweisung ohne `WHERE`, also für alle
   Zeilen. Die Zahl, die ein Callback liefert, ist die Zahl der betroffenen Zeilen.
 - `SimQuery.filter` ist ein Hinweis zum Vorfiltern (Schritt 5 in `TDS-FA-11.a`), kein Ersatz für die
