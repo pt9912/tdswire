@@ -35,6 +35,10 @@ In Arbeit (Welle welle-handshake-login):
 
 - [slice-bootstrap-konfiguration](slice-bootstrap-konfiguration.md)
 
+In Arbeit (Welle welle-anfrageverarbeitung):
+
+- [slice-sql-batch-dispatch](slice-sql-batch-dispatch.md)
+
 In Arbeit (Welle welle-simulations-backend):
 
 - [slice-adr-simulation-formen](slice-adr-simulation-formen.md)
