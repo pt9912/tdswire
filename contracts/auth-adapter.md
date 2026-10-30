@@ -26,7 +26,7 @@ Der Adapter liefert keinen Text und keine Nummer für den Client. Die Antwort an
 ## Pflichten
 
 - Das Passwort erscheint in keinem Log und in keiner Fehlermeldung, auch nicht gekürzt oder verschleiert. Der Benutzername erscheint in keiner Antwort an den Client und im Log nur in einem Feld, das die Spezifikation festlegt (bisher keines; `TDS-FA-09.a`). `Rejected(reason)` trägt den Grund ohne Passwort und ohne Benutzernamen.
-- Anforderung an den Produktivcode der Einstiegsimplementierung: Der Passwortvergleich läuft in konstanter Zeit über die Länge hinaus; bei unbekannter Kennung läuft ein Scheinvergleich. Weder gebaut noch gemessen; ein Test muss es belegen. Ein Adapter mit eigener Benutzerverwaltung unterliegt derselben Anforderung, der Vertrag kann sie nicht erzwingen.
+- Anforderung an den Produktivcode der Einstiegsimplementierung: Der Passwortvergleich läuft in konstanter Zeit über die Länge hinaus; bei unbekannter Kennung läuft ein Scheinvergleich. Gebaut und strukturell belegt (Abschnitt „Kotlin-Signatur“, Bauart des Vergleichs), nicht gemessen. Ein Adapter mit eigener Benutzerverwaltung unterliegt derselben Anforderung, der Vertrag kann sie nicht erzwingen.
 - Die Antwort an den Client ist für unbekannten Benutzernamen und falsches Passwort in den Antwortbytes gleich (gemessen am Spike-Testserver, nicht am Produkt); das ist Sache des festen Antwortmusters des Anmeldepfads, nicht des Adapters.
 - Ein Adapter blockiert den Anmeldepfad nicht länger als `LOGIN_TIMEOUT` (`SPEC-008`).
 
@@ -43,7 +43,9 @@ Prüfwertformat und Konfigurationsweg (vom Nutzer entschieden, 2026-10-30; was u
 - **Konfigurationsweg:** eigene Datei nur für die Benutzerliste, eigenes Zeilenformat, eigener Parser. Der Pfad wird in der Umgebungsvariable `AUTH_USERS_FILE` übergeben, wie der Schalter `AUTH_PLAIN_TESTMODE` (Setzung (Voreinstellung 2026-10-30, nicht gemessen)); gemessen ist nur die Übergabe eines Werts per Umgebungsvariable, nicht die eines Pfades. Eine Zeile je Eintrag, `Benutzername<TAB>Prüfwert`, UTF-8, kein Escaping, Aufteilung am ersten TAB. Benutzernamen mit TAB, LF, CR oder alleinstehendem Hochsurrogat sind nicht darstellbar und ein Ladefehler. Ein doppelter Benutzername bricht den Start ab.
 - **Testmodus-Schalter:** `AUTH_PLAIN_TESTMODE`, gilt nur bei genau `true`; eigener Schalter nur für `plain`; der Start-Log nennt den Modus.
 - **Fehlerwerte:** je Abweichung genau eine Fehlerart mit Listenplatz, ohne Prüfwert und ohne Passwort. Der Listenplatz ist die Zeilennummer der Datei, 1-basiert (Setzung (Voreinstellung 2026-10-30, nicht gemessen)); gemessen ist im Spike die Position nach Sortierung, nicht die Zeilennummer.
-- **Offen** (vom Nutzer nicht entschieden, nicht gemessen): niedrigerer Iterationsboden im Testmodus, Kommentare und Leerzeilen, Zeilenenden (CRLF), Hashlänge, Mindestlänge des Salzes, Dateirechte im Betrieb, Länge der Ziffernfolge der Iterationen. Die Implementierung setzt dazu vorläufig die Festlegungen ohne Messung aus dem Abschnitt „Kotlin-Signatur“; Dateirechte prüft sie nicht.
+- **Entschieden** (Nutzer, 2026-10-30; Setzungen, nicht gemessen): derselbe Iterationsboden im Testmodus, keine Kommentare und keine Leerzeilen, CRLF nicht toleriert, Hash genau 32 Byte und Salz mindestens 16 Byte ohne Obergrenze, Ziffernfolge der Iterationen 1 bis 8 Stellen ohne führende Null.
+- **Offen** (vom Nutzer nicht entschieden, nicht gemessen): Dateirechte im Betrieb; die Implementierung prüft sie nicht.
+- **Vormerkung für das Lesen der Datei** (Konfiguration): Ein UTF-8-BOM am Dateianfang entfernt der Parser nicht; er würde Teil des ersten Benutzernamens. Das Lesen der Datei entfernt ihn oder weist ihn ab (nicht entschieden).
 
 ## Kotlin-Signatur
 
@@ -63,14 +65,14 @@ sealed interface AuthResult {
 ```
 
 - Der Aufruf **blockiert** und ist nicht `suspend`. Der Aufrufer hält den Transport-Thread frei und `LOGIN_TIMEOUT` ein (`SPEC-008`); eine Messung zur Wirkung einer blockierenden Ableitung auf den Transport liegt nicht vor.
-- `PasswordChars` hält die UTF-16-Einheiten als Kopie; `reveal()` gibt eine Kopie, `wipe()` überschreibt. Das schützt nur dieses Feld, nicht den Paket-, Lese- oder TLS-Puffer und nicht jede Kopie der JVM. Der Anmeldepfad überschreibt sein Feld nach dem Aufruf; der Adapter überschreibt seine eigenen Kopien.
+- `PasswordChars` hält die UTF-16-Einheiten als Kopie; `reveal()` gibt eine Kopie, `wipe()` überschreibt. Das schützt nur dieses Feld, nicht den Paket-, Lese- oder TLS-Puffer und nicht jede Kopie der JVM. Der Anmeldepfad überschreibt sein Feld nach dem Aufruf und beim Abbilden aus einem anderen Typ (`SecretChars`) auch das Zwischenfeld. Der Adapter überschreibt das an die Ableitung übergebene Zeichenfeld, die abgeleiteten Bytes und den UTF-8-Kandidaten des `plain`-Pfads (je mit Test); `PBEKeySpec.clearPassword()` und die Nullung des UTF-8-Zwischenpuffers haben keinen Test, und das `SecretKey`-Objekt der JDK-Ableitung wird nicht überschrieben (aus dem Code gelesen, nicht gemessen).
 - Keine Textdarstellung von `AuthRequest`, `PasswordChars`, `ConnectionContext`, `Principal`, `Accepted`, der Benutzerliste und ihrer Einträge nennt Passwort, Benutzernamen oder Prüfwert.
 - Eingaben über 128 UTF-16-Einheiten (Benutzername oder Passwort) ergeben `Rejected(INPUT_TOO_LONG)`, ohne Ausnahme und ohne Ableitung.
 - `AuthFeatures` wertet die Einstiegsimplementierung nicht aus; der Anmeldepfad lehnt die nicht unterstützten Modi vor dem Adapter ab.
 
 Validierung der Liste: `UserList.parse(text, plainTestMode)` liefert `Valid` oder `Invalid(UserListError(kind, line))`; `line` ist die 1-basierte Zeilennummer der Datei, bei einer Liste ohne Zeile `null`. Das Lesen der Datei, `AUTH_USERS_FILE` und das Auswerten von `AUTH_PLAIN_TESTMODE` (nur der Wert `true` schaltet ein, `UserList.plainTestModeFrom`) gehören der Konfiguration. Die Fehlerarten sind `UserListErrorKind`.
 
-Festlegungen ohne Messung zu den offenen Punkten oben (einfachste strenge Variante, jeweils im KDoc von `UserList` und `Pbkdf2Limits` gekennzeichnet, vom Nutzer nicht entschieden):
+Entschieden (Nutzer, 2026-10-30), Setzungen, nicht gemessen, jeweils im KDoc von `UserList` und `Pbkdf2Limits` gekennzeichnet:
 
 - Der Iterationsboden 210 000 gilt auch im Testmodus.
 - Keine Kommentare: eine Zeile mit `#` ist ein gewöhnlicher Eintrag. Eine leere Zeile ist ein Fehler; nur das Zeilenende am Dateiende ist erlaubt.
@@ -81,7 +83,7 @@ Festlegungen ohne Messung zu den offenen Punkten oben (einfachste strenge Varian
 - Benutzernamen werden zeichengenau verglichen (keine Groß-/Kleinschreibung-Faltung, keine Normalisierung).
 - Dateirechte und Übergabe der Datei sind weder geprüft noch entschieden.
 
-Bauart des Vergleichs (Anforderung, strukturell belegt, nicht gemessen): Der Vergleich untersucht jede Position bis zur längeren Länge und bricht nicht beim ersten Unterschied ab. Bei unbekanntem Benutzernamen läuft dieselbe Ableitung beziehungsweise derselbe Vergleich wie für den ersten Eintrag der Liste gegen dessen Prüfwert (Scheinvergleich); das Ergebnis wird verworfen. Eine Aussage über Zeit ist daraus nicht abzuleiten.
+Bauart des Vergleichs (Anforderung, strukturell belegt, nicht gemessen): Der Vergleich untersucht jede Position bis zur längeren Länge und bricht nicht beim ersten Unterschied ab. Bei unbekanntem Benutzernamen läuft dieselbe Ableitung wie für die Attrappe der Liste gegen deren Prüfwert (Scheinvergleich); das Ergebnis wird verworfen. Attrappe ist der `pbkdf2`-Eintrag mit der höchsten Iterationszahl (bei Gleichstand der erste in Dateireihenfolge), Salz- und Hashlänge wie dort; hat die Liste nur `plain`-Einträge, ist es der erste Eintrag und es läuft keine Ableitung, wie für jeden bekannten Benutzer. Verbleibende Grenze bei gemischten Listen: Ein bekannter Benutzer mit niedrigerer Iterationszahl oder mit `plain`-Prüfwert durchläuft einen anderen Rechenschritt als die Attrappe. Eine Aussage über Zeit ist daraus nicht abzuleiten; nichts davon ist gemessen.
 
 ## Gemessen
 

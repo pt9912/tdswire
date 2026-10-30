@@ -137,7 +137,8 @@ class UserListParserTest {
 
     /**
      * Orakel: Die Iterationen sind nur ASCII-Ziffern; Boden 210 000, Obergrenze 10 000 000 (Setzung des
-     * Nutzers). `toIntOrNull` nähme `+600000`, `-5`, arabisch-indische und vollbreite Ziffern an (M2-4).
+     * Nutzers). Abgrenzung: `toIntOrNull` nimmt `+600000`, `-5`, arabisch-indische und vollbreite Ziffern
+     * an (M2-4); der Parser nicht.
      * Festlegung ohne Messung: 1 bis 8 Stellen, keine führende Null.
      *
      * @spec SPEC-051
@@ -154,9 +155,9 @@ class UserListParserTest {
     }
 
     /**
-     * Orakel: Salz und Hash sind Standard-Base64 mit verlangtem Padding (ADR-0011); ohne Padding nähme
-     * `Base64.getDecoder()` die Eingabe an (M2-7), der Parser lehnt sie ab. Salz mindestens 16 Byte, Hash
-     * genau 32 Byte (Festlegung ohne Messung).
+     * Orakel: Salz und Hash sind Standard-Base64 mit verlangtem Padding (ADR-0011); Abgrenzung:
+     * `Base64.getDecoder()` nimmt Eingaben ohne Padding an (M2-7), der Parser lehnt sie ab. Salz mindestens
+     * 16 Byte, Hash genau 32 Byte (Setzung, nicht gemessen).
      *
      * @spec SPEC-051
      */

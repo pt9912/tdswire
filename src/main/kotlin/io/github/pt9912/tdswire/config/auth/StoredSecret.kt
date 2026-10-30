@@ -2,17 +2,20 @@ package io.github.pt9912.tdswire.config.auth
 
 /**
  * Parameter des Verfahrens `pbkdf2-sha256` (`ADR-0011`). Die Iterationszahlen sind Setzungen des
- * Nutzers; Hashlänge und Salzmindestlänge sind Festlegungen ohne Messung (offener Punkt 4 der ADR).
+ * Nutzers; Hashlänge und Salzmindestlänge (ohne Obergrenze) sind vom Nutzer entschieden (2026-10-30), eine
+ * Setzung, nicht gemessen.
  */
 object Pbkdf2Limits {
     const val ITERATIONS_FLOOR = 210_000
+
+    /** Wert der Konfiguration (`ADR-0011`); im Code liest ihn noch niemand. */
     const val ITERATIONS_DEFAULT = 600_000
     const val ITERATIONS_CEILING = 10_000_000
 
-    /** Festlegung ohne Messung: Der Hash hat genau die Ausgabelänge von SHA-256. */
+    /** Entschieden (Nutzer, 2026-10-30), nicht gemessen: Der Hash hat genau die Ausgabelänge von SHA-256. */
     const val HASH_BYTES = 32
 
-    /** Festlegung ohne Messung: Das Salz hat mindestens 16 Byte. */
+    /** Entschieden (Nutzer, 2026-10-30), nicht gemessen: Das Salz hat mindestens 16 Byte, ohne Obergrenze. */
     const val MIN_SALT_BYTES = 16
 }
 

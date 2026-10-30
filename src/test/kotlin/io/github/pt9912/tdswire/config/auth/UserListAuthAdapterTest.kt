@@ -8,6 +8,10 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class UserListAuthAdapterTest {
+    private companion object {
+        const val HIGH_ITERATIONS = 300_000
+    }
+
     private val listText = "alice\t${pbkdf2Value("richtig")}\n" +
         "bob\t${pbkdf2Value("")}\n" +
         "Ä\t${pbkdf2Value("😀pw")}\n" +
@@ -58,7 +62,7 @@ class UserListAuthAdapterTest {
 
     /**
      * Orakel: Ein unbekannter Benutzername wird auch dann abgelehnt, wenn das Passwort das des Eintrags ist,
-     * dessen Prüfwert der Scheinvergleich benutzt (erster Eintrag der Liste).
+     * dessen Prüfwert der Scheinvergleich benutzt (der erste Eintrag der Liste).
      *
      * @spec SPEC-051
      */
@@ -141,7 +145,8 @@ class UserListAuthAdapterTest {
 
     /**
      * Strukturtest (keine Zeitaussage): Bei unbekanntem Benutzernamen läuft dieselbe Ableitung wie für den
-     * ersten Eintrag (gleiche Iterationen, Salzlänge, Ausgabelänge) und ein Vergleich über alle 32 Byte;
+     * bekannten Benutzer der einheitlichen Liste (gleiche Iterationen, Salzlänge, Ausgabelänge)
+     * und ein Vergleich über alle 32 Byte;
      * das Ergebnis ist `Rejected`. Für einen bekannten Benutzer mit falschem Passwort läuft genau eine
      * Ableitung und ein Vergleich, auch bei Unterschied im ersten Byte des Hashes.
      *
@@ -161,7 +166,34 @@ class UserListAuthAdapterTest {
     }
 
     /**
-     * Strukturtest: Ist der erste Eintrag `plain`, läuft bei unbekanntem Benutzernamen derselbe Vergleich ohne
+     * Strukturtest (keine Zeitaussage) mit gemischter Liste: erster Eintrag `plain`, der bekannte Benutzer
+     * (210 000 Iterationen) steht weder an erster noch an letzter Stelle, der Eintrag mit den meisten Iterationen
+     * (300 000, 24 Byte Salz) steht in der Mitte. Bei unbekanntem Benutzernamen läuft genau eine Ableitung mit
+     * dessen Iterationen, Salz- und Hashlänge; bei dem bekannten Benutzer mit falschem Passwort die seines
+     * Eintrags. Die Grenze bleibt: beide Formen sind verschieden (siehe `UserList`).
+     *
+     * @spec SPEC-051
+     */
+    @Test
+    fun `Scheinvergleich nimmt bei gemischter Liste die hoechste Iterationszahl`() {
+        val longSalt = ByteArray(24) { (it + 100).toByte() }
+        val highHash = b64(oraclePbkdf2("h".toByteArray(), longSalt, HIGH_ITERATIONS, Pbkdf2Limits.HASH_BYTES))
+        val high = "{pbkdf2-sha256}${b64(longSalt)}\$$HIGH_ITERATIONS\$$highHash"
+        val text = "p\t{plain}geheim\n" + "low\t${pbkdf2Value("l")}\n" + "high\t$high\n" +
+            "low2\t${pbkdf2Value("m")}\n"
+        val recording = RecordingPrimitives()
+        val guarded = UserListAuthAdapter(parseOk(text, testMode = true), recording)
+        guarded.authenticate(request("low", "falsch"))
+        guarded.authenticate(request("nobody", "x"))
+        val (known, decoy) = recording.derivations
+        assertEquals(2, recording.derivations.size)
+        assertEquals(Triple(Pbkdf2Limits.ITERATIONS_FLOOR, 16, 32), known.shape())
+        assertEquals(Triple(HIGH_ITERATIONS, 24, 32), decoy.shape())
+        assertEquals(listOf(32, 32), recording.comparisons.map { it.steps })
+    }
+
+    /**
+     * Strukturtest: Hat die Liste nur `plain`-Einträge, läuft bei unbekanntem Benutzernamen derselbe Vergleich ohne
      * Ableitung wie für den ersten Eintrag; der Vergleich untersucht die längere der beiden Längen.
      *
      * @spec SPEC-051
