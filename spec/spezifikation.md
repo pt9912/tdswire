@@ -32,7 +32,10 @@ Herabstufung einer geforderten Verschlüsselung.
 2. Identität über konfigurierten Authentifizierungsadapter prüfen; Geheimnisse nicht protokollieren.
    Meldung und State der Ablehnung sind für eine unbekannte Kennung und ein falsches Passwort
    gleich; der Grund steht nur im Server-Log (`SPEC-012`). Ein Zeitunterschied zwischen beiden
-   Fällen ist nicht zugesichert; er gehört zum Authentifizierungsadapter, sobald der Modus feststeht.
+   Fällen ist nicht zugesichert; die Einstiegsimplementierung vergleicht in konstanter Zeit und führt bei
+   unbekannter Kennung einen Scheinvergleich aus, gemessen ist das nicht. Der Adapter hat die Schnittstelle
+   aus `contracts/auth-adapter.md` (`SPEC-051`); die Einstiegsimplementierung ist eine feste
+   Benutzerliste aus der Konfiguration, SSPI/Kerberos und Entra-ID werden am LOGIN7 erkannt und abgelehnt.
 3. Bei Erfolg isolierte Session mit ID, Principal, Datenbankkontext und Abbruchstatus erzeugen.
 4. Die für den Referenzclient erforderlichen Login-Antworttokens (insbesondere LOGINACK und DONE;
    erforderliche ENVCHANGE/INFO nach Profil) senden.
@@ -256,8 +259,9 @@ String (ohne Secrets), Encrypt/TrustServerCertificate, Authentifizierung, verwen
 SQL-/RPC-Operationen und erwartete Typen. Ohne dieses Profil ist die Kompatibilitätsabnahme nicht
 abgeschlossen. Festgelegt sind Paket (`Microsoft.Data.SqlClient` 7.1.1), .NET-Version (10) und
 TDS-Variante (7.4 und 8.0). **Offene Freigabepunkte:** `Encrypt`/`TrustServerCertificate`,
-SQL-Authentifizierung, unterstützte RPCs, MARS ja/nein, Transaktionen ja/nein,
+unterstützte RPCs, MARS ja/nein, Transaktionen ja/nein,
 Verbindungs-Pooling (einschließlich RESETCONNECTION-Statusbit der Paketheader) und Lastprofil.
+Die Authentifizierung ist SQL-Authentifizierung (Kennung und Passwort im LOGIN7, `contracts/auth-adapter.md`).
 Verantwortliche Rolle und Trigger der Festlegungen stehen im
 Lastenheft (Abschnitt Offene Entscheidungen). Bis zur Entscheidung der offenen Freigabepunkte gilt: kein Anspruch auf
 Produktionskompatibilität. Das Referenzprojekt muss Connection.Open, SELECT mit/ohne Parameter,
@@ -481,7 +485,7 @@ Abnahmegrenzen.
 | ID | Interner Code | Bedingung | Aktion |
 |---|---|---|---|
 | `SPEC-011` | `TDS_PROTOCOL_ERROR` | Paket/Token ungültig | Abbruch oder ERROR, je nach Zustand |
-| `SPEC-012` | `TDS_LOGIN_FAILED` | Authentifizierung fehlgeschlagen | Login-Fehler, Session nicht erstellen; Meldung und State für unbekannte Kennung und falsches Passwort identisch; vorgesehen: SQL-Server-Nummer 18456 mit einheitlichem State, an der Referenzinstanz zu messen (`SPEC-045`) |
+| `SPEC-012` | `TDS_LOGIN_FAILED` | Authentifizierung fehlgeschlagen | Login-Fehler, Session nicht erstellen; Meldung und State für unbekannte Kennung und falsches Passwort identisch; Nummer 18456, Class 14, einheitlicher State, feste Meldung ohne Kennung und genau ein ERROR vor DONE (am Referenzclient gemessen: dieselben Antwortbytes, keine Wiederholung); der State des Referenzservers ist an der Referenzinstanz zu messen (`SPEC-045`) |
 | `SPEC-013` | `TDS_UNSUPPORTED_RPC` | RPC nicht unterstützt | ERROR und DONE mit Fehlerstatus |
 | `SPEC-014` | `TDS_UNSUPPORTED_TYPE` | Wert nicht serialisierbar | definierter Fehler, kein fehlerhaftes Resultset |
 | `SPEC-015` | `TDS_BACKEND_ERROR` | Backend-Ausführung fehlgeschlagen | Fehlerabbildung in TDS |
@@ -520,6 +524,8 @@ aktive Backendoperationen, Abbrüche, Protokollfehler. Keine SQL-Texte als Metri
 | `SPEC-022` | Query-Backend | Projektvertrag v0 (Entwurf) | `contracts/query-backend.md` (anzulegen) |
 | `SPEC-023` | TLS | TLS 1.3 und TLS 1.2 (Mindestversion 1.2); Suiten TLS 1.3: `TLS_AES_256_GCM_SHA384`, `TLS_AES_128_GCM_SHA256`; TLS 1.2: ECDHE mit AES-GCM; Standard `REQUIRED` | `contracts/security-profile.md` |
 
+| `SPEC-051` | Authentifizierungsadapter | Entwurf der Schnittstelle | `contracts/auth-adapter.md` |
+
 `contracts/query-backend.md` ist ein **geplantes Artefakt**, keine bereits vorhandene Datei.
 
 ## 7. Festlegungen der Harness-Werkzeuge
@@ -544,3 +550,4 @@ aktive Backendoperationen, Abbrüche, Protokollfehler. Keine SQL-Texte als Metri
 | 2026-10-29 | `TDS-FA-11.a` ergänzt: Simulations-Backend mit Ablauf, Tabellenbeschreibung, Anweisungsformen, Fehlercodes und Test-Gate (`SPEC-035` bis `SPEC-040`) |
 | 2026-10-29 | Static-Analysis-Gate und Build-Gate festgelegt (`SPEC-041`, `SPEC-042`) |
 | 2026-10-29 | Startprüfung, geordnetes Beenden, Referenzabgleich, Größengrenzen vor dem Login, Fehlerabbildung ohne Ausnahmetext und gleiche Ablehnung unbekannter Kennungen präzisiert (`SPEC-043` bis `SPEC-050`) |
+| 2026-10-30 | Authentifizierungsadapter festgelegt: SQL-Authentifizierung über Schnittstelle, Einstiegsimplementierung mit fester Benutzerliste, feste Ablehnungsantwort (`SPEC-051`, `SPEC-012`, `TDS-FA-02.a`) |
