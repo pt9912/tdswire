@@ -85,7 +85,16 @@ Aussagen-Berührung steht hier gar nicht.
 | `src/test/kotlin/io/github/pt9912/tdswire/transport/` <!-- d-check:ignore (geplant: neue Datei) --> | neu | Loopback-Smoke, Parallelität mit defekten Verbindungen, Fristen mit steuerbarer Zeit, Startprobe je Teil; `@spec`-Tag je Test (SPEC-008, SPEC-043, SPEC-044) |
 | Testzertifikate | neu | Herkunft offen (Frage an den Nutzer, §6) |
 
-Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
+Der Implementer-Agent erweitert die Liste in seinem ersten Lauf:
+
+| Datei / Komponente | Änderungs-Art | Begründung |
+|---|---|---|
+| `src/main/kotlin/io/github/pt9912/tdswire/transport/listener/` | neu | `TdsListener` (Bind, Annahmeschleife, Beenden), `ManagedConnection` (Scope, `LOGIN_TIMEOUT`, Ende), `ConnectionRegistry` (Aufnahme gegen Beginn des Beendens gesperrt), `ConnectionHandler`/`Connection` (Handler-Schnittstelle), `ListenerConfig`/`ListenerTimes`/`Delayer` (Fristen über eine steuerbare Zeitquelle), `ListenerEvents` |
+| `src/main/kotlin/io/github/pt9912/tdswire/transport/tls/` (`TlsMaterial`, `TlsStartProbe`, `ProbeClient`) | neu | PKCS#12-Lader mit Diagnose, Startprobe im Speicher gegen eine Gegenstelle, die nur die Gültigkeit der Kette prüft |
+| `src/test/kotlin/io/github/pt9912/tdswire/transport/listener/` und `src/test/kotlin/io/github/pt9912/tdswire/transport/tls/TlsStartProbeTest.kt` | neu | Smoke, parallele Verbindungen, Fristen, Beenden, Start, Startprobe je Teil |
+| `src/test/kotlin/io/github/pt9912/tdswire/testsupport/KeyVariants.kt` | neu | Abwandlungen der Testzertifikate der Stage `testkeys` im Test (anderes Schlüsselkennwort, fremder Schlüssel, EC, RSA 1024): kein Eingriff in `Dockerfile` und `build.gradle.kts` |
+
+Festlegungen des Laufs (nicht gemessen, für die Closure-Notiz): Handler-Schnittstelle mit zwei Meldungen (`loginCompleted`, `requestRunning`; eine unvollständig empfangene Nachricht meldet der Handler als „läuft“); eigene `AsynchronousChannelGroup` mit zwei Threads je Listener; Zeitquelle `Delayer` statt `kotlinx-coroutines-test`; die Startprobe nutzt den Pfad ab dem ersten Byte (die Kapselung prüft sie nicht, `SPEC-043`); RSA ab 2048 Bit als zugelassene Schlüsselform; `jdk.tls.acknowledgeCloseNotify` bleibt beim JDK-Standard, der Server antwortet nicht auf `close_notify` der Gegenstelle (Voreinstellung des Aufrufers, vom Nutzer nicht bestätigt); der Listener schließt beim Beenden und bei Fristablauf den TCP-Kanal ohne eigenes `close_notify`, weil er den TLS-Kanal des Handlers nicht kennt.
 
 - Reihenfolge: Listener und Scope zuerst, dann Fristen und Schließen, zuletzt die Startprobe (sie braucht die Schleife und das Material).
 - Die Handler-Schnittstelle nach ARC-003 („Protocol-Schnittstellen“) wird so klein wie möglich gehalten: Verbindung entgegennehmen, „Login abgeschlossen“ und „Anfrage läuft“ melden. Ihre endgültige Form legt die Protokollschicht fest; der Slice nennt sie in §7 als Festlegung.
