@@ -35,7 +35,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Enumerationsfestigkeit als Abnahmekriterium — [TDS-QA-03](../../../../spec/lastenheft.md#tds-qa-03--sicherheit) verlangt sie nicht; `SPEC-012` sichert nur die gleiche Ablehnung zu. Die Zeitgleichheit des Passwortvergleichs, die Drosselung wiederholter Anmeldeversuche und das Prüfwertformat der Benutzerliste aus [ADR-0009](../../adr/0009-authentifizierungsmodus.md) §Offen sind dagegen Gegenstand dieses Slice (Test bzw. Entscheidung, nicht Abnahmekriterium).
-- Der Authentifizierungsmodus selbst — er ist in [ADR-0009](../../adr/0009-authentifizierungsmodus.md) offen und wird dort entschieden.
+- Der Authentifizierungsmodus selbst — [ADR-0009](../../adr/0009-authentifizierungsmodus.md) wählt SQL-Authentifizierung über einen Adapter (Status `Proposed`, wird `Accepted`); dieser Slice entscheidet ihn nicht.
 
 ## 2. Definition of Done
 
@@ -97,7 +97,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Der Authentifizierungsmodus ([ADR-0009](../../adr/0009-authentifizierungsmodus.md)) ist offen; Tests der Anmeldung bleiben bis dahin vorläufig. — **Ausgang:** offen bis zur Closure.
+- Die Wahl in [ADR-0009](../../adr/0009-authentifizierungsmodus.md) ist `Proposed` und kann sich bei der Verifikation ändern; Tests der Anmeldung bleiben bis zum Statuswechsel vorläufig. — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 

@@ -153,7 +153,11 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Der Referenzclient sendet RPC-Formen, die das Profil nicht vorhersah. — **Ausgang:** offen bis zur Closure.
+- Der Referenzclient sendet RPC-Formen, die das Profil nicht vorhersah. — **Ausgang:** eingetreten. `ExecuteReader(SchemaOnly)` (Batch mit `SET FMTONLY`), `ExecuteReader(KeyInfo|SingleRow)` (`SET`-Text in `sp_executesql`) und `BeginTransaction`/`Commit` (Pakettyp `0x0E`) liegen gemessen außerhalb des Katalogs. Folge: die Szenarien laufen als Prüfung im Träger [slice-qa-kompatibilitaet](../open/slice-qa-kompatibilitaet.md); die Entscheidung über die Behandlung (`SET`-Text, Transaktionen) fällt im Slice der funktionalen Welle, der den RPC-Pfad baut (noch nicht angelegt), oder in einer Folge-ADR; Eintrag im Beobachtungs-Register bei der Closure.
+- `sp_unprepare` unter Pooling und `sp_reset_connection` sind nicht gemessen ([ADR-0005](../../adr/0005-rpc-und-prepared-statements.md) §Offen). — **Ausgang:** weiter offen. Träger: [slice-qa-kompatibilitaet](../open/slice-qa-kompatibilitaet.md) (Pooling-Szenario).
+- TDS 8.0 ist für die RPC-Formen nicht gemessen. — **Ausgang:** weiter offen. Träger: [slice-qa-kompatibilitaet](../open/slice-qa-kompatibilitaet.md).
+- Antworten eines echten SQL Servers (Tokenreihenfolge, ordinale Zählung der RETURNVALUE, DONE-Statusbits, Fehler bei unbekanntem RPC) sind nicht gemessen. — **Ausgang:** weiter offen. Träger: [slice-qa-reproduzierbarkeit](../open/slice-qa-reproduzierbarkeit.md) (Vergleichslauf D, Mitschnitt-Lauf nach [SPEC-045](../../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig)).
+- Die Freigabe der unterstützten RPCs im Clientprofil ([SPEC-004](../../../../spec/spezifikation.md#spec-004--testprofil)) bleibt an diese Messgrenzen gebunden. — **Ausgang:** weiter offen. Träger: [slice-qa-kompatibilitaet](../open/slice-qa-kompatibilitaet.md) (Szenarien) und die Punkte oben.
 
 ## 7. Closure-Notiz
 

@@ -37,6 +37,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - NuGet-Audit: Entscheidung, ob das Repo die Schwachstellenprüfung anderweitig führt oder bewusst verzichtet; wird `NuGetAudit=false` nicht beendet, braucht es einen Carveout mit Trigger (`AGENTS.md` §3.6). Bewertet gegen [TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit).
 - `trustedSigners`: eine funktionierende Liste für `signatureValidationMode=require` unter Linux, oder die begründete Entscheidung dagegen.
 - Der Vergleichslauf D (Referenzabgleich nach [SPEC-045](../../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig)) als eigenes Make-Target: Ausnahmeliste für das gemessene Schema, Laufzeit sowie Netz-, Platten- und Speicherbedarf auf dem Zielsystem gemessen, EULA-Rechtsprüfung, SQL-Server-Tag für TDS 8.0. In `make gates` kommt D erst nach dieser Messung.
+- State und Meldung eines echten SQL Servers ([ADR-0009](../../adr/0009-authentifizierungsmodus.md) §Offen): das Anmelde-Szenario in D (falsches Kennwort, unbekannter Benutzer; einmal gemessen 18456, State 1, Class 14, Meldung mit Benutzernamen) und ein Eintrag der Ausnahmeliste *so gewollt* für die feste Meldung ohne Kennung (`SPEC-012`). Der interne State ist am Client nicht sichtbar. Dieser Slice ist der einzige Träger; [slice-qa-kompatibilitaet](slice-qa-kompatibilitaet.md) führt keinen Referenzabgleich.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -51,7 +52,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] CI-Workflow führt `make gates` in Docker aus und ist grün.
 - [ ] Clean-Build ohne Host-Toolchain nachgewiesen (Host: Docker und `make`), einschließlich des .NET-Restore: NuGet-Audit und `trustedSigners` entschieden und umgesetzt, oder ein Carveout mit Trigger.
-- [ ] Vergleichslauf D als eigenes Make-Target, nicht in `make gates`; Ausnahmeliste sowie Laufzeit, Netz-, Platten- und Speicherbedarf gemessen, Aufnahme in `make gates` erst danach.
+- [ ] Vergleichslauf D als eigenes Make-Target, nicht in `make gates`; Ausnahmeliste (darunter die feste Login-Meldung ohne Kennung) sowie Laufzeit, Netz-, Platten- und Speicherbedarf gemessen, Anmelde-Szenario gegen den echten Server enthalten, Aufnahme in `make gates` erst danach.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -105,7 +106,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Die Integrationstests ([ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md)) sind noch nicht festgelegt; die CI deckt zunächst nur die vorhandenen Gates. — **Ausgang:** offen bis zur Closure.
+- Die Integrationstests ([ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md), Status `Proposed`, wird `Accepted`) sind nicht gebaut; die CI deckt zunächst nur die vorhandenen Gates. — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 
