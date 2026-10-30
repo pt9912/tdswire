@@ -7,7 +7,8 @@ using Xunit;
 namespace TdsWire.Referenztests.Smoke;
 
 /// <summary>
-/// Gerüstbeleg: Restore, Build und Test laufen in Docker ohne Mount und ohne Netz. Der Test
+/// Gerüstbeleg: Restore, Build und Test laufen in Docker ohne Mount. Ohne Netz läuft nur die
+/// Stage `test` (<c>--network=none</c>); der Restore holt die Pakete von api.nuget.org. Der Test
 /// braucht keinen TDS-Server und sagt nichts über das Verhalten eines TDS-Servers (ADR-0008,
 /// TDS-QA-06).
 /// </summary>
@@ -15,7 +16,10 @@ public class KeinServerSmokeTests
 {
     // Gemessen in der Dockerfile-Stage `test` (SqlClient 7.1.1, --network=none, Verbindungszeichenfolge
     // unten): SqlException mit Number 0 und Class 20, Dauer 702 ms bei Connect Timeout=1. Fünf Versuche
-    // mit Timeout 3 und 1 endeten im selben Ausnahmetyp; die Grenze von 5 s ist eine Setzung.
+    // mit Timeout 3 und 1 endeten im selben Ausnahmetyp. Das Fehlerbild ist nur an SqlClient 7.1.1
+    // gemessen; eine neue Version kann Ausnahmetyp, Number oder Class ändern und den Test rot machen,
+    // ohne dass das Gerüst defekt ist. Die Dauer lag in 22 Läufen bei 769 bis 1000 ms (etwa 0,8 x
+    // Timeout); die Grenze von 5 s ist eine Setzung mit rund Faktor 5 Abstand zu diesem Bereich.
     private static readonly TimeSpan Obergrenze = TimeSpan.FromSeconds(5);
 
     [Fact]
