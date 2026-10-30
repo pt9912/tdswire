@@ -96,6 +96,11 @@ ERROR-/DONE-Token oder Verbindungsabbruch, falls Protokollzustand keine Antwort 
    (`Failure` mit Code), erreicht den Client nur als `TDS_INTERNAL_ERROR` mit festem Text, nie mit
    dem Text der Ausnahme; dieser kann Konfigurationswerte enthalten und geht ins Log, ohne
    Parameterwerte (`SPEC-048`).
+6. Nach ERROR und DONE mit Fehlerstatus bleibt die Verbindung offen, wenn die Severity (Class) höchstens
+   19 ist. Ab Severity 20, nach `TDS_INTERNAL_ERROR` (`SPEC-048`), nach `TDS_SHUTDOWN` (`SPEC-049`) und
+   wenn der Strom nicht mehr sicher abzuschließen ist (`SPEC-031`) schließt der Server die Verbindung
+   nach ERROR und DONE. Nach Cancel oder Timeout bleibt sie offen, wenn DONE mit ATTENTION-Status
+   gesendet wurde (`SPEC-029`). Ob Cancel und Timeout als Fehler zählen, ist noch festzulegen.
 
 **Komplexität:** O(Meldungslänge). **Fehlermodi:** Transport bereits geschlossen, Encoderfehler.
 
@@ -332,7 +337,7 @@ vollständigem Abbruchabschluss wieder eine neue Anfrage an (Anfragezustand `IDL
 zwischen DONE und ATTENTION gilt die Regel der Anfragezustandsmaschine in `SPEC-001`; doppelte
 DONE-Tokens sind verboten. Wenn ein
 bereits gesendeter Stream nicht mehr sauber abgeschlossen werden kann, wird die Verbindung
-geschlossen. Tests prüfen `SqlCommand.Cancel()`, `CancellationToken` und unmittelbar anschließende
+geschlossen. Nach gesendetem DONE mit ATTENTION-Status bleibt die Verbindung offen. Tests prüfen `SqlCommand.Cancel()`, `CancellationToken` und unmittelbar anschließende
 neue Befehle.
 
 ### SPEC-030 — RPC-Varianten und Parameter-Metadaten
@@ -546,8 +551,8 @@ Abnahmegrenzen.
 | `SPEC-037` | `TDS_UNSUPPORTED_SQL` | Anweisung oder Bedingung außerhalb von `SPEC-036`; Schreibzugriff ohne Callback | ERROR und DONE mit Fehlerstatus, Zeilenquelle nicht gelesen |
 | `SPEC-038` | `TDS_SIM_UNKNOWN_OBJECT` | Tabelle oder Spalte ist nicht beschrieben | ERROR und DONE mit Fehlerstatus; vorgesehene SQL-Server-Nummern 208 (Objekt) und 207 (Spalte) |
 | `SPEC-039` | `TDS_SIM_INVALID_VALUE` | Wert nicht in den Spaltentyp überführbar | ERROR und DONE mit Fehlerstatus; vorgesehene SQL-Server-Nummern 245 (Konvertierung) und 8115 (Überlauf), an der Referenzinstanz zu messen |
-| `SPEC-048` | `TDS_INTERNAL_ERROR` | unerwartete Ausnahme im Server oder im Backend-Adapter | ERROR und DONE mit Fehlerstatus, fester Text ohne den Text der Ausnahme; die Ausnahme geht ins Log, ohne Parameterwerte |
-| `SPEC-049` | `TDS_SHUTDOWN` | Anfrage nach Beginn des geordneten Beendens (`SPEC-044`) | ERROR, danach Verbindungsende; vorgesehen: die SQL-Server-Meldung für ein Herunterfahren, Nummer im Mapping nach `TDS-FA-06.a` festlegen |
+| `SPEC-048` | `TDS_INTERNAL_ERROR` | unerwartete Ausnahme im Server oder im Backend-Adapter | ERROR und DONE mit Fehlerstatus, fester Text ohne den Text der Ausnahme, danach Verbindungsende; die Ausnahme geht ins Log, ohne Parameterwerte |
+| `SPEC-049` | `TDS_SHUTDOWN` | Anfrage nach Beginn des geordneten Beendens (`SPEC-044`) | ERROR und DONE mit Fehlerstatus, danach Verbindungsende; vorgesehen: die SQL-Server-Meldung für ein Herunterfahren, Nummer im Mapping nach `TDS-FA-06.a` festlegen |
 
 Die Nummern in der Aktionsspalte sind ein Vorschlag für das Mapping nach `TDS-FA-06.a`. Für
 `TDS_UNSUPPORTED_SQL` gibt es keine SQL-Server-Entsprechung, denn dort ist die Anweisung gültig; die

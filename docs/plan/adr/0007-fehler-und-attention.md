@@ -90,7 +90,7 @@ Nebenbefund zum Testserver (kein Gegenstand dieser ADR, aber für den Codec): Ei
 
 ### Wo diese Messung von [ADR-0004](0004-session-zustandsautomat.md) abhängt
 
-[ADR-0004](0004-session-zustandsautomat.md) (Session-Zustandsautomat) ist noch nicht entschieden und wird parallel gemessen. Die Tabellen oben beschreiben Tokenfolgen und Clientreaktionen und gelten unabhängig von dessen Wahl. Die **Aussagen über den Server dieses Repos**, die man daraus ableitet, hängen an [ADR-0004](0004-session-zustandsautomat.md) an diesen Stellen:
+[ADR-0004](0004-session-zustandsautomat.md) (Session-Zustandsautomat) wählt den expliziten Automaten mit `Mutex` je Sitzung (Status Proposed). Die fünf Punkte unten sind damit **nicht** beantwortet: ADR-0004 führt sie als offen. Die Tabellen oben beschreiben Tokenfolgen und Clientreaktionen und gelten unabhängig von dessen Wahl. Die **Aussagen über den Server dieses Repos**, die man daraus ableitet, hängen an [ADR-0004](0004-session-zustandsautomat.md) an diesen Stellen:
 
 1. **ATTENTION in jedem Anfragezustand.** R13/S15/S16 zeigen: Der Client sendet ATTENTION auch nach vollständig gesendeter Antwort, und ohne Bestätigung wartet er bis zum Timeout und schließt. Ob der Server eine ATTENTION im Zustand „Antwort fertig, noch nicht quittiert“ oder im Leerlauf beantworten muss, legt der Zustandsautomat fest. Gemessen ist nur, dass der Client eine Bestätigung erwartet und der echte Server sie in R13 sendet.
 2. **Sitzungszustand nach einem Fehler.** R08/R09: Eine offene Transaktion überlebt einen Fehler (ohne `XACT_ABORT`). „Verbindung weiterverwenden“ umfasst also den Sitzungszustand; was davon der Server dieses Repos kennt (Transaktionen sind im Katalog nicht enthalten, siehe `SPEC-030`), legt [ADR-0004](0004-session-zustandsautomat.md) fest.
@@ -110,14 +110,39 @@ Nebenbefund zum Testserver (kein Gegenstand dieser ADR, aber für den Codec): Ei
 
 ## Entscheidung
 
-**Offen — noch keine Option gewählt.** Diese ADR dokumentiert die zu treffende Entscheidung, nicht bereits einen Beschluss. Die Messung oben liefert die Fehler-/Cancel-Matrix gegen den Referenzclient (T) und das Verhalten eines echten SQL Servers (R); sie entscheidet zwischen A, B und C nicht, sie benennt Kosten und Grenzen jeder Option. Offen für die Entscheidung: welche Fehlerklassen die Verbindung behalten dürfen (Option B), und ob ein interner Fehler nach `SPEC-048` und `TDS_SHUTDOWN` nach `SPEC-049` die Verbindung ausnahmslos beenden. Die Entscheidung trifft der Nutzer.
+Wir wählen die **enge Form von Option B mit Option A als Grundregel** (Entscheidung des Nutzers, 2026-10-30; die Wahl ist eine Setzung, die Messungen stützen sie in den unten genannten Punkten). A ist die Grundregel: im Zweifel schließt der Server. B gilt nur für die zwei Fälle unten.
+
+**Die Verbindung bleibt offen** nur
+
+1. nach einem Fehler der Class ≤ 19, den der Server vollständig mit ERROR und DONE[ERR] beendet hat, und
+2. nach Cancel oder Timeout, wenn DONE[ATTN] gesendet wurde.
+
+**Der Server schließt die Verbindung nach ERROR und DONE[ERR]** bei
+
+- Class ≥ 20,
+- `TDS_INTERNAL_ERROR` ([SPEC-048](../../../spec/spezifikation.md#4-fehler-codes-und-logging-felder)),
+- `TDS_SHUTDOWN` ([SPEC-049](../../../spec/spezifikation.md#4-fehler-codes-und-logging-felder)),
+- einem Strom, der nicht mehr sicher abgeschlossen werden kann ([SPEC-031](../../../spec/spezifikation.md#spec-031--streaming-fehler-und-atomarität)).
+
+**Gestützt durch die Messung:** Der echte SQL Server behielt die Verbindung bei allen gemessenen Fehlern der Class ≤ 19 (R01 bis R10, R17) und beendete sie ab Class 20 (R10); nach Cancel und Timeout blieb sie offen (R11 bis R16). Der Referenzclient verträgt „ERROR, DONE, Schließen“ (T, S21), hängt aber bei fehlendem DONE oder fehlender ATTN-Bestätigung bis zum Timeout und schließt dann selbst (T, S10, S12, S14, S16, S18); „im Zweifel schließen“ ist für diesen Client billiger als „im Zweifel weitermachen“ (abgeleitet, nicht gemessen mit Pooling). Ein Server, der bei jedem Fehler schließt (A), weicht vom gemessenen Verhalten des echten Servers ab (R01 bis R09, R17).
+
+**Grenzen der Wahl:** Sie ist nicht gemessen an einem Server dieses Repos (er existiert nicht), nicht mit TDS 8.0, nicht mit anderen Clients und nicht mit Pooling bei einer vom Server geschlossenen Verbindung. Sie hängt in den mit **[0004]** markierten Punkten (ATTENTION in jedem Anfragezustand, Sitzungszustand nach Fehler, `RESETCONNECTION`) von [ADR-0004](0004-session-zustandsautomat.md) ab. Das Schwellwert-Verhalten gilt für die Class, die der Server in seinem Fehler-Mapping ausgibt ([TDS-FA-06.a](../../../spec/spezifikation.md#tds-fa-06a--fehlerabbildung)); welche Class die eigenen Fehlercodes tragen, ist nicht entschieden.
+
+**Nicht entschieden und in dieser ADR als offen geführt:**
+
+- ob Cancel und Timeout als Fehler gelten, die unter die Regel „Fehler“ fallen ([SPEC-016](../../../spec/spezifikation.md#4-fehler-codes-und-logging-felder) nennt „Fehler/Disconnect“ für `TDS_TIMEOUT`);
+- die Fehlersemantik im Strom: Teilzeilen, dann ERROR und DONE, oder Verbindungsende (gehört zu Lastenheft und Spezifikation, [SPEC-031](../../../spec/spezifikation.md#spec-031--streaming-fehler-und-atomarität) beschreibt beide Fälle je nach Zustand des Stroms);
+- was der Server tut, wenn ERROR und DONE bei einem nicht mehr abschließbaren Strom nicht mehr gesendet werden können (die Entscheidung nennt „nach ERROR und DONE“; ohne sendbaren Abschluss bleibt nur das Schließen, das ist hier nicht ausdrücklich entschieden);
+- die Reichweite von ATTENTION im Handshake (PRELOGIN, TLS, LOGIN7) und die Antwort auf unzulässige Übergänge (dieselben Punkte führt [ADR-0004](0004-session-zustandsautomat.md));
+- der Inhalt der Cancel-Antwort: zwei Nachrichten wie am echten Server (R11, R12) oder nur DONE[ATTN] (T, S11 genügte dem Referenzclient);
+- die Behandlung von `RESETCONNECTION` und der Sitzungszustand nach einem Fehler (offene Transaktion, R08/R09).
 
 ## Verglichene Alternativen
 
 | Option                                    | Pro                                       | Contra                                            |
 | ----------------------------------------- | ----------------------------------------- | ------------------------------------------------- |
 | A — Verbindung bei jedem Fehler schließen | Einfache Isolation                        | Schlechte Client-Wiederverwendung                 |
-| B — zustandsabhängige Recovery            | Wiederverwendung nach definierten Fehlern | Komplexe Token- und Cancel-Sequenz                |
+| **B — zustandsabhängige Recovery (enge Form, mit A als Grundregel gewählt)** | Wiederverwendung nach definierten Fehlern | Komplexe Token- und Cancel-Sequenz                |
 | C — generisches Retry im Server           | Kann temporäre Fehler abfedern            | Gefahr doppelter Ausführung und falscher Semantik |
 | 0 — keine Festlegung vor der Fehler-/Cancel-Matrix | Keine Vorfestlegung der Recovery-Regeln | Blockiert `SPEC-029`, `SPEC-031` und `SPEC-016` (die Matrix liegt jetzt als Messung vor, siehe oben) |
 
@@ -154,18 +179,19 @@ Kennzeichnung: **(R)** am echten SQL Server gemessen, **(T)** am Testserver mit 
 
 **Option 0 — keine Festlegung:** Die Matrix liegt vor; die offenen Fragen aus dem Abschnitt „Wo diese Messung von [ADR-0004](0004-session-zustandsautomat.md) abhängt“ bleiben auch bei 0 offen. Blockiert die Folgepflichten unten.
 
-### Empfehlung (keine Entscheidung)
+### Empfehlung des Spike-Agenten (Grundlage der Entscheidung)
 
-Die Entscheidung trifft der Nutzer. Als Empfehlung des Spike-Agenten, begründet nur mit den Messungen oben:
+Der Nutzer hat diese Form gewählt (siehe Entscheidung). Die Empfehlung des Spike-Agenten, begründet nur mit den Messungen oben, lautete:
 
-**Eine enge Form von B mit A als Grundregel:** Die Verbindung bleibt nur für Fehler, die der Server vollständig mit ERROR und DONE[ERR] beendet hat und deren Class ≤ 19 ist, sowie nach Cancel/Timeout mit gesendetem DONE[ATTN] (das ist die am echten Server gemessene Regel, R). In allen anderen Fällen — Class ≥ 20, `TDS_INTERNAL_ERROR` (`SPEC-048`), `TDS_SHUTDOWN` (`SPEC-049`), ein Strom, der nicht mehr sicher abgeschlossen werden kann (`SPEC-031`) — schließt der Server nach dem ERROR und DONE[ERR]. Gründe aus der Messung: (1) der echte Server verhält sich so (R10, R01 bis R07), (2) der Client verträgt „ERROR, DONE, Schließen“ (T, S21), hängt aber bei fehlendem DONE oder fehlender ATTN-Bestätigung bis zum Timeout und schließt dann selbst (T, S10, S12, S14, S16, S18), also ist „im Zweifel schließen“ für den Client billiger als „im Zweifel weitermachen“ (abgeleitet), (3) ein Server, der bei jedem Fehler schließt (A), bräche mit dem Verhalten, das Anwendungen am echten Server gewohnt sind (R01 bis R09, R17), und dessen Auswirkung mit Pooling ist nicht gemessen. Die Empfehlung ist **nicht** gemessen am Server dieses Repos (er existiert nicht), nicht gemessen mit TDS 8.0 und nicht mit anderen Clients; sie hängt in den mit **[0004]** markierten Punkten (ATTENTION in jedem Anfragezustand, Sitzungszustand nach Fehler, RESETCONNECTION) von [ADR-0004](0004-session-zustandsautomat.md) ab und sollte nicht vor dieser Entscheidung als Accepted festgeschrieben werden.
+**Eine enge Form von B mit A als Grundregel:** Die Verbindung bleibt nur für Fehler, die der Server vollständig mit ERROR und DONE[ERR] beendet hat und deren Class ≤ 19 ist, sowie nach Cancel/Timeout mit gesendetem DONE[ATTN] (das ist die am echten Server gemessene Regel, R). In allen anderen Fällen — Class ≥ 20, `TDS_INTERNAL_ERROR` (`SPEC-048`), `TDS_SHUTDOWN` (`SPEC-049`), ein Strom, der nicht mehr sicher abgeschlossen werden kann (`SPEC-031`) — schließt der Server nach dem ERROR und DONE[ERR]. Gründe aus der Messung: (1) der echte Server verhält sich so (R10, R01 bis R07), (2) der Client verträgt „ERROR, DONE, Schließen“ (T, S21), hängt aber bei fehlendem DONE oder fehlender ATTN-Bestätigung bis zum Timeout und schließt dann selbst (T, S10, S12, S14, S16, S18), also ist „im Zweifel schließen“ für den Client billiger als „im Zweifel weitermachen“ (abgeleitet), (3) ein Server, der bei jedem Fehler schließt (A), bräche mit dem Verhalten, das Anwendungen am echten Server gewohnt sind (R01 bis R09, R17), und dessen Auswirkung mit Pooling ist nicht gemessen. Die Empfehlung ist **nicht** gemessen am Server dieses Repos (er existiert nicht), nicht gemessen mit TDS 8.0 und nicht mit anderen Clients; sie hängt in den mit **[0004]** markierten Punkten (ATTENTION in jedem Anfragezustand, Sitzungszustand nach Fehler, RESETCONNECTION) von [ADR-0004](0004-session-zustandsautomat.md) ab; diese ADR wird erst `Accepted`, wenn [ADR-0004](0004-session-zustandsautomat.md) entschieden ist.
 
 ## Konsequenzen
 
-- **Positiv nach Entscheidung:** Nach jedem Fehlerfall ist definiert, ob die Verbindung weiterverwendet werden darf.
-- **Negativ / Risiko:** Zustandsabhängige Recovery erhöht die Zahl der zu testenden Token- und Cancel-Sequenzen.
-- **Folgepflicht:** `SPEC-029`, `SPEC-031`, `SPEC-011` und `SPEC-016` auf die gewählte Recovery-Regel festlegen.
-- **Offen:** Fehlerklassen, die eine Wiederverwendung der Verbindung erlauben; ob nach `TDS_SHUTDOWN` und nach einem internen Fehler (`SPEC-048`) die Verbindung stets endet, wie `SPEC-044` und `SPEC-049` es vorsehen, oder die Recovery-Regel Ausnahmen kennt. Die Messung nennt dafür die Schwelle am echten Server (R10: Class ≤ 19 offen, Class ≥ 20 Server schließt) und die Schwelle des Clients (T: ab Class 20 schließt er selbst), entscheidet die Regel aber nicht.
+- **Positiv:** Nach jedem Fehlerfall ist definiert, ob die Verbindung weiterverwendet werden darf; die Regel folgt dem gemessenen Verhalten des echten Servers und schließt im Zweifel.
+- **Negativ / Risiko:** Zustandsabhängige Recovery erhöht die Zahl der zu testenden Token- und Cancel-Sequenzen. Wo der Server schließt, verliert ein Client mit Pool die Verbindung; die Wirkung mit Pooling bei einer vom Server geschlossenen Verbindung ist nicht gemessen.
+- **Folgepflicht:** Die Recovery-Regel in `TDS-FA-06.a`, `SPEC-029`, `SPEC-048` und `SPEC-049` festlegen (geschehen); `SPEC-031`, `SPEC-011` und `SPEC-016` nachziehen, sobald Fehlersemantik im Strom und die Behandlung von Cancel und Timeout als Fehler entschieden sind; Tests: Folgeabfrage nach Fehler und ATTENTION, Schließen nach Class ≥ 20, `TDS_INTERNAL_ERROR` und `TDS_SHUTDOWN`.
+- **Entschieden:** Die Schwelle liegt bei Class 19/20 (am echten Server R10: Class ≤ 19 offen, Class ≥ 20 Server schließt; der Referenzclient schließt ab Class 20 selbst, T); nach `TDS_SHUTDOWN` und nach einem internen Fehler (`SPEC-048`) endet die Verbindung stets.
+- **Offen:** Cancel und Timeout als Fehler; Fehlersemantik im Strom; Verhalten bei nicht mehr sendbarem Abschluss; ATTENTION im Handshake; Inhalt der Cancel-Antwort (eine oder zwei Nachrichten); `RESETCONNECTION`; Class der eigenen Fehlercodes im Mapping.
 - **Offen durch [ADR-0004](0004-session-zustandsautomat.md):** ATTENTION in jedem Anfragezustand, Sitzungszustand nach Fehler (Transaktionen), `RESETCONNECTION`, Zeitpunkt des Schließens nach `TDS_SHUTDOWN`; Einzelheiten im Abschnitt „Wo diese Messung von [ADR-0004](0004-session-zustandsautomat.md) abhängt“. Eine Entscheidung dieser ADR vor [ADR-0004](0004-session-zustandsautomat.md) bindet diese Punkte nicht mit.
 - **Nicht gemessen** (Auszug, Vollständiges im Abschnitt „Nicht gemessen“): TDS 8.0 und TLS, Client-Disconnect mitten in der Anfrage, ATTENTION-Race im Moment des letzten DONE, Pooling mit vom Server geschlossener Verbindung, andere Clients.
 
@@ -173,11 +199,11 @@ Die Entscheidung trifft der Nutzer. Als Empfehlung des Spike-Agenten, begründet
 
 | Tooling                                     | Regel                                                                                                                                 | Make-Target                         |
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| JVM-/Protokolltests und .NET-Referenzclient | Nach Fehler und ATTENTION liefert die unmittelbar folgende Abfrage auf derselben Verbindung nur ihre eigene Antwort; ist das nicht sicher, ist die Verbindung geschlossen. Noch kein bestandenes Gate. | — (Gate noch einzurichten) |
+| JVM-/Protokolltests und .NET-Referenzclient | Nach Fehler der Class ≤ 19 und nach ATTENTION mit DONE[ATTN] liefert die unmittelbar folgende Abfrage auf derselben Verbindung nur ihre eigene Antwort; nach Class ≥ 20, `TDS_INTERNAL_ERROR`, `TDS_SHUTDOWN` und nicht mehr abschließbarem Strom ist die Verbindung nach ERROR und DONE geschlossen. Noch kein bestandenes Gate. | — (Gate noch einzurichten) |
 
 ## Re-Evaluierungs-Trigger
 
-Neue Recovery-Lücke oder reproduzierbare Desynchronisation.
+Neue Recovery-Lücke oder reproduzierbare Desynchronisation; ein Client mit Pool, der bei geschlossener Verbindung scheitert; eine Messung an einem Server dieses Repos oder mit TDS 8.0, die der Regel widerspricht.
 
 ## Geschichte
 
@@ -186,3 +212,4 @@ Neue Recovery-Lücke oder reproduzierbare Desynchronisation.
 | 2026-10-29 | Proposed – Entscheidung offen | —       |
 | 2026-10-29 | Bezug auf `SPEC-044`, `SPEC-047`, `SPEC-048`, `SPEC-049` (geordnetes Beenden, interne Fehler) ergänzt; Entscheidung weiter offen | [SPEC-044](../../../spec/spezifikation.md#spec-044--geordnetes-beenden) |
 | 2026-10-30 | Messung ergänzt (Spike mit .NET-Referenzclient gegen einen echten SQL Server 2022 und gegen einen Testserver): Optionstabelle mit Messbelegen und Empfehlung des Spike-Agenten; Status weiter Proposed, keine Option gewählt | [TDS-FA-06](../../../spec/lastenheft.md#tds-fa-06--fehler-und-abschlusszustände), [TDS-FA-07](../../../spec/lastenheft.md#tds-fa-07--abbruch-und-ressourcenfreigabe), [TDS-QA-07](../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität) |
+| 2026-10-30 | Enge Form von Option B mit A als Grundregel gewählt (Entscheidung des Nutzers, 2026-10-30); Status weiter Proposed bis Review und Verifikation; Cancel und Timeout als Fehler, Fehlersemantik im Strom, ATTENTION im Handshake und Inhalt der Cancel-Antwort offen | [TDS-FA-06.a](../../../spec/spezifikation.md#tds-fa-06a--fehlerabbildung) |
