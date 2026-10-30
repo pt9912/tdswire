@@ -45,7 +45,7 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] Loginspektion: kein Geheimnis im Log (Test).
-- [ ] Zeitgleichheit des Passwortvergleichs (Test) und Drosselung ([ADR-0009](../../adr/0009-authentifizierungsmodus.md) §Offen) entschieden oder als Carveout geführt; die Zeitgleichheit von unbekanntem Benutzernamen und falschem Passwort, die Drosselung und der Scheinvergleich bei unbekanntem Benutzernamen sind laut [ADR-0011](../../adr/0011-pruefwertformat.md) weder entschieden noch gemessen. Das Prüfwertformat ist dort entschieden.
+- [ ] Zeitgleichheit des Passwortvergleichs (Test) und Drosselung ([ADR-0009](../../adr/0009-authentifizierungsmodus.md) §Offen) entschieden oder als Carveout geführt; die Zeitgleichheit von unbekanntem Benutzernamen und falschem Passwort, die Drosselung und der Scheinvergleich bei unbekanntem Benutzernamen sind laut [ADR-0011](../../adr/0011-pruefwertformat.md) weder entschieden noch gemessen. Das Prüfwertformat ist dort entschieden. Der Auth-Slice liefert die Bauart des Scheinvergleichs (Attrappe ist der `pbkdf2`-Eintrag mit der höchsten Iterationszahl) mit Strukturtests; bei gemischten Listen (niedrigere Iterationszahl oder `plain` neben `pbkdf2-sha256`) durchläuft ein bekannter Benutzer einen anderen Rechenschritt als die Attrappe (`contracts/auth-adapter.md`), und die Messung der Zeit schließt diesen Fall ein oder nennt ihn als Grenze.
 - [ ] TLS-Handshake- und Konfigurationsnegativtests nach `SPEC-043` und `SPEC-010`.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor

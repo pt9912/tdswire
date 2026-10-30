@@ -1,0 +1,2 @@
+**Vorgang:** slice-auth-adapter-benutzerliste
+**Fund:** Der Test „Unbekannter Benutzer führt Ableitung und Vergleich aus“ nutzte eine Liste, in der alle `pbkdf2`-Einträge dieselbe Form hatten und der bekannte Benutzer der erste Eintrag war; die Mutation M22 (Attrappe = letzter statt erster Eintrag) blieb grün (Review F-2, Verifikation M-1). Behoben durch einen Test mit gemischter Liste (Angabe des Implementers: M22 und zwei weitere Mutationen der Attrappen-Wahl rot; der Verifier hat nach den Befunden nicht erneut mutiert).
