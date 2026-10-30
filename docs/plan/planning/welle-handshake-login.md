@@ -1,0 +1,104 @@
+# Welle welle-handshake-login: PRELOGIN-/LOGIN7-Handshake, Anmeldung mit Auth-Adapter und Laufzeit-Bootstrap
+
+**Lifecycle:** Diese Datei entsteht bei der **Eröffnung** der Welle und liegt
+flach unter `docs/plan/planning/`; bei Closure wandert sie per `git mv` nach
+`done/` (neben ihre `welle-<Kennung>-results.md`). Der Zustand ist die
+Verzeichnis-Position — kein Status-Feld. **Geplante Wellen bekommen noch keine
+Datei:** Sie stehen in der Roadmap unter *Nächste Wellen* und nirgends sonst —
+zwei Positionen, nicht drei.
+
+**Zielmeilenstein:** kein Meilenstein-Bezug.
+
+**Verantwortlich:** pt9912. **Datum:** 2026-10-30.
+
+---
+
+## 1. Welle-Ziel
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
+§Wann Arbeit eine Welle braucht.
+
+Ein aus der Konfiguration gestarteter Serverprozess führt eine Verbindung ohne TLS und ohne Referenzclient von PRELOGIN über LOGIN7 bis zur Anmeldung: Ein Benutzer der festen Benutzerliste erhält die Login-Antwort-Tokens, eine unbekannte Kennung und ein falsches Passwort erhalten byte-gleiche Ablehnungen (ERROR 18456), und nicht unterstützte Authentifizierungsmodi werden ohne Adapteraufruf abgelehnt ([TDS-FA-01](../../../spec/lastenheft.md#tds-fa-01--verbindungsaufbau-und-protokollverhandlung), [TDS-FA-02](../../../spec/lastenheft.md#tds-fa-02--anmeldung-und-sitzungsverwaltung), [TDS-FA-09](../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose), [TDS-QA-03](../../../spec/lastenheft.md#tds-qa-03--sicherheit)). Die Aussage steht an einem Rohbytes-Smoke vom Prozessstart bis zur Login-Antwort und gilt für diesen Pfad und diesen Rohbytes-Client, nicht für die Annahme durch den Referenzclient `Microsoft.Data.SqlClient` (siehe §6).
+
+## 2. Trigger (Welle startet)
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
+§Roadmap-Regeln — ein Trigger ist **beobachtbar** dann, wenn ein *anderer*
+Mensch ohne Rückfrage sagen kann, ob er eingetreten ist; ein Datum darf erwähnt
+werden, aber nie Trigger sein. Und der **Start**-Trigger ist **kein Ergebnis
+dieser Welle**: Steht er in der Slice-Liste unten, ist er falsch platziert.
+
+- `make gates` ist auf `main` grün.
+- Der Slice `slice-codec-tds-paket` der Welle [welle-protokollcodec](welle-protokollcodec.md) liegt in `done/`: Paket-Codec, Nachrichten-Codec (PRELOGIN, LOGIN7, Login-Antwort-Tokens) und das Test-Gate `make test` stehen auf `main`.
+- [ADR-0001](../adr/0001-tds-version-und-clientprofil.md), [ADR-0002](../adr/0002-tls-und-verschluesselung.md), [ADR-0003](../adr/0003-transportframework.md), [ADR-0005](../adr/0005-rpc-und-prepared-statements.md) und [ADR-0009](../adr/0009-authentifizierungsmodus.md) stehen im ADR-Index auf `Accepted`.
+
+Weitere Voraussetzungen gelten je Slice und stehen in dessen §4 (Zustandsautomat-ADR [ADR-0004](../adr/0004-session-zustandsautomat.md) für den Handshake-Slice, Listener-Slice der geplanten Transport-Welle für den Bootstrap-Slice, Nutzerentscheidung zu Prüfwertformat und Konfigurationsweg für Auth- und Bootstrap-Slice): Sie verzögern einen Slice, nicht den Start der Welle.
+
+## 3. Closure-Trigger (Welle schließt)
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
+§Wann Arbeit eine Welle braucht — der Trigger muss das *Mehr* gegenüber den
+einzelnen Slice-DoDs benennen; kann er das nicht, liegt keine Welle vor.
+
+- Alle Slices in `done/`.
+- `make gates` grün, einschließlich `make test`.
+- Das Mehr gegenüber den Slice-DoDs: Der Rohbytes-Smoke läuft gegen einen Serverprozess, der über den Bootstrap-Pfad (Konfiguration, `main`) gestartet wurde, nicht gegen eine im Test verdrahtete Instanz. Er belegt in einem Lauf: gültiger Login (Login-Antwort-Tokens), byte-gleiche Ablehnung für unbekannte Kennung und falsches Passwort (am Produkt, mit dem Rohbytes-Client gemessen), Ablehnung der nicht unterstützten Modi, mehrpaketiges und zerstückeltes LOGIN7. Einzelne Slices belegen jeweils nur ihren Teil.
+- Die Closure-Notiz führt die Aussagen der Welle in zwei Spalten, *gemessen* (Test oder Smoke, der besteht) und *Festlegung* (MS-TDS-Lesart oder Entscheidung eines Slice ohne Referenzclient-Messung); jeder in §6 ausgeschlossene Gegenstand ist dort einem Träger zugeordnet, der als Datei existiert, oder trägt den Grund, warum nicht.
+- Closure-Notiz in `welle-handshake-login-results.md`.
+
+## 4. Slices in dieser Welle
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
+§Lifecycle als State Machine — der Zustand eines Slice ist sein
+Lifecycle-Verzeichnis und wird hier **nicht** gespiegelt.
+
+| Slice | Titel | Bezug |
+|---|---|---|
+| slice-auth-adapter-benutzerliste | Auth-Adapter-Schnittstelle und feste Benutzerliste aus der Konfiguration (Annahme/Ablehnung, konstanter Vergleich, Validierung der Liste) | [TDS-FA-02](../../../spec/lastenheft.md#tds-fa-02--anmeldung-und-sitzungsverwaltung), [TDS-FA-09](../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose), [TDS-QA-03](../../../spec/lastenheft.md#tds-qa-03--sicherheit), [ADR-0009](../adr/0009-authentifizierungsmodus.md) |
+| slice-handshake-login | Handshake-Zustandsautomat PRELOGIN → LOGIN7 → Login-Antwort, Ablehnung 18456, nicht unterstützte Modi, mehrpaketiges LOGIN7 | [TDS-FA-01](../../../spec/lastenheft.md#tds-fa-01--verbindungsaufbau-und-protokollverhandlung), [TDS-FA-02](../../../spec/lastenheft.md#tds-fa-02--anmeldung-und-sitzungsverwaltung), [TDS-QA-02](../../../spec/lastenheft.md#tds-qa-02--stabilität), [TDS-QA-03](../../../spec/lastenheft.md#tds-qa-03--sicherheit), [ADR-0001](../adr/0001-tds-version-und-clientprofil.md), [ADR-0002](../adr/0002-tls-und-verschluesselung.md), [ADR-0009](../adr/0009-authentifizierungsmodus.md) |
+| slice-bootstrap-konfiguration | Konfiguration laden und validieren, `main`, Start/Stop, Verdrahtung und Rohbytes-Smoke vom Prozessstart bis zum Login | [TDS-FA-09](../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose), [TDS-FA-01](../../../spec/lastenheft.md#tds-fa-01--verbindungsaufbau-und-protokollverhandlung), [TDS-QA-03](../../../spec/lastenheft.md#tds-qa-03--sicherheit), [ADR-0003](../adr/0003-transportframework.md), [ADR-0009](../adr/0009-authentifizierungsmodus.md) |
+
+Reihenfolge: Auth-Adapter und Handshake hängen über die Adapter-Schnittstelle zusammen (der Handshake-Slice braucht sie als Typ, nicht die Benutzerliste); der Bootstrap-Slice schließt die Welle, weil er beide und den Listener der Transport-Welle verdrahtet.
+
+## 5. Abhängigkeiten
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
+§Roadmap-Struktur: fünf Abschnitte.
+
+- Blockiert: die funktionale Welle für SQL_BATCH und RPC (sie braucht eine angemeldete Sitzung im Zustand READY; sie ist noch nicht geplant und steht in keiner Roadmap-Zeile). Mittelbar blockiert: der Anmelde-Teil von `slice-qa-kompatibilitaet` (er braucht einen Server, der sich anmelden lässt).
+- Wird blockiert von: [welle-protokollcodec](welle-protokollcodec.md) (Slice `slice-codec-tds-paket` in `done/`); der geplanten Welle `welle-transport-tls` (nur der Bootstrap-Slice: er braucht deren Listener-Slice in `done/`); [welle-entscheidungen-grundlage](welle-entscheidungen-grundlage.md) (nur der Handshake-Slice: [ADR-0004](../adr/0004-session-zustandsautomat.md) ist `Proposed`, ihr Slice `slice-adr-session-zustand` liegt in `open/`); einer Nutzerentscheidung zu Prüfwertformat und Konfigurationsweg (Auth- und Bootstrap-Slice).
+- Berührt, blockiert aber nicht: `welle-transport-tls`. Transport, TLS und Listener gehören dorthin; diese Welle nimmt vom Transport nur eine Nachrichten-Schnittstelle (vollständige Nachricht hinein, Antwort-Nachrichten und Verbindungsende heraus, TLS-Aushandlung und Fristablauf als Ereignisse). Wer diese Schnittstelle schneidet, ist abzustimmen (siehe Slice `slice-handshake-login` §6).
+- Berührt, blockiert aber nicht: [welle-qualitaet-grundlage](welle-qualitaet-grundlage.md). Die Anmelde-Liefer-Punkte der beiden Slices sind hier zugeordnet, nicht dupliziert; die Slices selbst bleiben unverändert:
+  - `slice-qa-sicherheit`, *Loginspektion: kein Geheimnis im Log*: Der Test am Anmeldepfad dieser Welle (Passwort und Kennung in keiner Antwort, keinem Log-Eintrag, keinem Ablehnungsgrund) ist Vorleistung im Handshake-Slice; das Gate über das ganze System bleibt bei `slice-qa-sicherheit`.
+  - `slice-qa-sicherheit`, *Zeitgleichheit, Drosselung, Prüfwertformat*: Das Prüfwertformat wird vor dem Auth-Slice gebraucht und deshalb vorgezogen entschieden (Nutzerentscheidung, siehe Slice `slice-auth-adapter-benutzerliste`); der Auth-Slice liefert die Bauart des konstanten Vergleichs mit einem Strukturtest. Die Zeitmessung und die Drosselung bleiben bei `slice-qa-sicherheit`. Die Überschneidung beim Prüfwertformat ist beim Start von `slice-qa-sicherheit` aufzulösen; dieser Plan ändert den Slice nicht.
+  - `slice-qa-kompatibilitaet`, *Anmeldemessungen* (Windows-SSPI, TDS 8.0 mit SQL-Authentifizierung, mehrpaketiges LOGIN7, Pooling mit `ResetConnection`) und das Anmelde-Szenario mit dem Referenzclient: bleiben dort. Diese Welle liefert den Server, an dem gemessen wird, und belegt das mehrpaketige LOGIN7 nur mit von Hand aus MS-TDS abgeleiteten Vektoren (Festlegung, nicht gemessen).
+
+## 6. Out-of-Scope für diese Welle
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
+§Wellen-Closure-Prozedur, Eröffnung Schritt 1 — Out-of-Scope gehört zur
+Zielsetzung: Was nicht ausdrücklich ausgeschlossen ist, dehnt die Welle, bis
+der Closure-Trigger unerreichbar wird.
+
+Träger der ausgeschlossenen Gegenstände (existierende Datei, sonst Zeiger auf die Closure):
+
+- Transport und TLS: Sockets, `AsynchronousSocketChannel`, `SSLEngine`, TLS-Kapselung in Paketen vom Typ `0x12`, Listener, Zertifikats- und Schlüsselkonfiguration, Startprobe und Diagnose für belegten Port (SPEC-043), JVM-Option für TLS 1.3 — Träger: die geplante Welle `welle-transport-tls` (wird von anderer Stelle geschnitten, hier nicht geplant). Diese Welle ruft den Listener und die TLS-Konfiguration, baut sie nicht.
+- Verbindungs-Zustandsautomat jenseits des Logins: `READY`-Verarbeitung von SQL_BATCH und RPC, Anfragezustand und ATTENTION (SPEC-001 untere Hälfte, SPEC-029), Dispatch — Träger: `slice-adr-session-zustand`, `slice-adr-fehler-attention` und die noch nicht geplante funktionale Welle; die Closure legt den Folge-Slice an oder begründet, warum nicht.
+- Backend: kein Backend-Port, kein Simulations-Backend; es gibt keine Anfragen ([ADR-0006](../adr/0006-backend-vertrag-und-streaming.md), `slice-adr-backend-streaming`).
+- Fehler- und ATTENTION-Semantik außerhalb der festen Login-Ablehnung ([ADR-0007](../adr/0007-fehler-und-attention.md), `slice-adr-fehler-attention`).
+- Geordnetes Beenden mit Frist (SPEC-044, `SHUTDOWN_GRACE`): Es gibt keine laufenden Anfragen, die zu Ende laufen könnten; der Stop dieser Welle schließt Listener und Verbindungen ohne Frist-Logik. Träger: noch keiner, die Closure legt einen Folge-Slice an.
+- Observability-Adapter (strukturierte Logs, Metriken, Traces, Korrelations-IDs, `SPEC-017`): nur ein minimaler Log-Anschluss für Login-Ablehnungsgründe, Start-Diagnose und die Sichtbarkeit einer Abschwächung der Verschlüsselung (SPEC-010). Träger: noch keiner, die Closure legt einen Folge-Slice an.
+- Nachweis gegen den Referenzclient und einen echten SQL Server: Kompatibilitäts-Läufe, Mitschnitte, Windows-SSPI, TDS 8.0 mit SQL-Authentifizierung, Pooling — `slice-qa-kompatibilitaet`, `slice-qa-reproduzierbarkeit` (Vergleichslauf D). Diese Welle belegt Handshake und Login mit Rohbytes, nicht die Annahme durch den Client.
+- Zeitgleichheit des Passwortvergleichs als Messung, Drosselung wiederholter Anmeldeversuche, Loginspektion über das Gesamtsystem — `slice-qa-sicherheit`. Stabilitäts- und Fuzz-Gate über ungültige Verbindungen — `slice-qa-stabilitaet`.
+- Nicht unterstützte Authentifizierung als Funktion: SSPI/Kerberos, Entra-ID und Passwortwechsel werden erkannt und abgelehnt ([ADR-0009](../adr/0009-authentifizierungsmodus.md)); sie zu unterstützen wäre eine neue Anforderung.
+- Eigene Benutzerverwaltung eines Betreibers hinter dem Adapter und jede Adapter-Variante außer der festen Benutzerliste (die Betreiberanforderung ist nicht abnahmebindend, `BEO-TDS/betreiberanforderung-benutzerverwaltung-fehlt`).
+- Neue Anforderungen oder Änderungen am Lastenheft.
+ Closure-Notiz
+
+Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-traceability.md`
+§Herkunfts-Anker für Steering-Loop-Regeln — dort die **Ruheort-Regel**: Die
+beiden Zeiger unten sind so zu schreiben, wie sie vom Ruheort `done/` auflösen,
+nicht vom Schreibort.
+
+Ergebnis: `welle-handshake-login-results.md`
+Zähler: `../observations/` <!-- d-check:ignore (Ruheort done/: der Zeiger löst erst nach dem Verschieben auf) -->
