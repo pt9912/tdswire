@@ -217,13 +217,18 @@ vorgelagertem TLS (TDS 8.0, Strict-Encryption) beginnen mit
 passenden laufenden Anfragezustand zulässig. Der Zustand ist ein expliziter Automat: eine Aufzählung der
 Zustände und eine reine Übergangsfunktion (Zustand, Ereignisart) → (Folgezustand, Aktion). Ungültige
 Übergänge werden abgelehnt; die Antwort darauf (Verbindung ohne Antwort schließen oder ein Fehler), die
-Reichweite von ATTENTION vor dem Login und der Zuschnitt der Aufzählung (eine Aufzählung oder getrennt
-nach Verbindungs- und Anfragezustand) sind noch festzulegen.
+Reichweite von ATTENTION vor dem Login sind noch festzulegen. Der Zuschnitt der Aufzählung ist flach
+(Setzung des Nutzers, nicht gemessen für den Anfragezustand): eine Aufzählung führt Verbindungs- und
+Anfragezustände, `READY` ist der Anfragezustand `IDLE`.
 
-Anfragezustand (nur innerhalb von `READY`): `IDLE → RUNNING → STREAMING → COMPLETED → IDLE`. Bei
+Anfragezustand (nur nach dem Login): `IDLE → RUNNING → STREAMING → COMPLETED → IDLE`. Bei
 ATTENTION führen `RUNNING` und `STREAMING` über `CANCELLING` nach `COMPLETED`. Der Response
-Sequencer hält den Anfragezustand und entscheidet jeden Übergang atomar je Sitzung: Übergang und das
-zugehörige Schreiben laufen unter einer Sperre je Sitzung. Der Transport
+Sequencer kennt den Anfragezustand nicht; der Sitzungsrahmen hält ihn und entscheidet jeden Übergang
+atomar je Sitzung: Übergang und das zugehörige Schreiben laufen unter einer Sperre je Sitzung. Der Dispatch
+meldet dem Rahmen den Beginn des ersten Ergebnisses (`RUNNING → STREAMING`) und das Ende der Antwort; das
+Ende der Antwort sendet sie und führt in einem Übergang nach `IDLE` oder, wenn die Verbindungsfolge des
+Ausgangs schließt, nach `CLOSED` (`COMPLETED` ist kein eigener Zustand der Aufzählung; Festlegung, nicht
+gemessen). Eine Nachricht in `RUNNING` oder `STREAMING` ist ein unzulässiger Übergang. Der Transport
 meldet ein erkanntes ATTENTION-Paket an ihn, der Dispatch nimmt kein ATTENTION an. Bei
 gleichzeitigem DONE und ATTENTION gewinnt der erste Übergang. Trifft ATTENTION nach `COMPLETED` oder
 in `IDLE` ein, bleibt das bereits gesendete Ergebnis gültig, und der Server beantwortet das
@@ -1068,3 +1073,4 @@ Gemessen sind: LOGIN7-Felder, Entschleierung, Ablehnungsbytes, erkennbare Modi. 
 | 2026-10-30 | Simulations-Backend festgelegt: Beschreibung zusätzlich als Datei im neutralen Schema-Modell von d-migrate, Typabbildung, strenge Überführung, Schlüssel nur beschreibend, Scanner-Regeln (`SPEC-035`, `SPEC-036`, `TDS-FA-11.a`); Vergleich von Bezeichnern und Werten sowie Überführung bleiben Setzungen, nicht am echten SQL Server gemessen |
 | 2026-10-30 | Verträge zu `SPEC-021`, `SPEC-022`, `SPEC-023` und `SPEC-051` in Abschnitt 6 übernommen; Spec-Lücke zu `SqlType` im Backend-Vertrag entfällt (`SPEC-002` definiert ihn); Zeilenformat der Benutzerliste in `SPEC-051` auf den Stand des Vertrags angeglichen |
 | 2026-10-30 | Simulations-Backend nachgeführt (`SPEC-035`, `SPEC-036`, `SPEC-040`, `SPEC-045`): Ignorierliste um sieben Spaltenfelder, `tables` als Pflicht, Längengrenze der Typabbildung, Setzungsvermerke, Lesart der Liste „Nicht erkannt“ als Setzung, Tests des Lesers, gemeinsame Quelle der Schemata |
+| 2026-10-30 | Anfragezustand im Verbindungsautomaten festgelegt: flacher Zuschnitt, Sitzungsrahmen statt Response Sequencer hält den Zustand, Ende der Antwort als ein Übergang (`SPEC-001`) |

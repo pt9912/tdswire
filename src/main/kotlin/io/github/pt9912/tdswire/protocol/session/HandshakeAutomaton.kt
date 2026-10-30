@@ -2,6 +2,8 @@ package io.github.pt9912.tdswire.protocol.session
 
 import io.github.pt9912.tdswire.config.auth.NegotiatedEncryption
 import io.github.pt9912.tdswire.transport.framing.FramingLimits
+import io.github.pt9912.tdswire.transport.framing.PacketType
+import io.github.pt9912.tdswire.transport.framing.TdsMessage
 
 /**
  * Der Verbindungsautomat von PRELOGIN bis zur Login-Antwort (`ARC-004`, `SPEC-001`, `SPEC-028`,
@@ -33,7 +35,9 @@ class HandshakeAutomaton(private val config: HandshakeConfig = HandshakeConfig()
     private fun permitted(context: HandshakeContext, event: HandshakeEvent): Transition = when (event) {
         HandshakeEvent.Start -> start(context)
         HandshakeEvent.TlsEstablished -> tlsEstablished(context)
-        is HandshakeEvent.Message -> message(context, event.message.payload)
+        is HandshakeEvent.Message -> message(context, event.message)
+        HandshakeEvent.StreamStarted -> Transition(context.copy(state = ConnectionState.STREAMING), emptyList())
+        is HandshakeEvent.RequestFinished -> requestFinished(context, event)
         is HandshakeEvent.AuthAccepted -> login.accepted(context, event)
         is HandshakeEvent.AuthRejected -> login.rejected(context, event)
         HandshakeEvent.LoginTimeout -> context.closing(CloseReason.LOGIN_TIMEOUT)
@@ -56,11 +60,30 @@ class HandshakeAutomaton(private val config: HandshakeConfig = HandshakeConfig()
         return Transition(context.copy(state = next), emptyList())
     }
 
-    /** PRELOGIN und LOGIN7 haben ihr eigenes Ziel; in `READY` gehört die Nachricht der Anfrageverarbeitung. */
-    private fun message(context: HandshakeContext, payload: ByteArray): Transition = when (context.state) {
-        ConnectionState.PRELOGIN -> onPrelogin(context, payload)
-        ConnectionState.LOGIN7 -> login.onLogin7(context, payload)
-        else -> Transition(context, listOf(HandshakeAction.Forward))
+    /**
+     * PRELOGIN und LOGIN7 haben ihr eigenes Ziel; in `READY` gehört die Nachricht der
+     * Anfrageverarbeitung (`Forward`). Ein SQL_BATCH setzt den Anfragezustand auf `RUNNING`; RPC,
+     * Transaction Manager und ATTENTION lassen `READY` stehen.
+     */
+    private fun message(context: HandshakeContext, message: TdsMessage): Transition = when (context.state) {
+        ConnectionState.PRELOGIN -> onPrelogin(context, message.payload)
+        ConnectionState.LOGIN7 -> login.onLogin7(context, message.payload)
+        else -> forward(context, message)
+    }
+
+    private fun forward(context: HandshakeContext, message: TdsMessage): Transition {
+        val next = if (message.type == PacketType.SQL_BATCH) ConnectionState.RUNNING else context.state
+        return Transition(context.copy(state = next), listOf(HandshakeAction.Forward))
+    }
+
+    /** Die Antwort wird gesendet; danach ist die Sitzung `READY`, oder sie schließt (Senden vor Schließen). */
+    private fun requestFinished(context: HandshakeContext, event: HandshakeEvent.RequestFinished): Transition {
+        val reply = listOfNotNull(event.reply?.let { HandshakeAction.Send(it) })
+        return if (event.connectionOpen) {
+            Transition(context.copy(state = ConnectionState.READY), reply)
+        } else {
+            Transition(context.closed(), reply + HandshakeAction.Close(CloseReason.REQUEST_ENDED))
+        }
     }
 
     private fun onPrelogin(context: HandshakeContext, payload: ByteArray): Transition =

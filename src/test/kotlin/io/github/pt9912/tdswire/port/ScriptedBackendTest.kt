@@ -33,6 +33,18 @@ class ScriptedBackendTest {
         assertEquals(2, backend.delivered)
     }
 
+    /** `inSequence` liefert je Aufruf die nächste Liste und bleibt nach der letzten bei ihr. */
+    @Test
+    fun `inSequence liefert je Aufruf die naechste Liste`() = runBlocking {
+        val first = listOf<QueryEvent>(QueryEvent.UpdateCount(1))
+        val second = listOf<QueryEvent>(QueryEvent.UpdateCount(2), QueryEvent.UpdateCount(3))
+        val backend = ScriptedBackend.inSequence(first, second)
+
+        val seen = List(3) { backend.execute(request).events.toList() }
+
+        assertEquals(listOf(first, second, second), seen)
+    }
+
     /** Das Test-Backend merkt sich Sitzung und Anfrage von `cancel` und die Zahl der `close`-Aufrufe. */
     @Test
     fun `Backend protokolliert cancel und close`() = runBlocking {

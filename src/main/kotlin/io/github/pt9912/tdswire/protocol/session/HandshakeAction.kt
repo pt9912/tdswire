@@ -14,6 +14,9 @@ enum class CloseReason {
     MESSAGE_TOO_LARGE,
     ENCRYPTION_INCOMPATIBLE,
     LOGIN_REJECTED,
+
+    /** Der Ausgang einer Anfrage schließt die Verbindung (`ErrorMapper.fateOf`), mit oder ohne Antwort. */
+    REQUEST_ENDED,
 }
 
 /**

@@ -86,6 +86,16 @@ class FakeHandshakeChannel(
     private val sendResult: Boolean = true,
     var sendDelayMillis: Long = 0,
 ) : HandshakeChannel {
+    /** Läuft in `send` nach dem Eintrag in [sent] und vor dessen Ende; darf suspendieren. */
+    var onSend: suspend (TdsMessage) -> Unit = {}
+
+    /** Läuft am Anfang jedes `receive`, bevor der nächste Eintrag des Drehbuchs gelesen wird. */
+    var onReceive: () -> Unit = {}
+
+    /** Zahl der Aufrufe von `receive`. */
+    var receiveCalls = 0
+        private set
+
     private val script = ArrayDeque(inbound)
     val sent = mutableListOf<TdsMessage>()
     val trace = mutableListOf<String>()
@@ -99,11 +109,16 @@ class FakeHandshakeChannel(
     /** Wahr, wenn die Gegenstelle alle Einträge des Drehbuchs geliefert hat. */
     val exhausted: Boolean get() = script.isEmpty()
 
-    override suspend fun receive(): Inbound = script.removeFirstOrNull() ?: awaitCancellation()
+    override suspend fun receive(): Inbound {
+        receiveCalls++
+        onReceive()
+        return script.removeFirstOrNull() ?: awaitCancellation()
+    }
 
     override suspend fun send(message: TdsMessage): Boolean {
         trace += "send-start"
         sent += message
+        onSend(message)
         if (sendDelayMillis > 0) delay(sendDelayMillis)
         trace += "send-end"
         return sendResult

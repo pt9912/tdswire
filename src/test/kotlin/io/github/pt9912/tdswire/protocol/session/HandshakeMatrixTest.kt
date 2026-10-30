@@ -9,6 +9,8 @@ import io.github.pt9912.tdswire.protocol.session.ConnectionState.CONNECTED
 import io.github.pt9912.tdswire.protocol.session.ConnectionState.LOGIN7
 import io.github.pt9912.tdswire.protocol.session.ConnectionState.PRELOGIN
 import io.github.pt9912.tdswire.protocol.session.ConnectionState.READY
+import io.github.pt9912.tdswire.protocol.session.ConnectionState.RUNNING
+import io.github.pt9912.tdswire.protocol.session.ConnectionState.STREAMING
 import io.github.pt9912.tdswire.protocol.session.ConnectionState.TLS_NEGOTIATION
 import io.github.pt9912.tdswire.protocol.session.EventKind.ATTENTION_MESSAGE
 import io.github.pt9912.tdswire.protocol.session.EventKind.AUTH_ACCEPTED
@@ -19,13 +21,17 @@ import io.github.pt9912.tdswire.protocol.session.EventKind.OTHER_MESSAGE
 import io.github.pt9912.tdswire.protocol.session.EventKind.PEER_CLOSED
 import io.github.pt9912.tdswire.protocol.session.EventKind.PRELOGIN_MESSAGE
 import io.github.pt9912.tdswire.protocol.session.EventKind.READ_FAILED
+import io.github.pt9912.tdswire.protocol.session.EventKind.REQUEST_FINISHED
 import io.github.pt9912.tdswire.protocol.session.EventKind.REQUEST_MESSAGE
 import io.github.pt9912.tdswire.protocol.session.EventKind.START
+import io.github.pt9912.tdswire.protocol.session.EventKind.STREAM_STARTED
 import io.github.pt9912.tdswire.protocol.session.EventKind.TLS_ESTABLISHED
 import io.github.pt9912.tdswire.transport.framing.PacketType
 import io.github.pt9912.tdswire.transport.framing.TdsMessage
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 /**
@@ -60,9 +66,22 @@ class HandshakeMatrixTest {
                 AUTH_REJECTED to to(CLOSED, "Log", "Send", "Close:LOGIN_REJECTED"),
             ),
             READY to mapOf(
-                REQUEST_MESSAGE to to(READY, "Forward"),
+                REQUEST_MESSAGE to to(RUNNING, "Forward"),
                 ATTENTION_MESSAGE to to(READY, "Forward"),
                 LOGIN_TIMEOUT to to(READY),
+                PEER_CLOSED to peer,
+                READ_FAILED to failed,
+            ),
+            RUNNING to mapOf(
+                STREAM_STARTED to to(STREAMING),
+                REQUEST_FINISHED to to(READY, "Send"),
+                LOGIN_TIMEOUT to to(RUNNING),
+                PEER_CLOSED to peer,
+                READ_FAILED to failed,
+            ),
+            STREAMING to mapOf(
+                REQUEST_FINISHED to to(READY, "Send"),
+                LOGIN_TIMEOUT to to(STREAMING),
                 PEER_CLOSED to peer,
                 READ_FAILED to failed,
             ),
@@ -79,8 +98,16 @@ class HandshakeMatrixTest {
     private fun context(state: ConnectionState): HandshakeContext = when (state) {
         AUTHENTICATING -> authContext
         LOGIN7 -> HandshakeContext(state, encryption = NegotiatedEncryption.REQUIRED)
-        READY -> HandshakeContext(state, session = AuthenticatedSession("s1", Principal("sa"), "db", 8000))
+        READY, RUNNING, STREAMING -> loggedIn(state)
         else -> HandshakeContext(state)
+    }
+
+    private fun loggedIn(state: ConnectionState) =
+        HandshakeContext(state, session = AuthenticatedSession("s1", Principal("sa"), "db", 8000))
+
+    private fun requestEvent(kind: EventKind): HandshakeEvent = when (kind) {
+        STREAM_STARTED -> HandshakeEvent.StreamStarted
+        else -> HandshakeEvent.RequestFinished(SessionVectors.message(PacketType.TABULAR_RESULT), true)
     }
 
     private fun event(kind: EventKind): HandshakeEvent = when (kind) {
@@ -91,6 +118,7 @@ class HandshakeMatrixTest {
         REQUEST_MESSAGE -> HandshakeEvent.Message(SessionVectors.message(PacketType.SQL_BATCH))
         ATTENTION_MESSAGE -> HandshakeEvent.Message(SessionVectors.message(PacketType.ATTENTION))
         OTHER_MESSAGE -> HandshakeEvent.Message(SessionVectors.message(PacketType.SSPI))
+        STREAM_STARTED, REQUEST_FINISHED -> requestEvent(kind)
         AUTH_ACCEPTED -> HandshakeEvent.AuthAccepted(Principal("sa"), "s1")
         AUTH_REJECTED -> HandshakeEvent.AuthRejected(LoginRejection.from(RejectReason.WRONG_PASSWORD))
         LOGIN_TIMEOUT -> HandshakeEvent.LoginTimeout
@@ -99,7 +127,7 @@ class HandshakeMatrixTest {
     }
 
     /**
-     * Jede der 84 Zellen in beiden Reihenfolgen: Folgezustand und Aktionsfolge stimmen mit der
+     * Jede der 126 Zellen in beiden Reihenfolgen: Folgezustand und Aktionsfolge stimmen mit der
      * Handtabelle überein; eine Zelle ohne Eintrag ist unzulässig und schließt ohne Antwort.
      *
      * @spec SPEC-001
@@ -124,19 +152,20 @@ class HandshakeMatrixTest {
 
     /**
      * Die Zählung der Zellen kommt aus dem Code und weicht von der Zahl des Spike ab (140 Zellen,
-     * 10 Zustände mal 14 Ereignisse): hier 7 Zustände mal 12 Ereignisarten.
+     * 10 Zustände mal 14 Ereignisse): hier 9 Zustände mal 14 Ereignisarten. Die Summen sind von Hand
+     * aus der Handtabelle gezählt: zulässig 25 + 4 (RUNNING) + 3 (STREAMING), ignoriert 4 + 1 + 1.
      *
      * @spec SPEC-001
      */
     @Test
     fun `Die Matrix zaehlt ihre Zellen aus dem Code`() {
         val census = HandshakeMatrix.census()
-        assertEquals(7, ConnectionState.entries.size)
-        assertEquals(12, EventKind.entries.size)
-        assertEquals(84, census.values.sum())
-        assertEquals(25, census[HandshakeMatrix.Cell.PERMITTED])
-        assertEquals(4, census[HandshakeMatrix.Cell.IGNORED])
-        assertEquals(55, census[HandshakeMatrix.Cell.ILLEGAL])
+        assertEquals(9, ConnectionState.entries.size)
+        assertEquals(14, EventKind.entries.size)
+        assertEquals(126, census.values.sum())
+        assertEquals(32, census[HandshakeMatrix.Cell.PERMITTED])
+        assertEquals(6, census[HandshakeMatrix.Cell.IGNORED])
+        assertEquals(88, census[HandshakeMatrix.Cell.ILLEGAL])
     }
 
     private fun assertClosedSilently(state: ConnectionState, message: HandshakeEvent) {
@@ -212,7 +241,9 @@ class HandshakeMatrixTest {
 
     /**
      * SQL_BATCH, RPC und ATTENTION vor `READY` sind unzulässig; in `READY` gehören sie der
-     * Anfrageverarbeitung (Aktion `Forward`).
+     * Anfrageverarbeitung (Aktion `Forward`): ein SQL_BATCH setzt den Anfragezustand `RUNNING`, RPC,
+     * Transaction Manager und ATTENTION lassen `READY` stehen. In `RUNNING` und `STREAMING` ist jede
+     * Nachricht unzulässig und schließt ohne Antwort.
      *
      * @spec SPEC-001
      */
@@ -223,9 +254,46 @@ class HandshakeMatrixTest {
             assertClosedSilently(state, event(ATTENTION_MESSAGE))
             assertClosedSilently(state, HandshakeEvent.Message(SessionVectors.message(PacketType.RPC)))
         }
-        val ready = HandshakeAutomaton().step(context(READY), event(REQUEST_MESSAGE))
-        assertEquals(READY, ready.context.state)
-        assertEquals(listOf(HandshakeAction.Forward), ready.actions)
+        val batch = HandshakeAutomaton().step(context(READY), event(REQUEST_MESSAGE))
+        assertEquals(RUNNING, batch.context.state)
+        assertEquals(listOf(HandshakeAction.Forward), batch.actions)
+        listOf(PacketType.RPC, PacketType.TRANSACTION_MANAGER, PacketType.ATTENTION).forEach { type ->
+            val other = HandshakeAutomaton().step(context(READY), HandshakeEvent.Message(SessionVectors.message(type)))
+            assertEquals(READY, other.context.state, "$type")
+            assertEquals(listOf(HandshakeAction.Forward), other.actions, "$type")
+        }
+        listOf(RUNNING, STREAMING).forEach { state ->
+            listOf(PacketType.SQL_BATCH, PacketType.RPC, PacketType.ATTENTION).forEach { type ->
+                assertClosedSilently(state, HandshakeEvent.Message(SessionVectors.message(type)))
+            }
+        }
+    }
+
+    /**
+     * Das Ende einer Anfrage in `RUNNING` und `STREAMING`: eine offene Folge sendet die Antwort und ist
+     * `READY`; eine schließende sendet (falls es eine Antwort gibt) und schließt danach, ohne Sitzung im
+     * Kontext. Eine offene Folge ohne Antwort ist kein zulässiges Ereignis.
+     *
+     * @spec SPEC-001
+     */
+    @Test
+    fun `Das Ende einer Anfrage sendet die Antwort und oeffnet oder schliesst die Sitzung`() {
+        val reply = SessionVectors.message(PacketType.TABULAR_RESULT)
+        listOf(RUNNING, STREAMING).forEach { state ->
+            val before = context(state)
+            val open = HandshakeAutomaton().step(before, HandshakeEvent.RequestFinished(reply, true))
+            assertEquals(READY, open.context.state, "$state")
+            assertEquals(listOf("Send"), open.actions.map { it.label() }, "$state")
+            assertSame(before.session, open.context.session, "$state")
+            val closing = HandshakeAutomaton().step(before, HandshakeEvent.RequestFinished(reply, false))
+            assertEquals(CLOSED, closing.context.state, "$state")
+            assertEquals(listOf("Send", "Close:REQUEST_ENDED"), closing.actions.map { it.label() }, "$state")
+            assertEquals(null, closing.context.session, "$state")
+            val silent = HandshakeAutomaton().step(before, HandshakeEvent.RequestFinished(null, false))
+            assertEquals(CLOSED, silent.context.state, "$state")
+            assertEquals(listOf("Close:REQUEST_ENDED"), silent.actions.map { it.label() }, "$state")
+        }
+        assertFailsWith<IllegalArgumentException> { HandshakeEvent.RequestFinished(null, true) }
     }
 
     /**

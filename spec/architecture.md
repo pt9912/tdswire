@@ -57,13 +57,13 @@ Pfeile zeigen Datenfluss und Aufrufrichtung zur Laufzeit, nicht die Import-Richt
 | `ARC-001` | Domain / Types | Sitzungs-, Anfrage-, Ergebnis-, Fehler- und Typmodelle ohne Netzwerkabhängigkeit |
 | `ARC-002` | Config / Security | Konfigurationsvalidierung, TLS- und Authentifizierungsadapter |
 | `ARC-003` | TDS Transport / Framing | TCP, TDS-Header, Fragmentierung, Backpressure, I/O |
-| `ARC-004` | Handshake / Session | PRELOGIN, LOGIN7, Verbindungs-Zustandsautomat, Session-Lebensdauer |
+| `ARC-004` | Handshake / Session | PRELOGIN, LOGIN7, Zustandsautomat für Verbindung und Anfrage, Session-Lebensdauer |
 | `ARC-005` | SQL Batch / RPC Dispatch | TDS-Anfragen in interne QueryRequests übersetzen |
 | `ARC-006` | Query Backend Port | Austauschbare, asynchrone Ausführungs- und Abbruchschnittstelle |
 | `ARC-007` | Result / Error Encoder | COLMETADATA, ROW, DONE, ERROR und Login-Antworten |
 | `ARC-008` | Runtime / Bootstrap | Verdrahtung, Listener-Start, Shutdown und Ressourcenverwaltung |
 | `ARC-009` | Observability | Strukturierte Logs, Metriken und Traces ohne Geheimnisse |
-| `ARC-015` | Response Sequencer / Cancel State | Hält den Anfragezustand; serialisiert Ergebnisereignisse, DONE-Familie und Abbruch; garantiert Antwortgrenzen |
+| `ARC-015` | Response Sequencer / Cancel State | Serialisiert Ergebnisereignisse, DONE-Familie und Abbruch; garantiert Antwortgrenzen |
 | `ARC-016` | Simulations-Backend | Optionaler Backend-Adapter hinter `ARC-006`: beantwortet abgegrenzte Anweisungsformen aus beschriebenen Tabellen; keine SQL-Engine, keine Persistenz |
 
 ## 2. Schichten und Constraints
