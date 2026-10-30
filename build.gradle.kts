@@ -20,9 +20,9 @@ dependencies {
     // ktlint-Regelsatz (Abschnitt `ktlint:` in config/detekt/detekt.yml); die Version ist die des Plugins.
     detektPlugins(libs.detekt.ktlint)
 
-    // Unit-Tests: kotlin.test; die JUnit-Plattform ist nur die Laufzeit (Stage `test`, `make test`).
+    // Unit-Tests: kotlin.test; die BOM gilt für Compile- und Laufzeit-Classpath, damit der Lock eine Version je Artefakt führt.
     testImplementation(libs.kotlin.test)
-    testRuntimeOnly(platform(libs.junit.bom))
+    testImplementation(platform(libs.junit.bom))
     testRuntimeOnly(libs.junit.jupiter.engine)
     testRuntimeOnly(libs.junit.platform.launcher)
 }
