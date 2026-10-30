@@ -9,7 +9,8 @@ import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
 /**
  * Wertabbildung (`TDS-FA-05.a` Schritt 3 und 5, `SPEC-003`): ein Backendwert auf einen [TdsValue] der
  * Spalte. Eine Zeile wird als Ganzes abgebildet; ein einziger Fehler macht sie zu
- * [ProtocolResult.Failed], bevor ein Wert der Zeile ausgegeben wird (`SPEC-014`, `SPEC-031`). Kein Pfad
+ * [ProtocolResult.Failed], bevor ein Wert der Zeile ausgegeben wird (`SPEC-014`, `SPEC-031`). Die Abbildung
+ * bricht beim ersten Fehler ab: spätere Spalten werden nicht mehr angesehen, der Fehler nennt nur die erste. Kein Pfad
  * wirft für einen Wert eine Ausnahme.
  *
  * Festlegung ohne Messung (die Zeilendarstellung ist in ADR-0006 offen): die JVM-Klassen je Spaltenart
@@ -21,24 +22,28 @@ object ValueMapping {
     private const val INT_BYTES = 4
     private const val LONG_BYTES = 8
 
-    fun row(columns: List<ColumnDef>, values: List<Any?>): ProtocolResult<List<TdsValue>> {
+    fun row(columns: List<ColumnDef>, values: List<Any?>): ProtocolResult<List<TdsValue>> =
         if (columns.size != values.size) {
-            return failed(ProtocolFailure.TYPE_MISMATCH, "Zeile mit ${values.size} Werten, ${columns.size} Spalten")
+            failed(ProtocolFailure.TYPE_MISMATCH, "Zeile mit ${values.size} Werten, ${columns.size} Spalten")
+        } else {
+            collect(columns, values)
         }
-        val results = columns.indices.map { index -> at(index, value(columns[index], values[index])) }
-        val mapped = results.filterIsInstance<ProtocolResult.Ok<TdsValue>>().map { it.value }
-        return results.filterIsInstance<ProtocolResult.Failed>().firstOrNull() ?: ProtocolResult.Ok(mapped)
+
+    private fun collect(columns: List<ColumnDef>, values: List<Any?>): ProtocolResult<List<TdsValue>> {
+        val mapped = ArrayList<TdsValue>(values.size)
+        for (index in columns.indices) {
+            when (val result = value(columns[index], values[index])) {
+                is ProtocolResult.Ok -> mapped += result.value
+                is ProtocolResult.Failed -> return failed(result.error.failure, "Spalte $index: ${result.error.detail}")
+            }
+        }
+        return ProtocolResult.Ok(mapped)
     }
 
     fun value(column: ColumnDef, raw: Any?): ProtocolResult<TdsValue> = when {
         raw != null -> nonNull(column.type, raw)
         column.nullable -> ProtocolResult.Ok(TdsValue.NullValue)
         else -> failed(ProtocolFailure.TYPE_MISMATCH, "NULL in einer Spalte ohne NULL")
-    }
-
-    private fun at(index: Int, result: ProtocolResult<TdsValue>): ProtocolResult<TdsValue> = when (result) {
-        is ProtocolResult.Ok -> result
-        is ProtocolResult.Failed -> failed(result.error.failure, "Spalte $index: ${result.error.detail}")
     }
 
     private fun nonNull(type: TdsType, raw: Any): ProtocolResult<TdsValue> = when (type) {

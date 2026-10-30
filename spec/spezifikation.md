@@ -316,9 +316,12 @@ verifizieren.
   (100 ns); ein feinerer Wert wird abgewiesen, nicht gerundet. Das Jahr liegt zwischen 1 und 9999.
 - Unicode-Text ist `NVARCHAR(4000)` mit der Kollation `SQL_Latin1_General_CP1_CI_AS`, gezählt in
   UTF-16-Einheiten; ein unpaares Surrogat wird abgewiesen. Der leere String ist ein Wert, nicht NULL.
-- Decimal wird nie gerundet: ein Wert mit mehr Nachkommastellen als der Scale der Spalte (nachlaufende
-  Nullen zählen nicht) oder mit mehr Stellen als die Precision erlaubt wird abgewiesen. Eine Precision
-  über 38 scheitert in der Typabbildung mit `TDS_UNSUPPORTED_TYPE` (`SPEC-002`).
+- Decimal wird nie gerundet: ein Wert mit mehr Nachkommastellen als der Scale der Spalte oder mit mehr
+  Stellen als die Precision erlaubt wird abgewiesen. Lesart und Grenze sind Setzungen vom 2026-10-30,
+  nicht gemessen und vom Nutzer nicht bestätigt: nachlaufende Nullen zählen nicht (1,500 passt in
+  Scale 2, 1,234 nicht), aber eine Mantisse mit mehr als 1000 Stellen wird auch dann abgewiesen, wenn der
+  Wert nach dem Kürzen passen würde. Eine Precision über 38 scheitert in der Typabbildung mit
+  `TDS_UNSUPPORTED_TYPE` (`SPEC-002`).
 - Genauigkeit der Zeittypen, Kollation und Längenlimit sind damit gesetzt; am Referenzclient und am
   echten SQL Server ist keiner dieser Werte gemessen.
 
