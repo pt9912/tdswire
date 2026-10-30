@@ -13,6 +13,13 @@ import io.github.pt9912.tdswire.protocol.wire.violation
  * Precision (Dezimal) bzw. bis 7 (Zeittypen) sind Grenzen dieses Parsers; die Kombination von
  * Precision und Größe bei `DECIMALN`/`NUMERICN` wird nicht geprüft. Typen mit PLP (höchste Länge
  * `0xFFFF`) und Typkennungen außerhalb von [RpcTypeKind] sind `INVALID_TYPE`.
+ *
+ * Abweichung von ADR-0005 und SPEC-003: ADR-0005 (Folgen) verlangt vom RPC-Parser, PLP (MAX-Typen)
+ * zu dekodieren, und die Messmatrix führt MAX in `sp_executesql`-Parametern; dieser Parser liefert
+ * es nicht. Der Träger der Lücke ist `slice-codec-datentypen-erweiterung`. Verhalten: Ein
+ * Parameter mit PLP lehnt die ganze Nachricht ab (`ProtocolResult.Failed`, kein Teilergebnis, der
+ * Parameter wird nicht übersprungen). Das gilt für jeden Parameter, auch für SQL-Text und
+ * Deklarationsliste von `sp_executesql` und `sp_prepexec`: sie laufen durch dieselbe Lesung.
  */
 internal object RpcTypeInfoReader {
     const val PLP_MARKER = 0xFFFF

@@ -14,8 +14,15 @@ import io.github.pt9912.tdswire.protocol.wire.violation
  * (Länge 0) oder genau so lang, wie die TYPE_INFO vorgibt; ein Zeichen- oder Binärwert ist NULL
  * (`0xFFFF`) oder höchstens so lang wie die höchste Länge der TYPE_INFO, Unicode-Text mit gerader
  * Byte-Zahl. Das Statusbyte wird unverändert übernommen, reservierte Bits werden nicht geprüft.
+ *
+ * Obergrenze: höchstens [MAX_PARAMETERS] Parameter je Nachricht, sonst `INVALID_RPC_FORM`. Die
+ * Zahl ist eine Festlegung ohne Messung (kein Client und kein Server wurde danach befragt); sie
+ * begrenzt die Objekte, die eine Nachricht erzeugt: ohne sie ließe eine Nachricht an der
+ * Nachrichtengrenze Parameter von 5 Byte (Name leer, NULL) zu Millionen von Objekten werden. Der
+ * Parser fängt keinen `OutOfMemoryError`; die Grenze greift, bevor der Parameter gelesen wird.
  */
 internal object RpcParameterReader {
+    const val MAX_PARAMETERS = 4096
     private const val NULL_COUNTED = 0xFFFF
     private const val NULL_PREFIXED = 0
     private const val BYTE_MASK = 0xFFL
@@ -34,6 +41,9 @@ internal object RpcParameterReader {
     fun readAll(reader: ByteReader): List<RpcParameter> {
         val parameters = mutableListOf<RpcParameter>()
         while (reader.remaining > 0) {
+            if (parameters.size == MAX_PARAMETERS) {
+                violation(ProtocolFailure.INVALID_RPC_FORM, "mehr als $MAX_PARAMETERS Parameter")
+            }
             parameters += read(reader)
         }
         return parameters

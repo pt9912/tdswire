@@ -20,7 +20,8 @@ import io.github.pt9912.tdswire.protocol.wire.violation
  * `NameLenProcID` ist die Zeichenzahl des Namens, `0xFFFF` leitet eine ProcID ein; die Länge 0 ist
  * ein Fehler. Eine ProcID außerhalb von 10, 12 und 13 ist [RpcCall.UnknownProcedure]; Optionsflags
  * werden gelesen, Parameter nicht. Die Parameter von `sp_executesql`, `sp_prepexec` und
- * `sp_execute` werden nach Position gedeutet (Namen ignoriert), wie sie der Spike beobachtet hat.
+ * `sp_execute` werden nach Position gedeutet; die Positionen belegt die Messmatrix von ADR-0005
+ * (Testserver), dass der Parser die Namen dabei ignoriert, ist Festlegung.
  */
 object RpcParser {
     private const val ID_MARKER = 0xFFFF
