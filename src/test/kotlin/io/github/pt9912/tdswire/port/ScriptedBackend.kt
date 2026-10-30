@@ -67,6 +67,14 @@ class ScriptedBackend private constructor(private val source: (ScriptedBackend) 
         fun ofList(vararg events: QueryEvent): ScriptedBackend = ScriptedBackend { flowOf(*events) }
 
         /**
+         * Ein Backend, dessen n-ter [execute]-Aufruf die n-te Liste von [runs] liefert; nach der letzten
+         * Liste bleibt es bei ihr. Für Tests mit mehreren Anfragen auf einer Sitzung.
+         */
+        fun inSequence(vararg runs: List<QueryEvent>): ScriptedBackend = ScriptedBackend { backend ->
+            flowOf(*runs[minOf(backend.requests.size, runs.size) - 1].toTypedArray())
+        }
+
+        /**
          * Ein Backend, das ein Ergebnis mit einer Spalte und [rows] Zeilen erzeugt, eine Zeile je
          * Abnahme; nach [cancel] oder [QueryExecution.close] erzeugt es keine weitere.
          */

@@ -2,6 +2,10 @@ package io.github.pt9912.tdswire.runtime
 
 import io.github.pt9912.tdswire.config.LoginSettings
 import io.github.pt9912.tdswire.config.auth.AuthAdapter
+import io.github.pt9912.tdswire.port.QueryBackend
+import io.github.pt9912.tdswire.protocol.dispatch.RequestLoop
+import io.github.pt9912.tdswire.protocol.error.ErrorLog
+import io.github.pt9912.tdswire.protocol.error.ErrorMapper
 import io.github.pt9912.tdswire.protocol.session.AuthPool
 import io.github.pt9912.tdswire.protocol.session.HandshakeConfig
 import io.github.pt9912.tdswire.protocol.session.HandshakeDriver
@@ -42,14 +46,16 @@ internal class HandlerSetup(
  * Annahme der Verbindung im Listener; der Handler startet den Treiber ohne Verzug, dessen eigene Frist
  * (gleicher Wert) beginnt mit `run` und endet damit nie vor der des Listeners.
  *
- * Festlegung ohne Messung: Es gibt noch keinen Anfragepfad. Nach der Annahme wartet der Handler auf die
- * nächste Nachricht oder das Ende der Gegenstelle und kehrt dann zurück; der Listener schließt die
- * Verbindung. Eine Anfrage bleibt damit unbeantwortet. Der Paket-Schreiber arbeitet mit
+ * Nach der Annahme beantwortet die [RequestLoop] die Anfragen an das [backend]. Ist keines
+ * gesetzt (der Betrieb hat noch kein Backend), gibt es keinen Anfragepfad (Festlegung ohne Messung): der
+ * Handler wartet auf die nächste Nachricht oder das Ende der Gegenstelle und kehrt dann zurück; der
+ * Listener schließt die Verbindung, eine Anfrage bleibt unbeantwortet. Der Paket-Schreiber arbeitet mit
  * [PACKET_SIZE]; die angekündigte Packet Size wird nicht angewandt (`AuthenticatedSession`).
  * TLS läuft im TDS-7.4-Pfad (gekapselt in Paketen vom Typ `0x12`); der Pfad ab dem ersten Byte (TDS 8.0)
  * ist nicht verdrahtet.
  */
-internal class HandshakeConnectionHandler(private val setup: HandlerSetup) : ConnectionHandler {
+internal class HandshakeConnectionHandler(private val setup: HandlerSetup, private val backend: QueryBackend? = null) :
+    ConnectionHandler {
     override suspend fun handle(connection: Connection) {
         val wire = SwitchableChannel(connection.channel)
         val reader = MessageReader(wire, preLoginLimits(setup.login.maxPreloginMessageBytes))
@@ -63,11 +69,16 @@ internal class HandshakeConnectionHandler(private val setup: HandlerSetup) : Con
             setup.login.timeoutSeconds.seconds,
             setup.authPool,
         )
-        if (driver.run(channel) is HandshakeOutcome.Ready) {
+        val outcome = driver.run(channel)
+        if (outcome is HandshakeOutcome.Ready) {
             connection.loginCompleted()
-            channel.receive()
+            if (backend == null) channel.receive() else RequestLoop(outcome, channel, backend, errorMapper()).run()
         }
     }
+
+    private fun errorMapper() = ErrorMapper(
+        ErrorLog { setup.log.line("Fehler: ${it.code}${it.cause?.let { cause -> " ($cause)" }.orEmpty()}") },
+    )
 
     /** Die Grenzen vor dem Login: höchstens [bytes] je Nachricht, kein Paket länger als die Nachricht. */
     private fun preLoginLimits(bytes: Int): FramingLimits =

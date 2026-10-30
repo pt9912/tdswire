@@ -12,9 +12,10 @@ import kotlin.time.Duration.Companion.seconds
 sealed interface HandshakeOutcome {
     /**
      * Der Login ist angenommen, die Antwort gesendet, die Rahmen-Grenze gewechselt; die Verbindung
-     * gehört dem Aufrufer.
+     * gehört dem Aufrufer. [live] ist der Sitzungsrahmen, in dem die Anfragezustände weiterlaufen.
      */
-    class Ready(val session: AuthenticatedSession) : HandshakeOutcome {
+    class Ready internal constructor(val session: AuthenticatedSession, internal val live: HandshakeSession) :
+        HandshakeOutcome {
         override fun toString(): String = "Ready(verborgen)"
     }
 
@@ -88,7 +89,7 @@ class HandshakeDriver(
         val context = session.context
         val ready = context.session
         return when {
-            context.state == ConnectionState.READY && ready != null -> HandshakeOutcome.Ready(ready)
+            context.state == ConnectionState.READY && ready != null -> HandshakeOutcome.Ready(ready, session)
 
             context.state == ConnectionState.CLOSED ->
                 HandshakeOutcome.Closed(session.closeReason ?: CloseReason.PROTOCOL_VIOLATION)

@@ -8,6 +8,7 @@ import io.github.pt9912.tdswire.config.TlsKeyMaterial
 import io.github.pt9912.tdswire.config.auth.AuthAdapter
 import io.github.pt9912.tdswire.config.auth.UserList
 import io.github.pt9912.tdswire.config.auth.UserListAuthAdapter
+import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.protocol.session.AuthPool
 import io.github.pt9912.tdswire.protocol.session.EncryptionPolicy
 import io.github.pt9912.tdswire.protocol.session.HandshakeConfig
@@ -27,9 +28,9 @@ import kotlin.time.Duration.Companion.seconds
 
 /**
  * Alles, was der Prozess außer der Konfiguration festlegt und ein Test ersetzt: Log, Ereignisempfänger,
- * Zeitgeber der Fristen, der [authPool] (einer je Prozess) und die Wahl des Adapters. Die Voreinstellung ist
- * der Betrieb: Log auf der Standardausgabe nur über [ServerLog.STDOUT], die Benutzerliste als
- * [UserListAuthAdapter].
+ * Zeitgeber der Fristen, der [authPool] (einer je Prozess), die Wahl des Adapters und das [backend] der
+ * Anfragen. Die Voreinstellung ist der Betrieb: Log auf der Standardausgabe nur über [ServerLog.STDOUT], die
+ * Benutzerliste als [UserListAuthAdapter], kein Backend.
  */
 internal class Wiring(
     val log: ServerLog = ServerLog.NONE,
@@ -37,6 +38,7 @@ internal class Wiring(
     val delayer: Delayer = Delayer.SYSTEM,
     val authPool: AuthPool = AuthPool(),
     val adapter: (UserList) -> AuthAdapter = { UserListAuthAdapter(it) },
+    val backend: QueryBackend? = null,
 )
 
 /** Ausgang des Starts: ein laufender [Server] oder der Abbruch; ein Abbruch hat Log-Zeilen geschrieben. */
@@ -86,7 +88,7 @@ internal object Bootstrap {
             times = ListenerTimes(config.login.timeoutSeconds.seconds, Duration.ZERO, wiring.delayer),
             tls = material?.let { TlsServerConfig(it, TlsParameters.SPEC_023) },
         )
-        val handler = HandshakeConnectionHandler(handlerSetup(config, material, wiring))
+        val handler = HandshakeConnectionHandler(handlerSetup(config, material, wiring), wiring.backend)
         return when (val started = TdsListener.start(listener, handler, events(wiring))) {
             is StartResult.Failed -> abort(wiring, "Start gescheitert: ${started.failure.message}")
             is StartResult.Started -> running(config, started.listener, wiring)

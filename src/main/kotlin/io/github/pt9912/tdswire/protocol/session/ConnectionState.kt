@@ -5,7 +5,10 @@ package io.github.pt9912.tdswire.protocol.session
  * Aufzählung wie im Spike; `ADR-0004` führt den Zuschnitt (flach oder getrennt nach Verbindungs- und
  * Anfragezustand) als offen, die Zweiteilung nach `SPEC-001` ist nicht gemessen. [AUTHENTICATING] ist
  * der Zustand, in dem der Adapteraufruf läuft und kein weiteres LOGIN7 angenommen wird. [READY] ist
- * der login-seitige Endzustand; der Anfragezustand gehört nicht zu dieser Aufzählung.
+ * der Leerlauf einer angemeldeten Sitzung (Anfragezustand `IDLE`); [RUNNING] und [STREAMING] sind die
+ * Anfragezustände derselben Aufzählung (flacher Zuschnitt, `SPEC-001`): [RUNNING] von der Annahme eines
+ * SQL_BATCH bis zum ersten Ergebnis, [STREAMING] ab dem ersten COLMETADATA bis zur Antwort. `COMPLETED`
+ * und `CANCELLING` sind nicht abgebildet; `COMPLETED` ist hier der Übergang `RequestFinished`.
  */
 enum class ConnectionState {
     CONNECTED,
@@ -14,6 +17,8 @@ enum class ConnectionState {
     LOGIN7,
     AUTHENTICATING,
     READY,
+    RUNNING,
+    STREAMING,
     CLOSED,
 }
 
@@ -30,6 +35,8 @@ enum class EventKind {
     REQUEST_MESSAGE,
     ATTENTION_MESSAGE,
     OTHER_MESSAGE,
+    STREAM_STARTED,
+    REQUEST_FINISHED,
     AUTH_ACCEPTED,
     AUTH_REJECTED,
     LOGIN_TIMEOUT,

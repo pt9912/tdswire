@@ -42,6 +42,26 @@ sealed interface HandshakeEvent {
         override fun toString(): String = "Message($message)"
     }
 
+    /** Das erste Ergebnis einer Anfrage beginnt (COLMETADATA ist geschrieben); `RUNNING` wird `STREAMING`. */
+    data object StreamStarted : HandshakeEvent {
+        override val kind: EventKind get() = EventKind.STREAM_STARTED
+    }
+
+    /**
+     * Die Antwort auf die Anfrage steht fest. [reply] ist die vollständige Antwort-Nachricht oder `null`,
+     * wenn die Verbindung ohne Antwort schließt; [connectionOpen] sagt, ob die Sitzung danach wieder
+     * `READY` ist. Eine offene Verbindung ohne Antwort gibt es nicht.
+     */
+    class RequestFinished(val reply: TdsMessage?, val connectionOpen: Boolean) : HandshakeEvent {
+        init {
+            require(reply != null || !connectionOpen) { "eine offene Verbindung braucht eine Antwort" }
+        }
+
+        override val kind: EventKind get() = EventKind.REQUEST_FINISHED
+
+        override fun toString(): String = "RequestFinished(reply=${reply != null}, open=$connectionOpen)"
+    }
+
     /** Der Adapter hat angenommen; [sessionId] vergibt der Aufrufer, die Übergangsfunktion bleibt rein. */
     class AuthAccepted(val principal: Principal, val sessionId: String) : HandshakeEvent {
         override val kind: EventKind get() = EventKind.AUTH_ACCEPTED
