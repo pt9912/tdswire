@@ -26,6 +26,11 @@ In Arbeit (Welle welle-protokollcodec):
 
 - [slice-codec-tds-paket](slice-codec-tds-paket.md)
 
+In Arbeit (Welle welle-entscheidungen-grundlage):
+
+- [slice-adr-session-zustand](slice-adr-session-zustand.md)
+- [slice-adr-backend-streaming](slice-adr-backend-streaming.md)
+
 
 
 ## Nächste Wellen
