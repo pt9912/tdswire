@@ -47,7 +47,7 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [x] Spike durchgeführt; seine Ergebnisse (Messwerte, Matrix, Befund) stehen in der ADR. Der Spike-Code ist temporär und nach der Entscheidung gelöscht.
-- [x] [ADR-0005](../../adr/0005-rpc-und-prepared-statements.md) auf `Accepted`, Option gewählt, Geschichte und ADR-Index nachgezogen.
+- [ ] [ADR-0005](../../adr/0005-rpc-und-prepared-statements.md) auf `Accepted`, Option gewählt, Geschichte und ADR-Index nachgezogen.
 - [x] Spec-Stellen aus dem `Schärft:`-Feld der ADR an die Entscheidung angepasst.
 - [x] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -76,7 +76,7 @@ Aussagen-Berührung steht hier gar nicht.
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 
-**Zwischenstand der Messung** für [ADR-0005](../../adr/0005-rpc-und-prepared-statements.md) (Spike per Dockerfile ohne Mount; ein Testserver in C# auf .NET 10, TDS 7.4 unverschlüsselt (`Encrypt=false`, PRELOGIN-Antwort `ENCRYPT_NOT_SUP`), und der Referenzclient `Microsoft.Data.SqlClient` 7.1.1 im selben Prozess, `Pooling=false`, eine Verbindung je Szenario. Es lief kein Microsoft-SQL-Server; die Antworten stammen vom Testserver und belegen nicht, was ein echter Server sendet. Der Server dekodiert jede Anfrage und beantwortet sie in zwei Varianten: `min` mit genau einem DONE (Batch) bzw. DONEPROC (RPC), `std` mit COLMETADATA und ROW, RETURNSTATUS, RETURNVALUE für OUTPUT-Parameter und DONEPROC. Zahlen aus einem Lauf des Spike-Agenten, bislang nicht wiederholt.)
+**Zwischenstand der Messung** für [ADR-0005](../../adr/0005-rpc-und-prepared-statements.md) (Spike per Dockerfile ohne Mount; ein Testserver in C# auf .NET 10, TDS 7.4 unverschlüsselt (`Encrypt=false`, PRELOGIN-Antwort `ENCRYPT_NOT_SUP`), und der Referenzclient `Microsoft.Data.SqlClient` 7.1.1 im selben Prozess, `Pooling=false`, eine Verbindung je Szenario. Es lief kein Microsoft-SQL-Server; die Antworten stammen vom Testserver und belegen nicht, was ein echter Server sendet. Der Server dekodiert jede Anfrage und beantwortet sie in zwei Varianten: `min` mit genau einem DONE (Batch) bzw. DONEPROC (RPC), `std` mit COLMETADATA und ROW, RETURNSTATUS, RETURNVALUE für OUTPUT-Parameter und DONEPROC. Zahlen aus einem Lauf des Spike-Agenten; Review und Verifier haben den Spike je einmal wiederholt (gleicher Spike-Code, gleicher Testserver, keine unabhängige Messung).)
 
 Die Anfragen mit Parametern sind in beiden Varianten byte-gleich; die Spalte „Beobachtete Anfrage“ gilt daher für beide. `OptionFlags=0x0002` ist `fNoMetaData`; Pakettyp `0x01` ist SQL Batch, `0x03` RPC, `0x0E` Transaction Manager. Die Collation in `sp_executesql`- und `sp_prepexec`-Parametern ist die, die der Server im Login per ENVCHANGE (Typ 7) sendet; der Client gibt sie unverändert zurück (`0904D00034` im Testserver).
 
