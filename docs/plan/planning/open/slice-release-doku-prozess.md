@@ -34,7 +34,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Die Kompatibilitätsmatrix der Nachrichten und Datentypen — [slice-qa-wartbarkeit](../next/slice-qa-wartbarkeit.md) führt sie unter `docs/plan/` (`AGENTS.md` §5, Regel 6); die Nutzer-Doku verlinkt sie und kopiert sie nicht, weil Kopien driften.
+- Die Kompatibilitätsmatrix der Nachrichten und Datentypen — [slice-qa-wartbarkeit](../in-progress/slice-qa-wartbarkeit.md) führt sie unter `docs/plan/` (`AGENTS.md` §5, Regel 6); die Nutzer-Doku verlinkt sie und kopiert sie nicht, weil Kopien driften.
 - Chronik, Forensik und Planung in der Nutzer-Doku — `AGENTS.md` §5, Regel 5: Was war, steht in `git`; was kommt, in `docs/plan/planning/`.
 - Ein Sensor, der die Release-Liste des Kurs-Repos abruft — `harness/conventions.md` führt ihn als *kommt nicht mit*, weil er Netzzugriff über `bash`, `git` und `docker` hinaus bräuchte; der Audit bleibt eine Handlung im Release-Ablauf.
 - Der Wechsel von detekt auf eine 2.x-Stabilversion — ein eigener Slice nach Eintritt des Triggers, mit neuer ADR (`Supersedes` [ADR-0010](../../adr/0010-detekt-pre-release.md)); [ADR-0010](../../adr/0010-detekt-pre-release.md) ist `Accepted` und bleibt unverändert (`AGENTS.md` §3.5). Eine Lockerung der Gates bräuchte eine ADR (`AGENTS.md` §3.6).
