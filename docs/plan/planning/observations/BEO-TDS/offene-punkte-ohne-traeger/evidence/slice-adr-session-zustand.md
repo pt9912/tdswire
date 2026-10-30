@@ -1,0 +1,2 @@
+**Vorgang:** slice-adr-session-zustand
+**Fund:** Die Prüfung der offenen Punkte gegen die Slice-Dateien fand drei ohne Träger (ATTENTION im Handshake, `NonCancellable` beim Paketschreiben, `Broken pipe` bei harten Abbrüchen) und zwei ohne Entscheider (Zuschnitt der Zustände, Zählung der Spike-Matrix); die Träger stehen seit dieser Closure in `slice-handshake-login`, `slice-attention-cancel-timeout` und `slice-abbruch-ressourcen-shutdown`.

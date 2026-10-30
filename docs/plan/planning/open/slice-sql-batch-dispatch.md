@@ -116,10 +116,10 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 - Der Antwort-Sequenzierer (ARC-015) ist in keiner Welle eindeutig zugeordnet: [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md) führt die `DONE_MORE`-Vorschau, [ADR-0007](../../adr/0007-fehler-und-attention.md) und [ADR-0004](../../adr/0004-session-zustandsautomat.md) den Anfragezustand und ATTENTION. Dieser Plan nimmt den Sequenzierer als Schnittstelle von den Nachbarwellen; passt sie nicht, entsteht Umbau hier. — **Ausgang:** offen bis zur Closure.
-- Das Zusammenspiel des Anfragezustands mit dem Zustandsautomaten ist in [ADR-0004](../../adr/0004-session-zustandsautomat.md) nicht festgelegt (Zuschnitt: eine Aufzählung oder getrennt nach Verbindungs- und Anfragezustand; `Proposed`). Der Slice startet erst nach `Accepted`. — **Ausgang:** offen bis zur Closure.
+- Das Zusammenspiel des Anfragezustands mit dem Zustandsautomaten ist in [ADR-0004](../../adr/0004-session-zustandsautomat.md) nicht festgelegt (Zuschnitt: eine Aufzählung oder getrennt nach Verbindungs- und Anfragezustand; [ADR-0004](../../adr/0004-session-zustandsautomat.md) ist `Accepted` und führt den Zuschnitt offen, `slice-handshake-login` trägt die Entscheidung). Der Slice startet erst, wenn der Zuschnitt entschieden ist. — **Ausgang:** offen bis zur Closure.
 - Die Reihenfolge der Tokens und die DONE-Statusbits eines echten SQL Servers sind nicht gemessen (`BEO-TDS/messung-am-echten-sql-server-fehlt`); die Tests belegen die Festlegung aus MS-TDS und dem Spike-Testserver. — **Ausgang:** offen bis zur Closure.
 - Ein Batch mit mehreren Anweisungen, das der Client als mehrere Ergebnisse liest, ist Gegenstand des Slice `slice-antwort-mehrteilig-output`; schneidet die Closure des Backend-Slices die Ereignisse anders, ist dort nachzuziehen. — **Ausgang:** offen bis zur Closure.
-- Die Frist `deadlineEpochMillis` bleibt `null`; wer sie durchsetzt, ist offen ([ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md)). Ein Test-Backend ohne Frist sagt nichts über das Verhalten bei Ablauf. — **Ausgang:** offen bis zur Closure.
+- Die Frist `deadlineEpochMillis` bleibt `null`; wer sie durchsetzt, ist offen ([ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md)), Träger der Entscheidung ist `slice-adr-backend-grenzen` (S3). Ein Test-Backend ohne Frist sagt nichts über das Verhalten bei Ablauf. — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 

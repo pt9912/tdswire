@@ -46,18 +46,18 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] Spike durchgeführt; seine Ergebnisse (Messwerte, Matrix, Befund) stehen in der ADR. Der Spike-Code ist temporär und nach der Entscheidung gelöscht.
-- [ ] [ADR-0004](../../adr/0004-session-zustandsautomat.md) auf `Accepted`, Option gewählt, Geschichte und ADR-Index nachgezogen.
-- [ ] Spec-Stellen aus dem `Schärft:`-Feld der ADR an die Entscheidung angepasst.
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] Spike durchgeführt; seine Ergebnisse (Messwerte, Matrix, Befund) stehen in der ADR. Der Spike-Code ist temporär und liegt nicht im Repo (Beleg: `git ls-files` führt keine Datei `spike*`, `run.sh`, `mutate.sh`, `dotnet/`, `*.csproj` oder `*.cs`, und `git grep` findet in `src` weder `AsynchronousSocketChannel` noch `runInterruptible`). Dass er nach der Entscheidung gelöscht wäre, ist nicht belegt; siehe §7.
+- [x] [ADR-0004](../../adr/0004-session-zustandsautomat.md) auf `Accepted`, Option gewählt, Geschichte und ADR-Index nachgezogen.
+- [x] Spec-Stellen aus dem `Schärft:`-Feld der ADR an die Entscheidung angepasst, soweit die ADR entscheidet: `SPEC-001`, `SPEC-012` und `SPEC-029` tragen sie (Spec-Historie 2026-10-30). `SPEC-028`, `TDS-FA-02.a`, `TDS-FA-07.a` sind unverändert und warten laut Folgepflicht der ADR auf die offenen Punkte (Träger in §7); `ARC-004` und `ARC-015` bleiben nach Hard Rule 3.4 frei von ADR-Bezügen.
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
-      Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Doku-Update, falls ein öffentlicher Vertrag berührt ist.
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+      Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8). Reports: [Review](../../../reviews/2026-10-30-f4b3b87-adr-0004-0006-0007.md), [Re-Review](../../../reviews/2026-10-30-46be900-re-review-adr-0004-0006-0007-0011.md) und [Verifikation](../../../reviews/2026-10-30-46be900-verifikation-adr-0004-0006-0007-0010-0011.md).
+- [x] Doku-Update, falls ein öffentlicher Vertrag berührt ist. Berührt ist die Spezifikation (`SPEC-001`, `SPEC-012`, `SPEC-029`); ein Vertrag unter `contracts/` ist für diese Entscheidung nicht berührt.
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -166,7 +166,12 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Die Zustands- und Ereignismatrix ist ohne die Pufferstrategie des Transports nicht abschließbar. — **Ausgang:** offen bis zur Closure.
+- Die Zustands- und Ereignismatrix ist ohne die Pufferstrategie des Transports nicht abschließbar. — **Ausgang:** entfallen: Die Matrix lief im Spike vollständig gegen ein Fake-Io (Zustände × Ereignisse, Zufallsfolgen, Wettlauf) und die Wahl der ADR hängt nicht an der Pufferstrategie; was auf dem echten Transport zusätzlich zählt, steht im nächsten Risiko.
+- Die Wirkung der Wahl auf dem echten Transport ist nicht gemessen: Ein Schreiben unter dem `Mutex` hält den Übergang bei langsamem Leser auf, und ein Schreibwettlauf auf dem echten Kanal ist nur als Fake-Io-Zahl belegt. — **Ausgang:** weiter offen: → [slice-fehler-zustandsuebergang](../open/slice-fehler-zustandsuebergang.md) §6 (Mutex je Sitzung) und der Re-Evaluierungs-Trigger von [ADR-0004](../../adr/0004-session-zustandsautomat.md).
+- Die Zählung der Spike-Matrix ist in [ADR-0004](../../adr/0004-session-zustandsautomat.md) als nicht belegt gekennzeichnet (140 Zellen und 700 Läufe gegen die Angabe, `CANCELLING` und `COMPLETED` seien keine Matrixzeilen); eine Nachmessung bräuchte den Spike-Code, der nicht im Repo liegt. — **Ausgang:** weiter offen: → [slice-handshake-login](../open/slice-handshake-login.md) (DoD-Punkt 1: die Matrix des Produktivcodes zählt ihre Zellen aus dem Code, die Closure nennt die Abweichung) und [BEO-TDS/aussagen-ueber-messung-hinaus](../observations/BEO-TDS/aussagen-ueber-messung-hinaus/observation.md).
+- Die offenen Punkte von [ADR-0004](../../adr/0004-session-zustandsautomat.md) haben nach der Annahme keinen Entscheider, wenn kein Slice sie führt (eine `Accepted`-ADR schließt sie nur per Folge-ADR). — **Ausgang:** weiter offen: → je Punkt ein Träger, siehe Tabelle in §7; Beobachtung [BEO-TDS/offene-punkte-ohne-traeger](../observations/BEO-TDS/offene-punkte-ohne-traeger/observation.md).
+- Das Verhalten eines echten SQL Servers bei unzulässigen Übergängen und bei ATTENTION im Leerlauf ist nicht gemessen; die Antwort auf einen unzulässigen Übergang ist eine Setzung des Spike. — **Ausgang:** weiter offen: → [BEO-TDS/messung-am-echten-sql-server-fehlt](../observations/BEO-TDS/messung-am-echten-sql-server-fehlt/observation.md) (geplant: [slice-qa-reproduzierbarkeit](../in-progress/slice-qa-reproduzierbarkeit.md); dessen DoD nennt diese beiden Fälle nicht, siehe §7).
+- Pooling (`RESETCONNECTION`), `Command Timeout` und die Login-Zeitgrenze sind nicht gemessen. — **Ausgang:** weiter offen: → [BEO-TDS/tds-8-0-und-pooling-nicht-gemessen](../observations/BEO-TDS/tds-8-0-und-pooling-nicht-gemessen/observation.md) (geplant: [slice-qa-kompatibilitaet](../open/slice-qa-kompatibilitaet.md)).
 
 ## 7. Closure-Notiz
 
@@ -183,7 +188,22 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-Wird bei der Closure gefüllt.
+- **Was hat funktioniert:** Ein Spike aus Dockerfile ohne Mount mit drei Sitzungen hinter derselben Schnittstelle (A expliziter Automat, B Handler-Kette ohne und mit Sperre, C Sitzungs-Coroutine mit Postfach), einer Referenztabelle (10 Zustände × 14 Ereignisse), 20 000 Wettläufen und dem Referenzclient in drei Verbindungsarten machte die Wahl des Nutzers möglich (Option A mit `Mutex` je Sitzung), ohne die Optionen in der Korrektheit zu trennen; die ADR sagt das in den Befunden und führt die Wahl als Setzung. Review, Re-Review und Verifikation liefen je in frischem Kontext.
+- **Was ging anders als geplant:** Die Verifikation fand die Matrix-Zählung in sich widersprüchlich (V-1) und die Abschlussbestätigung in `SPEC-001` ohne Setzungsmarke (V-2); beides steht seitdem in der ADR bzw. der Spec als nicht belegt bzw. Setzung, [ADR-0004](../../adr/0004-session-zustandsautomat.md) ist nach Review, Verifikation und Re-Review `Accepted` (Entscheidung der Optionen: Nutzer, 2026-10-30). Die Annahme schreibt die Wahl fest; die offenen Punkte schließt nur eine Folge-ADR. Bei der Closure fehlten für drei offene Punkte (ATTENTION im Handshake, `NonCancellable` beim Paketschreiben, `Broken pipe` bei harten Abbrüchen) der Träger und für zwei (Zuschnitt der Zustände, Zählung der Spike-Matrix) der Entscheider; sie stehen jetzt in den DoD der unten genannten Slices. Der Spike-Code liegt nicht im Repo und ist nach der Entscheidung nicht gelöscht: seine Dateien liegen noch im Scratchpad der Sitzung außerhalb des Repos. Die DoD-Zeile sagt deshalb nur „nicht im Repo“; ohne den Code ist die Zählung der Matrix nicht nachmessbar.
+- **Träger der offenen Punkte von [ADR-0004](../../adr/0004-session-zustandsautomat.md)** (jeder Slice ist eine Datei im Planning-Lifecycle; was dort in DoD oder Risiko steht, ist geprüft):
+  - Antwort auf einen unzulässigen Übergang: [slice-fehler-zustandsuebergang](../open/slice-fehler-zustandsuebergang.md) (DoD-Punkt 3, Anfragezustand) und [slice-handshake-login](../open/slice-handshake-login.md) (DoD-Punkt 1, Handshake, als Festlegung).
+  - ATTENTION im Handshake und in jedem Anfragezustand: [slice-attention-cancel-timeout](../open/slice-attention-cancel-timeout.md) (DoD-Punkte 1 und 2; der Handshake-Teil ist mit dieser Closure ergänzt).
+  - Zuschnitt der Zustände und Zählung der Spike-Matrix: [slice-handshake-login](../open/slice-handshake-login.md) (DoD-Punkt 1, mit dieser Closure ergänzt), später geprüft in [slice-sql-batch-dispatch](../open/slice-sql-batch-dispatch.md).
+  - Sitzungszustand nach einem Fehler und `RESETCONNECTION`: [slice-fehler-zustandsuebergang](../open/slice-fehler-zustandsuebergang.md) (DoD-Punkt 3); Messung unter Pooling in [slice-qa-kompatibilitaet](../open/slice-qa-kompatibilitaet.md).
+  - Zeitpunkt des Schließens nach `TDS_SHUTDOWN`: [slice-abbruch-ressourcen-shutdown](../open/slice-abbruch-ressourcen-shutdown.md) (DoD-Punkt 2, Risiko).
+  - `NonCancellable` beim Paketschreiben: [slice-attention-cancel-timeout](../open/slice-attention-cancel-timeout.md) (DoD-Punkt 1, mit dieser Closure ergänzt).
+  - `Broken pipe` bei harten Abbrüchen: [slice-abbruch-ressourcen-shutdown](../open/slice-abbruch-ressourcen-shutdown.md) (DoD-Punkt 1, mit dieser Closure ergänzt).
+  - Folge-ADR nötig: nur wenn einer dieser Slices einen Punkt anders entscheidet, als die `Accepted`-ADR es festschreibt (Wahl A mit `Mutex`); die offenen Punkte selbst sind keine Abweichung.
+- **Steering-Loop-Eintrag:** Spec-Lücke benannt: `SPEC-001` legt den Zuschnitt der Zustandsaufzählung nicht fest (eine flache Aufzählung oder Verbindungs- und Anfragezustand getrennt); die Spec führt ihn offen, entschieden wird er in `slice-handshake-login` (kein `liegt in`, weil in einer versionierten Spec und nicht an einem Zielort geführt). Gezählt, nicht verkörpert: [BEO-TDS/offene-punkte-ohne-traeger](../observations/BEO-TDS/offene-punkte-ohne-traeger/observation.md) (die Planner-Prüfung fand Träger und Entscheider nach der Annahme fehlend).
+- **Beobachtungs-Register (`../observations/`):** `evidence/slice-adr-session-zustand.md` ergänzt in [BEO-TDS/aussagen-ueber-messung-hinaus](../observations/BEO-TDS/aussagen-ueber-messung-hinaus/observation.md), [BEO-TDS/messung-am-echten-sql-server-fehlt](../observations/BEO-TDS/messung-am-echten-sql-server-fehlt/observation.md) und [BEO-TDS/tds-8-0-und-pooling-nicht-gemessen](../observations/BEO-TDS/tds-8-0-und-pooling-nicht-gemessen/observation.md); [BEO-TDS/offene-punkte-ohne-traeger](../observations/BEO-TDS/offene-punkte-ohne-traeger/observation.md) neu angelegt, mit Belegen `evidence/slice-adr-session-zustand.md` und, aus der Closure von `slice-adr-rpc`, `evidence/slice-adr-rpc.md`. Die Zähler folgen aus den Dateien. `BEO-TDS/kennungen-ohne-link-in-neuen-dokumenten` ist in diesem Slice nicht belegt aufgetreten.
+- **Folge-Slices:** keine neuen für diesen Slice; die Träger oben existieren als Dateien ([slice-fehler-zustandsuebergang](../open/slice-fehler-zustandsuebergang.md), [slice-attention-cancel-timeout](../open/slice-attention-cancel-timeout.md), [slice-abbruch-ressourcen-shutdown](../open/slice-abbruch-ressourcen-shutdown.md), [slice-handshake-login](../open/slice-handshake-login.md), [slice-sql-batch-dispatch](../open/slice-sql-batch-dispatch.md), [slice-qa-kompatibilitaet](../open/slice-qa-kompatibilitaet.md)).
+- **Risiken aus §6:** Eines entfallen, fünf weiter offen mit Träger, siehe §6.
+- **Drei Paarungen:** Das Repo führt Wellen; die Paarungen prüft die Closure von `welle-entscheidungen-grundlage`.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

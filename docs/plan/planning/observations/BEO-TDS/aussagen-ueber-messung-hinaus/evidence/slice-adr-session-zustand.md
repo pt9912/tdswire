@@ -1,0 +1,2 @@
+**Vorgang:** slice-adr-session-zustand
+**Fund:** Der Review fand die Begründung für Option A gemessen formuliert, obwohl die Mutationen für B und C nicht liefen (4-1, MEDIUM); die Verifikation fand die Matrix-Zählung in sich widersprüchlich (V-1, 140 Zellen und 700 Läufe gegen „`CANCELLING` und `COMPLETED` keine Matrixzeile“) und die Abschlussbestätigung in `SPEC-001` ohne Setzungsmarke (V-2); die ADR kennzeichnet die Zählung als nicht belegt.
