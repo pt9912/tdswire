@@ -1,0 +1,2 @@
+**Vorgang:** slice-backend-sequenzierer
+**Fund:** Das Orakel des Fuzz-Tests war Selbstkonsistenz und band den Ausgang nicht an die Tokenfolge; Ausnahmen im Strom und Abbruch fehlten im Pool (Review F-5). Behoben mit einem getrennten Modell der erlaubten Folgen, das Tokenformen und Ausgang vorhersagt. Zwei Mutanten starben danach allein dort (Verifikation V07b, V08, Befund V-5) und bekamen in Commit `e9ce7af` je einen deterministischen Test; dass sie dort jetzt rot sind, ist die Angabe des Implementers.

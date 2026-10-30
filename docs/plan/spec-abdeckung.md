@@ -38,23 +38,23 @@ Stand: 27 von 51 Festlegungen mit mindestens einem bestandenen Test, 7 Gate-Fest
 | Festlegung | Titel | Modul-Test | Smoke-Test | E2E-Test | Nicht bestanden | Belegt durch | Urteil |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `SPEC-001` | Zustandsautomat einer Verbindung | 14 | 0 | 0 | 0 | HandshakeDriverTest, HandshakeMatrixTest | mindestens ein bestandener getaggter Test |
-| `SPEC-002` | Interner Query-Vertrag | 3 | 0 | 0 | 5 | BackendModelTest, ResponseMappingTest | mindestens ein bestandener getaggter Test |
+| `SPEC-002` | Interner Query-Vertrag | 4 | 0 | 0 | 5 | BackendModelTest, ResponseDecoderTest, ResponseMappingTest | mindestens ein bestandener getaggter Test |
 | `SPEC-003` | Typmapping (initialer Mindestkatalog) | 45 | 0 | 0 | 0 | BackendModelTest, ColumnMappingTest, MappingFuzzTest, ValueMappingTest, RpcFailureTest, RpcTypesTest, DecimalValuesTest, TokenEncoderTest, TokenRoundtripTest | mindestens ein bestandener getaggter Test |
 | `SPEC-004` | Testprofil | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
-| `SPEC-028` | PRELOGIN, TLS und LOGIN7: Zustands- und Antwortvertrag | 109 | 2 | 0 | 0 | Login7ParserTest, PreloginCodecTest, HandshakeDriverTest, HandshakeMatrixTest, HandshakeTransportTest, LoginAdmissionTest, LoginResponseTest, PreloginNegotiationTest, SqlBatchParserTest, TokenEncoderTest, TokenRoundtripTest, CodecSmokeTest, SocketChannelLoopbackTest, MessageAssemblerTest, PacketHeaderTest, PacketWriterTest, ListenerSmokeTest, MessageReaderTest, MessageWriterTest, TlsDataPhaseTest, TlsLoopbackTest, TlsNegativeTest, TlsTicketFlagTest | mindestens ein bestandener getaggter Test |
-| `SPEC-029` | ATTENTION und Wiederverwendung der Verbindung | 3 | 0 | 0 | 0 | ResponseFailureTest, ResponseMappingTest, MessageAssemblerTest | mindestens ein bestandener getaggter Test |
+| `SPEC-028` | PRELOGIN, TLS und LOGIN7: Zustands- und Antwortvertrag | 114 | 2 | 0 | 0 | Login7ParserTest, PreloginCodecTest, HandshakeDriverTest, HandshakeMatrixTest, HandshakeTransportTest, LoginAdmissionTest, LoginResponseTest, PreloginNegotiationTest, SqlBatchParserTest, TokenEncoderTest, TokenRoundtripTest, CodecSmokeTest, ConnectionStormTest, FramingFuzzTest, HandshakeFuzzTest, StreamCutoffTest, SocketChannelLoopbackTest, MessageAssemblerTest, PacketHeaderTest, PacketWriterTest, ListenerSmokeTest, MessageReaderTest, MessageWriterTest, TlsDataPhaseTest, TlsLoopbackTest, TlsNegativeTest, TlsTicketFlagTest | mindestens ein bestandener getaggter Test |
+| `SPEC-029` | ATTENTION und Wiederverwendung der Verbindung | 5 | 0 | 0 | 0 | ResponseFailureTest, ResponseMappingTest, MessageAssemblerTest | mindestens ein bestandener getaggter Test |
 | `SPEC-030` | RPC-Varianten und Parameter-Metadaten | 14 | 1 | 0 | 0 | RpcCatalogFormsTest, RpcFailureTest, RpcTypesTest, TokenEncoderTest, CodecSmokeTest | mindestens ein bestandener getaggter Test |
-| `SPEC-031` | Streaming-Fehler und Atomarität | 34 | 0 | 0 | 3 | ErrorMapperTest, ResponseErrorMapperTest, ResponseFailureTest, ResponseMappingTest, ResponseOrderTest, ColumnMappingTest, MappingFuzzTest, ValueMappingTest | mindestens ein bestandener getaggter Test |
+| `SPEC-031` | Streaming-Fehler und Atomarität | 44 | 0 | 0 | 3 | ErrorMapperTest, ResponseDecoderTest, ResponseErrorMapperTest, ResponseFailureTest, ResponseMappingTest, ResponseOrderTest, ColumnMappingTest, MappingFuzzTest, ValueMappingTest | mindestens ein bestandener getaggter Test |
 | `SPEC-035` | Tabellenbeschreibung und Zeilenquelle des Simulations-Backends | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-036` | Erkannte Anweisungsformen des Simulations-Backends (vorläufig) | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-043` | Startprüfung: TLS-Konfiguration und Port | 15 | 0 | 0 | 0 | IoGroupTest, ListenerStartTest, TlsStartProbeTest | mindestens ein bestandener getaggter Test |
 | `SPEC-044` | Geordnetes Beenden | 12 | 0 | 0 | 0 | ListenerLifecycleTest, ListenerShutdownTest, ListenerTestBaseTest | mindestens ein bestandener getaggter Test |
 | `SPEC-045` | Referenzabgleich: Ablauf und Ausnahmeliste (vorläufig) | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
-| `SPEC-005` | `LISTEN_PORT` | 5 | 0 | 0 | 0 | ListenerLifecycleTest, ListenerSmokeTest, ListenerStartTest | mindestens ein bestandener getaggter Test |
-| `SPEC-006` | `MAX_TDS_PACKET_BYTES` | 10 | 0 | 0 | 0 | PacketHeaderTest, PacketWriterTest | mindestens ein bestandener getaggter Test |
-| `SPEC-007` | `MAX_MESSAGE_BYTES` | 5 | 0 | 0 | 0 | HandshakeTransportTest, MessageAssemblerTest, MessageReaderTest | mindestens ein bestandener getaggter Test |
-| `SPEC-008` | `LOGIN_TIMEOUT` | 16 | 0 | 0 | 0 | AuthExecutorTest, HandshakeDriverTest, ListenerLifecycleTest, ListenerSmokeTest | mindestens ein bestandener getaggter Test |
-| `SPEC-046` | `MAX_PRELOGIN_MESSAGE_BYTES` | 9 | 0 | 0 | 0 | HandshakeTransportTest, PreloginNegotiationTest, SocketChannelLoopbackTest, MessageAssemblerTest, MessageReaderTest | mindestens ein bestandener getaggter Test |
+| `SPEC-005` | `LISTEN_PORT` | 6 | 0 | 0 | 0 | ConnectionStormTest, ListenerLifecycleTest, ListenerSmokeTest, ListenerStartTest | mindestens ein bestandener getaggter Test |
+| `SPEC-006` | `MAX_TDS_PACKET_BYTES` | 14 | 0 | 0 | 0 | ConnectionStormTest, FramingFuzzTest, HandshakeFuzzTest, StreamCutoffTest, PacketHeaderTest, PacketWriterTest | mindestens ein bestandener getaggter Test |
+| `SPEC-007` | `MAX_MESSAGE_BYTES` | 8 | 0 | 0 | 0 | HandshakeTransportTest, ConnectionStormTest, FramingFuzzTest, MessageAssemblerTest, MessageReaderTest | mindestens ein bestandener getaggter Test |
+| `SPEC-008` | `LOGIN_TIMEOUT` | 17 | 0 | 0 | 0 | AuthExecutorTest, HandshakeDriverTest, ConnectionStormTest, ListenerLifecycleTest, ListenerSmokeTest | mindestens ein bestandener getaggter Test |
+| `SPEC-046` | `MAX_PRELOGIN_MESSAGE_BYTES` | 13 | 0 | 0 | 0 | HandshakeTransportTest, PreloginNegotiationTest, ConnectionStormTest, FramingFuzzTest, HandshakeFuzzTest, SocketChannelLoopbackTest, MessageAssemblerTest, MessageReaderTest | mindestens ein bestandener getaggter Test |
 | `SPEC-047` | `SHUTDOWN_GRACE` | 3 | 0 | 0 | 0 | ListenerShutdownTest | mindestens ein bestandener getaggter Test |
 | `SPEC-009` | `QUERY_TIMEOUT` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-010` | `ENCRYPTION_POLICY` | 6 | 0 | 0 | 0 | HandshakeDriverTest, PreloginNegotiationTest | mindestens ein bestandener getaggter Test |
@@ -69,7 +69,7 @@ Stand: 27 von 51 Festlegungen mit mindestens einem bestandenen Test, 7 Gate-Fest
 | `SPEC-037` | `TDS_UNSUPPORTED_SQL` | 1 | 0 | 0 | 0 | ErrorMapperTest | mindestens ein bestandener getaggter Test |
 | `SPEC-038` | `TDS_SIM_UNKNOWN_OBJECT` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-039` | `TDS_SIM_INVALID_VALUE` | 1 | 0 | 0 | 0 | ErrorMapperTest | mindestens ein bestandener getaggter Test |
-| `SPEC-048` | `TDS_INTERNAL_ERROR` | 14 | 0 | 0 | 0 | ErrorMapperTest, ResponseErrorMapperTest, ResponseFailureTest, ResponseOrderTest, HandshakeDriverTest | mindestens ein bestandener getaggter Test |
+| `SPEC-048` | `TDS_INTERNAL_ERROR` | 18 | 0 | 0 | 0 | ErrorMapperTest, ResponseErrorMapperTest, ResponseFailureTest, ResponseOrderTest, HandshakeDriverTest | mindestens ein bestandener getaggter Test |
 | `SPEC-049` | `TDS_SHUTDOWN` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-017` | `tds.connection` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-018` | `tds.query` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
@@ -82,7 +82,7 @@ Stand: 27 von 51 Festlegungen mit mindestens einem bestandenen Test, 7 Gate-Fest
 | `SPEC-024` | Unit-Test-Gate | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-025` | Integrationstest-Gate | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
 | `SPEC-026` | `make gates` | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
-| `SPEC-027` | Fuzz-/Property-Tests | 17 | 0 | 0 | 0 | Login7ParserTest, PreloginCodecTest, RpcFailureTest, RpcFuzzTest, SqlBatchParserTest, TokenRoundtripTest, SocketChannelLoopbackTest, MessageAssemblerTest, PacketHeaderTest, RpcAssemblyTest, MessageReaderTest | mindestens ein bestandener getaggter Test |
+| `SPEC-027` | Fuzz-/Property-Tests | 24 | 0 | 0 | 0 | Login7ParserTest, PreloginCodecTest, RpcFailureTest, RpcFuzzTest, SqlBatchParserTest, TokenRoundtripTest, ConnectionStormTest, FramingFuzzTest, HandshakeFuzzTest, StreamCutoffTest, SocketChannelLoopbackTest, MessageAssemblerTest, PacketHeaderTest, RpcAssemblyTest, MessageReaderTest | mindestens ein bestandener getaggter Test |
 | `SPEC-040` | Simulations-Test-Gate | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
 | `SPEC-041` | Static-Analysis-Gate (`make detekt`, `make detekt-selbsttest`) | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
 | `SPEC-042` | Build-Gate (`make build`) | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |

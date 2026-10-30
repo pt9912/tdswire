@@ -1,0 +1,2 @@
+**Vorgang:** slice-backend-sequenzierer
+**Fund:** Die vier Nutzerentscheidungen vom 2026-10-30 liegen nur als Text in KDoc, Spezifikation und Plan §6 vor; Quelle ist eine Anweisung an den Implementer, kein eigenes Dokument (Review F-9, Verifikation 5.1). Eine Folge der Entscheidung „`ReturnStatus` und `OutputParameter` werden abgelehnt“ ist als Lesart gesetzt und nicht bestätigt: mit dem Mapping ist „abgelehnt“ gleich `TDS_UNSUPPORTED_TYPE`, Class 20, und die Verbindung schließt nach der Antwort, ebenso bei jedem Typfehler (V-6). Die Bestätigung stand bei der Closure aus.

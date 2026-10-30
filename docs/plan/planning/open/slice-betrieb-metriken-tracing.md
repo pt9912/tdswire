@@ -37,7 +37,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Lastmessung, Referenz-Workload und Grenzwerte — [slice-qa-performance](slice-qa-performance.md); dieser Slice liefert die Messpunkte, keine Zahl über Durchsatz oder Overhead.
 - Export-Backend, Collector, Dashboards und Alarmierung — Betreiber (ARC-014); der Server liefert nach der ADR den Zugang, betreibt aber keine Auswertung.
 - Das Log — [slice-betrieb-log-schnittstelle](slice-betrieb-log-schnittstelle.md); Zustandsereignisse — [slice-betrieb-zustandsereignisse](slice-betrieb-zustandsereignisse.md).
-- Die Definition, ob Cancel und Timeout als Fehler zählen — [slice-attention-cancel-timeout](slice-attention-cancel-timeout.md) und [slice-fehler-mapping](../in-progress/slice-fehler-mapping.md); die Zähler „Abbrüche“ und „Protokollfehler“ folgen deren Entscheidung (§6).
+- Die Definition, ob Cancel und Timeout als Fehler zählen — [slice-attention-cancel-timeout](slice-attention-cancel-timeout.md) und [slice-fehler-mapping](../done/slice-fehler-mapping.md); die Zähler „Abbrüche“ und „Protokollfehler“ folgen deren Entscheidung (§6).
 
 ## 2. Definition of Done
 
@@ -108,7 +108,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- „Abbrüche“ und „Protokollfehler“ hängen an Begriffen, die [slice-fehler-mapping](../in-progress/slice-fehler-mapping.md) und [slice-attention-cancel-timeout](slice-attention-cancel-timeout.md) noch festlegen (ob Cancel und Timeout als Fehler zählen); bis dahin sind die Zähler eine Festlegung dieses Slice und tragen den Vermerk. — **Ausgang:** offen bis zur Closure.
+- „Abbrüche“ und „Protokollfehler“ hängen an Begriffen, die [slice-fehler-mapping](../done/slice-fehler-mapping.md) und [slice-attention-cancel-timeout](slice-attention-cancel-timeout.md) noch festlegen (ob Cancel und Timeout als Fehler zählen); bis dahin sind die Zähler eine Festlegung dieses Slice und tragen den Vermerk. — **Ausgang:** offen bis zur Closure.
 - Der Adapter trifft keine fachliche Entscheidung (ARC-009); wer in `protocol` oder `transport` instrumentiert, ruft nur die Schnittstelle. Die Importregeln belegen das nur über `import`-Zeilen (SPEC-041). — **Ausgang:** offen bis zur Closure.
 - Overhead der Telemetrie unter Last ist ungemessen; dieser Slice sagt dazu nichts (`BEO-TDS/rueckstau-im-produktivbetrieb-nicht-gemessen`), die Messung folgt in [slice-qa-performance](slice-qa-performance.md). — **Ausgang:** offen bis zur Closure.
 - Die Grenzen der Latenz-Verteilung (Histogramm) sind eine Setzung; ein Perzentil, das aus ihr abgeleitet wird, trägt nur so weit wie diese Grenzen. — **Ausgang:** offen bis zur Closure.

@@ -1,0 +1,2 @@
+**Vorgang:** slice-fehler-mapping
+**Fund:** Die Grundregel A in [ADR-0007](../../../../../adr/0007-fehler-und-attention.md) trägt für die Codes ohne Gruppe (`TDS_UNSUPPORTED_TYPE`, `TDS_SIM_UNKNOWN_OBJECT`, `TDS_TIMEOUT`) die Folge „schließt“; die Class 20 ist die Wahl des Slice (Review F-3). Dass Cancel und Timeout als Fehler gelten, ist nicht entschieden, `TDS_TIMEOUT` steht bis dahin unter der Grundregel. Beides steht in der Tabelle der Spezifikation als Festlegung mit „Einzelzuordnung offen“, ohne Bestätigung des Nutzers; die Bestätigung stand bei der Closure aus.
