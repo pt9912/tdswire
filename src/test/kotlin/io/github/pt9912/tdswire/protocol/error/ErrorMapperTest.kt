@@ -152,15 +152,13 @@ class ErrorMapperTest {
     )
 
     /**
-     * Vollständigkeit: die Liste der Codes steht hier ausgeschrieben; ein neuer [ErrorCode] ohne
-     * Eintrag in dieser Liste (und damit ohne Handvektor-Test oben) lässt den Test scheitern.
-     * Der Abgleich gegen die Tabelle in `spec/spezifikation.md` läuft nicht: die Testumgebung
-     * enthält die Spezifikation nicht.
-     *
-     * @spec SPEC-011 SPEC-012 SPEC-013 SPEC-014 SPEC-015 SPEC-016 SPEC-037 SPEC-038 SPEC-039 SPEC-048 SPEC-049
+     * Die Liste der Codes steht hier ausgeschrieben; ein neuer [ErrorCode] ohne Eintrag in dieser
+     * Liste (und damit ohne Handvektor-Test oben) lässt den Test scheitern. Die Liste ist eine Kopie
+     * der Tabelle in `spec/spezifikation.md`, kein Abgleich mit ihr: die Testumgebung enthält die
+     * Spezifikation nicht. Der Test trägt deshalb kein `@spec`; die Codes belegen die Handvektor-Tests.
      */
     @Test
-    fun `Jeder Code der Spezifikation hat genau eine Zuordnung mit eigener Nummer`() {
+    fun `Die Enum gleicht der im Test ausgeschriebenen Liste der Codes mit eigener Nummer`() {
         val expected = setOf(
             "TDS_PROTOCOL_ERROR", "TDS_LOGIN_FAILED", "TDS_UNSUPPORTED_RPC", "TDS_UNSUPPORTED_TYPE",
             "TDS_BACKEND_ERROR", "TDS_TIMEOUT", "TDS_UNSUPPORTED_SQL", "TDS_SIM_UNKNOWN_OBJECT",
@@ -310,5 +308,100 @@ class ErrorMapperTest {
         assertNull(response.message)
         assertEquals(ConnectionFate.CLOSE_WITHOUT_REPLY, response.fate)
         assertTrue(entries.single().code == ErrorCode.TDS_BACKEND_ERROR)
+    }
+
+    /**
+     * Der Negativpfad gilt für jeden Einstieg: `failure`, `protocol` und `unexpected` liefern bei nicht
+     * synchronem Strom keine Antwort; die Folge ist `CLOSE_WITHOUT_REPLY` und der Log-Eintrag bleibt.
+     *
+     * @spec SPEC-031
+     */
+    @Test
+    fun `Jeder Einstieg schliesst bei nicht synchronem Strom ohne Antwort`() {
+        val entries = mutableListOf<ErrorLogEntry>()
+        val mapper = ErrorMapper { entries += it }
+        val responses = listOf(
+            mapper.failure(QueryEvent.Failure("TDS_BACKEND_ERROR", "m"), streamSynchronous = false),
+            mapper.protocol(ProtocolError(ProtocolFailure.TRUNCATED, "d"), streamSynchronous = false),
+            mapper.unexpected(IllegalStateException("x"), streamSynchronous = false),
+        )
+        responses.forEach {
+            assertNull(it.message)
+            assertEquals(ConnectionFate.CLOSE_WITHOUT_REPLY, it.fate)
+        }
+        assertEquals(3, entries.size)
+    }
+
+    /**
+     * Positivliste: nur die Codes aus [ErrorMapper.BACKEND_CODES] kommen als Backend-Fehler durch. Jeder
+     * andere eigene Code (Login, Beenden, Protokoll, RPC, intern) wird `TDS_INTERNAL_ERROR` mit
+     * Verbindungsende; der Log nennt die Konstante, nicht den Code des Backends.
+     *
+     * @spec SPEC-048
+     */
+    @Test
+    fun `Failure mit einem Code, den nur der Server erzeugt, wird zum internen Fehler`() {
+        val entries = mutableListOf<ErrorLogEntry>()
+        val mapper = ErrorMapper { entries += it }
+        val serverOnly = ErrorCode.entries - ErrorMapper.BACKEND_CODES.toSet()
+        assertEquals(
+            setOf(
+                ErrorCode.TDS_LOGIN_FAILED,
+                ErrorCode.TDS_SHUTDOWN,
+                ErrorCode.TDS_PROTOCOL_ERROR,
+                ErrorCode.TDS_UNSUPPORTED_RPC,
+                ErrorCode.TDS_INTERNAL_ERROR,
+            ),
+            serverOnly.toSet(),
+        )
+        serverOnly.forEach {
+            val response = mapper.failure(QueryEvent.Failure(it.name, "m"))
+            assertEquals(ErrorCode.TDS_INTERNAL_ERROR, response.code, it.name)
+            assertEquals(ConnectionFate.CLOSE_AFTER_REPLY, response.fate, it.name)
+            assertEquals(ErrorLogEntry(ErrorCode.TDS_INTERNAL_ERROR, "unknown-failure-code"), entries.last())
+        }
+        ErrorMapper.BACKEND_CODES.forEach {
+            assertEquals(it, mapper.failure(QueryEvent.Failure(it.name, "m")).code, it.name)
+        }
+    }
+
+    /**
+     * Die Meldung des Adapters für den Sequenzierer ist die Meldung der Regel, und `fateOf` findet zu ihr
+     * die Verbindungsfolge derselben Regel; eine fremde Meldung hat keine Folge.
+     *
+     * @spec SPEC-015
+     */
+    @Test
+    fun `fateOf liefert die Folge der Regel, deren Meldung der Adapter erzeugt`() {
+        val mapping = mapper.sequencerMapping()
+        ErrorMapper.BACKEND_CODES.forEach {
+            val message = mapping.backend(QueryEvent.Failure(it.name, "m"))
+            assertEquals(it.rule.message(), message, it.name)
+            assertEquals(it.rule.fate, mapper.fateOf(message), it.name)
+        }
+        assertEquals(ConnectionFate.CLOSE_AFTER_REPLY, mapper.fateOf(mapping.internal))
+        assertNull(mapper.fateOf(ErrorCode.TDS_BACKEND_ERROR.rule.message().copy(text = "anderer Text")))
+    }
+
+    /**
+     * Der Adapter schreibt dieselben Log-Einträge wie die Einstiege `failure` und `protocol`.
+     *
+     * @spec SPEC-048
+     */
+    @Test
+    fun `Der Adapter fuer den Sequenzierer loggt wie die Einstiege`() {
+        val entries = mutableListOf<ErrorLogEntry>()
+        val mapping = ErrorMapper { entries += it }.sequencerMapping()
+        mapping.backend(QueryEvent.Failure("ORA-00001", "Gehe1mnis"))
+        mapping.backend(QueryEvent.Failure("TDS_BACKEND_ERROR", "m"))
+        mapping.typeMapping(ProtocolError(ProtocolFailure.TOO_LONG, "d"))
+        assertEquals(
+            listOf(
+                ErrorLogEntry(ErrorCode.TDS_INTERNAL_ERROR, "unknown-failure-code"),
+                ErrorLogEntry(ErrorCode.TDS_BACKEND_ERROR, null),
+                ErrorLogEntry(ErrorCode.TDS_UNSUPPORTED_TYPE, null),
+            ),
+            entries,
+        )
     }
 }
