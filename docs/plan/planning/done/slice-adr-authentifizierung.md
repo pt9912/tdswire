@@ -47,17 +47,17 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [x] Spike durchgeführt; seine Ergebnisse (Messwerte, Matrix, Befund) stehen in der ADR. Der Spike-Code ist temporär und nach der Entscheidung gelöscht.
-- [x] [ADR-0009](../../adr/0009-authentifizierungsmodus.md) auf `Accepted`, Option gewählt, Geschichte und ADR-Index nachgezogen (ADR und Index stehen auf `Proposed`; das Häkchen folgt dem Statuswechsel).
+- [x] [ADR-0009](../../adr/0009-authentifizierungsmodus.md) auf `Accepted`, Option gewählt, Geschichte und ADR-Index nachgezogen.
 - [x] Spec-Stellen aus dem `Schärft:`-Feld der ADR an die Entscheidung angepasst.
 - [x] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
-      Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [x] Doku-Update, falls ein öffentlicher Vertrag berührt ist.
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+      Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8). Reports: [Review](../../../reviews/2026-10-30-7fe5583-052712d-adr-0009.md), [Verifikation](../../../reviews/2026-10-30-728c65f-verifikation-adr-0009.md) und [Re-Review](../../../reviews/2026-10-30-728c65f-ede2f29-re-review.md) der Korrekturen.
+- [x] Doku-Update, falls ein öffentlicher Vertrag berührt ist. Berührt: `contracts/auth-adapter.md` (neu) und die Spezifikation ([TDS-FA-02.a](../../../../spec/spezifikation.md#tds-fa-02a--login7-und-sitzung), SPEC-012, SPEC-051, [TDS-FA-09.a](../../../../spec/spezifikation.md#tds-fa-09a--konfiguration-und-diagnose)).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -202,7 +202,13 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-Wird bei der Closure gefüllt.
+- **Was hat funktioniert:** Der Spike (Testserver und Referenzclient `Microsoft.Data.SqlClient` 7.1.1 auf .NET 10, Dockerfile ohne Mount) zeigte, dass LOGIN7 für alle drei erwogenen Optionen dieselben Felder trägt und dass der Client Annahme wie Ablehnung ohne Sonderfall verarbeitet. Das gilt für den Spike-Testserver; ein Produkt existiert nicht.
+- **Was ging anders als geplant:** [ADR-0009](../../adr/0009-authentifizierungsmodus.md) stand bereits auf `Accepted`, bevor der [Review](../../../reviews/2026-10-30-7fe5583-052712d-adr-0009.md) lief. Er fand drei MEDIUM-Findings: die Zusage „konstante Zeit mit Scheinvergleich“ in drei Stärken ohne Messung (F-1), ein Überschreiben des Passworts, das nur das entschleierte Feld trifft (F-2), und eine entfallene Vorbedingung zur Betreiberanforderung (F-3). Die [Verifikation](../../../reviews/2026-10-30-728c65f-verifikation-adr-0009.md) bestätigte die Behebung und fand Reste (V-1 bis V-3, unter anderem die Qualifikation „am Spike-Testserver“ und Risiko-Ausgänge). Per Nutzerentscheidung vom 2026-10-30 wurde die ADR auf `Proposed` zurückgestuft, korrigiert und nach [Re-Review](../../../reviews/2026-10-30-728c65f-ede2f29-re-review.md) wieder `Accepted`; die Option (Adapter mit fester Benutzerliste als Einstiegsimplementierung) entschied der Nutzer. Der Re-Review nannte als blockierend, dass [SPEC-012](../../../../spec/spezifikation.md#4-fehler-codes-und-logging-felder) „am Referenzclient gemessen“ ohne das Messobjekt sagte (F-1), und einen Zuständigkeits-Widerspruch zwischen diesem Slice und `slice-qa-kompatibilitaet` (F-2); beides ist behoben. Zeitgleichheit, Drosselung und die Betreiberanforderung bleiben ohne Messung bzw. Festlegung. F-12 bis F-14 liegen beim Architect und sind mit dieser Closure nicht bearbeitet.
+- **Steering-Loop-Eintrag:** Aussagen über die Messung hinaus, gezählt 6×, geplant für die Closure von `welle-entscheidungen-grundlage`; Auslöser: [BEO-TDS/aussagen-ueber-messung-hinaus](../observations/BEO-TDS/aussagen-ueber-messung-hinaus/observation.md) (6×, Belege siehe dort). In diesem Slice betraf es Zusagen zu Zeitgleichheit und Überschreiben, die weder gebaut noch gemessen sind.
+- **Beobachtungs-Register (`../observations/`):** `evidence/slice-adr-authentifizierung.md` in [BEO-TDS/aussagen-ueber-messung-hinaus](../observations/BEO-TDS/aussagen-ueber-messung-hinaus/observation.md) ergänzt. Die „weiter offen“-Risiken aus §6 stehen als Beleg `evidence/slice-adr-authentifizierung.md` in [BEO-TDS/messung-am-echten-sql-server-fehlt](../observations/BEO-TDS/messung-am-echten-sql-server-fehlt/observation.md), [BEO-TDS/tds-8-0-und-pooling-nicht-gemessen](../observations/BEO-TDS/tds-8-0-und-pooling-nicht-gemessen/observation.md), [BEO-TDS/anmeldepfad-sicherheit-nicht-gebaut](../observations/BEO-TDS/anmeldepfad-sicherheit-nicht-gebaut/observation.md), [BEO-TDS/adapter-festlegungen-ohne-slice](../observations/BEO-TDS/adapter-festlegungen-ohne-slice/observation.md) und [BEO-TDS/betreiberanforderung-benutzerverwaltung-fehlt](../observations/BEO-TDS/betreiberanforderung-benutzerverwaltung-fehlt/observation.md). `BEO-TDS/kennungen-ohne-link-in-neuen-dokumenten/` ist in diesem Slice nicht belegt aufgetreten (Zähler bleibt bei 1x).
+- **Folge-Slices:** [slice-qa-sicherheit](../open/slice-qa-sicherheit.md) (Zeitgleichheit, Drosselung, Prüfwertformat), [slice-qa-kompatibilitaet](../open/slice-qa-kompatibilitaet.md) (Windows-SSPI, TDS 8.0, mehrpaketiges LOGIN7, Pooling) und [slice-qa-reproduzierbarkeit](../open/slice-qa-reproduzierbarkeit.md) (State und Meldung im Vergleichslauf). Den Adapter baut ein Slice der funktionalen Welle, der noch nicht angelegt ist.
+- **Risiken aus §6:** Eines entfallen, acht weiter offen (sieben mit Träger-Slice oder dem noch nicht angelegten Slice der funktionalen Welle, eines ohne Träger im Repo), siehe §6.
+- **Drei Paarungen:** Das Repo führt Wellen; die Paarungen prüft die Closure von `welle-entscheidungen-grundlage`.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

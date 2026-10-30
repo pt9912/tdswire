@@ -50,14 +50,14 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 - [x] [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md) auf `Accepted`, Option gewählt, Geschichte und ADR-Index nachgezogen.
 - [x] Spec-Stellen aus dem `Schärft:`-Feld der ADR an die Entscheidung angepasst.
 - [x] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
-      Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Doku-Update, falls ein öffentlicher Vertrag berührt ist.
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+      Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8). Reports: [Review](../../../reviews/2026-10-30-7fe5583-052712d-adr-0008.md), [Verifikation](../../../reviews/2026-10-30-728c65f-verifikation-adr-0008.md) und [Re-Review](../../../reviews/2026-10-30-728c65f-ede2f29-re-review.md) der Korrekturen.
+- [x] Doku-Update, falls ein öffentlicher Vertrag berührt ist. Nicht berührt: `contracts/` blieb unverändert; die Anpassung der Spezifikation (SPEC-021, SPEC-025, SPEC-032, SPEC-045, SPEC-050) ist der Punkt „Spec-Stellen“ oben.
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -158,7 +158,13 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-Wird bei der Closure gefüllt.
+- **Was hat funktioniert:** Der Spike maß einen Minimal-Stub (Option B, drei Tests) mit dem Referenzclient und den Vergleichslauf D gegen einen echten SQL-Server-Container in eigenem Docker-Netzwerk ohne Mount. Der [Review](../../../reviews/2026-10-30-7fe5583-052712d-adr-0008.md) stellte D teilweise nach und bestätigte unter anderem 18456 / State 1 / Class 14, das Cancel-Verhalten und den Fehlschlag von `Encrypt=Strict`; die D-Werte sind einmal gemessen, etwa die Hälfte wurde bestätigt, der Rest (unter anderem UPDATE/DELETE, Parameter, OUTPUT) nicht wiederholt.
+- **Was ging anders als geplant:** [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md) stand bereits auf `Accepted`, bevor der Review lief. Er fand drei MEDIUM-Findings: eine Häufigkeit der Läufe, die der Agent gesetzt hatte (F-1, Setzung ohne Nutzerentscheidung), einen Auswahlgrund über die Messung hinaus (F-2) und eine Messung, die nur im ADR-Text lebte, während der Slice sie als ungemessen führte (F-3). Die [Verifikation](../../../reviews/2026-10-30-728c65f-verifikation-adr-0008.md) bestätigte die Behebung und fand nur geringe Reste (V-1 bis V-3: ein Tabellenwert ohne den Vermerk „Minimal-Stub“, ein Auswahlgrund an der Grenze, ein widersprüchlicher Träger). Per Nutzerentscheidung vom 2026-10-30 wurde die ADR auf `Proposed` zurückgestuft, korrigiert (D als eigenes Make-Target außerhalb von `make gates`, Häufigkeit offen, EULA nur als Entscheidung ohne Rechtsaussage) und nach [Re-Review](../../../reviews/2026-10-30-728c65f-ede2f29-re-review.md) wieder `Accepted`; die Optionen entschied der Nutzer. Der Re-Review nannte zudem einen widersprüchlichen Träger für „State und Meldung“ (F-2), der in den Slices bereinigt wurde. F-12 bis F-14 liegen beim Architect und sind mit dieser Closure nicht bearbeitet.
+- **Steering-Loop-Eintrag:** Aussagen über die Messung hinaus, gezählt 6×, geplant für die Closure von `welle-entscheidungen-grundlage`; Auslöser: [BEO-TDS/aussagen-ueber-messung-hinaus](../observations/BEO-TDS/aussagen-ueber-messung-hinaus/observation.md) (6×, Belege siehe dort). In diesem Slice betraf es den Auswahlgrund und die Lage der Messbelege.
+- **Beobachtungs-Register (`../observations/`):** `evidence/slice-adr-kompatibilitaetstests.md` in [BEO-TDS/aussagen-ueber-messung-hinaus](../observations/BEO-TDS/aussagen-ueber-messung-hinaus/observation.md) ergänzt. Die „weiter offen“-Risiken aus §6 stehen als Beleg `evidence/slice-adr-kompatibilitaetstests.md` in [BEO-TDS/vergleichslauf-d-ungeklaert](../observations/BEO-TDS/vergleichslauf-d-ungeklaert/observation.md). `BEO-TDS/kennungen-ohne-link-in-neuen-dokumenten/` ist in diesem Slice nicht belegt aufgetreten (Zähler bleibt bei 1x).
+- **Folge-Slices:** [slice-qa-reproduzierbarkeit](../open/slice-qa-reproduzierbarkeit.md) (Vergleichslauf D, CI, NuGet-Audit und `trustedSigners`, EULA-Klärung vor Aufnahme in `make gates`, Wahl des Tags) und [slice-qa-kompatibilitaet](../open/slice-qa-kompatibilitaet.md) (Pflicht-Matrix B).
+- **Risiken aus §6:** Alle sechs weiter offen, jedes mit Träger, siehe §6.
+- **Drei Paarungen:** Das Repo führt Wellen; die Paarungen prüft die Closure von `welle-entscheidungen-grundlage`.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

@@ -50,14 +50,14 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 - [x] [ADR-0005](../../adr/0005-rpc-und-prepared-statements.md) auf `Accepted`, Option gewählt, Geschichte und ADR-Index nachgezogen.
 - [x] Spec-Stellen aus dem `Schärft:`-Feld der ADR an die Entscheidung angepasst.
 - [x] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
-      Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Doku-Update, falls ein öffentlicher Vertrag berührt ist.
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+      Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8). Reports: [Review](../../../reviews/2026-10-30-7fe5583-052712d-adr-0005.md), [Verifikation](../../../reviews/2026-10-30-728c65f-verifikation-adr-0005.md) und [Re-Review](../../../reviews/2026-10-30-728c65f-ede2f29-re-review.md) der Korrekturen.
+- [x] Doku-Update, falls ein öffentlicher Vertrag berührt ist. Berührt: `contracts/client-profile.md` (Abschnitt „RPC-Katalog“, Offen-Liste nachgezogen) und die Spezifikation (SPEC-030, SPEC-004, [TDS-FA-10.a](../../../../spec/spezifikation.md#tds-fa-10a--mehrteilige-antworten-und-rpc-ausgabewerte)).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -174,7 +174,13 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-Wird bei der Closure gefüllt.
+- **Was hat funktioniert:** Ein Spike aus Dockerfile ohne Mount (Testserver in C# und Referenzclient `Microsoft.Data.SqlClient` 7.1.1 im selben Prozess) zeigte, welche RPC-Formen der Client je Befehlsform wählt. Review und Verifikation wiederholten ihn je einmal mit demselben Spike-Code und demselben Testserver und bestätigten die Messwerte; das ist keine unabhängige Messung, und die ADR sagt es.
+- **Was ging anders als geplant:** [ADR-0005](../../adr/0005-rpc-und-prepared-statements.md) stand bereits auf `Accepted`, bevor der [Review](../../../reviews/2026-10-30-7fe5583-052712d-adr-0005.md) lief. Er fand zwei MEDIUM-Findings, beide Aussagen über die Messung hinaus: Die Messgrenzen (Testserver, TDS 7.4 unverschlüsselt, `Pooling=false`) standen nicht in Clientprofil und Spezifikation, und „deckt alle gemessenen Szenarien“ übersah `KeyInfo` und den Pakettyp `0x0E`. Die [Verifikation](../../../reviews/2026-10-30-728c65f-verifikation-adr-0005.md) fand den Slice nicht nachgezogen (DoD-Haken `Accepted` bei Status `Proposed`, „bislang nicht wiederholt“ gegen die ADR) und `SchemaOnly` nicht in der Aufzählung der Szenarien außerhalb des Katalogs. Per Nutzerentscheidung vom 2026-10-30 wurde die ADR auf `Proposed` zurückgestuft, korrigiert und nach Verifikation und [Re-Review](../../../reviews/2026-10-30-728c65f-ede2f29-re-review.md) wieder `Accepted`; die Optionen entschied der Nutzer. Der Re-Review fand für diesen Slice ein Risiko mit unzulässigem Ausgang („offen bis zur Closure“) und offene Punkte ohne Träger (F-3); beides ist in §6 behoben. Die Re-Review-Findings F-12 bis F-14 liegen beim Architect und sind mit dieser Closure nicht bearbeitet (F-14: der Weg `Accepted` → `Proposed` → `Accepted` öffnet formal einen Weg, eine `Accepted`-ADR zu überschreiben).
+- **Steering-Loop-Eintrag:** Aussagen über die Messung hinaus, gezählt 6×, geplant für die Closure von `welle-entscheidungen-grundlage`; Auslöser: [BEO-TDS/aussagen-ueber-messung-hinaus](../observations/BEO-TDS/aussagen-ueber-messung-hinaus/observation.md) (slice-adr-clientprofil, slice-adr-tls, slice-adr-transport, slice-adr-rpc, slice-adr-kompatibilitaetstests, slice-adr-authentifizierung — 6×). In diesem Slice trat es als Messgrenze auf, die nur in der ADR stand und in Profil und Spezifikation fehlte.
+- **Beobachtungs-Register (`../observations/`):** `evidence/slice-adr-rpc.md` in [BEO-TDS/aussagen-ueber-messung-hinaus](../observations/BEO-TDS/aussagen-ueber-messung-hinaus/observation.md) ergänzt. Die „weiter offen“-Risiken aus §6 stehen als Beleg `evidence/slice-adr-rpc.md` in [BEO-TDS/messung-am-echten-sql-server-fehlt](../observations/BEO-TDS/messung-am-echten-sql-server-fehlt/observation.md) und [BEO-TDS/tds-8-0-und-pooling-nicht-gemessen](../observations/BEO-TDS/tds-8-0-und-pooling-nicht-gemessen/observation.md). `BEO-TDS/kennungen-ohne-link-in-neuen-dokumenten/` ist in diesem Slice nicht belegt aufgetreten (Zähler bleibt bei 1x).
+- **Folge-Slices:** [slice-qa-kompatibilitaet](../open/slice-qa-kompatibilitaet.md) (RPC-Szenarien, Pooling, TDS 8.0, Freigabe im Clientprofil) und [slice-qa-reproduzierbarkeit](../open/slice-qa-reproduzierbarkeit.md) (Vergleichslauf gegen einen echten Server). Den RPC-Pfad baut ein Slice der funktionalen Welle, der noch nicht angelegt ist.
+- **Risiken aus §6:** Eines eingetreten (Folge: `slice-qa-kompatibilitaet`), vier weiter offen mit Träger, siehe §6.
+- **Drei Paarungen:** Das Repo führt Wellen; die Paarungen prüft die Closure von `welle-entscheidungen-grundlage`.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
