@@ -14,7 +14,7 @@ import kotlin.test.assertIs
 
 /**
  * Selbstkonsistenz von Encoder und Test-Decoder. Die Protokolltreue belegen die Handvektoren in
- * [TokenEncoderTest]; ein Roundtrip allein würde einen Fehler in beiden Richtungen nicht sehen.
+ * [TokenEncoderTest]; ein Roundtrip allein sieht einen Fehler in beiden Richtungen nicht.
  */
 class TokenRoundtripTest {
     private val latin = Collation.LATIN1_GENERAL_CI_AS

@@ -44,7 +44,7 @@ sealed interface ProtocolResult<out T> {
 /**
  * Interne Abkürzung des Kontrollflusses: Lese- und Schreibhilfen melden einen Verstoß mit dieser
  * Ausnahme, [guarded] macht an der öffentlichen Grenze daraus einen [ProtocolResult.Failed].
- * Sie trägt keinen Stack-Trace, damit Fuzz-Eingaben billig bleiben.
+ * Sie trägt keinen Stack-Trace.
  */
 internal class ProtocolViolation(val error: ProtocolError) : RuntimeException(error.detail, null, false, false)
 
