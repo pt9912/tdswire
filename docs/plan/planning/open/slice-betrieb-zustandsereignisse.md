@@ -35,10 +35,10 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Die Startprobe der TLS-Konfiguration (SPEC-043) und die Diagnose für einen belegten Port als Code — [slice-transport-listener-lebenszyklus](../done/slice-transport-listener-lebenszyklus.md) (Welle [welle-transport-tls](../welle-transport-tls.md)); dieser Slice formuliert sie nicht neu, er belegt am Prozess, dass ihre Meldung über die Schnittstelle erscheint.
-- Laden und Validieren der Konfiguration, Exit-Code und Abbau nach fehlgeschlagenem Start als Mechanik — [slice-bootstrap-konfiguration](../next/slice-bootstrap-konfiguration.md).
+- Laden und Validieren der Konfiguration, Exit-Code und Abbau nach fehlgeschlagenem Start als Mechanik — [slice-bootstrap-konfiguration](../in-progress/slice-bootstrap-konfiguration.md).
 - Das Verhalten des geordneten Beendens (SPEC-044, Frist `SHUTDOWN_GRACE`, `TDS_SHUTDOWN`) — [slice-abbruch-ressourcen-shutdown](slice-abbruch-ressourcen-shutdown.md) (Welle [welle-fehler-abbruch](../welle-fehler-abbruch.md)); hier erscheinen nur Beginn und Ende des Beendens als Ereignis.
 - Semantik und Durchsetzung von `QUERY_TIMEOUT` und `CANCEL_TIMEOUT` — [slice-attention-cancel-timeout](slice-attention-cancel-timeout.md) und [slice-adr-backend-grenzen](slice-adr-backend-grenzen.md) (Frist); dieser Slice legt höchstens den Schlüssel samt Bereichsprüfung an und behauptet keine Wirkung.
-- Metriken und Spans — [slice-betrieb-metriken-tracing](slice-betrieb-metriken-tracing.md); eine Verwaltungsoberfläche und das Neuladen der Konfiguration zur Laufzeit — nach [TDS-FA-09](../../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose) bzw. [slice-bootstrap-konfiguration](../next/slice-bootstrap-konfiguration.md) ausgeschlossen.
+- Metriken und Spans — [slice-betrieb-metriken-tracing](slice-betrieb-metriken-tracing.md); eine Verwaltungsoberfläche und das Neuladen der Konfiguration zur Laufzeit — nach [TDS-FA-09](../../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose) bzw. [slice-bootstrap-konfiguration](../in-progress/slice-bootstrap-konfiguration.md) ausgeschlossen.
 
 ## 2. Definition of Done
 
@@ -87,7 +87,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-betrieb-log-schnittstelle](slice-betrieb-log-schnittstelle.md), [slice-bootstrap-konfiguration](../next/slice-bootstrap-konfiguration.md), [slice-transport-listener-lebenszyklus](../done/slice-transport-listener-lebenszyklus.md) und [slice-abbruch-ressourcen-shutdown](slice-abbruch-ressourcen-shutdown.md) liegen in `done/`, und ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): [slice-betrieb-log-schnittstelle](slice-betrieb-log-schnittstelle.md), [slice-bootstrap-konfiguration](../in-progress/slice-bootstrap-konfiguration.md), [slice-transport-listener-lebenszyklus](../done/slice-transport-listener-lebenszyklus.md) und [slice-abbruch-ressourcen-shutdown](slice-abbruch-ressourcen-shutdown.md) liegen in `done/`, und ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -109,7 +109,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Überschneidung mit den Tests von [slice-bootstrap-konfiguration](../next/slice-bootstrap-konfiguration.md) und [slice-transport-listener-lebenszyklus](../done/slice-transport-listener-lebenszyklus.md) (Exit-Code, belegter Port): jene prüfen die Mechanik am Loopback und in der Einheit, dieser Slice den Prozess und den Inhalt der Meldung; bei Überschneidung wird hier gekürzt, nicht dort. — **Ausgang:** offen bis zur Closure.
+- Überschneidung mit den Tests von [slice-bootstrap-konfiguration](../in-progress/slice-bootstrap-konfiguration.md) und [slice-transport-listener-lebenszyklus](../done/slice-transport-listener-lebenszyklus.md) (Exit-Code, belegter Port): jene prüfen die Mechanik am Loopback und in der Einheit, dieser Slice den Prozess und den Inhalt der Meldung; bei Überschneidung wird hier gekürzt, nicht dort. — **Ausgang:** offen bis zur Closure.
 - `QUERY_TIMEOUT` (SPEC-009) hat keinen benannten Träger für die Semantik; [slice-attention-cancel-timeout](slice-attention-cancel-timeout.md) führt die Frage, welche Frist `TDS_TIMEOUT` auslöst, als Spec-Lücke. Ein Schlüssel ohne Wirkung läse sich wie eine wirksame Einstellung; der Slice legt ihn nur an, wenn die Semantik entschieden ist, sonst steht er in der Tabelle als offen mit Träger (AGENTS.md §3.8). — **Ausgang:** offen bis zur Closure.
 - `MAX_CONNECTIONS` (SPEC-034): Die Durchsetzung hat in den Plänen keinen eindeutigen Träger ([slice-qa-stabilitaet](../in-progress/slice-qa-stabilitaet.md) testet, [slice-abbruch-ressourcen-shutdown](slice-abbruch-ressourcen-shutdown.md) berührt die Stelle); findet der Slice beim Start keinen, nennt die Closure die Lücke und legt einen Folge-Slice an. — **Ausgang:** offen bis zur Closure.
 - „Verständlich“ ist nicht messbar: Das Kriterium ist, dass die Diagnose Ursache und Schlüssel bzw. Adresse und Port nennt und nie Pfad, Inhalt oder Prüfwert; die Beurteilung trägt der Review. — **Ausgang:** offen bis zur Closure.
