@@ -24,6 +24,7 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 - [welle-fehler-abbruch](../welle-fehler-abbruch.md)
 - [welle-simulations-backend](../welle-simulations-backend.md)
 - [welle-betrieb-diagnose](../welle-betrieb-diagnose.md)
+- [welle-referenzabgleich-release](../welle-referenzabgleich-release.md)
 
 In Arbeit (Welle welle-transport-tls):
 
