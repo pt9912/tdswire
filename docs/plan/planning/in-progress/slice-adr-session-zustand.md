@@ -132,6 +132,8 @@ Die Messung trägt **nicht**: Aussagen über das Verhalten eines echten SQL Serv
 
 **Entscheidung des Nutzers (2026-10-30):** Zustandsmodell A (expliziter Automat) mit `Mutex` je Sitzung; B0 (ohne Sperre) scheidet nach der Messung aus. [ADR-0004](../../adr/0004-session-zustandsautomat.md) trägt Messung, Entscheidung und die offenen Punkte (Antwort auf unzulässige Übergänge, ATTENTION im Handshake und in jedem Anfragezustand, Ende des Handshakes nach abgelehntem Login, Zustandszuschnitt, Sitzungszustand nach Fehler) und bleibt `Proposed` bis Review und Verifikation; `SPEC-001` ist nachgezogen (der Zuschnitt der Aufzählung bleibt dort offen). Dass ein fehlender Zustand in B und C nur ein Testfund wäre, ist eine Struktur-Folgerung, nicht gemessen.
 
+**Nachführung (Entscheidung des Nutzers, 2026-10-30):** Das Ende des Handshakes nach abgelehntem Login ist entschieden und liegt bei [ADR-0007](../../adr/0007-fehler-und-attention.md): der Server schließt, ein weiteres LOGIN7 wird nicht angenommen (Setzung, nicht gemessen). [ADR-0004](../../adr/0004-session-zustandsautomat.md) hat das übernommen; offen bleiben hier unverändert die Reichweite von ATTENTION im Handshake, ATTENTION in jedem Anfragezustand, Sitzungszustand nach Fehler, `RESETCONNECTION`, der Zeitpunkt des Schließens nach `TDS_SHUTDOWN` und der Zuschnitt der Zustände.
+
 Wiederholung: die Spike-Dateien (`Dockerfile`, `kotlin/`, `dotnet/`, `run.sh`, `mutate.sh`) liegen nur im Scratchpad des Spike-Agenten und gehören nicht ins Repo; `docker build --progress=plain --target inproc .` führt Matrix, Zufallsfolgen, Wettlauf, Durchsatz und Speicher aus, das Standardziel den Referenzclient.
 
 ## 4. Trigger
