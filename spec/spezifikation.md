@@ -32,7 +32,7 @@ Herabstufung einer geforderten Verschlüsselung.
 2. Identität über konfigurierten Authentifizierungsadapter prüfen; Geheimnisse nicht protokollieren.
    Meldung und State der Ablehnung sind für eine unbekannte Kennung und ein falsches Passwort
    gleich; der Grund steht nur im Server-Log (`SPEC-012`). Gemessen ist nur die Gleichheit der
-   Antwortbytes. Als Anforderung an den Produktivcode gilt: Die Einstiegsimplementierung vergleicht in
+   Antwortbytes am Spike-Testserver; das Produkt existiert noch nicht. Als Anforderung an den Produktivcode gilt: Die Einstiegsimplementierung vergleicht in
    konstanter Zeit und führt bei unbekannter Kennung einen Scheinvergleich aus; das ist weder gebaut
    noch gemessen, ein Test muss es belegen. Der Adapter hat die Schnittstelle
    aus `contracts/auth-adapter.md` (`SPEC-051`); die Einstiegsimplementierung ist eine feste

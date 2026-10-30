@@ -30,7 +30,7 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Die freigegebenen Ende-zu-Ende-Szenarien (Anmeldung, SELECT, parametrisierte Abfrage, NULL, Fehler, Abbruch) laufen automatisiert mit einem echten .NET-Client gegen den Server und sind ein Gate.
+**Ziel:** Die freigegebenen Ende-zu-Ende-Szenarien (Anmeldung, SELECT, parametrisierte Abfrage, NULL, Fehler, Abbruch) laufen automatisiert mit einem echten .NET-Client gegen den Server und sind ein Gate. Aus [ADR-0009](../../adr/0009-authentifizierungsmodus.md) §Offen gehören dazu die Anmeldemessungen, die dort fehlen: Windows-SSPI (NTLM), TDS 8.0 mit SQL-Authentifizierung, mehrpaketiges LOGIN7, Pooling mit `ResetConnection` und State und Meldung eines echten SQL Servers.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
