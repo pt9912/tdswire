@@ -23,7 +23,7 @@ In Arbeit (Welle welle-entscheidungen-grundlage):
 
 - [slice-adr-rpc](../done/slice-adr-rpc.md)
 - [slice-adr-kompatibilitaetstests](../done/slice-adr-kompatibilitaetstests.md)
-- [slice-adr-authentifizierung](slice-adr-authentifizierung.md)
+- [slice-adr-authentifizierung](../done/slice-adr-authentifizierung.md)
 
 
 
