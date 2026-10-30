@@ -38,11 +38,12 @@ Das Ergebnis ist ein asynchroner Strom (`Flow`) von Ereignissen: `ResultStart` (
 ## Festgelegt
 
 - Fehlersemantik im Strom (Setzung des Nutzers, nicht am Produkt gemessen): Solange der Strom synchron ist, folgen auf Teilzeilen ein `Failure` und damit ERROR und DONE; lässt er sich nicht mehr abschließen, schließt der Server die Verbindung ohne ERROR und DONE (`SPEC-031`).
+- Festlegungen des Response Sequencers (Nutzer, 2026-10-30, nicht am Produkt gemessen; der Tokenstrom ist Handvektor und Selbstkonsistenz): ein `Failure` zählt in der `DONE_MORE`-Vorschau als nächstes Ereignis (ein zurückgehaltenes `ResultEnd` oder `UpdateCount` bekommt `DONE_MORE`, danach ERROR und DONE mit Fehlerstatus); ein zurückgehaltener Abschluss wird bei Cancel oder Disconnect verworfen; ein Verstoß gegen die Ereignisreihenfolge ist ein Fall von `SPEC-048` (ERROR, DONE mit Fehlerstatus, Verbindung schließen); `ReturnStatus` und `OutputParameter` werden bis zu ihrer Abbildung mit einem Fehler der Typabbildung abgelehnt. Setzung des Implementers: ein `Failure` beendet den Lauf, spätere Ereignisse werden nicht gelesen; ein Strom ohne Ereignis endet in einem DONE ohne Bits; eine Ausnahme aus `execute()` oder aus dem Strom ist ein Fall von `SPEC-048`.
 
 ## Offen
 
-- Unterscheidung statement- und batch-abbrechender Fehler im Strom, die `Failure` nicht trägt, und ob ein `Failure` als „nächstes Ereignis“ der `DONE_MORE`-Vorschau zählt (auch: Schicksal eines zurückgehaltenen Abschlusses bei Cancel oder Disconnect): Zuständigkeit Backend-/Mapping-Slice, nach Messung.
-- Prüfung der Ereignisreihenfolge im Sequencer (Zeile vor `ResultStart`, doppeltes `ResultEnd`): im Spike nicht gebaut.
+- Unterscheidung statement- und batch-abbrechender Fehler im Strom, die `Failure` nicht trägt: der Sequencer schreibt eine Variante (ERROR und DONE mit Fehlerstatus, Lauf beendet); die Verbindungsfolge nach Severity und die Abbildung von `Failure.code` bleiben Sache der Fehlerabbildung.
+- Herkunft der Befehlskennung (`curCmd`) der DONE-Tokens: der Sequencer schreibt 0; der Port trägt keine Kennung (Spec-Lücke).
 - Grenze für „kleines“ Ergebnis (fertige Liste), Zeilendarstellung.
 - Behandlung von `OutOfMemoryError`: im Spike wurde er im Anfragepfad gefangen und als Fehler gemeldet (nur bei vollständiger Materialisierung erzeugt, nicht im `Flow`); ob das Fangen im Produktivcode tragbar ist, ist nicht gemessen.
 - Verzögerung durch den zurückgehaltenen Abschluss der `DONE_MORE`-Vorschau: nicht gemessen.
