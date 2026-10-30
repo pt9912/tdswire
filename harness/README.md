@@ -81,6 +81,7 @@ Diese Datei dupliziert sie nicht.
 | `make deps-lock` | schreibt `gradle.lockfile` und `gradle/verification-metadata.xml` neu (braucht Netz), prüft nichts | kein Gate |
 | `make spec-abdeckung` | führt die Tests aus, schreibt `docs/plan/spec-abdeckung.md` (je `SPEC-*` bestandene Tests, Waisen); `SPEC_ABDECKUNG_STRENG=1` bricht bei Waisen; Tag `@spec`: Kopf von `tools/spec-abdeckung.sh` | kein Gate |
 | `make spec-abdeckung-selbsttest` | prüft den Erzeuger der Abdeckungsmatrix an einem erzeugten Mini-Bestand: roter, nicht gelaufener, übersprungener und unbekannt getaggter Test zählen nicht | kein Gate |
+| `make doc-manual` | liest Handbuch und Spezifikation von d-check; `MANUAL=<begriff>`, hermetisch | kein Gate |
 | `make workflow-lint` | prüft Syntax und Ausdrücke von `.github/workflows/*.yml` mit actionlint (Image per Digest, über stdin); prüft weder die SHA-Pins der Actions noch, dass der Workflow `make gates` aufruft | kein Gate, [TDS-QA-06](../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
 | `make clean-build` | baut Jar, Tests und detekt (Gradle-Stages) mit `--no-cache` in Docker, ohne .NET-Restore; Frischbeleg für Tests mit Wanduhr oder Last, die `make test` aus dem Cache zeigt (seit slice-handshake-login) | kein Gate, [TDS-QA-06](../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
 | `make referenztest-dotnet-lock` | schreibt `referenztest-dotnet/packages.lock.json` neu (braucht Netz; das erste Lock vertraut nuget.org beim Schreiben), prüft nichts | kein Gate, [CO-002](../docs/plan/carveouts/CO-002-nuget-signaturpruefung-fehlt.md) |

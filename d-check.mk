@@ -4,8 +4,8 @@
 # Image-Digest gepinnt (Reproduzierbarkeit). advisory doc-*-Targets verbatim, ohne
 # die Kennungen aus dem Register von d-check in Kommentaren und Hilfetexten.
 # Einbinden: `include d-check.mk`; eigene .d-check.yml danebenlegen.
-DCHECK_IMAGE ?= ghcr.io/pt9912/d-check:v0.88.0
-DCHECK_DIGEST ?= sha256:eb39ad655ca49e9023fc028de950d4335fc242fec2189681432c8af401ba22cd
+DCHECK_IMAGE ?= ghcr.io/pt9912/d-check:v0.89.0
+DCHECK_DIGEST ?= sha256:cf80e325c0288fd114a5c9d0ab41ce81b1bd71aa770cf60745a324fcf2501fa4
 # TRACE_FLAGS: optionale Flags für die RTM-Targets (z. B. --json).
 TRACE_FLAGS ?=
 
@@ -63,6 +63,10 @@ doc-structure: ## Struktur-Invarianten innerhalb der Dokumente via Modul structu
 .PHONY: doc-usage
 doc-usage: ## Aufruf und Optionen von d-check selbst (--help)
 	@docker run --rm --network none -v "$(CURDIR):/repo:ro" $(DCHECK_REF) --help
+
+.PHONY: doc-manual
+doc-manual: ## Handbuch und Spezifikation von d-check lesen; MANUAL=<begriff>
+	@docker run --rm --network none -v "$(CURDIR):/repo:ro" $(DCHECK_REF) --manual "$(MANUAL)"
 
 .PHONY: doc-help
 doc-help: ## diese Liste der doc-*-Targets
