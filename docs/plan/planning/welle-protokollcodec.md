@@ -58,6 +58,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte.
 
 - Blockiert: die funktionalen Wellen für Verbindungsaufbau, Login, SQL_BATCH und RPC (wegen der Nachrichtenformen, die sie über diesen Codec lesen und schreiben); sie sind noch nicht geplant und stehen in keiner Roadmap-Zeile.
+- Folge-Slices aus der Closure von `slice-codec-tds-paket`, ohne Welle und nicht Teil des Closure-Triggers dieser Welle: [slice-codec-rpc-parser](open/slice-codec-rpc-parser.md) (RPC-Anfrage-Parser nach [ADR-0005](../adr/0005-rpc-und-prepared-statements.md)) und [slice-codec-datentypen-erweiterung](open/slice-codec-datentypen-erweiterung.md) (NBCROW, PLP, weitere Typen); die funktionale Welle für SQL_BATCH und RPC nimmt sie auf.
 - Berührt, blockiert aber nicht: [welle-qualitaet-grundlage](welle-qualitaet-grundlage.md). Das Test-Gate dieser Welle überschneidet sich mit dem ersten Liefer-Punkt von `slice-qa-wartbarkeit` (Unit-Test-Gate); wer zuerst schließt, gibt dem anderen das Gate (siehe Slice §6).
 - Wird blockiert von: keiner Welle. [welle-entscheidungen-grundlage](welle-entscheidungen-grundlage.md) bleibt offen und läuft weiter (`slice-adr-session-zustand`, `slice-adr-backend-streaming`, `slice-adr-fehler-attention`).
 
