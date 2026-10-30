@@ -31,11 +31,35 @@ FROM deps AS compile
 COPY --chown=gradle:gradle src src
 RUN gradle --no-daemon classes
 
+# --- Testkeys: erzeugt per `keytool` die PKCS#12-Speicher der TLS-Tests (ein gueltiges Zertifikat fuer
+# localhost, eines fuer einen anderen Namen, ein abgelaufenes). Kein Schluessel liegt im Repo; die
+# Stage haengt weder an src/ noch an Doku und kommt aus dem Cache, bis sich die Toolchain aendert. -----
+FROM basis AS testkeys
+WORKDIR /testkeys
+RUN keytool -genkeypair -alias server -keyalg RSA -keysize 2048 -validity 3650 -storetype PKCS12 \
+      -keystore gueltig.p12 -storepass tdswire-test -dname "CN=localhost" -ext "san=dns:localhost" \
+ && keytool -genkeypair -alias server -keyalg RSA -keysize 2048 -validity 3650 -storetype PKCS12 \
+      -keystore falscher-name.p12 -storepass tdswire-test -dname "CN=andere.invalid" -ext "san=dns:andere.invalid" \
+ && keytool -genkeypair -alias ca -keyalg RSA -keysize 2048 -validity 3650 -storetype PKCS12 -ext bc:c \
+      -keystore ca.p12 -storepass tdswire-test -dname "CN=tdswire-test-ca" \
+ && keytool -exportcert -alias ca -keystore ca.p12 -storepass tdswire-test -rfc -file ca.pem \
+ && keytool -genkeypair -alias server -keyalg RSA -keysize 2048 -validity 30 -startdate "2020/01/01 00:00:00" \
+      -storetype PKCS12 -keystore abgelaufen.p12 -storepass tdswire-test -dname "CN=localhost" \
+      -ext "san=dns:localhost" \
+ && keytool -certreq -alias server -keystore abgelaufen.p12 -storepass tdswire-test -file abgelaufen.csr \
+ && keytool -gencert -alias ca -keystore ca.p12 -storepass tdswire-test -infile abgelaufen.csr -rfc \
+      -startdate "2020/01/01 00:00:00" -validity 30 -ext "san=dns:localhost" -outfile abgelaufen.pem \
+ && keytool -importcert -alias ca -file ca.pem -keystore abgelaufen.p12 -storepass tdswire-test -noprompt \
+ && keytool -importcert -alias server -file abgelaufen.pem -keystore abgelaufen.p12 -storepass tdswire-test \
+ && rm ca.p12 ca.pem abgelaufen.csr abgelaufen.pem
+
 # --- Test: `docker build --target test .` - fuehrt die Unit-Tests aus (kotlin.test auf der
 # JUnit-Plattform, SPEC-024). Es kommt nur src/ hinzu; ein roter Test bricht den Build. -----------
 FROM deps AS test
 COPY --chown=gradle:gradle src src
-RUN gradle --no-daemon test
+COPY --from=testkeys --chown=gradle:gradle /testkeys build/testkeys
+COPY --chown=gradle:gradle gradle/test-jvm.init.gradle.kts gradle/
+RUN gradle --no-daemon -I gradle/test-jvm.init.gradle.kts test
 
 # --- Detekt: `docker build --target detekt .` - zuerst das Suppression-Verbot (AGENTS.md 3.2,
 # tools/suppression-check.sh), dann die statische Analyse samt ktlint-Regelsatz und Regeln der
@@ -69,9 +93,11 @@ RUN sh tools/detekt-selbsttest.sh generate \
 # Waisenzahl per `docker build --output` heraus, nichts wird gemountet. ------------------
 FROM deps AS spec-abdeckung
 COPY --chown=gradle:gradle src src
+COPY --from=testkeys --chown=gradle:gradle /testkeys build/testkeys
+COPY --chown=gradle:gradle gradle/test-jvm.init.gradle.kts gradle/
 COPY --chown=gradle:gradle spec/spezifikation.md spec/spezifikation.md
 COPY --chown=gradle:gradle tools/spec-abdeckung.sh tools/
-RUN gradle --no-daemon test --continue || echo "spec-abdeckung: der Testlauf ist rot; rote Tests zaehlen nicht als Nachweis"
+RUN gradle --no-daemon -I gradle/test-jvm.init.gradle.kts test --continue || echo "spec-abdeckung: der Testlauf ist rot; rote Tests zaehlen nicht als Nachweis"
 RUN mkdir -p /tmp/ausgabe \
  && ZIEL=/tmp/ausgabe/spec-abdeckung.md WAISEN_DATEI=/tmp/ausgabe/waisen sh tools/spec-abdeckung.sh
 
