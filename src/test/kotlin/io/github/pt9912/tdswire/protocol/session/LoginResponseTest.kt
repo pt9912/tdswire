@@ -10,6 +10,8 @@ import io.github.pt9912.tdswire.protocol.token.LoginAck
 import io.github.pt9912.tdswire.testsupport.TokenDecoder
 import io.github.pt9912.tdswire.testsupport.hex
 import io.github.pt9912.tdswire.testsupport.toHex
+import io.github.pt9912.tdswire.transport.framing.FramingLimits
+import io.github.pt9912.tdswire.transport.framing.PacketHeader
 import io.github.pt9912.tdswire.transport.framing.PacketType
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
@@ -86,6 +88,43 @@ class LoginResponseTest {
         )
         val payload = accept(HandshakeConfig(), PendingLogin("d", 8000)).message.payload
         assertContentEquals(tail, payload.copyOfRange(payload.size - tail.size, payload.size))
+    }
+
+    /**
+     * Die gesamte Annahme als Handvektor (Layout nach MS-TDS, von Hand abgeleitet, nicht aus dem Encoder)
+     * für Datenbank `d` und Packet Size 8000: ENVCHANGE Typ 1 (Datenbank), Typ 4 (Packet Size, als
+     * Zeichenfolge "8000" nach "4096") und Typ 7 (SQL-Collation `09 04 D0 00 34`), dann LOGINACK und DONE.
+     * Reihenfolge und Werte sind Festlegung ohne Messung.
+     *
+     * @spec SPEC-028
+     */
+    @Test
+    fun `Die Annahme als vollstaendiger Handvektor mit den ENVCHANGE-Bytes`() {
+        val expected = hex(
+            "E3 05 00  01  01 64 00  00" +
+                "  E3 13 00  04  04 38 00 30 00 30 00 30 00  04 34 00 30 00 39 00 36 00" +
+                "  E3 08 00  07  05 09 04 D0 00 34  00" +
+                "  AD 18 00  01  74 00 00 04  07 74 00 64 00 73 00 77 00 69 00 72 00 65 00  01 00 00 00" +
+                "  FD 00 00 00 00 00 00 00 00 00 00 00 00",
+        )
+        val payload = accept(HandshakeConfig(), PendingLogin("d", 8000)).message.payload
+        assertEquals(expected.toHex(), payload.toHex())
+    }
+
+    /**
+     * Die Grenzen der angenommenen Packet Size: größer als der Paketkopf (8 Byte) und höchstens
+     * `MAX_TDS_PACKET_BYTES` wird übernommen, jeder Wert außerhalb ergibt 4096. Festlegung ohne Messung.
+     *
+     * @spec SPEC-028
+     */
+    @Test
+    fun `Die Packet Size wird an beiden Grenzen entschieden`() {
+        val max = FramingLimits.MAX_TDS_PACKET_BYTES
+        val default = LoginResponses.DEFAULT_PACKET_SIZE
+        assertEquals(default, LoginResponses.negotiatedPacketSize(PacketHeader.SIZE))
+        assertEquals(PacketHeader.SIZE + 1, LoginResponses.negotiatedPacketSize(PacketHeader.SIZE + 1))
+        assertEquals(max, LoginResponses.negotiatedPacketSize(max))
+        assertEquals(default, LoginResponses.negotiatedPacketSize(max + 1))
     }
 
     /**

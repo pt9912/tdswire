@@ -32,7 +32,7 @@ Was der Server auf PRELOGIN und LOGIN7 sendet, ist eine Festlegung ohne Messung 
 | PRELOGIN-Antwort | Pakettyp `0x04`; Optionen VERSION (`0.0.0.0`), ENCRYPTION, INSTOPT (leer), MARS (aus); kein FEDAUTHREQUIRED. ENCRYPTION ist ENCRYPT_REQ bei `REQUIRED`, ENCRYPT_NOT_SUP im ausdrücklich konfigurierten Testmodus |
 | Annahme | Pakettyp `0x04`; ENVCHANGE Datenbank, Packet Size, SQL-Collation, dann LOGINACK (Interface 1, TDS-Version `0x74000004`, bei TDS 8.0 `0x08000000`) und DONE ohne Statusbits |
 | Ablehnung | genau ein ERROR (18456, State 1, Class 14, Text "Login failed." ohne Kennung), dann DONE mit dem Fehlerbit; danach schließt der Server |
-| Datenbank und Packet Size | die Datenbank aus LOGIN7, sonst `master`; die verlangte Packet Size, wenn der Paket-Codec sie schreiben kann, sonst 4096 |
+| Datenbank und Packet Size | die Datenbank aus LOGIN7, sonst `master`; die verlangte Packet Size, wenn der Paket-Codec sie schreiben kann (größer als der Paketkopf von 8 Byte und höchstens `MAX_TDS_PACKET_BYTES`), sonst 4096. Die Packet Size wird per ENVCHANGE angekündigt und steht in der Sitzung; **angewandt wird sie nicht**: der Paket-Schreiber des Transports schreibt mit der Größe, mit der er gebaut wird. Ein Client, der weniger als diese Größe verlangt, kann Pakete über seiner Größe sehen. Wer die Größe anwendet, ist nicht festgelegt |
 
 ## RPC-Katalog
 

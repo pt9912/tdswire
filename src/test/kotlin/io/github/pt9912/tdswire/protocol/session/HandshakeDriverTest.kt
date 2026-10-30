@@ -1,6 +1,8 @@
 package io.github.pt9912.tdswire.protocol.session
 
+import io.github.pt9912.tdswire.config.auth.AuthAdapter
 import io.github.pt9912.tdswire.config.auth.AuthRequest
+import io.github.pt9912.tdswire.config.auth.AuthResult
 import io.github.pt9912.tdswire.config.auth.NegotiatedEncryption
 import io.github.pt9912.tdswire.config.auth.UserList
 import io.github.pt9912.tdswire.config.auth.UserListAuthAdapter
@@ -13,12 +15,18 @@ import io.github.pt9912.tdswire.transport.framing.PacketType
 import io.github.pt9912.tdswire.transport.framing.TdsMessage
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
+import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotSame
@@ -349,6 +357,107 @@ class HandshakeDriverTest {
         awaitAll(accepted, closing)
         assertEquals(listOf("send-start", "send-end", "close"), channel.trace)
         assertEquals(CloseReason.PEER_CLOSED, session.closeReason)
+    }
+
+    /**
+     * Wirft der Adapter eine `CancellationException`, zählt das nicht als Ablehnung: der Treiber sendet
+     * keine Login-Antwort und loggt keine Ablehnung, reicht die Ausnahme weiter und schließt den Kanal
+     * (die Verbindung bleibt nicht offen zurück). Das Passwort ist überschrieben.
+     *
+     * @spec SPEC-008
+     * @spec SPEC-048
+     */
+    @Test
+    fun `Eine Abbruchausnahme des Adapters wird weitergereicht und der Kanal geschlossen`() = blocking {
+        val adapter = RecordingAdapter { throw CancellationException("Abbruch im Adapter") }
+        val channel = FakeHandshakeChannel(happyScript())
+        assertFailsWith<CancellationException> { driver(adapter).run(channel) }
+        assertTrue(channel.closed, "Kanal nach dem Abbruch offen")
+        assertEquals(1, channel.sent.size, "keine Login-Antwort, nur die PRELOGIN-Antwort")
+        assertTrue(log.entries.isEmpty(), "keine Ablehnung im Log")
+        assertTrue(checkNotNull(adapter.passwordChars).reveal().all { it == '\u0000' })
+    }
+
+    /**
+     * Bricht der Aufrufer `run` ab, während der Treiber auf den Client wartet, ist der Kanal danach
+     * geschlossen; nur `Ready` lässt ihn offen.
+     *
+     * @spec SPEC-008
+     */
+    @Test
+    fun `Bricht der Aufrufer ab, ist der Kanal geschlossen`() = blocking {
+        val channel = FakeHandshakeChannel(listOf(message(SessionVectors.prelogin())))
+        val running = launch { driver(RecordingAdapter.accepting()).run(channel) }
+        while (channel.sent.isEmpty()) yield()
+        running.cancelAndJoin()
+        assertTrue(channel.closed, "Kanal nach dem Abbruch des Aufrufers offen")
+    }
+
+    /**
+     * Läuft die Frist ab, während die Annahme gesendet wird (Zustand `READY`, Schreiben unterbrochen),
+     * schließt `expire()` den Kanal trotzdem: `LOGIN_TIMEOUT` ist in `READY` ohne Wirkung, der Zweig
+     * danach setzt den Zustand auf `CLOSED` und räumt die Sitzung ab. Festlegung ohne Messung: das
+     * unterbrochene Schreiben kann ein Paket halb schreiben.
+     *
+     * @spec SPEC-008
+     * @spec SPEC-001
+     */
+    @Test
+    fun `Fristablauf waehrend des Schreibens der Annahme schliesst den Kanal`() = blocking {
+        val channel = FakeHandshakeChannel(emptyList())
+        val session = HandshakeSession(HandshakeAutomaton(), channel, log)
+        session.dispatch(HandshakeEvent.Start)
+        session.dispatch(HandshakeEvent.Message(SessionVectors.prelogin()))
+        session.dispatch(HandshakeEvent.TlsEstablished)
+        session.dispatch(HandshakeEvent.Message(SessionVectors.login7()))
+        channel.trace.clear()
+        channel.sendDelayMillis = SLOW_ADAPTER_MILLIS
+        val accepting = launch { session.dispatch(HandshakeEvent.AuthAccepted(Principal("sa"), "s1")) }
+        while ("send-start" !in channel.trace) yield()
+        accepting.cancelAndJoin()
+        assertEquals(ConnectionState.READY, session.context.state)
+        assertFalse(channel.closed)
+        session.expire()
+        assertTrue(channel.closed, "Kanal nach Fristablauf offen")
+        assertEquals(ConnectionState.CLOSED, session.context.state)
+        assertEquals(null, session.context.session)
+        assertEquals(CloseReason.LOGIN_TIMEOUT, session.closeReason)
+        assertFalse("send-end" in channel.trace, "das Schreiben endete nicht")
+    }
+
+    /**
+     * Verwaiste Adapteraufrufe sind begrenzt: bei ein Platz im `AuthPool` laufen nie zwei Aufrufe zugleich,
+     * und ein Aufruf, der bei Fristablauf noch auf seinen Platz wartet, beginnt nie. Der laufende Aufruf
+     * endet folgenlos (keine Antwort, Passwort überschrieben).
+     *
+     * @spec SPEC-008
+     */
+    @Test
+    fun `Verwaiste Adapteraufrufe sind begrenzt und beginnen nach der Frist nicht mehr`() = blocking {
+        val calls = AtomicInteger()
+        val running = AtomicInteger()
+        val maxRunning = AtomicInteger()
+        val requests = ConcurrentLinkedQueue<AuthRequest>()
+        val adapter = object : AuthAdapter {
+            override fun authenticate(request: AuthRequest): AuthResult {
+                calls.incrementAndGet()
+                requests += request
+                maxRunning.accumulateAndGet(running.incrementAndGet(), ::maxOf)
+                Thread.sleep(BLOCKING_MILLIS)
+                running.decrementAndGet()
+                return AuthResult.Accepted(Principal("sa"))
+            }
+        }
+        val pool = AuthPool(parallelism = 1)
+        val limited = HandshakeDriver(HandshakeConfig(), adapter, log, 150.milliseconds, pool)
+        val channels = List(3) { FakeHandshakeChannel(happyScript()) }
+        val outcomes = channels.map { async { limited.run(it) } }.awaitAll()
+        outcomes.forEach { assertEquals(HandshakeOutcome.Closed(CloseReason.LOGIN_TIMEOUT), it) }
+        delay(BLOCKING_MILLIS * 2)
+        assertEquals(1, calls.get(), "Aufrufe, die bei Fristablauf noch warteten, begannen")
+        assertEquals(1, maxRunning.get(), "gleichzeitige Adapteraufrufe")
+        channels.forEach { assertEquals(1, it.sent.size, "Antwort nach Fristablauf") }
+        assertTrue(requests.all { it.password.reveal().all { c -> c == '\u0000' } }, "Passwort nicht ueberschrieben")
     }
 
     private companion object {
