@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** SPEC-011 · SPEC-012 · SPEC-013 · SPEC-014 · SPEC-015 · SPEC-016 · SPEC-037 · SPEC-038 · SPEC-039 · SPEC-048 · SPEC-049 · ARC-015
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** pt9912.
 
 **Autor:** pt9912. **Datum:** 2026-10-30.
 
