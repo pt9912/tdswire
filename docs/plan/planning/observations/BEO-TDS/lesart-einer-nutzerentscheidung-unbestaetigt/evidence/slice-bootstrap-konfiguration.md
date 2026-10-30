@@ -1,0 +1,2 @@
+**Vorgang:** slice-bootstrap-konfiguration
+**Fund:** Die Setzung, dass `ManagedConnection.finish` eine Abbruchausnahme des Handlers bei unabgebrochenem Scope als `HANDLER_FAILED` einordnet, bleibt vom Nutzer unbestätigt. Der Bootstrap-Slice hat gemessen, dass der Handshake-Handler sie nie auslöst (die Abbruchausnahme des Adapters wird zum Adapterfehler, `HANDLER_RETURNED`, Mutation M14 rot), und ändert die Setzung nicht.

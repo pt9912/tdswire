@@ -1,0 +1,2 @@
+**Vorgang:** slice-bootstrap-konfiguration
+**Fund:** Ein Test der Fix-Runde war einmal rot, die Ursache wurde nicht erfasst (Verifikation Abschnitt 7). Vier Läufe des Verifiers unter Load Average 7 bis 10 und die ganze Stage `test` (500 Tests) blieben grün. Naheliegender Kandidat, nicht gemessen: der Test `Die Frist des Treibers trägt den konfigurierten Wert` hängt an einer Echtzeit-Frist von 1 s gegen ein Fenster von 5 s. Beim nächsten roten Lauf die Ausgabe sichern, bevor neu gestartet wird.

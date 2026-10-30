@@ -1,0 +1,2 @@
+**Vorgang:** slice-bootstrap-konfiguration
+**Fund:** Das Risiko „Kein Startartefakt setzt das Flag“ nannte `slice-release-artefakt-lizenz` als Träger, dessen DoD und Risiken das Flag nicht führten (Verifikation 5.2: kein Treffer für „flag“ und „newSessionTicket“). Seit dieser Closure steht die Zeile in DoD-Punkt 1 des Träger-Slice; die Übergabe und die Dateirechte der Benutzerliste stehen dort als Risiko.

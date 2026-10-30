@@ -31,10 +31,6 @@ In Arbeit (Welle welle-qualitaet-grundlage):
 - [slice-qa-wartbarkeit](slice-qa-wartbarkeit.md)
 - [slice-qa-stabilitaet](slice-qa-stabilitaet.md)
 
-In Arbeit (Welle welle-handshake-login):
-
-- [slice-bootstrap-konfiguration](slice-bootstrap-konfiguration.md)
-
 In Arbeit (Welle welle-anfrageverarbeitung):
 
 - [slice-sql-batch-dispatch](slice-sql-batch-dispatch.md)
