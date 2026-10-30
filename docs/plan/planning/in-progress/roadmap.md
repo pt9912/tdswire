@@ -22,10 +22,6 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 - [welle-transport-tls](../welle-transport-tls.md)
 - [welle-handshake-login](../welle-handshake-login.md)
 
-In Arbeit (Welle welle-protokollcodec):
-
-- [slice-codec-tds-paket](../done/slice-codec-tds-paket.md)
-
 In Arbeit (Welle welle-entscheidungen-grundlage):
 
 - [slice-adr-session-zustand](slice-adr-session-zustand.md)
