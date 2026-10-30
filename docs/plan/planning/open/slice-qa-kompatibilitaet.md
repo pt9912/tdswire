@@ -30,11 +30,11 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Die freigegebenen Ende-zu-Ende-Szenarien (Anmeldung, SELECT, parametrisierte Abfrage, NULL, Fehler, Abbruch) laufen automatisiert mit einem echten .NET-Client gegen den Server und sind ein Gate. Aus [ADR-0009](../../adr/0009-authentifizierungsmodus.md) §Offen gehören dazu die Anmeldemessungen, die dort fehlen: Windows-SSPI (NTLM), TDS 8.0 mit SQL-Authentifizierung, mehrpaketiges LOGIN7, Pooling mit `ResetConnection` und State und Meldung eines echten SQL Servers.
+**Ziel:** Die freigegebenen Ende-zu-Ende-Szenarien (Anmeldung, SELECT, parametrisierte Abfrage, NULL, Fehler, Abbruch) laufen automatisiert mit einem echten .NET-Client gegen den Server und sind ein Gate. Aus [ADR-0009](../../adr/0009-authentifizierungsmodus.md) §Offen gehören dazu die Anmeldemessungen, die dort fehlen: Windows-SSPI (NTLM), TDS 8.0 mit SQL-Authentifizierung, mehrpaketiges LOGIN7, Pooling mit `ResetConnection`. Aus [ADR-0005](../../adr/0005-rpc-und-prepared-statements.md) §Offen kommen `sp_unprepare` unter Pooling, die `SET`-Text-Szenarien (`SchemaOnly`, `KeyInfo`), Transaktionen (Pakettyp `0x0E`) und TDS 8.0 für RPC hinzu. State und Meldung eines echten SQL Servers gehören nicht hierher, sondern in den Vergleichslauf D von [slice-qa-reproduzierbarkeit](slice-qa-reproduzierbarkeit.md).
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Referenzabgleich gegen eine SQL-Server-Instanz (`SPEC-045`, `SPEC-050`) — die Aufnahme als Messmethode hängt an der Entscheidung in [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md) (Option D); sie bleibt vorläufig.
+- Referenzabgleich gegen eine SQL-Server-Instanz (`SPEC-045`, `SPEC-050`) — [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md) hat ihn als Vergleichslauf D entschieden; Träger ist [slice-qa-reproduzierbarkeit](slice-qa-reproduzierbarkeit.md), dieser Slice führt keinen Referenzabgleich.
 - Lastmessung — gehört zu `slice-qa-performance`, weil sie eine andere Messmethode und ein anderes Gate braucht.
 
 ## 2. Definition of Done
@@ -46,6 +46,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] Referenzclient als Testprojekt in Docker, Szenarien nach `SPEC-025`/`SPEC-032` laufen grün gegen den Server.
 - [ ] Gate-Target in `make gates` eingehängt.
+- [ ] Anmeldemessungen und RPC-Messungen aus dem Ziel (Windows-SSPI, TDS 8.0, mehrpaketiges LOGIN7, Pooling mit `ResetConnection` und `sp_unprepare`, `SET`-Text-Szenarien, Transaktionen) am Server dieses Repos gemessen und in den ADRs bzw. im Clientprofil nachgetragen, oder je Punkt mit Begründung als nicht lieferbar benannt.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -97,7 +98,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Die Entscheidung über die Kompatibilitätstests ([ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md)) fällt anders als angenommen. — **Ausgang:** offen bis zur Closure.
+- Die Pflicht-Matrix B ([ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md), Status `Proposed`, wird `Accepted`) ist nicht gemessen; ihr Umfang kann sich bei der Verifikation ändern. — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 

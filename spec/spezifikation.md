@@ -32,7 +32,7 @@ Herabstufung einer geforderten Verschlüsselung.
 2. Identität über konfigurierten Authentifizierungsadapter prüfen; Geheimnisse nicht protokollieren.
    Meldung und State der Ablehnung sind für eine unbekannte Kennung und ein falsches Passwort
    gleich; der Grund steht nur im Server-Log (`SPEC-012`). Gemessen ist nur die Gleichheit der
-   Antwortbytes am Spike-Testserver; das Produkt existiert noch nicht. Als Anforderung an den Produktivcode gilt: Die Einstiegsimplementierung vergleicht in
+   Antwortbytes, am Spike-Testserver gemessen und nicht am Produkt; für das Produkt ist die Gleichheit eine Anforderung. Als Anforderung an den Produktivcode gilt: Die Einstiegsimplementierung vergleicht in
    konstanter Zeit und führt bei unbekannter Kennung einen Scheinvergleich aus; das ist weder gebaut
    noch gemessen, ein Test muss es belegen. Der Adapter hat die Schnittstelle
    aus `contracts/auth-adapter.md` (`SPEC-051`); die Einstiegsimplementierung ist eine feste
@@ -529,7 +529,7 @@ Abnahmegrenzen.
 | ID | Interner Code | Bedingung | Aktion |
 |---|---|---|---|
 | `SPEC-011` | `TDS_PROTOCOL_ERROR` | Paket/Token ungültig | Abbruch oder ERROR, je nach Zustand |
-| `SPEC-012` | `TDS_LOGIN_FAILED` | Authentifizierung fehlgeschlagen | Login-Fehler, Session nicht erstellen; Meldung und State für unbekannte Kennung und falsches Passwort identisch; Nummer 18456, Class 14, einheitlicher State, feste Meldung ohne Kennung und genau ein ERROR vor DONE (am Referenzclient gemessen: dieselben Antwortbytes, keine Wiederholung); der State des Referenzservers ist an der Referenzinstanz zu messen (`SPEC-045`) |
+| `SPEC-012` | `TDS_LOGIN_FAILED` | Authentifizierung fehlgeschlagen | Login-Fehler, Session nicht erstellen; Meldung und State für unbekannte Kennung und falsches Passwort identisch; Nummer 18456, Class 14, einheitlicher State, feste Meldung ohne Kennung und genau ein ERROR vor DONE (am Referenzclient gemessen, am Spike-Testserver und nicht am Produkt: dieselben Antwortbytes, keine Wiederholung; für das Produkt ist die Gleichheit eine Anforderung). An einem echten SQL Server wurde einmal beobachtet (vom Review bestätigt): falsches Kennwort und unbekannter Benutzer ergeben beide Nummer 18456, State 1, Class 14, die Meldung nennt den Benutzernamen; der interne State des Servers ist am Client nicht sichtbar. |
 | `SPEC-013` | `TDS_UNSUPPORTED_RPC` | RPC nicht unterstützt | ERROR und DONE mit Fehlerstatus |
 | `SPEC-014` | `TDS_UNSUPPORTED_TYPE` | Wert nicht serialisierbar | definierter Fehler, kein fehlerhaftes Resultset |
 | `SPEC-015` | `TDS_BACKEND_ERROR` | Backend-Ausführung fehlgeschlagen | Fehlerabbildung in TDS |
