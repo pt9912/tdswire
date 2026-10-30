@@ -16,9 +16,12 @@ workflow-lint: ## Workflow-Dateien unter .github/workflows/ mit actionlint pruef
 	  docker run --rm -i $(ACTIONLINT_IMAGE) -no-color - < "$$f" || exit 1; \
 	done
 
+# Die Test-Stage wird nach einem grünen Lauf gecacht: `make test` und `make gates` zeigen bei unveränderten Eingängen
+# einen Cache-Treffer und führen die Tests nicht erneut aus. Eine Stabilitätsaussage über Tests mit Wanduhr oder Last
+# (Fristen, Ticker) trägt deshalb nur ein Lauf dieses Targets oder `docker build --target test --no-cache-filter test .`.
 # --no-cache verwirft den Layer-Cache der Stages der drei Aufrufe (Gradle-Stages, ohne den
 # .NET-Restore); die Basis-Images bleiben, wie sie lokal liegen. Ein frischer Runner zieht sie ohnehin neu, der Layer-Cache fehlt dort von selbst.
-clean-build: ## Build, Tests und detekt ohne Layer-Cache (Docker, kein Gate)
+clean-build: ## Build, Tests und detekt ohne Layer-Cache (Docker, kein Gate) · Frischbeleg für zeitabhängige Tests · seit slice-handshake-login
 	docker build --no-cache -t $(IMAGE):$(TAG) .
 	docker build --no-cache --target test --progress=plain .
 	docker build --no-cache --target detekt --progress=plain .
