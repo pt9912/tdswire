@@ -42,7 +42,8 @@ Ein Pre-Release trägt das Risiko, dass sich Optionen zwischen Alphas umbenennen
 - **Positiv:** Das Gate läuft heute, die Schichtregeln und Technik-Regeln sind belegt. Die Wahl ist an einer Stelle begründet und auffindbar.
 - **Negativ / Risiko:** Jeder Versionswechsel kann `detekt.yml` brechen; der ktlint-Block ist gleich dem Standard der gepinnten Version und gehört nach einem Pin-Wechsel neu erzeugt (Kommentar in `config/detekt/detekt.yml`).
 - **Folgepflicht:** `build.gradle.kts` verweist auf diese ADR statt auf „die zugehörige ADR". Bei Annahme `SPEC-041` unverändert lassen; die Entscheidung schärft sie nur.
-- **Offen:** Ob pgwire die Alpha aus einem eigenen Grund wählte (Funktionsumfang, Kotlin-Verträglichkeit), ist hier nicht belegt; der Autor bestätigt oder ergänzt das Motiv vor `Accepted`. Die Messung von Option A ist unvollständig (`ForbiddenMethodCall` unter Typauflösung).
+- **Bestätigt durch den Autor (2026-10-30):** Option B ist die gewollte Wahl. Ein über die Übernahme des Gerüsts hinausgehendes Motiv von pgwire (Funktionsumfang, Kotlin-Verträglichkeit) ist weder genannt noch belegt.
+- **Offen:** Die Messung von Option A ist unvollständig (`ForbiddenMethodCall` unter Typauflösung); sie begründet nicht, dass Option A scheitert.
 
 ## Fitness Function (falls maschinell prüfbar)
 
