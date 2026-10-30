@@ -11,7 +11,11 @@ import io.github.pt9912.tdswire.transport.tls.TlsChannel
 import io.github.pt9912.tdswire.transport.tls.TlsPath
 import io.github.pt9912.tdswire.transport.tls.TlsResult
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
@@ -19,6 +23,7 @@ import java.nio.channels.AsynchronousSocketChannel
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CopyOnWriteArrayList
 import javax.net.ssl.SSLContext
+import kotlin.test.AfterTest
 import kotlin.time.Duration
 
 private const val POLL_MILLIS = 5L
@@ -72,13 +77,37 @@ class RecordingEvents : ListenerEvents {
     fun endsOf(end: ConnectionEnd): List<ListenerEvent.Closed> = closed().filter { it.end == end }
 }
 
+private const val CLEANUP_MILLIS = 3_000L
+private val started = ConcurrentLinkedQueue<TdsListener>()
+
+/**
+ * Basis der Listener-Tests: nach jedem Test, auch nach einem Fehlschlag, werden die Listener beendet,
+ * die der Test über [startOnLoopback] oder [track] gestartet hat. Ein hängendes Beenden bricht nach
+ * einer Frist ab und räumt dabei selbst auf. Die Tests laufen nacheinander (die Testkonfiguration
+ * setzt keine Parallelität); `listenerThreads` und [assertNoNewListenerThreads] setzen das voraus.
+ */
+open class ListenerTestBase {
+    @AfterTest
+    fun shutDownStartedListeners() {
+        runBlocking {
+            while (true) {
+                val listener = started.poll() ?: break
+                withContext(NonCancellable) { withTimeoutOrNull(CLEANUP_MILLIS) { listener.shutdown() } }
+            }
+        }
+    }
+}
+
+/** Merkt sich [result] für das Aufräumen nach dem Test und gibt es zurück. */
+fun track(result: StartResult): StartResult = result.also { if (it is StartResult.Started) started += it.listener }
+
 /** Startet einen Listener auf `127.0.0.1` mit einem freien Port; ein gescheiterter Start bricht den Test ab. */
 suspend fun startOnLoopback(
     handler: ConnectionHandler,
     events: ListenerEvents,
     times: ListenerTimes = ListenerTimes(),
 ): TdsListener {
-    val result = TdsListener.start(ListenerConfig(LOOPBACK, 0, times), handler, events)
+    val result = track(TdsListener.start(ListenerConfig(LOOPBACK, 0, times), handler, events))
     if (result !is StartResult.Started) throw AssertionError("Start gescheitert: $result")
     return result.listener
 }
@@ -87,9 +116,10 @@ suspend fun startOnLoopback(
 fun listenerThreads(): List<Thread> =
     Thread.getAllStackTraces().keys.filter { it.isAlive && it.name.startsWith(TdsListener.THREAD_NAME_PREFIX) }
 
-/** Wartet, bis kein Thread des Listeners mehr lebt, der nicht schon in [before] war. */
-suspend fun assertNoNewListenerThreads(before: List<Thread>) {
-    eventually("keine neuen Threads des Listeners") { listenerThreads().none { it !in before } }
+/** Prüft sofort, ohne zu warten: kein Thread des Listeners lebt, der nicht schon in [before] war. */
+fun assertNoNewListenerThreads(before: List<Thread>) {
+    val extra = listenerThreads().filter { it !in before }
+    if (extra.isNotEmpty()) throw AssertionError("Threads des Listeners leben: ${extra.map { it.name }}")
 }
 
 /** Verbindet blockierend mit dem Listener auf `127.0.0.1`; der Kanal gehört dem Aufrufer. */

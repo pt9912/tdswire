@@ -6,7 +6,7 @@ package io.github.pt9912.tdswire.transport.listener
  * ist entweder vor dem Beginn aufgenommen und im Schnappschuss von [beginShutdown] oder wird
  * abgewiesen.
  */
-internal class ConnectionRegistry<T> {
+internal open class ConnectionRegistry<T> {
     private val lock = Any()
     private val connections = LinkedHashMap<Long, T>()
 
@@ -17,7 +17,7 @@ internal class ConnectionRegistry<T> {
     val size: Int get() = synchronized(lock) { connections.size }
 
     /** `false`, wenn das Beenden begonnen hat; die Verbindung ist dann nicht aufgenommen. */
-    fun admit(id: Long, connection: T): Boolean = synchronized(lock) {
+    open fun admit(id: Long, connection: T): Boolean = synchronized(lock) {
         if (!shuttingDown) connections[id] = connection
         !shuttingDown
     }

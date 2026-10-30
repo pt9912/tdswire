@@ -21,7 +21,7 @@ import kotlin.time.Duration.Companion.seconds
  * einzelner Verbindungen. Handler sind Test-Handler ohne Protokoll; die Tests belegen das Verhalten
  * des Transports, nicht das einer Session.
  */
-class ListenerLifecycleTest {
+class ListenerLifecycleTest : ListenerTestBase() {
     private val loginTimeout = 15.seconds
     private val shortTimeout = 3_000L
 
@@ -35,7 +35,9 @@ class ListenerLifecycleTest {
     /**
      * `LOGIN_TIMEOUT` (hier 15 s, vorläufiger Wert) läuft ab dem Verbindungsaufbau und umfasst den
      * TLS-Handschlag: eine Gegenstelle, die im 7.4-Pfad bzw. im 8.0-Pfad nach dem ersten Byte schweigt,
-     * wird nach Ablauf der gesteuerten Frist getrennt, nicht vorher; der Transport schickt nichts.
+     * wird nach Ablauf der gesteuerten Frist getrennt, nicht vorher; der Transport schickt nichts. Der
+     * Test lässt die Frist erst ablaufen, wenn der Handler-Rumpf lief (Frist und Handler starten
+     * nebenläufig).
      *
      * @spec SPEC-008
      */
@@ -50,6 +52,7 @@ class ListenerLifecycleTest {
             val client = connectTo(listener.port)
             client.writeFully(ByteBuffer.wrap(byteArrayOf(firstByte)))
             eventually("Frist LOGIN_TIMEOUT wird erwartet") { delayer.pending == listOf(loginTimeout) }
+            eventually("Handler hat den Handschlag begonnen") { handler.wires.size == 1 }
             assertEquals(1, listener.activeConnections)
             assertTrue(events.closed().isEmpty())
             delayer.releaseAll()
@@ -87,7 +90,7 @@ class ListenerLifecycleTest {
      * Ein Handler, der wirft, beendet nur seine Verbindung (Ende `HANDLER_FAILED` mit dem Typnamen,
      * ohne Text); zwei andere Verbindungen arbeiten weiter, und der Listener nimmt eine neue an.
      *
-     * @spec SPEC-008
+     * @spec SPEC-005
      */
     @Test
     fun `a crashing handler ends only its own connection`() = blocking {

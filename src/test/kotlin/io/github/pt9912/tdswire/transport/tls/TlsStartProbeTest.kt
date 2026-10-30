@@ -66,6 +66,20 @@ class TlsStartProbeTest {
     }
 
     /**
+     * Die Probe prüft jedes Zertifikat der Kette, nicht nur das erste: ein gültiges Blatt, dessen
+     * Zwischenzertifikat abgelaufen ist, scheitert als `CERTIFICATE`. Die Gegenprobe mit gültigem Blatt
+     * und gültiger Kette (`gueltig.p12`) besteht.
+     *
+     * @spec SPEC-043
+     */
+    @Test
+    fun `every certificate of the chain must be valid`() = blocking {
+        assertIs<ProbeResult.Passed>(probeOf(KeyVariants.file(TestKeys.VALID)))
+        val diagnosis = failureOf(KeyVariants.expiredIntermediate())
+        assertEquals(TlsPart.CERTIFICATE, diagnosis.part)
+    }
+
+    /**
      * Ein Speicher, der sich nicht laden lässt, und einer ohne Schlüsseleintrag: unlesbar ist
      * `CERTIFICATE` (Festlegung: beschädigter Speicher und falsches Speicher-Kennwort sind nicht
      * unterscheidbar), kein Schlüssel ist `PRIVATE_KEY`.

@@ -40,7 +40,8 @@ RUN gradle --no-daemon classes
 # `-validity 3650` zaehlt ab dem Bauzeitpunkt des Layers: bleibt er zehn Jahre im Cache, sind
 # gueltig.p12 und falscher-name.p12 abgelaufen und die TLS-Tests rot (Neubau mit --no-cache-filter
 # testkeys behebt es). abgelaufen.p12 haengt nicht an der Bauzeit: sein Blatt hat ein festes
-# `-startdate` (2020/01/01, 30 Tage). -----
+# `-startdate` (2020/01/01, 30 Tage). blatt.p12 (Schluessel) mit blatt.pem, zwischen-abgelaufen.pem und
+# wurzel.pem ist eine Kette, deren Zwischenzertifikat abgelaufen ist und deren Blatt gilt. -----
 FROM basis AS testkeys
 WORKDIR /testkeys
 RUN keytool -genkeypair -alias server -keyalg RSA -keysize 2048 -validity 3650 -storetype PKCS12 \
@@ -58,7 +59,21 @@ RUN keytool -genkeypair -alias server -keyalg RSA -keysize 2048 -validity 3650 -
       -startdate "2020/01/01 00:00:00" -validity 30 -ext "san=dns:localhost" -outfile abgelaufen.pem \
  && keytool -importcert -alias ca -file ca.pem -keystore abgelaufen.p12 -storepass tdswire-test -noprompt \
  && keytool -importcert -alias server -file abgelaufen.pem -keystore abgelaufen.p12 -storepass tdswire-test \
- && rm ca.p12 ca.pem abgelaufen.csr abgelaufen.pem
+ && rm ca.p12 ca.pem abgelaufen.csr abgelaufen.pem \
+ && keytool -genkeypair -alias ca -keyalg RSA -keysize 2048 -validity 3650 -storetype PKCS12 -ext bc:c \
+      -keystore wurzel.p12 -storepass tdswire-test -dname "CN=tdswire-wurzel" \
+ && keytool -exportcert -alias ca -keystore wurzel.p12 -storepass tdswire-test -rfc -file wurzel.pem \
+ && keytool -genkeypair -alias zw -keyalg RSA -keysize 2048 -validity 3650 -storetype PKCS12 -ext bc:c \
+      -keystore zwischen.p12 -storepass tdswire-test -dname "CN=tdswire-zwischen" \
+ && keytool -certreq -alias zw -keystore zwischen.p12 -storepass tdswire-test -file zwischen.csr \
+ && keytool -gencert -alias ca -keystore wurzel.p12 -storepass tdswire-test -infile zwischen.csr -rfc \
+      -startdate "2020/01/01 00:00:00" -validity 30 -ext bc:c -outfile zwischen-abgelaufen.pem \
+ && keytool -genkeypair -alias server -keyalg RSA -keysize 2048 -validity 3650 -storetype PKCS12 \
+      -keystore blatt.p12 -storepass tdswire-test -dname "CN=localhost" -ext "san=dns:localhost" \
+ && keytool -certreq -alias server -keystore blatt.p12 -storepass tdswire-test -file blatt.csr \
+ && keytool -gencert -alias zw -keystore zwischen.p12 -storepass tdswire-test -infile blatt.csr -rfc \
+      -validity 3650 -ext "san=dns:localhost" -outfile blatt.pem \
+ && rm wurzel.p12 zwischen.p12 zwischen.csr blatt.csr
 
 # --- Test: `docker build --target test .` - fuehrt die Unit-Tests aus (kotlin.test auf der
 # JUnit-Plattform, SPEC-024). Es kommt nur src/ hinzu; ein roter Test bricht den Build. -----------

@@ -40,8 +40,8 @@ sealed interface MaterialResult {
 
 /**
  * Schlüssel und Kette des Servers als fertiger `SSLContext`. Das Material kommt aus den Bytes eines
- * PKCS#12-Speichers (Festlegung des Nutzers vom 2026-10-30: PKCS#12, kein PEM-Lader); den Pfad kennt die
- * Klasse nicht. Speicher- und Schlüsselkennwort sind derselbe Wert.
+ * PKCS#12-Speichers (Setzung, nicht gemessen: `contracts/security-profile.md` §Schlüsselmaterial); den
+ * Pfad kennt die Klasse nicht. Speicher- und Schlüsselkennwort sind derselbe Wert.
  *
  * Zugelassen ist der erste Schlüsseleintrag mit einem RSA-Schlüssel von mindestens [MIN_RSA_BITS] Bit
  * (Festlegung: ECDSA ist nicht gemessen, die Grenze 2048 ist gesetzt, nicht gemessen). Die Klasse hält

@@ -4,12 +4,14 @@ import io.github.pt9912.tdswire.transport.channel.SocketChannelAdapter
 import io.github.pt9912.tdswire.transport.tls.ProbeResult
 import io.github.pt9912.tdswire.transport.tls.TlsStartProbe
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.IOException
 import java.net.BindException
@@ -19,6 +21,7 @@ import java.nio.channels.AsynchronousServerSocketChannel
 import java.nio.channels.AsynchronousSocketChannel
 import java.nio.channels.CompletionHandler
 import java.nio.channels.UnresolvedAddressException
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.coroutines.resume
@@ -43,14 +46,15 @@ import kotlin.time.Duration.Companion.seconds
  */
 class TdsListener private constructor(
     private val server: AsynchronousServerSocketChannel,
-    private val group: AsynchronousChannelGroup,
-    private val config: ListenerConfig,
-    private val handler: ConnectionHandler,
-    private val events: ListenerEvents,
+    private val io: IoGroup,
+    setup: ListenerSetup,
 ) {
+    private val config = setup.config
+    private val handler = setup.handler
+    private val events = setup.events
+    private val registry = setup.registry
     private val root = SupervisorJob()
     private val scope = CoroutineScope(root + config.dispatcher)
-    private val registry = ConnectionRegistry<ManagedConnection>()
     private val environment = ConnectionEnvironment(root, config.dispatcher, config.times, events, registry)
     private val ids = AtomicLong()
 
@@ -104,15 +108,19 @@ class TdsListener private constructor(
      * Verbindung ohne laufende Anfrage ([Connection.requestRunning]) endet sofort, die übrigen
      * höchstens bis `SHUTDOWN_GRACE`; danach werden sie getrennt. Abbruch laufender Anfragen am Backend
      * und `CANCEL_TIMEOUT` gehören der Session, nicht dem Listener. Ein zweiter Aufruf ist wirkungslos
-     * und kehrt sofort zurück.
+     * und kehrt sofort zurück. Wird der Aufruf abgebrochen, räumt er trotzdem auf: die Verbindungen
+     * werden getrennt, die Gruppe beendet und abgewartet (`TDS-QA-02`).
      */
     suspend fun shutdown() {
         val open = registry.beginShutdown() ?: return
         server.close()
         open.filterNot { it.busy }.forEach { it.end(ConnectionEnd.SHUTDOWN) }
-        awaitConnections(open)
-        root.cancel()
-        terminate(group)
+        try {
+            awaitConnections(open)
+        } finally {
+            root.cancel()
+            io.stop()
+        }
     }
 
     private suspend fun awaitConnections(open: List<ManagedConnection>) {
@@ -132,7 +140,7 @@ class TdsListener private constructor(
         const val THREAD_NAME_PREFIX = "tdswire-listener-io-"
         const val IO_THREADS = 2
         private val TERMINATION_WAIT = 5.seconds
-        private val TERMINATION_POLL = 10.milliseconds
+        private val TERMINATION_POLL = 1.milliseconds
         private val ACCEPT_RETRY = 100.milliseconds
 
         /**
@@ -140,28 +148,49 @@ class TdsListener private constructor(
          * ein Schritt, ist kein Port gebunden, kein Thread des Listeners läuft weiter, und der Ausgang
          * nennt den Teil bzw. Adresse und Port.
          */
-        suspend fun start(config: ListenerConfig, handler: ConnectionHandler, events: ListenerEvents): StartResult {
+        suspend fun start(config: ListenerConfig, handler: ConnectionHandler, events: ListenerEvents): StartResult =
+            start(ListenerSetup(config, handler, events, ConnectionRegistry()))
+
+        /** Wie [start] mit einem vorgegebenen Register; die Tests belegen damit die Verdrahtung der Abweisung. */
+        internal suspend fun start(setup: ListenerSetup): StartResult {
+            val config = setup.config
             val tls = config.tls
             val probe = if (tls == null) null else TlsStartProbe.run(tls.material, tls.parameters)
             return if (probe is ProbeResult.Failed) {
                 StartResult.Failed(StartFailure.Tls(probe.diagnosis))
             } else {
-                bind(config, handler, events)
+                bind(setup)
             }
         }
 
-        private fun bind(config: ListenerConfig, handler: ConnectionHandler, events: ListenerEvents): StartResult {
-            val group = newGroup()
-            return when (val bound = open(config, group)) {
+        private suspend fun bind(setup: ListenerSetup): StartResult {
+            val io = newGroup()
+            return when (val bound = open(setup.config, io.group)) {
                 is Bound.Failed -> {
-                    group.shutdownNow()
+                    io.stop()
                     StartResult.Failed(bound.failure)
                 }
 
-                is Bound.Server -> {
-                    val listener = TdsListener(bound.channel, group, config, handler, events)
-                    listener.launchAcceptLoop()
-                    StartResult.Started(listener)
+                is Bound.Server -> launched(bound.channel, io, setup)
+            }
+        }
+
+        /** Gelingt der Aufbau des Listeners nicht, sind Kanal und Gruppe wieder frei. */
+        private suspend fun launched(
+            server: AsynchronousServerSocketChannel,
+            io: IoGroup,
+            setup: ListenerSetup,
+        ): StartResult {
+            var ready = false
+            try {
+                val listener = TdsListener(server, io, setup)
+                listener.launchAcceptLoop()
+                ready = true
+                return StartResult.Started(listener)
+            } finally {
+                if (!ready) {
+                    server.close()
+                    io.stop()
                 }
             }
         }
@@ -172,6 +201,8 @@ class TdsListener private constructor(
             Bound.Failed(bindFailure(config, broken))
         } catch (broken: UnresolvedAddressException) {
             Bound.Failed(StartFailure.BindFailed(config.host, config.port, broken.javaClass.name))
+        } catch (broken: IllegalArgumentException) {
+            Bound.Failed(StartFailure.BindFailed(config.host, config.port, broken.javaClass.name))
         }
 
         private fun bindFailure(config: ListenerConfig, broken: IOException): StartFailure =
@@ -181,17 +212,30 @@ class TdsListener private constructor(
                 StartFailure.BindFailed(config.host, config.port, broken.javaClass.name)
             }
 
-        private fun newGroup(): AsynchronousChannelGroup {
+        private fun newGroup(): IoGroup {
             val counter = AtomicInteger()
-            return AsynchronousChannelGroup.withFixedThreadPool(IO_THREADS) { task ->
-                Thread(task, "$THREAD_NAME_PREFIX${counter.incrementAndGet()}").also { it.isDaemon = true }
+            val threads = CopyOnWriteArrayList<Thread>()
+            val group = AsynchronousChannelGroup.withFixedThreadPool(IO_THREADS) { task ->
+                Thread(task, "$THREAD_NAME_PREFIX${counter.incrementAndGet()}").also {
+                    it.isDaemon = true
+                    threads += it
+                }
             }
+            return IoGroup(group, threads)
         }
+    }
 
-        private suspend fun terminate(group: AsynchronousChannelGroup) {
+    /**
+     * Die Gruppe samt ihren Threads. [stop] beendet die Gruppe und kehrt zurück, wenn kein Thread mehr
+     * lebt, höchstens nach [TERMINATION_WAIT]; es läuft auch in einem abgebrochenen Aufruf zu Ende.
+     */
+    internal class IoGroup(val group: AsynchronousChannelGroup, private val threads: List<Thread>) {
+        suspend fun stop() {
             group.shutdownNow()
-            withTimeoutOrNull(TERMINATION_WAIT) {
-                while (!group.isTerminated) delay(TERMINATION_POLL)
+            withContext(NonCancellable) {
+                withTimeoutOrNull(TERMINATION_WAIT) {
+                    while (!group.isTerminated || threads.any { it.isAlive }) delay(TERMINATION_POLL)
+                }
             }
         }
     }
@@ -210,3 +254,11 @@ class TdsListener private constructor(
         data object Closed : Accept
     }
 }
+
+/** Alles, was [TdsListener.start] aus der Aufrufstelle braucht; das Register ist austauschbar für Tests. */
+internal class ListenerSetup(
+    val config: ListenerConfig,
+    val handler: ConnectionHandler,
+    val events: ListenerEvents,
+    val registry: ConnectionRegistry<ManagedConnection>,
+)
