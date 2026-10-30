@@ -27,10 +27,6 @@ In Arbeit (Welle welle-transport-tls):
 
 - [slice-transport-coroutines-geruest](slice-transport-coroutines-geruest.md)
 
-In Arbeit (Folge-Slice von welle-protokollcodec, ohne Welle):
-
-- [slice-codec-rpc-parser](slice-codec-rpc-parser.md)
-
 In Arbeit (Welle welle-qualitaet-grundlage):
 
 - [slice-qa-spec-abdeckung](slice-qa-spec-abdeckung.md)
