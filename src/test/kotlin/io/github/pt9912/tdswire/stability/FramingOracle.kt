@@ -3,13 +3,14 @@ package io.github.pt9912.tdswire.stability
 import java.io.ByteArrayOutputStream
 
 /**
- * Referenz für das Zusammensetzen von Nachrichten, unabhängig vom Paket-Codec: liest den ganzen Strom
- * auf einmal (kein Zustandsautomat, keine Zerstückelung) und nennt, was der Codec für jede Zerlegung
- * derselben Bytes liefern muss. Die Regeln sind die der Spezifikation (`SPEC-006`, `SPEC-007`,
- * `SPEC-028`) und die Festlegungen des Codecs, hier einzeln ausgeschrieben: Typ im Katalog nach
- * MS-TDS 2.2.3.1.1, Länge mindestens 8 und höchstens [maxPacket], Summe der Paketlängen höchstens
- * [maxMessage], ein Typ je Nachricht. Gehört der erste Fehler zu mehreren Regeln zugleich, nennt
- * [Expected.defects] alle; der Codec darf jede davon melden.
+ * Referenz für das Zusammensetzen von Nachrichten: liest den ganzen Strom auf einmal (kein
+ * Zustandsautomat, keine Zerstückelung) und nennt, was der Codec für jede Zerlegung derselben Bytes
+ * liefern muss. Der Aufbau ist vom Assembler des Codecs unabhängig; die Regeln laufen mit dem Codec
+ * gleich und sind hier einzeln ausgeschrieben (`SPEC-006`, `SPEC-007`, `SPEC-028`): Typ in
+ * [KNOWN_TYPES], Länge mindestens 8 und höchstens [maxPacket], Summe der Paketlängen höchstens
+ * [maxMessage], ein Typ je Nachricht. Ein Fuzz-Lauf gegen diese Referenz belegt die Übereinstimmung von
+ * Codec und Referenz, nicht die Übereinstimmung mit einem Standardtext. Gehört der erste Fehler zu
+ * mehreren Regeln zugleich, nennt [Expected.defects] alle; der Codec darf jede davon melden.
  */
 class FramingOracle(private val wire: ByteArray, private val maxPacket: Int, private val maxMessage: Int) {
     enum class Defect {
@@ -95,7 +96,10 @@ class FramingOracle(private val wire: ByteArray, private val maxPacket: Int, pri
     }
 
     companion object {
-        /** Pakettypen nach MS-TDS 2.2.3.1.1: 1, 2, 3, 4, 6, 7, 8, 14, 16, 17, 18. */
+        /**
+         * Festlegung der Referenz: die elf Typcodes 1, 2, 3, 4, 6, 7, 8, 14, 16, 17, 18. Die Menge läuft mit
+         * `PacketType` gleich, ein Test hält das fest; sie ist kein Beleg gegen einen Standardtext.
+         */
         val KNOWN_TYPES = setOf(0x01, 0x02, 0x03, 0x04, 0x06, 0x07, 0x08, 0x0E, 0x10, 0x11, 0x12)
         const val HEADER = 8
         private const val NONE = -1

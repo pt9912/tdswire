@@ -5,6 +5,7 @@ import io.github.pt9912.tdswire.testsupport.handPacket
 import io.github.pt9912.tdswire.transport.framing.FramingError
 import io.github.pt9912.tdswire.transport.framing.FramingLimits
 import io.github.pt9912.tdswire.transport.framing.MessageAssembler
+import io.github.pt9912.tdswire.transport.framing.PacketType
 import io.github.pt9912.tdswire.transport.framing.TdsMessage
 import kotlin.random.Random
 import kotlin.test.Test
@@ -15,7 +16,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * Fuzz des Paket-Codecs gegen die unabhängige Referenz [FramingOracle] (`TDS-QA-02`): defekte
+ * Fuzz des Paket-Codecs gegen die Referenz [FramingOracle] (`TDS-QA-02`): defekte
  * Paketlängen, Pakettypen, Status und Abschnitte der Nachrichtengrenze, in beliebige Stücke zerlegt.
  * Alle Läufe haben feste Startwerte.
  */
@@ -80,6 +81,11 @@ class FramingFuzzTest {
             counts.merge(key, 1, Int::plus)
         }
 
+        fun addChunking(wire: ByteArray, chunks: List<ByteArray>) {
+            if (chunks.size >= 2) counts.merge(CHUNKED, 1, Int::plus)
+            if (wire.size >= 2 && chunks.all { it.size == 1 }) counts.merge(BYTEWISE, 1, Int::plus)
+        }
+
         fun count(key: String) = counts[key] ?: 0
     }
 
@@ -88,7 +94,9 @@ class FramingFuzzTest {
      * über und weit über der Grenze, falsche und fremde Typen, abgeschnittene Enden), in einzelne
      * Bytes, ganze Ströme oder Stücke zufälliger Länge zerlegt: Nachrichten, Fehlerart, gepufferte
      * Bytes und die Zusage „nach dem ersten Fehler verbraucht“ stimmen mit der Referenz überein. Der
-     * Zähler weist nach, dass jede Fehlerart und der Erfolg in jeder Grenzenkonfiguration vorkamen.
+     * Zähler weist nach, dass jede Fehlerart und der Erfolg in jeder Grenzenkonfiguration vorkamen und
+     * dass mindestens ein Drittel der Läufe in zwei oder mehr Stücke zerlegt war, darunter Läufe in
+     * einzelnen Bytes.
      *
      * @spec SPEC-027 SPEC-006 SPEC-007 SPEC-028 SPEC-046
      */
@@ -101,11 +109,13 @@ class FramingFuzzTest {
             repeat(RUNS) { run ->
                 val wire = generator.wire()
                 val expected = FramingOracle(wire, limits.maxPacketBytes, limits.maxMessageBytes).expected()
-                val got = feedAll(limits, generator.chunks(wire))
+                val chunks = generator.chunks(wire)
+                val got = feedAll(limits, chunks)
                 val context = "Grenzen $index, Lauf $run, ${wire.size} Byte"
                 assertAgrees(expected, got, context)
                 assertConsumed(got, context)
                 tally.add(expected)
+                tally.addChunking(wire, chunks)
             }
             assertTally(tally, limits, index)
         }
@@ -119,6 +129,8 @@ class FramingFuzzTest {
             val seen = tally.count(it)
             assertTrue(seen >= MIN_PER_KIND, "Grenzen $index: $it nur ${seen}x in ${tally.counts}")
         }
+        assertTrue(tally.count(CHUNKED) >= RUNS / 3, "Grenzen $index: zerstückelt nur ${tally.count(CHUNKED)}x")
+        assertTrue(tally.count(BYTEWISE) >= MIN_PER_KIND, "Grenzen $index: bytenweise nur ${tally.count(BYTEWISE)}x")
     }
 
     /**
@@ -143,9 +155,73 @@ class FramingFuzzTest {
     }
 
     /**
+     * Die Paketlänge gilt einschließlich: ein Paket mit genau `maxPacketBytes` Byte wird angenommen, ein
+     * Byte darüber abgewiesen, in einem Stück wie in einzelnen Bytes.
+     *
+     * @spec SPEC-006 SPEC-046
+     */
+    @Test
+    fun `Paketgrenze nimmt die Laenge auf der Grenze an und weist ein Byte darueber ab`() {
+        val limits = FramingLimits(maxPacketBytes = 100, maxMessageBytes = 256)
+        val exact = handPacket(0x01, 1, ByteArray(limits.maxPacketBytes - 8) { 3 })
+        val above = byteArrayOf(0x01, 1, 0, 101, 0, 0, 1, 0) + ByteArray(93)
+        listOf(listOf(exact), exact.map { byteArrayOf(it) }).forEach { chunks ->
+            val accepted = feedAll(limits, chunks)
+            assertNull(accepted.error, "Länge 100 bei ${chunks.size} Stücken")
+            assertEquals(1, accepted.messages.size)
+        }
+        listOf(listOf(above), above.map { byteArrayOf(it) }).forEach { chunks ->
+            assertEquals(
+                "LENGTH_ABOVE_PACKET_LIMIT",
+                feedAll(limits, chunks).error?.failure?.name,
+                "Länge 101 bei ${chunks.size} Stücken",
+            )
+        }
+    }
+
+    /**
+     * Ein Paketkopf, der in zwei Lesevorgängen ankommt, wird an jeder Teilungsstelle (1 bis 7 Byte im
+     * ersten Stück) wie ein ganzer Kopf geprüft: hinter zwei Paketen ohne Ende von je 100 Byte bei der
+     * Nachrichtengrenze 256 ergibt eine Länge von 57 die Summe 257 (zu groß), ein anderer Typ den
+     * Typwechsel, Länge 101 und 7 und ein unbekannter Typ je ihren Fehler.
+     *
+     * @spec SPEC-007 SPEC-028
+     */
+    @Test
+    fun `Geteilter Paketkopf wird an jeder Teilungsstelle wie ein ganzer Kopf geprueft`() {
+        val limits = FramingLimits(maxPacketBytes = 100, maxMessageBytes = 256)
+        val prefix = handPacket(0x01, 0, ByteArray(92)) + handPacket(0x01, 0, ByteArray(92))
+        val headers = mapOf(
+            "MESSAGE_ABOVE_LIMIT" to byteArrayOf(0x01, 1, 0, 57, 0, 0, 1, 0),
+            "PACKET_TYPE_CHANGED" to byteArrayOf(0x02, 1, 0, 8, 0, 0, 1, 0),
+            "LENGTH_ABOVE_PACKET_LIMIT" to byteArrayOf(0x01, 1, 0, 101, 0, 0, 1, 0),
+            "LENGTH_BELOW_HEADER" to byteArrayOf(0x01, 1, 0, 7, 0, 0, 1, 0),
+            "UNKNOWN_PACKET_TYPE" to byteArrayOf(0x05, 1, 0, 8, 0, 0, 1, 0),
+        )
+        headers.forEach { (failure, header) ->
+            assertEquals(failure, feedAll(limits, listOf(prefix + header)).error?.failure?.name, "ganz: $failure")
+            for (split in 1 until header.size) {
+                val chunks = listOf(prefix + header.copyOf(split), header.copyOfRange(split, header.size))
+                assertEquals(failure, feedAll(limits, chunks).error?.failure?.name, "$failure, geteilt nach $split")
+            }
+        }
+    }
+
+    /**
+     * Die Typmenge der Referenz ist dieselbe wie die des Codecs (`PacketType`): der Fuzz-Test belegt
+     * damit Selbstkonsistenz von Codec und Referenz. Ein Vergleich mit einem Standardtext ist das nicht.
+     *
+     * @spec SPEC-006
+     */
+    @Test
+    fun `Typmenge der Referenz laeuft mit PacketType gleich`() {
+        assertEquals(PacketType.entries.map { it.code }.toSet(), FramingOracle.KNOWN_TYPES)
+    }
+
+    /**
      * Prüfung der Referenz an Handvektoren, die nicht aus dem Codec stammen: jede Regel, die der
-     * Fuzz-Test der Referenz überlässt, ergibt hier den Fehler, den MS-TDS 2.2.3.1 und die Grenzen
-     * verlangen. Eine Referenz, die alles annähme, würde den Fuzz-Test wertlos machen.
+     * Fuzz-Test der Referenz überlässt, ergibt hier den Fehler, den die Spezifikation und die Grenzen
+     * der Handvektoren verlangen; ein Strom ohne Fehler ist ausdrücklich erwartet.
      *
      * @spec SPEC-027
      */
@@ -176,6 +252,8 @@ class FramingFuzzTest {
         const val SEED = 20261030L
         const val RUNS = 3000
         const val MIN_PER_KIND = 25
+        const val CHUNKED = "ZERSTUECKELT"
+        const val BYTEWISE = "BYTENWEISE"
         const val FOLLOW_UP = 20
         const val HAND_MAX_PACKET = 100
         const val HAND_MAX_MESSAGE = 256
