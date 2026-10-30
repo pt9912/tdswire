@@ -47,7 +47,7 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [x] Spike durchgeführt; seine Ergebnisse (Messwerte, Matrix, Befund) stehen in der ADR. Der Spike-Code ist temporär und nach der Entscheidung gelöscht.
-- [x] [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md) auf `Accepted`, Option gewählt, Geschichte und ADR-Index nachgezogen.
+- [ ] [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md) auf `Accepted`, Option gewählt, Geschichte und ADR-Index nachgezogen.
 - [x] Spec-Stellen aus dem `Schärft:`-Feld der ADR an die Entscheidung angepasst.
 - [x] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -136,8 +136,12 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Die CI-Machbarkeit des Referenzclients (Laufzeit, Image-Bezug) ist nicht gegeben. — **Ausgang:** offen bis zur Closure.
-- NuGet-Audit und `trustedSigners` sind ohne Entscheidung; Träger ist der Folge-Slice [slice-qa-reproduzierbarkeit](../open/slice-qa-reproduzierbarkeit.md) oder ein Carveout. — **Ausgang:** weiter offen.
+- Die CI-Machbarkeit des Referenzclients (Laufzeit, Image-Bezug) ist nicht gegeben; gemessen sind nur der Minimal-Stub und der Kaltbau, nicht Pull-Dauer, frischer Runner oder die Pflicht-Matrix. — **Ausgang:** weiter offen; Träger [slice-qa-reproduzierbarkeit](../open/slice-qa-reproduzierbarkeit.md), das die CI einrichtet; Eintrag im Beobachtungs-Register bei der Closure.
+- NuGet-Audit und `trustedSigners` sind ohne Entscheidung. — **Ausgang:** weiter offen; Träger [slice-qa-reproduzierbarkeit](../open/slice-qa-reproduzierbarkeit.md) (Clean-Build mit .NET-Restore), sonst ein Carveout mit Trigger; Eintrag im Beobachtungs-Register bei der Closure.
+- Die Rechtsprüfung der EULA-Nutzung (CI-Läufe, Forks, Edition `Developer`) hat nicht stattgefunden. — **Ausgang:** weiter offen; Träger [slice-qa-reproduzierbarkeit](../open/slice-qa-reproduzierbarkeit.md) (Vergleichslauf D), zu klären vor der Aufnahme von D in `make gates`; Eintrag im Beobachtungs-Register bei der Closure.
+- Der SQL-Server-Tag, der TDS 8.0 anbietet, ist nicht ermittelt (`2022-latest` scheitert mit `Encrypt=Strict`). — **Ausgang:** weiter offen; Träger [slice-qa-reproduzierbarkeit](../open/slice-qa-reproduzierbarkeit.md) (Wahl des Tags mit dem Pin des Vergleichslaufs D); Eintrag im Beobachtungs-Register bei der Closure.
+- Die Häufigkeit der Läufe von D in der CI ist nicht entschieden. — **Ausgang:** weiter offen; Träger [slice-qa-reproduzierbarkeit](../open/slice-qa-reproduzierbarkeit.md) (Aufnahme in `make gates` erst nach Messung); Eintrag im Beobachtungs-Register bei der Closure.
+- Für den Fall „Fehler nach Zeilen“ gibt es keine Server-Referenz, nur die Annahme des Entwurfs ([TDS-QA-07](../../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität)). — **Ausgang:** weiter offen; Träger [slice-qa-reproduzierbarkeit](../open/slice-qa-reproduzierbarkeit.md) (Mitschnitt-Lauf von D nach [SPEC-045](../../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig)); Eintrag im Beobachtungs-Register bei der Closure.
 
 ## 7. Closure-Notiz
 
