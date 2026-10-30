@@ -8,6 +8,7 @@ import io.github.pt9912.tdswire.protocol.token.TdsValue
 import io.github.pt9912.tdswire.protocol.wire.ProtocolFailure
 import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
 import java.math.BigDecimal
+import java.math.BigInteger
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -16,10 +17,12 @@ import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
+import java.util.TimeZone
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class ValueMappingTest {
@@ -39,7 +42,7 @@ class ValueMappingTest {
     }
 
     /**
-     * Handvektoren nach MS-TDS 2.2.7.17: ein ROW-Token ist `D1`, dann je Spalte der Wert; ein fester Typ
+     * Von Hand gerechnete Vektoren: ein ROW-Token ist `D1`, dann je Spalte der Wert; ein fester Typ
      * hat kein Längenbyte, INTN und BITN haben eines (0 = NULL). Min und Max von Int32 und Int64 sind
      * Zweierkomplement, Little-Endian.
      *
@@ -164,10 +167,11 @@ class ValueMappingTest {
     }
 
     /**
-     * Überlauf: 999,99 passt in (5, 2), 1000,00 hat eine Stelle zu viel; (38, 0) endet bei 10^38 - 1 (Handvektor
-     * `0x4B3B4CA85A86C47A098A223FFFFFFFFF`, Little-Endian), 10^38 passt nicht. Mehr Nachkommastellen als der
-     * Scale gehen verloren und werden abgewiesen statt gerundet; nachlaufende Nullen sind kein Verlust
-     * (Festlegung ohne Messung: Lesart von „Genauigkeit größer als der Scale“).
+     * Überlauf: 999,99 passt in (5, 2), 1000,00 hat eine Stelle zu viel; (38, 0) endet bei 10^38 - 1 (von Hand
+     * gerechnet, `0x4B3B4CA85A86C47A098A223FFFFFFFFF` Little-Endian), 10^38 passt nicht. Mehr Nachkommastellen
+     * als der Scale gehen verloren und werden abgewiesen statt gerundet. Festlegung ohne Messung und ohne
+     * Bestätigung des Nutzers: nachlaufende Nullen sind kein Verlust (1,500 wird angenommen, 1,234 abgewiesen);
+     * das ist eine Lesart von „Genauigkeit größer als der Scale“.
      *
      * @spec SPEC-003
      * @spec SPEC-014
@@ -207,7 +211,29 @@ class ValueMappingTest {
     }
 
     /**
-     * Handvektoren (MS-TDS 2.2.5.5.1.8): DATE sind die Tage seit 0001-01-01 in 3 Byte Little-Endian;
+     * Eine Mantisse mit sehr vielen Stellen (10^100000, 100001 Stellen) wird in kurzer Zeit abgewiesen; das
+     * Kürzen nachlaufender Nullen läuft nicht über sie (Festlegung: Grenze 1000 Stellen). 1000 Stellen mit
+     * Nullen am Ende passen weiter.
+     *
+     * @spec SPEC-014
+     */
+    @Test
+    fun `Decimal mit riesiger Mantisse bindet keine Rechenzeit`() {
+        val defs = MappingSupport.defs(col(SqlType.Decimal(5, 2)))
+        val huge = BigDecimal(BigInteger.TEN.pow(100_000))
+        var outcome: ProtocolResult<TdsValue>? = null
+        val worker = Thread { outcome = ValueMapping.value(defs.single(), huge) }
+        worker.isDaemon = true
+        worker.start()
+        worker.join(2_000)
+        assertFalse(worker.isAlive, "nicht innerhalb der Frist")
+        assertEquals(ProtocolFailure.VALUE_OUT_OF_RANGE, MappingSupport.error(assertNotNull(outcome)).failure)
+        val padded = BigDecimal("1.5").setScale(DecimalMapping.MAX_MANTISSA_DIGITS - 1)
+        assertEquals(TdsValue.DecimalValue(BigDecimal("1.50")), mapped(SqlType.Decimal(5, 2), padded))
+    }
+
+    /**
+     * Von Hand gerechnete Vektoren: DATE sind die Tage seit 0001-01-01 in 3 Byte Little-Endian;
      * 2000-01-01 sind 730119 = `0x0B2407`, 9999-12-31 sind 3652058 = `0x37B9DA`. Außerhalb von Jahr 1 bis 9999
      * ist ein Datum ein Fehler.
      *
@@ -225,8 +251,9 @@ class ValueMappingTest {
     }
 
     /**
-     * Handvektoren: TIME bei Scale 7 sind die 100-ns-Ticks seit Mitternacht in 5 Byte; 12:00:00 sind
-     * 432000000000 = `0x649534E000`, 23:59:59,9999999 ist `FF BF 69 2A C9` (Vektor aus den Encoder-Tests).
+     * Von Hand gerechnete Vektoren: TIME bei Scale 7 sind die 100-ns-Ticks seit Mitternacht in 5 Byte;
+     * 12:00:00 sind 432000000000 = `0x649534E000`, 23:59:59,9999999 ist `FF BF 69 2A C9` (863999999999
+     * Ticks, nachgerechnet; Selbstkonsistenz mit den Encoder-Tests, keine unabhängige Quelle).
      * DATETIME2 ist die Zeit, dann das Datum (2024-01-01 = `45 46 0B`).
      *
      * @spec SPEC-003
@@ -280,6 +307,34 @@ class ValueMappingTest {
     }
 
     /**
+     * Die Bytes hängen nicht von der Standardzone der JVM ab: in Europe/Berlin fehlt 2024-03-31T02:30
+     * (Sommerzeitlücke), in America/New_York 2024-03-10T02:30; der Wert wird unverändert zu Tick- und
+     * Tagesbytes (02:30 = 90000000000 Ticks = `00 04 6B F4 14`; 2024-03-31 = 738975 = `9F 46 0B`,
+     * 2024-03-10 = 738954 = `8A 46 0B`, von Hand gerechnet). Die Standardzone wird gesetzt und in jedem
+     * Fall zurückgesetzt.
+     *
+     * @spec SPEC-003
+     */
+    @Test
+    fun `Bytes sind unabhaengig von der Standardzone der JVM`() {
+        val saved = TimeZone.getDefault()
+        try {
+            val cases = listOf(
+                Triple("Europe/Berlin", LocalDateTime.of(2024, 3, 31, 2, 30), "D1 08 00 04 6B F4 14 9F 46 0B"),
+                Triple("America/New_York", LocalDateTime.of(2024, 3, 10, 2, 30), "D1 08 00 04 6B F4 14 8A 46 0B"),
+            )
+            for ((zone, stamp, expected) in cases) {
+                TimeZone.setDefault(TimeZone.getTimeZone(zone))
+                assertEquals(expected, encoded(SqlType.DateTime, stamp), zone)
+                assertEquals("D1 05 00 04 6B F4 14", encoded(SqlType.Time, stamp.toLocalTime()), zone)
+                assertEquals(TdsValue.DateTime2Value(stamp), mapped(SqlType.DateTime, stamp), zone)
+            }
+        } finally {
+            TimeZone.setDefault(saved)
+        }
+    }
+
+    /**
      * Eine Zeile wird als Ganzes abgebildet: ein ungültiger Wert in der letzten Spalte macht die Zeile zum
      * Fehler ohne Teilzeile, und eine falsche Wertzahl ist ein Fehler.
      *
@@ -298,31 +353,41 @@ class ValueMappingTest {
     }
 
     /**
-     * Die Textdarstellung eines Fehlers enthält keinen Wert der Zeile: Text, Zahl und Datum
-     * erscheinen nicht; die Position der Spalte erscheint.
+     * Die Textdarstellung eines Fehlers enthält keinen Wert der Zeile, auf jedem Fehlerpfad der
+     * Wertabbildung: Text zu lang, unpaares Surrogat, Uhrzeit zu fein (Time und DateTime), Datum außerhalb
+     * des Bereichs (Date und DateTime), Decimal mit zu vielen Nachkommastellen und Überlauf, Typkonflikt
+     * mit Text, Zahl und Datum als falschem Wert. Jede Zeile trägt eine Markierung, die nur im Wert steht;
+     * die Position der Spalte steht im Fehler.
      *
      * @spec SPEC-014
      */
     @Test
     fun `Fehlertext enthaelt keine Zeilenwerte`() {
-        val defs = MappingSupport.defs(
-            col(SqlType.UnicodeText),
-            col(SqlType.Decimal(5, 2)),
-            col(SqlType.Date),
-            col(SqlType.Int32),
+        val oddTime = LocalTime.of(12, 34, 56, 789)
+        val oddDate = LocalDate.of(12345, 6, 7)
+        val oddStamp = LocalDateTime.of(2024, 6, 7, 12, 34, 56, 789)
+        val cases = listOf(
+            Triple(SqlType.UnicodeText, "geheim".repeat(700), listOf("geheim")),
+            Triple(SqlType.UnicodeText, "geheim-4711\uD800", listOf("geheim", "4711")),
+            Triple(SqlType.Time, oddTime, listOf("12:34", "34:56", "789")),
+            Triple(SqlType.DateTime, oddStamp, listOf("2024", "06-07", "34:56", "789")),
+            Triple(SqlType.Date, oddDate, listOf("12345", "06-07")),
+            Triple(SqlType.DateTime, oddDate.atStartOfDay(), listOf("12345", "06-07")),
+            Triple(SqlType.Decimal(5, 2), BigDecimal("98765.4321"), listOf("98765", "4321")),
+            Triple(SqlType.Decimal(5, 2), BigDecimal("98765.43"), listOf("98765", "43")),
+            Triple(SqlType.Int32, "pw-0815", listOf("pw-0815", "0815")),
+            Triple(SqlType.Int32, BigDecimal("98765.4321"), listOf("98765", "4321")),
+            Triple(SqlType.UnicodeText, oddDate, listOf("12345", "06-07")),
+            Triple(SqlType.Date, "pw-0815", listOf("pw-0815", "0815")),
         )
-        val secrets = listOf("geheim-4711\uD800", BigDecimal("98765.4321"), LocalDate.of(12345, 6, 7), "pw-0815")
-        val renderings = secrets.indices.map { index ->
-            val row = listOf<Any?>("ok", BigDecimal("1.00"), LocalDate.of(2000, 1, 1), 1).toMutableList()
-            row[index] = secrets[index]
-            MappingSupport.error(ValueMapping.row(defs, row)).toString()
+        val leaks = mutableListOf<String>()
+        for ((type, value, markers) in cases) {
+            val defs = MappingSupport.defs(col(SqlType.Int32), col(type))
+            val text = MappingSupport.error(ValueMapping.row(defs, listOf(1, value))).toString()
+            assertTrue("Spalte 1" in text, text)
+            leaks += markers.filter { it in text }.map { "$type: $it" }
         }
-        for (text in renderings) {
-            for (marker in listOf("geheim", "4711", "98765", "4321", "12345", "pw-0815")) {
-                assertFalse(marker in text, "$marker in $text")
-            }
-        }
-        assertTrue(renderings.all { "Spalte" in it })
+        assertEquals(emptyList(), leaks)
     }
 
     /**

@@ -7,8 +7,8 @@ package io.github.pt9912.tdswire.domain
  * Teil dieses Modells.
  *
  * Festlegung ohne Messung: `SPEC-002` definiert `SqlType` nicht; Umfang und Namen setzt dieser Quelltext.
- * Offen (`SPEC-003`): Längenlimit von [UnicodeText], Genauigkeit der Zeittypen und Zeitzonenannahmen.
- * Offen (ADR-0006): welche JVM-Typen die Werte in `Row` und `QueryParameter` je [SqlType] haben.
+ * Längenlimit von [UnicodeText], Scale der Zeittypen, Zeitzonenannahme, Precision-Obergrenze und die
+ * JVM-Typen der Werte je [SqlType] legt die Typabbildung fest (`SPEC-003`, `ValueMapping`).
  */
 sealed interface SqlType {
     /** Ganzzahl mit 32 Bit. */
@@ -26,9 +26,9 @@ sealed interface SqlType {
     /**
      * Dezimalzahl mit [precision] Stellen insgesamt, davon [scale] hinter dem Komma. Gefordert ist
      * `precision >= 1` und `0 <= scale <= precision`; eine obere Grenze von [precision] ist nicht
-     * festgelegt. Offen (Abstimmung zu `SPEC-003`, Nutzerentscheidung): der Codec
-     * (`TypeInfoWriter.MAX_PRECISION`) erlaubt 1 bis 38, dieses Modell nimmt auch größere Werte an;
-     * der Widerspruch ist nicht aufgelöst.
+     * festgelegt. Der Codec (`TypeInfoWriter.MAX_PRECISION`) erlaubt 1 bis 38,
+     * dieses Modell nimmt auch größere Werte an; die Typabbildung weist eine Precision über 38 mit
+     * `TDS_UNSUPPORTED_TYPE` ab (`SPEC-002`).
      */
     data class Decimal(val precision: Int, val scale: Int) : SqlType {
         init {
@@ -43,6 +43,6 @@ sealed interface SqlType {
     /** Uhrzeit ohne Datum. */
     data object Time : SqlType
 
-    /** Datum mit Uhrzeit. Das Modell trägt keine Zone; die Zeitzonenannahme ist offen (`SPEC-003`). */
+    /** Datum mit Uhrzeit. Das Modell trägt keine Zone; die Typabbildung nimmt Werte ohne Zone an (`SPEC-003`). */
     data object DateTime : SqlType
 }

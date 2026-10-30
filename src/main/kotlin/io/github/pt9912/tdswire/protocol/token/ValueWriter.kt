@@ -5,7 +5,7 @@ import io.github.pt9912.tdswire.protocol.wire.ProtocolFailure
 import io.github.pt9912.tdswire.protocol.wire.violation
 
 /**
- * Schreibt den Wert einer Spalte in der Form des Typs (TYPE_VARBYTE, MS-TDS 2.2.5.5): feste Typen
+ * Schreibt den Wert einer Spalte in der Form des Typs (TYPE_VARBYTE, Layout nach MS-TDS): feste Typen
  * ohne Längenbyte, nullbare Typen mit Längenbyte (0 = NULL), NVARCHAR mit 2-Byte-Länge in Byte
  * (`0xFFFF` = NULL). Ein Wert, der nicht zum Typ passt oder ihn sprengt, ist ein Verstoß.
  *

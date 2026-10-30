@@ -10,6 +10,7 @@ import io.github.pt9912.tdswire.protocol.wire.ProtocolFailure
 import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -22,7 +23,8 @@ class ColumnMappingTest {
     private val latinNVarchar = "E7 40 1F 09 04 D0 00 34"
 
     /**
-     * Handvektoren der TYPE_INFO nach MS-TDS 2.2.5.4 und 2.2.7.4: feste Typen `38` (INT4), `7F` (INT8) und
+     * Erwartete TYPE_INFO-Bytes, übereinstimmend mit den Orakeln des Encoder-Tests (Selbstkonsistenz mit
+     * dem Codec; eine Messung oder eine Quelle im Repo gibt es dafür nicht): feste Typen `38` (INT4), `7F` (INT8) und
      * `32` (BIT) nicht nullbar, `26 04`, `26 08` und `68 01` (INTN, BITN) nullbar; Unicode-Text ist `E7` mit
      * 8000 Byte (`40 1F`) und der Kollation `09 04 D0 00 34`; `28` (DATEN), `29 07` (TIMEN), `2A 07`
      * (DATETIME2N); `6A 09 0A 02` ist DECIMALN, Länge 9 für Precision 10 bis 19. Das Bit `fNullable` ist
@@ -164,6 +166,23 @@ class ColumnMappingTest {
         assertEquals(ProtocolFailure.TOO_LONG, MappingSupport.error(long).failure)
         val broken = ColumnMapping.map(listOf(column(SqlType.Int32, false, "a\uD800")))
         assertEquals(ProtocolFailure.VALUE_OUT_OF_RANGE, MappingSupport.error(broken).failure)
+    }
+
+    /**
+     * Die Textdarstellung eines Metadatenfehlers enthält keinen Spaltennamen: weder bei einem zu langen
+     * Namen noch bei einem Namen mit unpaarem Surrogat; die Position der Spalte steht im Fehler.
+     *
+     * @spec SPEC-014
+     */
+    @Test
+    fun `Fehlertext der Metadaten enthaelt keinen Spaltennamen`() {
+        val names = listOf("geheimspalte" + "x".repeat(250), "geheimspalte\uD800")
+        for (name in names) {
+            val columns = listOf(column(SqlType.Int32, false, "ok"), column(SqlType.Int32, false, name))
+            val text = MappingSupport.error(ColumnMapping.map(columns)).toString()
+            assertTrue("Spalte 1" in text, text)
+            assertFalse("geheimspalte" in text, text)
+        }
     }
 
     /**

@@ -281,12 +281,13 @@ bleibt davon unberührt.
 `0 <= scale <= precision`, `Date`, `Time` und `DateTime` (ohne Zeitzone). Breiten unter 32 Bit,
 Gleitkomma, Geld, GUID und Binärtypen gehören nicht dazu (Setzung vom 2026-10-30, nicht gemessen).
 
+**Precision über 38 (Nutzerentscheidung vom 2026-10-30, nicht gemessen):** das Modell von `Decimal` hat
+keine Obergrenze, die Typkennung kennt Precision 1 bis 38 (`SPEC-003`). Die Typabbildung weist eine
+Precision über 38 vor COLMETADATA mit `TDS_UNSUPPORTED_TYPE` ab; das Modell bleibt unverändert.
+
 **Offen:**
-- Obergrenze der Precision: das Modell von `Decimal` hat keine; der Encoder der Typkennung akzeptiert
-  Precision 1 bis 38 (`SPEC-003`). Eine Precision über 38 ist im Modell darstellbar und scheitert erst
-  beim Encodieren; die Abstimmung beider Seiten ist offen.
-- Längenlimit von `UnicodeText`, Genauigkeit der Zeittypen, Zeitzonenannahmen (`SPEC-003`) sowie die
-  JVM-Typen der Werte in `Row`, `QueryParameter` und `OutputParameter` je `SqlType` (Zeilendarstellung).
+- Die JVM-Typen der Werte in `OutputParameter` und die endgültige Zeilendarstellung (`Row`,
+  `QueryParameter`); die Typabbildung setzt für Zeilenwerte eine Zwischenfestlegung (`SPEC-003`).
 - Ob ein `Failure` als „nächstes Ereignis“ der `DONE_MORE`-Vorschau zählt; die Unterscheidung statement-
   und batch-abbrechender Fehler im Strom, die `Failure` nicht trägt; die Grenze für ein „kleines“
   Ergebnis; die Behandlung von `OutOfMemoryError`; ein blockierendes Backend hinter dem `Flow`; die
@@ -307,6 +308,19 @@ Lebensdauerregeln und alles, was über diesen Stand hinausgeht, bleiben Entwurf 
 
 Konkrete Token-/Typkennungen, Kollation und Präzision sind anhand MS-TDS und des Referenzclients zu
 verifizieren.
+
+**Typabbildung (Setzungen vom 2026-10-30, nicht gemessen):**
+- Datum und Zeit sind ohne Zone: `LocalDate`, `LocalTime` und `LocalDateTime` werden wie geliefert
+  abgebildet, ohne Zeitzonenumrechnung; Werte mit Zone (`Instant`, `OffsetDateTime`, `ZonedDateTime`)
+  sind nicht im Mindestkatalog und enden in `TDS_UNSUPPORTED_TYPE`. `Time` und `DateTime` haben Scale 7
+  (100 ns); ein feinerer Wert wird abgewiesen, nicht gerundet. Das Jahr liegt zwischen 1 und 9999.
+- Unicode-Text ist `NVARCHAR(4000)` mit der Kollation `SQL_Latin1_General_CP1_CI_AS`, gezählt in
+  UTF-16-Einheiten; ein unpaares Surrogat wird abgewiesen. Der leere String ist ein Wert, nicht NULL.
+- Decimal wird nie gerundet: ein Wert mit mehr Nachkommastellen als der Scale der Spalte (nachlaufende
+  Nullen zählen nicht) oder mit mehr Stellen als die Precision erlaubt wird abgewiesen. Eine Precision
+  über 38 scheitert in der Typabbildung mit `TDS_UNSUPPORTED_TYPE` (`SPEC-002`).
+- Genauigkeit der Zeittypen, Kollation und Längenlimit sind damit gesetzt; am Referenzclient und am
+  echten SQL Server ist keiner dieser Werte gemessen.
 
 **RPC-Parametertypen (Eingabe, vom Referenzclient beobachtet):** `tinyint`/`smallint`/`int`/`bigint`
 als `INTN` (Länge 1/2/4/8); `float`/`real` als `FLTN`; `money`/`smallmoney` als `MONEYN`; `bit` als
@@ -649,3 +663,4 @@ aktive Backendoperationen, Abbrüche, Protokollfehler. Keine SQL-Texte als Metri
 | 2026-10-30 | Nach weiteren Setzungen des Nutzers geschärft: Verbindungsende nach abgelehntem Login (`SPEC-012`), Severity 16 für Anfragefehler und 20 für `TDS_PROTOCOL_ERROR` und `TDS_INTERNAL_ERROR` (`TDS-FA-06.a`, `SPEC-011`, `SPEC-048`), nicht abschließbarer Strom ohne ERROR und DONE geschlossen (`SPEC-029`, `SPEC-031`); alles Setzung, nicht an Referenzclients gemessen; die Zuordnung jedes Codes legt das Fehler-Mapping fest, Cancel/Timeout als Fehler bleibt offen |
 | 2026-10-30 | Nach Re-Review geschärft: eigene Codes ohne Einzelzuordnung schließen bis zur Zuordnung durch das Fehler-Mapping (`TDS-FA-06.a`); Messklammer in `SPEC-012` an die Antwortbytes gebunden, das Verbindungsende als Setzung getrennt (`SPEC-012`) |
 | 2026-10-30 | Backend-Vertrag auf den gebauten Stand geschärft: `SqlType` definiert, Ort der Typen und Fehlerform beim Start als Setzung, Precision-Obergrenze und weitere Punkte als offen geführt (`SPEC-002`, `SPEC-022`, `TDS-FA-08.a`) |
+| 2026-10-30 | Typabbildung nachgeführt: Precision über 38 scheitert in der Typabbildung, Zeit ohne Zone mit Scale 7, Unicode-Text `NVARCHAR(4000)` und Decimal ohne Rundung als Setzungen (`SPEC-002`, `SPEC-003`) |

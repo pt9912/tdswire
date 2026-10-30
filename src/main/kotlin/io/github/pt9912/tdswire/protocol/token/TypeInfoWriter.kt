@@ -4,7 +4,7 @@ import io.github.pt9912.tdswire.protocol.wire.ByteWriter
 import io.github.pt9912.tdswire.protocol.wire.ProtocolFailure
 import io.github.pt9912.tdswire.protocol.wire.violation
 
-/** Typkennungen der TYPE_INFO (MS-TDS 2.2.5.4). */
+/** Typkennungen der TYPE_INFO (Layout nach MS-TDS). */
 internal object TypeCode {
     const val INT4 = 0x38
     const val INT8 = 0x7F

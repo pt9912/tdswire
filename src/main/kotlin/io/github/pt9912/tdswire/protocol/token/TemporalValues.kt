@@ -6,7 +6,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 
 /**
- * Die Bytes der Datums- und Zeittypen (MS-TDS 2.2.5.5.1.8): DATE sind die Tage seit 0001-01-01 in
+ * Die Bytes der Datums- und Zeittypen (Layout nach MS-TDS): DATE sind die Tage seit 0001-01-01 in
  * 3 Byte Little-Endian, TIME die Ticks seit Mitternacht (Einheit `10^-scale` Sekunden) in 3, 4 oder
  * 5 Byte, DATETIME2 die Zeit gefolgt vom Datum.
  */
