@@ -1,1 +1,1 @@
-**Stand:** offen — der Träger-Slice der funktionalen Welle ist noch nicht angelegt
+**Stand:** gestrichen — Kotlin-Signatur und Konfigurationsweg des Adapters haben ihre Träger als Dateien (`slice-auth-adapter-benutzerliste`, `slice-bootstrap-konfiguration`), und der Konfigurationsweg ist in [ADR-0011](../../../../adr/0011-pruefwertformat.md) entschieden; "Träger-Slice nicht angelegt" kann nicht mehr auftreten

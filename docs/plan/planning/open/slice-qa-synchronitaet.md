@@ -34,7 +34,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Die Wahl der Recovery-Regel — sie ist in [ADR-0007](../../adr/0007-fehler-und-attention.md) offen und wird dort entschieden; der Slice setzt die gewählte Regel um und prüft sie.
+- Die Wahl der Recovery-Regel — sie ist in [ADR-0007](../../adr/0007-fehler-und-attention.md) (`Accepted`) entschieden: enge Form von Option B mit A als Grundregel (die Verbindung bleibt offen nur bei Class ≤ 19 mit vollständigem ERROR und DONE sowie nach Cancel oder Timeout mit gesendetem DONE mit ATTENTION-Status, sonst schließt der Server); offen bleiben dort Cancel und Timeout als Fehler, der Inhalt der Cancel-Antwort, die Abbildung statement- und batch-abbrechender Fehler, ATTENTION im Handshake, `RESETCONNECTION` und der Sitzungszustand nach einem Fehler sowie die Zuordnung weiterer Codes (Träger: die Slices der Welle `welle-fehler-abbruch`). Der Slice setzt die Regel um und prüft sie.
 
 ## 2. Definition of Done
 
@@ -96,7 +96,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Die Recovery-Regel ([ADR-0007](../../adr/0007-fehler-und-attention.md)) ist offen; die Matrix kann sie widerlegen. — **Ausgang:** offen bis zur Closure.
+- Die Recovery-Regel ([ADR-0007](../../adr/0007-fehler-und-attention.md), `Accepted`) ist eine Setzung des Nutzers; gemessen sind am echten Server nur Class 20 und 25 und die Fehler der Class ≤ 19, an keinem Server dieses Repos. Die Matrix kann sie widerlegen, und die in der ADR offenen Punkte können sie ändern. — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 

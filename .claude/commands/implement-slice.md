@@ -189,6 +189,14 @@ Hier endet die Implementation. Die übrigen Rollen laufen in **getrennten Kontex
     Folge-Slice mit ID · *entfallen* → gestrichen **mit Begründung** · *weiter offen* → wandert ins
     Beobachtungs-Register (Schritt 25). Ein Slice geht nicht nach `done/`, während ein Risiko ohne
     Ausgang dasteht.
+    **Entscheidungs-Slice (die ADR steht auf `Accepted` und führt offene Punkte)** *(seit welle-entscheidungen-grundlage)*:
+    Jeder offene Punkt der ADR hat vor dem `→ done` einen Träger, der als Datei im
+    Planning-Lifecycle existiert und den Punkt in seiner DoD oder seinem Risiko führt —
+    geprüft gegen den Inhalt der Slice-Datei, nicht gegen ihren Namen. Fehlt er, wird der
+    Punkt dort ergänzt oder ein Folge-Slice angelegt (`cp` aus `slice.template.md`); sonst
+    steht in der Closure-Notiz „Folge-ADR nötig“ mit dem Re-Evaluierungs-Trigger der ADR.
+    „Nutzerentscheidung“ ist kein Träger. Eine `Accepted`-ADR schließt ihre offenen Punkte
+    nur per Folge-ADR (`AGENTS.md` §3.5).
 25. **Das Beobachtungs-Register fortschreiben** (`docs/plan/planning/observations/`, Modul 6) —
     der **Schreib**-Schritt, und er hängt an der Closure, nicht an der Implementation. Für jede
     Beobachtung aus der Closure-Notiz: führt das Register die Klasse schon, dann die vorhandene

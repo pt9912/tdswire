@@ -17,7 +17,6 @@ Zustand sind die flachen Welle-Dateien; woran gearbeitet wird, sagt das
 Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 
 - [welle-qualitaet-grundlage](../welle-qualitaet-grundlage.md)
-- [welle-entscheidungen-grundlage](../welle-entscheidungen-grundlage.md)
 - [welle-transport-tls](../welle-transport-tls.md)
 - [welle-handshake-login](../welle-handshake-login.md)
 - [welle-anfrageverarbeitung](../welle-anfrageverarbeitung.md)
@@ -41,11 +40,6 @@ In Arbeit (Welle welle-qualitaet-grundlage):
 In Arbeit (Welle welle-handshake-login):
 
 - [slice-auth-adapter-benutzerliste](slice-auth-adapter-benutzerliste.md)
-
-In Arbeit (Welle welle-entscheidungen-grundlage):
-
-- [slice-adr-session-zustand](slice-adr-session-zustand.md)
-- [slice-adr-backend-streaming](slice-adr-backend-streaming.md)
 
 
 
@@ -101,6 +95,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 | Welle | Abschluss | Closure-Notiz |
 |---|---|---|
 | welle-protokollcodec | 2026-10-30 | [welle-protokollcodec-results](../done/welle-protokollcodec-results.md) |
+| welle-entscheidungen-grundlage | 2026-10-30 | [welle-entscheidungen-grundlage-results](../done/welle-entscheidungen-grundlage-results.md) |
 
 ## Historische Trigger-Verschiebungen
 

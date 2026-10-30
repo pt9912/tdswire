@@ -30,7 +30,7 @@ dieser Welle**: Steht er in der Slice-Liste unten, ist er falsch platziert.
 
 - `slice-codec-tds-paket` (Welle [welle-protokollcodec](done/welle-protokollcodec/welle-protokollcodec.md)) liegt in `done/`: Paket-Codec im Package `transport` und das Test-Gate `make test` stehen auf `main`.
 - `make gates` ist auf `main` grün.
-- [ADR-0001](../adr/0001-tds-version-und-clientprofil.md), [ADR-0002](../adr/0002-tls-und-verschluesselung.md) und [ADR-0003](../adr/0003-transportframework.md) stehen im ADR-Index auf `Accepted`. Die offenen ADRs ([ADR-0004](../adr/0004-session-zustandsautomat.md), [ADR-0006](../adr/0006-backend-vertrag-und-streaming.md), [ADR-0007](../adr/0007-fehler-und-attention.md)) betreffen Zustandsautomat, Backend-Vertrag und Fehlersemantik, die diese Welle nicht berührt (siehe §6).
+- [ADR-0001](../adr/0001-tds-version-und-clientprofil.md), [ADR-0002](../adr/0002-tls-und-verschluesselung.md) und [ADR-0003](../adr/0003-transportframework.md) stehen im ADR-Index auf `Accepted`. [ADR-0004](../adr/0004-session-zustandsautomat.md), [ADR-0006](../adr/0006-backend-vertrag-und-streaming.md) und [ADR-0007](../adr/0007-fehler-und-attention.md) (Zustandsautomat, Backend-Vertrag, Fehlersemantik) stehen ebenfalls auf `Accepted`; sie sind kein Start-Trigger, weil diese Welle sie nicht berührt (siehe §6).
 
 ## 3. Closure-Trigger (Welle schließt)
 
@@ -63,8 +63,8 @@ Reihenfolge: gerüst vor schleife vor listener-lebenszyklus (jeder Slice nutzt d
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte.
 
-- Blockiert: die funktionalen Wellen für Verbindungsaufbau, Login, SQL_BATCH und RPC (wegen Kanal, verschlüsseltem Strom und Verbindungs-Handler); sie sind noch nicht geplant und stehen in keiner Roadmap-Zeile.
-- Wird blockiert von: Slice `slice-codec-tds-paket` der Welle [welle-protokollcodec](done/welle-protokollcodec/welle-protokollcodec.md) (Paket-Codec, Test-Gate); die Welle selbst muss nicht geschlossen sein. [welle-entscheidungen-grundlage](welle-entscheidungen-grundlage.md) blockiert nicht.
+- Blockiert: die funktionalen Wellen für Verbindungsaufbau, Login, SQL_BATCH und RPC (wegen Kanal, verschlüsseltem Strom und Verbindungs-Handler); für Verbindungsaufbau und Login ist es [welle-handshake-login](welle-handshake-login.md), für SQL_BATCH und RPC [welle-anfrageverarbeitung](welle-anfrageverarbeitung.md).
+- Wird blockiert von: Slice `slice-codec-tds-paket` der Welle [welle-protokollcodec](done/welle-protokollcodec/welle-protokollcodec.md) (Paket-Codec, Test-Gate); die Welle selbst muss nicht geschlossen sein. [welle-entscheidungen-grundlage](done/welle-entscheidungen-grundlage/welle-entscheidungen-grundlage.md) blockiert nicht.
 - Berührt, blockiert aber nicht: [welle-qualitaet-grundlage](welle-qualitaet-grundlage.md). `slice-qa-stabilitaet` (Fuzz und parallele Verbindungen), `slice-qa-sicherheit` (TLS-Modus) und `slice-qa-kompatibilitaet` (Referenzclient, beide Pfade) bauen auf diesem Transport auf und messen mehr als diese Welle; sie bleiben unverändert (siehe §6).
 
 ## 6. Out-of-Scope für diese Welle
@@ -74,8 +74,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 Zielsetzung: Was nicht ausdrücklich ausgeschlossen ist, dehnt die Welle, bis
 der Closure-Trigger unerreichbar wird.
 
-- Handshake- und Session-Ablauf: kein Verbindungs-Zustandsautomat, keine PRELOGIN-/LOGIN7-Verhandlung als Ablauf, keine Entscheidung über ENCRYPT_REQ, ENCRYPT_ON oder ENCRYPT_NOT_SUP. Die Transportschicht bietet die Schleife und wird mit dem Pfad gerufen; der Zustandsautomat ist [ADR-0004](../adr/0004-session-zustandsautomat.md) (`Proposed`).
-- Backend, Anfrageverarbeitung und Fehlersemantik: kein Backend-Port, kein Dispatch, kein `TDS_SHUTDOWN`, kein Cancel an das Backend ([ADR-0006](../adr/0006-backend-vertrag-und-streaming.md), [ADR-0007](../adr/0007-fehler-und-attention.md), beide `Proposed`). Der Listener kennt „laufende Anfrage“ nur als Rückmeldung eines Handlers.
+- Handshake- und Session-Ablauf: kein Verbindungs-Zustandsautomat, keine PRELOGIN-/LOGIN7-Verhandlung als Ablauf, keine Entscheidung über ENCRYPT_REQ, ENCRYPT_ON oder ENCRYPT_NOT_SUP. Die Transportschicht bietet die Schleife und wird mit dem Pfad gerufen; der Zustandsautomat ist [ADR-0004](../adr/0004-session-zustandsautomat.md) (`Accepted`; Slice [slice-handshake-login](open/slice-handshake-login.md) der Welle [welle-handshake-login](welle-handshake-login.md)).
+- Backend, Anfrageverarbeitung und Fehlersemantik: kein Backend-Port, kein Dispatch, kein `TDS_SHUTDOWN`, kein Cancel an das Backend ([ADR-0006](../adr/0006-backend-vertrag-und-streaming.md), [ADR-0007](../adr/0007-fehler-und-attention.md), beide `Accepted`; Wellen [welle-backend-streaming](welle-backend-streaming.md), [welle-anfrageverarbeitung](welle-anfrageverarbeitung.md) und [welle-fehler-abbruch](welle-fehler-abbruch.md)). Der Listener kennt „laufende Anfrage“ nur als Rückmeldung eines Handlers.
 - Authentifizierung ([ADR-0009](../adr/0009-authentifizierungsmodus.md)): keine Prüfung von Kennung und Passwort.
 - Konfigurationsvalidierung (Package `config`), Prozessstart, Composition Root, JVM-Flags des Serverprozesses (`runtime`) und Telemetrie (`observability`).
 - Nachweis gegen den Referenzclient und gegen einen echten SQL Server, Last über einige Dutzend Verbindungen und Langzeitläufe: `welle-qualitaet-grundlage` (`slice-qa-kompatibilitaet`, `slice-qa-performance`, `slice-qa-stabilitaet`, `slice-qa-sicherheit`). Die Welle belegt die Transportschicht gegen eine JDK-Gegenstelle.

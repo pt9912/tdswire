@@ -1,1 +1,1 @@
-**Stand:** geplant — `slice-qa-reproduzierbarkeit` (Vergleichslauf D; DoD-Punkt 3 nennt seit `welle-protokollcodec` Antwort-Token-Reihenfolge, DONE-Statusbits und RETURNVALUE-Zählung)
+**Stand:** geplant — `slice-qa-reproduzierbarkeit` (Vergleichslauf D; DoD-Punkt 3 nennt seit `welle-protokollcodec` Antwort-Token-Reihenfolge, DONE-Statusbits und RETURNVALUE-Zählung); die DoD nennt unzulässige Übergänge, ATTENTION im Leerlauf, Class 21 bis 24 und Herunterfahren nicht

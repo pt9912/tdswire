@@ -36,7 +36,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 - Die Zuordnung der Codes zu Class und Folge — `slice-fehler-mapping`; dieser Slice führt die Folge aus, er legt sie nicht fest.
 - ATTENTION, Cancel und Timeout — `slice-attention-cancel-timeout`; der Zustand `CANCELLING` entsteht dort.
-- Dispatch, Batch-Zerlegung und RPC — Welle `welle-anfrageverarbeitung` (andere Planung, noch keine Datei). Dieser Slice setzt den Anfragezustand `IDLE → RUNNING → STREAMING → COMPLETED` voraus, er baut ihn nicht (Abstimmungsbedarf, §6).
+- Dispatch, Batch-Zerlegung und RPC — Welle `welle-anfrageverarbeitung` (andere Planung). Dieser Slice setzt den Anfragezustand `IDLE → RUNNING → STREAMING → COMPLETED` voraus, er baut ihn nicht (Abstimmungsbedarf, §6).
 - Port, Flow und Typabbildung des Backends — Welle `welle-backend-streaming`; dieser Slice konsumiert nur `Failure` und das Stromende.
 - Gate über das Gesamtsystem mit dem Referenzclient (Fehler nach bereits gesendeten Zeilen am .NET-Client) — `slice-qa-synchronitaet` und `slice-qa-kompatibilitaet`; hier Rohbytes-Tests mit einem Fake-Backend.
 - Wiederholungen oder Retry im Server — Option C der ADR, nicht gewählt.
@@ -82,7 +82,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf, inklusive einer
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): Der Start-Trigger der Welle `welle-fehler-abbruch` ist eingetreten, `slice-fehler-mapping` liegt in `done/`, ein Slice der Welle `welle-anfrageverarbeitung` mit dem Anfragezustand `IDLE → RUNNING → STREAMING → COMPLETED → IDLE` über einem Port-Strom liegt in `done/` (Kennung legen die Planer jener Welle fest), [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md) steht im ADR-Index auf `Accepted`, und ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): Der Start-Trigger der Welle `welle-fehler-abbruch` ist eingetreten, `slice-fehler-mapping` liegt in `done/`, `slice-sql-batch-dispatch` der Welle `welle-anfrageverarbeitung` mit dem Anfragezustand `IDLE → RUNNING → STREAMING → COMPLETED → IDLE` über einem Port-Strom liegt in `done/`, [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md) steht im ADR-Index auf `Accepted`, und ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
