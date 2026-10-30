@@ -38,10 +38,6 @@ In Arbeit (Welle welle-backend-streaming):
 
 - [slice-backend-typabbildung](slice-backend-typabbildung.md)
 
-In Arbeit (Welle welle-handshake-login):
-
-- [slice-handshake-login](slice-handshake-login.md)
-
 In Arbeit (Welle welle-simulations-backend):
 
 - [slice-adr-simulation-formen](slice-adr-simulation-formen.md)
