@@ -677,14 +677,14 @@ SQL-Server-Image setzt `ACCEPT_EULA=Y` voraus; die Zustimmung des Repo-Inhabers 
 
 | ID | Name | Wert | Begründung |
 |---|---|---|---|
-| `SPEC-005` | `LISTEN_PORT` | 1433 (konfigurierbar) | TDS-Standardport |
+| `SPEC-005` | `LISTEN_PORT` | 1433 (konfigurierbar) | TDS-Standardport; Wertebereich 0 bis 65535, 0 wählt einen freien Port (Festlegung, nicht gemessen); dazu `LISTEN_HOST`, nicht leer, Voreinstellung `0.0.0.0` (Festlegung, nicht gemessen) |
 | `SPEC-006` | `MAX_TDS_PACKET_BYTES` | 65535, zusätzlich protokollkonforme Headerprüfung | Obergrenze des 16-Bit-Längenfelds |
 | `SPEC-007` | `MAX_MESSAGE_BYTES` | 16 MiB (vorläufig) | Speicherbegrenzung, gilt während des Zusammensetzens (`TDS-FA-01.a`); mit Clientprofil abgleichen |
-| `SPEC-008` | `LOGIN_TIMEOUT` | 15 s (vorläufig) | Hängende Logins begrenzen; die Frist gilt ab Verbindungsaufbau über PRELOGIN, TLS-Handschlag und LOGIN7, danach schließt der Server ohne Antwort; für eine angemeldete Verbindung gilt sie nicht |
-| `SPEC-046` | `MAX_PRELOGIN_MESSAGE_BYTES` | 65536 (vorläufig) | Vor abgeschlossenem Login kein großer Puffer: PRELOGIN und LOGIN7 sind klein, eine größere Nachricht wird abgewiesen |
+| `SPEC-008` | `LOGIN_TIMEOUT` | 15 s (vorläufig; konfigurierbar in ganzen Sekunden von 1 bis 3600, Festlegung, nicht gemessen) | Hängende Logins begrenzen; die Frist gilt ab Verbindungsaufbau über PRELOGIN, TLS-Handschlag und LOGIN7, danach schließt der Server ohne Antwort; für eine angemeldete Verbindung gilt sie nicht |
+| `SPEC-046` | `MAX_PRELOGIN_MESSAGE_BYTES` | 65536 (vorläufig; konfigurierbar von 512 bis 65536, die obere Grenze ist die der PRELOGIN-Verhandlung, Festlegung, nicht gemessen) | Vor abgeschlossenem Login kein großer Puffer: PRELOGIN und LOGIN7 sind klein, eine größere Nachricht wird abgewiesen |
 | `SPEC-047` | `SHUTDOWN_GRACE` | 10 s (vorläufig, konfigurierbar; 0 = sofort) | Frist für laufende Anfragen beim geordneten Beenden (`SPEC-044`) |
 | `SPEC-009` | `QUERY_TIMEOUT` | 30 s (vorläufig, konfigurierbar) | Backend-Timeout |
-| `SPEC-010` | `ENCRYPTION_POLICY` | Standard `REQUIRED`; Abschwächung nur durch ausdrückliche, im Log sichtbare Konfiguration, je Clientprofil | Keine unbemerkte TLS-Herabstufung |
+| `SPEC-010` | `ENCRYPTION_POLICY` | Standard `REQUIRED`; Abschwächung nur durch ausdrückliche, im Log sichtbare Konfiguration, je Clientprofil; genau `REQUIRED` oder `TEST_UNENCRYPTED`; `REQUIRED` verlangt `TLS_KEYSTORE_FILE` (PKCS#12) und `TLS_KEYSTORE_PASSWORD_FILE`, `TEST_UNENCRYPTED` lässt beide nicht zu (Festlegung, nicht gemessen) | Keine unbemerkte TLS-Herabstufung |
 | `SPEC-033` | `CANCEL_TIMEOUT` | 5 s (vorläufig, konfigurierbar) | Frist für nicht abbrechbare Backendoperationen, danach Verbindung schließen |
 | `SPEC-034` | `MAX_CONNECTIONS` | 1000 (vorläufig, konfigurierbar) | Ressourcenlimit für gleichzeitige Verbindungen |
 
@@ -917,10 +917,11 @@ Setzung dieses Profils, nicht gemessen und nicht aus dem Referenzclient abgeleit
 - Speicher- und Schlüsselkennwort sind derselbe Wert; der Server nimmt den ersten Schlüsseleintrag.
 - Zugelassen sind RSA-Schlüssel ab 2048 Bit; andere Arten und kürzere Schlüssel weist der Start ab (`SPEC-043`).
 - Die Startprobe prüft jedes Zertifikat der Kette auf Gültigkeit zum Startzeitpunkt, nicht Vertrauen oder Namen.
+- Die Konfiguration nennt den Speicher mit `TLS_KEYSTORE_FILE` und das Kennwort als Datei mit `TLS_KEYSTORE_PASSWORD_FILE` (beides Umgebungsvariablen, ein Zeilenende am Ende der Kennwortdatei wird entfernt); `ENCRYPTION_POLICY=REQUIRED` verlangt beide, `TEST_UNENCRYPTED` lässt sie nicht zu. Der Handler verdrahtet den Pfad TDS 7.4 (gekapselt in Paketen vom Typ `0x12`); der Pfad ab dem ersten Byte (TDS 8.0) ist nicht verdrahtet.
 
 #### JVM-Flag des Serverprozesses
 
-Der Serverprozess läuft mit `-Djdk.tls.server.newSessionTicketCount=0`. Ohne das Flag sendet der JDK-Server bei TLS 1.3 ein NewSessionTicket noch im Handshake; im TDS-7.4-Pfad landet es in einem Paket vom Typ `0x12`, und der Client bricht ab („Unrecognized record version“). Das Flag gilt prozessweit, auch im TDS-8.0-Pfad; es ist beim Start des Serverprozesses zu setzen. Eine Lösung ohne das Flag ist nicht gebaut.
+Der Serverprozess läuft mit `-Djdk.tls.server.newSessionTicketCount=0`. Ohne das Flag sendet der JDK-Server bei TLS 1.3 ein NewSessionTicket noch im Handshake; im TDS-7.4-Pfad landet es in einem Paket vom Typ `0x12`, und der Client bricht ab („Unrecognized record version“). Das Flag gilt prozessweit, auch im TDS-8.0-Pfad; es ist beim Start des Serverprozesses zu setzen. Eine Lösung ohne das Flag ist nicht gebaut. `main` setzt das Flag nicht selbst: der Aufruf des Prozesses setzt es, und der Start bricht ab, wenn die Systemeigenschaft nicht genau `0` ist (Setzung). Geprüft ist der Wert der Eigenschaft beim Start vor dem ersten TLS-Aufruf, nicht die Wirkung auf dem Draht; sie belegt der Test mit Kind-JVM mit und ohne Flag.
 
 #### Gemessen am Sicherheitsprofil
 
@@ -985,8 +986,8 @@ Prüfwertformat und Konfigurationsweg (vom Nutzer entschieden, 2026-10-30; was u
 - **Testmodus-Schalter:** `AUTH_PLAIN_TESTMODE`, gilt nur bei genau `true`; eigener Schalter nur für `plain`; der Start-Log nennt den Modus.
 - **Fehlerwerte:** je Abweichung genau eine Fehlerart mit Listenplatz, ohne Prüfwert und ohne Passwort. Der Listenplatz ist die Zeilennummer der Datei, 1-basiert (Setzung (Voreinstellung 2026-10-30, nicht gemessen)); gemessen ist im Spike die Position nach Sortierung, nicht die Zeilennummer.
 - **Entschieden** (Nutzer, 2026-10-30; Setzungen, nicht gemessen): derselbe Iterationsboden im Testmodus, keine Kommentare und keine Leerzeilen, CRLF nicht toleriert, Hash genau 32 Byte und Salz mindestens 16 Byte ohne Obergrenze, Ziffernfolge der Iterationen 1 bis 8 Stellen ohne führende Null.
-- **Offen** (vom Nutzer nicht entschieden, nicht gemessen): Dateirechte im Betrieb; die Implementierung prüft sie nicht.
-- **Vormerkung für das Lesen der Datei** (Konfiguration): Ein UTF-8-BOM am Dateianfang entfernt der Parser nicht; er würde Teil des ersten Benutzernamens. Das Lesen der Datei entfernt ihn oder weist ihn ab (nicht entschieden).
+- **Offen** (vom Nutzer nicht entschieden, nicht gemessen): Dateirechte und Übergabe der Datei im Betrieb; weder der Lader noch der Start prüfen sie.
+- **Lesen der Datei** (Konfiguration, `ConfigFiles`; Setzung, nicht gemessen): Die Datei wird als UTF-8 gelesen, ungültiges UTF-8 ist ein Startfehler (`NOT_UTF8`). Ein UTF-8-BOM am Anfang wird abgewiesen (`BYTE_ORDER_MARK`), nicht entfernt; er würde Teil des ersten Benutzernamens. Die Zeilenenden werden nicht normalisiert, ein CR erreicht den Parser und ist dort ein Fehler. `AUTH_PLAIN_TESTMODE` schaltet nur bei genau `true` ein; fehlt der Schlüssel oder ist er leer oder `false`, ist `plain` verboten, jeder andere Wert (auch `TRUE`) ist ein Startfehler und schaltet nie ein. Die Diagnose nennt Schlüssel, Art und bei der Liste Fehlerart und Zeile, nie Pfad, Wert, Benutzername oder Prüfwert.
 
 #### Kotlin-Signatur des Authentifizierungsadapters
 

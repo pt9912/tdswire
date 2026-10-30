@@ -84,7 +84,12 @@ Aussagen-Berührung steht hier gar nicht.
 | `spec/spezifikation.md` `SPEC-051` | update | Konfigurationsweg der Benutzerliste, sobald entschieden und gebaut |
 | `src/test/kotlin/io/github/pt9912/tdswire/runtime/` <!-- d-check:ignore (geplant: neues Package) --> | neu | Konfigurations-Happy/Boundary/Negative, Startabbruch, Rohbytes-Smoke; nach SPEC-005, SPEC-008, SPEC-010, [TDS-FA-09.a](../../../../spec/spezifikation.md#tds-fa-09a--konfiguration-und-diagnose); `@spec`-Tag je Test |
 | `gradle/libs.versions.toml`, `gradle.lockfile`, `gradle/verification-metadata.xml` | update, nur falls das Konfigurationsformat eine Abhängigkeit braucht | per `make deps-lock` (Netz), nicht von Hand; `kotlinx-coroutines-core` kommt mit dem Transport-Code ([ADR-0003](../../adr/0003-transportframework.md)) |
-Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
+| `src/main/kotlin/io/github/pt9912/tdswire/transport/channel/SwitchableChannel.kt` | neu | Kanal mit einmaligem Wechsel vom rohen zum verschlüsselten Ziel; Leser und Schreiber des Handlers bleiben beim TLS-Handschlag unverändert (Ist-Zustand im ersten Lauf: `TransportHandshakeChannel` hält einen festen Kanal) |
+| `src/main/kotlin/io/github/pt9912/tdswire/config/` (`ServerConfig`, `ConfigLoader`, `ConfigFiles`) | neu | Schlüssel, Bereiche, Lesen der Dateien; `config` darf nur `domain` importieren, deshalb eigene Richtlinien-Aufzählung statt `EncryptionPolicy` |
+| `Dockerfile` (Stage `smoke`), `tools/mk/smoke.mk` | neu | `make smoke` als engster Sensor; `ServerSmokeTest` läuft auch in der Stage `test`, daher kein zweiter Eintrag in `GATE_CHECKS` |
+| `spec/spezifikation.md` ([Sicherheitsprofil](../../../../spec/spezifikation.md#sicherheitsprofil-vertrag-zu-spec-023), [Authentifizierungsadapter](../../../../spec/spezifikation.md#authentifizierungsadapter-vertrag-zu-spec-051)) | update | Schlüssel für den TLS-Speicher, Flag-Prüfung beim Start |
+
+Der Implementer-Agent hat die Liste im ersten Lauf erweitert (Zeilen oben).
 
 - Reihenfolge: Konfiguration zuerst (mit Tests ohne Prozess), dann `main` mit Start/Stop gegen den Listener, zuletzt der Smoke.
 - Die Konfigurationsschlüssel und das Modell gehören diesem Slice; die TLS-Schlüssel gehören der Transport-Welle. Wer das Modell zuerst anlegt, gibt es dem anderen (siehe §6).
