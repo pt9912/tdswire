@@ -1,6 +1,6 @@
 # Authentifizierungsadapter
 
-Vertrag zwischen Anmeldepfad und Benutzerverwaltung (`TDS-FA-02.a`, `SPEC-012`, `SPEC-051`). Der Anmeldepfad entschleiert LOGIN7 und ruft den Adapter; der Adapter entscheidet allein über Annahme oder Ablehnung. Die Schnittstelle ist ein **Entwurf**: Gemessen sind die Eingaben des Referenzclients (`Microsoft.Data.SqlClient` 7.1.1, .NET 10), nicht der Kotlin-Vertrag selbst; eine Kotlin-Signatur ist noch festzulegen.
+Vertrag zwischen Anmeldepfad und Benutzerverwaltung (`TDS-FA-02.a`, `SPEC-012`, `SPEC-051`). Der Anmeldepfad entschleiert LOGIN7 und ruft den Adapter; der Adapter entscheidet allein über Annahme oder Ablehnung. Gemessen sind die Eingaben des Referenzclients (`Microsoft.Data.SqlClient` 7.1.1, .NET 10), nicht der Kotlin-Vertrag selbst; der Verschlüsselungsmodus als Eingabe bleibt ein Entwurf. Die Kotlin-Signatur steht im Abschnitt „Kotlin-Signatur“.
 
 ## Eingabe
 
@@ -43,7 +43,45 @@ Prüfwertformat und Konfigurationsweg (vom Nutzer entschieden, 2026-10-30; was u
 - **Konfigurationsweg:** eigene Datei nur für die Benutzerliste, eigenes Zeilenformat, eigener Parser. Der Pfad wird in der Umgebungsvariable `AUTH_USERS_FILE` übergeben, wie der Schalter `AUTH_PLAIN_TESTMODE` (Setzung (Voreinstellung 2026-10-30, nicht gemessen)); gemessen ist nur die Übergabe eines Werts per Umgebungsvariable, nicht die eines Pfades. Eine Zeile je Eintrag, `Benutzername<TAB>Prüfwert`, UTF-8, kein Escaping, Aufteilung am ersten TAB. Benutzernamen mit TAB, LF, CR oder alleinstehendem Hochsurrogat sind nicht darstellbar und ein Ladefehler. Ein doppelter Benutzername bricht den Start ab.
 - **Testmodus-Schalter:** `AUTH_PLAIN_TESTMODE`, gilt nur bei genau `true`; eigener Schalter nur für `plain`; der Start-Log nennt den Modus.
 - **Fehlerwerte:** je Abweichung genau eine Fehlerart mit Listenplatz, ohne Prüfwert und ohne Passwort. Der Listenplatz ist die Zeilennummer der Datei, 1-basiert (Setzung (Voreinstellung 2026-10-30, nicht gemessen)); gemessen ist im Spike die Position nach Sortierung, nicht die Zeilennummer.
-- **Offen** (Entscheidung oder Messung im Authentifizierungs-Slice): niedrigerer Iterationsboden im Testmodus, Kommentare und Leerzeilen, Zeilenenden (CRLF), Hashlänge, Mindestlänge des Salzes, Dateirechte im Betrieb, Länge der Ziffernfolge der Iterationen.
+- **Offen** (vom Nutzer nicht entschieden, nicht gemessen): niedrigerer Iterationsboden im Testmodus, Kommentare und Leerzeilen, Zeilenenden (CRLF), Hashlänge, Mindestlänge des Salzes, Dateirechte im Betrieb, Länge der Ziffernfolge der Iterationen. Die Implementierung setzt dazu vorläufig die Festlegungen ohne Messung aus dem Abschnitt „Kotlin-Signatur“; Dateirechte prüft sie nicht.
+
+## Kotlin-Signatur
+
+Package `io.github.pt9912.tdswire.config.auth` (Schicht `config`); der Principal liegt in `io.github.pt9912.tdswire.domain`. Die Signatur ist eine Festlegung ohne Messung am Referenzclient oder an einem echten SQL Server:
+
+```kotlin
+interface AuthAdapter { fun authenticate(request: AuthRequest): AuthResult }
+
+class AuthRequest(
+    val userName: String, val password: PasswordChars, val context: ConnectionContext,
+    val encryption: NegotiatedEncryption, val features: AuthFeatures,
+)
+sealed interface AuthResult {
+    class Accepted(val principal: Principal) : AuthResult
+    data class Rejected(val reason: RejectReason) : AuthResult   // UNKNOWN_USER, WRONG_PASSWORD, INPUT_TOO_LONG
+}
+```
+
+- Der Aufruf **blockiert** und ist nicht `suspend`. Der Aufrufer hält den Transport-Thread frei und `LOGIN_TIMEOUT` ein (`SPEC-008`); eine Messung zur Wirkung einer blockierenden Ableitung auf den Transport liegt nicht vor.
+- `PasswordChars` hält die UTF-16-Einheiten als Kopie; `reveal()` gibt eine Kopie, `wipe()` überschreibt. Das schützt nur dieses Feld, nicht den Paket-, Lese- oder TLS-Puffer und nicht jede Kopie der JVM. Der Anmeldepfad überschreibt sein Feld nach dem Aufruf; der Adapter überschreibt seine eigenen Kopien.
+- Keine Textdarstellung von `AuthRequest`, `PasswordChars`, `ConnectionContext`, `Principal`, `Accepted`, der Benutzerliste und ihrer Einträge nennt Passwort, Benutzernamen oder Prüfwert.
+- Eingaben über 128 UTF-16-Einheiten (Benutzername oder Passwort) ergeben `Rejected(INPUT_TOO_LONG)`, ohne Ausnahme und ohne Ableitung.
+- `AuthFeatures` wertet die Einstiegsimplementierung nicht aus; der Anmeldepfad lehnt die nicht unterstützten Modi vor dem Adapter ab.
+
+Validierung der Liste: `UserList.parse(text, plainTestMode)` liefert `Valid` oder `Invalid(UserListError(kind, line))`; `line` ist die 1-basierte Zeilennummer der Datei, bei einer Liste ohne Zeile `null`. Das Lesen der Datei, `AUTH_USERS_FILE` und das Auswerten von `AUTH_PLAIN_TESTMODE` (nur der Wert `true` schaltet ein, `UserList.plainTestModeFrom`) gehören der Konfiguration. Die Fehlerarten sind `UserListErrorKind`.
+
+Festlegungen ohne Messung zu den offenen Punkten oben (einfachste strenge Variante, jeweils im KDoc von `UserList` und `Pbkdf2Limits` gekennzeichnet, vom Nutzer nicht entschieden):
+
+- Der Iterationsboden 210 000 gilt auch im Testmodus.
+- Keine Kommentare: eine Zeile mit `#` ist ein gewöhnlicher Eintrag. Eine leere Zeile ist ein Fehler; nur das Zeilenende am Dateiende ist erlaubt.
+- Zeilenende ist LF; ein CR in einer Zeile (auch CRLF) ist ein Fehler.
+- Der Hash hat genau 32 Byte, das Salz mindestens 16 Byte.
+- Die Iterationen sind eine Ziffernfolge von 1 bis 8 Stellen ohne führende Null.
+- Der erste Fehler in Dateireihenfolge bricht die Prüfung ab.
+- Benutzernamen werden zeichengenau verglichen (keine Groß-/Kleinschreibung-Faltung, keine Normalisierung).
+- Dateirechte und Übergabe der Datei sind weder geprüft noch entschieden.
+
+Bauart des Vergleichs (Anforderung, strukturell belegt, nicht gemessen): Der Vergleich untersucht jede Position bis zur längeren Länge und bricht nicht beim ersten Unterschied ab. Bei unbekanntem Benutzernamen läuft dieselbe Ableitung beziehungsweise derselbe Vergleich wie für den ersten Eintrag der Liste gegen dessen Prüfwert (Scheinvergleich); das Ergebnis wird verworfen. Eine Aussage über Zeit ist daraus nicht abzuleiten.
 
 ## Gemessen
 
