@@ -34,10 +34,10 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Make-Target des Vergleichslaufs D, Container der Referenzinstanz, die Referenz-Seite der Läufe, EULA-Prüfung, Messung von Laufzeit und Ressourcen und der Image-Tag für TDS 8.0 — [slice-qa-reproduzierbarkeit](../in-progress/slice-qa-reproduzierbarkeit.md); dieser Slice nutzt sie und ergänzt die Server-Seite. Fehlt dort etwas, wenn dieser Slice startet, ist das ein Rückführungsgrund, kein stilles Nachbauen.
+- Make-Target des Vergleichslaufs D, Container der Referenzinstanz, die Referenz-Seite der Läufe, EULA-Prüfung, Messung von Laufzeit und Ressourcen und der Image-Tag für TDS 8.0 — [slice-qa-vergleichslauf-d](slice-qa-vergleichslauf-d.md); dieser Slice nutzt sie und ergänzt die Server-Seite. Fehlt dort etwas, wenn dieser Slice startet, ist das ein Rückführungsgrund, kein stilles Nachbauen.
 - Die Szenarien des Referenzclients selbst (S1 bis S18) — [slice-qa-kompatibilitaet](slice-qa-kompatibilitaet.md); dieser Slice führt dieselben Szenarien gegen zwei Ziele aus (das Ziel ist ein Parameter) und schreibt keine zweite Fassung.
 - Der Mitschnitt-Lauf nach SPEC-045 — [slice-referenzabgleich-mitschnitt](slice-referenzabgleich-mitschnitt.md); die Tokenfolge sieht der Live-Lauf nicht, er vergleicht, was der Client ausgibt.
-- Der TDS-8.0-Pfad — die Referenzinstanz Version 2022 bietet ihn nicht an ([ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md), SPEC-045); der Abgleich entfällt dort und steht als Grenze in der Ausnahmeliste.
+- Der TDS-8.0-Pfad — an der Referenzinstanz Version 2022 scheitert `Encrypt=Strict`; dass sie TDS 8.0 nicht anbietet, ist gefolgert, nicht gemessen ([ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md), SPEC-045; offene Frage in [slice-qa-vergleichslauf-d](slice-qa-vergleichslauf-d.md) §6); der Abgleich entfällt dort und steht als Grenze in der Ausnahmeliste.
 - Das Beheben gefundener Abweichungen im Server — je Befund ein Slice nach der Messung; dieser Slice dokumentiert sie als *Lücke* mit Verweis auf die offene Arbeit.
 
 ## 2. Definition of Done
@@ -51,7 +51,7 @@ Liefer-Punkte (drei):
 
 - [ ] **Server-Seite:** Die Tabellenbeschreibung des Simulations-Backends bildet das Testschema der Referenzinstanz ab (beide getrennt gepflegt und gemeinsam geändert, SPEC-045; der Weg des Ladens folgt der ADR aus [slice-adr-simulation-formen](slice-adr-simulation-formen.md)); der Server mit Simulations-Backend läuft für den Lauf in Docker (eigener Container im eigenen Netzwerk, ohne Mount, Basis-Image per Digest).
 - [ ] **Live-Lauf:** Das Szenario (Anmeldung, SELECT mit und ohne Parameter, NULL, Unicode, Decimal, Datum, leere und mehrteilige Ergebnisse, Fehler vor und nach Zeilen, OUTPUT und RETURNSTATUS soweit freigegeben, Cancel mit Folgeabfrage) läuft nacheinander gegen beide Ziele, je Schritt eine Ausgabezeile; vom Server selbst vergebene Werte (Objekt-IDs, Sitzungs-IDs, Zeitstempel, Versionstext) werden nur auf vorhanden oder nicht vorhanden verglichen, Dauern werden nicht verglichen.
-- [ ] **Ausnahmeliste und Urteil:** Jede Abweichung steht mit Pfad, Anweisung oder Szenario, Grund und Art (*so gewollt* oder *Lücke* mit Verweis auf die offene Arbeit) in der Liste; eine kleinere oder größere Abweichung als die dokumentierte macht den Lauf rot (Test mit verschiedenen Abweichungen); ob der Lauf in `make gates` kommt, entscheidet die in [slice-qa-reproduzierbarkeit](../in-progress/slice-qa-reproduzierbarkeit.md) gemessene Laufzeit.
+- [ ] **Ausnahmeliste und Urteil:** Jede Abweichung steht mit Pfad, Anweisung oder Szenario, Grund und Art (*so gewollt* oder *Lücke* mit Verweis auf die offene Arbeit) in der Liste; eine kleinere oder größere Abweichung als die dokumentierte macht den Lauf rot (Test mit verschiedenen Abweichungen); ob der Lauf in `make gates` kommt, entscheidet die in [slice-qa-vergleichslauf-d](slice-qa-vergleichslauf-d.md) gemessene Laufzeit.
 
 Nachweis-Pflichten für alle drei Punkte:
 
@@ -76,8 +76,8 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | Referenztestprojekt (`referenztest-dotnet/`) | update | Ziel als Parameter der vorhandenen Szenarien; Ausgabe je Schritt eine Zeile |
 | Tabellenbeschreibung des Testschemas <!-- d-check:ignore (geplant: Ort nach ADR) --> | neu | Gegenstück zum Schema-Skript der Referenzinstanz |
-| Ausnahmeliste <!-- d-check:ignore (geplant: neue Datei) --> | neu | Ablage nach dem Rahmen aus [slice-qa-reproduzierbarkeit](../in-progress/slice-qa-reproduzierbarkeit.md) |
-| `tools/mk/` | update | Make-Target des Vergleichslaufs aus [slice-qa-reproduzierbarkeit](../in-progress/slice-qa-reproduzierbarkeit.md) erweitern; Eintrag in `harness/README.md` §Sensors |
+| Ausnahmeliste <!-- d-check:ignore (geplant: neue Datei) --> | neu | Ablage nach dem Rahmen aus [slice-qa-vergleichslauf-d](slice-qa-vergleichslauf-d.md) |
+| `tools/mk/` | update | Make-Target des Vergleichslaufs aus [slice-qa-vergleichslauf-d](slice-qa-vergleichslauf-d.md) erweitern; Eintrag in `harness/README.md` §Sensors |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 
@@ -86,12 +86,12 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [welle-simulations-backend](../welle-simulations-backend.md) liegt in `done/`, und [slice-qa-reproduzierbarkeit](../in-progress/slice-qa-reproduzierbarkeit.md) und [slice-qa-kompatibilitaet](slice-qa-kompatibilitaet.md) liegen in `done/` (Vergleichslauf D, Referenzinstanz, Szenarien), und ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): [welle-simulations-backend](../welle-simulations-backend.md) liegt in `done/`, und [slice-qa-vergleichslauf-d](slice-qa-vergleichslauf-d.md) und [slice-qa-kompatibilitaet](slice-qa-kompatibilitaet.md) liegen in `done/` (Vergleichslauf D, Referenzinstanz, Szenarien), und ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): mehr als drei Liefer-Punkte in §2 oder die Server-Seite sprengt den Rahmen; Schnittvorschlag: Schema-Gleichlauf als eigener Slice.
-- `in-progress` → `open` (blockiert — Carveout?): das Make-Target des Vergleichslaufs oder die Referenzinstanz aus [slice-qa-reproduzierbarkeit](../in-progress/slice-qa-reproduzierbarkeit.md) steht nicht zur Verfügung, oder die EULA-Zustimmung ist rechtlich nicht geklärt.
+- `in-progress` → `open` (blockiert — Carveout?): das Make-Target des Vergleichslaufs oder die Referenzinstanz aus [slice-qa-vergleichslauf-d](slice-qa-vergleichslauf-d.md) steht nicht zur Verfügung, oder die EULA-Zustimmung ist rechtlich nicht geklärt.
 
 ## 5. Closure-Trigger
 
@@ -112,7 +112,7 @@ dasteht.
 - Gemessen ist nur eine Instanz der Version 2022; `Encrypt=Strict` scheitert dort und das Server-Log nennt TLS 1.0 bis 1.2 ([ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md)): TDS 8.0 und TLS 1.3 sind an ihr nicht abgleichbar (`BEO-TDS/tds-8-0-und-pooling-nicht-gemessen`). — **Ausgang:** offen bis zur Closure.
 - Der Fall „Fehler nach Zeilen“ hat bisher keine Server-Referenz; der Lauf liefert sie erstmals und kann Festlegungen aus der Spezifikation und aus [ADR-0007](../../adr/0007-fehler-und-attention.md) widerlegen. Ein Widerspruch führt zu einer benannten Spec-Lücke oder einer neuen ADR, nicht zu einer stillen Anpassung der Ausnahmeliste. — **Ausgang:** offen bis zur Closure.
 - Verglichen wird, was der Lauf ausgibt; was nicht ausgegeben wird, ist nicht verglichen. Die Closure nennt die Grenze und leitet aus „grün“ keine Aussage über Tokenfolge oder Statusbits ab. — **Ausgang:** offen bis zur Closure.
-- Der Lauf braucht `ACCEPT_EULA=Y` für das Image der Referenzinstanz; die Zustimmung ist in der ADR als Entscheidung festgehalten und rechtlich ungeprüft ([slice-qa-reproduzierbarkeit](../in-progress/slice-qa-reproduzierbarkeit.md) trägt die Prüfung). — **Ausgang:** offen bis zur Closure.
+- Der Lauf braucht `ACCEPT_EULA=Y` für das Image der Referenzinstanz; die Zustimmung ist in der ADR als Entscheidung festgehalten und rechtlich ungeprüft ([slice-qa-vergleichslauf-d](slice-qa-vergleichslauf-d.md) trägt die Prüfung). — **Ausgang:** offen bis zur Closure.
 - Ein Vergleich mit Ausnahmeliste kann durch zu weite Regeln alles grün machen; Regeln sind so eng wie möglich (Pfad, Anweisung oder Szenario), und der Test belegt, dass eine nicht gelistete Abweichung rot macht. — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
@@ -149,8 +149,8 @@ Hälften.
 
 **Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen (`../observations/BEO-TDS/`, 19 Beobachtungen, Stand des Worktrees auf `main`); alle tragen die Sub-Area `*`. Treffer mit Zähler-Stand (Zahl der Dateien unter `evidence/`):
 
-- `BEO-TDS/messung-am-echten-sql-server-fehlt` — 9×, Stand *geplant* (Träger [slice-qa-reproduzierbarkeit](../in-progress/slice-qa-reproduzierbarkeit.md)). Träger der Server-Seite für den Teil, den der Client beobachtet; die Wire-Messung trägt [slice-referenzabgleich-mitschnitt](slice-referenzabgleich-mitschnitt.md).
-- `BEO-TDS/vergleichslauf-d-ungeklaert` — 1×, offen (Träger [slice-qa-reproduzierbarkeit](../in-progress/slice-qa-reproduzierbarkeit.md)). Betrifft CI-Machbarkeit, EULA und Häufigkeit des Laufs: Träger bleibt [slice-qa-reproduzierbarkeit](../in-progress/slice-qa-reproduzierbarkeit.md), dieser Slice wartet auf deren Ergebnis.
+- `BEO-TDS/messung-am-echten-sql-server-fehlt` — 9×, Stand *geplant* (Träger [slice-qa-vergleichslauf-d](slice-qa-vergleichslauf-d.md)). Träger der Server-Seite für den Teil, den der Client beobachtet; die Wire-Messung trägt [slice-referenzabgleich-mitschnitt](slice-referenzabgleich-mitschnitt.md).
+- `BEO-TDS/vergleichslauf-d-ungeklaert` — 1×, offen (Träger [slice-qa-vergleichslauf-d](slice-qa-vergleichslauf-d.md)). Betrifft CI-Machbarkeit, EULA und Häufigkeit des Laufs: Träger bleibt [slice-qa-vergleichslauf-d](slice-qa-vergleichslauf-d.md), dieser Slice wartet auf deren Ergebnis.
 - `BEO-TDS/tds-8-0-und-pooling-nicht-gemessen` — 7×, Stand *geplant* (Träger [slice-qa-kompatibilitaet](slice-qa-kompatibilitaet.md)). Betrifft die Grenze des Laufs: TDS 8.0 ist an der Referenzinstanz nicht abgleichbar.
 - `BEO-TDS/aussagen-ueber-messung-hinaus` — 16×, Stand *verkörpert* (`AGENTS.md` §3.8, Reviewer-Skill). Betrifft diesen Slice: Jede Aussage über „gleich wie die Referenz“ nennt Instanz, Version und Szenario (§6).
 - `BEO-TDS/strukturtest-ohne-variation-der-eingabe` — 1×, offen. Betrifft den Test der Ausnahmeliste: verschiedene Abweichungen statt einer (§2).

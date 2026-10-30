@@ -9,7 +9,7 @@ aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
 Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (§Ein Slice, dessen Gegenstand ein anderer übernimmt).
 
-**Welle:** ohne Welle
+**Welle:** welle-qualitaet-grundlage
 
 **Bezug:** [TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md)
 
@@ -35,7 +35,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Szenarien gegen den Server dieses Repos — Träger ist [slice-qa-kompatibilitaet](slice-qa-kompatibilitaet.md); dieser Slice berührt die Lieferkette des Restore, keine Testinhalte.
-- Vergleichslauf D, EULA-Prüfung — Träger ist [slice-qa-reproduzierbarkeit](../in-progress/slice-qa-reproduzierbarkeit.md).
+- Vergleichslauf D, EULA-Prüfung — Träger ist [slice-qa-vergleichslauf-d](slice-qa-vergleichslauf-d.md).
 
 ## 2. Definition of Done
 
