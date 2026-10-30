@@ -31,6 +31,10 @@ In Arbeit (Welle welle-qualitaet-grundlage):
 - [slice-qa-wartbarkeit](slice-qa-wartbarkeit.md)
 - [slice-qa-stabilitaet](slice-qa-stabilitaet.md)
 
+In Arbeit (Welle welle-handshake-login):
+
+- [slice-bootstrap-konfiguration](slice-bootstrap-konfiguration.md)
+
 In Arbeit (Welle welle-backend-streaming):
 
 - [slice-backend-sequenzierer](slice-backend-sequenzierer.md)
