@@ -21,13 +21,15 @@ Das Static-Analysis-Gate (`SPEC-041`) prüft die Schichtgrenzen der Architektur 
 
 Gepinnt ist `2.0.0-alpha.6` (`gradle/libs.versions.toml`), ein Pre-Release. Die Version wurde mit dem Gradle-Gerüst aus einem Schwesterprojekt übernommen (Commit `5d2236d`); die Wahl steht in einem Kommentar in `build.gradle.kts`, der auf diese ADR verweist.
 
+Gemessen (2026-10-30, detekt `2.0.0-alpha.6`, Docker-Stage `detekt`, je eine Variante von `config/detekt/detekt.yml`): Rot wird der Lauf durch die **Konfigurationsvalidierung** (`config: validation: true`, Standard), nicht durch `warningsAsErrors`. Die Validierung meldet `Property '<pfad>' is misspelled or does not exist. Allowed properties: [...]`, danach `Run failed with 1 invalid config property.`, Exit-Code 1. Sie erfasst einen unbekannten oder umbenannten Top-Level-Schlüssel, eine unbekannte oder umbenannte Regel in den Regelsätzen `style` und `complexity`, eine unbekannte oder umbenannte Option an einer Regel mit festem Namen (`ForbiddenMethodCall`: `methods`; `CognitiveComplexMethod`) und jeden unbekannten oder umbenannten Schlüssel im `config:`-Block. Sie erfasst **nicht**: Optionen an den Regeln mit Namenszusatz (`ForbiddenImport/<name>`: eine unbekannte Option und eine umbenannte `forbiddenImports` blieben bei Exit-Code 0 ohne Ausgabe) und Regeln und Optionen im Regelsatz `ktlint` (eine unbekannte Regel und eine unbekannte Option blieben bei Exit-Code 0). Mit `warningsAsErrors: false` blieb die Validierung rot, mit `validation: false` wurde derselbe Fehler grün. Eine umbenannte Option einer `ForbiddenImport/<name>`-Regel fängt erst `make detekt-selbsttest` (Befund `Regel ForbiddenImport/config meldet 0 von 6 verbotenen Importen`, Exit-Code 1); für den `ktlint`-Block prüft der Selbsttest nichts.
+
 Annahmen: Der Pin ist exakt, `gradle.lockfile` und `gradle/verification-metadata.xml` fixieren Version und Prüfsummen. Die Konfiguration kennt keine Baseline und senkt keinen Standard. Fällt eine dieser Annahmen, ist die Entscheidung neu zu prüfen.
 
 ## Entscheidung
 
 Wir wählen **Option B**: detekt `2.0.0-alpha.6` bleibt das Gate-Werkzeug, mit exaktem Pin, Lock und Prüfsummen und `warningsAsErrors: true`. Der Regelumfang ist der der Standardkonfiguration dieser Version, abweichend davon `CognitiveComplexMethod`, `ComplexInterface` und `NotImplementedDeclaration` aktiv (`config/detekt/detekt.yml`), ergänzt um den ktlint-Wrapper gleicher Version, die Importregeln und Technik-Regeln der Schichten und das Suppression-Verbot (`SPEC-041`).
 
-Ein Pre-Release trägt das Risiko, dass sich Optionen zwischen Alphas umbenennen oder entfallen. `warningsAsErrors` soll das zu einem roten Lauf machen statt zu einer still wirkungslosen Regel; ob eine unbekannte Option in dieser Version als Warnung auftritt, ist nicht gemessen. Der Selbsttest belegt, dass die `ForbiddenImport`-Regeln, die `ForbiddenMethodCall`-Einträge und das Suppression-Verbot melden; die ktlint-Regeln und die übrigen Regeln prüft er nicht.
+Ein Pre-Release trägt das Risiko, dass sich Optionen zwischen Alphas umbenennen oder entfallen. Gemessen ist: die Konfigurationsvalidierung von detekt (Standard `validation: true`) macht eine umbenannte oder entfernte Option an einer Regel mit festem Namen, eine unbekannte Regel in `style` und `complexity` und einen unbekannten Top-Level- oder `config:`-Schlüssel zu einem roten Lauf; für `warningsAsErrors` selbst wurde keine Wirkung auf diese Fälle gemessen. Ungeprüft von der Validierung bleiben Optionen der Regeln `ForbiddenImport/<name>` und der gesamte `ktlint`-Block; bei den Importregeln fängt der Selbsttest eine umbenannte Option, beim `ktlint`-Block fängt sie nichts (siehe Kontext).
 
 ## Verglichene Alternativen
 
@@ -43,13 +45,14 @@ Ein Pre-Release trägt das Risiko, dass sich Optionen zwischen Alphas umbenennen
 - **Negativ / Risiko:** Jeder Versionswechsel kann `detekt.yml` brechen; der ktlint-Block ist gleich dem Standard der gepinnten Version und gehört nach einem Pin-Wechsel neu erzeugt (Kommentar in `config/detekt/detekt.yml`).
 - **Folgepflicht:** `SPEC-041` bleibt unverändert; die Entscheidung schärft sie nur. `build.gradle.kts` nennt diese ADR bereits.
 - **Autor-Bestätigung (2026-10-30):** Der Autor bestätigte die ADR mit „adr-0010 bestätigt“. Ein über die Übernahme des Gerüsts hinausgehendes Motiv (Funktionsumfang, Kotlin-Verträglichkeit) ist weder genannt noch belegt.
+- **Offen, Grenzen der Messung:** Nur `2.0.0-alpha.6` ist gemessen, keine andere Alpha. Nicht gemessen sind die Wirkung von `warningsAsErrors: true` auf andere Warnungen (etwa veraltete Properties) und die Abdeckung des `ktlint`-Blocks nach einem Pin-Wechsel. Gegenmaßnahmen für die ungedeckte Lücke, nicht umgesetzt und keine Entscheidung: (1) ein Selbsttest-Fall, der die Schlüssel des `ktlint`-Blocks gegen die Regelliste des Wrapper-Jars hält; (2) ein Selbsttest-Fall je `ForbiddenImport/<name>`-Option über die vorhandene Prüfung hinaus; (3) nach jedem Pin-Wechsel den `ktlint`-Block neu erzeugen, wie der Kommentar in `config/detekt/detekt.yml` es schon verlangt, und diese Pflicht an den Re-Evaluierungs-Trigger binden.
 - **Offen:** Die Messung von Option A ist unvollständig (`ForbiddenMethodCall` unter Typauflösung); sie begründet nicht, dass Option A scheitert.
 
 ## Fitness Function (falls maschinell prüfbar)
 
 | Tooling | Regel | Make-Target |
 |---|---|---|
-| detekt mit Selbsttest | Die Import- und Aufrufregeln und das Suppression-Verbot melden ihre verbotenen Fälle, die erlaubten Testdaten nicht; `warningsAsErrors` ist gesetzt (Wirkung auf eine umbenannte oder entfernte Option nicht gemessen) | `make detekt`, `make detekt-selbsttest` |
+| detekt mit Selbsttest | Jede Regel meldet ihre verbotenen Fälle, die erlaubten Testdaten nicht; eine umbenannte oder entfernte Option macht den Lauf rot, soweit die Konfigurationsvalidierung sie erfasst (`make detekt`); Importregeln `ForbiddenImport/<name>` fängt `make detekt-selbsttest`; der `ktlint`-Block ist nicht abgedeckt | `make detekt`, `make detekt-selbsttest` |
 
 ## Re-Evaluierungs-Trigger
 
@@ -61,3 +64,4 @@ Erscheint ein Stabil-Release von detekt 2.x, oder bricht ein Versionswechsel inn
 |---|---|---|
 | 2026-10-29 | Proposed | — |
 | 2026-10-30 | Autor bestätigt Option B ("adr-0010 bestätigt"); Review ohne HIGH, MEDIUM eingearbeitet | [Review](../../reviews/2026-10-30-af645e1-adr-0010.md) |
+| 2026-10-30 | Aussage zu `warningsAsErrors` durch Messung ersetzt: Konfigurationsvalidierung statt `warningsAsErrors`, Lücken bei `ForbiddenImport/<name>` und `ktlint`; Status unverändert Proposed | — |
