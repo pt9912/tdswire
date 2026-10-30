@@ -12,7 +12,7 @@
 | [ADR-0008](0008-dotnet-kompatibilitaetstests.md) | Referenzclient und .NET-Kompatibilitätstests | Accepted | [TDS-QA-01](../../../spec/lastenheft.md), [TDS-QA-06](../../../spec/lastenheft.md), [TDS-FA-09](../../../spec/lastenheft.md) |
 | [ADR-0009](0009-authentifizierungsmodus.md) | Authentifizierungsmodus und Authentifizierungsadapter | Accepted | [TDS-FA-02](../../../spec/lastenheft.md#tds-fa-02--anmeldung-und-sitzungsverwaltung), [TDS-QA-03](../../../spec/lastenheft.md#tds-qa-03--sicherheit) |
 | [ADR-0010](0010-detekt-pre-release.md) | detekt 2.0 als Gate-Werkzeug (Pre-Release) | Proposed | [TDS-QA-05](../../../spec/lastenheft.md), [TDS-QA-06](../../../spec/lastenheft.md) |
-| [ADR-0011](0011-pruefwertformat.md) | Prüfwertformat und Konfigurationsweg der festen Benutzerliste | Proposed | [TDS-FA-02](../../../spec/lastenheft.md#tds-fa-02--anmeldung-und-sitzungsverwaltung), [TDS-FA-09](../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose), [TDS-QA-03](../../../spec/lastenheft.md#tds-qa-03--sicherheit) |
+| [ADR-0011](0011-pruefwertformat.md) | Prüfwertformat und Konfigurationsweg der festen Benutzerliste | Proposed | [ADR-0009](0009-authentifizierungsmodus.md), [TDS-FA-02](../../../spec/lastenheft.md#tds-fa-02--anmeldung-und-sitzungsverwaltung), [TDS-FA-09](../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose), [TDS-QA-03](../../../spec/lastenheft.md#tds-qa-03--sicherheit) |
 
 ## Konventionen
 
