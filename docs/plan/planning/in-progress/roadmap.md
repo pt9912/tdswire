@@ -23,10 +23,6 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 - [welle-backend-streaming](../welle-backend-streaming.md)
 - [welle-fehler-abbruch](../welle-fehler-abbruch.md)
 
-In Arbeit (Welle welle-transport-tls):
-
-- [slice-transport-coroutines-geruest](slice-transport-coroutines-geruest.md)
-
 In Arbeit (Welle welle-qualitaet-grundlage):
 
 - [slice-qa-spec-abdeckung](slice-qa-spec-abdeckung.md)
