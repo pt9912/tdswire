@@ -43,7 +43,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertNull
 
 /**
- * Smoke der Welle: Nachrichten laufen durch Nachrichten-Codec und Paket-Codec hin und zurück,
+ * Smoke: Nachrichten laufen durch Nachrichten-Codec und Paket-Codec hin und zurück,
  * zerlegt in kleine Pakete und byteweise wieder angenommen. Das belegt, dass beide Codecs
  * zusammenpassen; die Protokolltreue belegen die Handvektoren der Einzeltests, nicht dieser Test.
  */

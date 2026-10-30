@@ -65,7 +65,10 @@ class Login7Request(
     val sspiLength: Long,
     val featureIds: List<Int>,
 ) {
-    /** `fIntSecurity` (OptionFlags2 Bit 7): SSPI/Kerberos, im Entwurf von `ADR-0009` abgelehnt. */
+    /**
+     * `fIntSecurity` (OptionFlags2 Bit 7): SSPI/Kerberos. Der Parser liefert das Merkmal; die
+     * Ablehnung nach `ADR-0009` gehört dem Anmeldepfad.
+     */
     val integratedSecurity: Boolean get() = header.optionFlags2 and FLAG_INT_SECURITY != 0
 
     /** `fChangePassword` (OptionFlags3 Bit 0). */

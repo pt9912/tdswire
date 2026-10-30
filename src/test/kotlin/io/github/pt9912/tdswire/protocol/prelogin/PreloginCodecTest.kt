@@ -79,6 +79,7 @@ class PreloginCodecTest {
 
     /**
      * Orakel: der Wert VERSION ist Haupt- und Nebenversion, Build und Unter-Build jeweils Big-Endian.
+     * Der Build ist ein Handvektor; die Byteordnung des Unter-Builds ist eine Festlegung ohne Messung.
      *
      * @spec SPEC-028
      */
@@ -157,6 +158,23 @@ class PreloginCodecTest {
     }
 
     /**
+     * Negativfall: Endet die Nachricht unmittelbar nach einem Byte der Tabelle, das kein Terminator
+     * ist (Kennung allein, Kennung mit halbem Offset), fehlen Bytes der Tabelle: `TRUNCATED`, nicht
+     * das Ende der Tabelle.
+     *
+     * @spec SPEC-011
+     */
+    @Test
+    fun `Nachricht endet nach einem Nicht-Terminator-Byte der Tabelle`() {
+        listOf("00", "00 00", "00 00 06", "00 00 06 00").forEach { input ->
+            val error = assertIs<ProtocolResult.Failed>(PreloginCodec.parse(hex(input))).error
+            assertEquals(ProtocolFailure.TRUNCATED, error.failure, input)
+            assertEquals(ProtocolErrorCategory.TDS_PROTOCOL_ERROR, error.category, input)
+        }
+        assertEquals(ProtocolFailure.MISSING_TERMINATOR, failureOf(ByteArray(0)))
+    }
+
+    /**
      * Negativfall: bekannte Optionen mit falscher Länge (VERSION 5, ENCRYPTION 2) sind Fehler der
      * Kategorie `TDS_PROTOCOL_ERROR`.
      *
@@ -192,7 +210,8 @@ class PreloginCodecTest {
 
     /**
      * Fuzz mit festem Startwert (`SPEC-027`): zufällige Bytes und Handvektor mit verändertem Byte
-     * enden in einem Ergebniswert; was sich lesen lässt, lässt sich schreiben und wieder lesen.
+     * enden in einem Ergebniswert, ein Fehler trägt `TDS_PROTOCOL_ERROR`; was sich lesen lässt,
+     * lässt sich schreiben und wieder lesen.
      *
      * @spec SPEC-027
      */
@@ -205,6 +224,9 @@ class PreloginCodecTest {
             repeat(random.nextInt(1, 4)) { mutated[random.nextInt(mutated.size)] = random.nextInt().toByte() }
             listOf(noise, mutated).forEach { input ->
                 val result = PreloginCodec.parse(input)
+                if (result is ProtocolResult.Failed) {
+                    assertEquals(ProtocolErrorCategory.TDS_PROTOCOL_ERROR, result.error.category)
+                }
                 if (result is ProtocolResult.Ok) {
                     val encoded = assertIs<ProtocolResult.Ok<ByteArray>>(PreloginCodec.encode(result.value)).value
                     assertTrue(parsed(encoded).options == result.value.options)

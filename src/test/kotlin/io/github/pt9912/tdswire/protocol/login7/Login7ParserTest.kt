@@ -1,5 +1,6 @@
 package io.github.pt9912.tdswire.protocol.login7
 
+import io.github.pt9912.tdswire.protocol.wire.ProtocolErrorCategory
 import io.github.pt9912.tdswire.protocol.wire.ProtocolFailure
 import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
 import io.github.pt9912.tdswire.testsupport.Login7Builder
@@ -32,6 +33,12 @@ class Login7ParserTest {
     private fun parse(bytes: ByteArray): ProtocolResult<Login7Request> = Login7Parser.parse(bytes)
 
     private fun ok(bytes: ByteArray): Login7Request = assertIs<ProtocolResult.Ok<Login7Request>>(parse(bytes)).value
+
+    private fun assertFailureIsProtocolError(result: ProtocolResult<*>) {
+        if (result is ProtocolResult.Failed) {
+            assertEquals(ProtocolErrorCategory.TDS_PROTOCOL_ERROR, result.error.category)
+        }
+    }
 
     private fun failureOf(bytes: ByteArray): ProtocolFailure =
         assertIs<ProtocolResult.Failed>(parse(bytes)).error.failure
@@ -330,7 +337,8 @@ class Login7ParserTest {
 
     /**
      * Fuzz mit festem Startwert (`SPEC-027`): zufällige Bytes, Handvektor mit verändertem Byte und
-     * mit verändertem Längenfeld enden in einem Ergebniswert, nie in einer Ausnahme.
+     * mit verändertem Längenfeld enden in einem Ergebniswert, nie in einer Ausnahme; ein Fehler trägt
+     * `TDS_PROTOCOL_ERROR`.
      *
      * @spec SPEC-027
      */
@@ -347,10 +355,10 @@ class Login7ParserTest {
             listOf(vector, featured).forEach { base ->
                 val mutated = base.copyOf()
                 repeat(random.nextInt(1, 4)) { mutated[random.nextInt(mutated.size)] = random.nextInt().toByte() }
-                parse(mutated)
-                parse(base.copyOf(random.nextInt(0, base.size)))
+                assertFailureIsProtocolError(parse(mutated))
+                assertFailureIsProtocolError(parse(base.copyOf(random.nextInt(0, base.size))))
             }
-            parse(noise)
+            assertFailureIsProtocolError(parse(noise))
         }
         assertEquals("a", String(ok(vector).password.reveal()))
         assertEquals("B3 A5", vector.copyOfRange(100, 102).toHex())
