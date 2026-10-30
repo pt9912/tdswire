@@ -94,7 +94,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): Der Start-Trigger der Welle `welle-handshake-login` ist eingetreten, `slice-handshake-login` liegt in `done/`, der Listener-Slice der Transport-Welle `welle-transport-tls` liegt in `done/` (Kennung legt deren Planung fest), `slice-adr-pruefwertformat` liegt in `done/` (Konfigurationsweg und Format sind entschieden: Nutzerentscheidung, festgehalten als `Accepted`-ADR oder als Fortschreibung von SPEC-051 und `contracts/auth-adapter.md`) und ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): Der Start-Trigger der Welle `welle-handshake-login` ist eingetreten, `slice-handshake-login` liegt in `done/` (der Auth-Slice `slice-auth-adapter-benutzerliste`, dessen Validierung dieser Slice ruft, liegt bereits in `done/`), der Listener-Slice der Transport-Welle `welle-transport-tls` liegt in `done/` (Kennung legt deren Planung fest), `slice-adr-pruefwertformat` liegt in `done/` (Konfigurationsweg und Format sind entschieden: Nutzerentscheidung, festgehalten als `Accepted`-ADR oder als Fortschreibung von SPEC-051 und `contracts/auth-adapter.md`) und ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
