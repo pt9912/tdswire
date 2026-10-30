@@ -86,7 +86,9 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): Der Start-Trigger der Welle [welle-simulations-backend](../welle-simulations-backend.md) ist eingetreten und ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): [slice-backend-port-vertrag](../done/slice-backend-port-vertrag.md) liegt in `done/` (Port und `contracts/query-backend.md` stehen auf `main`), der Nutzer hat den Start der Welle [welle-simulations-backend](../welle-simulations-backend.md) ausdrücklich verlangt, und ein Verantwortlicher ist im Kopf eingetragen.
+
+**Abweichung vom Wellen-Start-Trigger, gekennzeichnet als Setzung des Nutzers.** Der Start-Trigger der Welle (Welle [welle-backend-streaming](../welle-backend-streaming.md) in `done/`) ist nicht eingetreten. Dieser Slice braucht keinen Code dieser Welle: Er entscheidet und baut nicht (§1), und was er am Port voraussetzt, liefert [slice-backend-port-vertrag](../done/slice-backend-port-vertrag.md). Die Trigger-Zeile der Welle bleibt für die Code-Slices ([slice-sim-erkennung](slice-sim-erkennung.md), [slice-sim-auswahl-streaming](slice-sim-auswahl-streaming.md), [slice-sim-aenderung-integration](slice-sim-aenderung-integration.md)) unverändert. Die Umplanung steht im Drift-Log der Roadmap.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
