@@ -1,1 +1,1 @@
-**Stand:** geplant — `welle-entscheidungen-grundlage` (die Closure der Welle schreibt die Regel: jede Aussage einer Entscheidung trägt eine Messzeile oder ist als Setzung gekennzeichnet)
+**Stand:** verkörpert — `AGENTS.md` §3.8 und `.harness/skills/reviewer.md` (MEDIUM-Liste), beide mit Anker `seit welle-protokollcodec`; die Regel umfasst den Code-KDoc

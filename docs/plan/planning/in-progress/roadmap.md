@@ -18,7 +18,6 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 
 - [welle-qualitaet-grundlage](../welle-qualitaet-grundlage.md)
 - [welle-entscheidungen-grundlage](../welle-entscheidungen-grundlage.md)
-- [welle-protokollcodec](../welle-protokollcodec.md)
 - [welle-transport-tls](../welle-transport-tls.md)
 - [welle-handshake-login](../welle-handshake-login.md)
 
@@ -80,7 +79,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 
 | Welle | Abschluss | Closure-Notiz |
 |---|---|---|
-| <welle-id> | YYYY-MM-DD | `<welle-id>-results.md` |
+| welle-protokollcodec | 2026-10-30 | [welle-protokollcodec-results](../done/welle-protokollcodec-results.md) |
 
 ## Historische Trigger-Verschiebungen
 

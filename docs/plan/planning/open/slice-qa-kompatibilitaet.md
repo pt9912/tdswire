@@ -30,7 +30,7 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Die freigegebenen Ende-zu-Ende-Szenarien (Anmeldung, SELECT, parametrisierte Abfrage, NULL, Fehler, Abbruch) laufen automatisiert mit einem echten .NET-Client gegen den Server und sind ein Gate. Aus [ADR-0009](../../adr/0009-authentifizierungsmodus.md) §Offen gehören dazu die Anmeldemessungen, die dort fehlen: Windows-SSPI (NTLM), TDS 8.0 mit SQL-Authentifizierung, mehrpaketiges LOGIN7, Pooling mit `ResetConnection`. Aus [ADR-0005](../../adr/0005-rpc-und-prepared-statements.md) §Offen kommen `sp_unprepare` unter Pooling, die `SET`-Text-Szenarien (`SchemaOnly`, `KeyInfo`), Transaktionen (Pakettyp `0x0E`) und TDS 8.0 für RPC hinzu. State und Meldung eines echten SQL Servers gehören nicht hierher, sondern in den Vergleichslauf D von [slice-qa-reproduzierbarkeit](slice-qa-reproduzierbarkeit.md).
+**Ziel:** Die freigegebenen Ende-zu-Ende-Szenarien (Anmeldung, SELECT, parametrisierte Abfrage, NULL, Fehler, Abbruch) laufen automatisiert mit einem echten .NET-Client gegen den Server und sind ein Gate. Aus [ADR-0009](../../adr/0009-authentifizierungsmodus.md) §Offen gehören dazu die Anmeldemessungen, die dort fehlen: Windows-SSPI (NTLM), TDS 8.0 mit SQL-Authentifizierung, mehrpaketiges LOGIN7, Pooling mit `ResetConnection`. Aus [ADR-0005](../../adr/0005-rpc-und-prepared-statements.md) §Offen kommen `sp_unprepare` unter Pooling, die `SET`-Text-Szenarien (`SchemaOnly`, `KeyInfo`), Transaktionen (Pakettyp `0x0E`) und TDS 8.0 für RPC hinzu. Dieser Slice ist zugleich der Träger der Beobachtung `BEO-TDS/tds-8-0-und-pooling-nicht-gemessen` (Ausgang aus `welle-protokollcodec`): Der Codec ist für TDS 8.0 und Pooling bisher nur nach MS-TDS festgelegt, nicht am Server dieses Repos gemessen (Closure-Notiz [welle-protokollcodec-results](../done/welle-protokollcodec-results.md)). State und Meldung eines echten SQL Servers gehören nicht hierher, sondern in den Vergleichslauf D von [slice-qa-reproduzierbarkeit](slice-qa-reproduzierbarkeit.md).
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -46,7 +46,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] Referenzclient als Testprojekt in Docker, Szenarien nach `SPEC-025`/`SPEC-032` laufen grün gegen den Server.
 - [ ] Gate-Target in `make gates` eingehängt.
-- [ ] Anmeldemessungen und RPC-Messungen aus dem Ziel (Windows-SSPI, TDS 8.0, mehrpaketiges LOGIN7, Pooling mit `ResetConnection` und `sp_unprepare`, `SET`-Text-Szenarien, Transaktionen) am Server dieses Repos gemessen und in den ADRs bzw. im Clientprofil nachgetragen, oder je Punkt mit Begründung als nicht lieferbar benannt.
+- [ ] Anmeldemessungen und RPC-Messungen aus dem Ziel (Windows-SSPI, TDS 8.0, mehrpaketiges LOGIN7, Pooling mit `ResetConnection` und `sp_unprepare`, `SET`-Text-Szenarien, Transaktionen) am Server dieses Repos gemessen und in den ADRs bzw. im Clientprofil nachgetragen, oder je Punkt mit Begründung als nicht lieferbar benannt; für TDS 8.0 und Pooling auch die Aussage des Codecs (KDoc und Closure-Notiz von `welle-protokollcodec`) von *Festlegung* auf *gemessen* gehoben oder eingeschränkt.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
