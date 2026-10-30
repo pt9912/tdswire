@@ -29,7 +29,6 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 In Arbeit (Welle welle-qualitaet-grundlage):
 
 - [slice-qa-wartbarkeit](slice-qa-wartbarkeit.md)
-- [slice-qa-stabilitaet](slice-qa-stabilitaet.md)
 
 In Arbeit (Welle welle-anfrageverarbeitung):
 

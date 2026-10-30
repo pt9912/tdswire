@@ -1,0 +1,2 @@
+**Vorgang:** slice-qa-stabilitaet
+**Fund:** Die Zerstückelung der Fuzz-Ströme hatte keinen Zähler: die Mutation G3 (`WireGenerator.chunks` liefert immer den ganzen Strom) ließ alle neun Stabilitätstests grün, obwohl beide KDocs die Zerstückelung als belegte Eingabe nennen (Review F-4). Behoben mit den Zählern `ZERSTUECKELT` und `BYTENWEISE` und einem Handvektor für den geteilten Paketkopf; der Verifier fuhr G3 und A6 nach, beide rot.

@@ -1,0 +1,5 @@
+# Fuzz und Fragmentierung gelten für einen Pfad, den Nachbarpfad nach der Verdrahtung trägt kein Slice
+
+**Sub-Area:** `*` (Tests, Planung, Stabilität)
+
+Ein Stabilitäts-Slice fuzzt und zerstückelt den Pfad, der zur Zeit der Umsetzung verdrahtet ist (hier der Anmeldepfad mit einem Test-Handler, der nach dem Login jede Nachricht verwirft). Kommt später der Anfragepfad dazu (SQL_BATCH, RPC, Attention in einer angemeldeten Sitzung), nennt der Plan den Stabilitäts-Slice oder den Anfrage-Slice als Träger, aber keiner plant Fuzz, Fragmentierung oder parallele Verbindungen dafür: der eine schließt, ohne es zu liefern, der andere führt die Anforderung im Bezug und plant sie nicht. Ebenso fehlt ein Träger für beschädigte Anmelde-Nachrichten hinter echtem TLS. Die Parser haben eigene Fuzz-Tests ohne Transport; das ersetzt den Pfad nicht. Verwandt, aber eigener Mechanismus: `BEO-TDS/offene-punkte-ohne-traeger` (dort fehlt der Träger einer `Accepted`-ADR) und `BEO-TDS/dod-haengt-an-offenem-slice-ohne-rueckfuehrung` (dort ist die Abhängigkeit zirkulär).
