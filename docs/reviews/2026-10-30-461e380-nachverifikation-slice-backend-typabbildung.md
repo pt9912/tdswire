@@ -2,7 +2,7 @@
 
 **Rolle:** Verifier (frischer Kontext) · **Modell:** claude-sonnet-5-5
 
-**Gegenstand:** Diff `37c7d11..461e380` (Fix-Runde, Merge 03b1d40; Code-Stand ab d33534b) gegen die Befunde aus dem [Review-Report](2026-10-30-55fc860-slice-backend-typabbildung.md) (F-1 bis F-9) und dem [Verifikationsbericht](2026-10-30-55fc860-verifikation-slice-backend-typabbildung.md) (V-1 bis V-6), und die DoD des [Slice-Plans](../plan/planning/in-progress/slice-backend-typabbildung.md).
+**Gegenstand:** Diff `37c7d11..461e380` (Fix-Runde, Merge 03b1d40; Code-Stand ab d33534b) gegen die Befunde aus dem [Review-Report](2026-10-30-55fc860-slice-backend-typabbildung.md) (F-1 bis F-9) und dem [Verifikationsbericht](2026-10-30-55fc860-verifikation-slice-backend-typabbildung.md) (V-1 bis V-6), und die DoD des [Slice-Plans](../plan/planning/done/slice-backend-typabbildung.md).
 
 **Bezug:** [TDS-FA-05](../../spec/lastenheft.md#tds-fa-05--resultsets-und-datentypen), [TDS-QA-02](../../spec/lastenheft.md#tds-qa-02--stabilit%C3%A4t), [SPEC-002](../../spec/spezifikation.md#spec-002--interner-query-vertrag), [SPEC-003](../../spec/spezifikation.md#spec-003--typmapping-initialer-mindestkatalog), [ADR-0006](../plan/adr/0006-backend-vertrag-und-streaming.md), [AGENTS.md](../../AGENTS.md) §3.7 und §3.8.
 

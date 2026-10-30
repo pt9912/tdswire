@@ -33,7 +33,7 @@
 * kategorie: LOW
 * quelle: `AGENTS.md` §3.8
 * pfad: `docs/plan/kompatibilitaetsmatrix.md` · `| 10 | `SqlType.Decimal` gegen Precision-Grenze des Codecs | ... | im KDoc von `SqlType.Decimal` als offen geführt, kein Träger |`
-* befund: `in-progress/slice-backend-typabbildung.md` führt den Punkt im Risiko (§6, „Modellgrenzen von `SqlType` gegen die Abbildung“ (a), Ausgang „offen bis zur Closure“) und in der DoD (Decimal 1 bis 38); die Zeile „kein Träger“ ist falsch, der Träger fehlt.
+* befund: `done/slice-backend-typabbildung.md` führt den Punkt im Risiko (§6, „Modellgrenzen von `SqlType` gegen die Abbildung“ (a), Ausgang „offen bis zur Closure“) und in der DoD (Decimal 1 bis 38); die Zeile „kein Träger“ ist falsch, der Träger fehlt.
 * verifizierbar: ja
 * klasse: Träger-Angabe ohne tragenden Slice-Text
 
