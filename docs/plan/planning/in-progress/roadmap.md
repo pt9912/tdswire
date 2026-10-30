@@ -20,6 +20,8 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 - [welle-entscheidungen-grundlage](../welle-entscheidungen-grundlage.md)
 - [welle-transport-tls](../welle-transport-tls.md)
 - [welle-handshake-login](../welle-handshake-login.md)
+- [welle-backend-streaming](../welle-backend-streaming.md)
+- [welle-backend-streaming](../welle-backend-streaming.md)
 
 In Arbeit (Welle welle-transport-tls):
 
