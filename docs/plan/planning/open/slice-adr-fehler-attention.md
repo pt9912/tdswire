@@ -76,6 +76,14 @@ Aussagen-Berührung steht hier gar nicht.
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 
+**Zwischenstand der Messung** für [ADR-0007](../../adr/0007-fehler-und-attention.md) (Stand 2026-10-30; die ADR bleibt `Proposed`, es ist keine Option gewählt, der Slice bleibt in `open/`). Spike per Dockerfile ohne Mount, `Microsoft.Data.SqlClient` 7.1.1 auf `dotnet/sdk:10.0.403`, `Encrypt=false`, `Pooling=false` (außer R18/R19), eine Verbindung je Szenario. Zwei Messobjekte, in der ADR getrennt ausgewiesen: **R**, der echte SQL Server 2022 (Digest `sha256:cf8f0ab2…`, 16.00.4305) hinter einem mitschneidenden TCP-Proxy im Client-Container, und **T**, ein in C# geschriebener Testserver mit skriptbaren Antworten. R sagt, was ein echter Server sendet; T sagt, wie der Referenzclient auf eine bestimmte Antwort reagiert. Es lief kein Server dieses Repos. Der Spike-Code liegt nur im Scratchpad und ist nicht im Repo; Roh-Logs sind nicht abgelegt, die ADR trägt die Zusammenfassung. Aus den Messungen ergab sich:
+
+- R (ein Lauf je Zeile, R zweimal gefahren, Verhalten gleich): Fehler der Class ≤ 19 mit ERROR und DONE[ERR] lassen die Verbindung offen und die Folgeabfrage antwortet richtig; ab Class 20 sendet der Server weitere Fehler (2745, 596) und schließt. Statement-abbrechende Fehler (8134) lassen den Rest des Batches laufen, Batch-abbrechende (208, `THROW`, `XACT_ABORT`) nicht. Eine offene Transaktion überlebt einen Fehler ohne `XACT_ABORT`. Cancel und Timeout beantwortet der Server mit zwei Nachrichten (abgebrochene Antwort mit DONE[ERR], dann DONE[ATTN]); die Verbindung bleibt offen. Im gemessenen Deadlock wiederholte weder Server noch Client.
+- T (ein Lauf je Zeile): Der Client schließt ab Class 20 selbst; fehlendes DONE, DONE ohne ATTN-Bit als Bestätigung oder eine ignorierte ATTENTION lassen den Client bis zum Timeout hängen (plus rund 5 s Wartezeit auf die Bestätigung bei ignoriertem ATTENTION ohne Antwort), danach ist die Verbindung geschlossen.
+- Nicht gemessen: TDS 8.0 und TLS, Client-Disconnect mitten in der Anfrage, ATTENTION-Race im Moment des letzten DONE, Pooling mit vom Server geschlossener Verbindung, andere Clients, ein Server dieses Repos.
+- Abhängigkeit von [ADR-0004](../../adr/0004-session-zustandsautomat.md) (noch nicht entschieden, parallel gemessen): ATTENTION in jedem Anfragezustand, Sitzungszustand nach Fehler, `RESETCONNECTION`, Zeitpunkt des Schließens bei `TDS_SHUTDOWN`. Die Stellen sind in der ADR benannt; die Entscheidung dieser ADR sollte nach [ADR-0004](../../adr/0004-session-zustandsautomat.md) fallen oder diese Punkte offen lassen.
+- Die DoD-Punkte bleiben unerfüllt: Die Option ist nicht gewählt, die ADR nicht `Accepted`, Review und Verifikation stehen aus.
+
 ## 4. Trigger
 
 
