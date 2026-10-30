@@ -208,8 +208,9 @@ vorgelagertem TLS (TDS 8.0, Strict-Encryption) beginnen mit
 `CONNECTED → TLS_NEGOTIATION → PRELOGIN`. Nur `READY` akzeptiert SQL_BATCH/RPC; ATTENTION ist im
 passenden laufenden Anfragezustand zulässig. Der Zustand ist ein expliziter Automat: eine Aufzählung der
 Zustände und eine reine Übergangsfunktion (Zustand, Ereignisart) → (Folgezustand, Aktion). Ungültige
-Übergänge werden abgelehnt; die Antwort darauf (Verbindung ohne Antwort schließen oder ein Fehler) und
-die Reichweite von ATTENTION vor dem Login sind noch festzulegen.
+Übergänge werden abgelehnt; die Antwort darauf (Verbindung ohne Antwort schließen oder ein Fehler), die
+Reichweite von ATTENTION vor dem Login und der Zuschnitt der Aufzählung (eine Aufzählung oder getrennt
+nach Verbindungs- und Anfragezustand) sind noch festzulegen.
 
 Anfragezustand (nur innerhalb von `READY`): `IDLE → RUNNING → STREAMING → COMPLETED → IDLE`. Bei
 ATTENTION führen `RUNNING` und `STREAMING` über `CANCELLING` nach `COMPLETED`. Der Response
