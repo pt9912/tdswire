@@ -118,7 +118,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Der Zeitpunkt des Pins: [ADR-0003](../../adr/0003-transportframework.md) sagt „sobald der erste Transport-Code entsteht“; `slice-codec-tds-paket` las das als „sobald Code mit I/O entsteht“ und nahm die Abhängigkeit nicht auf. Dieser Plan nimmt sie in den ersten Slice mit I/O. Eine andere Lesart oder eine neuere Version als 1.10.1 wäre Nutzerentscheidung. — **Ausgang:** offen bis zur Closure.
+- Der Zeitpunkt des Pins: [ADR-0003](../../adr/0003-transportframework.md) sagt „sobald der erste Transport-Code entsteht“; `slice-codec-tds-paket` las das als „sobald Code mit I/O entsteht“ und nahm die Abhängigkeit nicht auf. Dieser Plan nimmt sie in den ersten Slice mit I/O. Entschieden (Nutzer, 2026-10-30): Pin in diesem Slice, Version 1.10.1. — **Ausgang:** offen bis zur Closure.
 - Das Test-Gate (`make test`) kommt aus `slice-codec-tds-paket`; liegt es beim Start nicht in `done/`, ist der Start-Trigger nicht erfüllt, und dieser Slice liefert kein eigenes zweites Gate. — **Ausgang:** offen bis zur Closure.
 - Loopback-Sockets im Docker-Build: Der Test braucht `127.0.0.1` im Build-Container. Das ist ohne Netzfreigabe zu erwarten, aber hier nicht gemessen; scheitert es, ist der Test auf den Speicher-Kanal zu begrenzen, und der Slice kann den Adapter nicht belegen. — **Ausgang:** offen bis zur Closure.
 - Rückstau ist im Spike für 100 MiB gemessen und im Produktivcode „zu liefern“ ([ADR-0003](../../adr/0003-transportframework.md)); dieser Slice belegt eine kleinere Grenze am Test-Kanal, nicht den Produktivbetrieb unter Last. — **Ausgang:** offen bis zur Closure.

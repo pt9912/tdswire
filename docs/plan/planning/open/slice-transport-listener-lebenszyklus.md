@@ -118,7 +118,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 - Größe: drei Liefer-Punkte mit Listener, Fristen und Startprobe; die Startprobe hängt an der Schleife und am Material-Format und kann den Slice sprengen. Rückführung und Schnitt in §4. — **Ausgang:** offen bis zur Closure.
-- Format von Zertifikat und Schlüssel (PKCS#12, PEM): SPEC-043 nennt die Teile, aber nicht die Formen; ein PEM-Lader ohne Fremdbibliothek ist Eigencode mit Sicherheitsrelevanz. Nutzerentscheidung nötig (siehe Bericht zur Welle). — **Ausgang:** offen bis zur Closure.
+- Format von Zertifikat und Schlüssel (PKCS#12, PEM): SPEC-043 nennt die Teile, aber nicht die Formen; ein PEM-Lader ohne Fremdbibliothek ist Eigencode mit Sicherheitsrelevanz. Entschieden (Nutzer, 2026-10-30): PKCS#12 (JDK-Standard), kein PEM-Lader. — **Ausgang:** offen bis zur Closure.
 - Die Startprobe prüft laut SPEC-043 weder Vertrauen noch die TDS-Kapselung; ein Test darf daraus nicht „der Client akzeptiert das Zertifikat“ ableiten. — **Ausgang:** offen bis zur Closure.
 - Die Frist `LOGIN_TIMEOUT` ist laut Spezifikation vorläufig (15 s); Tests dürfen sie nur über eine steuerbare Zeitquelle prüfen, nicht über Wartezeit, sonst wird das Test-Gate langsam und flackert. — **Ausgang:** offen bis zur Closure.
 - Ein geordnetes Schließen mit laufender Anfrage ist ohne Session nicht vollständig belegbar; der Slice belegt Fristen und Trennen mit einem Test-Handler, nicht das Verhalten gegen eine echte Anfrage. Die Lücke steht in der Notiz und im Folge-Slice der funktionalen Welle. — **Ausgang:** offen bis zur Closure.
