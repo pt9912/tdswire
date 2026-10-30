@@ -488,17 +488,19 @@ werden vor der Implementierung festgelegt. Festgelegt ist die Bedeutung:
 - `primaryKey` nennt eine oder mehrere Spalten der Tabelle; sie müssen vorhanden und nicht nullbar
   sein. Der Schlüssel ist nur Teil der Beschreibung: er wirkt weder auf das Resultset noch auf
   Callbacks, das Backend speichert nichts und prüft keine Eindeutigkeit. Als Metadatum zum Client wird
-  er nicht gesendet.
+  er nicht gesendet (Setzung, nicht am Server gemessen).
 - **Validierung** (gilt für die Kotlin-Schnittstelle und die Datei): Tabellen- und Spaltennamen sind
   ohne Beachtung der Groß-/Kleinschreibung eindeutig; jede Tabelle hat mindestens eine Spalte und
-  einen Schlüssel.
+  einen Schlüssel (Setzung, nicht am Server gemessen).
 - **Überführung eines Werts in den Spaltentyp** (`TDS-FA-11.a` Schritt 4; Literal und Parameter;
   Setzung, nicht am Server gemessen): streng und verlustfrei. Gleiche Typfamilie; Datum, Zeit und
   Zeitpunkt nur im ISO-Format (Zeitpunkt nur mit `T`); keine Rundung und keine Überführung zwischen
   Zahl und Text; ein Parameter wird nur verlustfrei erweitert (Int32 zu Int64 zu Decimal). Überlauf
   (Int32, Int64, Stellen der Dezimalzahl) ist immer `TDS_SIM_INVALID_VALUE`. Dezimalwerte werden mit
   `compareTo` verglichen (1.0 gleich 1.00), Textwerte ohne Beachtung der Groß-/Kleinschreibung
-  (Setzung, wie die Bezeichner); `UnicodeText` hat kein Längenlimit.
+  (Setzung, wie die Bezeichner). Texte begrenzt das Backend selbst nicht; ein Text von mehr als 4000
+  UTF-16-Einheiten, den eine Zeilenquelle liefert, weist die Typabbildung mit `TDS_UNSUPPORTED_TYPE` ab
+  (`SPEC-003`; Setzung, nicht gemessen).
 
 **Beschreibung als Datei.** Zusätzlich zur Kotlin-Schnittstelle kann der Server Tabellen aus einer Datei
 laden. Das Format ist das neutrale Schema-Modell von d-migrate in YAML, `schema_format` `1.0`; maßgeblich
@@ -510,17 +512,21 @@ fest, was der Leser daraus liest. Ändert sich das Format dort, ist der Belegsta
 - **Gelesen:** `schema_format` (muss `1.0` sein), `name` und `version` (Pflicht, nicht ausgewertet),
   `tables`; je Tabelle `columns` und `primary_key` (beide Pflicht, jeder Eintrag des Schlüssels eine
   vorhandene Spalte); je Spalte `type` (Pflicht), `required`, `max_length`, `precision`, `scale`,
-  `timezone`, `ordinal`. Sind alle Spalten einer Tabelle mit `ordinal` versehen, gilt diese Reihenfolge,
+  `timezone`, `ordinal`. `tables` ist Pflicht, strenger als das Schema, das nur `schema_format`, `name`
+  und `version` verlangt (Setzung, nicht gemessen). Sind alle Spalten einer Tabelle mit `ordinal` versehen, gilt diese Reihenfolge,
   sonst die im Dokument; nur bei einem Teil ist die Datei abzuweisen (Setzung nach der Kurzreferenz von
   d-migrate, an d-migrate nicht gemessen).
 - **Ignoriert** (im Schema bekannt, ohne Wirkung): `description`, `encoding`, `locale`, `custom_types`,
   `procedures`, `functions`, `views`, `triggers`, `sequences` in der Datei; `description`, `indices`,
   `constraints`, `partitioning`, `metadata` in der Tabelle; `unique`, `default`, `auto_increment`,
-  `generation`, `references` in der Spalte. Nicht erzwungen werden `UNIQUE`, `DEFAULT`, `CHECK`,
-  Fremdschlüssel, Indizes und Identität. **Abgewiesen:** jedes andere Feld.
+  `generation`, `references` in der Spalte, dazu die typgebundenen Spaltenfelder `length`,
+  `float_precision`, `values`, `ref_type`, `element_type`, `geometry_type` und `srid` (im Schema bekannt;
+  Setzung, nicht gemessen: ignoriert, die Typen, zu denen sie gehören, weist die Typabbildung ab). Nicht
+  erzwungen werden `UNIQUE`, `DEFAULT`, `CHECK`, Fremdschlüssel, Indizes und Identität.
+  **Abgewiesen:** jedes Feld, das weder gelesen noch ignoriert wird.
 - **Nullbar** ist eine Spalte, die weder `required: true` trägt noch im Schlüssel steht noch den Typ
   `identifier` hat. Der Tabellenname ist der Schlüssel unter `tables`, wörtlich (ein Punkt bleibt Teil
-  des Namens), das Schema ist `dbo`.
+  des Namens), das Schema ist `dbo` (Setzung, nicht am Server gemessen).
 - **Typabbildung:** `identifier` auf `Int32` (nicht nullbar), `integer` auf `Int32`, `biginteger` auf
   `Int64`, `boolean` auf `Bool`, `text` und `email` auf `UnicodeText`, `decimal` auf
   `Decimal(precision, scale)` bis Precision 38, `date` auf `Date`, `time` auf `Time`, `datetime` ohne
@@ -534,14 +540,15 @@ fest, was der Leser daraus liest. Ändert sich das Format dort, ist der Belegsta
   Parsen geprüft.
 - **Eine Datei beschreibt nur das Schema:** eine aus ihr geladene Tabelle hat eine leere Zeilenquelle
   und keine Callbacks. Auswahl liefert Metadaten und ein leeres Ergebnis; Einfügen, Ändern und Löschen
-  enden mit `TDS_UNSUPPORTED_SQL`. Zeilenquelle und Callbacks bleiben Code des Integrators.
+  enden mit `TDS_UNSUPPORTED_SQL`. Zeilenquelle und Callbacks bleiben Code des Integrators (Setzung, nicht am Server gemessen).
 - **Ladefehler:** Ein Fehler (unbekanntes oder doppeltes Feld, Typ ohne Entsprechung, doppelter Name,
   Schlüssel auf unbekannte Spalte, zu große oder unlesbare Datei) bricht den Start ab, bevor ein Port
   gebunden wird, ohne Teilladen. Die Meldung nennt den Pfad im Dokument, Zeile und Spalte und nie den
-  Inhalt. Kein TDS-Fehlercode: beim Laden ist kein Client verbunden.
+  Inhalt. Kein TDS-Fehlercode: beim Laden ist kein Client verbunden (Setzung, nicht am Server gemessen).
 - **Verdrahtung:** Die Kotlin-Schnittstelle und eine Umgebungsvariable mit dem Dateipfad (Name nicht
   festgelegt). Die Datei liest `runtime`; das Package `simulation` bekommt einen Baum aus Abbildungen,
-  Listen und Skalaren mit Zeile und Spalte und kennt weder die Datei noch die YAML-Bibliothek.
+  Listen und Skalaren mit Zeile und Spalte und kennt weder die Datei noch die YAML-Bibliothek (Setzung,
+  nicht am Server gemessen).
 
 ### SPEC-036 — Erkannte Anweisungsformen des Simulations-Backends (vorläufig)
 
@@ -559,8 +566,9 @@ fest, was der Leser daraus liest. Ändert sich das Format dort, ist der Belegsta
   Groß-/Kleinschreibung verglichen (vorläufig, wie die übliche Server-Collation). `"…"` als
   Bezeichner setzt `QUOTED_IDENTIFIER ON` voraus; beides ist an der Referenzinstanz zu messen
   (`SPEC-045`).
-- **Nicht erkannt** (`TDS_UNSUPPORTED_SQL`; gedeckt durch das Lastenheft: Verbund, Aggregat, Ausdruck,
-  Unterabfrage und Sortierung wörtlich, die übrigen Fälle durch die abgegrenzte Liste der Formen):
+- **Nicht erkannt** (`TDS_UNSUPPORTED_SQL`; Verbund, Aggregat, Ausdruck, Unterabfrage und Sortierung
+  schließt das Lastenheft wörtlich aus; für die übrigen Fälle gilt die Setzung, dass die Liste der Formen
+  abschließend ist, eine Lesart des Lastenhefts, vom Nutzer nicht bestätigt):
   `JOIN` und weitere Relationen, Unterabfragen, `WITH`,
   Aggregate und `GROUP BY`, `DISTINCT`, `TOP`, `ORDER BY`, `OFFSET`/`FETCH`, Aliase für Tabellen und
   Spalten, Ausdrücke und Funktionen in Listen und Bedingungen, `OR`, `NOT`, `<`, `>`, `LIKE`, `BETWEEN`,
@@ -654,8 +662,9 @@ Sitzungs-IDs, Zeitstempel, Versionstext), werden nur auf „vorhanden / nicht vo
 
 Grenzen: Ein Mitschnitt spielt die Anfragen des Clients ab, nicht den Client; fragt der Client wegen
 einer anderen Antwort anders, zeigt das nur der Live-Lauf. Das Schema der Referenzinstanz und die
-Tabellenbeschreibung des Simulations-Backends werden getrennt gepflegt und müssen gemeinsam
-geändert werden. Mitschnitte enthalten nur Testdaten und keine Secrets. Das
+Tabellenbeschreibung des Simulations-Backends haben eine gemeinsame Quelle, die Datei nach `SPEC-035`;
+wie das Skript der Referenzinstanz aus ihr entsteht, ist nicht festgelegt. Ein Schema, das nur im Code des
+Integrators steht, wird getrennt gepflegt und muss mit dem der Referenzinstanz gemeinsam geändert werden. Mitschnitte enthalten nur Testdaten und keine Secrets. Das
 SQL-Server-Image setzt `ACCEPT_EULA=Y` voraus; die Zustimmung des Repo-Inhabers ist in der ADR als Entscheidung festgehalten (rechtlich ungeprüft), der Lauf setzt die Variable ausdrücklich. Gemessen ist nur eine Instanz der Version 2022: `Encrypt=Strict` (TDS 8.0) scheitert, und der Server-Log nennt TLS 1.0 bis 1.2; der Abgleich beider Pfade entfällt dort.
 
 ## 3. Defaults und Konstanten
@@ -765,7 +774,7 @@ aktive Backendoperationen, Abbrüche, Protokollfehler. Keine SQL-Texte als Metri
 | `SPEC-025` | Integrationstest-Gate | Containerisierter Server + echter .NET-Referenzclient (`Microsoft.Data.SqlClient` 7.1.1, .NET 10) prüfen Login, SQL_BATCH, RPC, Typen, Fehler, Cancel; ohne lokale .NET-Installation und ohne Mount, Basis-Images per Digest, Pakete per Lock und Hash; Gate noch einzurichten |
 | `SPEC-026` | `make gates` | Aggregator: führt alle eingerichteten Gates aus; neue Gates für Formatierung, statische Prüfung und Tests werden in ihn aufgenommen |
 | `SPEC-027` | Fuzz-/Property-Tests | Defekte Paketlängen, Offsets, Fragmentierung und Typwerte dürfen keinen ungefangenen Prozessabsturz verursachen |
-| `SPEC-040` | Simulations-Test-Gate | Unit-Tests der Anweisungserkennung (jede Form aus `SPEC-036` positiv und negativ, Grenzen bei Literalen, Bezeichnern und Kommentaren) und Integrationstest mit dem .NET-Referenzclient: Auswahl, leeres Ergebnis, Zeilenquelle über der Speichergrenze, Fehler der Zeilenquelle, Cancel; Gate noch einzurichten |
+| `SPEC-040` | Simulations-Test-Gate | Unit-Tests der Anweisungserkennung (jede Form aus `SPEC-036` positiv und negativ, Grenzen bei Literalen, Bezeichnern und Kommentaren), Unit-Tests des Lesers der Tabellenbeschreibung (jedes gelesene Feld, jeder Ladefehler mit Pfad, Zeile und Spalte, ohne Inhalt in der Meldung) und Integrationstest mit dem .NET-Referenzclient: Auswahl, leeres Ergebnis, Zeilenquelle über der Speichergrenze, Fehler der Zeilenquelle, Cancel; Gate noch einzurichten |
 | `SPEC-041` | Static-Analysis-Gate (`make detekt`, `make detekt-selbsttest`) | detekt in Docker, Konfiguration auf Standardbasis (`config/detekt/detekt.yml`) mit dem ktlint-Regelsatz (prüft, schreibt nichts um), `warningsAsErrors` und den Importregeln der Schichten, im Kern als Erlaubnisliste ohne Fremdbibliothek; dazu Technik-Regeln für Kern und Port, die Prozess, Dateisystem und Ähnliches über `ForbiddenMethodCall` sperren und deshalb nur über `detektMain` und `detektTest` wirken (Typauflösung); keine Baseline; jeder Befund bricht den Lauf. Tests des Kerns bleiben frei von Fremdbibliotheken (`kotlin.test` statt JUnit), weil die Kernregeln auch für Test-Quellen gelten. Die Importregeln lesen nur `import`-Zeilen: ein voll qualifizierter Name im Code und ein `typealias` darauf umgehen sie; das Gate belegt die Einhaltung der Importgrenze, nicht des Classpaths. `@Suppress` und `@SuppressWarnings` im Quelltext brechen den Lauf vor detekt (Textprüfung `tools/suppression-check.sh`). Ein Selbsttest belegt, dass jede Importregel ihre verbotenen Importe meldet, die erlaubten Testdaten nicht und das Suppression-Verbot jede Form meldet; er läuft nur bei geänderten Eingängen |
 | `SPEC-042` | Build-Gate (`make build`) | Compile und Jar in Docker, ohne Tests; Basis-Images per Digest gepinnt, Abhängigkeitsversionen per Lock und Prüfsummen fixiert |
 | `SPEC-050` | Referenzabgleich-Gate (vorläufig) | Live-Lauf und Mitschnitt-Lauf nach `SPEC-045` gegen eine SQL-Server-Referenzinstanz in Docker (eigener Container im eigenen Netzwerk, ohne Mount); Abweichungen nur über die Ausnahmeliste; ergänzt die Läufe von `SPEC-025` und `SPEC-032`, ersetzt sie nicht; Gate noch einzurichten |
@@ -792,3 +801,4 @@ aktive Backendoperationen, Abbrüche, Protokollfehler. Keine SQL-Texte als Metri
 | 2026-10-30 | Typabbildung nachgeführt: Precision über 38 scheitert in der Typabbildung, Zeit ohne Zone mit Scale 7, Unicode-Text `NVARCHAR(4000)` und Decimal ohne Rundung als Setzungen (`SPEC-002`, `SPEC-003`) |
 | 2026-10-30 | Zuordnung des Fehler-Mappings je Code (Nummer, Class, State, Text, Verbindungsfolge) in §4 festgehalten, jede Zeile nach Herkunft gekennzeichnet; Einzelzuordnung der Codes ohne Gruppe offen (`TDS-FA-06.a`, `SPEC-011` bis `SPEC-016`, `SPEC-037` bis `SPEC-039`, `SPEC-048`, `SPEC-049`) |
 | 2026-10-30 | Simulations-Backend festgelegt: Beschreibung zusätzlich als Datei im neutralen Schema-Modell von d-migrate, Typabbildung, strenge Überführung, Schlüssel nur beschreibend, Scanner-Regeln (`SPEC-035`, `SPEC-036`, `TDS-FA-11.a`); Vergleich von Bezeichnern und Werten sowie Überführung bleiben Setzungen, nicht am echten SQL Server gemessen |
+| 2026-10-30 | Simulations-Backend nachgeführt (`SPEC-035`, `SPEC-036`, `SPEC-040`, `SPEC-045`): Ignorierliste um sieben Spaltenfelder, `tables` als Pflicht, Längengrenze der Typabbildung, Setzungsvermerke, Lesart der Liste „Nicht erkannt“ als Setzung, Tests des Lesers, gemeinsame Quelle der Schemata |
