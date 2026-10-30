@@ -1,6 +1,6 @@
 # ADR-0008: Referenzclient und .NET-Kompatibilitätstests
 
-**Status:** Accepted
+**Status:** Proposed
 
 **Datum:** 2026-10-29
 
@@ -116,3 +116,4 @@ Neue SqlClient-Hauptversion, nicht reproduzierbarer Kompatibilitätsfehler, geä
 | 2026-10-29 | Proposed – Entscheidung offen | —       |
 | 2026-10-29 | Option D (Referenzabgleich) und Bezug auf `SPEC-045`, `SPEC-050` ergänzt; Entscheidung weiter offen | [SPEC-045](../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig) |
 | 2026-10-30 | Accepted – Option B (Pflicht-Matrix) zusätzlich Option D (Vergleichslauf); Spike mit Stub-Server und echtem SQL-Server-Container gemessen; EULA-Zustimmung des Repo-Inhabers festgehalten; NuGet-Audit und `trustedSigners` offen | [SPEC-025](../../../spec/spezifikation.md#7-festlegungen-der-harness-werkzeuge) |
+| 2026-10-30 | Zurück auf Proposed – Review fordert Korrekturen vor erneutem Accepted | [Review](../../reviews/2026-10-30-7fe5583-052712d-adr-0008.md) |

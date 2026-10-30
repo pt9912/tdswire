@@ -1,6 +1,6 @@
 # ADR-0005: RPC-Unterstützung und Prepared Statements
 
-**Status:** Accepted
+**Status:** Proposed
 
 **Datum:** 2026-10-29
 
@@ -77,3 +77,4 @@ Neuer .NET-Aufruftyp erzeugt bisher nicht unterstützte RPC-Nachricht (etwa `sp_
 | ---------- | ----------------------------- | ------- |
 | 2026-10-29 | Proposed – Entscheidung offen | —       |
 | 2026-10-30 | Accepted – Option B (Mindestkatalog); Spike mit Testserver und Referenzclient, ohne echten SQL Server; Messaussagen vor Abschluss des Slice begrenzt | —       |
+| 2026-10-30 | Zurück auf Proposed – Review fordert Korrekturen vor erneutem Accepted | [Review](../../reviews/2026-10-30-7fe5583-052712d-adr-0005.md) |

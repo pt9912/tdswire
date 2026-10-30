@@ -1,6 +1,6 @@
 # ADR-0009: Authentifizierungsmodus und Authentifizierungsadapter
 
-**Status:** Accepted
+**Status:** Proposed
 
 **Datum:** 2026-10-29
 
@@ -72,3 +72,4 @@ Ein neuer unterstützter Authentifizierungsmodus im Clientprofil oder eine neue 
 | ---------- | ----------------------------- | ------- |
 | 2026-10-29 | Proposed – Entscheidung offen | —       |
 | 2026-10-30 | Accepted – Option A mit fester Benutzerliste als Einstiegsimplementierung; Messung mit .NET 10 und `Microsoft.Data.SqlClient` 7.1.1; Schnittstelle als Entwurf | [SPEC-051](../../../spec/spezifikation.md#6-externe-verträge) |
+| 2026-10-30 | Zurück auf Proposed – Review fordert Korrekturen vor erneutem Accepted | [Review](../../reviews/2026-10-30-7fe5583-052712d-adr-0009.md) |
