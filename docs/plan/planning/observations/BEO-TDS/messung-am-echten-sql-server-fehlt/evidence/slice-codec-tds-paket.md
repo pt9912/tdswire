@@ -1,0 +1,2 @@
+**Vorgang:** slice-codec-tds-paket
+**Fund:** Tokenreihenfolge im Antwortstrom, DONE-Statusbits und ordinale Zählung der RETURNVALUE des Codecs liegen nur als Handvektor aus der Lesart von MS-TDS vor; ein echter SQL Server ist nicht gemessen, und ein Mitschnitt des Referenzclients liegt nicht im Repo. Der Codec belegt Selbstkonsistenz und diese Lesart, nicht die Annahme durch den Client; Träger bleibt `slice-qa-reproduzierbarkeit`.

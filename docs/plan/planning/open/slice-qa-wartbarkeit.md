@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [TDS-QA-05](../../../../spec/lastenheft.md#tds-qa-05--wartbarkeit), [ADR-0010](../../adr/0010-detekt-pre-release.md)
 
-**Berührte Spec-Stellen:** SPEC-024 · SPEC-041
+**Berührte Spec-Stellen:** SPEC-041
 
 **Verantwortlich:** — bis zur Priorisierung.
 
@@ -43,7 +43,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] Unit-Test-Gate (`SPEC-024`) läuft in Docker und ist in `make gates`.
+- Das Unit-Test-Gate (`SPEC-024`, `make test`) liefert `slice-codec-tds-paket` und ist hier kein Liefer-Punkt mehr; dieser Slice baut darauf auf und erweitert es nur um Tests, nicht um ein zweites Gate.
 - [ ] Kompatibilitätsmatrix der Nachrichten und Datentypen dokumentiert, als Abdeckungs-Dokument unter docs/plan/ (`AGENTS.md` §5).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -64,7 +64,6 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `tools/mk/` und Dockerfile | update | Test-Stage und Gate-Target |
 | Kompatibilitätsmatrix, Datei unter docs/plan/ | neu | nach [TDS-QA-05](../../../../spec/lastenheft.md#tds-qa-05--wartbarkeit) |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
