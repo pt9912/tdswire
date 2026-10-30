@@ -88,12 +88,12 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-backend-port-vertrag` liegt in `done/` (`SqlType`, `ResultColumn`), `make gates` ist auf `main` grün, die Nutzerentscheidung zur Zeitzonenannahme und zum Kollationswert (§6) liegt vor, und ein Verantwortlicher ist im Kopf eingetragen. Der Slice braucht den Sequenzierer nicht.
+**Start** (`next` → `in-progress`): `slice-backend-port-vertrag` liegt in `done/` (erfüllt; `SqlType`, `ResultColumn`), `make gates` ist auf `main` grün, die Nutzerentscheidung zur Zeitzonenannahme und zum Kollationswert (§6) liegt vor, und ein Verantwortlicher ist im Kopf eingetragen. Der Slice braucht den Sequenzierer nicht.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): mehr als drei Liefer-Punkte in §2; Schnittvorschlag: Slice A = Metadatenabbildung, Slice B = Wertabbildung und Fehlerverhalten.
-- `in-progress` → `open` (blockiert — Carveout?): `SqlType` aus dem Port-Slice trägt den Mindestkatalog nicht (Precision/Scale, Längen) und müsste dort geändert werden.
+- `in-progress` → `open` (blockiert — Carveout?): `SqlType` trägt den Mindestkatalog nicht (Zeit-Scale, Länge von `UnicodeText`; der Port-Slice liegt in `done/`) und die Änderung am Modell ist nicht Teil dieses Slice, sondern braucht einen eigenen Folge-Slice.
 
 ## 5. Closure-Trigger
 
@@ -112,6 +112,7 @@ dasteht.
 
 - **Zeitzonen- und Genauigkeitsannahme — Entscheidungsbedarf (Nutzer):** `SPEC-003` nennt „Zeitzonenannahmen“ und „nach Profil“ ohne Wert; Backendwerte mit Zone (`Instant`, `OffsetDateTime`) sind weder im Mindestkatalog noch abgebildet, und die Rundung bei Scale kleiner als die Genauigkeit des Werts ist offen. — **Ausgang:** offen bis zur Closure.
 - **Kollation von Unicode-Text** (Wert in `Collation`): der Codec legt `SQL_Latin1_General_CP1_CI_AS` als Konstante fest, ob sie zum Clientprofil passt, ist am Testserver gemessen, nicht am Produkt. — **Ausgang:** weiter offen: → `BEO-TDS/messung-am-echten-sql-server-fehlt` (`slice-qa-reproduzierbarkeit`).
+- **Modellgrenzen von `SqlType` gegen die Abbildung (aus `slice-backend-port-vertrag`):** (a) `SqlType.Decimal` nimmt jede Precision ab 1 an, der Codec (`TypeInfoWriter.MAX_PRECISION`) 1 bis 38; wie der Widerspruch aufgelöst wird (Obergrenze im Modell oder Fehlerwert in der Abbildung), ist eine Nutzerentscheidung. (b) `SqlType` trägt weder die Scale von `Time` und `DateTime` noch ein Längenlimit von `UnicodeText`; die Abbildung setzt beide fest (Scale 0 bis 7, Länge bis 4000) oder verlangt ein erweitertes Modell. (c) Die JVM-Typen der Werte in `Row`, `QueryParameter` und `OutputParameter` je `SqlType` sind im Port offen ([ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md)); die Wertabbildung legt sie als Festlegung fest. — **Ausgang:** offen bis zur Closure.
 - **Nullbarkeit gegen Wert:** ein `null`-Wert in einer als nicht nullbar beschriebenen Spalte, doppelte oder leere Spaltennamen: die Spezifikation schweigt (benannte Spec-Lücke); der Slice legt sie als Festlegung fest oder nennt sie offen. — **Ausgang:** offen bis zur Closure.
 - **Ohne Messung am Referenzclient:** Die Abbildung belegt Handvektoren und Selbstkonsistenz; die Annahme der Spaltenmetadaten durch den Client ist nicht gemessen (`BEO-TDS/aussagen-ueber-messung-hinaus`, `BEO-TDS/messung-am-echten-sql-server-fehlt`). — **Ausgang:** weiter offen: → `slice-qa-kompatibilitaet`, `slice-qa-reproduzierbarkeit`.
 - **Doppelung mit `slice-codec-datentypen-erweiterung`:** wächst der Katalog hier, wird der Folge-Slice überflüssig oder doppelt. — **Ausgang:** offen bis zur Closure; Grenze in §1.

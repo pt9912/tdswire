@@ -1,0 +1,2 @@
+**Vorgang:** slice-backend-port-vertrag
+**Fund:** Beim Prüfen der Träger zur Closure (Schritt 24) trug `slice-backend-typabbildung` drei Punkte nicht, die der gebaute Port offen lässt: die Obergrenze der Decimal-Precision (Modell ohne Grenze gegen `MAX_PRECISION` 38 des Codecs), die Länge von `UnicodeText` und die Scale der Zeittypen (im Modell nicht darstellbar; die Rückführungs-Zeile des Slice verwies dafür auf eine Änderung im bereits geschlossenen Port-Slice) sowie die JVM-Typen der Werte je `SqlType`. Sie stehen seit dieser Closure in `slice-backend-typabbildung` §6.

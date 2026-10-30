@@ -89,7 +89,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md) steht auf `Accepted`, `slice-backend-port-vertrag` und `slice-backend-typabbildung` liegen in `done/`, `make gates` ist auf `main` grün, die Nutzerentscheidungen zu den offenen Punkten der Vorschau und des Fehlerausgangs (§6: `Failure` in der Vorschau, Schicksal des zurückgehaltenen Abschlusses, Definition „synchron“, Ausgang bei Reihenfolgeverstoß, Herkunft des Fehler-Mappings) liegen vor, und ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md) steht auf `Accepted`, `slice-backend-port-vertrag` liegt in `done/` (erfüllt), `slice-backend-typabbildung` liegt in `done/`, `make gates` ist auf `main` grün, die Nutzerentscheidungen zu den offenen Punkten der Vorschau und des Fehlerausgangs (§6: `Failure` in der Vorschau, Schicksal des zurückgehaltenen Abschlusses, Definition „synchron“, Ausgang bei Reihenfolgeverstoß, Herkunft des Fehler-Mappings) liegen vor, und ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

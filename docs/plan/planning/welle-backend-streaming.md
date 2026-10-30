@@ -31,7 +31,7 @@ werden, aber nie Trigger sein. Und der **Start**-Trigger ist **kein Ergebnis
 dieser Welle**: Steht er in der Slice-Liste unten, ist er falsch platziert.
 
 - `make gates` ist auf `main` grün.
-- [ADR-0006](../adr/0006-backend-vertrag-und-streaming.md) steht im ADR-Index auf `Accepted` (erfüllt). Ihre offenen Punkte führen die Slices dieser Welle ([slice-backend-sequenzierer](open/slice-backend-sequenzierer.md), [slice-backend-port-vertrag](in-progress/slice-backend-port-vertrag.md), [slice-backend-streaming-nachweis](open/slice-backend-streaming-nachweis.md)) und, ohne Welle, [slice-adr-backend-grenzen](open/slice-adr-backend-grenzen.md).
+- [ADR-0006](../adr/0006-backend-vertrag-und-streaming.md) steht im ADR-Index auf `Accepted` (erfüllt). Ihre offenen Punkte führen die Slices dieser Welle ([slice-backend-sequenzierer](open/slice-backend-sequenzierer.md), [slice-backend-port-vertrag](done/slice-backend-port-vertrag.md), [slice-backend-streaming-nachweis](open/slice-backend-streaming-nachweis.md)) und, ohne Welle, [slice-adr-backend-grenzen](open/slice-adr-backend-grenzen.md).
 - Der Slice `slice-codec-tds-paket` der Welle [welle-protokollcodec](done/welle-protokollcodec/welle-protokollcodec.md) liegt in `done/`: der Encoder der Antwort-Tokens, der Typkatalog des Codecs und das Test-Gate `make test` stehen auf `main`.
 
 Weitere Voraussetzungen gelten je Slice und stehen in dessen §4 (der Pin von `kotlinx-coroutines-core` aus `slice-transport-coroutines-geruest` für den Port-Slice): sie verzögern einen Slice, nicht den Start der Welle. [ADR-0004](../adr/0004-session-zustandsautomat.md) ist keine Voraussetzung (siehe §5).
