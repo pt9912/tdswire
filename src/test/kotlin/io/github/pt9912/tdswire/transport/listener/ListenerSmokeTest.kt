@@ -30,7 +30,7 @@ import kotlin.test.assertTrue
  * gemeinsam, und mehrere gleichzeitige Verbindungen, darunter defekte. Die Gegenstelle ist eine
  * JDK-`SSLEngine`; die Aussagen gelten nicht für den Referenzclient. Der Handler ist ein Echo, kein Protokoll.
  */
-class ListenerSmokeTest {
+class ListenerSmokeTest : ListenerTestBase() {
     private val parallel = Executors.newFixedThreadPool(CLIENT_THREADS).asCoroutineDispatcher()
 
     @AfterTest

@@ -7,6 +7,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.withTimeout
 import java.util.concurrent.ExecutionException
@@ -15,6 +16,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration
@@ -25,7 +27,7 @@ import kotlin.time.Duration.Companion.seconds
  * des Transports. Eine laufende Anfrage gegen ein Backend und `TDS_SHUTDOWN` gehören der Session und
  * sind hier nicht belegt; „Anfrage läuft“ meldet der Test-Handler selbst.
  */
-class ListenerShutdownTest {
+class ListenerShutdownTest : ListenerTestBase() {
     private val grace = 7.seconds
     private val shortTimeout = 3_000L
 
@@ -211,6 +213,53 @@ class ListenerShutdownTest {
         val expected = ListenerEvent.Closed(1, ConnectionEnd.REFUSED_AT_SHUTDOWN, null)
         assertEquals(listOf<ListenerEvent>(expected), events.events)
         assertTrue(peer.awaitClosedByPeer())
+    }
+
+    /**
+     * Wird der Aufruf von `shutdown()` abgebrochen, während eine Anfrage die Frist abwartet, räumt er
+     * trotzdem auf: die Verbindung ist getrennt und aus dem Listener entfernt, und kein Thread des
+     * Listeners lebt, sobald der abgebrochene Aufruf zurück ist (`TDS-QA-02`).
+     *
+     * @spec SPEC-044
+     */
+    @Test
+    fun `a cancelled shutdown still releases the connections and the threads`() = blocking {
+        val before = listenerThreads()
+        val f = fixture()
+        val busy = f.connect()
+        f.handler.connections[0].requestRunning(true)
+        val shutdown = async { f.listener.shutdown() }
+        f.awaitShutdownWaiting(shutdown, grace)
+        shutdown.cancelAndJoin()
+        assertNoNewListenerThreads(before)
+        assertTrue(busy.awaitClosedByPeer())
+        eventually("Verbindung aufgeräumt") { f.listener.activeConnections == 0 }
+    }
+
+    /**
+     * Weist das Register eine Verbindung ab, schließt der Listener sie sofort, meldet
+     * `REFUSED_AT_SHUTDOWN` und startet keinen Handler: die Verdrahtung von `TdsListener` mit dem
+     * Register, nicht nur die beiden Teile.
+     *
+     * @spec SPEC-044
+     */
+    @Test
+    fun `the listener closes a connection its registry refuses and starts no handler`() = blocking {
+        val handler = ScriptedHandler()
+        val events = RecordingEvents()
+        val setup = ListenerSetup(ListenerConfig(LOOPBACK, 0), handler, events, RefusingRegistry())
+        val started = track(TdsListener.start(setup))
+        assertIs<StartResult.Started>(started)
+        val client = connectTo(started.listener.port)
+        assertTrue(client.awaitClosedByPeer())
+        eventually("Ende REFUSED_AT_SHUTDOWN") { events.endsOf(ConnectionEnd.REFUSED_AT_SHUTDOWN).size == 1 }
+        assertEquals(1, events.closed().size)
+        assertTrue(handler.connections.isEmpty())
+        assertEquals(0, started.listener.activeConnections)
+    }
+
+    private class RefusingRegistry : ConnectionRegistry<ManagedConnection>() {
+        override fun admit(id: Long, connection: ManagedConnection): Boolean = false
     }
 
     private companion object {

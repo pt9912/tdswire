@@ -15,13 +15,17 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 /** Start des Listeners: Startprobe vor dem Binden, belegter Port, keine Reste nach einem Fehlschlag. */
-class ListenerStartTest {
+class ListenerStartTest : ListenerTestBase() {
     private val handler = ConnectionHandler { }
 
     private fun materialOf(store: ByteArray): TlsMaterial {
         val loaded = TlsMaterial.load(store, KeyVariants.password())
         assertIs<MaterialResult.Loaded>(loaded)
         return loaded.material
+    }
+
+    private companion object {
+        const val FAILED_STARTS = 300
     }
 
     private fun freePort(): Int = ServerSocket(0, 1, InetAddress.getByName(LOOPBACK)).use { it.localPort }
@@ -43,6 +47,42 @@ class ListenerStartTest {
             assertTrue("$LOOPBACK:$port" in result.failure.message, result.failure.message)
             assertNoNewListenerThreads(before)
             assertTrue(!occupied.isClosed)
+        }
+    }
+
+    /**
+     * Ein Port außerhalb von 0..65535 beendet den Start mit `BindFailed` und dem Ausnahmetyp; danach
+     * läuft sofort kein Thread des Listeners.
+     *
+     * @spec SPEC-043
+     */
+    @Test
+    fun `invalid port ends the start and leaves no thread`() = blocking {
+        val before = listenerThreads()
+        listOf(70_000, -1).forEach { port ->
+            val result = TdsListener.start(ListenerConfig(LOOPBACK, port), handler, ListenerEvents.NONE)
+            val failure = StartFailure.BindFailed(LOOPBACK, port, "java.lang.IllegalArgumentException")
+            assertEquals(StartResult.Failed(failure), result)
+            assertNoNewListenerThreads(before)
+        }
+    }
+
+    /**
+     * Nach jedem fehlgeschlagenen Start läuft zum Zeitpunkt der Rückkehr kein Thread des Listeners;
+     * der Test prüft ohne Warten und wiederholt den Start auf einem belegten Port.
+     *
+     * @spec SPEC-043
+     */
+    @Test
+    fun `a failed start returns only after its threads have ended`() = blocking {
+        val before = listenerThreads()
+        ServerSocket(0, 1, InetAddress.getByName(LOOPBACK)).use { occupied ->
+            repeat(FAILED_STARTS) {
+                val config = ListenerConfig(LOOPBACK, occupied.localPort)
+                val result = TdsListener.start(config, handler, ListenerEvents.NONE)
+                assertIs<StartResult.Failed>(result)
+                assertNoNewListenerThreads(before)
+            }
         }
     }
 
@@ -76,7 +116,7 @@ class ListenerStartTest {
     fun `valid material starts the listener and shutdown releases the threads`() = blocking {
         val before = listenerThreads()
         val tls = TlsServerConfig(materialOf(KeyVariants.file(TestKeys.VALID)), TlsParameters.SPEC_023)
-        val result = TdsListener.start(ListenerConfig(LOOPBACK, 0, tls = tls), handler, ListenerEvents.NONE)
+        val result = track(TdsListener.start(ListenerConfig(LOOPBACK, 0, tls = tls), handler, ListenerEvents.NONE))
         assertIs<StartResult.Started>(result)
         val listener = result.listener
         assertTrue(listener.port > 0)

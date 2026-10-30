@@ -7,6 +7,7 @@ import java.security.Key
 import java.security.KeyPairGenerator
 import java.security.KeyStore
 import java.security.cert.Certificate
+import java.security.cert.CertificateFactory
 
 /**
  * PKCS#12-Speicher als Bytes für die Startprobe: die Dateien der Dockerfile-Stage `testkeys` und
@@ -43,6 +44,18 @@ object KeyVariants {
 
     /** Die Kette aus `gueltig.p12` mit dem Schlüssel aus `falscher-name.p12`. */
     fun mismatchedPair(): ByteArray = bytesOf(keyOf(TestKeys.OTHER_NAME), password(), chainOf(TestKeys.VALID))
+
+    /**
+     * Ein gültiges Blatt (Schlüssel aus `blatt.p12`), signiert von einem abgelaufenen Zwischenzertifikat,
+     * das die gültige Wurzel signiert hat: die Kette `blatt.pem`, `zwischen-abgelaufen.pem`, `wurzel.pem`.
+     */
+    fun expiredIntermediate(): ByteArray {
+        val factory = CertificateFactory.getInstance("X.509")
+        val chain = listOf("blatt.pem", "zwischen-abgelaufen.pem", "wurzel.pem").map { name ->
+            FileInputStream(File(directory(), name)).use { factory.generateCertificate(it) }
+        }
+        return bytesOf(keyOf("blatt.p12"), password(), chain.toTypedArray())
+    }
 
     /** Schlüssel und Kette aus `gueltig.p12`, der Schlüssel unter einem anderen Kennwort als der Speicher. */
     fun keyWithOtherPassword(): ByteArray =

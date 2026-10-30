@@ -34,6 +34,15 @@ Festlegungen dieses Profils, nicht am Referenzclient gemessen (die Tests laufen 
 - Fehlertexte der Schleife nennen den Ausnahmetyp oder eine feste Beschreibung, nie Zertifikats- oder Schlüsselinhalt.
 - Ein KeyUpdate der Gegenstelle in TLS 1.3 beantwortet die Schleife (mit einer JDK-Gegenstelle getestet: der Server schreibt einen kurzen Record, ohne selbst Nutzdaten zu schreiben, und die Nachrichten laufen weiter; der Inhalt der Antwort ist nicht beobachtet); Neuverhandlung in TLS 1.2 ist nicht Gegenstand und nicht getestet.
 
+## Schlüsselmaterial
+
+Setzung dieses Profils, nicht gemessen und nicht aus dem Referenzclient abgeleitet:
+
+- Schlüssel und Zertifikatskette des Servers kommen aus einem PKCS#12-Speicher; ein PEM-Lader ist nicht Teil des Servers.
+- Speicher- und Schlüsselkennwort sind derselbe Wert; der Server nimmt den ersten Schlüsseleintrag.
+- Zugelassen sind RSA-Schlüssel ab 2048 Bit; andere Arten und kürzere Schlüssel weist der Start ab (`SPEC-043`).
+- Die Startprobe prüft jedes Zertifikat der Kette auf Gültigkeit zum Startzeitpunkt, nicht Vertrauen oder Namen.
+
 ## JVM-Flag
 
 Der Serverprozess läuft mit `-Djdk.tls.server.newSessionTicketCount=0`. Ohne das Flag sendet der JDK-Server bei TLS 1.3 ein NewSessionTicket noch im Handshake; im TDS-7.4-Pfad landet es in einem Paket vom Typ `0x12`, und der Client bricht ab („Unrecognized record version“). Das Flag gilt prozessweit, auch im TDS-8.0-Pfad; es ist beim Start des Serverprozesses zu setzen. Eine Lösung ohne das Flag ist nicht gebaut.
