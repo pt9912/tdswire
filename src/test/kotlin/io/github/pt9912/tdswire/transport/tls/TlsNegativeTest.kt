@@ -17,10 +17,12 @@ import io.github.pt9912.tdswire.transport.channel.SuspendingChannel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import java.nio.ByteBuffer
+import java.security.cert.CertificateExpiredException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
@@ -42,6 +44,9 @@ class TlsNegativeTest {
             assertTrue(it !in error.detail, "Detail enthält $it: ${error.detail}")
         }
     }
+
+    /** Die Ausnahme und ihre Ursachen, von außen nach innen. */
+    private fun causes(failure: Throwable?): List<Throwable> = generateSequence(failure) { it.cause }.toList()
 
     private suspend fun acceptAgainst(
         path: TlsPath,
@@ -71,7 +76,8 @@ class TlsNegativeTest {
     /**
      * Ein abgelaufenes Zertifikat scheitert an der prüfenden Gegenstelle (Alert); die Schleife meldet
      * `HANDSHAKE_FAILED` mit Kategorie `TDS_PROTOCOL_ERROR` und ohne Zertifikatsinhalt im Text, in
-     * beiden Pfaden. Die Gegenstelle bricht mit einer `SSLException` ab.
+     * beiden Pfaden. Die Gegenstelle bricht mit einer `SSLException` ab, deren Ursachenkette eine
+     * `CertificateExpiredException` enthält (der Ablauf ist die beobachtete Ursache, nicht nur der Abbruch).
      *
      * @spec SPEC-028
      */
@@ -80,6 +86,7 @@ class TlsNegativeTest {
         bothPaths.forEach { path ->
             val outcome = runHandshake(TlsSetup(path, serverKeys = TestKeys.EXPIRED, clientTrust = TestKeys.EXPIRED))
             assertIs<javax.net.ssl.SSLException>(outcome.peerFailure)
+            assertTrue(causes(outcome.peerFailure).any { it is CertificateExpiredException }, "Ursache Ablauf")
             val error = failureOf(outcome.server)
             assertEquals(TlsFailure.HANDSHAKE_FAILED, error.failure)
             assertEquals(TlsErrorCategory.TDS_PROTOCOL_ERROR, error.category)
@@ -90,8 +97,9 @@ class TlsNegativeTest {
     }
 
     /**
-     * Ein Zertifikat für einen anderen Namen scheitert an der Namensprüfung der Gegenstelle; Ergebnis
-     * wie beim abgelaufenen Zertifikat, in beiden Pfaden.
+     * Ein Zertifikat für einen anderen Namen scheitert an der Namensprüfung der Gegenstelle (die Meldung
+     * der Gegenstelle nennt den fehlenden Namen im Zertifikat, Wortlaut des JDK 21 der Testumgebung);
+     * Ergebnis wie beim abgelaufenen Zertifikat, in beiden Pfaden.
      *
      * @spec SPEC-028
      */
@@ -101,6 +109,8 @@ class TlsNegativeTest {
             val setup = TlsSetup(path, serverKeys = TestKeys.OTHER_NAME, clientTrust = TestKeys.OTHER_NAME)
             val outcome = runHandshake(setup)
             assertIs<javax.net.ssl.SSLException>(outcome.peerFailure)
+            val reasons = causes(outcome.peerFailure).mapNotNull { it.message }
+            assertTrue(reasons.any { "No subject alternative DNS name" in it }, "Ursache Hostname: $reasons")
             val error = failureOf(outcome.server)
             assertEquals(TlsFailure.HANDSHAKE_FAILED, error.failure)
             assertNoLeak(error)
@@ -111,6 +121,8 @@ class TlsNegativeTest {
     /**
      * Ein ClientHello nur nach TLS 1.1 (von Hand gebaut) wird abgelehnt, im TDS-8.0-Pfad roh und im
      * TDS-7.4-Pfad in einem `0x12`-Paket; Mindestversion ist TLS 1.2. Der Server schreibt nichts.
+     * Grenze: Das JDK sperrt TLS 1.1 ohnehin (`jdk.tls.disabledAlgorithms`); der Test wird teils vom
+     * JDK-Default getragen und belegt `settings.protocols` nicht. Das tut `peer without a common version …`.
      *
      * @spec SPEC-023 SPEC-028
      */
@@ -122,6 +134,61 @@ class TlsNegativeTest {
         val packed = acceptAgainst(TlsPath.ENCAPSULATED_IN_TDS) { it.send(handMessage(0x12, tls11ClientHello(), 4000)) }
         assertEquals(TlsFailure.HANDSHAKE_FAILED, packed.first.failure)
         assertEquals(0, packed.second.written.size)
+    }
+
+    /**
+     * Eine Gegenstelle ohne gemeinsame Protokollversion mit der Konfiguration des Servers wird abgewiesen:
+     * Server nur TLS 1.3 gegen Gegenstelle nur TLS 1.2 und umgekehrt (beide Pfade). Der Server liefert
+     * `HANDSHAKE_FAILED`, schreibt nichts mehr, und der Kanal ist zu. Das belegt, dass die Protokolle der
+     * Konfiguration an die Engine gehen (die Gegenstelle bietet sonst beide Versionen des JDK an).
+     *
+     * @spec SPEC-023 SPEC-028
+     */
+    @Test
+    fun `peer without a common version is rejected`() = blocking {
+        val tls13 = listOf("TLSv1.3")
+        val tls12 = listOf("TLSv1.2")
+        bothPaths.forEach { path ->
+            listOf(tls13 to tls12, tls12 to tls13).forEach { (server, peer) ->
+                val setup = TlsSetup(path, protocols = peer, serverProtocols = server)
+                val outcome = runHandshake(setup)
+                assertEquals(TlsFailure.HANDSHAKE_FAILED, failureOf(outcome.server).failure, "$path $server $peer")
+                assertNotNull(outcome.peerFailure)
+                assertClosed(outcome.serverWire)
+            }
+        }
+    }
+
+    /**
+     * Eine Gegenstelle ohne gemeinsame Suite mit der Konfiguration des Servers wird abgewiesen: nur CBC
+     * gegen einen Server mit den Suiten von `SPEC-023` in TLS 1.2, eine
+     * TLS-1.3-Suite gegen die andere. Die Gegenprobe ist derselbe Aufbau mit einem Server, dessen
+     * Konfiguration die Suite der Gegenstelle nennt: dort gelingt der Handshake, die Abweisung kommt also
+     * aus der Konfiguration, nicht daraus, dass das JDK die Suite sperrt. Dass `TlsParameters` auch solche
+     * Suiten annimmt, ist die dokumentierte Grenze der Klasse. Eine Suite mit RSA-Schlüsselaustausch ist
+     * nicht getestet: das JDK der Testumgebung bietet sie als Client nicht an, der Handshake kommt nicht zustande.
+     *
+     * @spec SPEC-023 SPEC-028
+     */
+    @Test
+    fun `peer without a common suite is rejected`() = blocking {
+        val tls12 = listOf("TLSv1.2")
+        val cbc = listOf("TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA")
+        val others = listOf(
+            Triple(tls12, cbc, TlsParameters.TLS12_SUITES),
+            Triple(listOf("TLSv1.3"), listOf("TLS_AES_128_GCM_SHA256"), listOf("TLS_AES_256_GCM_SHA384")),
+        )
+        bothPaths.forEach { path ->
+            others.forEach { (protocols, peerSuites, serverSuites) ->
+                val rejected = runHandshake(TlsSetup(path, protocols, peerSuites, serverSuites = serverSuites))
+                assertEquals(TlsFailure.HANDSHAKE_FAILED, failureOf(rejected.server).failure, "$path $peerSuites")
+                assertNotNull(rejected.peerFailure)
+                assertClosed(rejected.serverWire)
+
+                val control = runHandshake(TlsSetup(path, protocols, peerSuites, serverSuites = peerSuites))
+                assertEquals(peerSuites.single(), control.channel().cipherSuite, "Gegenprobe $path")
+            }
+        }
     }
 
     /**
@@ -162,12 +229,13 @@ class TlsNegativeTest {
     /**
      * Ein letztes Handshake-Paket, dessen Nutzdaten über das Ende von `FINISHED` hinaus in den Puffer der
      * Engine nicht mehr passen (hier 30000 Nullbytes hinter Client-Finished), ist ein `PROTOCOL_VIOLATION`:
-     * der Rest gehört dem Paket, nicht dem rohen Strom.
+     * der Rest gehört dem Paket, nicht dem rohen Strom. Nicht geprüft ist ein kleiner Rest, der noch in den
+     * Puffer passt: er scheitert erst in der Datenphase (fail-closed, nicht am Umschaltpunkt gemeldet).
      *
      * @spec SPEC-028
      */
     @Test
-    fun `handshake packet reaching past FINISHED is a protocol violation`() = blocking {
+    fun `rest of a last handshake packet too large for the engine buffer is a protocol violation`() = blocking {
         coroutineScope {
             val setup = TlsSetup(TlsPath.ENCAPSULATED_IN_TDS, listOf("TLSv1.3"))
             val (serverEnd, peerEnd) = MemoryChannel.pair(1 shl 17)

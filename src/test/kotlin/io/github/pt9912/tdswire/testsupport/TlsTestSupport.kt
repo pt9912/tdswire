@@ -96,6 +96,10 @@ class RecordingChannel(private val inner: SuspendingChannel) : SuspendingChannel
     private val writtenBytes = ByteArrayOutputStream()
     val readChunks = mutableListOf<ByteArray>()
 
+    /** `true`, sobald [close] auf diesem Ende aufgerufen wurde (nicht, wenn nur der innere Kanal zu ist). */
+    var closed = false
+        private set
+
     /** Alle bisher geschriebenen Bytes. */
     val written: ByteArray get() = writtenBytes.toByteArray()
 
@@ -115,7 +119,10 @@ class RecordingChannel(private val inner: SuspendingChannel) : SuspendingChannel
         return result
     }
 
-    override fun close() = inner.close()
+    override fun close() {
+        closed = true
+        inner.close()
+    }
 }
 
 /**

@@ -83,7 +83,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `src/main/kotlin/io/github/pt9912/tdswire/transport/` (Unterpackage, z. B. `tls`) <!-- d-check:ignore (geplant: neue Datei) --> | neu | SSLEngine-Schleife als Kanal-Dekorierer, Verpackung in `0x12`-Pakete, Umschaltung bei `FINISHED`, ALPN-Prüfung; keine Imports aus `port`, `simulation`, `runtime` (SPEC-041) |
 | `src/test/kotlin/io/github/pt9912/tdswire/transport/` <!-- d-check:ignore (geplant: neue Datei) --> | neu | Loopback je Pfad gegen JDK-`SSLEngine`, Zerstückelung, Negativfälle; `@spec`-Tag je Test (SPEC-023, SPEC-028) |
 | Testzertifikat und Test-Hilfen | neu | Herkunft offen (Frage an den Nutzer, §6); kein Schlüssel im Repo ohne Entscheidung |
-| `build.gradle.kts` | update | JVM-Argument `-Djdk.tls.server.newSessionTicketCount=0` für die Test-JVM; das Flag des Serverprozesses setzt der Start (nicht dieser Slice) |
+| `build.gradle.kts` | unverändert (Ist-Zustand) | Die Test-JVM-Einstellungen (`-Djdk.tls.server.newSessionTicketCount=0`, `tdswire.testkeys`, `tdswire.testclasspath`) stehen im Init-Skript `gradle/test-jvm.init.gradle.kts`, nicht hier: eine Änderung an `build.gradle.kts` würde den Cache der Stage `deps` neu laufen lassen. Ein `gradle test` ohne `-I gradle/test-jvm.init.gradle.kts` setzt sie nicht; `make test` tut es. Das Flag des Serverprozesses setzt der Start (nicht dieser Slice) |
 
 Erweiterung im ersten Lauf (Ist-Zustand gegen den Plan gemessen: `transport/channel`, `transport/messaging` und `transport/framing` liegen, `config/detekt/detekt.yml` sperrt für `transport` nur `port`, `simulation`, `runtime`; Dockerfile-Stages `test` und `spec-abdeckung` führen `gradle test`):
 

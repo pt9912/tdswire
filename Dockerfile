@@ -33,7 +33,11 @@ RUN gradle --no-daemon classes
 
 # --- Testkeys: erzeugt per `keytool` die PKCS#12-Speicher der TLS-Tests (ein gueltiges Zertifikat fuer
 # localhost, eines fuer einen anderen Namen, ein abgelaufenes). Kein Schluessel liegt im Repo; die
-# Stage haengt weder an src/ noch an Doku und kommt aus dem Cache, bis sich die Toolchain aendert. -----
+# Stage haengt weder an src/ noch an Doku und kommt aus dem Cache, bis sich die Toolchain aendert.
+# `-validity 3650` zaehlt ab dem Bauzeitpunkt des Layers: bleibt er zehn Jahre im Cache, sind
+# gueltig.p12 und falscher-name.p12 abgelaufen und die TLS-Tests rot (Neubau mit --no-cache-filter
+# testkeys behebt es). abgelaufen.p12 haengt nicht an der Bauzeit: sein Blatt hat ein festes
+# `-startdate` (2020/01/01, 30 Tage). -----
 FROM basis AS testkeys
 WORKDIR /testkeys
 RUN keytool -genkeypair -alias server -keyalg RSA -keysize 2048 -validity 3650 -storetype PKCS12 \

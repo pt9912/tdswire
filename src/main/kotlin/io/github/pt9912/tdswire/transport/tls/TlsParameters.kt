@@ -12,6 +12,11 @@ enum class TlsPath {
 /**
  * Protokollversionen und Suiten, die die Engine anbietet (`SPEC-023`). Mindestversion ist TLS 1.2:
  * jede andere Version in [protocols] ist ein Programmierfehler des Aufrufers (`IllegalArgumentException`).
+ *
+ * Festlegung (Grenze): Geprüft werden nur die Protokolle. [cipherSuites] muss nicht leer sein; ob die
+ * Suiten zu `SPEC-023` gehören, prüft die Klasse nicht. Eine Suite außerhalb davon (etwa CBC) geht
+ * unverändert an die Engine, und die Auswahl der Suiten gehört dem Aufrufer; [SPEC_023] ist die
+ * Auswahl, die die Spezifikation nennt.
  */
 data class TlsParameters(val protocols: List<String>, val cipherSuites: List<String>) {
     init {
