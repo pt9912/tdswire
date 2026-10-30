@@ -83,6 +83,18 @@ Aussagen-Berührung steht hier gar nicht.
 - Reihenfolge: Kopf und Erkennung, dann Parameter-Leser, dann Fehlerverhalten.
 - Der Implementer liest die API von `protocol/wire` und `protocol/token` aus `done/` (`slice-codec-tds-paket`) und passt diese Tabelle an.
 
+**Angepasster Plan (Implementer, gegen den Ist-Zustand gemessen):**
+
+| Datei / Komponente | Änderungs-Art | Begründung |
+|---|---|---|
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/wire/AllHeaders.kt` | neu | der ALL_HEADERS-Leser, den `SqlBatchParser` und der RPC-Parser teilen (aus `SqlBatchParser` herausgelöst, Verhalten unverändert) |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/wire/ProtocolError.kt` | update | zwei Fehlergründe der Kategorie `TDS_PROTOCOL_ERROR`: `INVALID_TYPE_INFO` (TYPE_INFO malformed) und `INVALID_RPC_FORM` (Katalogform verletzt) |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/rpc/` | neu | `RpcParser` (Kopf, Name oder ProcID, Optionsflags), `RpcCatalog` (Bindung nach Position), `RpcParameterReader`, `RpcTypeInfoReader`, Modell in `RpcRequest.kt`; Typen: `INTN`, `BITN`, `FLTN`, `MONEYN`, `DATETIMN`, `GUID`, `DECIMALN`/`NUMERICN`, `DATEN`, `TIMEN`, `DATETIME2N`, `DATETIMEOFFSETN`, `NCHAR`/`NVARCHAR`, `BIGCHAR`/`BIGVARCHAR`, `BIGBINARY`/`BIGVARBINARY`; PLP und `XML` werden als `INVALID_TYPE` abgelehnt |
+| `src/test/kotlin/io/github/pt9912/tdswire/protocol/rpc/RpcParserTest.kt` | neu | Handvektoren, Negativfälle, Fuzz mit festem Startwert |
+| `spec/spezifikation.md` | unverändert, falls die Tests keine Zeile von `SPEC-030` widerlegen | Prüfung nach den Tests |
+
+Eingegrenzt gegenüber dem Eingangsplan: der Wert wird nur für `INTN`, `BITN` und die Unicode-Texttypen gedeutet; alle anderen Typen liefern ihre Wertbytes unverändert (Deutung gehört der Datentypen-Erweiterung).
+
 ## 4. Trigger
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
