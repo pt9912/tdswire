@@ -269,8 +269,32 @@ aus einer fertigen Liste erzeugen. Der Response Sequencer hält ein `ResultEnd` 
 Ereignis lang zurück, bis das nächste Ereignis oder das Ende des Stroms bekannt ist, und setzt daraus das
 Bit `DONE_MORE`; das Backend kennt das Bit nicht. Entwurf des Vertrags: `contracts/query-backend.md`.
 
-Dies ist eine **Vertragsskizze**, kein bereits implementierter Code. Konkrete Typen, Fehler und
-Lebensdauerregeln werden vor der Implementierung festgelegt.
+**Gebauter Stand (Setzung vom 2026-10-30, nicht gemessen):** Die Typen und Schnittstellen stehen als
+Kotlin-Quelltext. Die Modelle `QueryRequest`, `QueryParameter`, `ParameterDirection`, `QueryEvent`,
+`ResultColumn` und `SqlType` liegen im Package `domain`, die Schnittstellen `QueryBackend` und
+`QueryExecution` mit dem `Flow` im Package `port`. `execute()` wirft für Fehler des Backends keine
+Ausnahme: ein Fehler beim Start ist ein `Failure` im Strom `events`; die Abbruchausnahme der Coroutine
+bleibt davon unberührt.
+
+`SqlType` ist das Typmodell des Backends und umfasst den Mindestkatalog von `SPEC-003`: `Int32`,
+`Int64`, `Bool`, `UnicodeText`, `Decimal(precision, scale)` mit `precision >= 1` und
+`0 <= scale <= precision`, `Date`, `Time` und `DateTime` (ohne Zeitzone). Breiten unter 32 Bit,
+Gleitkomma, Geld, GUID und Binärtypen gehören nicht dazu (Setzung vom 2026-10-30, nicht gemessen).
+
+**Offen:**
+- Obergrenze der Precision: das Modell von `Decimal` hat keine; der Encoder der Typkennung akzeptiert
+  Precision 1 bis 38 (`SPEC-003`). Eine Precision über 38 ist im Modell darstellbar und scheitert erst
+  beim Encodieren; die Abstimmung beider Seiten ist offen.
+- Längenlimit von `UnicodeText`, Genauigkeit der Zeittypen, Zeitzonenannahmen (`SPEC-003`) sowie die
+  JVM-Typen der Werte in `Row`, `QueryParameter` und `OutputParameter` je `SqlType` (Zeilendarstellung).
+- Ob ein `Failure` als „nächstes Ereignis“ der `DONE_MORE`-Vorschau zählt; die Unterscheidung statement-
+  und batch-abbrechender Fehler im Strom, die `Failure` nicht trägt; die Grenze für ein „kleines“
+  Ergebnis; die Behandlung von `OutOfMemoryError`; ein blockierendes Backend hinter dem `Flow`; die
+  Semantik der Frist `deadlineEpochMillis` (wer sie durchsetzt, was bei Ablauf geschieht). Nicht
+  gemessen; Einzelheiten und Zuständigkeit im Vertrag `contracts/query-backend.md`.
+
+Lebensdauerregeln und alles, was über diesen Stand hinausgeht, bleiben Entwurf des Vertrags
+`contracts/query-backend.md`.
 
 ### SPEC-003 — Typmapping (initialer Mindestkatalog)
 | Backendtyp | TDS-Zieltyp | Grenzfälle |
@@ -589,7 +613,7 @@ aktive Backendoperationen, Abbrüche, Protokollfehler. Keine SQL-Texte als Metri
 |---|---|---|---|
 | `SPEC-020` | Microsoft TDS | TDS 7.4 und TDS 8.0 (Strict-Encryption) | [MS-TDS](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tds/) |
 | `SPEC-021` | .NET SQL-Client | `Microsoft.Data.SqlClient` 7.1.1 auf .NET 10 (SDK 10.0.403), im Container ausgeführt | `contracts/client-profile.md` |
-| `SPEC-022` | Query-Backend | Projektvertrag v0 (Entwurf) | `contracts/query-backend.md` |
+| `SPEC-022` | Query-Backend | Projektvertrag v0: Typen und Schnittstellen als Quelltext (Setzung vom 2026-10-30, nicht gemessen), Rest Entwurf | `contracts/query-backend.md` |
 | `SPEC-023` | TLS | TLS 1.3 und TLS 1.2 (Mindestversion 1.2); Suiten TLS 1.3: `TLS_AES_256_GCM_SHA384`, `TLS_AES_128_GCM_SHA256`; TLS 1.2: ECDHE mit AES-GCM; Standard `REQUIRED` | `contracts/security-profile.md` |
 | `SPEC-051` | Authentifizierungsadapter | Entwurf der Schnittstelle; Prüfwert der festen Benutzerliste mit Verfahrenskennung (`plain` nur im Testmodus, `pbkdf2-sha256`), eigene Datei nur für die Benutzerliste, Iterationen mit Boden, Standard und Obergrenze, strenger Parser; Einzelheiten des Zeilenformats im Vertrag teils offen | `contracts/auth-adapter.md` |
 
@@ -624,3 +648,4 @@ aktive Backendoperationen, Abbrüche, Protokollfehler. Keine SQL-Texte als Metri
 | 2026-10-30 | Nach Setzungen des Nutzers geschärft: Zustand als expliziter Automat mit Sperre je Sitzung, Zuschnitt der Aufzählung offen (`SPEC-001`); Ergebnis als Strom mit Vorschau für `DONE_MORE` (`SPEC-002`, `SPEC-022`); Verbindung bleibt offen nach DONE mit ATTENTION-Status, außer im geordneten Beenden (`SPEC-029`); Verbindungsende nach ERROR und DONE bei internem Fehler und Shutdown, `SPEC-049` verlangt jetzt zusätzlich DONE (`SPEC-048`, `SPEC-049`); Verbindung offen bis Severity 19 (`TDS-FA-06.a`). `SPEC-048`, `SPEC-049` und die Schwelle ab Severity 20 sind Setzungen des Nutzers, am echten Server nur für Severity 20 und 25 gemessen; Handshake-Ende, Severity eigener Codes und Cancel/Timeout als Fehler bleiben offen |
 | 2026-10-30 | Nach weiteren Setzungen des Nutzers geschärft: Verbindungsende nach abgelehntem Login (`SPEC-012`), Severity 16 für Anfragefehler und 20 für `TDS_PROTOCOL_ERROR` und `TDS_INTERNAL_ERROR` (`TDS-FA-06.a`, `SPEC-011`, `SPEC-048`), nicht abschließbarer Strom ohne ERROR und DONE geschlossen (`SPEC-029`, `SPEC-031`); alles Setzung, nicht an Referenzclients gemessen; die Zuordnung jedes Codes legt das Fehler-Mapping fest, Cancel/Timeout als Fehler bleibt offen |
 | 2026-10-30 | Nach Re-Review geschärft: eigene Codes ohne Einzelzuordnung schließen bis zur Zuordnung durch das Fehler-Mapping (`TDS-FA-06.a`); Messklammer in `SPEC-012` an die Antwortbytes gebunden, das Verbindungsende als Setzung getrennt (`SPEC-012`) |
+| 2026-10-30 | Backend-Vertrag auf den gebauten Stand geschärft: `SqlType` definiert, Ort der Typen und Fehlerform beim Start als Setzung, Precision-Obergrenze und weitere Punkte als offen geführt (`SPEC-002`, `SPEC-022`, `TDS-FA-08.a`) |
