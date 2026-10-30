@@ -34,10 +34,6 @@ In Arbeit (Welle welle-transport-tls):
 
 - [slice-transport-listener-lebenszyklus](slice-transport-listener-lebenszyklus.md)
 
-In Arbeit (Welle welle-backend-streaming):
-
-- [slice-backend-typabbildung](slice-backend-typabbildung.md)
-
 In Arbeit (Welle welle-handshake-login):
 
 - [slice-handshake-login](slice-handshake-login.md)

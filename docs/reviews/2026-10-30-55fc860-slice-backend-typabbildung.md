@@ -54,7 +54,7 @@
 |---|---|
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/result/` (Mapping-Logik, Grenzen, Atomarität, Schichten) | geprüft, ohne Befund außer F-6, F-8 |
 | `src/test/kotlin/io/github/pt9912/tdswire/protocol/result/` (Handvektoren nachgerechnet, `@spec`-Tags vorhanden, Fuzz mit festem Startwert, Orakel unabhängig von der Abbildung) | geprüft, ohne Befund außer F-2, F-3, F-5, F-7 |
-| `docs/plan/planning/in-progress/slice-backend-typabbildung.md` (Diff) | geprüft, ohne Befund |
+| `docs/plan/planning/done/slice-backend-typabbildung.md` (Diff) | geprüft, ohne Befund |
 | `spec/spezifikation.md`, `spec/architecture.md`, `docs/plan/adr/` | nicht im Diff; F-4 zur fehlenden Nachführung, [ADR-0006](../plan/adr/0006-backend-vertrag-und-streaming.md) nicht berührt, ohne Befund |
 | `config/`, `build.gradle.kts`, `Dockerfile` | nicht im Diff, keine Lockerung von Gates |
 

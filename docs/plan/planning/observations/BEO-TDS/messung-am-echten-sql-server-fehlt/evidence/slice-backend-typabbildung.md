@@ -1,0 +1,2 @@
+**Vorgang:** slice-backend-typabbildung
+**Fund:** Die Typabbildung ist nur gegen von Hand gerechnete Vektoren und gegen den Encoder des Repos belegt. Die Annahme der Spaltenmetadaten und Zeilen durch den Referenzclient, die Kollation `SQL_Latin1_General_CP1_CI_AS` am Produkt, Scale 7 für Zeit und Datum mit Zeit und `DECIMALN` statt `NUMERICN` sind Festlegungen ohne Messung; ein echter SQL Server ist nicht befragt worden. Träger der Messung am Client ist `slice-qa-kompatibilitaet`; die Kollation trägt kein Slice.
