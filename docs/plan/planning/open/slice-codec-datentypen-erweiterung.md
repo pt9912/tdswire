@@ -48,7 +48,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 Liefer-Punkte (drei):
 
-- [ ] **PLP** (SPEC-003, SPEC-028): MAX-Typen (`nvarchar(max)`, `varchar(max)`, `varbinary(max)`) in COLMETADATA, ROW und RETURNVALUE als Stück-Folge mit Terminator; Längenprüfung vor dem Puffern.
+- [ ] **PLP** (SPEC-003, SPEC-028): MAX-Typen (`nvarchar(max)`, `varchar(max)`, `varbinary(max)`) in COLMETADATA, ROW und RETURNVALUE als Stück-Folge mit Terminator; Längenprüfung vor dem Puffern. **Auch als RPC-Parameter** im Parser aus `slice-codec-rpc-parser`, samt SQL-Text und Deklarationsliste von `sp_executesql` als MAX: das ist die Abweichung von [ADR-0005](../../adr/0005-rpc-und-prepared-statements.md) und SPEC-003, die jener Slice benennt (er lehnt heute die ganze Nachricht als `INVALID_TYPE` ab); der Test `PLP lehnt die ganze Nachricht ab, auch als SQL-Text und Deklaration` wechselt mit diesem Punkt von „abgelehnt“ zu „gelesen“.
 - [ ] **NBCROW** (SPEC-028): Null-Bitmap-Zeile neben ROW; Encoder wählt nicht selbst, sondern schreibt, was man ihm gibt.
 - [ ] **Weitere Typen** (SPEC-003, SPEC-014): `text`, `ntext`, `image`, `sql_variant` nur, soweit `contracts/client-profile.md` sie als gesendet führt; alles andere bleibt `TDS_UNSUPPORTED_TYPE`.
 
@@ -77,7 +77,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/token/` | update | `TdsType`, `TypeInfoWriter`, `ValueWriter`, `TokenWriters` um PLP, NBCROW und weitere Typen; Zerlegung statt großer `when`-Blöcke |
-| `src/main/kotlin/io/github/pt9912/tdswire/protocol/rpc/` | update, nur falls nötig | Parameter-Leser für PLP, wenn `slice-codec-rpc-parser` in `done/` liegt |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/rpc/` | update | Parameter-Leser für PLP (RPC-Parameter, SQL-Text und Deklaration als MAX); `slice-codec-rpc-parser` liegt in `done/` und lehnt PLP bis dahin ab |
 | `src/test/kotlin/io/github/pt9912/tdswire/protocol/token/`, `.../testsupport/` | update | Handvektoren, Test-Decoder (`TokenDecoder`) und Fuzz erweitern |
 | `spec/spezifikation.md` | update, falls nötig | Zeilen zu den Typen in `SPEC-003` (Lehre aus `slice-codec-tds-paket`: eine berührte Spec-Stelle steht in dieser Tabelle) |
 

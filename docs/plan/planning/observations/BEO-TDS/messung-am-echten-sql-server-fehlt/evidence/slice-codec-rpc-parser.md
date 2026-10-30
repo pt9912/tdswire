@@ -1,0 +1,2 @@
+**Vorgang:** slice-codec-rpc-parser
+**Fund:** Der RPC-Parser ist nur gegen Handvektoren (Lesart von MS-TDS) und die Messmatrix des Spike-Testservers belegt. Die Typgrößen von `FLTN`, `MONEYN`, `DATETIMN` und `GUID`, der Zuschlag von 2 Byte bei `DATETIMEOFFSETN` und die Annahme des Parsers durch den Referenzclient sind nicht gemessen; ein echter SQL Server ist nicht befragt worden. Träger bleibt `slice-qa-reproduzierbarkeit`.
