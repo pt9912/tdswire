@@ -164,6 +164,20 @@ dasteht.
 - Das Test-Framework ist in [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md) nicht benannt; sein Paketbaum geht in Lock und Audit ein (das Lock des Spikes führte 37 `contentHash`-Einträge, das Framework dort ist nicht dokumentiert). Ausgangsvorschlag: ein Standard-Framework der Microsoft-Testplattform, Wahl und Version in der Closure-Notiz. — **Ausgang:** offen bis zur Closure.
 - Digest des SDK-Images: [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md) nennt ihn gekürzt (`sha256:de4fe90a…`); gemessen wurde auf einem x86_64-Host, arm64 nicht. Ausgangsvorschlag: den vollständigen Digest beim Auflösen des Tags `10.0.403` holen und prüfen, die Plattform in der Closure benennen. — **Ausgang:** offen bis zur Closure.
 
+### Messwerte (Vorbereitung der Closure)
+
+Aus der Verifikation ([Report](../../../reviews/2026-10-30-9fcd9f4-verifikation-slice-qa-dotnet-referenztest-geruest.md)), ein Host, amd64, Basis-Image lokal vorhanden; Plattformen arm64 und ein frischer Pull sind nicht gemessen:
+
+| Größe | Messwert |
+|---|---|
+| Kaltbau (`--no-cache`) | 17,6 bis 23,2 s (zwei Messreihen, Abweichung ungeklärt) |
+| gecachter Lauf | 1,0 bis 1,3 s |
+| Lauf nach Quelltext- oder `.csproj`-Änderung | 11 bis 35 s |
+| Image | 1,61 GB |
+| Smoke-Test | 769 bis 1000 ms in 22 Läufen bei `Connect Timeout=1`, etwa 0,8 x Timeout |
+
+Test-Stage-Cache: ein grüner Lauf der Stage `test` ist danach gecacht; `make gates` führt den Smoke-Test nur aus, wenn sich Eingänge der Stage ändern. Wiederholte grüne Gate-Läufe belegen die Stabilität des Tests nicht erneut; dafür gilt `--no-cache-filter test` oder ein `docker run` der Test-Image.
+
 ## 7. Closure-Notiz
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`

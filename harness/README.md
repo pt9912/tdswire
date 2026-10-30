@@ -65,7 +65,7 @@ Diese Datei dupliziert sie nicht.
 | `make detekt-selbsttest` | Importregeln der Schichten und Suppression-Verbot gegen Testdaten prüfen; läuft nur bei geänderten Eingängen | — |
 | `make test` | Unit-Tests (`kotlin.test` auf der JUnit-Plattform) in Docker, Stage `test`; ein roter Test macht `make gates` rot; Lock und Prüfsummen der Testlaufzeit über `make deps-lock` | — |
 | `make build` | Compile und Jar in Docker, ohne Tests; Basis-Images per Digest gepinnt | — |
-| `make referenztest-dotnet` | .NET-Referenztests in Docker ohne Mount, Stage `test`: gesperrter Restore, dann Build und Smoke-Test ohne Netz und ohne TDS-Server; ein roter Test macht `make gates` rot | [ADR-0008](../docs/plan/adr/0008-dotnet-kompatibilitaetstests.md), `CO-001`, `CO-002` |
+| `make referenztest-dotnet` | .NET-Referenztests in Docker ohne Mount, Stage `test`: gesperrter Restore, dann Build und Smoke-Test ohne Netz und ohne TDS-Server; ein roter Test macht `make gates` rot | [ADR-0008](../docs/plan/adr/0008-dotnet-kompatibilitaetstests.md), [CO-001](../docs/plan/carveouts/CO-001-nuget-audit-aus.md), [CO-002](../docs/plan/carveouts/CO-002-nuget-signaturpruefung-fehlt.md) |
 | `<make-target>` | <…> | ADR-<NNNN> |
 | `<make-target>` | <…>, bootstrap-aware | Schwelle X %, M<n> → Y % |
 | `<make-target>` | <…> | bootstrap via `CO-<NNN>` bis <Slice/Welle> |
@@ -83,8 +83,8 @@ Diese Datei dupliziert sie nicht.
 | `make spec-abdeckung-selbsttest` | prüft den Erzeuger der Abdeckungsmatrix an einem erzeugten Mini-Bestand: roter, nicht gelaufener, übersprungener und unbekannt getaggter Test zählen nicht | kein Gate |
 | `make workflow-lint` | prüft `.github/workflows/*.yml` mit actionlint (Image per Digest, Datei über stdin, kein Mount) | kein Gate, [TDS-QA-06](../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
 | `make clean-build` | baut Jar, Tests und detekt mit `--no-cache` in Docker; für den Clean-Build-Nachweis | kein Gate, [TDS-QA-06](../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
-| `make referenztest-dotnet-lock` | schreibt `referenztest-dotnet/packages.lock.json` neu (braucht Netz; das erste Lock vertraut nuget.org beim Schreiben), prüft nichts | kein Gate, `CO-002` |
-| `make referenztest-dotnet-audit` | meldet bekannte Schwachstellen der .NET-Pakete am Tag des Laufs; Ergebnis hängt am Abfragetag, nicht reproduzierbar, Exit 0 auch bei Fund | kein Gate, `CO-001` |
+| `make referenztest-dotnet-lock` | schreibt `referenztest-dotnet/packages.lock.json` neu (braucht Netz; das erste Lock vertraut nuget.org beim Schreiben), prüft nichts | kein Gate, [CO-002](../docs/plan/carveouts/CO-002-nuget-signaturpruefung-fehlt.md) |
+| `make referenztest-dotnet-audit` | meldet bekannte Schwachstellen der .NET-Pakete am Tag des Laufs; Ergebnis hängt am Abfragetag, nicht reproduzierbar, Exit 0 auch bei Fund | kein Gate, [CO-001](../docs/plan/carveouts/CO-001-nuget-audit-aus.md) |
 | `make <messung>` | misst <…> gegen <Schwelle> | kein Gate, ADR-<NNNN> |
 | `make <vorschau>` | sagt, was <schreibender Lauf> täte; Ausgänge und Sperren in der verlinkten Datei | kein Gate |
 

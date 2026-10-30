@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md)
 
-**Berührte Spec-Stellen:** SPEC-050
+**Berührte Spec-Stellen:** SPEC-025
 
 **Verantwortlich:** — bis zur Priorisierung.
 
