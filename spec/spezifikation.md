@@ -229,8 +229,9 @@ meldet dem Rahmen den Beginn des ersten Ergebnisses (`RUNNING → STREAMING`) un
 Ende der Antwort sendet sie und führt in einem Übergang nach `IDLE` oder, wenn die Verbindungsfolge des
 Ausgangs schließt, nach `CLOSED` (`COMPLETED` ist kein eigener Zustand der Aufzählung; Festlegung, nicht
 gemessen). Eine Anfragenachricht (SQL_BATCH, RPC) in `RUNNING` oder `STREAMING` ist ein unzulässiger
-Übergang. Der Transport meldet ein erkanntes ATTENTION-Paket an den Sitzungsrahmen; der Dispatch nimmt
-kein ATTENTION an. Bei gleichzeitigem DONE und ATTENTION gewinnt der erste Übergang.
+Übergang. Der Dispatch nimmt kein ATTENTION an. Zielbild, nicht gebaut (der nächste Absatz nennt den
+Stand): Der Transport meldet ein erkanntes ATTENTION-Paket an den Sitzungsrahmen, und bei gleichzeitigem
+DONE und ATTENTION gewinnt der erste Übergang.
 
 ATTENTION in jedem Anfragezustand ist offen; die Kette über `CANCELLING` ist dessen Zielbild. Gebaut ist sie nicht: Bis zu dieser Festlegung behandelt der Automat jede Nachricht in
 `RUNNING` und `STREAMING`, auch ATTENTION, als unzulässigen Übergang, und `CANCELLING` ist kein Zustand

@@ -1,0 +1,2 @@
+**Vorgang:** slice-sql-batch-dispatch
+**Fund:** `RequestLoop` trägt einen sechsten Konstruktorparameter `sinkAround`, den nur `DispatchSupport.serve` im Test belegt; ohne ihn bliebe der Ausgang `CLOSE_WITHOUT_COMPLETION` durch die Schleife unerreichbar (Review F-4). Der Verifier hielt die Naht für akzeptabel und nicht blockierend (Verifikation §5), mit drei Vorbehalten: ein KDoc-Satz ohne Kennzeichnung, öffentliche statt `internal` Sichtbarkeit, und kein Beleg, dass ein echtes Ereignis den Ausgang auslöst.
