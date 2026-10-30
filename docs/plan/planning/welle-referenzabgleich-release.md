@@ -69,7 +69,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte.
 
 - Blockiert: keine weitere Welle; sie ist das Ende der Planung dieses Repos bis zum Release.
-- Wird blockiert von: [welle-simulations-backend](welle-simulations-backend.md) (Server-Seite), [slice-qa-vergleichslauf-d](open/slice-qa-vergleichslauf-d.md) (Vergleichslauf D, Referenzinstanz), [slice-qa-kompatibilitaet](open/slice-qa-kompatibilitaet.md) (Szenarien), [slice-bootstrap-konfiguration](in-progress/slice-bootstrap-konfiguration.md) (`main`), [welle-betrieb-diagnose](welle-betrieb-diagnose.md) (nur [slice-release-doku-prozess](open/slice-release-doku-prozess.md)).
+- Wird blockiert von: [welle-simulations-backend](welle-simulations-backend.md) (Server-Seite), [slice-qa-vergleichslauf-d](open/slice-qa-vergleichslauf-d.md) (Vergleichslauf D, Referenzinstanz), [slice-qa-kompatibilitaet](open/slice-qa-kompatibilitaet.md) (Szenarien), [slice-bootstrap-konfiguration](done/slice-bootstrap-konfiguration.md) (`main`), [welle-betrieb-diagnose](welle-betrieb-diagnose.md) (nur [slice-release-doku-prozess](open/slice-release-doku-prozess.md)).
 - Berührt, blockiert aber nicht: [welle-qualitaet-grundlage](welle-qualitaet-grundlage.md). Sie schließt auf Basis von [slice-qa-vergleichslauf-d](open/slice-qa-vergleichslauf-d.md) und [slice-qa-kompatibilitaet](open/slice-qa-kompatibilitaet.md); ob [TDS-QA-01](../../../spec/lastenheft.md#tds-qa-01--kompatibilität) ohne den Referenzabgleich dieser Welle als belegt gilt, ist offen, denn das Lastenheft nennt den Abgleich „ergänzend“ und „vorläufig“ (Frage an den Nutzer).
 
 ## 6. Out-of-Scope für diese Welle
@@ -84,7 +84,7 @@ der Closure-Trigger unerreichbar wird.
 - Das Beheben gefundener Abweichungen im Server: je Befund ein Slice nach der Messung; Ausnahmeliste und Closure nennen sie als *Lücke* mit Verweis.
 - Der Abgleich von TDS 8.0 und TLS 1.3 an einer Referenzinstanz: Version 2022 bietet beides nicht an ([ADR-0008](../adr/0008-dotnet-kompatibilitaetstests.md)); ein anderer Image-Tag ist Gegenstand von [slice-qa-vergleichslauf-d](open/slice-qa-vergleichslauf-d.md).
 - Veröffentlichung (Registry, Signierung, Software-Stückliste) und Orchestrierung: nicht verlangt; was ein Release davon braucht, entscheidet der Nutzer in [slice-release-doku-prozess](open/slice-release-doku-prozess.md).
-- Last und Durchsatz: [slice-qa-performance](open/slice-qa-performance.md). Fuzz und Fragmentierung: [slice-qa-stabilitaet](in-progress/slice-qa-stabilitaet.md).
+- Last und Durchsatz: [slice-qa-performance](open/slice-qa-performance.md). Fuzz und Fragmentierung: [slice-qa-stabilitaet](done/slice-qa-stabilitaet.md).
 - Hochverfügbarkeit, Replikation, Windows-Authentifizierung und alles andere aus den globalen Out-of-Scope-Punkten des Lastenhefts.
 - Neue Anforderungen oder Änderungen am Lastenheft.
 

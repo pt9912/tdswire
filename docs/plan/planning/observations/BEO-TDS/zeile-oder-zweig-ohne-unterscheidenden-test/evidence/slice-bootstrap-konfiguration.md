@@ -1,0 +1,2 @@
+**Vorgang:** slice-bootstrap-konfiguration
+**Fund:** Der Wert der Frist des Treibers (`setup.login.timeoutSeconds`) ließ sich durch `3600.seconds` ersetzen, ohne dass ein Test der Pakete `runtime`, `config` und `SwitchableChannelTest` rot wurde (Review F-3, Mutation X1); die Tests belegten nur den Wert des Listener-Timers. Behoben mit dem Test `Die Frist des Treibers trägt den konfigurierten Wert`; der Verifier fuhr X1 nach, genau ein Test wird rot.

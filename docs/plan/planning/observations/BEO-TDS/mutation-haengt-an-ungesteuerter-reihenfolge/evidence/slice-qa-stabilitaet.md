@@ -1,0 +1,2 @@
+**Vorgang:** slice-qa-stabilitaet
+**Fund:** Die Mutation L120 (`ManagedConnection.finish` schließt den Kanal der Verbindung 120 nicht) überlebte im Lauf des Verifiers, die Mutation LK (die 100. Instanz von `SocketChannelAdapter` schließt nie) ist rot (Verifikation V-5). Die Annahmereihenfolge der 12 Threads ist nicht gesteuert, und die Fälle schließen den Kanal meist schon im Treiber (Vermutung, nicht einzeln gemessen). Die Closure führt LK als Prüfstein und L120 nicht als belegt.

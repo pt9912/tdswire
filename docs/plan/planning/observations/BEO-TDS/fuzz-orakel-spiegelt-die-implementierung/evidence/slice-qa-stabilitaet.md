@@ -1,0 +1,2 @@
+**Vorgang:** slice-qa-stabilitaet
+**Fund:** Das Orakel `FramingOracle` ist im Aufbau unabhängig vom Assembler (Ganz-Strom-Leser ohne Zustandsautomat), teilt aber Regeln und Typmenge mit dem Codec; Abweichungen zwischen Code und Menge werden erkannt (T1 bis T4 rot), Abweichungen beider vom Standard nicht (Review F-3). Die Lagen der Offset- und Längenfelder des Anmelde-Fuzz stammen aus dem Parser des Repos (Review F-8); der Verifier fuhr keine Parser-Mutation, die das Feld-Wissen prüft. Ehrlich begrenzt durch KDoc und Closure-Notiz.

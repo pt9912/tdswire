@@ -1,0 +1,2 @@
+**Vorgang:** slice-qa-stabilitaet
+**Fund:** 10 der 105 Fälle des Verbindungssturms (`GOOD_THEN_RESET`, `RESET_IN_LOGIN7`, je 5-mal) sind blockierende Clients auf den 12 Threads des Pools. Bei `COPIES` von 6 oder mehr blockiert der Lauf nach dem Lesen des Codes bis zur Zeitüberschreitung von 60 s (Verifikation V-4, Lesebefund, nicht gemessen). Ein Kommentar der Klasse (Kopplung) steht aus; er ist Arbeit an den Tests.

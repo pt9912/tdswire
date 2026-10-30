@@ -90,7 +90,7 @@ Träger der ausgeschlossenen Gegenstände (existierende Datei, sonst Zeiger auf 
 - RPC-Formen außerhalb des Katalogs von [ADR-0005](../adr/0005-rpc-und-prepared-statements.md) (`sp_prepare`, `sp_unprepare`, `sp_cursor*`, Table-Valued-Parameter, MARS), `SET`-Text bei `SchemaOnly` und `KeyInfo`, Transaktionen (Pakettyp `0x0E`), `sp_reset_connection` — offen in [ADR-0005](../adr/0005-rpc-und-prepared-statements.md) und [ADR-0004](../adr/0004-session-zustandsautomat.md); Träger: der Re-Evaluierungs-Trigger der ADR und `slice-qa-kompatibilitaet` (Messung). Ein neuer Slice entsteht erst nach Nachweis des Bedarfs im Clientprofil.
 - PLP, NBCROW und Typen außerhalb des Mindestkatalogs — `slice-codec-datentypen-erweiterung`.
 - Nachweis gegen den Referenzclient und einen echten SQL Server: Kompatibilitäts-Läufe, Mitschnitte, Tokenfolge und DONE-Statusbits, ordinale Zählung der RETURNVALUE, TDS 8.0, Pooling — `slice-qa-kompatibilitaet`, `slice-qa-reproduzierbarkeit`. Diese Welle belegt Dispatch und Antwortbytes mit Rohbytes gegen ein Test-Backend.
-- Last, Durchsatz und Fuzz über ungültige Anfragen — `slice-qa-performance`, `slice-qa-stabilitaet`.
+- Last und Durchsatz — `slice-qa-performance`. Fuzz über ungültige Anfragen in einer angemeldeten Sitzung: `slice-qa-stabilitaet` (geschlossen) hat nur den Anmeldepfad und die Parser ohne Transport gefuzzt; ein Träger für den Anfragepfad besteht nicht (Register `BEO-TDS/fuzz-nach-verdrahtung-ohne-traeger`).
 - Observability-Adapter (ARC-009, SPEC-017): nur ein minimaler Log-Anschluss, der keine Parameterwerte und keinen Anfragetext ausgibt. Träger: Welle [welle-betrieb-diagnose](welle-betrieb-diagnose.md).
 - Neue Anforderungen oder Änderungen am Lastenheft.
 

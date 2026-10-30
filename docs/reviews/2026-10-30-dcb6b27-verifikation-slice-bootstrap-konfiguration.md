@@ -1,7 +1,7 @@
 # Verifikation slice-bootstrap-konfiguration (DoD- und Entscheidungs-Konformität)
 
 **Rolle:** Verifier (Modul 11) · **Stand:** HEAD `dcb6b27`, main (enthält Umsetzung `d5b0270` und Fix-Runde `61141fd`) · **Datum:** 2026-10-30
-**Gegenstand:** [slice-bootstrap-konfiguration](../plan/planning/in-progress/slice-bootstrap-konfiguration.md), Welle welle-handshake-login
+**Gegenstand:** [slice-bootstrap-konfiguration](../plan/planning/done/slice-bootstrap-konfiguration.md), Welle welle-handshake-login
 **Bezug:** [TDS-FA-09](../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose), [TDS-FA-01](../../spec/lastenheft.md#tds-fa-01--verbindungsaufbau-und-protokollverhandlung), [TDS-QA-03](../../spec/lastenheft.md#tds-qa-03--sicherheit), [ADR-0002](../plan/adr/0002-tls-und-verschluesselung.md), [ADR-0003](../plan/adr/0003-transportframework.md), [ADR-0009](../plan/adr/0009-authentifizierungsmodus.md), [ADR-0011](../plan/adr/0011-pruefwertformat.md)
 **Vorgänger:** Review [2026-10-30-d5b0270-slice-bootstrap-konfiguration](2026-10-30-d5b0270-slice-bootstrap-konfiguration.md) (F-1 bis F-9)
 **Adressat:** Planner. Der Verifier repariert nichts und entscheidet den Schnitt nicht. Nichts committet; geändert ist nur diese Datei.
