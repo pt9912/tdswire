@@ -93,5 +93,5 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-traceability.md`
 beiden Zeiger unten sind so zu schreiben, wie sie vom Ruheort `done/` auflösen,
 nicht vom Schreibort.
 
-Ergebnis: `welle-entscheidungen-grundlage-results.md`
-Zähler: `observations/`
+Ergebnis: [welle-entscheidungen-grundlage-results](welle-entscheidungen-grundlage-results.md)
+Zähler: [observations](../observations/)
