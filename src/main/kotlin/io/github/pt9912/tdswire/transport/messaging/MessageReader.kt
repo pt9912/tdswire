@@ -11,9 +11,10 @@ import java.nio.ByteBuffer
  * Liest Nachrichten aus einem [SuspendingChannel] (`TDS-FA-01.a`, `SPEC-007`, `SPEC-046`). Die
  * Zusammensetzung und die Grenzprüfung gehören dem [MessageAssembler]; der Leser ruft ihn und
  * rechnet nichts nach. `limits` ist ein Konstruktorparameter: mit [FramingLimits.preLogin] gilt die Grenze vor
- * dem Login, mit den Standardgrenzen die danach. Ein Wechsel der Grenze an einem laufenden Leser ist
- * nicht vorgesehen (Puffer und Assembler-Zustand gehören ihm); wer vor und nach dem Login liest,
- * muss das lösen; vorgesehener Träger ist der Sitzungsautomat (`slice-handshake-login`).
+ * dem Login, mit den Standardgrenzen die danach. [useLimits] wechselt die Grenze am laufenden Leser
+ * (`SPEC-046`, `SPEC-007`): Puffer, fertige Nachrichten und der Zustand des Assemblers bleiben, die
+ * neue Grenze prüft die Paketköpfe, die der Assembler danach verarbeitet. Was der Leser schon mit
+ * der alten Grenze geprüft hat, wird nicht erneut geprüft.
  *
  * Der Assembler bricht am vollständigen Header des Pakets ab, das die Grenze überschreitet; der
  * Leser liest danach nicht weiter. Gelesen sind dann mindestens die Bytes bis zu diesem Header
@@ -35,6 +36,11 @@ class MessageReader(
 
     init {
         require(readBufferSize > 0) { "readBufferSize muss positiv sein" }
+    }
+
+    /** Setzt [limits] für die Paketköpfe, die der Assembler ab jetzt verarbeitet; Nachrichten und Puffer bleiben. */
+    fun useLimits(limits: FramingLimits) {
+        assembler.limits = limits
     }
 
     /** Die nächste Nachricht, das Ende der Gegenstelle oder der Fehler, der den Strom beendet. */

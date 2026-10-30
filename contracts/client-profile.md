@@ -23,6 +23,17 @@ Versioniertes Profil des Referenzclients für die Kompatibilitätsabnahme (`SPEC
 - PRELOGIN-Option FEDAUTHREQUIRED: `01`.
 - LOGIN7 AppName und CltIntName: `Core Microsoft SqlClient Data Provider`.
 
+## Login-Antwort des Servers (Festlegung)
+
+Was der Server auf PRELOGIN und LOGIN7 sendet, ist eine Festlegung ohne Messung am Produkt; sie sagt nicht, dass der Referenzclient sie annimmt. Gemessen am Referenzclient gegen den Spike-Testserver (TDS 7.4, ohne Pool) sind nur: LOGINACK mit DONE genügt dem Client beim `Open`, die Collation-ENVCHANGE braucht der RPC mit Zeichenparametern, und die Ablehnung braucht genau ein ERROR mit DONE ([ADR-0009](../docs/plan/adr/0009-authentifizierungsmodus.md), [ADR-0005](../docs/plan/adr/0005-rpc-und-prepared-statements.md)).
+
+| Gegenstand | Festlegung des Servers (Package `protocol/session`) |
+|---|---|
+| PRELOGIN-Antwort | Pakettyp `0x04`; Optionen VERSION (`0.0.0.0`), ENCRYPTION, INSTOPT (leer), MARS (aus); kein FEDAUTHREQUIRED. ENCRYPTION ist ENCRYPT_REQ bei `REQUIRED`, ENCRYPT_NOT_SUP im ausdrücklich konfigurierten Testmodus |
+| Annahme | Pakettyp `0x04`; ENVCHANGE Datenbank, Packet Size, SQL-Collation, dann LOGINACK (Interface 1, TDS-Version `0x74000004`, bei TDS 8.0 `0x08000000`) und DONE ohne Statusbits |
+| Ablehnung | genau ein ERROR (18456, State 1, Class 14, Text "Login failed." ohne Kennung), dann DONE mit dem Fehlerbit; danach schließt der Server |
+| Datenbank und Packet Size | die Datenbank aus LOGIN7, sonst `master`; die verlangte Packet Size, wenn der Paket-Codec sie schreiben kann, sonst 4096 |
+
 ## RPC-Katalog
 
 Der Referenzclient sendete in den gemessenen Szenarien (Messgrenzen: Testserver, ohne echten SQL Server; TDS 7.4 unverschlüsselt, kein TDS 8.0, kein TLS; `Pooling=false`; eine Verbindung je Szenario; ein Lauf): Batch (`0x01`) für Text ohne Parameter; `sp_executesql` (ProcID 10) für Text mit Parametern; `sp_prepexec` (ProcID 13) und `sp_execute` (ProcID 12) bei `Prepare()` mit Parametern; RPC mit Prozedurnamen für `CommandType.StoredProcedure`. `sp_prepare`, `sp_unprepare` und `sp_cursor*` erschienen in diesen Szenarien nicht; unter Pooling ist das nicht gemessen. `ExecuteReader(SchemaOnly)` sendet einen Batch mit `SET FMTONLY OFF; SET FMTONLY ON;` im Text (Behandlung offen). `ExecuteReader(KeyInfo|SingleRow)` sendet `sp_executesql` mit `SET FMTONLY OFF; SET NO_BROWSETABLE ON;` im Text (Behandlung offen); Transaktionen sind Pakettyp `0x0E`, kein RPC (offen). Der Katalog ist als Entwurf in `SPEC-030` festgelegt und noch nicht freigegeben.

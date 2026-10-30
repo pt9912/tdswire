@@ -1,0 +1,78 @@
+package io.github.pt9912.tdswire.protocol.session
+
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+/**
+ * Der Sitzungsrahmen einer Verbindung: hält den [HandshakeContext], führt die Aktionen des
+ * Automaten aus und serialisiert Übergang und Schreiben unter einem `Mutex` je Sitzung
+ * (`ADR-0004`, `SPEC-001`). Ausgeführt werden Senden, Log, Grenzwechsel und Schließen; [dispatch]
+ * gibt die Aktion zurück, auf die der Aufrufer wartet ([HandshakeAction.BeginTls] oder
+ * [HandshakeAction.Authenticate]).
+ */
+internal class HandshakeSession(
+    private val automaton: HandshakeAutomaton,
+    private val channel: HandshakeChannel,
+    private val log: HandshakeLog,
+) {
+    private val lock = Mutex()
+
+    var context = HandshakeContext()
+        private set
+
+    var closeReason: CloseReason? = null
+        private set
+
+    suspend fun dispatch(event: HandshakeEvent): HandshakeAction? = lock.withLock {
+        val transition = automaton.step(context, event)
+        context = transition.context
+        execute(transition.actions)
+    }
+
+    /**
+     * Beendet die Sitzung nach Ablauf von `LOGIN_TIMEOUT`, auch wenn die Annahme schon beschlossen,
+     * aber nicht vollständig gesendet war.
+     */
+    suspend fun expire() {
+        dispatch(HandshakeEvent.LoginTimeout)
+        lock.withLock {
+            if (context.state != ConnectionState.CLOSED) {
+                context = HandshakeContext(state = ConnectionState.CLOSED)
+                closeReason = CloseReason.LOGIN_TIMEOUT
+                channel.close()
+            }
+        }
+    }
+
+    private suspend fun execute(actions: List<HandshakeAction>): HandshakeAction? {
+        var awaited: HandshakeAction? = null
+        for (action in actions) {
+            when (action) {
+                is HandshakeAction.Send -> if (!channel.send(action.message)) {
+                    abortWrite()
+                    return null
+                }
+
+                is HandshakeAction.Log -> log.record(action.entry)
+
+                HandshakeAction.SwitchToSessionLimits -> channel.useSessionLimits()
+
+                is HandshakeAction.Close -> {
+                    closeReason = action.reason
+                    channel.close()
+                }
+
+                HandshakeAction.BeginTls, is HandshakeAction.Authenticate -> awaited = action
+
+                HandshakeAction.Forward -> Unit
+            }
+        }
+        return awaited
+    }
+
+    private fun abortWrite() {
+        context = HandshakeContext(state = ConnectionState.CLOSED)
+        closeReason = CloseReason.WRITE_FAILED
+        channel.close()
+    }
+}
