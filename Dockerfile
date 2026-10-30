@@ -136,7 +136,8 @@ RUN sh tools/spec-abdeckung-selbsttest.sh
 # --- Lock: schreibt gradle.lockfile, settings-gradle.lockfile und gradle/verification-metadata.xml
 # neu (`make deps-lock`, braucht Netz). Es wird nichts gemountet: die Stage `lock-export` liefert
 # die drei Dateien per `docker build --output`. DEPS_TASKS nennt die Gradle-Tasks, die dieses
-# Dockerfile ausfuehrt; manche Konfigurationen loest Gradle erst dabei auf. ---------------
+# Dockerfile ausfuehrt; manche Konfigurationen loest Gradle erst dabei auf. Die Task `test` laeuft
+# mit denselben Eingaengen wie die Stage `test` (Schluessel aus `testkeys`, Init-Skript). ---------------
 FROM basis AS lock
 ARG DEPS_TASKS
 WORKDIR /src
@@ -144,7 +145,9 @@ COPY --chown=gradle:gradle settings.gradle.kts build.gradle.kts gradle.propertie
 COPY --chown=gradle:gradle gradle/libs.versions.toml gradle/
 COPY --chown=gradle:gradle src src
 COPY --chown=gradle:gradle config config
-RUN gradle --no-daemon -q --write-locks --write-verification-metadata sha256 ${DEPS_TASKS}
+COPY --from=testkeys --chown=gradle:gradle /testkeys build/testkeys
+COPY --chown=gradle:gradle gradle/test-jvm.init.gradle.kts gradle/
+RUN gradle --no-daemon -q -I gradle/test-jvm.init.gradle.kts --write-locks --write-verification-metadata sha256 ${DEPS_TASKS}
 
 FROM scratch AS lock-export
 COPY --from=lock /src/gradle.lockfile /src/settings-gradle.lockfile /
