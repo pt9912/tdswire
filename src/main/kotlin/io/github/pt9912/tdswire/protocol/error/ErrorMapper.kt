@@ -2,9 +2,9 @@ package io.github.pt9912.tdswire.protocol.error
 
 import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.protocol.response.ErrorMapping
-import io.github.pt9912.tdswire.protocol.token.DoneKind
-import io.github.pt9912.tdswire.protocol.token.DoneStatus
-import io.github.pt9912.tdswire.protocol.token.DoneToken
+import io.github.pt9912.tdswire.protocol.response.MappedError
+import io.github.pt9912.tdswire.protocol.response.SequenceOutcome
+import io.github.pt9912.tdswire.protocol.response.failedDone
 import io.github.pt9912.tdswire.protocol.token.ErrorToken
 import io.github.pt9912.tdswire.protocol.token.ServerMessage
 import io.github.pt9912.tdswire.protocol.token.TokenEncoder
@@ -47,14 +47,15 @@ fun ErrorRule.message(): ServerMessage = ServerMessage(number, state, severity, 
 /**
  * Das Fehler-Mapping (`TDS-FA-06.a`, `ADR-0007`): bildet einen Fehler auf ERROR und DONE mit
  * Fehlerstatus und die Verbindungsfolge ab. Rein bis auf den Log-Aufruf; kennt keinen Strom und
- * keine Sitzung. Der Sequenzierer erhält über [sequencerMapping] Funktionen nach [ServerMessage]; die
- * Regel ([ErrorRule]) ist die einzige Quelle von Meldung und Verbindungsfolge, die Folge einer
- * Meldung des Sequenzierers liefert [fateOf].
+ * keine Sitzung. Der Sequenzierer erhält über [sequencerMapping] Funktionen nach [MappedError]; die
+ * Regel ([ErrorRule]) ist die einzige Quelle von Meldung und Verbindungsfolge, die Folge eines
+ * Ausgangs des Sequenzierers liefert [fateOf].
  *
  * Festlegung (nicht gemessen): Der Text jeder Antwort ist der feste Text der Regel; der Text einer
  * [QueryEvent.Failure] und der einer Ausnahme erreichen den Client nie. Das DONE ist `DONE` mit
  * Statusbit `ERROR`, Befehlskennung 0 und Zeilenzahl 0 (Bytes nur als Handvektor belegt, nicht am
- * Referenzclient gemessen). Ist der Strom nicht synchron, entfällt die Antwort (`SPEC-031`).
+ * Referenzclient gemessen). Ist der Strom nicht synchron, entfällt die Antwort (`SPEC-031`); der Sequenzierer
+ * meldet denselben Fall als `CLOSE_WITHOUT_COMPLETION`, und [fateOf] bildet ihn auf `CLOSE_WITHOUT_REPLY` ab.
  */
 class ErrorMapper(private val log: ErrorLog = ErrorLog.NONE) {
     /** Ein Fehler mit eigenem Code. */
@@ -82,26 +83,35 @@ class ErrorMapper(private val log: ErrorLog = ErrorLog.NONE) {
 
     /**
      * Die Abbildung als Funktionen für den Sequenzierer, der ERROR und DONE selbst in die laufende
-     * Nachricht schreibt. Meldung und Log stammen aus denselben Regeln wie bei [failure] und
-     * [protocol]. [ErrorMapping.internal] ist ein Wert; das Log dieses Falls schreibt der Aufrufer.
+     * Nachricht schreibt. Meldung, Verbindungsfolge und Log stammen aus denselben Regeln wie bei
+     * [failure] und [protocol]; [ErrorMapping.internal] loggt eine Ausnahme über [unexpected], einen
+     * Reihenfolgeverstoß (`null`) mit der Marke `sequence-violation`.
      */
     fun sequencerMapping(): ErrorMapping = ErrorMapping(
         backend = { failure ->
             val classified = classify(failure)
             log.record(ErrorLogEntry(classified.code, classified.cause))
-            classified.code.rule.message()
+            mapped(classified.code)
         },
         typeMapping = { error ->
             val code = protocolCode(error)
             log.record(ErrorLogEntry(code, null))
-            code.rule.message()
+            mapped(code)
         },
-        internal = ErrorCode.TDS_INTERNAL_ERROR.rule.message(),
+        internal = { cause ->
+            if (cause != null) unexpected(cause) else response(ErrorCode.TDS_INTERNAL_ERROR, true, SEQUENCE_VIOLATION)
+            mapped(ErrorCode.TDS_INTERNAL_ERROR)
+        },
     )
 
-    /** Die Verbindungsfolge zur Meldung eines Codes; `null`, wenn die Meldung keiner Regel gleicht. */
-    fun fateOf(message: ServerMessage): ConnectionFate? =
-        ErrorCode.entries.firstOrNull { it.rule.message() == message }?.rule?.fate
+    /** Die Verbindungsfolge zu einem Ausgang des Sequenzierers; der Ausgang trägt sie vollständig. */
+    fun fateOf(outcome: SequenceOutcome): ConnectionFate = when (outcome) {
+        SequenceOutcome.COMPLETED, SequenceOutcome.FAILED -> ConnectionFate.OPEN
+        SequenceOutcome.FAILED_CLOSE_CONNECTION -> ConnectionFate.CLOSE_AFTER_REPLY
+        SequenceOutcome.CLOSE_WITHOUT_COMPLETION -> ConnectionFate.CLOSE_WITHOUT_REPLY
+    }
+
+    private fun mapped(code: ErrorCode) = MappedError(code.rule.message(), code.rule.fate != ConnectionFate.OPEN)
 
     private class Classified(val code: ErrorCode, val cause: String?)
 
@@ -129,8 +139,7 @@ class ErrorMapper(private val log: ErrorLog = ErrorLog.NONE) {
 
     private fun serialize(rule: ErrorRule): TdsMessage {
         val encoder = TokenEncoder()
-        val done = DoneToken(DoneKind.DONE, DoneStatus.ERROR, curCmd = 0, rowCount = 0)
-        listOf(ErrorToken(rule.message()), done).forEach {
+        listOf(ErrorToken(rule.message()), failedDone()).forEach {
             check(encoder.write(it) is ProtocolResult.Ok) { "Fehlerantwort nicht schreibbar" }
         }
         return TdsMessage(PacketType.TABULAR_RESULT, encoder.toByteArray())
@@ -152,5 +161,6 @@ class ErrorMapper(private val log: ErrorLog = ErrorLog.NONE) {
         )
 
         private const val UNKNOWN_FAILURE_CODE = "unknown-failure-code"
+        private const val SEQUENCE_VIOLATION = "sequence-violation"
     }
 }

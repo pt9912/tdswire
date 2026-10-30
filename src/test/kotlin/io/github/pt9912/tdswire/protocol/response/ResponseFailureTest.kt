@@ -24,8 +24,11 @@ class ResponseFailureTest {
     private val internalError = ErrorToken(INTERNAL_MESSAGE)
     private val errorDone = done(DoneStatus.ERROR)
 
-    private fun run(backend: QueryBackend, sink: RecordingSink = RecordingSink()) =
-        runBlocking { ResponseSequencer(FIXED_MAPPING).run(backend, REQUEST, sink) }
+    private fun run(
+        backend: QueryBackend,
+        sink: RecordingSink = RecordingSink(),
+        mapping: ErrorMapping = FIXED_MAPPING,
+    ) = runBlocking { ResponseSequencer(mapping).run(backend, REQUEST, sink) }
 
     /**
      * `Failure` vor `ResultStart` (auch der Fehler beim Start, `SPEC-002`): ERROR und DONE mit
@@ -145,6 +148,73 @@ class ResponseFailureTest {
         val sink = RecordingSink()
         assertFailsWith<CancellationException> { run(backend, sink) }
         assertEquals(emptyList(), sink.tokens)
+    }
+
+    /**
+     * Die Abbruchausnahme aus dem Strom läuft nach außen wie die aus `execute()`, auch wenn die
+     * Coroutine nicht abgebrochen ist (etwa ein Zeitlimit im Backend): kein ERROR, kein Aufruf von
+     * `internal`, `close()` läuft zu Ende.
+     *
+     * @spec SPEC-029
+     */
+    @Test
+    fun `Abbruchausnahme aus dem Strom laeuft nach aussen`() {
+        val backend = FlowBackend {
+            flow {
+                emit(start())
+                throw CancellationException("zeitlimit")
+            }
+        }
+        val sink = RecordingSink()
+        val causes = CausesMapping()
+        assertFailsWith<CancellationException> { run(backend, sink, causes.mapping) }
+        assertEquals(1, sink.tokens.size)
+        assertIs<ColMetadataToken>(sink.tokens.single())
+        assertEquals(emptyList(), causes.causes)
+        assertEquals(1, backend.closesCompleted)
+    }
+
+    /**
+     * Der Sequenzierer gibt `internal` die Ausnahme aus `execute()` oder dem Strom und bei einem
+     * Reihenfolgeverstoß `null`; bei Fehlern des Backends und im Erfolg ruft er es nicht.
+     *
+     * @spec SPEC-048
+     */
+    @Test
+    fun `internal erhaelt die Ausnahme, bei einem Verstoss null`() {
+        val fromExecute = IllegalStateException("geheim")
+        val fromStream = IllegalArgumentException("geheim")
+        val cases = listOf<Pair<QueryBackend, List<Throwable?>>>(
+            FlowBackend(onExecute = { throw fromExecute }) { flow { } } to listOf(fromExecute),
+            FlowBackend { flow { throw fromStream } } to listOf(fromStream),
+            ScriptedBackend.ofList(row(1)) to listOf(null),
+            ScriptedBackend.ofList(QueryEvent.Failure("x", "m"), row(1)) to emptyList(),
+            ScriptedBackend.ofList(QueryEvent.UpdateCount(1)) to emptyList(),
+        )
+        for ((backend, expected) in cases) {
+            val causes = CausesMapping()
+            run(backend, mapping = causes.mapping)
+            assertEquals(expected, causes.causes)
+        }
+    }
+
+    /**
+     * Ob die Verbindung nach dem Fehler schließt, sagt die Abbildung ([MappedError.closesConnection]),
+     * nicht der Sequenzierer: schließt sie, ist der Ausgang `FAILED_CLOSE_CONNECTION`.
+     *
+     * @spec SPEC-048 SPEC-031
+     */
+    @Test
+    fun `Eine schliessende Abbildung ergibt FAILED_CLOSE_CONNECTION`() {
+        val closing = ErrorMapping(
+            backend = { MappedError(BACKEND_MESSAGE, closesConnection = true) },
+            typeMapping = { MappedError(TYPE_MESSAGE, closesConnection = true) },
+            internal = FIXED_MAPPING.internal,
+        )
+        for (event in listOf(QueryEvent.Failure("x", "m"), QueryEvent.ReturnStatus(0))) {
+            assertEquals(SequenceOutcome.FAILED_CLOSE_CONNECTION, run(ScriptedBackend.ofList(event), mapping = closing))
+        }
+        assertEquals(SequenceOutcome.FAILED, run(ScriptedBackend.ofList(QueryEvent.Failure("x", "m"))))
     }
 
     /**

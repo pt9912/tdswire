@@ -5,6 +5,7 @@ import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.port.ScriptedBackend
 import io.github.pt9912.tdswire.protocol.error.ConnectionFate
 import io.github.pt9912.tdswire.protocol.error.ErrorCode
+import io.github.pt9912.tdswire.protocol.error.ErrorLogEntry
 import io.github.pt9912.tdswire.protocol.error.ErrorMapper
 import io.github.pt9912.tdswire.protocol.token.ErrorToken
 import io.github.pt9912.tdswire.protocol.token.RowToken
@@ -37,12 +38,14 @@ class ResponseErrorMapperTest {
                 tail.forEach { encoder.write(it) }
                 return encoder.toByteArray()
             }
-        val error: ErrorToken get() = assertIs<ErrorToken>(tail.first())
     }
 
-    private fun run(backend: QueryBackend): Result {
-        val sink = RecordingSink()
-        val outcome = runBlocking { ResponseSequencer(mapper.sequencerMapping()).run(backend, REQUEST, sink) }
+    private fun run(
+        backend: QueryBackend,
+        sink: RecordingSink = RecordingSink(),
+        mapping: ErrorMapper = mapper,
+    ): Result {
+        val outcome = runBlocking { ResponseSequencer(mapping.sequencerMapping()).run(backend, REQUEST, sink) }
         return Result(outcome, sink.tokens)
     }
 
@@ -57,10 +60,10 @@ class ResponseErrorMapperTest {
     fun `Backend-Fehler liefern fuer jeden Code Bytes und Folge des Mappers`() {
         for (code in ErrorMapper.BACKEND_CODES) {
             val result = run(ScriptedBackend.ofList(QueryEvent.Failure(code.name, "geheim")))
-            assertEquals(SequenceOutcome.FAILED, result.outcome, code.name)
             assertContentEquals(expected(code), result.bytes, code.name)
-            assertEquals(code.rule.fate, mapper.fateOf(result.error.message), code.name)
-            assertEquals(mapper.failure(QueryEvent.Failure(code.name, "m")).fate, mapper.fateOf(result.error.message))
+            assertEquals(code.rule.fate, mapper.fateOf(result.outcome), code.name)
+            val single = mapper.failure(QueryEvent.Failure(code.name, "m"))
+            assertEquals(single.fate, mapper.fateOf(result.outcome), code.name)
         }
     }
 
@@ -90,7 +93,8 @@ class ResponseErrorMapperTest {
         for (name in serverOnly + "ORA-00001") {
             val result = run(ScriptedBackend.ofList(QueryEvent.Failure(name, "m")))
             assertContentEquals(expected(ErrorCode.TDS_INTERNAL_ERROR), result.bytes, name)
-            assertEquals(ConnectionFate.CLOSE_AFTER_REPLY, mapper.fateOf(result.error.message), name)
+            assertEquals(SequenceOutcome.FAILED_CLOSE_CONNECTION, result.outcome, name)
+            assertEquals(ConnectionFate.CLOSE_AFTER_REPLY, mapper.fateOf(result.outcome), name)
         }
     }
 
@@ -105,7 +109,7 @@ class ResponseErrorMapperTest {
         val result = run(FlowBackend { flow { error("geheim") } })
         assertEquals(SequenceOutcome.FAILED_CLOSE_CONNECTION, result.outcome)
         assertContentEquals(expected(ErrorCode.TDS_INTERNAL_ERROR), result.bytes)
-        assertEquals(ConnectionFate.CLOSE_AFTER_REPLY, mapper.fateOf(result.error.message))
+        assertEquals(ConnectionFate.CLOSE_AFTER_REPLY, mapper.fateOf(result.outcome))
     }
 
     /**
@@ -120,6 +124,46 @@ class ResponseErrorMapperTest {
         val error = ProtocolError(ProtocolFailure.INVALID_TYPE, "Ereignis ReturnStatus wird nicht abgebildet")
         val response = mapper.protocol(error)
         assertContentEquals(assertNotNull(response.message).payload, result.bytes)
-        assertEquals(response.fate, mapper.fateOf(result.error.message))
+        assertEquals(ConnectionFate.CLOSE_AFTER_REPLY, response.fate)
+        assertEquals(response.fate, mapper.fateOf(result.outcome))
+    }
+
+    /**
+     * Die Ausnahme des Backends erreicht das Log mit ihrem Typnamen, nie mit ihrem Text; ein
+     * Reihenfolgeverstoß trägt die Marke `sequence-violation`; Fehler des Backends und Erfolg rufen
+     * den Fall nicht.
+     *
+     * @spec SPEC-048
+     */
+    @Test
+    fun `Ausnahme und Reihenfolgeverstoss erreichen das Log`() {
+        val entries = mutableListOf<ErrorLogEntry>()
+        val logged = ErrorMapper { entries += it }
+        val result = run(FlowBackend { flow { throw IllegalStateException("geheim") } }, mapping = logged)
+        val internal = ErrorCode.TDS_INTERNAL_ERROR
+        assertEquals(listOf(ErrorLogEntry(internal, IllegalStateException::class.java.name)), entries)
+        assertEquals(false, result.tokens.toString().contains("geheim"))
+        entries.clear()
+        run(ScriptedBackend.ofList(row(1)), mapping = logged)
+        assertEquals(listOf(ErrorLogEntry(internal, "sequence-violation")), entries)
+        entries.clear()
+        run(ScriptedBackend.ofList(QueryEvent.UpdateCount(1)), mapping = logged)
+        assertEquals(emptyList(), entries)
+    }
+
+    /**
+     * Der Ausgang „ohne Abschluss schließen“ des Sequenzierers und `streamSynchronous = false` des
+     * Mappers sind dieselbe Folge: `CLOSE_WITHOUT_REPLY`; ein Erfolg lässt die Verbindung offen.
+     *
+     * @spec SPEC-031
+     */
+    @Test
+    fun `Ausgang ohne Abschluss entspricht der Folge ohne Antwort des Mappers`() {
+        val result = run(ScriptedBackend.ofList(start()), sink = RecordingSink(rejectAt = 1))
+        assertEquals(SequenceOutcome.CLOSE_WITHOUT_COMPLETION, result.outcome)
+        val fate = mapper.fateOf(result.outcome)
+        assertEquals(ConnectionFate.CLOSE_WITHOUT_REPLY, fate)
+        assertEquals(mapper.code(ErrorCode.TDS_INTERNAL_ERROR, streamSynchronous = false).fate, fate)
+        assertEquals(ConnectionFate.OPEN, mapper.fateOf(run(ScriptedBackend.ofList(QueryEvent.UpdateCount(1))).outcome))
     }
 }

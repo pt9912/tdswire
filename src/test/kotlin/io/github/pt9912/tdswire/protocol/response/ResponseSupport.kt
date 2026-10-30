@@ -19,10 +19,23 @@ val TYPE_MESSAGE = ServerMessage(number = 50002, state = 1, severity = 16, text 
 val INTERNAL_MESSAGE = ServerMessage(number = 50003, state = 1, severity = 20, text = "intern")
 
 val FIXED_MAPPING = ErrorMapping(
-    backend = { BACKEND_MESSAGE },
-    typeMapping = { TYPE_MESSAGE },
-    internal = INTERNAL_MESSAGE,
+    backend = { MappedError(BACKEND_MESSAGE, closesConnection = false) },
+    typeMapping = { MappedError(TYPE_MESSAGE, closesConnection = false) },
+    internal = { MappedError(INTERNAL_MESSAGE, closesConnection = true) },
 )
+
+/** Wie [FIXED_MAPPING], zeichnet aber die Ursachen auf, mit denen der Sequenzierer `internal` ruft. */
+class CausesMapping {
+    val causes = mutableListOf<Throwable?>()
+    val mapping = ErrorMapping(
+        backend = FIXED_MAPPING.backend,
+        typeMapping = FIXED_MAPPING.typeMapping,
+        internal = {
+            causes += it
+            FIXED_MAPPING.internal(it)
+        },
+    )
+}
 
 val REQUEST = QueryRequest("s", "r", "SELECT 1", emptyList(), null)
 
@@ -47,9 +60,19 @@ class RecordingSink(private val rejectAt: Int? = null) : TokenSink {
     }
 }
 
-/** Ein Backend mit frei gewähltem Strom und Zähler für `close()`; `execute` kann eine Ausnahme werfen. */
-class FlowBackend(private val onExecute: () -> Unit = {}, private val source: () -> Flow<QueryEvent>) : QueryBackend {
+/**
+ * Ein Backend mit frei gewähltem Strom und Zählern für `close()`; `execute` kann eine Ausnahme werfen,
+ * `close()` kann suspendieren ([onClose]). [closesCompleted] zählt nur ein `close()`, das zu Ende lief.
+ */
+class FlowBackend(
+    private val onExecute: () -> Unit = {},
+    private val onClose: suspend () -> Unit = {},
+    private val source: () -> Flow<QueryEvent>,
+) : QueryBackend {
     var closeCalls = 0
+        private set
+
+    var closesCompleted = 0
         private set
 
     override suspend fun execute(request: QueryRequest): QueryExecution {
@@ -59,6 +82,8 @@ class FlowBackend(private val onExecute: () -> Unit = {}, private val source: ()
 
             override suspend fun close() {
                 closeCalls++
+                onClose()
+                closesCompleted++
             }
         }
     }

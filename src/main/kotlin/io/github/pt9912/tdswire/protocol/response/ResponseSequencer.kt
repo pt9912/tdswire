@@ -3,7 +3,6 @@ package io.github.pt9912.tdswire.protocol.response
 import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.domain.QueryRequest
 import io.github.pt9912.tdswire.port.QueryBackend
-import io.github.pt9912.tdswire.port.QueryExecution
 import io.github.pt9912.tdswire.protocol.token.ServerMessage
 import io.github.pt9912.tdswire.protocol.token.Token
 import io.github.pt9912.tdswire.protocol.wire.ProtocolError
@@ -22,31 +21,45 @@ fun interface TokenSink {
     suspend fun accept(token: Token): Boolean
 }
 
+/** Eine abgebildete Meldung und ob die Verbindung nach ihrer Antwort schließt (Folge ungleich „offen“). */
+class MappedError(val message: ServerMessage, val closesConnection: Boolean)
+
 /**
  * Die Fehlerabbildung als Funktionen, damit der Sequenzierer keinen Katalog kennt: [backend] bildet
  * ein [QueryEvent.Failure] ab, [typeMapping] einen Fehler der Metadaten- oder Wertabbildung oder ein
- * nicht abbildbares Ereignis (`TDS_UNSUPPORTED_TYPE`, `SPEC-014`), [internal] ist die feste Meldung
- * für `TDS_INTERNAL_ERROR` (`SPEC-048`; ohne den Text einer Ausnahme).
+ * nicht abbildbares Ereignis (`TDS_UNSUPPORTED_TYPE`, `SPEC-014`), [internal] die Meldung für
+ * `TDS_INTERNAL_ERROR` (`SPEC-048`). Der Sequenzierer ruft [internal] mit der Ausnahme des Backends
+ * oder mit `null` bei einem Reihenfolgeverstoß; so kann der Aufrufer den Fall loggen. Die Meldung
+ * enthält weder den Text der Ausnahme noch das `detail` eines [ProtocolError]; der Sequenzierer
+ * schreibt beides nie selbst in den Strom, die Zusage hängt an der Abbildung.
  */
 class ErrorMapping(
-    val backend: (QueryEvent.Failure) -> ServerMessage,
-    val typeMapping: (ProtocolError) -> ServerMessage,
-    val internal: ServerMessage,
+    val backend: (QueryEvent.Failure) -> MappedError,
+    val typeMapping: (ProtocolError) -> MappedError,
+    val internal: (Throwable?) -> MappedError,
 )
 
-/** Der Ausgang eines Laufs des [ResponseSequencer]; was die Verbindung danach tut, steht je Wert. */
+/**
+ * Der Ausgang eines Laufs des [ResponseSequencer]; was die Verbindung danach tut, steht je Wert. Der
+ * Ausgang trägt die Verbindungsfolge vollständig: `ErrorMapper.fateOf` liefert sie, ohne die Meldung
+ * im Tokenstrom zu suchen.
+ */
 enum class SequenceOutcome {
     /** Das abschließende DONE ist geschrieben; die Verbindung bleibt, wie sie war. */
     COMPLETED,
 
     /**
      * ERROR und DONE mit Fehlerstatus sind geschrieben (Fehler des Backends, nicht abbildbare Metadaten
-     * oder Werte, nicht abbildbares Ereignis). Ob die Verbindung bleibt, folgt aus der Severity der
-     * Meldung, nicht aus dem Sequenzierer.
+     * oder Werte, nicht abbildbares Ereignis), und die Abbildung lässt die Verbindung offen
+     * ([MappedError.closesConnection] ist `false`).
      */
     FAILED,
 
-    /** ERROR und DONE mit Fehlerstatus sind geschrieben; die Verbindung wird danach geschlossen (`SPEC-048`). */
+    /**
+     * ERROR und DONE mit Fehlerstatus sind geschrieben; die Verbindung wird danach geschlossen:
+     * Reihenfolgeverstoß und Ausnahme (`SPEC-048`) sowie jede Abbildung mit
+     * [MappedError.closesConnection].
+     */
     FAILED_CLOSE_CONNECTION,
 
     /** Der Strom ließ sich nicht mehr abschließen; die Verbindung wird ohne ERROR und DONE geschlossen (`SPEC-031`). */
@@ -62,13 +75,17 @@ enum class SequenceOutcome {
  * Festlegungen (nicht gemessen; Setzungen des Nutzers vom 2026-10-30, wo genannt):
  * - Ein [QueryEvent.Failure] zählt in der Vorschau als nächstes Ereignis: ein zurückgehaltener
  *   Abschluss bekommt `DONE_MORE`, danach folgen ERROR und ein DONE mit Fehlerstatus (Nutzer).
- *   Dasselbe gilt für jedes andere nächste Ereignis, auch für eine Ausnahme des Stroms.
+ *   Dasselbe gilt für jedes andere nächste Ereignis, auch für eine Ausnahme des Stroms. Beleg nur
+ *   für das Bit vor dem ERROR: der Referenzclient gegen einen echten SQL Server zeigt
+ *   `DONE[MORE|COUNT]` vor dem ERROR eines batch-abbrechenden Fehlers (ADR-0007 R05); am Produkt ist
+ *   es nicht gemessen. Für einen statement-abbrechenden Fehler (R04: `DONE[MORE|ERR]`) schreibt der
+ *   Sequenzierer die Variante ohne `MORE`, weil `Failure` keine Klasse trägt.
  * - Ein zurückgehaltener Abschluss wird bei Abbruch der Coroutine (Cancel, Disconnect) verworfen,
  *   nicht geschrieben (Nutzer). `close()` der Ausführung läuft trotzdem.
  * - Ein Verstoß des Backends gegen die Reihenfolge ([QueryEvent.Row] oder [QueryEvent.ResultEnd] ohne
  *   offenes Ergebnis, [QueryEvent.ResultStart] oder [QueryEvent.UpdateCount] in einem offenen
  *   Ergebnis, Strom endet in einem offenen Ergebnis) ist ein Fall von `SPEC-048`: ERROR mit
- *   [ErrorMapping.internal], DONE mit Fehlerstatus, [SequenceOutcome.FAILED_CLOSE_CONNECTION]
+ *   [ErrorMapping.internal] (mit `null`), DONE mit Fehlerstatus, [SequenceOutcome.FAILED_CLOSE_CONNECTION]
  *   (Nutzer). Dasselbe gilt für eine Ausnahme aus `execute()` oder aus dem Strom (Festlegung des
  *   Implementers).
  * - [QueryEvent.ReturnStatus] und [QueryEvent.OutputParameter] werden mit einem Fehler der
@@ -84,8 +101,10 @@ enum class SequenceOutcome {
  * - `curCmd` aller DONE ist 0: der Port trägt keine Befehlskennung (benannte Spec-Lücke); die
  *   Zeilenzahl steht mit dem Bit `COUNT`, wenn das Ereignis eine Zahl trägt, sonst steht 0 ohne das
  *   Bit (Festlegung des Implementers).
- * - „Ausnahme“ heißt jedes `Throwable` außer der Abbruchausnahme der Coroutine; die Behandlung von
- *   `OutOfMemoryError` bleibt offen (ADR-0006).
+ * - „Ausnahme“ heißt jedes `Throwable` außer einer [CancellationException]; die Ausnahme geht an
+ *   [ErrorMapping.internal]. Eine [CancellationException] läuft aus `execute()` wie aus dem Strom
+ *   nach außen, auch wenn die Coroutine nicht abgebrochen ist (etwa ein Zeitlimit im Backend); die
+ *   Behandlung von `OutOfMemoryError` bleibt offen (ADR-0006).
  * - Eine andere Ausnahme der Senke als die Abbruchausnahme und eine Ausnahme aus `close()` laufen nach
  *   `close()` unverändert nach außen; dafür gibt es keine Zusage.
  */
@@ -96,13 +115,16 @@ class ResponseSequencer(private val errors: ErrorMapping) {
      */
     suspend fun run(backend: QueryBackend, request: QueryRequest, sink: TokenSink): SequenceOutcome {
         val run = ResponseRun(errors, sink)
-        val execution = start(backend, request)
-        if (execution == null) {
-            run.fault()
+        val started = runCatching { backend.execute(request) }
+        val cause = started.exceptionOrNull()
+        if (cause != null) {
+            if (cause is CancellationException) throw cause
+            run.fault(cause)
             return run.result
         }
+        val execution = started.getOrThrow()
         try {
-            execution.events.catch { run.fault() }.firstOrNull { run.accept(it) }
+            execution.events.catch { run.fault(rethrowCancellation(it)) }.firstOrNull { run.accept(it) }
             run.end()
         } finally {
             withContext(NonCancellable) { execution.close() }
@@ -110,10 +132,6 @@ class ResponseSequencer(private val errors: ErrorMapping) {
         return run.result
     }
 
-    private suspend fun start(backend: QueryBackend, request: QueryRequest): QueryExecution? {
-        val started = runCatching { backend.execute(request) }
-        val cause = started.exceptionOrNull()
-        if (cause is CancellationException) throw cause
-        return started.getOrNull()
-    }
+    private fun rethrowCancellation(cause: Throwable): Throwable =
+        if (cause is CancellationException) throw cause else cause
 }

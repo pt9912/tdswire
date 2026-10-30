@@ -10,13 +10,15 @@ import io.github.pt9912.tdswire.protocol.token.DoneStatus
 import io.github.pt9912.tdswire.protocol.token.DoneToken
 import io.github.pt9912.tdswire.protocol.token.ErrorToken
 import io.github.pt9912.tdswire.protocol.token.RowToken
-import io.github.pt9912.tdswire.protocol.token.ServerMessage
 import io.github.pt9912.tdswire.protocol.token.Token
 import io.github.pt9912.tdswire.protocol.wire.ProtocolError
 import io.github.pt9912.tdswire.protocol.wire.ProtocolFailure
 import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
 
 private const val CUR_CMD_UNKNOWN = 0
+
+/** Das DONE mit Fehlerstatus hinter jedem ERROR; die einzige Stelle, die es bildet (auch für den `ErrorMapper`). */
+internal fun failedDone(): DoneToken = DoneToken(DoneKind.DONE, DoneStatus.ERROR, CUR_CMD_UNKNOWN, 0)
 
 /**
  * Zustand eines Laufs des [ResponseSequencer]: die Spalten des offenen Ergebnisses (`null` ohne
@@ -38,15 +40,15 @@ internal class ResponseRun(private val errors: ErrorMapping, private val sink: T
             is QueryEvent.Row -> row(event)
             is QueryEvent.ResultEnd -> finish(event.affectedRows, inResult = true)
             is QueryEvent.UpdateCount -> finish(event.affectedRows, inResult = false)
-            is QueryEvent.Failure -> report(errors.backend(event), SequenceOutcome.FAILED)
+            is QueryEvent.Failure -> report(errors.backend(event))
             is QueryEvent.ReturnStatus -> unsupported("ReturnStatus")
             is QueryEvent.OutputParameter -> unsupported("OutputParameter")
         }
     }
 
-    /** `execute()` oder der Strom des Backends hat mit einer Ausnahme geendet. */
-    suspend fun fault() {
-        if (flushHeld(more = true)) report(errors.internal, SequenceOutcome.FAILED_CLOSE_CONNECTION)
+    /** `execute()` oder der Strom des Backends hat mit [cause] geendet. */
+    suspend fun fault(cause: Throwable) {
+        if (flushHeld(more = true)) report(errors.internal(cause))
     }
 
     /** Der Strom ist ohne Ausnahme zu Ende; schließt den Lauf ab, falls kein Ausgang feststeht. */
@@ -64,7 +66,7 @@ internal class ResponseRun(private val errors: ErrorMapping, private val sink: T
     private suspend fun start(event: QueryEvent.ResultStart): Boolean {
         if (columns != null) return violation()
         return when (val mapped = ColumnMapping.map(event.columns)) {
-            is ProtocolResult.Failed -> report(errors.typeMapping(mapped.error), SequenceOutcome.FAILED)
+            is ProtocolResult.Failed -> report(errors.typeMapping(mapped.error))
 
             is ProtocolResult.Ok -> {
                 columns = mapped.value
@@ -76,7 +78,7 @@ internal class ResponseRun(private val errors: ErrorMapping, private val sink: T
     private suspend fun row(event: QueryEvent.Row): Boolean {
         val defs = columns ?: return violation()
         return when (val mapped = ValueMapping.row(defs, event.values)) {
-            is ProtocolResult.Failed -> report(errors.typeMapping(mapped.error), SequenceOutcome.FAILED)
+            is ProtocolResult.Failed -> report(errors.typeMapping(mapped.error))
             is ProtocolResult.Ok -> !write(RowToken(mapped.value))
         }
     }
@@ -91,10 +93,10 @@ internal class ResponseRun(private val errors: ErrorMapping, private val sink: T
 
     private suspend fun unsupported(name: String): Boolean {
         val error = ProtocolError(ProtocolFailure.INVALID_TYPE, "Ereignis $name wird nicht abgebildet")
-        return report(errors.typeMapping(error), SequenceOutcome.FAILED)
+        return report(errors.typeMapping(error))
     }
 
-    private suspend fun violation(): Boolean = report(errors.internal, SequenceOutcome.FAILED_CLOSE_CONNECTION)
+    private suspend fun violation(): Boolean = report(errors.internal(null))
 
     private suspend fun flushHeld(more: Boolean): Boolean {
         val done = held ?: return true
@@ -103,10 +105,11 @@ internal class ResponseRun(private val errors: ErrorMapping, private val sink: T
     }
 
     /** Schreibt ERROR und DONE mit Fehlerstatus und beendet den Lauf. */
-    private suspend fun report(message: ServerMessage, success: SequenceOutcome): Boolean {
-        val written = write(ErrorToken(message)) &&
-            write(DoneToken(DoneKind.DONE, DoneStatus.ERROR, CUR_CMD_UNKNOWN, 0))
-        if (written) outcome = success
+    private suspend fun report(mapped: MappedError): Boolean {
+        val written = write(ErrorToken(mapped.message)) && write(failedDone())
+        if (written) {
+            outcome = if (mapped.closesConnection) SequenceOutcome.FAILED_CLOSE_CONNECTION else SequenceOutcome.FAILED
+        }
         return true
     }
 
