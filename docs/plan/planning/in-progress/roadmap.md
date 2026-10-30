@@ -35,6 +35,11 @@ In Arbeit (Folge-Slice von welle-protokollcodec, ohne Welle):
 In Arbeit (Welle welle-qualitaet-grundlage):
 
 - [slice-qa-spec-abdeckung](slice-qa-spec-abdeckung.md)
+- [slice-qa-reproduzierbarkeit](slice-qa-reproduzierbarkeit.md)
+
+In Arbeit (Welle welle-handshake-login):
+
+- [slice-auth-adapter-benutzerliste](slice-auth-adapter-benutzerliste.md)
 
 In Arbeit (Welle welle-entscheidungen-grundlage):
 
