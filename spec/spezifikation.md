@@ -214,27 +214,34 @@ Zeilenquelle, Abbruch.
 `CONNECTED → PRELOGIN → TLS_NEGOTIATION (falls erforderlich) → LOGIN7 → READY → CLOSED`. Profile mit
 vorgelagertem TLS (TDS 8.0, Strict-Encryption) beginnen mit
 `CONNECTED → TLS_NEGOTIATION → PRELOGIN`. Nur `READY` akzeptiert SQL_BATCH/RPC; ATTENTION ist im
-passenden laufenden Anfragezustand zulässig. Der Zustand ist ein expliziter Automat: eine Aufzählung der
+passenden laufenden Anfragezustand zulässig (Zielbild, Stand der Festlegung unten). Der Zustand ist ein expliziter Automat: eine Aufzählung der
 Zustände und eine reine Übergangsfunktion (Zustand, Ereignisart) → (Folgezustand, Aktion). Ungültige
 Übergänge werden abgelehnt; die Antwort darauf (Verbindung ohne Antwort schließen oder ein Fehler), die
 Reichweite von ATTENTION vor dem Login sind noch festzulegen. Der Zuschnitt der Aufzählung ist flach
 (Setzung des Nutzers, nicht gemessen für den Anfragezustand): eine Aufzählung führt Verbindungs- und
 Anfragezustände, `READY` ist der Anfragezustand `IDLE`.
 
-Anfragezustand (nur nach dem Login): `IDLE → RUNNING → STREAMING → COMPLETED → IDLE`. Bei
+Anfragezustand (nur nach dem Login): `IDLE → RUNNING → STREAMING → COMPLETED → IDLE`. Vorgesehen: Bei
 ATTENTION führen `RUNNING` und `STREAMING` über `CANCELLING` nach `COMPLETED`. Der Response
 Sequencer kennt den Anfragezustand nicht; der Sitzungsrahmen hält ihn und entscheidet jeden Übergang
 atomar je Sitzung: Übergang und das zugehörige Schreiben laufen unter einer Sperre je Sitzung. Der Dispatch
 meldet dem Rahmen den Beginn des ersten Ergebnisses (`RUNNING → STREAMING`) und das Ende der Antwort; das
 Ende der Antwort sendet sie und führt in einem Übergang nach `IDLE` oder, wenn die Verbindungsfolge des
 Ausgangs schließt, nach `CLOSED` (`COMPLETED` ist kein eigener Zustand der Aufzählung; Festlegung, nicht
-gemessen). Eine Nachricht in `RUNNING` oder `STREAMING` ist ein unzulässiger Übergang. Der Transport
-meldet ein erkanntes ATTENTION-Paket an ihn, der Dispatch nimmt kein ATTENTION an. Bei
-gleichzeitigem DONE und ATTENTION gewinnt der erste Übergang. Trifft ATTENTION nach `COMPLETED` oder
-in `IDLE` ein, bleibt das bereits gesendete Ergebnis gültig, und der Server beantwortet das
-ATTENTION mit der vom Profil geforderten Bestätigung, damit der Client nicht auf sie wartet (Setzung;
-am echten Server ist nur ATTENTION nach vollständig gesendeter Antwort gemessen, im Leerlauf ohne
-laufende Anfrage nicht). Der Abschluss einer Anfrage wird genau einmal gesendet.
+gemessen). Eine Anfragenachricht (SQL_BATCH, RPC) in `RUNNING` oder `STREAMING` ist ein unzulässiger
+Übergang. Der Transport meldet ein erkanntes ATTENTION-Paket an den Sitzungsrahmen; der Dispatch nimmt
+kein ATTENTION an. Bei gleichzeitigem DONE und ATTENTION gewinnt der erste Übergang.
+
+ATTENTION in jedem Anfragezustand ist offen; die Kette über `CANCELLING` ist dessen Zielbild. Gebaut ist sie nicht: Bis zu dieser Festlegung behandelt der Automat jede Nachricht in
+`RUNNING` und `STREAMING`, auch ATTENTION, als unzulässigen Übergang, und `CANCELLING` ist kein Zustand
+der Aufzählung (Festlegung, nicht gemessen). Ebenso gilt bis dahin als Festlegung, nicht als Zusage:
+ATTENTION in `READY` (`IDLE`) bleibt unbeantwortet, und die Verbindung schließt. Die folgende Bestätigung
+ist das Zielbild: Trifft ATTENTION nach `COMPLETED` oder in `IDLE` ein, bleibt das bereits gesendete
+Ergebnis gültig, und der Server beantwortet das ATTENTION mit der vom Profil geforderten Bestätigung,
+damit der Client nicht auf sie wartet (Setzung; am echten Server ist nur ATTENTION nach vollständig
+gesendeter Antwort gemessen, im Leerlauf ohne laufende Anfrage nicht).
+
+Der Abschluss einer Anfrage wird genau einmal gesendet.
 
 ### SPEC-002 — Interner Query-Vertrag
 ```kotlin

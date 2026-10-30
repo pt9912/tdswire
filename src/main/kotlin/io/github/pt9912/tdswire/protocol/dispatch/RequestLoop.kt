@@ -5,6 +5,7 @@ import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.protocol.error.ConnectionFate
 import io.github.pt9912.tdswire.protocol.error.ErrorMapper
 import io.github.pt9912.tdswire.protocol.response.ResponseSequencer
+import io.github.pt9912.tdswire.protocol.response.TokenSink
 import io.github.pt9912.tdswire.protocol.session.ConnectionState
 import io.github.pt9912.tdswire.protocol.session.HandshakeChannel
 import io.github.pt9912.tdswire.protocol.session.HandshakeEvent
@@ -35,6 +36,11 @@ import java.util.UUID
  * Verbindung schließt; ein SQL_BATCH, dessen Nachricht der Parser abweist, wird mit `TDS_PROTOCOL_ERROR`
  * beantwortet (`ErrorMapper.protocol`); die Antwort wird vollständig gepuffert (`BufferedResponse`);
  * während einer Anfrage liest die Schleife nicht.
+ *
+ * Kopplung: [sinkAround] umhüllt die Senke der Anfrage, bevor der `ResponseSequencer` sie bekommt; die
+ * Voreinstellung reicht sie unverändert durch. Kein Backend-Ereignis lässt den Encoder ein Token
+ * ablehnen (die Abbildungen von Spalten und Werten prüfen dieselben Grenzen); der Einhängepunkt erlaubt
+ * es einem Test, eine Senke zu stellen, die ein Token nicht annimmt (Ausgang `CLOSE_WITHOUT_COMPLETION`).
  */
 class RequestLoop(
     private val ready: HandshakeOutcome.Ready,
@@ -42,6 +48,7 @@ class RequestLoop(
     private val backend: QueryBackend,
     private val errors: ErrorMapper = ErrorMapper(),
     private val requestIds: () -> String = { UUID.randomUUID().toString() },
+    private val sinkAround: (TokenSink) -> TokenSink = { it },
 ) {
     private val sequencer = ResponseSequencer(errors.sequencerMapping())
 
@@ -79,7 +86,7 @@ class RequestLoop(
         val live = ready.live
         val response = BufferedResponse { live.dispatch(HandshakeEvent.StreamStarted) }
         val request = QueryRequest(ready.session.id, requestIds(), text, emptyList(), null)
-        val fate = errors.fateOf(sequencer.run(backend, request, response))
+        val fate = errors.fateOf(sequencer.run(backend, request, sinkAround(response)))
         return requestFinished(fate, response.message())
     }
 }

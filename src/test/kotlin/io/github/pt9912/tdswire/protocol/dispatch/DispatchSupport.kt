@@ -5,6 +5,7 @@ import io.github.pt9912.tdswire.domain.ResultColumn
 import io.github.pt9912.tdswire.domain.SqlType
 import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.protocol.error.ErrorMapper
+import io.github.pt9912.tdswire.protocol.response.TokenSink
 import io.github.pt9912.tdswire.protocol.session.FakeHandshakeChannel
 import io.github.pt9912.tdswire.protocol.session.HandshakeConfig
 import io.github.pt9912.tdswire.protocol.session.HandshakeDriver
@@ -26,7 +27,7 @@ import kotlin.test.assertIs
 /** Von Hand gebaute Eingaben und erwartete Antworten (Tabellenlayout nach MS-TDS), unabhängig vom Codec. */
 object BatchVectors {
     /**
-     * ALL_HEADERS nach MS-TDS 2.2.5.3: Gesamtlänge 22, ein Header von 18 Byte vom Typ 2 (Transaction
+     * ALL_HEADERS nach MS-TDS: Gesamtlänge 22, ein Header von 18 Byte vom Typ 2 (Transaction
      * Descriptor) mit 8 Byte Descriptor und 4 Byte Request Count.
      */
     const val ALL_HEADERS = "16 00 00 00  12 00 00 00  02 00  00 00 00 00 00 00 00 00  01 00 00 00 "
@@ -75,8 +76,9 @@ class Session(val channel: FakeHandshakeChannel, val ready: HandshakeOutcome.Rea
     suspend fun serve(
         backend: QueryBackend,
         errors: ErrorMapper = ErrorMapper(),
+        sinkAround: (TokenSink) -> TokenSink = { it },
         requestIds: () -> String = Counter()::next,
-    ) = RequestLoop(ready, channel, backend, errors, requestIds).run()
+    ) = RequestLoop(ready, channel, backend, errors, requestIds, sinkAround).run()
 
     companion object {
         suspend fun login(vararg later: Inbound): Session {
