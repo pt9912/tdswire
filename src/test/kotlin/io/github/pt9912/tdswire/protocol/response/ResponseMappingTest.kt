@@ -19,6 +19,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.yield
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -66,7 +67,7 @@ class ResponseMappingTest {
     }
 
     /**
-     * Handvektor, von Hand aus MS-TDS 2.2.7.6, 2.2.7.4 und 2.2.7.17 abgeleitet (nicht gemessen):
+     * Handvektor, von Hand nach dem Tokenlayout des Codecs abgeleitet (nicht gemessen):
      * COLMETADATA mit einer Spalte `n` (INT4, nicht nullbar), eine ROW mit dem Wert 1, ein DONE mit
      * `DONE_COUNT` und Zeilenzahl 1, `curCmd` 0.
      *
@@ -233,5 +234,29 @@ class ResponseMappingTest {
         assertEquals(1, sink.tokens.size)
         assertTrue(sink.tokens.single() is ColMetadataToken)
         assertEquals(1, backend.closeCalls)
+    }
+
+    /**
+     * `close()` der Ausführung läuft auch dann zu Ende, wenn es selbst suspendiert und die Coroutine
+     * schon abgebrochen ist (Abbruchschutz um `close()`).
+     *
+     * @spec SPEC-031 SPEC-029
+     */
+    @Test
+    fun `Abbruch laesst ein suspendierendes close zu Ende laufen`() = runBlocking {
+        val backend = FlowBackend(onClose = { yield() }) {
+            flow {
+                emit(start())
+                awaitCancellation()
+            }
+        }
+        val job = launch(start = CoroutineStart.UNDISPATCHED) {
+            ResponseSequencer(FIXED_MAPPING).run(backend, REQUEST, RecordingSink())
+        }
+        job.cancel()
+        job.join()
+        assertTrue(job.isCancelled)
+        assertEquals(1, backend.closeCalls)
+        assertEquals(1, backend.closesCompleted)
     }
 }

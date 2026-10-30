@@ -1,6 +1,7 @@
 package io.github.pt9912.tdswire.protocol.error
 
 import io.github.pt9912.tdswire.domain.QueryEvent
+import io.github.pt9912.tdswire.protocol.response.SequenceOutcome
 import io.github.pt9912.tdswire.protocol.session.LoginResponses
 import io.github.pt9912.tdswire.protocol.token.DoneKind
 import io.github.pt9912.tdswire.protocol.token.DoneStatus
@@ -21,7 +22,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * Die Handvektoren sind von Hand nach dem Tokenlayout (MS-TDS 2.2.7.9) zusammengesetzt: AA, Länge,
+ * Die Handvektoren sind von Hand nach dem Tokenlayout des Codecs zusammengesetzt: AA, Länge,
  * Nummer (4 Byte), State, Class, Textlänge in Zeichen, Text UTF-16LE, leerer Servername, leere
  * Prozedur, Zeilennummer 0; dann DONE mit Statusbit ERROR. Nummern, States, Texte und Classes sind
  * Festlegung (nicht gemessen, Nummern 208 und 245 sind Vorschlag der Spezifikation); gemessen ist
@@ -366,21 +367,41 @@ class ErrorMapperTest {
     }
 
     /**
-     * Die Meldung des Adapters für den Sequenzierer ist die Meldung der Regel, und `fateOf` findet zu ihr
-     * die Verbindungsfolge derselben Regel; eine fremde Meldung hat keine Folge.
+     * Die Meldung des Adapters für den Sequenzierer ist die Meldung der Regel, und ihre Abbildung
+     * schließt genau dann, wenn die Folge der Regel nicht `OPEN` ist.
      *
      * @spec SPEC-015
      */
     @Test
-    fun `fateOf liefert die Folge der Regel, deren Meldung der Adapter erzeugt`() {
+    fun `Der Adapter liefert Meldung und Schliessen der Regel`() {
         val mapping = mapper.sequencerMapping()
         ErrorMapper.BACKEND_CODES.forEach {
-            val message = mapping.backend(QueryEvent.Failure(it.name, "m"))
-            assertEquals(it.rule.message(), message, it.name)
-            assertEquals(it.rule.fate, mapper.fateOf(message), it.name)
+            val mapped = mapping.backend(QueryEvent.Failure(it.name, "m"))
+            assertEquals(it.rule.message(), mapped.message, it.name)
+            assertEquals(it.rule.fate != ConnectionFate.OPEN, mapped.closesConnection, it.name)
         }
-        assertEquals(ConnectionFate.CLOSE_AFTER_REPLY, mapper.fateOf(mapping.internal))
-        assertNull(mapper.fateOf(ErrorCode.TDS_BACKEND_ERROR.rule.message().copy(text = "anderer Text")))
+        val internal = mapping.internal(null)
+        assertEquals(ErrorCode.TDS_INTERNAL_ERROR.rule.message(), internal.message)
+        assertTrue(internal.closesConnection)
+        assertEquals(internal.message, mapping.internal(IllegalStateException("geheim")).message)
+    }
+
+    /**
+     * `fateOf` ist total über die Ausgänge des Sequenzierers.
+     *
+     * @spec SPEC-031
+     */
+    @Test
+    fun `fateOf bildet jeden Ausgang des Sequenzierers ab`() {
+        assertEquals(
+            mapOf(
+                SequenceOutcome.COMPLETED to ConnectionFate.OPEN,
+                SequenceOutcome.FAILED to ConnectionFate.OPEN,
+                SequenceOutcome.FAILED_CLOSE_CONNECTION to ConnectionFate.CLOSE_AFTER_REPLY,
+                SequenceOutcome.CLOSE_WITHOUT_COMPLETION to ConnectionFate.CLOSE_WITHOUT_REPLY,
+            ),
+            SequenceOutcome.entries.associateWith { mapper.fateOf(it) },
+        )
     }
 
     /**
@@ -395,11 +416,15 @@ class ErrorMapperTest {
         mapping.backend(QueryEvent.Failure("ORA-00001", "Gehe1mnis"))
         mapping.backend(QueryEvent.Failure("TDS_BACKEND_ERROR", "m"))
         mapping.typeMapping(ProtocolError(ProtocolFailure.TOO_LONG, "d"))
+        mapping.internal(IllegalStateException("Gehe1mnis"))
+        mapping.internal(null)
         assertEquals(
             listOf(
                 ErrorLogEntry(ErrorCode.TDS_INTERNAL_ERROR, "unknown-failure-code"),
                 ErrorLogEntry(ErrorCode.TDS_BACKEND_ERROR, null),
                 ErrorLogEntry(ErrorCode.TDS_UNSUPPORTED_TYPE, null),
+                ErrorLogEntry(ErrorCode.TDS_INTERNAL_ERROR, IllegalStateException::class.java.name),
+                ErrorLogEntry(ErrorCode.TDS_INTERNAL_ERROR, "sequence-violation"),
             ),
             entries,
         )
