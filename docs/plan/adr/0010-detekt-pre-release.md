@@ -19,7 +19,7 @@
 
 Das Static-Analysis-Gate (`SPEC-041`) prüft die Schichtgrenzen der Architektur und das Format des Quelltexts. Es stützt sich auf drei Fähigkeiten von detekt: Importregeln je Package (`ForbiddenImport`), Aufrufregeln mit Typauflösung (`ForbiddenMethodCall`, nur über `detektMain` und `detektTest`) und den ktlint-Regelsatz als Wrapper.
 
-Gepinnt ist `2.0.0-alpha.6` (`gradle/libs.versions.toml`), ein Pre-Release. Die Version wurde mit dem Gradle-Gerüst aus dem Schwesterprojekt pgwire übernommen (Commit-Nachricht von `5d2236d`: „Gradle/Kotlin/detekt wie in pgwire“); die Wahl stand bisher nur in einem Kommentar in `build.gradle.kts`.
+Gepinnt ist `2.0.0-alpha.6` (`gradle/libs.versions.toml`), ein Pre-Release. Die Version wurde mit dem Gradle-Gerüst aus einem Schwesterprojekt übernommen (Commit `5d2236d`); die Wahl stand bisher nur in einem Kommentar in `build.gradle.kts`.
 
 Annahmen: Der Pin ist exakt, `gradle.lockfile` und `gradle/verification-metadata.xml` fixieren Version und Prüfsummen. Die Konfiguration kennt keine Baseline und senkt keinen Standard. Fällt eine dieser Annahmen, ist die Entscheidung neu zu prüfen.
 
@@ -42,7 +42,7 @@ Ein Pre-Release trägt das Risiko, dass sich Optionen zwischen Alphas umbenennen
 - **Positiv:** Das Gate läuft heute, die Schichtregeln und Technik-Regeln sind belegt. Die Wahl ist an einer Stelle begründet und auffindbar.
 - **Negativ / Risiko:** Jeder Versionswechsel kann `detekt.yml` brechen; der ktlint-Block ist gleich dem Standard der gepinnten Version und gehört nach einem Pin-Wechsel neu erzeugt (Kommentar in `config/detekt/detekt.yml`).
 - **Folgepflicht:** `build.gradle.kts` verweist auf diese ADR statt auf „die zugehörige ADR". Bei Annahme `SPEC-041` unverändert lassen; die Entscheidung schärft sie nur.
-- **Bestätigt durch den Autor (2026-10-30):** Option B ist die gewollte Wahl. Ein über die Übernahme des Gerüsts hinausgehendes Motiv von pgwire (Funktionsumfang, Kotlin-Verträglichkeit) ist weder genannt noch belegt.
+- **Bestätigt durch den Autor (2026-10-30):** Option B ist die gewollte Wahl. Ein über die Übernahme des Gerüsts hinausgehendes Motiv (Funktionsumfang, Kotlin-Verträglichkeit) ist weder genannt noch belegt.
 - **Offen:** Die Messung von Option A ist unvollständig (`ForbiddenMethodCall` unter Typauflösung); sie begründet nicht, dass Option A scheitert.
 
 ## Fitness Function (falls maschinell prüfbar)
