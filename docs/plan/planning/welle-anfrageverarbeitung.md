@@ -91,7 +91,7 @@ Träger der ausgeschlossenen Gegenstände (existierende Datei, sonst Zeiger auf 
 - PLP, NBCROW und Typen außerhalb des Mindestkatalogs — `slice-codec-datentypen-erweiterung`.
 - Nachweis gegen den Referenzclient und einen echten SQL Server: Kompatibilitäts-Läufe, Mitschnitte, Tokenfolge und DONE-Statusbits, ordinale Zählung der RETURNVALUE, TDS 8.0, Pooling — `slice-qa-kompatibilitaet`, `slice-qa-reproduzierbarkeit`. Diese Welle belegt Dispatch und Antwortbytes mit Rohbytes gegen ein Test-Backend.
 - Last, Durchsatz und Fuzz über ungültige Anfragen — `slice-qa-performance`, `slice-qa-stabilitaet`.
-- Observability-Adapter (ARC-009, SPEC-017): nur ein minimaler Log-Anschluss, der keine Parameterwerte und keinen Anfragetext ausgibt. Träger: noch keiner, die Closure legt einen Folge-Slice an.
+- Observability-Adapter (ARC-009, SPEC-017): nur ein minimaler Log-Anschluss, der keine Parameterwerte und keinen Anfragetext ausgibt. Träger: Welle [welle-betrieb-diagnose](welle-betrieb-diagnose.md).
 - Neue Anforderungen oder Änderungen am Lastenheft.
 
 ## 7. Closure-Notiz

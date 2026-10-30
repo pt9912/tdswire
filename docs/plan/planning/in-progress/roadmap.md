@@ -23,6 +23,7 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 - [welle-backend-streaming](../welle-backend-streaming.md)
 - [welle-fehler-abbruch](../welle-fehler-abbruch.md)
 - [welle-simulations-backend](../welle-simulations-backend.md)
+- [welle-betrieb-diagnose](../welle-betrieb-diagnose.md)
 
 In Arbeit (Welle welle-transport-tls):
 

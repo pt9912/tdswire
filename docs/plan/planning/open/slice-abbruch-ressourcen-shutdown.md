@@ -37,7 +37,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Der Abbruchpfad selbst (Cancel, `CANCELLING`, Frist) — `slice-attention-cancel-timeout`; dieser Slice ruft ihn bei Disconnect und nach Ablauf der Shutdown-Frist.
 - Listener, Sockets und Erkennen des Verbindungsendes im Transport — Welle `welle-transport-tls`; dieser Slice nimmt das Verbindungsende als Ereignis und den Listener-Stop als Aufruf.
 - Fuzz-Gate und Test mit parallelen Verbindungen bis `MAX_CONNECTIONS` als Gate — `slice-qa-stabilitaet`; hier ein Lecktest mit mehreren Verbindungen, kein Gate.
-- Observability von Verbindungsende und Shutdown (`SPEC-017`) — kein Träger als Datei; nur der minimale Log-Anschluss.
+- Observability von Verbindungsende und Shutdown (`SPEC-017`) — Träger: Welle [welle-betrieb-diagnose](../welle-betrieb-diagnose.md); nur der minimale Log-Anschluss.
 - Garantierte Unterbrechbarkeit externer Backendoperationen — Out-of-Scope von [TDS-FA-07](../../../../spec/lastenheft.md#tds-fa-07--abbruch-und-ressourcenfreigabe).
 - Zeitgleichheit, Drosselung und Anmeldepfad-Sicherheit — `slice-qa-sicherheit`.
 

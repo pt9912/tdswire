@@ -37,7 +37,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Verbindungs-Zustandsautomat, PRELOGIN-/LOGIN7-Ablauf, Auswahl des Pfades je Client und die Antwort `TDS_SHUTDOWN` — Zustandsautomat und Fehlersemantik sind [ADR-0004](../../adr/0004-session-zustandsautomat.md) und [ADR-0007](../../adr/0007-fehler-und-attention.md) (beide `Proposed`); der Listener übergibt eine Verbindung an einen Handler und kennt keine Protokollzustände. Eine „laufende Anfrage“ kennt der Transport nur als Rückmeldung des Handlers.
 - Abbruch laufender Anfragen (Cancel an das Backend, `CANCEL_TIMEOUT`, SPEC-029, SPEC-033) — braucht Session und Backend-Port; der Listener bietet nur die Frist `SHUTDOWN_GRACE` und das Trennen am Ende.
 - Validierung der Gesamtkonfiguration und Parsen von `ENCRYPTION_POLICY` (ARC-002, SPEC-010): der Listener bekommt eine validierte Bind-Adresse, einen Port und TLS-Material; wer sie aus Umgebung oder Datei liest, ist eine Lieferung des Packages `config`.
-- Logging und Spans (SPEC-017, `tds.connection`) und Metriken — der Listener meldet Ereignisse an eine Schnittstelle; die Anbindung an Telemetrie ist Sache von `observability`.
+- Logging und Spans (SPEC-017, `tds.connection`) und Metriken — der Listener meldet Ereignisse an eine Schnittstelle; die Anbindung an Telemetrie ist Sache von `observability` (Träger: Welle [welle-betrieb-diagnose](../welle-betrieb-diagnose.md)).
 - Start des Serverprozesses, Composition Root, JVM-Flags des Prozesses (`runtime`) und ein Make-Ziel zum Starten.
 - MARS, Pooling und `sp_reset_connection` — ungemessen laut Clientprofil.
 - Läufe gegen den Referenzclient und einen echten SQL Server — `slice-qa-kompatibilitaet`, `slice-qa-stabilitaet`; dieser Slice belegt Listener-Verhalten am Loopback.
