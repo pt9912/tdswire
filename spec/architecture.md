@@ -16,7 +16,7 @@ flowchart TB
         Transport["TDS Transport / Framing"]
         Session["Handshake / Auth / Session"]
         Dispatch["SQL Batch / RPC Dispatch"]
-        Stream["Response Sequencer / Cancel State"]
+        Stream["Response Sequencer"]
         Codec["Result / Error Encoder"]
     end
     subgraph Kern["Kern"]
@@ -63,7 +63,7 @@ Pfeile zeigen Datenfluss und Aufrufrichtung zur Laufzeit, nicht die Import-Richt
 | `ARC-007` | Result / Error Encoder | COLMETADATA, ROW, DONE, ERROR und Login-Antworten |
 | `ARC-008` | Runtime / Bootstrap | Verdrahtung, Listener-Start, Shutdown und Ressourcenverwaltung |
 | `ARC-009` | Observability | Strukturierte Logs, Metriken und Traces ohne Geheimnisse |
-| `ARC-015` | Response Sequencer / Cancel State | Serialisiert Ergebnisereignisse, DONE-Familie und Abbruch; garantiert Antwortgrenzen |
+| `ARC-015` | Response Sequencer | Serialisiert Ergebnisereignisse, DONE-Familie und Abbruch; garantiert Antwortgrenzen |
 | `ARC-016` | Simulations-Backend | Optionaler Backend-Adapter hinter `ARC-006`: beantwortet abgegrenzte Anweisungsformen aus beschriebenen Tabellen; keine SQL-Engine, keine Persistenz |
 
 ## 2. Schichten und Constraints
@@ -155,6 +155,7 @@ sequenceDiagram
     participant T as Transport
     participant D as RPC Dispatch
     participant B as Backend Port
+    participant S as Handshake / Session
     participant Q as Response Sequencer
     participant E as Result Encoder
     C->>T: RPC sp_executesql + Parameter
@@ -162,7 +163,8 @@ sequenceDiagram
     D->>B: execute(typisierte Parameter)
     opt Client bricht ab
         C->>T: ATTENTION
-        T->>Q: cancel(sessionId, requestId)
+        T->>S: ATTENTION melden
+        S->>Q: cancel(sessionId, requestId)
         Q->>B: cancel(sessionId, requestId)
         Q->>E: Abbruchantwort nach Protokollzustand
     end
@@ -180,6 +182,7 @@ sequenceDiagram
 sequenceDiagram
     participant C as .NET SqlClient
     participant T as Transport
+    participant S as Handshake / Session
     participant Q as Response Sequencer
     participant B as Backend Port
     B-->>Q: ResultStart + Row
@@ -190,7 +193,8 @@ sequenceDiagram
         Q-->>C: ERROR + DONE_ERROR
     else ATTENTION
         C->>T: ATTENTION
-        T->>Q: cancel
+        T->>S: ATTENTION melden
+        S->>Q: cancel
         Q->>B: cancel / close
         Q-->>C: ATTENTION-Abschluss nach Profil
     else Synchronität nicht garantiert
@@ -216,4 +220,4 @@ Die Logging-Spalte nennt die je Fehlerquelle wesentlichen Korrelationsfelder; zu
 
 **Resilienzprinzipien:** Grenzen für Nachrichten- und Sitzungsspeicher; definierte Timeouts; kontrollierte Freigabe von Backendressourcen; keine ungefangenen Exceptions über Verbindungsgrenzen hinweg; geordneter Shutdown. Nicht unterstützte Protokollfunktionen werden explizit abgelehnt und nicht stillschweigend simuliert.
 
-**Zustands- und Ownership-Grenzen:** Transport verantwortet Paketframing und TLS-Kapselung, Handshake die Login-Zustandsübergänge, Dispatch die fachliche Anfrageübersetzung, Response Sequencer die Reihenfolge der Antwortereignisse je aktiver Anfrage und die Cancel/DONE-Synchronität; ob mehrere Anfragen je Sitzung gleichzeitig aktiv sein dürfen (MARS), ist in `SPEC-004` offen. Backendoperationen und Ergebnisstreams sind sitzungsgebunden; bei Disconnect, Timeout und Shutdown werden sie geschlossen. Eine nach Cancel nicht eindeutig synchronisierbare Sitzung wird nicht wiederverwendet.
+**Zustands- und Ownership-Grenzen:** Transport verantwortet Paketframing und TLS-Kapselung, Handshake / Session die Login-Zustandsübergänge und den Anfragezustand samt Sperre je Sitzung, Dispatch die fachliche Anfrageübersetzung, Response Sequencer die Reihenfolge der Antwortereignisse je aktiver Anfrage und die Abfolge von Abbruch und DONE innerhalb der Antwort, ohne den Anfragezustand zu halten; ob mehrere Anfragen je Sitzung gleichzeitig aktiv sein dürfen (MARS), ist in `SPEC-004` offen. Backendoperationen und Ergebnisstreams sind sitzungsgebunden; bei Disconnect, Timeout und Shutdown werden sie geschlossen. Eine nach Cancel nicht eindeutig synchronisierbare Sitzung wird nicht wiederverwendet.

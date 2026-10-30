@@ -2,8 +2,8 @@ package io.github.pt9912.tdswire.protocol.session
 
 /**
  * Zustände des Verbindungsautomaten (`SPEC-001`, `SPEC-028`). Festlegung ohne Messung: eine flache
- * Aufzählung wie im Spike; `ADR-0004` führt den Zuschnitt (flach oder getrennt nach Verbindungs- und
- * Anfragezustand) als offen, die Zweiteilung nach `SPEC-001` ist nicht gemessen. [AUTHENTICATING] ist
+ * Aufzählung wie im Spike; `ADR-0004` führt den Zuschnitt als offen, `SPEC-001` legt ihn flach fest
+ * (Setzung des Nutzers, für den Anfragezustand nicht gemessen). [AUTHENTICATING] ist
  * der Zustand, in dem der Adapteraufruf läuft und kein weiteres LOGIN7 angenommen wird. [READY] ist
  * der Leerlauf einer angemeldeten Sitzung (Anfragezustand `IDLE`); [RUNNING] und [STREAMING] sind die
  * Anfragezustände derselben Aufzählung (flacher Zuschnitt, `SPEC-001`): [RUNNING] von der Annahme eines
