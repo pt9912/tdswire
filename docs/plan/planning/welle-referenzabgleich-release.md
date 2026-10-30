@@ -69,7 +69,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte.
 
 - Blockiert: keine weitere Welle; sie ist das Ende der Planung dieses Repos bis zum Release.
-- Wird blockiert von: [welle-simulations-backend](welle-simulations-backend.md) (Server-Seite), [slice-qa-vergleichslauf-d](open/slice-qa-vergleichslauf-d.md) (Vergleichslauf D, Referenzinstanz), [slice-qa-kompatibilitaet](open/slice-qa-kompatibilitaet.md) (Szenarien), [slice-bootstrap-konfiguration](open/slice-bootstrap-konfiguration.md) (`main`), [welle-betrieb-diagnose](welle-betrieb-diagnose.md) (nur [slice-release-doku-prozess](open/slice-release-doku-prozess.md)).
+- Wird blockiert von: [welle-simulations-backend](welle-simulations-backend.md) (Server-Seite), [slice-qa-vergleichslauf-d](open/slice-qa-vergleichslauf-d.md) (Vergleichslauf D, Referenzinstanz), [slice-qa-kompatibilitaet](open/slice-qa-kompatibilitaet.md) (Szenarien), [slice-bootstrap-konfiguration](next/slice-bootstrap-konfiguration.md) (`main`), [welle-betrieb-diagnose](welle-betrieb-diagnose.md) (nur [slice-release-doku-prozess](open/slice-release-doku-prozess.md)).
 - Berührt, blockiert aber nicht: [welle-qualitaet-grundlage](welle-qualitaet-grundlage.md). Sie schließt auf Basis von [slice-qa-vergleichslauf-d](open/slice-qa-vergleichslauf-d.md) und [slice-qa-kompatibilitaet](open/slice-qa-kompatibilitaet.md); ob [TDS-QA-01](../../../spec/lastenheft.md#tds-qa-01--kompatibilität) ohne den Referenzabgleich dieser Welle als belegt gilt, ist offen, denn das Lastenheft nennt den Abgleich „ergänzend“ und „vorläufig“ (Frage an den Nutzer).
 
 ## 6. Out-of-Scope für diese Welle

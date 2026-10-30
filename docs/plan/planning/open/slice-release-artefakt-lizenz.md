@@ -34,7 +34,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- `main`, Konfiguration, Verdrahtung und der Rohbytes-Smoke — [slice-bootstrap-konfiguration](slice-bootstrap-konfiguration.md); dieser Slice verpackt und startet dasselbe, er schreibt sie nicht neu.
+- `main`, Konfiguration, Verdrahtung und der Rohbytes-Smoke — [slice-bootstrap-konfiguration](../next/slice-bootstrap-konfiguration.md); dieser Slice verpackt und startet dasselbe, er schreibt sie nicht neu.
 - Die Läufe des Referenzclients gegen das Image — [slice-qa-kompatibilitaet](slice-qa-kompatibilitaet.md) und [slice-referenzabgleich-live](slice-referenzabgleich-live.md) nutzen es, sobald es besteht; entstand dort schon ein Image, übernimmt dieser Slice es als das eine Artefakt (§6).
 - Veröffentlichung (Registry, Signierung, Software-Stückliste) und Orchestrierung (Compose, Kubernetes) — das Lastenheft verlangt sie nicht ([TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) verlangt Reproduktion in Docker); ob ein Release sie braucht, entscheidet der Nutzer in [slice-release-doku-prozess](slice-release-doku-prozess.md).
 - Bit-genau gleiche Jars aus zwei Builds — nicht gefordert; [TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) verlangt eine reproduzierbare Umgebung, keine bitgleichen Artefakte.
@@ -48,7 +48,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 Liefer-Punkte (drei):
 
-- [ ] **Laufzeit-Image:** Eine Stage im `Dockerfile` mit JRE-Basis-Image per Digest (SPEC-042), Nutzer ohne Root-Rechte, Jar mit Startklasse; die Konfiguration kommt zur Laufzeit herein (Umgebung oder Datei nach [slice-bootstrap-konfiguration](slice-bootstrap-konfiguration.md)), kein Geheimnis und keine Benutzerliste im Image (Test über den Inhalt); das bestehende Artefakt-Image `build` für das Jar bleibt, solange es jemand nutzt.
+- [ ] **Laufzeit-Image:** Eine Stage im `Dockerfile` mit JRE-Basis-Image per Digest (SPEC-042), Nutzer ohne Root-Rechte, Jar mit Startklasse; die Konfiguration kommt zur Laufzeit herein (Umgebung oder Datei nach [slice-bootstrap-konfiguration](../next/slice-bootstrap-konfiguration.md)), kein Geheimnis und keine Benutzerliste im Image (Test über den Inhalt); das bestehende Artefakt-Image `build` für das Jar bleibt, solange es jemand nutzt.
 - [ ] **Laufzeittest** ([TDS-RB-01](../../../../spec/lastenheft.md#tds-rb-01--implementierungssprache)): Der Container startet mit einer Testkonfiguration, ein Rohbytes-Client meldet sich an, der Stop beendet den Prozess; der Test ist ein `make`-Target in `make gates` oder, begründet mit der gemessenen Laufzeit, außerhalb; der Eintrag steht in `harness/README.md` §Sensors.
 - [ ] **Lizenz** ([TDS-RB-05](../../../../spec/lastenheft.md#tds-rb-05--lizenz)): Die Datei `LICENSE` im Wurzelverzeichnis ist die MIT-Lizenz (Textprüfung), und das Artefakt führt sie mit (Jar oder Image); ein Test bricht, wenn sie fehlt.
 
@@ -87,7 +87,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-bootstrap-konfiguration](slice-bootstrap-konfiguration.md) und [slice-qa-reproduzierbarkeit](../done/slice-qa-reproduzierbarkeit.md) liegen in `done/` (`main` und CI), und ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): [slice-bootstrap-konfiguration](../next/slice-bootstrap-konfiguration.md) und [slice-qa-reproduzierbarkeit](../done/slice-qa-reproduzierbarkeit.md) liegen in `done/` (`main` und CI), und ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -109,7 +109,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Zwei Definitionen desselben Artefakts: [slice-bootstrap-konfiguration](slice-bootstrap-konfiguration.md) und [slice-qa-kompatibilitaet](slice-qa-kompatibilitaet.md) müssen den Server in Docker starten, bevor dieser Slice startet. Prüft der Implementer beim Start, ob dort ein Image besteht, schrumpft der Slice auf Laufzeittest, Lizenz und die Vereinheitlichung; zwei Images für denselben Server sind zu vermeiden. — **Ausgang:** offen bis zur Closure.
+- Zwei Definitionen desselben Artefakts: [slice-bootstrap-konfiguration](../next/slice-bootstrap-konfiguration.md) und [slice-qa-kompatibilitaet](slice-qa-kompatibilitaet.md) müssen den Server in Docker starten, bevor dieser Slice startet. Prüft der Implementer beim Start, ob dort ein Image besteht, schrumpft der Slice auf Laufzeittest, Lizenz und die Vereinheitlichung; zwei Images für denselben Server sind zu vermeiden. — **Ausgang:** offen bis zur Closure.
 - Basis-Image: das gepinnte Distroless-Image der Stage `build` enthält nach seiner Bezeichnung keine JRE; welches Laufzeit-Image gewählt wird (Distroless mit Java, JRE-Image), ist eine Entscheidung des Implementers mit Nutzerbestätigung, und der Digest ist pro Wahl zu ermitteln, nicht zu raten. — **Ausgang:** offen bis zur Closure.
 - Lizenzen der Abhängigkeiten im Artefakt: [TDS-RB-05](../../../../spec/lastenheft.md#tds-rb-05--lizenz) verlangt nur die MIT-Lizenz des Projekts. Ob Hinweise zu Lizenzen der gelieferten Bibliotheken nötig sind, ist eine Rechtsfrage ohne Prüfung im Repo; die Closure führt sie als offen. Die Frage wird nicht mehr hypothetisch: [ADR-0012](../../adr/0012-simulations-backend-beschreibung-und-formen.md) nimmt `jackson-dataformat-yaml` (Apache-2.0 nach den POMs; Lesart des Architect, keine Rechtsberatung) mit `databind`, `core`, `annotations` und `snakeyaml` als `implementation` auf, sobald [slice-sim-aenderung-integration](slice-sim-aenderung-integration.md) sie einbaut; ob das ausgelieferte Artefakt einen Lizenz- oder Hinweisnachweis braucht, entscheidet dieser Slice. — **Ausgang:** offen bis zur Closure.
 - Der Laufzeittest belegt Start und Login mit dem Rohbytes-Client, nicht die Annahme durch `Microsoft.Data.SqlClient` und nicht das Verhalten unter Last. — **Ausgang:** offen bis zur Closure.

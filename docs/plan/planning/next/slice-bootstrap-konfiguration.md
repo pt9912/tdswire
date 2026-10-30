@@ -35,7 +35,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Listener, Sockets, `SSLEngine`, Zertifikats- und Schlüsselkonfiguration, die Startprobe für TLS und die Diagnose für einen belegten Port (SPEC-043) — die geplante Transport-Welle `welle-transport-tls`; dieser Slice ruft deren Listener und hängt ihre Konfigurationsschlüssel an, wenn sie vorliegen.
-- Geordnetes Beenden mit Frist (SPEC-044, `SHUTDOWN_GRACE`): Es gibt keine laufenden Anfragen; der Stop schließt Listener und Verbindungen ohne Frist-Logik. Träger: [slice-abbruch-ressourcen-shutdown](slice-abbruch-ressourcen-shutdown.md).
+- Geordnetes Beenden mit Frist (SPEC-044, `SHUTDOWN_GRACE`): Es gibt keine laufenden Anfragen; der Stop schließt Listener und Verbindungen ohne Frist-Logik. Träger: [slice-abbruch-ressourcen-shutdown](../open/slice-abbruch-ressourcen-shutdown.md).
 - Observability-Adapter (strukturierte Logs, Metriken, Traces, Korrelations-IDs): nur die Start-, Stop- und Konfigurationsfehler-Meldungen und die Sichtbarkeit einer Abschwächung der Verschlüsselung im Log (SPEC-010). Träger: Welle [welle-betrieb-diagnose](../welle-betrieb-diagnose.md).
 - Backend-Port und Simulations-Backend verdrahten — es gibt keine Anfragen; `runtime` darf das Simulations-Backend später verdrahten (ARC-016), tut es hier nicht.
 - Smoke mit dem Referenzclient und ein Smoke mit TLS — `slice-qa-kompatibilitaet` bzw. die Transport-Welle; der Rohbytes-Smoke dieses Slice läuft im ausdrücklich konfigurierten unverschlüsselten Testmodus (SPEC-010), solange kein TLS-Listener vorliegt.
