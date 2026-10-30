@@ -25,8 +25,8 @@ Versioniertes Profil des Referenzclients für die Kompatibilitätsabnahme (`SPEC
 
 ## RPC-Katalog
 
-Der Referenzclient sendet in den gemessenen Szenarien (nur gegen einen Testserver, ohne echten SQL Server): Batch (`0x01`) für Text ohne Parameter; `sp_executesql` (ProcID 10) für Text mit Parametern; `sp_prepexec` (ProcID 13) und `sp_execute` (ProcID 12) bei `Prepare()` mit Parametern; RPC mit Prozedurnamen für `CommandType.StoredProcedure`. `sp_prepare`, `sp_unprepare` und `sp_cursor*` erschienen nicht. Die Festlegung steht in `SPEC-030`.
+Der Referenzclient sendete in den gemessenen Szenarien (Messgrenzen: Testserver, ohne echten SQL Server; TDS 7.4 unverschlüsselt, kein TDS 8.0, kein TLS; `Pooling=false`; eine Verbindung je Szenario; ein Lauf): Batch (`0x01`) für Text ohne Parameter; `sp_executesql` (ProcID 10) für Text mit Parametern; `sp_prepexec` (ProcID 13) und `sp_execute` (ProcID 12) bei `Prepare()` mit Parametern; RPC mit Prozedurnamen für `CommandType.StoredProcedure`. `sp_prepare`, `sp_unprepare` und `sp_cursor*` erschienen in diesen Szenarien nicht; unter Pooling ist das nicht gemessen. `ExecuteReader(KeyInfo|SingleRow)` sendet `sp_executesql` mit `SET FMTONLY OFF; SET NO_BROWSETABLE ON;` im Text (Behandlung offen); Transaktionen sind Pakettyp `0x0E`, kein RPC (offen). Der Katalog ist als Entwurf in `SPEC-030` festgelegt und noch nicht freigegeben.
 
 ## Offen
 
-`Encrypt`/`TrustServerCertificate`-Details, SQL-Authentifizierung, MARS, Transaktionen, Verbindungs-Pooling und Lastprofil stehen in `SPEC-004` als offene Freigabepunkte.
+`Encrypt`/`TrustServerCertificate`-Details, SQL-Authentifizierung, unterstützte RPCs (Freigabe des Entwurfs oben), MARS, Transaktionen, Verbindungs-Pooling und Lastprofil stehen in `SPEC-004` als offene Freigabepunkte.
