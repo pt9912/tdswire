@@ -30,7 +30,7 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Die freigegebenen Ende-zu-Ende-Szenarien (Anmeldung, SELECT, parametrisierte Abfrage, NULL, Fehler, Abbruch) laufen automatisiert mit einem echten .NET-Client gegen den Server und sind ein Gate. Aus [ADR-0009](../../adr/0009-authentifizierungsmodus.md) §Offen gehören dazu die Anmeldemessungen, die dort fehlen: Windows-SSPI (NTLM), TDS 8.0 mit SQL-Authentifizierung, mehrpaketiges LOGIN7, Pooling mit `ResetConnection`. Das Testprojekt samt Restore-Sperre und Make-Target liefert [slice-qa-dotnet-referenztest-geruest](../in-progress/slice-qa-dotnet-referenztest-geruest.md); dieser Slice schreibt die Szenarien dazu. Aus [ADR-0005](../../adr/0005-rpc-und-prepared-statements.md) §Offen kommen `sp_unprepare` unter Pooling, die `SET`-Text-Szenarien (`SchemaOnly`, `KeyInfo`), Transaktionen (Pakettyp `0x0E`) und TDS 8.0 für RPC hinzu. Dieser Slice ist zugleich der Träger der Beobachtung `BEO-TDS/tds-8-0-und-pooling-nicht-gemessen` (Ausgang aus `welle-protokollcodec`): Der Codec ist für TDS 8.0 und Pooling bisher nur nach MS-TDS festgelegt, nicht am Server dieses Repos gemessen (Closure-Notiz [welle-protokollcodec-results](../done/welle-protokollcodec-results.md)). State und Meldung eines echten SQL Servers gehören nicht hierher, sondern in den Vergleichslauf D von [slice-qa-reproduzierbarkeit](../in-progress/slice-qa-reproduzierbarkeit.md).
+**Ziel:** Die freigegebenen Ende-zu-Ende-Szenarien (Anmeldung, SELECT, parametrisierte Abfrage, NULL, Fehler, Abbruch) laufen automatisiert mit einem echten .NET-Client gegen den Server und sind ein Gate. Aus [ADR-0009](../../adr/0009-authentifizierungsmodus.md) §Offen gehören dazu die Anmeldemessungen, die dort fehlen: Windows-SSPI (NTLM), TDS 8.0 mit SQL-Authentifizierung, mehrpaketiges LOGIN7, Pooling mit `ResetConnection`. Das Testprojekt samt Restore-Sperre und Make-Target liefert [slice-qa-dotnet-referenztest-geruest](../done/slice-qa-dotnet-referenztest-geruest.md); dieser Slice schreibt die Szenarien dazu. Aus [ADR-0005](../../adr/0005-rpc-und-prepared-statements.md) §Offen kommen `sp_unprepare` unter Pooling, die `SET`-Text-Szenarien (`SchemaOnly`, `KeyInfo`), Transaktionen (Pakettyp `0x0E`) und TDS 8.0 für RPC hinzu. Dieser Slice ist zugleich der Träger der Beobachtung `BEO-TDS/tds-8-0-und-pooling-nicht-gemessen` (Ausgang aus `welle-protokollcodec`): Der Codec ist für TDS 8.0 und Pooling bisher nur nach MS-TDS festgelegt, nicht am Server dieses Repos gemessen (Closure-Notiz [welle-protokollcodec-results](../done/welle-protokollcodec-results.md)). State und Meldung eines echten SQL Servers gehören nicht hierher, sondern in den Vergleichslauf D von [slice-qa-reproduzierbarkeit](../in-progress/slice-qa-reproduzierbarkeit.md).
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -44,7 +44,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] Szenarien nach `SPEC-025`/`SPEC-032` (Liste in [slice-qa-dotnet-referenztest-geruest](../in-progress/slice-qa-dotnet-referenztest-geruest.md) §3, Träger-Spalte) laufen im Testprojekt des Gerüsts grün gegen den Server; das Make-Target des Gerüsts bleibt in `make gates`.
+- [ ] Szenarien nach `SPEC-025`/`SPEC-032` (Liste in [slice-qa-dotnet-referenztest-geruest](../done/slice-qa-dotnet-referenztest-geruest.md) §3, Träger-Spalte) laufen im Testprojekt des Gerüsts grün gegen den Server; das Make-Target des Gerüsts bleibt in `make gates`.
 - [ ] Anmeldemessungen und RPC-Messungen aus dem Ziel (Windows-SSPI, TDS 8.0, mehrpaketiges LOGIN7, Pooling mit `ResetConnection` und `sp_unprepare`, `SET`-Text-Szenarien, Transaktionen) am Server dieses Repos gemessen und in den ADRs bzw. im Clientprofil nachgetragen, oder je Punkt mit Begründung als nicht lieferbar benannt; für TDS 8.0 und Pooling auch die Aussage des Codecs (KDoc und Closure-Notiz von `welle-protokollcodec`) von *Festlegung* auf *gemessen* gehoben oder eingeschränkt.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -65,7 +65,7 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| Szenarien im Testprojekt des Gerüsts ([slice-qa-dotnet-referenztest-geruest](../in-progress/slice-qa-dotnet-referenztest-geruest.md)) | neu | Szenarien Anmeldung, SELECT, RPC, NULL, Fehler, Abbruch nach [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität) |
+| Szenarien im Testprojekt des Gerüsts ([slice-qa-dotnet-referenztest-geruest](../done/slice-qa-dotnet-referenztest-geruest.md)) | neu | Szenarien Anmeldung, SELECT, RPC, NULL, Fehler, Abbruch nach [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität) |
 | Make-Fragment des Gerüsts | update | Szenarien in den Testlauf; `GATE_CHECKS +=` je nach Entscheidung im Gerüst-Slice |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
@@ -75,7 +75,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md) Accepted und ein lauffähiger Server beantwortet die Anmeldung, und [slice-qa-dotnet-referenztest-geruest](../in-progress/slice-qa-dotnet-referenztest-geruest.md) liegt in `done/` (Gerüst: Testprojekt, Restore-Sperre, Make-Target).
+**Start** (`next` → `in-progress`): [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md) Accepted und ein lauffähiger Server beantwortet die Anmeldung, und [slice-qa-dotnet-referenztest-geruest](../done/slice-qa-dotnet-referenztest-geruest.md) liegt in `done/` (Gerüst: Testprojekt, Restore-Sperre, Make-Target).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

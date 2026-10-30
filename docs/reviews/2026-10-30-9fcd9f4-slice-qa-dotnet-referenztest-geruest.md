@@ -1,7 +1,7 @@
 # Review slice-qa-dotnet-referenztest-geruest (9fcd9f4)
 
 * Gegenstand: Diff `dc208ef..9fcd9f4` (`referenztest-dotnet/`, `tools/mk/referenztest-dotnet.mk`, `harness/README.md`, Carveouts, Folge-Slice)
-* Plan: [slice-qa-dotnet-referenztest-geruest](../plan/planning/in-progress/slice-qa-dotnet-referenztest-geruest.md), Welle [welle-qualitaet-grundlage](../plan/planning/welle-qualitaet-grundlage.md)
+* Plan: [slice-qa-dotnet-referenztest-geruest](../plan/planning/done/slice-qa-dotnet-referenztest-geruest.md), Welle [welle-qualitaet-grundlage](../plan/planning/welle-qualitaet-grundlage.md)
 * Grundlage: [ADR-0008](../plan/adr/README.md), [ADR-0001](../plan/adr/README.md), [TDS-QA-01](../../spec/lastenheft.md), [TDS-QA-06](../../spec/lastenheft.md), [CO-001](../plan/carveouts/CO-001-nuget-audit-aus.md), [CO-002](../plan/carveouts/CO-002-nuget-signaturpruefung-fehlt.md), `AGENTS.md` §3.1–3.8, Nutzerentscheidungen F1–F4
 * Sensor: `make referenztest-dotnet` (gecacht 1,0 s; Test-Stage mit `--no-cache-filter test` neu ausgeführt: 1/1 bestanden, 11,9 s), `make referenztest-dotnet-audit` (5,8 s, meldet `System.Security.Cryptography.Pkcs` 9.0.18, High und Moderate, Exit 0), `make gates` grün (Exit 0, 8,8 s, warm). Digest-Auflösung per `docker buildx imagetools inspect`. Nicht ausgeführt: `make referenztest-dotnet-lock` (schreibt eine Datei im Arbeitsbaum), die Selbstproben mit verfälschtem `contentHash` und geänderter Version, ein Kaltlauf.
 

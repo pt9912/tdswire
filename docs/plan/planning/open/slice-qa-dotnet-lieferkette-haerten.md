@@ -30,7 +30,7 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Die beiden befristeten Ausstiege des .NET-Restore aus [slice-qa-dotnet-referenztest-geruest](../in-progress/slice-qa-dotnet-referenztest-geruest.md) werden beendet oder dauerhaft entschieden: [CO-001](../../carveouts/CO-001-nuget-audit-aus.md) (`NuGetAudit=false`) und [CO-002](../../carveouts/CO-002-nuget-signaturpruefung-fehlt.md) (keine Signaturprüfung der Pakete).
+**Ziel:** Die beiden befristeten Ausstiege des .NET-Restore aus [slice-qa-dotnet-referenztest-geruest](../done/slice-qa-dotnet-referenztest-geruest.md) werden beendet oder dauerhaft entschieden: [CO-001](../../carveouts/CO-001-nuget-audit-aus.md) (`NuGetAudit=false`) und [CO-002](../../carveouts/CO-002-nuget-signaturpruefung-fehlt.md) (keine Signaturprüfung der Pakete).
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -75,7 +75,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-qa-dotnet-referenztest-geruest](../in-progress/slice-qa-dotnet-referenztest-geruest.md) liegt in `done/`; der Nutzer hat eine Zeitbox für den `trustedSigners`-Versuch gesetzt.
+**Start** (`next` → `in-progress`): [slice-qa-dotnet-referenztest-geruest](../done/slice-qa-dotnet-referenztest-geruest.md) liegt in `done/`; der Nutzer hat eine Zeitbox für den `trustedSigners`-Versuch gesetzt.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
