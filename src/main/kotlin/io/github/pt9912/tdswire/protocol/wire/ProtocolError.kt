@@ -19,6 +19,8 @@ enum class ProtocolFailure(val category: ProtocolErrorCategory) {
     INVALID_OPTION_LENGTH(ProtocolErrorCategory.TDS_PROTOCOL_ERROR),
     INVALID_HEADER_BLOCK(ProtocolErrorCategory.TDS_PROTOCOL_ERROR),
     ODD_TEXT_LENGTH(ProtocolErrorCategory.TDS_PROTOCOL_ERROR),
+    INVALID_TYPE_INFO(ProtocolErrorCategory.TDS_PROTOCOL_ERROR),
+    INVALID_RPC_FORM(ProtocolErrorCategory.TDS_PROTOCOL_ERROR),
     TOO_LONG(ProtocolErrorCategory.TDS_UNSUPPORTED_TYPE),
     VALUE_OUT_OF_RANGE(ProtocolErrorCategory.TDS_UNSUPPORTED_TYPE),
     TYPE_MISMATCH(ProtocolErrorCategory.TDS_UNSUPPORTED_TYPE),

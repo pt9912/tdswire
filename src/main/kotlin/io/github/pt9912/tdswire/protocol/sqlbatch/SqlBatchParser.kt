@@ -1,5 +1,6 @@
 package io.github.pt9912.tdswire.protocol.sqlbatch
 
+import io.github.pt9912.tdswire.protocol.wire.AllHeaders
 import io.github.pt9912.tdswire.protocol.wire.ByteReader
 import io.github.pt9912.tdswire.protocol.wire.ProtocolFailure
 import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
@@ -24,38 +25,15 @@ class SqlBatchRequest(val text: String, val headerTypes: List<Int>) {
  * Blocks; der Inhalt der Header wird übersprungen, nicht gedeutet.
  */
 object SqlBatchParser {
-    private const val TOTAL_LENGTH_BYTES = 4
-    private const val HEADER_FIXED_BYTES = 6
-
     /** Liest die Nachricht; jede Abweichung vom Format ist ein [ProtocolResult.Failed]. */
     fun parse(payload: ByteArray): ProtocolResult<SqlBatchRequest> = guarded { read(payload) }
 
     private fun read(payload: ByteArray): SqlBatchRequest {
         val reader = ByteReader(payload)
-        val total = reader.u32Le()
-        if (total < TOTAL_LENGTH_BYTES || total > payload.size) {
-            violation(ProtocolFailure.INVALID_HEADER_BLOCK, "ALL_HEADERS $total Byte, Nachricht ${payload.size} Byte")
-        }
-        val types = readHeaders(reader, total.toInt())
+        val types = AllHeaders.read(reader, payload.size)
         if (reader.remaining % 2 != 0) {
             violation(ProtocolFailure.ODD_TEXT_LENGTH, "Text mit ${reader.remaining} Byte")
         }
         return SqlBatchRequest(String(reader.utf16(reader.remaining / 2)), types)
-    }
-
-    private fun readHeaders(reader: ByteReader, total: Int): List<Int> {
-        val types = mutableListOf<Int>()
-        while (reader.position < total) {
-            val length = reader.u32Le()
-            if (length < HEADER_FIXED_BYTES || reader.position - TOTAL_LENGTH_BYTES + length > total) {
-                violation(
-                    ProtocolFailure.INVALID_HEADER_BLOCK,
-                    "Header mit $length Byte bei Position ${reader.position}",
-                )
-            }
-            types += reader.u16Le()
-            reader.skip(length.toInt() - HEADER_FIXED_BYTES)
-        }
-        return types
     }
 }
