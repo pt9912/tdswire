@@ -2,7 +2,7 @@
 
 **Review-Art:** Verifikation (DoD- und Entscheidungs-Konformität, Plan-vs-Code), Modul 11
 
-**Gegenstand:** Merge `bba672b` auf `main`, Slice `docs/plan/planning/in-progress/slice-codec-tds-paket.md` (Welle `welle-protokollcodec`). `src/`, `Dockerfile`, `build.gradle.kts`, `gradle/`, `tools/mk/` und `harness/README.md` sind zwischen `bba672b` und dem geprüften `HEAD` unverändert (`git diff --stat bba672b HEAD` über diese Pfade ist leer); spätere Commits betreffen nur [ADR-0010](../plan/adr/README.md), Pläne und den Review-Report.
+**Gegenstand:** Merge `bba672b` auf `main`, Slice `docs/plan/planning/done/slice-codec-tds-paket.md` (Welle `welle-protokollcodec`). `src/`, `Dockerfile`, `build.gradle.kts`, `gradle/`, `tools/mk/` und `harness/README.md` sind zwischen `bba672b` und dem geprüften `HEAD` unverändert (`git diff --stat bba672b HEAD` über diese Pfade ist leer); spätere Commits betreffen nur [ADR-0010](../plan/adr/README.md), Pläne und den Review-Report.
 
 **Bezug:** [TDS-FA-01](../../spec/lastenheft.md#tds-fa-01--verbindungsaufbau-und-protokollverhandlung), [TDS-FA-02](../../spec/lastenheft.md#tds-fa-02--anmeldung-und-sitzungsverwaltung), [TDS-FA-05](../../spec/lastenheft.md#tds-fa-05--resultsets-und-datentypen), [TDS-QA-02](../../spec/lastenheft.md#tds-qa-02--stabilität), [TDS-QA-03](../../spec/lastenheft.md#tds-qa-03--sicherheit), [TDS-QA-06](../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit); [ADR-0003](../plan/adr/README.md), [ADR-0005](../plan/adr/README.md), [ADR-0009](../plan/adr/README.md).
 

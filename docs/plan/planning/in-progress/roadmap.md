@@ -24,7 +24,7 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 
 In Arbeit (Welle welle-protokollcodec):
 
-- [slice-codec-tds-paket](slice-codec-tds-paket.md)
+- [slice-codec-tds-paket](../done/slice-codec-tds-paket.md)
 
 In Arbeit (Welle welle-entscheidungen-grundlage):
 
