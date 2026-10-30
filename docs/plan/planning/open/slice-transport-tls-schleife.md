@@ -95,7 +95,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): Der Start-Trigger der Welle `welle-transport-tls` ist eingetreten, `slice-transport-coroutines-geruest` liegt in `done/`, und ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): Der Start-Trigger der Welle `welle-transport-tls` ist eingetreten, `slice-transport-coroutines-geruest` liegt in `done/` (erfüllt: Kanal, Nachrichtenleser und -schreiber stehen), und ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

@@ -92,7 +92,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-backend-sequenzierer` liegt in `done/`, `slice-transport-coroutines-geruest` liegt in `done/` (dessen Nachrichtenschreiber ist die Referenz für die Senke), `make gates` ist auf `main` grün, und ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): `slice-backend-sequenzierer` liegt in `done/`, `slice-transport-coroutines-geruest` liegt in `done/` (erfüllt; dessen Nachrichtenschreiber ist die Referenz für die Senke), `make gates` ist auf `main` grün, und ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
