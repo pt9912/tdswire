@@ -2,7 +2,7 @@
 
 **Review-Art:** Code (gegen Plan, Entscheidungen und Hard Rules; nicht gegen die DoD, das ist die Frage des Verifiers).
 
-**Gegenstand:** Merge `a8072b5` (Umsetzung von slice-fehler-mapping), Diff gegen den ersten Parent: `git diff a8072b5^1 a8072b5`, fünf Dateien, 551 Zeilen hinzu, 3 entfernt. Der Slice-Plan liegt unter `docs/plan/planning/in-progress/slice-fehler-mapping.md`. Neue Dateien: `ErrorCode.kt`, `ErrorMapper.kt`, `ErrorMapperTest.kt` (Package `protocol.error`); geändert: `spec/spezifikation.md` (§4 und `TDS-FA-06.a`), der Slice-Plan.
+**Gegenstand:** Merge `a8072b5` (Umsetzung von slice-fehler-mapping), Diff gegen den ersten Parent: `git diff a8072b5^1 a8072b5`, fünf Dateien, 551 Zeilen hinzu, 3 entfernt. Der Slice-Plan liegt unter `docs/plan/planning/done/slice-fehler-mapping.md`. Neue Dateien: `ErrorCode.kt`, `ErrorMapper.kt`, `ErrorMapperTest.kt` (Package `protocol.error`); geändert: `spec/spezifikation.md` (§4 und `TDS-FA-06.a`), der Slice-Plan.
 
 **Skill:** `.harness/skills/reviewer.md` (Stand des Arbeitsbaums) · **Modell:** claude-sonnet-5-5 · **Datum:** 2026-10-30
 
@@ -63,7 +63,7 @@ Ergebnis: Mutationsfestigkeit der acht genannten Punkte bestätigt, einzeln und 
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/error` (Layer: Imports `domain`, `protocol`, `transport`) | geprüft, ohne Befund außer F-1, F-4, F-7 |
 | `src/test/kotlin/io/github/pt9912/tdswire/protocol/error` | geprüft, Befunde F-2, F-6 |
 | `spec/spezifikation.md` (§4, `TDS-FA-06.a`, Geschichte) | geprüft, Befunde F-3, F-8; keine Abwärtslinks, keine ADR-Kennung |
-| `docs/plan/planning/in-progress/slice-fehler-mapping.md` | geprüft, ohne Befund |
+| `docs/plan/planning/done/slice-fehler-mapping.md` | geprüft, ohne Befund |
 | `config/`, `build.gradle.kts`, `Dockerfile`, `tools/` | nicht im Diff, ohne Befund |
 
 ## Summary
