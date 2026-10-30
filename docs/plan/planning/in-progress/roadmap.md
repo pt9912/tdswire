@@ -42,6 +42,10 @@ In Arbeit (Welle welle-handshake-login):
 
 - [slice-handshake-login](slice-handshake-login.md)
 
+In Arbeit (Welle welle-simulations-backend):
+
+- [slice-adr-simulation-formen](slice-adr-simulation-formen.md)
+
 
 
 ## Nächste Wellen
@@ -109,4 +113,5 @@ Roadmap, jede Zeile voll heißt treibende.
 
 | Datum | Was wurde geändert? | Warum? |
 |---|---|---|
+| 2026-10-30 | Start-Trigger von slice-adr-simulation-formen: statt „Start-Trigger der Welle welle-simulations-backend eingetreten“ gilt „slice-backend-port-vertrag in done/ und Start der Welle vom Nutzer verlangt“; Wellen-Trigger für die Code-Slices unverändert | Der Entscheidungs-Slice braucht keinen Code aus welle-backend-streaming (nur den Port); der Nutzer hat den Start verlangt |
 | YYYY-MM-DD | <…> | <…> |

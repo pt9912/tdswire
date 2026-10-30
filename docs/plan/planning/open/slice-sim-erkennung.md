@@ -37,7 +37,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Ausführung, Parameterbindung und schrittweises Lesen der Zeilenquelle — [slice-sim-auswahl-streaming](slice-sim-auswahl-streaming.md); dieser Slice erzeugt ein Erkennungsergebnis, keine Ereignisse.
 - Weitergabe von Einfügen, Ändern und Löschen an Callbacks — [slice-sim-aenderung-integration](slice-sim-aenderung-integration.md); hier wird nur die Form erkannt.
 - Auswertung von Ausdrücken, Verbund, Aggregat, Unterabfrage und Sortierung — nach [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) ausgeschlossen; sie enden als nicht erkannt.
-- Form C (Texte des Referenzclients) — leer, bis die Entscheidung aus [slice-adr-simulation-formen](slice-adr-simulation-formen.md) sie füllt; der Slice erzeugt dafür nur den Platz in der Zuordnung.
+- Form C (Texte des Referenzclients) — leer, bis die Entscheidung aus [slice-adr-simulation-formen](../in-progress/slice-adr-simulation-formen.md) sie füllt; der Slice erzeugt dafür nur den Platz in der Zuordnung.
 - Der minimale Fake im Test-Quelltext (`ScriptedBackend` aus [slice-backend-port-vertrag](../done/slice-backend-port-vertrag.md)) bleibt unberührt und lernt keine Erkennung: Der Fake spielt ein Skript von Ereignissen ab, das Simulations-Backend ordnet Text zu. Wächst der Fake um Anweisungserkennung, ist es [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) und gehört in dieses Package.
 
 ## 2. Definition of Done
@@ -49,7 +49,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 Liefer-Punkte (drei):
 
-- [ ] **Tabellenbeschreibung** (SPEC-035, Form nach der ADR aus [slice-adr-simulation-formen](slice-adr-simulation-formen.md)): Typen für Tabelle, Spalte, Abfrage-Hinweis, Filter und Zeilenquelle im Package `simulation`; Validierung der Beschreibung — doppelte Tabellen- und Spaltennamen (ohne Beachtung der Groß-/Kleinschreibung), Spaltentyp nur aus dem Mindestkatalog von `SqlType`, leere Spaltenliste abgewiesen; Tests Happy/Boundary/Negative.
+- [ ] **Tabellenbeschreibung** (SPEC-035, Form nach der ADR aus [slice-adr-simulation-formen](../in-progress/slice-adr-simulation-formen.md)): Typen für Tabelle, Spalte, Abfrage-Hinweis, Filter und Zeilenquelle im Package `simulation`; Validierung der Beschreibung — doppelte Tabellen- und Spaltennamen (ohne Beachtung der Groß-/Kleinschreibung), Spaltentyp nur aus dem Mindestkatalog von `SqlType`, leere Spaltenliste abgewiesen; Tests Happy/Boundary/Negative.
 - [ ] **Anweisungserkennung** (SPEC-036, [TDS-FA-11.a](../../../../spec/spezifikation.md#tds-fa-11a--simulations-backend) Schritte 1 und 2): Zeichenscanner für Literale, Bezeichner (`[…]`, `"…"`, unquotiert) und Kommentare (`--`, `/* */`), Entfernen eines einzelnen abschließenden `;`; Zuordnung zu S1, W1, W2, W3 mit Ergebnis aus Form, Tabelle, Spalten, Termen und Werten oder Parameterverweisen; jede Zeile der Liste „Nicht erkannt“ ist ein Negativtest, die Grenzen bei Literalen, Bezeichnern und Kommentaren je mit eigener Eingabe.
 - [ ] **Objektprüfung vor dem Lesen** ([TDS-FA-11.a](../../../../spec/spezifikation.md#tds-fa-11a--simulations-backend) Schritt 3): unbekannte Tabelle oder Spalte endet mit `TDS_SIM_UNKNOWN_OBJECT`, eine nicht erkannte Anweisung mit `TDS_UNSUPPORTED_SQL`; ohne Schema gilt `dbo`. Eine zählende Attrappe für Zeilenquelle und Callback belegt, dass beide in diesen Fällen nie gerufen werden, und ein positiver Kontrollfall belegt, dass der Zähler zählt.
 
@@ -88,7 +88,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-adr-simulation-formen](slice-adr-simulation-formen.md) und [slice-backend-port-vertrag](../done/slice-backend-port-vertrag.md) liegen in `done/`, und ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): [slice-adr-simulation-formen](../in-progress/slice-adr-simulation-formen.md) und [slice-backend-port-vertrag](../done/slice-backend-port-vertrag.md) liegen in `done/`, und ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -113,7 +113,7 @@ dasteht.
 - Der Scanner ist Eigencode über Text vom Client: Eine Fehlzuordnung (etwa ein `;` oder `--` im Literal) ergäbe ein falsches Ergebnis oder einen falschen Callback-Wert. Werte laufen nie als SQL-Text weiter ([TDS-FA-11.a](../../../../spec/spezifikation.md#tds-fa-11a--simulations-backend) Schritt 4); die Tests mischen Literale, Bezeichner und Kommentare in einer Eingabe. — **Ausgang:** offen bis zur Closure.
 - Ein Test, der eine Auswahl- oder Gleichheitseigenschaft mit einheitlicher Eingabe behauptet, bleibt bei jeder Mutation grün (`BEO-TDS/strukturtest-ohne-variation-der-eingabe`); ein Zähler ohne Untergrenze prüft nichts (`BEO-TDS/schranken-test-mit-ungeprueftem-zaehler`). Die Tests variieren die Eingabe, die Attrappe hat einen positiven Kontrollfall. — **Ausgang:** offen bis zur Closure.
 - Groß-/Kleinschreibung und `"…"` als Bezeichner sind in [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md) an einer Instanz in einer Stichprobe bestätigt; die Tests führen das als Festlegung, nicht als Messung. — **Ausgang:** offen bis zur Closure.
-- Die Lesart der Liste „Nicht erkannt“ gegenüber dem Lastenheft ist in [slice-adr-simulation-formen](slice-adr-simulation-formen.md) zu belegen; weicht die ADR von der Liste ab, folgt dieser Slice der ADR. — **Ausgang:** offen bis zur Closure.
+- Die Lesart der Liste „Nicht erkannt“ gegenüber dem Lastenheft ist in [slice-adr-simulation-formen](../in-progress/slice-adr-simulation-formen.md) zu belegen; weicht die ADR von der Liste ab, folgt dieser Slice der ADR. — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 
