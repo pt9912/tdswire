@@ -78,7 +78,7 @@ Stand: 12 von 51 Festlegungen mit mindestens einem bestandenen Test, 7 Gate-Fest
 | `SPEC-021` | .NET SQL-Client | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-022` | Query-Backend | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-023` | TLS | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
-| `SPEC-051` | Authentifizierungsadapter | 28 | 0 | 0 | 0 | AuthPrimitivesTest, AuthTextRepresentationTest, UserListAuthAdapterTest, UserListParserTest | mindestens ein bestandener getaggter Test |
+| `SPEC-051` | Authentifizierungsadapter | 29 | 0 | 0 | 0 | AuthPrimitivesTest, AuthTextRepresentationTest, UserListAuthAdapterTest, UserListParserTest | mindestens ein bestandener getaggter Test |
 | `SPEC-024` | Unit-Test-Gate | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-025` | Integrationstest-Gate | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
 | `SPEC-026` | `make gates` | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |

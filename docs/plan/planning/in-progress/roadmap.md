@@ -29,7 +29,6 @@ In Arbeit (Welle welle-transport-tls):
 
 In Arbeit (Welle welle-qualitaet-grundlage):
 
-- [slice-qa-spec-abdeckung](slice-qa-spec-abdeckung.md)
 - [slice-qa-reproduzierbarkeit](slice-qa-reproduzierbarkeit.md)
 
 In Arbeit (Welle welle-backend-streaming):
