@@ -11,7 +11,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** ohne Welle — Folge-Slice von `welle-protokollcodec`; die funktionale Welle für SQL_BATCH und RPC ist noch nicht geplant und nimmt ihn auf, sobald sie eröffnet wird.
 
-**Bezug:** [TDS-FA-04](../../../../spec/lastenheft.md#tds-fa-04--parametrisierte-abfragen-über-rpc), [TDS-FA-10](../../../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte), [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität), [ADR-0005](../../adr/0005-rpc-und-prepared-statements.md)
+**Bezug:** [TDS-FA-04](../../../../spec/lastenheft.md#tds-fa-04--parametrisierte-abfragen-über-rpc), [TDS-FA-05](../../../../spec/lastenheft.md#tds-fa-05--resultsets-und-datentypen) (Parametertypen der TYPE_INFO), [TDS-FA-10](../../../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte), [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität), [ADR-0005](../../adr/0005-rpc-und-prepared-statements.md)
 
 **Berührte Spec-Stellen:** SPEC-003 · SPEC-024 · SPEC-027 · SPEC-028 · SPEC-030 · ARC-007
 
@@ -37,6 +37,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Ausführung, Prepare-Handle-Verwaltung je Sitzung und Fehlerantwort bei unbekanntem Handle — das ist Ablauf, nicht Parser; der Zustand gehört zum Zustandsautomaten ([ADR-0004](../../adr/0004-session-zustandsautomat.md), `Proposed`) und zum Backend-Vertrag ([ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md), `Proposed`). Der Parser liefert die Handle-Zahl, entscheidet nichts.
 - Unbekannte Katalogformen (`sp_prepare`, `sp_unprepare`, `sp_cursor*`, `SET FMTONLY`-Text, Transaktions-Pakettyp `0x0E`) — die Behandlung ist im Katalog offen; der Parser meldet eine unbekannte ProcID als eigenen Ergebniswert und legt keine Antwort fest ([ADR-0007](../../adr/0007-fehler-und-attention.md), `Proposed`).
 - NBCROW, PLP und Typen außerhalb des Mindestkatalogs (Parameter-TYPE_INFO über die Typen von SPEC-003 hinaus) — dafür steht `slice-codec-datentypen-erweiterung`; dieser Slice lehnt solche Parameter als Ergebniswert ab.
+  **Abweichung von [ADR-0005](../../adr/0005-rpc-und-prepared-statements.md) und SPEC-003:** die ADR (Folgen) verlangt vom RPC-Parser, PLP (MAX-Typen) zu dekodieren, und ihre Messmatrix sowie SPEC-003 führen `MAX` in `sp_executesql`-Parametern. Dieser Slice liefert das nicht; `spec/` und die ADR bleiben unberührt, der Träger der Lücke ist `slice-codec-datentypen-erweiterung`. Verhalten (im Test `PLP lehnt die ganze Nachricht ab, auch als SQL-Text und Deklaration`): ein PLP-Parameter lehnt die **ganze Nachricht** als `INVALID_TYPE` ab (kein Teilergebnis, der Parameter wird nicht übersprungen), auch hinter gültigen Parametern. SQL-Text und Deklarationsliste von `sp_executesql` laufen durch dieselbe TYPE_INFO-Lesung und werden als MAX ebenso abgelehnt; ob ein Client einen langen SQL-Text als MAX sendet, ist nicht gemessen.
 - Netzwerk, Coroutinen, Kanäle — sie liegen in der Welle `welle-transport-tls`.
 - Nachweis gegen den Referenzclient oder einen echten SQL Server — er gehört in das Kompatibilitäts- und Referenzabgleich-Gate (SPEC-032, SPEC-050); der Katalog ist nur am Testserver in TDS 7.4 ohne TLS und Pool gemessen (`BEO-TDS/messung-am-echten-sql-server-fehlt`, `BEO-TDS/tds-8-0-und-pooling-nicht-gemessen`).
 
@@ -89,9 +90,13 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/wire/AllHeaders.kt` | neu | der ALL_HEADERS-Leser, den `SqlBatchParser` und der RPC-Parser teilen (aus `SqlBatchParser` herausgelöst, Verhalten unverändert) |
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/wire/ProtocolError.kt` | update | zwei Fehlergründe der Kategorie `TDS_PROTOCOL_ERROR`: `INVALID_TYPE_INFO` (TYPE_INFO malformed) und `INVALID_RPC_FORM` (Katalogform verletzt) |
-| `src/main/kotlin/io/github/pt9912/tdswire/protocol/rpc/` | neu | `RpcParser` (Kopf, Name oder ProcID, Optionsflags), `RpcCatalog` (Bindung nach Position), `RpcParameterReader`, `RpcTypeInfoReader`, Modell in `RpcRequest.kt`; Typen: `INTN`, `BITN`, `FLTN`, `MONEYN`, `DATETIMN`, `GUID`, `DECIMALN`/`NUMERICN`, `DATEN`, `TIMEN`, `DATETIME2N`, `DATETIMEOFFSETN`, `NCHAR`/`NVARCHAR`, `BIGCHAR`/`BIGVARCHAR`, `BIGBINARY`/`BIGVARBINARY`; PLP und `XML` werden als `INVALID_TYPE` abgelehnt |
-| `src/test/kotlin/io/github/pt9912/tdswire/protocol/rpc/RpcParserTest.kt` | neu | Handvektoren, Negativfälle, Fuzz mit festem Startwert |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/rpc/` | neu | `RpcParser` (Kopf, Name oder ProcID, Optionsflags), `RpcCatalog` (Bindung nach Position), `RpcParameterReader`, `RpcTypeInfoReader`, Modell in `RpcRequest.kt`; Typen: `INTN`, `BITN`, `FLTN`, `MONEYN`, `DATETIMN`, `GUID`, `DECIMALN`/`NUMERICN`, `DATEN`, `TIMEN`, `DATETIME2N`, `DATETIMEOFFSETN`, `NCHAR`/`NVARCHAR`, `BIGCHAR`/`BIGVARCHAR`, `BIGBINARY`/`BIGVARBINARY`; PLP und `XML` werden als `INVALID_TYPE` abgelehnt (PLP: Abweichung von [ADR-0005](../../adr/0005-rpc-und-prepared-statements.md), siehe §1); `RpcTypeCode.kt` hält die Typkennungen; `RpcParameterReader` begrenzt die Parameterzahl auf `MAX_PARAMETERS` (Festlegung ohne Messung, Verstoß ist `INVALID_RPC_FORM`) |
+| `src/test/kotlin/io/github/pt9912/tdswire/protocol/rpc/` | neu | vier Testklassen statt einer `RpcParserTest.kt`: `RpcCatalogFormsTest` (Katalogformen), `RpcTypesTest` (TYPE_INFO und Werte je Typ), `RpcFailureTest` (Negativfälle, Obergrenze, Textdarstellung), `RpcFuzzTest` (Fuzz mit festem Startwert) |
+| `src/test/kotlin/io/github/pt9912/tdswire/testsupport/RpcVectors.kt` | neu | gemeinsame Handvektoren |
+| `src/test/kotlin/io/github/pt9912/tdswire/transport/framing/RpcAssemblyTest.kt` | neu | zerstückelte RPC-Nachrichten durch den `MessageAssembler` gegen den Parser; im Paket `transport`, weil `protocol` den Transport nicht importiert |
 | `spec/spezifikation.md` | unverändert, falls die Tests keine Zeile von `SPEC-030` widerlegen | Prüfung nach den Tests |
+
+Kopplung: der Parser nimmt die Länge der Zeittypen von `TypeInfoWriter.timeBytes` des Token-Encoders (zwei Richtungen innerhalb `protocol`, vom Gate erlaubt); die Klassengrenzen sind im Test an den Skalen 0 bis 7 belegt, die Zuordnung selbst ist dem Encoder entnommen (Selbstkonsistenz).
 
 Eingegrenzt gegenüber dem Eingangsplan: der Wert wird nur für `INTN`, `BITN` und die Unicode-Texttypen gedeutet; alle anderen Typen liefern ihre Wertbytes unverändert (Deutung gehört der Datentypen-Erweiterung).
 
