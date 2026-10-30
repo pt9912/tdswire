@@ -37,7 +37,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Der Live-Lauf — [slice-referenzabgleich-live](slice-referenzabgleich-live.md); ein Mitschnitt spielt die Anfragen des Clients ab, nicht den Client (SPEC-045): fragt der Client wegen einer anderen Antwort anders, zeigt das nur der Live-Lauf.
 - Referenzinstanz, Container, Make-Target des Vergleichslaufs und EULA — [slice-qa-vergleichslauf-d](slice-qa-vergleichslauf-d.md).
 - Verschlüsselte Mitschnitte und der TDS-8.0-Pfad — die Referenzinstanz bietet TDS 8.0 nicht an ([ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md)); Mitschnitte entstehen unverschlüsselt (`Encrypt=false`), der verschlüsselte Pfad bleibt ohne Wire-Abgleich und steht so in der Closure.
-- Fuzz und Fragmentierung — [slice-qa-stabilitaet](slice-qa-stabilitaet.md); der Mitschnitt spielt gültige Nachrichten ab.
+- Fuzz und Fragmentierung — [slice-qa-stabilitaet](../next/slice-qa-stabilitaet.md); der Mitschnitt spielt gültige Nachrichten ab.
 - Das Beheben gefundener Abweichungen — je Befund ein Slice nach der Messung.
 
 ## 2. Definition of Done
