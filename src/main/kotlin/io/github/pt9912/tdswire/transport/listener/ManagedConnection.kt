@@ -8,6 +8,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.cancellation.CancellationException
@@ -26,6 +27,11 @@ internal class ConnectionEnvironment(
  * `SupervisorJob` unter dem Listener, sodass Handler-Absturz und Trennen nur diese Verbindung
  * betreffen. Der Scope trägt den Handler und die Frist `LOGIN_TIMEOUT`. [end] schließt Kanal und Scope;
  * die erste Ursache zählt. Das Ereignis [ListenerEvent.Closed] kommt genau einmal, wenn der Handler endet.
+ *
+ * Einordnung einer `CancellationException` aus dem Handler (Setzung dieses Slice, nicht gemessen): ist
+ * der Scope der Verbindung abgebrochen (durch [end] oder durch das Beenden des Listeners), ist es das
+ * Ende durch diesen Abbruch (`SHUTDOWN`, bei [end] die dort genannte Ursache); wirft der Handler sie bei
+ * unabgebrochenem Scope, ist es ein Handlerfehler (`HANDLER_FAILED`).
  */
 internal class ManagedConnection(
     override val id: Long,
@@ -85,7 +91,7 @@ internal class ManagedConnection(
     private fun finish(failure: Throwable?) {
         val end = cause.get() ?: when {
             failure == null -> ConnectionEnd.HANDLER_RETURNED
-            failure is CancellationException -> ConnectionEnd.SHUTDOWN
+            failure is CancellationException && scope.coroutineContext.job.isCancelled -> ConnectionEnd.SHUTDOWN
             else -> ConnectionEnd.HANDLER_FAILED
         }
         channel.close()

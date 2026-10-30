@@ -7,10 +7,13 @@ import io.github.pt9912.tdswire.transport.tls.MaterialResult
 import io.github.pt9912.tdswire.transport.tls.TlsMaterial
 import io.github.pt9912.tdswire.transport.tls.TlsParameters
 import io.github.pt9912.tdswire.transport.tls.TlsPart
+import kotlinx.coroutines.CoroutineDispatcher
 import java.net.InetAddress
 import java.net.ServerSocket
+import kotlin.coroutines.CoroutineContext
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -124,5 +127,26 @@ class ListenerStartTest : ListenerTestBase() {
         listener.shutdown()
         assertNoNewListenerThreads(before)
         ServerSocket(listener.port, 1, InetAddress.getByName(LOOPBACK)).close()
+    }
+
+    private object RefusingDispatcher : CoroutineDispatcher() {
+        override fun dispatch(context: CoroutineContext, block: Runnable) = error("verweigert")
+    }
+
+    /**
+     * Scheitert der Aufbau des Listeners, nachdem der Port gebunden ist (hier: der Dispatcher nimmt die
+     * Annahmeschleife nicht an), gibt der Start Port und Gruppe wieder frei: der Port ist danach nicht
+     * gebunden, und es läuft kein Thread des Listeners.
+     *
+     * @spec SPEC-043
+     */
+    @Test
+    fun `a failing build after the bind releases the port and the threads`() = blocking {
+        val before = listenerThreads()
+        val port = freePort()
+        val config = ListenerConfig(LOOPBACK, port, dispatcher = RefusingDispatcher)
+        assertFailsWith<IllegalStateException> { TdsListener.start(config, handler, ListenerEvents.NONE) }
+        assertNoNewListenerThreads(before)
+        ServerSocket(port, 1, InetAddress.getByName(LOOPBACK)).use { assertEquals(port, it.localPort) }
     }
 }

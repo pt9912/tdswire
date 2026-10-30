@@ -218,7 +218,8 @@ class ListenerShutdownTest : ListenerTestBase() {
     /**
      * Wird der Aufruf von `shutdown()` abgebrochen, während eine Anfrage die Frist abwartet, räumt er
      * trotzdem auf: die Verbindung ist getrennt und aus dem Listener entfernt, und kein Thread des
-     * Listeners lebt, sobald der abgebrochene Aufruf zurück ist (`TDS-QA-02`).
+     * Listeners lebt, sobald der abgebrochene Aufruf zurück ist (`TDS-QA-02`). Die Verbindung endet durch
+     * den Abbruch ihres Scopes mit `SHUTDOWN`, nicht als Handlerfehler.
      *
      * @spec SPEC-044
      */
@@ -234,6 +235,8 @@ class ListenerShutdownTest : ListenerTestBase() {
         assertNoNewListenerThreads(before)
         assertTrue(busy.awaitClosedByPeer())
         eventually("Verbindung aufgeräumt") { f.listener.activeConnections == 0 }
+        eventually("Ende SHUTDOWN") { f.events.endsOf(ConnectionEnd.SHUTDOWN).size == 1 }
+        assertTrue(f.events.endsOf(ConnectionEnd.HANDLER_FAILED).isEmpty())
     }
 
     /**

@@ -5,7 +5,10 @@ enum class ConnectionEnd {
     /** Der Handler ist zurückgekehrt (auch nach dem Trennen durch die Gegenstelle). */
     HANDLER_RETURNED,
 
-    /** Der Handler hat eine Ausnahme geworfen; [ListenerEvent.Closed.failure] nennt ihren Typ. */
+    /**
+     * Der Handler hat eine Ausnahme geworfen, auch eine `CancellationException` bei unabgebrochenem Scope
+     * der Verbindung; [ListenerEvent.Closed.failure] nennt ihren Typ.
+     */
     HANDLER_FAILED,
 
     /** `LOGIN_TIMEOUT` ist abgelaufen, bevor der Handler „Login abgeschlossen“ meldete (`SPEC-008`). */

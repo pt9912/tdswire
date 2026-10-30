@@ -44,7 +44,7 @@ class TlsStartProbeTest {
      * selbstsigniert und trägt einen anderen Namen im zweiten Fall; beides besteht (die Probe prüft
      * weder Vertrauen noch Namen).
      *
-     * @spec SPEC-043
+     * @spec SPEC-043 SPEC-023
      */
     @Test
     fun `probe uses the configured versions and suites and checks neither trust nor name`() = blocking {

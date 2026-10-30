@@ -85,6 +85,10 @@ private val started = ConcurrentLinkedQueue<TdsListener>()
  * die der Test über [startOnLoopback] oder [track] gestartet hat. Ein hängendes Beenden bricht nach
  * einer Frist ab und räumt dabei selbst auf. Die Tests laufen nacheinander (die Testkonfiguration
  * setzt keine Parallelität); `listenerThreads` und [assertNoNewListenerThreads] setzen das voraus.
+ *
+ * Belegt ist, dass das Aufräumen die gestarteten Listener beendet (`ListenerTestBaseTest`). Nicht
+ * gemessen ist, dass ein fehlschlagender Test ohne es Folgefehler auslöste: in einem Lauf mit
+ * eingeschleustem Fehlschlag blieben sie mit und ohne Aufräumen aus.
  */
 open class ListenerTestBase {
     @AfterTest
@@ -176,10 +180,13 @@ class TlsEchoHandler(private val context: SSLContext, private val path: TlsPath)
 
 /**
  * Handler ohne TLS: merkt sich jede [Connection], meldet „Login abgeschlossen“ und liest, bis die
- * Verbindung endet. Mit [crashOnFirstByte] wirft er, wenn das erste empfangene Byte diesem Wert gleicht,
- * sonst spiegelt er die Bytes.
+ * Verbindung endet. Mit [crashOnFirstByte] wirft er [crash], wenn das erste empfangene Byte diesem Wert
+ * gleicht, sonst spiegelt er die Bytes.
  */
-class ScriptedHandler(private val crashOnFirstByte: Int? = null) : ConnectionHandler {
+class ScriptedHandler(
+    private val crashOnFirstByte: Int? = null,
+    private val crash: () -> Throwable = { IllegalStateException("Absturz im Handler") },
+) : ConnectionHandler {
     val connections = CopyOnWriteArrayList<Connection>()
 
     override suspend fun handle(connection: Connection) {
@@ -191,7 +198,7 @@ class ScriptedHandler(private val crashOnFirstByte: Int? = null) : ConnectionHan
             buffer.clear()
             val read = connection.channel.read(buffer)
             if (read !is ChannelResult.Ok || read.value < 0) return
-            check(!(first && crashOnFirstByte == buffer.get(0).toInt())) { "Absturz im Handler" }
+            if (first && crashOnFirstByte == buffer.get(0).toInt()) throw crash()
             first = false
             buffer.flip()
             connection.channel.writeFully(buffer)
