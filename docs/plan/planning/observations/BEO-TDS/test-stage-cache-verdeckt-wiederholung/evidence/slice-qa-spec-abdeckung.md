@@ -1,0 +1,2 @@
+**Vorgang:** slice-qa-spec-abdeckung
+**Fund:** Der Erzeuger der Abdeckungsmatrix führt die Tests in einer eigenen Stage ein zweites Mal aus; eine Wiederholung ohne Änderung der Eingänge kostete 0,75 s (reiner Docker-Cache, Verifikation §7), der erste Lauf nach einer Teständerung 56 s. Die Matrix belegt damit den Stand jenes Testlaufs, nicht eine Wiederholung; ein zeitabhängiger Test würde im zweiten Lauf nicht erneut geprüft.

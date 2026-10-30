@@ -1,0 +1,2 @@
+**Vorgang:** slice-qa-spec-abdeckung
+**Fund:** Review F-4 nannte das Urteilswort „nachgewiesen“ stärker als die Messung (ein getaggter Test, dessen Gegenstand die Festlegung nur streift); Verifikation F-5 nannte die Zusage „ein umbenannter Test verliert seinen Nachweis“ nur gegen einen veralteten Bericht belegbar, in der Live-Pipeline sind die Berichte frisch. Beide Aussagen sind eingeschränkt (Urteilswort „mindestens ein bestandener getaggter Test“, Umbenennung nur gegen einen Bericht ohne Namensvetter).

@@ -1,0 +1,2 @@
+**Vorgang:** slice-qa-spec-abdeckung
+**Fund:** Review F-1 und Verifikation F-3 fanden die committete Matrix veraltet (10 von 51 gegen frisch 14 von 51); bei der Closure wich nach dem Merge anderer Slices wieder eine Zählung ab und wurde mit dem Closure-Commit neu erzeugt. Die Handlung „Matrix bei jeder Slice-Closure mit Tests neu erzeugen und mitcommitten“ ist als Regel vorgeschlagen, nicht verkörpert.
