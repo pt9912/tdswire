@@ -20,7 +20,9 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 - [welle-entscheidungen-grundlage](../welle-entscheidungen-grundlage.md)
 - [welle-protokollcodec](../welle-protokollcodec.md)
 
-Nichts in Arbeit.
+In Arbeit (Welle welle-protokollcodec):
+
+- [slice-codec-tds-paket](slice-codec-tds-paket.md)
 
 
 
