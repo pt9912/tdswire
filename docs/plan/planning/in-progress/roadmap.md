@@ -31,6 +31,10 @@ In Arbeit (Welle welle-qualitaet-grundlage):
 
 - [slice-qa-reproduzierbarkeit](slice-qa-reproduzierbarkeit.md)
 
+In Arbeit (Welle welle-handshake-login):
+
+- [slice-handshake-login](slice-handshake-login.md)
+
 In Arbeit (Welle welle-backend-streaming):
 
 - [slice-backend-port-vertrag](slice-backend-port-vertrag.md)

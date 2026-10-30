@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** SPEC-001 · SPEC-007 · SPEC-008 · SPEC-010 · SPEC-012 · SPEC-028 · SPEC-046 · SPEC-048 · ARC-004 · ARC-007 · [TDS-FA-01.a](../../../../spec/spezifikation.md#tds-fa-01a--tcp-verbindung-und-prelogin) · [TDS-FA-02.a](../../../../spec/spezifikation.md#tds-fa-02a--login7-und-sitzung)
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** pt9912
 
 **Autor:** pt9912. **Datum:** 2026-10-30.
 
