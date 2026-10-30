@@ -31,6 +31,8 @@ Das Ergebnis ist ein asynchroner Strom (`Flow`) von Ereignissen: `ResultStart` (
 - Unterscheidung statement- und batch-abbrechender Fehler im Strom, die `Failure` nicht trägt, und ob ein `Failure` als „nächstes Ereignis“ der `DONE_MORE`-Vorschau zählt (auch: Schicksal eines zurückgehaltenen Abschlusses bei Cancel oder Disconnect): Zuständigkeit Backend-/Mapping-Slice, nach Messung.
 - Prüfung der Ereignisreihenfolge im Sequencer (Zeile vor `ResultStart`, doppeltes `ResultEnd`): im Spike nicht gebaut.
 - Grenze für „kleines“ Ergebnis (fertige Liste), Zeilendarstellung.
+- Behandlung von `OutOfMemoryError`: im Spike wurde er im Anfragepfad gefangen und als Fehler gemeldet (nur bei vollständiger Materialisierung erzeugt, nicht im `Flow`); ob das Fangen im Produktivcode tragbar ist, ist nicht gemessen.
+- Verzögerung durch den zurückgehaltenen Abschluss der `DONE_MORE`-Vorschau: nicht gemessen.
 - Semantik der Frist: `deadlineEpochMillis` steht im `QueryRequest` (`SPEC-002`); offen ist, wer sie durchsetzt (Backend oder Protokollkern) und was bei Ablauf geschieht (`QUERY_TIMEOUT`, `TDS_TIMEOUT`), nicht das Vorhandensein des Feldes.
 
 ## Gemessen
