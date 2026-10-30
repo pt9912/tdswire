@@ -68,7 +68,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte.
 
 - Blockiert: keine weitere Welle.
-- Wird blockiert von: keiner Welle; einzelne Slices warten auf Entscheidungen ([ADR-0007](../adr/0007-fehler-und-attention.md), [ADR-0008](../adr/0008-dotnet-kompatibilitaetstests.md), [ADR-0009](../adr/0009-authentifizierungsmodus.md)), die kein Welle-Inhalt sind.
+- Wird blockiert von: keiner Welle; die Entscheidungen, auf die einzelne Slices warteten ([ADR-0007](../adr/0007-fehler-und-attention.md), [ADR-0008](../adr/0008-dotnet-kompatibilitaetstests.md), [ADR-0009](../adr/0009-authentifizierungsmodus.md)), stehen auf `Accepted` und waren kein Welle-Inhalt. [ADR-0010](../adr/0010-detekt-pre-release.md) (`Accepted`) ist Bezug von `slice-qa-wartbarkeit` und `slice-qa-reproduzierbarkeit` und gehört damit zu dieser Welle; sie hat keinen eigenen Entscheidungs-Slice.
 
 ## 6. Out-of-Scope für diese Welle
 

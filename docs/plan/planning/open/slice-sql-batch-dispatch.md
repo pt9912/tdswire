@@ -93,7 +93,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): Der Start-Trigger der Welle `welle-anfrageverarbeitung` ist eingetreten; zusätzlich liegen der Backend-Port mit dem Antwort-Sequenzierer (Slices der Welle `welle-backend-streaming`) und das Fehler-Mapping mit der ERROR-/DONE-Kodierung (Slice der Welle `welle-fehler-abbruch`) in `done/` — die Kennungen legen die Planer jener Wellen fest und werden hier nachgetragen, sobald die Dateien existieren — und ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): Der Start-Trigger der Welle `welle-anfrageverarbeitung` ist eingetreten; zusätzlich liegen der Backend-Port mit dem Antwort-Sequenzierer (`slice-backend-port-vertrag` und `slice-backend-sequenzierer` der Welle `welle-backend-streaming`) und das Fehler-Mapping mit der ERROR-/DONE-Kodierung (`slice-fehler-mapping` der Welle `welle-fehler-abbruch`) in `done/` und ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
