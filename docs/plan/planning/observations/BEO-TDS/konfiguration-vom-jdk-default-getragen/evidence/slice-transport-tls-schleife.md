@@ -1,0 +1,2 @@
+**Vorgang:** slice-transport-tls-schleife
+**Fund:** `TLS 1_1 hello is rejected in both paths` blieb grün, wenn die Zeile mit den Protokollen der Konfiguration entfernt wurde, weil JDK 21 TLS 1.1 über `jdk.tls.disabledAlgorithms` ablehnt; die Mutationen N11 und N12 (Suiten und Protokolle der Konfiguration nicht gesetzt) blieben grün (Review M3, Verifikation F1). Behoben durch die Negativtests `peer without a common version is rejected` und `peer without a common suite is rejected` mit Gegenprobe (Commit `43d3958`); die erneute Mutation durch den Verifier steht aus.

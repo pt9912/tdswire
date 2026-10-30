@@ -1,0 +1,2 @@
+**Vorgang:** slice-transport-tls-schleife
+**Fund:** Der TDS-8.0-Pfad (TLS ab dem ersten Byte, ALPN `tds/8.0`) ist nur gegen eine JDK-`SSLEngine` im selben Prozess gemessen, nicht am Referenzclient und nicht an einem echten SQL Server; ebenso TLS 1.2 und andere Suiten als `TLS_AES_256_GCM_SHA384` im TDS-7.4-Pfad. Die Abweisung ohne ALPN ist eine Festlegung ohne Messung. Träger bleibt `slice-qa-kompatibilitaet`, dessen §6 den Punkt seit dieser Closure ausdrücklich führt.

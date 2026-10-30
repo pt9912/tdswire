@@ -98,6 +98,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 - Die Pflicht-Matrix B ([ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md), Status `Proposed`, wird `Accepted`) ist nicht gemessen; ihr Umfang kann sich bei der Verifikation ändern. — **Ausgang:** offen bis zur Closure.
+- Die TLS-Schleife (`slice-transport-tls-schleife`) ist nur gegen eine JDK-`SSLEngine` im selben Prozess gemessen; am Referenzclient stehen TLS 1.2, andere Suiten als `TLS_AES_256_GCM_SHA384` und TDS 8.0 mit der eigenen Schleife aus. Der Lauf gegen den Referenzclient misst beide Pfade mit der Schleife dieses Repos und trägt nach, was er findet, oder benennt es als nicht lieferbar. — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 

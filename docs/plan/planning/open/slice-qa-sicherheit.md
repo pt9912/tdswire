@@ -98,6 +98,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 - Die Wahl in [ADR-0009](../../adr/0009-authentifizierungsmodus.md) ist `Proposed` und kann sich bei der Verifikation ändern; Tests der Anmeldung bleiben bis zum Statuswechsel vorläufig. — **Ausgang:** offen bis zur Closure.
+- Neuverhandlung in TLS 1.2 ist von der TLS-Schleife (`slice-transport-tls-schleife`) weder behandelt noch getestet (`contracts/security-profile.md` §Festlegungen der TLS-Schleife). Der TLS-Handshake-Test dieses Slice stellt fest, wie sich der Server bei einer Neuverhandlung durch die Gegenstelle verhält (Ergebniswert, nie Klartext), oder benennt die Aussage als nicht gemessen. — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 
