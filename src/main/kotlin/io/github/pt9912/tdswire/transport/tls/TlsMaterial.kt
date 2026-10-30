@@ -40,7 +40,7 @@ sealed interface MaterialResult {
 
 /**
  * Schlüssel und Kette des Servers als fertiger `SSLContext`. Das Material kommt aus den Bytes eines
- * PKCS#12-Speichers (Setzung, nicht gemessen: `contracts/security-profile.md` §Schlüsselmaterial); den
+ * PKCS#12-Speichers (Setzung, nicht gemessen: `spec/spezifikation.md` `SPEC-023` §Schlüsselmaterial); den
  * Pfad kennt die Klasse nicht. Speicher- und Schlüsselkennwort sind derselbe Wert.
  *
  * Zugelassen ist der erste Schlüsseleintrag mit einem RSA-Schlüssel von mindestens [MIN_RSA_BITS] Bit

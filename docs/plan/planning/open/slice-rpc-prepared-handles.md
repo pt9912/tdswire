@@ -77,7 +77,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/` (Unterpackage `dispatch`) <!-- d-check:ignore (geplant: neues Package) --> | update | Handle-Tabelle der Sitzung, `sp_prepexec`- und `sp_execute`-Pfad, Fehlerfälle (ARC-004, ARC-005); importiert Domain, Backend-Port, Parser-Typen |
-| `contracts/client-profile.md` | update | Festlegung: Handle-Grenze, Verhalten bei `sp_unprepare` und unbekanntem Handle, ohne Zusage über Pooling |
+| `spec/spezifikation.md` `SPEC-021` | update | Festlegung: Handle-Grenze, Verhalten bei `sp_unprepare` und unbekanntem Handle, ohne Zusage über Pooling |
 | `src/test/kotlin/io/github/pt9912/tdswire/protocol/` (Unterpackage `dispatch`) <!-- d-check:ignore (geplant: neues Package) --> | neu | Handle-Lebenszyklus, Isolation zweier Sitzungen, Grenze, Folge-RPC nach Fehler, Parallelzugriff auf die Tabelle einer Sitzung; nach [TDS-FA-04](../../../../spec/lastenheft.md#tds-fa-04--parametrisierte-abfragen-über-rpc); `@spec`-Tag je Test |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.

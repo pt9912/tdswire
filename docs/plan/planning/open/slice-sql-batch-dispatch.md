@@ -79,7 +79,7 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/` (Unterpackage `dispatch`) <!-- d-check:ignore (geplant: neues Package) --> | neu | Dispatch von SQL_BATCH in `READY` (ARC-005): Nachricht lesen, `QueryRequest` bilden, Backend-Port rufen, Ereignisse an den Sequenzierer geben; importiert Domain, Backend-Port und die Codec-Typen, nichts aus `transport`, `simulation`, `runtime` (SPEC-041) |
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/` (Sitzung aus `slice-handshake-login`) | update | Anschluss des Dispatch an die Sitzung im Zustand `READY`; Anfragezustand `IDLE → RUNNING → STREAMING → COMPLETED → IDLE` nach [ADR-0004](../../adr/0004-session-zustandsautomat.md), soweit dort entschieden |
-| `contracts/client-profile.md` | update, nur falls nötig | Festlegung, was der Server mit `SET`-Text und leerem Batch tut, soweit der Slice sie trifft |
+| `spec/spezifikation.md` `SPEC-021` | update, nur falls nötig | Festlegung, was der Server mit `SET`-Text und leerem Batch tut, soweit der Slice sie trifft |
 | `src/test/kotlin/io/github/pt9912/tdswire/protocol/` (Unterpackage `dispatch`) <!-- d-check:ignore (geplant: neues Package) --> | neu | Dispatch-Tests mit einem Test-Backend (Happy/Boundary/Negative nach [TDS-FA-03](../../../../spec/lastenheft.md#tds-fa-03--einfache-sql-batches)); `@spec`-Tag je Test |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.

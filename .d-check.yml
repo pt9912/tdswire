@@ -15,6 +15,12 @@ scan:
   # auf). Daneben liegen dort das Sprachskelett-Staging und der Zustands-Bereich .harness/state/.
   ignore: ["**/*.template.md", ".tmp/**", ".harness/**", ".claude/worktrees/**"]
 modules: [links, anchors, ids, matrix, codepaths, spans, planning, structure, targets]
+# ignore-refs: Verweise auf den entfernten Ordner contracts/ (die Vertraege stehen in spec/spezifikation.md,
+# Abschnitt 6). Accepted ADRs sind unveraenderlich, Review-Berichte Zeitdokumente; beide nennen den Pfad im
+# Stand ihres Entstehens. Die Ausnahme gilt nur fuer diese Quellen und nur fuer Ziele contracts/*.md.
+ignore-refs:
+  - {in: "docs/plan/adr/**", refs: ["contracts/*.md"]}
+  - {in: "docs/reviews/**", refs: ["contracts/*.md"]}
 ids:
   patterns:
     - {regex: 'ADR-([A-Z]+-)?\d{4}', target: docs/plan/adr/, link-policy: always}
@@ -170,7 +176,12 @@ codepaths:
 matrix:
   classes:
     - {name: spec-straten, paths: [spec/lastenheft.md, spec/spezifikation.md, spec/architecture.md], order: [spec/lastenheft.md, spec/spezifikation.md, spec/architecture.md], direction: no-downward}
-    - {name: adr, paths: ["docs/plan/adr/[0-9]*.md", "docs/plan/adr/[A-Z]*-[0-9]*.md"]}
+    # token auf adr und aussen: die Spec nennt weder das Wort ADR noch einen Pfad in Inline-Code
+    # ausserhalb von spec/ (docs, harness, tools, config, contracts, gradle, referenztest-dotnet,
+    # .harness). Ohne token sieht matrix nur Links und Kennungen. src/ fehlt absichtlich im Muster:
+    # die Architektursicht darf Code-Module nennen. Grenze: Pfade in Fenced-Code zaehlen nicht, und
+    # der Marker d-check:status-provenance auf der Zeile hebt den Befund auf (nur der Reviewer faengt das).
+    - {name: adr, paths: ["docs/plan/adr/[0-9]*.md", "docs/plan/adr/[A-Z]*-[0-9]*.md"], token: '\bADRs?\b'}
     - {name: slice, paths: ["docs/plan/planning/**/slice-*.md"], token: 'slice-'}
     - {name: welle, paths: ["docs/plan/planning/**/welle-*.md"], token: 'welle-'}
     # Das Kennungs-Muster faengt die blosse MR-Kennung im Fliesstext, die kein
@@ -185,7 +196,7 @@ matrix:
     # bekommt denselben Planning-Lifecycle, baut seinen Register-Bestand aber selbst
     # auf — eine engere Pfad-Liste waere hier eine Zusage ueber einen Dateibestand,
     # den an dieser Stelle niemand messen kann.
-    - {name: aussen, paths: ["**"]}
+    - {name: aussen, paths: ["**"], token: '\b(docs|harness|tools|config|contracts|gradle|referenztest-dotnet|\.harness)/[A-Za-z0-9_./-]+'}
   rules:
     - {from: spec-straten, to: adr, allow: false}
     - {from: spec-straten, to: slice, allow: false}

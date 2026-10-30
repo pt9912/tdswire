@@ -78,8 +78,8 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/` (Unterpackage `dispatch`) <!-- d-check:ignore (geplant: neues Package) --> | update | RPC-Dispatch in `READY` neben dem Batch-Dispatch aus `slice-sql-batch-dispatch`: Parser-Ergebnis → `QueryRequest`, Bindung der Parameter, Abbildung der Parser-Fehler (ARC-005) |
-| `contracts/query-backend.md` | update, nur falls die Frage zum Prozedurnamen (§6) so entschieden wird | Form, in der ein RPC per Prozedurname das Backend erreicht; die Änderung des Vertrags stimmt die Welle `welle-backend-streaming` ab |
-| `contracts/client-profile.md` | update | Festlegung der Fehlerantwort auf nicht unterstützte RPC-Formen, ohne Zusage über das Verhalten des Referenzclients |
+| `spec/spezifikation.md` `SPEC-022` | update, nur falls die Frage zum Prozedurnamen (§6) so entschieden wird | Form, in der ein RPC per Prozedurname das Backend erreicht; die Änderung des Vertrags stimmt die Welle `welle-backend-streaming` ab |
+| `spec/spezifikation.md` `SPEC-021` | update | Festlegung der Fehlerantwort auf nicht unterstützte RPC-Formen, ohne Zusage über das Verhalten des Referenzclients |
 | `src/test/kotlin/io/github/pt9912/tdswire/protocol/` (Unterpackage `dispatch`) <!-- d-check:ignore (geplant: neues Package) --> | neu | Bindungstests (Text und Werte getrennt), NULL und Grenzwerte, OUTPUT-Richtung, unbekannte Form, ungültige Kodierung, Folge-RPC auf offener Verbindung; nach [TDS-FA-04](../../../../spec/lastenheft.md#tds-fa-04--parametrisierte-abfragen-über-rpc); `@spec`-Tag je Test |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.

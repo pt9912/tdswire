@@ -35,7 +35,7 @@ Herabstufung einer geforderten Verschlüsselung.
    Antwortbytes, am Spike-Testserver gemessen und nicht am Produkt; für das Produkt ist die Gleichheit eine Anforderung. Als Anforderung an den Produktivcode gilt: Die Einstiegsimplementierung vergleicht in
    konstanter Zeit und führt bei unbekannter Kennung einen Scheinvergleich aus; das ist weder gebaut
    noch gemessen, ein Test muss es belegen. Der Adapter hat die Schnittstelle
-   aus `contracts/auth-adapter.md` (`SPEC-051`); die Einstiegsimplementierung ist eine feste
+   aus dem Vertrag zu `SPEC-051`; die Einstiegsimplementierung ist eine feste
    Benutzerliste aus der Konfiguration, SSPI/Kerberos und Entra-ID werden am LOGIN7 erkannt und abgelehnt.
 3. Bei Erfolg isolierte Session mit ID, Principal, Datenbankkontext und Abbruchstatus erzeugen.
 4. Die für den Referenzclient erforderlichen Login-Antworttokens (insbesondere LOGINACK und DONE;
@@ -267,7 +267,7 @@ data class ResultColumn(val name: String, val type: SqlType, val nullable: Boole
 Das Ergebnis eines Aufrufs ist der asynchrone Strom `events`; ein Backend mit kleinem Ergebnis darf ihn
 aus einer fertigen Liste erzeugen. Der Response Sequencer hält ein `ResultEnd` bzw. `UpdateCount` ein
 Ereignis lang zurück, bis das nächste Ereignis oder das Ende des Stroms bekannt ist, und setzt daraus das
-Bit `DONE_MORE`; das Backend kennt das Bit nicht. Entwurf des Vertrags: `contracts/query-backend.md`.
+Bit `DONE_MORE`; das Backend kennt das Bit nicht. Entwurf des Vertrags: `SPEC-022`.
 
 **Gebauter Stand (Setzung vom 2026-10-30, nicht gemessen):** Die Typen und Schnittstellen stehen als
 Kotlin-Quelltext. Die Modelle `QueryRequest`, `QueryParameter`, `ParameterDirection`, `QueryEvent`,
@@ -292,10 +292,10 @@ Precision über 38 vor COLMETADATA mit `TDS_UNSUPPORTED_TYPE` ab; das Modell ble
   und batch-abbrechender Fehler im Strom, die `Failure` nicht trägt; die Grenze für ein „kleines“
   Ergebnis; die Behandlung von `OutOfMemoryError`; ein blockierendes Backend hinter dem `Flow`; die
   Semantik der Frist `deadlineEpochMillis` (wer sie durchsetzt, was bei Ablauf geschieht). Nicht
-  gemessen; Einzelheiten und Zuständigkeit im Vertrag `contracts/query-backend.md`.
+  gemessen; Einzelheiten und Zuständigkeit im Vertrag zu `SPEC-022`.
 
 Lebensdauerregeln und alles, was über diesen Stand hinausgeht, bleiben Entwurf des Vertrags
-`contracts/query-backend.md`.
+zu `SPEC-022`.
 
 ### SPEC-003 — Typmapping (initialer Mindestkatalog)
 | Backendtyp | TDS-Zieltyp | Grenzfälle |
@@ -348,7 +348,7 @@ unterstützte RPCs (Entwurf in `SPEC-030`), MARS ja/nein, Transaktionen ja/nein 
 Verbindungs-Pooling (einschließlich RESETCONNECTION-Statusbit der Paketheader) und Lastprofil.
 Die unterstützten RPCs gibt das Clientprofil erst frei, wenn die Messgrenzen aus `SPEC-030` geklärt sind
 (TDS 8.0, Pooling, echter Server, `SET`-Text bei SchemaOnly und KeyInfo, Transaktionen).
-Die Authentifizierung ist SQL-Authentifizierung (Kennung und Passwort im LOGIN7, `contracts/auth-adapter.md`).
+Die Authentifizierung ist SQL-Authentifizierung (Kennung und Passwort im LOGIN7, `SPEC-051`).
 Verantwortliche Rolle und Trigger der Festlegungen stehen im
 Lastenheft (Abschnitt Offene Entscheidungen). Bis zur Entscheidung der offenen Freigabepunkte gilt: kein Anspruch auf
 Produktionskompatibilität. Das Referenzprojekt muss Connection.Open, SELECT mit/ohne Parameter,
@@ -397,7 +397,7 @@ RPC-Nachrichten müssen Prozedurname/-ID, Optionsflags, Parameternamen, Statusfl
 OUTPUT), TYPE_INFO, Längenpräfixe, NULL-Sentinels, Kollation sowie Precision/Scale typabhängig
 korrekt dekodieren. Für `sp_executesql` werden SQL-Text und Parameterdefinitionen getrennt vom
 Wertetransport gehalten. Der Katalog unterstützter RPCs ist der Mindestkatalog, den die Messung des Referenzclients trägt
-(`contracts/client-profile.md`); die Messgrenzen stehen unter der Tabelle. Die Zeilen "Pflichtverhalten"
+(`SPEC-021`); die Messgrenzen stehen unter der Tabelle. Die Zeilen "Pflichtverhalten"
 zum Fehlerfall (unbekanntes Handle, unbekannte Form) sind Festlegungen, nicht Messwerte:
 
 | RPC | Erkennung | Pflichtverhalten |
@@ -669,7 +669,7 @@ einer anderen Antwort anders, zeigt das nur der Live-Lauf. Das Schema der Refere
 Tabellenbeschreibung des Simulations-Backends haben eine gemeinsame Quelle, die Datei nach `SPEC-035`;
 wie das Skript der Referenzinstanz aus ihr entsteht, ist nicht festgelegt. Ein Schema, das nur im Code des
 Integrators steht, wird getrennt gepflegt und muss mit dem der Referenzinstanz gemeinsam geändert werden. Mitschnitte enthalten nur Testdaten und keine Secrets. Das
-SQL-Server-Image setzt `ACCEPT_EULA=Y` voraus; die Zustimmung des Repo-Inhabers ist in der ADR als Entscheidung festgehalten (rechtlich ungeprüft), der Lauf setzt die Variable ausdrücklich. Gemessen ist nur eine Instanz der Version 2022: `Encrypt=Strict` (TDS 8.0) scheitert, und der Server-Log nennt TLS 1.0 bis 1.2; der Abgleich beider Pfade entfällt dort.
+SQL-Server-Image setzt `ACCEPT_EULA=Y` voraus; die Zustimmung des Repo-Inhabers gilt als Setzung (rechtlich ungeprüft), der Lauf setzt die Variable ausdrücklich. Gemessen ist nur eine Instanz der Version 2022: `Encrypt=Strict` (TDS 8.0) scheitert, und der Server-Log nennt TLS 1.0 bis 1.2; der Abgleich beider Pfade entfällt dort.
 
 ## 3. Defaults und Konstanten
 
@@ -762,13 +762,269 @@ aktive Backendoperationen, Abbrüche, Protokollfehler. Keine SQL-Texte als Metri
 
 ## 6. Externe Verträge
 
-| ID | System | Version | Vertrag-Datei / Referenz |
+| ID | System | Version | Referenz |
 |---|---|---|---|
 | `SPEC-020` | Microsoft TDS | TDS 7.4 und TDS 8.0 (Strict-Encryption) | [MS-TDS](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tds/) |
-| `SPEC-021` | .NET SQL-Client | `Microsoft.Data.SqlClient` 7.1.1 auf .NET 10 (SDK 10.0.403), im Container ausgeführt | `contracts/client-profile.md` |
-| `SPEC-022` | Query-Backend | Projektvertrag v0: Typen und Schnittstellen als Quelltext (Setzung vom 2026-10-30, nicht gemessen), Rest Entwurf | `contracts/query-backend.md` |
-| `SPEC-023` | TLS | TLS 1.3 und TLS 1.2 (Mindestversion 1.2); Suiten TLS 1.3: `TLS_AES_256_GCM_SHA384`, `TLS_AES_128_GCM_SHA256`; TLS 1.2: ECDHE mit AES-GCM; Standard `REQUIRED` | `contracts/security-profile.md` |
-| `SPEC-051` | Authentifizierungsadapter | Entwurf der Schnittstelle; Prüfwert der festen Benutzerliste mit Verfahrenskennung (`plain` nur im Testmodus, `pbkdf2-sha256`), eigene Datei nur für die Benutzerliste, Iterationen mit Boden, Standard und Obergrenze, strenger Parser; Einzelheiten des Zeilenformats im Vertrag teils offen | `contracts/auth-adapter.md` |
+| `SPEC-021` | .NET SQL-Client | `Microsoft.Data.SqlClient` 7.1.1 auf .NET 10 (SDK 10.0.403), im Container ausgeführt | [Clientprofil](#clientprofil-vertrag-zu-spec-021) |
+| `SPEC-022` | Query-Backend | Projektvertrag v0: Typen und Schnittstellen als Quelltext (Setzung vom 2026-10-30, nicht gemessen), Rest Entwurf | [Query-Backend](#query-backend-vertrag-zu-spec-022) |
+| `SPEC-023` | TLS | TLS 1.3 und TLS 1.2 (Mindestversion 1.2); Suiten TLS 1.3: `TLS_AES_256_GCM_SHA384`, `TLS_AES_128_GCM_SHA256`; TLS 1.2: ECDHE mit AES-GCM; Standard `REQUIRED` | [Sicherheitsprofil](#sicherheitsprofil-vertrag-zu-spec-023) |
+| `SPEC-051` | Authentifizierungsadapter | Schnittstelle als Kotlin-Quelltext (Festlegung, nicht gemessen); Prüfwert der festen Benutzerliste mit Verfahrenskennung (`plain` nur im Testmodus, `pbkdf2-sha256`), eigene Datei nur für die Benutzerliste, Iterationen mit Boden, Standard und Obergrenze, strenger Parser; Dateirechte und Behandlung eines BOM offen (Stand 2026-10-30) | [Authentifizierungsadapter](#authentifizierungsadapter-vertrag-zu-spec-051) |
+
+### Clientprofil (Vertrag zu `SPEC-021`)
+
+Versioniertes Profil des Referenzclients für die Kompatibilitätsabnahme (`SPEC-004`).
+
+| Eigenschaft | Wert |
+|---|---|
+| .NET | .NET 10, SDK 10.0.403 |
+| Paket | `Microsoft.Data.SqlClient` 7.1.1 (exakt) |
+| Protokoll | TDS 7.4 und TDS 8.0 |
+| Nicht im Profil | `System.Data.SqlClient`, andere Paket- und Laufzeitversionen |
+
+#### Verbindungsmodi des Clientprofils (ohne Secrets)
+
+| Modus | Connection-String-Optionen | Protokollverhalten |
+|---|---|---|
+| TDS 7.4, ohne TLS (Testmodus nur durch ausdrückliche Konfiguration, siehe `SPEC-023`) | `Encrypt=false` | PRELOGIN-Option ENCRYPTION `00`, LOGIN7 `TDSVersion=0x74000004`, Paketgröße 8000 |
+| TDS 7.4, mit TLS | `Encrypt=true;TrustServerCertificate=true` | ENCRYPTION `01`, der TLS-Handshake läuft in TDS-Paketen vom Typ `0x12`, danach kommt LOGIN7 verschlüsselt |
+| TDS 8.0 | `Encrypt=Strict;HostNameInCertificate=<Name>` | TLS 1.3 ab dem ersten Byte, ALPN `tds/8.0`, danach PRELOGIN und LOGIN7 `TDSVersion=0x08000000`; `TrustServerCertificate` gilt nicht, das Zertifikat muss dem Client vertrauenswürdig sein |
+
+#### Beobachtete Werte des Referenzclients
+
+- PRELOGIN-Option VERSION: `07010001A066`.
+- PRELOGIN-Option FEDAUTHREQUIRED: `01`.
+- LOGIN7 AppName und CltIntName: `Core Microsoft SqlClient Data Provider`.
+
+#### Login-Antwort des Servers (Festlegung)
+
+Was der Server auf PRELOGIN und LOGIN7 sendet, ist eine Festlegung ohne Messung am Produkt; sie sagt nicht, dass der Referenzclient sie annimmt. Gemessen am Referenzclient gegen den Spike-Testserver (TDS 7.4, ohne Pool) sind nur: LOGINACK mit DONE genügt dem Client beim `Open`, die Collation-ENVCHANGE braucht der RPC mit Zeichenparametern, und die Ablehnung braucht genau ein ERROR mit DONE.
+
+| Gegenstand | Festlegung des Servers (Package `protocol/session`) |
+|---|---|
+| PRELOGIN-Antwort | Pakettyp `0x04`; Optionen VERSION (`0.0.0.0`), ENCRYPTION, INSTOPT (leer), MARS (aus); kein FEDAUTHREQUIRED. ENCRYPTION ist ENCRYPT_REQ bei `REQUIRED`, ENCRYPT_NOT_SUP im ausdrücklich konfigurierten Testmodus |
+| Annahme | Pakettyp `0x04`; ENVCHANGE Datenbank, Packet Size, SQL-Collation, dann LOGINACK (Interface 1, TDS-Version `0x74000004`, bei TDS 8.0 `0x08000000`) und DONE ohne Statusbits |
+| Ablehnung | genau ein ERROR (18456, State 1, Class 14, Text "Login failed." ohne Kennung), dann DONE mit dem Fehlerbit; danach schließt der Server |
+| Datenbank und Packet Size | die Datenbank aus LOGIN7, sonst `master`; die verlangte Packet Size, wenn der Paket-Codec sie schreiben kann (größer als der Paketkopf von 8 Byte und höchstens `MAX_TDS_PACKET_BYTES`), sonst 4096. Die Packet Size wird per ENVCHANGE angekündigt und steht in der Sitzung; **angewandt wird sie nicht**: der Paket-Schreiber des Transports schreibt mit der Größe, mit der er gebaut wird. Ein Client, der weniger als diese Größe verlangt, kann Pakete über seiner Größe sehen. Wer die Größe anwendet, ist nicht festgelegt |
+
+#### RPC-Katalog des Referenzclients
+
+Der Referenzclient sendete in den gemessenen Szenarien (Messgrenzen: Testserver, ohne echten SQL Server; TDS 7.4 unverschlüsselt, kein TDS 8.0, kein TLS; `Pooling=false`; eine Verbindung je Szenario; ein Lauf): Batch (`0x01`) für Text ohne Parameter; `sp_executesql` (ProcID 10) für Text mit Parametern; `sp_prepexec` (ProcID 13) und `sp_execute` (ProcID 12) bei `Prepare()` mit Parametern; RPC mit Prozedurnamen für `CommandType.StoredProcedure`. `sp_prepare`, `sp_unprepare` und `sp_cursor*` erschienen in diesen Szenarien nicht; unter Pooling ist das nicht gemessen. `ExecuteReader(SchemaOnly)` sendet einen Batch mit `SET FMTONLY OFF; SET FMTONLY ON;` im Text (Behandlung offen). `ExecuteReader(KeyInfo|SingleRow)` sendet `sp_executesql` mit `SET FMTONLY OFF; SET NO_BROWSETABLE ON;` im Text (Behandlung offen); Transaktionen sind Pakettyp `0x0E`, kein RPC (offen). Der Katalog ist als Entwurf in `SPEC-030` festgelegt und noch nicht freigegeben.
+
+#### Offene Punkte des Clientprofils
+
+`Encrypt`/`TrustServerCertificate`-Details, unterstützte RPCs (Freigabe des Entwurfs oben), MARS, Transaktionen, Verbindungs-Pooling und Lastprofil stehen in `SPEC-004` als offene Freigabepunkte. Die Authentifizierung ist dort festgelegt (SQL-Authentifizierung, `SPEC-051`) und kein offener Freigabepunkt.
+
+### Query-Backend (Vertrag zu `SPEC-022`)
+
+Vertrag zwischen Protokollkern und Backend (`TDS-FA-08.a`, `SPEC-002`). Der Protokollkern erzeugt einen `QueryRequest` ohne TDS-Bytes und liest das Ergebnis als Strom von Ereignissen; das Backend kennt weder Pakete noch Tokens. Die Typen und Schnittstellen stehen als Kotlin-Quelltext (Abschnitt „Signatur des Backend-Vertrags“); alles darüber hinaus ist ein **Entwurf**. Gemessen ist das Ergebnismodell an einem Generator-Backend mit drei Spalten, nicht der Kotlin-Vertrag.
+
+#### Aufruf des Backends
+
+| Teil | Inhalt |
+|---|---|
+| `execute(QueryRequest)` | suspendierend; liefert eine `QueryExecution` mit dem Strom `events` |
+| `QueryRequest` | Sitzungs- und Anfragekennung, SQL-Text, typisierte Parameter, optionale Frist (`SPEC-002`) |
+| `cancel(sessionId, requestId)` | suspendierend; beendet die laufende Operation |
+| `QueryExecution.close()` | schließt Zeilenquelle und Ressourcen der Operation |
+
+#### Signatur des Backend-Vertrags
+
+Stand des Quelltexts: Setzung des Aufrufers (2026-10-30), nicht gemessen.
+
+| Typ | Package | Anmerkung |
+|---|---|---|
+| `QueryRequest`, `QueryParameter`, `ParameterDirection`, `QueryEvent` (sieben Ereignisse), `ResultColumn`, `SqlType` | `domain` | reine Modelle; `domain` importiert keine Fremdbibliothek |
+| `QueryBackend`, `QueryExecution` | `port` | tragen den `Flow`; `port` importiert `domain`, die Standardbibliothek und `kotlinx.coroutines` |
+
+- **Fehler beim Start:** `execute()` wirft für Fehler des Backends keine Ausnahme; ein Fehler beim Start (zum Beispiel Backend nicht erreichbar) ist ein `Failure` im Strom `events`. Die Abbruchausnahme der Coroutine bleibt davon unberührt. Setzung, nicht gemessen.
+- **`SqlType`** (Definition in `SPEC-002`): `Int32`, `Int64`, `Bool`, `UnicodeText`, `Decimal(precision, scale)` mit `precision >= 1` und `0 <= scale <= precision`, `Date`, `Time`, `DateTime` (das Modell trägt keine Zone) — der Mindestkatalog von `SPEC-003`. Breiten unter 32 Bit, Gleitkomma, Geld, GUID und Binärtypen gehören nicht dazu. Setzung, nicht gemessen. Eine Precision über 38 ist im Modell darstellbar und scheitert in der Typabbildung mit `TDS_UNSUPPORTED_TYPE`, bevor COLMETADATA geschrieben wird (Nutzerentscheidung vom 2026-10-30, nicht gemessen). Längenlimit von `UnicodeText` (4000 UTF-16-Einheiten), Scale der Zeittypen (7) und Zeitzonenannahme (Werte ohne Zone) sind Setzungen der Typabbildung (`SPEC-003`). Offen: die JVM-Typen der Werte in `OutputParameter` und die endgültige Zeilendarstellung (`Row`, `QueryParameter`, siehe „Offene Punkte des Backend-Vertrags“).
+- **Belegt am Test-Backend** (Test-Quelltext, suspendierend): Metadaten vor Zeilen, leeres Ergebnis mit Metadaten, `Failure` vor und nach `ResultStart`, Fehler beim Start als `Failure`, `close()` und `cancel()` erreichen die Zeilenquelle des Test-Backends. Das ist keine Aussage über blockierende oder echte Backends.
+
+#### Ergebnis des Backend-Aufrufs
+
+Das Ergebnis ist ein asynchroner Strom (`Flow`) von Ereignissen: `ResultStart` (Spalten), `Row`, `ResultEnd`, `UpdateCount`, `ReturnStatus`, `OutputParameter`, `Failure`. Ein Backend mit kleinem Ergebnis darf den Strom aus einer fertigen Liste erzeugen. Das Backend setzt kein `DONE_MORE`: der Response Sequencer hält ein `ResultEnd` bzw. `UpdateCount` ein Ereignis lang zurück, bis das nächste Ereignis oder das Ende bekannt ist, und setzt daraus das Bit.
+
+#### Pflichten des Backends
+
+- Metadaten (`ResultStart`) kommen vor den Zeilen (`TDS-FA-08.a`).
+- Gelesen wird nur so schnell, wie der Transport abnimmt (Backpressure); ein Backend läuft nicht beliebig voraus.
+- Cancel und Disconnect beenden das Lesen und schließen die Zeilenquelle (`SPEC-029`, `SPEC-031`). Ein Backend, dessen Operation sich nicht unterbrechen lässt, hält die Sitzung bis `CANCEL_TIMEOUT` (`SPEC-033`); danach schließt der Server die Verbindung.
+- Ein Backend, das blockiert, sorgt selbst für Abbruch und Thread-Verbrauch (Annahme). Gemessen ist das nur für einen blockierenden Iterator an einem fingierten Backend (Thread je laufendem Aufruf, Abbruch hängt am Interrupt), nicht für ein blockierendes Backend hinter dem `Flow` und nicht an einem echten Treiber; der Spike-Flow lief mit einem suspendierenden Backend.
+
+#### Festlegungen des Backend-Vertrags
+
+- Fehlersemantik im Strom (Setzung des Nutzers, nicht am Produkt gemessen): Solange der Strom synchron ist, folgen auf Teilzeilen ein `Failure` und damit ERROR und DONE; lässt er sich nicht mehr abschließen, schließt der Server die Verbindung ohne ERROR und DONE (`SPEC-031`).
+- Festlegungen des Response Sequencers (Nutzer, 2026-10-30, nicht am Produkt gemessen; der Tokenstrom ist Handvektor und Selbstkonsistenz): ein `Failure` zählt in der `DONE_MORE`-Vorschau als nächstes Ereignis (ein zurückgehaltenes `ResultEnd` oder `UpdateCount` bekommt `DONE_MORE`, danach ERROR und DONE mit Fehlerstatus). Beleg nur für das Bit vor dem ERROR: der Referenzclient gegen einen echten SQL Server zeigt `DONE[MORE|COUNT]` vor dem ERROR eines batch-abbrechenden Fehlers; am Produkt nicht gemessen. Für statement-abbrechende Fehler, bei denen der echte Server `DONE[MORE|ERR]` sendet, schreibt der Sequenzierer die Variante ohne `MORE`, weil `Failure` keine Klasse trägt); ein zurückgehaltener Abschluss wird bei Cancel oder Disconnect verworfen; ein Verstoß gegen die Ereignisreihenfolge ist ein Fall von `SPEC-048` (ERROR, DONE mit Fehlerstatus, Verbindung schließen); `ReturnStatus` und `OutputParameter` werden bis zu ihrer Abbildung mit einem Fehler der Typabbildung abgelehnt. Der Ausgang des Sequenzierers trägt die Verbindungsfolge (Fehler offen oder schließt nach der Antwort, je nach Abbildung; Reihenfolgeverstoß und Ausnahme schließen; ein nicht abschließbarer Strom schließt ohne Antwort). Eine Ausnahme des Backends wird dem Fehler-Mapping mit der Ausnahme übergeben, damit sie ins Log geht; ihr Text erreicht den Client nie. Eine Abbruchausnahme läuft aus `execute()` wie aus dem Strom nach außen. Setzung des Implementers: ein `Failure` beendet den Lauf, spätere Ereignisse werden nicht gelesen; ein Strom ohne Ereignis endet in einem DONE ohne Bits; eine Ausnahme aus `execute()` oder aus dem Strom ist ein Fall von `SPEC-048`.
+
+#### Offene Punkte des Backend-Vertrags
+
+- Unterscheidung statement- und batch-abbrechender Fehler im Strom, die `Failure` nicht trägt: der Sequencer schreibt eine Variante (ERROR und DONE mit Fehlerstatus, Lauf beendet); die Verbindungsfolge nach Severity und die Abbildung von `Failure.code` bleiben Sache der Fehlerabbildung.
+- Herkunft der Befehlskennung (`curCmd`) der DONE-Tokens: der Sequencer schreibt 0; der Port trägt keine Kennung (Spec-Lücke).
+- Grenze für „kleines“ Ergebnis (fertige Liste), Zeilendarstellung.
+- Behandlung von `OutOfMemoryError`: im Spike wurde er im Anfragepfad gefangen und als Fehler gemeldet (nur bei vollständiger Materialisierung erzeugt, nicht im `Flow`); ob das Fangen im Produktivcode tragbar ist, ist nicht gemessen.
+- Verzögerung durch den zurückgehaltenen Abschluss der `DONE_MORE`-Vorschau: nicht gemessen.
+- Semantik der Frist: `deadlineEpochMillis` steht im `QueryRequest` (`SPEC-002`); offen ist, wer sie durchsetzt (Backend oder Protokollkern) und was bei Ablauf geschieht (`QUERY_TIMEOUT`, `TDS_TIMEOUT`), nicht das Vorhandensein des Feldes.
+
+#### Gemessen am Backend-Vertrag
+
+Gemessen sind: Heap, erste Zeile, Durchsatz, langsamer Leser, Fehler nach der ersten Zeile, Mehrfach-Ergebnisse, Cancel, Threads bei 200 Strömen (Flow-Messungen mit suspendierendem Backend, Blockade nur beim Iterator). Nicht gemessen: ein blockierendes Backend hinter dem `Flow`, echte Query-Engine oder Treiber, breitere Zeilen, LOBs und PLP, OUTPUT-Parameter im Strom, Antworten eines echten SQL Servers, MARS, Transaktionen, andere Clients.
+
+### Sicherheitsprofil (Vertrag zu `SPEC-023`)
+
+TLS-Modi des Servers (`SPEC-010`, `SPEC-028`, `SPEC-043`) für das Clientprofil (`SPEC-021`).
+
+| Modus | Konfiguration | PRELOGIN-Antwort | Verhalten |
+|---|---|---|---|
+| `REQUIRED` (Standard), TDS 7.4 | `ENCRYPTION_POLICY=REQUIRED` | ENCRYPT_REQ oder ENCRYPT_ON (beide gemessen) | TLS-Handshake in TDS-Paketen vom Typ `0x12`, danach verschlüsseltes LOGIN7 |
+| `REQUIRED`, TDS 8.0 | `ENCRYPTION_POLICY=REQUIRED`, Client `Encrypt=Strict` | — (TLS vor PRELOGIN) | TLS 1.3 ab dem ersten Byte, ALPN `tds/8.0` |
+| unverschlüsselter Testmodus | ausdrückliche Konfiguration, im Log sichtbar | ENCRYPT_NOT_SUP | nur TDS 7.4; Clients mit `Encrypt=false` melden sich unverschlüsselt an, Clients mit `Encrypt=true` brechen ab |
+
+#### Zertifikate des Sicherheitsprofils
+
+- Der Client prüft die Kette: ein nicht vertrautes Zertifikat scheitert mit `UntrustedRoot`.
+- `Encrypt=Strict` ignoriert `TrustServerCertificate`; das Zertifikat muss dem Client vertraut sein, der Name muss passen.
+- `TrustServerCertificate=true` genügt im TDS-7.4-Pfad, auch bei einem nicht vertrauten Zertifikat.
+- Tests nutzen ein Testzertifikat im Trust-Store des Testcontainers.
+
+#### Protokollversionen und Suiten des Sicherheitsprofils
+
+| Version | Suiten |
+|---|---|
+| TLS 1.3 | `TLS_AES_256_GCM_SHA384`, `TLS_AES_128_GCM_SHA256` |
+| TLS 1.2 | `TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384`, `TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256` |
+
+Mindestversion ist TLS 1.2. TLS 1.1 und älter, CBC-Suiten, RSA-Schlüsselaustausch ohne Forward Secrecy sowie 3DES und RC4 sind nicht zugelassen. Die Startprobe (`SPEC-043`) nutzt genau diese Konfiguration.
+
+#### Festlegungen der TLS-Schleife
+
+Festlegungen dieses Profils, nicht am Referenzclient gemessen (die Tests laufen gegen eine JDK-`SSLEngine` im selben Prozess):
+
+- Im TDS-8.0-Pfad weist der Server eine Gegenstelle ab, die `tds/8.0` nicht aushandelt (kein ALPN oder ein fremdes); es entsteht kein Kanal.
+- Im TDS-7.4-Pfad verlangt der Server für Handshake-Bytes den Pakettyp `0x12`; ein anderer Typ, ein Header außerhalb des Katalogs oder eine Länge unter dem Header beendet den Handshake.
+- Endet der Strom nach dem Handshake ohne `close_notify`, ist das ein Fehler, kein sauberes Ende.
+- Fehlertexte der Schleife nennen den Ausnahmetyp oder eine feste Beschreibung, nie Zertifikats- oder Schlüsselinhalt.
+- Ein KeyUpdate der Gegenstelle in TLS 1.3 beantwortet die Schleife (mit einer JDK-Gegenstelle getestet: der Server schreibt einen kurzen Record, ohne selbst Nutzdaten zu schreiben, und die Nachrichten laufen weiter; der Inhalt der Antwort ist nicht beobachtet); Neuverhandlung in TLS 1.2 ist nicht Gegenstand und nicht getestet.
+
+#### Schlüsselmaterial des Servers
+
+Setzung dieses Profils, nicht gemessen und nicht aus dem Referenzclient abgeleitet:
+
+- Schlüssel und Zertifikatskette des Servers kommen aus einem PKCS#12-Speicher; ein PEM-Lader ist nicht Teil des Servers.
+- Speicher- und Schlüsselkennwort sind derselbe Wert; der Server nimmt den ersten Schlüsseleintrag.
+- Zugelassen sind RSA-Schlüssel ab 2048 Bit; andere Arten und kürzere Schlüssel weist der Start ab (`SPEC-043`).
+- Die Startprobe prüft jedes Zertifikat der Kette auf Gültigkeit zum Startzeitpunkt, nicht Vertrauen oder Namen.
+
+#### JVM-Flag des Serverprozesses
+
+Der Serverprozess läuft mit `-Djdk.tls.server.newSessionTicketCount=0`. Ohne das Flag sendet der JDK-Server bei TLS 1.3 ein NewSessionTicket noch im Handshake; im TDS-7.4-Pfad landet es in einem Paket vom Typ `0x12`, und der Client bricht ab („Unrecognized record version“). Das Flag gilt prozessweit, auch im TDS-8.0-Pfad; es ist beim Start des Serverprozesses zu setzen. Eine Lösung ohne das Flag ist nicht gebaut.
+
+#### Gemessen am Sicherheitsprofil
+
+TLS 1.3 mit `TLS_AES_256_GCM_SHA384` in beiden Pfaden (`Microsoft.Data.SqlClient` 7.1.1, .NET 10). Der unverschlüsselte Testmodus ist nur mit dem Referenzclient und `Encrypt=false` gemessen.
+
+Mit `Microsoft.Data.SqlClient` 7.1.1 gegen einen Testserver mit RSA-Zertifikat in beiden Pfaden (TDS 7.4 im Tunnel und `Encrypt=Strict`):
+
+- nur TLS 1.2 mit `TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384` und `…_AES_128_GCM_SHA256`: Handshake und LOGIN7 gelingen, der Client wählt die 256-Bit-Suite, wenn beide angeboten sind;
+- nur TLS 1.2 mit der 128-Bit-Suite: gelingt;
+- nur TLS 1.3 mit `TLS_AES_128_GCM_SHA256`: gelingt;
+- nur TLS 1.1: der Client lehnt ab („tlsv1 alert protocol version“).
+
+Nicht gemessen: ECDSA-Zertifikate, `TLS_CHACHA20_POLY1305_SHA256`, andere Clients.
+
+#### Offene Punkte des Sicherheitsprofils
+
+Das Verhalten von `HostNameInCertificate` im TDS-7.4-Pfad; ENCRYPT_ON gegen einen Client mit `Encrypt=false`.
+
+### Authentifizierungsadapter (Vertrag zu `SPEC-051`)
+
+Vertrag zwischen Anmeldepfad und Benutzerverwaltung (`TDS-FA-02.a`, `SPEC-012`). Der Anmeldepfad entschleiert LOGIN7 und ruft den Adapter; der Adapter entscheidet allein über Annahme oder Ablehnung. Gemessen sind die Eingaben des Referenzclients (`Microsoft.Data.SqlClient` 7.1.1, .NET 10), nicht der Kotlin-Vertrag selbst; der Verschlüsselungsmodus als Eingabe bleibt ein Entwurf. Die Kotlin-Signatur steht im Abschnitt „Kotlin-Signatur des Authentifizierungsadapters“.
+
+#### Eingabe des Authentifizierungsadapters
+
+| Feld | Inhalt | Grenzen (gemessen) |
+|---|---|---|
+| Benutzername (in der Spezifikation und in den Messungen „Kennung“) | UTF-16, nach LOGIN7 `UserName` | 0 bis 128 UTF-16-Einheiten, auch leer; der Client wirft vor dem Verbindungsaufbau, wenn sie länger ist (128 und 129 nur mit ASCII gemessen) |
+| Passwort | UTF-16, entschleiert (`Password`, je Byte XOR `0xA5`, dann Nibble-Tausch) | 0 bis 128 UTF-16-Einheiten, auch leer (128 und 129 nur mit ASCII gemessen; Unicode, Sonderzeichen und Surrogatpaar nur mit kürzeren Passwörtern, das mit Nicht-BMP-Zeichen hat 15 Einheiten). Entwurf: ein Zeichenfeld, das der Anmeldepfad nach dem Aufruf überschreibt; erfasst ist nur dieses Feld, nicht der Paket- oder TLS-Puffer |
+| Verbindungskontext | Datenbank, Anwendungsname, Rechnername, Intent | Werte aus LOGIN7; der Rechnername ist vom Client frei gesetzt und kein Beleg einer Herkunft |
+| Verschlüsselungsmodus | Entwurf: der ausgehandelte Modus aus PRELOGIN, nicht aus LOGIN7 | nicht gemessen |
+| Authentifizierungsmerkmale | `fIntSecurity` (SSPI-Block), FeatureExt-Option `0x02`, `fChangePassword` mit neuem Passwort | am LOGIN7 erkennbar |
+
+Nicht unterstützte Modi (SSPI/Kerberos, Entra-ID-Token) erkennt der Anmeldepfad an den Merkmalen und lehnt sie ab, ohne den Adapter zu rufen. Ein Passwortwechsel ist in der ersten Version nicht Teil des Adaptervertrags; er wird abgelehnt.
+
+#### Ausgabe des Authentifizierungsadapters
+
+| Wert | Bedeutung |
+|---|---|
+| `Accepted(principal)` | Anmeldung gelungen; der Principal geht in die Session |
+| `Rejected(reason)` | abgelehnt; `reason` dient nur dem Server-Log |
+
+Der Adapter liefert keinen Text und keine Nummer für den Client. Die Antwort an den Client ist ein festes Muster des Anmeldepfads (ERROR 18456, einheitlicher State, Class 14, feste Meldung ohne Benutzernamen, danach DONE mit Fehlerstatus; `SPEC-012`). Danach schließt der Server die Verbindung; ein weiteres LOGIN7 wird nicht angenommen (Setzung, nicht gemessen: am echten SQL Server wurde nur die Fehlerantwort einmal beobachtet). Ein Ausnahmefall im Adapter wird wie `Rejected` beantwortet und als interner Fehler geloggt (`SPEC-048`).
+
+#### Pflichten des Authentifizierungsadapters
+
+- Das Passwort erscheint in keinem Log und in keiner Fehlermeldung, auch nicht gekürzt oder verschleiert. Der Benutzername erscheint in keiner Antwort an den Client und im Log nur in einem Feld, das die Spezifikation festlegt (bisher keines; `TDS-FA-09.a`). `Rejected(reason)` trägt den Grund ohne Passwort und ohne Benutzernamen.
+- Anforderung an den Produktivcode der Einstiegsimplementierung: Der Passwortvergleich läuft in konstanter Zeit über die Länge hinaus; bei unbekannter Kennung läuft ein Scheinvergleich. Gebaut und strukturell belegt (Abschnitt „Kotlin-Signatur des Authentifizierungsadapters“, Bauart des Vergleichs), nicht gemessen. Ein Adapter mit eigener Benutzerverwaltung unterliegt derselben Anforderung, der Vertrag kann sie nicht erzwingen.
+- Die Antwort an den Client ist für unbekannten Benutzernamen und falsches Passwort in den Antwortbytes gleich (gemessen am Spike-Testserver, nicht am Produkt); das ist Sache des festen Antwortmusters des Anmeldepfads, nicht des Adapters.
+- Ein Adapter blockiert den Anmeldepfad nicht länger als `LOGIN_TIMEOUT` (`SPEC-008`).
+
+#### Einstiegsimplementierung des Authentifizierungsadapters
+
+Feste Benutzerliste aus der Konfiguration (Benutzername, Passwortprüfwert). Die Liste wird beim Start validiert (`TDS-FA-09.a`); eine fehlerhafte Liste bricht den Start ab. Für Test und kleine Betriebe gedacht.
+
+Prüfwertformat und Konfigurationsweg (vom Nutzer entschieden, 2026-10-30; was unter „Offen“ steht, ist nicht entschieden):
+
+- **Verfahrenskennung:** Jeder Eintrag trägt vor dem Prüfwert eine Verfahrenskennung, `{kennung}Wert`. Ein Eintrag ohne Verfahrenskennung und eine unbekannte Verfahrenskennung brechen den Start ab (Setzung, nicht gemessen). Die Verfahrenskennung ist case-sensitiv und klein: `plain`, `pbkdf2-sha256`; `{PBKDF2-SHA256}` wird abgewiesen.
+- **Verfahren:** `plain` nur bei ausdrücklich eingeschaltetem Testmodus, sonst Startabbruch vor dem Binden des Ports; ein leerer `plain`-Wert ist zulässig (nur im Testmodus). `pbkdf2-sha256` (`PBKDF2WithHmacSHA256` des JDK, keine Fremdbibliothek), Wert `Salz$Iterationen$Hash`; Salz und Hash sind Standard-Base64 mit verlangtem Padding.
+- **Iterationszahl (Setzung):** Boden 210 000, Standard 600 000, Obergrenze 10 000 000; der Betreiber unterschreitet den Boden nicht. Gemessen (nur in einem Spike-Image auf einem Host, kein Produktivwert) ist die Dauer je Ableitung: 54 ms bei 210 000, 125 ms bei 600 000, 2,1 s bei 10 000 000. Die Werte für Boden, Standard und Obergrenze sind gesetzt, nicht gemessen. Die Obergrenze schützt nicht vor gleichzeitiger Last: 64 Threads mit je 3 Ableitungen (192 Ableitungen) mit 600 000 und `--cpus=1` erreichten im Spike als längste Dauer einer Ableitung 23,6 s; das ist die Dauer der letzten Ableitung unter dieser Last, nicht die Wartezeit einer einzelnen Anmeldung. Die Iterationen bestehen nur aus ASCII-Ziffern (keine Vorzeichen, keine anderen Ziffernschriften).
+- **Passwort-Randfälle:** Die Ableitung nimmt die UTF-8-Bytes des vom Client gelieferten Passworts (UTF-16 nach UTF-8 wie im JDK). Ein alleinstehendes Hochsurrogat ergibt denselben Hash wie `?` (gemessen); das ist eine bekannte Eigenschaft. Es gibt keine Unicode-Normalisierung (NFC und NFD ergeben verschiedene Hashes, gemessen). Ein leeres Passwort ist zulässig und wird abgeleitet.
+- **Konfigurationsweg:** eigene Datei nur für die Benutzerliste, eigenes Zeilenformat, eigener Parser. Der Pfad wird in der Umgebungsvariable `AUTH_USERS_FILE` übergeben, wie der Schalter `AUTH_PLAIN_TESTMODE` (Setzung (Voreinstellung 2026-10-30, nicht gemessen)); gemessen ist nur die Übergabe eines Werts per Umgebungsvariable, nicht die eines Pfades. Eine Zeile je Eintrag, `Benutzername<TAB>Prüfwert`, UTF-8, kein Escaping, Aufteilung am ersten TAB. Benutzernamen mit TAB, LF, CR oder alleinstehendem Hochsurrogat sind nicht darstellbar und ein Ladefehler. Ein doppelter Benutzername bricht den Start ab.
+- **Testmodus-Schalter:** `AUTH_PLAIN_TESTMODE`, gilt nur bei genau `true`; eigener Schalter nur für `plain`; der Start-Log nennt den Modus.
+- **Fehlerwerte:** je Abweichung genau eine Fehlerart mit Listenplatz, ohne Prüfwert und ohne Passwort. Der Listenplatz ist die Zeilennummer der Datei, 1-basiert (Setzung (Voreinstellung 2026-10-30, nicht gemessen)); gemessen ist im Spike die Position nach Sortierung, nicht die Zeilennummer.
+- **Entschieden** (Nutzer, 2026-10-30; Setzungen, nicht gemessen): derselbe Iterationsboden im Testmodus, keine Kommentare und keine Leerzeilen, CRLF nicht toleriert, Hash genau 32 Byte und Salz mindestens 16 Byte ohne Obergrenze, Ziffernfolge der Iterationen 1 bis 8 Stellen ohne führende Null.
+- **Offen** (vom Nutzer nicht entschieden, nicht gemessen): Dateirechte im Betrieb; die Implementierung prüft sie nicht.
+- **Vormerkung für das Lesen der Datei** (Konfiguration): Ein UTF-8-BOM am Dateianfang entfernt der Parser nicht; er würde Teil des ersten Benutzernamens. Das Lesen der Datei entfernt ihn oder weist ihn ab (nicht entschieden).
+
+#### Kotlin-Signatur des Authentifizierungsadapters
+
+Package `io.github.pt9912.tdswire.config.auth` (Schicht `config`); der Principal liegt in `io.github.pt9912.tdswire.domain`. Die Signatur ist eine Festlegung ohne Messung am Referenzclient oder an einem echten SQL Server:
+
+```kotlin
+interface AuthAdapter { fun authenticate(request: AuthRequest): AuthResult }
+
+class AuthRequest(
+    val userName: String, val password: PasswordChars, val context: ConnectionContext,
+    val encryption: NegotiatedEncryption, val features: AuthFeatures,
+)
+sealed interface AuthResult {
+    class Accepted(val principal: Principal) : AuthResult
+    data class Rejected(val reason: RejectReason) : AuthResult   // UNKNOWN_USER, WRONG_PASSWORD, INPUT_TOO_LONG
+}
+```
+
+- Der Aufruf **blockiert** und ist nicht `suspend`. Der Aufrufer hält den Transport-Thread frei und `LOGIN_TIMEOUT` ein (`SPEC-008`); eine Messung zur Wirkung einer blockierenden Ableitung auf den Transport liegt nicht vor.
+- `PasswordChars` hält die UTF-16-Einheiten als Kopie; `reveal()` gibt eine Kopie, `wipe()` überschreibt. Das schützt nur dieses Feld, nicht den Paket-, Lese- oder TLS-Puffer und nicht jede Kopie der JVM. Der Anmeldepfad überschreibt sein Feld nach dem Aufruf und beim Abbilden aus einem anderen Typ (`SecretChars`) auch das Zwischenfeld. Der Adapter überschreibt das an die Ableitung übergebene Zeichenfeld, die abgeleiteten Bytes und den UTF-8-Kandidaten des `plain`-Pfads (je mit Test); `PBEKeySpec.clearPassword()` und die Nullung des UTF-8-Zwischenpuffers haben keinen Test, und das `SecretKey`-Objekt der JDK-Ableitung wird nicht überschrieben (aus dem Code gelesen, nicht gemessen).
+- Keine Textdarstellung von `AuthRequest`, `PasswordChars`, `ConnectionContext`, `Principal`, `Accepted`, der Benutzerliste und ihrer Einträge nennt Passwort, Benutzernamen oder Prüfwert.
+- Eingaben über 128 UTF-16-Einheiten (Benutzername oder Passwort) ergeben `Rejected(INPUT_TOO_LONG)`, ohne Ausnahme und ohne Ableitung.
+- `AuthFeatures` wertet die Einstiegsimplementierung nicht aus; der Anmeldepfad lehnt die nicht unterstützten Modi vor dem Adapter ab.
+
+Validierung der Liste: `UserList.parse(text, plainTestMode)` liefert `Valid` oder `Invalid(UserListError(kind, line))`; `line` ist die 1-basierte Zeilennummer der Datei, bei einer Liste ohne Zeile `null`. Das Lesen der Datei, `AUTH_USERS_FILE` und das Auswerten von `AUTH_PLAIN_TESTMODE` (nur der Wert `true` schaltet ein, `UserList.plainTestModeFrom`) gehören der Konfiguration. Die Fehlerarten sind `UserListErrorKind`.
+
+Entschieden (Nutzer, 2026-10-30), Setzungen, nicht gemessen, jeweils im KDoc von `UserList` und `Pbkdf2Limits` gekennzeichnet:
+
+- Der Iterationsboden 210 000 gilt auch im Testmodus.
+- Keine Kommentare: eine Zeile mit `#` ist ein gewöhnlicher Eintrag. Eine leere Zeile ist ein Fehler; nur das Zeilenende am Dateiende ist erlaubt.
+- Zeilenende ist LF; ein CR in einer Zeile (auch CRLF) ist ein Fehler.
+- Der Hash hat genau 32 Byte, das Salz mindestens 16 Byte.
+- Die Iterationen sind eine Ziffernfolge von 1 bis 8 Stellen ohne führende Null.
+- Der erste Fehler in Dateireihenfolge bricht die Prüfung ab.
+- Benutzernamen werden zeichengenau verglichen (keine Groß-/Kleinschreibung-Faltung, keine Normalisierung).
+- Dateirechte und Übergabe der Datei sind weder geprüft noch entschieden.
+
+Bauart des Vergleichs (Anforderung, strukturell belegt, nicht gemessen): Der Vergleich untersucht jede Position bis zur längeren Länge und bricht nicht beim ersten Unterschied ab. Bei unbekanntem Benutzernamen läuft dieselbe Ableitung wie für die Attrappe der Liste gegen deren Prüfwert (Scheinvergleich); das Ergebnis wird verworfen. Attrappe ist der `pbkdf2`-Eintrag mit der höchsten Iterationszahl (bei Gleichstand der erste in Dateireihenfolge), Salz- und Hashlänge wie dort; hat die Liste nur `plain`-Einträge, ist es der erste Eintrag und es läuft keine Ableitung, wie für jeden bekannten Benutzer. Verbleibende Grenze bei gemischten Listen: Ein bekannter Benutzer mit niedrigerer Iterationszahl oder mit `plain`-Prüfwert durchläuft einen anderen Rechenschritt als die Attrappe. Eine Aussage über Zeit ist daraus nicht abzuleiten; nichts davon ist gemessen.
+
+#### Gemessen am Authentifizierungsadapter
+
+Gemessen sind: LOGIN7-Felder, Entschleierung, Ablehnungsbytes, erkennbare Modi. Zu Prüfwert und Konfigurationsweg gemessen mit JDK 21 (Eclipse Adoptium 21.0.12.1) in einem Spike-Image auf einem Host (Intel Core i9-13900H): Ableitungsdauer je Iterationszahl, Kodierung des Passworts (wie UTF-8), Parser-Fälle, Sichtbarkeit des Prüfwerts je Weg; die Werte gelten nur für dieses Image und diese Hardware. Nicht gemessen: Dateirechte im Betrieb, Wirkung einer blockierenden Ableitung auf den Transport, Zeitgleichheit von unbekannter Kennung und falschem Passwort, Windows-SSPI (NTLM), Verschlüsselungsmodus als Adaptereingabe, TDS 8.0 mit SQL-Authentifizierung, LOGIN7 über mehrere Pakete, Pooling mit `ResetConnection`, andere Clients.
 
 ## 7. Festlegungen der Harness-Werkzeuge
 
@@ -779,7 +1035,7 @@ aktive Backendoperationen, Abbrüche, Protokollfehler. Keine SQL-Texte als Metri
 | `SPEC-026` | `make gates` | Aggregator: führt alle eingerichteten Gates aus; neue Gates für Formatierung, statische Prüfung und Tests werden in ihn aufgenommen |
 | `SPEC-027` | Fuzz-/Property-Tests | Defekte Paketlängen, Offsets, Fragmentierung und Typwerte dürfen keinen ungefangenen Prozessabsturz verursachen |
 | `SPEC-040` | Simulations-Test-Gate | Unit-Tests der Anweisungserkennung (jede Form aus `SPEC-036` positiv und negativ, Grenzen bei Literalen, Bezeichnern und Kommentaren), Unit-Tests des Lesers der Tabellenbeschreibung (jedes gelesene Feld, jeder Ladefehler mit Pfad, Zeile und Spalte, ohne Inhalt in der Meldung) und Integrationstest mit dem .NET-Referenzclient: Auswahl, leeres Ergebnis, Zeilenquelle über der Speichergrenze, Fehler der Zeilenquelle, Cancel; Gate noch einzurichten |
-| `SPEC-041` | Static-Analysis-Gate (`make detekt`, `make detekt-selbsttest`) | detekt in Docker, Konfiguration auf Standardbasis (`config/detekt/detekt.yml`) mit dem ktlint-Regelsatz (prüft, schreibt nichts um), `warningsAsErrors` und den Importregeln der Schichten, im Kern als Erlaubnisliste ohne Fremdbibliothek; dazu Technik-Regeln für Kern und Port, die Prozess, Dateisystem und Ähnliches über `ForbiddenMethodCall` sperren und deshalb nur über `detektMain` und `detektTest` wirken (Typauflösung); keine Baseline; jeder Befund bricht den Lauf. Tests des Kerns bleiben frei von Fremdbibliotheken (`kotlin.test` statt JUnit), weil die Kernregeln auch für Test-Quellen gelten. Die Importregeln lesen nur `import`-Zeilen: ein voll qualifizierter Name im Code und ein `typealias` darauf umgehen sie; das Gate belegt die Einhaltung der Importgrenze, nicht des Classpaths. `@Suppress` und `@SuppressWarnings` im Quelltext brechen den Lauf vor detekt (Textprüfung `tools/suppression-check.sh`). Ein Selbsttest belegt, dass jede Importregel ihre verbotenen Importe meldet, die erlaubten Testdaten nicht und das Suppression-Verbot jede Form meldet; er läuft nur bei geänderten Eingängen |
+| `SPEC-041` | Static-Analysis-Gate (`make detekt`, `make detekt-selbsttest`) | detekt in Docker, Konfiguration auf Standardbasis mit dem ktlint-Regelsatz (prüft, schreibt nichts um), `warningsAsErrors` und den Importregeln der Schichten, im Kern als Erlaubnisliste ohne Fremdbibliothek; dazu Technik-Regeln für Kern und Port, die Prozess, Dateisystem und Ähnliches über `ForbiddenMethodCall` sperren und deshalb nur über `detektMain` und `detektTest` wirken (Typauflösung); keine Baseline; jeder Befund bricht den Lauf. Tests des Kerns bleiben frei von Fremdbibliotheken (`kotlin.test` statt JUnit), weil die Kernregeln auch für Test-Quellen gelten. Die Importregeln lesen nur `import`-Zeilen: ein voll qualifizierter Name im Code und ein `typealias` darauf umgehen sie; das Gate belegt die Einhaltung der Importgrenze, nicht des Classpaths. `@Suppress` und `@SuppressWarnings` im Quelltext brechen den Lauf vor detekt (Textprüfung des Suppression-Gates). Ein Selbsttest belegt, dass jede Importregel ihre verbotenen Importe meldet, die erlaubten Testdaten nicht und das Suppression-Verbot jede Form meldet; er läuft nur bei geänderten Eingängen |
 | `SPEC-042` | Build-Gate (`make build`) | Compile und Jar in Docker, ohne Tests; Basis-Images per Digest gepinnt, Abhängigkeitsversionen per Lock und Prüfsummen fixiert |
 | `SPEC-050` | Referenzabgleich-Gate (vorläufig) | Live-Lauf und Mitschnitt-Lauf nach `SPEC-045` gegen eine SQL-Server-Referenzinstanz in Docker (eigener Container im eigenen Netzwerk, ohne Mount); Abweichungen nur über die Ausnahmeliste; ergänzt die Läufe von `SPEC-025` und `SPEC-032`, ersetzt sie nicht; Gate noch einzurichten |
 | `SPEC-032` | Kompatibilitätstest-Gate | Echter .NET-SqlClient prüft LOGINACK/ENVCHANGE/DONE, TLS-Profil (TDS 7.4 und TDS 8.0), RPC-Parameter, Streaming-Fehler, ATTENTION und Wiederverwendung; ein Szenario ist rot, sobald der Client es nicht besteht; Gate noch einzurichten |
@@ -805,4 +1061,5 @@ aktive Backendoperationen, Abbrüche, Protokollfehler. Keine SQL-Texte als Metri
 | 2026-10-30 | Typabbildung nachgeführt: Precision über 38 scheitert in der Typabbildung, Zeit ohne Zone mit Scale 7, Unicode-Text `NVARCHAR(4000)` und Decimal ohne Rundung als Setzungen (`SPEC-002`, `SPEC-003`) |
 | 2026-10-30 | Zuordnung des Fehler-Mappings je Code (Nummer, Class, State, Text, Verbindungsfolge) in §4 festgehalten, jede Zeile nach Herkunft gekennzeichnet; Einzelzuordnung der Codes ohne Gruppe offen (`TDS-FA-06.a`, `SPEC-011` bis `SPEC-016`, `SPEC-037` bis `SPEC-039`, `SPEC-048`, `SPEC-049`) |
 | 2026-10-30 | Simulations-Backend festgelegt: Beschreibung zusätzlich als Datei im neutralen Schema-Modell von d-migrate, Typabbildung, strenge Überführung, Schlüssel nur beschreibend, Scanner-Regeln (`SPEC-035`, `SPEC-036`, `TDS-FA-11.a`); Vergleich von Bezeichnern und Werten sowie Überführung bleiben Setzungen, nicht am echten SQL Server gemessen |
+| 2026-10-30 | Verträge zu `SPEC-021`, `SPEC-022`, `SPEC-023` und `SPEC-051` in Abschnitt 6 übernommen; Spec-Lücke zu `SqlType` im Backend-Vertrag entfällt (`SPEC-002` definiert ihn); Zeilenformat der Benutzerliste in `SPEC-051` auf den Stand des Vertrags angeglichen |
 | 2026-10-30 | Simulations-Backend nachgeführt (`SPEC-035`, `SPEC-036`, `SPEC-040`, `SPEC-045`): Ignorierliste um sieben Spaltenfelder, `tables` als Pflicht, Längengrenze der Typabbildung, Setzungsvermerke, Lesart der Liste „Nicht erkannt“ als Setzung, Tests des Lesers, gemeinsame Quelle der Schemata |

@@ -79,7 +79,7 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/` (Unterpackage nach Wahl des Implementers, z. B. `response`) | neu | Sequenzierer (`ARC-015`, soweit Ergebnissequenz; ohne Anfragezustand), ruft Port und Typabbildung, schreibt `Token`s des Codecs; keine Imports aus `transport`-Implementierung, `simulation`, `runtime` |
 | `src/test/kotlin/io/github/pt9912/tdswire/protocol/` (gleiches Unterpackage) | neu | Ereignisfolgen mit dem Test-Backend (Happy, Boundary, Negative nach FA-05, FA-08), Handvektoren, Fuzz mit festem Startwert, Zähler für `close()`; `@spec`-Tag je Test |
-| `spec/spezifikation.md`, `contracts/query-backend.md` | update | `SPEC-031` und §Offen des Vertrags: Prüfung der Reihenfolge, Verhalten der Vorschau bei `Failure`, Schicksal eines zurückgehaltenen Abschlusses; nur, was entschieden und gebaut ist, sonst „Offen“ lassen |
+| `spec/spezifikation.md` (`SPEC-022`) | update | `SPEC-031` und §Offen des Vertrags: Prüfung der Reihenfolge, Verhalten der Vorschau bei `Failure`, Schicksal eines zurückgehaltenen Abschlusses; nur, was entschieden und gebaut ist, sonst „Offen“ lassen |
 
 - Reihenfolge: Abbildung und vorschau, dann Fehlerausgänge, dann Reihenfolgeprüfung.
 - Der Implementer liest `Token.kt`, `DoneStatus`, `TokenEncoder` und `TokenDecoder` (Test) und passt diese Tabelle an.
@@ -102,7 +102,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Closure- und Lerneintrag-Regeln — zwei beobachtbare Kriterien **und** ein
 Lerneintrag; ohne ihn ist der Slice nur abgelegt.
 
-Die DoD ist vollständig, `make gates` ist grün, der Review-Report liegt vor, und die Closure-Notiz trägt die Zuordnung je Aussage des Sequenzierers (*gemessen* · *Handvektor* · *Selbstkonsistenz* · *Festlegung*) sowie den Steering-Loop-Lerneintrag; `SPEC-031` und `contracts/query-backend.md` §Offen sind auf den entschiedenen Stand gebracht.
+Die DoD ist vollständig, `make gates` ist grün, der Review-Report liegt vor, und die Closure-Notiz trägt die Zuordnung je Aussage des Sequenzierers (*gemessen* · *Handvektor* · *Selbstkonsistenz* · *Festlegung*) sowie den Steering-Loop-Lerneintrag; `SPEC-031` und `spec/spezifikation.md` `SPEC-022` §Offen sind auf den entschiedenen Stand gebracht.
 
 ## 6. Risiken und offene Punkte
 
@@ -111,7 +111,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-**Nutzerentscheidungen vom 2026-10-30** (Quelle: Anweisung des Nutzers an den Implementer der Fix-Runde; sie liegen nur hier und in den Texten von KDoc, `SPEC-031` und `contracts/query-backend.md` vor, nicht als eigenes Dokument). Sie betreffen die ersten Risiken dieser Liste; der Ausgang je Risiko bleibt der Closure vorbehalten:
+**Nutzerentscheidungen vom 2026-10-30** (Quelle: Anweisung des Nutzers an den Implementer der Fix-Runde; sie liegen nur hier und in den Texten von KDoc, `SPEC-031` und `spec/spezifikation.md` `SPEC-022` vor, nicht als eigenes Dokument). Sie betreffen die ersten Risiken dieser Liste; der Ausgang je Risiko bleibt der Closure vorbehalten:
 
 1. `Failure` zählt als nächstes Ereignis der `DONE_MORE`-Vorschau. Beleg nur für das Bit vor dem ERROR: Referenzclient gegen einen echten SQL Server, [ADR-0007](../../adr/0007-fehler-und-attention.md) R05; am Produkt nicht gemessen. Für statement-abbrechende Fehler (R04: `DONE[MORE|ERR]`) schreibt der Sequenzierer die Variante ohne `MORE`.
 2. Ein zurückgehaltener Abschluss wird bei Cancel oder Disconnect verworfen.
