@@ -20,6 +20,9 @@ dependencies {
     // ktlint-Regelsatz (Abschnitt `ktlint:` in config/detekt/detekt.yml); die Version ist die des Plugins.
     detektPlugins(libs.detekt.ktlint)
 
+    // Laufzeit des Transports (ADR-0003); die Version steht nur im Katalog.
+    implementation(libs.kotlinx.coroutines.core)
+
     // Unit-Tests: kotlin.test; die BOM gilt für Compile- und Laufzeit-Classpath, damit der Lock eine Version je Artefakt führt.
     testImplementation(libs.kotlin.test)
     testImplementation(platform(libs.junit.bom))

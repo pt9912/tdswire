@@ -82,14 +82,15 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `gradle/libs.versions.toml`, `build.gradle.kts` | update | `kotlinx-coroutines-core` als `implementation`; Version nur in der Katalogdatei |
 | `gradle.lockfile`, `gradle/verification-metadata.xml` | update | per `make deps-lock` (braucht Netz) neu geschrieben, nicht von Hand |
-| `src/main/kotlin/io/github/pt9912/tdswire/transport/` (Unterpackage, z. B. `channel`) <!-- d-check:ignore (geplant: neue Datei) --> | neu | Kanal-Schnittstelle, Adapter für `AsynchronousSocketChannel`, Speicher-Kanal, Nachrichtenleser und -schreiber; keine Imports aus `port`, `simulation`, `runtime` (SPEC-041) |
-| `src/test/kotlin/io/github/pt9912/tdswire/transport/` <!-- d-check:ignore (geplant: neue Datei) --> | neu | Loopback, Zerstückelung mit festem Startwert, Grenze vor dem Puffern, Rückstau, abrupter Abbruch; `@spec`-Tag je Test |
+| `src/main/kotlin/io/github/pt9912/tdswire/transport/channel/` | neu | `SuspendingChannel`, `ChannelResult`, `SocketChannelAdapter` für `AsynchronousSocketChannel`, `MemoryChannel` (Paar mit begrenztem Puffer); keine Imports aus `port`, `simulation`, `runtime` (SPEC-041) |
+| `src/main/kotlin/io/github/pt9912/tdswire/transport/messaging/` | neu | `MessageReader` (ruft `MessageAssembler`), `MessageWriter` (ruft `PacketWriter`), Ausgänge `ReadOutcome`, `WriteOutcome`, `TransportError`; `transport/framing` bleibt unverändert |
+| `src/test/kotlin/io/github/pt9912/tdswire/transport/channel/`, `.../transport/messaging/`, `.../testsupport/TransportSupport.kt` | neu | Pin, Speicher-Kanal, Loopback, Zerstückelung mit festem Startwert, Grenze vor dem Puffern, Rückstau, abgeschnittene und zufällige Eingaben; `@spec`-Tag je Test; Handvektoren von Hand gebaut, ohne den Paket-Codec |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 
 - Reihenfolge: Pin zuerst (ein Test, der `runBlocking` aufruft, belegt, dass Lock und Prüfsumme greifen), dann Kanal, dann Leser und Schreiber.
 - `make detekt` läuft auch über `detektTest`; Befunde zu Coroutinen (z. B. `GlobalCoroutineUsage`, `InjectDispatcher`) werden im Code behoben, nie unterdrückt oder in `config/detekt/detekt.yml` gelockert (`AGENTS.md` §3.2, §3.6).
-- Die API des Paket-Codecs steht beim Schreiben dieses Plans nicht fest (`slice-codec-tds-paket` ist in Arbeit); der Implementer liest sie aus `done/` und passt §3 an.
+- Der Paket-Codec (`MessageAssembler`, `PacketWriter`, `FramingLimits`) liegt in `transport/framing`; Leser und Schreiber rufen ihn und rechnen die Grenze nicht nach.
 
 ## 4. Trigger
 
