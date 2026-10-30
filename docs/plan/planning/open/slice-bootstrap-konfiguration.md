@@ -94,7 +94,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): Der Start-Trigger der Welle `welle-handshake-login` ist eingetreten, `slice-handshake-login` liegt in `done/`, der Listener-Slice der Transport-Welle `welle-transport-tls` liegt in `done/` (Kennung legt deren Planung fest), Konfigurationsweg und Format sind entschieden (Nutzerentscheidung, festgehalten als `Accepted`-ADR oder als Fortschreibung von SPEC-051 und `contracts/auth-adapter.md`) und ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): Der Start-Trigger der Welle `welle-handshake-login` ist eingetreten, `slice-handshake-login` liegt in `done/`, der Listener-Slice der Transport-Welle `welle-transport-tls` liegt in `done/` (Kennung legt deren Planung fest), `slice-adr-pruefwertformat` liegt in `done/` (Konfigurationsweg und Format sind entschieden: Nutzerentscheidung, festgehalten als `Accepted`-ADR oder als Fortschreibung von SPEC-051 und `contracts/auth-adapter.md`) und ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -116,7 +116,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Konfigurationsweg und Format sind offen ([ADR-0009](../../adr/0009-authentifizierungsmodus.md) §Offen) und hängen an einer Nutzerentscheidung; ein Format kann eine neue Abhängigkeit bedeuten, die per Lock und Prüfsumme zu fixieren ist. — **Ausgang:** offen bis zur Closure.
+- Konfigurationsweg und Format sind offen ([ADR-0009](../../adr/0009-authentifizierungsmodus.md) §Offen) und hängen an einer Nutzerentscheidung; Träger ist `slice-adr-pruefwertformat`. Ein Format kann eine neue Abhängigkeit bedeuten, die per Lock und Prüfsumme zu fixieren ist. Das Konfigurationsmodell bleibt in diesem Slice (auch der Testmodus-Schlüssel für Prüfwerte ohne Ableitung, falls die Entscheidung ihn vorsieht); den Prüfwert parst und validiert `slice-auth-adapter-benutzerliste`. — **Ausgang:** offen bis zur Closure.
 - Überschneidung mit der Transport-Welle: Konfigurationsmodell und Schlüssel (Port, Bind-Adresse, TLS), die Startprobe und das Setzen der JVM-Option `-Djdk.tls.server.newSessionTicketCount=0` (`contracts/security-profile.md`: "beim Start des Serverprozesses zu setzen") berühren beide Wellen. Die Zuordnung ist mit der Transport-Planung abzustimmen; der Plan nimmt an, dass das Konfigurationsmodell und der Start des Prozesses hier liegen und die Transport-Welle ihre Schlüssel und die Startprobe einhängt. — **Ausgang:** offen bis zur Closure.
 - Der Smoke ist ein Rohbytes-Client, kein Referenzclient: Er belegt, was der Server auf handgebauten Bytes antwortet, nicht, dass `Microsoft.Data.SqlClient` die Antwort annimmt. Die Aussage "Login funktioniert" darf in Notiz und Doku nicht ohne diese Einschränkung stehen (`BEO-TDS/aussagen-ueber-messung-hinaus`). — **Ausgang:** offen bis zur Closure.
 - Wie der Smoke in Docker läuft (Prozess und Client im Test-Container über Loopback oder eigener Container im Netz), ist nicht entschieden; Docker-only (`AGENTS.md` §3.1) und die Basis-Images per Digest sind einzuhalten. — **Ausgang:** offen bis zur Closure.
