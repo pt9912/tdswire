@@ -96,6 +96,11 @@ ERROR-/DONE-Token oder Verbindungsabbruch, falls Protokollzustand keine Antwort 
    (`Failure` mit Code), erreicht den Client nur als `TDS_INTERNAL_ERROR` mit festem Text, nie mit
    dem Text der Ausnahme; dieser kann Konfigurationswerte enthalten und geht ins Log, ohne
    Parameterwerte (`SPEC-048`).
+6. Nach ERROR und DONE mit Fehlerstatus bleibt die Verbindung offen, wenn die Severity (Class) höchstens
+   19 ist. Ab Severity 20, nach `TDS_INTERNAL_ERROR` (`SPEC-048`), nach `TDS_SHUTDOWN` (`SPEC-049`) und
+   wenn der Strom nicht mehr sicher abzuschließen ist (`SPEC-031`) schließt der Server die Verbindung
+   nach ERROR und DONE. Nach Cancel oder Timeout bleibt sie offen, wenn DONE mit ATTENTION-Status
+   gesendet wurde (`SPEC-029`). Ob Cancel und Timeout als Fehler zählen, ist noch festzulegen.
 
 **Komplexität:** O(Meldungslänge). **Fehlermodi:** Transport bereits geschlossen, Encoderfehler.
 
@@ -201,11 +206,15 @@ Zeilenquelle, Abbruch.
 `CONNECTED → PRELOGIN → TLS_NEGOTIATION (falls erforderlich) → LOGIN7 → READY → CLOSED`. Profile mit
 vorgelagertem TLS (TDS 8.0, Strict-Encryption) beginnen mit
 `CONNECTED → TLS_NEGOTIATION → PRELOGIN`. Nur `READY` akzeptiert SQL_BATCH/RPC; ATTENTION ist im
-passenden laufenden Anfragezustand zulässig. Ungültige Übergänge werden abgelehnt.
+passenden laufenden Anfragezustand zulässig. Der Zustand ist ein expliziter Automat: eine Aufzählung der
+Zustände und eine reine Übergangsfunktion (Zustand, Ereignisart) → (Folgezustand, Aktion). Ungültige
+Übergänge werden abgelehnt; die Antwort darauf (Verbindung ohne Antwort schließen oder ein Fehler) und
+die Reichweite von ATTENTION vor dem Login sind noch festzulegen.
 
 Anfragezustand (nur innerhalb von `READY`): `IDLE → RUNNING → STREAMING → COMPLETED → IDLE`. Bei
 ATTENTION führen `RUNNING` und `STREAMING` über `CANCELLING` nach `COMPLETED`. Der Response
-Sequencer hält den Anfragezustand und entscheidet jeden Übergang atomar je Sitzung; der Transport
+Sequencer hält den Anfragezustand und entscheidet jeden Übergang atomar je Sitzung: Übergang und das
+zugehörige Schreiben laufen unter einer Sperre je Sitzung. Der Transport
 meldet ein erkanntes ATTENTION-Paket an ihn, der Dispatch nimmt kein ATTENTION an. Bei
 gleichzeitigem DONE und ATTENTION gewinnt der erste Übergang. Trifft ATTENTION nach `COMPLETED` oder
 in `IDLE` ein, bleibt das bereits gesendete Ergebnis gültig, und der Server beantwortet das
@@ -245,6 +254,11 @@ sealed interface QueryEvent {
 }
 data class ResultColumn(val name: String, val type: SqlType, val nullable: Boolean)
 ```
+Das Ergebnis eines Aufrufs ist der asynchrone Strom `events`; ein Backend mit kleinem Ergebnis darf ihn
+aus einer fertigen Liste erzeugen. Der Response Sequencer hält ein `ResultEnd` bzw. `UpdateCount` ein
+Ereignis lang zurück, bis das nächste Ereignis oder das Ende des Stroms bekannt ist, und setzt daraus das
+Bit `DONE_MORE`; das Backend kennt das Bit nicht. Entwurf des Vertrags: `contracts/query-backend.md`.
+
 Dies ist eine **Vertragsskizze**, kein bereits implementierter Code. Konkrete Typen, Fehler und
 Lebensdauerregeln werden vor der Implementierung festgelegt.
 
@@ -323,7 +337,7 @@ vollständigem Abbruchabschluss wieder eine neue Anfrage an (Anfragezustand `IDL
 zwischen DONE und ATTENTION gilt die Regel der Anfragezustandsmaschine in `SPEC-001`; doppelte
 DONE-Tokens sind verboten. Wenn ein
 bereits gesendeter Stream nicht mehr sauber abgeschlossen werden kann, wird die Verbindung
-geschlossen. Tests prüfen `SqlCommand.Cancel()`, `CancellationToken` und unmittelbar anschließende
+geschlossen. Nach gesendetem DONE mit ATTENTION-Status bleibt die Verbindung offen. Tests prüfen `SqlCommand.Cancel()`, `CancellationToken` und unmittelbar anschließende
 neue Befehle.
 
 ### SPEC-030 — RPC-Varianten und Parameter-Metadaten
@@ -537,8 +551,8 @@ Abnahmegrenzen.
 | `SPEC-037` | `TDS_UNSUPPORTED_SQL` | Anweisung oder Bedingung außerhalb von `SPEC-036`; Schreibzugriff ohne Callback | ERROR und DONE mit Fehlerstatus, Zeilenquelle nicht gelesen |
 | `SPEC-038` | `TDS_SIM_UNKNOWN_OBJECT` | Tabelle oder Spalte ist nicht beschrieben | ERROR und DONE mit Fehlerstatus; vorgesehene SQL-Server-Nummern 208 (Objekt) und 207 (Spalte) |
 | `SPEC-039` | `TDS_SIM_INVALID_VALUE` | Wert nicht in den Spaltentyp überführbar | ERROR und DONE mit Fehlerstatus; vorgesehene SQL-Server-Nummern 245 (Konvertierung) und 8115 (Überlauf), an der Referenzinstanz zu messen |
-| `SPEC-048` | `TDS_INTERNAL_ERROR` | unerwartete Ausnahme im Server oder im Backend-Adapter | ERROR und DONE mit Fehlerstatus, fester Text ohne den Text der Ausnahme; die Ausnahme geht ins Log, ohne Parameterwerte |
-| `SPEC-049` | `TDS_SHUTDOWN` | Anfrage nach Beginn des geordneten Beendens (`SPEC-044`) | ERROR, danach Verbindungsende; vorgesehen: die SQL-Server-Meldung für ein Herunterfahren, Nummer im Mapping nach `TDS-FA-06.a` festlegen |
+| `SPEC-048` | `TDS_INTERNAL_ERROR` | unerwartete Ausnahme im Server oder im Backend-Adapter | ERROR und DONE mit Fehlerstatus, fester Text ohne den Text der Ausnahme, danach Verbindungsende; die Ausnahme geht ins Log, ohne Parameterwerte |
+| `SPEC-049` | `TDS_SHUTDOWN` | Anfrage nach Beginn des geordneten Beendens (`SPEC-044`) | ERROR und DONE mit Fehlerstatus, danach Verbindungsende; vorgesehen: die SQL-Server-Meldung für ein Herunterfahren, Nummer im Mapping nach `TDS-FA-06.a` festlegen |
 
 Die Nummern in der Aktionsspalte sind ein Vorschlag für das Mapping nach `TDS-FA-06.a`. Für
 `TDS_UNSUPPORTED_SQL` gibt es keine SQL-Server-Entsprechung, denn dort ist die Anweisung gültig; die
@@ -565,11 +579,9 @@ aktive Backendoperationen, Abbrüche, Protokollfehler. Keine SQL-Texte als Metri
 |---|---|---|---|
 | `SPEC-020` | Microsoft TDS | TDS 7.4 und TDS 8.0 (Strict-Encryption) | [MS-TDS](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tds/) |
 | `SPEC-021` | .NET SQL-Client | `Microsoft.Data.SqlClient` 7.1.1 auf .NET 10 (SDK 10.0.403), im Container ausgeführt | `contracts/client-profile.md` |
-| `SPEC-022` | Query-Backend | Projektvertrag v0 (Entwurf) | `contracts/query-backend.md` (anzulegen) |
+| `SPEC-022` | Query-Backend | Projektvertrag v0 (Entwurf) | `contracts/query-backend.md` |
 | `SPEC-023` | TLS | TLS 1.3 und TLS 1.2 (Mindestversion 1.2); Suiten TLS 1.3: `TLS_AES_256_GCM_SHA384`, `TLS_AES_128_GCM_SHA256`; TLS 1.2: ECDHE mit AES-GCM; Standard `REQUIRED` | `contracts/security-profile.md` |
 | `SPEC-051` | Authentifizierungsadapter | Entwurf der Schnittstelle | `contracts/auth-adapter.md` |
-
-`contracts/query-backend.md` ist ein **geplantes Artefakt**, keine bereits vorhandene Datei.
 
 ## 7. Festlegungen der Harness-Werkzeuge
 
