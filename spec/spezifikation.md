@@ -249,6 +249,11 @@ sealed interface QueryEvent {
 }
 data class ResultColumn(val name: String, val type: SqlType, val nullable: Boolean)
 ```
+Das Ergebnis eines Aufrufs ist der asynchrone Strom `events`; ein Backend mit kleinem Ergebnis darf ihn
+aus einer fertigen Liste erzeugen. Der Response Sequencer hält ein `ResultEnd` bzw. `UpdateCount` ein
+Ereignis lang zurück, bis das nächste Ereignis oder das Ende des Stroms bekannt ist, und setzt daraus das
+Bit `DONE_MORE`; das Backend kennt das Bit nicht. Entwurf des Vertrags: `contracts/query-backend.md`.
+
 Dies ist eine **Vertragsskizze**, kein bereits implementierter Code. Konkrete Typen, Fehler und
 Lebensdauerregeln werden vor der Implementierung festgelegt.
 
@@ -569,11 +574,9 @@ aktive Backendoperationen, Abbrüche, Protokollfehler. Keine SQL-Texte als Metri
 |---|---|---|---|
 | `SPEC-020` | Microsoft TDS | TDS 7.4 und TDS 8.0 (Strict-Encryption) | [MS-TDS](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tds/) |
 | `SPEC-021` | .NET SQL-Client | `Microsoft.Data.SqlClient` 7.1.1 auf .NET 10 (SDK 10.0.403), im Container ausgeführt | `contracts/client-profile.md` |
-| `SPEC-022` | Query-Backend | Projektvertrag v0 (Entwurf) | `contracts/query-backend.md` (anzulegen) |
+| `SPEC-022` | Query-Backend | Projektvertrag v0 (Entwurf) | `contracts/query-backend.md` |
 | `SPEC-023` | TLS | TLS 1.3 und TLS 1.2 (Mindestversion 1.2); Suiten TLS 1.3: `TLS_AES_256_GCM_SHA384`, `TLS_AES_128_GCM_SHA256`; TLS 1.2: ECDHE mit AES-GCM; Standard `REQUIRED` | `contracts/security-profile.md` |
 | `SPEC-051` | Authentifizierungsadapter | Entwurf der Schnittstelle | `contracts/auth-adapter.md` |
-
-`contracts/query-backend.md` ist ein **geplantes Artefakt**, keine bereits vorhandene Datei.
 
 ## 7. Festlegungen der Harness-Werkzeuge
 
