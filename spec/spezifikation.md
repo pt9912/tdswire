@@ -446,7 +446,9 @@ Ereignisreihenfolge (Zeile oder Ergebnisende ohne offenes Ergebnis, Ergebnisanfa
 Update-Count im offenen Ergebnis, Strom endet im offenen Ergebnis) und eine Ausnahme des Backends
 sind ein Fall von `SPEC-048`. Ein Fehler beendet den Lauf; weitere Ereignisse werden nicht gelesen.
 Return Status und Ausgabeparameter werden bis zu ihrer Abbildung mit einem Fehler der Typabbildung
-(`SPEC-014`) abgelehnt. Die Befehlskennung (`curCmd`) der DONE-Tokens ist 0; woher sie kommt, ist
+(`SPEC-014`) abgelehnt; mit der Zuordnung in §4 ist das `TDS_UNSUPPORTED_TYPE` (Class 20), und die
+Verbindung schließt nach der Antwort, ebenso bei jedem anderen Typfehler (die Einzelzuordnung des
+Codes ist offen). Die Befehlskennung (`curCmd`) der DONE-Tokens ist 0; woher sie kommt, ist
 nicht festgelegt (Spec-Lücke).
 
 ### SPEC-035 — Tabellenbeschreibung und Zeilenquelle des Simulations-Backends
@@ -711,7 +713,9 @@ Nummer kommt aus dem Benutzerbereich (ab 50001).
 
 **Zuordnung des Fehler-Mappings** (`TDS-FA-06.a` Nr. 2 und 6; Träger:
 `ErrorCode` im Package `protocol.error`). Kein Wert dieser Tabelle ist an einem echten SQL Server
-gemessen. Die Spalte *Herkunft* trennt: *Vorschlag* (Nummer aus der Aktionsspalte oben,
+gemessen, mit einer Ausnahme: Nummer 18456, State 1 und Class 14 von `TDS_LOGIN_FAILED` wurden an einem
+echten SQL Server einmal beobachtet (`SPEC-012`); der Text dort nennt den Benutzernamen, der feste Text
+dieser Tabelle nicht. Die Spalte *Herkunft* trennt: *Vorschlag* (Nummer aus der Aktionsspalte oben,
 „an der Referenzinstanz zu messen“), *Setzung des Nutzers* (Gruppe und Class, 2026-10-30),
 *Voreinstellung* (Gruppe nach der Voreinstellung vom 2026-10-30, nicht entschieden), *Festlegung* (vom Mapping gewählt, nicht
 gemessen), *Grundregel* (nur die Folge: kein Gruppenmitglied, im Zweifel schließen; die Class 20 dieser Codes ist Festlegung). State ist für jeden Code 1, der
@@ -854,7 +858,7 @@ Das Ergebnis ist ein asynchroner Strom (`Flow`) von Ereignissen: `ResultStart` (
 #### Festlegungen des Backend-Vertrags
 
 - Fehlersemantik im Strom (Setzung des Nutzers, nicht am Produkt gemessen): Solange der Strom synchron ist, folgen auf Teilzeilen ein `Failure` und damit ERROR und DONE; lässt er sich nicht mehr abschließen, schließt der Server die Verbindung ohne ERROR und DONE (`SPEC-031`).
-- Festlegungen des Response Sequencers (Nutzer, 2026-10-30, nicht am Produkt gemessen; der Tokenstrom ist Handvektor und Selbstkonsistenz): ein `Failure` zählt in der `DONE_MORE`-Vorschau als nächstes Ereignis (ein zurückgehaltenes `ResultEnd` oder `UpdateCount` bekommt `DONE_MORE`, danach ERROR und DONE mit Fehlerstatus). Beleg nur für das Bit vor dem ERROR: der Referenzclient gegen einen echten SQL Server zeigt `DONE[MORE|COUNT]` vor dem ERROR eines batch-abbrechenden Fehlers; am Produkt nicht gemessen. Für statement-abbrechende Fehler, bei denen der echte Server `DONE[MORE|ERR]` sendet, schreibt der Sequenzierer die Variante ohne `MORE`, weil `Failure` keine Klasse trägt); ein zurückgehaltener Abschluss wird bei Cancel oder Disconnect verworfen; ein Verstoß gegen die Ereignisreihenfolge ist ein Fall von `SPEC-048` (ERROR, DONE mit Fehlerstatus, Verbindung schließen); `ReturnStatus` und `OutputParameter` werden bis zu ihrer Abbildung mit einem Fehler der Typabbildung abgelehnt. Der Ausgang des Sequenzierers trägt die Verbindungsfolge (Fehler offen oder schließt nach der Antwort, je nach Abbildung; Reihenfolgeverstoß und Ausnahme schließen; ein nicht abschließbarer Strom schließt ohne Antwort). Eine Ausnahme des Backends wird dem Fehler-Mapping mit der Ausnahme übergeben, damit sie ins Log geht; ihr Text erreicht den Client nie. Eine Abbruchausnahme läuft aus `execute()` wie aus dem Strom nach außen. Setzung des Implementers: ein `Failure` beendet den Lauf, spätere Ereignisse werden nicht gelesen; ein Strom ohne Ereignis endet in einem DONE ohne Bits; eine Ausnahme aus `execute()` oder aus dem Strom ist ein Fall von `SPEC-048`.
+- Festlegungen des Response Sequencers (Nutzer, 2026-10-30, nicht am Produkt gemessen; der Tokenstrom ist Handvektor und Selbstkonsistenz): ein `Failure` zählt in der `DONE_MORE`-Vorschau als nächstes Ereignis (ein zurückgehaltenes `ResultEnd` oder `UpdateCount` bekommt `DONE_MORE`, danach ERROR und DONE mit Fehlerstatus). Beleg nur für das Bit vor dem ERROR: der Referenzclient gegen einen echten SQL Server zeigt `DONE[MORE|COUNT]` vor dem ERROR eines batch-abbrechenden Fehlers; am Produkt nicht gemessen. Für statement-abbrechende Fehler, bei denen der echte Server `DONE[MORE|ERR]` sendet, schreibt der Sequenzierer die Variante ohne `MORE`, weil `Failure` keine Klasse trägt); ein zurückgehaltener Abschluss wird bei Cancel oder Disconnect verworfen; ein Verstoß gegen die Ereignisreihenfolge ist ein Fall von `SPEC-048` (ERROR, DONE mit Fehlerstatus, Verbindung schließen); `ReturnStatus` und `OutputParameter` werden bis zu ihrer Abbildung mit einem Fehler der Typabbildung abgelehnt; mit der Zuordnung in §4 ist das `TDS_UNSUPPORTED_TYPE` (Class 20) und die Verbindung schließt nach der Antwort, ebenso bei jedem anderen Typfehler (die Einzelzuordnung des Codes ist offen). Der Ausgang des Sequenzierers trägt die Verbindungsfolge (Fehler offen oder schließt nach der Antwort, je nach Abbildung; Reihenfolgeverstoß und Ausnahme schließen; ein nicht abschließbarer Strom schließt ohne Antwort). Eine Ausnahme des Backends wird dem Fehler-Mapping mit der Ausnahme übergeben, damit sie ins Log geht; ihr Text erreicht den Client nie. Eine Abbruchausnahme läuft aus `execute()` wie aus dem Strom nach außen. Setzung des Implementers: ein `Failure` beendet den Lauf, spätere Ereignisse werden nicht gelesen; ein Strom ohne Ereignis endet in einem DONE ohne Bits; eine Ausnahme aus `execute()` oder aus dem Strom ist ein Fall von `SPEC-048`.
 
 #### Offene Punkte des Backend-Vertrags
 

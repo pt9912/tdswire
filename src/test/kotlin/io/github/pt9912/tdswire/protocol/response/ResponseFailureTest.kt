@@ -274,6 +274,36 @@ class ResponseFailureTest {
     }
 
     /**
+     * Festlegung „synchron“: nimmt die Senke das DONE mit Fehlerstatus hinter dem ERROR nicht an, endet
+     * der Lauf ohne Abschluss und nicht als Fehler mit geschriebenem Abschluss.
+     *
+     * @spec SPEC-031
+     */
+    @Test
+    fun `abgelehntes DONE hinter dem ERROR schliesst ohne Abschluss`() {
+        val backend = ScriptedBackend.ofList(QueryEvent.Failure("x", "m"))
+        val sink = RecordingSink(rejectAt = 2)
+        assertEquals(SequenceOutcome.CLOSE_WITHOUT_COMPLETION, run(backend, sink))
+        assertEquals(listOf<Token>(backendError), sink.tokens)
+        assertEquals(1, backend.closeCalls)
+    }
+
+    /**
+     * Festlegung „synchron“: nimmt die Senke das abschließende DONE eines Laufs ohne Fehler nicht an,
+     * ist der Lauf nicht abgeschlossen.
+     *
+     * @spec SPEC-031
+     */
+    @Test
+    fun `abgelehntes abschliessendes DONE schliesst ohne Abschluss`() {
+        val backend = ScriptedBackend.ofList(start(), row(1), QueryEvent.ResultEnd(1))
+        val sink = RecordingSink(rejectAt = 3)
+        assertEquals(SequenceOutcome.CLOSE_WITHOUT_COMPLETION, run(backend, sink))
+        assertEquals(2, sink.tokens.size)
+        assertEquals(1, backend.closeCalls)
+    }
+
+    /**
      * Festlegung (Nutzer): `ReturnStatus` und `OutputParameter` werden mit einem Fehler der
      * Typabbildung abgelehnt: ERROR und DONE mit Fehlerstatus, kein RETURNSTATUS.
      *

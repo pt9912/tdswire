@@ -51,14 +51,17 @@ enum class SequenceOutcome {
     /**
      * ERROR und DONE mit Fehlerstatus sind geschrieben (Fehler des Backends, nicht abbildbare Metadaten
      * oder Werte, nicht abbildbares Ereignis), und die Abbildung lässt die Verbindung offen
-     * ([MappedError.closesConnection] ist `false`).
+     * ([MappedError.closesConnection] ist `false`). Ob ein Fall hierher führt, bestimmt die Abbildung:
+     * mit dem `ErrorMapper` ist es ein Failure mit Code der Class 16; jeder Typfehler ist Class 20 und
+     * ergibt [FAILED_CLOSE_CONNECTION].
      */
     FAILED,
 
     /**
      * ERROR und DONE mit Fehlerstatus sind geschrieben; die Verbindung wird danach geschlossen:
      * Reihenfolgeverstoß und Ausnahme (`SPEC-048`) sowie jede Abbildung mit
-     * [MappedError.closesConnection].
+     * [MappedError.closesConnection], mit dem `ErrorMapper` auch jeder Typfehler (Metadaten, Wert,
+     * `ReturnStatus`, `OutputParameter`).
      */
     FAILED_CLOSE_CONNECTION,
 
@@ -89,8 +92,11 @@ enum class SequenceOutcome {
  *   (Nutzer). Dasselbe gilt für eine Ausnahme aus `execute()` oder aus dem Strom (Festlegung des
  *   Implementers).
  * - [QueryEvent.ReturnStatus] und [QueryEvent.OutputParameter] werden mit einem Fehler der
- *   Typabbildung abgelehnt ([ErrorMapping.typeMapping], [SequenceOutcome.FAILED]); sie werden nicht auf
- *   RETURNSTATUS oder RETURNVALUE abgebildet (Nutzer).
+ *   Typabbildung abgelehnt ([ErrorMapping.typeMapping]); sie werden nicht auf RETURNSTATUS oder
+ *   RETURNVALUE abgebildet (Nutzer). Der Ausgang folgt der Abbildung: mit dem `ErrorMapper` ist die
+ *   Ablehnung `TDS_UNSUPPORTED_TYPE` (Class 20) und der Ausgang
+ *   [SequenceOutcome.FAILED_CLOSE_CONNECTION], die Verbindung schließt nach der Antwort; ebenso jeder
+ *   andere Typfehler. Die Einzelzuordnung des Codes ist offen.
  * - „Synchron“ (`SPEC-031` definiert den Begriff nicht): der Strom ist synchron, solange die Senke
  *   jedes Token vollständig angenommen hat. Nimmt sie ein Token nicht vollständig an, wird nichts
  *   mehr geschrieben, auch kein ERROR und kein DONE: [SequenceOutcome.CLOSE_WITHOUT_COMPLETION]
