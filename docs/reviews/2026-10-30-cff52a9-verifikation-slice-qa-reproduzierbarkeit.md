@@ -1,7 +1,7 @@
 # Verifikation slice-qa-reproduzierbarkeit (DoD- und Entscheidungs-Konformität)
 
 **Rolle:** Verifier (Modul 11) · **Stand:** HEAD `cff52a9`, main · **Datum:** 2026-10-30
-**Gegenstand:** [slice-qa-reproduzierbarkeit](../plan/planning/in-progress/slice-qa-reproduzierbarkeit.md), Welle [welle-qualitaet-grundlage](../plan/planning/welle-qualitaet-grundlage.md)
+**Gegenstand:** [slice-qa-reproduzierbarkeit](../plan/planning/done/slice-qa-reproduzierbarkeit.md), Welle [welle-qualitaet-grundlage](../plan/planning/welle-qualitaet-grundlage.md)
 **Bezug:** [TDS-QA-06](../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [ADR-0008](../plan/adr/0008-dotnet-kompatibilitaetstests.md), [ADR-0010](../plan/adr/0010-detekt-pre-release.md)
 **Adressat:** Planner. Der Verifier repariert nichts und entscheidet den Schnitt nicht.
 

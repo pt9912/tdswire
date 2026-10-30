@@ -151,7 +151,7 @@ Hälften.
 **Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen (`../observations/BEO-TDS/`, 19 Beobachtungen, Stand des Worktrees auf `main`); alle tragen die Sub-Area `*`. Treffer mit Zähler-Stand (Zahl der Dateien unter `evidence/`):
 
 - `BEO-TDS/aussagen-ueber-messung-hinaus` — 16×, Stand *verkörpert* (`AGENTS.md` §3.8, Reviewer-Skill). Betrifft diesen Slice: Jede Aussage über den Integrationslauf nennt Heap, Zeilenzahl und Client-Version.
-- `BEO-TDS/messung-am-echten-sql-server-fehlt` — 9×, Stand *geplant* (Träger [slice-qa-reproduzierbarkeit](../in-progress/slice-qa-reproduzierbarkeit.md)). Der Lauf ist gegen den Referenzclient, nicht gegen einen echten SQL Server; Vergleich: [slice-referenzabgleich-live](slice-referenzabgleich-live.md).
+- `BEO-TDS/messung-am-echten-sql-server-fehlt` — 9×, Stand *geplant* (Träger [slice-qa-reproduzierbarkeit](../done/slice-qa-reproduzierbarkeit.md)). Der Lauf ist gegen den Referenzclient, nicht gegen einen echten SQL Server; Vergleich: [slice-referenzabgleich-live](slice-referenzabgleich-live.md).
 - `BEO-TDS/tds-8-0-und-pooling-nicht-gemessen` — 7×, Stand *geplant* (Träger [slice-qa-kompatibilitaet](slice-qa-kompatibilitaet.md)). Der Integrationslauf läuft in TDS 7.4 ohne Pool; TDS 8.0 und Pooling sind hier nicht gemessen.
 - `BEO-TDS/rueckstau-im-produktivbetrieb-nicht-gemessen` — 1×, offen. Betrifft die Aussage zur Speichergrenze (Testlauf, §6).
 - `BEO-TDS/schranken-test-mit-ungeprueftem-zaehler` — 1×, offen. Betrifft die zählende Attrappe der Callbacks (Untergrenze, §2).

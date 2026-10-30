@@ -32,9 +32,9 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Der Vergleichslauf D ([ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md) Option D, Referenzabgleich nach [SPEC-045](../../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig)) läuft als eigenes Make-Target gegen einen SQL-Server-Container, ist gemessen und steht mit seiner Ausnahmeliste im Repo; in `make gates` kommt er erst nach dieser Messung.
 
-**Übernimmt:** den Gegenstand des DoD-Punkts 3 von [slice-qa-reproduzierbarkeit](../in-progress/slice-qa-reproduzierbarkeit.md). Der Schnitt ist eine Setzung der Closure jenes Slice: der CI-Teil war lieferbar, D hängt an den Szenarien des Referenzclients aus [slice-qa-kompatibilitaet](slice-qa-kompatibilitaet.md) und hatte in der Datei des alten Slice keine Rückführung dafür.
+**Übernimmt:** den Gegenstand des DoD-Punkts 3 von [slice-qa-reproduzierbarkeit](../done/slice-qa-reproduzierbarkeit.md). Der Schnitt ist eine Setzung der Closure jenes Slice: der CI-Teil war lieferbar, D hängt an den Szenarien des Referenzclients aus [slice-qa-kompatibilitaet](slice-qa-kompatibilitaet.md) und hatte in der Datei des alten Slice keine Rückführung dafür.
 
-**Umfang** (aus [slice-qa-reproduzierbarkeit](../in-progress/slice-qa-reproduzierbarkeit.md) §1 übernommen):
+**Umfang** (aus [slice-qa-reproduzierbarkeit](../done/slice-qa-reproduzierbarkeit.md) §1 übernommen):
 
 - Make-Target für D, Container der Referenzinstanz, Referenz-Seite der Läufe, außerhalb von `make gates`.
 - Ausnahmeliste für das gemessene Schema, darunter der Eintrag *so gewollt* für die feste Meldung ohne Kennung (`SPEC-012`); Laufzeit sowie Netz-, Platten- und Speicherbedarf auf dem Zielsystem gemessen.
