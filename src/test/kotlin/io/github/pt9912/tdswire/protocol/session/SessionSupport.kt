@@ -84,7 +84,7 @@ class FakeHandshakeChannel(
     inbound: List<Inbound>,
     private val tlsResult: Boolean = true,
     private val sendResult: Boolean = true,
-    private val sendDelayMillis: Long = 0,
+    var sendDelayMillis: Long = 0,
 ) : HandshakeChannel {
     private val script = ArrayDeque(inbound)
     val sent = mutableListOf<TdsMessage>()

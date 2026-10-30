@@ -3,8 +3,6 @@ package io.github.pt9912.tdswire.protocol.session
 import io.github.pt9912.tdswire.config.auth.AuthAdapter
 import io.github.pt9912.tdswire.config.auth.AuthRequest
 import io.github.pt9912.tdswire.config.auth.AuthResult
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.UUID
 import kotlin.time.Duration
@@ -31,8 +29,15 @@ sealed interface HandshakeOutcome {
  * Annahme ein; läuft die Frist ab, schließt er ohne Antwort. Während der Adapter läuft, liest er
  * nicht weiter.
  *
- * Festlegung ohne Messung: [loginTimeout] hat den vorläufigen Wert 15 s aus `SPEC-008`;
- * [authDispatcher] ist `Dispatchers.IO` (Begründung in [AuthExecutor]); die Sitzungs-ID ist eine
+ * Bricht der Aufrufer [run] ab oder endet [run] mit einer Ausnahme (auch mit der
+ * `CancellationException` eines Adapters, die nicht als Ablehnung zählt), schließt der Treiber den
+ * Kanal und reicht die Ausnahme weiter; die Verbindung bleibt nie offen zurück. Nur [HandshakeOutcome.Ready]
+ * lässt den Kanal offen.
+ *
+ * Festlegung ohne Messung: [loginTimeout] hat den vorläufigen Wert 15 s aus `SPEC-008` und beginnt mit
+ * [run], nicht mit der TCP-Annahme (Abstand zu `SPEC-008` "ab Verbindungsaufbau": die Zeit
+ * bis zum Aufruf von [run] zählt nicht mit); [authPool] legt Dispatcher und die Obergrenze gleichzeitiger
+ * Adapteraufrufe fest (Begründung in [AuthExecutor]); die Sitzungs-ID ist eine
  * zufällige UUID.
  */
 class HandshakeDriver(
@@ -40,18 +45,26 @@ class HandshakeDriver(
     private val adapter: AuthAdapter,
     private val log: HandshakeLog = HandshakeLog.NONE,
     private val loginTimeout: Duration = DEFAULT_LOGIN_TIMEOUT,
-    authDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    authPool: AuthPool = AuthPool(),
     private val sessionIds: () -> String = { UUID.randomUUID().toString() },
 ) {
     private val automaton = HandshakeAutomaton(config)
-    private val executor = AuthExecutor(authDispatcher)
+    private val executor = AuthExecutor(authPool)
 
     suspend fun run(channel: HandshakeChannel): HandshakeOutcome {
         val session = HandshakeSession(automaton, channel, log)
-        val outcome = withTimeoutOrNull(loginTimeout) { drive(session, channel) }
-        if (outcome != null) return outcome
-        session.expire()
-        return HandshakeOutcome.Closed(CloseReason.LOGIN_TIMEOUT)
+        var handedOver = false
+        try {
+            val outcome = withTimeoutOrNull(loginTimeout) { drive(session, channel) }
+            val result = outcome ?: run {
+                session.expire()
+                HandshakeOutcome.Closed(CloseReason.LOGIN_TIMEOUT)
+            }
+            handedOver = true
+            return result
+        } finally {
+            if (!handedOver) channel.close()
+        }
     }
 
     private suspend fun drive(session: HandshakeSession, channel: HandshakeChannel): HandshakeOutcome {
@@ -89,13 +102,20 @@ class HandshakeDriver(
         Inbound.Failed -> HandshakeEvent.ReadFailed
     }
 
-    private suspend fun authenticate(request: AuthRequest): HandshakeEvent =
-        when (val outcome = executor.start(adapter, request).await()) {
-            is AuthOutcome.Failed ->
-                HandshakeEvent.AuthRejected(LoginRejection.ADAPTER_FAILURE, outcome.exceptionType)
+    /** Bricht das Warten ab, bevor der Aufruf endete, wird er abgebrochen (siehe [AuthExecutor]). */
+    private suspend fun authenticate(request: AuthRequest): HandshakeEvent {
+        val call = executor.start(adapter, request)
+        try {
+            return when (val outcome = call.await()) {
+                is AuthOutcome.Failed ->
+                    HandshakeEvent.AuthRejected(LoginRejection.ADAPTER_FAILURE, outcome.exceptionType)
 
-            is AuthOutcome.Decided -> decided(outcome.result)
+                is AuthOutcome.Decided -> decided(outcome.result)
+            }
+        } finally {
+            call.cancel()
         }
+    }
 
     private fun decided(result: AuthResult): HandshakeEvent = when (result) {
         is AuthResult.Accepted -> HandshakeEvent.AuthAccepted(result.principal, sessionIds())

@@ -31,7 +31,15 @@ internal class HandshakeSession(
 
     /**
      * Beendet die Sitzung nach Ablauf von `LOGIN_TIMEOUT`, auch wenn die Annahme schon beschlossen,
-     * aber nicht vollständig gesendet war.
+     * aber nicht vollständig gesendet war: Der Zustand ist dann `READY`, dort ist `LOGIN_TIMEOUT`
+     * ohne Wirkung, und der Zweig unten schließt den Kanal und setzt den Zustand auf `CLOSED`
+     * (fail-closed; ein Test hält diesen Zweig).
+     *
+     * Festlegung ohne Messung / offen (`ADR-0004`): Das Schreiben einer Antwort ist abbrechbar, nicht
+     * durch `NonCancellable` geschützt. Bricht die Frist oder der Aufrufer es ab, kann ein Paket halb
+     * geschrieben sein; die Verbindung wird danach geschlossen und nicht weiterverwendet. Ob das
+     * Schreiben eines Pakets gegen Abbruch zu schützen ist, ist in `ADR-0004` offen, ebenso der
+     * Zeitpunkt des Schließens nach `TDS_SHUTDOWN`; der Handshake berührt ihn nicht.
      */
     suspend fun expire() {
         dispatch(HandshakeEvent.LoginTimeout)

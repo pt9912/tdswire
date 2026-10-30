@@ -6,8 +6,9 @@ import io.github.pt9912.tdswire.transport.framing.TdsMessage
 
 /**
  * Ereignisse des Automaten: vollständige Nachrichten aus dem Paket-Codec und Ereignisse der
- * Verbindung. Der Automat importiert vom Package `transport.framing` nur die Wertetypen
- * [TdsMessage] und [PacketType], keine Leser, Schreiber oder Kanäle.
+ * Verbindung. Das Package `protocol.session` importiert vom Package `transport.framing` nur
+ * Wertetypen und Konstanten ([TdsMessage], [PacketType], `FramingLimits`, `PacketHeader`), keine
+ * Leser, Schreiber oder Kanäle.
  */
 sealed interface HandshakeEvent {
     val kind: EventKind

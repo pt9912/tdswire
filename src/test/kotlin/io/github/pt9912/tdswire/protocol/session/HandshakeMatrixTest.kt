@@ -23,6 +23,7 @@ import io.github.pt9912.tdswire.protocol.session.EventKind.REQUEST_MESSAGE
 import io.github.pt9912.tdswire.protocol.session.EventKind.START
 import io.github.pt9912.tdswire.protocol.session.EventKind.TLS_ESTABLISHED
 import io.github.pt9912.tdswire.transport.framing.PacketType
+import io.github.pt9912.tdswire.transport.framing.TdsMessage
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -168,6 +169,45 @@ class HandshakeMatrixTest {
         listOf(TLS_NEGOTIATION, LOGIN7, AUTHENTICATING, READY, CLOSED).forEach { state ->
             assertClosedSilently(state, event(PRELOGIN_MESSAGE))
         }
+    }
+
+    /**
+     * Im Zustand `LOGIN7` löst nur ein Paket vom Typ LOGIN7 die Anmeldung aus: dieselbe gültige
+     * LOGIN7-Nutzlast in einem Paket vom Typ PRELOGIN, ATTENTION, SQL_BATCH, RPC oder SSPI schließt ohne
+     * Antwort und ohne Adapteraufruf. (Die Zählung der Matrix allein fängt eine geöffnete Zelle nicht,
+     * weil der Inhalt sonst als LOGIN7 gelesen würde.)
+     *
+     * @spec SPEC-001
+     */
+    @Test
+    fun `Eine gueltige LOGIN7-Nutzlast in einem Paket falschen Typs loest keine Anmeldung aus`() {
+        val payload = SessionVectors.login7Payload()
+        listOf(PacketType.PRELOGIN, PacketType.ATTENTION, PacketType.SQL_BATCH, PacketType.RPC, PacketType.SSPI)
+            .forEach { type ->
+                val step = HandshakeAutomaton().step(context(LOGIN7), HandshakeEvent.Message(TdsMessage(type, payload)))
+                assertEquals(CLOSED, step.context.state, "$type")
+                assertEquals(listOf(HandshakeAction.Close(CloseReason.PROTOCOL_VIOLATION)), step.actions, "$type")
+            }
+        val login = HandshakeAutomaton().step(context(LOGIN7), event(LOGIN7_MESSAGE))
+        assertEquals(AUTHENTICATING, login.context.state)
+    }
+
+    /**
+     * Der Kontext nach dem Schließen trägt weder die Anmeldedaten (Datenbank, verlangte Packet Size) noch
+     * die Sitzung: nach einer Ablehnung und nach dem Ende der Gegenstelle in `READY`.
+     *
+     * @spec SPEC-001
+     */
+    @Test
+    fun `Der Kontext nach dem Schliessen traegt keine Anmeldedaten und keine Sitzung`() {
+        val rejected = HandshakeAutomaton().step(authContext, event(AUTH_REJECTED))
+        assertEquals(CLOSED, rejected.context.state)
+        assertEquals(null, rejected.context.pending)
+        assertEquals(null, rejected.context.session)
+        val ended = HandshakeAutomaton().step(context(READY), event(PEER_CLOSED))
+        assertEquals(CLOSED, ended.context.state)
+        assertEquals(null, ended.context.pending)
+        assertEquals(null, ended.context.session)
     }
 
     /**
