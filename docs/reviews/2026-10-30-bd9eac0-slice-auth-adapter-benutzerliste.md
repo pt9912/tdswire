@@ -2,7 +2,7 @@
 
 **Review-Art:** Code (Diff gegen Plan, ADRs, Spezifikation, Hard Rules aus `AGENTS.md`)
 
-**Gegenstand:** Merge `bd9eac0` im Diff `7c9624c..bd9eac0` für `src`, `contracts` und den Slice-Plan (15 Dateien, +1190 / −7): `src/main/.../config/auth` (`AuthAdapter.kt`, `PasswordChars.kt`, `SecretValueParser.kt`, `StoredSecret.kt`, `UserList.kt`, `UserListAuthAdapter.kt`, `UserListParser.kt`), `domain/Principal.kt` (neu), `domain/Placeholder.kt` (gelöscht), `src/test/.../config/auth` (vier Testklassen, `AuthTestSupport.kt`) und `contracts/auth-adapter.md`. Plan: `docs/plan/planning/in-progress/slice-auth-adapter-benutzerliste.md` und `welle-handshake-login.md`. Geprüft gegen [ADR-0009](../plan/adr/0009-authentifizierungsmodus.md), [ADR-0011](../plan/adr/0011-pruefwertformat.md) (beide `Accepted`), `SPEC-012`, `SPEC-051`, [TDS-FA-02](../../spec/lastenheft.md#tds-fa-02--anmeldung-und-sitzungsverwaltung), [TDS-QA-03](../../spec/lastenheft.md#tds-qa-03--sicherheit), `spec/architecture.md` §2 und `AGENTS.md` 3.1 bis 3.8.
+**Gegenstand:** Merge `bd9eac0` im Diff `7c9624c..bd9eac0` für `src`, `contracts` und den Slice-Plan (15 Dateien, +1190 / −7): `src/main/.../config/auth` (`AuthAdapter.kt`, `PasswordChars.kt`, `SecretValueParser.kt`, `StoredSecret.kt`, `UserList.kt`, `UserListAuthAdapter.kt`, `UserListParser.kt`), `domain/Principal.kt` (neu), `domain/Placeholder.kt` (gelöscht), `src/test/.../config/auth` (vier Testklassen, `AuthTestSupport.kt`) und `contracts/auth-adapter.md`. Plan: `docs/plan/planning/done/slice-auth-adapter-benutzerliste.md` und `welle-handshake-login.md`. Geprüft gegen [ADR-0009](../plan/adr/0009-authentifizierungsmodus.md), [ADR-0011](../plan/adr/0011-pruefwertformat.md) (beide `Accepted`), `SPEC-012`, `SPEC-051`, [TDS-FA-02](../../spec/lastenheft.md#tds-fa-02--anmeldung-und-sitzungsverwaltung), [TDS-QA-03](../../spec/lastenheft.md#tds-qa-03--sicherheit), `spec/architecture.md` §2 und `AGENTS.md` 3.1 bis 3.8.
 
 Fragen: (1) Gelangen Passwort, Prüfwert oder Benutzername in Textdarstellung, Log oder Fehlerwert; stimmen Überschreiben, Vergleich, Scheinvergleich und Längengrenze? (2) Hält der Parser die in [ADR-0011](../plan/adr/0011-pruefwertformat.md) gesetzten Regeln, und sind die dort offenen Punkte als Festlegung geführt? (3) Schichtgrenzen und Doppelung von `PasswordChars`. (4) Unabhängigkeit der Orakel, Tautologien, Laufzeit. (5) Signatur im Vertrag gegen Code, Aussagen über Messung hinaus. (6) Kommentare, Suppression, Abhängigkeiten.
 
@@ -54,7 +54,7 @@ Fragen: (1) Gelangen Passwort, Prüfwert oder Benutzername in Textdarstellung, L
 | `src/main/kotlin/io/github/pt9912/tdswire/domain` (`Principal`, `Placeholder` gelöscht) | geprüft, ohne Befund |
 | `src/test/kotlin/io/github/pt9912/tdswire/config/auth` | geprüft, Befunde F-2, F-5, F-6, F-7, F-9 |
 | `contracts/auth-adapter.md` | geprüft, Befund F-4 |
-| `docs/plan/planning/in-progress/slice-auth-adapter-benutzerliste.md` | geprüft als Plan-Maßstab, ohne Befund am Diff |
+| `docs/plan/planning/done/slice-auth-adapter-benutzerliste.md` | geprüft als Plan-Maßstab, ohne Befund am Diff |
 | `config/`, `gradle/`, `gradle.lockfile`, `build.gradle.kts`, `Dockerfile`, `tools/` | im Diff nicht geändert; geprüft, ohne Befund |
 
 ## Summary
