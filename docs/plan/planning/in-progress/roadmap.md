@@ -35,14 +35,6 @@ In Arbeit (Welle welle-handshake-login):
 
 - [slice-bootstrap-konfiguration](slice-bootstrap-konfiguration.md)
 
-In Arbeit (Welle welle-backend-streaming):
-
-- [slice-backend-sequenzierer](slice-backend-sequenzierer.md)
-
-In Arbeit (Welle welle-fehler-abbruch):
-
-- [slice-fehler-mapping](slice-fehler-mapping.md)
-
 In Arbeit (Welle welle-simulations-backend):
 
 - [slice-adr-simulation-formen](slice-adr-simulation-formen.md)
