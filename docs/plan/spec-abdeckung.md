@@ -41,7 +41,7 @@ Stand: 14 von 51 Festlegungen mit mindestens einem bestandenen Test, 7 Gate-Fest
 | `SPEC-002` | Interner Query-Vertrag | 1 | 0 | 0 | 5 | BackendModelTest | mindestens ein bestandener getaggter Test |
 | `SPEC-003` | Typmapping (initialer Mindestkatalog) | 27 | 0 | 0 | 0 | BackendModelTest, RpcFailureTest, RpcTypesTest, TokenEncoderTest, TokenRoundtripTest | mindestens ein bestandener getaggter Test |
 | `SPEC-004` | Testprofil | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
-| `SPEC-028` | PRELOGIN, TLS und LOGIN7: Zustands- und Antwortvertrag | 79 | 2 | 0 | 0 | Login7ParserTest, PreloginCodecTest, SqlBatchParserTest, TokenEncoderTest, TokenRoundtripTest, CodecSmokeTest, SocketChannelLoopbackTest, MessageAssemblerTest, PacketHeaderTest, PacketWriterTest, MessageReaderTest, MessageWriterTest, TlsLoopbackTest, TlsNegativeTest, TlsTicketFlagTest | mindestens ein bestandener getaggter Test |
+| `SPEC-028` | PRELOGIN, TLS und LOGIN7: Zustands- und Antwortvertrag | 88 | 2 | 0 | 0 | Login7ParserTest, PreloginCodecTest, SqlBatchParserTest, TokenEncoderTest, TokenRoundtripTest, CodecSmokeTest, SocketChannelLoopbackTest, MessageAssemblerTest, PacketHeaderTest, PacketWriterTest, MessageReaderTest, MessageWriterTest, TlsDataPhaseTest, TlsLoopbackTest, TlsNegativeTest, TlsTicketFlagTest | mindestens ein bestandener getaggter Test |
 | `SPEC-029` | ATTENTION und Wiederverwendung der Verbindung | 1 | 0 | 0 | 0 | MessageAssemblerTest | mindestens ein bestandener getaggter Test |
 | `SPEC-030` | RPC-Varianten und Parameter-Metadaten | 14 | 1 | 0 | 0 | RpcCatalogFormsTest, RpcFailureTest, RpcTypesTest, TokenEncoderTest, CodecSmokeTest | mindestens ein bestandener getaggter Test |
 | `SPEC-031` | Streaming-Fehler und Atomarität | 0 | 0 | 0 | 3 | — | OHNE NACHWEIS |
@@ -77,7 +77,7 @@ Stand: 14 von 51 Festlegungen mit mindestens einem bestandenen Test, 7 Gate-Fest
 | `SPEC-020` | Microsoft TDS | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-021` | .NET SQL-Client | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-022` | Query-Backend | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
-| `SPEC-023` | TLS | 7 | 0 | 0 | 0 | TlsLoopbackTest, TlsNegativeTest | mindestens ein bestandener getaggter Test |
+| `SPEC-023` | TLS | 9 | 0 | 0 | 0 | TlsLoopbackTest, TlsNegativeTest | mindestens ein bestandener getaggter Test |
 | `SPEC-051` | Authentifizierungsadapter | 29 | 0 | 0 | 0 | AuthPrimitivesTest, AuthTextRepresentationTest, UserListAuthAdapterTest, UserListParserTest | mindestens ein bestandener getaggter Test |
 | `SPEC-024` | Unit-Test-Gate | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-025` | Integrationstest-Gate | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
