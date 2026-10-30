@@ -26,11 +26,16 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 In Arbeit (Welle welle-transport-tls):
 
 - [slice-transport-coroutines-geruest](slice-transport-coroutines-geruest.md)
+- [slice-transport-tls-schleife](slice-transport-tls-schleife.md)
 
 In Arbeit (Welle welle-qualitaet-grundlage):
 
 - [slice-qa-spec-abdeckung](slice-qa-spec-abdeckung.md)
 - [slice-qa-reproduzierbarkeit](slice-qa-reproduzierbarkeit.md)
+
+In Arbeit (Welle welle-backend-streaming):
+
+- [slice-backend-port-vertrag](slice-backend-port-vertrag.md)
 
 In Arbeit (Welle welle-handshake-login):
 
