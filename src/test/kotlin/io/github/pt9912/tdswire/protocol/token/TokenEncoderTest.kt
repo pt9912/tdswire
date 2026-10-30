@@ -100,7 +100,7 @@ class TokenEncoderTest {
      * Orakel: ERROR (`AA`) mit Länge 40 (`0x28`): Nummer 18456 = `18 48 00 00`, State 1, Class 14
      * (`0E`), Text "Login failed." (13 Zeichen, `0D 00`), Servername und Prozedurname leer, Zeile 1.
      *
-     * @spec SPEC-012
+     * @spec SPEC-028
      */
     @Test
     fun `ERROR`() {
@@ -170,9 +170,10 @@ class TokenEncoderTest {
     }
 
     /**
-     * Orakel: LOGINACK (`AD`), Länge 24: Interface 1, TDS-Version `74 00 00 04` (7.4, Big-Endian im
-     * Token), ProgName "tdswire" (7 Zeichen), ProgVersion `01 00 00 00`. Die Byte-Reihenfolge der
-     * Version ist die Lesart von MS-TDS, nicht am Referenzclient gemessen.
+     * Orakel: LOGINACK (`AD`), Länge 24: Interface 1, TDS-Version `74 00 00 04`, ProgName "tdswire"
+     * (7 Zeichen), ProgVersion `01 00 00 00`. Die Bytefolge der TDS-Version ist am Spike-Testserver
+     * gemessen (`ADR-0005`, Abschnitt „Weitere Befunde der Messung“). Die ProgVersion (Big-Endian)
+     * ist eine Festlegung ohne Orakel; der Vektor sichert nur den gewählten Wert gegen Regression.
      *
      * @spec SPEC-028
      */

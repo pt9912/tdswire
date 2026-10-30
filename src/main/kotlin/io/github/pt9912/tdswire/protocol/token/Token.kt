@@ -6,7 +6,9 @@ sealed interface Token
 /**
  * LOGINACK (`0xAD`): Schnittstelle (1 = SQL_TSQL), TDS-Version (`0x74000004` für 7.4), Programmname
  * und Programmversion (Haupt-, Neben-Version und zwei Bytes Build in den vier Bytes der Zahl).
- * Festlegung nach MS-TDS 2.2.7.13: Version und Programmversion stehen im Token Big-Endian.
+ * Die Bytefolge der TDS-Version (`74 00 00 04`) ist am Spike-Testserver gemessen (`ADR-0005`,
+ * Abschnitt „Weitere Befunde der Messung“). Festlegung ohne Orakel: Die Programmversion steht
+ * ebenfalls Big-Endian im Token; dafür liegt weder Messung noch unabhängiger Vektor vor.
  */
 data class LoginAck(val interfaceType: Int, val tdsVersion: Int, val progName: String, val progVersion: Int) : Token
 

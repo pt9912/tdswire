@@ -10,7 +10,9 @@ import io.github.pt9912.tdswire.protocol.wire.violation
  * Liest die LOGIN7-Nachricht (MS-TDS 2.2.6.4, `TDS-FA-02.a`, `SPEC-028`): den festen Kopf von 94
  * Byte mit der Offset-/Längen-Tabelle, die UTF-16-Felder, das entschleierte Passwort und die
  * Merkmale `fIntSecurity`, `fChangePassword` und FeatureExt-Option `0x02`. Der Parser liefert
- * Felder und entscheidet nichts (`ADR-0009`).
+ * Felder und entscheidet nichts (`ADR-0009`). Die Grenze von 128 UTF-16-Einheiten für Kennung und
+ * Passwort (`ADR-0009`, `contracts/auth-adapter.md`) gilt nicht im Parser, sondern im Anmeldepfad;
+ * der Parser liest bis 65535 Einheiten je Feld.
  *
  * Festlegungen: Das Längenfeld stimmt mit der Nachrichtenlänge überein. Ein Feld mit Länge 0 wird
  * nicht an seinem Offset geprüft; jedes andere liegt hinter dem festen Kopf und endet in der

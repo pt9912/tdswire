@@ -35,7 +35,10 @@ class PreloginOption(val token: Int, val data: ByteArray) {
         private const val BYTE_MASK = 0xFF
         private const val BYTE_BITS = 8
 
-        /** VERSION: Haupt-, Nebenversion, Build (zwei Bytes Big-Endian), Unter-Build (zwei Bytes Big-Endian). */
+        /**
+         * VERSION: Haupt-, Nebenversion, Build (zwei Bytes Big-Endian), Unter-Build (zwei Bytes).
+         * Festlegung ohne Orakel: Die Byteordnung des Unter-Builds (hier Big-Endian) ist nicht gemessen.
+         */
         fun version(major: Int, minor: Int, build: Int, subBuild: Int): PreloginOption = PreloginOption(
             PreloginToken.VERSION,
             byteArrayOf(

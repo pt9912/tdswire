@@ -4,8 +4,8 @@ package io.github.pt9912.tdswire.transport.framing
  * Der 8-Byte-Header eines TDS-Pakets (MS-TDS 2.2.3.1): Typ, Status, Länge (Big-Endian, samt Header),
  * SPID (Big-Endian), Packet-ID, Window.
  *
- * Festlegung: Die Packet-ID zählt je Nachricht ab 1 und läuft nach 255 auf 0 über; der Leser prüft
- * sie nicht, weil MS-TDS sie als vom Empfänger ignoriert beschreibt.
+ * Festlegung ohne Messung: Die Packet-ID zählt je Nachricht ab 1 und läuft nach 255 auf 0 über;
+ * der Leser prüft sie nicht (ein Test nimmt nicht fortlaufende IDs an).
  */
 data class PacketHeader(
     val type: PacketType,
