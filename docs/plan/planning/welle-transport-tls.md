@@ -64,7 +64,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte.
 
 - Blockiert: die funktionalen Wellen für Verbindungsaufbau, Login, SQL_BATCH und RPC (wegen Kanal, verschlüsseltem Strom und Verbindungs-Handler); für Verbindungsaufbau und Login ist es [welle-handshake-login](welle-handshake-login.md), für SQL_BATCH und RPC [welle-anfrageverarbeitung](welle-anfrageverarbeitung.md).
-- Wird blockiert von: Slice `slice-codec-tds-paket` der Welle [welle-protokollcodec](done/welle-protokollcodec/welle-protokollcodec.md) (Paket-Codec, Test-Gate); die Welle selbst muss nicht geschlossen sein. [welle-entscheidungen-grundlage](welle-entscheidungen-grundlage.md) blockiert nicht.
+- Wird blockiert von: Slice `slice-codec-tds-paket` der Welle [welle-protokollcodec](done/welle-protokollcodec/welle-protokollcodec.md) (Paket-Codec, Test-Gate); die Welle selbst muss nicht geschlossen sein. [welle-entscheidungen-grundlage](done/welle-entscheidungen-grundlage.md) blockiert nicht.
 - Berührt, blockiert aber nicht: [welle-qualitaet-grundlage](welle-qualitaet-grundlage.md). `slice-qa-stabilitaet` (Fuzz und parallele Verbindungen), `slice-qa-sicherheit` (TLS-Modus) und `slice-qa-kompatibilitaet` (Referenzclient, beide Pfade) bauen auf diesem Transport auf und messen mehr als diese Welle; sie bleiben unverändert (siehe §6).
 
 ## 6. Out-of-Scope für diese Welle

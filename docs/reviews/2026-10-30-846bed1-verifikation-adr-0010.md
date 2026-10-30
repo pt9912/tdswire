@@ -69,7 +69,7 @@ Vorgehen: `git diff af645e1 846bed1` für ADR, `detekt.yml`, `build.gradle.kts`,
 |---|---|
 | [ADR-Index](../plan/adr/README.md), Zeile [ADR-0010](../plan/adr/README.md) | Titel „detekt 2.0 als Gate-Werkzeug (Pre-Release)“, Status `Proposed`, Bezüge [TDS-QA-05](../../spec/lastenheft.md#tds-qa-05--wartbarkeit), [TDS-QA-06](../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) stimmen zur ADR. **bestätigt** |
 | `Schärft:` [SPEC-041](../../spec/spezifikation.md#7-festlegungen-der-harness-werkzeuge) | löst auf die Überschrift auf. SPEC-041 beschreibt den Selbsttest nur für Importregeln und Suppression-Verbot; die ADR zählt zusätzlich die `ForbiddenMethodCall`-Einträge zum Selbsttest. Das ist durch das Skript belegt, die Spec zieht nicht nach (L-4) |
-| [Planung](../plan/planning/welle-entscheidungen-grundlage.md) | führt [ADR-0010](../plan/adr/README.md) als Out-of-Scope („Annahme hängt am Motiv des Autors“); weiter zutreffend, das Motiv fehlt weiterhin |
+| [Planung](../plan/planning/done/welle-entscheidungen-grundlage.md) | führt [ADR-0010](../plan/adr/README.md) als Out-of-Scope („Annahme hängt am Motiv des Autors“); weiter zutreffend, das Motiv fehlt weiterhin |
 | Fitness-Function-Zeile gegen Wirklichkeit | beide Targets existieren und laufen grün; die Zeile behauptet nur Gemessenes. **bestätigt** |
 | Hard Rule 3.1 (Docker-only) | Läufe nur über `make`/`docker build`. Ohne Befund |
 | Hard Rule 3.2 (Suppression) | im Diff kein Kotlin-Quelltext; `suppression-check.sh` grün. Ohne Befund |
