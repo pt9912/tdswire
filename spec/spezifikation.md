@@ -148,7 +148,8 @@ TDS-Tokenstrom.
    `DONE_COUNT` nur gemäß tatsächlichem Zustand setzen.
 3. Bei RPC die im Clientprofil benötigten RETURNSTATUS- und RETURNVALUE-Tokens mit korrekten
    Parametermetadaten erzeugen; dazu zählt RETURNVALUE mit dem Handle von `sp_prepexec` (Ordinal 0,
-   `INTN` 4) und je ein RETURNVALUE je OUTPUT-Parameter.
+   `INTN` 4; so beantwortete es der Testserver, die ordinale Zählung eines echten SQL Servers ist nicht
+   gemessen und gegen MS-TDS zu prüfen) und je ein RETURNVALUE je OUTPUT-Parameter.
 4. Nach dem ersten gesendeten Byte niemals eine alternative vollständige Antwort beginnen; Fehler
    als zulässige Folgetokens senden oder Verbindung schließen.
 
@@ -275,8 +276,10 @@ String (ohne Secrets), Encrypt/TrustServerCertificate, Authentifizierung, verwen
 SQL-/RPC-Operationen und erwartete Typen. Ohne dieses Profil ist die Kompatibilitätsabnahme nicht
 abgeschlossen. Festgelegt sind Paket (`Microsoft.Data.SqlClient` 7.1.1), .NET-Version (10) und
 TDS-Variante (7.4 und 8.0). **Offene Freigabepunkte:** `Encrypt`/`TrustServerCertificate`,
-unterstützte RPCs, MARS ja/nein, Transaktionen ja/nein,
+unterstützte RPCs (Entwurf in `SPEC-030`), MARS ja/nein, Transaktionen ja/nein (Pakettyp `0x0E`, kein RPC),
 Verbindungs-Pooling (einschließlich RESETCONNECTION-Statusbit der Paketheader) und Lastprofil.
+Die unterstützten RPCs gibt das Clientprofil erst frei, wenn die Messgrenzen aus `SPEC-030` geklärt sind
+(TDS 8.0, Pooling, echter Server, KeyInfo-`SET`-Text, Transaktionen).
 Die Authentifizierung ist SQL-Authentifizierung (Kennung und Passwort im LOGIN7, `contracts/auth-adapter.md`).
 Verantwortliche Rolle und Trigger der Festlegungen stehen im
 Lastenheft (Abschnitt Offene Entscheidungen). Bis zur Entscheidung der offenen Freigabepunkte gilt: kein Anspruch auf
@@ -325,8 +328,9 @@ neue Befehle.
 RPC-Nachrichten müssen Prozedurname/-ID, Optionsflags, Parameternamen, Statusflags (inklusive
 OUTPUT), TYPE_INFO, Längenpräfixe, NULL-Sentinels, Kollation sowie Precision/Scale typabhängig
 korrekt dekodieren. Für `sp_executesql` werden SQL-Text und Parameterdefinitionen getrennt vom
-Wertetransport gehalten. Der Katalog unterstützter RPCs ist der gemessene Mindestkatalog des Referenzclients
-(`contracts/client-profile.md`):
+Wertetransport gehalten. Der Katalog unterstützter RPCs ist der Mindestkatalog, den die Messung des Referenzclients trägt
+(`contracts/client-profile.md`); die Messgrenzen stehen unter der Tabelle. Die Zeilen "Pflichtverhalten"
+zum Fehlerfall (unbekanntes Handle, unbekannte Form) sind Festlegungen, nicht Messwerte:
 
 | RPC | Erkennung | Pflichtverhalten |
 |---|---|---|
@@ -335,15 +339,20 @@ Wertetransport gehalten. Der Katalog unterstützter RPCs ist der gemessene Minde
 | `sp_execute` | ProcID 12 | Parameter 0 Handle (`INTN` 4), danach nur die Nutzerparameter; unbekanntes Handle ergibt einen definierten Fehler |
 | RPC per Prozedurname | Name als String (`NameLenProcID` = Zeichenzahl), `OptionFlags=0x0000` | Name wie in `CommandText` (auch `[dbo].[p]`); der ReturnValue-Parameter wird nicht gesendet, RETURNSTATUS trägt ihn; nicht gesetzte Parameter fehlen in der Nachricht |
 
-Prepare-Handles gehören zur Sitzung und enden mit ihr; der Client sendet in den gemessenen
-Szenarien kein `sp_unprepare`, daher ist die Anzahl je Sitzung zu begrenzen. Ohne RETURNSTATUS und
+Prepare-Handles gehören zur Sitzung und enden mit ihr; der Client sendete in den gemessenen
+Szenarien (ohne Pool) kein `sp_unprepare`, daher ist die Anzahl je Sitzung zu begrenzen (Festlegung); unter
+Pooling ist das nicht gemessen, ein gepoolter Client kann `sp_unprepare` senden, das der Katalog mit einem
+Fehler beantwortet. Ohne RETURNSTATUS und
 RETURNVALUE bleiben ReturnValue, OUTPUT-Parameter und Prepare-Handle beim Client leer bzw. −1; die
 Tokens sind für diese Formen Pflicht und durch Tests nachzuweisen. Die Collation aus der
 Login-Antwort (ENVCHANGE Typ 7) ist Voraussetzung für jeden RPC mit Zeichenparametern. Alle anderen RPCs,
 auch `sp_prepare`, `sp_unprepare` und `sp_cursor*`, ergeben eine explizite Fehlermeldung ohne
-Verbindungsabbruch. Gemessen ist nur das Verhalten des Referenzclients gegen einen Testserver, nicht
-die Antwort eines Microsoft-SQL-Servers; Tokenreihenfolge und DONE-Statusbits sind gegen MS-TDS zu
-prüfen.
+Verbindungsabbruch. **Messgrenzen:** Gemessen ist nur das Verhalten des Referenzclients gegen einen Testserver, nicht
+die Antwort eines Microsoft-SQL-Servers; TDS 7.4 unverschlüsselt (kein TDS 8.0, kein TLS), `Pooling=false`,
+eine Verbindung je Szenario, ein Lauf. Tokenreihenfolge, ordinale Zählung der RETURNVALUE und
+DONE-Statusbits sind gegen MS-TDS zu prüfen. **Offen:** die Behandlung der `SET`-Anweisungen im Text von
+`ExecuteReader(KeyInfo|SingleRow)` (`SET FMTONLY`, `SET NO_BROWSETABLE`) und die Transaktionen
+(Pakettyp `0x0E`, kein RPC, nicht im Katalog).
 
 ### SPEC-031 — Streaming-Fehler und Atomarität
 
