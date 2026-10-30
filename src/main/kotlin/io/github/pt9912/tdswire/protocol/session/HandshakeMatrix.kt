@@ -7,7 +7,8 @@ package io.github.pt9912.tdswire.protocol.session
  * Nachrichteninhalt.
  *
  * Festlegung ohne Messung / offen (`ADR-0004`): Ein unzulässiger Übergang beendet die Verbindung
- * ohne Antwort (Setzung des Spike). Das gilt auch für ATTENTION und RESETCONNECTION vor `READY`.
+ * ohne Antwort (Setzung des Spike). Das gilt auch für ATTENTION vor `READY`; das RESETCONNECTION-Bit
+ * einer Nachricht wertet der Automat nicht aus.
  * `LOGIN_TIMEOUT`, `PEER_CLOSED` und `READ_FAILED` sind nach `CLOSED` ohne Wirkung; `LOGIN_TIMEOUT`
  * ist es auch in `READY`, weil die Frist für eine angemeldete Verbindung nicht gilt (`SPEC-008`).
  */

@@ -23,9 +23,9 @@ internal sealed interface Negotiation {
 /**
  * Die PRELOGIN-Antwort aus der Verschlüsselungs-Richtlinie (`SPEC-010`, `SPEC-028`, `ADR-0002`).
  *
- * Gemessen am Spike-Testserver mit dem Referenzclient (`ADR-0002`): ENCRYPT_REQ wird von Clients mit
- * `Encrypt=true` wie mit `Encrypt=false` angenommen; ENCRYPT_ON scheiterte bei `Encrypt=false` im
- * Testserver. Festlegung ohne Messung: [EncryptionPolicy.REQUIRED] antwortet ENCRYPT_REQ; ein Client
+ * Gemessen am Spike-Testserver mit dem Referenzclient (`ADR-0002`): Der Handschlag gelingt bei ENCRYPT_REQ
+ * mit `Encrypt=true` wie mit `Encrypt=false`; ENCRYPT_ON gegen einen Client mit `Encrypt=false` scheiterte
+ * serverseitig im Testserver. Festlegung ohne Messung: [EncryptionPolicy.REQUIRED] antwortet ENCRYPT_REQ; ein Client
  * mit ENCRYPT_NOT_SUP, ohne ENCRYPTION-Option oder mit unbekanntem Wert ist unvereinbar; im Testmodus
  * antwortet der Server ENCRYPT_NOT_SUP und nimmt nur Clients mit ENCRYPT_OFF oder ENCRYPT_NOT_SUP an;
  * bei Unvereinbarkeit schließt der Server vor LOGIN7 ohne Antwort (kein stilles Downgrade). In der
