@@ -28,7 +28,7 @@ Mensch ohne Rückfrage sagen kann, ob er eingetreten ist; ein Datum darf erwähn
 werden, aber nie Trigger sein. Und der **Start**-Trigger ist **kein Ergebnis
 dieser Welle**: Steht er in der Slice-Liste unten, ist er falsch platziert.
 
-- `slice-codec-tds-paket` (Welle [welle-protokollcodec](done/welle-protokollcodec.md)) liegt in `done/`: Paket-Codec im Package `transport` und das Test-Gate `make test` stehen auf `main`.
+- `slice-codec-tds-paket` (Welle [welle-protokollcodec](done/welle-protokollcodec/welle-protokollcodec.md)) liegt in `done/`: Paket-Codec im Package `transport` und das Test-Gate `make test` stehen auf `main`.
 - `make gates` ist auf `main` grün.
 - [ADR-0001](../adr/0001-tds-version-und-clientprofil.md), [ADR-0002](../adr/0002-tls-und-verschluesselung.md) und [ADR-0003](../adr/0003-transportframework.md) stehen im ADR-Index auf `Accepted`. Die offenen ADRs ([ADR-0004](../adr/0004-session-zustandsautomat.md), [ADR-0006](../adr/0006-backend-vertrag-und-streaming.md), [ADR-0007](../adr/0007-fehler-und-attention.md)) betreffen Zustandsautomat, Backend-Vertrag und Fehlersemantik, die diese Welle nicht berührt (siehe §6).
 
@@ -64,7 +64,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte.
 
 - Blockiert: die funktionalen Wellen für Verbindungsaufbau, Login, SQL_BATCH und RPC (wegen Kanal, verschlüsseltem Strom und Verbindungs-Handler); sie sind noch nicht geplant und stehen in keiner Roadmap-Zeile.
-- Wird blockiert von: Slice `slice-codec-tds-paket` der Welle [welle-protokollcodec](done/welle-protokollcodec.md) (Paket-Codec, Test-Gate); die Welle selbst muss nicht geschlossen sein. [welle-entscheidungen-grundlage](welle-entscheidungen-grundlage.md) blockiert nicht.
+- Wird blockiert von: Slice `slice-codec-tds-paket` der Welle [welle-protokollcodec](done/welle-protokollcodec/welle-protokollcodec.md) (Paket-Codec, Test-Gate); die Welle selbst muss nicht geschlossen sein. [welle-entscheidungen-grundlage](welle-entscheidungen-grundlage.md) blockiert nicht.
 - Berührt, blockiert aber nicht: [welle-qualitaet-grundlage](welle-qualitaet-grundlage.md). `slice-qa-stabilitaet` (Fuzz und parallele Verbindungen), `slice-qa-sicherheit` (TLS-Modus) und `slice-qa-kompatibilitaet` (Referenzclient, beide Pfade) bauen auf diesem Transport auf und messen mehr als diese Welle; sie bleiben unverändert (siehe §6).
 
 ## 6. Out-of-Scope für diese Welle
