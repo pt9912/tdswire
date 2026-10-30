@@ -105,7 +105,7 @@ ERROR-/DONE-Token oder Verbindungsabbruch, falls Protokollzustand keine Antwort 
    schließt der Server die Verbindung, ein weiteres LOGIN7 wird nicht angenommen. Eigene Fehlercodes:
    Anfragefehler (zum Beispiel `TDS_UNSUPPORTED_SQL`, `TDS_BACKEND_ERROR`) tragen Severity 16, die
    Verbindung bleibt offen; `TDS_PROTOCOL_ERROR` und `TDS_INTERNAL_ERROR` tragen Severity 20, der Server
-   schließt. Die Zuordnung jedes Codes legt das Fehler-Mapping fest; `TDS_UNSUPPORTED_RPC` und `TDS_SIM_INVALID_VALUE` gehören zur Anfragefehler-Gruppe (Setzung, Voreinstellung 2026-10-30, nicht gemessen). `TDS_TIMEOUT` bleibt bis zur Entscheidung, ob Cancel und Timeout als Fehler zählen, außerhalb der Gruppen; für ihn und für jeden weiteren eigenen Code, der zu keiner Gruppe gehört, gilt bis zur Zuordnung, dass der Server schließt (im Zweifel schließen). Das Verbindungsende nach abgelehntem
+   schließt. Die Zuordnung jedes Codes legt das Fehler-Mapping fest und steht in §4 (Zuordnung des Fehler-Mappings; die Einzelzuordnung von `TDS_UNSUPPORTED_TYPE`, `TDS_SIM_UNKNOWN_OBJECT` und `TDS_TIMEOUT` ist offen und steht unter der Grundregel); `TDS_UNSUPPORTED_RPC` und `TDS_SIM_INVALID_VALUE` gehören zur Anfragefehler-Gruppe (Setzung, Voreinstellung 2026-10-30, nicht gemessen). `TDS_TIMEOUT` bleibt bis zur Entscheidung, ob Cancel und Timeout als Fehler zählen, außerhalb der Gruppen; für ihn und für jeden weiteren eigenen Code, der zu keiner Gruppe gehört, gilt bis zur Zuordnung, dass der Server schließt (im Zweifel schließen). Das Verbindungsende nach abgelehntem
    Login und die Severity-Werte der eigenen Codes sind Setzungen, nicht an Referenzclients gemessen (am
    echten Server wurde nur die Fehlerantwort des Logins einmal beobachtet). Noch festzulegen: ob Cancel
    und Timeout als Fehler zählen.
@@ -609,6 +609,36 @@ Die Nummern in der Aktionsspalte sind ein Vorschlag für das Mapping nach `TDS-F
 `TDS_UNSUPPORTED_SQL` gibt es keine SQL-Server-Entsprechung, denn dort ist die Anweisung gültig; die
 Nummer kommt aus dem Benutzerbereich (ab 50001).
 
+**Zuordnung des Fehler-Mappings** (`TDS-FA-06.a` Nr. 2 und 6; Träger:
+`ErrorCode` im Package `protocol.error`). Kein Wert dieser Tabelle ist an einem echten SQL Server
+gemessen. Die Spalte *Herkunft* trennt: *Vorschlag* (Nummer aus der Aktionsspalte oben,
+„an der Referenzinstanz zu messen“), *Setzung des Nutzers* (Gruppe und Class, 2026-10-30),
+*Voreinstellung* (Gruppe nach der Voreinstellung vom 2026-10-30, nicht entschieden), *Festlegung* (vom Mapping gewählt, nicht
+gemessen), *Grundregel* (kein Gruppenmitglied, im Zweifel schließen). State ist für jeden Code 1, der
+Text fest und englisch; der Text einer Backend-Meldung oder Ausnahme erreicht den Client nie.
+
+| Code | Nummer | Class | Folge nach ERROR und DONE | Herkunft |
+|---|---|---|---|---|
+| `TDS_PROTOCOL_ERROR` | 50006 | 20 | schließt | Class und Folge: Setzung des Nutzers; Nummer: Festlegung |
+| `TDS_LOGIN_FAILED` | 18456 | 14 | schließt | Nummer, Class: `SPEC-012`; Folge: Setzung; Bytes gleich der Antwort des Handshakes |
+| `TDS_UNSUPPORTED_RPC` | 50002 | 16 | offen | Gruppe: Voreinstellung; Nummer: Festlegung |
+| `TDS_UNSUPPORTED_TYPE` | 50003 | 20 | schließt | Grundregel, Einzelzuordnung offen; Nummer: Festlegung |
+| `TDS_BACKEND_ERROR` | 50004 | 16 | offen | Class und Folge: Setzung des Nutzers; Nummer: Festlegung |
+| `TDS_TIMEOUT` | 50005 | 20 | schließt | Grundregel, offen ob Cancel/Timeout als Fehler gelten; Nummer: Festlegung |
+| `TDS_UNSUPPORTED_SQL` | 50001 | 16 | offen | Class und Folge: Setzung des Nutzers; Nummer: Vorschlag (Benutzerbereich) |
+| `TDS_SIM_UNKNOWN_OBJECT` | 208 | 20 | schließt | Nummer: Vorschlag (207 für Spalten nicht abgebildet); Class und Folge: Grundregel, Einzelzuordnung offen |
+| `TDS_SIM_INVALID_VALUE` | 245 | 16 | offen | Nummer: Vorschlag (8115 für Überlauf nicht abgebildet); Gruppe: Voreinstellung |
+| `TDS_INTERNAL_ERROR` | 50007 | 20 | schließt | Class und Folge: Setzung des Nutzers; Nummer: Festlegung |
+| `TDS_SHUTDOWN` | 50008 | 20 | schließt | Folge: Setzung des Nutzers (`SPEC-049`); Nummer und Class: Festlegung (die SQL-Server-Nummer für ein Herunterfahren ist nicht gemessen) |
+
+Das DONE trägt für jeden Code das Statusbit `ERROR`, Befehlskennung 0 und Zeilenzahl 0; ob der
+Referenzclient es so annimmt, ist nicht am Produkt gemessen. Ist der Strom nicht synchron, entfällt die
+Antwort und die Verbindung schließt (`SPEC-031`). Der Log-Eintrag einer unerwarteten Ausnahme trägt den
+Code und den Typnamen der Ausnahme, nicht ihren Text: das ist enger als der Satz in `SPEC-048`, die
+Ausnahme gehe ins Log. Offen: die Einzelzuordnung der Codes unter *Grundregel* und die Frage, ob Cancel
+und Timeout als Fehler zählen; die Unterscheidung statement- und batch-abbrechender Fehler; die Messung
+aller Werte (`BEO-TDS/messung-am-echten-sql-server-fehlt`).
+
 Pflicht-Logfelder: `connection_id`, `session_id` (falls vorhanden), `request_id` (falls vorhanden),
 `event`, `duration_ms`, `error_code`, `client_profile`. Keine Zugangsdaten oder Parameterwerte im
 Standardlogging.
@@ -667,3 +697,4 @@ aktive Backendoperationen, Abbrüche, Protokollfehler. Keine SQL-Texte als Metri
 | 2026-10-30 | Nach Re-Review geschärft: eigene Codes ohne Einzelzuordnung schließen bis zur Zuordnung durch das Fehler-Mapping (`TDS-FA-06.a`); Messklammer in `SPEC-012` an die Antwortbytes gebunden, das Verbindungsende als Setzung getrennt (`SPEC-012`) |
 | 2026-10-30 | Backend-Vertrag auf den gebauten Stand geschärft: `SqlType` definiert, Ort der Typen und Fehlerform beim Start als Setzung, Precision-Obergrenze und weitere Punkte als offen geführt (`SPEC-002`, `SPEC-022`, `TDS-FA-08.a`) |
 | 2026-10-30 | Typabbildung nachgeführt: Precision über 38 scheitert in der Typabbildung, Zeit ohne Zone mit Scale 7, Unicode-Text `NVARCHAR(4000)` und Decimal ohne Rundung als Setzungen (`SPEC-002`, `SPEC-003`) |
+| 2026-10-30 | Zuordnung des Fehler-Mappings je Code (Nummer, Class, State, Text, Verbindungsfolge) in §4 festgehalten, jede Zeile nach Herkunft gekennzeichnet; Einzelzuordnung der Codes ohne Gruppe offen (`TDS-FA-06.a`, `SPEC-011` bis `SPEC-016`, `SPEC-037` bis `SPEC-039`, `SPEC-048`, `SPEC-049`) |
