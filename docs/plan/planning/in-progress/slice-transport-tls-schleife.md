@@ -85,6 +85,15 @@ Aussagen-Berührung steht hier gar nicht.
 | Testzertifikat und Test-Hilfen | neu | Herkunft offen (Frage an den Nutzer, §6); kein Schlüssel im Repo ohne Entscheidung |
 | `build.gradle.kts` | update | JVM-Argument `-Djdk.tls.server.newSessionTicketCount=0` für die Test-JVM; das Flag des Serverprozesses setzt der Start (nicht dieser Slice) |
 
+Erweiterung im ersten Lauf (Ist-Zustand gegen den Plan gemessen: `transport/channel`, `transport/messaging` und `transport/framing` liegen, `config/detekt/detekt.yml` sperrt für `transport` nur `port`, `simulation`, `runtime`; Dockerfile-Stages `test` und `spec-abdeckung` führen `gradle test`):
+
+| Datei / Komponente | Änderungs-Art | Begründung |
+|---|---|---|
+| `transport/tls/` <!-- d-check:ignore (geplant: neues Package) --> | neu | `TlsChannel` (Kanal-Dekorierer), `TlsHandshake`, `TlsRecordIo`, `NetInbound`/`NetOutbound` (Rohstrom oder `0x12`-Pakete), `TlsError`/`TlsResult`, `TlsParameters`/`TlsPath`; nur Imports aus `transport.channel`, `transport.framing`, JDK und Coroutinen |
+| `Dockerfile` | update, additiv | Stage `testkeys` erzeugt per `keytool` die PKCS#12-Speicher (gültig, falscher Name, abgelaufen von einer Test-CA signiert); `test` und `spec-abdeckung` kopieren sie nach `build/testkeys` und laden das Init-Skript |
+| `gradle/test-jvm.init.gradle.kts` <!-- d-check:ignore (geplant: neue Datei) --> | neu, statt Änderung an `build.gradle.kts` | Test-JVM: `-Djdk.tls.server.newSessionTicketCount=0` und Systemeigenschaften `tdswire.testkeys`, `tdswire.testclasspath`; ein Init-Skript lässt die Eingänge der Stage `deps` unverändert, sodass deren Cache nicht neu läuft |
+| `src/test/.../testsupport/TlsTestSupport.kt` und `transport/tls/*Test.kt` <!-- d-check:ignore (geplant: neue Dateien) --> | neu | unabhängige Gegenstelle auf `SSLEngine`-Basis, Zerstückelung, handgebautes TLS-1.1-ClientHello, Loopback je Pfad |
+
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 
 - Reihenfolge: zuerst die Schleife auf rohem Strom (der 8.0-Pfad ist ihr Grundfall), dann die `0x12`-Kapselung mit Umschaltung, zuletzt ALPN und Negativfälle.
