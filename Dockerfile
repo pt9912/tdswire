@@ -59,6 +59,28 @@ RUN sh tools/detekt-selbsttest.sh generate \
  && sh tools/detekt-selbsttest.sh aufrufe \
  && sh tools/detekt-selbsttest.sh suppression
 
+# --- Spec-Abdeckung: `make spec-abdeckung` - fuehrt die Tests aus (rote Tests brechen die Stage
+# nicht: sie stehen dann in der Matrix als nicht bestanden) und erzeugt aus den @spec-Tags und den
+# Berichten die Abdeckungsmatrix (tools/spec-abdeckung.sh). `spec-abdeckung-export` gibt Matrix und
+# Waisenzahl per `docker build --output` heraus, nichts wird gemountet. ------------------
+FROM deps AS spec-abdeckung
+COPY --chown=gradle:gradle src src
+COPY --chown=gradle:gradle spec/spezifikation.md spec/spezifikation.md
+COPY --chown=gradle:gradle tools/spec-abdeckung.sh tools/
+RUN gradle --no-daemon test --continue || echo "spec-abdeckung: der Testlauf ist rot; rote Tests zaehlen nicht als Nachweis"
+RUN mkdir -p /tmp/ausgabe \
+ && ZIEL=/tmp/ausgabe/spec-abdeckung.md WAISEN_DATEI=/tmp/ausgabe/waisen sh tools/spec-abdeckung.sh
+
+FROM scratch AS spec-abdeckung-export
+COPY --from=spec-abdeckung /tmp/ausgabe/ /
+
+# --- Spec-Abdeckung-Selbsttest: `docker build --target spec-abdeckung-selbsttest .` - belegt am
+# erzeugten Mini-Bestand, dass der Erzeuger nur bestandene Tests zaehlt (tools/spec-abdeckung-selbsttest.sh).
+FROM basis AS spec-abdeckung-selbsttest
+WORKDIR /src
+COPY tools/spec-abdeckung.sh tools/spec-abdeckung-selbsttest.sh tools/
+RUN sh tools/spec-abdeckung-selbsttest.sh
+
 # --- Lock: schreibt gradle.lockfile, settings-gradle.lockfile und gradle/verification-metadata.xml
 # neu (`make deps-lock`, braucht Netz). Es wird nichts gemountet: die Stage `lock-export` liefert
 # die drei Dateien per `docker build --output`. DEPS_TASKS nennt die Gradle-Tasks, die dieses
