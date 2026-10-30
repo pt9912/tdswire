@@ -79,7 +79,7 @@ Diese Datei dupliziert sie nicht.
 | Target | Tut was | Bindung |
 |---|---|---|
 | `make deps-lock` | schreibt `gradle.lockfile` und `gradle/verification-metadata.xml` neu (braucht Netz), prüft nichts | kein Gate |
-| `make spec-abdeckung` | führt die Tests aus, schreibt `docs/plan/spec-abdeckung.md`: je `SPEC-*` bestandene `@spec`-Tests nach Art, Waisen sichtbar; `SPEC_ABDECKUNG_STRENG=1` bricht bei Waisen | kein Gate |
+| `make spec-abdeckung` | führt die Tests aus, schreibt `docs/plan/spec-abdeckung.md`: je `SPEC-*` bestandene `@spec`-Tests nach Art, Waisen sichtbar; `SPEC_ABDECKUNG_STRENG=1` bricht bei Waisen (make-Exit 2) | kein Gate |
 | `make spec-abdeckung-selbsttest` | prüft den Erzeuger der Abdeckungsmatrix an einem erzeugten Mini-Bestand: roter, nicht gelaufener, übersprungener und unbekannt getaggter Test zählen nicht | kein Gate |
 | `make workflow-lint` | prüft `.github/workflows/*.yml` mit actionlint (Image per Digest, Datei über stdin, kein Mount) | kein Gate, [TDS-QA-06](../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
 | `make clean-build` | baut Jar, Tests und detekt mit `--no-cache` in Docker; für den Clean-Build-Nachweis | kein Gate, [TDS-QA-06](../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |

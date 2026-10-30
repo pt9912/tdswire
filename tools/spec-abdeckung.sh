@@ -3,17 +3,33 @@
 #
 # Eingaenge (Umgebung, Vorgaben in Klammern):
 #   SPEC_DATEI    (spec/spezifikation.md)    Festlegungen: `### SPEC-<NNN> — <Titel>` und Tabellenzeilen `| `SPEC-<NNN>` | <Titel> | ...`
-#   TEST_QUELLE   (src/test)                 Kotlin-Tests mit dem KDoc-Block-Tag `@spec SPEC-<NNN> ...`
+#   TEST_QUELLE   (src/test)                 Kotlin-Tests mit dem KDoc-Block-Tag `@spec SPEC-<NNN> [SPEC-<NNN> ...]`
 #   BERICHTE      (build/test-results/test)  JUnit-XML-Berichte des Gradle-Testlaufs (TEST-*.xml)
 #   ZIEL          (docs/plan/spec-abdeckung.md)  die zu schreibende Matrix
 #   WAISEN_DATEI  (leer)                     wenn gesetzt: dorthin die Zahl der Festlegungen ohne Nachweis
 #   STRENG        (0)                        1: Exit 1, sobald eine Festlegung ohne Nachweis ist
 #
+# Konvention des Tags: eine KDoc-Zeile `* @spec SPEC-<NNN> [SPEC-<NNN> ...]` ueber der Testfunktion,
+# Kennungen durch Leerzeichen getrennt (ein Komma macht die Kennung unbekannt). Mehrere `@spec`-Zeilen
+# untereinander im selben Block sind erlaubt und addieren sich; eine Folgezeile ohne eigenes `@spec`
+# gehoert nicht zum Tag. Der Tag haftet an der naechsten `fun` (Modifikatoren nur `private`/`internal`;
+# bei `suspend fun` oder `override fun` haftet er an der naechsten passenden `fun`). Ein Einzeilen-KDoc
+# `/** @spec ... */` wird nicht gelesen. Ein neuer KDoc-Block oder eine Klasse verwirft einen offenen Tag.
+#
 # Ein Nachweis ist ein Test, dessen Tag die Kennung nennt UND dessen Klasse und Methode im Bericht
-# ohne Fehler und ohne Uebersprung stehen. Ein getaggter Test ohne bestandenes Ergebnis steht in
-# eigenem Abschnitt der Matrix und zaehlt nicht. Exit 2: Eingang fehlt oder leer.
-# Grenze: der Tag sagt, welche Festlegung der Autor meint; ob die Assertions sie inhaltlich
-# belegen, urteilt der Leser. Gate-Nachweise (ein Make-Target statt eines Tests) kennt der Erzeuger nicht.
+# ohne Fehler und ohne Uebersprung stehen; das Urteil lautet „mindestens ein bestandener getaggter
+# Test“. Ein getaggter Test ohne bestandenes Ergebnis steht in eigenem Abschnitt der Matrix und zaehlt
+# nicht. Kommt derselbe Testfall in mehreren Berichten vor, zaehlt das schlechteste Ergebnis.
+# Exit 1: STRENG=1 und Festlegungen ohne Nachweis (`make` meldet dann Exit 2). Exit 2: Eingang fehlt oder leer.
+# Gate-Klasse: eine Festlegung ist Gate-Festlegung (ungemessen, keine Waise), wenn die Titelzelle ein
+# `make`-Target nennt oder die Zeile „Gate noch einzurichten“ traegt; Test-Anforderungen sind es nicht.
+# Nennt irgendein Test die Kennung einer Gate-Festlegung, steht sie als Nachweis da, und die Klasse
+# ist aus der Matrix nicht mehr zu sehen.
+# Grenzen: der Tag sagt, welche Festlegung der Autor meint; ob die Assertions sie inhaltlich belegen,
+# urteilt der Leser. Gate-Nachweise (ein Make-Target statt eines Tests) kennt der Erzeuger nicht.
+# Eine Zeile `<failure` oder `<error` in der Ausgabe eines Testfalls (system-out) faerbt ihn rot.
+# Die Namenszusage gilt gegen den Bericht: ein getaggter Test ohne gleichnamigen Testfall im Bericht
+# steht als „nicht gelaufen“; ein frischer Lauf kennt den alten Namen nicht mehr.
 #
 # Aufgerufen von der Dockerfile-Stage `spec-abdeckung` und von tools/spec-abdeckung-selbsttest.sh;
 # braucht sh, awk, sed, find, xargs, sort, cmp, mktemp.
@@ -38,18 +54,18 @@ trap 'rm -rf "$tmp"' EXIT
 
 # S: Festlegungen der Spezifikation: Kennung, Titel, Klasse. Eine Festlegung ist eine Ueberschrift
 # `### SPEC-<NNN> — <Titel>` oder eine Tabellenzeile, deren erste Zelle `SPEC-<NNN>` und deren zweite
-# der Titel ist. Die Klasse ist `gate` in dem `## `-Abschnitt, dessen Ueberschrift GATE_ABSCHNITT
-# (Vorgabe: Werkzeuge) trifft, sonst `test`; eine Kennung zaehlt beim ersten Auftreten.
-awk -v gate="${GATE_ABSCHNITT:-Werkzeuge}" '
-  /^## / { klasse = ($0 ~ gate) ? "gate" : "test" }
+# der Titel ist. Die Klasse ist `gate` bei einer Tabellenzeile, deren Titelzelle `make ` nennt oder die
+# „Gate noch einzurichten“ traegt, sonst `test`; eine Kennung zaehlt beim ersten Auftreten.
+awk '
   /^### SPEC-[0-9]+ — / {
     s = $0; sub(/^### /, "", s); id = s; sub(/ — .*$/, "", id); t = s; sub(/^[^ ]+ — /, "", t)
-    if (!(id in da)) { da[id] = 1; printf "S\t%s\t%s\t%s\n", id, t, klasse }
+    if (!(id in da)) { da[id] = 1; printf "S\t%s\t%s\ttest\n", id, t }
     next
   }
   /^\| `SPEC-[0-9]+` \| / {
     n = split($0, z, " \\| "); id = z[1]; sub(/^\| `/, "", id); sub(/`$/, "", id)
     t = z[2]; sub(/ \|$/, "", t)
+    klasse = (t ~ /`make / || $0 ~ /Gate noch einzurichten/) ? "gate" : "test"
     if (!(id in da)) { da[id] = 1; printf "S\t%s\t%s\t%s\n", id, t, klasse }
   }
 ' "$spec" > "$tmp/s.tsv"
@@ -138,15 +154,31 @@ cat "$tmp/s.tsv" "$tmp/t.tsv" "$tmp/r.tsv" | awk -F '\t' -v spec="$spec" '
     print "`SPEC-<NNN>`-Überschriften und die Tabellenzeilen mit `SPEC-<NNN>` in der ersten Zelle von"
     print "[`" spec "`](../../" spec ")."
     print ""
+    print "Die Matrix belegt den Stand **jenes Testlaufs**, nicht eines Commits: sie nennt keinen Commit-Hash,"
+    print "damit der Erzeuger deterministisch bleibt. Wer ihren Stand braucht, erzeugt sie neu."
+    print ""
+    print "**Konvention des Tags:** eine KDoc-Zeile `* @spec SPEC-<NNN> [SPEC-<NNN> ...]` über der Testfunktion,"
+    print "Kennungen durch Leerzeichen getrennt (ein Komma macht die Kennung unbekannt). Mehrere `@spec`-Zeilen"
+    print "untereinander im selben Block sind erlaubt und addieren sich. Der Tag haftet an der nächsten `fun`"
+    print "(Modifikatoren nur `private`/`internal`; bei `suspend fun` oder `override fun` haftet er an der"
+    print "nächsten passenden `fun`); ein Einzeilen-KDoc `/** @spec ... */` wird nicht gelesen; ein neuer"
+    print "KDoc-Block oder eine Klasse verwirft einen offenen Tag."
+    print ""
     print "Ein **Nachweis** ist ein Test, dessen Tag die Kennung nennt und der im Bericht desselben Laufs"
-    print "bestanden steht (Klasse und Methodenname stimmen überein). Ein getaggter Test, der nicht gelaufen,"
-    print "rot oder übersprungen ist, zählt nicht und steht im Abschnitt „Getaggt, aber ohne bestandenes"
-    print "Ergebnis“. Ein umbenannter Test verliert seinen Nachweis, bis sein Name wieder zu einem Testfall"
-    print "im Bericht passt. **Grenze:** der Tag nennt die Festlegung, die der Autor meint; ob die"
-    print "Assertions sie inhaltlich belegen, urteilt der Leser. Ein Gate als Nachweis (ein Make-Target statt"
-    print "eines Tests) kennt der Erzeuger nicht: eine Festlegung aus dem Abschnitt der Harness-Werkzeuge ohne"
-    print "bestandenen Test steht als „Gate-Festlegung, ungemessen“ und ist weder Nachweis noch Waise. Die Art"
-    print "folgt dem Verzeichnis des Tests: `smoke/` Smoke-Test, `e2e/` E2E-Test, sonst Modul-Test."
+    print "bestanden steht (Klasse und Methodenname stimmen überein); das Urteil lautet „mindestens ein"
+    print "bestandener getaggter Test“. Ein getaggter Test, der nicht gelaufen, rot oder übersprungen ist,"
+    print "zählt nicht und steht im Abschnitt „Getaggt, aber ohne bestandenes Ergebnis“. Ein getaggter Test,"
+    print "zu dem der Bericht keinen gleichnamigen Testfall führt, steht als „nicht gelaufen“; belegbar ist"
+    print "das nur gegen einen Bericht, der den Namen nicht kennt. Kommt ein Testfall in mehreren Berichten"
+    print "vor, zählt das schlechteste Ergebnis. **Grenze:** der Tag nennt die Festlegung, die der Autor"
+    print "meint; ob die Assertions sie inhaltlich belegen, urteilt der Leser. Eine Zeile `<failure` oder"
+    print "`<error` in der Ausgabe eines Testfalls färbt ihn rot."
+    print ""
+    print "Ein Gate als Nachweis (ein Make-Target statt eines Tests) kennt der Erzeuger nicht: eine Festlegung,"
+    print "deren Titelzelle ein `make`-Target nennt oder die „Gate noch einzurichten“ trägt, steht ohne"
+    print "bestandenen Test als „Gate-Festlegung, ungemessen“ und ist weder Nachweis noch Waise. Nennt"
+    print "irgendein Test ihre Kennung, steht sie als Nachweis da und die Klasse ist nicht mehr zu sehen."
+    print "Die Art folgt dem Verzeichnis des Tests: `smoke/` Smoke-Test, `e2e/` E2E-Test, sonst Modul-Test."
     print ""
     printf "Stand: %d von %d Festlegungen mit mindestens einem bestandenen Test, %d Gate-Festlegungen ungemessen, %d ohne Nachweis.\n", ns - waisen - gates, ns, gates, waisen
     print ""
@@ -156,7 +188,7 @@ cat "$tmp/s.tsv" "$tmp/t.tsv" "$tmp/r.tsv" | awk -F '\t' -v spec="$spec" '
     print "| --- | --- | --- | --- | --- | --- | --- | --- |"
     for (j = 1; j <= ns; j++) {
       s = sid[j]
-      printf "| `%s` | %s | %d | %d | %d | %d | %s | %s |\n", s, zelle(titel[s]), pass[s, "Modul-Test"], pass[s, "Smoke-Test"], pass[s, "E2E-Test"], verfehlt[s], (klliste[s] == "" ? "—" : zelle(klliste[s])), (gesamt[s] > 0 ? "nachgewiesen" : (klasse[s] == "gate" ? "Gate-Festlegung, ungemessen" : "OHNE NACHWEIS"))
+      printf "| `%s` | %s | %d | %d | %d | %d | %s | %s |\n", s, zelle(titel[s]), pass[s, "Modul-Test"], pass[s, "Smoke-Test"], pass[s, "E2E-Test"], verfehlt[s], (klliste[s] == "" ? "—" : zelle(klliste[s])), (gesamt[s] > 0 ? "mindestens ein bestandener getaggter Test" : (klasse[s] == "gate" ? "Gate-Festlegung, ungemessen" : "OHNE NACHWEIS"))
     }
     print ""
     print "## Getaggt, aber ohne bestandenes Ergebnis"
