@@ -31,10 +31,6 @@ In Arbeit (Welle welle-qualitaet-grundlage):
 - [slice-qa-wartbarkeit](slice-qa-wartbarkeit.md)
 - [slice-qa-stabilitaet](slice-qa-stabilitaet.md)
 
-In Arbeit (Welle welle-transport-tls):
-
-- [slice-transport-listener-lebenszyklus](slice-transport-listener-lebenszyklus.md)
-
 In Arbeit (Welle welle-backend-streaming):
 
 - [slice-backend-sequenzierer](slice-backend-sequenzierer.md)

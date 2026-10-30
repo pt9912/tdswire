@@ -1,0 +1,2 @@
+**Vorgang:** slice-transport-listener-lebenszyklus
+**Fund:** Der Test mit gleichzeitigen Verbindungen nennt 24 (zwei Listener, je 12: 6 gute, 2 mit Müll statt Handshake, 2 mit abgeschnittenem Beginn, 2 mit sofortigem Trennen) und sagt selbst, dass er keine Lastmessung ist. Wie sich Annahme, Scopes und Rückstau mit vielen Verbindungen im Produktivbetrieb verhalten, ist nicht gemessen. Träger: `slice-qa-performance` (Ziel: gleichzeitige Sitzungen).

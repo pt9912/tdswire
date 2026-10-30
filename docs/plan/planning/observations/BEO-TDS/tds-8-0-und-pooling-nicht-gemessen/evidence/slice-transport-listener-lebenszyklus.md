@@ -1,0 +1,2 @@
+**Vorgang:** slice-transport-listener-lebenszyklus
+**Fund:** Der Listener-Smoke und die Startprobe laufen im TDS-7.4- und im TDS-8.0-Pfad nur gegen eine JDK-Gegenstelle am Loopback. Nicht am Referenzclient gemessen: ob er das Zertifikat der Form annimmt, die die Startprobe prüft (die Probe prüft weder Vertrauen noch Namen), wie er auf ein ausbleibendes `close_notify` des Servers reagiert, und RSA-Schlüssel ab 2048 Bit. Träger: `slice-qa-kompatibilitaet` (§6, ergänzt in dieser Closure).
