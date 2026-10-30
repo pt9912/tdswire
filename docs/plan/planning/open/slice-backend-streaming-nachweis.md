@@ -34,7 +34,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Das Simulations-Backend und das Boundary-Kriterium von [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) am Simulations-Backend — eigene spätere Welle; hier ist der Beleg am Fake Vorleistung, kein Beleg für [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend).
+- Das Simulations-Backend und das Boundary-Kriterium von [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) am Simulations-Backend — Welle [welle-simulations-backend](../welle-simulations-backend.md); hier ist der Beleg am Fake Vorleistung, kein Beleg für [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend).
 - Lasttest mit Durchsatz, p95 und gleichzeitigen Sitzungen ([TDS-QA-04](../../../../spec/lastenheft.md#tds-qa-04--performance)) — `slice-qa-performance`; hier nur Zähler- und Heap-Belege im Unit-Test-Maßstab, keine Leistungsaussage.
 - Nachrichtenschreiber über einem Kanal, Socket, TLS — `welle-transport-tls`; die Senke ist eine Schnittstelle mit Testimplementierung. Eine zweite, abweichende Definition derselben Schnittstelle neben `slice-transport-coroutines-geruest` wird vermieden (§6).
 - Parallele Verbindungen und Last — `slice-qa-stabilitaet`.

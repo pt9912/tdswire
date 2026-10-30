@@ -34,7 +34,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Simulations-Backend, Tabellenbeschreibung, Zeilenquelle nach `SPEC-035`, Anweisungserkennung ([TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend)) — eigene spätere Welle; hier nur ein Fake im Test-Quelltext, damit er nicht zum Produktionsbestandteil wird.
+- Simulations-Backend, Tabellenbeschreibung, Zeilenquelle nach `SPEC-035`, Anweisungserkennung ([TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend)) — Welle [welle-simulations-backend](../welle-simulations-backend.md); hier nur ein Fake im Test-Quelltext, damit er nicht zum Produktionsbestandteil wird.
 - Sequenzierer, Token-Abbildung, `DONE_MORE`-Vorschau — `slice-backend-sequenzierer`; der Port kennt kein `DONE_MORE` und keine Tokens.
 - Typabbildung auf TDS-Typen — `slice-backend-typabbildung`; der Port definiert nur das Backend-Typmodell, nicht seine Abbildung.
 - Unterscheidung statement- und batch-abbrechender Fehler im Strom: [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md) führt sie offen; das `Failure`-Ereignis bleibt wie in `SPEC-002` skizziert (`code`, `message`) und trägt keine Fehlerklasse. Ein Eingriff wäre eine Entscheidung des Nutzers, kein Quelltext-Detail (§6).

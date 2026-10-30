@@ -39,7 +39,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Die Bytes der festen Login-Ablehnung (ERROR 18456, Class 14, `SPEC-012`) — sie gehören `slice-handshake-login` (Welle `welle-handshake-login`); das Mapping nimmt den Code lesend auf, ein Test belegt die Gleichheit, der Slice ändert die Bytes nicht.
 - Die Unterscheidung statement- und batch-abbrechender Fehler im Strom — `Failure` trägt sie nicht, und der Port gehört der Welle `welle-backend-streaming`; hier steht nur der Abstimmungsbedarf (§6).
 - Messung von Nummern, States und Texten an einem echten SQL Server — `slice-qa-reproduzierbarkeit` (Vergleichslauf D) und `BEO-TDS/messung-am-echten-sql-server-fehlt`; der Slice baut kein Messwerkzeug.
-- Observability-Adapter und strukturierte Logs (`SPEC-017`) — kein Träger als Datei; der Slice ruft nur den minimalen Log-Anschluss der Welle `welle-handshake-login`.
+- Observability-Adapter und strukturierte Logs (`SPEC-017`) — Träger: Welle [welle-betrieb-diagnose](../welle-betrieb-diagnose.md); der Slice ruft nur den minimalen Log-Anschluss der Welle `welle-handshake-login`.
 - Vollständige Nachbildung aller SQL-Server-Fehlernummern — ausdrücklich Out-of-Scope von [TDS-FA-06](../../../../spec/lastenheft.md#tds-fa-06--fehler-und-abschlusszustände).
 
 ## 2. Definition of Done
