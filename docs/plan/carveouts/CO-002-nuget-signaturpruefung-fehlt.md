@@ -45,4 +45,4 @@ Der Carveout ist aufgelöst, wenn der Folge-Slice `slice-qa-dotnet-lieferkette-h
 
 | Datum | Ereignis | Verweis |
 |---|---|---|
-| 2026-10-30 | Angelegt | [slice-qa-dotnet-referenztest-geruest](../planning/in-progress/slice-qa-dotnet-referenztest-geruest.md) |
+| 2026-10-30 | Angelegt | [slice-qa-dotnet-referenztest-geruest](../planning/done/slice-qa-dotnet-referenztest-geruest.md) |

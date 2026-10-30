@@ -31,7 +31,6 @@ In Arbeit (Welle welle-qualitaet-grundlage):
 
 - [slice-qa-spec-abdeckung](slice-qa-spec-abdeckung.md)
 - [slice-qa-reproduzierbarkeit](slice-qa-reproduzierbarkeit.md)
-- [slice-qa-dotnet-referenztest-geruest](slice-qa-dotnet-referenztest-geruest.md)
 
 In Arbeit (Welle welle-handshake-login):
 

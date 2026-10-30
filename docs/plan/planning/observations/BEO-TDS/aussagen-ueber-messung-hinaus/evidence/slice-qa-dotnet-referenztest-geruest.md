@@ -1,0 +1,2 @@
+**Vorgang:** slice-qa-dotnet-referenztest-geruest
+**Fund:** Der Review fand zwei Aussagen breiter als ihre Messzeile: die KDoc des Smoke-Tests sagte „ohne Netz“ für den ganzen Ablauf, obwohl nur die Stage `test` ohne Netz läuft und der Restore Pakete holt (F1, MEDIUM); `nuget.config` schloss aus dem fehlenden `signatureValidationMode` auf „allein Lock und `contentHash`“, dessen Wirkung nicht gemessen ist (F2, LOW). Beide sind eingeschränkt.

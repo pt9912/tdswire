@@ -1,0 +1,2 @@
+**Vorgang:** slice-qa-dotnet-referenztest-geruest
+**Fund:** Die Szenarienliste führt Messungen eines echten SQL Servers als nicht vorhanden: S16 (18456/State 1/Class 14, 208, 8134, Cancel, einmal gemessen in [ADR-0008](../../../../../adr/0008-dotnet-kompatibilitaetstests.md)) und S8 (Fehler nach Zeilen, nur die Annahme des Entwurfs); Träger `slice-qa-reproduzierbarkeit` (Vergleichslauf D) bzw. `slice-qa-kompatibilitaet`.

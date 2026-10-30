@@ -2,7 +2,7 @@
 
 **Rolle:** Verifier (Frage: „Bauen wir es richtig?“ gegen Plan, DoD und Entscheidungen). Der Bericht repariert nichts und ändert keine Datei außer sich selbst.
 
-**Gegenstand:** [slice-qa-dotnet-referenztest-geruest](../plan/planning/in-progress/slice-qa-dotnet-referenztest-geruest.md) (Welle welle-qualitaet-grundlage), Merge `9fcd9f4`. Bezug: [TDS-QA-01](../../spec/lastenheft.md#tds-qa-01--kompatibilität), [TDS-QA-06](../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [ADR-0008](../plan/adr/0008-dotnet-kompatibilitaetstests.md), [ADR-0001](../plan/adr/0001-tds-version-und-clientprofil.md).
+**Gegenstand:** [slice-qa-dotnet-referenztest-geruest](../plan/planning/done/slice-qa-dotnet-referenztest-geruest.md) (Welle welle-qualitaet-grundlage), Merge `9fcd9f4`. Bezug: [TDS-QA-01](../../spec/lastenheft.md#tds-qa-01--kompatibilität), [TDS-QA-06](../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [ADR-0008](../plan/adr/0008-dotnet-kompatibilitaetstests.md), [ADR-0001](../plan/adr/0001-tds-version-und-clientprofil.md).
 
 **Stand-Hinweis:** `main` steht inzwischen auf `67a3810`. `git diff 9fcd9f4 HEAD` ist für `referenztest-dotnet/`, `tools/mk/`, `harness/`, `docs/plan/carveouts/`, beide Slice-Dateien, `Makefile` und `repo.mk` leer; alle Läufe unten sind deshalb für `9fcd9f4` gültig. Mutationen und `make gates` liefen in einem frischen Klon im Scratchpad (`.../scratchpad/w`); der Arbeitsbaum des Repos blieb unverändert (`git status`: nur das bereits vorhandene `?? .claude/worktrees/`).
 
