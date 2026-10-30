@@ -125,6 +125,7 @@ dasteht.
 - Rückstau ist im Spike für 100 MiB gemessen und im Produktivcode „zu liefern“ ([ADR-0003](../../adr/0003-transportframework.md)); dieser Slice belegt eine kleinere Grenze am Test-Kanal, nicht den Produktivbetrieb unter Last. — **Ausgang:** offen bis zur Closure.
 - Der Leser muss die Grenzprüfung vor dem Puffern auslösen, die der Paket-Codec als Funktion anbietet; weichen beide in der Auslegung ab (Summe der Paketlängen gegen Nachrichtenlänge), entsteht ein Doppelbefund. Gegenmittel: der Leser ruft die Prüfung des Codecs, er rechnet nicht selbst. — **Ausgang:** offen bis zur Closure.
 - Strenge der statischen Analyse: Coroutinen-Code erzeugt Befunde zu Komplexität und Größe; die Abhilfe ist Zerlegung im Code. — **Ausgang:** offen bis zur Closure.
+- Beobachtung zum Pin: `kotlinx-coroutines-core-jvm` 1.10.1 zieht `org.jetbrains:annotations:23.0.0` mit; per Konfliktauflösung ersetzt es 13.0 auf Compile-, Runtime- und Test-Classpath (13.0 bleibt für die Kotlin-Werkzeug-Konfigurationen). Reine Annotationen, kein Laufzeiteffekt; Lock und Prüfsummen sichern die Auflösung (`gradle.lockfile`). — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 

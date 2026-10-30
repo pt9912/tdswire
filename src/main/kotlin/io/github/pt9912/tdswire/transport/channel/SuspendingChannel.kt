@@ -5,9 +5,12 @@ import java.nio.ByteBuffer
 /**
  * Ein verbundener Byte-Kanal mit suspendierenden Operationen (`ARC-003`, `ARC-013`).
  *
- * Festlegung: höchstens ein Lesevorgang und höchstens ein Schreibvorgang zugleich; Lesen und
- * Schreiben dürfen nebeneinander laufen. Ein Abbruch der aufrufenden Coroutine beendet die
- * Operation und schließt den Kanal.
+ * Festlegung als Anforderung an den Aufrufer: höchstens ein Lesevorgang und höchstens ein
+ * Schreibvorgang zugleich; Lesen und Schreiben dürfen nebeneinander laufen. Die Schnittstelle
+ * erzwingt das nicht, und die Implementierungen verhalten sich bei Verletzung verschieden
+ * (siehe dort).
+ *
+ * Ein Abbruch der aufrufenden Coroutine beendet die Operation und schließt den Kanal.
  */
 interface SuspendingChannel {
     /**

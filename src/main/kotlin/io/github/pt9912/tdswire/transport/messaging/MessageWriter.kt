@@ -13,7 +13,9 @@ import java.nio.ByteBuffer
  * Writer suspendiert, solange der Kanal nichts annimmt, und legt keine Warteschlange an.
  *
  * Festlegung: [PacketWriter.split] erzeugt alle Pakete einer Nachricht auf einmal; der Speicher
- * dieses Aufrufs wächst mit der Nachricht, nicht mit der Zahl der Nachrichten. Nicht thread-sicher:
+ * dieses Aufrufs wächst mit der Nachricht, nicht mit der Zahl der Nachrichten. Eine Obergrenze der
+ * Nachrichtengröße prüft der Writer nicht; die Speichergrenze für Ergebnisströme liefert
+ * `slice-backend-streaming-nachweis`. Nicht thread-sicher:
  * ein Writer gehört einem Aufrufer.
  */
 class MessageWriter(private val channel: SuspendingChannel, private val packetSize: Int) {

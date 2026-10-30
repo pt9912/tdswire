@@ -23,8 +23,6 @@ class MemoryChannelTest {
     /**
      * Orakel: 20 Bytes `00..13` gehen durch einen Puffer von 7 Bytes (Umlauf des Ringpuffers) und
      * kommen gleich und in derselben Reihenfolge an; der Puffer hält nie mehr als 7.
-     *
-     * @spec SPEC-024
      */
     @Test
     fun `Bytes kommen durch einen kleinen Puffer gleich an`() = blocking {
@@ -46,8 +44,6 @@ class MemoryChannelTest {
     /**
      * Ein Schreiber ohne Leser suspendiert, sobald der Puffer voll ist, und setzt fort, wenn der
      * Leser abnimmt.
-     *
-     * @spec SPEC-024
      */
     @Test
     fun `Schreiber suspendiert bei vollem Puffer`() = blocking {
@@ -65,8 +61,6 @@ class MemoryChannelTest {
 
     /**
      * Schließen des Schreibers: die Gegenstelle liest die gepufferten Bytes, danach -1.
-     *
-     * @spec SPEC-024
      */
     @Test
     fun `Schliessen beendet die Richtung nach den gepufferten Bytes`() = blocking {
@@ -82,8 +76,6 @@ class MemoryChannelTest {
     /**
      * Nach dem lokalen Schließen melden Lesen und Schreiben `CLOSED`; ein Schreiber, dessen
      * Gegenstelle geschlossen hat, bekommt `IO_FAILURE`.
-     *
-     * @spec SPEC-027
      */
     @Test
     fun `Operationen auf geschlossenen Enden enden in Ergebniswerten`() = blocking {
@@ -101,8 +93,6 @@ class MemoryChannelTest {
     /**
      * Ein wartender Lesevorgang endet mit dem Schließen des eigenen Endes; ein abgebrochener
      * schließt den Kanal (Vertrag von `SuspendingChannel`).
-     *
-     * @spec SPEC-027
      */
     @Test
     fun `Abbruch eines wartenden Lesens schliesst den Kanal`() = blocking {

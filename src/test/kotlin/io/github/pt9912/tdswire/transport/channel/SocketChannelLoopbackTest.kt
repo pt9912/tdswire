@@ -122,16 +122,16 @@ class SocketChannelLoopbackTest {
             FramingFailure.MESSAGE_ABOVE_LIMIT,
             assertIs<TransportError.Framing>(failed.error).error.failure,
         )
-        assertTrue(counting.bytesRead <= 4096 + 8 + 512, "gelesen: ${counting.bytesRead}")
+        assertTrue(counting.bytesRead in 4096 + 8..4096 + 8 + 512, "gelesen: ${counting.bytesRead}")
         link.accepted.close()
         sender.join()
     }
 
     /**
      * Schließt die Gegenstelle mitten in einer Nachricht, einmal mit FIN und einmal mit RST
-     * (`SO_LINGER` 0), ist das Ergebnis ein `Failed` und keine Ausnahme: FIN ergibt
-     * `MESSAGE_TRUNCATED`, RST einen Kanalfehler oder, falls die Daten zuvor ankamen, ebenfalls
-     * `MESSAGE_TRUNCATED`.
+     * (`SO_LINGER` 0), ist das Ergebnis ein `Failed` und keine Ausnahme. Geprüft ist nur das
+     * `Failed`; nur für FIN ist der Grund (`MESSAGE_TRUNCATED`) festgelegt, beim RST hängt er vom
+     * Betriebssystem ab (Kanalfehler oder, falls die Daten zuvor ankamen, `MESSAGE_TRUNCATED`).
      *
      * @spec SPEC-027
      */
@@ -198,8 +198,6 @@ class SocketChannelLoopbackTest {
     /**
      * Der Abbruch eines wartenden Lesens schließt den Adapter-Kanal; ein weiteres Lesen endet
      * danach in `CLOSED`.
-     *
-     * @spec SPEC-027
      */
     @Test
     fun `Abbruch eines wartenden Lesens schliesst den Socket`() = blocking {
@@ -215,7 +213,48 @@ class SocketChannelLoopbackTest {
         assertEquals(ChannelErrorCategory.TDS_INTERNAL_ERROR, afterwards.error.category)
     }
 
+    /** Schreibt, bis der Adapter einen Fehler meldet (höchstens [MAX_WRITES] Mal); `null`, wenn keiner kam. */
+    private suspend fun writeUntilFailed(adapter: SocketChannelAdapter): ChannelResult.Failed? {
+        repeat(MAX_WRITES) {
+            val result = adapter.writeFully(ByteBuffer.wrap(ByteArray(WRITE_CHUNK)))
+            if (result is ChannelResult.Failed) return result
+        }
+        return null
+    }
+
+    /**
+     * Setzt die Gegenstelle den Socket mit RST zurück (`SO_LINGER` 0, Schließen), endet ein
+     * späterer Schreibvorgang des Adapters in einem `Failed` mit `IO_FAILURE` und keiner Ausnahme.
+     * Das erste Schreiben kann noch vom Betriebssystem angenommen werden; geprüft ist, dass
+     * irgendein folgendes scheitert, nicht, welches.
+     */
+    @Test
+    fun `Schreibfehler des Adapters endet in einem Ergebniswert`() = blocking {
+        val link = connect()
+        link.peer.setSoLinger(true, 0)
+        link.peer.close()
+        val failed = writeUntilFailed(SocketChannelAdapter(link.accepted))
+        assertEquals(ChannelFailure.IO_FAILURE, failed?.error?.failure)
+        assertEquals(ChannelErrorCategory.TDS_INTERNAL_ERROR, failed?.error?.category)
+    }
+
+    /** Über den Writer wird derselbe Schreibfehler zu `WriteOutcome.Failed` mit einem Kanalfehler. */
+    @Test
+    fun `Writer meldet den Schreibfehler des Adapters als Ergebniswert`() = blocking {
+        val link = connect()
+        link.peer.setSoLinger(true, 0)
+        link.peer.close()
+        val writer = MessageWriter(SocketChannelAdapter(link.accepted), 65535)
+        val big = TdsMessage(PacketType.TABULAR_RESULT, ByteArray(WRITE_CHUNK))
+        var outcome: WriteOutcome = WriteOutcome.Written
+        repeat(MAX_WRITES) { if (outcome == WriteOutcome.Written) outcome = writer.write(big) }
+        val failed = assertIs<WriteOutcome.Failed>(outcome)
+        assertIs<TransportError.Channel>(failed.error)
+    }
+
     private companion object {
+        const val MAX_WRITES = 200
+        const val WRITE_CHUNK = 64 * 1024
         const val SEED = 20_261_030
         const val RUNS = 5
         const val PEER_TIMEOUT_MILLIS = 5000

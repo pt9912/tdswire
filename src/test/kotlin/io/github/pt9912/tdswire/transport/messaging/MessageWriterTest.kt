@@ -109,8 +109,6 @@ class MessageWriterTest {
     /**
      * Fehler sind Ergebniswerte: eine Packet Size unter 9 ergibt `INVALID_PACKET_SIZE`, ein
      * geschlossener Kanal `CLOSED`, eine geschlossene Gegenstelle `IO_FAILURE`.
-     *
-     * @spec SPEC-027
      */
     @Test
     fun `Schreibfehler enden in Ergebniswerten`() = blocking {
