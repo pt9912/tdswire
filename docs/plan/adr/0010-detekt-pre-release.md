@@ -1,6 +1,6 @@
 # ADR-0010: detekt 2.0 als Gate-Werkzeug (Pre-Release)
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-29
 
@@ -66,3 +66,4 @@ Erscheint ein Stabil-Release von detekt 2.x, oder bricht ein Versionswechsel inn
 | 2026-10-30 | Autor bestätigt Option B ("adr-0010 bestätigt"); Review ohne HIGH, MEDIUM eingearbeitet | [Review](../../reviews/2026-10-30-af645e1-adr-0010.md) |
 | 2026-10-30 | Aussage zu `warningsAsErrors` durch Messung ersetzt: Konfigurationsvalidierung statt `warningsAsErrors`, Lücken bei `ForbiddenImport/<name>` und `ktlint`; Status unverändert Proposed | — |
 | 2026-10-30 | Nach Verifikation nachgeführt (Status weiter Proposed): Entscheidungsabschnitt zu `warningsAsErrors` an den Kontext angeglichen (`warningsAsErrors: false` ändert die Validierung nicht), Aussage zur 1.x-API als abgeleitet gekennzeichnet | [Verifikation](../../reviews/2026-10-30-46be900-verifikation-adr-0004-0006-0007-0010-0011.md) |
+| 2026-10-30 | Accepted – nach Review und Verifikation (Option B bestätigt: Autor, 2026-10-30); Probelauf und Verifikation bestätigen die Aussagen zur Konfigurationsvalidierung | [Verifikation](../../reviews/2026-10-30-46be900-verifikation-adr-0004-0006-0007-0010-0011.md) |

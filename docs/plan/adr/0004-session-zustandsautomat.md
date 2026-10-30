@@ -1,6 +1,6 @@
 # ADR-0004: Session-Zustandsautomat und Protokollverarbeitung
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-29
 
@@ -141,3 +141,4 @@ Neue TDS-Nachrichtentypen oder nicht deterministische Session-Races; ein Schreib
 | 2026-10-30 | Nach Entscheidung des Nutzers nachgeführt (Status weiter Proposed): Ende des Handshakes nach abgelehntem Login aus [ADR-0007](0007-fehler-und-attention.md) übernommen (Server schließt, Setzung, nicht gemessen) und aus den offenen Punkten genommen; ATTENTION im Handshake bleibt offen | [SPEC-012](../../../spec/spezifikation.md#4-fehler-codes-und-logging-felder) |
 | 2026-10-30 | Nach Re-Review nachgeführt (Status weiter Proposed): `SPEC-012` unter „Schärft“ genannt, weil die Spec das übernommene Handshake-Ende trägt | [SPEC-012](../../../spec/spezifikation.md#4-fehler-codes-und-logging-felder) |
 | 2026-10-30 | Nach Verifikation nachgeführt (Status weiter Proposed): Matrix-Zählung als nicht belegt gekennzeichnet, Ereignisliste und Fallzahl der rohen Pakete mit ihren Lücken benannt, Abschlussbestätigung in `SPEC-001` als Setzung gekennzeichnet, `(M)` auf gemessene Aussagen begrenzt | [SPEC-001](../../../spec/spezifikation.md#spec-001--zustandsautomat-einer-verbindung) |
+| 2026-10-30 | Accepted – nach Review, Verifikation und Re-Review (Entscheidung der Optionen: Nutzer, 2026-10-30); offene Punkte und der Hinweis „Zählung nicht belegt“ bleiben Teil des Textes, Schließen nur per Folge-ADR | [Verifikation](../../reviews/2026-10-30-46be900-verifikation-adr-0004-0006-0007-0010-0011.md) |

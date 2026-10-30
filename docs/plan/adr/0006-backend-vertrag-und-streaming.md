@@ -1,6 +1,6 @@
 # ADR-0006: Backend-Schnittstelle und Resultset-Streaming
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-29
 
@@ -131,3 +131,4 @@ Backpressure-Probleme oder zusätzliche Backend-Ergebnisarten; ein echtes Backen
 | 2026-10-30 | Nach Entscheidungen des Nutzers nachgeführt (Status weiter Proposed): Fehlersemantik im Strom wie `SPEC-031` (ERROR und DONE nur bei synchronem Strom, sonst Schließen ohne Abschluss), Frist-Feld bestätigt (Semantik offen); Abbildung statement- und batch-abbrechender Fehler und `Failure` in der `DONE_MORE`-Vorschau als offen mit Zuständigkeit Backend-/Mapping-Slice | [SPEC-031](../../../spec/spezifikation.md#spec-031--streaming-fehler-und-atomarität) |
 | 2026-10-30 | Nach Re-Review nachgeführt (Status weiter Proposed): Aussage zur Fehlersemantik im Strom auf das Gemessene begrenzt | [ADR-0007](0007-fehler-und-attention.md) |
 | 2026-10-30 | Nach Verifikation nachgeführt (Status weiter Proposed): Durchsatzvergleich mit allen gemessenen Größen, Angabe der 5-Mio-Zeile als nicht erklärt gekennzeichnet, Auflösung von Fehlermeldung und stillem Abbruch benannt | [TDS-QA-07](../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität) |
+| 2026-10-30 | Accepted – nach Review, Verifikation und Re-Review (Entscheidung der Optionen: Nutzer, 2026-10-30); offene Punkte bleiben Teil des Textes, Schließen nur per Folge-ADR | [Verifikation](../../reviews/2026-10-30-46be900-verifikation-adr-0004-0006-0007-0010-0011.md) |

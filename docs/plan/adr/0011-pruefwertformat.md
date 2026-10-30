@@ -1,6 +1,6 @@
 # ADR-0011: Prüfwertformat und Konfigurationsweg der festen Benutzerliste
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-30
 
@@ -135,3 +135,4 @@ Ein weiteres Verfahren neben `plain` und `pbkdf2-sha256`; ein anderes Dateiforma
 | 2026-10-30 | Nach Re-Review nachgeführt (Status weiter Proposed): Begriffe Verfahrenskennung und Benutzername getrennt, Übergabeweg des Pfades `AUTH_USERS_FILE` und Bedeutung des Listenplatzes als offen geführt, Folgepflicht im Ist-Zustand | [ADR-0009](0009-authentifizierungsmodus.md) |
 | 2026-10-30 | Nachgeführt (Status weiter Proposed): `AUTH_USERS_FILE` als Umgebungsvariable und Listenplatz als Zeilennummer der Datei gesetzt, beides Setzung (Voreinstellung 2026-10-30, nicht gemessen), keine ausdrückliche Wahl des Nutzers; Offen Nr. 7 entfällt | [ADR-0009](0009-authentifizierungsmodus.md) |
 | 2026-10-30 | Nach Verifikation nachgeführt (Status weiter Proposed): Messbedingung von M1-7 (192 Ableitungen) genannt und das Maximum als Dauer der letzten Ableitung, nicht als Anmeldelatenz, gefasst; M1-3 um die Vektoren mit c = 1 ergänzt | [ADR-0009](0009-authentifizierungsmodus.md) |
+| 2026-10-30 | Accepted – nach Review, Verifikation und Re-Review (Entscheidung der Optionen: Nutzer, 2026-10-30; Iterationszahlen und Parserregeln: Nutzer, Detailsetzungen als Voreinstellung gekennzeichnet) | [Verifikation](../../reviews/2026-10-30-46be900-verifikation-adr-0004-0006-0007-0010-0011.md) |

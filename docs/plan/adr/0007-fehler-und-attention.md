@@ -1,6 +1,6 @@
 # ADR-0007: Fehlerbehandlung und ATTENTION-Semantik
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-29
 
@@ -229,3 +229,4 @@ Neue Recovery-Lücke oder reproduzierbare Desynchronisation; ein Client mit Pool
 | 2026-10-30 | Nach Re-Review nachgeführt (Status weiter Proposed): Regel für eigene Codes ohne Einzelzuordnung eindeutig (Gruppen-Werte für die Gruppen, Grundregel A für den Rest bis zur Zuordnung durch das Fehler-Mapping), Offen-Listen deckungsgleich, Folgepflicht im Ist-Zustand | [TDS-FA-06.a](../../../spec/spezifikation.md#tds-fa-06a--fehlerabbildung) |
 | 2026-10-30 | Nachgeführt (Status weiter Proposed): `TDS_UNSUPPORTED_RPC` und `TDS_SIM_INVALID_VALUE` der Anfragefehler-Gruppe zugeordnet, `TDS_TIMEOUT` bis zur Entscheidung zu Cancel und Timeout außerhalb der Gruppen; Setzung (Voreinstellung 2026-10-30, nicht gemessen), keine ausdrückliche Wahl des Nutzers | [TDS-FA-06.a](../../../spec/spezifikation.md#tds-fa-06a--fehlerabbildung) |
 | 2026-10-30 | Nach Verifikation nachgeführt (Status weiter Proposed): `SPEC-012` unter „Schärft“ genannt, Auflösung von Fehlermeldung und stillem Abbruch benannt, Unstimmigkeiten der Messtabellen (Anzahl ERROR-Token, gelesene Zeilen, doppelte Kennung S20) als nicht erklärt gekennzeichnet, Chronik aus dem Entscheidungstext genommen, Herleitung des Verbindungsendes nach DONE[ATTN] auf `TDS-FA-07.a` und `SPEC-029` gestützt | [SPEC-012](../../../spec/spezifikation.md#4-fehler-codes-und-logging-felder) |
+| 2026-10-30 | Accepted – nach Review, Verifikation und Re-Review (Entscheidung der Optionen: Nutzer, 2026-10-30), nach Accepted von ADR-0004; offene Punkte bleiben Teil des Textes, Schließen nur per Folge-ADR | [Verifikation](../../reviews/2026-10-30-46be900-verifikation-adr-0004-0006-0007-0010-0011.md) |
