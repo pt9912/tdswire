@@ -29,4 +29,4 @@ Der Referenzclient sendete in den gemessenen Szenarien (Messgrenzen: Testserver,
 
 ## Offen
 
-`Encrypt`/`TrustServerCertificate`-Details, SQL-Authentifizierung, unterstützte RPCs (Freigabe des Entwurfs oben), MARS, Transaktionen, Verbindungs-Pooling und Lastprofil stehen in `SPEC-004` als offene Freigabepunkte.
+`Encrypt`/`TrustServerCertificate`-Details, unterstützte RPCs (Freigabe des Entwurfs oben), MARS, Transaktionen, Verbindungs-Pooling und Lastprofil stehen in `SPEC-004` als offene Freigabepunkte. Die Authentifizierung ist dort festgelegt (SQL-Authentifizierung, [`auth-adapter.md`](auth-adapter.md)) und kein offener Freigabepunkt.

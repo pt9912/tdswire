@@ -47,7 +47,7 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [x] Spike durchgeführt; seine Ergebnisse (Messwerte, Matrix, Befund) stehen in der ADR. Der Spike-Code ist temporär und nach der Entscheidung gelöscht.
-- [x] [ADR-0009](../../adr/0009-authentifizierungsmodus.md) auf `Accepted`, Option gewählt, Geschichte und ADR-Index nachgezogen.
+- [ ] [ADR-0009](../../adr/0009-authentifizierungsmodus.md) auf `Accepted`, Option gewählt, Geschichte und ADR-Index nachgezogen (ADR und Index stehen auf `Proposed`; das Häkchen folgt dem Statuswechsel).
 - [x] Spec-Stellen aus dem `Schärft:`-Feld der ADR an die Entscheidung angepasst.
 - [x] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -112,11 +112,11 @@ Leere Felder zeigen alle auf denselben Offset (Länge `0`); die Daten stehen in 
 | LOGINACK ohne DONE | der Client wartet auf DONE; Abbruch erst, als der Server nach 4,5 s schließt (`Class=20`, dieselbe Meldung); LOGINACK allein beendet die Anmeldung nicht |
 | Class 11, 14, 16, 20; State 0, 1, 255; Nummern 50000 und 4060; leere Meldung; Prozedur `sp_login` | alle Werte erscheinen unverändert in `SqlException`; keine Klasse löst einen Wiederholungsversuch aus; die leere Meldung ergibt einen leeren `Message`-Text |
 | zwei ERROR-Tokens oder INFO vor ERROR | `Errors=2`; `Message` verkettet beide Texte; für die Ablehnung genau ein ERROR senden |
-| Kennung mit Unicode und Backslash, leere Kennung, Kennung mit 128 Zeichen | jeweils unverändert im Feld; leere Kennung: `cch=0`, `Open` gelingt |
+| Kennung mit Unicode und Backslash, leere Kennung, Kennung mit 128 Zeichen (ASCII) | jeweils unverändert im Feld; leere Kennung: `cch=0`, `Open` gelingt |
 | leeres Passwort | `cch=0`, `Open` gelingt |
 | Passwort mit 23 Zeichen und Sonderzeichen (`;`, `=`, `"`, `'`, `{}`, `\`, Tab), Passwort mit Umlaut, Euro, CJK und Surrogatpaar (15 UTF-16-Einheiten) | entschleiert bytegleich zum Eingabewert; die Länge zählt UTF-16-Einheiten, nicht Zeichen |
-| Passwort mit 128 Zeichen | gesendet, `cch=128`, Nachricht 745 Byte |
-| Passwort mit 129 oder 1000 Zeichen, Kennung mit 129 Zeichen | der Client wirft `ArgumentException` („exceeds its limit of '128'“) vor dem Verbindungsaufbau; der Server sieht keine Verbindung |
+| Passwort mit 128 Zeichen (ASCII) | gesendet, `cch=128`, Nachricht 745 Byte |
+| Passwort mit 129 oder 1000 Zeichen, Kennung mit 129 Zeichen (jeweils ASCII) | der Client wirft `ArgumentException` („exceeds its limit of '128'“) vor dem Verbindungsaufbau; der Server sieht keine Verbindung |
 | `Database=db1`, `Application Name`, `Workstation ID`, `ApplicationIntent=ReadOnly`, `Packet Size=4096`, `AttachDBFilename` | die Felder stehen wie in der Tabelle oben; ReadOnly setzt TypeFlags `0x20` und die FeatureExt-Option `0x08` mit Wert `01`; `Packet Size` setzt `PacketSize` im LOGIN7 |
 | Standardwerte mit Pooling an | nach LOGIN7 nichts Zusätzliches vom Client |
 | `Multiple Active Result Sets=true` | PRELOGIN-MARS `01`; nach der Annahme sendet der Client sofort ein Paket mit Typbyte `0x53` (SMP, Multiplexing), nicht weiter ausgewertet |
@@ -136,14 +136,14 @@ Leere Felder zeigen alle auf denselben Offset (Länge `0`); die Daten stehen in 
 
 - Alle drei Optionen aus [ADR-0009](../../adr/0009-authentifizierungsmodus.md) bekommen im LOGIN7 dieselben Eingaben: Kennung und Passwort nach der Entschleierung, Datenbank, Anwendungsname, Rechnername, Intent. Der Referenzclient verlangt weder ein FEATUREEXTACK noch einen bestimmten Servernamen in der Antwort.
 - Die Verschleierung ist reversibel und kein Schutz; im unverschlüsselten Testmodus (ENCRYPT_NOT_SUP) liegt das Passwort damit lesbar auf der Leitung, im Tunnel steht dieselbe Nachricht im TLS (zu [TDS-QA-03](../../../../spec/lastenheft.md#tds-qa-03--sicherheit)).
-- Kennung und Passwort sind clientseitig auf 128 Zeichen begrenzt; das Feld zählt UTF-16-Einheiten. Ein Passwort kann leer, Unicode oder mit Sonderzeichen sein; der Adapter bekommt UTF-16, nicht Bytes in einer Kodierung nach Wahl.
+- Kennung und Passwort sind clientseitig auf 128 Zeichen begrenzt (128/129 nur mit ASCII gemessen); das Feld zählt UTF-16-Einheiten. Ein Passwort kann leer, Unicode oder mit Sonderzeichen sein; der Adapter bekommt UTF-16, nicht Bytes in einer Kodierung nach Wahl.
 - Eine Ablehnung braucht genau ein ERROR-Token (Nummer 18456, State, Class 14) und danach DONE mit Fehlerstatus; der Client macht daraus eine `SqlException` mit denselben Werten und versucht es nicht erneut. Weitere Tokens vor oder nach dem ERROR verändern `Message` und `Errors`.
-- Für [SPEC-012](../../../../spec/spezifikation.md#4-fehler-codes-und-logging-felder) ist die Gleichheit der Ablehnung an den Antwort-Bytes erreichbar: bei fester Meldung ohne Namen sind die Bytes beider Fälle gleich; mit dem Namen der Kennung (wie bei SQL Server) sind sie es für dieselbe Kennung. Der State kommt unverändert in der Anwendung an; ihn einheitlich zu senden ist Sache des Servers. Zeitgleichheit ist nicht gemessen.
+- Für [SPEC-012](../../../../spec/spezifikation.md#4-fehler-codes-und-logging-felder) ist die Gleichheit der Ablehnung an den Antwort-Bytes erreichbar: bei fester Meldung ohne Namen sind die Bytes beider Fälle gleich; mit dem Namen der Kennung (wie bei SQL Server) sind sie es für dieselbe Kennung. Der State kommt unverändert in der Anwendung an; ihn einheitlich zu senden ist Sache des Servers. Gemessen ist das am Spike-Testserver, nicht am Produkt. Zeitgleichheit ist nicht gemessen.
 - Nicht unterstützte Modi sind für den Server am LOGIN7 erkennbar (SSPI-Block mit fIntSecurity, FeatureExt `0x02` bei leerem UserName); eine Ablehnung mit 18456 zeigt der Client wie eine falsche Anmeldung. Der Server bekommt ein LOGIN7 mit SSPI-Block nur, wenn der Client sein Token erzeugen konnte.
 - Dem Client genügt zur Entscheidung die Ablehnung (ein ERROR, ein DONE) oder die Annahme (LOGINACK, DONE); LOGIN7 trägt für die Optionen A, B und C dieselben Felder. Ob ein Backend die Zugangsdaten sieht (Option C), ist am Client nicht abzulesen.
-- Folgerungen für die Adapter-Schnittstelle aus den Messwerten: Eingabe Kennung (UTF-16, 0 bis 128 Zeichen, auch leer) und Passwort als entschleiertes Zeichen- oder Byte-Feld (0 bis 128 UTF-16-Einheiten, auch leer; nach dem Aufruf zu löschen); Verbindungskontext (Datenbank, Anwendungsname, Rechnername, Intent, Verschlüsselungsmodus, Auth-Merkmale: fIntSecurity, FeatureExt, ChangePassword mit neuem Passwort); Ausgabe akzeptiert oder abgelehnt, bei Ablehnung ein Grund nur für das Log, getrennt vom festen Antwortmuster an den Client (Nummer, State, Class, Meldung).
+- Folgerungen für die Adapter-Schnittstelle aus den Messwerten: Eingabe Kennung (UTF-16, 0 bis 128 Zeichen, auch leer) und Passwort als entschleiertes Zeichen- oder Byte-Feld (0 bis 128 UTF-16-Einheiten, auch leer; nach dem Aufruf zu löschen); Verbindungskontext (Datenbank, Anwendungsname, Rechnername, Intent, Auth-Merkmale: fIntSecurity, FeatureExt, ChangePassword mit neuem Passwort); der Verschlüsselungsmodus kommt im Entwurf aus PRELOGIN dazu und ist nicht gemessen; Ausgabe akzeptiert oder abgelehnt, bei Ablehnung ein Grund nur für das Log, getrennt vom festen Antwortmuster an den Client (Nummer, State, Class, Meldung).
 
-**Nicht gemessen:** die Server-SSPI-Antwort (Token `0xED`) und mehrstufige SSPI-Austausche; das Entra-ID-Token (FEDAUTHINFO-Antwort und Token-Nachricht, nach Vorgabe nicht ausgelöst); der Zeitunterschied zwischen unbekannter Kennung und falschem Passwort; TDS 8.0 (`Encrypt=Strict`) mit SQL-Authentifizierung; TLS 1.3 im Tunnel mit dem Spike-Server (das NewSessionTicket landet in einem Paket vom Typ `0x12`, siehe `contracts/security-profile.md`; der Spike lief im Tunnel mit TLS 1.2); Verhalten bei Pooling mit `ResetConnection`; LOGIN7 über mehrere Pakete; die Namen der FeatureExt-Optionen am Paket; andere Clients; ein echter SQL Server als Referenz für State und Meldung; transiente Fehler (kein Fall hat einen Wiederholungsversuch ausgelöst).
+**Nicht gemessen:** Windows-SSPI (NTLM) und `fIntSecurity` mit einem anderen Token als MIT-Kerberos; der Verschlüsselungsmodus als Adaptereingabe (er stammt aus PRELOGIN, nicht aus LOGIN7); Unicode an der Grenze 128/129 (nur ASCII gemessen); die Server-SSPI-Antwort (Token `0xED`) und mehrstufige SSPI-Austausche; das Entra-ID-Token (FEDAUTHINFO-Antwort und Token-Nachricht, nach Vorgabe nicht ausgelöst); der Zeitunterschied zwischen unbekannter Kennung und falschem Passwort; TDS 8.0 (`Encrypt=Strict`) mit SQL-Authentifizierung; TLS 1.3 im Tunnel mit dem Spike-Server (das NewSessionTicket landet in einem Paket vom Typ `0x12`, siehe `contracts/security-profile.md`; der Spike lief im Tunnel mit TLS 1.2); Verhalten bei Pooling mit `ResetConnection`; LOGIN7 über mehrere Pakete; die Namen der FeatureExt-Optionen am Paket; andere Clients; ein echter SQL Server als Referenz für State und Meldung; transiente Fehler (kein Fall hat einen Wiederholungsversuch ausgelöst).
 
 **Wiederholung:** ein Dockerfile mit dem Testserver, `docker build --progress=plain -t spike-auth <Verzeichnis>`, ohne Mount; für den Kerberos-Fall ein zweites Dockerfile mit MIT-Kerberos-KDC und `kinit` im Container. Der Spike-Code liegt nicht im Repo.
 
@@ -177,7 +177,15 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Die LOGIN7-Felder des Referenzclients lassen den gedachten Modus nicht zu. — **Ausgang:** offen bis zur Closure.
+- Die LOGIN7-Felder des Referenzclients lassen den gedachten Modus nicht zu. — **Ausgang:** entfallen. Begründung: Die Messung zeigt SQL-Authentifizierung mit entschleierbarer Kennung und entschleierbarem Passwort, Annahme und Ablehnung werden vom Client ohne Sonderfall verarbeitet, und LOGIN7 trägt für alle drei Optionen dieselben Felder (§3 Befunde). Das gilt für den Referenzclient am Spike-Testserver; offene Punkte stehen unten.
+- Zeitgleichheit von unbekannter Kennung und falschem Passwort ist weder gebaut noch gemessen. — **Ausgang:** weiter offen. Träger: [slice-qa-sicherheit](../open/slice-qa-sicherheit.md).
+- Schutz gegen wiederholte Anmeldeversuche (Drosselung, Sperre) ist nicht entschieden. — **Ausgang:** weiter offen. Träger: [slice-qa-sicherheit](../open/slice-qa-sicherheit.md).
+- Konfigurationsweg und Prüfwertformat der Benutzerliste sind nicht festgelegt. — **Ausgang:** weiter offen. Träger: [slice-qa-sicherheit](../open/slice-qa-sicherheit.md) für das Prüfwertformat; der Konfigurationsweg gehört zum Slice der funktionalen Welle, der den Adapter baut (noch nicht angelegt).
+- Die Kotlin-Signatur des Adapters ist nicht festgelegt. — **Ausgang:** weiter offen. Träger: der Slice der funktionalen Welle, der den Adapter baut (noch nicht angelegt).
+- Windows-SSPI (NTLM) und `fIntSecurity` mit anderem Token als MIT-Kerberos sind nicht gemessen. — **Ausgang:** weiter offen. Träger: [slice-qa-kompatibilitaet](../open/slice-qa-kompatibilitaet.md).
+- TDS 8.0 mit SQL-Authentifizierung, mehrpaketiges LOGIN7 und Pooling mit `ResetConnection` sind nicht gemessen. — **Ausgang:** weiter offen. Träger: [slice-qa-kompatibilitaet](../open/slice-qa-kompatibilitaet.md).
+- State und Meldung eines echten SQL Servers sind nicht gemessen ([SPEC-045](../../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig)). — **Ausgang:** weiter offen. Träger: [slice-qa-kompatibilitaet](../open/slice-qa-kompatibilitaet.md).
+- Eine Festlegung des Betreibers der .NET-Anwendung zur Benutzerverwaltung fehlt; die Anforderung ist nicht abnahmebindend. — **Ausgang:** weiter offen. Träger: keiner im Repo, die Rückfrage liegt beim Betreiber; Eintrag im Beobachtungs-Register bei der Closure.
 
 ## 7. Closure-Notiz
 
