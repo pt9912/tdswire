@@ -34,8 +34,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Zusätzlicher Umfang aus [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md)** (dieser Slice ist der Träger der dort offenen Punkte):
 
-- NuGet-Audit: Entscheidung, ob das Repo die Schwachstellenprüfung anderweitig führt oder bewusst verzichtet; wird `NuGetAudit=false` nicht beendet, braucht es einen Carveout mit Trigger (`AGENTS.md` §3.6). Bewertet gegen [TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit).
-- `trustedSigners`: eine funktionierende Liste für `signatureValidationMode=require` unter Linux, oder die begründete Entscheidung dagegen.
+- NuGet-Audit: übernommen von [slice-qa-dotnet-referenztest-geruest](slice-qa-dotnet-referenztest-geruest.md) (Entscheidung F1: `NuGetAudit=false` mit Carveout [CO-001](../../carveouts/CO-001-nuget-audit-aus.md)); die Beendigung des Carveouts führt [slice-qa-dotnet-lieferkette-haerten](../open/slice-qa-dotnet-lieferkette-haerten.md). Bewertet gegen [TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit).
+- `trustedSigners`: übernommen von [slice-qa-dotnet-referenztest-geruest](slice-qa-dotnet-referenztest-geruest.md) (Entscheidung F2: jetzt nur Lock und `contentHash`, Carveout [CO-002](../../carveouts/CO-002-nuget-signaturpruefung-fehlt.md)); die Signaturliste führt [slice-qa-dotnet-lieferkette-haerten](../open/slice-qa-dotnet-lieferkette-haerten.md).
 - Der Vergleichslauf D (Referenzabgleich nach [SPEC-045](../../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig)) als eigenes Make-Target: Ausnahmeliste für das gemessene Schema, Laufzeit sowie Netz-, Platten- und Speicherbedarf auf dem Zielsystem gemessen, EULA-Rechtsprüfung, SQL-Server-Tag für TDS 8.0. In `make gates` kommt D erst nach dieser Messung.
 - State und Meldung eines echten SQL Servers ([ADR-0009](../../adr/0009-authentifizierungsmodus.md) §Offen): das Anmelde-Szenario in D (falsches Kennwort, unbekannter Benutzer; einmal gemessen 18456, State 1, Class 14, Meldung mit Benutzernamen) und ein Eintrag der Ausnahmeliste *so gewollt* für die feste Meldung ohne Kennung (`SPEC-012`). Der interne State ist am Client nicht sichtbar. Dieser Slice ist der einzige Träger; [slice-qa-kompatibilitaet](../open/slice-qa-kompatibilitaet.md) führt keinen Referenzabgleich.
 - Die Antwortseite des Codecs am echten SQL Server (Träger der Beobachtung `BEO-TDS/messung-am-echten-sql-server-fehlt`, Ausgang aus `welle-protokollcodec`): Reihenfolge der Antwort-Tokens im Strom, Statusbits der DONE-Familie und ordinale Zählung der RETURNVALUE, die der Codec bisher nur als Handvektor und als Festlegung trägt (Closure-Notiz [welle-protokollcodec-results](../done/welle-protokollcodec-results.md), Tabelle *gemessen | Festlegung*). Der Vergleichslauf D deckt sie mit je einem Szenario mit Mehrfach-Resultset und RPC mit Ausgabewert, oder der Slice benennt je Punkt, warum die Messung nicht lieferbar ist.
@@ -52,7 +52,7 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] CI-Workflow führt `make gates` in Docker aus und ist grün.
-- [ ] Clean-Build ohne Host-Toolchain nachgewiesen (Host: Docker und `make`), einschließlich des .NET-Restore: NuGet-Audit und `trustedSigners` entschieden und umgesetzt, oder ein Carveout mit Trigger.
+- [ ] Clean-Build ohne Host-Toolchain nachgewiesen (Host: Docker und `make`), einschließlich des .NET-Restore: der gesperrte Restore des Referenztest-Gerüsts liegt bei [slice-qa-dotnet-referenztest-geruest](slice-qa-dotnet-referenztest-geruest.md); NuGet-Audit und `trustedSigners` tragen dort Carveouts mit Trigger, ihre Auflösung liegt bei [slice-qa-dotnet-lieferkette-haerten](../open/slice-qa-dotnet-lieferkette-haerten.md).
 - [ ] Vergleichslauf D als eigenes Make-Target, nicht in `make gates`; Ausnahmeliste (darunter die feste Login-Meldung ohne Kennung) sowie Laufzeit, Netz-, Platten- und Speicherbedarf gemessen, Anmelde-Szenario gegen den echten Server enthalten, Antwort-Token-Reihenfolge, DONE-Statusbits und RETURNVALUE-Zählung des Codecs gemessen (oder je Punkt als nicht lieferbar begründet), Aufnahme in `make gates` erst danach.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -75,7 +75,7 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | CI-Workflow | neu | Clean-Build und Gates nach [TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
 | `harness/README.md` | update | CI-Badge als Lauf-Status |
-| `nuget.config`, Restore-Konfiguration des Referenzclient-Tests | neu | NuGet-Audit und `trustedSigners` ([ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md)) |
+| `nuget.config`, Restore-Konfiguration des Referenzclient-Tests | entfällt hier | liegt im Gerüst ([slice-qa-dotnet-referenztest-geruest](slice-qa-dotnet-referenztest-geruest.md)); NuGet-Audit und `trustedSigners` führt [slice-qa-dotnet-lieferkette-haerten](../open/slice-qa-dotnet-lieferkette-haerten.md) ([ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md)) |
 | Make-Target für den Vergleichslauf D | neu | Referenzabgleich gegen den SQL-Server-Container, außerhalb von `make gates` ([ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md)) |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
@@ -107,7 +107,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Die Integrationstests ([ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md), Status `Proposed`, wird `Accepted`) sind nicht gebaut; die CI deckt zunächst nur die vorhandenen Gates. — **Ausgang:** offen bis zur Closure.
+- Die Integrationstests ([ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md), Status `Accepted`) sind nicht gebaut, das Referenztest-Gerüst liegt (Szenarien: [slice-qa-kompatibilitaet](../open/slice-qa-kompatibilitaet.md)); die CI deckt zunächst nur die vorhandenen Gates. — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 
