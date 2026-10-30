@@ -78,6 +78,15 @@ Aussagen-Berührung steht hier gar nicht.
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf, inklusive einer Testdatei-Zeile mit der Akzeptanzkriterien-ID in `Begründung`.
 
+Ist-Zustand des ersten Laufs (gegen die Tabelle oben gemessen):
+
+| Datei / Komponente | Änderungs-Art | Begründung |
+|---|---|---|
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/error/ErrorCode.kt` | neu | Zuordnungstabelle: `ErrorCode` mit `ErrorRule` (Nummer, Class, State, Text, Verbindungsfolge) und `ConnectionFate`; die Package-Wahl `protocol.error` ist der Vorschlag des Plans, übernommen |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/error/ErrorMapper.kt` | neu | die Funktionen `code`, `failure`, `protocol`, `unexpected` (Schnittstelle für den Sequenzierer), `ErrorResponse`, `ErrorLog`; schreibt ERROR und DONE über `TokenEncoder`, der unverändert bleibt |
+| `src/test/kotlin/io/github/pt9912/tdswire/protocol/error/ErrorMapperTest.kt` | neu | Handvektor je Code ([TDS-FA-06](../../../../spec/lastenheft.md#tds-fa-06--fehler-und-abschlusszustände) Negative), Vollständigkeit, Gruppen, Gleichheit mit der Login-Ablehnung, fester Text ohne Ausnahmetext ([TDS-FA-06.a](../../../../spec/spezifikation.md#tds-fa-06a--fehlerabbildung) Nr. 5) |
+| `spec/spezifikation.md` | update | Zuordnung in §4, Verweis in `TDS-FA-06.a`, Geschichte-Zeile |
+
 ## 4. Trigger
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
@@ -106,8 +115,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 - Nummern, States und Texte der eigenen Codes sind nicht am echten SQL Server gemessen; die vorgesehenen Nummern 208, 207, 245 und 8115 stehen in der Spezifikation als „an der Referenzinstanz zu messen“, die Nummer für `TDS_SHUTDOWN` ist offen, und die Class-Schwelle ab 20 gilt für Class 21 bis 24 nur als Setzung. Das Mapping ist *Festlegung*, kein Messwert. — **Ausgang:** weiter offen: → `BEO-TDS/messung-am-echten-sql-server-fehlt` (Beleg dieses Slice)
-- Entscheidungsbedarf (Nutzer): Zuordnung jedes Codes ohne Gruppe zu einer Class und Folge — `TDS_UNSUPPORTED_TYPE`, `TDS_SIM_UNKNOWN_OBJECT`, `TDS_TIMEOUT` und jeder weitere. Gesetzt sind nur die Gruppen (Class 16 offen; `TDS_PROTOCOL_ERROR`, `TDS_INTERNAL_ERROR` Class 20 schließt) und die Voreinstellung für `TDS_UNSUPPORTED_RPC` und `TDS_SIM_INVALID_VALUE`. Der Slice entscheidet das nicht, er legt dem Nutzer eine Tabelle zur Bestätigung vor. — **Ausgang:** offen bis zur Closure
-- Entscheidungsbedarf (Nutzer): ob Cancel und Timeout als Fehler gelten (`SPEC-016` nennt „Fehler/Disconnect“). Bis dahin bleibt `TDS_TIMEOUT` ohne Gruppe und fällt unter Grundregel A. — **Ausgang:** offen bis zur Closure
+- Entscheidungsbedarf (Nutzer): Zuordnung jedes Codes ohne Gruppe zu einer Class und Folge — `TDS_UNSUPPORTED_TYPE`, `TDS_SIM_UNKNOWN_OBJECT`, `TDS_TIMEOUT` und jeder weitere. Gesetzt sind nur die Gruppen (Class 16 offen; `TDS_PROTOCOL_ERROR`, `TDS_INTERNAL_ERROR` Class 20 schließt) und die Voreinstellung für `TDS_UNSUPPORTED_RPC` und `TDS_SIM_INVALID_VALUE`. Der Slice entscheidet das nicht, er legt dem Nutzer eine Tabelle zur Bestätigung vor. Die Entscheidung lag zum Start nicht vor: die Codes ohne Gruppe (`TDS_UNSUPPORTED_TYPE`, `TDS_SIM_UNKNOWN_OBJECT`, `TDS_TIMEOUT`) stehen unter der Grundregel A (Class 20, schließt); die Tabelle zur Bestätigung ist die Zuordnung in `spec/spezifikation.md` §4. — **Ausgang:** weiter offen: → Zuordnung in `spec/spezifikation.md` §4 (Entscheidung des Nutzers steht aus)
+- Entscheidungsbedarf (Nutzer): ob Cancel und Timeout als Fehler gelten (`SPEC-016` nennt „Fehler/Disconnect“). Bis dahin bleibt `TDS_TIMEOUT` ohne Gruppe und fällt unter Grundregel A (Class 20, schließt). — **Ausgang:** weiter offen: → [ADR-0007](../../adr/0007-fehler-und-attention.md) §Nicht entschieden und `slice-attention-cancel-timeout`
 - Abstimmung mit der Welle `welle-backend-streaming`: `Failure` trägt keine Unterscheidung statement- und batch-abbrechender Fehler (R04 bis R07 der ADR-Messung); ob das Mapping sie braucht und der Port sie liefern muss, ist nicht entschieden. — **Ausgang:** offen bis zur Closure
 - Die Statusbits des DONE bei Fehler liegen nur als Handvektor vor (`welle-protokollcodec-results`); ob der Referenzclient die Antwort so annimmt, ist nicht gemessen. — **Ausgang:** weiter offen: → `BEO-TDS/messung-am-echten-sql-server-fehlt`
 - Überschneidung mit `slice-handshake-login`: zwei Stellen, die ERROR 18456 serialisieren, können auseinanderlaufen. — **Ausgang:** offen bis zur Closure (Gegenmittel: der Gleichheitstest der Bytes)
