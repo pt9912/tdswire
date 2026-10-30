@@ -84,3 +84,32 @@ tasks.withType<dev.detekt.gradle.Detekt>().matching { it.name == "detektSelbstte
         checkstyle.outputLocation.set(layout.buildDirectory.file("reports/detekt-selbsttest/aufrufe.xml"))
     }
 }
+
+// Laedt die Artefakte der Konfigurationen, die compile, test, detekt und assemble brauchen, in den
+// Gradle-Cache (Stage `deps` des Dockerfiles), damit eine Quelltextaenderung nichts mehr aus dem
+// Netz holt. Die Menge ist die der Sperrdatei ohne `nichtGebraucht`: Konfigurationen, die nur
+// `gradle dependencies` aufloest (ABI-Pruefung, Native, Klib-Commonizer), laedt kein Build der
+// Stages, ihre Artefakte waeren tote Last. Sperre und Verifikation bleiben aktiv; eine Version,
+// die nicht aufloest, bricht die Task. Sie schreibt weder Sperre noch Pruefsummen.
+// Kopplung: `-PnurNamen=<a,b>` schraenkt die Menge ein (Pruefung der Task ohne Netz).
+tasks.register("abhaengigkeitenLaden") {
+    val sperre = layout.projectDirectory.file("gradle.lockfile").asFile
+    val nichtGebraucht = setOf(
+        "kotlinAbiValidationCompatClasspath",
+        "kotlinKlibCommonizerClasspath",
+        "kotlinNativeCompilerPluginClasspath",
+    )
+    val nurNamen = (findProperty("nurNamen") as String?)?.split(',')?.toSet()
+    doLast {
+        val namen = sperre.readLines()
+            .filter { it.isNotBlank() && !it.startsWith("#") && it.contains('=') }
+            .flatMap { it.substringAfter('=').split(',') }
+            .toSortedSet()
+        namen.removeAll(nichtGebraucht)
+        if (nurNamen != null) namen.retainAll(nurNamen)
+        for (name in namen) {
+            val konfiguration = configurations.findByName(name)?.takeIf { it.isCanBeResolved } ?: continue
+            logger.lifecycle("abhaengigkeitenLaden: $name (${konfiguration.resolve().size} Dateien)")
+        }
+    }
+}

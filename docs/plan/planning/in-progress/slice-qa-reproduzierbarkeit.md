@@ -77,6 +77,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `harness/README.md` | update | CI-Badge als Lauf-Status |
 | `nuget.config`, Restore-Konfiguration des Referenzclient-Tests | entfällt hier | liegt im Gerüst ([slice-qa-dotnet-referenztest-geruest](../done/slice-qa-dotnet-referenztest-geruest.md)); NuGet-Audit und `trustedSigners` führt [slice-qa-dotnet-lieferkette-haerten](../open/slice-qa-dotnet-lieferkette-haerten.md) ([ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md)) |
 | Make-Target für den Vergleichslauf D | neu | Referenzabgleich gegen den SQL-Server-Container, außerhalb von `make gates` ([ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md)) |
+| `Dockerfile` (Stage `deps`), `build.gradle.kts` (Task `abhaengigkeitenLaden`) | update | `deps` löst die Konfigurationen von compile, test, detekt und assemble auf und lädt sie (Sperre und Verifikation aktiv); eine Quelltextänderung löst keinen Download aus ([TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit)) |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 
