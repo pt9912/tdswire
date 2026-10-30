@@ -35,10 +35,6 @@ In Arbeit (Welle welle-backend-streaming):
 
 - [slice-backend-port-vertrag](slice-backend-port-vertrag.md)
 
-In Arbeit (Welle welle-handshake-login):
-
-- [slice-auth-adapter-benutzerliste](slice-auth-adapter-benutzerliste.md)
-
 
 
 ## Nächste Wellen

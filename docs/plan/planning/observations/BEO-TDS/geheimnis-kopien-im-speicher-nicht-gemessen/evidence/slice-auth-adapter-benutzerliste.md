@@ -1,0 +1,2 @@
+**Vorgang:** slice-auth-adapter-benutzerliste
+**Fund:** Belegt sind nur das an die Ableitung übergebene Zeichenfeld, die abgeleiteten Bytes und der UTF-8-Kandidat des `plain`-Pfads (Mutationen M06a und M06b rot). `PBEKeySpec.clearPassword()` und die Nullung des UTF-8-Zwischenpuffers haben keinen Test (M06c und M06d überleben), und das `SecretKey`-Objekt der JDK-Ableitung wird nicht überschrieben (Verifikation L-1, aus dem Code gelesen). Kein Träger-Slice führt eine Speichermessung.

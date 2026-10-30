@@ -1,1 +1,1 @@
-**Stand:** offen — Träger ist `slice-qa-sicherheit`
+**Stand:** geplant — `slice-qa-sicherheit` (DoD nennt Zeitgleichheit, Drosselung und den Scheinvergleich bei unbekanntem Benutzernamen)
