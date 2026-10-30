@@ -110,6 +110,7 @@ dasteht.
 - Die Messung stammt von einem fingierten Backend; ein echter Treiber verhält sich beim Abbruch und bei der Zeilenform anders (`BEO-TDS/aussagen-ueber-messung-hinaus`). — **Ausgang:** offen bis zur Closure.
 - Die Entscheidung zur Frist berührt `slice-sql-batch-dispatch` (die Frist bleibt dort `null`) und `slice-attention-cancel-timeout` (`TDS_TIMEOUT`, `SPEC-016`); ohne Abstimmung entstehen zwei Auslöser für denselben Fehler. — **Ausgang:** offen bis zur Closure.
 - Die Dauer eines blockierenden Aufrufs und der Thread-Verbrauch sind an Image und Hardware des Spikes gemessen und gelten nicht für das Produkt. — **Ausgang:** offen bis zur Closure.
+- Die JVM-Typen der Werte je `SqlType` sind hier zu entscheiden (Offen 10 von [ADR-0012](../../adr/0012-simulations-backend-beschreibung-und-formen.md)): Die Überführungsregel des Simulations-Backends (streng und verlustfrei, Textvergleich, `compareTo` für Dezimalzahlen) gilt für sie und ist bei einer anderen Zeilendarstellung neu zu prüfen; die Entscheidung nennt die Auswirkung auf SPEC-035. — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 
