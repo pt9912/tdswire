@@ -227,8 +227,9 @@ zugehörige Schreiben laufen unter einer Sperre je Sitzung. Der Transport
 meldet ein erkanntes ATTENTION-Paket an ihn, der Dispatch nimmt kein ATTENTION an. Bei
 gleichzeitigem DONE und ATTENTION gewinnt der erste Übergang. Trifft ATTENTION nach `COMPLETED` oder
 in `IDLE` ein, bleibt das bereits gesendete Ergebnis gültig, und der Server beantwortet das
-ATTENTION mit der vom Profil geforderten Bestätigung, damit der Client nicht auf sie wartet. Der
-Abschluss einer Anfrage wird genau einmal gesendet.
+ATTENTION mit der vom Profil geforderten Bestätigung, damit der Client nicht auf sie wartet (Setzung;
+am echten Server ist nur ATTENTION nach vollständig gesendeter Antwort gemessen, im Leerlauf ohne
+laufende Anfrage nicht). Der Abschluss einer Anfrage wird genau einmal gesendet.
 
 ### SPEC-002 — Interner Query-Vertrag
 ```kotlin
