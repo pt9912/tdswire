@@ -1,0 +1,2 @@
+**Vorgang:** slice-qa-reproduzierbarkeit
+**Fund:** Review (F-2, F-8) und Verifikation (Mutationen M3, M4) von `slice-qa-reproduzierbarkeit`: der Austausch des Action-Pins gegen `@v6` und `run: make gates` gegen `run: make docs-check` lassen `make workflow-lint` grün (Exit 0); `abhaengigkeitenLaden` hat für das Versprechen „eine Quelltextänderung löst keinen Download aus“ keinen Sensor (`?: continue`). Beides ist nicht gebaut; die Grenze steht in der README-Zeile von `make workflow-lint` und im Kommentar der Task.
