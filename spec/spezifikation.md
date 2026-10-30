@@ -60,8 +60,10 @@ und TDS-Antwort.
 2. Für `sp_executesql` SQL-Text, Parameterdeklarationen, Werte und NULL-Kennzeichnung extrahieren.
 3. Werte typisiert und ohne SQL-Stringverkettung an den Backend-Vertrag übergeben.
 4. Unbekannte Prozeduren und unzulässige Parameter mit definiertem Fehler beantworten.
-5. Weitere RPC-Formen (`sp_prepexec`, `sp_prepare`, `sp_execute`, `sp_unprepare`) erst nach Nachweis
-   des Bedarfs im Clientprofil ergänzen.
+5. `sp_prepexec` und `sp_execute` (Prepared-Statements mit sitzungsbezogenem Handle) sowie den RPC per
+   Prozedurname (`CommandType.StoredProcedure`) behandeln; der Katalog steht in `SPEC-030`.
+6. Weitere RPC-Formen (`sp_prepare`, `sp_unprepare`, `sp_cursor*`) erst nach Nachweis des Bedarfs im
+   Clientprofil ergänzen.
 
 **Komplexität:** O(n) für RPC-Nachricht. **Fehlermodi:** unbekannte RPC-Form, Typinkonsistenz,
 ungültige Parameterlänge.
@@ -142,7 +144,8 @@ TDS-Tokenstrom.
 2. DONE/DONEPROC/DONEINPROC passend zum Nachrichtenkontext auswählen; `DONE_MORE`, `DONE_ERROR` und
    `DONE_COUNT` nur gemäß tatsächlichem Zustand setzen.
 3. Bei RPC die im Clientprofil benötigten RETURNSTATUS- und RETURNVALUE-Tokens mit korrekten
-   Parametermetadaten erzeugen.
+   Parametermetadaten erzeugen; dazu zählt RETURNVALUE mit dem Handle von `sp_prepexec` (Ordinal 0,
+   `INTN` 4) und je ein RETURNVALUE je OUTPUT-Parameter.
 4. Nach dem ersten gesendeten Byte niemals eine alternative vollständige Antwort beginnen; Fehler
    als zulässige Folgetokens senden oder Verbindung schließen.
 
@@ -250,6 +253,19 @@ Lebensdauerregeln werden vor der Implementierung festgelegt.
 Konkrete Token-/Typkennungen, Kollation und Präzision sind anhand MS-TDS und des Referenzclients zu
 verifizieren.
 
+**RPC-Parametertypen (Eingabe, vom Referenzclient beobachtet):** `tinyint`/`smallint`/`int`/`bigint`
+als `INTN` (Länge 1/2/4/8); `float`/`real` als `FLTN`; `money`/`smallmoney` als `MONEYN`; `bit` als
+`BITN`; `decimal` als `NUMERICN` (Precision/Scale am Parameter, Vorzeichenbyte plus 16 Byte);
+`datetime`/`smalldatetime` als `DATETIMN`; `date`, `time`, `datetime2`, `datetimeoffset` als
+`DATEN`/`TIMEN`/`DATETIME2N`/`DATETIMEOFFSETN` (Scale 7); `uniqueidentifier` als `GUID`;
+`char`/`varchar` als `BIGCHAR`/`BIGVARCHAR` mit Collation; `nchar`/`nvarchar` als `NCHAR`/`NVARCHAR`
+mit Collation (`maxlen` = 2 × Zeichenzahl der Deklaration); `binary`/`varbinary` als
+`BIGBINARY`/`BIGVARBINARY`; `xml` als `XML` ohne Schema. MAX-Typen (`nvarchar(max)`, `varchar(max)`,
+`varbinary(max)`, `xml`) tragen Länge `0xFFFF` und PLP. NULL ist der Sentinel des Typs (Länge 0 bei
+`INTN`, `NUMERICN`, `GUID`, `DATETIME2N`; `0xFFFF` bei `NVARCHAR`, `BIGVARBINARY`); ein leerer String
+hat Länge 0 und ist nicht NULL. Nicht gemessen: `text`, `ntext`, `image`, `sql_variant`, UDT, `json`,
+Table-Valued-Parameter und OUTPUT für `varchar(max)`, `xml` und Datumstypen.
+
 ### SPEC-004 — Testprofil
 Ein versioniertes `client-profile` dokumentiert: .NET-Laufzeit, NuGet-Paket und Version, Connection
 String (ohne Secrets), Encrypt/TrustServerCertificate, Authentifizierung, verwendete
@@ -305,10 +321,25 @@ neue Befehle.
 RPC-Nachrichten müssen Prozedurname/-ID, Optionsflags, Parameternamen, Statusflags (inklusive
 OUTPUT), TYPE_INFO, Längenpräfixe, NULL-Sentinels, Kollation sowie Precision/Scale typabhängig
 korrekt dekodieren. Für `sp_executesql` werden SQL-Text und Parameterdefinitionen getrennt vom
-Wertetransport gehalten. `sp_prepare`, `sp_prepexec`, `sp_execute` und `sp_unprepare` sind **nicht
-automatisch implementiert**; der Referenzclienttest entscheidet, welche davon erforderlich sind.
-Unbekannte RPCs ergeben eine explizite Fehlermeldung. RETURNSTATUS/RETURNVALUE und die DONE-Familie
-sind für freigegebene RPCs durch Tests nachzuweisen.
+Wertetransport gehalten. Der Katalog unterstützter RPCs ist der gemessene Mindestkatalog des Referenzclients
+(`contracts/client-profile.md`):
+
+| RPC | Erkennung | Pflichtverhalten |
+|---|---|---|
+| `sp_executesql` | ProcID 10 | Parameter 0 SQL-Text, Parameter 1 Deklarationsliste (beide ohne Namen); danach benannte Parameter, INPUT, NULL und OUTPUT/InputOutput (Statusbyte `0x01`) |
+| `sp_prepexec` | ProcID 13 | Parameter 0 OUTPUT-Handle (`INTN` 4, bei Erstaufruf −1), Parameter 1 Deklarationsliste, Parameter 2 SQL-Text; Antwort liefert das Handle als RETURNVALUE |
+| `sp_execute` | ProcID 12 | Parameter 0 Handle (`INTN` 4), danach nur die Nutzerparameter; unbekanntes Handle ergibt einen definierten Fehler |
+| RPC per Prozedurname | Name als String (`NameLenProcID` = Zeichenzahl), `OptionFlags=0x0000` | Name wie in `CommandText` (auch `[dbo].[p]`); der ReturnValue-Parameter wird nicht gesendet, RETURNSTATUS trägt ihn; nicht gesetzte Parameter fehlen in der Nachricht |
+
+Prepare-Handles gehören zur Sitzung und enden mit ihr; der Client sendet in den gemessenen
+Szenarien kein `sp_unprepare`, daher ist die Anzahl je Sitzung zu begrenzen. Ohne RETURNSTATUS und
+RETURNVALUE bleiben ReturnValue, OUTPUT-Parameter und Prepare-Handle beim Client leer bzw. −1; die
+Tokens sind für diese Formen Pflicht und durch Tests nachzuweisen. Die Collation aus der
+Login-Antwort (ENVCHANGE Typ 7) ist Voraussetzung für jeden RPC mit Zeichenparametern. Alle anderen RPCs,
+auch `sp_prepare`, `sp_unprepare` und `sp_cursor*`, ergeben eine explizite Fehlermeldung ohne
+Verbindungsabbruch. Gemessen ist nur das Verhalten des Referenzclients gegen einen Testserver, nicht
+die Antwort eines Microsoft-SQL-Servers; Tokenreihenfolge und DONE-Statusbits sind gegen MS-TDS zu
+prüfen.
 
 ### SPEC-031 — Streaming-Fehler und Atomarität
 
