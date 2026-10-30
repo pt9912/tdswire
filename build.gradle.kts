@@ -19,6 +19,22 @@ dependencyLocking {
 dependencies {
     // ktlint-Regelsatz (Abschnitt `ktlint:` in config/detekt/detekt.yml); die Version ist die des Plugins.
     detektPlugins(libs.detekt.ktlint)
+
+    // Unit-Tests: kotlin.test; die JUnit-Plattform ist nur die Laufzeit (Stage `test`, `make test`).
+    testImplementation(libs.kotlin.test)
+    testRuntimeOnly(platform(libs.junit.bom))
+    testRuntimeOnly(libs.junit.jupiter.engine)
+    testRuntimeOnly(libs.junit.platform.launcher)
+}
+
+// Das Protokoll der Stage `test` nennt jeden Test mit Ergebnis und bei einem Fehlschlag die Ursache.
+tasks.test {
+    useJUnitPlatform()
+    testLogging {
+        events("passed", "failed", "skipped")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        showStandardStreams = false
+    }
 }
 
 kotlin {

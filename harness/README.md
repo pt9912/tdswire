@@ -63,6 +63,7 @@ Diese Datei dupliziert sie nicht.
 | `make docs-check` | Doku-Referenzen (d-check); das Gate, das die Vorlage mitbringt | — |
 | `make detekt` | Suppression-Verbot (`@Suppress`) und detekt mit ktlint, `warningsAsErrors`, Import- und Technik-Regeln der Schichten (`ForbiddenMethodCall` über `detektMain`/`detektTest`), in Docker; keine Baseline | — |
 | `make detekt-selbsttest` | Importregeln der Schichten und Suppression-Verbot gegen Testdaten prüfen; läuft nur bei geänderten Eingängen | — |
+| `make test` | Unit-Tests (`kotlin.test` auf der JUnit-Plattform) in Docker, Stage `test`; ein roter Test macht `make gates` rot; Lock und Prüfsummen der Testlaufzeit über `make deps-lock` | — |
 | `make build` | Compile und Jar in Docker, ohne Tests; Basis-Images per Digest gepinnt | — |
 | `<make-target>` | <…> | ADR-<NNNN> |
 | `<make-target>` | <…>, bootstrap-aware | Schwelle X %, M<n> → Y % |
