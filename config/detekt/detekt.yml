@@ -10,7 +10,7 @@
 # Paketabhaengigkeiten fuer D (Dependency Inversion), fehlende Implementierungen fuer L (Liskov).
 
 config:
-  # Eine zwischen Alphas umbenannte oder entfernte Option macht den Lauf rot statt still wirkungslos.
+  # warningsAsErrors soll eine zwischen Alphas umbenannte oder entfernte Option als roten Lauf melden; die Wirkung ist nicht gemessen (ADR-0010).
   warningsAsErrors: true
 
 # Format: der ktlint-Regelsatz des Wrappers (detektPlugins in build.gradle.kts, Version wie das
