@@ -7,6 +7,8 @@ import io.github.pt9912.tdswire.config.auth.ConnectionContext
 import io.github.pt9912.tdswire.config.auth.NegotiatedEncryption
 import io.github.pt9912.tdswire.config.auth.PasswordChars
 import io.github.pt9912.tdswire.config.auth.UserListAuthAdapter
+import io.github.pt9912.tdswire.config.auth.UserListError
+import io.github.pt9912.tdswire.config.auth.UserListErrorKind
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -21,8 +23,8 @@ class ConfigUsersFileTest : TempFilesTest() {
         mapOf(ConfigKeys.ENCRYPTION_POLICY to "TEST_UNENCRYPTED", ConfigKeys.AUTH_USERS_FILE to usersFile) +
             listOfNotNull(testMode?.let { ConfigKeys.AUTH_PLAIN_TESTMODE to it })
 
-    private fun listInvalid(detail: String) =
-        ConfigIssue(ConfigKeys.AUTH_USERS_FILE, IssueKind.USER_LIST_INVALID, detail)
+    private fun listInvalid(kind: UserListErrorKind, line: Int?) =
+        ConfigIssue(ConfigKeys.AUTH_USERS_FILE, IssueKind.USER_LIST_INVALID, UserListError(kind, line))
 
     private fun users(path: String, testMode: String? = "true"): Boolean {
         val config = ConfigLoader.load(env(path, testMode)).loaded()
@@ -89,9 +91,9 @@ class ConfigUsersFileTest : TempFilesTest() {
     @Test
     fun `Zeilenenden werden nicht normalisiert`() {
         val crlf = singleIssue(env(file("crlf.txt", "alice\t{plain}pw\r\nbob\t{plain}x\r\n")))
-        assertEquals(listInvalid("CARRIAGE_RETURN, Zeile 1"), crlf)
+        assertEquals(listInvalid(UserListErrorKind.CARRIAGE_RETURN, 1), crlf)
         val later = singleIssue(env(file("cr.txt", "alice\t{plain}pw\nbob\t{plain}x\r")))
-        assertEquals(listInvalid("CARRIAGE_RETURN, Zeile 2"), later)
+        assertEquals(listInvalid(UserListErrorKind.CARRIAGE_RETURN, 2), later)
     }
 
     /**
@@ -123,11 +125,12 @@ class ConfigUsersFileTest : TempFilesTest() {
     @Test
     fun `Fehler der Liste nennen Art und Zeile`() {
         val duplicate = singleIssue(env(file("dup.txt", "alice\t{plain}pw\nbob\t{plain}x\nalice\t{plain}y\n")))
-        assertEquals("DUPLICATE_USER_NAME, Zeile 3", duplicate.detail)
+        assertEquals(UserListError(UserListErrorKind.DUPLICATE_USER_NAME, 3), duplicate.detail)
+        assertEquals("AUTH_USERS_FILE: USER_LIST_INVALID (DUPLICATE_USER_NAME, Zeile 3)", duplicate.message)
         val notAllowed = singleIssue(env(file("plain.txt", "kennung-4711\t{plain}pw-4711\n"), testMode = null))
-        assertEquals("PLAIN_NOT_ALLOWED, Zeile 1", notAllowed.detail)
+        assertEquals(UserListError(UserListErrorKind.PLAIN_NOT_ALLOWED, 1), notAllowed.detail)
         assertFalse(notAllowed.message.contains("4711"))
-        assertEquals("EMPTY_LIST", singleIssue(env(file("empty.txt", ""))).detail)
+        assertEquals(UserListError(UserListErrorKind.EMPTY_LIST, null), singleIssue(env(file("empty.txt", ""))).detail)
     }
 
     /**
@@ -141,7 +144,11 @@ class ConfigUsersFileTest : TempFilesTest() {
         val path = file("t.txt", "alice\t{plain}pw\n")
         assertTrue(users(path, "true"))
         listOf("false", "", null).forEach {
-            assertEquals("PLAIN_NOT_ALLOWED, Zeile 1", singleIssue(env(path, it)).detail, "Wert '$it'")
+            assertEquals(
+                UserListError(UserListErrorKind.PLAIN_NOT_ALLOWED, 1),
+                singleIssue(env(path, it)).detail,
+                "Wert '$it'",
+            )
         }
         listOf("TRUE", "True", "1", "yes", " true", "true ").forEach {
             val issue = singleIssue(env(path, it))

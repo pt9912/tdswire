@@ -40,9 +40,7 @@ internal object ConfigFiles {
             is UserListResult.Valid -> result.list
 
             is UserListResult.Invalid -> {
-                val line = result.error.line?.let { ", Zeile $it" }.orEmpty()
-                val detail = "${result.error.kind}$line"
-                issues += ConfigIssue(ConfigKeys.AUTH_USERS_FILE, IssueKind.USER_LIST_INVALID, detail)
+                issues += ConfigIssue(ConfigKeys.AUTH_USERS_FILE, IssueKind.USER_LIST_INVALID, result.error)
                 null
             }
         }

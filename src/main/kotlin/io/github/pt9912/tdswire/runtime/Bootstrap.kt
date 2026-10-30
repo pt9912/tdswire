@@ -51,6 +51,10 @@ internal sealed interface BootResult {
  * validieren, TLS-Material laden, Startprobe und Binden im Listener (`SPEC-043`). Bis zum Binden läuft kein
  * Thread des Servers; scheitert ein Schritt, läuft danach keiner weiter und kein Port ist gebunden.
  *
+ * `shutdownGrace` ist 0: Festlegung, nicht gemessen und nicht die Voreinstellung `SHUTDOWN_GRACE` von 10 s
+ * (`SPEC-047`); die Frist des geordneten Beendens (`SPEC-044`) trägt `slice-abbruch-ressourcen-shutdown`, bis
+ * dahin schließt der Stop ohne Frist.
+ *
  * Das Flag `-Djdk.tls.server.newSessionTicketCount=0` setzt der Aufrufer des Prozesses (die JVM-Optionen
  * des Starts); [Bootstrap] liest die Systemeigenschaft vor jedem TLS-Aufruf und bricht ab, wenn sie nicht
  * genau `0` ist. Geprüft ist der Wert der Eigenschaft beim Start; dass die Wirkung auf dem Draht eintritt, belegt

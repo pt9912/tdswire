@@ -2,6 +2,7 @@ package io.github.pt9912.tdswire.config
 
 import io.github.pt9912.tdswire.config.auth.PasswordChars
 import io.github.pt9912.tdswire.config.auth.UserList
+import io.github.pt9912.tdswire.config.auth.UserListError
 
 /** Die Art eines Konfigurationsfehlers; der Wert des Schlüssels erscheint nie in der Diagnose. */
 enum class IssueKind {
@@ -26,16 +27,19 @@ enum class IssueKind {
     /** Die Datei beginnt mit einem UTF-8-BOM. */
     BYTE_ORDER_MARK,
 
-    /** Die Benutzerliste ist ungültig; [ConfigIssue.detail] nennt Fehlerart und Zeilennummer. */
+    /** Die Benutzerliste ist ungültig; [ConfigIssue.detail] trägt Fehlerart und Zeilennummer. */
     USER_LIST_INVALID,
 }
 
 /**
  * Ein Konfigurationsfehler: Schlüssel und Art, bei der Benutzerliste Fehlerart und Zeile in [detail]. Er
- * trägt nie einen Wert, einen Dateipfad, einen Prüfwert oder ein Passwort (`TDS-QA-03`).
+ * trägt nie einen Wert, einen Dateipfad, einen Prüfwert oder ein Passwort (`TDS-QA-03`). [detail] hat den Typ
+ * [UserListError], eine Aufzählung und eine Zeilennummer: ein Aufrufer kann keinen freien Text einsetzen.
  */
-data class ConfigIssue(val key: String, val kind: IssueKind, val detail: String? = null) {
-    val message: String get() = if (detail == null) "$key: $kind" else "$key: $kind ($detail)"
+data class ConfigIssue(val key: String, val kind: IssueKind, val detail: UserListError? = null) {
+    val message: String get() = if (detail == null) "$key: $kind" else "$key: $kind (${describe(detail)})"
+
+    private fun describe(error: UserListError): String = "${error.kind}${error.line?.let { ", Zeile $it" }.orEmpty()}"
 }
 
 /** Ausgang von [ConfigLoader.load]: eine gültige Konfiguration oder alle gefundenen Fehler. */

@@ -4,7 +4,8 @@ import io.github.pt9912.tdswire.protocol.session.LogEntry
 
 /**
  * Die Zeilen, die der Serverprozess über Start, Stop und Fehler schreibt (`TDS-FA-09.a`). Eine Zeile nennt
- * Schlüssel, Art eines Fehlers und feste Wörter, nie einen Konfigurationswert, einen Pfad, einen Benutzernamen,
+ * Schlüssel, Art eines Fehlers und feste Wörter; von den Konfigurationswerten nennt sie nur den gebundenen Port
+ * und, bei einem Bindefehler, Adresse und Port (`SPEC-043`). Sie nennt nie einen Pfad, einen Benutzernamen,
  * einen Prüfwert oder ein Passwort. Strukturierte Logs, Metriken und Korrelations-IDs gehören `observability`.
  */
 internal fun interface ServerLog {
