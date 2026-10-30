@@ -16,8 +16,8 @@ workflow-lint: ## Workflow-Dateien unter .github/workflows/ mit actionlint pruef
 	  docker run --rm -i $(ACTIONLINT_IMAGE) -no-color - < "$$f" || exit 1; \
 	done
 
-# --no-cache verwirft den Layer-Cache der drei Stages; die Basis-Images bleiben, wie sie lokal
-# liegen. Ein frischer Runner zieht sie ohnehin neu, der Layer-Cache fehlt dort von selbst.
+# --no-cache verwirft den Layer-Cache der Stages der drei Aufrufe (Gradle-Stages, ohne den
+# .NET-Restore); die Basis-Images bleiben, wie sie lokal liegen. Ein frischer Runner zieht sie ohnehin neu, der Layer-Cache fehlt dort von selbst.
 clean-build: ## Build, Tests und detekt ohne Layer-Cache (Docker, kein Gate)
 	docker build --no-cache -t $(IMAGE):$(TAG) .
 	docker build --no-cache --target test --progress=plain .

@@ -13,7 +13,8 @@ permissions:
 
 jobs:
   gates:
-    # Exakte Runner-Version statt `ubuntu-latest`: der Runner-Wechsel ist eine Aenderung dieser Datei.
+    # Das Label `ubuntu-24.04` statt `ubuntu-latest`: ein Wechsel der Hauptversion ist eine Aenderung
+    # dieser Datei. Das Image dahinter rollt fort; Docker- und make-Version sind nicht festgelegt.
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
