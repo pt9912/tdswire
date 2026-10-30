@@ -84,7 +84,7 @@ der Closure-Trigger unerreichbar wird.
 - Das Beheben gefundener Abweichungen im Server: je Befund ein Slice nach der Messung; Ausnahmeliste und Closure nennen sie als *Lücke* mit Verweis.
 - Der Abgleich von TDS 8.0 und TLS 1.3 an einer Referenzinstanz: Version 2022 bietet beides nicht an ([ADR-0008](../adr/0008-dotnet-kompatibilitaetstests.md)); ein anderer Image-Tag ist Gegenstand von [slice-qa-vergleichslauf-d](open/slice-qa-vergleichslauf-d.md).
 - Veröffentlichung (Registry, Signierung, Software-Stückliste) und Orchestrierung: nicht verlangt; was ein Release davon braucht, entscheidet der Nutzer in [slice-release-doku-prozess](open/slice-release-doku-prozess.md).
-- Last und Durchsatz: [slice-qa-performance](open/slice-qa-performance.md). Fuzz und Fragmentierung: [slice-qa-stabilitaet](next/slice-qa-stabilitaet.md).
+- Last und Durchsatz: [slice-qa-performance](open/slice-qa-performance.md). Fuzz und Fragmentierung: [slice-qa-stabilitaet](in-progress/slice-qa-stabilitaet.md).
 - Hochverfügbarkeit, Replikation, Windows-Authentifizierung und alles andere aus den globalen Out-of-Scope-Punkten des Lastenhefts.
 - Neue Anforderungen oder Änderungen am Lastenheft.
 
