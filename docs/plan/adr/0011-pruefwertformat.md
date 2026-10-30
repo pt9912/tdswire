@@ -60,39 +60,32 @@ Auszug, soweit sie die Entscheidung trägt.
 
 ## Entscheidung
 
-Die Optionen A1, B1, C2, D1 mit F2 und E2 hat der Nutzer gewählt (2026-10-30). Was er nicht entschieden hat, steht als **Vorschlag** oder **offen**.
+Die Optionen A1, B1, C2, D1 mit F2 und E2 sowie die unten benannten Zahlen, Passwort-Randfälle, Parserregeln und das Zeilenformat hat der Nutzer entschieden (2026-10-30). Was er nicht entschieden hat, steht als **offen**. Jede Aussage trägt ihre Art: Setzung (Wahl des Nutzers), gemessen (mit Messzeile) oder abgeleitet.
 
-**Gewählt (Nutzer):**
+**Entschieden (Nutzer, 2026-10-30):**
 
-- **A1 — Kennungsschema `{kennung}Wert`.** Jeder Eintrag trägt vor dem Prüfwert eine Verfahrenskennung in geschweiften Klammern; der Wert beginnt hinter der ersten `}` (M2-1). Ein Eintrag ohne Kennung führt zum Startabbruch, eine unbekannte Kennung ebenso. *Setzung der Planannahme, nicht gemessen:* M2-1 zeigt nur, dass der Spike-Parser ohne Standardverfahren „ohne Kennung“ als Fehlerart ausweist, nicht, dass der Startabbruch die richtige Regel ist.
+- **A1 — Kennungsschema `{kennung}Wert`.** Jeder Eintrag trägt vor dem Prüfwert eine Verfahrenskennung in geschweiften Klammern; der Wert beginnt hinter der ersten `}` (M2-1). Ein Eintrag ohne Kennung führt zum Startabbruch, eine unbekannte Kennung ebenso. *Setzung, nicht gemessen:* M2-1 zeigt nur, dass der Spike-Parser ohne Standardverfahren „ohne Kennung“ als Fehlerart ausweist, nicht, dass der Startabbruch die richtige Regel ist.
 - **B1 — Verfahren `plain` und `pbkdf2-sha256`.** `plain` ist nur im Testmodus zulässig, sonst Startabbruch vor dem Binden des Ports (M3-6). `pbkdf2-sha256` ist das JDK-Verfahren `PBKDF2WithHmacSHA256` ohne Fremdbibliothek (M1-1, M1-3). Weitere Verfahren kommen als zusätzliche Kennung hinzu. Ein Verfahren ohne Fremdbibliothek bleibt Bedingung für die erste Version; scrypt, Argon2 und bcrypt gibt es im JDK-Image nicht (M1-2).
-- **C2 — Iterationszahl mit Standardwert und hartem Boden.** Der Betreiber kann die Zahl nicht unter den harten Boden senken; eine Obergrenze schützt vor einem Eintrag, dessen Ableitung die Anmeldung über `LOGIN_TIMEOUT` hinaus blockiert. Belege: M1-4 bis M1-8 (Dauer je Iterationszahl, Abhängigkeit von Hardware und Last), M1-11 (das JDK weist 0 und negative Werte ab). **Die Zahlen sind nicht entschieden:** Standardwert, Boden und Obergrenze setzt der Nutzer (siehe Offen). Eine Untergrenze gilt je Verfahren, weil gleiche Iterationszahl nicht gleiche Dauer heißt (M1-8).
+- **C2 — Iterationszahl mit Standardwert und hartem Boden; Zahlen (Setzung).** Boden **210 000**, Standard **600 000**, Obergrenze **10 000 000**. Der Betreiber kann die Zahl nicht unter den Boden senken und nicht über die Obergrenze heben; M1-11: das JDK weist 0 und negative Werte ab. Belege für die Dauer je Ableitung (nur dieses Image und diese Hardware, warm, Median): 54,4 ms bei 210 000, 124,5 ms bei 600 000, 2 086,6 ms bei 10 000 000 (M1-4); mit `--cpus=1` 120,6 ms bei 600 000 und 2 169,6 ms bei 10 000 000 (M1-5). Die Obergrenze schützt vor einem einzelnen Eintrag mit sehr langer Ableitung (abgeleitet aus M1-4), **nicht** vor gleichzeitiger Last: 64 gleichzeitige Ableitungen mit 600 000 und `--cpus=1` erreichten ein Maximum von 23 598,0 ms (M1-7). Die Untergrenze gilt je Verfahren, weil gleiche Iterationszahl nicht gleiche Dauer heißt (M1-8). Ob im Testmodus ein niedrigerer Boden gilt, ist **nicht entschieden** (siehe Offen).
 - **D1 und F2 — eigene Datei nur für die Benutzerliste mit eigenem Zeilenformat und eigenem Parser.** Duplikate sind erkennbar und die Reihenfolge ist erhaltbar (M3-3); die Datei ist von der übrigen Konfiguration getrennt, sodass diese keinen Prüfwert enthält (abgeleitet).
 - **E2 — eigener Testmodus-Schalter nur für `plain`.** Er ist vom Schalter für die Abschwächung der Verschlüsselung ([SPEC-010](../../../spec/spezifikation.md#3-defaults-und-konstanten)) unabhängig (abgeleitet). Der Start-Log nennt den Modus (analog SPEC-010); `plain` ohne Schalter bricht den Start ab (M3-6).
-
-**Vorschlag zur Bestätigung durch den Nutzer** (aus den Messungen abgeleitet, nicht entschieden):
-
-- **Zeilenformat der Datei:** eine Zeile je Eintrag, `Kennung<TAB>Prüfwert`, Aufteilung am ersten TAB, kein Beschneiden von Leerzeichen, kein Escaping, Kodierung UTF-8 (Spike-Format in M3-2). Folge ohne Escaping: Kennungen mit TAB, LF, CR oder alleinstehendem Hochsurrogat sind nicht darstellbar (M3-2); eine solche Kennung ist ein Fehler beim Laden (abgeleitet). Leerzeichen, `:`, `=`, `#`, `\` in der Kennung sind zulässig (M3-2). Kommentare und Leerzeilen sind nicht gemessen.
-- **Doppelte Kennung** ist ein Fehler beim Laden (Erkennbarkeit: M3-3).
-- **Wertseite `pbkdf2-sha256`:** `Salz$Iterationen$Hash`, genau drei Felder (M2-1), Salz und Hash als Standard-Base64 (Zeichenvorrat ohne `$`, M1-12); Hex wäre ebenfalls verträglich (M1-12).
-- **Passwort-Kodierung:** Das JDK leitet das `char[]` des Passworts wie UTF-8 ab (M1-9). Das ist Eigenschaft des Verfahrens, keine Wahl dieser ADR, und geht in jeden Prüfwert ein.
-- **Schlüsselnamen:** `AUTH_USERS_FILE` für den Pfad der Datei, `AUTH_PLAIN_TESTMODE` für den Schalter, der nur beim Wert `true` einschaltet (im Spike wurde `TRUE` abgewiesen, M3-6). Ob der Pfad per Umgebungsvariable oder Argument kommt, ist nicht entschieden; gemessen ist nur der Pfad per Umgebungsvariable (M3-5).
-- **Fehlerwerte:** Der Parser liefert Art und Listenplatz und enthält weder Prüfwert noch Passwort (M2-2); Meldungen von Aufrufen unter dem Parser werden nicht weitergereicht, weil `parseInt` die Eingabe nennt (M2-3).
-- **Verantwortung** (Planannahme, nicht gesetzt): Die Adapter-Seite hält den Prüfwert als Wert (Verfahren, Parameter, Salz, Hash), parst und validiert ihn, vergleicht und kennt den Testmodus als Eingabewert. Die Konfigurationsseite besitzt das Konfigurationsmodell, liest die Datei, reicht die Einträge als Text an die Validierung weiter, führt den Testmodus-Schlüssel und bricht bei einem Fehlerwert den Start ab.
+- **Zeilenformat (Setzung):** eine Zeile je Eintrag, `Kennung<TAB>Prüfwert`, Aufteilung am ersten TAB, kein Beschneiden von Leerzeichen, kein Escaping, Kodierung UTF-8 (Spike-Format in M3-2). Folge ohne Escaping: Kennungen mit TAB, LF, CR oder alleinstehendem Hochsurrogat sind nicht darstellbar (M3-2: TAB, LF, CR gemessen nicht darstellbar, das Hochsurrogat wird zu `?`); eine solche Kennung ist ein Fehler beim Laden (Setzung). Leerzeichen, `:`, `=`, `#`, `\` in der Kennung sind zulässig (M3-2). **Doppelte Kennung** ist ein Startabbruch (Erkennbarkeit: M3-3).
+- **Wertseite `pbkdf2-sha256` (Setzung):** `Salz$Iterationen$Hash`, genau drei Felder (M2-1); Salz und Hash als Standard-Base64 **mit Padding verlangt** (Zeichenvorrat ohne `$`, M1-12; ohne Padding nimmt `Base64.getDecoder()` die Eingabe an, M2-7, der Parser lehnt sie dennoch ab).
+- **Parser streng (Setzung):** Die Iterationen bestehen nur aus ASCII-Ziffern, geprüft regex-artig; Vorzeichen und andere Ziffernschriften werden abgewiesen (M2-4: `toIntOrNull` nähme `+600000`, `−5`, arabisch-indische und vollbreite Ziffern an). Die Kennung ist case-sensitiv und klein: `plain` und `pbkdf2-sha256`; `{PBKDF2-SHA256}` wird abgewiesen (M2-6: der Gleichheitsvergleich weist es ab). Ein leerer `plain`-Wert ist zulässig, nur im Testmodus (ein leeres Passwort ist als Client-Eingabe zulässig, M1-10, [ADR-0009](0009-authentifizierungsmodus.md)). Je Abweichung gibt es genau eine Fehlerart mit Listenplatz (M2-1). Fehlerwerte enthalten weder Prüfwert noch Passwort (M2-2); Meldungen von Aufrufen unter dem Parser werden nicht weitergereicht, weil `parseInt` die Eingabe nennt (M2-3).
+- **Passwort-Randfälle (Setzung, dokumentierte Eigenschaft):** Das Passwort wird aus den UTF-8-Bytes des vom Client gelieferten Zeichenfelds abgeleitet (UTF-16 nach UTF-8 wie im JDK; das `char[]` ergibt in allen 11 Fällen dieselbe Ableitung wie die UTF-8-Berechnung, M1-9). **Bekannte Eigenschaft:** Ein alleinstehendes Hochsurrogat ergibt denselben Hash wie `?` (M1-10); zwei verschiedene Passwörter können dadurch denselben Prüfwert erfüllen. Es gibt **keine Unicode-Normalisierung**: NFC und NFD ergeben verschiedene Hashes (M1-10), das Passwort wird so abgeleitet, wie der Client es liefert. Ein leeres Passwort ist zulässig und wird abgeleitet (M1-10).
+- **Schlüsselnamen (Setzung):** `AUTH_USERS_FILE` für den Pfad der Datei, `AUTH_PLAIN_TESTMODE` für den Schalter, der nur beim Wert `true` einschaltet (im Spike wurde `TRUE` abgewiesen, M3-6). Gemessen ist nur der Pfad per Umgebungsvariable (M3-5).
+- **Verantwortung** (Planannahme, nicht gemessen): Die Adapter-Seite hält den Prüfwert als Wert (Verfahren, Parameter, Salz, Hash), parst und validiert ihn, vergleicht und kennt den Testmodus als Eingabewert. Die Konfigurationsseite besitzt das Konfigurationsmodell, liest die Datei, reicht die Einträge als Text an die Validierung weiter, führt den Testmodus-Schlüssel und bricht bei einem Fehlerwert den Start ab.
 
 **Sichtbarkeit des Werts (gemessen, M3-5):** Eine Datei im Image zeigt den Wert nicht in `docker inspect`, `docker logs`, `/proc/1/environ` und `/proc/1/cmdline`, ist aber für `docker exec`, `docker cp` und `docker run --entrypoint cat` lesbar (als `root` gemessen). Dateirechte und Übergabe im Betrieb sind weder gemessen noch entschieden; die Datei ist ein Geheimnis des Betreibers, und `plain`-Werte stehen darin im Klartext.
 
-**Offen** (nicht entschieden, Fragen an den Nutzer):
+**Offen** (nicht entschieden; Entscheidung oder Messung im Auth-Slice, als solche geführt):
 
-1. Alleinstehendes Hochsurrogat im Passwort: Es ergibt denselben Hash wie `?` (M1-10); Ablehnung, Zulassung oder dokumentierte Kollision.
-2. Unicode-Normalform: NFC und NFD ergeben verschiedene Hashes (M1-10); normalisieren oder nicht.
-3. Strenge der Zahlenerkennung der Iterationen: nur ASCII-Ziffern oder `toIntOrNull` (M2-4).
-4. Padding von Salz und Hash (M2-7): verlangt, nicht erlaubt oder beides.
-5. Leerer `plain`-Wert: im Spike ein Fehler, ein leeres Passwort ist als Client-Eingabe zulässig (M1-10, [ADR-0009](0009-authentifizierungsmodus.md)).
-6. Groß-/Kleinschreibung der Kennung (M2-6).
-7. Iterationszahl: Standardwert, harter Boden und Obergrenze (Belege M1-4 bis M1-8; die Spike-Grenzen sind keine Festlegung).
-8. Zeilenformat-Einzelheiten: Kommentare und Leerzeilen, Zeilenenden, Umgang mit nicht darstellbaren Kennungen (Vorschlag oben).
-9. Hashlänge und Mindestlänge des Salzes (der Spike setzte 32 Byte und „nicht leer“ nur zur Messung).
+1. Niedrigerer Iterationsboden im Testmodus: ja oder nein, und welcher Wert.
+2. Kommentare und Leerzeilen im Zeilenformat (nicht gemessen).
+3. Zeilenenden, insbesondere CRLF (nicht gemessen).
+4. Hashlänge und Mindestlänge des Salzes (der Spike setzte 32 Byte und „nicht leer“ nur zur Messung).
+5. Dateirechte und Übergabe der Datei im Betrieb (nicht gemessen).
+6. Zulässige Länge der Ziffernfolge der Iterationen (führende Nullen ergaben im Spike 600 000, M2-4) und ob der Pfad per Umgebungsvariable oder Argument kommt.
 
 ## Verglichene Alternativen
 
@@ -119,9 +112,9 @@ Die Optionen A1, B1, C2, D1 mit F2 und E2 hat der Nutzer gewählt (2026-10-30). 
 ## Konsequenzen
 
 - **Positiv:** Verfahren, Prüfwertform und Konfigurationsweg der Benutzerliste sind festgelegt, soweit nicht unter Offen geführt; `plain` ist nur mit ausdrücklichem Schalter möglich; das Verfahren braucht keine Fremdbibliothek.
-- **Negativ / Risiko:** Ein eigener Parser mit eigenen Regeln ist zu pflegen. Kennungen mit TAB, LF, CR oder alleinstehendem Hochsurrogat sind im vorgeschlagenen Format nicht darstellbar (M3-2). Die Dauer einer Ableitung ist an Image und Hardware des Spikes gemessen und gilt weder für den Produktivbetrieb noch für gleichzeitige Anmeldungen (M1-7); die Wirkung einer blockierenden Ableitung auf den Coroutinen-Transport ist nicht gemessen. Der `plain`-Wert liegt im Klartext in der Datei.
+- **Negativ / Risiko:** Ein eigener Parser mit eigenen Regeln ist zu pflegen. Kennungen mit TAB, LF, CR oder alleinstehendem Hochsurrogat sind im Format nicht darstellbar (M3-2). Zwei Passwörter, die sich nur durch ein alleinstehendes Hochsurrogat gegenüber `?` unterscheiden, haben denselben Hash (M1-10); NFC- und NFD-Eingabe desselben Texts ergeben verschiedene Hashes (M1-10), ein Nutzer mit anderer Normalform kann abgewiesen werden (abgeleitet). Die Obergrenze der Iterationen schützt nicht vor gleichzeitiger Last (M1-7). Die Dauer einer Ableitung ist an Image und Hardware des Spikes gemessen und gilt weder für den Produktivbetrieb noch für gleichzeitige Anmeldungen (M1-7); die Wirkung einer blockierenden Ableitung auf den Coroutinen-Transport ist nicht gemessen. Der `plain`-Wert liegt im Klartext in der Datei.
 - **Grenze:** Zeitgleichheit von unbekannter Kennung und falschem Passwort, Drosselung wiederholter Versuche und der Scheinvergleich bei unbekannter Kennung sind weder entschieden noch gemessen ([ADR-0009](0009-authentifizierungsmodus.md) §Offen, [TDS-QA-03](../../../spec/lastenheft.md#tds-qa-03--sicherheit)); diese ADR legt dazu nichts fest.
-- **Folgepflicht:** Nach `Accepted` führen `SPEC-051` und `contracts/auth-adapter.md` das Format, und die Zahlen aus Offen 7 sind vor dem Bau gesetzt. Bis dahin bleibt die ADR `Proposed`.
+- **Folgepflicht:** Nach `Accepted` führen `SPEC-051` und `contracts/auth-adapter.md` das Format; die Zahlen stehen oben. Die Punkte unter Offen werden im Auth-Slice entschieden oder gemessen. Bis zur Annahme bleibt die ADR `Proposed`.
 
 ## Fitness Function (falls maschinell prüfbar)
 
@@ -138,3 +131,4 @@ Ein weiteres Verfahren neben `plain` und `pbkdf2-sha256`; ein anderes Dateiforma
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-30 | Proposed – Optionen A1, B1, C2, D1 mit F2 und E2 gewählt (Entscheidung des Nutzers, 2026-10-30) nach Messung M1-1 bis M3-7; Iterationszahlen, Regelfragen und Zeilenformat-Einzelheiten offen; ADR-0009 bleibt unberührt | [ADR-0009](0009-authentifizierungsmodus.md) |
+| 2026-10-30 | Proposed – Iterationszahlen (Boden 210 000, Standard 600 000, Obergrenze 10 000 000), Passwort-Randfälle (Kollision dokumentiert, keine Normalisierung), strenger Parser, Zeilenformat und Schlüsselnamen vom Nutzer entschieden; Testmodus-Boden, Kommentare, Leerzeilen, CRLF, Hashlänge, Salzlänge, Dateirechte offen | [ADR-0009](0009-authentifizierungsmodus.md) |

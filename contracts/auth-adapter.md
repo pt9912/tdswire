@@ -34,15 +34,16 @@ Der Adapter liefert keinen Text und keine Nummer für den Client. Die Antwort an
 
 Feste Benutzerliste aus der Konfiguration (Kennung, Passwortprüfwert). Die Liste wird beim Start validiert (`TDS-FA-09.a`); eine fehlerhafte Liste bricht den Start ab. Für Test und kleine Betriebe gedacht.
 
-Prüfwertformat und Konfigurationsweg (vom Nutzer gewählt, 2026-10-30; Zahlen und Einzelheiten unten sind offen oder Vorschlag, keine Festlegung):
+Prüfwertformat und Konfigurationsweg (vom Nutzer entschieden, 2026-10-30; was unter „Offen“ steht, ist nicht entschieden):
 
-- **Kennungsschema:** Jeder Eintrag trägt vor dem Prüfwert eine Verfahrenskennung, `{kennung}Wert`. Ein Eintrag ohne Kennung und eine unbekannte Kennung brechen den Start ab (Setzung, nicht gemessen).
-- **Verfahren:** `plain` nur bei ausdrücklich eingeschaltetem Testmodus, sonst Startabbruch vor dem Binden des Ports; `pbkdf2-sha256` (`PBKDF2WithHmacSHA256` des JDK, keine Fremdbibliothek), Wert `Salz$Iterationen$Hash`.
-- **Iterationszahl:** Standardwert mit hartem Boden, vom Betreiber nicht unterschreitbar, und eine Obergrenze. Die Zahlen sind offen.
-- **Konfigurationsweg:** eigene Datei nur für die Benutzerliste, eigenes Zeilenformat, eigener Parser; Duplikate sind erkennbar, die Reihenfolge ist stabil. Vorschlag: eine Zeile je Eintrag, `Kennung<TAB>Prüfwert`, UTF-8, kein Escaping.
-- **Testmodus-Schalter:** eigener Schalter nur für `plain`; der Start-Log nennt den Modus.
-- **Fehlerwerte:** Art und Listenplatz, ohne Prüfwert und ohne Passwort.
-- **Offen:** alleinstehendes Hochsurrogat im Passwort (derselbe Hash wie `?`), Unicode-Normalform, Strenge der Zahlenerkennung, Padding von Salz und Hash, leerer `plain`-Wert, Groß-/Kleinschreibung der Kennung, Zahlen der Iterationen, Einzelheiten des Zeilenformats.
+- **Kennungsschema:** Jeder Eintrag trägt vor dem Prüfwert eine Verfahrenskennung, `{kennung}Wert`. Ein Eintrag ohne Kennung und eine unbekannte Kennung brechen den Start ab (Setzung, nicht gemessen). Die Kennung ist case-sensitiv und klein: `plain`, `pbkdf2-sha256`; `{PBKDF2-SHA256}` wird abgewiesen.
+- **Verfahren:** `plain` nur bei ausdrücklich eingeschaltetem Testmodus, sonst Startabbruch vor dem Binden des Ports; ein leerer `plain`-Wert ist zulässig (nur im Testmodus). `pbkdf2-sha256` (`PBKDF2WithHmacSHA256` des JDK, keine Fremdbibliothek), Wert `Salz$Iterationen$Hash`; Salz und Hash sind Standard-Base64 mit verlangtem Padding.
+- **Iterationszahl (Setzung):** Boden 210 000, Standard 600 000, Obergrenze 10 000 000; der Betreiber unterschreitet den Boden nicht. Dauer je Ableitung 54 ms, 125 ms und 2,1 s (gemessen, nur in einem Spike-Image auf einem Host, kein Produktivwert). Die Obergrenze schützt nicht vor gleichzeitiger Last: 64 gleichzeitige Ableitungen mit 600 000 und `--cpus=1` erreichten im Spike bis 23,6 s. Die Iterationen bestehen nur aus ASCII-Ziffern (keine Vorzeichen, keine anderen Ziffernschriften).
+- **Passwort-Randfälle:** Die Ableitung nimmt die UTF-8-Bytes des vom Client gelieferten Passworts (UTF-16 nach UTF-8 wie im JDK). Ein alleinstehendes Hochsurrogat ergibt denselben Hash wie `?` (gemessen); das ist eine bekannte Eigenschaft. Es gibt keine Unicode-Normalisierung (NFC und NFD ergeben verschiedene Hashes, gemessen). Ein leeres Passwort ist zulässig und wird abgeleitet.
+- **Konfigurationsweg:** eigene Datei nur für die Benutzerliste, eigenes Zeilenformat, eigener Parser; Pfad in `AUTH_USERS_FILE`. Eine Zeile je Eintrag, `Kennung<TAB>Prüfwert`, UTF-8, kein Escaping, Aufteilung am ersten TAB. Kennungen mit TAB, LF, CR oder alleinstehendem Hochsurrogat sind nicht darstellbar und ein Ladefehler. Eine doppelte Kennung bricht den Start ab.
+- **Testmodus-Schalter:** `AUTH_PLAIN_TESTMODE`, gilt nur bei genau `true`; eigener Schalter nur für `plain`; der Start-Log nennt den Modus.
+- **Fehlerwerte:** je Abweichung genau eine Fehlerart mit Listenplatz, ohne Prüfwert und ohne Passwort.
+- **Offen** (Entscheidung oder Messung im Authentifizierungs-Slice): niedrigerer Iterationsboden im Testmodus, Kommentare und Leerzeilen, Zeilenenden (CRLF), Hashlänge, Mindestlänge des Salzes, Dateirechte im Betrieb, Länge der Ziffernfolge der Iterationen.
 
 ## Gemessen
 
