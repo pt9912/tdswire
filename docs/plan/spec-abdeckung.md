@@ -31,26 +31,26 @@ bestandenen Test als „Gate-Festlegung, ungemessen“ und ist weder Nachweis no
 irgendein Test ihre Kennung, steht sie als Nachweis da und die Klasse ist nicht mehr zu sehen.
 Die Art folgt dem Verzeichnis des Tests: `smoke/` Smoke-Test, `e2e/` E2E-Test, sonst Modul-Test.
 
-Stand: 23 von 51 Festlegungen mit mindestens einem bestandenen Test, 7 Gate-Festlegungen ungemessen, 21 ohne Nachweis.
+Stand: 27 von 51 Festlegungen mit mindestens einem bestandenen Test, 7 Gate-Festlegungen ungemessen, 17 ohne Nachweis.
 
 ## Matrix
 
 | Festlegung | Titel | Modul-Test | Smoke-Test | E2E-Test | Nicht bestanden | Belegt durch | Urteil |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `SPEC-001` | Zustandsautomat einer Verbindung | 14 | 0 | 0 | 0 | HandshakeDriverTest, HandshakeMatrixTest | mindestens ein bestandener getaggter Test |
-| `SPEC-002` | Interner Query-Vertrag | 1 | 0 | 0 | 5 | BackendModelTest | mindestens ein bestandener getaggter Test |
+| `SPEC-002` | Interner Query-Vertrag | 3 | 0 | 0 | 5 | BackendModelTest, ResponseMappingTest | mindestens ein bestandener getaggter Test |
 | `SPEC-003` | Typmapping (initialer Mindestkatalog) | 45 | 0 | 0 | 0 | BackendModelTest, ColumnMappingTest, MappingFuzzTest, ValueMappingTest, RpcFailureTest, RpcTypesTest, DecimalValuesTest, TokenEncoderTest, TokenRoundtripTest | mindestens ein bestandener getaggter Test |
 | `SPEC-004` | Testprofil | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-028` | PRELOGIN, TLS und LOGIN7: Zustands- und Antwortvertrag | 109 | 2 | 0 | 0 | Login7ParserTest, PreloginCodecTest, HandshakeDriverTest, HandshakeMatrixTest, HandshakeTransportTest, LoginAdmissionTest, LoginResponseTest, PreloginNegotiationTest, SqlBatchParserTest, TokenEncoderTest, TokenRoundtripTest, CodecSmokeTest, SocketChannelLoopbackTest, MessageAssemblerTest, PacketHeaderTest, PacketWriterTest, ListenerSmokeTest, MessageReaderTest, MessageWriterTest, TlsDataPhaseTest, TlsLoopbackTest, TlsNegativeTest, TlsTicketFlagTest | mindestens ein bestandener getaggter Test |
-| `SPEC-029` | ATTENTION und Wiederverwendung der Verbindung | 1 | 0 | 0 | 0 | MessageAssemblerTest | mindestens ein bestandener getaggter Test |
+| `SPEC-029` | ATTENTION und Wiederverwendung der Verbindung | 3 | 0 | 0 | 0 | ResponseFailureTest, ResponseMappingTest, MessageAssemblerTest | mindestens ein bestandener getaggter Test |
 | `SPEC-030` | RPC-Varianten und Parameter-Metadaten | 14 | 1 | 0 | 0 | RpcCatalogFormsTest, RpcFailureTest, RpcTypesTest, TokenEncoderTest, CodecSmokeTest | mindestens ein bestandener getaggter Test |
-| `SPEC-031` | Streaming-Fehler und Atomarität | 5 | 0 | 0 | 3 | ColumnMappingTest, MappingFuzzTest, ValueMappingTest | mindestens ein bestandener getaggter Test |
+| `SPEC-031` | Streaming-Fehler und Atomarität | 34 | 0 | 0 | 3 | ErrorMapperTest, ResponseErrorMapperTest, ResponseFailureTest, ResponseMappingTest, ResponseOrderTest, ColumnMappingTest, MappingFuzzTest, ValueMappingTest | mindestens ein bestandener getaggter Test |
 | `SPEC-035` | Tabellenbeschreibung und Zeilenquelle des Simulations-Backends | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-036` | Erkannte Anweisungsformen des Simulations-Backends (vorläufig) | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
-| `SPEC-043` | Startprüfung: TLS-Konfiguration und Port | 12 | 0 | 0 | 0 | ListenerStartTest, TlsStartProbeTest | mindestens ein bestandener getaggter Test |
-| `SPEC-044` | Geordnetes Beenden | 11 | 0 | 0 | 0 | ListenerLifecycleTest, ListenerShutdownTest | mindestens ein bestandener getaggter Test |
+| `SPEC-043` | Startprüfung: TLS-Konfiguration und Port | 15 | 0 | 0 | 0 | IoGroupTest, ListenerStartTest, TlsStartProbeTest | mindestens ein bestandener getaggter Test |
+| `SPEC-044` | Geordnetes Beenden | 12 | 0 | 0 | 0 | ListenerLifecycleTest, ListenerShutdownTest, ListenerTestBaseTest | mindestens ein bestandener getaggter Test |
 | `SPEC-045` | Referenzabgleich: Ablauf und Ausnahmeliste (vorläufig) | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
-| `SPEC-005` | `LISTEN_PORT` | 4 | 0 | 0 | 0 | ListenerLifecycleTest, ListenerSmokeTest, ListenerStartTest | mindestens ein bestandener getaggter Test |
+| `SPEC-005` | `LISTEN_PORT` | 5 | 0 | 0 | 0 | ListenerLifecycleTest, ListenerSmokeTest, ListenerStartTest | mindestens ein bestandener getaggter Test |
 | `SPEC-006` | `MAX_TDS_PACKET_BYTES` | 10 | 0 | 0 | 0 | PacketHeaderTest, PacketWriterTest | mindestens ein bestandener getaggter Test |
 | `SPEC-007` | `MAX_MESSAGE_BYTES` | 5 | 0 | 0 | 0 | HandshakeTransportTest, MessageAssemblerTest, MessageReaderTest | mindestens ein bestandener getaggter Test |
 | `SPEC-008` | `LOGIN_TIMEOUT` | 16 | 0 | 0 | 0 | AuthExecutorTest, HandshakeDriverTest, ListenerLifecycleTest, ListenerSmokeTest | mindestens ein bestandener getaggter Test |
@@ -60,16 +60,16 @@ Stand: 23 von 51 Festlegungen mit mindestens einem bestandenen Test, 7 Gate-Fest
 | `SPEC-010` | `ENCRYPTION_POLICY` | 6 | 0 | 0 | 0 | HandshakeDriverTest, PreloginNegotiationTest | mindestens ein bestandener getaggter Test |
 | `SPEC-033` | `CANCEL_TIMEOUT` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-034` | `MAX_CONNECTIONS` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
-| `SPEC-011` | `TDS_PROTOCOL_ERROR` | 5 | 0 | 0 | 0 | PreloginCodecTest, TokenEncoderTest, MessageAssemblerTest, PacketHeaderTest | mindestens ein bestandener getaggter Test |
-| `SPEC-012` | `TDS_LOGIN_FAILED` | 14 | 0 | 0 | 0 | UserListAuthAdapterTest, HandshakeDriverTest, HandshakeTransportTest, LoginAdmissionTest, LoginResponseTest | mindestens ein bestandener getaggter Test |
-| `SPEC-013` | `TDS_UNSUPPORTED_RPC` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
-| `SPEC-014` | `TDS_UNSUPPORTED_TYPE` | 20 | 0 | 0 | 0 | ColumnMappingTest, MappingFuzzTest, ValueMappingTest, DecimalValuesTest, TokenEncoderTest | mindestens ein bestandener getaggter Test |
-| `SPEC-015` | `TDS_BACKEND_ERROR` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
+| `SPEC-011` | `TDS_PROTOCOL_ERROR` | 7 | 0 | 0 | 0 | ErrorMapperTest, PreloginCodecTest, TokenEncoderTest, MessageAssemblerTest, PacketHeaderTest | mindestens ein bestandener getaggter Test |
+| `SPEC-012` | `TDS_LOGIN_FAILED` | 16 | 0 | 0 | 0 | UserListAuthAdapterTest, ErrorMapperTest, HandshakeDriverTest, HandshakeTransportTest, LoginAdmissionTest, LoginResponseTest | mindestens ein bestandener getaggter Test |
+| `SPEC-013` | `TDS_UNSUPPORTED_RPC` | 1 | 0 | 0 | 0 | ErrorMapperTest | mindestens ein bestandener getaggter Test |
+| `SPEC-014` | `TDS_UNSUPPORTED_TYPE` | 25 | 0 | 0 | 0 | ErrorMapperTest, ResponseErrorMapperTest, ResponseFailureTest, ResponseMappingTest, ColumnMappingTest, MappingFuzzTest, ValueMappingTest, DecimalValuesTest, TokenEncoderTest | mindestens ein bestandener getaggter Test |
+| `SPEC-015` | `TDS_BACKEND_ERROR` | 6 | 0 | 0 | 0 | ErrorMapperTest, ResponseErrorMapperTest | mindestens ein bestandener getaggter Test |
 | `SPEC-016` | `TDS_TIMEOUT` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
-| `SPEC-037` | `TDS_UNSUPPORTED_SQL` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
+| `SPEC-037` | `TDS_UNSUPPORTED_SQL` | 1 | 0 | 0 | 0 | ErrorMapperTest | mindestens ein bestandener getaggter Test |
 | `SPEC-038` | `TDS_SIM_UNKNOWN_OBJECT` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
-| `SPEC-039` | `TDS_SIM_INVALID_VALUE` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
-| `SPEC-048` | `TDS_INTERNAL_ERROR` | 2 | 0 | 0 | 0 | HandshakeDriverTest | mindestens ein bestandener getaggter Test |
+| `SPEC-039` | `TDS_SIM_INVALID_VALUE` | 1 | 0 | 0 | 0 | ErrorMapperTest | mindestens ein bestandener getaggter Test |
+| `SPEC-048` | `TDS_INTERNAL_ERROR` | 14 | 0 | 0 | 0 | ErrorMapperTest, ResponseErrorMapperTest, ResponseFailureTest, ResponseOrderTest, HandshakeDriverTest | mindestens ein bestandener getaggter Test |
 | `SPEC-049` | `TDS_SHUTDOWN` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-017` | `tds.connection` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-018` | `tds.query` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
@@ -77,7 +77,7 @@ Stand: 23 von 51 Festlegungen mit mindestens einem bestandenen Test, 7 Gate-Fest
 | `SPEC-020` | Microsoft TDS | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-021` | .NET SQL-Client | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-022` | Query-Backend | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
-| `SPEC-023` | TLS | 9 | 0 | 0 | 0 | TlsLoopbackTest, TlsNegativeTest | mindestens ein bestandener getaggter Test |
+| `SPEC-023` | TLS | 10 | 0 | 0 | 0 | TlsLoopbackTest, TlsNegativeTest, TlsStartProbeTest | mindestens ein bestandener getaggter Test |
 | `SPEC-051` | Authentifizierungsadapter | 29 | 0 | 0 | 0 | AuthPrimitivesTest, AuthTextRepresentationTest, UserListAuthAdapterTest, UserListParserTest | mindestens ein bestandener getaggter Test |
 | `SPEC-024` | Unit-Test-Gate | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-025` | Integrationstest-Gate | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
