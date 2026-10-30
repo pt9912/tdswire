@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** SPEC-001 · SPEC-002 · SPEC-031 · ARC-005 · ARC-007 · ARC-015 · [TDS-FA-03.a](../../../../spec/spezifikation.md#tds-fa-03a--sql_batch)
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** pt9912.
 
 **Autor:** pt9912. **Datum:** 2026-10-30.
 
