@@ -2,7 +2,7 @@
 
 **Rolle:** Verifier (Modul 11, „Bauen wir es richtig?“ gegen Plan und DoD) · **Modell:** claude-sonnet-5-5
 
-**Gegenstand:** Merge `0d3f90c` (Commits `16d62ec`, `b177a48`), Diff `025bb11..0d3f90c` über `src` und `contracts`. Slice: `docs/plan/planning/in-progress/slice-backend-port-vertrag.md` (Welle welle-backend-streaming). Bezug: [TDS-FA-08](../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-QA-05](../../spec/lastenheft.md#tds-qa-05--wartbarkeit), [ADR-0006](../plan/adr/0006-backend-vertrag-und-streaming.md), [TDS-FA-08.a](../../spec/spezifikation.md#tds-fa-08a--backend-vertrag).
+**Gegenstand:** Merge `0d3f90c` (Commits `16d62ec`, `b177a48`), Diff `025bb11..0d3f90c` über `src` und `contracts`. Slice: `docs/plan/planning/done/slice-backend-port-vertrag.md` (Welle welle-backend-streaming). Bezug: [TDS-FA-08](../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-QA-05](../../spec/lastenheft.md#tds-qa-05--wartbarkeit), [ADR-0006](../plan/adr/0006-backend-vertrag-und-streaming.md), [TDS-FA-08.a](../../spec/spezifikation.md#tds-fa-08a--backend-vertrag).
 
 **Eingang:** DoD des Slice (§2) und der Review-Report `docs/reviews/2026-10-30-0d3f90c-slice-backend-port-vertrag.md`. Der Review hatte `make test` und `make gates` nicht ausgewertet; die Belege unten sind eigene Läufe, keine Übernahme.
 
