@@ -97,10 +97,13 @@ ERROR-/DONE-Token oder Verbindungsabbruch, falls Protokollzustand keine Antwort 
    dem Text der Ausnahme; dieser kann Konfigurationswerte enthalten und geht ins Log, ohne
    Parameterwerte (`SPEC-048`).
 6. Nach ERROR und DONE mit Fehlerstatus bleibt die Verbindung offen, wenn die Severity (Class) höchstens
-   19 ist. Ab Severity 20, nach `TDS_INTERNAL_ERROR` (`SPEC-048`), nach `TDS_SHUTDOWN` (`SPEC-049`) und
-   wenn der Strom nicht mehr sicher abzuschließen ist (`SPEC-031`) schließt der Server die Verbindung
-   nach ERROR und DONE. Nach Cancel oder Timeout bleibt sie offen, wenn DONE mit ATTENTION-Status
-   gesendet wurde (`SPEC-029`). Ob Cancel und Timeout als Fehler zählen, ist noch festzulegen.
+   19 ist. Ab Severity 20, nach `TDS_INTERNAL_ERROR` (`SPEC-048`) und nach `TDS_SHUTDOWN` (`SPEC-049`)
+   schließt der Server die Verbindung nach ERROR und DONE. Ist der Strom nicht mehr sicher abzuschließen,
+   schließt der Server die Verbindung; ob zuvor ERROR und DONE gesendet werden, regelt `SPEC-031` (ohne
+   Abschluss, wenn der Strom nicht synchron bleibt). Nach Cancel oder Timeout bleibt sie offen, wenn DONE
+   mit ATTENTION-Status gesendet wurde (`SPEC-029`). Noch festzulegen: ob Cancel und Timeout als Fehler
+   zählen; die Severity der eigenen Fehlercodes (bis dahin gilt: im Zweifel schließen); ob die Regel auch
+   für das Ende des Handshakes nach einem abgelehnten Login gilt (`SPEC-012`).
 
 **Komplexität:** O(Meldungslänge). **Fehlermodi:** Transport bereits geschlossen, Encoderfehler.
 
@@ -338,7 +341,7 @@ vollständigem Abbruchabschluss wieder eine neue Anfrage an (Anfragezustand `IDL
 zwischen DONE und ATTENTION gilt die Regel der Anfragezustandsmaschine in `SPEC-001`; doppelte
 DONE-Tokens sind verboten. Wenn ein
 bereits gesendeter Stream nicht mehr sauber abgeschlossen werden kann, wird die Verbindung
-geschlossen. Nach gesendetem DONE mit ATTENTION-Status bleibt die Verbindung offen. Tests prüfen `SqlCommand.Cancel()`, `CancellationToken` und unmittelbar anschließende
+geschlossen. Nach gesendetem DONE mit ATTENTION-Status bleibt die Verbindung offen, außer das geordnete Beenden (`SPEC-044`) hat begonnen; dann endet sie. Tests prüfen `SqlCommand.Cancel()`, `CancellationToken` und unmittelbar anschließende
 neue Befehle.
 
 ### SPEC-030 — RPC-Varianten und Parameter-Metadaten
@@ -611,3 +614,4 @@ aktive Backendoperationen, Abbrüche, Protokollfehler. Keine SQL-Texte als Metri
 | 2026-10-30 | Testumgebung für den Referenzclient und den Referenzabgleich festgelegt (`SPEC-021`, `SPEC-025`, `SPEC-032`, `SPEC-045`, `SPEC-050`) |
 | 2026-10-30 | Unit-Test-Gate an `make test` gebunden (`SPEC-024`) |
 | 2026-10-30 | Prüfwertformat und Konfigurationsweg der Benutzerliste benannt (`SPEC-051`) |
+| 2026-10-30 | Nach Setzungen des Nutzers geschärft: Zustand als expliziter Automat mit Sperre je Sitzung, Zuschnitt der Aufzählung offen (`SPEC-001`); Ergebnis als Strom mit Vorschau für `DONE_MORE` (`SPEC-002`, `SPEC-022`); Verbindung bleibt offen nach DONE mit ATTENTION-Status, außer im geordneten Beenden (`SPEC-029`); Verbindungsende nach ERROR und DONE bei internem Fehler und Shutdown, `SPEC-049` verlangt jetzt zusätzlich DONE (`SPEC-048`, `SPEC-049`); Verbindung offen bis Severity 19 (`TDS-FA-06.a`). `SPEC-048`, `SPEC-049` und die Schwelle ab Severity 20 sind Setzungen des Nutzers, am echten Server nur für Severity 20 und 25 gemessen; Handshake-Ende, Severity eigener Codes und Cancel/Timeout als Fehler bleiben offen |
