@@ -13,7 +13,7 @@ scan:
   # dieses Repo nicht schreibt) und .harness/skills/ (die Reviewer-Skills; sie gehoeren nach dem
   # Bootstrap dem Repo und bleiben trotzdem ungeprueft, ein Verweis darin faellt keinem Modul
   # auf). Daneben liegen dort das Sprachskelett-Staging und der Zustands-Bereich .harness/state/.
-  ignore: ["**/*.template.md", ".tmp/**", ".harness/**"]
+  ignore: ["**/*.template.md", ".tmp/**", ".harness/**", ".claude/worktrees/**"]
 modules: [links, anchors, ids, matrix, codepaths, spans, planning, structure, targets]
 ids:
   patterns:
