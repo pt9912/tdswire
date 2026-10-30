@@ -500,7 +500,7 @@ Grenzen: Ein Mitschnitt spielt die Anfragen des Clients ab, nicht den Client; fr
 einer anderen Antwort anders, zeigt das nur der Live-Lauf. Das Schema der Referenzinstanz und die
 Tabellenbeschreibung des Simulations-Backends werden getrennt gepflegt und müssen gemeinsam
 geändert werden. Mitschnitte enthalten nur Testdaten und keine Secrets. Das
-SQL-Server-Image setzt `ACCEPT_EULA=Y` voraus; die Zustimmung des Repo-Inhabers steht in der ADR, der Gate-Lauf setzt die Variable ausdrücklich. Gemessen ist nur eine Instanz der Version 2022: sie bietet weder TDS 8.0 noch TLS 1.3, der Abgleich beider Pfade entfällt dort.
+SQL-Server-Image setzt `ACCEPT_EULA=Y` voraus; die Zustimmung des Repo-Inhabers ist in der ADR als Entscheidung festgehalten (rechtlich ungeprüft), der Lauf setzt die Variable ausdrücklich. Gemessen ist nur eine Instanz der Version 2022: `Encrypt=Strict` (TDS 8.0) scheitert, und der Server-Log nennt TLS 1.0 bis 1.2; der Abgleich beider Pfade entfällt dort.
 
 ## 3. Defaults und Konstanten
 
