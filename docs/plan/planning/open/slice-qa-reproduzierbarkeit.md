@@ -38,6 +38,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - `trustedSigners`: eine funktionierende Liste für `signatureValidationMode=require` unter Linux, oder die begründete Entscheidung dagegen.
 - Der Vergleichslauf D (Referenzabgleich nach [SPEC-045](../../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig)) als eigenes Make-Target: Ausnahmeliste für das gemessene Schema, Laufzeit sowie Netz-, Platten- und Speicherbedarf auf dem Zielsystem gemessen, EULA-Rechtsprüfung, SQL-Server-Tag für TDS 8.0. In `make gates` kommt D erst nach dieser Messung.
 - State und Meldung eines echten SQL Servers ([ADR-0009](../../adr/0009-authentifizierungsmodus.md) §Offen): das Anmelde-Szenario in D (falsches Kennwort, unbekannter Benutzer; einmal gemessen 18456, State 1, Class 14, Meldung mit Benutzernamen) und ein Eintrag der Ausnahmeliste *so gewollt* für die feste Meldung ohne Kennung (`SPEC-012`). Der interne State ist am Client nicht sichtbar. Dieser Slice ist der einzige Träger; [slice-qa-kompatibilitaet](slice-qa-kompatibilitaet.md) führt keinen Referenzabgleich.
+- Die Antwortseite des Codecs am echten SQL Server (Träger der Beobachtung `BEO-TDS/messung-am-echten-sql-server-fehlt`, Ausgang aus `welle-protokollcodec`): Reihenfolge der Antwort-Tokens im Strom, Statusbits der DONE-Familie und ordinale Zählung der RETURNVALUE, die der Codec bisher nur als Handvektor und als Festlegung trägt (Closure-Notiz [welle-protokollcodec-results](../done/welle-protokollcodec-results.md), Tabelle *gemessen | Festlegung*). Der Vergleichslauf D deckt sie mit je einem Szenario mit Mehrfach-Resultset und RPC mit Ausgabewert, oder der Slice benennt je Punkt, warum die Messung nicht lieferbar ist.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -52,7 +53,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] CI-Workflow führt `make gates` in Docker aus und ist grün.
 - [ ] Clean-Build ohne Host-Toolchain nachgewiesen (Host: Docker und `make`), einschließlich des .NET-Restore: NuGet-Audit und `trustedSigners` entschieden und umgesetzt, oder ein Carveout mit Trigger.
-- [ ] Vergleichslauf D als eigenes Make-Target, nicht in `make gates`; Ausnahmeliste (darunter die feste Login-Meldung ohne Kennung) sowie Laufzeit, Netz-, Platten- und Speicherbedarf gemessen, Anmelde-Szenario gegen den echten Server enthalten, Aufnahme in `make gates` erst danach.
+- [ ] Vergleichslauf D als eigenes Make-Target, nicht in `make gates`; Ausnahmeliste (darunter die feste Login-Meldung ohne Kennung) sowie Laufzeit, Netz-, Platten- und Speicherbedarf gemessen, Anmelde-Szenario gegen den echten Server enthalten, Antwort-Token-Reihenfolge, DONE-Statusbits und RETURNVALUE-Zählung des Codecs gemessen (oder je Punkt als nicht lieferbar begründet), Aufnahme in `make gates` erst danach.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des

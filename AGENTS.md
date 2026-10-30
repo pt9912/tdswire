@@ -158,6 +158,17 @@ Umplanungen, keine Schließungen und keine erreichten Meilensteine.
 Herkunft in **ein** auflösbares Feld (`LH-*`, `ADR-*`, `· seit welle-<Kennung>`).
 Was daneben steht, liest jeder Lauf mit und bezahlt es mit Kontext.
 
+### 3.8 Eine Aussage trägt höchstens so weit wie ihr Beleg   (seit welle-protokollcodec)
+
+Eine Aussage in ADR, Spec, Vertrag, Slice, KDoc oder Test trägt höchstens so
+weit wie ihr Beleg: eine Messzeile, ein Handvektor mit Quelle oder eine als
+Setzung gekennzeichnete Festlegung. Abschnittsnummern externer Standards stehen
+nur mit belegbarer Quelle. Die Regel gilt für Code-KDoc ebenso wie für
+Entscheidungen.
+
+**Begründung:** Der Review fand Aussagen breiter als die Messung siebenmal, in
+ADRs, Vertragsdateien und KDoc; behoben wird durch Nachmessen oder Einschränken.
+
 
 
 

@@ -70,6 +70,9 @@ bewusst kurz (Ergänzungs-Kanal, nicht Hauptkanal).
 - unklare Fehlerbehandlung am Rand des Spec-Bereichs
 - fehlende Negativtests bei neuem öffentlichem Vertrag
 - Wiederholung eines Musters, das schon zweimal LOW war
+- **Aussage breiter als ihr Beleg** — in ADR, Spec, Vertrag, Slice, KDoc oder Test steht mehr, als
+  Messzeile, Handvektor mit Quelle oder gekennzeichnete Setzung tragen, oder eine Abschnittsnummer
+  eines externen Standards ohne belegbare Quelle (`AGENTS.md` §3.8)  (seit welle-protokollcodec)
 
 **LOW** — *mit Konventions-Anker* (ADR, Hard Rule, Linter-Regel, Eintrag im
 Reviewer-Skill): stilistisch unschön ohne semantische Auswirkung, einmalige
