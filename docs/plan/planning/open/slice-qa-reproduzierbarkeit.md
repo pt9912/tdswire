@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md), [ADR-0010](../../adr/0010-detekt-pre-release.md)
 
-**Berührte Spec-Stellen:** SPEC-026 · SPEC-042
+**Berührte Spec-Stellen:** SPEC-026 · SPEC-042 · SPEC-045 · SPEC-050
 
 **Verantwortlich:** — bis zur Priorisierung.
 
@@ -32,6 +32,12 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Ein Clean-Build und die Integrationstests laufen in CI ohne lokale JVM auf dem Host.
 
+**Zusätzlicher Umfang aus [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md)** (dieser Slice ist der Träger der dort offenen Punkte):
+
+- NuGet-Audit: Entscheidung, ob das Repo die Schwachstellenprüfung anderweitig führt oder bewusst verzichtet; wird `NuGetAudit=false` nicht beendet, braucht es einen Carveout mit Trigger (`AGENTS.md` §3.6). Bewertet gegen [TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit).
+- `trustedSigners`: eine funktionierende Liste für `signatureValidationMode=require` unter Linux, oder die begründete Entscheidung dagegen.
+- Der Vergleichslauf D (Referenzabgleich nach [SPEC-045](../../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig)) als eigenes Make-Target: Ausnahmeliste für das gemessene Schema, Laufzeit sowie Netz-, Platten- und Speicherbedarf auf dem Zielsystem gemessen, EULA-Rechtsprüfung, SQL-Server-Tag für TDS 8.0. In `make gates` kommt D erst nach dieser Messung.
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Die Wahl des Referenzclients ([ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md)) — sie bestimmt, was die Integrationstests sind; der Slice bindet sie in die CI ein, entscheidet sie nicht.
@@ -44,7 +50,8 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] CI-Workflow führt `make gates` in Docker aus und ist grün.
-- [ ] Clean-Build ohne Host-Toolchain nachgewiesen (Host: Docker und `make`).
+- [ ] Clean-Build ohne Host-Toolchain nachgewiesen (Host: Docker und `make`), einschließlich des .NET-Restore: NuGet-Audit und `trustedSigners` entschieden und umgesetzt, oder ein Carveout mit Trigger.
+- [ ] Vergleichslauf D als eigenes Make-Target, nicht in `make gates`; Ausnahmeliste sowie Laufzeit, Netz-, Platten- und Speicherbedarf gemessen, Aufnahme in `make gates` erst danach.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -66,6 +73,8 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | CI-Workflow | neu | Clean-Build und Gates nach [TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
 | `harness/README.md` | update | CI-Badge als Lauf-Status |
+| `nuget.config`, Restore-Konfiguration des Referenzclient-Tests | neu | NuGet-Audit und `trustedSigners` ([ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md)) |
+| Make-Target für den Vergleichslauf D | neu | Referenzabgleich gegen den SQL-Server-Container, außerhalb von `make gates` ([ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md)) |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 
