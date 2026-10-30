@@ -65,6 +65,7 @@ Diese Datei dupliziert sie nicht.
 | `make detekt-selbsttest` | Importregeln der Schichten und Suppression-Verbot gegen Testdaten prüfen; läuft nur bei geänderten Eingängen | — |
 | `make test` | Unit-Tests (`kotlin.test` auf der JUnit-Plattform) in Docker, Stage `test`; ein roter Test macht `make gates` rot; Lock und Prüfsummen der Testlaufzeit über `make deps-lock` | — |
 | `make build` | Compile und Jar in Docker, ohne Tests; Basis-Images per Digest gepinnt | — |
+| `make referenztest-dotnet` | .NET-Referenztests in Docker ohne Mount, Stage `test`: gesperrter Restore, dann Build und Smoke-Test ohne Netz und ohne TDS-Server; ein roter Test macht `make gates` rot | [ADR-0008](../docs/plan/adr/0008-dotnet-kompatibilitaetstests.md), `CO-001`, `CO-002` |
 | `<make-target>` | <…> | ADR-<NNNN> |
 | `<make-target>` | <…>, bootstrap-aware | Schwelle X %, M<n> → Y % |
 | `<make-target>` | <…> | bootstrap via `CO-<NNN>` bis <Slice/Welle> |
@@ -82,12 +83,14 @@ Diese Datei dupliziert sie nicht.
 | `make spec-abdeckung-selbsttest` | prüft den Erzeuger der Abdeckungsmatrix an einem erzeugten Mini-Bestand: roter, nicht gelaufener, übersprungener und unbekannt getaggter Test zählen nicht | kein Gate |
 | `make workflow-lint` | prüft `.github/workflows/*.yml` mit actionlint (Image per Digest, Datei über stdin, kein Mount) | kein Gate, [TDS-QA-06](../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
 | `make clean-build` | baut Jar, Tests und detekt mit `--no-cache` in Docker; für den Clean-Build-Nachweis | kein Gate, [TDS-QA-06](../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
+| `make referenztest-dotnet-lock` | schreibt `referenztest-dotnet/packages.lock.json` neu (braucht Netz; das erste Lock vertraut nuget.org beim Schreiben), prüft nichts | kein Gate, `CO-002` |
+| `make referenztest-dotnet-audit` | meldet bekannte Schwachstellen der .NET-Pakete am Tag des Laufs; Ergebnis hängt am Abfragetag, nicht reproduzierbar, Exit 0 auch bei Fund | kein Gate, `CO-001` |
 | `make <messung>` | misst <…> gegen <Schwelle> | kein Gate, ADR-<NNNN> |
 | `make <vorschau>` | sagt, was <schreibender Lauf> täte; Ausgänge und Sperren in der verlinkten Datei | kein Gate |
 
 **Aktueller Lauf-Status:** lokal `make help` / `make gates`. Die CI-Datei `.github/workflows/gates.yml` führt `make gates`; ein Lauf auf dem Runner ist nicht belegt, ein Badge steht deshalb nicht hier.
 **Rote Gates:** Begründung im verlinkten `CO-<NNN>` (siehe Bindung-Spalte), Modul 7.
-**Nicht behauptet:** ein Target für den Vergleichslauf D (kein Referenzclient gebaut), die Signatur- und Schwachstellenprüfung des .NET-Restore (kein .NET-Projekt vorhanden).
+**Nicht behauptet:** ein Target für den Vergleichslauf D (kein Referenzclient gebaut), die Signaturprüfung der .NET-Pakete (`CO-002`) und ein Gate für die Schwachstellenprüfung (`CO-001`; `make referenztest-dotnet-audit` meldet nur).
 
 **Targets der Werkzeug-Fragmente:** [`mk/ai-harness-init.md`](mk/ai-harness-init.md) — der Teil dieses Index, den `ai-harness-init` bei jedem Lauf neu schreibt; was das Repo über eines dieser Targets entscheidet, steht in dieser Zeile.
 

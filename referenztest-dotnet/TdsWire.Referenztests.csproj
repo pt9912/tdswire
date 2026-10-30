@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <!-- Restore-Sperre: packages.lock.json fixiert Version und contentHash jedes Pakets, auch der
+       transitiven; eine Abweichung bricht den Restore (ADR-0008, TDS-QA-06). Nur die Dockerfile-Stage
+       `lock` setzt LockErzeugen und schreibt die Datei neu (make referenztest-dotnet-lock). -->
+  <PropertyGroup>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RestoreLockedMode Condition="'$(LockErzeugen)' != 'true'">true</RestoreLockedMode>
+  </PropertyGroup>
+
+  <!-- NuGet-Audit ist aus: das Ergebnis haengt am Abfragetag und ist nicht reproduzierbar.
+       Befristet; Trigger und Folge-Slice stehen im Carveout CO-001. -->
+  <PropertyGroup>
+    <NuGetAudit>false</NuGetAudit>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="7.1.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
+  </ItemGroup>
+
+</Project>
