@@ -6,22 +6,29 @@ import kotlin.test.assertFailsWith
 
 class BackendModelTest {
     /**
-     * Decimal nimmt Precision und Scale an, die der Mindestkatalog nennt, einschließlich der
-     * Ränder `scale = 0` und `scale = precision`.
+     * Decimal nimmt eine Precision und einen Scale an, wie sie der Mindestkatalog nennt.
      *
      * @spec SPEC-003
      */
     @Test
-    fun `Decimal akzeptiert gueltige Precision und Scale`() {
+    fun `Decimal akzeptiert Precision und Scale des Mindestkatalogs`() {
         assertEquals(5, SqlType.Decimal(5, 2).precision)
+        assertEquals(2, SqlType.Decimal(5, 2).scale)
+    }
+
+    /**
+     * Setzung des Quelltexts, nicht von `SPEC-003` belegt: die Ränder `scale = 0` und
+     * `scale = precision` gelten.
+     */
+    @Test
+    fun `Decimal akzeptiert die Raender von Scale`() {
         assertEquals(0, SqlType.Decimal(5, 0).scale)
         assertEquals(5, SqlType.Decimal(5, 5).scale)
     }
 
     /**
-     * Decimal weist Precision unter 1, negativen Scale und Scale über Precision ab.
-     *
-     * @spec SPEC-003
+     * Setzung des Quelltexts, nicht von `SPEC-003` belegt: Precision unter 1, negativer Scale und
+     * Scale über Precision werden abgewiesen.
      */
     @Test
     fun `Decimal lehnt ungueltige Precision und Scale ab`() {
@@ -41,26 +48,13 @@ class BackendModelTest {
     }
 
     /**
-     * Das Ereignismodell hat genau die sieben Ereignisse aus `SPEC-002`: das erschöpfende `when`
-     * ohne `else` übersetzt nur, solange die Menge der Untertypen diese sieben ist.
-     *
-     * @spec SPEC-002
+     * Der Beleg, dass das Ereignismodell nur diese Untertypen hat, ist der Compiler: `name` ist ein
+     * erschöpfendes `when` ohne `else` und übersetzt nur, solange die Menge der Untertypen von
+     * [QueryEvent] genau diese ist. Der Test belegt allein die Zuordnung eines Beispiels.
      */
     @Test
-    fun `QueryEvent kennt sieben Ereignisse`() {
-        val events: List<QueryEvent> = listOf(
-            QueryEvent.ResultStart(emptyList()),
-            QueryEvent.Row(emptyList()),
-            QueryEvent.ResultEnd(null),
-            QueryEvent.UpdateCount(1),
-            QueryEvent.ReturnStatus(0),
-            QueryEvent.OutputParameter("o", SqlType.Bool, null),
-            QueryEvent.Failure("c", "m"),
-        )
-
-        val names = events.map { name(it) }
-
-        assertEquals(7, names.toSet().size)
+    fun `name ordnet ein Ereignis seinem Untertyp zu`() {
+        assertEquals("Failure", name(QueryEvent.Failure("c", "m")))
     }
 
     private fun name(event: QueryEvent): String = when (event) {

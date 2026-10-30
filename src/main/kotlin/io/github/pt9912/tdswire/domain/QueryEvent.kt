@@ -21,7 +21,10 @@ sealed interface QueryEvent {
      */
     data class Row(val values: List<Any?>) : QueryEvent
 
-    /** Ende eines Ergebnisses; [affectedRows] ist `null`, wenn das Backend keine Zahl liefert. */
+    /**
+     * Ende eines Ergebnisses. Festlegung ohne Messung: [affectedRows] ist `null`, wenn das Backend
+     * keine Zahl liefert; `SPEC-002` und die Messungen sagen dazu nichts.
+     */
     data class ResultEnd(val affectedRows: Long?) : QueryEvent
 
     /** Zahl der betroffenen Zeilen einer Anweisung ohne Ergebnis. */

@@ -60,11 +60,11 @@ class ScriptedBackend private constructor(private val source: (ScriptedBackend) 
     }
 
     companion object {
-        /** Ein Backend, dessen Strom genau die [events] in dieser Reihenfolge liefert. */
+        /**
+         * Ein Backend, dessen Strom genau die [events] in dieser Reihenfolge liefert. Ein Start-Fehler
+         * ist ein einziges [QueryEvent.Failure] im Strom; eine eigene Fabrik dafür gibt es nicht.
+         */
         fun ofList(vararg events: QueryEvent): ScriptedBackend = ScriptedBackend { flowOf(*events) }
-
-        /** Ein Backend, dessen Start scheitert: der Strom besteht aus dem einen [failure]. */
-        fun failingAtStart(failure: QueryEvent.Failure): ScriptedBackend = ScriptedBackend { flowOf(failure) }
 
         /**
          * Ein Backend, das ein Ergebnis mit einer Spalte und [rows] Zeilen erzeugt, eine Zeile je
