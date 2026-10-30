@@ -39,7 +39,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Messung der Zeitgleichheit von unbekannter Kennung und falschem Passwort und Drosselung wiederholter Versuche — `slice-qa-sicherheit` ([ADR-0009](../../adr/0009-authentifizierungsmodus.md) §Offen). Hier entsteht die Bauart mit einem Strukturtest, keine Zeitaussage.
 - Adapter-Varianten außer der festen Benutzerliste (eigene Benutzerverwaltung eines Betreibers, Backend-Weiterreichung): Die Betreiberanforderung ist nicht abnahmebindend (`BEO-TDS/betreiberanforderung-benutzerverwaltung-fehlt`); die Schnittstelle bleibt dafür offen, gebaut wird sie nicht.
 - Passwortwechsel (`fChangePassword`): kein Teil des Adaptervertrags der ersten Version, der Anmeldepfad lehnt ihn ab.
-- Die Wahl von Prüfwertformat und Konfigurationsweg: Sie ist Voraussetzung (§4), nicht Inhalt; die Entscheidung trifft der Nutzer und hält sie als ADR oder als Fortschreibung von SPEC-051 und `contracts/auth-adapter.md` fest.
+- Die Wahl von Prüfwertformat und Konfigurationsweg: Sie ist Voraussetzung (§4), nicht Inhalt; `slice-adr-pruefwertformat` legt dem Nutzer Optionen vor, der Nutzer entscheidet, und die Entscheidung steht als ADR oder als Fortschreibung von SPEC-051 und `contracts/auth-adapter.md`. Ob dieser Slice Verfahren, Parameter und Testmodus als Wert hält und das Laden dem Bootstrap-Slice überlässt, legt diese Entscheidung fest.
 
 ## 2. Definition of Done
 
@@ -91,7 +91,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): Der Start-Trigger der Welle `welle-handshake-login` ist eingetreten, Prüfwertformat und Konfigurationsweg der Benutzerliste sind entschieden (Nutzerentscheidung, festgehalten als `Accepted`-ADR oder als Fortschreibung von SPEC-051 und `contracts/auth-adapter.md`) und ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): Der Start-Trigger der Welle `welle-handshake-login` ist eingetreten, `slice-adr-pruefwertformat` liegt in `done/` (Prüfwertformat und Konfigurationsweg der Benutzerliste sind entschieden: Nutzerentscheidung, festgehalten als `Accepted`-ADR oder als Fortschreibung von SPEC-051 und `contracts/auth-adapter.md`) und ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -113,8 +113,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Prüfwertformat und Konfigurationsweg sind offen ([ADR-0009](../../adr/0009-authentifizierungsmodus.md) §Offen) und hängen an einer Nutzerentscheidung; ohne sie startet der Slice nicht. Das Format (gesalzene Ableitung, Klartext für Testbetrieb, andere) ist hier nicht vorweggenommen. — **Ausgang:** offen bis zur Closure.
-- Überschneidung mit `slice-qa-sicherheit`: Dessen Liefer-Punkt nennt das Prüfwertformat ebenfalls ("entschieden oder als Carveout geführt"). Wird es hier vorgezogen entschieden, schrumpft jener Punkt; dieser Plan ändert `slice-qa-sicherheit` nicht. — **Ausgang:** offen bis zur Closure.
+- Prüfwertformat und Konfigurationsweg sind offen ([ADR-0009](../../adr/0009-authentifizierungsmodus.md) §Offen) und hängen an einer Nutzerentscheidung; ohne sie startet der Slice nicht. Träger der Entscheidung ist `slice-adr-pruefwertformat`; das Format (Verfahrenskennung je Eintrag, gesalzene Ableitung, Klartext nur im Testmodus, andere) ist hier nicht vorweggenommen, die Richtung des Nutzers ist dort Eingabe, keine Festlegung. — **Ausgang:** offen bis zur Closure.
+- Überschneidung mit `slice-qa-sicherheit`: Dessen Liefer-Punkt nennt das Prüfwertformat ebenfalls ("entschieden oder als Carveout geführt"). Das Prüfwertformat wird in `slice-adr-pruefwertformat` vorgezogen entschieden; jener Punkt schrumpft dort, die Änderung an `slice-qa-sicherheit` begründet dessen Closure-Notiz. Dieser Plan ändert `slice-qa-sicherheit` nicht. — **Ausgang:** offen bis zur Closure.
 - Der konstante Vergleich ist nur strukturell belegt. Messung und JIT-/GC-Einfluss sind ungemessen; eine Aussage "zeitgleich" oder "nicht unterscheidbar" darf in Code, KDoc und Notiz nicht stehen (`BEO-TDS/anmeldepfad-sicherheit-nicht-gebaut`, `BEO-TDS/aussagen-ueber-messung-hinaus`). — **Ausgang:** offen bis zur Closure.
 - Die Signatur hängt am Nebenläufigkeitsmodell: Ein Adapter mit eigener Benutzerverwaltung darf `LOGIN_TIMEOUT` (SPEC-008) nicht überschreiten, ein blockierender Aufruf im Coroutinen-Transport ([ADR-0003](../../adr/0003-transportframework.md)) wäre ein Fehler, ein suspendierender Aufruf bindet die Schnittstelle an die Laufzeit. Welche Form gilt, entscheidet dieser Slice im Einklang mit [ADR-0004](../../adr/0004-session-zustandsautomat.md) (`Proposed`) und hält sie als Festlegung fest. — **Ausgang:** offen bis zur Closure.
 - Ungemessene Vergleichsregeln: Groß-/Kleinschreibung und Unicode-Normalisierung der Kennung, Verhalten bei leerer Kennung in der Liste. Die Wahl ist eine Festlegung ohne Messung am Referenzclient oder echten SQL Server. — **Ausgang:** offen bis zur Closure.
