@@ -18,6 +18,7 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 
 - [welle-qualitaet-grundlage](../welle-qualitaet-grundlage.md)
 - [welle-entscheidungen-grundlage](../welle-entscheidungen-grundlage.md)
+- [welle-protokollcodec](../welle-protokollcodec.md)
 
 Nichts in Arbeit.
 
