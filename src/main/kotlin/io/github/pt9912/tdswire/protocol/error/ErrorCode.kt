@@ -40,50 +40,61 @@ private const val N_VALUE = 245
  * `SPEC-049`, `SPEC-012`). Jeder Code hat genau eine [rule]; die Zuordnung steht in
  * `spec/spezifikation.md` (Abschnitt 4).
  *
- * Herkunft der Werte, je Wert getrennt:
+ * Herkunft der Werte, je Wert getrennt, mit denselben Stufen wie die Tabelle in der Spezifikation
+ * (Abschnitt 4):
  * - Gemessen am Referenzclient gegen den Spike-Testserver, nicht am Produkt: nur "genau ein ERROR
  *   vor DONE" beim abgelehnten Login (`SPEC-012`).
  * - Vorschlag der Spezifikation, nicht am echten SQL Server gemessen: die Nummern 208 und 245 und
  *   der Benutzerbereich ab 50001 für Codes ohne SQL-Server-Entsprechung.
- * - Festlegung (nicht gemessen): alle übrigen Nummern, jeder State (1), jeder Text, die Severity
- *   und die Verbindungsfolge nach den Gruppen der `ADR-0007` (Anfragefehler Severity 16 offen,
- *   Severity 20 schließt, Grundregel "im Zweifel schließen" für Codes ohne Gruppe).
+ * - Setzung des Nutzers (2026-10-30): Class und Folge von `TDS_PROTOCOL_ERROR`, `TDS_BACKEND_ERROR`,
+ *   `TDS_UNSUPPORTED_SQL` und `TDS_INTERNAL_ERROR`; die Folge von `TDS_SHUTDOWN` und `TDS_LOGIN_FAILED`.
+ * - Voreinstellung: `TDS_UNSUPPORTED_RPC` und `TDS_SIM_INVALID_VALUE` bei den Anfragefehlern
+ *   (Class 16, offen), nicht entschieden.
+ * - Grundregel (im Zweifel schließen): nur die Folge der Codes ohne Gruppe. Die Class 20 dieser
+ *   Codes ist Festlegung, nicht Grundregel.
+ * - Festlegung (nicht gemessen): alle übrigen Werte, nämlich die Nummern ohne Vorschlag, jeder State
+ *   (1), jeder Text und die Class 20 der Codes ohne Gruppe.
  *
  * Offen und nicht entschieden: die Zuordnung von [TDS_UNSUPPORTED_TYPE], [TDS_SIM_UNKNOWN_OBJECT]
- * und [TDS_TIMEOUT] zu einer Gruppe, sowie ob Cancel und Timeout als Fehler gelten. Sie stehen unter
- * der Grundregel (Severity 20, schließt); `slice-fehler-mapping` §6.
+ * und [TDS_TIMEOUT] zu einer Gruppe, sowie ob Cancel und Timeout als Fehler gelten; `slice-fehler-mapping` §6.
  */
 enum class ErrorCode(val rule: ErrorRule) {
-    /** Festlegung: Severity 20 nach `ADR-0007`; Nummer aus dem Benutzerbereich. */
+    /** Class und Folge: Setzung des Nutzers; die Nummer aus dem Benutzerbereich ist Festlegung. */
     TDS_PROTOCOL_ERROR(ErrorRule(N_PROTOCOL, FATAL, STATE, "Protocol error.", ConnectionFate.CLOSE_AFTER_REPLY)),
 
     /** Die feste Ablehnung (`SPEC-012`); Bytes gleich `LoginResponses.rejection`, ein Test belegt es. */
     TDS_LOGIN_FAILED(ErrorRule(N_LOGIN, LOGIN, STATE, "Login failed.", ConnectionFate.CLOSE_AFTER_REPLY)),
 
-    /** Anfragefehler-Gruppe nach Voreinstellung (Festlegung, nicht gemessen). */
+    /** Anfragefehler-Gruppe nach Voreinstellung. */
     TDS_UNSUPPORTED_RPC(ErrorRule(N_RPC, REQUEST, STATE, "Unsupported RPC.", ConnectionFate.OPEN)),
 
-    /** Ohne Gruppe: Grundregel (Severity 20, schließt). */
+    /** Ohne Gruppe: die Folge (schließt) ist Grundregel, Class 20 ist Festlegung. */
     TDS_UNSUPPORTED_TYPE(ErrorRule(N_TYPE, FATAL, STATE, "Unsupported type.", ConnectionFate.CLOSE_AFTER_REPLY)),
 
-    /** Anfragefehler-Gruppe. */
+    /** Anfragefehler-Gruppe (Setzung des Nutzers). */
     TDS_BACKEND_ERROR(ErrorRule(N_BACKEND, REQUEST, STATE, "Backend error.", ConnectionFate.OPEN)),
 
-    /** Ohne Gruppe: Grundregel (Severity 20, schließt); der Ablauf der Frist gehört einem anderen Slice. */
+    /**
+     * Ohne Gruppe: die Folge (schließt) ist Grundregel, Class 20 ist Festlegung; der Ablauf der
+     * Frist gehört einem anderen Slice.
+     */
     TDS_TIMEOUT(ErrorRule(N_TIMEOUT, FATAL, STATE, "Timeout.", ConnectionFate.CLOSE_AFTER_REPLY)),
 
-    /** Anfragefehler-Gruppe; keine SQL-Server-Entsprechung. */
+    /** Anfragefehler-Gruppe (Setzung des Nutzers); keine SQL-Server-Entsprechung. */
     TDS_UNSUPPORTED_SQL(ErrorRule(N_SQL, REQUEST, STATE, "Unsupported SQL.", ConnectionFate.OPEN)),
 
-    /** Ohne Gruppe: Grundregel. Nummer 208 ist Vorschlag; 207 (Spalte) bildet das Mapping nicht ab. */
+    /**
+     * Ohne Gruppe: die Folge (schließt) ist Grundregel, Class 20 ist Festlegung. Nummer 208 ist
+     * Vorschlag; 207 (Spalte) bildet das Mapping nicht ab. Der echte Server sendet 208 mit Class 16.
+     */
     TDS_SIM_UNKNOWN_OBJECT(ErrorRule(N_OBJECT, FATAL, STATE, "Unknown object.", ConnectionFate.CLOSE_AFTER_REPLY)),
 
     /** Anfragefehler-Gruppe nach Voreinstellung. Nummer 245 ist Vorschlag; 8115 (Überlauf) fehlt im Mapping. */
     TDS_SIM_INVALID_VALUE(ErrorRule(N_VALUE, REQUEST, STATE, "Invalid value.", ConnectionFate.OPEN)),
 
-    /** `SPEC-048`: Severity 20, fester Text ohne den Text der Ausnahme, danach Verbindungsende. */
+    /** `SPEC-048`, Class und Folge: Setzung des Nutzers; fester Text ohne Ausnahmetext, danach Verbindungsende. */
     TDS_INTERNAL_ERROR(ErrorRule(N_INTERNAL, FATAL, STATE, "Internal error.", ConnectionFate.CLOSE_AFTER_REPLY)),
 
-    /** `SPEC-049`: ERROR und DONE, danach Verbindungsende. Severity 20 und Nummer sind Festlegung. */
+    /** `SPEC-049`: danach Verbindungsende (Setzung des Nutzers); Class 20 und Nummer sind Festlegung. */
     TDS_SHUTDOWN(ErrorRule(N_SHUTDOWN, FATAL, STATE, "Server is shutting down.", ConnectionFate.CLOSE_AFTER_REPLY)),
 }
