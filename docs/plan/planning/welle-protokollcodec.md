@@ -85,5 +85,5 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-traceability.md`
 beiden Zeiger unten sind so zu schreiben, wie sie vom Ruheort `done/` auflösen,
 nicht vom Schreibort.
 
-Ergebnis: `welle-protokollcodec-results.md`
-Zähler: `observations/`
+Ergebnis: [welle-protokollcodec-results](welle-protokollcodec-results.md)
+Zähler: [observations](../observations/)
