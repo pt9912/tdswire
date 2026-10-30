@@ -105,7 +105,7 @@ ERROR-/DONE-Token oder Verbindungsabbruch, falls Protokollzustand keine Antwort 
    schließt der Server die Verbindung, ein weiteres LOGIN7 wird nicht angenommen. Eigene Fehlercodes:
    Anfragefehler (zum Beispiel `TDS_UNSUPPORTED_SQL`, `TDS_BACKEND_ERROR`) tragen Severity 16, die
    Verbindung bleibt offen; `TDS_PROTOCOL_ERROR` und `TDS_INTERNAL_ERROR` tragen Severity 20, der Server
-   schließt. Die Zuordnung jedes Codes legt das Fehler-Mapping fest; bis dahin gilt für einen eigenen Code, der zu keiner dieser beiden Gruppen gehört (zum Beispiel `TDS_UNSUPPORTED_RPC`, `TDS_SIM_INVALID_VALUE`, `TDS_TIMEOUT`), dass der Server schließt (im Zweifel schließen). Das Verbindungsende nach abgelehntem
+   schließt. Die Zuordnung jedes Codes legt das Fehler-Mapping fest; `TDS_UNSUPPORTED_RPC` und `TDS_SIM_INVALID_VALUE` gehören zur Anfragefehler-Gruppe (Setzung, Voreinstellung 2026-10-30, nicht gemessen). `TDS_TIMEOUT` bleibt bis zur Entscheidung, ob Cancel und Timeout als Fehler zählen, außerhalb der Gruppen; für ihn und für jeden weiteren eigenen Code, der zu keiner Gruppe gehört, gilt bis zur Zuordnung, dass der Server schließt (im Zweifel schließen). Das Verbindungsende nach abgelehntem
    Login und die Severity-Werte der eigenen Codes sind Setzungen, nicht an Referenzclients gemessen (am
    echten Server wurde nur die Fehlerantwort des Logins einmal beobachtet). Noch festzulegen: ob Cancel
    und Timeout als Fehler zählen.
