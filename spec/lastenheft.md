@@ -1,6 +1,6 @@
 # Lastenheft — JVM TDS Server
 
-**Version:** 0.3.0  
+**Version:** 0.5.0  
 **Status:** Draft  
 **Autor:** pt9912
 **Datum:** 2026-10-29
@@ -138,7 +138,7 @@ Primärer Client ist eine .NET-Anwendung. Die konkrete Treiberversion, erforderl
 
 ### TDS-FA-11 — Mitgeliefertes Simulations-Backend
 
-**Beschreibung:** Das Projekt liefert ein optionales Backend mit, das den Backend-Vertrag (`TDS-FA-08`) implementiert und Anfragen aus deklarativ beschriebenen Tabellen beantwortet (Spalten, Typen, Schlüssel; Zeilen aus einer vom Integrator bereitgestellten Zeilenquelle). Es erkennt eine abgegrenzte Menge einfacher Anweisungsformen anhand ihres Textes: Auswahl von Spalten einer Tabelle mit einfachen Gleichheits- und Mengenbedingungen, verknüpft durch UND; einfache Einfüge-, Änderungs- und Löschanweisungen, die an den Integrator weitergegeben werden; sowie die Abfragen, die der Referenzclient laut Clientprofil beim Verbindungsaufbau oder für seine Metadaten stellt. Es wertet kein SQL aus und speichert keine Daten: Was gespeichert wird, entscheidet der Integrator. Der Protokollkern ist vom Simulations-Backend unabhängig und läuft ohne es.
+**Beschreibung:** Das Projekt liefert ein optionales Backend mit, das den Backend-Vertrag (`TDS-FA-08`) implementiert und Anfragen aus deklarativ beschriebenen Tabellen beantwortet (Spalten, Typen, Schlüssel; Zeilen aus einer vom Integrator bereitgestellten Zeilenquelle). Es erkennt eine abgegrenzte Menge einfacher Anweisungsformen anhand ihres Textes: Auswahl von Spalten einer Tabelle mit einfachen Gleichheits- und Mengenbedingungen sowie der Prüfung auf NULL (`IS NULL`, `IS NOT NULL`), verknüpft durch UND; einfache Einfüge-, Änderungs- und Löschanweisungen, die an den Integrator weitergegeben werden; sowie die Abfragen, die der Referenzclient laut Clientprofil beim Verbindungsaufbau oder für seine Metadaten stellt. Es wertet kein SQL aus und speichert keine Daten: Was gespeichert wird, entscheidet der Integrator. Der Protokollkern ist vom Simulations-Backend unabhängig und läuft ohne es.
 
 **Akzeptanzkriterien:**
 - **Happy Path:** Given eine beschriebene Tabelle mit Zeilen und eine erkannte Auswahl mit Bedingung, when der Referenzclient sie ausführt, then erhält er genau die passenden Zeilen mit den beschriebenen Spaltentypen und NULL-Werten.
@@ -248,3 +248,4 @@ Jede offene Festlegung hat eine verantwortliche Rolle und einen Trigger; ohne di
 | 0.2.0   | 2026-10-29 | Entwurf überarbeitet: mehrteilige Antworten und Synchronität präzisiert | —       |
 | 0.3.0   | 2026-10-29 | Simulations-Backend als Anforderung aufgenommen; Ausschluss der SQL-Engine abgegrenzt; Lizenz als Randbedingung | `TDS-FA-11`, `TDS-RB-05` |
 | 0.4.0   | 2026-10-29 | Anker für geordnetes Beenden und Referenzabgleich ergänzt               | `TDS-FA-07`, `TDS-QA-01` |
+| 0.5.0   | 2026-10-30 | Prüfung auf NULL (`IS NULL`, `IS NOT NULL`) als erkannte Bedingung des Simulations-Backends aufgenommen | `TDS-FA-11` |
