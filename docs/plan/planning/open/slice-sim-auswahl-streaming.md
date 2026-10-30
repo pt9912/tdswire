@@ -36,8 +36,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 - Einfügen, Ändern und Löschen — [slice-sim-aenderung-integration](slice-sim-aenderung-integration.md).
 - Sequenzierer, Tokens und Transport — der Slice endet am Strom `events` des Ports; die Kette bis zur Senke belegt [slice-backend-streaming-nachweis](slice-backend-streaming-nachweis.md) am Fake, der Referenzclient-Lauf am Simulations-Backend [slice-sim-aenderung-integration](slice-sim-aenderung-integration.md).
-- Zeilendarstellung je `SqlType`, Grenze für „kleine“ Ergebnisse und die Frist `deadlineEpochMillis` — [slice-adr-backend-grenzen](slice-adr-backend-grenzen.md) entscheidet sie; dieser Slice übernimmt die Entscheidung.
-- Blockierende Zeilenquellen und nicht unterbrechbare Aufrufe — ebenfalls [slice-adr-backend-grenzen](slice-adr-backend-grenzen.md); geprüft wird eine suspendierende Quelle.
+- Zeilendarstellung je `SqlType`, Grenze für „kleine“ Ergebnisse und die Frist `deadlineEpochMillis` — [slice-adr-backend-grenzen](../in-progress/slice-adr-backend-grenzen.md) entscheidet sie; dieser Slice übernimmt die Entscheidung.
+- Blockierende Zeilenquellen und nicht unterbrechbare Aufrufe — ebenfalls [slice-adr-backend-grenzen](../in-progress/slice-adr-backend-grenzen.md); geprüft wird eine suspendierende Quelle.
 - Ein Vorfilter in der Zeilenquelle als Optimierung — der Hinweis `SimQuery.filter` wird übergeben, die Bedingung wendet das Backend immer selbst an.
 
 ## 2. Definition of Done
@@ -86,7 +86,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-sim-erkennung](slice-sim-erkennung.md), [slice-adr-backend-grenzen](slice-adr-backend-grenzen.md) und [slice-backend-streaming-nachweis](slice-backend-streaming-nachweis.md) liegen in `done/` (Zeilendarstellung und das Heap-Verfahren des Testlaufs werden übernommen, nicht neu erfunden), und ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): [slice-sim-erkennung](slice-sim-erkennung.md), [slice-adr-backend-grenzen](../in-progress/slice-adr-backend-grenzen.md) und [slice-backend-streaming-nachweis](slice-backend-streaming-nachweis.md) liegen in `done/` (Zeilendarstellung und das Heap-Verfahren des Testlaufs werden übernommen, nicht neu erfunden), und ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -108,7 +108,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Überführungsregel, Textvergleich und Dezimalvergleich sind Setzungen ([ADR-0012](../../adr/0012-simulations-backend-beschreibung-und-formen.md): Messung nur im JDK-Spike, nichts am echten SQL Server); der Slice testet sie als Festlegung, nicht als Messung, und führt sie in der Closure so (`BEO-TDS/aussagen-ueber-messung-hinaus`, `BEO-TDS/messung-am-echten-sql-server-fehlt`). Sie gelten für die JVM-Typen der Werte, die [slice-adr-backend-grenzen](slice-adr-backend-grenzen.md) festlegt, und sind bei einer anderen Zeilendarstellung neu zu prüfen. — **Ausgang:** offen bis zur Closure.
+- Überführungsregel, Textvergleich und Dezimalvergleich sind Setzungen ([ADR-0012](../../adr/0012-simulations-backend-beschreibung-und-formen.md): Messung nur im JDK-Spike, nichts am echten SQL Server); der Slice testet sie als Festlegung, nicht als Messung, und führt sie in der Closure so (`BEO-TDS/aussagen-ueber-messung-hinaus`, `BEO-TDS/messung-am-echten-sql-server-fehlt`). Sie gelten für die JVM-Typen der Werte, die [slice-adr-backend-grenzen](../in-progress/slice-adr-backend-grenzen.md) festlegt, und sind bei einer anderen Zeilendarstellung neu zu prüfen. — **Ausgang:** offen bis zur Closure.
 - Die Heap-Aussage gilt für einen Testlauf mit gesetztem Heap und einer Test-Senke, nicht für das Produkt unter Last (Grenze der Aussage in [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md); `BEO-TDS/rueckstau-im-produktivbetrieb-nicht-gemessen`). — **Ausgang:** offen bis zur Closure.
 - Eine Zeilenquelle, die den Hinweis `SimQuery.filter` ignoriert oder mehr liefert, muss trotzdem zum richtigen Ergebnis führen; ein Test mit einer solchen Quelle belegt die Pflicht, dass das Backend die Bedingung selbst anwendet. Eine Quelle, die zu wenig liefert, ist Sache des Integrators und wird nicht erkannt. — **Ausgang:** offen bis zur Closure.
 - Die dreiwertige Logik (`ANSI_NULLS ON`) ist als vorläufig gekennzeichnet und nur in einer Stichprobe an einer Instanz bestätigt ([ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md)); die Tests führen sie als Festlegung. — **Ausgang:** offen bis zur Closure.
