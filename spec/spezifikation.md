@@ -282,7 +282,7 @@ TDS-Variante (7.4 und 8.0). **Offene Freigabepunkte:** `Encrypt`/`TrustServerCer
 unterstützte RPCs (Entwurf in `SPEC-030`), MARS ja/nein, Transaktionen ja/nein (Pakettyp `0x0E`, kein RPC),
 Verbindungs-Pooling (einschließlich RESETCONNECTION-Statusbit der Paketheader) und Lastprofil.
 Die unterstützten RPCs gibt das Clientprofil erst frei, wenn die Messgrenzen aus `SPEC-030` geklärt sind
-(TDS 8.0, Pooling, echter Server, KeyInfo-`SET`-Text, Transaktionen).
+(TDS 8.0, Pooling, echter Server, `SET`-Text bei SchemaOnly und KeyInfo, Transaktionen).
 Die Authentifizierung ist SQL-Authentifizierung (Kennung und Passwort im LOGIN7, `contracts/auth-adapter.md`).
 Verantwortliche Rolle und Trigger der Festlegungen stehen im
 Lastenheft (Abschnitt Offene Entscheidungen). Bis zur Entscheidung der offenen Freigabepunkte gilt: kein Anspruch auf
@@ -353,7 +353,8 @@ auch `sp_prepare`, `sp_unprepare` und `sp_cursor*`, ergeben eine explizite Fehle
 Verbindungsabbruch. **Messgrenzen:** Gemessen ist nur das Verhalten des Referenzclients gegen einen Testserver, nicht
 die Antwort eines Microsoft-SQL-Servers; TDS 7.4 unverschlüsselt (kein TDS 8.0, kein TLS), `Pooling=false`,
 eine Verbindung je Szenario, ein Lauf. Tokenreihenfolge, ordinale Zählung der RETURNVALUE und
-DONE-Statusbits sind gegen MS-TDS zu prüfen. **Offen:** die Behandlung der `SET`-Anweisungen im Text von
+DONE-Statusbits sind gegen MS-TDS zu prüfen. **Offen:** die Behandlung der `SET`-Anweisungen im Batchtext von
+`ExecuteReader(SchemaOnly)` (`SET FMTONLY`) und im Text von
 `ExecuteReader(KeyInfo|SingleRow)` (`SET FMTONLY`, `SET NO_BROWSETABLE`) und die Transaktionen
 (Pakettyp `0x0E`, kein RPC, nicht im Katalog).
 
