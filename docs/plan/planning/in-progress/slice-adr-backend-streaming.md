@@ -46,18 +46,18 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] Spike durchgeführt; seine Ergebnisse (Messwerte, Matrix, Befund) stehen in der ADR. Der Spike-Code ist temporär und nach der Entscheidung gelöscht.
-- [ ] [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md) auf `Accepted`, Option gewählt, Geschichte und ADR-Index nachgezogen.
-- [ ] Spec-Stellen aus dem `Schärft:`-Feld der ADR an die Entscheidung angepasst.
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] Spike durchgeführt; seine Ergebnisse (Messwerte, Matrix, Befund) stehen in der ADR. Der Spike-Code ist temporär und liegt nicht im Repo (Beleg: `git ls-files` führt keine Datei `spike*`, `run.sh`, `mutate.sh`, `dotnet/`, `*.csproj` oder `*.cs`, und `git grep` findet in `src` weder `AsynchronousSocketChannel` noch `runInterruptible`). Dass er nach der Entscheidung gelöscht wäre, ist nicht belegt; siehe §7.
+- [x] [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md) auf `Accepted`, Option gewählt, Geschichte und ADR-Index nachgezogen.
+- [x] Spec-Stellen aus dem `Schärft:`-Feld der ADR an die Entscheidung angepasst, soweit die ADR entscheidet: `SPEC-002`, `SPEC-022` und `SPEC-031` tragen sie (Spec-Historie 2026-10-30), dazu `contracts/query-backend.md`. `SPEC-035`, `TDS-FA-05.a`, `TDS-FA-08.a`, `TDS-FA-10.a` und `TDS-FA-11.a` nennt die Spec-Historie nicht; sie sind nicht als nachgezogen belegt. `ARC-006`, `ARC-007` und `ARC-015` bleiben nach Hard Rule 3.4 frei von ADR-Bezügen.
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
-      Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Doku-Update, falls ein öffentlicher Vertrag berührt ist.
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+      Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8). Reports: [Review](../../../reviews/2026-10-30-f4b3b87-adr-0004-0006-0007.md), [Re-Review](../../../reviews/2026-10-30-46be900-re-review-adr-0004-0006-0007-0011.md) und [Verifikation](../../../reviews/2026-10-30-46be900-verifikation-adr-0004-0006-0007-0010-0011.md).
+- [x] Doku-Update, falls ein öffentlicher Vertrag berührt ist. Berührt: `contracts/query-backend.md` (Entwurf, Frist offen) und die Spezifikation (`SPEC-002`, `SPEC-022`, `SPEC-031`).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -163,7 +163,11 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Die Prototypen für große Resultsets hängen am Backpressure des Transports. — **Ausgang:** offen bis zur Closure.
+- Die Prototypen für große Resultsets hängen am Backpressure des Transports. — **Ausgang:** entfallen: Der Spike lief mit dem Transport von [ADR-0003](../../adr/0003-transportframework.md) (`AsynchronousSocketChannel` mit eigener `SSLEngine`-Schleife) auf einem Socket, die Messung „langsamer Leser“ gehört zur Tabelle (Backend lief 53 755 Zeilen voraus, Live-Heap 3 MB). Dass die Zahl nicht erklärt ist, steht im nächsten Risiko.
+- Die Zahlen der Messung (53 755 vorausgelieferte Zeilen, 4 MB Live-Heap, Durchsätze) gelten für den Spike (Generator mit drei Spalten, `-Xmx256m`, Einzelläufe auf einem Rechner mit anderer Last) und sind nicht erklärt (ADR Befunde, V-13, V-14). — **Ausgang:** weiter offen: → [slice-backend-streaming-nachweis](../open/slice-backend-streaming-nachweis.md) §6 (Aussagekraft der Zahlen; die Schranke dort ist eine Festlegung) und [BEO-TDS/aussagen-ueber-messung-hinaus](../observations/BEO-TDS/aussagen-ueber-messung-hinaus/observation.md).
+- Fünf offene Punkte von [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md) hatten keinen Träger-Slice: Grenze für „kleine“ Ergebnisse, Zeilendarstellung, `OutOfMemoryError`, Semantik der Frist, blockierendes Backend. — **Ausgang:** eingetreten: [slice-adr-backend-grenzen](../open/slice-adr-backend-grenzen.md) (neu angelegt, entscheidet sie mit dem Nutzer in einer Folge-ADR); Beobachtung [BEO-TDS/offene-punkte-ohne-traeger](../observations/BEO-TDS/offene-punkte-ohne-traeger/observation.md).
+- Das Bit `DONE_MORE` und die Vorschau sind an einem echten SQL Server nicht gemessen; der Referenzclient nahm die Antwort ohne das Bit an, was das Bit nicht entbehrlich macht. — **Ausgang:** weiter offen: → [BEO-TDS/messung-am-echten-sql-server-fehlt](../observations/BEO-TDS/messung-am-echten-sql-server-fehlt/observation.md) (geplant: [slice-qa-reproduzierbarkeit](../in-progress/slice-qa-reproduzierbarkeit.md), Vergleichslauf D); dessen DoD-Punkt 3 nennt die DONE-Statusbits, zu denen `DONE_MORE` gehört.
+- Pooling ist nicht gemessen (`Pooling=false`), TDS 8.0 nur für 500 000 Zeilen mit Folgebefehl. — **Ausgang:** weiter offen: → [BEO-TDS/tds-8-0-und-pooling-nicht-gemessen](../observations/BEO-TDS/tds-8-0-und-pooling-nicht-gemessen/observation.md) (geplant: [slice-qa-kompatibilitaet](../open/slice-qa-kompatibilitaet.md)).
 
 ## 7. Closure-Notiz
 
@@ -180,7 +184,20 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-Wird bei der Closure gefüllt.
+- **Was hat funktioniert:** Ein Spike aus Dockerfile ohne Mount (Server in Kotlin mit dem Transport von [ADR-0003](../../adr/0003-transportframework.md), Referenzclient `Microsoft.Data.SqlClient` 7.1.1 im selben Container) baute drei Ergebnismodelle hinter demselben Encoder und derselben Sitzung (A materialisiert, B `Flow` von Ereignissen, C blockierender Iterator) und trennte sie bei Speicher (A scheitert bei 2 Mio Zeilen mit 256 MB), erster Zeile, Thread-Verbrauch und Abbruch. Der Nutzer wählte B mit einem Ereignis Vorschau für `DONE_MORE`; kleine Ergebnisse dürfen eine fertige Liste sein. Die Fehlersemantik im Strom setzte er wie `SPEC-031`. Review, Re-Review und Verifikation liefen je in frischem Kontext, [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md) ist danach `Accepted` (Entscheidung der Optionen: Nutzer, 2026-10-30).
+- **Was ging anders als geplant:** Ein erster Hauptlauf des Spike war nicht verwertbar (der Client prüfte die Folgeanfrage falsch, der Testserver sandte den Update-Count mit dem Befehlscode eines `SELECT`) und wurde wiederholt; die Zahlen stammen aus dem zweiten Hauptlauf und einem Korrekturlauf. Der Review fand eine Aussage zum Abbruch breiter als gemessen (6-1, MEDIUM: für ein blockierendes Backend hinter dem Flow gibt es keine Messzeile), der Re-Review die Fehlersemantik bei nicht abschließbarem Strom (6-4, LOW). Beides ist auf das Gemessene begrenzt. Bei der Closure hatten fünf offene Punkte der ADR keinen Träger-Slice (`slice-backend-streaming-nachweis` nennt sie ausdrücklich ohne); dafür ist `slice-adr-backend-grenzen` angelegt. Der Spike-Code liegt nicht im Repo und ist nach der Entscheidung nicht gelöscht: seine Dateien liegen noch im Scratchpad der Sitzung außerhalb des Repos; die DoD-Zeile sagt deshalb nur „nicht im Repo“.
+- **Träger der offenen Punkte von [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md)** (jeder Slice ist eine Datei im Planning-Lifecycle; was dort in DoD oder Risiko steht, ist geprüft):
+  - Statement- und batch-abbrechende Fehler im Strom: [slice-backend-sequenzierer](../open/slice-backend-sequenzierer.md) §6, [slice-backend-port-vertrag](../open/slice-backend-port-vertrag.md) §6 und [slice-fehler-mapping](../open/slice-fehler-mapping.md) §6 (Abstimmung mit der Backend-Welle).
+  - `Failure` in der `DONE_MORE`-Vorschau und Schicksal eines zurückgehaltenen Abschlusses bei Cancel oder Disconnect: [slice-backend-sequenzierer](../open/slice-backend-sequenzierer.md) §6.
+  - Reihenfolgeprüfung der Ereignisse: [slice-backend-sequenzierer](../open/slice-backend-sequenzierer.md) (DoD-Punkt 3).
+  - Verzögerung durch den zurückgehaltenen Abschluss: [slice-backend-streaming-nachweis](../open/slice-backend-streaming-nachweis.md) §6 und [slice-qa-performance](../open/slice-qa-performance.md).
+  - Grenze „kleines Ergebnis“, Zeilendarstellung, `OutOfMemoryError`, blockierendes Backend, Semantik der Frist `deadlineEpochMillis`: [slice-adr-backend-grenzen](../open/slice-adr-backend-grenzen.md) (neu), angezeigt in [slice-backend-port-vertrag](../open/slice-backend-port-vertrag.md), [slice-backend-streaming-nachweis](../open/slice-backend-streaming-nachweis.md) und [slice-sql-batch-dispatch](../open/slice-sql-batch-dispatch.md).
+  - Folge-ADR nötig: für die fünf zuletzt genannten Punkte; sie entsteht in `slice-adr-backend-grenzen` (nächste freie Nummer laut ADR-Index, ohne `Supersedes`).
+- **Steering-Loop-Eintrag:** Spec-Lücke benannt: `SPEC-002` führt das Feld `deadlineEpochMillis`, `contracts/query-backend.md` führt offen, wer die Frist durchsetzt und was bei Ablauf geschieht; entschieden wird es in `slice-adr-backend-grenzen` (S3) (kein `liegt in`, weil in einer versionierten Spec und nicht an einem Zielort geführt). Gezählt, nicht verkörpert: [BEO-TDS/offene-punkte-ohne-traeger](../observations/BEO-TDS/offene-punkte-ohne-traeger/observation.md).
+- **Beobachtungs-Register (`../observations/`):** `evidence/slice-adr-backend-streaming.md` ergänzt in [BEO-TDS/aussagen-ueber-messung-hinaus](../observations/BEO-TDS/aussagen-ueber-messung-hinaus/observation.md), [BEO-TDS/messung-am-echten-sql-server-fehlt](../observations/BEO-TDS/messung-am-echten-sql-server-fehlt/observation.md), [BEO-TDS/tds-8-0-und-pooling-nicht-gemessen](../observations/BEO-TDS/tds-8-0-und-pooling-nicht-gemessen/observation.md) und [BEO-TDS/offene-punkte-ohne-traeger](../observations/BEO-TDS/offene-punkte-ohne-traeger/observation.md). Die Zähler folgen aus den Dateien. `BEO-TDS/kennungen-ohne-link-in-neuen-dokumenten` ist in diesem Slice nicht belegt aufgetreten.
+- **Folge-Slices:** [slice-adr-backend-grenzen](../open/slice-adr-backend-grenzen.md) (Grenzen des Backend-Vertrags, Entscheidung mit dem Nutzer, ohne Welle); die übrigen Träger oben existieren bereits als Dateien.
+- **Risiken aus §6:** Eines entfallen, eines eingetreten (Folge-Slice `slice-adr-backend-grenzen`), drei weiter offen mit Träger, siehe §6.
+- **Drei Paarungen:** Das Repo führt Wellen; die Paarungen prüft die Closure von `welle-entscheidungen-grundlage`.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
