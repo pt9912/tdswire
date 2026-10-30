@@ -80,12 +80,14 @@ Diese Datei dupliziert sie nicht.
 | `make deps-lock` | schreibt `gradle.lockfile` und `gradle/verification-metadata.xml` neu (braucht Netz), prüft nichts | kein Gate |
 | `make spec-abdeckung` | führt die Tests aus, schreibt `docs/plan/spec-abdeckung.md`: je `SPEC-*` bestandene `@spec`-Tests nach Art, Waisen sichtbar; `SPEC_ABDECKUNG_STRENG=1` bricht bei Waisen | kein Gate |
 | `make spec-abdeckung-selbsttest` | prüft den Erzeuger der Abdeckungsmatrix an einem erzeugten Mini-Bestand: roter, nicht gelaufener, übersprungener und unbekannt getaggter Test zählen nicht | kein Gate |
+| `make workflow-lint` | prüft `.github/workflows/*.yml` mit actionlint (Image per Digest, Datei über stdin, kein Mount) | kein Gate, [TDS-QA-06](../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
+| `make clean-build` | baut Jar, Tests und detekt mit `--no-cache` in Docker; für den Clean-Build-Nachweis | kein Gate, [TDS-QA-06](../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
 | `make <messung>` | misst <…> gegen <Schwelle> | kein Gate, ADR-<NNNN> |
 | `make <vorschau>` | sagt, was <schreibender Lauf> täte; Ausgänge und Sperren in der verlinkten Datei | kein Gate |
 
-**Aktueller Lauf-Status:** CI-Badge bzw. lokal `make help` / `make gates`.
+**Aktueller Lauf-Status:** lokal `make help` / `make gates`. Die CI-Datei `.github/workflows/gates.yml` führt `make gates`; ein Lauf auf dem Runner ist nicht belegt, ein Badge steht deshalb nicht hier.
 **Rote Gates:** Begründung im verlinkten `CO-<NNN>` (siehe Bindung-Spalte), Modul 7.
-**Nicht behauptet** (geplant): `<make-target-1>`, `<make-target-2>` (Welle <n>).
+**Nicht behauptet:** ein Target für den Vergleichslauf D (kein Referenzclient gebaut), die Signatur- und Schwachstellenprüfung des .NET-Restore (kein .NET-Projekt vorhanden).
 
 **Targets der Werkzeug-Fragmente:** [`mk/ai-harness-init.md`](mk/ai-harness-init.md) — der Teil dieses Index, den `ai-harness-init` bei jedem Lauf neu schreibt; was das Repo über eines dieser Targets entscheidet, steht in dieser Zeile.
 

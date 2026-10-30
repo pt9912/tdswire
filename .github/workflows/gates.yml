@@ -1,0 +1,27 @@
+# CI fuehrt `make gates` in Docker aus (TDS-QA-06, ADR-0008). Der Runner liefert Docker, GNU make
+# und bash; eine JVM-, Gradle- oder .NET-Installation braucht und nutzt der Lauf nicht.
+# Rang-Zeiger: die Gate-Liste steht in harness/README.md §Sensors, nicht hier.
+name: gates
+
+on:
+  push:
+  pull_request:
+
+# Der Lauf liest nur; es gibt keine Secrets und kein Schreibrecht auf das Repo.
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    # Exakte Runner-Version statt `ubuntu-latest`: der Runner-Wechsel ist eine Aenderung dieser Datei.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      # actions/checkout v6.1.0, per Commit festgelegt. Die volle Historie braucht
+      # tools/harness/history-range-guard.sh; Zugangsdaten bleiben nicht im Klon.
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: make gates
+        run: make gates
