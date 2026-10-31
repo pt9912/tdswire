@@ -1,0 +1,2 @@
+**Vorgang:** slice-fehler-zustandsuebergang
+**Fund:** Drei Tests in `DispatchFateTest.kt` tragen `@spec TDS-QA-07` (Zeilen 114, 149, 192); die neu erzeugte Matrix führt sie unter „Tags auf unbekannte Festlegungen“ (davor stand dort „Keine“). Nicht behoben: der Auftrag der Closure schließt Änderungen an Tests aus; die Korrektur (Tag entfernen oder auf die zutreffende `SPEC-*` setzen) ist ein Nachzug am Test.

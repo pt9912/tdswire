@@ -34,10 +34,6 @@ In Arbeit (Welle welle-anfrageverarbeitung):
 
 - [slice-rpc-executesql-parameter](slice-rpc-executesql-parameter.md)
 
-In Arbeit (Welle welle-fehler-abbruch):
-
-- [slice-fehler-zustandsuebergang](slice-fehler-zustandsuebergang.md)
-
 In Arbeit (ohne Welle):
 
 - [slice-adr-backend-grenzen](slice-adr-backend-grenzen.md)

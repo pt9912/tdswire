@@ -1,0 +1,2 @@
+**Vorgang:** slice-fehler-zustandsuebergang
+**Fund:** Der Mutant, der einen Reihenfolgeverstoß als offenen Fehler abbildet (Verbindung bleibt offen), fällt in `DispatchFateTest` (Class 20) an der 20-Sekunden-Zeitüberschreitung von `blocking`, nicht an `receiveCalls` und `exhausted`, die hinter dem Aufruf stehen (Verifikation V-1). Nicht behoben: die Closure ändert keinen Test; der Mutant ist erkannt, der Beleg schwach.
