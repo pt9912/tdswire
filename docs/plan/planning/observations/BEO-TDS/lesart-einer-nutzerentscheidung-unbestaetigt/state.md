@@ -1,1 +1,1 @@
-**Stand:** offen — über der Schwelle (6×), bei den Closures von welle-transport-tls und welle-handshake-login gelesen und nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung).
+**Stand:** offen — über der Schwelle (7×), bei den Closures von welle-transport-tls und welle-handshake-login gelesen und nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung).

@@ -1,0 +1,2 @@
+**Vorgang:** slice-adr-backend-grenzen
+**Fund:** Review F-3 und F-4 ([Review](../../../../../../reviews/2026-10-31-42bd58d-adr-0013-backend-grenzen.md)): der KDoc-Nachzug war ein Vorschlag ohne Liefer-Punkt, der Betriebstext hatte nur eine Risikozeile. Behoben vor `Accepted`. Bei der Closure zwei Punkte der ADR ohne vollständigen Träger: Rückstau und Heap im Produktivbetrieb (`slice-qa-performance` führt sie nicht) und der Hilfsadapter für blockierende Quellen (kein Träger, nur Trigger).

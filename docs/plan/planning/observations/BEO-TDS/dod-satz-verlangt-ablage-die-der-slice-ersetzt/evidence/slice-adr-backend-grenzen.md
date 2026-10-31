@@ -1,0 +1,2 @@
+**Vorgang:** slice-adr-backend-grenzen
+**Fund:** DoD-Punkt 1 verlangte „Messwerte als Tabelle in diesem Slice und in der Entscheidung“; die Zahlen stehen im Optionsbericht und in der ADR (Drift-Schutz). Der Implementer ließ einen Vermerk statt den Wortlaut zu ändern, die [Verifikation](../../../../../../reviews/2026-10-31-c2fea13-verifikation-adr-0013-backend-grenzen.md) (V6) und die [Nachprüfung](../../../../../../reviews/2026-10-31-bec92aa-nachpruefung-adr-0013.md) (Hinweis 2) führten ihn erneut offen. Der Wortlaut ist bei der Closure geändert.
