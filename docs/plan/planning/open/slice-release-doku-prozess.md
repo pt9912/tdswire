@@ -86,7 +86,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [welle-betrieb-diagnose](../welle-betrieb-diagnose.md), [welle-simulations-backend](../welle-simulations-backend.md) und [slice-release-artefakt-lizenz](../done/slice-release-artefakt-lizenz.md) liegen in `done/` (Betrieb, Backend-Anbindung und Start im Container existieren, die beschrieben werden), und ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): [welle-betrieb-diagnose](../welle-betrieb-diagnose.md), [welle-simulations-backend](../done/welle-simulations-backend.md) und [slice-release-artefakt-lizenz](../done/slice-release-artefakt-lizenz.md) liegen in `done/` (Betrieb, Backend-Anbindung und Start im Container existieren, die beschrieben werden), und ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

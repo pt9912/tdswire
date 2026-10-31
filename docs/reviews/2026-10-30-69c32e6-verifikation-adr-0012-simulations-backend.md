@@ -96,7 +96,7 @@ Alle Läufe in Docker, nichts gemountet (außer dem Doku-Gate, das sein Mount se
 | nicht geplant, nicht erfolgt | Lastenheft, Code, `config/`, `gradle/`, `Dockerfile` | `git diff` leer — der Slice hat nichts gebaut, wie §1 es verlangt |
 | Slice §2 | zwei Haken gesetzt, einer offen, alle Nachweis-Pflichten offen | stimmt mit dem Zustand überein (abgesehen von V-8) |
 
-Die Roadmap (Drift-Log) trägt die Umplanung des Start-Triggers (Setzung des Nutzers) unverändert; die Welle [welle-simulations-backend](../plan/planning/welle-simulations-backend.md) nennt den Slice weiter mit dem Titel „Entscheidung …“; sie enthält keinen veralteten Satz zur Beschreibungsform.
+Die Roadmap (Drift-Log) trägt die Umplanung des Start-Triggers (Setzung des Nutzers) unverändert; die Welle [welle-simulations-backend](../plan/planning/done/welle-simulations-backend.md) nennt den Slice weiter mit dem Titel „Entscheidung …“; sie enthält keinen veralteten Satz zur Beschreibungsform.
 
 ## 6. Befunde
 
