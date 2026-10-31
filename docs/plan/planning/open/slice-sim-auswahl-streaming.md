@@ -35,7 +35,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Einfügen, Ändern und Löschen — [slice-sim-aenderung-integration](slice-sim-aenderung-integration.md).
-- Sequenzierer, Tokens und Transport — der Slice endet am Strom `events` des Ports; die Kette bis zur Senke belegt [slice-backend-streaming-nachweis](../next/slice-backend-streaming-nachweis.md) am Fake, der Referenzclient-Lauf am Simulations-Backend [slice-sim-aenderung-integration](slice-sim-aenderung-integration.md).
+- Sequenzierer, Tokens und Transport — der Slice endet am Strom `events` des Ports; die Kette bis zur Senke belegt [slice-backend-streaming-nachweis](../in-progress/slice-backend-streaming-nachweis.md) am Fake, der Referenzclient-Lauf am Simulations-Backend [slice-sim-aenderung-integration](slice-sim-aenderung-integration.md).
 - Zeilendarstellung je `SqlType`, Grenze für „kleine“ Ergebnisse und die Frist `deadlineEpochMillis` — [slice-adr-backend-grenzen](../in-progress/slice-adr-backend-grenzen.md) entscheidet sie; dieser Slice übernimmt die Entscheidung.
 - Blockierende Zeilenquellen und nicht unterbrechbare Aufrufe — ebenfalls [slice-adr-backend-grenzen](../in-progress/slice-adr-backend-grenzen.md); geprüft wird eine suspendierende Quelle.
 - Ein Vorfilter in der Zeilenquelle als Optimierung — der Hinweis `SimQuery.filter` wird übergeben, die Bedingung wendet das Backend immer selbst an.
@@ -86,7 +86,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-sim-erkennung](slice-sim-erkennung.md), [slice-adr-backend-grenzen](../in-progress/slice-adr-backend-grenzen.md) und [slice-backend-streaming-nachweis](../next/slice-backend-streaming-nachweis.md) liegen in `done/` (Zeilendarstellung und das Heap-Verfahren des Testlaufs werden übernommen, nicht neu erfunden), und ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): [slice-sim-erkennung](slice-sim-erkennung.md), [slice-adr-backend-grenzen](../in-progress/slice-adr-backend-grenzen.md) und [slice-backend-streaming-nachweis](../in-progress/slice-backend-streaming-nachweis.md) liegen in `done/` (Zeilendarstellung und das Heap-Verfahren des Testlaufs werden übernommen, nicht neu erfunden), und ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
