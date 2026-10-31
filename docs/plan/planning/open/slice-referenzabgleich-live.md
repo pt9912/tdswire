@@ -49,7 +49,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 Liefer-Punkte (drei):
 
-- [ ] **Server-Seite:** Die Tabellenbeschreibung des Simulations-Backends bildet das Testschema der Referenzinstanz ab (beide getrennt gepflegt und gemeinsam geändert, SPEC-045; der Weg des Ladens folgt der ADR aus [slice-adr-simulation-formen](../done/slice-adr-simulation-formen.md)); der Server mit Simulations-Backend läuft für den Lauf in Docker (eigener Container im eigenen Netzwerk, ohne Mount, Basis-Image per Digest).
+- [ ] **Server-Seite:** Die Tabellenbeschreibung des Simulations-Backends bildet das Testschema der Referenzinstanz ab (beide getrennt gepflegt und gemeinsam geändert, SPEC-045; der Weg des Ladens folgt der ADR aus [slice-adr-simulation-formen](../done/welle-simulations-backend/slice-adr-simulation-formen.md)); der Server mit Simulations-Backend läuft für den Lauf in Docker (eigener Container im eigenen Netzwerk, ohne Mount, Basis-Image per Digest).
 - [ ] **Live-Lauf:** Das Szenario (Anmeldung, SELECT mit und ohne Parameter, NULL, Unicode, Decimal, Datum, leere und mehrteilige Ergebnisse, Fehler vor und nach Zeilen, OUTPUT und RETURNSTATUS soweit freigegeben, Cancel mit Folgeabfrage) läuft nacheinander gegen beide Ziele, je Schritt eine Ausgabezeile; vom Server selbst vergebene Werte (Objekt-IDs, Sitzungs-IDs, Zeitstempel, Versionstext) werden nur auf vorhanden oder nicht vorhanden verglichen, Dauern werden nicht verglichen.
 - [ ] **Ausnahmeliste und Urteil:** Jede Abweichung steht mit Pfad, Anweisung oder Szenario, Grund und Art (*so gewollt* oder *Lücke* mit Verweis auf die offene Arbeit) in der Liste; eine kleinere oder größere Abweichung als die dokumentierte macht den Lauf rot (Test mit verschiedenen Abweichungen); ob der Lauf in `make gates` kommt, entscheidet die in [slice-qa-vergleichslauf-d](slice-qa-vergleichslauf-d.md) gemessene Laufzeit.
 
@@ -86,7 +86,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [welle-simulations-backend](../done/welle-simulations-backend.md) liegt in `done/`, und [slice-qa-vergleichslauf-d](slice-qa-vergleichslauf-d.md) und [slice-qa-kompatibilitaet](slice-qa-kompatibilitaet.md) liegen in `done/` (Vergleichslauf D, Referenzinstanz, Szenarien), und ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): [welle-simulations-backend](../done/welle-simulations-backend/welle-simulations-backend.md) liegt in `done/`, und [slice-qa-vergleichslauf-d](slice-qa-vergleichslauf-d.md) und [slice-qa-kompatibilitaet](slice-qa-kompatibilitaet.md) liegen in `done/` (Vergleichslauf D, Referenzinstanz, Szenarien), und ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

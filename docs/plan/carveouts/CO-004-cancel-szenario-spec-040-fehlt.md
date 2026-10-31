@@ -6,7 +6,7 @@
 
 **Betroffener Lauf:** `make simulations-integration` (Integrationslauf nach `SPEC-040`, Stufe 3 des E2E-Durchgangs `make e2e`, kein Gate nach [ADR-0022](../adr/0022-e2e-laeufe-nicht-in-den-gates.md)). Der Carveout nimmt keine Schwelle und keine Regel aus: Der Lauf ist grün mit vier Szenarien (Auswahl mit Bedingung, leeres Ergebnis, Zeilenquelle oberhalb der Speichergrenze, Fehler der Zeilenquelle); das fünfte, Cancel mit Folgeabfrage, hat keinen Test.
 
-**Geltungsbereich:** Cancel-Teil von `SPEC-040` in [`spec/spezifikation.md`](../../../spec/spezifikation.md) und DoD-Punkt 3 von [slice-sim-aenderung-integration](../planning/done/slice-sim-aenderung-integration.md); Tests unter `referenztest-dotnet/Integration/`, Skript `tools/simulationstest.sh`.
+**Geltungsbereich:** Cancel-Teil von `SPEC-040` in [`spec/spezifikation.md`](../../../spec/spezifikation.md) und DoD-Punkt 3 von [slice-sim-aenderung-integration](../planning/done/welle-simulations-backend/slice-sim-aenderung-integration.md); Tests unter `referenztest-dotnet/Integration/`, Skript `tools/simulationstest.sh`.
 
 **Folge-Slice:** [`slice-attention-cancel-timeout.md`](../planning/open/slice-attention-cancel-timeout.md)
 
@@ -21,7 +21,7 @@ Carveout braucht immer einen Auflösungs-Trigger **und** einen Folge-Slice.
 
 ## Begründung
 
-Der Server beantwortet ein ATTENTION-Paket während einer Anfrage nicht: Der `RequestLoop` liest während der Anfrage nicht vom Transport, und [`SPEC-001`](../../../spec/spezifikation.md#spec-001--zustandsautomat-einer-verbindung) nennt den Pfad Zielbild. Ein Cancel-Test mit Folgeabfrage am Referenzclient kann gegen den heutigen Server nicht bestehen; der Pfad gehört zu [slice-attention-cancel-timeout](../planning/open/slice-attention-cancel-timeout.md) (Welle welle-fehler-abbruch). Dieser Slice schließt den Referenzclient aus, und sein Start-Trigger verlangt Nutzerentscheidungen zum Inhalt der Cancel-Antwort, zu Cancel und Timeout als Fehler und zu ATTENTION im Handshake. Bis dahin ist der Gegenstand nicht baubar und kein Fehler von [slice-sim-aenderung-integration](../planning/done/slice-sim-aenderung-integration.md). Befund: Review F-1 (Report `2026-10-31-a7e6afa-slice-sim-aenderung-integration`, mit der Archivierung von welle-simulations-backend aus `docs/reviews/` entfernt, im Archiv der Welle); Einordnung als L-4: Verifikation (Report `2026-10-31-accd7c7-verifikation-slice-sim-aenderung-integration`, mit der Archivierung von welle-simulations-backend aus `docs/reviews/` entfernt, im Archiv der Welle).
+Der Server beantwortet ein ATTENTION-Paket während einer Anfrage nicht: Der `RequestLoop` liest während der Anfrage nicht vom Transport, und [`SPEC-001`](../../../spec/spezifikation.md#spec-001--zustandsautomat-einer-verbindung) nennt den Pfad Zielbild. Ein Cancel-Test mit Folgeabfrage am Referenzclient kann gegen den heutigen Server nicht bestehen; der Pfad gehört zu [slice-attention-cancel-timeout](../planning/open/slice-attention-cancel-timeout.md) (Welle welle-fehler-abbruch). Dieser Slice schließt den Referenzclient aus, und sein Start-Trigger verlangt Nutzerentscheidungen zum Inhalt der Cancel-Antwort, zu Cancel und Timeout als Fehler und zu ATTENTION im Handshake. Bis dahin ist der Gegenstand nicht baubar und kein Fehler von [slice-sim-aenderung-integration](../planning/done/welle-simulations-backend/slice-sim-aenderung-integration.md). Befund: Review F-1 (Report `2026-10-31-a7e6afa-slice-sim-aenderung-integration`, mit der Archivierung von welle-simulations-backend aus `docs/reviews/` entfernt, im Archiv der Welle); Einordnung als L-4: Verifikation (Report `2026-10-31-accd7c7-verifikation-slice-sim-aenderung-integration`, mit der Archivierung von welle-simulations-backend aus `docs/reviews/` entfernt, im Archiv der Welle).
 
 ## Auflösungs-Trigger
 
@@ -49,5 +49,5 @@ Stellen, die die Lücke nennen (keine Gate-Konfiguration):
 
 | Datum | Ereignis | Verweis |
 |---|---|---|
-| 2026-10-31 | Angelegt (Voreinstellung des Koordinators) | [slice-sim-aenderung-integration](../planning/done/slice-sim-aenderung-integration.md) |
+| 2026-10-31 | Angelegt (Voreinstellung des Koordinators) | [slice-sim-aenderung-integration](../planning/done/welle-simulations-backend/slice-sim-aenderung-integration.md) |
 | 2026-10-31 | Option A vom Nutzer bestätigt | Sitzung |
