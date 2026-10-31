@@ -32,6 +32,10 @@ In Arbeit (Welle welle-qualitaet-grundlage):
 
 - [slice-qa-wartbarkeit](slice-qa-wartbarkeit.md)
 
+In Arbeit (Welle welle-simulations-backend):
+
+- [slice-sim-auswahl-streaming](slice-sim-auswahl-streaming.md)
+
 
 
 
