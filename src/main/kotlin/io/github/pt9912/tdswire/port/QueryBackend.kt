@@ -14,8 +14,9 @@ interface QueryBackend {
      * Fehler beim Start (zum Beispiel Backend nicht erreichbar) erscheint als
      * [io.github.pt9912.tdswire.domain.QueryEvent.Failure] im Strom von [QueryExecution.events].
      * Die Abbruchausnahme der Coroutine ([kotlinx.coroutines.CancellationException]) bleibt davon
-     * unberührt. Offen (ADR-0006): ob ein blockierendes Backend hinter dem Strom zulässig ist und
-     * wie es abbricht.
+     * unberührt. Vertragspflicht (ADR-0013): Backend und Zeilenquelle sind suspendierend und
+     * blockieren den Thread des Aufrufers nicht; einen blockierenden Treiber legt der Integrator hinter
+     * einen eigenen, begrenzten Pool und ruft ihn unterbrechbar auf.
      */
     suspend fun execute(request: QueryRequest): QueryExecution
 

@@ -5,9 +5,10 @@ import kotlinx.coroutines.flow.Flow
 
 /**
  * Die laufende Operation eines Backend-Aufrufs: ein asynchroner Strom von Ereignissen. Ein
- * Backend mit kleinem Ergebnis darf ihn aus einer fertigen Liste erzeugen; die Grenze für „klein“
- * ist offen (ADR-0006). Offen (ADR-0006): die Behandlung von `OutOfMemoryError`, etwa bei einem
- * Backend, das sein Ergebnis materialisiert.
+ * Backend mit kleinem Ergebnis darf ihn aus einer fertigen Liste erzeugen; der Vertrag setzt keine
+ * Grenze für „klein“ (Setzung ohne Messung, ADR-0013): ein Backend, das sein Ergebnis materialisiert,
+ * begrenzt es selbst. Ein `OutOfMemoryError` im Anfragepfad (Backend, Encoder, Senke) wird gefangen und
+ * als `TDS_INTERNAL_ERROR` beantwortet, danach schließt die Verbindung (ADR-0013).
  */
 interface QueryExecution {
     /**
