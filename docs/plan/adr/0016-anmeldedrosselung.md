@@ -1,6 +1,6 @@
 # ADR-0016: Drosselung wiederholter Anmeldeversuche
 
-**Status:** Proposed
+**Status:** Accepted (vom Nutzer entschieden)
 
 **Datum:** 2026-10-31
 
@@ -21,6 +21,8 @@
 **Was feststeht.** Die Ablehnung ist für unbekannte Kennung und falsches Passwort gleich (`SPEC-012`), der Server schließt nach einem abgelehnten Login ([ADR-0004](0004-session-zustandsautomat.md), Setzung); jeder Wiederholungsversuch ist deshalb eine **neue Verbindung**. Die Adresse der Gegenstelle ist im Quelltext **nicht vorhanden**: keine Stelle in `src/main` liest sie (`Connection` führt nur `id` und `channel`, die Ereignisse des Listeners tragen keine Adresse der Gegenstelle). Option B braucht deshalb eine Erweiterung der Transportschnittstelle (Voraussetzung, nicht gebaut). Der Verbindungskontext des Adapters nennt Datenbank, Anwendungsname, Rechnername, Intent; der Rechnername ist vom Client frei gesetzt und kein Herkunftsbeleg, `SPEC-051`; er taugt nicht als Schlüssel). Der Plan nennt zwei Risiken: eine Drosselung je Benutzername lässt sich zur Sperre eines regulären Benutzers missbrauchen, eine je Quelladresse trifft Clients hinter gemeinsamen Adressen; beides ist nicht gemessen.
 
 ## Entscheidung
+
+Mit der Annahme am 2026-10-31 bestätigt der Nutzer **Option B** mit den Setzungen 5 freie Fehlversuche, 60 s Fenster, 250 ms Anfangswartezeit verdoppelt bis 5 s Deckel und 10 000 Adressen (Nutzerentscheidung 2026-10-31: „ADRs 0016 bis 0019 nach Korrektur annehmen“). Die Punkte unter „Offen“ bleiben offen.
 
 Wir empfehlen **Option B**: eine **Verzögerung** (keine Sperre) wiederholter Fehlversuche je **Quelladresse**; der Benutzername geht nicht in den Schlüssel ein.
 
@@ -75,6 +77,7 @@ Ein Betreiber hinter gemeinsamer Adresse, dessen reguläre Anmeldungen durch den
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-31 | Proposed – Optionen A bis E mit Empfehlung B (Entscheidung des Nutzers 2026-10-31, Empfehlung übernommen); Grenzwerte als Setzung (Voreinstellung, nicht gemessen); die Wahl der Art bestätigt der Nutzer mit der Annahme | [CO-003](../carveouts/CO-003-anmeldedrosselung-fehlt.md) |
+| 2026-10-31 | Accepted – angenommen nach Review und Korrekturrunde (Review docs/reviews/2026-10-31-33ffaab-adr-0014-bis-0019.md) | [Review](../../reviews/2026-10-31-33ffaab-adr-0014-bis-0019.md) |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit

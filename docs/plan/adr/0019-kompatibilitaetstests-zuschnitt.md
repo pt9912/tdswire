@@ -1,6 +1,6 @@
 # ADR-0019: Kompatibilitätstests: Zuschnitt, Container-Modell, SSPI/NTLM
 
-**Status:** Proposed
+**Status:** Accepted (vom Nutzer entschieden)
 
 **Datum:** 2026-10-31
 
@@ -25,6 +25,8 @@ Der Slice für die Kompatibilitätstests (Entscheidung des Nutzers 2026-10-31, E
 **SSPI/NTLM.** [ADR-0009](0009-authentifizierungsmodus.md): der Server lehnt `fIntSecurity` (SSPI/Kerberos) und Entra-ID ab; gemessen ist nur ein MIT-Kerberos-Token, nicht Windows-SSPI (NTLM); „nicht gemessen: Windows-SSPI (NTLM) und die Erkennung von `fIntSecurity` mit einem anderen Token als MIT-Kerberos“.
 
 ## Entscheidung
+
+Mit der Annahme am 2026-10-31 bestätigt der Nutzer **Zuschnitt A** (voller Umfang der DoD, Start nach `Accepted`), **zwei Container** und **SSPI/NTLM nicht lieferbar** (Einschätzung, nicht gemessen) sowie den Teil-Supersede von [ADR-0008](0008-dotnet-kompatibilitaetstests.md) für die Container-Sätze und den Satz „Die Pflicht-Matrix B ist Teil von `make gates`.“ (Nutzerentscheidung 2026-10-31: „ADRs 0016 bis 0019 nach Korrektur annehmen“). Die Punkte unter „Offen“ bleiben offen.
 
 Wir wählen **Option A (Zuschnitt: voller Umfang, Start nach `Accepted`)**, **zwei Container (Container-Modell)** und **„nicht lieferbar“ für SSPI/NTLM**.
 
@@ -78,6 +80,7 @@ Ein Szenario, das ohne getrennte Prozesse auskommt und dessen Laufzeit zwei Cont
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-31 | Proposed – Zuschnitt A, zwei Container, SSPI/NTLM nicht lieferbar (Entscheidung des Nutzers 2026-10-31, Empfehlung übernommen); Teil-Supersede der Container-Sätze und des Satzes „Matrix B ist Teil von `make gates`“ von ADR-0008; Ausgangslage des Zuschnitts nach Prüfung des Quelltexts auf voller Umfang, Start nach `Accepted` umgestellt; Einschätzung zu SSPI/NTLM nicht gemessen; Status bleibt Proposed bis Review und Annahme durch den Nutzer | [ADR-0008](0008-dotnet-kompatibilitaetstests.md), [ADR-0022](0022-e2e-laeufe-nicht-in-den-gates.md) |
+| 2026-10-31 | Accepted – angenommen nach Review und Korrekturrunde (Review docs/reviews/2026-10-31-33ffaab-adr-0014-bis-0019.md) | [Review](../../reviews/2026-10-31-33ffaab-adr-0014-bis-0019.md) |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit

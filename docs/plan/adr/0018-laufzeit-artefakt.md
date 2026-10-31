@@ -1,6 +1,6 @@
 # ADR-0018: Laufzeit-Artefakt: Basis-Image, Betreiberoptionen, Laufzeittest im E2E-Durchgang
 
-**Status:** Proposed
+**Status:** Accepted (vom Nutzer entschieden)
 
 **Datum:** 2026-10-31
 
@@ -26,6 +26,8 @@ Der Slice für Laufzeit-Artefakt und Lizenz liegt in `done/` und hat ein Laufzei
 - Daneben besteht die Stage `build` (Distroless `static`, nur das Jar, läuft allein nicht); zwei Stages für ein Artefakt sind eine bekannte Doppelung (`BEO-TDS/zwei-artefakt-stages-nebeneinander`, offen).
 
 ## Entscheidung
+
+Mit der Annahme am 2026-10-31 bestätigt der Nutzer **Option A** wie beschrieben (Nutzerentscheidung 2026-10-31: „ADRs 0016 bis 0019 nach Korrektur annehmen“). Die Punkte unter „Offen“ bleiben offen.
 
 Wir wählen **Option A**: Das Laufzeit-Artefakt bleibt, wie gebaut.
 
@@ -74,6 +76,7 @@ Ein neuer Release des Basis-Images mit Sicherheitsmeldung zum gepinnten Digest; 
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-31 | Proposed – Bestätigung des gebauten Laufzeit-Artefakts (Entscheidung des Nutzers 2026-10-31, Empfehlung übernommen); Dateirechte und Lizenzhinweise bleiben offen; Status bleibt Proposed bis Review und Annahme durch den Nutzer | Slice für Laufzeit-Artefakt und Lizenz |
+| 2026-10-31 | Accepted – angenommen nach Review und Korrekturrunde (Review docs/reviews/2026-10-31-33ffaab-adr-0014-bis-0019.md) | [Review](../../reviews/2026-10-31-33ffaab-adr-0014-bis-0019.md) |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit
