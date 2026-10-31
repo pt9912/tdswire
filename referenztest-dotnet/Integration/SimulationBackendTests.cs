@@ -18,7 +18,7 @@ namespace TdsWire.Referenztests.Integration;
 [Trait("Kategorie", "Integration")]
 public class SimulationBackendTests
 {
-    // Kopplung: wie BIG_ROWS, BIG_TEXT_CHARS und BROKEN_AFTER in IntegrationServer.kt.
+    // Kopplung: wie BIG_ROWS, BIG_TEXT_CHARS und BROKEN_AFTER in IntegrationServer.kt; `make kopplung-zahlen` prüft die ersten beiden.
     private const int GrosseZeilen = 500_000;
     private const int GrosseZeichen = 128;
     private const int ZeilenVorDemFehler = 3;
