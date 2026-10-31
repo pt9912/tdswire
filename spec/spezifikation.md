@@ -554,16 +554,18 @@ Einfügen, Ändern und Löschen noch nicht (sie enden mit `TDS_UNSUPPORTED_SQL`)
   Anfrage nicht trägt, ist `TDS_SIM_INVALID_VALUE`; die Richtung eines Parameters bleibt unbeachtet. „ISO-Format“
   heißt der Formatraum der ISO-Parser der Laufzeit: bei der Zeit sind Sekunden optional und Bruchteile bis zu
   Nanosekunden gelten, beim Datum gilt auch ein Jahr mit Vorzeichen und mehr als vier Stellen, beim Zeitpunkt
-  ist das `T` Pflicht; Zeitzonen gelten nicht. Alle Werte
-  der Bedingung werden vor dem Öffnen der Zeilenquelle überführt.
+  ist das `T` Pflicht; Zeitzonen gelten nicht.
+  Alle Werte der Bedingung werden vor dem Öffnen der Zeilenquelle überführt.
 - **Fehler der Zeilenquelle** (`TDS-FA-11.a` Schritt 7; Setzung, nicht am Server gemessen): ein Fehler beim
   Öffnen oder Lesen der Zeilenquelle ist `TDS_BACKEND_ERROR` mit fester Meldung, die den Text der Ausnahme nie
   nennt; eine Zeile mit anderer Zahl von Werten als Spalten zählt als Fehler der Zeilenquelle; ein Fehler von
   `close()` bleibt ohne Folge. Ein `Error` der Laufzeit (etwa `OutOfMemoryError`) und die Abbruchausnahme der
-  Coroutine fängt das Backend nicht. Die Namen im Metadatum des Ergebnisses sind die der Beschreibung, nicht
-  die Schreibweise im Text (`SELECT AGE` liefert `Age`). Beim Vergleich in der Bedingung ist eine Zelle anderer
-  JVM-Klasse als der Wert ungleich (`1` gegen `1L`), ohne Fehler (Setzung, nicht am Server gemessen). Cancel und `close` der Ausführung beenden das Lesen vor der nächsten Zeile;
-  ein `next()`, das selbst hängt, endet nur mit dem Abbruch des Sammlers.
+  Coroutine fängt das Backend nicht. Cancel und `close` der Ausführung beenden das Lesen vor der nächsten
+  Zeile; ein `next()`, das selbst hängt, endet nur mit dem Abbruch des Sammlers.
+- **Namen im Metadatum des Ergebnisses** (Setzung, nicht am Server gemessen): Es sind die Namen der
+  Beschreibung, nicht die Schreibweise im Text (`SELECT AGE` liefert `Age`).
+- **Vergleich in der Bedingung** (Setzung, nicht am Server gemessen): Eine Zelle anderer JVM-Klasse als der
+  Wert ist ungleich (`1` gegen `1L`), ohne Fehler.
 
 **Beschreibung als Datei.** Zusätzlich zur Kotlin-Schnittstelle kann der Server Tabellen aus einer Datei
 laden. Das Format ist das neutrale Schema-Modell von d-migrate in YAML, `schema_format` `1.0`; maßgeblich

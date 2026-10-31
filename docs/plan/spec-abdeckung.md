@@ -31,7 +31,7 @@ bestandenen Test als „Gate-Festlegung, ungemessen“ und ist weder Nachweis no
 irgendein Test ihre Kennung, steht sie als Nachweis da und die Klasse ist nicht mehr zu sehen.
 Die Art folgt dem Verzeichnis des Tests: `smoke/` Smoke-Test, `e2e/` E2E-Test, sonst Modul-Test.
 
-Stand: 31 von 51 Festlegungen mit mindestens einem bestandenen Test, 6 Gate-Festlegungen ungemessen, 14 ohne Nachweis.
+Stand: 30 von 51 Festlegungen mit mindestens einem bestandenen Test, 7 Gate-Festlegungen ungemessen, 14 ohne Nachweis.
 
 ## Matrix
 
@@ -44,8 +44,8 @@ Stand: 31 von 51 Festlegungen mit mindestens einem bestandenen Test, 6 Gate-Fest
 | `SPEC-028` | PRELOGIN, TLS und LOGIN7: Zustands- und Antwortvertrag | 128 | 2 | 0 | 0 | DispatchFailureTest, StreamingDispatchTest, Login7ParserTest, PreloginCodecTest, HandshakeDriverTest, HandshakeMatrixTest, HandshakeTransportTest, LoginAdmissionTest, LoginResponseTest, PreloginNegotiationTest, SqlBatchParserTest, TokenEncoderTest, TokenRoundtripTest, BootstrapTest, ServerSmokeTest, TlsWiringTest, CodecSmokeTest, ConnectionStormTest, FramingFuzzTest, HandshakeFuzzTest, StreamCutoffTest, SocketChannelLoopbackTest, SwitchableChannelTest, MessageAssemblerTest, PacketHeaderTest, PacketWriterTest, ListenerSmokeTest, MessageReaderTest, MessageStreamTest, MessageWriterTest, TlsDataPhaseTest, TlsLoopbackTest, TlsNegativeTest, TlsTicketFlagTest | mindestens ein bestandener getaggter Test |
 | `SPEC-029` | ATTENTION und Wiederverwendung der Verbindung | 11 | 0 | 0 | 0 | StreamingDispatchTest, ResponseFailureTest, ResponseMappingTest, SimulationBackendSourceTest, MessageAssemblerTest | mindestens ein bestandener getaggter Test |
 | `SPEC-030` | RPC-Varianten und Parameter-Metadaten | 38 | 1 | 0 | 0 | AnswerFormsDispatchTest, RpcBinderTest, RpcDispatchTest, ResponseRpcTest, RpcCatalogFormsTest, RpcFailureTest, RpcTypesTest, TokenEncoderTest, CodecSmokeTest | mindestens ein bestandener getaggter Test |
-| `SPEC-031` | Streaming-Fehler und Atomarität | 91 | 3 | 0 | 3 | AnswerFormsDispatchTest, DispatchClosingTest, DispatchFailureTest, DispatchFateTest, SqlBatchDispatchTest, StreamingDispatchTest, ErrorMapperTest, ResponseDecoderTest, ResponseErrorMapperTest, ResponseFailureTest, ResponseMappingTest, ResponseOrderTest, ResponseRpcTest, ColumnMappingTest, MappingFuzzTest, ValueMappingTest, RequestWiringTest, SimulationBackendSourceTest, SimulationMemoryTest, StreamingSmokeTest, MessageStreamTest | mindestens ein bestandener getaggter Test |
-| `SPEC-035` | Tabellenbeschreibung und Zeilenquelle des Simulations-Backends | 55 | 0 | 0 | 0 | SimDescriptionReaderTest, SimModelTest, SimulationBackendSelectTest, SimValuesTest | mindestens ein bestandener getaggter Test |
+| `SPEC-031` | Streaming-Fehler und Atomarität | 91 | 3 | 0 | 4 | AnswerFormsDispatchTest, DispatchClosingTest, DispatchFailureTest, DispatchFateTest, SqlBatchDispatchTest, StreamingDispatchTest, ErrorMapperTest, ResponseDecoderTest, ResponseErrorMapperTest, ResponseFailureTest, ResponseMappingTest, ResponseOrderTest, ResponseRpcTest, ColumnMappingTest, MappingFuzzTest, ValueMappingTest, RequestWiringTest, SimulationBackendSourceTest, SimulationMemoryTest, StreamingSmokeTest, MessageStreamTest | mindestens ein bestandener getaggter Test |
+| `SPEC-035` | Tabellenbeschreibung und Zeilenquelle des Simulations-Backends | 56 | 0 | 0 | 0 | SimDescriptionReaderTest, SimModelTest, SimulationBackendSelectTest, SimValuesTest | mindestens ein bestandener getaggter Test |
 | `SPEC-036` | Erkannte Anweisungsformen des Simulations-Backends (vorläufig) | 52 | 0 | 0 | 0 | SimModelTest, SimulationBackendSelectTest, SimValuesTest, StatementFormsTest, StatementOracleTest, StatementPlannerTest, StatementScannerTest | mindestens ein bestandener getaggter Test |
 | `SPEC-043` | Startprüfung: TLS-Konfiguration und Port | 22 | 0 | 0 | 0 | BootstrapTest, SecurityConfigNegativeTest, ServerSmokeTest, TlsHandshakeNegativeTest, IoGroupTest, ListenerStartTest, TlsStartProbeTest | mindestens ein bestandener getaggter Test |
 | `SPEC-044` | Geordnetes Beenden | 16 | 0 | 0 | 0 | BootstrapTest, HandshakeWiringTest, ServerSmokeTest, ListenerLifecycleTest, ListenerShutdownTest, ListenerTestBaseTest | mindestens ein bestandener getaggter Test |
@@ -68,7 +68,7 @@ Stand: 31 von 51 Festlegungen mit mindestens einem bestandenen Test, 6 Gate-Fest
 | `SPEC-016` | `TDS_TIMEOUT` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-037` | `TDS_UNSUPPORTED_SQL` | 7 | 0 | 0 | 0 | ErrorMapperTest, SimulationCodesTest, SimulationBackendSelectTest, StatementPlannerTest | mindestens ein bestandener getaggter Test |
 | `SPEC-038` | `TDS_SIM_UNKNOWN_OBJECT` | 6 | 0 | 0 | 0 | SimulationCodesTest, SimulationBackendSelectTest, StatementPlannerTest | mindestens ein bestandener getaggter Test |
-| `SPEC-039` | `TDS_SIM_INVALID_VALUE` | 12 | 0 | 0 | 0 | ErrorMapperTest, SimulationCodesTest, SimulationBackendSelectTest, SimValuesTest | mindestens ein bestandener getaggter Test |
+| `SPEC-039` | `TDS_SIM_INVALID_VALUE` | 13 | 0 | 0 | 0 | ErrorMapperTest, SimulationCodesTest, SimulationBackendSelectTest, SimValuesTest | mindestens ein bestandener getaggter Test |
 | `SPEC-048` | `TDS_INTERNAL_ERROR` | 35 | 0 | 0 | 0 | AnswerFormsDispatchTest, DispatchClosingTest, DispatchFailureTest, DispatchFateTest, RpcBinderTest, RpcDispatchTest, StreamingDispatchTest, ErrorMapperTest, ResponseErrorMapperTest, ResponseFailureTest, ResponseOrderTest, ResponseRpcTest, HandshakeDriverTest, HandshakeWiringTest, LoginLogInspectionTest, RequestWiringTest | mindestens ein bestandener getaggter Test |
 | `SPEC-049` | `TDS_SHUTDOWN` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-017` | `tds.connection` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
@@ -85,7 +85,7 @@ Stand: 31 von 51 Festlegungen mit mindestens einem bestandenen Test, 6 Gate-Fest
 | `SPEC-027` | Fuzz-/Property-Tests | 24 | 0 | 0 | 0 | Login7ParserTest, PreloginCodecTest, RpcFailureTest, RpcFuzzTest, SqlBatchParserTest, TokenRoundtripTest, ConnectionStormTest, FramingFuzzTest, HandshakeFuzzTest, StreamCutoffTest, SocketChannelLoopbackTest, MessageAssemblerTest, PacketHeaderTest, RpcAssemblyTest, MessageReaderTest | mindestens ein bestandener getaggter Test |
 | `SPEC-040` | Simulations-Test-Gate | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
 | `SPEC-041` | Static-Analysis-Gate (`make detekt`, `make detekt-selbsttest`) | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
-| `SPEC-042` | Build-Gate (`make build`) | 1 | 0 | 0 | 0 | LizenzTest | mindestens ein bestandener getaggter Test |
+| `SPEC-042` | Build-Gate (`make build`) | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
 | `SPEC-050` | Referenzabgleich-Gate (vorläufig) | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
 | `SPEC-032` | Kompatibilitätstest-Gate | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
 
@@ -99,6 +99,7 @@ Stand: 31 von 51 Festlegungen mit mindestens einem bestandenen Test, 6 Gate-Fest
 | `SPEC-002` | `io.github.pt9912.tdswire.port..Fehler beim Start wirft nicht und erscheint als einziges Failure im Strom` | nicht gelaufen (kein Ergebnis im Bericht) |
 | `SPEC-002` | `io.github.pt9912.tdswire.port..ResultStart kommt vor der ersten Zeile` | nicht gelaufen (kein Ergebnis im Bericht) |
 | `SPEC-031` | `io.github.pt9912.tdswire.port..Generator laeuft nicht ueber die Abnahme hinaus` | nicht gelaufen (kein Ergebnis im Bericht) |
+| `SPEC-031` | `io.github.pt9912.tdswire.port..Generator laeuft waehrend der Wartezeit des Lesers nicht voraus` | nicht gelaufen (kein Ergebnis im Bericht) |
 | `SPEC-031` | `io.github.pt9912.tdswire.port..close beendet den laufenden Strom an der Zeilenquelle` | nicht gelaufen (kein Ergebnis im Bericht) |
 | `SPEC-031` | `io.github.pt9912.tdswire.port..cancel beendet den laufenden Strom an der Zeilenquelle` | nicht gelaufen (kein Ergebnis im Bericht) |
 

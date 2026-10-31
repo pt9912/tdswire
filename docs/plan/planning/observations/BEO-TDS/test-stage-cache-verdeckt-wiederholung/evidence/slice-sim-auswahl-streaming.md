@@ -1,0 +1,2 @@
+**Vorgang:** slice-sim-auswahl-streaming
+**Fund:** Review, Abschnitt Eigene Läufe ([Review](../../../../../../reviews/2026-10-31-7c8917d-slice-sim-auswahl-streaming.md)). `make test` auf dem unveränderten Stand lag im Cache (`CACHED`) und lieferte keinen Ausgabebeleg für den Heap-Test; erst frische Läufe belegten ihn. Der Sensor `make clean-build` besteht; die Closure und die Verifikation nutzten den Docker-Aufruf mit `--no-cache-filter test`.
