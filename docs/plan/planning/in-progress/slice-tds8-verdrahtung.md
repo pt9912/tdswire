@@ -45,13 +45,13 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] **TDS-8.0-Pfad im Serverprozess** (`SPEC-001`, `SPEC-020`): Eine Verbindung, die mit TLS beginnt (`CONNECTED → TLS_NEGOTIATION → PRELOGIN`), wird im Serverprozess angenommen, durchläuft Handshake und Login bis `READY` und wird wie der TDS-7.4-Pfad beendet; ein Test mit einer JDK-Gegenstelle und ein Rohbytes-Test belegen den Pfad am laufenden Prozess, einschließlich des Verhaltens bei Klartext als erstem Byte in diesem Modus (Festlegung des Slice, nicht gemessen). Die Wahl des Pfads je Verbindung (erstes Byte) und ein Konfigurationsschalter, falls nötig, sind Festlegungen des Slice und als solche gekennzeichnet.
-- [ ] **KDoc als Ist-Zustand:** Das KDoc von `runtime/ConnectionWiring.kt` beschreibt den verdrahteten Pfad statt „nicht verdrahtet“; die Aussage trägt höchstens so weit wie der Test (`AGENTS.md` §3.8): gemessen ist nur die Gegenstelle des Tests, nicht der Referenzclient.
-- [ ] `make gates` grün.
+- [x] **TDS-8.0-Pfad im Serverprozess** (`SPEC-001`, `SPEC-020`): Eine Verbindung, die mit TLS beginnt (`CONNECTED → TLS_NEGOTIATION → PRELOGIN`), wird im Serverprozess angenommen, durchläuft Handshake und Login bis `READY` und wird wie der TDS-7.4-Pfad beendet; ein Test mit einer JDK-Gegenstelle und ein Rohbytes-Test belegen den Pfad am laufenden Prozess, einschließlich des Verhaltens bei Klartext als erstem Byte in diesem Modus (Festlegung des Slice, nicht gemessen). Die Wahl des Pfads je Verbindung (erstes Byte) und ein Konfigurationsschalter, falls nötig, sind Festlegungen des Slice und als solche gekennzeichnet.
+- [x] **KDoc als Ist-Zustand:** Das KDoc von `runtime/ConnectionWiring.kt` beschreibt den verdrahteten Pfad statt „nicht verdrahtet“; die Aussage trägt höchstens so weit wie der Test (`AGENTS.md` §3.8): gemessen ist nur die Gegenstelle des Tests, nicht der Referenzclient.
+- [x] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Doku-Update, falls ein öffentlicher Vertrag berührt ist (Konfiguration, `SPEC-020`).
+- [x] Doku-Update, falls ein öffentlicher Vertrag berührt ist (Konfiguration, `SPEC-020`): Sicherheitsprofil in `spec/spezifikation.md` (Abschnitt Zertifikate/Konfiguration) nennt die Pfadwahl am ersten Byte statt „nicht verdrahtet“.
 - [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
 - [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
 - [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
@@ -68,6 +68,8 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `src/main/kotlin/io/github/pt9912/tdswire/runtime/` (`ConnectionWiring.kt`, Listener) | update | Pfad ab dem ersten Byte verdrahten, KDoc nachziehen |
 | `src/test/kotlin/io/github/pt9912/tdswire/runtime/` | neu | Happy (JDK-Gegenstelle bis `READY`), Negative (Klartext im TDS-8.0-Modus), Rohbytes-Folge nach [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität); `@spec`-Tag je Test |
+| `src/main/kotlin/io/github/pt9912/tdswire/transport/channel/PeekedChannel.kt` | neu | liest das erste Byte, ohne es zu verbrauchen; Grundlage der Pfadwahl je Verbindung |
+| `spec/spezifikation.md` (Sicherheitsprofil) | update | „nicht verdrahtet“ durch die Pfadwahl am ersten Byte ersetzen (Setzung) |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 
