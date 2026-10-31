@@ -23,7 +23,7 @@
 * kategorie: MEDIUM
 * quelle: `AGENTS.md` §3.8, §5 Regel 6
 * pfad: `docs/plan/kompatibilitaetsmatrix.md` · `| 7 | Typgrößen `FLTN`, `MONEYN`, `DATETIMN`, `GUID`, Zuschlag bei `DATETIMEOFFSETN` | nur Handvektor und Selbstkonsistenz (3b) | `slice-qa-kompatibilitaet`, `slice-qa-reproduzierbarkeit` |`
-* befund: Die Matrix führt zwei Slices als Träger, aber weder `next/slice-qa-kompatibilitaet.md` noch `in-progress/slice-qa-reproduzierbarkeit.md` enthält `FLTN`, `MONEYN`, `GUID` oder die Typgrößen (grep: 0 Treffer); der Kopf des Abschnitts definiert „kein Träger“ als „keine Slice-Datei führt den Punkt in DoD oder Risiko“, also müsste die Zeile „kein Träger“ lauten. Szenario: Beide Slices schließen, die Typgrößen bleiben ungemessen, und die Matrix hat den Punkt als getragen ausgewiesen.
+* befund: Die Matrix führt zwei Slices als Träger, aber weder `in-progress/slice-qa-kompatibilitaet.md` noch `in-progress/slice-qa-reproduzierbarkeit.md` enthält `FLTN`, `MONEYN`, `GUID` oder die Typgrößen (grep: 0 Treffer); der Kopf des Abschnitts definiert „kein Träger“ als „keine Slice-Datei führt den Punkt in DoD oder Risiko“, also müsste die Zeile „kein Träger“ lauten. Szenario: Beide Slices schließen, die Typgrößen bleiben ungemessen, und die Matrix hat den Punkt als getragen ausgewiesen.
 * verifizierbar: ja (grep über die beiden Slice-Dateien)
 * klasse: Träger-Angabe ohne tragenden Slice-Text
 

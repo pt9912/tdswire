@@ -32,7 +32,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Der Vergleichslauf D ([ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md) Option D, Referenzabgleich nach [SPEC-045](../../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig)) läuft als eigenes Make-Target gegen einen SQL-Server-Container, ist gemessen und steht mit seiner Ausnahmeliste im Repo; in `make gates` kommt er erst nach dieser Messung.
 
-**Übernimmt:** den Gegenstand des DoD-Punkts 3 von [slice-qa-reproduzierbarkeit](../done/slice-qa-reproduzierbarkeit.md). Der Schnitt ist eine Setzung der Closure jenes Slice: der CI-Teil war lieferbar, D hängt an den Szenarien des Referenzclients aus [slice-qa-kompatibilitaet](../next/slice-qa-kompatibilitaet.md) und hatte in der Datei des alten Slice keine Rückführung dafür.
+**Übernimmt:** den Gegenstand des DoD-Punkts 3 von [slice-qa-reproduzierbarkeit](../done/slice-qa-reproduzierbarkeit.md). Der Schnitt ist eine Setzung der Closure jenes Slice: der CI-Teil war lieferbar, D hängt an den Szenarien des Referenzclients aus [slice-qa-kompatibilitaet](../in-progress/slice-qa-kompatibilitaet.md) und hatte in der Datei des alten Slice keine Rückführung dafür.
 
 **Umfang** (aus [slice-qa-reproduzierbarkeit](../done/slice-qa-reproduzierbarkeit.md) §1 übernommen):
 
@@ -45,7 +45,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Die Szenarien des Referenzclients (S1 bis S18) — sie schreibt [slice-qa-kompatibilitaet](../next/slice-qa-kompatibilitaet.md); D führt sie gegen den echten Server aus und braucht sie als Eingang (Start-Trigger).
+- Die Szenarien des Referenzclients (S1 bis S18) — sie schreibt [slice-qa-kompatibilitaet](../in-progress/slice-qa-kompatibilitaet.md); D führt sie gegen den echten Server aus und braucht sie als Eingang (Start-Trigger).
 - Die Server-Seite des Live-Laufs, die Ausnahmeliste je Szenario und der Mitschnitt-Lauf — [slice-referenzabgleich-live](slice-referenzabgleich-live.md) und [slice-referenzabgleich-mitschnitt](slice-referenzabgleich-mitschnitt.md); dieser Slice liefert Target, Container und Rahmen, jene füllen sie mit dem Server des Repos.
 - NuGet-Audit und `trustedSigners` des Referenztests — [slice-qa-dotnet-lieferkette-haerten](slice-qa-dotnet-lieferkette-haerten.md) ([CO-001](../../carveouts/CO-001-nuget-audit-aus.md), [CO-002](../../carveouts/CO-002-nuget-signaturpruefung-fehlt.md)).
 - Die Wahl des Referenzclients — durch [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md) entschieden.
@@ -82,7 +82,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `tools/mk/` (Fragment für D) | neu | Make-Target des Vergleichslaufs, Container der Referenzinstanz im eigenen Netzwerk ohne Mount ([ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md), [SPEC-050](../../../../spec/spezifikation.md#7-festlegungen-der-harness-werkzeuge)) |
 | `harness/README.md` | update | Zeile des Targets in §Sensors oder §Werkzeuge; Bindung |
 | Ausnahmeliste | neu | Abweichungen mit Pfad, Szenario, Grund und Art (*so gewollt* oder *Lücke*), nach [SPEC-045](../../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig) |
-| `referenztest-dotnet/` | update | Anmelde-Szenario und Szenarien für Mehrfach-Resultset und RPC mit Ausgabewert, soweit [slice-qa-kompatibilitaet](../next/slice-qa-kompatibilitaet.md) sie nicht liefert |
+| `referenztest-dotnet/` | update | Anmelde-Szenario und Szenarien für Mehrfach-Resultset und RPC mit Ausgabewert, soweit [slice-qa-kompatibilitaet](../in-progress/slice-qa-kompatibilitaet.md) sie nicht liefert |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 
@@ -91,7 +91,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-qa-kompatibilitaet](../next/slice-qa-kompatibilitaet.md) liegt in `done/` (Szenarien des Referenzclients), und ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): [slice-qa-kompatibilitaet](../in-progress/slice-qa-kompatibilitaet.md) liegt in `done/` (Szenarien des Referenzclients), und ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -114,7 +114,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 - **Offene Frage — Tag für TDS 8.0.** Die Aussagen widersprechen sich. [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md) misst, dass `Encrypt=Strict` gegen `2022-latest` mit `Class=20, Number=0` scheitert, nennt den Grund (SQL Server 2022 biete TDS 8.0 nicht an) aber nur als gefolgert und den Tag für TDS 8.0 als nicht ermittelt. [slice-referenzabgleich-live](slice-referenzabgleich-live.md) schreibt dagegen, die Referenzinstanz 2022 biete den TDS-8.0-Pfad nicht an, und lässt den Abgleich dort entfallen. Der Vorgänger-Slice wies „SQL-Server-Tag für TDS 8.0“ dem Vergleichslauf D zu (Review F-12). Offen: ob dieser Slice einen Tag sucht oder die Grenze setzt, und ob „bietet nicht an“ gemessen werden muss, bevor live es als Ausschluss führt. — **Ausgang:** offen bis zur Closure.
-- Die Szenarien des Referenzclients ([slice-qa-kompatibilitaet](../next/slice-qa-kompatibilitaet.md)) sind der Eingang von D; fehlen sie, bleibt D ohne Anmelde- und Antwort-Szenarien. — **Ausgang:** offen bis zur Closure.
+- Die Szenarien des Referenzclients ([slice-qa-kompatibilitaet](../in-progress/slice-qa-kompatibilitaet.md)) sind der Eingang von D; fehlen sie, bleibt D ohne Anmelde- und Antwort-Szenarien. — **Ausgang:** offen bis zur Closure.
 - Laufzeit, Platten- und Speicherbedarf sind nur an einem Host gemessen ([ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md): ein Lauf, `2022-latest` beweglich, bis auf den Digest); ob D in `make gates` kommt, hängt an der Messung auf dem Zielsystem. — **Ausgang:** offen bis zur Closure.
 - Die EULA-Zustimmung (`ACCEPT_EULA=Y`) ist rechtlich ungeprüft. — **Ausgang:** offen bis zur Closure.
 
