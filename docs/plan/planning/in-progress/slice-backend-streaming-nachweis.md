@@ -78,10 +78,10 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `src/main/kotlin/io/github/pt9912/tdswire/protocol/` (Senken-Schnittstelle; Ort nach Abstimmung mit `slice-transport-coroutines-geruest`) | neu | suspendierende Senke und Verdrahtung Sequenzierer → Encoder → Paket-Schreiber |
+| `protocol/session` (`ReplyStream`, `HandshakeChannel.openReply`/`usePacketSize`), `protocol/dispatch` (`StreamedResponse` ersetzt `BufferedResponse`, `RequestLoop`), `protocol/token` (`TokenEncoder.drain`), `protocol/response` (`ResponseSequencer`: `cancel()` bei Abbruch, `OutOfMemoryError`), `transport/messaging` (`MessageStream`, `MessageWriter.open`), `transport/framing` (`PacketWriter.packet`) | neu / update | suspendierende Senke: Bytes hinein, Rückstau durch Suspendieren; höchstens ein gehaltenes Paket im Schreiber; Packet Size der Sitzung wird am Schreiber eingestellt |
 | `src/test/kotlin/io/github/pt9912/tdswire/testsupport/` | update | Test-Backend: Generator für große Ergebnisse (Zeilen on demand), Zähler der vorausgelieferten Ereignisse; langsame und angehaltene Testsenke |
 | `src/test/kotlin/io/github/pt9912/tdswire/smoke/` | neu | Ende-zu-Ende-Lauf der Welle; `@spec`-Tag je Test; der Smoke-Test darf die Schichten im Test-Quelltext verbinden, die Importregeln für Produktionscode gelten unverändert |
-| `build.gradle.kts` | update, falls nötig | Heap-Einstellung des Testlaufs für den Speicher-Beleg; eine Einstellung, die das Gate verschärft, braucht keine ADR, eine Lockerung ja (`AGENTS.md` §3.6) |
+| `gradle/test-jvm.init.gradle.kts` | update | Heap-Einstellung des Testlaufs für den Speicher-Beleg (der Init-Skript-Weg lässt `build.gradle.kts` und damit die Stage `deps` unberührt); eine Einstellung, die das Gate verschärft, braucht keine ADR (`AGENTS.md` §3.6) |
 | `spec/spezifikation.md` `SPEC-022` | update | §Pflichten: „nicht beliebig voraus“ mit dem gebauten Stand und der Grenze der Aussage |
 
 - Reihenfolge: Senke und Verdrahtung, dann Zähler-Beleg, dann Heap-Beleg, dann Abbruch, zuletzt der Ende-zu-Ende-Lauf.
