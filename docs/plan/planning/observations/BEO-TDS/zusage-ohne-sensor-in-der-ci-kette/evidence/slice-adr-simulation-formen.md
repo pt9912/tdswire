@@ -1,0 +1,2 @@
+**Vorgang:** slice-adr-simulation-formen
+**Fund:** Review F-1 ([Review](../../../../../../reviews/2026-10-30-69c32e6-adr-0012-simulations-backend.md)); Verifikation V-1 ([Verifikation](../../../../../../reviews/2026-10-30-69c32e6-verifikation-adr-0012-simulations-backend.md)). Die Fitness Function sagte, `make detekt` weise einen Import der YAML-Bibliothek in `simulation` ab; `ForbiddenImport/simulation` sperrt nur Pakete des Repos, die Probe im Scratchpad blieb grün. Die ADR führt die Zeile jetzt als „kein Wächter heute“; der Wächter ist Pflicht im Verdrahtungs-Slice.
