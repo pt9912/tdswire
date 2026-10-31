@@ -1,0 +1,8 @@
+# slice-backend-streaming-nachweis — Backpressure, Speichergrenze und Abbruch über die Kette Test-Backend → Sequenzierer → Encoder → Senke
+
+> **ARCHIVIERT** — Volltext:
+> `unzip -p docs/plan/planning/done/welle-backend-streaming/archiv.zip docs/plan/planning/done/welle-backend-streaming/slice-backend-streaming-nachweis.md`
+
+**Welle:** [welle-backend-streaming](welle-backend-streaming.md)
+**Archiviert mit:** welle-backend-streaming · **Geschlossen:** 2026-10-31
+**Hervorgegangen:** [`BEO-TDS/aussagen-ueber-messung-hinaus`](../../observations/BEO-TDS/aussagen-ueber-messung-hinaus/observation.md) · [`BEO-TDS/fehlerantwort-hinter-halbem-token`](../../observations/BEO-TDS/fehlerantwort-hinter-halbem-token/observation.md) · [`BEO-TDS/messung-am-echten-sql-server-fehlt`](../../observations/BEO-TDS/messung-am-echten-sql-server-fehlt/observation.md) · [`BEO-TDS/oom-bricht-testlauf-statt-test`](../../observations/BEO-TDS/oom-bricht-testlauf-statt-test/observation.md) · [`BEO-TDS/risikozeile-nennt-behobenen-zustand`](../../observations/BEO-TDS/risikozeile-nennt-behobenen-zustand/observation.md) · [`BEO-TDS/rueckstau-im-produktivbetrieb-nicht-gemessen`](../../observations/BEO-TDS/rueckstau-im-produktivbetrieb-nicht-gemessen/observation.md) · [`BEO-TDS/test-belegt-nur-den-fake`](../../observations/BEO-TDS/test-belegt-nur-den-fake/observation.md) · [`BEO-TDS/zeile-oder-zweig-ohne-unterscheidenden-test`](../../observations/BEO-TDS/zeile-oder-zweig-ohne-unterscheidenden-test/observation.md) · [slice-abbruch-ressourcen-shutdown](../../open/slice-abbruch-ressourcen-shutdown.md) · [slice-attention-cancel-timeout](../../open/slice-attention-cancel-timeout.md) · [slice-qa-performance](../../open/slice-qa-performance.md)

@@ -38,7 +38,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Weitergabe von Einfügen, Ändern und Löschen an Callbacks — [slice-sim-aenderung-integration](../open/slice-sim-aenderung-integration.md); hier wird nur die Form erkannt.
 - Auswertung von Ausdrücken, Verbund, Aggregat, Unterabfrage und Sortierung — nach [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) ausgeschlossen; sie enden als nicht erkannt.
 - Form C (Texte des Referenzclients) — leer, bis die Entscheidung aus [slice-adr-simulation-formen](../done/slice-adr-simulation-formen.md) sie füllt; der Slice erzeugt dafür nur den Platz in der Zuordnung.
-- Der minimale Fake im Test-Quelltext (`ScriptedBackend` aus [slice-backend-port-vertrag](../done/slice-backend-port-vertrag.md)) bleibt unberührt und lernt keine Erkennung: Der Fake spielt ein Skript von Ereignissen ab, das Simulations-Backend ordnet Text zu. Wächst der Fake um Anweisungserkennung, ist es [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) und gehört in dieses Package.
+- Der minimale Fake im Test-Quelltext (`ScriptedBackend` aus [slice-backend-port-vertrag](../done/welle-backend-streaming/slice-backend-port-vertrag.md)) bleibt unberührt und lernt keine Erkennung: Der Fake spielt ein Skript von Ereignissen ab, das Simulations-Backend ordnet Text zu. Wächst der Fake um Anweisungserkennung, ist es [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) und gehört in dieses Package.
 
 ## 2. Definition of Done
 
@@ -101,7 +101,7 @@ Erweiterung der Liste im ersten Lauf (Ausgangslage gemessen: `simulation` existi
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-adr-simulation-formen](../done/slice-adr-simulation-formen.md) und [slice-backend-port-vertrag](../done/slice-backend-port-vertrag.md) liegen in `done/` ([ADR-0012](../../adr/0012-simulations-backend-beschreibung-und-formen.md) steht dann auf `Accepted`), und ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): [slice-adr-simulation-formen](../done/slice-adr-simulation-formen.md) und [slice-backend-port-vertrag](../done/welle-backend-streaming/slice-backend-port-vertrag.md) liegen in `done/` ([ADR-0012](../../adr/0012-simulations-backend-beschreibung-und-formen.md) steht dann auf `Accepted`), und ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

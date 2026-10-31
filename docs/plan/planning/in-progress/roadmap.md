@@ -18,7 +18,6 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 
 - [welle-qualitaet-grundlage](../welle-qualitaet-grundlage.md)
 - [welle-anfrageverarbeitung](../welle-anfrageverarbeitung.md)
-- [welle-backend-streaming](../welle-backend-streaming.md)
 - [welle-fehler-abbruch](../welle-fehler-abbruch.md)
 - [welle-simulations-backend](../welle-simulations-backend.md)
 - [welle-betrieb-diagnose](../welle-betrieb-diagnose.md)
@@ -90,6 +89,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 | welle-entscheidungen-grundlage | 2026-10-30 | [welle-entscheidungen-grundlage-results](../done/welle-entscheidungen-grundlage-results.md) |
 | welle-transport-tls | 2026-10-31 | [welle-transport-tls-results](../done/welle-transport-tls-results.md) |
 | welle-handshake-login | 2026-10-31 | [welle-handshake-login-results](../done/welle-handshake-login-results.md) |
+| welle-backend-streaming | 2026-10-31 | [welle-backend-streaming-results](../done/welle-backend-streaming-results.md) |
 
 ## Historische Trigger-Verschiebungen
 

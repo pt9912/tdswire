@@ -35,7 +35,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Einfügen, Ändern und Löschen — [slice-sim-aenderung-integration](slice-sim-aenderung-integration.md).
-- Sequenzierer, Tokens und Transport — der Slice endet am Strom `events` des Ports; die Kette bis zur Senke belegt [slice-backend-streaming-nachweis](../done/slice-backend-streaming-nachweis.md) am Fake, der Referenzclient-Lauf am Simulations-Backend [slice-sim-aenderung-integration](slice-sim-aenderung-integration.md).
+- Sequenzierer, Tokens und Transport — der Slice endet am Strom `events` des Ports; die Kette bis zur Senke belegt [slice-backend-streaming-nachweis](../done/welle-backend-streaming/slice-backend-streaming-nachweis.md) am Fake, der Referenzclient-Lauf am Simulations-Backend [slice-sim-aenderung-integration](slice-sim-aenderung-integration.md).
 - Zeilendarstellung je `SqlType`, Grenze für „kleine“ Ergebnisse und die Frist `deadlineEpochMillis` — entschieden in [ADR-0013](../../adr/0013-backend-grenzen.md): `List<Any?>` mit den Klassen je Spaltenart (`Int`, `Long`, `Boolean`, `String`, `BigDecimal`, `LocalDate`, `LocalTime`, `LocalDateTime`, `null`), keine Grenze für „kleine“ Ergebnisse im Vertrag (Setzung), die Frist setzt der Protokollkern durch und das Backend darf sie ignorieren (Träger: [slice-attention-cancel-timeout](slice-attention-cancel-timeout.md)); dieser Slice übernimmt die Entscheidung.
 - Blockierende Zeilenquellen und nicht unterbrechbare Aufrufe — entschieden in [ADR-0013](../../adr/0013-backend-grenzen.md): Vertragspflicht „suspendierend“, Umhüllung beim Integrator, Hilfsadapter erst beim Trigger „echtes blockierendes Backend“; geprüft wird eine suspendierende Quelle.
 - Ein Vorfilter in der Zeilenquelle als Optimierung — der Hinweis `SimQuery.filter` wird übergeben, die Bedingung wendet das Backend immer selbst an.
@@ -86,7 +86,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-sim-erkennung](../done/slice-sim-erkennung.md) und [slice-backend-streaming-nachweis](../done/slice-backend-streaming-nachweis.md) liegen in `done/` (das Heap-Verfahren des Testlaufs wird übernommen, nicht neu erfunden), und die Zeilendarstellung ist entschieden ([ADR-0013](../../adr/0013-backend-grenzen.md): Klassen je Spaltenart; `Accepted`, erfüllt), und ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): [slice-sim-erkennung](../done/slice-sim-erkennung.md) und [slice-backend-streaming-nachweis](../done/welle-backend-streaming/slice-backend-streaming-nachweis.md) liegen in `done/` (das Heap-Verfahren des Testlaufs wird übernommen, nicht neu erfunden), und die Zeilendarstellung ist entschieden ([ADR-0013](../../adr/0013-backend-grenzen.md): Klassen je Spaltenart; `Accepted`, erfüllt), und ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
