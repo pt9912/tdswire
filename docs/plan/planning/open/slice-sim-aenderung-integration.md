@@ -88,7 +88,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [ADR-0012](../../adr/0012-simulations-backend-beschreibung-und-formen.md) steht auf `Accepted`, [slice-sim-erkennung](../in-progress/slice-sim-erkennung.md) (der Leser vom Baum zur Beschreibung) und [slice-sim-auswahl-streaming](slice-sim-auswahl-streaming.md), [slice-qa-dotnet-referenztest-geruest](../done/slice-qa-dotnet-referenztest-geruest.md), [slice-bootstrap-konfiguration](../done/slice-bootstrap-konfiguration.md) und [slice-sql-batch-dispatch](../done/slice-sql-batch-dispatch.md) liegen in `done/` (der Serverprozess startet und beantwortet SQL_BATCH), und ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): [ADR-0012](../../adr/0012-simulations-backend-beschreibung-und-formen.md) steht auf `Accepted`, [slice-sim-erkennung](../in-progress/slice-sim-erkennung.md) (der Leser vom Baum zur Beschreibung) und [slice-sim-auswahl-streaming](slice-sim-auswahl-streaming.md), [slice-qa-dotnet-referenztest-geruest](../done/slice-qa-dotnet-referenztest-geruest.md), [slice-bootstrap-konfiguration](../done/welle-handshake-login/slice-bootstrap-konfiguration.md) und [slice-sql-batch-dispatch](../done/slice-sql-batch-dispatch.md) liegen in `done/` (der Serverprozess startet und beantwortet SQL_BATCH), und ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
