@@ -81,14 +81,24 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `src/main/kotlin/io/github/pt9912/tdswire/runtime/` | update | öffentlicher Einstieg und Konfigurationstyp über `Bootstrap` (ARC-008); `internal` bleibt, was nicht Teil der Zusage ist |
-| `src/main/kotlin/io/github/pt9912/tdswire/runtime/Main.kt` | update | Verhältnis zum Einstieg laut ADR; Umgebungsvariablen bleiben der Weg des Prozesses |
-| `src/test/` (Ort laut ADR) | neu | Einbettungstest nur über die öffentliche API mit In-Memory-Backend und eigener Zeilenquelle, nach [TDS-RB-04](../../../../spec/lastenheft.md#tds-rb-04--externes-backend); `@spec`-Tag je Test |
-| `spec/spezifikation.md` | update | Festlegung zum Einstieg im Abschnitt Backend-Vertrag |
+| `config/ConfigValidation.kt` | neu | `ConfigValidation.check(ServerConfig)`: Wertebereiche, Paarung Verschlüsselung und Schlüsselmaterial, 1-MiB-Grenze von `simulationFile` ([SPEC-035](../../../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends)); dieselben Teilprüfungen ruft der Lader je Schlüssel, damit mehrere Fehler zusammen gemeldet bleiben |
+| `config/ServerConfig.kt` | update | Defaults an den Typen, Kommentar zur Entstehung korrigiert |
+| `config/ConfigLoader.kt`, `config/ConfigFiles.kt` und ihre Tests | Verschieben, dann update | reiner Move-Commit nach `runtime` (`AGENTS.md` §3.3), danach Paket und `internal`; Bereichstests werden Tests der Prüfung in `config` |
+| `runtime/Bootstrap.kt` | update | `start` (Flag, Lader, Abbruch-Log) und `launch` (Prüfung, Simulation, TLS, Binden) |
+| `runtime/Server.kt` nach `runtime/TdsServer.kt` | Verschieben, dann update | öffentlich: `TdsServer` (`port`, `stop`), `BackendSource`, `StartOutcome`, `TdsServer.start` |
+| `runtime/Main.kt` | update | `main()` startet über `TdsServer.start` mit `BackendSource.None` |
+| `build.gradle.kts`, `Dockerfile`, `tools/mk/build.mk` | update | Source-Set `integrator` (nicht assoziiert) und Task `integratorTest`; Stages `test`, `spec-abdeckung` und `detekt`; `DEPS_TASKS`; Lock |
+| `src/integrator/kotlin/` | neu | Einbettungstest nur über die öffentliche API (In-Memory-Backend, `Simulation` mit Zeilenquelle, Abbruch bei ungültiger Konfiguration, doppeltes `stop`); `@spec`-Tag je Test |
+| `spec/spezifikation.md`, `spec/architecture.md` | update | `SPEC-059` (Einstieg), `SPEC-035` und `ARC-008` nennen ihn |
 
-Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
+Setzungen (Voreinstellung, nicht gemessen), die [ADR-0021](../../adr/0021-oeffentlicher-integrations-einstieg.md) der Umsetzung überlässt:
 
-- Reihenfolge: Konfigurationstyp und Einstieg, dann Lebenszyklus, dann der Test von außen; die Mutation (Einstieg `internal`) vor der Closure.
+- **Form der Prüfung:** (a), `ConfigValidation.check(ServerConfig): List<ConfigIssue>`; `TdsServer.start` ruft sie, der Lader ruft dieselben Teilprüfungen.
+- **`StartOutcome.Aborted`** trägt `reason` (Text ohne Werte, derselbe, den der Prozess ins Log schreibt) und `issues` (Liste der `ConfigIssue`, leer, wenn der Abbruch nicht aus der Konfiguration kam).
+- **Log des Einstiegs:** `TdsServer.start` schreibt kein Log (Voreinstellung `ServerLog.NONE`); der Grund steht in `Aborted`.
+- **`explicitApi`:** ausgegliedert (§1).
+
+Reihenfolge: (a) Prüfung und Defaults nach `config`, (b) reiner Move von Lader und Dateileser mit Tests nach `runtime`, danach Inhalt, (c) `Bootstrap` teilen und Einstieg, dann Source-Set und Nachweis; die Mutation (Einstieg `internal`) vor der Closure.
 
 ## 4. Trigger
 
