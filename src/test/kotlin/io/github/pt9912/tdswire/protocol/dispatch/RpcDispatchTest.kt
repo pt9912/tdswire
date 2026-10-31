@@ -194,6 +194,27 @@ class RpcDispatchTest {
         }
     }
 
+    /**
+     * Ein gültig kodierter PLP-Typ (`nvarchar(max)`) ist nicht unterstützt, aber kein Strukturfehler:
+     * ERROR `TDS_UNSUPPORTED_RPC` (50002, Class 16) und DONE mit Fehlerstatus, das Backend wird nicht
+     * gerufen, die Verbindung bleibt offen und die Folgenachricht wird beantwortet (Nutzerentscheidung vom
+     * 2026-10-31, nicht gemessen).
+     *
+     * @spec SPEC-013
+     */
+    @Test
+    fun `Ein PLP-Typ wird offen abgelehnt und die Verbindung bleibt offen`() = blocking {
+        val backend = ScriptedBackend.ofList(*oneRow.toTypedArray())
+        val plp = "E7 FF FF ${RpcVectors.COLLATION} 00 00"
+        val session = Session.login(rpc(executeSql("s", "d", param("@a", plp))), rpc(goodRpc), Inbound.EndOfStream)
+        session.serve(backend)
+        assertEquals(unsupportedRpc, session.tokens(0).errorMessage())
+        assertEquals(DoneStatus.ERROR, session.tokens(0).lastDone().status)
+        assertEquals(2, session.replies.size)
+        assertEquals(oneRowReply, session.hex(1))
+        assertEquals(1, backend.requests.size)
+    }
+
     /** @spec SPEC-011 */
     @Test
     fun `Eine unbekannte Typkennung schliesst mit dem Fehler des Parsers`() = blocking {

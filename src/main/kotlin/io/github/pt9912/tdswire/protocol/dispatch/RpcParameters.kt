@@ -10,12 +10,12 @@ import io.github.pt9912.tdswire.protocol.rpc.RpcValue
 import java.util.Locale
 
 /**
- * Warum der Dispatch einen RPC ablehnt, bevor das Backend gerufen wird. Bei [ENCODING] sieht der Client
- * `TDS_PROTOCOL_ERROR` und die Verbindung schließt; bei jedem anderen Grund `TDS_UNSUPPORTED_RPC` bei
+ * Warum der Dispatch einen RPC ablehnt, bevor das Backend gerufen wird. Bei [ENCODING] sieht der Client den
+ * Fehler des Parsers und die Verbindung schließt; bei jedem anderen Grund `TDS_UNSUPPORTED_RPC` bei
  * offener Verbindung. Der Name des Grundes steht im Log (nie ein Wert).
  */
 internal enum class RpcRejection {
-    /** Der Parser weist die Nachricht ab (Format, Länge, TYPE_INFO, PLP, ALL_HEADERS). */
+    /** Struktur- oder Kodierfehler des Parsers (Format, Länge, unbekannte Typkennung, TYPE_INFO, ALL_HEADERS). */
     ENCODING,
 
     /** ProcID außerhalb des Katalogs, oder ein Name, den der Katalog führt (`sp_prepare`, `sp_cursor*`, ...). */
@@ -33,7 +33,7 @@ internal enum class RpcRejection {
     /** Statusbyte mit einem anderen Bit als OUTPUT (Bit 0). */
     STATUS,
 
-    /** Typ ohne Entsprechung in `SqlType`. */
+    /** Typ ohne Entsprechung in `SqlType`, auch ein gültig kodierter PLP-Typ (`nvarchar(max)`). */
     TYPE,
 
     /** Wert außerhalb des Bereichs seines Typs. */
@@ -63,9 +63,10 @@ internal class RpcRejected(val reason: RpcRejection) : RuntimeException(reason.n
  *
  * Namen (Festlegung): `@` und 1 bis [MAX_NAME_CHARS] − 1 Zeichen aus Buchstaben, Ziffern, `_`, `@`, `#`
  * und `$`, ohne Beachtung der Schreibweise eindeutig; der Name bleibt wie gesendet, mit `@`. Die Obergrenze
- * zählt das `@` mit. Ein zweites `@` an zweiter Stelle (`@@x`) ist abgelehnt: im Aufruftext stünde der Name
- * auch rechts von `=`, wo `@@x` eine globale Funktion des Ziels bezeichnen kann statt des gesendeten Wertes
- * (Festlegung). Ein Parameter ohne Namen ist [RpcRejection.PARAMETER_NAME].
+ * zählt das `@` mit. Ein zweites `@` an zweiter Stelle (`@@x`) ist beim RPC per Prozedurname abgelehnt, wo
+ * der Name im Aufruftext auch rechts von `=` steht und `@@x` eine globale Funktion des Ziels bezeichnen kann
+ * statt des gesendeten Wertes; bei `sp_executesql` steht der Name nicht im Text und `@@x` ist nicht
+ * abgelehnt (Festlegung ohne Messung, Nutzerentscheidung vom 2026-10-31). Ein Parameter ohne Namen ist [RpcRejection.PARAMETER_NAME].
  */
 internal object RpcParameters {
     const val MAX_NAME_CHARS = 128
@@ -73,11 +74,14 @@ internal object RpcParameters {
     private const val INT32_BYTES = 4
     private const val INT64_BYTES = 8
 
-    /** Die Parameter in der Reihenfolge der Nachricht. */
-    fun map(parameters: List<RpcParameter>): List<QueryParameter> {
+    /**
+     * Die Parameter in der Reihenfolge der Nachricht. [nameInText] ist wahr, wenn die Namen im Aufruftext
+     * stehen (RPC per Prozedurname); nur dann ist `@@x` abgelehnt.
+     */
+    fun map(parameters: List<RpcParameter>, nameInText: Boolean): List<QueryParameter> {
         val seen = mutableSetOf<String>()
         return parameters.map { parameter ->
-            checkName(parameter.name)
+            checkName(parameter.name, nameInText)
             if (!seen.add(parameter.name.lowercase(Locale.ROOT))) {
                 throw RpcRejected(RpcRejection.PARAMETER_NAME)
             }
@@ -98,8 +102,9 @@ internal object RpcParameters {
         else -> ParameterDirection.INPUT_OUTPUT
     }
 
-    private fun checkName(name: String) {
-        val valid = name.length in 2..MAX_NAME_CHARS && name[0] == NAME_PREFIX && name[1] != NAME_PREFIX &&
+    private fun checkName(name: String, nameInText: Boolean) {
+        val valid = name.length in 2..MAX_NAME_CHARS && name[0] == NAME_PREFIX &&
+            !(nameInText && name[1] == NAME_PREFIX) &&
             name.drop(1).all { it.isLetterOrDigit() || it in "_@#$" }
         if (!valid) throw RpcRejected(RpcRejection.PARAMETER_NAME)
     }

@@ -25,6 +25,9 @@ enum class ProtocolFailure(val category: ProtocolErrorCategory) {
     VALUE_OUT_OF_RANGE(ProtocolErrorCategory.TDS_UNSUPPORTED_TYPE),
     TYPE_MISMATCH(ProtocolErrorCategory.TDS_UNSUPPORTED_TYPE),
     INVALID_TYPE(ProtocolErrorCategory.TDS_UNSUPPORTED_TYPE),
+
+    /** Gültig kodierte PLP-Typangabe (MAX) eines RPC-Parameters, die kein Katalogtyp ist; kein Strukturfehler. */
+    UNSUPPORTED_PLP(ProtocolErrorCategory.TDS_UNSUPPORTED_TYPE),
     NO_COLUMN_METADATA(ProtocolErrorCategory.TDS_UNSUPPORTED_TYPE),
 }
 

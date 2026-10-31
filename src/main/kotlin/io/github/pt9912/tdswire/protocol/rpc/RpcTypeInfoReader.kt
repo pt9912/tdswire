@@ -11,14 +11,16 @@ import io.github.pt9912.tdswire.protocol.wire.violation
  * Festlegungen (ohne Orakel): Die Größe der Typen mit Größenbyte (`INTN` 1/2/4/8, `BITN` 1,
  * `FLTN`/`MONEYN`/`DATETIMN` 4/8, `GUID` 16, Dezimal 5/9/13/17), Precision 1 bis 38, Scale bis
  * Precision (Dezimal) bzw. bis 7 (Zeittypen) sind Grenzen dieses Parsers; die Kombination von
- * Precision und Größe bei `DECIMALN`/`NUMERICN` wird nicht geprüft. Typen mit PLP (höchste Länge
- * `0xFFFF`) und Typkennungen außerhalb von [RpcTypeKind] sind `INVALID_TYPE`.
+ * Precision und Größe bei `DECIMALN`/`NUMERICN` wird nicht geprüft. Eine Typkennung außerhalb von
+ * [RpcTypeKind] macht die Länge des Wertes unbestimmt und ist `INVALID_TYPE` (Strukturfehler). Ein Typ mit
+ * PLP (höchste Länge `0xFFFF`) ist gültig kodiert, aber kein Katalogtyp und ist `UNSUPPORTED_PLP`; der Rest
+ * der Nachricht ist dann nicht gelesen (Festlegung ohne Messung, Nutzerentscheidung vom 2026-10-31).
  *
  * Abweichung von ADR-0005 und SPEC-003: ADR-0005 (Folgen) verlangt vom RPC-Parser, PLP (MAX-Typen)
  * zu dekodieren, und die Messmatrix führt MAX in `sp_executesql`-Parametern; dieser Parser liefert
  * es nicht. Der Träger der Lücke ist `slice-codec-datentypen-erweiterung`. Verhalten: Ein
- * Parameter mit PLP lehnt die ganze Nachricht ab (`ProtocolResult.Failed`, kein Teilergebnis, der
- * Parameter wird nicht übersprungen). Das gilt für jeden Parameter, auch für SQL-Text und
+ * Parameter mit PLP lehnt die ganze Nachricht ab (`ProtocolResult.Failed` mit `UNSUPPORTED_PLP`, kein
+ * Teilergebnis, der Parameter wird nicht übersprungen). Das gilt für jeden Parameter, auch für SQL-Text und
  * Deklarationsliste von `sp_executesql` und `sp_prepexec`: sie laufen durch dieselbe Lesung.
  */
 internal object RpcTypeInfoReader {
@@ -86,7 +88,7 @@ internal object RpcTypeInfoReader {
     private fun maxLength(reader: ByteReader, kind: RpcTypeKind): Int {
         val length = reader.u16Le()
         if (length == PLP_MARKER) {
-            violation(ProtocolFailure.INVALID_TYPE, "${kind.name} mit PLP (MAX) nicht im Katalog dieses Parsers")
+            violation(ProtocolFailure.UNSUPPORTED_PLP, "${kind.name} mit PLP (MAX) nicht im Katalog dieses Parsers")
         }
         return length
     }

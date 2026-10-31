@@ -68,19 +68,24 @@ class RpcFailureTest {
     }
 
     /**
-     * Festlegung: PLP (MAX, höchste Länge `FF FF`), `XML` (`F1`) und Typkennungen außerhalb des
-     * Katalogs (`62`, `E5`, `00`) sind `INVALID_TYPE` mit Kategorie `TDS_UNSUPPORTED_TYPE`.
+     * Festlegung: `XML` (`F1`) und Typkennungen außerhalb des Katalogs (`62`, `E5`, `00`) sind
+     * `INVALID_TYPE` mit Kategorie `TDS_UNSUPPORTED_TYPE`; ihre Länge ist unbestimmt (Strukturfehler).
+     * PLP (MAX, höchste Länge `FF FF`) ist gültig kodiert und `UNSUPPORTED_PLP` mit derselben Kategorie.
      *
      * @spec SPEC-003
      */
     @Test
     fun `PLP, XML und unbekannte Typen sind ein Ergebnisfehler der Kategorie unsupported`() {
-        listOf("E7 FF FF $coll", "A7 FF FF $coll", "A5 FF FF", "AD FF FF", "EF FF FF $coll", "F1 00", "62", "E5", "00")
-            .forEach {
-                val failure = byName(it)
-                assertEquals(ProtocolFailure.INVALID_TYPE, failure, it)
-                assertEquals(ProtocolErrorCategory.TDS_UNSUPPORTED_TYPE, failure.category)
-            }
+        listOf("E7 FF FF $coll", "A7 FF FF $coll", "A5 FF FF", "AD FF FF", "EF FF FF $coll").forEach {
+            val failure = byName(it)
+            assertEquals(ProtocolFailure.UNSUPPORTED_PLP, failure, it)
+            assertEquals(ProtocolErrorCategory.TDS_UNSUPPORTED_TYPE, failure.category)
+        }
+        listOf("F1 00", "62", "E5", "00").forEach {
+            val failure = byName(it)
+            assertEquals(ProtocolFailure.INVALID_TYPE, failure, it)
+            assertEquals(ProtocolErrorCategory.TDS_UNSUPPORTED_TYPE, failure.category)
+        }
     }
 
     /**
@@ -96,7 +101,7 @@ class RpcFailureTest {
         val execSql = "$head FF FF 0A 00 00 00"
         val intParam = "00 00 26 04 04 01 00 00 00"
         assertAll(
-            ProtocolFailure.INVALID_TYPE,
+            ProtocolFailure.UNSUPPORTED_PLP,
             "${RpcVectors.NAME_HEAD} ${RpcVectors.PARAM_A_42} $plp",
             "${RpcVectors.NAME_HEAD} $plp ${RpcVectors.PARAM_A_42}",
             "$execSql 00 00 E7 FF FF $coll  $intParam",
