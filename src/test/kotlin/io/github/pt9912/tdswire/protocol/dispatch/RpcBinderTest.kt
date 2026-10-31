@@ -350,6 +350,21 @@ class RpcBinderTest {
     }
 
     /**
+     * Geprüft wird der Anfang des Namens, nicht jede Stelle: `@@` in der Mitte (`@a@@b`) ist bei beiden
+     * Formen zulässig, und `@@x` als OUTPUT-Parameter beim RPC per Name ist wie als INPUT abgelehnt.
+     * Wächter: `name.contains("@@")` statt `name[1]`, oder eine Prüfung, die das Statusbyte ausnimmt.
+     *
+     * @spec SPEC-030
+     */
+    @Test
+    fun `Doppeltes At-Zeichen in der Mitte ist zulaessig und bei OUTPUT am Anfang abgelehnt`() {
+        assertEquals(RpcRejection.PARAMETER_NAME, rejection(byName("p", param("@@x", int4(1), status = 1))))
+        assertEquals(RpcRejection.PARAMETER_NAME, rejection(byName("p", param("@@x", "26 04 00", status = 1))))
+        assertEquals("@a@@b", query(byName("p", param("@a@@b", int4(1)))).parameters.single().name)
+        assertEquals("@a@@b", query(executeSql("select 1", "d", param("@a@@b", int4(1)))).parameters.single().name)
+    }
+
+    /**
      * Prozedurnamen: gültig sind reguläre Bezeichner und Teile in Klammern mit `]]` als Escape, ein bis
      * vier Teile, höchstens 128 Zeichen je Teil; der Text enthält den Namen unverändert. Abgelehnt sind
      * Anweisungstrenner, Kommentar, Leerzeichen außerhalb von Klammern, leere Teile, fünf Teile, 129

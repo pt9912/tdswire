@@ -21,10 +21,16 @@ import io.github.pt9912.tdswire.protocol.token.ServerMessage
 import io.github.pt9912.tdswire.testsupport.RpcVectors
 import io.github.pt9912.tdswire.testsupport.blocking
 import io.github.pt9912.tdswire.testsupport.hex
+import io.github.pt9912.tdswire.transport.framing.FramingResult
+import io.github.pt9912.tdswire.transport.framing.MessageAssembler
+import io.github.pt9912.tdswire.transport.framing.PacketHeader
 import io.github.pt9912.tdswire.transport.framing.PacketType
+import io.github.pt9912.tdswire.transport.framing.PacketWriter
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -213,6 +219,61 @@ class RpcDispatchTest {
         assertEquals(2, session.replies.size)
         assertEquals(oneRowReply, session.hex(1))
         assertEquals(1, backend.requests.size)
+    }
+
+    /**
+     * Ein PLP-Typ in der Mitte der Parameterliste (vor ihm ein gültiger, hinter ihm ein weiterer Parameter)
+     * ist dieselbe offene Ablehnung: ERROR 50002, kein Backend-Aufruf, die Verbindung bleibt offen, der
+     * Folge-RPC wird beantwortet. Die Bytes hinter dem PLP-Typ werden nicht gelesen. Wächter: Ablehnung erst
+     * nach der ganzen Liste oder Schließen bei einem Parameter hinter dem PLP-Typ.
+     *
+     * @spec SPEC-013
+     */
+    @Test
+    fun `Ein PLP-Typ in der Mitte der Parameterliste wird offen abgelehnt`() = blocking {
+        val backend = ScriptedBackend.ofList(*oneRow.toTypedArray())
+        val plp = "E7 FF FF ${RpcVectors.COLLATION} 00 00"
+        val middle = executeSql("s", "d", param("@a", int4(1)), param("@b", plp), param("@c", int4(3)))
+        val session = Session.login(rpc(middle), rpc(goodRpc), Inbound.EndOfStream)
+        session.serve(backend)
+        assertEquals(unsupportedRpc, session.tokens(0).errorMessage())
+        assertEquals(DoneStatus.ERROR, session.tokens(0).lastDone().status)
+        assertEquals(2, session.replies.size)
+        assertEquals(oneRowReply, session.hex(1))
+        assertEquals(1, backend.requests.size)
+        assertTrue(session.channel.exhausted)
+    }
+
+    /**
+     * Zwei RPC, jeder über mehrere TDS-Pakete bis EOM (3 Nutzdatenbytes je Paket), der erste mit PLP-Typ,
+     * durch den [MessageAssembler] und die Schleife: der Assembler liefert genau zwei Nachrichten ohne
+     * Fehler, beide werden beantwortet (erst 50002, dann das Ergebnis des Backends), das Backend sieht einen
+     * Aufruf, und die Sitzung ist nicht geschlossen. Wächter: ein Assembler, der nur das erste Paket liefert.
+     *
+     * @spec SPEC-013
+     */
+    @Test
+    fun `Ein mehrpaketiger RPC mit PLP-Typ und ein zweiter RPC werden beide beantwortet`() = blocking {
+        val plp = "E7 FF FF ${RpcVectors.COLLATION} 00 00"
+        val wire = listOf(executeSql("s", "d", param("@a", int4(1)), param("@b", plp)), goodRpc).map { payload ->
+            val packets = assertIs<FramingResult.Ok<List<ByteArray>>>(
+                PacketWriter.split(PacketType.RPC, payload, PacketHeader.SIZE + 3),
+            ).value
+            assertTrue(packets.size > 2)
+            packets.fold(ByteArray(0)) { all, packet -> all + packet }
+        }.reduce { all, next -> all + next }
+        val assembler = MessageAssembler()
+        val step = assembler.feed(wire)
+        assertNull(step.error)
+        assertEquals(2, step.messages.size)
+        val backend = ScriptedBackend.ofList(*oneRow.toTypedArray())
+        val session = Session.login(*step.messages.map { Inbound.Message(it) }.toTypedArray(), Inbound.EndOfStream)
+        session.serve(backend)
+        assertEquals(unsupportedRpc, session.tokens(0).errorMessage())
+        assertEquals(2, session.replies.size)
+        assertEquals(oneRowReply, session.hex(1))
+        assertEquals(1, backend.requests.size)
+        assertTrue(session.channel.exhausted)
     }
 
     /** @spec SPEC-011 */
