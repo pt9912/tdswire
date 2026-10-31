@@ -44,9 +44,9 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] Entscheidung über die Drosselung (Art, Schlüssel, Grenzwerte, oder Verzicht) als ADR `Accepted`: [ADR-0016](../../adr/0016-anmeldedrosselung.md) liegt als `Proposed` vor (Optionen A bis E, Empfehlung B, Grenzwerte als Setzung); die Wahl bestätigt der Nutzer, nicht der Implementer.
-- [ ] Bei einer Drosselung: Umsetzung im Anmeldepfad mit Tests, die zeigen, dass wiederholte Versuche gebremst werden und reguläre Anmeldungen nicht dauerhaft blockiert sind (Messung der Wirkung auf die Wartezeit, wie `AuthPoolOccupationTest` sie für die Plätze misst).
-- [ ] `make gates` grün.
+- [x] Entscheidung über die Drosselung (Art, Schlüssel, Grenzwerte, oder Verzicht) als ADR `Accepted`: [ADR-0016](../../adr/0016-anmeldedrosselung.md) liegt als `Proposed` vor (Optionen A bis E, Empfehlung B, Grenzwerte als Setzung); die Wahl bestätigt der Nutzer, nicht der Implementer.
+- [x] Bei einer Drosselung: Umsetzung im Anmeldepfad mit Tests, die zeigen, dass wiederholte Versuche gebremst werden und reguläre Anmeldungen nicht dauerhaft blockiert sind (Messung der Wirkung auf die Wartezeit, wie `AuthPoolOccupationTest` sie für die Plätze misst).
+- [x] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
@@ -65,10 +65,17 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| ADR zur Drosselung | vorhanden | [ADR-0016](../../adr/0016-anmeldedrosselung.md) (`Proposed`); Annahme durch den Nutzer steht aus |
-| Anmeldepfad (`protocol.session`) | update | nur bei einer Drosselung |
+| ADR zur Drosselung | vorhanden | [ADR-0016](../../adr/0016-anmeldedrosselung.md) (`Accepted`, 2026-10-31: Option B, Verzögerung ohne Sperre je Quelladresse) |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/session/LoginThrottle.kt` | neu | Zähler je Adresse (Fehlversuche, laufende Versuche), Staffel, Fenster, begrenzte Tabelle; Uhr und Warten austauschbar |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/session/HandshakeDriver.kt` | update | Wartezeit vor dem Adapteraufruf, Fehlversuch zählt nur bei Ablehnung des Adapters; Passwort bei abgebrochenem Warten überschrieben |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/session/AuthExecutor.kt` | update | `AuthPool` trägt die Drosselung (ein Objekt je Prozess); KDoc nennt `CO-003` nicht mehr |
+| `src/main/kotlin/io/github/pt9912/tdswire/transport/channel/` | update | `SuspendingChannel.remoteAddress` (Voreinstellung `null`), `SocketChannelAdapter` liest sie, `PeekedChannel`, `SwitchableChannel` und `TlsChannel` geben sie weiter |
+| `src/main/kotlin/io/github/pt9912/tdswire/transport/listener/` | update | `Connection.remoteAddress`, `ManagedConnection` gibt die des Kanals weiter |
+| `src/main/kotlin/io/github/pt9912/tdswire/runtime/ConnectionWiring.kt` | update | der Handler übergibt `connection.remoteAddress` an den Treiber |
+| `spec/spezifikation.md` | update | `SPEC-053` (Konstanten und Verhalten, Setzung), Verweise in `SPEC-008` und `SPEC-012`, Historie; eigener Commit (Folgepflicht der ADR) |
+| `src/test/kotlin/` (`LoginThrottleTest`, `LoginThrottleDriverTest`, `LoginThrottleWiringTest`, `LoginThrottleTimingTest`, `RemoteAddressTest`, `TlsRemoteAddressTest`, `ListenerRemoteAddressTest`) | neu | Staffel, Fenster, Erfolg, laufende Versuche, Tabellengrenze, Reihenfolge Warten vor Adapter, Gleichheit für bekannte und unbekannte Kennung, Echtzeit-Wartezeit, Adresse am echten Socket |
 
-Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
+Die Liste ist im ersten Lauf des Implementers erweitert.
 
 ## 4. Trigger
 
