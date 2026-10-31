@@ -64,8 +64,13 @@ internal class UserEntry(val name: String, val secret: StoredSecret) {
  * Iterationszahl (bei Gleichstand der erste in Dateireihenfolge), mit Salz- und Hashlänge dieses Eintrags;
  * gibt es nur `plain`-Einträge, ist es der erste Eintrag (keine Ableitung). Verbleibende Grenze bei gemischten
  * Listen: Ein bekannter Benutzer mit niedrigerer Iterationszahl oder mit `plain`-Prüfwert durchläuft einen
- * anderen Rechenschritt als die Attrappe; die Struktur ist dort nicht gleich. Gemessen ist nichts; über Zeit
- * sagt diese Bauart nichts.
+ * anderen Rechenschritt als die Attrappe; die Struktur ist dort nicht gleich.
+ *
+ * Zeit (gemessen von `AuthTimingTest`: 210000 Iterationen, Median von 15 Aufrufen, im Docker-Image des Laufs auf
+ * dem Host des Laufs, kein Wert für andere Hardware): Bei Einträgen gleicher Iterationszahl brauchen bekannt mit
+ * falschem Passwort, unbekannt und bekannt mit richtigem Passwort je rund 57 ms. In der gemischten Liste braucht die
+ * Attrappe (420000 Iterationen) rund 102 ms, ein bekannter Benutzername mit 210000 Iterationen rund 48 ms und ein
+ * `plain`-Eintrag rund 0,05 ms: Dort trennt die Zeit bekannte von unbekannten Benutzernamen (Grenze, nicht Zusage).
  */
 class UserList private constructor(private val byName: Map<String, UserEntry>, private val decoyEntry: UserEntry) {
     internal fun find(name: String): UserEntry? = byName[name]

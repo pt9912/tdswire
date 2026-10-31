@@ -980,7 +980,7 @@ Festlegungen dieses Profils, nicht am Referenzclient gemessen (die Tests laufen 
 - Im TDS-7.4-Pfad verlangt der Server für Handshake-Bytes den Pakettyp `0x12`; ein anderer Typ, ein Header außerhalb des Katalogs oder eine Länge unter dem Header beendet den Handshake.
 - Endet der Strom nach dem Handshake ohne `close_notify`, ist das ein Fehler, kein sauberes Ende.
 - Fehlertexte der Schleife nennen den Ausnahmetyp oder eine feste Beschreibung, nie Zertifikats- oder Schlüsselinhalt.
-- Ein KeyUpdate der Gegenstelle in TLS 1.3 beantwortet die Schleife (mit einer JDK-Gegenstelle getestet: der Server schreibt einen kurzen Record, ohne selbst Nutzdaten zu schreiben, und die Nachrichten laufen weiter; der Inhalt der Antwort ist nicht beobachtet); Neuverhandlung in TLS 1.2 ist nicht Gegenstand und nicht getestet.
+- Ein KeyUpdate der Gegenstelle in TLS 1.3 beantwortet die Schleife (mit einer JDK-Gegenstelle getestet: der Server schreibt einen kurzen Record, ohne selbst Nutzdaten zu schreiben, und die Nachrichten laufen weiter; der Inhalt der Antwort ist nicht beobachtet); Eine Neuverhandlung in TLS 1.2 durch die Gegenstelle beantwortet die Schleife (JDK-Voreinstellung; mit einer JDK-Gegenstelle dreimal hintereinander getestet: Nutzdaten laufen danach in beide Richtungen unversehrt, nie im Klartext); eine Begrenzung der Neuverhandlungen gibt es nicht, die Rechenlast vieler Neuverhandlungen ist nicht gemessen.
 
 #### Schlüsselmaterial des Servers
 

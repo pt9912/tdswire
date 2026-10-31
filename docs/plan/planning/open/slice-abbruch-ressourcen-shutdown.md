@@ -39,7 +39,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Fuzz-Gate (defekte Paketlängen, Offsets und Typwerte, Zerstückelung) — `slice-qa-stabilitaet` (geschlossen, Anmeldepfad); hier ein Lecktest mit mehreren Verbindungen, kein Gate. Die Durchsetzung von `MAX_CONNECTIONS` und der Test bis zur Grenze gehören dagegen **hierher** (DoD-Punkt 1): `slice-qa-stabilitaet` hat die Grenze nicht gebaut und schiebt sie auf diesen Slice zurück.
 - Observability von Verbindungsende und Shutdown (`SPEC-017`) — Träger: Welle [welle-betrieb-diagnose](../welle-betrieb-diagnose.md); nur der minimale Log-Anschluss.
 - Garantierte Unterbrechbarkeit externer Backendoperationen — Out-of-Scope von [TDS-FA-07](../../../../spec/lastenheft.md#tds-fa-07--abbruch-und-ressourcenfreigabe).
-- Zeitgleichheit, Drosselung und Anmeldepfad-Sicherheit — `slice-qa-sicherheit`.
+- Zeitgleichheit und Anmeldepfad-Sicherheit — `slice-qa-sicherheit`; Drosselung — `slice-qa-anmeldedrosselung`.
 
 ## 2. Definition of Done
 

@@ -34,10 +34,16 @@ internal sealed interface AuthOutcome {
  * Je [AuthPool] laufen nie mehr als [AuthPool.parallelism] Adapteraufrufe zugleich, auch über mehrere
  * Executor und Treiber hinweg (Obergrenze der verwaisten Aufrufe). Die
  * Wartenden reihen sich dahinter ein, ihre Zahl begrenzt nur die Zahl der Verbindungen; eine
- * Drosselung wiederholter Anmeldeversuche ist das nicht (`slice-qa-sicherheit`). Das Passwort ist
+ * Drosselung wiederholter Anmeldeversuche ist das nicht (`CO-003`). Gemessen (`AuthPoolOccupationTest`, Test-Adapter
+ * mit 300 ms Haltezeit, [AuthPool.DEFAULT_PARALLELISM] Plätze): Belegen weniger Aufrufe als Plätze den Pool, wartet ein
+ * weiterer 300 ms (nur die eigene Haltezeit); belegen so viele wie Plätze ihn, wartet er rund 550 ms, bei doppelt so
+ * vielen rund 850 ms. Die Wartezeit eines regulären Aufrufs wächst also in Stufen der Haltezeit mit den Aufrufen, die
+ * ein Client offen hält. Das Passwort ist
  * überschrieben, bevor der Job des Aufrufs als abgeschlossen gilt (`join()` und `await()` kehren erst
  * danach zurück), auch bei einer Ausnahme und auch wenn der Adapter nie gerufen wurde; bei einem
- * wartenden, abgebrochenen Aufruf ist das erst, wenn die Warteschlange ihn erreicht.
+ * wartenden, abgebrochenen Aufruf ist das erst, wenn die Warteschlange ihn erreicht (`AuthPoolOccupationTest`: das
+ * Passwort bleibt bis dahin lesbar, das Fenster reicht bis zum Ende der vorausgehenden Aufrufe; eine eigene
+ * Grenze für das Fenster gibt es im Code nicht).
  *
  * Eine `CancellationException` des Adapters gilt als Abbruch nur, wenn der Aufruf selbst abgebrochen ist
  * (Zustand des eigenen Jobs); sie wird dann weitergeworfen. Jede andere ist ein Adapterfehler und ergibt

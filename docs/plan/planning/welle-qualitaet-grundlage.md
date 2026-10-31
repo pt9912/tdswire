@@ -56,6 +56,7 @@ Lifecycle-Verzeichnis und wird hier **nicht** gespiegelt.
 | slice-qa-kompatibilitaet | Kompatibilität: Ende-zu-Ende-Szenarien mit echtem .NET-Client | [TDS-QA-01](../../../spec/lastenheft.md#tds-qa-01--kompatibilität) |
 | slice-qa-stabilitaet | Stabilität: ungültige und getrennte Verbindungen | [TDS-QA-02](../../../spec/lastenheft.md#tds-qa-02--stabilität) |
 | slice-qa-sicherheit | Sicherheit: Zugangsdaten im Log und TLS-Modus | [TDS-QA-03](../../../spec/lastenheft.md#tds-qa-03--sicherheit) |
+| slice-qa-anmeldedrosselung | Drosselung wiederholter Anmeldeversuche entscheiden (Folge-Slice von [CO-003](../carveouts/CO-003-anmeldedrosselung-fehlt.md)) | [TDS-QA-03](../../../spec/lastenheft.md#tds-qa-03--sicherheit) |
 | slice-qa-performance | Performance: Referenz-Workload und Messung | [TDS-QA-04](../../../spec/lastenheft.md#tds-qa-04--performance) |
 | slice-qa-wartbarkeit | Wartbarkeit: Modulgrenzen und Kompatibilitätsmatrix | [TDS-QA-05](../../../spec/lastenheft.md#tds-qa-05--wartbarkeit) |
 | slice-qa-reproduzierbarkeit | Reproduzierbarkeit: Clean-Build und Tests in CI | [TDS-QA-06](../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |

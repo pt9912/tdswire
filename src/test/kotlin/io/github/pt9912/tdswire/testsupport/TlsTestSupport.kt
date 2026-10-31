@@ -300,7 +300,25 @@ class JdkTlsPeer(
         return count
     }
 
+    /**
+     * Führt einen Handshake-Schritt, den die Engine nach dem Handshake verlangt (Neuverhandlung in TLS 1.2): Aufgaben
+     * ausführen oder die nächste Folge roh schreiben. `true`, wenn ein Schritt lief und die Engine neu zu befragen ist.
+     */
+    private suspend fun driveRenegotiation(): Boolean = when (engine.handshakeStatus) {
+        SSLEngineResult.HandshakeStatus.NEED_TASK -> runTasks().let { true }
+
+        SSLEngineResult.HandshakeStatus.NEED_WRAP -> {
+            val flight = ByteArrayOutputStream()
+            wrapInto(flight)
+            send(flight.toByteArray())
+            true
+        }
+
+        else -> false
+    }
+
     private suspend fun decryptMore(): ChannelError? = try {
+        if (driveRenegotiation()) return null
         val scratch = ByteBuffer.allocate(engine.session.applicationBufferSize)
         val source = ByteBuffer.wrap(tls)
         val result = engine.unwrap(source, scratch)
