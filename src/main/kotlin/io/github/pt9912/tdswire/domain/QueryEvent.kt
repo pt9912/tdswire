@@ -16,8 +16,8 @@ sealed interface QueryEvent {
     data class ResultStart(val columns: List<ResultColumn>) : QueryEvent
 
     /**
-     * Eine Zeile. Die Darstellung als `List<Any?>` ist eine Festlegung ohne Messung und offen
-     * (ADR-0006, Zeilendarstellung).
+     * Eine Zeile. Die Darstellung ist `List<Any?>` mit festen JVM-Klassen je Spaltenart
+     * (ADR-0013, Zeilendarstellung; die Klassen nennt `ValueMapping`).
      */
     data class Row(val values: List<Any?>) : QueryEvent
 

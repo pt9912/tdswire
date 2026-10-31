@@ -21,8 +21,8 @@ data class QueryRequest(
 }
 
 /**
- * Ein typisierter Parameter. [value] ist `null` für NULL; die JVM-Typen je [SqlType] sind offen
- * (ADR-0006, Zeilendarstellung).
+ * Ein typisierter Parameter. [value] ist `null` für NULL; die JVM-Klassen je [SqlType] sind die der Zeilendarstellung
+ * (ADR-0013, `ValueMapping`).
  *
  * Die Textdarstellung nennt den Wert nie und den Namen nur als Länge: Parameter sind Nutzerdaten
  * (`TDS-QA-03`).

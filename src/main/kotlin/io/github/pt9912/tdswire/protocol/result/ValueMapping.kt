@@ -13,7 +13,7 @@ import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
  * bricht beim ersten Fehler ab: spätere Spalten werden nicht mehr angesehen, der Fehler nennt nur die erste. Kein Pfad
  * wirft für einen Wert eine Ausnahme.
  *
- * Festlegung ohne Messung (die Zeilendarstellung ist in ADR-0006 offen): die JVM-Klassen je Spaltenart
+ * Festgeschrieben (ADR-0013, Zeilendarstellung): die JVM-Klassen je Spaltenart
  * sind `Int` (32 Bit), `Long` (64 Bit), `Boolean`, `String`, `java.math.BigDecimal`, `LocalDate`,
  * `LocalTime` und `LocalDateTime`; jede andere Klasse, auch ein `Long` in einer 32-Bit-Spalte, ist ein
  * Typkonflikt. `null` ist NULL und gilt nur in einer nullbaren Spalte.
