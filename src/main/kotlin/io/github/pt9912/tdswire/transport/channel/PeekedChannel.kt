@@ -6,7 +6,9 @@ import java.nio.ByteBuffer
  * Ein Kanal, dessen erstes Byte schon gelesen ist: [read] liefert zuerst dieses Byte, danach liest er vom
  * inneren Kanal. [peek] liest das erste Byte und gibt es zurück, ohne es zu verbrauchen (`ARC-003`); der
  * Handler wählt daran den Pfad der Verbindung, ohne dass Leser oder TLS-Schleife das Byte vermissen.
- * [close] schließt den inneren Kanal. Der Vertrag von [SuspendingChannel] gilt unverändert.
+ * [close] schließt den inneren Kanal. Der Vertrag von [SuspendingChannel] gilt unverändert, auch für den Platz im
+ * Puffer: das erste [read] legt das erste Byte ab und wirft eine `BufferOverflowException`, wenn der Puffer keinen
+ * Platz hat (Verstoß des Aufrufers); das Byte bleibt dann für das nächste [read] erhalten.
  */
 class PeekedChannel private constructor(val firstByte: Byte, private val inner: SuspendingChannel) :
     SuspendingChannel {
@@ -14,8 +16,8 @@ class PeekedChannel private constructor(val firstByte: Byte, private val inner: 
 
     override suspend fun read(buffer: ByteBuffer): ChannelResult<Int> {
         if (served) return inner.read(buffer)
-        served = true
         buffer.put(firstByte)
+        served = true
         return ChannelResult.Ok(1)
     }
 

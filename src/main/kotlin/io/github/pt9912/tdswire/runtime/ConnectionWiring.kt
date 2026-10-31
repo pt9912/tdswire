@@ -47,8 +47,9 @@ internal class HandlerSetup(
 /**
  * Der Handler des Listeners (`ARC-008`): verbindet den Kanal der Verbindung mit Leser, Schreiber und
  * [HandshakeDriver] und meldet nach der Annahme „Login abgeschlossen“. `LOGIN_TIMEOUT` läuft ab der
- * Annahme der Verbindung im Listener; der Handler startet den Treiber ohne Verzug, dessen eigene Frist
- * (gleicher Wert) beginnt mit `run` und endet damit nie vor der des Listeners.
+ * Annahme der Verbindung im Listener; der Handler wartet bis zu `LOGIN_TIMEOUT` auf das erste Byte und startet
+ * den Treiber danach. Dessen eigene Frist (gleicher Wert) beginnt mit `run` und endet damit nie vor der des
+ * Listeners.
  *
  * Nach der Annahme beantwortet die [RequestLoop] die Anfragen an das [backend]. Ist keines
  * gesetzt (der Betrieb hat noch kein Backend), gibt es keinen Anfragepfad (Festlegung ohne Messung): der
@@ -57,15 +58,15 @@ internal class HandlerSetup(
  * Login mit [PACKET_SIZE]; danach stellt die `RequestLoop` ihn auf die Packet Size der Sitzung ein.
  *
  * Das Warten auf das erste Byte hat dieselbe Frist wie der Treiber (`LOGIN_TIMEOUT`); läuft sie ab, kehrt der
- * Handler zurück. Pfadwahl je Verbindung am ersten Byte, am selben Port und ohne Konfigurationsschalter
- * (Festlegung des Slice, nicht gemessen): `0x16` (TLS-Inhaltstyp Handshake; kein TDS-Pakettyp) wählt den Pfad ab dem
- * ersten Byte
- * (TDS 8.0, [HandshakeOrder.TLS_FIRST], ALPN `tds/8.0`: `CONNECTED → TLS_NEGOTIATION → PRELOGIN`); jedes andere
- * Byte läuft im TDS-7.4-Pfad (PRELOGIN, TLS gekapselt in Paketen vom Typ `0x12`), und was dort kein gültiges
- * PRELOGIN ist, endet ohne Antwort. Der TDS-8.0-Pfad besteht nur mit TLS-Material und der Richtlinie
- * `REQUIRED`; sonst trennt der Handler ohne Antwort. Ein Klartext-Anfang nach dem ersten Byte `0x16` scheitert im
- * TLS-Handschlag (kein Rückfall auf Klartext). Belegt ist der Pfad gegen eine JDK-Gegenstelle und Rohbytes
- * (`Tds8WiringTest`), nicht gegen den Referenzclient.
+ * Handler zurück, und im Echtzeitbetrieb meldet der Listener das, sofern die Rückkehr seinem Zeitgeber zuvorkommt,
+ * als `HANDLER_RETURNED` statt `LOGIN_TIMEOUT`. Pfadwahl je Verbindung am ersten Byte, am selben Port und ohne
+ * Konfigurationsschalter (Festlegung des Slice, nicht gemessen): `0x16` (TLS-Inhaltstyp Handshake; kein
+ * TDS-Pakettyp) wählt den Pfad ab dem ersten Byte (TDS 8.0, [HandshakeOrder.TLS_FIRST], ALPN `tds/8.0`:
+ * `CONNECTED → TLS_NEGOTIATION → PRELOGIN`); jedes andere Byte läuft im TDS-7.4-Pfad (PRELOGIN, TLS gekapselt in
+ * Paketen vom Typ `0x12`), und was dort kein gültiges PRELOGIN ist, endet ohne TDS-Antwort. Der TDS-8.0-Pfad
+ * besteht nur mit TLS-Material und der Richtlinie `REQUIRED`; sonst trennt der Handler ohne Antwort. Ein
+ * Klartext-Anfang nach dem ersten Byte `0x16` scheitert im TLS-Handschlag (kein Rückfall auf Klartext). Belegt ist
+ * der Pfad gegen eine JDK-Gegenstelle und Rohbytes (`Tds8WiringTest`), nicht gegen den Referenzclient.
  */
 internal class HandshakeConnectionHandler(private val setup: HandlerSetup, private val backend: QueryBackend? = null) :
     ConnectionHandler {
@@ -100,8 +101,15 @@ internal class HandshakeConnectionHandler(private val setup: HandlerSetup, priva
     private fun handshakeConfig(path: TlsPath): HandshakeConfig? = when {
         path == TlsPath.ENCAPSULATED_IN_TDS -> setup.handshake
 
-        setup.tls == null || setup.handshake.encryptionPolicy != EncryptionPolicy.REQUIRED -> {
-            setup.log.line("TLS ab dem ersten Byte nicht angeboten: keine TLS-Richtlinie")
+        setup.tls == null -> {
+            setup.log.line("TLS ab dem ersten Byte nicht angeboten: kein TLS-Material")
+            null
+        }
+
+        // Verteidigung: die Konfiguration lässt TLS-Material nur mit REQUIRED zu, und HandshakeConfig verweigert
+        // TLS_FIRST mit einer anderen Richtlinie; ein HandlerSetup anderer Herkunft trennt statt zu werfen.
+        setup.handshake.encryptionPolicy != EncryptionPolicy.REQUIRED -> {
+            setup.log.line("TLS ab dem ersten Byte nicht angeboten: Richtlinie nicht REQUIRED")
             null
         }
 

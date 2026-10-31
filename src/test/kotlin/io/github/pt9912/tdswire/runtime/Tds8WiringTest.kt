@@ -1,17 +1,27 @@
 package io.github.pt9912.tdswire.runtime
 
 import io.github.pt9912.tdswire.config.ConfigKeys
+import io.github.pt9912.tdswire.config.LoginSettings
 import io.github.pt9912.tdswire.config.TempFilesTest
 import io.github.pt9912.tdswire.config.auth.pbkdf2Value
+import io.github.pt9912.tdswire.protocol.session.AuthPool
+import io.github.pt9912.tdswire.protocol.session.EncryptionPolicy
+import io.github.pt9912.tdswire.protocol.session.HandshakeConfig
+import io.github.pt9912.tdswire.protocol.session.RecordingAdapter
 import io.github.pt9912.tdswire.protocol.session.SessionVectors
 import io.github.pt9912.tdswire.protocol.token.LoginAck
 import io.github.pt9912.tdswire.testsupport.JdkTlsPeer
+import io.github.pt9912.tdswire.testsupport.KeyVariants
 import io.github.pt9912.tdswire.testsupport.TestKeys
 import io.github.pt9912.tdswire.testsupport.TokenDecoder
 import io.github.pt9912.tdswire.testsupport.blocking
 import io.github.pt9912.tdswire.testsupport.tls11ClientHello
+import io.github.pt9912.tdswire.transport.channel.ChannelResult
+import io.github.pt9912.tdswire.transport.channel.MemoryChannel
+import io.github.pt9912.tdswire.transport.channel.SuspendingChannel
 import io.github.pt9912.tdswire.transport.framing.PacketType
 import io.github.pt9912.tdswire.transport.framing.TdsMessage
+import io.github.pt9912.tdswire.transport.listener.Connection
 import io.github.pt9912.tdswire.transport.listener.ConnectionEnd
 import io.github.pt9912.tdswire.transport.listener.LOOPBACK
 import io.github.pt9912.tdswire.transport.listener.RecordingEvents
@@ -20,9 +30,12 @@ import io.github.pt9912.tdswire.transport.listener.eventually
 import io.github.pt9912.tdswire.transport.messaging.MessageReader
 import io.github.pt9912.tdswire.transport.messaging.MessageWriter
 import io.github.pt9912.tdswire.transport.messaging.ReadOutcome
+import io.github.pt9912.tdswire.transport.tls.MaterialResult
 import io.github.pt9912.tdswire.transport.tls.TlsChannel
+import io.github.pt9912.tdswire.transport.tls.TlsMaterial
 import io.github.pt9912.tdswire.transport.tls.TlsParameters
 import kotlinx.coroutines.withTimeoutOrNull
+import java.nio.ByteBuffer
 import javax.net.ssl.SSLEngine
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -134,11 +147,11 @@ internal class Tds8WiringTest : RuntimeTestBase() {
     }
 
     /**
-     * Rohbytes mit dem ersten Byte `0x16`, die kein gültiger TLS-Anfang sind, beenden die Verbindung ohne ein Byte
-     * Antwort: ein ClientHello nach TLS 1.1 (`HANDSHAKE_FAILED`), ein abgebrochenes ClientHello
-     * (`CONNECTION_ABORTED`) und ein Klartext-PRELOGIN im Rumpf eines TLS-Records (`HANDSHAKE_FAILED`); es gibt keinen
-     * Rückfall auf Klartext (Festlegung des Slice, nicht gemessen). Danach nimmt derselbe Server eine Anmeldung im
-     * TDS-8.0-Pfad an.
+     * Rohbytes mit dem ersten Byte `0x16`, die kein gültiger TLS-Anfang sind, beenden die Verbindung: ein
+     * ClientHello nach TLS 1.1 (`HANDSHAKE_FAILED`) und ein Klartext-PRELOGIN im Rumpf eines TLS-Records
+     * (`HANDSHAKE_FAILED`) ohne ein Byte Antwort, ein abgebrochenes ClientHello (`CONNECTION_ABORTED`, der Client
+     * schließt selbst) mit der Logzeile, ohne Prüfung auf Antwortbytes. Es gibt keinen Rückfall auf Klartext
+     * (Festlegung des Slice, nicht gemessen). Danach nimmt derselbe Server eine Anmeldung im TDS-8.0-Pfad an.
      *
      * @spec SPEC-001
      * @spec SPEC-028
@@ -165,8 +178,8 @@ internal class Tds8WiringTest : RuntimeTestBase() {
 
     /**
      * Eine Gegenstelle, die TLS ab dem ersten Byte beginnt, aber kein ALPN `tds/8.0` anbietet (hier keines, dann
-     * `h2`), kommt nicht zum PRELOGIN: der Handler trennt ohne Antwort; die Zeile nennt `ALPN_MISMATCH` (kein ALPN)
-     * oder `HANDSHAKE_FAILED` (`h2`, die Engine weist es selbst ab).
+     * `h2`), kommt nicht zum PRELOGIN: der Handler trennt ohne TDS-Antwort (ein TLS-Alert ist nicht geprüft); die
+     * Zeile nennt `ALPN_MISMATCH` (kein ALPN) oder `HANDSHAKE_FAILED` (`h2`, die Engine weist es selbst ab).
      *
      * @spec SPEC-020
      * @spec SPEC-028
@@ -234,6 +247,46 @@ internal class Tds8WiringTest : RuntimeTestBase() {
             it.send(preloginWire(SessionVectors.ENCRYPT_OFF))
             assertEquals(SessionVectors.ENCRYPT_NOT_SUP, encryptionOf(assertNotNull(it.readMessage()).payload))
         }
+    }
+}
+
+/** Ein Handler mit TLS-Material und der Richtlinie `TEST_UNENCRYPTED`, die der Betrieb nicht zusammenbaut. */
+internal class Tds8DefenseTest {
+    private class FakeConnection(override val channel: SuspendingChannel) : Connection {
+        override val id = 1L
+
+        override fun loginCompleted() = Unit
+
+        override fun requestRunning(running: Boolean) = Unit
+    }
+
+    /**
+     * Ein `HandlerSetup` mit Material und `TEST_UNENCRYPTED` (die Konfiguration lässt die Kombination nicht zu,
+     * `HandshakeConfig` verweigert sie mit `TLS_FIRST`): ein erstes Byte `0x16` führt zur Rückkehr des Handlers ohne
+     * Ausnahme, ohne Antwort und mit der Logzeile, die die Richtlinie nennt, nicht das fehlende Material.
+     *
+     * @spec SPEC-010
+     * @spec SPEC-028
+     */
+    @Test
+    fun `Material mit TEST_UNENCRYPTED bietet den Pfad ab dem ersten Byte nicht an`() = blocking {
+        val store = KeyVariants.file(TestKeys.VALID)
+        val loaded = assertIs<MaterialResult.Loaded>(TlsMaterial.load(store, KeyVariants.password()))
+        val log = CapturedLog()
+        val setup = HandlerSetup(
+            handshake = HandshakeConfig(encryptionPolicy = EncryptionPolicy.TEST_UNENCRYPTED),
+            adapter = RecordingAdapter { error("kein Adapteraufruf vor dem Handschlag") },
+            authPool = AuthPool(),
+            login = LoginSettings(timeoutSeconds = 5, maxPreloginMessageBytes = 65_536),
+            tls = loaded.material,
+            log = log,
+        )
+        val (local, remote) = MemoryChannel.pair(capacity = 64)
+        remote.writeFully(ByteBuffer.wrap(byteArrayOf(TLS_RECORD_FIRST_BYTE.toByte())))
+        HandshakeConnectionHandler(setup).handle(FakeConnection(local))
+        assertEquals(listOf("TLS ab dem ersten Byte nicht angeboten: Richtlinie nicht REQUIRED"), log.lines.toList())
+        local.close()
+        assertEquals(ChannelResult.Ok(-1), remote.read(ByteBuffer.allocate(1)))
     }
 }
 
