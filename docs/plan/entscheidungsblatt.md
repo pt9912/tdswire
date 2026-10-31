@@ -209,13 +209,13 @@ Zum Ausfüllen: `j` (Empfehlung bestätigt), `n` (abgelehnt) oder die gewählte 
 
 | Nr | Entscheidung |
 |---|---|
-| 1 | Empfehlung übernommen, 2026-10-31 |
+| 1 | Empfehlung übernommen, 2026-10-31; ADR (Proposed) folgt |
 | 2 | Empfehlung übernommen, 2026-10-31 |
-| 3 (Zuschnitt) | Empfehlung übernommen, 2026-10-31 (Option A) |
-| 3 (Container) | Empfehlung übernommen, 2026-10-31 (zwei Container) |
-| 3 (SSPI/NTLM) | Empfehlung übernommen, 2026-10-31 (als nicht lieferbar benennen) |
+| 3 (Zuschnitt) | Empfehlung übernommen, 2026-10-31; ADR (Proposed) folgt |
+| 3 (Container) | Empfehlung übernommen, 2026-10-31; ADR (Proposed) folgt |
+| 3 (SSPI/NTLM) | Empfehlung übernommen, 2026-10-31; ADR (Proposed) folgt |
 | 4 | Empfehlung übernommen, 2026-10-31 |
-| 5 | Empfehlung übernommen, 2026-10-31 |
+| 5 | Empfehlung übernommen, 2026-10-31; ADR (Proposed) folgt |
 | 6 | Empfehlung übernommen, 2026-10-31 |
 | 7 | |
 | 8 | |
