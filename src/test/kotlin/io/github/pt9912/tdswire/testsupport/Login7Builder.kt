@@ -25,6 +25,9 @@ class Login7Builder {
     var sspiShortMarker = false
     var features: List<Pair<Int, ByteArray>>? = null
 
+    /** Die verlangte Packet Size im Header (Voreinstellung 8000, der Wert der Handvektoren). */
+    var packetSize = 8000
+
     private class Slot(val offset: Int, val count: Int)
 
     fun build(): ByteArray {
@@ -51,7 +54,9 @@ class Login7Builder {
         val out = ByteArrayOutputStream()
         val total = base + data.size()
         out.write(le(total.toLong(), 4))
-        out.write(hex("04 00 00 74  40 1F 00 00  00 00 00 07  34 12 00 00  00 00 00 00"))
+        out.write(hex("04 00 00 74"))
+        out.write(le(packetSize.toLong(), 4))
+        out.write(hex("00 00 00 07  34 12 00 00  00 00 00 00"))
         out.write(byteArrayOf(optionFlags1.toByte(), optionFlags2.toByte(), typeFlags.toByte(), optionFlags3.toByte()))
         out.write(hex("00 00 00 00  09 04 00 00"))
         listOf(host, user, pass, app, server, extension, clt, lang, db).forEach { out.write(pair(it)) }

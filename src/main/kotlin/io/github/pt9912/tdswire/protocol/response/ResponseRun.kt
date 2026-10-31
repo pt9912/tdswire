@@ -46,9 +46,18 @@ internal class ResponseRun(private val errors: ErrorMapping, private val sink: T
         }
     }
 
-    /** `execute()` oder der Strom des Backends hat mit [cause] geendet. */
+    /**
+     * `execute()` oder der Strom des Backends hat mit [cause] geendet. Scheitert das Schreiben von ERROR
+     * und DONE selbst an einem `OutOfMemoryError`, ist der Strom nicht abschließbar
+     * ([SequenceOutcome.CLOSE_WITHOUT_COMPLETION]); der zweite Fehler geht nur an [ErrorMapping.internal].
+     */
     suspend fun fault(cause: Throwable) {
-        if (flushHeld(more = true)) report(errors.internal(cause))
+        try {
+            if (flushHeld(more = true)) report(errors.internal(cause))
+        } catch (exhausted: OutOfMemoryError) {
+            outcome = SequenceOutcome.CLOSE_WITHOUT_COMPLETION
+            errors.internal(exhausted)
+        }
     }
 
     /** Der Strom ist ohne Ausnahme zu Ende; schließt den Lauf ab, falls kein Ausgang feststeht. */

@@ -1,5 +1,6 @@
 package io.github.pt9912.tdswire.protocol.session
 
+import io.github.pt9912.tdswire.transport.framing.PacketType
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -27,6 +28,29 @@ internal class HandshakeSession(
         val transition = automaton.step(context, event)
         context = transition.context
         execute(transition.actions)
+    }
+
+    /**
+     * Eine Antwort in Stücken über den Kanal: jedes [ReplyStream.write] und [ReplyStream.finish] läuft
+     * unter der Sperre dieser Sitzung, ein Übergang einer zweiten Coroutine wird also zwischen zwei
+     * Schreibvorgängen ausgeführt, nicht in einem. Ist die Sitzung `CLOSED`, schreibt der Strom nicht
+     * mehr; scheitert ein Schreibvorgang, schließt die Sitzung wie beim Senden einer Nachricht
+     * (`CloseReason.WRITE_FAILED`).
+     */
+    fun openReply(type: PacketType): ReplyStream {
+        val inner = channel.openReply(type)
+        return object : ReplyStream {
+            override suspend fun write(bytes: ByteArray): Boolean = guarded { inner.write(bytes) }
+
+            override suspend fun finish(): Boolean = guarded { inner.finish() }
+        }
+    }
+
+    private suspend fun guarded(step: suspend () -> Boolean): Boolean = lock.withLock {
+        if (context.state == ConnectionState.CLOSED) return@withLock false
+        val written = step()
+        if (!written) abortWrite()
+        written
     }
 
     /**

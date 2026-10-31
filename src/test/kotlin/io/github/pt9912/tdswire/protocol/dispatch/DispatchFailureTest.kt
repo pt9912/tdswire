@@ -264,9 +264,10 @@ class DispatchFailureTest {
     }
 
     /**
-     * Die Antwort geht unter der Sperre des Sitzungsrahmens hinaus: ein Übergang, den eine zweite
-     * Coroutine während des Schreibens der Antwort anstößt (Ende der Gegenstelle), wird erst nach dem
-     * Ende des Schreibens ausgeführt. Die Reihenfolge entsteht ohne Uhr: das Schreiben gibt die
+     * Jeder Schreibvorgang der Antwort geht unter der Sperre des Sitzungsrahmens hinaus: ein Übergang,
+     * den eine zweite Coroutine während eines Schreibvorgangs anstößt (Ende der Gegenstelle), wird erst
+     * nach dessen Ende ausgeführt, und danach schreibt die Antwort nicht mehr (die Antwort wird nicht
+     * als Nachricht abgeschlossen). Die Reihenfolge entsteht ohne Uhr: das Schreiben gibt die
      * Ausführung mehrfach ab.
      *
      * @spec SPEC-001
@@ -277,8 +278,8 @@ class DispatchFailureTest {
         val session = Session.login(BatchVectors.message("q"), Inbound.EndOfStream)
         val order = mutableListOf<String>()
         var peer: Job? = null
-        session.channel.onSend = {
-            if (it.type == PacketType.TABULAR_RESULT && order.isEmpty()) {
+        session.channel.onReplyWrite = {
+            if (order.isEmpty()) {
                 peer = launch {
                     session.ready.live.dispatch(HandshakeEvent.PeerClosed)
                     order += "peer-closed"
@@ -290,6 +291,7 @@ class DispatchFailureTest {
         session.serve(backend)
         checkNotNull(peer).join()
         assertEquals(listOf("send-end", "peer-closed"), order)
+        assertEquals(0, session.replies.size)
     }
 
     /**

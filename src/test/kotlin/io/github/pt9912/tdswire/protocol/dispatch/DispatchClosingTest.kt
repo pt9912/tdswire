@@ -113,11 +113,12 @@ class DispatchClosingTest {
      * @spec SPEC-031
      */
     @Test
-    fun `BufferedResponse lehnt ein Token ab, das der Encoder nicht schreibt`() = blocking {
+    fun `StreamedResponse lehnt ein Token ab, das der Encoder nicht schreibt`() = blocking {
         var started = 0
-        val response = BufferedResponse { started++ }
+        val reply = CollectingReply()
+        val response = StreamedResponse(reply) { started++ }
         assertFalse(response.accept(RowToken(emptyList())))
-        assertEquals(0, response.message().payload.size)
+        assertEquals(0, reply.bytes.size)
         assertEquals(0, started)
         assertTrue(response.accept(ColMetadataToken(emptyList())))
         assertEquals(1, started)

@@ -2,8 +2,10 @@ package io.github.pt9912.tdswire.transport.messaging
 
 import io.github.pt9912.tdswire.protocol.session.HandshakeChannel
 import io.github.pt9912.tdswire.protocol.session.Inbound
+import io.github.pt9912.tdswire.protocol.session.ReplyStream
 import io.github.pt9912.tdswire.transport.channel.SuspendingChannel
 import io.github.pt9912.tdswire.transport.framing.FramingLimits
+import io.github.pt9912.tdswire.transport.framing.PacketType
 import io.github.pt9912.tdswire.transport.framing.TdsMessage
 
 /**
@@ -26,6 +28,10 @@ class TransportHandshakeChannel(
     }
 
     override suspend fun send(message: TdsMessage): Boolean = writer.write(message) is WriteOutcome.Written
+
+    override fun openReply(type: PacketType): ReplyStream = writer.open(type)
+
+    override fun usePacketSize(size: Int) = writer.usePacketSize(size)
 
     override suspend fun startTls(): Boolean = tlsHandshake()
 

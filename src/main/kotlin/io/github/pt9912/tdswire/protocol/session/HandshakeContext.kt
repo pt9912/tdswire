@@ -5,8 +5,8 @@ import io.github.pt9912.tdswire.domain.Principal
 
 /**
  * Die Sitzung nach der Annahme: ID, Principal, Datenbankkontext und die angekündigte Packet Size
- * (`TDS-FA-02.a`). Die Packet Size ist angekündigt, nicht angewandt: Der Paket-Schreiber richtet sich
- * nicht nach ihr (siehe `LoginResponses.negotiatedPacketSize`). Die Textdarstellung nennt keinen Wert.
+ * (`TDS-FA-02.a`). Die Packet Size ist angekündigt; die `RequestLoop` wendet sie auf den Paket-Schreiber
+ * an (siehe `LoginResponses.negotiatedPacketSize`). Die Textdarstellung nennt keinen Wert.
  */
 class AuthenticatedSession(val id: String, val principal: Principal, val database: String, val packetSize: Int) {
     override fun toString(): String = "AuthenticatedSession(verborgen)"

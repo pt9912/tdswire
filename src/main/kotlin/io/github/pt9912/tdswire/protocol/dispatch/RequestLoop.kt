@@ -11,8 +11,10 @@ import io.github.pt9912.tdswire.protocol.session.HandshakeChannel
 import io.github.pt9912.tdswire.protocol.session.HandshakeEvent
 import io.github.pt9912.tdswire.protocol.session.HandshakeOutcome
 import io.github.pt9912.tdswire.protocol.session.Inbound
+import io.github.pt9912.tdswire.protocol.session.ReplyStream
 import io.github.pt9912.tdswire.protocol.sqlbatch.SqlBatchParser
 import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
+import io.github.pt9912.tdswire.transport.framing.PacketType
 import io.github.pt9912.tdswire.transport.framing.TdsMessage
 import java.util.UUID
 
@@ -24,18 +26,22 @@ import java.util.UUID
  * Ablauf je SQL_BATCH: Der Rahmen setzt `READY` auf `RUNNING`; `SqlBatchParser` liest ALL_HEADERS und
  * Text; das [backend] bekommt Sitzungs-ID, eine neue Anfrage-ID aus [requestIds], den Text unverändert,
  * keine Parameter und keine Frist; der `ResponseSequencer` mit `ErrorMapper.sequencerMapping` schreibt die
- * Tokens in eine Senke im Speicher, das erste COLMETADATA setzt `STREAMING`; die Antwort geht mit dem
- * Übergang `RequestFinished` unter der Sperre des Rahmens hinaus, und die Verbindungsfolge liest die
- * Schleife aus `ErrorMapper.fateOf` des Ausgangs. Nach einer offenen Folge ist die Sitzung `READY` und die
- * Schleife liest die nächste Nachricht.
+ * Tokens in eine Senke ([StreamedResponse]), die Pakete der Packet Size der Sitzung auf den Kanal
+ * schreibt und bei langsamem Kanal suspendiert (Rückstau); das erste COLMETADATA setzt `STREAMING`; das
+ * letzte Paket schreibt die Schleife nach dem Ausgang, danach folgt der Übergang `RequestFinished`.
+ * Die Verbindungsfolge liest die Schleife aus `ErrorMapper.fateOf` des Ausgangs. Nach einer offenen Folge
+ * ist die Sitzung `READY` und die Schleife liest die nächste Nachricht.
  *
  * Die Schleife endet immer mit geschlossenem Kanal: nach `CLOSED`, nach einer Nachricht, die sie nicht
  * beantwortet, und bei einer Ausnahme oder dem Abbruch der Coroutine.
  *
  * Festlegungen ohne Messung: RPC, Transaction Manager und ATTENTION in `READY` bleiben unbeantwortet, die
  * Verbindung schließt; ein SQL_BATCH, dessen Nachricht der Parser abweist, wird mit `TDS_PROTOCOL_ERROR`
- * beantwortet (`ErrorMapper.protocol`); die Antwort wird vollständig gepuffert (`BufferedResponse`);
- * während einer Anfrage liest die Schleife nicht.
+ * beantwortet (`ErrorMapper.protocol`, als ganze Nachricht über den Sitzungsrahmen); die Pakete
+ * einer Antwort gehen außerhalb der Sperre des Rahmens hinaus (die Schleife ist während einer Anfrage
+ * der einzige Schreiber); bei Ausfall der Senke bleiben bereits geschriebene Pakete auf dem Draht, ein
+ * gehaltenes Paket und das EOM-Paket entfallen, und die Verbindung schließt; während einer Anfrage liest
+ * die Schleife nicht.
  *
  * Kopplung: [sinkAround] umhüllt die Senke der Anfrage, bevor der `ResponseSequencer` sie bekommt; die
  * Voreinstellung reicht sie unverändert durch. Kein Backend-Ereignis lässt den Encoder ein Token
@@ -55,6 +61,7 @@ class RequestLoop(
     /** Läuft, bis die Verbindung endet; schließt den Kanal in jedem Ausgang. */
     suspend fun run() {
         try {
+            channel.usePacketSize(ready.session.packetSize)
             var running = true
             while (running) running = step()
         } finally {
@@ -72,22 +79,32 @@ class RequestLoop(
         }
         live.dispatch(event)
         if (event !is HandshakeEvent.Message || live.context.state != ConnectionState.RUNNING) return false
-        live.dispatch(answer(event.message))
+        answer(event.message)?.let { live.dispatch(it) }
         return live.context.state == ConnectionState.READY
     }
 
-    private suspend fun answer(batch: TdsMessage): HandshakeEvent.RequestFinished =
+    /** Das Ereignis, das die Anfrage beendet; `null`, wenn die Sitzung beim Schreiben der Antwort geschlossen wurde. */
+    private suspend fun answer(batch: TdsMessage): HandshakeEvent.RequestFinished? =
         when (val parsed = SqlBatchParser.parse(batch.payload)) {
             is ProtocolResult.Failed -> errors.protocol(parsed.error).let { requestFinished(it.fate, it.message) }
             is ProtocolResult.Ok -> execute(parsed.value.text)
         }
 
-    private suspend fun execute(text: String): HandshakeEvent.RequestFinished {
+    private suspend fun execute(text: String): HandshakeEvent.RequestFinished? {
         val live = ready.live
-        val response = BufferedResponse { live.dispatch(HandshakeEvent.StreamStarted) }
+        val reply = live.openReply(PacketType.TABULAR_RESULT)
+        val response = StreamedResponse(reply) { live.dispatch(HandshakeEvent.StreamStarted) }
         val request = QueryRequest(ready.session.id, requestIds(), text, emptyList(), null)
         val fate = errors.fateOf(sequencer.run(backend, request, sinkAround(response)))
-        return requestFinished(fate, response.message())
+        return if (live.context.state == ConnectionState.CLOSED) null else finished(fate, reply)
+    }
+
+    /** Schließt die Antwort mit dem EOM-Paket ab; scheitert das, schließt die Verbindung ohne weitere Antwort. */
+    private suspend fun finished(fate: ConnectionFate, reply: ReplyStream): HandshakeEvent.RequestFinished {
+        if (fate == ConnectionFate.CLOSE_WITHOUT_REPLY || !reply.finish()) {
+            return HandshakeEvent.RequestFinished(null, connectionOpen = false)
+        }
+        return HandshakeEvent.RequestFinished(null, connectionOpen = fate == ConnectionFate.OPEN, replyWritten = true)
     }
 }
 

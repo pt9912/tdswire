@@ -70,10 +70,9 @@ internal object LoginResponses {
      * sie schreiben kann (größer als [PacketHeader.SIZE] und höchstens
      * [FramingLimits.MAX_TDS_PACKET_BYTES]), sonst [DEFAULT_PACKET_SIZE].
      *
-     * Offen: Der Wert wird dem Client per ENVCHANGE angekündigt und steht in der Sitzung, aber nichts
-     * in `protocol.session` stellt den Paket-Schreiber des Transports darauf ein; der Schreiber
-     * arbeitet mit der Größe, mit der der Transport ihn baut. Wer die Größe anwendet, ist nicht
-     * festgelegt (`slice-handshake-login` §6).
+     * Der Wert wird dem Client per ENVCHANGE angekündigt und steht in der Sitzung; die `RequestLoop`
+     * stellt den Paket-Schreiber beim Start darauf ein. Die Antworten des Logins selbst gehen mit der
+     * Größe hinaus, mit der der Transport den Schreiber baut (Festlegung ohne Messung).
      */
     fun negotiatedPacketSize(requested: Int): Int =
         if (requested > PacketHeader.SIZE && requested <= FramingLimits.MAX_TDS_PACKET_BYTES) {

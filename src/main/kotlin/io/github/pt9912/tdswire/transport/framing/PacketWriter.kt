@@ -40,4 +40,19 @@ object PacketWriter {
         }
         return FramingResult.Ok(packets)
     }
+
+    /**
+     * Ein einzelnes Paket aus den ersten [length] Bytes von [payload]: Header mit Typ, EOM-Bit nur bei
+     * [endOfMessage], SPID 0, Länge samt Header und der Packet-ID modulo 256. Die Grenzen der Packet Size
+     * prüft der Aufrufer; der Strom-Schreiber des Transports baut seine Pakete hier.
+     */
+    fun packet(type: PacketType, payload: ByteArray, length: Int, endOfMessage: Boolean, packetId: Int): ByteArray {
+        val header = PacketHeader(
+            type = type,
+            status = if (endOfMessage) PacketStatus.END_OF_MESSAGE else PacketStatus.NORMAL,
+            length = PacketHeader.SIZE + length,
+            packetId = packetId % ID_MODULUS,
+        )
+        return header.toBytes() + payload.copyOfRange(0, length)
+    }
 }

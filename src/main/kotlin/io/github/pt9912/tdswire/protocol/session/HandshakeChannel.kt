@@ -1,5 +1,6 @@
 package io.github.pt9912.tdswire.protocol.session
 
+import io.github.pt9912.tdswire.transport.framing.PacketType
 import io.github.pt9912.tdswire.transport.framing.TdsMessage
 
 /** Was [HandshakeChannel.receive] liefert. */
@@ -27,6 +28,15 @@ interface HandshakeChannel {
 
     /** Schreibt [message]; `false`, wenn das Schreiben scheitert. */
     suspend fun send(message: TdsMessage): Boolean
+
+    /**
+     * Beginnt eine Antwort vom Typ [type], die in Stücken geschrieben wird ([ReplyStream]); die Pakete
+     * haben die Größe, die [usePacketSize] zuletzt setzte.
+     */
+    fun openReply(type: PacketType): ReplyStream
+
+    /** Stellt die Packet Size ein, mit der folgende Nachrichten und Antworten in Pakete zerlegt werden. */
+    fun usePacketSize(size: Int)
 
     /** Führt den TLS-Handschlag aus; `false`, wenn er scheitert. */
     suspend fun startTls(): Boolean

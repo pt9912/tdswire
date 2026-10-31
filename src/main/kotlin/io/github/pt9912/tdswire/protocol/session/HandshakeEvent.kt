@@ -49,17 +49,21 @@ sealed interface HandshakeEvent {
 
     /**
      * Die Antwort auf die Anfrage steht fest. [reply] ist die vollständige Antwort-Nachricht oder `null`,
-     * wenn die Verbindung ohne Antwort schließt; [connectionOpen] sagt, ob die Sitzung danach wieder
-     * `READY` ist. Eine offene Verbindung ohne Antwort gibt es nicht.
+     * wenn die Verbindung ohne Antwort schließt oder die Antwort schon als [ReplyStream] geschrieben ist
+     * ([replyWritten]); [connectionOpen] sagt, ob die Sitzung danach wieder `READY` ist. Eine offene
+     * Verbindung braucht eine Antwort, als Nachricht oder schon geschrieben.
      */
-    class RequestFinished(val reply: TdsMessage?, val connectionOpen: Boolean) : HandshakeEvent {
+    class RequestFinished(val reply: TdsMessage?, val connectionOpen: Boolean, val replyWritten: Boolean = false) :
+        HandshakeEvent {
         init {
-            require(reply != null || !connectionOpen) { "eine offene Verbindung braucht eine Antwort" }
+            require(reply != null || replyWritten || !connectionOpen) { "eine offene Verbindung braucht eine Antwort" }
+            require(reply == null || !replyWritten) { "eine Antwort ist Nachricht oder schon geschrieben" }
         }
 
         override val kind: EventKind get() = EventKind.REQUEST_FINISHED
 
-        override fun toString(): String = "RequestFinished(reply=${reply != null}, open=$connectionOpen)"
+        override fun toString(): String =
+            "RequestFinished(reply=${reply != null}, written=$replyWritten, open=$connectionOpen)"
     }
 
     /** Der Adapter hat angenommen; [sessionId] vergibt der Aufrufer, die Übergangsfunktion bleibt rein. */
