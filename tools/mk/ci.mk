@@ -22,6 +22,6 @@ workflow-lint: ## Workflow-Dateien unter .github/workflows/ mit actionlint pruef
 # --no-cache verwirft den Layer-Cache der Stages der drei Aufrufe (Gradle-Stages, ohne den
 # .NET-Restore); die Basis-Images bleiben, wie sie lokal liegen. Ein frischer Runner zieht sie ohnehin neu, der Layer-Cache fehlt dort von selbst.
 clean-build: ## Build, Tests und detekt ohne Layer-Cache (Docker, kein Gate) · Frischbeleg für zeitabhängige Tests · seit slice-handshake-login
-	docker build --no-cache -t $(IMAGE):$(TAG) .
-	docker build --no-cache --target test --progress=plain .
-	docker build --no-cache --target detekt --progress=plain .
+	docker build $(BUILDER_FLAGS) $(BUILDER_LOAD) --no-cache -t $(IMAGE):$(TAG) .
+	docker build $(BUILDER_FLAGS) --no-cache --target test --progress=plain .
+	docker build $(BUILDER_FLAGS) --no-cache --target detekt --progress=plain .

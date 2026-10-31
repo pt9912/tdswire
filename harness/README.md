@@ -87,6 +87,8 @@ Diese Datei dupliziert sie nicht.
 | `make clean-build` | baut Jar, Tests und detekt (Gradle-Stages) mit `--no-cache` in Docker, ohne .NET-Restore; Frischbeleg für Tests mit Wanduhr oder Last, die `make test` aus dem Cache zeigt (seit slice-handshake-login) | kein Gate, [TDS-QA-06](../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
 | `make referenztest-dotnet-lock` | schreibt `referenztest-dotnet/packages.lock.json` neu (braucht Netz; das erste Lock vertraut nuget.org beim Schreiben), prüft nichts | kein Gate, [CO-002](../docs/plan/carveouts/CO-002-nuget-signaturpruefung-fehlt.md) |
 | `make referenztest-dotnet-audit` | meldet bekannte Schwachstellen der .NET-Pakete am Tag des Laufs; Ergebnis hängt am Abfragetag, nicht reproduzierbar, Exit 0 auch bei Fund | kein Gate, [CO-001](../docs/plan/carveouts/CO-001-nuget-audit-aus.md) |
+| `make builder-create` | legt mit `BUILDER=<name>` einen buildx-Builder mit CPU-/RAM-Limits an (Setzung `BUILDER_CPUS=8`, `BUILDER_MEMORY=24g`); belegte Optionen und Kaltstart-Grenze: Kopf von `tools/mk/builder.mk` | kein Gate, [TDS-QA-06](../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
+| `make builder-rm` | entfernt den Builder `BUILDER=<name>` samt seinem Cache | kein Gate, [TDS-QA-06](../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
 | `make <messung>` | misst <…> gegen <Schwelle> | kein Gate, ADR-<NNNN> |
 | `make <vorschau>` | sagt, was <schreibender Lauf> täte; Ausgänge und Sperren in der verlinkten Datei | kein Gate |
 

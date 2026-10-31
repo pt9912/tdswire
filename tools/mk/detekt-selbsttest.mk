@@ -23,6 +23,6 @@ detekt-selbsttest: $(SELBSTTEST_STEMPEL) ## Importregeln der Schichten und Suppr
 $(SELBSTTEST_STEMPEL): $(SELBSTTEST_EINGAENGE)
 	@mkdir -p $(@D)
 	@touch $@
-	docker build --target detekt-selbsttest --progress=plain . || { rm -f $@; exit 1; }
+	docker build $(BUILDER_FLAGS) --target detekt-selbsttest --progress=plain . || { rm -f $@; exit 1; }
 
 GATE_CHECKS += detekt-selbsttest

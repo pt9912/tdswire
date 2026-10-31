@@ -4,4 +4,4 @@
 .PHONY: smoke
 
 smoke: ## Rohbytes-Smoke: Serverprozess ueber main starten, Login-Pfad mit Rohbytes-Client (Dockerfile-Stage `smoke`)
-	docker build --target smoke --progress=plain .
+	docker build $(BUILDER_FLAGS) --target smoke --progress=plain .

@@ -6,10 +6,10 @@ TAG   ?= latest
 .PHONY: build detekt test deps-lock
 
 build: ## Jar bauen (Dockerfile-Stage `build`, ohne Tests)
-	docker build -t $(IMAGE):$(TAG) .
+	docker build $(BUILDER_FLAGS) $(BUILDER_LOAD) -t $(IMAGE):$(TAG) .
 
 detekt: ## Suppression-Verbot und statische Analyse samt Importregeln der Schichten (Dockerfile-Stage `detekt`)
-	docker build --target detekt --progress=plain .
+	docker build $(BUILDER_FLAGS) --target detekt --progress=plain .
 
 # Alle Gradle-Tasks, die das Dockerfile ausfuehrt, plus `dependencies` (das Dockerfile fuehrt es
 # nicht aus; es steht hier, damit Lock und Pruefsummen auch die Konfigurationen erfassen, die es
@@ -20,6 +20,6 @@ DEPS_TASKS = dependencies help classes test detekt detektMain detektTest detektS
 # Die Stage `lock` im Dockerfile schreibt die Dateien, `lock-export` gibt sie per --output heraus:
 # nichts wird gemountet, auf dem Host entsteht kein build/ und kein .gradle/.
 deps-lock: ## Nach einer Versionsaenderung in gradle/libs.versions.toml: gradle.lockfile und gradle/verification-metadata.xml neu schreiben
-	docker build --target lock-export --build-arg DEPS_TASKS="$(DEPS_TASKS)" --output type=local,dest=. .
+	docker build $(BUILDER_FLAGS) --target lock-export --build-arg DEPS_TASKS="$(DEPS_TASKS)" --output type=local,dest=. .
 
 GATE_CHECKS += detekt build
