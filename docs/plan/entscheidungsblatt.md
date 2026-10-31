@@ -209,25 +209,25 @@ Zum Ausfüllen: `j` (Empfehlung bestätigt), `n` (abgelehnt) oder die gewählte 
 
 | Nr | Entscheidung |
 |---|---|
-| 1 | |
-| 2 | |
-| 3 (Zuschnitt) | |
-| 3 (Container) | |
-| 3 (SSPI/NTLM) | |
-| 4 | |
-| 5 | |
-| 6 | |
+| 1 | Empfehlung übernommen, 2026-10-31; ADR (Proposed) folgt |
+| 2 | Empfehlung übernommen, 2026-10-31 |
+| 3 (Zuschnitt) | Empfehlung übernommen, 2026-10-31; ADR (Proposed) folgt |
+| 3 (Container) | Empfehlung übernommen, 2026-10-31; ADR (Proposed) folgt |
+| 3 (SSPI/NTLM) | Empfehlung übernommen, 2026-10-31; ADR (Proposed) folgt |
+| 4 | Empfehlung übernommen, 2026-10-31 |
+| 5 | Empfehlung übernommen, 2026-10-31; ADR (Proposed) folgt |
+| 6 | Empfehlung übernommen, 2026-10-31 |
 | 7 | |
 | 8 | |
 | 9 | |
 | 10 | |
 | 11 | |
-| 12 | |
-| 13 | |
+| 12 | Empfehlung übernommen, 2026-10-31 |
+| 13 | Empfehlung übernommen, 2026-10-31 (Planner-Vorschlag, vom Nutzer pauschal übernommen) |
 | 14 (a) | |
-| 14 (b) | |
+| 14 (b) | Empfehlung übernommen, 2026-10-31 |
 | 15 | |
-| 16 | |
+| 16 | Empfehlung übernommen, 2026-10-31 |
 | 17 | |
 | 18 | |
 | R1 | |

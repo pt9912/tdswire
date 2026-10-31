@@ -53,6 +53,7 @@ Lifecycle-Verzeichnis und wird hier **nicht** gespiegelt.
 | Slice | Titel | Bezug |
 |---|---|---|
 | slice-qa-dotnet-referenztest-geruest | .NET-Referenztest-Gerüst in Docker ohne Server (Restore-Sperre, Smoke-Test) | [TDS-QA-01](../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [TDS-QA-06](../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
+| slice-tds8-verdrahtung | TDS-8.0-Pfad ab dem ersten Byte im Serverprozess verdrahten (Voraussetzung der TDS-8.0-Messung von `slice-qa-kompatibilitaet`) | [TDS-QA-01](../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [TDS-QA-03](../../../spec/lastenheft.md#tds-qa-03--sicherheit) |
 | slice-qa-kompatibilitaet | Kompatibilität: Ende-zu-Ende-Szenarien mit echtem .NET-Client | [TDS-QA-01](../../../spec/lastenheft.md#tds-qa-01--kompatibilität) |
 | slice-qa-stabilitaet | Stabilität: ungültige und getrennte Verbindungen | [TDS-QA-02](../../../spec/lastenheft.md#tds-qa-02--stabilität) |
 | slice-qa-sicherheit | Sicherheit: Zugangsdaten im Log und TLS-Modus | [TDS-QA-03](../../../spec/lastenheft.md#tds-qa-03--sicherheit) |

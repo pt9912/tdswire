@@ -114,6 +114,7 @@ dasteht.
 - Die Garantie „kein Feld für Geheimnisse“ gilt nur, solange das Modell kein Freitextfeld trägt, in das ein Aufrufer einen Wert schreibt; die ADR entscheidet, ob es eines gibt, und der Redaktionstest prüft den Ausnahmetext (SPEC-048) ausdrücklich. — **Ausgang:** offen bis zur Closure.
 - Der Redaktionstest prüft die Ereignisarten, die es bei der Closure gibt; eine spätere Ereignisart ohne Test fällt nicht auf. Die Closure nennt die Grenze (`BEO-TDS/anmeldepfad-sicherheit-nicht-gebaut`). — **Ausgang:** offen bis zur Closure.
 - Schalter für Parameterwerte (Frage 4 in [slice-adr-observability](slice-adr-observability.md)): Gibt es ihn, braucht er einen Test, der den Standard ohne Werte belegt; die Einschaltung erscheint im Log wie die Abschwächung der Verschlüsselung. — **Ausgang:** offen bis zur Closure.
+- Der Inspektionstest über alle erfassten Zeilen ist das Gesamtsystem-Gegenstück zur Loginspektion des minimalen Logs in `slice-qa-sicherheit` und liegt bei diesem Slice; ohne ihn bliebe die Trägerlücke aus F-1 des Reviews von `slice-qa-sicherheit` offen. Träger vom Nutzer 2026-10-31 bestätigt (Planner-Vorschlag). — **Ausgang:** offen bis zur Closure.
 - Blockierendes Schreiben auf einen vollen Ausgabekanal könnte den Anfragepfad anhalten; ungemessen, die Entscheidung über asynchrone Ausgabe steht in der ADR, die Messung unter Last in [slice-qa-performance](slice-qa-performance.md). — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz

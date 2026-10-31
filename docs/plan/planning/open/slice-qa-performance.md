@@ -11,7 +11,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-qualitaet-grundlage
 
-**Bezug:** [TDS-QA-04](../../../../spec/lastenheft.md#tds-qa-04--performance)
+**Bezug:** [TDS-QA-04](../../../../spec/lastenheft.md#tds-qa-04--performance), [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md)
 
 **Berührte Spec-Stellen:** SPEC-017 · SPEC-018 · SPEC-019
 
@@ -44,7 +44,7 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] Referenz-Workload dokumentiert und von der Abnahme freigegeben.
-- [ ] Lasttest läuft reproduzierbar in Docker, Protokollschicht und Backend getrennt gemessen.
+- [ ] Lasttest läuft reproduzierbar in Docker, Protokollschicht und Backend getrennt gemessen. Er misst außerdem den Rückstau am Socket im Produktivprozess unter Last mit mehreren Verbindungen (bisher nur eine Maschine, Loopback, 32 MiB), den Heap-Verbrauch beim Strom großer Ergebnisse und die Verzögerung durch den zurückgehaltenen Abschluss in Latenz (am Fake nur als Ereigniszahl messbar) nach [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md); je Punkt eine Messzeile oder die Benennung als nicht lieferbar mit Begründung.
 - [ ] Grenzwerte im Lastenheft festgelegt (Änderung dort, nicht hier).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -98,6 +98,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 - Ohne freigegebenen Referenz-Workload sind die Grenzwerte nicht begründbar. — **Ausgang:** offen bis zur Closure.
+- Rückstau im Produktivbetrieb, Heap und zurückgehaltener Abschluss ([ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md)) sind bisher nur am Fake oder auf einer Maschine belegt (`BEO-TDS/rueckstau-im-produktivbetrieb-nicht-gemessen`); die Messung unter Last braucht den Referenz-Workload und einen Server mit Anfragepfad. — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 

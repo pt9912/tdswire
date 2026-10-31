@@ -198,7 +198,7 @@ sie gilt für jeden Lauf.
 
 | Klasse | Form | Bedeutung | Beispiel |
 |---|---|---|---|
-| <z. B. LH-Bindung> | `LH-<...>` | <z. B. Gate prüft eine bestimmte LH-Anforderung> | <z. B. `LH-QA-01` für Determinismus-Gate> |
+| Lastenheft-Bindung | `TDS-<FA\|QA\|RB>-<NN>` | Die Zeile der Sensors-Tabelle bindet ein Target oder Werkzeug an eine Anforderung des Lastenhefts statt an eine ADR oder einen Carveout. | `make workflow-lint` mit [TDS-QA-06](../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
 
 
 
