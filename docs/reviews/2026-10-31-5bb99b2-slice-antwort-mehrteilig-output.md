@@ -1,0 +1,80 @@
+# Review-Report: [slice-antwort-mehrteilig-output](../plan/planning/in-progress/slice-antwort-mehrteilig-output.md) — 2026-10-31
+
+**Review-Art:** Code (Diff des Slice gegen Plan, [ADR-0005](../plan/adr/0005-rpc-und-prepared-statements.md), [ADR-0006](../plan/adr/0006-backend-vertrag-und-streaming.md), [ADR-0007](../plan/adr/0007-fehler-und-attention.md), [ADR-0013](../plan/adr/0013-backend-grenzen.md), [SPEC-021](../../spec/spezifikation.md#clientprofil-vertrag-zu-spec-021), [SPEC-030](../../spec/spezifikation.md#spec-030--rpc-varianten-und-parameter-metadaten), Spezifikation und Hard Rules). Gegen die DoD wird nicht geprüft; das ist die Frage des Verifiers.
+
+**Gegenstand:** Diff der Commits 7b5b20e bis 5bb99b2: 609a846 (Quelltext und Tests: `ResponseForm`, `RpcOutputs`, `ResponseRun`, `ResponseSequencer`, `RequestLoop`, `ResponseRpcTest`, `AnswerFormsDispatchTest`, `RpcDispatchTest`) und 5bb99b2 (Spezifikation, Abdeckungsmatrix, Plan). 11 Dateien, 643 Zeilen hinzu, 38 entfernt. Beide Commits liegen im Worktree-Kopf 7c8917d.
+
+**Skill:** `.harness/skills/reviewer.md` @ 89ae312
+**Modell:** claude-sonnet-5-5 · **Datum:** 2026-10-31
+
+**Eingangs-Kontext:**
+
+- [slice-antwort-mehrteilig-output](../plan/planning/in-progress/slice-antwort-mehrteilig-output.md) (Plan, Ist-Zustand-Tabelle, Risiken §6)
+- [ADR-0005](../plan/adr/0005-rpc-und-prepared-statements.md) (Messzeilen des Spikes, insbesondere die Zeile „Zwei Resultsets über `sp_executesql`“ und „Antwortpflicht“), [ADR-0006](../plan/adr/0006-backend-vertrag-und-streaming.md), [ADR-0007](../plan/adr/0007-fehler-und-attention.md) (Messung R02 und die Liste „nicht gemessen“), [ADR-0013](../plan/adr/0013-backend-grenzen.md) (im Diff nicht berührt)
+- [TDS-FA-10](../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte) und [TDS-FA-10.a](../../spec/spezifikation.md#tds-fa-10a--mehrteilige-antworten-und-rpc-ausgabewerte), [TDS-QA-02](../../spec/lastenheft.md#tds-qa-02--stabilität)
+- [SPEC-002](../../spec/spezifikation.md#spec-002--interner-query-vertrag), [SPEC-013](../../spec/spezifikation.md#4-fehler-codes-und-logging-felder), [SPEC-014](../../spec/spezifikation.md#4-fehler-codes-und-logging-felder), [SPEC-021](../../spec/spezifikation.md#clientprofil-vertrag-zu-spec-021), [SPEC-030](../../spec/spezifikation.md#spec-030--rpc-varianten-und-parameter-metadaten), [SPEC-031](../../spec/spezifikation.md#spec-031--streaming-fehler-und-atomarität), [SPEC-048](../../spec/spezifikation.md#4-fehler-codes-und-logging-felder)
+- `AGENTS.md` §3.1 bis §3.8
+
+**Eigene Läufe (im Worktree selbst, nichts gemountet, ein Docker-Build zur Zeit):**
+
+- `make gates` im Worktree-Kopf: Exit 0 (aus dem Build-Cache, 8 s).
+- Zwei Einzel-Mutationen, je mit `make test`, danach zurückgesetzt. Getötet: (M1) `flushHeld(more = true)` vor dem DONEPROC in `ResponseRun.end` auf `false`: rot in `AnswerFormsDispatchTest` und in drei Tests von `RpcDispatchTest` (erwartet `FF 11`, war `FF 10`). (M2) Prüfung `statusSeen` in `RpcOutputs.status` entfernt: rot in `ResponseRpcTest` „RPC-Ereignisse in falscher Folge sind ein Reihenfolgeverstoss“ (Fall „zweiter ReturnStatus“).
+- `make spec-abdeckung` im Worktree-Kopf, Ergebnis verworfen: die Zeile `TDS-FA-10.a` im Abschnitt „Tags auf unbekannte Festlegungen“ der eingecheckten Matrix erscheint nicht mehr (F-5).
+- Handvektoren von Hand gegen das Tabellenlayout von MS-TDS nachgezählt: RETURNVALUE (`AC`, Ordinal 2 Byte, Name als B_VARCHAR, Status 1 Byte, UserType 4 Byte, Flags 2 Byte, TYPE_INFO, Wert), DONE, DONEINPROC und DONEPROC (Status 2 Byte, CurCmd 2 Byte, Zeilenzahl 8 Byte), RETURNSTATUS (`79` plus 4 Byte): die Bytefolgen in `AnswerFormsDispatchTest` stimmen mit dieser Zählung überein. Eine Abschnittsnummer eines Standards nennt der Diff nicht.
+- `make docs-check`: siehe Ende.
+
+---
+
+## Findings
+
+| ID | Kategorie | Befund | Quelle | Pfad | Verifizierbar | Klasse |
+|---|---|---|---|---|---|---|
+| F-1 | MEDIUM | [SPEC-031](../../spec/spezifikation.md#spec-031--streaming-fehler-und-atomarität) sagt weiter, Return Status und Ausgabeparameter würden „bis zu ihrer Abbildung“ mit einem Fehler der Typabbildung abgelehnt, ohne die Ausnahme der Form RPC. Der Diff schreibt in „RPC im Backend-Vertrag“ das Gegenteil (RETURNSTATUS und RETURNVALUE werden geschrieben, nur der Batch lehnt ab). Ein Leser von [SPEC-031](../../spec/spezifikation.md#spec-031--streaming-fehler-und-atomarität) schließt, dass ein RPC mit OUTPUT-Parameter `TDS_UNSUPPORTED_TYPE` ergibt; der Folge-Slice für Prepare-Handles stützt sich auf diese Abbildung. | Maintainability, `AGENTS.md` §3.8 | `spec/spezifikation.md` · „Return Status und Ausgabeparameter werden bis zu ihrer Abbildung mit einem Fehler der Typabbildung“ | nein (kein Gate prüft Spec-Widersprüche; `make docs-check` meldet es nicht) | Fortgeschriebene Festlegung an einer zweiten Stelle der Spec stehen gelassen |
+| F-2 | LOW | Die Setzung „ERROR und der Abschluss mit Fehlerstatus sind auch in der RPC-Antwort ein DONE“ steht als Setzung des Implementers, nennt aber den einzigen Messpunkt nicht, der in die andere Richtung zeigt: [ADR-0007](../plan/adr/0007-fehler-und-attention.md) R02 zeigt am echten Server `DONEPROC[ERR]` für einen Fehler im Prozedur-Kontext. [ADR-0007](../plan/adr/0007-fehler-und-attention.md) führt „RPC-Pfade (`sp_executesql`) mit Fehlern“ als nicht gemessen; ein Widerspruch zum Wortlaut von [ADR-0005](../plan/adr/0005-rpc-und-prepared-statements.md) oder [ADR-0007](../plan/adr/0007-fehler-und-attention.md) besteht nicht, die Zuständigkeit liegt bei `welle-fehler-abbruch`. | `AGENTS.md` §3.8, [ADR-0007](../plan/adr/0007-fehler-und-attention.md) | `spec/spezifikation.md` · „ERROR und der Abschluss mit Fehlerstatus sind auch in der RPC-Antwort ein DONE“; `ResponseSequencer.kt` · „ERROR und der Abschluss mit Fehlerstatus bleiben auch hier ein DONE.“ | ja (`ResponseRpcTest` „Ein Fehler nach einem Ergebnis beendet die RPC-Antwort ohne Erfolgsabschluss“ pinnt die Setzung, belegt sie nicht) | Setzung nennt vorhandenen Gegenbeleg nicht |
+| F-3 | LOW | Die Ordinale der RETURNVALUE zählen die Ausgabeereignisse ab 0 (`ordinal++` in `RpcOutputs.value`), nicht die Position des Parameters in der Aufrufliste; `QueryEvent.OutputParameter` trägt keine Position. Bei `sp_executesql` mit zwei Kopfparametern und einem OUTPUT-Parameter als drittem trüge das erste RETURNVALUE Ordinal 0. Spec und Plan §6 kennzeichnen die Zählung als Setzung ohne Messung; die einzige gemessene Zeile ([ADR-0005](../plan/adr/0005-rpc-und-prepared-statements.md), Handle von `sp_prepexec`, Ordinal 0) trennt die beiden Lesarten nicht. | [TDS-FA-10.a](../../spec/spezifikation.md#tds-fa-10a--mehrteilige-antworten-und-rpc-ausgabewerte), [ADR-0005](../plan/adr/0005-rpc-und-prepared-statements.md) | `RpcOutputs.kt` · „ReturnValueToken(ordinal++, column.name“; `spec/spezifikation.md` · „Ordinal ab 0 in der Reihenfolge der Ereignisse“ | nein (nur der Vergleichslauf am echten Server, `BEO-TDS/messung-am-echten-sql-server-fehlt`) | Festlegung ohne Messung trennt die Lesarten nicht |
+| F-4 | LOW | Der Negativtest „Ein nicht abbildbarer Ausgabewert …“ belegt am Pfad `OutputParameter` nur Precision 39, `Long` in `Int32` und einen Namen über 255 Zeichen. Text über 4000 UTF-16-Einheiten und einen `BigDecimal` außerhalb von Precision und Scale prüft er dort nicht; beide laufen über `ValueMapping.value`, das `ValueMappingTest` für Zeilen belegt. Ein `RpcOutputs`, das den Wert nicht über diese Funktion schreibt, bliebe grün. (Scale selbst ist im Modell geprüft: `SqlType.Decimal` verlangt `scale in 0..precision`.) | [TDS-FA-10](../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte) Negative, `AGENTS.md` §3.8 | `ResponseRpcTest.kt` · „Ein nicht abbildbarer Ausgabewert ist ein Fehler der Typabbildung“ | ja (Mutation: `RpcOutputs.value` schreibt den Wert ohne `ValueMapping.value`; nicht gefahren) | Negativfall an neuem Pfad nur durch Wiederverwendung belegt |
+| F-5 | LOW | Die eingecheckte Abdeckungsmatrix führt unter „Tags auf unbekannte Festlegungen“ einen Tag `TDS-FA-10.a` am Test „RPC mit OUTPUT-Parameter und Rueckgabestatus liefert …“; im Quelltext trägt dieser Test nur `@spec SPEC-030`, und ein frisch erzeugter Lauf (`make spec-abdeckung`) führt die Zeile nicht. Die Matrix stammt nicht aus dem Stand des Commits. | `AGENTS.md` §5 Regel 6, Beobachtung `BEO-TDS/abdeckungsmatrix-veraltet-ohne-sensor` | `docs/plan/spec-abdeckung.md` · „AnswerFormsDispatchTest.RPC mit OUTPUT-Parameter und Rueckgabestatus liefert RETURNSTATUS“ | ja (`make spec-abdeckung`, Diff) | Abdeckungsmatrix nicht aus dem Commit-Stand erzeugt |
+| F-6 | INFO | Zur Setzung MORE am letzten DONEINPROC (Fokus 1): Der Spike-Testserver schrieb den letzten Abschluss ohne `MORE` ([ADR-0005](../plan/adr/0005-rpc-und-prepared-statements.md), „zwei Gruppen mit DONEINPROC `0x11` und `0x10`“); der Diff setzt `MORE`, weil ein DONEPROC folgt. Das passt zu [TDS-FA-10.a](../../spec/spezifikation.md#tds-fa-10a--mehrteilige-antworten-und-rpc-ausgabewerte) Schritt 2 („nur gemäß tatsächlichem Zustand“), solange `MORE` „es folgt noch ein Abschluss-Token“ bedeutet; das ist eine Lesart, keine Messung. Der KDoc des Sequenzierers nennt die Abweichung vom Testserver, die Spec-Setzung nicht; beide kennzeichnen sie als nicht gemessen. Der Client hat `MORE` mit `COUNT` vor RETURNSTATUS nicht gesehen (Träger `slice-qa-kompatibilitaet`). Mutation M1 zeigt, dass mindestens vier Tests die Setzung pinnen. | [TDS-FA-10.a](../../spec/spezifikation.md#tds-fa-10a--mehrteilige-antworten-und-rpc-ausgabewerte), [ADR-0005](../plan/adr/0005-rpc-und-prepared-statements.md) | `ResponseSequencer.kt` · „der Testserver des“ | nein (Client- und Servermessung) | Setzung weicht von Spike-Zeile ab, Abweichung nur im KDoc benannt |
+| F-7 | INFO | `RpcOutputs.map` liefert `null` für jedes andere Ereignis als `ReturnStatus` und `OutputParameter`, und `ResponseRun.rpcOutput` deutet `null` als Reihenfolgeverstoß. Der einzige Aufrufer ruft nur mit den beiden Arten; der KDoc nennt als `null`-Fall nur den zweiten `ReturnStatus`. Heute unerreichbar (Fokus 3), bei einem späteren Aufrufer mit anderem Ereignis ein stiller Reihenfolgeverstoß. | Maintainability | `RpcOutputs.kt` · „else -> null“ | nein | `null` trägt zwei Bedeutungen |
+| F-8 | INFO | Die RPC-Form prüft nur „kein ReturnStatus oder OutputParameter im offenen Ergebnis“ und „höchstens ein ReturnStatus“. Ein `ResultStart` nach einem `OutputParameter` ergibt COLMETADATA hinter RETURNVALUE; Spec („die Tokens stehen in der Reihenfolge des Stroms“) und Tests schweigen dazu. Ob der Client eine solche Folge annimmt, ist nicht gemessen. | [TDS-FA-10.a](../../spec/spezifikation.md#tds-fa-10a--mehrteilige-antworten-und-rpc-ausgabewerte) Schritt 3 | `ResponseRun.kt` · „columns != null -> violation()“ | nein | Reihenfolge der Ausgabewerte zu den Ergebnissen nicht festgelegt |
+| F-9 | INFO | Der Test „NULL im OUTPUT bleibt NULL und die Ordinale zaehlen“ nutzt für beide OUTPUT-Parameter denselben Namen `@o`; das stützt die Ordinal-Zählung, bildet aber keine Aufrufliste ab, in der Namen eindeutig sind ([SPEC-013](../../spec/spezifikation.md#4-fehler-codes-und-logging-felder) und der Binder verlangen Eindeutigkeit der Parameternamen). | Maintainability | `AnswerFormsDispatchTest.kt` · „NULL im OUTPUT bleibt NULL und die Ordinale zaehlen“ | nein | Testdaten bilden den Vertrag nicht ab |
+
+Beantwortung der Fokus-Fragen des Implementers (ohne Übernahme seiner Einschätzung):
+
+1. MORE am letzten DONEINPROC: gekennzeichnete Setzung, durch Tests gepinnt, mit Spike-Abweichung (F-6); kein Verstoß.
+2. Neue Festlegungen der Spec ohne Beleg (Abschnitt „Antwortformen des Servers (Festlegung)“ unter dem Clientprofil zu [SPEC-021](../../spec/spezifikation.md#clientprofil-vertrag-zu-spec-021)): Die Tabelle und die Liste „Nicht unterstützt“ stimmen mit dem Code überein (Reihenfolgeverstöße: [SPEC-048](../../spec/spezifikation.md#4-fehler-codes-und-logging-felder) und Verbindungsende; Batch mit RETURNSTATUS oder RETURNVALUE und Typ außerhalb der Abbildung: `TDS_UNSUPPORTED_TYPE`; Transaktionen, MARS, Table-Valued-Parameter: [TDS-FA-10](../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte) Out-of-Scope). Der Abschnitt kennzeichnet sich als Setzung ohne Messung und nennt Handvektoren; die Ausnahmen sind F-1 (Widerspruch an anderer Stelle) und F-2 (Gegenbeleg nicht genannt). Die Spezifikation gibt keinen externen Abschnittsnummern-Verweis an. Lastenheft-Anker ist [TDS-FA-10](../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte), das die Dokumentation der nicht unterstützten Formen verlangt; die untere Schicht erweitert die obere nicht.
+3. `RpcOutputs.map` mit `null`: F-7.
+4. „Typ außerhalb der Abbildung“: F-4; der Typ-Teil (Precision 39) ist belegt, Text über 4000 und Wertbereich am Pfad nicht.
+5. Fehler in der RPC-Antwort als DONE: F-2; kein ADR-Wortlaut verletzt ([ADR-0005](../plan/adr/0005-rpc-und-prepared-statements.md) verlangt DONEPROC bzw. DONEINPROC für Erfolgsformen, [ADR-0007](../plan/adr/0007-fehler-und-attention.md) nennt für Fehler ERROR und DONE mit Fehlerstatus allgemein). Der Konflikt-Pfad über den Architect ist nicht ausgelöst (kein HIGH, kein Rollen-Widerspruch).
+6. Ordinal ab 0 in Ereignisfolge: F-3. Die Handvektoren haben als Quelle das Tabellenlayout von MS-TDS ohne Abschnittsnummer und die Spike-Zeilen aus [ADR-0005](../plan/adr/0005-rpc-und-prepared-statements.md); nach meiner Zählung stimmen die Bytes. Die Reihenfolge RETURNSTATUS, RETURNVALUE, DONEPROC ist die des Testservers und für einen echten Server nicht gemessen ([ADR-0005](../plan/adr/0005-rpc-und-prepared-statements.md) sagt das selbst).
+
+## Negativbefunde
+
+| Bereich | Ergebnis |
+|---|---|
+| `src/main/.../protocol/response` (`ResponseForm`, `ResponseRun`, `ResponseSequencer`): Schichtimporte, Kommentare (Klassen Zusage, Kopplung, Abgrenzung), keine Suppression | geprüft, ohne Befund (außer F-6, F-7) |
+| `src/main/.../protocol/dispatch/RequestLoop.kt`: Form an den Sequenzierer, Batch `BATCH`, RPC `RPC` | geprüft, ohne Befund |
+| `src/test/.../protocol/response/ResponseRpcTest.kt`, `.../dispatch/AnswerFormsDispatchTest.kt`, `RpcDispatchTest.kt`: `@spec`-Tags je Test, Wächter-Sätze, Bytefolgen | geprüft, ohne Befund (außer F-4, F-9) |
+| `spec/spezifikation.md`: Schichtregel (keine Erweiterung des Lastenhefts, keine `ADR-`- oder `ARC-`-Kennung in der Spezifikation) | geprüft, ohne Befund (außer F-1, F-2) |
+| `spec/architecture.md`, `spec/lastenheft.md`, `docs/plan/adr/` | nicht im Diff; [ADR-0005](../plan/adr/0005-rpc-und-prepared-statements.md), [ADR-0006](../plan/adr/0006-backend-vertrag-und-streaming.md), [ADR-0007](../plan/adr/0007-fehler-und-attention.md), [ADR-0013](../plan/adr/0013-backend-grenzen.md) unverändert (§3.5 gewahrt) |
+| `config/detekt/detekt.yml`, `build.gradle.kts`, `Dockerfile`, `tools/` | nicht im Diff; keine Lockerung, keine Suppression (§3.1, §3.2, §3.6) |
+| Plan `slice-antwort-mehrteilig-output.md`: Ist-Zustand-Tabelle gegen Diff | geprüft, ohne Befund (alle sieben Dateien der Tabelle im Diff, keine darüber hinaus) |
+
+## Summary
+
+| Kategorie | Anzahl |
+|---|---|
+| HIGH | 0 |
+| MEDIUM | 1 |
+| LOW | 4 |
+| INFO | 4 |
+
+**Finding-Klassen dieses Laufs:** Fortgeschriebene Festlegung an einer zweiten Stelle der Spec stehen gelassen · Setzung nennt vorhandenen Gegenbeleg nicht · Festlegung ohne Messung trennt die Lesarten nicht · Negativfall an neuem Pfad nur durch Wiederverwendung belegt · Abdeckungsmatrix nicht aus dem Commit-Stand erzeugt · Setzung weicht von Spike-Zeile ab, Abweichung nur im KDoc benannt
+
+## Verdikt
+
+**Merge-blockierend:** ja, wegen F-1 (MEDIUM). Der Rest blockiert nicht; F-2 bis F-5 sind LOW mit Anker, F-6 bis F-9 INFO.
+
+**Übergabe:** Findings gehen an den Implementer; die Finding-Klassen gehen in die Slice-Closure §7. Dieser Report ersetzt keine Verifikation: Konformität mit der DoD (Liefer-Punkte, Zuordnung *Test | Festlegung*) prüft der Verifier.
+
+**Ergebnis `make docs-check`** nach Anlage dieses Reports: 436 Dateien geprüft, 0 Befunde.
