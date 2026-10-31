@@ -1,0 +1,2 @@
+**Vorgang:** slice-qa-wartbarkeit
+**Fund:** Review der Neuaufnahme F-1: „Typ X unterstützt“ gilt für den Zusammenbau von Parser und Dispatch. Die Zeilen der Matrix nannten Parser-Tests und behaupteten damit, der Client dürfe den Typ senden; die Ablehnung im Dispatch hatte für die meisten Typen keinen eigenen Test (die Matrix weist es für `smallmoney`, `smalldatetime`, `tinyint`/`smallint` und `real` selbst aus). Behoben durch die Trennung beider Schichten je Zeile und durch Einzelfälle aus `RpcBinderTest` und `RpcDispatchTest`.

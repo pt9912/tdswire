@@ -1,6 +1,6 @@
 # Review slice-qa-wartbarkeit (Merge 71122af)
 
-* Gegenstand: `docs/plan/kompatibilitaetsmatrix.md` (neu) und `docs/plan/planning/in-progress/slice-qa-wartbarkeit.md` §3 (Diff `cff52a9..71122af`: 2 Dateien)
+* Gegenstand: `docs/plan/kompatibilitaetsmatrix.md` (neu) und `docs/plan/planning/done/slice-qa-wartbarkeit.md` §3 (Diff `cff52a9..71122af`: 2 Dateien)
 * Grundlage: [TDS-QA-05](../../spec/lastenheft.md#tds-qa-05--wartbarkeit), [ADR-0010](../plan/adr/0010-detekt-pre-release.md), [ADR-0005](../plan/adr/0005-rpc-und-prepared-statements.md), [ADR-0009](../plan/adr/0009-authentifizierungsmodus.md), [ADR-0002](../plan/adr/0002-tls-und-verschluesselung.md), [ADR-0004](../plan/adr/0004-session-zustandsautomat.md), [ADR-0007](../plan/adr/0007-fehler-und-attention.md), `spec/architecture.md` §2, `AGENTS.md` §3.1 bis 3.8 und §5 Regel 6
 * Gegen DoD wird nicht geprüft (Verifier).
 
@@ -104,7 +104,7 @@ Die Tabelle in §3 führt die Matrix doppelt (Zeile 1 ohne Pfad „Kompatibilit�
 
 ## Negativbefund (geprüft, ohne Befund)
 
-* `docs/plan/planning/in-progress/slice-qa-wartbarkeit.md`: ohne Befund (Änderung beschränkt auf §3)
+* `docs/plan/planning/done/slice-qa-wartbarkeit.md`: ohne Befund (Änderung beschränkt auf §3)
 * `docs/plan/adr/` (0002, 0004, 0005, 0007, 0009, 0010): unverändert im Diff, ohne Befund
 * `config/detekt/detekt.yml` und `spec/architecture.md` §2: unverändert, Abgleich siehe I-1, I-2
 * `src/`, `build.gradle.kts`, `gradle.lockfile`, `tools/`, `harness/mk/`: unverändert, ohne Befund
