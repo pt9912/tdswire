@@ -1,0 +1,2 @@
+**Vorgang:** slice-qa-sicherheit
+**Fund:** `TlsRenegotiationTest` färbte weder M6a (Antwort der Leseseite entfällt) noch M6b (`TlsWriter.answer()` ohne Wirkung), weil der Schreibpfad die Handshake-Daten beim nächsten Nutzdatenschreiben ausgibt; rot wurde nur der KeyUpdate-Test von `TlsLoopbackTest` (Verifikation L-1). Die Mini-Runde f8f2c35 lässt den Server nur lesen, bis die Gegenstelle fertig ist; ob das M6a und M6b färbt, ist nicht gesehen.

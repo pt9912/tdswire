@@ -1,0 +1,2 @@
+**Vorgang:** slice-qa-sicherheit
+**Fund:** Die Messung der Zeitgleichheit wurde im KDoc von `UserList` und `AuthPrimitives` fortgeschrieben, nicht in `UserListAuthAdapter` (F-5) und nicht in `TlsChannel` (F-2: Neuverhandlung „nicht Gegenstand“); nach der Fix-Runde stand „nicht gemessen“ noch an drei Stellen der Spezifikation (M-1, Verifikation); zwei Zustandsfelder trugen den alten Träger der Loginspektion (L-3). Gesucht wurde die Kernaussage über `spec/`, `src/main` und `docs/plan/planning/`, nicht die genannte Zeile.
