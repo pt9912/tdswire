@@ -111,8 +111,10 @@ enum class SequenceOutcome {
  *   [ErrorMapping.internal]. Eine [CancellationException] läuft aus `execute()` wie aus dem Strom
  *   nach außen, auch wenn die Coroutine nicht abgebrochen ist (etwa ein Zeitlimit im Backend).
  * - Ein `OutOfMemoryError` aus dem Backend, dem Encoder oder der Senke wird wie eine Ausnahme des
- *   Backends behandelt (ADR-0013, Proposed); gefangen wird nur dieser Fehler. Gelingt das Schreiben
- *   von ERROR und DONE nicht, ist der Strom nicht abschließbar.
+ *   Backends behandelt; gefangen wird nur dieser Fehler. Gelingt das Schreiben von ERROR und DONE
+ *   nicht, ist der Strom nicht abschließbar. Fiel der Fehler im Schreiben der Senke und steht der Strom
+ *   womöglich mitten in einem Token, nimmt die Senke nichts mehr an (`false`): kein ERROR, kein DONE,
+ *   [SequenceOutcome.CLOSE_WITHOUT_COMPLETION].
  * - Eine andere Ausnahme der Senke als die Abbruchausnahme und `OutOfMemoryError`, ebenso eine Ausnahme
  *   aus `close()` oder `cancel()`, laufen nach `close()` unverändert nach außen; dafür gibt es keine
  *   Zusage.

@@ -19,13 +19,16 @@ import java.nio.ByteBuffer
  * beträgt. Nicht thread-sicher: ein Writer gehört einem Aufrufer.
  */
 class MessageWriter(private val channel: SuspendingChannel, private var packetSize: Int) {
+    /** Der Paketbau der Ströme aus [open]; Tests ersetzen ihn, um Ausnahmen im Paketbau auszulösen. */
+    internal var packetBuilder: PacketBuilder = PacketWriter::packet
+
     /** Stellt die Packet Size für folgende [write]- und [open]-Aufrufe ein; eine laufende Antwort behält ihre. */
     fun usePacketSize(size: Int) {
         packetSize = size
     }
 
     /** Beginnt eine Antwort vom Typ [type] in Stücken; gehalten wird ein Paket, nicht die Nachricht. */
-    fun open(type: PacketType): MessageStream = MessageStream(channel, type, packetSize)
+    fun open(type: PacketType): MessageStream = MessageStream(channel, type, packetSize, packetBuilder)
 
     /** Schreibt [message] vollständig oder meldet den ersten Fehler; bei einem Fehler ist offen, wie viel ankam. */
     suspend fun write(message: TdsMessage): WriteOutcome =

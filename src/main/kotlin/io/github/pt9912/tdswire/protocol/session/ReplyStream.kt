@@ -5,7 +5,8 @@ package io.github.pt9912.tdswire.protocol.session
  * Zusage: [write] kehrt erst zurück, wenn der Kanal die Pakete angenommen hat, die das Stück
  * vollendet; solange der Kanal nichts annimmt, suspendiert der Aufrufer (Rückstau). Die Antwort ist
  * erst mit [finish] eine vollständige Nachricht; ohne [finish] endet sie ohne Paket mit EOM-Bit.
- * Nach dem ersten Fehler liefern [write] und [finish] `false`. Eine Instanz gehört einem Aufrufer.
+ * Nach dem ersten Fehler liefern [write] und [finish] `false`; das gilt auch, wenn ein Aufruf mit einer
+ * Ausnahme endete, denn die Antwort kann dann mitten in einem Token stehen. Eine Instanz gehört einem Aufrufer.
  */
 interface ReplyStream {
     /** Hängt [bytes] an die Antwort; `false`, wenn das Schreiben scheitert oder die Antwort beendet ist. */

@@ -42,13 +42,15 @@ class WireSession(
     companion object {
         /**
          * Meldet an (PRELOGIN und LOGIN7 mit der verlangten [packetSize]) und stellt [batches] bereit;
-         * danach schweigt die Gegenstelle mit Ende der Verbindung. [configure] stellt Haltepunkte des
+         * danach schweigt die Gegenstelle mit Ende der Verbindung. Mit [packetBuilder] baut der Schreiber seine
+         * Pakete anders (Tests lösen so eine Ausnahme im Paketbau aus). [configure] stellt Haltepunkte des
          * Drahts ein, bevor irgendetwas geschrieben wird.
          */
         suspend fun login(
             packetSize: Int,
             vararg batches: String,
             retain: Boolean = false,
+            packetBuilder: ((PacketType, ByteArray, Int, Boolean, Int) -> ByteArray)? = null,
             configure: ScriptedWire.() -> Unit = {},
         ): WireSession {
             val login = SessionVectors.login7 { this.packetSize = packetSize }
@@ -61,6 +63,7 @@ class WireSession(
             val wire = ScriptedWire(inbound, retain)
             val reader = MessageReader(wire, FramingLimits.preLogin())
             val writer = MessageWriter(wire, WIRE_DEFAULT_PACKET_SIZE)
+            if (packetBuilder != null) writer.packetBuilder = packetBuilder
             val channel = TransportHandshakeChannel(reader, writer, wire) { true }
             val driver = HandshakeDriver(HandshakeConfig(), RecordingAdapter.accepting(), sessionIds = { "s1" })
             val ready = assertIs<HandshakeOutcome.Ready>(driver.run(channel))

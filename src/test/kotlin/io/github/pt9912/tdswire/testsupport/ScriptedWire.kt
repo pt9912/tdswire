@@ -34,6 +34,13 @@ class ScriptedWire(private val inbound: ByteArray, private val retain: Boolean =
     var stallAfterBytes: Long = Long.MAX_VALUE
     var failAfterPackets: Int = Int.MAX_VALUE
 
+    /**
+     * Nach so vielen angenommenen Paketen wirft der nächste Schreibvorgang einmal einen
+     * `OutOfMemoryError`, nachdem der Schreiber das Paket aus seinem Puffer entnommen hat.
+     */
+    var outOfMemoryAfterPackets: Int = Int.MAX_VALUE
+    private var outOfMemoryThrown = false
+
     /** Zähler seit Erzeugung oder dem letzten [startCounting]. */
     var packetCount = 0
         private set
@@ -103,6 +110,10 @@ class ScriptedWire(private val inbound: ByteArray, private val retain: Boolean =
     override suspend fun writeFully(buffer: ByteBuffer): ChannelResult<Unit> {
         val packet = ByteArray(buffer.remaining())
         buffer.get(packet)
+        if (packetCount >= outOfMemoryAfterPackets && !outOfMemoryThrown) {
+            outOfMemoryThrown = true
+            throw OutOfMemoryError("Text darf nicht zum Client")
+        }
         if (packetCount >= failAfterPackets) {
             return ChannelResult.Failed(ChannelError(ChannelFailure.IO_FAILURE, "ScriptedWire"))
         }
