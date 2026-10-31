@@ -241,8 +241,8 @@ class HandshakeMatrixTest {
 
     /**
      * SQL_BATCH, RPC und ATTENTION vor `READY` sind unzulässig; in `READY` gehören sie der
-     * Anfrageverarbeitung (Aktion `Forward`): ein SQL_BATCH setzt den Anfragezustand `RUNNING`, RPC,
-     * Transaction Manager und ATTENTION lassen `READY` stehen. In `RUNNING` und `STREAMING` ist jede
+     * Anfrageverarbeitung (Aktion `Forward`): ein SQL_BATCH und ein RPC setzen den Anfragezustand
+     * `RUNNING`, Transaction Manager und ATTENTION lassen `READY` stehen. In `RUNNING` und `STREAMING` ist jede
      * Nachricht unzulässig und schließt ohne Antwort.
      *
      * @spec SPEC-001
@@ -257,7 +257,11 @@ class HandshakeMatrixTest {
         val batch = HandshakeAutomaton().step(context(READY), event(REQUEST_MESSAGE))
         assertEquals(RUNNING, batch.context.state)
         assertEquals(listOf(HandshakeAction.Forward), batch.actions)
-        listOf(PacketType.RPC, PacketType.TRANSACTION_MANAGER, PacketType.ATTENTION).forEach { type ->
+        val rpcEvent = HandshakeEvent.Message(SessionVectors.message(PacketType.RPC))
+        val rpc = HandshakeAutomaton().step(context(READY), rpcEvent)
+        assertEquals(RUNNING, rpc.context.state)
+        assertEquals(listOf(HandshakeAction.Forward), rpc.actions)
+        listOf(PacketType.TRANSACTION_MANAGER, PacketType.ATTENTION).forEach { type ->
             val other = HandshakeAutomaton().step(context(READY), HandshakeEvent.Message(SessionVectors.message(type)))
             assertEquals(READY, other.context.state, "$type")
             assertEquals(listOf(HandshakeAction.Forward), other.actions, "$type")

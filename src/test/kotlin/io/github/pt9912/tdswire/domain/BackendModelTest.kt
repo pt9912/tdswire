@@ -3,6 +3,7 @@ package io.github.pt9912.tdswire.domain
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 
 class BackendModelTest {
     /**
@@ -45,6 +46,24 @@ class BackendModelTest {
     @Test
     fun `Parameter ohne Richtung ist INPUT`() {
         assertEquals(ParameterDirection.INPUT, QueryParameter("p", SqlType.Int64, 1L).direction)
+    }
+
+    /**
+     * Die Textdarstellung von Anfrage und Parameter nennt weder Wert noch SQL-Text noch Parametername
+     * (`TDS-QA-03`, Kennwörter in Literalen und Werten).
+     *
+     * @spec SPEC-002
+     */
+    @Test
+    fun `Die Textdarstellung von QueryRequest und QueryParameter verbirgt Text und Werte`() {
+        val secrets = listOf("Geheim-1", "Geheim-2", "pw_name")
+        val parameter = QueryParameter("pw_name", SqlType.UnicodeText, "Geheim-1", ParameterDirection.INPUT_OUTPUT)
+        val parameters = listOf(parameter, parameter.copy(value = null))
+        val request = QueryRequest("s1", "r1", "select 'Geheim-2'", parameters, null)
+        val shown = request.toString() + parameter
+        secrets.forEach { assertFalse(shown.contains(it), "$it in $shown") }
+        assertEquals(true, shown.contains("s1") && shown.contains("r1") && shown.contains("INPUT_OUTPUT"))
+        assertEquals(parameter, parameter.copy())
     }
 
     /**
