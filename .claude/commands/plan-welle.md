@@ -67,7 +67,10 @@ die Antwort und wird notiert.
    (`docs/plan/planning/open/slice-<Kennung>.md`), dann füllen. Nie hand-authoren. **§8 des
    Plans trägt dieselbe Register-Sichtung noch einmal je Slice** (Modul 5, *Zwei Schritte vor der
    Modus-Begründung*) — und ist damit für alles **unter** 3× der einzige Leser; keine Treffer sind
-   dort ebenfalls eine Antwort und werden notiert.
+   dort ebenfalls eine Antwort und werden notiert. **Eine aus einer Closure-Notiz übernommene
+   Risikozeile wird gegen den Ist-Stand gelesen, bevor sie steht** (Dateisystem, `Makefile`,
+   Verlauf der genannten Stelle); sie nennt die Folgepflicht, nicht einen Werkzeugzustand, den
+   eine Reparatur auf `main` schon behoben hat  (seit welle-backend-streaming).
 
 ## Welle-Plan per cp anlegen und füllen (der Kern-Schritt)
 

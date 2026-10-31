@@ -122,6 +122,15 @@ und Zielort auf **einer** Zeile, Sektionsangabe innerhalb der Backticks).
 - `SPEC-002` und `SPEC-003` lassen die Genauigkeit der Zeittypen, die Zeitzonenannahme und die Länge von `UnicodeText` offen; der Quelltext setzt Scale 7 und Länge bis 4000 als Festlegung. `SPEC-003` schweigt zu NULL in nicht nullbarer Spalte und zu leeren oder doppelten Spaltennamen; der Slice legt sie fest.
 - Die Statement-gegen-batch-Unterscheidung und `curCmd` der DONE-Tokens (`SPEC-031`: der Sequenzierer schreibt 0, der Port trägt keine Kennung) stehen als offene Punkte des Backend-Vertrags in der Spezifikation; kein Slice trägt sie.
 
+**Nachtrag 2026-10-31 (Verkörperung nach dem Entscheidungsdurchgang; für diese Einträge gilt die Paarung (a)).** Zwei der oben als „nicht verkörpert“ geführten Klassen sind seit diesem Tag Regeln mit Anker.
+
+- **Reviewer-Skill** geschärft: ein Vertragstest, der nur das Skript des Fakes zurückgibt, ist ein MEDIUM-Anker (Gegenprobe: ein vertragsverletzendes Backend röten die Suite).
+  — liegt in `.harness/skills/reviewer.md`.
+  Auslöser: `BEO-TDS/test-belegt-nur-den-fake` (`slice-backend-port-vertrag`, `slice-backend-streaming-nachweis`, `slice-transport-listener-lebenszyklus` — 3× zum Zeitpunkt dieser Closure).
+- **Planner-Ablauf** geschärft: eine aus einer Closure-Notiz übernommene Risikozeile wird gegen den Ist-Stand gelesen und nennt die Folgepflicht statt eines behobenen Werkzeugzustands.
+  — liegt in `.claude/commands/plan-welle.md`.
+  Auslöser: `BEO-TDS/risikozeile-nennt-behobenen-zustand` (`slice-adr-backend-grenzen`, `slice-adr-simulation-formen`, `slice-backend-streaming-nachweis`, `slice-rpc-executesql-parameter` — 4×).
+
 ## Beobachtungs-Register (Zeiger)
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`

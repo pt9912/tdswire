@@ -1,1 +1,1 @@
-**Stand:** offen — über der Schwelle (10×), bei den Closures von welle-transport-tls, welle-handshake-login, slice-backend-streaming-nachweis, slice-sim-erkennung, welle-backend-streaming, slice-sim-auswahl-streaming und slice-qa-sicherheit gelesen und nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung).
+**Stand:** verkörpert — `.harness/skills/reviewer.md` (MEDIUM-Liste), Anker `seit welle-transport-tls`; Nachtrag in `welle-transport-tls-results.md` §Steering-Loop-Einträge
