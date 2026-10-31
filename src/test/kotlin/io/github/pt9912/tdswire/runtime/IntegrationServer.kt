@@ -6,7 +6,10 @@ import io.github.pt9912.tdswire.simulation.SimColumn
 import io.github.pt9912.tdswire.simulation.SimTable
 import java.math.BigDecimal
 
-/** Zeilen der Tabelle `gross`; der .NET-Test (`referenztest-dotnet/Integration`) zählt dieselbe Zahl. */
+/**
+ * Zeilen der Tabelle `gross`; der .NET-Test (`referenztest-dotnet/Integration`) zählt dieselbe Zahl. `make
+ * kopplung-zahlen` hält beide, den Heap, die Spezifikation und die README gleich.
+ */
 internal const val BIG_ROWS = 500_000
 
 /** Zeichen Text je Zeile von `gross`; wie [BIG_ROWS] im .NET-Test festgehalten. */

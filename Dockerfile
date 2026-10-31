@@ -76,12 +76,10 @@ RUN keytool -genkeypair -alias server -keyalg RSA -keysize 2048 -validity 3650 -
  && rm wurzel.p12 zwischen.p12 zwischen.csr blatt.csr
 
 # --- Test: `docker build --target test .` - fuehrt die Unit-Tests aus (kotlin.test auf der
-# JUnit-Plattform, SPEC-024). Es kommen src/, LICENSE und die Texte hinzu, gegen die Tests Zahlen halten
-# (`IntegrationZahlenTest`); ein roter Test bricht den Build. -----------
+# JUnit-Plattform, SPEC-024). Es kommen src/ und LICENSE hinzu; kein Test liest spec/ oder harness/ (die Kopplung
+# der Zahlen des Integrationslaufs an die Doku prueft die Stage `kopplung-zahlen`). Ein roter Test bricht den Build.
 FROM deps AS test
 COPY --chown=gradle:gradle LICENSE LICENSE
-COPY --chown=gradle:gradle spec/spezifikation.md spec/spezifikation.md
-COPY --chown=gradle:gradle harness/README.md harness/README.md
 COPY --chown=gradle:gradle src src
 COPY --from=testkeys --chown=gradle:gradle /testkeys build/testkeys
 COPY --chown=gradle:gradle gradle/test-jvm.init.gradle.kts gradle/
@@ -156,6 +154,20 @@ WORKDIR /src
 COPY Dockerfile Dockerfile
 COPY tools/e2e.sh tools/e2e-selbsttest.sh tools/manifest-pruefung.sh tools/manifest-selbsttest.sh tools/eingangs-hash.sh tools/eingangs-hash-selbsttest.sh tools/
 RUN bash tools/e2e-selbsttest.sh && sh tools/manifest-selbsttest.sh && bash tools/eingangs-hash-selbsttest.sh
+
+# --- Kopplung der Zahlen: `make kopplung-zahlen` - haelt Heap und Text von `gross` des Integrationslaufs (SPEC-040)
+# in build.gradle.kts, IntegrationServer.kt, dem .NET-Test, der Spezifikation und harness/README.md gleich und belegt
+# an Mutationen, dass jede Abweichung rot macht. Ohne Gradle; Eingang sind nur diese fuenf Dateien und die Skripte,
+# damit eine Doku-Aenderung die Stage `test` nicht ausloest (ADR-0023). ----------------------------------------
+FROM basis AS kopplung-zahlen
+WORKDIR /src
+COPY tools/integrationszahlen-pruefung.sh tools/integrationszahlen-selbsttest.sh tools/
+COPY build.gradle.kts build.gradle.kts
+COPY src/test/kotlin/io/github/pt9912/tdswire/runtime/IntegrationServer.kt src/test/kotlin/io/github/pt9912/tdswire/runtime/IntegrationServer.kt
+COPY referenztest-dotnet/Integration/SimulationBackendTests.cs referenztest-dotnet/Integration/SimulationBackendTests.cs
+COPY spec/spezifikation.md spec/spezifikation.md
+COPY harness/README.md harness/README.md
+RUN bash tools/integrationszahlen-pruefung.sh && bash tools/integrationszahlen-selbsttest.sh
 
 # --- Lock: schreibt gradle.lockfile, settings-gradle.lockfile und gradle/verification-metadata.xml
 # neu (`make deps-lock`, braucht Netz). Es wird nichts gemountet: die Stage `lock-export` liefert
