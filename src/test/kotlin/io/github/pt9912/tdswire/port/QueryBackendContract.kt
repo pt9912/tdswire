@@ -29,7 +29,8 @@ interface GeneratingBackend {
  * keine Logik; diese Suite prüft die Implementierung, die [backend] und [generating] liefern. Geprüft
  * werden: Metadaten vor Zeilen, Fehler als [QueryEvent.Failure] im Strom, kein Wurf aus `execute`
  * beim Start, `close` und `cancel` erreichen die Zeilenquelle, die Zeilenquelle läuft nicht über die
- * Abnahme hinaus. Jede Implementierung leitet von dieser Klasse ab und liefert die zwei Fabriken.
+ * Abnahme hinaus. Jede Implementierung leitet von dieser Klasse ab und liefert die zwei Fabriken; ein Backend,
+ * das den SQL-Text auswertet oder seine Fehler selbst benennt, überschreibt zusätzlich [sql] und [seen].
  *
  * Grenze: die Suite sammelt jeden Strom genau einmal (`QueryExecution.events`) und läuft in einem
  * `runBlocking` ohne eigenen Dispatcher; sie sagt nichts über blockierende oder echte Backends
@@ -48,13 +49,27 @@ abstract class QueryBackendContract {
      */
     protected abstract fun generating(rows: Int): GeneratingBackend
 
-    private val request = QueryRequest(
-        sessionId = "s1",
-        requestId = "r1",
-        sql = "SELECT 1",
-        parameters = listOf(QueryParameter("p", SqlType.Int32, 7)),
-        deadlineEpochMillis = null,
-    )
+    /**
+     * Der SQL-Text der Anfrage. Haken für Backends, die den Text auswerten (Simulations-Backend); das
+     * Test-Backend ignoriert ihn.
+     */
+    protected open val sql: String get() = "SELECT 1"
+
+    /**
+     * Der Fehler, wie ihn der Leser des Stroms sieht, wenn [backend] den Fehler [scripted] melden soll. Haken für
+     * Backends, die den Code und die Meldung selbst festlegen (Simulations-Backend); das Test-Backend gibt ihn
+     * unverändert zurück.
+     */
+    protected open fun seen(scripted: QueryEvent.Failure): QueryEvent.Failure = scripted
+
+    private val request: QueryRequest
+        get() = QueryRequest(
+            sessionId = "s1",
+            requestId = "r1",
+            sql = sql,
+            parameters = listOf(QueryParameter("p", SqlType.Int32, 7)),
+            deadlineEpochMillis = null,
+        )
     private val columns = listOf(
         ResultColumn("id", SqlType.Int32, nullable = false),
         ResultColumn("name", SqlType.UnicodeText, nullable = true),
@@ -108,7 +123,7 @@ abstract class QueryBackendContract {
 
         val events = backend(script).execute(request).events.toList()
 
-        assertEquals(failure, events.last())
+        assertEquals(seen(failure), events.last())
         assertEquals(1, events.count { it is QueryEvent.Row })
     }
 
@@ -125,7 +140,7 @@ abstract class QueryBackendContract {
 
         val execution = backend(listOf(failure)).execute(request)
 
-        assertEquals(listOf<QueryEvent>(failure), execution.events.toList())
+        assertEquals(listOf<QueryEvent>(seen(failure)), execution.events.toList())
     }
 
     /**
