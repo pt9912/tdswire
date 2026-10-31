@@ -14,14 +14,12 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 
-/** Zeilen von `viele`; der .NET-Test (`referenztest-dotnet/Kompatibilitaet`) liest davon nur den Anfang. */
-internal const val MANY_ROWS = 300_000
-
-/** Zeichen Text je Zeile von `viele`. */
-internal const val MANY_TEXT_CHARS = 128
-
 /** Zeilen von `kaputt`, bevor die Quelle fehlschlägt; wie im .NET-Test festgehalten. */
 internal const val KOMPAT_BROKEN_AFTER = 3
+
+/** Zeilen und Zeichen Text je Zeile von `breit`; jede Zeile ist größer als das kleinste Paket (512 Bytes). */
+internal const val WIDE_ROWS = 10
+internal const val WIDE_TEXT_CHARS = 600
 
 /** Zeilenzahlen, die die Callbacks von `person` melden; der .NET-Test erwartet dieselben Zahlen. */
 internal const val INSERTED_ROWS = 1L
@@ -35,12 +33,13 @@ private val KEY = SimColumn("Id", SqlType.Int32, nullable = false)
 
 /**
  * Die Tabellen des Kompatibilitätslaufs (`make kompatibilitaet`): `person` mit drei Zeilen und Callbacks für
- * Einfügen, Ändern und Löschen, `typen` mit je einer Spalte der neun Typen des Mindestkatalogs und zwei Zeilen
- * (eine gefüllt, eine mit NULL), `viele` mit [MANY_ROWS] Zeilen für den Verbindungsabbruch mitten im Ergebnis und
- * `kaputt`, dessen Quelle nach [KOMPAT_BROKEN_AFTER] Zeilen mit einer Ausnahme endet.
+ * Einfügen, Ändern und Löschen, `typen` mit je einer Spalte der acht Typen von `SqlType` und zwei Zeilen (eine
+ * gefüllt, eine mit NULL), `breit` mit [WIDE_ROWS] Zeilen zu [WIDE_TEXT_CHARS] Zeichen (Antworten über mehrere
+ * Pakete bei der Paketgröße 512) und `kaputt`, dessen Quelle nach [KOMPAT_BROKEN_AFTER] Zeilen mit einer Ausnahme
+ * endet.
  */
 internal object KompatibilitaetsTables {
-    fun all(): List<SimTable> = listOf(person(), types(), many(), broken())
+    fun all(): List<SimTable> = listOf(person(), types(), wide(), broken())
 
     private fun person() = SimTable(
         name = "person",
@@ -97,13 +96,13 @@ internal object KompatibilitaetsTables {
         },
     )
 
-    private fun many() = SimTable(
-        name = "viele",
+    private fun wide() = SimTable(
+        name = "breit",
         columns = listOf(KEY, SimColumn("Text", SqlType.UnicodeText)),
         primaryKey = listOf("Id"),
         rows = {
             var next = 0
-            RowSource { if (next < MANY_ROWS) listOf(++next, String(CharArray(MANY_TEXT_CHARS) { 'x' })) else null }
+            RowSource { if (next < WIDE_ROWS) listOf(++next, String(CharArray(WIDE_TEXT_CHARS) { 'y' })) else null }
         },
     )
 
@@ -146,6 +145,6 @@ internal class RecordingBackend(private val inner: QueryBackend, private val out
  */
 fun main() {
     val backend = RecordingBackend(SimulationBackend(SimCatalog(KompatibilitaetsTables.all())))
-    println("kompatibilitaetsserver: Tabellen person, typen, viele ($MANY_ROWS Zeilen), kaputt")
+    println("kompatibilitaetsserver: Tabellen person, typen, breit, kaputt")
     runServer(Wiring(log = ServerLog.STDOUT, requests = RequestSource(backend = backend)))
 }

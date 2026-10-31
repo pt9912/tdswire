@@ -91,6 +91,25 @@ pruefe "Log des Servers nennt keinen Handlerfehler" sh -c "! docker logs '$SERVE
 pruefe "Log des Servers nennt weder Kennwort noch Text der Quellenausnahme" \
   sh -c "! docker logs '$SERVER' 2>&1 | grep -Eq 'secret|Geheimnis'"
 
+if [ "$KATEGORIE" = Anmeldung ]; then
+  # Der Client beobachtet nur, dass die zweite Nutzung der gepoolten Verbindung gelingt; ob sie dieselbe Sitzung am
+  # Server ist, zeigt das Log (Marker Id = 9101 und Id = 9102 in AnmeldungTests).
+  sitzung_von() { docker logs "$SERVER" 2>&1 | grep -F "$1" | head -1 | sed 's/.*session=\([0-9a-f]*\) .*/\1/'; }
+  gleiche_sitzung() {
+    local a b
+    a="$(sitzung_von 'WHERE Id = 9101]')"
+    b="$(sitzung_von 'WHERE Id = 9102]')"
+    [ -n "$a" ] && [ "$a" = "$b" ]
+  }
+  pruefe "Pooling: beide Anfragen laufen auf derselben Sitzung des Servers" gleiche_sitzung
+  # Die Texte, die der Referenzclient bei SchemaOnly und KeyInfo stellt (Form C von ADR-0012); das Log ist die Messung.
+  set_texte() {
+    docker logs "$SERVER" 2>&1 | grep -qF 'sql=[ SET FMTONLY OFF; SET FMTONLY ON;SELECT Id, Name FROM person SET FMTONLY OFF;]' &&
+      docker logs "$SERVER" 2>&1 | grep -qF 'sql=[ SET FMTONLY OFF; SET NO_BROWSETABLE ON;SELECT Id, Name FROM person SET NO_BROWSETABLE OFF;]'
+  }
+  pruefe "Log nennt die SET-Texte von SchemaOnly und KeyInfo" set_texte
+fi
+
 echo "kompatibilitaetstest: --- Log des Servers ---"
 docker logs "$SERVER" 2>&1
 echo "kompatibilitaetstest: --- Ende des Logs ---"

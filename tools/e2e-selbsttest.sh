@@ -1,6 +1,6 @@
 #!/bin/sh
 # e2e-selbsttest.sh — belegt, dass tools/e2e.sh an der ersten roten Stufe mit Exit 1 abbricht, die Stufe
-# nennt und keine folgende Stufe startet, und dass fuenf gruene Stufen Exit 0 ergeben (ADR-0022,
+# nennt und keine folgende Stufe startet, und dass sechs gruene Stufen Exit 0 ergeben (ADR-0022,
 # TDS-QA-06). Die Stufen sind ein Ersatz fuer `make` (E2E_MAKE), der seine Aufrufe protokolliert; es laeuft
 # kein Docker. Aufgerufen von der Dockerfile-Stage `skript-selbsttest`; braucht bash, sh, mktemp, grep, tr.
 set -eu
@@ -20,7 +20,7 @@ fehler=0
 pruefe() { echo "e2e-selbsttest: FEHLER - $1" >&2; fehler=1; }
 aufrufe() { tr '\n' ' ' < "$tmp/log"; }
 
-# Rot in Stufe 2: Exit 1, die Meldung nennt Stufe 2, Stufe 3 bis 5 laufen nicht.
+# Rot in Stufe 2: Exit 1, die Meldung nennt Stufe 2, Stufe 3 bis 6 laufen nicht.
 : > "$tmp/log"
 status=0
 E2E_MAKE="$tmp/fake-make" FAKE_LOG="$tmp/log" FAKE_ROT=laufzeittest bash "$e2e" > "$tmp/aus" 2> "$tmp/fehl" || status=$?
@@ -36,13 +36,13 @@ E2E_MAKE="$tmp/fake-make" FAKE_LOG="$tmp/log" FAKE_ROT=smoke bash "$e2e" > /dev/
 [ "$status" -eq 1 ] || pruefe "rote Stufe 1: Exit $status statt 1"
 [ "$(aufrufe)" = "smoke " ] || pruefe "rote Stufe 1: aufgerufen wurde [$(aufrufe)]"
 
-# Alles gruen: Exit 0, fuenf Stufen in der Reihenfolge.
+# Alles gruen: Exit 0, sechs Stufen in der Reihenfolge.
 : > "$tmp/log"
 status=0
 E2E_MAKE="$tmp/fake-make" FAKE_LOG="$tmp/log" bash "$e2e" > "$tmp/aus" 2> /dev/null || status=$?
 [ "$status" -eq 0 ] || pruefe "alles gruen: Exit $status statt 0"
-[ "$(aufrufe)" = "smoke laufzeittest simulations-integration referenztest-dotnet kompatibilitaet " ] || pruefe "alles gruen: aufgerufen wurde [$(aufrufe)]"
-grep -q '^e2e: gruen (5 Stufen' "$tmp/aus" || pruefe "alles gruen: die Schlusszeile fehlt"
+[ "$(aufrufe)" = "smoke laufzeittest simulations-integration referenztest-dotnet kompatibilitaet kompatibilitaet " ] || pruefe "alles gruen: aufgerufen wurde [$(aufrufe)]"
+grep -q '^e2e: gruen (6 Stufen' "$tmp/aus" || pruefe "alles gruen: die Schlusszeile fehlt"
 
 [ "$fehler" -eq 0 ] || exit 1
 echo "e2e-selbsttest: ok (Abbruch an Stufe 1 und 2, alle gruen)"
