@@ -27,10 +27,6 @@ In Arbeit (Welle welle-qualitaet-grundlage):
 
 - [slice-e2e-geruest](slice-e2e-geruest.md)
 
-In Arbeit (Welle welle-simulations-backend):
-
-- [slice-sim-aenderung-integration](slice-sim-aenderung-integration.md)
-
 In Arbeit (Welle welle-betrieb-diagnose):
 
 - [slice-adr-observability](slice-adr-observability.md)
