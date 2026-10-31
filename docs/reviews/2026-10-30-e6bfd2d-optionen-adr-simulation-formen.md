@@ -96,7 +96,7 @@ Reihenfolge nach Abhängigkeit; Frage 2 und 10 entfallen, wenn Frage 1 die Datei
 Das Lastenheft nennt „Spalten, Typen, Schlüssel“, SPEC-035 kennt keine Schlüssel, `ResultColumn` und der Codec tragen kein Schlüsselmerkmal.
 
 * **A — Schlüssel nur als Teil der Beschreibung** (ein oder mehrere Spalten; die Validierung prüft, dass sie existieren und nicht nullbar sind), ohne Wirkung auf Ergebnisse und Callbacks. Das Backend speichert nichts und prüft keine Eindeutigkeit.
-* **B — Schlüssel zusätzlich als Metadatum zum Client** (Schlüsselkennzeichen im Spaltenvertrag und in COLMETADATA). Ändert `ResultColumn` und den Codec, also Port und Protokoll; verlangt zuvor die Messung, was der Referenzclient bei `KeyInfo` und `SchemaOnly` erwartet ([slice-qa-kompatibilitaet](../plan/planning/open/slice-qa-kompatibilitaet.md)). Das gehört nicht in diesen Entscheidungs-Slice, sondern in einen Folge-Slice.
+* **B — Schlüssel zusätzlich als Metadatum zum Client** (Schlüsselkennzeichen im Spaltenvertrag und in COLMETADATA). Ändert `ResultColumn` und den Codec, also Port und Protokoll; verlangt zuvor die Messung, was der Referenzclient bei `KeyInfo` und `SchemaOnly` erwartet ([slice-qa-kompatibilitaet](../plan/planning/next/slice-qa-kompatibilitaet.md)). Das gehört nicht in diesen Entscheidungs-Slice, sondern in einen Folge-Slice.
 * **Empfehlung: A** jetzt; B nur als benannter Folgeschritt nach der Messung. „Kein Schlüssel“ wäre eine Abweichung vom Lastenheft und ist deshalb keine Option.
 
 ### Frage 4 — `IS [NOT] NULL` (Lesart des Lastenhefts)
@@ -129,10 +129,10 @@ SPEC-036 legt nur Bezeichner fest (ohne Beachtung der Schreibweise, „wie die �
 
 ### Frage 7 — Form C (Texte, die der Referenzclient selbst stellt)
 
-* **A — leer lassen**, bis [slice-qa-kompatibilitaet](../plan/planning/open/slice-qa-kompatibilitaet.md) die Texte misst (SPEC-036: „bis dahin ist sie leer“); die Erkennung legt nur den Platz an.
+* **A — leer lassen**, bis [slice-qa-kompatibilitaet](../plan/planning/next/slice-qa-kompatibilitaet.md) die Texte misst (SPEC-036: „bis dahin ist sie leer“); die Erkennung legt nur den Platz an.
 * **B — leer als Standard, aber vom Integrator um eigene Texte erweiterbar** (Text → festes Ergebnis): schafft eine Schnittstelle, deren Form nicht gemessen ist.
 * **C — jetzt eine Liste festlegen** (zum Beispiel die `SET`-Texte): wäre eine Annahme, die erst die Messung stützen könnte.
-* **Empfehlung: A.** Kein Aufwand, keine ungestützte Aussage; Träger der Füllung bleibt [slice-qa-kompatibilitaet](../plan/planning/open/slice-qa-kompatibilitaet.md) (offener Punkt der ADR mit Träger als Datei).
+* **Empfehlung: A.** Kein Aufwand, keine ungestützte Aussage; Träger der Füllung bleibt [slice-qa-kompatibilitaet](../plan/planning/next/slice-qa-kompatibilitaet.md) (offener Punkt der ADR mit Träger als Datei).
 
 ### Frage 8 — Vertragsdatei `contracts/simulation-backend.md`
 
@@ -174,7 +174,7 @@ Alle als „Setzung (Voreinstellung 2026-10-30, nicht gemessen)“ in die ADR zu
 ## 6. Akzeptierte Negative, nicht Gemessenes und Träger
 
 * **Akzeptiertes Negativ:** Der Spike ist von einem Autor mit eigenen Erwartungen; er belegt Machbarkeit, Aufwand und Randfälle des JDK, nicht die Übereinstimmung mit einem Server. Das ist einmalig und harmlos genug, um keine eigene Pflicht zu bekommen; die ADR führt es als „Grenze der Aussage“.
-* **Nicht gemessen, Träger vorhanden:** Servergleiche zu Überführung, Textvergleich, Kommentarschachtelung, Rundung → [slice-referenzabgleich-live](../plan/planning/open/slice-referenzabgleich-live.md) (`BEO-TDS/messung-am-echten-sql-server-fehlt`); Form C und Schlüssel-Metadaten → [slice-qa-kompatibilitaet](../plan/planning/open/slice-qa-kompatibilitaet.md).
+* **Nicht gemessen, Träger vorhanden:** Servergleiche zu Überführung, Textvergleich, Kommentarschachtelung, Rundung → [slice-referenzabgleich-live](../plan/planning/open/slice-referenzabgleich-live.md) (`BEO-TDS/messung-am-echten-sql-server-fehlt`); Form C und Schlüssel-Metadaten → [slice-qa-kompatibilitaet](../plan/planning/next/slice-qa-kompatibilitaet.md).
 * **Nicht gemessen, Träger zu benennen:** Obergrenze der Textlänge am Transport (Vorschlag: Risiko in [slice-sim-erkennung](../plan/planning/done/welle-simulations-backend/slice-sim-erkennung.md) §6, wenn der Nutzer es so will).
 * **Abhängigkeit von anderen Entscheidungen:** die JVM-Typen der Werte je `SqlType` ([slice-adr-backend-grenzen](../plan/planning/done/welle-backend-streaming/slice-adr-backend-grenzen.md)); die Überführungsregel aus Frage 5 gilt für sie und ist bei einer anderen Zeilendarstellung neu zu prüfen.
 

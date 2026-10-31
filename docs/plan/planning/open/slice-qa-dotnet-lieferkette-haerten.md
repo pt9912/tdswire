@@ -34,7 +34,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Szenarien gegen den Server dieses Repos — Träger ist [slice-qa-kompatibilitaet](slice-qa-kompatibilitaet.md); dieser Slice berührt die Lieferkette des Restore, keine Testinhalte.
+- Szenarien gegen den Server dieses Repos — Träger ist [slice-qa-kompatibilitaet](../next/slice-qa-kompatibilitaet.md); dieser Slice berührt die Lieferkette des Restore, keine Testinhalte.
 - Vergleichslauf D, EULA-Prüfung — Träger ist [slice-qa-vergleichslauf-d](slice-qa-vergleichslauf-d.md).
 
 ## 2. Definition of Done

@@ -116,7 +116,7 @@ Diese Berichtsdatei kommt hinzu. Nicht committet, kein Push.
 ### HIGH
 
 **H-1 — DoD-Punkt 3 (Vergleichslauf D) ist offen, hat keinen anderen Träger und eine nicht deklarierte Abhängigkeit.**
-D ist laut [slice-qa-kompatibilitaet](../plan/planning/open/slice-qa-kompatibilitaet.md) §1 dort ausdrücklich ausgeschlossen („Träger ist slice-qa-reproduzierbarkeit"),
+D ist laut [slice-qa-kompatibilitaet](../plan/planning/next/slice-qa-kompatibilitaet.md) §1 dort ausdrücklich ausgeschlossen („Träger ist slice-qa-reproduzierbarkeit"),
 laut [slice-referenzabgleich-live](../plan/planning/open/slice-referenzabgleich-live.md), [slice-referenzabgleich-mitschnitt](../plan/planning/open/slice-referenzabgleich-mitschnitt.md) und
 [welle-referenzabgleich-release](../plan/planning/welle-referenzabgleich-release.md) die Voraussetzung ihrer Starts (Make-Target, Container, EULA, Messung, Image-Tag). Der Slice kann nur nach `done/`, wenn D geliefert ist;
 D braucht Referenzclient-Szenarien (Anmelde-Szenario, Mehrfach-Resultset, RPC mit Ausgabewert), die erst `slice-qa-kompatibilitaet` schreibt. Die Rückführungen in §4 des Slice nennen nur „CI-Runner ohne Docker", nicht
