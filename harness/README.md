@@ -80,6 +80,7 @@ Diese Datei dupliziert sie nicht.
 | Target | Tut was | Bindung |
 |---|---|---|
 | `make deps-lock` | schreibt `gradle.lockfile` und `gradle/verification-metadata.xml` neu (braucht Netz), prüft nichts | kein Gate |
+| `make laufzeittest` | Server-Container starten, Rohbytes-Login aus zweitem Container, Stop; Image-Inhalt prüfen; Werkzeug, Laufzeit 31 s warm, 171 s kalt (2026-10-31, je ein Lauf) | kein Gate, [TDS-RB-01](../spec/lastenheft.md#tds-rb-01--implementierungssprache) |
 | `make spec-abdeckung` | führt die Tests aus, schreibt `docs/plan/spec-abdeckung.md` (je `SPEC-*` bestandene Tests, Waisen); `SPEC_ABDECKUNG_STRENG=1` bricht bei Waisen; Tag `@spec`: Kopf von `tools/spec-abdeckung.sh` | kein Gate |
 | `make spec-abdeckung-selbsttest` | prüft den Erzeuger der Abdeckungsmatrix an einem erzeugten Mini-Bestand: roter, nicht gelaufener, übersprungener und unbekannt getaggter Test zählen nicht | kein Gate |
 | `make doc-manual` | liest Handbuch und Spezifikation von d-check; `MANUAL=<begriff>`, hermetisch | kein Gate |
