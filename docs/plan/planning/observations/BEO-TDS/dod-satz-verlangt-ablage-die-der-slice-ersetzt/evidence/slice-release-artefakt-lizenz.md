@@ -1,0 +1,2 @@
+**Vorgang:** slice-release-artefakt-lizenz
+**Fund:** Der DoD-Satz „Jeder Test trägt `@spec SPEC-<NNN>`“ ist für `LizenzTest` nicht erfüllbar: keine Zeile der Spezifikation fordert die Lizenz, nur das Lastenheft ([TDS-RB-05](../../../../../../../spec/lastenheft.md#tds-rb-05--lizenz)); der Implementer entfernte den falschen Tag, die Verifikation führte den Haken als „teilweise“ (V-1). Der Planner ergänzt den Wortlaut um die Ausnahme in der Closure; eine neue SPEC-Zeile entsteht ohne Nutzerentscheidung nicht.
