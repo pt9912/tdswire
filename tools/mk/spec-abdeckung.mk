@@ -18,7 +18,7 @@ spec-abdeckung: ## die Abdeckungsmatrix der SPEC-Festlegungen aus @spec-Tags und
 	@set -eu; \
 	ablage=$$(mktemp -d); \
 	trap 'rm -rf "$$ablage"' EXIT INT TERM; \
-	docker build --target spec-abdeckung-export --progress=plain --output type=local,dest="$$ablage" .; \
+	docker build $(BUILDER_FLAGS) --target spec-abdeckung-export --progress=plain --output type=local,dest="$$ablage" .; \
 	[ -s "$$ablage/spec-abdeckung.md" ] || { echo "spec-abdeckung: der Export liefert keine Matrix" >&2; exit 1; }; \
 	[ -s "$$ablage/waisen" ] || { echo "spec-abdeckung: der Export liefert keine Waisenzahl" >&2; exit 1; }; \
 	waisen=$$(cat "$$ablage/waisen"); \
@@ -35,4 +35,4 @@ spec-abdeckung: ## die Abdeckungsmatrix der SPEC-Festlegungen aus @spec-Tags und
 	fi
 
 spec-abdeckung-selbsttest: ## den Erzeuger der Abdeckungsmatrix gegen einen erzeugten Mini-Bestand pruefen (Stage `spec-abdeckung-selbsttest`) — KEIN Gate
-	docker build --target spec-abdeckung-selbsttest --progress=plain .
+	docker build $(BUILDER_FLAGS) --target spec-abdeckung-selbsttest --progress=plain .

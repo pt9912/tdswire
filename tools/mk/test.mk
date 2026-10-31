@@ -3,6 +3,6 @@
 .PHONY: test
 
 test: ## Unit-Tests ausfuehren (Dockerfile-Stage `test`, kotlin.test)
-	docker build --target test --progress=plain .
+	docker build $(BUILDER_FLAGS) --target test --progress=plain .
 
 GATE_CHECKS += test
