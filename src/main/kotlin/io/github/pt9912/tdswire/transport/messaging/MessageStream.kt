@@ -11,6 +11,9 @@ import java.nio.ByteBuffer
 
 private const val ID_MODULUS = 256
 
+/** Baut ein Paket aus Typ, Puffer, Nutzdatenlänge, EOM-Bit und Packet-ID (Signatur von [PacketWriter.packet]). */
+internal typealias PacketBuilder = (PacketType, ByteArray, Int, Boolean, Int) -> ByteArray
+
 /**
  * Schreibt eine Nachricht in Stücken als Pakete der Packet Size (`SPEC-006`, `SPEC-028`). Jedes Paket
  * außer dem letzten trägt genau `packetSize - 8` Nutzdatenbytes, das letzte den Rest und das EOM-Bit;
@@ -18,14 +21,21 @@ private const val ID_MODULUS = 256
  *
  * Festlegung (Speichergrenze): ein volles Paket geht erst auf den Kanal, wenn weitere Bytes folgen
  * oder [finish] kommt, weil erst dann feststeht, ob es das letzte ist. Gehalten wird damit höchstens
- * ein Paket Nutzdaten, dazu das Paket im Schreiben und das Stück des Aufrufers; die Zahl hängt nicht
- * an der Nachrichtengröße. Eine Packet Size außerhalb von 9 bis 65535 macht den Strom von Anfang an
- * fehlerhaft ([write] und [finish] liefern `false`). Nicht thread-sicher.
+ * ein Paket Nutzdaten im Puffer, dazu das Paket im Schreiben samt den Kopien beim Paketbau
+ * (`copyOfRange`, Verkettung mit dem Header) und das Stück des Aufrufers; die Zahl hängt nicht an der
+ * Nachrichtengröße, eine Byte-Zahl ist nicht gemessen. Eine Packet Size außerhalb von 9 bis 65535 macht
+ * den Strom von Anfang an fehlerhaft ([write] und [finish] liefern `false`).
+ *
+ * Zusage (Token-Grenze): fällt eine Ausnahme (etwa `OutOfMemoryError`) aus dem Paketbau oder dem Kanal,
+ * ist der Strom fehlerhaft, ob sie vor oder nach der Entnahme des Pakets aus dem Puffer fiel; er steht
+ * dann womöglich mitten in einem Token, [write] und [finish] liefern danach `false` und schreiben
+ * nichts, damit hinter ein halbes Token weder ERROR noch DONE gelangt. Nicht thread-sicher.
  */
 class MessageStream internal constructor(
     private val channel: SuspendingChannel,
     private val type: PacketType,
     packetSize: Int,
+    private val build: PacketBuilder,
 ) : ReplyStream {
     private val usable = packetSize > PacketHeader.SIZE && packetSize <= FramingLimits.MAX_TDS_PACKET_BYTES
     private val buffer = ByteArray(if (usable) packetSize - PacketHeader.SIZE else 0)
@@ -56,11 +66,12 @@ class MessageStream internal constructor(
     }
 
     private suspend fun flush(endOfMessage: Boolean): Boolean {
-        val packet = PacketWriter.packet(type, buffer, fill, endOfMessage, nextId)
+        broken = true
+        val packet = build(type, buffer, fill, endOfMessage, nextId)
         nextId = (nextId + 1) % ID_MODULUS
         fill = 0
         val sent = channel.writeFully(ByteBuffer.wrap(packet))
-        if (sent is ChannelResult.Failed) broken = true
+        broken = sent is ChannelResult.Failed
         return !broken
     }
 }

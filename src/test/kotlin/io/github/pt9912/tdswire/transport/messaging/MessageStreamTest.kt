@@ -4,11 +4,13 @@ import io.github.pt9912.tdswire.testsupport.ScriptedWire
 import io.github.pt9912.tdswire.testsupport.blocking
 import io.github.pt9912.tdswire.testsupport.handMessage
 import io.github.pt9912.tdswire.transport.framing.PacketType
+import io.github.pt9912.tdswire.transport.framing.PacketWriter
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -171,5 +173,72 @@ class MessageStreamTest {
         writing.join()
         assertTrue(stream.finish())
         assertEquals(10, wire.packetCount)
+    }
+
+    /**
+     * Die Packet-ID, die der Strom dem Paketbau gibt, läuft nach 255 auf 0 über: bei 300 Paketen ist die
+     * ID des Pakets mit Index k gleich (k + 1) modulo 256. Der Paketbau sieht die ID, bevor der Header
+     * sie auf ein Byte kürzt; die Bytes des Drahts allein unterscheiden das Modulo des Stroms nicht
+     * vom Kürzen im Header.
+     *
+     * @spec SPEC-028
+     */
+    @Test
+    fun `Der Strom uebergibt dem Paketbau Packet-IDs von 0 bis 255`() = blocking {
+        val wire = ScriptedWire(ByteArray(0), retain = true)
+        val writer = MessageWriter(wire, 9)
+        val ids = mutableListOf<Int>()
+        writer.packetBuilder = { type, bytes, length, endOfMessage, id ->
+            ids += id
+            PacketWriter.packet(type, bytes, length, endOfMessage, id)
+        }
+        val stream = writer.open(PacketType.TABULAR_RESULT)
+        assertTrue(stream.write(ByteArray(300)))
+        assertTrue(stream.finish())
+        assertEquals(List(300) { (it + 1) % 256 }, ids)
+    }
+
+    /**
+     * Fällt ein `OutOfMemoryError` im Paketbau, nachdem ein Stück des Aufrufers teilweise in den Puffer
+     * kopiert ist (das erste Paket ging hinaus, das zweite wird nicht gebaut), steht der Strom womöglich
+     * mitten in einem Token: der Fehler läuft nach außen, danach liefern [write] und [finish] `false`,
+     * und kein weiteres Paket geht hinaus.
+     *
+     * @spec SPEC-031
+     */
+    @Test
+    fun `Eine Ausnahme im Paketbau nach Teilkopie macht den Strom fehlerhaft`() = blocking {
+        val wire = ScriptedWire(ByteArray(0), retain = true)
+        val writer = MessageWriter(wire, 512)
+        var builds = 0
+        writer.packetBuilder = { type, bytes, length, endOfMessage, id ->
+            if (++builds == 2) throw OutOfMemoryError("Paketbau")
+            PacketWriter.packet(type, bytes, length, endOfMessage, id)
+        }
+        val stream = writer.open(PacketType.TABULAR_RESULT)
+        assertFailsWith<OutOfMemoryError> { stream.write(ByteArray(1200)) }
+        assertEquals(1, wire.packetCount)
+        assertFalse(stream.write(ByteArray(1)))
+        assertFalse(stream.finish())
+        assertEquals(1, wire.packetCount)
+    }
+
+    /**
+     * Fällt ein `OutOfMemoryError` im Kanal, nachdem der Strom das Paket aus seinem Puffer entnommen hat
+     * (das Paket ist verloren), ist der Strom fehlerhaft: [write] und [finish] liefern danach `false`,
+     * und kein weiteres Paket geht hinaus.
+     *
+     * @spec SPEC-031
+     */
+    @Test
+    fun `Eine Ausnahme im Kanal nach Entnahme des Pakets macht den Strom fehlerhaft`() = blocking {
+        val wire = ScriptedWire(ByteArray(0), retain = true)
+        wire.outOfMemoryAfterPackets = 1
+        val stream = streamOf(wire, 512)
+        assertFailsWith<OutOfMemoryError> { stream.write(ByteArray(1200)) }
+        assertEquals(1, wire.packetCount)
+        assertFalse(stream.write(ByteArray(1)))
+        assertFalse(stream.finish())
+        assertEquals(1, wire.packetCount)
     }
 }

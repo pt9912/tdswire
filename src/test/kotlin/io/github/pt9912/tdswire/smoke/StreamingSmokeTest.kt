@@ -23,8 +23,9 @@ import kotlin.test.assertTrue
 /**
  * Ende-zu-Ende über Test-Backend, Port, Typabbildung, Sequenzierer, `TokenEncoder`, Paket-Schreiber und
  * einen Draht ohne Netz: die Ausgabe wird mit dem Test-Decoder des Codecs zurückgelesen. Der Decoder
- * belegt Selbstkonsistenz mit dem Encoder, keine Protokolltreue; die Bytes der großen Antwort sind
- * Handvektor-Arithmetik. Der Nachweis gilt für das Test-Backend und den Draht ohne Netz, nicht für das
+ * belegt Selbstkonsistenz mit dem Encoder, keine Protokolltreue; bei der großen Antwort ist nur der
+ * Zeilenteil der Bytezahl von Hand gerechnet, COLMETADATA und DONE stammen aus einem Lauf des geprüften
+ * Codes (Selbstkonsistenz). Der Nachweis gilt für das Test-Backend und den Draht ohne Netz, nicht für das
  * Simulations-Backend, einen Socket oder ein blockierendes Backend.
  */
 class StreamingSmokeTest {
@@ -112,7 +113,11 @@ class StreamingSmokeTest {
 
         val session = WireSession.login(8000, "select")
         val backend = ScriptedBackend.generatingText(rows, chars)
-        session.serve(backend)
+        try {
+            session.serve(backend)
+        } catch (error: OutOfMemoryError) {
+            throw AssertionError("Heap-Überlauf: die Antwort wurde im Speicher gehalten", error)
+        }
         val wire = session.wire
         val total = framing + rows.toLong() * (3 + 2 * chars)
         assertEquals(total, wire.payloadBytes)

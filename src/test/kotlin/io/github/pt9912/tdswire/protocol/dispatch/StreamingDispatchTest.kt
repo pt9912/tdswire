@@ -8,6 +8,7 @@ import io.github.pt9912.tdswire.port.ScriptedBackend
 import io.github.pt9912.tdswire.protocol.response.TokenSink
 import io.github.pt9912.tdswire.protocol.session.CloseReason
 import io.github.pt9912.tdswire.protocol.session.ConnectionState
+import io.github.pt9912.tdswire.protocol.session.HandshakeEvent
 import io.github.pt9912.tdswire.protocol.token.DoneStatus
 import io.github.pt9912.tdswire.protocol.token.ErrorToken
 import io.github.pt9912.tdswire.protocol.token.RowToken
@@ -16,11 +17,13 @@ import io.github.pt9912.tdswire.protocol.token.Token
 import io.github.pt9912.tdswire.testsupport.TokenDecoder
 import io.github.pt9912.tdswire.testsupport.WireSession
 import io.github.pt9912.tdswire.testsupport.blocking
+import io.github.pt9912.tdswire.transport.framing.PacketWriter
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.select
+import kotlinx.coroutines.yield
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -37,7 +40,6 @@ import kotlin.test.assertTrue
  */
 class StreamingDispatchTest {
     private val packetSize = 512
-    private val chunk = packetSize - 8
 
     /** Handvektoren der Int-Spalte: COLMETADATA und DONE je 13 Byte, eine ROW 5 Byte. */
     private val metaBytes = 13
@@ -87,10 +89,13 @@ class StreamingDispatchTest {
     }
 
     /**
-     * Rückstau, gezählt: nimmt der Draht nach vier Paketen nichts mehr an, steht der Lauf still, und das
-     * Test-Backend hat höchstens die Ereignisse geliefert, die in vier Paketen, dem Paket im Schreiben
-     * und der Zeile in Arbeit Platz haben, und mindestens die der vier Pakete; 20 000 Zeilen stehen
-     * bereit. Der Stillstand ist bewiesen, nicht abgewartet: der Draht meldet sein Warten, und die
+     * Rückstau, gezählt und genau: bei Packet Size 520 (512 Nutzdatenbytes je Paket) endet das vierte
+     * Paket nach COLMETADATA (13 Byte) und 407 ROW (je 5 Byte) auf einer Token-Grenze (4 · 512 = 2048 =
+     * 13 + 407 · 5). Nimmt der Draht nach drei Paketen nichts mehr an, hält er das vierte; es geht erst
+     * hinaus, wenn das erste Byte der 408. ROW vorliegt. Das Test-Backend hat dann genau das ResultStart,
+     * 407 Zeilen und die 408. Zeile in Arbeit geliefert, 409 Ereignisse von 20 000 Zeilen. Ein volles
+     * Paket, das schon beim letzten Byte hinausginge, ergäbe 408, ein Vorauslesen um ein Paket rund 100
+     * mehr. Der Stillstand ist bewiesen, nicht abgewartet: der Draht meldet sein Warten, und die
      * Anfrageschleife ist zu diesem Zeitpunkt nicht beendet. Nach dem Öffnen geht die ganze Antwort
      * hinaus, ohne Zeile zu verlieren.
      *
@@ -99,8 +104,12 @@ class StreamingDispatchTest {
     @Test
     fun `Ein haltender Draht begrenzt die Ereignisse, die das Backend vorausliefert`() = blocking {
         val rows = 20_000
-        val stallPackets = 4
-        val session = WireSession.login(packetSize, "select") { stallAfterBytes = stallPackets.toLong() * packetSize }
+        val size = 520
+        val perPacket = size - 8
+        val stallPackets = 3
+        val heldBytes = (stallPackets + 1) * perPacket
+        assertEquals(0, (heldBytes - metaBytes) % rowBytes, "die Packet Size liegt nicht auf einer Token-Grenze")
+        val session = WireSession.login(size, "select") { stallAfterBytes = stallPackets.toLong() * size }
         val backend = ScriptedBackend.generating(rows)
         val serving = launch { session.serve(backend) }
         val stalled = select {
@@ -109,17 +118,38 @@ class StreamingDispatchTest {
         }
         assertTrue(stalled, "der Lauf endete, ohne dass der Draht zum Halten kam")
         assertEquals(stallPackets, session.wire.packetCount)
-        val consumedMax = (stallPackets + 1) * chunk + rowBytes
-        val upper = 1 + (consumedMax - metaBytes) / rowBytes + 1
-        val lower = (stallPackets * chunk - metaBytes) / rowBytes
-        assertTrue(backend.delivered in lower..upper, "geliefert: ${backend.delivered}, erlaubt $lower..$upper")
-        assertTrue(backend.delivered < rows / 10)
+        val expected = 1 + (heldBytes - metaBytes) / rowBytes + 1
+        assertEquals(409, expected)
+        assertEquals(expected, backend.delivered)
         assertTrue(serving.isActive)
         session.wire.release()
         serving.join()
         assertEquals(rows + 2, backend.delivered)
         assertEquals(payloadBytes(rows).toLong(), session.wire.payloadBytes)
         assertTrue(session.wire.tail[1].toInt() and 1 == 1, "das letzte Paket trägt EOM")
+    }
+
+    /**
+     * Die Sperre der Sitzung ist während eines Schreibvorgangs der Antwort gehalten: ein Übergang einer
+     * zweiten Coroutine (hier `LoginTimeout`, in `READY` ohne Wirkung) wartet, solange der Draht hält,
+     * und läuft nach dem Öffnen. Ohne Sperre liefe er sofort.
+     *
+     * @spec SPEC-001
+     * @spec SPEC-031
+     */
+    @Test
+    fun `Ein haltender Schreibvorgang haelt die Sperre der Sitzung`() = blocking {
+        val session = WireSession.login(packetSize, "select") { stallAfterBytes = 2L * packetSize }
+        val serving = launch { session.serve(ScriptedBackend.generating(2_000)) }
+        session.wire.stalled.await()
+        val other = launch { session.ready.live.dispatch(HandshakeEvent.LoginTimeout) }
+        repeat(5) { yield() }
+        assertTrue(other.isActive, "der Übergang lief an einem haltenden Schreibvorgang vorbei")
+        assertTrue(serving.isActive)
+        session.wire.release()
+        other.join()
+        serving.join()
+        assertEquals(ConnectionState.CLOSED, session.ready.live.context.state)
     }
 
     /**
@@ -218,6 +248,18 @@ class StreamingDispatchTest {
         override suspend fun cancel(sessionId: String, requestId: String) = Unit
     }
 
+    /**
+     * Wie [WireSession.serve], aber ein `OutOfMemoryError` aus der Schleife ist ein Fehlschlag des Tests:
+     * JUnit bricht den Lauf bei einem solchen Fehler ab, der Test stünde sonst als übersprungen.
+     */
+    private suspend fun WireSession.serveOrFail(backend: QueryBackend, sinkAround: (TokenSink) -> TokenSink = { it }) {
+        try {
+            serve(backend, sinkAround)
+        } catch (error: OutOfMemoryError) {
+            throw AssertionError("OutOfMemoryError lief aus der Anfrageschleife nach aussen", error)
+        }
+    }
+
     private fun WireSession.tokens(): List<Token> = TokenDecoder(wire.payload()).decodeAll()
 
     /**
@@ -235,25 +277,70 @@ class StreamingDispatchTest {
     fun `Ein OutOfMemoryError im Anfragepfad ergibt TDS_INTERNAL_ERROR und schliesst`() = blocking {
         val backendFault = WireSession.login(packetSize, "q", "never", retain = true)
         val throwing = ThrowingBackend(OutOfMemoryError("Text darf nicht zum Client"), rowsBefore = 2)
-        backendFault.serve(throwing)
+        backendFault.serveOrFail(throwing)
         assertErrorAnswer(backendFault, "Backend")
         assertEquals(1, throwing.closeCalls)
 
         val sinkFault = WireSession.login(packetSize, "q", "never", retain = true)
         val scripted = ScriptedBackend.generating(5)
-        sinkFault.serve(scripted, sinkAround = { inner -> ThrowOnce(inner, at = 4) })
+        sinkFault.serveOrFail(scripted, sinkAround = { inner -> ThrowOnce(inner, at = 4) })
         assertErrorAnswer(sinkFault, "Senke")
         assertEquals(1, scripted.closeCalls)
         assertEquals(emptyList(), scripted.cancelled)
 
         val silent = WireSession.login(packetSize, "q", "never", retain = true)
         val dying = ScriptedBackend.generating(5)
-        silent.serve(dying, sinkAround = { inner -> ThrowOnce(inner, at = 4, repeated = true) })
+        silent.serveOrFail(dying, sinkAround = { inner -> ThrowOnce(inner, at = 4, repeated = true) })
         assertEquals(1, dying.closeCalls)
         assertEquals(1, dying.cancelled.size)
         assertEquals(ConnectionState.CLOSED, silent.ready.live.context.state)
         assertTrue(silent.wire.packets.none { it.endOfMessage })
         assertEquals(1, dying.requests.size)
+    }
+
+    /**
+     * Ein `OutOfMemoryError` mitten in einem Token: im Paketbau nach Teilkopie (das 99. ROW-Token liegt
+     * über der Grenze des ersten Pakets) und im Kanal, nachdem der Strom das zweite Paket aus seinem
+     * Puffer entnommen hat. Der Strom steht womöglich nicht an einer Token-Grenze: es geht weder ERROR
+     * noch DONE noch ein EOM-Paket hinaus (der Draht behält die Pakete bis vor dem Fehler), die
+     * Verbindung schließt wegen `WRITE_FAILED`, `cancel()` und `close()` kommen je einmal, und die zweite
+     * Nachricht wird nicht ausgeführt (`ADR-0013` Entscheidung 2: Fehlerantwort nur, soweit der Strom
+     * synchron ist).
+     *
+     * @spec SPEC-031
+     * @spec SPEC-048
+     */
+    @Test
+    fun `Ein OutOfMemoryError mitten in einem Token schliesst ohne ERROR und DONE`() = blocking {
+        var builds = 0
+        val building = WireSession.login(
+            packetSize,
+            "q",
+            "never",
+            retain = true,
+            packetBuilder = { type, bytes, length, endOfMessage, id ->
+                if (++builds == 1) throw OutOfMemoryError("Text darf nicht zum Client")
+                PacketWriter.packet(type, bytes, length, endOfMessage, id)
+            },
+        )
+        val inBuild = ScriptedBackend.generating(200)
+        building.serveOrFail(inBuild)
+        assertClosedWithoutAnswer(building, inBuild, packets = 0, name = "Paketbau")
+
+        val channel = WireSession.login(packetSize, "q", "never", retain = true) { outOfMemoryAfterPackets = 1 }
+        val inChannel = ScriptedBackend.generating(400)
+        channel.serveOrFail(inChannel)
+        assertClosedWithoutAnswer(channel, inChannel, packets = 1, name = "Kanal")
+    }
+
+    private fun assertClosedWithoutAnswer(session: WireSession, backend: ScriptedBackend, packets: Int, name: String) {
+        assertEquals(packets, session.wire.packetCount, name)
+        assertTrue(session.wire.packets.none { it.endOfMessage }, name)
+        assertEquals(CloseReason.WRITE_FAILED, session.ready.live.closeReason, name)
+        assertEquals(ConnectionState.CLOSED, session.ready.live.context.state, name)
+        assertEquals(1, backend.cancelled.size, name)
+        assertEquals(1, backend.closeCalls, name)
+        assertEquals(1, backend.requests.size, name)
     }
 
     private fun assertErrorAnswer(session: WireSession, name: String) {
