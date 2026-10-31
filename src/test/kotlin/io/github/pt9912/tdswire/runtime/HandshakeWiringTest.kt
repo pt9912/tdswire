@@ -181,20 +181,41 @@ internal class HandshakeWiringTest : RuntimeTestBase() {
     }
 
     /**
-     * Die Frist des Treibers beginnt mit `run` und trägt den konfigurierten Wert: bei `LOGIN_TIMEOUT=1` und einem
-     * Zeitgeber des Listeners, der nie freigegeben wird, beendet allein der Treiber die Verbindung binnen der
-     * Wartezeit von `eventually` (fünf Sekunden), und zwar als `HANDLER_RETURNED`, nicht als `LOGIN_TIMEOUT` des
-     * Listeners. Die Frist des Treibers läuft in Echtzeit (eine Sekunde), nicht über den Zeitgeber.
+     * Das Warten auf das erste Byte hat die Frist `LOGIN_TIMEOUT`: bei `LOGIN_TIMEOUT=1`, einer Gegenstelle, die kein
+     * Byte schickt, und einem Zeitgeber des Listeners, der nie freigegeben wird, kehrt der Handler binnen der
+     * Wartezeit von `eventually` (fünf Sekunden) zurück, als `HANDLER_RETURNED`. Die Frist läuft in Echtzeit. Die
+     * Frist des Treibers trägt der Test darunter.
      *
      * @spec SPEC-008
      */
     @Test
-    fun `Die Frist des Treibers trägt den konfigurierten Wert`() = blocking {
+    fun `Die Frist des Wartens auf das erste Byte traegt den konfigurierten Wert`() = blocking {
         val delayer = ManualDelayer()
         val recorded = RecordingEvents()
         val server = running(environment(ConfigKeys.LOGIN_TIMEOUT to "1"), Wiring(events = recorded, delayer = delayer))
         RawClient(server.port).use {
             eventually("Frist des Listeners läuft") { delayer.pending == listOf(1.seconds) }
+            eventually("Handler kehrt zurück") { recorded.closed().isNotEmpty() }
+            assertEquals(ConnectionEnd.HANDLER_RETURNED, recorded.closed().single().end)
+        }
+    }
+
+    /**
+     * Die Frist des Treibers beginnt mit `run` und trägt den konfigurierten Wert: die Gegenstelle schickt das erste
+     * Byte (`0x12`, Anfang eines PRELOGIN-Pakets) und schweigt dann; bei `LOGIN_TIMEOUT=1` und einem Zeitgeber des
+     * Listeners, der nie freigegeben wird, beendet allein der Treiber die Verbindung binnen der Wartezeit von
+     * `eventually` (fünf Sekunden), als `HANDLER_RETURNED`, nicht als `LOGIN_TIMEOUT` des Listeners.
+     *
+     * @spec SPEC-008
+     */
+    @Test
+    fun `Die Frist des Treibers traegt den konfigurierten Wert`() = blocking {
+        val delayer = ManualDelayer()
+        val recorded = RecordingEvents()
+        val server = running(environment(ConfigKeys.LOGIN_TIMEOUT to "1"), Wiring(events = recorded, delayer = delayer))
+        RawClient(server.port).use { client ->
+            eventually("Frist des Listeners läuft") { delayer.pending == listOf(1.seconds) }
+            client.send(byteArrayOf(PRELOGIN_TYPE.toByte()))
             eventually("Treiber beendet die Verbindung") { recorded.closed().isNotEmpty() }
             assertEquals(ConnectionEnd.HANDLER_RETURNED, recorded.closed().single().end)
         }
