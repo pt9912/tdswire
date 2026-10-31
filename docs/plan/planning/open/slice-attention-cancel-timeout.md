@@ -11,9 +11,9 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-fehler-abbruch
 
-**Bezug:** [TDS-FA-07](../../../../spec/lastenheft.md#tds-fa-07--abbruch-und-ressourcenfreigabe), [TDS-QA-07](../../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität), [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität), [ADR-0004](../../adr/0004-session-zustandsautomat.md), [ADR-0007](../../adr/0007-fehler-und-attention.md)
+**Bezug:** [TDS-FA-07](../../../../spec/lastenheft.md#tds-fa-07--abbruch-und-ressourcenfreigabe), [TDS-QA-07](../../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität), [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität), [ADR-0004](../../adr/0004-session-zustandsautomat.md), [ADR-0007](../../adr/0007-fehler-und-attention.md), [ADR-0013](../../adr/0013-backend-grenzen.md)
 
-**Berührte Spec-Stellen:** SPEC-001 · SPEC-016 · SPEC-029 · SPEC-031 · SPEC-033 · ARC-015
+**Berührte Spec-Stellen:** SPEC-001 · SPEC-002 · SPEC-009 · SPEC-016 · SPEC-022 · SPEC-029 · SPEC-031 · SPEC-033 · ARC-015
 
 **Verantwortlich:** — bis zur Priorisierung.
 
@@ -30,7 +30,7 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Ein ATTENTION-Paket während `RUNNING` oder `STREAMING` löst genau einen Cancel an die Backendoperation aus, stoppt die regulären Zeilen und wird mit der Abschlussbestätigung beantwortet; die Verbindung bleibt offen, die folgende Anfrage erhält nur ihre eigene Antwort, und ein Backend, das den Cancel nicht beachtet, führt nach `CANCEL_TIMEOUT` zum Schließen.
+**Ziel:** Ein ATTENTION-Paket während `RUNNING` oder `STREAMING` löst genau einen Cancel an die Backendoperation aus, stoppt die regulären Zeilen und wird mit der Abschlussbestätigung beantwortet; die Verbindung bleibt offen, die folgende Anfrage erhält nur ihre eigene Antwort, und ein Backend, das den Cancel nicht beachtet, führt nach `CANCEL_TIMEOUT` zum Schließen. Der Slice ist außerdem Träger der Frist einer Anfrage ([ADR-0013](../../adr/0013-backend-grenzen.md)): der Dispatch setzt `deadlineEpochMillis` auf Beginn plus `QUERY_TIMEOUT` und umschließt die Sammlung des Stroms mit einem Zeitlimit; der Ablauf endet in `TDS_TIMEOUT`.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -50,7 +50,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] ATTENTION wird als eigenes Paket erkannt, auch während Streaming; in `RUNNING` und `STREAMING` wird genau einmal Cancel an das Backend gegeben, es folgt keine reguläre Zeile mehr, die Abschlussbestätigung wird nach der Entscheidung des Nutzers zum Inhalt der Cancel-Antwort gesendet, und die Sitzung nimmt erst danach wieder eine Anfrage an; Rohbytes-Tests mit suspendierendem und mit blockierendem Fake-Backend, ein Test mit unmittelbar folgender Anfrage. ([TDS-FA-07](../../../../spec/lastenheft.md#tds-fa-07--abbruch-und-ressourcenfreigabe) Happy Path, [TDS-QA-07](../../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität), `SPEC-029`) Dazu gehört der offene Punkt aus [ADR-0004](../../adr/0004-session-zustandsautomat.md), ob das Schreiben eines Pakets von der Abbruchanforderung unabhängig laufen muss (der Spike schrieb jedes Paket als `NonCancellable`, ein Lauf ohne diese Maßgabe wurde nicht gebaut): ein Test bricht mitten in einem Paket ab und prüft, dass kein halbes Paket auf der Leitung bleibt; die gewählte Form steht als Festlegung im KDoc.
 - [ ] Wettlauf DONE gegen ATTENTION und ATTENTION in `IDLE` oder `COMPLETED`: der erste Übergang gewinnt, es entsteht kein doppeltes DONE und keine zweite Antwort, wiederholtes ATTENTION löst keinen zweiten Cancel aus; der Wettlauftest läuft mit gesteuerter Reihenfolge statt Wiederholung bis zum Zufallsfund. ATTENTION im Handshake (PRELOGIN, TLS, LOGIN7) ist in [ADR-0004](../../adr/0004-session-zustandsautomat.md) und [ADR-0007](../../adr/0007-fehler-und-attention.md) offen und hat sonst keinen Träger: der Nutzer entscheidet sie vor dem Start, dieser Slice setzt sie mit einem Test je Handshake-Zustand um (`slice-handshake-login` liefert die Zustände) oder führt sie in der Closure als weiter offen mit Grund. ([TDS-FA-07](../../../../spec/lastenheft.md#tds-fa-07--abbruch-und-ressourcenfreigabe) Boundary, `SPEC-001`)
-- [ ] `CANCEL_TIMEOUT`: Ein Backend, das den Cancel nicht beachtet, führt nach der Frist zum Schließen der Verbindung mit geschlossenem Backend-Strom und freigegebener Sitzung; die Behandlung von `TDS_TIMEOUT` folgt der Nutzerentscheidung, ob Cancel und Timeout als Fehler gelten; Test mit gesteuerter Uhr. (`SPEC-033`, `SPEC-016`)
+- [ ] **Zeitlimits** `CANCEL_TIMEOUT` und Frist einer Anfrage, beide mit gesteuerter Uhr. (a) `CANCEL_TIMEOUT`: Ein Backend, das den Cancel nicht beachtet, führt nach der Frist zum Schließen der Verbindung mit geschlossenem Backend-Strom und freigegebener Sitzung. (b) Frist ([ADR-0013](../../adr/0013-backend-grenzen.md)): der Dispatch setzt `deadlineEpochMillis` auf Beginn plus `QUERY_TIMEOUT` (heute `null`; der Test des SQL_BATCH-Dispatch hält das fest und ändert sich hier) und umschließt die Sammlung mit einem Zeitlimit; bei Ablauf geht der Lauf den Weg des Cancel (Strom abbrechen, `close()`, zurückgehaltenen Abschluss verwerfen) und endet in `TDS_TIMEOUT`; Tests: Ablauf, Frist in der Vergangenheit, `null` ohne Zeitlimit, Backend ignoriert den Hinweis. Class von `TDS_TIMEOUT` und Verbindungsfolge folgen der Nutzerentscheidung, ob Cancel und Timeout als Fehler gelten. (`SPEC-033`, `SPEC-009`, `SPEC-016`, `SPEC-022`)
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -73,6 +73,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Anfragezustand (Response Sequencer, ARC-015) | update | Zustand `CANCELLING`, Übergänge `RUNNING`/`STREAMING` → `CANCELLING` → `COMPLETED`, Race-Regel |
 | `src/main/kotlin/io/github/pt9912/tdswire/transport/` (Nachrichtenleser) | update | ATTENTION als eigenes Paket erkennen, auch bei laufendem Schreiben; an den Sequencer melden |
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/session/` (Package-Name ein Vorschlag) | update | Fristüberwachung `CANCEL_TIMEOUT`, Schließen der Verbindung |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/dispatch/` (`RequestLoop`) | update | Frist setzen (Beginn plus `QUERY_TIMEOUT`) und Zeitlimit um die Sammlung des Stroms ([ADR-0013](../../adr/0013-backend-grenzen.md)); Ablauf in `TDS_TIMEOUT` |
 | `src/test/kotlin/io/github/pt9912/tdswire/protocol/session/` | neu | Rohbytes-Tests mit Fake-Backend: Cancel einmal, Race, Frist ([TDS-FA-07](../../../../spec/lastenheft.md#tds-fa-07--abbruch-und-ressourcenfreigabe), [TDS-QA-07](../../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität)) |
 | `spec/spezifikation.md` | update | `SPEC-029` und `SPEC-016` nach den Nutzerentscheidungen (Inhalt der Cancel-Antwort, Cancel/Timeout als Fehler) |
 
@@ -87,7 +88,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next` (zu groß, zurück zur Zerlegung): mehr als drei Liefer-Punkte in §2.
+- `in-progress` → `next` (zu groß, zurück zur Zerlegung): mehr als drei Liefer-Punkte in §2, oder der dritte Punkt (Zeitlimits) sprengt den Rahmen; Schnittvorschlag: Frist und Zeitlimit (`QUERY_TIMEOUT`, Teil (b)) als eigener Slice hinter diesem, der den Abbruchpfad des Cancel nutzt und startet, wenn DoD-Punkt 1 in `done/` liegt.
 - `in-progress` → `open` (blockiert — Carveout?): Der Port bietet kein `cancel`, das ein Fake-Backend beobachtbar macht (`spec/spezifikation.md` `SPEC-022` führt `cancel(sessionId, requestId)` als Entwurf), oder der Anfragezustand der Welle `welle-anfrageverarbeitung` lässt `CANCELLING` nicht zu.
 
 ## 5. Closure-Trigger
@@ -107,11 +108,12 @@ dasteht.
 
 - Entscheidungsbedarf (Nutzer): Inhalt der Cancel-Antwort — zwei Nachrichten wie am echten Server (R11, R12) oder nur DONE mit ATTENTION-Status (am Testserver genügte das dem Referenzclient, T, S11). Beides ist nicht an einem Server dieses Repos gemessen. — **Ausgang:** offen bis zur Closure
 - Entscheidungsbedarf (Nutzer): Gelten Cancel und Timeout als Fehler im Sinne der Regel „Fehler“ (`SPEC-016` nennt „Fehler/Disconnect“)? Davon hängt die Class von `TDS_TIMEOUT` und die Verbindungsfolge ab; Grundregel A (schließen) gilt bis dahin. — **Ausgang:** offen bis zur Closure
-- Spec-Lücke: `SPEC-016` nennt „Frist überschritten“, aber unter den Konstanten (`SPEC-047`, `SPEC-033`, `SPEC-034`) steht keine serverseitige Anfrage-Frist; der Client-Timeout kommt als ATTENTION. Welche Frist `TDS_TIMEOUT` auslöst, ist zu klären, bevor der Code einen Auslöser hat. — **Ausgang:** offen bis zur Closure (Spec-Lücke benennen, nicht erfinden)
+- Spec-Lücke „welche Frist `TDS_TIMEOUT` auslöst“: beantwortet in [ADR-0013](../../adr/0013-backend-grenzen.md) (Status Proposed): `QUERY_TIMEOUT` (`SPEC-009`), vom Protokollkern durchgesetzt; der Client-Timeout kommt weiter als ATTENTION. Offen bleiben Class und Verbindungsfolge (Entscheidungsbedarf des Nutzers oben). — **Ausgang:** offen bis zur Closure
 - Entscheidungsbedarf (Nutzer; offene Punkte von [ADR-0004](../../adr/0004-session-zustandsautomat.md) und [ADR-0007](../../adr/0007-fehler-und-attention.md), Träger ist dieser Slice, DoD-Punkt 2): ATTENTION im Handshake und in `IDLE`; am echten Server ist nur ATTENTION nach vollständig gesendeter Antwort gemessen (R13), im Leerlauf nicht. — **Ausgang:** weiter offen: → `BEO-TDS/messung-am-echten-sql-server-fehlt`
 - Das Verhalten bei fehlender oder falscher Bestätigung (Client hängt bis zum Timeout) ist am Testserver gemessen, die Wirkung unter Pooling und TDS 8.0 nicht. — **Ausgang:** weiter offen: → `BEO-TDS/tds-8-0-und-pooling-nicht-gemessen`
 - Wettlauftests, die nur durch Wiederholung Treffer erzeugen, sind Zufallsbelege; die DoD verlangt gesteuerte Reihenfolge. — **Ausgang:** offen bis zur Closure
-- Ein blockierendes Backend sorgt nach dem Port-Vertrag selbst für Abbruch und Thread-Verbrauch (Annahme); der Fake-Backend-Test belegt `CANCEL_TIMEOUT`, nicht das Verhalten eines echten blockierenden Treibers. — **Ausgang:** offen bis zur Closure
+- Ein Backend ist nach dem Port-Vertrag suspendierend, ein blockierender Treiber liegt hinter der Umhüllung des Integrators ([ADR-0013](../../adr/0013-backend-grenzen.md)); der Fake-Backend-Test belegt `CANCEL_TIMEOUT` und die Frist, nicht das Verhalten eines echten blockierenden Treibers. Die Messungen der Frist (Überschreitung 0 bis 3 ms, bei nicht unterbrechbarem Aufruf bis zu dessen Ende) stammen aus einem Spike mit anderen Versionen und gelten nicht für diesen Quelltext. — **Ausgang:** offen bis zur Closure
+- Zwei Auslöser für denselben Abbruch (ATTENTION des Clients, Frist des Kerns) gehen denselben Weg des Cancel; ohne gemeinsamen Pfad entstünde ein doppeltes DONE oder ein doppelter Cancel. Der Wettlauftest des zweiten Punkts nimmt die Frist als zweiten Auslöser auf (gesteuerte Reihenfolge). — **Ausgang:** offen bis zur Closure
 
 ## 7. Closure-Notiz
 

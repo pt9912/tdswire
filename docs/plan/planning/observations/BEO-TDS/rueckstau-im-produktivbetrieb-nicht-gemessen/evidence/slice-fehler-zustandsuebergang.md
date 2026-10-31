@@ -1,0 +1,2 @@
+**Vorgang:** slice-fehler-zustandsuebergang
+**Fund:** Der Mutex je Sitzung hält den Übergang, solange ein Schreiben bei langsamem Leser wartet. Die Tests dieses Slice laufen über einen Kanal-Fake ohne Rückstau; die Wirkung der Sperre auf dem echten Transport unter Last ist nicht gemessen ([ADR-0004](../../../../../adr/0004-session-zustandsautomat.md) nennt den Schreibwettlauf auf dem echten Transport als Re-Evaluierungs-Trigger).

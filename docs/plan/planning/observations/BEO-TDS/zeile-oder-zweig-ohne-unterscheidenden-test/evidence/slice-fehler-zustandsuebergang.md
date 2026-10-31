@@ -1,0 +1,2 @@
+**Vorgang:** slice-fehler-zustandsuebergang
+**Fund:** Der Zweig „bei Class 16 liest der Sequenzierer nicht weiter“ hatte keinen Test, der ihn unterscheidet: hinter dem offenen Fehler stand im Strom kein weiteres Ereignis, der Mutant `report` gibt nur bei schließendem Fehler `false` (M3c) blieb grün (Review F-1). Die Implementierung hatte M1 bis M4 gefahren, M3c fand erst der Reviewer. Behoben mit Folgeereignissen hinter jedem Fehler (Fix-Runde `af212cb`); die Verifikation maß M3c als rot.

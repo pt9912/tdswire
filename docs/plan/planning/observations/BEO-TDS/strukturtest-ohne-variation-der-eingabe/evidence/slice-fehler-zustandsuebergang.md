@@ -1,0 +1,2 @@
+**Vorgang:** slice-fehler-zustandsuebergang
+**Fund:** Der Class-20-Test behauptete eine Variation des Eingabewegs („fremder Code“ und `TDS_LOGIN_FAILED`), beide laufen aber über denselben Pfad zu `TDS_INTERNAL_ERROR`; es gab einen Fall (Review F-3). Behoben mit dem zweiten Weg (Reihenfolgeverstoß), dessen Mutant `violation` mit offener Folge die Verifikation als rot maß (Mviol, Befund V-1 zur Meldung: `BEO-TDS/mutant-faellt-nur-an-der-zeitueberschreitung`).
