@@ -171,7 +171,10 @@ Hier endet die Implementation. Die übrigen Rollen laufen in **getrennten Kontex
     „herabstufen, weil der Implementer widerspricht").
 22. **→ Verifier (Modul 11):** in getrenntem Kontext die DoD-/Spec-Behauptung und den
     Plan-vs-Code-Diff **bestätigen**, dazu ADR-Konformität. Das fängt, was Tests übersehen und der
-    Reviewer nicht sieht (DoD-Verletzung).
+    Reviewer nicht sieht (DoD-Verletzung). **Weicht eine Nutzerentscheidung vom DoD-Wortlaut ab**
+    (die Ablage, der Ort, die Zahl), meldet der Implementer es im Bericht; der Planner ändert den
+    Wortlaut **vor** der Verifikation, nicht erst bei der Closure, sonst führt der Verifier den
+    Haken als offen  (seit slice-rpc-executesql-parameter).
 23. **→ Validator (Modul 8):** falls der Slice End-Nutzer-Wert liefert, gegen den realen Bedarf
     validieren („das Richtige bauen"). Meist n/a bei interner Wartung — dann explizit sagen statt
     still überspringen.
@@ -188,7 +191,9 @@ Hier endet die Implementation. Die übrigen Rollen laufen in **getrennten Kontex
     bekommt dabei genau einen von drei Ausgängen** (Modul 5): *eingetreten* → Carveout oder
     Folge-Slice mit ID · *entfallen* → gestrichen **mit Begründung** · *weiter offen* → wandert ins
     Beobachtungs-Register (Schritt 25). Ein Slice geht nicht nach `done/`, während ein Risiko ohne
-    Ausgang dasteht.
+    Ausgang dasteht. **Hat der Slice Tests geändert, läuft `make spec-abdeckung` vor dem
+    Closure-Commit, und die erzeugte `docs/plan/spec-abdeckung.md` liegt im selben Commit**; die
+    Matrix ist kein Gate und steht sonst hinter dem Bestand  (seit slice-rpc-executesql-parameter).
     **Entscheidungs-Slice (die ADR steht auf `Accepted` und führt offene Punkte)** *(seit welle-entscheidungen-grundlage)*:
     Jeder offene Punkt der ADR hat vor dem `→ done` einen Träger, der als Datei im
     Planning-Lifecycle existiert und den Punkt in seiner DoD oder seinem Risiko führt —

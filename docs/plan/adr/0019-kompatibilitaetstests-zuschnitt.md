@@ -16,7 +16,7 @@
 
 ## Kontext
 
-Der Slice für die Kompatibilitätstests (Entscheidungsblatt [Punkt 3](../entscheidungsblatt.md)) nennt in §4 offen, wann und wie er startet, in §6 das Container-Modell, und führt unter den Anmeldemessungen der DoD Windows-SSPI (NTLM). Drei Fragen, ein Gegenstand: die Kompatibilitätsmatrix B von [ADR-0008](0008-dotnet-kompatibilitaetstests.md).
+Der Slice für die Kompatibilitätstests (Entscheidungsblatt Punkt 3) nennt in §4 offen, wann und wie er startet, in §6 das Container-Modell, und führt unter den Anmeldemessungen der DoD Windows-SSPI (NTLM). Drei Fragen, ein Gegenstand: die Kompatibilitätsmatrix B von [ADR-0008](0008-dotnet-kompatibilitaetstests.md).
 
 **Zuschnitt.** Der Start-Trigger „ein lauffähiger Server beantwortet die Anmeldung“ ist erfüllt, trägt die DoD aber nicht: laut Plan (§4) verdrahtet `Bootstrap.kt` den Handler ohne `QueryBackend` (außer in Tests existiert keine Implementierung in `src/main`), und der Pfad ab dem ersten Byte (TDS 8.0) ist nicht verdrahtet (KDoc von `runtime/ConnectionWiring.kt`). Die DoD verlangt Szenarien SELECT, parametrisierte Abfrage, NULL, Fehler, Abbruch und TDS-8.0-Messungen; ohne Anfragepfad und ohne TDS-8.0-Verdrahtung zeigt die DoD auf Ungebautes. Der Stand ist aus dem Plan zitiert und für diese ADR nicht erneut geprüft.
 
@@ -55,7 +55,7 @@ Wir wählen **Option A (Zuschnitt)**, **zwei Container (Container-Modell)** und 
 
 - Positiv: Die DoD des Slice zeigt nicht mehr auf Ungebautes; ein Container-Modell ist festgelegt, das schon als Gate läuft.
 - Negativ: Die Kompatibilitätsaussage für Anfragen und TDS 8.0 kommt später; die Matrix B kostet pro Lauf etwas mehr als im Spike.
-- **Folgepflicht (nach `Accepted`):** (1) Der Planner passt Start-Trigger und DoD des Slice für die Kompatibilitätstests an (Zuschnitt A, zwei Container, SSPI/NTLM als nicht lieferbar mit Grund) und verweist auf diese ADR; § 6 des Slice („Container-Modell offen“) bekommt einen Ausgang. (2) Spezifikation: `SPEC-025`/`SPEC-032` nennen das Container-Modell zwei Container; Träger: der Spec-Nachzug nach `Accepted`. (3) Der Träger-Slice für die TDS-8.0-Verdrahtung ist [Punkt 4](../entscheidungsblatt.md) des Entscheidungsblatts und nicht Gegenstand dieser ADR. (4) Kein Quelltext ändert sich durch diese ADR.
+- **Folgepflicht (nach `Accepted`):** (1) Der Planner passt Start-Trigger und DoD des Slice für die Kompatibilitätstests an (Zuschnitt A, zwei Container, SSPI/NTLM als nicht lieferbar mit Grund) und verweist auf diese ADR; § 6 des Slice („Container-Modell offen“) bekommt einen Ausgang. (2) Spezifikation: `SPEC-025`/`SPEC-032` nennen das Container-Modell zwei Container; Träger: der Spec-Nachzug nach `Accepted`. (3) Der Träger-Slice für die TDS-8.0-Verdrahtung ist Punkt 4 des Entscheidungsblatts und nicht Gegenstand dieser ADR. (4) Kein Quelltext ändert sich durch diese ADR.
 - **Akzeptiertes Negativ (einmalig):** SSPI/NTLM bleibt ungemessen; der Server lehnt den Modus ab, ein Client mit Windows-Token sieht die Ablehnung nur, wenn jemand es dort ausprobiert. Es bleibt bei `BEO-TDS/anmeldepfad-sicherheit-nicht-gebaut` bzw. dem Register-Eintrag zu ADR-0009 §Offen.
 
 ## Fitness Function (falls maschinell prüfbar)
@@ -77,7 +77,7 @@ Ein Szenario, das ohne getrennte Prozesse auskommt und dessen Laufzeit zwei Cont
 
 | Datum | Ereignis | Verweis |
 |---|---|---|
-| 2026-10-31 | Proposed – Zuschnitt A, zwei Container, SSPI/NTLM nicht lieferbar zu Punkt 3 des Entscheidungsblatts (Nutzer: „ok deine empfehlungen“); Teil-Supersede der Container-Sätze von ADR-0008; Einschätzung zu SSPI/NTLM nicht gemessen; Status bleibt Proposed bis Review und Annahme durch den Nutzer | [Entscheidungsblatt](../entscheidungsblatt.md) |
+| 2026-10-31 | Proposed – Zuschnitt A, zwei Container, SSPI/NTLM nicht lieferbar zu Punkt 3 des Entscheidungsblatts (Nutzer: „ok deine empfehlungen“); Teil-Supersede der Container-Sätze von ADR-0008; Einschätzung zu SSPI/NTLM nicht gemessen; Status bleibt Proposed bis Review und Annahme durch den Nutzer | Entscheidungsblatt |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit

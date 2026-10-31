@@ -16,7 +16,7 @@
 
 ## Kontext
 
-Zwei angenommene ADRs und die Spezifikation (Rang 2, höher als jede ADR) stehen nebeneinander, ohne dass eine Entscheidung es sagt. Beide Fälle stehen in den Closure-Notizen als „Folge-ADR nötig“ ohne Träger; Entscheidungsblatt [Punkt 11a und 11b](../entscheidungsblatt.md).
+Zwei angenommene ADRs und die Spezifikation (Rang 2, höher als jede ADR) stehen nebeneinander, ohne dass eine Entscheidung es sagt. Beide Fälle stehen in den Closure-Notizen als „Folge-ADR nötig“ ohne Träger; Entscheidungsblatt Punkt 11a und 11b.
 
 **(a) `OutputParameter`.** [ADR-0013](0013-backend-grenzen.md) Entscheidung 6 sagt: die Klassen der Werte gelten auch für `QueryParameter.value` und `OutputParameter.value`, „Letzteres bleibt bis zur Abbildung abgelehnt (SPEC-031)“. Die Spezifikation sagt jetzt: `OutputParameter` lehnt nur die Antwort auf einen Batch ab, in der Antwort auf einen RPC wird er abgebildet (RETURNVALUE; `SPEC-002`-Absatz zu Klassen, `SPEC-031`). Gebaut ist die Abbildung im RPC (Closure des Slice für mehrteilige Antworten und Ausgabewerte, Tests `ResponseRpcTest`, `AnswerFormsDispatchTest`; Handvektoren, nicht am echten Server gemessen). Der Halbsatz kann als zeitlich bedingt gelesen werden („bis zur Abbildung“), sagt aber ohne Einschränkung „Letzteres“ für beide Antwortformen; die Closure hat ihn als Spannung geführt.
 
@@ -64,7 +64,7 @@ Eine Messung am echten Server, nach der der Batch `OutputParameter` kennt oder d
 
 | Datum | Ereignis | Verweis |
 |---|---|---|
-| 2026-10-31 | Proposed – Folge-ADR zu Punkt 11a und 11b des Entscheidungsblatts (Nutzer: „ok deine empfehlungen“); Teil-Supersede von ADR-0013 Entscheidung 6, Schließen eines offenen Punktes von ADR-0004; Status bleibt Proposed bis Review und Annahme durch den Nutzer | [Entscheidungsblatt](../entscheidungsblatt.md) |
+| 2026-10-31 | Proposed – Folge-ADR zu Punkt 11a und 11b des Entscheidungsblatts (Nutzer: „ok deine empfehlungen“); Teil-Supersede von ADR-0013 Entscheidung 6, Schließen eines offenen Punktes von ADR-0004; Status bleibt Proposed bis Review und Annahme durch den Nutzer | Entscheidungsblatt |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit

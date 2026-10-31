@@ -14,7 +14,7 @@
 
 ## Kontext
 
-Der Slice für Laufzeit-Artefakt und Lizenz liegt in `done/` und hat ein Laufzeit-Artefakt gebaut. Das Basis-Image war dort „Entscheidung des Implementers mit Nutzerbestätigung“; die Bestätigung steht in den Akten nicht (Register `BEO-TDS/lesart-einer-nutzerentscheidung-unbestaetigt`). Der Nutzer hat am 2026-10-31 die Empfehlung zu [Punkt 5](../entscheidungsblatt.md) des Entscheidungsblatts bestätigt; diese ADR hält Entscheidung und gebauten Stand fest, damit der Slice nicht das einzige Dokument der Wahl bleibt.
+Der Slice für Laufzeit-Artefakt und Lizenz liegt in `done/` und hat ein Laufzeit-Artefakt gebaut. Das Basis-Image war dort „Entscheidung des Implementers mit Nutzerbestätigung“; die Bestätigung steht in den Akten nicht (Register `BEO-TDS/lesart-einer-nutzerentscheidung-unbestaetigt`). Der Nutzer hat am 2026-10-31 die Empfehlung zu Punkt 5 des Entscheidungsblatts bestätigt; diese ADR hält Entscheidung und gebauten Stand fest, damit der Slice nicht das einzige Dokument der Wahl bleibt.
 
 **Gebauter Stand (Dockerfile, Stage `runtime`; Closure des Slice, je ein Lauf, Host des Laufs):**
 
@@ -73,7 +73,7 @@ Ein neuer Release des Basis-Images mit Sicherheitsmeldung zum gepinnten Digest; 
 
 | Datum | Ereignis | Verweis |
 |---|---|---|
-| 2026-10-31 | Proposed – Bestätigung des gebauten Laufzeit-Artefakts zu Punkt 5 des Entscheidungsblatts (Nutzer: „ok deine empfehlungen“); Dateirechte und Lizenzhinweise bleiben offen; Status bleibt Proposed bis Review und Annahme durch den Nutzer | [Entscheidungsblatt](../entscheidungsblatt.md), Slice für Laufzeit-Artefakt und Lizenz |
+| 2026-10-31 | Proposed – Bestätigung des gebauten Laufzeit-Artefakts zu Punkt 5 des Entscheidungsblatts (Nutzer: „ok deine empfehlungen“); Dateirechte und Lizenzhinweise bleiben offen; Status bleibt Proposed bis Review und Annahme durch den Nutzer | Entscheidungsblatt, Slice für Laufzeit-Artefakt und Lizenz |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit

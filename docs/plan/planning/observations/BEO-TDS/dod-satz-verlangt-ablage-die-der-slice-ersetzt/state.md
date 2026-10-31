@@ -1,1 +1,1 @@
-**Stand:** offen — über der Schwelle (4×), bei den Closures von slice-rpc-executesql-parameter und slice-release-artefakt-lizenz gelesen und nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung).
+**Stand:** verkörpert — `.claude/commands/implement-slice.md` (Schritt 22), Anker `seit slice-rpc-executesql-parameter`; Nachtrag in `slice-rpc-executesql-parameter.md` §7

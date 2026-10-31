@@ -16,7 +16,7 @@
 
 [ADR-0005](0005-rpc-und-prepared-statements.md) („Negativ / Risiko“) hält fest: Der Server hält Prepare-Handles je Sitzung; da der Client in den gemessenen Szenarien (ohne Pool) kein `sp_unprepare` sendet, wachsen sie bis zum Sitzungsende, wenn der Produktivcode sie nicht begrenzt; unter Pooling ist das nicht gemessen. [SPEC-030](../../../spec/spezifikation.md#spec-030--rpc-varianten-und-parameter-metadaten) verlangt, die Anzahl je Sitzung zu begrenzen (Festlegung), und beantwortet `sp_unprepare` mit einem definierten Fehler (der Katalog kennt es nicht). Handles werden deshalb vor dem Sitzungsende **nie** freigegeben.
 
-Der Slice für Prepared-Handles nennt den Grenzwert „Festlegung des Nutzers, nicht gemessen“ und startet erst, wenn er entschieden ist; die Closure des Slice für mehrteilige Antworten und Ausgabewerte findet für den Grenzwert keine Zahl im Repo (Entscheidungsblatt [Punkt 1](../entscheidungsblatt.md)). Eine Messung am echten Server gibt es nicht: weder wie viele Handles ein SQL Server je Sitzung hält noch wie er ein Überschreiten beantwortet. Der Speicher je Handle (Text, Deklaration) ist nicht gemessen; `MAX_CONNECTIONS` ist 1000 (`SPEC-034`, vorläufig).
+Der Slice für Prepared-Handles nennt den Grenzwert „Festlegung des Nutzers, nicht gemessen“ und startet erst, wenn er entschieden ist; die Closure des Slice für mehrteilige Antworten und Ausgabewerte findet für den Grenzwert keine Zahl im Repo (Entscheidungsblatt Punkt 1). Eine Messung am echten Server gibt es nicht: weder wie viele Handles ein SQL Server je Sitzung hält noch wie er ein Überschreiten beantwortet. Der Speicher je Handle (Text, Deklaration) ist nicht gemessen; `MAX_CONNECTIONS` ist 1000 (`SPEC-034`, vorläufig).
 
 ## Entscheidung
 
@@ -71,7 +71,7 @@ Eine Messung des Handle-Verhaltens eines echten Servers; ein gepoolter Referenzc
 
 | Datum | Ereignis | Verweis |
 |---|---|---|
-| 2026-10-31 | Proposed – Grenzwert 1000 als Setzung (Voreinstellung, nicht gemessen) und Überschreitung als definierter Fehler bei offener Verbindung (Empfehlung) zu Punkt 1 des Entscheidungsblatts (Nutzer: „ok deine empfehlungen“); Status bleibt Proposed bis Review und Annahme durch den Nutzer | [Entscheidungsblatt](../entscheidungsblatt.md) |
+| 2026-10-31 | Proposed – Grenzwert 1000 als Setzung (Voreinstellung, nicht gemessen) und Überschreitung als definierter Fehler bei offener Verbindung (Empfehlung) zu Punkt 1 des Entscheidungsblatts (Nutzer: „ok deine empfehlungen“); Status bleibt Proposed bis Review und Annahme durch den Nutzer | Entscheidungsblatt |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit

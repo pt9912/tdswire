@@ -1,1 +1,1 @@
-**Stand:** offen — über der Schwelle (4×), bei den Closures von slice-backend-streaming-nachweis, slice-rpc-executesql-parameter und welle-backend-streaming gelesen und nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung).
+**Stand:** verkörpert — `.claude/commands/plan-welle.md` (Schritt 6), Anker `seit welle-backend-streaming`; Nachtrag in `welle-backend-streaming-results.md` §Steering-Loop-Einträge

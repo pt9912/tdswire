@@ -1,1 +1,1 @@
-**Stand:** offen — über der Schwelle (4×), bei den Closures von welle-transport-tls, welle-handshake-login und slice-rpc-executesql-parameter gelesen und nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung).
+**Stand:** gestrichen — gedeckt: `.d-check.yml` führt Muster für `ADR-*` (`link-policy: always`) und `TDS-(FA|QA|RB)-NN` (`link-policy: prose`), `make docs-check` meldet `id-unlinked` und ist in `make gates`; die Beobachtung beschreibt Nacharbeit nach einem roten Lauf, keinen ungedeckten Fehler.

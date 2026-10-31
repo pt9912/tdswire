@@ -107,6 +107,15 @@ und Zielort auf **einer** Zeile, Sektionsangabe innerhalb der Backticks).
 
 **Spec-Lücken:** keine neue benannt. Die offene Lücke zu `SPEC-051` (Einzelfälle ohne Lastenheft-Deckung) gehört der Nachbarwelle und steht im Eintrag oben.
 
+**Nachtrag 2026-10-31 (Verkörperung nach dem Entscheidungsdurchgang; für diese Einträge gilt die Paarung (a)).** Zwei der oben als „nicht verkörpert“ geführten Klassen sind seit diesem Tag Regeln mit Anker; sie traten in dieser Welle erstmals über der Schwelle auf.
+
+- **Reviewer-Skill** geschärft: Eigencode (Wartebedingung, Fehlerzweig, `NonCancellable`), dessen Entfernung keinen Test rot macht, ist ein MEDIUM-Anker.
+  — liegt in `.harness/skills/reviewer.md`.
+  Auslöser: `BEO-TDS/zeile-oder-zweig-ohne-unterscheidenden-test` (`slice-backend-sequenzierer`, `slice-bootstrap-konfiguration`, `slice-fehler-mapping`, `slice-fehler-zustandsuebergang`, `slice-sql-batch-dispatch`, `slice-transport-listener-lebenszyklus` — 6× zum Zeitpunkt dieser Closure).
+- **Reviewer-Skill** geschärft: eine Auswahl- oder Gleichheitseigenschaft, die ein Test mit einheitlicher Eingabe behauptet, ist ein MEDIUM-Anker.
+  — liegt in `.harness/skills/reviewer.md`.
+  Auslöser: `BEO-TDS/strukturtest-ohne-variation-der-eingabe` (`slice-auth-adapter-benutzerliste`, `slice-backend-typabbildung`, `slice-fehler-zustandsuebergang`, `slice-handshake-login`, `slice-qa-stabilitaet`, `slice-transport-listener-lebenszyklus` — 6×).
+
 ## Beobachtungs-Register (Zeiger)
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`

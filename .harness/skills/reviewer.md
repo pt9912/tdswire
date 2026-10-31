@@ -73,6 +73,17 @@ bewusst kurz (Ergänzungs-Kanal, nicht Hauptkanal).
 - **Aussage breiter als ihr Beleg** — in ADR, Spec, Vertrag, Slice, KDoc oder Test steht mehr, als
   Messzeile, Handvektor mit Quelle oder gekennzeichnete Setzung tragen, oder eine Abschnittsnummer
   eines externen Standards ohne belegbare Quelle (`AGENTS.md` §3.8)  (seit welle-protokollcodec)
+- **Eigencode, dessen Entfernung keinen Test rot macht** — eine Wartebedingung, ein Fehlerzweig oder
+  ein `NonCancellable`, das im Diff neu ist und bei Streichung jeden Test grün lässt (Prüfung: den
+  Zweig im Kopf oder per Mutation entfernen; bleibt alles grün, trägt kein Test die Zeile)
+  (seit welle-transport-tls)
+- **Auswahl- oder Gleichheitseigenschaft mit einheitlicher Eingabe** — ein Test behauptet, dass ein
+  Wert aus mehreren gewählt oder zwei Dinge gleich behandelt werden, aber alle Eingaben sind gleich
+  (eine Kette mit einem Zertifikat, ein Backend mit einer Antwort); jede Mutation der Auswahl bleibt
+  grün (seit welle-transport-tls)
+- **Vertragstest belegt nur den Fake** — ein Test des Port-Vertrags gibt das Skript zurück, das er
+  selbst in das Test-Backend gelegt hat; keine Änderung am Produktionscode macht ihn rot (Gegenprobe:
+  ein Backend, das den Vertrag verletzt, muss die Suite röten)  (seit welle-backend-streaming)
 
 **LOW** — *mit Konventions-Anker* (ADR, Hard Rule, Linter-Regel, Eintrag im
 Reviewer-Skill): stilistisch unschön ohne semantische Auswirkung, einmalige

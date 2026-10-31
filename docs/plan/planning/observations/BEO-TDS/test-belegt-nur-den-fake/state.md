@@ -1,1 +1,1 @@
-**Stand:** offen — über der Schwelle (4×), bei den Closures von slice-backend-streaming-nachweis, welle-backend-streaming und slice-sim-auswahl-streaming gelesen und nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung).
+**Stand:** verkörpert — `.harness/skills/reviewer.md` (MEDIUM-Liste), Anker `seit welle-backend-streaming`; Nachtrag in `welle-backend-streaming-results.md` §Steering-Loop-Einträge
