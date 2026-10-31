@@ -3,6 +3,7 @@ package io.github.pt9912.tdswire.protocol.dispatch
 import io.github.pt9912.tdswire.domain.QueryParameter
 import io.github.pt9912.tdswire.protocol.rpc.RpcCall
 import io.github.pt9912.tdswire.protocol.rpc.RpcParser
+import io.github.pt9912.tdswire.protocol.wire.ProtocolError
 import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
 
 /** Das Ergebnis der Bindung einer RPC-Nachricht: eine Anfrage an das Backend oder die Ablehnung. */
@@ -14,8 +15,12 @@ internal sealed interface RpcBinding {
         override fun toString(): String = "Query(sqlChars=${sql.length}, parameters=$parameters)"
     }
 
-    /** Der RPC erreicht das Backend nicht; der Client bekommt `TDS_UNSUPPORTED_RPC`. */
-    data class Rejected(val reason: RpcRejection) : RpcBinding
+    /**
+     * Der RPC erreicht das Backend nicht. Weist der Parser die Nachricht ab ([RpcRejection.ENCODING]), trägt
+     * [error] dessen Fehler und der Client erhält `TDS_PROTOCOL_ERROR`; sonst ist [error] `null` und der
+     * Client erhält `TDS_UNSUPPORTED_RPC`.
+     */
+    data class Rejected(val reason: RpcRejection, val error: ProtocolError? = null) : RpcBinding
 }
 
 /**
@@ -26,17 +31,20 @@ internal sealed interface RpcBinding {
  * - RPC per Prozedurname: ein Aufruftext `EXEC <name> @a = @a, ...` ([RpcProcedureName]) und dieselben
  *   Wertparameter. Der Name wird in den Text übernommen, die Werte nie.
  * - Alles andere ist abgelehnt: die Katalogformen `sp_prepexec` und `sp_execute` (Handle-Verwaltung nicht
- *   gebaut), jede andere ProcID, ein Name, den der Katalog führt, und jede Nachricht, die der Parser
- *   abweist.
+ *   gebaut), jede andere ProcID und ein Name, den der Katalog führt; ebenso eine Nachricht, die der
+ *   Parser abweist (andere Folge, siehe unten).
  *
  * Festlegungen (nicht gemessen): Die Optionsflags und die Kennungen der ALL_HEADERS werden nicht
- * ausgewertet. Eine Nachricht, die der Parser abweist, ist [RpcRejection.ENCODING] und wird wie ein
- * unbekannter RPC beantwortet (die Nachricht ist vollständig gerahmt, der Strom bleibt synchron).
+ * ausgewertet. Eine Nachricht, die der Parser abweist, ist [RpcRejection.ENCODING] und trägt dessen
+ * `ProtocolError`; sie wird wie ein SQL_BATCH mit Parserfehler beantwortet (Protokollfehler, die Verbindung
+ * schließt). Jede gültig kodierte, aber nicht unterstützte Form ist ohne Fehler abgelehnt
+ * (`TDS_UNSUPPORTED_RPC`, die Verbindung bleibt offen). Die Trennung nach Ursache ist eine Nutzerentscheidung
+ * vom 2026-10-31, nicht gemessen.
  */
 internal object RpcBinder {
     fun bind(payload: ByteArray): RpcBinding = try {
         when (val parsed = RpcParser.parse(payload)) {
-            is ProtocolResult.Failed -> RpcBinding.Rejected(RpcRejection.ENCODING)
+            is ProtocolResult.Failed -> RpcBinding.Rejected(RpcRejection.ENCODING, parsed.error)
             is ProtocolResult.Ok -> bind(parsed.value.call)
         }
     } catch (rejected: RpcRejected) {

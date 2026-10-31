@@ -28,7 +28,8 @@ class ErrorResponse(val code: ErrorCode, val message: TdsMessage?, val fate: Con
 
 /**
  * Log-Eintrag des Mappings (`SPEC-048`). Trägt den Code und, wenn eine Ausnahme oder ein fremder
- * Code der Anlass war, deren Typnamen; weder den Text einer Ausnahme noch Parameterwerte.
+ * Code der Anlass war, deren Typnamen, oder die feste Marke des Anlasses (Ablehnungsgrund eines RPC);
+ * weder den Text einer Ausnahme noch Parameterwerte.
  */
 data class ErrorLogEntry(val code: ErrorCode, val cause: String?)
 
@@ -58,9 +59,9 @@ fun ErrorRule.message(): ServerMessage = ServerMessage(number, state, severity, 
  * meldet denselben Fall als `CLOSE_WITHOUT_COMPLETION`, und [fateOf] bildet ihn auf `CLOSE_WITHOUT_REPLY` ab.
  */
 class ErrorMapper(private val log: ErrorLog = ErrorLog.NONE) {
-    /** Ein Fehler mit eigenem Code. */
-    fun code(code: ErrorCode, streamSynchronous: Boolean = true): ErrorResponse =
-        response(code, streamSynchronous, null)
+    /** Ein Fehler mit eigenem Code; [cause] ist eine feste Marke für das Log, nie ein Wert. */
+    fun code(code: ErrorCode, streamSynchronous: Boolean = true, cause: String? = null): ErrorResponse =
+        response(code, streamSynchronous, cause)
 
     /**
      * Ein erwarteter Fehler des Backends. Nur ein Code aus [BACKEND_CODES] ist eine erwartete

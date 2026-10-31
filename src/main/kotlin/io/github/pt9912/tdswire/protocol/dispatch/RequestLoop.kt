@@ -37,8 +37,10 @@ import java.util.UUID
  * Ablauf je RPC (`TDS-FA-04.a`, `SPEC-030`): derselbe Rahmen (`RUNNING`, Antwort mit `RequestFinished`).
  * `RpcBinder` bindet die Nutzlast an Text und typisierte Parameter; das [backend] bekommt sie in einem
  * `QueryRequest` mit Sitzungs-ID, neuer Anfrage-ID und ohne Frist, der Rest wie beim Batch. Lehnt die
- * Bindung den RPC ab ([RpcRejection]), wird das Backend nicht gerufen und der Client erhält
- * `TDS_UNSUPPORTED_RPC` (ERROR und DONE mit Fehlerstatus, `SPEC-013`); die Verbindung bleibt offen.
+ * Bindung den RPC ab ([RpcRejection]), wird das Backend nicht gerufen. Weist der Parser die Nachricht ab,
+ * gilt wie beim Batch `TDS_PROTOCOL_ERROR` und die Verbindung schließt; jede andere Ablehnung ergibt
+ * `TDS_UNSUPPORTED_RPC` (ERROR und DONE mit Fehlerstatus, `SPEC-013`) bei offener Verbindung; der Name des
+ * Grundes steht im Log.
  *
  * Die Schleife endet immer mit geschlossenem Kanal: nach `CLOSED`, nach einer Nachricht, die sie nicht
  * beantwortet, und bei einer Ausnahme oder dem Abbruch der Coroutine.
@@ -105,7 +107,8 @@ class RequestLoop(
     private suspend fun answerRpc(rpc: TdsMessage): HandshakeEvent.RequestFinished? =
         when (val bound = RpcBinder.bind(rpc.payload)) {
             is RpcBinding.Rejected -> {
-                val response = errors.code(ErrorCode.TDS_UNSUPPORTED_RPC)
+                val response = bound.error?.let { errors.protocol(it) }
+                    ?: errors.code(ErrorCode.TDS_UNSUPPORTED_RPC, cause = bound.reason.name)
                 requestFinished(response.fate, response.message)
             }
 
