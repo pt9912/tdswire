@@ -28,6 +28,10 @@ In Arbeit (Welle welle-qualitaet-grundlage):
 
 - [slice-qa-wartbarkeit](slice-qa-wartbarkeit.md)
 
+In Arbeit (Welle welle-anfrageverarbeitung):
+
+- [slice-antwort-mehrteilig-output](slice-antwort-mehrteilig-output.md)
+
 
 
 
