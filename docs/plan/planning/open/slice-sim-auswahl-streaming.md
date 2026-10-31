@@ -86,7 +86,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-sim-erkennung](slice-sim-erkennung.md) und [slice-backend-streaming-nachweis](../in-progress/slice-backend-streaming-nachweis.md) liegen in `done/` (das Heap-Verfahren des Testlaufs wird übernommen, nicht neu erfunden), und die Zeilendarstellung ist entschieden ([ADR-0013](../../adr/0013-backend-grenzen.md): Klassen je Spaltenart; erfüllt, sobald diese ADR `Accepted` ist), und ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): [slice-sim-erkennung](../next/slice-sim-erkennung.md) und [slice-backend-streaming-nachweis](../in-progress/slice-backend-streaming-nachweis.md) liegen in `done/` (das Heap-Verfahren des Testlaufs wird übernommen, nicht neu erfunden), und die Zeilendarstellung ist entschieden ([ADR-0013](../../adr/0013-backend-grenzen.md): Klassen je Spaltenart; erfüllt, sobald diese ADR `Accepted` ist), und ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
