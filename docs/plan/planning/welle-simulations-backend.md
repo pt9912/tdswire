@@ -43,7 +43,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 einzelnen Slice-DoDs benennen; kann er das nicht, liegt keine Welle vor.
 
 - Alle Slices in `done/`.
-- `make gates` grün, einschließlich des Test-Gates nach SPEC-040, oder die Closure-Notiz begründet die Nicht-Aufnahme in `make gates` mit der gemessenen Laufzeit.
+- `make gates` grün und `make e2e` grün. Der Integrationslauf nach SPEC-040 ist nach [ADR-0022](../adr/0022-e2e-laeufe-nicht-in-den-gates.md) Stufe 3 von `make e2e` und kein Gate; die Closure-Notiz nennt die gemessene Laufzeit beider Läufe. Die Welle schließt mit dem dokumentierten Carveout [CO-004](../carveouts/CO-004-cancel-szenario-spec-040-fehlt.md) (Cancel-Szenario mit Folgeabfrage, Auflösung über [slice-attention-cancel-timeout](open/slice-attention-cancel-timeout.md)): der Lauf besteht mit vier der fünf Szenarien.
 - Das Mehr gegenüber den Slice-DoDs: Ein Lauf des Referenzclients gegen den Serverprozess mit Simulations-Backend liest eine Zeilenquelle, die mehr Zeilen erzeugt, als in den gesetzten Heap passen, vollständig bei eingehaltener Heap-Grenze, und derselbe Server startet und beantwortet den Login ohne das Simulations-Backend. Einzelne Slices belegen nur ihren Teil.
 - Die Closure-Notiz führt die Aussagen der Welle in zwei Spalten, *gemessen* und *Festlegung*, und ordnet jeden offenen Punkt der ADR aus [slice-adr-simulation-formen](done/slice-adr-simulation-formen.md) einem Träger zu; die Nutzerentscheidungen dieser Welle (Beschreibungsform, Schlüssel, Form C, Verdrahtung) sind getroffen und in den Slice-Notizen festgehalten.
 - Closure-Notiz in `welle-simulations-backend-results.md`.
