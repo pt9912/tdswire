@@ -35,6 +35,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Enumerationsfestigkeit als Abnahmekriterium — [TDS-QA-03](../../../../spec/lastenheft.md#tds-qa-03--sicherheit) verlangt sie nicht; `SPEC-012` sichert nur die gleiche Ablehnung zu. Die Zeitgleichheit des Passwortvergleichs und die Drosselung wiederholter Anmeldeversuche aus [ADR-0009](../../adr/0009-authentifizierungsmodus.md) §Offen sind dagegen Gegenstand dieses Slice (Test bzw. Entscheidung, nicht Abnahmekriterium); das Prüfwertformat der Benutzerliste ist in [ADR-0011](../../adr/0011-pruefwertformat.md) (`Accepted`) entschieden und gehört nicht mehr dazu.
+- Loginspektion über das Gesamtsystem (Sammler, Korrelations-IDs, Ereignisse) — Träger [slice-betrieb-log-schnittstelle](../open/slice-betrieb-log-schnittstelle.md); dieser Slice prüft das minimale Log von heute, das Gesamtsystem-Gate gibt es erst, wenn der Sammler existiert.
 - Der Authentifizierungsmodus selbst — [ADR-0009](../../adr/0009-authentifizierungsmodus.md) wählt SQL-Authentifizierung über einen Adapter (Status `Proposed`, wird `Accepted`); dieser Slice entscheidet ihn nicht.
 
 ## 2. Definition of Done
@@ -106,6 +107,7 @@ dasteht.
 - Die Wahl in [ADR-0009](../../adr/0009-authentifizierungsmodus.md) ist `Proposed` und kann sich bei der Verifikation ändern; Tests der Anmeldung bleiben bis zum Statuswechsel vorläufig. — **Ausgang:** entfallen: [ADR-0009](../../adr/0009-authentifizierungsmodus.md) steht auf `Accepted` (geprüft beim Start dieses Slice); die Tests der Anmeldung hängen an dem Stand.
 - Neuverhandlung in TLS 1.2 ist von der TLS-Schleife (`slice-transport-tls-schleife`) weder behandelt noch getestet (`spec/spezifikation.md` `SPEC-023` §Festlegungen der TLS-Schleife). Der TLS-Handshake-Test dieses Slice stellt fest, wie sich der Server bei einer Neuverhandlung durch die Gegenstelle verhält (Ergebniswert, nie Klartext), oder benennt die Aussage als nicht gemessen. — **Ausgang:** eingetreten: `TlsRenegotiationTest` stellt fest, dass die Schleife eine Neuverhandlung in TLS 1.2 beantwortet und nie Klartext schreibt; eine Begrenzung gibt es nicht, die Rechenlast ist nicht gemessen (weiter offen als `BEO-TDS/tls-neuverhandlung-ohne-begrenzung`).
 - Verwaiste und wartende Adapteraufrufe des Anmeldepfads ([slice-handshake-login](../done/welle-handshake-login/slice-handshake-login.md), Review F-1, Nachverifikation N-1 und N-2): `AuthPool` begrenzt die gleichzeitigen Aufrufe je Pool (Voreinstellung 4 Plätze auf `Dispatchers.IO`), eine Last-Aussage und eine Drosselung wiederholter Anmeldeversuche fehlen, und das Passwort eines bei Fristablauf wartenden Aufrufs ist erst überschrieben, wenn die Warteschlange ihn erreicht. Gemessen ist nur die Begrenzung im Unit-Test mit Test-Adapter; die Wirkung auf den Transport unter Last und die Dauer des Zeitfensters sind es nicht. Träger war der zweite Liefer-Punkt (`BEO-TDS/anmeldepfad-sicherheit-nicht-gebaut`, `BEO-TDS/geheimnis-kopien-im-speicher-nicht-gemessen`). — **Ausgang:** eingetreten: Platzbelegung und Zeitfenster sind in `AuthPoolOccupationTest` gemessen (Test-Adapter, nicht die Wirkung auf den Transport unter Last); die Drosselung ist als [CO-003](../../carveouts/CO-003-anmeldedrosselung-fehlt.md) geführt, Folge-Slice [slice-qa-anmeldedrosselung](../open/slice-qa-anmeldedrosselung.md).
+- Die Loginspektion über das Gesamtsystem hat durch die Planung der Welle [welle-betrieb-diagnose](../welle-betrieb-diagnose.md) bisher bei diesem Slice gelegen, obwohl ihr Sammler dort entsteht. — **Ausgang:** weiter offen: Träger ist jetzt [slice-betrieb-log-schnittstelle](../open/slice-betrieb-log-schnittstelle.md) (DoD „Ablösung und Redaktion“); dieser Slice prüft nur das minimale Log von heute (Nutzerfrage im Bericht der Fix-Runde).
 
 ## 7. Closure-Notiz
 
@@ -137,9 +139,9 @@ in **jedem** Slice-Plan — sie hängen weder am Modus noch am Slice-Typ. Beding
 ist allein der Modus-Begründungsblock am Ende; deshalb nennt der Titel beide
 Hälften.
 
-**Vorgelagert — Sub-Area-Wahl prüfen:** Die Modus-Deklaration in `harness/conventions.md` steht noch als Vorlage; der Slice berührt das ganze Repo (`*`), eine feinere Sub-Area ist nicht deklariert.
+**Vorgelagert — Sub-Area-Wahl prüfen:** Die Modus-Deklaration in `harness/conventions.md` führt `*` (Kürzel `TDS`, Greenfield); der Slice berührt das ganze Repo, eine feinere Sub-Area ist nicht deklariert.
 
-**Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen (`../observations/` trägt nur die `README.md`): keine Treffer.
+**Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen: `BEO-TDS/anmeldepfad-sicherheit-nicht-gebaut` (3×) und `BEO-TDS/geheimnis-kopien-im-speicher-nicht-gemessen` (3×) sind die Treffer und tragen diesen Slice als Träger; die Belege dieses Slice stehen dort in `evidence/`.
 
 **Modus-Begründungsblock — Umfang.** Pflicht, sobald mindestens eine berührte
 Sub-Area BF oder Hybrid ist — einer pro Sub-Area. Bei reinem GF genügt der

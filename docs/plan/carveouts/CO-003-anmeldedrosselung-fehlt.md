@@ -4,7 +4,7 @@
 
 **Datum angelegt:** 2026-10-31. **Letzte Prüfung:** 2026-10-31.
 
-**Betroffenes Gate:** keines. Die Aussage ist ein offener Punkt der Entscheidung ([ADR-0009](../adr/0009-authentifizierungsmodus.md) §Offen) und hat kein Gate; `make test` belegt nur die Messungen unter *Geltungs-Konfiguration*.
+**Betroffenes Gate:** keines. Die Aussage ist ein offener Punkt der Entscheidung ([ADR-0009](../adr/0009-authentifizierungsmodus.md) §Offen) und hat kein Gate. Der Carveout nimmt keine Regel und keine Schwelle aus, er führt den offenen Punkt mit Trigger und Folge-Slice, weil die Plan-DoD „entschieden oder als Carveout geführt“ zuließ; `make test` belegt nur die Messungen unter *Geltungs-Konfiguration*.
 
 **Geltungsbereich:** Anmeldepfad des Serverprozesses (`src/main/kotlin/io/github/pt9912/tdswire/protocol/session/`, Aufruf des Adapters über `AuthPool`)
 

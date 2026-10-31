@@ -53,14 +53,15 @@ class TlsRenegotiationTest {
     /**
      * Beginnt die Gegenstelle nach dem Handschlag eine Neuverhandlung, beantwortet die Schleife sie (JDK-
      * Voreinstellung: sichere Neuverhandlung zugelassen): Nutzdaten laufen danach in beide Richtungen unversehrt,
-     * und weder die Daten der Gegenstelle noch die des Servers erscheinen im Klartext auf dem Draht. Das gilt auch
-     * für wiederholte Neuverhandlungen ([REPEATS]). Nicht gemessen: Rechenlast durch viele Neuverhandlungen
+     * und die Marke des Servers erscheint nicht im Klartext im Ausgang des Servers. Das gilt für [REPEATS]
+     * Runden mit je einer Marke je Richtung; mehr ist nicht belegt (der Eingang des Servers ist die Ausgabe der
+     * Test-Engine und zählt nicht als Beleg für das Produkt). Nicht gemessen: Rechenlast durch viele Neuverhandlungen
      * (eine Begrenzung gibt es nicht), Verhalten bei TLS 1.3 (dort gibt es KeyUpdate, keine Neuverhandlung).
      *
      * @spec SPEC-023
      */
     @Test
-    fun `Eine Neuverhandlung in TLS 1_2 wird beantwortet und zeigt nie Klartext`() = watched {
+    fun `Eine Neuverhandlung in TLS 1_2 wird beantwortet und zeigt die Marke nicht im Klartext`() = watched {
         val outcome = runHandshake(TlsSetup(TlsPath.ENCAPSULATED_IN_TDS, listOf("TLSv1.2")))
         val server = outcome.channel()
         val before = outcome.serverWire.written.size
@@ -91,11 +92,7 @@ class TlsRenegotiationTest {
             }
         }
         val sent = outcome.serverWire.written.let { it.copyOfRange(before, it.size) }
-        val received = outcome.serverWire.readChunks.fold(ByteArray(0)) { all, chunk -> all + chunk }
-        listOf(clientMarker, serverMarker).forEach { marker ->
-            assertTrue(!sent.contains(marker), "Klartext im Ausgang des Servers")
-            assertTrue(!received.contains(marker), "Klartext im Eingang des Servers")
-        }
+        assertTrue(!sent.contains(serverMarker), "Klartext im Ausgang des Servers")
         assertTrue(sent.isNotEmpty(), "die Neuverhandlung hat nichts auf den Draht gebracht")
     }
 
