@@ -303,9 +303,9 @@ Precision über 38 vor COLMETADATA mit `TDS_UNSUPPORTED_TYPE` ab; das Modell ble
 `Boolean`, `UnicodeText` als `String`, `Decimal` als `java.math.BigDecimal`, `Date` als
 `java.time.LocalDate`, `Time` als `java.time.LocalTime`, `DateTime` als `java.time.LocalDateTime`, NULL als
 `null`. Die Klassen gelten auch für `QueryParameter.value` und `OutputParameter.value` (Setzung,
-Voreinstellung 2026-10-30, nicht gemessen); `OutputParameter` bleibt bis zur Abbildung abgelehnt
-(`SPEC-031`). Die Liste hat so viele Werte wie das offene Ergebnis Spalten; das Backend verändert sie
-nach der Übergabe nicht und verwendet sie nicht wieder (Setzung, Voreinstellung 2026-10-30, nicht
+Voreinstellung 2026-10-30, nicht gemessen); `OutputParameter` lehnt nur die Antwort auf einen
+Batch ab (`SPEC-031`); in der Antwort auf einen RPC wird er abgebildet. Die Liste hat so viele Werte wie
+das offene Ergebnis Spalten; das Backend verändert sie nach der Übergabe nicht und verwendet sie nicht wieder (Setzung, Voreinstellung 2026-10-30, nicht
 gemessen). Die Heap-Grenze einer Verbindung bestimmt der Strom mit dem Rückstau der Senke, nicht die
 Darstellung.
 
