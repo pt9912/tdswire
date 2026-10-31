@@ -74,6 +74,8 @@ Aussagen-Berührung steht hier gar nicht.
 - „Modulgrenzen“ meint nach [TDS-QA-05](../../../../spec/lastenheft.md#tds-qa-05--wartbarkeit) (Messmethode „Review der Modulgrenzen, automatisierte Tests“) und [SPEC-041](../../../../spec/spezifikation.md#7-festlegungen-der-harness-werkzeuge) die Importregeln der Schichten in `config/detekt/detekt.yml`; deren Quelle ist die Tabelle in `spec/architecture.md` §2. Das Gerüst-Gate steht (`make detekt`, `make detekt-selbsttest`) und ist nicht Gegenstand (§1); der Abgleich Tabelle gegen Konfiguration ist es.
 - Entscheidung Erzeuger oder Handpflege: Handpflege. Ein Erzeuger bräuchte ein neues Tag in jedem Testkopf unter `src/test` oder eine zweite Zuordnungsdatei; `make spec-abdeckung` führt die Abdeckung der Festlegungen und ist an Nachrichten und Typen nicht gebunden. Die Zitate prüft eine Wegwerf-Prüfung im Lauf (jeder zitierte Testfall steht im Bericht des Testlaufs als bestanden), kein Gate und kein Werkzeug-Target.
 
+**Fix-Runde nach dem Review** ([Bericht](../../../reviews/2026-10-30-71122af-slice-qa-wartbarkeit.md)): nur `docs/plan/kompatibilitaetsmatrix.md` und die DoD von `slice-qa-kompatibilitaet` (Träger für Lücke 7); kein Eingriff in `src/`. Träger-Angaben der Lücken 1, 5, 7, 8, 9, 10, 14 gegen den Text der Slice-Dateien neu gesetzt; Zeilen zu Transaction Manager, TLS-Fehlerfällen und `tinyint`/`smallint` auf das beschränkt, was ihr Test belegt; Auslöser und Stand-Datum im Abschnitt „Pflege“. Der Stand `bda6cd6` bleibt (die zitierten Tests laufen auf dem Kopf von `main` ebenfalls, die Aussagen „nicht gebaut“ gelten dort nicht mehr).
+
 ## 4. Trigger
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
