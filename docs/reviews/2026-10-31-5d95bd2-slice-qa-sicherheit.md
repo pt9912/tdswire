@@ -9,7 +9,7 @@
 
 **Eingangs-Kontext:**
 
-- [Slice-Plan slice-qa-sicherheit](../plan/planning/done/slice-qa-sicherheit.md) (§1 bis §3, §6, §8), [Folge-Slice slice-qa-anmeldedrosselung](../plan/planning/open/slice-qa-anmeldedrosselung.md), [CO-003](../plan/carveouts/CO-003-anmeldedrosselung-fehlt.md)
+- [Slice-Plan slice-qa-sicherheit](../plan/planning/done/slice-qa-sicherheit.md) (§1 bis §3, §6, §8), [Folge-Slice slice-qa-anmeldedrosselung](../plan/planning/next/slice-qa-anmeldedrosselung.md), [CO-003](../plan/carveouts/CO-003-anmeldedrosselung-fehlt.md)
 - [ADR-0002](../plan/adr/0002-tls-und-verschluesselung.md), [ADR-0009](../plan/adr/0009-authentifizierungsmodus.md) (§Offen), [ADR-0011](../plan/adr/0011-pruefwertformat.md); `SPEC-023`, `SPEC-051` (Spezifikation)
 - [TDS-QA-03](../../spec/lastenheft.md#tds-qa-03--sicherheit)
 - [welle-betrieb-diagnose](../plan/planning/welle-betrieb-diagnose.md) §1, §3, §5; [welle-qualitaet-grundlage](../plan/planning/welle-qualitaet-grundlage.md) §3
