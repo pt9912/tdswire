@@ -1,7 +1,7 @@
 # E2E-Abdeckung der Stufen des Voll-E2E
 
 Erzeugt von `make e2e-abdeckung` aus den Deklarationen, die jede Stufe von
-`tools/harness/selbstpruefung.sh` an sich selbst trägt. Diese Datei ist eine **stabile
+`tools/e2e.sh` an sich selbst trägt. Diese Datei ist eine **stabile
 Abdeckungs-Deklaration, kein Lauf-Beleg**: der Erzeuger liest den Quelltext der Stufen,
 er führt den E2E nicht aus, und er schreibt sie nur bei inhaltlicher Abweichung. Sie
 ändert sich mit den Deklarationen und mit dem Ort ihrer Quellen — eine Einfügung
@@ -20,4 +20,7 @@ Waisen-Urteil fällt nicht hier.
 
 | Spec-Kennung | Kurzbeschreibung | Stufe | Ort |
 | --- | --- | --- | --- |
-| — | Der Traeger der Commit-Kennung greift im frischen Klon, das Gate-Kommando laeuft dort gruen, und der Stop-Hook gibt im Default ein Turn-Ende ohne Commit frei, haelt es im strengen Modus auf und haelt einen Commit ohne Nachweis auf | Stufe 1 | `tools/harness/selbstpruefung.sh:154` |
+| `TDS-FA-01`, `TDS-FA-02`, `TDS-FA-09` | Kindprozess main mit Rohbytes-Client: PRELOGIN und LOGIN7 mit LOGINACK, Start ohne JVM-Flag bricht ab, fehlerhafte Konfiguration und belegter Port beenden den Start mit Exit-Code 1. Nicht belegt: Referenzclient, TLS, Anfragepfad, Inhalt der Diagnose | Stufe 1 | `tools/e2e.sh:27` |
+| `TDS-RB-01`, `TDS-QA-06`, `TDS-QA-03` | Image startet, Login mit TEST_UNENCRYPTED aus zweitem Container gelingt, docker stop endet mit Exit-Code 143, die Ausgabe nennt weder Benutzer noch Passwort. Nicht belegt: TLS-Modus, Fehlpfade, Clean-Build in der CI (QA-06 nur der Docker-Teil) | Stufe 2 | `tools/e2e.sh:31` |
+| `TDS-FA-11`, `TDS-FA-03`, `TDS-FA-06` | Microsoft.Data.SqlClient gegen den Serverprozess mit Einstieg runServer im Test-Quelltext, nicht main: Auswahl mit Bedingung, leeres Ergebnis, Zeilenquelle über dem Heap, Fehler der Zeilenquelle als SqlException mit nutzbarer Verbindung, ohne Parameter, TLS und Pool. Nicht belegt: parametrisierte Abfrage, Cancel, Anweisung außerhalb der erkannten Formen | Stufe 3 | `tools/e2e.sh:35` |
+| `TDS-RB-02` | Das versionierte Testprojekt baut gesperrt und läuft, der Smoke-Test verbindet zu einem unbelegten Port und erhält eine SqlException. Nicht belegt: irgendein Serververhalten, kein Serverprozess läuft | Stufe 4 | `tools/e2e.sh:39` |
