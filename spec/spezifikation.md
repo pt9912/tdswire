@@ -582,6 +582,14 @@ fest, was der Leser daraus liest. Ändert sich das Format dort, ist der Belegsta
   Schlüssel auf unbekannte Spalte, zu große oder unlesbare Datei) bricht den Start ab, bevor ein Port
   gebunden wird, ohne Teilladen. Die Meldung nennt den Pfad im Dokument, Zeile und Spalte und nie den
   Inhalt. Kein TDS-Fehlercode: beim Laden ist kein Client verbunden (Setzung, nicht am Server gemessen).
+- **Weitere Festlegungen des Lesers** (Setzungen, nicht am Server und nicht an d-migrate gemessen):
+  `tables` als leere Abbildung ist erlaubt; Namen von Tabellen und Spalten sind nicht leer; `decimal`
+  verlangt `precision` und `scale`, `scale` höchstens `precision`; `ordinal` kommt bei keinen zwei Spalten
+  gleich vor; Ganzzahlen müssen in 32 Bit passen; `schema_format` und die Pflichttexte werden als Text
+  gelesen, mit oder ohne Anführungszeichen; ein Wahrheitswert oder eine Ganzzahl in Anführungszeichen wird
+  abgewiesen. Der Pfad einer Ladefehler-Meldung besteht aus Schlüsseln des Dokuments, ein Abschnitt höchstens
+  64 Zeichen, Steuerzeichen als `?`; der Typname steht in der Meldung nur, wenn er einer der 21 Typen des
+  Schemas ist.
 - **Verdrahtung:** Die Kotlin-Schnittstelle und eine Umgebungsvariable mit dem Dateipfad (Name nicht
   festgelegt). Die Datei liest `runtime`; das Package `simulation` bekommt einen Baum aus Abbildungen,
   Listen und Skalaren mit Zeile und Spalte und kennt weder die Datei noch die YAML-Bibliothek (Setzung,
@@ -623,6 +631,15 @@ fest, was der Leser daraus liest. Ändert sich das Format dort, ist der Belegsta
   Spalte darf in Liste und Bedingungen mehrfach stehen. Datum, Zeit und Zeitpunkt als Literal nur im
   ISO-Format als `'…'`; Parameternamen werden ohne Beachtung der Groß-/Kleinschreibung verglichen. Eine
   Obergrenze für die Länge des Anweisungstextes ist nicht festgelegt.
+- **Weitere Festlegungen von Scanner und Zuordnung** (Setzungen, nicht am Server gemessen): `N'…'` gilt auch
+  mit kleinem `n`; ein Zeilenkommentar endet an CR oder LF; Wörter bestehen aus Unicode-Buchstaben,
+  ASCII-Ziffern, `_`, `#` und `$`; die fünfzehn Wörter werden nur in ASCII-Schreibweise und ohne Beachtung
+  der Groß-/Kleinschreibung erkannt, andere Wörter (auch `TOP` und `ORDER`) sind gewöhnliche Namen; ein
+  Punkt in einer Zahl braucht Ziffern auf beiden Seiten; ein Parameter ist `@` und mindestens ein Wortzeichen;
+  `INSERT` hat genau eine Wertezeile mit ebenso vielen Werten wie Spalten; eine Spalte steht in der
+  Spaltenliste von `INSERT` und in `SET` höchstens einmal, sonst ist der Text nicht erkannt. Die Zuordnung zu
+  einer Form kommt vor der Prüfung der Objekte: eine nicht erkannte Anweisung endet mit `TDS_UNSUPPORTED_SQL`,
+  auch wenn ihre Tabelle unbekannt wäre. Die Meldung eines abgewiesenen Texts nennt nie Teile des Textes.
 
 Der Katalog der Formen, Terme und Werte ist festgelegt. Vorläufig bleiben die Aussagen, die an der
 Referenzinstanz zu messen sind (Vergleich von Bezeichnern und Werten, `QUOTED_IDENTIFIER`, Kommentare,
@@ -1102,3 +1119,4 @@ Gemessen sind: LOGIN7-Felder, Entschleierung, Ablehnungsbytes, erkennbare Modi. 
 | 2026-10-30 | Simulations-Backend nachgeführt (`SPEC-035`, `SPEC-036`, `SPEC-040`, `SPEC-045`): Ignorierliste um sieben Spaltenfelder, `tables` als Pflicht, Längengrenze der Typabbildung, Setzungsvermerke, Lesart der Liste „Nicht erkannt“ als Setzung, Tests des Lesers, gemeinsame Quelle der Schemata |
 | 2026-10-30 | Anfragezustand im Verbindungsautomaten festgelegt: flacher Zuschnitt, Sitzungsrahmen statt Response Sequencer hält den Zustand, Ende der Antwort als ein Übergang (`SPEC-001`) |
 | 2026-10-31 | Grenzen des Backend-Vertrags nach Nutzerentscheidungen: Klassen der Werte je Spaltenart, Pflicht „suspendierend“ für Backend und Zeilenquelle, Frist durch den Protokollkern mit `QUERY_TIMEOUT` als Quelle, `OutOfMemoryError` im Anfragepfad gefangen (`SPEC-002`, `SPEC-009`, `SPEC-016`, `SPEC-022`, `SPEC-031`, `SPEC-035`, `SPEC-048`); keine Grenze für „kleine“ Ergebnisse als Setzung; Messungen nur im Spike, nicht am Produkt |
+| 2026-10-31 | Simulations-Backend, weitere Festlegungen von Scanner, Zuordnung und Leser der Tabellenbeschreibung nachgetragen (`SPEC-035`, `SPEC-036`) |
