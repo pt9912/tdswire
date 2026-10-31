@@ -7,10 +7,13 @@ import io.github.pt9912.tdswire.protocol.dispatch.RequestLoop
 import io.github.pt9912.tdswire.protocol.error.ErrorLog
 import io.github.pt9912.tdswire.protocol.error.ErrorMapper
 import io.github.pt9912.tdswire.protocol.session.AuthPool
+import io.github.pt9912.tdswire.protocol.session.EncryptionPolicy
 import io.github.pt9912.tdswire.protocol.session.HandshakeConfig
 import io.github.pt9912.tdswire.protocol.session.HandshakeDriver
 import io.github.pt9912.tdswire.protocol.session.HandshakeLog
+import io.github.pt9912.tdswire.protocol.session.HandshakeOrder
 import io.github.pt9912.tdswire.protocol.session.HandshakeOutcome
+import io.github.pt9912.tdswire.transport.channel.PeekedChannel
 import io.github.pt9912.tdswire.transport.channel.SuspendingChannel
 import io.github.pt9912.tdswire.transport.channel.SwitchableChannel
 import io.github.pt9912.tdswire.transport.framing.FramingLimits
@@ -24,6 +27,7 @@ import io.github.pt9912.tdswire.transport.tls.TlsMaterial
 import io.github.pt9912.tdswire.transport.tls.TlsParameters
 import io.github.pt9912.tdswire.transport.tls.TlsPath
 import io.github.pt9912.tdswire.transport.tls.TlsResult
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -51,19 +55,35 @@ internal class HandlerSetup(
  * Handler wartet auf die nächste Nachricht oder das Ende der Gegenstelle und kehrt dann zurück; der
  * Listener schließt die Verbindung, eine Anfrage bleibt unbeantwortet. Der Paket-Schreiber arbeitet bis zum
  * Login mit [PACKET_SIZE]; danach stellt die `RequestLoop` ihn auf die Packet Size der Sitzung ein.
- * TLS läuft im TDS-7.4-Pfad (gekapselt in Paketen vom Typ `0x12`); der Pfad ab dem ersten Byte (TDS 8.0)
- * ist nicht verdrahtet.
+ *
+ * Das Warten auf das erste Byte hat dieselbe Frist wie der Treiber (`LOGIN_TIMEOUT`); läuft sie ab, kehrt der
+ * Handler zurück. Pfadwahl je Verbindung am ersten Byte, am selben Port und ohne Konfigurationsschalter
+ * (Festlegung des Slice, nicht gemessen): `0x16` (TLS-Inhaltstyp Handshake; kein TDS-Pakettyp) wählt den Pfad ab dem
+ * ersten Byte
+ * (TDS 8.0, [HandshakeOrder.TLS_FIRST], ALPN `tds/8.0`: `CONNECTED → TLS_NEGOTIATION → PRELOGIN`); jedes andere
+ * Byte läuft im TDS-7.4-Pfad (PRELOGIN, TLS gekapselt in Paketen vom Typ `0x12`), und was dort kein gültiges
+ * PRELOGIN ist, endet ohne Antwort. Der TDS-8.0-Pfad besteht nur mit TLS-Material und der Richtlinie
+ * `REQUIRED`; sonst trennt der Handler ohne Antwort. Ein Klartext-Anfang nach dem ersten Byte `0x16` scheitert im
+ * TLS-Handschlag (kein Rückfall auf Klartext). Belegt ist der Pfad gegen eine JDK-Gegenstelle und Rohbytes
+ * (`Tds8WiringTest`), nicht gegen den Referenzclient.
  */
 internal class HandshakeConnectionHandler(private val setup: HandlerSetup, private val backend: QueryBackend? = null) :
     ConnectionHandler {
     override suspend fun handle(connection: Connection) {
-        val wire = SwitchableChannel(connection.channel)
+        val peeked = withTimeoutOrNull(setup.login.timeoutSeconds.seconds) { PeekedChannel.peek(connection.channel) }
+            ?: return
+        val path = when (peeked.firstByte) {
+            TLS_HANDSHAKE_RECORD -> TlsPath.FROM_FIRST_BYTE
+            else -> TlsPath.ENCAPSULATED_IN_TDS
+        }
+        val config = handshakeConfig(path) ?: return
+        val wire = SwitchableChannel(peeked)
         val reader = MessageReader(wire, preLoginLimits(setup.login.maxPreloginMessageBytes))
         val channel = TransportHandshakeChannel(reader, MessageWriter(wire, PACKET_SIZE), wire) {
-            upgrade(connection.channel, wire)
+            upgrade(peeked, wire, path)
         }
         val driver = HandshakeDriver(
-            setup.handshake,
+            config,
             setup.adapter,
             HandshakeLog { setup.log.line("Login: ${describe(it)}") },
             setup.login.timeoutSeconds.seconds,
@@ -76,6 +96,18 @@ internal class HandshakeConnectionHandler(private val setup: HandlerSetup, priva
         }
     }
 
+    /** Die Konfiguration des Pfads; `null` (und eine Logzeile), wenn der Prozess den TDS-8.0-Pfad nicht anbietet. */
+    private fun handshakeConfig(path: TlsPath): HandshakeConfig? = when {
+        path == TlsPath.ENCAPSULATED_IN_TDS -> setup.handshake
+
+        setup.tls == null || setup.handshake.encryptionPolicy != EncryptionPolicy.REQUIRED -> {
+            setup.log.line("TLS ab dem ersten Byte nicht angeboten: keine TLS-Richtlinie")
+            null
+        }
+
+        else -> setup.handshake.copy(order = HandshakeOrder.TLS_FIRST)
+    }
+
     private fun errorMapper() = ErrorMapper(
         ErrorLog { setup.log.line("Fehler: ${it.code}${it.cause?.let { cause -> " ($cause)" }.orEmpty()}") },
     )
@@ -84,9 +116,9 @@ internal class HandshakeConnectionHandler(private val setup: HandlerSetup, priva
     private fun preLoginLimits(bytes: Int): FramingLimits =
         FramingLimits(maxPacketBytes = minOf(FramingLimits.MAX_TDS_PACKET_BYTES, bytes), maxMessageBytes = bytes)
 
-    private suspend fun upgrade(raw: SuspendingChannel, wire: SwitchableChannel): Boolean {
+    private suspend fun upgrade(raw: SuspendingChannel, wire: SwitchableChannel, path: TlsPath): Boolean {
         val material = setup.tls ?: return false
-        return when (val accepted = TlsChannel.accept(raw, material.context, TlsPath.ENCAPSULATED_IN_TDS, PARAMETERS)) {
+        return when (val accepted = TlsChannel.accept(raw, material.context, path, PARAMETERS)) {
             is TlsResult.Failed -> {
                 setup.log.line("TLS-Handschlag gescheitert: ${accepted.error.failure}")
                 false
@@ -101,6 +133,7 @@ internal class HandshakeConnectionHandler(private val setup: HandlerSetup, priva
 
     companion object {
         const val PACKET_SIZE = 4096
+        private const val TLS_HANDSHAKE_RECORD: Byte = 0x16
         private val PARAMETERS = TlsParameters.SPEC_023
     }
 }
