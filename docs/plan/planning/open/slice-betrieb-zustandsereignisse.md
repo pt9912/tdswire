@@ -150,7 +150,7 @@ Hälften.
 
 **Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen (`../observations/BEO-TDS/`, 19 Beobachtungen, Stand des Worktrees auf `main`); alle tragen die Sub-Area `*`. Treffer mit Zähler-Stand (Zahl der Dateien unter `evidence/`):
 
-- `BEO-TDS/anmeldepfad-sicherheit-nicht-gebaut` — 3×, Stand *geplant* (Träger [slice-qa-sicherheit](slice-qa-sicherheit.md)). Betrifft die Ereignisse zu Login und Konfiguration: Passwort und Prüfwert erscheinen nirgends (§2).
+- `BEO-TDS/anmeldepfad-sicherheit-nicht-gebaut` — 3×, Stand *geplant* (Träger [slice-qa-sicherheit](../next/slice-qa-sicherheit.md)). Betrifft die Ereignisse zu Login und Konfiguration: Passwort und Prüfwert erscheinen nirgends (§2).
 - `BEO-TDS/aussagen-ueber-messung-hinaus` — 16×, Stand *verkörpert* (`AGENTS.md` §3.8, Reviewer-Skill). Betrifft diesen Slice: Jede Aussage über die Diagnose nennt, was geprüft ist (§2, §6).
 - `BEO-TDS/offene-punkte-ohne-traeger` — 6×, Stand *verkörpert* (`.claude/commands/implement-slice.md`). Betrifft `QUERY_TIMEOUT` und `MAX_CONNECTIONS`: jeder offene Punkt braucht einen Träger als Datei (§6).
 - `BEO-TDS/schranken-test-mit-ungeprueftem-zaehler` — 1×, offen. Betrifft die Prüfung „kein Thread läuft weiter“: Zähler mit Untergrenze.

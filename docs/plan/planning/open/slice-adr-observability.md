@@ -36,7 +36,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 - Code von Schnittstelle, Adapter, Ereignissen und Metriken — [slice-betrieb-log-schnittstelle](slice-betrieb-log-schnittstelle.md), [slice-betrieb-zustandsereignisse](slice-betrieb-zustandsereignisse.md) und [slice-betrieb-metriken-tracing](slice-betrieb-metriken-tracing.md); dieser Slice entscheidet und baut nicht. Spike-Code liegt im Scratchpad und nie im Repo.
 - Lastkosten der Telemetrie — ohne Produktivcode nicht messbar; die Messung trägt [slice-qa-performance](slice-qa-performance.md), jede Aussage dazu bliebe hier eine Annahme.
-- Die Loginspektion über das Gesamtsystem — [slice-qa-sicherheit](slice-qa-sicherheit.md); die ADR legt nur fest, welche Felder es gibt, nicht den Gate-Test.
+- Die Loginspektion über das Gesamtsystem — [slice-qa-sicherheit](../next/slice-qa-sicherheit.md); die ADR legt nur fest, welche Felder es gibt, nicht den Gate-Test.
 - Änderungen am Lastenheft oder die Zeile des Lastenhefts, die Logging verlangt ([TDS-QA-03](../../../../spec/lastenheft.md#tds-qa-03--sicherheit)) — die ADR schärft die Spezifikation, nicht das Lastenheft.
 
 ## 2. Definition of Done
@@ -153,7 +153,7 @@ Hälften.
 
 - `BEO-TDS/aussagen-ueber-messung-hinaus` — 16×, Stand *verkörpert* (`AGENTS.md` §3.8, Reviewer-Skill). Betrifft diesen Slice: Jede Aussage der ADR trägt eine Messzeile oder ist als Setzung gekennzeichnet.
 - `BEO-TDS/offene-punkte-ohne-traeger` — 6×, Stand *verkörpert* (`.claude/commands/implement-slice.md`). Betrifft die Offen-Liste der neuen ADR (§6).
-- `BEO-TDS/anmeldepfad-sicherheit-nicht-gebaut` — 3×, Stand *geplant* (Träger [slice-qa-sicherheit](slice-qa-sicherheit.md)). Betrifft das Logfeld für die Kennung und die Redaktion von Passwort und Prüfwert (§6); die Gesamtinspektion bleibt bei [slice-qa-sicherheit](slice-qa-sicherheit.md).
+- `BEO-TDS/anmeldepfad-sicherheit-nicht-gebaut` — 3×, Stand *geplant* (Träger [slice-qa-sicherheit](../next/slice-qa-sicherheit.md)). Betrifft das Logfeld für die Kennung und die Redaktion von Passwort und Prüfwert (§6); die Gesamtinspektion bleibt bei [slice-qa-sicherheit](../next/slice-qa-sicherheit.md).
 - `BEO-TDS/rueckstau-im-produktivbetrieb-nicht-gemessen` — 1×, offen. Betrifft jede Aussage der Spikes über Verhalten unter Last (§6).
 - `BEO-TDS/katalog-und-lock-ohne-gegenpruefung` — 1×, offen. Betrifft einen Spike, der eine Bibliothek in den Katalog nähme (§6).
 - `BEO-TDS/kennungen-ohne-link-in-neuen-dokumenten` — 1×, offen. ADR, Slice und Closure-Notiz nennen `ADR-*`- und `TDS-*`-Kennungen als Link.

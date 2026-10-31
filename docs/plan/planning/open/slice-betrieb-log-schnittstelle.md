@@ -36,7 +36,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 - Metriken und Spans — [slice-betrieb-metriken-tracing](slice-betrieb-metriken-tracing.md); dieser Slice trägt nur das Log.
 - Welche Zustandsereignisse der Server meldet (Start, Bindung, Beenden, Login) und die Startdiagnose als Prozesstest — [slice-betrieb-zustandsereignisse](slice-betrieb-zustandsereignisse.md); hier wird die Schnittstelle gebaut und werden die vorhandenen Aufrufstellen umgestellt, ohne neue Ereignisarten zu erfinden.
-- Die Loginspektion über das Gesamtsystem als Gate (Passwort nie im Log, TLS-Modi, Konfigurationsnegativtests) — [slice-qa-sicherheit](slice-qa-sicherheit.md); dieser Slice liefert den Sammler-Adapter und die Redaktionstests je Ereignisart, nicht den Gate-Test des laufenden Gesamtsystems.
+- Die Loginspektion über das Gesamtsystem als Gate (Passwort nie im Log, TLS-Modi, Konfigurationsnegativtests) — [slice-qa-sicherheit](../next/slice-qa-sicherheit.md); dieser Slice liefert den Sammler-Adapter und die Redaktionstests je Ereignisart, nicht den Gate-Test des laufenden Gesamtsystems.
 - Kopien des Passworts im Speicher von JVM und Adapter — `BEO-TDS/geheimnis-kopien-im-speicher-nicht-gemessen`; das Log betrifft die Ausgabe, nicht den Speicher.
 - Rotation, Aggregation und Versand der Logzeilen — Betreiber und Log-Backend (ARC-014 ist über die Schnittstelle austauschbar); der Server schreibt auf den Kanal der ADR.
 
@@ -150,7 +150,7 @@ Hälften.
 
 **Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen (`../observations/BEO-TDS/`, 19 Beobachtungen, Stand des Worktrees auf `main`); alle tragen die Sub-Area `*`. Treffer mit Zähler-Stand (Zahl der Dateien unter `evidence/`):
 
-- `BEO-TDS/anmeldepfad-sicherheit-nicht-gebaut` — 3×, Stand *geplant* (Träger [slice-qa-sicherheit](slice-qa-sicherheit.md)). Betrifft die Redaktion von Passwort und Prüfwert im Log; die Gesamtinspektion bleibt bei [slice-qa-sicherheit](slice-qa-sicherheit.md) (§1).
+- `BEO-TDS/anmeldepfad-sicherheit-nicht-gebaut` — 3×, Stand *geplant* (Träger [slice-qa-sicherheit](../next/slice-qa-sicherheit.md)). Betrifft die Redaktion von Passwort und Prüfwert im Log; die Gesamtinspektion bleibt bei [slice-qa-sicherheit](../next/slice-qa-sicherheit.md) (§1).
 - `BEO-TDS/geheimnis-kopien-im-speicher-nicht-gemessen` — 1×, offen. Betrifft die Speicherkopien, nicht die Ausgabe; ausdrücklich nicht Gegenstand (§1).
 - `BEO-TDS/strukturtest-ohne-variation-der-eingabe` — 1×, offen. Betrifft den Redaktionstest: die Eingabewerte variieren je Lauf (§2).
 - `BEO-TDS/aussagen-ueber-messung-hinaus` — 16×, Stand *verkörpert* (`AGENTS.md` §3.8, Reviewer-Skill). Betrifft diesen Slice: Jede Aussage über „nie im Log“ nennt die geprüften Ereignisarten (§6).
