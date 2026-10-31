@@ -31,13 +31,15 @@ private const val N_TIMEOUT = 50005
 private const val N_PROTOCOL = 50006
 private const val N_INTERNAL = 50007
 private const val N_SHUTDOWN = 50008
+private const val N_HANDLE = 50009
+private const val N_HANDLE_LIMIT = 50010
 private const val N_LOGIN = 18456
 private const val N_OBJECT = 208
 private const val N_VALUE = 245
 
 /**
  * Die eigenen Fehlercodes (`SPEC-011` bis `SPEC-016`, `SPEC-037` bis `SPEC-039`, `SPEC-048`,
- * `SPEC-049`, `SPEC-012`). Jeder Code hat genau eine [rule]; die Zuordnung steht in
+ * `SPEC-049`, `SPEC-057`, `SPEC-058`, `SPEC-012`). Jeder Code hat genau eine [rule]; die Zuordnung steht in
  * `spec/spezifikation.md` (Abschnitt 4).
  *
  * Herkunft der Werte, je Wert getrennt, mit denselben Stufen wie die Tabelle in der Spezifikation
@@ -50,6 +52,8 @@ private const val N_VALUE = 245
  *   `TDS_UNSUPPORTED_SQL` und `TDS_INTERNAL_ERROR`; die Folge von `TDS_SHUTDOWN` und `TDS_LOGIN_FAILED`.
  * - Voreinstellung: `TDS_UNSUPPORTED_RPC` und `TDS_SIM_INVALID_VALUE` bei den Anfragefehlern
  *   (Class 16, offen), nicht entschieden.
+ * - Setzung (Voreinstellung, nicht gemessen): `TDS_UNKNOWN_HANDLE` und `TDS_PREPARE_LIMIT` in der
+ *   Anfragefehler-Gruppe (Class 16, offen); die Nummern 50009 und 50010 sind Festlegung.
  * - Grundregel (im Zweifel schließen): nur die Folge der Codes ohne Gruppe. Die Class 20 dieser
  *   Codes ist Festlegung, nicht Grundregel.
  * - Festlegung (nicht gemessen): alle übrigen Werte, nämlich die Nummern ohne Vorschlag, jeder State
@@ -97,4 +101,12 @@ enum class ErrorCode(val rule: ErrorRule) {
 
     /** `SPEC-049`: danach Verbindungsende (Setzung des Nutzers); Class 20 und Nummer sind Festlegung. */
     TDS_SHUTDOWN(ErrorRule(N_SHUTDOWN, FATAL, STATE, "Server is shutting down.", ConnectionFate.CLOSE_AFTER_REPLY)),
+
+    /** `sp_execute` auf ein Handle, das die Sitzung nicht hält; Anfragefehler-Gruppe, Nummer: Festlegung. */
+    TDS_UNKNOWN_HANDLE(ErrorRule(N_HANDLE, REQUEST, STATE, "Unknown prepared handle.", ConnectionFate.OPEN)),
+
+    /** `sp_prepexec` bei erreichter Handle-Grenze der Sitzung; Anfragefehler-Gruppe, Nummer: Festlegung. */
+    TDS_PREPARE_LIMIT(
+        ErrorRule(N_HANDLE_LIMIT, REQUEST, STATE, "Prepared handle limit reached.", ConnectionFate.OPEN),
+    ),
 }

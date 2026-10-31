@@ -422,19 +422,75 @@ class RpcBinderTest {
     }
 
     /**
-     * Katalogformen ohne Bearbeitung und fremde ProcIDs: `sp_prepexec` und `sp_execute` sind abgelehnt
-     * (Handle-Verwaltung nicht gebaut), ebenso `sp_prepare` (11), `sp_unprepare` (15), `sp_cursoropen` (2),
-     * ProcID 0 und 65535.
+     * Fremde ProcIDs sind abgelehnt: `sp_prepare` (11), `sp_unprepare` (15), `sp_cursoropen` (2), ProcID 0 und
+     * 65535.
      *
      * @spec SPEC-030
      */
     @Test
-    fun `Unbekannte ProcIDs und nicht gebaute Katalogformen sind abgelehnt`() {
-        assertEquals(RpcRejection.NOT_BUILT, rejection(hex(RpcVectors.PREP_EXEC)))
-        assertEquals(RpcRejection.NOT_BUILT, rejection(hex(RpcVectors.EXECUTE)))
+    fun `Unbekannte ProcIDs sind abgelehnt`() {
         listOf(0, 1, 2, 11, 14, 15, 99, 65535).forEach { id ->
             assertEquals(RpcRejection.UNKNOWN_PROCEDURE, rejection(RpcWire.procId(id)), "$id")
         }
+    }
+
+    /**
+     * `sp_prepexec` bindet den Text der Nachricht und die Wertparameter nach dem Handle; der Wert des
+     * Handle-Parameters (−1 oder ein altes Handle) und die Deklarationsliste fließen nicht ein, die Werte
+     * stehen nie im Text. Die Parameter folgen den Regeln von `sp_executesql` (Name, Typ, Richtung).
+     *
+     * @spec SPEC-030
+     * @spec SPEC-002
+     */
+    @Test
+    fun `sp_prepexec bindet Text und Wertparameter ohne Handle und Deklaration`() {
+        listOf(-1, 7).forEach { handle ->
+            val bound = assertIs<RpcBinding.Prepare>(
+                RpcBinder.bind(
+                    RpcWire.prepExec(
+                        handle,
+                        "select @a, @o",
+                        "@a int, @o int output",
+                        param("@a", int4(42)),
+                        param("@o", "26 04 00", status = 1),
+                    ),
+                ),
+            )
+            assertEquals("select @a, @o", bound.sql, "$handle")
+            assertEquals(
+                listOf(
+                    QueryParameter("@a", SqlType.Int32, 42),
+                    QueryParameter("@o", SqlType.Int32, null, ParameterDirection.OUTPUT),
+                ),
+                bound.parameters,
+                "$handle",
+            )
+        }
+    }
+
+    /**
+     * `sp_execute` bindet das Handle und die Wertparameter; die Bindung kennt keine Handle-Tabelle und lehnt
+     * ein unbekanntes Handle nicht ab. Ein Parameter außerhalb des Katalogs ist wie bei `sp_executesql`
+     * abgelehnt, auch bei `sp_prepexec`.
+     *
+     * @spec SPEC-030
+     */
+    @Test
+    fun `sp_execute bindet Handle und Wertparameter, ungueltige Parameter sind abgelehnt`() {
+        val bound = assertIs<RpcBinding.ExecutePrepared>(
+            RpcBinder.bind(RpcWire.execute(5, param("@a", int4(9)), param("@b", nvarchar("t")))),
+        )
+        assertEquals(5, bound.handle)
+        assertEquals(
+            listOf(QueryParameter("@a", SqlType.Int32, 9), QueryParameter("@b", SqlType.UnicodeText, "t")),
+            bound.parameters,
+        )
+        assertEquals(RpcRejection.PARAMETER_NAME, rejection(RpcWire.execute(5, param("a", int4(1)))))
+        assertEquals(RpcRejection.TYPE, rejection(RpcWire.execute(5, param("@a", "6D 08 00"))))
+        assertEquals(
+            RpcRejection.TYPE,
+            rejection(RpcWire.prepExec(-1, "s", "d", param("@a", "6D 08 00"))),
+        )
     }
 
     /**

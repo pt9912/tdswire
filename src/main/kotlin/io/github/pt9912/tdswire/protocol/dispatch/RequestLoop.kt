@@ -8,6 +8,7 @@ import io.github.pt9912.tdswire.protocol.error.ErrorCode
 import io.github.pt9912.tdswire.protocol.error.ErrorMapper
 import io.github.pt9912.tdswire.protocol.response.ResponseForm
 import io.github.pt9912.tdswire.protocol.response.ResponseSequencer
+import io.github.pt9912.tdswire.protocol.response.SequenceOutcome
 import io.github.pt9912.tdswire.protocol.response.TokenSink
 import io.github.pt9912.tdswire.protocol.session.ConnectionState
 import io.github.pt9912.tdswire.protocol.session.HandshakeChannel
@@ -19,6 +20,8 @@ import io.github.pt9912.tdswire.protocol.sqlbatch.SqlBatchParser
 import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
 import io.github.pt9912.tdswire.transport.framing.PacketType
 import io.github.pt9912.tdswire.transport.framing.TdsMessage
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
 /**
@@ -47,6 +50,16 @@ import java.util.UUID
  * (`UNSUPPORTED_PLP`), ergibt `TDS_UNSUPPORTED_RPC` (50002; ERROR und DONE mit Fehlerstatus, `SPEC-013`) bei
  * offener Verbindung; der Name des Grundes steht im Log.
  *
+ * Prepared-Statements (`TDS-FA-04.a` Nr. 5, `SPEC-030`): `sp_prepexec` merkt den Text unter einem neuen Handle der
+ * Sitzung ([PreparedHandles]), führt ihn mit den Parametern der Nachricht über das [backend] aus und
+ * liefert das Handle als RETURNVALUE ([HandleReturningBackend]); bleibt die Antwort nicht vollständig
+ * (Fehler im Strom), gibt die Schleife das Handle wieder frei. Hält die Sitzung schon
+ * [PreparedHandles.MAX_HANDLES] Handles, ergibt `sp_prepexec` `TDS_PREPARE_LIMIT`, ohne das Backend zu rufen;
+ * die Handles bleiben gültig. `sp_execute` führt den gemerkten Text mit den neuen Parametern aus; ein Handle,
+ * das die Sitzung nicht hält, ergibt `TDS_UNKNOWN_HANDLE` ohne Backend-Aufruf. Beide Fehler lassen die Verbindung
+ * offen (Class 16). `sp_unprepare` und `sp_prepare` sind nicht im Katalog (`TDS_UNSUPPORTED_RPC`). Die Handles
+ * enden mit der Schleife.
+ *
  * Die Schleife endet immer mit geschlossenem Kanal: nach `CLOSED`, nach einer Nachricht, die sie nicht
  * beantwortet, und bei einer Ausnahme oder dem Abbruch der Coroutine.
  *
@@ -74,6 +87,9 @@ class RequestLoop(
 ) {
     private val sequencer = ResponseSequencer(errors.sequencerMapping())
 
+    /** Die Prepared-Handles dieser Sitzung; eine Schleife bedient genau eine Sitzung. */
+    internal val handles = PreparedHandles()
+
     /** Läuft, bis die Verbindung endet; schließt den Kanal in jedem Ausgang. */
     suspend fun run() {
         try {
@@ -81,6 +97,7 @@ class RequestLoop(
             var running = true
             while (running) running = step()
         } finally {
+            withContext(NonCancellable) { handles.clear() }
             channel.close()
         }
     }
@@ -118,18 +135,44 @@ class RequestLoop(
             }
 
             is RpcBinding.Query -> execute(bound.sql, bound.parameters, ResponseForm.RPC)
+
+            is RpcBinding.Prepare -> prepare(bound)
+
+            is RpcBinding.ExecutePrepared -> executePrepared(bound)
         }
+
+    private suspend fun prepare(bound: RpcBinding.Prepare): HandshakeEvent.RequestFinished? {
+        val handle = handles.register(bound.sql) ?: return refuse(ErrorCode.TDS_PREPARE_LIMIT, "handle-limit")
+        return execute(bound.sql, bound.parameters, ResponseForm.RPC, HandleReturningBackend(backend, handle)) {
+            if (it != SequenceOutcome.COMPLETED) handles.release(handle)
+        }
+    }
+
+    private suspend fun executePrepared(bound: RpcBinding.ExecutePrepared): HandshakeEvent.RequestFinished? {
+        val sql = handles.sql(bound.handle) ?: return refuse(ErrorCode.TDS_UNKNOWN_HANDLE, "unknown-handle")
+        return execute(sql, bound.parameters, ResponseForm.RPC)
+    }
+
+    /** Die Antwort mit einem eigenen Fehlercode, ohne das Backend zu rufen; [cause] ist die feste Marke fürs Log. */
+    private fun refuse(code: ErrorCode, cause: String): HandshakeEvent.RequestFinished {
+        val response = errors.code(code, cause = cause)
+        return requestFinished(response.fate, response.message)
+    }
 
     private suspend fun execute(
         text: String,
         parameters: List<QueryParameter>,
         form: ResponseForm,
+        via: QueryBackend = backend,
+        onOutcome: suspend (SequenceOutcome) -> Unit = {},
     ): HandshakeEvent.RequestFinished? {
         val live = ready.live
         val reply = live.openReply(PacketType.TABULAR_RESULT)
         val response = StreamedResponse(reply) { live.dispatch(HandshakeEvent.StreamStarted) }
         val request = QueryRequest(ready.session.id, requestIds(), text, parameters, null)
-        val fate = errors.fateOf(sequencer.run(backend, request, sinkAround(response), form))
+        val outcome = sequencer.run(via, request, sinkAround(response), form)
+        onOutcome(outcome)
+        val fate = errors.fateOf(outcome)
         return if (live.context.state == ConnectionState.CLOSED) null else finished(fate, reply)
     }
 

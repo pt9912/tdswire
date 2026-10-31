@@ -82,6 +82,13 @@ Aussagen-Berührung steht hier gar nicht.
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 
+Erweiterung des Implementers (Ist-Zustand gegen den Plan gemessen):
+
+- Drift: die Festlegung steht in `SPEC-030` (so schärft es [ADR-0017](../../adr/0017-prepared-handles-grenzwert.md)), nicht in `SPEC-021`; die zwei neuen Fehlercodes stehen in Abschnitt 4 der Spezifikation als `SPEC-057` und `SPEC-058` (die Nummer 053 vergibt die Anmeldedrosselung).
+- Drift: [ADR-0017](../../adr/0017-prepared-handles-grenzwert.md) steht auf `Accepted` (2026-10-31), die DoD nennt noch `Proposed`.
+- Neu im Quelltext: `PreparedHandles` (Tabelle mit Mutex je Sitzung), `HandleReturningBackend` (speist das Handle ein), `RpcBinding.Prepare` und `RpcBinding.ExecutePrepared` in `RpcBinder`, Pfade `prepare` und `executePrepared` in `RequestLoop`, `ErrorCode.TDS_UNKNOWN_HANDLE` und `ErrorCode.TDS_PREPARE_LIMIT`; `RpcRejection.NOT_BUILT` entfällt.
+- Berührt außerdem: `docs/plan/kompatibilitaetsmatrix.md` (Zeilen `sp_prepexec`, `sp_execute`, Handle-Verwaltung, Lücke 13).
+
 - Reihenfolge: Tabelle mit Grenze, dann `sp_prepexec`/`sp_execute`, dann die Fehlerfälle.
 - Der Nachweis, dass der Referenzclient `Prepare()` mit diesem Server besteht, gehört nicht hierher; er ist `slice-qa-kompatibilitaet`.
 

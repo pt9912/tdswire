@@ -139,9 +139,8 @@ class RpcDispatchTest {
     }
 
     /**
-     * Jede gültig kodierte, aber nicht unterstützte Form (unbekannte ProcID, nicht gebaute Katalogform,
-     * Katalogname per Name, ungültiger Name, ungültiger Parameter, Parametertyp außerhalb des Katalogs, Wert
-     * außerhalb des Bereichs) ergibt
+     * Jede gültig kodierte, aber nicht unterstützte Form (unbekannte ProcID, Katalogname per Name, ungültiger
+     * Name, ungültiger Parameter, Parametertyp außerhalb des Katalogs, Wert außerhalb des Bereichs) ergibt
      * ERROR (Voreinstellung 50002, Class 16) und DONE mit Fehlerstatus (Handvektor), das Backend wird nicht
      * gerufen, die Verbindung bleibt offen und der Folge-RPC derselben Sitzung wird beantwortet.
      *
@@ -155,8 +154,6 @@ class RpcDispatchTest {
             "sp_prepare" to RpcWire.procId(11),
             "sp_unprepare" to RpcWire.procId(15),
             "sp_cursoropen" to RpcWire.procId(2),
-            "sp_prepexec" to hex(RpcVectors.PREP_EXEC),
-            "sp_execute" to hex(RpcVectors.EXECUTE),
             "Name sp_cursorfetch" to byName("sp_cursorfetch"),
             "Name mit Anweisung" to byName("p; drop table t"),
             "Parametername" to executeSql("s", "d", param("a", int4(1))),

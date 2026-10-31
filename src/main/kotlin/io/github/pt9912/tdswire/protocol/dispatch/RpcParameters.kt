@@ -18,11 +18,8 @@ internal enum class RpcRejection {
     /** Struktur- oder Kodierfehler des Parsers (Format, Länge, unbekannte Typkennung, TYPE_INFO, ALL_HEADERS). */
     ENCODING,
 
-    /** ProcID außerhalb des Katalogs, oder ein Name, den der Katalog führt (`sp_prepare`, `sp_cursor*`, ...). */
+    /** ProcID außerhalb des Katalogs (`sp_prepare`, `sp_unprepare`, `sp_cursor*`) oder ein Name, den er führt. */
     UNKNOWN_PROCEDURE,
-
-    /** `sp_prepexec` und `sp_execute`: die Handle-Verwaltung ist nicht gebaut. */
-    NOT_BUILT,
 
     /** Prozedurname außerhalb der Grammatik von [RpcProcedureName]. */
     PROCEDURE_NAME,

@@ -31,19 +31,19 @@ bestandenen Test als „Gate-Festlegung, ungemessen“ und ist weder Nachweis no
 irgendein Test ihre Kennung, steht sie als Nachweis da und die Klasse ist nicht mehr zu sehen.
 Die Art folgt dem Verzeichnis des Tests: `smoke/` Smoke-Test, `e2e/` E2E-Test, sonst Modul-Test.
 
-Stand: 32 von 52 Festlegungen mit mindestens einem bestandenen Test, 7 Gate-Festlegungen ungemessen, 13 ohne Nachweis.
+Stand: 34 von 54 Festlegungen mit mindestens einem bestandenen Test, 4 Gate-Festlegungen ungemessen, 16 ohne Nachweis.
 
 ## Matrix
 
 | Festlegung | Titel | Modul-Test | Smoke-Test | E2E-Test | Nicht bestanden | Belegt durch | Urteil |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `SPEC-001` | Zustandsautomat einer Verbindung | 33 | 0 | 0 | 0 | DispatchFailureTest, DispatchFateTest, RpcDispatchTest, SqlBatchDispatchTest, StreamingDispatchTest, HandshakeDriverTest, HandshakeMatrixTest, RequestWiringTest, Tds8WiringTest, Tds8ProcessTest | mindestens ein bestandener getaggter Test |
-| `SPEC-002` | Interner Query-Vertrag | 13 | 0 | 0 | 5 | BackendModelTest, AnswerFormsDispatchTest, RpcBinderTest, RpcDispatchTest, SqlBatchDispatchTest, ResponseDecoderTest, ResponseMappingTest, SimulationBackendSelectTest | mindestens ein bestandener getaggter Test |
+| `SPEC-001` | Zustandsautomat einer Verbindung | 37 | 0 | 0 | 0 | DispatchFailureTest, DispatchFateTest, PreparedHandlesDispatchTest, PreparedHandlesTest, RpcDispatchTest, SqlBatchDispatchTest, StreamingDispatchTest, HandshakeDriverTest, HandshakeMatrixTest, RequestWiringTest, Tds8WiringTest, Tds8ProcessTest | mindestens ein bestandener getaggter Test |
+| `SPEC-002` | Interner Query-Vertrag | 17 | 0 | 0 | 5 | BackendModelTest, AnswerFormsDispatchTest, HandleReturningBackendTest, PreparedHandlesDispatchTest, RpcBinderTest, RpcDispatchTest, SqlBatchDispatchTest, ResponseDecoderTest, ResponseMappingTest, SimulationBackendSelectTest | mindestens ein bestandener getaggter Test |
 | `SPEC-003` | Typmapping (initialer Mindestkatalog) | 53 | 0 | 0 | 0 | BackendModelTest, RpcBinderTest, ColumnMappingTest, MappingFuzzTest, ValueMappingTest, RpcFailureTest, RpcTypesTest, DecimalValuesTest, TokenEncoderTest, TokenRoundtripTest | mindestens ein bestandener getaggter Test |
 | `SPEC-004` | Testprofil | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-028` | PRELOGIN, TLS und LOGIN7: Zustands- und Antwortvertrag | 134 | 2 | 0 | 0 | DispatchFailureTest, StreamingDispatchTest, Login7ParserTest, PreloginCodecTest, HandshakeDriverTest, HandshakeMatrixTest, HandshakeTransportTest, LoginAdmissionTest, LoginResponseTest, PreloginNegotiationTest, SqlBatchParserTest, TokenEncoderTest, TokenRoundtripTest, BootstrapTest, ServerSmokeTest, Tds8WiringTest, Tds8DefenseTest, TlsWiringTest, CodecSmokeTest, ConnectionStormTest, FramingFuzzTest, HandshakeFuzzTest, StreamCutoffTest, SocketChannelLoopbackTest, SwitchableChannelTest, MessageAssemblerTest, PacketHeaderTest, PacketWriterTest, ListenerSmokeTest, MessageReaderTest, MessageStreamTest, MessageWriterTest, TlsDataPhaseTest, TlsLoopbackTest, TlsNegativeTest, TlsTicketFlagTest | mindestens ein bestandener getaggter Test |
 | `SPEC-029` | ATTENTION und Wiederverwendung der Verbindung | 12 | 0 | 0 | 0 | StreamingDispatchTest, ResponseFailureTest, ResponseMappingTest, SimulationBackendChangeTest, SimulationBackendSourceTest, MessageAssemblerTest | mindestens ein bestandener getaggter Test |
-| `SPEC-030` | RPC-Varianten und Parameter-Metadaten | 38 | 1 | 0 | 0 | AnswerFormsDispatchTest, RpcBinderTest, RpcDispatchTest, ResponseRpcTest, RpcCatalogFormsTest, RpcFailureTest, RpcTypesTest, TokenEncoderTest, CodecSmokeTest | mindestens ein bestandener getaggter Test |
+| `SPEC-030` | RPC-Varianten und Parameter-Metadaten | 55 | 1 | 0 | 0 | AnswerFormsDispatchTest, HandleReturningBackendTest, PreparedHandlesDispatchTest, PreparedHandlesTest, RpcBinderTest, RpcDispatchTest, ResponseRpcTest, RpcCatalogFormsTest, RpcFailureTest, RpcTypesTest, TokenEncoderTest, CodecSmokeTest | mindestens ein bestandener getaggter Test |
 | `SPEC-031` | Streaming-Fehler und Atomarität | 91 | 3 | 0 | 4 | AnswerFormsDispatchTest, DispatchClosingTest, DispatchFailureTest, DispatchFateTest, SqlBatchDispatchTest, StreamingDispatchTest, ErrorMapperTest, ResponseDecoderTest, ResponseErrorMapperTest, ResponseFailureTest, ResponseMappingTest, ResponseOrderTest, ResponseRpcTest, ColumnMappingTest, MappingFuzzTest, ValueMappingTest, RequestWiringTest, SimulationBackendSourceTest, SimulationMemoryTest, StreamingSmokeTest, MessageStreamTest | mindestens ein bestandener getaggter Test |
 | `SPEC-035` | Tabellenbeschreibung und Zeilenquelle des Simulations-Backends | 79 | 0 | 0 | 0 | SimulationWiringTest, YamlTreeReaderTest, SimDescriptionReaderTest, SimModelTest, SimulationBackendChangeTest, SimulationBackendSelectTest, SimValuesTest | mindestens ein bestandener getaggter Test |
 | `SPEC-036` | Erkannte Anweisungsformen des Simulations-Backends (vorläufig) | 52 | 0 | 0 | 0 | SimModelTest, SimulationBackendSelectTest, SimValuesTest, StatementFormsTest, StatementOracleTest, StatementPlannerTest, StatementScannerTest | mindestens ein bestandener getaggter Test |
@@ -62,7 +62,7 @@ Stand: 32 von 52 Festlegungen mit mindestens einem bestandenen Test, 7 Gate-Fest
 | `SPEC-034` | `MAX_CONNECTIONS` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-011` | `TDS_PROTOCOL_ERROR` | 9 | 0 | 0 | 0 | DispatchFailureTest, RpcDispatchTest, ErrorMapperTest, PreloginCodecTest, TokenEncoderTest, MessageAssemblerTest, PacketHeaderTest | mindestens ein bestandener getaggter Test |
 | `SPEC-012` | `TDS_LOGIN_FAILED` | 22 | 0 | 0 | 0 | UserListAuthAdapterTest, ErrorMapperTest, HandshakeDriverTest, HandshakeTransportTest, LoginAdmissionTest, LoginPathTextTest, LoginResponseTest, LoginLogInspectionTest, ServerSmokeTest | mindestens ein bestandener getaggter Test |
-| `SPEC-013` | `TDS_UNSUPPORTED_RPC` | 8 | 0 | 0 | 0 | RpcBinderTest, RpcDispatchTest, ErrorMapperTest | mindestens ein bestandener getaggter Test |
+| `SPEC-013` | `TDS_UNSUPPORTED_RPC` | 9 | 0 | 0 | 0 | PreparedHandlesDispatchTest, RpcBinderTest, RpcDispatchTest, ErrorMapperTest | mindestens ein bestandener getaggter Test |
 | `SPEC-014` | `TDS_UNSUPPORTED_TYPE` | 27 | 0 | 0 | 0 | AnswerFormsDispatchTest, DispatchFailureTest, ErrorMapperTest, ResponseErrorMapperTest, ResponseFailureTest, ResponseMappingTest, ColumnMappingTest, MappingFuzzTest, ValueMappingTest, DecimalValuesTest, TokenEncoderTest | mindestens ein bestandener getaggter Test |
 | `SPEC-015` | `TDS_BACKEND_ERROR` | 6 | 0 | 0 | 0 | ErrorMapperTest, ResponseErrorMapperTest | mindestens ein bestandener getaggter Test |
 | `SPEC-016` | `TDS_TIMEOUT` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
@@ -71,6 +71,8 @@ Stand: 32 von 52 Festlegungen mit mindestens einem bestandenen Test, 7 Gate-Fest
 | `SPEC-039` | `TDS_SIM_INVALID_VALUE` | 14 | 0 | 0 | 0 | ErrorMapperTest, SimulationCodesTest, SimulationBackendChangeTest, SimulationBackendSelectTest, SimValuesTest | mindestens ein bestandener getaggter Test |
 | `SPEC-048` | `TDS_INTERNAL_ERROR` | 35 | 0 | 0 | 0 | AnswerFormsDispatchTest, DispatchClosingTest, DispatchFailureTest, DispatchFateTest, RpcBinderTest, RpcDispatchTest, StreamingDispatchTest, ErrorMapperTest, ResponseErrorMapperTest, ResponseFailureTest, ResponseOrderTest, ResponseRpcTest, HandshakeDriverTest, HandshakeWiringTest, LoginLogInspectionTest, RequestWiringTest | mindestens ein bestandener getaggter Test |
 | `SPEC-049` | `TDS_SHUTDOWN` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
+| `SPEC-057` | `TDS_UNKNOWN_HANDLE` | 5 | 0 | 0 | 0 | PreparedHandlesDispatchTest, ErrorMapperTest | mindestens ein bestandener getaggter Test |
+| `SPEC-058` | `TDS_PREPARE_LIMIT` | 2 | 0 | 0 | 0 | PreparedHandlesDispatchTest, ErrorMapperTest | mindestens ein bestandener getaggter Test |
 | `SPEC-017` | `tds.connection` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-018` | `tds.query` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-019` | `backend.execute` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
@@ -80,15 +82,15 @@ Stand: 32 von 52 Festlegungen mit mindestens einem bestandenen Test, 7 Gate-Fest
 | `SPEC-023` | TLS | 14 | 0 | 0 | 0 | TlsHandshakeNegativeTest, TlsLoopbackTest, TlsNegativeTest, TlsRenegotiationTest, TlsStartProbeTest | mindestens ein bestandener getaggter Test |
 | `SPEC-051` | Authentifizierungsadapter | 45 | 0 | 0 | 0 | AuthPrimitivesTest, AuthTextRepresentationTest, AuthTimingTest, UserListAuthAdapterTest, UserListParserTest, ConfigLoaderTest, ConfigUsersFileTest, AuthPoolOccupationTest, BootstrapTest, SecurityConfigNegativeTest | mindestens ein bestandener getaggter Test |
 | `SPEC-024` | Unit-Test-Gate | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
-| `SPEC-025` | Integrationstest-Gate | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
+| `SPEC-025` | Integrationstest (E2E-Durchgang) | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-026` | `make gates` | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
 | `SPEC-027` | Fuzz-/Property-Tests | 24 | 0 | 0 | 0 | Login7ParserTest, PreloginCodecTest, RpcFailureTest, RpcFuzzTest, SqlBatchParserTest, TokenRoundtripTest, ConnectionStormTest, FramingFuzzTest, HandshakeFuzzTest, StreamCutoffTest, SocketChannelLoopbackTest, MessageAssemblerTest, PacketHeaderTest, RpcAssemblyTest, MessageReaderTest | mindestens ein bestandener getaggter Test |
 | `SPEC-040` | Simulations-Tests (`make simulations-integration` im E2E-Durchgang) | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
 | `SPEC-041` | Static-Analysis-Gate (`make detekt`, `make detekt-selbsttest`) | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
 | `SPEC-042` | Build-Gate (`make build`) | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
 | `SPEC-052` | Laufzeit-Artefakt und Lizenz (E2E-Durchgang: `make laufzeittest`; der Tag `@spec` nennt nur den Lizenztext) | 1 | 0 | 0 | 0 | LizenzTest | mindestens ein bestandener getaggter Test |
-| `SPEC-050` | Referenzabgleich-Gate (vorläufig) | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
-| `SPEC-032` | Kompatibilitätstest-Gate | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
+| `SPEC-050` | Referenzabgleich (vorläufig, E2E-Durchgang) | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
+| `SPEC-032` | Kompatibilitätstest (E2E-Durchgang) | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 
 ## Getaggt, aber ohne bestandenes Ergebnis
 
