@@ -1,1 +1,1 @@
-**Stand:** offen — über der Schwelle (8×), bei den Closures von welle-transport-tls, welle-handshake-login, slice-backend-streaming-nachweis und slice-sim-erkennung gelesen und nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung).
+**Stand:** offen — über der Schwelle (8×), bei den Closures von welle-transport-tls, welle-handshake-login, slice-backend-streaming-nachweis, slice-sim-erkennung und welle-backend-streaming gelesen und nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung).

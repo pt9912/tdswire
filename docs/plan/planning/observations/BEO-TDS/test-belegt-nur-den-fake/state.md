@@ -1,1 +1,1 @@
-**Stand:** offen — über der Schwelle (3×), bei der Closure von slice-backend-streaming-nachweis gelesen und nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung).
+**Stand:** offen — über der Schwelle (3×), bei den Closures von slice-backend-streaming-nachweis und welle-backend-streaming gelesen und nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung).
