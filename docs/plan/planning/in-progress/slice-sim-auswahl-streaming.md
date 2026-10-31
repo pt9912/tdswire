@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** SPEC-002 · SPEC-029 · SPEC-031 · SPEC-035 · SPEC-036 · SPEC-039 · ARC-006 · ARC-016 · [TDS-FA-11.a](../../../../spec/spezifikation.md#tds-fa-11a--simulations-backend)
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** pt9912.
 
 **Autor:** pt9912. **Datum:** 2026-10-30.
 
@@ -34,9 +34,9 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Einfügen, Ändern und Löschen — [slice-sim-aenderung-integration](slice-sim-aenderung-integration.md).
-- Sequenzierer, Tokens und Transport — der Slice endet am Strom `events` des Ports; die Kette bis zur Senke belegt [slice-backend-streaming-nachweis](../done/welle-backend-streaming/slice-backend-streaming-nachweis.md) am Fake, der Referenzclient-Lauf am Simulations-Backend [slice-sim-aenderung-integration](slice-sim-aenderung-integration.md).
-- Zeilendarstellung je `SqlType`, Grenze für „kleine“ Ergebnisse und die Frist `deadlineEpochMillis` — entschieden in [ADR-0013](../../adr/0013-backend-grenzen.md): `List<Any?>` mit den Klassen je Spaltenart (`Int`, `Long`, `Boolean`, `String`, `BigDecimal`, `LocalDate`, `LocalTime`, `LocalDateTime`, `null`), keine Grenze für „kleine“ Ergebnisse im Vertrag (Setzung), die Frist setzt der Protokollkern durch und das Backend darf sie ignorieren (Träger: [slice-attention-cancel-timeout](slice-attention-cancel-timeout.md)); dieser Slice übernimmt die Entscheidung.
+- Einfügen, Ändern und Löschen — [slice-sim-aenderung-integration](../open/slice-sim-aenderung-integration.md).
+- Sequenzierer, Tokens und Transport — der Slice endet am Strom `events` des Ports; die Kette bis zur Senke belegt [slice-backend-streaming-nachweis](../done/welle-backend-streaming/slice-backend-streaming-nachweis.md) am Fake, der Referenzclient-Lauf am Simulations-Backend [slice-sim-aenderung-integration](../open/slice-sim-aenderung-integration.md).
+- Zeilendarstellung je `SqlType`, Grenze für „kleine“ Ergebnisse und die Frist `deadlineEpochMillis` — entschieden in [ADR-0013](../../adr/0013-backend-grenzen.md): `List<Any?>` mit den Klassen je Spaltenart (`Int`, `Long`, `Boolean`, `String`, `BigDecimal`, `LocalDate`, `LocalTime`, `LocalDateTime`, `null`), keine Grenze für „kleine“ Ergebnisse im Vertrag (Setzung), die Frist setzt der Protokollkern durch und das Backend darf sie ignorieren (Träger: [slice-attention-cancel-timeout](../open/slice-attention-cancel-timeout.md)); dieser Slice übernimmt die Entscheidung.
 - Blockierende Zeilenquellen und nicht unterbrechbare Aufrufe — entschieden in [ADR-0013](../../adr/0013-backend-grenzen.md): Vertragspflicht „suspendierend“, Umhüllung beim Integrator, Hilfsadapter erst beim Trigger „echtes blockierendes Backend“; geprüft wird eine suspendierende Quelle.
 - Ein Vorfilter in der Zeilenquelle als Optimierung — der Hinweis `SimQuery.filter` wird übergeben, die Bedingung wendet das Backend immer selbst an.
 
@@ -49,9 +49,9 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 Liefer-Punkte (drei):
 
-- [ ] **Auswahl** ([TDS-FA-11.a](../../../../spec/spezifikation.md#tds-fa-11a--simulations-backend) Schritte 4 und 5): Parameter typisiert einsetzen (nie als Text) und in den Spaltentyp überführen — streng und verlustfrei nach SPEC-035 und [ADR-0012](../../adr/0012-simulations-backend-beschreibung-und-formen.md) (gleiche Typfamilie, ISO-Formate, keine Rundung, keine Zahl↔Text-Überführung, Parameter nur verlustfrei erweitert, Überlauf immer ungültig), sonst `TDS_SIM_INVALID_VALUE` vor dem Lesen; Dezimalvergleich über `compareTo`, Textvergleich ohne Beachtung der Schreibweise; `ResultStart` mit den Spalten der Auswahlliste (bei `*` alle in der Reihenfolge der Beschreibung) auch ohne Treffer; die Bedingung wendet das Backend auf jede Zeile an (`In`, `IsNull`, UND, NULL trifft nie, ein Widerspruch trifft keine Zeile); `ResultEnd` mit der Zeilenzahl.
-- [ ] **Schrittweises Lesen und Ende** (Schritte 5 und 7, SPEC-029, SPEC-031): `next()` wird nur auf Abnahme gerufen, `close()` genau einmal nach Ende, Fehler, Cancel und Disconnect; ein Fehler der Zeilenquelle vor `ResultStart` ist ein `Failure` mit `TDS_BACKEND_ERROR` ohne Metadaten, nach `ResultStart` endet der Strom nach SPEC-031 (die Folge für die Verbindung hält der Sequenzierer).
-- [ ] **Port-Pflichten und Speichergrenze:** Die Pflichten, die die abstrakte Suite `QueryBackendContract` am Test-Backend prüft (`ScriptedBackendContractTest` ist ihre erste Implementierung), gelten auch für das Simulations-Backend (ein Backend durchläuft die Suite, indem es sie erbt; ein Gegenstück legt der Implementer fest); eine Zeilenquelle mit mehr Daten, als der gesetzte Heap eines Testlaufs hält, wird an einer langsamen Senke gelesen, der Heap bleibt unter der Grenze, und ein Zähler belegt, dass die Quelle bis zu einer bekannten Stelle gelesen wurde.
+- [x] **Auswahl** ([TDS-FA-11.a](../../../../spec/spezifikation.md#tds-fa-11a--simulations-backend) Schritte 4 und 5): Parameter typisiert einsetzen (nie als Text) und in den Spaltentyp überführen — streng und verlustfrei nach SPEC-035 und [ADR-0012](../../adr/0012-simulations-backend-beschreibung-und-formen.md) (gleiche Typfamilie, ISO-Formate, keine Rundung, keine Zahl↔Text-Überführung, Parameter nur verlustfrei erweitert, Überlauf immer ungültig), sonst `TDS_SIM_INVALID_VALUE` vor dem Lesen; Dezimalvergleich über `compareTo`, Textvergleich ohne Beachtung der Schreibweise; `ResultStart` mit den Spalten der Auswahlliste (bei `*` alle in der Reihenfolge der Beschreibung) auch ohne Treffer; die Bedingung wendet das Backend auf jede Zeile an (`In`, `IsNull`, UND, NULL trifft nie, ein Widerspruch trifft keine Zeile); `ResultEnd` mit der Zeilenzahl.
+- [x] **Schrittweises Lesen und Ende** (Schritte 5 und 7, SPEC-029, SPEC-031): `next()` wird nur auf Abnahme gerufen, `close()` genau einmal nach Ende, Fehler, Cancel und Disconnect; ein Fehler der Zeilenquelle vor `ResultStart` ist ein `Failure` mit `TDS_BACKEND_ERROR` ohne Metadaten, nach `ResultStart` endet der Strom nach SPEC-031 (die Folge für die Verbindung hält der Sequenzierer).
+- [x] **Port-Pflichten und Speichergrenze:** Die Pflichten, die die abstrakte Suite `QueryBackendContract` am Test-Backend prüft (`ScriptedBackendContractTest` ist ihre erste Implementierung), gelten auch für das Simulations-Backend (ein Backend durchläuft die Suite, indem es sie erbt; ein Gegenstück legt der Implementer fest); eine Zeilenquelle mit mehr Daten, als der gesetzte Heap eines Testlaufs hält, wird an einer langsamen Senke gelesen, der Heap bleibt unter der Grenze, und ein Zähler belegt, dass die Quelle bis zu einer bekannten Stelle gelesen wurde.
 
 Nachweis-Pflichten für alle drei Punkte:
 
@@ -76,8 +76,15 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `src/main/kotlin/io/github/pt9912/tdswire/simulation/` <!-- d-check:ignore (geplant: neue Datei) --> | update | Backend-Klasse: Auswahl, Parameter, Bedingung, Lesen |
-| `src/test/kotlin/io/github/pt9912/tdswire/simulation/` <!-- d-check:ignore (geplant: neue Datei) --> | neu | Auswahl Happy/Boundary/Negative, Fehler und Cancel der Quelle, Heap-Nachweis; `@spec`-Tag SPEC-002, SPEC-031, SPEC-035 |
+| `src/main/kotlin/io/github/pt9912/tdswire/simulation/SimulationBackend.kt` | neu | `QueryBackend` für S1: Planung, Bedingung, Lesen auf Abnahme, Schließen, Fehler der Quelle, Cancel |
+| `src/main/kotlin/io/github/pt9912/tdswire/simulation/SimValues.kt` | neu | Überführung von Literal und Parameter in den Spaltentyp, Gleichheit nach Typ |
+| `src/main/kotlin/io/github/pt9912/tdswire/simulation/SimConditions.kt` | neu | Bedingung vorbereiten (Werte vor dem Lesen überführen), Vorfilter-Hinweis, Anwendung je Zeile |
+| `src/main/kotlin/io/github/pt9912/tdswire/simulation/StatementPlanner.kt` | update | `SimCodes` um `TDS_SIM_INVALID_VALUE` und `TDS_BACKEND_ERROR` |
+| `spec/spezifikation.md` | update | SPEC-035: Einzelfestlegungen der Überführung, Spalten und Filter der Quelle, Fehler der Quelle; Historie |
+| `src/test/kotlin/io/github/pt9912/tdswire/port/QueryBackendContract.kt` | update | zwei Haken (`sql`, `seen`) mit Voreinstellung des Test-Backends; benannt in §6 |
+| `src/test/kotlin/io/github/pt9912/tdswire/simulation/SimValuesTest.kt`, `src/test/kotlin/io/github/pt9912/tdswire/simulation/SimulationBackendSelectTest.kt`, `src/test/kotlin/io/github/pt9912/tdswire/simulation/SimulationBackendSourceTest.kt` | neu | Überführung, Auswahl und Bedingung, Lesen/Schließen/Fehler/Cancel; `@spec`-Tags SPEC-002, SPEC-029, SPEC-031, SPEC-035, SPEC-036, SPEC-037, SPEC-038, SPEC-039 |
+| `src/test/kotlin/io/github/pt9912/tdswire/simulation/SimulationBackendContractTest.kt`, `src/test/kotlin/io/github/pt9912/tdswire/simulation/SimulationMemoryTest.kt`, `src/test/kotlin/io/github/pt9912/tdswire/simulation/SimulationSupport.kt` | neu | Suite `QueryBackendContract` am Simulations-Backend, Heap-Nachweis mit Zähler, gemeinsame Hilfen |
+| `src/test/kotlin/io/github/pt9912/tdswire/runtime/SimulationCodesTest.kt` | update | die zwei neuen Codes von `SimCodes` gegen `ErrorCode` |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 
@@ -112,7 +119,7 @@ dasteht.
 - Die Heap-Aussage gilt für einen Testlauf mit gesetztem Heap und einer Test-Senke, nicht für das Produkt unter Last (Grenze der Aussage in [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md); `BEO-TDS/rueckstau-im-produktivbetrieb-nicht-gemessen`). — **Ausgang:** offen bis zur Closure.
 - Eine Zeilenquelle, die den Hinweis `SimQuery.filter` ignoriert oder mehr liefert, muss trotzdem zum richtigen Ergebnis führen; ein Test mit einer solchen Quelle belegt die Pflicht, dass das Backend die Bedingung selbst anwendet. Eine Quelle, die zu wenig liefert, ist Sache des Integrators und wird nicht erkannt. — **Ausgang:** offen bis zur Closure.
 - Die dreiwertige Logik (`ANSI_NULLS ON`) ist als vorläufig gekennzeichnet und nur in einer Stichprobe an einer Instanz bestätigt ([ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md)); die Tests führen sie als Festlegung. — **Ausgang:** offen bis zur Closure.
-- Das Wiederverwenden der Suite `QueryBackendContract` kann eine Änderung an ihr verlangen, etwa wenn das Simulations-Backend das Skript nicht in der Form des Test-Backends entgegennimmt; sie wird in diesem Slice benannt und nicht still vorgenommen. — **Ausgang:** offen bis zur Closure.
+- Das Wiederverwenden der Suite `QueryBackendContract` kann eine Änderung an ihr verlangen, etwa wenn das Simulations-Backend das Skript nicht in der Form des Test-Backends entgegennimmt; sie wird in diesem Slice benannt und nicht still vorgenommen. Vorgenommen (Implementer): `QueryBackendContract` bekam zwei überschreibbare Haken, `sql` (Voreinstellung `SELECT 1`) und `seen` (Voreinstellung: der Fehler unverändert); das Test-Backend verhält sich wie zuvor, das Simulations-Backend überschreibt beide, weil es den Text auswertet und Code und Meldung eines Fehlers der Quelle selbst festlegt (`TDS_BACKEND_ERROR`). — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 

@@ -507,8 +507,8 @@ fun interface RowSource {
 }
 ```
 Die Skizze zeigt die Form der Typen, wie sie im Package `simulation` implementiert und durch Tests
-festgelegt sind; die Überführung der Werte und die Zeilenquelle des Backends sind noch nicht gebaut.
-Festgelegt ist die Bedeutung:
+festgelegt sind; die Überführung der Werte und das Lesen der Zeilenquelle sind für die Auswahl gebaut,
+Einfügen, Ändern und Löschen noch nicht (sie enden mit `TDS_UNSUPPORTED_SQL`). Festgelegt ist die Bedeutung:
 
 - `next()` liefert die Werte einer Zeile in der Reihenfolge von `SimQuery.columns`, `null` am Ende.
   Jeder Aufruf darf suspendieren; die Zeilenquelle liest nie mehr voraus, als der Aufrufer abnimmt.
@@ -524,7 +524,10 @@ Festgelegt ist die Bedeutung:
 - `onUpdate` und `onDelete` bekommen `where = null` für eine Anweisung ohne `WHERE`, also für alle
   Zeilen. Die Zahl, die ein Callback liefert, ist die Zahl der betroffenen Zeilen.
 - `SimQuery.filter` ist ein Hinweis zum Vorfiltern (Schritt 5 in `TDS-FA-11.a`), kein Ersatz für die
-  Prüfung durch das Backend.
+  Prüfung durch das Backend. Das Backend übergibt alle Spalten der Tabelle in der Reihenfolge der Beschreibung
+  als `SimQuery.columns` und nennt im Filter die Spaltennamen der Beschreibung mit den in den Spaltentyp
+  überführten Werten (NULL in einer Liste bleibt erhalten); ohne `WHERE` ist der Filter `null` (Setzung,
+  nicht am Server gemessen).
 - `primaryKey` nennt eine oder mehrere Spalten der Tabelle; sie müssen vorhanden und nicht nullbar
   sein. Der Schlüssel ist nur Teil der Beschreibung: er wirkt weder auf das Resultset noch auf
   Callbacks, das Backend speichert nichts und prüft keine Eindeutigkeit. Als Metadatum zum Client wird
@@ -543,6 +546,19 @@ Festgelegt ist die Bedeutung:
   (Setzung, wie die Bezeichner). Texte begrenzt das Backend selbst nicht; ein Text von mehr als 4000
   UTF-16-Einheiten, den eine Zeilenquelle liefert, weist die Typabbildung mit `TDS_UNSUPPORTED_TYPE` ab
   (Limit: `SPEC-003`; Code: `SPEC-014` und Typabbildung; Setzung, nicht gemessen).
+  Weitere Festlegungen der Überführung (Setzung, Voreinstellung, nicht gemessen): eine Zahl gilt, wenn sie
+  ohne Rest in den Zielwert passt (`1.0` und `100` in einer Ganzzahlspalte, `3.500` in `Decimal(10,2)`); die
+  Zahlen `0` und `1` sind in einer Bool-Spalte falsch und wahr, jede andere Zahl ist ungültig; ein Text geht nur
+  in eine Textspalte oder, im ISO-Format, in eine Zeitspalte; ein Dezimalparameter wird wie ein Literal gegen
+  Precision und Skala der Spalte gehalten; NULL als Parameter gilt für jeden Spaltentyp; ein Parameter, den die
+  Anfrage nicht trägt, ist `TDS_SIM_INVALID_VALUE`; die Richtung eines Parameters bleibt unbeachtet. Alle Werte
+  der Bedingung werden vor dem Öffnen der Zeilenquelle überführt.
+- **Fehler der Zeilenquelle** (`TDS-FA-11.a` Schritt 7; Setzung, nicht am Server gemessen): ein Fehler beim
+  Öffnen oder Lesen der Zeilenquelle ist `TDS_BACKEND_ERROR` mit fester Meldung, die den Text der Ausnahme nie
+  nennt; eine Zeile mit anderer Zahl von Werten als Spalten zählt als Fehler der Zeilenquelle; ein Fehler von
+  `close()` bleibt ohne Folge. Ein `Error` der Laufzeit (etwa `OutOfMemoryError`) und die Abbruchausnahme der
+  Coroutine fängt das Backend nicht. Cancel und `close` der Ausführung beenden das Lesen vor der nächsten Zeile;
+  ein `next()`, das selbst hängt, endet nur mit dem Abbruch des Sammlers.
 
 **Beschreibung als Datei.** Zusätzlich zur Kotlin-Schnittstelle kann der Server Tabellen aus einer Datei
 laden. Das Format ist das neutrale Schema-Modell von d-migrate in YAML, `schema_format` `1.0`; maßgeblich
@@ -1148,4 +1164,5 @@ Gemessen sind: LOGIN7-Felder, Entschleierung, Ablehnungsbytes, erkennbare Modi. 
 | 2026-10-31 | RPC: `@@x` als Parametername nur beim RPC per Prozedurname abgelehnt, gültig kodierte PLP-Typen offen als `SPEC-013` statt Schließen, Strukturfehler schließen weiter (Nutzerentscheidung, nicht gemessen; `TDS-FA-04.a`, `SPEC-011`, `SPEC-013`) |
 | 2026-10-31 | RPC im Backend-Vertrag: `sp_executesql` und RPC per Prozedurname als Text mit Parameterliste (Nutzerentscheidung), Ablehnungsgründe unter `SPEC-013`; kein Wert im Aufruftext (`TDS-FA-04.a`, `SPEC-013`, `SPEC-030`) |
 | 2026-10-31 | Simulations-Backend, Fix-Runde der Prüfung: Wörter je Codepunkt, Namensvergleich und Pfadbereinigung als Festlegung, Grenzen des Modells (`SPEC-035`, `SPEC-036`) |
+| 2026-10-31 | Simulations-Backend, Auswahl gebaut: Überführung von Literal und Parameter mit ihren Einzelfestlegungen, Vorfilter und Spalten der Zeilenquelle, Fehler der Zeilenquelle, Lesen auf Abnahme (`SPEC-035`, `TDS-FA-11.a`); Einfügen, Ändern, Löschen noch `TDS_UNSUPPORTED_SQL` |
 

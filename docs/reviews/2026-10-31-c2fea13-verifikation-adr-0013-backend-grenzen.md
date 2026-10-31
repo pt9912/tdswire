@@ -97,7 +97,7 @@ Nicht nachgemessen: Der Spike liegt nicht im Repo und ich habe ihn nicht neu gef
 |---|---|
 | [slice-backend-streaming-nachweis](../plan/planning/done/welle-backend-streaming/slice-backend-streaming-nachweis.md) | Punkte 2 und 3 nehmen KDoc-Nachzug und OutOfMemoryError auf; Risikozeile „folgt einer ADR im Status Proposed“ steht. Die Punkte sind im Plan noch nicht abgehakt, der Code ist gebaut und gemerged; die Häkchen gehören zur Closure dieses Slice (nicht Gegenstand hier). |
 | [slice-attention-cancel-timeout](../plan/planning/open/slice-attention-cancel-timeout.md) | Frist als Teil (b) des dritten Punktes mit Tests und Auslöser für den Schnitt; Nachzug der Frist-KDoc erst mit dem Code. |
-| [slice-sim-auswahl-streaming](../plan/planning/open/slice-sim-auswahl-streaming.md) | Start-Trigger „Zeilendarstellung entschieden“ ist an Accepted gebunden und mit Rückführung bei Nichtannahme versehen; Klassen je Spaltenart und suspendierende Quelle übernommen. |
+| [slice-sim-auswahl-streaming](../plan/planning/in-progress/slice-sim-auswahl-streaming.md) | Start-Trigger „Zeilendarstellung entschieden“ ist an Accepted gebunden und mit Rückführung bei Nichtannahme versehen; Klassen je Spaltenart und suspendierende Quelle übernommen. |
 | [slice-release-doku-prozess](../plan/planning/open/slice-release-doku-prozess.md) | Betriebstext in Liefer-Punkt 1, Risiko „Spike-Zahlen als Produktverhalten“ benannt. |
 | [slice-release-artefakt-lizenz](../plan/planning/in-progress/slice-release-artefakt-lizenz.md) | Image nimmt JVM-Optionen entgegen, Schalter nicht voreingestellt, Test verlangt; ADR im Bezug. Formatfehler am Rand (V6). |
 

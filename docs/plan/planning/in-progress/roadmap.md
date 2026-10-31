@@ -36,6 +36,10 @@ In Arbeit (Welle welle-anfrageverarbeitung):
 
 - [slice-antwort-mehrteilig-output](slice-antwort-mehrteilig-output.md)
 
+In Arbeit (Welle welle-simulations-backend):
+
+- [slice-sim-auswahl-streaming](slice-sim-auswahl-streaming.md)
+
 
 
 

@@ -1,7 +1,7 @@
 package io.github.pt9912.tdswire.simulation
 
 /**
- * Namen der Fehlercodes, die das Simulations-Backend meldet (`SPEC-037`, `SPEC-038`). `simulation` darf
+ * Namen der Fehlercodes, die das Simulations-Backend meldet (`SPEC-037`, `SPEC-038`, `SPEC-039`). `simulation` darf
  * `protocol` nicht importieren; die Namen sind die von `ErrorCode`, und ein Test in `runtime` hält sie
  * gegeneinander.
  */
@@ -11,6 +11,12 @@ object SimCodes {
 
     /** Tabelle oder Spalte ist nicht beschrieben. */
     const val UNKNOWN_OBJECT = "TDS_SIM_UNKNOWN_OBJECT"
+
+    /** Ein Wert der Anweisung ist nicht in den Spaltentyp überführbar (`SPEC-039`). */
+    const val INVALID_VALUE = "TDS_SIM_INVALID_VALUE"
+
+    /** Die Zeilenquelle ist fehlgeschlagen (`TDS-FA-11.a` Schritt 7). */
+    const val BACKEND_ERROR = "TDS_BACKEND_ERROR"
 }
 
 /** Eine erkannte Anweisung mit den beschriebenen Objekten, die sie nennt. */
