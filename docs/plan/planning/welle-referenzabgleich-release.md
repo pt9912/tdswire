@@ -44,7 +44,7 @@ einzelnen Slice-DoDs benennen; kann er das nicht, liegt keine Welle vor.
 
 - Alle Slices in `done/`.
 - `make gates` grün, einschließlich des Laufzeittests und der Lizenzprüfung; Live-Lauf und Mitschnitt-Lauf grün gegen ihre Ausnahmeliste, oder die Closure-Notiz begründet die Nicht-Aufnahme in `make gates` mit der gemessenen Laufzeit.
-- Das Mehr gegenüber den Slice-DoDs: Live-Lauf und Mitschnitt-Lauf laufen gegen das Laufzeit-Image aus [slice-release-artefakt-lizenz](next/slice-release-artefakt-lizenz.md), nicht gegen einen Testprozess, und die Schritte der Nutzer-Doku zum Start im Container sind an diesem Image nachvollzogen. Einzelne Slices belegen nur ihren Teil.
+- Das Mehr gegenüber den Slice-DoDs: Live-Lauf und Mitschnitt-Lauf laufen gegen das Laufzeit-Image aus [slice-release-artefakt-lizenz](in-progress/slice-release-artefakt-lizenz.md), nicht gegen einen Testprozess, und die Schritte der Nutzer-Doku zum Start im Container sind an diesem Image nachvollzogen. Einzelne Slices belegen nur ihren Teil.
 - Die Closure-Notiz führt die Aussagen der Welle in zwei Spalten, *gemessen* und *Festlegung*; jede Regel der Ausnahmeliste trägt ihre Art (*so gewollt* oder *Lücke* mit Verweis auf die offene Arbeit); die Ausgänge der Beobachtungen `messung-am-echten-sql-server-fehlt` und `vergleichslauf-d-ungeklaert` sind nachgeführt; die Nutzerentscheidungen (Aufnahme-Methode, Ablage, Versionsschema, Form des Wächters) sind getroffen und in den Slice-Notizen festgehalten.
 - Closure-Notiz in `welle-referenzabgleich-release-results.md`.
 
