@@ -100,8 +100,20 @@ class SimModelTest {
     }
 
     /**
+     * Der Namensvergleich faltet über `toLowerCase(toUpperCase(cp))`: `s` und `ſ` (U+017F, Großbuchstabe `S`) sind
+     * gleich, was `toLowerCase` allein nicht ergibt.
+     * @spec SPEC-036
+     */
+    @Test
+    fun `hält s und langes s als gleichen Namen`() {
+        val longS = "\u017F"
+        assertEquals(SimNames.fold("s"), SimNames.fold(longS))
+        val t = table(listOf(id), listOf("id"), name = "s")
+        assertSame(t, SimCatalog(listOf(t)).find(null, longS))
+    }
+
+    /**
      * Eine Spalte mit mehr als 38 Stellen wird in der Schnittstelle abgewiesen, 38 ist erlaubt.
-     * Precision.
      * @spec SPEC-035
      */
     @Test
