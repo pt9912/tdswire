@@ -1,1 +1,1 @@
-**Stand:** offen — über der Schwelle (8×), bei den Closures von welle-transport-tls, welle-handshake-login und slice-sim-erkennung gelesen und nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung).
+**Stand:** offen — über der Schwelle (9×), bei den Closures von welle-transport-tls, welle-handshake-login, slice-sim-erkennung und slice-rpc-executesql-parameter gelesen und nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung).

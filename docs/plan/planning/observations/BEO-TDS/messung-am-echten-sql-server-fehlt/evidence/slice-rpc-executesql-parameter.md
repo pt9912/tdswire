@@ -1,0 +1,2 @@
+**Vorgang:** slice-rpc-executesql-parameter
+**Fund:** Die Fehlerantwort auf nicht unterstützte RPC-Formen (Class 16, Verbindung bleibt offen, Folge-RPC wird beantwortet), das Drahtformat der Parameterwerte (Dezimal, Datum, Zeit; Review F-4), der gebaute EXEC-Text und die Antwort allein aus DONE (die Entscheidung nennt DONEPROC) sind gegen das Test-Backend gemessen, nicht gegen einen echten SQL Server oder den Referenzclient. Träger bleibt der Vergleichslauf D.
