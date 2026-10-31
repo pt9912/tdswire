@@ -55,7 +55,8 @@ internal class TlsWiringTest : RuntimeTestBase() {
     /**
      * Mit `REQUIRED` antwortet der Server `ENCRYPT_REQ`, führt den Handschlag im 7.4-Pfad aus (TLS 1.3 und TLS
      * 1.2, je gegen eine JDK-Gegenstelle) und nimmt danach den Login über TLS an; ein falsches Passwort wird mit
-     * der festen Ablehnung beantwortet. Die Gegenstelle ist kein Referenzclient; TDS 8.0 ist nicht verdrahtet.
+     * der festen Ablehnung beantwortet. Die Gegenstelle ist kein Referenzclient; den Pfad ab dem ersten Byte belegt
+     * `Tds8WiringTest`.
      *
      * @spec SPEC-010
      * @spec SPEC-028
