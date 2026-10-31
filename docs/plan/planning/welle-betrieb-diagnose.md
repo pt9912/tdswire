@@ -20,7 +20,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 
 Ein Betreiber konfiguriert den Server, beobachtet ihn über strukturierte Logzeilen mit Korrelations-IDs und diagnostiziert seinen Zustand über Metriken und Spans; Passwörter, Prüfwerte, Parameterwerte und SQL-Text erscheinen in keiner Zeile, und ein Startfehler nennt die Ursache verständlich ([TDS-FA-09](../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose)). Die Messpunkte für Protokollschicht und Backend sind der Eingang für [TDS-QA-04](../../../spec/lastenheft.md#tds-qa-04--performance). Die Aussage steht am Serverprozess mit Rohbytes-Client und Sammler-Adapter, nicht am Referenzclient und nicht unter Last.
 
-**Grenzen zu den Nachbarn (nicht doppeln).** Die Startprobe (SPEC-043) und die Diagnose für einen belegten Port sind Code von [welle-transport-tls](done/welle-transport-tls.md); diese Welle leitet ihre Meldung über die Log-Schnittstelle, ohne sie neu zu formulieren. Das geordnete Beenden (SPEC-044) ist Verhalten von [welle-fehler-abbruch](welle-fehler-abbruch.md); hier erscheinen nur Beginn und Ende als Ereignis. Die Loginspektion über das Gesamtsystem bleibt bei [slice-qa-sicherheit](open/slice-qa-sicherheit.md); diese Welle liefert Sammler und Redaktionstests je Ereignisart.
+**Grenzen zu den Nachbarn (nicht doppeln).** Die Startprobe (SPEC-043) und die Diagnose für einen belegten Port sind Code von [welle-transport-tls](done/welle-transport-tls/welle-transport-tls.md); diese Welle leitet ihre Meldung über die Log-Schnittstelle, ohne sie neu zu formulieren. Das geordnete Beenden (SPEC-044) ist Verhalten von [welle-fehler-abbruch](welle-fehler-abbruch.md); hier erscheinen nur Beginn und Ende als Ereignis. Die Loginspektion über das Gesamtsystem bleibt bei [slice-qa-sicherheit](open/slice-qa-sicherheit.md); diese Welle liefert Sammler und Redaktionstests je Ereignisart.
 
 **Register-Sichtung (Eröffnung, Schritt 2).** `observations/` durchgegangen: Treffer führen die Slices in §8. `BEO-TDS/anmeldepfad-sicherheit-nicht-gebaut` (3×, geplant bei [slice-qa-sicherheit](open/slice-qa-sicherheit.md)) erreicht keine neue Zahl mit dieser Welle; keine Beobachtung erreicht mit ihr 3×, die Welle schließt daher keine Beobachtung ein.
 
@@ -33,7 +33,7 @@ werden, aber nie Trigger sein. Und der **Start**-Trigger ist **kein Ergebnis
 dieser Welle**: Steht er in der Slice-Liste unten, ist er falsch platziert.
 
 - `make gates` ist auf `main` grün.
-- Die Wellen [welle-transport-tls](done/welle-transport-tls.md) und [welle-handshake-login](welle-handshake-login.md) liegen in `done/`: Listener, Startprobe und der minimale Log-Anschluss der Anmeldung, den die Welle ablöst, stehen auf `main`.
+- Die Wellen [welle-transport-tls](done/welle-transport-tls/welle-transport-tls.md) und [welle-handshake-login](welle-handshake-login.md) liegen in `done/`: Listener, Startprobe und der minimale Log-Anschluss der Anmeldung, den die Welle ablöst, stehen auf `main`.
 - Weitere Voraussetzungen gelten je Slice und stehen in dessen §4 (für [slice-betrieb-metriken-tracing](open/slice-betrieb-metriken-tracing.md) die Wellen [welle-anfrageverarbeitung](welle-anfrageverarbeitung.md), [welle-backend-streaming](welle-backend-streaming.md) und [welle-fehler-abbruch](welle-fehler-abbruch.md)): sie verzögern einen Slice, nicht den Start der Welle.
 
 ## 3. Closure-Trigger (Welle schließt)
@@ -69,7 +69,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte.
 
 - Blockiert: [slice-qa-performance](open/slice-qa-performance.md) (Start-Trigger: Telemetrie liefert Dauer je Schicht, SPEC-017 bis SPEC-019) und damit die Closure von [welle-qualitaet-grundlage](welle-qualitaet-grundlage.md); [slice-qa-sicherheit](open/slice-qa-sicherheit.md) (Loginspektion nutzt den Sammler-Adapter und die Redaktionstests).
-- Wird blockiert von: [welle-transport-tls](done/welle-transport-tls.md) und [welle-handshake-login](welle-handshake-login.md) (Start-Trigger); [welle-anfrageverarbeitung](welle-anfrageverarbeitung.md), [welle-backend-streaming](welle-backend-streaming.md) und [welle-fehler-abbruch](welle-fehler-abbruch.md) (nur [slice-betrieb-metriken-tracing](open/slice-betrieb-metriken-tracing.md)); [slice-abbruch-ressourcen-shutdown](open/slice-abbruch-ressourcen-shutdown.md) (nur [slice-betrieb-zustandsereignisse](open/slice-betrieb-zustandsereignisse.md)).
+- Wird blockiert von: [welle-transport-tls](done/welle-transport-tls/welle-transport-tls.md) und [welle-handshake-login](welle-handshake-login.md) (Start-Trigger); [welle-anfrageverarbeitung](welle-anfrageverarbeitung.md), [welle-backend-streaming](welle-backend-streaming.md) und [welle-fehler-abbruch](welle-fehler-abbruch.md) (nur [slice-betrieb-metriken-tracing](open/slice-betrieb-metriken-tracing.md)); [slice-abbruch-ressourcen-shutdown](open/slice-abbruch-ressourcen-shutdown.md) (nur [slice-betrieb-zustandsereignisse](open/slice-betrieb-zustandsereignisse.md)).
 - Berührt, blockiert aber nicht: [welle-simulations-backend](welle-simulations-backend.md) — das Simulations-Backend ruft keine Observability (Importregel `ForbiddenImport/simulation`); die Telemetrie des Backend-Aufrufs sitzt im Backend-Adapter des Protokollkerns.
 
 ## 6. Out-of-Scope für diese Welle
@@ -79,7 +79,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 Zielsetzung: Was nicht ausdrücklich ausgeschlossen ist, dehnt die Welle, bis
 der Closure-Trigger unerreichbar wird.
 
-- Startprobe der TLS-Konfiguration, Diagnose für einen belegten Port als Code, Listener: [welle-transport-tls](done/welle-transport-tls.md) ([slice-transport-listener-lebenszyklus](done/slice-transport-listener-lebenszyklus.md)).
+- Startprobe der TLS-Konfiguration, Diagnose für einen belegten Port als Code, Listener: [welle-transport-tls](done/welle-transport-tls/welle-transport-tls.md) ([slice-transport-listener-lebenszyklus](done/welle-transport-tls/slice-transport-listener-lebenszyklus.md)).
 - Verhalten des geordneten Beendens (SPEC-044, `SHUTDOWN_GRACE`, `TDS_SHUTDOWN`) und Ressourcenfreigabe: [slice-abbruch-ressourcen-shutdown](open/slice-abbruch-ressourcen-shutdown.md) ([welle-fehler-abbruch](welle-fehler-abbruch.md)).
 - Semantik und Durchsetzung von `QUERY_TIMEOUT` und `CANCEL_TIMEOUT`, Zuordnung der Fehlercodes: [slice-attention-cancel-timeout](open/slice-attention-cancel-timeout.md), [slice-adr-backend-grenzen](in-progress/slice-adr-backend-grenzen.md), [slice-fehler-mapping](done/slice-fehler-mapping.md).
 - Loginspektion über das Gesamtsystem, Zeitgleichheit des Passwortvergleichs, Drosselung wiederholter Anmeldeversuche: [slice-qa-sicherheit](open/slice-qa-sicherheit.md).
