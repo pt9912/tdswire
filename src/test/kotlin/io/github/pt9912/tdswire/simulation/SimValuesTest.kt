@@ -126,6 +126,26 @@ class SimValuesTest {
     }
 
     /**
+     * Boundary: der Formatraum der Zeitüberführung ist der der JDK-Parser für ISO-Formate (Setzung): Sekunden
+     * sind optional, Bruchteile bis zu Nanosekunden gelten, ein Datum mit Vorzeichen und mehr als vier Stellen im
+     * Jahr gilt; Zeitzone, Schreibweise mit Punkt und eine Stunde allein gelten nicht.
+     * @spec SPEC-035
+     * @spec SPEC-039
+     */
+    @Test
+    fun `der Formatraum der Zeit ist der der ISO-Parser`() {
+        assertValue(LocalTime.of(12, 30), literal(txt("12:30"), SqlType.Time), "ohne Sekunden")
+        val nanos = LocalTime.of(12, 30, 15, 123456789)
+        assertValue(nanos, literal(txt("12:30:15.123456789"), SqlType.Time), "Nanosekunden")
+        assertValue(LocalDate.of(12026, 1, 1), literal(txt("+12026-01-01"), SqlType.Date), "Jahr mit fünf Stellen")
+        assertInvalid(literal(txt("12:30:15+01:00"), SqlType.Time), "Zeitzone")
+        assertInvalid(literal(txt("12.30.15"), SqlType.Time), "Punkte")
+        assertInvalid(literal(txt("12"), SqlType.Time), "nur Stunde")
+        val moment = LocalDateTime.of(2026, 10, 30, 12, 30)
+        assertValue(moment, literal(txt("2026-10-30T12:30"), SqlType.DateTime), "Zeitpunkt ohne Sekunden")
+    }
+
+    /**
      * Boundary: NULL ist in jedem Spaltentyp gültig und bleibt `null`.
      * @spec SPEC-035
      */

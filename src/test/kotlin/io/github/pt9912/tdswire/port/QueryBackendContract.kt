@@ -5,6 +5,7 @@ import io.github.pt9912.tdswire.domain.QueryParameter
 import io.github.pt9912.tdswire.domain.QueryRequest
 import io.github.pt9912.tdswire.domain.ResultColumn
 import io.github.pt9912.tdswire.domain.SqlType
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
@@ -29,8 +30,12 @@ interface GeneratingBackend {
  * keine Logik; diese Suite prüft die Implementierung, die [backend] und [generating] liefern. Geprüft
  * werden: Metadaten vor Zeilen, Fehler als [QueryEvent.Failure] im Strom, kein Wurf aus `execute`
  * beim Start, `close` und `cancel` erreichen die Zeilenquelle, die Zeilenquelle läuft nicht über die
- * Abnahme hinaus. Jede Implementierung leitet von dieser Klasse ab und liefert die zwei Fabriken; ein Backend,
- * das den SQL-Text auswertet oder seine Fehler selbst benennt, überschreibt zusätzlich [sql] und [seen].
+ * Abnahme hinaus, auch nicht während der Wartezeit des Lesers. Jede Implementierung leitet von dieser Klasse
+ * ab und liefert die zwei Fabriken; ein Backend, das den SQL-Text auswertet oder seine Fehler selbst benennt,
+ * überschreibt zusätzlich [sql] und [seen]. Grenze von [seen]: bildet ein Backend jeden Fehler auf einen
+ * festen Fehler ab (das Simulations-Backend), prüfen die zwei Fehlertests dort, dass ein `Failure` mit diesem
+ * festen Code und dieser Meldung den Strom erreicht, nicht, dass Code und Meldung des Skripts durchgereicht
+ * werden.
  *
  * Grenze: die Suite sammelt jeden Strom genau einmal (`QueryExecution.events`) und läuft in einem
  * `runBlocking` ohne eigenen Dispatcher; sie sagt nichts über blockierende oder echte Backends
@@ -175,6 +180,28 @@ abstract class QueryBackendContract {
     }
 
     /**
+     * Ein Leser, der bei jeder Zeile wartet, sieht beim Eintreffen der n-ten Zeile genau n erzeugte Zeilen: die
+     * Zeilenquelle läuft auch während der Wartezeit nicht voraus (ein Strom mit eigenem Puffer macht den Test rot).
+     *
+     * @spec SPEC-031
+     */
+    @Test
+    fun `Generator laeuft waehrend der Wartezeit des Lesers nicht voraus`() = runBlocking {
+        val source = generating(rows = 5)
+        var received = 0
+
+        source.backend.execute(request).events.collect {
+            if (it is QueryEvent.Row) {
+                received++
+                delay(WAIT_ROW_MILLIS)
+                assertEquals(received, source.rowsPulled)
+            }
+        }
+
+        assertEquals(5, received)
+    }
+
+    /**
      * `close()` erreicht die Zeilenquelle während des Lesens: der Strom endet, die Zeilenquelle
      * erzeugt danach nichts mehr.
      *
@@ -221,5 +248,6 @@ abstract class QueryBackendContract {
 
     private companion object {
         const val WAIT_MILLIS = 10_000L
+        const val WAIT_ROW_MILLIS = 20L
     }
 }
