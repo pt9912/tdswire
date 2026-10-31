@@ -2,7 +2,7 @@
 
 **Rolle:** Verifier („Bauen wir es richtig?" gegen Plan und DoD). Der Bericht repariert nichts und schließt nichts.
 
-**Gegenstand:** [slice-release-artefakt-lizenz](../plan/planning/in-progress/slice-release-artefakt-lizenz.md) nach Umsetzung `e6ddd9f` und Fix-Runde `71d4f4f`, Stand `main` `175d1e4`. Eingang: Review [2026-10-31-1c5a26a-slice-release-artefakt-lizenz.md](2026-10-31-1c5a26a-slice-release-artefakt-lizenz.md) (F-1 bis F-11).
+**Gegenstand:** [slice-release-artefakt-lizenz](../plan/planning/done/slice-release-artefakt-lizenz.md) nach Umsetzung `e6ddd9f` und Fix-Runde `71d4f4f`, Stand `main` `175d1e4`. Eingang: Review [2026-10-31-1c5a26a-slice-release-artefakt-lizenz.md](2026-10-31-1c5a26a-slice-release-artefakt-lizenz.md) (F-1 bis F-11).
 
 **Bezug:** [TDS-RB-01](../../spec/lastenheft.md#tds-rb-01--implementierungssprache), [TDS-RB-05](../../spec/lastenheft.md#tds-rb-05--lizenz), [TDS-QA-06](../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [ADR-0013](../plan/adr/0013-backend-grenzen.md), [ADR-0011](../plan/adr/0011-pruefwertformat.md), [SPEC-023](../../spec/spezifikation.md#sicherheitsprofil-vertrag-zu-spec-023), `SPEC-042` (Zeile der Spezifikation-Tabelle ohne eigenen Anker).
 

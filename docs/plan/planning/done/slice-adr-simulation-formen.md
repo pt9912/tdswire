@@ -160,7 +160,7 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 | Offen 7, 8: `precision`/`scale` bei `decimal`, Genauigkeit der Zeittypen, Länge des Anweisungstextes; Belegstand von d-migrate | [slice-sim-erkennung](../done/slice-sim-erkennung.md) | §6 |
 | Offen 9: Name der Umgebungsvariable; Abhängigkeit und Lock; Wächter `ForbiddenImport` mit Selbsttest | [slice-sim-aenderung-integration](../open/slice-sim-aenderung-integration.md) | DoD Verdrahtung und §6 |
 | Offen 10: JVM-Typen der Werte je `SqlType` | [slice-adr-backend-grenzen](welle-backend-streaming/slice-adr-backend-grenzen.md) | §6 (in Arbeit, Architect) |
-| Lizenz der Abhängigkeiten im Artefakt | [slice-release-artefakt-lizenz](../in-progress/slice-release-artefakt-lizenz.md) | §6 |
+| Lizenz der Abhängigkeiten im Artefakt | [slice-release-artefakt-lizenz](../done/slice-release-artefakt-lizenz.md) | §6 |
 | Offen 11 | kein Träger, von der ADR als einmalig und folgenlos akzeptiert; der Re-Evaluierungs-Trigger fängt jede Änderung | ADR §Offen 11 |
 | Offen 12 (a), (c) | `SPEC-036` (Lesart) und die Zeile zu [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) unter „Offene Entscheidungen“; Nutzer | Frage unten |
 
