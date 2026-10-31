@@ -114,6 +114,7 @@ dasteht.
 - Der Freshness-Audit der vendored Baseline ist eine geschuldete Handlung ohne Sensor (`harness/conventions.md`); der Schritt in `releasing.md` ist sein Träger, nicht seine Durchsetzung. — **Ausgang:** offen bis zur Closure.
 - Neue Verzeichnisse unter `docs/` laufen durch das Doku-Gate; `ADR-*`- und `TDS-*`-Kennungen müssen als Link stehen (`BEO-TDS/kennungen-ohne-link-in-neuen-dokumenten`). — **Ausgang:** offen bis zur Closure.
 - Lizenzhinweise zu Abhängigkeiten im Release sind eine offene Rechtsfrage ([slice-release-artefakt-lizenz](slice-release-artefakt-lizenz.md), §6); die Doku behauptet dazu nichts. — **Ausgang:** offen bis zur Closure.
+- Betriebstext aus [ADR-0013](../../adr/0013-backend-grenzen.md): der Betreiberschalter `-XX:+ExitOnOutOfMemoryError` (Prozessende beim ersten `OutOfMemoryError` statt Fangen; im Spike Exit-Code 3 nach rund 2 s, Neustart über einen Supervisor) und der Pflichttext für Integratoren (Backend und Zeilenquelle suspendierend, blockweise Aufrufe empfohlen) gehören in die Nutzer-Doku; der Startparameter im Container gehört zu [slice-release-artefakt-lizenz](slice-release-artefakt-lizenz.md). Ohne diese Zeile hätte der Schalter keinen Träger. — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 

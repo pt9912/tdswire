@@ -298,14 +298,25 @@ Gleitkomma, Geld, GUID und Binärtypen gehören nicht dazu (Setzung vom 2026-10-
 keine Obergrenze, die Typkennung kennt Precision 1 bis 38 (`SPEC-003`). Die Typabbildung weist eine
 Precision über 38 vor COLMETADATA mit `TDS_UNSUPPORTED_TYPE` ab; das Modell bleibt unverändert.
 
+**Zeilendarstellung und Klassen der Werte (Nutzerentscheidung vom 2026-10-31):** `Row.values` ist eine
+`List<Any?>`. Die JVM-Klasse des Werts je Spaltenart: `Int32` als `Int`, `Int64` als `Long`, `Bool` als
+`Boolean`, `UnicodeText` als `String`, `Decimal` als `java.math.BigDecimal`, `Date` als
+`java.time.LocalDate`, `Time` als `java.time.LocalTime`, `DateTime` als `java.time.LocalDateTime`, NULL als
+`null`. Die Klassen gelten auch für `QueryParameter.value` und `OutputParameter.value` (Setzung,
+Voreinstellung 2026-10-30, nicht gemessen); `OutputParameter` bleibt bis zur Abbildung abgelehnt
+(`SPEC-031`). Die Liste hat so viele Werte wie das offene Ergebnis Spalten; das Backend verändert sie
+nach der Übergabe nicht und verwendet sie nicht wieder (Setzung, Voreinstellung 2026-10-30, nicht
+gemessen). Die Heap-Grenze einer Verbindung bestimmt der Strom mit dem Rückstau der Senke, nicht die
+Darstellung.
+
+**Frist (Nutzerentscheidung vom 2026-10-31):** `deadlineEpochMillis` ist für das Backend ein Hinweis; die
+Frist setzt der Protokollkern durch (Einzelheiten im Vertrag zu `SPEC-022`, Quelle `QUERY_TIMEOUT`
+in `SPEC-009`).
+
 **Offen:**
-- Die JVM-Typen der Werte in `OutputParameter` und die endgültige Zeilendarstellung (`Row`,
-  `QueryParameter`); die Typabbildung setzt für Zeilenwerte eine Zwischenfestlegung (`SPEC-003`).
 - Die Unterscheidung statement-
-  und batch-abbrechender Fehler im Strom, die `Failure` nicht trägt; die Grenze für ein „kleines“
-  Ergebnis; die Behandlung von `OutOfMemoryError`; ein blockierendes Backend hinter dem `Flow`; die
-  Semantik der Frist `deadlineEpochMillis` (wer sie durchsetzt, was bei Ablauf geschieht). Nicht
-  gemessen; Einzelheiten und Zuständigkeit im Vertrag zu `SPEC-022`.
+  und batch-abbrechender Fehler im Strom, die `Failure` nicht trägt; Einzelheiten und Zuständigkeit im
+  Vertrag zu `SPEC-022`.
 
 Lebensdauerregeln und alles, was über diesen Stand hinausgeht, bleiben Entwurf des Vertrags
 zu `SPEC-022`.
@@ -457,7 +468,12 @@ schreibt der Sequenzierer die Variante ohne `DONE_MORE`. Bei Cancel
 oder Disconnect wird ein zurückgehaltenes DONE verworfen. Ein Verstoß des Backends gegen die
 Ereignisreihenfolge (Zeile oder Ergebnisende ohne offenes Ergebnis, Ergebnisanfang oder
 Update-Count im offenen Ergebnis, Strom endet im offenen Ergebnis) und eine Ausnahme des Backends
-sind ein Fall von `SPEC-048`. Ein Fehler beendet den Lauf; weitere Ereignisse werden nicht gelesen.
+sind ein Fall von `SPEC-048`. Ein `OutOfMemoryError` beim Erzeugen oder Senden der Antwort einer Anfrage
+(Backend, Encoder, Senke) wird gefangen und ist ebenfalls ein Fall von `SPEC-048` (Nutzerentscheidung vom
+2026-10-31): ERROR und DONE mit Fehlerstatus, solange der Strom synchron ist, danach schließt die
+Verbindung; sonst schließt sie ohne ERROR und DONE. Andere `Error` und die Abbruchausnahme der Coroutine
+werden dabei nicht gefangen (Setzung, Voreinstellung 2026-10-30, nicht gemessen). Ein Fehler beendet den
+Lauf; weitere Ereignisse werden nicht gelesen.
 Return Status und Ausgabeparameter werden bis zu ihrer Abbildung mit einem Fehler der Typabbildung
 (`SPEC-014`) abgelehnt; mit der Zuordnung in §4 ist das `TDS_UNSUPPORTED_TYPE` (Class 20), und die
 Verbindung schließt nach der Antwort, ebenso bei jedem anderen Typfehler (die Einzelzuordnung des
@@ -493,6 +509,8 @@ werden vor der Implementierung festgelegt. Festgelegt ist die Bedeutung:
 
 - `next()` liefert die Werte einer Zeile in der Reihenfolge von `SimQuery.columns`, `null` am Ende.
   Jeder Aufruf darf suspendieren; die Zeilenquelle liest nie mehr voraus, als der Aufrufer abnimmt.
+  `next()` blockiert den Thread des Aufrufers nicht (Pflicht nach `SPEC-022`, Nutzerentscheidung vom
+  2026-10-31); die Werte einer Zeile tragen die Klassen aus `SPEC-002`.
 - `close()` wird genau einmal gerufen, nach dem Ende, einem Fehler oder einem Abbruch.
 - `FilterTerm.In` bildet `=` (ein Wert) und `IN (…)` ab. Alle Terme eines `RowFilter` gelten
   gemeinsam (UND). Dieselbe Spalte darf in mehreren Termen stehen; ein Widerspruch trifft keine
@@ -696,7 +714,7 @@ SQL-Server-Image setzt `ACCEPT_EULA=Y` voraus; die Zustimmung des Repo-Inhabers 
 | `SPEC-008` | `LOGIN_TIMEOUT` | 15 s (vorläufig; konfigurierbar in ganzen Sekunden von 1 bis 3600, Festlegung, nicht gemessen) | Hängende Logins begrenzen; die Frist gilt ab Verbindungsaufbau über PRELOGIN, TLS-Handschlag und LOGIN7, danach schließt der Server ohne Antwort; für eine angemeldete Verbindung gilt sie nicht |
 | `SPEC-046` | `MAX_PRELOGIN_MESSAGE_BYTES` | 65536 (vorläufig; konfigurierbar von 512 bis 65536, die obere Grenze ist die der PRELOGIN-Verhandlung, Festlegung, nicht gemessen) | Vor abgeschlossenem Login kein großer Puffer: PRELOGIN und LOGIN7 sind klein, eine größere Nachricht wird abgewiesen |
 | `SPEC-047` | `SHUTDOWN_GRACE` | 10 s (vorläufig, konfigurierbar; 0 = sofort) | Frist für laufende Anfragen beim geordneten Beenden (`SPEC-044`) |
-| `SPEC-009` | `QUERY_TIMEOUT` | 30 s (vorläufig, konfigurierbar) | Backend-Timeout |
+| `SPEC-009` | `QUERY_TIMEOUT` | 30 s (vorläufig, konfigurierbar) | Backend-Timeout; Quelle der Frist einer Anfrage (`deadlineEpochMillis` = Beginn plus `QUERY_TIMEOUT`), die der Protokollkern durchsetzt (`SPEC-022`); Ablauf endet in `TDS_TIMEOUT` (`SPEC-016`) |
 | `SPEC-010` | `ENCRYPTION_POLICY` | Standard `REQUIRED`; Abschwächung nur durch ausdrückliche, im Log sichtbare Konfiguration, je Clientprofil; genau `REQUIRED` oder `TEST_UNENCRYPTED`; `REQUIRED` verlangt `TLS_KEYSTORE_FILE` (PKCS#12) und `TLS_KEYSTORE_PASSWORD_FILE`, `TEST_UNENCRYPTED` lässt beide nicht zu (Festlegung, nicht gemessen) | Keine unbemerkte TLS-Herabstufung |
 | `SPEC-033` | `CANCEL_TIMEOUT` | 5 s (vorläufig, konfigurierbar) | Frist für nicht abbrechbare Backendoperationen, danach Verbindung schließen |
 | `SPEC-034` | `MAX_CONNECTIONS` | 1000 (vorläufig, konfigurierbar) | Ressourcenlimit für gleichzeitige Verbindungen |
@@ -713,11 +731,11 @@ Abnahmegrenzen.
 | `SPEC-013` | `TDS_UNSUPPORTED_RPC` | RPC nicht unterstützt | ERROR und DONE mit Fehlerstatus |
 | `SPEC-014` | `TDS_UNSUPPORTED_TYPE` | Wert nicht serialisierbar | definierter Fehler, kein fehlerhaftes Resultset |
 | `SPEC-015` | `TDS_BACKEND_ERROR` | Backend-Ausführung fehlgeschlagen | Fehlerabbildung in TDS |
-| `SPEC-016` | `TDS_TIMEOUT` | Frist überschritten | Cancel, Cleanup, Fehler/Disconnect |
+| `SPEC-016` | `TDS_TIMEOUT` | Frist überschritten (die Frist einer Anfrage, `QUERY_TIMEOUT`, `SPEC-009`) | Cancel, Cleanup, Fehler/Disconnect |
 | `SPEC-037` | `TDS_UNSUPPORTED_SQL` | Anweisung oder Bedingung außerhalb von `SPEC-036`; Schreibzugriff ohne Callback | ERROR und DONE mit Fehlerstatus, Zeilenquelle nicht gelesen |
 | `SPEC-038` | `TDS_SIM_UNKNOWN_OBJECT` | Tabelle oder Spalte ist nicht beschrieben | ERROR und DONE mit Fehlerstatus; vorgesehene SQL-Server-Nummern 208 (Objekt) und 207 (Spalte) |
 | `SPEC-039` | `TDS_SIM_INVALID_VALUE` | Wert nicht in den Spaltentyp überführbar | ERROR und DONE mit Fehlerstatus; vorgesehene SQL-Server-Nummern 245 (Konvertierung) und 8115 (Überlauf), an der Referenzinstanz zu messen |
-| `SPEC-048` | `TDS_INTERNAL_ERROR` | unerwartete Ausnahme im Server oder im Backend-Adapter | ERROR (Severity 20) und DONE mit Fehlerstatus, fester Text ohne den Text der Ausnahme, danach Verbindungsende; die Ausnahme geht ins Log, ohne Parameterwerte |
+| `SPEC-048` | `TDS_INTERNAL_ERROR` | unerwartete Ausnahme im Server oder im Backend-Adapter, auch ein `OutOfMemoryError` beim Erzeugen oder Senden der Antwort (`SPEC-031`) | ERROR (Severity 20) und DONE mit Fehlerstatus, fester Text ohne den Text der Ausnahme, danach Verbindungsende; die Ausnahme geht ins Log, ohne Parameterwerte |
 | `SPEC-049` | `TDS_SHUTDOWN` | Anfrage nach Beginn des geordneten Beendens (`SPEC-044`) | ERROR und DONE mit Fehlerstatus, danach Verbindungsende; vorgesehen: die SQL-Server-Meldung für ein Herunterfahren, Nummer im Mapping nach `TDS-FA-06.a` festlegen |
 
 Die Nummern in der Aktionsspalte sind ein Vorschlag für das Mapping nach `TDS-FA-06.a`. Für
@@ -783,7 +801,7 @@ aktive Backendoperationen, Abbrüche, Protokollfehler. Keine SQL-Texte als Metri
 |---|---|---|---|
 | `SPEC-020` | Microsoft TDS | TDS 7.4 und TDS 8.0 (Strict-Encryption) | [MS-TDS](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tds/) |
 | `SPEC-021` | .NET SQL-Client | `Microsoft.Data.SqlClient` 7.1.1 auf .NET 10 (SDK 10.0.403), im Container ausgeführt | [Clientprofil](#clientprofil-vertrag-zu-spec-021) |
-| `SPEC-022` | Query-Backend | Projektvertrag v0: Typen und Schnittstellen als Quelltext (Setzung vom 2026-10-30, nicht gemessen), Rest Entwurf | [Query-Backend](#query-backend-vertrag-zu-spec-022) |
+| `SPEC-022` | Query-Backend | Projektvertrag v0: Typen und Schnittstellen als Quelltext (Setzung vom 2026-10-30, nicht gemessen); Pflichten und Grenzen nach Nutzerentscheidung vom 2026-10-31 (Messung im Spike, nicht am Produkt), Rest Entwurf | [Query-Backend](#query-backend-vertrag-zu-spec-022) |
 | `SPEC-023` | TLS | TLS 1.3 und TLS 1.2 (Mindestversion 1.2); Suiten TLS 1.3: `TLS_AES_256_GCM_SHA384`, `TLS_AES_128_GCM_SHA256`; TLS 1.2: ECDHE mit AES-GCM; Standard `REQUIRED` | [Sicherheitsprofil](#sicherheitsprofil-vertrag-zu-spec-023) |
 | `SPEC-051` | Authentifizierungsadapter | Schnittstelle als Kotlin-Quelltext (Festlegung, nicht gemessen); Prüfwert der festen Benutzerliste mit Verfahrenskennung (`plain` nur im Testmodus, `pbkdf2-sha256`), eigene Datei nur für die Benutzerliste, Iterationen mit Boden, Standard und Obergrenze, strenger Parser; Dateirechte und Behandlung eines BOM offen (Stand 2026-10-30) | [Authentifizierungsadapter](#authentifizierungsadapter-vertrag-zu-spec-051) |
 
@@ -833,7 +851,7 @@ Der Referenzclient sendete in den gemessenen Szenarien (Messgrenzen: Testserver,
 
 ### Query-Backend (Vertrag zu `SPEC-022`)
 
-Vertrag zwischen Protokollkern und Backend (`TDS-FA-08.a`, `SPEC-002`). Der Protokollkern erzeugt einen `QueryRequest` ohne TDS-Bytes und liest das Ergebnis als Strom von Ereignissen; das Backend kennt weder Pakete noch Tokens. Die Typen und Schnittstellen stehen als Kotlin-Quelltext (Abschnitt „Signatur des Backend-Vertrags“); alles darüber hinaus ist ein **Entwurf**. Gemessen ist das Ergebnismodell an einem Generator-Backend mit drei Spalten, nicht der Kotlin-Vertrag.
+Vertrag zwischen Protokollkern und Backend (`TDS-FA-08.a`, `SPEC-002`). Der Protokollkern erzeugt einen `QueryRequest` ohne TDS-Bytes und liest das Ergebnis als Strom von Ereignissen; das Backend kennt weder Pakete noch Tokens. Die Typen und Schnittstellen stehen als Kotlin-Quelltext (Abschnitt „Signatur des Backend-Vertrags“); alles darüber hinaus ist ein **Entwurf**, soweit es nicht unten als Festlegung oder Nutzerentscheidung gekennzeichnet ist. Gemessen ist das Ergebnismodell an einem Generator-Backend mit drei Spalten, nicht der Kotlin-Vertrag.
 
 #### Aufruf des Backends
 
@@ -854,19 +872,22 @@ Stand des Quelltexts: Setzung des Aufrufers (2026-10-30), nicht gemessen.
 | `QueryBackend`, `QueryExecution` | `port` | tragen den `Flow`; `port` importiert `domain`, die Standardbibliothek und `kotlinx.coroutines` |
 
 - **Fehler beim Start:** `execute()` wirft für Fehler des Backends keine Ausnahme; ein Fehler beim Start (zum Beispiel Backend nicht erreichbar) ist ein `Failure` im Strom `events`. Die Abbruchausnahme der Coroutine bleibt davon unberührt. Setzung, nicht gemessen.
-- **`SqlType`** (Definition in `SPEC-002`): `Int32`, `Int64`, `Bool`, `UnicodeText`, `Decimal(precision, scale)` mit `precision >= 1` und `0 <= scale <= precision`, `Date`, `Time`, `DateTime` (das Modell trägt keine Zone) — der Mindestkatalog von `SPEC-003`. Breiten unter 32 Bit, Gleitkomma, Geld, GUID und Binärtypen gehören nicht dazu. Setzung, nicht gemessen. Eine Precision über 38 ist im Modell darstellbar und scheitert in der Typabbildung mit `TDS_UNSUPPORTED_TYPE`, bevor COLMETADATA geschrieben wird (Nutzerentscheidung vom 2026-10-30, nicht gemessen). Längenlimit von `UnicodeText` (4000 UTF-16-Einheiten), Scale der Zeittypen (7) und Zeitzonenannahme (Werte ohne Zone) sind Setzungen der Typabbildung (`SPEC-003`). Offen: die JVM-Typen der Werte in `OutputParameter` und die endgültige Zeilendarstellung (`Row`, `QueryParameter`, siehe „Offene Punkte des Backend-Vertrags“).
+- **`SqlType`** (Definition in `SPEC-002`): `Int32`, `Int64`, `Bool`, `UnicodeText`, `Decimal(precision, scale)` mit `precision >= 1` und `0 <= scale <= precision`, `Date`, `Time`, `DateTime` (das Modell trägt keine Zone) — der Mindestkatalog von `SPEC-003`. Breiten unter 32 Bit, Gleitkomma, Geld, GUID und Binärtypen gehören nicht dazu. Setzung, nicht gemessen. Eine Precision über 38 ist im Modell darstellbar und scheitert in der Typabbildung mit `TDS_UNSUPPORTED_TYPE`, bevor COLMETADATA geschrieben wird (Nutzerentscheidung vom 2026-10-30, nicht gemessen). Längenlimit von `UnicodeText` (4000 UTF-16-Einheiten), Scale der Zeittypen (7) und Zeitzonenannahme (Werte ohne Zone) sind Setzungen der Typabbildung (`SPEC-003`). JVM-Klassen der Werte je Spaltenart (Nutzerentscheidung vom 2026-10-31, Definition in `SPEC-002`): `Int32` als `Int`, `Int64` als `Long`, `Bool` als `Boolean`, `UnicodeText` als `String`, `Decimal` als `java.math.BigDecimal`, `Date` als `LocalDate`, `Time` als `LocalTime`, `DateTime` als `LocalDateTime`, NULL als `null`; sie gelten für `Row`, `QueryParameter` und `OutputParameter`.
 - **Belegt am Test-Backend** (Test-Quelltext, suspendierend): Metadaten vor Zeilen, leeres Ergebnis mit Metadaten, `Failure` vor und nach `ResultStart`, Fehler beim Start als `Failure`, `close()` und `cancel()` erreichen die Zeilenquelle des Test-Backends. Das ist keine Aussage über blockierende oder echte Backends.
 
 #### Ergebnis des Backend-Aufrufs
 
-Das Ergebnis ist ein asynchroner Strom (`Flow`) von Ereignissen: `ResultStart` (Spalten), `Row`, `ResultEnd`, `UpdateCount`, `ReturnStatus`, `OutputParameter`, `Failure`. Ein Backend mit kleinem Ergebnis darf den Strom aus einer fertigen Liste erzeugen. Das Backend setzt kein `DONE_MORE`: der Response Sequencer hält ein `ResultEnd` bzw. `UpdateCount` ein Ereignis lang zurück, bis das nächste Ereignis oder das Ende bekannt ist, und setzt daraus das Bit.
+Das Ergebnis ist ein asynchroner Strom (`Flow`) von Ereignissen: `ResultStart` (Spalten), `Row`, `ResultEnd`, `UpdateCount`, `ReturnStatus`, `OutputParameter`, `Failure`. Ein Backend mit kleinem Ergebnis darf den Strom aus einer fertigen Liste erzeugen; der Vertrag setzt keine Grenze für „klein“ (Setzung, Voreinstellung 2026-10-30, vom Nutzer nicht ausdrücklich gewählt, nicht gemessen), siehe „Pflichten des Backends“. Das Backend setzt kein `DONE_MORE`: der Response Sequencer hält ein `ResultEnd` bzw. `UpdateCount` ein Ereignis lang zurück, bis das nächste Ereignis oder das Ende bekannt ist, und setzt daraus das Bit.
 
 #### Pflichten des Backends
 
 - Metadaten (`ResultStart`) kommen vor den Zeilen (`TDS-FA-08.a`).
 - Gelesen wird nur so schnell, wie der Transport abnimmt (Backpressure); ein Backend läuft nicht beliebig voraus.
 - Cancel und Disconnect beenden das Lesen und schließen die Zeilenquelle (`SPEC-029`, `SPEC-031`). Ein Backend, dessen Operation sich nicht unterbrechen lässt, hält die Sitzung bis `CANCEL_TIMEOUT` (`SPEC-033`); danach schließt der Server die Verbindung.
-- Ein Backend, das blockiert, sorgt selbst für Abbruch und Thread-Verbrauch (Annahme). Gemessen ist das nur für einen blockierenden Iterator an einem fingierten Backend (Thread je laufendem Aufruf, Abbruch hängt am Interrupt), nicht für ein blockierendes Backend hinter dem `Flow` und nicht an einem echten Treiber; der Spike-Flow lief mit einem suspendierenden Backend.
+- **Suspendierend (Nutzerentscheidung vom 2026-10-31):** Ein Backend und jede Zeilenquelle (`SPEC-035`, `next()`) blockieren den Thread des Aufrufers nicht. Ein blockierender Treiber wird vom Integrator hinter einen eigenen, begrenzten Pool gelegt und unterbrechbar aufgerufen; der Server stellt keinen Adapter. Gemessen im Spike (fingiertes Backend, Blockieren als `Thread.sleep`, „nicht unterbrechbar“ als Setzung, Kotlin 2.1.20 und `kotlinx-coroutines-core` 1.10.1 statt der Versionen des Repos, 200 Ströme zu 5000 Zeilen): ein Backend, das je Zeile blockiert, brauchte 75 bis 78 Threads statt 11 und die 2- bis 8-fache Wanddauer (3099 ms gegen 377 ms); der Abbruch eines nicht unterbrechbaren Aufrufs wartete den Rest der Blockade ab (2400 ms bei 3000 ms), bei einer Blockade über `CANCEL_TIMEOUT` schließt die Sitzung, und der Thread bleibt bis zur Rückkehr belegt. Die Zahlen gelten für den Spike, nicht für das Produkt oder einen echten Treiber. Empfehlung, keine Pflicht (Setzung, Voreinstellung 2026-10-30): blockweise statt je Zeile aufrufen (707 ms gegen 3099 ms im Spike). Ein Hilfsadapter im Server ist ein benannter Folgeschritt mit dem Auslöser „ein echtes Backend, dessen Treiber blockiert“.
+- **Kleine Ergebnisse (Setzung, Voreinstellung 2026-10-30, vom Nutzer nicht ausdrücklich gewählt, nicht gemessen):** Ein Backend, das ein Ergebnis materialisiert, begrenzt es selbst. Der Server erzwingt keine Grenze; er schützt sich durch den Rückstau der Senke und die Behandlung des `OutOfMemoryError` (`SPEC-031`).
+- **Frist (Nutzerentscheidung vom 2026-10-31):** Der Protokollkern setzt die Frist durch. Quelle ist `QUERY_TIMEOUT` (`SPEC-009`): er setzt `deadlineEpochMillis` auf „Beginn der Anfrage plus `QUERY_TIMEOUT`“ und umschließt die Sammlung des Stroms mit einem Zeitlimit. Bei Ablauf geht der Lauf den Weg des Cancel (Strom abbrechen, `close()`, zurückgehaltenen Abschluss verwerfen) und endet in `TDS_TIMEOUT` (`SPEC-016`; ERROR und DONE mit Fehlerstatus, solange der Strom synchron ist, sonst schließt die Verbindung, `SPEC-031`). Das Feld bleibt für kooperative Backends ein Hinweis; ein Backend darf es ignorieren. Einzelheiten (Setzung, Voreinstellung 2026-10-30, nicht gemessen): `null` heißt keine Frist; eine Frist in der Vergangenheit endet sofort in `TDS_TIMEOUT`; die Wanduhr wird einmal beim Start der Sammlung in eine Dauer umgerechnet; `CANCEL_TIMEOUT` (`SPEC-033`) bleibt unabhängig davon die Frist für den Abbruch selbst. Gemessen im Spike (Frist 500 ms): Überschreitung 0 bis 3 ms bei suspendierendem oder unterbrechbarem Backend, bis zum Ende des Aufrufs bei nicht unterbrechbarem (1500 bis 1513 ms bei 2000 ms Blockade); ein Backend, das die Frist ignoriert, lief bis zum Stromende (3042 ms). Class von `TDS_TIMEOUT` und Verbindungsfolge bleiben offen (`SPEC-016`, §4).
+- **`OutOfMemoryError` (Nutzerentscheidung vom 2026-10-31):** Er wird im Anfragepfad gefangen und als `TDS_INTERNAL_ERROR` beantwortet (`SPEC-031`, `SPEC-048`); die Verbindung schließt nach der Antwort. Betreiberschalter, kein Server-Code: der Startparameter `-XX:+ExitOnOutOfMemoryError` beendet den Prozess beim ersten `OutOfMemoryError` (im Spike Exit-Code 3 nach rund 2 s). Akzeptiertes Negativ: im Spike blieb beim Fangen in vier von vier Läufen mindestens eine Coroutine hängen, in dreien davon eine unbeteiligte kleine Verbindung; die Ursache ist nicht isoliert, die Häufigkeit im Produkt nicht gemessen; ob die Antwort im erschöpften Heap noch geschrieben werden kann, ist nicht gemessen.
 
 #### Festlegungen des Backend-Vertrags
 
@@ -877,14 +898,12 @@ Das Ergebnis ist ein asynchroner Strom (`Flow`) von Ereignissen: `ResultStart` (
 
 - Unterscheidung statement- und batch-abbrechender Fehler im Strom, die `Failure` nicht trägt: der Sequencer schreibt eine Variante (ERROR und DONE mit Fehlerstatus, Lauf beendet); die Verbindungsfolge nach Severity und die Abbildung von `Failure.code` bleiben Sache der Fehlerabbildung.
 - Herkunft der Befehlskennung (`curCmd`) der DONE-Tokens: der Sequencer schreibt 0; der Port trägt keine Kennung (Spec-Lücke).
-- Grenze für „kleines“ Ergebnis (fertige Liste), Zeilendarstellung.
-- Behandlung von `OutOfMemoryError`: im Spike wurde er im Anfragepfad gefangen und als Fehler gemeldet (nur bei vollständiger Materialisierung erzeugt, nicht im `Flow`); ob das Fangen im Produktivcode tragbar ist, ist nicht gemessen.
 - Verzögerung durch den zurückgehaltenen Abschluss der `DONE_MORE`-Vorschau: nicht gemessen.
-- Semantik der Frist: `deadlineEpochMillis` steht im `QueryRequest` (`SPEC-002`); offen ist, wer sie durchsetzt (Backend oder Protokollkern) und was bei Ablauf geschieht (`QUERY_TIMEOUT`, `TDS_TIMEOUT`), nicht das Vorhandensein des Feldes.
+- Class von `TDS_TIMEOUT` und Verbindungsfolge nach Ablauf der Frist (ob Cancel und Timeout als Fehler zählen, `SPEC-016`, §4).
 
 #### Gemessen am Backend-Vertrag
 
-Gemessen sind: Heap, erste Zeile, Durchsatz, langsamer Leser, Fehler nach der ersten Zeile, Mehrfach-Ergebnisse, Cancel, Threads bei 200 Strömen (Flow-Messungen mit suspendierendem Backend, Blockade nur beim Iterator). Nicht gemessen: ein blockierendes Backend hinter dem `Flow`, echte Query-Engine oder Treiber, breitere Zeilen, LOBs und PLP, OUTPUT-Parameter im Strom, Antworten eines echten SQL Servers, MARS, Transaktionen, andere Clients.
+Gemessen sind: Heap, erste Zeile, Durchsatz, langsamer Leser, Fehler nach der ersten Zeile, Mehrfach-Ergebnisse, Cancel, Threads bei 200 Strömen (Flow-Messungen mit suspendierendem Backend, Blockade nur beim Iterator). Im Spike gemessen (Nachmessung vom 2026-10-30, Grenzen wie oben bei „Pflichten des Backends“; Einzel- bis Vierfachläufe auf einem ausgelasteten Rechner): Bytes je Zeile und Zeilen bis zum `OutOfMemoryError` bei 256 MiB Heap (`List<Any?>`: 173 Byte je schmale und 454 je breite Zeile, 1,54 Mio schmale Zeilen), der `OutOfMemoryError` ohne und mit Fangen (Hänger), ein blockierendes Backend hinter dem `Flow` (Threads, Wanddauer, Abbruch) und die Frist. Nicht gemessen: echte Query-Engine oder Treiber, breitere Zeilen, LOBs und PLP, OUTPUT-Parameter im Strom, Antworten eines echten SQL Servers, MARS, Transaktionen, andere Clients.
 
 ### Sicherheitsprofil (Vertrag zu `SPEC-023`)
 
@@ -1082,3 +1101,4 @@ Gemessen sind: LOGIN7-Felder, Entschleierung, Ablehnungsbytes, erkennbare Modi. 
 | 2026-10-30 | Verträge zu `SPEC-021`, `SPEC-022`, `SPEC-023` und `SPEC-051` in Abschnitt 6 übernommen; Spec-Lücke zu `SqlType` im Backend-Vertrag entfällt (`SPEC-002` definiert ihn); Zeilenformat der Benutzerliste in `SPEC-051` auf den Stand des Vertrags angeglichen |
 | 2026-10-30 | Simulations-Backend nachgeführt (`SPEC-035`, `SPEC-036`, `SPEC-040`, `SPEC-045`): Ignorierliste um sieben Spaltenfelder, `tables` als Pflicht, Längengrenze der Typabbildung, Setzungsvermerke, Lesart der Liste „Nicht erkannt“ als Setzung, Tests des Lesers, gemeinsame Quelle der Schemata |
 | 2026-10-30 | Anfragezustand im Verbindungsautomaten festgelegt: flacher Zuschnitt, Sitzungsrahmen statt Response Sequencer hält den Zustand, Ende der Antwort als ein Übergang (`SPEC-001`) |
+| 2026-10-31 | Grenzen des Backend-Vertrags nach Nutzerentscheidungen: Klassen der Werte je Spaltenart, Pflicht „suspendierend“ für Backend und Zeilenquelle, Frist durch den Protokollkern mit `QUERY_TIMEOUT` als Quelle, `OutOfMemoryError` im Anfragepfad gefangen (`SPEC-002`, `SPEC-009`, `SPEC-016`, `SPEC-022`, `SPEC-031`, `SPEC-035`, `SPEC-048`); keine Grenze für „kleine“ Ergebnisse als Setzung; Messungen nur im Spike, nicht am Produkt |
