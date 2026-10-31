@@ -7,23 +7,31 @@
 # aus der `make e2e-abdeckung` die Sicht docs/plan/e2e-abdeckung.md erzeugt (Marker in repo.mk). Die Sicht ist eine
 # Deklaration, kein Lauf-Beleg: dass eine Stufe ihre Kennungen traegt, belegt ihr gruener Lauf, nicht die Datei.
 # Setzung: die erste rote Stufe bricht den Durchgang ab (Exit 1), und die Ausgabe nennt die Stufe; die folgenden
-# Stufen laufen nicht. Die Harness-Selbstpruefung (tools/harness/selbstpruefung.sh) ist keine Stufe.
+# Stufen laufen nicht (gehalten von `make skript-selbsttest`). Die Harness-Selbstpruefung (tools/harness/selbstpruefung.sh) ist keine Stufe.
 set -u
+
+# Aufruf der Stufen; tools/e2e-selbsttest.sh setzt E2E_MAKE auf einen Ersatz und prueft damit Abbruch und Ausgabe.
+make_cmd="${E2E_MAKE:-make}"
 
 e2e_abdeckung() { echo "abdeckung: $1 — $2 (Anker: $3)"; }
 
 lauf() {
 	local nr="$1" t0="$SECONDS"
 	shift
+	local anzeige="$*"
+	if [ "$1" = make ]; then
+		shift
+		set -- "$make_cmd" "$@"
+	fi
 	if ! "$@"; then
-		echo "e2e: ROT - Stufe $nr ($*) nach $((SECONDS - t0)) s; der Durchgang bricht ab, folgende Stufen laufen nicht." >&2
+		echo "e2e: ROT - Stufe $nr ($anzeige) nach $((SECONDS - t0)) s; der Durchgang bricht ab, folgende Stufen laufen nicht." >&2
 		exit 1
 	fi
-	echo "e2e: Stufe $nr gruen ($*, $((SECONDS - t0)) s)"
+	echo "e2e: Stufe $nr gruen ($anzeige, $((SECONDS - t0)) s)"
 }
 
 echo "e2e: Stufe 1 Rohbytes-Login und Startverhalten des Prozesses ..."
-e2e_abdeckung "TDS-FA-01 TDS-FA-02 TDS-FA-09" "Kindprozess main mit Rohbytes-Client: PRELOGIN und LOGIN7 mit LOGINACK, Start ohne JVM-Flag bricht ab, fehlerhafte Konfiguration und belegter Port beenden den Start mit Exit-Code 1. Nicht belegt: Referenzclient, TLS, Anfragepfad, Inhalt der Diagnose" "make smoke"
+e2e_abdeckung "TDS-FA-01 TDS-FA-02 TDS-FA-09" "Kindprozess main mit Rohbytes-Client: PRELOGIN und LOGIN7 mit LOGINACK, Start ohne JVM-Flag bricht ab, fehlende Pflichtoption, ungültiger LOGIN_TIMEOUT und belegter Port beenden den Start mit Exit-Code 1 und der erwarteten Diagnosezeile (Wortlaut geprüft, ohne Wert der Option). Nicht belegt: Referenzclient, TLS, Anfragepfad, beschädigtes oder unzulässiges PRELOGIN (FA-01 Negative), abweichende Clientoption (FA-01 Boundary), protokollierte Zustandsereignisse bei gültigem Start (FA-09 Happy Path), ungültige sicherheitsrelevante Konfiguration über die geprüften Fälle hinaus (FA-09 Negative)" "make smoke"
 lauf 1 make smoke
 
 echo "e2e: Stufe 2 Container-Artefakt ..."
@@ -31,7 +39,7 @@ e2e_abdeckung "TDS-RB-01 TDS-QA-06 TDS-QA-03" "Image startet, Login mit TEST_UNE
 lauf 2 make laufzeittest
 
 echo "e2e: Stufe 3 Referenzclient gegen Simulations-Backend ..."
-e2e_abdeckung "TDS-FA-11 TDS-FA-03 TDS-FA-06" "Microsoft.Data.SqlClient gegen den Serverprozess mit Einstieg runServer im Test-Quelltext, nicht main: Auswahl mit Bedingung, leeres Ergebnis, Zeilenquelle über dem Heap, Fehler der Zeilenquelle als SqlException mit nutzbarer Verbindung, ohne Parameter, TLS und Pool. Nicht belegt: parametrisierte Abfrage, Cancel, Anweisung außerhalb der erkannten Formen" "make simulations-integration"
+e2e_abdeckung "TDS-FA-11 TDS-FA-03 TDS-FA-06" "Microsoft.Data.SqlClient gegen den Serverprozess mit Einstieg runServer im Test-Quelltext, nicht main: Auswahl mit Bedingung, leeres Ergebnis, Zeilenquelle über dem Heap, Fehler der Zeilenquelle als SqlException mit nutzbarer Verbindung, ohne Parameter, TLS und Pool. Nicht belegt: Einfüge-, Änderungs- und Löschanweisungen, parametrisierte Abfrage, Cancel, Anweisung außerhalb der erkannten Formen" "make simulations-integration"
 lauf 3 make simulations-integration
 
 echo "e2e: Stufe 4 Referenztest-Gerüst ..."

@@ -148,6 +148,15 @@ WORKDIR /src
 COPY tools/spec-abdeckung.sh tools/spec-abdeckung-selbsttest.sh tools/
 RUN sh tools/spec-abdeckung-selbsttest.sh
 
+# --- Skript-Selbsttest: `make skript-selbsttest` - belegt ohne Gradle, dass tools/e2e.sh an der ersten roten
+# Stufe abbricht und dass tools/manifest-pruefung.sh seine Fehlerfaelle abweist; das Dockerfile selbst ist
+# Eingang, weil der Test den Aufruf der Pruefung in der Stage `build-jar` liest. ------------------------
+FROM basis AS skript-selbsttest
+WORKDIR /src
+COPY Dockerfile Dockerfile
+COPY tools/e2e.sh tools/e2e-selbsttest.sh tools/manifest-pruefung.sh tools/manifest-selbsttest.sh tools/
+RUN bash tools/e2e-selbsttest.sh && sh tools/manifest-selbsttest.sh
+
 # --- Lock: schreibt gradle.lockfile, settings-gradle.lockfile und gradle/verification-metadata.xml
 # neu (`make deps-lock`, braucht Netz). Es wird nichts gemountet: die Stage `lock-export` liefert
 # die drei Dateien per `docker build --output`. DEPS_TASKS nennt die Gradle-Tasks, die dieses

@@ -63,6 +63,7 @@ Diese Datei dupliziert sie nicht.
 | `make docs-check` | Doku-Referenzen (d-check); das Gate, das die Vorlage mitbringt | — |
 | `make detekt` | Suppression-Verbot (`@Suppress`) und detekt mit ktlint, `warningsAsErrors`, Import- und Technik-Regeln der Schichten (`ForbiddenMethodCall` über `detektMain`/`detektTest`), in Docker; keine Baseline | — |
 | `make detekt-selbsttest` | Importregeln der Schichten und Suppression-Verbot gegen Testdaten prüfen; läuft nur bei geänderten Eingängen | — |
+| `make skript-selbsttest` | Abbruch von `tools/e2e.sh` an der ersten roten Stufe; Fehlerfälle von `tools/manifest-pruefung.sh` an synthetischen Jars; Aufruf der Prüfung in `build-jar` | [ADR-0022](../docs/plan/adr/0022-e2e-laeufe-nicht-in-den-gates.md) |
 | `make test` | Unit-Tests (`kotlin.test` auf der JUnit-Plattform) in Docker, Stage `test`; ein roter Test macht `make gates` rot; Lock und Prüfsummen der Testlaufzeit über `make deps-lock` | — |
 | `make build` | Compile und Jar in Docker, ohne Tests; Basis-Images per Digest gepinnt; Lizenz und Manifest des Jars (Main-Class, Class-Path gegen `lib/`) werden im Bau geprüft | [ADR-0022](../docs/plan/adr/0022-e2e-laeufe-nicht-in-den-gates.md) |
 | `make smoke` | Rohbytes-Smoke in Docker (Stage `smoke`): Kind-JVM startet `main`, Rohbytes-Client spricht PRELOGIN und LOGIN7; Start ohne Flag bricht ab; läuft auch in `make test`, kein Referenzclient | — |
