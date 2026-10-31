@@ -1,0 +1,2 @@
+**Vorgang:** slice-tds8-verdrahtung
+**Fund:** `docs/plan/spec-abdeckung.md` führte `SPEC-020` als „OHNE NACHWEIS“, obwohl `Tds8WiringTest` und `Tds8ProcessTest` das Tag tragen; die Datei war vom Stand vor dem Slice (Verifikation L-4). Behoben in der Closure mit `make spec-abdeckung`: 32 von 52 Festlegungen mit bestandenem Test, 13 ohne Nachweis (vorher 14). Der Lauf kam wie vorgesehen erst in der Closure (`.claude/commands/implement-slice.md` Schritt 24); die Verifikation maß davor gegen den alten Stand.

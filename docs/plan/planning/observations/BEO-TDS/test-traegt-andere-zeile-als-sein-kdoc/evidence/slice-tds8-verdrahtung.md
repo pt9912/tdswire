@@ -1,0 +1,2 @@
+**Vorgang:** slice-tds8-verdrahtung
+**Fund:** Der Test „beendet allein der Treiber die Verbindung“ in `HandshakeWiringTest` schickte kein Byte; nach dem Einbau des Wartens auf das erste Byte beendete diesen Fall der Handler, nicht der Treiber. Mutation B (Treiberfrist 10000 s) ließ 766 Tests grün, Mutation A (Frist um `peek` entfernt) färbte ihn (Review M-1). Behoben: ein Test mit Byte `0x12` und Schweigen trägt die Treiberfrist (Mutation B rot), der alte Test heißt „Frist des Wartens auf das erste Byte“ (Verifikation, Mutation E rot).
