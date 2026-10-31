@@ -81,7 +81,16 @@ Aussagen-Berührung steht hier gar nicht.
 | `tools/mk/` | update | Make-Fragment für das Gate nach SPEC-040; `GATE_CHECKS +=` nach Entscheidung |
 | `src/test/kotlin/io/github/pt9912/tdswire/simulation/` <!-- d-check:ignore (geplant: neue Datei) --> | update | Callback-Tests Happy/Boundary/Negative; `@spec`-Tag SPEC-035 |
 
-Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
+Erweiterung im ersten Lauf des Implementers (gebauter Stand):
+
+| Datei / Komponente | Änderungs-Art | Begründung |
+|---|---|---|
+| `src/main/kotlin/io/github/pt9912/tdswire/config/` | update | Schlüssel `SIMULATION_DESCRIPTION_FILE`, Grenze von 1 MiB vor dem Parsen |
+| `Dockerfile`, `build.gradle.kts`, `gradle/libs.versions.toml`, `gradle.lockfile`, `gradle/verification-metadata.xml` | update | Jackson 2.21.7 mit Lock und Prüfsummen; Stage `integrationsserver` und Task `integrationsServer`; die Stage `lock` kopiert `LICENSE` (sonst bricht `LizenzTest` die Lock-Stage) |
+| `config/detekt/detekt.yml`, `config/detekt/selbsttest/io/github/pt9912/tdswire/simulation/Fremd.kt`, `tools/detekt-selbsttest.sh` | update | Wächter für die YAML-Bibliothek in `simulation` samt Selbsttest-Fall |
+| `src/test/kotlin/io/github/pt9912/tdswire/runtime/`, `src/test/resources/integration/sim.yaml` | update | Tests von Adapter und Verdrahtung; Serverprozess des Integrationslaufs |
+| `tools/simulationstest.sh`, `tools/mk/simulationstest.mk`, `referenztest-dotnet/Integration/` | update | Integrationslauf mit dem Referenzclient und sein Make-Target |
+| `spec/spezifikation.md`, `harness/README.md` | update | Festlegungen der Weitergabe und der Verdrahtung nachgeführt; Sensor-Zeile |
 
 ## 4. Trigger
 

@@ -23,17 +23,16 @@ import java.nio.charset.CodingErrorAction
  * der Strom-API von Jackson zu einem [SimNode]-Baum aus Abbildung, Liste und Skalar mit Zeile und Spalte. Die
  * Größengrenze prüft der Lader der Konfiguration vor dem Lesen der Datei, nicht dieser Adapter.
  *
- * Festlegungen (Setzung, nicht gemessen): Die Datei muss gültiges UTF-8 sein, eine Byte Order Mark am Anfang wird
- * übergangen. Ein Dokument; Anker an Abbildung oder Liste, Aliase und Tags sind ein Ladefehler (ein Anker an einem
- * Skalar zeigt die Strom-API nicht; verweist ein Alias auf ihn, ist der Alias der Ladefehler, sonst bleibt er ohne
- * Wirkung, Grenze gemessen mit Jackson 2.21.7); Schlüssel sind Skalare. Ein Skalar ohne
- * Anführungszeichen, den Jackson als Wahrheitswert, Zahl oder NULL liest, ist „schlicht“ ([SimScalar.plain]),
- * ein Skalar mit Anführungszeichen und ein Text nicht; die Schreibweise ist die der Datei, nicht die Deutung der
- * Bibliothek. Die Meldung eines Fehlers nennt Pfad, Zeile und Spalte und einen festen Grund, nie den Inhalt und nie
- * den Text der Bibliothek.
+ * Festlegungen (Setzung, nicht gemessen): Die Datei muss gültiges UTF-8 sein; eine Byte Order Mark am Anfang liest
+ * die Bibliothek selbst (gemessen). Ein Dokument; Schlüssel sind Skalare. Anker an Abbildung oder Liste, Aliase und
+ * Tags sind ein Ladefehler. Ein Anker an einem Skalar zeigt die Strom-API nicht: verweist ein Alias auf ihn, ist der
+ * Alias der Ladefehler, sonst bleibt er ohne Wirkung (gemessen mit Jackson 2.21.7). Ein Skalar ohne Anführungszeichen,
+ * den Jackson als Wahrheitswert, Zahl oder NULL liest, ist „schlicht“ ([SimScalar.plain]), ein Skalar mit
+ * Anführungszeichen und ein Text nicht; die Schreibweise ist die der Datei, nicht die Deutung der Bibliothek. Die
+ * Meldung eines Fehlers nennt Pfad, Zeile und Spalte und einen festen Grund, nie den Inhalt und nie den Text der
+ * Bibliothek.
  */
 internal object YamlTreeReader {
-    private const val BOM = '\uFEFF'
     private val START = SimPosition(1, 1)
 
     /** Der Baum der Datei oder eine [SimLoadException]. */
@@ -58,7 +57,6 @@ internal object YamlTreeReader {
             .onUnmappableCharacter(CodingErrorAction.REPORT)
             .decode(ByteBuffer.wrap(bytes))
             .toString()
-            .removePrefix(BOM.toString())
     } catch (ignored: CharacterCodingException) {
         throw SimLoadException(SimTreeAccess.ROOT, START, "Datei ist kein gültiges UTF-8")
     }

@@ -507,8 +507,8 @@ fun interface RowSource {
 }
 ```
 Die Skizze zeigt die Form der Typen, wie sie im Package `simulation` implementiert und durch Tests
-festgelegt sind; die Überführung der Werte und das Lesen der Zeilenquelle sind für die Auswahl gebaut,
-Einfügen, Ändern und Löschen noch nicht (sie enden mit `TDS_UNSUPPORTED_SQL`). Festgelegt ist die Bedeutung:
+festgelegt sind; die Überführung der Werte, das Lesen der Zeilenquelle und die Weitergabe von Einfügen,
+Ändern und Löschen an die Callbacks sind gebaut. Festgelegt ist die Bedeutung:
 
 - `next()` liefert die Werte einer Zeile in der Reihenfolge von `SimQuery.columns`, `null` am Ende.
   Jeder Aufruf darf suspendieren; die Zeilenquelle liest nie mehr voraus, als der Aufrufer abnimmt.
@@ -523,6 +523,14 @@ Einfügen, Ändern und Löschen noch nicht (sie enden mit `TDS_UNSUPPORTED_SQL`)
   (Version 0.5.0, `TDS-FA-11`) gedeckt.
 - `onUpdate` und `onDelete` bekommen `where = null` für eine Anweisung ohne `WHERE`, also für alle
   Zeilen. Die Zahl, die ein Callback liefert, ist die Zahl der betroffenen Zeilen.
+- **Weitergabe von Einfügen, Ändern und Löschen** (`TDS-FA-11.a` Schritt 6; Setzung, nicht am Server gemessen):
+  Der Callback bekommt die Werte der Anweisung, nach Schritt 4 in den Spaltentyp überführt, unter den Namen der
+  Beschreibung und in der Reihenfolge des Textes; eine Spalte, die der Text nicht nennt, fehlt in der Abbildung
+  (kein Standardwert). Zuerst werden die Werte geprüft, dann der Callback gewählt: ein ungültiger Wert endet mit
+  `TDS_SIM_INVALID_VALUE` auch an einer Tabelle ohne den Callback, und dann wird kein Callback gerufen. Jede Anweisung
+  ruft ihren Callback genau einmal, beim Sammeln der Ausführung; schließt oder bricht jemand die Ausführung vorher ab,
+  bleibt er ungerufen. Ein Fehler des Callbacks und eine negative Zahl sind `TDS_BACKEND_ERROR` mit fester Meldung, die
+  den Text der Ausnahme nie nennt. Das Backend wiederholt einen Callback nicht.
 - `SimQuery.filter` ist ein Hinweis zum Vorfiltern (Schritt 5 in `TDS-FA-11.a`), kein Ersatz für die
   Prüfung durch das Backend. Das Backend übergibt alle Spalten der Tabelle in der Reihenfolge der Beschreibung
   als `SimQuery.columns` und nennt im Filter die Spaltennamen der Beschreibung mit den in den Spaltentyp
@@ -619,10 +627,19 @@ fest, was der Leser daraus liest. Ändert sich das Format dort, ist der Belegsta
   64 Codepunkte lang, Steuer-, Format-, Zeilen- und Absatztrennzeichen (Unicode-Kategorien Cc, Cf, Zl, Zp)
   und einzelne Ersatzzeichen als `?`; der Typname steht in der Meldung nur, wenn er einer der 21 Typen des
   Schemas ist.
-- **Verdrahtung:** Die Kotlin-Schnittstelle und eine Umgebungsvariable mit dem Dateipfad (Name nicht
-  festgelegt). Die Datei liest `runtime`; das Package `simulation` bekommt einen Baum aus Abbildungen,
-  Listen und Skalaren mit Zeile und Spalte und kennt weder die Datei noch die YAML-Bibliothek (Setzung,
-  nicht am Server gemessen).
+- **Verdrahtung:** Die Kotlin-Schnittstelle übernimmt die Tabellen des Integrators mit Zeilenquellen und Callbacks;
+  die Umgebungsvariable `SIMULATION_DESCRIPTION_FILE` nennt den Pfad der Datei (Name gesetzt, nicht gemessen). Beides
+  bildet einen Katalog; ein Name, der zweimal vorkommt (ohne Beachtung der Schreibweise), bricht den Start ab. Der
+  Katalog hält eigene Kopien der Listen `columns` und `primaryKey` der Tabellen des Integrators: ändert er seine Listen
+  nach der Übergabe, bleibt der Katalog unverändert. Ohne Datei und ohne Tabellen läuft der Server ohne
+  Simulations-Backend, beantwortet den Login und lässt eine Anfrage unbeantwortet. Der Wert der Variable ist nicht
+  leer, die Datei lesbar und höchstens 1 MiB groß (gelesen wird höchstens ein Byte mehr, ein Byte mehr als 1 MiB ist
+  ein Startfehler); sonst bricht der Start ab, bevor ein Port gebunden wird, und die Diagnose nennt Schlüssel und Art,
+  nie den Pfad. Die Datei liest `runtime`; das Package `simulation` bekommt einen Baum aus Abbildungen, Listen und
+  Skalaren mit Zeile und Spalte und kennt weder die Datei noch die YAML-Bibliothek (Setzung, nicht am Server
+  gemessen). Gemessen am Adapter mit Jackson 2.21.7: ein Anker an einem Skalar, auf den kein Alias verweist, bleibt
+  für die Strom-API unsichtbar und ohne Wirkung; ein Anker an einer Abbildung oder Liste, ein Alias und ein Tag sind
+  ein Ladefehler; ein leerer Wert ohne Anführungszeichen ist ein leerer Text.
 
 ### SPEC-036 — Erkannte Anweisungsformen des Simulations-Backends (vorläufig)
 
@@ -1135,7 +1152,7 @@ Gemessen sind: LOGIN7-Felder, Entschleierung, Ablehnungsbytes, erkennbare Modi. 
 | `SPEC-025` | Integrationstest-Gate | Containerisierter Server + echter .NET-Referenzclient (`Microsoft.Data.SqlClient` 7.1.1, .NET 10) prüfen Login, SQL_BATCH, RPC, Typen, Fehler, Cancel; ohne lokale .NET-Installation und ohne Mount, Basis-Images per Digest, Pakete per Lock und Hash; Gate noch einzurichten |
 | `SPEC-026` | `make gates` | Aggregator: führt alle eingerichteten Gates aus; neue Gates für Formatierung, statische Prüfung und Tests werden in ihn aufgenommen |
 | `SPEC-027` | Fuzz-/Property-Tests | Defekte Paketlängen, Offsets, Fragmentierung und Typwerte dürfen keinen ungefangenen Prozessabsturz verursachen |
-| `SPEC-040` | Simulations-Test-Gate | Unit-Tests der Anweisungserkennung (jede Form aus `SPEC-036` positiv und negativ, Grenzen bei Literalen, Bezeichnern und Kommentaren), Unit-Tests des Lesers der Tabellenbeschreibung (jedes gelesene Feld, jeder Ladefehler mit Pfad, Zeile und Spalte, ohne Inhalt in der Meldung) und Integrationstest mit dem .NET-Referenzclient: Auswahl, leeres Ergebnis, Zeilenquelle über der Speichergrenze, Fehler der Zeilenquelle, Cancel; Gate noch einzurichten |
+| `SPEC-040` | Simulations-Test-Gate (`make simulations-integration`) | Unit-Tests der Anweisungserkennung (jede Form aus `SPEC-036` positiv und negativ, Grenzen bei Literalen, Bezeichnern und Kommentaren), Unit-Tests des Lesers der Tabellenbeschreibung (jedes gelesene Feld, jeder Ladefehler mit Pfad, Zeile und Spalte, ohne Inhalt in der Meldung) und Integrationstest mit dem .NET-Referenzclient (`make simulations-integration`, Teil von `make gates`): Auswahl mit Bedingung, leeres Ergebnis, Zeilenquelle über der Speichergrenze (Serverprozess mit 48 MiB Heap, Text von 64 000 000 Zeichen), Fehler der Zeilenquelle mit Folgeabfrage; der Lauf belegt das Verhalten des Referenzclients gegen den Server dieses Repos in TDS 7.4 ohne Verschlüsselung und ohne Pool, nicht gegen einen echten SQL Server. Cancel mit Folgeabfrage gehört nicht zum Lauf: der Server beantwortet ein ATTENTION-Paket während einer Anfrage nicht |
 | `SPEC-041` | Static-Analysis-Gate (`make detekt`, `make detekt-selbsttest`) | detekt in Docker, Konfiguration auf Standardbasis mit dem ktlint-Regelsatz (prüft, schreibt nichts um), `warningsAsErrors` und den Importregeln der Schichten, im Kern als Erlaubnisliste ohne Fremdbibliothek; dazu Technik-Regeln für Kern und Port, die Prozess, Dateisystem und Ähnliches über `ForbiddenMethodCall` sperren und deshalb nur über `detektMain` und `detektTest` wirken (Typauflösung); keine Baseline; jeder Befund bricht den Lauf. Tests des Kerns bleiben frei von Fremdbibliotheken (`kotlin.test` statt JUnit), weil die Kernregeln auch für Test-Quellen gelten. Die Importregeln lesen nur `import`-Zeilen: ein voll qualifizierter Name im Code und ein `typealias` darauf umgehen sie; das Gate belegt die Einhaltung der Importgrenze, nicht des Classpaths. `@Suppress` und `@SuppressWarnings` im Quelltext brechen den Lauf vor detekt (Textprüfung des Suppression-Gates). Ein Selbsttest belegt, dass jede Importregel ihre verbotenen Importe meldet, die erlaubten Testdaten nicht und das Suppression-Verbot jede Form meldet; er läuft nur bei geänderten Eingängen |
 | `SPEC-042` | Build-Gate (`make build`) | Compile und Jar in Docker, ohne Tests; Basis-Images per Digest gepinnt, Abhängigkeitsversionen per Lock und Prüfsummen fixiert |
 | `SPEC-050` | Referenzabgleich-Gate (vorläufig) | Live-Lauf und Mitschnitt-Lauf nach `SPEC-045` gegen eine SQL-Server-Referenzinstanz in Docker (eigener Container im eigenen Netzwerk, ohne Mount); Abweichungen nur über die Ausnahmeliste; ergänzt die Läufe von `SPEC-025` und `SPEC-032`, ersetzt sie nicht; Gate noch einzurichten |
@@ -1172,4 +1189,5 @@ Gemessen sind: LOGIN7-Felder, Entschleierung, Ablehnungsbytes, erkennbare Modi. 
 | 2026-10-31 | RPC im Backend-Vertrag: `sp_executesql` und RPC per Prozedurname als Text mit Parameterliste (Nutzerentscheidung), Ablehnungsgründe unter `SPEC-013`; kein Wert im Aufruftext (`TDS-FA-04.a`, `SPEC-013`, `SPEC-030`) |
 | 2026-10-31 | Simulations-Backend, Fix-Runde der Prüfung: Wörter je Codepunkt, Namensvergleich und Pfadbereinigung als Festlegung, Grenzen des Modells (`SPEC-035`, `SPEC-036`) |
 | 2026-10-31 | Simulations-Backend, Auswahl gebaut: Überführung von Literal und Parameter mit ihren Einzelfestlegungen, Vorfilter und Spalten der Zeilenquelle, Fehler der Zeilenquelle, Lesen auf Abnahme (`SPEC-035`, `TDS-FA-11.a`); Einfügen, Ändern, Löschen noch `TDS_UNSUPPORTED_SQL` |
+| 2026-10-31 | Simulations-Backend, Änderungen und Verdrahtung gebaut: Weitergabe von Einfügen, Ändern und Löschen an die Callbacks mit Reihenfolge der Prüfung und Fehlerabbildung, Katalog aus Datei und Tabellen des Integrators, Umgebungsvariable `SIMULATION_DESCRIPTION_FILE`, Größengrenze und Startabbruch (`SPEC-035`, `TDS-FA-11.a`) |
 

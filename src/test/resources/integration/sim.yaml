@@ -1,0 +1,11 @@
+schema_format: "1.0"
+name: integration
+version: "1"
+tables:
+  leer:
+    columns:
+      Id:
+        type: identifier
+      Name:
+        type: text
+    primary_key: [Id]

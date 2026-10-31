@@ -146,3 +146,12 @@ tasks.register<JavaExec>("laufzeitClient") {
     classpath = sourceSets.test.get().runtimeClasspath
     mainClass.set("io.github.pt9912.tdswire.runtime.LaufzeitClientKt")
 }
+
+// Der Serverprozess des Integrationslaufs (Stage `integrationsserver`, `make simulations-integration`): Klasse im
+// Test-Source-Set, Heap auf 48 MiB begrenzt, damit der Text der Tabelle `gross` den Heap uebersteigt.
+tasks.register<JavaExec>("integrationsServer") {
+    classpath = sourceSets.test.get().runtimeClasspath
+    mainClass.set("io.github.pt9912.tdswire.runtime.IntegrationServerKt")
+    maxHeapSize = "48m"
+    jvmArgs("-Djdk.tls.server.newSessionTicketCount=0")
+}

@@ -195,6 +195,20 @@ COPY --chown=gradle:gradle src src
 RUN gradle --no-daemon --offline testClasses
 CMD ["gradle", "--no-daemon", "--offline", "-q", "laufzeitClient"]
 
+# --- Integrationsserver: der Serverprozess des Integrationslaufs (`make simulations-integration`) als Container
+# neben dem .NET-Referenzclient (referenztest-dotnet, Stage `integration`). Die Tabellen kommen aus
+# src/test/kotlin/io/github/pt9912/tdswire/runtime/IntegrationServer.kt, die Beschreibung der Tabelle `leer` aus
+# src/test/resources/integration/sim.yaml; den Heap begrenzt die Task `integrationsServer` in build.gradle.kts.
+# Die Anmeldung alice/secret ist ein Testwert im Testmodus ohne Verschluesselung; der Container erreicht nur sein
+# internes Netzwerk. ----
+FROM deps AS integrationsserver
+COPY --chown=gradle:gradle src src
+RUN gradle --no-daemon --offline testClasses \
+ && printf 'alice\t{plain}secret\n' > /home/gradle/users.txt
+ENV LISTEN_HOST=0.0.0.0 LISTEN_PORT=1433 ENCRYPTION_POLICY=TEST_UNENCRYPTED AUTH_PLAIN_TESTMODE=true \
+    AUTH_USERS_FILE=/home/gradle/users.txt SIMULATION_DESCRIPTION_FILE=/src/src/test/resources/integration/sim.yaml
+CMD ["gradle", "--no-daemon", "--offline", "-q", "integrationsServer"]
+
 # --- Build: `docker build .` (letzte Stage = Vorgabe) - minimales Artefakt-Image (Distroless
 # static, Variante nonroot) mit nur dem fertigen Jar zum Herausholen (z. B. per `docker cp`);
 # nichts darin wird ausgefuehrt. --------------------------------------------------
