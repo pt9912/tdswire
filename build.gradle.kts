@@ -23,6 +23,10 @@ dependencies {
     // Laufzeit des Transports (ADR-0003); die Version steht nur im Katalog.
     implementation(libs.kotlinx.coroutines.core)
 
+    // Datei der Tabellenbeschreibung des Simulations-Backends (ADR-0012): der Adapter in runtime liest sie mit
+    // der Strom-API; simulation kennt die Bibliothek nicht.
+    implementation(libs.jackson.dataformat.yaml)
+
     // Unit-Tests: kotlin.test; die BOM gilt für Compile- und Laufzeit-Classpath, damit der Lock eine Version je Artefakt führt.
     testImplementation(libs.kotlin.test)
     testImplementation(platform(libs.junit.bom))
@@ -141,4 +145,13 @@ tasks.assemble { dependsOn(laufzeitBibliotheken) }
 tasks.register<JavaExec>("laufzeitClient") {
     classpath = sourceSets.test.get().runtimeClasspath
     mainClass.set("io.github.pt9912.tdswire.runtime.LaufzeitClientKt")
+}
+
+// Der Serverprozess des Integrationslaufs (Stage `integrationsserver`, `make simulations-integration`): Klasse im
+// Test-Source-Set, Heap auf 48 MiB begrenzt, damit der Text der Tabelle `gross` den Heap uebersteigt.
+tasks.register<JavaExec>("integrationsServer") {
+    classpath = sourceSets.test.get().runtimeClasspath
+    mainClass.set("io.github.pt9912.tdswire.runtime.IntegrationServerKt")
+    maxHeapSize = "48m"
+    jvmArgs("-Djdk.tls.server.newSessionTicketCount=0")
 }

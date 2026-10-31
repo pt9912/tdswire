@@ -46,7 +46,7 @@ internal class RequestWiringTest : RuntimeTestBase() {
     @Test
     fun `Zwei Batches auf einer Verbindung werden beantwortet`() = blocking {
         val backend = ScriptedBackend.ofList(resultStart(), QueryEvent.Row(listOf(7)), QueryEvent.ResultEnd(1))
-        val server = running(environment(), Wiring(log = log, backend = backend))
+        val server = running(environment(), Wiring(log = log, requests = RequestSource(backend)))
         RawClient(server.port).use { client ->
             login(client)
             val expected = listOf(BatchVectors.COLMETADATA_N, BatchVectors.row(7), BatchVectors.DONE_COUNT_1)
@@ -73,7 +73,7 @@ internal class RequestWiringTest : RuntimeTestBase() {
     @Test
     fun `Ein schliessender Ausgang schliesst die Verbindung am Socket`() = blocking {
         val backend = ScriptedBackend.ofList(QueryEvent.OutputParameter("p", SqlType.Int32, 1))
-        val server = running(environment(), Wiring(log = log, backend = backend))
+        val server = running(environment(), Wiring(log = log, requests = RequestSource(backend)))
         RawClient(server.port).use { client ->
             login(client)
             client.send(batch("q"))

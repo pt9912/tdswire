@@ -2,7 +2,7 @@
 
 * Rolle und Stand: Architect, Stand `main` bei Commit e6bfd2d (Worktree). Es ist **keine Entscheidung gesetzt** und keine ADR geschrieben: dieser Bericht ist die Grundlage, aus der der Nutzer jede Option wählt. Eine ADR entsteht erst nach der Wahl (Status zuerst Proposed, `Accepted` nach Review und Verifikation).
 * Bezug: [TDS-FA-11](../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-FA-08](../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [ADR-0006](../plan/adr/0006-backend-vertrag-und-streaming.md), [ADR-0008](../plan/adr/0008-dotnet-kompatibilitaetstests.md), Spec-Stellen [SPEC-035](../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends), [SPEC-036](../../spec/spezifikation.md#spec-036--erkannte-anweisungsformen-des-simulations-backends-vorläufig), [TDS-FA-11.a](../../spec/spezifikation.md#tds-fa-11a--simulations-backend), [SPEC-037 bis SPEC-039](../../spec/spezifikation.md#4-fehler-codes-und-logging-felder).
-* Gelesen: Lastenheft [TDS-FA-11](../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) und „Offene Entscheidungen“, die drei Spec-Stellen, [ADR-0006](../plan/adr/0006-backend-vertrag-und-streaming.md) (Entscheidung, Offen-Liste), `contracts/query-backend.md`, `SqlType`, `QueryEvent`, `QueryRequest`, Importregeln in `config/detekt/detekt.yml`, [ADR-0011](../plan/adr/0011-pruefwertformat.md) (Vorbild für ein eigenes Dateiformat), der Slice (§2, §3, §6) und die Folge-Slices [slice-sim-erkennung](../plan/planning/done/slice-sim-erkennung.md), [slice-sim-auswahl-streaming](../plan/planning/done/slice-sim-auswahl-streaming.md), [slice-sim-aenderung-integration](../plan/planning/open/slice-sim-aenderung-integration.md) sowie [slice-referenzabgleich-live](../plan/planning/open/slice-referenzabgleich-live.md).
+* Gelesen: Lastenheft [TDS-FA-11](../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) und „Offene Entscheidungen“, die drei Spec-Stellen, [ADR-0006](../plan/adr/0006-backend-vertrag-und-streaming.md) (Entscheidung, Offen-Liste), `contracts/query-backend.md`, `SqlType`, `QueryEvent`, `QueryRequest`, Importregeln in `config/detekt/detekt.yml`, [ADR-0011](../plan/adr/0011-pruefwertformat.md) (Vorbild für ein eigenes Dateiformat), der Slice (§2, §3, §6) und die Folge-Slices [slice-sim-erkennung](../plan/planning/done/slice-sim-erkennung.md), [slice-sim-auswahl-streaming](../plan/planning/done/slice-sim-auswahl-streaming.md), [slice-sim-aenderung-integration](../plan/planning/in-progress/slice-sim-aenderung-integration.md) sowie [slice-referenzabgleich-live](../plan/planning/open/slice-referenzabgleich-live.md).
 
 ## 1. Messobjekt und Grenzen (vorweg)
 
@@ -138,12 +138,12 @@ SPEC-036 legt nur Bezeichner fest (ohne Beachtung der Schreibweise, „wie die �
 
 * **A — keine:** die ADR und die fortgeschriebene SPEC-035 tragen die Beschreibung (Beschreibungsform, Zeilenquelle, Callbacks).
 * **B — jetzt als Entwurf** analog `contracts/query-backend.md` (Integrator-Vertrag).
-* **C — mit dem Code** in [slice-sim-aenderung-integration](../plan/planning/open/slice-sim-aenderung-integration.md), wenn die Typen existieren.
+* **C — mit dem Code** in [slice-sim-aenderung-integration](../plan/planning/in-progress/slice-sim-aenderung-integration.md), wenn die Typen existieren.
 * **Empfehlung: A.** B und C schreiben dieselbe Aussage ein zweites Mal neben SPEC-035 und ADR (Drift-Risiko); die Datei bleibt später möglich, wenn ein Integrator sie braucht.
 
 ### Frage 9 — Verdrahtung in `runtime`
 
-Der Weg steht laut [slice-sim-aenderung-integration](../plan/planning/open/slice-sim-aenderung-integration.md) in der ADR; `runtime` existiert noch nicht.
+Der Weg steht laut [slice-sim-aenderung-integration](../plan/planning/in-progress/slice-sim-aenderung-integration.md) in der ADR; `runtime` existiert noch nicht.
 
 * **A — nur Kotlin-API:** `runtime` bietet eine Funktion, der Integrator ruft sie aus eigenem Startcode mit seinen Tabellen auf. Das mitgelieferte Programm startet ohne Simulations-Backend.
 * **B — Konfigurationsschalter im mitgelieferten Serverprozess:** eine Umgebungsvariable mit dem Pfad der Beschreibungsdatei (wie `AUTH_USERS_FILE` in [ADR-0011](../plan/adr/0011-pruefwertformat.md)); `runtime` liest die Datei und gibt den Text an den Parser in `simulation` (die Importregel verbietet `simulation` den Zugriff auf `config`). Setzt Frage 1 = B voraus.

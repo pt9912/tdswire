@@ -311,6 +311,10 @@ style:
         reason: 'simulation darf nur domain und port importieren.'
       - value: 'io.github.pt9912.tdswire.runtime.*'
         reason: 'runtime ist der Composition Root - simulation darf ihn nicht kennen.'
+      - value: 'com.fasterxml.jackson.*'
+        reason: 'simulation kennt keine YAML-Bibliothek: die Datei liest der Adapter in runtime (ADR-0012).'
+      - value: 'org.yaml.*'
+        reason: 'simulation kennt keine YAML-Bibliothek: die Datei liest der Adapter in runtime (ADR-0012).'
   # Aufrufe im Kern, die keinen Import brauchen (java.lang) und die ForbiddenImport darum nicht
   # sieht. ForbiddenMethodCall wirkt nur mit Typaufloesung: im Gate laufen detektMain und
   # detektTest, das normale detekt meldet hier nichts. Die Liste ersetzt die Standardliste des

@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** SPEC-025 · SPEC-035 · SPEC-036 · SPEC-040 · ARC-008 · ARC-016 · [TDS-FA-11.a](../../../../spec/spezifikation.md#tds-fa-11a--simulations-backend)
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** pt9912.
 
 **Autor:** pt9912. **Datum:** 2026-10-30.
 
@@ -34,10 +34,10 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Vergleich mit einer SQL-Server-Referenzinstanz — [slice-referenzabgleich-live](slice-referenzabgleich-live.md); dieser Slice belegt das Verhalten gegen den Referenzclient, nicht gegen einen echten Server.
-- Die Kompatibilitäts-Szenarien S1 bis S18 — [slice-qa-kompatibilitaet](slice-qa-kompatibilitaet.md) schreibt sie; dieser Slice schreibt nur die fünf Szenarien von SPEC-040 und nutzt Gerüst und Make-Mechanik von [slice-qa-dotnet-referenztest-geruest](../done/slice-qa-dotnet-referenztest-geruest.md). Welches Backend die Szenarien von [slice-qa-kompatibilitaet](slice-qa-kompatibilitaet.md) bedient, ist offen (Frage 4 in §6).
+- Vergleich mit einer SQL-Server-Referenzinstanz — [slice-referenzabgleich-live](../open/slice-referenzabgleich-live.md); dieser Slice belegt das Verhalten gegen den Referenzclient, nicht gegen einen echten Server.
+- Die Kompatibilitäts-Szenarien S1 bis S18 — [slice-qa-kompatibilitaet](../open/slice-qa-kompatibilitaet.md) schreibt sie; dieser Slice schreibt nur die fünf Szenarien von SPEC-040 und nutzt Gerüst und Make-Mechanik von [slice-qa-dotnet-referenztest-geruest](../done/slice-qa-dotnet-referenztest-geruest.md). Welches Backend die Szenarien von [slice-qa-kompatibilitaet](../open/slice-qa-kompatibilitaet.md) bedient, ist offen (Frage 4 in §6).
 - Persistenz und Transaktionssemantik über die Weitergabe hinaus, Auswertung beliebigen SQLs — nach [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) ausgeschlossen.
-- Lastmessung gegen das Simulations-Backend — [slice-qa-performance](slice-qa-performance.md).
+- Lastmessung gegen das Simulations-Backend — [slice-qa-performance](../open/slice-qa-performance.md).
 
 ## 2. Definition of Done
 
@@ -81,7 +81,16 @@ Aussagen-Berührung steht hier gar nicht.
 | `tools/mk/` | update | Make-Fragment für das Gate nach SPEC-040; `GATE_CHECKS +=` nach Entscheidung |
 | `src/test/kotlin/io/github/pt9912/tdswire/simulation/` <!-- d-check:ignore (geplant: neue Datei) --> | update | Callback-Tests Happy/Boundary/Negative; `@spec`-Tag SPEC-035 |
 
-Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
+Erweiterung im ersten Lauf des Implementers (gebauter Stand):
+
+| Datei / Komponente | Änderungs-Art | Begründung |
+|---|---|---|
+| `src/main/kotlin/io/github/pt9912/tdswire/config/` | update | Schlüssel `SIMULATION_DESCRIPTION_FILE`, Grenze von 1 MiB vor dem Parsen |
+| `Dockerfile`, `build.gradle.kts`, `gradle/libs.versions.toml`, `gradle.lockfile`, `gradle/verification-metadata.xml` | update | Jackson 2.21.7 mit Lock und Prüfsummen; Stage `integrationsserver` und Task `integrationsServer`; die Stage `lock` kopiert `LICENSE` (sonst bricht `LizenzTest` die Lock-Stage) |
+| `config/detekt/detekt.yml`, `config/detekt/selbsttest/io/github/pt9912/tdswire/simulation/Fremd.kt`, `tools/detekt-selbsttest.sh` | update | Wächter für die YAML-Bibliothek in `simulation` samt Selbsttest-Fall |
+| `src/test/kotlin/io/github/pt9912/tdswire/runtime/`, `src/test/resources/integration/sim.yaml` | update | Tests von Adapter und Verdrahtung; Serverprozess des Integrationslaufs |
+| `tools/simulationstest.sh`, `tools/mk/simulationstest.mk`, `referenztest-dotnet/Integration/` | update | Integrationslauf mit dem Referenzclient und sein Make-Target |
+| `spec/spezifikation.md`, `harness/README.md` | update | Festlegungen der Weitergabe und der Verdrahtung nachgeführt; Sensor-Zeile |
 
 ## 4. Trigger
 
@@ -116,7 +125,7 @@ dasteht.
 - Callbacks schreiben beim Integrator; eine Wiederholung nach einem Teilerfolg würde sie doppelt rufen ([ADR-0007](../../adr/0007-fehler-und-attention.md), Option C ist nicht gewählt). Der Test belegt genau einen Aufruf je Anweisung; die Aussage gilt nur, solange der Server nicht wiederholt. — **Ausgang:** offen bis zur Closure.
 - Die Aussage „Zeilenquelle oberhalb der Speichergrenze“ gilt für den Heap des Serverprozesses im Test, nicht für den Speicher des Clients und nicht für das Produkt unter Last (`BEO-TDS/rueckstau-im-produktivbetrieb-nicht-gemessen`); die Closure nennt den gesetzten Heap und die Zeilenzahl. — **Ausgang:** offen bis zur Closure.
 - Laufzeit des Integrationstests im Gate: ungemessen; ein langsames Gate verleitet zum Herausnehmen — die Messung steht in der Closure, die Aufnahme in `make gates` folgt ihr. — **Ausgang:** offen bis zur Closure.
-- Doppelung mit [slice-qa-kompatibilitaet](slice-qa-kompatibilitaet.md) (Frage 4): Laufen deren Szenarien S3 bis S10 gegen das Simulations-Backend, ist der Start-Trigger jenes Slice zu ergänzen; die Szenarien dürfen nicht zweimal geschrieben werden. — **Ausgang:** offen bis zur Closure.
+- Doppelung mit [slice-qa-kompatibilitaet](../open/slice-qa-kompatibilitaet.md) (Frage 4): Laufen deren Szenarien S3 bis S10 gegen das Simulations-Backend, ist der Start-Trigger jenes Slice zu ergänzen; die Szenarien dürfen nicht zweimal geschrieben werden. — **Ausgang:** offen bis zur Closure.
 - Der Integrationslauf belegt das Verhalten des Referenzclients gegen den Server dieses Repos, nicht gegen einen echten SQL Server (`BEO-TDS/messung-am-echten-sql-server-fehlt`). — **Ausgang:** offen bis zur Closure.
 - Die Tabellenbeschreibung `SimTable` behält die übergebenen Listen `columns` und `primaryKey` unkopiert (acht Konstruktorparameter, `LongParameterList` des Gates erlaubt sechs); Index und Validierung gelten nur zum Zeitpunkt der Übergabe, ändert der Integrator die Liste danach, stehen sie auseinander (`BEO-TDS/listen-ohne-kopie-wegen-parameterzahl-gate`, aus [slice-sim-erkennung](../done/slice-sim-erkennung.md)). Wo dieser Slice `SimTable` aus Listen des Integrators erzeugt (Schnittstelle und Adapter), kopiert er sie dort (Fabrikaufruf oder sekundärer Konstruktor, ohne die Schwelle zu lockern) oder weist den Weg ab; ein Zuschnitt von `SimTable` auf weniger Parameter oder das Lockern von `LongParameterList` (ADR, `AGENTS.md` §3.6) ist Entscheidung des Nutzers. — **Ausgang:** offen bis zur Closure.
 
@@ -155,8 +164,8 @@ Hälften.
 **Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen (`../observations/BEO-TDS/`, 19 Beobachtungen, Stand des Worktrees auf `main`); alle tragen die Sub-Area `*`. Treffer mit Zähler-Stand (Zahl der Dateien unter `evidence/`):
 
 - `BEO-TDS/aussagen-ueber-messung-hinaus` — 16×, Stand *verkörpert* (`AGENTS.md` §3.8, Reviewer-Skill). Betrifft diesen Slice: Jede Aussage über den Integrationslauf nennt Heap, Zeilenzahl und Client-Version.
-- `BEO-TDS/messung-am-echten-sql-server-fehlt` — 9×, Stand *geplant* (Träger [slice-qa-reproduzierbarkeit](../done/slice-qa-reproduzierbarkeit.md)). Der Lauf ist gegen den Referenzclient, nicht gegen einen echten SQL Server; Vergleich: [slice-referenzabgleich-live](slice-referenzabgleich-live.md).
-- `BEO-TDS/tds-8-0-und-pooling-nicht-gemessen` — 7×, Stand *geplant* (Träger [slice-qa-kompatibilitaet](slice-qa-kompatibilitaet.md)). Der Integrationslauf läuft in TDS 7.4 ohne Pool; TDS 8.0 und Pooling sind hier nicht gemessen.
+- `BEO-TDS/messung-am-echten-sql-server-fehlt` — 9×, Stand *geplant* (Träger [slice-qa-reproduzierbarkeit](../done/slice-qa-reproduzierbarkeit.md)). Der Lauf ist gegen den Referenzclient, nicht gegen einen echten SQL Server; Vergleich: [slice-referenzabgleich-live](../open/slice-referenzabgleich-live.md).
+- `BEO-TDS/tds-8-0-und-pooling-nicht-gemessen` — 7×, Stand *geplant* (Träger [slice-qa-kompatibilitaet](../open/slice-qa-kompatibilitaet.md)). Der Integrationslauf läuft in TDS 7.4 ohne Pool; TDS 8.0 und Pooling sind hier nicht gemessen.
 - `BEO-TDS/rueckstau-im-produktivbetrieb-nicht-gemessen` — 1×, offen. Betrifft die Aussage zur Speichergrenze (Testlauf, §6).
 - `BEO-TDS/schranken-test-mit-ungeprueftem-zaehler` — 1×, offen. Betrifft die zählende Attrappe der Callbacks (Untergrenze, §2).
 - `BEO-TDS/test-stage-cache-verdeckt-wiederholung` — 2×, offen. Betrifft das Test-Gate in einer Docker-Stage: gecachte grüne Läufe belegen Wiederholung nicht.

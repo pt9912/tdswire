@@ -221,9 +221,9 @@ class SimulationBackendSelectTest {
 
     /**
      * Negative und Boundary: eine nicht erkannte Anweisung, eine unbekannte Tabelle oder Spalte und die
-     * Änderungsformen enden als einziges `Failure` vor dem Öffnen der Zeilenquelle; `TDS_UNSUPPORTED_SQL`
-     * für Text außerhalb der Formen und für Einfügen, Ändern, Löschen (nicht gebaut), `TDS_SIM_UNKNOWN_OBJECT`
-     * für Unbekanntes.
+     * Änderungsformen einer Tabelle ohne Callback enden als einziges `Failure` vor dem Öffnen der Zeilenquelle;
+     * `TDS_UNSUPPORTED_SQL` für Text außerhalb der Formen und für Einfügen, Ändern, Löschen ohne Callback,
+     * `TDS_SIM_UNKNOWN_OBJECT` für Unbekanntes.
      * @spec SPEC-037
      * @spec SPEC-038
      */

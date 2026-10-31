@@ -7,6 +7,7 @@ kotlin = "2.4.10"
 detekt = "2.0.0-alpha.6"
 junit = "5.13.4"
 coroutines = "1.10.1"
+jackson = "2.21.7"
 
 [libraries]
 # Der ktlint-Regelsatz fuer detekt; seine Version ist die des Plugins.
@@ -14,6 +15,9 @@ detekt-ktlint = { module = "dev.detekt:detekt-rules-ktlint-wrapper", version.ref
 
 # Laufzeit des Transports (ADR-0003): suspendierendes Lesen und Schreiben ueber den Kanal.
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+
+# Lesen der Tabellenbeschreibung des Simulations-Backends (ADR-0012): nur die Strom-API, nur in runtime.
+jackson-dataformat-yaml = { module = "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml", version.ref = "jackson" }
 
 # Testlaufzeit: kotlin.test ueber die JUnit-Plattform; die Tests selbst importieren nur kotlin.test.
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }

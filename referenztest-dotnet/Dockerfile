@@ -26,6 +26,14 @@ FROM restore AS test
 COPY Smoke Smoke
 RUN --network=none dotnet test --no-restore --nologo
 
+# --- Integration: der Referenzclient gegen den Serverprozess mit Simulations-Backend (`make simulations-integration`,
+# SPEC-040). Gebaut wird ohne Netz; der Lauf des Containers braucht den Server im selben Netzwerk (TDSWIRE_ZIEL).
+# Die Stage `test` kopiert nur Smoke und laeuft ohne Server. ---
+FROM restore AS integration
+COPY Integration Integration
+RUN --network=none dotnet build --no-restore --nologo
+CMD ["dotnet", "test", "--no-build", "--nologo", "--logger", "console;verbosity=detailed"]
+
 # --- Audit: meldet bekannte Schwachstellen der Pakete aus der Datenbank der Quelle am Tag des Laufs.
 # Das Ergebnis haengt am Abfragetag und ist nicht reproduzierbar; die Stage ist kein Gate (CO-001). -
 FROM restore AS audit

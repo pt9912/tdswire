@@ -9,8 +9,10 @@
 #                (1) die Packages der Regeln die Verzeichnisse der Testdaten sind (ohne runtime), in beide
 #                    Richtungen, und jeder Package-Wert einer Regel dort vorkommt,
 #                (2) jede Regel genau so viele Funde hat, wie sie verbotene Imports hat: die erzeugten
-#                    (Forbidden_<regel>.kt) und bei einer Erlaubnisliste die handgeschriebenen
-#                    Fremdbibliotheken (Fremd.kt) - eine Regel ohne Fund meldet nichts,
+#                    (Forbidden_<regel>.kt) und die handgeschriebenen Fremdbibliotheken (Fremd.kt; bei
+#                    einer Erlaubnisliste Pflicht, bei einer Verbotsliste die Imports der Bibliotheken,
+#                    die die Liste nennt - fehlt ihre Zeile in detekt.yml, bleibt ein Import von
+#                    Fremd.kt ungemeldet und die Zahl stimmt nicht) - eine Regel ohne Fund meldet nichts,
 #                (3) die erlaubten Imports in Allowed.kt keinen Fund ausloesen,
 #                (4) bei einer Verbotsliste (Regel = Package) verbotene, erlaubte (Allowed.kt) und das
 #                    eigene Package zusammen alle Verzeichnisse der Testdaten ergeben,
@@ -148,6 +150,7 @@ check() {
       else
         vereinigung=$(printf '%s\n' $verboten $importiert "$pkg" | sort -u)
         [ "$vereinigung" = "$bekannt" ] || fail "Regel $name: verbotene ($(echo $verboten)), erlaubte ($(echo $importiert)) und das eigene Package ergeben ($(echo $vereinigung)), die Testdaten kennen ($(echo $bekannt)) - ein Wert fehlt in detekt.yml oder in Allowed.kt"
+        if [ -f "$td/$pkg/Fremd.kt" ]; then erwartet_fremd=$(grep -c '^import ' "$td/$pkg/Fremd.kt" || true); fi
       fi
     fi
     if [ "$technik" -eq 1 ]; then

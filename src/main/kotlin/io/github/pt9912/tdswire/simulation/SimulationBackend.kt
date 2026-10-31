@@ -16,8 +16,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Das Simulations-Backend hinter [QueryBackend] (`TDS-FA-11.a`): es beantwortet eine erkannte Auswahl (S1)
- * aus der Zeilenquelle der beschriebenen Tabelle und kennt weder Pakete noch Tokens. Einfügen, Ändern und
- * Löschen (W1 bis W3) sind noch nicht gebaut und enden mit `TDS_UNSUPPORTED_SQL`.
+ * aus der Zeilenquelle der beschriebenen Tabelle und gibt Einfügen, Ändern und Löschen (W1 bis W3) an die Callbacks
+ * der Tabelle weiter ([SimulationChanges]); es kennt weder Pakete noch Tokens. Eine Tabelle ohne Callback für die
+ * Anweisung antwortet mit `TDS_UNSUPPORTED_SQL`.
  *
  * Zusagen für die Auswahl (Festlegung, nicht am Server gemessen): `execute` wirft für keinen Fehler der
  * Anfrage, jeder erscheint als einziges [QueryEvent.Failure] im Strom, bevor eine Zeilenquelle gelesen wird.
@@ -38,7 +39,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 class SimulationBackend(catalog: SimCatalog) : QueryBackend {
     private val planner = StatementPlanner(catalog)
-    private val running = ConcurrentHashMap<Pair<String, String>, SelectExecution>()
+    private val running = ConcurrentHashMap<Pair<String, String>, Stoppable>()
 
     override suspend fun execute(request: QueryRequest): QueryExecution =
         when (val result = planner.plan(request.sql)) {
@@ -51,18 +52,24 @@ class SimulationBackend(catalog: SimCatalog) : QueryBackend {
     }
 
     private fun start(plan: Plan, request: QueryRequest): QueryExecution {
+        val key = request.sessionId to request.requestId
         val select = plan.statement as? Statement.Select
-            ?: return failed(SimCodes.UNSUPPORTED_SQL, "Änderung durch das Simulations-Backend nicht gebaut")
-        return when (val prepared = RowConditions.prepare(select.where, plan.table, request.parameters)) {
-            is PreparedCondition.Invalid -> failed(SimCodes.INVALID_VALUE, prepared.reason)
-
-            is PreparedCondition.Ready -> {
-                val key = request.sessionId to request.requestId
-                val execution = SelectExecution(plan, prepared) { running.remove(key, it) }
-                running[key] = execution
-                execution
+        return if (select == null) {
+            when (val change = SimulationChanges.prepare(plan, request.parameters)) {
+                is PreparedChange.Rejected -> failed(change.code, change.message)
+                is PreparedChange.Ready -> register(key, ChangeExecution(change) { running.remove(key, it) })
+            }
+        } else {
+            when (val prepared = RowConditions.prepare(select.where, plan.table, request.parameters)) {
+                is PreparedCondition.Invalid -> failed(SimCodes.INVALID_VALUE, prepared.reason)
+                is PreparedCondition.Ready -> register(key, SelectExecution(plan, prepared) { running.remove(key, it) })
             }
         }
+    }
+
+    private fun <E> register(key: Pair<String, String>, execution: E): E where E : QueryExecution, E : Stoppable {
+        running[key] = execution
+        return execution
     }
 
     private fun failed(code: String, message: String): QueryExecution = object : QueryExecution {
@@ -77,7 +84,8 @@ private class SelectExecution(
     private val plan: Plan,
     private val prepared: PreparedCondition.Ready,
     private val onEnd: (SelectExecution) -> Unit,
-) : QueryExecution {
+) : QueryExecution,
+    Stoppable {
     private val stopped = AtomicBoolean(false)
     private val table = plan.table
     private val projection = plan.resultColumns.map { table.columns.indexOf(it) }
@@ -90,7 +98,7 @@ private class SelectExecution(
     }
 
     /** Beendet das Lesen vor der nächsten Zeile; geschlossen wird die Quelle vom Strom. */
-    fun stop() {
+    override fun stop() {
         stopped.set(true)
     }
 
@@ -170,5 +178,5 @@ private class SelectExecution(
  * Ruft [block] und liefert sein Ergebnis oder die Ausnahme. Die Abbruchausnahme der Coroutine und jeder
  * [Error] (etwa `OutOfMemoryError`) werden weitergeworfen: sie gehören nicht zu den Fehlern der Zeilenquelle.
  */
-private inline fun <T> guarded(block: () -> T): Result<T> =
+internal inline fun <T> guarded(block: () -> T): Result<T> =
     runCatching(block).onFailure { if (it is CancellationException || it is Error) throw it }

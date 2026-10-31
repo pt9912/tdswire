@@ -12,6 +12,7 @@ import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.protocol.session.AuthPool
 import io.github.pt9912.tdswire.protocol.session.EncryptionPolicy
 import io.github.pt9912.tdswire.protocol.session.HandshakeConfig
+import io.github.pt9912.tdswire.simulation.SimTable
 import io.github.pt9912.tdswire.transport.listener.Delayer
 import io.github.pt9912.tdswire.transport.listener.ListenerConfig
 import io.github.pt9912.tdswire.transport.listener.ListenerEvent
@@ -27,10 +28,19 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 /**
+ * Woher die Anfragen ihre Antworten bekommen (`TDS-FA-11.a`): ein fertiges [backend] oder die [simulationTables] des
+ * Integrators mit Zeilenquellen und Callbacks, die Kotlin-Schnittstelle der Verdrahtung des Simulations-Backends
+ * (`ADR-0012`). Dazu kommen die Tabellen aus der Datei der Konfiguration (`SIMULATION_DESCRIPTION_FILE`); Datei und
+ * [simulationTables] bilden einen Katalog. Ein [backend] zugleich mit einer von beiden bricht den Start ab. Ohne
+ * Datei, Tabellen und Backend läuft der Prozess ohne Anfragepfad.
+ */
+internal class RequestSource(val backend: QueryBackend? = null, val simulationTables: List<SimTable> = emptyList())
+
+/**
  * Alles, was der Prozess außer der Konfiguration festlegt und ein Test ersetzt: Log, Ereignisempfänger,
- * Zeitgeber der Fristen, der [authPool] (einer je Prozess), die Wahl des Adapters und das [backend] der
- * Anfragen. Die Voreinstellung ist der Betrieb: Log auf der Standardausgabe nur über [ServerLog.STDOUT], die
- * Benutzerliste als [UserListAuthAdapter], kein Backend.
+ * Zeitgeber der Fristen, der [authPool] (einer je Prozess), die Wahl des Adapters und die [requests]-Quelle des
+ * Backends. Die Voreinstellung ist der Betrieb: Log auf der Standardausgabe nur über [ServerLog.STDOUT], die
+ * Benutzerliste als [UserListAuthAdapter], Backend nur aus der Datei der Konfiguration.
  */
 internal class Wiring(
     val log: ServerLog = ServerLog.NONE,
@@ -38,7 +48,7 @@ internal class Wiring(
     val delayer: Delayer = Delayer.SYSTEM,
     val authPool: AuthPool = AuthPool(),
     val adapter: (UserList) -> AuthAdapter = { UserListAuthAdapter(it) },
-    val backend: QueryBackend? = null,
+    val requests: RequestSource = RequestSource(),
 )
 
 /** Ausgang des Starts: ein laufender [Server] oder der Abbruch; ein Abbruch hat Log-Zeilen geschrieben. */
@@ -50,7 +60,8 @@ internal sealed interface BootResult {
 
 /**
  * Start-Reihenfolge des Prozesses (`ARC-008`, `TDS-FA-09.a`): JVM-Flag prüfen, Konfiguration laden und
- * validieren, TLS-Material laden, Startprobe und Binden im Listener (`SPEC-043`). Bis zum Binden läuft kein
+ * validieren, das Simulations-Backend verdrahten (ein Ladefehler der Beschreibung bricht den Start ab, bevor ein Port
+ * gebunden wird), TLS-Material laden, Startprobe und Binden im Listener (`SPEC-043`). Bis zum Binden läuft kein
  * Thread des Servers; scheitert ein Schritt, läuft danach keiner weiter und kein Port ist gebunden.
  *
  * `shutdownGrace` ist 0: Festlegung, nicht gemessen und nicht die Voreinstellung `SHUTDOWN_GRACE` von 10 s
@@ -77,7 +88,19 @@ internal object Bootstrap {
         }
     }
 
-    private suspend fun launch(config: ServerConfig, wiring: Wiring): BootResult {
+    private suspend fun launch(config: ServerConfig, wiring: Wiring): BootResult =
+        when (val simulation = backendOf(config, wiring)) {
+            is SimulationResult.Failed -> abort(wiring, simulation.reason)
+
+            is SimulationResult.Ready -> {
+                wiring.log.line("Simulations-Backend: ${simulation.tables} Tabellen")
+                bind(config, simulation.backend, wiring)
+            }
+
+            SimulationResult.Absent -> bind(config, wiring.requests.backend, wiring)
+        }
+
+    private suspend fun bind(config: ServerConfig, backend: QueryBackend?, wiring: Wiring): BootResult {
         val material = when (val loaded = config.tls?.let { loadMaterial(it) }) {
             null -> null
 
@@ -92,10 +115,19 @@ internal object Bootstrap {
             times = ListenerTimes(config.login.timeoutSeconds.seconds, Duration.ZERO, wiring.delayer),
             tls = material?.let { TlsServerConfig(it, TlsParameters.SPEC_023) },
         )
-        val handler = HandshakeConnectionHandler(handlerSetup(config, material, wiring), wiring.backend)
+        val handler = HandshakeConnectionHandler(handlerSetup(config, material, wiring), backend)
         return when (val started = TdsListener.start(listener, handler, events(wiring))) {
             is StartResult.Failed -> abort(wiring, "Start gescheitert: ${started.failure.message}")
             is StartResult.Started -> running(config, started.listener, wiring)
+        }
+    }
+
+    private fun backendOf(config: ServerConfig, wiring: Wiring): SimulationResult {
+        val simulation = SimulationSetup.build(config.simulationFile, wiring.requests.simulationTables)
+        return if (wiring.requests.backend != null && simulation !is SimulationResult.Absent) {
+            SimulationResult.Failed("Backend und Simulations-Backend gleichzeitig konfiguriert")
+        } else {
+            simulation
         }
     }
 
