@@ -34,7 +34,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Die Startprobe der TLS-Konfiguration (SPEC-043) und die Diagnose für einen belegten Port als Code — [slice-transport-listener-lebenszyklus](../done/slice-transport-listener-lebenszyklus.md) (Welle [welle-transport-tls](../welle-transport-tls.md)); dieser Slice formuliert sie nicht neu, er belegt am Prozess, dass ihre Meldung über die Schnittstelle erscheint.
+- Die Startprobe der TLS-Konfiguration (SPEC-043) und die Diagnose für einen belegten Port als Code — [slice-transport-listener-lebenszyklus](../done/slice-transport-listener-lebenszyklus.md) (Welle [welle-transport-tls](../done/welle-transport-tls.md)); dieser Slice formuliert sie nicht neu, er belegt am Prozess, dass ihre Meldung über die Schnittstelle erscheint.
 - Laden und Validieren der Konfiguration, Exit-Code und Abbau nach fehlgeschlagenem Start als Mechanik — [slice-bootstrap-konfiguration](../done/slice-bootstrap-konfiguration.md).
 - Das Verhalten des geordneten Beendens (SPEC-044, Frist `SHUTDOWN_GRACE`, `TDS_SHUTDOWN`) — [slice-abbruch-ressourcen-shutdown](slice-abbruch-ressourcen-shutdown.md) (Welle [welle-fehler-abbruch](../welle-fehler-abbruch.md)); hier erscheinen nur Beginn und Ende des Beendens als Ereignis.
 - Semantik und Durchsetzung von `QUERY_TIMEOUT` und `CANCEL_TIMEOUT` — [slice-attention-cancel-timeout](slice-attention-cancel-timeout.md) und [slice-adr-backend-grenzen](../in-progress/slice-adr-backend-grenzen.md) (Frist); dieser Slice legt höchstens den Schlüssel samt Bereichsprüfung an und behauptet keine Wirkung.

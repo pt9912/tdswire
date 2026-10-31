@@ -1,7 +1,7 @@
 # Review slice-transport-coroutines-geruest (95c5c56)
 
 * Gegenstand: Diff `f6c668f..95c5c56` (Pin, Kanal, Nachrichtenleser und -schreiber, Tests)
-* Plan: [slice-transport-coroutines-geruest](../plan/planning/done/slice-transport-coroutines-geruest.md), Welle [welle-transport-tls](../plan/planning/welle-transport-tls.md)
+* Plan: [slice-transport-coroutines-geruest](../plan/planning/done/slice-transport-coroutines-geruest.md), Welle [welle-transport-tls](../plan/planning/done/welle-transport-tls.md)
 * Grundlage: [ADR-0003](../plan/adr/README.md), [ADR-0001](../plan/adr/README.md), [TDS-FA-01](../../spec/lastenheft.md), [TDS-QA-02](../../spec/lastenheft.md), [TDS-QA-06](../../spec/lastenheft.md), [SPEC-007](../../spec/spezifikation.md), [SPEC-024](../../spec/spezifikation.md), [SPEC-027](../../spec/spezifikation.md), [SPEC-028](../../spec/spezifikation.md), [SPEC-042](../../spec/spezifikation.md), [SPEC-046](../../spec/spezifikation.md), [SPEC-048](../../spec/spezifikation.md), `AGENTS.md` §3.1–3.8
 * Sensor: `make gates` lief grün (Exit 0; Teile aus dem Docker-Cache).
 
