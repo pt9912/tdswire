@@ -45,7 +45,7 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] Szenarien nach `SPEC-025`/`SPEC-032` (Liste in [slice-qa-dotnet-referenztest-geruest](../done/slice-qa-dotnet-referenztest-geruest.md) §3, Träger-Spalte) laufen im Testprojekt des Gerüsts grün gegen den Server; das Make-Target des Gerüsts bleibt in `make gates`.
-- [ ] Anmeldemessungen und RPC-Messungen aus dem Ziel (Windows-SSPI, TDS 8.0, mehrpaketiges LOGIN7, Pooling mit `ResetConnection` und `sp_unprepare`, `SET`-Text-Szenarien, Transaktionen) am Server dieses Repos gemessen und in den ADRs bzw. im Clientprofil nachgetragen, oder je Punkt mit Begründung als nicht lieferbar benannt; für TDS 8.0 und Pooling auch die Aussage des Codecs (KDoc und Closure-Notiz von `welle-protokollcodec`) von *Festlegung* auf *gemessen* gehoben oder eingeschränkt.
+- [ ] Anmeldemessungen und RPC-Messungen aus dem Ziel (Windows-SSPI, TDS 8.0, mehrpaketiges LOGIN7, Pooling mit `ResetConnection` und `sp_unprepare`, `SET`-Text-Szenarien, Transaktionen, Größen der RPC-Parametertypen `FLTN`, `MONEYN`, `DATETIMN`, `GUID` und der Zuschlag bei `DATETIMEOFFSETN` laut [Kompatibilitätsmatrix](../../kompatibilitaetsmatrix.md) Lücke 7) am Server dieses Repos gemessen und in den ADRs bzw. im Clientprofil nachgetragen, oder je Punkt mit Begründung als nicht lieferbar benannt; für TDS 8.0 und Pooling auch die Aussage des Codecs (KDoc und Closure-Notiz von `welle-protokollcodec`) von *Festlegung* auf *gemessen* gehoben oder eingeschränkt.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
