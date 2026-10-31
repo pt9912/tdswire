@@ -66,7 +66,7 @@ Diese Datei dupliziert sie nicht.
 | `make test` | Unit-Tests (`kotlin.test` auf der JUnit-Plattform) in Docker, Stage `test`; ein roter Test macht `make gates` rot; Lock und Prüfsummen der Testlaufzeit über `make deps-lock` | — |
 | `make build` | Compile und Jar in Docker, ohne Tests; Basis-Images per Digest gepinnt | — |
 | `make smoke` | Rohbytes-Smoke in Docker (Stage `smoke`): Kind-JVM startet `main`, Rohbytes-Client spricht PRELOGIN und LOGIN7; Start ohne Flag bricht ab; läuft auch in `make test`, kein Referenzclient | — |
-| `make laufzeittest` | Container-Artefakt: Image-Inhalt, Start, Rohbytes-Login aus zweitem Container, Stop; Warmlauf 31 s, Kaltlauf 88 bis 171 s (2026-10-31); Maßstab im Kopf von `tools/mk/laufzeittest.mk` | [TDS-RB-01](../spec/lastenheft.md#tds-rb-01--implementierungssprache) |
+| `make laufzeittest` | Container-Artefakt: Image-Inhalt, Start, Rohbytes-Login aus 2. Container, Stop; Warmlauf 24 bis 31 s, kalt 88 bis 171 s, CI rund 75 s mehr (2026-10-31); Maßstab im Kopf von `tools/mk/laufzeittest.mk` | [TDS-RB-01](../spec/lastenheft.md#tds-rb-01--implementierungssprache) |
 | `make referenztest-dotnet` | .NET-Referenztests in Docker ohne Mount, Stage `test`: gesperrter Restore, dann Build und Smoke-Test ohne Netz und ohne TDS-Server; ein roter Test macht `make gates` rot | [ADR-0008](../docs/plan/adr/0008-dotnet-kompatibilitaetstests.md), [CO-001](../docs/plan/carveouts/CO-001-nuget-audit-aus.md), [CO-002](../docs/plan/carveouts/CO-002-nuget-signaturpruefung-fehlt.md) |
 | `<make-target>` | <…> | ADR-<NNNN> |
 | `<make-target>` | <…>, bootstrap-aware | Schwelle X %, M<n> → Y % |
