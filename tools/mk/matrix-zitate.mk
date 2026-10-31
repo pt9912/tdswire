@@ -1,4 +1,4 @@
-# tools/mk/matrix-zitate.mk — Zitat-Pruefung der Kompatibilitaetsmatrix (TDS-QA-03). Repo-eigen, eingebunden von
+# tools/mk/matrix-zitate.mk — Zitat-Pruefung der Kompatibilitaetsmatrix (TDS-QA-05). Repo-eigen, eingebunden von
 # repo.mk; das Target hat seine Zeile in harness/README.md. KEIN GATE: nichts hieraus steht in GATE_CHECKS.
 # Der Lauf baut die Stage `test` ohne Cache-Treffer (--no-cache-filter test), haelt den Bericht in einer Datei
 # ausserhalb des Repos (mktemp, trap raeumt) und liest mit tools/matrix-zitate.sh jedes `Klasse > Testfall` der

@@ -1,5 +1,5 @@
 #!/bin/sh
-# matrix-zitate.sh — haelt die Zitate `Klasse > Testfall` einer Matrix-Datei gegen einen Gradle-Testbericht
+# matrix-zitate.sh (TDS-QA-05) — haelt die Zitate `Klasse > Testfall` einer Matrix-Datei gegen einen Gradle-Testbericht
 # (Zeilen `Klasse > Testfall() PASSED`, wie die Stage `test` sie mit --progress=plain schreibt).
 # Aufruf: matrix-zitate.sh <Matrix.md> <Testbericht>. Exit 0: jedes Zitat steht als PASSED im Bericht;
 # Exit 1: mindestens ein Zitat nicht (die Liste steht auf stdout); Exit 2: Aufruf oder Eingang unbrauchbar.
