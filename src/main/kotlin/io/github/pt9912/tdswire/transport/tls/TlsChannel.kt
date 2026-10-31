@@ -42,7 +42,8 @@ data class TlsOptions(
  * verschlüsselten Bytes angenommen hat. Höchstens ein Lese- und ein Schreibvorgang zugleich
  * (Vertrag von [SuspendingChannel]). Was die Engine in der Datenphase an Handshake-Daten zu senden hat,
  * schreibt die Schleife; geprüft sind `close_notify` und ein von einer JDK-Gegenstelle ausgelöstes
- * KeyUpdate in TLS 1.3. Neuverhandlung in TLS 1.2 ist nicht Gegenstand.
+ * KeyUpdate in TLS 1.3. Eine Neuverhandlung in TLS 1.2 durch die Gegenstelle beantwortet die Schleife
+ * (`TlsRenegotiationTest`, JDK-Gegenstelle, dreimal; keine Begrenzung).
  */
 class TlsChannel internal constructor(private val inner: SuspendingChannel, private val io: TlsRecordIo) :
     SuspendingChannel {

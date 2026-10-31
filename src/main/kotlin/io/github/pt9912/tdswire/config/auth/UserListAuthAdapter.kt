@@ -49,7 +49,7 @@ internal object JdkAuthPrimitives : AuthPrimitives {
 /**
  * Einstiegsimplementierung des Adapters: feste Benutzerliste (`SPEC-051`, `ADR-0011`).
  *
- * Bauart (Anforderung, strukturell belegt, nicht gemessen): Der Vergleich bricht nicht beim ersten
+ * Bauart (Anforderung, strukturell belegt, Zeit gemessen von `AuthTimingTest`): Der Vergleich bricht nicht beim ersten
  * Unterschied ab; bei unbekanntem Benutzernamen läuft derselbe Rechenschritt gegen den Prüfwert der
  * Attrappe der Liste (Scheinvergleich, Wahl siehe [UserList]: `pbkdf2`-Eintrag mit den meisten Iterationen),
  * das Ergebnis wird verworfen. Bei gemischten Listen bleibt eine Grenze (siehe [UserList]).

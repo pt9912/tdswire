@@ -78,10 +78,12 @@ class AuthPoolOccupationTest {
 
     /**
      * Orakel: Das Passwort eines wartenden Aufrufs, den der Aufrufer abbricht, bleibt im Speicher, solange die
-     * Plätze belegt sind, und ist überschrieben, sobald die Warteschlange ihn erreicht. Das Zeitfenster ist die
-     * Restdauer der vorausgehenden Aufrufe, nicht null und nicht von `LOGIN_TIMEOUT` begrenzt; hier
-     * [HOLD_MILLIS] bei einem Platz. Das Fenster gilt für die [PasswordChars] des Aufrufs; Kopien, die der Adapter
-     * oder die JVM anlegt, sind nicht gemessen (`BEO-TDS/geheimnis-kopien-im-speicher-nicht-gemessen`).
+     * Plätze belegt sind, und ist überschrieben, sobald die Warteschlange ihn erreicht. Belegt ist die Reihenfolge
+     * und ein Fenster von mindestens [HOLD_MILLIS] bei einem Platz, den der erste Aufruf bis zur Freigabe hält. Nicht
+     * belegt: die Dauer darüber hinaus und das Verhältnis zu `LOGIN_TIMEOUT` (der Test setzt keine Frist).
+     * Das Fenster gilt für die [PasswordChars] des Aufrufs; Kopien, die der Adapter oder die JVM anlegt, sind
+     * nicht gemessen
+     * (`BEO-TDS/geheimnis-kopien-im-speicher-nicht-gemessen`).
      *
      * @spec SPEC-008
      */
@@ -104,7 +106,7 @@ class AuthPoolOccupationTest {
         val waiting = request("wartend")
         val second = executor.start(blocker, waiting)
         second.cancel()
-        delay(SETTLE_MILLIS)
+        delay(HOLD_MILLIS)
         assertEquals("wartend", String(waiting.password.reveal()), "Passwort schon vor dem Platz ueberschrieben")
         val openSince = System.nanoTime()
         release.countDown()
