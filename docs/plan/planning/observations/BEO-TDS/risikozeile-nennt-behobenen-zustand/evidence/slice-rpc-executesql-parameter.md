@@ -1,0 +1,2 @@
+**Vorgang:** slice-rpc-executesql-parameter
+**Fund:** Verifikation V-4 ([Verifikation](../../../../../../reviews/2026-10-31-b339b77-verifikation-slice-rpc-executesql-parameter.md)): §6 des Slice führte als Ist-Zustand „`RequestLoop` lässt RPC unbeantwortet“ (aus der Closure von slice-fehler-zustandsuebergang übernommen) und für Typen außerhalb des Mindestkatalogs „nur ablehnen“; beide Zeilen beschrieben nach der Umsetzung einen Zustand, den es nicht mehr gab. In dieser Closure auf den neuen Zustand und den Ausgang gebracht.
