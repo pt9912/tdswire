@@ -291,6 +291,16 @@ class JdkTlsPeer(
         }
     }
 
+    /**
+     * Liest und beantwortet, bis die Engine keinen Handshake mehr verlangt (Ende einer Neuverhandlung). Der Server
+     * schreibt dabei keine Nutzdaten; kommt seine Antwort nicht, wartet der Aufruf auf den Draht.
+     */
+    suspend fun awaitHandshakeDone() {
+        while (engine.handshakeStatus != SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING) {
+            decryptMore()?.let { throw PeerWireException("Neuverhandlung: $it") }
+        }
+    }
+
     private fun takePlain(buffer: ByteBuffer): Int {
         val count = minOf(plain.remaining(), buffer.remaining())
         val limit = plain.limit()

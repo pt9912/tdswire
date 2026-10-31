@@ -36,7 +36,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 - Metriken und Spans — [slice-betrieb-metriken-tracing](slice-betrieb-metriken-tracing.md); dieser Slice trägt nur das Log.
 - Welche Zustandsereignisse der Server meldet (Start, Bindung, Beenden, Login) und die Startdiagnose als Prozesstest — [slice-betrieb-zustandsereignisse](slice-betrieb-zustandsereignisse.md); hier wird die Schnittstelle gebaut und werden die vorhandenen Aufrufstellen umgestellt, ohne neue Ereignisarten zu erfinden.
-- TLS-Modi und Konfigurationsnegativtests — [slice-qa-sicherheit](../in-progress/slice-qa-sicherheit.md) (geliefert); die Loginspektion über das Gesamtsystem als Gate-Test trägt dieser Slice (DoD „Ablösung und Redaktion“).
+- TLS-Modi und Konfigurationsnegativtests — [slice-qa-sicherheit](../in-progress/slice-qa-sicherheit.md) (Stand `in-progress/`, die Tests liegen dort).
 - Kopien des Passworts im Speicher von JVM und Adapter — `BEO-TDS/geheimnis-kopien-im-speicher-nicht-gemessen`; das Log betrifft die Ausgabe, nicht den Speicher.
 - Rotation, Aggregation und Versand der Logzeilen — Betreiber und Log-Backend (ARC-014 ist über die Schnittstelle austauschbar); der Server schreibt auf den Kanal der ADR.
 
