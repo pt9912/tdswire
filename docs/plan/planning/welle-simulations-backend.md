@@ -34,7 +34,7 @@ dieser Welle**: Steht er in der Slice-Liste unten, ist er falsch platziert.
 
 - `make gates` ist auf `main` grün.
 - Die Welle [welle-backend-streaming](welle-backend-streaming.md) liegt in `done/`: Port, Typabbildung, Sequenzierer und der Streaming-Nachweis am Fake stehen auf `main`, `QueryBackendContractTest` ist als Port-Test vorhanden.
-- Weitere Voraussetzungen gelten je Slice und stehen in dessen §4 (zum Beispiel [slice-adr-backend-grenzen](in-progress/slice-adr-backend-grenzen.md) für die Zeilendarstellung und der startende Serverprozess für den Integrationstest): sie verzögern einen Slice, nicht den Start der Welle.
+- Weitere Voraussetzungen gelten je Slice und stehen in dessen §4 (zum Beispiel [slice-adr-backend-grenzen](done/slice-adr-backend-grenzen.md) für die Zeilendarstellung und der startende Serverprozess für den Integrationstest): sie verzögern einen Slice, nicht den Start der Welle.
 
 ## 3. Closure-Trigger (Welle schließt)
 
@@ -61,7 +61,7 @@ Lifecycle-Verzeichnis und wird hier **nicht** gespiegelt.
 | slice-sim-auswahl-streaming | Auswahl mit Bedingung und Parametern, schrittweises Lesen der Zeilenquelle, Port-Pflichten, Heap-Nachweis | [TDS-FA-11](../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-FA-08](../../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-QA-02](../../../spec/lastenheft.md#tds-qa-02--stabilität), [ADR-0006](../adr/0006-backend-vertrag-und-streaming.md) |
 | slice-sim-aenderung-integration | Änderungsweitergabe an Callbacks, Verdrahtung in `runtime`, Integrationstest mit dem Referenzclient (SPEC-040) | [TDS-FA-11](../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-FA-08](../../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-QA-05](../../../spec/lastenheft.md#tds-qa-05--wartbarkeit), [ADR-0008](../adr/0008-dotnet-kompatibilitaetstests.md) |
 
-Reihenfolge: Die Entscheidung steht vor allem (ohne sie ist [TDS-FA-11](../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) nach dem Lastenheft nicht abnehmbar und die Beschreibungsform offen). Die Erkennung braucht keine Zeilenquelle und steht vor der Auswahl. Die Auswahl braucht die Zeilendarstellung aus [slice-adr-backend-grenzen](in-progress/slice-adr-backend-grenzen.md). Der Integrationstest schließt die Welle, weil er Erkennung, Auswahl, Callbacks und den startenden Serverprozess braucht.
+Reihenfolge: Die Entscheidung steht vor allem (ohne sie ist [TDS-FA-11](../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) nach dem Lastenheft nicht abnehmbar und die Beschreibungsform offen). Die Erkennung braucht keine Zeilenquelle und steht vor der Auswahl. Die Auswahl braucht die Zeilendarstellung aus [slice-adr-backend-grenzen](done/slice-adr-backend-grenzen.md). Der Integrationstest schließt die Welle, weil er Erkennung, Auswahl, Callbacks und den startenden Serverprozess braucht.
 
 ## 5. Abhängigkeiten
 
@@ -69,7 +69,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte.
 
 - Blockiert: [welle-referenzabgleich-release](welle-referenzabgleich-release.md) ([slice-referenzabgleich-live](open/slice-referenzabgleich-live.md) braucht die Server-Seite mit Simulations-Backend, SPEC-045). Berührt: [slice-qa-kompatibilitaet](open/slice-qa-kompatibilitaet.md), falls der Nutzer deren Szenarien auf das Simulations-Backend legt (Frage 4 in §6 von [slice-sim-aenderung-integration](open/slice-sim-aenderung-integration.md)); [slice-qa-performance](open/slice-qa-performance.md) (Referenz-Workload mit getrennter Messung von Protokollschicht und Backend kann das Simulations-Backend als Backend nutzen).
-- Wird blockiert von: [welle-backend-streaming](welle-backend-streaming.md) (Port, Typabbildung, Sequenzierer; Start-Trigger); [slice-adr-backend-grenzen](in-progress/slice-adr-backend-grenzen.md) (ohne Welle; Zeilendarstellung, nur [slice-sim-auswahl-streaming](open/slice-sim-auswahl-streaming.md)); [welle-handshake-login](done/welle-handshake-login/welle-handshake-login.md) und [welle-anfrageverarbeitung](welle-anfrageverarbeitung.md) (der Serverprozess beantwortet Login und SQL_BATCH; nur [slice-sim-aenderung-integration](open/slice-sim-aenderung-integration.md)).
+- Wird blockiert von: [welle-backend-streaming](welle-backend-streaming.md) (Port, Typabbildung, Sequenzierer; Start-Trigger); [slice-adr-backend-grenzen](done/slice-adr-backend-grenzen.md) (ohne Welle; Zeilendarstellung, nur [slice-sim-auswahl-streaming](open/slice-sim-auswahl-streaming.md)); [welle-handshake-login](done/welle-handshake-login/welle-handshake-login.md) und [welle-anfrageverarbeitung](welle-anfrageverarbeitung.md) (der Serverprozess beantwortet Login und SQL_BATCH; nur [slice-sim-aenderung-integration](open/slice-sim-aenderung-integration.md)).
 - Berührt, blockiert aber nicht: [welle-fehler-abbruch](welle-fehler-abbruch.md). Die Codes `TDS_UNSUPPORTED_SQL`, `TDS_SIM_UNKNOWN_OBJECT` und `TDS_SIM_INVALID_VALUE` ordnet [slice-fehler-mapping](done/slice-fehler-mapping.md) einer Nummer und Class zu; das Simulations-Backend liefert nur den Code im `Failure`. Bis dahin gilt für jeden eigenen Code ohne Gruppe „im Zweifel schließen“ ([TDS-FA-06.a](../../../spec/spezifikation.md#tds-fa-06a--fehlerabbildung)).
 - Berührt, blockiert aber nicht: [welle-qualitaet-grundlage](welle-qualitaet-grundlage.md). Die Kompatibilitätsmatrix ([slice-qa-wartbarkeit](in-progress/slice-qa-wartbarkeit.md)) führt die unterstützten Nachrichten und Datentypen des Servers; das Simulations-Backend erweitert den Typkatalog des Ports nicht.
 
@@ -85,7 +85,7 @@ der Closure-Trigger unerreichbar wird.
 - Fehlernummer, Severity und Verbindungsfolge der Simulations-Codes: [slice-fehler-mapping](done/slice-fehler-mapping.md) ([welle-fehler-abbruch](welle-fehler-abbruch.md)).
 - Füllung der Form C mit den Texten, die der Referenzclient stellt: erst nach Freigabe im Clientprofil (SPEC-004) und der Messung in [slice-qa-kompatibilitaet](open/slice-qa-kompatibilitaet.md).
 - Kompatibilitäts-Szenarien S1 bis S18: [slice-qa-kompatibilitaet](open/slice-qa-kompatibilitaet.md); Last und Durchsatz: [slice-qa-performance](open/slice-qa-performance.md).
-- Blockierende Zeilenquellen, Frist `deadlineEpochMillis`, Zeilendarstellung: [slice-adr-backend-grenzen](in-progress/slice-adr-backend-grenzen.md) (ohne Welle).
+- Blockierende Zeilenquellen, Frist `deadlineEpochMillis`, Zeilendarstellung: [slice-adr-backend-grenzen](done/slice-adr-backend-grenzen.md) (ohne Welle).
 - Logging und Metriken des Simulations-Backends: [welle-betrieb-diagnose](welle-betrieb-diagnose.md); das Backend ruft keine Observability (Importregel `ForbiddenImport/simulation`).
 - Neue Anforderungen oder Änderungen am Lastenheft.
 
