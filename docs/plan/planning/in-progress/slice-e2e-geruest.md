@@ -147,6 +147,19 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei der Closure gefüllt.
 
+**Messung des Implementers (Einzelmessungen am 2026-10-31, je ein Lauf, keine Streuung):**
+
+| Lauf | Zeit |
+|---|---|
+| `make e2e` warm (zweiter Lauf, Layer-Cache vorhanden) | 46 s (Stufen 2 s, 21 s, 21 s, 2 s) |
+| die vier Targets einzeln, warm, nacheinander | 3 s, 20 s, 21 s, 1 s, zusammen 45 s |
+| `make e2e` kalt (frischer buildx-Builder ohne Cache, danach entfernt) | 323 s (Stufen 106 s, 108 s, 104 s, 5 s) |
+| `make e2e` nach Quelltext-Änderung (Gradle-Layer neu, Basis-Images im Cache) | 187 s (Stufen 54 s, 63 s, 69 s, 1 s) |
+| `make gates` warm mit `laufzeittest` und `simulations-integration` | 49 s |
+| `make gates` warm ohne beide (Stand nach der ADR zu den E2E-Läufen) | 9 s (alle Stages aus dem Cache; Einzelwert, kein Maß für einen Lauf nach Quelltext-Änderung) |
+
+Der Durchgang kostet warm so viel wie die Summe der Einzelläufe (Differenz 1 s); die Stufen laufen nicht doppelt gegenüber ihrem Einzellauf, sondern doppelt gegenüber der Zeit, die `make gates` bisher für zwei von ihnen aufwendete. Die Kaltzeit der Stufen 2 und 3 liegt unter ihren früheren Einzel-Kaltwerten (88 bis 171 s, 131 s), weil sie sich im selben Builder Layer mit Stufe 1 teilen; die Summe der vier Einzel-Kaltläufe ist nicht gemessen. Setzungen: der Durchgang bricht an der ersten roten Stufe ab; die Harness-Selbstprüfung fällt aus der Sicht (Option a), sie bleibt Werkzeug ohne Gate.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
