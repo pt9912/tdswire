@@ -1,6 +1,6 @@
 # ADR-0021: Öffentlicher Integrations-Einstieg: Kotlin-Einstieg, Artefakt, Stabilitätszusage, Nachweis
 
-**Status:** Proposed
+**Status:** Accepted (vom Nutzer entschieden)
 
 **Datum:** 2026-10-31
 
@@ -27,6 +27,8 @@
 Das Lastenheft verlangt keine Veröffentlichung in einem Artefakt-Repository; „dokumentiert“ und „austauschbar“ sind der Maßstab. Annahme: Integratoren sind Kotlin- oder Java-Projekte auf der JVM, die das Jar samt `lib/` auf ihren Klassenpfad nehmen. Kippt sie (Integration aus anderen Sprachen, Veröffentlichung über ein Repository), kippt Entscheidung 2.
 
 ## Entscheidung
+
+Mit der Annahme am 2026-10-31 bestätigt der Nutzer die Wahl **a1, b1, c1, d1, e1** und den Schnitt der Konfiguration (Option A) (Nutzerentscheidung 2026-10-31: „adr-0021 accepted“). Zwischen den Prüfformen (a) und (b) hat der Nutzer nicht ausdrücklich gewählt; (a) gilt als die in dieser ADR geschriebene Setzung unverändert. Die Punkte unter „Offen“, darunter die Form der Prüfung und der Inhalt von `StartOutcome.Aborted`, bleiben offen.
 
 Wir wählen **a1 (Fassade `TdsServer` in `runtime`), b1 (ein Artefakt), c1 (`explicitApi`, Zusage vor 1.0 eng), d1 (`main()` nutzt den Einstieg) und e1 (eigenes Source-Set ohne Zugriff auf `internal`)**.
 
@@ -89,7 +91,7 @@ Alle Zeilen sind Absicht, nicht Bestand: ob `explicitApi` mit `make detekt` (ktl
 
 ## Offen
 
-- Form der Prüfung (a oder b) und Inhalt von `StartOutcome.Aborted` (Liste von `ConfigIssue` oder nur ein Grund): Entscheidung 1 nennt die Empfehlung, der Nutzer entscheidet.
+- Form der Prüfung (a oder b) und Inhalt von `StartOutcome.Aborted` (Liste von `ConfigIssue` oder nur ein Grund): Entscheidung 1 setzt (a); der Nutzer hat nicht ausdrücklich gewählt. Die Umsetzungsplanung schließt beide Punkte per Setzung im Slice, ohne diese ADR zu ändern.
 - Ob die Fläche in `domain` und `config` vollständig und minimal ist (zum Beispiel `Principal`, `AuthSettings`, `UserList`): Aufgabe der Umsetzung mit dem Übersetzungslauf; die Liste in Entscheidung 3 ist die Absicht, nicht ein Bestand.
 - Lebensdauerregeln und Threading des Einstiegs (Aufruf aus mehreren Threads, `stop` während `start`): nicht festgelegt, vom Test zu belegen.
 - Adapter für Embedder: ob `start` einen Parameter für Authentifizierungsadapter ([ADR-0009](0009-authentifizierungsmodus.md)) oder Log- und Telemetrie-Adapter ([ADR-0020](0020-logformat-und-observability-schnittstelle.md)) bekommt, ist nicht entschieden; kein Embedder ist bekannt, der es braucht.
@@ -107,6 +109,7 @@ Der Wunsch, das Jar in ein Artefakt-Repository zu veröffentlichen (dann b2 und 
 | 2026-10-31 | Proposed – Folge des Reviews zur Änderungs-Weitergabe des Simulations-Backends (Review der Welle, inzwischen archiviert; der Report liegt nicht mehr unter `docs/reviews/`) und der Frage des Implementers, wie ein Fremd-Integrator Backend oder Zeilenquellen einbettet; Status bleibt Proposed bis Review und Annahme durch den Nutzer | [ADR-0012](0012-simulations-backend-beschreibung-und-formen.md) |
 | 2026-10-31 | Proposed, Schnitt der Konfiguration (Option A, Nutzerentscheidung): Lesen in `runtime`, Typen, Defaults und Prüfung in `config` für beide Wege; Jackson-Aussage, Option b2, öffentliche Fläche und Folgepflicht angepasst | — |
 | 2026-10-31 | Proposed, Korrekturrunde nach Review: Prüfung der Konfiguration im Einstieg als Mindestzusage, Einmal-Konfiguration, Folge des nicht öffentlichen Wiring für Adapter benannt, Aussage zum Konflikt Backend gegen Simulation angeglichen, Umfang von `explicitApi` gemessen nachgetragen, Einordnung des Einbettungstests | [Review-Report](../../reviews/2026-10-31-33ffaab-adr-0020-und-0021.md) |
+| 2026-10-31 | Accepted – angenommen vom Nutzer nach Review und Korrekturrunde (Review docs/reviews/2026-10-31-33ffaab-adr-0020-und-0021.md); Prüfform (a) als geschriebene Setzung, Form der Prüfung und Inhalt von `StartOutcome.Aborted` offen für die Umsetzungsplanung | [Review-Report](../../reviews/2026-10-31-33ffaab-adr-0020-und-0021.md) |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit
