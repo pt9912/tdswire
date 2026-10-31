@@ -18,7 +18,7 @@ import kotlin.test.assertTrue
 
 /** Start-Reihenfolge und Startabbruch des Prozesses (`TDS-FA-09.a`, `SPEC-043`, `ARC-008`). */
 internal class BootstrapTest : RuntimeTestBase() {
-    private fun users() = file("users.txt", "kennung-4711\t{plain}passwort-4711\n")
+    private fun users() = file("users.txt", "kennung-$WERTPROBE\t{plain}passwort-$WERTPROBE\n")
 
     private fun assertFree(port: Int) {
         ServerSocket(port, 1, InetAddress.getByName(LOOPBACK)).use { assertEquals(port, it.localPort) }
@@ -60,7 +60,7 @@ internal class BootstrapTest : RuntimeTestBase() {
         val environment = loopbackEnvironment(
             users(),
             ConfigKeys.LISTEN_PORT to port.toString(),
-            ConfigKeys.LOGIN_TIMEOUT to "geheim-wert-4711",
+            ConfigKeys.LOGIN_TIMEOUT to "geheim-wert-$WERTPROBE",
             ConfigKeys.MAX_PRELOGIN_MESSAGE_BYTES to "1",
         )
         assertEquals(BootResult.Aborted, start(environment))
@@ -84,7 +84,7 @@ internal class BootstrapTest : RuntimeTestBase() {
     @Test
     fun `Eine fehlerhafte Benutzerliste bricht den Start ab`() = blocking {
         val port = freePort()
-        val path = file("kennung-4711.txt", "kennung-4711\t{pbkdf2-sha256}passwort-4711\n")
+        val path = file("kennung-$WERTPROBE.txt", "kennung-$WERTPROBE\t{pbkdf2-sha256}passwort-$WERTPROBE\n")
         val environment = loopbackEnvironment(path, ConfigKeys.LISTEN_PORT to port.toString())
         assertEquals(BootResult.Aborted, start(environment))
         val expected = "Konfiguration ungueltig: AUTH_USERS_FILE: USER_LIST_INVALID (FIELD_COUNT, Zeile 1)"
@@ -139,10 +139,10 @@ internal class BootstrapTest : RuntimeTestBase() {
      */
     @Test
     fun `Ein falsches Kennwort des Speichers bricht den Start ab`() = blocking {
-        val environment = tlsEnvironment("gueltig.p12", 0, password = "falsch-4711")
+        val environment = tlsEnvironment("gueltig.p12", 0, password = "falsch-$WERTPROBE")
         assertEquals(BootResult.Aborted, start(environment))
         assertTrue(log.lines.single().startsWith("TLS-Konfiguration: CERTIFICATE"), log.lines.toString())
-        assertFalse(log.lines.single().contains("4711"))
+        assertFalse(log.lines.single().contains(WERTPROBE))
     }
 
     private fun tlsEnvironment(store: String, port: Int, password: String = "tdswire-test"): Map<String, String> {
@@ -179,9 +179,21 @@ internal class BootstrapTest : RuntimeTestBase() {
         val strong = running(tlsEnvironment("gueltig.p12", 0))
         assertEquals(listOf("gestartet, Port ${strong.port}"), log.lines.toList())
         val all = weakLines + log.lines
-        listOf("4711", "kennung", "passwort", "users", LOOPBACK, "tdswire-test").forEach { word ->
+        listOf(WERTPROBE, "kennung", "passwort", "users", LOOPBACK, "tdswire-test").forEach { word ->
             assertTrue(all.none { it.contains(word) }, "Log nennt $word: $all")
         }
+    }
+
+    /**
+     * Das Prüfwort für "keinen Wert" kann in einer Logzeile mit beliebigem Port nicht zufällig vorkommen; ein Port
+     * mit der Ziffernfolge `34711` ist der Fall, der ein numerisches Prüfwort fälschlich rot machte.
+     *
+     * @spec SPEC-010
+     */
+    @Test
+    fun `Das Pruefwort kollidiert nicht mit Zahlen im Log`() {
+        assertFalse("gestartet, Port 34711".contains(WERTPROBE))
+        assertTrue(WERTPROBE.any { it.isLetter() })
     }
 
     /**

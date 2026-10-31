@@ -192,9 +192,9 @@ internal class SimulationWiringTest : RuntimeTestBase() {
     @Test
     fun `ein Ladefehler bricht den Start ab bevor ein Port gebunden wird`() = blocking {
         val broken = mapOf(
-            "unbekanntes Feld" to PERSON_FILE.replace("max_length: 50", "unknown_field: geheim-wert-4711"),
+            "unbekanntes Feld" to PERSON_FILE.replace("max_length: 50", "unknown_field: geheim-wert-$WERTPROBE"),
             "Typ ohne Entsprechung" to PERSON_FILE.replace("type: text", "type: uuid"),
-            "Syntaxfehler" to "tables: [geheim-inhalt-4711\n",
+            "Syntaxfehler" to "tables: [geheim-inhalt-$WERTPROBE\n",
             "Anker" to PERSON_FILE.replace("columns:", "columns: &geheim-anker"),
         )
         for ((label, text) in broken) {
@@ -209,7 +209,7 @@ internal class SimulationWiringTest : RuntimeTestBase() {
             val line = log.lines.single()
             assertTrue(line.startsWith("Beschreibung der Tabellen ungueltig: "), "$label: $line")
             assertTrue(line.contains("Zeile ") && line.contains("Spalte "), "$label: $line")
-            val leaked = listOf("4711", "sim.yaml", "geheim-anker").filter { it in line }
+            val leaked = listOf(WERTPROBE, "sim.yaml", "geheim-anker").filter { it in line }
             assertEquals(emptyList(), leaked, "$label: $line")
             assertNoNewListenerThreads(before)
             assertFree(port)

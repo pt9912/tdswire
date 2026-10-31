@@ -30,6 +30,12 @@ const val PRELOGIN_TYPE = 0x12
 const val LOGIN7_TYPE = 0x10
 const val BATCH_TYPE = 0x01
 
+/**
+ * Prüfwort für "kein Wert im Log": nicht numerisch und mit Präfix, damit es weder in Port, Zeitstempel noch Zähler
+ * der Logzeilen zufällig vorkommt (`TDS-QA-03`).
+ */
+internal const val WERTPROBE = "wertprobe-xq9"
+
 /** Die Eigenschaft des Prozesses, wie sie der Start setzt: das Flag gegen das NewSessionTicket ist `0`. */
 internal val flagSet: (String) -> String? = { if (it == Bootstrap.TICKET_FLAG) "0" else null }
 
