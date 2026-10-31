@@ -48,9 +48,9 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 Liefer-Punkte (drei):
 
-- [ ] **Spikes** (S1 bis S3 aus §3) durchgeführt; Messwerte, Optionen und Befund stehen als Tabelle in diesem Slice und in der Entscheidung. Der Spike-Code liegt im Scratchpad, ist temporär und nie im Repo.
+- [x] **Spikes** (S1 bis S3 aus §3) durchgeführt; Messwerte, Optionen und Befund stehen als Tabelle in diesem Slice und in der Entscheidung. Der Spike-Code liegt im Scratchpad, ist temporär und nie im Repo. Beleg: die Messtabellen M1 bis M8 stehen im [Optionsbericht](../../../reviews/2026-10-30-b1a23b2-optionen-adr-backend-grenzen.md) und, mit den Grenzen des Spike, in den Messzeilen von [ADR-0013](../../adr/0013-backend-grenzen.md) (nicht in diesem Slice).
 - [ ] **Entscheidung des Nutzers** zu den fünf Punkten aus §1 (Optionen aus §3), festgehalten als neue ADR (nächste freie Nummer laut ADR-Index, Status `Accepted` nach Review und Verifikation, `Bezug` auf [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md), ohne `Supersedes`, Index und Geschichte nachgezogen); jede Aussage der Entscheidung trägt eine Messzeile oder ist als Setzung des Nutzers gekennzeichnet.
-- [ ] **Anschlussstellen** nachgezogen: `SPEC-002` und `spec/spezifikation.md` `SPEC-022` (Frist, Zeilendarstellung) sowie die Slices `slice-backend-port-vertrag`, `slice-backend-sequenzierer`, `slice-backend-streaming-nachweis` und `slice-sql-batch-dispatch` (Start-Trigger, Risiken, Aufteilung der Verantwortung).
+- [x] **Anschlussstellen** nachgezogen (Stand: Spezifikation `SPEC-002`, `SPEC-022` und die offenen Slices sind nachgeführt; die Slices in `done/` bleiben als Zeitdokumente unverändert, ihr Anschluss läuft über die Folgepflicht in [ADR-0013](../../adr/0013-backend-grenzen.md)): `SPEC-002` und `spec/spezifikation.md` `SPEC-022` (Frist, Zeilendarstellung) sowie die Slices `slice-backend-port-vertrag`, `slice-backend-sequenzierer`, `slice-backend-streaming-nachweis` und `slice-sql-batch-dispatch` (Start-Trigger, Risiken, Aufteilung der Verantwortung).
 
 Nachweis-Pflichten für alle drei Punkte:
 
@@ -77,6 +77,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `docs/plan/adr/` (neue ADR) und `docs/plan/adr/README.md` | neu / update | Entscheidung, Status, Geschichte, Indexzeile |
 | `spec/spezifikation.md` (`SPEC-002`, `SPEC-022`) | update | Stellen aus `Schärft:` der neuen ADR |
 | `docs/plan/planning/` (die vier Backend-Slices, `slice-sql-batch-dispatch`) | update | Anschlussstellen |
+| KDoc von `QueryBackend`, `QueryExecution`, `QueryEvent`, `QueryRequest`, `ResponseSequencer`, `ValueMapping`, `BufferedResponse` | Anschlussstelle, nicht Teil dieses Laufs | Sieben Quelldateien tragen den Satz „offen“ mit Verweis auf [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md); mit [ADR-0013](../../adr/0013-backend-grenzen.md) sind sie veraltet, und kein Sensor meldet es. Träger (Vorschlag, vom Planner mit dem Nutzer zu bestätigen): ein Doku-Commit des Implementers nach der Annahme von [ADR-0013](../../adr/0013-backend-grenzen.md), der nur Kommentare ändert und kein Verhalten; der Slice ändert bis dahin keinen Produktionscode (§1). |
 
 **Spikes (Scratchpad, Docker-only, nichts mounten)** — gemessen wird im Maßstab von [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md) (JDK 21, Kotlin, `kotlinx-coroutines-core`, `-Xmx256m`, fingiertes Backend); der Nutzer sieht die Optionen erst nach den Messwerten:
 
