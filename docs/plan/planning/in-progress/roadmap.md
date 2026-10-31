@@ -26,6 +26,7 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 In Arbeit (Welle welle-qualitaet-grundlage):
 
 - [slice-qa-wartbarkeit](slice-qa-wartbarkeit.md)
+- [slice-tds8-verdrahtung](slice-tds8-verdrahtung.md)
 
 ## Nächste Wellen
 
