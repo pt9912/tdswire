@@ -1,4 +1,4 @@
-# Review-Report: [slice-antwort-mehrteilig-output](../plan/planning/in-progress/slice-antwort-mehrteilig-output.md) — 2026-10-31
+# Review-Report: [slice-antwort-mehrteilig-output](../plan/planning/done/slice-antwort-mehrteilig-output.md) — 2026-10-31
 
 **Review-Art:** Code (Diff des Slice gegen Plan, [ADR-0005](../plan/adr/0005-rpc-und-prepared-statements.md), [ADR-0006](../plan/adr/0006-backend-vertrag-und-streaming.md), [ADR-0007](../plan/adr/0007-fehler-und-attention.md), [ADR-0013](../plan/adr/0013-backend-grenzen.md), [SPEC-021](../../spec/spezifikation.md#clientprofil-vertrag-zu-spec-021), [SPEC-030](../../spec/spezifikation.md#spec-030--rpc-varianten-und-parameter-metadaten), Spezifikation und Hard Rules). Gegen die DoD wird nicht geprüft; das ist die Frage des Verifiers.
 
@@ -9,7 +9,7 @@
 
 **Eingangs-Kontext:**
 
-- [slice-antwort-mehrteilig-output](../plan/planning/in-progress/slice-antwort-mehrteilig-output.md) (Plan, Ist-Zustand-Tabelle, Risiken §6)
+- [slice-antwort-mehrteilig-output](../plan/planning/done/slice-antwort-mehrteilig-output.md) (Plan, Ist-Zustand-Tabelle, Risiken §6)
 - [ADR-0005](../plan/adr/0005-rpc-und-prepared-statements.md) (Messzeilen des Spikes, insbesondere die Zeile „Zwei Resultsets über `sp_executesql`“ und „Antwortpflicht“), [ADR-0006](../plan/adr/0006-backend-vertrag-und-streaming.md), [ADR-0007](../plan/adr/0007-fehler-und-attention.md) (Messung R02 und die Liste „nicht gemessen“), [ADR-0013](../plan/adr/0013-backend-grenzen.md) (im Diff nicht berührt)
 - [TDS-FA-10](../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte) und [TDS-FA-10.a](../../spec/spezifikation.md#tds-fa-10a--mehrteilige-antworten-und-rpc-ausgabewerte), [TDS-QA-02](../../spec/lastenheft.md#tds-qa-02--stabilität)
 - [SPEC-002](../../spec/spezifikation.md#spec-002--interner-query-vertrag), [SPEC-013](../../spec/spezifikation.md#4-fehler-codes-und-logging-felder), [SPEC-014](../../spec/spezifikation.md#4-fehler-codes-und-logging-felder), [SPEC-021](../../spec/spezifikation.md#clientprofil-vertrag-zu-spec-021), [SPEC-030](../../spec/spezifikation.md#spec-030--rpc-varianten-und-parameter-metadaten), [SPEC-031](../../spec/spezifikation.md#spec-031--streaming-fehler-und-atomarität), [SPEC-048](../../spec/spezifikation.md#4-fehler-codes-und-logging-felder)
