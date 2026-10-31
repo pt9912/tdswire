@@ -153,7 +153,7 @@ Hälften.
 
 - `BEO-TDS/aussagen-ueber-messung-hinaus` — 16×, Stand *verkörpert* (`AGENTS.md` §3.8, Reviewer-Skill). Betrifft diesen Slice: Jede Aussage der ADR trägt eine Messzeile oder ist als Setzung gekennzeichnet.
 - `BEO-TDS/offene-punkte-ohne-traeger` — 6×, Stand *verkörpert* (`.claude/commands/implement-slice.md`). Betrifft die Offen-Liste der neuen ADR (§6).
-- `BEO-TDS/anmeldepfad-sicherheit-nicht-gebaut` — 3×, Stand *geplant* (Träger [slice-qa-sicherheit](../in-progress/slice-qa-sicherheit.md)). Betrifft das Logfeld für die Kennung und die Redaktion von Passwort und Prüfwert (§6); die Gesamtinspektion trägt [slice-betrieb-log-schnittstelle](slice-betrieb-log-schnittstelle.md).
+- `BEO-TDS/anmeldepfad-sicherheit-nicht-gebaut` — 3×, Stand *geplant* (Träger [slice-qa-sicherheit](../done/slice-qa-sicherheit.md)). Betrifft das Logfeld für die Kennung und die Redaktion von Passwort und Prüfwert (§6); die Gesamtinspektion trägt [slice-betrieb-log-schnittstelle](slice-betrieb-log-schnittstelle.md).
 - `BEO-TDS/rueckstau-im-produktivbetrieb-nicht-gemessen` — 1×, offen. Betrifft jede Aussage der Spikes über Verhalten unter Last (§6).
 - `BEO-TDS/katalog-und-lock-ohne-gegenpruefung` — 1×, offen. Betrifft einen Spike, der eine Bibliothek in den Katalog nähme (§6).
 - `BEO-TDS/kennungen-ohne-link-in-neuen-dokumenten` — 1×, offen. ADR, Slice und Closure-Notiz nennen `ADR-*`- und `TDS-*`-Kennungen als Link.

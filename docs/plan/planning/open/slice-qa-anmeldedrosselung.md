@@ -35,7 +35,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Enumerationsfestigkeit als Abnahmekriterium — [TDS-QA-03](../../../../spec/lastenheft.md#tds-qa-03--sicherheit) verlangt sie nicht; `SPEC-012` sichert nur die gleiche Ablehnung zu.
-- Zeitgleichheit des Passwortvergleichs und Belegung der Plätze des `AuthPool` — beides misst [slice-qa-sicherheit](../in-progress/slice-qa-sicherheit.md) und nennt die Grenzen; dieser Slice baut keine Abhilfe für die Zeitgrenze gemischter Listen.
+- Zeitgleichheit des Passwortvergleichs und Belegung der Plätze des `AuthPool` — beides misst [slice-qa-sicherheit](../done/slice-qa-sicherheit.md) und nennt die Grenzen; dieser Slice baut keine Abhilfe für die Zeitgrenze gemischter Listen.
 
 ## 2. Definition of Done
 
@@ -75,7 +75,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-qa-sicherheit](../in-progress/slice-qa-sicherheit.md) in `done/` (seine Messungen von Zeitgleichheit und Platzbelegung sind die Eingabe der Entscheidung).
+**Start** (`next` → `in-progress`): [slice-qa-sicherheit](../done/slice-qa-sicherheit.md) in `done/` (seine Messungen von Zeitgleichheit und Platzbelegung sind die Eingabe der Entscheidung).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
