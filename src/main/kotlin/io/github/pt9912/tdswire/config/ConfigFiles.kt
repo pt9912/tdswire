@@ -39,11 +39,9 @@ internal object ConfigFiles {
             path.isBlank() -> invalid(key, IssueKind.INVALID_VALUE, issues)
             else -> readAtMost(key, path, MAX_SIMULATION_FILE_BYTES, issues)
         }
-        return if (bytes != null && bytes.size > MAX_SIMULATION_FILE_BYTES) {
-            invalid(key, IssueKind.TOO_LARGE, issues)
-        } else {
-            bytes
-        }
+        val tooLarge = bytes?.let { ConfigValidation.simulationFile(it.size) }
+        if (tooLarge != null) issues += tooLarge
+        return bytes.takeIf { tooLarge == null }
     }
 
     private fun invalid(key: String, kind: IssueKind, issues: MutableList<ConfigIssue>): ByteArray? {

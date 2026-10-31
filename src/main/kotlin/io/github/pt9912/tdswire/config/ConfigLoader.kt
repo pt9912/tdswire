@@ -2,48 +2,6 @@ package io.github.pt9912.tdswire.config
 
 import io.github.pt9912.tdswire.config.auth.PasswordChars
 import io.github.pt9912.tdswire.config.auth.UserList
-import io.github.pt9912.tdswire.config.auth.UserListError
-
-/** Die Art eines Konfigurationsfehlers; der Wert des Schlüssels erscheint nie in der Diagnose. */
-enum class IssueKind {
-    /** Eine Pflichtoption fehlt. */
-    MISSING,
-
-    /** Der Wert hat nicht die Form des Schlüssels. */
-    INVALID_VALUE,
-
-    /** Der Wert hat die Form, liegt aber außerhalb des Bereichs. */
-    OUT_OF_RANGE,
-
-    /** Der Schlüssel ist in der gewählten Betriebsart nicht erlaubt. */
-    CONFLICT,
-
-    /** Die genannte Datei ist nicht lesbar. */
-    UNREADABLE,
-
-    /** Die Datei ist kein gültiges UTF-8. */
-    NOT_UTF8,
-
-    /** Die Datei beginnt mit einem UTF-8-BOM. */
-    BYTE_ORDER_MARK,
-
-    /** Die Datei ist größer als erlaubt. */
-    TOO_LARGE,
-
-    /** Die Benutzerliste ist ungültig; [ConfigIssue.detail] trägt Fehlerart und Zeilennummer. */
-    USER_LIST_INVALID,
-}
-
-/**
- * Ein Konfigurationsfehler: Schlüssel und Art, bei der Benutzerliste Fehlerart und Zeile in [detail]. Er
- * trägt nie einen Wert, einen Dateipfad, einen Prüfwert oder ein Passwort (`TDS-QA-03`). [detail] hat den Typ
- * [UserListError], eine Aufzählung und eine Zeilennummer: ein Aufrufer kann keinen freien Text einsetzen.
- */
-data class ConfigIssue(val key: String, val kind: IssueKind, val detail: UserListError? = null) {
-    val message: String get() = if (detail == null) "$key: $kind" else "$key: $kind (${describe(detail)})"
-
-    private fun describe(error: UserListError): String = "${error.kind}${error.line?.let { ", Zeile $it" }.orEmpty()}"
-}
 
 /** Ausgang von [ConfigLoader.load]: eine gültige Konfiguration oder alle gefundenen Fehler. */
 sealed interface ConfigResult {
@@ -57,12 +15,10 @@ sealed interface ConfigResult {
 /**
  * Liest die Konfiguration aus der Umgebung und den Dateien, die sie nennt (`TDS-FA-09.a`).
  *
- * Wertebereiche und Voreinstellungen sind Festlegungen, nicht gemessen:
- * - `LISTEN_PORT` 0 bis 65535, Voreinstellung 1433 (`SPEC-005`); 0 wählt einen freien Port.
- * - `LISTEN_HOST` nicht leer, Voreinstellung `0.0.0.0`.
- * - `LOGIN_TIMEOUT` ganze Sekunden von 1 bis 3600, Voreinstellung 15 (`SPEC-008`, vorläufig).
- * - `MAX_PRELOGIN_MESSAGE_BYTES` 512 bis 65536, Voreinstellung 65536 (`SPEC-046`, vorläufig); die obere
- *   Grenze ist die der PRELOGIN-Verhandlung.
+ * Wertebereiche und Paarungen prüft [ConfigValidation] je Schlüssel, die Voreinstellungen stehen in
+ * [ConfigDefaults]; hier steht die Form der Schlüssel (Festlegungen, nicht gemessen):
+ * - `LISTEN_PORT`, `LOGIN_TIMEOUT` und `MAX_PRELOGIN_MESSAGE_BYTES` bestehen aus ASCII-Ziffern.
+ * - `LISTEN_HOST` Voreinstellung `0.0.0.0`.
  * - `ENCRYPTION_POLICY` genau `REQUIRED` oder `TEST_UNENCRYPTED`, Voreinstellung `REQUIRED`. `REQUIRED` verlangt
  *   `TLS_KEYSTORE_FILE` (PKCS#12) und `TLS_KEYSTORE_PASSWORD_FILE` (ein Zeilenende am Ende wird entfernt);
  *   `TEST_UNENCRYPTED` lässt beide nicht zu.
@@ -78,25 +34,24 @@ sealed interface ConfigResult {
  * ein Fehler der Validierung. Dateirechte der Dateien prüft der Lader nicht.
  */
 object ConfigLoader {
-    private const val DEFAULT_HOST = "0.0.0.0"
-    private const val DEFAULT_PORT = 1433
-    private const val MAX_PORT = 65535
-    private const val DEFAULT_LOGIN_TIMEOUT = 15
-    private const val MAX_LOGIN_TIMEOUT = 3600
-    private const val MIN_PRELOGIN_BYTES = 512
-    private const val MAX_PRELOGIN_BYTES = 65536
     private val DIGITS = Regex("[0-9]{1,9}")
 
     fun load(environment: Map<String, String>): ConfigResult {
         val issues = mutableListOf<ConfigIssue>()
         val host = host(environment, issues)
-        val port = number(environment, ConfigKeys.LISTEN_PORT, DEFAULT_PORT, 0..MAX_PORT, issues)
-        val timeout = number(environment, ConfigKeys.LOGIN_TIMEOUT, DEFAULT_LOGIN_TIMEOUT, 1..MAX_LOGIN_TIMEOUT, issues)
+        val port = number(environment, ConfigKeys.LISTEN_PORT, ConfigDefaults.PORT, ConfigValidation::port, issues)
+        val timeout = number(
+            environment,
+            ConfigKeys.LOGIN_TIMEOUT,
+            ConfigDefaults.LOGIN_TIMEOUT_SECONDS,
+            ConfigValidation::loginTimeout,
+            issues,
+        )
         val prelogin = number(
             environment,
             ConfigKeys.MAX_PRELOGIN_MESSAGE_BYTES,
-            MAX_PRELOGIN_BYTES,
-            MIN_PRELOGIN_BYTES..MAX_PRELOGIN_BYTES,
+            ConfigDefaults.MAX_PRELOGIN_MESSAGE_BYTES,
+            ConfigValidation::preloginBytes,
             issues,
         )
         val encryption = encryption(environment, issues)
@@ -121,31 +76,28 @@ object ConfigLoader {
     }
 
     private fun host(environment: Map<String, String>, issues: MutableList<ConfigIssue>): String? {
-        val value = environment[ConfigKeys.LISTEN_HOST] ?: return DEFAULT_HOST
-        if (value.isBlank()) issues += ConfigIssue(ConfigKeys.LISTEN_HOST, IssueKind.INVALID_VALUE)
-        return value.takeIf { it.isNotBlank() }
+        val value = environment[ConfigKeys.LISTEN_HOST] ?: return ConfigDefaults.HOST
+        val issue = ConfigValidation.host(value)
+        if (issue != null) issues += issue
+        return value.takeIf { issue == null }
     }
 
     private fun number(
         environment: Map<String, String>,
         key: String,
         default: Int,
-        range: IntRange,
+        rangeIssue: (Int) -> ConfigIssue?,
         issues: MutableList<ConfigIssue>,
     ): Int? {
         val value = environment[key] ?: return default
         val parsed = if (DIGITS.matches(value)) value.toInt() else null
-        val kind = when {
-            parsed == null -> IssueKind.INVALID_VALUE
-            parsed !in range -> IssueKind.OUT_OF_RANGE
-            else -> null
-        }
-        if (kind != null) issues += ConfigIssue(key, kind)
-        return parsed.takeIf { kind == null }
+        val issue = if (parsed == null) ConfigIssue(key, IssueKind.INVALID_VALUE) else rangeIssue(parsed)
+        if (issue != null) issues += issue
+        return parsed.takeIf { issue == null }
     }
 
     private fun encryption(environment: Map<String, String>, issues: MutableList<ConfigIssue>): EncryptionSetting? {
-        val value = environment[ConfigKeys.ENCRYPTION_POLICY] ?: return EncryptionSetting.REQUIRED
+        val value = environment[ConfigKeys.ENCRYPTION_POLICY] ?: return ConfigDefaults.ENCRYPTION
         val setting = EncryptionSetting.entries.firstOrNull { it.name == value }
         if (setting == null) issues += ConfigIssue(ConfigKeys.ENCRYPTION_POLICY, IssueKind.INVALID_VALUE)
         return setting
@@ -163,25 +115,18 @@ object ConfigLoader {
         encryption: EncryptionSetting?,
         issues: MutableList<ConfigIssue>,
     ): TlsKeyMaterial? {
+        if (encryption == null) return null
         val store = environment[ConfigKeys.TLS_KEYSTORE_FILE]
         val password = environment[ConfigKeys.TLS_KEYSTORE_PASSWORD_FILE]
-        return when (encryption) {
-            null -> null
-
-            EncryptionSetting.TEST_UNENCRYPTED -> {
-                if (store != null) issues += ConfigIssue(ConfigKeys.TLS_KEYSTORE_FILE, IssueKind.CONFLICT)
-                if (password != null) issues += ConfigIssue(ConfigKeys.TLS_KEYSTORE_PASSWORD_FILE, IssueKind.CONFLICT)
-                null
-            }
-
-            EncryptionSetting.REQUIRED -> required(store, password, issues)
+        issues += ConfigValidation.pairing(encryption, hasKeystore = store != null, hasPassword = password != null)
+        return if (encryption == EncryptionSetting.REQUIRED && store != null && password != null) {
+            material(store, password, issues)
+        } else {
+            null
         }
     }
 
-    private fun required(store: String?, password: String?, issues: MutableList<ConfigIssue>): TlsKeyMaterial? {
-        if (store == null) issues += ConfigIssue(ConfigKeys.TLS_KEYSTORE_FILE, IssueKind.MISSING)
-        if (password == null) issues += ConfigIssue(ConfigKeys.TLS_KEYSTORE_PASSWORD_FILE, IssueKind.MISSING)
-        if (store == null || password == null) return null
+    private fun material(store: String, password: String, issues: MutableList<ConfigIssue>): TlsKeyMaterial? {
         val keystore = ConfigFiles.readBytes(ConfigKeys.TLS_KEYSTORE_FILE, store, issues)
         val secret = ConfigFiles.readBytes(ConfigKeys.TLS_KEYSTORE_PASSWORD_FILE, password, issues)
         return if (keystore == null || secret == null) null else TlsKeyMaterial(keystore, passwordOf(secret, issues))
