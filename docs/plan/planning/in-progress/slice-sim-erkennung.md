@@ -76,18 +76,21 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `src/main/kotlin/io/github/pt9912/tdswire/simulation/` <!-- d-check:ignore (geplant: neue Datei) --> | neu | Beschreibung, Scanner, Erkennung; importiert nur `domain` und `port` (Importregel SPEC-041) |
-| `src/test/kotlin/io/github/pt9912/tdswire/simulation/` <!-- d-check:ignore (geplant: neue Datei) --> | neu | Positiv- und Negativtests je Form, Eingabevariation je Grenzfall; `@spec`-Tag SPEC-035, SPEC-036 |
+| `src/main/kotlin/io/github/pt9912/tdswire/simulation/` | neu | Beschreibung, Scanner, Erkennung; importiert nur `domain` und `port` (Importregel SPEC-041) |
+| `src/test/kotlin/io/github/pt9912/tdswire/simulation/` | neu | Positiv- und Negativtests je Form, Eingabevariation je Grenzfall; `@spec`-Tag SPEC-035, SPEC-036 |
 
-Erweiterung der Liste im ersten Lauf (Ist-Zustand gemessen: `simulation` existiert weder in `src/main` noch in `src/test`; `ForbiddenImport/simulation` in `config/detekt/detekt.yml` liegt vor; `domain/SqlType` und `port/QueryBackend` tragen alles, was der Slice braucht; `ErrorCode` kennt `TDS_UNSUPPORTED_SQL`, `TDS_SIM_UNKNOWN_OBJECT` und `TDS_SIM_INVALID_VALUE`, liegt aber in `protocol` und ist für `simulation` gesperrt):
+Erweiterung der Liste im ersten Lauf (Ausgangslage gemessen: `simulation` existiert weder in `src/main` noch in `src/test`; `ForbiddenImport/simulation` in `config/detekt/detekt.yml` liegt vor; `domain/SqlType` und `port/QueryBackend` tragen alles, was der Slice braucht; `ErrorCode` kennt `TDS_UNSUPPORTED_SQL`, `TDS_SIM_UNKNOWN_OBJECT` und `TDS_SIM_INVALID_VALUE`, liegt aber in `protocol` und ist für `simulation` gesperrt):
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `simulation/SimModel.kt` <!-- d-check:ignore (geplant: neue Datei) --> | neu | `SimTable`, `SimColumn`, `SimQuery`, `RowFilter`, `FilterTerm`, `RowSource` nach SPEC-035; Validierung im Konstruktor; Namensvergleich ohne Beachtung der Schreibweise |
-| `simulation/SimTree.kt`, `SimDescriptionReader.kt`, `SimLoadException.kt` <!-- d-check:ignore (geplant: neue Datei) --> | neu | Baum aus Abbildung, Liste und Skalar mit Zeile und Spalte; reiner Leser ohne YAML-Bibliothek; Ladefehler mit Pfad, Zeile, Spalte |
-| `simulation/SqlScanner.kt`, `StatementParser.kt`, `Statement.kt` <!-- d-check:ignore (geplant: neue Datei) --> | neu | Zeichenscanner und Zuordnung zu S1, W1, W2, W3; Ergebnis aus Form, Tabelle, Spalten, Termen, Werten oder Parameterverweisen |
-| `simulation/StatementPlanner.kt`, `SimCodes.kt` <!-- d-check:ignore (geplant: neue Datei) --> | neu | Objektprüfung vor dem Lesen; Fehlercodes als Zeichenketten (`protocol` ist gesperrt) |
-| `src/test/kotlin/io/github/pt9912/tdswire/runtime/SimulationCodesTest.kt` <!-- d-check:ignore (geplant: neue Datei) --> | neu | `runtime` darf beide Seiten kennen: die Codes in `simulation` sind Namen von `ErrorCode` |
+| `simulation/SimModel.kt` | neu | `SimTable`, `SimColumn`, `SimQuery`, `RowFilter`, `FilterTerm`, `RowSource`, `SimCatalog` nach SPEC-035; Validierung im Konstruktor; Namensvergleich ohne Beachtung der Schreibweise |
+| `simulation/SimNames.kt` | neu | Vergleichsschlüssel für Namen ohne Beachtung der Schreibweise |
+| `simulation/SimTree.kt` | neu | Baum aus Abbildung, Liste und Skalar mit Zeile und Spalte; dazu `SimLoadException` (Ladefehler mit Pfad, Zeile, Spalte) |
+| `simulation/SimTreeAccess.kt`, `SimColumnTypes.kt`, `SimDescriptionReader.kt` | neu | Zugriff auf den Baum samt Pfadbereinigung, Typabbildung der Datei, reiner Leser ohne YAML-Bibliothek |
+| `simulation/SqlLexemes.kt`, `SqlScanner.kt` | neu | Zeichenscanner: Teilschritte (Kommentare, Begrenzer, Wortzeichen je Codepunkt) und Token |
+| `simulation/StatementParser.kt`, `Statement.kt` | neu | Zuordnung zu S1, W1, W2, W3; Ergebnis aus Form, Tabelle, Spalten, Termen, Werten oder Parameterverweisen |
+| `simulation/StatementPlanner.kt` | neu | Objektprüfung vor dem Lesen; dazu `SimCodes` (Fehlercodes als Zeichenketten, `protocol` ist gesperrt) |
+| `src/test/kotlin/io/github/pt9912/tdswire/runtime/SimulationCodesTest.kt` | neu | `runtime` darf beide Seiten kennen: die Codes in `simulation` sind Namen von `ErrorCode` |
 
 - Die Überführung von Literal und Parameter in den Spaltentyp (SPEC-035) gehört nach der DoD von [slice-sim-auswahl-streaming](../open/slice-sim-auswahl-streaming.md); dieser Slice liefert Literale als `Number`/`Text`/`Null`/`Parameter` unüberführt.
 - Belegstand von d-migrate (§6): Release-Liste am 2026-10-31 abgerufen, neuestes Release `v1.12.0` (2026-10-27) wie der Belegstand; kein Erneuern nötig.
@@ -102,7 +105,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next` (zu groß, zurück zur Zerlegung): mehr als drei Liefer-Punkte in §2 oder der Scanner sprengt den Rahmen; Schnittvorschlag: Beschreibung und Erkennung als zwei Slices.
+- `in-progress` → `next` (zu groß, zurück zur Zerlegung): mehr als drei Liefer-Punkte in §2, mehr als 1500 Zeilen Quelltext unter `simulation` in `src/main` oder mehr als 3500 Zeilen unter `simulation` in `src/test` (Setzung; Ist bei der Fix-Runde: rund 1050 und rund 2500, gezählt mit `wc -l`); Schnittvorschlag: Beschreibung und Erkennung als zwei Slices.
 - `in-progress` → `open` (blockiert — Carveout?): [ADR-0012](../../adr/0012-simulations-backend-beschreibung-und-formen.md) wird durch eine Folge-ADR abgelöst oder ist nicht `Accepted`.
 
 ## 5. Closure-Trigger
@@ -126,7 +129,7 @@ dasteht.
 - Ein Test, der eine Auswahl- oder Gleichheitseigenschaft mit einheitlicher Eingabe behauptet, bleibt bei jeder Mutation grün (`BEO-TDS/strukturtest-ohne-variation-der-eingabe`); ein Zähler ohne Untergrenze prüft nichts (`BEO-TDS/schranken-test-mit-ungeprueftem-zaehler`). Die Tests variieren die Eingabe, die Attrappe hat einen positiven Kontrollfall. — **Ausgang:** offen bis zur Closure.
 - Groß-/Kleinschreibung und `"…"` als Bezeichner sind in [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md) an einer Instanz in einer Stichprobe bestätigt; die Tests führen das als Festlegung, nicht als Messung. — **Ausgang:** offen bis zur Closure.
 - Die Lesart der Liste „Nicht erkannt“ gegenüber dem Lastenheft ist in [slice-adr-simulation-formen](../done/slice-adr-simulation-formen.md) zu belegen; weicht die ADR von der Liste ab, folgt dieser Slice der ADR. [ADR-0012](../../adr/0012-simulations-backend-beschreibung-und-formen.md) belegt die Deckung je Einzelfall (Abschnitt „Deckung der Liste ‚Nicht erkannt‘“); die Lesart „die positive Aufzählung ist abschließend“ hat der Nutzer nicht ausdrücklich bestätigt; SPEC-036 führt sie als Setzung, und die Bestätigung ist Offen 12 der ADR (Träger: Risikozeile in [slice-adr-simulation-formen](../done/slice-adr-simulation-formen.md)). — **Ausgang:** offen bis zur Closure.
-- Größe: Der erste Liefer-Punkt trägt jetzt Typen, Validierung, Schlüssel, Leser vom Baum, Typabbildung und Ladefehler; er ist der größte der drei. Wächst er über den Rahmen, ist der Schnitt „Tabellenbeschreibung samt Leser“ und „Anweisungserkennung“ als zwei Slices (siehe §4, Rückführung `in-progress` → `next`). — **Ausgang:** offen bis zur Closure.
+- Größe: Der erste Liefer-Punkt trägt jetzt Typen, Validierung, Schlüssel, Leser vom Baum, Typabbildung und Ladefehler; er ist der größte der drei. Wächst der Slice über das Maß aus §4 (Zeilen, Liefer-Punkte), ist der Schnitt „Tabellenbeschreibung samt Leser“ und „Anweisungserkennung“ als zwei Slices (siehe §4, Rückführung `in-progress` → `next`). — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 

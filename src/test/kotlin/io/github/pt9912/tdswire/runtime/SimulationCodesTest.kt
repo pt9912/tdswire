@@ -4,6 +4,7 @@ import io.github.pt9912.tdswire.protocol.error.ErrorCode
 import io.github.pt9912.tdswire.simulation.SimCodes
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 /** `runtime` kennt `simulation` und `protocol`; hier hält ein Test die Namen der Fehlercodes gegeneinander. */
 internal class SimulationCodesTest {
@@ -17,5 +18,21 @@ internal class SimulationCodesTest {
     fun `die Fehlercodes der Simulation sind Codes des Protokolls`() {
         assertEquals(ErrorCode.TDS_UNSUPPORTED_SQL, ErrorCode.valueOf(SimCodes.UNSUPPORTED_SQL))
         assertEquals(ErrorCode.TDS_SIM_UNKNOWN_OBJECT, ErrorCode.valueOf(SimCodes.UNKNOWN_OBJECT))
+    }
+
+    /**
+     * Jede Konstante von `SimCodes` ist ein Code des Protokolls, nicht nur die beiden bekannten: ein dritter Code
+     * in `SimCodes` ohne Entsprechung macht diesen Test rot. Die beiden bekannten Codes müssen darunter sein, sonst
+     * hätte die Aufzählung nichts gefunden.
+     * @spec SPEC-037
+     * @spec SPEC-038
+     */
+    @Test
+    fun `jede Konstante von SimCodes ist ein Code des Protokolls`() {
+        val constants = SimCodes::class.java.declaredFields
+            .filter { java.lang.reflect.Modifier.isStatic(it.modifiers) && it.type == String::class.java }
+            .map { it.get(null) as String }
+        for (name in constants) ErrorCode.valueOf(name)
+        assertTrue(constants.containsAll(listOf(SimCodes.UNSUPPORTED_SQL, SimCodes.UNKNOWN_OBJECT)), "$constants")
     }
 }

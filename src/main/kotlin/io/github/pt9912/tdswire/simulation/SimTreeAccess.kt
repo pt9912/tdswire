@@ -10,12 +10,27 @@ internal object SimTreeAccess {
 
     fun fail(path: String, at: SimPosition, reason: String): Nothing = throw SimLoadException(path, at, reason)
 
-    /** Der Pfad des Eintrags [key] unter [path]; der Abschnitt wird gekürzt und von Steuerzeichen befreit. */
+    /**
+     * Der Pfad des Eintrags [key] unter [path]. Der Abschnitt hat höchstens [SimLoadException.MAX_SEGMENT]
+     * Codepunkte (ein Ersatzzeichenpaar wird nicht getrennt); Steuer-, Format-, Zeilen- und Absatztrennzeichen
+     * (Kategorien `Cc`, `Cf`, `Zl`, `Zp`) und einzelne Ersatzzeichen (`Cs`) werden zu `?`.
+     */
     fun child(path: String, key: String): String {
-        val cut = key.take(SimLoadException.MAX_SEGMENT)
-        val clean = cut.map { if (it.isISOControl()) '?' else it }.joinToString("")
-        val segment = if (cut.length < key.length) "$clean…" else clean
+        val points = key.codePoints().toArray()
+        val clean = StringBuilder()
+        for (cp in points.take(SimLoadException.MAX_SEGMENT)) {
+            clean.appendCodePoint(if (isUnsafe(cp)) '?'.code else cp)
+        }
+        val segment = if (points.size > SimLoadException.MAX_SEGMENT) "$clean…" else clean.toString()
         return if (path == ROOT) segment else "$path.$segment"
+    }
+
+    private fun isUnsafe(cp: Int): Boolean = when (Character.getType(cp).toByte()) {
+        Character.CONTROL, Character.FORMAT, Character.LINE_SEPARATOR, Character.PARAGRAPH_SEPARATOR,
+        Character.SURROGATE,
+        -> true
+
+        else -> false
     }
 
     fun item(path: String, index: Int): String = "$path[$index]"

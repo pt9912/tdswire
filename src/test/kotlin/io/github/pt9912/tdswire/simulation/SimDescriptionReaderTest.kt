@@ -25,6 +25,19 @@ class SimDescriptionReaderTest {
     /** Ein Dokument mit der einen Tabelle `t`. */
     private fun tableDoc(columns: SimNode, key: SimNode): SimMap = b.doc(b.m("t" to b.table(columns, key)))
 
+    /** Die Stellen aller Schlüssel namens [key] im Baum [node]; ein Test vergleicht damit die Stelle eines Fehlers. */
+    private fun keyPositions(node: SimNode, key: String): List<SimPosition> = when (node) {
+        is SimScalar -> emptyList()
+
+        is SimList -> node.items.flatMap { keyPositions(it, key) }
+
+        is SimMap -> node.entries.flatMap {
+            (if (it.key == key) listOf(it.keyPosition) else emptyList()) + keyPositions(it.value, key)
+        }
+    }
+
+    private fun SimTable.shape() = listOf(schema, name, columns, primaryKey, onInsert, onUpdate, onDelete)
+
     private fun one(cols: Map<String, String>, key: List<String>): SimTable = load(b.simple(cols, key)).single()
 
     /**
@@ -181,7 +194,7 @@ class SimDescriptionReaderTest {
         val base = one(mapOf("c" to "integer"), listOf("c"))
         for (key in document) {
             val tree = b.doc(b.m("t" to b.table(b.m("c" to b.col("integer")), b.keys("c"))), key to b.s("x"))
-            assertEquals(listOf(base), load(tree).map { it.copy(rows = base.rows) }, key)
+            assertEquals(listOf(base.shape()), load(tree).map { it.shape() }, key)
         }
         for (key in table) {
             val tree = b.doc(b.m("t" to b.table(b.m("c" to b.col("integer")), b.keys("c"), key to b.s("x"))))
@@ -213,6 +226,7 @@ class SimDescriptionReaderTest {
             val error = failure(tree)
             assertEquals("Feld unbekannt", error.reason, key)
             assertTrue(error.path.endsWith(key), error.path)
+            assertEquals(listOf(error.position), keyPositions(tree, key), "Stelle des Schlüssels $key")
         }
         assertEquals(7, cases.size)
     }
@@ -391,9 +405,16 @@ class SimDescriptionReaderTest {
     fun `prüft precision und scale bei decimal`() {
         fun decimal(vararg extra: Pair<String, SimNode>): SimMap =
             b.doc(b.m("t" to b.table(b.m("c" to b.col("decimal", *extra)), b.keys("c"))))
-        assertEquals("precision fehlt bei decimal", failure(decimal("scale" to b.s("2"))).reason)
-        assertEquals("scale fehlt bei decimal", failure(decimal("precision" to b.s("5"))).reason)
-        assertEquals("precision fehlt bei decimal", failure(decimal()).reason)
+        fun missing(vararg extra: Pair<String, SimNode>): SimLoadException {
+            val column = b.col("decimal", *extra)
+            val error = failure(b.doc(b.m("t" to b.table(b.m("c" to column), b.keys("c")))))
+            assertEquals("tables.t.columns.c", error.path)
+            assertEquals(column.position, error.position, "Stelle der Spalte")
+            return error
+        }
+        assertEquals("precision fehlt bei decimal", missing("scale" to b.s("2")).reason)
+        assertEquals("scale fehlt bei decimal", missing("precision" to b.s("5")).reason)
+        assertEquals("precision fehlt bei decimal", missing().reason)
         val tooBig = b.s("39")
         val big = failure(decimal("precision" to tooBig, "scale" to b.s("2")))
         assertEquals("tables.t.columns.c.precision", big.path)
@@ -436,6 +457,8 @@ class SimDescriptionReaderTest {
         val dupError = failure(b.doc(b.m("t" to b.table(dup, b.keys("c0")))))
         assertEquals("ordinal doppelt", dupError.reason)
         assertEquals("tables.t.columns.c1.ordinal", dupError.path)
+        val secondOrdinal = (dup.entries[1].value as SimMap).entries.single { it.key == "ordinal" }.value
+        assertEquals(secondOrdinal.position, dupError.position)
         val zeroOrdinal = failure(tableDoc(b.m("c0" to b.col("integer", "ordinal" to b.s("0"))), b.keys("c0")))
         assertEquals("tables.t.columns.c0.ordinal", zeroOrdinal.path)
     }
@@ -514,9 +537,15 @@ class SimDescriptionReaderTest {
         val dotted = failure(tableDoc(b.m("i" to b.col("integer"), "İ" to b.col("integer")), b.keys("i")))
         assertEquals("tables.t.columns.İ", dotted.path)
         val emptyTable = b.m("" to tbl())
-        assertEquals("Name leer", failure(b.doc(emptyTable)).reason)
+        val emptyTableError = failure(b.doc(emptyTable))
+        assertEquals("Name leer", emptyTableError.reason)
+        assertEquals("tables.", emptyTableError.path)
+        assertEquals(emptyTable.entries.single().keyPosition, emptyTableError.position)
         val emptyColumn = b.m("" to b.col("integer"))
-        assertEquals("Name leer", failure(b.doc(b.m("t" to b.table(emptyColumn, b.keys("x"))))).reason)
+        val emptyColumnError = failure(b.doc(b.m("t" to b.table(emptyColumn, b.keys("x")))))
+        assertEquals("Name leer", emptyColumnError.reason)
+        assertEquals("tables.t.columns.", emptyColumnError.path)
+        assertEquals(emptyColumn.entries.single().keyPosition, emptyColumnError.position)
         val sharp = load(b.doc(b.m("a" to tbl(), "ß" to tbl(), "SS" to tbl())))
         assertEquals(3, sharp.size)
     }
@@ -576,6 +605,30 @@ class SimDescriptionReaderTest {
         val control = failure(b.doc(b.m("a\nb\u0000c" to b.l())))
         assertEquals("tables.a?b?c", control.path)
         assertFalse(control.message.orEmpty().contains('\n'))
+    }
+
+    /**
+     * Zeilen- und Absatztrenner (U+2028, U+2029), Formatzeichen der Schreibrichtung (U+202E, U+200B) und ein
+     * einzelnes Ersatzzeichen werden im Pfadabschnitt zu `?`; ein Paar außerhalb der Grundebene bleibt ganz, auch
+     * an der Kürzungsgrenze.
+     * @spec SPEC-035
+     */
+    @Test
+    fun `ersetzt Format- und Trennzeichen im Pfadabschnitt`() {
+        val cases = mapOf(
+            "a\u2028b" to "a?b",
+            "a\u2029b" to "a?b",
+            "a\u202Eb" to "a?b",
+            "a\u200Bb" to "a?b",
+            "a\u0085b" to "a?b",
+            "a\uD800b" to "a?b",
+        )
+        for ((key, expected) in cases) assertEquals("tables.$expected", failure(b.doc(b.m(key to b.l()))).path, key)
+        assertEquals(6, cases.size)
+        val astral = "\uD840\uDC00"
+        assertEquals("tables.$astral", failure(b.doc(b.m(astral to b.l()))).path)
+        val atLimit = "x".repeat(63) + astral + "y"
+        assertEquals("tables." + "x".repeat(63) + astral + "…", failure(b.doc(b.m(atLimit to b.l()))).path)
     }
 
     /**

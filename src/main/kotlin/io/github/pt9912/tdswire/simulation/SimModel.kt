@@ -10,6 +10,10 @@ const val DEFAULT_SCHEMA = "dbo"
  * der Datei gleichermaßen: Spaltennamen sind ohne Beachtung der Schreibweise eindeutig, es gibt mindestens
  * eine Spalte und einen Schlüssel, jeder Schlüsseleintrag nennt eine vorhandene, nicht nullbare Spalte
  * (Setzung, nicht am Server gemessen). Der Schlüssel wirkt weder auf Resultset noch auf Callbacks.
+ *
+ * `columns` und `primaryKey` werden nicht kopiert: ein Konstruktor mit acht Parametern erlaubt die Regel
+ * `LongParameterList` nur an einer `data class`, und deren Konstruktor kann die Listen nicht ersetzen. Der Aufrufer
+ * ändert sie nach der Übergabe nicht; [column] liest einen Index, der bei der Übergabe gebaut wurde.
  */
 data class SimTable(
     val schema: String = DEFAULT_SCHEMA,
@@ -43,10 +47,16 @@ data class SimTable(
     fun column(columnName: String): SimColumn? = byName[SimNames.fold(columnName)]
 }
 
-/** Eine Spalte; der Typ stammt aus dem Mindestkatalog von [SqlType], [nullable] sagt, ob NULL vorkommen darf. */
+/**
+ * Eine Spalte; der Typ stammt aus dem Mindestkatalog von [SqlType], [nullable] sagt, ob NULL vorkommen darf.
+ * Eine Dezimalzahl hat höchstens 38 Stellen (`SPEC-003`); die Grenze gilt für Schnittstelle und Datei.
+ */
 data class SimColumn(val name: String, val type: SqlType, val nullable: Boolean = true) {
     init {
         require(name.isNotEmpty()) { "Spaltenname darf nicht leer sein" }
+        require(type !is SqlType.Decimal || type.precision <= SimColumnTypes.MAX_PRECISION) {
+            "Spalte $name: Precision über ${SimColumnTypes.MAX_PRECISION}"
+        }
     }
 }
 
@@ -78,7 +88,10 @@ fun interface RowSource {
  * Der Satz beschriebener Tabellen. Tabellen sind über Schema und Name ohne Beachtung der Schreibweise
  * eindeutig (Setzung, nicht am Server gemessen).
  */
-class SimCatalog(val tables: List<SimTable>) {
+class SimCatalog(tables: List<SimTable>) {
+    /** Die Tabellen in der übergebenen Reihenfolge; eine Kopie der übergebenen Liste. */
+    val tables: List<SimTable> = tables.toList()
+
     private val byKey: Map<String, SimTable>
 
     init {

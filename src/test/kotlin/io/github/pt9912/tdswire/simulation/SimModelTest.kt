@@ -98,4 +98,36 @@ class SimModelTest {
         assertFailsWith<IllegalArgumentException> { SimCatalog(listOf(dbo, upper)) }
         assertFailsWith<IllegalArgumentException> { SimCatalog(listOf(dbo, dbo)) }
     }
+
+    /**
+     * Eine Spalte mit mehr als 38 Stellen wird in der Schnittstelle abgewiesen, 38 ist erlaubt.
+     * Precision.
+     * @spec SPEC-035
+     */
+    @Test
+    fun `weist eine Dezimalspalte über 38 Stellen ab`() {
+        assertFailsWith<IllegalArgumentException> { SimColumn("d", SqlType.Decimal(39, 0)) }
+        assertFailsWith<IllegalArgumentException> { SimColumn("d", SqlType.Decimal(50, 0)) }
+        assertEquals(SqlType.Decimal(38, 38), SimColumn("d", SqlType.Decimal(38, 38)).type)
+        assertEquals(SqlType.Decimal(1, 0), SimColumn("d", SqlType.Decimal(1, 0)).type)
+    }
+
+    /**
+     * Der Katalog kopiert die übergebene Liste, die Tabelle hält ihren Spaltenindex vom Zeitpunkt der Übergabe: eine
+     * spätere Änderung der übergebenen Listen verschiebt den Index nicht und lässt den Katalog nicht auseinanderfallen.
+     * @spec SPEC-035
+     */
+    @Test
+    fun `hält Katalog und Spaltenindex gegen spätere Änderungen der Listen`() {
+        val columns = mutableListOf(id)
+        val t = table(columns, listOf("id"))
+        columns += SimColumn("late", SqlType.Int32)
+        assertNull(t.column("late"))
+
+        val tables = mutableListOf(t)
+        val catalog = SimCatalog(tables)
+        tables += table(listOf(id), listOf("id"), name = "later")
+        assertEquals(listOf(t), catalog.tables)
+        assertNull(catalog.find(null, "later"))
+    }
 }
