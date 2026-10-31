@@ -118,6 +118,7 @@ dasteht.
 - Laufzeit des Integrationstests im Gate: ungemessen; ein langsames Gate verleitet zum Herausnehmen — die Messung steht in der Closure, die Aufnahme in `make gates` folgt ihr. — **Ausgang:** offen bis zur Closure.
 - Doppelung mit [slice-qa-kompatibilitaet](slice-qa-kompatibilitaet.md) (Frage 4): Laufen deren Szenarien S3 bis S10 gegen das Simulations-Backend, ist der Start-Trigger jenes Slice zu ergänzen; die Szenarien dürfen nicht zweimal geschrieben werden. — **Ausgang:** offen bis zur Closure.
 - Der Integrationslauf belegt das Verhalten des Referenzclients gegen den Server dieses Repos, nicht gegen einen echten SQL Server (`BEO-TDS/messung-am-echten-sql-server-fehlt`). — **Ausgang:** offen bis zur Closure.
+- Die Tabellenbeschreibung `SimTable` behält die übergebenen Listen `columns` und `primaryKey` unkopiert (acht Konstruktorparameter, `LongParameterList` des Gates erlaubt sechs); Index und Validierung gelten nur zum Zeitpunkt der Übergabe, ändert der Integrator die Liste danach, stehen sie auseinander (`BEO-TDS/listen-ohne-kopie-wegen-parameterzahl-gate`, aus [slice-sim-erkennung](../in-progress/slice-sim-erkennung.md)). Wo dieser Slice `SimTable` aus Listen des Integrators erzeugt (Schnittstelle und Adapter), kopiert er sie dort (Fabrikaufruf oder sekundärer Konstruktor, ohne die Schwelle zu lockern) oder weist den Weg ab; ein Zuschnitt von `SimTable` auf weniger Parameter oder das Lockern von `LongParameterList` (ADR, `AGENTS.md` §3.6) ist Entscheidung des Nutzers. — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 

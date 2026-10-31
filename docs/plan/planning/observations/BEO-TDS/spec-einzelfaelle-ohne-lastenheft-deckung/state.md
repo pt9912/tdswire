@@ -1,1 +1,1 @@
-**Stand:** offen — über der Schwelle (3×), bei den Closures von welle-transport-tls und welle-handshake-login gelesen und nicht verkörpert; Entscheidung beim Nutzer (Lastenheft-Nachzug, Deckungsnachweis je Einzelfall oder Streichung). Der frühere Lese-Termin (Closure von welle-simulations-backend) ist damit vorgezogen.
+**Stand:** offen — über der Schwelle (4×), bei den Closures von welle-transport-tls, welle-handshake-login und slice-sim-erkennung gelesen und nicht verkörpert; Entscheidung beim Nutzer (Lastenheft-Nachzug, Deckungsnachweis je Einzelfall oder Streichung).

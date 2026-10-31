@@ -28,10 +28,6 @@ In Arbeit (Welle welle-anfrageverarbeitung):
 
 - [slice-rpc-executesql-parameter](slice-rpc-executesql-parameter.md)
 
-In Arbeit (Welle welle-simulations-backend):
-
-- [slice-sim-erkennung](slice-sim-erkennung.md)
-
 In Arbeit (Welle welle-qualitaet-grundlage):
 
 - [slice-qa-wartbarkeit](slice-qa-wartbarkeit.md)

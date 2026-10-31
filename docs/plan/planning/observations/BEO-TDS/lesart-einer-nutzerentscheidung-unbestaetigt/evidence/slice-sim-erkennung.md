@@ -1,0 +1,2 @@
+**Vorgang:** slice-sim-erkennung
+**Fund:** Offen 12 (a) in [ADR-0012](../../../../../adr/0012-simulations-backend-beschreibung-und-formen.md), im Slice gebaut: Die Lesart „die positive Aufzählung ist abschließend“ trägt die Negativtests der Liste „Nicht erkannt“ (`StatementFormsTest`, `assertOnlyExtensionFails`) und steht in Parser-KDoc, Test-KDoc und `SPEC-036` als Setzung. Der Nutzer hat sie nicht bestätigt; die Verifikation führt sie als Closure-Ausgang „weiter offen“ ([Verifikation](../../../../../../reviews/2026-10-31-b339b77-verifikation-slice-sim-erkennung.md)).
