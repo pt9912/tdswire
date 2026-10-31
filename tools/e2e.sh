@@ -46,4 +46,8 @@ echo "e2e: Stufe 4 Referenztest-Gerüst ..."
 e2e_abdeckung "TDS-RB-02" "Das versionierte Testprojekt baut gesperrt und läuft, der Smoke-Test verbindet zu einem unbelegten Port und erhält eine SqlException. Nicht belegt: irgendein Serververhalten, kein Serverprozess läuft" "make referenztest-dotnet"
 lauf 4 make referenztest-dotnet FORCE=1
 
-echo "e2e: gruen (4 Stufen, $SECONDS s)"
+echo "e2e: Stufe 5 Referenzclient: Szenarien gegen den Serverprozess ..."
+e2e_abdeckung "TDS-FA-01 TDS-FA-02 TDS-FA-03 TDS-FA-04 TDS-FA-05 TDS-FA-06 TDS-QA-01 TDS-RB-02" "Microsoft.Data.SqlClient 7.1.1 in einem zweiten Container gegen den Serverprozess mit Einstieg runServer im Test-Quelltext (Richtlinie REQUIRED), TDS 7.4 mit TLS, Kette und Name geprüft: Anmeldung, gleiche Ablehnung bei falschem Kennwort und unbekanntem Benutzer, Auswahl im Batch mit Bedingung, Stern, NULL und neun Typen des Mindestkatalogs, parametrisierte Abfrage (Int, Text) und Einfügen mit NULL-Parameter, Einfügen, Ändern und Löschen mit Zeilenzahl, Fehler vor Zeilen (Verbindung geschlossen), außerhalb der Formen und nach Zeilen (Verbindung nutzbar); gemessen als Abweisung: zwei Anweisungen in einem Text, InputOutput-Parameter ohne Rückgabewert. Nicht belegt: mehrteilige Antworten und Ausgabewerte (das Simulations-Backend liefert sie nicht), Cancel (CO-004), andere Typen des Clients, ein echter SQL Server" "make kompatibilitaet KATEGORIE=Szenario"
+lauf 5 make kompatibilitaet KATEGORIE=Szenario
+
+echo "e2e: gruen (5 Stufen, $SECONDS s)"

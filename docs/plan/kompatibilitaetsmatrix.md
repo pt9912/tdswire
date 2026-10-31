@@ -6,9 +6,9 @@ Abdeckungs-Dokument zu [TDS-QA-05](../../spec/lastenheft.md#tds-qa-05--wartbarke
 
 **Stand des Belegs:** `docker build --target test --no-cache-filter test`, Basis ist der Merge-Stand `68598df` vom 2026-10-31: 775 Testfälle in 106 Klassen, alle bestanden, keiner rot, keiner übersprungen; der Tag `@spec` in `LizenzTest` ist ein Kommentar und ändert keinen Testfall. Ein Zitat in dieser Datei gilt nur für diesen Lauf; die Datei nennt den Stand, sie hält ihn nicht fest. Ob sie noch zum Quelltext passt, sagt `git diff --stat 68598df..HEAD -- src/main` (leer: sie passt; sonst gilt der Auslöser im Abschnitt „Pflege“). Seit `68598df` ändern nur KDoc, kein Verhalten: `config/ConfigFiles.kt` und `protocol/dispatch/RequestLoop.kt`; die Zeilen der Matrix bleiben richtig. Ob jedes Zitat im Bericht als `PASSED` steht, prüft `make matrix-zitate`.
 
-**Herkunft der Bestandszeilen.** Die Stufen der Spalte „Herkunft“ stammen für die Zeilen, die schon im Stand `bda6cd6` standen, aus den Closure-Notizen der genannten Slices und sind für diesen Stand **nicht neu gemessen**; geändert sind dort nur Status, Test und die Sätze, die der Quelltext widerlegt. Zeilen, die dieser Stand neu aufnimmt, nennen ihre Stufe aus `spec/spezifikation.md` und den KDoc der Tests (Setzung, Handvektor, Selbstkonsistenz); keine Zeile ist am Referenzclient gemessen.
+**Herkunft der Bestandszeilen.** Die Stufen der Spalte „Herkunft“ stammen für die Zeilen, die schon im Stand `bda6cd6` standen, aus den Closure-Notizen der genannten Slices und sind für diesen Stand **nicht neu gemessen**; geändert sind dort nur Status, Test und die Sätze, die der Quelltext widerlegt. Zeilen, die dieser Stand neu aufnimmt, nennen ihre Stufe aus `spec/spezifikation.md` und den KDoc der Tests (Setzung, Handvektor, Selbstkonsistenz); keine Zeile der Abschnitte 1 bis 6 ist am Referenzclient gemessen; Abschnitt 7 führt die Messungen.
 
-**Referenzclient: nicht gemessen.** Keine Zeile dieser Matrix belegt, dass der .NET-Referenzclient (`Microsoft.Data.SqlClient` 7.1.1) die Aussage annimmt. Das Projekt `referenztest-dotnet` enthält allein `KeinServerSmokeTests`, es spricht mit keinem Server. Träger der Messung am Referenzclient ist `slice-qa-kompatibilitaet`.
+**Referenzclient.** Keine Zeile der Abschnitte 1 bis 6 belegt, dass der .NET-Referenzclient (`Microsoft.Data.SqlClient` 7.1.1) die Aussage annimmt. Was am Referenzclient gegen den Serverprozess gemessen ist, steht in Abschnitt 7; es sind Läufe des E2E-Durchgangs (`make kompatibilitaet`), keine Testfälle der Stage `test`, und `make matrix-zitate` prüft sie nicht.
 
 ## Herkunft der Aussage
 
@@ -22,6 +22,7 @@ Die Spalte „Herkunft“ nennt, wie weit die Aussage trägt. Die Stufen aus den
 | Selbstkonsistenz | Code gegen Code (Roundtrip, Fuzz mit festem Startwert); belegt keine Protokolltreue |
 | Festlegung | Setzung ohne Messung und ohne unabhängigen Vektor, im KDoc des Elements so gekennzeichnet |
 | nicht gemessen | ausdrücklich ungeprüft |
+| gemessen (Referenzclient, Serverprozess) | im E2E-Lauf `make kompatibilitaet` mit `Microsoft.Data.SqlClient` 7.1.1 gegen den Serverprozess dieses Repos beobachtet (Abschnitt 7): Simulations-Backend mit den Tabellen des Testservers, kein Microsoft-SQL-Server, ein Lauf je Zeile |
 
 ## 1. Nachrichten der Anfrageseite
 
@@ -138,7 +139,7 @@ Jede Zeile nennt Gegenstand, Ist und Träger. „Kein Träger“ heißt: keine S
 
 | # | Lücke | Ist | Träger |
 |---|---|---|---|
-| 1 | Referenzclient-Abdeckung | **nicht gemessen**: kein Szenario läuft gegen den Server (`referenztest-dotnet` hat nur `KeinServerSmokeTests`) | `slice-qa-kompatibilitaet` |
+| 1 | Referenzclient-Abdeckung | **teilweise gemessen**: Abschnitt 7 führt die Szenarien und Messungen des Referenzclients gegen den Serverprozess; nicht gemessen bleiben Cancel (Lücke 12), mehrteilige Antworten mit Ausgabewerten und ein echter SQL Server (Lücke 8) | `slice-qa-kompatibilitaet` |
 | 2 | PLP/MAX in RPC-Parametern | Abweichung von [ADR-0005](adr/0005-rpc-und-prepared-statements.md) und `SPEC-003`: die ganze Nachricht wird abgelehnt (3b); PLP auf der Antwortseite fehlt ebenso (2a) | `slice-codec-datentypen-erweiterung` |
 | 3 | `xml` als RPC-Parameter | Abweichung von `SPEC-003`: `INVALID_TYPE`, im Dispatch `TDS_UNSUPPORTED_TYPE` mit Schließen (3b) | `slice-qa-kompatibilitaet` (DoD, Punkt „Lücken 3, 4 und 14“): am Referenzclient gemessen und nachgetragen, oder mit Begründung als nicht lieferbar benannt |
 | 4 | Batch-Flag (mehrere RPCs in einer Nachricht) | nicht erkannt, kein Test (3a) | `slice-qa-kompatibilitaet` (DoD, Punkt „Lücken 3, 4 und 14“): am Referenzclient gemessen und nachgetragen, oder mit Begründung als nicht lieferbar benannt; [ADR-0005](adr/0005-rpc-und-prepared-statements.md) führt es unter „Nicht gemessen“ |
@@ -153,6 +154,7 @@ Jede Zeile nennt Gegenstand, Ist und Träger. „Kein Träger“ heißt: keine S
 | 13 | Handle-Verwaltung (`sp_prepexec`, `sp_execute`, `sp_unprepare`) | nicht gebaut: der Dispatch lehnt die Formen ab (3a). Ausführung von SQL_BATCH und RPC (`sp_executesql`, per Name) und die Fehlerantwort auf eine unbekannte RPC-Form sind gebaut und stehen in 1, 2 und 3a | `slice-rpc-prepared-handles` |
 | 14 | LOGIN7 mit SSPI, Kennwortwechsel, FeatureExt `0x02` | abgelehnt (1) | Ablehnung ist Festlegung ([ADR-0009](adr/0009-authentifizierungsmodus.md)); Windows-SSPI (NTLM): in der DoD von `slice-qa-kompatibilitaet` genannt, nach [ADR-0019](adr/0019-kompatibilitaetstests-zuschnitt.md) (`Proposed`) als nicht lieferbar vorgeschlagen (Einschätzung, nicht gemessen); Kennwortwechsel und FeatureExt `0x02`: `slice-qa-kompatibilitaet` (DoD, Punkt „Lücken 3, 4 und 14“), am Referenzclient gemessen und nachgetragen, oder mit Begründung als nicht lieferbar benannt |
 | 15 | RPC-Parametertypen, die der Parser liest und der Dispatch ablehnt: `tinyint`, `smallint`, `float`, `real`, `money`, `smallmoney`, `datetime`, `smalldatetime`, `uniqueidentifier`, `datetimeoffset`, `char`, `varchar`, `binary`, `varbinary` | Abweichung von `SPEC-003` (nennt `smallint`, `float`, `real` unter den beobachteten RPC-Parametertypen): ERROR `TDS_UNSUPPORTED_RPC` (50002) ohne Backend-Aufruf, die Verbindung bleibt offen (3b); `SqlType` führt diese Typen nicht | `slice-codec-datentypen-erweiterung` (nennt `smallint`, `char`, `float`, GUID, binär und Zonenzeit als Erweiterung des Typkatalogs) |
+| 16 | Mehrteilige Antworten und Ausgabewerte ([TDS-FA-10](../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte)) am Referenzclient | **nicht lieferbar mit dem Simulations-Backend**: zwei Anweisungen in einem Text gibt es nicht (`Unsupported SQL.`, 50001), ein Ausgabeparameter bekommt keinen Rückgabewert (7a); der Codec baut die Antwortform (Abschnitt 2), kein Backend füllt sie | `slice-qa-kompatibilitaet` §6 (Ausgang: weiter offen; ein Träger der Backend-Seite ist nicht benannt) |
 
 ## 6. Modulgrenzen (Wartbarkeit)
 
@@ -193,6 +195,27 @@ Die Ist-Spalte stammt aus `grep` über die `import`-Zeilen von `src/main`. Voll 
 | Der Port ist ohne Protokoll testbar | `src/test/.../port` importiert nur `domain` (14 Importe); `ScriptedBackendContractTest` (9 Testfälle, bestanden, z. B. `ScriptedBackendContractTest > Ergebnis kommt vollstaendig und in Reihenfolge an`) prüft den Vertrag gegen ein skriptbares Backend ohne Codec; dieselben 9 Fälle laufen gegen das Simulations-Backend (`SimulationBackendContractTest > Ergebnis kommt vollstaendig und in Reihenfolge an`), und `src/test/.../simulation` importiert nur `domain` und `port` |
 | Die Kernregeln gelten für Testquellen | die Regeln `ForbiddenImport/domain` und `ForbiddenImport/port` gelten über `includes` für Main- und Test-Quellsatz; ein Test im Kern importiert nur, was die Erlaubnisliste nennt |
 | Grenze der Aussage | der Dispatch (Anfrage → Backend) ist gebaut: `protocol` importiert `port` (`RequestLoop`, `ResponseSequencer`), und die Tests sprechen über `ScriptedBackend` mit beiden Seiten. `runtime` bindet das Simulations-Backend ein (`SimulationSetup`, `Bootstrap`); ein Test fährt Protokoll und Simulations-Backend zusammen über einen Socket durch den Server (`SimulationWiringTest > eine Tabelle aus der Datei liefert Metadaten und ein leeres Ergebnis`, `SimulationWiringTest > Tabellen des Integrators und der Datei stehen im selben Katalog`); die Antworten eines echten SQL Servers sind damit nicht verglichen (Lücke 8) |
+
+## 7. Am Referenzclient gemessen (E2E-Lauf `make kompatibilitaet`)
+
+Quelle der Zeilen sind die Messzeilen (`messung: ...`) im Bericht des Laufs und die Zeilen `kompatibilitaet: anfrage` im Log des Servers; die Tests pinnen die Werte. Stand: 2026-10-31, `Microsoft.Data.SqlClient` 7.1.1 auf .NET 10.0.14, ein Lauf je Zeile, ein Host. Der Server ist `KompatibilitaetsServer.kt` (Test-Quelltext, Richtlinie `REQUIRED`, Simulations-Backend mit `person`, `typen`, `viele`, `kaputt`), der Client läuft in einem zweiten Container im eigenen Netzwerk. Die Verbindung ist TDS 7.4 mit TLS (`Encrypt=Mandatory`), das Zertifikat `CN=localhost` ist Vertrauensanker des Clients und wird mit `HostNameInCertificate=localhost` geprüft; kein Test setzt `TrustServerCertificate`.
+
+### 7a. Szenarien (Stufe 5, Kategorie `Szenario`, Klasse `SzenarienTests`)
+
+| Szenario | Messung | Erwartung bestätigt |
+|---|---|---|
+| Anmeldung mit TLS | `Open` gelingt; `ServerVersion` `01.00.0000`, `PacketSize` 8000 | ja |
+| Ablehnung | falsches Kennwort und unbekannter Benutzer ergeben beide `Number 18456, Class 14, State 1`, Meldung `Login failed.`; das Log des Servers unterscheidet `WRONG_PASSWORD` und `UNKNOWN_USER`, der Client nicht | ja (gleiche Ablehnung, `SPEC-012`) |
+| Auswahl im Batch | Spaltennamen, zwei Zeilen, NULL in `Score` kommen an; `SELECT *` liefert vier Spalten | ja |
+| Typkatalog | `typen`: `int`, `bigint`, `bit`, `nvarchar` (mit `ü€😀`), `decimal`, `date` (`DateTime`), `time` (`TimeSpan`), `datetime2` (`DateTime`) kommen mit den Werten an; zweite Zeile NULL in jeder Spalte | ja |
+| Parametrisierte Abfrage | `sp_executesql`: `Int` und `NVarChar` als Filter liefern die passenden Zeilen; der Server sieht `@alter:Int32` und `@name:UnicodeText` | ja |
+| Einfügen mit NULL-Parameter | `ExecuteNonQuery` meldet 1 (Zeilenzahl des Callbacks) | ja |
+| Einfügen, Ändern, Löschen im Batch | `ExecuteNonQuery` meldet 1, 2, 3 | ja |
+| Fehler vor Zeilen | unbekannte Tabelle: `Number 208, Class 20, State 1`, `Unknown object.`; die Verbindung ist danach `Closed` (Class 20, der Server schließt) | ja |
+| Fehler außerhalb der Formen | `SELECT 1`: `Number 50001, Class 16`, `Unsupported SQL.`; die Verbindung bleibt `Open` und beantwortet die nächste Abfrage | ja |
+| Fehler nach Zeilen | `kaputt`: drei Zeilen, dann `Number 50004, Class 16`, `Backend error.`; die Verbindung bleibt `Open` und beantwortet die nächste Abfrage | ja |
+| Zwei Anweisungen in einem Text | `Number 50001`, `Unsupported SQL.`, Verbindung `Open`: das Simulations-Backend liefert keine mehrteilige Antwort | Abweisung gemessen (Lücke 16) |
+| `InputOutput`-Parameter | der Server sieht `@id:Int32:INPUT_OUTPUT`, die Anfrage endet ohne Ausnahme, der Wert des Parameters bleibt der Eingabewert: die Antwort trägt keinen Rückgabewert | Abweisung gemessen (Lücke 16) |
 
 ## Pflege
 
