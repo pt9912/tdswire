@@ -44,6 +44,6 @@ lauf 3 make simulations-integration
 
 echo "e2e: Stufe 4 Referenztest-Gerüst ..."
 e2e_abdeckung "TDS-RB-02" "Das versionierte Testprojekt baut gesperrt und läuft, der Smoke-Test verbindet zu einem unbelegten Port und erhält eine SqlException. Nicht belegt: irgendein Serververhalten, kein Serverprozess läuft" "make referenztest-dotnet"
-lauf 4 make referenztest-dotnet
+lauf 4 make referenztest-dotnet FORCE=1
 
 echo "e2e: gruen (4 Stufen, $SECONDS s)"

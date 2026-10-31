@@ -154,8 +154,8 @@ RUN sh tools/spec-abdeckung-selbsttest.sh
 FROM basis AS skript-selbsttest
 WORKDIR /src
 COPY Dockerfile Dockerfile
-COPY tools/e2e.sh tools/e2e-selbsttest.sh tools/manifest-pruefung.sh tools/manifest-selbsttest.sh tools/
-RUN bash tools/e2e-selbsttest.sh && sh tools/manifest-selbsttest.sh
+COPY tools/e2e.sh tools/e2e-selbsttest.sh tools/manifest-pruefung.sh tools/manifest-selbsttest.sh tools/eingangs-hash.sh tools/eingangs-hash-selbsttest.sh tools/
+RUN bash tools/e2e-selbsttest.sh && sh tools/manifest-selbsttest.sh && bash tools/eingangs-hash-selbsttest.sh
 
 # --- Lock: schreibt gradle.lockfile, settings-gradle.lockfile und gradle/verification-metadata.xml
 # neu (`make deps-lock`, braucht Netz). Es wird nichts gemountet: die Stage `lock-export` liefert

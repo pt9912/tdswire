@@ -4,12 +4,29 @@
 #
 # Eigener Build-Kontext: das Verzeichnis referenztest-dotnet/. Gemountet wird nichts; die Lock-Datei
 # kommt per --output heraus, wie bei `make deps-lock`.
+#
+# Der Lauf erfolgt nur, wenn sich der Inhalt der Eingaenge geaendert hat. .harness/state/referenztest-dotnet.hash
+# (nicht versioniert) haelt den Hash (tools/eingangs-hash.sh) des Stands, der gruen lief; mtimes zaehlen nicht,
+# ein checkout, merge oder rebase ohne Inhaltsaenderung loest nichts aus. Eingaenge: alles unter referenztest-dotnet/
+# (Dockerfile mit den Basis-Image-Digests, csproj, Lock, Tests) ausser bin/ und obj/, dazu diese Datei. Ein
+# frischer Klon und ein frischer CI-Runner haben keine Hash-Datei und fuehren den Lauf aus.
+# Setzung: `make referenztest-dotnet FORCE=1` erzwingt den Lauf (tools/e2e.sh Stufe 4 ruft so).
+# Setzung: der Hash wird vor dem Lauf berechnet, die Datei vor dem Lauf entfernt und nach gruenem Lauf mit dem
+# vorab berechneten Hash geschrieben. Ein Abbruch oder roter Lauf hinterlaesst keine Datei; eine Aenderung
+# waehrend des Laufs weicht vom gespeicherten Hash ab und loest den naechsten aus. Beides irrt zur sicheren Seite.
 .PHONY: referenztest-dotnet referenztest-dotnet-lock referenztest-dotnet-audit
 
 REFERENZTEST_DOTNET_DIR = referenztest-dotnet
+REFERENZTEST_DOTNET_HASH = .harness/state/referenztest-dotnet.hash
 
-referenztest-dotnet: ## .NET-Referenztests (Smoke ohne Server) bauen und ausfuehren (referenztest-dotnet/Dockerfile, Stage `test`)
-	docker build $(BUILDER_FLAGS) --target test --progress=plain $(REFERENZTEST_DOTNET_DIR)
+referenztest-dotnet: ## .NET-Referenztests (Smoke ohne Server) ausfuehren; laeuft nur bei geaendertem Eingangs-Inhalt, FORCE=1 erzwingt
+	@h=$$(bash tools/eingangs-hash.sh $(REFERENZTEST_DOTNET_DIR) tools/mk/referenztest-dotnet.mk) || exit 1; \
+	if [ -z "$(FORCE)" ] && [ "$$(cat $(REFERENZTEST_DOTNET_HASH) 2>/dev/null)" = "$$h" ]; then \
+		echo "referenztest-dotnet: Eingaenge unveraendert ($$h), uebersprungen; FORCE=1 erzwingt den Lauf"; exit 0; \
+	fi; \
+	rm -f $(REFERENZTEST_DOTNET_HASH); \
+	docker build $(BUILDER_FLAGS) --target test --progress=plain $(REFERENZTEST_DOTNET_DIR) || exit 1; \
+	mkdir -p $(dir $(REFERENZTEST_DOTNET_HASH)); echo "$$h" > $(REFERENZTEST_DOTNET_HASH)
 
 # Nach einer Versionsaenderung in der csproj. Das erste Lock vertraut nuget.org beim Schreiben
 # (CO-002); die Signaturpruefung der Pakete ist aus.
