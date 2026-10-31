@@ -11,11 +11,11 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-anfrageverarbeitung
 
-**Bezug:** [TDS-FA-08](../../../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-RB-04](../../../../spec/lastenheft.md#tds-rb-04--externes-backend), [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) (Zeilenquelle des Integrators); die ADR zum öffentlichen Integrations-Einstieg ist im Bezug nachzutragen, sobald sie auf `main` liegt (§4, §6).
+**Bezug:** [TDS-FA-08](../../../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-RB-04](../../../../spec/lastenheft.md#tds-rb-04--externes-backend), [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) (Zeilenquelle des Integrators); [ADR-0021](../../adr/0021-oeffentlicher-integrations-einstieg.md) (öffentlicher Integrations-Einstieg, `Accepted`), [ADR-0012](../../adr/0012-simulations-backend-beschreibung-und-formen.md), [ADR-0013](../../adr/0013-backend-grenzen.md).
 
 **Berührte Spec-Stellen:** [TDS-FA-08.a](../../../../spec/spezifikation.md#tds-fa-08a--backend-vertrag) · SPEC-002 · SPEC-035 · ARC-006 · ARC-008 · ARC-016
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** pt9912.
 
 **Autor:** pt9912. **Datum:** 2026-10-31.
 
@@ -36,7 +36,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Die Entscheidung über Form, Zuschnitt und Stabilitätszusage des Einstiegs — sie gehört in die ADR zum öffentlichen Integrations-Einstieg (in Arbeit, `Proposed`); der Slice setzt sie um und entscheidet sie nicht. Bis zu ihrem `Accepted` startet der Slice nicht (§4).
+- Die Entscheidung über Form, Zuschnitt und Stabilitätszusage des Einstiegs — sie ist [ADR-0021](../../adr/0021-oeffentlicher-integrations-einstieg.md) (`Accepted`); der Slice setzt sie um und entscheidet sie nicht. Die zwei Punkte, die die ADR unter „Offen“ der Umsetzungsplanung überlässt (Form der Prüfung, Inhalt von `StartOutcome.Aborted`), schließt §3 per Setzung.
+- Der Umbau auf `explicitApi` (Modus `strict`) und die Verkleinerung der öffentlichen Fläche nach Entscheidung 3 der ADR — die ADR misst 738 Diagnosen in 76 von 136 Dateien und nennt den Umbau als Anlass zur Zerlegung; er ist ein eigener Slice (`slice-explicit-api-umbau`, `open/`). Dieser Slice liefert den Einstieg und belegt von außen, dass die Fläche zum Starten und Bedienen reicht; die Zusage „nur diese Fläche ist öffentlich“ trägt erst der Folge-Slice.
 - Änderungen am Backend-Port (`QueryBackend`, `QueryEvent`, `QueryRequest`) — der Port-Vertrag ist [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md); eine Änderung wäre eine Folge-ADR.
 - Das Simulations-Backend und seine Beschreibung — `welle-simulations-backend`; der Einstieg nimmt eine Zeilenquelle des Integrators entgegen, er baut sie nicht.
 - Ein veröffentlichtes Artefakt in einem Paket-Repository und eine Versionierungs-Zusage — das Release-Artefakt ist `slice-release-artefakt-lizenz` (geschlossen), die Prozess-Doku `slice-release-doku-prozess`; dieser Slice liefert die Schnittstelle im Quelltext, keine Veröffentlichung.
@@ -50,17 +51,17 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-Entwurf; Wortlaut und Zuschnitt der Punkte folgen der ADR zum öffentlichen Integrations-Einstieg und werden beim Übergang `open` → `next` gegen sie geprüft.
+Wortlaut und Zuschnitt folgen [ADR-0021](../../adr/0021-oeffentlicher-integrations-einstieg.md) (beim Übergang `open` → `next` gegen sie geprüft); `explicitApi` ist nicht Teil dieses Slice (§1).
 
 Liefer-Punkte (drei):
 
-- [ ] **Öffentlicher Einstieg und Konfigurationstyp** ([TDS-FA-08](../../../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-RB-04](../../../../spec/lastenheft.md#tds-rb-04--externes-backend)): ein `public` Einstieg und ein `public` Konfigurationstyp, mit dem der Integrator ein eigenes `QueryBackend` und eigene Zeilenquellen ([TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend)) übergibt; die `internal`-Typen von `runtime` bleiben `internal`. Das Verhältnis zu `main()` (gleicher Weg oder getrennt) folgt der ADR.
-- [ ] **Lebenszyklus** (start/stop): Der Einstieg startet den Server und gibt dem Integrator ein Handle, mit dem er ihn mit Frist beendet; ein zweites Beenden und ein Start mit ungültiger Konfiguration enden definiert, ohne offene Ressourcen (Test). Die Einzelheiten (Form des Handles, Blockierung, Fehlerabbildung) folgen der ADR.
-- [ ] **Nachweis ohne `internal`-Zugriff** ([TDS-RB-04](../../../../spec/lastenheft.md#tds-rb-04--externes-backend), Nachweis „Integration mit einem In-Memory-Testbackend“): ein Test startet den Server über den öffentlichen Einstieg mit einem In-Memory-Backend und eigener Zeilenquelle und beantwortet mit Rohbytes eine Anfrage; der Test liegt dort, wo er keinen `internal`-Typ des Moduls sehen kann (eigenes Source-Set, eigenes Modul oder der Referenzclient: das entscheidet die ADR), und eine Mutation, die den Einstieg `internal` macht, macht ihn rot (Beleg in der Closure-Notiz).
+- [ ] **Öffentlicher Einstieg und Schnitt der Konfiguration** ([TDS-FA-08](../../../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-RB-04](../../../../spec/lastenheft.md#tds-rb-04--externes-backend), [TDS-FA-09](../../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose)): `TdsServer.start(config, source)` mit `BackendSource` und `StartOutcome` sind `public` in `runtime`; `Wiring`, `Bootstrap` und der Lesepfad bleiben `internal`. Die Prüfung der Konfiguration und die Defaults stehen in `config` und gelten für Lader und Embedder (`ConfigValidation.check`); `ConfigLoader` und `ConfigFiles` liegen als `internal` in `runtime`; `main()` startet über denselben Einstieg (`Bootstrap.start` teilt sich in Prozess-Start und `launch`).
+- [ ] **Lebenszyklus** (start/stop): Der Einstieg startet den Server und gibt dem Integrator ein Handle (`port`, `stop()`); ein zweites `stop` und ein Start mit ungültiger Konfiguration (`REQUIRED` ohne TLS-Material, `TEST_UNENCRYPTED` mit TLS-Material, Wert außerhalb des Bereichs) enden definiert (`StartOutcome.Aborted`, keine Ausnahme), ohne offene Ressourcen (Test).
+- [ ] **Nachweis ohne `internal`-Zugriff** ([TDS-RB-04](../../../../spec/lastenheft.md#tds-rb-04--externes-backend)): ein Test im eigenen, nicht assoziierten Source-Set `integrator` startet den Server über den Einstieg mit einem In-Memory-Backend und mit `BackendSource.Simulation` und einer Zeilenquelle des Integrators und beantwortet mit Rohbytes eine Anfrage; er läuft in `make test`; eine Mutation, die den Einstieg `internal` macht, macht die Übersetzung rot (Beleg in der Closure-Notiz).
 
 Nachweis-Pflichten für alle Punkte:
 
-- [ ] Doku: KDoc der öffentlichen Typen (Zusage, Lebenszyklus, Threading, Zeilenquelle schließt mit der Anfrage) und die Festlegung in `spec/spezifikation.md` (Abschnitt zum Backend-Vertrag), soweit die ADR sie verlangt; Aussagen stehen an einem Test oder sind als Festlegung gekennzeichnet (`AGENTS.md` §3.8).
+- [ ] Doku: KDoc der öffentlichen Typen (Zusage, Lebenszyklus, Threading, Einmal-Konfiguration, Zeilenquelle schließt mit der Anfrage); die Festlegung des Einstiegs in `spec/spezifikation.md` (Abschnitt Externe Verträge, neue `SPEC-059`), `SPEC-035` nennt den Einstieg als Weg der Kotlin-Schnittstelle, `ARC-008` in `spec/architecture.md` nennt die Fassade (ohne ADR-Bezug); Aussagen stehen an einem Test oder sind als Festlegung gekennzeichnet (`AGENTS.md` §3.8).
 - [ ] Jeder Test trägt im KDoc den Block-Tag `@spec SPEC-<NNN>`; die Tests laufen in `make test` und sind grün.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -94,7 +95,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): Die ADR zum öffentlichen Integrations-Einstieg steht im ADR-Index auf `Accepted`, `slice-sim-aenderung-integration` liegt in `done/` (die Verdrahtung der Zeilenquelle, die der Einstieg übergibt), und ein Verantwortlicher ist im Kopf eingetragen. Kennung und Link der ADR werden im Bezug und hier nachgezogen, sobald ihre Datei auf `main` liegt.
+**Start** (`next` → `in-progress`): [ADR-0021](../../adr/0021-oeffentlicher-integrations-einstieg.md) steht im ADR-Index auf `Accepted`, `slice-sim-aenderung-integration` liegt in `done/` (im Archiv von `welle-simulations-backend`; die Verdrahtung der Zeilenquelle, die der Einstieg übergibt), und ein Verantwortlicher ist im Kopf eingetragen. Alle drei Bedingungen sind am 2026-10-31 erfüllt.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
