@@ -1,4 +1,4 @@
-# ADR-0018: Laufzeit-Artefakt: Basis-Image, Betreiberoptionen, Laufzeittest als Gate
+# ADR-0018: Laufzeit-Artefakt: Basis-Image, Betreiberoptionen, Laufzeittest im E2E-Durchgang
 
 **Status:** Proposed
 
@@ -22,7 +22,7 @@ Der Slice für Laufzeit-Artefakt und Lizenz liegt in `done/` und hat ein Laufzei
 - Nutzer `65532:65532` (ohne Root-Rechte); Port 1433 deklariert; drei `COPY`-Zeilen: Jar, Bibliotheken (`lib/`, über `Class-Path` im Manifest), `LICENSE`.
 - Startzeile: `java -Djdk.tls.server.newSessionTicketCount=0 -jar /app/tdswire.jar`. Konfiguration und Benutzerliste kommen zur Laufzeit herein (Umgebung nach `ConfigKeys`, Dateien im Container); das Image enthält keine Benutzerliste (geprüft nur als Dateinamen unter Betreiber-Verzeichnissen, Namen der Umgebung und `/app`, kein Inhaltsscan).
 - Betreiberoptionen der JVM kommen über `JAVA_TOOL_OPTIONS`; gemessen ist die Ankunft an der JVM (Zeile `Picked up JAVA_TOOL_OPTIONS`), nicht die Wirkung von `-XX:+ExitOnOutOfMemoryError` ([ADR-0013](0013-backend-grenzen.md)). Der Schalter ist nicht voreingestellt.
-- Gate `make laufzeittest` (in `make gates`): Container starten, Rohbytes-Login aus einem zweiten Container im selben Netzwerk, Stop (Exit-Code 143 = 128 + SIGTERM, kein Handler des Produkts), Image-Inhalt prüfen. Maßstab des Gates (Setzung, Kopf von `tools/mk/laufzeittest.mk`): ein Prüfschritt gehört in `make gates`, wenn sein **Warmlauf** (Images im Docker-Cache) unter der Laufzeit der Stage `test` **ohne Cache** liegt. Gemessen, je ein Lauf: Stage `test` ohne Cache 89 bis 102 s; Warmlauf des Targets 24 bis 31 s; Kaltlauf 88 bis 171 s (der höhere Wert liegt über dem der Stage `test`); CI-Lauf mit dem Gate 8 min 58 s gegen rund 7 min 43 s davor.
+- E2E-Lauf `make laufzeittest` (Stufe von `make e2e`, nicht in `make gates`, [ADR-0022](0022-e2e-laeufe-nicht-in-den-gates.md)): Container starten, Rohbytes-Login aus einem zweiten Container im selben Netzwerk, Stop (Exit-Code 143 = 128 + SIGTERM, kein Handler des Produkts), Image-Inhalt prüfen. Gemessen, je ein Lauf: Stage `test` ohne Cache 89 bis 102 s; Warmlauf des Targets 24 bis 31 s; Kaltlauf 88 bis 171 s (der höhere Wert liegt über dem der Stage `test`); CI-Lauf mit dem Lauf als Gate 8 min 58 s gegen rund 7 min 43 s davor.
 - Daneben besteht die Stage `build` (Distroless `static`, nur das Jar, läuft allein nicht); zwei Stages für ein Artefakt sind eine bekannte Doppelung (`BEO-TDS/zwei-artefakt-stages-nebeneinander`, offen).
 
 ## Entscheidung
@@ -32,7 +32,7 @@ Wir wählen **Option A**: Das Laufzeit-Artefakt bleibt, wie gebaut.
 1. **Basis-Image:** Distroless Java 21, Variante `nonroot`, per Index-Digest gepinnt. Ein neuer Digest ist eine bewusste Änderung des `Dockerfile` und braucht einen grünen `make laufzeittest`.
 2. **Nutzer:** ohne Root-Rechte (UID/GID 65532).
 3. **Betreiberoptionen:** über `JAVA_TOOL_OPTIONS`, nicht über eine eigene Konfigurationsschnittstelle; der Schalter für `OutOfMemoryError` ist dokumentierbar, nicht voreingestellt ([ADR-0013](0013-backend-grenzen.md) Entscheidung 2). Was `JAVA_TOOL_OPTIONS` mit dem fest gesetzten Flag der Startzeile macht, wenn der Betreiber dieselbe Eigenschaft setzt, ist nicht gemessen.
-4. **Gate:** `make laufzeittest` bleibt in `make gates`; der Maßstab (Warmlauf unter der Laufzeit der Stage `test` ohne Cache) ist Setzung. Eine Aufnahme weiterer Prüfschritte in `make gates` richtet sich nach demselben Maßstab; eine Änderung des Maßstabs ist eine neue Entscheidung ([AGENTS.md](../../../AGENTS.md) §3.6 gilt für Schwellen-Senkungen).
+4. **E2E-Durchgang:** `make laufzeittest` ist ein E2E-Lauf (Stufe 2 von `make e2e`) und steht nicht in `make gates`; die Zuordnung trägt [ADR-0022](0022-e2e-laeufe-nicht-in-den-gates.md). Den Weg Manifest, Class-Path und Jar-Name prüft im Gate eine Textprüfung im Bau.
 5. **Nicht entschieden (siehe „Offen“):** Dateirechte der Benutzerliste im Betrieb, Lizenzhinweise der Bibliotheken.
 
 Die Wahl ist die des gebauten Standes; die Gründe sind: gebaut, per Digest gepinnt, läuft ohne Root, der Laufzeittest grünt; ein Wechsel kostet einen neuen Digest und einen Lauf des Tests. Dass kein anderes Image (JRE-Image) besser wäre, ist nicht gemessen; ein Vergleich wurde nicht angestellt.
@@ -67,7 +67,7 @@ Die Wahl ist die des gebauten Standes; die Gründe sind: gebaut, per Digest gepi
 
 ## Re-Evaluierungs-Trigger
 
-Ein neuer Release des Basis-Images mit Sicherheitsmeldung zum gepinnten Digest; ein Wechsel der Java-Hauptversion der Anwendung; eine Messung, nach der der Laufzeittest die Gate-Zeit über den Maßstab hebt; eine Betreiberanforderung an Shell oder Werkzeuge im Container; der Entschluss, ein Image zu veröffentlichen (Registry, Signierung), den das Lastenheft nicht verlangt.
+Ein neuer Release des Basis-Images mit Sicherheitsmeldung zum gepinnten Digest; ein Wechsel der Java-Hauptversion der Anwendung; eine Regression im Container-Artefakt, die erst der E2E-Durchgang fand; eine Betreiberanforderung an Shell oder Werkzeuge im Container; der Entschluss, ein Image zu veröffentlichen (Registry, Signierung), den das Lastenheft nicht verlangt.
 
 ## Geschichte
 
