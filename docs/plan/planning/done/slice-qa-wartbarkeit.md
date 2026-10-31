@@ -69,7 +69,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `tools/matrix-zitate.sh`, `tools/mk/matrix-zitate.mk` | neu | Wächter der Zitate (`make matrix-zitate`), kein Gate; bei Planung nicht genannt, beim Bau entstanden |
 | `harness/README.md` | geändert | Zeile `make matrix-zitate` im Index der Werkzeuge, Bindung [TDS-QA-05](../../../../spec/lastenheft.md#tds-qa-05--wartbarkeit) |
 | `spec/spezifikation.md` | geändert | `SPEC-052` (Laufzeit-Image) in der Fix-Runde mit dem Anker [TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) nachgezogen |
-| `docs/plan/planning/in-progress/slice-qa-wartbarkeit.md` | geändert | diese Tabelle |
+| `docs/plan/planning/done/slice-qa-wartbarkeit.md` | geändert | diese Tabelle |
 
 **Erster Lauf — Ist-Zustand gegen den Plan** (gemessen, nicht angenommen):
 

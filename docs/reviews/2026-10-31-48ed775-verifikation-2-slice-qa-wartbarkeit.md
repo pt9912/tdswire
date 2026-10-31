@@ -1,6 +1,6 @@
 # Verifikation 2: slice-qa-wartbarkeit (Kompatibilitätsmatrix, Stand 68598df, Fix-Runde 75533b0) — 2026-10-31
 
-**Rolle:** Verifier (Modul 11), frischer Kontext, zweite Verifikation. Frage: Bauen wir es richtig? Geprüft wird gegen die DoD des Slice [slice-qa-wartbarkeit](../plan/planning/in-progress/slice-qa-wartbarkeit.md), die Matrix [kompatibilitaetsmatrix](../plan/kompatibilitaetsmatrix.md), [TDS-QA-05](../../spec/lastenheft.md#tds-qa-05--wartbarkeit), [ADR-0005](../plan/adr/0005-rpc-und-prepared-statements.md), [ADR-0019](../plan/adr/0019-kompatibilitaetstests-zuschnitt.md) (`Proposed`), [ADR-0022](../plan/adr/0022-e2e-laeufe-nicht-in-den-gates.md) (`Proposed`) und `AGENTS.md` §3.6 bis §3.8. Nicht Gegenstand: Richtigkeit der Anforderung (Validator), Diff gegen Plan (Reviewer).
+**Rolle:** Verifier (Modul 11), frischer Kontext, zweite Verifikation. Frage: Bauen wir es richtig? Geprüft wird gegen die DoD des Slice [slice-qa-wartbarkeit](../plan/planning/done/slice-qa-wartbarkeit.md), die Matrix [kompatibilitaetsmatrix](../plan/kompatibilitaetsmatrix.md), [TDS-QA-05](../../spec/lastenheft.md#tds-qa-05--wartbarkeit), [ADR-0005](../plan/adr/0005-rpc-und-prepared-statements.md), [ADR-0019](../plan/adr/0019-kompatibilitaetstests-zuschnitt.md) (`Proposed`), [ADR-0022](../plan/adr/0022-e2e-laeufe-nicht-in-den-gates.md) (`Proposed`) und `AGENTS.md` §3.6 bis §3.8. Nicht Gegenstand: Richtigkeit der Anforderung (Validator), Diff gegen Plan (Reviewer).
 
 **Vorliegend:** erste Verifikation [fa6c4a4](2026-10-31-fa6c4a4-verifikation-slice-qa-wartbarkeit.md) (M-1, M-2, L-1 bis L-4), Fix-Runde `754743d`, Review [754743d](2026-10-31-754743d-neuaufnahme-kompatibilitaetsmatrix.md) (F-1 bis F-9), Fix-Runde `75533b0`, Stand `main` bei `48ed775`.
 
@@ -117,7 +117,7 @@ Keine.
 
 **L-1 — Plan-Text des Slice nennt weiter „Stand 9ff2913“ für die Matrix**
 * quelle: `AGENTS.md` §3.7 (ein Text beschreibt, was da ist), §3.8
-* pfad: `docs/plan/planning/in-progress/slice-qa-wartbarkeit.md` §3, Absatz „Fix-Runde nach dem Review“: „Die Matrix ist auf den Stand `9ff2913` neu aufgenommen“
+* pfad: `docs/plan/planning/done/slice-qa-wartbarkeit.md` §3, Absatz „Fix-Runde nach dem Review“: „Die Matrix ist auf den Stand `9ff2913` neu aufgenommen“
 * befund: Die Matrix steht seit `75533b0` auf `68598df` (775 Testfälle in 106 Klassen). Die 738/98 im „Ersten Lauf“ sind als Messung am Stand `9ff2913` richtig und widersprechen der Matrix nicht; der Satz zur Neuaufnahme ist überholt. Kein Einfluss auf die DoD.
 
 **L-2 — Lücke 15: der Träger trägt den Typkatalog, nicht ausdrücklich den Dispatch-Pfad, und steht nicht in der DoD**
