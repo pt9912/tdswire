@@ -49,7 +49,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 Liefer-Punkte (drei):
 
-- [ ] **Schnittstelle und Ereignismodell:** Typen im Package nach der ADR aus [slice-adr-observability](../next/slice-adr-observability.md); geschlossene Menge von Ereignisarten (`event`), `error_code` aus den `TDS_*`-Codes, Korrelations-IDs je Verbindung, Sitzung und Anfrage, die an die aufrufenden Schichten weitergereicht werden; das Modell hat kein Feld für Passwort, Prüfwert, Parameterwert und SQL-Text, und die Anmeldekennung steht nur im Feld, das die ADR dafür festlegt.
+- [ ] **Schnittstelle und Ereignismodell:** Typen im Package nach der ADR aus [slice-adr-observability](../in-progress/slice-adr-observability.md); geschlossene Menge von Ereignisarten (`event`), `error_code` aus den `TDS_*`-Codes, Korrelations-IDs je Verbindung, Sitzung und Anfrage, die an die aufrufenden Schichten weitergereicht werden; das Modell hat kein Feld für Passwort, Prüfwert, Parameterwert und SQL-Text, und die Anmeldekennung steht nur im Feld, das die ADR dafür festlegt.
 - [ ] **Adapter und Konfiguration:** Ausgabe nach Format und Ziel der ADR; die Log-Ebene (und, falls die ADR es vorsieht, das Format) ist über die Konfiguration einstellbar, ein ungültiger Wert bricht den Start ab (Schlüssel und Validierung im Rahmen von [slice-bootstrap-konfiguration](../done/welle-handshake-login/slice-bootstrap-konfiguration.md)); ein Sammler-Adapter für Tests existiert als zweiter Adapter.
 - [ ] **Ablösung und Redaktion:** Die minimalen Log-Anschlüsse aus [slice-handshake-login](../done/welle-handshake-login/slice-handshake-login.md), [slice-transport-listener-lebenszyklus](../done/welle-transport-tls/slice-transport-listener-lebenszyklus.md), [slice-bootstrap-konfiguration](../done/welle-handshake-login/slice-bootstrap-konfiguration.md), [slice-fehler-mapping](../done/slice-fehler-mapping.md) und [slice-abbruch-ressourcen-shutdown](slice-abbruch-ressourcen-shutdown.md) rufen die Schnittstelle (Aufrufstellen umgestellt, Verhalten unverändert); ein Redaktionstest je Ereignisart gibt Eingaben mit Passwort, Prüfwert, Parameterwert, SQL-Text, Pfad und Inhalt von Zertifikat und Schlüssel sowie Ausnahmetext (SPEC-043, SPEC-048) hinein und findet nichts davon in der Zeile — mit je verschiedenen Eingabewerten. Dazu gehört der Inspektionstest über alle erfassten Zeilen des laufenden Prozesses (Passwort, Kennung und Prüfwert in keiner Zeile; Anmeldung angenommen und abgelehnt, TLS-Fehler, Startabbruch) als Gate-Test des Gesamtsystems; [slice-qa-sicherheit](../done/slice-qa-sicherheit.md) prüft nur das minimale Log von heute.
 
@@ -77,7 +77,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `src/main/kotlin/io/github/pt9912/tdswire/observability/` <!-- d-check:ignore (geplant: neue Datei) --> | neu | Adapter; importiert nur `domain` und die Schnittstelle (Importregeln der Schichten) |
-| Schnittstelle und Ereignismodell <!-- d-check:ignore (geplant: Ort nach ADR) --> | neu | Ort nach der ADR (Frage 2 in [slice-adr-observability](../next/slice-adr-observability.md)) |
+| Schnittstelle und Ereignismodell <!-- d-check:ignore (geplant: Ort nach ADR) --> | neu | Ort nach der ADR (Frage 2 in [slice-adr-observability](../in-progress/slice-adr-observability.md)) |
 | Aufrufstellen der minimalen Log-Anschlüsse in `transport`, `protocol`, `config`, `runtime` | update | Umstellung auf die Schnittstelle |
 | `src/test/kotlin/io/github/pt9912/tdswire/observability/` <!-- d-check:ignore (geplant: neue Datei) --> | neu | Redaktionstests Happy/Boundary/Negative; `@spec`-Tag SPEC-012, SPEC-043, SPEC-048 |
 
@@ -88,7 +88,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-adr-observability](../next/slice-adr-observability.md), [slice-handshake-login](../done/welle-handshake-login/slice-handshake-login.md), [slice-bootstrap-konfiguration](../done/welle-handshake-login/slice-bootstrap-konfiguration.md) und [slice-transport-listener-lebenszyklus](../done/welle-transport-tls/slice-transport-listener-lebenszyklus.md) liegen in `done/` (die Aufrufstellen existieren), und ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): [slice-adr-observability](../in-progress/slice-adr-observability.md), [slice-handshake-login](../done/welle-handshake-login/slice-handshake-login.md), [slice-bootstrap-konfiguration](../done/welle-handshake-login/slice-bootstrap-konfiguration.md) und [slice-transport-listener-lebenszyklus](../done/welle-transport-tls/slice-transport-listener-lebenszyklus.md) liegen in `done/` (die Aufrufstellen existieren), und ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -113,7 +113,7 @@ dasteht.
 - Die Ablösung berührt Code, den andere Slices schreiben; sie läuft erst, wenn deren Slice in `done/` liegt, damit kein Slice unter einem anderen die Aufrufstelle wechselt. — **Ausgang:** offen bis zur Closure.
 - Die Garantie „kein Feld für Geheimnisse“ gilt nur, solange das Modell kein Freitextfeld trägt, in das ein Aufrufer einen Wert schreibt; die ADR entscheidet, ob es eines gibt, und der Redaktionstest prüft den Ausnahmetext (SPEC-048) ausdrücklich. — **Ausgang:** offen bis zur Closure.
 - Der Redaktionstest prüft die Ereignisarten, die es bei der Closure gibt; eine spätere Ereignisart ohne Test fällt nicht auf. Die Closure nennt die Grenze (`BEO-TDS/anmeldepfad-sicherheit-nicht-gebaut`). — **Ausgang:** offen bis zur Closure.
-- Schalter für Parameterwerte (Frage 4 in [slice-adr-observability](../next/slice-adr-observability.md)): Gibt es ihn, braucht er einen Test, der den Standard ohne Werte belegt; die Einschaltung erscheint im Log wie die Abschwächung der Verschlüsselung. — **Ausgang:** offen bis zur Closure.
+- Schalter für Parameterwerte (Frage 4 in [slice-adr-observability](../in-progress/slice-adr-observability.md)): Gibt es ihn, braucht er einen Test, der den Standard ohne Werte belegt; die Einschaltung erscheint im Log wie die Abschwächung der Verschlüsselung. — **Ausgang:** offen bis zur Closure.
 - Der Inspektionstest über alle erfassten Zeilen ist das Gesamtsystem-Gegenstück zur Loginspektion des minimalen Logs in `slice-qa-sicherheit` und liegt bei diesem Slice; ohne ihn bliebe die Trägerlücke aus F-1 des Reviews von `slice-qa-sicherheit` offen. Träger vom Nutzer 2026-10-31 bestätigt (Planner-Vorschlag). — **Ausgang:** offen bis zur Closure.
 - Blockierendes Schreiben auf einen vollen Ausgabekanal könnte den Anfragepfad anhalten; ungemessen, die Entscheidung über asynchrone Ausgabe steht in der ADR, die Messung unter Last in [slice-qa-performance](slice-qa-performance.md). — **Ausgang:** offen bis zur Closure.
 
