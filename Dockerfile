@@ -78,6 +78,7 @@ RUN keytool -genkeypair -alias server -keyalg RSA -keysize 2048 -validity 3650 -
 # --- Test: `docker build --target test .` - fuehrt die Unit-Tests aus (kotlin.test auf der
 # JUnit-Plattform, SPEC-024). Es kommt nur src/ hinzu; ein roter Test bricht den Build. -----------
 FROM deps AS test
+COPY --chown=gradle:gradle LICENSE LICENSE
 COPY --chown=gradle:gradle src src
 COPY --from=testkeys --chown=gradle:gradle /testkeys build/testkeys
 COPY --chown=gradle:gradle gradle/test-jvm.init.gradle.kts gradle/
@@ -123,6 +124,7 @@ RUN sh tools/detekt-selbsttest.sh generate \
 # Berichten die Abdeckungsmatrix (tools/spec-abdeckung.sh). `spec-abdeckung-export` gibt Matrix und
 # Waisenzahl per `docker build --output` heraus, nichts wird gemountet. ------------------
 FROM deps AS spec-abdeckung
+COPY --chown=gradle:gradle LICENSE LICENSE
 COPY --chown=gradle:gradle src src
 COPY --from=testkeys --chown=gradle:gradle /testkeys build/testkeys
 COPY --chown=gradle:gradle gradle/test-jvm.init.gradle.kts gradle/
@@ -164,7 +166,32 @@ COPY --from=lock /src/gradle/verification-metadata.xml /gradle/
 
 # --- Build-Jar: der Jar mit vollem Gradle/JDK - nur ein Zwischenschritt fuer `build`. -------
 FROM compile AS build-jar
-RUN gradle --no-daemon assemble
+COPY --chown=gradle:gradle LICENSE LICENSE
+RUN gradle --no-daemon assemble \
+ && jar tf build/libs/tdswire.jar | grep -qx 'META-INF/LICENSE' \
+ && unzip -p build/libs/tdswire.jar META-INF/LICENSE | cmp - LICENSE
+
+# --- Laufzeit: `make laufzeittest` baut diese Stage. Distroless Java 21 (Variante nonroot) mit JRE,
+# per Digest gepinnt (Messung vom 2026-10-31 am Tag `nonroot`; ein neuer Digest ist eine bewusste
+# Aenderung dieser Datei). Nutzer 65532 ohne Root-Rechte. Das Image enthaelt Jar, Bibliotheken und
+# Lizenz, keine Konfiguration, keine Benutzerliste, kein Geheimnis: alles kommt zur Laufzeit ueber
+# die Umgebung (ConfigKeys) und Dateien im Container. Betreiber-Optionen der JVM kommen ueber
+# JAVA_TOOL_OPTIONS (z. B. -XX:+ExitOnOutOfMemoryError, ADR-0013); das Flag gegen das
+# NewSessionTicket steht in der Startzeile (SPEC-023). ----
+FROM gcr.io/distroless/java21-debian12:nonroot@sha256:7e37784d94dccbf5ccb195c73b295f5ad00cd266512dfbac12eb9c3c28f8077d AS runtime
+COPY --from=build-jar /src/build/libs/tdswire.jar /app/tdswire.jar
+COPY --from=build-jar /src/build/libs/lib/ /app/lib/
+COPY --from=build-jar /src/LICENSE /app/LICENSE
+USER 65532:65532
+EXPOSE 1433
+ENTRYPOINT ["java", "-Djdk.tls.server.newSessionTicketCount=0", "-jar", "/app/tdswire.jar"]
+
+# --- Laufzeit-Client: der Rohbytes-Client des Laufzeittests als zweiter Container im selben Netzwerk;
+# die Abhaengigkeiten liegen schon in `deps`, der Start braucht kein Netz. ----
+FROM deps AS laufzeit-client
+COPY --chown=gradle:gradle src src
+RUN gradle --no-daemon --offline testClasses
+CMD ["gradle", "--no-daemon", "--offline", "-q", "laufzeitClient"]
 
 # --- Build: `docker build .` (letzte Stage = Vorgabe) - minimales Artefakt-Image (Distroless
 # static, Variante nonroot) mit nur dem fertigen Jar zum Herausholen (z. B. per `docker cp`);

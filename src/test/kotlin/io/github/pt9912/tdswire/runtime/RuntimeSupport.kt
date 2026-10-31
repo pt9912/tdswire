@@ -46,12 +46,12 @@ internal class CapturedLog : ServerLog {
 internal class RawMessage(val type: Int, val payload: ByteArray, val bytes: ByteArray)
 
 /**
- * Ein Rohbytes-Client mit blockierendem Socket auf `127.0.0.1`: sendet Bytes, wie der Test sie baut, und liest
- * Pakete des Servers, ohne den Codec des Produkts zu benutzen. Er ist kein Referenzclient.
+ * Ein Rohbytes-Client mit blockierendem Socket auf `host` (Voreinstellung `127.0.0.1`): sendet Bytes, wie der
+ * Test sie baut, und liest Pakete des Servers, ohne den Codec des Produkts zu benutzen. Er ist kein Referenzclient.
  */
-internal class RawClient(port: Int) : AutoCloseable {
+internal class RawClient(port: Int, host: String = LOOPBACK) : AutoCloseable {
     private val socket = Socket().apply {
-        connect(InetSocketAddress(LOOPBACK, port), CONNECT_MILLIS)
+        connect(InetSocketAddress(host, port), CONNECT_MILLIS)
         soTimeout = READ_MILLIS
         tcpNoDelay = true
     }

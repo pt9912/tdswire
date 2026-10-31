@@ -115,3 +115,30 @@ tasks.register("abhaengigkeitenLaden") {
         }
     }
 }
+
+// Laufzeit-Artefakt (Stage `runtime` im Dockerfile): das Jar traegt die Startklasse und die Lizenz, die
+// Bibliotheken der Laufzeit liegen in build/libs/lib und stehen im Class-Path des Manifests. Die Lizenz
+// kommt aus dem Wurzelverzeichnis; fehlt sie dort, ist das Jar ohne sie, und die Stage `build-jar` bricht.
+val laufzeitBibliotheken = tasks.register<Copy>("laufzeitBibliotheken") {
+    from(configurations.runtimeClasspath)
+    into(layout.buildDirectory.dir("libs/lib"))
+}
+
+tasks.jar {
+    archiveFileName.set("tdswire.jar")
+    from(layout.projectDirectory.file("LICENSE")) { into("META-INF") }
+    manifest.attributes("Main-Class" to "io.github.pt9912.tdswire.runtime.MainKt")
+    doFirst {
+        manifest.attributes(
+            "Class-Path" to configurations.runtimeClasspath.get().files.joinToString(" ") { "lib/${it.name}" },
+        )
+    }
+}
+
+tasks.assemble { dependsOn(laufzeitBibliotheken) }
+
+// Der Rohbytes-Client des Laufzeittests (`make laufzeittest`): Klasse im Test-Source-Set, Ziel aus TDSWIRE_ZIEL.
+tasks.register<JavaExec>("laufzeitClient") {
+    classpath = sourceSets.test.get().runtimeClasspath
+    mainClass.set("io.github.pt9912.tdswire.runtime.LaufzeitClientKt")
+}
