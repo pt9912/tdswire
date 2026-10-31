@@ -1,1 +1,1 @@
-**Stand:** offen — Schwelle 3× erreicht mit slice-adr-simulation-formen; Lese-Schritt bei der Closure von welle-simulations-backend
+**Stand:** offen — über der Schwelle (3×), bei der Closure von welle-transport-tls gelesen und nicht verkörpert; Entscheidung beim Nutzer (Lastenheft-Nachzug, Deckungsnachweis je Einzelfall oder Streichung). Der frühere Lese-Termin (Closure von welle-simulations-backend) ist damit vorgezogen.

@@ -90,4 +90,5 @@ beiden Zeiger unten sind so zu schreiben, wie sie vom Ruheort `done/` auflösen,
 nicht vom Schreibort.
 
 Ergebnis: `welle-transport-tls-results.md`
+Geschlossen: 2026-10-31 (Belege, Trigger-Audit und Zuordnung *gemessen | Festlegung* stehen in der Ergebnisnotiz)
 Zähler: `../observations/` <!-- d-check:ignore (Ruheort done/: Pfad löst erst nach dem git mv auf) -->
