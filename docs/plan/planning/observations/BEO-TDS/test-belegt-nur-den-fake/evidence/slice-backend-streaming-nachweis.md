@@ -1,0 +1,2 @@
+**Vorgang:** slice-backend-streaming-nachweis
+**Fund:** Der Nachweis des Slice (Zähler-Schranke, Heap-Beleg, Abbruch, Ende-zu-Ende) läuft gegen das Test-Backend und `ScriptedWire`, nicht gegen das Simulations-Backend (Boundary-Kriterium von `TDS-FA-11`) und nicht gegen einen Socket; Verifikation und Closure-Notiz führen ihn als Vorleistung. Der Kanal-Fall des `OutOfMemoryError` (Ausnahme aus dem Kanal nach Entnahme eines Pakets) ist nur am `ScriptedWire` belegt.
