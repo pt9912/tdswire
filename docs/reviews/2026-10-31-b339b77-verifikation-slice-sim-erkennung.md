@@ -93,7 +93,7 @@ Alle Docker-Builds nacheinander, nie zwei gleichzeitig. Mutationen auf einer Kop
 | F-9 Namensvergleich nur im KDoc | **teilweise**: jetzt in SPEC-036, aber die Aussage `s` gleich `ſ` hat keinen Test | V-1 |
 | F-10 Pfadbereinigung | behoben | M6a bis M6d getötet |
 | F-11 `SimTable` ohne Kopie | **bewusst offen, dokumentiert**; Katalog behoben | V-2 |
-| F-12 Decimal über 38 in `SimColumn` | behoben | M7, M7b getötet; Hinweis an [slice-sim-auswahl-streaming](../plan/planning/open/slice-sim-auswahl-streaming.md) bleibt für die Überführung |
+| F-12 Decimal über 38 in `SimColumn` | behoben | M7, M7b getötet; Hinweis an [slice-sim-auswahl-streaming](../plan/planning/next/slice-sim-auswahl-streaming.md) bleibt für die Überführung |
 
 ## Findings
 
