@@ -1,0 +1,2 @@
+**Vorgang:** slice-backend-streaming-nachweis
+**Fund:** Review F-4 (INFO, [Review](../../../../../../reviews/2026-10-31-c362b6b-slice-backend-streaming-nachweis.md)); behoben: `serveOrFail` wandelt einen durchgelaufenen `OutOfMemoryError` in einen `AssertionError`, die Mutanten stehen als FAILED mit Testnamen ([Verifikation](../../../../../../reviews/2026-10-31-c2fea13-verifikation-slice-backend-streaming-nachweis.md)).

@@ -1,0 +1,2 @@
+**Vorgang:** slice-backend-streaming-nachweis
+**Fund:** Review F-9 ([Review](../../../../../../reviews/2026-10-31-c362b6b-slice-backend-streaming-nachweis.md)): das KDoc von `ResponseSequencer` und `ResponseRun` führte „[ADR-0013](../../../../../adr/0013-backend-grenzen.md), Proposed“ als Zustandssatz; mit `Accepted` beschreibt er einen Zustand, den es nicht mehr gibt. Behoben vor der Closure (kein Statusvermerk der ADR unter `src/main`; der KDoc-Nachzug 24f09a9 nennt die [ADR-0013](../../../../../adr/0013-backend-grenzen.md) nur als Quelle).

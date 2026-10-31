@@ -1,0 +1,2 @@
+**Vorgang:** slice-backend-streaming-nachweis
+**Fund:** Review F-1 (MEDIUM, [Review](../../../../../../reviews/2026-10-31-c362b6b-slice-backend-streaming-nachweis.md)); behoben: `MessageStream` setzt ein Fehlerflag vor dem Paketbau und nimmt danach nichts mehr an; drei Tests (Paketbau, Kanal, Mitte im Token) halten es, die Mutationen des Flags sind rot ([Verifikation](../../../../../../reviews/2026-10-31-c2fea13-verifikation-slice-backend-streaming-nachweis.md)). Der erste Test warf nur an einer Token-Grenze und deckte den Fall nicht.

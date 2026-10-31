@@ -1,0 +1,2 @@
+**Vorgang:** slice-backend-streaming-nachweis
+**Fund:** Rückstau, Speichergrenze und Abbruch sind am Test-Backend und an einer Testsenke gezählt (Zähler-Schranke 409 bei Packet Size 520; Heap 128 MiB mit 1 200 000 Zeilen zu 128 Zeichen); über das Produkt, einen Socket und Last sagt der Lauf nichts. Die Verzögerung durch den zurückgehaltenen Abschluss ist am Fake nur als Ereigniszahl messbar. Ausgang im Slice: weiter offen → `slice-qa-performance` (dessen DoD den Punkt laut Closure von `slice-adr-backend-grenzen` nicht führt; Träger unvollständig).
