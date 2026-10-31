@@ -63,7 +63,7 @@ Befund aus der Streuung: Die Last verschiebt die absolute Dauer einer Ableitung 
 | 7 | Closure-Notiz mit Lerneintrag | **offen (Closure)** | §7 „Wird bei der Closure gefüllt.“ |
 | 8 | Beobachtungs-Register fortgeschrieben | **bestätigt** | drei Beleg-Dateien `evidence/slice-qa-sicherheit.md` (`anmeldepfad-sicherheit-nicht-gebaut`, `geheimnis-kopien-im-speicher-nicht-gemessen`, `tls-neuverhandlung-ohne-begrenzung`), kein Zähler gesetzt |
 | 9 | Jedes Risiko aus §6 trägt einen Ausgang | **bestätigt (Haken offen)** | alle vier Risiken tragen einen Ausgang (entfallen, eingetreten, eingetreten, weiter offen mit Träger); Haken `[ ]` bis zur Closure |
-| 10 | Drei Paarungen (Anker · Folge-Slice · Register) | **offen (Closure)** | Folge-Slice [slice-qa-anmeldedrosselung](../plan/planning/next/slice-qa-anmeldedrosselung.md) liegt und verweist auf CO-003 zurück; Anker-Feld entsteht mit der Closure |
+| 10 | Drei Paarungen (Anker · Folge-Slice · Register) | **offen (Closure)** | Folge-Slice [slice-qa-anmeldedrosselung](../plan/planning/in-progress/slice-qa-anmeldedrosselung.md) liegt und verweist auf CO-003 zurück; Anker-Feld entsteht mit der Closure |
 
 ## Fix-Runde: F-1 bis F-8
 
@@ -91,7 +91,7 @@ F-9 bis F-12 waren INFO. Zu F-9 liefert dieser Bericht die Streuung (Abschnitt o
 
 ## CO-003 und Folge-Slice (Modul 7)
 
-Regelkonform in der Form: die sechs Pflichtfelder (Status, Datum angelegt, Letzte Prüfung, betroffenes Gate, Geltungsbereich, Folge-Slice) stehen; der Auflösungs-Trigger ist beobachtbar (Folge-Slice in `done/` **und** eine ADR `Accepted` zur Drosselung oder zum Verzicht); der Folge-Slice existiert als [slice-qa-anmeldedrosselung](../plan/planning/next/slice-qa-anmeldedrosselung.md) und verweist auf den Carveout zurück (Ziel, Start-Trigger, DoD); die Geltungs-Konfiguration nennt die zwei Stellen, die `CO-003` im KDoc tragen (`AuthExecutor`, `AuthPoolOccupationTest`); [carveouts/README.md](../plan/carveouts/README.md) führt die Zeile, die Welle führt ihn in der Slice-Tabelle. Eine Zeile in `harness/README.md` §Sensors ist nicht fällig, weil kein Gate betroffen ist. Der Folge-Slice trägt höchstens drei Liefer-Punkte (zwei) und benennt sein einziges Risiko (Ausgang „offen bis zur Closure“, vor der Closure zulässig). Die Frage, ob der Carveout das richtige Werkzeug ist, bleibt L-2.
+Regelkonform in der Form: die sechs Pflichtfelder (Status, Datum angelegt, Letzte Prüfung, betroffenes Gate, Geltungsbereich, Folge-Slice) stehen; der Auflösungs-Trigger ist beobachtbar (Folge-Slice in `done/` **und** eine ADR `Accepted` zur Drosselung oder zum Verzicht); der Folge-Slice existiert als [slice-qa-anmeldedrosselung](../plan/planning/in-progress/slice-qa-anmeldedrosselung.md) und verweist auf den Carveout zurück (Ziel, Start-Trigger, DoD); die Geltungs-Konfiguration nennt die zwei Stellen, die `CO-003` im KDoc tragen (`AuthExecutor`, `AuthPoolOccupationTest`); [carveouts/README.md](../plan/carveouts/README.md) führt die Zeile, die Welle führt ihn in der Slice-Tabelle. Eine Zeile in `harness/README.md` §Sensors ist nicht fällig, weil kein Gate betroffen ist. Der Folge-Slice trägt höchstens drei Liefer-Punkte (zwei) und benennt sein einziges Risiko (Ausgang „offen bis zur Closure“, vor der Closure zulässig). Die Frage, ob der Carveout das richtige Werkzeug ist, bleibt L-2.
 
 ## Plan gegen Code
 
