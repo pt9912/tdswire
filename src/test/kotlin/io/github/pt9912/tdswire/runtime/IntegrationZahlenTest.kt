@@ -14,7 +14,7 @@ internal class IntegrationZahlenTest {
     /**
      * Boundary: der Heap des Serverprozesses (`maxHeapSize`) und der Text von `gross` stehen in der Spezifikation,
      * der Heap auch in der Zeile des Ziels in `harness/README.md`; ändert jemand einen Wert, wird der Test rot.
-     * Kein `@spec`-Tag: der Test belegt die Kopplung der Zahlen, nicht den Lauf des Gates.
+     * Kein `@spec`-Tag: der Test belegt die Kopplung der Zahlen, nicht den Lauf des Integrationslaufs.
      */
     @Test
     fun `Heap und Text des Integrationslaufs stimmen in Gradle Spezifikation und README`() {

@@ -11,7 +11,8 @@
 # keinen Handlerfehler und kein Kennwort geloggt hat.
 # Zusage: Auswahl mit Bedingung, leeres Ergebnis, Zeilenquelle ueber dem Heap, Fehler der Zeilenquelle mit
 # Folgeabfrage am Referenzclient (Microsoft.Data.SqlClient), TDS 7.4 ohne Verschluesselung und ohne Pool; nicht
-# belegt: Cancel (der Server beantwortet ATTENTION waehrend einer Anfrage nicht), echter SQL Server, TDS 8.0, Last.
+# belegt: Cancel (der Server beantwortet ATTENTION waehrend einer Anfrage nicht; befristet ausgenommen, CO-004 in
+# docs/plan/carveouts/), echter SQL Server, TDS 8.0, Last. Der Lauf ist Stufe 3 von `make e2e` und kein Gate.
 set -u
 
 LAUF="tdswire-sim-$$"
