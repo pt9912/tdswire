@@ -91,5 +91,24 @@ class ScriptedBackend private constructor(private val source: (ScriptedBackend) 
                 if (index == rows) emit(QueryEvent.ResultEnd(rows.toLong()))
             }
         }
+
+        /**
+         * Ein Backend, das ein Ergebnis mit einer Textspalte und [rows] Zeilen erzeugt, jede mit einem neu
+         * angelegten Text von [chars] Zeichen und ohne Zwischenpuffer; nach [cancel] oder
+         * [QueryExecution.close] erzeugt es keine weitere. Für Läufe, deren Materialisierung den Heap
+         * überschritte.
+         */
+        fun generatingText(rows: Int, chars: Int): ScriptedBackend = ScriptedBackend { backend ->
+            flow {
+                emit(QueryEvent.ResultStart(listOf(ResultColumn("t", SqlType.UnicodeText, nullable = false))))
+                var index = 0
+                while (index < rows && !backend.sourceStopped) {
+                    backend.rowsPulled++
+                    emit(QueryEvent.Row(listOf(String(CharArray(chars) { 'x' }))))
+                    index++
+                }
+                if (index == rows) emit(QueryEvent.ResultEnd(rows.toLong()))
+            }
+        }
     }
 }

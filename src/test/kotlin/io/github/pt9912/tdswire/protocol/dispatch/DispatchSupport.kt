@@ -12,6 +12,7 @@ import io.github.pt9912.tdswire.protocol.session.HandshakeDriver
 import io.github.pt9912.tdswire.protocol.session.HandshakeOutcome
 import io.github.pt9912.tdswire.protocol.session.Inbound
 import io.github.pt9912.tdswire.protocol.session.RecordingAdapter
+import io.github.pt9912.tdswire.protocol.session.ReplyStream
 import io.github.pt9912.tdswire.protocol.session.SessionVectors
 import io.github.pt9912.tdswire.protocol.token.DoneToken
 import io.github.pt9912.tdswire.protocol.token.ErrorToken
@@ -22,6 +23,7 @@ import io.github.pt9912.tdswire.testsupport.hex
 import io.github.pt9912.tdswire.testsupport.toHex
 import io.github.pt9912.tdswire.transport.framing.PacketType
 import io.github.pt9912.tdswire.transport.framing.TdsMessage
+import java.io.ByteArrayOutputStream
 import kotlin.test.assertIs
 
 /** Von Hand gebaute Eingaben und erwartete Antworten (Tabellenlayout nach MS-TDS), unabhängig vom Codec. */
@@ -105,3 +107,16 @@ fun List<Token>.errorMessage(): ServerMessage = filterIsInstance<ErrorToken>().s
 
 /** Das letzte Token einer Antwort. */
 fun List<Token>.lastDone(): DoneToken = assertIs<DoneToken>(last())
+
+/** Eine Antwort im Speicher: sammelt die Bytes, die ihr zugeschrieben werden. */
+class CollectingReply : ReplyStream {
+    private val collected = ByteArrayOutputStream()
+    val bytes: ByteArray get() = collected.toByteArray()
+
+    override suspend fun write(bytes: ByteArray): Boolean {
+        collected.write(bytes)
+        return true
+    }
+
+    override suspend fun finish(): Boolean = true
+}

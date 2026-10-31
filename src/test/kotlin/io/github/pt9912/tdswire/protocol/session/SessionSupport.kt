@@ -124,6 +124,37 @@ class FakeHandshakeChannel(
         return sendResult
     }
 
+    /** Die Packet Size, die der letzte Aufruf von `usePacketSize` setzte; `null` ohne Aufruf. */
+    var packetSize: Int? = null
+        private set
+
+    /** Läuft in jedem `write` einer Antwort nach dem Eintrag der Bytes; darf suspendieren. */
+    var onReplyWrite: suspend () -> Unit = {}
+
+    override fun usePacketSize(size: Int) {
+        packetSize = size
+    }
+
+    override fun openReply(type: PacketType): ReplyStream = object : ReplyStream {
+        private val collected = java.io.ByteArrayOutputStream()
+        private var done = false
+
+        override suspend fun write(bytes: ByteArray): Boolean {
+            if (done || !sendResult) return false
+            collected.write(bytes)
+            onReplyWrite()
+            return true
+        }
+
+        /** Eine beendete Antwort liegt wie eine gesendete Nachricht in [sent]; eine nicht beendete nirgends. */
+        override suspend fun finish(): Boolean {
+            if (done || !sendResult) return false
+            done = true
+            sent += TdsMessage(type, collected.toByteArray())
+            return true
+        }
+    }
+
     override suspend fun startTls(): Boolean {
         tlsCalls++
         trace += "tls"

@@ -109,15 +109,21 @@ enum class SequenceOutcome {
  *   Bit (Festlegung des Implementers).
  * - „Ausnahme“ heißt jedes `Throwable` außer einer [CancellationException]; die Ausnahme geht an
  *   [ErrorMapping.internal]. Eine [CancellationException] läuft aus `execute()` wie aus dem Strom
- *   nach außen, auch wenn die Coroutine nicht abgebrochen ist (etwa ein Zeitlimit im Backend); die
- *   Behandlung von `OutOfMemoryError` bleibt offen (ADR-0006).
- * - Eine andere Ausnahme der Senke als die Abbruchausnahme und eine Ausnahme aus `close()` laufen nach
- *   `close()` unverändert nach außen; dafür gibt es keine Zusage.
+ *   nach außen, auch wenn die Coroutine nicht abgebrochen ist (etwa ein Zeitlimit im Backend).
+ * - Ein `OutOfMemoryError` aus dem Backend, dem Encoder oder der Senke wird wie eine Ausnahme des
+ *   Backends behandelt (ADR-0013, Proposed); gefangen wird nur dieser Fehler. Gelingt das Schreiben
+ *   von ERROR und DONE nicht, ist der Strom nicht abschließbar.
+ * - Eine andere Ausnahme der Senke als die Abbruchausnahme und `OutOfMemoryError`, ebenso eine Ausnahme
+ *   aus `close()` oder `cancel()`, laufen nach `close()` unverändert nach außen; dafür gibt es keine
+ *   Zusage.
  */
 class ResponseSequencer(private val errors: ErrorMapping) {
     /**
      * Führt [request] auf [backend] aus und schreibt die Tokens in [sink]. `close()` der Ausführung
-     * läuft in jedem Ausgang, auch beim Abbruch der Coroutine.
+     * läuft in jedem Ausgang, auch beim Abbruch der Coroutine. Endet das Lesen durch den Abbruch der
+     * Coroutine, durch eine Senke, die ein Token nicht annimmt, oder durch eine Ausnahme der Senke,
+     * ruft der Lauf zuvor genau einmal `cancel()` des Backends; kein weiteres Ereignis wird danach
+     * gelesen.
      */
     suspend fun run(backend: QueryBackend, request: QueryRequest, sink: TokenSink): SequenceOutcome {
         val run = ResponseRun(errors, sink)
@@ -129,13 +135,40 @@ class ResponseSequencer(private val errors: ErrorMapping) {
             return run.result
         }
         val execution = started.getOrThrow()
+        var aborted = true
         try {
-            execution.events.catch { run.fault(rethrowCancellation(it)) }.firstOrNull { run.accept(it) }
-            run.end()
+            execution.events.catch { run.fault(rethrowCancellation(it)) }.firstOrNull { acceptGuarded(run, it) }
+            endGuarded(run)
+            aborted = run.result == SequenceOutcome.CLOSE_WITHOUT_COMPLETION
         } finally {
-            withContext(NonCancellable) { execution.close() }
+            withContext(NonCancellable) {
+                try {
+                    if (aborted) backend.cancel(request.sessionId, request.requestId)
+                } finally {
+                    execution.close()
+                }
+            }
         }
         return run.result
+    }
+
+    /**
+     * Ein `OutOfMemoryError` aus Encoder oder Senke endet den Lauf wie eine Ausnahme des Backends
+     * (`ResponseRun.fault`). Andere `Error` und die Abbruchausnahme laufen nach außen.
+     */
+    private suspend fun acceptGuarded(run: ResponseRun, event: QueryEvent): Boolean = try {
+        run.accept(event)
+    } catch (exhausted: OutOfMemoryError) {
+        run.fault(exhausted)
+        true
+    }
+
+    private suspend fun endGuarded(run: ResponseRun) {
+        try {
+            run.end()
+        } catch (exhausted: OutOfMemoryError) {
+            run.fault(exhausted)
+        }
     }
 
     private fun rethrowCancellation(cause: Throwable): Throwable =

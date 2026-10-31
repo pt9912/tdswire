@@ -49,8 +49,8 @@ internal class HandlerSetup(
  * Nach der Annahme beantwortet die [RequestLoop] die Anfragen an das [backend]. Ist keines
  * gesetzt (der Betrieb hat noch kein Backend), gibt es keinen Anfragepfad (Festlegung ohne Messung): der
  * Handler wartet auf die nächste Nachricht oder das Ende der Gegenstelle und kehrt dann zurück; der
- * Listener schließt die Verbindung, eine Anfrage bleibt unbeantwortet. Der Paket-Schreiber arbeitet mit
- * [PACKET_SIZE]; die angekündigte Packet Size wird nicht angewandt (`AuthenticatedSession`).
+ * Listener schließt die Verbindung, eine Anfrage bleibt unbeantwortet. Der Paket-Schreiber arbeitet bis zum
+ * Login mit [PACKET_SIZE]; danach stellt die `RequestLoop` ihn auf die Packet Size der Sitzung ein.
  * TLS läuft im TDS-7.4-Pfad (gekapselt in Paketen vom Typ `0x12`); der Pfad ab dem ersten Byte (TDS 8.0)
  * ist nicht verdrahtet.
  */

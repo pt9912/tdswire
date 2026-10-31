@@ -16,7 +16,7 @@ import io.github.pt9912.tdswire.protocol.wire.guarded
  * Nicht thread-sicher.
  */
 class TokenEncoder {
-    private val stream = ByteWriter()
+    private var stream = ByteWriter()
     private var columns: List<ColumnDef>? = null
 
     /** Schreibt [token] an das Ende des Stroms. */
@@ -34,4 +34,15 @@ class TokenEncoder {
 
     /** Die bisher geschriebenen Bytes des Tokenstroms. */
     fun toByteArray(): ByteArray = stream.toByteArray()
+
+    /**
+     * Die seit dem letzten Aufruf geschriebenen Bytes; der Strom ist danach leer, das zuletzt
+     * geschriebene COLMETADATA gilt für folgende ROW-Tokens weiter. Der Encoder hält dann nur noch
+     * Bytes, die noch nicht abgeholt sind.
+     */
+    fun drain(): ByteArray {
+        val bytes = stream.toByteArray()
+        stream = ByteWriter()
+        return bytes
+    }
 }
