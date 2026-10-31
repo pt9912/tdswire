@@ -168,9 +168,9 @@ internal class ServerSmokeTest : TempFilesTest() {
             val expected = "${ServerProcess.PREFIX} Konfiguration ungueltig: AUTH_USERS_FILE: MISSING"
             assertEquals(listOf(expected), server.output.toList())
         }
-        ServerProcess(environment(ConfigKeys.LOGIN_TIMEOUT to "geheim-4711")).use { server ->
+        ServerProcess(environment(ConfigKeys.LOGIN_TIMEOUT to "geheim-$WERTPROBE")).use { server ->
             assertEquals(EXIT_START_FAILED, server.awaitExit())
-            assertTrue(server.output.none { it.contains("geheim") || it.contains("4711") }, server.output.toString())
+            assertTrue(server.output.none { it.contains("geheim") || it.contains(WERTPROBE) }, server.output.toString())
             assertTrue(server.output.single().contains("LOGIN_TIMEOUT: INVALID_VALUE"), server.output.toString())
         }
         ServerSocket(0, 1, InetAddress.getByName(LOOPBACK)).use { occupied ->
