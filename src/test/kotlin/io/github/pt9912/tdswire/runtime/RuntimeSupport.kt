@@ -137,19 +137,19 @@ fun loopbackEnvironment(usersFile: String, vararg more: Pair<String, String>): M
         *more,
     )
 
-/** Basis der Tests, die einen [Server] im Prozess starten: nach jedem Test werden die Server beendet. */
+/** Basis der Tests, die einen [TdsServer] im Prozess starten: nach jedem Test werden die Server beendet. */
 internal open class RuntimeTestBase : TempFilesTest() {
-    private val started = ConcurrentLinkedQueue<Server>()
+    private val started = ConcurrentLinkedQueue<TdsServer>()
     val log = CapturedLog()
 
-    suspend fun start(environment: Map<String, String>, wiring: Wiring = Wiring(log = log)): BootResult {
+    suspend fun start(environment: Map<String, String>, wiring: Wiring = Wiring(log = log)): StartOutcome {
         val result = Bootstrap.start(environment, flagSet, wiring)
-        if (result is BootResult.Running) started += result.server
+        if (result is StartOutcome.Running) started += result.server
         return result
     }
 
-    suspend fun running(environment: Map<String, String>, wiring: Wiring = Wiring(log = log)): Server =
-        assertIs<BootResult.Running>(start(environment, wiring)).server
+    suspend fun running(environment: Map<String, String>, wiring: Wiring = Wiring(log = log)): TdsServer =
+        assertIs<StartOutcome.Running>(start(environment, wiring)).server
 
     @AfterTest
     fun stopStartedServers() {

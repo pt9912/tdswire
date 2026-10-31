@@ -1,5 +1,7 @@
 package io.github.pt9912.tdswire.runtime
 
+import io.github.pt9912.tdswire.config.ConfigIssue
+import io.github.pt9912.tdswire.config.ConfigValidation
 import io.github.pt9912.tdswire.config.EncryptionSetting
 import io.github.pt9912.tdswire.config.ServerConfig
 import io.github.pt9912.tdswire.config.TlsKeyMaterial
@@ -49,18 +51,21 @@ internal class Wiring(
     val requests: RequestSource = RequestSource(),
 )
 
-/** Ausgang des Starts: ein laufender [Server] oder der Abbruch; ein Abbruch hat Log-Zeilen geschrieben. */
-internal sealed interface BootResult {
-    class Running(val server: Server) : BootResult
+private fun flagProblem(properties: (String) -> String?): String? =
+    if (properties(Bootstrap.TICKET_FLAG) != "0") "JVM-Flag -D${Bootstrap.TICKET_FLAG}=0 fehlt" else null
 
-    data object Aborted : BootResult
+private fun policyOf(setting: EncryptionSetting): EncryptionPolicy = when (setting) {
+    EncryptionSetting.REQUIRED -> EncryptionPolicy.REQUIRED
+    EncryptionSetting.TEST_UNENCRYPTED -> EncryptionPolicy.TEST_UNENCRYPTED
 }
 
 /**
- * Start-Reihenfolge des Prozesses (`ARC-008`, `TDS-FA-09.a`): JVM-Flag prüfen, Konfiguration laden und
- * validieren, das Simulations-Backend verdrahten (ein Ladefehler der Beschreibung bricht den Start ab, bevor ein Port
- * gebunden wird), TLS-Material laden, Startprobe und Binden im Listener (`SPEC-043`). Bis zum Binden läuft kein
- * Thread des Servers; scheitert ein Schritt, läuft danach keiner weiter und kein Port ist gebunden.
+ * Start-Reihenfolge (`ARC-008`, `TDS-FA-09.a`). [start] ist der Start des Prozesses: JVM-Flag prüfen, Konfiguration
+ * laden und validieren, dann [launch]. [launch] ist der Teil, den auch `TdsServer.start` ruft: JVM-Flag und
+ * Konfiguration prüfen (`ConfigValidation.check`), das Simulations-Backend verdrahten (ein Ladefehler der Beschreibung
+ * bricht den Start ab, bevor ein Port gebunden wird), TLS-Material laden, Startprobe und Binden im Listener
+ * (`SPEC-043`). Bis zum Binden läuft kein Thread des Servers; scheitert ein Schritt, läuft danach keiner weiter
+ * und kein Port ist gebunden.
  *
  * `shutdownGrace` ist 0: Festlegung, nicht gemessen und nicht die Voreinstellung `SHUTDOWN_GRACE` von 10 s
  * (`SPEC-047`); die Frist des geordneten Beendens (`SPEC-044`) trägt `slice-abbruch-ressourcen-shutdown`, bis
@@ -73,20 +78,27 @@ internal sealed interface BootResult {
  */
 internal object Bootstrap {
     const val TICKET_FLAG = "jdk.tls.server.newSessionTicketCount"
+    private const val CONFIG_INVALID = "Konfiguration ungueltig"
 
-    suspend fun start(environment: Map<String, String>, properties: (String) -> String?, wiring: Wiring): BootResult {
-        if (properties(TICKET_FLAG) != "0") return abort(wiring, "JVM-Flag -D$TICKET_FLAG=0 fehlt")
+    suspend fun start(environment: Map<String, String>, properties: (String) -> String?, wiring: Wiring): StartOutcome {
+        flagProblem(properties)?.let { return abort(wiring, it) }
         return when (val loaded = ConfigLoader.load(environment)) {
-            is ConfigResult.Invalid -> {
-                loaded.issues.forEach { wiring.log.line("Konfiguration ungueltig: ${it.message}") }
-                BootResult.Aborted
-            }
-
-            is ConfigResult.Loaded -> launch(loaded.config, wiring)
+            is ConfigResult.Invalid -> reject(wiring, loaded.issues)
+            is ConfigResult.Loaded -> launch(loaded.config, wiring, properties)
         }
     }
 
-    private suspend fun launch(config: ServerConfig, wiring: Wiring): BootResult =
+    suspend fun launch(config: ServerConfig, wiring: Wiring, properties: (String) -> String?): StartOutcome {
+        val flag = flagProblem(properties)
+        val issues = ConfigValidation.check(config)
+        return when {
+            flag != null -> abort(wiring, flag)
+            issues.isNotEmpty() -> reject(wiring, issues)
+            else -> bindBackend(config, wiring)
+        }
+    }
+
+    private suspend fun bindBackend(config: ServerConfig, wiring: Wiring): StartOutcome =
         when (val simulation = backendOf(config, wiring)) {
             is SimulationResult.Failed -> abort(wiring, simulation.reason)
 
@@ -98,7 +110,7 @@ internal object Bootstrap {
             SimulationResult.Absent -> bind(config, wiring.requests.backend, wiring)
         }
 
-    private suspend fun bind(config: ServerConfig, backend: QueryBackend?, wiring: Wiring): BootResult {
+    private suspend fun bind(config: ServerConfig, backend: QueryBackend?, wiring: Wiring): StartOutcome {
         val material = when (val loaded = config.tls?.let { loadMaterial(it) }) {
             null -> null
 
@@ -148,11 +160,6 @@ internal object Bootstrap {
         log = wiring.log,
     )
 
-    private fun policyOf(setting: EncryptionSetting): EncryptionPolicy = when (setting) {
-        EncryptionSetting.REQUIRED -> EncryptionPolicy.REQUIRED
-        EncryptionSetting.TEST_UNENCRYPTED -> EncryptionPolicy.TEST_UNENCRYPTED
-    }
-
     private fun events(wiring: Wiring): ListenerEvents = ListenerEvents { event ->
         wiring.events.onEvent(event)
         when (event) {
@@ -165,7 +172,7 @@ internal object Bootstrap {
         }
     }
 
-    private fun running(config: ServerConfig, listener: TdsListener, wiring: Wiring): BootResult {
+    private fun running(config: ServerConfig, listener: TdsListener, wiring: Wiring): StartOutcome {
         wiring.log.line("gestartet, Port ${listener.port}")
         if (config.encryption == EncryptionSetting.TEST_UNENCRYPTED) {
             wiring.log.line("ACHTUNG: ENCRYPTION_POLICY ist TEST_UNENCRYPTED, Verbindungen sind nicht verschluesselt")
@@ -173,11 +180,16 @@ internal object Bootstrap {
         if (config.auth.plainTestMode) {
             wiring.log.line("ACHTUNG: AUTH_PLAIN_TESTMODE ist aktiv, das Verfahren plain ist zugelassen")
         }
-        return BootResult.Running(Server(listener, wiring.log))
+        return StartOutcome.Running(TdsServer(listener, wiring.log))
     }
 
-    private fun abort(wiring: Wiring, reason: String): BootResult {
+    private fun abort(wiring: Wiring, reason: String): StartOutcome {
         wiring.log.line(reason)
-        return BootResult.Aborted
+        return StartOutcome.Aborted(reason)
+    }
+
+    private fun reject(wiring: Wiring, issues: List<ConfigIssue>): StartOutcome {
+        issues.forEach { wiring.log.line("Konfiguration ungueltig: ${it.message}") }
+        return StartOutcome.Aborted(CONFIG_INVALID, issues)
     }
 }
