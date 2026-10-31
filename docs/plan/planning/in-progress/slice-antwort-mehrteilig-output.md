@@ -83,6 +83,18 @@ Aussagen-Berührung steht hier gar nicht.
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 
+**Ist-Zustand gegen den Plan (Implementer, vor dem Code):** Der Sequenzierer-Kern liegt auf `main` (`slice-backend-sequenzierer` in `done/`) und trägt schon die Vorschau für `DONE_MORE`, `DONE_COUNT` nur bei gemeldeter Zahl, die Ereignisreihenfolge-Prüfung (Verstoß ist ein Fall von `SPEC-048`) und die Ablehnung von `ReturnStatus` und `OutputParameter`; die Unterpackages `response` und `dispatch` existieren (nicht `dispatch` neu). Offen waren daher nur die RPC-Antwortform und die Dispatch-Tests für Mehrfach-Ergebnisse und Negativformen. Der dritte Liefer-Punkt (Reihenfolge) ist im Kern vorhanden; dieser Slice belegt ihn an der Leitung des Dispatch. Die Liste der Dateien:
+
+| Datei | Änderungs-Art | Begründung |
+|---|---|---|
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/response/ResponseForm.kt` | neu | Antwortform BATCH oder RPC, von der Anfrageschleife an den Sequenzierer gegeben |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/response/ResponseRun.kt` | update | DONEINPROC und DONEPROC, RETURNSTATUS, RETURNVALUE in der Form RPC |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/response/ResponseSequencer.kt` | update | Parameter `form`, Festlegungen im KDoc |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/dispatch/RequestLoop.kt` | update | RPC ruft den Sequenzierer mit der Form RPC |
+| `src/test/kotlin/io/github/pt9912/tdswire/protocol/response/ResponseRpcTest.kt` | neu | Sequenzierer in der Form RPC |
+| `src/test/kotlin/io/github/pt9912/tdswire/protocol/dispatch/AnswerFormsDispatchTest.kt` | neu | Byte-Vektoren der Antworten an der Anfrageschleife |
+| `src/test/kotlin/io/github/pt9912/tdswire/protocol/dispatch/RpcDispatchTest.kt` | update | Erwartung der RPC-Antwort: DONEINPROC und DONEPROC statt DONE |
+
 - Reihenfolge: Mehrfach-Ergebnisse, dann RPC-Antwortform, dann der Negativfall.
 - Die Byte-Vektoren stammen aus MS-TDS und aus den Spike-Antworten in [ADR-0005](../../adr/0005-rpc-und-prepared-statements.md); Abschnittsnummern externer Standards nur mit belegbarer Quelle (`AGENTS.md` §3.8).
 
