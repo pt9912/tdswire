@@ -23,10 +23,6 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 - [welle-betrieb-diagnose](../welle-betrieb-diagnose.md)
 - [welle-referenzabgleich-release](../welle-referenzabgleich-release.md)
 
-In Arbeit (Welle welle-qualitaet-grundlage):
-
-- [slice-qa-wartbarkeit](slice-qa-wartbarkeit.md)
-
 In Arbeit (Welle welle-simulations-backend):
 
 - [slice-sim-aenderung-integration](slice-sim-aenderung-integration.md)

@@ -1,0 +1,2 @@
+**Vorgang:** slice-qa-wartbarkeit
+**Fund:** Verifikation 1 L-1 (Plan-Text nannte 280 Testfälle und „Stand `bda6cd6` bleibt“, die Matrix stand auf `9ff2913`) und Verifikation 2 L-1 (Plan-Text nannte `9ff2913`, die Matrix stand seit der Fix-Runde auf `68598df` mit 775 Testfällen). Zweimal nachgezogen, jedes Mal erst nach der Fix-Runde. Die 775 sind aus `@Test`-Zählung plus 9 vererbten Fällen abgeleitet, nicht in einem Lauf an `68598df` gemessen.

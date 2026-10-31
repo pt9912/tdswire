@@ -1,0 +1,2 @@
+**Vorgang:** slice-qa-wartbarkeit
+**Fund:** Review M-1 und Verifikation 1 M-1: Träger-Angaben der Matrix (Lücken 1, 3, 4, 5, 7 bis 10, 14) nannten Slices, deren Text den Punkt nicht in DoD oder Risiko führt; neu gesetzt gegen den Text der Slice-Dateien. Verifikation 2 L-2: Lücke 15 (abgelehnte RPC-Parametertypen) hat in `slice-codec-datentypen-erweiterung` einen Träger nur als Risiko, ohne die Dispatch-Folge; in dieser Closure ergänzt, die DoD des Slice bleibt unverändert (Vorrat).
