@@ -110,6 +110,15 @@ if [ "$KATEGORIE" = Anmeldung ]; then
   pruefe "Log nennt die SET-Texte von SchemaOnly und KeyInfo" set_texte
 fi
 
+if [ "$KATEGORIE" = Luecken ]; then
+  # Der Client sieht in beiden Faellen nur 18456; den Grund der Ablehnung nennt allein das Log des Servers.
+  grund() { docker logs "$SERVER" 2>&1 | grep -qF "Login: abgelehnt ($1)"; }
+  pruefe "Log nennt als Grund des Kennwortwechsels UNSUPPORTED_PASSWORD_CHANGE" grund UNSUPPORTED_PASSWORD_CHANGE
+  pruefe "Log nennt als Grund des Zugriffstokens UNSUPPORTED_FEDERATED_AUTHENTICATION" grund UNSUPPORTED_FEDERATED_AUTHENTICATION
+  pruefe "Log nennt TDS_PROTOCOL_ERROR (mehrere RPCs) und TDS_UNSUPPORTED_TYPE (xml)" \
+    sh -c "docker logs '$SERVER' 2>&1 | grep -qF 'tdswire: Fehler: TDS_PROTOCOL_ERROR' && docker logs '$SERVER' 2>&1 | grep -qF 'tdswire: Fehler: TDS_UNSUPPORTED_TYPE'"
+fi
+
 echo "kompatibilitaetstest: --- Log des Servers ---"
 docker logs "$SERVER" 2>&1
 echo "kompatibilitaetstest: --- Ende des Logs ---"

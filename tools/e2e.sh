@@ -54,4 +54,8 @@ echo "e2e: Stufe 6 Referenzclient: Anmeldung, TDS 8.0 und RPC-Messungen ..."
 e2e_abdeckung "TDS-FA-01 TDS-FA-02 TDS-FA-04 TDS-QA-01 TDS-QA-03" "Microsoft.Data.SqlClient 7.1.1 im zweiten Container gegen den Serverprozess (Richtlinie REQUIRED): TDS 8.0 (Encrypt=Strict) mit SQL-Authentifizierung für Batch und RPC, Kette und Name des Zertifikats geprüft (falscher Name scheitert in TDS 7.4 und 8.0, je mit Gegenprobe), Standardeinstellungen des Clients, Paketgröße 512 mit den längsten Feldern, Pooling (zweite Nutzung auf derselben Sitzung laut Log), Prepare als unbekannte RPC abgewiesen, die SET-Texte von SchemaOnly und KeyInfo im Log, BeginTransaction schließt die Verbindung, RPC-Parametertypen FLTN, MONEYN, DATETIMN, GUID und DATETIMEOFFSETN gelesen und als RPC abgewiesen. Nicht belegt: Windows-SSPI, Paketzahl eines LOGIN7, das RESETCONNECTION-Bit, TLS 1.2 und andere Suiten, sp_unprepare, ein echter SQL Server" "make kompatibilitaet KATEGORIE=Anmeldung"
 lauf 6 make kompatibilitaet KATEGORIE=Anmeldung
 
-echo "e2e: gruen (6 Stufen, $SECONDS s)"
+echo "e2e: Stufe 7 Referenzclient: Lücken 3, 4 und 14 der Kompatibilitätsmatrix ..."
+e2e_abdeckung "TDS-FA-02 TDS-FA-04 TDS-QA-01" "Microsoft.Data.SqlClient 7.1.1 im zweiten Container gegen den Serverprozess: xml als RPC-Parameter endet mit 50003 und geschlossener Verbindung, mehrere RPCs in einer Nachricht (SqlDataAdapter mit UpdateBatchSize 2) mit Protokollfehler 50006 und geschlossener Verbindung (UpdateBatchSize 1 gelingt), Kennwortwechsel und Zugriffstoken mit 18456, der Grund steht im Log des Servers. Nicht belegt: Windows-SSPI, dass der Client die FeatureExt 0x02 sendet, das Batch-Flag am Draht, ein echter SQL Server" "make kompatibilitaet KATEGORIE=Luecken"
+lauf 7 make kompatibilitaet KATEGORIE=Luecken
+
+echo "e2e: gruen (7 Stufen, $SECONDS s)"
