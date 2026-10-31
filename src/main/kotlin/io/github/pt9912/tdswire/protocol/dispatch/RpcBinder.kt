@@ -52,7 +52,9 @@ internal object RpcBinder {
 
     private fun byName(call: RpcCall.ByName): RpcBinding = when {
         !RpcProcedureName.isValid(call.name) -> RpcBinding.Rejected(RpcRejection.PROCEDURE_NAME)
+
         RpcProcedureName.isCatalogProcedure(call.name) -> RpcBinding.Rejected(RpcRejection.UNKNOWN_PROCEDURE)
+
         else -> {
             val parameters = RpcParameters.map(call.parameters)
             RpcBinding.Query(RpcProcedureName.execText(call.name, parameters), parameters)

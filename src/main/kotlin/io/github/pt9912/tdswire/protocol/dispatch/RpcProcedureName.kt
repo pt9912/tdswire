@@ -58,14 +58,15 @@ internal object RpcProcedureName {
     private fun parts(name: String): List<String>? {
         val parts = mutableListOf<String>()
         var start = 0
-        while (parts.size < MAX_PARTS) {
-            val end = partEnd(name, start) ?: return null
+        var complete = false
+        while (!complete && parts.size < MAX_PARTS) {
+            val end = partEnd(name, start)
+            if (end == null || (end < name.length && name[end] != SEPARATOR)) break
             parts += name.substring(start, end)
-            if (end == name.length) return parts
-            if (name[end] != SEPARATOR) return null
+            complete = end == name.length
             start = end + 1
         }
-        return null
+        return parts.takeIf { complete }
     }
 
     private fun partEnd(name: String, start: Int): Int? = when {

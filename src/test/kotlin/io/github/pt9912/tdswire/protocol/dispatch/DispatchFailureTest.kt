@@ -165,15 +165,15 @@ class DispatchFailureTest {
     }
 
     /**
-     * RPC, Transaction Manager und ATTENTION in `READY` beantwortet dieser Dispatch nicht: keine
+     * Transaction Manager und ATTENTION in `READY` beantwortet dieser Dispatch nicht: keine
      * Antwort, das Backend wird nicht gerufen, die Verbindung schließt (auch nach einer
      * erfolgreichen Anfrage; die nächste Nachricht wird nicht gelesen).
      *
      * @spec SPEC-001
      */
     @Test
-    fun `RPC, Transaction Manager und ATTENTION bleiben unbeantwortet und schliessen`() = blocking {
-        listOf(PacketType.RPC, PacketType.TRANSACTION_MANAGER, PacketType.ATTENTION).forEach { type ->
+    fun `Transaction Manager und ATTENTION bleiben unbeantwortet und schliessen`() = blocking {
+        listOf(PacketType.TRANSACTION_MANAGER, PacketType.ATTENTION).forEach { type ->
             val backend = ScriptedBackend.ofList(*oneRow.toTypedArray())
             val session = Session.login(
                 BatchVectors.message("first"),

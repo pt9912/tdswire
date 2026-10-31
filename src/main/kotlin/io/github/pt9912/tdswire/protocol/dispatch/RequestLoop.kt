@@ -43,7 +43,8 @@ import java.util.UUID
  *
  * Festlegungen ohne Messung: Transaction Manager und ATTENTION in `READY` bleiben unbeantwortet, die
  * Verbindung schließt; die Antwort auf einen erfolgreichen RPC besteht aus denselben Tokens wie die auf
- * einen Batch (DONE, kein DONEPROC, kein RETURNSTATUS, kein RETURNVALUE); ein SQL_BATCH, dessen Nachricht der Parser abweist, wird mit `TDS_PROTOCOL_ERROR`
+ * einen Batch (DONE, kein DONEPROC, kein RETURNSTATUS, kein RETURNVALUE); ein SQL_BATCH, dessen Nachricht der
+ * Parser abweist, wird mit `TDS_PROTOCOL_ERROR`
  * beantwortet (`ErrorMapper.protocol`); die Antwort wird vollständig gepuffert (`BufferedResponse`);
  * während einer Anfrage liest die Schleife nicht.
  *
@@ -97,8 +98,11 @@ class RequestLoop(
 
     private suspend fun answerRpc(rpc: TdsMessage): HandshakeEvent.RequestFinished =
         when (val bound = RpcBinder.bind(rpc.payload)) {
-            is RpcBinding.Rejected ->
-                errors.code(ErrorCode.TDS_UNSUPPORTED_RPC).let { requestFinished(it.fate, it.message) }
+            is RpcBinding.Rejected -> {
+                val response = errors.code(ErrorCode.TDS_UNSUPPORTED_RPC)
+                requestFinished(response.fate, response.message)
+            }
+
             is RpcBinding.Query -> execute(bound.sql, bound.parameters)
         }
 

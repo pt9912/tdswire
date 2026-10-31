@@ -36,12 +36,16 @@ internal object RpcWireValues {
     /** Der JVM-Wert zu den Wertbytes eines Typs aus der Menge der Rohwerte des Parsers. */
     fun decode(type: RpcType, bytes: ByteArray): Any = when (type.kind) {
         RpcTypeKind.DECIMALN, RpcTypeKind.NUMERICN -> decimal(type, bytes)
+
         RpcTypeKind.DATEN -> date(bytes, 0)
+
         RpcTypeKind.TIMEN -> time(type.scale, bytes, 0)
+
         RpcTypeKind.DATETIME2N -> {
             val timeLength = TypeInfoWriter.timeBytes(type.scale)
             LocalDateTime.of(date(bytes, timeLength), time(type.scale, bytes, 0))
         }
+
         else -> rejectValue()
     }
 
