@@ -62,7 +62,7 @@ class HandshakeAutomaton(private val config: HandshakeConfig = HandshakeConfig()
 
     /**
      * PRELOGIN und LOGIN7 haben ihr eigenes Ziel; in `READY` gehört die Nachricht der
-     * Anfrageverarbeitung (`Forward`). Ein SQL_BATCH setzt den Anfragezustand auf `RUNNING`; RPC,
+     * Anfrageverarbeitung (`Forward`). Ein SQL_BATCH und ein RPC setzen den Anfragezustand auf `RUNNING`;
      * Transaction Manager und ATTENTION lassen `READY` stehen.
      */
     private fun message(context: HandshakeContext, message: TdsMessage): Transition = when (context.state) {
@@ -72,7 +72,8 @@ class HandshakeAutomaton(private val config: HandshakeConfig = HandshakeConfig()
     }
 
     private fun forward(context: HandshakeContext, message: TdsMessage): Transition {
-        val next = if (message.type == PacketType.SQL_BATCH) ConnectionState.RUNNING else context.state
+        val starts = message.type == PacketType.SQL_BATCH || message.type == PacketType.RPC
+        val next = if (starts) ConnectionState.RUNNING else context.state
         return Transition(context.copy(state = next), listOf(HandshakeAction.Forward))
     }
 
