@@ -20,8 +20,6 @@ import io.github.pt9912.tdswire.protocol.sqlbatch.SqlBatchParser
 import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
 import io.github.pt9912.tdswire.transport.framing.PacketType
 import io.github.pt9912.tdswire.transport.framing.TdsMessage
-import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.withContext
 import java.util.UUID
 
 /**
@@ -52,8 +50,9 @@ import java.util.UUID
  *
  * Prepared-Statements (`TDS-FA-04.a` Nr. 5, `SPEC-030`): `sp_prepexec` merkt den Text unter einem neuen Handle der
  * Sitzung ([PreparedHandles]), führt ihn mit den Parametern der Nachricht über das [backend] aus und
- * liefert das Handle als RETURNVALUE ([HandleReturningBackend]); bleibt die Antwort nicht vollständig
- * (Fehler im Strom), gibt die Schleife das Handle wieder frei. Hält die Sitzung schon
+ * liefert das Handle als RETURNVALUE ([HandleReturningBackend]); endet die Antwort mit einem Fehler,
+ * bevor das Handle im Strom steht, gibt die Schleife es wieder frei; ein schon gesendetes Handle bleibt
+ * gültig. Hält die Sitzung schon
  * [PreparedHandles.MAX_HANDLES] Handles, ergibt `sp_prepexec` `TDS_PREPARE_LIMIT`, ohne das Backend zu rufen;
  * die Handles bleiben gültig. `sp_execute` führt den gemerkten Text mit den neuen Parametern aus; ein Handle,
  * das die Sitzung nicht hält, ergibt `TDS_UNKNOWN_HANDLE` ohne Backend-Aufruf. Beide Fehler lassen die Verbindung
@@ -97,7 +96,7 @@ class RequestLoop(
             var running = true
             while (running) running = step()
         } finally {
-            withContext(NonCancellable) { handles.clear() }
+            handles.clear()
             channel.close()
         }
     }
@@ -143,8 +142,9 @@ class RequestLoop(
 
     private suspend fun prepare(bound: RpcBinding.Prepare): HandshakeEvent.RequestFinished? {
         val handle = handles.register(bound.sql) ?: return refuse(ErrorCode.TDS_PREPARE_LIMIT, "handle-limit")
-        return execute(bound.sql, bound.parameters, ResponseForm.RPC, HandleReturningBackend(backend, handle)) {
-            if (it != SequenceOutcome.COMPLETED) handles.release(handle)
+        val returning = HandleReturningBackend(backend, handle)
+        return execute(bound.sql, bound.parameters, ResponseForm.RPC, returning) {
+            if (it != SequenceOutcome.COMPLETED && !returning.returned) handles.release(handle)
         }
     }
 

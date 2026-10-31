@@ -435,7 +435,18 @@ zum Fehlerfall (unbekanntes Handle, unbekannte Form) sind Festlegungen, nicht Me
 Prepare-Handles gehören zur Sitzung und enden mit ihr; der Client sendete in den gemessenen
 Szenarien (ohne Pool) kein `sp_unprepare`, daher ist die Anzahl je Sitzung zu begrenzen (Festlegung); unter
 Pooling ist das nicht gemessen, ein gepoolter Client kann `sp_unprepare` senden, das der Katalog mit einem
-Fehler beantwortet.
+Fehler beantwortet. Ohne RETURNSTATUS und
+RETURNVALUE bleiben ReturnValue, OUTPUT-Parameter und Prepare-Handle beim Client leer bzw. −1; die
+Tokens sind für diese Formen Pflicht und durch Tests nachzuweisen. Die Collation aus der
+Login-Antwort (ENVCHANGE Typ 7) ist Voraussetzung für jeden RPC mit Zeichenparametern. Alle anderen RPCs,
+auch `sp_prepare`, `sp_unprepare` und `sp_cursor*`, ergeben eine explizite Fehlermeldung ohne
+Verbindungsabbruch. **Messgrenzen:** Gemessen ist nur das Verhalten des Referenzclients gegen einen Testserver, nicht
+die Antwort eines Microsoft-SQL-Servers; TDS 7.4 unverschlüsselt (kein TDS 8.0, kein TLS), `Pooling=false`,
+eine Verbindung je Szenario, ein Lauf. Tokenreihenfolge, ordinale Zählung der RETURNVALUE und
+DONE-Statusbits sind gegen MS-TDS zu prüfen. **Offen:** die Behandlung der `SET`-Anweisungen im Batchtext von
+`ExecuteReader(SchemaOnly)` (`SET FMTONLY`) und im Text von
+`ExecuteReader(KeyInfo|SingleRow)` (`SET FMTONLY`, `SET NO_BROWSETABLE`) und die Transaktionen
+(Pakettyp `0x0E`, kein RPC, nicht im Katalog).
 
 Handle-Verwaltung (Festlegungen, nicht gemessen; Tokenfolge, Ordinal und Name des Handle-RETURNVALUE sind
 Handvektoren, die Zahl 1000 ist eine Setzung, Voreinstellung, und nicht konfigurierbar):
@@ -450,25 +461,17 @@ Handvektoren, die Zahl 1000 ist eine Setzung, Voreinstellung, und nicht konfigur
   Text und den Wertparametern der Nachricht und beantwortet nach der Form RPC. Das Handle steht als
   RETURNVALUE mit dem Namen `@handle` (`INTN` 4, nullbar) vor dem ersten Ausgabewert des Backends, sonst am
   Ende des Stroms, und hat damit das Ordinal 0; ein Ausgabewert des Backends zählt ab 1. Endet die Antwort
-  mit einem Fehler, entsteht kein Handle und der Wert wird nicht wieder vergeben.
+  mit einem Fehler, bevor das Handle im Strom steht (Fehler vor dem ersten Ausgabewert), entsteht kein Handle
+  und der Wert wird nicht wieder vergeben; steht das Handle schon im Strom (Fehler nach einem Ausgabewert),
+  bleibt es gültig.
 - `sp_execute` ruft das Backend mit dem gemerkten Text und den Wertparametern der Nachricht und beantwortet
   nach der Form RPC ohne Handle-RETURNVALUE. Ein Handle, das die Sitzung nicht hält (nie vergeben, −1, 0), ergibt
   `SPEC-057`, ohne das Backend zu rufen; die Verbindung bleibt offen. Ein ungültiger Parameter wird vor der
   Suche des Handles abgelehnt (`SPEC-013`).
 - `sp_unprepare` und `sp_prepare` sind nicht im Katalog (`SPEC-013`) und geben kein Handle frei.
 - Die Handles enden mit der Sitzung; zwei Sitzungen sehen die Handles der jeweils anderen nicht. Der Zugriff
-  auf die Tabelle einer Sitzung ist gegen gleichzeitigen Zugriff geschützt. Ohne RETURNSTATUS und
-RETURNVALUE bleiben ReturnValue, OUTPUT-Parameter und Prepare-Handle beim Client leer bzw. −1; die
-Tokens sind für diese Formen Pflicht und durch Tests nachzuweisen. Die Collation aus der
-Login-Antwort (ENVCHANGE Typ 7) ist Voraussetzung für jeden RPC mit Zeichenparametern. Alle anderen RPCs,
-auch `sp_prepare`, `sp_unprepare` und `sp_cursor*`, ergeben eine explizite Fehlermeldung ohne
-Verbindungsabbruch. **Messgrenzen:** Gemessen ist nur das Verhalten des Referenzclients gegen einen Testserver, nicht
-die Antwort eines Microsoft-SQL-Servers; TDS 7.4 unverschlüsselt (kein TDS 8.0, kein TLS), `Pooling=false`,
-eine Verbindung je Szenario, ein Lauf. Tokenreihenfolge, ordinale Zählung der RETURNVALUE und
-DONE-Statusbits sind gegen MS-TDS zu prüfen. **Offen:** die Behandlung der `SET`-Anweisungen im Batchtext von
-`ExecuteReader(SchemaOnly)` (`SET FMTONLY`) und im Text von
-`ExecuteReader(KeyInfo|SingleRow)` (`SET FMTONLY`, `SET NO_BROWSETABLE`) und die Transaktionen
-(Pakettyp `0x0E`, kein RPC, nicht im Katalog).
+  auf die Tabelle einer Sitzung ist gegen gleichzeitigen Zugriff geschützt.
+
 
 ### SPEC-031 — Streaming-Fehler und Atomarität
 

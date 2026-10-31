@@ -4,6 +4,7 @@ import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -71,10 +72,14 @@ class PreparedHandlesTest {
     fun `Parallele Vergabe auf einer Tabelle ergibt verschiedene Werte und haelt die Grenze`() {
         repeat(ROUNDS) {
             val handles = PreparedHandles()
+            val gate = CountDownLatch(1)
             val given = runBlocking(threads) {
                 (1..WORKERS).map { worker ->
-                    async { List(PreparedHandles.MAX_HANDLES / WORKERS + EXTRA) { handles.register("w$worker") } }
-                }.awaitAll().flatten()
+                    async {
+                        gate.await()
+                        List(PreparedHandles.MAX_HANDLES / WORKERS + EXTRA) { handles.register("w$worker") }
+                    }
+                }.also { gate.countDown() }.awaitAll().flatten()
             }
             val granted = given.filterNotNull()
             assertEquals(PreparedHandles.MAX_HANDLES, granted.size)
@@ -84,7 +89,7 @@ class PreparedHandlesTest {
     }
 
     private companion object {
-        const val ROUNDS = 20
+        const val ROUNDS = 100
         const val WORKERS = 8
         const val EXTRA = 5
     }

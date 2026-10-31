@@ -17,6 +17,7 @@ import io.github.pt9912.tdswire.protocol.error.ErrorLogEntry
 import io.github.pt9912.tdswire.protocol.error.ErrorMapper
 import io.github.pt9912.tdswire.protocol.session.Inbound
 import io.github.pt9912.tdswire.protocol.token.DoneStatus
+import io.github.pt9912.tdswire.protocol.token.ReturnValueToken
 import io.github.pt9912.tdswire.protocol.token.ServerMessage
 import io.github.pt9912.tdswire.testsupport.blocking
 import io.github.pt9912.tdswire.transport.framing.PacketType
@@ -300,6 +301,31 @@ class PreparedHandlesDispatchTest {
         assertEquals(unsupportedRpc, session.tokens(2).errorMessage())
         assertEquals(prepReply(2), session.hex(3))
         assertEquals(listOf("select boom", "select 2"), backend.requests.map { it.sql })
+    }
+
+    /**
+     * Folgt dem Handle-RETURNVALUE ein Fehler des Backends (Ausgabewert, dann `Failure`), hat das Handle den
+     * Client schon erreicht: die Antwort trägt `@handle` mit Ordinal 0 vor dem ERROR, und das Handle bleibt
+     * gültig (`sp_execute` wird ausgeführt). Gemessen ist das gegen das Test-Backend; die Aussage gilt
+     * nur für diesen Fall (Setzung). Wächter: ein Freigeben trotz gesendetem Handle.
+     *
+     * @spec SPEC-030
+     */
+    @Test
+    fun `Ein Fehler nach dem Handle laesst das gesendete Handle gueltig`() = blocking {
+        val backend = ScriptedBackend.inSequence(
+            listOf(QueryEvent.OutputParameter("@o", SqlType.Int32, 1), QueryEvent.Failure("TDS_BACKEND_ERROR", "x")),
+            oneRow,
+        )
+        val session = Session.login(rpc(prepExec(-1, "select 1", "")), rpc(execute(1)), Inbound.EndOfStream)
+        session.serve(backend)
+        assertEquals(2, session.replies.size)
+        val first = session.tokens(0)
+        val value = first.filterIsInstance<ReturnValueToken>().first()
+        assertEquals("@handle", value.name)
+        assertEquals(0, value.ordinal)
+        assertEquals(ServerMessage(50004, 1, 16, "Backend error."), first.errorMessage())
+        assertEquals(oneRowReply, session.hex(1))
     }
 
     /**

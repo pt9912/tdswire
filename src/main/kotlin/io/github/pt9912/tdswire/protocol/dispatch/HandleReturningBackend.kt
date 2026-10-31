@@ -18,6 +18,10 @@ import kotlinx.coroutines.flow.flow
  * Server gemessen. `execute` und `cancel` gehen unverändert an das [delegate].
  */
 internal class HandleReturningBackend(private val delegate: QueryBackend, private val handle: Int) : QueryBackend {
+    /** Wahr, sobald das Handle-Ereignis in den Strom gegeben wurde. */
+    var returned = false
+        private set
+
     override suspend fun execute(request: QueryRequest): QueryExecution {
         val inner = delegate.execute(request)
         return object : QueryExecution {
@@ -30,18 +34,17 @@ internal class HandleReturningBackend(private val delegate: QueryBackend, privat
     override suspend fun cancel(sessionId: String, requestId: String) = delegate.cancel(sessionId, requestId)
 
     private fun withHandle(events: Flow<QueryEvent>): Flow<QueryEvent> = flow {
-        val returned = QueryEvent.OutputParameter(HANDLE_NAME, SqlType.Int32, handle)
-        var emitted = false
+        val handleEvent = QueryEvent.OutputParameter(HANDLE_NAME, SqlType.Int32, handle)
         var failed = false
         events.collect { event ->
-            if (event is QueryEvent.OutputParameter && !emitted) {
-                emitted = true
-                emit(returned)
+            if (event is QueryEvent.OutputParameter && !returned) {
+                returned = true
+                emit(handleEvent)
             }
             if (event is QueryEvent.Failure) failed = true
             emit(event)
         }
-        if (!emitted && !failed) emit(returned)
+        if (!returned && !failed) emit(handleEvent)
     }
 
     companion object {

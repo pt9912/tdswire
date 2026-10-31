@@ -6,8 +6,8 @@ import kotlinx.coroutines.sync.withLock
 /**
  * Die Prepared-Handles einer Sitzung (`TDS-FA-04.a` Nr. 5, `SPEC-030`, `SPEC-001`): Handle-Wert und gemerkter
  * SQL-Text. Eine Tabelle gehört genau einer Sitzung; zwei Sitzungen halten zwei Tabellen und sehen die Handles
- * der jeweils anderen nicht. Jeder Zugriff läuft unter dem `Mutex` der Tabelle, dem einen Mutex dieser Sitzung
- * für ihre Handles.
+ * der jeweils anderen nicht. Jeder Zugriff läuft unter dem eigenen `Mutex` der Tabelle; das ist nicht der Mutex des
+ * Sitzungsrahmens (`HandshakeSession`), der Zustandsübergänge und das Schreiben der Antwort schützt.
  *
  * Festlegungen ohne Messung: Eine Sitzung hält höchstens [MAX_HANDLES] Handles gleichzeitig (Setzung,
  * Voreinstellung, nicht konfigurierbar). Die Handle-Werte zählen je Sitzung ab 1 aufwärts und werden nicht
