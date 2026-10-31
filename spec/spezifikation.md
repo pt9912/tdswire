@@ -506,8 +506,9 @@ fun interface RowSource {
     fun close() {}
 }
 ```
-Dies ist eine **Vertragsskizze**, kein bereits implementierter Code; Typen und Lebensdauerregeln
-werden vor der Implementierung festgelegt. Festgelegt ist die Bedeutung:
+Die Skizze zeigt die Form der Typen, wie sie im Package `simulation` implementiert und durch Tests
+festgelegt sind; die Überführung der Werte und die Zeilenquelle des Backends sind noch nicht gebaut.
+Festgelegt ist die Bedeutung:
 
 - `next()` liefert die Werte einer Zeile in der Reihenfolge von `SimQuery.columns`, `null` am Ende.
   Jeder Aufruf darf suspendieren; die Zeilenquelle liest nie mehr voraus, als der Aufrufer abnimmt.
@@ -530,7 +531,9 @@ werden vor der Implementierung festgelegt. Festgelegt ist die Bedeutung:
   er nicht gesendet (Setzung, nicht am Server gemessen).
 - **Validierung** (gilt für die Kotlin-Schnittstelle und die Datei): Tabellen- und Spaltennamen sind
   ohne Beachtung der Groß-/Kleinschreibung eindeutig; jede Tabelle hat mindestens eine Spalte und
-  einen Schlüssel (Setzung, nicht am Server gemessen).
+  einen Schlüssel; eine Dezimalspalte hat höchstens Precision 38; der Katalog kopiert die übergebene
+  Tabellenliste, eine Tabelle behält ihre Listen unkopiert und der Aufrufer ändert sie nach der Übergabe
+  nicht (Setzung, nicht am Server gemessen). Der Vergleich der Namen ist der von `SPEC-036`.
 - **Überführung eines Werts in den Spaltentyp** (`TDS-FA-11.a` Schritt 4; Literal und Parameter;
   Setzung, nicht am Server gemessen): streng und verlustfrei. Gleiche Typfamilie; Datum, Zeit und
   Zeitpunkt nur im ISO-Format (Zeitpunkt nur mit `T`); keine Rundung und keine Überführung zwischen
@@ -590,7 +593,8 @@ fest, was der Leser daraus liest. Ändert sich das Format dort, ist der Belegsta
   gleich vor; Ganzzahlen müssen in 32 Bit passen; `schema_format` und die Pflichttexte werden als Text
   gelesen, mit oder ohne Anführungszeichen; ein Wahrheitswert oder eine Ganzzahl in Anführungszeichen wird
   abgewiesen. Der Pfad einer Ladefehler-Meldung besteht aus Schlüsseln des Dokuments, ein Abschnitt höchstens
-  64 Zeichen, Steuerzeichen als `?`; der Typname steht in der Meldung nur, wenn er einer der 21 Typen des
+  64 Codepunkte lang, Steuer-, Format-, Zeilen- und Absatztrennzeichen (Unicode-Kategorien Cc, Cf, Zl, Zp)
+  und einzelne Ersatzzeichen als `?`; der Typname steht in der Meldung nur, wenn er einer der 21 Typen des
   Schemas ist.
 - **Verdrahtung:** Die Kotlin-Schnittstelle und eine Umgebungsvariable mit dem Dateipfad (Name nicht
   festgelegt). Die Datei liest `runtime`; das Package `simulation` bekommt einen Baum aus Abbildungen,
@@ -610,7 +614,10 @@ fest, was der Leser daraus liest. Ändert sich das Format dort, ist der Belegsta
 - **Term:** `<Spalte> = <Wert>`, `<Spalte> IN (<Wert> {, <Wert>})` oder `<Spalte> IS [NOT] NULL`.
 - **Wert:** Zahl, `'…'`, `N'…'`, `NULL` oder `@<Parametername>`.
 - **Bezeichner:** unquotiert, `[…]` oder `"…"`; Tabellen- und Spaltennamen werden ohne Beachtung der
-  Groß-/Kleinschreibung verglichen (vorläufig, wie die übliche Server-Collation). `"…"` als
+  Groß-/Kleinschreibung verglichen (vorläufig, wie die übliche Server-Collation). Festlegung ohne Messung:
+  zwei Namen sind gleich, wenn ihre Codepunkte nach Großschreibung und anschließender Kleinschreibung
+  übereinstimmen (die Regel von `String.equalsIgnoreCase`); danach sind `i` und `İ` sowie `s` und `ſ`
+  gleich, und zwei Spalten, die sich nur so unterscheiden, sind doppelt. `"…"` als
   Bezeichner setzt `QUOTED_IDENTIFIER ON` voraus; beides ist an der Referenzinstanz zu messen
   (`SPEC-045`).
 - **Nicht erkannt** (`TDS_UNSUPPORTED_SQL`; Verbund, Aggregat, Ausdruck, Unterabfrage und Sortierung
@@ -634,8 +641,8 @@ fest, was der Leser daraus liest. Ändert sich das Format dort, ist der Belegsta
   ISO-Format als `'…'`; Parameternamen werden ohne Beachtung der Groß-/Kleinschreibung verglichen. Eine
   Obergrenze für die Länge des Anweisungstextes ist nicht festgelegt.
 - **Weitere Festlegungen von Scanner und Zuordnung** (Setzungen, nicht am Server gemessen): `N'…'` gilt auch
-  mit kleinem `n`; ein Zeilenkommentar endet an CR oder LF; Wörter bestehen aus Unicode-Buchstaben,
-  ASCII-Ziffern, `_`, `#` und `$`; die fünfzehn Wörter werden nur in ASCII-Schreibweise und ohne Beachtung
+  mit kleinem `n`; ein Zeilenkommentar endet an CR oder LF; Wörter bestehen aus Unicode-Buchstaben
+  (auch außerhalb der Grundebene; der Text wird je Codepunkt gelesen), ASCII-Ziffern, `_`, `#` und `$`; die fünfzehn Wörter werden nur in ASCII-Schreibweise und ohne Beachtung
   der Groß-/Kleinschreibung erkannt, andere Wörter (auch `TOP` und `ORDER`) sind gewöhnliche Namen; ein
   Punkt in einer Zahl braucht Ziffern auf beiden Seiten; ein Parameter ist `@` und mindestens ein Wortzeichen;
   `INSERT` hat genau eine Wertezeile mit ebenso vielen Werten wie Spalten; eine Spalte steht in der
@@ -1126,3 +1133,5 @@ Gemessen sind: LOGIN7-Felder, Entschleierung, Ablehnungsbytes, erkennbare Modi. 
 | 2026-10-31 | Grenzen des Backend-Vertrags nach Nutzerentscheidungen: Klassen der Werte je Spaltenart, Pflicht „suspendierend“ für Backend und Zeilenquelle, Frist durch den Protokollkern mit `QUERY_TIMEOUT` als Quelle, `OutOfMemoryError` im Anfragepfad gefangen (`SPEC-002`, `SPEC-009`, `SPEC-016`, `SPEC-022`, `SPEC-031`, `SPEC-035`, `SPEC-048`); keine Grenze für „kleine“ Ergebnisse als Setzung; Messungen nur im Spike, nicht am Produkt |
 | 2026-10-31 | Simulations-Backend, weitere Festlegungen von Scanner, Zuordnung und Leser der Tabellenbeschreibung nachgetragen (`SPEC-035`, `SPEC-036`) |
 | 2026-10-31 | RPC im Backend-Vertrag: `sp_executesql` und RPC per Prozedurname als Text mit Parameterliste (Nutzerentscheidung), Ablehnungsgründe unter `SPEC-013`; kein Wert im Aufruftext (`TDS-FA-04.a`, `SPEC-013`, `SPEC-030`) |
+| 2026-10-31 | Simulations-Backend, Fix-Runde der Prüfung: Wörter je Codepunkt, Namensvergleich und Pfadbereinigung als Festlegung, Grenzen des Modells (`SPEC-035`, `SPEC-036`) |
+
