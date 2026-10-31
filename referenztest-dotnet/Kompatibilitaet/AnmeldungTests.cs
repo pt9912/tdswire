@@ -10,7 +10,9 @@ namespace TdsWire.Referenztests.Kompatibilitaet;
 /// (`make kompatibilitaet KATEGORIE=Anmeldung`, Stufe 6 von `make e2e`, ADR-0019, TDS-QA-01, TDS-QA-03): TDS 8.0
 /// (`Encrypt=Strict`) mit SQL-Authentifizierung, Anmeldung mit den längsten Feldern und kleiner Paketgröße, Pooling,
 /// `Prepare`, die `SET`-Texte von `SchemaOnly` und `KeyInfo`, Transaktionen und die Größen der RPC-Parametertypen.
-/// Die Zeilen `messung: ...` im Bericht sind die Werte, die die Matrix zitiert. Nicht belegt: Windows-SSPI (nicht
+/// Die Zeilen `messung: ...` im Bericht sind die Werte, die die Matrix zitiert. Dass beide Pooling-Anfragen auf
+/// derselben Sitzung liefen, und die SET-Texte stehen nur im Log des Servers; ihre Prüfung liegt in
+/// `tools/kompatibilitaetstest.sh`, ein `dotnet test` allein belegt sie nicht. Nicht belegt: Windows-SSPI (nicht
 /// lieferbar, ADR-0019); ob ein LOGIN7 in mehreren Paketen ankam (kein Mitschnitt, die Paketzahl ist nicht beobachtet);
 /// das RESETCONNECTION-Bit selbst (der Server wertet es nicht aus, beobachtet ist die zweite Nutzung der gepoolten
 /// Verbindung); die Paketgröße der Antworten des Servers (der Client nimmt auch Pakete über der ausgehandelten Größe
@@ -124,7 +126,7 @@ public class AnmeldungTests
     }
 
     [Fact]
-    public void Pooling_nutzt_die_Verbindung_nach_dem_Zuruecklegen_wieder()
+    public void Pooling_zweite_Nutzung_der_gepoolten_Verbindung_gelingt()
     {
         SqlConnection.ClearAllPools();
         var zeichenfolge = MitPool();

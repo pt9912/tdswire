@@ -17,7 +17,7 @@ import java.time.LocalTime
 /** Zeilen von `kaputt`, bevor die Quelle fehlschlägt; wie im .NET-Test festgehalten. */
 internal const val KOMPAT_BROKEN_AFTER = 3
 
-/** Zeilen und Zeichen Text je Zeile von `breit`; jede Zeile ist größer als das kleinste Paket (512 Bytes). */
+/** Zeilen und Zeichen Text je Zeile von `breit`: Zeilen von rund 1200 Bytes, größer als die Paketgröße 512. */
 internal const val WIDE_ROWS = 10
 internal const val WIDE_TEXT_CHARS = 600
 
@@ -34,8 +34,9 @@ private val KEY = SimColumn("Id", SqlType.Int32, nullable = false)
 /**
  * Die Tabellen des Kompatibilitätslaufs (`make kompatibilitaet`): `person` mit drei Zeilen und Callbacks für
  * Einfügen, Ändern und Löschen, `typen` mit je einer Spalte der acht Typen von `SqlType` und zwei Zeilen (eine
- * gefüllt, eine mit NULL), `breit` mit [WIDE_ROWS] Zeilen zu [WIDE_TEXT_CHARS] Zeichen (Antworten über mehrere
- * Pakete bei der Paketgröße 512) und `kaputt`, dessen Quelle nach [KOMPAT_BROKEN_AFTER] Zeilen mit einer Ausnahme
+ * gefüllt, eine mit NULL), `breit` mit [WIDE_ROWS] Zeilen zu [WIDE_TEXT_CHARS] Zeichen (Zeilen über der
+ * Paketgröße 512; die Wirkung auf die Paketierung der Antworten ist nicht beobachtet, ein Server mit fester
+ * Paketgröße ließ den Test grün) und `kaputt`, dessen Quelle nach [KOMPAT_BROKEN_AFTER] Zeilen mit einer Ausnahme
  * endet.
  */
 internal object KompatibilitaetsTables {

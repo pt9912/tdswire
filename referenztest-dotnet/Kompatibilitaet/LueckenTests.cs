@@ -10,7 +10,9 @@ namespace TdsWire.Referenztests.Kompatibilitaet;
 /// gegen den Serverprozess (`make kompatibilitaet KATEGORIE=Luecken`, Stufe 7 von `make e2e`, ADR-0019, TDS-QA-01):
 /// `xml` als RPC-Parameter, mehrere RPCs in einer Nachricht (Batch-Flag, `SqlDataAdapter` mit `UpdateBatchSize`),
 /// Kennwortwechsel und FeatureExt der Anmeldung (Zugriffstoken). Jeder Test pinnt, was der Client sieht; die Zeilen
-/// `messung: ...` im Bericht sind die Werte, die die Matrix zitiert. Nicht belegt: Windows-SSPI, ein echter
+/// `messung: ...` im Bericht sind die Werte, die die Matrix zitiert. Der Grund der Ablehnung (Kennwortwechsel,
+/// Zugriffstoken) und die Fehler von xml und Batch stehen nur im Log des Servers; ihre Prüfung liegt in
+/// `tools/kompatibilitaetstest.sh`, ein `dotnet test` allein belegt sie nicht. Nicht belegt: Windows-SSPI, ein echter
 /// SQL Server.
 /// </summary>
 [Trait("Kategorie", "Luecken")]
@@ -103,7 +105,7 @@ public class LueckenTests
 
         var ausnahme = Assert.Throws<SqlException>(() => verbindung.Open());
 
-        Ziel.Messung(_ausgabe, "AccessToken (FeatureExt FEDAUTH): " + Ziel.Beschreibung(ausnahme));
+        Ziel.Messung(_ausgabe, "AccessToken (Anmeldung mit Zugriffstoken): " + Ziel.Beschreibung(ausnahme));
         Assert.Equal(18456, ausnahme.Number);
         Assert.Equal(14, ausnahme.Class);
     }
