@@ -152,6 +152,8 @@ class ResponseRpcTest {
             "Precision 39" to output("@a", BigDecimal.ONE, SqlType.Decimal(39, 0)),
             "Long in Int32" to output("@a", 1L),
             "Name zu lang" to output("@" + "x".repeat(255), 1),
+            "Text ueber 4000 Einheiten" to output("@a", "x".repeat(4001), SqlType.UnicodeText),
+            "Dezimalwert ausserhalb der Precision" to output("@a", BigDecimal("1000.00"), SqlType.Decimal(5, 2)),
         )
         for ((name, event) in cases) {
             val (outcome, tokens) = rpc(event)

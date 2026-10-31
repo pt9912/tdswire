@@ -23,22 +23,20 @@ internal class RpcOutputs {
     private var ordinal = 0
 
     /**
-     * Das Token zum Ereignis; `null`, wenn es die Reihenfolge verletzt (ein zweiter `ReturnStatus`);
-     * [ProtocolResult.Failed], wenn Typ oder Wert eines Ausgabewerts die Abbildung nicht schreibt.
+     * RETURNSTATUS zum Ereignis; `null`, wenn schon ein `ReturnStatus` kam (Reihenfolgeverstoß).
      */
-    fun map(event: QueryEvent): ProtocolResult<Token>? = when (event) {
-        is QueryEvent.ReturnStatus -> status(event)
-        is QueryEvent.OutputParameter -> value(event)
-        else -> null
-    }
-
-    private fun status(event: QueryEvent.ReturnStatus): ProtocolResult<Token>? {
+    fun status(event: QueryEvent.ReturnStatus): ProtocolResult<Token>? {
         if (statusSeen) return null
         statusSeen = true
         return ProtocolResult.Ok(ReturnStatusToken(event.value))
     }
 
-    private fun value(event: QueryEvent.OutputParameter): ProtocolResult<Token> {
+    /**
+     * RETURNVALUE zum Ereignis; [ProtocolResult.Failed], wenn Typ oder Wert die Abbildung nicht schreibt.
+     * Das Ordinal ist die Zahl der bisher abgebildeten Ausgabewerte, nicht die Position des Parameters
+     * in der Aufrufliste (Setzung ohne Messung).
+     */
+    fun value(event: QueryEvent.OutputParameter): ProtocolResult<Token> {
         val column = when (val mapped = ColumnMapping.map(listOf(ResultColumn(event.name, event.type, true)))) {
             is ProtocolResult.Failed -> return mapped
             is ProtocolResult.Ok -> mapped.value.single()

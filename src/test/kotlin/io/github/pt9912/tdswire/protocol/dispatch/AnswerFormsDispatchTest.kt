@@ -163,11 +163,11 @@ class AnswerFormsDispatchTest {
         val (_, session) = runRpc(
             rpcOutput,
             QueryEvent.OutputParameter("@o", SqlType.Int32, null),
-            QueryEvent.OutputParameter("@o", SqlType.Int32, 1),
+            QueryEvent.OutputParameter("@p", SqlType.Int32, 1),
         )
         val expected = listOf(
             returnValueInt(0, nameO, "00"),
-            returnValueInt(1, nameO, "04 01 00 00 00"),
+            returnValueInt(1, "40 00 70 00", "04 01 00 00 00"),
             doneProcFinal,
         ).joinToString(" ")
         assertEquals(expected, session.hex(0))
