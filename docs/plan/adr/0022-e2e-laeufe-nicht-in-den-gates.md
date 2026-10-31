@@ -1,8 +1,8 @@
 # ADR-0022: E2E-Läufe gehören nicht in die Gates
 
-**Status:** Proposed
+**Status:** Accepted
 
-**Datum:** 2026-10-31
+**Datum:** 2026-10-31 (Accepted, vom Nutzer entschieden)
 
 **Autor:** pt9912
 
@@ -110,8 +110,13 @@ Die Details des Workflows (Pflicht-Check, Cache, Logs, `workflow_dispatch`, Rele
 
 ## Offen
 
-- **Verhältnis zum Waisen-Schalter der E2E-Sicht (offen).** Der Erzeuger `make e2e-abdeckung` schreibt eine Sicht, kein Urteil; das Waisen-Urteil („Anforderung ohne Stufe“) fällt der Leser. Ob ein Schalter, der bei einer Waise den Lauf rot macht, eingeführt wird, und ob er dann ein Gate ist, ist nicht entschieden. Der Erzeuger liest Deklarationen und führt den E2E nicht aus; er ist billig und fällt damit nicht unter Entscheidung 1. Ein Schalter in `GATE_CHECKS` wäre eine eigene Entscheidung; „Anforderung ohne E2E-Stufe“ darf nicht mit „E2E-Lauf rot“ verwechselt werden.
-- **Pflicht-Check, Cache, Logs, `workflow_dispatch`, Release-Bezug:** Details wie in der Tabelle; Nutzerfragen zu P1 gegen P2 und zum Release-Bezug.
+Gesetzt am 2026-10-31 (Setzung der Koordination nach der Nutzerentscheidung, mit den Empfehlungen der Tabellen oben; nicht gemessen):
+
+- **Wirkung P1:** der Workflow `e2e` ist Pflicht-Check für `main`. Die Erzwingung ist eine Einstellung der Plattform und im Repo nicht abbildbar; sie ist vom Nutzer einzurichten. Ohne sie gilt faktisch P2.
+- **Release-Bezug:** ein grüner E2E auf dem Release-Stand ist Bedingung des Releases.
+- **Manifest-Prüfung:** M1 im Bau (`build-jar`, ohne Container).
+- **Waisen-Schalter der E2E-Sicht:** später; `make e2e-abdeckung` bleibt ein Bericht ohne Urteil, und ein Schalter in `GATE_CHECKS` wäre eine eigene Entscheidung (Anforderung ohne E2E-Stufe ist nicht E2E-Lauf rot).
+- **Cache, Logs, `workflow_dispatch`:** wie in der Tabelle empfohlen (kein Cache zunächst, Konsolenausgabe, `workflow_dispatch` ja).
 
 ## Re-Evaluierungs-Trigger
 
@@ -125,3 +130,4 @@ Die Details des Workflows (Pflicht-Check, Cache, Logs, `workflow_dispatch`, Rele
 |---|---|---|
 | 2026-10-31 | Nutzerentscheidung „e2e gehören nicht in die gates“, präzisiert „eigener Durchgang — und eigener Workflow beim Pushen“ | Sitzung |
 | 2026-10-31 | Proposed | — |
+| 2026-10-31 | Accepted – vom Nutzer entschieden („das wird uns ausbremsen, wenn die tests im gate bleiben“); offene Fragen mit den Empfehlungen gesetzt | Sitzung |
