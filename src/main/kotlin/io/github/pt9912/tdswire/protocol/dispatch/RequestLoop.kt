@@ -41,9 +41,11 @@ import java.util.UUID
  * Form [ResponseForm.RPC] (DONEINPROC, RETURNSTATUS, RETURNVALUE, DONEPROC), die auf einen Batch die Form
  * [ResponseForm.BATCH]. Lehnt die
  * Bindung den RPC ab ([RpcRejection]), wird das Backend nicht gerufen. Weist der Parser die Nachricht ab,
- * gilt wie beim Batch `TDS_PROTOCOL_ERROR` und die Verbindung schließt; jede andere Ablehnung ergibt
- * `TDS_UNSUPPORTED_RPC` (ERROR und DONE mit Fehlerstatus, `SPEC-013`) bei offener Verbindung; der Name des
- * Grundes steht im Log.
+ * gilt der Fehler des Parsers (`ErrorMapper.protocol`) und die Verbindung schließt: ein Strukturfehler ergibt
+ * `TDS_PROTOCOL_ERROR`, eine Typkennung außerhalb der Typliste (`INVALID_TYPE`, etwa `FE 00`)
+ * `TDS_UNSUPPORTED_TYPE` (50003, Class 20). Jede andere Ablehnung, auch ein gültig kodierter PLP-Typ
+ * (`UNSUPPORTED_PLP`), ergibt `TDS_UNSUPPORTED_RPC` (50002; ERROR und DONE mit Fehlerstatus, `SPEC-013`) bei
+ * offener Verbindung; der Name des Grundes steht im Log.
  *
  * Die Schleife endet immer mit geschlossenem Kanal: nach `CLOSED`, nach einer Nachricht, die sie nicht
  * beantwortet, und bei einer Ausnahme oder dem Abbruch der Coroutine.

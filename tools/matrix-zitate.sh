@@ -6,6 +6,8 @@
 # Zitat-Form: Inline-Code `<Klasse>Test > <Testfall>` in einer Zeile. Jedes `<Klasse>Test >` ausserhalb dieser
 # Form (ohne Backticks, Code-Span ueber den Zeilenumbruch) ist eine Fremdform: sie wird nicht gelesen, die Zeilen
 # stehen auf stdout, die Zahl steht in der Zusammenfassung, und der Lauf endet mit Exit 1.
+# Grenze: Der Waechter erkennt eine Fremdform nur, wenn der Klassenname auf `Test` endet; ein Zitat einer
+# Klasse mit anderem Namensende liest und meldet er nicht.
 set -eu
 
 [ "$#" -eq 2 ] || { echo "Aufruf: $0 <Matrix.md> <Testbericht>" >&2; exit 2; }
