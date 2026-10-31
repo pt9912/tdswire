@@ -67,7 +67,7 @@ Diese Datei dupliziert sie nicht.
 | `make test` | Unit-Tests (`kotlin.test` auf der JUnit-Plattform) in Docker, Stage `test`; ein roter Test macht `make gates` rot; Lock und Prüfsummen der Testlaufzeit über `make deps-lock` | — |
 | `make build` | Compile und Jar in Docker, ohne Tests; Basis-Images per Digest gepinnt; Lizenz und Manifest des Jars (Main-Class, Class-Path gegen `lib/`) werden im Bau geprüft | [ADR-0022](../docs/plan/adr/0022-e2e-laeufe-nicht-in-den-gates.md) |
 | `make smoke` | Rohbytes-Smoke in Docker (Stage `smoke`): Kind-JVM startet `main`, Rohbytes-Client spricht PRELOGIN und LOGIN7; Start ohne Flag bricht ab; läuft auch in `make test`, kein Referenzclient | — |
-| `make referenztest-dotnet` | .NET-Referenztests in Docker ohne Mount, Stage `test`: gesperrter Restore, dann Build und Smoke-Test ohne Netz und ohne TDS-Server; ein roter Test macht `make gates` rot | [ADR-0008](../docs/plan/adr/0008-dotnet-kompatibilitaetstests.md), [CO-001](../docs/plan/carveouts/CO-001-nuget-audit-aus.md), [CO-002](../docs/plan/carveouts/CO-002-nuget-signaturpruefung-fehlt.md) |
+| `make referenztest-dotnet` | .NET-Referenztests in Docker, Stage `test`; laeuft nur bei geaendertem Eingangs-Inhalt (Hash), `FORCE=1` erzwingt; roter Test macht `make gates` rot | [ADR-0008](../docs/plan/adr/0008-dotnet-kompatibilitaetstests.md), [CO-001](../docs/plan/carveouts/CO-001-nuget-audit-aus.md), [CO-002](../docs/plan/carveouts/CO-002-nuget-signaturpruefung-fehlt.md) |
 | `<make-target>` | <…> | ADR-<NNNN> |
 | `<make-target>` | <…>, bootstrap-aware | Schwelle X %, M<n> → Y % |
 | `<make-target>` | <…> | bootstrap via `CO-<NNN>` bis <Slice/Welle> |
