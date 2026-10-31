@@ -611,7 +611,8 @@ fest, was der Leser daraus liest. Ändert sich das Format dort, ist der Belegsta
   `fulltext`, `datetime` mit `timezone: true`) und eine Precision über 38 weisen die Datei ab.
 - **Skalare und Dokument** (Setzung, nicht gemessen): `required` nur `true` oder `false`; Ganzzahlen
   nur in kanonischer Schreibweise (`010`, `0x10` und `yes` werden abgewiesen). Ein Dokument, UTF-8,
-  keine Anker, Aliase, Tags und Merge-Schlüssel, nur Skalar-Schlüssel; höchstens 1 MiB, vor dem
+  kein Anker an einer Abbildung oder Liste, kein Alias, kein Tag und kein Merge-Schlüssel (ein Anker an
+  einem Skalar ohne Alias lädt und bleibt ohne Wirkung, gemessen am Adapter), nur Skalar-Schlüssel; höchstens 1 MiB, vor dem
   Parsen geprüft.
 - **Eine Datei beschreibt nur das Schema:** eine aus ihr geladene Tabelle hat eine leere Zeilenquelle
   und keine Callbacks. Auswahl liefert Metadaten und ein leeres Ergebnis; Einfügen, Ändern und Löschen

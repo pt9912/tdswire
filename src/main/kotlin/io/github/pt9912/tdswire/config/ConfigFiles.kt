@@ -53,8 +53,9 @@ internal object ConfigFiles {
 
     /**
      * Liest höchstens [limit] plus ein Byte: ein größeres Ergebnis sagt „zu groß“, ohne die Datei ganz zu laden.
-     * Nur eine reguläre Datei (auch über einen Symlink) wird geöffnet; ein Verzeichnis, ein Gerät oder eine FIFO
-     * ist `UNREADABLE`, bevor ein Öffnen ohne Frist blockieren kann.
+     * Nur eine reguläre Datei (auch über einen Symlink) wird geöffnet; ein Verzeichnis, ein Gerät und eine Datei
+     * ohne Leserecht sind `UNREADABLE` (getestet). Eine FIFO ist keine reguläre Datei, wird also nicht geöffnet
+     * (nicht getestet: ein Öffnen ohne Schreiber bliebe hängen).
      */
     private fun readAtMost(key: String, path: String, limit: Int, issues: MutableList<ConfigIssue>): ByteArray? = try {
         val file = Paths.get(path)

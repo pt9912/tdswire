@@ -300,6 +300,22 @@ class SimulationBackendChangeTest {
         assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(7)), collect(ran))
         assertEquals(1, callbacks.deletes)
     }
+
+    /**
+     * Boundary: der Strom ist kalt; zwei Sammler derselben Ausführung rufen den Callback zweimal (die Zusage „genau
+     * einmal“ gilt nur für einen einzigen Sammler).
+     * @spec SPEC-035
+     */
+    @Test
+    fun `ein zweiter Sammler derselben Ausfuehrung ruft den Callback ein zweites Mal`() = runBlocking {
+        val callbacks = Callbacks()
+        val execution = callbacks.backend.execute(queryRequest("DELETE FROM person"))
+
+        assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(7)), collect(execution))
+        assertEquals(1, callbacks.deletes)
+        assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(7)), collect(execution))
+        assertEquals(2, callbacks.deletes)
+    }
 }
 
 private suspend fun collect(execution: QueryExecution): List<QueryEvent> {

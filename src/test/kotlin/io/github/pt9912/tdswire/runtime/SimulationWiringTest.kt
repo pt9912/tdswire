@@ -23,6 +23,7 @@ import java.net.InetAddress
 import java.net.ServerSocket
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -263,6 +264,45 @@ internal class SimulationWiringTest : RuntimeTestBase() {
             assertEquals(BootResult.Aborted, start(environment(ConfigKeys.SIMULATION_DESCRIPTION_FILE to path)), path)
             assertEquals("Konfiguration ungueltig: SIMULATION_DESCRIPTION_FILE: UNREADABLE", log.lines.last(), path)
         }
+    }
+
+    /**
+     * Negative: eine reguläre Datei, deren Lesen mit einem Ein-/Ausgabefehler endet, ist `UNREADABLE` und kein
+     * ungefangener Fehler beim Start (der `IOException`-Zweig). Die Datei ist `/proc/self/mem`: für Java regulär,
+     * das Lesen ab Stelle 0 endet mit „Input/output error“ (gemessen unter Linux, auch als Root; Rechte-Entzug taugt
+     * nicht, die Tests laufen als Root). Der Test prüft die Voraussetzung selbst: ohne diesen Fehler schlägt er fehl.
+     * @spec SPEC-035
+     */
+    @Test
+    fun `eine regulaere Datei mit Lesefehler ist unlesbar`() = blocking {
+        val path = "/proc/self/mem"
+        assertTrue(java.nio.file.Files.isRegularFile(java.nio.file.Paths.get(path)))
+        assertFailsWith<java.io.IOException> { java.io.File(path).inputStream().use { it.readNBytes(1) } }
+
+        assertEquals(BootResult.Aborted, start(environment(ConfigKeys.SIMULATION_DESCRIPTION_FILE to path)))
+        assertEquals("Konfiguration ungueltig: SIMULATION_DESCRIPTION_FILE: UNREADABLE", log.lines.last())
+    }
+
+    /**
+     * Happy und Negative: ein Symlink auf eine reguläre Datei lädt wie die Datei; ein Symlink auf ein Verzeichnis
+     * ist `UNREADABLE`. Eine FIFO ist nicht getestet (ein Öffnen ohne Schreiber bliebe hängen); für sie gilt nur,
+     * dass `Files.isRegularFile` sie nicht als reguläre Datei zählt.
+     * @spec SPEC-035
+     */
+    @Test
+    fun `ein Symlink auf eine Datei laedt und einer auf ein Verzeichnis ist unlesbar`() = blocking {
+        val target = java.io.File(file("target.yaml", PERSON_FILE))
+        val toFile = target.parentFile.toPath().resolve("link-file.yaml")
+        java.nio.file.Files.createSymbolicLink(toFile, target.toPath())
+        val toDirectory = target.parentFile.toPath().resolve("link-dir")
+        java.nio.file.Files.createSymbolicLink(toDirectory, target.parentFile.toPath())
+
+        running(environment(ConfigKeys.SIMULATION_DESCRIPTION_FILE to toFile.toString()))
+        assertTrue(log.lines.contains("Simulations-Backend: 1 Tabellen"), log.lines.toString())
+
+        val env = environment(ConfigKeys.SIMULATION_DESCRIPTION_FILE to toDirectory.toString())
+        assertEquals(BootResult.Aborted, start(env))
+        assertEquals("Konfiguration ungueltig: SIMULATION_DESCRIPTION_FILE: UNREADABLE", log.lines.last())
     }
 
     /**
