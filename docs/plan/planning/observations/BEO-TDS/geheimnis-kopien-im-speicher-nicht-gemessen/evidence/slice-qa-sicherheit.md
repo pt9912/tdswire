@@ -1,0 +1,3 @@
+**Vorgang:** slice-qa-sicherheit
+**Fund:** Das Zeitfenster, in dem das Passwort eines bei Fristablauf wartenden, abgebrochenen Aufrufs im Speicher liegt, ist für das Feld `PasswordChars` gemessen: Es bleibt lesbar, solange die Plätze belegt sind, und ist überschrieben, sobald die Warteschlange den Aufruf erreicht (`AuthPoolOccupationTest`). Das Fenster reicht bis zum Ende der vorausgehenden Aufrufe; eine eigene Grenze gibt es im Code nicht. Kopien in JVM und Adapter (Schlüsselobjekt der Ableitung, Zwischenpuffer) bleiben ungemessen, ein Speicherabzug liegt nicht vor.
+**Stand:** offen — über der Schwelle (3×), nicht verkörpert; die Messung betrifft nur das Feld, nicht die Kopien.
