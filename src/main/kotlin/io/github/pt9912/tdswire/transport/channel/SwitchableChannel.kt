@@ -1,5 +1,6 @@
 package io.github.pt9912.tdswire.transport.channel
 
+import java.net.InetAddress
 import java.nio.ByteBuffer
 
 /**
@@ -12,6 +13,8 @@ import java.nio.ByteBuffer
 class SwitchableChannel(initial: SuspendingChannel) : SuspendingChannel {
     @Volatile
     private var current: SuspendingChannel = initial
+
+    override val remoteAddress: InetAddress? get() = current.remoteAddress
 
     /** Leitet alle folgenden Vorgänge an [next] weiter. */
     fun switchTo(next: SuspendingChannel) {

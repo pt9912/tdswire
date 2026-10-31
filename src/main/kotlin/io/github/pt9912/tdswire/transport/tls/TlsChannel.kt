@@ -4,6 +4,7 @@ import io.github.pt9912.tdswire.transport.channel.ChannelResult
 import io.github.pt9912.tdswire.transport.channel.SuspendingChannel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import java.net.InetAddress
 import java.nio.ByteBuffer
 import javax.net.ssl.SSLContext
 import kotlin.coroutines.cancellation.CancellationException
@@ -49,6 +50,8 @@ class TlsChannel internal constructor(private val inner: SuspendingChannel, priv
     SuspendingChannel {
     private val writer = TlsWriter(io)
     private val reader = TlsReader(io, writer)
+
+    override val remoteAddress: InetAddress? get() = inner.remoteAddress
 
     /** Kapazität des Puffers für entschlüsselte Daten; er wächst nie. */
     val decryptedBufferCapacity: Int get() = reader.capacity

@@ -1,5 +1,6 @@
 package io.github.pt9912.tdswire.transport.channel
 
+import java.net.InetAddress
 import java.nio.ByteBuffer
 
 /**
@@ -13,6 +14,8 @@ import java.nio.ByteBuffer
 class PeekedChannel private constructor(val firstByte: Byte, private val inner: SuspendingChannel) :
     SuspendingChannel {
     private var served = false
+
+    override val remoteAddress: InetAddress? get() = inner.remoteAddress
 
     override suspend fun read(buffer: ByteBuffer): ChannelResult<Int> {
         if (served) return inner.read(buffer)

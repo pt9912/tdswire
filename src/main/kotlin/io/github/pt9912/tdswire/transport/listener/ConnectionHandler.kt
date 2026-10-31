@@ -1,6 +1,7 @@
 package io.github.pt9912.tdswire.transport.listener
 
 import io.github.pt9912.tdswire.transport.channel.SuspendingChannel
+import java.net.InetAddress
 
 /**
  * Was der Listener einem [ConnectionHandler] von seiner Verbindung gibt (`ARC-003`): den rohen
@@ -17,6 +18,9 @@ interface Connection {
 
     /** Der verbundene Kanal der Gegenstelle ohne TLS; der Listener schließt ihn mit der Verbindung. */
     val channel: SuspendingChannel
+
+    /** Die Adresse der Gegenstelle des Kanals; `null`, wenn der Kanal keine kennt (`ADR-0016`). */
+    val remoteAddress: InetAddress? get() = null
 
     /** Meldet „Login abgeschlossen“: `LOGIN_TIMEOUT` gilt für diese Verbindung nicht mehr. */
     fun loginCompleted()

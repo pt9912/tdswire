@@ -10,6 +10,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
+import java.net.InetAddress
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -47,6 +48,8 @@ internal class ManagedConnection(
 
     @Volatile
     private var loginDone = false
+
+    override val remoteAddress: InetAddress? get() = channel.remoteAddress
 
     @Volatile
     var busy = false

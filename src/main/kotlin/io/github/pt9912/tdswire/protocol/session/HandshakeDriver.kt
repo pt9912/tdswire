@@ -4,6 +4,7 @@ import io.github.pt9912.tdswire.config.auth.AuthAdapter
 import io.github.pt9912.tdswire.config.auth.AuthRequest
 import io.github.pt9912.tdswire.config.auth.AuthResult
 import kotlinx.coroutines.withTimeoutOrNull
+import java.net.InetAddress
 import java.util.UUID
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -36,6 +37,13 @@ sealed interface HandshakeOutcome {
  * der Abbruch stammt vom Aufrufer (siehe [AuthExecutor]). Nur [HandshakeOutcome.Ready]
  * lässt den Kanal offen.
  *
+ * Drosselung (`ADR-0016`, `SPEC-053`): [run] nimmt die Adresse der Gegenstelle; vor dem Adapteraufruf wartet der
+ * Treiber die Zeit, die die Drosselung des [AuthPool] für diese Adresse nennt. Das Warten gehört zu `LOGIN_TIMEOUT`
+ * (die Frist wird nicht an die Wartezeit gebunden: bei einer Frist unter der Wartezeit endet die Anmeldung ohne
+ * Antwort), belegt keinen Platz des [AuthPool] und kennt Kennung und Passwort nicht. Ein vom Adapter abgelehnter
+ * Versuch zählt als Fehlversuch; Erfolg, Adapterfehler und Abbruch zählen keinen. Ohne Adresse läuft die Anmeldung
+ * ungedrosselt.
+ *
  * Festlegung ohne Messung: [loginTimeout] hat den vorläufigen Wert 15 s aus `SPEC-008` und beginnt mit
  * [run], nicht mit der TCP-Annahme (Abstand zu `SPEC-008` "ab Verbindungsaufbau": die Zeit
  * bis zum Aufruf von [run] zählt nicht mit); [authPool] legt Dispatcher und die Obergrenze gleichzeitiger
@@ -52,12 +60,13 @@ class HandshakeDriver(
 ) {
     private val automaton = HandshakeAutomaton(config)
     private val executor = AuthExecutor(authPool)
+    private val throttle = authPool.throttle
 
-    suspend fun run(channel: HandshakeChannel): HandshakeOutcome {
+    suspend fun run(channel: HandshakeChannel, source: InetAddress? = null): HandshakeOutcome {
         val session = HandshakeSession(automaton, channel, log)
         var handedOver = false
         try {
-            val outcome = withTimeoutOrNull(loginTimeout) { drive(session, channel) }
+            val outcome = withTimeoutOrNull(loginTimeout) { drive(session, channel, source) }
             val result = outcome ?: run {
                 session.expire()
                 HandshakeOutcome.Closed(CloseReason.LOGIN_TIMEOUT)
@@ -69,13 +78,17 @@ class HandshakeDriver(
         }
     }
 
-    private suspend fun drive(session: HandshakeSession, channel: HandshakeChannel): HandshakeOutcome {
+    private suspend fun drive(
+        session: HandshakeSession,
+        channel: HandshakeChannel,
+        source: InetAddress?,
+    ): HandshakeOutcome {
         var event: HandshakeEvent = HandshakeEvent.Start
         while (true) {
             val awaited = session.dispatch(event)
             concluded(session)?.let { return it }
             event = when (awaited) {
-                is HandshakeAction.Authenticate -> authenticate(awaited.request)
+                is HandshakeAction.Authenticate -> authenticate(awaited.request, source)
 
                 HandshakeAction.BeginTls ->
                     if (channel.startTls()) HandshakeEvent.TlsEstablished else HandshakeEvent.ReadFailed
@@ -104,18 +117,38 @@ class HandshakeDriver(
         Inbound.Failed -> HandshakeEvent.ReadFailed
     }
 
-    /** Bricht das Warten ab, bevor der Aufruf endete, wird er abgebrochen (siehe [AuthExecutor]). */
-    private suspend fun authenticate(request: AuthRequest): HandshakeEvent {
+    /**
+     * Wartet die Zeit der Drosselung und ruft dann den Adapter. Bricht das Warten ab, bevor der Adapter gerufen ist,
+     * ist das Passwort überschrieben und der Versuch beendet; bricht es ab, bevor der Aufruf endete, wird er
+     * abgebrochen (siehe [AuthExecutor]).
+     */
+    internal suspend fun authenticate(request: AuthRequest, source: InetAddress?): HandshakeEvent {
+        val attempt = throttle.enter(source)
+        var waited = false
+        try {
+            attempt.waitTurn()
+            waited = true
+        } finally {
+            if (!waited) {
+                request.password.wipe()
+                attempt.settle(failed = false)
+            }
+        }
+        var failed = false
         val call = executor.start(adapter, request)
         try {
             return when (val outcome = call.await()) {
                 is AuthOutcome.Failed ->
                     HandshakeEvent.AuthRejected(LoginRejection.ADAPTER_FAILURE, outcome.exceptionType)
 
-                is AuthOutcome.Decided -> decided(outcome.result)
+                is AuthOutcome.Decided -> {
+                    failed = outcome.result is AuthResult.Rejected
+                    decided(outcome.result)
+                }
             }
         } finally {
             call.cancel()
+            attempt.settle(failed)
         }
     }
 
