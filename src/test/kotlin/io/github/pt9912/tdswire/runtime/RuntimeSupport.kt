@@ -1,7 +1,6 @@
 package io.github.pt9912.tdswire.runtime
 
 import io.github.pt9912.tdswire.config.TempFilesTest
-import io.github.pt9912.tdswire.config.testModeEnvironment
 import io.github.pt9912.tdswire.protocol.session.SessionVectors
 import io.github.pt9912.tdswire.testsupport.handMessage
 import io.github.pt9912.tdswire.transport.listener.LOOPBACK

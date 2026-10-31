@@ -1,5 +1,10 @@
-package io.github.pt9912.tdswire.config
+package io.github.pt9912.tdswire.runtime
 
+import io.github.pt9912.tdswire.config.ConfigIssue
+import io.github.pt9912.tdswire.config.ConfigKeys
+import io.github.pt9912.tdswire.config.EncryptionSetting
+import io.github.pt9912.tdswire.config.IssueKind
+import io.github.pt9912.tdswire.config.TempFilesTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -7,7 +12,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /** Schlüssel, Voreinstellungen und Bereiche der Konfiguration (`TDS-FA-09.a`). */
-class ConfigLoaderTest : TempFilesTest() {
+internal class ConfigLoaderTest : TempFilesTest() {
     private fun base(vararg more: Pair<String, String>) =
         testModeEnvironment(file("users.txt", "alice\t{plain}pw\n"), *more)
 

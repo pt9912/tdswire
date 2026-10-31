@@ -1,5 +1,10 @@
-package io.github.pt9912.tdswire.config
+package io.github.pt9912.tdswire.runtime
 
+import io.github.pt9912.tdswire.config.ConfigIssue
+import io.github.pt9912.tdswire.config.ConfigKeys
+import io.github.pt9912.tdswire.config.ConfigValidation
+import io.github.pt9912.tdswire.config.IssueKind
+import io.github.pt9912.tdswire.config.MAX_SIMULATION_FILE_BYTES
 import io.github.pt9912.tdswire.config.auth.UserList
 import io.github.pt9912.tdswire.config.auth.UserListResult
 import java.io.IOException

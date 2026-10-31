@@ -1,10 +1,21 @@
-package io.github.pt9912.tdswire.config
+package io.github.pt9912.tdswire.runtime
 
+import io.github.pt9912.tdswire.config.AuthSettings
+import io.github.pt9912.tdswire.config.ConfigDefaults
+import io.github.pt9912.tdswire.config.ConfigIssue
+import io.github.pt9912.tdswire.config.ConfigKeys
+import io.github.pt9912.tdswire.config.ConfigValidation
+import io.github.pt9912.tdswire.config.EncryptionSetting
+import io.github.pt9912.tdswire.config.IssueKind
+import io.github.pt9912.tdswire.config.ListenSettings
+import io.github.pt9912.tdswire.config.LoginSettings
+import io.github.pt9912.tdswire.config.ServerConfig
+import io.github.pt9912.tdswire.config.TlsKeyMaterial
 import io.github.pt9912.tdswire.config.auth.PasswordChars
 import io.github.pt9912.tdswire.config.auth.UserList
 
 /** Ausgang von [ConfigLoader.load]: eine gültige Konfiguration oder alle gefundenen Fehler. */
-sealed interface ConfigResult {
+internal sealed interface ConfigResult {
     class Loaded(val config: ServerConfig) : ConfigResult {
         override fun toString(): String = "Loaded(verborgen)"
     }
@@ -26,14 +37,14 @@ sealed interface ConfigResult {
  *   andere Wert, auch `TRUE`, ist ein Fehler und schaltet nie ein (`ADR-0011`).
  * - `SIMULATION_DESCRIPTION_FILE` optional (Name: Setzung, `ADR-0012` Offen 9): der Pfad der Datei der
  *   Tabellenbeschreibung des Simulations-Backends; fehlt der Schlüssel, läuft der Server ohne Simulations-Backend.
- *   Gesetzt ist der Wert nicht leer, die Datei lesbar und höchstens [MAX_SIMULATION_FILE_BYTES] groß (gelesen
+ *   Gesetzt ist der Wert nicht leer, die Datei lesbar und höchstens `MAX_SIMULATION_FILE_BYTES` groß (gelesen
  *   werden höchstens ein Byte mehr, die Datei wird nie ganz geladen).
  *
  * Die Benutzerliste wird als UTF-8 gelesen. Ein BOM am Anfang wird abgewiesen, nicht entfernt (Festlegung,
  * Spezifikation, Abschnitt Authentifizierungsadapter); die Zeilenenden bleiben unverändert, ein CR ist dann
  * ein Fehler der Validierung. Dateirechte der Dateien prüft der Lader nicht.
  */
-object ConfigLoader {
+internal object ConfigLoader {
     private val DIGITS = Regex("[0-9]{1,9}")
 
     fun load(environment: Map<String, String>): ConfigResult {
