@@ -30,6 +30,10 @@ In Arbeit (Welle welle-betrieb-diagnose):
 
 - [slice-adr-observability](slice-adr-observability.md)
 
+In Arbeit (Welle welle-anfrageverarbeitung):
+
+- [slice-rpc-prepared-handles](slice-rpc-prepared-handles.md)
+
 ## Nächste Wellen
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
