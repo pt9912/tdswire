@@ -1,0 +1,2 @@
+**Vorgang:** slice-adr-simulation-formen
+**Fund:** Verifikation V-8 ([Verifikation](../../../../../../reviews/2026-10-30-69c32e6-verifikation-adr-0012-simulations-backend.md)) und Verifikation 2 ([Verifikation 2](../../../../../../reviews/2026-10-30-cc81155-verifikation-2-adr-0012-simulations-backend.md)). Der Satz wurde bei der Closure auf „in der Entscheidung, Rohtabellen in den Berichten“ geändert und vermerkt.

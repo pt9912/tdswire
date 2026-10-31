@@ -1,0 +1,2 @@
+**Vorgang:** slice-adr-simulation-formen
+**Fund:** Offen 6 in [ADR-0012](../../../../../adr/0012-simulations-backend-beschreibung-und-formen.md). Überführung von Literalen und Parametern, Textvergleich, Kommentarschachtelung, Rundung, Collation und Sitzungsoptionen sind an keinem SQL Server gemessen (Spike-Messungen mit Autor gleich Erwartender); Träger sind der Live-Lauf im Referenzabgleich ([slice-referenzabgleich-live](../../../../open/slice-referenzabgleich-live.md)) und der Vergleichslauf D.

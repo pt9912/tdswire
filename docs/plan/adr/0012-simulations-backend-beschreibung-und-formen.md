@@ -1,6 +1,6 @@
 # ADR-0012: Beschreibung, Anweisungsformen und Typen des Simulations-Backends
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-30
 
@@ -189,3 +189,4 @@ Ein neues Release von d-migrate mit geändertem `schema_format` oder geänderten
 | 2026-10-30 | Proposed – Fix-Runde nach [Review](../../reviews/2026-10-30-69c32e6-adr-0012-simulations-backend.md) und [Verifikation](../../reviews/2026-10-30-69c32e6-verifikation-adr-0012-simulations-backend.md): Darstellung, Belege und Lücken; keine Nutzerentscheidung geändert. Neu: Fitness-Zeile als „kein Wächter“ mit Träger, sieben Spaltenfelder ignoriert und `tables` als Pflicht (Setzung), Längengrenze der Typabbildung, Offen 12, Folgepflicht `make deps-lock` | [Review](../../reviews/2026-10-30-69c32e6-adr-0012-simulations-backend.md), [Verifikation](../../reviews/2026-10-30-69c32e6-verifikation-adr-0012-simulations-backend.md) |
 | 2026-10-30 | Proposed – zweite Fix-Runde nach [Nachreview](../../reviews/2026-10-30-1565700-nachreview-adr-0012.md) (N-1, N-4 bis N-7): zeitgebundene Zahl durch Folgepflicht ersetzt, Fehlercode-Quelle, Review-Link, Lizenzmaß, Größenordnung der Messzeile; keine Nutzerentscheidung geändert, Offen 12 (b) unverändert | [Nachreview](../../reviews/2026-10-30-1565700-nachreview-adr-0012.md) |
 | 2026-10-30 | Proposed – Lastenheft 0.5.0 nachgezogen: `IS [NOT] NULL` ist durch das Lastenheft gedeckt (Offen 12 (b) erledigt); Offen 12 (a) und (c) unverändert offen; keine Entscheidung geändert | [TDS-FA-11](../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) |
+| 2026-10-31 | Accepted – nach [Review](../../reviews/2026-10-30-69c32e6-adr-0012-simulations-backend.md), [Verifikation](../../reviews/2026-10-30-69c32e6-verifikation-adr-0012-simulations-backend.md), [Nachreview](../../reviews/2026-10-30-1565700-nachreview-adr-0012.md) und [Verifikation 2](../../reviews/2026-10-30-cc81155-verifikation-2-adr-0012-simulations-backend.md); Inhalt unverändert; Offen 12 (a) und (c) bleiben beim Nutzer, Träger ist der Entscheidungs-Slice | [Verifikation 2](../../reviews/2026-10-30-cc81155-verifikation-2-adr-0012-simulations-backend.md) |

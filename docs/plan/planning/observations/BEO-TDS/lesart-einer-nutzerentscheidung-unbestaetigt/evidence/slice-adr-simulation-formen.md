@@ -1,0 +1,2 @@
+**Vorgang:** slice-adr-simulation-formen
+**Fund:** Offen 12 (a) in [ADR-0012](../../../../../adr/0012-simulations-backend-beschreibung-und-formen.md). Die Lesart „die Liste der positiven Formen ist abschließend“ trägt die Deckung der Einzelfälle aus `SPEC-036`; sie steht als Lesart in Spec und ADR, der Nutzer hat sie bei der Closure nicht bestätigt. Der Träger ist eine Risikozeile, die Bestätigung bleibt beim Nutzer.

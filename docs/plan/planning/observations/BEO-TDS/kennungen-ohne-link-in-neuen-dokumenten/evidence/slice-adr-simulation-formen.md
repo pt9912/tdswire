@@ -1,0 +1,2 @@
+**Vorgang:** slice-adr-simulation-formen
+**Fund:** Nachreview N-3, N-5 ([Nachreview](../../../../../../reviews/2026-10-30-1565700-nachreview-adr-0012.md)). Der Slice verwies auf „den Bericht der Fix-Runde“ ohne Link und ohne ein solches Artefakt; die ADR belegt Setzung 1 mit „Probe im Review F-1“ ohne Link, mit einer Kennung, die an anderer Stelle für anderes steht. Der erste Verweis ist behoben, der zweite steht nach `Accepted` unverändert.
