@@ -174,8 +174,9 @@ RUN gradle --no-daemon assemble \
 # --- Laufzeit: `make laufzeittest` baut diese Stage. Distroless Java 21 (Variante nonroot) mit JRE,
 # per Digest gepinnt (Messung vom 2026-10-31 am Tag `nonroot`; ein neuer Digest ist eine bewusste
 # Aenderung dieser Datei). Nutzer 65532 ohne Root-Rechte. Das Image enthaelt Jar, Bibliotheken und
-# Lizenz, keine Konfiguration, keine Benutzerliste, kein Geheimnis: alles kommt zur Laufzeit ueber
-# die Umgebung (ConfigKeys) und Dateien im Container. Betreiber-Optionen der JVM kommen ueber
+# Lizenz (drei COPY-Zeilen); Konfiguration und Benutzerliste kommen zur Laufzeit ueber die Umgebung
+# (ConfigKeys) und Dateien im Container. Der Laufzeittest prueft Dateinamen und Namen der Umgebung,
+# nicht den Inhalt der Jars und der Basis-Schichten. Betreiber-Optionen der JVM kommen ueber
 # JAVA_TOOL_OPTIONS (z. B. -XX:+ExitOnOutOfMemoryError, ADR-0013); das Flag gegen das
 # NewSessionTicket steht in der Startzeile (SPEC-023). ----
 FROM gcr.io/distroless/java21-debian12:nonroot@sha256:7e37784d94dccbf5ccb195c73b295f5ad00cd266512dfbac12eb9c3c28f8077d AS runtime
