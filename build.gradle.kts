@@ -34,14 +34,40 @@ dependencies {
     testRuntimeOnly(libs.junit.platform.launcher)
 }
 
-// Das Protokoll der Stage `test` nennt jeden Test mit Ergebnis und bei einem Fehlschlag die Ursache.
-tasks.test {
+// Das Protokoll der Stage `test` nennt jeden Test mit Ergebnis und bei einem Fehlschlag die Ursache; die Regel
+// gilt fuer `test` und `integratorTest`.
+tasks.withType<Test>().configureEach {
     useJUnitPlatform()
     testLogging {
         events("passed", "failed", "skipped")
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
         showStandardStreams = false
     }
+}
+
+// Der Einbettungstest (ADR-0021): ein Source-Set unter src/integrator, das gegen die Klassen des Hauptmoduls
+// uebersetzt und nicht mit ihm assoziiert ist. Kotlin gibt `internal` nur Quelltext desselben Moduls oder eines
+// assoziierten Source-Sets frei; hier ist nur die oeffentliche Flaeche uebersetzbar. Es laeuft im selben Prozess
+// wie der Server (`gradle test integratorTest` in der Stage `test`, kein E2E-Lauf). Grenze: `internal` ist im
+// Bytecode oeffentlich, der Nachweis gilt fuer Kotlin-Quellen im Source-Set.
+val integrator: SourceSet by sourceSets.creating
+
+dependencies {
+    "integratorImplementation"(sourceSets.main.get().output)
+    "integratorImplementation"(libs.kotlinx.coroutines.core)
+    "integratorImplementation"(libs.kotlin.test)
+    "integratorImplementation"(libs.kotlin.test.junit5)
+    "integratorRuntimeOnly"(libs.jackson.dataformat.yaml)
+    "integratorImplementation"(platform(libs.junit.bom))
+    "integratorRuntimeOnly"(libs.junit.jupiter.engine)
+    "integratorRuntimeOnly"(libs.junit.platform.launcher)
+}
+
+tasks.register<Test>("integratorTest") {
+    description = "Einbettungstest ueber die oeffentliche Flaeche (ADR-0021)"
+    group = "verification"
+    testClassesDirs = integrator.output.classesDirs
+    classpath = integrator.runtimeClasspath
 }
 
 kotlin {
@@ -56,6 +82,7 @@ kotlin {
 detekt {
     buildUponDefaultConfig = true
     config.setFrom("config/detekt/detekt.yml")
+    source.setFrom("src/main/kotlin", "src/test/kotlin", "src/integrator/kotlin")
 }
 
 // Selbsttest der Importregeln: dieselbe Konfiguration, aber ueber Testdaten statt ueber src/.
