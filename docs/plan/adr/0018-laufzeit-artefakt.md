@@ -8,7 +8,7 @@
 
 **Bezug:** [ADR-0011](0011-pruefwertformat.md), [ADR-0013](0013-backend-grenzen.md), [TDS-RB-01](../../../spec/lastenheft.md#tds-rb-01--implementierungssprache), [TDS-RB-05](../../../spec/lastenheft.md#tds-rb-05--lizenz), [TDS-QA-06](../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit)
 
-**Schärft:** [SPEC-042](../../../spec/spezifikation.md#7-festlegungen-der-harness-werkzeuge) (Basis-Images per Digest gepinnt; die Spezifikation führt keine Zeile für das Laufzeit-Artefakt, siehe „Offen“), [SPEC-023](../../../spec/spezifikation.md#6-externe-verträge) (Startzeile mit `-Djdk.tls.server.newSessionTicketCount=0`). Ein Gate, dessen Werkzeug festlegt, was es prüft, hat eine Spec-Stelle: die ADR benennt die fehlende. Kein angenommener ADR-Satz wird überstimmt; kein `Supersedes`.
+**Schärft:** [SPEC-042](../../../spec/spezifikation.md#7-festlegungen-der-harness-werkzeuge) (Basis-Images per Digest gepinnt; `SPEC-052` führt das Laufzeit-Artefakt), [SPEC-023](../../../spec/spezifikation.md#6-externe-verträge) (Startzeile mit `-Djdk.tls.server.newSessionTicketCount=0`). Kein angenommener ADR-Satz wird überstimmt; kein `Supersedes`.
 
 ---
 
@@ -57,13 +57,13 @@ Die Wahl ist die des gebauten Standes; die Gründe sind: gebaut, per Digest gepi
 
 | Tooling | Regel | Make-Target |
 |---|---|---|
-| Shell-Gate `tools/laufzeittest.sh` | Container startet aus der Stage `runtime`, Rohbytes-Login gelingt, Stop beendet den Prozess mit Exit-Code 143, Jar, `lib/` und `LICENSE` liegen im Image, kein Dateiname unter Betreiber-Verzeichnissen deutet auf ein Geheimnis, `JAVA_TOOL_OPTIONS` erreicht die JVM, Nutzer ist 65532. | `make laufzeittest` (in `make gates`) |
+| Shell-Lauf `tools/laufzeittest.sh` | Container startet aus der Stage `runtime`, Rohbytes-Login gelingt, Stop beendet den Prozess mit Exit-Code 143, Jar, `lib/` und `LICENSE` liegen im Image, kein Dateiname unter Betreiber-Verzeichnissen deutet auf ein Geheimnis, `JAVA_TOOL_OPTIONS` erreicht die JVM, Nutzer ist 65532. | `make laufzeittest` (E2E-Stufe, nicht in `make gates`, [ADR-0022](0022-e2e-laeufe-nicht-in-den-gates.md)) |
 
 ## Offen
 
 - Dateirechte und Besitz der Benutzerliste im Betrieb: wie der Nutzer ohne Root-Rechte die Datei liest, die `AUTH_USERS_FILE` nennt (Mount, Secret, Besitzer, Modus), ist weder gemessen noch entschieden ([ADR-0011](0011-pruefwertformat.md) §Offen; Register `BEO-TDS/benutzerliste-dateirechte-im-betrieb-offen`; Träger des Betriebstexts: Slice für Release-Doku und Prozess). Eine Empfehlung dieser ADR gibt es nicht, weil kein Betriebsmodell des Nutzers vorliegt.
 - Lizenzhinweise der gelieferten Bibliotheken: [TDS-RB-05](../../../spec/lastenheft.md#tds-rb-05--lizenz) verlangt die MIT-Lizenz des Projekts, nicht Hinweise zu Bibliotheken. Ob das Artefakt sie braucht, ist eine Rechtsfrage ohne Prüfung im Repo (Register `BEO-TDS/lizenzhinweise-der-bibliotheken-rechtsfrage`). Die Lesart des Architect zur Vereinbarkeit von Apache-2.0 mit MIT ist keine Rechtsberatung.
-- Zwei Stages (`build` und `runtime`) für ein Artefakt; `SPEC-*`-Zeile für das Artefakt; Zusatzklasse der Sensors-Bindung an eine Lastenheft-Kennung (V-3 der Verifikation).
+- Zwei Stages (`build` und `runtime`) für ein Artefakt; Zusatzklasse der Sensors-Bindung an eine Lastenheft-Kennung (V-3 der Verifikation).
 
 ## Re-Evaluierungs-Trigger
 

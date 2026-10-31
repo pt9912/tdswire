@@ -4,7 +4,7 @@
 # Aufruf: manifest-pruefung.sh <libs-verzeichnis>   (Dockerfile, Stage `build-jar`: build/libs)
 # Exit 1 bei einem Befund, 2 bei falschem Aufruf. Geprueft wird: das Jar heisst tdswire.jar, sein
 # Manifest nennt als Main-Class die Startklasse, und der Class-Path ist nicht leer und besteht nur aus
-# Eintraegen `lib/<name>`, zu denen eine Datei in <libs-verzeichnis>/lib liegt. Grenze: geprueft wird das
+# Eintraegen `lib/<name>` ohne `..`, zu denen eine Datei in <libs-verzeichnis>/lib liegt. Grenze: geprueft wird das
 # Manifest, nicht der Start; Entrypoint und Basis-Image der Stage `runtime` pruefen allein die
 # E2E-Stufen (make laufzeittest), und ein vorhandener Eintrag sagt nichts ueber den Inhalt der Datei.
 set -eu
@@ -29,6 +29,7 @@ cp_zeile=$(printf '%s\n' "$manifest" | sed -n 's/^Class-Path: //p')
 [ -n "$cp_zeile" ] || melde "Class-Path fehlt oder ist leer"
 for eintrag in $cp_zeile; do
   case "$eintrag" in
+    *..*) melde "Class-Path-Eintrag [$eintrag] enthaelt .." ;;
     lib/?*) [ -f "$libs/$eintrag" ] || melde "Class-Path-Eintrag [$eintrag] hat keine Datei in $libs/lib" ;;
     *) melde "Class-Path-Eintrag [$eintrag] hat nicht die Form lib/<name>" ;;
   esac

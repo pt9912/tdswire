@@ -158,7 +158,7 @@ Wird bei der Closure gefüllt.
 | `make gates` warm mit `laufzeittest` und `simulations-integration` | 49 s |
 | `make gates` warm ohne beide (Stand nach der ADR zu den E2E-Läufen) | 9 s (alle Stages aus dem Cache; Einzelwert, kein Maß für einen Lauf nach Quelltext-Änderung) |
 
-Der Durchgang kostet warm so viel wie die Summe der Einzelläufe (Differenz 1 s); die Stufen laufen nicht doppelt gegenüber ihrem Einzellauf, sondern doppelt gegenüber der Zeit, die `make gates` bisher für zwei von ihnen aufwendete. Die Kaltzeit der Stufen 2 und 3 liegt unter ihren früheren Einzel-Kaltwerten (88 bis 171 s, 131 s), weil sie sich im selben Builder Layer mit Stufe 1 teilen; die Summe der vier Einzel-Kaltläufe ist nicht gemessen. Setzungen: der Durchgang bricht an der ersten roten Stufe ab; die Harness-Selbstprüfung fällt aus der Sicht (Option a), sie bleibt Werkzeug ohne Gate.
+Der Durchgang kostet warm so viel wie die Summe der Einzelläufe (Differenz 1 s); die Stufen laufen nicht doppelt gegenüber ihrem Einzellauf, sondern doppelt gegenüber der Zeit, die `make gates` bisher für zwei von ihnen aufwendete. Die Kaltzeiten der Stufen 1 bis 3 liegen bei je rund 105 s (106 s, 108 s, 104 s); ob und warum sie unter den früheren Einzel-Kaltwerten (88 bis 171 s, 131 s) liegen, ist nicht gemessen; die Summe der vier Einzel-Kaltläufe ist nicht gemessen. Setzungen: der Durchgang bricht an der ersten roten Stufe ab; die Harness-Selbstprüfung fällt aus der Sicht (Option a), sie bleibt Werkzeug ohne Gate.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

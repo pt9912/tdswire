@@ -31,7 +31,7 @@
 # Die E2E-Abdeckungs-Sicht beschreibt Plan und Abdeckung, nicht den Betrieb: sie liegt unter
 # docs/plan/, nicht in der Vorgabe docs/user/ des Fragments.
 E2E_ABDECKUNG_ZIEL = docs/plan/e2e-abdeckung.md
-# Die Sicht liest die Stufen von tools/e2e.sh (Kopfzeilen mit dem Praefix `e2e`) und wird gegen das Lastenheft gehalten.
+# Die Sicht liest die Stufen von tools/e2e.sh (Kopfzeilen mit dem Praefix `e2e`) und wird vom Leser gegen das Lastenheft gehalten (der Erzeuger prueft die Kennungen nicht).
 E2E_ABDECKUNG_QUELLE = tools/e2e.sh
 E2E_ABDECKUNG_PRAEFIX = e2e
 E2E_ABDECKUNG_SPEC = spec/lastenheft.md
