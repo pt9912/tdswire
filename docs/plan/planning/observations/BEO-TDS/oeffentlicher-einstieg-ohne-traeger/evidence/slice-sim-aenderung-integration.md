@@ -1,0 +1,2 @@
+**Vorgang:** slice-sim-aenderung-integration
+**Fund:** Die Übergabe des Implementers stellte die Frage, wer den öffentlichen Einstieg trägt (Review [2026-10-31-a7e6afa-slice-sim-aenderung-integration](../../../../../../reviews/2026-10-31-a7e6afa-slice-sim-aenderung-integration.md)): `RequestSource` ist `internal`, `main()` kennt kein eigenes Backend, und kein Slice führt den Einstieg. Der Träger steht seit dieser Beobachtung als Datei in `open/`.
