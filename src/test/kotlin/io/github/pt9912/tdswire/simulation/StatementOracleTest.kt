@@ -121,7 +121,7 @@ class StatementOracleTest {
 
     // Erzeuger -------------------------------------------------------------------------------------------
 
-    private val simpleNames = listOf("a", "b2", "Col_1", "x#", "y\$", "_z", "Ärger", "tbl")
+    private val simpleNames = listOf("a", "b2", "Col_1", "x#", "y\$", "_z", "Ärger", "tbl", "n\uD840\uDC00")
     private val nastyNames = listOf("a b", "a;b", "a--b", "a/*b*/", "a]b", "a\"b", "SELECT", "a.b", "[x]", "N'x'", "--")
     private val separators = listOf(
         " ", "\t", "\r\n", "  ", " /* c */ ", " /* a /* nested ; */ -- */ ", " -- x ;'\n", "/**/", "\n", " -- [\r",
@@ -327,10 +327,13 @@ class StatementOracleTest {
     @Test
     fun `erkennt erzeugte Anweisungen wieder`() {
         val gen = Gen(20_261_031L)
+        var generated = 0
         repeat(600) {
             val built = build(gen)
             assertRecognized(built.expected, built.sql)
+            generated++
         }
+        assertEquals(600, generated)
         assertTrue(gen.kinds.all { it >= 100 }, "jede Form mindestens 100 Mal: ${gen.kinds.toList()}")
         assertTrue(gen.nastyNamesUsed >= 200, "Bezeichner mit Sonderzeichen: ${gen.nastyNamesUsed}")
         assertEquals(textPayloads.toSet(), gen.payloadsUsed, "jedes Literal kam vor")
@@ -345,6 +348,7 @@ class StatementOracleTest {
     fun `lehnt erzeugte Anhänge und Verdopplungen ab`() {
         val gen = Gen(31_102_026L)
         val suffixes = "ORDER BY a|OR a = 1|GROUP BY a|JOIN u ON a = b|x|AS x|OFFSET 1 ROWS".split("|").map { " $it" }
+        assertEquals(7, suffixes.size)
         val connectors = listOf(" ", "; ", ";\n", " /* x */ ", " -- y\n")
         var cases = 0
         repeat(300) {

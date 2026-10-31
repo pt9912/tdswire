@@ -99,7 +99,7 @@ internal class SqlScanner(private val text: String) {
     private fun other(c: Char, next: Char): Unrecognized? = when {
         c in '0'..'9' || (c == '-' && next in '0'..'9') -> number()
         (c == 'N' || c == 'n') && next == '\'' -> literal(national = true, start = pos + 1)
-        SqlLexemes.isWordStart(c) -> word()
+        SqlLexemes.isWordStart(text.codePointAt(pos)) -> word()
         else -> Unrecognized.UNSUPPORTED_CHARACTER
     }
 
@@ -148,7 +148,7 @@ internal class SqlScanner(private val text: String) {
         if (end + 1 < text.length && text[end] == '.' && text[end + 1] in '0'..'9') {
             end = SqlLexemes.digitsEnd(text, end + 1)
         }
-        if (end < text.length && (SqlLexemes.isWordPart(text[end]) || text[end] == '.')) {
+        if (end < text.length && (SqlLexemes.isWordPart(text.codePointAt(end)) || text[end] == '.')) {
             return Unrecognized.MALFORMED_NUMBER
         }
         tokens += Token.Number(text.substring(pos, end))
@@ -156,16 +156,12 @@ internal class SqlScanner(private val text: String) {
     }
 
     private fun word(): Unrecognized? {
-        val end = wordEnd(pos + 1)
+        val end = wordEnd(pos + Character.charCount(text.codePointAt(pos)))
         tokens += Token.Word(text.substring(pos, end))
         return advance(end - pos)
     }
 
-    private fun wordEnd(from: Int): Int {
-        var end = from
-        while (end < text.length && SqlLexemes.isWordPart(text[end])) end++
-        return end
-    }
+    private fun wordEnd(from: Int): Int = SqlLexemes.wordEnd(text, from)
 
     private companion object {
         const val NUL = '\u0000'

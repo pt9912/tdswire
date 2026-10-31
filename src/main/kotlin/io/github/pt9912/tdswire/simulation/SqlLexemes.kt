@@ -57,7 +57,20 @@ internal object SqlLexemes {
         return end
     }
 
-    fun isWordStart(c: Char): Boolean = c.isLetter() || c == '_' || c == '#' || c == '$'
+    /** Wahr, wenn [cp] ein Wort beginnen darf: Unicode-Buchstabe (auch außerhalb der Grundebene), `_`, `#`, `$`. */
+    fun isWordStart(cp: Int): Boolean = Character.isLetter(cp) || cp == '_'.code || cp == '#'.code || cp == '$'.code
 
-    fun isWordPart(c: Char): Boolean = isWordStart(c) || c in '0'..'9'
+    /** Wahr, wenn der Codepunkt [cp] in einem Wort stehen darf: [isWordStart] oder eine ASCII-Ziffer. */
+    fun isWordPart(cp: Int): Boolean = isWordStart(cp) || cp in '0'.code..'9'.code
+
+    /** Der Index hinter den Wortzeichen ab [from], Codepunkt für Codepunkt. */
+    fun wordEnd(text: String, from: Int): Int {
+        var end = from
+        while (end < text.length) {
+            val cp = text.codePointAt(end)
+            if (!isWordPart(cp)) break
+            end += Character.charCount(cp)
+        }
+        return end
+    }
 }

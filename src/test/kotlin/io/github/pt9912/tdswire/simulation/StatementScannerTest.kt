@@ -145,6 +145,50 @@ class StatementScannerTest {
     }
 
     /**
+     * Buchstaben außerhalb der Grundebene (U+20000, U+1D400) sind Wortzeichen am Anfang und in der Mitte, auch
+     * in einem Parameter; ein Nicht-Buchstabe dort (U+1F600), ein einzelnes Ersatzzeichen und ein Buchstabe hinter
+     * einer Zahl sind es nicht.
+     * @spec SPEC-036
+     */
+    @Test
+    fun `liest Buchstaben außerhalb der Grundebene als Wortzeichen`() {
+        val astral = "𠀀"
+        val bold = "𝐀"
+        for (name in listOf(astral, "a$astral", "${bold}1$astral", "$astral$bold")) {
+            assertEquals(name, column(name), name)
+        }
+        assertEquals(param(astral + "x"), value("INSERT INTO t (a) VALUES (@${astral}x)"))
+        for (bad in listOf("😀", "a😀", "\uD840", "a\uDC00", "a\uD840b")) {
+            assertNotRecognized("SELECT $bad FROM t", Unrecognized.UNSUPPORTED_CHARACTER)
+        }
+        assertNotRecognized("SELECT 1$astral FROM t", Unrecognized.MALFORMED_NUMBER)
+    }
+
+    /**
+     * Ein quotierter Bezeichner an der Stelle eines Werts ist kein Wert: `[NULL]` ist nicht `NULL`, `"x"` und
+     * `[x]` sind nicht Text (`QUOTED_IDENTIFIER ON`). Der Zwilling mit dem echten Wert ist erkannt.
+     * @spec SPEC-036
+     */
+    @Test
+    fun `lehnt quotierte Bezeichner an Wertstellen ab`() {
+        val quoted = listOf("[NULL]", "[null]", "\"NULL\"", "[x]", "\"x\"", "[1]", "\"1\"")
+        assertEquals(7, quoted.size)
+        val templates = listOf(
+            "INSERT INTO t (a) VALUES (%s)" to "INSERT INTO t (a) VALUES (NULL)",
+            "INSERT INTO t (a, b) VALUES (1, %s)" to "INSERT INTO t (a, b) VALUES (1, 'x')",
+            "SELECT a FROM t WHERE a = %s" to "SELECT a FROM t WHERE a = 'x'",
+            "SELECT a FROM t WHERE a IN (1, %s)" to "SELECT a FROM t WHERE a IN (1, 'x')",
+            "UPDATE t SET a = %s" to "UPDATE t SET a = 'x'",
+            "DELETE FROM t WHERE a = %s" to "DELETE FROM t WHERE a = 'x'",
+        )
+        for ((template, twin) in templates) {
+            val variants = quoted.map { template.replace("%s", it) }
+            assertOnlyExtensionFails(twin, *variants.toTypedArray(), reason = Unrecognized.UNEXPECTED_TOKEN)
+        }
+        assertEquals(6, templates.size)
+    }
+
+    /**
      * Nur die fünfzehn Wörter sind unquotiert keine Bezeichner, ohne Beachtung der Schreibweise; quotiert sind sie
      * Namen. Andere Wörter, auch `TOP` und `ORDER`, sind gewöhnliche Namen (Festlegung nach der Liste der
      * Spezifikation).

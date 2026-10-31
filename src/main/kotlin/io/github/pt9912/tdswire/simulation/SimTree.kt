@@ -31,13 +31,14 @@ data class SimMap(val entries: List<SimEntry>, override val position: SimPositio
 /**
  * Ein Fehler beim Laden der Beschreibung (`SPEC-035` Ladefehler). Die Meldung nennt den [path] im
  * Dokument, die Stelle und einen festen Grund, nie den Inhalt eines Werts. Der Pfad besteht aus
- * Schlüsseln des Dokuments, ein Abschnitt höchstens [MAX_SEGMENT] Zeichen lang, Steuerzeichen als `?`.
+ * Schlüsseln des Dokuments, ein Abschnitt höchstens [MAX_SEGMENT] Codepunkte lang, Steuer-, Format-, Zeilen- und
+ * Absatztrennzeichen als `?`.
  * Kein TDS-Fehlercode: beim Laden ist kein Client verbunden.
  */
 class SimLoadException(val path: String, val position: SimPosition, val reason: String) :
     Exception("$path (Zeile ${position.line}, Spalte ${position.column}): $reason") {
     companion object {
-        /** Obergrenze eines Pfadabschnitts in Zeichen. */
+        /** Obergrenze eines Pfadabschnitts in Codepunkten. */
         const val MAX_SEGMENT = 64
     }
 }
