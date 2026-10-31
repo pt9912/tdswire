@@ -1,6 +1,6 @@
 # ADR-0013: Grenzen des Backend-Vertrags: Zeilendarstellung, kleine Ergebnisse, OutOfMemoryError, blockierendes Backend, Frist
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-31
 
@@ -131,3 +131,4 @@ Ein echtes Backend, dessen Treiber blockiert (Hilfsadapter, Entscheidung 3; ders
 | 2026-10-31 | Proposed – Entscheidungen des Nutzers zu Frage 1, 3, 4 und 5 (Option A, B, A, A) vom 2026-10-31; Frage 2 (keine Grenze) als Setzung (Voreinstellung des Optionsberichts) gekennzeichnet; Messzeilen M1 bis M8 aus dem Optionsbericht mit den Grenzen des Spike; schließt die genannten offenen Punkte von [ADR-0006](0006-backend-vertrag-und-streaming.md) und Offen 10 von [ADR-0012](0012-simulations-backend-beschreibung-und-formen.md), ohne `Supersedes`; Status weiter Proposed bis Review und Verifikation | [Optionsbericht](../../reviews/2026-10-30-b1a23b2-optionen-adr-backend-grenzen.md) |
 | 2026-10-31 | Proposed – Befunde F-1 bis F-10 und F-12 des Reviews eingearbeitet (Fang des Sequenzierers, Spannung zu [TDS-FA-06](../../../spec/lastenheft.md#tds-fa-06--fehler-und-abschlusszustände), Aussagen auf das Gemessene begrenzt, Träger der Folgepflichten, Bezeichnungen der Messzeilen); Entscheidungen des Nutzers unverändert | [Review](../../reviews/2026-10-31-42bd58d-adr-0013-backend-grenzen.md) |
 | 2026-10-31 | Proposed – Verifikation: Abnahme-Entscheidung des Nutzers zu [TDS-FA-06](../../../spec/lastenheft.md#tds-fa-06--fehler-und-abschlusszustände) aufgenommen (Option A: als erfüllt gelten gelassen, Lastenheft unverändert; „Offen“ geleert); „synchron“ an den gebauten Stand gebunden; Folgepflicht (detekt-Risiko erledigt, fünf statt sieben Quelldateien) angeglichen; Setzungen 5 bis 10 unverändert als Setzung gekennzeichnet | [Verifikation](../../reviews/2026-10-31-c2fea13-verifikation-adr-0013-backend-grenzen.md) |
+| 2026-10-31 | Accepted – Review, Verifikation und Nachprüfung der Vorbedingungen ohne Blocker; die Setzungen 5 bis 10 hat der Nutzer nicht ausdrücklich gewählt (der Nutzer wurde gefragt und hat nichts geändert) und bleiben als Setzung (Voreinstellung 2026-10-30, nicht gemessen) gekennzeichnet; Inhalt unverändert | [Review](../../reviews/2026-10-31-42bd58d-adr-0013-backend-grenzen.md), [Verifikation](../../reviews/2026-10-31-c2fea13-verifikation-adr-0013-backend-grenzen.md), [Nachprüfung](../../reviews/2026-10-31-bec92aa-nachpruefung-adr-0013.md) |
