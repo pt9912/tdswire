@@ -14,6 +14,7 @@
 | [ADR-0010](0010-detekt-pre-release.md) | detekt 2.0 als Gate-Werkzeug (Pre-Release) | Accepted | [TDS-QA-05](../../../spec/lastenheft.md), [TDS-QA-06](../../../spec/lastenheft.md) |
 | [ADR-0011](0011-pruefwertformat.md) | Prüfwertformat und Konfigurationsweg der festen Benutzerliste | Accepted | [ADR-0009](0009-authentifizierungsmodus.md), [TDS-FA-02](../../../spec/lastenheft.md#tds-fa-02--anmeldung-und-sitzungsverwaltung), [TDS-FA-09](../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose), [TDS-QA-03](../../../spec/lastenheft.md#tds-qa-03--sicherheit) |
 | [ADR-0012](0012-simulations-backend-beschreibung-und-formen.md) | Beschreibung, Anweisungsformen und Typen des Simulations-Backends | Proposed | [ADR-0006](0006-backend-vertrag-und-streaming.md), [TDS-FA-11](../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-FA-08](../../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-QA-06](../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
+| [ADR-0013](0013-backend-grenzen.md) | Grenzen des Backend-Vertrags: Zeilendarstellung, kleine Ergebnisse, OutOfMemoryError, blockierendes Backend, Frist | Proposed | [ADR-0006](0006-backend-vertrag-und-streaming.md), [TDS-FA-05](../../../spec/lastenheft.md#tds-fa-05--resultsets-und-datentypen), [TDS-FA-08](../../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-FA-11](../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-QA-02](../../../spec/lastenheft.md#tds-qa-02--stabilität) |
 
 ## Konventionen
 
