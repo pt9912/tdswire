@@ -1,6 +1,6 @@
 # ADR-0023: Gate-Klassen und Stempel — Überspringen nur mit Beleg
 
-**Status:** Proposed
+**Status:** Accepted (vom Nutzer entschieden)
 
 **Datum:** 2026-10-31
 
@@ -24,7 +24,19 @@
 - `GATE_CHECKS` führt `test`, `detekt`, `build`, `detekt-selbsttest`, `skript-selbsttest`, `docs-check`, `baseline-verify` und `referenztest-dotnet`. E2E-Läufe stehen nach [ADR-0022](0022-e2e-laeufe-nicht-in-den-gates.md) nicht darin.
 - Zwei Gates überspringen sich schon heute bei unveränderten Eingängen, jedes mit eigenem Mechanismus unter `.harness/state/` (nicht versioniert): `referenztest-dotnet` mit einem Inhalts-Hash über Dateien (`tools/eingangs-hash.sh`), `detekt-selbsttest` mit einem mtime-Stempel über eine Eingangsliste. Beide Stempel sind privat je Arbeitskopie und reisen nicht; ein frischer Klon und jeder CI-Lauf führen alles aus.
 - Der Gate-Nachweis (`record-gates`, Stop-Hook) besteht aus dem Inhalts-Hash des Gesamtbaums und dem HEAD (`.harness/state/gates-passed.*`). Er sagt „`make gates` war über genau diesem Inhalt grün“, nicht, welches Gate welche Eingänge hatte.
-- Die Dockerfile-Stage `test` kopiert `spec/spezifikation.md` und `harness/README.md` (für Kopplungstests wie `IntegrationZahlenTest`), ebenso `spec-abdeckung` und `lock`. **Hypothese, nicht gemessen:** eine reine Doku-Änderung macht den Layer der Stage `test` ungültig und löst sie aus (Stage `test` ohne Cache: 89 bis 102 s, Einzelmessung aus [ADR-0022](0022-e2e-laeufe-nicht-in-den-gates.md)). Eine Messung läuft und wird nachgereicht; die Entscheidung unten hängt nicht an ihr, die Umsetzung (Folgepflicht 3) schon.
+- Die Dockerfile-Stage `test` kopiert `spec/spezifikation.md` (Dockerfile Z. 83) und `harness/README.md` (Z. 84); ebenso `spec-abdeckung` und `lock`. Einziger Leser beider Dateien in der Stage `test` ist `src/test/.../runtime/IntegrationZahlenTest.kt`, ein Doku-Konsistenztest (Heap aus `build.gradle.kts`, Text von `gross`, `SPEC-040`-Zeile, README-Zeile `make simulations-integration`).
+- **Messung vom 2026-10-31** (Einzelmessungen, je eine Änderung und ein `make gates`-Lauf mit Docker-Layer-Cache; Last des Rechners 4,6 bis 13 und ein fremder Container lief, daher sind absolute Zeiten verfälscht; Fall 5 ist aus Log-Zeitstempeln geschätzt):
+
+| Fall | Änderung | Gesamt | Was lief neu |
+|---|---|---|---|
+| 1 | keine | 10,6 s und 9,9 s | nichts |
+| 2 | Planungsdatei unter `docs/plan/planning/` | 7,8 s | nur `docs-check` und `baseline-verify` |
+| 3 | `spec/spezifikation.md` | 114,6 s | nur Stage `test` (`gradle test`), 103 s |
+| 4 | `harness/README.md` | 113,9 s | nur `test`, 101 s |
+| 5 | Kommentar in `src/main/.../simulation/StatementPlanner.kt` | rund 270 s | `detekt` 128 s, compile 21,7 s, `build-jar` 5,5 s, `test` 78 s |
+| 6 | Kommentar in `tools/e2e.sh` | 10,2 s | nur `skript-selbsttest`, 1,2 s |
+
+  Die Hypothese ist damit bestätigt: eine Änderung an `spec/spezifikation.md` oder `harness/README.md` löst die Stage `test` aus (Ursache: die zwei `COPY`-Zeilen). Die Werkzeug-Gates `docs-check`, `baseline-verify` und `skript-selbsttest` laufen zusammen warm unter 10 s: ein lokaler Stempel bringt dort kaum etwas, der Docker-Layer-Cache erledigt es. Der Gewinn in der CI, die keinen Layer-Cache hat, ist nicht gemessen.
 - `.github/workflows/gates.yml` führt allein `make gates`, mit `fetch-depth: 0` und `permissions: contents: read`.
 
 **Regel:** [AGENTS.md](../../../AGENTS.md) §3.6 — Gates werden nur per ADR gelockert. Ein Gate, das bei gleichem Eingang nicht läuft, ist keine Senkung der Schwelle, solange der Beleg für genau diesen Eingang vorliegt; wo er nicht vorliegt, läuft es. Die Zuordnung der Targets zu Klassen und der Beleg-Mechanismus sind trotzdem eine Entscheidung über die Gate-Kette und gehören in eine ADR.
@@ -33,10 +45,10 @@
 
 ## Entscheidung
 
-Wir wählen **Option B** (zwei Klassen, ein Stempel je Klasse, Beleg am Commit), mit Speicherort (c) lokal und (d) in der CI.
+Wir wählen **Option B** (zwei Klassen, ein Stempel je Klasse, Beleg am Commit), mit Speicherort (d) in der CI; der lokale Speicherort (c) ist zurückgestellt (Entscheidung 8).
 
 1. **Zwei Gate-Klassen, dazu eine eigene Einheit.**
-   - **Werkzeug-Gate:** prüft Doku, Harness und Skripte: `docs-check`, `baseline-verify`, `detekt-selbsttest`, `skript-selbsttest` und — nach der Entkopplung (Folgepflicht 3) — die Kopplungstests Doku gegen Doku (`IntegrationZahlenTest`-Art). Eingänge: `docs/`, `spec/`, `harness/`, `tools/`, `.d-check.yml`, `config/detekt/selbsttest*`, dazu `Makefile`, `repo.mk` und `.harness/baseline/`.
+   - **Werkzeug-Gate:** prüft Doku, Harness und Skripte: `docs-check`, `baseline-verify`, `detekt-selbsttest`, `skript-selbsttest` und — nach der Entkopplung (Folgepflicht 1) — die Kopplungstests Doku gegen Doku (`IntegrationZahlenTest`-Art). Eingänge: `docs/`, `spec/`, `harness/`, `tools/`, `.d-check.yml`, `config/detekt/selbsttest*`, dazu `Makefile`, `repo.mk` und `.harness/baseline/`.
    - **Test-Gate:** prüft den Produktcode: `test`, `detekt`, `build` (mit der Manifest-Prüfung in `build-jar`). Eingänge: `src/`, `build.gradle.kts`, `settings.gradle.kts`, `gradle.properties`, `gradle/`, `gradle.lockfile`, `settings-gradle.lockfile`, `Dockerfile`, `config/detekt/`, `LICENSE`.
    - **`referenztest-dotnet`** bleibt Gate ([ADR-0022](0022-e2e-laeufe-nicht-in-den-gates.md) Entscheidung 4, nicht berührt) und ist eine eigene Einheit mit eigenen Eingängen (`referenztest-dotnet/` und sein Fragment). Es bekommt denselben Stempel-Mechanismus statt der eigenen Hash-Datei.
    - Die Eingangsliste einer Klasse ist die **Vereinigung der Eingänge ihrer Targets**, abgeleitet aus den `COPY`-Quellen der Stages und den Fragmenten; die Listen oben sind der Startstand der Umsetzung. Heute liest `detekt-selbsttest` (Stage erbt von `deps`) auch `Dockerfile` und die Gradle-Dateien: eine Doku-Änderung berührt es nicht, eine Gradle-Änderung schon. Diese Überschneidung ist erlaubt (sie kostet einen Lauf, nie eine falsche Auslassung).
@@ -45,9 +57,14 @@ Wir wählen **Option B** (zwei Klassen, ein Stempel je Klasse, Beleg am Commit),
 4. **Überspringen nur bei Beleg.** Eine Klasse läuft nicht, wenn ein Vorfahre C von HEAD (HEAD eingeschlossen) denselben Eingangs-Hash der Klasse hat **und** für C ein grüner Beleg der Klasse vorliegt. **Jeder andere Fall führt zum Lauf:** kein Treffer, flacher Klon, Abfragefehler, Eingangspfade im Arbeitsbaum nicht sauber, Beleg nicht eindeutig grün (mehrere, widersprüchliche, unlesbar), umgeschriebene Historie (Rebase, Squash). Ein Fehler beim Nachschlagen ist weder rot noch grün des Gates, er ist nur „Lauf“. `FORCE=1` erzwingt den Lauf wie heute bei `referenztest-dotnet`.
    - Setzung: die Vorfahren-Bedingung ist strenger als nötig. Inhaltlich trägt der Eingangs-Hash allein; der Vorfahr hält die Herkunft prüfbar und verhindert, dass der Beleg eines fremden Zweigs trägt. Wer sie lockert, braucht eine neue Entscheidung.
 5. **Bindung an den Gate-Nachweis bleibt unverändert.** `record-gates` und der Stop-Hook behalten Gesamtbaum-Hash und HEAD als Nachweis; nichts daran wird aufgeweicht. `make gates` ist grün, wenn jede Klasse entweder grün lief oder mit Beleg übersprungen wurde; erst dann wird der Nachweis geschrieben. Eine übersprungene Klasse ohne passenden Beleg gibt es nicht (Entscheidung 4).
-6. **Speicherort des Belegs** (Optionen unten): lokal **(c) git notes** unter `refs/notes/gates` am grünen Commit; in der CI **(d) der Check-Status** des Workflows `gates` am Commit. `.harness/state/` behält den Gate-Nachweis des Stop-Hooks (Entscheidung 5), nicht die Klassen-Stempel; die beiden bestehenden Einzelmechanismen (`detekt-selbsttest.ok`, `referenztest-dotnet.hash`) entfallen zugunsten des einen.
+6. **Speicherort des Belegs** (Optionen unten): in der CI **(d) der Check-Status** des Workflows `gates` am Commit; lokal wäre es **(c) git notes** unter `refs/notes/gates` am grünen Commit, das ist zurückgestellt (Entscheidung 8), lokal gibt es bis dahin keinen Beleg und die Klassen laufen (Docker-Layer-Cache). `.harness/state/` behält den Gate-Nachweis des Stop-Hooks (Entscheidung 5), nicht die Klassen-Stempel; die beiden bestehenden Einzelmechanismen (`detekt-selbsttest.ok`, `referenztest-dotnet.hash`) entfallen zugunsten des einen, sobald dieser umgesetzt ist.
 7. **CI.** Ein grüner Check `gates` an einem Vorfahren C belegt alle Klassen für C. Für die Abfrage braucht `gates.yml` zusätzlich ein Leserecht auf Checks (`checks: read`; ob `contents: read` genügt, ist nicht geprüft) und das Token in der Umgebung des Abfrageschritts. **Das ist ein Rechtezuwachs** gegenüber dem heutigen „Der Lauf liest nur“ (Lesen weiterer Daten, kein Schreibrecht, keine Secrets). Das Token steht nur dem Abfrageschritt zur Verfügung, nicht dem Docker-Build. Die Lastenheft-Messmethode von [TDS-QA-06](../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) nennt „Clean-Build und Integrationstests in CI“: **ein Push auf `main` und ein Release-Stand laufen deshalb immer voll** (Setzung); Überspringen mit Beleg gilt für Pushes auf andere Zweige und Pull Requests.
-8. **Reihenfolge der Umsetzung** (nach `Accepted`): zuerst lokal (c), danach die CI (d). Bis (d) umgesetzt ist, läuft die CI voll und verliert nichts.
+8. **Reihenfolge der Umsetzung** (nach `Accepted`, begründet durch die Messung oben): **zuerst die Entkopplung** (Folgepflicht 1): der Doku-Kopplungstest wandert aus der Stage `test` ins Werkzeug-Gate, z. B. in eine kleine eigene Stage oder ein Skript; die `COPY`-Zeilen für `spec/spezifikation.md` und `harness/README.md` in der Stage `test` entfallen. Erwarteter Gewinn für eine Doku-Änderung 114 s auf 10 bis 15 s (Schätzung, nicht gemessen; Nachmessung ist Folgepflicht 5). **Danach die CI-Seite** (d): Vorfahren-Suche mit CI-Status, dort bringt es am meisten, weil der Runner keinen Layer-Cache hat. **Die lokalen git-notes-Stempel (c) sind zurückgestellt und optional**; Trigger: das Werkzeug-Gate läuft lokal spürbar länger als die heutigen unter 10 s. Bis (d) umgesetzt ist, läuft die CI voll und verliert nichts.
+9. **Setzungen zu den offenen Fragen** (Setzung des Koordinators, vom Nutzer pauschal übernommen):
+   - Vollauf auf `main` und bei Release-Ständen in der CI (Messmethode [TDS-QA-06](../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit): Clean-Build in CI); Überspringen mit Beleg nur für andere Zweige und Pull Requests (Entscheidung 7).
+   - Der Rechtezuwachs `checks: read` in `gates.yml` ist erlaubt.
+   - Es gibt keine Spec-Zeile zur Gate-Struktur (siehe `Schärft:`).
+   - Die Eingangslisten in Entscheidung 1 gelten als Startstand der Umsetzung.
 
 ## Verglichene Alternativen
 
@@ -55,7 +72,7 @@ Wir wählen **Option B** (zwei Klassen, ein Stempel je Klasse, Beleg am Commit),
 
 | Option | Pro | Contra |
 |---|---|---|
-| A — nichts tun | Kein Aufwand; kein Fehlerpfad „fälschlich übersprungen“ | Jede Doku-Änderung kann die Stage `test` auslösen (Hypothese, Messung steht aus); zwei private, unterschiedliche Mechanismen bleiben; CI und frische Klone laufen immer alles |
+| A — nichts tun | Kein Aufwand; kein Fehlerpfad „fälschlich übersprungen“ | Jede Doku-Änderung an `spec/spezifikation.md` oder `harness/README.md` löst die Stage `test` aus (gemessen, 114 s); zwei private, unterschiedliche Mechanismen bleiben; CI und frische Klone laufen immer alles |
 | **B — zwei Klassen, ein Stempel je Klasse, Beleg am Commit** | Folgt dem Nutzerziel; eine Doku-Änderung berührt das Test-Gate nicht (nach Entkopplung), eine Quelländerung nicht das Werkzeug-Gate; ein Mechanismus für alle; Beleg reist (c, d) | Eingangslisten sind eine zweite Wahrheit, die driftet (Gegenmittel: Selbsttest, Fitness Function); Fehlerpfade sind zu bauen und zu testen |
 | C — ein Stempel für alle Gates | Einfachster Mechanismus | Eine Doku-Änderung löst Tests aus, eine Quelländerung die Doku-Prüfung; verfehlt das Nutzerziel |
 | D — Cache der CI (`actions/cache`, Schlüssel = Hash) | Kein Rechtezuwachs, keine Notes | Gate wird aus einem Cache übersprungen; ein vergifteter Cache wäre ein grünes Gate ohne Lauf; der Cache altert und ist auf Zweige verteilt; löst die lokale Seite nicht |
@@ -69,19 +86,19 @@ Wir wählen **Option B** (zwei Klassen, ein Stempel je Klasse, Beleg am Commit),
 | **(c) git notes `refs/notes/gates` am grünen Commit** | Lokal schreibbar, ohne den Commit zu ändern; an den Commit gebunden; pushbar | Notes werden nicht automatisch gezogen oder gepusht; Rebase, Squash und Amend lassen sie am alten Commit zurück (dann Lauf); wer schreiben kann, kann einen Beleg setzen (gleiche Vertrauensgrenze wie `.harness/state/` heute) |
 | **(d) Check-Status der CI am Commit (`gates` grün)** | Für die CI der Beleg, der ohne Vertrauen in einen lokalen Autor trägt; nichts im Repo zu pflegen | Braucht Netz, Token und Leserecht (Rechtezuwachs, Entscheidung 7); ein Squash-Merge erzeugt einen neuen Commit ohne Check; die Abfrage kann ausfallen (dann Lauf) |
 
-Empfehlung: lokal (c), in der CI (d).
+Entscheidung: in der CI (d); lokal (c) zurückgestellt, weil die Werkzeug-Gates warm unter 10 s laufen.
 
 ## Konsequenzen
 
 - Positiv: eine Änderung an Doku oder Harness löst das Test-Gate nicht mehr aus (sobald die Stage `test` von `spec/` und `harness/README.md` entkoppelt ist); eine Änderung an `src/` löst `docs-check` nicht aus; ein Checkout, Merge oder Rebase ohne Inhaltsänderung löst nichts aus (bei vorhandenem Beleg); ein Mechanismus ersetzt zwei.
 - Negativ: siehe „Akzeptierte Negative“.
-- Folgepflicht (nach `Accepted`, durch einen Implementer, nicht durch diese ADR):
-  1. Zuordnung der Targets zu den Klassen in den Fragmenten festlegen; die Eingangslisten je Klasse aus den `COPY`-Quellen ableiten; `harness/README.md` nennt Klassen und Bindung auf diese ADR.
-  2. Ein Stempel-Skript (Eingangs-Hash, Beleg schreiben, Beleg nachschlagen, Fehlerpfade nach Entscheidung 4) und ein Selbsttest, der jeden Fehlerpfad einzeln belegt (flacher Klon, schmutziger Baum, Fehler der Abfrage, widersprüchlicher Beleg, umgeschriebene Historie, geänderte Datei in den Eingängen).
-  3. Entkopplung der Stage `test` von `spec/spezifikation.md` und `harness/README.md`: die Kopplungstests wandern ins Werkzeug-Gate; vorher die laufende Messung der Hypothese auswerten, nach der Umsetzung nachmessen.
-  4. Migration von `referenztest-dotnet` und `detekt-selbsttest` auf den Stempel; `tools/eingangs-hash.sh` bleibt, wo ein Hash über Dateien nötig ist, oder entfällt mit Begründung.
-  5. CI: Abfrageschritt und Rechte in `gates.yml` nach Entscheidung 7; `make workflow-lint` fahren.
-  6. Messung der Gate-Laufzeiten vorher und nachher (warm und kalt) als Beleg; ohne Messung trägt keine Laufzeitaussage.
+- Folgepflicht (nach `Accepted`, durch einen Implementer, nicht durch diese ADR), in dieser Reihenfolge:
+  1. Entkopplung der Stage `test` von `spec/spezifikation.md` und `harness/README.md`: der Doku-Kopplungstest (`IntegrationZahlenTest`-Art) wandert ins Werkzeug-Gate, `COPY`-Zeilen 83 und 84 entfallen.
+  2. Zuordnung der Targets zu den Klassen in den Fragmenten festlegen; die Eingangslisten je Klasse aus den `COPY`-Quellen ableiten; `harness/README.md` nennt Klassen und Bindung auf diese ADR.
+  3. Ein Stempel-Skript (Eingangs-Hash, Beleg nachschlagen, Fehlerpfade nach Entscheidung 4) und ein Selbsttest, der jeden Fehlerpfad einzeln belegt (flacher Klon, schmutziger Baum, Fehler der Abfrage, widersprüchlicher Beleg, umgeschriebene Historie, geänderte Datei in den Eingängen).
+  4. CI: Abfrageschritt mit Vorfahren-Suche und CI-Status, Rechte in `gates.yml` nach Entscheidung 7; `make workflow-lint` fahren. Migration von `referenztest-dotnet` und `detekt-selbsttest` auf den Stempel; `tools/eingangs-hash.sh` bleibt, wo ein Hash über Dateien nötig ist, oder entfällt mit Begründung.
+  5. Messung der Gate-Laufzeiten nach der Entkopplung und nach der CI-Seite (warm und kalt, ohne fremde Last) als Beleg; ohne Messung trägt keine Laufzeitaussage.
+  6. Optional, zurückgestellt: lokale Notes-Stempel (Speicherort c) mit Schreiben des Belegs, Trigger in Entscheidung 8.
 
 ## Akzeptierte Negative
 
@@ -102,7 +119,7 @@ Empfehlung: lokal (c), in der CI (d).
 ## Re-Evaluierungs-Trigger
 
 - Ein Gate lief auf Grundlage eines Belegs nicht und hätte rot sein müssen (Eingang vergessen, Beleg falsch): die Entscheidung wird neu bewertet; Vorfahren-Bedingung und Vollauf-Regeln sind die ersten Kandidaten zur Verschärfung.
-- Die Messung nach der Entkopplung zeigt keinen Gewinn (Doku-Änderungen lösen die Test-Stage weiter aus, oder die Gates sind warm ohnehin billig): Aufwand und Nutzen neu abwägen, im Zweifel Option A.
+- Die Messung nach der Entkopplung zeigt keinen Gewinn (Doku-Änderungen lösen die Test-Stage weiter aus): Aufwand und Nutzen neu abwägen, im Zweifel Option A.
 - Ein Gate bekommt einen Eingang außerhalb des Repos (Netz, Host-Tool): es verlässt die Stempel-Logik.
 - Die Plattform ändert Rechte oder Ablauf der Check-Abfrage, oder der Aufwand der Notes (Push, Fetch) wird spürbar: Speicherort neu bewerten.
 
@@ -112,6 +129,8 @@ Empfehlung: lokal (c), in der CI (d).
 |---|---|---|
 | 2026-10-31 | Nutzerziel „Gates performant; Werkzeug-Gate und Test-Gate trennen, je ein Stempel; SHA und Commit kombinieren; Hash nicht mehr nur in .harness/state“ | Sitzung |
 | 2026-10-31 | Proposed | — |
+| 2026-10-31 | Messung der Gate-Laufzeiten ersetzt die Hypothese; Reihenfolge der Folgepflichten neu (Entkopplung, dann CI, lokale Notes zurückgestellt); offene Fragen als Entscheidung 9 | Messung |
+| 2026-10-31 | Accepted, vom Nutzer entschieden („ADR annehmen, Messung abwarten“) | Sitzung |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit
