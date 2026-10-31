@@ -300,9 +300,11 @@ class RpcBinderTest {
     /**
      * Parameternamen: gültig sind `@` plus Bezeichnerzeichen (auch Unicode-Buchstaben) bis 128 Zeichen;
      * ohne `@`, nur `@`, mit Leerzeichen, Semikolon, Klammer oder Anführungszeichen, 129 Zeichen, leer und
-     * doppelt (ohne Beachtung der Schreibweise) sind abgelehnt, ebenso ein Name mit `@@` am Anfang (Festlegung:
-     * im Aufruftext stünde er rechts von `=`, wo er eine globale Funktion bezeichnen kann). Ein Name bleibt
-     * wie gesendet; die Obergrenze 128 zählt das `@` mit (127 Zeichen nach dem `@` gültig, 128 abgelehnt).
+     * doppelt (ohne Beachtung der Schreibweise) sind abgelehnt. Ein Name mit `@@` am Anfang ist nur beim RPC
+     * per Prozedurname abgelehnt (Festlegung ohne Messung: im Aufruftext stünde er rechts von `=`, wo er eine
+     * globale Funktion bezeichnen kann); bei `sp_executesql` steht der Name nicht im Text und ist
+     * gültig. Ein Name bleibt wie gesendet; die Obergrenze 128 zählt das `@` mit
+     * (127 Zeichen nach dem `@` gültig, 128 abgelehnt).
      *
      * @spec SPEC-030
      */
@@ -313,7 +315,7 @@ class RpcBinderTest {
             assertEquals(name, query(executeSql("s", "d", param(name, int4(1)))).parameters.single().name, name)
         }
         val invalid = listOf(
-            "a", "@", "", "@a b", "@a;b", "@a)", "@a'", "@a-b", "@" + "x".repeat(128), "@a\n", "@@x", "@@rowcount",
+            "a", "@", "", "@a b", "@a;b", "@a)", "@a'", "@a-b", "@" + "x".repeat(128), "@a\n",
         )
         invalid.forEach { name ->
             assertEquals(
@@ -324,7 +326,27 @@ class RpcBinderTest {
         }
         val duplicate = executeSql("s", "d", param("@a", int4(1)), param("@A", int4(2)))
         assertEquals(RpcRejection.PARAMETER_NAME, rejection(duplicate))
+        invalid.filter { it != "@a\n" }.forEach { name ->
+            assertEquals(RpcRejection.PARAMETER_NAME, rejection(byName("p", param(name, int4(1)))), name)
+        }
         assertEquals(2, query(executeSql("s", "d", param("@a", int4(1)), param("@b", int4(2)))).parameters.size)
+    }
+
+    /**
+     * `@@x` als Parametername (Festlegung ohne Messung, Nutzerentscheidung vom 2026-10-31): beim RPC per
+     * Prozedurname steht der Name im Aufruftext, auch rechts von `=`, und ist abgelehnt; bei `sp_executesql`
+     * steht er nicht im Text, die Anfrage trägt ihn unverändert als Parametername und ihr Text bleibt gleich.
+     *
+     * @spec SPEC-030
+     */
+    @Test
+    fun `Doppeltes At-Zeichen im Parameternamen ist nur beim RPC per Name abgelehnt`() {
+        listOf("@@x", "@@rowcount").forEach { name ->
+            assertEquals(RpcRejection.PARAMETER_NAME, rejection(byName("p", param(name, int4(1)))), name)
+            val bound = query(executeSql("select 1", "d", param(name, int4(1))))
+            assertEquals(name, bound.parameters.single().name, name)
+            assertEquals("select 1", bound.sql, name)
+        }
     }
 
     /**
@@ -401,9 +423,38 @@ class RpcBinderTest {
     }
 
     /**
+     * Ein gültig kodierter, nicht unterstützter PLP-Typ (`nvarchar(max)`, `varchar(max)`, `varbinary(max)`,
+     * `nchar`-Form) ist `TYPE` ohne Parserfehler (Verbindung bleibt offen), als Wertparameter, als SQL-Text
+     * und beim RPC per Name; dagegen bleibt die unbekannte Typkennung ein Parserfehler (Festlegung ohne
+     * Messung, Nutzerentscheidung vom 2026-10-31).
+     *
+     * @spec SPEC-013
+     * @spec SPEC-030
+     */
+    @Test
+    fun `Ein PLP-Typ ist nicht unterstuetzt aber nicht ungueltig kodiert`() {
+        val coll = RpcVectors.COLLATION
+        listOf("E7 FF FF $coll 00 00", "A7 FF FF $coll 00 00", "A5 FF FF 00 00", "EF FF FF $coll 00 00")
+            .forEach { typeAndValue ->
+                listOf(
+                    executeSql("s", "d", param("@v", typeAndValue)),
+                    byName("p", param("@v", typeAndValue)),
+                ).forEach { payload ->
+                    val rejected = assertIs<RpcBinding.Rejected>(RpcBinder.bind(payload))
+                    assertEquals(RpcRejection.TYPE, rejected.reason, typeAndValue)
+                    assertNull(rejected.error, typeAndValue)
+                }
+            }
+        val rejected = assertIs<RpcBinding.Rejected>(RpcBinder.bind(executeSql("s", "d", param("@v", "FE 00"))))
+        assertEquals(RpcRejection.ENCODING, rejected.reason)
+        assertNotNull(rejected.error)
+    }
+
+    /**
      * Eine Nachricht, die der Parser abweist, ist abgelehnt: leer, abgeschnitten an jeder Stelle der
-     * Mustervektoren, ein Parameter mit PLP (MAX), ungerade Textlänge, falsche Wertlänge, Typkennung
-     * außerhalb des Katalogs, Name der Länge 0.
+     * Mustervektoren, ungerade Textlänge, falsche Wertlänge, Typkennung außerhalb des Katalogs (Länge des
+     * Wertes unbestimmt), Name der Länge 0. Ein PLP-Typ (MAX) gehört nicht dazu: er ist gültig kodiert (siehe
+     * den Test dazu).
      *
      * @spec SPEC-030
      */
@@ -416,7 +467,6 @@ class RpcBinderTest {
         assertEquals(RpcRejection.ENCODING, rejection(full.copyOf(full.size - 1)))
         assertEquals(RpcRejection.ENCODING, rejection(full + byteArrayOf(0x01)))
         val broken = listOf(
-            "E7 FF FF ${RpcVectors.COLLATION} 00 00",
             "E7 40 1F ${RpcVectors.COLLATION} 03 00 61 00 62",
             "26 04 03 01 00 00",
             "FE 00",
