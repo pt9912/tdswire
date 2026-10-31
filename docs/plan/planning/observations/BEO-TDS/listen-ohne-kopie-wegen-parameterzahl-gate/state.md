@@ -1,0 +1,1 @@
+**Stand:** offen — Träger ist die Risikozeile in [slice-sim-aenderung-integration](../../../open/slice-sim-aenderung-integration.md) (kopiert dort, wo der Slice `SimTable` aus Listen des Integrators erzeugt); der Zuschnitt von `SimTable` auf weniger Parameter oder das Lockern von `LongParameterList` (ADR) bleibt Entscheidung des Nutzers.

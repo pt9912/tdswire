@@ -1,0 +1,2 @@
+**Vorgang:** slice-sim-erkennung
+**Fund:** Review F-4 ([Review](../../../../../../reviews/2026-10-31-7aa0763-slice-sim-erkennung.md)). `erkennt erzeugte Anweisungen wieder` behauptete 600 Anweisungen und prüfte nur „jede Form mindestens 100“ (`repeat(450)` blieb grün); `lehnt erzeugte Anhänge und Verdopplungen ab` blieb grün, wenn die Anhangsliste auf einen Eintrag schrumpfte. Behoben durch `assertEquals(600, …)` und `assertEquals(7, …)`; die Verifikation röterte beide Mutationen.

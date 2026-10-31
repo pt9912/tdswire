@@ -130,7 +130,7 @@ class SimModelTest {
      * @spec SPEC-035
      */
     @Test
-    fun `hält Katalog und Spaltenindex gegen spätere Änderungen der Listen`() {
+    fun `der Katalog kopiert seine Liste, die Tabelle behält den Spaltenindex der Übergabe`() {
         val columns = mutableListOf(id)
         val t = table(columns, listOf("id"))
         columns += SimColumn("late", SqlType.Int32)
