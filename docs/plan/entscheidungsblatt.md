@@ -172,7 +172,7 @@
 ### 18. WIP-Limit: slice-qa-wartbarkeit und slice-qa-sicherheit gleichzeitig in-progress
 
 - **Frage:** Bleiben beide Slices gleichzeitig in `in-progress/`, oder wird einer zurückgeführt?
-- **Kontext:** [Roadmap](planning/in-progress/roadmap.md) „In Arbeit (Welle welle-qualitaet-grundlage)“ nennt beide; `in-progress/` enthält zusätzlich [slice-sim-auswahl-streaming](planning/in-progress/slice-sim-auswahl-streaming.md). Das Regelwerk (`modul-05-planning-harness.md` §Trigger und WIP-Limit) nennt „WIP-Limit pro Rolleninhaber = 1 … pro Lauf“; die `Verantwortlich:`-Felder wurden nicht geprüft.
+- **Kontext:** [Roadmap](planning/in-progress/roadmap.md) „In Arbeit (Welle welle-qualitaet-grundlage)“ nennt beide. Das Regelwerk (`modul-05-planning-harness.md` §Trigger und WIP-Limit) nennt „WIP-Limit pro Rolleninhaber = 1 … pro Lauf“; die `Verantwortlich:`-Felder wurden nicht geprüft.
 - **Optionen:** beide freigeben; einen nach `open/` oder `next/` zurückführen; Begründung der Freigabe im Drift-Log der Roadmap.
 - **Empfehlung (Planner-Vorschlag, Koordinator-Empfehlung liegt nicht vor):** Freigabe nur, wenn unterschiedliche Läufe mit unterschiedlichem `Verantwortlich:` sie tragen; sonst `slice-qa-wartbarkeit` zuerst schließen (Punkt 14).
 - **Schaltet frei:** Reihenfolge der Closures in `welle-qualitaet-grundlage`.
