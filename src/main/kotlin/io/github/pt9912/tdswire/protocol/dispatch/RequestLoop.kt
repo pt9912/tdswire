@@ -6,6 +6,7 @@ import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.protocol.error.ConnectionFate
 import io.github.pt9912.tdswire.protocol.error.ErrorCode
 import io.github.pt9912.tdswire.protocol.error.ErrorMapper
+import io.github.pt9912.tdswire.protocol.response.ResponseForm
 import io.github.pt9912.tdswire.protocol.response.ResponseSequencer
 import io.github.pt9912.tdswire.protocol.response.TokenSink
 import io.github.pt9912.tdswire.protocol.session.ConnectionState
@@ -36,7 +37,9 @@ import java.util.UUID
  *
  * Ablauf je RPC (`TDS-FA-04.a`, `SPEC-030`): derselbe Rahmen (`RUNNING`, Antwort mit `RequestFinished`).
  * `RpcBinder` bindet die Nutzlast an Text und typisierte Parameter; das [backend] bekommt sie in einem
- * `QueryRequest` mit Sitzungs-ID, neuer Anfrage-ID und ohne Frist, der Rest wie beim Batch. Lehnt die
+ * `QueryRequest` mit Sitzungs-ID, neuer Anfrage-ID und ohne Frist, der Rest wie beim Batch; die Antwort hat die
+ * Form [ResponseForm.RPC] (DONEINPROC, RETURNSTATUS, RETURNVALUE, DONEPROC), die auf einen Batch die Form
+ * [ResponseForm.BATCH]. Lehnt die
  * Bindung den RPC ab ([RpcRejection]), wird das Backend nicht gerufen. Weist der Parser die Nachricht ab,
  * gilt wie beim Batch `TDS_PROTOCOL_ERROR` und die Verbindung schließt; jede andere Ablehnung ergibt
  * `TDS_UNSUPPORTED_RPC` (ERROR und DONE mit Fehlerstatus, `SPEC-013`) bei offener Verbindung; der Name des
@@ -46,8 +49,8 @@ import java.util.UUID
  * beantwortet, und bei einer Ausnahme oder dem Abbruch der Coroutine.
  *
  * Festlegungen ohne Messung: Transaction Manager und ATTENTION in `READY` bleiben unbeantwortet, die
- * Verbindung schließt; die Antwort auf einen erfolgreichen RPC besteht aus denselben Tokens wie die auf
- * einen Batch (DONE, kein DONEPROC, kein RETURNSTATUS, kein RETURNVALUE); ein SQL_BATCH, dessen Nachricht
+ * Verbindung schließt; die Tokenfolge einer RPC-Antwort ist
+ * nicht am Referenzclient gemessen; ein SQL_BATCH, dessen Nachricht
  * der Parser abweist, wird mit `TDS_PROTOCOL_ERROR` beantwortet (`ErrorMapper.protocol`, als ganze
  * Nachricht über den Sitzungsrahmen); die Pakete einer Antwort gehen außerhalb der Sperre des Rahmens
  * hinaus (die Schleife ist während einer Anfrage der einzige Schreiber); bei Ausfall der Senke bleiben
@@ -101,7 +104,7 @@ class RequestLoop(
     private suspend fun answerBatch(batch: TdsMessage): HandshakeEvent.RequestFinished? =
         when (val parsed = SqlBatchParser.parse(batch.payload)) {
             is ProtocolResult.Failed -> errors.protocol(parsed.error).let { requestFinished(it.fate, it.message) }
-            is ProtocolResult.Ok -> execute(parsed.value.text, emptyList())
+            is ProtocolResult.Ok -> execute(parsed.value.text, emptyList(), ResponseForm.BATCH)
         }
 
     private suspend fun answerRpc(rpc: TdsMessage): HandshakeEvent.RequestFinished? =
@@ -112,15 +115,19 @@ class RequestLoop(
                 requestFinished(response.fate, response.message)
             }
 
-            is RpcBinding.Query -> execute(bound.sql, bound.parameters)
+            is RpcBinding.Query -> execute(bound.sql, bound.parameters, ResponseForm.RPC)
         }
 
-    private suspend fun execute(text: String, parameters: List<QueryParameter>): HandshakeEvent.RequestFinished? {
+    private suspend fun execute(
+        text: String,
+        parameters: List<QueryParameter>,
+        form: ResponseForm,
+    ): HandshakeEvent.RequestFinished? {
         val live = ready.live
         val reply = live.openReply(PacketType.TABULAR_RESULT)
         val response = StreamedResponse(reply) { live.dispatch(HandshakeEvent.StreamStarted) }
         val request = QueryRequest(ready.session.id, requestIds(), text, parameters, null)
-        val fate = errors.fateOf(sequencer.run(backend, request, sinkAround(response)))
+        val fate = errors.fateOf(sequencer.run(backend, request, sinkAround(response), form))
         return if (live.context.state == ConnectionState.CLOSED) null else finished(fate, reply)
     }
 
