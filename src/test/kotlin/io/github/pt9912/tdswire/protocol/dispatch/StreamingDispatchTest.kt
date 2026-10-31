@@ -299,6 +299,38 @@ class StreamingDispatchTest {
     }
 
     /**
+     * Ein `OutOfMemoryError` beim Schreiben des abschließenden DONE (`ResponseSequencer.endGuarded`): das
+     * Ergebnis hat fünf Zeilen, die Senke nimmt COLMETADATA, fünf ROW und scheitert am siebten Token,
+     * dem zurückgehaltenen DONE. Der Strom steht an einer Token-Grenze und ist synchron: ERROR
+     * (`TDS_INTERNAL_ERROR`, Class 20) und DONE mit Fehlerstatus gehen hinaus, die Verbindung schließt
+     * nach der Antwort, das Backend ist einmal geschlossen und wurde nicht abgebrochen. Scheitert auch
+     * das Schreiben des ERROR, schließt die Verbindung ohne Antwort (kein EOM-Paket), `cancel()` und
+     * `close()` kommen je einmal (`SPEC-031`, `ADR-0013` Entscheidung 2, Proposed). Der Fehler wird nur
+     * mit einem Testdouble ausgelöst.
+     *
+     * @spec SPEC-031
+     * @spec SPEC-048
+     */
+    @Test
+    fun `Ein OutOfMemoryError beim abschliessenden DONE ergibt ERROR oder schliesst ohne Antwort`() = blocking {
+        val answered = WireSession.login(packetSize, "q", "never", retain = true)
+        val scripted = ScriptedBackend.generating(5)
+        answered.serveOrFail(scripted, sinkAround = { inner -> ThrowOnce(inner, at = 7) })
+        assertErrorAnswer(answered, "DONE")
+        assertEquals(5, answered.tokens().filterIsInstance<RowToken>().size)
+        assertEquals(1, scripted.closeCalls)
+        assertEquals(emptyList(), scripted.cancelled)
+
+        val silent = WireSession.login(packetSize, "q", "never", retain = true)
+        val dying = ScriptedBackend.generating(5)
+        silent.serveOrFail(dying, sinkAround = { inner -> ThrowOnce(inner, at = 7, repeated = true) })
+        assertEquals(1, dying.closeCalls)
+        assertEquals(1, dying.cancelled.size)
+        assertEquals(ConnectionState.CLOSED, silent.ready.live.context.state)
+        assertTrue(silent.wire.packets.none { it.endOfMessage })
+    }
+
+    /**
      * Ein `OutOfMemoryError` mitten in einem Token: im Paketbau nach Teilkopie (das 99. ROW-Token liegt
      * über der Grenze des ersten Pakets) und im Kanal, nachdem der Strom das zweite Paket aus seinem
      * Puffer entnommen hat. Der Strom steht womöglich nicht an einer Token-Grenze: es geht weder ERROR
