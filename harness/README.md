@@ -64,11 +64,9 @@ Diese Datei dupliziert sie nicht.
 | `make detekt` | Suppression-Verbot (`@Suppress`) und detekt mit ktlint, `warningsAsErrors`, Import- und Technik-Regeln der Schichten (`ForbiddenMethodCall` über `detektMain`/`detektTest`), in Docker; keine Baseline | — |
 | `make detekt-selbsttest` | Importregeln der Schichten und Suppression-Verbot gegen Testdaten prüfen; läuft nur bei geänderten Eingängen | — |
 | `make test` | Unit-Tests (`kotlin.test` auf der JUnit-Plattform) in Docker, Stage `test`; ein roter Test macht `make gates` rot; Lock und Prüfsummen der Testlaufzeit über `make deps-lock` | — |
-| `make build` | Compile und Jar in Docker, ohne Tests; Basis-Images per Digest gepinnt | — |
+| `make build` | Compile und Jar in Docker, ohne Tests; Basis-Images per Digest gepinnt; Lizenz und Manifest des Jars (Main-Class, Class-Path gegen `lib/`) werden im Bau geprüft | [ADR-0022](../docs/plan/adr/0022-e2e-laeufe-nicht-in-den-gates.md) |
 | `make smoke` | Rohbytes-Smoke in Docker (Stage `smoke`): Kind-JVM startet `main`, Rohbytes-Client spricht PRELOGIN und LOGIN7; Start ohne Flag bricht ab; läuft auch in `make test`, kein Referenzclient | — |
-| `make laufzeittest` | Container-Artefakt: Image-Inhalt, Start, Rohbytes-Login aus 2. Container, Stop; Warmlauf 24 bis 31 s, kalt 88 bis 171 s, CI rund 75 s mehr (2026-10-31); Maßstab im Kopf von `tools/mk/laufzeittest.mk` | [TDS-RB-01](../spec/lastenheft.md#tds-rb-01--implementierungssprache) |
 | `make referenztest-dotnet` | .NET-Referenztests in Docker ohne Mount, Stage `test`: gesperrter Restore, dann Build und Smoke-Test ohne Netz und ohne TDS-Server; ein roter Test macht `make gates` rot | [ADR-0008](../docs/plan/adr/0008-dotnet-kompatibilitaetstests.md), [CO-001](../docs/plan/carveouts/CO-001-nuget-audit-aus.md), [CO-002](../docs/plan/carveouts/CO-002-nuget-signaturpruefung-fehlt.md) |
-| `make simulations-integration` | Referenzclient gegen den Serverprozess mit Simulations-Backend in Docker: Auswahl, leeres Ergebnis, Quelle über dem Heap (48 MiB), Fehler der Quelle; ein roter Test macht `make gates` rot | [ADR-0012](../docs/plan/adr/0012-simulations-backend-beschreibung-und-formen.md), [ADR-0008](../docs/plan/adr/0008-dotnet-kompatibilitaetstests.md) |
 | `<make-target>` | <…> | ADR-<NNNN> |
 | `<make-target>` | <…>, bootstrap-aware | Schwelle X %, M<n> → Y % |
 | `<make-target>` | <…> | bootstrap via `CO-<NNN>` bis <Slice/Welle> |
@@ -85,6 +83,9 @@ Diese Datei dupliziert sie nicht.
 | `make spec-abdeckung` | führt die Tests aus, schreibt `docs/plan/spec-abdeckung.md` (je `SPEC-*` bestandene Tests, Waisen); `SPEC_ABDECKUNG_STRENG=1` bricht bei Waisen; Tag `@spec`: Kopf von `tools/spec-abdeckung.sh` | kein Gate |
 | `make spec-abdeckung-selbsttest` | prüft den Erzeuger der Abdeckungsmatrix an einem erzeugten Mini-Bestand: roter, nicht gelaufener, übersprungener und unbekannt getaggter Test zählen nicht | kein Gate |
 | `make matrix-zitate` | baut die Stage `test` frisch; jedes Zitat `Klasse > Testfall` der Kompatibilitätsmatrix muss als PASSED im Bericht stehen, sonst Exit 1 mit Liste | kein Gate, [TDS-QA-05](../spec/lastenheft.md#tds-qa-05--wartbarkeit) |
+| `make e2e` | E2E-Durchgang: `make smoke`, `laufzeittest`, `simulations-integration`, `referenztest-dotnet` nacheinander, Abbruch an der ersten roten Stufe; warm 46 s, kalt 323 s (2026-10-31). `tools/mk/e2e.mk` | kein Gate, [ADR-0022](../docs/plan/adr/0022-e2e-laeufe-nicht-in-den-gates.md), [TDS-QA-01](../spec/lastenheft.md#tds-qa-01--kompatibilität) |
+| `make laufzeittest` | Container-Artefakt: Image-Inhalt, Start, Rohbytes-Login aus 2. Container, Stop; warm 24 bis 31 s, kalt 88 bis 171 s (2026-10-31); Stufe 2 von `make e2e` | kein Gate, [ADR-0022](../docs/plan/adr/0022-e2e-laeufe-nicht-in-den-gates.md), [TDS-RB-01](../spec/lastenheft.md#tds-rb-01--implementierungssprache) |
+| `make simulations-integration` | Referenzclient gegen den Serverprozess mit Simulations-Backend in Docker: Quelle über dem Heap (48 MiB), Fehler der Quelle; Stufe 3 von `make e2e`; ohne Cancel; warm 19 bis 25 s | kein Gate, [CO-004](../docs/plan/carveouts/CO-004-cancel-szenario-spec-040-fehlt.md), [ADR-0022](../docs/plan/adr/0022-e2e-laeufe-nicht-in-den-gates.md) |
 | `make doc-manual` | liest Handbuch und Spezifikation von d-check; `MANUAL=<begriff>`, hermetisch | kein Gate |
 | `make workflow-lint` | prüft Syntax und Ausdrücke von `.github/workflows/*.yml` mit actionlint (Image per Digest, über stdin); prüft weder die SHA-Pins der Actions noch, dass der Workflow `make gates` aufruft | kein Gate, [TDS-QA-06](../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
 | `make clean-build` | baut Jar, Tests und detekt (Gradle-Stages) mit `--no-cache` in Docker, ohne .NET-Restore; Frischbeleg für Tests mit Wanduhr oder Last, die `make test` aus dem Cache zeigt (seit slice-handshake-login) | kein Gate, [TDS-QA-06](../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
@@ -95,7 +96,7 @@ Diese Datei dupliziert sie nicht.
 | `make <messung>` | misst <…> gegen <Schwelle> | kein Gate, ADR-<NNNN> |
 | `make <vorschau>` | sagt, was <schreibender Lauf> täte; Ausgänge und Sperren in der verlinkten Datei | kein Gate |
 
-**Aktueller Lauf-Status:** lokal `make help` / `make gates`. Die CI-Datei `.github/workflows/gates.yml` führt `make gates`; sieben Läufe auf `main` sind `success` (jüngster abgeschlossener: 41053892627 auf `cbdbd80`, ältester: 41023977695; Abfrage `gh run list --workflow gates`). Ein Badge steht nicht hier; der Stand ist die Abfrage.
+**Aktueller Lauf-Status:** lokal `make help` / `make gates`. Die CI-Datei `.github/workflows/gates.yml` führt `make gates`, `.github/workflows/e2e.yml` führt `make e2e` (kein Gate; noch ohne Lauf auf `main`); sieben Läufe auf `main` sind `success` (jüngster abgeschlossener: 41053892627 auf `cbdbd80`, ältester: 41023977695; Abfrage `gh run list --workflow gates`). Ein Badge steht nicht hier; der Stand ist die Abfrage.
 **Rote Gates:** Begründung im verlinkten `CO-<NNN>` (siehe Bindung-Spalte), Modul 7.
 **Nicht behauptet:** ein Target für den Vergleichslauf D (kein Referenzclient gebaut), die Signaturprüfung der .NET-Pakete (`CO-002`) und ein Gate für die Schwachstellenprüfung (`CO-001`; `make referenztest-dotnet-audit` meldet nur).
 

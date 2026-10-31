@@ -43,7 +43,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] Fehler-/Cancel-Matrix gegen den .NET-Client geprüft, einschließlich Wiederverwendung der Verbindung. **E2E-Stufe:** Die Fehler-/Cancel-Matrix mit Wiederverwendung der Verbindung ist als Stufe im Produkt-E2E ([slice-e2e-geruest](slice-e2e-geruest.md)) mit den Kennungen [TDS-QA-07](../../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität) deklariert und ruft den Lauf über die Prozessgrenze (Referenzclient oder Rohbytes-Client gegen den Serverprozess), nicht über `internal`-Zugriff im Modul; `make e2e-abdeckung` zeigt sie danach in `docs/plan/e2e-abdeckung.md`.
+- [ ] Fehler-/Cancel-Matrix gegen den .NET-Client geprüft, einschließlich Wiederverwendung der Verbindung. **E2E-Stufe:** Die Fehler-/Cancel-Matrix mit Wiederverwendung der Verbindung ist als Stufe im Produkt-E2E ([slice-e2e-geruest](../in-progress/slice-e2e-geruest.md)) mit den Kennungen [TDS-QA-07](../../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität) deklariert und ruft den Lauf über die Prozessgrenze (Referenzclient oder Rohbytes-Client gegen den Serverprozess), nicht über `internal`-Zugriff im Modul; `make e2e-abdeckung` zeigt sie danach in `docs/plan/e2e-abdeckung.md`.
 - [ ] Test: keine Antwort wird einer späteren Anfrage zugeordnet.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor

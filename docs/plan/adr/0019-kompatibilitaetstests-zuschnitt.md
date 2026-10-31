@@ -53,7 +53,7 @@ Wir wählen **Option A (Zuschnitt)**, **zwei Container (Container-Modell)** und 
 
 ## Konsequenzen
 
-- Positiv: Die DoD des Slice zeigt nicht mehr auf Ungebautes; ein Container-Modell ist festgelegt, das schon als Gate läuft.
+- Positiv: Die DoD des Slice zeigt nicht mehr auf Ungebautes; ein Container-Modell ist festgelegt, das schon im E2E-Durchgang läuft.
 - Negativ: Die Kompatibilitätsaussage für Anfragen und TDS 8.0 kommt später; die Matrix B kostet pro Lauf etwas mehr als im Spike.
 - **Folgepflicht (nach `Accepted`):** (1) Der Planner passt Start-Trigger und DoD des Slice für die Kompatibilitätstests an (Zuschnitt A, zwei Container, SSPI/NTLM als nicht lieferbar mit Grund) und verweist auf diese ADR; § 6 des Slice („Container-Modell offen“) bekommt einen Ausgang. (2) Spezifikation: `SPEC-025`/`SPEC-032` nennen das Container-Modell zwei Container; Träger: der Spec-Nachzug nach `Accepted`. (3) Der Träger-Slice für die TDS-8.0-Verdrahtung ist Punkt 4 des Entscheidungsblatts und nicht Gegenstand dieser ADR. (4) Kein Quelltext ändert sich durch diese ADR.
 - **Akzeptiertes Negativ (einmalig):** SSPI/NTLM bleibt ungemessen; der Server lehnt den Modus ab, ein Client mit Windows-Token sieht die Ablehnung nur, wenn jemand es dort ausprobiert. Es bleibt bei `BEO-TDS/anmeldepfad-sicherheit-nicht-gebaut` bzw. dem Register-Eintrag zu ADR-0009 §Offen.
@@ -62,7 +62,7 @@ Wir wählen **Option A (Zuschnitt)**, **zwei Container (Container-Modell)** und 
 
 | Tooling | Regel | Make-Target |
 |---|---|---|
-| .NET-Referenztests im Container | Die Matrix B läuft mit zwei Containern ohne Mount; ein roter Test macht `make gates` rot; Aufräumen bei `SIGINT`/`SIGTERM`. Noch kein bestandenes Gate für die Pflicht-Matrix. | — (Gate noch einzurichten; Träger: der Slice für die Kompatibilitätstests; Gerüst: `make referenztest-dotnet`) |
+| .NET-Referenztests im Container | Die Matrix B läuft mit zwei Containern ohne Mount; sie prüft den Serverprozess über die Prozessgrenze und ist ein E2E-Lauf (Stufe von `make e2e`, nicht in `make gates`, [ADR-0022](0022-e2e-laeufe-nicht-in-den-gates.md)); ein roter Test macht `make e2e` rot; Aufräumen bei `SIGINT`/`SIGTERM`. Noch kein bestandener Lauf der Pflicht-Matrix. | — (Lauf noch einzurichten; Träger: der Slice für die Kompatibilitätstests; Gerüst: `make referenztest-dotnet`) |
 
 ## Offen
 

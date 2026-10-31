@@ -83,10 +83,10 @@ Stand: 32 von 52 Festlegungen mit mindestens einem bestandenen Test, 7 Gate-Fest
 | `SPEC-025` | Integrationstest-Gate | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
 | `SPEC-026` | `make gates` | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
 | `SPEC-027` | Fuzz-/Property-Tests | 24 | 0 | 0 | 0 | Login7ParserTest, PreloginCodecTest, RpcFailureTest, RpcFuzzTest, SqlBatchParserTest, TokenRoundtripTest, ConnectionStormTest, FramingFuzzTest, HandshakeFuzzTest, StreamCutoffTest, SocketChannelLoopbackTest, MessageAssemblerTest, PacketHeaderTest, RpcAssemblyTest, MessageReaderTest | mindestens ein bestandener getaggter Test |
-| `SPEC-040` | Simulations-Test-Gate (`make simulations-integration`) | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
+| `SPEC-040` | Simulations-Tests (`make simulations-integration` im E2E-Durchgang) | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
 | `SPEC-041` | Static-Analysis-Gate (`make detekt`, `make detekt-selbsttest`) | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
 | `SPEC-042` | Build-Gate (`make build`) | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
-| `SPEC-052` | Laufzeit-Artefakt und Lizenz (Gate: `make laufzeittest`; der Tag `@spec` nennt nur den Lizenztext) | 1 | 0 | 0 | 0 | LizenzTest | mindestens ein bestandener getaggter Test |
+| `SPEC-052` | Laufzeit-Artefakt und Lizenz (E2E-Durchgang: `make laufzeittest`; der Tag `@spec` nennt nur den Lizenztext) | 1 | 0 | 0 | 0 | LizenzTest | mindestens ein bestandener getaggter Test |
 | `SPEC-050` | Referenzabgleich-Gate (vorläufig) | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
 | `SPEC-032` | Kompatibilitätstest-Gate | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
 

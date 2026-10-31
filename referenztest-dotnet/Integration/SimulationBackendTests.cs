@@ -12,7 +12,8 @@ namespace TdsWire.Referenztests.Integration;
 /// ohne Verschlüsselung und ohne Pool, nicht gegen einen echten SQL Server, nicht TDS 8.0, nicht Last.
 /// Die Tabellen und Zahlen stehen in `IntegrationServer.kt` (BIG_ROWS, BIG_TEXT_CHARS, BROKEN_AFTER).
 /// Cancel mit Folgeabfrage gehört nicht zu diesem Lauf: der Server beantwortet ein ATTENTION-Paket während einer
-/// Anfrage nicht.
+/// Anfrage nicht. Die Ausnahme ist befristet und als CO-004 geführt (docs/plan/carveouts/); der Lauf ist Stufe 3 des
+/// E2E-Durchgangs `make e2e`, kein Gate.
 /// </summary>
 [Trait("Kategorie", "Integration")]
 public class SimulationBackendTests

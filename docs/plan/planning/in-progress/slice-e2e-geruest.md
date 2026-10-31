@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** —
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** pt9912.
 
 **Autor:** pt9912. **Datum:** 2026-10-31.
 
@@ -49,7 +49,7 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] **Skript und Marker:** `tools/e2e.sh` (Präfix `e2e`, Funktion `e2e_abdeckung` vor der ersten Stufe) führt die vier Stufen aus §3 nacheinander aus (ein Docker-Lauf gleichzeitig, Abbruch an der ersten roten Stufe); `repo.mk` setzt `E2E_ABDECKUNG_QUELLE`, `E2E_ABDECKUNG_PRAEFIX` und `E2E_ABDECKUNG_SPEC`; `make e2e-abdeckung` schreibt die Sicht mit den Kennungen der vier Stufen, und jede Kurzbeschreibung nennt die Grenze ihres Belegs (`AGENTS.md` §3.8).
-- [ ] **Aufruf und Laufzeit:** Ein Target `make e2e` (Fragment unter `tools/mk/`) mit Zeile in `harness/README.md` §Sensors ruft das Skript; die Laufzeit warm und kalt ist gemessen und mit der Summe der vier Stufen verglichen, die als eigene Gates schon in `make gates` laufen (ein Gate `make e2e` liefe sie doppelt). `GATE_CHECKS` bleibt unberührt; der Gate-Status ist die offene Frage der ADR, die Messung ihre Grundlage.
+- [ ] **Aufruf und Laufzeit:** Ein Target `make e2e` (Fragment unter `tools/mk/`) mit Zeile in `harness/README.md` §Sensors ruft das Skript; die Laufzeit warm und kalt ist gemessen und mit der Summe der vier einzelnen Läufe verglichen (§7). `make e2e` steht nicht in `GATE_CHECKS`; `laufzeittest` und `simulations-integration` verlassen die Gate-Kette ([ADR-0022](../../adr/0022-e2e-laeufe-nicht-in-den-gates.md), angenommen am 2026-10-31), und `.github/workflows/e2e.yml` ruft `make e2e`.
 - [ ] **Übergabe der Lücken:** Die Folge-Stufen-Tabelle in §3 stimmt bei der Closure mit den E2E-Punkten in den DoDs der genannten Träger-Slices überein; ein Träger in `done/` ohne seine Stufe ist ein Befund dieses Slice, kein stilles Auslassen.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -86,16 +86,16 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Kennung | Lücke | Träger |
 |---|---|---|
-| [TDS-FA-04](../../../../spec/lastenheft.md#tds-fa-04--parametrisierte-abfragen-über-rpc), [TDS-FA-05](../../../../spec/lastenheft.md#tds-fa-05--resultsets-und-datentypen), [TDS-FA-10](../../../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte) | RPC, Typkatalog, mehrteilige Antworten und OUTPUT am Referenzclient: kein Lauf über die Prozessgrenze | [slice-qa-kompatibilitaet](slice-qa-kompatibilitaet.md) |
-| [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [TDS-RB-02](../../../../spec/lastenheft.md#tds-rb-02--externer-client) | Szenarien Anmeldung, SELECT, RPC, NULL, Fehler am Referenzclient; Stufe 3 trägt nur das Simulations-Backend | [slice-qa-kompatibilitaet](slice-qa-kompatibilitaet.md) |
-| [TDS-QA-03](../../../../spec/lastenheft.md#tds-qa-03--sicherheit) (TLS-Modus) | TLS-Handshake nur gegen JDK-Gegenstelle im Modul, am Prozess nur Rohbytes ohne TLS | [slice-qa-kompatibilitaet](slice-qa-kompatibilitaet.md) (TDS 8.0 und TLS am Referenzclient) |
-| [TDS-FA-07](../../../../spec/lastenheft.md#tds-fa-07--abbruch-und-ressourcenfreigabe) (ATTENTION), [TDS-QA-07](../../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität) | Der Server beantwortet ATTENTION während einer Anfrage heute nicht; kein Cancel- oder Folgeabfrage-Lauf | [slice-attention-cancel-timeout](slice-attention-cancel-timeout.md), [slice-qa-synchronitaet](slice-qa-synchronitaet.md) |
-| [TDS-FA-07](../../../../spec/lastenheft.md#tds-fa-07--abbruch-und-ressourcenfreigabe) (Beenden, abrupter TCP-Abbruch), [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität), [TDS-FA-01](../../../../spec/lastenheft.md#tds-fa-01--verbindungsaufbau-und-protokollverhandlung) (beschädigtes PRELOGIN) | Stufe 2 stoppt ohne laufende Anfrage; Stabilität (Fuzz, Sturm, Fragmentierung) läuft im Modul | [slice-abbruch-ressourcen-shutdown](slice-abbruch-ressourcen-shutdown.md) (Zuschnitt-Entscheidung des Planners: sonst trägt kein offener Slice QA-02 am Prozess) |
-| [TDS-FA-09](../../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose) (Zustandsereignisse im Log) | Stufe 1 belegt nur Start und Exit-Code; Ereignisse am Prozess fehlen | [slice-betrieb-zustandsereignisse](slice-betrieb-zustandsereignisse.md) |
+| [TDS-FA-04](../../../../spec/lastenheft.md#tds-fa-04--parametrisierte-abfragen-über-rpc), [TDS-FA-05](../../../../spec/lastenheft.md#tds-fa-05--resultsets-und-datentypen), [TDS-FA-10](../../../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte) | RPC, Typkatalog, mehrteilige Antworten und OUTPUT am Referenzclient: kein Lauf über die Prozessgrenze | [slice-qa-kompatibilitaet](../open/slice-qa-kompatibilitaet.md) |
+| [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [TDS-RB-02](../../../../spec/lastenheft.md#tds-rb-02--externer-client) | Szenarien Anmeldung, SELECT, RPC, NULL, Fehler am Referenzclient; Stufe 3 trägt nur das Simulations-Backend | [slice-qa-kompatibilitaet](../open/slice-qa-kompatibilitaet.md) |
+| [TDS-QA-03](../../../../spec/lastenheft.md#tds-qa-03--sicherheit) (TLS-Modus) | TLS-Handshake nur gegen JDK-Gegenstelle im Modul, am Prozess nur Rohbytes ohne TLS | [slice-qa-kompatibilitaet](../open/slice-qa-kompatibilitaet.md) (TDS 8.0 und TLS am Referenzclient) |
+| [TDS-FA-07](../../../../spec/lastenheft.md#tds-fa-07--abbruch-und-ressourcenfreigabe) (ATTENTION), [TDS-QA-07](../../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität) | Der Server beantwortet ATTENTION während einer Anfrage heute nicht; kein Cancel- oder Folgeabfrage-Lauf | [slice-attention-cancel-timeout](../open/slice-attention-cancel-timeout.md), [slice-qa-synchronitaet](../open/slice-qa-synchronitaet.md) |
+| [TDS-FA-07](../../../../spec/lastenheft.md#tds-fa-07--abbruch-und-ressourcenfreigabe) (Beenden, abrupter TCP-Abbruch), [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität), [TDS-FA-01](../../../../spec/lastenheft.md#tds-fa-01--verbindungsaufbau-und-protokollverhandlung) (beschädigtes PRELOGIN) | Stufe 2 stoppt ohne laufende Anfrage; Stabilität (Fuzz, Sturm, Fragmentierung) läuft im Modul | [slice-abbruch-ressourcen-shutdown](../open/slice-abbruch-ressourcen-shutdown.md) (Zuschnitt-Entscheidung des Planners: sonst trägt kein offener Slice QA-02 am Prozess) |
+| [TDS-FA-09](../../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose) (Zustandsereignisse im Log) | Stufe 1 belegt nur Start und Exit-Code; Ereignisse am Prozess fehlen | [slice-betrieb-zustandsereignisse](../open/slice-betrieb-zustandsereignisse.md) |
 | [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) (Anweisung außerhalb der erkannten Formen, Änderungsanweisung) | Negativfall am Referenzclient fehlt in Stufe 3 | [slice-sim-aenderung-integration](../in-progress/slice-sim-aenderung-integration.md) |
-| [TDS-QA-04](../../../../spec/lastenheft.md#tds-qa-04--performance) | Lasttest fehlt | [slice-qa-performance](slice-qa-performance.md) |
+| [TDS-QA-04](../../../../spec/lastenheft.md#tds-qa-04--performance) | Lasttest fehlt | [slice-qa-performance](../open/slice-qa-performance.md) |
 | [TDS-FA-08](../../../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-RB-04](../../../../spec/lastenheft.md#tds-rb-04--externes-backend) | Der öffentliche Einstieg für ein Backend fehlt; ein Backend außerhalb des Moduls ohne `internal`-Zugriff gegen den Serverprozess ist nicht belegt (Stufe 3 setzt die Tabellen über den Test-Einstieg) | `slice-integrations-einstieg` (liegt in diesem Stand nicht vor; der DoD-Punkt ist dort nachzutragen) |
-| [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität) (Referenzabgleich) | vorläufig, kein Lauf | [slice-qa-vergleichslauf-d](slice-qa-vergleichslauf-d.md) (Werkzeug, kein Gate; keine Stufe verlangt) |
+| [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität) (Referenzabgleich) | vorläufig, kein Lauf | [slice-qa-vergleichslauf-d](../open/slice-qa-vergleichslauf-d.md) (Werkzeug, kein Gate; keine Stufe verlangt) |
 
 **Ansatz.** Das Skript führt jede Stufe als `make <Target>` und deklariert sie mit `e2e_abdeckung "<Kennungen>" "<Kurzbeschreibung>" "<Anker>"`, der Anker ein Ausschnitt der `make`-Zeile derselben Stufe. Die Sicht ist eine Deklaration, kein Lauf-Beleg (Kopf des Erzeugers): dass eine Stufe ihre Kennungen trägt, belegt der grüne Lauf der Stufe, nicht die Datei. Ob die Selbstprüfung des Harness als fünfte Stufe mit Kennung `—` im Skript steht oder aus der Sicht ausscheidet, ist die offene Frage zu mehreren Quellen (der Erzeuger liest genau eine Quelle mit einem Präfix).
 
@@ -146,6 +146,19 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 übernimmt).
 
 Wird bei der Closure gefüllt.
+
+**Messung des Implementers (Einzelmessungen am 2026-10-31, je ein Lauf, keine Streuung):**
+
+| Lauf | Zeit |
+|---|---|
+| `make e2e` warm (zweiter Lauf, Layer-Cache vorhanden) | 46 s (Stufen 2 s, 21 s, 21 s, 2 s) |
+| die vier Targets einzeln, warm, nacheinander | 3 s, 20 s, 21 s, 1 s, zusammen 45 s |
+| `make e2e` kalt (frischer buildx-Builder ohne Cache, danach entfernt) | 323 s (Stufen 106 s, 108 s, 104 s, 5 s) |
+| `make e2e` nach Quelltext-Änderung (Gradle-Layer neu, Basis-Images im Cache) | 187 s (Stufen 54 s, 63 s, 69 s, 1 s) |
+| `make gates` warm mit `laufzeittest` und `simulations-integration` | 49 s |
+| `make gates` warm ohne beide (Stand nach der ADR zu den E2E-Läufen) | 9 s (alle Stages aus dem Cache; Einzelwert, kein Maß für einen Lauf nach Quelltext-Änderung) |
+
+Der Durchgang kostet warm so viel wie die Summe der Einzelläufe (Differenz 1 s); die Stufen laufen nicht doppelt gegenüber ihrem Einzellauf, sondern doppelt gegenüber der Zeit, die `make gates` bisher für zwei von ihnen aufwendete. Die Kaltzeit der Stufen 2 und 3 liegt unter ihren früheren Einzel-Kaltwerten (88 bis 171 s, 131 s), weil sie sich im selben Builder Layer mit Stufe 1 teilen; die Summe der vier Einzel-Kaltläufe ist nicht gemessen. Setzungen: der Durchgang bricht an der ersten roten Stufe ab; die Harness-Selbstprüfung fällt aus der Sicht (Option a), sie bleibt Werkzeug ohne Gate.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

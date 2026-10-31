@@ -177,6 +177,9 @@ COPY --chown=gradle:gradle LICENSE LICENSE
 RUN gradle --no-daemon assemble \
  && jar tf build/libs/tdswire.jar | grep -qx 'META-INF/LICENSE' \
  && unzip -p build/libs/tdswire.jar META-INF/LICENSE | cmp - LICENSE
+# Manifest ohne Container pruefen (Main-Class, Class-Path gegen lib/, Jar-Name): tools/manifest-pruefung.sh.
+COPY --chown=gradle:gradle tools/manifest-pruefung.sh tools/manifest-pruefung.sh
+RUN sh tools/manifest-pruefung.sh build/libs
 
 # --- Laufzeit: `make laufzeittest` baut diese Stage. Distroless Java 21 (Variante nonroot) mit JRE,
 # per Digest gepinnt (Messung vom 2026-10-31 am Tag `nonroot`; ein neuer Digest ist eine bewusste

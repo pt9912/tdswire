@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# tools/e2e.sh - Produkt-E2E: die Laeufe, die den Serverprozess ueber seine Aussengrenze pruefen, als Stufen
+# nacheinander (TDS-QA-01, TDS-QA-06, ADR-0022). Aufruf ueber `make e2e`; kein Gate, nicht in GATE_CHECKS.
+#
+# Jede Stufe ruft ein `make`-Target (ein Docker-Lauf gleichzeitig) und traegt eine Deklaration
+#   e2e_abdeckung "<Kennungen>" "<Kurzbeschreibung>" "<Anker>"
+# aus der `make e2e-abdeckung` die Sicht docs/plan/e2e-abdeckung.md erzeugt (Marker in repo.mk). Die Sicht ist eine
+# Deklaration, kein Lauf-Beleg: dass eine Stufe ihre Kennungen traegt, belegt ihr gruener Lauf, nicht die Datei.
+# Setzung: die erste rote Stufe bricht den Durchgang ab (Exit 1), und die Ausgabe nennt die Stufe; die folgenden
+# Stufen laufen nicht. Die Harness-Selbstpruefung (tools/harness/selbstpruefung.sh) ist keine Stufe.
+set -u
+
+e2e_abdeckung() { echo "abdeckung: $1 — $2 (Anker: $3)"; }
+
+lauf() {
+	local nr="$1" t0="$SECONDS"
+	shift
+	if ! "$@"; then
+		echo "e2e: ROT - Stufe $nr ($*) nach $((SECONDS - t0)) s; der Durchgang bricht ab, folgende Stufen laufen nicht." >&2
+		exit 1
+	fi
+	echo "e2e: Stufe $nr gruen ($*, $((SECONDS - t0)) s)"
+}
+
+echo "e2e: Stufe 1 Rohbytes-Login und Startverhalten des Prozesses ..."
+e2e_abdeckung "TDS-FA-01 TDS-FA-02 TDS-FA-09" "Kindprozess main mit Rohbytes-Client: PRELOGIN und LOGIN7 mit LOGINACK, Start ohne JVM-Flag bricht ab, fehlerhafte Konfiguration und belegter Port beenden den Start mit Exit-Code 1. Nicht belegt: Referenzclient, TLS, Anfragepfad, Inhalt der Diagnose" "make smoke"
+lauf 1 make smoke
+
+echo "e2e: Stufe 2 Container-Artefakt ..."
+e2e_abdeckung "TDS-RB-01 TDS-QA-06 TDS-QA-03" "Image startet, Login mit TEST_UNENCRYPTED aus zweitem Container gelingt, docker stop endet mit Exit-Code 143, die Ausgabe nennt weder Benutzer noch Passwort. Nicht belegt: TLS-Modus, Fehlpfade, Clean-Build in der CI (QA-06 nur der Docker-Teil)" "make laufzeittest"
+lauf 2 make laufzeittest
+
+echo "e2e: Stufe 3 Referenzclient gegen Simulations-Backend ..."
+e2e_abdeckung "TDS-FA-11 TDS-FA-03 TDS-FA-06" "Microsoft.Data.SqlClient gegen den Serverprozess mit Einstieg runServer im Test-Quelltext, nicht main: Auswahl mit Bedingung, leeres Ergebnis, Zeilenquelle über dem Heap, Fehler der Zeilenquelle als SqlException mit nutzbarer Verbindung, ohne Parameter, TLS und Pool. Nicht belegt: parametrisierte Abfrage, Cancel, Anweisung außerhalb der erkannten Formen" "make simulations-integration"
+lauf 3 make simulations-integration
+
+echo "e2e: Stufe 4 Referenztest-Gerüst ..."
+e2e_abdeckung "TDS-RB-02" "Das versionierte Testprojekt baut gesperrt und läuft, der Smoke-Test verbindet zu einem unbelegten Port und erhält eine SqlException. Nicht belegt: irgendein Serververhalten, kein Serverprozess läuft" "make referenztest-dotnet"
+lauf 4 make referenztest-dotnet
+
+echo "e2e: gruen (4 Stufen, $SECONDS s)"
