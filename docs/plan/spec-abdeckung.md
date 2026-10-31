@@ -31,7 +31,7 @@ bestandenen Test als „Gate-Festlegung, ungemessen“ und ist weder Nachweis no
 irgendein Test ihre Kennung, steht sie als Nachweis da und die Klasse ist nicht mehr zu sehen.
 Die Art folgt dem Verzeichnis des Tests: `smoke/` Smoke-Test, `e2e/` E2E-Test, sonst Modul-Test.
 
-Stand: 30 von 51 Festlegungen mit mindestens einem bestandenen Test, 7 Gate-Festlegungen ungemessen, 14 ohne Nachweis.
+Stand: 31 von 52 Festlegungen mit mindestens einem bestandenen Test, 7 Gate-Festlegungen ungemessen, 14 ohne Nachweis.
 
 ## Matrix
 
@@ -86,6 +86,7 @@ Stand: 30 von 51 Festlegungen mit mindestens einem bestandenen Test, 7 Gate-Fest
 | `SPEC-040` | Simulations-Test-Gate | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
 | `SPEC-041` | Static-Analysis-Gate (`make detekt`, `make detekt-selbsttest`) | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
 | `SPEC-042` | Build-Gate (`make build`) | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
+| `SPEC-052` | Laufzeit-Artefakt und Lizenz (Gate: `make laufzeittest`) | 1 | 0 | 0 | 0 | LizenzTest | mindestens ein bestandener getaggter Test |
 | `SPEC-050` | Referenzabgleich-Gate (vorläufig) | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
 | `SPEC-032` | Kompatibilitätstest-Gate | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
 
