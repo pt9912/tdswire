@@ -13,7 +13,7 @@
 | Lauf | Ergebnis |
 |---|---|
 | frischer Testlauf auf `2b8f56b` (`docker build --target test --no-cache-filter test`, Kopie `base/`) | Exit 0, **307 PASSED, 0 FAILED** (einziges „SKIPPED“ ist die Gradle-Aufgabe `checkKotlinGradlePluginConfigurationErrors`), `BUILD SUCCESSFUL in 1m 7s` |
-| Zuwachs durch den Slice | 27 `@Test` in `protocol/result`: `ColumnMappingTest` 8, `MappingFuzzTest` 2, `ValueMappingTest` 17; 307 − 27 = 280 (Stand vor dem Slice laut [Verifikation handshake-login](2026-10-30-bda6cd6-verifikation-slice-handshake-login.md)) |
+| Zuwachs durch den Slice | 27 `@Test` in `protocol/result`: `ColumnMappingTest` 8, `MappingFuzzTest` 2, `ValueMappingTest` 17; 307 − 27 = 280 (Stand vor dem Slice laut Verifikation `slice-handshake-login` (Stand bda6cd6, archiviert mit der Welle)) |
 | frischer Testlauf auf `d9bab24` (Kopie `cur/`) | Exit 0, **331 PASSED, 0 FAILED** (die Differenz zu 307 sind die Tests des inzwischen gemergten Listener-Slice) |
 | `docker build --target detekt --no-cache-filter detekt` auf `d9bab24` | Exit 0: `suppression-check: OK - keine Unterdrueckung unter src`, `detekt`, `detektMain`, `detektTest`, `BUILD SUCCESSFUL in 3m 6s` |
 | `make gates` auf `d9bab24` | Exit 0 in 11 s (überwiegend Cache): `baseline-verify: v6.18.1 OK — 54 Dateien`, `d-check: 264 Datei(en) geprüft, 0 Befund(e)` |
