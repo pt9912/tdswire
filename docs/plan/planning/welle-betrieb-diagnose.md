@@ -70,7 +70,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 
 - Blockiert: [slice-qa-performance](open/slice-qa-performance.md) (Start-Trigger: Telemetrie liefert Dauer je Schicht, SPEC-017 bis SPEC-019) und damit die Closure von [welle-qualitaet-grundlage](welle-qualitaet-grundlage.md).
 - Wird blockiert von: [welle-transport-tls](done/welle-transport-tls/welle-transport-tls.md) und [welle-handshake-login](done/welle-handshake-login/welle-handshake-login.md) (Start-Trigger); [welle-anfrageverarbeitung](welle-anfrageverarbeitung.md), [welle-backend-streaming](done/welle-backend-streaming/welle-backend-streaming.md) und [welle-fehler-abbruch](welle-fehler-abbruch.md) (nur [slice-betrieb-metriken-tracing](open/slice-betrieb-metriken-tracing.md)); [slice-abbruch-ressourcen-shutdown](open/slice-abbruch-ressourcen-shutdown.md) (nur [slice-betrieb-zustandsereignisse](open/slice-betrieb-zustandsereignisse.md)).
-- Berührt, blockiert aber nicht: [welle-simulations-backend](welle-simulations-backend.md) — das Simulations-Backend ruft keine Observability (Importregel `ForbiddenImport/simulation`); die Telemetrie des Backend-Aufrufs sitzt im Backend-Adapter des Protokollkerns.
+- Berührt, blockiert aber nicht: [welle-simulations-backend](done/welle-simulations-backend/welle-simulations-backend.md) — das Simulations-Backend ruft keine Observability (Importregel `ForbiddenImport/simulation`); die Telemetrie des Backend-Aufrufs sitzt im Backend-Adapter des Protokollkerns.
 
 ## 6. Out-of-Scope für diese Welle
 

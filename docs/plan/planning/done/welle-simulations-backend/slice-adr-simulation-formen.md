@@ -1,0 +1,8 @@
+# slice-adr-simulation-formen — Entscheidung: erkannte Anweisungsformen, Typen und Beschreibungsform des Simulations-Backends
+
+> **ARCHIVIERT** — Volltext:
+> `unzip -p docs/plan/planning/done/welle-simulations-backend/archiv.zip docs/plan/planning/done/welle-simulations-backend/slice-adr-simulation-formen.md`
+
+**Welle:** [welle-simulations-backend](welle-simulations-backend.md)
+**Archiviert mit:** welle-simulations-backend · **Geschlossen:** 2026-10-31
+**Hervorgegangen:** [`BEO-TDS/aussagen-ueber-messung-hinaus`](../../observations/BEO-TDS/aussagen-ueber-messung-hinaus/observation.md) · [`BEO-TDS/dod-satz-verlangt-ablage-die-der-slice-ersetzt`](../../observations/BEO-TDS/dod-satz-verlangt-ablage-die-der-slice-ersetzt/observation.md) · [`BEO-TDS/kennungen-ohne-link-in-neuen-dokumenten`](../../observations/BEO-TDS/kennungen-ohne-link-in-neuen-dokumenten/observation.md) · [`BEO-TDS/lesart-einer-nutzerentscheidung-unbestaetigt`](../../observations/BEO-TDS/lesart-einer-nutzerentscheidung-unbestaetigt/observation.md) · [`BEO-TDS/messung-am-echten-sql-server-fehlt`](../../observations/BEO-TDS/messung-am-echten-sql-server-fehlt/observation.md) · [`BEO-TDS/offene-punkte-ohne-traeger`](../../observations/BEO-TDS/offene-punkte-ohne-traeger/observation.md) · [`BEO-TDS/risikozeile-nennt-behobenen-zustand`](../../observations/BEO-TDS/risikozeile-nennt-behobenen-zustand/observation.md) · [`BEO-TDS/spec-einzelfaelle-ohne-lastenheft-deckung`](../../observations/BEO-TDS/spec-einzelfaelle-ohne-lastenheft-deckung/observation.md) · [`BEO-TDS/zusage-ohne-sensor-in-der-ci-kette`](../../observations/BEO-TDS/zusage-ohne-sensor-in-der-ci-kette/observation.md)
