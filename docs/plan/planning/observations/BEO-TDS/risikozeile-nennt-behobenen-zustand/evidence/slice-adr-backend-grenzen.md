@@ -1,0 +1,2 @@
+**Vorgang:** slice-adr-backend-grenzen
+**Fund:** Folge-Slices führen den Status der ADR als Zustandssatz („Status Proposed“, „bleibt unangenommen“): sechs Stellen in `slice-backend-streaming-nachweis`, eine in `slice-attention-cancel-timeout`, zwei in `slice-sim-auswahl-streaming`. Mit `Accepted` beschreiben sie einen Zustand, den es nicht mehr gibt. In dieser Closure ist nur der Start-Trigger von `slice-sim-auswahl-streaming` angepasst; die übrigen Stellen stehen in Slices, die ein anderer Lauf führt.

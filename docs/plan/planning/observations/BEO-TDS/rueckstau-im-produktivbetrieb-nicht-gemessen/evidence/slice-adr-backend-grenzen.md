@@ -1,0 +1,2 @@
+**Vorgang:** slice-adr-backend-grenzen
+**Fund:** [ADR-0013](../../../../../adr/0013-backend-grenzen.md) führt Rückstau, Heap im Produktivbetrieb unter Last und die Verzögerung durch den zurückgehaltenen Abschluss als „nicht gemessen, Träger vorhanden“ und nennt den Slice für Performance. Dessen DoD und Risiken führen die drei Punkte nicht (Lasttest „Protokollschicht und Backend getrennt“). Die Messungen des Entscheidungs-Spikes (M1 bis M8) sind Größenordnungen im Spike-Maßstab, keine Aussage über den Produktivbetrieb.

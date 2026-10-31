@@ -1,0 +1,2 @@
+**Vorgang:** slice-adr-backend-grenzen
+**Fund:** Die Setzungen 5 bis 10 von [ADR-0013](../../../../../adr/0013-backend-grenzen.md), darunter „keine Grenze für kleine Ergebnisse“, hat der Nutzer nicht ausdrücklich gewählt (Voreinstellung des Optionsberichts; der Nutzer wurde gefragt und hat nichts geändert). Sie stehen mit `Accepted` als Setzung (Voreinstellung 2026-10-30, nicht gemessen) fest und sind ohne Folge-ADR nicht mehr änderbar ([Verifikation](../../../../../../reviews/2026-10-31-c2fea13-verifikation-adr-0013-backend-grenzen.md) V4).

@@ -36,10 +36,6 @@ In Arbeit (Welle welle-simulations-backend):
 
 - [slice-sim-erkennung](slice-sim-erkennung.md)
 
-In Arbeit (ohne Welle):
-
-- [slice-adr-backend-grenzen](slice-adr-backend-grenzen.md)
-
 In Arbeit (Welle welle-qualitaet-grundlage):
 
 - [slice-qa-wartbarkeit](slice-qa-wartbarkeit.md)

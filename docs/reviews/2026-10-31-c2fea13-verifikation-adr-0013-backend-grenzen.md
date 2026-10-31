@@ -1,6 +1,6 @@
 # Verifikation: [ADR-0013](../plan/adr/0013-backend-grenzen.md) Backend-Grenzen, Spec-Nachführung, Folge-Slices und Fix-Runde — 2026-10-31
 
-**Rolle:** Verifier (Modul 11), frischer Kontext. Frage: Bauen wir es richtig? Geprüft wird die DoD von [slice-adr-backend-grenzen](../plan/planning/in-progress/slice-adr-backend-grenzen.md) gegen [ADR-0013](../plan/adr/0013-backend-grenzen.md) (Status Proposed) und die Entscheidungen des Nutzers vom 2026-10-31. Nicht geprüft wird, ob das Richtige gebaut wird (Validator) oder der Diff gegen den Plan (Reviewer, [Review](2026-10-31-42bd58d-adr-0013-backend-grenzen.md)). Nichts repariert, nichts committet.
+**Rolle:** Verifier (Modul 11), frischer Kontext. Frage: Bauen wir es richtig? Geprüft wird die DoD von [slice-adr-backend-grenzen](../plan/planning/done/slice-adr-backend-grenzen.md) gegen [ADR-0013](../plan/adr/0013-backend-grenzen.md) (Status Proposed) und die Entscheidungen des Nutzers vom 2026-10-31. Nicht geprüft wird, ob das Richtige gebaut wird (Validator) oder der Diff gegen den Plan (Reviewer, [Review](2026-10-31-42bd58d-adr-0013-backend-grenzen.md)). Nichts repariert, nichts committet.
 
 **Stand:** `main` bei c2fea13. Gegenstand: Merge 42bd58d, Fix-Runde e9ef7de (ADR und Spec) und 545cdd0 (Slice-Pläne) im Merge 329269c, dazu der gebaute Stand des Streaming-Slice (Merge 81d41d5 mit Fix-Runde bis c2fea13).
 
