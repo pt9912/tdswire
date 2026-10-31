@@ -28,6 +28,10 @@ In Arbeit (Welle welle-qualitaet-grundlage):
 - [slice-qa-wartbarkeit](slice-qa-wartbarkeit.md)
 - [slice-qa-sicherheit](slice-qa-sicherheit.md)
 
+In Arbeit (Welle welle-simulations-backend):
+
+- [slice-sim-aenderung-integration](slice-sim-aenderung-integration.md)
+
 ## Nächste Wellen
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
