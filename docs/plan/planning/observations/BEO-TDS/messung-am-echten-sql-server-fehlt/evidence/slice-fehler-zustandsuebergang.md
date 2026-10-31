@@ -1,0 +1,2 @@
+**Vorgang:** slice-fehler-zustandsuebergang
+**Fund:** Die Verbindungsfolge nach Fehler (offen bei Class ≤ 19, schließend ab Class 20, ohne Antwort bei nicht abschließbarem Strom) ist hier nur mit Nachrichten-Nutzlast hinter einem Kanal-Fake und einem Fake-Backend belegt; am echten Server gemessen ist nur „offen bis Class 19, schließt ab 20“, und die Annahme der Antwort durch den Referenzclient ist es nicht. Träger bleibt der Vergleichslauf D.

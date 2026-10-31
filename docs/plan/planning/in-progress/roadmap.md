@@ -26,13 +26,13 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 - [welle-betrieb-diagnose](../welle-betrieb-diagnose.md)
 - [welle-referenzabgleich-release](../welle-referenzabgleich-release.md)
 
+In Arbeit (Welle welle-backend-streaming):
+
+- [slice-backend-streaming-nachweis](slice-backend-streaming-nachweis.md)
+
 In Arbeit (Welle welle-anfrageverarbeitung):
 
 - [slice-rpc-executesql-parameter](slice-rpc-executesql-parameter.md)
-
-In Arbeit (Welle welle-fehler-abbruch):
-
-- [slice-fehler-zustandsuebergang](slice-fehler-zustandsuebergang.md)
 
 In Arbeit (ohne Welle):
 

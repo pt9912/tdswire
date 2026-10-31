@@ -64,7 +64,7 @@ M1 bis M4 des Implementers sind nachgefahren und fallen wie behauptet; M3 und M4
 | Docker-only (`AGENTS.md` §3.1), Gates nicht gelockert (§3.6), `config/detekt` | geprüft, ohne Befund |
 | Kommentare in `DispatchFateTest.kt` (§3.7) | geprüft, ohne Befund (Zusage, Kopplung, Abgrenzung; keine verworfene Alternative) |
 | Schichtregeln (Importe des Tests) | geprüft, ohne Befund |
-| `docs/plan/planning/in-progress/slice-fehler-zustandsuebergang.md` Kennungen und Verweise | geprüft, außer F-5 und F-6 ohne Befund |
+| `docs/plan/planning/done/slice-fehler-zustandsuebergang.md` Kennungen und Verweise | geprüft, außer F-5 und F-6 ohne Befund |
 | `spec/`, `docs/plan/adr/` | nicht Teil des Diffs, unberührt |
 
 ## Summary
