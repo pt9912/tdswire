@@ -79,8 +79,18 @@ Aussagen-Berührung steht hier gar nicht.
 | `src/main/kotlin/io/github/pt9912/tdswire/simulation/` <!-- d-check:ignore (geplant: neue Datei) --> | neu | Beschreibung, Scanner, Erkennung; importiert nur `domain` und `port` (Importregel SPEC-041) |
 | `src/test/kotlin/io/github/pt9912/tdswire/simulation/` <!-- d-check:ignore (geplant: neue Datei) --> | neu | Positiv- und Negativtests je Form, Eingabevariation je Grenzfall; `@spec`-Tag SPEC-035, SPEC-036 |
 
-Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
+Erweiterung der Liste im ersten Lauf (Ist-Zustand gemessen: `simulation` existiert weder in `src/main` noch in `src/test`; `ForbiddenImport/simulation` in `config/detekt/detekt.yml` liegt vor; `domain/SqlType` und `port/QueryBackend` tragen alles, was der Slice braucht; `ErrorCode` kennt `TDS_UNSUPPORTED_SQL`, `TDS_SIM_UNKNOWN_OBJECT` und `TDS_SIM_INVALID_VALUE`, liegt aber in `protocol` und ist für `simulation` gesperrt):
 
+| Datei / Komponente | Änderungs-Art | Begründung |
+|---|---|---|
+| `simulation/SimModel.kt` <!-- d-check:ignore (geplant: neue Datei) --> | neu | `SimTable`, `SimColumn`, `SimQuery`, `RowFilter`, `FilterTerm`, `RowSource` nach SPEC-035; Validierung im Konstruktor; Namensvergleich ohne Beachtung der Schreibweise |
+| `simulation/SimTree.kt`, `SimDescriptionReader.kt`, `SimLoadException.kt` <!-- d-check:ignore (geplant: neue Datei) --> | neu | Baum aus Abbildung, Liste und Skalar mit Zeile und Spalte; reiner Leser ohne YAML-Bibliothek; Ladefehler mit Pfad, Zeile, Spalte |
+| `simulation/SqlScanner.kt`, `StatementParser.kt`, `Statement.kt` <!-- d-check:ignore (geplant: neue Datei) --> | neu | Zeichenscanner und Zuordnung zu S1, W1, W2, W3; Ergebnis aus Form, Tabelle, Spalten, Termen, Werten oder Parameterverweisen |
+| `simulation/StatementPlanner.kt`, `SimCodes.kt` <!-- d-check:ignore (geplant: neue Datei) --> | neu | Objektprüfung vor dem Lesen; Fehlercodes als Zeichenketten (`protocol` ist gesperrt) |
+| `src/test/kotlin/io/github/pt9912/tdswire/runtime/SimulationCodesTest.kt` <!-- d-check:ignore (geplant: neue Datei) --> | neu | `runtime` darf beide Seiten kennen: die Codes in `simulation` sind Namen von `ErrorCode` |
+
+- Die Überführung von Literal und Parameter in den Spaltentyp (SPEC-035) gehört nach der DoD von [slice-sim-auswahl-streaming](../open/slice-sim-auswahl-streaming.md); dieser Slice liefert Literale als `Number`/`Text`/`Null`/`Parameter` unüberführt.
+- Belegstand von d-migrate (§6): Release-Liste am 2026-10-31 abgerufen, neuestes Release `v1.12.0` (2026-10-27) wie der Belegstand; kein Erneuern nötig.
 - Reihenfolge: Beschreibung und Validierung, dann Scanner, dann Zuordnung, zuletzt die Objektprüfung.
 
 ## 4. Trigger
