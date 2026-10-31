@@ -52,7 +52,9 @@ class TlsRenegotiationTest {
 
     /**
      * Beginnt die Gegenstelle nach dem Handschlag eine Neuverhandlung, beantwortet die Schleife sie (JDK-
-     * Voreinstellung: sichere Neuverhandlung zugelassen): Nutzdaten laufen danach in beide Richtungen unversehrt,
+     * Voreinstellung: sichere Neuverhandlung zugelassen), schon wenn der Server nur liest (die Gegenstelle kommt zum
+     * Ende der Neuverhandlung, bevor der Server etwas schreibt): Nutzdaten laufen danach in beide Richtungen
+     * unversehrt,
      * und die Marke des Servers erscheint nicht im Klartext im Ausgang des Servers. Das gilt für [REPEATS]
      * Runden mit je einer Marke je Richtung; mehr ist nicht belegt (der Eingang des Servers ist die Ausgabe der
      * Test-Engine und zählt nicht als Beleg für das Produkt). Nicht gemessen: Rechenlast durch viele Neuverhandlungen
@@ -72,14 +74,20 @@ class TlsRenegotiationTest {
                     outcome.peer.requestKeyUpdate()
                     outcome.peer.writeFully(ByteBuffer.wrap(clientMarker))
                 }
-                progress = "Runde $round: Server liest"
-                val atServer = ByteBuffer.allocate(clientMarker.size)
-                while (atServer.hasRemaining()) {
-                    val read = server.read(atServer)
-                    assertTrue(read is ChannelResult.Ok && read.value > 0, "Lesen des Servers: $read")
+                progress = "Runde $round: Server liest (und schreibt nichts)"
+                val serverReads = async {
+                    val atServer = ByteBuffer.allocate(clientMarker.size * 2)
+                    while (atServer.hasRemaining()) {
+                        val read = server.read(atServer)
+                        assertTrue(read is ChannelResult.Ok && read.value > 0, "Lesen des Servers: $read")
+                    }
+                    atServer.array()
                 }
-                assertContentEquals(clientMarker, atServer.array())
                 assertEquals(ChannelResult.Ok(Unit), peerSide.await())
+                progress = "Runde $round: Gegenstelle wartet auf das Ende der Neuverhandlung (Leseseite des Servers)"
+                outcome.peer.awaitHandshakeDone()
+                assertEquals(ChannelResult.Ok(Unit), outcome.peer.writeFully(ByteBuffer.wrap(clientMarker)))
+                assertContentEquals(clientMarker + clientMarker, serverReads.await())
                 progress = "Runde $round: Server schreibt"
                 assertEquals(ChannelResult.Ok(Unit), server.writeFully(ByteBuffer.wrap(serverMarker)))
                 progress = "Runde $round: Gegenstelle liest"
