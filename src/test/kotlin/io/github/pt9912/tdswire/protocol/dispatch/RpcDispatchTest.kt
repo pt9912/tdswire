@@ -43,7 +43,16 @@ import kotlin.test.assertTrue
 class RpcDispatchTest {
     private val oneRow = listOf(resultStart(), QueryEvent.Row(listOf(7)), QueryEvent.ResultEnd(1))
 
+    /** COLMETADATA, ROW, DONEINPROC (`MORE|COUNT`, Zeilenzahl 1), DONEPROC ohne Bits (Handvektor, Festlegung). */
     private val oneRowReply = listOf(
+        BatchVectors.COLMETADATA_N,
+        BatchVectors.row(7),
+        "FF 11 00 00 00 01 00 00 00 00 00 00 00",
+        "FE 00 00 00 00 00 00 00 00 00 00 00 00",
+    ).joinToString(" ")
+
+    /** Die Antwort auf einen Batch mit demselben Ergebnis: ein DONE statt DONEINPROC und DONEPROC. */
+    private val batchReply = listOf(
         BatchVectors.COLMETADATA_N,
         BatchVectors.row(7),
         BatchVectors.DONE_COUNT_1,
@@ -125,7 +134,8 @@ class RpcDispatchTest {
             backend.requests[1].parameters,
         )
         assertEquals(4, session.replies.size)
-        assertTrue(session.replies.indices.all { session.hex(it) == oneRowReply })
+        val hexes = session.replies.indices.map { session.hex(it) }
+        assertEquals(listOf(batchReply, oneRowReply, oneRowReply, batchReply), hexes)
     }
 
     /**

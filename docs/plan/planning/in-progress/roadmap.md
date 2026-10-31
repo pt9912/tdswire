@@ -31,6 +31,10 @@ In Arbeit (Welle welle-referenzabgleich-release):
 
 - [slice-release-artefakt-lizenz](slice-release-artefakt-lizenz.md)
 
+In Arbeit (Welle welle-anfrageverarbeitung):
+
+- [slice-antwort-mehrteilig-output](slice-antwort-mehrteilig-output.md)
+
 
 
 

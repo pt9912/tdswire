@@ -91,12 +91,19 @@ enum class SequenceOutcome {
  *   [ErrorMapping.internal] (mit `null`), DONE mit Fehlerstatus, [SequenceOutcome.FAILED_CLOSE_CONNECTION]
  *   (Nutzer). Dasselbe gilt für eine Ausnahme aus `execute()` oder aus dem Strom (Festlegung des
  *   Implementers).
- * - [QueryEvent.ReturnStatus] und [QueryEvent.OutputParameter] werden mit einem Fehler der
- *   Typabbildung abgelehnt ([ErrorMapping.typeMapping]); sie werden nicht auf RETURNSTATUS oder
- *   RETURNVALUE abgebildet (Nutzer). Der Ausgang folgt der Abbildung: mit dem `ErrorMapper` ist die
- *   Ablehnung `TDS_UNSUPPORTED_TYPE` (Class 20) und der Ausgang
+ * - [ResponseForm.BATCH]: [QueryEvent.ReturnStatus] und [QueryEvent.OutputParameter] werden mit einem
+ *   Fehler der Typabbildung abgelehnt ([ErrorMapping.typeMapping]) (Nutzer). Der Ausgang folgt der
+ *   Abbildung: mit dem `ErrorMapper` ist die Ablehnung `TDS_UNSUPPORTED_TYPE` (Class 20) und der Ausgang
  *   [SequenceOutcome.FAILED_CLOSE_CONNECTION], die Verbindung schließt nach der Antwort; ebenso jeder
  *   andere Typfehler. Die Einzelzuordnung des Codes ist offen.
+ * - [ResponseForm.RPC] (Festlegungen des Implementers, nicht gemessen): der Abschluss eines Ergebnisses
+ *   oder Update-Zählers ist ein DONEINPROC, den Strom schließt ein DONEPROC ohne Bits und ohne Zahl. Ein
+ *   zurückgehaltenes DONEINPROC bekommt `DONE_MORE`, auch wenn nur das DONEPROC folgt (der Testserver des
+ *   Spikes schrieb dort kein `MORE`). [QueryEvent.ReturnStatus] wird RETURNSTATUS, [QueryEvent.OutputParameter]
+ *   ein RETURNVALUE (Statusbyte 1, Ordinal ab 0 in der Reihenfolge der Ereignisse, Typ nullbar), beide an der
+ *   Stelle im Strom. Ein zweiter `ReturnStatus` und ein Ereignis beider Arten in einem offenen Ergebnis sind
+ *   ein Reihenfolgeverstoß; ein Typ oder Wert, den die Abbildung ablehnt, ist ein Fehler der Typabbildung.
+ *   ERROR und der Abschluss mit Fehlerstatus bleiben auch hier ein DONE.
  * - „Synchron“ (`SPEC-031` definiert den Begriff nicht): der Strom ist synchron, solange die Senke
  *   jedes Token vollständig angenommen hat. Nimmt sie ein Token nicht vollständig an, wird nichts
  *   mehr geschrieben, auch kein ERROR und kein DONE: [SequenceOutcome.CLOSE_WITHOUT_COMPLETION]
@@ -121,14 +128,19 @@ enum class SequenceOutcome {
  */
 class ResponseSequencer(private val errors: ErrorMapping) {
     /**
-     * Führt [request] auf [backend] aus und schreibt die Tokens in [sink]. `close()` der Ausführung
-     * läuft in jedem Ausgang, auch beim Abbruch der Coroutine. Endet das Lesen durch den Abbruch der
+     * Führt [request] auf [backend] aus und schreibt die Tokens der Antwortform [form] in [sink]. `close()`
+     * der Ausführung läuft in jedem Ausgang, auch beim Abbruch der Coroutine. Endet das Lesen durch den Abbruch der
      * Coroutine, durch eine Senke, die ein Token nicht annimmt, oder durch eine Ausnahme der Senke,
      * ruft der Lauf zuvor genau einmal `cancel()` des Backends; kein weiteres Ereignis wird danach
      * gelesen.
      */
-    suspend fun run(backend: QueryBackend, request: QueryRequest, sink: TokenSink): SequenceOutcome {
-        val run = ResponseRun(errors, sink)
+    suspend fun run(
+        backend: QueryBackend,
+        request: QueryRequest,
+        sink: TokenSink,
+        form: ResponseForm = ResponseForm.BATCH,
+    ): SequenceOutcome {
+        val run = ResponseRun(errors, sink, form)
         val started = runCatching { backend.execute(request) }
         val cause = started.exceptionOrNull()
         if (cause != null) {

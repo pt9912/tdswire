@@ -22,13 +22,19 @@ internal fun failedDone(): DoneToken = DoneToken(DoneKind.DONE, DoneStatus.ERROR
 
 /**
  * Zustand eines Laufs des [ResponseSequencer]: die Spalten des offenen Ergebnisses (`null` ohne
- * offenes Ergebnis), der zurückgehaltene Abschluss und der Ausgang. Ein Lauf gehört einer Coroutine
- * und ist nicht threadsicher.
+ * offenes Ergebnis), der zurückgehaltene Abschluss, der Zählstand der RPC-Ausgabewerte und der
+ * Ausgang. Ein Lauf gehört einer Coroutine und ist nicht threadsicher. Die [form] bestimmt die Art der
+ * Abschlüsse und ob `ReturnStatus` und `OutputParameter` abgebildet werden.
  */
-internal class ResponseRun(private val errors: ErrorMapping, private val sink: TokenSink) {
+internal class ResponseRun(
+    private val errors: ErrorMapping,
+    private val sink: TokenSink,
+    private val form: ResponseForm = ResponseForm.BATCH,
+) {
     private var outcome: SequenceOutcome? = null
     private var columns: List<ColumnDef>? = null
     private var held: DoneToken? = null
+    private val outputs = RpcOutputs()
 
     val result: SequenceOutcome get() = outcome ?: SequenceOutcome.CLOSE_WITHOUT_COMPLETION
 
@@ -41,8 +47,8 @@ internal class ResponseRun(private val errors: ErrorMapping, private val sink: T
             is QueryEvent.ResultEnd -> finish(event.affectedRows, inResult = true)
             is QueryEvent.UpdateCount -> finish(event.affectedRows, inResult = false)
             is QueryEvent.Failure -> report(errors.backend(event))
-            is QueryEvent.ReturnStatus -> unsupported("ReturnStatus")
-            is QueryEvent.OutputParameter -> unsupported("OutputParameter")
+            is QueryEvent.ReturnStatus -> rpcOutput(event, "ReturnStatus")
+            is QueryEvent.OutputParameter -> rpcOutput(event, "OutputParameter")
         }
     }
 
@@ -63,13 +69,18 @@ internal class ResponseRun(private val errors: ErrorMapping, private val sink: T
     /** Der Strom ist ohne Ausnahme zu Ende; schließt den Lauf ab, falls kein Ausgang feststeht. */
     suspend fun end() {
         if (outcome != null) return
-        if (columns != null) {
-            violation()
-            return
+        val last = when {
+            columns != null -> {
+                violation()
+                null
+            }
+
+            form == ResponseForm.RPC ->
+                DoneToken(DoneKind.DONE_PROC, DoneStatus.FINAL, CUR_CMD_UNKNOWN, 0).takeIf { flushHeld(more = true) }
+
+            else -> (held ?: DoneToken(DoneKind.DONE, DoneStatus.FINAL, CUR_CMD_UNKNOWN, 0)).also { held = null }
         }
-        val done = held ?: DoneToken(DoneKind.DONE, DoneStatus.FINAL, CUR_CMD_UNKNOWN, 0)
-        held = null
-        if (write(done)) outcome = SequenceOutcome.COMPLETED
+        if (last != null && write(last)) outcome = SequenceOutcome.COMPLETED
     }
 
     private suspend fun start(event: QueryEvent.ResultStart): Boolean {
@@ -96,13 +107,29 @@ internal class ResponseRun(private val errors: ErrorMapping, private val sink: T
         if ((columns != null) != inResult) return violation()
         columns = null
         val status = if (affectedRows != null) DoneStatus.COUNT else DoneStatus.FINAL
-        held = DoneToken(DoneKind.DONE, status, CUR_CMD_UNKNOWN, affectedRows ?: 0)
+        val kind = if (form == ResponseForm.RPC) DoneKind.DONE_IN_PROC else DoneKind.DONE
+        held = DoneToken(kind, status, CUR_CMD_UNKNOWN, affectedRows ?: 0)
         return false
     }
 
-    private suspend fun unsupported(name: String): Boolean {
-        val error = ProtocolError(ProtocolFailure.INVALID_TYPE, "Ereignis $name wird nicht abgebildet")
-        return report(errors.typeMapping(error))
+    /**
+     * `ReturnStatus` oder `OutputParameter` (unter [name]): in der Form BATCH ein Fehler der Typabbildung,
+     * in der Form RPC ein Token, sofern die Reihenfolge stimmt (kein offenes Ergebnis, ein einziger
+     * `ReturnStatus`).
+     */
+    private suspend fun rpcOutput(event: QueryEvent, name: String): Boolean = when {
+        form != ResponseForm.RPC -> {
+            val error = ProtocolError(ProtocolFailure.INVALID_TYPE, "Ereignis $name wird nicht abgebildet")
+            report(errors.typeMapping(error))
+        }
+
+        columns != null -> violation()
+
+        else -> when (val mapped = outputs.map(event)) {
+            null -> violation()
+            is ProtocolResult.Failed -> report(errors.typeMapping(mapped.error))
+            is ProtocolResult.Ok -> !write(mapped.value)
+        }
     }
 
     private suspend fun violation(): Boolean = report(errors.internal(null))
