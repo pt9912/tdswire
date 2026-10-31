@@ -13,8 +13,10 @@ internal const val EXIT_START_FAILED = 1
  * beendet den Prozess mit [EXIT_START_FAILED]; bis dahin ist kein Thread des Servers gestartet.
  * Der Start setzt `-Djdk.tls.server.newSessionTicketCount=0` nicht selbst, er verlangt es (siehe [Bootstrap]).
  */
-fun main() {
-    val wiring = Wiring(log = ServerLog.STDOUT)
+fun main() = runServer(Wiring(log = ServerLog.STDOUT))
+
+/** Startet den Server mit [wiring]; ein Abbruch beendet den Prozess, sonst läuft er bis zum Ende der JVM. */
+internal fun runServer(wiring: Wiring) {
     when (val boot = runBlocking { Bootstrap.start(System.getenv(), System::getProperty, wiring) }) {
         BootResult.Aborted -> exitProcess(EXIT_START_FAILED)
 

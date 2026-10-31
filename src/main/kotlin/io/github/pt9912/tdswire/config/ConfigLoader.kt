@@ -27,6 +27,9 @@ enum class IssueKind {
     /** Die Datei beginnt mit einem UTF-8-BOM. */
     BYTE_ORDER_MARK,
 
+    /** Die Datei ist größer als erlaubt. */
+    TOO_LARGE,
+
     /** Die Benutzerliste ist ungültig; [ConfigIssue.detail] trägt Fehlerart und Zeilennummer. */
     USER_LIST_INVALID,
 }
@@ -65,6 +68,10 @@ sealed interface ConfigResult {
  *   `TEST_UNENCRYPTED` lässt beide nicht zu.
  * - `AUTH_USERS_FILE` Pflicht; `AUTH_PLAIN_TESTMODE` fehlt, ist leer, `false` oder genau `true`; jeder
  *   andere Wert, auch `TRUE`, ist ein Fehler und schaltet nie ein (`ADR-0011`).
+ * - `SIMULATION_DESCRIPTION_FILE` optional (Name: Setzung, `ADR-0012` Offen 9): der Pfad der Datei der
+ *   Tabellenbeschreibung des Simulations-Backends; fehlt der Schlüssel, läuft der Server ohne Simulations-Backend.
+ *   Gesetzt ist der Wert nicht leer, die Datei lesbar und höchstens [MAX_SIMULATION_FILE_BYTES] groß (gelesen
+ *   werden höchstens ein Byte mehr, die Datei wird nie ganz geladen).
  *
  * Die Benutzerliste wird als UTF-8 gelesen. Ein BOM am Anfang wird abgewiesen, nicht entfernt (Festlegung,
  * Spezifikation, Abschnitt Authentifizierungsadapter); die Zeilenenden bleiben unverändert, ein CR ist dann
@@ -96,6 +103,7 @@ object ConfigLoader {
         val tls = tls(environment, encryption, issues)
         val plain = plainTestMode(environment, issues)
         val users = ConfigFiles.users(environment, plain, issues)
+        val simulation = ConfigFiles.simulation(environment, issues)
         return if (issues.isNotEmpty()) {
             ConfigResult.Invalid(issues.toList())
         } else {
@@ -106,6 +114,7 @@ object ConfigLoader {
                     checkNotNull(encryption),
                     tls,
                     AuthSettings(checkNotNull(users), checkNotNull(plain)),
+                    simulation,
                 ),
             )
         }

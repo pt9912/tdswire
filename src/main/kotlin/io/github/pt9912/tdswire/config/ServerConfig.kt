@@ -14,7 +14,11 @@ object ConfigKeys {
     const val TLS_KEYSTORE_PASSWORD_FILE = "TLS_KEYSTORE_PASSWORD_FILE"
     const val AUTH_USERS_FILE = "AUTH_USERS_FILE"
     const val AUTH_PLAIN_TESTMODE = "AUTH_PLAIN_TESTMODE"
+    const val SIMULATION_DESCRIPTION_FILE = "SIMULATION_DESCRIPTION_FILE"
 }
+
+/** Obergrenze der Datei der Tabellenbeschreibung in Bytes, vor dem Parsen (`SPEC-035`, Voreinstellung 1 MiB). */
+const val MAX_SIMULATION_FILE_BYTES = 1_048_576
 
 /**
  * Verschlüsselungs-Richtlinie der Konfiguration (`SPEC-010`). [REQUIRED] ist der Standard;
@@ -40,7 +44,9 @@ class TlsKeyMaterial(val keystore: ByteArray, val password: PasswordChars) {
 
 /**
  * Die validierte Konfiguration des Serverprozesses (`TDS-FA-09.a`). Sie entsteht nur über
- * [ConfigLoader.load]; die Textdarstellung nennt keinen Wert (`TDS-QA-03`).
+ * [ConfigLoader.load]; die Textdarstellung nennt keinen Wert (`TDS-QA-03`). [simulationFile] sind die Bytes der
+ * Datei der Tabellenbeschreibung des Simulations-Backends (höchstens [MAX_SIMULATION_FILE_BYTES]) oder `null`
+ * ohne Konfiguration; gelesen werden sie in `runtime`.
  */
 class ServerConfig(
     val listen: ListenSettings,
@@ -48,6 +54,7 @@ class ServerConfig(
     val encryption: EncryptionSetting,
     val tls: TlsKeyMaterial?,
     val auth: AuthSettings,
+    val simulationFile: ByteArray? = null,
 ) {
     override fun toString(): String = "ServerConfig(verborgen)"
 }

@@ -154,6 +154,7 @@ ARG DEPS_TASKS
 WORKDIR /src
 COPY --chown=gradle:gradle settings.gradle.kts build.gradle.kts gradle.properties ./
 COPY --chown=gradle:gradle gradle/libs.versions.toml gradle/
+COPY --chown=gradle:gradle LICENSE LICENSE
 COPY --chown=gradle:gradle src src
 COPY --chown=gradle:gradle config config
 COPY --from=testkeys --chown=gradle:gradle /testkeys build/testkeys
