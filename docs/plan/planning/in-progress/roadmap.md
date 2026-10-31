@@ -32,6 +32,10 @@ In Arbeit (Welle welle-simulations-backend):
 
 - [slice-sim-aenderung-integration](slice-sim-aenderung-integration.md)
 
+In Arbeit (Welle welle-betrieb-diagnose):
+
+- [slice-adr-observability](slice-adr-observability.md)
+
 ## Nächste Wellen
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
