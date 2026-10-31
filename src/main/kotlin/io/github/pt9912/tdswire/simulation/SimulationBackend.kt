@@ -32,7 +32,9 @@ import java.util.concurrent.atomic.AtomicBoolean
  *
  * Grenze: [cancel] und [QueryExecution.close] beenden den Strom vor dem Lesen der nächsten Zeile; ein
  * `next()`, das selbst hängt, endet nur mit dem Abbruch des Sammlers (die Frist: offen). Gespeichert wird
- * nichts, und eine Ausführung ist für genau einen Sammler gedacht.
+ * nichts, und eine Ausführung ist für genau einen Sammler gedacht. Der Aufrufer sammelt den Strom oder ruft
+ * [QueryExecution.close]: bis dahin bleibt die Ausführung unter Sitzung und Anfrage registriert (für [cancel]); eine
+ * zweite Ausführung mit demselben Schlüssel ersetzt die Registrierung der ersten.
  */
 class SimulationBackend(catalog: SimCatalog) : QueryBackend {
     private val planner = StatementPlanner(catalog)

@@ -10,7 +10,7 @@ import kotlin.test.assertTrue
 
 /**
  * Speichergrenze des Simulations-Backends: eine Zeilenquelle mit mehr Text, als der Heap des Testlaufs fasst,
- * wird an einer Senke gelesen, die auf Zeilen wartet; das Backend hält das Ergebnis nicht. Der Heap des
+ * wird an einer Senke gelesen, die auf Zeilen wartet; das Backend hält das Ergebnis nicht vollständig. Der Heap des
  * Testlaufs ist `maxHeapSize` in `gradle/test-jvm.init.gradle.kts` (128 MiB); der Test prüft den Wert zur Laufzeit
  * gegen `Runtime.maxMemory()`. Die Aussage gilt für diesen Testlauf mit dieser Senke, nicht für das Produkt unter
  * Last.
@@ -47,7 +47,10 @@ class SimulationMemoryTest {
      * Testlaufs fasst (Untergrenze: ein Byte je Zeichen). Die Senke wartet nach jeder 100 000. Zeile 50 ms; zu jeder
      * abgenommenen Zeile ist die Quelle genau bis zu dieser Zeile gelesen, vor und nach der Wartezeit (der Zähler
      * hat eine Untergrenze und eine Obergrenze: weniger wäre eine fehlende Zeile, mehr ein Vorauslesen). Das
-     * Ergebnis kommt vollständig an.
+     * Ergebnis kommt vollständig an. Die Senke bricht nach 90 Sekunden mit einem roten Test ab, damit ein Rückfall
+     * (etwa das Behalten aller Zeilen) nicht als hängender Lauf endet. Der Beleg hat einen Messpunkt: 153,6 MB Text
+     * gegen 134,2 MB Heap, 14 % darüber; er trägt "nicht vollständig gehalten", nicht "Speicher unabhängig von der
+     * Zeilenzahl".
      * @spec SPEC-031
      */
     @Test
@@ -73,9 +76,11 @@ class SimulationMemoryTest {
     /** Liest das Ergebnis an einer Senke, die nach jeder [CHECK_EVERY]. Zeile wartet; die Ausführung lebt nur hier. */
     private suspend fun drain(source: Generated, tally: Tally) {
         val execution = source.backend.execute(queryRequest("SELECT id, text FROM big"))
+        val deadline = System.nanoTime() + LIMIT_NANOS
         execution.events.collect { event ->
             when (event) {
                 is QueryEvent.Row -> {
+                    if (System.nanoTime() > deadline) throw AssertionError("Zeitgrenze bei Zeile ${tally.received}")
                     tally.received++
                     tally.compare(source.pulled)
                     if (tally.received % CHECK_EVERY == 0) {
@@ -108,5 +113,6 @@ class SimulationMemoryTest {
     private companion object {
         const val CHECK_EVERY = 100_000
         const val SLOW_MILLIS = 50L
+        const val LIMIT_NANOS = 90_000_000_000L
     }
 }
