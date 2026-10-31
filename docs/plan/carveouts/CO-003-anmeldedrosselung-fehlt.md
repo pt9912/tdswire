@@ -17,7 +17,7 @@ Carveout braucht immer einen Auflösungs-Trigger **und** einen Folge-Slice.
 
 ## Begründung
 
-[ADR-0009](../adr/0009-authentifizierungsmodus.md) §Offen nennt den Schutz gegen wiederholte Anmeldeversuche (Drosselung, Sperre) weder entschieden noch gebaut: Bei gleicher Ablehnung für jeden Grund bleibt Raten ungebremst ([TDS-QA-03](../../../spec/lastenheft.md#tds-qa-03--sicherheit) verlangt keine Enumerationsfestigkeit). Die Wahl der Art (je Benutzername, je Quelladresse, Verzögerung oder Sperre) und der Grenzwerte ist eine Entscheidung des Nutzers, die eine neue ADR braucht; der Implementer entscheidet sie nicht. [slice-qa-sicherheit](../planning/in-progress/slice-qa-sicherheit.md) misst die Grundlagen der Entscheidung: Eine Anmeldung mit 210000 Iterationen braucht auf dem Host des Laufs rund 57 ms, und vier Aufrufe belegen alle Plätze des `AuthPool` für die Dauer einer Ableitung; wie viele Versuche je Sekunde ein Client dem Server abverlangen kann, ist nicht gemessen.
+[ADR-0009](../adr/0009-authentifizierungsmodus.md) §Offen nennt den Schutz gegen wiederholte Anmeldeversuche (Drosselung, Sperre) weder entschieden noch gebaut: Bei gleicher Ablehnung für jeden Grund bleibt Raten ungebremst ([TDS-QA-03](../../../spec/lastenheft.md#tds-qa-03--sicherheit) verlangt keine Enumerationsfestigkeit). Die Wahl der Art (je Benutzername, je Quelladresse, Verzögerung oder Sperre) und der Grenzwerte ist eine Entscheidung des Nutzers, die eine neue ADR braucht; der Implementer entscheidet sie nicht. [slice-qa-sicherheit](../planning/done/slice-qa-sicherheit.md) misst die Grundlagen der Entscheidung: Eine Anmeldung mit 210000 Iterationen braucht auf dem Host des Laufs rund 57 ms, und vier Aufrufe belegen alle Plätze des `AuthPool` für die Dauer einer Ableitung; wie viele Versuche je Sekunde ein Client dem Server abverlangen kann, ist nicht gemessen.
 
 ## Auflösungs-Trigger
 
@@ -41,4 +41,4 @@ Der Carveout ist aufgelöst, wenn der Folge-Slice `slice-qa-anmeldedrosselung` i
 
 | Datum | Ereignis | Verweis |
 |---|---|---|
-| 2026-10-31 | Angelegt | [slice-qa-sicherheit](../planning/in-progress/slice-qa-sicherheit.md) |
+| 2026-10-31 | Angelegt | [slice-qa-sicherheit](../planning/done/slice-qa-sicherheit.md) |
