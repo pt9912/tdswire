@@ -473,7 +473,7 @@ Abbruchausnahme der Coroutine, also auch für ein `Error` (gebauter Stand des Se
 `OutOfMemoryError` beim Erzeugen oder Senden der Antwort einer Anfrage (Backend, Encoder, Senke) wird
 gefangen und ist ebenfalls ein Fall von `SPEC-048` (Nutzerentscheidung vom 2026-10-31): ERROR und DONE mit
 Fehlerstatus, solange der Strom synchron ist, danach schließt die Verbindung; sonst schließt sie ohne ERROR
-und DONE. Aus Encoder und Senke werden andere `Error` und andere Ausnahmen nicht gefangen, ebenso nicht die
+und DONE. Die Zusage der Negative aus `TDS-FA-06` gilt hierfür als erfüllt (Abnahme-Entscheidung des Nutzers vom 2026-10-31, nicht gemessen). Aus Encoder und Senke werden andere `Error` und andere Ausnahmen nicht gefangen, ebenso nicht die
 Abbruchausnahme der Coroutine (Setzung, Voreinstellung 2026-10-30, nicht gemessen). Ein Fehler beendet den
 Lauf; weitere Ereignisse werden nicht gelesen.
 Return Status und Ausgabeparameter werden bis zu ihrer Abbildung mit einem Fehler der Typabbildung
