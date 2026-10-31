@@ -1,0 +1,2 @@
+**Vorgang:** slice-sim-aenderung-integration
+**Fund:** Risiko 8 in §6 des Slice. Der Integrationslauf belegt das Verhalten des Referenzclients (Microsoft.Data.SqlClient 7.1.1) gegen den Server dieses Repos mit Simulations-Backend, nicht gegen einen echten SQL Server. Auswahl mit Bedingung, leeres Ergebnis, Zeilenquelle über dem Heap und Fehler der Zeilenquelle sind am Referenzclient gemessen, die Gegenseite nicht. Der Träger `slice-qa-vergleichslauf-d` führt diese Szenarien nicht in seiner DoD.

@@ -1,0 +1,2 @@
+**Vorgang:** slice-sim-aenderung-integration
+**Fund:** Review F-3 ([Review](../../../../../../reviews/2026-10-31-a7e6afa-slice-sim-aenderung-integration.md)). Heap 48 MiB und 64 000 000 Zeichen standen an fünf Stellen; nur Kotlin und C# waren gekoppelt. Behoben in der Fix-Runde 76985bd durch `IntegrationZahlenTest` (vergleicht `maxHeapSize`, `SPEC-040` und `harness/README.md`); die Verifikation röterte ihn mit `48m` zu `40m` ([Verifikation 2](../../../../../../reviews/2026-10-31-48ed775-verifikation-2-slice-sim-aenderung-integration.md), Mutation 6).

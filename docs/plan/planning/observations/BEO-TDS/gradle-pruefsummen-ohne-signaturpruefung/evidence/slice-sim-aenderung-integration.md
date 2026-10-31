@@ -1,0 +1,2 @@
+**Vorgang:** slice-sim-aenderung-integration
+**Fund:** Risiko 1 in §6 und Review F-10 ([Review](../../../../../../reviews/2026-10-31-a7e6afa-slice-sim-aenderung-integration.md)). `make deps-lock` schrieb für `jackson-dataformat-yaml` 2.21.7 sechs Sperrzeilen in `gradle.lockfile` und elf Komponenten in `gradle/verification-metadata.xml`; `verify-signatures` steht auf `false`, die Prüfsummen stammen vom ersten Abruf.

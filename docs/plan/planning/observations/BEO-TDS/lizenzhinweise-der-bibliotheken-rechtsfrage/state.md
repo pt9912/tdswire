@@ -1,1 +1,1 @@
-**Stand:** offen — Träger sind `slice-release-doku-prozess` (die Doku behauptet dazu nichts) und `slice-sim-aenderung-integration` (neue Abhängigkeit); Entscheidung beim Nutzer.
+**Stand:** offen — Träger ist `slice-release-doku-prozess` (die Doku behauptet dazu nichts); `slice-sim-aenderung-integration` hat die Abhängigkeiten Jackson und snakeyaml hinzugefügt und kein Hinweisdokument; Entscheidung beim Nutzer.

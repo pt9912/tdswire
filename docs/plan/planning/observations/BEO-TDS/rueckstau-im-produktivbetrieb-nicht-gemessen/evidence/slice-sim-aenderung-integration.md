@@ -1,0 +1,2 @@
+**Vorgang:** slice-sim-aenderung-integration
+**Fund:** Risiko 5 in §6 des Slice. Der Beleg der Zeilenquelle oberhalb der Speichergrenze ist ein Serverprozess mit Heap 48 MiB (50 331 648 Bytes), 500 000 Zeilen und 64 000 000 Zeichen Text (gemessen in `make e2e`, Stufe 3), gelesen von einem Client, der abnimmt. Der Rückstau mit einem langsamen Client, der Heap im Betrieb und die Last mit vielen Verbindungen sind nicht gemessen. Träger bleibt `slice-qa-performance`.
