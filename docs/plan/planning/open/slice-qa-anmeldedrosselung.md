@@ -44,7 +44,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] Entscheidung des Nutzers über die Drosselung (Art, Schlüssel, Grenzwerte, oder Verzicht) als ADR `Accepted`; die Wahl trifft der Nutzer, nicht der Implementer.
+- [ ] Entscheidung über die Drosselung (Art, Schlüssel, Grenzwerte, oder Verzicht) als ADR `Accepted`: [ADR-0016](../../adr/0016-anmeldedrosselung.md) liegt als `Proposed` vor (Optionen A bis E, Empfehlung B, Grenzwerte als Setzung); die Wahl bestätigt der Nutzer, nicht der Implementer.
 - [ ] Bei einer Drosselung: Umsetzung im Anmeldepfad mit Tests, die zeigen, dass wiederholte Versuche gebremst werden und reguläre Anmeldungen nicht dauerhaft blockiert sind (Messung der Wirkung auf die Wartezeit, wie `AuthPoolOccupationTest` sie für die Plätze misst).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -65,7 +65,7 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| ADR zur Drosselung | neu | Entscheidung des Nutzers; Optionen sind offen |
+| ADR zur Drosselung | vorhanden | [ADR-0016](../../adr/0016-anmeldedrosselung.md) (`Proposed`); Annahme durch den Nutzer steht aus |
 | Anmeldepfad (`protocol.session`) | update | nur bei einer Drosselung |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
@@ -80,7 +80,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): mehr als drei Liefer-Punkte in §2.
-- `in-progress` → `open` (blockiert — Carveout?): Der Nutzer hat die Art der Drosselung nicht entschieden.
+- `in-progress` → `open` (blockiert — Carveout?): [ADR-0016](../../adr/0016-anmeldedrosselung.md) bleibt `Proposed`.
 
 ## 5. Closure-Trigger
 

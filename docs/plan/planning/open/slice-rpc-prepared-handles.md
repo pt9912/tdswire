@@ -49,7 +49,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 Liefer-Punkte (drei):
 
-- [ ] **Handle-Tabelle je Sitzung** ([TDS-FA-04.a](../../../../spec/spezifikation.md#tds-fa-04a--rpc-und-parameter), SPEC-030, [ADR-0004](../../adr/0004-session-zustandsautomat.md)): Vergabe, Nachschlagen und Ende mit der Sitzung; der Zugriff läuft unter dem Sitzungsschutz des Zustandsmodells von [ADR-0004](../../adr/0004-session-zustandsautomat.md); zwei Sitzungen sehen die Handles der jeweils anderen nicht (Test); die Anzahl je Sitzung ist begrenzt, das Überschreiten ergibt den definierten Fehler und lässt die Verbindung offen. Der Grenzwert und die Vergabe der Handle-Werte sind Festlegungen des Nutzers (§6) und nicht gemessen.
+- [ ] **Handle-Tabelle je Sitzung** ([TDS-FA-04.a](../../../../spec/spezifikation.md#tds-fa-04a--rpc-und-parameter), SPEC-030, [ADR-0004](../../adr/0004-session-zustandsautomat.md)): Vergabe, Nachschlagen und Ende mit der Sitzung; der Zugriff läuft unter dem Sitzungsschutz des Zustandsmodells von [ADR-0004](../../adr/0004-session-zustandsautomat.md); zwei Sitzungen sehen die Handles der jeweils anderen nicht (Test); die Anzahl je Sitzung ist begrenzt, das Überschreiten ergibt den definierten Fehler und lässt die Verbindung offen. Der Grenzwert (1000 je Sitzung) ist eine Setzung laut [ADR-0017](../../adr/0017-prepared-handles-grenzwert.md) (`Proposed`) und nicht gemessen; die Vergabe der Handle-Werte ist eine Festlegung des Nutzers (§6) und nicht gemessen.
 - [ ] **`sp_prepexec` und `sp_execute`** ([TDS-FA-04](../../../../spec/lastenheft.md#tds-fa-04--parametrisierte-abfragen-über-rpc) Happy Path, [TDS-FA-10.a](../../../../spec/spezifikation.md#tds-fa-10a--mehrteilige-antworten-und-rpc-ausgabewerte)): `sp_prepexec` (Parameter 0 OUTPUT-Handle mit −1 beim Erstaufruf, Deklaration, Text) führt über das Test-Backend aus und liefert das Handle als RETURNVALUE mit Ordinal 0 und `INTN` 4 (so beantwortete es der Spike-Testserver; für einen echten Server nicht gemessen); `sp_execute` (Parameter 0 Handle) ruft das Test-Backend mit dem gemerkten Text und den neuen Werten, ein zweiter und dritter Aufruf mit anderen Werten liefern je das Ergebnis; NULL-Parameter und OUTPUT folgen den Regeln aus `slice-rpc-executesql-parameter`.
 - [ ] **Definierte Fehler** ([TDS-FA-04](../../../../spec/lastenheft.md#tds-fa-04--parametrisierte-abfragen-über-rpc) Negative, [ADR-0005](../../adr/0005-rpc-und-prepared-statements.md)): ein unbekanntes Handle, ein bereits wieder entferntes Handle (nach Sitzungsende nicht erreichbar), `sp_unprepare`, `sp_prepare` und das Überschreiten der Handle-Grenze ergeben je einen definierten Fehler ohne Verbindungsabbruch; ein Folge-RPC auf derselben Verbindung wird beantwortet (Setzung, nicht gemessen).
 
@@ -90,12 +90,12 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-rpc-executesql-parameter` und `slice-antwort-mehrteilig-output` liegen in `done/`, [ADR-0004](../../adr/0004-session-zustandsautomat.md) steht im ADR-Index auf `Accepted` (Sitzungsschutz und Sitzungsende), der Grenzwert für Handles je Sitzung ist vom Nutzer entschieden (§6), und ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): `slice-rpc-executesql-parameter` und `slice-antwort-mehrteilig-output` liegen in `done/`, [ADR-0004](../../adr/0004-session-zustandsautomat.md) steht im ADR-Index auf `Accepted` (Sitzungsschutz und Sitzungsende), [ADR-0017](../../adr/0017-prepared-handles-grenzwert.md) (Grenzwert der Handles je Sitzung) steht im ADR-Index auf `Accepted`, und ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): mehr als drei Liefer-Punkte in §2.
-- `in-progress` → `open` (blockiert — Carveout?): [ADR-0004](../../adr/0004-session-zustandsautomat.md) bleibt `Proposed`, oder der Grenzwert bleibt unentschieden.
+- `in-progress` → `open` (blockiert — Carveout?): [ADR-0004](../../adr/0004-session-zustandsautomat.md) bleibt `Proposed`, oder [ADR-0017](../../adr/0017-prepared-handles-grenzwert.md) bleibt `Proposed`.
 
 ## 5. Closure-Trigger
 
@@ -112,7 +112,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Der Grenzwert der Handles je Sitzung und die Vergabe der Handle-Werte (Zähler je Sitzung ab 1, Wiederverwendung) sind weder gemessen noch in [ADR-0005](../../adr/0005-rpc-und-prepared-statements.md) festgelegt ("zu begrenzen", Festlegung ohne Zahl). Die Zahl ist eine Entscheidung des Nutzers und wird hier nicht gesetzt. — **Ausgang:** offen bis zur Closure; Frage an den Nutzer in der Welle-Eröffnung.
+- Der Grenzwert der Handles je Sitzung und die Vergabe der Handle-Werte (Zähler je Sitzung ab 1, Wiederverwendung) sind weder gemessen noch in [ADR-0005](../../adr/0005-rpc-und-prepared-statements.md) festgelegt ("zu begrenzen", Festlegung ohne Zahl). Der Grenzwert ist entschieden in [ADR-0017](../../adr/0017-prepared-handles-grenzwert.md) (1000 je Sitzung, Setzung, nicht gemessen; Status `Proposed`); der Slice startet erst, wenn die ADR `Accepted` ist. Die Vergabe der Handle-Werte bleibt Festlegung des Nutzers. — **Ausgang:** offen bis zur Closure.
 - Unter Pooling kann ein Client `sp_unprepare` oder `sp_reset_connection` senden; der Katalog beantwortet `sp_unprepare` mit einem Fehler, was ein gepoolter Client daraus macht, ist nicht gemessen (`BEO-TDS/tds-8-0-und-pooling-nicht-gemessen`). Handles wachsen ohne `sp_unprepare` bis zur Grenze. — **Ausgang:** offen bis zur Closure.
 - Das Handle als RETURNVALUE mit Ordinal 0 ist vom Testserver beantwortet und vom Client akzeptiert worden; die Zählung eines echten Servers ist nicht gemessen (`BEO-TDS/messung-am-echten-sql-server-fehlt`). — **Ausgang:** offen bis zur Closure.
 - Der Zugriff auf die Handle-Tabelle hängt am Nebenläufigkeitsmodell von [ADR-0004](../../adr/0004-session-zustandsautomat.md) (`Mutex` je Sitzung, Setzung des Nutzers, `Proposed`); gleichzeitige Anfragen einer Sitzung ohne MARS sind nicht erwartet, aber ein ATTENTION während `sp_prepexec` ist Gegenstand der Welle `welle-fehler-abbruch`. — **Ausgang:** offen bis zur Closure.

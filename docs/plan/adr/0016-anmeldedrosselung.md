@@ -14,7 +14,7 @@
 
 ## Kontext
 
-[ADR-0009](0009-authentifizierungsmodus.md) führt den Schutz gegen wiederholte Anmeldeversuche als weder entschieden noch gebaut; [CO-003](../carveouts/CO-003-anmeldedrosselung-fehlt.md) trägt den Punkt mit dem Folge-Slice für die Anmeldedrosselung und verlangt zur Auflösung eine `Accepted`-ADR für Drosselung oder Verzicht (Entscheidungsblatt [Punkt 2](../entscheidungsblatt.md)). Die Wahl der Art und der Grenzwerte trifft der Nutzer; dieser Text bietet Optionen und eine Empfehlung an.
+[ADR-0009](0009-authentifizierungsmodus.md) führt den Schutz gegen wiederholte Anmeldeversuche als weder entschieden noch gebaut; [CO-003](../carveouts/CO-003-anmeldedrosselung-fehlt.md) trägt den Punkt mit dem Folge-Slice für die Anmeldedrosselung und verlangt zur Auflösung eine `Accepted`-ADR für Drosselung oder Verzicht (Entscheidungsblatt Punkt 2). Die Wahl der Art und der Grenzwerte trifft der Nutzer; dieser Text bietet Optionen und eine Empfehlung an.
 
 **Was gemessen ist.** Im Slice für die Sicherheitstests: eine Anmeldung mit 210000 Iterationen braucht auf dem Host des Laufs rund 57 ms (CO-003; die Messtests streuen je nach Last zwischen rund 43 und 64 ms je Aufruf), und mit 4 Plätzen des `AuthPool` warten reguläre Aufrufe hinter belegenden (`AuthPoolOccupationTest`). Abgeleitet, nicht gemessen: bei 4 Plätzen und 57 ms ergeben sich höchstens rund 70 Ableitungen je Sekunde, ohne Netz- und Handshakezeit. Wie viele Versuche je Sekunde ein Client dem Server tatsächlich abverlangen kann, ist nicht gemessen.
 
@@ -74,7 +74,7 @@ Ein Betreiber hinter gemeinsamer Adresse, dessen reguläre Anmeldungen durch den
 
 | Datum | Ereignis | Verweis |
 |---|---|---|
-| 2026-10-31 | Proposed – Optionen A bis E mit Empfehlung B zu Punkt 2 des Entscheidungsblatts (Nutzer: „ok deine empfehlungen“); Grenzwerte als Setzung (Voreinstellung, nicht gemessen); die Wahl der Art bestätigt der Nutzer mit der Annahme | [Entscheidungsblatt](../entscheidungsblatt.md), [CO-003](../carveouts/CO-003-anmeldedrosselung-fehlt.md) |
+| 2026-10-31 | Proposed – Optionen A bis E mit Empfehlung B zu Punkt 2 des Entscheidungsblatts (Nutzer: „ok deine empfehlungen“); Grenzwerte als Setzung (Voreinstellung, nicht gemessen); die Wahl der Art bestätigt der Nutzer mit der Annahme | Entscheidungsblatt, [CO-003](../carveouts/CO-003-anmeldedrosselung-fehlt.md) |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit

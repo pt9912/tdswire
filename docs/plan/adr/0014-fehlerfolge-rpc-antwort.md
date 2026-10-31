@@ -14,7 +14,7 @@
 
 ## Kontext
 
-Drei Fragen betreffen dieselbe Sache: wie eine **Fehlerantwort auf eine RPC-Nachricht** endet. Alle drei stehen im Entscheidungsblatt ([Punkt 10, 11c, 15](../entscheidungsblatt.md)) und haben heute keinen Träger.
+Drei Fragen betreffen dieselbe Sache: wie eine **Fehlerantwort auf eine RPC-Nachricht** endet. Alle drei stehen im Entscheidungsblatt (Punkt 10, 11c, 15) und haben heute keinen Träger.
 
 **Was gemessen ist.** [ADR-0007](0007-fehler-und-attention.md) misst am echten SQL Server (Messreihe R) Fehlerantworten auf SQL_BATCH: ERROR und `DONE[ERR]` (R01, R05 bis R07), bei statement-abbrechenden Fehlern `DONE[MORE|ERR]` mit weiterlaufenden Statements (R04). **Eine einzige** Zeile berührt die Form eines Fehlerabschlusses mit Prozedurbezug: R02, `SELEC 1` als Batch gesendet, der Server las den Batch als Prozedurname und antwortete ERROR 2812 (Class 16, State 62) und `DONEPROC[ERR]`. R02 ist **kein** Fehler in einer RPC-Nachricht: der Auslöser war ein SQL_BATCH, der Server hat ihn als Prozedurnamen ausgeführt. Sie zeigt daher nur, dass der Server den Abschluss nach der Art der ausgeführten Sache wählt (hier Prozedur) und nicht nach dem Pakettyp. Ein Fehler in `sp_executesql`, eine unbekannte ProcID oder eine ungültig kodierte RPC-Nachricht ist am echten Server **nicht** gemessen.
 
@@ -70,7 +70,7 @@ Eine Messung (im Slice für den Vergleichslauf D oder ein Lauf gegen den echten 
 
 | Datum | Ereignis | Verweis |
 |---|---|---|
-| 2026-10-31 | Proposed – Folge-ADR zu den Punkten 10, 11c und 15 des Entscheidungsblatts (Nutzer: „ok deine empfehlungen“); Setzung, nicht gemessen; Status bleibt Proposed bis Review und Annahme durch den Nutzer | [Entscheidungsblatt](../entscheidungsblatt.md) |
+| 2026-10-31 | Proposed – Folge-ADR zu den Punkten 10, 11c und 15 des Entscheidungsblatts (Nutzer: „ok deine empfehlungen“); Setzung, nicht gemessen; Status bleibt Proposed bis Review und Annahme durch den Nutzer | Entscheidungsblatt |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit
