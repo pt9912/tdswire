@@ -1,6 +1,6 @@
 # ADR-0017: Grenzwert der Prepared-Handles je Sitzung und Verhalten bei Überschreitung
 
-**Status:** Proposed
+**Status:** Accepted (vom Nutzer entschieden)
 
 **Datum:** 2026-10-31
 
@@ -19,6 +19,8 @@
 Der Slice für Prepared-Handles nennt den Grenzwert „Festlegung des Nutzers, nicht gemessen“ und startet erst, wenn er entschieden ist; die Closure des Slice für mehrteilige Antworten und Ausgabewerte findet für den Grenzwert keine Zahl im Repo (Entscheidung des Nutzers 2026-10-31, Empfehlung übernommen). Eine Messung am echten Server gibt es nicht: weder wie viele Handles ein SQL Server je Sitzung hält noch wie er ein Überschreiten beantwortet. Der Speicher je Handle (Text, Deklaration) ist nicht gemessen; `MAX_CONNECTIONS` ist 1000 (`SPEC-034`, vorläufig).
 
 ## Entscheidung
+
+Mit der Annahme am 2026-10-31 bestätigt der Nutzer die als Empfehlung markierten Optionen, insbesondere den Grenzwert **1000 je Sitzung** (Nutzerentscheidung 2026-10-31: „ADRs 0016 bis 0019 nach Korrektur annehmen“). Die Punkte unter „Offen“ bleiben offen.
 
 Wir wählen **Option A für den Grenzwert** und **Option a für die Überschreitung**.
 
@@ -72,6 +74,7 @@ Eine Messung des Handle-Verhaltens eines echten Servers; ein gepoolter Referenzc
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-31 | Proposed – Grenzwert 1000 als Setzung (Voreinstellung, nicht gemessen) und Überschreitung als definierter Fehler bei offener Verbindung (Empfehlung) (Entscheidung des Nutzers 2026-10-31, Empfehlung übernommen); Status bleibt Proposed bis Review und Annahme durch den Nutzer | [ADR-0005](0005-rpc-und-prepared-statements.md) |
+| 2026-10-31 | Accepted – angenommen nach Review und Korrekturrunde (Review docs/reviews/2026-10-31-33ffaab-adr-0014-bis-0019.md) | [Review](../../reviews/2026-10-31-33ffaab-adr-0014-bis-0019.md) |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit
