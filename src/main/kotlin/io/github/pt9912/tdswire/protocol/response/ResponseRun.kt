@@ -47,8 +47,8 @@ internal class ResponseRun(
             is QueryEvent.ResultEnd -> finish(event.affectedRows, inResult = true)
             is QueryEvent.UpdateCount -> finish(event.affectedRows, inResult = false)
             is QueryEvent.Failure -> report(errors.backend(event))
-            is QueryEvent.ReturnStatus -> rpcOutput(event, "ReturnStatus")
-            is QueryEvent.OutputParameter -> rpcOutput(event, "OutputParameter")
+            is QueryEvent.ReturnStatus -> rpcOutput("ReturnStatus") { outputs.status(event) }
+            is QueryEvent.OutputParameter -> rpcOutput("OutputParameter") { outputs.value(event) }
         }
     }
 
@@ -117,7 +117,7 @@ internal class ResponseRun(
      * in der Form RPC ein Token, sofern die Reihenfolge stimmt (kein offenes Ergebnis, ein einziger
      * `ReturnStatus`).
      */
-    private suspend fun rpcOutput(event: QueryEvent, name: String): Boolean = when {
+    private suspend fun rpcOutput(name: String, map: () -> ProtocolResult<Token>?): Boolean = when {
         form != ResponseForm.RPC -> {
             val error = ProtocolError(ProtocolFailure.INVALID_TYPE, "Ereignis $name wird nicht abgebildet")
             report(errors.typeMapping(error))
@@ -125,7 +125,7 @@ internal class ResponseRun(
 
         columns != null -> violation()
 
-        else -> when (val mapped = outputs.map(event)) {
+        else -> when (val mapped = map()) {
             null -> violation()
             is ProtocolResult.Failed -> report(errors.typeMapping(mapped.error))
             is ProtocolResult.Ok -> !write(mapped.value)

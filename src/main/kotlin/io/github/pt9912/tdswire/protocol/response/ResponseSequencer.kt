@@ -100,10 +100,14 @@ enum class SequenceOutcome {
  *   oder Update-Zählers ist ein DONEINPROC, den Strom schließt ein DONEPROC ohne Bits und ohne Zahl. Ein
  *   zurückgehaltenes DONEINPROC bekommt `DONE_MORE`, auch wenn nur das DONEPROC folgt (der Testserver des
  *   Spikes schrieb dort kein `MORE`). [QueryEvent.ReturnStatus] wird RETURNSTATUS, [QueryEvent.OutputParameter]
- *   ein RETURNVALUE (Statusbyte 1, Ordinal ab 0 in der Reihenfolge der Ereignisse, Typ nullbar), beide an der
- *   Stelle im Strom. Ein zweiter `ReturnStatus` und ein Ereignis beider Arten in einem offenen Ergebnis sind
- *   ein Reihenfolgeverstoß; ein Typ oder Wert, den die Abbildung ablehnt, ist ein Fehler der Typabbildung.
- *   ERROR und der Abschluss mit Fehlerstatus bleiben auch hier ein DONE.
+ *   ein RETURNVALUE (Statusbyte 1, Ordinal ab 0 in der Reihenfolge der Ereignisse und nicht als Position in
+ *   der Aufrufliste, Typ nullbar), beide an der Stelle im Strom. Ein zweiter `ReturnStatus` und ein Ereignis
+ *   beider Arten in einem offenen Ergebnis sind ein Reihenfolgeverstoß; ein Typ oder Wert, den die
+ *   Abbildung ablehnt, ist ein Fehler der Typabbildung.
+ *   ERROR und der Abschluss mit Fehlerstatus bleiben auch hier ein DONE; dagegen zeigt die Messzeile R02
+ *   (ADR-0007), dass der echte Server einen Fehler im Prozedur-Kontext als DONEPROC mit Fehlerstatus schreibt.
+ *   Die Fehlerabbildung (`welle-fehler-abbruch`) entscheidet, ob die RPC-Antwort so schreibt.
+ *   Ein Ergebnis nach einem Ausgabewert ist nicht ausgeschlossen (Clientannahme nicht gemessen).
  * - „Synchron“ (`SPEC-031` definiert den Begriff nicht): der Strom ist synchron, solange die Senke
  *   jedes Token vollständig angenommen hat. Nimmt sie ein Token nicht vollständig an, wird nichts
  *   mehr geschrieben, auch kein ERROR und kein DONE: [SequenceOutcome.CLOSE_WITHOUT_COMPLETION]
