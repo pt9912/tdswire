@@ -1,0 +1,2 @@
+**Vorgang:** slice-antwort-mehrteilig-output
+**Fund:** Review F-2 und F-3, Verifikation F-6: die Setzung „DONE im Fehlerfall der RPC-Antwort“ nannte die einzige gegenläufige Messzeile (R02) nicht, das Ordinal der RETURNVALUE war an drei Stellen verschieden als Setzung gekennzeichnet, und die Abweichung vom Spike-Testserver (`MORE` am letzten DONEINPROC) stand nicht in der Spezifikation. Behoben in der Fix-Runde durch Einschränken und Nennen des Gegenbelegs.
