@@ -11,7 +11,8 @@ internal class Comparison(val equal: Boolean, val steps: Int)
 /**
  * Die zwei Rechenschritte, deren Ausführung der Strukturtest beobachtet: Ableitung und Vergleich.
  * Der Vergleich untersucht jede Position bis zur längeren Länge, ohne beim ersten Unterschied
- * abzubrechen; über Zeit sagt diese Struktur nichts (nicht gemessen, `ADR-0009` §Offen).
+ * abzubrechen; die Zeit misst `AuthTimingTest` (bei Einträgen gleicher Iterationszahl gleich, bei gemischten
+ * Listen nicht; Zahlen dort und in `UserList`).
  */
 internal interface AuthPrimitives {
     fun derive(password: CharArray, salt: ByteArray, iterations: Int, bytes: Int): ByteArray
