@@ -16,7 +16,7 @@
 
 ## Kontext
 
-Zwei angenommene ADRs und die Spezifikation (Rang 2, höher als jede ADR) stehen nebeneinander, ohne dass eine Entscheidung es sagt. Beide Fälle stehen in den Closure-Notizen als „Folge-ADR nötig“ ohne Träger; Entscheidungsblatt Punkt 11a und 11b.
+Zwei angenommene ADRs und die Spezifikation (Rang 2, höher als jede ADR) stehen nebeneinander, ohne dass eine Entscheidung es sagt. Beide Fälle stehen in den Closure-Notizen als „Folge-ADR nötig“ ohne Träger; der Nutzer hat am 2026-10-31 die Empfehlung übernommen.
 
 **(a) `OutputParameter`.** [ADR-0013](0013-backend-grenzen.md) Entscheidung 6 sagt: die Klassen der Werte gelten auch für `QueryParameter.value` und `OutputParameter.value`, „Letzteres bleibt bis zur Abbildung abgelehnt (SPEC-031)“. Die Spezifikation sagt jetzt: `OutputParameter` lehnt nur die Antwort auf einen Batch ab, in der Antwort auf einen RPC wird er abgebildet (RETURNVALUE; `SPEC-002`-Absatz zu Klassen, `SPEC-031`). Gebaut ist die Abbildung im RPC (Closure des Slice für mehrteilige Antworten und Ausgabewerte, Tests `ResponseRpcTest`, `AnswerFormsDispatchTest`; Handvektoren, nicht am echten Server gemessen). Der Halbsatz kann als zeitlich bedingt gelesen werden („bis zur Abbildung“), sagt aber ohne Einschränkung „Letzteres“ für beide Antwortformen; die Closure hat ihn als Spannung geführt.
 
@@ -27,14 +27,14 @@ Zwei angenommene ADRs und die Spezifikation (Rang 2, höher als jede ADR) stehen
 Wir wählen **Option A** für beide Punkte.
 
 1. **`OutputParameter` im RPC (zu 11a).** Die Antwort auf einen RPC bildet `OutputParameter` ab (RETURNVALUE mit Ordinal nach [ADR-0005](0005-rpc-und-prepared-statements.md) und `SPEC-030`); die Antwort auf einen Batch lehnt `OutputParameter` und `ReturnStatus` weiter ab (`SPEC-031`, Typabbildungsfehler mit der dort geführten Verbindungsfolge). Diese ADR **ersetzt** damit den Halbsatz in [ADR-0013](0013-backend-grenzen.md) Entscheidung 6. Grund: [TDS-FA-10.a](../../../spec/spezifikation.md#tds-fa-10a--mehrteilige-antworten-und-rpc-ausgabewerte) ist auf RPC-Ausgabewerte zugeschnitten (Überschrift), die Abbildung ist gebaut und getestet, und ein Batch hat im Clientprofil keine OUTPUT-Parameter (ADR-0005: Ausgabewerte kommen aus RPC; für Batch ist keine Messung geführt).
-2. **Zuschnitt (zu 11b).** Die Zustandsaufzählung ist **flach**, wie `SPEC-001` sie festlegt. Der Sitzungsrahmen hält den Zustand und entscheidet jeden Übergang atomar je Sitzung ([ADR-0004](0004-session-zustandsautomat.md) Option A mit Sperre je Sitzung). Diese ADR schließt damit den offenen Punkt „Zuschnitt“ in ADR-0004; sie widerspricht keiner Entscheidung dort. Die übrigen offenen Punkte von ADR-0004 (unzulässiger Übergang, ATTENTION im Handshake und in jedem Anfragezustand, Sitzungszustand nach Fehler, `RESETCONNECTION`, Zeitpunkt des Schließens nach `TDS_SHUTDOWN`) bleiben offen und sind nicht Gegenstand.
+2. **Zuschnitt (zu 11b).** Die Zustandsaufzählung ist **flach**, wie `SPEC-001` sie festlegt. Der Sitzungsrahmen hält den Zustand und entscheidet jeden Übergang atomar je Sitzung ([ADR-0004](0004-session-zustandsautomat.md) Option A mit Sperre je Sitzung). Diese ADR schließt damit den offenen Punkt „Zuschnitt“ in ADR-0004; sie widerspricht keiner Entscheidung dort. Damit ist auch die dort offene „endgültige Aufzählung“ geschlossen, soweit sie den Zuschnitt betrifft: die Aufzählung ist die gebaute (`ConnectionState`: `CONNECTED`, `PRELOGIN`, `TLS_NEGOTIATION`, `LOGIN7`, `AUTHENTICATING`, `READY`, `RUNNING`, `STREAMING`, `CLOSED`), ohne `COMPLETED` und ohne `CANCELLING`, mit `AUTHENTICATING`. Ein eigener Zustand `CANCELLING` ist nicht verworfen, sondern gehört zum offenen Punkt ATTENTION (siehe unten und Re-Evaluierungs-Trigger). Die übrigen offenen Punkte von ADR-0004 (unzulässiger Übergang, ATTENTION im Handshake und in jedem Anfragezustand, Sitzungszustand nach Fehler, `RESETCONNECTION`, Zeitpunkt des Schließens nach `TDS_SHUTDOWN`) bleiben offen und sind nicht Gegenstand.
 3. **Kennzeichnung.** Beide Festlegungen sind **Setzungen**, nicht gemessen: Die Abbildung von `OutputParameter` ist ohne Messung am echten Server (Reihenfolge RETURNVALUE/RETURNSTATUS und COLMETADATA hinter RETURNVALUE sind Spec-Lücken 2 und 3, Träger: Slice für den Vergleichslauf D); der flache Zuschnitt ist für den Anfragezustand nicht gemessen.
 
 ## Verglichene Alternativen
 
 | Option | Pro | Contra |
 |---|---|---|
-| **A — Teil-Supersede für 11a, Schärfung für 11b (gewählt)** | Spec, Code und Entscheidung sagen dasselbe; ADR-0013 und ADR-0004 bleiben unverändert; die Ablösung ist auf einen Halbsatz begrenzt | eine ADR mehr; Leser von ADR-0013 müssen den Hinweis in dieser ADR und im Index finden (ADR-0013 trägt keinen Zeiger, weil sie unverändert bleibt) |
+| **A — Teil-Supersede für 11a, Schärfung für 11b (gewählt)** | Spec, Code und Entscheidung sagen dasselbe; ADR-0013 und ADR-0004 bleiben unverändert; die Ablösung ist auf einen Halbsatz begrenzt | eine ADR mehr; Leser von ADR-0013 müssen den Hinweis in dieser ADR und im Titel ihres Index-Eintrags finden (ADR-0013 trägt keinen Zeiger, weil sie unverändert bleibt) |
 | B — Spec an die ADRs angleichen (`OutputParameter` auch im RPC ablehnen; Zuschnitt „offen“) | ADR-Text bleibt wörtlich wahr | nimmt eine gebaute, getestete Abbildung zurück und widerspricht [ADR-0005](0005-rpc-und-prepared-statements.md) (RETURNVALUE für OUTPUT) und [TDS-FA-10](../../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte); die Spec rangiert über der ADR |
 | C — Spannung als Setzung stehen lassen | kein Dokument | jeder Lauf liest zwei Aussagen und muss selbst entscheiden; die Closures führen sie schon zweimal als „Folge-ADR nötig“ |
 | D — getrennte Aufzählungen (Verbindungszustand, Anfragezustand) | Anfragezustände nur nach dem Login im Typ ausgedrückt (abgeleitet) | Umbau des gebauten, getesteten Automaten; zwei Automaten mit Zusammenspiel; kein Beleg, dass der flache Zuschnitt scheitert |
@@ -42,7 +42,7 @@ Wir wählen **Option A** für beide Punkte.
 ## Konsequenzen
 
 - Positiv: Zwei Spec-Lücken der Closures haben einen Träger; Spec und ADR-Bestand widersprechen sich an diesen Stellen nicht mehr.
-- Negativ: Der Halbsatz in ADR-0013 bleibt im Text stehen und ist nur über diese ADR als abgelöst erkennbar; das Index-Feld „Titel“ und das „Supersedes“-Feld tragen den Hinweis.
+- Negativ: Der Halbsatz in ADR-0013 bleibt im Text stehen und ist nur über diese ADR als abgelöst erkennbar; der Index hat keine Supersedes-Spalte (ID, Titel, Status, Bezug); den Hinweis trägt der Titel des Index-Eintrags dieser ADR („ersetzt teilweise“), und ADR-0013 trägt keinen Zeiger.
 - **Folgepflicht (nach `Accepted`):** Die Spezifikation trägt beide Aussagen bereits (`SPEC-031`, `SPEC-001`); der Spec-Nachzug beschränkt sich auf Kennzeichnung der Herkunft („Nutzerentscheidung“ durch den Verweis auf diese ADR) und auf die Zeile in den Sichten (`ARC-004` bleibt ohne ADR-Bezug, [AGENTS.md](../../../AGENTS.md) §3.4). Kein Code, kein Slice nötig. Träger: der Planner schließt die Spec-Lücke 1 der Closure des Slice für mehrteilige Antworten und Ausgabewerte und den Eintrag „Folge-ADR nötig“ des Slice für den SQL_BATCH-Dispatch mit Verweis auf diese ADR.
 - **Akzeptiertes Negativ (einmalig):** Ob ein echter SQL Server `OutputParameter` in der Antwort auf einen Batch tatsächlich nie liefert, ist nicht gemessen; die Ablehnung im Batch ist Setzung.
 
@@ -64,7 +64,7 @@ Eine Messung am echten Server, nach der der Batch `OutputParameter` kennt oder d
 
 | Datum | Ereignis | Verweis |
 |---|---|---|
-| 2026-10-31 | Proposed – Folge-ADR zu Punkt 11a und 11b des Entscheidungsblatts (Nutzer: „ok deine empfehlungen“); Teil-Supersede von ADR-0013 Entscheidung 6, Schließen eines offenen Punktes von ADR-0004; Status bleibt Proposed bis Review und Annahme durch den Nutzer | Entscheidungsblatt |
+| 2026-10-31 | Proposed – Folge-ADR (Entscheidung des Nutzers 2026-10-31, Empfehlung übernommen); Teil-Supersede von ADR-0013 Entscheidung 6, Schließen eines offenen Punktes von ADR-0004; Status bleibt Proposed bis Review und Annahme durch den Nutzer | [ADR-0004](0004-session-zustandsautomat.md), [ADR-0013](0013-backend-grenzen.md) |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit
