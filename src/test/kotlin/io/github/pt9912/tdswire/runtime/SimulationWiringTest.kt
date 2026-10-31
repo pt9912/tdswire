@@ -251,6 +251,21 @@ internal class SimulationWiringTest : RuntimeTestBase() {
     }
 
     /**
+     * Negative: ein Pfad, der keine reguläre Datei ist, endet mit `UNREADABLE`, ohne gelesen zu werden: ein
+     * Verzeichnis, ein Gerät (`/dev/zero` lieferte unbegrenzt Bytes und endete sonst als `TOO_LARGE`; eine FIFO ohne
+     * Schreiber blockierte das Öffnen) und ein Pfad, den die Plattform nicht bildet (NUL-Zeichen).
+     * @spec SPEC-035
+     */
+    @Test
+    fun `ein Pfad ohne reguelaere Datei ist unlesbar`() = blocking {
+        val directory = java.io.File(file("x.yaml", PERSON_FILE)).parent
+        for (path in listOf(directory, "/dev/zero", "/dev/null", "sim\u0000.yaml")) {
+            assertEquals(BootResult.Aborted, start(environment(ConfigKeys.SIMULATION_DESCRIPTION_FILE to path)), path)
+            assertEquals("Konfiguration ungueltig: SIMULATION_DESCRIPTION_FILE: UNREADABLE", log.lines.last(), path)
+        }
+    }
+
+    /**
      * Negative: ein Name, der in der Datei und in den Tabellen des Integrators vorkommt (auch in anderer
      * Schreibweise), und ein Backend zugleich mit einer Simulation brechen den Start ab; nichts startet.
      * @spec SPEC-035

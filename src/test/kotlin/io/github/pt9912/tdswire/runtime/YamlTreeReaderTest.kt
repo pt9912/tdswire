@@ -163,6 +163,20 @@ internal class YamlTreeReaderTest {
         assertEquals("ä", assertIs<SimScalar>(entry(read("key: ä\n"), "key").value).text)
     }
 
+    /**
+     * Negative: Zeichen, die YAML nicht zulässt, und ein Zeichen außerhalb der Grundebene enden als Ladefehler
+     * "YAML nicht lesbar" und nicht als andere Ausnahme; der Adapter liest aus einem Text im Speicher, ein Fehler des
+     * Lesens (`IOException`) tritt dort nicht auf und hat keinen eigenen Zweig.
+     * @spec SPEC-035
+     */
+    @Test
+    fun `unzulaessige Zeichen sind ein Ladefehler und keine andere Ausnahme`() {
+        for (text in listOf("a: x\u0000y\n", "a: x\u0007y\n", "\u0000", "a: \"\u0001\"\n")) {
+            assertEquals("YAML nicht lesbar", load(text).reason, text)
+        }
+        assertEquals("\uD83D\uDE00", assertIs<SimScalar>(entry(read("k: \uD83D\uDE00\n"), "k").value).text)
+    }
+
     private companion object {
         /** Mehr als die Tiefe 1000, die Jackson von sich aus begrenzt (`ADR-0012`, Messzeile MR). */
         const val DEPTH = 1200

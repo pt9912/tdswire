@@ -36,13 +36,22 @@ internal object SimulationSetup {
         return try {
             val described = file?.let { SimDescriptionReader.read(YamlTreeReader.read(it)) }.orEmpty()
             val all = described + tables.map(::owned)
-            SimulationResult.Ready(SimulationBackend(SimCatalog(all)), all.size)
+            SimulationResult.Ready(SimulationBackend(catalogOf(all)), all.size)
         } catch (error: SimLoadException) {
             SimulationResult.Failed("Beschreibung der Tabellen ungueltig: ${error.message}")
-        } catch (ignored: IllegalArgumentException) {
+        } catch (ignored: DuplicateNameException) {
             SimulationResult.Failed("Tabellen ungueltig: ein Name kommt doppelt vor")
         }
     }
+
+    /** Die Fangklausel umschließt nur den Katalog: nur seine Namensprüfung wird zu [DuplicateNameException]. */
+    private fun catalogOf(all: List<SimTable>): SimCatalog = try {
+        SimCatalog(all)
+    } catch (cause: IllegalArgumentException) {
+        throw DuplicateNameException(cause)
+    }
+
+    private class DuplicateNameException(cause: Throwable) : RuntimeException(cause)
 
     private fun owned(table: SimTable): SimTable =
         table.copy(columns = table.columns.toList(), primaryKey = table.primaryKey.toList())
