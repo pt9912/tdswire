@@ -1,10 +1,10 @@
-# CO-004: Cancel-Szenario des Test-Gates nach SPEC-040 fehlt
+# CO-004: Cancel-Szenario des Integrationslaufs nach SPEC-040 fehlt
 
 **Status:** Aktiv.
 
 **Datum angelegt:** 2026-10-31. **Letzte Prüfung:** 2026-10-31.
 
-**Betroffenes Gate:** `make simulations-integration` (Test-Gate nach `SPEC-040`, in `make gates`). Der Carveout nimmt keine Schwelle und keine Regel aus: Das Gate läuft grün mit vier Szenarien (Auswahl mit Bedingung, leeres Ergebnis, Zeilenquelle oberhalb der Speichergrenze, Fehler der Zeilenquelle); das fünfte, Cancel mit Folgeabfrage, hat keinen Test.
+**Betroffener Lauf:** `make simulations-integration` (Integrationslauf nach `SPEC-040`, Stufe 3 des E2E-Durchgangs `make e2e`, kein Gate nach [ADR-0022](../adr/0022-e2e-laeufe-nicht-in-den-gates.md)). Der Carveout nimmt keine Schwelle und keine Regel aus: Der Lauf ist grün mit vier Szenarien (Auswahl mit Bedingung, leeres Ergebnis, Zeilenquelle oberhalb der Speichergrenze, Fehler der Zeilenquelle); das fünfte, Cancel mit Folgeabfrage, hat keinen Test.
 
 **Geltungsbereich:** Cancel-Teil von `SPEC-040` in [`spec/spezifikation.md`](../../../spec/spezifikation.md) und DoD-Punkt 3 von [slice-sim-aenderung-integration](../planning/in-progress/slice-sim-aenderung-integration.md); Tests unter `referenztest-dotnet/Integration/`, Skript `tools/simulationstest.sh`.
 
@@ -12,7 +12,7 @@
 
 **Verantwortlich:** pt9912 (Autor des Slice-Plans) bis zur Priorisierung von `slice-attention-cancel-timeout`.
 
-**Setzung (Voreinstellung 2026-10-31, nicht entschieden; Nutzer kann auf B oder C umstellen):** Der Koordinator hat die Führung als befristeten Carveout mit dem Folge-Slice `slice-attention-cancel-timeout` voreingestellt („Option A“). Der Nutzer hat weder diese Wahl noch die Alternativen B oder C entschieden; stellt er um, wird dieser Carveout angepasst oder aufgelöst.
+**Entscheidung des Nutzers 2026-10-31:** Der Nutzer hat „Option A“ bestätigt: die Führung als befristeter Carveout mit dem Folge-Slice `slice-attention-cancel-timeout`; die Alternativen B und C sind nicht gewählt.
 
 Regeln: Baseline-Regelwerk `modul-07-carveouts.md` §Ziel-Form: Carveout — ein
 Carveout braucht immer einen Auflösungs-Trigger **und** einen Folge-Slice.
@@ -25,7 +25,7 @@ Der Server beantwortet ein ATTENTION-Paket während einer Anfrage nicht: Der `Re
 
 ## Auflösungs-Trigger
 
-Der Carveout ist aufgelöst, wenn beides zutrifft: (a) `slice-attention-cancel-timeout` liegt in `done/`, und (b) ein Cancel-Szenario mit Folgeabfrage von `SPEC-040` läuft am Referenzclient gegen das Simulations-Backend in `make simulations-integration` und besteht. Ändert der Nutzer die Voreinstellung (B oder C), gilt stattdessen die Auflösung, die er festlegt.
+Der Carveout ist aufgelöst, wenn beides zutrifft: (a) `slice-attention-cancel-timeout` liegt in `done/`, und (b) ein Cancel-Szenario mit Folgeabfrage von `SPEC-040` läuft am Referenzclient gegen das Simulations-Backend in `make simulations-integration` (E2E-Stufe 3) und besteht.
 
 ## Geltungs-Konfiguration
 
@@ -36,12 +36,12 @@ Stellen, die die Lücke nennen (keine Gate-Konfiguration):
 | `spec/spezifikation.md` | `SPEC-040` | „Cancel mit Folgeabfrage gehört nicht zum Lauf“ |
 | `referenztest-dotnet/Integration/SimulationBackendTests.cs` | KDoc | nennt die Lücke |
 | `tools/simulationstest.sh` | Kopf | nennt die Lücke |
-| `harness/README.md` | Sensor-Zeile `make simulations-integration` | nennt die vier laufenden Szenarien |
+| `harness/README.md` | Sensor-Zeile `make simulations-integration` | nennt die vier laufenden Szenarien und diesen Carveout als Bindung |
 
 ## Verifikation (nach Auflösung)
 
 - [ ] Das Cancel-Szenario läuft in `make simulations-integration` und besteht; `SPEC-040` nennt es als Teil des Laufs.
-- [ ] `make gates` grün ohne Ausnahme.
+- [ ] `make gates` und `make e2e` grün ohne Ausnahme.
 - [ ] Datei wird nach `docs/plan/carveouts/done/` bewegt (reiner `git mv`). <!-- d-check:ignore (done/ entsteht erst bei erster Carveout-Auflösung) -->
 - [ ] Folge-Slice geschlossen oder explizit dokumentiert.
 
@@ -49,4 +49,5 @@ Stellen, die die Lücke nennen (keine Gate-Konfiguration):
 
 | Datum | Ereignis | Verweis |
 |---|---|---|
-| 2026-10-31 | Angelegt (Voreinstellung des Koordinators, nicht vom Nutzer entschieden) | [slice-sim-aenderung-integration](../planning/in-progress/slice-sim-aenderung-integration.md) |
+| 2026-10-31 | Angelegt (Voreinstellung des Koordinators) | [slice-sim-aenderung-integration](../planning/in-progress/slice-sim-aenderung-integration.md) |
+| 2026-10-31 | Option A vom Nutzer bestätigt | Sitzung |

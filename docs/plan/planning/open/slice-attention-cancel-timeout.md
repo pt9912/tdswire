@@ -87,7 +87,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Start** (`next` → `in-progress`): Der Start-Trigger der Welle `welle-fehler-abbruch` ist eingetreten, `slice-fehler-zustandsuebergang` liegt in `done/`, die Nutzerentscheidungen zum Inhalt der Cancel-Antwort, dazu, ob Cancel und Timeout als Fehler gelten, und zu ATTENTION im Handshake liegen vor, und ein Verantwortlicher ist im Kopf eingetragen.
 
-**Hinweis zum Carveout:** [CO-004](../../carveouts/CO-004-cancel-szenario-spec-040-fehlt.md) (Setzung (Voreinstellung 2026-10-31, nicht entschieden; Nutzer kann auf B oder C umstellen)) nennt diesen Slice als Folge-Slice; der Carveout ist erst aufgelöst, wenn dieser Slice in `done/` liegt und das Cancel-Szenario am Referenzclient besteht.
+**Hinweis zum Carveout:** [CO-004](../../carveouts/CO-004-cancel-szenario-spec-040-fehlt.md) (Entscheidung des Nutzers 2026-10-31) nennt diesen Slice als Folge-Slice; der Carveout ist erst aufgelöst, wenn dieser Slice in `done/` liegt und das Cancel-Szenario am Referenzclient besteht.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
