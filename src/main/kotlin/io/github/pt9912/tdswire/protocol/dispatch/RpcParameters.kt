@@ -10,8 +10,9 @@ import io.github.pt9912.tdswire.protocol.rpc.RpcValue
 import java.util.Locale
 
 /**
- * Warum der Dispatch einen RPC ablehnt, bevor das Backend gerufen wird. Der Client sieht in jedem Fall
- * `TDS_UNSUPPORTED_RPC`; der Grund dient den Tests und dem Lesen des Codes.
+ * Warum der Dispatch einen RPC ablehnt, bevor das Backend gerufen wird. Bei [ENCODING] sieht der Client
+ * `TDS_PROTOCOL_ERROR` und die Verbindung schließt; bei jedem anderen Grund `TDS_UNSUPPORTED_RPC` bei
+ * offener Verbindung. Der Name des Grundes steht im Log (nie ein Wert).
  */
 internal enum class RpcRejection {
     /** Der Parser weist die Nachricht ab (Format, Länge, TYPE_INFO, PLP, ALL_HEADERS). */
@@ -61,8 +62,10 @@ internal class RpcRejected(val reason: RpcRejection) : RuntimeException(reason.n
  * andere Bit des Statusbytes (auch Bit 1, der Standardwert) ist [RpcRejection.STATUS].
  *
  * Namen (Festlegung): `@` und 1 bis [MAX_NAME_CHARS] − 1 Zeichen aus Buchstaben, Ziffern, `_`, `@`, `#`
- * und `$`, ohne Beachtung der Schreibweise eindeutig; der Name bleibt wie gesendet, mit `@`. Ein
- * Parameter ohne Namen ist [RpcRejection.PARAMETER_NAME].
+ * und `$`, ohne Beachtung der Schreibweise eindeutig; der Name bleibt wie gesendet, mit `@`. Die Obergrenze
+ * zählt das `@` mit. Ein zweites `@` an zweiter Stelle (`@@x`) ist abgelehnt: im Aufruftext stünde der Name
+ * auch rechts von `=`, wo `@@x` eine globale Funktion des Ziels bezeichnen kann statt des gesendeten Wertes
+ * (Festlegung). Ein Parameter ohne Namen ist [RpcRejection.PARAMETER_NAME].
  */
 internal object RpcParameters {
     const val MAX_NAME_CHARS = 128
@@ -96,7 +99,7 @@ internal object RpcParameters {
     }
 
     private fun checkName(name: String) {
-        val valid = name.length in 2..MAX_NAME_CHARS && name[0] == NAME_PREFIX &&
+        val valid = name.length in 2..MAX_NAME_CHARS && name[0] == NAME_PREFIX && name[1] != NAME_PREFIX &&
             name.drop(1).all { it.isLetterOrDigit() || it in "_@#$" }
         if (!valid) throw RpcRejected(RpcRejection.PARAMETER_NAME)
     }

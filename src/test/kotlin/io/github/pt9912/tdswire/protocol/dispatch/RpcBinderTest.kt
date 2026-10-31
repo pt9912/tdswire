@@ -19,6 +19,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 /**
@@ -299,7 +300,9 @@ class RpcBinderTest {
     /**
      * Parameternamen: gültig sind `@` plus Bezeichnerzeichen (auch Unicode-Buchstaben) bis 128 Zeichen;
      * ohne `@`, nur `@`, mit Leerzeichen, Semikolon, Klammer oder Anführungszeichen, 129 Zeichen, leer und
-     * doppelt (ohne Beachtung der Schreibweise) sind abgelehnt. Ein Name bleibt wie gesendet.
+     * doppelt (ohne Beachtung der Schreibweise) sind abgelehnt, ebenso ein Name mit `@@` am Anfang (Festlegung:
+     * im Aufruftext stünde er rechts von `=`, wo er eine globale Funktion bezeichnen kann). Ein Name bleibt
+     * wie gesendet; die Obergrenze 128 zählt das `@` mit (127 Zeichen nach dem `@` gültig, 128 abgelehnt).
      *
      * @spec SPEC-030
      */
@@ -309,7 +312,9 @@ class RpcBinderTest {
         valid.forEach { name ->
             assertEquals(name, query(executeSql("s", "d", param(name, int4(1)))).parameters.single().name, name)
         }
-        val invalid = listOf("a", "@", "", "@a b", "@a;b", "@a)", "@a'", "@a-b", "@" + "x".repeat(128), "@a\n")
+        val invalid = listOf(
+            "a", "@", "", "@a b", "@a;b", "@a)", "@a'", "@a-b", "@" + "x".repeat(128), "@a\n", "@@x", "@@rowcount",
+        )
         invalid.forEach { name ->
             assertEquals(
                 RpcRejection.PARAMETER_NAME,
@@ -422,6 +427,11 @@ class RpcBinderTest {
             assertEquals(RpcRejection.ENCODING, rejection(payload), typeAndValue)
         }
         assertEquals(RpcRejection.ENCODING, rejection(hex("${RpcVectors.HEADERS} 00 00 00 00")))
+        listOf(ByteArray(0), full.copyOf(10), full + byteArrayOf(0x01)).forEach { payload ->
+            assertNotNull(assertIs<RpcBinding.Rejected>(RpcBinder.bind(payload)).error)
+        }
+        assertNull(assertIs<RpcBinding.Rejected>(RpcBinder.bind(RpcWire.procId(11))).error)
+        assertNull(assertIs<RpcBinding.Rejected>(RpcBinder.bind(byName("p; x"))).error)
     }
 
     /**

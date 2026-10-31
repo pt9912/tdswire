@@ -123,8 +123,9 @@ class RpcDispatchTest {
     }
 
     /**
-     * Jede Ablehnung vor dem Backend (unbekannte ProcID, nicht gebaute Katalogform, Katalogname per Name,
-     * ungültiger Name, ungültiger Parameter, Parametertyp außerhalb des Katalogs, ungültige Kodierung) ergibt
+     * Jede gültig kodierte, aber nicht unterstützte Form (unbekannte ProcID, nicht gebaute Katalogform,
+     * Katalogname per Name, ungültiger Name, ungültiger Parameter, Parametertyp außerhalb des Katalogs, Wert
+     * außerhalb des Bereichs) ergibt
      * ERROR (Voreinstellung 50002, Class 16) und DONE mit Fehlerstatus (Handvektor), das Backend wird nicht
      * gerufen, die Verbindung bleibt offen und der Folge-RPC derselben Sitzung wird beantwortet.
      *
@@ -144,8 +145,7 @@ class RpcDispatchTest {
             "Name mit Anweisung" to byName("p; drop table t"),
             "Parametername" to executeSql("s", "d", param("a", int4(1))),
             "Parametertyp" to executeSql("s", "d", param("@a", "6D 08 00")),
-            "Kodierung" to goodRpc.copyOf(goodRpc.size - 2),
-            "leer" to ByteArray(0),
+            "Wert ausserhalb" to executeSql("s", "d", param("@a", "6C 05 05 00 05 01 A0 86 01 00")),
         )
         rejected.forEach { (name, payload) ->
             val backend = ScriptedBackend.ofList(*oneRow.toTypedArray())
@@ -161,6 +161,50 @@ class RpcDispatchTest {
             assertEquals("select @a", backend.requests.single().sql, name)
             assertEquals(1, backend.closeCalls, name)
         }
+    }
+
+    /**
+     * Eine Nachricht, die der Parser abweist (abgeschnitten, Restbytes, leer, ungültige TYPE_INFO), wird wie
+     * ein SQL_BATCH mit Parserfehler beantwortet: ERROR `TDS_PROTOCOL_ERROR` (Class 20) und DONE mit
+     * Fehlerstatus, die Verbindung schließt, die Folgenachricht bleibt ungelesen, das Backend wird nicht
+     * gerufen. Nutzerentscheidung vom 2026-10-31, nicht gemessen. Meldet der Parser die Kategorie
+     * `TDS_UNSUPPORTED_TYPE` (Typkennung außerhalb seines Katalogs), gilt die Abbildung des Batch: ERROR
+     * `TDS_UNSUPPORTED_TYPE` (Class 20), die Verbindung schließt ebenfalls.
+     *
+     * @spec SPEC-011
+     * @spec SPEC-030
+     */
+    @Test
+    fun `Eine Kodierung, die der Parser abweist, ergibt einen Protokollfehler und schliesst`() = blocking {
+        val rejected = mapOf(
+            "abgeschnitten" to goodRpc.copyOf(goodRpc.size - 2),
+            "leer" to ByteArray(0),
+            "ungueltige TYPE_INFO" to executeSql("s", "d", param("@a", "26 03 00")),
+        )
+        rejected.forEach { (name, payload) ->
+            val backend = ScriptedBackend.ofList(*oneRow.toTypedArray())
+            val session = Session.login(rpc(payload), rpc(goodRpc))
+            session.serve(backend)
+            assertEquals(ServerMessage(50006, 1, 20, "Protocol error."), session.tokens(0).errorMessage(), name)
+            assertTrue(session.hex(0).endsWith(BatchVectors.DONE_ERROR), name)
+            assertEquals(1, session.replies.size, name)
+            assertEquals(0, backend.requests.size, name)
+            assertTrue(session.channel.closed, name)
+            assertFalse(session.channel.exhausted, name)
+        }
+    }
+
+    /** @spec SPEC-011 */
+    @Test
+    fun `Eine unbekannte Typkennung schliesst mit dem Fehler des Parsers`() = blocking {
+        val backend = ScriptedBackend.ofList(*oneRow.toTypedArray())
+        val session = Session.login(rpc(executeSql("s", "d", param("@a", "FE 00"))), rpc(goodRpc))
+        session.serve(backend)
+        assertEquals(ServerMessage(50003, 1, 20, "Unsupported type."), session.tokens(0).errorMessage())
+        assertEquals(1, session.replies.size)
+        assertEquals(0, backend.requests.size)
+        assertTrue(session.channel.closed)
+        assertFalse(session.channel.exhausted)
     }
 
     /**
@@ -208,8 +252,9 @@ class RpcDispatchTest {
     }
 
     /**
-     * Der Log-Eintrag der Ablehnung eines `sp_executesql` (hier ein doppelter Parametername) trägt genau
-     * den Code und weder Text noch Parameterwerte; das Backend wird nicht gerufen.
+     * Der Log-Eintrag der Ablehnung eines `sp_executesql` (hier ein doppelter Parametername) trägt den Code
+     * und den Namen des Ablehnungsgrundes, weder Text noch Parameterwerte; das Backend wird nicht gerufen.
+     * Eine Parserablehnung trägt `TDS_PROTOCOL_ERROR` ohne Grund, nie `TDS_UNSUPPORTED_RPC`.
      *
      * @spec SPEC-030
      * @spec SPEC-048
@@ -222,9 +267,14 @@ class RpcDispatchTest {
         val bad = executeSql("select '$secret'", "d", param("@pw", nvarchar(secret)), param("@pw", nvarchar(secret)))
         val session = Session.login(rpc(bad), Inbound.EndOfStream)
         session.serve(backend, errors = ErrorMapper(ErrorLog { entries += it }))
-        assertEquals(listOf(ErrorLogEntry(ErrorCode.TDS_UNSUPPORTED_RPC, null)), entries)
+        assertEquals(listOf(ErrorLogEntry(ErrorCode.TDS_UNSUPPORTED_RPC, "PARAMETER_NAME")), entries)
         assertFalse(entries.toString().contains(secret))
         assertEquals(0, backend.requests.size)
+
+        entries.clear()
+        val parserSession = Session.login(rpc(bad.copyOf(bad.size - 2)), Inbound.EndOfStream)
+        parserSession.serve(backend, errors = ErrorMapper(ErrorLog { entries += it }))
+        assertEquals(listOf(ErrorLogEntry(ErrorCode.TDS_PROTOCOL_ERROR, null)), entries)
     }
 
     /**
