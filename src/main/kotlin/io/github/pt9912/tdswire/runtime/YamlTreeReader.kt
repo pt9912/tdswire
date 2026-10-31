@@ -13,7 +13,6 @@ import io.github.pt9912.tdswire.simulation.SimNode
 import io.github.pt9912.tdswire.simulation.SimPosition
 import io.github.pt9912.tdswire.simulation.SimScalar
 import io.github.pt9912.tdswire.simulation.SimTreeAccess
-import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.charset.CharacterCodingException
 import java.nio.charset.CodingErrorAction
@@ -43,8 +42,6 @@ internal object YamlTreeReader {
         } catch (ignored: JsonProcessingException) {
             // Der Text der Bibliothek kann Inhalt der Datei nennen; die Meldung trägt nur die Stelle.
             throw SimLoadException(SimTreeAccess.ROOT, at(ignored.location), "YAML nicht lesbar")
-        } catch (ignored: IOException) {
-            throw SimLoadException(SimTreeAccess.ROOT, START, "Datei nicht lesbar")
         }
     }
 

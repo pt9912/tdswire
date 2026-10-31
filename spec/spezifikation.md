@@ -529,7 +529,8 @@ festgelegt sind; die Überführung der Werte, das Lesen der Zeilenquelle und die
   Beschreibung und in der Reihenfolge des Textes; eine Spalte, die der Text nicht nennt, fehlt in der Abbildung
   (kein Standardwert). Zuerst werden die Werte geprüft, dann der Callback gewählt: ein ungültiger Wert endet mit
   `TDS_SIM_INVALID_VALUE` auch an einer Tabelle ohne den Callback, und dann wird kein Callback gerufen. Jede Anweisung
-  ruft ihren Callback genau einmal, beim Sammeln der Ausführung; schließt oder bricht jemand die Ausführung vorher ab,
+  ruft ihren Callback genau einmal, beim Sammeln der Ausführung, solange ein einziger Sammler sie sammelt (ein zweiter
+  Sammler derselben Ausführung ruft ihn ein zweites Mal); schließt oder bricht jemand die Ausführung vorher ab,
   bleibt er ungerufen. Ein Fehler des Callbacks und eine negative Zahl sind `TDS_BACKEND_ERROR` mit fester Meldung, die
   den Text der Ausnahme nie nennt. Das Backend wiederholt einen Callback nicht.
 - `SimQuery.filter` ist ein Hinweis zum Vorfiltern (Schritt 5 in `TDS-FA-11.a`), kein Ersatz für die

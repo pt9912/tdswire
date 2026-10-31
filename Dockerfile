@@ -76,9 +76,12 @@ RUN keytool -genkeypair -alias server -keyalg RSA -keysize 2048 -validity 3650 -
  && rm wurzel.p12 zwischen.p12 zwischen.csr blatt.csr
 
 # --- Test: `docker build --target test .` - fuehrt die Unit-Tests aus (kotlin.test auf der
-# JUnit-Plattform, SPEC-024). Es kommt nur src/ hinzu; ein roter Test bricht den Build. -----------
+# JUnit-Plattform, SPEC-024). Es kommen src/, LICENSE und die Texte hinzu, gegen die Tests Zahlen halten
+# (`IntegrationZahlenTest`); ein roter Test bricht den Build. -----------
 FROM deps AS test
 COPY --chown=gradle:gradle LICENSE LICENSE
+COPY --chown=gradle:gradle spec/spezifikation.md spec/spezifikation.md
+COPY --chown=gradle:gradle harness/README.md harness/README.md
 COPY --chown=gradle:gradle src src
 COPY --from=testkeys --chown=gradle:gradle /testkeys build/testkeys
 COPY --chown=gradle:gradle gradle/test-jvm.init.gradle.kts gradle/
@@ -129,6 +132,7 @@ COPY --chown=gradle:gradle src src
 COPY --from=testkeys --chown=gradle:gradle /testkeys build/testkeys
 COPY --chown=gradle:gradle gradle/test-jvm.init.gradle.kts gradle/
 COPY --chown=gradle:gradle spec/spezifikation.md spec/spezifikation.md
+COPY --chown=gradle:gradle harness/README.md harness/README.md
 COPY --chown=gradle:gradle tools/spec-abdeckung.sh tools/
 RUN gradle --no-daemon -I gradle/test-jvm.init.gradle.kts test --continue || echo "spec-abdeckung: der Testlauf ist rot; rote Tests zaehlen nicht als Nachweis"
 RUN mkdir -p /tmp/ausgabe \
@@ -155,6 +159,8 @@ WORKDIR /src
 COPY --chown=gradle:gradle settings.gradle.kts build.gradle.kts gradle.properties ./
 COPY --chown=gradle:gradle gradle/libs.versions.toml gradle/
 COPY --chown=gradle:gradle LICENSE LICENSE
+COPY --chown=gradle:gradle spec/spezifikation.md spec/spezifikation.md
+COPY --chown=gradle:gradle harness/README.md harness/README.md
 COPY --chown=gradle:gradle src src
 COPY --chown=gradle:gradle config config
 COPY --from=testkeys --chown=gradle:gradle /testkeys build/testkeys
