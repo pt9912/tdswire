@@ -8,9 +8,8 @@ import kotlin.test.assertTrue
 internal class LizenzTest {
     /**
      * Die Datei beginnt mit `MIT License`, nennt den Rechteinhaber und enthält die Rechteeinräumung und den
-     * Haftungsausschluss der MIT-Lizenz; fehlt die Datei, bricht der Test.
-     *
-     * @spec SPEC-042
+     * Haftungsausschluss der MIT-Lizenz; fehlt die Datei, bricht der Test. Kein `@spec`-Tag: keine Zeile der
+     * Spezifikation fordert die Lizenz, sie folgt aus TDS-RB-05 im Lastenheft.
      */
     @Test
     fun `LICENSE im Wurzelverzeichnis ist die MIT-Lizenz`() {

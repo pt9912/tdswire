@@ -3,8 +3,8 @@
 # und `laufzeit-client`). Aufruf ueber `make laufzeittest`; BUILDER_FLAGS und BUILDER_LOAD kommen aus
 # der Umgebung (leer ohne BUILDER).
 #
-# Ablauf: beide Images bauen; Inhalt des Server-Images pruefen (Nutzer, Lizenz, keine Benutzerliste, kein
-# Geheimnis); Server-Container in einem eigenen internen Netzwerk anlegen, die Testkonfiguration per
+# Ablauf: beide Images bauen; Inhalt des Server-Images pruefen (Nutzer, Lizenz, Dateinamen und
+# Namen der Umgebung ohne Benutzerliste, Schluesselspeicher, Passwort; kein Inhaltsscan); Server-Container in einem eigenen internen Netzwerk anlegen, die Testkonfiguration per
 # `docker cp` hineinlegen (nichts wird gemountet), starten; ein Rohbytes-Client in einem zweiten Container
 # meldet sich an; `docker stop` beendet den Prozess (SIGTERM, Exit-Code 143). Zusage: Start, Login und Stop des
 # Containers mit Rohbytes; nicht belegt: Annahme durch Microsoft.Data.SqlClient, TLS, Last.
@@ -18,8 +18,10 @@ CLIENT_IMAGE="tdswire-laufzeit-client:$LAUF"
 OPTIONEN="-XX:+ExitOnOutOfMemoryError"
 SCRATCH="$(mktemp -d)"
 FEHLER=0
+lager=""
 
 aufraeumen() {
+  [ -z "$lager" ] || docker rm -f "$lager" >/dev/null 2>&1
   docker rm -f "$SERVER" >/dev/null 2>&1
   docker network rm "$NETZ" >/dev/null 2>&1
   docker rmi -f "$SERVER_IMAGE" "$CLIENT_IMAGE" >/dev/null 2>&1
@@ -48,12 +50,17 @@ lager="$(docker create "$SERVER_IMAGE")"
 docker cp "$lager:/app/LICENSE" "$SCRATCH/LICENSE" >/dev/null 2>&1
 pruefe "Image fuehrt /app/LICENSE und sie gleicht der LICENSE der Wurzel" cmp -s "$SCRATCH/LICENSE" LICENSE
 docker export "$lager" | tar -t >"$SCRATCH/inhalt" 2>/dev/null
-docker rm "$lager" >/dev/null
+docker rm "$lager" >/dev/null && lager=""
+inhalt_gelesen() { grep -qx 'app/tdswire.jar' "$SCRATCH/inhalt"; }
+pruefe "Dateiliste des Images ist gelesen (enthaelt app/tdswire.jar)" inhalt_gelesen
+# Gelesen werden die Pfade unterhalb der Verzeichnisse, die ein Betreiber oder dieses Dockerfile befuellt;
+# die Dateien der Basis-Schichten (JDK-Konfiguration, Zertifikate) liegen ausserhalb und sind nicht geprueft.
 ohne_geheimnis() {
-  ! grep -Ei '(^|/)(users?([.-][^/]*)?|passwd-?datei|.*\.(p12|pfx|jks|pem|key))$' "$SCRATCH/inhalt" | grep -v '^etc/' \
+  ! grep -E '^(app|home|tmp|srv|opt|root|data|config)/' "$SCRATCH/inhalt" \
+    | grep -Ei '(^|/)(users?([.-][^/]*)?|benutzer[^/]*|passwords?[^/]*|secrets?[^/]*|[^/]*\.properties|.*\.(p12|pfx|jks|pem|key))$' \
     && ! docker image inspect --format '{{json .Config.Env}}' "$SERVER_IMAGE" | grep -Eiq 'PASSWORD|SECRET|AUTH_USERS|KEYSTORE'
 }
-pruefe "Image enthaelt weder Benutzerliste noch Schluesselspeicher noch Geheimnis in der Umgebung" ohne_geheimnis
+pruefe "Dateinamen der Image-Liste und Namen der Umgebung nennen keine Benutzerliste, keinen Schluesselspeicher, kein Passwort" ohne_geheimnis
 app_nur_artefakt() {
   ! grep -E '^app/' "$SCRATCH/inhalt" | grep -Ev '^app/($|LICENSE$|tdswire\.jar$|lib/($|[^/]+\.jar$))'
 }
