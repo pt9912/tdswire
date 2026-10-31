@@ -1,1 +1,1 @@
-**Stand:** offen — über der Schwelle (3×), bei der Closure von slice-rpc-executesql-parameter gelesen und nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung).
+**Stand:** offen — über der Schwelle (4×), bei den Closures von slice-rpc-executesql-parameter und slice-sim-auswahl-streaming gelesen und nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung).
