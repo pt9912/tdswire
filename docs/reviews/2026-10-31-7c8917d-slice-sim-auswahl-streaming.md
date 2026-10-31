@@ -1,4 +1,4 @@
-# Review-Report: [slice-sim-auswahl-streaming](../plan/planning/in-progress/slice-sim-auswahl-streaming.md) — 2026-10-31
+# Review-Report: [slice-sim-auswahl-streaming](../plan/planning/done/slice-sim-auswahl-streaming.md) — 2026-10-31
 
 **Review-Art:** Code (Diff des Slice gegen Plan, [ADR-0012](../plan/adr/0012-simulations-backend-beschreibung-und-formen.md), [ADR-0013](../plan/adr/0013-backend-grenzen.md), Spezifikation und Hard Rules). Gegen die DoD wird nicht geprüft; das ist die Frage des Verifiers.
 
@@ -9,7 +9,7 @@
 
 **Eingangs-Kontext:**
 
-- [slice-sim-auswahl-streaming](../plan/planning/in-progress/slice-sim-auswahl-streaming.md) (Plan, Risiken, Rückführungen)
+- [slice-sim-auswahl-streaming](../plan/planning/done/slice-sim-auswahl-streaming.md) (Plan, Risiken, Rückführungen)
 - [ADR-0012](../plan/adr/0012-simulations-backend-beschreibung-und-formen.md) (Accepted; im Diff unverändert), insbesondere Entscheidung 6 (Überführung) und 9 (Textvergleich); [ADR-0013](../plan/adr/0013-backend-grenzen.md) (Accepted; im Diff unverändert)
 - [TDS-FA-11](../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-FA-08](../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-QA-02](../../spec/lastenheft.md#tds-qa-02--stabilität)
 - [SPEC-002](../../spec/spezifikation.md#spec-002--interner-query-vertrag), [SPEC-029](../../spec/spezifikation.md#spec-029--attention-und-wiederverwendung-der-verbindung), [SPEC-031](../../spec/spezifikation.md#spec-031--streaming-fehler-und-atomarität), [SPEC-035](../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends), [SPEC-036](../../spec/spezifikation.md#spec-036--erkannte-anweisungsformen-des-simulations-backends-vorläufig), SPEC-037 bis SPEC-039 (Fehlercodes-Tabelle)
