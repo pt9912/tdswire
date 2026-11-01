@@ -44,16 +44,16 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [x] Entscheidung über die Drosselung (Art, Schlüssel, Grenzwerte, oder Verzicht) als ADR `Accepted`: [ADR-0016](../../adr/0016-anmeldedrosselung.md) liegt als `Proposed` vor (Optionen A bis E, Empfehlung B, Grenzwerte als Setzung); die Wahl bestätigt der Nutzer, nicht der Implementer.
+- [x] Entscheidung über die Drosselung (Art, Schlüssel, Grenzwerte, oder Verzicht) als ADR `Accepted`: [ADR-0016](../../adr/0016-anmeldedrosselung.md) ist `Accepted` (Option B, Grenzwerte als Setzung).
 - [x] Bei einer Drosselung: Umsetzung im Anmeldepfad mit Tests, die zeigen, dass wiederholte Versuche gebremst werden und reguläre Anmeldungen nicht dauerhaft blockiert sind (Messung der Wirkung auf die Wartezeit, wie `AuthPoolOccupationTest` sie für die Plätze misst).
 - [x] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
-      (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+      (`.harness/skills/reviewer.md`; [Review](../../../reviews/2026-10-31-f4ec33b-slice-qa-anmeldedrosselung.md), [Verifikation](../../../reviews/2026-11-01-7897412-verifikation-slice-qa-anmeldedrosselung.md)) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
 - [ ] Doku-Update, falls ein öffentlicher Vertrag berührt ist; [CO-003](../../carveouts/CO-003-anmeldedrosselung-fehlt.md) aufgelöst.
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
 - [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
@@ -89,7 +89,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): mehr als drei Liefer-Punkte in §2.
-- `in-progress` → `open` (blockiert — Carveout?): [ADR-0016](../../adr/0016-anmeldedrosselung.md) bleibt `Proposed`.
+- `in-progress` → `open` (blockiert — Carveout?): [ADR-0016](../../adr/0016-anmeldedrosselung.md) verliert den Status `Accepted`.
 
 ## 5. Closure-Trigger
 
@@ -106,7 +106,9 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Eine Drosselung je Benutzername lässt sich zur Sperre eines regulären Benutzers missbrauchen (ein Dritter sperrt ihn mit falschen Versuchen); eine Drosselung je Quelladresse trifft Clients hinter gemeinsamen Adressen. Beides ist nicht gemessen. — **Ausgang:** offen bis zur Closure.
+- Eine Drosselung je Benutzername lässt sich zur Sperre eines regulären Benutzers missbrauchen (ein Dritter sperrt ihn mit falschen Versuchen). — **Ausgang:** entfallen: Der Schlüssel der Drosselung ist die Adresse der Gegenstelle ([ADR-0016](../../adr/0016-anmeldedrosselung.md) Option B, `SPEC-053`); die Kennung geht nicht ein, es gibt keine Sperre, nur eine Verzögerung mit Deckel 5 s. Die Verifikation bestätigt gleiche Wartezeit für bekannte und unbekannte Kennung und fängt eine kennungsabhängige Wartezeit als Mutation.
+- Eine Drosselung je Quelladresse trifft Clients hinter gemeinsamen Adressen; nicht gemessen. — **Ausgang:** weiter offen: → `BEO-TDS/anmeldepfad-sicherheit-nicht-gebaut` im Register; der Re-Evaluierungs-Trigger steht in [ADR-0016](../../adr/0016-anmeldedrosselung.md).
+- Grenzen der Wirkung, die der Slice benennt und nicht misst: Schwall gleichzeitiger Verbindungen (der `AuthPool` begrenzt die Rate, nicht die Staffel), IPv6 mit vielen Adressen je Präfix, Proxy mit gemeinsamer Adresse, Log der Drosselung. — **Ausgang:** weiter offen: → `BEO-TDS/anmeldepfad-sicherheit-nicht-gebaut` im Register.
 
 ## 7. Closure-Notiz
 
@@ -122,7 +124,20 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-Wird bei der Closure gefüllt.
+- **Was hat funktioniert:** Die Wartezeit liegt vor dem Adapteraufruf und belegt keinen Platz des `AuthPool`; der Schlüssel ist die Adresse ohne Port und Zone, Kennung und Passwort gehen nicht ein. Die Verifikation ([Bericht](../../../reviews/2026-11-01-7897412-verifikation-slice-qa-anmeldedrosselung.md)) fand weder HIGH noch MEDIUM; zwei frische Testläufe ohne Cache (je 808 bestanden, 0 rot) und drei Mutationen (Passwort-Überschreiben im Abbruchzweig entfernt, Zählen bei jedem Ergebnis, kennungsabhängige Wartezeit) werden von genau den zuständigen Tests gefangen.
+- **Zuordnung der Aussagen:**
+  - *Gemessen* (Docker-Image des Laufs, Werte gelten nur dort): Wartezeit in Echtzeit in `LoginThrottleTimingTest` (Sollwerte 200, 400 und 400 ms, Fenster 1 s) und am echten Socket auf `127.0.0.1` in `LoginThrottleWiringTest` (fünf Fehlversuche ohne Wartezeit, sechster 250 ms, siebter 500 ms und angenommen, nach 60 s frei); die Adresse der Gegenstelle am echten Socket und über TLS in `RemoteAddressTest`, `TlsRemoteAddressTest` und `ListenerRemoteAddressTest`.
+  - *Handvektor / Selbstkonsistenz:* die zwölf Stufen der Staffel (250 ms, verdoppelt bis 5 s) und die Fenster- und Verdrängungsregeln gegen die Zusage in `SPEC-053` mit gesteuerter Uhr; das prüft den Code gegen seine Setzung, nicht gegen einen fremden Maßstab.
+  - *Festlegung:* alle Zahlen (5 freie Fehlversuche, 250 ms bis 5 s, 60 s, 10000 Adressen) sind Setzung der ADR, nicht gemessen; `SPEC-053` steht als Setzung ohne Lastenheft-Anker, vom Nutzer bestätigt (2026-11-01); ein Kanal ohne bekannte Adresse bleibt ungedrosselt (fail-open), vom Nutzer bestätigt (2026-11-01).
+  - *Nicht gemessen:* ein Schwall gleichzeitiger Verbindungen (Durchsatz, nur der Zählerstand bei sieben gleichzeitigen Eintritten ist getestet), IPv6 mit vielen Adressen je Präfix, Verhalten hinter einem Proxy, die Log-Ausgabe der Drosselung (sie schreibt nichts), die Streuung der Zeit-Tests unter Last (kein Rot in zwei frischen Läufen und drei Mutationsläufen bei Systemlast um 16 auf 20 Kernen; ein Stillstand der JVM über 200 ms bei einem freien Versuch ist nicht beobachtet und nicht ausgeschlossen).
+- **Was ging anders als geplant:** Der Review fand ein HIGH an der Spec-Schicht: `SPEC-053` führte eine Zusage ohne Anker im Lastenheft ein, und die ADR benannte diese Erweiterung als Entscheidung des Nutzers, ohne dass die Annahme sie ausdrücklich nennt. Der Nutzer bestätigte die Setzung ohne Anker; die Fix-Runde kennzeichnete sie in der Spezifikation und nahm die Bedingung „nur eine Verbindung nach der anderen“ in die Zusage auf. Der Plan nannte nach der Annahme der ADR noch `Proposed` (Verifikation F-1), die Tabelle von [CO-003](../../carveouts/CO-003-anmeldedrosselung-fehlt.md) die entfernte Nennung in der KDoc von `AuthExecutor` (Review F-5).
+- **Steering-Loop-Eintrag:** benannte Spec-Lücke: Das Lastenheft verlangt keinen Schutz gegen wiederholte Anmeldeversuche ([TDS-QA-03](../../../../spec/lastenheft.md#tds-qa-03--sicherheit)); die Zusage steht nur als gekennzeichnete Setzung in `SPEC-053`. Ob das Lastenheft eine Zusage aufnimmt, entscheidet der Nutzer; bis dahin trägt die Spezifikation die Lücke selbst. Verkörpert ist damit keine Regel, der Eintrag trägt kein `liegt in`.
+- **Über der Schwelle, nicht verkörpert, Entscheidung beim Nutzer:** `BEO-TDS/fortschreibung-laesst-zweite-fundstelle-stehen` steht mit diesem Slice bei 3× (`slice-antwort-mehrteilig-output`, `slice-qa-sicherheit`, `slice-qa-anmeldedrosselung`): Die Fix-Runde entfernte die Nennung von `CO-003` im Code, die Tabelle des Carveouts behauptete sie weiter; Spec und Code nannten verschiedene Verdrängungsregeln. Den Lese-Schritt macht die Welle-Closure.
+- **Beobachtungs-Register (`../observations/`):** `evidence/slice-qa-anmeldedrosselung.md` ergänzt in `BEO-TDS/anmeldepfad-sicherheit-nicht-gebaut` (7×, geplant, Drosselung gebaut), in `BEO-TDS/fortschreibung-laesst-zweite-fundstelle-stehen` (3×) und in `BEO-TDS/aussagen-ueber-messung-hinaus` (verkörpert); neu angelegt `BEO-TDS/kommentar-nennt-abwesenden-oder-unwirklichen-zustand` (1×) für die Konjunktiv-Funde in Test-KDoc und die veralteten Zustandsangaben im Plan.
+- **Folge-Slices:** keine neuen; die offenen Grenzen trägt das Register.
+- **Offene Kleinigkeit für einen Implementer:** KDoc von `LoginThrottleTimingTest` (Verifikation F-2: Konjunktiv „wäre nötig“; F-3: die Messzeile nennt drei Läufe, belegt sind fünf mit Last um 16).
+- **Risiken aus §6:** siehe §6 (Fremdsperre je Benutzername entfallen; Clients hinter gemeinsamer Adresse und die Grenzen der Wirkung weiter offen).
+- **Drei Paarungen:** Anker: kein Eintrag mit `liegt in`, nichts zu paaren. Folge-Slice: keine. Register: die vier Einträge oben liegen als Dateien vor. Die Welle-Closure prüft sie erneut.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

@@ -1,0 +1,2 @@
+**Vorgang:** slice-qa-anmeldedrosselung
+**Fund:** Trotz der verkörperten Regel (`AGENTS.md` §3.8) stand die Zusage `SPEC-053` ohne ihre gemessene Bedingung: „bremsen“ und „rund 12 Versuche je Minute“ gelten nur für eine Verbindung nach der anderen (Review F-3); „Die Adresse steht nicht im Log“ stand als Tatsache, die ADR lässt das Log offen und der Test prüfte nur ein leeres Log (Review F-2); die Messzeile des Zeit-Tests nannte drei Läufe, belegt waren fünf bei Last um 16 (Verifikation F-3).

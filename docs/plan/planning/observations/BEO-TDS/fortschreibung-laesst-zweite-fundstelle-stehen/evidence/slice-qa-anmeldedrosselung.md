@@ -1,0 +1,2 @@
+**Vorgang:** slice-qa-anmeldedrosselung
+**Fund:** Der Slice entfernte die Nennung von `CO-003` aus der KDoc von `AuthExecutor` und aus `AuthPoolOccupationTest`; die Tabelle „Geltungs-Konfiguration“ des Carveouts behauptete beide weiter (Review F-5, Verifikation). Dieselbe Verdrängungsregel der Adress-Tabelle stand in Spezifikation und Code verschieden (Review F-4). Nach der Annahme der ADR stand im Plan an zwei Stellen noch `Proposed` (Verifikation F-1). Die Fundstelle, die der Review nannte, wurde berichtigt, die zweite blieb stehen.
