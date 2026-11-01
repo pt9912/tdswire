@@ -1,11 +1,5 @@
-package io.github.pt9912.tdswire.runtime
+package io.github.pt9912.tdswire.testserver
 
-import io.github.pt9912.tdswire.simulation.SimList
-import io.github.pt9912.tdswire.simulation.SimLoadException
-import io.github.pt9912.tdswire.simulation.SimMap
-import io.github.pt9912.tdswire.simulation.SimNode
-import io.github.pt9912.tdswire.simulation.SimPosition
-import io.github.pt9912.tdswire.simulation.SimScalar
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

@@ -63,7 +63,7 @@ Nachweis-Pflichten für alle Punkte:
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Doku-Update: `SPEC-059` nennt die endgültige Liste der öffentlichen Typen (einschließlich `SimulationBackend` und `SimCatalog`, ohne `ConfigKeys`); die Suche nach den abgelösten Namen (`ConfigKeys`, `simulationFile`) über `spec/` findet keine zweite Fundstelle (`BEO-TDS/fortschreibung-laesst-zweite-fundstelle-stehen`).
+- [ ] Doku-Update: `SPEC-059` nennt die endgültige Liste der öffentlichen Typen (einschließlich `SimulationBackend` und `SimCatalog`, ohne `ConfigKeys`); die Suche nach den abgelösten Namen (`ConfigKeys`, `simulationFile`) über `spec/` findet keine zweite Fundstelle (`BEO-TDS/fortschreibung-laesst-zweite-fundstelle-stehen`); `SHUTDOWN_GRACE` und `QUERY_TIMEOUT` sind als Eingang ausgezeichnet oder nicht mehr „konfigurierbar“ genannt (§6).
 - [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
 - [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
 - [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
@@ -115,6 +115,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
+- Lesehilfe-Lücke der Spezifikation (Befund der Verifikation von `slice-testserver-herausloesen`): `SHUTDOWN_GRACE` (`SPEC-047`) und `QUERY_TIMEOUT` (`SPEC-009`) stehen als „konfigurierbar“ in der Festlegungstabelle, sind über `TdsServer.start` aber nicht einstellbar und nicht als Eingang ausgezeichnet wie `LISTEN_*`, `LOGIN_TIMEOUT` und `MAX_PRELOGIN_MESSAGE_BYTES`; die endgültige öffentliche Fläche entscheidet, ob die Auszeichnung fehlt oder die Konfiguration, und der Spec-Nachzug dieses Slice schließt die Lücke (`BEO-TDS/fortschreibung-laesst-zweite-fundstelle-stehen`). — **Ausgang:** offen bis zur Closure.
 - Eine Deklaration, die ein Test im Hauptmodul braucht, kann nicht `internal` werden, ohne den Test zu ändern; die Tests liegen im selben Modul und sehen `internal`. — **Ausgang:** offen bis zur Closure.
 - Die Liste der ADR ist die Absicht, nicht ein Bestand; die endgültige Liste legt der Übersetzungslauf fest. — **Ausgang:** offen bis zur Closure.
 - Die Senke und das Ereignismodell von [ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md) kommen im Lauf der Welle [welle-betrieb-diagnose](../welle-betrieb-diagnose.md) hinzu und können vor oder nach diesem Slice entstehen; entstehen sie davor, tragen sie die ausdrückliche Sichtbarkeit selbst, entstehen sie danach, schließt dieser Slice sie nicht nach. — **Ausgang:** offen bis zur Closure (die Closure-Notiz nennt, welcher Fall eingetreten ist).

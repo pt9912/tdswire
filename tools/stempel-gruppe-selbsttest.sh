@@ -126,7 +126,7 @@ printf '$(info T=[$(STEMPEL_TROCKEN)] K=[$(STEMPEL_KEIN)])\nx:\n\t@:\n' >> "$T/f
 flags() { # flags <erwartet> <make-argument>...
 	local soll=$1 ist
 	shift
-	ist=$(cd "$T" && make -f flags.mk "$@" x 2>&1 | head -n 1)
+	ist=$(cd "$T" && env -u MAKEFLAGS -u MAKELEVEL -u MFLAGS make --no-print-directory -f flags.mk "$@" x 2>&1 | head -n 1)
 	LAEUFE=$((LAEUFE + 1))
 	[ "$ist" = "$soll" ] || rot "make $*: '$ist' statt '$soll'"
 }

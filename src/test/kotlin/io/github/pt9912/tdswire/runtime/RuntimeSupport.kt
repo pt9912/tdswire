@@ -143,7 +143,7 @@ internal open class RuntimeTestBase : TempFilesTest() {
     val log = CapturedLog()
 
     suspend fun start(environment: Map<String, String>, wiring: Wiring = Wiring(log = log)): StartOutcome {
-        val result = Bootstrap.start(environment, flagSet, wiring)
+        val result = Bootstrap.launch(configOf(environment), wiring, flagSet)
         if (result is StartOutcome.Running) started += result.server
         return result
     }

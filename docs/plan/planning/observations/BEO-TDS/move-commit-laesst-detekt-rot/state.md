@@ -1,1 +1,1 @@
-**Stand:** offen — 1×; unter der Schwelle (slice-integrations-einstieg).
+**Stand:** offen — 2×; unter der Schwelle (slice-integrations-einstieg, slice-testserver-herausloesen).

@@ -1,4 +1,4 @@
-package io.github.pt9912.tdswire.simulation
+package io.github.pt9912.tdswire.testserver
 
 /** Eine Stelle im Dokument; [line] und [column] zählen ab 1. */
 data class SimPosition(val line: Int, val column: Int)

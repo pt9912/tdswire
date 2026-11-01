@@ -32,3 +32,4 @@ tools/stempel
 referenztest-dotnet
 tools/stempel-gruppe.sh
 tools/mk/stempel.mk
+tools/jackson-sperre.sh

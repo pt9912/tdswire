@@ -1,9 +1,7 @@
-package io.github.pt9912.tdswire.runtime
+package io.github.pt9912.tdswire.testserver
 
 import io.github.pt9912.tdswire.config.ConfigIssue
-import io.github.pt9912.tdswire.config.ConfigKeys
 import io.github.pt9912.tdswire.config.IssueKind
-import io.github.pt9912.tdswire.config.TempFilesTest
 import io.github.pt9912.tdswire.config.TlsKeyMaterial
 import io.github.pt9912.tdswire.config.auth.AuthFeatures
 import io.github.pt9912.tdswire.config.auth.AuthRequest
@@ -25,11 +23,11 @@ internal class ConfigUsersFileTest : TempFilesTest() {
     private val bom = byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte())
 
     private fun env(usersFile: String, testMode: String? = "true") =
-        mapOf(ConfigKeys.ENCRYPTION_POLICY to "TEST_UNENCRYPTED", ConfigKeys.AUTH_USERS_FILE to usersFile) +
-            listOfNotNull(testMode?.let { ConfigKeys.AUTH_PLAIN_TESTMODE to it })
+        mapOf(EnvKeys.ENCRYPTION_POLICY to "TEST_UNENCRYPTED", EnvKeys.AUTH_USERS_FILE to usersFile) +
+            listOfNotNull(testMode?.let { EnvKeys.AUTH_PLAIN_TESTMODE to it })
 
     private fun listInvalid(kind: UserListErrorKind, line: Int?) =
-        ConfigIssue(ConfigKeys.AUTH_USERS_FILE, IssueKind.USER_LIST_INVALID, UserListError(kind, line))
+        ConfigIssue(EnvKeys.AUTH_USERS_FILE, IssueKind.USER_LIST_INVALID, UserListError(kind, line))
 
     private fun users(path: String, testMode: String? = "true"): Boolean {
         val config = ConfigLoader.load(env(path, testMode)).loaded()
@@ -76,11 +74,11 @@ internal class ConfigUsersFileTest : TempFilesTest() {
     fun `Ein BOM am Dateianfang wird abgewiesen`() {
         val body = "alice\t{plain}pw\n".toByteArray()
         assertEquals(
-            ConfigIssue(ConfigKeys.AUTH_USERS_FILE, IssueKind.BYTE_ORDER_MARK),
+            ConfigIssue(EnvKeys.AUTH_USERS_FILE, IssueKind.BYTE_ORDER_MARK),
             singleIssue(env(file("bom.txt", bom + body))),
         )
         assertEquals(
-            ConfigIssue(ConfigKeys.AUTH_USERS_FILE, IssueKind.BYTE_ORDER_MARK),
+            ConfigIssue(EnvKeys.AUTH_USERS_FILE, IssueKind.BYTE_ORDER_MARK),
             singleIssue(env(file("bom2.txt", bom))),
         )
         val inside = "x\t{plain}1\n".toByteArray() + bom + body
@@ -117,7 +115,7 @@ internal class ConfigUsersFileTest : TempFilesTest() {
         broken.forEach {
             val bytes = "alice\t{plain}pw\nb".toByteArray() + it + "\t{plain}x\n".toByteArray()
             val issue = singleIssue(env(file("bad.txt", bytes)))
-            assertEquals(ConfigIssue(ConfigKeys.AUTH_USERS_FILE, IssueKind.NOT_UTF8), issue)
+            assertEquals(ConfigIssue(EnvKeys.AUTH_USERS_FILE, IssueKind.NOT_UTF8), issue)
         }
     }
 
@@ -157,7 +155,7 @@ internal class ConfigUsersFileTest : TempFilesTest() {
         }
         listOf("TRUE", "True", "1", "yes", " true", "true ").forEach {
             val issue = singleIssue(env(path, it))
-            assertEquals(ConfigIssue(ConfigKeys.AUTH_PLAIN_TESTMODE, IssueKind.INVALID_VALUE), issue, "Wert '$it'")
+            assertEquals(ConfigIssue(EnvKeys.AUTH_PLAIN_TESTMODE, IssueKind.INVALID_VALUE), issue, "Wert '$it'")
         }
     }
 
@@ -169,7 +167,7 @@ internal class ConfigUsersFileTest : TempFilesTest() {
      */
     @Test
     fun `Fehlende oder unlesbare Datei bricht ab`() {
-        val key = ConfigKeys.AUTH_USERS_FILE
+        val key = EnvKeys.AUTH_USERS_FILE
         assertEquals(ConfigIssue(key, IssueKind.MISSING), singleIssue(env("x") - key))
         val unreadable = ConfigIssue(key, IssueKind.UNREADABLE)
         file("vorhanden.txt", "x")
@@ -189,10 +187,10 @@ internal class ConfigUsersFileTest : TempFilesTest() {
         val password = "kennwort-4711"
         val users = file("kennung-4711.txt", "kennung-4711\t{plain}passwort-4711\n")
         val environment = mapOf(
-            ConfigKeys.AUTH_USERS_FILE to users,
-            ConfigKeys.AUTH_PLAIN_TESTMODE to "true",
-            ConfigKeys.TLS_KEYSTORE_FILE to file("speicher-4711.p12", "inhalt-4711"),
-            ConfigKeys.TLS_KEYSTORE_PASSWORD_FILE to file("pw.txt", "$password\n"),
+            EnvKeys.AUTH_USERS_FILE to users,
+            EnvKeys.AUTH_PLAIN_TESTMODE to "true",
+            EnvKeys.TLS_KEYSTORE_FILE to file("speicher-4711.p12", "inhalt-4711"),
+            EnvKeys.TLS_KEYSTORE_PASSWORD_FILE to file("pw.txt", "$password\n"),
         )
         val config = ConfigLoader.load(environment).loaded()
         val shown = listOf(

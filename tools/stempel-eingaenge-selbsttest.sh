@@ -193,7 +193,7 @@ h_eintraege() {
 		werkzeug:README.md werkzeug:AGENTS.md werkzeug:.claude/agents werkzeug:docs werkzeug:harness werkzeug:tools \
 		werkzeug:Makefile werkzeug:.harness/baseline werkzeug:.harness/skills werkzeug:.d-check.yml werkzeug:d-check.mk \
 		werkzeug:config werkzeug:gradle/libs.versions.toml werkzeug:referenztest-dotnet/Dockerfile \
-		werkzeug:src/test/kotlin/io/github/pt9912/tdswire/runtime/IntegrationServer.kt; do
+		werkzeug:src/testserver/kotlin/io/github/pt9912/tdswire/testserver/IntegrationServer.kt tests:tools/jackson-sperre.sh; do
 		n=$((n + 1))
 		listen_ohne "l$n" "${paar%%:*}" "${paar#*:}"
 		lauf "${paar%%:*}.eingaenge ohne ${paar#*:}" 1 "${paar%%:*}.eingaenge: kein Eintrag deckt" "STEMPEL_LISTEN=$T/l$n"

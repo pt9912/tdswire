@@ -30,9 +30,7 @@ import kotlin.time.Duration.Companion.seconds
 /**
  * Woher die Anfragen ihre Antworten bekommen (`TDS-FA-11.a`): ein fertiges [backend] oder die [simulationTables] des
  * Integrators mit Zeilenquellen und Callbacks, die Kotlin-Schnittstelle der Verdrahtung des Simulations-Backends
- * (`ADR-0012`). Dazu kommen die Tabellen aus der Datei der Konfiguration (`SIMULATION_DESCRIPTION_FILE`); Datei und
- * [simulationTables] bilden einen Katalog. Ein [backend] zugleich mit einer von beiden bricht den Start ab. Ohne
- * Datei, Tabellen und Backend läuft der Prozess ohne Anfragepfad.
+ * (`ADR-0012`). Ohne Tabellen und Backend läuft der Server ohne Anfragepfad.
  */
 internal class RequestSource(val backend: QueryBackend? = null, val simulationTables: List<SimTable> = emptyList())
 
@@ -40,7 +38,7 @@ internal class RequestSource(val backend: QueryBackend? = null, val simulationTa
  * Alles, was der Prozess außer der Konfiguration festlegt und ein Test ersetzt: Log, Ereignisempfänger,
  * Zeitgeber der Fristen, der [authPool] (einer je Prozess), die Wahl des Adapters und die [requests]-Quelle des
  * Backends. Die Voreinstellung ist der Betrieb: Log auf der Standardausgabe nur über [ServerLog.STDOUT], die
- * Benutzerliste als [UserListAuthAdapter], Backend nur aus der Datei der Konfiguration.
+ * Benutzerliste als [UserListAuthAdapter], kein Backend.
  */
 internal class Wiring(
     val log: ServerLog = ServerLog.NONE,
@@ -60,9 +58,8 @@ private fun policyOf(setting: EncryptionSetting): EncryptionPolicy = when (setti
 }
 
 /**
- * Start-Reihenfolge (`ARC-008`, `TDS-FA-09.a`). [start] ist der Start des Prozesses: JVM-Flag prüfen, Konfiguration
- * laden und validieren, dann [launch]. [launch] ist der Teil, den auch `TdsServer.start` ruft: JVM-Flag und
- * Konfiguration prüfen (`ConfigValidation.check`), das Simulations-Backend verdrahten (ein Ladefehler der Beschreibung
+ * Start-Reihenfolge (`ARC-008`, `TDS-FA-09.a`). [launch] ist der Teil, den `TdsServer.start` ruft: JVM-Flag und
+ * Konfiguration prüfen (`ConfigValidation.check`), das Simulations-Backend verdrahten (ein doppelter Tabellenname
  * bricht den Start ab, bevor ein Port gebunden wird), TLS-Material laden, Startprobe und Binden im Listener
  * (`SPEC-043`). Bis zum Binden läuft kein Thread des Servers; scheitert ein Schritt, läuft danach keiner weiter
  * und kein Port ist gebunden.
@@ -80,14 +77,6 @@ internal object Bootstrap {
     const val TICKET_FLAG = "jdk.tls.server.newSessionTicketCount"
     private const val CONFIG_INVALID = "Konfiguration ungueltig"
 
-    suspend fun start(environment: Map<String, String>, properties: (String) -> String?, wiring: Wiring): StartOutcome {
-        flagProblem(properties)?.let { return abort(wiring, it) }
-        return when (val loaded = ConfigLoader.load(environment)) {
-            is ConfigResult.Invalid -> reject(wiring, loaded.issues)
-            is ConfigResult.Loaded -> launch(loaded.config, wiring, properties)
-        }
-    }
-
     suspend fun launch(config: ServerConfig, wiring: Wiring, properties: (String) -> String?): StartOutcome {
         val flag = flagProblem(properties)
         val issues = ConfigValidation.check(config)
@@ -99,7 +88,7 @@ internal object Bootstrap {
     }
 
     private suspend fun bindBackend(config: ServerConfig, wiring: Wiring): StartOutcome =
-        when (val simulation = backendOf(config, wiring)) {
+        when (val simulation = backendOf(wiring)) {
             is SimulationResult.Failed -> abort(wiring, simulation.reason)
 
             is SimulationResult.Ready -> {
@@ -132,8 +121,8 @@ internal object Bootstrap {
         }
     }
 
-    private fun backendOf(config: ServerConfig, wiring: Wiring): SimulationResult {
-        val simulation = SimulationSetup.build(config.simulationFile, wiring.requests.simulationTables)
+    private fun backendOf(wiring: Wiring): SimulationResult {
+        val simulation = SimulationSetup.build(wiring.requests.simulationTables)
         return if (wiring.requests.backend != null && simulation !is SimulationResult.Absent) {
             SimulationResult.Failed("Backend und Simulations-Backend gleichzeitig konfiguriert")
         } else {

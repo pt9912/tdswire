@@ -35,6 +35,10 @@ In Arbeit (ohne Welle):
 
 - keiner; zuletzt geschlossen: [slice-stempel-mechanismus](../done/slice-stempel-mechanismus.md) (Closure-Notiz in §7 des Slice; Folge: [slice-stempel-migration](../in-progress/slice-stempel-migration.md))
 
+In Arbeit (Welle welle-produktschnitt):
+
+- keiner; zuletzt geschlossen: [slice-testserver-herausloesen](../done/slice-testserver-herausloesen.md) (Closure-Notiz in §7 des Slice; Folge: [slice-explicit-api-umbau](../open/slice-explicit-api-umbau.md), [slice-betrieb-log-adapter-testserver](../open/slice-betrieb-log-adapter-testserver.md))
+
 ## Nächste Wellen
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`

@@ -1,10 +1,10 @@
-package io.github.pt9912.tdswire.runtime
+package io.github.pt9912.tdswire.testserver
 
 import io.github.pt9912.tdswire.config.ConfigIssue
 import io.github.pt9912.tdswire.config.ConfigKeys
+import io.github.pt9912.tdswire.config.ConfigValidation
 import io.github.pt9912.tdswire.config.EncryptionSetting
 import io.github.pt9912.tdswire.config.IssueKind
-import io.github.pt9912.tdswire.config.TempFilesTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -44,10 +44,10 @@ internal class ConfigLoaderTest : TempFilesTest() {
     fun `Gesetzte Werte werden uebernommen`() {
         val config = ConfigLoader.load(
             base(
-                ConfigKeys.LISTEN_HOST to "127.0.0.1",
-                ConfigKeys.LISTEN_PORT to "14330",
-                ConfigKeys.LOGIN_TIMEOUT to "7",
-                ConfigKeys.MAX_PRELOGIN_MESSAGE_BYTES to "4096",
+                EnvKeys.LISTEN_HOST to "127.0.0.1",
+                EnvKeys.LISTEN_PORT to "14330",
+                EnvKeys.LOGIN_TIMEOUT to "7",
+                EnvKeys.MAX_PRELOGIN_MESSAGE_BYTES to "4096",
             ),
         ).loaded()
         assertEquals("127.0.0.1", config.listen.host)
@@ -60,8 +60,9 @@ internal class ConfigLoaderTest : TempFilesTest() {
     }
 
     /**
-     * Grenzen der Zahlenschlüssel: der kleinste und der größte zulässige Wert werden angenommen, der Wert
-     * davor und danach ist außerhalb des Bereichs.
+     * Grenzen der Zahlenschlüssel: der Lader reicht jede Ziffernfolge weiter; der kleinste und der größte zulässige
+     * Wert besteht die Prüfung der Bibliothek (`ConfigValidation.check`), der Wert davor und danach ist außerhalb des
+     * Bereichs.
      *
      * @spec SPEC-005
      * @spec SPEC-008
@@ -70,18 +71,21 @@ internal class ConfigLoaderTest : TempFilesTest() {
     @Test
     fun `Bereichsgrenzen der Zahlenschluessel`() {
         val bounds = listOf(
-            Triple(ConfigKeys.LISTEN_PORT, 0, 65535),
-            Triple(ConfigKeys.LOGIN_TIMEOUT, 1, 3600),
-            Triple(ConfigKeys.MAX_PRELOGIN_MESSAGE_BYTES, 512, 65536),
+            Triple(EnvKeys.LISTEN_PORT, 0, 65535),
+            Triple(EnvKeys.LOGIN_TIMEOUT, 1, 3600),
+            Triple(EnvKeys.MAX_PRELOGIN_MESSAGE_BYTES, 512, 65536),
         )
         for ((key, low, high) in bounds) {
-            ConfigLoader.load(base(key to low.toString())).loaded()
-            ConfigLoader.load(base(key to high.toString())).loaded()
-            val outside = ConfigIssue(key, IssueKind.OUT_OF_RANGE)
-            if (low > 0) assertEquals(outside, singleIssue(base(key to (low - 1).toString())))
-            assertEquals(outside, singleIssue(base(key to (high + 1).toString())))
+            assertEquals(emptyList(), rangeIssues(base(key to low.toString())))
+            assertEquals(emptyList(), rangeIssues(base(key to high.toString())))
+            val outside = listOf(ConfigIssue(key, IssueKind.OUT_OF_RANGE))
+            if (low > 0) assertEquals(outside, rangeIssues(base(key to (low - 1).toString())))
+            assertEquals(outside, rangeIssues(base(key to (high + 1).toString())))
         }
     }
+
+    private fun rangeIssues(environment: Map<String, String>): List<ConfigIssue> =
+        ConfigValidation.check(ConfigLoader.load(environment).loaded())
 
     /**
      * Ein Zahlenwert besteht nur aus ASCII-Ziffern: Vorzeichen, Leerzeichen, Einheit, Dezimalpunkt, andere
@@ -92,8 +96,8 @@ internal class ConfigLoaderTest : TempFilesTest() {
     @Test
     fun `Zahlenwerte mit anderer Form sind ungueltig`() {
         listOf("-1", "+80", " 80", "80 ", "15s", "1.5", "", "٨٠", "８０", "0x50", "1234567890").forEach { value ->
-            val issue = singleIssue(base(ConfigKeys.LISTEN_PORT to value))
-            assertEquals(ConfigIssue(ConfigKeys.LISTEN_PORT, IssueKind.INVALID_VALUE), issue, "Wert '$value'")
+            val issue = singleIssue(base(EnvKeys.LISTEN_PORT to value))
+            assertEquals(ConfigIssue(EnvKeys.LISTEN_PORT, IssueKind.INVALID_VALUE), issue, "Wert '$value'")
         }
     }
 
@@ -106,8 +110,8 @@ internal class ConfigLoaderTest : TempFilesTest() {
     @Test
     fun `ENCRYPTION_POLICY kennt nur die zwei Werte`() {
         listOf("required", "Test_Unencrypted", "NONE", "OFF", "", " REQUIRED").forEach { value ->
-            val issue = singleIssue(base(ConfigKeys.ENCRYPTION_POLICY to value))
-            assertEquals(ConfigIssue(ConfigKeys.ENCRYPTION_POLICY, IssueKind.INVALID_VALUE), issue, "Wert '$value'")
+            val issue = singleIssue(base(EnvKeys.ENCRYPTION_POLICY to value))
+            assertEquals(ConfigIssue(EnvKeys.ENCRYPTION_POLICY, IssueKind.INVALID_VALUE), issue, "Wert '$value'")
         }
     }
 
@@ -119,12 +123,12 @@ internal class ConfigLoaderTest : TempFilesTest() {
      */
     @Test
     fun `REQUIRED ist die Voreinstellung und verlangt TLS-Dateien`() {
-        val environment = base() - ConfigKeys.ENCRYPTION_POLICY
+        val environment = base() - EnvKeys.ENCRYPTION_POLICY
         val issues = ConfigLoader.load(environment).issues()
         assertEquals(
             listOf(
-                ConfigIssue(ConfigKeys.TLS_KEYSTORE_FILE, IssueKind.MISSING),
-                ConfigIssue(ConfigKeys.TLS_KEYSTORE_PASSWORD_FILE, IssueKind.MISSING),
+                ConfigIssue(EnvKeys.TLS_KEYSTORE_FILE, IssueKind.MISSING),
+                ConfigIssue(EnvKeys.TLS_KEYSTORE_PASSWORD_FILE, IssueKind.MISSING),
             ),
             issues,
         )
@@ -137,14 +141,32 @@ internal class ConfigLoaderTest : TempFilesTest() {
      */
     @Test
     fun `TLS-Schluessel im Testmodus sind ein Widerspruch`() {
-        val store = ConfigKeys.TLS_KEYSTORE_FILE
-        val password = ConfigKeys.TLS_KEYSTORE_PASSWORD_FILE
+        val store = EnvKeys.TLS_KEYSTORE_FILE
+        val password = EnvKeys.TLS_KEYSTORE_PASSWORD_FILE
         assertEquals(ConfigIssue(store, IssueKind.CONFLICT), singleIssue(base(store to "x")))
         assertEquals(ConfigIssue(password, IssueKind.CONFLICT), singleIssue(base(password to "x")))
     }
 
     /**
-     * Mehrere Fehler werden zusammen gemeldet, in fester Reihenfolge; die Diagnose nennt nur Schlüssel und Art.
+     * Unter `REQUIRED` meldet der Lader eine Kennwortdatei, die es nicht gibt, als `UNREADABLE` mit dem Schlüssel der
+     * Datei, nie mit dem Pfad; der Speicher, der gelesen werden kann, ist kein Fehler.
+     *
+     * @spec SPEC-043
+     */
+    @Test
+    fun `Eine fehlende Kennwortdatei ist unlesbar`() {
+        val environment = base() - EnvKeys.ENCRYPTION_POLICY + mapOf(
+            EnvKeys.TLS_KEYSTORE_FILE to file("speicher.p12", "inhalt"),
+            EnvKeys.TLS_KEYSTORE_PASSWORD_FILE to "/gibt-es-nicht-4711.txt",
+        )
+        val issue = singleIssue(environment)
+        assertEquals(ConfigIssue(EnvKeys.TLS_KEYSTORE_PASSWORD_FILE, IssueKind.UNREADABLE), issue)
+        assertFalse(issue.message.contains("4711"))
+    }
+
+    /**
+     * Mehrere Fehler der Form und der Dateien werden zusammen gemeldet, in fester Reihenfolge; die Diagnose nennt
+     * nur Schlüssel und Art. Bereichsfehler prüft erst der Start der Bibliothek.
      *
      * @spec SPEC-005
      * @spec SPEC-008
@@ -153,16 +175,16 @@ internal class ConfigLoaderTest : TempFilesTest() {
     fun `Mehrere Fehler werden zusammen gemeldet`() {
         val issues = ConfigLoader.load(
             mapOf(
-                ConfigKeys.LISTEN_PORT to "99999",
-                ConfigKeys.LOGIN_TIMEOUT to "0",
-                ConfigKeys.ENCRYPTION_POLICY to "TEST_UNENCRYPTED",
+                EnvKeys.LISTEN_PORT to "99999x",
+                EnvKeys.LOGIN_TIMEOUT to "abc",
+                EnvKeys.ENCRYPTION_POLICY to "TEST_UNENCRYPTED",
             ),
         ).issues()
         assertEquals(
             listOf(
-                ConfigIssue(ConfigKeys.LISTEN_PORT, IssueKind.OUT_OF_RANGE),
-                ConfigIssue(ConfigKeys.LOGIN_TIMEOUT, IssueKind.OUT_OF_RANGE),
-                ConfigIssue(ConfigKeys.AUTH_USERS_FILE, IssueKind.MISSING),
+                ConfigIssue(EnvKeys.LISTEN_PORT, IssueKind.INVALID_VALUE),
+                ConfigIssue(EnvKeys.LOGIN_TIMEOUT, IssueKind.INVALID_VALUE),
+                ConfigIssue(EnvKeys.AUTH_USERS_FILE, IssueKind.MISSING),
             ),
             issues,
         )
@@ -178,10 +200,10 @@ internal class ConfigLoaderTest : TempFilesTest() {
     fun `Die Diagnose nennt keinen Wert und keinen Pfad`() {
         val secrets = listOf("geheim-wert-4711", "/pfad/geheim-4711/users", "kennung-4711")
         val environment = mapOf(
-            ConfigKeys.LISTEN_PORT to secrets[0],
-            ConfigKeys.ENCRYPTION_POLICY to secrets[0],
-            ConfigKeys.AUTH_PLAIN_TESTMODE to secrets[0],
-            ConfigKeys.AUTH_USERS_FILE to secrets[1],
+            EnvKeys.LISTEN_PORT to secrets[0],
+            EnvKeys.ENCRYPTION_POLICY to secrets[0],
+            EnvKeys.AUTH_PLAIN_TESTMODE to secrets[0],
+            EnvKeys.AUTH_USERS_FILE to secrets[1],
         )
         val messages = ConfigLoader.load(environment).issues().map { it.message }
         assertEquals(4, messages.size, messages.toString())
@@ -189,13 +211,32 @@ internal class ConfigLoaderTest : TempFilesTest() {
     }
 
     /**
-     * Ein leerer Wert für die Bind-Adresse ist ungültig; eine gesetzte Adresse wird nicht verändert.
+     * Ein leerer Wert für die Bind-Adresse geht unverändert an die Bibliothek und ist dort ungültig.
      *
      * @spec SPEC-005
      */
     @Test
     fun `Leere Bind-Adresse ist ungueltig`() {
-        val issue = singleIssue(base(ConfigKeys.LISTEN_HOST to " "))
-        assertEquals(ConfigIssue(ConfigKeys.LISTEN_HOST, IssueKind.INVALID_VALUE), issue)
+        val issues = ConfigValidation.check(ConfigLoader.load(base(EnvKeys.LISTEN_HOST to " ")).loaded())
+        assertEquals(listOf(ConfigIssue(EnvKeys.LISTEN_HOST, IssueKind.INVALID_VALUE)), issues)
+    }
+
+    /**
+     * Die Schlüssel, die der Testserver liest, tragen denselben Text wie die Schlüssel, die die Bibliothek in
+     * einem `ConfigIssue` nennt: sonst meldete der Start einen Schlüssel, den es in der Umgebung nicht gibt.
+     *
+     * @spec SPEC-043
+     */
+    @Test
+    fun `Die Schluessel der Umgebung sind die der Diagnose`() {
+        assertEquals(ConfigKeys.LISTEN_HOST, EnvKeys.LISTEN_HOST)
+        assertEquals(ConfigKeys.LISTEN_PORT, EnvKeys.LISTEN_PORT)
+        assertEquals(ConfigKeys.LOGIN_TIMEOUT, EnvKeys.LOGIN_TIMEOUT)
+        assertEquals(ConfigKeys.MAX_PRELOGIN_MESSAGE_BYTES, EnvKeys.MAX_PRELOGIN_MESSAGE_BYTES)
+        assertEquals(ConfigKeys.TLS_KEYSTORE_FILE, EnvKeys.TLS_KEYSTORE_FILE)
+        assertEquals(ConfigKeys.TLS_KEYSTORE_PASSWORD_FILE, EnvKeys.TLS_KEYSTORE_PASSWORD_FILE)
+        assertEquals(ConfigKeys.ENCRYPTION_POLICY, EnvKeys.ENCRYPTION_POLICY)
+        assertEquals(ConfigKeys.AUTH_USERS_FILE, EnvKeys.AUTH_USERS_FILE)
+        assertEquals(ConfigKeys.AUTH_PLAIN_TESTMODE, EnvKeys.AUTH_PLAIN_TESTMODE)
     }
 }
