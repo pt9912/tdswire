@@ -10,7 +10,7 @@
 # und jedes Gate ohne Klasse: das laeuft weiter immer, und `make gate-zuordnung` meldet es rot. Nach Lauf aller Gates einer Klasse
 # schreibt der Gruppenschritt den Stempel (tools/stempel-gruppe.sh); `make test` und jedes andere Gate allein schreiben nichts.
 # `make gates FORCE=1` ueberspringt die Pruefung der Stempel; `make clean-build` fragt keinen Stempel.
-# Beide Selbsttests-Gruppen laufen auf dem Host mit bash und git (die Host-Abhaengigkeiten des Repos), nicht in Docker, und
+# Die Selbsttests und die Skripte der Gruppenschritte laufen auf dem Host mit bash und git (die Host-Abhaengigkeiten des Repos), nicht in Docker, und
 # lesen den Arbeitsbaum; sie beruehren weder refs/notes/gates noch die Konfiguration des Repos.
 #
 # In `GATE_CHECKS` stehen von den Selbsttests nur gate-zuordnung (mit seinem Selbsttest) und stempel-eingaenge-pruefung; die
@@ -18,7 +18,19 @@
 # merklich verlaengerten (Laufzeiten unten). Ein Fehler in tools/stempel*, den Listen oder dem Dockerfile-Bezug macht darum nur
 # die Pruefung der Listen rot: wer tools/stempel* aendert, fuehrt `make stempel-selbsttest stempel-eingaenge stempel-abbild
 # stempel-gruppe` selbst aus. Die CI ruft sie nicht.
-# Laufzeit-Messungen: siehe Abschnitt am Ende dieses Kopfes.
+#
+# Laufzeit von `make gates` (Einzelmessungen 2026-11-01 auf einem Host, Docker-Layer-Cache warm, Lastmittel 3 bis 5 durch andere
+# Agenten, keine Streuung behauptet; kalt, mit leerem Cache, nicht gemessen; gilt nicht fuer die CI, die ohne Note voll laeuft):
+#   vorher (Altmechanismen, Stand 0db1db4): warm 9,2 / 8,2 / 8,3 s; Dockerfile geaendert 14,2 s.
+#   nachher: beide Klassen mit Beleg 2,3 / 2,2 s; Amend ohne Inhaltsaenderung 2,0 s (notes.rewriteRef gesetzt); nur Doku
+#   geaendert 6,8 s (tests uebersprungen); Dockerfile geaendert 15,0 s (beide laufen); erster Lauf ohne Beleg 11,1 s (Dockerfile
+#   neu); nur src/ geaendert 254 s, davon fast alles der Gradle-Neubau der Stages test, detekt und build, nicht gegen den
+#   Altmechanismus gemessen (dessen Cache bricht an derselben Stelle).
+#   Gates einzeln, warm: docs-check 1,2 s, baseline-verify 0,03 s, detekt-selbsttest 0,9 s, skript-selbsttest 0,9 s,
+#   kopplung-zahlen 0,9 s, gate-zuordnung 0,13 s, stempel-eingaenge-pruefung 0,3 s, test 1,1 s, detekt 1,0 s, build 1,1 s,
+#   referenztest-dotnet 1,1 s. Die Selbsttests, die kein Gate sind: stempel-selbsttest 1,3 s, stempel-eingaenge 3,5 s,
+#   stempel-abbild 3,0 s, stempel-gruppe 2,3 s; als Gates der Klasse werkzeug liefen sie bei jeder Aenderung unter docs/ mit
+#   (gerechnet, nicht gemessen: 6,8 s plus 10,1 s ergaeben 16,9 s).
 .PHONY: gruppe-werkzeug gruppe-tests gate-zuordnung stempel-eingaenge-pruefung stempel-selbsttest stempel-eingaenge stempel-abbild stempel-gruppe
 
 GATE_KLASSE_werkzeug += docs-check baseline-verify gate-zuordnung stempel-eingaenge-pruefung
