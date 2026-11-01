@@ -31,13 +31,13 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Drei Aussagen aus Review und Verifikation von [slice-betrieb-log-schnittstelle](../in-progress/slice-betrieb-log-schnittstelle.md) bekommen einen Beleg, den heute nur das Lesen des Codes trägt: (1) `AcceptFailed` und `ConnectionFailed` entstehen am Server und nicht nur im Modell-Test (Verifikation V-3: die Mutationen M9 und M10 überleben); (2) „im ganzen Hauptmodul ohne Ausnahme“ der Ausgabe-Sperre ist für jedes Package des Hauptmoduls durch einen Rot-Fall belegt oder als Grenze benannt (V-6: Rot-Fälle nur für `runtime`, `protocol`, `transport`); (3) die Lücke von `java.util.logging.Logger.log(Level, …)` ist geschlossen oder bleibt mit Begründung benannt (V-6, Mutation M6).
+**Ziel:** Drei Aussagen aus Review und Verifikation von [slice-betrieb-log-schnittstelle](../done/slice-betrieb-log-schnittstelle.md) bekommen einen Beleg, den heute nur das Lesen des Codes trägt: (1) `AcceptFailed` und `ConnectionFailed` entstehen am Server und nicht nur im Modell-Test (Verifikation V-3: die Mutationen M9 und M10 überleben); (2) „im ganzen Hauptmodul ohne Ausnahme“ der Ausgabe-Sperre ist für jedes Package des Hauptmoduls durch einen Rot-Fall belegt oder als Grenze benannt (V-6: Rot-Fälle nur für `runtime`, `protocol`, `transport`); (3) die Lücke von `java.util.logging.Logger.log(Level, …)` ist geschlossen oder bleibt mit Begründung benannt (V-6, Mutation M6).
 
-**Herkunft:** die Punkte stammen aus dem Bericht `docs/reviews/2026-11-01-2e6b7ba-verifikation-slice-betrieb-log-schnittstelle.md` (V-3, V-6) und aus der Closure-Notiz von [slice-betrieb-log-schnittstelle](../in-progress/slice-betrieb-log-schnittstelle.md).
+**Herkunft:** die Punkte stammen aus dem Bericht `docs/reviews/2026-11-01-2e6b7ba-verifikation-slice-betrieb-log-schnittstelle.md` (V-3, V-6) und aus der Closure-Notiz von [slice-betrieb-log-schnittstelle](../done/slice-betrieb-log-schnittstelle.md).
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Umfang der öffentlichen Fläche (18 Ereignisarten, 4 Aufzählungen, rund 50 Namen; Optionen (a), (b), (c) in §6 von [slice-betrieb-log-schnittstelle](../in-progress/slice-betrieb-log-schnittstelle.md)) — Nutzerentscheidung, `BEO-TDS/oeffentliche-flaeche-der-telemetrie-ohne-entscheidung`; schrumpft die Fläche, ändern sich Arten und damit die Tests dieses Slice, deshalb steht die Entscheidung vor ihm.
+- Umfang der öffentlichen Fläche (18 Ereignisarten, 4 Aufzählungen, rund 50 Namen; Optionen (a), (b), (c) in §6 von [slice-betrieb-log-schnittstelle](../done/slice-betrieb-log-schnittstelle.md)) — Nutzerentscheidung, `BEO-TDS/oeffentliche-flaeche-der-telemetrie-ohne-entscheidung`; schrumpft die Fläche, ändern sich Arten und damit die Tests dieses Slice, deshalb steht die Entscheidung vor ihm.
 - Neue Ereignisarten, `request_id` und `duration_ms` — [slice-betrieb-zustandsereignisse](slice-betrieb-zustandsereignisse.md) und [slice-betrieb-metriken-tracing](slice-betrieb-metriken-tracing.md); hier wird nur belegt, was gebaut ist.
 - Der JSON-Adapter und die Inspektion des laufenden Prozesses — [slice-betrieb-log-adapter-testserver](slice-betrieb-log-adapter-testserver.md).
 - `Error` aus der Senke bei `AcceptFailed` und `ConnectionFailed`: bleibt „weder gemessen noch zugesagt“ (KDoc von `TelemetrySink`); der Slice darf es messen, muss es nicht, und eine Zusage braucht eine Entscheidung des Nutzers.
@@ -92,7 +92,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-betrieb-log-schnittstelle](../in-progress/slice-betrieb-log-schnittstelle.md) liegt in `done/`; die Nutzerentscheidung zum Umfang der öffentlichen Fläche (`BEO-TDS/oeffentliche-flaeche-der-telemetrie-ohne-entscheidung`) ist gefallen, weil Option (c) die Arten ändert, die dieser Slice belegt; ein Verantwortlicher ist eingetragen.
+**Start** (`next` → `in-progress`): [slice-betrieb-log-schnittstelle](../done/slice-betrieb-log-schnittstelle.md) liegt in `done/`; die Nutzerentscheidung zum Umfang der öffentlichen Fläche (`BEO-TDS/oeffentliche-flaeche-der-telemetrie-ohne-entscheidung`) ist gefallen, weil Option (c) die Arten ändert, die dieser Slice belegt; ein Verantwortlicher ist eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
