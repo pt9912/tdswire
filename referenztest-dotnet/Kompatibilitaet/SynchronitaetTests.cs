@@ -7,7 +7,7 @@ namespace TdsWire.Referenztests.Kompatibilitaet;
 
 /// <summary>
 /// Die Fehler-Matrix mit Wiederverwendung der Verbindung am Referenzclient (Microsoft.Data.SqlClient 7.1.1) gegen den
-/// Serverprozess mit Simulations-Backend (`make kompatibilitaet KATEGORIE=Synchronitaet`, Stufe 8 von `make e2e`,
+/// Serverprozess mit Simulations-Backend (`make kompatibilitaet KATEGORIE=Synchronitaet`, Stufe 7 von `make e2e`,
 /// TDS-QA-07, ADR-0007): nach einem Fehler erhält die unmittelbar folgende Anfrage derselben Verbindung nur ihre
 /// eigene Antwort, oder die Verbindung ist geschlossen. Jede Antwort der Folgeanfrage ist an ihrem Inhalt erkennbar
 /// (Id, Name, Zeilenzahl), nicht nur an der Abwesenheit einer Ausnahme. Jede Verbindung läuft mit TLS in TDS 7.4,
