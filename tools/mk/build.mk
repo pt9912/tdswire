@@ -20,3 +20,5 @@ deps-lock: ## Nach einer Versionsaenderung in gradle/libs.versions.toml: gradle.
 	docker build $(BUILDER_FLAGS) --target lock-export --build-arg DEPS_TASKS="$(DEPS_TASKS)" --output type=local,dest=. .
 
 GATE_CHECKS += detekt build
+GATE_KLASSE_tests += detekt build
+GATE_STAGE += detekt=detekt build=build-jar

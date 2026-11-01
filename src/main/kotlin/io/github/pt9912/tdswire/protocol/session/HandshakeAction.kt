@@ -83,6 +83,13 @@ internal sealed interface HandshakeAction {
     /** Die Nachricht gehört der Anfrageverarbeitung; der Handshake-Automat bearbeitet sie nicht. */
     data object Forward : HandshakeAction
 
+    /**
+     * Die Nachricht trägt das Bit RESETCONNECTION (`ADR-0027` Entscheidung 5): der Sitzungsrahmen setzt den
+     * Sitzungszustand der Anfrageverarbeitung zurück ([HandshakeSession.onSessionReset]), unter seiner Sperre und
+     * vor [Forward] derselben Nachricht.
+     */
+    data object ResetSession : HandshakeAction
+
     data class Close(val reason: CloseReason) : HandshakeAction
 
     /**

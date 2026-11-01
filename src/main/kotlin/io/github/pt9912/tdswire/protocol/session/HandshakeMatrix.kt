@@ -7,8 +7,9 @@ package io.github.pt9912.tdswire.protocol.session
  * Nachrichteninhalt.
  *
  * Festlegung ohne Messung / offen (`ADR-0004`): Ein unzulässiger Übergang beendet die Verbindung
- * ohne Antwort (Setzung des Spike). Das gilt auch für ATTENTION vor `READY`; das RESETCONNECTION-Bit
- * einer Nachricht wertet der Automat nicht aus.
+ * ohne Antwort (Setzung des Spike). Das gilt auch für ATTENTION vor `READY`. Das RESETCONNECTION-Bit
+ * wertet der Automat nur an einer Anfrage in `READY` aus (`ADR-0027` Entscheidung 5, [HandshakeAction.ResetSession]);
+ * in jedem anderen Zustand ist es ohne Bedeutung, und eine Anfrage außerhalb von `READY` ist unzulässig.
  * `LOGIN_TIMEOUT`, `PEER_CLOSED` und `READ_FAILED` sind nach `CLOSED` ohne Wirkung; `LOGIN_TIMEOUT`
  * ist es auch in `READY`, `RUNNING` und `STREAMING`, weil die Frist für eine angemeldete Verbindung nicht
  * gilt (`SPEC-008`).

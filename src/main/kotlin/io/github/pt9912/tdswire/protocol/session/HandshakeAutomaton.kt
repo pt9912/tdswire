@@ -83,10 +83,21 @@ internal class HandshakeAutomaton(private val config: HandshakeConfig = Handshak
     private fun cancelling(context: HandshakeContext, cause: CancelCause): Transition =
         Transition(context.copy(state = ConnectionState.CANCELLING), listOf(HandshakeAction.Cancel(cause)))
 
+    /**
+     * Trägt die Anfrage das Bit RESETCONNECTION, geht [HandshakeAction.ResetSession] der Aktion
+     * [HandshakeAction.Forward] voran (`ADR-0027` Entscheidung 5: Aktion am Übergang, der die Anfrage annimmt, kein
+     * Zustand). Eine Anfrage erreicht diese Stelle nur aus `READY`; in jedem anderen Zustand der Anfragen ist sie
+     * unzulässig (Matrix), und die Bits von ATTENTION und der Nachrichten des Handshakes wertet der Automat nicht aus.
+     */
     private fun forward(context: HandshakeContext, message: TdsMessage): Transition {
         val starts = message.type == PacketType.SQL_BATCH || message.type == PacketType.RPC
         val next = if (starts) ConnectionState.RUNNING else context.state
-        return Transition(context.copy(state = next), listOf(HandshakeAction.Forward))
+        val actions = if (message.resetConnection) {
+            listOf(HandshakeAction.ResetSession, HandshakeAction.Forward)
+        } else {
+            listOf(HandshakeAction.Forward)
+        }
+        return Transition(context.copy(state = next), actions)
     }
 
     /** Die Antwort wird gesendet; danach ist die Sitzung `READY`, oder sie schließt (Senden vor Schließen). */

@@ -78,7 +78,7 @@ Summe: 12 + 2 + 1 + 1 = 16 Lücken; 3 + 2 + 1 = 6 Zeilen ohne Zitat; 10 + 7 + 31
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - **Spec-Nachzug, Tags an Tests, Löschen der Handmatrix** — [slice-kompatibilitaetsmatrix-migration](slice-kompatibilitaetsmatrix-migration.md): hängt an den Entscheidungen des Nutzers über die Spec; dieser Slice baut den Erzeuger und prüft ihn am Mini-Bestand.
-- **Gate-Aufnahme** — [slice-kompatibilitaetsmatrix-gate](slice-kompatibilitaetsmatrix-gate.md): braucht die verdrahtete Klasse `tests` aus [slice-stempel-migration](slice-stempel-migration.md) und eine Messung der Gate-Zeit.
+- **Gate-Aufnahme** — [slice-kompatibilitaetsmatrix-gate](slice-kompatibilitaetsmatrix-gate.md): braucht die verdrahtete Klasse `tests` aus [slice-stempel-migration](../done/slice-stempel-migration.md) und eine Messung der Gate-Zeit.
 - **Bestehen der Referenzclient-Tests im Gate** — [ADR-0022](../../adr/0022-e2e-laeufe-nicht-in-den-gates.md): `make e2e` bleibt kein Gate; die Sicht trägt dessen letzten Lauf als Datum.
 - **Cancel-Szenario und Messungen am echten SQL Server** — [slice-cancel-referenzclient-szenario](slice-cancel-referenzclient-szenario.md) bzw. [slice-qa-vergleichslauf-d-messungen](slice-qa-vergleichslauf-d-messungen.md).
 - **Schreiben der ADR und der Änderungen an Spec und `AGENTS.md`** — Entscheidungen des Nutzers.
@@ -141,7 +141,7 @@ lässt. Ergänzt die Tabelle, ersetzt sie nicht:
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `make gates` ist auf `main` grün, und der Nutzer hat entschieden, ob die Matrix als Sicht (Option A) oder gar nicht mehr geführt wird (Option C) und ob die Spec ein Feld `Kategorie` und Tabellen je Fall bekommt. Keine Abhängigkeit von [slice-stempel-migration](slice-stempel-migration.md).
+**Start** (`next` → `in-progress`): `make gates` ist auf `main` grün, und der Nutzer hat entschieden, ob die Matrix als Sicht (Option A) oder gar nicht mehr geführt wird (Option C) und ob die Spec ein Feld `Kategorie` und Tabellen je Fall bekommt. Keine Abhängigkeit von [slice-stempel-migration](../done/slice-stempel-migration.md).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -168,6 +168,7 @@ dasteht.
 - **Stand-Vergleich der E2E-Datei steht nicht in der Sicht** (Reproduzierbarkeit, §1); wer `make e2e` nicht fährt, hat eine Sicht mit altem Datum, die „veraltet?“ nur meldet. — **Ausgang:** eingetreten als bekannte Grenze, im Kopf der Sicht benannt; Stand-Angaben nicht an zwei Orten: BEO-TDS/stand-angaben-in-matrix-und-slice-plan-driften (1×).
 - **Marker der Spec fehlen oder sind uneinheitlich** (Setzung, nicht gemessen, Zielzustand, Festlegung: 112/87/20/64 Vorkommen in der Spec, nicht als Feld): die Sicht liest sie als Wort der Zeile. — **Ausgang:** weiter offen bis zur Umsetzung; der Erzeuger prüft die Legende.
 - **Kein Gate bis zum Folge-Slice:** die Sicht kann bis dahin von Hand geändert werden (Evidenz 7× für die Spec-Matrix, 4× für CI-Zusagen). — **Ausgang:** weiter offen: → BEO-TDS/abdeckungsmatrix-veraltet-ohne-sensor im Register und BEO-TDS/zusage-ohne-sensor-in-der-ci-kette.
+- **Die Stand-Zeile der Kompatibilitätsmatrix ist veraltet** (Verifikation `slice-resetconnection-zuruecksetzen`, L-2): der Satz „Seit `68598df` ändern nur KDoc, kein Verhalten“ stimmt nicht mehr (`git diff --stat 68598df..HEAD -- src/main` zeigt 101 Dateien), die Zahl „775 Testfälle in 106 Klassen“ steht bei 888; die Zeilen 9, 13, 3a, 4, 7b und 7c sind von Hand für `RESETCONNECTION` nachgezogen und gehören in die Quelle der Erzeugung. — **Ausgang:** weiter offen bis zur Umsetzung; der Erzeuger schreibt den Stand aus dem Lauf statt von Hand: → BEO-TDS/zahl-an-mehreren-orten-ohne-sensor im Register.
 - **Ein Szenario des Referenzclients ohne Festlegung** erzeugt eine Spec-Lücke statt einer Zeile. — **Ausgang:** weiter offen bis zur Umsetzung.
 
 ## 7. Closure-Notiz
