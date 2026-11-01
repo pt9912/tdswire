@@ -1,5 +1,6 @@
 package io.github.pt9912.tdswire.protocol.dispatch
 
+import io.github.pt9912.tdswire.config.ConfigDefaults
 import kotlinx.coroutines.delay
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -23,9 +24,9 @@ class RequestTimes(
 ) {
     companion object {
         /** `QUERY_TIMEOUT` nach `SPEC-009` (vorläufig). */
-        val DEFAULT_QUERY_TIMEOUT = 30.seconds
+        val DEFAULT_QUERY_TIMEOUT = ConfigDefaults.QUERY_TIMEOUT_SECONDS.seconds
 
         /** `CANCEL_TIMEOUT` nach `SPEC-033` (vorläufig). */
-        val DEFAULT_CANCEL_TIMEOUT = 5.seconds
+        val DEFAULT_CANCEL_TIMEOUT = ConfigDefaults.CANCEL_TIMEOUT_SECONDS.seconds
     }
 }

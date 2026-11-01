@@ -83,8 +83,9 @@ import kotlin.time.Duration.Companion.milliseconds
  * Verbindung schließt; die Tokenfolge einer RPC-Antwort ist
  * nicht am Referenzclient gemessen; ein SQL_BATCH, dessen Nachricht
  * der Parser abweist, wird mit `TDS_PROTOCOL_ERROR` beantwortet (`ErrorMapper.protocol`, als ganze
- * Nachricht über den Sitzungsrahmen); die Pakete einer Antwort gehen außerhalb der Sperre des Rahmens
- * hinaus (die Schleife ist während einer Anfrage der einzige Schreiber); bei Ausfall der Senke bleiben
+ * Nachricht über den Sitzungsrahmen); jeder Schreibvorgang einer Antwort läuft unter der Sperre des Rahmens
+ * (`HandshakeSession.guarded`), damit Übergänge nur zwischen zwei Schreibvorgängen stattfinden; bei Ausfall der
+ * Senke bleiben
  * bereits geschriebene Pakete auf dem Draht, ein gehaltenes Paket und das EOM-Paket entfallen, und die
  * Verbindung schließt; die Frist wirkt nicht, solange ein Schreibvorgang am Rückstau hängt (er hält die Sperre,
  * die der Übergang braucht).

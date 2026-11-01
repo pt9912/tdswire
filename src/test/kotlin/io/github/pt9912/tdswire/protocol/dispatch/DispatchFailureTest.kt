@@ -104,7 +104,7 @@ class DispatchFailureTest {
             assertEquals(case.second, session.tokens(0).errorMessage(), name)
             assertTrue(session.hex(0).endsWith(BatchVectors.DONE_ERROR), name)
             assertTrue(session.channel.closed, name)
-            assertEquals(1, session.replies.size, "$name: die naechste Nachricht wurde beantwortet")
+            assertEquals(1, session.replies.size, "$name: mehr als die eine Antwort wurde gesendet")
             assertEquals(1, backend.requests.size, name)
             assertEquals(1, backend.closeCalls, name)
             assertEquals(ConnectionState.CLOSED, session.ready.live.context.state, name)

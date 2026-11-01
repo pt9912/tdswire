@@ -421,7 +421,7 @@ der erste Übergang gewinnt, doppelte DONE-Tokens sind verboten. War die Antwort
 vollständig gesendet, wird das ATTENTION als eigene Nachricht bestätigt, ohne Cancel; ebenso ein ATTENTION nach dem
 Abschluss eines Timeouts und jedes weitere ATTENTION: ein wiederholtes ATTENTION löst keinen zweiten Cancel aus, und jedes wird einzeln
 bestätigt (Setzung, nicht gemessen; ob ein Client das erwartet, zeigt erst das Cancel-Szenario am Referenzclient).
-Der Abbruch unterbricht kein Paket im Schreiben: er wirkt, sobald das Paket ganz auf dem Draht steht
+Der Abbruch unterbricht kein Paket im Schreiben: er wirkt, sobald der Schreibvorgang, der gerade läuft, zurückgekehrt ist
 (Festlegung, nicht gemessen). Grenze: ein Schreibvorgang, der am Rückstau hängt (der Client liest nicht mehr), hält die
 Sitzungssperre; bis zu seiner Rückkehr wirken ATTENTION, die Frist der Anfrage und `CANCEL_TIMEOUT` nicht. Wenn ein bereits gesendeter Stream nicht mehr sauber abgeschlossen werden kann,
 wird die Verbindung ohne ERROR und DONE geschlossen (`SPEC-031`). Beachtet das Backend den Cancel nicht,
