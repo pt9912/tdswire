@@ -22,6 +22,7 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 - [welle-betrieb-diagnose](../welle-betrieb-diagnose.md)
 - [welle-referenzabgleich-release](../welle-referenzabgleich-release.md)
 - [welle-produktschnitt](../welle-produktschnitt.md)
+- [welle-testserver-manuell](../welle-testserver-manuell.md)
 
 In Arbeit (Welle welle-qualitaet-grundlage):
 
