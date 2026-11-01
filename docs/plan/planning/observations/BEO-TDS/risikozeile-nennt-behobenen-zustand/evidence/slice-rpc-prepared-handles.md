@@ -1,0 +1,2 @@
+**Vorgang:** slice-rpc-prepared-handles
+**Fund:** Verifikation F-1: Der Plan nannte in DoD und Risikozeilen `Proposed` für [ADR-0017](../../../../../adr/0017-prepared-handles-grenzwert.md) und [ADR-0004](../../../../../adr/0004-session-zustandsautomat.md), nachdem beide im Index `Accepted` führten; die Risikozeile 1 forderte „der Slice startet erst, wenn die ADR Accepted ist“, obwohl er längst lief. Korrigiert in der Closure.

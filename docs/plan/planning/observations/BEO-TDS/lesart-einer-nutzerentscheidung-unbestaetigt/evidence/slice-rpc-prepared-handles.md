@@ -1,0 +1,2 @@
+**Vorgang:** slice-rpc-prepared-handles
+**Fund:** Verifikation F-3: [ADR-0017](../../../../../adr/0017-prepared-handles-grenzwert.md) Entscheidung 3 verlangt die Handle-Tabelle „unter dem Sitzungsschutz“ von [ADR-0004](../../../../../adr/0004-session-zustandsautomat.md); gebaut ist ein eigener Mutex je Tabelle. Der Planner liest das in der Closure als zulässig (keine Verschachtelung, keine Deadlock-Möglichkeit); die Lesart ist vom Nutzer unbestätigt.
