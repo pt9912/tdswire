@@ -1,0 +1,2 @@
+**Vorgang:** slice-anfragefolge-gesamttest
+**Fund:** Verifikation F-V3: `make gates` auf dem unveränderten Stand lag für die Stage `test` im Cache (12,4 s) und belegte weder die Gate-Kosten noch die Testdauer des neuen Tests; die DoD-Zusage „unter 2 s“ stand ohne Zahl da. Erst der Frischlauf der Stage `test` mit `--no-cache-filter test` und Filter auf die Klasse lieferte die Testdauer aus dem Gradle-Bericht (Closure-Notiz in §7 des Slice).

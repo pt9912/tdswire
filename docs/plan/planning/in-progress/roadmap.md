@@ -22,10 +22,15 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 - [welle-betrieb-diagnose](../welle-betrieb-diagnose.md)
 - [welle-referenzabgleich-release](../welle-referenzabgleich-release.md)
 - [welle-produktschnitt](../welle-produktschnitt.md)
+- [welle-testserver-manuell](../welle-testserver-manuell.md)
 
 In Arbeit (Welle welle-qualitaet-grundlage):
 
 - [slice-e2e-geruest](slice-e2e-geruest.md)
+
+In Arbeit (Welle welle-anfrageverarbeitung):
+
+- keiner; zuletzt geschlossen: [slice-anfragefolge-gesamttest](../done/slice-anfragefolge-gesamttest.md) (Closure-Notiz in §7 des Slice; offener Nutzerpunkt: Lesart „Nachrichten, nicht Transport“ des Wellen-Wortlauts „Rohbytes-Lauf“, die Welle schließt nicht ohne diesen Zusatz)
 
 In Arbeit (Welle welle-fehler-abbruch):
 
