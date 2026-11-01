@@ -38,11 +38,11 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Die Namen der Senke, des Ereignismodells und des Parameters von `start` in `SPEC-059`: Arbeitsnamen der ADR (Offen (g)); sie trägt `SPEC-059` mit der Closure von [slice-betrieb-log-schnittstelle](slice-betrieb-log-schnittstelle.md) (`AGENTS.md` §3.8).
+- Die Namen der Senke, des Ereignismodells und des Parameters von `start` in `SPEC-059`: Arbeitsnamen der ADR (Offen (g)); sie trägt `SPEC-059` mit der Closure von [slice-betrieb-log-schnittstelle](../open/slice-betrieb-log-schnittstelle.md) (`AGENTS.md` §3.8).
 - Die Fläche und Läufe des Produktschnitts (`SPEC-052`, `SPEC-005`, `SPEC-010`, `SPEC-023`, `SPEC-035`, `SPEC-040`, `SPEC-059` ohne die Senke) — [slice-spec-nachzug-produktschnitt](../done/slice-spec-nachzug-produktschnitt.md), Voraussetzung dieses Slice.
-- Code, Tests, Skripte und Gates — [slice-betrieb-log-schnittstelle](slice-betrieb-log-schnittstelle.md), [slice-betrieb-log-adapter-testserver](slice-betrieb-log-adapter-testserver.md), [slice-betrieb-metriken-tracing](slice-betrieb-metriken-tracing.md); der Slice sagt, was gilt, und baut nichts.
+- Code, Tests, Skripte und Gates — [slice-betrieb-log-schnittstelle](../open/slice-betrieb-log-schnittstelle.md), [slice-betrieb-log-adapter-testserver](../open/slice-betrieb-log-adapter-testserver.md), [slice-betrieb-metriken-tracing](../open/slice-betrieb-metriken-tracing.md); der Slice sagt, was gilt, und baut nichts.
 - Das Lastenheft und angenommene ADRs (`AGENTS.md` §3.5). Ob der Satz zum Log in [ADR-0021](../../adr/0021-oeffentlicher-integrations-einstieg.md) Entscheidung 1 eine Folge-ADR mit `Supersedes` braucht (Offen (b) der [ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md)), entscheidet der Nutzer; der Slice meldet es nicht neu.
-- Die Entscheidung, ob das Ereignis `metrics` Perzentile oder Zähler je Klasse trägt (Offen (d)): sie trägt [slice-betrieb-metriken-tracing](slice-betrieb-metriken-tracing.md); die Spezifikation behält p50, p95, p99 als Voreinstellung.
+- Die Entscheidung, ob das Ereignis `metrics` Perzentile oder Zähler je Klasse trägt (Offen (d)): sie trägt [slice-betrieb-metriken-tracing](../open/slice-betrieb-metriken-tracing.md); die Spezifikation behält p50, p95, p99 als Voreinstellung.
 - Die Quelladresse der Gegenstelle im Ereignis (Offen (e), Datenschutz) — gehört zur Entscheidung zur Anmeldedrosselung ([ADR-0016](../../adr/0016-anmeldedrosselung.md)); die Spezifikation führt sie nicht als Pflichtfeld.
 - Die Spec-Folgepflichten aus [ADR-0027](../../adr/0027-abbruch-und-zuruecksetzen.md) (`SPEC-016`, `SPEC-029`, `SPEC-001`, `SPEC-030` und weitere) — sie gehören in die Abbruch- und Reset-Slices, die ein anderer Planner anlegt.
 
@@ -106,7 +106,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 3. Der Start-Trigger von [welle-betrieb-diagnose](../welle-betrieb-diagnose.md) ist eingetreten (erfüllt: die Wellen `welle-transport-tls` und `welle-handshake-login` liegen in `done/`).
 4. Ein Verantwortlicher ist im Kopf eingetragen.
 
-**Folge-Kante:** [slice-betrieb-log-schnittstelle](slice-betrieb-log-schnittstelle.md) wartet auf diesen Slice (die Spezifikation führt, der Code folgt).
+**Folge-Kante:** [slice-betrieb-log-schnittstelle](../open/slice-betrieb-log-schnittstelle.md) wartet auf diesen Slice (die Spezifikation führt, der Code folgt).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
