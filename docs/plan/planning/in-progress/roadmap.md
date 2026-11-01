@@ -25,6 +25,7 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 In Arbeit (Welle welle-qualitaet-grundlage):
 
 - [slice-e2e-geruest](slice-e2e-geruest.md)
+- [slice-qa-anmeldedrosselung](slice-qa-anmeldedrosselung.md)
 
 In Arbeit (Welle welle-betrieb-diagnose):
 

@@ -2,6 +2,8 @@ package io.github.pt9912.tdswire.transport.channel
 
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.IOException
+import java.net.InetAddress
+import java.net.InetSocketAddress
 import java.nio.ByteBuffer
 import java.nio.channels.AsynchronousSocketChannel
 import java.nio.channels.CompletionHandler
@@ -15,8 +17,17 @@ import kotlin.coroutines.resume
  * Puffer) bleiben Ausnahmen: das JDK meldet sie als `ReadPendingException`,
  * `WritePendingException`, `NotYetConnectedException` bzw. `IllegalArgumentException`. Der Adapter
  * puffert nichts: [writeFully] kehrt zurück, wenn das Betriebssystem alle Bytes angenommen hat.
+ *
+ * [remoteAddress] wird bei der Erzeugung gelesen: der Adapter bekommt einen angenommenen, verbundenen Kanal. Ist
+ * der Kanal schon geschlossen oder nicht verbunden, ist sie `null`.
  */
 class SocketChannelAdapter(private val channel: AsynchronousSocketChannel) : SuspendingChannel {
+    override val remoteAddress: InetAddress? = try {
+        (channel.remoteAddress as? InetSocketAddress)?.address
+    } catch (ignored: IOException) {
+        null
+    }
+
     override suspend fun read(buffer: ByteBuffer): ChannelResult<Int> = operation { handler ->
         channel.read(buffer, null, handler)
     }

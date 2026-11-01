@@ -10,7 +10,7 @@ Carveout-Dateien; bei jedem neuen oder aufgelösten Carveout mitziehen.
 |---|---|---|---|---|
 | [CO-001](CO-001-nuget-audit-aus.md) | NuGet-Audit des .NET-Referenztests ausgeschaltet | `make referenztest-dotnet` | Folge-Slice in `done/` und `NuGetAudit` nicht mehr `false` oder ADR `Accepted` zum Verzicht (nennt `make referenztest-dotnet-audit` als Ersatz) | [slice-qa-dotnet-lieferkette-haerten](../planning/open/slice-qa-dotnet-lieferkette-haerten.md) |
 | [CO-002](CO-002-nuget-signaturpruefung-fehlt.md) | Keine Signaturprüfung der NuGet-Pakete | `make referenztest-dotnet` | Folge-Slice in `done/` und `trustedSigners` mit `require` grün oder ADR `Accepted` zum Verzicht | [slice-qa-dotnet-lieferkette-haerten](../planning/open/slice-qa-dotnet-lieferkette-haerten.md) |
-| [CO-003](CO-003-anmeldedrosselung-fehlt.md) | Keine Drosselung wiederholter Anmeldeversuche | — (kein Gate) | Folge-Slice in `done/` und ADR `Accepted` zur Drosselung oder zum Verzicht | [slice-qa-anmeldedrosselung](../planning/open/slice-qa-anmeldedrosselung.md) |
+| [CO-003](CO-003-anmeldedrosselung-fehlt.md) | Keine Drosselung wiederholter Anmeldeversuche | — (kein Gate) | Folge-Slice in `done/` und ADR `Accepted` zur Drosselung oder zum Verzicht | [slice-qa-anmeldedrosselung](../planning/in-progress/slice-qa-anmeldedrosselung.md) |
 | [CO-004](CO-004-cancel-szenario-spec-040-fehlt.md) | Cancel-Szenario des Integrationslaufs nach SPEC-040 fehlt | `make simulations-integration` | Folge-Slice in `done/` und Cancel-Szenario mit Folgeabfrage am Referenzclient bestanden (Option A vom Nutzer bestätigt 2026-10-31) | [slice-attention-cancel-timeout](../planning/open/slice-attention-cancel-timeout.md) |
 
 ## Aufgelöste Carveouts

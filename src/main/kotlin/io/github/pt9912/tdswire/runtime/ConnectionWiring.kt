@@ -33,7 +33,9 @@ import kotlin.time.Duration.Companion.seconds
 /**
  * Was der Handler einer Verbindung aus dem Prozess braucht. Der [authPool] gehört dem Prozess: jede
  * Verbindung baut ihren Treiber mit diesem einen Pool, sodass die Obergrenze der gleichzeitigen
- * Adapteraufrufe für alle Verbindungen gilt. [tls] ist gesetzt, wenn die Richtlinie TLS verlangt.
+ * Adapteraufrufe für alle Verbindungen gilt. Der Pool trägt die Drosselung wiederholter Anmeldeversuche
+ * (`AuthPool.throttle`, `ADR-0016`): ihre Tabelle der Quelladressen gilt für alle Verbindungen. [tls]
+ * ist gesetzt, wenn die Richtlinie TLS verlangt.
  */
 internal class HandlerSetup(
     val handshake: HandshakeConfig,
@@ -90,7 +92,7 @@ internal class HandshakeConnectionHandler(private val setup: HandlerSetup, priva
             setup.login.timeoutSeconds.seconds,
             setup.authPool,
         )
-        val outcome = driver.run(channel)
+        val outcome = driver.run(channel, connection.remoteAddress)
         if (outcome is HandshakeOutcome.Ready) {
             connection.loginCompleted()
             if (backend == null) channel.receive() else RequestLoop(outcome, channel, backend, errorMapper()).run()
