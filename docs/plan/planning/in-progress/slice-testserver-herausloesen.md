@@ -132,7 +132,7 @@ Aussagen-Berührung steht hier gar nicht.
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf; den Umfang bestimmt der Übersetzungslauf ({ADR25}: „Wirkung auf den Bestand“).
 
-Start-Trigger, Bedingung 3: Der Start der Welle ist am 2026-11-01 vom Nutzer ausdrücklich verlangt; `slice-e2e-geruest` liegt noch in `in-progress/`, die Entfernung der Stufe 4 aus `tools/e2e.sh` (Entscheidung F-6) liegt in einem anderen Slice-Lauf, `tools/e2e.sh` wird nach deren Merge in `main` übernommen.
+Start-Trigger, Bedingung 3: Der Start der Welle ist am 2026-11-01 vom Nutzer ausdrücklich verlangt; `slice-e2e-geruest` liegt noch in `in-progress/` (Abweichung vom Wortlaut), `tools/e2e.sh` hat sieben Stufen (Entscheidung F-6, in `main`).
 
 ## 4. Trigger
 
