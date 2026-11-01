@@ -25,7 +25,14 @@
 #
 # Laufzeit von `make gates` (Einzelmessungen 2026-11-01 auf einem Host, Docker-Layer-Cache warm, Lastmittel in Klammern, keine
 # Streuung behauptet; kalt, mit leerem Cache, nicht gemessen; gilt nicht fuer die CI, die ohne Note voll laeuft):
-#   (Werte folgen)
+#   Beide Klassen mit Beleg: 4,3 / 4,3 / 4,1 s (Lastmittel 10); Amend ohne Inhaltsaenderung 4,1 s (8); nur Doku geaendert
+#   7,3 s (10, tests uebersprungen). Die drei ungestempelten Gates (Klasse immer) machen davon rund 1,7 s aus. Nur src/ geaendert
+#   254 s (4), fast alles der Gradle-Neubau der Stages test, detekt und build; Dockerfile geaendert 15,0 s und erster Lauf ohne
+#   Beleg 11,1 s (je Lastmittel 4, vor der Klasse immer gemessen, also ohne deren 1,7 s).
+#   Ohne Stempel (Ketten der Gates einzeln, warm): docs-check 1,2 s, baseline-verify 0,03 s, detekt-selbsttest 0,9 s,
+#   skript-selbsttest 0,9 s, kopplung-zahlen 0,9 s, gate-zuordnung 0,13 s, stempel-eingaenge-pruefung 0,3 s, test 1,1 s,
+#   detekt 1,0 s, build 1,1 s, referenztest-dotnet 1,1 s. Die Targets, die kein Gate sind: stempel-selbsttest 1,3 s,
+#   stempel-eingaenge 3,5 s, stempel-abbild 3,0 s, stempel-gruppe 2,3 s (vor den Flag-Faellen).
 .PHONY: gruppe-werkzeug gruppe-tests gate-zuordnung stempel-eingaenge-pruefung stempel-selbsttest stempel-eingaenge stempel-abbild stempel-gruppe
 
 GATE_KLASSE_werkzeug += baseline-verify
