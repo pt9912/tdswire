@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** SPEC-005 · SPEC-010 · SPEC-023 · SPEC-035 · SPEC-040 · SPEC-052 · SPEC-059 (die Aussagen stehen nach `slice-spec-nachzug-produktschnitt`; dieser Slice setzt sie im Code um und entfernt die Zielzustand-Vermerke, die sie erfüllt (Nachweis-Pflicht in der DoD), und ändert sie sonst nur bei einem Befund).
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** pt9912.
 
 **Autor:** pt9912. **Datum:** 2026-11-01.
 
@@ -131,6 +131,8 @@ Aussagen-Berührung steht hier gar nicht.
 | `harness/README.md` | update | Zeilen `smoke`, `simulations-integration`, `laufzeittest` |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf; den Umfang bestimmt der Übersetzungslauf ({ADR25}: „Wirkung auf den Bestand“).
+
+Start-Trigger, Bedingung 3: Der Start der Welle ist am 2026-11-01 vom Nutzer ausdrücklich verlangt; `slice-e2e-geruest` liegt noch in `in-progress/`, die Entfernung der Stufe 4 aus `tools/e2e.sh` (Entscheidung F-6) liegt in einem anderen Slice-Lauf, `tools/e2e.sh` wird nach deren Merge in `main` übernommen.
 
 ## 4. Trigger
 
