@@ -16,6 +16,9 @@
 # Konfiguration dieses Repos. Voraussetzung: wie tools/stempel-abbild-selbsttest.sh.
 set -u
 export LC_ALL=C
+# Die Umgebung des Aufrufers (make gates FORCE=1, make -n, ...) gehoert nicht zum Gegenstand: die Faelle setzen ihre Werte selbst.
+unset FORCE TROCKEN KEIN_STEMPEL MAKEFLAGS MFLAGS MAKELEVEL GZ_ENDKETTE GZ_GRUPPE_W GZ_GRUPPE_T GZ_GRUPPE_S GZ_PFLICHT
+SELBST=$(cd "$(dirname "$0")" && pwd)/$(basename "$0")
 cd "$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "stempel-gruppe-selbsttest: kein Git-Arbeitsbaum" >&2; exit 1; }
 ECHT=$(pwd)
 BASH_BIN=$(command -v bash)
@@ -77,7 +80,7 @@ alle "zweiter Lauf, derselbe Eingang" - - -
 [ "$(g notes --ref=refs/notes/gates show HEAD 2> /dev/null | grep -c '^stempel ')" = 3 ] || rot "erster Lauf: nicht genau drei Stempel an HEAD"
 printf '\nx\n' >> "$R/docs/plan/adr/README.md" 2> /dev/null || printf 'x\n' >> "$R/docs/leer.md"
 neu_commit docs
-alle "docs geaendert" w - -
+alle "docs geaendert" - - -
 printf '\n// x\n' >> "$(cd "$R" && git ls-files 'src/main/*.kt' | head -n 1 | sed "s|^|$R/|")"
 neu_commit src
 alle "src geaendert" - t -
@@ -112,7 +115,7 @@ printf '\n# w\n' >> "$R/Dockerfile"
 neu_commit dockerfile-5
 schritt tests 0 "$TS" "Commit waehrend des Laufs" FAKE_COMMIT=1
 schritt tests 0 "$TS" "danach kein Stempel am neuen Stand" X=1
-# Trockenlauf: keine Gates, kein Stempel (der Baum ist sauber, ohne TROCKEN wuerde geschrieben)
+# Trockenlauf: keine Gates, kein Stempel (der Baum ist sauber, ein Lauf ohne TROCKEN schreibt ihn)
 printf '\n# t\n' >> "$R/Dockerfile"
 neu_commit dockerfile-4
 schritt tests 0 - "Trockenlauf ruft nichts" TROCKEN=1
@@ -172,6 +175,13 @@ rm -f "$R/src/NOTIZ.md"
 (cd "$R" && "$BASH_BIN" tools/stempel-gruppe.sh doku gt1 > /dev/null 2>&1); rc=$?; LAEUFE=$((LAEUFE + 1))
 [ "$rc" = 2 ] || rot "unbekannte Klasse: Exit $rc statt 2"
 
+# Die Umgebung des Aufrufers leckt nicht: ein Lauf mit FORCE=1 (make gates FORCE=1), TROCKEN, KEIN_STEMPEL und MAKEFLAGS=-n
+# in der Umgebung muss dieselben Faelle gruen sehen.
+if [ -z "${STEMPEL_SELBSTLAUF:-}" ]; then
+	LAEUFE=$((LAEUFE + 1))
+	aus=$(STEMPEL_SELBSTLAUF=1 FORCE=1 TROCKEN=1 KEIN_STEMPEL=1 MAKEFLAGS=-n "$BASH_BIN" "$SELBST" 2>&1) \
+		|| rot "Lauf mit FORCE=1, TROCKEN, KEIN_STEMPEL und MAKEFLAGS=-n in der Umgebung: $(printf '%s' "$aus" | tail -n 3 | tr '\n' ' ')"
+fi
 if [ "$FEHLER" -ne 0 ]; then echo "stempel-gruppe: $FEHLER von $LAEUFE Faellen rot"; exit 1; fi
 [ "$LAEUFE" -ge 20 ] || { echo "stempel-gruppe: nur $LAEUFE Faelle gelaufen"; exit 1; }
 echo "stempel-gruppe: $LAEUFE Faelle wie erwartet"

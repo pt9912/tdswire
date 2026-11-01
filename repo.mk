@@ -44,3 +44,10 @@ GATE_GRUPPE_werkzeug := $(filter $(GATE_KLASSE_werkzeug),$(GATE_ROH))
 GATE_GRUPPE_tests := $(filter $(GATE_KLASSE_tests),$(GATE_ROH))
 GATE_GRUPPE_stempel := $(filter $(GATE_KLASSE_stempel),$(GATE_ROH))
 GATE_CHECKS := gruppe-werkzeug gruppe-tests gruppe-stempel $(filter-out $(GATE_KLASSE_werkzeug) $(GATE_KLASSE_tests) $(GATE_KLASSE_stempel),$(GATE_ROH))
+
+# gruppe-stempel laeuft nach den anderen Gruppenschritten, wenn `make gates` Ziel ist: stempel-abbild beobachtet refs/notes und die
+# lokale Konfiguration des Repos, die gruppe-werkzeug und gruppe-tests beim Schreiben ihres Stempels aendern. Die Reihenfolge gilt
+# nur fuer `gates` und `record-gates`; `make gruppe-stempel` allein ruft die anderen nicht.
+ifneq ($(filter gates record-gates,$(MAKECMDGOALS)),)
+gruppe-stempel: | gruppe-werkzeug gruppe-tests
+endif

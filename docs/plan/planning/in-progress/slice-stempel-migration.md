@@ -116,6 +116,8 @@ dasteht.
 - Die Laufzeitwerte sind Einzelmessungen auf einem Rechner und gelten nicht für die CI, die weiter voll läuft. — **Ausgang:** offen bis zur Closure
 - Die CI führt nur `make gates` und ruft die Selbsttests der Stempel (`stempel-selbsttest`, `stempel-eingaenge`, `stempel-abbild`, bisher kein Gate) nicht; ob sie einen eigenen Schritt bekommen und ob die Selbsttests als `werkzeug`-Gates in `GATE_CHECKS` oder mit engerem Stempel laufen (Verifikation V-4 von slice-stempel-mechanismus), entscheidet der Nutzer vor der Aufnahme. — **Ausgang:** offen bis zur Closure
 
+- Abweichung von den ADRs: `docs-check`, `gate-zuordnung` und `stempel-eingaenge-pruefung` stehen in der Klasse `immer` (kein Stempel, laufen in jedem `make gates`), nicht in `werkzeug`, wie [ADR-0024](../../adr/0024-lokale-stempel-zwei-klassen.md) Entscheidung 3 und [ADR-0030](../../adr/0030-dritter-stempel-fuer-die-selbsttests-der-stempel.md) Entscheidung 2 es sagen; ihr Eingang (jede Markdown-Datei, alle Make-Fragmente) steht nicht in einer Liste, ein Stempel liesse sie bei einer Datei ausserhalb der Liste aus (Review 54cc013, HIGH-1). Die Klasse `immer` ist durch keine ADR getragen. — **Ausgang:** weiter offen: braucht eine ADR oder eine Fortschreibung von [ADR-0030](../../adr/0030-dritter-stempel-fuer-die-selbsttests-der-stempel.md) über den Architect nach der Pause; bis dahin gilt der Ist-Zustand im Kopf von `tools/mk/stempel.mk`.
+
 ## 7. Closure-Notiz
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`

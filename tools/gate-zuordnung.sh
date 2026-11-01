@@ -15,7 +15,8 @@
 # Umgebung (optional, alle vier zusammen): GZ_ENDKETTE (die Kette, die make gates ausfuehrt), GZ_GRUPPE_W, GZ_GRUPPE_T und
 # GZ_GRUPPE_S (die Gates, die gruppe-werkzeug, gruppe-tests und gruppe-stempel rufen). Dann muss jedes Gate der Klassen in seiner
 # Gruppe stehen, die Gruppe in der Kette, und jedes Gate der Klasse immer in der Kette.
-# Grenze: ein Gate, das eine Stage baut und mit `gate=-` angemeldet ist, bleibt ungeprueft; die Pruefung der Eingangslisten
+# Grenze: die Pruefung kennt die Klasse der Stage, nicht die richtige Stage (`test=smoke` statt `test=test` bleibt gruen, beide
+# stehen in der Liste von tests); ein Gate, das eine Stage baut und mit `gate=-` angemeldet ist, bleibt ungeprueft; die Pruefung der Eingangslisten
 # (tools/stempel-eingaenge-pruefung.sh) kennt seine Stage dann nicht.
 # Exit 0, wenn die Zuordnung stimmt; Exit 1 mit je einer Zeile auf stderr je Befund. Aufrufer: Target gate-zuordnung in
 # tools/mk/stempel.mk; Selbsttest: tools/gate-zuordnung-selbsttest.sh.

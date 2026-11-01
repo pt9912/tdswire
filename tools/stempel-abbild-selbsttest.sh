@@ -4,8 +4,8 @@
 #
 # Zusage: In einem Wegwerf-Repo mit dem Inhalt dieses Arbeitsbaums (versioniert und unversioniert ohne Ignoriertes, Symlinks
 # als Symlinks) und den echten Listen aendert die Aenderung einer Datei unter jedem Eintrag einer Liste den Eingangs-Hash
-# ihrer Klasse, `pruefe` laeuft dann; der Image-Pin in d-check.mk betrifft `werkzeug` und `stempel`, nicht `tests`; ein anderer Basis-Image-
-# Pin im Dockerfile betrifft beide. Das belegt die Kopplung "Datei im Eintrag -> Hash", nicht die Vollstaendigkeit der
+# ihrer Klasse, `pruefe` laeuft dann; der Image-Pin in d-check.mk betrifft `stempel`, nicht `werkzeug` und `tests`; ein anderer Basis-Image-
+# Pin im Dockerfile betrifft alle drei Klassen. Das belegt die Kopplung "Datei im Eintrag -> Hash", nicht die Vollstaendigkeit der
 # Listen (die prueft tools/stempel-eingaenge-pruefung.sh). Der Lauf kopiert den Arbeitsbaum und ist deshalb ein eigenes
 # Target: noetig nach Aenderungen an tools/stempel*, tools/stempel/*.eingaenge oder dem Dockerfile, nicht bei jedem Gate-Lauf.
 # Er beruehrt weder refs/notes/gates noch die Konfiguration dieses Repos. Voraussetzung: bash ab 4.3, git, GNU-Werkzeuge
@@ -13,6 +13,8 @@
 # Laufzeit: Einzelmessung 2026-11-01, Lastmittel und Dauer im Kopf von tools/mk/stempel.mk.
 set -u
 export LC_ALL=C
+# Die Umgebung des Aufrufers (make gates FORCE=1, make -n, ...) gehoert nicht zum Gegenstand: die Faelle setzen ihre Werte selbst.
+unset FORCE TROCKEN KEIN_STEMPEL MAKEFLAGS MFLAGS MAKELEVEL GZ_ENDKETTE GZ_GRUPPE_W GZ_GRUPPE_T GZ_GRUPPE_S GZ_PFLICHT
 cd "$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "stempel-abbild: kein Git-Arbeitsbaum" >&2; exit 1; }
 SKRIPT=$(cd "$(dirname "${STEMPEL_SKRIPT:-tools/stempel.sh}")" && pwd)/$(basename "${STEMPEL_SKRIPT:-tools/stempel.sh}")
 [ -f "$SKRIPT" ] || { echo "stempel-abbild: $SKRIPT fehlt" >&2; exit 1; }
@@ -91,7 +93,7 @@ pins() {
 	abbild "$d"
 	sed -i 's/^DCHECK_DIGEST ?= sha256:\(.\)/DCHECK_DIGEST ?= sha256:0\1/' "$T/$d/d-check.mk"
 	g "$d" commit -q -a -m "Pin geaendert"
-	erwarte "werkzeug: Pin in d-check.mk geaendert -> Lauf" "$d" 1 "kein Beleg" pruefe werkzeug
+	erwarte "werkzeug: Pin in d-check.mk betrifft die Klasse nicht -> Ueberspringen" "$d" 0 - pruefe werkzeug
 	erwarte "tests: Pin in d-check.mk betrifft die Klasse nicht -> Ueberspringen" "$d" 0 - pruefe tests
 	erwarte "stempel: Pin in d-check.mk geaendert -> Lauf" "$d" 1 "kein Beleg" pruefe stempel
 	g "$d" reset -q --hard HEAD~1

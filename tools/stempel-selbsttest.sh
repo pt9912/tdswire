@@ -26,6 +26,8 @@
 # gemessen, das braucht Root. Der Selbsttest nutzt keinen Docker-Cache.
 set -u
 export LC_ALL=C
+# Die Umgebung des Aufrufers (make gates FORCE=1, make -n, ...) gehoert nicht zum Gegenstand: die Faelle setzen ihre Werte selbst.
+unset FORCE TROCKEN KEIN_STEMPEL MAKEFLAGS MFLAGS MAKELEVEL GZ_ENDKETTE GZ_GRUPPE_W GZ_GRUPPE_T GZ_GRUPPE_S GZ_PFLICHT
 cd "$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "stempel-selbsttest: kein Git-Arbeitsbaum" >&2; exit 1; }
 SKRIPT=$(cd "$(dirname "${STEMPEL_SKRIPT:-tools/stempel.sh}")" && pwd)/$(basename "${STEMPEL_SKRIPT:-tools/stempel.sh}")
 [ -f "$SKRIPT" ] || { echo "stempel-selbsttest: $SKRIPT fehlt" >&2; exit 1; }

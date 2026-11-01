@@ -8,28 +8,25 @@
 #    `COPY --from=<stage>` zaehlen die Quellen der Quell-Stage fuer die holende Stage) von Dockerfile und der Stage test von
 #    referenztest-dotnet/Dockerfile von einem Eintrag in tests.eingaenge ueberdeckt
 #    ist und kompatibilitaetsserver die letzte Stage ist (`docker build .` baut die letzte),
-#  - jede Quelle der Stages detekt-selbsttest, skript-selbsttest, kopplung-zahlen samt Vorgaengern, jede Markdown-Datei,
-#    die d-check nach scan.roots und scan.ignore aus .d-check.yml liest, jedes vorhandene Ziel eines Markdown-Links in diesen
-#    Dateien (Codebloecke und Symlinks ausgenommen), jede Make-Datei des Repos und jede Wurzel aus codepaths.roots von einem
-#    Eintrag in werkzeug.eingaenge ueberdeckt ist,
+#  - jede Quelle der Stages detekt-selbsttest, skript-selbsttest und kopplung-zahlen samt Vorgaengern von einem Eintrag in
+#    werkzeug.eingaenge ueberdeckt ist,
 #  - die festen Eingaenge (Skript, Liste-Lib und alle drei Listen in jeder der drei Listen; Dockerfile, .dockerignore, Makefile,
-#    repo.mk und builder.mk in tests und werkzeug; .d-check.yml, d-check.mk (Image-Pin), .harness/baseline, harness, tools und
-#    referenztest-dotnet/Dockerfile in werkzeug; die Fragmente der Test-Gates in tests; die Lese-Pfade der vier Selbsttests in
-#    stempel) ueberdeckt sind und jede genannte Stage im Dockerfile steht.
+#    repo.mk und builder.mk in tests und werkzeug; .harness/baseline, harness/mk und tools in werkzeug; die Fragmente der
+#    Test-Gates in tests; die Lese-Pfade der vier Selbsttests in stempel) und jedes Make-Fragment mit `GATE_KLASSE_<klasse> +=`
+#    in der Liste seiner Klasse ueberdeckt sind und jede genannte Stage im Dockerfile steht.
 # Ueberdeckt: ein Eintrag nennt denselben Pfad oder ein Elternverzeichnis (`.` deckt alles); eine Quelle mit Platzhalter
 # ist ueberdeckt, wenn ein Eintrag ein Elternverzeichnis ihres Textes nennt (`tools/*.sh` unter `tools`).
 # Befund statt stillem Ignorieren: `COPY .`, `..` in einer Quelle, ein Zyklus aus `COPY --from=`, Heredoc, JSON-Form, Variable (auch in FROM),
 # Anfuehrungszeichen, URL, absolute Quelle, andere Optionen als --chown/--link/--from, `RUN --mount` ohne from= (bind,
-# secret, ssh), eine andere letzte Stage als kompatibilitaetsserver und eine nicht erkannte Form von scan/codepaths in .d-check.yml.
+# secret, ssh) und eine andere letzte Stage als kompatibilitaetsserver.
 # Stage-Namen gelten ohne Beachtung der Gross-/Kleinschreibung.
-# Grenze: gezeigt wird "kein COPY, Link, Make-Fragment oder fester Eingang ausserhalb der Eintraege", nicht "kein versteckter
-# Eingang"; was ein Gate zur Laufzeit holt (Netz, Basis-Image, Paketmanager) oder ausserhalb von Docker liest, prueft das
-# nicht - Digest-Pins und Locks stehen als Eintraege da, weil sie Quellen sind. Links: nur Inline-Links `[text](ziel)`
-# (keine Referenz-Definitionen, keine HTML-Anker); ein nicht vorhandenes Ziel braucht keinen Eintrag (sein Anlegen
-# aendert nur ein ignore-refs-Ergebnis nicht). Die Zuordnung der Gates zu Stages und die festen Eingaenge stehen von Hand
-# in diesem Skript. Die Syntax der Listen (ein literaler Pfad je Zeile) ist die von tools/stempel-liste.sh.
+# Grenze: gezeigt wird "keine COPY-Quelle, kein Make-Fragment und kein fester Eingang ausserhalb der Eintraege", nicht "kein
+# versteckter Eingang"; was ein Gate zur Laufzeit holt (Netz, Basis-Image, Paketmanager) oder ausserhalb von Docker liest, prueft
+# das nicht - Digest-Pins und Locks stehen als Eintraege da, weil sie Quellen sind. Markdown-Dateien und ihre Links liest nur
+# docs-check (Klasse immer); sie brauchen keinen Eintrag. Die Zuordnung der Gates zu Stages und die festen Eingaenge stehen von
+# Hand in diesem Skript. Die Syntax der Listen (ein literaler Pfad je Zeile) ist die von tools/stempel-liste.sh.
 # Umgebung (nur fuer den Selbsttest): STEMPEL_DOCKERFILE, STEMPEL_DOTNET_DOCKERFILE, STEMPEL_DOTNET_KONTEXT,
-# STEMPEL_DCHECK, STEMPEL_LISTEN.
+# STEMPEL_LISTEN.
 # Voraussetzung: bash ab 4.3 (declare -A, mapfile, local -n), git, awk, sort, grep (GNU-Werkzeuge, Linux).
 # Laufzeit: Kopf von tools/mk/stempel.mk.
 set -u
@@ -44,7 +41,6 @@ cd "$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "stempel-eingaenge: 
 DOCKERFILE=${STEMPEL_DOCKERFILE:-Dockerfile}
 DOTNET_DOCKERFILE=${STEMPEL_DOTNET_DOCKERFILE:-referenztest-dotnet/Dockerfile}
 DOTNET_KONTEXT=${STEMPEL_DOTNET_KONTEXT:-referenztest-dotnet}
-DCHECK=${STEMPEL_DCHECK:-.d-check.yml}
 LISTEN=${STEMPEL_LISTEN:-tools/stempel}
 
 # Zuordnung der Stages zu den Klassen: Make-Fragmente und Dockerfile nennen sie (tools/mk/test.mk, build.mk,
@@ -56,7 +52,7 @@ STAGES_WERKZEUG="detekt-selbsttest skript-selbsttest kopplung-zahlen"
 LETZTE_STAGE=kompatibilitaetsserver
 FEST_ALLE="tools/stempel.sh tools/stempel-liste.sh tools/stempel/werkzeug.eingaenge tools/stempel/tests.eingaenge tools/stempel/stempel.eingaenge"
 FEST_BEIDE="Dockerfile .dockerignore Makefile repo.mk tools/mk/builder.mk"
-FEST_WERKZEUG=".d-check.yml d-check.mk .harness/baseline harness tools referenztest-dotnet/Dockerfile"
+FEST_WERKZEUG=".harness/baseline harness/mk tools"
 FEST_TESTS="tools/mk/test.mk tools/mk/build.mk tools/mk/referenztest-dotnet.mk tools/mk/stempel.mk tools/stempel-gruppe.sh"
 # Lese-Pfade der vier Selbsttests der Klasse stempel (Herleitung im Kopf von tools/stempel/stempel.eingaenge).
 FEST_STEMPEL="tools/stempel-gruppe.sh tools/stempel-selbsttest.sh tools/stempel-eingaenge-pruefung.sh tools/stempel-eingaenge-selbsttest.sh tools/stempel-abbild-selbsttest.sh tools/stempel-gruppe-selbsttest.sh tools/gate-zuordnung.sh tools/gate-zuordnung-selbsttest.sh tools/mk harness/mk d-check.mk Makefile repo.mk Dockerfile referenztest-dotnet/Dockerfile .d-check.yml"
@@ -180,35 +176,6 @@ pruefe_quellen() { # <klasse> <herkunft> <quelle>...
 	done
 }
 
-# Flow-Sequenz `[a, "b"]` aus einer Zeile von .d-check.yml in Zeilen zerlegen; andere Form: Befund.
-d_check_lesen() { # <schluessel-ausgabe: scanroot|scanignore|coderoot>
-	awk -v art="$1" '
-	/^[A-Za-z]/ { top = $1; sub(/:.*/, "", top) }
-	{ z = $0 }
-	(top == "scan" && z ~ /^[ \t]+roots:/ && art == "scanroot") || (top == "scan" && z ~ /^[ \t]+ignore:/ && art == "scanignore") || (top == "codepaths" && z ~ /^[ \t]+roots:/ && art == "coderoot") {
-		sub(/^[^:]*:[ \t]*/, "", z)
-		if (z !~ /^\[.*\][ \t]*$/) { print "!" z; next }
-		sub(/^\[/, "", z); sub(/\][ \t]*$/, "", z)
-		n = split(z, t, ",")
-		for (i = 1; i <= n; i++) { x = t[i]; gsub(/^[ \t"\047]+|[ \t"\047]+$/, "", x); if (x != "") print x }
-		gefunden = 1
-	}
-	END { if (!gefunden) print "!" }
-	' "$DCHECK"
-}
-
-ignoriert() { # <datei>: passt auf ein Muster aus scan.ignore (** wie *, ein fuehrendes **/ auch ohne Verzeichnis)
-	local f=$1 pat p2
-	for pat in "${SCAN_IGNORE[@]}"; do
-		p2=${pat//\*\*/\*}
-		# shellcheck disable=SC2053
-		[[ $f == $p2 ]] && return 0
-		# shellcheck disable=SC2053
-		[[ $pat == \*\*/* && $f == ${p2#*/} ]] && return 0
-	done
-	return 1
-}
-
 # --- Eintraege und Dockerfiles lesen ---------------------------------------------------------------------------------
 lade_eintraege werkzeug
 lade_eintraege tests
@@ -254,82 +221,15 @@ pruefe_quellen werkzeug "fester Eingang" $FEST_ALLE $FEST_BEIDE $FEST_WERKZEUG
 # shellcheck disable=SC2086
 pruefe_quellen stempel "fester Eingang" $FEST_ALLE $FEST_STEMPEL
 
-mapfile -t SCAN_ROOTS < <(d_check_lesen scanroot)
-mapfile -t SCAN_IGNORE < <(d_check_lesen scanignore)
-mapfile -t CODE_ROOTS < <(d_check_lesen coderoot)
-for x in "${SCAN_ROOTS[@]}" "${SCAN_IGNORE[@]}" "${CODE_ROOTS[@]}"; do
-	[ "$x" != "${x#!}" ] && befund "$DCHECK: scan.roots, scan.ignore oder codepaths.roots nicht in der erkannten Form (eine Zeile mit [..]): '${x#!}'"
-done
-mapfile -t MD < <(git ls-files --cached --others --exclude-standard -- '*.md' 2>/dev/null | sort -u)
-[ ${#MD[@]} -gt 0 ] || befund "keine Markdown-Datei gefunden (git ls-files)"
-SCAN_MD=()
-for f in "${MD[@]}"; do
-	[ -n "$f" ] || continue
-	imbaum=0
-	for r in "${SCAN_ROOTS[@]}"; do
-		r=${r#./}
-		[ "$r" = . ] && imbaum=1
-		[[ $f == "$r"/* ]] && imbaum=1
-	done
-	[ $imbaum -eq 1 ] || continue
-	ignoriert "$f" && continue
-	ueberdeckt werkzeug "$f" || befund "werkzeug.eingaenge: kein Eintrag deckt '$f' (d-check liest sie nach scan.roots)"
-	[ -L "$f" ] || SCAN_MD+=("$f")
-done
-# Ziele der Markdown-Links der gelesenen Dateien (ausserhalb von Codebloecken): auch ein Link auf eine Nicht-Markdown-Datei
-# ist ein Eingang von docs-check.
-if [ ${#SCAN_MD[@]} -gt 0 ]; then
-	mapfile -t LINKS < <(awk '
-	function norm(p,    n, a, i, m, r, out) {
-		n = split(p, a, "/"); m = 0
-		for (i = 1; i <= n; i++) {
-			if (a[i] == "" || a[i] == ".") continue
-			if (a[i] == "..") { if (m == 0) return "!"; m--; continue }
-			r[++m] = a[i]
-		}
-		out = ""
-		for (i = 1; i <= m; i++) out = out (i > 1 ? "/" : "") r[i]
-		return (out == "") ? "." : out
-	}
-	FNR == 1 { fence = 0; dir = FILENAME; if (sub(/\/[^\/]*$/, "", dir) == 0) dir = "" }
-	/^[ \t]*(```|~~~)/ { fence = !fence; next }
-	fence { next }
-	{
-		z = $0
-		while (match(z, /\[[^]]*\]\(<?[^) >]+/)) {
-			t = substr(z, RSTART, RLENGTH)
-			z = substr(z, RSTART + RLENGTH)
-			sub(/^\[[^]]*\]\(<?/, "", t)
-			if (t ~ /^([a-zA-Z][a-zA-Z0-9+.-]*:|#|\/\/)/) continue
-			sub(/#.*/, "", t); sub(/\?.*/, "", t)
-			if (t == "") continue
-			p = (t ~ /^\//) ? substr(t, 2) : ((dir == "") ? t : dir "/" t)
-			printf "%s\t%s\t%s\n", norm(p), FILENAME, t
-		}
-	}
-	' "${SCAN_MD[@]}" | sort -u -t$'\t' -k1,1)
-	for l in "${LINKS[@]}"; do
-		IFS=$'\t' read -r ziel datei roh <<< "$l"
-		if [ "$ziel" = '!' ]; then
-			befund "Link '$roh' in $datei verlaesst das Repo"
-		elif [ -e "$ziel" ] || [ -L "$ziel" ]; then
-			ueberdeckt werkzeug "$ziel" || befund "werkzeug.eingaenge: kein Eintrag deckt '$ziel' (Link in $datei)"
-		fi
-	done
-fi
-# Make-Dateien: alle gehoeren zu docs-check (targets) oder zu den Rezepten der Gates.
+# Make-Fragmente: ein Fragment, das ein Gate einer Klasse einhaengt (GATE_KLASSE_<klasse> += ...), ist Eingang dieser Klasse.
 mapfile -t MK < <(git ls-files --cached --others --exclude-standard -- '*.mk' 2>/dev/null | grep -v '^\.claude/worktrees/' | sort -u)
 for f in "${MK[@]}"; do
 	[ -n "$f" ] || continue
-	ueberdeckt werkzeug "$f" || befund "werkzeug.eingaenge: kein Eintrag deckt '$f' (Make-Fragment)"
-	# Ein Fragment, das ein Gate der Klasse tests einhaengt (GATE_KLASSE_tests += ...), ist Eingang von tests.
-	if grep -q -E '^GATE_KLASSE_tests[[:space:]]*\+=' "$f" 2> /dev/null; then
-		ueberdeckt tests "$f" || befund "tests.eingaenge: kein Eintrag deckt '$f' (Make-Fragment der Klasse tests)"
-	fi
-done
-for r in "${CODE_ROOTS[@]}"; do
-	[ "$r" = "${r#!}" ] || continue
-	ueberdeckt werkzeug "$r" || befund "werkzeug.eingaenge: kein Eintrag deckt '$r' (codepaths.roots)"
+	for k in werkzeug tests stempel; do
+		if grep -q -E "^GATE_KLASSE_${k}[[:space:]]*\+=" "$f" 2> /dev/null; then
+			ueberdeckt "$k" "$f" || befund "${k}.eingaenge: kein Eintrag deckt '$f' (Make-Fragment der Klasse $k)"
+		fi
+	done
 done
 
 if [ ${#BEFUNDE[@]} -gt 0 ]; then
@@ -337,4 +237,4 @@ if [ ${#BEFUNDE[@]} -gt 0 ]; then
 	printf 'stempel-eingaenge: %d Befund(e)\n' "${#BEFUNDE[@]}" >&2
 	exit 1
 fi
-echo "stempel-eingaenge: ok - alle COPY-Quellen der Klassen tests und werkzeug, die Markdown-Dateien des Doku-Gates und die festen Eingaenge sind von Listeneintraegen ueberdeckt"
+echo "stempel-eingaenge: ok - alle COPY-Quellen der Klassen tests und werkzeug, die Make-Fragmente der Klassen und die festen Eingaenge sind von Listeneintraegen ueberdeckt"

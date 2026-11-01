@@ -5,11 +5,11 @@
 # Zusage: Die Pruefung ist auf dem echten Bestand gruen. Eine COPY-Zeile ohne Listeneintrag in einer Stage jeder Klasse, in
 # einer vererbenden Vorgaenger-Stage, in einer Stage, aus der eine Stage der Klasse mit `COPY --from=` holt, im Dockerfile
 # von referenztest-dotnet und hinter der letzten Stage, jede nicht erkannte Form von COPY, ADD, RUN --mount und FROM, ein
-# entfernter Listeneintrag, ein Link- oder Make-Eingang ohne Eintrag und eine Scan-Wurzel von .d-check.yml ohne Eintrag machen
-# sie rot; die Kontrollfaelle (COPY ausserhalb der Klassen, COPY --from ohne Quellen, Quelle unter einem Eintrag, Link im
-# Codeblock) bleiben gruen. Ohne diese Rot-Faelle gilt der Selbsttest als nicht gelaufen: er endet dann mit Exit 1.
+# entfernter Listeneintrag und ein Make-Fragment einer Klasse ausserhalb der Liste dieser Klasse machen sie rot; die
+# Kontrollfaelle (COPY ausserhalb der Klassen, COPY --from ohne Quellen, Quelle unter einem Eintrag, Fragment ohne Klasse,
+# Markdown und Link ohne Eintrag) bleiben gruen. Ohne diese Rot-Faelle gilt der Selbsttest als nicht gelaufen: er endet dann mit Exit 1.
 # Aufbau: Jeder Fall laeuft in einem kleinen Wegwerf-Repo (Kopien des Dockerfile, der .d-check.yml und der echten Listen, ein
-# paar Dateien), nicht im ganzen Repo; die Ableitung gegen das echte Repo fuehrt das Target mit der Pruefung selbst aus. Gruppen
+# paar Dateien); dazu faehrt er die Pruefung einmal gegen das echte Repo (alle Fragmente, das Dockerfile). Gruppen
 # unabhaengiger Faelle laufen als Hintergrundprozesse; ausgegeben werden nur rote Faelle und eine Summe. Er schreibt nur in ein
 # temporaeres Verzeichnis.
 # Voraussetzung: bash ab 4.3, git und GNU-Werkzeuge (sed, awk, grep, sort); getestet nur unter Linux.
@@ -17,6 +17,8 @@
 # gemessen, das braucht Root.
 set -u
 export LC_ALL=C
+# Die Umgebung des Aufrufers (make gates FORCE=1, make -n, ...) gehoert nicht zum Gegenstand: die Faelle setzen ihre Werte selbst.
+unset FORCE TROCKEN KEIN_STEMPEL MAKEFLAGS MFLAGS MAKELEVEL GZ_ENDKETTE GZ_GRUPPE_W GZ_GRUPPE_T GZ_GRUPPE_S GZ_PFLICHT
 cd "$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "stempel-eingaenge-selbsttest: kein Git-Arbeitsbaum" >&2; exit 1; }
 ECHT=$(pwd)
 PRUEFUNG=${STEMPEL_PRUEFUNG:-tools/stempel-eingaenge-pruefung.sh}
@@ -79,7 +81,7 @@ docker_mit() {
 # listen_ohne <verz> <klasse> <eintrag>: Kopie der Listen ohne den Eintrag.
 listen_ohne() {
 	mkdir -p "$T/$1"
-	cp "$ECHT"/tools/stempel/werkzeug.eingaenge "$ECHT"/tools/stempel/tests.eingaenge "$T/$1/"
+	cp "$ECHT"/tools/stempel/*.eingaenge "$T/$1/"
 	grep -v -x -F -- "$3" "$ECHT/tools/stempel/$2.eingaenge" > "$T/$1/$2.eingaenge"
 	cmp -s "$ECHT/tools/stempel/$2.eingaenge" "$T/$1/$2.eingaenge" && rot "$1: Eintrag $3 steht nicht in $2"
 }
@@ -190,9 +192,9 @@ h_eintraege() {
 	local n=0 paar
 	for paar in tests:src tests:LICENSE tests:config tests:tools/stempel.sh tests:tools/stempel tests:Dockerfile tests:.dockerignore \
 		tests:tools/mk/referenztest-dotnet.mk tests:Makefile tests:repo.mk tests:tools/mk/builder.mk tests:tools/stempel-liste.sh tests:tools/stempel-gruppe.sh tests:tools/mk/stempel.mk \
-		werkzeug:README.md werkzeug:AGENTS.md werkzeug:.claude/agents werkzeug:docs werkzeug:harness werkzeug:tools \
-		werkzeug:Makefile werkzeug:.harness/baseline werkzeug:.harness/skills werkzeug:.d-check.yml werkzeug:d-check.mk \
-		werkzeug:config werkzeug:gradle/libs.versions.toml werkzeug:referenztest-dotnet/Dockerfile \
+		werkzeug:harness/mk werkzeug:harness/README.md werkzeug:spec/spezifikation.md werkzeug:tools werkzeug:Makefile \
+		werkzeug:.harness/baseline werkzeug:.github/workflows werkzeug:config werkzeug:gradle/libs.versions.toml \
+		werkzeug:referenztest-dotnet/Integration/SimulationBackendTests.cs \
 		werkzeug:src/testserver/kotlin/io/github/pt9912/tdswire/testserver/IntegrationServer.kt tests:tools/jackson-sperre.sh \
 		stempel:tools/stempel-gruppe.sh stempel:tools/gate-zuordnung.sh stempel:tools/mk stempel:harness/mk stempel:d-check.mk stempel:Dockerfile stempel:.d-check.yml stempel:tools/stempel stempel:Makefile stempel:repo.mk; do
 		n=$((n + 1))
@@ -207,34 +209,18 @@ h_eintraege() {
 	lauf "Liste fehlt" 1 "Eingangsliste fehlt" "STEMPEL_LISTEN=$T/l-fehlt"
 }
 
-# --- Gruppe 3: Dateien im Repo (Links, Make-Dateien, Markdown) und .d-check.yml ------------------------------------------------------
+# --- Gruppe 3: Make-Fragmente der Klassen; Markdown und Links brauchen keinen Eintrag ------------------------------------------------
 h_dateien() {
 	fixture h3
-	local andere=src/main/Andere.kt
-	mit_datei "Link auf eine Quelldatei ausserhalb der Eintraege" 1 "kein Eintrag deckt '$andere' (Link in docs/tmp-link.md)" docs/tmp-link.md "[x](../$andere)"
-	mit_datei "Link mit Anker" 1 "kein Eintrag deckt '$andere'" docs/tmp-link.md "[x](../$andere#abschnitt)"
-	mit_datei "Kontrolle: Link auf eine Datei, die als Eintrag steht" 0 - docs/tmp-link.md "[x](../src/main/kotlin/io/github/pt9912/tdswire/domain/SqlType.kt)"
-	mit_datei "Kontrolle: derselbe Link im Codeblock" 0 - docs/tmp-link.md $'```\n[x](../'"$andere"$')\n```'
-	mit_datei "Kontrolle: Link auf eine nicht vorhandene Datei" 0 - docs/tmp-link.md "[x](../src/main/gibt-es-nicht.kt)"
-	mit_datei "Kontrolle: Link auf eine URL" 0 - docs/tmp-link.md "[x](https://example.invalid/a.kt)"
-	mit_datei "Kontrolle: Text mit ](ziel) ohne oeffnende Klammer" 0 - docs/tmp-link.md "„x](../$andere)“"
-	mit_datei "Link verlaesst das Repo" 1 "verlaesst das Repo" docs/tmp-link.md "[x](../../a/b.kt)"
-	mit_datei "Neue Make-Datei im Wurzelverzeichnis" 1 "kein Eintrag deckt 'extra.mk'" extra.mk "x:"
 	mit_datei "Neues Fragment, das ein Gate der Klasse tests einhaengt" 1 "tests.eingaenge: kein Eintrag deckt 'tools/mk/neu.mk' (Make-Fragment der Klasse tests)" tools/mk/neu.mk $'neu:\n\t@false\nGATE_CHECKS += neu\nGATE_KLASSE_tests += neu'
 	mit_datei "Kontrolle: Fragment der Klasse werkzeug unter tools/mk" 0 - tools/mk/neu.mk $'neu:\n\t@false\nGATE_CHECKS += neu\nGATE_KLASSE_werkzeug += neu'
-	mit_datei "Neue Make-Datei unter src" 1 "kein Eintrag deckt 'src/main/neu.mk'" src/main/neu.mk "x:"
-	mit_datei "Neue Markdown-Datei unter src" 1 "kein Eintrag deckt 'src/main/neu.md'" src/main/neu.md "# x"
-	mit_datei "Kontrolle: Markdown unter .tmp ist durch scan.ignore ausgenommen" 0 - .tmp/neu.md "# x"
-	sed 's|".tmp/\*\*", ||' "$ECHT/.d-check.yml" > "$T/d-ohne-tmp"
-	cmp -s "$ECHT/.d-check.yml" "$T/d-ohne-tmp" && rot "d-ohne-tmp: Mutation nicht eingefuegt"
-	mit_datei ".d-check.yml: scan.ignore ohne .tmp/** -> Markdown unter .tmp braucht einen Eintrag" 1 "kein Eintrag deckt '.tmp/neu.md'" .tmp/neu.md "# x" "STEMPEL_DCHECK=$T/d-ohne-tmp"
-	sed 's|^  roots: \["\."\]|  roots: [".", "fremd"]|' "$ECHT/.d-check.yml" > "$T/d-wurzel"
-	lauf "Kontrolle: weitere Wurzel ohne Markdown aendert nichts" 0 - "STEMPEL_DCHECK=$T/d-wurzel"
-	sed 's|^  roots: \[spec, docs, harness\]|  roots: [spec, docs, harness, contracts]|' "$ECHT/.d-check.yml" > "$T/d-code"
-	lauf ".d-check.yml: codepaths.roots um contracts erweitert" 1 "'contracts' (codepaths.roots)" "STEMPEL_DCHECK=$T/d-code"
-	sed 's|^  roots: \["\."\]|  roots:\n    - "."|' "$ECHT/.d-check.yml" > "$T/d-form"
-	lauf ".d-check.yml: scan.roots als Blockliste" 1 "nicht in der erkannten Form" "STEMPEL_DCHECK=$T/d-form"
+	mit_datei "Fragment der Klasse werkzeug ausserhalb der Eintraege" 1 "werkzeug.eingaenge: kein Eintrag deckt 'src/main/neu.mk' (Make-Fragment der Klasse werkzeug)" src/main/neu.mk $'GATE_KLASSE_werkzeug += neu'
+	mit_datei "Fragment der Klasse stempel ausserhalb der Eintraege" 1 "stempel.eingaenge: kein Eintrag deckt 'src/main/neu.mk' (Make-Fragment der Klasse stempel)" src/main/neu.mk $'GATE_KLASSE_stempel += neu'
+	mit_datei "Kontrolle: Make-Datei ohne Klasse ausserhalb der Eintraege" 0 - src/main/neu.mk "x:"
+	mit_datei "Kontrolle: Markdown-Datei unter src braucht keinen Eintrag" 0 - src/main/neu.md "# x"
+	mit_datei "Kontrolle: Link auf eine Quelldatei ausserhalb der Eintraege braucht keinen Eintrag" 0 - docs/tmp-link.md "[x](../src/main/Andere.kt)"
 }
+
 
 GRUPPEN=(h_docker h_eintraege h_dateien)
 for gr in "${GRUPPEN[@]}"; do
