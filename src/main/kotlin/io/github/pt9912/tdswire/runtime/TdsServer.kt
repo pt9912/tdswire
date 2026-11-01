@@ -16,9 +16,8 @@ import java.util.concurrent.atomic.AtomicBoolean
  *   mit ihrer Anfrage, `close()` wird genau einmal gerufen.
  * - [None]: weder Backend noch Tabellen; wie [Simulation] mit leerer Liste.
  *
- * Bei [Simulation] und [None] kommen die Tabellen aus `ServerConfig.simulationFile` hinzu und bilden mit den
- * übergebenen einen Katalog; ein Name, der doppelt vorkommt, bricht den Start ab. [Custom] zusammen mit gesetzter
- * `simulationFile` bricht den Start ab; [Custom] mit Tabellen ist nicht darstellbar.
+ * Die Tabellen von [Simulation] bilden einen Katalog; ein Name, der doppelt vorkommt, bricht den Start ab.
+ * [Custom] mit Tabellen ist nicht darstellbar.
  */
 sealed interface BackendSource {
     /** Ein Backend des Integrators; der Server ruft es für jede Anfrage. */

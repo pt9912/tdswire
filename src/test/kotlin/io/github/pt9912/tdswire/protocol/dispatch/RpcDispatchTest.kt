@@ -90,8 +90,8 @@ class RpcDispatchTest {
         )
         assertEquals(
             listOf(
-                QueryRequest("s1", "r1", "select @a, @o", outputs, null),
-                QueryRequest("s1", "r2", "select 2", emptyList(), null),
+                QueryRequest("s1", "r1", "select @a, @o", outputs, DEFAULT_DEADLINE),
+                QueryRequest("s1", "r2", "select 2", emptyList(), DEFAULT_DEADLINE),
             ),
             backend.requests,
         )
@@ -367,14 +367,14 @@ class RpcDispatchTest {
     }
 
     /**
-     * Transaction Manager und ATTENTION in `READY` bleiben unbeantwortet und schließen die Verbindung (kein
-     * Backend-Aufruf, die nächste Nachricht wird nicht gelesen); ein RPC davor wurde beantwortet.
+     * Transaction Manager in `READY` bleibt unbeantwortet und schließt die Verbindung (kein
+     * Backend-Aufruf, die übernächste Nachricht wird nicht gelesen); ein RPC davor wurde beantwortet.
      *
      * @spec SPEC-001
      */
     @Test
-    fun `Transaction Manager und ATTENTION schliessen auch nach einem RPC`() = blocking {
-        listOf(PacketType.TRANSACTION_MANAGER, PacketType.ATTENTION).forEach { type ->
+    fun `Transaction Manager schliesst auch nach einem RPC`() = blocking {
+        listOf(PacketType.TRANSACTION_MANAGER).forEach { type ->
             val backend = ScriptedBackend.ofList(*oneRow.toTypedArray())
             val session = Session.login(rpc(goodRpc), BatchVectors.raw(type, ByteArray(4)), rpc(goodRpc))
             session.serve(backend)

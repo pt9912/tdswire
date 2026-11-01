@@ -115,12 +115,12 @@ class ErrorMapperTest {
 
     /** @spec SPEC-016 */
     @Test
-    fun `TDS_TIMEOUT ist ERROR 50005 Class 20 und schliesst`() = assertBytes(
+    fun `TDS_TIMEOUT ist ERROR 50005 Class 16 und bleibt offen`() = assertBytes(
         ErrorCode.TDS_TIMEOUT,
-        "AA 1E 00  55 C3 00 00  01  14  08 00  54 00 69 00 6D 00 65 00 6F 00 75 00 74 00 2E 00" +
+        "AA 1E 00  55 C3 00 00  01  10  08 00  54 00 69 00 6D 00 65 00 6F 00 75 00 74 00 2E 00" +
             "  00  00  00 00 00 00",
-        20,
-        ConnectionFate.CLOSE_AFTER_REPLY,
+        16,
+        ConnectionFate.OPEN,
     )
 
     /** @spec SPEC-037 */
@@ -208,7 +208,8 @@ class ErrorMapperTest {
     /**
      * Die Gruppen der `ADR-0007`: Anfragefehler Class 16 offen, `TDS_PROTOCOL_ERROR` und
      * `TDS_INTERNAL_ERROR` Class 20 schließen, `TDS_UNSUPPORTED_RPC` und `TDS_SIM_INVALID_VALUE`
-     * nach Voreinstellung bei den Anfragefehlern; Codes ohne Gruppe schließen (Grundregel).
+     * nach Voreinstellung bei den Anfragefehlern, `TDS_TIMEOUT` nach Setzung des Nutzers vom 2026-11-01; Codes ohne
+     * Gruppe schließen (Grundregel).
      *
      * @spec SPEC-013 SPEC-015 SPEC-037 SPEC-039 SPEC-048 SPEC-057 SPEC-058
      */
@@ -221,6 +222,7 @@ class ErrorMapperTest {
             ErrorCode.TDS_SIM_INVALID_VALUE,
             ErrorCode.TDS_UNKNOWN_HANDLE,
             ErrorCode.TDS_PREPARE_LIMIT,
+            ErrorCode.TDS_TIMEOUT,
         )
         ErrorCode.entries.forEach {
             val expectedFate = if (it in open) ConnectionFate.OPEN else ConnectionFate.CLOSE_AFTER_REPLY

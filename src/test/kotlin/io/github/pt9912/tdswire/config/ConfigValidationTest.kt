@@ -22,8 +22,8 @@ class ConfigValidationTest {
     private fun unencrypted(
         listen: ListenSettings = ListenSettings(),
         login: LoginSettings = LoginSettings(),
-        simulationFile: ByteArray? = null,
-    ) = ServerConfig(listen, login, EncryptionSetting.TEST_UNENCRYPTED, null, users(), simulationFile)
+        requests: RequestSettings = RequestSettings(),
+    ) = ServerConfig(listen, login, EncryptionSetting.TEST_UNENCRYPTED, null, users(), requests)
 
     /**
      * Eine Konfiguration mit den Voreinstellungen und unverschlüsseltem Testmodus ist gültig; die Voreinstellungen sind
@@ -32,6 +32,8 @@ class ConfigValidationTest {
      * @spec SPEC-005
      * @spec SPEC-008
      * @spec SPEC-046
+     * @spec SPEC-009
+     * @spec SPEC-033
      */
     @Test
     fun `Voreinstellungen sind gueltig und entsprechen der Spezifikation`() {
@@ -39,6 +41,7 @@ class ConfigValidationTest {
         assertEquals(emptyList(), ConfigValidation.check(config))
         assertEquals(ListenSettings("0.0.0.0", 1433), config.listen)
         assertEquals(LoginSettings(15, 65536), config.login)
+        assertEquals(RequestSettings(30, 5), config.requests)
         assertEquals(EncryptionSetting.REQUIRED, ServerConfig(auth = users()).encryption)
     }
 
@@ -49,6 +52,8 @@ class ConfigValidationTest {
      * @spec SPEC-005
      * @spec SPEC-008
      * @spec SPEC-046
+     * @spec SPEC-009
+     * @spec SPEC-033
      */
     @Test
     fun `Bereichsgrenzen gelten auch ohne Lader`() {
@@ -57,6 +62,10 @@ class ConfigValidationTest {
             Triple(ConfigKeys.LOGIN_TIMEOUT, 1, 3600) to { v: Int -> unencrypted(login = LoginSettings(v, 65536)) },
             Triple(ConfigKeys.MAX_PRELOGIN_MESSAGE_BYTES, 512, 65536) to
                 { v: Int -> unencrypted(login = LoginSettings(15, v)) },
+            Triple(ConfigKeys.QUERY_TIMEOUT, 1, 3600) to
+                { v: Int -> unencrypted(requests = RequestSettings(queryTimeoutSeconds = v)) },
+            Triple(ConfigKeys.CANCEL_TIMEOUT, 1, 3600) to
+                { v: Int -> unencrypted(requests = RequestSettings(cancelTimeoutSeconds = v)) },
         )
         for ((bounds, build) in cases) {
             val (key, low, high) = bounds
@@ -92,21 +101,6 @@ class ConfigValidationTest {
     }
 
     /**
-     * Die Datei der Tabellenbeschreibung darf höchstens 1 MiB groß sein, die Grenze selbst ist gültig.
-     *
-     * @spec SPEC-035
-     */
-    @Test
-    fun `Die Beschreibung der Tabellen ist auf 1 MiB begrenzt`() {
-        val key = ConfigKeys.SIMULATION_DESCRIPTION_FILE
-        assertEquals(emptyList(), ConfigValidation.check(unencrypted(simulationFile = ByteArray(1_048_576))))
-        assertEquals(
-            listOf(ConfigIssue(key, IssueKind.TOO_LARGE)),
-            ConfigValidation.check(unencrypted(simulationFile = ByteArray(1_048_577))),
-        )
-    }
-
-    /**
      * Mehrere Fehler werden zusammen gemeldet, in fester Reihenfolge, und die Diagnose nennt keinen Wert.
      *
      * @spec SPEC-051
@@ -118,7 +112,6 @@ class ConfigValidationTest {
             listen = ListenSettings(host = " ", port = 70000),
             login = LoginSettings(0, 1),
             auth = users(),
-            simulationFile = ByteArray(1_048_577),
         )
         val issues = ConfigValidation.check(config)
         assertEquals(
@@ -129,7 +122,6 @@ class ConfigValidationTest {
                 ConfigIssue(ConfigKeys.MAX_PRELOGIN_MESSAGE_BYTES, IssueKind.OUT_OF_RANGE),
                 ConfigIssue(ConfigKeys.TLS_KEYSTORE_FILE, IssueKind.MISSING),
                 ConfigIssue(ConfigKeys.TLS_KEYSTORE_PASSWORD_FILE, IssueKind.MISSING),
-                ConfigIssue(ConfigKeys.SIMULATION_DESCRIPTION_FILE, IssueKind.TOO_LARGE),
             ),
             issues,
         )

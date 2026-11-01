@@ -1,13 +1,16 @@
 package io.github.pt9912.tdswire.runtime
 
 import io.github.pt9912.tdswire.config.LoginSettings
+import io.github.pt9912.tdswire.config.RequestSettings
 import io.github.pt9912.tdswire.config.auth.AuthAdapter
 import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.protocol.dispatch.RequestLoop
+import io.github.pt9912.tdswire.protocol.dispatch.RequestTimes
 import io.github.pt9912.tdswire.protocol.error.ErrorLog
 import io.github.pt9912.tdswire.protocol.error.ErrorMapper
 import io.github.pt9912.tdswire.protocol.session.AuthPool
 import io.github.pt9912.tdswire.protocol.session.EncryptionPolicy
+import io.github.pt9912.tdswire.protocol.session.HandshakeChannel
 import io.github.pt9912.tdswire.protocol.session.HandshakeConfig
 import io.github.pt9912.tdswire.protocol.session.HandshakeDriver
 import io.github.pt9912.tdswire.protocol.session.HandshakeLog
@@ -44,7 +47,10 @@ internal class HandlerSetup(
     val login: LoginSettings,
     val tls: TlsMaterial?,
     val log: ServerLog,
-)
+) {
+    /** Die Fristen einer Anfrage; die Voreinstellungen von `SPEC-009` und `SPEC-033`, bis der Prozess sie setzt. */
+    var requests: RequestSettings = RequestSettings()
+}
 
 /**
  * Der Handler des Listeners (`ARC-008`): verbindet den Kanal der Verbindung mit Leser, Schreiber und
@@ -97,8 +103,16 @@ internal class HandshakeConnectionHandler(private val setup: HandlerSetup, priva
         val outcome = driver.run(channel, connection.remoteAddress)
         if (outcome is HandshakeOutcome.Ready) {
             connection.loginCompleted()
-            if (backend == null) channel.receive() else RequestLoop(outcome, channel, backend, errorMapper()).run()
+            if (backend == null) channel.receive() else serve(outcome, channel, backend)
         }
+    }
+
+    private suspend fun serve(outcome: HandshakeOutcome.Ready, channel: HandshakeChannel, backend: QueryBackend) {
+        val times = RequestTimes(
+            queryTimeout = setup.requests.queryTimeoutSeconds.seconds,
+            cancelTimeout = setup.requests.cancelTimeoutSeconds.seconds,
+        )
+        RequestLoop(outcome, channel, backend, errorMapper(), times = times).run()
     }
 
     /** Die Konfiguration des Pfads; `null` (und eine Logzeile), wenn der Prozess den TDS-8.0-Pfad nicht anbietet. */

@@ -1,0 +1,2 @@
+**Vorgang:** slice-attention-cancel-timeout
+**Fund:** Review: drei überlebende Mutationen (F1 verlierendes ATTENTION wird nie getestet, F5 `remaining == 0`, F6 lockfreies Schließen in `abandon()`); F1 und F5 sind nach der Fix-Runde `0ee107a` tot (Verifikation, Mutationen M6/M7 rot). In der Verifikation überlebte zusätzlich `DEFAULT_CANCEL_TIMEOUT` 5 s auf 6 s (F-4): die Voreinstellung hatte keinen Test.

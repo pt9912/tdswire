@@ -1,0 +1,2 @@
+**Vorgang:** slice-testserver-herausloesen
+**Fund:** Verifikation b84577d F-1 und Review L-2: Die Kompatibilitätsmatrix zitierte zwei Tests unter dem alten Namen nach dem Verschieben (`make matrix-zitate` rot, kein Gate); `SHUTDOWN_GRACE` und `QUERY_TIMEOUT` stehen in der Festlegungstabelle als „konfigurierbar“, ohne Auszeichnung als Eingang des Testservers; `SPEC-010` „im Log sichtbar“ widerspricht dem Zustand bis zum Adapter-Slice. Drei Treffer in einem Vorgang zählen einmal.

@@ -1,0 +1,2 @@
+**Vorgang:** slice-attention-cancel-timeout
+**Fund:** Cancel, `CANCEL_TIMEOUT` und die Frist sind mit suspendierenden und blockierenden Fake-Backends belegt, nicht mit einem echten blockierenden Treiber (Plan §6); `AttentionAck` (`DONE[ATTN]`, 13 Byte) ist als Handvektor ohne Quelle geführt (Review F11, Verifikation I-3), die Gegenprüfung ist eine Selbstkonsistenz des Codecs. Die Messung am Referenzclient trägt `slice-cancel-referenzclient-szenario`.

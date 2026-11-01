@@ -1,0 +1,2 @@
+**Vorgang:** slice-attention-cancel-timeout
+**Fund:** Die Voreinstellung von `QUERY_TIMEOUT` (30 s) und `CANCEL_TIMEOUT` (5 s) stand in `ConfigDefaults` und als zweite Quelle in `RequestTimes`; die Mutation 5 s auf 6 s in `RequestTimes.DEFAULT_CANCEL_TIMEOUT` überlebte, weil kein Test die Voreinstellung las (Verifikation F-4). Behoben in `a7a0a0a` (Konstanten aus `ConfigDefaults`); der Sensor für die Klasse fehlt weiter.

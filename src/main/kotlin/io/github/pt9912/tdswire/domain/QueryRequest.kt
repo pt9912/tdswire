@@ -3,8 +3,10 @@ package io.github.pt9912.tdswire.domain
 /**
  * Eine Anfrage an das Backend ohne TDS-Bytes (`SPEC-002`).
  *
- * Offen (ADR-0006): die Semantik von [deadlineEpochMillis] — wer die Frist durchsetzt und was bei
- * Ablauf geschieht. Das Feld wird nur getragen. Festlegung ohne Messung: `null` heißt: keine Frist.
+ * [deadlineEpochMillis] ist die Frist der Anfrage in Millisekunden seit der Epoche (`SPEC-009`, `SPEC-022`,
+ * `ADR-0013`): der Protokollkern setzt sie auf den Beginn der Anfrage plus `QUERY_TIMEOUT` und setzt sie durch. Läuft
+ * sie ab, bricht er das Lesen des Stroms ab (`cancel()`, `close()`) und beantwortet die Anfrage mit `TDS_TIMEOUT`;
+ * für ein Backend ist das Feld ein Hinweis, den es ignorieren darf. `null` heißt: keine Frist.
  *
  * Die Textdarstellung nennt vom [sql] nur die Länge: der Text kann Literale und Kennwörter tragen
  * (`TDS-QA-03`).

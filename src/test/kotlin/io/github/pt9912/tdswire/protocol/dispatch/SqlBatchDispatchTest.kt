@@ -30,8 +30,8 @@ class SqlBatchDispatchTest {
 
     /**
      * Das Backend bekommt Sitzungs-ID, eine neue Anfrage-ID, den Text unverändert (auch leer, mit `SET`,
-     * Unicode, Steuerzeichen und Zeilenumbruch), eine leere Parameterliste und keine Frist; je Text genau
-     * ein Aufruf.
+     * Unicode, Steuerzeichen und Zeilenumbruch), eine leere Parameterliste und die Frist (Beginn plus
+     * `QUERY_TIMEOUT`, Voreinstellung 30 s); je Text genau ein Aufruf.
      *
      * @spec SPEC-001
      * @spec SPEC-002
@@ -48,7 +48,7 @@ class SqlBatchDispatchTest {
             assertEquals("r1", request.requestId, text)
             assertEquals(text, request.sql, text)
             assertEquals(emptyList(), request.parameters, text)
-            assertEquals(null, request.deadlineEpochMillis, text)
+            assertEquals(DEFAULT_DEADLINE, request.deadlineEpochMillis, text)
             assertEquals(1, session.replies.size, text)
         }
     }
@@ -113,9 +113,10 @@ class SqlBatchDispatchTest {
 
     /**
      * Zwei Anfragen in Folge auf einer Sitzung werden beide beantwortet, die zweite mit eigener
-     * Anfrage-ID und ihrem eigenen Text; vor jedem Lesen ist die Sitzung `READY`, und der Kanal wird
-     * erst nach dem Ende der Gegenstelle geschlossen (drei Leseaufrufe nach dem Login: zwei Batches und
-     * das Ende).
+     * Anfrage-ID und ihrem eigenen Text; jede Anfrage wird aus `READY` angenommen (`RUNNING` bei der Vergabe
+     * der Kennung), und der Kanal wird erst nach dem Ende der Gegenstelle geschlossen (drei Leseaufrufe nach dem
+     * Login: zwei Batches und das Ende; die zweite und die dritte Nachricht liest die Schleife schon während der
+     * vorigen Anfrage, um ATTENTION zu erkennen).
      *
      * @spec SPEC-001
      * @spec SPEC-031
@@ -129,13 +130,19 @@ class SqlBatchDispatchTest {
         val session = Session.login(BatchVectors.message("one"), BatchVectors.message("two"), Inbound.EndOfStream)
         val states = mutableListOf<ConnectionState>()
         session.channel.onReceive = { states += session.ready.live.context.state }
-        session.serve(backend)
+        val atRequestId = mutableListOf<ConnectionState>()
+        val ids = Counter()
+        session.serve(backend, requestIds = {
+            atRequestId += session.ready.live.context.state
+            ids.next()
+        })
         assertEquals(listOf("one", "two"), backend.requests.map { it.sql })
         assertEquals(listOf("r1", "r2"), backend.requests.map { it.requestId })
         assertEquals(oneRowReply, session.hex(0))
         assertEquals(BatchVectors.COLMETADATA_N + " " + BatchVectors.DONE_COUNT_0, session.hex(1))
         assertEquals(3, session.channel.receiveCalls - 2)
-        assertEquals(List(3) { ConnectionState.READY }, states.takeLast(3))
+        assertEquals(ConnectionState.READY, states.first())
+        assertEquals(List(2) { ConnectionState.RUNNING }, atRequestId)
         assertEquals(ConnectionState.CLOSED, session.ready.live.context.state)
     }
 
@@ -165,8 +172,9 @@ class SqlBatchDispatchTest {
         }
         probe.cancel()
         assertEquals(listOf(ConnectionState.RUNNING), atRequestId)
-        assertEquals(ConnectionState.STREAMING, seen.first())
-        assertTrue(ConnectionState.RUNNING !in seen.drop(1), "RUNNING nach STREAMING: $seen")
+        assertTrue(ConnectionState.STREAMING in seen, "STREAMING nicht beobachtet: $seen")
+        val afterStreaming = seen.drop(seen.indexOf(ConnectionState.STREAMING))
+        assertTrue(ConnectionState.RUNNING !in afterStreaming, "RUNNING nach STREAMING: $seen")
         assertEquals(3, backend.rowsPulled)
     }
 }

@@ -27,6 +27,10 @@ In Arbeit (Welle welle-qualitaet-grundlage):
 
 - [slice-e2e-geruest](slice-e2e-geruest.md)
 
+In Arbeit (Welle welle-fehler-abbruch):
+
+- keiner; zuletzt geschlossen: [slice-attention-cancel-timeout](../done/slice-attention-cancel-timeout.md) (Closure-Notiz in §7 des Slice; Folge: [slice-cancel-referenzclient-szenario](../open/slice-cancel-referenzclient-szenario.md), [slice-resetconnection-zuruecksetzen](../open/slice-resetconnection-zuruecksetzen.md), [slice-abbruch-ressourcen-shutdown](../open/slice-abbruch-ressourcen-shutdown.md))
+
 In Arbeit (Welle welle-betrieb-diagnose):
 
 - keiner; zuletzt geschlossen: [slice-adr-observability](../done/slice-adr-observability.md) (Closure-Notiz in §7 des Slice; Folge: [slice-spec-nachzug-telemetrie](../in-progress/slice-spec-nachzug-telemetrie.md), Startbedingung [ADR-0029](../../adr/0029-log-parameter-am-einstieg.md) für [slice-betrieb-log-schnittstelle](../open/slice-betrieb-log-schnittstelle.md))
@@ -34,6 +38,10 @@ In Arbeit (Welle welle-betrieb-diagnose):
 In Arbeit (ohne Welle):
 
 - keiner; zuletzt geschlossen: [slice-stempel-mechanismus](../done/slice-stempel-mechanismus.md) (Closure-Notiz in §7 des Slice; Folge: [slice-stempel-migration](../open/slice-stempel-migration.md))
+
+In Arbeit (Welle welle-produktschnitt):
+
+- keiner; zuletzt geschlossen: [slice-testserver-herausloesen](../done/slice-testserver-herausloesen.md) (Closure-Notiz in §7 des Slice; Folge: [slice-explicit-api-umbau](../open/slice-explicit-api-umbau.md), [slice-betrieb-log-adapter-testserver](../open/slice-betrieb-log-adapter-testserver.md))
 
 ## Nächste Wellen
 
