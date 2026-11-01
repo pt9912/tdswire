@@ -184,12 +184,13 @@ class AttentionCancelTest {
     /**
      * Ein wiederholtes ATTENTION löst keinen zweiten Cancel aus. Der erste Auslöser gewinnt; jedes weitere ATTENTION
      * ist danach ein ATTENTION nach Ende der Antwort und wird einzeln mit `DONE[ATTN]` bestätigt, damit kein Client auf
-     * eine Bestätigung wartet: drei ATTENTION ergeben einen Cancel und drei Bestätigungen.
+     * eine Bestätigung wartet: drei ATTENTION ergeben einen Cancel und drei Bestätigungen. Das ist eine Setzung ohne
+     * Messung; den Beleg liefert erst das Cancel-Szenario am Referenzclient.
      *
      * @spec SPEC-029
      */
     @Test
-    fun `Ein wiederholtes ATTENTION loest keinen zweiten Cancel aus`() = blocking {
+    fun `Ein wiederholtes ATTENTION loest keinen zweiten Cancel aus (Setzung N Bestaetigungen)`() = blocking {
         val backend = FlowBackend(suspendedAfter(CompletableDeferred()))
         val session = Session.login(BatchVectors.message("slow"))
         val serving = launch { session.serve(backend) }
@@ -226,5 +227,24 @@ class AttentionCancelTest {
         assertEquals(emptyList(), backend.cancelled)
         assertEquals(listOf("first", "next"), backend.requests.map { it.sql })
         assertFalse(session.ready.live.context.state == ConnectionState.RUNNING)
+    }
+
+    /**
+     * Endet die Anfrageschleife mit einer Ausnahme beim Mitlesen (der Kanal wirft), bricht sie den Lauf des Backends
+     * ab: `cancel()` und `close()` je genau einmal, kein Lauf bleibt zurück.
+     *
+     * @spec SPEC-031
+     * @spec TDS-FA-07
+     */
+    @Test
+    fun `Eine Ausnahme beim Mitlesen bricht den Lauf des Backends ab`() = blocking {
+        val backend = FlowBackend(suspendedAfter(CompletableDeferred()))
+        val session = Session.login(BatchVectors.message("slow"))
+        var reads = 0
+        session.channel.onReceive = { if (++reads == 2) error("Lesefehler") }
+        val outcome = runCatching { session.serve(backend) }
+        assertTrue(outcome.isFailure)
+        assertEquals(1, backend.cancelled.size)
+        assertEquals(1, backend.closeCalls)
     }
 }

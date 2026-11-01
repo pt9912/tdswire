@@ -11,7 +11,9 @@ import io.github.pt9912.tdswire.protocol.token.RowToken
 import io.github.pt9912.tdswire.protocol.token.ServerMessage
 import io.github.pt9912.tdswire.testsupport.blocking
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -95,24 +97,27 @@ class QueryTimeoutTest {
     }
 
     /**
-     * Eine Frist in der Vergangenheit (beim Beginn schon abgelaufen) endet sofort in `TDS_TIMEOUT`: das Backend wird
-     * nicht gerufen, es wird keine Wartezeit angefordert, und die Verbindung bleibt offen.
+     * Eine Frist in der Vergangenheit (beim Beginn schon abgelaufen, auch genau null) endet sofort in
+     * `TDS_TIMEOUT`: das Backend wird nicht gerufen, es wird keine Wartezeit
+     * angefordert, und die Verbindung bleibt offen.
      *
      * @spec SPEC-016
      * @spec SPEC-022
      */
     @Test
     fun `Eine Frist in der Vergangenheit endet sofort in TDS_TIMEOUT ohne Backend-Aufruf`() = blocking {
-        val pause = SteeredPause()
-        val backend = FlowBackend(delivering(*oneRow))
-        val session = Session.login(BatchVectors.message("late"), Inbound.EndOfStream)
-        session.serve(backend, times = timesOf(pause, query = (-1).seconds))
-        assertEquals(1, session.replies.size)
-        assertEquals(timeoutMessage, session.tokens(0).errorMessage())
-        assertTrue(session.hex(0).endsWith(BatchVectors.DONE_ERROR))
-        assertEquals(emptyList(), backend.requests)
-        assertEquals(emptyList(), pause.started)
-        assertEquals(ConnectionState.CLOSED, session.ready.live.context.state)
+        listOf((-1).seconds, Duration.ZERO).forEach { query ->
+            val pause = SteeredPause()
+            val backend = FlowBackend(delivering(*oneRow))
+            val session = Session.login(BatchVectors.message("late"), Inbound.EndOfStream)
+            session.serve(backend, times = timesOf(pause, query = query))
+            assertEquals(1, session.replies.size, "$query")
+            assertEquals(timeoutMessage, session.tokens(0).errorMessage(), "$query")
+            assertTrue(session.hex(0).endsWith(BatchVectors.DONE_ERROR), "$query")
+            assertEquals(emptyList(), backend.requests, "$query")
+            assertEquals(emptyList(), pause.started, "$query")
+            assertEquals(ConnectionState.CLOSED, session.ready.live.context.state, "$query")
+        }
     }
 
     /**
@@ -257,5 +262,84 @@ class QueryTimeoutTest {
         assertTrue(session.channel.closed)
         assertEquals(ConnectionState.CLOSED, session.ready.live.context.state)
         assertEquals(CloseReason.WRITE_FAILED, session.ready.live.closeReason)
+    }
+
+    /** Ein Lauf, dessen erster Schreibvorgang der Antwort am Rückstau hängt und dabei die Sitzungssperre hält. */
+    private class Stalled(val session: Session, val backend: FlowBackend, val hold: CompletableDeferred<Unit>)
+
+    private suspend fun CoroutineScope.stalledWrite(pause: SteeredPause, block: suspend (Stalled) -> Unit): Stalled {
+        val hold = CompletableDeferred<Unit>()
+        val backend = FlowBackend(suspendedAfter(CompletableDeferred(), resultStart()))
+        val session = Session.login(BatchVectors.message("slow"))
+        var writing = false
+        session.channel.onReplyWrite = {
+            if (!writing) {
+                writing = true
+                hold.await()
+            }
+        }
+        val serving = launch { session.serve(backend, times = timesOf(pause)) }
+        awaitUntil { writing }
+        pause.awaitWaiting(30.seconds)
+        val stalled = Stalled(session, backend, hold)
+        try {
+            block(stalled)
+        } finally {
+            hold.complete(Unit)
+        }
+        session.channel.feed(Inbound.EndOfStream)
+        serving.join()
+        return stalled
+    }
+
+    /**
+     * Ein ATTENTION, das den Übergang an die Frist verliert (die Frist steht vor ihm an der Sperre, die ein hängender
+     * Schreibvorgang hält): der Server verwirft es nicht, sondern bestätigt es nach dem Timeout-Fehler als eigene
+     * Nachricht, ohne zweiten Cancel, damit der Client nicht auf die Bestätigung wartet.
+     *
+     * @spec SPEC-029
+     * @spec SPEC-016
+     */
+    @Test
+    fun `Ein ATTENTION, das den Uebergang an die Frist verliert, wird danach bestaetigt`() = blocking {
+        val pause = SteeredPause()
+        val run = stalledWrite(pause) {
+            pause.fire(30.seconds)
+            repeat(HOPS) { yield() }
+            it.session.channel.feed(BatchVectors.attention())
+            repeat(HOPS) { yield() }
+        }
+        assertEquals(2, run.session.replies.size)
+        assertEquals(timeoutMessage, run.session.tokens(0).errorMessage())
+        assertEquals(BatchVectors.DONE_ATTN, run.session.hex(1))
+        assertEquals(1, run.backend.cancelled.size)
+    }
+
+    /**
+     * Grenze: ein Schreibvorgang, der am Rückstau hängt, hält die Sitzungssperre. Solange er nicht zurückkehrt, wirken
+     * weder die Frist noch ATTENTION: der Zustand bleibt unverändert, das Backend wird nicht abgebrochen, keine Antwort
+     * geht hinaus. Nach der Rückkehr wirkt die Frist.
+     *
+     * @spec SPEC-009
+     * @spec SPEC-029
+     * @spec SPEC-033
+     */
+    @Test
+    fun `Ein haengender Schreibvorgang haelt Frist und ATTENTION an bis zu seiner Rueckkehr`() = blocking {
+        val pause = SteeredPause()
+        val run = stalledWrite(pause) {
+            pause.fire(30.seconds)
+            it.session.channel.feed(BatchVectors.attention())
+            repeat(HOPS) { yield() }
+            assertTrue(it.session.ready.live.context.state != ConnectionState.CANCELLING)
+            assertEquals(emptyList(), it.backend.cancelled)
+            assertEquals(0, it.session.replies.size)
+        }
+        assertEquals(timeoutMessage, run.session.tokens(0).errorMessage())
+        assertEquals(1, run.backend.cancelled.size)
+    }
+
+    private companion object {
+        const val HOPS = 8
     }
 }

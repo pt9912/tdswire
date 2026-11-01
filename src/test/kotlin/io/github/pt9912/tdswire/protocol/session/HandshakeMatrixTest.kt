@@ -176,8 +176,9 @@ class HandshakeMatrixTest {
     /**
      * Die Zählung der Zellen kommt aus dem Code: 10 Zustände (mit `CANCELLING`) mal 15 Ereignisarten (mit dem
      * Fristablauf). Die Summen sind von Hand aus der Handtabelle gezählt: zulässig 25 in den Zuständen bis `READY`,
-     * 6 in `RUNNING`, 5 in `STREAMING`, 3 in `CANCELLING`; ignoriert 6 bisherige und 7 neue (Fristablauf in `READY`,
-     * vier in `CANCELLING`, zwei in `CLOSED`).
+     * 6 in `RUNNING`, 5 in `STREAMING`, 3 in `CANCELLING`; ignoriert 13 (je eine `LOGIN_TIMEOUT` in `READY`, `RUNNING`,
+     * `STREAMING` und `CANCELLING`, drei Ende-Ereignisse und zwei späte Ereignisse in `CLOSED`, Fristablauf in `READY`,
+     * drei weitere in `CANCELLING`).
      *
      * @spec SPEC-001
      */

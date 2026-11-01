@@ -11,7 +11,7 @@ import kotlinx.coroutines.async
  * sie zu verbrauchen, damit ein ATTENTION während einer Anfrage erkannt wird (`SPEC-029`).
  *
  * Zusage: ein begonnener Lesevorgang wird nie abgebrochen, bevor die Schleife endet. Ein Abbruch des Lesens schließt
- * den Kanal (Vertrag von `SuspendingChannel`) und ginge verloren, was schon gelesen ist. Das Warten auf das Ergebnis
+ * den Kanal (Vertrag von `SuspendingChannel`) und verwirft, was schon gelesen ist. Das Warten auf das Ergebnis
  * ist dagegen abbrechbar ([peek]); der Lesevorgang läuft in [scope] weiter und liefert seine Nachricht dem nächsten
  * [peek] oder [take]. Es liest höchstens ein Vorgang zugleich. Nicht thread-sicher: ein Aufrufer zugleich, der
  * Wechsel zwischen Aufrufern braucht eine Synchronisierung durch `join`.

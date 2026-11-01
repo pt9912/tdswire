@@ -76,12 +76,14 @@ internal class AbortableRun(
             return RunEnd.Cut(CancelCause.DEADLINE, null)
         }
         val job = detached.async { body() }
+        var returned = false
         try {
-            return coroutineScope { supervise(job, remaining) }
-        } catch (disconnect: CancellationException) {
-            job.cancel()
-            withContext(NonCancellable) { if (!job.isCompleted) endsInTime(job) }
-            throw disconnect
+            return coroutineScope { supervise(job, remaining) }.also { returned = true }
+        } finally {
+            if (!returned) {
+                job.cancel()
+                withContext(NonCancellable) { if (!job.isCompleted) endsInTime(job) }
+            }
         }
     }
 
@@ -106,9 +108,9 @@ internal class AbortableRun(
     /**
      * Die nächste Nachricht während des Laufs. Ein ATTENTION, das den Übergang gewinnt, ist verbraucht: der Abbruch
      * bestätigt es. Ein ATTENTION, das verliert (der Abbruch läuft schon, etwa durch die Frist), bleibt im Eingang und
-     * wird nach dem Abbruch als „ATTENTION nach Ende der Antwort“ bestätigt: kein ATTENTION des Clients bleibt ohne
-     * Bestätigung, und es entsteht nie ein zweiter Cancel. Jede andere Nachricht bleibt ebenfalls im Eingang. Danach
-     * endet das Beobachten.
+     * wird nach dem Abbruch als „ATTENTION nach Ende der Antwort“ bestätigt (Setzung, nicht gemessen: ob ein Client
+     * jedes ATTENTION einzeln bestätigt haben will, zeigt erst das Cancel-Szenario am Referenzclient). Es entsteht
+     * nie ein zweiter Cancel. Jede andere Nachricht bleibt ebenfalls im Eingang. Danach endet das Beobachten.
      */
     private suspend fun watch() {
         val seen = tray.peek()

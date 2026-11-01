@@ -64,9 +64,10 @@ internal class HandshakeSession(
      * brauchen dieselbe Sperre; sie warten, bis das Paket im Schreiben ganz auf dem Draht ist, und erst danach, mit
      * dem Zustand `CANCELLING`, bricht die Anfrage ab. Danach beginnt kein reguläres Schreiben mehr
      * ([GuardedReply.write] und [GuardedReply.finish]), und die Bestätigung hängt an ein vollständiges Paket an.
-     * Ein abgebrochener Schreibvorgang schlösse den Kanal (Vertrag von `SuspendingChannel`); den Abbruch der
-     * Verbindung selbst (Disconnect, Beenden) unterbricht ein Paket weiterhin. Hängt ein Schreibvorgang am Rückstau,
-     * hält er die Sperre und mit ihr den Abbruch an (Grenze); [abandon] schließt dann den Kanal ohne die Sperre.
+     * Ein abgebrochener Schreibvorgang schließt den Kanal (Vertrag von `SuspendingChannel`); den Abbruch der
+     * Verbindung selbst (Disconnect, Beenden) unterbricht ein Paket weiterhin. Grenze: hängt ein Schreibvorgang am
+     * Rückstau, hält er die Sperre; bis zu seiner Rückkehr wirken weder die Frist noch ATTENTION noch `CANCEL_TIMEOUT`
+     * (der Abbruch beginnt erst mit dem Übergang nach `CANCELLING`).
      */
     private suspend fun guarded(stopped: Set<ConnectionState>, step: suspend () -> Boolean): Boolean = lock.withLock {
         if (context.state in stopped) return@withLock false
@@ -98,8 +99,9 @@ internal class HandshakeSession(
     }
 
     /**
-     * Schließt die Verbindung, weil das Backend den Cancel nicht beendet hat (`SPEC-033`). Der Kanal schließt
-     * zuerst und ohne die Sperre: ein Schreibvorgang, der am Rückstau hängt und die Sperre hält, endet damit.
+     * Schließt die Verbindung, weil das Backend den Cancel nicht beendet hat (`SPEC-033`). Der Abbruch hat den
+     * Übergang nach `CANCELLING` gewonnen, also hält kein regulärer Schreibvorgang die Sperre; der Kanal schließt
+     * vor dem Zustandswechsel.
      */
     suspend fun abandon(reason: CloseReason) {
         channel.close()

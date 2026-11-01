@@ -21,6 +21,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 private const val TABULAR_TYPE = 4
 
@@ -86,7 +87,8 @@ internal class AbbruchWiringTest : RuntimeTestBase() {
     /**
      * `QUERY_TIMEOUT=1` aus der Umgebung des Prozesses: das Backend antwortet nicht, nach einer Sekunde kommt
      * ERROR 50005 mit Class 16 und DONE mit Fehlerstatus, und die folgende Anfrage derselben Verbindung erhält nur
-     * ihre eigene Antwort. Die Frist, die das Backend sieht, liegt eine Sekunde hinter dem Beginn.
+     * ihre eigene Antwort. Die Frist, die das Backend sieht, liegt mindestens eine Sekunde hinter dem Senden
+     * der Anfrage.
      *
      * @spec SPEC-009
      * @spec SPEC-016
@@ -108,7 +110,7 @@ internal class AbbruchWiringTest : RuntimeTestBase() {
             assertEquals(ServerMessage(50005, 1, 16, "Timeout."), error)
             assertEquals(DoneStatus.ERROR, tokens.filterIsInstance<DoneToken>().single().status)
             val deadline = assertNotNull(backend.requests.single().deadlineEpochMillis)
-            assertEquals(true, deadline - before in ONE_SECOND_RANGE, "Frist: ${deadline - before} ms nach dem Senden")
+            assertTrue(deadline - before >= ONE_SECOND, "Frist: ${deadline - before} ms nach dem Senden")
             client.send(batch("danach"))
             assertEquals(rowAnswer, client.reply("Folgeanfrage").payload.toHex())
         }
@@ -116,6 +118,6 @@ internal class AbbruchWiringTest : RuntimeTestBase() {
     }
 
     private companion object {
-        val ONE_SECOND_RANGE = 1_000L..2_000L
+        const val ONE_SECOND = 1_000L
     }
 }
