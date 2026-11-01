@@ -1,0 +1,2 @@
+**Vorgang:** slice-attention-cancel-timeout
+**Fund:** Plan §3 führt `transport/` als „update“, geändert wurde dort nichts (die gleichzeitige Leselogik liegt in `dispatch/InboundTray`; Verifikation). Nach dem Umbau der E2E-Stufen standen die alten Stufennummern (Stufe 8 für Synchronitaet, Stufe 7 für Luecken) in den Plänen `slice-cancel-referenzclient-szenario`, `slice-resetconnection-zuruecksetzen` und im DoD dieses Slice, bis die Closure sie nachzog.

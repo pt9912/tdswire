@@ -1,0 +1,2 @@
+**Vorgang:** slice-attention-cancel-timeout
+**Fund:** Review F2: SPEC-009, SPEC-033 und SPEC-029 sagten die Frist ohne die Bedingung (ein Schreibvorgang am Rückstau hält die Sitzungssperre, bis dahin wirkt weder Frist noch ATTENTION); F3: „N ATTENTION ergeben N Bestätigungen“ stand ohne Messung im Code und in der Spec (Verifikation M3); F-5: SPEC-029 „sobald das Paket ganz auf dem Draht steht“ enger als der Code. Behoben durch Einschränken und Kennzeichnen als Setzung (`018ebac`, `a7a0a0a`); die Messung steht aus, Folgepflicht in `slice-cancel-referenzclient-szenario`.
