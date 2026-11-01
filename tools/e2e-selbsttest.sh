@@ -67,5 +67,12 @@ E2E_MAKE="$tmp/fake-make" FAKE_LOG="$tmp/log" bash "$e2e" > "$tmp/aus" 2> /dev/n
 [ "$(aufrufe)" = "smoke laufzeittest simulations-integration referenztest-dotnet FORCE=1 kompatibilitaet KATEGORIE=Szenario kompatibilitaet KATEGORIE=Anmeldung kompatibilitaet KATEGORIE=Luecken kompatibilitaet KATEGORIE=Synchronitaet " ] || pruefe "alles gruen: aufgerufen wurde [$(aufrufe)]"
 grep -q '^e2e: gruen (8 Stufen' "$tmp/aus" || pruefe "alles gruen: die Schlusszeile fehlt"
 
+# Jede Deklaration einer Stufe traegt den Teil "Nicht belegt:" mit nichtleerem Rest.
+# Die Zeilen der Stufen beginnen mit `e2e_abdeckung "` (die Funktionsdefinition mit `e2e_abdeckung()`).
+zeilen=$(grep -c '^e2e_abdeckung "' "$e2e" || true)
+[ "$zeilen" -eq 8 ] || pruefe "Deklarationen: $zeilen statt 8 Zeilen e2e_abdeckung"
+mit=$(grep '^e2e_abdeckung "' "$e2e" | grep -c 'Nicht belegt: [^ "][^"]*" "' || true)
+[ "$mit" -eq "$zeilen" ] || pruefe "Deklarationen: $((zeilen - mit)) von $zeilen Stufen ohne Teil 'Nicht belegt:' mit Rest"
+
 [ "$fehler" -eq 0 ] || exit 1
-echo "e2e-selbsttest: ok (Abbruch an Stufe 1, 2, 6 und 8, alle gruen)"
+echo "e2e-selbsttest: ok (Abbruch an Stufe 1, 2, 6 und 8, alle gruen, Teil Nicht belegt in 8 Stufen)"

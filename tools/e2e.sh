@@ -5,7 +5,8 @@
 # Jede Stufe ruft ein `make`-Target (ein Docker-Lauf gleichzeitig) und traegt eine Deklaration
 #   e2e_abdeckung "<Kennungen>" "<Kurzbeschreibung>" "<Anker>"
 # aus der `make e2e-abdeckung` die Sicht docs/plan/e2e-abdeckung.md erzeugt (Marker in repo.mk). Die Sicht ist eine
-# Deklaration, kein Lauf-Beleg: dass eine Stufe ihre Kennungen traegt, belegt ihr gruener Lauf, nicht die Datei.
+# Deklaration, kein Lauf-Beleg; jede Deklaration traegt den Teil "Nicht belegt: <Rest>" (gehalten von
+# `make skript-selbsttest`, der Rest ist nichtleer): dass eine Stufe ihre Kennungen traegt, belegt ihr gruener Lauf, nicht die Datei.
 # Setzung: die erste rote Stufe bricht den Durchgang ab (Exit 1), und die Ausgabe nennt die Stufe; die folgenden
 # Stufen laufen nicht (gehalten von `make skript-selbsttest`). Die Harness-Selbstpruefung (tools/harness/selbstpruefung.sh) ist keine Stufe.
 set -u
