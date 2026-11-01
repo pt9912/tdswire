@@ -1,6 +1,6 @@
 # Review: slice-stempel-migration (Diff 62fb5ef..54cc013)
 
-* Rolle: Reviewer (Modul 10), frischer Kontext. Branch `worktree-agent-a574dbab75707b95f`. Plan: `docs/plan/planning/in-progress/slice-stempel-migration.md`. Geprüft gegen Plan, [ADR-0023](../plan/adr/0023-gate-klassen-und-stempel.md), [ADR-0024](../plan/adr/0024-lokale-stempel-zwei-klassen.md), AGENTS 3.1 bis 3.8; nicht gegen die DoD. Alle Mutationen und Proben in Wegwerf-Klonen, ein Prozess zugleich. Verdichtet vom Aufrufer abgelegt; Findings vollständig.
+* Rolle: Reviewer (Modul 10), frischer Kontext. Branch `worktree-agent-a574dbab75707b95f`. Plan: `docs/plan/planning/done/slice-stempel-migration.md`. Geprüft gegen Plan, [ADR-0023](../plan/adr/0023-gate-klassen-und-stempel.md), [ADR-0024](../plan/adr/0024-lokale-stempel-zwei-klassen.md), AGENTS 3.1 bis 3.8; nicht gegen die DoD. Alle Mutationen und Proben in Wegwerf-Klonen, ein Prozess zugleich. Verdichtet vom Aufrufer abgelegt; Findings vollständig.
 
 ## Ergebnis in Kürze
 

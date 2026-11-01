@@ -78,7 +78,7 @@ Summe: 12 + 2 + 1 + 1 = 16 Lücken; 3 + 2 + 1 = 6 Zeilen ohne Zitat; 10 + 7 + 31
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - **Spec-Nachzug, Tags an Tests, Löschen der Handmatrix** — [slice-kompatibilitaetsmatrix-migration](slice-kompatibilitaetsmatrix-migration.md): hängt an den Entscheidungen des Nutzers über die Spec; dieser Slice baut den Erzeuger und prüft ihn am Mini-Bestand.
-- **Gate-Aufnahme** — [slice-kompatibilitaetsmatrix-gate](slice-kompatibilitaetsmatrix-gate.md): braucht die verdrahtete Klasse `tests` aus [slice-stempel-migration](../in-progress/slice-stempel-migration.md) und eine Messung der Gate-Zeit.
+- **Gate-Aufnahme** — [slice-kompatibilitaetsmatrix-gate](slice-kompatibilitaetsmatrix-gate.md): braucht die verdrahtete Klasse `tests` aus [slice-stempel-migration](../done/slice-stempel-migration.md) und eine Messung der Gate-Zeit.
 - **Bestehen der Referenzclient-Tests im Gate** — [ADR-0022](../../adr/0022-e2e-laeufe-nicht-in-den-gates.md): `make e2e` bleibt kein Gate; die Sicht trägt dessen letzten Lauf als Datum.
 - **Cancel-Szenario und Messungen am echten SQL Server** — [slice-cancel-referenzclient-szenario](slice-cancel-referenzclient-szenario.md) bzw. [slice-qa-vergleichslauf-d-messungen](slice-qa-vergleichslauf-d-messungen.md).
 - **Schreiben der ADR und der Änderungen an Spec und `AGENTS.md`** — Entscheidungen des Nutzers.
@@ -141,7 +141,7 @@ lässt. Ergänzt die Tabelle, ersetzt sie nicht:
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `make gates` ist auf `main` grün, und der Nutzer hat entschieden, ob die Matrix als Sicht (Option A) oder gar nicht mehr geführt wird (Option C) und ob die Spec ein Feld `Kategorie` und Tabellen je Fall bekommt. Keine Abhängigkeit von [slice-stempel-migration](../in-progress/slice-stempel-migration.md).
+**Start** (`next` → `in-progress`): `make gates` ist auf `main` grün, und der Nutzer hat entschieden, ob die Matrix als Sicht (Option A) oder gar nicht mehr geführt wird (Option C) und ob die Spec ein Feld `Kategorie` und Tabellen je Fall bekommt. Keine Abhängigkeit von [slice-stempel-migration](../done/slice-stempel-migration.md).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
