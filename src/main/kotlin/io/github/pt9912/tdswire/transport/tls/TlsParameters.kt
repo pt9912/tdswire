@@ -1,7 +1,7 @@
 package io.github.pt9912.tdswire.transport.tls
 
 /** Wie TLS beginnt: den Pfad bestimmt der Aufrufer, die Schleife entscheidet ihn nicht (`SPEC-028`). */
-enum class TlsPath {
+internal enum class TlsPath {
     /** TDS 7.4: Handshake in Paketen vom Typ `0x12`, nach `FINISHED` rohes TLS auf dem Strom. */
     ENCAPSULATED_IN_TDS,
 
@@ -18,7 +18,7 @@ enum class TlsPath {
  * unverändert an die Engine, und die Auswahl der Suiten gehört dem Aufrufer; [SPEC_023] ist die
  * Auswahl, die die Spezifikation nennt.
  */
-data class TlsParameters(val protocols: List<String>, val cipherSuites: List<String>) {
+internal data class TlsParameters(val protocols: List<String>, val cipherSuites: List<String>) {
     init {
         require(protocols.isNotEmpty() && protocols.all { it in ALLOWED_PROTOCOLS }) {
             "protocols nur TLSv1.2 und TLSv1.3"

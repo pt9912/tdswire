@@ -5,7 +5,7 @@ import io.github.pt9912.tdswire.config.auth.RejectReason
 import io.github.pt9912.tdswire.transport.framing.TdsMessage
 
 /** Warum der Automat die Verbindung beendet. */
-enum class CloseReason {
+internal enum class CloseReason {
     PEER_CLOSED,
     READ_FAILED,
     WRITE_FAILED,
@@ -26,7 +26,7 @@ enum class CloseReason {
  * Warum ein Login abgelehnt wird; der Grund steht nur im Server-Log (`SPEC-012`) und nennt weder
  * Kennung noch Passwort. Die Antwort an den Client ist für jeden Grund dieselbe.
  */
-enum class LoginRejection {
+internal enum class LoginRejection {
     UNKNOWN_USER,
     WRONG_PASSWORD,
     INPUT_TOO_LONG,
@@ -46,7 +46,7 @@ enum class LoginRejection {
 }
 
 /** Der minimale Log-Anschluss des Handshakes; Einträge tragen weder Kennung noch Passwort. */
-sealed interface LogEntry {
+internal sealed interface LogEntry {
     data class LoginRejected(val rejection: LoginRejection) : LogEntry
 
     /** Die Ausnahme eines Adapters; nur ihr Typ, weil ihr Text Konfigurationswerte tragen kann (`SPEC-048`). */
@@ -57,7 +57,7 @@ sealed interface LogEntry {
 }
 
 /** Anschluss, an den der Handshake [LogEntry] meldet. */
-fun interface HandshakeLog {
+internal fun interface HandshakeLog {
     fun record(entry: LogEntry)
 
     companion object {
@@ -66,7 +66,7 @@ fun interface HandshakeLog {
 }
 
 /** Was der Sitzungsrahmen auf einen Übergang hin ausführt; der Automat selbst schreibt und ruft nichts. */
-sealed interface HandshakeAction {
+internal sealed interface HandshakeAction {
     data class Send(val message: TdsMessage) : HandshakeAction
 
     /** Der TLS-Handschlag beginnt; danach folgt [HandshakeEvent.TlsEstablished] oder [HandshakeEvent.ReadFailed]. */
@@ -94,7 +94,7 @@ sealed interface HandshakeAction {
 }
 
 /** Wer den Abbruch einer laufenden Anfrage ausgelöst hat (`ADR-0027` Entscheidung 2). */
-enum class CancelCause {
+internal enum class CancelCause {
     /** ATTENTION des Clients; die Antwort ist `DONE[ATTN]` ohne ERROR. */
     ATTENTION,
 

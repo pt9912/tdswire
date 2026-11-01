@@ -6,7 +6,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /** Die Verbindung nennt dem Handler die Adresse der Gegenstelle (`ADR-0016`). */
-class ListenerRemoteAddressTest : ListenerTestBase() {
+internal class ListenerRemoteAddressTest : ListenerTestBase() {
     /**
      * Orakel: eine Verbindung von `127.0.0.1` zeigt dem Handler `127.0.0.1` als Adresse der Gegenstelle, am echten
      * Socket des Listeners.

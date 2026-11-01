@@ -6,7 +6,7 @@ import kotlin.test.Test
 import kotlin.test.assertFailsWith
 
 /** Das Aufräumen von [ListenerTestBase] beendet die Listener, die ein Test gestartet hat. */
-class ListenerTestBaseTest : ListenerTestBase() {
+internal class ListenerTestBaseTest : ListenerTestBase() {
     /**
      * Nach dem Aufräumen nimmt keiner der gestarteten Listener mehr Verbindungen an, und es läuft kein
      * Thread des Listeners. Ob ein fehlschlagender Test ohne das Aufräumen Folgefehler auslöste, zeigt

@@ -9,7 +9,7 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 /** Wartet eine Frist ab; der Listener wartet nur über diese Schnittstelle, damit Tests die Zeit steuern. */
-fun interface Delayer {
+internal fun interface Delayer {
     suspend fun delay(duration: Duration)
 
     companion object {
@@ -22,14 +22,14 @@ fun interface Delayer {
  * (`SHUTDOWN_GRACE`, `SPEC-047`; [Duration.ZERO] = sofort) tragen die vorläufigen Werte der
  * Spezifikation; [delayer] wartet sie ab.
  */
-data class ListenerTimes(
+internal data class ListenerTimes(
     val loginTimeout: Duration = 15.seconds,
     val shutdownGrace: Duration = 10.seconds,
     val delayer: Delayer = Delayer.SYSTEM,
 )
 
 /** TLS-Material und -Parameter, gegen die die Startprobe vor dem Binden läuft (`SPEC-043`). */
-data class TlsServerConfig(val material: TlsMaterial, val parameters: TlsParameters)
+internal data class TlsServerConfig(val material: TlsMaterial, val parameters: TlsParameters)
 
 /**
  * Was der Listener von außen bekommt: eine validierte Bind-Adresse [host] und [port] (0 = ein freier
@@ -37,7 +37,7 @@ data class TlsServerConfig(val material: TlsMaterial, val parameters: TlsParamet
  * Verbindungs-Scopes. Wer die Werte aus Umgebung oder Datei liest, gehört dem Package `config`.
  * Ohne [tls] läuft keine Probe; ob und wie eine Verbindung verschlüsselt wird, entscheidet der Handler.
  */
-data class ListenerConfig(
+internal data class ListenerConfig(
     val host: String,
     val port: Int,
     val times: ListenerTimes = ListenerTimes(),
@@ -46,7 +46,7 @@ data class ListenerConfig(
 )
 
 /** Warum der Start nicht gelingt; [message] nennt Teil, Adresse oder Port, nie Pfad oder Inhalt (`SPEC-043`). */
-sealed interface StartFailure {
+internal sealed interface StartFailure {
     val message: String
 
     /** Die Startprobe der TLS-Konfiguration ist gescheitert; es wurde kein Port gebunden. */
@@ -66,7 +66,7 @@ sealed interface StartFailure {
 }
 
 /** Ausgang von [TdsListener.start]. */
-sealed interface StartResult {
+internal sealed interface StartResult {
     class Started(val listener: TdsListener) : StartResult
 
     data class Failed(val failure: StartFailure) : StartResult

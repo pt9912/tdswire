@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
  * begrenzt es selbst. Ein `OutOfMemoryError` im Anfragepfad (Backend, Encoder, Senke) wird gefangen und
  * als `TDS_INTERNAL_ERROR` beantwortet, danach schließt die Verbindung (ADR-0013).
  */
-interface QueryExecution {
+public interface QueryExecution {
     /**
      * Der Ergebnisstrom. Pflicht (`spec/spezifikation.md` `SPEC-022`): `ResultStart` kommt vor den Zeilen
      * seines Ergebnisses. Die Prüfung dieser Reihenfolge gehört nicht zum Port, sondern dem Response Sequencer.
@@ -19,8 +19,8 @@ interface QueryExecution {
      * Strom neu beginnt (kalt) oder fortsetzt, legt der Port nicht fest; kein Aufrufer und keine
      * Prüfung darf davon abhängen.
      */
-    val events: Flow<QueryEvent>
+    public val events: Flow<QueryEvent>
 
     /** Schließt die Zeilenquelle und die Ressourcen der Operation. */
-    suspend fun close()
+    public suspend fun close()
 }

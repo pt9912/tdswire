@@ -24,7 +24,7 @@ import java.nio.ByteBuffer
  * nicht mehr. Vor einem Fehler vollendete Nachrichten werden zuerst geliefert. Nicht thread-sicher:
  * ein Leser gehört einem Aufrufer.
  */
-class MessageReader(
+internal class MessageReader(
     private val channel: SuspendingChannel,
     limits: FramingLimits = FramingLimits(),
     readBufferSize: Int = DEFAULT_READ_BUFFER,

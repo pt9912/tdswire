@@ -1,7 +1,7 @@
 package io.github.pt9912.tdswire.protocol.wire
 
 /** Fehlerkategorie nach `SPEC-011` und `SPEC-014`. */
-enum class ProtocolErrorCategory {
+internal enum class ProtocolErrorCategory {
     TDS_PROTOCOL_ERROR,
     TDS_UNSUPPORTED_TYPE,
 }
@@ -11,7 +11,7 @@ enum class ProtocolErrorCategory {
  * dem Format folgen, tragen `TDS_PROTOCOL_ERROR`; Werte und Typen, die der Encoder nicht
  * serialisieren kann, tragen `TDS_UNSUPPORTED_TYPE` (Festlegung nach `SPEC-014`).
  */
-enum class ProtocolFailure(val category: ProtocolErrorCategory) {
+internal enum class ProtocolFailure(val category: ProtocolErrorCategory) {
     TRUNCATED(ProtocolErrorCategory.TDS_PROTOCOL_ERROR),
     INVALID_LENGTH(ProtocolErrorCategory.TDS_PROTOCOL_ERROR),
     INVALID_OFFSET(ProtocolErrorCategory.TDS_PROTOCOL_ERROR),
@@ -35,12 +35,12 @@ enum class ProtocolFailure(val category: ProtocolErrorCategory) {
  * Ergebnisfehler des Nachrichten-Codecs. [detail] nennt Offsets, Längen und Namen von Feldern,
  * nie deren Inhalt: ein LOGIN7 trägt Kennung und Passwort.
  */
-data class ProtocolError(val failure: ProtocolFailure, val detail: String) {
+internal data class ProtocolError(val failure: ProtocolFailure, val detail: String) {
     val category: ProtocolErrorCategory get() = failure.category
 }
 
 /** Ausgang einer Codec-Operation: ein Wert oder ein [ProtocolError], nie eine Ausnahme. */
-sealed interface ProtocolResult<out T> {
+internal sealed interface ProtocolResult<out T> {
     data class Ok<out T>(val value: T) : ProtocolResult<T>
 
     data class Failed(val error: ProtocolError) : ProtocolResult<Nothing>

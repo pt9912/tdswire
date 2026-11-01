@@ -11,7 +11,7 @@ import kotlin.test.assertTrue
  * Was der Server für einen Fall tun muss: der Ausgang des Handshakes, der Ausgang des Lesens nach dem
  * Login ([afterLogin], nur bei `Ready`) oder Hängen bis zur Frist ([hung]).
  */
-class Expect(val outcomes: Set<String>, val afterLogin: Set<String> = emptySet(), val hung: Boolean = false)
+internal class Expect(val outcomes: Set<String>, val afterLogin: Set<String> = emptySet(), val hung: Boolean = false)
 
 private val CLOSED_READ_FAILED = Expect(setOf("Closed:READ_FAILED"))
 private val CLOSED_VIOLATION = Expect(setOf("Closed:PROTOCOL_VIOLATION"))
@@ -43,7 +43,7 @@ private const val PARTIAL_BATCH = 18
  * den die Referenz-Regel verlangt. [keepOpen] hält die Verbindung offen, bis der Test die Frist
  * `LOGIN_TIMEOUT` auslöst. Die Rohbytes sind von Hand gebaut, nicht mit dem Codec.
  */
-enum class Hostile(
+internal enum class Hostile(
     val expect: Expect,
     val keepOpen: Boolean = false,
     val reset: List<Step>? = null,
@@ -142,7 +142,7 @@ enum class Hostile(
 }
 
 /** Vergleicht die gezählten Ausgänge mit den Erwartungen: jeder Fall hat genau einen erwarteten Ausgang. */
-fun assertOutcomes(actual: Collection<String>, expected: List<Set<String>>, what: String) {
+internal fun assertOutcomes(actual: Collection<String>, expected: List<Set<String>>, what: String) {
     val want = expected.groupingBy { it.single() }.eachCount()
     assertEquals(want, actual.groupingBy { it }.eachCount(), "$what: Ausgänge nach Art")
 }

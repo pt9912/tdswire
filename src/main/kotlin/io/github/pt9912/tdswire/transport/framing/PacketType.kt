@@ -7,7 +7,7 @@ package io.github.pt9912.tdswire.transport.framing
  * Header ist ein Protokollfehler. [PRELOGIN] trägt auch die TLS-Handshake-Daten des TDS-7.x-Pfads,
  * der Codec kapselt sie nicht.
  */
-enum class PacketType(val code: Int) {
+internal enum class PacketType(val code: Int) {
     SQL_BATCH(CODE_SQL_BATCH),
     PRE_TDS7_LOGIN(CODE_PRE_TDS7_LOGIN),
     RPC(CODE_RPC),

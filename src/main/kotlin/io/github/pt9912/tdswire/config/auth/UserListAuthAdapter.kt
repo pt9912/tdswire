@@ -62,8 +62,10 @@ internal object JdkAuthPrimitives : AuthPrimitives {
  * UTF-8-Zwischenpuffers im `plain`-Pfad. Das `SecretKey`-Objekt der JDK-Ableitung wird nicht überschrieben
  * (aus dem Code gelesen, nicht gemessen).
  */
-class UserListAuthAdapter internal constructor(private val users: UserList, private val primitives: AuthPrimitives) :
-    AuthAdapter {
+internal class UserListAuthAdapter internal constructor(
+    private val users: UserList,
+    private val primitives: AuthPrimitives,
+) : AuthAdapter {
     constructor(users: UserList) : this(users, JdkAuthPrimitives)
 
     override fun authenticate(request: AuthRequest): AuthResult =

@@ -14,7 +14,7 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 /** Ausgang der Startprobe: bestanden mit der ausgehandelten Version und Suite, oder die Diagnose. */
-sealed interface ProbeResult {
+internal sealed interface ProbeResult {
     data class Passed(val protocol: String, val cipherSuite: String) : ProbeResult
 
     data class Failed(val diagnosis: TlsDiagnosis) : ProbeResult
@@ -33,7 +33,7 @@ sealed interface ProbeResult {
  * Festlegung (nicht gemessen): scheitert der Handschlag und ist keine Kette abgelaufen, ist der Teil
  * [TlsPart.PAIR]; eine Probe, die nicht binnen [timeout] endet, ebenso.
  */
-object TlsStartProbe {
+internal object TlsStartProbe {
     val DEFAULT_TIMEOUT: Duration = 10.seconds
     private const val MEMORY_CAPACITY = 1 shl 16
 

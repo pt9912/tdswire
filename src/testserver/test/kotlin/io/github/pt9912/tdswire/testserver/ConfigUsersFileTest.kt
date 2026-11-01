@@ -2,21 +2,22 @@ package io.github.pt9912.tdswire.testserver
 
 import io.github.pt9912.tdswire.config.ConfigIssue
 import io.github.pt9912.tdswire.config.IssueKind
+import io.github.pt9912.tdswire.config.ListenSettings
+import io.github.pt9912.tdswire.config.ServerConfig
 import io.github.pt9912.tdswire.config.TlsKeyMaterial
-import io.github.pt9912.tdswire.config.auth.AuthFeatures
-import io.github.pt9912.tdswire.config.auth.AuthRequest
-import io.github.pt9912.tdswire.config.auth.AuthResult
-import io.github.pt9912.tdswire.config.auth.ConnectionContext
-import io.github.pt9912.tdswire.config.auth.NegotiatedEncryption
-import io.github.pt9912.tdswire.config.auth.PasswordChars
-import io.github.pt9912.tdswire.config.auth.UserListAuthAdapter
 import io.github.pt9912.tdswire.config.auth.UserListError
 import io.github.pt9912.tdswire.config.auth.UserListErrorKind
+import io.github.pt9912.tdswire.runtime.BackendSource
+import io.github.pt9912.tdswire.runtime.StartOutcome
+import io.github.pt9912.tdswire.runtime.TdsServer
+import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+
+private const val LOOPBACK = "127.0.0.1"
 
 /** Lesen und Validieren der Benutzerliste und des Testmodus-Schalters (`ADR-0011`, `SPEC-051`). */
 internal class ConfigUsersFileTest : TempFilesTest() {
@@ -29,16 +30,24 @@ internal class ConfigUsersFileTest : TempFilesTest() {
     private fun listInvalid(kind: UserListErrorKind, line: Int?) =
         ConfigIssue(EnvKeys.AUTH_USERS_FILE, IssueKind.USER_LIST_INVALID, UserListError(kind, line))
 
+    /**
+     * `true`, wenn der Server mit der gelesenen Liste die Anmeldung von `alice` mit dem Passwort `pw` annimmt. Das
+     * Urteil fällt am laufenden Server über die öffentliche Fläche (`TdsServer.start`, Rohbytes-Client).
+     */
     private fun users(path: String, testMode: String? = "true"): Boolean {
-        val config = ConfigLoader.load(env(path, testMode)).loaded()
-        val request = AuthRequest(
-            "alice",
-            PasswordChars("pw".toCharArray()),
-            ConnectionContext("d", "a", "h", false),
-            NegotiatedEncryption.NOT_SUPPORTED,
-            AuthFeatures(integratedSecurity = false, federatedAuthentication = false, changePassword = false),
+        val loaded = ConfigLoader.load(env(path, testMode)).loaded()
+        val config = ServerConfig(
+            listen = ListenSettings(LOOPBACK, 0),
+            encryption = loaded.encryption,
+            tls = loaded.tls,
+            auth = loaded.auth,
         )
-        return UserListAuthAdapter(config.auth.users).authenticate(request) is AuthResult.Accepted
+        val running = assertIs<StartOutcome.Running>(runBlocking { TdsServer.start(config, BackendSource.None) })
+        try {
+            return LoginProbe(running.server.port).use { it.login("alice", "pw") }
+        } finally {
+            runBlocking { running.server.stop() }
+        }
     }
 
     /**

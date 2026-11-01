@@ -20,10 +20,10 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
 /** Wie die Gegenstellen ihre Schreib- und Lesevorgänge zerstückeln. */
-enum class Slicing { WHOLE, BYTEWISE, RANDOM }
+internal enum class Slicing { WHOLE, BYTEWISE, RANDOM }
 
 /** Eine Versuchsanordnung: Server (Produktionscode) gegen eine JDK-Engine als Client über Speicher-Kanäle. */
-data class TlsSetup(
+internal data class TlsSetup(
     val path: TlsPath,
     val protocols: List<String> = TlsParameters.ALLOWED_PROTOCOLS,
     val suites: List<String> = TlsParameters.SPEC_023.cipherSuites,
@@ -43,14 +43,14 @@ data class TlsSetup(
 }
 
 /** Ausgang eines Handshakes: das Ergebnis des Servers, der Fehler der Gegenstelle und die Drähte. */
-class TlsOutcome(
+internal class TlsOutcome(
     val server: TlsResult<TlsChannel>,
     val peerFailure: Throwable?,
     val serverWire: RecordingChannel,
     val peer: JdkTlsPeer,
 )
 
-const val MEMORY_CAPACITY = 1 shl 16
+internal const val MEMORY_CAPACITY = 1 shl 16
 private const val RANDOM_SLICE_MAX = 64
 
 private fun sizes(slicing: Slicing, seed: Long): Iterator<Int>? = when (slicing) {
@@ -71,7 +71,7 @@ private fun sliced(inner: SuspendingChannel, setup: TlsSetup, salt: Long): Suspe
     }
 
 /** Der Client des Tests für [setup] auf [wire]. */
-fun peerFor(
+internal fun peerFor(
     setup: TlsSetup,
     wire: SuspendingChannel,
     holdLastFlight: Boolean = false,
@@ -88,7 +88,7 @@ fun peerFor(
 private const val PEER_SALT = 1000L
 
 /** Führt Server und Client des Tests nebeneinander bis zum Ende des Handshakes. */
-suspend fun runHandshake(setup: TlsSetup): TlsOutcome = coroutineScope {
+internal suspend fun runHandshake(setup: TlsSetup): TlsOutcome = coroutineScope {
     val (serverEnd, peerEnd) = MemoryChannel.pair(MEMORY_CAPACITY)
     val serverWire = RecordingChannel(serverEnd)
     val peer = peerFor(setup, peerEnd)
@@ -102,14 +102,14 @@ suspend fun runHandshake(setup: TlsSetup): TlsOutcome = coroutineScope {
 }
 
 /** Der Server-Kanal eines gelungenen Handshakes. */
-fun TlsOutcome.channel(): TlsChannel {
+internal fun TlsOutcome.channel(): TlsChannel {
     assertEquals(null, peerFailure, "Gegenstelle")
     assertIs<TlsResult.Ok<TlsChannel>>(server)
     return server.value
 }
 
 /** Nachrichten mit festen, zufällig gefüllten Nutzdaten, darunter eine über mehrere TLS-Records. */
-fun testMessages(type: PacketType, seed: Long): List<TdsMessage> {
+internal fun testMessages(type: PacketType, seed: Long): List<TdsMessage> {
     val random = Random(seed)
     return listOf(1, 100, 5000, 40000).map { TdsMessage(type, random.nextBytes(it)) }
 }
@@ -120,7 +120,7 @@ private const val PACKET_SIZE = 4096
  * Schickt in beide Richtungen je vier Nachrichten durch [MessageWriter] und [MessageReader] auf
  * [server] und [peer] und prüft, dass sie gleich ankommen.
  */
-suspend fun exchangeMessages(server: SuspendingChannel, peer: SuspendingChannel) = coroutineScope {
+internal suspend fun exchangeMessages(server: SuspendingChannel, peer: SuspendingChannel) = coroutineScope {
     val toPeer = testMessages(PacketType.TABULAR_RESULT, 11)
     val toServer = testMessages(PacketType.SQL_BATCH, 22)
     val serverSends = async { toPeer.map { MessageWriter(server, PACKET_SIZE).write(it) } }

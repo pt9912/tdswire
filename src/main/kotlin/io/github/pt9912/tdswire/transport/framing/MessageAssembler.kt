@@ -3,7 +3,7 @@ package io.github.pt9912.tdswire.transport.framing
 import java.io.ByteArrayOutputStream
 
 /** Stand eines [MessageAssembler] nach einer Eingabe: fertige Nachrichten und der erste Fehler. */
-data class AssemblyStep(val messages: List<TdsMessage>, val error: FramingError?)
+internal data class AssemblyStep(val messages: List<TdsMessage>, val error: FramingError?)
 
 /**
  * Setzt Nachrichten aus beliebig zerstückelten Bytes zusammen (`TDS-FA-01.a`, `SPEC-028`).
@@ -18,7 +18,7 @@ data class AssemblyStep(val messages: List<TdsMessage>, val error: FramingError?
  * Festlegung: Alle Pakete einer Nachricht tragen denselben Pakettyp, sonst ist es ein
  * Protokollfehler. Nicht thread-sicher; ein Assembler gehört einer Verbindung.
  */
-class MessageAssembler(var limits: FramingLimits = FramingLimits()) {
+internal class MessageAssembler(var limits: FramingLimits = FramingLimits()) {
     private val headerBuffer = ByteArray(PacketHeader.SIZE)
     private var headerFill = 0
     private var packet: PacketHeader? = null

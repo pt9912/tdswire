@@ -14,7 +14,7 @@ package io.github.pt9912.tdswire.protocol.session
  * ist nicht abgebildet; es ist hier der Übergang `RequestFinished`. Der Zuschnitt bleibt flach (`ADR-0015`):
  * `CANCELLING` ist ein Eintrag der einen Aufzählung, kein zweiter Automat.
  */
-enum class ConnectionState {
+internal enum class ConnectionState {
     CONNECTED,
     PRELOGIN,
     TLS_NEGOTIATION,
@@ -32,7 +32,7 @@ enum class ConnectionState {
  * Übergangsfunktion über Zustand und Ereignisart). Festlegung ohne Messung: Die Zuordnung der
  * Pakettypen zu den Arten steht in [HandshakeEvent.Message].
  */
-enum class EventKind {
+internal enum class EventKind {
     START,
     TLS_ESTABLISHED,
     PRELOGIN_MESSAGE,
@@ -56,20 +56,20 @@ enum class EventKind {
  * (TLS vor PRELOGIN). Die Reihenfolge von TDS 8.0 ist Festlegung (`ADR-0001`); der Referenzclient nimmt sie mit
  * `Encrypt=Strict` an (`make kompatibilitaet KATEGORIE=Anmeldung`).
  */
-enum class HandshakeOrder { PRELOGIN_FIRST, TLS_FIRST }
+internal enum class HandshakeOrder { PRELOGIN_FIRST, TLS_FIRST }
 
 /**
  * Verschlüsselungs-Richtlinie (`SPEC-010`, `ADR-0002`). [REQUIRED] ist der Standard;
  * [TEST_UNENCRYPTED] ist der ausdrücklich konfigurierte unverschlüsselte Testmodus (nur
  * [HandshakeOrder.PRELOGIN_FIRST]).
  */
-enum class EncryptionPolicy { REQUIRED, TEST_UNENCRYPTED }
+internal enum class EncryptionPolicy { REQUIRED, TEST_UNENCRYPTED }
 
 /**
  * Parameter des Automaten. [defaultDatabase] ist der Datenbankkontext einer Sitzung, deren LOGIN7
  * keine Datenbank nennt; Festlegung ohne Messung.
  */
-data class HandshakeConfig(
+internal data class HandshakeConfig(
     val order: HandshakeOrder = HandshakeOrder.PRELOGIN_FIRST,
     val encryptionPolicy: EncryptionPolicy = EncryptionPolicy.REQUIRED,
     val defaultDatabase: String = DEFAULT_DATABASE,

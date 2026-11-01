@@ -11,7 +11,7 @@ import java.nio.ByteBuffer
  * Puffer: das erste [read] legt das erste Byte ab und wirft eine `BufferOverflowException`, wenn der Puffer keinen
  * Platz hat (Verstoß des Aufrufers); das Byte bleibt dann für das nächste [read] erhalten.
  */
-class PeekedChannel private constructor(val firstByte: Byte, private val inner: SuspendingChannel) :
+internal class PeekedChannel private constructor(val firstByte: Byte, private val inner: SuspendingChannel) :
     SuspendingChannel {
     private var served = false
 

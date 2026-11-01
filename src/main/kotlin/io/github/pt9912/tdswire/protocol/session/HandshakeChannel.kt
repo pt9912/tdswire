@@ -4,7 +4,7 @@ import io.github.pt9912.tdswire.transport.framing.PacketType
 import io.github.pt9912.tdswire.transport.framing.TdsMessage
 
 /** Was [HandshakeChannel.receive] liefert. */
-sealed interface Inbound {
+internal sealed interface Inbound {
     class Message(val message: TdsMessage) : Inbound {
         override fun toString(): String = "Message($message)"
     }
@@ -22,7 +22,7 @@ sealed interface Inbound {
  * heraus. Der Treiber ruft nur diese Schnittstelle und kennt weder Leser noch Schreiber noch Kanal.
  * Eine Implementierung liest und schreibt je höchstens einen Vorgang zugleich.
  */
-interface HandshakeChannel {
+internal interface HandshakeChannel {
     /** Die nächste vollständige Nachricht, das Ende oder den Fehler. */
     suspend fun receive(): Inbound
 

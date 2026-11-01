@@ -8,7 +8,7 @@ package io.github.pt9912.tdswire.protocol.session
  * Nach dem ersten Fehler liefern [write] und [finish] `false`; das gilt auch, wenn ein Aufruf mit einer
  * Ausnahme endete, denn die Antwort kann dann mitten in einem Token stehen. Eine Instanz gehört einem Aufrufer.
  */
-interface ReplyStream {
+internal interface ReplyStream {
     /** Hängt [bytes] an die Antwort; `false`, wenn das Schreiben scheitert oder die Antwort beendet ist. */
     suspend fun write(bytes: ByteArray): Boolean
 

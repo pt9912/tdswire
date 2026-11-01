@@ -32,7 +32,7 @@ private const val PACKET_SIZE = 4096
 private const val READ_SIZE = 256
 
 /** Wartet [condition] ab, höchstens fünf Sekunden; sonst schlägt der Test fehl. */
-suspend fun eventually(what: String, condition: () -> Boolean) {
+internal suspend fun eventually(what: String, condition: () -> Boolean) {
     repeat(POLL_ROUNDS) {
         if (condition()) return
         delay(POLL_MILLIS)
@@ -44,7 +44,7 @@ suspend fun eventually(what: String, condition: () -> Boolean) {
  * Steuerbare Zeit: jedes [delay] wartet, bis der Test [releaseAll] ruft. [pending] nennt die Fristen,
  * auf die der Listener gerade wartet.
  */
-class ManualDelayer : Delayer {
+internal class ManualDelayer : Delayer {
     private class Waiting(val duration: Duration, val release: CompletableDeferred<Unit>)
 
     private val waiting = CopyOnWriteArrayList<Waiting>()
@@ -65,7 +65,7 @@ class ManualDelayer : Delayer {
 }
 
 /** Sammelt die Ereignisse des Listeners. */
-class RecordingEvents : ListenerEvents {
+internal class RecordingEvents : ListenerEvents {
     val events = CopyOnWriteArrayList<ListenerEvent>()
 
     override fun onEvent(event: ListenerEvent) {
@@ -90,7 +90,7 @@ private val started = ConcurrentLinkedQueue<TdsListener>()
  * gemessen ist, dass ein fehlschlagender Test ohne es Folgefehler auslöste: in einem Lauf mit
  * eingeschleustem Fehlschlag blieben sie mit und ohne Aufräumen aus.
  */
-open class ListenerTestBase {
+internal open class ListenerTestBase {
     @AfterTest
     fun shutDownStartedListeners() {
         runBlocking {
@@ -103,10 +103,12 @@ open class ListenerTestBase {
 }
 
 /** Merkt sich [result] für das Aufräumen nach dem Test und gibt es zurück. */
-fun track(result: StartResult): StartResult = result.also { if (it is StartResult.Started) started += it.listener }
+internal fun track(result: StartResult): StartResult = result.also {
+    if (it is StartResult.Started) started += it.listener
+}
 
 /** Startet einen Listener auf `127.0.0.1` mit einem freien Port; ein gescheiterter Start bricht den Test ab. */
-suspend fun startOnLoopback(
+internal suspend fun startOnLoopback(
     handler: ConnectionHandler,
     events: ListenerEvents,
     times: ListenerTimes = ListenerTimes(),
@@ -117,26 +119,26 @@ suspend fun startOnLoopback(
 }
 
 /** Die lebenden Threads des Listeners (Namensanfang [TdsListener.THREAD_NAME_PREFIX]). */
-fun listenerThreads(): List<Thread> =
+internal fun listenerThreads(): List<Thread> =
     Thread.getAllStackTraces().keys.filter { it.isAlive && it.name.startsWith(TdsListener.THREAD_NAME_PREFIX) }
 
 /** Prüft sofort, ohne zu warten: kein Thread des Listeners lebt, der nicht schon in [before] war. */
-fun assertNoNewListenerThreads(before: List<Thread>) {
+internal fun assertNoNewListenerThreads(before: List<Thread>) {
     val extra = listenerThreads().filter { it !in before }
     if (extra.isNotEmpty()) throw AssertionError("Threads des Listeners leben: ${extra.map { it.name }}")
 }
 
 /** Verbindet blockierend mit dem Listener auf `127.0.0.1`; der Kanal gehört dem Aufrufer. */
-fun connectTo(port: Int): SocketChannelAdapter {
+internal fun connectTo(port: Int): SocketChannelAdapter {
     val channel = AsynchronousSocketChannel.open()
     channel.connect(InetSocketAddress(InetAddress.getByName(LOOPBACK), port)).get()
     return SocketChannelAdapter(channel)
 }
 
-const val LOOPBACK = "127.0.0.1"
+internal const val LOOPBACK = "127.0.0.1"
 
 /** Liest bis zum Ende des Stroms oder einem Fehler; `true`, wenn die Gegenstelle geschlossen hat. */
-suspend fun SuspendingChannel.awaitClosedByPeer(): Boolean {
+internal suspend fun SuspendingChannel.awaitClosedByPeer(): Boolean {
     val buffer = ByteBuffer.allocate(READ_SIZE)
     while (true) {
         buffer.clear()
@@ -151,7 +153,7 @@ suspend fun SuspendingChannel.awaitClosedByPeer(): Boolean {
  * Handler des Smoke: schaltet TLS im vorgegebenen Pfad ein, meldet danach „Login abgeschlossen“ und
  * spiegelt jede Nachricht zurück (kein Protokoll). [wires] hält die aufgezeichneten Drähte.
  */
-class TlsEchoHandler(private val context: SSLContext, private val path: TlsPath) : ConnectionHandler {
+internal class TlsEchoHandler(private val context: SSLContext, private val path: TlsPath) : ConnectionHandler {
     val wires = ConcurrentLinkedQueue<RecordingChannel>()
 
     override suspend fun handle(connection: Connection) {
@@ -183,7 +185,7 @@ class TlsEchoHandler(private val context: SSLContext, private val path: TlsPath)
  * Verbindung endet. Mit [crashOnFirstByte] wirft er [crash], wenn das erste empfangene Byte diesem Wert
  * gleicht, sonst spiegelt er die Bytes.
  */
-class ScriptedHandler(
+internal class ScriptedHandler(
     private val crashOnFirstByte: Int? = null,
     private val crash: () -> Throwable = { IllegalStateException("Absturz im Handler") },
 ) : ConnectionHandler {

@@ -19,7 +19,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 /** Der Client eines Falls: ein verbundener Socket und ein Leser für die Antworten des Servers. */
-class Peer(socket: AsynchronousSocketChannel, private val random: Random) {
+internal class Peer(socket: AsynchronousSocketChannel, private val random: Random) {
     private val wire = SocketChannelAdapter(socket)
     val reader = MessageReader(wire)
 
@@ -74,7 +74,7 @@ class Peer(socket: AsynchronousSocketChannel, private val random: Random) {
 }
 
 /** Ein Schritt einer Verbindung, die mit RST endet. */
-sealed interface Step {
+internal sealed interface Step {
     class Send(val bytes: ByteArray) : Step
 
     /** Liest eine ganze Antwortnachricht (Pakete bis EOM). */
@@ -85,7 +85,7 @@ sealed interface Step {
  * Eine blockierende Verbindung, die ihre [Step]s ausführt und dann mit RST statt FIN schließt
  * (`SO_LINGER` 0): die Gegenstelle liest einen Fehler statt des Endes.
  */
-object ResetClient {
+internal object ResetClient {
     private const val HEADER = 8
     private const val BYTE = 0xFF
     private const val BYTE_BITS = 8

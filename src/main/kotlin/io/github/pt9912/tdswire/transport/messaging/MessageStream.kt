@@ -31,7 +31,7 @@ internal typealias PacketBuilder = (PacketType, ByteArray, Int, Boolean, Int) ->
  * dann womöglich mitten in einem Token, [write] und [finish] liefern danach `false` und schreiben
  * nichts, damit hinter ein halbes Token weder ERROR noch DONE gelangt. Nicht thread-sicher.
  */
-class MessageStream internal constructor(
+internal class MessageStream internal constructor(
     private val channel: SuspendingChannel,
     private val type: PacketType,
     packetSize: Int,

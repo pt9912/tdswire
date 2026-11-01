@@ -15,7 +15,7 @@ import io.github.pt9912.tdswire.transport.framing.TdsMessage
  * gepufferte Bytes und fertige Nachrichten hinter dem LOGIN7 erhalten bleiben. Der TLS-Handschlag
  * gehört dem Aufrufer und kommt als [tlsHandshake]; er liest und schreibt über denselben Kanal.
  */
-class TransportHandshakeChannel(
+internal class TransportHandshakeChannel(
     private val reader: MessageReader,
     private val writer: MessageWriter,
     private val channel: SuspendingChannel,

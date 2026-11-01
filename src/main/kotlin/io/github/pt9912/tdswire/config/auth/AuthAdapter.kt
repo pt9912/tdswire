@@ -12,18 +12,18 @@ import io.github.pt9912.tdswire.domain.Principal
  * blockiert und `LOGIN_TIMEOUT` (`SPEC-008`) einhält. Eine Ausnahme des Adapters behandelt der
  * Anmeldepfad wie [AuthResult.Rejected] (`SPEC-048`).
  */
-interface AuthAdapter {
+internal interface AuthAdapter {
     fun authenticate(request: AuthRequest): AuthResult
 }
 
 /** Der ausgehandelte Verschlüsselungsmodus aus PRELOGIN. Festlegung ohne Messung (Entwurf des Vertrags). */
-enum class NegotiatedEncryption { OFF, ON, NOT_SUPPORTED, REQUIRED }
+internal enum class NegotiatedEncryption { OFF, ON, NOT_SUPPORTED, REQUIRED }
 
 /**
  * Werte aus LOGIN7; der Rechnername ist vom Client frei gesetzt und kein Beleg einer Herkunft. Die
  * Textdarstellung nennt sie nicht.
  */
-class ConnectionContext(
+internal class ConnectionContext(
     val database: String,
     val applicationName: String,
     val hostName: String,
@@ -36,7 +36,7 @@ class ConnectionContext(
  * Die am LOGIN7 erkennbaren Authentifizierungsmerkmale. Die Einstiegsimplementierung wertet sie nicht
  * aus; der Anmeldepfad lehnt die nicht unterstützten Modi vor dem Adapter ab.
  */
-data class AuthFeatures(
+internal data class AuthFeatures(
     val integratedSecurity: Boolean,
     val federatedAuthentication: Boolean,
     val changePassword: Boolean,
@@ -47,7 +47,7 @@ data class AuthFeatures(
  * (auch leer, gemessen mit ASCII); der Anmeldepfad überschreibt das Passwort nach dem Aufruf. Die
  * Textdarstellung nennt keines der Felder.
  */
-class AuthRequest(
+internal class AuthRequest(
     val userName: String,
     val password: PasswordChars,
     val context: ConnectionContext,
@@ -62,10 +62,10 @@ class AuthRequest(
 }
 
 /** Gründe einer Ablehnung; sie dienen nur dem Server-Log und nennen weder Benutzername noch Passwort. */
-enum class RejectReason { UNKNOWN_USER, WRONG_PASSWORD, INPUT_TOO_LONG }
+internal enum class RejectReason { UNKNOWN_USER, WRONG_PASSWORD, INPUT_TOO_LONG }
 
 /** Ergebnis des Adapters: Annahme mit [Principal] oder Ablehnung mit einem Grund nur für das Log. */
-sealed interface AuthResult {
+internal sealed interface AuthResult {
     class Accepted(val principal: Principal) : AuthResult {
         override fun toString(): String = "Accepted(verborgen)"
     }

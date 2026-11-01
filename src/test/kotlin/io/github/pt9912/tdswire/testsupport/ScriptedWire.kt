@@ -10,7 +10,7 @@ import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 
 /** Kopf eines Pakets, das auf den Draht ging: Typ, Status, Länge samt Header und Packet-ID. */
-data class WirePacket(val type: Int, val status: Int, val length: Int, val packetId: Int) {
+internal data class WirePacket(val type: Int, val status: Int, val length: Int, val packetId: Int) {
     val endOfMessage: Boolean get() = status and EOM != 0
 
     private companion object {
@@ -27,7 +27,7 @@ data class WirePacket(val type: Int, val status: Int, val length: Int, val packe
  * letzte Paket, damit ein Lauf mit Millionen Zeilen keinen Speicher an den Draht bindet. Mit [live] schweigt die
  * Gegenstelle nach den [inbound] Bytes, statt zu enden.
  */
-class ScriptedWire(private val inbound: ByteArray, private val retain: Boolean = false) : SuspendingChannel {
+internal class ScriptedWire(private val inbound: ByteArray, private val retain: Boolean = false) : SuspendingChannel {
     /** Nach den [inbound] Bytes schweigt die Gegenstelle, statt zu enden; [feed] und [endInput] steuern sie dann. */
     var live = false
 

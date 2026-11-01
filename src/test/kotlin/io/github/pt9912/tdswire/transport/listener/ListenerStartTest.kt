@@ -18,7 +18,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 /** Start des Listeners: Startprobe vor dem Binden, belegter Port, keine Reste nach einem Fehlschlag. */
-class ListenerStartTest : ListenerTestBase() {
+internal class ListenerStartTest : ListenerTestBase() {
     private val handler = ConnectionHandler { }
 
     private fun materialOf(store: ByteArray): TlsMaterial {

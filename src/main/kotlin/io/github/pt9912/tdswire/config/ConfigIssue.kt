@@ -3,7 +3,7 @@ package io.github.pt9912.tdswire.config
 import io.github.pt9912.tdswire.config.auth.UserListError
 
 /** Die Art eines Konfigurationsfehlers; der Wert des Schlüssels erscheint nie in der Diagnose. */
-enum class IssueKind {
+public enum class IssueKind {
     /** Eine Pflichtoption fehlt. */
     MISSING,
 
@@ -37,7 +37,7 @@ enum class IssueKind {
  * trägt nie einen Wert, einen Dateipfad, einen Prüfwert oder ein Passwort (`TDS-QA-03`). [detail] hat den Typ
  * [UserListError], eine Aufzählung und eine Zeilennummer: ein Aufrufer kann keinen freien Text einsetzen.
  */
-data class ConfigIssue(val key: String, val kind: IssueKind, val detail: UserListError? = null) {
+public data class ConfigIssue(val key: String, val kind: IssueKind, val detail: UserListError? = null) {
     val message: String get() = if (detail == null) "$key: $kind" else "$key: $kind (${describe(detail)})"
 
     private fun describe(error: UserListError): String = "${error.kind}${error.line?.let { ", Zeile $it" }.orEmpty()}"

@@ -22,7 +22,7 @@ import io.github.pt9912.tdswire.transport.framing.TdsMessage
  * [FramingLimits.MAX_PRELOGIN_MESSAGE_BYTES] weist der Automat zusätzlich zur Grenze des Paket-Codecs
  * ab (`SPEC-046`).
  */
-class HandshakeAutomaton(private val config: HandshakeConfig = HandshakeConfig()) {
+internal class HandshakeAutomaton(private val config: HandshakeConfig = HandshakeConfig()) {
     private val prelogin = PreloginNegotiation(config)
     private val login = LoginTransitions(config)
 

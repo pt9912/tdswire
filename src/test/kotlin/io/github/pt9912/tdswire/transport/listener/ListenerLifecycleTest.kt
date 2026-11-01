@@ -22,7 +22,7 @@ import kotlin.time.Duration.Companion.seconds
  * einzelner Verbindungen. Handler sind Test-Handler ohne Protokoll; die Tests belegen das Verhalten
  * des Transports, nicht das einer Session.
  */
-class ListenerLifecycleTest : ListenerTestBase() {
+internal class ListenerLifecycleTest : ListenerTestBase() {
     private val loginTimeout = 15.seconds
     private val shortTimeout = 3_000L
 

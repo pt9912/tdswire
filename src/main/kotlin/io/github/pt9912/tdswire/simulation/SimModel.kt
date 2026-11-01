@@ -3,7 +3,7 @@ package io.github.pt9912.tdswire.simulation
 import io.github.pt9912.tdswire.domain.SqlType
 
 /** Schema, das gilt, wenn eine Anweisung oder die Datei keines nennt (`TDS-FA-11.a` Schritt 3). */
-const val DEFAULT_SCHEMA = "dbo"
+internal const val DEFAULT_SCHEMA = "dbo"
 
 /**
  * Eine beschriebene Tabelle (`SPEC-035`). Die Validierung gilt für die Kotlin-Schnittstelle und den Leser
@@ -15,7 +15,7 @@ const val DEFAULT_SCHEMA = "dbo"
  * `LongParameterList` nur an einer `data class`, und deren Konstruktor kann die Listen nicht ersetzen. Der Aufrufer
  * ändert sie nach der Übergabe nicht; [column] liest einen Index, der bei der Übergabe gebaut wurde.
  */
-data class SimTable(
+public data class SimTable(
     val schema: String = DEFAULT_SCHEMA,
     val name: String,
     val columns: List<SimColumn>,
@@ -44,7 +44,7 @@ data class SimTable(
     }
 
     /** Die Spalte namens [columnName] ohne Beachtung der Schreibweise oder `null`. */
-    fun column(columnName: String): SimColumn? = byName[SimNames.fold(columnName)]
+    internal fun column(columnName: String): SimColumn? = byName[SimNames.fold(columnName)]
 }
 
 /** Höchste Precision einer Dezimalzahl (`SPEC-003`). */
@@ -54,7 +54,7 @@ private const val MAX_DECIMAL_PRECISION = 38
  * Eine Spalte; der Typ stammt aus dem Mindestkatalog von [SqlType], [nullable] sagt, ob NULL vorkommen darf.
  * Eine Dezimalzahl hat höchstens 38 Stellen (`SPEC-003`); die Grenze gilt für jede Spalte.
  */
-data class SimColumn(val name: String, val type: SqlType, val nullable: Boolean = true) {
+public data class SimColumn(val name: String, val type: SqlType, val nullable: Boolean = true) {
     init {
         require(name.isNotEmpty()) { "Spaltenname darf nicht leer sein" }
         require(type !is SqlType.Decimal || type.precision <= MAX_DECIMAL_PRECISION) {
@@ -64,36 +64,36 @@ data class SimColumn(val name: String, val type: SqlType, val nullable: Boolean 
 }
 
 /** Was das Backend der Zeilenquelle als Hinweis mitgibt: die Spalten der Zeilen und ein Vorfilter. */
-data class SimQuery(val columns: List<SimColumn>, val filter: RowFilter?)
+public data class SimQuery(val columns: List<SimColumn>, val filter: RowFilter?)
 
 /** Die Terme einer Bedingung; alle gelten gemeinsam (UND). */
-data class RowFilter(val terms: List<FilterTerm>)
+public data class RowFilter(val terms: List<FilterTerm>)
 
 /** Ein Term einer Bedingung (`SPEC-035`): `=` und `IN` als [In], `IS [NOT] NULL` als [IsNull]. */
-sealed interface FilterTerm {
+public sealed interface FilterTerm {
     /** Die Spalte [column] steht in [values]; `=` ist die Liste mit einem Wert. */
-    data class In(val column: String, val values: List<Any?>) : FilterTerm
+    public data class In(val column: String, val values: List<Any?>) : FilterTerm
 
     /** Die Spalte [column] ist NULL, mit [negated] ist sie es nicht. */
-    data class IsNull(val column: String, val negated: Boolean) : FilterTerm
+    public data class IsNull(val column: String, val negated: Boolean) : FilterTerm
 }
 
 /** Die Zeilen einer Tabelle, eine nach der anderen (`SPEC-035`). */
-fun interface RowSource {
+public fun interface RowSource {
     /** Die Werte der nächsten Zeile in der Reihenfolge von [SimQuery.columns] oder `null` am Ende. */
-    suspend fun next(): List<Any?>?
+    public suspend fun next(): List<Any?>?
 
     /** Gibt die Ressourcen frei; wird genau einmal gerufen. */
-    fun close() {}
+    public fun close() {}
 }
 
 /**
  * Der Satz beschriebener Tabellen. Tabellen sind über Schema und Name ohne Beachtung der Schreibweise
  * eindeutig (Setzung, nicht am Server gemessen).
  */
-class SimCatalog(tables: List<SimTable>) {
+public class SimCatalog(tables: List<SimTable>) {
     /** Die Tabellen in der übergebenen Reihenfolge; eine Kopie der übergebenen Liste. */
-    val tables: List<SimTable> = tables.toList()
+    public val tables: List<SimTable> = tables.toList()
 
     private val byKey: Map<String, SimTable>
 
@@ -107,7 +107,7 @@ class SimCatalog(tables: List<SimTable>) {
     }
 
     /** Die Tabelle [name] im Schema [schema] (ohne Angabe [DEFAULT_SCHEMA]) oder `null`. */
-    fun find(schema: String?, name: String): SimTable? = byKey[key(schema ?: DEFAULT_SCHEMA, name)]
+    internal fun find(schema: String?, name: String): SimTable? = byKey[key(schema ?: DEFAULT_SCHEMA, name)]
 
     private fun key(schema: String, name: String): String = SimNames.fold(schema) + "\u0000" + SimNames.fold(name)
 }

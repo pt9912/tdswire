@@ -17,12 +17,12 @@ import kotlinx.coroutines.withContext
  * angenommen ist, und `false`, wenn es nicht (mehr) vollständig geschrieben werden konnte; die
  * Senke wirft nur die Abbruchausnahme der Coroutine (Disconnect), keine andere Ausnahme.
  */
-fun interface TokenSink {
+internal fun interface TokenSink {
     suspend fun accept(token: Token): Boolean
 }
 
 /** Eine abgebildete Meldung und ob die Verbindung nach ihrer Antwort schließt (Folge ungleich „offen“). */
-class MappedError(val message: ServerMessage, val closesConnection: Boolean)
+internal class MappedError(val message: ServerMessage, val closesConnection: Boolean)
 
 /**
  * Die Fehlerabbildung als Funktionen, damit der Sequenzierer keinen Katalog kennt: [backend] bildet
@@ -33,7 +33,7 @@ class MappedError(val message: ServerMessage, val closesConnection: Boolean)
  * enthält weder den Text der Ausnahme noch das `detail` eines [ProtocolError]; der Sequenzierer
  * schreibt beides nie selbst in den Strom, die Zusage hängt an der Abbildung.
  */
-class ErrorMapping(
+internal class ErrorMapping(
     val backend: (QueryEvent.Failure) -> MappedError,
     val typeMapping: (ProtocolError) -> MappedError,
     val internal: (Throwable?) -> MappedError,
@@ -44,7 +44,7 @@ class ErrorMapping(
  * Ausgang trägt die Verbindungsfolge vollständig: `ErrorMapper.fateOf` liefert sie, ohne die Meldung
  * im Tokenstrom zu suchen.
  */
-enum class SequenceOutcome {
+internal enum class SequenceOutcome {
     /** Das abschließende DONE ist geschrieben; die Verbindung bleibt, wie sie war. */
     COMPLETED,
 
@@ -130,7 +130,7 @@ enum class SequenceOutcome {
  *   aus `close()` oder `cancel()`, laufen nach `close()` unverändert nach außen; dafür gibt es keine
  *   Zusage.
  */
-class ResponseSequencer(private val errors: ErrorMapping) {
+internal class ResponseSequencer(private val errors: ErrorMapping) {
     /**
      * Führt [request] auf [backend] aus und schreibt die Tokens der Antwortform [form] in [sink]. `close()`
      * der Ausführung läuft in jedem Ausgang, auch beim Abbruch der Coroutine. Endet das Lesen durch den Abbruch der

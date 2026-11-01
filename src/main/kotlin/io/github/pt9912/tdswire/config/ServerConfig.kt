@@ -4,7 +4,7 @@ import io.github.pt9912.tdswire.config.auth.PasswordChars
 import io.github.pt9912.tdswire.config.auth.UserList
 
 /** Die Namen der Konfigurationsschlüssel, die ein [ConfigIssue] nennt (`TDS-FA-09.a`). */
-object ConfigKeys {
+internal object ConfigKeys {
     const val LISTEN_HOST = "LISTEN_HOST"
     const val LISTEN_PORT = "LISTEN_PORT"
     const val LOGIN_TIMEOUT = "LOGIN_TIMEOUT"
@@ -22,7 +22,7 @@ object ConfigKeys {
  * Verschlüsselungs-Richtlinie der Konfiguration (`SPEC-010`). [REQUIRED] ist der Standard;
  * [TEST_UNENCRYPTED] ist die ausdrücklich gewählte Abschwächung und steht im Start-Log.
  */
-enum class EncryptionSetting { REQUIRED, TEST_UNENCRYPTED }
+public enum class EncryptionSetting { REQUIRED, TEST_UNENCRYPTED }
 
 /**
  * Die Voreinstellungen der Konfiguration (`SPEC-005`, `SPEC-008`, `SPEC-010`, `SPEC-046`): Die Konstruktoren der
@@ -39,10 +39,10 @@ internal object ConfigDefaults {
 }
 
 /** Bind-Adresse und Port; Port 0 lässt das System einen freien Port wählen. */
-data class ListenSettings(val host: String = ConfigDefaults.HOST, val port: Int = ConfigDefaults.PORT)
+public data class ListenSettings(val host: String = ConfigDefaults.HOST, val port: Int = ConfigDefaults.PORT)
 
 /** Größen und Fristen vor abgeschlossenem Login (`SPEC-008`, `SPEC-046`). */
-data class LoginSettings(
+public data class LoginSettings(
     val timeoutSeconds: Int = ConfigDefaults.LOGIN_TIMEOUT_SECONDS,
     val maxPreloginMessageBytes: Int = ConfigDefaults.MAX_PRELOGIN_MESSAGE_BYTES,
 )
@@ -52,18 +52,18 @@ data class LoginSettings(
  * Frist ab dem Beginn einer Anfrage; [cancelTimeoutSeconds] ist `CANCEL_TIMEOUT`, die Frist, die ein Backend für den
  * Abbruch hat, bevor die Verbindung schließt.
  */
-data class RequestSettings(
+public data class RequestSettings(
     val queryTimeoutSeconds: Int = ConfigDefaults.QUERY_TIMEOUT_SECONDS,
     val cancelTimeoutSeconds: Int = ConfigDefaults.CANCEL_TIMEOUT_SECONDS,
 )
 
 /** Die validierte Benutzerliste und der Schalter für das Verfahren `plain` (`ADR-0011`). */
-class AuthSettings(val users: UserList, val plainTestMode: Boolean) {
+public class AuthSettings(public val users: UserList, public val plainTestMode: Boolean) {
     override fun toString(): String = "AuthSettings(verborgen)"
 }
 
 /** Inhalt des PKCS#12-Speichers und sein Kennwort; die Textdarstellung nennt keinen davon. */
-class TlsKeyMaterial(val keystore: ByteArray, val password: PasswordChars) {
+public class TlsKeyMaterial(public val keystore: ByteArray, public val password: PasswordChars) {
     override fun toString(): String = "TlsKeyMaterial(verborgen)"
 }
 
@@ -73,13 +73,13 @@ class TlsKeyMaterial(val keystore: ByteArray, val password: PasswordChars) {
  * (`TDS-QA-03`). Eine Konfiguration gilt für einen Start: sobald der Start das TLS-Material lädt, löscht er das
  * Passwort in [tls]; bricht er vorher ab (JVM-Flag, Prüfung), bleibt es lesbar (Setzung).
  */
-class ServerConfig(
-    val listen: ListenSettings = ListenSettings(),
-    val login: LoginSettings = LoginSettings(),
-    val encryption: EncryptionSetting = ConfigDefaults.ENCRYPTION,
-    val tls: TlsKeyMaterial? = null,
-    val auth: AuthSettings,
-    val requests: RequestSettings = RequestSettings(),
+public class ServerConfig(
+    public val listen: ListenSettings = ListenSettings(),
+    public val login: LoginSettings = LoginSettings(),
+    public val encryption: EncryptionSetting = ConfigDefaults.ENCRYPTION,
+    public val tls: TlsKeyMaterial? = null,
+    public val auth: AuthSettings,
+    public val requests: RequestSettings = RequestSettings(),
 ) {
     override fun toString(): String = "ServerConfig(verborgen)"
 }

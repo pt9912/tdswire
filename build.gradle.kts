@@ -134,6 +134,7 @@ tasks.named<Test>("test") {
 
 kotlin {
     jvmToolchain(21)
+    explicitApi()
 }
 
 // Statische Analyse: `gradle detekt` liest den Quelltext, `gradle detektMain` und `detektTest` loesen

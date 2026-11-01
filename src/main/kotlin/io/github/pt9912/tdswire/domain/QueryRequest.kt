@@ -11,7 +11,7 @@ package io.github.pt9912.tdswire.domain
  * Die Textdarstellung nennt vom [sql] nur die Länge: der Text kann Literale und Kennwörter tragen
  * (`TDS-QA-03`).
  */
-data class QueryRequest(
+public data class QueryRequest(
     val sessionId: String,
     val requestId: String,
     val sql: String,
@@ -29,7 +29,7 @@ data class QueryRequest(
  * Die Textdarstellung nennt den Wert nie und den Namen nur als Länge: Parameter sind Nutzerdaten
  * (`TDS-QA-03`).
  */
-data class QueryParameter(
+public data class QueryParameter(
     val name: String,
     val type: SqlType,
     val value: Any?,
@@ -40,4 +40,4 @@ data class QueryParameter(
 }
 
 /** Richtung eines Parameters. */
-enum class ParameterDirection { INPUT, OUTPUT, INPUT_OUTPUT }
+public enum class ParameterDirection { INPUT, OUTPUT, INPUT_OUTPUT }

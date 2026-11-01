@@ -23,7 +23,7 @@ import io.github.pt9912.tdswire.protocol.wire.violation
  * `sp_execute` werden nach Position gedeutet; die Positionen belegt die Messmatrix von ADR-0005
  * (Testserver), dass der Parser die Namen dabei ignoriert, ist Festlegung.
  */
-object RpcParser {
+internal object RpcParser {
     private const val ID_MARKER = 0xFFFF
     private const val NO_PROC_ID = -1
     const val PROC_ID_EXECUTE_SQL = 10

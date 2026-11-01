@@ -93,7 +93,7 @@ import kotlin.time.Duration.Companion.milliseconds
  * Kopplung: [hooks] sind die Einhängepunkte für Anfrage-Kennung und Senke ([RequestHooks]); [times] trägt die
  * Fristen und die Uhr ([RequestTimes]).
  */
-class RequestLoop(
+internal class RequestLoop(
     private val ready: HandshakeOutcome.Ready,
     private val channel: HandshakeChannel,
     private val backend: QueryBackend,
@@ -256,7 +256,7 @@ class RequestLoop(
  * Grenzen); der Einhängepunkt erlaubt es einem Test, eine Senke zu stellen, die ein Token nicht annimmt (Ausgang
  * `CLOSE_WITHOUT_COMPLETION`).
  */
-class RequestHooks(
+internal class RequestHooks(
     val requestIds: () -> String = { UUID.randomUUID().toString() },
     val sinkAround: (TokenSink) -> TokenSink = { it },
 )
