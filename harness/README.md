@@ -60,7 +60,7 @@ Diese Datei dupliziert sie nicht.
 
 | Target | Vertrag | Bindung |
 |---|---|---|
-| `make docs-check` | Doku-Referenzen (d-check); das Gate, das die Vorlage mitbringt | Klasse `werkzeug`, [ADR-0024](../docs/plan/adr/0024-lokale-stempel-zwei-klassen.md) |
+| `make docs-check` | Doku-Referenzen (d-check); das Gate, das die Vorlage mitbringt | Klasse `immer`, [ADR-0024](../docs/plan/adr/0024-lokale-stempel-zwei-klassen.md) |
 | `make detekt` | Suppression-Verbot (`@Suppress`) und detekt mit ktlint, `warningsAsErrors`, Import- und Technik-Regeln der Schichten (`ForbiddenMethodCall` über `detektMain`/`detektTest`), in Docker; keine Baseline | Klasse `tests`, [ADR-0024](../docs/plan/adr/0024-lokale-stempel-zwei-klassen.md) |
 | `make detekt-selbsttest` | Importregeln der Schichten und Suppression-Verbot gegen Testdaten prüfen; Klasse `werkzeug`, in `make gates` übersprungen bei passendem Stempel | [ADR-0024](../docs/plan/adr/0024-lokale-stempel-zwei-klassen.md) |
 | `make skript-selbsttest` | Abbruch von `tools/e2e.sh` an roter Stufe; Fehlerfälle von `tools/manifest-pruefung.sh` (Jars) und Aufruf in `build-jar`; Abbruch von `tools/vergleichslauf-d.sh` ohne EULA oder in der CI | Klasse `werkzeug`, [ADR-0024](../docs/plan/adr/0024-lokale-stempel-zwei-klassen.md), [ADR-0022](../docs/plan/adr/0022-e2e-laeufe-nicht-in-den-gates.md) |
@@ -72,11 +72,11 @@ Diese Datei dupliziert sie nicht.
 | `<make-target>` | <…> | ADR-<NNNN> |
 | `<make-target>` | <…>, bootstrap-aware | Schwelle X %, M<n> → Y % |
 | `<make-target>` | <…> | bootstrap via `CO-<NNN>` bis <Slice/Welle> |
-| `make gates` | alle inneren Gates in zwei Klassen (Kopf von `tools/mk/stempel.mk`); je Klasse bei passendem Stempel übersprungen, sonst Lauf und Stempel; `FORCE=1` erzwingt; ohne Klasse läuft ein Gate immer | [ADR-0024](../docs/plan/adr/0024-lokale-stempel-zwei-klassen.md) |
+| `make gates` | alle inneren Gates; Klassen `werkzeug` und `tests` mit Stempel (bei Beleg übersprungen, `FORCE=1` erzwingt), Klasse `immer` ohne (Kopf von `tools/mk/stempel.mk`) | [ADR-0024](../docs/plan/adr/0024-lokale-stempel-zwei-klassen.md) |
 | `make gruppe-werkzeug` | Gruppenschritt der Klasse `werkzeug` allein; schreibt den Stempel nach grünem Lauf aller Gates der Klasse; Teil von `make gates` | [ADR-0024](../docs/plan/adr/0024-lokale-stempel-zwei-klassen.md) |
 | `make gruppe-tests` | Gruppenschritt der Klasse `tests` allein; schreibt den Stempel nach grünem Lauf aller Gates der Klasse; Teil von `make gates` | [ADR-0024](../docs/plan/adr/0024-lokale-stempel-zwei-klassen.md) |
-| `make gate-zuordnung` | jedes Target in `GATE_CHECKS` gehört zu genau einer Klasse `werkzeug` oder `tests`, seine Docker-Stage steht in der Stage-Liste der Klasse; Selbsttest mit 14 Fällen; Klasse `werkzeug` | [ADR-0024](../docs/plan/adr/0024-lokale-stempel-zwei-klassen.md) |
-| `make stempel-eingaenge-pruefung` | `COPY`-Quellen, Link-Ziele und Make-Dateien stehen in `tools/stempel/*.eingaenge`, ohne den Selbsttest mit Mutationen; Klasse `werkzeug` | [ADR-0024](../docs/plan/adr/0024-lokale-stempel-zwei-klassen.md) |
+| `make gate-zuordnung` | jedes Target in `GATE_CHECKS` gehört zu genau einer Klasse `werkzeug`, `tests` oder `immer`, seine Stage zur Klasse, die Kette von `make gates` enthält es; 22 Fälle; Klasse `immer` | [ADR-0024](../docs/plan/adr/0024-lokale-stempel-zwei-klassen.md) |
+| `make stempel-eingaenge-pruefung` | `COPY`-Quellen, Link-Ziele und Make-Dateien stehen in `tools/stempel/*.eingaenge`, ohne den Selbsttest mit Mutationen; Klasse `immer` | [ADR-0024](../docs/plan/adr/0024-lokale-stempel-zwei-klassen.md) |
 | `<make-target>` | gates + extras | — |
 | `<make-target>` | volle Closure | Image-Hash `sha256:…` (Modul 14) |
 | `make <gate-mit-grenze>` | <…>; Grenze und Ausgänge in der verlinkten Datei | ADR-<NNNN> |
@@ -108,7 +108,7 @@ Diese Datei dupliziert sie nicht.
 | `make <messung>` | misst <…> gegen <Schwelle> | kein Gate, ADR-<NNNN> |
 | `make <vorschau>` | sagt, was <schreibender Lauf> täte; Ausgänge und Sperren in der verlinkten Datei | kein Gate |
 
-**Aktueller Lauf-Status:** lokal `make help` / `make gates`. Die CI-Datei `.github/workflows/gates.yml` führt `make gates`, `.github/workflows/e2e.yml` führt `make e2e` (kein Gate; noch ohne Lauf auf `main`); sieben Läufe auf `main` sind `success` (jüngster abgeschlossener: 41053892627 auf `cbdbd80`, ältester: 41023977695; Abfrage `gh run list --workflow gates`). Ein Badge steht nicht hier; der Stand ist die Abfrage.
+**Aktueller Lauf-Status:** lokal `make help` / `make gates`; die lokalen Stempel (Notes) kennt die CI nicht, sie läuft voll, ein Beleg-Weg für die CI ist offen ([ADR-0023](../docs/plan/adr/0023-gate-klassen-und-stempel.md) Entscheidung 7). Die CI-Datei `.github/workflows/gates.yml` führt `make gates`, `.github/workflows/e2e.yml` führt `make e2e` (kein Gate; noch ohne Lauf auf `main`); sieben Läufe auf `main` sind `success` (jüngster abgeschlossener: 41053892627 auf `cbdbd80`, ältester: 41023977695; Abfrage `gh run list --workflow gates`). Ein Badge steht nicht hier; der Stand ist die Abfrage.
 **Rote Gates:** Begründung im verlinkten `CO-<NNN>` (siehe Bindung-Spalte), Modul 7.
 **Nicht behauptet:** ein Target für den Vergleichslauf D (kein Referenzclient gebaut), die Signaturprüfung der .NET-Pakete (`CO-002`) und ein Gate für die Schwachstellenprüfung (`CO-001`; `make referenztest-dotnet-audit` meldet nur).
 

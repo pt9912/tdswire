@@ -55,7 +55,7 @@ STAGES_WERKZEUG="detekt-selbsttest skript-selbsttest kopplung-zahlen"
 LETZTE_STAGE=build
 FEST_BEIDE="Dockerfile .dockerignore Makefile repo.mk tools/mk/builder.mk tools/stempel.sh tools/stempel-liste.sh tools/stempel/werkzeug.eingaenge tools/stempel/tests.eingaenge"
 FEST_WERKZEUG=".d-check.yml d-check.mk .harness/baseline harness tools referenztest-dotnet/Dockerfile"
-FEST_TESTS="tools/mk/test.mk tools/mk/build.mk tools/mk/referenztest-dotnet.mk"
+FEST_TESTS="tools/mk/test.mk tools/mk/build.mk tools/mk/referenztest-dotnet.mk tools/mk/stempel.mk tools/stempel-gruppe.sh"
 
 declare -A PARENT QUELLEN KENNT LETZTE VONREF
 BEFUNDE=()
@@ -313,6 +313,10 @@ mapfile -t MK < <(git ls-files --cached --others --exclude-standard -- '*.mk' 2>
 for f in "${MK[@]}"; do
 	[ -n "$f" ] || continue
 	ueberdeckt werkzeug "$f" || befund "werkzeug.eingaenge: kein Eintrag deckt '$f' (Make-Fragment)"
+	# Ein Fragment, das ein Gate der Klasse tests einhaengt (GATE_KLASSE_tests += ...), ist Eingang von tests.
+	if grep -q -E '^GATE_KLASSE_tests[[:space:]]*\+=' "$f" 2> /dev/null; then
+		ueberdeckt tests "$f" || befund "tests.eingaenge: kein Eintrag deckt '$f' (Make-Fragment der Klasse tests)"
+	fi
 done
 for r in "${CODE_ROOTS[@]}"; do
 	[ "$r" = "${r#!}" ] || continue

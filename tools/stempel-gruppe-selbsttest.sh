@@ -115,6 +115,52 @@ printf '\n# t\n' >> "$R/Dockerfile"
 neu_commit dockerfile-4
 schritt tests 0 - "Trockenlauf ruft nichts" TROCKEN=1
 schritt tests 0 "$TS" "nach Trockenlauf kein Stempel, Gates laufen" X=1
+# make -i: die Gates laufen, kein Stempel
+printf '\n# i\n' >> "$R/Dockerfile"
+neu_commit dockerfile-6
+schritt tests 0 "$TS" "make -i: Gates laufen" KEIN_STEMPEL=1
+schritt tests 0 "$TS" "make -i: nichts geschrieben, Gates laufen wieder" X=1
+# Flags von make: die Ableitung in tools/mk/stempel.mk, ohne die Gates zu rufen
+grep -E '^STEMPEL_(FLAGS|TROCKEN|KEIN) :=' "$ECHT/tools/mk/stempel.mk" > "$T/flags.mk"
+printf '$(info T=[$(STEMPEL_TROCKEN)] K=[$(STEMPEL_KEIN)])\nx:\n\t@:\n' >> "$T/flags.mk"
+flags() { # flags <erwartet> <make-argument>...
+	local soll=$1 ist
+	shift
+	ist=$(cd "$T" && make -f flags.mk "$@" x 2>&1 | head -n 1)
+	LAEUFE=$((LAEUFE + 1))
+	[ "$ist" = "$soll" ] || rot "make $*: '$ist' statt '$soll'"
+}
+flags "T=[] K=[]"
+flags "T=[] K=[]" -k
+flags "T=[] K=[]" -j4
+flags "T=[] K=[]" -s
+flags "T=[1] K=[]" -n
+flags "T=[1] K=[]" --just-print
+flags "T=[1] K=[]" -j4 -n
+flags "T=[1] K=[]" -kn
+flags "T=[1] K=[]" -t
+flags "T=[1] K=[]" --touch
+flags "T=[1] K=[]" -q
+flags "T=[] K=[1]" -i
+flags "T=[] K=[1]" --ignore-errors
+flags "T=[] K=[1]" -k -i
+# Gates ohne Stempel: docs-check, gate-zuordnung und stempel-eingaenge-pruefung stehen in keiner Gruppe, sondern in der Kette von
+# make gates. Eine Markdown-Datei ausserhalb der Listen (src/NOTIZ.md mit kaputtem Link) aendert den Hash von werkzeug nicht; die
+# Gates, die sie roeten, muessen trotz Stempel laufen.
+printf '# n\n\n[x](gibt-es-nicht.md)\n' > "$R/src/NOTIZ.md"
+neu_commit notiz
+alle "Datei ausserhalb der Listen" w t
+alle "Datei ausserhalb der Listen, zweiter Lauf" - -
+plan=$(cd "$R" && make -n gates 2>&1)
+LAEUFE=$((LAEUFE + 1))
+printf '%s\n' "$plan" | grep -q '^stempel-gruppe: Trockenlauf, werkzeug: .*docs-check' && rot "docs-check steht in der Gruppe werkzeug"
+printf '%s\n' "$plan" | grep -q '^stempel-gruppe: Trockenlauf, .*gate-zuordnung' && rot "gate-zuordnung steht in einer Gruppe"
+printf '%s\n' "$plan" | grep -q '^stempel-gruppe: Trockenlauf, .*stempel-eingaenge-pruefung' && rot "stempel-eingaenge-pruefung steht in einer Gruppe"
+for g in 'ghcr.io/pt9912/d-check' 'tools/gate-zuordnung.sh' 'tools/stempel-eingaenge-pruefung.sh'; do
+	LAEUFE=$((LAEUFE + 1))
+	printf '%s\n' "$plan" | grep -q -F -- "$g" || rot "make -n gates plant $g nicht als eigenen Schritt"
+done
+rm -f "$R/src/NOTIZ.md"
 # Aufruf ohne Gate und mit unbekannter Klasse
 (cd "$R" && "$BASH_BIN" tools/stempel-gruppe.sh tests > /dev/null 2>&1); rc=$?; LAEUFE=$((LAEUFE + 1))
 [ "$rc" = 2 ] || rot "Aufruf ohne Gate: Exit $rc statt 2"

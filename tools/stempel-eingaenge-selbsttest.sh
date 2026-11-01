@@ -189,7 +189,7 @@ h_eintraege() {
 	fixture h2
 	local n=0 paar
 	for paar in tests:src tests:LICENSE tests:config tests:tools/stempel.sh tests:tools/stempel tests:Dockerfile tests:.dockerignore \
-		tests:tools/mk/referenztest-dotnet.mk tests:Makefile tests:repo.mk tests:tools/mk/builder.mk tests:tools/stempel-liste.sh \
+		tests:tools/mk/referenztest-dotnet.mk tests:Makefile tests:repo.mk tests:tools/mk/builder.mk tests:tools/stempel-liste.sh tests:tools/stempel-gruppe.sh tests:tools/mk/stempel.mk \
 		werkzeug:README.md werkzeug:AGENTS.md werkzeug:.claude/agents werkzeug:docs werkzeug:harness werkzeug:tools \
 		werkzeug:Makefile werkzeug:.harness/baseline werkzeug:.harness/skills werkzeug:.d-check.yml werkzeug:d-check.mk \
 		werkzeug:config werkzeug:gradle/libs.versions.toml werkzeug:referenztest-dotnet/Dockerfile \
@@ -219,6 +219,8 @@ h_dateien() {
 	mit_datei "Kontrolle: Text mit ](ziel) ohne oeffnende Klammer" 0 - docs/tmp-link.md "„x](../$andere)“"
 	mit_datei "Link verlaesst das Repo" 1 "verlaesst das Repo" docs/tmp-link.md "[x](../../a/b.kt)"
 	mit_datei "Neue Make-Datei im Wurzelverzeichnis" 1 "kein Eintrag deckt 'extra.mk'" extra.mk "x:"
+	mit_datei "Neues Fragment, das ein Gate der Klasse tests einhaengt" 1 "tests.eingaenge: kein Eintrag deckt 'tools/mk/neu.mk' (Make-Fragment der Klasse tests)" tools/mk/neu.mk $'neu:\n\t@false\nGATE_CHECKS += neu\nGATE_KLASSE_tests += neu'
+	mit_datei "Kontrolle: Fragment der Klasse werkzeug unter tools/mk" 0 - tools/mk/neu.mk $'neu:\n\t@false\nGATE_CHECKS += neu\nGATE_KLASSE_werkzeug += neu'
 	mit_datei "Neue Make-Datei unter src" 1 "kein Eintrag deckt 'src/main/neu.mk'" src/main/neu.mk "x:"
 	mit_datei "Neue Markdown-Datei unter src" 1 "kein Eintrag deckt 'src/main/neu.md'" src/main/neu.md "# x"
 	mit_datei "Kontrolle: Markdown unter .tmp ist durch scan.ignore ausgenommen" 0 - .tmp/neu.md "# x"
