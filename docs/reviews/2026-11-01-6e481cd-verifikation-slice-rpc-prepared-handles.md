@@ -1,7 +1,7 @@
 # Verifikationsbericht: slice-rpc-prepared-handles (Commit 6e481cd)
 
 * Rolle: Verifier (Modul 11), frischer Kontext. Branch `worktree-agent-ae8b680bdd87a9fca`, HEAD `6e481cd`, Basis `main` (`4a3bed0`); nicht gemergt.
-* Geprüft gegen: Slice-Plan und DoD (`docs/plan/planning/in-progress/slice-rpc-prepared-handles.md`), [ADR-0017](../plan/adr/0017-prepared-handles-grenzwert.md) (Accepted), [ADR-0005](../plan/adr/0005-rpc-und-prepared-statements.md), [ADR-0004](../plan/adr/0004-session-zustandsautomat.md), [ADR-0006](../plan/adr/0006-backend-vertrag-und-streaming.md), [ADR-0007](../plan/adr/0007-fehler-und-attention.md), SPEC-030, SPEC-013, SPEC-057, SPEC-058, `AGENTS.md`, [Review b19b914](2026-10-31-b19b914-slice-rpc-prepared-handles.md).
+* Geprüft gegen: Slice-Plan und DoD (`docs/plan/planning/done/slice-rpc-prepared-handles.md`), [ADR-0017](../plan/adr/0017-prepared-handles-grenzwert.md) (Accepted), [ADR-0005](../plan/adr/0005-rpc-und-prepared-statements.md), [ADR-0004](../plan/adr/0004-session-zustandsautomat.md), [ADR-0006](../plan/adr/0006-backend-vertrag-und-streaming.md), [ADR-0007](../plan/adr/0007-fehler-und-attention.md), SPEC-030, SPEC-013, SPEC-057, SPEC-058, `AGENTS.md`, [Review b19b914](2026-10-31-b19b914-slice-rpc-prepared-handles.md).
 * Eingang war die Zusage des Implementers; die Belege hat der Verifier selbst erhoben (Quelltext und Tests gelesen, `make gates` gefahren, drei Mutationen gefahren).
 * Herkunft: Der Verifier-Agent durfte die Datei nicht anlegen; der Inhalt ist sein Bericht, vom Aufrufer verdichtet abgelegt.
 
