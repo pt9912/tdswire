@@ -4,13 +4,16 @@
 # BUILDER_FLAGS kommt aus der Umgebung (leer ohne BUILDER). Die Kategorie waehlt die Tests des Referenzclients
 # (`[Trait("Kategorie", ...)]` in referenztest-dotnet/Kompatibilitaet): Szenario, Anmeldung, Luecken oder Synchronitaet.
 #
-# Ablauf: Server-Image (Dockerfile-Stage `kompatibilitaetsserver`: JVM, Richtlinie REQUIRED, Schluesselspeicher aus
+# Ablauf: Testserver-Image (Dockerfile-Stage `kompatibilitaetsserver`: JVM, Richtlinie REQUIRED, Schluesselspeicher aus
 # `testkeys`) und Client-Image (referenztest-dotnet, Stage `kompatibilitaet`) bauen; zwei Container in einem
 # eigenen internen Netzwerk (kein Zugang nach aussen, kein veroeffentlichter Port, nichts wird gemountet; Namen mit
 # PID). Warten auf die Startzeile des Servers (Bereitschaftsschleife). Das Zertifikat des Servers kommt per
 # `docker cp` zum Client und ist dort der Vertrauensanker (SSL_CERT_FILE). Danach laufen die Tests der Kategorie;
-# der Lauf prueft, dass der Server danach laeuft, keinen Handlerfehler und kein Kennwort geloggt hat, und gibt das
-# Log des Servers aus (Zeilen `kompatibilitaet: anfrage` zeigen den Text, den der Referenzclient stellt).
+# der Lauf prueft, dass der Server danach laeuft und kein Kennwort ausgegeben hat, und gibt die Ausgabe des
+# Testservers aus (Zeilen `kompatibilitaet: anfrage` des Aufzeichners zeigen den Text, den der Referenzclient stellt).
+# Der Testserver schreibt kein Log der Bibliothek (ADR-0025 Entscheidung 7). Herausgenommen sind die Pruefungen, die
+# Zeilen der Bibliothek lasen (`Handlerfehler`, `Login: abgelehnt (...)`, `Fehler: <Code>`); Ersatz traegt
+# slice-betrieb-log-adapter-testserver.
 # `trap` raeumt bei Ende, SIGINT und SIGTERM Container, Netzwerk und Images ab; bei SIGKILL bleiben sie stehen.
 # Zusage: die Tests der Kategorie bestehen gegen den Serverprozess; nicht belegt steht im Kopf der Testklassen.
 # Der Lauf ist eine Stufe von `make e2e` und kein Gate (ADR-0022).
@@ -87,8 +90,8 @@ pruefe "Alle Tests der Kategorie $KATEGORIE bestanden ($(grep -Eo 'Total tests: 
 
 laeuft() { [ "$(docker inspect --format '{{.State.Running}}' "$SERVER")" = "true" ]; }
 pruefe "Server laeuft nach den Tests" laeuft
-pruefe "Log des Servers nennt keinen Handlerfehler" sh -c "! docker logs '$SERVER' 2>&1 | grep -q 'Handlerfehler'"
-pruefe "Log des Servers nennt weder Kennwort noch Text der Quellenausnahme" \
+# Entfallen, Ersatz in slice-betrieb-log-adapter-testserver: 'Handlerfehler' (Zeile der Bibliothek) keinmal.
+pruefe "Ausgabe des Testservers nennt weder Kennwort noch Text der Quellenausnahme" \
   sh -c "! docker logs '$SERVER' 2>&1 | grep -Eq 'secret|Geheimnis'"
 
 if [ "$KATEGORIE" = Anmeldung ]; then
@@ -115,19 +118,25 @@ if [ "$KATEGORIE" = Anmeldung ]; then
     sh -c "[ \"\$(docker logs '$SERVER' 2>&1 | grep -cF 'sql=[SELECT Id FROM person WHERE Id = @id] parameter=[@id:Int32:INPUT]')\" = 3 ]"
   pruefe "Prepare: 1100 Ausfuehrungen desselben Befehls erreichen das Backend (Marker @wiederholung)" \
     sh -c "[ \"\$(docker logs '$SERVER' 2>&1 | grep -cF 'parameter=[@wiederholung:Int32:INPUT]')\" = 1100 ]"
-  pruefe "Prepare: 1000 Befehle erreichen das Backend, der 1001. endet mit TDS_PREPARE_LIMIT (Marker @einzeln)" \
-    sh -c "[ \"\$(docker logs '$SERVER' 2>&1 | grep -cF 'parameter=[@einzeln:Int32:INPUT]')\" = 1000 ] && [ \"\$(docker logs '$SERVER' 2>&1 | grep -cF 'tdswire: Fehler: TDS_PREPARE_LIMIT (handle-limit)')\" = 1 ]"
-  pruefe "Prepare: keine unbekannte Prozedur (sp_unprepare, sp_prepare) erreicht den Server" \
-    sh -c "! docker logs '$SERVER' 2>&1 | grep -qF 'TDS_UNSUPPORTED_RPC (UNKNOWN_PROCEDURE)'"
+  # Entfallen, Ersatz in slice-betrieb-log-adapter-testserver: 'tdswire: Fehler: TDS_PREPARE_LIMIT (handle-limit)' genau
+  # einmal (Zeile der Bibliothek).
+  # Entfallen, Ersatz in slice-betrieb-log-adapter-testserver: 'TDS_UNSUPPORTED_RPC (UNKNOWN_PROCEDURE)' keinmal
+  # (Negativpruefung; eine unbekannte Prozedur erreicht das Backend nicht, der Aufzeichner sieht sie nicht).
+  # Geprueft bleibt die Zahl der Anfragen, die das Backend erreichen.
+  pruefe "Prepare: 1000 Befehle erreichen das Backend (Marker @einzeln)" \
+    sh -c "[ \"\$(docker logs '$SERVER' 2>&1 | grep -cF 'parameter=[@einzeln:Int32:INPUT]')\" = 1000 ]"
 fi
 
 if [ "$KATEGORIE" = Luecken ]; then
-  # Der Client sieht in beiden Faellen nur 18456; den Grund der Ablehnung nennt allein das Log des Servers.
-  grund() { docker logs "$SERVER" 2>&1 | grep -qF "Login: abgelehnt ($1)"; }
-  pruefe "Log nennt als Grund des Kennwortwechsels UNSUPPORTED_PASSWORD_CHANGE" grund UNSUPPORTED_PASSWORD_CHANGE
-  pruefe "Log nennt als Grund des Zugriffstokens UNSUPPORTED_FEDERATED_AUTHENTICATION" grund UNSUPPORTED_FEDERATED_AUTHENTICATION
-  pruefe "Log nennt TDS_PROTOCOL_ERROR (mehrere RPCs) und TDS_UNSUPPORTED_TYPE (xml)" \
-    sh -c "docker logs '$SERVER' 2>&1 | grep -qF 'tdswire: Fehler: TDS_PROTOCOL_ERROR' && docker logs '$SERVER' 2>&1 | grep -qF 'tdswire: Fehler: TDS_UNSUPPORTED_TYPE'"
+  # Entfallen, Ersatz in slice-betrieb-log-adapter-testserver (der Referenzclient sieht nur 18456 bzw. den Fehler, den
+  # Grund nannte allein das Log der Bibliothek):
+  # - 'Login: abgelehnt (UNSUPPORTED_PASSWORD_CHANGE)'
+  # - 'Login: abgelehnt (UNSUPPORTED_FEDERATED_AUTHENTICATION)'
+  # - 'tdswire: Fehler: TDS_PROTOCOL_ERROR' (mehrere RPCs)
+  # - 'tdswire: Fehler: TDS_UNSUPPORTED_TYPE' (xml)
+  # Wo `src/test` den Grund der Ablehnung ueber `Wiring` liest (LoginLogInspectionTest, HandshakeWiringTest), bleibt er
+  # geprueft; ob das jede dieser Pruefungen ersetzt, ist nicht festgestellt.
+  :
 fi
 
 echo "kompatibilitaetstest: --- Log des Servers ---"

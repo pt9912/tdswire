@@ -18,7 +18,10 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
-/** Start-Reihenfolge und Startabbruch des Prozesses (`TDS-FA-09.a`, `SPEC-043`, `ARC-008`). */
+/**
+ * Start-Reihenfolge und Startabbruch von `launch` (`TDS-FA-09.a`, `SPEC-043`, `ARC-008`); Umgebung und Dateien liest
+ * der Testserver, seine Tests prüfen den Lader.
+ */
 internal class BootstrapTest : RuntimeTestBase() {
     private fun users() = file("users.txt", "kennung-$WERTPROBE\t{plain}passwort-$WERTPROBE\n")
 
@@ -39,7 +42,7 @@ internal class BootstrapTest : RuntimeTestBase() {
         val environment = loopbackEnvironment(users())
         listOf(null, "1", "00", "", "0 ", "-1").forEach { value ->
             val properties = { key: String -> if (key == Bootstrap.TICKET_FLAG) value else null }
-            val boot = Bootstrap.start(environment, properties, Wiring(log = log))
+            val boot = Bootstrap.launch(configOf(environment), Wiring(log = log), properties)
             assertIs<StartOutcome.Aborted>(boot, "Wert '$value'")
         }
         assertTrue(log.lines.all { it.contains("newSessionTicketCount=0") }, log.lines.toString())
@@ -62,13 +65,13 @@ internal class BootstrapTest : RuntimeTestBase() {
         val environment = loopbackEnvironment(
             users(),
             ConfigKeys.LISTEN_PORT to port.toString(),
-            ConfigKeys.LOGIN_TIMEOUT to "geheim-wert-$WERTPROBE",
+            ConfigKeys.LOGIN_TIMEOUT to "0",
             ConfigKeys.MAX_PRELOGIN_MESSAGE_BYTES to "1",
         )
         val aborted = assertIs<StartOutcome.Aborted>(start(environment))
         assertEquals(
             listOf(
-                "Konfiguration ungueltig: LOGIN_TIMEOUT: INVALID_VALUE",
+                "Konfiguration ungueltig: LOGIN_TIMEOUT: OUT_OF_RANGE",
                 "Konfiguration ungueltig: MAX_PRELOGIN_MESSAGE_BYTES: OUT_OF_RANGE",
             ),
             log.lines.toList(),
@@ -76,29 +79,12 @@ internal class BootstrapTest : RuntimeTestBase() {
         assertEquals("Konfiguration ungueltig", aborted.reason)
         assertEquals(
             listOf(
-                ConfigIssue(ConfigKeys.LOGIN_TIMEOUT, IssueKind.INVALID_VALUE),
+                ConfigIssue(ConfigKeys.LOGIN_TIMEOUT, IssueKind.OUT_OF_RANGE),
                 ConfigIssue(ConfigKeys.MAX_PRELOGIN_MESSAGE_BYTES, IssueKind.OUT_OF_RANGE),
             ),
             aborted.issues,
         )
         assertNoNewListenerThreads(before)
-        assertFree(port)
-    }
-
-    /**
-     * Eine Benutzerliste mit Fehler bricht den Start ab: das Log nennt Schlüssel, Fehlerart und Zeile, weder
-     * Benutzername noch Prüfwert noch Passwort noch Pfad, und der Port wird nicht gebunden.
-     *
-     * @spec SPEC-051
-     */
-    @Test
-    fun `Eine fehlerhafte Benutzerliste bricht den Start ab`() = blocking {
-        val port = freePort()
-        val path = file("kennung-$WERTPROBE.txt", "kennung-$WERTPROBE\t{pbkdf2-sha256}passwort-$WERTPROBE\n")
-        val environment = loopbackEnvironment(path, ConfigKeys.LISTEN_PORT to port.toString())
-        assertIs<StartOutcome.Aborted>(start(environment))
-        val expected = "Konfiguration ungueltig: AUTH_USERS_FILE: USER_LIST_INVALID (FIELD_COUNT, Zeile 1)"
-        assertEquals(listOf(expected), log.lines.toList())
         assertFree(port)
     }
 

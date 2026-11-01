@@ -1,0 +1,2 @@
+**Vorgang:** slice-adr-observability
+**Fund:** Review M-2 ([Report](../../../../../../reviews/2026-11-01-390f951-slice-adr-observability.md)): [ADR-0020](../../../../../adr/0020-logformat-und-observability-schnittstelle.md) setzt den Inhalt des Abbruch-Ereignisses (mit Adresse und Port) in `StartOutcome.Aborted.reason`; die Spezifikation legt `reason` ohne Konfigurationswert fest, `SPEC-043` verlangt die Adresse in der Diagnose. Träger: `slice-spec-nachzug-telemetrie` §6.

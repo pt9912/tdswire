@@ -13,7 +13,7 @@ SELBSTTEST_STEMPEL = .harness/state/detekt-selbsttest.ok
 SELBSTTEST_EINGAENGE = Dockerfile settings.gradle.kts build.gradle.kts gradle.properties \
 	gradle/libs.versions.toml gradle.lockfile settings-gradle.lockfile \
 	gradle/verification-metadata.xml config/detekt/detekt.yml \
-	tools/detekt-selbsttest.sh tools/suppression-check.sh \
+	tools/detekt-selbsttest.sh tools/suppression-check.sh tools/jackson-sperre.sh \
 	$(shell find config/detekt/selbsttest config/detekt/selbsttest-aufrufe)
 
 detekt-selbsttest: $(SELBSTTEST_STEMPEL) ## Importregeln der Schichten und Suppression-Verbot gegen Testdaten pruefen; laeuft nur bei geaenderten Eingaengen

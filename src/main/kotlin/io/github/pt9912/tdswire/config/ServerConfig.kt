@@ -3,7 +3,7 @@ package io.github.pt9912.tdswire.config
 import io.github.pt9912.tdswire.config.auth.PasswordChars
 import io.github.pt9912.tdswire.config.auth.UserList
 
-/** Die Namen der Konfigurationsschlüssel; alle kommen aus der Umgebung des Prozesses (`TDS-FA-09.a`). */
+/** Die Namen der Konfigurationsschlüssel, die ein [ConfigIssue] nennt (`TDS-FA-09.a`). */
 object ConfigKeys {
     const val LISTEN_HOST = "LISTEN_HOST"
     const val LISTEN_PORT = "LISTEN_PORT"
@@ -14,13 +14,9 @@ object ConfigKeys {
     const val TLS_KEYSTORE_PASSWORD_FILE = "TLS_KEYSTORE_PASSWORD_FILE"
     const val AUTH_USERS_FILE = "AUTH_USERS_FILE"
     const val AUTH_PLAIN_TESTMODE = "AUTH_PLAIN_TESTMODE"
-    const val SIMULATION_DESCRIPTION_FILE = "SIMULATION_DESCRIPTION_FILE"
     const val QUERY_TIMEOUT = "QUERY_TIMEOUT"
     const val CANCEL_TIMEOUT = "CANCEL_TIMEOUT"
 }
-
-/** Obergrenze der Datei der Tabellenbeschreibung in Bytes, vor dem Parsen (`SPEC-035`, Voreinstellung 1 MiB). */
-const val MAX_SIMULATION_FILE_BYTES = 1_048_576
 
 /**
  * Verschlüsselungs-Richtlinie der Konfiguration (`SPEC-010`). [REQUIRED] ist der Standard;
@@ -29,8 +25,8 @@ const val MAX_SIMULATION_FILE_BYTES = 1_048_576
 enum class EncryptionSetting { REQUIRED, TEST_UNENCRYPTED }
 
 /**
- * Die Voreinstellungen der Konfiguration (`SPEC-005`, `SPEC-008`, `SPEC-010`, `SPEC-046`): Lader und Einstieg
- * nutzen dieselben Werte.
+ * Die Voreinstellungen der Konfiguration (`SPEC-005`, `SPEC-008`, `SPEC-010`, `SPEC-046`): Die Konstruktoren der
+ * Einstellungen nutzen dieselben Werte.
  */
 internal object ConfigDefaults {
     const val HOST = "0.0.0.0"
@@ -72,13 +68,10 @@ class TlsKeyMaterial(val keystore: ByteArray, val password: PasswordChars) {
 }
 
 /**
- * Die Konfiguration des Servers (`TDS-FA-09.a`). Sie entsteht über den Lader des Prozesses in `runtime` oder
- * über diesen Konstruktor; der Konstruktor prüft nichts, [ConfigValidation.check] und der Start weisen ungültige
- * Werte ab. Die Textdarstellung nennt keinen Wert (`TDS-QA-03`). [simulationFile] sind die Bytes der Datei der
- * Tabellenbeschreibung des Simulations-Backends (höchstens [MAX_SIMULATION_FILE_BYTES]) oder `null` ohne
- * Konfiguration. Eine Konfiguration gilt für einen Start: sobald der
- * Start das TLS-Material lädt, löscht er das Passwort in [tls]; bricht er vorher ab (JVM-Flag, Prüfung), bleibt es
- * lesbar (Setzung).
+ * Die Konfiguration des Servers (`TDS-FA-09.a`). Sie entsteht über diesen Konstruktor; er prüft nichts,
+ * [ConfigValidation.check] und der Start weisen ungültige Werte ab. Die Textdarstellung nennt keinen Wert
+ * (`TDS-QA-03`). Eine Konfiguration gilt für einen Start: sobald der Start das TLS-Material lädt, löscht er das
+ * Passwort in [tls]; bricht er vorher ab (JVM-Flag, Prüfung), bleibt es lesbar (Setzung).
  */
 class ServerConfig(
     val listen: ListenSettings = ListenSettings(),
@@ -86,10 +79,7 @@ class ServerConfig(
     val encryption: EncryptionSetting = ConfigDefaults.ENCRYPTION,
     val tls: TlsKeyMaterial? = null,
     val auth: AuthSettings,
-    val simulationFile: ByteArray? = null,
+    val requests: RequestSettings = RequestSettings(),
 ) {
-    /** Die Fristen einer Anfrage (`SPEC-009`, `SPEC-033`); der Einbettende setzt sie vor dem Start. */
-    var requests: RequestSettings = RequestSettings()
-
     override fun toString(): String = "ServerConfig(verborgen)"
 }

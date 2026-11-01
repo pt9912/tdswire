@@ -1,9 +1,8 @@
 package io.github.pt9912.tdswire.config
 
 /**
- * Die Prüfung der Konfiguration (`TDS-FA-09.a`), gleich für jeden Weg zu einer [ServerConfig]: der Lader des
- * Prozesses ruft die Teilprüfungen je Schlüssel, der Start über den Einstieg ruft [check] auf dem fertigen Wert.
- * Beide melden dieselben Fehler mit demselben Schlüssel und derselben Art; ein Fehler nennt nie einen Wert.
+ * Die Prüfung der Konfiguration (`TDS-FA-09.a`), gleich für jeden Weg zu einer [ServerConfig]: der Start über den
+ * Einstieg ruft [check] auf dem fertigen Wert. Ein Fehler nennt Schlüssel und Art, nie einen Wert.
  *
  * Wertebereiche sind Festlegungen, nicht gemessen:
  * - `LISTEN_HOST` nicht leer.
@@ -13,7 +12,6 @@ package io.github.pt9912.tdswire.config
  *   PRELOGIN-Verhandlung.
  * - `REQUIRED` verlangt Schlüsselspeicher und Kennwort, `TEST_UNENCRYPTED` lässt beide nicht zu (`SPEC-010`).
  * - `QUERY_TIMEOUT` und `CANCEL_TIMEOUT` ganze Sekunden von 1 bis 3600 (`SPEC-009`, `SPEC-033`, vorläufig).
- * - `simulationFile` höchstens [MAX_SIMULATION_FILE_BYTES] Bytes (`SPEC-035`).
  *
  * Eine [ServerConfig] kann ungeprüft existieren; erst [check] und der Start weisen sie ab.
  */
@@ -34,8 +32,7 @@ object ConfigValidation {
             preloginBytes(config.login.maxPreloginMessageBytes),
             queryTimeout(config.requests.queryTimeoutSeconds),
             cancelTimeout(config.requests.cancelTimeoutSeconds),
-        ) + pairing(config.encryption, hasKeystore = keyMaterial, hasPassword = keyMaterial) +
-            listOfNotNull(config.simulationFile?.let { simulationFile(it.size) })
+        ) + pairing(config.encryption, hasKeystore = keyMaterial, hasPassword = keyMaterial)
     }
 
     internal fun host(host: String): ConfigIssue? =
@@ -74,12 +71,6 @@ object ConfigValidation {
                 ConfigIssue(password, IssueKind.MISSING).takeUnless { hasPassword },
             )
         }
-    }
-
-    internal fun simulationFile(size: Int): ConfigIssue? = if (size > MAX_SIMULATION_FILE_BYTES) {
-        ConfigIssue(ConfigKeys.SIMULATION_DESCRIPTION_FILE, IssueKind.TOO_LARGE)
-    } else {
-        null
     }
 
     private fun range(key: String, value: Int, allowed: IntRange): ConfigIssue? =

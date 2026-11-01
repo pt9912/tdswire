@@ -3,12 +3,14 @@
 # ADR-0012, ADR-0008). Aufruf ueber `make simulations-integration`; BUILDER_FLAGS kommt aus der Umgebung (leer
 # ohne BUILDER).
 #
-# Ablauf: Server-Image (Dockerfile-Stage `integrationsserver`, JVM mit begrenztem Heap, Tabellen von
-# IntegrationServer.kt, Beschreibung aus src/test/resources/integration/sim.yaml) und Client-Image
+# Ablauf: Testserver-Image (Dockerfile-Stage `integrationsserver`, JVM mit begrenztem Heap, Tabellen von
+# IntegrationServer.kt, Beschreibung aus src/testserver/resources/integration/sim.yaml) und Client-Image
 # (referenztest-dotnet, Stage `integration`) bauen; beide Container laufen in einem eigenen internen Netzwerk
 # (kein Zugang nach aussen, nichts wird gemountet). Der Lauf prueft, dass der Text der Tabelle `gross` groesser ist
 # als der Heap des Servers, fuehrt die Tests des Referenzclients aus und prueft, dass der Server danach laeuft und
-# keinen Handlerfehler und kein Kennwort geloggt hat.
+# kein Kennwort ausgegeben hat. Der Testserver schreibt kein Log der Bibliothek (ADR-0025 Entscheidung 7); die
+# Pruefungen von `Simulations-Backend: 4 Tabellen` und `Handlerfehler` sind herausgenommen, Ersatz traegt
+# slice-betrieb-log-adapter-testserver.
 # Zusage: Auswahl mit Bedingung, leeres Ergebnis, Zeilenquelle ueber dem Heap, Fehler der Zeilenquelle mit
 # Folgeabfrage am Referenzclient (Microsoft.Data.SqlClient), TDS 7.4 ohne Verschluesselung und ohne Pool; nicht
 # belegt: Cancel (der Server beantwortet ATTENTION waehrend einer Anfrage nicht; befristet ausgenommen, CO-004 in
@@ -57,8 +59,7 @@ gestartet() {
   return 1
 }
 pruefe "Server im Container meldet 'gestartet, Port 1433'" gestartet
-pruefe "Server meldet 'Simulations-Backend: 4 Tabellen' (Datei: leer; Schnittstelle: person, gross, kaputt)" \
-  sh -c "docker logs '$SERVER' 2>&1 | grep -q 'tdswire: Simulations-Backend: 4 Tabellen'"
+# Entfallen, Ersatz in slice-betrieb-log-adapter-testserver: 'tdswire: Simulations-Backend: 4 Tabellen' (Zeile der Bibliothek).
 
 # Der Text der Tabelle `gross` muss groesser sein als der Heap: sonst belegt der Lauf nicht, dass die Zeilen
 # einzeln gelesen werden.
@@ -78,8 +79,8 @@ fertig=$(date +%s)
 
 laeuft() { [ "$(docker inspect --format '{{.State.Running}}' "$SERVER")" = "true" ]; }
 pruefe "Server laeuft nach den Tests" laeuft
-pruefe "Log des Servers nennt keinen Handlerfehler" sh -c "! docker logs '$SERVER' 2>&1 | grep -q 'Handlerfehler'"
-pruefe "Log des Servers nennt weder Kennwort noch Text der Quellenausnahme" \
+# Entfallen, Ersatz in slice-betrieb-log-adapter-testserver: 'Handlerfehler' (Zeile der Bibliothek) keinmal.
+pruefe "Ausgabe des Testservers nennt weder Kennwort noch Text der Quellenausnahme" \
   sh -c "! docker logs '$SERVER' 2>&1 | grep -Eq 'secret|Geheimnis'"
 
 echo "simulationstest: Laufzeit $((fertig - start)) s, davon Bau $((gebaut - start)) s und Tests $((fertig - gebaut)) s"
