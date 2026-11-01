@@ -760,7 +760,8 @@ Meldung und Log nennen die gefundene Form, nie einen Dateipfad und nie den Inhal
 oder Schlüssel, sodass sich die Diagnose protokollieren und dem Konfigurationsschlüssel zuordnen
 lässt. Es gibt keinen Rückfall auf eine unverschlüsselte Verbindung; eine Abschwächung folgt nur aus
 der ausdrücklichen Konfiguration nach `SPEC-010`. Ein belegter Port beendet den Start mit einer
-eigenen Diagnose, die Adresse und Port nennt. Nach jedem fehlgeschlagenen Start laufen keine Threads
+eigenen Diagnose, die Adresse und Port nennt (das Ereignis des Bindefehlers, Abschnitt 4; ohne
+übergebene Senke gibt es sie nicht, Zielzustand, nicht gebaut). Nach jedem fehlgeschlagenen Start laufen keine Threads
 und kein Listener des Servers weiter; ein neuer Versuch legt einen neuen Server an. Die Probe prüft
 weder, ob ein Client dem Zertifikat vertraut, noch die TDS-Kapselung des Handschlags (`SPEC-028`).
 
@@ -850,7 +851,7 @@ Abnahmegrenzen.
 | `SPEC-037` | `TDS_UNSUPPORTED_SQL` | Anweisung oder Bedingung außerhalb von `SPEC-036`; Schreibzugriff ohne Callback | ERROR und DONE mit Fehlerstatus, Zeilenquelle nicht gelesen |
 | `SPEC-038` | `TDS_SIM_UNKNOWN_OBJECT` | Tabelle oder Spalte ist nicht beschrieben | ERROR und DONE mit Fehlerstatus; vorgesehene SQL-Server-Nummern 208 (Objekt) und 207 (Spalte) |
 | `SPEC-039` | `TDS_SIM_INVALID_VALUE` | Wert nicht in den Spaltentyp überführbar | ERROR und DONE mit Fehlerstatus; vorgesehene SQL-Server-Nummern 245 (Konvertierung) und 8115 (Überlauf), an der Referenzinstanz zu messen |
-| `SPEC-048` | `TDS_INTERNAL_ERROR` | unerwartete Ausnahme im Server oder im Backend-Adapter, auch ein `OutOfMemoryError` beim Erzeugen oder Senden der Antwort (`SPEC-031`) | ERROR (Severity 20) und DONE mit Fehlerstatus, fester Text ohne den Text der Ausnahme, danach Verbindungsende; die Ausnahme geht nur als Typname ins Log, nie mit Text (Abschnitt 4; **Zielzustand, nicht gebaut:** der gebaute Stand schreibt den Text der Ausnahme ins Log) |
+| `SPEC-048` | `TDS_INTERNAL_ERROR` | unerwartete Ausnahme im Server oder im Backend-Adapter, auch ein `OutOfMemoryError` beim Erzeugen oder Senden der Antwort (`SPEC-031`) | ERROR (Severity 20) und DONE mit Fehlerstatus, fester Text ohne den Text der Ausnahme, danach Verbindungsende; die Ausnahme geht nur als Typname ins Log, nie mit Text (Abschnitt 4). Gebaut ist im Anfragepfad die Textzeile mit Code und vollqualifiziertem Typnamen, nie der Text der Ausnahme; **Zielzustand, nicht gebaut:** Format und Felder des Ereignisses (Abschnitt 4) |
 | `SPEC-049` | `TDS_SHUTDOWN` | Anfrage nach Beginn des geordneten Beendens (`SPEC-044`) | ERROR und DONE mit Fehlerstatus, danach Verbindungsende; vorgesehen: die SQL-Server-Meldung für ein Herunterfahren, Nummer im Mapping nach `TDS-FA-06.a` festlegen |
 | `SPEC-057` | `TDS_UNKNOWN_HANDLE` | `sp_execute` mit einem Handle, das die Sitzung nicht hält (`SPEC-030`) | ERROR und DONE mit Fehlerstatus; die Verbindung bleibt offen (Class 16), das Backend wird nicht gerufen; das Log nennt die feste Marke `unknown-handle` |
 | `SPEC-058` | `TDS_PREPARE_LIMIT` | `sp_prepexec` bei erreichter Grenze von 1000 Handles der Sitzung (`SPEC-030`) | ERROR und DONE mit Fehlerstatus; die Verbindung bleibt offen (Class 16), das Backend wird nicht gerufen, die vorhandenen Handles bleiben gültig; das Log nennt die feste Marke `handle-limit` |
@@ -894,8 +895,10 @@ gemessen. Ein Backend meldet als `Failure` nur `TDS_BACKEND_ERROR`, `TDS_UNSUPPO
 (Festlegung); jeder andere Code, auch ein anderer eigener wie `TDS_LOGIN_FAILED` oder `TDS_SHUTDOWN`,
 erreicht den Client als `TDS_INTERNAL_ERROR`. Ist der Strom nicht synchron, entfällt die
 Antwort und die Verbindung schließt (`SPEC-031`). Der Log-Eintrag einer unerwarteten Ausnahme trägt den
-Code und den Typnamen der Ausnahme, nicht ihren Text (Zeile `SPEC-048`, Abschnitt 4; Zielzustand,
-nicht gebaut: der gebaute Stand schreibt den Text der Ausnahme). Offen: die Einzelzuordnung der Codes unter *Grundregel* und die Frage, ob Cancel
+Code und den Typnamen der Ausnahme, nicht ihren Text (Zeile `SPEC-048`, Abschnitt 4). Gebaut ist
+im Anfragepfad die Textzeile mit Code und vollqualifiziertem Typnamen; Zielzustand, nicht gebaut:
+Format und Felder des Ereignisses, und dass auch beim Start kein Fehlertext (Pfad, Zeile, Spalte
+einer Beschreibung, Meldung einer Ausnahme) im Log steht. Offen: die Einzelzuordnung der Codes unter *Grundregel* und die Frage, ob Cancel
 und Timeout als Fehler zählen; die Unterscheidung statement- und batch-abbrechender Fehler; die Messung
 aller Werte (`BEO-TDS/messung-am-echten-sql-server-fehlt`).
 
@@ -943,7 +946,8 @@ soweit nicht anders genannt; sie gelten für das Modell der Bibliothek und damit
 - **Abbruch des Starts:** Das Ereignis zum Bindefehler nennt Adresse und Port (`SPEC-043`). Die
   „Diagnose, die Adresse und Port nennt“ (`SPEC-043`) ist dieses Ereignis. Die Adresse steht nur im
   Ereignis; `StartOutcome.Aborted.reason` bleibt ein Text ohne Konfigurationswert (`SPEC-059`) und
-  enthält weder Adresse noch Port. Ohne übergebene Senke gibt es keine Diagnose mit Adresse und Port
+  enthält weder Adresse noch Port (Zielzustand, nicht gebaut: der gebaute `reason` lautet
+  „Start gescheitert: Port belegt: <Adresse>:<Port>“ und nennt beides). Ohne übergebene Senke gibt es keine Diagnose mit Adresse und Port
   (Festlegung des Zielzustands).
 
 ## 5. Metriken und Tracing-Felder
