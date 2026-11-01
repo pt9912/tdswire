@@ -42,6 +42,23 @@ COPY Kompatibilitaet Kompatibilitaet
 RUN --network=none dotnet build --no-restore --nologo
 CMD ["dotnet", "test", "--no-build", "--nologo", "--logger", "console;verbosity=detailed"]
 
+# --- Vergleich: der Referenzclient gegen einen echten SQL Server (`make vergleichslauf-d`, ADR-0008; kein Gate).
+# Gebaut wird ohne Netz; der Lauf braucht den Server im selben Netzwerk (TDSWIRE_ZIEL), sein Zertifikat
+# (SSL_CERT_FILE), das Kennwort von `sa` und die Erwartung fuer Encrypt=Strict (Umgebung, siehe Vergleich/ReferenzZiel.cs). ---
+FROM restore AS vergleich
+COPY Vergleich Vergleich
+RUN --network=none dotnet build --no-restore --nologo
+CMD ["dotnet", "test", "--no-build", "--nologo", "--logger", "console;verbosity=detailed"]
+
+# --- Referenzinstanzen des Vergleichslaufs D: echte SQL Server (Developer-Edition, `MSSQL_PID=Developer` im Lauf).
+# Index-Digests der Tags, ermittelt am 2026-11-01 mit `docker buildx imagetools inspect`; ein neuer Digest ist eine
+# Aenderung dieser Datei. Die Stage tut nichts ausser den Digest zu halten; ACCEPT_EULA setzt allein das Make-Target
+# `vergleichslauf-d` (Entscheidung des Nutzers, ADR-0008 und tools/mk/vergleichslauf-d.mk). ---
+# 2022-latest: SQL Server 2022 (RTM-CU27-GDR) 16.0.4305.5, die Referenzinstanz der Messung D in ADR-0008.
+FROM mcr.microsoft.com/mssql/server:2022-latest@sha256:cf8f0ab2ebe61feec2eed2629061a07d247f791c2a8ddda74a4ac9f06a291718 AS referenzinstanz-2022
+# 2025-latest: SQL Server 2025, fuehrt `network.forcestrict` in `mssql-conf list` (das 2022-Image nicht).
+FROM mcr.microsoft.com/mssql/server:2025-latest@sha256:245f6b1c8903edae52cb20fa31419cefcde1a49938bb8c3447099011fc871ca3 AS referenzinstanz-2025
+
 # --- Audit: meldet bekannte Schwachstellen der Pakete aus der Datenbank der Quelle am Tag des Laufs.
 # Das Ergebnis haengt am Abfragetag und ist nicht reproduzierbar; die Stage ist kein Gate (CO-001). -
 FROM restore AS audit

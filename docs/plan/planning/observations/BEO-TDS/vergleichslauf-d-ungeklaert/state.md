@@ -1,1 +1,1 @@
-**Stand:** offen — Träger ist `slice-qa-vergleichslauf-d` (übertragen von `slice-qa-reproduzierbarkeit`, dessen Closure D abgetrennt hat)
+**Stand:** offen — `slice-qa-vergleichslauf-d` hat Rahmen, Anmeldung und TDS-8.0-Tag für den lokalen Host gemessen (Beleg `evidence/slice-qa-vergleichslauf-d.md`); offen bleiben Häufigkeit und Machbarkeit in der CI (nach der EULA-Entscheidung des Nutzers nur lokal), Laufzeit und Bedarf auf anderen Hosts, die Ursache des Fehlers von `2022-latest` bei `Encrypt=Strict`; kein Träger-Slice, Entscheidung beim Nutzer
