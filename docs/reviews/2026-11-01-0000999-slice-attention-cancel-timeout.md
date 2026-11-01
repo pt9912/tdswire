@@ -1,0 +1,47 @@
+# Review: slice-attention-cancel-timeout (Diff c83f5e1..0000999)
+
+* Rolle: Reviewer (Modul 10), frischer Kontext. Der Reviewer hatte keinen eigenen Worktree; der Inhalt ist vom Aufrufer abgelegt (verdichtet, Findings vollständig).
+* Branch `worktree-agent-a003345c735119746`. Prüfgrundlage: Plan, [ADR-0027](../plan/adr/0027-abbruch-und-zuruecksetzen.md), [ADR-0007](../plan/adr/0007-fehler-und-attention.md), [ADR-0013](../plan/adr/0013-backend-grenzen.md), [ADR-0004](../plan/adr/0004-session-zustandsautomat.md), [ADR-0015](../plan/adr/0015-spannungen-adr-gegen-spec.md), Hard Rules. Nicht gegen die DoD.
+* Mutationen: 16 Läufe in einer Wegwerf-Kopie (Filter: `*protocol.dispatch*`, `*protocol.session*`, `AbbruchWiringTest`, `ErrorMapperTest`); `ConfigLoaderTest` und `ConfigValidationTest` nicht gelaufen, daher nicht mutiert.
+
+## Kurzurteil
+
+Kein HIGH. Drei MEDIUM (F1 bis F3), sechs LOW, drei INFO. Merge gegen `main` und gegen den Testserver-Branch: keine Code-Konflikte, nur Doku-Konflikte.
+
+## Mutationen
+
+M1 `AbortableRun.fire` gibt immer `true` zurück (verlierendes ATTENTION wird aus dem Eingang verworfen): **überlebt**. M6 `remaining <= ZERO` zu `< ZERO`: **überlebt**. M13 `abandon()` ohne `channel.close()`: **überlebt**. Rot: M2 (`endsInTime` immer true), M3 (`job.cancel()` entfernt), M4 (`InboundTray.take()` ignoriert `held`), M5 (Matrix lässt `REQUEST_MESSAGE` in `RUNNING` zu), M7 (`REGULAR_STOPS` ohne `CANCELLING`), M8 (`watch()` ohne `tray.drop()`), M9 (Disconnect-Zweig ohne `job.cancel()`), M10 (ATTENTION in `CANCELLING` unzulässig), M11 (`TDS_TIMEOUT` schließt), M12 (`ConnectionWiring` ignoriert `QUERY_TIMEOUT`), M14 (`release()` ohne `pending?.cancel()`), M15 (`expire()` wartet `remaining * 0`), M16 (`watch()` reicht jede Nachricht an den Rahmen).
+
+## Prüffragen
+
+1. **Abgeschwächte Bestandstests (Setzung 8):** Die Zusage „Annahme nur aus `READY`“ ist durch `HandshakeMatrixTest` (Handtabelle aller 150 Zellen, `RUNNING`/`STREAMING`/`CANCELLING` mal `REQUEST_MESSAGE` unzulässig) und `SQL_BATCH vor READY ...` getragen; M5 und M16 rot. Anpassung, kein Verlust; die Zustandsangabe `atRequestId == RUNNING` belegt die Annahme nur indirekt (F7).
+2. **Nebenläufigkeit:** Doppelter Cancel ausgeschlossen (nur wer `Cancel` bekommt, vervollständigt `claim`; M3, M10 rot). Job-Leck bei Abbruch von außen: Disconnect-Zweig bricht ab und wartet höchstens `CANCEL_TIMEOUT` (M9 rot). Lesevorgang wird nie abgebrochen, nur das Warten (M14 rot). ATTENTION mitten im Paket: Abbruch wartet auf die Sperre (`AttentionWireTest`). Offene Lücke: F1.
+3. **ErrorCode:** `TDS_TIMEOUT` Number 50005, Class 16, State 1, Fate `OPEN`, Gruppe `REQUEST`, gleich der Spec; M11 rot.
+4. **Spec:** in den hinzugefügten Zeilen keine ADR-/Slice-/Welle-Wörter; alle `Klasse > Testfall`-Zitate der Matrix existieren in `src/test`; Marker „Setzung“/„nicht gemessen“ stehen. Es fehlt nur die Grenze aus F2.
+
+## Findings
+
+* **F1 (MEDIUM), verlierendes ATTENTION wird nie getestet:** `AbortableRun.kt`: `if (fire(HandshakeEvent.Message(seen.message))) tray.drop()` in `watch()` und `return action is HandshakeAction.Cancel` in `fire()`. M1 überlebt, alle 16 Tests bleiben grün. Der KDoc von `watch()` sichert die Bestätigung nach dem Abbruch zu. `QueryTimeoutTest > Frist und ATTENTION kreuzen sich ...` lässt das ATTENTION offenbar erst nach dem Gewinn der Frist ankommen, der Zweig `fire == false` wird nicht ausgeführt. Szenario: Die Frist gewinnt, der Watcher liest das ATTENTION danach, der Server verwirft es, der .NET-Client wartet auf `DONE[ATTN]` bis zu seinem eigenen Timeout ([TDS-QA-07](../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität)).
+* **F2 (MEDIUM), Zusage der Frist in der Spec ohne die Bedingung (§3.8):** SPEC-009 („die der Protokollkern durchsetzt“), SPEC-033 („sie läuft ab dem Gewinn des Abbruchs“), SPEC-029 („wirkt, sobald das Paket ganz auf dem Draht steht“). Die Grenze steht nur im KDoc (`RequestLoop.kt`: „die Frist wirkt nicht, solange ein Schreibvorgang am Rückstau hängt“; `HandshakeSession.kt`): Ein Schreibvorgang am Rückstau hält die Sitzungssperre, `claim` kommt nicht zustande, weder `QUERY_TIMEOUT` noch ATTENTION noch `CANCEL_TIMEOUT` wirken. Ungetestet. Szenario: Ein Client liest nicht mehr, der Server schreibt einen großen Strom, `QUERY_TIMEOUT` läuft ab, nichts passiert bis TCP aufgibt.
+* **F3 (MEDIUM), „N ATTENTION ergeben N Bestätigungen“ ohne Messung:** `AbortableRun.kt` („kein ATTENTION des Clients bleibt ohne Bestätigung“), `AttentionCancelTest > Ein wiederholtes ATTENTION loest keinen zweiten Cancel aus` (erwartet drei Bestätigungen), SPEC-029. [ADR-0027](../plan/adr/0027-abbruch-und-zuruecksetzen.md) misst nur „Antwort vollständig gesendet“; ob und wann im Leerlauf geantwortet wird, bleibt Setzung. Szenario: Ein Client schickt `Cancel()` und `CommandTimeout` kurz hintereinander, liest bis zum ersten `DONE[ATTN]`, sendet Q2; der Server sendet das zweite `DONE[ATTN]` und danach die Antwort auf Q2; der Client ordnet das zweite `DONE[ATTN]` der Q2 zu ([TDS-QA-07](../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität)). Beleg müsste aus dem Cancel-Szenario am Referenzclient kommen.
+* **F4 (LOW), Kommentare mit Konjunktiv über abgelehnte Alternative bzw. Chronik (§3.7):** `InboundTray.kt` („... und ginge verloren, was schon gelesen ist“), `HandshakeSession.kt` in `guarded` („Ein abgebrochener Schreibvorgang schlösse den Kanal“), `CancelSupport.kt` („... aus einem roten Test würde ein hängender“), `HandshakeMatrixTest.kt` („ignoriert 6 bisherige und 7 neue“ ist Chronik).
+* **F5 (LOW), Grenzfall `remaining == 0` ungetestet (M6):** `AbortableRun.kt`: `if (remaining != null && remaining <= Duration.ZERO)`. Der Test deckt nur negative Werte.
+* **F6 (LOW), lockfreies Schließen in `abandon()` ungetestet (M13):** `HandshakeSession.kt`: KDoc „Der Kanal schließt zuerst und ohne die Sperre ...“. Ohne den Aufruf bleibt alles grün, weil `RequestLoop.run()` im `finally` ohnehin schließt; Erreichbarkeit nicht gefunden. Gleicher Kern wie F2.
+* **F7 (LOW), Bestandstests belegen den Zustand nur indirekt:** `SqlBatchDispatchTest.kt` (`List(2) { RUNNING }`), `DispatchFateTest.kt` (`states.first() == READY`); Schutzwirkung liegt im Matrixtest.
+* **F8 (LOW), nur der Disconnect-Zweig bricht den Job ab:** `AbortableRun.kt` fängt nur `CancellationException`; eine andere Ausnahme aus `supervise`/`live.dispatch` lässt den Job in `detached` weiterlaufen, `cancel()`/`close()` des Backends bleiben aus. Heute kaum erreichbar.
+* **F9 (LOW), `ServerConfig.requests` als mutable Eigenschaft:** `var requests` an der Konstruktorliste vorbei (Setzung 7); Kopierstellen `Bootstrap.kt` (`.also { it.requests = config.requests }`) und `ConfigLoader.kt`; `HandlerSetup.requests`. Wer eine Kopierstelle vergisst, bekommt still die Voreinstellung; M12 deckt Bootstrap/Wiring, `ConfigLoader` nicht mutiert. Nebenbefund: Umbruch im KDoc von `ServerConfig.kt` ohne inhaltliche Änderung.
+* **F10 (INFO):** `AbbruchWiringTest` prüft `deadline - before in 1_000L..2_000L` mit echter Uhr und wartet real 1 s; verwandt mit `BEO-TDS/mutation-haengt-an-ungesteuerter-reihenfolge`.
+* **F11 (INFO):** `AttentionAck` „als Handvektor belegt“ ohne Quellennennung (13 Bytes `DONE_ATTN`); gleiche Praxis wie `DONE_ERROR`.
+* **F12 (INFO):** `HandlerSetup.requests` hat die Voreinstellung 30 s / 5 s; vorher keine Frist. Einbettende ohne Konfiguration bekommen nach 30 s `TDS_TIMEOUT`: Verhaltensänderung des öffentlichen Einstiegs, in der Dokumentation zu prüfen.
+
+## Hard Rules
+
+Kein `@Suppress`/`@SuppressWarnings`; keine Änderungen an `config/detekt`, `build.gradle.kts`, `Dockerfile`, `tools`; keine Host-Toolchain; keine Accepted-ADR verändert; `spec/architecture.md` unverändert.
+
+## Merge-Risiko: slice-testserver-herausloesen (Branch worktree-agent-a6bd188260f37068d)
+
+`git merge-tree --write-tree --name-only`:
+
+* Gegen `main` (7d3ec5b): Konflikte nur in Doku: `spec/spezifikation.md` (zwei Hunks), `docs/plan/planning/done/welle-simulations-backend/slice-sim-aenderung-integration.md`, `.../slice-sim-auswahl-streaming.md`, `docs/plan/planning/open/slice-betrieb-metriken-tracing.md`, `.../slice-betrieb-zustandsereignisse.md`. `main` hat unter `src/` seit der Basis nichts geändert.
+* Gegen den Testserver-Branch: Konflikte in `spec/spezifikation.md`, `slice-betrieb-metriken-tracing.md`, `slice-betrieb-zustandsereignisse.md`. Kein Code-Konflikt: `config/ServerConfig.kt`, `config/ConfigValidation.kt`, `runtime/Bootstrap.kt`, `runtime/ConnectionWiring.kt` bleiben in `src/main` und mergen sauber; `runtime/ConfigLoader.kt` wird dort als reiner Move (R100) nach `src/testserver/kotlin/.../testserver/ConfigLoader.kt` verschoben, die Änderungen dieses Slice werden von der Umbenennungs-Erkennung übertragen; `ConfigLoaderTest.kt` wandert genauso. Ob es kompiliert, ist ohne Build offen (Testserver greift auf `ConfigValidation::queryTimeout` und `ConfigDefaults.QUERY_TIMEOUT_SECONDS`, beide `internal`, zu; nach dem Merge `make build` und `make test`).
+* Konflikt-Hunks in `spec/spezifikation.md` (beide Seiten): (1) ca. Zeilen 842 bis 850, Zeilen `SPEC-009`, `SPEC-010`, `SPEC-033` der Defaults-Tabelle (hier „konfigurierbar in ganzen Sekunden von 1 bis 3600“, Gegenseite in `SPEC-010` „Schlüsselspeicher (PKCS#12) und Passwort in `ServerConfig`“); (2) ca. Zeilen 1224 bis 1232, Integrator-Tabelle (hier Fristen in `Prüfung`, Gegenseite neuer Text in `BackendSource` und `StartOutcome.Aborted`). Manuelle Zusammenführung nötig.
