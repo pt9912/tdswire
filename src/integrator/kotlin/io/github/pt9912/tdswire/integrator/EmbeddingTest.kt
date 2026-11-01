@@ -111,7 +111,8 @@ class EmbeddingTest {
     /**
      * Eine ungültige Konfiguration ergibt `StartOutcome.Aborted` mit jedem Fehler nach Schlüssel und Art, keine
      * Ausnahme und keinen gebundenen Port: `REQUIRED` ohne Schlüsselmaterial, `TEST_UNENCRYPTED` mit Material, ein
-     * Wert außerhalb des Bereichs.
+     * Wert außerhalb des Bereichs. Geprüft werden Art und Verschiedenheit der Schlüssel, nicht ihr Wortlaut: er ist
+     * Text ohne Zusage (`SPEC-059`), ein Einbettender verlässt sich nicht darauf; die Namen pinnt `ConfigLoaderTest`.
      *
      * @spec SPEC-059
      * @spec SPEC-010

@@ -15,7 +15,7 @@ public class PasswordChars(chars: CharArray) {
 
     public fun reveal(): CharArray = units.copyOf()
 
-    public fun wipe(): Unit = units.fill(WIPED)
+    internal fun wipe() = units.fill(WIPED)
 
     override fun toString(): String = "PasswordChars(verborgen)"
 
