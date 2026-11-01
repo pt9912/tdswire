@@ -42,7 +42,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 - Ein Prüfwerkzeug für Binärkompatibilität — [ADR-0021](../../adr/0021-oeffentlicher-integrations-einstieg.md) nimmt es nicht mit (Option c2, akzeptiertes Negativ).
 - Änderungen an Verhalten oder Signaturen der Fläche — der Slice ändert nur Sichtbarkeit und ausdrückliche Typen.
-- Die Namen und die Form der Senke und des Ereignismodells — sie legt der Bau von [slice-betrieb-log-schnittstelle](slice-betrieb-log-schnittstelle.md) fest ([ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md) Offen (g)); dieser Slice schließt, was dann dasteht, und erfindet keinen Namen.
+- Die Namen und die Form der Senke und des Ereignismodells — sie legt der Bau von [slice-betrieb-log-schnittstelle](../open/slice-betrieb-log-schnittstelle.md) fest ([ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md) Offen (g)); dieser Slice schließt, was dann dasteht, und erfindet keinen Namen.
 - Das Herauslösen des Testservers und das Entfernen von `simulationFile`, `ConfigKeys`-Lader und Jackson aus `src/main` — `slice-testserver-herausloesen`, Voraussetzung dieses Slice.
 
 ## 2. Definition of Done
