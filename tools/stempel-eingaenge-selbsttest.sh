@@ -57,11 +57,13 @@ fixture() {
 lauf() {
 	local name=$1 erwartet=$2 muster=$3 aus rc
 	shift 3
-	aus=$(cd "$FIXDIR" && env "${@:-STEMPEL_X=1}" bash "$PRUEFUNG_ABS" 2>&1 < /dev/null)
+	aus=$(cd "$FIXDIR" && env "${@:-STEMPEL_X=1}" timeout 20 bash "$PRUEFUNG_ABS" 2>&1 < /dev/null)
 	rc=$?
 	LAEUFE=$((LAEUFE + 1))
 	if [ "$rc" -ne "$erwartet" ]; then
 		rot "$name: Exit $rc, erwartet $erwartet ($(printf '%s' "$aus" | head -n 2 | tr '\n' ' '))"
+	elif [ "$erwartet" = 0 ] && [ "$(printf '%s\n' "$aus" | grep -c '')" != 1 ]; then
+		rot "$name: Exit 0, aber die Ausgabe ist nicht genau eine Zeile ($(printf '%s' "$aus" | head -n 2 | tr '\n' ' '))"
 	elif [ "$muster" != - ] && ! printf '%s' "$aus" | grep -q -F -- "$muster"; then
 		rot "$name: Ausgabe nennt \"$muster\" nicht ($(printf '%s' "$aus" | head -n 2 | tr '\n' ' '))"
 	fi
@@ -110,6 +112,13 @@ h_docker() {
 	# COPY --from=<stage> holt die Quellen der Quell-Stage mit
 	docker_mit m-quelle testkeys "COPY neu.txt neu.txt"
 	lauf "COPY --from=testkeys: Quelle in der Quell-Stage" 1 "kein Eintrag deckt 'neu.txt'" "STEMPEL_DOCKERFILE=$T/m-quelle"
+	# zyklisches COPY --from (Tiefengrenze 10, Befund) und unbekannte Stage
+	docker_mit zy1 compile "COPY --from=test /a /a"
+	printf '%s\n' 'COPY --from=compile /b /b' > "$T/einfuegung.zy"
+	sed '/^FROM deps AS test$/r '"$T/einfuegung.zy" "$T/zy1" > "$T/m-zyklus"
+	lauf "zyklisches COPY --from ist ein Befund" 1 "bildet einen Zyklus" "STEMPEL_DOCKERFILE=$T/m-zyklus"
+	docker_mit k-unbekannt test "COPY --from=gibt-es-nicht /a /a"
+	lauf "Kontrolle: COPY --from einer unbekannten Stage (externes Image)" 0 - "STEMPEL_DOCKERFILE=$T/k-unbekannt"
 	# Kontrollfaelle
 	docker_mit k-ausserhalb spec-abdeckung "COPY neu.txt neu.txt"
 	lauf "Kontrolle: COPY in einer Stage ausserhalb der Klassen" 0 - "STEMPEL_DOCKERFILE=$T/k-ausserhalb"

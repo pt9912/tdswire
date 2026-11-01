@@ -106,8 +106,7 @@ printf 'y\n' > "$V/other/y.txt"
 printf '*.ign\n' > "$V/.gitignore"
 git -C "$V" add -A
 git -C "$V" commit -q -m c1
-# Ein Wegwerf-Repo kostet eine Kopie von rund vier Millisekunden (Einzelmessung 2026-11-01, 50 Kopien 189 ms; ein
-# `git reset --hard` mit `git clean -fdx` brauchte 4,6 ms): die Zeit steckt in den Skriptaufrufen, nicht im Anlegen.
+# neu <verz> legt ein Wegwerf-Repo als Kopie der Vorlage an; Faelle, die sich nicht stoeren, teilen sich eines.
 neu() { rm -rf "${T:?}/$1"; cp -a "$V" "$T/$1"; }
 notiz() { # notiz <verz> <inhalt>: die Note an HEAD wird genau dieser Inhalt (kein stripspace)
 	g "$1" notes --ref=refs/notes/gates add -f -C "$(printf '%s\n' "$2" | g "$1" hash-object -w --stdin)" HEAD 2> /dev/null
@@ -368,8 +367,15 @@ g_sperre() {
 	WARTE=$((($(date +%s%N) - ZEIT0) / 1000000))
 	SENV=(STEMPEL_X=1)
 	ist "Sperre belegt: wartet die fuenf Versuche ab ($WARTE ms)" test "$WARTE" -ge 400 -a "$WARTE" -lt 10000
-	ist "Standard der Sperre: 20 Versuche (im Skript)" grep -q 'STEMPEL_SPERRE_VERSUCHE:-20' "$SKRIPT"
-	ist "Standard der Sperre: 0,1 s je Versuch (im Skript)" grep -q 'sleep 0.1$' "$SKRIPT"
+	SENV=(STEMPEL_SPERRE_VERSUCHE=1)
+	ZEIT0=$(date +%s%N)
+	S o2 schreibe tests
+	WARTE=$((($(date +%s%N) - ZEIT0) / 1000000))
+	SENV=(STEMPEL_X=1)
+	ist "Sperre belegt: ein Versuch wartet nicht ($WARTE ms), die Variable wirkt" test "$WARTE" -lt 350
+	# Der Standard (20 Versuche zu 0,1 s) ist nur im Wortlaut geprueft; ihn abzuwarten kostet zwei Sekunden.
+	ist "Standard der Sperre: 20 Versuche (im Wortlaut)" grep -q 'STEMPEL_SPERRE_VERSUCHE:-20' "$SKRIPT"
+	ist "Standard der Sperre: 0,1 s je Versuch (im Wortlaut)" grep -q 'sleep 0.1$' "$SKRIPT"
 	erwarte "Sperre belegt: danach Lauf" o2 1 "kein Beleg" pruefe tests
 	ist "Sperre belegt: keine Note" leer "$(g o notes --ref=refs/notes/gates list)"
 	rm -rf "$SP"
@@ -398,7 +404,7 @@ g_sperre() {
 }
 
 # Zwei Arbeitsbaeume schreiben je zehn Stempel an eigene Commits; jeder als gesetzt gemeldete Stempel steht am Ende in der
-# Note. Der Fall zeigt die Sperre nur wahrscheinlich (ohne Sperre: Einzelmessung 4 von 6 Laeufen rot bei je 40 Stempeln);
+# Note. Der Fall zeigt die Sperre nur wahrscheinlich (Reviewer-Messung 2026-11-01 ohne Sperre: 5 von 6 Laeufen rot bei 2 mal 10 Stempeln, mit Sperre 8 von 8 gruen);
 # die Sperre selbst belegt g_sperre deterministisch.
 g_gleichzeitig() {
 	neu p
@@ -479,6 +485,8 @@ g_umschreiben_mit() { g_umschreiben mit; }
 g_umschreiben_ohne() { g_umschreiben ohne; }
 
 # --- Lauf: Gruppen parallel, ausgegeben werden rote Faelle und die Summe ---------------------------------------------------------
+# Mindestzahl der Faelle je Gruppe: eine Gruppe, die nichts ausfuehrt, faellt auf.
+declare -A MIN=([g_grund]=24 [g_hash]=27 [g_beleg]=21 [g_schreiben]=10 [g_sperre]=16 [g_gleichzeitig]=4 [g_umschreiben_mit]=5 [g_umschreiben_ohne]=5)
 GRUPPEN=(g_grund g_hash g_beleg g_schreiben g_sperre g_gleichzeitig g_umschreiben_mit g_umschreiben_ohne)
 for gr in "${GRUPPEN[@]}"; do
 	(
@@ -495,6 +503,7 @@ for gr in "${GRUPPEN[@]}"; do
 		rot "Gruppe $gr ohne Ergebnis"
 	else
 		set -- $z
+		[ "$2" -ge "${MIN[$gr]}" ] || rot "Gruppe $gr: $2 Faelle, mindestens ${MIN[$gr]} erwartet"
 		LAEUFE=$(($LAEUFE + $2))
 		FEHLER=$(($FEHLER + $3))
 	fi

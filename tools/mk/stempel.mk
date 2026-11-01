@@ -3,13 +3,13 @@
 # Beide laufen auf dem Host mit bash und git (die Host-Abhaengigkeiten des Repos), nicht in Docker, und lesen den
 # Arbeitsbaum; sie beruehren weder refs/notes/gates noch die Konfiguration des Repos. Zuordnung: Klasse `werkzeug`
 # (ADR-0024 Entscheidung 3), sie pruefen Werkzeug und kein Verhalten des Produkts.
-# Kein Gate: nichts hieraus steht in `GATE_CHECKS`, `make gates` ruft sie nicht, die CI auch nicht (gates.yml fuehrt nur
-# `make gates`). Aufnahme in `GATE_CHECKS` erst mit der Migration, wenn der werkzeug-Stempel sie ueberspringt: bis dahin
-# kosteten sie in jedem Lauf ihre volle Zeit, ohne dass ein Gate von ihnen abhaengt. Wer tools/stempel*, tools/stempel/*.eingaenge
-# oder das Dockerfile aendert, fuehrt `make stempel-selbsttest stempel-eingaenge stempel-abbild` aus.
+# Kein Gate: nichts hieraus steht in `GATE_CHECKS`, `make gates` und die CI (gates.yml fuehrt nur `make gates`) rufen sie nicht;
+# Aufnahme in `GATE_CHECKS` erst mit der
+# Migration, wenn der werkzeug-Stempel sie ueberspringt. Ein Fehler in tools/stempel*, den Listen oder dem Dockerfile macht
+# deshalb kein Gate rot: wer sie aendert, fuehrt `make stempel-selbsttest stempel-eingaenge stempel-abbild` selbst aus.
 # Laufzeit (Einzelmessungen 2026-11-01 bei Lastmittel 7 bis 10 durch andere Agenten, kein Beleg fuer andere Hosts; kalt, also
-# mit leerem Dateicache, nicht gemessen): stempel-selbsttest 1,2 s, stempel-eingaenge (Pruefung 0,3 s plus Selbsttest)
-# 2,6 s, stempel-abbild 2,6 s. Vor der Verschlankung (damals Gates): stempel-selbsttest 18,7 s, stempel-eingaenge 27,3 s.
+# mit leerem Dateicache, nicht gemessen): stempel-selbsttest 1,2 s, stempel-eingaenge 2,6 s (davon die Pruefung 0,3 s),
+# stempel-abbild 2,6 s.
 .PHONY: stempel-selbsttest stempel-eingaenge stempel-abbild
 
 stempel-selbsttest: ## Jeder Fehlerpfad von tools/stempel.sh in Wegwerf-Repos: Klon, Hash, Sperre, Amend, Rebase, Squash; KEIN Gate (bash, git)

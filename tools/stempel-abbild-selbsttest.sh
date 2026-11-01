@@ -98,6 +98,8 @@ pins() {
 	erwarte "werkzeug: Basis-Image-Pin im Dockerfile geaendert -> Lauf" "$d" 1 "kein Beleg" pruefe werkzeug
 }
 
+# Mindestzahl der Faelle je Gruppe: eine Gruppe, die nichts ausfuehrt, faellt auf (je Listeneintrag ein Fall plus die vier Abbild-Faelle).
+declare -A MIN=([je_tests]=10 [je_werkzeug]=10 [pins]=8)
 GRUPPEN=(je_tests je_werkzeug pins)
 for gr in "${GRUPPEN[@]}"; do
 	(
@@ -114,7 +116,7 @@ wait
 for gr in "${GRUPPEN[@]}"; do
 	grep -v '^#ZAHLEN' "$T/aus.$gr"
 	z=$(grep '^#ZAHLEN' "$T/aus.$gr")
-	if [ -z "$z" ]; then rot "Gruppe $gr ohne Ergebnis"; else set -- $z; LAEUFE=$(($LAEUFE + $2)); FEHLER=$(($FEHLER + $3)); fi
+	if [ -z "$z" ]; then rot "Gruppe $gr ohne Ergebnis"; else set -- $z; [ "$2" -ge "${MIN[$gr]}" ] || rot "Gruppe $gr: $2 Faelle, mindestens ${MIN[$gr]} erwartet"; LAEUFE=$(($LAEUFE + $2)); FEHLER=$(($FEHLER + $3)); fi
 done
 [ "$(schnappschuss)" = "$VORHER" ] || rot "das Repo des Selbsttests wurde beruehrt (Notes-Refs, lokale Konfiguration)"
 if [ "$LAEUFE" -lt 40 ]; then rot "nur $LAEUFE Faelle: der Selbsttest gilt als nicht gelaufen"; fi

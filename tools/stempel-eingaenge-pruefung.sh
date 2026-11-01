@@ -17,7 +17,7 @@
 #    in werkzeug; die Fragmente der Test-Gates in tests) ueberdeckt sind und jede genannte Stage im Dockerfile steht.
 # Ueberdeckt: ein Eintrag nennt denselben Pfad oder ein Elternverzeichnis (`.` deckt alles); eine Quelle mit Platzhalter
 # ist ueberdeckt, wenn ein Eintrag ein Elternverzeichnis ihres Textes nennt (`tools/*.sh` unter `tools`).
-# Befund statt stillem Ignorieren: `COPY .`, `..` in einer Quelle, Heredoc, JSON-Form, Variable (auch in FROM),
+# Befund statt stillem Ignorieren: `COPY .`, `..` in einer Quelle, ein Zyklus aus `COPY --from=`, Heredoc, JSON-Form, Variable (auch in FROM),
 # Anfuehrungszeichen, URL, absolute Quelle, andere Optionen als --chown/--link/--from, `RUN --mount` ohne from= (bind,
 # secret, ssh), eine andere letzte Stage als build und eine nicht erkannte Form von scan/codepaths in .d-check.yml.
 # Stage-Namen gelten ohne Beachtung der Gross-/Kleinschreibung.
@@ -138,11 +138,11 @@ lese_dockerfile() {
 # `COPY --from=<stage>` Dateien holt (deren Eingaenge sind ihre), eine je Zeile.
 stage_quellen() {
 	local s=$2 tiefe=${3:-0} n=0 r
-	[ "$tiefe" -lt 10 ] || return 0
+	[ "$tiefe" -lt 10 ] || { printf "!zyklus\n"; return 0; }
 	while [ -n "$s" ] && [ -n "${KENNT["$1:$s"]:-}" ] && [ $n -lt 50 ]; do
 		printf '%s' "${QUELLEN["$1:$s"]:-}"
 		for r in ${VONREF["$1:$s"]:-}; do
-			[ -z "${KENNT["$1:$r"]:-}" ] || stage_quellen "$1" "$r" $((tiefe + 1))
+			stage_quellen "$1" "$r" $((tiefe + 1))
 		done
 		s=${PARENT["$1:$s"]:-}
 		n=$((n + 1))
@@ -171,6 +171,7 @@ pruefe_quellen() { # <klasse> <herkunft> <quelle>...
 	shift 2
 	for q in "$@"; do
 		[ -n "$q" ] || continue
+		if [ "$q" = "!zyklus" ]; then befund "COPY --from bildet einen Zyklus ($herkunft)"; continue; fi
 		ueberdeckt "$klasse" "$q" || befund "$klasse.eingaenge: kein Eintrag deckt '$q' ($herkunft)"
 	done
 }
