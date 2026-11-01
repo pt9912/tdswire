@@ -8,9 +8,9 @@
 
 **Geltungsbereich:** Cancel-Teil von `SPEC-040` in [`spec/spezifikation.md`](../../../spec/spezifikation.md) und DoD-Punkt 3 von [slice-sim-aenderung-integration](../planning/done/welle-simulations-backend/slice-sim-aenderung-integration.md); Tests unter `referenztest-dotnet/Integration/`, Skript `tools/simulationstest.sh`.
 
-**Folge-Slice:** [`slice-attention-cancel-timeout.md`](../planning/open/slice-attention-cancel-timeout.md)
+**Folge-Slice:** [`slice-cancel-referenzclient-szenario.md`](../planning/open/slice-cancel-referenzclient-szenario.md); sein Abbruchpfad im Server steht in [`slice-attention-cancel-timeout.md`](../planning/open/slice-attention-cancel-timeout.md) (Zerlegung vom 2026-11-01)
 
-**Verantwortlich:** pt9912 (Autor des Slice-Plans) bis zur Priorisierung von `slice-attention-cancel-timeout`.
+**Verantwortlich:** pt9912 (Autor des Slice-Plans) bis zur Priorisierung von `slice-cancel-referenzclient-szenario`.
 
 **Entscheidung des Nutzers 2026-10-31:** Der Nutzer hat „Option A“ bestätigt: die Führung als befristeter Carveout mit dem Folge-Slice `slice-attention-cancel-timeout`; die Alternativen B und C sind nicht gewählt.
 
@@ -25,7 +25,7 @@ Der Server beantwortet ein ATTENTION-Paket während einer Anfrage nicht: Der `Re
 
 ## Auflösungs-Trigger
 
-Der Carveout ist aufgelöst, wenn beides zutrifft: (a) `slice-attention-cancel-timeout` liegt in `done/`, und (b) ein Cancel-Szenario mit Folgeabfrage von `SPEC-040` läuft am Referenzclient gegen das Simulations-Backend in `make simulations-integration` (E2E-Stufe 3) und besteht.
+Der Carveout ist aufgelöst, wenn beides zutrifft: (a) `slice-attention-cancel-timeout` (Abbruchpfad) und `slice-cancel-referenzclient-szenario` (Szenario) liegen in `done/`, und (b) ein Cancel-Szenario mit Folgeabfrage von `SPEC-040` läuft am Referenzclient gegen das Simulations-Backend in `make simulations-integration` (E2E-Stufe 3) und besteht.
 
 ## Geltungs-Konfiguration
 
@@ -51,3 +51,4 @@ Stellen, die die Lücke nennen (keine Gate-Konfiguration):
 |---|---|---|
 | 2026-10-31 | Angelegt (Voreinstellung des Koordinators) | [slice-sim-aenderung-integration](../planning/done/welle-simulations-backend/slice-sim-aenderung-integration.md) |
 | 2026-10-31 | Option A vom Nutzer bestätigt | Sitzung |
+| 2026-11-01 | Folge-Slice geteilt: Das Szenario am Referenzclient liegt in [slice-cancel-referenzclient-szenario](../planning/open/slice-cancel-referenzclient-szenario.md), der Abbruchpfad bleibt in [slice-attention-cancel-timeout](../planning/open/slice-attention-cancel-timeout.md); die Start-Bedingung der Nutzerentscheidungen ist mit [ADR-0027](../adr/0027-abbruch-und-zuruecksetzen.md) erfüllt | [slice-attention-cancel-timeout](../planning/open/slice-attention-cancel-timeout.md) |
