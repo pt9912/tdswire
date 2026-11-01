@@ -9,10 +9,9 @@
 # stempel-eingaenge (nur sein Selbsttest mit Mutationen), stempel-abbild und stempel-gruppe; `make gate-zuordnung` verlangt sie
 # in der Kette und in dieser Klasse. Die Klasse immer traegt keinen Stempel und laeuft in jedem `make gates`: docs-check liest
 # jede Markdown-Datei des Repos, stempel-eingaenge-pruefung alle Make-Fragmente und das Dockerfile, gate-zuordnung die
-# Make-Fragmente; ihr Eingang steht nicht in einer Liste. Diese Zuordnung weicht von ADR-0024 Entscheidung 3 und ADR-0030
-# Entscheidung 2 ab, die docs-check, gate-zuordnung und stempel-eingaenge-pruefung der Klasse werkzeug zuordnen; sie ist als
-# offener Punkt in slice-stempel-migration §6 gefuehrt und gilt bis zur Entscheidung des Architects. Baut ein Gate der Klassen
-# werkzeug oder tests eine Docker-Stage, nennt es sie mit `GATE_STAGE += x=<stage>` (`x=-` ohne Stage; die Klasse stempel baut
+# Make-Fragmente; ihr Eingang steht nicht in einer Liste. Diese Zuordnung traegt ADR-0031 (Accepted, Option A: Klasse immer
+# ohne Stempel); ADR-0024 Entscheidung 3 und ADR-0030 Entscheidung 2 nennen fuer die drei Gates die Klasse werkzeug. Baut ein
+# Gate der Klassen werkzeug oder tests eine Docker-Stage, nennt es sie mit `GATE_STAGE += x=<stage>` (`x=-` ohne Stage; die Klasse stempel baut
 # keine); `make gate-zuordnung` prueft sie gegen die Stage-Liste der Klasse. Die Zuordnung von `docs-check` und `baseline-verify`,
 # deren Fragmente unter harness/mk/ dem Werkzeug gehoeren, steht hier.
 # repo.mk ersetzt GATE_CHECKS nach dem Einbinden aller Fragmente durch die Gruppenschritte gruppe-werkzeug, gruppe-tests und

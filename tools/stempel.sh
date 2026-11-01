@@ -44,6 +44,9 @@
 # Klasse (die Pruefung tools/stempel-eingaenge-pruefung.sh haelt das).
 # Grenze: Die Note ist lokal und wird von jedem mit Schreibrecht auf das Git-Verzeichnis gesetzt; der Hash-Vergleich
 # gegen den Vorfahren faengt eine Note am falschen Commit, nicht eine Note, die ein Mensch am richtigen setzt.
+# Grenze: Die Sauberkeitspruefung liest `git status`. Eine Datei, die mit `git update-index --assume-unchanged` oder
+# `--skip-worktree` markiert ist, meldet `git status` nicht; eine geaenderte Datei dieser Art ueber einem Eintrag der Liste
+# macht den Test blind (der Hash stammt aus dem Commit, nicht aus dem Arbeitsbaum).
 # Laufzeit des Selbsttests: Kopf von tools/mk/stempel.mk.
 set -u
 export LC_ALL=C
