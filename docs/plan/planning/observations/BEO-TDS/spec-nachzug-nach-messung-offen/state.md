@@ -1,0 +1,1 @@
+**Stand:** offen — 1×; unter der Schwelle, kein Träger-Slice, Entscheidung beim Nutzer (Spec-Nachzug `SPEC-004`, `SPEC-025`, `SPEC-032`, `SPEC-050`, Folgepflicht (2) und (3) der Folgepflichten von [ADR-0019](../../../../adr/0019-kompatibilitaetstests-zuschnitt.md); ob `SPEC-004` oder [ADR-0001](../../../../adr/0001-tds-version-und-clientprofil.md) fortgeschrieben wird).
