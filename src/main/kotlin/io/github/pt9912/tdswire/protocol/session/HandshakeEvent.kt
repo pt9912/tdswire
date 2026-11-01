@@ -27,8 +27,9 @@ internal sealed interface HandshakeEvent {
      * Eine vollständige Nachricht. Festlegung ohne Messung: SQL_BATCH, RPC und Transaction Manager
      * sind Anfragen; ATTENTION ist eigene Art, auch während `RUNNING` und `STREAMING`; jeder andere Pakettyp
      * ist [EventKind.OTHER_MESSAGE].
-     * Die Bits RESETCONNECTION und IGNORE der Nachricht wertet der Automat nicht aus (offen,
-     * `ADR-0004`).
+     * Das Bit RESETCONNECTION einer Anfrage in `READY` wertet der Automat aus
+     * ([HandshakeAction.ResetSession]), gleich ob SQL_BATCH, RPC oder Transaction Manager. Das Bit RESETCONNECTION an
+     * jeder anderen Nachricht und das Bit IGNORE wertet er nicht aus (offen, `ADR-0004`, `ADR-0027`).
      */
     class Message(val message: TdsMessage) : HandshakeEvent {
         override val kind: EventKind

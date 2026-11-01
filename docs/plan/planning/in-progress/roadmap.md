@@ -33,7 +33,7 @@ In Arbeit (Welle welle-anfrageverarbeitung):
 
 In Arbeit (Welle welle-fehler-abbruch):
 
-- keiner; zuletzt geschlossen: [slice-attention-cancel-timeout](../done/slice-attention-cancel-timeout.md) (Closure-Notiz in §7 des Slice; Folge: [slice-cancel-referenzclient-szenario](../open/slice-cancel-referenzclient-szenario.md), [slice-resetconnection-zuruecksetzen](../open/slice-resetconnection-zuruecksetzen.md), [slice-abbruch-ressourcen-shutdown](../open/slice-abbruch-ressourcen-shutdown.md))
+- keiner; zuletzt geschlossen: [slice-resetconnection-zuruecksetzen](../done/slice-resetconnection-zuruecksetzen.md) (Closure-Notiz in §7 des Slice; offene Nutzerpunkte: Handle-Aliasing nach dem Zurücksetzen; Folge: [slice-cancel-referenzclient-szenario](../open/slice-cancel-referenzclient-szenario.md), [slice-abbruch-ressourcen-shutdown](../open/slice-abbruch-ressourcen-shutdown.md))
 
 In Arbeit (Welle welle-betrieb-diagnose):
 
@@ -41,7 +41,7 @@ In Arbeit (Welle welle-betrieb-diagnose):
 
 In Arbeit (ohne Welle):
 
-- keiner; zuletzt geschlossen: [slice-stempel-mechanismus](../done/slice-stempel-mechanismus.md) (Closure-Notiz in §7 des Slice; Folge: [slice-stempel-migration](../open/slice-stempel-migration.md))
+- keiner; zuletzt geschlossen: [slice-stempel-migration](../done/slice-stempel-migration.md) (Closure-Notiz in §7 des Slice; offene Nutzerpunkte: Pflichtmenge der Klasse `immer` ([ADR-0031](../../adr/0031-gates-ohne-stempel-klasse-immer.md) Frage (b)), Grenze `assume-unchanged`, Host-Gates ohne Stage-Paar, CI-Seite)
 
 In Arbeit (Welle welle-produktschnitt):
 

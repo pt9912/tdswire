@@ -8,3 +8,5 @@ skript-selbsttest: ## Abbruch von tools/e2e.sh und Fehlerfaelle von tools/manife
 	docker build $(BUILDER_FLAGS) --target skript-selbsttest --progress=plain .
 
 GATE_CHECKS += skript-selbsttest
+GATE_KLASSE_werkzeug += skript-selbsttest
+GATE_STAGE += skript-selbsttest=skript-selbsttest

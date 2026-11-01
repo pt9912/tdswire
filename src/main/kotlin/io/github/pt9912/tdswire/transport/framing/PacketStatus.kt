@@ -3,7 +3,9 @@ package io.github.pt9912.tdswire.transport.framing
 /**
  * Bits des Status-Bytes im TDS-Header (MS-TDS 2.2.3.1.2).
  *
- * Festlegung: Der Leser behält unbekannte Bits im Status-Byte und wertet sie nicht aus.
+ * Festlegung: Der Leser behält unbekannte Bits im Status-Byte und wertet sie nicht aus. Von den Reset-Bits wertet
+ * `MessageAssembler` nur [RESET_CONNECTION] aus; [RESET_CONNECTION_SKIP_TRAN] wirkt nicht wie `0x08` (der Server
+ * führt keine Transaktion; nicht gemessen), ein Paket nur mit `0x10` setzt nichts zurück.
  */
 internal object PacketStatus {
     const val NORMAL = 0x00

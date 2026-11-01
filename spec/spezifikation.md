@@ -248,6 +248,21 @@ Cancel, damit der Client nicht auf sie wartet (Setzung; am echten Server ist nur
 gesendeter Antwort gemessen, im Leerlauf ohne laufende Anfrage nicht). Offen: die Antwort auf unzulässige
 Übergänge außerhalb des Handshakes und ATTENTION in jedem Anfragezustand über diese Bestätigung hinaus.
 
+RESETCONNECTION: Trägt das erste Paket einer Anfrage-Nachricht (SQL_BATCH, RPC, Transaction Manager) in `IDLE`
+das Statusbit `RESETCONNECTION` (`0x08`), setzt der Sitzungsrahmen den Sitzungszustand zurück, mindestens die Handle-Tabelle
+(`SPEC-030`): im Übergang, der die Anfrage annimmt, unter der Sperre der Sitzung und vor der Verarbeitung dieser
+Anfrage. Die Anfrage mit dem Bit wird danach wie jede andere beantwortet (ein Transaction Manager bleibt unbeantwortet
+und die Verbindung schließt wie ohne das Bit). Das Zurücksetzen ist eine Aktion am
+Übergang, kein Zustand der Aufzählung. Wer weiteren Sitzungszustand einführt (heute führt der Server nur die
+Handles), setzt ihn an dieser Stelle zurück. Das Bit in einem anderen Zustand als `IDLE` wertet der Server nicht
+aus: eine Anfrage dort ist ein unzulässiger Übergang, an ATTENTION und an den Nachrichten des Handshakes bleibt
+das Bit ohne Wirkung; das Statusbit `0x10` (RESETCONNECTIONSKIPTRAN) wertet der Server nicht aus und es wirkt
+nicht wie `0x08`, weil der Server keine Transaktion führt (Festlegung, nicht gemessen). Gemessen am Referenzclient (`Microsoft.Data.SqlClient` 7.1.1,
+TDS 7.4, `Pooling=true`, eine physische Verbindung): über mehrere Open-Phasen gelingen mehr als 1000 vorbereitete
+Befehle (das 1001. einer Open-Phase endet weiter mit `SPEC-058`); das Bit ist damit über seine Wirkung beobachtet,
+am Draht nicht gesehen. Die Antwort auf die Anfrage mit dem Bit trägt kein ENVCHANGE: der Referenzclient nahm sie so an;
+ob und wie die Antwort eines echten Servers mit ENVCHANGE beginnt, ist nicht gemessen.
+
 Der Abschluss einer Anfrage wird genau einmal gesendet.
 
 ### SPEC-002 — Interner Query-Vertrag
@@ -375,7 +390,7 @@ SQL-/RPC-Operationen und erwartete Typen. Ohne dieses Profil ist die Kompatibili
 abgeschlossen. Festgelegt sind Paket (`Microsoft.Data.SqlClient` 7.1.1), .NET-Version (10) und
 TDS-Variante (7.4 und 8.0). **Offene Freigabepunkte:** `Encrypt`/`TrustServerCertificate`,
 unterstützte RPCs (Entwurf in `SPEC-030`), MARS ja/nein, Transaktionen ja/nein (Pakettyp `0x0E`, kein RPC),
-Verbindungs-Pooling (einschließlich RESETCONNECTION-Statusbit der Paketheader) und Lastprofil.
+Verbindungs-Pooling unter TDS 8.0 (unter TDS 7.4 ist das RESETCONNECTION-Statusbit der Paketheader am Referenzclient über seine Wirkung gemessen, `SPEC-001`) und Lastprofil.
 Die unterstützten RPCs gibt das Clientprofil erst frei, wenn die Messgrenzen aus `SPEC-030` geklärt sind
 (TDS 8.0, Pooling, echter Server, `SET`-Text bei SchemaOnly und KeyInfo, Transaktionen).
 Die Authentifizierung ist SQL-Authentifizierung (Kennung und Passwort im LOGIN7, `SPEC-051`).
@@ -471,9 +486,9 @@ Handvektoren, die Zahl 1000 ist eine Setzung, Voreinstellung, und nicht konfigur
 - Eine Sitzung hält höchstens 1000 Handles gleichzeitig. Das `sp_prepexec`, das das 1001. Handle vergäbe,
   ergibt `SPEC-058` (ERROR und DONE mit Fehlerstatus), ohne dass das Backend gerufen wird; die Verbindung
   bleibt offen, die vorhandenen Handles bleiben gültig.
-- `sp_prepexec` vergibt ein neues Handle: ein Zähler je Sitzung ab 1, aufsteigend, ohne Wiederverwendung. Der
+- `sp_prepexec` vergibt ein neues Handle: ein Zähler je Sitzung ab 1, aufsteigend, ohne Wiederverwendung außer nach `RESETCONNECTION` (dort beginnt er bei 1 neu). Der
   Wert im OUTPUT-Parameter der Nachricht (−1 beim Erstaufruf, ein altes Handle bei einem erneuten Prepare)
-  bleibt unberücksichtigt; ein altes Handle bleibt bis zum Sitzungsende gültig. Der Server merkt den
+  bleibt unberücksichtigt; ein altes Handle bleibt bis zum Sitzungsende oder bis zu `RESETCONNECTION` gültig. Der Server merkt den
   SQL-Text (nicht die Deklarationsliste; die Größe des Textes ist nicht begrenzt), ruft das Backend mit dem
   Text und den Wertparametern der Nachricht und beantwortet nach der Form RPC. Das Handle steht als
   RETURNVALUE mit dem Namen `@handle` (`INTN` 4, nullbar) vor dem ersten Ausgabewert des Backends, sonst am
@@ -488,6 +503,11 @@ Handvektoren, die Zahl 1000 ist eine Setzung, Voreinstellung, und nicht konfigur
 - `sp_unprepare` und `sp_prepare` sind nicht im Katalog (`SPEC-013`) und geben kein Handle frei.
 - Die Handles enden mit der Sitzung; zwei Sitzungen sehen die Handles der jeweils anderen nicht. Der Zugriff
   auf die Tabelle einer Sitzung ist gegen gleichzeitigen Zugriff geschützt.
+- `RESETCONNECTION` (`SPEC-001`) leert die Tabelle: jedes Handle aus der Zeit davor ist unbekannt (`SPEC-057`), der
+  Zähler beginnt wieder bei 1, und die Grenze von 1000 gilt neu. Ein Handle, das ein Client aus der Zeit davor hält,
+  trifft nach einem neuen `sp_prepexec` mit gleichem Wert den neuen Text. Der Zähler ab 1 nach dem Zurücksetzen ist
+  eine Setzung, nicht gemessen; ob der Referenzclient seine Handles beim Zurücksetzen selbst verwirft, ist nicht
+  gemessen.
 
 
 ### SPEC-031 — Streaming-Fehler und Atomarität
@@ -861,7 +881,7 @@ Abnahmegrenzen.
 | `SPEC-039` | `TDS_SIM_INVALID_VALUE` | Wert nicht in den Spaltentyp überführbar | ERROR und DONE mit Fehlerstatus; vorgesehene SQL-Server-Nummern 245 (Konvertierung) und 8115 (Überlauf), an der Referenzinstanz zu messen |
 | `SPEC-048` | `TDS_INTERNAL_ERROR` | unerwartete Ausnahme im Server oder im Backend-Adapter, auch ein `OutOfMemoryError` beim Erzeugen oder Senden der Antwort (`SPEC-031`) | ERROR (Severity 20) und DONE mit Fehlerstatus, fester Text ohne den Text der Ausnahme, danach Verbindungsende; die Ausnahme geht nur als Typname ins Log, nie mit Text (Abschnitt 4). Gebaut ist im Anfragepfad die Textzeile mit Code und vollqualifiziertem Typnamen, nie der Text der Ausnahme; **Zielzustand, nicht gebaut:** Format und Felder des Ereignisses (Abschnitt 4) |
 | `SPEC-049` | `TDS_SHUTDOWN` | Anfrage nach Beginn des geordneten Beendens (`SPEC-044`) | ERROR und DONE mit Fehlerstatus, danach Verbindungsende; vorgesehen: die SQL-Server-Meldung für ein Herunterfahren, Nummer im Mapping nach `TDS-FA-06.a` festlegen |
-| `SPEC-057` | `TDS_UNKNOWN_HANDLE` | `sp_execute` mit einem Handle, das die Sitzung nicht hält (`SPEC-030`) | ERROR und DONE mit Fehlerstatus; die Verbindung bleibt offen (Class 16), das Backend wird nicht gerufen; das Log nennt die feste Marke `unknown-handle` |
+| `SPEC-057` | `TDS_UNKNOWN_HANDLE` | `sp_execute` mit einem Handle, das die Sitzung nicht hält, auch nach `RESETCONNECTION` (`SPEC-030`) | ERROR und DONE mit Fehlerstatus; die Verbindung bleibt offen (Class 16), das Backend wird nicht gerufen; das Log nennt die feste Marke `unknown-handle` |
 | `SPEC-058` | `TDS_PREPARE_LIMIT` | `sp_prepexec` bei erreichter Grenze von 1000 Handles der Sitzung (`SPEC-030`) | ERROR und DONE mit Fehlerstatus; die Verbindung bleibt offen (Class 16), das Backend wird nicht gerufen, die vorhandenen Handles bleiben gültig; das Log nennt die feste Marke `handle-limit` |
 
 Die Nummern in der Aktionsspalte sind ein Vorschlag für das Mapping nach `TDS-FA-06.a`. Für
@@ -1345,4 +1365,5 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | 2026-11-01 | Testserver gebaut: Umgebung, Dateien, Tabellenbeschreibung und Jackson liegen im Testserver (eigenes Source-Set), `ServerConfig` führt keine Datei der Tabellenbeschreibung mehr; `make e2e` lief mit den sieben Stufen grün (Einzelmessung 2026-11-01, 312 s); die Zielzustand-Vermerke zu `SPEC-005`, `SPEC-010`, `SPEC-035`, `SPEC-040`, `SPEC-051` und `SPEC-059` entfallen, `SPEC-052` bleibt Zielzustand; `LOGIN_TIMEOUT` und `MAX_PRELOGIN_MESSAGE_BYTES` sind als Eingang des Testservers ausgezeichnet |
 | 2026-11-01 | Log und Telemetrie festgelegt: Pflicht-Logfelder um `ts`, `level` und `principal` (nur bei angenommener Anmeldung) ergänzt, Quelle von `client_profile` und Herkunft der IDs, Parameterwerte nie, Redaktion durch Bauart, Zugang zu Metriken und Spans über die Senke der Bibliothek, `LOG_LEVEL`, `METRICS_INTERVAL_SECONDS` und das Format der JSON-Zeile als Aussagen über den Testserver, Adresse des Bindefehlers nur im Ereignis (`TDS-FA-09.a`, Abschnitte 4 und 5, `SPEC-052`) |
 | 2026-11-01 | Öffentliche Fläche der Bibliothek festgelegt und verkleinert: `explicitApi` (Modus `strict`) ist eingeschaltet, `SPEC-059` nennt die endgültige Liste der öffentlichen Namen, alles andere ist `internal` (darunter `SimCatalog.find`, `SimTable.column`, die Typen der Authentifizierungsadapter und `ConfigKeys`); `SHUTDOWN_GRACE` und `MAX_CONNECTIONS` sind als Eingang des gebauten Stands nicht ausgezeichnet und stehen als Zielzustand, `QUERY_TIMEOUT` nennt `ServerConfig.requests` als Eingang (`SPEC-059`, `SPEC-047`, `SPEC-034`, `SPEC-009`) |
+| 2026-11-01 | RESETCONNECTION festgelegt und gebaut: Das Statusbit im ersten Paket einer Anfrage in `IDLE` leert unter der Sperre der Sitzung vor der Verarbeitung die Handle-Tabelle, Zähler und Grenze beginnen neu (Setzung, nicht gemessen); am Referenzclient mit Pooling über seine Wirkung gemessen, die Antwort ohne ENVCHANGE nimmt er an (`SPEC-001`, `SPEC-030`, `SPEC-057`, `SPEC-004`) |
 | 2026-11-01 | Bibliotheks-Jar ohne `Main-Class` gebaut: Das Manifest nennt keine Startklasse, die Prüfung im Bau meldet eine vorhandene `Main-Class`, eine Klasse des Testservers im Jar und Jackson in `lib/` als Befund, die Stages `runtime` und `build` (Distroless) entfallen, `make laufzeittest` prüft den Testserver-Container; die Prüfungen am Produkt-Image entfallen ohne Ersatz; der Zielzustand-Vermerk von `SPEC-052` zur Startklasse und zum Laufzeit-Image entfällt (`SPEC-052`, `TDS-RB-01`, `TDS-QA-06`) |

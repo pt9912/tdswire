@@ -1,28 +1,21 @@
-# Eingangsliste des Stempels `werkzeug` (ADR-0024 Entscheidung 1 und 10): die Vereinigung der Eingaenge von
-# docs-check, baseline-verify, detekt-selbsttest, skript-selbsttest, kopplung-zahlen und den Selbsttests der Stempel.
-# Ein literaler Pfad je Zeile, Verzeichnisse gelten rekursiv, `#` beginnt einen Kommentar.
-# Geprueft gegen die COPY-Quellen der Stages und die Scan-Wurzeln von .d-check.yml:
-# tools/stempel-eingaenge-pruefung.sh. Das Skript, seine Lib und beide Listen stehen auch in tests.eingaenge.
-# Abweichung von der Anfangsliste in ADR-0024 Entscheidung 10 (Setzung des Implementers, Begruendung im Slice): `config`
-# statt `config/detekt/selbsttest*` (das Dockerfile kopiert `config` ganz); zusaetzlich README.md, AGENTS.md,
-# .claude/{agents,commands,rules} (d-check liest sie nach scan.roots), d-check.mk (Image-Pin), die Gradle-Dateien und
-# Einzeldateien der COPY-Zeilen, .harness/skills und SqlType.kt (Ziele von Links, die d-check auf Existenz prueft).
-# Grenze: Eingaenge, die weder ein COPY noch ein Markdown-Link noch ein Make-Fragment sind, sieht die Pruefung nicht.
-docs
-spec
-harness
+# Eingangsliste des Stempels `werkzeug` (ADR-0024 Entscheidung 1 und 10): die Vereinigung der Eingaenge von baseline-verify,
+# detekt-selbsttest, skript-selbsttest und kopplung-zahlen. Ein literaler Pfad je Zeile, Verzeichnisse gelten rekursiv, `#`
+# beginnt einen Kommentar. Nicht in der Liste: docs, spec (ausser spec/spezifikation.md), README.md, AGENTS.md, .claude,
+# .harness/skills, .d-check.yml, d-check.mk; kein Gate dieser Klasse liest sie, docs-check (Klasse immer) liest sie bei jedem Lauf.
+# Herleitung: baseline-verify liest .harness/baseline (tools/harness/baseline-verify.sh) und laeuft ueber harness/mk/baseline.mk;
+# die drei Docker-Gates lesen die COPY-Quellen ihrer Stages (detekt-selbsttest: Gradle-Dateien, Lockfiles, config;
+# skript-selbsttest: Skripte unter tools, Dockerfile, tools/mk, harness/mk, Makefile, repo.mk, .github/workflows;
+# kopplung-zahlen: build.gradle.kts, die Test-Quelle des Integrationsservers, der .NET-Test, spec/spezifikation.md,
+# harness/README.md). Geprueft gegen die COPY-Quellen der Stages: tools/stempel-eingaenge-pruefung.sh. Das Skript, seine Lib und
+# alle drei Listen stehen auch in tests.eingaenge und stempel.eingaenge.
+# Grenze: Eingaenge, die weder ein COPY noch ein Make-Fragment noch eine feste Angabe der Pruefung sind, sieht die Pruefung nicht.
+.harness/baseline
+harness/mk
+harness/README.md
+spec/spezifikation.md
 tools
-.d-check.yml
-d-check.mk
 Makefile
 repo.mk
-.harness/baseline
-.harness/skills
-README.md
-AGENTS.md
-.claude/agents
-.claude/commands
-.claude/rules
 Dockerfile
 .dockerignore
 settings.gradle.kts
@@ -33,8 +26,6 @@ settings-gradle.lockfile
 gradle/libs.versions.toml
 gradle/verification-metadata.xml
 config
-src/test/kotlin/io/github/pt9912/tdswire/runtime/IntegrationServer.kt
-src/main/kotlin/io/github/pt9912/tdswire/domain/SqlType.kt
+src/testserver/kotlin/io/github/pt9912/tdswire/testserver/IntegrationServer.kt
 referenztest-dotnet/Integration/SimulationBackendTests.cs
-referenztest-dotnet/Dockerfile
 .github/workflows

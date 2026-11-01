@@ -14,8 +14,8 @@ namespace TdsWire.Referenztests.Kompatibilitaet;
 /// derselben Sitzung liefen, die SET-Texte und dass keine unbekannte Prozedur (`sp_unprepare`) ankam, stehen nur im Log des Servers; ihre Prüfung liegt in
 /// `tools/kompatibilitaetstest.sh`, ein `dotnet test` allein belegt sie nicht. Nicht belegt: Windows-SSPI (nicht
 /// lieferbar, ADR-0019); ob ein LOGIN7 in mehreren Paketen ankam (kein Mitschnitt, die Paketzahl ist nicht beobachtet);
-/// das RESETCONNECTION-Bit selbst (der Server wertet es nicht aus, beobachtet ist die zweite Nutzung der gepoolten
-/// Verbindung); die Paketgröße der Antworten des Servers (der Client nimmt auch Pakete über der ausgehandelten Größe
+/// das RESETCONNECTION-Bit (seine Wirkung bei Pooling misst `LueckenTests`; hier ist die zweite Nutzung der gepoolten
+/// Verbindung beobachtet, und die Grenze der Handles gilt innerhalb einer Open-Phase); die Paketgröße der Antworten des Servers (der Client nimmt auch Pakete über der ausgehandelten Größe
 /// an: der Server mit fester Größe 8000 ließ den Test grün); TLS 1.2 und andere Suiten (die ausgehandelte Version ist
 /// nicht beobachtet); ein echter SQL Server.
 /// </summary>
