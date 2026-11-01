@@ -1,6 +1,6 @@
 # Verifikationsbericht: slice-stempel-mechanismus (Commit d00ead2)
 
-* Gegenstand: Branch `worktree-agent-a6cd22a38ea2e2c42`, HEAD `d00ead2`, Basis `c83f5e1`, nicht gemergt. Geprüft: [ADR-0024](../plan/adr/0024-lokale-stempel-zwei-klassen.md), [ADR-0023](../plan/adr/0023-gate-klassen-und-stempel.md), [Slice](../plan/planning/in-progress/slice-stempel-mechanismus.md), [Review d286322](2026-11-01-d286322-slice-stempel-mechanismus.md).
+* Gegenstand: Branch `worktree-agent-a6cd22a38ea2e2c42`, HEAD `d00ead2`, Basis `c83f5e1`, nicht gemergt. Geprüft: [ADR-0024](../plan/adr/0024-lokale-stempel-zwei-klassen.md), [ADR-0023](../plan/adr/0023-gate-klassen-und-stempel.md), [Slice](../plan/planning/done/slice-stempel-mechanismus.md), [Review d286322](2026-11-01-d286322-slice-stempel-mechanismus.md).
 * Rolle: Verifier (Modul 11), jeden Punkt selbst gegen Code und Tests geprüft. Herkunft: Der Verifier-Agent durfte die Datei nicht anlegen; der Inhalt ist sein Bericht, vom Aufrufer verdichtet abgelegt. `git status` und `git diff` im Worktree sind nach allen Läufen leer.
 
 ## Gesamturteil
