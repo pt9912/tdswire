@@ -44,7 +44,10 @@ internal class HandleReturningBackend(private val delegate: QueryBackend, privat
             if (event is QueryEvent.Failure) failed = true
             emit(event)
         }
-        if (!returned && !failed) emit(handleEvent)
+        if (!returned && !failed) {
+            returned = true
+            emit(handleEvent)
+        }
     }
 
     companion object {

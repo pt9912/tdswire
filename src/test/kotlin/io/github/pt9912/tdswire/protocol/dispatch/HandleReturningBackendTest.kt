@@ -34,6 +34,10 @@ class HandleReturningBackendTest {
         assertEquals(listOf(end, handle), events(end))
         assertEquals(listOf(handle), events())
         assertEquals(listOf(end, handle, output, output), events(end, output, output))
+        val atEnd = HandleReturningBackend(ScriptedBackend.ofList(end), 4)
+        assertEquals(false, atEnd.returned)
+        atEnd.execute(request).events.toList()
+        assertEquals(true, atEnd.returned)
     }
 
     /**
