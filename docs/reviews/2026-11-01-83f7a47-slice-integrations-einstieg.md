@@ -1,7 +1,7 @@
 # Review: slice-integrations-einstieg (Commit 83f7a47)
 
 * Basis: `git diff main...worktree-agent-ad19273eac55e7908`, 13 Commits auf `8f372c6`, 34 Dateien, +1284/−269; Branch nicht gemergt.
-* Prüfgrundlage: Plan `docs/plan/planning/in-progress/slice-integrations-einstieg.md` (im Branch, §3 Setzungen), [ADR-0021](../plan/adr/0021-oeffentlicher-integrations-einstieg.md) (Accepted), [ADR-0012](../plan/adr/0012-simulations-backend-beschreibung-und-formen.md), [ADR-0013](../plan/adr/0013-backend-grenzen.md), [ADR-0022](../plan/adr/0022-e2e-laeufe-nicht-in-den-gates.md), [ADR-0023](../plan/adr/0023-gate-klassen-und-stempel.md), `spec/architecture.md`, SPEC-002/035/059, ARC-006/008/016 und `AGENTS.md` §3.1 bis §3.8, nach `.harness/skills/reviewer.md`; nicht gegen die DoD.
+* Prüfgrundlage: Plan `docs/plan/planning/done/slice-integrations-einstieg.md` (im Branch, §3 Setzungen), [ADR-0021](../plan/adr/0021-oeffentlicher-integrations-einstieg.md) (Accepted), [ADR-0012](../plan/adr/0012-simulations-backend-beschreibung-und-formen.md), [ADR-0013](../plan/adr/0013-backend-grenzen.md), [ADR-0022](../plan/adr/0022-e2e-laeufe-nicht-in-den-gates.md), [ADR-0023](../plan/adr/0023-gate-klassen-und-stempel.md), `spec/architecture.md`, SPEC-002/035/059, ARC-006/008/016 und `AGENTS.md` §3.1 bis §3.8, nach `.harness/skills/reviewer.md`; nicht gegen die DoD.
 * Lauf: reine Lektüre mit `git diff`, `git show`, `git grep` und `git merge-tree`; kein Gate, kein Test; Aussagen zu Rot und Grün stammen aus dem Quelltext oder vom Implementer.
 * Herkunft: Reviewer-Rolle, frischer Kontext, ohne eigenen Worktree; der Inhalt ist sein Bericht, vom Aufrufer abgelegt.
 
