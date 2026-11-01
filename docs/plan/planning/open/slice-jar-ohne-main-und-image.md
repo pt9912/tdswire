@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** SPEC-052 · SPEC-042 (Build-Gate, Digest-Pin der Basis-Images) · SPEC-040 (die Aussagen stehen nach `slice-spec-nachzug-produktschnitt`; dieser Slice setzt sie im Bau um und nimmt die Zielzustand-Vermerke heraus, die er erfüllt, Nachweis-Pflicht in der DoD).
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** pt9912.
 
 **Autor:** pt9912. **Datum:** 2026-11-01.
 
