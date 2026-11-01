@@ -33,7 +33,7 @@ In Arbeit (Welle welle-betrieb-diagnose):
 
 In Arbeit (ohne Welle):
 
-- keiner; zuletzt geschlossen: [slice-stempel-mechanismus](../done/slice-stempel-mechanismus.md) (Closure-Notiz in §7 des Slice; Folge: [slice-stempel-migration](../open/slice-stempel-migration.md))
+- keiner; zuletzt geschlossen: [slice-stempel-mechanismus](../done/slice-stempel-mechanismus.md) (Closure-Notiz in §7 des Slice; Folge: [slice-stempel-migration](../next/slice-stempel-migration.md))
 
 ## Nächste Wellen
 
