@@ -1,1 +1,1 @@
-**Stand:** offen
+**Stand:** gestrichen — der Einstieg `TdsServer.start` ist mit slice-integrations-einstieg öffentlich und von außen belegt (`EmbeddingTest` im Source-Set `integrator`, Mutation „Einstieg `internal`“ rot); die Ursache, ein Einstieg ohne Träger, kann nicht mehr auftreten. Die Fläche selbst bleibt Gegenstand von slice-explicit-api-umbau.

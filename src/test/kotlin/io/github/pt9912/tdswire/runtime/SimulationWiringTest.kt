@@ -205,7 +205,7 @@ internal class SimulationWiringTest : RuntimeTestBase() {
                 withDescription(text) + (ConfigKeys.LISTEN_PORT to port.toString()),
             )
 
-            assertEquals(BootResult.Aborted, boot, label)
+            assertIs<StartOutcome.Aborted>(boot, label)
             val line = log.lines.single()
             assertTrue(line.startsWith("Beschreibung der Tabellen ungueltig: "), "$label: $line")
             assertTrue(line.contains("Zeile ") && line.contains("Spalte "), "$label: $line")
@@ -214,7 +214,7 @@ internal class SimulationWiringTest : RuntimeTestBase() {
             assertNoNewListenerThreads(before)
             assertFree(port)
         }
-        assertIs<BootResult.Running>(start(withDescription(PERSON_FILE)))
+        assertIs<StartOutcome.Running>(start(withDescription(PERSON_FILE)))
     }
 
     /**
@@ -231,23 +231,23 @@ internal class SimulationWiringTest : RuntimeTestBase() {
         fun padded(size: Int) = head + "#".repeat(size - head.size - 1).toByteArray() + "\n".toByteArray()
 
         val exact = environment(ConfigKeys.SIMULATION_DESCRIPTION_FILE to file("exact.yaml", padded(limit)))
-        assertIs<BootResult.Running>(start(exact))
+        assertIs<StartOutcome.Running>(start(exact))
 
         val over = environment(ConfigKeys.SIMULATION_DESCRIPTION_FILE to file("over.yaml", padded(limit + 1)))
-        assertEquals(BootResult.Aborted, start(over))
+        assertIs<StartOutcome.Aborted>(start(over))
         assertEquals("Konfiguration ungueltig: SIMULATION_DESCRIPTION_FILE: TOO_LARGE", log.lines.last())
 
         val missing = environment(ConfigKeys.SIMULATION_DESCRIPTION_FILE to "/nicht/vorhanden/sim.yaml")
-        assertEquals(BootResult.Aborted, start(missing))
+        assertIs<StartOutcome.Aborted>(start(missing))
         assertEquals("Konfiguration ungueltig: SIMULATION_DESCRIPTION_FILE: UNREADABLE", log.lines.last())
 
         val blank = environment(ConfigKeys.SIMULATION_DESCRIPTION_FILE to " ")
-        assertEquals(BootResult.Aborted, start(blank))
+        assertIs<StartOutcome.Aborted>(start(blank))
         assertEquals("Konfiguration ungueltig: SIMULATION_DESCRIPTION_FILE: INVALID_VALUE", log.lines.last())
 
         val latinBytes = head + byteArrayOf(0xE4.toByte())
         val latin = environment(ConfigKeys.SIMULATION_DESCRIPTION_FILE to file("latin.yaml", latinBytes))
-        assertEquals(BootResult.Aborted, start(latin))
+        assertIs<StartOutcome.Aborted>(start(latin))
         assertTrue(log.lines.last().contains("kein gültiges UTF-8"), log.lines.last())
     }
 
@@ -261,7 +261,7 @@ internal class SimulationWiringTest : RuntimeTestBase() {
     fun `ein Pfad ohne reguelaere Datei ist unlesbar`() = blocking {
         val directory = java.io.File(file("x.yaml", PERSON_FILE)).parent
         for (path in listOf(directory, "/dev/zero", "/dev/null", "sim\u0000.yaml")) {
-            assertEquals(BootResult.Aborted, start(environment(ConfigKeys.SIMULATION_DESCRIPTION_FILE to path)), path)
+            assertIs<StartOutcome.Aborted>(start(environment(ConfigKeys.SIMULATION_DESCRIPTION_FILE to path)), path)
             assertEquals("Konfiguration ungueltig: SIMULATION_DESCRIPTION_FILE: UNREADABLE", log.lines.last(), path)
         }
     }
@@ -279,7 +279,7 @@ internal class SimulationWiringTest : RuntimeTestBase() {
         assertTrue(java.nio.file.Files.isRegularFile(java.nio.file.Paths.get(path)))
         assertFailsWith<java.io.IOException> { java.io.File(path).inputStream().use { it.readNBytes(1) } }
 
-        assertEquals(BootResult.Aborted, start(environment(ConfigKeys.SIMULATION_DESCRIPTION_FILE to path)))
+        assertIs<StartOutcome.Aborted>(start(environment(ConfigKeys.SIMULATION_DESCRIPTION_FILE to path)))
         assertEquals("Konfiguration ungueltig: SIMULATION_DESCRIPTION_FILE: UNREADABLE", log.lines.last())
     }
 
@@ -301,7 +301,7 @@ internal class SimulationWiringTest : RuntimeTestBase() {
         assertTrue(log.lines.contains("Simulations-Backend: 1 Tabellen"), log.lines.toString())
 
         val env = environment(ConfigKeys.SIMULATION_DESCRIPTION_FILE to toDirectory.toString())
-        assertEquals(BootResult.Aborted, start(env))
+        assertIs<StartOutcome.Aborted>(start(env))
         assertEquals("Konfiguration ungueltig: SIMULATION_DESCRIPTION_FILE: UNREADABLE", log.lines.last())
     }
 
@@ -313,17 +313,15 @@ internal class SimulationWiringTest : RuntimeTestBase() {
     @Test
     fun `Widersprueche zwischen Datei Schnittstelle und Backend brechen den Start ab`() = blocking {
         val person = integratorTable(personColumns(), mutableListOf("Id"), emptyList()).copy(name = "PERSON")
-        assertEquals(
-            BootResult.Aborted,
-            start(withDescription(PERSON_FILE), wiringWith(person)),
-        )
+        val duplicate = assertIs<StartOutcome.Aborted>(start(withDescription(PERSON_FILE), wiringWith(person)))
         assertEquals("Tabellen ungueltig: ein Name kommt doppelt vor", log.lines.last())
+        assertEquals(log.lines.last(), duplicate.reason)
 
         val backend = ScriptedBackend.ofList()
-        assertEquals(
-            BootResult.Aborted,
+        val both = assertIs<StartOutcome.Aborted>(
             start(withDescription(PERSON_FILE), Wiring(log = log, requests = RequestSource(backend))),
         )
         assertEquals("Backend und Simulations-Backend gleichzeitig konfiguriert", log.lines.last())
+        assertEquals(log.lines.last(), both.reason)
     }
 }

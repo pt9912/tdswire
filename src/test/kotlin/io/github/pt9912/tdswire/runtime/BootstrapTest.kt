@@ -1,6 +1,8 @@
 package io.github.pt9912.tdswire.runtime
 
+import io.github.pt9912.tdswire.config.ConfigIssue
 import io.github.pt9912.tdswire.config.ConfigKeys
+import io.github.pt9912.tdswire.config.IssueKind
 import io.github.pt9912.tdswire.config.auth.pbkdf2Value
 import io.github.pt9912.tdswire.testsupport.blocking
 import io.github.pt9912.tdswire.transport.listener.LOOPBACK
@@ -38,12 +40,12 @@ internal class BootstrapTest : RuntimeTestBase() {
         listOf(null, "1", "00", "", "0 ", "-1").forEach { value ->
             val properties = { key: String -> if (key == Bootstrap.TICKET_FLAG) value else null }
             val boot = Bootstrap.start(environment, properties, Wiring(log = log))
-            assertEquals(BootResult.Aborted, boot, "Wert '$value'")
+            assertIs<StartOutcome.Aborted>(boot, "Wert '$value'")
         }
         assertTrue(log.lines.all { it.contains("newSessionTicketCount=0") }, log.lines.toString())
         assertEquals(6, log.lines.size)
         assertNoNewListenerThreads(before)
-        assertIs<BootResult.Running>(start(environment))
+        assertIs<StartOutcome.Running>(start(environment))
     }
 
     /**
@@ -63,13 +65,21 @@ internal class BootstrapTest : RuntimeTestBase() {
             ConfigKeys.LOGIN_TIMEOUT to "geheim-wert-$WERTPROBE",
             ConfigKeys.MAX_PRELOGIN_MESSAGE_BYTES to "1",
         )
-        assertEquals(BootResult.Aborted, start(environment))
+        val aborted = assertIs<StartOutcome.Aborted>(start(environment))
         assertEquals(
             listOf(
                 "Konfiguration ungueltig: LOGIN_TIMEOUT: INVALID_VALUE",
                 "Konfiguration ungueltig: MAX_PRELOGIN_MESSAGE_BYTES: OUT_OF_RANGE",
             ),
             log.lines.toList(),
+        )
+        assertEquals("Konfiguration ungueltig", aborted.reason)
+        assertEquals(
+            listOf(
+                ConfigIssue(ConfigKeys.LOGIN_TIMEOUT, IssueKind.INVALID_VALUE),
+                ConfigIssue(ConfigKeys.MAX_PRELOGIN_MESSAGE_BYTES, IssueKind.OUT_OF_RANGE),
+            ),
+            aborted.issues,
         )
         assertNoNewListenerThreads(before)
         assertFree(port)
@@ -86,7 +96,7 @@ internal class BootstrapTest : RuntimeTestBase() {
         val port = freePort()
         val path = file("kennung-$WERTPROBE.txt", "kennung-$WERTPROBE\t{pbkdf2-sha256}passwort-$WERTPROBE\n")
         val environment = loopbackEnvironment(path, ConfigKeys.LISTEN_PORT to port.toString())
-        assertEquals(BootResult.Aborted, start(environment))
+        assertIs<StartOutcome.Aborted>(start(environment))
         val expected = "Konfiguration ungueltig: AUTH_USERS_FILE: USER_LIST_INVALID (FIELD_COUNT, Zeile 1)"
         assertEquals(listOf(expected), log.lines.toList())
         assertFree(port)
@@ -103,7 +113,7 @@ internal class BootstrapTest : RuntimeTestBase() {
         val before = listenerThreads()
         ServerSocket(0, 1, InetAddress.getByName(LOOPBACK)).use { occupied ->
             val environment = loopbackEnvironment(users(), ConfigKeys.LISTEN_PORT to occupied.localPort.toString())
-            assertEquals(BootResult.Aborted, start(environment))
+            assertIs<StartOutcome.Aborted>(start(environment))
             assertEquals(listOf("Start gescheitert: Port belegt: $LOOPBACK:${occupied.localPort}"), log.lines.toList())
             assertNoNewListenerThreads(before)
             assertFalse(occupied.isClosed)
@@ -121,14 +131,14 @@ internal class BootstrapTest : RuntimeTestBase() {
         val port = freePort()
         val before = listenerThreads()
         val bad = tlsEnvironment("abgelaufen.p12", port)
-        assertEquals(BootResult.Aborted, start(bad))
+        assertIs<StartOutcome.Aborted>(start(bad))
         assertEquals(1, log.lines.size, log.lines.toString())
         val line = log.lines.single()
         assertTrue(line.startsWith("Start gescheitert: TLS-Konfiguration: CERTIFICATE"), line)
         assertNoNewListenerThreads(before)
         assertFree(port)
         val good = tlsEnvironment("gueltig.p12", port)
-        assertIs<BootResult.Running>(start(good))
+        assertIs<StartOutcome.Running>(start(good))
     }
 
     /**
@@ -140,7 +150,7 @@ internal class BootstrapTest : RuntimeTestBase() {
     @Test
     fun `Ein falsches Kennwort des Speichers bricht den Start ab`() = blocking {
         val environment = tlsEnvironment("gueltig.p12", 0, password = "falsch-$WERTPROBE")
-        assertEquals(BootResult.Aborted, start(environment))
+        assertIs<StartOutcome.Aborted>(start(environment))
         assertTrue(log.lines.single().startsWith("TLS-Konfiguration: CERTIFICATE"), log.lines.toString())
         assertFalse(log.lines.single().contains(WERTPROBE))
     }
@@ -207,7 +217,7 @@ internal class BootstrapTest : RuntimeTestBase() {
         val before = listenerThreads()
         val server = running(loopbackEnvironment(users()))
         val environment = loopbackEnvironment(users(), ConfigKeys.LISTEN_PORT to server.port.toString())
-        assertEquals(BootResult.Aborted, start(environment))
+        assertIs<StartOutcome.Aborted>(start(environment))
         assertFailsWith<BindException> { ServerSocket(server.port, 1, InetAddress.getByName(LOOPBACK)).close() }
         server.stop()
         assertFree(server.port)

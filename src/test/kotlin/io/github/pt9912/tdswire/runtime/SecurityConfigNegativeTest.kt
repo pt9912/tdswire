@@ -45,7 +45,7 @@ internal class SecurityConfigNegativeTest : RuntimeTestBase() {
     ) {
         log.lines.clear()
         val before = listenerThreads()
-        assertEquals(BootResult.Aborted, start(environment), label)
+        assertIs<StartOutcome.Aborted>(start(environment), label)
         assertEquals(expected, log.lines.toList(), label)
         log.lines.forEach { line ->
             listOf("Zk9", directory, ".p12", "tdswire-test", "kennwort").forEach {
@@ -110,7 +110,7 @@ internal class SecurityConfigNegativeTest : RuntimeTestBase() {
         val port = freePort()
         val broken = file("kaputt-Zk9.p12", "kein Schluesselspeicher")
         log.lines.clear()
-        assertEquals(BootResult.Aborted, start(tls(port, store = broken)))
+        assertIs<StartOutcome.Aborted>(start(tls(port, store = broken)))
         assertTrue(log.lines.single().startsWith("TLS-Konfiguration: CERTIFICATE"), log.lines.toString())
         val missing = tls(port) + (ConfigKeys.TLS_KEYSTORE_PASSWORD_FILE to "$directory/gibt-es-nicht-Zk9.txt")
         assertAborts(
@@ -150,7 +150,8 @@ internal class SecurityConfigNegativeTest : RuntimeTestBase() {
             listOf("Konfiguration ungueltig: AUTH_USERS_FILE: USER_LIST_INVALID (PLAIN_NOT_ALLOWED, Zeile 1)"),
         )
         log.lines.clear()
-        val server = assertIs<BootResult.Running>(start(withPlain + (ConfigKeys.AUTH_PLAIN_TESTMODE to "true"))).server
+        val plainOn = withPlain + (ConfigKeys.AUTH_PLAIN_TESTMODE to "true")
+        val server = assertIs<StartOutcome.Running>(start(plainOn)).server
         assertEquals(
             listOf(
                 "gestartet, Port ${server.port}",

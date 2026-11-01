@@ -1,5 +1,10 @@
-package io.github.pt9912.tdswire.config
+package io.github.pt9912.tdswire.runtime
 
+import io.github.pt9912.tdswire.config.ConfigIssue
+import io.github.pt9912.tdswire.config.ConfigKeys
+import io.github.pt9912.tdswire.config.IssueKind
+import io.github.pt9912.tdswire.config.TempFilesTest
+import io.github.pt9912.tdswire.config.TlsKeyMaterial
 import io.github.pt9912.tdswire.config.auth.AuthFeatures
 import io.github.pt9912.tdswire.config.auth.AuthRequest
 import io.github.pt9912.tdswire.config.auth.AuthResult
@@ -16,7 +21,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 /** Lesen und Validieren der Benutzerliste und des Testmodus-Schalters (`ADR-0011`, `SPEC-051`). */
-class ConfigUsersFileTest : TempFilesTest() {
+internal class ConfigUsersFileTest : TempFilesTest() {
     private val bom = byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte())
 
     private fun env(usersFile: String, testMode: String? = "true") =

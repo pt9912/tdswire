@@ -3,8 +3,8 @@
 #
 # Eingaenge (Umgebung, Vorgaben in Klammern):
 #   SPEC_DATEI    (spec/spezifikation.md)    Festlegungen: `### SPEC-<NNN> — <Titel>` und Tabellenzeilen `| `SPEC-<NNN>` | <Titel> | ...`
-#   TEST_QUELLE   (src/test)                 Kotlin-Tests mit dem KDoc-Block-Tag `@spec SPEC-<NNN> [SPEC-<NNN> ...]`
-#   BERICHTE      (build/test-results/test)  JUnit-XML-Berichte des Gradle-Testlaufs (TEST-*.xml)
+#   TEST_QUELLE   (src/test src/integrator)  Verzeichnisse (durch Leerzeichen getrennt) mit Kotlin-Tests mit dem KDoc-Block-Tag `@spec SPEC-<NNN> [SPEC-<NNN> ...]`
+#   BERICHTE      (build/test-results/test build/test-results/integratorTest)  Verzeichnisse mit JUnit-XML-Berichten des Gradle-Testlaufs (TEST-*.xml)
 #   ZIEL          (docs/plan/spec-abdeckung.md)  die zu schreibende Matrix
 #   WAISEN_DATEI  (leer)                     wenn gesetzt: dorthin die Zahl der Festlegungen ohne Nachweis
 #   STRENG        (0)                        1: Exit 1, sobald eine Festlegung ohne Nachweis ist
@@ -36,17 +36,21 @@
 set -eu
 
 spec=${SPEC_DATEI:-spec/spezifikation.md}
-quelle=${TEST_QUELLE:-src/test}
-berichte=${BERICHTE:-build/test-results/test}
+quelle=${TEST_QUELLE:-src/test src/integrator}
+berichte=${BERICHTE:-build/test-results/test build/test-results/integratorTest}
 ziel=${ZIEL:-docs/plan/spec-abdeckung.md}
 streng=${STRENG:-0}
 
 fehler() { echo "spec-abdeckung: $*" >&2; exit 2; }
 
 [ -f "$spec" ] || fehler "Spezifikation fehlt: $spec"
-[ -d "$quelle" ] || fehler "Testquelle fehlt: $quelle"
-[ -d "$berichte" ] || fehler "keine Testberichte unter $berichte — der Testlauf hat keine geschrieben"
-berichtsdateien=$(find "$berichte" -name 'TEST-*.xml' | sort)
+# Das Wort-Splitting der Verzeichnislisten ist beabsichtigt (Pfade ohne Leerzeichen).
+for verzeichnis in $quelle; do [ -d "$verzeichnis" ] || fehler "Testquelle fehlt: $verzeichnis"; done
+for verzeichnis in $berichte; do
+  [ -d "$verzeichnis" ] || fehler "keine Testberichte unter $verzeichnis — der Testlauf hat keine geschrieben"
+done
+# shellcheck disable=SC2086
+berichtsdateien=$(find $berichte -name 'TEST-*.xml' | sort)
 [ -n "$berichtsdateien" ] || fehler "keine TEST-*.xml unter $berichte"
 
 tmp=$(mktemp -d)
@@ -74,7 +78,8 @@ awk '
 # T: Tag je Test: Kennung, Klasse (voll qualifiziert), Methode, Art.
 # Der Tag gehoert zur naechsten `fun` nach seinem KDoc-Block; ein neuer Block verwirft einen
 # offenen Tag. Die Art folgt dem Verzeichnis: smoke/ und e2e/, sonst Modul-Test.
-find "$quelle" -name '*.kt' | sort | xargs awk '
+# shellcheck disable=SC2086
+find $quelle -name '*.kt' | sort | xargs awk '
   FNR == 1 { pkg = ""; cls = ""; pend = "" }
   /^package / { pkg = $2; next }
   /^(internal |private |public |open )*class [A-Za-z0-9_]+/ {

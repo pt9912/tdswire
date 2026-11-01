@@ -34,8 +34,9 @@ dependencies {
     testRuntimeOnly(libs.junit.platform.launcher)
 }
 
-// Das Protokoll der Stage `test` nennt jeden Test mit Ergebnis und bei einem Fehlschlag die Ursache.
-tasks.test {
+// Das Protokoll der Stage `test` nennt jeden Test mit Ergebnis und bei einem Fehlschlag die Ursache; die Regel
+// gilt fuer `test` und `integratorTest`.
+tasks.withType<Test>().configureEach {
     useJUnitPlatform()
     testLogging {
         events("passed", "failed", "skipped")
@@ -44,18 +45,56 @@ tasks.test {
     }
 }
 
+// Der Einbettungstest (ADR-0021): ein Source-Set unter src/integrator, das gegen die Klassen des Hauptmoduls
+// uebersetzt und nicht mit ihm assoziiert ist. Kotlin gibt `internal` nur Quelltext desselben Moduls oder eines
+// assoziierten Source-Sets frei; hier ist nur die oeffentliche Flaeche uebersetzbar. Es laeuft im selben Prozess
+// wie der Server (`gradle test integratorTest` in der Stage `test`, kein E2E-Lauf). Grenze: `internal` ist im
+// Bytecode oeffentlich, der Nachweis gilt fuer Kotlin-Quellen im Source-Set.
+val integrator: SourceSet by sourceSets.creating
+
+dependencies {
+    "integratorImplementation"(sourceSets.main.get().output)
+    "integratorImplementation"(libs.kotlinx.coroutines.core)
+    "integratorImplementation"(libs.kotlin.test)
+    "integratorImplementation"(libs.kotlin.test.junit5)
+    "integratorRuntimeOnly"(libs.jackson.dataformat.yaml)
+    "integratorImplementation"(platform(libs.junit.bom))
+    "integratorRuntimeOnly"(libs.junit.jupiter.engine)
+    "integratorRuntimeOnly"(libs.junit.platform.launcher)
+}
+
+// Sensor: das Source-Set ist mit keiner anderen Kompilierung assoziiert. Eine Assoziation mit `main` gaebe ihm
+// `internal` frei und machte den Einbettungstest wertlos; die Task bricht dann vor der Uebersetzung.
+val integratorOhneAssoziation = tasks.register("integratorOhneAssoziation") {
+    group = "verification"
+    doLast {
+        val associated = kotlin.target.compilations.getByName("integrator").associatedCompilations.map { it.name }
+        check(associated.isEmpty()) { "Source-Set integrator ist assoziiert mit $associated" }
+    }
+}
+
+tasks.named("compileIntegratorKotlin") { dependsOn(integratorOhneAssoziation) }
+
+tasks.register<Test>("integratorTest") {
+    description = "Einbettungstest ueber die oeffentliche Flaeche (ADR-0021)"
+    group = "verification"
+    testClassesDirs = integrator.output.classesDirs
+    classpath = integrator.runtimeClasspath
+}
+
 kotlin {
     jvmToolchain(21)
 }
 
 // Statische Analyse: `gradle detekt` liest den Quelltext, `gradle detektMain` und `detektTest` loesen
-// zusaetzlich Typen auf (ForbiddenMethodCall wirkt nur dort). Im Dockerfile laufen alle drei in der
+// zusaetzlich Typen auf (ForbiddenMethodCall wirkt nur dort). Im Dockerfile laufen alle vier (mit `detektIntegrator`) in der
 // Stage `detekt`, aufgerufen ueber `make detekt`. config/detekt/detekt.yml fuehrt nur die
 // Abweichungen von detekts Standard. Keine Baseline und kein @Suppress: ein Befund wird im Code
 // behoben. detekt 2.0 ist noch ein Pre-Release, die Wahl begruendet ADR-0010.
 detekt {
     buildUponDefaultConfig = true
     config.setFrom("config/detekt/detekt.yml")
+    source.setFrom("src/main/kotlin", "src/test/kotlin", "src/integrator/kotlin")
 }
 
 // Selbsttest der Importregeln: dieselbe Konfiguration, aber ueber Testdaten statt ueber src/.

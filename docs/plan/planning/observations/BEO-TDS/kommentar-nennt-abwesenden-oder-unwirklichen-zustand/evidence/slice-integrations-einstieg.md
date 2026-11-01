@@ -1,0 +1,2 @@
+**Vorgang:** slice-integrations-einstieg
+**Fund:** Kommentare in `build.gradle.kts` („Im Dockerfile laufen alle drei in der Stage `detekt`“) und `Dockerfile` („führt die Unit-Tests aus“) bildeten den Zustand nicht ab: die Stage `detekt` führt vier Tasks, die Stage `test` auch `integratorTest` (Review L-1); behoben in der Fix-Runde, die Verifikation fand die Kommentare stimmig (F-6, nur Zeilenlänge).
