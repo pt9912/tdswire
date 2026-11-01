@@ -1,0 +1,1 @@
+**Stand:** offen — 1×; unter der Schwelle. Träger der Prüfung: die Welle-Closure von welle-produktschnitt (`make spec-abdeckung` nach `slice-jar-ohne-main-und-image`); der Test selbst ist Gegenstand der Umbau-Slices, kein eigener Slice.

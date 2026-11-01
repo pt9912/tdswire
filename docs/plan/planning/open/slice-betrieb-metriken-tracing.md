@@ -11,7 +11,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-betrieb-diagnose
 
-**Bezug:** [TDS-FA-09](../../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose), [TDS-FA-08](../../../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-QA-04](../../../../spec/lastenheft.md#tds-qa-04--performance)
+**Bezug:** [TDS-FA-09](../../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose), [TDS-FA-08](../../../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-QA-04](../../../../spec/lastenheft.md#tds-qa-04--performance), [ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md) (`Accepted`, Fragen 2 und 6: Schnittstelle in `domain`, Aggregation in `observability`, Schnappschuss und Span-Ende als Ereignisse an die Senke)
 
 **Berührte Spec-Stellen:** SPEC-017 · SPEC-018 · SPEC-019 · SPEC-029 · ARC-009 · [TDS-FA-09.a](../../../../spec/spezifikation.md#tds-fa-09a--konfiguration-und-diagnose)
 
@@ -30,13 +30,14 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Verbindungen, Anfragen und Backend-Aufrufe erzeugen die Spans und Metriken von Abschnitt 5 der Spezifikation mit den Pflicht-Attributen, ohne SQL-Text, Anmeldekennung und Parameterwerte, sodass [slice-qa-performance](slice-qa-performance.md) die Dauer je Schicht lesen kann.
+**Ziel:** Verbindungen, Anfragen und Backend-Aufrufe erzeugen die Spans und Metriken von Abschnitt 5 der Spezifikation mit den Pflicht-Attributen, ohne SQL-Text, Anmeldekennung und Parameterwerte; der Schnappschuss der Metriken und das Ende eines Spans gehen als Ereignisse an die Senke aus [slice-betrieb-log-schnittstelle](slice-betrieb-log-schnittstelle.md) (kein zweiter Parameter, kein Telemetrie-Port, keine Fremdbibliothek, [ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md) Frage 6 A), sodass [slice-qa-performance](slice-qa-performance.md) die Dauer je Schicht lesen kann.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Lastmessung, Referenz-Workload und Grenzwerte — [slice-qa-performance](slice-qa-performance.md); dieser Slice liefert die Messpunkte, keine Zahl über Durchsatz oder Overhead.
 - Export-Backend, Collector, Dashboards und Alarmierung — Betreiber (ARC-014); der Server liefert nach der ADR den Zugang, betreibt aber keine Auswertung.
-- Das Log — [slice-betrieb-log-schnittstelle](slice-betrieb-log-schnittstelle.md); Zustandsereignisse — [slice-betrieb-zustandsereignisse](slice-betrieb-zustandsereignisse.md).
+- Das Log — [slice-betrieb-log-schnittstelle](slice-betrieb-log-schnittstelle.md); Zustandsereignisse — [slice-betrieb-zustandsereignisse](slice-betrieb-zustandsereignisse.md); der JSON-Adapter, die Warteschlange und das Prozessende des Testservers — [slice-betrieb-log-adapter-testserver](slice-betrieb-log-adapter-testserver.md) (dieser Slice ergänzt dort nur die Serialisierung der neuen Ereignisarten).
+- Adapter für JMX, einen Text-Endpunkt oder eine Telemetrie-Bibliothek — jeweils eigene Entscheidung mit eigener Angriffsflächen-Prüfung ([ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md) Frage 6, Re-Evaluierungs-Trigger); der Zugang ist die Senke.
 - Die Definition, ob Cancel und Timeout als Fehler zählen — [slice-attention-cancel-timeout](../in-progress/slice-attention-cancel-timeout.md) und [slice-fehler-mapping](../done/slice-fehler-mapping.md); die Zähler „Abbrüche“ und „Protokollfehler“ folgen deren Entscheidung (§6).
 
 ## 2. Definition of Done
@@ -49,8 +50,8 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 Liefer-Punkte (drei):
 
 - [ ] **Spans:** `tds.connection` (`connection.id`, `tds.phase`, `outcome`), `tds.query` (`session.id`, `request.id`, `tds.request_kind`, `outcome`) und `backend.execute` (`request.id`, `duration_ms`, `outcome`) an den Stellen von Transport und Handshake, Anfrageverarbeitung und Backend-Adapter; ein Rohbytes-Lauf (Login, Anfrage, Fehler, Cancel) erzeugt mit dem Sammler die erwarteten Spans mit den Pflicht-Attributen; die Menge der `outcome`-Werte ist eine Festlegung und steht so in der Closure.
-- [ ] **Metriken:** aktive Sessions, Login-Erfolgs- und -Fehlerzähler, Anfragen, Anfrage-Latenz als Verteilung (p50, p95 und p99 nach der ADR), aktive Backendoperationen, Abbrüche, Protokollfehler; kein SQL-Text als Label; ein Test mit vielen verschiedenen SQL-Texten ergibt dieselbe Zahl an Zeitreihen (Kardinalität).
-- [ ] **Zugang und Ausfallsicherheit:** Der Zugang nach der ADR steht; ein Adapter, der wirft oder blockiert, bricht keine Anfrage und keine Verbindung (Test), und ein Span wird auch bei Cancel, Disconnect und Stromende genau einmal beendet (kein offener Span nach dem Lauf).
+- [ ] **Metriken und Schnappschuss:** aktive Sessions, Login-Erfolgs- und -Fehlerzähler, Anfragen, Anfrage-Latenz als Verteilung (p50, p95 und p99 als Voreinstellung der [ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md), Offen (d): Perzentile oder Zähler je Klasse entscheidet der Bau mit Begründung), aktive Backendoperationen, Abbrüche, Protokollfehler; Aggregation in `observability` (importiert nur `domain`), Ausgabe als Ereignis `metrics`; der Abstand in Sekunden ist ein Feld der `ServerConfig` (Voreinstellung 60, 0 schaltet ihn aus; Setzung der ADR, nicht gemessen) mit Prüfung in `config`; der Testserver liest ihn aus `METRICS_INTERVAL_SECONDS` (Eingang des Testservers, nicht der Bibliothek); kein SQL-Text als Label; ein Test mit vielen verschiedenen SQL-Texten ergibt dieselbe Zahl an Zeitreihen (Kardinalität).
+- [ ] **Zugang über die Senke und Ausfallsicherheit:** Span-Ende und Schnappschuss erreichen die Senke aus [slice-betrieb-log-schnittstelle](slice-betrieb-log-schnittstelle.md) (der Zugang ist die Senke; JMX, Text-Endpunkt und Telemetrie-Bibliothek sind nicht Teil); eine Senke, die wirft, bricht keine Anfrage und keine Verbindung (Test); eine Senke, die blockiert, hält den Anfragepfad an, und das belegt kein Test, sondern steht als akzeptiertes Negativ der [ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md) in der Closure-Notiz; ein Span wird auch bei Cancel, Disconnect und Stromende genau einmal beendet (kein offener Span nach dem Lauf); der JSON-Adapter des Testservers serialisiert die neuen Ereignisarten (ein Rohbytes-Lauf gegen den Testserver zeigt `metrics` und Span-Ende als Zeilen).
 
 Nachweis-Pflichten für alle drei Punkte:
 
@@ -77,6 +78,8 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `src/main/kotlin/io/github/pt9912/tdswire/observability/` <!-- d-check:ignore (geplant: neue Datei) --> | update | Adapter für Spans und Metriken nach der ADR |
 | Instrumentierung in `transport`, `protocol` und im Backend-Adapter | update | Aufrufe der Schnittstelle an den Stellen der drei Spans; keine fachliche Entscheidung im Adapter (ARC-009) |
+| `src/main/kotlin/io/github/pt9912/tdswire/config/` (`ServerConfig`, `ConfigValidation`) | update | Feld und Prüfung für den Abstand der Schnappschüsse |
+| `src/testserver/` | update | Lader liest `METRICS_INTERVAL_SECONDS`; Adapter serialisiert `metrics` und Span-Ende |
 | `src/test/kotlin/io/github/pt9912/tdswire/observability/` <!-- d-check:ignore (geplant: neue Datei) --> | neu | Rohbytes-Lauf mit Sammler, Kardinalität, Ausfall des Adapters; `@spec`-Tag SPEC-017, SPEC-018, SPEC-019 |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
@@ -86,12 +89,12 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-betrieb-log-schnittstelle](slice-betrieb-log-schnittstelle.md) liegt in `done/`, und die Wellen [welle-anfrageverarbeitung](../welle-anfrageverarbeitung.md), [welle-backend-streaming](../done/welle-backend-streaming/welle-backend-streaming.md) und [welle-fehler-abbruch](../welle-fehler-abbruch.md) sind abgeschlossen (Anfrage, Backend-Aufruf und Abbruch existieren als Code), und ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): [slice-betrieb-log-schnittstelle](slice-betrieb-log-schnittstelle.md) und [slice-betrieb-log-adapter-testserver](slice-betrieb-log-adapter-testserver.md) liegen in `done/` ([ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md) ist `Accepted`, erfüllt; die Senke und der Adapter, der die neuen Ereignisarten serialisiert, stehen), und die Wellen [welle-anfrageverarbeitung](../welle-anfrageverarbeitung.md), [welle-backend-streaming](../done/welle-backend-streaming/welle-backend-streaming.md) und [welle-fehler-abbruch](../welle-fehler-abbruch.md) sind abgeschlossen (Anfrage, Backend-Aufruf und Abbruch existieren als Code), und ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): mehr als drei Liefer-Punkte in §2; Schnittvorschlag: Spans und Metriken als zwei Slices.
-- `in-progress` → `open` (blockiert — Carveout?): die Definition von Abbruch und Fehler (Cancel und Timeout als Fehler) ist nicht entschieden.
+- `in-progress` → `open` (blockiert — Carveout?): die Umsetzung der Entscheidung zu Abbruch und Fehler (Cancel und Timeout als Fehler, [ADR-0027](../../adr/0027-abbruch-und-zuruecksetzen.md) `Accepted`) steht noch nicht im Code, sodass die Zähler „Abbrüche“ und „Protokollfehler“ nicht festgelegt werden können.
 
 ## 5. Closure-Trigger
 
@@ -108,7 +111,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- „Abbrüche“ und „Protokollfehler“ hängen an Begriffen, die [slice-fehler-mapping](../done/slice-fehler-mapping.md) und [slice-attention-cancel-timeout](../in-progress/slice-attention-cancel-timeout.md) noch festlegen (ob Cancel und Timeout als Fehler zählen); bis dahin sind die Zähler eine Festlegung dieses Slice und tragen den Vermerk. — **Ausgang:** offen bis zur Closure.
+- „Abbrüche“ und „Protokollfehler“ hängen an Begriffen, die [slice-fehler-mapping](../done/slice-fehler-mapping.md) und [slice-attention-cancel-timeout](../in-progress/slice-attention-cancel-timeout.md) umsetzen; [ADR-0027](../../adr/0027-abbruch-und-zuruecksetzen.md) entscheidet seit dem 2026-11-01, dass Cancel und Timeout als Fehler zählen (Wortlaut der Folgepflichten dort; die Abbruch-Slices legt ein anderer Planner an). Sind sie beim Start dieses Slice nicht in `done/`, sind die Zähler eine Festlegung dieses Slice und tragen den Vermerk. — **Ausgang:** offen bis zur Closure.
+- Die Senke eines Embedders kann blockieren (Vertrag „blockiert nicht“, akzeptiertes Negativ der [ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md), Frage 7); die Kosten des Ereignisbaus und der Aggregation sind ungemessen. — **Ausgang:** offen bis zur Closure (erwartet: weiter offen → `BEO-TDS/rueckstau-im-produktivbetrieb-nicht-gemessen`, geplant bei [slice-qa-performance](slice-qa-performance.md)).
 - Der Adapter trifft keine fachliche Entscheidung (ARC-009); wer in `protocol` oder `transport` instrumentiert, ruft nur die Schnittstelle. Die Importregeln belegen das nur über `import`-Zeilen (SPEC-041). — **Ausgang:** offen bis zur Closure.
 - Overhead der Telemetrie unter Last ist ungemessen; dieser Slice sagt dazu nichts (`BEO-TDS/rueckstau-im-produktivbetrieb-nicht-gemessen`), die Messung folgt in [slice-qa-performance](slice-qa-performance.md). — **Ausgang:** offen bis zur Closure.
 - Die Grenzen der Latenz-Verteilung (Histogramm) sind eine Setzung; ein Perzentil, das aus ihr abgeleitet wird, trägt nur so weit wie diese Grenzen. — **Ausgang:** offen bis zur Closure.
@@ -146,7 +150,7 @@ Hälften.
 
 **Vorgelagert — Sub-Area-Wahl prüfen:** Die Modus-Deklaration in `harness/conventions.md` kennt nur `*` (Greenfield, Kürzel `TDS`). Die Observability-Schicht (ARC-009) ist ein Pfad-Cluster (Achse 3) mit eigener Importregel (Achse 1 plausibel); eine eigenständig abgleichbare Inventur-Linie (Achse 2) besteht erst mit dem Code. Der Modus Greenfield bliebe derselbe, eine eigene Zeile in `harness/conventions.md` löste keine andere Regel aus; `*` bleibt, eine Ausdifferenzierung ist Sache des Nutzers und hier nicht vorgenommen.
 
-**Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen (`../observations/BEO-TDS/`, 19 Beobachtungen, Stand des Worktrees auf `main`); alle tragen die Sub-Area `*`. Treffer mit Zähler-Stand (Zahl der Dateien unter `evidence/`):
+**Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen (`../observations/BEO-TDS/`, 19 Beobachtungen, Stand des Worktrees auf `main`); alle tragen die Sub-Area `*`. Treffer mit Zähler-Stand (Zahl der Dateien unter `evidence/`); nachgesehen am 2026-11-01 nach [ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md) (zusätzlich berührt: `BEO-TDS/rueckstau-im-produktivbetrieb-nicht-gemessen` *geplant* bei `slice-qa-performance`, Risiko in §6; `BEO-TDS/dod-haengt-an-offenem-slice-ohne-rueckfuehrung`, 3×, offen: die Start-Kanten in §4 nennen Rückführungen; `BEO-TDS/lesart-einer-nutzerentscheidung-unbestaetigt`, 10×, offen: die Reihenfolge Adapter-Slice vor diesem Slice ist Lesart des Planners):
 
 - `BEO-TDS/rueckstau-im-produktivbetrieb-nicht-gemessen` — 1×, offen. Betrifft jede Aussage über Telemetrie unter Last: keine (§6).
 - `BEO-TDS/strukturtest-ohne-variation-der-eingabe` — 1×, offen. Betrifft den Kardinalitätstest: Eingaben variieren (§6).

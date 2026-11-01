@@ -30,12 +30,12 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Redigierte Paketmitschnitte des Referenzclients gegen die Referenzinstanz werden gegen einen frisch gestarteten Server abgespielt und feldweise verglichen (Nachrichten- und Tokenfolge, COLMETADATA, Zeilenwerte und -zahl, DONE-Status, ERROR, ENVCHANGE); dieser Lauf ist die Messung der Tokenreihenfolge, der DONE-Statusbits und der RETURNVALUE-Zählung am Wire.
+**Ziel:** Redigierte Paketmitschnitte des Referenzclients gegen die Referenzinstanz werden gegen einen frisch gestarteten Server abgespielt und feldweise verglichen (Nachrichten- und Tokenfolge, COLMETADATA, Zeilenwerte und -zahl, DONE-Status, ERROR, ENVCHANGE); dieser Lauf hält die Messung der Tokenreihenfolge, der DONE-Statusbits und der RETURNVALUE-Zählung am Wire wiederholbar (die einmalige Messung steht in [slice-qa-vergleichslauf-d-messungen](slice-qa-vergleichslauf-d-messungen.md)).
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Der Live-Lauf — [slice-referenzabgleich-live](slice-referenzabgleich-live.md); ein Mitschnitt spielt die Anfragen des Clients ab, nicht den Client (SPEC-045): fragt der Client wegen einer anderen Antwort anders, zeigt das nur der Live-Lauf.
-- Referenzinstanz, Container, Make-Target des Vergleichslaufs und EULA — [slice-qa-vergleichslauf-d](slice-qa-vergleichslauf-d.md).
+- Referenzinstanz, Container, Make-Target des Vergleichslaufs und EULA — [slice-qa-vergleichslauf-d](../done/slice-qa-vergleichslauf-d.md).
 - Verschlüsselte Mitschnitte und der TDS-8.0-Pfad — die Referenzinstanz bietet TDS 8.0 nicht an ([ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md)); Mitschnitte entstehen unverschlüsselt (`Encrypt=false`), der verschlüsselte Pfad bleibt ohne Wire-Abgleich und steht so in der Closure.
 - Fuzz und Fragmentierung — [slice-qa-stabilitaet](../done/slice-qa-stabilitaet.md); der Mitschnitt spielt gültige Nachrichten ab.
 - Das Beheben gefundener Abweichungen — je Befund ein Slice nach der Messung.
@@ -51,7 +51,7 @@ Liefer-Punkte (drei):
 
 - [ ] **Aufnahme:** Redigierte Mitschnitte ohne Secrets für die Szenarien aus SPEC-045 (Anmeldung, Batch, RPC mit Ausgabewert, mehrteiliges Ergebnis, Fehler, Cancel), aufgenommen nach der Methode, die der Nutzer wählt (Frage in §6), abgelegt mit Herkunft (Version der Instanz, Client-Version, Schema-Stand); ein Test belegt, dass kein Passwort und kein Prüfwert in den Ablagen steht, mit Eingaben, die beides enthalten.
 - [ ] **Abspielen und Vergleich:** Die Mitschnitte laufen gegen einen frisch gestarteten Server; der Vergleich ist feldweise nach SPEC-045 (Nachrichten- und Tokenfolge, COLMETADATA mit Typ, Länge, Precision, Scale und Nullbarkeit, Zeilenwerte und -zahl, DONE-Status und Zählung, ERROR mit Nummer, State, Class und Text, ENVCHANGE); vom Server selbst vergebene Werte nur auf vorhanden oder nicht vorhanden.
-- [ ] **Ausnahmeliste und Messaussage:** Dieselbe Ausnahmeliste wie im Live-Lauf (Art *so gewollt* oder *Lücke*); die Aussagen des Codecs und der ADRs zu Tokenreihenfolge, DONE-Statusbits und RETURNVALUE-Zählung (bisher Handvektor und Festlegung) sind je Punkt von *Festlegung* auf *gemessen* gehoben oder als Abweichung geführt; die Übergabe dieses Teils aus [slice-qa-vergleichslauf-d](slice-qa-vergleichslauf-d.md) ist dort vermerkt.
+- [ ] **Ausnahmeliste und Messaussage:** Dieselbe Ausnahmeliste wie im Live-Lauf (Art *so gewollt* oder *Lücke*); die Aussagen des Codecs und der ADRs zu Tokenreihenfolge, DONE-Statusbits und RETURNVALUE-Zählung (bisher Handvektor und Festlegung) sind je Punkt von *Festlegung* auf *gemessen* gehoben oder als Abweichung geführt, soweit [slice-qa-vergleichslauf-d-messungen](slice-qa-vergleichslauf-d-messungen.md) sie nicht schon einmalig gemessen hat (dort ist der Wire-Teil seit der Planung vom 2026-11-01 verankert); dieser Slice wiederholt die Aussagen als abspielbaren Vergleich gegen den Server und führt Abweichungen in der gemeinsamen Ausnahmeliste.
 
 Nachweis-Pflichten für alle drei Punkte:
 
@@ -111,7 +111,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Doppelte Zuständigkeit: [slice-qa-vergleichslauf-d](slice-qa-vergleichslauf-d.md) nennt Tokenreihenfolge, Statusbits und RETURNVALUE-Zählung in seiner DoD. Die Client-API zeigt sie nach ihrer Gestalt nicht (Annahme, nicht gemessen); dieser Slice trägt sie am Wire, und [slice-qa-vergleichslauf-d](slice-qa-vergleichslauf-d.md) ist dort mit Begründung und Verweis gekürzt. Stellt sich heraus, dass der Client sie doch zeigt, wird die Kürzung zurückgenommen. — **Ausgang:** offen bis zur Closure.
+- Doppelte Zuständigkeit: Tokenreihenfolge, Statusbits und RETURNVALUE-Zählung am Wire misst die einmalige Messreihe von [slice-qa-vergleichslauf-d-messungen](slice-qa-vergleichslauf-d-messungen.md) (mit mitschneidendem Proxy, Planung vom 2026-11-01, umgekehrt zur früheren Aufteilung, nach der dieser Slice sie trug und [slice-qa-vergleichslauf-d](../done/slice-qa-vergleichslauf-d.md) gekürzt war). Die Client-API zeigt sie nach ihrer Gestalt nicht (Annahme, nicht gemessen). Dieser Slice nutzt Proxy, Mitschnitte und Messzeilen als Eingang, spielt sie ab und vergleicht; die Aufnahme-Methode (unten) ist Start-Trigger jenes Slice. Setzung des Planners, nicht vom Nutzer bestätigt. — **Ausgang:** offen bis zur Closure.
 - Aufnahme-Methode (Frage in §6): ein Proxy zwischen Client und Instanz, ein Mitschnitt auf Netzwerkebene oder ein Log der Instanz; jede Methode braucht Docker-only, kein Mount und Basis-Images per Digest, und eine zusätzliche Komponente im Netzwerk kann Pakete verändern. — **Ausgang:** offen bis zur Closure.
 - Abspielwerkzeug (Frage in §6): Ort und Sprache (Test-Quelltext der JVM, Hilfsprojekt im .NET-Gerüst) sind offen; es ist Testcode ohne Wirkung auf den Produktivpfad, aber Eigencode, der Vergleiche entscheidet. — **Ausgang:** offen bis zur Closure.
 - Felder, die die Gegenstelle selbst vergibt (Paket-ID, Sitzungs-ID, Zeitstempel, Collation-Bytes, ENVCHANGE-Werte, Versionstext), dürfen den Vergleich nicht kippen; die Liste dieser Felder ist eine Setzung (SPEC-045) und steht mit Begründung in der Ausnahmeliste. — **Ausgang:** offen bis zur Closure.
@@ -153,9 +153,9 @@ Hälften.
 
 **Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen (`../observations/BEO-TDS/`, 19 Beobachtungen, Stand des Worktrees auf `main`); alle tragen die Sub-Area `*`. Treffer mit Zähler-Stand (Zahl der Dateien unter `evidence/`):
 
-- `BEO-TDS/messung-am-echten-sql-server-fehlt` — 9×, Stand *geplant* (Träger [slice-qa-vergleichslauf-d](slice-qa-vergleichslauf-d.md)). Träger der Wire-Messung (Tokenreihenfolge, DONE-Statusbits, RETURNVALUE-Zählung); der Zähler dieser Beobachtung steht mit Überschneidung zu [slice-qa-vergleichslauf-d](slice-qa-vergleichslauf-d.md) (§6).
+- `BEO-TDS/messung-am-echten-sql-server-fehlt` — 9×, Stand *geplant* (Träger [slice-qa-vergleichslauf-d](../done/slice-qa-vergleichslauf-d.md)). Die einmalige Wire-Messung (Tokenreihenfolge, DONE-Statusbits, RETURNVALUE-Zählung) trägt [slice-qa-vergleichslauf-d-messungen](slice-qa-vergleichslauf-d-messungen.md); dieser Slice trägt die Wiederholung als abspielbaren Vergleich (§6, Überschneidung).
 - `BEO-TDS/tds-8-0-und-pooling-nicht-gemessen` — 7×, Stand *geplant* (Träger [slice-qa-kompatibilitaet](../done/slice-qa-kompatibilitaet.md)). Betrifft die Grenze: kein Wire-Abgleich für TDS 8.0 und TLS.
-- `BEO-TDS/vergleichslauf-d-ungeklaert` — 1×, offen (Träger [slice-qa-vergleichslauf-d](slice-qa-vergleichslauf-d.md)). Betrifft Ablage, Häufigkeit und Machbarkeit in CI: Träger bleibt [slice-qa-vergleichslauf-d](slice-qa-vergleichslauf-d.md).
+- `BEO-TDS/vergleichslauf-d-ungeklaert` — 1×, offen (Träger [slice-qa-vergleichslauf-d](../done/slice-qa-vergleichslauf-d.md)). Betrifft Ablage, Häufigkeit und Machbarkeit in CI: Träger bleibt [slice-qa-vergleichslauf-d](../done/slice-qa-vergleichslauf-d.md).
 - `BEO-TDS/anmeldepfad-sicherheit-nicht-gebaut` — 3×, Stand *geplant* (Träger [slice-qa-sicherheit](../done/slice-qa-sicherheit.md)). Betrifft die Redaktion der Mitschnitte: Passwort und Prüfwert erscheinen nirgends in der Ablage (§2).
 - `BEO-TDS/aussagen-ueber-messung-hinaus` — 16×, Stand *verkörpert* (`AGENTS.md` §3.8, Reviewer-Skill). Betrifft diesen Slice: Jede Aussage über die Wire-Gleichheit nennt Instanz, Version und Szenario (§6).
 - `BEO-TDS/strukturtest-ohne-variation-der-eingabe` — 1×, offen. Betrifft den Vergleichstest: Abweichungen in verschiedenen Feldern statt in einem (§2).

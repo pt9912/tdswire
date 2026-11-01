@@ -1,6 +1,6 @@
 # Lastenheft — JVM TDS Server
 
-**Version:** 0.6.0  
+**Version:** 0.6.1  
 **Status:** Draft  
 **Autor:** pt9912
 **Datum:** 2026-10-29
@@ -130,7 +130,7 @@ Primärer Client ist eine .NET-Anwendung. Die konkrete Treiberversion, erforderl
 **Beschreibung:** Integratoren und Betreiber können Netzwerkendpunkt, Sicherheitsparameter, Zeitlimits und Protokollierung konfigurieren und den Betriebszustand diagnostizieren.
 
 **Akzeptanzkriterien:**
-- **Happy Path:** Given eine gültige Konfiguration, when der Serverendpunkt gestartet wird, then ist der konfigurierte Endpunkt erreichbar und relevante Zustandsereignisse werden protokolliert.
+- **Happy Path:** Given eine gültige Konfiguration und eine vom Integrator übergebene Diagnoseausgabe, when der Serverendpunkt gestartet wird, then ist der konfigurierte Endpunkt erreichbar und relevante Zustandsereignisse werden an die Diagnoseausgabe gegeben; ohne übergebene Diagnoseausgabe schreibt die Bibliothek kein Log.
 - **Boundary:** Given ein belegter Port, when der Serverendpunkt gestartet wird, then schlägt der Start mit einer verständlichen Diagnose fehl.
 - **Negative:** Given eine ungültige sicherheitsrelevante Konfiguration, when der Serverendpunkt gestartet wird, then wird sie abgewiesen, ohne unsichere Defaults stillschweigend zu aktivieren.
 
@@ -252,3 +252,4 @@ Jede offene Festlegung hat eine verantwortliche Rolle und einen Trigger; ohne di
 | 0.4.0   | 2026-10-29 | Anker für geordnetes Beenden und Referenzabgleich ergänzt               | `TDS-FA-07`, `TDS-QA-01` |
 | 0.5.0   | 2026-10-30 | Prüfung auf NULL (`IS NULL`, `IS NOT NULL`) als erkannte Bedingung des Simulations-Backends aufgenommen | `TDS-FA-11` |
 | 0.6.0   | 2026-11-01 | Produkt ist die JVM-Bibliothek; ein eigenständig ausführbarer Server ist kein Produkt, der Testserver dient nur der Prüfung | `TDS-RB-01`, `TDS-QA-06`, `TDS-FA-09` |
+| 0.6.1   | 2026-11-01 | Happy Path von `TDS-FA-09` präzisiert: Zustandsereignisse gehen an die vom Integrator übergebene Diagnoseausgabe; ohne sie schreibt die Bibliothek kein Log | `TDS-FA-09` |

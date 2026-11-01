@@ -200,7 +200,7 @@ Die Ist-Spalte stammt aus `grep` über die `import`-Zeilen von `src/main`. Voll 
 
 Quelle der Zeilen sind die Messzeilen (`messung: ...`) im Bericht des Laufs und die Zeilen `kompatibilitaet: anfrage` im Log des Servers; die Tests pinnen die Werte. Stand: 2026-10-31, `Microsoft.Data.SqlClient` 7.1.1 auf .NET 10.0.14, ein Lauf je Zeile, ein Host. Der Server ist `KompatibilitaetsServer.kt` (Test-Quelltext, Richtlinie `REQUIRED`, Simulations-Backend mit `person`, `typen`, `breit`, `kaputt`), der Client läuft in einem zweiten Container im eigenen Netzwerk. Die Verbindung ist TDS 7.4 mit TLS (`Encrypt=Mandatory`), das Zertifikat `CN=localhost` ist Vertrauensanker des Clients und wird mit `HostNameInCertificate=localhost` geprüft; kein Test setzt `TrustServerCertificate`.
 
-### 7a. Szenarien (Stufe 5, Kategorie `Szenario`, Klasse `SzenarienTests`)
+### 7a. Szenarien (Stufe 4, Kategorie `Szenario`, Klasse `SzenarienTests`)
 
 | Szenario | Messung | Erwartung bestätigt |
 |---|---|---|
@@ -217,7 +217,7 @@ Quelle der Zeilen sind die Messzeilen (`messung: ...`) im Bericht des Laufs und 
 | Zwei Anweisungen in einem Text | `Number 50001`, `Unsupported SQL.`, Verbindung `Open`: das Simulations-Backend liefert keine mehrteilige Antwort | Abweisung gemessen (Lücke 16) |
 | `InputOutput`-Parameter | der Server sieht `@id:Int32:INPUT_OUTPUT`, die Anfrage endet ohne Ausnahme, der Wert des Parameters bleibt der Eingabewert: die Antwort trägt keinen Rückgabewert | Abweisung gemessen (Lücke 16) |
 
-### 7b. Anmeldung und RPC-Messungen (Stufe 6, Kategorie `Anmeldung`, Klasse `AnmeldungTests`)
+### 7b. Anmeldung und RPC-Messungen (Stufe 5, Kategorie `Anmeldung`, Klasse `AnmeldungTests`)
 
 | Gegenstand | Messung | Erwartung bestätigt |
 |---|---|---|
@@ -234,7 +234,7 @@ Quelle der Zeilen sind die Messzeilen (`messung: ...`) im Bericht des Laufs und 
 
 - Rot gesehen (einmalig, 2026-10-31): `floatSizes` im Parser auf `4, 8 → 8` und `GUID_SIZE` auf 15 gesetzt: die Fälle `Real`, `SmallMoney`, `SmallDateTime` und `UniqueIdentifier` schlugen an. Die Pfadwahl am ersten Byte (`0x16`) auf den Pfad im TDS-Paket gelegt: die zwei Strict-Tests schlugen an. `Pooling=false` im Test: die Prüfung „dieselbe Sitzung“ des Laufs schlug an. Nicht rot wurde der Test zur Paketgröße 512, als der Server auf feste 8000 Byte umgestellt war (siehe die Zeile oben).
 
-### 7c. Lücken 3, 4 und 14 (Stufe 7, Kategorie `Luecken`, Klasse `LueckenTests`)
+### 7c. Lücken 3, 4 und 14 (Stufe 6, Kategorie `Luecken`, Klasse `LueckenTests`)
 
 | Gegenstand | Messung am Referenzclient | Das Log des Servers |
 |---|---|---|
@@ -246,7 +246,7 @@ Quelle der Zeilen sind die Messzeilen (`messung: ...`) im Bericht des Laufs und 
 
 - Rot gesehen (einmalig, 2026-10-31): `changePassword` und `federatedAuthentication` in der Zulassung des Logins ausgeschaltet: der Test zum Kennwortwechsel und die Prüfung des Grundes im Log schlugen an; der Test zum Zugriffstoken blieb grün (der Client sieht auch dann 18456, weil der Benutzer unbekannt ist), die Prüfung des Grundes im Log schlug an. Die Nummern `N_TYPE` und `N_PROTOCOL` verschoben: die Tests zu `xml` und zu mehreren RPCs schlugen an.
 
-### 7d. Fehler und Wiederverwendung der Verbindung (Stufe 8, Kategorie `Synchronitaet`, Klasse `SynchronitaetTests`)
+### 7d. Fehler und Wiederverwendung der Verbindung (Stufe 7, Kategorie `Synchronitaet`, Klasse `SynchronitaetTests`)
 
 | Gegenstand | Messung am Referenzclient | Das Log des Servers |
 |---|---|---|

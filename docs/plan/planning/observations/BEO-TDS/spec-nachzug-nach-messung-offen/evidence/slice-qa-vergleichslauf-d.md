@@ -1,0 +1,2 @@
+**Vorgang:** slice-qa-vergleichslauf-d
+**Fund:** `SPEC-045` nennt weiter „gemessen ist nur eine Instanz der Version 2022 … der Abgleich beider Pfade entfällt dort“; die Messung vom 2026-11-01 (zweite Instanz `2025-latest` nimmt `Encrypt=Strict` an) ist nicht eingearbeitet, weil die Empfehlung der Folge-Entscheidung noch `Proposed` ist und die Annahme beim Nutzer liegt. Träger des Nachzugs: `slice-referenzabgleich-adr-0028-nachzug`, Start erst nach der Annahme.

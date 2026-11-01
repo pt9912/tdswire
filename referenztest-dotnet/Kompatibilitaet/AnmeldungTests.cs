@@ -7,7 +7,7 @@ namespace TdsWire.Referenztests.Kompatibilitaet;
 
 /// <summary>
 /// Anmeldemessungen und RPC-Messungen des Referenzclients (Microsoft.Data.SqlClient 7.1.1) am Serverprozess
-/// (`make kompatibilitaet KATEGORIE=Anmeldung`, Stufe 6 von `make e2e`, ADR-0019, TDS-QA-01, TDS-QA-03): TDS 8.0
+/// (`make kompatibilitaet KATEGORIE=Anmeldung`, Stufe 5 von `make e2e`, ADR-0019, TDS-QA-01, TDS-QA-03): TDS 8.0
 /// (`Encrypt=Strict`) mit SQL-Authentifizierung, Anmeldung mit den längsten Feldern und kleiner Paketgröße, Pooling,
 /// `Prepare` (sp_prepexec und Wiederholung, Grenze der Handles), die `SET`-Texte von `SchemaOnly` und `KeyInfo`, Transaktionen und die Größen der RPC-Parametertypen.
 /// Die Zeilen `messung: ...` im Bericht sind die Werte, die die Matrix zitiert. Dass beide Pooling-Anfragen auf

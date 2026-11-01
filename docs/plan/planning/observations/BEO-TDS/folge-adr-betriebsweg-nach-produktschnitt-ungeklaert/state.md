@@ -1,0 +1,1 @@
+**Stand:** offen — 1×; unter der Schwelle, Entscheidung beim Nutzer. Kein Träger-Slice; die Frage geht mit dem Closure-Bericht an den Nutzer, die Welle-Closure von welle-produktschnitt sichtet sie erneut.

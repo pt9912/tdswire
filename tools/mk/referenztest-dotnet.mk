@@ -10,7 +10,7 @@
 # ein checkout, merge oder rebase ohne Inhaltsaenderung loest nichts aus. Eingaenge: alles unter referenztest-dotnet/
 # (Dockerfile mit den Basis-Image-Digests, csproj, Lock, Tests) ausser bin/ und obj/, dazu diese Datei. Ein
 # frischer Klon und ein frischer CI-Runner haben keine Hash-Datei und fuehren den Lauf aus.
-# Setzung: `make referenztest-dotnet FORCE=1` erzwingt den Lauf (tools/e2e.sh Stufe 4 ruft so).
+# Setzung: `make referenztest-dotnet FORCE=1` erzwingt den Lauf.
 # Setzung: der Hash wird vor dem Lauf berechnet, die Datei vor dem Lauf entfernt und nach gruenem Lauf mit dem
 # vorab berechneten Hash geschrieben. Ein Abbruch oder roter Lauf hinterlaesst keine Datei; eine Aenderung
 # waehrend des Laufs weicht vom gespeicherten Hash ab und loest den naechsten aus. Beides irrt zur sicheren Seite.
