@@ -210,9 +210,10 @@ tasks.register("abhaengigkeitenLaden") {
     }
 }
 
-// Laufzeit-Artefakt (Stage `runtime` im Dockerfile): das Jar traegt die Startklasse und die Lizenz, die
-// Bibliotheken der Laufzeit liegen in build/libs/lib und stehen im Class-Path des Manifests. Die Lizenz
-// kommt aus dem Wurzelverzeichnis; fehlt sie dort, ist das Jar ohne sie, und die Stage `build-jar` bricht.
+// Bibliotheks-Artefakt (ADR-0025 Entscheidung 3): das Jar traegt die Lizenz und keine Main-Class, die
+// Bibliotheken der Laufzeit liegen in build/libs/lib und stehen im Class-Path des Manifests (Komfort fuer
+// Einbettende). Die Lizenz kommt aus dem Wurzelverzeichnis; fehlt sie dort, ist das Jar ohne sie, und die Stage
+// `build-jar` bricht. Dass das Manifest keine Main-Class nennt, prueft tools/manifest-pruefung.sh im Bau.
 val laufzeitBibliotheken = tasks.register<Copy>("laufzeitBibliotheken") {
     from(configurations.runtimeClasspath)
     into(layout.buildDirectory.dir("libs/lib"))
@@ -221,7 +222,6 @@ val laufzeitBibliotheken = tasks.register<Copy>("laufzeitBibliotheken") {
 tasks.jar {
     archiveFileName.set("tdswire.jar")
     from(layout.projectDirectory.file("LICENSE")) { into("META-INF") }
-    manifest.attributes("Main-Class" to "io.github.pt9912.tdswire.runtime.MainKt")
     doFirst {
         manifest.attributes(
             "Class-Path" to configurations.runtimeClasspath.get().files.joinToString(" ") { "lib/${it.name}" },

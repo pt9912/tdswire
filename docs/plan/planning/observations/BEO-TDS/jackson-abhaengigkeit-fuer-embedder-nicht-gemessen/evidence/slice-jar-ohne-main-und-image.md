@@ -1,0 +1,2 @@
+**Vorgang:** slice-jar-ohne-main-und-image
+**Fund:** Teilbeleg, kein Test fuer die Embedder-Konfiguration: Die Manifest-Pruefung im Bau (`tools/manifest-pruefung.sh`) meldet Jackson in `lib/` und Testserver-Klassen im Jar; Verifikation 7c1c3bd: `lib/` fuehrt drei Jars ohne Jackson, Mutation (Pruefung geloescht) rot. Die Pruefung ist namensbasiert (`snakeyaml`, `gson` nicht erkannt) und deckt nicht den Klassenpfad von `integrator`.
