@@ -1,0 +1,1 @@
+**Stand:** offen — Nutzerentscheidung steht aus (Optionen (a), (b), (c) in der Beobachtung); bis dahin gilt die Zusage nur für die Typnamen. Option (c) muss vor einem Release und vor [slice-betrieb-log-adapter-testserver](../../../open/slice-betrieb-log-adapter-testserver.md) fallen, weil sie die Arten ändert, die dieser Slice formatiert.
