@@ -24,17 +24,24 @@ internal sealed interface SimulationResult {
  * Eine Tabelle des Integrators übernimmt der Katalog mit eigenen Kopien von `columns` und `primaryKey`
  * ([SimTable.copy] baut sie neu und prüft sie erneut): Ändert der Integrator seine Listen danach, bleibt der Katalog
  * unverändert. Ein Name, der zweimal vorkommt (ohne Beachtung der Schreibweise), bricht den Start ab (Setzung,
- * nicht am Server gemessen).
+ * nicht am Server gemessen). Die Fangklausel umschließt nur den Katalog: eine Tabelle, die ihre Prüfung beim Kopieren
+ * nicht besteht, wirft ihre eigene `IllegalArgumentException` aus dem Start.
  */
 internal object SimulationSetup {
     fun build(tables: List<SimTable>): SimulationResult {
-        if (tables.isEmpty()) return SimulationResult.Absent
         val all = tables.map(::owned)
-        return try {
-            SimulationResult.Ready(SimulationBackend(SimCatalog(all)), all.size)
-        } catch (ignored: IllegalArgumentException) {
-            SimulationResult.Failed("Tabellen ungueltig: ein Name kommt doppelt vor")
+        val catalog = catalogOf(all)
+        return when {
+            all.isEmpty() -> SimulationResult.Absent
+            catalog == null -> SimulationResult.Failed("Tabellen ungueltig: ein Name kommt doppelt vor")
+            else -> SimulationResult.Ready(SimulationBackend(catalog), all.size)
         }
+    }
+
+    private fun catalogOf(all: List<SimTable>): SimCatalog? = try {
+        SimCatalog(all)
+    } catch (ignored: IllegalArgumentException) {
+        null
     }
 
     private fun owned(table: SimTable): SimTable =

@@ -90,7 +90,7 @@ pruefe "Alle Tests der Kategorie $KATEGORIE bestanden ($(grep -Eo 'Total tests: 
 
 laeuft() { [ "$(docker inspect --format '{{.State.Running}}' "$SERVER")" = "true" ]; }
 pruefe "Server laeuft nach den Tests" laeuft
-# Entfallen bis slice-betrieb-log-adapter-testserver: 'Handlerfehler' war eine Zeile der Bibliothek.
+# Entfallen, Ersatz in slice-betrieb-log-adapter-testserver: 'Handlerfehler' (Zeile der Bibliothek) keinmal.
 pruefe "Ausgabe des Testservers nennt weder Kennwort noch Text der Quellenausnahme" \
   sh -c "! docker logs '$SERVER' 2>&1 | grep -Eq 'secret|Geheimnis'"
 
@@ -118,19 +118,24 @@ if [ "$KATEGORIE" = Anmeldung ]; then
     sh -c "[ \"\$(docker logs '$SERVER' 2>&1 | grep -cF 'sql=[SELECT Id FROM person WHERE Id = @id] parameter=[@id:Int32:INPUT]')\" = 3 ]"
   pruefe "Prepare: 1100 Ausfuehrungen desselben Befehls erreichen das Backend (Marker @wiederholung)" \
     sh -c "[ \"\$(docker logs '$SERVER' 2>&1 | grep -cF 'parameter=[@wiederholung:Int32:INPUT]')\" = 1100 ]"
-  # Entfallen bis slice-betrieb-log-adapter-testserver: 'Fehler: TDS_PREPARE_LIMIT (handle-limit)' (genau einmal) und
-  # 'Fehler: TDS_UNSUPPORTED_RPC (UNKNOWN_PROCEDURE)' (keinmal) waren Zeilen der Bibliothek; geprueft bleibt die Zahl der
-  # Anfragen, die das Backend erreichen.
+  # Entfallen, Ersatz in slice-betrieb-log-adapter-testserver: 'tdswire: Fehler: TDS_PREPARE_LIMIT (handle-limit)' genau
+  # einmal (Zeile der Bibliothek).
+  # Entfallen, Ersatz in slice-betrieb-log-adapter-testserver: 'TDS_UNSUPPORTED_RPC (UNKNOWN_PROCEDURE)' keinmal
+  # (Negativpruefung; eine unbekannte Prozedur erreicht das Backend nicht, der Aufzeichner sieht sie nicht).
+  # Geprueft bleibt die Zahl der Anfragen, die das Backend erreichen.
   pruefe "Prepare: 1000 Befehle erreichen das Backend (Marker @einzeln)" \
     sh -c "[ \"\$(docker logs '$SERVER' 2>&1 | grep -cF 'parameter=[@einzeln:Int32:INPUT]')\" = 1000 ]"
 fi
 
 if [ "$KATEGORIE" = Luecken ]; then
-  # Entfallen bis slice-betrieb-log-adapter-testserver: den Grund der Ablehnung (UNSUPPORTED_PASSWORD_CHANGE,
-  # UNSUPPORTED_FEDERATED_AUTHENTICATION) und die Fehlercodes TDS_PROTOCOL_ERROR, TDS_UNSUPPORTED_TYPE nannte allein das
-  # Log der Bibliothek; der Referenzclient sieht in beiden Faellen nur 18456. Wo `src/test` den Grund ueber `Wiring`
-  # liest (LoginLogInspectionTest, HandshakeWiringTest), bleibt er geprueft; ob das jede dieser Pruefungen ersetzt, ist
-  # nicht festgestellt.
+  # Entfallen, Ersatz in slice-betrieb-log-adapter-testserver (der Referenzclient sieht nur 18456 bzw. den Fehler, den
+  # Grund nannte allein das Log der Bibliothek):
+  # - 'Login: abgelehnt (UNSUPPORTED_PASSWORD_CHANGE)'
+  # - 'Login: abgelehnt (UNSUPPORTED_FEDERATED_AUTHENTICATION)'
+  # - 'tdswire: Fehler: TDS_PROTOCOL_ERROR' (mehrere RPCs)
+  # - 'tdswire: Fehler: TDS_UNSUPPORTED_TYPE' (xml)
+  # Wo `src/test` den Grund der Ablehnung ueber `Wiring` liest (LoginLogInspectionTest, HandshakeWiringTest), bleibt er
+  # geprueft; ob das jede dieser Pruefungen ersetzt, ist nicht festgestellt.
   :
 fi
 

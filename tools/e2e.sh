@@ -32,11 +32,11 @@ lauf() {
 }
 
 echo "e2e: Stufe 1 Rohbytes-Login und Startverhalten des Prozesses ..."
-e2e_abdeckung "TDS-FA-01 TDS-FA-02 TDS-FA-09" "Kindprozess mit main des Testservers (Klassenpfad des Source-Sets testserver) und Rohbytes-Client: PRELOGIN und LOGIN7 mit LOGINACK, Start ohne JVM-Flag bricht ab, fehlende Pflichtoption, ungültiger LOGIN_TIMEOUT und belegter Port beenden den Start mit Exit-Code 1 und der erwarteten Diagnosezeile (Wortlaut geprüft, ohne Wert der Option). Nicht belegt: Referenzclient, TLS, Anfragepfad, beschädigtes oder unzulässiges PRELOGIN (FA-01 Negative), abweichende Clientoption (FA-01 Boundary), protokollierte Zustandsereignisse bei gültigem Start (FA-09 Happy Path), ungültige sicherheitsrelevante Konfiguration über die geprüften Fälle hinaus (FA-09 Negative)" "make smoke"
+e2e_abdeckung "TDS-FA-01 TDS-FA-02 TDS-FA-09" "Rohbytes-Integration über die Prozessgrenze (kein Referenzclient; LOGINACK mit dem Codec der Bibliothek dekodiert, selbstkonsistent; läuft auch in make test): Kindprozess mit main des Testservers (Klassenpfad des Source-Sets testserver) und Rohbytes-Client: PRELOGIN und LOGIN7 mit LOGINACK, Start ohne JVM-Flag bricht ab, fehlende Pflichtoption, ungültiger LOGIN_TIMEOUT und belegter Port beenden den Start mit Exit-Code 1 und der erwarteten Diagnosezeile (Wortlaut geprüft, ohne Wert der Option). Nicht belegt: Referenzclient, TLS, Anfragepfad, beschädigtes oder unzulässiges PRELOGIN (FA-01 Negative), abweichende Clientoption (FA-01 Boundary), protokollierte Zustandsereignisse bei gültigem Start (FA-09 Happy Path), ungültige sicherheitsrelevante Konfiguration über die geprüften Fälle hinaus (FA-09 Negative)" "make smoke"
 lauf 1 make smoke
 
 echo "e2e: Stufe 2 Container-Artefakt ..."
-e2e_abdeckung "TDS-RB-01 TDS-QA-06 TDS-QA-03" "Testserver-Container startet, Login mit TEST_UNENCRYPTED aus zweitem Container gelingt, docker stop endet mit Exit-Code 143, die Ausgabe nennt weder Benutzer noch Passwort. Nicht belegt: TLS-Modus, Fehlpfade, Clean-Build in der CI (QA-06 nur der Docker-Teil)" "make laufzeittest"
+e2e_abdeckung "TDS-RB-01 TDS-QA-06 TDS-QA-03" "Rohbytes-Integration über die Prozessgrenze (kein Referenzclient; LOGINACK mit dem Codec der Bibliothek dekodiert, selbstkonsistent): Testserver-Container startet, Login mit TEST_UNENCRYPTED aus zweitem Container gelingt, docker stop endet mit Exit-Code 143, die Ausgabe nennt weder Benutzer noch Passwort. Nicht belegt: TLS-Modus, Fehlpfade, Clean-Build in der CI (QA-06 nur der Docker-Teil)" "make laufzeittest"
 lauf 2 make laufzeittest
 
 echo "e2e: Stufe 3 Referenzclient gegen Simulations-Backend ..."

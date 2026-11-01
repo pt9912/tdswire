@@ -15,6 +15,7 @@ import io.github.pt9912.tdswire.testsupport.blocking
 import io.github.pt9912.tdswire.testsupport.handMessage
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -152,5 +153,21 @@ internal class SimulationWiringTest : RuntimeTestBase() {
         )
         assertEquals("Backend und Simulations-Backend gleichzeitig konfiguriert", log.lines.last())
         assertEquals(log.lines.last(), both.reason)
+    }
+
+    /**
+     * Negative: eine Tabelle, deren Liste der Integrator nach der Übergabe so ändert, dass die Prüfung beim Kopieren
+     * scheitert, wirft ihre eigene `IllegalArgumentException` aus dem Start; sie wird nicht als doppelter Name
+     * gemeldet (die Fangklausel umschließt nur den Katalog).
+     * @spec SPEC-035
+     */
+    @Test
+    fun `eine ungueltige Tabelle wird nicht als doppelter Name gemeldet`() = blocking {
+        val key = mutableListOf("Id")
+        val kunde = integratorTable(personColumns(), key, emptyList())
+        key.add("Nope")
+        val error = assertFailsWith<IllegalArgumentException> { start(environment(), wiringWith(kunde)) }
+        assertTrue("Nope" in error.message.orEmpty(), error.message)
+        assertTrue(log.lines.none { it.contains("doppelt") }, log.lines.toString())
     }
 }

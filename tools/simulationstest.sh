@@ -59,7 +59,7 @@ gestartet() {
   return 1
 }
 pruefe "Server im Container meldet 'gestartet, Port 1433'" gestartet
-# Entfallen bis slice-betrieb-log-adapter-testserver: 'Simulations-Backend: 4 Tabellen' war eine Zeile der Bibliothek.
+# Entfallen, Ersatz in slice-betrieb-log-adapter-testserver: 'tdswire: Simulations-Backend: 4 Tabellen' (Zeile der Bibliothek).
 
 # Der Text der Tabelle `gross` muss groesser sein als der Heap: sonst belegt der Lauf nicht, dass die Zeilen
 # einzeln gelesen werden.
@@ -79,7 +79,7 @@ fertig=$(date +%s)
 
 laeuft() { [ "$(docker inspect --format '{{.State.Running}}' "$SERVER")" = "true" ]; }
 pruefe "Server laeuft nach den Tests" laeuft
-# Entfallen bis slice-betrieb-log-adapter-testserver: 'Handlerfehler' war eine Zeile der Bibliothek.
+# Entfallen, Ersatz in slice-betrieb-log-adapter-testserver: 'Handlerfehler' (Zeile der Bibliothek) keinmal.
 pruefe "Ausgabe des Testservers nennt weder Kennwort noch Text der Quellenausnahme" \
   sh -c "! docker logs '$SERVER' 2>&1 | grep -Eq 'secret|Geheimnis'"
 

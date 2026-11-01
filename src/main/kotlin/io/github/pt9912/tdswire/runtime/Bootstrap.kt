@@ -38,7 +38,7 @@ internal class RequestSource(val backend: QueryBackend? = null, val simulationTa
  * Alles, was der Prozess außer der Konfiguration festlegt und ein Test ersetzt: Log, Ereignisempfänger,
  * Zeitgeber der Fristen, der [authPool] (einer je Prozess), die Wahl des Adapters und die [requests]-Quelle des
  * Backends. Die Voreinstellung ist der Betrieb: Log auf der Standardausgabe nur über [ServerLog.STDOUT], die
- * Benutzerliste als [UserListAuthAdapter], 
+ * Benutzerliste als [UserListAuthAdapter], kein Backend.
  */
 internal class Wiring(
     val log: ServerLog = ServerLog.NONE,

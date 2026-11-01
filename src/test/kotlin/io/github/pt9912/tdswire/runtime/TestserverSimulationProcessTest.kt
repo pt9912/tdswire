@@ -42,13 +42,13 @@ private val PERSON_FILE = """
  * baut seine Bytes von Hand (kein Referenzclient).
  */
 internal class TestserverSimulationProcessTest : TempFilesTest() {
-    private fun environment() = mapOf(
+    private fun environment(description: String = PERSON_FILE) = mapOf(
         ConfigKeys.LISTEN_HOST to LOOPBACK,
         ConfigKeys.LISTEN_PORT to "0",
         ConfigKeys.ENCRYPTION_POLICY to "TEST_UNENCRYPTED",
         ConfigKeys.AUTH_PLAIN_TESTMODE to "true",
         ConfigKeys.AUTH_USERS_FILE to file("users.txt", "alice\t{plain}secret\n"),
-        DESCRIPTION_KEY to file("sim.yaml", PERSON_FILE),
+        DESCRIPTION_KEY to file("sim.yaml", description),
     )
 
     private fun ask(client: RawClient, sql: String): List<Token> {
@@ -85,6 +85,33 @@ internal class TestserverSimulationProcessTest : TempFilesTest() {
 
                 val insert = ask(client, "INSERT INTO person (id) VALUES (1)")
                 assertTrue(insert.any { it is ErrorToken }, insert.toString())
+            }
+        }
+    }
+
+    /**
+     * Eine Datei ohne Tabellen (`tables: {}`) ergibt ein Backend mit leerem Katalog: eine Anfrage endet mit einem
+     * Fehler der Antwort und die Verbindung bleibt offen, statt ohne Bytes zu schließen (so verhielte sich ein Server
+     * ohne Backend).
+     *
+     * @spec SPEC-035
+     */
+    @Test
+    fun `eine Datei ohne Tabellen ergibt einen leeren Katalog`() {
+        val empty = "schema_format: \"1.0\"\nname: leer\nversion: \"1\"\ntables: {}\n"
+        ServerProcess(environment(empty)).use { server ->
+            RawClient(server.port()).use { client ->
+                client.send(preloginWire(SessionVectors.ENCRYPT_OFF))
+                assertNotNull(client.readMessage())
+                val payload = SessionVectors.login7Payload {
+                    userName = "alice"
+                    password = "secret".toCharArray()
+                }
+                client.send(handMessage(LOGIN7_TYPE, payload, 4000))
+                assertEquals(TABULAR_TYPE, assertNotNull(client.readMessage()).type)
+
+                val answer = ask(client, "SELECT id FROM person")
+                assertTrue(answer.any { it is ErrorToken }, answer.toString())
             }
         }
     }

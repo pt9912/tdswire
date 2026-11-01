@@ -120,6 +120,22 @@ internal class TestserverStartTest : TempFilesTest() {
     }
 
     /**
+     * Treten ein Formfehler (Lader) und ein Bereichsfehler (Start der Bibliothek) zugleich auf, meldet der Testserver
+     * nur den Formfehler; der Bereichsfehler erscheint erst, wenn die Form stimmt (Setzung).
+     *
+     * @spec SPEC-043
+     */
+    @Test
+    fun `Formfehler verdecken Bereichsfehler bis die Form stimmt`() {
+        val mixed = environment(EnvKeys.LOGIN_TIMEOUT to "abc", EnvKeys.LISTEN_PORT to "70000")
+        assertIs<StartOutcome.Aborted>(start(mixed))
+        assertEquals(listOf("tdswire: Konfiguration ungueltig: LOGIN_TIMEOUT: INVALID_VALUE"), lines)
+        val fixed = environment(EnvKeys.LOGIN_TIMEOUT to "15", EnvKeys.LISTEN_PORT to "70000")
+        assertIs<StartOutcome.Aborted>(start(fixed))
+        assertEquals(listOf("tdswire: Konfiguration ungueltig: LISTEN_PORT: OUT_OF_RANGE"), lines)
+    }
+
+    /**
      * Eine Benutzerliste mit Fehler bricht den Start ab: die Zeile nennt Schlüssel, Fehlerart und Zeile, weder
      * Benutzername noch Prüfwert noch Pfad, und der Port wird nicht gebunden.
      *

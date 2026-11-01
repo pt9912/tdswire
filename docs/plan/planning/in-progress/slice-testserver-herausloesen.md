@@ -140,6 +140,10 @@ Start-Trigger, Bedingung 3: Der Start der Welle ist am 2026-11-01 vom Nutzer aus
 - Die Tests des Testservers liegen unter `src/testserver/test/kotlin` (derselbe Source-Set `testserver`), damit detekt sie wie `src/test` behandelt; `IntegrationServer.kt`, `KompatibilitaetsServer.kt` und `sim.yaml` liegen in `src/testserver/kotlin` und `src/testserver/resources`.
 - Die Sperre gegen `com.fasterxml` in `src/main` ist `tools/jackson-sperre.sh` (Stage `detekt`, Selbsttest in `tools/detekt-selbsttest.sh jackson`), keine detekt-Importregel: deren Selbsttest vergleicht Regeln mit Packages, und `runtime` hat keine Regel.
 - Der Lader meldet Form und Dateifehler, die Wertebereiche meldet der Start der Bibliothek (`ConfigValidation.check`); `SimColumnTypes` ist ganz in den Testserver gewandert, die Bibliothek behält nur die Obergrenze 38 in `SimModel`; `EnvKeys` führt die Namen der Umgebungsvariablen, `ConfigKeys` bleibt für die Schlüssel der Diagnose.
+- Eine Datei der Beschreibung ohne Tabellen (`tables: {}`) ergibt wie bisher ein Backend mit leerem Katalog (der Testserver übergibt `Custom(SimulationBackend(SimCatalog(emptyList())))`, denn `Simulation` mit leerer Liste hieße: kein Backend); belegt von `TestserverSimulationProcessTest`.
+- Der Lader meldet Formfehler und Dateifehler; die Wertebereiche meldet erst der Start der Bibliothek. Treten beide zugleich auf, meldet der Testserver nur die Formfehler (Setzung, die Spezifikation verlangt „alle Fehler in einem Durchlauf“ nicht); belegt von `TestserverStartTest`, Fall gemischt.
+- `NameFold` im Testserver und `SimNames` in der Bibliothek sowie die Obergrenze 38 in `SimColumnTypes` und `SimModel` sind Kopien derselben Regel; `SimNames` ist `internal`, ein Gleichheitstest über die öffentliche Fläche prüft nur die Wirkung (gleiche Schreibweise in Datei und Katalog, `TestserverStartTest`); Drift ist sonst ungeprüft (Register: `BEO-TDS/zahl-an-mehreren-orten-ohne-sensor`).
+- Jackson-Rückfall nach `implementation`: das Lock erkennt ihn (`Resolved … is not part of the dependency lock state`, gemessen im Review), solange niemand `make deps-lock` neu schreibt; danach zeigt die `gradle.lockfile` Jackson in `compileClasspath`, die Änderung ist im Diff sichtbar.
 - Die Wiring-Tests in `src/test` bauen ihre `ServerConfig` über `configOf` (nur gültige Umgebungen); die Ladefehler prüft der Testserver.
 
 
@@ -201,6 +205,15 @@ diese Sektion die Zeile `Gegenstand:` mit Kennung oder Grund und jedes Risiko
 aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
+
+**Übergabe an `slice-betrieb-log-adapter-testserver`** (Prüfungen, die im Umbau aus den Skripten genommen und dort mit der Kennung des Slice gekennzeichnet sind; Ersatz trägt der Adapter-Slice):
+
+- `tools/simulationstest.sh`: `tdswire: Simulations-Backend: 4 Tabellen`; `Handlerfehler` keinmal.
+- `tools/kompatibilitaetstest.sh`, alle Kategorien: `Handlerfehler` keinmal.
+- `tools/kompatibilitaetstest.sh`, `Anmeldung`: `tdswire: Fehler: TDS_PREPARE_LIMIT (handle-limit)` genau einmal; `TDS_UNSUPPORTED_RPC (UNKNOWN_PROCEDURE)` keinmal (Negativprüfung; ohne Log nicht beobachtbar, weil eine unbekannte Prozedur das Backend nicht erreicht).
+- `tools/kompatibilitaetstest.sh`, `Luecken`: `Login: abgelehnt (UNSUPPORTED_PASSWORD_CHANGE)`, `Login: abgelehnt (UNSUPPORTED_FEDERATED_AUTHENTICATION)`, `tdswire: Fehler: TDS_PROTOCOL_ERROR`, `tdswire: Fehler: TDS_UNSUPPORTED_TYPE`.
+- `tools/laufzeittest.sh`: keine Logprüfung der Bibliothek herausgenommen; entfallen sind dort die Prüfungen des Produkt-Images (Nutzer, Lizenz in `/app`, Dateiliste, `JAVA_TOOL_OPTIONS`), sie haben keinen Ersatz im Log.
+- Bleibt, weil der Testserver oder der Aufzeichner die Zeile schreibt: `tdswire: gestartet, Port 1433`, `tdswire: gestoppt`, `kompatibilitaet: anfrage …`, die Prüfung auf `secret` und `Geheimnis` in der Ausgabe des Testservers.
 
 Wird bei der Closure gefüllt.
 

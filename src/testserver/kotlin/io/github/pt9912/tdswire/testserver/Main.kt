@@ -3,7 +3,9 @@ package io.github.pt9912.tdswire.testserver
 import io.github.pt9912.tdswire.runtime.BackendSource
 import io.github.pt9912.tdswire.runtime.StartOutcome
 import io.github.pt9912.tdswire.runtime.TdsServer
+import io.github.pt9912.tdswire.simulation.SimCatalog
 import io.github.pt9912.tdswire.simulation.SimTable
+import io.github.pt9912.tdswire.simulation.SimulationBackend
 import kotlinx.coroutines.runBlocking
 import java.util.concurrent.CountDownLatch
 import kotlin.system.exitProcess
@@ -72,13 +74,25 @@ internal suspend fun startTestserver(
 
             is DescriptionResult.Read -> when (val source = choose(described.tables)) {
                 null -> StartOutcome.Aborted("Backend und Simulations-Backend gleichzeitig konfiguriert")
-                else -> TdsServer.start(loaded.config, source)
+                else -> TdsServer.start(loaded.config, withEmptyCatalog(source, loaded.simulationFile != null))
             }
         }
     }
     report(outcome, out)
     return outcome
 }
+
+/**
+ * Eine Datei der Beschreibung ohne Tabellen (`tables: {}`) ergibt ein Simulations-Backend mit leerem Katalog, das jede
+ * Anfrage als unbekannte Tabelle beantwortet (Setzung, nicht am Server gemessen). `BackendSource.Simulation` mit leerer
+ * Liste hieße der Bibliothek dagegen: kein Backend, die Verbindung schließt bei der ersten Anfrage.
+ */
+private fun withEmptyCatalog(source: BackendSource, fromFile: Boolean): BackendSource =
+    if (fromFile && source is BackendSource.Simulation && source.tables.isEmpty()) {
+        BackendSource.Custom(SimulationBackend(SimCatalog(emptyList())))
+    } else {
+        source
+    }
 
 private fun report(outcome: StartOutcome, out: (String) -> Unit) {
     when (outcome) {

@@ -4,11 +4,15 @@
 # Aufruf: jackson-sperre.sh <verzeichnis>...   Exit 1 bei einem Treffer, 2 bei falschem Aufruf.
 # Jeder Verweis auf `com.fasterxml` in *.kt und *.java unter den Verzeichnissen ist ein Treffer: ein Import,
 # ein voll qualifizierter Name, auch in einem Kommentar. Die Bibliothek liest keine Datei und kein YAML; Jackson
-# gehoert dem Testserver (Source-Set `testserver`) und steht nicht im Klassenpfad der Bibliothek. Eine neue Sperre ist
-# keine Lockerung (AGENTS.md 3.6). Darum steht die Pruefung vor detekt in der Dockerfile-Stage `detekt`, sie nennt
-# `src/main`. Warum kein detekt-Eintrag: die Importregeln in config/detekt/detekt.yml gelten je Package der Schichten
-# (der Selbsttest vergleicht ihre Packages mit den Testdaten), und `runtime` hat keine Regel. Grenze: geprueft ist
-# Text; Reflection auf den Namen aus einer Zeichenkette, die ihn zusammensetzt, bleibt unerkannt.
+# gehoert dem Testserver (Source-Set `testserver`) und steht nicht im Klassenpfad der Bibliothek. Die Pruefung laeuft
+# vor detekt in der Dockerfile-Stage `detekt` und nennt `src/main`; sie ist eine Textpruefung, weil die Importregeln in
+# config/detekt/detekt.yml je Package der Schichten gelten (ihr Selbsttest vergleicht die Packages mit den Testdaten)
+# und `runtime` keine Regel hat.
+# Grenzen: geprueft ist der Text `com.fasterxml` in Kotlin und Java. Nicht erkannt sind andere Bibliotheken der Datei
+# (`org.yaml.snakeyaml`, `com.google.gson`), eine Abhaengigkeitszeile in `*.gradle.kts` und ein Name, den Reflection aus
+# Zeichenketten zusammensetzt. Den Rueckfall in `implementation` erkennt das Lock von Gradle (`Resolved ... is not part
+# of the dependency lock state`), solange niemand `make deps-lock` neu schreibt; danach zeigt der Diff der `gradle.lockfile`
+# Jackson in `compileClasspath`.
 set -eu
 
 [ "$#" -ge 1 ] || { echo "Aufruf: $0 <verzeichnis>..." >&2; exit 2; }
