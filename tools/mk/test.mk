@@ -6,3 +6,5 @@ test: ## Unit-Tests ausfuehren (Dockerfile-Stage `test`, kotlin.test)
 	docker build $(BUILDER_FLAGS) --target test --progress=plain .
 
 GATE_CHECKS += test
+GATE_KLASSE_tests += test
+GATE_STAGE += test=test

@@ -30,3 +30,5 @@ tools/stempel.sh
 tools/stempel-liste.sh
 tools/stempel
 referenztest-dotnet
+tools/stempel-gruppe.sh
+tools/mk/stempel.mk

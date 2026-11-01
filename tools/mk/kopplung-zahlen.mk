@@ -8,3 +8,5 @@ kopplung-zahlen: ## Heap und Text von `gross` des Integrationslaufs in Gradle, K
 	docker build $(BUILDER_FLAGS) --target kopplung-zahlen --progress=plain .
 
 GATE_CHECKS += kopplung-zahlen
+GATE_KLASSE_werkzeug += kopplung-zahlen
+GATE_STAGE += kopplung-zahlen=kopplung-zahlen

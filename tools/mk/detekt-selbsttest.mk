@@ -2,27 +2,17 @@
 # Suppression-Verbots (Dockerfile-Stage `detekt-selbsttest`, tools/detekt-selbsttest.sh).
 # Repo-eigen, eingebunden von repo.mk; das Target hat seine Zeile in harness/README.md.
 #
-# Der Selbsttest laeuft nur, wenn sich ein Eingang geaendert hat. Ein Stempel in build/ haelt
-# fest, dass er fuer diese Eingaenge gruen war; sonst bleibt auch der docker-Aufruf aus. Die
-# Verzeichnisse stehen mit in der Liste, damit eine geloeschte Testdatei ihn ausloest. Ein
-# frischer Klon hat keinen Stempel und fuehrt ihn einmal aus. Der Stempel liegt in
-# .harness/state/ (nicht versioniert), nicht in einem build/: auf dem Host baut nichts.
+# Klasse `werkzeug` (ADR-0024 Entscheidung 3): in `make gates` laeuft das Target im Gruppenschritt
+# gruppe-werkzeug und wird uebersprungen, wenn der Stempel der Klasse zum Eingang passt (tools/mk/stempel.mk).
+# Aufgerufen als `make detekt-selbsttest` laeuft es immer; der Layer-Cache der Stage uebergeht es dann, wenn nichts
+# von dem geaendert ist, was die Stage kopiert.
+# Aufnahmebedingung (ADR-0024 Entscheidung 6): digest-gepinntes Image, feste Testdaten unter config/detekt/selbsttest*,
+# keine Uhr; ihre Eingaenge stehen in tools/stempel/werkzeug.eingaenge (Dockerfile, Gradle-Dateien, Lockfiles, config).
 .PHONY: detekt-selbsttest
 
-SELBSTTEST_STEMPEL = .harness/state/detekt-selbsttest.ok
-SELBSTTEST_EINGAENGE = Dockerfile settings.gradle.kts build.gradle.kts gradle.properties \
-	gradle/libs.versions.toml gradle.lockfile settings-gradle.lockfile \
-	gradle/verification-metadata.xml config/detekt/detekt.yml \
-	tools/detekt-selbsttest.sh tools/suppression-check.sh \
-	$(shell find config/detekt/selbsttest config/detekt/selbsttest-aufrufe)
-
-detekt-selbsttest: $(SELBSTTEST_STEMPEL) ## Importregeln der Schichten und Suppression-Verbot gegen Testdaten pruefen; laeuft nur bei geaenderten Eingaengen
-
-# Der Stempel entsteht vor dem Lauf: eine Aenderung waehrend des Laufs ist dann juenger als er und
-# loest den naechsten aus. Scheitert der Lauf, verschwindet er.
-$(SELBSTTEST_STEMPEL): $(SELBSTTEST_EINGAENGE)
-	@mkdir -p $(@D)
-	@touch $@
-	docker build $(BUILDER_FLAGS) --target detekt-selbsttest --progress=plain . || { rm -f $@; exit 1; }
+detekt-selbsttest: ## Importregeln der Schichten und Suppression-Verbot gegen Testdaten pruefen (Stage `detekt-selbsttest`); in make gates im Gruppenschritt werkzeug
+	docker build $(BUILDER_FLAGS) --target detekt-selbsttest --progress=plain .
 
 GATE_CHECKS += detekt-selbsttest
+GATE_KLASSE_werkzeug += detekt-selbsttest
+GATE_STAGE += detekt-selbsttest=detekt-selbsttest

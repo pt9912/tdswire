@@ -153,13 +153,13 @@ RUN sh tools/spec-abdeckung-selbsttest.sh
 FROM basis AS skript-selbsttest
 WORKDIR /src
 COPY Dockerfile Dockerfile
-COPY tools/e2e.sh tools/e2e-selbsttest.sh tools/manifest-pruefung.sh tools/manifest-selbsttest.sh tools/eingangs-hash.sh tools/eingangs-hash-selbsttest.sh tools/
+COPY tools/e2e.sh tools/e2e-selbsttest.sh tools/manifest-pruefung.sh tools/manifest-selbsttest.sh tools/
 COPY tools/vergleichslauf-d.sh tools/vergleichslauf-d-selbsttest.sh tools/
 COPY tools/mk tools/mk
 COPY harness/mk harness/mk
 COPY Makefile repo.mk ./
 COPY .github/workflows .github/workflows
-RUN bash tools/e2e-selbsttest.sh && sh tools/manifest-selbsttest.sh && bash tools/eingangs-hash-selbsttest.sh && bash tools/vergleichslauf-d-selbsttest.sh
+RUN bash tools/e2e-selbsttest.sh && sh tools/manifest-selbsttest.sh && bash tools/vergleichslauf-d-selbsttest.sh
 
 # --- Kopplung der Zahlen: `make kopplung-zahlen` - haelt Heap und Text von `gross` des Integrationslaufs (SPEC-040)
 # in build.gradle.kts, IntegrationServer.kt, dem .NET-Test, der Spezifikation und harness/README.md gleich und belegt
