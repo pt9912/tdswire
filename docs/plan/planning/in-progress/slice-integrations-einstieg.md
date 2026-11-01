@@ -55,7 +55,7 @@ Wortlaut und Zuschnitt folgen [ADR-0021](../../adr/0021-oeffentlicher-integratio
 
 Liefer-Punkte (drei):
 
-- [x] **Öffentlicher Einstieg und Schnitt der Konfiguration** ([TDS-FA-08](../../../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-RB-04](../../../../spec/lastenheft.md#tds-rb-04--externes-backend), [TDS-FA-09](../../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose)): `TdsServer.start(config, source)` mit `BackendSource` und `StartOutcome` sind `public` in `runtime`; `Wiring`, `Bootstrap` und der Lesepfad bleiben `internal`. Die Prüfung der Konfiguration und die Defaults stehen in `config` und gelten für Lader und Embedder (`ConfigValidation.check`); `ConfigLoader` und `ConfigFiles` liegen als `internal` in `runtime`; `main()` startet über denselben Einstieg (`Bootstrap.start` teilt sich in Prozess-Start und `launch`).
+- [x] **Öffentlicher Einstieg und Schnitt der Konfiguration** ([TDS-FA-08](../../../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-RB-04](../../../../spec/lastenheft.md#tds-rb-04--externes-backend), [TDS-FA-09](../../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose)): `TdsServer.start(config, source)` mit `BackendSource` und `StartOutcome` sind `public` in `runtime`; `Wiring`, `Bootstrap` und der Lesepfad bleiben `internal`. Die Prüfung der Konfiguration und die Defaults stehen in `config` und gelten für Lader und Embedder (`ConfigValidation.check`); `ConfigLoader` und `ConfigFiles` liegen als `internal` in `runtime`; `main()` startet über `Bootstrap.start`, das `launch` ruft, den auch `TdsServer.start` ruft (Zwischenstand).
 - [x] **Lebenszyklus** (start/stop): Der Einstieg startet den Server und gibt dem Integrator ein Handle (`port`, `stop()`); ein zweites `stop` und ein Start mit ungültiger Konfiguration (`REQUIRED` ohne TLS-Material, `TEST_UNENCRYPTED` mit TLS-Material, Wert außerhalb des Bereichs) enden definiert (`StartOutcome.Aborted`, keine Ausnahme), ohne offene Ressourcen (Test).
 - [x] **Nachweis ohne `internal`-Zugriff** ([TDS-RB-04](../../../../spec/lastenheft.md#tds-rb-04--externes-backend)): ein Test im eigenen, nicht assoziierten Source-Set `integrator` startet den Server über den Einstieg mit einem In-Memory-Backend und mit `BackendSource.Simulation` und einer Zeilenquelle des Integrators und beantwortet mit Rohbytes eine Anfrage; er läuft in `make test`; eine Mutation, die den Einstieg `internal` macht, macht die Übersetzung rot (Beleg in der Closure-Notiz).
 
@@ -86,7 +86,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `config/ConfigLoader.kt`, `config/ConfigFiles.kt` und ihre Tests | Verschieben, dann update | reiner Move-Commit nach `runtime` (`AGENTS.md` §3.3), danach Paket und `internal`; Bereichstests werden Tests der Prüfung in `config` |
 | `runtime/Bootstrap.kt` | update | `start` (Flag, Lader, Abbruch-Log) und `launch` (Prüfung, Simulation, TLS, Binden) |
 | `runtime/Server.kt` nach `runtime/TdsServer.kt` | Verschieben, dann update | öffentlich: `TdsServer` (`port`, `stop`), `BackendSource`, `StartOutcome`, `TdsServer.start` |
-| `runtime/Main.kt` | update | `main()` startet über `TdsServer.start` mit `BackendSource.None` |
+| `runtime/Main.kt` | update | `main()` → `Bootstrap.start` → `launch`, den auch `TdsServer.start` ruft (Zwischenstand) |
 | `build.gradle.kts`, `Dockerfile`, `tools/mk/build.mk` | update | Source-Set `integrator` (nicht assoziiert) und Task `integratorTest`; Stages `test`, `spec-abdeckung` und `detekt`; `DEPS_TASKS`; Lock |
 | `src/integrator/kotlin/` | neu | Einbettungstest nur über die öffentliche API (In-Memory-Backend, `Simulation` mit Zeilenquelle, Abbruch bei ungültiger Konfiguration, doppeltes `stop`); `@spec`-Tag je Test |
 | `spec/spezifikation.md`, `spec/architecture.md` | update | `SPEC-059` (Einstieg), `SPEC-035` und `ARC-008` nennen ihn |
@@ -97,6 +97,9 @@ Setzungen (Voreinstellung, nicht gemessen), die [ADR-0021](../../adr/0021-oeffen
 - **`StartOutcome.Aborted`** trägt `reason` (Text ohne Werte, derselbe, den der Prozess ins Log schreibt) und `issues` (Liste der `ConfigIssue`, leer, wenn der Abbruch nicht aus der Konfiguration kam).
 - **Log des Einstiegs:** `TdsServer.start` schreibt kein Log (Voreinstellung `ServerLog.NONE`); der Grund steht in `Aborted`.
 - **`explicitApi`:** ausgegliedert (§1).
+- **Fläche:** `ConfigValidation` und `ConfigKeys` gehören zur zugesagten Fläche (Setzung, Fix-Runde nach Review; die ADR bleibt unverändert).
+- **Passwort:** gelöscht wird beim Laden des TLS-Materials, nicht bei jedem Abbruch (Setzung, getestet in `TdsServerLifecycleTest`).
+- **Sensor Assoziation:** die Gradle-Task `integratorOhneAssoziation` bricht, sobald das Source-Set `integrator` mit einer anderen Kompilierung assoziiert ist; `compileIntegratorKotlin` und `integratorTest` hängen an ihr.
 
 Reihenfolge: (a) Prüfung und Defaults nach `config`, (b) reiner Move von Lader und Dateileser mit Tests nach `runtime`, danach Inhalt, (c) `Bootstrap` teilen und Einstieg, dann Source-Set und Nachweis; die Mutation (Einstieg `internal`) vor der Closure.
 
@@ -133,7 +136,7 @@ dasteht.
 - Nachweis von der falschen Seite der Grenze: Tests im Modul sehen `internal`; ein Test, der den Einstieg von innen ruft, bestünde auch bei fehlender Öffentlichkeit. Der Test muss dort laufen, wo `internal` nicht sichtbar ist, und die Mutation beweist es (`BEO-TDS/nachweis-von-der-falschen-seite-der-grenze`). — **Ausgang:** offen bis zur Closure.
 - Lebenszyklus in einem fremden Prozess: Der Integrator ruft `stop` aus beliebigem Thread, hält Zeilenquellen offen oder wirft aus dem Backend; [ADR-0013](../../adr/0013-backend-grenzen.md) regelt die Grenzen für den Protokollkern, das Beenden aus dem Embedder ist dort nicht festgelegt. — **Ausgang:** offen bis zur Closure.
 - Der Ort des Einbettungstests hängt an den Modulgrenzen von `slice-qa-wartbarkeit` (in Arbeit); ein dort beschlossenes Modul-Layout verändert den Zuschnitt dieses Slice. — **Ausgang:** offen bis zur Closure.
-- Die Abdeckungsmatrix (`make spec-abdeckung`) liest nur `src/test`; die Tests unter `src/integrator` tragen den Tag `@spec`, zählen aber nicht in die Matrix, bis der Erzeuger sie liest. — **Ausgang:** offen bis zur Closure.
+- Die Abdeckungsmatrix (`make spec-abdeckung`) las nur `src/test`; der Erzeuger liest jetzt auch `src/integrator` und `build/test-results/integratorTest` (Selbsttest `make spec-abdeckung-selbsttest` deckt zwei Verzeichnisse ab). Die Matrix selbst ist noch nicht neu erzeugt. — **Ausgang:** offen bis zur Closure.
 - Dependency-Verifikation: Das Source-Set löst beim Übersetzen eine abgetrennte Konfiguration mit JUnit 5.10.1 (nur Metadaten) auf; `gradle/verification-metadata.xml` führt dafür neue Einträge. — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
