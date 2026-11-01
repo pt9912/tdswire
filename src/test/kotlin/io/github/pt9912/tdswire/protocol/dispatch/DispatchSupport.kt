@@ -75,12 +75,20 @@ class Session(val channel: FakeHandshakeChannel, val ready: HandshakeOutcome.Rea
 
     fun hex(index: Int): String = replies[index].payload.toHex()
 
+    /** Die Schleife dieser Sitzung; ihre [RequestLoop.handles] bleiben nach dem Lauf lesbar. */
+    fun loop(
+        backend: QueryBackend,
+        errors: ErrorMapper = ErrorMapper(),
+        sinkAround: (TokenSink) -> TokenSink = { it },
+        requestIds: () -> String = Counter()::next,
+    ) = RequestLoop(ready, channel, backend, errors, requestIds, sinkAround)
+
     suspend fun serve(
         backend: QueryBackend,
         errors: ErrorMapper = ErrorMapper(),
         sinkAround: (TokenSink) -> TokenSink = { it },
         requestIds: () -> String = Counter()::next,
-    ) = RequestLoop(ready, channel, backend, errors, requestIds, sinkAround).run()
+    ) = loop(backend, errors, sinkAround, requestIds).run()
 
     companion object {
         suspend fun login(vararg later: Inbound): Session {

@@ -1,0 +1,2 @@
+**Vorgang:** slice-rpc-prepared-handles
+**Fund:** Das Handle als RETURNVALUE (Ordinal 0, `INTN` 4, Name `@handle`, vor dem ersten Ausgabewert des Backends, sonst am Ende; Handvektor `26 04 04`), die Vergabe ab 1 und der Abschluss ERROR plus DONE mit Fehlerstatus statt DONEPROC sind gegen das Test-Backend gemessen, nicht gegen einen echten SQL Server oder den Referenzclient. Träger bleibt der Vergleichslauf D.

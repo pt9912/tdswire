@@ -1,0 +1,2 @@
+**Vorgang:** slice-rpc-prepared-handles
+**Fund:** Review MEDIUM-3 und Verifikation F-2: „Endet die Antwort mit einem Fehler, entsteht kein Handle“ trug nur für den Fehler vor dem ersten Ausgabewert; die KDoc von `HandleReturningBackend.returned` sagte „sobald das Handle-Ereignis in den Strom gegeben wurde“, am Stromende wurde das Feld nicht gesetzt. Behoben durch Einschränkung der Aussage und Test (6e481cd, 63c3e50).

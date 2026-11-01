@@ -17,6 +17,22 @@ internal sealed interface RpcBinding {
     }
 
     /**
+     * `sp_prepexec`: der Text, den die Sitzung unter einem neuen Handle merkt und ausführt, und die Parameter
+     * der ersten Ausführung. Die Textdarstellung nennt weder Text noch Werte.
+     */
+    class Prepare(val sql: String, val parameters: List<QueryParameter>) : RpcBinding {
+        override fun toString(): String = "Prepare(sqlChars=${sql.length}, parameters=$parameters)"
+    }
+
+    /**
+     * `sp_execute`: das Handle, dessen gemerkten Text die Sitzung mit den neuen Parametern ausführt. Die
+     * Textdarstellung nennt keine Werte.
+     */
+    class ExecutePrepared(val handle: Int, val parameters: List<QueryParameter>) : RpcBinding {
+        override fun toString(): String = "ExecutePrepared(handle=$handle, parameters=$parameters)"
+    }
+
+    /**
      * Der RPC erreicht das Backend nicht. Weist der Parser die Nachricht als Struktur- oder Kodierfehler ab
      * ([RpcRejection.ENCODING]), trägt [error] dessen Fehler und der Client erhält den Fehler des Parsers, die
      * Verbindung schließt; sonst ist [error] `null` und der Client erhält `TDS_UNSUPPORTED_RPC` bei offener
@@ -32,9 +48,11 @@ internal sealed interface RpcBinding {
  *   Liste ([RpcParameters]); die Deklarationsliste fließt nicht in die Anfrage ein.
  * - RPC per Prozedurname: ein Aufruftext `EXEC <name> @a = @a, ...` ([RpcProcedureName]) und dieselben
  *   Wertparameter. Der Name wird in den Text übernommen, die Werte nie.
- * - Alles andere ist abgelehnt: die Katalogformen `sp_prepexec` und `sp_execute` (Handle-Verwaltung nicht
- *   gebaut), jede andere ProcID und ein Name, den der Katalog führt; ebenso eine Nachricht, die der
- *   Parser abweist (andere Folge, siehe unten).
+ * - `sp_prepexec`: Text der Nachricht und Wertparameter ([RpcBinding.Prepare]); der Wert des Handle-Parameters
+ *   und die Deklarationsliste fließen nicht ein. `sp_execute`: das Handle und die Wertparameter
+ *   ([RpcBinding.ExecutePrepared]); ob die Sitzung das Handle hält, entscheidet der Dispatch, nicht die Bindung.
+ * - Alles andere ist abgelehnt: jede andere ProcID und ein Name, den der Katalog führt; ebenso eine
+ *   Nachricht, die der Parser abweist (andere Folge, siehe unten).
  *
  * Festlegungen (nicht gemessen): Die Optionsflags und die Kennungen der ALL_HEADERS werden nicht
  * ausgewertet. Ein Struktur- oder Kodierfehler des Parsers (Format, Länge, unbekannte Typkennung,
@@ -67,7 +85,11 @@ internal object RpcBinder {
 
         is RpcCall.ByName -> byName(call)
 
-        is RpcCall.PrepExec, is RpcCall.Execute -> RpcBinding.Rejected(RpcRejection.NOT_BUILT)
+        is RpcCall.PrepExec ->
+            RpcBinding.Prepare(call.statement, RpcParameters.map(call.parameters, nameInText = false))
+
+        is RpcCall.Execute ->
+            RpcBinding.ExecutePrepared(call.handle, RpcParameters.map(call.parameters, nameInText = false))
 
         is RpcCall.UnknownProcedure -> RpcBinding.Rejected(RpcRejection.UNKNOWN_PROCEDURE)
     }

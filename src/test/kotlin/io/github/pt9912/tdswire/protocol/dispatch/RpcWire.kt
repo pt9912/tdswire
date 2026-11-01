@@ -29,6 +29,20 @@ object RpcWire {
             params.joinToString("  "),
     )
 
+    /**
+     * `sp_prepexec` (ProcID 13): Parameter 0 das OUTPUT-Handle [handle] (`INTN` 4), dann [declarations] und
+     * [statement], danach die fertigen [params].
+     */
+    fun prepExec(handle: Int, statement: String, declarations: String, vararg params: String): ByteArray = hex(
+        "${RpcVectors.HEADERS}  FF FF 0D 00  02 00  00 01 ${int4(handle)}  00 00 ${nvarchar(declarations)}  " +
+            "00 00 ${nvarchar(statement)}  " + params.joinToString("  "),
+    )
+
+    /** `sp_execute` (ProcID 12): Parameter 0 das Handle [handle] (`INTN` 4, nicht OUTPUT), danach die [params]. */
+    fun execute(handle: Int, vararg params: String): ByteArray = hex(
+        "${RpcVectors.HEADERS}  FF FF 0C 00  02 00  00 00 ${int4(handle)}  " + params.joinToString("  "),
+    )
+
     /** Ein RPC per Prozedurname [name] (Zeichenzahl als Länge) mit den fertigen [params]. */
     fun byName(name: String, vararg params: String): ByteArray = hex(
         "${RpcVectors.HEADERS}  ${u16(name.length)}  ${utf16(name)}  00 00  " + params.joinToString("  "),
