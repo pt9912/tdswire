@@ -194,11 +194,14 @@ Hier endet die Implementation. Die übrigen Rollen laufen in **getrennten Kontex
     Ausgang dasteht. **Hat der Slice Tests geändert, läuft `make spec-abdeckung` vor dem
     Closure-Commit, und die erzeugte `docs/plan/spec-abdeckung.md` liegt im selben Commit**; die
     Matrix ist kein Gate und steht sonst hinter dem Bestand  (seit slice-rpc-executesql-parameter).
-    **Entscheidungs-Slice (die ADR steht auf `Accepted` und führt offene Punkte)** *(seit welle-entscheidungen-grundlage)*:
-    Jeder offene Punkt der ADR hat vor dem `→ done` einen Träger, der als Datei im
+    **Entscheidungs-Slice (die ADR steht auf `Accepted` und führt offene Punkte) und jeder Slice,
+    der den Teil einer Anforderung offen nach `done/` bringt** *(seit welle-entscheidungen-grundlage)*:
+    Jeder offene Punkt der ADR und jeder offene Teil der Anforderung hat vor dem `→ done` einen Träger, der als Datei im
     Planning-Lifecycle existiert und den Punkt in seiner DoD oder seinem Risiko führt —
     geprüft gegen den Inhalt der Slice-Datei, nicht gegen ihren Namen. Fehlt er, wird der
-    Punkt dort ergänzt oder ein Folge-Slice angelegt (`cp` aus `slice.template.md`); sonst
+    Punkt dort ergänzt oder ein Folge-Slice angelegt (`cp` aus `slice.template.md`); für einen
+    offenen Anforderungsteil gilt auch ein Carveout oder ein Register-Eintrag, der einen Träger
+    nennt; ohne benannten Träger geht der Slice nicht nach `done/`. Sonst
     steht in der Closure-Notiz „Folge-ADR nötig“ mit dem Re-Evaluierungs-Trigger der ADR.
     „Nutzerentscheidung“ ist kein Träger. Eine `Accepted`-ADR schließt ihre offenen Punkte
     nur per Folge-ADR (`AGENTS.md` §3.5).
