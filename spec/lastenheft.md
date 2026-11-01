@@ -1,6 +1,6 @@
 # Lastenheft — JVM TDS Server
 
-**Version:** 0.5.0  
+**Version:** 0.6.0  
 **Status:** Draft  
 **Autor:** pt9912
 **Datum:** 2026-10-29
@@ -9,7 +9,7 @@
 
 ## 1. Zweck und Geltungsbereich
 
-Das Projekt stellt einen eigenständigen Serverendpunkt bereit, über den .NET-Anwendungen mit einem Microsoft-SQL-Server-kompatiblen Clienttreiber mittels Tabular Data Stream (TDS) auf eine kundenseitig bereitgestellte Abfrage- und Datenverarbeitung zugreifen können. Der Server nimmt Verbindungen entgegen, authentifiziert Clients, übergibt unterstützte Anfragen an ein angebundenes Backend und liefert Resultate und Fehler im erwarteten Protokollformat zurück. Ziel ist Interoperabilität für einen klar abgegrenzten Funktionsumfang, nicht die vollständige Nachbildung von Microsoft SQL Server.
+Das Projekt stellt eine JVM-Bibliothek bereit, mit der eine Anwendung einen TDS-Serverendpunkt einbettet, über den .NET-Anwendungen mit einem Microsoft-SQL-Server-kompatiblen Clienttreiber mittels Tabular Data Stream (TDS) auf eine kundenseitig bereitgestellte Abfrage- und Datenverarbeitung zugreifen können. Der eingebettete Serverendpunkt (im Folgenden „der Server“) nimmt Verbindungen entgegen, authentifiziert Clients, übergibt unterstützte Anfragen an ein angebundenes Backend und liefert Resultate und Fehler im erwarteten Protokollformat zurück. Ziel ist Interoperabilität für einen klar abgegrenzten Funktionsumfang, nicht die vollständige Nachbildung von Microsoft SQL Server. Ein eigenständig ausführbarer Server ist nicht Produkt dieses Projekts; ein Testserver dient nur der Prüfung der Bibliothek.
 
 Primärer Client ist eine .NET-Anwendung. Die konkrete Treiberversion, erforderliche Verbindungsoptionen und der tatsächlich genutzte SQL-/RPC-Funktionsumfang werden vor Abnahme in einem Client-Kompatibilitätsprofil festgelegt. Die interne Abfrage-Engine und Datenhaltung sind nicht Bestandteil des TDS-Servers; ihre Anbindung gehört zur Systemgrenze. Mitgeliefert wird ein optionales Simulations-Backend (`TDS-FA-11`), das einen abgegrenzten Satz einfacher Anweisungsformen aus deklarativ beschriebenen Tabellen beantwortet; es ist keine SQL-Engine. Die konkrete Implementierung ist nicht Gegenstand dieses Dokuments.
 
@@ -127,12 +127,12 @@ Primärer Client ist eine .NET-Anwendung. Die konkrete Treiberversion, erforderl
 
 ### TDS-FA-09 — Konfiguration und Diagnose
 
-**Beschreibung:** Betreiber können Netzwerkendpunkt, Sicherheitsparameter, Zeitlimits und Protokollierung konfigurieren und den Betriebszustand diagnostizieren.
+**Beschreibung:** Integratoren und Betreiber können Netzwerkendpunkt, Sicherheitsparameter, Zeitlimits und Protokollierung konfigurieren und den Betriebszustand diagnostizieren.
 
 **Akzeptanzkriterien:**
-- **Happy Path:** Given eine gültige Konfiguration, when der Server startet, then ist der konfigurierte Endpunkt erreichbar und relevante Zustandsereignisse werden protokolliert.
-- **Boundary:** Given ein belegter Port, when der Server startet, then schlägt der Start mit einer verständlichen Diagnose fehl.
-- **Negative:** Given eine ungültige sicherheitsrelevante Konfiguration, when der Server startet, then wird sie abgewiesen, ohne unsichere Defaults stillschweigend zu aktivieren.
+- **Happy Path:** Given eine gültige Konfiguration, when der Serverendpunkt gestartet wird, then ist der konfigurierte Endpunkt erreichbar und relevante Zustandsereignisse werden protokolliert.
+- **Boundary:** Given ein belegter Port, when der Serverendpunkt gestartet wird, then schlägt der Start mit einer verständlichen Diagnose fehl.
+- **Negative:** Given eine ungültige sicherheitsrelevante Konfiguration, when der Serverendpunkt gestartet wird, then wird sie abgewiesen, ohne unsichere Defaults stillschweigend zu aktivieren.
 
 **Out-of-Scope:** Grafische Administrationsoberfläche.
 
@@ -170,7 +170,7 @@ Primärer Client ist eine .NET-Anwendung. Die konkrete Treiberversion, erforderl
 - **Messmethode:** Review der Modulgrenzen, automatisierte Tests und dokumentierte Kompatibilitätsmatrix.
 
 ### TDS-QA-06 — Reproduzierbarkeit
-- **Anforderung:** Build, Tests und ausführbarer Server lassen sich in einer dokumentierten Docker-basierten Umgebung reproduzieren.
+- **Anforderung:** Build, Tests und Testserver lassen sich in einer dokumentierten Docker-basierten Umgebung reproduzieren.
 - **Messmethode:** Clean-Build und Integrationstests in CI ohne lokale JVM-Voraussetzungen auf dem Host.
 
 ### TDS-QA-07 — Protokoll-Synchronität
@@ -179,8 +179,8 @@ Primärer Client ist eine .NET-Anwendung. Die konkrete Treiberversion, erforderl
 
 ### TDS-RB-01 — Implementierungssprache
 - **Art:** technisch
-- **Vorgabe:** Der Server muss auf der JVM betrieben werden können und eine Kotlin-basierte Entwicklung erlauben.
-- **Nachweis:** Reproduzierbarer JVM-Build und Laufzeittest.
+- **Vorgabe:** Die Bibliothek muss auf der JVM betrieben werden können und eine Kotlin-basierte Entwicklung erlauben.
+- **Nachweis:** Reproduzierbarer JVM-Build und Einbettungstest.
 
 ### TDS-RB-02 — Externer Client
 - **Art:** technisch
@@ -239,6 +239,8 @@ Jede offene Festlegung hat eine verantwortliche Rolle und einen Trigger; ohne di
 | Clientprofil   | Festgelegte Kombination aus .NET-/Treiber-Version, Connection String und unterstützten Szenarien |
 | Referenzclient | Testanwendung, die das verbindliche Clientprofil ausführt                                        |
 | Simulations-Backend | Mitgeliefertes optionales Backend, das einfache Anweisungsformen aus deklarativ beschriebenen Tabellen beantwortet; keine SQL-Engine |
+| Server         | Der von der Bibliothek bereitgestellte, in eine Anwendung eingebettete TDS-Serverendpunkt; kein eigenständiges Produkt |
+| Testserver     | Ausführbarer Serverprozess, der nur der Prüfung der Bibliothek dient (E2E- und Kompatibilitätstests); kein Produkt |
 | Zeilenquelle   | Vom Integrator bereitgestellte Quelle der Zeilen einer Tabelle, die schrittweise gelesen wird    |
 
 ## 7. Historie
@@ -249,3 +251,4 @@ Jede offene Festlegung hat eine verantwortliche Rolle und einen Trigger; ohne di
 | 0.3.0   | 2026-10-29 | Simulations-Backend als Anforderung aufgenommen; Ausschluss der SQL-Engine abgegrenzt; Lizenz als Randbedingung | `TDS-FA-11`, `TDS-RB-05` |
 | 0.4.0   | 2026-10-29 | Anker für geordnetes Beenden und Referenzabgleich ergänzt               | `TDS-FA-07`, `TDS-QA-01` |
 | 0.5.0   | 2026-10-30 | Prüfung auf NULL (`IS NULL`, `IS NOT NULL`) als erkannte Bedingung des Simulations-Backends aufgenommen | `TDS-FA-11` |
+| 0.6.0   | 2026-11-01 | Produkt ist die JVM-Bibliothek; ein eigenständig ausführbarer Server ist kein Produkt, der Testserver dient nur der Prüfung | `TDS-RB-01`, `TDS-QA-06`, `TDS-FA-09` |
