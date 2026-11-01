@@ -38,7 +38,7 @@ Der Slice entstand am 2026-11-01 aus den ehemaligen DoD-Punkten 4 und 5 von [sli
 
 - Der Abbruchpfad im Server (ATTENTION erkennen, genau ein Cancel, `DONE[ATTN]`, `CANCEL_TIMEOUT`, Frist mit `TDS_TIMEOUT`) — [slice-attention-cancel-timeout](../done/slice-attention-cancel-timeout.md); er ist Voraussetzung (§4), dieser Slice misst ihn nur von außen.
 - Die Zwei-Nachrichten-Form der Cancel-Antwort — [ADR-0027](../../adr/0027-abbruch-und-zuruecksetzen.md) baut sie nur, wenn dieser Lauf mit der Ein-Nachricht-Form scheitert. Das ist dann eine Re-Evaluierung der ADR und ein neuer Zuschnitt, nicht Teil dieses Slice (Rückführung in §4).
-- `RESETCONNECTION` und Pooling — [slice-resetconnection-zuruecksetzen](slice-resetconnection-zuruecksetzen.md); der Lauf hier ist TDS 7.4 ohne Verschlüsselung und ohne Pool (`SPEC-040`).
+- `RESETCONNECTION` und Pooling — [slice-resetconnection-zuruecksetzen](../next/slice-resetconnection-zuruecksetzen.md); der Lauf hier ist TDS 7.4 ohne Verschlüsselung und ohne Pool (`SPEC-040`).
 - Der Vergleich der Cancel-Antwort mit einem echten SQL Server (R11 bis R16) — `slice-qa-vergleichslauf-d-messungen` (Liefer-Punkt 3, nur Messung); dieser Slice misst den Referenzclient gegen den Server dieses Repos.
 - Cancel unter TLS und TDS 8.0 — nicht gemessen, Register `BEO-TDS/tds-8-0-und-pooling-nicht-gemessen`.
 - MARS und mehrere gleichzeitige Anfragen je Sitzung (`SPEC-004`).
