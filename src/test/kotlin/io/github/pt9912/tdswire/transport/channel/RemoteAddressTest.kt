@@ -48,12 +48,17 @@ class RemoteAddressTest {
         }
     }
 
-    /** Orakel: Peeked- und Switchable-Kanal nennen die Adresse des inneren Kanals; nach dem Wechsel die des neuen. */
+    /** Orakel: der Peeked-Kanal nennt die Adresse des inneren Kanals. */
     @Test
-    fun `Verpackende Kanaele geben die Adresse weiter`() = blocking {
-        val first = Addressed(loopback)
-        val peeked = assertNotNull(PeekedChannel.peek(first))
+    fun `Der Peeked-Kanal gibt die Adresse weiter`() = blocking {
+        val peeked = assertNotNull(PeekedChannel.peek(Addressed(loopback)))
         assertEquals(loopback, peeked.remoteAddress)
+    }
+
+    /** Orakel: der Switchable-Kanal nennt die Adresse des aktuellen Ziels; nach dem Wechsel die des neuen. */
+    @Test
+    fun `Der Switchable-Kanal gibt die Adresse des aktuellen Ziels weiter`() {
+        val first = Addressed(loopback)
         val other = InetAddress.getByName("127.0.0.2")
         val switchable = SwitchableChannel(first)
         assertEquals(loopback, switchable.remoteAddress)

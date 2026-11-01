@@ -221,6 +221,24 @@ class LoginThrottleTest {
     }
 
     /**
+     * Orakel: die Verdrängung rechnet nach Anlage und letztem Fehlversuch, nicht nach dem Zustand der Versuche: ein
+     * Eintrag, der nur laufende Versuche trägt, wird als ältester verdrängt, seine Zähler gehen verloren, und die
+     * Einträge mit Fehlversuch bleiben.
+     *
+     * @spec SPEC-053
+     */
+    @Test
+    fun `Ein Eintrag mit nur laufenden Versuchen ist bei voller Tabelle verdraengbar`() {
+        val throttle = throttle(ThrottlePolicy(freeFailures = 1, maxAddresses = 2))
+        repeat(2) { throttle.enter(address(1)) }
+        throttle.fail(address(2))
+        throttle.fail(address(3))
+        assertEquals(2, throttle.trackedAddresses)
+        assertEquals(250.milliseconds, throttle.waitNow(address(2)), "Fehlversuch bleibt")
+        assertEquals(250.milliseconds, throttle.waitNow(address(3)), "Fehlversuch bleibt")
+    }
+
+    /**
      * Orakel: eine Adresse, die während eines laufenden Versuchs verdrängt wird, bekommt kein zweites Mal einen
      * Eintrag durch das Ende dieses Versuchs; die Tabelle bleibt an der Grenze.
      *

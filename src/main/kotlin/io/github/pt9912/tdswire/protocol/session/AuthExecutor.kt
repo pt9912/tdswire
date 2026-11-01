@@ -84,8 +84,9 @@ internal class AuthExecutor(pool: AuthPool) {
 /**
  * Wo und wie breit der Anmeldepfad den blockierenden Adapter ruft: auf [dispatcher] höchstens
  * [parallelism] Aufrufe zugleich. Festlegung ohne Messung: Voreinstellung `Dispatchers.IO` mit
- * [DEFAULT_PARALLELISM] Plätzen. Der Pool gilt je Prozess und trägt deshalb auch die [throttle]: ihre Tabelle der
- * Quelladressen gilt für alle Verbindungen, die den Pool teilen (`ADR-0016`).
+ * [DEFAULT_PARALLELISM] Plätzen. Der Pool trägt auch die [throttle] (`ADR-0016`): ihre Tabelle der Quelladressen
+ * gilt für alle Verbindungen, die den Pool teilen. Der Prozess gibt jedem Treiber denselben Pool; ein Treiber ohne
+ * ausdrücklichen Pool bekommt einen eigenen mit eigener Tabelle, dort wirkt die Drosselung nur für seine Verbindung.
  */
 class AuthPool(
     val dispatcher: CoroutineDispatcher = Dispatchers.IO,

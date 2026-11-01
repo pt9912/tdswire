@@ -48,7 +48,9 @@ internal class LoginThrottleWiringTest : RuntimeTestBase() {
      * Orakel: sechs Anmeldungen mit falschem Passwort von `127.0.0.1` ergeben sechsmal die feste Ablehnung; die
      * sechste hält 250 ms an, die fünf davor nicht. Eine siebte mit richtigem Passwort wartet 500 ms und wird
      * angenommen (die Wartezeit hängt nicht vom Ergebnis ab, die Anmeldung wird nicht gesperrt). Der Schlüssel kommt
-     * aus dem Listener: ohne die Adresse der Gegenstelle gäbe es keine Wartezeit. Die Adresse steht nicht im Log.
+     * aus dem Listener: die Wartezeit entsteht nur mit der Adresse der Gegenstelle (Gegenprobe: ein Treiber ohne
+     * Adresse wartet nie, `LoginThrottleDriverTest`). Die Drosselung schreibt heute nichts ins Log; der Test hält fest,
+     * dass keine Adresse in den Zeilen steht, und ist anzupassen, sobald eine Entscheidung Adressen im Log vorsieht.
      *
      * @spec SPEC-053
      * @spec SPEC-012

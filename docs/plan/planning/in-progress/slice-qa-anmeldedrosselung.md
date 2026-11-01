@@ -77,6 +77,8 @@ Aussagen-Berührung steht hier gar nicht.
 
 Die Liste ist im ersten Lauf des Implementers erweitert.
 
+Entscheidungen des Nutzers (2026-11-01): (1) Ein Kanal ohne bekannte Adresse der Gegenstelle bleibt ungedrosselt; die Alternativen (gemeinsamer Schlüssel, Verbindung schließen) sind verworfen. (2) `SPEC-053` steht als ausdrücklich gekennzeichnete Setzung ohne Lastenheft-Anker; kein Eingriff ins Lastenheft.
+
 ## 4. Trigger
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
