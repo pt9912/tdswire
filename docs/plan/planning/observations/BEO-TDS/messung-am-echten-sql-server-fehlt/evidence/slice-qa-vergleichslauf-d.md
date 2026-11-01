@@ -1,0 +1,2 @@
+**Vorgang:** slice-qa-vergleichslauf-d
+**Fund:** Der Container der Referenzinstanz und das Make-Target stehen; gemessen sind die Anmeldung (Client sieht `18456, Class 14, State 1` mit Benutzernamen in der Meldung, intern State 8 und State 5 im Log des Servers; Einzelmessung 2026-11-01, ein Host, Digests in der Ausnahmeliste) und der TDS-8.0-Pfad. Die Messungen am Wire (Tokenfolge, DONE-Statusbits, RETURNVALUE-Zählung) fehlen weiter und liegen bei `slice-qa-vergleichslauf-d-messungen`.
