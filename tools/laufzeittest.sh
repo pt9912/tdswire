@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tools/laufzeittest.sh - Laufzeittest des Testserver-Containers (TDS-RB-01, TDS-QA-06; Dockerfile-Stagen
-# `testserver` und `laufzeit-client`). Aufruf ueber `make laufzeittest`; BUILDER_FLAGS und BUILDER_LOAD kommen aus
+# `testserver` und `laufzeit-client`). Aufruf ueber `make laufzeittest`; BUILDER_FLAGS kommt aus
 # der Umgebung (leer ohne BUILDER).
 #
 # Ablauf: beide Images bauen; Testserver-Container in einem eigenen internen Netzwerk anlegen, die Testkonfiguration

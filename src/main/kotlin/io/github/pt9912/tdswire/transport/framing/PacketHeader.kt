@@ -7,7 +7,7 @@ package io.github.pt9912.tdswire.transport.framing
  * Festlegung ohne Messung: Die Packet-ID zählt je Nachricht ab 1 und läuft nach 255 auf 0 über;
  * der Leser prüft sie nicht (ein Test nimmt nicht fortlaufende IDs an).
  */
-data class PacketHeader(
+internal data class PacketHeader(
     val type: PacketType,
     val status: Int,
     val length: Int,

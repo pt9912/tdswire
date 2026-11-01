@@ -10,7 +10,7 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 /** Ausgang des Handshakes einer Verbindung. */
-sealed interface HandshakeOutcome {
+internal sealed interface HandshakeOutcome {
     /**
      * Der Login ist angenommen, die Antwort gesendet, die Rahmen-Grenze gewechselt; die Verbindung
      * gehört dem Aufrufer. [live] ist der Sitzungsrahmen, in dem die Anfragezustände weiterlaufen.
@@ -50,7 +50,7 @@ sealed interface HandshakeOutcome {
  * Adapteraufrufe fest (Begründung in [AuthExecutor]); die Sitzungs-ID ist eine
  * zufällige UUID.
  */
-class HandshakeDriver(
+internal class HandshakeDriver(
     config: HandshakeConfig,
     private val adapter: AuthAdapter,
     private val log: HandshakeLog = HandshakeLog.NONE,

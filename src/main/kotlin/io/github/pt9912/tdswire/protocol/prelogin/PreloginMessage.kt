@@ -1,7 +1,7 @@
 package io.github.pt9912.tdswire.protocol.prelogin
 
 /** Wert der PRELOGIN-Option ENCRYPTION (MS-TDS 2.2.6.5). */
-object EncryptionMode {
+internal object EncryptionMode {
     const val OFF = 0x00
     const val ON = 0x01
     const val NOT_SUPPORTED = 0x02
@@ -9,7 +9,7 @@ object EncryptionMode {
 }
 
 /** Option-Kennungen der PRELOGIN-Tabelle (MS-TDS 2.2.6.5); `TERMINATOR` beendet die Tabelle. */
-object PreloginToken {
+internal object PreloginToken {
     const val VERSION = 0x00
     const val ENCRYPTION = 0x01
     const val INSTOPT = 0x02
@@ -22,7 +22,7 @@ object PreloginToken {
 }
 
 /** Eine Option der PRELOGIN-Tabelle mit ihren Rohdaten. */
-class PreloginOption(val token: Int, val data: ByteArray) {
+internal class PreloginOption(val token: Int, val data: ByteArray) {
     override fun equals(other: Any?): Boolean =
         other is PreloginOption && token == other.token && data.contentEquals(other.data)
 
@@ -70,7 +70,7 @@ class PreloginOption(val token: Int, val data: ByteArray) {
  * Tabelle, ohne Terminator. Optionen mit unbekannter Kennung bleiben als Rohdaten erhalten; ob
  * sie angenommen werden, entscheidet das Kompatibilitätsprofil des Aufrufers, nicht der Codec.
  */
-class PreloginMessage(val options: List<PreloginOption>) {
+internal class PreloginMessage(val options: List<PreloginOption>) {
     /** Die erste Option mit dieser Kennung. */
     fun option(token: Int): PreloginOption? = options.firstOrNull { it.token == token }
 

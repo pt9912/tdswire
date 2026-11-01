@@ -44,7 +44,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Eine Warteschlange um jede übergebene Senke in der Bibliothek (Option D der Frage 7) — Re-Evaluierungs-Trigger der ADR; die Warteschlange ist Sache dieses Adapters.
 - Adapter für Embedder (SLF4J, `System.Logger`, Logging-Brücken) und alle Aussagen über deren Escaping, Ziele, Aufbewahrung — Embedder; sie sind ein Beispiel, kein Vertrag.
 - Die Wirkung der Warteschlange und des Generators unter Last — [slice-qa-performance](slice-qa-performance.md) (`BEO-TDS/rueckstau-im-produktivbetrieb-nicht-gemessen`); dieser Slice belegt Verhalten, keine Durchsatzzahl.
-- Die Spezifikation — sie steht nach [slice-spec-nachzug-telemetrie](slice-spec-nachzug-telemetrie.md); ein Widerspruch, den der Bau findet, ist ein Befund für den Nutzer, kein stilles Ändern.
+- Die Spezifikation — sie steht nach [slice-spec-nachzug-telemetrie](../done/slice-spec-nachzug-telemetrie.md); ein Widerspruch, den der Bau findet, ist ein Befund für den Nutzer, kein stilles Ändern.
 - Java-Quellen oder Reflection im Source-Set `testserver` — akzeptiertes Negativ der [ADR-0025](../../adr/0025-produktschnitt-bibliothek-und-testserver.md).
 
 ## 2. Definition of Done
@@ -106,7 +106,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 1. [ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md) steht im ADR-Index auf `Accepted` (erfüllt: Annahme am 2026-11-01).
 2. [slice-testserver-herausloesen](../done/slice-testserver-herausloesen.md) liegt in `done/` (der Testserver existiert, bindet nur die öffentliche Fläche, und die herausgenommenen Skript-Prüfungen tragen die Kennung dieses Slice).
 3. [slice-betrieb-log-schnittstelle](slice-betrieb-log-schnittstelle.md) liegt in `done/` (Modell, Senke, Parameter von `start` und Sammler stehen als öffentliche Fläche).
-4. [slice-spec-nachzug-telemetrie](slice-spec-nachzug-telemetrie.md) liegt in `done/` (die Spezifikation sagt `LOG_LEVEL`, Format und Warteschlange als Aussagen über den Testserver; folgt aus Bedingung 3, hier genannt, damit die Kante lesbar ist).
+4. [slice-spec-nachzug-telemetrie](../done/slice-spec-nachzug-telemetrie.md) liegt in `done/` (die Spezifikation sagt `LOG_LEVEL`, Format und Warteschlange als Aussagen über den Testserver; folgt aus Bedingung 3, hier genannt, damit die Kante lesbar ist).
 5. Ein Verantwortlicher ist im Kopf eingetragen.
 
 **Folge-Kanten:** [slice-betrieb-zustandsereignisse](slice-betrieb-zustandsereignisse.md) und [slice-betrieb-metriken-tracing](slice-betrieb-metriken-tracing.md) warten auf diesen Slice.
@@ -143,6 +143,7 @@ dasteht.
 - Zeit und Speicher des Jackson-Generators und die Kosten des Ereignisbaus sind ungemessen (akzeptiertes Negativ der [ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md); der Generator läuft nur im Testserver). — **Ausgang:** offen bis zur Closure (erwartet: weiter offen → Register).
 - Der Prozesstest als Kindprozess ist ein E2E-Lauf nach [ADR-0022](../../adr/0022-e2e-laeufe-nicht-in-den-gates.md); hält der Nutzer ihn nicht in der Stage `test`, wird die Inspektion zum schwächeren Beleg im selben Prozess. — **Ausgang:** offen bis zur Closure.
 - Gecachte grüne Läufe der Stage `test` belegen Wiederholung nicht (`BEO-TDS/test-stage-cache-verdeckt-wiederholung`); der Überlauftest wird mit `make clean-build` frisch belegt. — **Ausgang:** offen bis zur Closure.
+- Aufgabe aus der Verifikation von [slice-explicit-api-umbau](../done/slice-explicit-api-umbau.md) (LOW-B): `internal object ConfigKeys` trägt tote Konstanten (`ENCRYPTION_POLICY`, `AUTH_USERS_FILE`, `AUTH_PLAIN_TESTMODE` ohne Aufrufer in `src/main`; der Test, der sie gegen `EnvKeys` pinnte, entfiel im Umbau). Beim Anfassen von `EnvKeys` und des Laders entscheiden: entfernen oder wieder an einen Aufrufer binden; keine Sichtbarkeitsfrage. — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 

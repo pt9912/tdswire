@@ -4,7 +4,7 @@ package io.github.pt9912.tdswire.simulation
  * Ein Wert aus dem Anweisungstext, so wie er dort steht (`SPEC-036` Wert). Die Überführung in den
  * Spaltentyp (`SPEC-035`) ist nicht geschehen: [Number] trägt die Schreibweise, [Text] den entschachtelten Text.
  */
-sealed interface SimValue {
+internal sealed interface SimValue {
     /** Eine Zahl wie geschrieben, etwa `-12` oder `3.50`. */
     data class Number(val text: String) : SimValue
 
@@ -19,7 +19,7 @@ sealed interface SimValue {
 }
 
 /** Ein Term einer Bedingung (`SPEC-036` Term); [column] ist der Name, wie er im Text steht. */
-sealed interface Term {
+internal sealed interface Term {
     val column: String
 
     /** `<Spalte> = <Wert>` (ein Wert) oder `<Spalte> IN (<Wert> {, <Wert>})`. */
@@ -30,13 +30,13 @@ sealed interface Term {
 }
 
 /** Eine Tabelle, wie der Text sie nennt; [schema] ist `null`, wenn der Text keines nennt. */
-data class TableRef(val schema: String?, val name: String)
+internal data class TableRef(val schema: String?, val name: String)
 
 /** Eine Zuweisung `<Spalte> = <Wert>` von `UPDATE … SET`. */
-data class Assignment(val column: String, val value: SimValue)
+internal data class Assignment(val column: String, val value: SimValue)
 
 /** Die erkannte Form einer Anweisung (`SPEC-036`), Namen und Werte noch unbeprüft gegen die Beschreibung. */
-sealed interface Statement {
+internal sealed interface Statement {
     val table: TableRef
 
     /** S1: `columns` ist `null` bei `*`. */
@@ -53,7 +53,7 @@ sealed interface Statement {
 }
 
 /** Das Ergebnis der Erkennung. */
-sealed interface Recognition {
+internal sealed interface Recognition {
     data class Recognized(val statement: Statement) : Recognition
 
     data class NotRecognized(val reason: Unrecognized) : Recognition

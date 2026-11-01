@@ -4,13 +4,13 @@ import io.github.pt9912.tdswire.transport.channel.ChannelError
 import io.github.pt9912.tdswire.transport.channel.ChannelFailure
 
 /** Fehlerkategorie nach `SPEC-011` und `SPEC-048`. */
-enum class TlsErrorCategory {
+internal enum class TlsErrorCategory {
     TDS_PROTOCOL_ERROR,
     TDS_INTERNAL_ERROR,
 }
 
 /** Grund, aus dem die TLS-Schleife einen Handshake oder eine Datenoperation beendet. */
-enum class TlsFailure(val category: TlsErrorCategory) {
+internal enum class TlsFailure(val category: TlsErrorCategory) {
     /** Die Engine bricht den Handshake ab: Zertifikat, Protokollversion, Suite, Alert der Gegenstelle. */
     HANDSHAKE_FAILED(TlsErrorCategory.TDS_PROTOCOL_ERROR),
 
@@ -35,7 +35,7 @@ enum class TlsFailure(val category: TlsErrorCategory) {
  * nie den Text einer Ausnahme, nie Zertifikats- oder Schlüsselinhalt und nie Nutzdaten.
  * Festlegung: die Kategorie je Grund steht in [TlsFailure]; sie folgt keiner Zeile der Spezifikation.
  */
-data class TlsError(val failure: TlsFailure, val detail: String) {
+internal data class TlsError(val failure: TlsFailure, val detail: String) {
     val category: TlsErrorCategory get() = failure.category
 
     /** Der Fehler in der Form der Kanal-Schnittstelle: geschlossen oder E/A-Fehler, Grund und Detail im Text. */
@@ -46,7 +46,7 @@ data class TlsError(val failure: TlsFailure, val detail: String) {
 }
 
 /** Ausgang einer TLS-Operation: ein Wert oder ein [TlsError], nie eine Ausnahme der Gegenstelle. */
-sealed interface TlsResult<out T> {
+internal sealed interface TlsResult<out T> {
     data class Ok<out T>(val value: T) : TlsResult<T>
 
     data class Failed(val error: TlsError) : TlsResult<Nothing>

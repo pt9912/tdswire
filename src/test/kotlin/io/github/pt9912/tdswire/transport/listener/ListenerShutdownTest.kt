@@ -27,7 +27,7 @@ import kotlin.time.Duration.Companion.seconds
  * des Transports. Eine laufende Anfrage gegen ein Backend und `TDS_SHUTDOWN` gehören der Session und
  * sind hier nicht belegt; „Anfrage läuft“ meldet der Test-Handler selbst.
  */
-class ListenerShutdownTest : ListenerTestBase() {
+internal class ListenerShutdownTest : ListenerTestBase() {
     private val grace = 7.seconds
     private val shortTimeout = 3_000L
 

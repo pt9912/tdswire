@@ -1,8 +1,6 @@
 package io.github.pt9912.tdswire.integrator
 
 import io.github.pt9912.tdswire.config.AuthSettings
-import io.github.pt9912.tdswire.config.ConfigIssue
-import io.github.pt9912.tdswire.config.ConfigKeys
 import io.github.pt9912.tdswire.config.EncryptionSetting
 import io.github.pt9912.tdswire.config.IssueKind
 import io.github.pt9912.tdswire.config.ListenSettings
@@ -113,7 +111,8 @@ class EmbeddingTest {
     /**
      * Eine ungültige Konfiguration ergibt `StartOutcome.Aborted` mit jedem Fehler nach Schlüssel und Art, keine
      * Ausnahme und keinen gebundenen Port: `REQUIRED` ohne Schlüsselmaterial, `TEST_UNENCRYPTED` mit Material, ein
-     * Wert außerhalb des Bereichs.
+     * Wert außerhalb des Bereichs. Geprüft werden Art und Verschiedenheit der Schlüssel, nicht ihr Wortlaut: er ist
+     * Text ohne Zusage (`SPEC-059`), ein Einbettender verlässt sich nicht darauf; die Namen pinnt `ConfigLoaderTest`.
      *
      * @spec SPEC-059
      * @spec SPEC-010
@@ -121,14 +120,10 @@ class EmbeddingTest {
     @Test
     fun eineUngueltigeKonfigurationBrichtDenStartAbOhnePort() {
         val port = freePort()
-        val store = ConfigKeys.TLS_KEYSTORE_FILE
-        val password = ConfigKeys.TLS_KEYSTORE_PASSWORD_FILE
         val onLoopback = ListenSettings(LOOPBACK, port)
         val required = abortedBy(ServerConfig(onLoopback, auth = users()), BackendSource.None)
-        assertEquals(
-            listOf(ConfigIssue(store, IssueKind.MISSING), ConfigIssue(password, IssueKind.MISSING)),
-            required.issues,
-        )
+        assertEquals(listOf(IssueKind.MISSING, IssueKind.MISSING), required.issues.map { it.kind })
+        assertEquals(2, required.issues.map { it.key }.toSet().size, "zwei verschiedene Schlüssel")
         val material = TlsKeyMaterial(byteArrayOf(1), PasswordChars(charArrayOf('x')))
         val mixed = ServerConfig(
             onLoopback,
@@ -137,11 +132,11 @@ class EmbeddingTest {
             auth = users(),
         )
         assertEquals(
-            listOf(ConfigIssue(store, IssueKind.CONFLICT), ConfigIssue(password, IssueKind.CONFLICT)),
-            abortedBy(mixed, BackendSource.None).issues,
+            listOf(IssueKind.CONFLICT, IssueKind.CONFLICT),
+            abortedBy(mixed, BackendSource.None).issues.map { it.kind },
         )
         val outside = abortedBy(unencrypted(ListenSettings(LOOPBACK, MAX_PORT + 1)), BackendSource.None)
-        assertEquals(listOf(ConfigIssue(ConfigKeys.LISTEN_PORT, IssueKind.OUT_OF_RANGE)), outside.issues)
+        assertEquals(listOf(IssueKind.OUT_OF_RANGE), outside.issues.map { it.kind })
         assertEquals("Konfiguration ungueltig", required.reason)
         ServerSocket(port, 1, InetAddress.getByName(LOOPBACK)).use { assertEquals(port, it.localPort) }
     }

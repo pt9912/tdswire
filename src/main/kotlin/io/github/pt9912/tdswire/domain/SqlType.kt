@@ -10,18 +10,18 @@ package io.github.pt9912.tdswire.domain
  * Längenlimit von [UnicodeText], Scale der Zeittypen, Zeitzonenannahme, Precision-Obergrenze und die
  * JVM-Typen der Werte je [SqlType] legt die Typabbildung fest (`SPEC-003`, `ValueMapping`).
  */
-sealed interface SqlType {
+public sealed interface SqlType {
     /** Ganzzahl mit 32 Bit. */
-    data object Int32 : SqlType
+    public data object Int32 : SqlType
 
     /** Ganzzahl mit 64 Bit. */
-    data object Int64 : SqlType
+    public data object Int64 : SqlType
 
     /** Wahrheitswert; der Wert `null` ist NULL. */
-    data object Bool : SqlType
+    public data object Bool : SqlType
 
     /** Unicode-Text ohne festgelegtes Längenlimit. */
-    data object UnicodeText : SqlType
+    public data object UnicodeText : SqlType
 
     /**
      * Dezimalzahl mit [precision] Stellen insgesamt, davon [scale] hinter dem Komma. Gefordert ist
@@ -30,7 +30,7 @@ sealed interface SqlType {
      * dieses Modell nimmt auch größere Werte an; die Typabbildung weist eine Precision über 38 mit
      * `TDS_UNSUPPORTED_TYPE` ab (`SPEC-002`).
      */
-    data class Decimal(val precision: Int, val scale: Int) : SqlType {
+    public data class Decimal(val precision: Int, val scale: Int) : SqlType {
         init {
             require(precision >= 1) { "precision muss mindestens 1 sein: $precision" }
             require(scale in 0..precision) { "scale muss in 0..precision liegen: $scale bei precision $precision" }
@@ -38,11 +38,11 @@ sealed interface SqlType {
     }
 
     /** Kalenderdatum ohne Uhrzeit. */
-    data object Date : SqlType
+    public data object Date : SqlType
 
     /** Uhrzeit ohne Datum. */
-    data object Time : SqlType
+    public data object Time : SqlType
 
     /** Datum mit Uhrzeit. Das Modell trägt keine Zone; die Typabbildung nimmt Werte ohne Zone an (`SPEC-003`). */
-    data object DateTime : SqlType
+    public data object DateTime : SqlType
 }

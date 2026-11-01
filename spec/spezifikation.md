@@ -95,21 +95,22 @@ ERROR-/DONE-Token oder Verbindungsabbruch, falls Protokollzustand keine Antwort 
 4. Fehler nicht als erfolgreiches leeres Resultset tarnen.
 5. Eine Ausnahme, die keine erwartete Ablehnung des Backends oder der Protokollschicht ist
    (`Failure` mit Code), erreicht den Client nur als `TDS_INTERNAL_ERROR` mit festem Text, nie mit
-   dem Text der Ausnahme; dieser kann Konfigurationswerte enthalten und geht ins Log, ohne
-   Parameterwerte (`SPEC-048`).
+   dem Text der Ausnahme; dieser kann Konfigurationswerte enthalten und geht nicht ins Log: das Log
+   trägt Code und Typnamen der Ausnahme (`SPEC-048`, Abschnitt 4).
 6. Nach ERROR und DONE mit Fehlerstatus bleibt die Verbindung offen, wenn die Severity (Class) höchstens
    19 ist. Ab Severity 20, nach `TDS_INTERNAL_ERROR` (`SPEC-048`) und nach `TDS_SHUTDOWN` (`SPEC-049`)
    schließt der Server die Verbindung nach ERROR und DONE. Ist der Strom nicht mehr sicher abzuschließen,
    schließt der Server die Verbindung ohne ERROR und DONE (`SPEC-031`); ERROR und DONE gibt es nur,
-   solange der Strom synchron ist. Nach Cancel oder Timeout bleibt sie offen, wenn DONE
-   mit ATTENTION-Status gesendet wurde (`SPEC-029`). Ausnahme: Nach einem abgelehnten Login (`SPEC-012`)
+   solange der Strom synchron ist. Nach einem Cancel bleibt sie offen, wenn DONE
+   mit ATTENTION-Status gesendet wurde (`SPEC-029`); ein Cancel ist kein Fehler und trägt kein ERROR. Nach dem
+   Ablauf der Frist einer Anfrage (`TDS_TIMEOUT`, `SPEC-016`) bleibt sie offen, wenn ERROR und DONE mit Fehlerstatus
+   vollständig gesendet sind. Ausnahme: Nach einem abgelehnten Login (`SPEC-012`)
    schließt der Server die Verbindung, ein weiteres LOGIN7 wird nicht angenommen. Eigene Fehlercodes:
    Anfragefehler (zum Beispiel `TDS_UNSUPPORTED_SQL`, `TDS_BACKEND_ERROR`) tragen Severity 16, die
    Verbindung bleibt offen; `TDS_PROTOCOL_ERROR` und `TDS_INTERNAL_ERROR` tragen Severity 20, der Server
-   schließt. Die Zuordnung jedes Codes legt das Fehler-Mapping fest und steht in §4 (Zuordnung des Fehler-Mappings; die Einzelzuordnung von `TDS_UNSUPPORTED_TYPE`, `TDS_SIM_UNKNOWN_OBJECT` und `TDS_TIMEOUT` ist offen und steht unter der Grundregel); `TDS_UNSUPPORTED_RPC` und `TDS_SIM_INVALID_VALUE` gehören zur Anfragefehler-Gruppe (Setzung, Voreinstellung 2026-10-30, nicht gemessen). `TDS_TIMEOUT` bleibt bis zur Entscheidung, ob Cancel und Timeout als Fehler zählen, außerhalb der Gruppen; für ihn und für jeden weiteren eigenen Code, der zu keiner Gruppe gehört, gilt bis zur Zuordnung, dass der Server schließt (im Zweifel schließen). Das Verbindungsende nach abgelehntem
+   schließt. Die Zuordnung jedes Codes legt das Fehler-Mapping fest und steht in §4 (Zuordnung des Fehler-Mappings; die Einzelzuordnung von `TDS_UNSUPPORTED_TYPE` und `TDS_SIM_UNKNOWN_OBJECT` ist offen und steht unter der Grundregel); `TDS_UNSUPPORTED_RPC` und `TDS_SIM_INVALID_VALUE` gehören zur Anfragefehler-Gruppe (Setzung, Voreinstellung 2026-10-30, nicht gemessen), `TDS_TIMEOUT` ebenfalls (Setzung des Nutzers vom 2026-11-01, nicht gemessen). Für jeden weiteren eigenen Code, der zu keiner Gruppe gehört, gilt bis zur Zuordnung, dass der Server schließt (im Zweifel schließen). Das Verbindungsende nach abgelehntem
    Login und die Severity-Werte der eigenen Codes sind Setzungen, nicht an Referenzclients gemessen (am
-   echten Server wurde nur die Fehlerantwort des Logins einmal beobachtet). Noch festzulegen: ob Cancel
-   und Timeout als Fehler zählen.
+   echten Server wurde nur die Fehlerantwort des Logins einmal beobachtet).
 
 **Komplexität:** O(Meldungslänge). **Fehlermodi:** Transport bereits geschlossen, Encoderfehler.
 
@@ -147,10 +148,12 @@ Betriebsdaten.
    validieren.
 2. Fehlerhafte sicherheitsrelevante Konfiguration führt zu Startabbruch. Die TLS-Konfiguration
    prüft eine Startprobe vor dem Binden des Ports (`SPEC-043`).
-3. Sitzungs-, Anfrage- und Fehlerereignisse mit Korrelations-IDs erfassen. Passwörter werden nie
-   geloggt, auch nicht gekürzt oder verschleiert; Parameterwerte standardmäßig nicht. Die
-   Anmeldekennung erscheint in keiner Antwort an den Client und im Log nur in einem Feld, das die
-   Spezifikation dafür festlegt (bisher keines).
+3. **Zielzustand, nicht gebaut:** Sitzungs-, Anfrage- und Fehlerereignisse mit Korrelations-IDs als
+   Ereignisse an die Senke der Bibliothek geben (die Diagnoseausgabe des Lastenhefts; Felder und
+   Zugang in den Abschnitten 4 und 5 dieser Spezifikation); ohne übergebene
+   Senke schreibt die Bibliothek nichts. Passwörter werden nie geloggt, auch nicht gekürzt oder
+   verschleiert; Parameterwerte nie. Die Anmeldekennung erscheint in keiner Antwort an den Client
+   und im Log nur im Feld `principal` des Ereignisses „Anmeldung angenommen“ (Abschnitt 4).
 
 **Komplexität:** O(Anzahl Konfigurationswerte). **Fehlermodi:** ungültiges Zertifikat, Port belegt,
 fehlende Pflichtoption.
@@ -215,33 +218,35 @@ Zeilenquelle, Abbruch.
 `CONNECTED → PRELOGIN → TLS_NEGOTIATION (falls erforderlich) → LOGIN7 → READY → CLOSED`. Profile mit
 vorgelagertem TLS (TDS 8.0, Strict-Encryption) beginnen mit
 `CONNECTED → TLS_NEGOTIATION → PRELOGIN`. Nur `READY` akzeptiert SQL_BATCH/RPC; ATTENTION ist im
-passenden laufenden Anfragezustand zulässig (Zielbild, Stand der Festlegung unten). Der Zustand ist ein expliziter Automat: eine Aufzählung der
+laufenden Anfragezustand zulässig und wird in `READY` bestätigt (unten). Der Zustand ist ein expliziter Automat: eine Aufzählung der
 Zustände und eine reine Übergangsfunktion (Zustand, Ereignisart) → (Folgezustand, Aktion). Ungültige
-Übergänge werden abgelehnt; die Antwort darauf (Verbindung ohne Antwort schließen oder ein Fehler), die
-Reichweite von ATTENTION vor dem Login sind noch festzulegen. Der Zuschnitt der Aufzählung ist flach
+Übergänge werden abgelehnt: die Verbindung schließt ohne Antwort (Festlegung des Baus, nicht gemessen; ob
+außerhalb des Handshakes stattdessen ein Fehler gesendet wird, ist offen). ATTENTION in PRELOGIN,
+TLS-Aushandlung und LOGIN7 schließt die Verbindung ohne Antwort und wird weder beantwortet noch ignoriert
+(Setzung des Nutzers vom 2026-11-01; der Testserver des Spike schloss auf rohe Pakete in 11 von 11 Fällen ohne
+Antwortbytes, an einem echten Server ist es nicht gemessen). Der Zuschnitt der Aufzählung ist flach
 (Setzung des Nutzers, nicht gemessen für den Anfragezustand): eine Aufzählung führt Verbindungs- und
 Anfragezustände, `READY` ist der Anfragezustand `IDLE`.
 
-Anfragezustand (nur nach dem Login): `IDLE → RUNNING → STREAMING → COMPLETED → IDLE`. Vorgesehen: Bei
-ATTENTION führen `RUNNING` und `STREAMING` über `CANCELLING` nach `COMPLETED`. Der Response
+Anfragezustand (nur nach dem Login): `IDLE → RUNNING → STREAMING → COMPLETED → IDLE`. Bei ATTENTION
+oder beim Ablauf der Frist einer Anfrage (`SPEC-009`) führen `RUNNING` und `STREAMING` über `CANCELLING` nach
+`COMPLETED`; `CANCELLING` ist ein Zustand der Aufzählung (flacher Zuschnitt). Der Response
 Sequencer kennt den Anfragezustand nicht; der Sitzungsrahmen hält ihn und entscheidet jeden Übergang
 atomar je Sitzung: Übergang und das zugehörige Schreiben laufen unter einer Sperre je Sitzung. Der Dispatch
 meldet dem Rahmen den Beginn des ersten Ergebnisses (`RUNNING → STREAMING`) und das Ende der Antwort; das
 Ende der Antwort sendet sie und führt in einem Übergang nach `IDLE` oder, wenn die Verbindungsfolge des
 Ausgangs schließt, nach `CLOSED` (`COMPLETED` ist kein eigener Zustand der Aufzählung; Festlegung, nicht
 gemessen). Eine Anfragenachricht (SQL_BATCH, RPC) in `RUNNING` oder `STREAMING` ist ein unzulässiger
-Übergang. Der Dispatch nimmt kein ATTENTION an. Zielbild, nicht gebaut (der nächste Absatz nennt den
-Stand): Der Transport meldet ein erkanntes ATTENTION-Paket an den Sitzungsrahmen, und bei gleichzeitigem
-DONE und ATTENTION gewinnt der erste Übergang.
+Übergang. Die Anfrageschleife liest während einer Anfrage mit und meldet ein erkanntes ATTENTION-Paket an den
+Sitzungsrahmen; bei gleichzeitigem DONE und ATTENTION oder bei Frist und ATTENTION gewinnt der erste
+Übergang, und ab `CANCELLING` schreibt die reguläre Antwort nicht mehr.
 
-ATTENTION in jedem Anfragezustand ist offen; die Kette über `CANCELLING` ist dessen Zielbild. Gebaut ist sie nicht: Bis zu dieser Festlegung behandelt der Automat jede Nachricht in
-`RUNNING` und `STREAMING`, auch ATTENTION, als unzulässigen Übergang, und `CANCELLING` ist kein Zustand
-der Aufzählung (Festlegung, nicht gemessen). Ebenso gilt bis dahin als Festlegung, nicht als Zusage:
-ATTENTION in `READY` (`IDLE`) bleibt unbeantwortet, und die Verbindung schließt. Die folgende Bestätigung
-ist das Zielbild: Trifft ATTENTION nach `COMPLETED` oder in `IDLE` ein, bleibt das bereits gesendete
-Ergebnis gültig, und der Server beantwortet das ATTENTION mit der vom Profil geforderten Bestätigung,
-damit der Client nicht auf sie wartet (Setzung; am echten Server ist nur ATTENTION nach vollständig
-gesendeter Antwort gemessen, im Leerlauf ohne laufende Anfrage nicht).
+ATTENTION in `RUNNING` und `STREAMING` löst genau einen Cancel aus und wird mit genau einem `DONE` mit
+ATTENTION-Status beantwortet (`SPEC-029`). Trifft ATTENTION nach `COMPLETED` oder in `IDLE` ein, bleibt das
+bereits gesendete Ergebnis gültig, und der Server beantwortet das ATTENTION mit derselben Bestätigung, ohne
+Cancel, damit der Client nicht auf sie wartet (Setzung; am echten Server ist nur ATTENTION nach vollständig
+gesendeter Antwort gemessen, im Leerlauf ohne laufende Anfrage nicht). Offen: die Antwort auf unzulässige
+Übergänge außerhalb des Handshakes und ATTENTION in jedem Anfragezustand über diese Bestätigung hinaus.
 
 Der Abschluss einer Anfrage wird genau einmal gesendet.
 
@@ -407,13 +412,25 @@ Features werden nicht als unterstützt beworben.
 
 ATTENTION wird als eigenes TDS-Paket erkannt, auch wenn eine Anfrage gerade streamt. Der Server
 signalisiert Cancel genau einmal an die laufende Backendoperation, stoppt das Schreiben weiterer
-regulärer Zeilen und sendet die vom ausgehandelten TDS-Profil geforderte Abschlussbestätigung
-(einschließlich DONE mit ATTENTION-Status, soweit protokollkonform). Die Sitzung nimmt erst nach
-vollständigem Abbruchabschluss wieder eine neue Anfrage an (Anfragezustand `IDLE`). Bei Race
-zwischen DONE und ATTENTION gilt die Regel der Anfragezustandsmaschine in `SPEC-001`; doppelte
-DONE-Tokens sind verboten. Wenn ein
-bereits gesendeter Stream nicht mehr sauber abgeschlossen werden kann, wird die Verbindung
-ohne ERROR und DONE geschlossen (`SPEC-031`). Nach gesendetem DONE mit ATTENTION-Status bleibt die Verbindung offen, außer das geordnete Beenden (`SPEC-044`) hat begonnen; dann endet sie. Tests prüfen `SqlCommand.Cancel()`, `CancellationToken` und unmittelbar anschließende
+regulärer Zeilen und beantwortet das ATTENTION mit genau einem `DONE` mit ATTENTION-Status, ohne ERROR-Token
+und ohne zweite Nachricht (Setzung des Nutzers vom 2026-11-01; am Testserver des Spike genügte diese Form dem
+Referenzclient und die Folgeabfrage gelang, ohne die Bestätigung hing der Client bis zum Timeout; an einem
+Server dieses Repos und an anderen Clients ist sie nicht gemessen). Ein Cancel ist kein Fehler: es gibt kein
+ERROR, auch nicht bei einem Cancel, den der Client durch seinen Command-Timeout auslöst. Die Sitzung nimmt erst
+nach vollständigem Abbruchabschluss wieder eine neue Anfrage an (Anfragezustand `IDLE`). Bei Race zwischen
+DONE und ATTENTION oder zwischen Frist und ATTENTION gilt die Regel der Anfragezustandsmaschine in `SPEC-001`:
+der erste Übergang gewinnt, doppelte DONE-Tokens sind verboten. War die Antwort beim Gewinn des Übergangs schon
+vollständig gesendet, wird das ATTENTION als eigene Nachricht bestätigt, ohne Cancel; ebenso ein ATTENTION nach dem
+Abschluss eines Timeouts und jedes weitere ATTENTION: ein wiederholtes ATTENTION löst keinen zweiten Cancel aus, und jedes wird einzeln
+bestätigt (Setzung, nicht gemessen; ob ein Client das erwartet, zeigt erst das Cancel-Szenario am Referenzclient).
+Der Abbruch unterbricht kein Paket im Schreiben: er wirkt, sobald der Schreibvorgang, der gerade läuft, zurückgekehrt ist
+(Festlegung, nicht gemessen). Grenze: ein Schreibvorgang, der am Rückstau hängt (der Client liest nicht mehr), hält die
+Sitzungssperre; bis zu seiner Rückkehr wirken ATTENTION, die Frist der Anfrage und `CANCEL_TIMEOUT` nicht. Wenn ein bereits gesendeter Stream nicht mehr sauber abgeschlossen werden kann,
+wird die Verbindung ohne ERROR und DONE geschlossen (`SPEC-031`). Beachtet das Backend den Cancel nicht,
+schließt die Verbindung nach `CANCEL_TIMEOUT` (`SPEC-033`) ohne weitere Bytes; nur dieser ignorierte Cancel
+schließt, nicht der Cancel selbst. Nach gesendetem DONE mit ATTENTION-Status bleibt die Verbindung offen, außer das
+geordnete Beenden (`SPEC-044`) hat begonnen; dann endet sie. Tests prüfen `SqlCommand.Cancel()`,
+`CancellationToken` und unmittelbar anschließende
 neue Befehle.
 
 ### SPEC-030 — RPC-Varianten und Parameter-Metadaten
@@ -751,7 +768,8 @@ Meldung und Log nennen die gefundene Form, nie einen Dateipfad und nie den Inhal
 oder Schlüssel, sodass sich die Diagnose protokollieren und dem Konfigurationsschlüssel zuordnen
 lässt. Es gibt keinen Rückfall auf eine unverschlüsselte Verbindung; eine Abschwächung folgt nur aus
 der ausdrücklichen Konfiguration nach `SPEC-010`. Ein belegter Port beendet den Start mit einer
-eigenen Diagnose, die Adresse und Port nennt. Nach jedem fehlgeschlagenen Start laufen keine Threads
+eigenen Diagnose, die Adresse und Port nennt (das Ereignis des Bindefehlers, Abschnitt 4; ohne
+übergebene Senke gibt es sie nicht, Zielzustand, nicht gebaut). Nach jedem fehlgeschlagenen Start laufen keine Threads
 und kein Listener des Servers weiter; ein neuer Versuch legt einen neuen Server an. Die Probe prüft
 weder, ob ein Client dem Zertifikat vertraut, noch die TDS-Kapselung des Handschlags (`SPEC-028`).
 
@@ -818,11 +836,11 @@ SQL-Server-Image setzt `ACCEPT_EULA=Y` voraus; die Zustimmung des Repo-Inhabers 
 | `SPEC-007` | `MAX_MESSAGE_BYTES` | 16 MiB (vorläufig) | Speicherbegrenzung, gilt während des Zusammensetzens (`TDS-FA-01.a`); mit Clientprofil abgleichen |
 | `SPEC-008` | `LOGIN_TIMEOUT` (Eingang des Testservers) | 15 s (vorläufig; konfigurierbar in ganzen Sekunden von 1 bis 3600, Festlegung, nicht gemessen; Umgebungsvariable des Testservers, die Bibliothek liest keine Umgebung) | Hängende Logins begrenzen; die Frist gilt ab Verbindungsaufbau über PRELOGIN, TLS-Handschlag und LOGIN7, danach schließt der Server ohne Antwort; für eine angemeldete Verbindung gilt sie nicht; die Wartezeit der Drosselung wiederholter Anmeldeversuche (`SPEC-053`) zählt zur Frist |
 | `SPEC-046` | `MAX_PRELOGIN_MESSAGE_BYTES` (Eingang des Testservers) | 65536 (vorläufig; konfigurierbar von 512 bis 65536, die obere Grenze ist die der PRELOGIN-Verhandlung, Festlegung, nicht gemessen; Umgebungsvariable des Testservers, die Bibliothek liest keine Umgebung) | Vor abgeschlossenem Login kein großer Puffer: PRELOGIN und LOGIN7 sind klein, eine größere Nachricht wird abgewiesen |
-| `SPEC-047` | `SHUTDOWN_GRACE` | 10 s (vorläufig, konfigurierbar; 0 = sofort) | Frist für laufende Anfragen beim geordneten Beenden (`SPEC-044`) |
-| `SPEC-009` | `QUERY_TIMEOUT` | 30 s (vorläufig, konfigurierbar) | Backend-Timeout; Quelle der Frist einer Anfrage (`deadlineEpochMillis` = Beginn plus `QUERY_TIMEOUT`), die der Protokollkern durchsetzt (`SPEC-022`); Ablauf endet in `TDS_TIMEOUT` (`SPEC-016`) |
-| `SPEC-010` | `ENCRYPTION_POLICY` | Standard `REQUIRED`; Abschwächung nur durch ausdrückliche, im Log sichtbare Konfiguration, je Clientprofil; genau `REQUIRED` oder `TEST_UNENCRYPTED`; `REQUIRED` verlangt Schlüsselspeicher (PKCS#12) und Passwort in `ServerConfig`, `TEST_UNENCRYPTED` lässt beide nicht zu (Festlegung, nicht gemessen); `ENCRYPTION_POLICY`, `TLS_KEYSTORE_FILE` und `TLS_KEYSTORE_PASSWORD_FILE` sind die Umgebungsvariablen, aus denen der Testserver Richtlinie, Speicherdatei und Passwortdatei liest, die Bibliothek liest keine Umgebung und keine Datei | Keine unbemerkte TLS-Herabstufung |
-| `SPEC-033` | `CANCEL_TIMEOUT` | 5 s (vorläufig, konfigurierbar) | Frist für nicht abbrechbare Backendoperationen, danach Verbindung schließen |
-| `SPEC-034` | `MAX_CONNECTIONS` | 1000 (vorläufig, konfigurierbar) | Ressourcenlimit für gleichzeitige Verbindungen |
+| `SPEC-047` | `SHUTDOWN_GRACE` | 10 s (vorläufig; 0 = sofort). **Zielzustand, nicht gebaut:** konfigurierbar. Im gebauten Stand ist die Frist kein Eingang: weder `TdsServer.start` noch `ServerConfig` nehmen sie entgegen, der Stop setzt die Frist auf 0: offene Verbindungen werden sofort beendet (Festlegung, nicht gemessen) | Frist für laufende Anfragen beim geordneten Beenden (`SPEC-044`) |
+| `SPEC-009` | `QUERY_TIMEOUT` | 30 s (vorläufig; konfigurierbar in ganzen Sekunden von 1 bis 3600, Festlegung, nicht gemessen; Eingang der Bibliothek ist `ServerConfig.requests`, Umgebungsvariable des Testservers) | Backend-Timeout; Quelle der Frist einer Anfrage (`deadlineEpochMillis` = Beginn plus `QUERY_TIMEOUT`), die der Protokollkern durchsetzt (`SPEC-022`), solange kein Schreibvorgang der Antwort am Rückstau hängt (er hält die Sitzungssperre, die Frist wirkt erst nach seiner Rückkehr); Ablauf endet in `TDS_TIMEOUT` (`SPEC-016`) |
+| `SPEC-010` | `ENCRYPTION_POLICY` | Standard `REQUIRED`; Abschwächung nur durch ausdrückliche, im Log sichtbare (wenn eine Senke übergeben ist) Konfiguration, je Clientprofil; genau `REQUIRED` oder `TEST_UNENCRYPTED`; `REQUIRED` verlangt Schlüsselspeicher (PKCS#12) und Passwort in `ServerConfig`, `TEST_UNENCRYPTED` lässt beide nicht zu (Festlegung, nicht gemessen); `ENCRYPTION_POLICY`, `TLS_KEYSTORE_FILE` und `TLS_KEYSTORE_PASSWORD_FILE` sind die Umgebungsvariablen, aus denen der Testserver Richtlinie, Speicherdatei und Passwortdatei liest, die Bibliothek liest keine Umgebung und keine Datei | Keine unbemerkte TLS-Herabstufung |
+| `SPEC-033` | `CANCEL_TIMEOUT` | 5 s (vorläufig; konfigurierbar in ganzen Sekunden von 1 bis 3600, Festlegung, nicht gemessen; Umgebungsvariable des Testservers) | Frist für nicht abbrechbare Backendoperationen, danach Verbindung schließen; sie läuft ab dem Gewinn des Abbruchs (ATTENTION oder Frist der Anfrage), nicht vorher, und damit nicht, solange ein Schreibvorgang am Rückstau die Sitzungssperre hält |
+| `SPEC-034` | `MAX_CONNECTIONS` | 1000 (vorläufig). **Zielzustand, nicht gebaut:** Limit und Eingang. Im gebauten Stand gibt es weder ein Limit noch einen Eingang (Festlegung, nicht gemessen; im Quelltext der Bibliothek kommt der Name nicht vor) | Ressourcenlimit für gleichzeitige Verbindungen |
 | `SPEC-053` | Drosselung wiederholter Anmeldeversuche | je Quelladresse (die Adresse der Gegenstelle ohne Port; Kennung und Passwort gehen nicht in den Schlüssel ein): die ersten 5 Fehlversuche bleiben unverzögert, ab dem 6. wartet jede weitere Anmeldung dieser Adresse vor der Prüfung der Zugangsdaten 250 ms, verdoppelt je weiterem Versuch bis 5 s; der Zähler der Fehlversuche fällt 60 s nach dem letzten Fehlversuch der Adresse auf null und wird durch einen Erfolg nicht zurückgesetzt; gleichzeitig laufende Versuche einer Adresse zählen ab ihrem Beginn mit und werden bei Ende ohne Fehlversuch abgezogen; höchstens 10000 Adressen, bei Überlauf wird die Adresse verdrängt, deren Anlage oder letzter Fehlversuch am längsten zurückliegt, auch wenn nur ein Versuch läuft, und ihre Zähler gehen verloren; nicht konfigurierbar (alle Zahlen Setzung, nicht gemessen) | Setzung ohne Lastenheft-Anker, vom Nutzer bestätigt (das Lastenheft verlangt keine Drosselung). Raten gegen die Benutzerliste von einer Adresse bremsen, ohne Sperre und ohne Zustand je Kennung. Die Wartezeit hängt nur von der Adresse ab, ist ein Anhalten ohne Platz des Adapteraufrufs, gehört zu `LOGIN_TIMEOUT` (`SPEC-008`) und ist nicht an ihn gebunden: bei einer Frist unter der Wartezeit endet die Anmeldung ohne Antwort. Als Fehlversuch zählt die Ablehnung durch den Adapter, nicht eine Annahme, ein Adapterfehler oder ein Abbruch. Ein Kanal ohne bekannte Adresse der Gegenstelle wird nicht gedrosselt (Entscheidung des Nutzers). Ob die Drosselung ins Log schreibt und mit welcher Adressangabe, ist offen; heute schreibt sie nichts ins Log. Rund 12 Versuche je Minute (60 s / 5 s) gelten nur für eine Verbindung nach der anderen; bei gleichzeitigen Verbindungen wartet jede höchstens 5 s, und die Obergrenze gleichzeitiger Adapteraufrufe begrenzt die Rate, nicht die Staffel; ein Schwall gleichzeitiger Verbindungen ist nicht gemessen. Eine verteilte Suche über viele Adressen bleibt ungebremst; Clients hinter einer gemeinsamen Adresse teilen Zähler und Wartezeit |
 
 Vorläufige Werte sind technische Entwurfsannahmen, keine aus dem Lastenheft abgeleiteten
@@ -837,11 +855,11 @@ Abnahmegrenzen.
 | `SPEC-013` | `TDS_UNSUPPORTED_RPC` | RPC nicht unterstützt: ProcID oder Prozedurname außerhalb des Katalogs (`SPEC-030`), darunter `sp_prepare` und `sp_unprepare`, ein Parameter außerhalb des Mindestkatalogs (`SPEC-003`), auch ein gültig kodierter PLP-Typ (`nvarchar(max)`; der Rest der Nachricht wird dann nicht gelesen) oder ein Wert außerhalb des Bereichs seines Typs; gilt nur für gültig kodierte Nachrichten, ein Struktur- oder Kodierfehler (zum Beispiel eine Typkennung außerhalb der Typliste, deren Wertlänge unbestimmt ist) ist `SPEC-011` (Trennung nach Ursache: Setzung der Nutzerentscheidung vom 2026-10-31, nicht gemessen) | ERROR und DONE mit Fehlerstatus; die Verbindung bleibt offen (Class 16, Zuordnung in diesem Abschnitt), das Backend wird nicht gerufen; das Log nennt den Ablehnungsgrund als feste Marke, nie einen Wert |
 | `SPEC-014` | `TDS_UNSUPPORTED_TYPE` | Wert nicht serialisierbar | definierter Fehler, kein fehlerhaftes Resultset |
 | `SPEC-015` | `TDS_BACKEND_ERROR` | Backend-Ausführung fehlgeschlagen | Fehlerabbildung in TDS |
-| `SPEC-016` | `TDS_TIMEOUT` | Frist überschritten (die Frist einer Anfrage, `QUERY_TIMEOUT`, `SPEC-009`) | Cancel, Cleanup, Fehler/Disconnect |
+| `SPEC-016` | `TDS_TIMEOUT` | Frist überschritten (die Frist einer Anfrage, `QUERY_TIMEOUT`, `SPEC-009`) | Cancel an das Backend, Cleanup, ERROR und DONE mit Fehlerstatus, Verbindung offen (Class 16); ist der Strom nicht mehr sicher abzuschließen, schließt die Verbindung ohne ERROR und DONE (`SPEC-031`) |
 | `SPEC-037` | `TDS_UNSUPPORTED_SQL` | Anweisung oder Bedingung außerhalb von `SPEC-036`; Schreibzugriff ohne Callback | ERROR und DONE mit Fehlerstatus, Zeilenquelle nicht gelesen |
 | `SPEC-038` | `TDS_SIM_UNKNOWN_OBJECT` | Tabelle oder Spalte ist nicht beschrieben | ERROR und DONE mit Fehlerstatus; vorgesehene SQL-Server-Nummern 208 (Objekt) und 207 (Spalte) |
 | `SPEC-039` | `TDS_SIM_INVALID_VALUE` | Wert nicht in den Spaltentyp überführbar | ERROR und DONE mit Fehlerstatus; vorgesehene SQL-Server-Nummern 245 (Konvertierung) und 8115 (Überlauf), an der Referenzinstanz zu messen |
-| `SPEC-048` | `TDS_INTERNAL_ERROR` | unerwartete Ausnahme im Server oder im Backend-Adapter, auch ein `OutOfMemoryError` beim Erzeugen oder Senden der Antwort (`SPEC-031`) | ERROR (Severity 20) und DONE mit Fehlerstatus, fester Text ohne den Text der Ausnahme, danach Verbindungsende; die Ausnahme geht ins Log, ohne Parameterwerte |
+| `SPEC-048` | `TDS_INTERNAL_ERROR` | unerwartete Ausnahme im Server oder im Backend-Adapter, auch ein `OutOfMemoryError` beim Erzeugen oder Senden der Antwort (`SPEC-031`) | ERROR (Severity 20) und DONE mit Fehlerstatus, fester Text ohne den Text der Ausnahme, danach Verbindungsende; die Ausnahme geht nur als Typname ins Log, nie mit Text (Abschnitt 4). Gebaut ist im Anfragepfad die Textzeile mit Code und vollqualifiziertem Typnamen, nie der Text der Ausnahme; **Zielzustand, nicht gebaut:** Format und Felder des Ereignisses (Abschnitt 4) |
 | `SPEC-049` | `TDS_SHUTDOWN` | Anfrage nach Beginn des geordneten Beendens (`SPEC-044`) | ERROR und DONE mit Fehlerstatus, danach Verbindungsende; vorgesehen: die SQL-Server-Meldung für ein Herunterfahren, Nummer im Mapping nach `TDS-FA-06.a` festlegen |
 | `SPEC-057` | `TDS_UNKNOWN_HANDLE` | `sp_execute` mit einem Handle, das die Sitzung nicht hält (`SPEC-030`) | ERROR und DONE mit Fehlerstatus; die Verbindung bleibt offen (Class 16), das Backend wird nicht gerufen; das Log nennt die feste Marke `unknown-handle` |
 | `SPEC-058` | `TDS_PREPARE_LIMIT` | `sp_prepexec` bei erreichter Grenze von 1000 Handles der Sitzung (`SPEC-030`) | ERROR und DONE mit Fehlerstatus; die Verbindung bleibt offen (Class 16), das Backend wird nicht gerufen, die vorhandenen Handles bleiben gültig; das Log nennt die feste Marke `handle-limit` |
@@ -855,7 +873,7 @@ Nummer kommt aus dem Benutzerbereich (ab 50001).
 gemessen, mit einer Ausnahme: Nummer 18456, State 1 und Class 14 von `TDS_LOGIN_FAILED` wurden an einem
 echten SQL Server einmal beobachtet (`SPEC-012`); der Text dort nennt den Benutzernamen, der feste Text
 dieser Tabelle nicht. Die Spalte *Herkunft* trennt: *Vorschlag* (Nummer aus der Aktionsspalte oben,
-„an der Referenzinstanz zu messen“), *Setzung des Nutzers* (Gruppe und Class, 2026-10-30),
+„an der Referenzinstanz zu messen“), *Setzung des Nutzers* (Gruppe und Class, 2026-10-30; `TDS_TIMEOUT` 2026-11-01),
 *Voreinstellung* (Gruppe nach der Voreinstellung vom 2026-10-30, nicht entschieden), *Festlegung* (vom Mapping gewählt, nicht
 gemessen), *Grundregel* (nur die Folge: kein Gruppenmitglied, im Zweifel schließen; die Class 20 dieser Codes ist Festlegung). State ist für jeden Code 1, der
 Text fest und englisch; der Text einer Backend-Meldung oder Ausnahme erreicht den Client nie.
@@ -867,7 +885,7 @@ Text fest und englisch; der Text einer Backend-Meldung oder Ausnahme erreicht de
 | `TDS_UNSUPPORTED_RPC` | 50002 | 16 | offen | Gruppe: Voreinstellung; Nummer: Festlegung |
 | `TDS_UNSUPPORTED_TYPE` | 50003 | 20 | schließt | Folge: Grundregel; Class 20: Festlegung, Einzelzuordnung offen; Nummer: Festlegung |
 | `TDS_BACKEND_ERROR` | 50004 | 16 | offen | Class und Folge: Setzung des Nutzers; Nummer: Festlegung |
-| `TDS_TIMEOUT` | 50005 | 20 | schließt | Folge: Grundregel; Class 20: Festlegung; offen, ob Cancel/Timeout als Fehler gelten; Nummer: Festlegung |
+| `TDS_TIMEOUT` | 50005 | 16 | offen | Gruppe und Class: Setzung des Nutzers 2026-11-01; Nummer: Festlegung |
 | `TDS_UNSUPPORTED_SQL` | 50001 | 16 | offen | Class und Folge: Setzung des Nutzers; Nummer: Vorschlag (Benutzerbereich) |
 | `TDS_SIM_UNKNOWN_OBJECT` | 208 | 20 | schließt | Nummer: Vorschlag (207 für Spalten nicht abgebildet); Folge: Grundregel; Class 20: Festlegung, Einzelzuordnung offen; der echte SQL Server sendet 208 mit Class 16 (Messung R05), hier schließt der Client bei Class 20 selbst |
 | `TDS_SIM_INVALID_VALUE` | 245 | 16 | offen | Nummer: Vorschlag (8115 für Überlauf nicht abgebildet); Gruppe: Voreinstellung |
@@ -885,14 +903,63 @@ gemessen. Ein Backend meldet als `Failure` nur `TDS_BACKEND_ERROR`, `TDS_UNSUPPO
 (Festlegung); jeder andere Code, auch ein anderer eigener wie `TDS_LOGIN_FAILED` oder `TDS_SHUTDOWN`,
 erreicht den Client als `TDS_INTERNAL_ERROR`. Ist der Strom nicht synchron, entfällt die
 Antwort und die Verbindung schließt (`SPEC-031`). Der Log-Eintrag einer unerwarteten Ausnahme trägt den
-Code und den Typnamen der Ausnahme, nicht ihren Text: das ist enger als der Satz in `SPEC-048`, die
-Ausnahme gehe ins Log. Offen: die Einzelzuordnung der Codes unter *Grundregel* und die Frage, ob Cancel
-und Timeout als Fehler zählen; die Unterscheidung statement- und batch-abbrechender Fehler; die Messung
-aller Werte (`BEO-TDS/messung-am-echten-sql-server-fehlt`).
+Code und den Typnamen der Ausnahme, nicht ihren Text (Zeile `SPEC-048`, Abschnitt 4). Offen: die
+Einzelzuordnung der Codes unter *Grundregel*; die Unterscheidung statement- und batch-abbrechender
+Fehler; die Messung aller Werte (`BEO-TDS/messung-am-echten-sql-server-fehlt`). Gebaut ist im
+Anfragepfad die Textzeile mit Code und vollqualifiziertem Typnamen, nie der Text der Ausnahme;
+Zielzustand, nicht gebaut: Format und Felder des Ereignisses, und dass auch beim Start keine Meldung
+einer Ausnahme im Log steht (gebaut schreibt der Testserver die Meldung des Ladefehlers der
+Tabellenbeschreibung mit Pfad, Zeile und Spalte).
 
-Pflicht-Logfelder: `connection_id`, `session_id` (falls vorhanden), `request_id` (falls vorhanden),
-`event`, `duration_ms`, `error_code`, `client_profile`. Keine Zugangsdaten oder Parameterwerte im
-Standardlogging.
+Pflicht-Logfelder (Zielzustand, nicht gebaut): `ts`, `level`, `connection_id`, `session_id` (falls vorhanden), `request_id`
+(falls vorhanden), `event`, `duration_ms`, `error_code`, `client_profile`; dazu `principal`, nur im
+Ereignis „Anmeldung angenommen“. Keine Zugangsdaten, keine Anmeldekennung abgelehnter Anmeldungen
+und keine Parameterwerte im Log.
+
+**Zielzustand, nicht gebaut:** Der gebaute Stand schreibt eine Textzeile und kennt weder `ts`,
+`level` noch `principal`. Die folgenden Festlegungen sind Setzungen, nicht gemessen,
+soweit nicht anders genannt; sie gelten für das Modell der Bibliothek und damit für jeden Adapter:
+
+- **Ereignismodell:** eine geschlossene Menge von Ereignisarten mit typisierten Feldern, kein
+  Freitextfeld. `level` (`ERROR`, `WARN`, `INFO`, `DEBUG`) ist je Ereignisart fest. `ts` ist der
+  Zeitpunkt des Ereignisses in UTC aus dem Zeitgeber der Bibliothek; die Darstellung über UTC hinaus
+  legt der Adapter fest (Voreinstellung ISO-8601, Setzung).
+- **Ereignisarten (Entwurf; die Menge ist je Stand geschlossen, diese Liste ist nicht ihre endgültige Fassung):** Start und Ende des
+  Servers, Port gebunden, Bindefehler, ungültige Konfiguration (Schlüssel und Art, kein Wert),
+  fehlgeschlagene Startprobe der TLS-Konfiguration, Beginn und Ende des geordneten Beendens,
+  Verbindung angenommen und beendet (mit der Art des Endes), Anmeldung angenommen und abgelehnt (mit
+  Grund-Marke), Adapterfehler, Anfrage beendet (mit Art, Dauer und Ergebnis), Abbruch durch
+  ATTENTION, aktive Abschwächung der Verschlüsselung (`SPEC-010`), aktiver Klartext-Testmodus der Anmeldung (`AUTH_PLAIN_TESTMODE`), Schnappschuss der Metriken und
+  Ende eines Spans (Abschnitt 5).
+- **`error_code`** ist ein `TDS_*`-Code aus diesem Abschnitt. Eine Ausnahme erscheint nur als
+  Typname, nie mit Text und nie mit Stapelspur.
+- **`principal`** ist die Kennung aus dem Authentifizierungsadapter und steht nur im Ereignis
+  „Anmeldung angenommen“. Ein Ereignis zu einer abgelehnten Anmeldung hat kein Feld für Kennung oder
+  Eingabe; es trägt eine Grund-Marke und `connection_id`. Für die mitgelieferte Benutzerliste stammt
+  die Kennung aus der Liste des Betreibers. Nicht zugesagt: dass die Kennung eines eigenen
+  Authentifizierungsadapters frei von Geheimnissen ist; das verantwortet dessen Betreiber.
+- **`client_profile`** wird aus dem ausgehandelten Protokoll abgeleitet: `tds-7.4` oder `tds-8.0`
+  mit dem Verschlüsselungsmodus (Schreibweise der Kombination nicht festgelegt), vor der Aushandlung
+  `unknown`. Angaben des Clients aus LOGIN7 gehen nicht ein.
+- **Herkunft der IDs:** `connection_id` ist der Zähler des Listeners (ab 1 je Prozessstart; er
+  wiederholt sich nach einem Neustart, Logs über Neustarts trennt `ts`); `session_id` und
+  `request_id` sind zufällige UUID. Nicht festgelegt: wie sich mehrere Server in einer JVM mit einer
+  gemeinsamen Senke unterscheiden.
+- **Redaktion durch Bauart:** Passwort, Prüfwert, Parameterwert, SQL-Text, Pfad und Ausnahmetext
+  haben im Modell kein Feld; es gibt keinen Schalter, der Parameterwerte zuließe. Zeichenketten
+  stehen in `principal`, in der Adresse des Bindefehlers, im Typnamen einer Ausnahme und im
+  Schlüsselnamen der Konfiguration; das ist keine geschlossene Menge (ob weitere Felder, etwa die
+  Quelladresse der Gegenstelle, hinzukommen, ist nicht festgelegt); jedes Zeichenketten-Feld ist auf 256 Zeichen begrenzt (Setzung,
+  darüber wird abgeschnitten). Nicht zugesagt: Escaping, Ziele und Aufbewahrung im Adapter eines
+  Embedders.
+- **Abbruch des Starts:** Das Ereignis zum Bindefehler nennt Adresse und Port (`SPEC-043`).
+  `StartOutcome.Aborted.reason` nennt dieselbe Adresse und denselben Port; Adresse und Port sind
+  Betriebsangaben, kein Geheimnis. `reason` enthält weder Pfade noch Ausnahmetext noch Schlüsselmaterial
+  oder Kennwörter. Die „Diagnose, die Adresse und Port nennt“ (`SPEC-043`) steht damit auch ohne
+  übergebene Senke im `reason`; das Ereignis ist ihre Form für die Senke (Festlegung). Gebaut ist
+  `reason` als „Start gescheitert: “ plus die Meldung des Fehlers; beim belegten Port lautet sie „Port belegt:
+  <Adresse>:<Port>“ (`ListenerConfig.kt`, `Bootstrap.kt`). Dass `reason` bei jedem Abbruchgrund frei von
+  Pfaden und Ausnahmetext ist, ist nicht für jeden Grund geprüft (Zielzustand, nicht gebaut).
 
 ## 5. Metriken und Tracing-Felder
 
@@ -904,6 +971,23 @@ Standardlogging.
 
 Metriken: aktive Sessions, Login-Erfolgs-/Fehlerquote, Anfragen/s, Anfrage-Latenz p50/p95/p99,
 aktive Backendoperationen, Abbrüche, Protokollfehler. Keine SQL-Texte als Metrik-Labels.
+
+**Zugang zu Metriken und Spans (Zielzustand, nicht gebaut; Festlegung, nicht gemessen):**
+
+- Der Schnappschuss der Metriken (Ereignis `metrics`) und das Ende eines Spans gehen als Ereignisse
+  an die Senke der Bibliothek, dieselbe wie für das Log (Abschnitt 4). Die Senke ist ein Parameter
+  von `TdsServer.start`; ohne Senke (Voreinstellung) schreibt und sendet die Bibliothek nichts. Name
+  und Form von Senke und Parameter sind nicht festgelegt.
+- Vertrag der Senke: Sie blockiert nicht und wirft nicht; die Bibliothek fängt Ausnahmen der Senke
+  ab und verwirft sie. Wer die Senke übergibt, besitzt und schließt sie; die Bibliothek schließt sie
+  nicht.
+- Der Abstand der Schnappschüsse ist ein Wert der `ServerConfig` in Sekunden (Voreinstellung 60,
+  0 schaltet ihn aus; Setzung, nicht gemessen) und wird in `config` geprüft; der Wertebereich ist
+  nicht festgelegt. Ob das Ereignis `metrics` die Verteilung als Perzentile (p50, p95, p99,
+  Voreinstellung dieser Spezifikation) oder als Zähler je Klasse trägt, ist nicht festgelegt.
+- Namen und Pflicht-Attribute der Spans (`SPEC-017` bis `SPEC-019`) bleiben. JMX, ein
+  Text-Endpunkt und eine Telemetrie-Bibliothek sind nicht Teil der Zusage; sie wären Adapter hinter
+  der Senke.
 
 ## 6. Externe Verträge
 
@@ -1010,7 +1094,7 @@ Das Ergebnis ist ein asynchroner Strom (`Flow`) von Ereignissen: `ResultStart` (
 - Cancel und Disconnect beenden das Lesen und schließen die Zeilenquelle (`SPEC-029`, `SPEC-031`). Ein Backend, dessen Operation sich nicht unterbrechen lässt, hält die Sitzung bis `CANCEL_TIMEOUT` (`SPEC-033`); danach schließt der Server die Verbindung.
 - **Suspendierend (Nutzerentscheidung vom 2026-10-31):** Ein Backend und jede Zeilenquelle (`SPEC-035`, `next()`) blockieren den Thread des Aufrufers nicht. Ein blockierender Treiber wird vom Integrator hinter einen eigenen, begrenzten Pool gelegt und unterbrechbar aufgerufen; der Server stellt keinen Adapter. Gemessen im Spike (fingiertes Backend, Blockieren als `Thread.sleep`, „nicht unterbrechbar“ als Setzung, Kotlin 2.1.20 und `kotlinx-coroutines-core` 1.10.1 statt der Versionen des Repos, 200 Ströme zu 5000 Zeilen): ein Backend, das je Zeile blockiert, brauchte 77 Threads statt 11 und das 8,2-fache der Wanddauer (3099 ms gegen 377 ms); die anderen Umhüllungen lagen bei 26 bis 78 Threads und 707 bis 3127 ms; der Abbruch eines nicht unterbrechbaren Aufrufs wartete den Rest der Blockade ab (2400 ms bei 3000 ms), bei einer Blockade über `CANCEL_TIMEOUT` schließt die Sitzung, und der Thread bleibt bis zur Rückkehr belegt. Die Zahlen gelten für den Spike, nicht für das Produkt oder einen echten Treiber. Empfehlung, keine Pflicht (Setzung, Voreinstellung 2026-10-30): blockweise statt je Zeile aufrufen (707 ms gegen 3099 ms im Spike). Ein Hilfsadapter im Server ist ein benannter Folgeschritt mit dem Auslöser „ein echtes Backend, dessen Treiber blockiert“.
 - **Kleine Ergebnisse (Setzung, Voreinstellung 2026-10-30, vom Nutzer nicht ausdrücklich gewählt, nicht gemessen):** Ein Backend, das ein Ergebnis materialisiert, begrenzt es selbst. Der Server erzwingt keine Grenze; er schützt sich durch den Rückstau der Senke und die Behandlung des `OutOfMemoryError` (`SPEC-031`).
-- **Frist (Nutzerentscheidung vom 2026-10-31):** Der Protokollkern setzt die Frist durch. Quelle ist `QUERY_TIMEOUT` (`SPEC-009`): er setzt `deadlineEpochMillis` auf „Beginn der Anfrage plus `QUERY_TIMEOUT`“ und umschließt die Sammlung des Stroms mit einem Zeitlimit. Bei Ablauf geht der Lauf den Weg des Cancel (Strom abbrechen, `close()`, zurückgehaltenen Abschluss verwerfen) und endet in `TDS_TIMEOUT` (`SPEC-016`; ERROR und DONE mit Fehlerstatus, solange der Strom synchron ist, sonst schließt die Verbindung, `SPEC-031`). Das Feld bleibt für kooperative Backends ein Hinweis; ein Backend darf es ignorieren. Einzelheiten (Setzung, Voreinstellung 2026-10-30, nicht gemessen): `null` heißt keine Frist; eine Frist in der Vergangenheit endet sofort in `TDS_TIMEOUT`; die Wanduhr wird einmal beim Start der Sammlung in eine Dauer umgerechnet; `CANCEL_TIMEOUT` (`SPEC-033`) bleibt unabhängig davon die Frist für den Abbruch selbst. Gemessen im Spike (Frist 500 ms): Überschreitung 0 bis 3 ms bei suspendierendem oder unterbrechbarem Backend, bis zum Ende des Aufrufs bei nicht unterbrechbarem (1500 bis 1513 ms bei 2000 ms Blockade; im Betrieb begrenzt durch `CANCEL_TIMEOUT`, `SPEC-033`); ein Backend, das die Frist ignoriert, lief bis zum Stromende (3042 ms). Class von `TDS_TIMEOUT` und Verbindungsfolge bleiben offen (`SPEC-016`, §4).
+- **Frist (Nutzerentscheidung vom 2026-10-31):** Der Protokollkern setzt die Frist durch. Quelle ist `QUERY_TIMEOUT` (`SPEC-009`): er setzt `deadlineEpochMillis` auf „Beginn der Anfrage plus `QUERY_TIMEOUT`“ und umschließt die Sammlung des Stroms mit einem Zeitlimit. Bei Ablauf geht der Lauf den Weg des Cancel (Strom abbrechen, `close()`, zurückgehaltenen Abschluss verwerfen) und endet in `TDS_TIMEOUT` (`SPEC-016`; ERROR und DONE mit Fehlerstatus, solange der Strom synchron ist, sonst schließt die Verbindung, `SPEC-031`). Das Feld bleibt für kooperative Backends ein Hinweis; ein Backend darf es ignorieren. Einzelheiten (Setzung, Voreinstellung 2026-10-30, nicht gemessen): `null` heißt keine Frist; eine Frist in der Vergangenheit endet sofort in `TDS_TIMEOUT`; die Wanduhr wird einmal beim Start der Sammlung in eine Dauer umgerechnet; `CANCEL_TIMEOUT` (`SPEC-033`) bleibt unabhängig davon die Frist für den Abbruch selbst. Gemessen im Spike (Frist 500 ms): Überschreitung 0 bis 3 ms bei suspendierendem oder unterbrechbarem Backend, bis zum Ende des Aufrufs bei nicht unterbrechbarem (1500 bis 1513 ms bei 2000 ms Blockade; im Betrieb begrenzt durch `CANCEL_TIMEOUT`, `SPEC-033`); ein Backend, das die Frist ignoriert, lief bis zum Stromende (3042 ms). `TDS_TIMEOUT` ist ein Anfragefehler der Class 16 bei offener Verbindung (Setzung des Nutzers vom 2026-11-01, nicht gemessen; `SPEC-016`, §4). Läuft die Frist beim Beginn schon ab, wird das Backend nicht gerufen.
 - **`OutOfMemoryError` (Nutzerentscheidung vom 2026-10-31):** Er wird im Anfragepfad gefangen und als `TDS_INTERNAL_ERROR` beantwortet (`SPEC-031`, `SPEC-048`); die Verbindung schließt nach der Antwort. Betreiberschalter, kein Server-Code: der Startparameter `-XX:+ExitOnOutOfMemoryError` beendet den Prozess beim ersten `OutOfMemoryError` (im Spike Exit-Code 3 nach rund 2 s). Akzeptiertes Negativ: im Spike war beim Fangen in vier von vier Läufen nach 20 s mindestens eine Coroutine nicht beendet, in dreien davon eine unbeteiligte kleine Verbindung (ob sie hängt oder später endet, ist nicht unterschieden); die Ursache ist nicht isoliert, die Häufigkeit im Produkt nicht gemessen; ob die Antwort im erschöpften Heap noch geschrieben werden kann, ist nicht gemessen.
 
 #### Festlegungen des Backend-Vertrags
@@ -1025,7 +1109,6 @@ Das Ergebnis ist ein asynchroner Strom (`Flow`) von Ereignissen: `ResultStart` (
 - Unterscheidung statement- und batch-abbrechender Fehler im Strom, die `Failure` nicht trägt: der Sequencer schreibt eine Variante (ERROR und DONE mit Fehlerstatus, Lauf beendet); die Verbindungsfolge nach Severity und die Abbildung von `Failure.code` bleiben Sache der Fehlerabbildung.
 - Herkunft der Befehlskennung (`curCmd`) der DONE-Tokens: der Sequencer schreibt 0; der Port trägt keine Kennung (Spec-Lücke).
 - Verzögerung durch den zurückgehaltenen Abschluss der `DONE_MORE`-Vorschau: nicht gemessen.
-- Class von `TDS_TIMEOUT` und Verbindungsfolge nach Ablauf der Frist (ob Cancel und Timeout als Fehler zählen, `SPEC-016`, §4).
 
 #### Gemessen am Backend-Vertrag
 
@@ -1039,7 +1122,7 @@ TLS-Modi des Servers (`SPEC-010`, `SPEC-028`, `SPEC-043`) für das Clientprofil 
 |---|---|---|---|
 | `REQUIRED` (Standard), TDS 7.4 | `ENCRYPTION_POLICY=REQUIRED` | ENCRYPT_REQ oder ENCRYPT_ON (beide gemessen) | TLS-Handshake in TDS-Paketen vom Typ `0x12`, danach verschlüsseltes LOGIN7 |
 | `REQUIRED`, TDS 8.0 | `ENCRYPTION_POLICY=REQUIRED`, Client `Encrypt=Strict` | — (TLS vor PRELOGIN) | TLS 1.3 ab dem ersten Byte, ALPN `tds/8.0` |
-| unverschlüsselter Testmodus | ausdrückliche Konfiguration, im Log sichtbar | ENCRYPT_NOT_SUP | nur TDS 7.4; Clients mit `Encrypt=false` melden sich unverschlüsselt an, Clients mit `Encrypt=true` brechen ab |
+| unverschlüsselter Testmodus | ausdrückliche Konfiguration, im Log sichtbar, wenn eine Senke übergeben ist | ENCRYPT_NOT_SUP | nur TDS 7.4; Clients mit `Encrypt=false` melden sich unverschlüsselt an, Clients mit `Encrypt=true` brechen ab |
 
 #### Zertifikate des Sicherheitsprofils
 
@@ -1125,7 +1208,7 @@ Der Adapter liefert keinen Text und keine Nummer für den Client. Die Antwort an
 
 #### Pflichten des Authentifizierungsadapters
 
-- Das Passwort erscheint in keinem Log und in keiner Fehlermeldung, auch nicht gekürzt oder verschleiert. Der Benutzername erscheint in keiner Antwort an den Client und im Log nur in einem Feld, das die Spezifikation festlegt (bisher keines; `TDS-FA-09.a`). `Rejected(reason)` trägt den Grund ohne Passwort und ohne Benutzernamen.
+- Das Passwort erscheint in keinem Log und in keiner Fehlermeldung, auch nicht gekürzt oder verschleiert. Der Benutzername erscheint in keiner Antwort an den Client und im Log nur im Feld `principal` des Ereignisses „Anmeldung angenommen“ (Zielzustand, nicht gebaut; Abschnitt 4; `TDS-FA-09.a`); abgelehnte Anmeldungen tragen kein Feld mit der Kennung. `Rejected(reason)` trägt den Grund ohne Passwort und ohne Benutzernamen.
 - Anforderung an den Produktivcode der Einstiegsimplementierung: Der Passwortvergleich läuft in konstanter Zeit über die Länge hinaus; bei unbekannter Kennung läuft ein Scheinvergleich. Gebaut und strukturell belegt (Abschnitt „Kotlin-Signatur des Authentifizierungsadapters“, Bauart des Vergleichs); Gemessen (Test mit echter Ableitung, Median von 15 Aufrufen, im Docker-Image des Repos; Dauer je Aufruf bei 210 000 Iterationen auf zwei Hosts 42 bis 64 ms, die Spanne gilt nur für diese Hosts): Bei einer Liste mit gleicher Iterationszahl brauchen bekannter Benutzername mit falschem Passwort, unbekannter Benutzername und bekannter Benutzername mit richtigem Passwort innerhalb einer Toleranz von 25 % gleich lang. Bei einer gemischten Liste (niedrigere Iterationszahl oder `plain` neben `pbkdf2-sha256`) trennt die Zeit bekannte von unbekannten Benutzernamen; das ist eine Grenze, keine Zusage. Ein Adapter mit eigener Benutzerverwaltung unterliegt derselben Anforderung, der Vertrag kann sie nicht erzwingen.
 - Die Antwort an den Client ist für unbekannten Benutzernamen und falsches Passwort in den Antwortbytes gleich (gemessen am Spike-Testserver, nicht am Produkt); das ist Sache des festen Antwortmusters des Anmeldepfads, nicht des Adapters.
 - Ein Adapter blockiert den Anmeldepfad nicht länger als `LOGIN_TIMEOUT` (`SPEC-008`).
@@ -1141,7 +1224,7 @@ Prüfwertformat und Konfigurationsweg (vom Nutzer entschieden, 2026-10-30; was u
 - **Iterationszahl (Setzung):** Boden 210 000, Standard 600 000, Obergrenze 10 000 000; der Betreiber unterschreitet den Boden nicht. Gemessen (nur in einem Spike-Image auf einem Host, kein Produktivwert) ist die Dauer je Ableitung: 54 ms bei 210 000, 125 ms bei 600 000, 2,1 s bei 10 000 000. Die Werte für Boden, Standard und Obergrenze sind gesetzt, nicht gemessen. Die Obergrenze schützt nicht vor gleichzeitiger Last: 64 Threads mit je 3 Ableitungen (192 Ableitungen) mit 600 000 und `--cpus=1` erreichten im Spike als längste Dauer einer Ableitung 23,6 s; das ist die Dauer der letzten Ableitung unter dieser Last, nicht die Wartezeit einer einzelnen Anmeldung. Die Iterationen bestehen nur aus ASCII-Ziffern (keine Vorzeichen, keine anderen Ziffernschriften).
 - **Passwort-Randfälle:** Die Ableitung nimmt die UTF-8-Bytes des vom Client gelieferten Passworts (UTF-16 nach UTF-8 wie im JDK). Ein alleinstehendes Hochsurrogat ergibt denselben Hash wie `?` (gemessen); das ist eine bekannte Eigenschaft. Es gibt keine Unicode-Normalisierung (NFC und NFD ergeben verschiedene Hashes, gemessen). Ein leeres Passwort ist zulässig und wird abgeleitet.
 - **Konfigurationsweg:** eigene Datei nur für die Benutzerliste, eigenes Zeilenformat, eigener Parser. Die Bibliothek nimmt die geprüfte Liste (`UserList` in `AuthSettings`); Datei und Umgebungsvariablen sind Eingänge des Testservers: Der Pfad wird in der Umgebungsvariable `AUTH_USERS_FILE` übergeben, wie der Schalter `AUTH_PLAIN_TESTMODE` (Setzung (Voreinstellung 2026-10-30, nicht gemessen)); gemessen ist nur die Übergabe eines Werts per Umgebungsvariable, nicht die eines Pfades. Eine Zeile je Eintrag, `Benutzername<TAB>Prüfwert`, UTF-8, kein Escaping, Aufteilung am ersten TAB. Benutzernamen mit TAB, LF, CR oder alleinstehendem Hochsurrogat sind nicht darstellbar und ein Ladefehler. Ein doppelter Benutzername bricht den Start ab.
-- **Testmodus-Schalter:** `AUTH_PLAIN_TESTMODE` (Umgebungsvariable des Testservers), gilt nur bei genau `true`; eigener Schalter nur für `plain`; der Start-Log nennt den Modus.
+- **Testmodus-Schalter:** `AUTH_PLAIN_TESTMODE` (Umgebungsvariable des Testservers), gilt nur bei genau `true`; eigener Schalter nur für `plain`; der Start-Log nennt den Modus (Ereignis des aktiven Klartext-Testmodus, Abschnitt 4; Zielzustand, nicht gebaut).
 - **Fehlerwerte:** je Abweichung genau eine Fehlerart mit Listenplatz, ohne Prüfwert und ohne Passwort. Der Listenplatz ist die Zeilennummer der Datei, 1-basiert (Setzung (Voreinstellung 2026-10-30, nicht gemessen)); gemessen ist im Spike die Position nach Sortierung, nicht die Zeilennummer.
 - **Entschieden** (Nutzer, 2026-10-30; Setzungen, nicht gemessen): derselbe Iterationsboden im Testmodus, keine Kommentare und keine Leerzeilen, CRLF nicht toleriert, Hash genau 32 Byte und Salz mindestens 16 Byte ohne Obergrenze, Ziffernfolge der Iterationen 1 bis 8 Stellen ohne führende Null.
 - **Offen** (vom Nutzer nicht entschieden, nicht gemessen): Dateirechte und Übergabe der Datei im Betrieb; weder der Lader noch der Start prüfen sie.
@@ -1195,16 +1278,16 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 
 | Teil | Inhalt |
 |---|---|
-| `TdsServer.start(config, source)` | suspendierend, Package `runtime`; liefert `StartOutcome`: `Running(server)` oder `Aborted(reason, issues)`. Der Start wirft keine Ausnahme für Konfigurations-, Tabellen-, TLS- oder Bindefehler. |
+| `TdsServer.start(config, source)` | suspendierend, Package `runtime`; liefert `StartOutcome`: `Running(server)` oder `Aborted(reason, issues)`. Der Start wirft keine Ausnahme für Konfigurations-, Tabellen-, TLS- oder Bindefehler. **Zielzustand, nicht gebaut:** `start` nimmt zusätzlich eine Senke für Log und Telemetrie entgegen (Abschnitt 5). |
 | `TdsServer` | `port` (der gebundene Port) und `suspend stop()`. `stop` ist idempotent: der zweite Aufruf endet ohne Wirkung (Test: Einbettungstest, nacheinander aus einem Thread). Aufruf von mehreren Threads und `stop` während `start` sind nicht festgelegt. |
 | `BackendSource` | `Custom(backend)`: ein `QueryBackend`, auch ein selbst gebautes `SimulationBackend(SimCatalog(tables))` (`SPEC-035`); `Simulation(tables)`: `SimTable`-Werte mit Zeilenquelle und Callbacks (`SPEC-035`); `None`: wie `Simulation` mit leerer Liste. `Custom` mit Tabellen ist nicht darstellbar. Die Bibliothek kennt keine Datei der Tabellenbeschreibung; den Weg über die Datei geht der Testserver (`SPEC-035`). |
-| `StartOutcome.Aborted` | `reason` ist ein Text ohne Konfigurationswert, Pfad und Ausnahmetext; `issues` nennt bei ungültiger Konfiguration jeden Fehler mit Schlüssel und Art (`ConfigIssue`), sonst ist die Liste leer. Festlegung: `ConfigIssue` ist als Typ der Signatur Teil der Zusage und die Art (`IssueKind`) ebenso; der Wortlaut des Schlüssels (ein Text, der das Konfigurationsfeld nennt) ist keine Zusage, ein Einbettender verlässt sich nicht auf bestimmte Namen. Der gebaute Stand führt dafür die Namen der Umgebungsvariablen (`SPEC-005`, `SPEC-010`). Ein Abbruch bindet keinen Port und startet keinen Thread des Servers. |
-| Prüfung | Der Start prüft die Konfiguration, gleich auf welchem Weg sie entstand (`ConfigValidation.check`): `REQUIRED` verlangt Schlüsselspeicher und Passwort, `TEST_UNENCRYPTED` lässt beide nicht zu (`SPEC-010`); Port 0 bis 65535 (`SPEC-005`), Anmeldefrist 1 bis 3600 s (`SPEC-008`), Größe der PRELOGIN-Nachricht 512 bis 65536 Byte (`SPEC-046`), Bind-Adresse nicht leer. Die Voreinstellungen von `ListenSettings`, `LoginSettings` und der Verschlüsselung sind die der Spezifikation. Umgebung und Dateien liest nicht die Bibliothek, sondern der Testserver; er baut eine `ServerConfig` und ruft `TdsServer.start` wie ein Einbettender (`SPEC-052`). |
+| `StartOutcome.Aborted` | `reason` ist ein Text ohne Pfad, Ausnahmetext, Schlüsselmaterial und Kennwort; beim Bindefehler nennt er Adresse und Port; `issues` nennt bei ungültiger Konfiguration jeden Fehler mit Schlüssel und Art (`ConfigIssue`), sonst ist die Liste leer. Festlegung: `ConfigIssue` ist als Typ der Signatur Teil der Zusage und die Art (`IssueKind`) ebenso; der Wortlaut des Schlüssels (ein Text, der das Konfigurationsfeld nennt) ist keine Zusage, ein Einbettender verlässt sich nicht auf bestimmte Namen. Der gebaute Stand führt dafür die Namen der Umgebungsvariablen (`SPEC-005`, `SPEC-010`). Ein Abbruch bindet keinen Port und startet keinen Thread des Servers. |
+| Prüfung | Der Start prüft die Konfiguration, gleich auf welchem Weg sie entstand (`ConfigValidation.check`): `REQUIRED` verlangt Schlüsselspeicher und Passwort, `TEST_UNENCRYPTED` lässt beide nicht zu (`SPEC-010`); Port 0 bis 65535 (`SPEC-005`), Anmeldefrist 1 bis 3600 s (`SPEC-008`), Frist einer Anfrage und Frist des Abbruchs je 1 bis 3600 s (`SPEC-009`, `SPEC-033`), Größe der PRELOGIN-Nachricht 512 bis 65536 Byte (`SPEC-046`), Bind-Adresse nicht leer. Die Voreinstellungen von `ListenSettings`, `LoginSettings`, `RequestSettings` (`ServerConfig.requests`: `QUERY_TIMEOUT` 30 s, `CANCEL_TIMEOUT` 5 s) und der Verschlüsselung sind die der Spezifikation; ein Einbettender ohne Angabe bekommt also nach 30 s `TDS_TIMEOUT` für eine Anfrage. Umgebung und Dateien liest nicht die Bibliothek, sondern der Testserver; er baut eine `ServerConfig` und ruft `TdsServer.start` wie ein Einbettender (`SPEC-052`). |
 | Einmal-Konfiguration | Eine `ServerConfig` gilt für einen Start: sobald der Start das TLS-Material lädt, löscht er das Passwort im Schlüsselmaterial; bricht er vorher ab (JVM-Flag, Prüfung), bleibt es lesbar (Festlegung, getestet für Flag, Prüfung und Bindefehler). Wer neu startet, baut eine neue `ServerConfig`. |
-| Nicht erreichbar | Authentifizierungsadapter, Log und Telemetrie lassen sich über den Einstieg nicht ersetzen; der Einstieg schreibt kein Log. |
+| Nicht erreichbar | Authentifizierungsadapter, Log und Telemetrie lassen sich über den Einstieg nicht ersetzen; der Einstieg schreibt kein Log. **Zielzustand, nicht gebaut:** Log und Telemetrie gehen an die übergebene Senke (Abschnitt 5); nur der Authentifizierungsadapter bleibt nicht erreichbar. |
 | JVM-Flag | Der Einstieg prüft `-Djdk.tls.server.newSessionTicketCount=0` und setzt es nicht (`SPEC-023`); der Einbettende setzt es, beim Testserver der Aufruf seines Prozesses. |
 | Abhängigkeiten | Jar und `lib/` liegen auf dem Klassenpfad des Einbettenden (`SPEC-052`); `lib/` führt keine YAML-Bibliothek, die Bibliothek braucht keine (Festlegung). Gemessen: `gradle.lockfile` führt Jackson nur in den Konfigurationen des Testservers, und der Einbettungstest (`make test`) startet und bedient den Server ohne Jackson im Klassenpfad. |
-| Zusage | Bis zur ersten Version `1.0` ändert sich diese Fläche nur durch eine Änderung dieser Spezifikation (Setzung); ab `1.0` gilt semantische Versionierung. Heute sind mehr Namen öffentlich als hier genannt; verbindlich für Einbettende sind `TdsServer`, `BackendSource`, `StartOutcome`, `ConfigValidation` (Vorab-Prüfung einer `ServerConfig`), `SimulationBackend(catalog: SimCatalog)` und `SimCatalog(tables: List<SimTable>)` mit `tables` und die Typen ihrer Signaturen aus `port`, `domain`, der Zeilenquelle in `simulation` und `ServerConfig` mit ihren Teilen in `config`. Für die Signaturen von `SimulationBackend` und `SimCatalog` (Konstruktoren, `tables`) gilt dieselbe Zusage: Änderung nur durch eine Änderung dieser Spezifikation, im Änderungsprotokoll genannt; das Verhalten des Backends legt `SPEC-035` fest, die Zusage der Namen erweitert es nicht. `SimCatalog.find` steht nicht in der Liste (Festlegung: Aufrufer ist der Planer des Hauptmoduls). Weitere öffentliche Namen sind keine Zusage. |
+| Zusage | Bis zur ersten Version `1.0` ändert sich diese Fläche nur durch eine Änderung dieser Spezifikation (Setzung); ab `1.0` gilt semantische Versionierung. Gemeint ist: öffentlich ist genau diese Fläche, alles andere in der Bibliothek ist `internal`. Belegt ist davon nur, dass `explicitApi` (Modus `strict`) im Hauptmodul für jede Deklaration eine ausdrückliche Sichtbarkeit verlangt; es gilt nicht für die Source-Sets `integrator` und `testserver`. Dass nur die Namen dieser Liste öffentlich sind, hält kein Sensor (Grenze, keine Zusage über die Gleichheit der Menge). Die Namen nach Package: `runtime`: `TdsServer`, `BackendSource` (`Custom`, `Simulation`, `None`), `StartOutcome` (`Running`, `Aborted`); `config`: `ConfigValidation` (Vorab-Prüfung einer `ServerConfig`), `ServerConfig`, `ListenSettings`, `LoginSettings`, `RequestSettings`, `EncryptionSetting`, `TlsKeyMaterial`, `AuthSettings`, `ConfigIssue`, `IssueKind`; `config.auth`: `PasswordChars` (Konstruktor, `reveal`), `UserList` (`parse`, `plainTestModeFrom`), `UserListResult` (`Valid`, `Invalid`), `UserListError`, `UserListErrorKind`; `port`: `QueryBackend`, `QueryExecution`; `domain`: `QueryRequest`, `QueryParameter`, `ParameterDirection`, `QueryEvent` mit seinen Fällen, `ResultColumn`, `SqlType` mit seinen Fällen, `Principal`; `simulation`: `SimTable`, `SimColumn`, `SimQuery`, `RowFilter`, `FilterTerm`, `RowSource`, `SimulationBackend(catalog: SimCatalog)` und `SimCatalog(tables: List<SimTable>)` mit `tables`. Für die Signaturen von `SimulationBackend` und `SimCatalog` (Konstruktoren, `tables`) gilt dieselbe Zusage: Änderung nur durch eine Änderung dieser Spezifikation, im Änderungsprotokoll genannt; das Verhalten des Backends legt `SPEC-035` fest, die Zusage der Namen erweitert es nicht. `SimCatalog.find` und `SimTable.column` sind `internal` (Festlegung: Aufrufer ist der Planer des Hauptmoduls). `Principal` steht in der Liste, ist heute aber nur über den nicht öffentlichen Authentifizierungsadapter erreichbar; ein Einbettender kann es über den Einstieg weder erzeugen noch lesen (Hinweis, keine Fähigkeit des Einstiegs). Authentifizierungsadapter (`AuthAdapter` und seine Typen) und Konfigurationsschlüssel (`ConfigKeys`) gehören nicht zur Fläche. Weitere Namen sind keine Zusage. |
 | Nachweis | Ein Test in einem eigenen Source-Set, das gegen die Klassen des Hauptmoduls übersetzt und keinen `internal`-Namen sieht, startet den Server mit einem In-Memory-Backend und mit einer Zeilenquelle des Integrators und beantwortet Anfragen mit Rohbytes (`java.net`, kein Referenzclient); er läuft im selben Prozess in `make test`. Grenze: `internal` ist im Bytecode öffentlich, der Nachweis gilt für Kotlin-Quellen. |
 
 ## 7. Festlegungen der Harness-Werkzeuge
@@ -1218,7 +1301,7 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | `SPEC-040` | Simulations-Tests (`make simulations-integration` im E2E-Durchgang) | Unit-Tests der Anweisungserkennung (jede Form aus `SPEC-036` positiv und negativ, Grenzen bei Literalen, Bezeichnern und Kommentaren), Unit-Tests des Lesers der Tabellenbeschreibung (jedes gelesene Feld, jeder Ladefehler mit Pfad, Zeile und Spalte, ohne Inhalt in der Meldung) und Integrationstest mit dem .NET-Referenzclient (`make simulations-integration`, Stufe des E2E-Durchgangs `make e2e`, nicht von `make gates`): Auswahl mit Bedingung, leeres Ergebnis, Zeilenquelle über der Speichergrenze (Angabe des Testservers: Serverprozess mit 48 MiB Heap, Text von 64 000 000 Zeichen; `make kopplung-zahlen` hält die Zahlen in Gradle, Kotlin, .NET, hier und im README gleich), Fehler der Zeilenquelle mit Folgeabfrage; der Lauf geht gegen den Testserver (`SPEC-052`) und belegt das Verhalten des Referenzclients gegen die Bibliothek, die er bindet, in TDS 7.4 ohne Verschlüsselung und ohne Pool, nicht gegen einen echten SQL Server. Cancel mit Folgeabfrage gehört nicht zum Lauf: der Server beantwortet ein ATTENTION-Paket während einer Anfrage nicht; die Ausnahme ist befristet, aufgelöst ist sie, sobald ein Cancel-Szenario mit Folgeabfrage am Referenzclient in diesem Lauf besteht |
 | `SPEC-041` | Static-Analysis-Gate (`make detekt`, `make detekt-selbsttest`) | detekt in Docker, Konfiguration auf Standardbasis mit dem ktlint-Regelsatz (prüft, schreibt nichts um), `warningsAsErrors` und den Importregeln der Schichten, im Kern als Erlaubnisliste ohne Fremdbibliothek; dazu Technik-Regeln für Kern und Port, die Prozess, Dateisystem und Ähnliches über `ForbiddenMethodCall` sperren und deshalb nur über `detektMain` und `detektTest` wirken (Typauflösung); keine Baseline; jeder Befund bricht den Lauf. Tests des Kerns bleiben frei von Fremdbibliotheken (`kotlin.test` statt JUnit), weil die Kernregeln auch für Test-Quellen gelten. Die Importregeln lesen nur `import`-Zeilen: ein voll qualifizierter Name im Code und ein `typealias` darauf umgehen sie; das Gate belegt die Einhaltung der Importgrenze, nicht des Classpaths. `@Suppress` und `@SuppressWarnings` im Quelltext brechen den Lauf vor detekt (Textprüfung des Suppression-Gates). Ein Selbsttest belegt, dass jede Importregel ihre verbotenen Importe meldet, die erlaubten Testdaten nicht und das Suppression-Verbot jede Form meldet; er läuft nur bei geänderten Eingängen |
 | `SPEC-042` | Build-Gate (`make build`) | Compile und Jar in Docker, ohne Tests; Basis-Images per Digest gepinnt, Abhängigkeitsversionen per Lock und Prüfsummen fixiert |
-| `SPEC-052` | Bibliotheks-Artefakt und Lizenz (E2E-Durchgang: `make laufzeittest` mit dem Testserver; der Tag `@spec` nennt nur den Lizenztext) | Das Artefakt ist ein Bibliotheks-Jar `tdswire.jar` **ohne `Main-Class`** im Manifest; die Bibliothek ist das Produkt (`TDS-RB-01`), und es gibt weder eine Startklasse noch ein Betriebs-Image als Produkt. Die Bibliotheken, die die Bibliothek braucht, liegen im Verzeichnis `lib` daneben und stehen im Class-Path des Manifests (Komfort für Einbettende, Setzung). Die Lizenz ist die MIT-Lizenz (Datei `LICENSE` im Wurzelverzeichnis, Rechteinhaber `pt9912`, Jahr 2026, `TDS-RB-05`); sie liegt im Jar unter `META-INF/LICENSE`, und der Bau des Jars bricht, wenn sie dort fehlt oder vom Inhalt der Datei abweicht (läuft in `make build`). Im Bau (`make build`) prüft eine Textprüfung ohne Container, dass das Manifest des Jars keine `Main-Class` nennt, der Class-Path nur Einträge `lib/<Name>` mit vorhandener Datei in `lib` führt und das Jar `tdswire.jar` heißt (nicht geprüft: der Start des Jars). Die Lizenzdatei prüft außerdem ein Unit-Test (MIT-Text, Rechteinhaber, Rechteeinräumung, Haftungsausschluss). **Testserver:** Ein ausführbarer Serverprozess, der nur der Prüfung der Bibliothek dient (E2E- und Kompatibilitätsläufe, kein Produkt), bindet die Bibliothek ausschließlich über `TdsServer.start` und ihre öffentliche Fläche (`SPEC-059`). Er liest Konfiguration und Benutzerliste zur Laufzeit aus der Umgebung und aus Dateien (Eingänge des Testservers, `SPEC-005`, `SPEC-010`, `SPEC-051`), nie aus dem Abbild (Setzung), und läuft mit `-Djdk.tls.server.newSessionTicketCount=0` (`SPEC-023`). Sein Container-Abbild entsteht aus dem Klassenpfad des Testservers (Setzung); ein Abbild als Betriebsweg gibt es nicht. `make laufzeittest` startet den Testserver als Container in einem internen Netzwerk, lässt einen Rohbytes-Client aus einem zweiten Container PRELOGIN und LOGIN7 sprechen und beendet den Container mit `docker stop`; die Ausgabe des Testservers nennt weder Benutzer noch Passwort. Gemessen am Server-Container vor dem Umbau, der den Server zum Testserver macht (2026-10-31): `docker stop` (SIGTERM) endet mit Exit-Code 143. Welche Prüfungen des heutigen Laufs (Nutzer 65532, Inhalt von `/app`, Lizenz im Abbild, Namen der Umgebung) mit dem Testserver-Abbild bleiben, ist nicht festgelegt. Nicht belegt: Annahme durch `Microsoft.Data.SqlClient`, TLS im Container, Last, der Inhalt der Jars und der Basis-Schichten. `make laufzeittest` ist Stufe des E2E-Durchgangs `make e2e` und steht nicht in `make gates`. **Zielzustand, nicht gebaut:** Der gebaute Stand trägt im Manifest noch eine Startklasse, prüft sie im Bau, hat ein Laufzeit-Image (Distroless Java 21 `nonroot`) mit der Konfiguration im Container und lässt `make laufzeittest` dieses Image prüfen; die Festlegungen dieser Zeile gelten ab dem Umbau, der den Server zum Testserver macht. |
+| `SPEC-052` | Bibliotheks-Artefakt und Lizenz (E2E-Durchgang: `make laufzeittest` mit dem Testserver; der Tag `@spec` nennt nur den Lizenztext) | Das Artefakt ist ein Bibliotheks-Jar `tdswire.jar` **ohne `Main-Class`** im Manifest; die Bibliothek ist das Produkt (`TDS-RB-01`), und es gibt weder eine Startklasse noch ein Betriebs-Image als Produkt. Die Bibliotheken, die die Bibliothek braucht, liegen im Verzeichnis `lib` daneben und stehen im Class-Path des Manifests (Komfort für Einbettende, Setzung). Die Lizenz ist die MIT-Lizenz (Datei `LICENSE` im Wurzelverzeichnis, Rechteinhaber `pt9912`, Jahr 2026, `TDS-RB-05`); sie liegt im Jar unter `META-INF/LICENSE`, und der Bau des Jars bricht, wenn sie dort fehlt oder vom Inhalt der Datei abweicht (läuft in `make build`). Im Bau (`make build`) prüft eine Textprüfung ohne Container, dass das Manifest des Jars keine `Main-Class` nennt, das Jar keine Klasse des Testservers und `lib` kein Jackson führt, der Class-Path nur Einträge `lib/<Name>` mit vorhandener Datei in `lib` führt und das Jar `tdswire.jar` heißt (nicht geprüft: der Start des Jars). Die Lizenzdatei prüft außerdem ein Unit-Test (MIT-Text, Rechteinhaber, Rechteeinräumung, Haftungsausschluss). **Testserver:** Ein ausführbarer Serverprozess, der nur der Prüfung der Bibliothek dient (E2E- und Kompatibilitätsläufe, kein Produkt), bindet die Bibliothek ausschließlich über `TdsServer.start` und ihre öffentliche Fläche (`SPEC-059`). Er liest Konfiguration und Benutzerliste zur Laufzeit aus der Umgebung und aus Dateien (Eingänge des Testservers, `SPEC-005`, `SPEC-010`, `SPEC-051`), nie aus dem Abbild (Setzung), und läuft mit `-Djdk.tls.server.newSessionTicketCount=0` (`SPEC-023`). **Log und Metriken des Testservers** (Zielzustand, nicht gebaut; Setzung, nicht gemessen, auch die Zahlen): Er übergibt `TdsServer.start` eine Senke mit einem eigenen Adapter (Abschnitte 4 und 5) und liest dafür `LOG_LEVEL` (`ERROR`, `WARN`, `INFO`, `DEBUG`; Voreinstellung `INFO`; ein anderer Wert bricht den Start des Testservers ab) und `METRICS_INTERVAL_SECONDS` (Quelle des Abstands der Schnappschüsse in der `ServerConfig`); beide Schlüssel sind Eingänge des Testservers, nicht der Bibliothek. Der Adapter schreibt je Ereignis eine JSON-Zeile auf die Standardausgabe mit den Feldern `ts`, `level`, `event` und denen des Ereignisses und filtert nach `LOG_LEVEL`. Er hält eine begrenzte Warteschlange (1024 Zeilen); bei Überlauf wird die neue Zeile verworfen und gezählt, die Zahl steht im Feld `dropped` der nächsten geschriebenen Zeile. Ereignisse vor dem erfolgreichen Start und die Diagnose eines abgebrochenen Starts schreibt er synchron und ohne Warteschlange; vor dem Prozessende leert er die Warteschlange mit einer Frist von 2 Sekunden, der Rest geht verloren und wird in einer letzten Zeile mit `dropped` gemeldet, soweit der Kanal noch annimmt. Das sind Aussagen über den Testserver, kein Vertrag der Bibliothek. Die Bereitschaftszeile bleibt Sache des Testservers und ist kein Ereignis des Modells. Sein Container-Abbild entsteht aus dem Klassenpfad des Testservers (Setzung); ein Abbild als Betriebsweg gibt es nicht. `make laufzeittest` startet den Testserver als Container in einem internen Netzwerk, lässt einen Rohbytes-Client aus einem zweiten Container PRELOGIN und LOGIN7 sprechen und beendet den Container mit `docker stop`; die Ausgabe des Testservers nennt nie ein Passwort und einen Benutzer nur im Feld `principal` des Ereignisses „Anmeldung angenommen“ (Abschnitt 4). Gemessen am Server-Container vor dem Umbau, der den Server zum Testserver macht (2026-10-31): `docker stop` (SIGTERM) endet mit Exit-Code 143. Prüfungen, die ein Produkt-Image voraussetzen (Nutzer 65532, Inhalt von `/app`, Lizenz im Abbild, `JAVA_TOOL_OPTIONS`), gibt es nicht, weil es kein Produkt-Image gibt; die Lizenz im Jar prüft der Bau. Nicht belegt: Annahme durch `Microsoft.Data.SqlClient`, TLS im Container, Last, der Inhalt der Jars und der Basis-Schichten. `make laufzeittest` ist Stufe des E2E-Durchgangs `make e2e` und steht nicht in `make gates`. |
 | `SPEC-050` | Referenzabgleich (vorläufig, E2E-Durchgang) | Live-Lauf und Mitschnitt-Lauf nach `SPEC-045` gegen eine SQL-Server-Referenzinstanz in Docker (eigener Container im eigenen Netzwerk, ohne Mount); Abweichungen nur über die Ausnahmeliste; ergänzt die Läufe von `SPEC-025` und `SPEC-032`, ersetzt sie nicht; Lauf des E2E-Durchgangs, noch einzurichten |
 | `SPEC-032` | Kompatibilitätstest (E2E-Durchgang) | Echter .NET-SqlClient prüft LOGINACK/ENVCHANGE/DONE, TLS-Profil (TDS 7.4 und TDS 8.0), RPC-Parameter, Streaming-Fehler, ATTENTION und Wiederverwendung; ein Szenario ist rot, sobald der Client es nicht besteht; Lauf des E2E-Durchgangs, noch einzurichten |
 
@@ -1260,3 +1343,6 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | 2026-10-31 | Einstieg des Integrators festgelegt: Fassade `TdsServer.start` mit Backend-Quelle, Prüfung der Konfiguration beim Start, Einmal-Konfiguration, Zusage der Fläche, Nachweis ohne `internal` (`SPEC-059`, `SPEC-035`, `TDS-FA-08.a`) |
 | 2026-11-01 | Bibliothek als Produkt nachgezogen: Die Bibliothek ist das Produkt (Bibliotheks-Jar ohne Startklasse), Umgebungsvariablen, Dateien und die Tabellenbeschreibung als Datei gehören dem Testserver, die Läufe des E2E-Durchgangs gehen gegen den Testserver, `SimulationBackend` und `SimCatalog` sind verbindliche Namen mit Signaturzusage bis `1.0`, der Zwischenstand-Satz der Zusage entfällt, `ConfigKeys` ist nicht mehr zugesagt (die Schlüssel in `ConfigIssue` sind Text ohne zugesagten Wortlaut); was am Code noch nicht gilt, steht als Zielzustand an der Stelle (`SPEC-052`, `SPEC-040`, `SPEC-025`, `SPEC-005`, `SPEC-010`, `SPEC-023`, `SPEC-035`, `SPEC-051`, `SPEC-059`, `TDS-RB-01`, `TDS-QA-06`, `TDS-FA-08`, `TDS-FA-09`, `TDS-FA-11`) |
 | 2026-11-01 | Testserver gebaut: Umgebung, Dateien, Tabellenbeschreibung und Jackson liegen im Testserver (eigenes Source-Set), `ServerConfig` führt keine Datei der Tabellenbeschreibung mehr; `make e2e` lief mit den sieben Stufen grün (Einzelmessung 2026-11-01, 312 s); die Zielzustand-Vermerke zu `SPEC-005`, `SPEC-010`, `SPEC-035`, `SPEC-040`, `SPEC-051` und `SPEC-059` entfallen, `SPEC-052` bleibt Zielzustand; `LOGIN_TIMEOUT` und `MAX_PRELOGIN_MESSAGE_BYTES` sind als Eingang des Testservers ausgezeichnet |
+| 2026-11-01 | Log und Telemetrie festgelegt: Pflicht-Logfelder um `ts`, `level` und `principal` (nur bei angenommener Anmeldung) ergänzt, Quelle von `client_profile` und Herkunft der IDs, Parameterwerte nie, Redaktion durch Bauart, Zugang zu Metriken und Spans über die Senke der Bibliothek, `LOG_LEVEL`, `METRICS_INTERVAL_SECONDS` und das Format der JSON-Zeile als Aussagen über den Testserver, Adresse des Bindefehlers nur im Ereignis (`TDS-FA-09.a`, Abschnitte 4 und 5, `SPEC-052`) |
+| 2026-11-01 | Öffentliche Fläche der Bibliothek festgelegt und verkleinert: `explicitApi` (Modus `strict`) ist eingeschaltet, `SPEC-059` nennt die endgültige Liste der öffentlichen Namen, alles andere ist `internal` (darunter `SimCatalog.find`, `SimTable.column`, die Typen der Authentifizierungsadapter und `ConfigKeys`); `SHUTDOWN_GRACE` und `MAX_CONNECTIONS` sind als Eingang des gebauten Stands nicht ausgezeichnet und stehen als Zielzustand, `QUERY_TIMEOUT` nennt `ServerConfig.requests` als Eingang (`SPEC-059`, `SPEC-047`, `SPEC-034`, `SPEC-009`) |
+| 2026-11-01 | Bibliotheks-Jar ohne `Main-Class` gebaut: Das Manifest nennt keine Startklasse, die Prüfung im Bau meldet eine vorhandene `Main-Class`, eine Klasse des Testservers im Jar und Jackson in `lib/` als Befund, die Stages `runtime` und `build` (Distroless) entfallen, `make laufzeittest` prüft den Testserver-Container; die Prüfungen am Produkt-Image entfallen ohne Ersatz; der Zielzustand-Vermerk von `SPEC-052` zur Startklasse und zum Laufzeit-Image entfällt (`SPEC-052`, `TDS-RB-01`, `TDS-QA-06`) |

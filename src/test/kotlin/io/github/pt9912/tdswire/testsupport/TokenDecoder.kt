@@ -27,7 +27,7 @@ import java.time.LocalTime
  * Produktionscode und belegt Selbstkonsistenz, keine Protokolltreue (das tun die Handvektoren).
  * Bei einem Fehler im Strom wirft er `IllegalStateException`.
  */
-class TokenDecoder(private val bytes: ByteArray) {
+internal class TokenDecoder(private val bytes: ByteArray) {
     private var pos = 0
     private var columns: List<ColumnDef> = emptyList()
 

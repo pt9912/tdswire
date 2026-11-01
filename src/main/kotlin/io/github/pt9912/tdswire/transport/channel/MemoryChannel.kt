@@ -18,7 +18,8 @@ import kotlin.coroutines.cancellation.CancellationException
  * erzwingt dieser Kanal nicht: zwei gleichzeitige Schreiber können ihre Bytes verschränken, zwei
  * gleichzeitige Leser können einander die Weckung nehmen, sodass einer ohne Fehler wartet.
  */
-class MemoryChannel private constructor(private val incoming: Pipe, private val outgoing: Pipe) : SuspendingChannel {
+internal class MemoryChannel private constructor(private val incoming: Pipe, private val outgoing: Pipe) :
+    SuspendingChannel {
     /** Bytes, die dieses Ende geschrieben und die Gegenstelle noch nicht gelesen hat. */
     val bufferedBytes: Int get() = outgoing.buffered()
 

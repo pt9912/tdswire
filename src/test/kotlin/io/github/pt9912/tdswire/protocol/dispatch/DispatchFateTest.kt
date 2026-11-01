@@ -67,8 +67,8 @@ class DispatchFateTest {
      * Fehlerantwort davor hat genau einen ERROR und genau ein DONE mit Fehlerstatus als letztes Token.
      * Eingabe variiert: Fehler vor jeder Zeile, nach Teilzeilen, andere Codes der Class 16 (`TDS_SIM_INVALID_VALUE`
      * ist Voreinstellung, nicht entschieden); hinter dem Fehler liefert das Backend ein weiteres Ergebnis,
-     * das nicht zur Antwort gehört (ab dem ERROR nur ERROR und DONE). Die Sitzung ist beim Lesen jeder
-     * Nachricht `READY`.
+     * das nicht zur Antwort gehört (ab dem ERROR nur ERROR und DONE). Die erste Nachricht wird
+     * in `READY` gelesen, die folgenden während der Anfrage davor (Mitlesen für ATTENTION).
      *
      * @spec SPEC-031
      * @spec SPEC-001
@@ -86,11 +86,8 @@ class DispatchFateTest {
             val states = mutableListOf<ConnectionState>()
             session.channel.onReceive = { states += session.ready.live.context.state }
             session.serve(backend)
-            assertEquals(
-                listOf(ConnectionState.READY, ConnectionState.READY, ConnectionState.READY),
-                states,
-                "$name: Zustand beim Lesen jeder Nachricht, davon [1] vor der Folgeanfrage",
-            )
+            assertEquals(ConnectionState.READY, states.first(), "$name: Zustand beim ersten Lesen")
+            assertEquals(3, states.size, "$name: Leseaufrufe")
             assertEquals(2, session.replies.size, name)
             assertEquals(1, session.tokens(0).count { it is ErrorToken }, name)
             assertEquals(2, session.tokens(0).fromError().size, "$name: hinter dem Fehler nur sein DONE")
@@ -175,7 +172,7 @@ class DispatchFateTest {
             assertEquals(1, backend.requests.size, code)
             assertEquals(1, backend.closeCalls, code)
             assertTrue(session.channel.closed, code)
-            assertEquals(1, session.channel.receiveCalls - 2, "$code: Leseaufrufe nach dem Login")
+            assertEquals(2, session.channel.receiveCalls - 2, "$code: Leseaufrufe nach dem Login")
             assertFalse(session.channel.exhausted, code)
             assertEquals(ConnectionState.CLOSED, session.ready.live.context.state, code)
         }
@@ -185,7 +182,7 @@ class DispatchFateTest {
      * Lässt sich der Strom nicht mehr abschließen (die Senke nimmt das k-te Token nicht an), geht keine
      * Antwort hinaus, kein ERROR und kein DONE; der Sequenzierer bietet der Senke nach der Ablehnung kein
      * weiteres Token an, also auch kein zweites COLMETADATA des zweiten Ergebnisses. Die Verbindung ist
-     * geschlossen, die nächste Nachricht ungelesen, das Backend geschlossen. Eingabe variiert: k von 1 bis
+     * geschlossen, die übernächste Nachricht ungelesen, das Backend geschlossen. Eingabe variiert: k von 1 bis
      * 5 (COLMETADATA, ROW, ROW, DONE-Abschluss mit `MORE` durch das nächste Ereignis, zweites COLMETADATA).
      *
      * @spec SPEC-031
@@ -196,13 +193,14 @@ class DispatchFateTest {
         val twoResults = oneRow.dropLast(1) + QueryEvent.Row(listOf(8)) + QueryEvent.ResultEnd(2) + oneRow
         (1..5).forEach { k ->
             val backend = ScriptedBackend.ofList(*twoResults.toTypedArray())
-            val session = Session.login(BatchVectors.message("q"), BatchVectors.message("never read"))
+            val never = BatchVectors.message("never read")
+            val session = Session.login(BatchVectors.message("q"), never, never)
             var sink: CountingSink? = null
             session.serve(backend, sinkAround = { CountingSink(it, k).also { counting -> sink = counting } })
             assertEquals(k, checkNotNull(sink).offered, "k=$k: Tokens, die der Senke angeboten wurden")
             assertEquals(0, session.replies.size, "k=$k")
             assertTrue(session.channel.closed, "k=$k")
-            assertFalse(session.channel.exhausted, "k=$k: die naechste Nachricht wurde gelesen")
+            assertFalse(session.channel.exhausted, "k=$k: die uebernaechste Nachricht wurde gelesen")
             assertEquals(1, backend.closeCalls, "k=$k")
             assertEquals(ConnectionState.CLOSED, session.ready.live.context.state, "k=$k")
         }

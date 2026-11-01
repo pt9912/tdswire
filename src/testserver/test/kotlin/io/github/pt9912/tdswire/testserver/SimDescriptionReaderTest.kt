@@ -108,7 +108,8 @@ class SimDescriptionReaderTest {
             "datetime" to SqlType.DateTime,
         )
         for ((neutral, sql) in expected) {
-            assertEquals(sql, one(mapOf("c" to neutral, "k" to "integer"), listOf("k")).column("c")?.type, neutral)
+            val table = one(mapOf("c" to neutral, "k" to "integer"), listOf("k"))
+            assertEquals(sql, table.columns.first { it.name == "c" }.type, neutral)
         }
         assertEquals(9, expected.size)
         assertEquals(
@@ -125,7 +126,7 @@ class SimDescriptionReaderTest {
                         ),
                     ),
                 ),
-            ).single().column("d")?.type,
+            ).single().columns.first { it.name == "d" }.type,
         )
     }
 
@@ -390,7 +391,8 @@ class SimDescriptionReaderTest {
         for (length in lengths) {
             val columns = b.m("k" to b.col("integer"), "c" to b.col("text", "max_length" to b.s(length)))
             val tree = tableDoc(columns, b.keys("k"))
-            assertEquals(SimColumn("c", SqlType.UnicodeText, nullable = true), load(tree).single().column("c"), length)
+            val column = load(tree).single().columns.first { it.name == "c" }
+            assertEquals(SimColumn("c", SqlType.UnicodeText, nullable = true), column, length)
         }
         for (bad in listOf("0", "2147483648", "99999999999")) {
             val node = b.s(bad)

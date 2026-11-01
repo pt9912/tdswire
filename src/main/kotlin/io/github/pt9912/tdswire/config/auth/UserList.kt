@@ -1,7 +1,7 @@
 package io.github.pt9912.tdswire.config.auth
 
 /** Die Art eines Fehlers in der Benutzerliste; je Abweichung genau eine (`ADR-0011`). */
-enum class UserListErrorKind {
+public enum class UserListErrorKind {
     EMPTY_LIST,
     EMPTY_LINE,
     CARRIAGE_RETURN,
@@ -25,15 +25,15 @@ enum class UserListErrorKind {
  * Ein Fehler der Benutzerliste: Art und Zeilennummer der Datei (1-basiert), `null` bei einer Liste
  * ohne Zeile. Er trägt weder Prüfwert noch Benutzername noch Passwort (`TDS-QA-03`).
  */
-data class UserListError(val kind: UserListErrorKind, val line: Int?)
+public data class UserListError(val kind: UserListErrorKind, val line: Int?)
 
 /** Ergebnis der Validierung: eine gültige Liste oder der erste Fehler in Dateireihenfolge. */
-sealed interface UserListResult {
-    class Valid(val list: UserList) : UserListResult {
+public sealed interface UserListResult {
+    public class Valid(public val list: UserList) : UserListResult {
         override fun toString(): String = "Valid(verborgen)"
     }
 
-    data class Invalid(val error: UserListError) : UserListResult
+    public data class Invalid(val error: UserListError) : UserListResult
 }
 
 /** Ein Eintrag der Liste; die Textdarstellung nennt Benutzername und Prüfwert nicht. */
@@ -72,7 +72,10 @@ internal class UserEntry(val name: String, val secret: StoredSecret) {
  * Attrappe (420000 Iterationen) rund 102 ms, ein bekannter Benutzername mit 210000 Iterationen rund 48 ms und ein
  * `plain`-Eintrag rund 0,05 ms: Dort trennt die Zeit bekannte von unbekannten Benutzernamen (Grenze, nicht Zusage).
  */
-class UserList private constructor(private val byName: Map<String, UserEntry>, private val decoyEntry: UserEntry) {
+public class UserList private constructor(
+    private val byName: Map<String, UserEntry>,
+    private val decoyEntry: UserEntry,
+) {
     internal fun find(name: String): UserEntry? = byName[name]
 
     /** Eintrag für den Scheinvergleich bei unbekanntem Benutzernamen (Festlegung ohne Messung). */
@@ -80,12 +83,13 @@ class UserList private constructor(private val byName: Map<String, UserEntry>, p
 
     override fun toString(): String = "UserList(verborgen)"
 
-    companion object {
+    public companion object {
         /** Prüft den Dateiinhalt [text]; [plainTestMode] erlaubt das Verfahren `plain`. */
-        fun parse(text: String, plainTestMode: Boolean): UserListResult = UserListParser(plainTestMode).parse(text)
+        public fun parse(text: String, plainTestMode: Boolean): UserListResult =
+            UserListParser(plainTestMode).parse(text)
 
         /** Der Testmodus gilt nur bei genau `true` (`ADR-0011`, `AUTH_PLAIN_TESTMODE`). */
-        fun plainTestModeFrom(environmentValue: String?): Boolean = environmentValue == "true"
+        public fun plainTestModeFrom(environmentValue: String?): Boolean = environmentValue == "true"
 
         internal fun of(entries: List<UserEntry>): UserList =
             UserList(entries.associateBy { it.name }, decoyOf(entries))

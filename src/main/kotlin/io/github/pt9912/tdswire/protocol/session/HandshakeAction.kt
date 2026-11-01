@@ -5,7 +5,7 @@ import io.github.pt9912.tdswire.config.auth.RejectReason
 import io.github.pt9912.tdswire.transport.framing.TdsMessage
 
 /** Warum der Automat die Verbindung beendet. */
-enum class CloseReason {
+internal enum class CloseReason {
     PEER_CLOSED,
     READ_FAILED,
     WRITE_FAILED,
@@ -17,13 +17,16 @@ enum class CloseReason {
 
     /** Der Ausgang einer Anfrage schließt die Verbindung (`ErrorMapper.fateOf`), mit oder ohne Antwort. */
     REQUEST_ENDED,
+
+    /** Das Backend hat den Cancel nicht innerhalb von `CANCEL_TIMEOUT` beendet (`SPEC-033`). */
+    CANCEL_TIMEOUT,
 }
 
 /**
  * Warum ein Login abgelehnt wird; der Grund steht nur im Server-Log (`SPEC-012`) und nennt weder
  * Kennung noch Passwort. Die Antwort an den Client ist für jeden Grund dieselbe.
  */
-enum class LoginRejection {
+internal enum class LoginRejection {
     UNKNOWN_USER,
     WRONG_PASSWORD,
     INPUT_TOO_LONG,
@@ -43,7 +46,7 @@ enum class LoginRejection {
 }
 
 /** Der minimale Log-Anschluss des Handshakes; Einträge tragen weder Kennung noch Passwort. */
-sealed interface LogEntry {
+internal sealed interface LogEntry {
     data class LoginRejected(val rejection: LoginRejection) : LogEntry
 
     /** Die Ausnahme eines Adapters; nur ihr Typ, weil ihr Text Konfigurationswerte tragen kann (`SPEC-048`). */
@@ -54,7 +57,7 @@ sealed interface LogEntry {
 }
 
 /** Anschluss, an den der Handshake [LogEntry] meldet. */
-fun interface HandshakeLog {
+internal fun interface HandshakeLog {
     fun record(entry: LogEntry)
 
     companion object {
@@ -63,7 +66,7 @@ fun interface HandshakeLog {
 }
 
 /** Was der Sitzungsrahmen auf einen Übergang hin ausführt; der Automat selbst schreibt und ruft nichts. */
-sealed interface HandshakeAction {
+internal sealed interface HandshakeAction {
     data class Send(val message: TdsMessage) : HandshakeAction
 
     /** Der TLS-Handschlag beginnt; danach folgt [HandshakeEvent.TlsEstablished] oder [HandshakeEvent.ReadFailed]. */
@@ -81,4 +84,20 @@ sealed interface HandshakeAction {
     data object Forward : HandshakeAction
 
     data class Close(val reason: CloseReason) : HandshakeAction
+
+    /**
+     * Der Übergang nach `CANCELLING` hat [cause] gewonnen: genau dieser Auslöser bricht die Anfrage ab. Der
+     * Sitzungsrahmen führt die Aktion nicht aus, sondern gibt sie dem Aufrufer von `dispatch` zurück; ein
+     * Auslöser, der verliert, bekommt sie nicht.
+     */
+    data class Cancel(val cause: CancelCause) : HandshakeAction
+}
+
+/** Wer den Abbruch einer laufenden Anfrage ausgelöst hat (`ADR-0027` Entscheidung 2). */
+internal enum class CancelCause {
+    /** ATTENTION des Clients; die Antwort ist `DONE[ATTN]` ohne ERROR. */
+    ATTENTION,
+
+    /** Ablauf der Frist der Anfrage; die Antwort ist ERROR `TDS_TIMEOUT` und DONE mit Fehlerstatus. */
+    DEADLINE,
 }

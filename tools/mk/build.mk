@@ -1,12 +1,9 @@
 # tools/mk/build.mk — Build und statische Analyse in Docker (Dockerfile, TDS-QA-06).
 # Repo-eigen, eingebunden von repo.mk. Jedes Target hat seine Zeile in harness/README.md.
-IMAGE ?= tdswire
-TAG   ?= latest
-
 .PHONY: build detekt test deps-lock
 
-build: ## Jar bauen (Dockerfile-Stage `build`, ohne Tests)
-	docker build $(BUILDER_FLAGS) $(BUILDER_LOAD) -t $(IMAGE):$(TAG) .
+build: ## Bibliotheks-Jar ohne Main-Class bauen; Lizenz und Manifest werden im Bau geprueft (Dockerfile-Stage `build-jar`, ohne Tests)
+	docker build $(BUILDER_FLAGS) --target build-jar --progress=plain .
 
 detekt: ## Suppression-Verbot und statische Analyse samt Importregeln der Schichten (Dockerfile-Stage `detekt`)
 	docker build $(BUILDER_FLAGS) --target detekt --progress=plain .
@@ -24,4 +21,4 @@ deps-lock: ## Nach einer Versionsaenderung in gradle/libs.versions.toml: gradle.
 
 GATE_CHECKS += detekt build
 GATE_KLASSE_tests += detekt build
-GATE_STAGE += detekt=detekt build=build
+GATE_STAGE += detekt=detekt build=build-jar

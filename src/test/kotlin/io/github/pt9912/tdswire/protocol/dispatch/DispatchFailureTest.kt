@@ -45,7 +45,7 @@ class DispatchFailureTest {
     private val unsupportedSql = ServerMessage(50001, 1, 16, "Unsupported SQL.")
     private val unsupportedType = ServerMessage(50003, 1, 20, "Unsupported type.")
     private val internal = ServerMessage(50007, 1, 20, "Internal error.")
-    private val timeout = ServerMessage(50005, 1, 20, "Timeout.")
+    private val timeout = ServerMessage(50005, 1, 16, "Timeout.")
     private val protocolError = ServerMessage(50006, 1, 20, "Protocol error.")
 
     /**
@@ -79,7 +79,8 @@ class DispatchFailureTest {
      * 20) und DONE mit Fehlerstatus geht hinaus, der Dispatch liest die bereits eingereihte nächste
      * Nachricht nicht mehr, die Sitzung ist `CLOSED`, der Kanal geschlossen, und das Backend ist
      * geschlossen. Die Fälle: Typfehler (`ReturnStatus`, `OutputParameter`), Reihenfolgeverstoß, fremder und
-     * nur dem Server vorbehaltener Code, `TDS_TIMEOUT` (Class 20 ohne Gruppe).
+     * nur dem Server vorbehaltener Code. Die nächste Nachricht ist dann schon gelesen (die Schleife liest während
+     * einer Anfrage mit, um ATTENTION zu erkennen), wird aber nicht beantwortet.
      *
      * @spec SPEC-031
      * @spec SPEC-048
@@ -94,7 +95,6 @@ class DispatchFailureTest {
             "Zeile ohne Ergebnis" to (listOf<QueryEvent>(QueryEvent.Row(listOf(1))) to internal),
             "fremder Code" to (listOf<QueryEvent>(QueryEvent.Failure("NOPE", "x")) to internal),
             "Code des Servers" to (listOf<QueryEvent>(QueryEvent.Failure("TDS_LOGIN_FAILED", "x")) to internal),
-            "TDS_TIMEOUT" to (listOf<QueryEvent>(QueryEvent.Failure("TDS_TIMEOUT", "x")) to timeout),
         )
         cases.forEach { (name, case) ->
             val backend = ScriptedBackend.ofList(*case.first.toTypedArray())
@@ -104,12 +104,31 @@ class DispatchFailureTest {
             assertEquals(case.second, session.tokens(0).errorMessage(), name)
             assertTrue(session.hex(0).endsWith(BatchVectors.DONE_ERROR), name)
             assertTrue(session.channel.closed, name)
-            assertFalse(session.channel.exhausted, "$name: die naechste Nachricht wurde gelesen")
+            assertEquals(1, session.replies.size, "$name: mehr als die eine Antwort wurde gesendet")
             assertEquals(1, backend.requests.size, name)
             assertEquals(1, backend.closeCalls, name)
             assertEquals(ConnectionState.CLOSED, session.ready.live.context.state, name)
-            assertEquals(1, session.channel.receiveCalls - 2, "$name: Leseaufrufe")
+            assertEquals(2, session.channel.receiveCalls - 2, "$name: Leseaufrufe")
         }
+    }
+
+    /**
+     * `TDS_TIMEOUT` ist ein Anfragefehler (Class 16, `ADR-0027` Entscheidung 2): meldet das Backend ihn, antwortet der
+     * Dispatch mit ERROR 50005 und DONE mit Fehlerstatus, die Verbindung bleibt offen, und das Folgebatch derselben
+     * Sitzung wird beantwortet.
+     *
+     * @spec SPEC-016
+     */
+    @Test
+    fun `TDS_TIMEOUT des Backends ist ein Anfragefehler bei offener Verbindung`() = blocking {
+        val failure = listOf<QueryEvent>(QueryEvent.Failure("TDS_TIMEOUT", "kein Text fuer den Client"))
+        val backend = ScriptedBackend.inSequence(failure, oneRow)
+        val session = Session.login(BatchVectors.message("slow"), BatchVectors.message("next"), Inbound.EndOfStream)
+        session.serve(backend)
+        assertEquals(2, session.replies.size)
+        assertEquals(timeout, session.tokens(0).errorMessage())
+        assertTrue(session.hex(0).endsWith(BatchVectors.DONE_ERROR), session.hex(0))
+        assertEquals(listOf("slow", "next"), backend.requests.map { it.sql })
     }
 
     /**
@@ -165,15 +184,15 @@ class DispatchFailureTest {
     }
 
     /**
-     * Transaction Manager und ATTENTION in `READY` beantwortet dieser Dispatch nicht: keine
+     * Transaction Manager in `READY` beantwortet dieser Dispatch nicht: keine
      * Antwort, das Backend wird nicht gerufen, die Verbindung schließt (auch nach einer
-     * erfolgreichen Anfrage; die nächste Nachricht wird nicht gelesen).
+     * erfolgreichen Anfrage; die übernächste Nachricht wird nicht gelesen).
      *
      * @spec SPEC-001
      */
     @Test
-    fun `Transaction Manager und ATTENTION bleiben unbeantwortet und schliessen`() = blocking {
-        listOf(PacketType.TRANSACTION_MANAGER, PacketType.ATTENTION).forEach { type ->
+    fun `Transaction Manager bleibt unbeantwortet und schliesst`() = blocking {
+        listOf(PacketType.TRANSACTION_MANAGER).forEach { type ->
             val backend = ScriptedBackend.ofList(*oneRow.toTypedArray())
             val session = Session.login(
                 BatchVectors.message("first"),
@@ -251,7 +270,8 @@ class DispatchFailureTest {
     @Test
     fun `Der Abbruch mitten in der Antwort schliesst Kanal und Backend`() = blocking {
         val backend = ScriptedBackend.generating(rows = 1_000_000)
-        val session = Session.login(BatchVectors.message("big"), BatchVectors.message("never"))
+        val never = BatchVectors.message("never")
+        val session = Session.login(BatchVectors.message("big"), never, never)
         val job = launch { session.serve(backend) }
         while (backend.rowsPulled < 3) yield()
         val atCancel = backend.rowsPulled

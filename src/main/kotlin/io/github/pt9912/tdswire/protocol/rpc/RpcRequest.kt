@@ -8,7 +8,7 @@ import io.github.pt9912.tdswire.protocol.token.Collation
  * Byte (Zeichen- und Binärtypen); `precision` und `scale` gelten für Dezimal-, `scale` auch für die
  * Zeittypen; nicht anwendbare Angaben sind 0, `collation` ist nur bei Zeichentypen gesetzt.
  */
-data class RpcType(
+internal data class RpcType(
     val kind: RpcTypeKind,
     val length: Int = 0,
     val precision: Int = 0,
@@ -17,7 +17,7 @@ data class RpcType(
 )
 
 /** Die Typen, die der RPC-Parser liest (Typliste in `SPEC-003`, ohne PLP); `code` ist die Typkennung der TYPE_INFO. */
-enum class RpcTypeKind(val code: Int) {
+internal enum class RpcTypeKind(val code: Int) {
     GUID(RpcTypeCode.GUID),
     INTN(RpcTypeCode.INTN),
     DATEN(RpcTypeCode.DATEN),
@@ -44,7 +44,7 @@ enum class RpcTypeKind(val code: Int) {
  * Datentypen-Erweiterung bzw. dem Backend-Vertrag, nicht diesem Parser). Die Textdarstellung
  * nennt nie den Inhalt: Parameter sind Nutzerdaten.
  */
-sealed interface RpcValue {
+internal sealed interface RpcValue {
     /** NULL-Sentinel des Typs. */
     data object NullValue : RpcValue
 
@@ -75,7 +75,7 @@ sealed interface RpcValue {
  * ist nur Bit 0 (OUTPUT, `SPEC-030`). Die Textdarstellung nennt den Namen nur als Länge: er ist vom
  * Client frei wählbar (bis 65534 Zeichen, auch Zeilenumbrüche).
  */
-class RpcParameter(val name: String, val status: Int, val type: RpcType, val value: RpcValue) {
+internal class RpcParameter(val name: String, val status: Int, val type: RpcType, val value: RpcValue) {
     /** Bit 0: OUTPUT bzw. InputOutput. */
     val output: Boolean get() = status and STATUS_OUTPUT != 0
 
@@ -95,7 +95,7 @@ class RpcParameter(val name: String, val status: Int, val type: RpcType, val val
  * `sp_executesql` und `sp_prepexec` stehen getrennt von den Wertparametern in `parameters`.
  * Textdarstellungen nennen nur Längen: SQL-Text kann Literale tragen.
  */
-sealed interface RpcCall {
+internal sealed interface RpcCall {
     /** `sp_executesql` (ProcID 10): `statement`, `declarations`, danach die Wertparameter. */
     class ExecuteSql(val statement: String, val declarations: String, val parameters: List<RpcParameter>) : RpcCall {
         override fun toString(): String =
@@ -142,7 +142,7 @@ sealed interface RpcCall {
  * Kennungen der ALL_HEADERS-Header, `optionFlags` die Optionsflags unverändert; der Parser deutet
  * keines ihrer Bits (die Bitnamen aus MS-TDS sind weder gemessen noch in ADR-0005 belegt).
  */
-class RpcRequest(val headerTypes: List<Int>, val optionFlags: Int, val call: RpcCall) {
+internal class RpcRequest(val headerTypes: List<Int>, val optionFlags: Int, val call: RpcCall) {
     override fun toString(): String = "RpcRequest(headerTypes=$headerTypes, optionFlags=0x" +
         "${Integer.toHexString(optionFlags)}, call=$call)"
 }

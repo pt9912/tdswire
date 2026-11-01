@@ -10,7 +10,7 @@ import java.nio.ByteBuffer
  * Vorgängen ausgeführt, nicht während eines Lesens oder Schreibens (Festlegung des Aufrufers, nicht
  * erzwungen).
  */
-class SwitchableChannel(initial: SuspendingChannel) : SuspendingChannel {
+internal class SwitchableChannel(initial: SuspendingChannel) : SuspendingChannel {
     @Volatile
     private var current: SuspendingChannel = initial
 

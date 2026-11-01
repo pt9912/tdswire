@@ -5,6 +5,7 @@ import io.github.pt9912.tdswire.config.ConfigKeys
 import io.github.pt9912.tdswire.config.EncryptionSetting
 import io.github.pt9912.tdswire.config.ListenSettings
 import io.github.pt9912.tdswire.config.LoginSettings
+import io.github.pt9912.tdswire.config.RequestSettings
 import io.github.pt9912.tdswire.config.ServerConfig
 import io.github.pt9912.tdswire.config.TlsKeyMaterial
 import io.github.pt9912.tdswire.config.auth.PasswordChars
@@ -21,6 +22,7 @@ import kotlin.test.assertIs
  */
 internal fun configOf(environment: Map<String, String>): ServerConfig {
     val defaults = ListenSettings() to LoginSettings()
+    val requestDefaults = RequestSettings()
     val listen = ListenSettings(
         host = environment[ConfigKeys.LISTEN_HOST] ?: defaults.first.host,
         port = environment[ConfigKeys.LISTEN_PORT]?.toInt() ?: defaults.first.port,
@@ -43,7 +45,11 @@ internal fun configOf(environment: Map<String, String>): ServerConfig {
     } else {
         null
     }
-    return ServerConfig(listen, login, encryption, tls, AuthSettings(users, plain))
+    val requests = RequestSettings(
+        queryTimeoutSeconds = environment[ConfigKeys.QUERY_TIMEOUT]?.toInt() ?: requestDefaults.queryTimeoutSeconds,
+        cancelTimeoutSeconds = environment[ConfigKeys.CANCEL_TIMEOUT]?.toInt() ?: requestDefaults.cancelTimeoutSeconds,
+    )
+    return ServerConfig(listen, login, encryption, tls, AuthSettings(users, plain), requests)
 }
 
 /** Die Umgebung eines gültigen Testmodus-Starts: unverschlüsselt, Benutzerliste mit einem `plain`-Eintrag. */

@@ -1,6 +1,6 @@
 # ADR-0029: Log und Telemetrie als Parameter des Einstiegs: Ablösung der Sätze zum Log in ADR-0021 und ADR-0025
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-11-01
 
@@ -69,6 +69,7 @@ Eine Änderung von [ADR-0020](0020-logformat-und-observability-schnittstelle.md)
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-11-01 | Proposed – Formalisierung von Offen (b) aus [ADR-0020](0020-logformat-und-observability-schnittstelle.md) nach Befund M-1 des Reviews der Annahme; Status bleibt Proposed bis zur Annahme durch den Nutzer | [ADR-0020](0020-logformat-und-observability-schnittstelle.md), [ADR-0021](0021-oeffentlicher-integrations-einstieg.md), [ADR-0025](0025-produktschnitt-bibliothek-und-testserver.md) |
+| 2026-11-01 | Accepted – Annahme durch den Nutzer; beantwortet Offen (b) aus [ADR-0020](0020-logformat-und-observability-schnittstelle.md) | [ADR-0020](0020-logformat-und-observability-schnittstelle.md), [ADR-0021](0021-oeffentlicher-integrations-einstieg.md), [ADR-0025](0025-produktschnitt-bibliothek-und-testserver.md) |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit

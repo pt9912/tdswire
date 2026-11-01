@@ -1,7 +1,7 @@
 package io.github.pt9912.tdswire.protocol.token
 
 /** Ein Token der Antwortseite (MS-TDS 2.2.7); [TokenEncoder] schreibt es in den Tokenstrom. */
-sealed interface Token
+internal sealed interface Token
 
 /**
  * LOGINACK (`0xAD`): Schnittstelle (1 = SQL_TSQL), TDS-Version (`0x74000004` für 7.4), Programmname
@@ -10,10 +10,11 @@ sealed interface Token
  * Abschnitt „Weitere Befunde der Messung“). Festlegung ohne Orakel: Die Programmversion steht
  * ebenfalls Big-Endian im Token; dafür liegt weder Messung noch unabhängiger Vektor vor.
  */
-data class LoginAck(val interfaceType: Int, val tdsVersion: Int, val progName: String, val progVersion: Int) : Token
+internal data class LoginAck(val interfaceType: Int, val tdsVersion: Int, val progName: String, val progVersion: Int) :
+    Token
 
 /** ENVCHANGE (`0xE3`) mit der Art der Änderung. Festlegung: Der Katalog umfasst Typ 1, 4 und 7. */
-sealed interface EnvChange : Token {
+internal sealed interface EnvChange : Token {
     /** Typ 1: Datenbank. */
     data class Database(val newValue: String, val oldValue: String) : EnvChange
 
@@ -25,7 +26,7 @@ sealed interface EnvChange : Token {
 }
 
 /** Nummer, Zustand, Schweregrad, Text und Herkunft einer INFO- oder ERROR-Meldung. */
-data class ServerMessage(
+internal data class ServerMessage(
     val number: Int,
     val state: Int,
     val severity: Int,
@@ -36,13 +37,13 @@ data class ServerMessage(
 )
 
 /** INFO (`0xAB`). */
-data class InfoToken(val message: ServerMessage) : Token
+internal data class InfoToken(val message: ServerMessage) : Token
 
 /** ERROR (`0xAA`). */
-data class ErrorToken(val message: ServerMessage) : Token
+internal data class ErrorToken(val message: ServerMessage) : Token
 
 /** Statusbits von DONE, DONEPROC und DONEINPROC (MS-TDS 2.2.7.6). */
-object DoneStatus {
+internal object DoneStatus {
     const val FINAL = 0x0000
     const val MORE = 0x0001
     const val ERROR = 0x0002
@@ -54,7 +55,7 @@ object DoneStatus {
 }
 
 /** Die drei Formen des Abschlusstokens. */
-enum class DoneKind(val code: Int) {
+internal enum class DoneKind(val code: Int) {
     DONE(CODE_DONE),
     DONE_PROC(CODE_DONE_PROC),
     DONE_IN_PROC(CODE_DONE_IN_PROC),
@@ -69,19 +70,19 @@ private const val CODE_DONE_IN_PROC = 0xFF
  * Festlegung: Der Encoder schreibt die Zeilenzahl so, wie sie gegeben ist, auch ohne das Bit
  * `COUNT`; ob sie gilt, entscheidet der Aufrufer über das Bit.
  */
-data class DoneToken(val kind: DoneKind, val status: Int, val curCmd: Int, val rowCount: Long) : Token
+internal data class DoneToken(val kind: DoneKind, val status: Int, val curCmd: Int, val rowCount: Long) : Token
 
 /** COLMETADATA (`0x81`) mit den Spalten; eine leere Liste schreibt `0x0000` Spalten. */
-data class ColMetadataToken(val columns: List<ColumnDef>) : Token
+internal data class ColMetadataToken(val columns: List<ColumnDef>) : Token
 
 /** ROW (`0xD1`): ein Wert je Spalte des zuletzt geschriebenen COLMETADATA. */
-data class RowToken(val values: List<TdsValue>) : Token
+internal data class RowToken(val values: List<TdsValue>) : Token
 
 /** RETURNSTATUS (`0x79`): der Rückgabewert einer Prozedur. */
-data class ReturnStatusToken(val value: Int) : Token
+internal data class ReturnStatusToken(val value: Int) : Token
 
 /** RETURNVALUE (`0xAC`): Ausgabeparameter mit Ordinal, Name (so, wie der Aufrufer ihn nennt), Status, Typ und Wert. */
-data class ReturnValueToken(
+internal data class ReturnValueToken(
     val ordinal: Int,
     val name: String,
     val status: Int,

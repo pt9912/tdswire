@@ -5,7 +5,7 @@ import io.github.pt9912.tdswire.transport.framing.FramingError
 import io.github.pt9912.tdswire.transport.framing.TdsMessage
 
 /** Warum Lesen oder Schreiben einer Nachricht endet: Eingabe ungültig oder Kanal gestört. */
-sealed interface TransportError {
+internal sealed interface TransportError {
     /** Der Paket-Codec weist Eingabe oder Auftrag ab (Kategorie `TDS_PROTOCOL_ERROR`). */
     data class Framing(val error: FramingError) : TransportError
 
@@ -14,7 +14,7 @@ sealed interface TransportError {
 }
 
 /** Ausgang von [MessageReader.next]: eine Nachricht, das saubere Ende oder ein Fehler. */
-sealed interface ReadOutcome {
+internal sealed interface ReadOutcome {
     data class Message(val message: TdsMessage) : ReadOutcome
 
     /** Die Gegenstelle hat zwischen zwei Nachrichten geschlossen. */
@@ -24,7 +24,7 @@ sealed interface ReadOutcome {
 }
 
 /** Ausgang von [MessageWriter.write]. */
-sealed interface WriteOutcome {
+internal sealed interface WriteOutcome {
     data object Written : WriteOutcome
 
     data class Failed(val error: TransportError) : WriteOutcome

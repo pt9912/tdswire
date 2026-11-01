@@ -9,12 +9,12 @@ import io.github.pt9912.tdswire.testsupport.Login7Builder
 import io.github.pt9912.tdswire.testsupport.hex
 import io.github.pt9912.tdswire.transport.framing.PacketType
 import io.github.pt9912.tdswire.transport.framing.TdsMessage
-import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import java.util.concurrent.atomic.AtomicInteger
 
 /** Von Hand gebaute Eingaben (Tabellenlayout nach MS-TDS), unabhängig vom Codec. */
-object SessionVectors {
+internal object SessionVectors {
     const val ENCRYPT_OFF = 0x00
     const val ENCRYPT_ON = 0x01
     const val ENCRYPT_NOT_SUP = 0x02
@@ -39,7 +39,7 @@ object SessionVectors {
 }
 
 /** Ein Adapter, der Aufrufe zählt und die Eingabe während des Aufrufs festhält. */
-class RecordingAdapter(private val answer: (AuthRequest) -> AuthResult) : AuthAdapter {
+internal class RecordingAdapter(private val answer: (AuthRequest) -> AuthResult) : AuthAdapter {
     private val callCount = AtomicInteger()
     val calls: Int get() = callCount.get()
 
@@ -79,8 +79,12 @@ class RecordingAdapter(private val answer: (AuthRequest) -> AuthResult) : AuthAd
     }
 }
 
-/** Ein [HandshakeChannel] mit festem Drehbuch; ohne weitere Einträge schweigt die Gegenstelle. */
-class FakeHandshakeChannel(
+/**
+ * Ein [HandshakeChannel] mit festem Drehbuch; ohne weitere Einträge schweigt die Gegenstelle, bis ein Test mit
+ * [feed] eine Nachricht nachlegt. [failReplyAfterWrites] lässt das Schreiben einer Antwort nach so vielen
+ * angenommenen Stücken scheitern; [writtenChunks] hält die Stücke aller Antworten in der Reihenfolge.
+ */
+internal class FakeHandshakeChannel(
     inbound: List<Inbound>,
     private val tlsResult: Boolean = true,
     private val sendResult: Boolean = true,
@@ -97,6 +101,18 @@ class FakeHandshakeChannel(
         private set
 
     private val script = ArrayDeque(inbound)
+    private val later = Channel<Inbound>(Channel.UNLIMITED)
+
+    /** Die Stücke, die Antworten angenommen haben, in der Reihenfolge ihres Schreibens. */
+    val writtenChunks = mutableListOf<ByteArray>()
+
+    /** Nach so vielen angenommenen Stücken scheitert das Schreiben einer Antwort. */
+    var failReplyAfterWrites: Int = Int.MAX_VALUE
+
+    /** Legt der Gegenstelle eine Nachricht nach, die sie nach dem Drehbuch liefert. */
+    fun feed(inbound: Inbound) {
+        later.trySend(inbound)
+    }
     val sent = mutableListOf<TdsMessage>()
     val trace = mutableListOf<String>()
     var tlsCalls = 0
@@ -112,7 +128,7 @@ class FakeHandshakeChannel(
     override suspend fun receive(): Inbound {
         receiveCalls++
         onReceive()
-        return script.removeFirstOrNull() ?: awaitCancellation()
+        return script.removeFirstOrNull() ?: later.receive()
     }
 
     override suspend fun send(message: TdsMessage): Boolean {
@@ -140,15 +156,16 @@ class FakeHandshakeChannel(
         private var done = false
 
         override suspend fun write(bytes: ByteArray): Boolean {
-            if (done || !sendResult) return false
+            if (done || !sendResult || writtenChunks.size >= failReplyAfterWrites) return false
             collected.write(bytes)
+            writtenChunks += bytes
             onReplyWrite()
             return true
         }
 
         /** Eine beendete Antwort liegt wie eine gesendete Nachricht in [sent]; eine nicht beendete nirgends. */
         override suspend fun finish(): Boolean {
-            if (done || !sendResult) return false
+            if (done || !sendResult || writtenChunks.size >= failReplyAfterWrites) return false
             done = true
             sent += TdsMessage(type, collected.toByteArray())
             return true
@@ -176,7 +193,7 @@ class FakeHandshakeChannel(
 }
 
 /** Sammelt die Einträge des Logs. */
-class CollectingLog : HandshakeLog {
+internal class CollectingLog : HandshakeLog {
     val entries = mutableListOf<LogEntry>()
 
     override fun record(entry: LogEntry) {
@@ -184,7 +201,7 @@ class CollectingLog : HandshakeLog {
     }
 }
 
-fun HandshakeAction.label(): String = when (this) {
+internal fun HandshakeAction.label(): String = when (this) {
     is HandshakeAction.Send -> "Send"
     HandshakeAction.BeginTls -> "BeginTls"
     is HandshakeAction.Authenticate -> "Authenticate"
@@ -192,4 +209,5 @@ fun HandshakeAction.label(): String = when (this) {
     is HandshakeAction.Log -> "Log"
     HandshakeAction.Forward -> "Forward"
     is HandshakeAction.Close -> "Close:${reason.name}"
+    is HandshakeAction.Cancel -> "Cancel:${cause.name}"
 }

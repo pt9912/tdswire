@@ -10,7 +10,7 @@ import java.time.LocalTime
  * Vergleichsflags (Little-Endian als Zahl), `sortId` das fünfte Byte. `SQL_Latin1_General_CP1_CI_AS`
  * ist `info = 0x00D00409`, `sortId = 0x34`.
  */
-data class Collation(val info: Int, val sortId: Int) {
+internal data class Collation(val info: Int, val sortId: Int) {
     companion object {
         val LATIN1_GENERAL_CI_AS = Collation(info = 0x00D00409, sortId = 0x34)
     }
@@ -21,7 +21,7 @@ data class Collation(val info: Int, val sortId: Int) {
  * tragen die N-Form des Typs (`IntNType`, `BitNType`); die festen Typen (`Int4Type`, `Int8Type`,
  * `BitType`) tragen kein NULL. PLP-Typen (MAX) gehören nicht zum Katalog.
  */
-sealed interface TdsType {
+internal sealed interface TdsType {
     /** Ganzzahl fester Länge, 4 Byte (INT4, `0x38`). */
     data object Int4Type : TdsType
 
@@ -54,7 +54,7 @@ sealed interface TdsType {
 }
 
 /** Ein Wert einer Zeile oder eines Ausgabeparameters. */
-sealed interface TdsValue {
+internal sealed interface TdsValue {
     data object NullValue : TdsValue
 
     data class IntegerValue(val value: Long) : TdsValue
@@ -76,7 +76,7 @@ sealed interface TdsValue {
  * Eine Spalte von COLMETADATA. `nullable` setzt das Bit `fNullable` der Spaltenflags; `extraFlags`
  * sind weitere Bits (z. B. `0x0008`, `usUpdateable` = unbekannt) und werden unverändert übernommen.
  */
-data class ColumnDef(
+internal data class ColumnDef(
     val name: String,
     val type: TdsType,
     val nullable: Boolean = false,

@@ -21,7 +21,7 @@ import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
  * [SqlType.Decimal] wird DECIMALN, nicht NUMERICN; doppelte und leere Spaltennamen sind gültig. Eine
  * Precision über 38 ist im Modell darstellbar und wird hier mit `TDS_UNSUPPORTED_TYPE` abgewiesen.
  */
-object ColumnMapping {
+internal object ColumnMapping {
     const val MAX_COLUMNS = 0xFFFE
     const val MAX_NAME_CHARS = 255
     const val TEXT_CHARS = TypeInfoWriter.MAX_NVARCHAR_CHARS

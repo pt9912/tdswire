@@ -1,1 +1,1 @@
-**Stand:** offen — kein Träger-Slice; das Closure-Kriterium der Welle `welle-referenzabgleich-release` (Läufe gegen das Laufzeit-Image) berührt es; Entscheidung beim Nutzer.
+**Stand:** gestrichen — beide Stages (`runtime`, Distroless `build`) sind aus dem Dockerfile entfernt (slice-jar-ohne-main-und-image, Verifikation 7c1c3bd: `make -n build` baut `--target build-jar`); es gibt ein Artefakt, das Jar. Das Verzeichnis bleibt liegen.

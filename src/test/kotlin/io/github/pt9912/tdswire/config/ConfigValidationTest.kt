@@ -19,8 +19,11 @@ class ConfigValidationTest {
 
     private fun keyMaterial() = TlsKeyMaterial(byteArrayOf(1), PasswordChars(charArrayOf('x')))
 
-    private fun unencrypted(listen: ListenSettings = ListenSettings(), login: LoginSettings = LoginSettings()) =
-        ServerConfig(listen, login, EncryptionSetting.TEST_UNENCRYPTED, null, users())
+    private fun unencrypted(
+        listen: ListenSettings = ListenSettings(),
+        login: LoginSettings = LoginSettings(),
+        requests: RequestSettings = RequestSettings(),
+    ) = ServerConfig(listen, login, EncryptionSetting.TEST_UNENCRYPTED, null, users(), requests)
 
     /**
      * Eine Konfiguration mit den Voreinstellungen und unverschlüsseltem Testmodus ist gültig; die Voreinstellungen sind
@@ -29,6 +32,8 @@ class ConfigValidationTest {
      * @spec SPEC-005
      * @spec SPEC-008
      * @spec SPEC-046
+     * @spec SPEC-009
+     * @spec SPEC-033
      */
     @Test
     fun `Voreinstellungen sind gueltig und entsprechen der Spezifikation`() {
@@ -36,6 +41,7 @@ class ConfigValidationTest {
         assertEquals(emptyList(), ConfigValidation.check(config))
         assertEquals(ListenSettings("0.0.0.0", 1433), config.listen)
         assertEquals(LoginSettings(15, 65536), config.login)
+        assertEquals(RequestSettings(30, 5), config.requests)
         assertEquals(EncryptionSetting.REQUIRED, ServerConfig(auth = users()).encryption)
     }
 
@@ -46,6 +52,8 @@ class ConfigValidationTest {
      * @spec SPEC-005
      * @spec SPEC-008
      * @spec SPEC-046
+     * @spec SPEC-009
+     * @spec SPEC-033
      */
     @Test
     fun `Bereichsgrenzen gelten auch ohne Lader`() {
@@ -54,6 +62,10 @@ class ConfigValidationTest {
             Triple(ConfigKeys.LOGIN_TIMEOUT, 1, 3600) to { v: Int -> unencrypted(login = LoginSettings(v, 65536)) },
             Triple(ConfigKeys.MAX_PRELOGIN_MESSAGE_BYTES, 512, 65536) to
                 { v: Int -> unencrypted(login = LoginSettings(15, v)) },
+            Triple(ConfigKeys.QUERY_TIMEOUT, 1, 3600) to
+                { v: Int -> unencrypted(requests = RequestSettings(queryTimeoutSeconds = v)) },
+            Triple(ConfigKeys.CANCEL_TIMEOUT, 1, 3600) to
+                { v: Int -> unencrypted(requests = RequestSettings(cancelTimeoutSeconds = v)) },
         )
         for ((bounds, build) in cases) {
             val (key, low, high) = bounds

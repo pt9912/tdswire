@@ -70,11 +70,12 @@ class DispatchClosingTest {
     fun `Eine Senke, die ein Token ablehnt, schliesst ohne Antwort`() = blocking {
         listOf(1, 2).forEach { rejectAt ->
             val backend = ScriptedBackend.ofList(resultStart(), QueryEvent.Row(listOf(7)), QueryEvent.ResultEnd(1))
-            val session = Session.login(BatchVectors.message("q"), BatchVectors.message("never read"))
+            val never = BatchVectors.message("never read")
+            val session = Session.login(BatchVectors.message("q"), never, never)
             session.serve(backend, sinkAround = { RejectingSink(it, rejectAt) })
             assertEquals(0, session.replies.size, "Token $rejectAt: Antwort gesendet")
             assertTrue(session.channel.closed, "Token $rejectAt")
-            assertFalse(session.channel.exhausted, "Token $rejectAt: die naechste Nachricht wurde gelesen")
+            assertFalse(session.channel.exhausted, "Token $rejectAt: die uebernaechste Nachricht wurde gelesen")
             assertEquals(1, backend.closeCalls, "Token $rejectAt")
             assertEquals(ConnectionState.CLOSED, session.ready.live.context.state, "Token $rejectAt")
         }
@@ -92,14 +93,15 @@ class DispatchClosingTest {
     fun `Eine Ausnahme aus execute oder aus dem Strom schliesst nach der Fehlerantwort`() = blocking {
         listOf(true, false).forEach { inExecute ->
             val backend = FailingBackend(failInExecute = inExecute)
-            val session = Session.login(BatchVectors.message("q"), BatchVectors.message("never read"))
+            val never = BatchVectors.message("never read")
+            val session = Session.login(BatchVectors.message("q"), never, never)
             session.serve(backend)
             val name = if (inExecute) "execute" else "Strom"
             assertEquals(1, session.replies.size, name)
             assertEquals(internal, session.tokens(0).errorMessage(), name)
             assertEquals(DoneStatus.ERROR, session.tokens(0).lastDone().status, name)
             assertTrue(session.channel.closed, name)
-            assertFalse(session.channel.exhausted, "$name: die naechste Nachricht wurde gelesen")
+            assertFalse(session.channel.exhausted, "$name: die uebernaechste Nachricht wurde gelesen")
             assertEquals(ConnectionState.CLOSED, session.ready.live.context.state, name)
             assertEquals(if (inExecute) 0 else 1, backend.closeCalls, name)
         }

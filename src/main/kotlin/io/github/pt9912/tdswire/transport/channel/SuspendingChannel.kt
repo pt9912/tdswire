@@ -13,7 +13,7 @@ import java.nio.ByteBuffer
  *
  * Ein Abbruch der aufrufenden Coroutine beendet die Operation und schließt den Kanal.
  */
-interface SuspendingChannel {
+internal interface SuspendingChannel {
     /**
      * Die Adresse der Gegenstelle ohne Port und Zonenkennung des Netzes, `null`, wenn der Kanal keine kennt
      * (Speicher-Kanäle, Kanäle ohne Socket). Sie ist der Schlüssel der Drosselung wiederholter Anmeldeversuche

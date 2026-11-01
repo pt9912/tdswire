@@ -27,7 +27,7 @@ import java.io.ByteArrayOutputStream
 import kotlin.test.assertIs
 
 /** Von Hand gebaute Eingaben und erwartete Antworten (Tabellenlayout nach MS-TDS), unabhängig vom Codec. */
-object BatchVectors {
+internal object BatchVectors {
     /**
      * ALL_HEADERS nach MS-TDS: Gesamtlänge 22, ein Header von 18 Byte vom Typ 2 (Transaction
      * Descriptor) mit 8 Byte Descriptor und 4 Byte Request Count.
@@ -55,19 +55,25 @@ object BatchVectors {
     /** DONE mit Fehlerstatus (`0x0002`), curCmd 0, Zeilenzahl 0. */
     const val DONE_ERROR = "FD 02 00 00 00 00 00 00 00 00 00 00 00"
 
+    /** DONE mit dem Statusbit ATTENTION (`0x0020`), curCmd 0, Zeilenzahl 0: die Bestätigung eines Cancel. */
+    const val DONE_ATTN = "FD 20 00 00 00 00 00 00 00 00 00 00 00"
+
+    /** Ein ATTENTION-Paket: leere Nutzlast. */
+    fun attention(): Inbound = raw(PacketType.ATTENTION, ByteArray(0))
+
     /** ROW mit einem Int4-Wert, little endian. */
     fun row(value: Int): String = "D1 " + ByteArray(4) { (value shr (8 * it)).toByte() }.toHex()
 }
 
-val INT_COLUMN = ResultColumn("n", SqlType.Int32, nullable = false)
+internal val INT_COLUMN = ResultColumn("n", SqlType.Int32, nullable = false)
 
-fun resultStart() = QueryEvent.ResultStart(listOf(INT_COLUMN))
+internal fun resultStart() = QueryEvent.ResultStart(listOf(INT_COLUMN))
 
 /** Der Rahmen der Login-Antworten: zwei Nachrichten (PRELOGIN, LOGIN7) stehen vor jeder Antwort einer Anfrage. */
-const val LOGIN_REPLIES = 2
+internal const val LOGIN_REPLIES = 2
 
 /** Eine angemeldete Sitzung `s1` über einem [FakeHandshakeChannel]; sein Drehbuch geht nach dem Login weiter. */
-class Session(val channel: FakeHandshakeChannel, val ready: HandshakeOutcome.Ready) {
+internal class Session(val channel: FakeHandshakeChannel, val ready: HandshakeOutcome.Ready) {
     /** Die Antworten auf Anfragen, ohne die beiden Login-Antworten. */
     val replies: List<TdsMessage> get() = channel.sent.drop(LOGIN_REPLIES)
 
@@ -80,15 +86,17 @@ class Session(val channel: FakeHandshakeChannel, val ready: HandshakeOutcome.Rea
         backend: QueryBackend,
         errors: ErrorMapper = ErrorMapper(),
         sinkAround: (TokenSink) -> TokenSink = { it },
+        times: RequestTimes = fixedTimes(),
         requestIds: () -> String = Counter()::next,
-    ) = RequestLoop(ready, channel, backend, errors, requestIds, sinkAround)
+    ) = RequestLoop(ready, channel, backend, errors, times, RequestHooks(requestIds, sinkAround))
 
     suspend fun serve(
         backend: QueryBackend,
         errors: ErrorMapper = ErrorMapper(),
         sinkAround: (TokenSink) -> TokenSink = { it },
+        times: RequestTimes = fixedTimes(),
         requestIds: () -> String = Counter()::next,
-    ) = loop(backend, errors, sinkAround, requestIds).run()
+    ) = loop(backend, errors, sinkAround, times, requestIds).run()
 
     companion object {
         suspend fun login(vararg later: Inbound): Session {
@@ -103,21 +111,30 @@ class Session(val channel: FakeHandshakeChannel, val ready: HandshakeOutcome.Rea
     }
 }
 
+/** Die Wanduhr der Dispatch-Tests: fest, damit die Frist einer Anfrage (Beginn plus `QUERY_TIMEOUT`) genau ist. */
+internal const val FIXED_NOW = 1_700_000_000_000L
+
+/** Die Fristen der Dispatch-Tests: Voreinstellungen von `SPEC-009` und `SPEC-033`, feste Uhr. */
+internal fun fixedTimes() = RequestTimes(now = { FIXED_NOW })
+
+/** Die Frist einer Anfrage mit der Voreinstellung `QUERY_TIMEOUT`. */
+internal val DEFAULT_DEADLINE = FIXED_NOW + RequestTimes.DEFAULT_QUERY_TIMEOUT.inWholeMilliseconds
+
 /** Zählt Anfrage-Kennungen: `r1`, `r2`, ... */
-class Counter {
+internal class Counter {
     private var count = 0
 
     fun next(): String = "r${++count}"
 }
 
 /** Die Meldung des ERROR-Tokens einer Antwort. */
-fun List<Token>.errorMessage(): ServerMessage = filterIsInstance<ErrorToken>().single().message
+internal fun List<Token>.errorMessage(): ServerMessage = filterIsInstance<ErrorToken>().single().message
 
 /** Das letzte Token einer Antwort. */
-fun List<Token>.lastDone(): DoneToken = assertIs<DoneToken>(last())
+internal fun List<Token>.lastDone(): DoneToken = assertIs<DoneToken>(last())
 
 /** Eine Antwort im Speicher: sammelt die Bytes, die ihr zugeschrieben werden. */
-class CollectingReply : ReplyStream {
+internal class CollectingReply : ReplyStream {
     private val collected = ByteArrayOutputStream()
     val bytes: ByteArray get() = collected.toByteArray()
 

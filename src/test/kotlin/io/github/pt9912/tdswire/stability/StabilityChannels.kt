@@ -7,14 +7,15 @@ import io.github.pt9912.tdswire.transport.channel.SuspendingChannel
 import java.nio.ByteBuffer
 
 /** Wie ein [ScriptedChannel] endet, wenn seine Bytes verbraucht sind. */
-enum class ScriptEnd { CLEAN_EOF, IO_FAILURE }
+internal enum class ScriptEnd { CLEAN_EOF, IO_FAILURE }
 
 /**
  * Eine Gegenstelle mit festem Drehbuch: liefert [chunks] der Reihe nach (ein Lesevorgang nimmt höchstens
  * den Rest des aktuellen Stücks), danach das Ende nach [end]. Schreiben wird angenommen und gezählt.
  * Die Stücke sind die Zerstückelung des Stroms; leere Stücke entfallen.
  */
-class ScriptedChannel(chunks: List<ByteArray>, private val end: ScriptEnd = ScriptEnd.CLEAN_EOF) : SuspendingChannel {
+internal class ScriptedChannel(chunks: List<ByteArray>, private val end: ScriptEnd = ScriptEnd.CLEAN_EOF) :
+    SuspendingChannel {
     private val pending = ArrayDeque(chunks.filter { it.isNotEmpty() })
     private var offset = 0
 

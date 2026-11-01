@@ -5,7 +5,7 @@ package io.github.pt9912.tdswire.protocol.login7
  * Verschleiern vertauscht die Nibbles und bildet XOR mit `0xA5`; Entschleiern bildet erst XOR und
  * vertauscht dann. Das ist reversibel und kein Schutz (`ADR-0009`).
  */
-object PasswordObfuscation {
+internal object PasswordObfuscation {
     private const val MASK = 0xA5
     private const val NIBBLE_BITS = 4
     private const val BYTE_MASK = 0xFF

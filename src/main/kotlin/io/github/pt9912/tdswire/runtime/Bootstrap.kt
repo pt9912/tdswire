@@ -147,7 +147,7 @@ internal object Bootstrap {
         login = config.login,
         tls = material,
         log = wiring.log,
-    )
+    ).also { it.requests = config.requests }
 
     private fun events(wiring: Wiring): ListenerEvents = ListenerEvents { event ->
         wiring.events.onEvent(event)

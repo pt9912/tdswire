@@ -14,7 +14,7 @@ import kotlin.coroutines.cancellation.CancellationException
  * von TDS 7.4 (Header eingerechnet; Festlegung ohne Messung: 4096), [readBufferSize] die Größe des
  * Lesepuffers auf dem Strom, [taskDispatcher] führt die ausgelagerten Tasks der Engine aus.
  */
-data class TlsOptions(
+internal data class TlsOptions(
     val packetSize: Int = DEFAULT_PACKET_SIZE,
     val readBufferSize: Int = DEFAULT_READ_BUFFER,
     val taskDispatcher: CoroutineDispatcher = Dispatchers.Default,
@@ -46,7 +46,7 @@ data class TlsOptions(
  * KeyUpdate in TLS 1.3. Eine Neuverhandlung in TLS 1.2 durch die Gegenstelle beantwortet die Schleife
  * (`TlsRenegotiationTest`, JDK-Gegenstelle, dreimal; keine Begrenzung).
  */
-class TlsChannel internal constructor(private val inner: SuspendingChannel, private val io: TlsRecordIo) :
+internal class TlsChannel internal constructor(private val inner: SuspendingChannel, private val io: TlsRecordIo) :
     SuspendingChannel {
     private val writer = TlsWriter(io)
     private val reader = TlsReader(io, writer)

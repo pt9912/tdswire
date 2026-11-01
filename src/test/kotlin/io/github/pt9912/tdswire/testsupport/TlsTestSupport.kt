@@ -22,7 +22,7 @@ import javax.net.ssl.TrustManagerFactory
  * Die PKCS#12-Speicher der TLS-Tests. Die Dockerfile-Stage `testkeys` erzeugt sie per `keytool`
  * unter dem Verzeichnis der Systemeigenschaft `tdswire.testkeys`; im Repo liegt kein Schlüssel.
  */
-object TestKeys {
+internal object TestKeys {
     const val VALID = "gueltig.p12"
     const val OTHER_NAME = "falscher-name.p12"
     const val EXPIRED = "abgelaufen.p12"
@@ -55,13 +55,13 @@ object TestKeys {
 }
 
 /** Ein Fehler des Drahtes in der Gegenstelle des Tests (Ende des Stroms, Kanalfehler, falscher Pakettyp). */
-class PeerWireException(message: String) : IOException(message)
+internal class PeerWireException(message: String) : IOException(message)
 
 /**
  * Hüllt [inner] ein und begrenzt jeden Lese- und Schreibvorgang auf die nächste Länge aus
  * [readSizes] bzw. [writeSizes]; eine fehlende Folge lässt die Richtung unverändert.
  */
-class FragmentingChannel(
+internal class FragmentingChannel(
     private val inner: SuspendingChannel,
     private val readSizes: Iterator<Int>? = null,
     private val writeSizes: Iterator<Int>? = null,
@@ -92,7 +92,7 @@ class FragmentingChannel(
 }
 
 /** Reicht jeden Aufruf an [inner] weiter und hält fest, was gelesen und geschrieben wurde. */
-class RecordingChannel(private val inner: SuspendingChannel) : SuspendingChannel {
+internal class RecordingChannel(private val inner: SuspendingChannel) : SuspendingChannel {
     private val writtenBytes = ByteArrayOutputStream()
     val readChunks = mutableListOf<ByteArray>()
 
@@ -134,7 +134,7 @@ class RecordingChannel(private val inner: SuspendingChannel) : SuspendingChannel
  * zusammen mit den ersten verschlüsselten Nutzdaten in einem Schreibvorgang; [denseWriteBytes] nennt
  * dessen Größe.
  */
-class JdkTlsPeer(
+internal class JdkTlsPeer(
     private val wire: SuspendingChannel,
     private val engine: SSLEngine,
     private val encapsulated: Boolean,
@@ -429,6 +429,6 @@ class JdkTlsPeer(
  * eine Suite (`TLS_RSA_WITH_AES_128_CBC_SHA`), keine Erweiterungen. Der Server mit TLS 1.2 als
  * Mindestversion muss es ablehnen.
  */
-fun tls11ClientHello(): ByteArray = hex(
+internal fun tls11ClientHello(): ByteArray = hex(
     "16 03 01 00 2D  01 00 00 29  03 02  " + "00 ".repeat(32) + " 00  00 02 00 2F  01 00",
 )

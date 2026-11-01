@@ -36,7 +36,7 @@ import kotlin.test.assertTrue
  * und JDK-Sockets als Gegenstelle. Es gibt weder Serverprozess noch SQL_BATCH-Pfad; die Aussagen
  * gelten für Listener, Rahmen und Anmeldung.
  */
-class ConnectionStormTest : ListenerTestBase() {
+internal class ConnectionStormTest : ListenerTestBase() {
     private val pool = Executors.newFixedThreadPool(CLIENT_THREADS)
     private val clients = pool.asCoroutineDispatcher()
     private val uncaught = ConcurrentLinkedQueue<String>()

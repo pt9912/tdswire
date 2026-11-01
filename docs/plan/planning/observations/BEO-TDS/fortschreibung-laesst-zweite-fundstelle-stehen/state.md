@@ -1,1 +1,1 @@
-**Stand:** offen — 5×; über der Schwelle, nicht verkörpert, Entscheidung beim Nutzer (slice-antwort-mehrteilig-output, slice-qa-sicherheit, slice-qa-anmeldedrosselung, slice-spec-nachzug-produktschnitt, slice-testserver-herausloesen); Lese-Schritt bei der Welle-Closure.
+**Stand:** offen — 6×; über der Schwelle, nicht verkörpert, Entscheidung beim Nutzer (slice-antwort-mehrteilig-output, slice-qa-sicherheit, slice-qa-anmeldedrosselung, slice-spec-nachzug-produktschnitt, slice-testserver-herausloesen, slice-spec-nachzug-telemetrie); Lese-Schritt bei der Welle-Closure.
