@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [TDS-RB-01](../../../../spec/lastenheft.md#tds-rb-01--implementierungssprache), [TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [TDS-FA-09](../../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose), [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) (Tabellenbeschreibung), [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität) (Referenzclient-Läufe); [ADR-0025](../../adr/0025-produktschnitt-bibliothek-und-testserver.md) (`Accepted`, Entscheidungen 1, 2, 4 bis 7 und Folgepflicht 2 (a)), [ADR-0021](../../adr/0021-oeffentlicher-integrations-einstieg.md) (Entscheidungen 1, 3, 5), [ADR-0026](../../adr/0026-oeffentlichkeit-simulations-backend-und-katalog.md) (`Accepted`, Entscheidung 2: Aufzeichner über Port und `SimulationBackend`), [ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md) (`Accepted`, Frage 1: Format als Adapter im Testserver; Träger der Testserver-Seite ist `slice-betrieb-log-adapter-testserver`), [ADR-0022](../../adr/0022-e2e-laeufe-nicht-in-den-gates.md) (Begriff E2E-Lauf), [ADR-0019](../../adr/0019-kompatibilitaetstests-zuschnitt.md) (Container-Modell).
 
-**Berührte Spec-Stellen:** SPEC-005 · SPEC-010 · SPEC-023 · SPEC-035 · SPEC-040 · SPEC-052 · SPEC-059 (die Aussagen stehen nach `slice-spec-nachzug-produktschnitt`; dieser Slice setzt sie im Code um und ändert die Spezifikation nur bei einem Befund).
+**Berührte Spec-Stellen:** SPEC-005 · SPEC-010 · SPEC-023 · SPEC-035 · SPEC-040 · SPEC-052 · SPEC-059 (die Aussagen stehen nach `slice-spec-nachzug-produktschnitt`; dieser Slice setzt sie im Code um und entfernt die Zielzustand-Vermerke, die sie erfüllt (Nachweis-Pflicht in der DoD), und ändert sie sonst nur bei einem Befund).
 
 **Verantwortlich:** — bis zur Priorisierung.
 
@@ -40,7 +40,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 - Das Jar ohne `Main-Class`, die Manifest-Prüfung ohne Startklasse samt Selbsttest, das Entfernen der Stages `runtime` und `build` und das Aufräumen von `laufzeittest` — `slice-jar-ohne-main-und-image`. Dieser Slice stellt nur den Server-Container des Laufs `make laufzeittest` auf den Testserver um (Setzung unten), damit Stufe 2 grün bleibt; die Stage `runtime` bleibt als ungenutzte Stage stehen.
 - Das Log der Bibliothek im Testserver — [ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md) ist `Accepted` und legt fest: die Bibliothek definiert Modell und Senke samt Parameter an `TdsServer.start`, der JSON-Adapter (`jackson-core`), `LOG_LEVEL` und die Warteschlange liegen im Testserver. Gebaut wird das in zwei Slices der Welle [welle-betrieb-diagnose](../welle-betrieb-diagnose.md): [slice-betrieb-log-schnittstelle](slice-betrieb-log-schnittstelle.md) (Bibliothek, wartet auf diesen Slice) und [slice-betrieb-log-adapter-testserver](slice-betrieb-log-adapter-testserver.md) (Testserver, wartet auf beide). Der Testserver ruft hier `TdsServer.start(config, source)` ohne Senke und hat bis dahin kein Log aus der Bibliothek ([ADR-0025](../../adr/0025-produktschnitt-bibliothek-und-testserver.md) Entscheidung 7). Dieser Slice nimmt die Prüfungen heraus, die davon leer wahr würden, kennzeichnet sie mit dem Träger des Ersatzes und ersetzt sie nicht. `ServerLog` samt `STDOUT` bleibt in `src/main`, bis `slice-betrieb-log-schnittstelle` es ablöst (Tests in `src/test` nutzen es).
-- Die Spezifikation — sie steht nach `slice-spec-nachzug-produktschnitt`; ein Widerspruch, den der Umbau findet, ist ein Befund für den Nutzer, kein stilles Ändern.
+- Die Spezifikation — sie steht nach `slice-spec-nachzug-produktschnitt`; dieser Slice nimmt nur die Zielzustand-Vermerke heraus, die er erfüllt (DoD, Nachweis-Pflichten); ein Widerspruch, den der Umbau findet, ist ein Befund für den Nutzer, kein stilles Ändern.
 - `explicitApi` und die Verkleinerung der Fläche ([slice-explicit-api-umbau](slice-explicit-api-umbau.md)) — Folge-Slice derselben Welle, Start-Trigger ist `done/` dieses Slice (damit er nicht zweimal umbaut); dieser Slice ändert keine Sichtbarkeit. Fehlt dem Testserver ein Typ in der öffentlichen Fläche, ist das ein Befund über die Fläche eines Embedders und kein Anlass, `internal` zu öffnen ([ADR-0025](../../adr/0025-produktschnitt-bibliothek-und-testserver.md) Entscheidung 1).
 - Ein Sensor gegen Java-Quellen im Source-Set (`BEO-TDS/java-quelle-umgeht-kotlin-regel`) — akzeptiertes Negativ der ADR.
 - Änderungen am Format der Tabellenbeschreibung ([ADR-0012](../../adr/0012-simulations-backend-beschreibung-und-formen.md)) — der Leser wandert, er ändert sich nicht.
@@ -73,6 +73,27 @@ Liefer-Punkte (drei):
 Nachweis-Pflichten für alle Punkte:
 
 - [ ] `make gates` grün.
+- [ ] **Zielzustand-Vermerke der Spezifikation entfernt** (Nachweis, kein Liefer-Punkt; Zusage aus `slice-spec-nachzug-produktschnitt` §3): Die Zielzustand-Vermerke in `spec/spezifikation.md`, die dieser Slice erfüllt, sind an den Stellen entfernt (Stand per `grep -n Zielzustand spec/spezifikation.md` im Nachweis geprüft, mit Treffern vor und nach dem Umbau); die Stellen, die der jeweils andere Slice trägt, bleiben stehen. Ein stehengebliebener Vermerk ist ein Befund (`BEO-TDS/fortschreibung-laesst-zweite-fundstelle-stehen`), ein entfernter Satz ohne tragenden Code ebenso. Die Zeilennummern gelten für den Stand nach `slice-spec-nachzug-produktschnitt` und verschieben sich mit jeder Änderung der Datei; maßgeblich ist der Text der Stelle.
+
+  | Zeile | Stelle |
+  |---|---|
+  | 607 | Absatz Tabellenbeschreibung (`SPEC-035`): Leser, Datei, Format beim Testserver |
+  | 685 | Spiegelstrich Datei und Umgebungsvariable (`SPEC-035`): `simulationFile`, Bytes der Datei in `ServerConfig`, Zusammenführen im Einstieg |
+  | 823 | `SPEC-005`: `LISTEN_*` aus der Umgebung |
+  | 830 | `SPEC-010`: `ENCRYPTION_POLICY` aus der Umgebung |
+  | 1085 | Schlüsselmaterial: `TLS_KEYSTORE_*` als Dateien |
+  | 1150 | `SPEC-051` Konfigurationsweg: `AUTH_USERS_FILE` |
+  | 1151 | `SPEC-051` Testmodus-Schalter `AUTH_PLAIN_TESTMODE` (Verweis auf 1150) |
+  | 1155 | `SPEC-051` Lesen der Datei (Verweis auf 1150) |
+  | 1180 | `SPEC-051` Validierung der Liste (Verweis auf 1150) |
+  | 1207 | `SPEC-059` Zeile `BackendSource`: Feld für die Bytes der Datei, `Custom`-Abbruch |
+  | 1209 | `SPEC-059` Zeile Prüfung: Größe der Beschreibung, Umgebung im Prozess der Bibliothek |
+  | 1225 | `SPEC-040`: Integrationsserver bindet an `TdsServer.start` vorbei |
+
+  Die Stellen 1213 und 1228 (`SPEC-059` Abhängigkeiten, `SPEC-052`) trägt `slice-jar-ohne-main-und-image`.
+
+  Lesehilfe-Lücke, mitzuprüfen (Befund der Verifikation, kein Liefer-Punkt): `LOGIN_TIMEOUT` (`SPEC-008`), `MAX_PRELOGIN_MESSAGE_BYTES` (`SPEC-046`), `SHUTDOWN_GRACE` und `QUERY_TIMEOUT` stehen als „konfigurierbar“ in der Festlegungstabelle, ohne als Eingang des Testservers ausgezeichnet zu sein wie `LISTEN_*`; nach dem Umbau ist zu lesen, ob die Auszeichnung fehlt, und ein Befund an den Nutzer zu melden.
+
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
