@@ -1,6 +1,6 @@
 # Verifikationsbericht: slice-spec-nachzug-telemetrie
 
-* Rolle: Verifier (Modul 11), frischer Kontext. Branch `worktree-agent-a8241fa30f4d7b6a2`, HEAD `9d86dc0`. Diff gegen `0db1db4`: nur `spec/spezifikation.md` (+81/-18) und Dokumente unter `docs/`; `spec/architecture.md`, `spec/lastenheft.md`, ADRs, `src/` und `tools/` unverändert. Plan/DoD: `docs/plan/planning/in-progress/slice-spec-nachzug-telemetrie.md` §2; Entscheidungen [ADR-0020](../plan/adr/0020-logformat-und-observability-schnittstelle.md), Lastenheft 0.6.1; Review [2026-11-01-02db795-slice-spec-nachzug-telemetrie.md](2026-11-01-02db795-slice-spec-nachzug-telemetrie.md). Verdichtet vom Aufrufer abgelegt; Findings vollständig.
+* Rolle: Verifier (Modul 11), frischer Kontext. Branch `worktree-agent-a8241fa30f4d7b6a2`, HEAD `9d86dc0`. Diff gegen `0db1db4`: nur `spec/spezifikation.md` (+81/-18) und Dokumente unter `docs/`; `spec/architecture.md`, `spec/lastenheft.md`, ADRs, `src/` und `tools/` unverändert. Plan/DoD: `docs/plan/planning/done/slice-spec-nachzug-telemetrie.md` §2; Entscheidungen [ADR-0020](../plan/adr/0020-logformat-und-observability-schnittstelle.md), Lastenheft 0.6.1; Review [2026-11-01-02db795-slice-spec-nachzug-telemetrie.md](2026-11-01-02db795-slice-spec-nachzug-telemetrie.md). Verdichtet vom Aufrufer abgelegt; Findings vollständig.
 
 ## Gesamturteil: closure-fähig mit Bedingungen
 
