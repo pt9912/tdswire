@@ -65,14 +65,15 @@ import kotlin.time.Duration.Companion.milliseconds
  * offen (Class 16). `sp_unprepare` und `sp_prepare` sind nicht im Katalog (`TDS_UNSUPPORTED_RPC`). Die Handles
  * enden mit der Schleife und mit dem Bit RESETCONNECTION (nächster Absatz).
  *
- * RESETCONNECTION (`ADR-0027` Entscheidung 5, `SPEC-001`): Das Bit steht im Status des ersten Pakets einer Nachricht.
- * `MessageAssembler` liest es in `TdsMessage.resetConnection`, `TransportHandshakeChannel` gibt die Nachricht unverändert
- * weiter, und der Automat des Sitzungsrahmens setzt an der Anfrage in `READY`, die es trägt, die Aktion
- * `ResetSession`; der Rahmen führt sie unter seiner Sperre aus, vor der Verarbeitung dieser Anfrage. Die Schleife
- * hängt dafür [PreparedHandles.clear] ein: alle Handles sind danach unbekannt (`TDS_UNKNOWN_HANDLE`), die Vergabe beginnt
- * wieder bei 1, die Grenze von [PreparedHandles.MAX_HANDLES] gilt neu. Die Anfrage mit dem Bit wird danach wie jede
- * andere beantwortet, ohne ENVCHANGE (Setzung, nicht gemessen). Das Bit an einer Nachricht außerhalb von `READY` wirkt
- * nicht: dort ist eine Anfrage unzulässig und die Verbindung schließt (Festlegung; `ADR-0027` entscheidet es nicht).
+ * RESETCONNECTION (`ADR-0027` Entscheidung 5, `SPEC-001`): Das Bit steht im Status des ersten Pakets einer
+ * Nachricht. `MessageAssembler` liest es in `TdsMessage.resetConnection`, `TransportHandshakeChannel` gibt die
+ * Nachricht unverändert weiter, und der Automat des Sitzungsrahmens setzt an der Anfrage in `READY`, die es trägt, die
+ * Aktion `ResetSession`; der Rahmen führt sie unter seiner Sperre aus, vor der Verarbeitung dieser Anfrage. Die
+ * Schleife hängt dafür [PreparedHandles.clear] ein: alle Handles sind danach unbekannt (`TDS_UNKNOWN_HANDLE`), die
+ * Vergabe beginnt wieder bei 1, die Grenze von [PreparedHandles.MAX_HANDLES] gilt neu. Die Anfrage mit dem Bit wird
+ * danach wie jede andere beantwortet, ohne ENVCHANGE (der Referenzclient nahm das an; ein echter Server ist nicht
+ * gemessen). Das Bit an einer Nachricht außerhalb von `READY` wirkt nicht: dort ist eine Anfrage unzulässig und die
+ * Verbindung schließt (Festlegung; `ADR-0027` entscheidet es nicht).
  * Weiteren Sitzungszustand als die Handles führt die Schleife nicht.
  *
  * Abbruch (`SPEC-029`, `ADR-0027`): Während einer Anfrage liest die Schleife mit ([AbortableRun]). Ein ATTENTION in

@@ -196,12 +196,13 @@ class ResetConnectionDispatchTest {
     }
 
     /**
-     * Das Bit löst nur an einer Anfrage in `READY` aus und läuft im Übergang unter der Sperre des Rahmens: der Rahmen
-     * ruft das eingehängte Zurücksetzen genau einmal für die Anfrage mit dem Bit, nicht für eine Anfrage ohne, nicht für
-     * ATTENTION mit dem Bit; eine zweite Anfrage in `RUNNING` ist unzulässig und schließt, ohne zurückzusetzen.
-     * Während das Zurücksetzen läuft, wartet ein zweiter Übergang auf die Sperre (gesteuert: die zweite Coroutine startet
-     * im Zurücksetzen und kann nicht fertig werden, bevor es endet). Wächter: Zurücksetzen außerhalb der Sperre, bei
-     * jeder Anfrage, an ATTENTION oder in `RUNNING`.
+     * Das Bit löst nur an einer Anfrage in `READY` aus und läuft im Übergang unter der Sperre des Rahmens: der
+     * Rahmen ruft das eingehängte Zurücksetzen genau einmal für die Anfrage mit dem Bit, nicht für eine Anfrage ohne,
+     * nicht für ATTENTION mit dem Bit; eine zweite Anfrage in `RUNNING` ist unzulässig und schließt, ohne
+     * zurückzusetzen.
+     * Während das Zurücksetzen läuft, wartet ein zweiter Übergang auf die Sperre (gesteuert: die zweite Coroutine
+     * startet im Zurücksetzen und kann nicht fertig werden, bevor es endet). Wächter: Zurücksetzen außerhalb der
+     * Sperre, bei jeder Anfrage, an ATTENTION oder in `RUNNING`.
      *
      * @spec SPEC-001
      */

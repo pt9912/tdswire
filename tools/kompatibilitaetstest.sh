@@ -136,7 +136,18 @@ if [ "$KATEGORIE" = Luecken ]; then
   # - 'tdswire: Fehler: TDS_UNSUPPORTED_TYPE' (xml)
   # Wo `src/test` den Grund der Ablehnung ueber `Wiring` liest (LoginLogInspectionTest, HandshakeWiringTest), bleibt er
   # geprueft; ob das jede dieser Pruefungen ersetzt, ist nicht festgestellt.
-  :
+  # Pooling mit einer physischen Verbindung (RESETCONNECTION): der Client sieht nur Ergebnisse; dass alle Anfragen mit dem
+  # Marker auf einer einzigen Sitzung des Servers liefen (eine physische Verbindung, ein LOGIN7), zeigt allein das Log.
+  eine_sitzung_mit() { # eine_sitzung_mit <Marker> <erwartete Zahl der Anfragen>
+    local marker="parameter=[@$1:Int32:INPUT]" sitzungen anfragen
+    sitzungen="$(docker logs "$SERVER" 2>&1 | grep -F "$marker" | sed 's/.*session=\([0-9a-f]*\) .*/\1/' | sort -u | wc -l)"
+    anfragen="$(docker logs "$SERVER" 2>&1 | grep -cF "$marker")"
+    [ "$sitzungen" = 1 ] && [ "$anfragen" = "$2" ]
+  }
+  pruefe "Pooling: 1200 Befehle ueber drei Open-Phasen laufen auf einer Sitzung des Servers (Marker @zuruecksetzen)" \
+    eine_sitzung_mit zuruecksetzen 1200
+  pruefe "Pooling: 1600 Befehle ueber zwei Open-Phasen laufen auf einer Sitzung des Servers (Marker @grenze)" \
+    eine_sitzung_mit grenze 1600
 fi
 
 echo "kompatibilitaetstest: --- Log des Servers ---"

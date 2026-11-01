@@ -81,7 +81,18 @@ Aussagen-Berührung steht hier gar nicht.
 | `tools/e2e.sh`, `tools/kompatibilitaetstest.sh` | update | Kennungen und Text der Stufe 6 |
 | `spec/spezifikation.md`, `docs/plan/kompatibilitaetsmatrix.md` | update | Doku-Update in §2 |
 
-Der Implementer-Agent erweitert die Liste in seinem ersten Lauf, inklusive einer Testdatei-Zeile mit der Akzeptanzkriterien-ID in `Begründung`.
+Ergänzt im ersten Lauf des Implementers (Ist-Zustand gegen den Plan gemessen: `TdsMessage.resetConnection` kommt über `MessageAssembler` und `TransportHandshakeChannel` unverändert beim Sitzungsrahmen an, am Transport ist nichts zu ändern; der Rahmen wertet das Bit nicht in `RequestLoop` aus, sondern im Automaten, weil dort der Übergang liegt, der die Anfrage annimmt):
+
+| Datei / Komponente | Änderungs-Art | Begründung |
+|---|---|---|
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/session/HandshakeAction.kt`, `HandshakeAutomaton.kt` | update | neue Aktion `ResetSession` vor `Forward`, wenn die Anfrage in `READY` das Bit trägt ([TDS-FA-07](../../../../spec/lastenheft.md#tds-fa-07--abbruch-und-ressourcenfreigabe)) |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/session/HandshakeSession.kt` | update | führt die Aktion unter der Sitzungssperre aus (`onSessionReset`) |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/session/HandshakeMatrix.kt`, `HandshakeEvent.kt` | update | KDoc: das Bit wird an der Anfrage in `READY` ausgewertet |
+| `src/test/kotlin/io/github/pt9912/tdswire/protocol/dispatch/ResetConnectionDispatchTest.kt` | neu | Rohbytes-Tests mit Fake-Backend und über den Transport: früheres Handle 50009, Zähler ab 1, Grenze neu, ohne Bit unverändert, Sperre ([TDS-FA-07](../../../../spec/lastenheft.md#tds-fa-07--abbruch-und-ressourcenfreigabe), [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität), [TDS-FA-04](../../../../spec/lastenheft.md#tds-fa-04--parametrisierte-abfragen-über-rpc)) |
+| `src/test/kotlin/io/github/pt9912/tdswire/protocol/session/SessionSupport.kt` | update | Beschriftung der neuen Aktion |
+| `referenztest-dotnet/Kompatibilitaet/LueckenTests.cs`, `AnmeldungTests.cs` | update | zwei Pooling-Messungen am Referenzclient (Kopf von `AnmeldungTests`: Nicht-belegt-Satz) ([TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität)) |
+| `tools/kompatibilitaetstest.sh`, `tools/e2e.sh`, `docs/plan/e2e-abdeckung.md` | update | Prüfung „eine Sitzung“ im Log, Text und Kennungen der Stufen 5 und 6, erzeugte Sicht |
+| `src/testserver/kotlin/.../KompatibilitaetsServer.kt` | unverändert | der Aufzeichner genügt (Sitzungskennung und Marker im Log); er sieht Anfragen am Backend-Port, nicht die Statusbits der Pakete, einen Zähler des Bits führt er nicht |
 
 ## 4. Trigger
 
