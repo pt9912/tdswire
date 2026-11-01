@@ -78,7 +78,7 @@ final class FailingCloseChannel extends AsynchronousSocketChannel {
 
     @Override
     public SocketAddress getRemoteAddress() {
-        throw unsupported();
+        return null;
     }
 
     @Override

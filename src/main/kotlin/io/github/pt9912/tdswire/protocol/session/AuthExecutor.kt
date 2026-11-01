@@ -34,7 +34,8 @@ internal sealed interface AuthOutcome {
  * Je [AuthPool] laufen nie mehr als [AuthPool.parallelism] Adapteraufrufe zugleich, auch über mehrere
  * Executor und Treiber hinweg (Obergrenze der verwaisten Aufrufe). Die
  * Wartenden reihen sich dahinter ein, ihre Zahl begrenzt nur die Zahl der Verbindungen; eine
- * Drosselung wiederholter Anmeldeversuche ist das nicht (`CO-003`). Gemessen (`AuthPoolOccupationTest`, Test-Adapter
+ * Drosselung wiederholter Anmeldeversuche ist das nicht: diese hält [LoginThrottle] je Quelladresse vor dem
+ * Aufruf des Executors (`ADR-0016`). Gemessen (`AuthPoolOccupationTest`, Test-Adapter
  * mit 300 ms Haltezeit, [AuthPool.DEFAULT_PARALLELISM] Plätze): Belegen weniger Aufrufe als Plätze den Pool, wartet ein
  * weiterer 300 ms (nur die eigene Haltezeit); belegen so viele wie Plätze ihn, wartet er rund 550 ms, bei doppelt so
  * vielen rund 850 ms (gemessen ab 50 ms nach dem Beginn der belegenden Aufrufe; nominell 600 und 900 ms).
@@ -83,9 +84,15 @@ internal class AuthExecutor(pool: AuthPool) {
 /**
  * Wo und wie breit der Anmeldepfad den blockierenden Adapter ruft: auf [dispatcher] höchstens
  * [parallelism] Aufrufe zugleich. Festlegung ohne Messung: Voreinstellung `Dispatchers.IO` mit
- * [DEFAULT_PARALLELISM] Plätzen.
+ * [DEFAULT_PARALLELISM] Plätzen. Der Pool trägt auch die [throttle] (`ADR-0016`): ihre Tabelle der Quelladressen
+ * gilt für alle Verbindungen, die den Pool teilen. Der Prozess gibt jedem Treiber denselben Pool; ein Treiber ohne
+ * ausdrücklichen Pool bekommt einen eigenen mit eigener Tabelle, dort wirkt die Drosselung nur für seine Verbindung.
  */
-class AuthPool(val dispatcher: CoroutineDispatcher = Dispatchers.IO, val parallelism: Int = DEFAULT_PARALLELISM) {
+class AuthPool(
+    val dispatcher: CoroutineDispatcher = Dispatchers.IO,
+    val parallelism: Int = DEFAULT_PARALLELISM,
+    val throttle: LoginThrottle = LoginThrottle(),
+) {
     /** Die begrenzte Sicht auf [dispatcher]; sie entsteht einmal je Pool und gilt für alle Executor, die ihn teilen. */
     internal val limited: CoroutineDispatcher = dispatcher.limitedParallelism(parallelism)
 

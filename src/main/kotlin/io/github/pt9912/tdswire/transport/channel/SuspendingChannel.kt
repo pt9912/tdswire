@@ -1,5 +1,6 @@
 package io.github.pt9912.tdswire.transport.channel
 
+import java.net.InetAddress
 import java.nio.ByteBuffer
 
 /**
@@ -13,6 +14,13 @@ import java.nio.ByteBuffer
  * Ein Abbruch der aufrufenden Coroutine beendet die Operation und schließt den Kanal.
  */
 interface SuspendingChannel {
+    /**
+     * Die Adresse der Gegenstelle ohne Port und Zonenkennung des Netzes, `null`, wenn der Kanal keine kennt
+     * (Speicher-Kanäle, Kanäle ohne Socket). Sie ist der Schlüssel der Drosselung wiederholter Anmeldeversuche
+     * (`ADR-0016`); verpackende Kanäle geben die des inneren Kanals weiter.
+     */
+    val remoteAddress: InetAddress? get() = null
+
     /**
      * Liest mindestens ein Byte in [buffer], sobald eines vorliegt, und liefert die Zahl der
      * gelesenen Bytes; -1 meldet das Ende der Gegenstelle. [buffer] muss Platz haben.

@@ -61,7 +61,8 @@ class AuthPoolOccupationTest {
      * als [HOLD_MILLIS] plus die halbe Haltezeit); doppelt so viele verlängern es um eine weitere Welle. Das ist die
      * Belegung der Plätze durch einen nicht angemeldeten Client mit mehreren Verbindungen: Die Wartezeit der
      * regulären Anmeldung wächst mit der Zahl der Aufrufe, die ein Angreifer offen hält, in Stufen der Haltezeit.
-     * Gegenstand ist die Grenze, nicht eine Abhilfe: Die Drosselung ist als Carveout geführt (`CO-003`).
+     * Gegenstand ist die Grenze der Plätze, nicht eine Abhilfe: Die Drosselung je Quelladresse (`LoginThrottle`,
+     * `ADR-0016`) steht vor dem Pool und ist hier nicht beteiligt (der Executor wird ohne Treiber gerufen).
      *
      * @spec SPEC-008
      * @spec SPEC-051
