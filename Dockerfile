@@ -219,7 +219,7 @@ RUN gradle --no-daemon --offline testClasses
 CMD ["gradle", "--no-daemon", "--offline", "-q", "laufzeitClient"]
 
 # --- Testserver: der Testserver als Container des Laufzeittests (`make laufzeittest`): der Klassenpfad des
-# Source-Sets `testserver` (ADR-0025 Entscheidung 4), ohne Distroless-Pin und ohne Produkt-Image. Der Klassenpfad
+# Source-Sets `testserver` (ADR-0025 Entscheidung 4). Der Klassenpfad
 # steht in build/testserver-klassenpfad.txt; `exec java` macht die JVM zum Prozess 1, SIGTERM von `docker stop` laeuft
 # in den Shutdown-Hook (Exit-Code 143). Konfiguration und Benutzerliste kommen zur Laufzeit ueber die Umgebung und
 # Dateien im Container. Das Flag gegen das NewSessionTicket steht in der Startzeile (SPEC-023). ----

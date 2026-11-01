@@ -1,6 +1,6 @@
 #!/bin/sh
 # manifest-selbsttest.sh — belegt an synthetischen Jars, dass tools/manifest-pruefung.sh jeden seiner Faelle
-# abweist (Jar-Name, vorhandene Main-Class, Klasse des Testservers im Jar, Jackson in lib/, Class-Path leer, fehlend,
+# abweist (Jar-Name, vorhandene Main-Class, Klasse des Testservers im Jar, Jackson in lib/ (auch gross geschrieben), Class-Path leer, fehlend,
 # Eintrag ohne Datei, Eintrag ohne Form lib/<name>, Eintrag mit `..`) und ein gutes Jar ohne Main-Class annimmt
 # (TDS-RB-01, TDS-QA-06, ADR-0022, ADR-0025). Er belegt auch, dass die
 # Stage `build-jar` des Dockerfile die Pruefung aufruft: ohne diese Zeile wuerde der Bau sie nie ausfuehren.
@@ -48,10 +48,13 @@ erwarte main-anderer-name 1 tdswire.jar "Main-Class: x.MainKt
 Class-Path: lib/a.jar" a.jar
 erwarte main-leer 1 tdswire.jar "Main-Class: 
 Class-Path: lib/a.jar" a.jar
+erwarte main-klein 1 tdswire.jar "main-class: x.M
+Class-Path: lib/a.jar" a.jar
 EXTRA=io/github/pt9912/tdswire/testserver/MainKt.class
 erwarte testserver-im-jar 1 tdswire.jar "Class-Path: lib/a.jar" a.jar
 EXTRA=
 erwarte jackson-in-lib 1 tdswire.jar "Class-Path: lib/a.jar lib/jackson-core-2.17.0.jar" a.jar jackson-core-2.17.0.jar
+erwarte jackson-gross 1 tdswire.jar "Class-Path: lib/a.jar lib/Jackson-core-2.17.0.jar" a.jar Jackson-core-2.17.0.jar
 erwarte jar-name 1 anders.jar "Class-Path: lib/a.jar" a.jar
 erwarte cp-fehlt 1 tdswire.jar "Created-By: test" a.jar
 erwarte cp-leer 1 tdswire.jar "Class-Path: " a.jar
@@ -69,4 +72,4 @@ aufruf=$(awk '/^FROM /{stage=$0} stage ~ / AS build-jar$/ && /^RUN sh tools\/man
 [ "$aufruf" -eq 1 ] || pruefe "das Dockerfile ruft die Pruefung in der Stage build-jar $aufruf mal auf statt einmal"
 
 [ "$fehler" -eq 0 ] || exit 1
-echo "manifest-selbsttest: ok (ein gutes Jar ohne Main-Class, elf Fehlerfaelle, Aufruf ohne Argument, Aufruf im Dockerfile)"
+echo "manifest-selbsttest: ok (ein gutes Jar ohne Main-Class, dreizehn Fehlerfaelle, Aufruf ohne Argument, Aufruf im Dockerfile)"
