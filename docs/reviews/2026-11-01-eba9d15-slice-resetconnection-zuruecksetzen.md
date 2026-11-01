@@ -1,6 +1,6 @@
 # Review: slice-resetconnection-zuruecksetzen (Diff f53bda2..eba9d15)
 
-* Rolle: Reviewer (Modul 10), frischer Kontext. Branch `worktree-agent-a803e8d9e0b6c2cf4`, relevante Commits `a7e9c61` und `eba9d15`. Plan: `docs/plan/planning/in-progress/slice-resetconnection-zuruecksetzen.md`. Geprüft gegen Plan, [ADR-0027](../plan/adr/0027-abbruch-und-zuruecksetzen.md) Entscheidung 5, [ADR-0013](../plan/adr/0013-backend-grenzen.md), [ADR-0015](../plan/adr/0015-spannungen-adr-gegen-spec.md), [ADR-0004](../plan/adr/0004-session-zustandsautomat.md), [ADR-0007](../plan/adr/0007-fehler-und-attention.md), AGENTS 3.2, 3.6, 3.7, 3.8; nicht gegen die DoD. Der Implementer-Bericht wurde nicht übernommen; alles gegen Code und Lauf belegt. Verdichtet vom Aufrufer abgelegt; Findings vollständig.
+* Rolle: Reviewer (Modul 10), frischer Kontext. Branch `worktree-agent-a803e8d9e0b6c2cf4`, relevante Commits `a7e9c61` und `eba9d15`. Plan: `docs/plan/planning/done/slice-resetconnection-zuruecksetzen.md`. Geprüft gegen Plan, [ADR-0027](../plan/adr/0027-abbruch-und-zuruecksetzen.md) Entscheidung 5, [ADR-0013](../plan/adr/0013-backend-grenzen.md), [ADR-0015](../plan/adr/0015-spannungen-adr-gegen-spec.md), [ADR-0004](../plan/adr/0004-session-zustandsautomat.md), [ADR-0007](../plan/adr/0007-fehler-und-attention.md), AGENTS 3.2, 3.6, 3.7, 3.8; nicht gegen die DoD. Der Implementer-Bericht wurde nicht übernommen; alles gegen Code und Lauf belegt. Verdichtet vom Aufrufer abgelegt; Findings vollständig.
 
 ## Ergebnis
 
