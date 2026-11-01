@@ -1,0 +1,2 @@
+**Vorgang:** slice-qa-synchronitaet
+**Fund:** `SynchronitaetWiringTest` ließ die Anfragen 2 bis 4 mit derselben Nutzlast antworten (`rowAnswer`, Zeile 7); eine Verschiebung um eins mit einer überzähligen Nachricht, die wie `rowAnswer` aussieht, blieb grün (Review S-2). Behoben in der Fix-Runde: die Zeilen 7, 8 und 9 sind verschieden, die Verschiebung ist sichtbar; die Verifikation fuhr eine überzählige Nachricht aus Nullbytes und sah den ersten Rohbytes-Test rot. Eine überzählige Nachricht, die einer echten Antwort gleicht, wurde nicht gefahren.
