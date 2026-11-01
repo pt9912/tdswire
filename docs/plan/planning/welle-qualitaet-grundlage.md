@@ -67,6 +67,9 @@ Lifecycle-Verzeichnis und wird hier **nicht** gespiegelt.
 | slice-qa-synchronitaet | Protokoll-Synchronität nach Fehler und Abbruch | [TDS-QA-07](../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität) |
 | slice-e2e-geruest | Produkt-E2E-Skript bündelt die vorhandenen Läufe; `make e2e-abdeckung` erzeugt die Sicht | [TDS-QA-01](../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [TDS-QA-06](../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
 | slice-qa-spec-abdeckung | Spezifikations-Abdeckungsmatrix: jede Festlegung durch Tests belegt | [TDS-QA-05](../../../spec/lastenheft.md#tds-qa-05--wartbarkeit) |
+| slice-kompatibilitaetsmatrix-erzeugen | Kompatibilitätsmatrix als erzeugte Sicht auf die Spezifikation (Erzeuger, E2E-Ergebnisdatei) | [TDS-QA-05](../../../spec/lastenheft.md#tds-qa-05--wartbarkeit) |
+| slice-kompatibilitaetsmatrix-migration | Spec-Nachzug, Tags und Umstellung auf die erzeugte Sicht | [TDS-QA-05](../../../spec/lastenheft.md#tds-qa-05--wartbarkeit) |
+| slice-kompatibilitaetsmatrix-gate | Erzeugte Kompatibilitätsmatrix als Gate der Klasse tests | [TDS-QA-05](../../../spec/lastenheft.md#tds-qa-05--wartbarkeit) |
 
 ## 5. Abhängigkeiten
 
