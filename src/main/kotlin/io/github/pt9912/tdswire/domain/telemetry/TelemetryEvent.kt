@@ -42,7 +42,10 @@ internal data class EventContext(
  * Ein Ereignis des Servers (`TDS-FA-09.a`, `SPEC-059`). Die Menge der Ereignisarten ist geschlossen; jede Art trägt
  * typisierte Felder und keinen Freitext. Für Passwort, Prüfwert, Parameterwert, SQL-Text, Pfad und Ausnahmetext hat
  * keine Art ein Feld; eine Ausnahme erscheint nur als Typname. Jedes Zeichenketten-Feld ist auf 256 UTF-16-Einheiten
- * gekürzt. Die Bibliothek erzeugt Ereignisse; ein Aufrufer kann keines bauen.
+ * gekürzt. Die Bibliothek erzeugt Ereignisse; für Kotlin-Aufrufer sind die Konstruktoren `internal`. Aus Java sind
+ * sie im Bytecode öffentlich und aufrufbar (die Grenze von `internal`); die Längengrenze gilt dort weiter, ein Java-
+ * Aufrufer kann nur Ereignisse für die eigene Senke bauen. `TelemetrySink.NONE` ist aus Java nur über
+ * `TelemetrySink.Companion.getNONE()` erreichbar.
  *
  * Gemeinsame Felder: [at] ist der Zeitpunkt aus dem Zeitgeber der Bibliothek, [level] ist je Art fest. [connectionId]
  * ist der Zähler des Listeners (ab 1 je Server) und fehlt bei Ereignissen ohne Verbindung. [sessionId] ist die

@@ -349,7 +349,7 @@ style:
   # (ADR-0020). Gesperrt sind print, println und printStackTrace in jedem Package unter src/main, ohne
   # Ausnahme; die Source-Sets test, integrator und testserver sind nicht betroffen. Grenze: wirkt nur mit
   # Typaufloesung (detektMain), und nur die genannten Aufrufe; ein Schreiben ueber einen anderen Weg
-  # (System.out.write, ein Logger) trifft die Regel nicht. `make detekt-selbsttest` fuehrt je Eintrag
+  # (Logger.log, Thread.dumpStack, ein Logger einer Fremdbibliothek) trifft die Regel nicht. `make detekt-selbsttest` fuehrt je Eintrag
   # einen Rot-Fall unter config/detekt/selbsttest-aufrufe/src/main/.
   ForbiddenMethodCall/ausgabe:
     active: true
@@ -366,3 +366,15 @@ style:
         reason: 'Ausgabe: die Bibliothek schreibt nirgends hin, auch nicht ueber System.out oder System.err (ADR-0020).'
       - value: 'kotlin.Throwable.printStackTrace'
         reason: 'Ausgabe: eine Stapelspur gehoert in kein Log der Bibliothek (ADR-0020, SPEC-048).'
+      - value: 'java.io.PrintStream.write'
+        reason: 'Ausgabe: die Bibliothek schreibt nirgends hin, auch nicht ueber System.out oder System.err (ADR-0020).'
+      - value: 'java.io.PrintStream.printf'
+        reason: 'Ausgabe: die Bibliothek schreibt nirgends hin, auch nicht ueber System.out oder System.err (ADR-0020).'
+      - value: 'java.io.PrintStream.format'
+        reason: 'Ausgabe: die Bibliothek schreibt nirgends hin, auch nicht ueber System.out oder System.err (ADR-0020).'
+      - value: 'java.util.logging.Logger.info'
+        reason: 'Ausgabe: die Bibliothek schreibt nirgends hin, auch nicht ueber java.util.logging (ADR-0020).'
+      - value: 'java.util.logging.Logger.warning'
+        reason: 'Ausgabe: die Bibliothek schreibt nirgends hin, auch nicht ueber java.util.logging (ADR-0020).'
+      - value: 'java.util.logging.Logger.severe'
+        reason: 'Ausgabe: die Bibliothek schreibt nirgends hin, auch nicht ueber java.util.logging (ADR-0020).'

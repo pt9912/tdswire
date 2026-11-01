@@ -37,19 +37,17 @@ import kotlin.test.assertTrue
 private const val RPC_TYPE = 0x03
 private const val LIMIT = 256
 private const val LONG = 300
-private val ALLOWED_STRINGS = setOf(
-    "key",
-    "kind",
-    "part",
-    "form",
-    "address",
-    "exceptionType",
-    "principal",
-    "failure",
-    "errorCode",
-    "cause",
-    "sessionId",
-    "clientProfile",
+private val BASE_STRINGS = setOf("sessionId", "clientProfile")
+private val STRINGS_BY_KIND = mapOf(
+    "ConfigInvalid" to setOf("key", "kind"),
+    "TlsStartRejected" to setOf("part", "form"),
+    "BindFailed" to setOf("address", "exceptionType"),
+    "AcceptFailed" to setOf("exceptionType"),
+    "ConnectionFailed" to setOf("exceptionType"),
+    "LoginAccepted" to setOf("principal"),
+    "AdapterFailed" to setOf("exceptionType"),
+    "TlsHandshakeFailed" to setOf("failure"),
+    "RequestFailed" to setOf("errorCode", "cause"),
 )
 private val ALLOWED_TYPES = setOf(
     Instant::class.java,
@@ -96,9 +94,10 @@ internal class TelemetryRedactionTest : RuntimeTestBase() {
     }
 
     /**
-     * Die Bauart: jede Art trägt nur Zeitpunkt, Ebene, Zahlen, Aufzählungen und Zeichenketten aus einer benannten
-     * Liste von Feldern (Kennung, Adresse, Typname, Schlüsselname, Marken). Ein Feld vom Typ einer Ausnahme, einer
-     * Bytefolge oder einer Liste, oder eine Zeichenkette unter einem unbekannten Namen, macht den Test rot.
+     * Die Bauart: jede Art trägt nur Zeitpunkt, Ebene, Zahlen, Aufzählungen und Zeichenketten aus der Liste ihrer
+     * eigenen Felder (Kennung nur in der Annahme, Fehlercode nur im Anfragefehler und so fort).
+     * Ein Feld vom Typ einer Ausnahme, einer Bytefolge oder einer Liste, oder eine Zeichenkette unter einem
+     * unbekannten Namen, macht den Test rot.
      *
      * @spec SPEC-048
      */
@@ -116,7 +115,8 @@ internal class TelemetryRedactionTest : RuntimeTestBase() {
                     "${kind.simpleName}.$name hat den Typ ${type.name}",
                 )
                 if (type == String::class.java) {
-                    assertTrue(name in ALLOWED_STRINGS, "${kind.simpleName}.$name ist ein unbekanntes Textfeld")
+                    val allowed = BASE_STRINGS + STRINGS_BY_KIND[kind.simpleName].orEmpty()
+                    assertTrue(name in allowed, "${kind.simpleName}.$name ist ein unbekanntes Textfeld der Art")
                 }
             }
         }

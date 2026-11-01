@@ -3,7 +3,9 @@ package io.github.pt9912.tdswire.port
 internal object Erlaubt {
     fun zeit(): Long = System.currentTimeMillis()
 
-    fun text(): String = "x".trim()
+    fun ausgeben() {
+        println("x")
+    }
 
     fun liste(): List<Int> = listOf(1)
 }

@@ -88,6 +88,24 @@ internal class TelemetryTest : RuntimeTestBase() {
     }
 
     /**
+     * Wirft die Senke eine `InterruptedException`, geht das Ereignis verloren, und das Flag der Unterbrechung des
+     * Threads ist gesetzt; ein Aufrufer, der den Thread unterbricht, sieht es weiter.
+     *
+     * @spec SPEC-059
+     */
+    @Test
+    fun `Eine Unterbrechung der Senke bleibt am Thread sichtbar`() {
+        val telemetry = Telemetry({ throw InterruptedException("Senke") }, clock)
+        assertTrue(!Thread.currentThread().isInterrupted)
+        try {
+            telemetry.emit { stopped() }
+            assertTrue(Thread.currentThread().isInterrupted, "das Flag der Unterbrechung fehlt")
+        } finally {
+            Thread.interrupted()
+        }
+    }
+
+    /**
      * Vertrag zu `CancellationException` und `Error` (ADR-0013, Entscheidung 7): beide werden nicht gefangen und
      * laufen zum Aufrufer, die Abbruchausnahme der Coroutine und ein Fehler der JVM bleiben sichtbar.
      *
