@@ -1,6 +1,6 @@
 # Verifikationsbericht: slice-attention-cancel-timeout
 
-* Rolle: Verifier (Modul 11), frischer Kontext. Branch `worktree-agent-a003345c735119746`, HEAD `8cacbb7`; Plan/DoD `docs/plan/planning/in-progress/slice-attention-cancel-timeout.md` §2; Entscheidungen [ADR-0027](../plan/adr/0027-abbruch-und-zuruecksetzen.md), [ADR-0004](../plan/adr/0004-session-zustandsautomat.md), [ADR-0007](../plan/adr/0007-fehler-und-attention.md), [ADR-0013](../plan/adr/0013-backend-grenzen.md), [ADR-0015](../plan/adr/0015-spannungen-adr-gegen-spec.md); Review [2026-11-01-0000999-slice-attention-cancel-timeout.md](2026-11-01-0000999-slice-attention-cancel-timeout.md) (F1 bis F12). Verdichtet vom Aufrufer abgelegt; Findings vollständig.
+* Rolle: Verifier (Modul 11), frischer Kontext. Branch `worktree-agent-a003345c735119746`, HEAD `8cacbb7`; Plan/DoD `docs/plan/planning/done/slice-attention-cancel-timeout.md` §2; Entscheidungen [ADR-0027](../plan/adr/0027-abbruch-und-zuruecksetzen.md), [ADR-0004](../plan/adr/0004-session-zustandsautomat.md), [ADR-0007](../plan/adr/0007-fehler-und-attention.md), [ADR-0013](../plan/adr/0013-backend-grenzen.md), [ADR-0015](../plan/adr/0015-spannungen-adr-gegen-spec.md); Review [2026-11-01-0000999-slice-attention-cancel-timeout.md](2026-11-01-0000999-slice-attention-cancel-timeout.md) (F1 bis F12). Verdichtet vom Aufrufer abgelegt; Findings vollständig.
 
 ## Gesamturteil: closure-fähig mit Bedingungen
 
