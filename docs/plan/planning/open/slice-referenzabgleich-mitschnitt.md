@@ -154,7 +154,7 @@ Hälften.
 **Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen (`../observations/BEO-TDS/`, 19 Beobachtungen, Stand des Worktrees auf `main`); alle tragen die Sub-Area `*`. Treffer mit Zähler-Stand (Zahl der Dateien unter `evidence/`):
 
 - `BEO-TDS/messung-am-echten-sql-server-fehlt` — 9×, Stand *geplant* (Träger [slice-qa-vergleichslauf-d](slice-qa-vergleichslauf-d.md)). Träger der Wire-Messung (Tokenreihenfolge, DONE-Statusbits, RETURNVALUE-Zählung); der Zähler dieser Beobachtung steht mit Überschneidung zu [slice-qa-vergleichslauf-d](slice-qa-vergleichslauf-d.md) (§6).
-- `BEO-TDS/tds-8-0-und-pooling-nicht-gemessen` — 7×, Stand *geplant* (Träger [slice-qa-kompatibilitaet](../in-progress/slice-qa-kompatibilitaet.md)). Betrifft die Grenze: kein Wire-Abgleich für TDS 8.0 und TLS.
+- `BEO-TDS/tds-8-0-und-pooling-nicht-gemessen` — 7×, Stand *geplant* (Träger [slice-qa-kompatibilitaet](../done/slice-qa-kompatibilitaet.md)). Betrifft die Grenze: kein Wire-Abgleich für TDS 8.0 und TLS.
 - `BEO-TDS/vergleichslauf-d-ungeklaert` — 1×, offen (Träger [slice-qa-vergleichslauf-d](slice-qa-vergleichslauf-d.md)). Betrifft Ablage, Häufigkeit und Machbarkeit in CI: Träger bleibt [slice-qa-vergleichslauf-d](slice-qa-vergleichslauf-d.md).
 - `BEO-TDS/anmeldepfad-sicherheit-nicht-gebaut` — 3×, Stand *geplant* (Träger [slice-qa-sicherheit](../done/slice-qa-sicherheit.md)). Betrifft die Redaktion der Mitschnitte: Passwort und Prüfwert erscheinen nirgends in der Ablage (§2).
 - `BEO-TDS/aussagen-ueber-messung-hinaus` — 16×, Stand *verkörpert* (`AGENTS.md` §3.8, Reviewer-Skill). Betrifft diesen Slice: Jede Aussage über die Wire-Gleichheit nennt Instanz, Version und Szenario (§6).
