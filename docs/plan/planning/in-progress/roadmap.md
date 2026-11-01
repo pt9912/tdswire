@@ -31,6 +31,10 @@ In Arbeit (Welle welle-betrieb-diagnose):
 
 - [slice-adr-observability](slice-adr-observability.md)
 
+In Arbeit (ohne Welle):
+
+- keiner; zuletzt geschlossen: [slice-stempel-mechanismus](../done/slice-stempel-mechanismus.md) (Closure-Notiz in §7 des Slice; Folge: [slice-stempel-migration](../open/slice-stempel-migration.md))
+
 In Arbeit (Welle welle-produktschnitt):
 
 - [slice-testserver-herausloesen](slice-testserver-herausloesen.md)
