@@ -1,0 +1,2 @@
+**Vorgang:** slice-qa-synchronitaet
+**Fund:** `SynchronitaetWiringTest` (zweiter Rohbytes-Test) sendet hinter einem Fehler der Class 20 weitere Anfragen und beobachtet kein weiteres Byte; das Backend sieht nur die erste Anfrage. Der Beleg ist Selbstkonsistenz des Servers dieses Repos, keine Messung am echten SQL Server. Der RST beim Schließen mit ungelesenen Bytes (Verifikation F-6) ist als „aus dem Code geschlossen, nicht aufgetreten“ gekennzeichnet; ein Flaky-Risiko unter Last bleibt benannt.

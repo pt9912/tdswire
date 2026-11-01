@@ -2,7 +2,7 @@
 # tools/kompatibilitaetstest.sh - Kompatibilitaetslauf: der .NET-Referenzclient gegen den Serverprozess mit
 # Simulations-Backend (ADR-0019, ADR-0008, TDS-QA-01). Aufruf ueber `make kompatibilitaet KATEGORIE=<Name>`;
 # BUILDER_FLAGS kommt aus der Umgebung (leer ohne BUILDER). Die Kategorie waehlt die Tests des Referenzclients
-# (`[Trait("Kategorie", ...)]` in referenztest-dotnet/Kompatibilitaet): Szenario, Anmeldung oder Luecken.
+# (`[Trait("Kategorie", ...)]` in referenztest-dotnet/Kompatibilitaet): Szenario, Anmeldung, Luecken oder Synchronitaet.
 #
 # Ablauf: Server-Image (Dockerfile-Stage `kompatibilitaetsserver`: JVM, Richtlinie REQUIRED, Schluesselspeicher aus
 # `testkeys`) und Client-Image (referenztest-dotnet, Stage `kompatibilitaet`) bauen; zwei Container in einem
@@ -18,8 +18,8 @@ set -u
 
 KATEGORIE="${1:-}"
 case "$KATEGORIE" in
-  Szenario | Anmeldung | Luecken) ;;
-  *) echo "kompatibilitaetstest: KATEGORIE muss Szenario, Anmeldung oder Luecken sein (war '$KATEGORIE')" >&2; exit 2 ;;
+  Szenario | Anmeldung | Luecken | Synchronitaet) ;;
+  *) echo "kompatibilitaetstest: KATEGORIE muss Szenario, Anmeldung, Luecken oder Synchronitaet sein (war '$KATEGORIE')" >&2; exit 2 ;;
 esac
 
 LAUF="tdswire-kp-$$"

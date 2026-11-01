@@ -1,0 +1,2 @@
+**Vorgang:** slice-qa-synchronitaet
+**Fund:** Die Fehler-Matrix mit Wiederverwendung der Verbindung (Class 16 mit offener Verbindung, Class 20 mit Schließen, gepipelinte Anfragen hinter einem Fehler) ist am Referenzclient gegen den Server dieses Repos und mit einem Rohbytes-Client gemessen, nicht am echten SQL Server. Cancel, Timeout und ATTENTION während des Streamings sind weder dort noch hier gemessen ([CO-004](../../../../../carveouts/CO-004-cancel-szenario-spec-040-fehlt.md)); Träger ist `slice-attention-cancel-timeout`.
