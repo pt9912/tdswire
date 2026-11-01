@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** [TDS-FA-09.a](../../../../spec/spezifikation.md#tds-fa-09a--konfiguration-und-diagnose) (Nr. 3) · SPEC-012 (Logfelder) · SPEC-017 · SPEC-018 · SPEC-019 · Abschnitt 4 (Pflicht-Logfelder) · Abschnitt 5 (Metriken und Tracing-Felder) · „Pflichten des Authentifizierungsadapters“ (Satz „bisher keines“) · die Festlegungen der Läufe gegen den Testserver · Änderungsprotokoll der Spezifikation.
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** pt9912.
 
 **Autor:** pt9912. **Datum:** 2026-11-01.
 
