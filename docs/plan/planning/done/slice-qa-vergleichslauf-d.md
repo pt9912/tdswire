@@ -80,7 +80,7 @@ Nachweis-Pflichten für alle drei Punkte:
 - [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
 - [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
 - [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -162,7 +162,7 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 - **Beobachtungs-Register (`../observations/`):** `evidence/slice-qa-vergleichslauf-d.md` ergänzt in `BEO-TDS/vergleichslauf-d-ungeklaert`, `BEO-TDS/tds-8-0-und-pooling-nicht-gemessen`, `BEO-TDS/messung-am-echten-sql-server-fehlt`, `BEO-TDS/spec-nachzug-nach-messung-offen` und `BEO-TDS/aussagen-ueber-messung-hinaus` (Zähler folgt aus den Dateien). Über der Schwelle ohne Ausgang, der Nutzer entscheidet: `BEO-TDS/tds-8-0-und-pooling-nicht-gemessen` (Stand *offen*, kein Träger für den Rest); keine Verkörperung in diesem Slice.
 - **Folge-Slices:** [slice-referenzabgleich-adr-0028-nachzug](../open/slice-referenzabgleich-adr-0028-nachzug.md) (Nachzug von `SPEC-045`, Plänen und Ausnahmeliste; Trigger: [ADR-0028](../../adr/0028-referenzinstanz-fuer-tds-8-0.md) `Accepted`) — ist eine Datei in `open/`; [slice-qa-vergleichslauf-d-messungen](../open/slice-qa-vergleichslauf-d-messungen.md) (Wire-Messungen, besteht).
 - **Risiken aus §6:** je ein Ausgang in §6 (TDS-8.0-Tag: weiter offen mit Teilbefund; Szenarien: entfallen; Laufzeit und Bedarf: weiter offen; EULA: eingetreten als Entscheidung des Nutzers; Erreichbarkeit: weiter offen).
-- **Drei Paarungen:** Anker: kein `liegt in` (nichts verkörpert); Folge-Slice: zwei Dateien in `open/`; Register: fünf Evidence-Dateien (nach dem `git mv` zu prüfen).
+- **Drei Paarungen:** Anker: kein `liegt in` (nichts verkörpert); Folge-Slice: zwei Dateien in `open/`; Register: fünf Evidence-Dateien (nach dem `git mv` geprüft: vorhanden).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
