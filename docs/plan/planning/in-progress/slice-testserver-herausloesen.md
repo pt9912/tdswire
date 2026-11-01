@@ -134,6 +134,15 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf; den Umfang best
 
 Start-Trigger, Bedingung 3: Der Start der Welle ist am 2026-11-01 vom Nutzer ausdrücklich verlangt; `slice-e2e-geruest` liegt noch in `in-progress/` (Abweichung vom Wortlaut), `tools/e2e.sh` hat sieben Stufen (Entscheidung F-6, in `main`).
 
+**Ergebnis des Übersetzungslaufs** (Abweichungen von den Setzungen oben; Zustand, Belege in der Übergabe an den Reviewer):
+
+- `ServerProcess`, `ServerSmokeTest`, `LaufzeitClient` und `RawClient` bleiben in `src/test`: sie bauen ihre Bytes mit `SessionVectors`, `TokenDecoder` und `LoginAck`, alle `internal` in `main` oder Test-Hilfen; die Kind-JVM startet das `main` des Testservers über die Systemeigenschaft `tdswire.testserverclasspath`. `laufzeitClient` läuft deshalb weiter über `sourceSets.test`.
+- Die Tests des Testservers liegen unter `src/testserver/test/kotlin` (derselbe Source-Set `testserver`), damit detekt sie wie `src/test` behandelt; `IntegrationServer.kt`, `KompatibilitaetsServer.kt` und `sim.yaml` liegen in `src/testserver/kotlin` und `src/testserver/resources`.
+- Die Sperre gegen `com.fasterxml` in `src/main` ist `tools/jackson-sperre.sh` (Stage `detekt`, Selbsttest in `tools/detekt-selbsttest.sh jackson`), keine detekt-Importregel: deren Selbsttest vergleicht Regeln mit Packages, und `runtime` hat keine Regel.
+- Der Lader meldet Form und Dateifehler, die Wertebereiche meldet der Start der Bibliothek (`ConfigValidation.check`); `SimColumnTypes` ist ganz in den Testserver gewandert, die Bibliothek behält nur die Obergrenze 38 in `SimModel`; `EnvKeys` führt die Namen der Umgebungsvariablen, `ConfigKeys` bleibt für die Schlüssel der Diagnose.
+- Die Wiring-Tests in `src/test` bauen ihre `ServerConfig` über `configOf` (nur gültige Umgebungen); die Ladefehler prüft der Testserver.
+
+
 ## 4. Trigger
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`

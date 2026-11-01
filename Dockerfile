@@ -86,7 +86,7 @@ COPY --chown=gradle:gradle gradle/test-jvm.init.gradle.kts gradle/
 RUN gradle --no-daemon -I gradle/test-jvm.init.gradle.kts test integratorTest testserverTest
 
 # --- Smoke: `docker build --target smoke .` - der Rohbytes-Smoke der Welle allein (ServerSmokeTest): die
-# Kind-JVM startet `main` mit dem Flag der Test-JVM und einer Testkonfiguration, ein Rohbytes-Client spricht den
+# Kind-JVM startet das `main` des Testservers mit dem Flag der Test-JVM und einer Testkonfiguration, ein Rohbytes-Client spricht den
 # Login-Pfad. Dieselben Tests laufen auch in der Stage `test`; die Stage ist der engste Sensor dafuer. ----
 FROM deps AS smoke
 COPY --chown=gradle:gradle src src
