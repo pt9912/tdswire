@@ -7,7 +7,7 @@ namespace TdsWire.Referenztests.Kompatibilitaet;
 
 /// <summary>
 /// Messungen der Lücken 3, 4 und 14 der Kompatibilitätsmatrix am Referenzclient (Microsoft.Data.SqlClient 7.1.1)
-/// gegen den Serverprozess (`make kompatibilitaet KATEGORIE=Luecken`, Stufe 7 von `make e2e`, ADR-0019, TDS-QA-01):
+/// gegen den Serverprozess (`make kompatibilitaet KATEGORIE=Luecken`, Stufe 6 von `make e2e`, ADR-0019, TDS-QA-01):
 /// `xml` als RPC-Parameter, mehrere RPCs in einer Nachricht (Batch-Flag, `SqlDataAdapter` mit `UpdateBatchSize`),
 /// Kennwortwechsel und FeatureExt der Anmeldung (Zugriffstoken). Jeder Test pinnt, was der Client sieht; die Zeilen
 /// `messung: ...` im Bericht sind die Werte, die die Matrix zitiert. Der Grund der Ablehnung (Kennwortwechsel,

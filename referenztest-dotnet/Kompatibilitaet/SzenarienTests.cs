@@ -7,7 +7,7 @@ namespace TdsWire.Referenztests.Kompatibilitaet;
 
 /// <summary>
 /// Die Szenarien des Referenzclients (Microsoft.Data.SqlClient 7.1.1) gegen den Serverprozess mit Simulations-Backend
-/// (`make kompatibilitaet`, Stufe 5 von `make e2e`, ADR-0019, TDS-QA-01): Anmeldung, SELECT, parametrisierte Abfrage,
+/// (`make kompatibilitaet`, Stufe 4 von `make e2e`, ADR-0019, TDS-QA-01): Anmeldung, SELECT, parametrisierte Abfrage,
 /// NULL, Typkatalog, Einfügen/Ändern/Löschen, Fehler vor und nach Zeilen. Jede Verbindung läuft mit TLS in TDS 7.4
 /// (Encrypt=Mandatory, Kette und Name geprüft); die Tabellen und Zahlen stehen in `KompatibilitaetsServer.kt`.
 /// Nicht belegt: Cancel (der Server beantwortet ATTENTION während einer Anfrage nicht, CO-004), mehrteilige Antworten
