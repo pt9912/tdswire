@@ -68,7 +68,9 @@ internal class HandlerSetup(
  * Paketen vom Typ `0x12`), und was dort kein gültiges PRELOGIN ist, endet ohne TDS-Antwort. Der TDS-8.0-Pfad
  * besteht nur mit TLS-Material und der Richtlinie `REQUIRED`; sonst trennt der Handler ohne Antwort. Ein
  * Klartext-Anfang nach dem ersten Byte `0x16` scheitert im TLS-Handschlag (kein Rückfall auf Klartext). Belegt ist
- * der Pfad gegen eine JDK-Gegenstelle und Rohbytes (`Tds8WiringTest`), nicht gegen den Referenzclient.
+ * der Pfad gegen eine JDK-Gegenstelle und Rohbytes (`Tds8WiringTest`) und am Referenzclient (`Encrypt=Strict` mit
+ * SQL-Authentifizierung, `make kompatibilitaet KATEGORIE=Anmeldung`); die ausgehandelte TLS-Version und Suite sind
+ * dort nicht beobachtet.
  */
 internal class HandshakeConnectionHandler(private val setup: HandlerSetup, private val backend: QueryBackend? = null) :
     ConnectionHandler {

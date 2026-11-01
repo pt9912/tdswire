@@ -239,6 +239,25 @@ ENV LISTEN_HOST=0.0.0.0 LISTEN_PORT=1433 ENCRYPTION_POLICY=TEST_UNENCRYPTED AUTH
     AUTH_USERS_FILE=/home/gradle/users.txt SIMULATION_DESCRIPTION_FILE=/src/src/test/resources/integration/sim.yaml
 CMD ["gradle", "--no-daemon", "--offline", "-q", "integrationsServer"]
 
+# --- Kompatibilitaetsserver: der Serverprozess des Kompatibilitaetslaufs (`make kompatibilitaet`) als Container neben
+# dem .NET-Referenzclient (referenztest-dotnet, Stage `kompatibilitaet`). Die Tabellen kommen aus
+# src/test/kotlin/io/github/pt9912/tdswire/runtime/KompatibilitaetsServer.kt. Richtlinie REQUIRED mit dem
+# Schluesselspeicher `gueltig.p12` aus `testkeys` (CN=localhost); sein Zertifikat liegt als /home/gradle/server.pem,
+# damit der Lauf es dem Client als Vertrauensanker geben kann (TDS 8.0 prueft die Kette). Die Anmeldung alice/secret
+# ist ein Testwert; der Container erreicht nur sein internes Netzwerk. ----
+FROM deps AS kompatibilitaetsserver
+COPY --chown=gradle:gradle src src
+COPY --from=testkeys --chown=gradle:gradle /testkeys/gueltig.p12 /home/gradle/gueltig.p12
+RUN gradle --no-daemon --offline testClasses \
+ && printf 'alice\t{plain}secret\n' > /home/gradle/users.txt \
+ && printf 'tdswire-test\n' > /home/gradle/kennwort.txt \
+ && keytool -exportcert -alias server -keystore /home/gradle/gueltig.p12 -storepass tdswire-test -rfc \
+      -file /home/gradle/server.pem
+ENV LISTEN_HOST=0.0.0.0 LISTEN_PORT=1433 ENCRYPTION_POLICY=REQUIRED AUTH_PLAIN_TESTMODE=true \
+    AUTH_USERS_FILE=/home/gradle/users.txt TLS_KEYSTORE_FILE=/home/gradle/gueltig.p12 \
+    TLS_KEYSTORE_PASSWORD_FILE=/home/gradle/kennwort.txt
+CMD ["gradle", "--no-daemon", "--offline", "-q", "kompatibilitaetsServer"]
+
 # --- Build: `docker build .` (letzte Stage = Vorgabe) - minimales Artefakt-Image (Distroless
 # static, Variante nonroot) mit nur dem fertigen Jar zum Herausholen (z. B. per `docker cp`);
 # nichts darin wird ausgefuehrt. --------------------------------------------------
