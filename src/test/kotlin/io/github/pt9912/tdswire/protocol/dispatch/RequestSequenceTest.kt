@@ -68,7 +68,11 @@ class RequestSequenceTest {
         doneProcFinal,
     ).joinToString(" ")
 
-    /** Handvektor: RETURNSTATUS 0, RETURNVALUE `@o` (Ordinal 0, 42), DONEPROC; Quelle `AnswerFormsDispatchTest`. */
+    /**
+     * Selbstkonsistenz: Bausteine (RETURNSTATUS, RETURNVALUE `@o`, DONEPROC) aus `AnswerFormsDispatchTest` und
+     * `PreparedHandlesDispatchTest`; die Zusammensetzung ohne vorangehende Ergebnismenge ist nur dadurch belegt,
+     * dass dieser Test besteht.
+     */
     private val outputReply = listOf(
         "79 00 00 00 00",
         "AC 00 00 02 40 00 6F 00 01 00 00 00 00 01 00 26 04 04 2A 00 00 00",
@@ -90,7 +94,7 @@ class RequestSequenceTest {
 
     private fun rpc(payload: ByteArray) = BatchVectors.raw(PacketType.RPC, payload)
 
-    /** Die zehn Anfragen der Folge, danach das Ende der Gegenstelle. */
+    /** Die elf Nachrichten der zehn Schritte (Schritt 5 trägt zwei: `sp_prepexec`, `sp_execute`), danach das Ende. */
     private fun messages(): List<Inbound> = listOf(
         BatchVectors.message("select 7"),
         BatchVectors.message("select 7 where 1=0"),
@@ -154,7 +158,11 @@ class RequestSequenceTest {
      * mit zwei Ergebnissen, (4) `sp_executesql` mit NULL- und OUTPUT-Parameter, (5) `sp_prepexec` und danach
      * `sp_execute` mit dem gelieferten Handle, (6) ein unbekannter RPC, (7) `sp_execute` mit unbekanntem Handle,
      * (8) ein Batch, (9) `sp_executesql`, (10) `sp_execute` mit dem Handle aus (5). Die Schritte (9) und (10)
-     * sind der Zusatz, ohne den eine Leerung der Handle-Tabelle bei `sp_executesql` unsichtbar bliebe.
+     * sind der Zusatz: sie prüfen die Handle-Tabelle nach `sp_executesql`. Der Lauf enthält keine PLP- und keine
+     * NBCROW-Form (nur Int32-Spalten und `D1`-ROW); deren Belege liegen bei der Datentyp-Erweiterung.
+     * Zählung: Schritte 1 bis 10; Antworten 0-basiert in der Reihenfolge der elf Nachrichten, Schritt 5 belegt die
+     * Antworten 4 und 5, ab Schritt 6 ist der Antwortindex gleich der Schrittnummer; die neun Backend-Aufrufe
+     * sind die Schritte 1 bis 5 (zwei Aufrufe), 8, 9 und 10 (Schritt 6 und 7 rufen es nicht).
      * Der Anfragezustand ist bei jedem Backend-Aufruf `RUNNING`; dass er nach jeder Anfrageart nach `READY`
      * zurückkehrt, belegt die Annahme der nächsten Nachricht (außerhalb von `READY` schließt die Schleife), und
      * auf jede Anfrageart folgt eine weitere. Die Handle-Tabelle hält das Handle aus (5) über Batch, RPC und
@@ -178,8 +186,10 @@ class RequestSequenceTest {
         val probe = StateProbe(backend) { states += session.ready.live.context.state }
         session.serve(probe, ErrorMapper(ErrorLog { logged += it }))
 
-        assertEquals(11, session.replies.size)
-        assertEquals(9, backend.requests.size)
+        val answered = session.replies.size
+        assertEquals(11, answered, "Antworten: nach $answered folgt Antwort ${REPLY_KINDS.getOrNull(answered)}")
+        val called = backend.requests.size
+        assertEquals(9, called, "Backend-Aufrufe: nach $called folgt Aufruf ${CALL_KINDS.getOrNull(called)}")
         assertEquals(List(9) { ConnectionState.RUNNING }, states)
         assertEquals(expectedCalls(), backend.requests.map { it.sql to it.parameters })
         assertEquals(List(9) { "s1" }, backend.requests.map(QueryRequest::sessionId))
@@ -227,7 +237,35 @@ class RequestSequenceTest {
         /** Ein Handle, das die Sitzung nie vergibt (sie zählt ab 1 und vergibt hier nur das Handle 1). */
         const val UNKNOWN_HANDLE = 99
 
-        /** Index der Antwort auf (6), (7) und (8) unter den Antworten ohne Login. */
+        /** Die Antworten nach Index (0-basiert, ohne Login) mit Schritt und Anfrageart. */
+        val REPLY_KINDS = listOf(
+            "0 (Schritt 1, Batch)",
+            "1 (Schritt 2, Batch leer)",
+            "2 (Schritt 3, Batch mit zwei Ergebnissen)",
+            "3 (Schritt 4, sp_executesql)",
+            "4 (Schritt 5, sp_prepexec)",
+            "5 (Schritt 5, sp_execute)",
+            "6 (Schritt 6, unbekannter RPC)",
+            "7 (Schritt 7, sp_execute mit unbekanntem Handle)",
+            "8 (Schritt 8, Batch)",
+            "9 (Schritt 9, sp_executesql)",
+            "10 (Schritt 10, sp_execute mit Handle aus Schritt 5)",
+        )
+
+        /** Die Backend-Aufrufe nach Index (0-basiert) mit Schritt und Anfrageart. */
+        val CALL_KINDS = listOf(
+            "0 (Schritt 1, Batch)",
+            "1 (Schritt 2, Batch leer)",
+            "2 (Schritt 3, Batch mit zwei Ergebnissen)",
+            "3 (Schritt 4, sp_executesql)",
+            "4 (Schritt 5, sp_prepexec)",
+            "5 (Schritt 5, sp_execute)",
+            "6 (Schritt 8, Batch)",
+            "7 (Schritt 9, sp_executesql)",
+            "8 (Schritt 10, sp_execute mit Handle aus Schritt 5: Handle-Tabelle geleert?)",
+        )
+
+        /** Antwortindex (0-basiert) der Schritte 6, 7 und 8; Schritt 5 belegt die Indizes 4 und 5. */
         const val UNKNOWN_RPC_REPLY = 6
         const val UNKNOWN_HANDLE_REPLY = 7
         const val AFTER_ERRORS_BATCH_REPLY = 8
