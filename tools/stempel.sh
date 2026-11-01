@@ -27,7 +27,8 @@
 #                             Einzelmessungen (Git 2.43.0, ein Host, vier Wiederholungen) 36 bis 47 von 60 Zeilen
 #                             bzw. Notes, ohne zu scheitern. Der Verlust geht in Richtung Lauf (die Zeile fehlt), nicht
 #                             in Richtung Ueberspringen; die Sperre serialisiert die Aufrufe dieses Skripts. Die Sperre
-#                             wartet hoechstens zwei Sekunden; eine Sperre mit totem Prozess, ohne pid-Datei aelter als
+#                             wartet hoechstens zwei Sekunden (STEMPEL_SPERRE_VERSUCHE, Standard 20 Versuche zu 0,1 s; ein
+#                             kleinerer Wert verkuerzt nur das Warten); eine Sperre mit totem Prozess, ohne pid-Datei aelter als
 #                             eine Minute oder aelter als zehn Minuten wird uebernommen. Grenze: uebernehmen zwei
 #                             Wartende dieselbe tote Sperre gleichzeitig, koennen beide schreiben (Folge: hoechstens
 #                             ein verlorener Stempel; nicht gefahren). Schreiber ausserhalb dieses Skripts sperrt sie nicht.
@@ -35,14 +36,15 @@
 #                             ruft es, wenn der Schluessel fehlt. Notes werden nie gepusht oder geholt.
 #
 # Eingangs-Hash: SHA-256 ueber die Zeilen `<Pfad> <Git-Tree-ID>` aller Eintraege von tools/stempel/<klasse>.eingaenge
-# (sortiert, ID aus `git rev-parse <Commit>:<Pfad>`). Ein Eintrag ist ein literaler Pfad ohne Platzhalter; ein Eintrag,
-# der in HEAD fehlt, ist ein Fehler, kein leerer Wert. Sauber heisst: `git status --ignored` meldet in den Eintraegen
-# nichts (versioniert, unversioniert, ignoriert); Aenderungen ausserhalb zaehlen nicht.
+# (sortiert; die ID liefert `git ls-tree <Commit> -- <Pfade>` in einem Aufruf und ist dieselbe wie bei `git rev-parse
+# <Commit>:<Pfad>`). Ein Eintrag ist ein literaler Pfad ohne Platzhalter; ein Eintrag, der in HEAD fehlt, ist ein Fehler,
+# kein leerer Wert. Sauber heisst: `git status --ignored` meldet in den Eintraegen nichts (versioniert, unversioniert,
+# ignoriert); Aenderungen ausserhalb zaehlen nicht.
 # Eingaenge: die Eintraege beider Listen; das Skript, tools/stempel-liste.sh und beide Listen stehen in der Liste beider
 # Klassen (die Pruefung tools/stempel-eingaenge-pruefung.sh haelt das).
 # Grenze: Die Note ist lokal und wird von jedem mit Schreibrecht auf das Git-Verzeichnis gesetzt; der Hash-Vergleich
 # gegen den Vorfahren faengt eine Note am falschen Commit, nicht eine Note, die ein Mensch am richtigen setzt.
-# Laufzeit des Selbsttests: Kopf von tools/stempel-selbsttest.sh.
+# Laufzeit des Selbsttests: Kopf von tools/mk/stempel.mk.
 set -u
 export LC_ALL=C
 export GIT_OPTIONAL_LOCKS=0
@@ -70,13 +72,23 @@ lade_liste() { stempel_liste_lesen "tools/stempel/$1.eingaenge" E; }
 
 # eingangs_hash <commit>: setzt HASH aus E; ein Pfad, der im Commit fehlt, ist ein Fehler.
 eingangs_hash() {
-	local c=$1 e id zeilen=
+	local c=$1 e id rec kopf zeilen=
+	local -A ids=()
+	local -a pfade=()
 	HASH=
+	for e in "${E[@]}"; do [ "$e" = . ] || pfade+=("$e"); done
+	if [ ${#pfade[@]} -gt 0 ]; then
+		# ein Aufruf fuer alle Pfade; ein fehlender Pfad fehlt in der Ausgabe
+		while IFS= read -r -d '' rec; do
+			kopf=${rec%%$'\t'*}
+			ids["${rec#*$'\t'}"]=${kopf##* }
+		done < <(git ls-tree -z "$c" -- "${pfade[@]}" 2>/dev/null)
+	fi
 	for e in "${E[@]}"; do
 		if [ "$e" = . ]; then
 			id=$(git rev-parse --verify -q "$c^{tree}" 2>/dev/null) || id=
 		else
-			id=$(git rev-parse --verify -q "$c:$e" 2>/dev/null) || id=
+			id=${ids["$e"]:-}
 		fi
 		[ -n "$id" ] || { WARUM="Eingangspfad fehlt oder git schlug fehl: $e"; return 1; }
 		zeilen+="$e $id"$'\n'
@@ -124,7 +136,7 @@ sperre_holen() {
 	local gd i p
 	gd=$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd) || { SPERRE="(Git-Verzeichnis)"; return 1; }
 	SPERRE="$gd/gates-stempel.lock"
-	for i in $(seq 1 20); do
+	for i in $(seq 1 "${STEMPEL_SPERRE_VERSUCHE:-20}"); do
 		if mkdir "$SPERRE" 2>/dev/null; then
 			printf '%s\n' "$$" > "$SPERRE/pid"
 			trap 'rm -rf "$SPERRE"' EXIT

@@ -4,8 +4,9 @@
 # tools/stempel-eingaenge-selbsttest.sh.
 #
 # Zusage: Exit 0 nur, wenn
-#  - jede COPY/ADD-Quelle (ohne --from=) der Stages test, compile, detekt, build-jar, smoke und build samt Vorgaenger-Stages
-#    von Dockerfile und der Stage test von referenztest-dotnet/Dockerfile von einem Eintrag in tests.eingaenge ueberdeckt
+#  - jede COPY/ADD-Quelle der Stages test, compile, detekt, build-jar, smoke und build samt Vorgaenger-Stages (bei
+#    `COPY --from=<stage>` zaehlen die Quellen der Quell-Stage fuer die holende Stage) von Dockerfile und der Stage test von
+#    referenztest-dotnet/Dockerfile von einem Eintrag in tests.eingaenge ueberdeckt
 #    ist und build die letzte Stage ist (`docker build .` baut die letzte),
 #  - jede Quelle der Stages detekt-selbsttest, skript-selbsttest, kopplung-zahlen samt Vorgaengern, jede Markdown-Datei,
 #    die d-check nach scan.roots und scan.ignore aus .d-check.yml liest, jedes vorhandene Ziel eines Markdown-Links in diesen
@@ -29,7 +30,7 @@
 # Umgebung (nur fuer den Selbsttest): STEMPEL_DOCKERFILE, STEMPEL_DOTNET_DOCKERFILE, STEMPEL_DOTNET_KONTEXT,
 # STEMPEL_DCHECK, STEMPEL_LISTEN.
 # Voraussetzung: bash ab 4.3 (declare -A, mapfile, local -n), git, awk, sort, grep (GNU-Werkzeuge, Linux).
-# Laufzeit: Kopf von tools/stempel-eingaenge-selbsttest.sh.
+# Laufzeit: Kopf von tools/mk/stempel.mk.
 set -u
 export LC_ALL=C
 SKRIPTVERZ=${BASH_SOURCE[0]}
@@ -56,7 +57,7 @@ FEST_BEIDE="Dockerfile .dockerignore Makefile repo.mk tools/mk/builder.mk tools/
 FEST_WERKZEUG=".d-check.yml d-check.mk .harness/baseline harness tools referenztest-dotnet/Dockerfile"
 FEST_TESTS="tools/mk/test.mk tools/mk/build.mk tools/mk/referenztest-dotnet.mk"
 
-declare -A PARENT QUELLEN KENNT LETZTE
+declare -A PARENT QUELLEN KENNT LETZTE VONREF
 BEFUNDE=()
 befund() { BEFUNDE+=("$*"); }
 
@@ -68,6 +69,7 @@ lese_dockerfile() {
 		case $art in
 			S) KENNT["$tag:$a"]=1; PARENT["$tag:$a"]=$b ;;
 			Q) QUELLEN["$tag:$a"]+="${praefix}${b}"$'\n' ;;
+			F) VONREF["$tag:$a"]+="$b " ;;
 			L) LETZTE["$tag"]=$a ;;
 			B) befund "$datei: $a ($b)" ;;
 		esac
@@ -101,12 +103,12 @@ lese_dockerfile() {
 		if (buf ~ /<</) { melde(buf, "Heredoc wird nicht ausgewertet"); return }
 		von = 0
 		for (i = 2; i <= n && f[i] ~ /^--/; i++) {
-			if (f[i] ~ /^--from=/) von = 1
+			if (f[i] ~ /^--from=/) { von = 1; vonname = tolower(substr(f[i], 8)) }
 			else if (f[i] !~ /^--chown=/ && f[i] != "--link") { melde(buf, "nicht erkannte Option " f[i]); return }
 		}
 		if (f[i] ~ /^\[/) { melde(buf, "JSON-Form wird nicht ausgewertet"); return }
 		if (n - i + 1 < 2) { melde(buf, "weniger als zwei Argumente"); return }
-		if (von) return
+		if (von) { printf "F\t%s\t%s\t\n", cur, vonname; return }
 		for (j = i; j < n; j++) {
 			src = f[j]
 			if (src ~ /\$/) { melde(buf, "Variable in der Quelle " src); continue }
@@ -132,11 +134,16 @@ lese_dockerfile() {
 	' "$datei")
 }
 
-# stage_quellen <tag> <stage>: Quellen der Stage und ihrer Vorgaenger, eine je Zeile.
+# stage_quellen <tag> <stage> [tiefe]: Quellen der Stage, ihrer Vorgaenger und der Stages, aus denen sie mit
+# `COPY --from=<stage>` Dateien holt (deren Eingaenge sind ihre), eine je Zeile.
 stage_quellen() {
-	local s=$2 n=0
+	local s=$2 tiefe=${3:-0} n=0 r
+	[ "$tiefe" -lt 10 ] || return 0
 	while [ -n "$s" ] && [ -n "${KENNT["$1:$s"]:-}" ] && [ $n -lt 50 ]; do
 		printf '%s' "${QUELLEN["$1:$s"]:-}"
+		for r in ${VONREF["$1:$s"]:-}; do
+			[ -z "${KENNT["$1:$r"]:-}" ] || stage_quellen "$1" "$r" $((tiefe + 1))
+		done
 		s=${PARENT["$1:$s"]:-}
 		n=$((n + 1))
 	done
