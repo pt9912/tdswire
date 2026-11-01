@@ -952,12 +952,14 @@ soweit nicht anders genannt; sie gelten für das Modell der Bibliothek und damit
   Quelladresse der Gegenstelle, hinzukommen, ist nicht festgelegt); jedes Zeichenketten-Feld ist auf 256 Zeichen begrenzt (Setzung,
   darüber wird abgeschnitten). Nicht zugesagt: Escaping, Ziele und Aufbewahrung im Adapter eines
   Embedders.
-- **Abbruch des Starts:** Das Ereignis zum Bindefehler nennt Adresse und Port (`SPEC-043`). Die
-  „Diagnose, die Adresse und Port nennt“ (`SPEC-043`) ist dieses Ereignis. Die Adresse steht nur im
-  Ereignis; `StartOutcome.Aborted.reason` bleibt ein Text ohne Konfigurationswert (`SPEC-059`) und
-  enthält weder Adresse noch Port (Zielzustand, nicht gebaut: der gebaute `reason` lautet
-  „Start gescheitert: Port belegt: <Adresse>:<Port>“ und nennt beides). Ohne übergebene Senke gibt es keine Diagnose mit Adresse und Port
-  (Festlegung des Zielzustands).
+- **Abbruch des Starts:** Das Ereignis zum Bindefehler nennt Adresse und Port (`SPEC-043`).
+  `StartOutcome.Aborted.reason` nennt dieselbe Adresse und denselben Port; Adresse und Port sind
+  Betriebsangaben, kein Geheimnis. `reason` enthält weder Pfade noch Ausnahmetext noch Schlüsselmaterial
+  oder Kennwörter. Die „Diagnose, die Adresse und Port nennt“ (`SPEC-043`) steht damit auch ohne
+  übergebene Senke im `reason`; das Ereignis ist ihre Form für die Senke (Festlegung). Gebaut ist
+  `reason` als „Start gescheitert: “ plus die Meldung des Fehlers; beim belegten Port lautet sie „Port belegt:
+  <Adresse>:<Port>“ (`ListenerConfig.kt`, `Bootstrap.kt`). Dass `reason` bei jedem Abbruchgrund frei von
+  Pfaden und Ausnahmetext ist, ist nicht für jeden Grund geprüft (Zielzustand, nicht gebaut).
 
 ## 5. Metriken und Tracing-Felder
 
@@ -1279,7 +1281,7 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | `TdsServer.start(config, source)` | suspendierend, Package `runtime`; liefert `StartOutcome`: `Running(server)` oder `Aborted(reason, issues)`. Der Start wirft keine Ausnahme für Konfigurations-, Tabellen-, TLS- oder Bindefehler. **Zielzustand, nicht gebaut:** `start` nimmt zusätzlich eine Senke für Log und Telemetrie entgegen (Abschnitt 5). |
 | `TdsServer` | `port` (der gebundene Port) und `suspend stop()`. `stop` ist idempotent: der zweite Aufruf endet ohne Wirkung (Test: Einbettungstest, nacheinander aus einem Thread). Aufruf von mehreren Threads und `stop` während `start` sind nicht festgelegt. |
 | `BackendSource` | `Custom(backend)`: ein `QueryBackend`, auch ein selbst gebautes `SimulationBackend(SimCatalog(tables))` (`SPEC-035`); `Simulation(tables)`: `SimTable`-Werte mit Zeilenquelle und Callbacks (`SPEC-035`); `None`: wie `Simulation` mit leerer Liste. `Custom` mit Tabellen ist nicht darstellbar. Die Bibliothek kennt keine Datei der Tabellenbeschreibung; den Weg über die Datei geht der Testserver (`SPEC-035`). |
-| `StartOutcome.Aborted` | `reason` ist ein Text ohne Konfigurationswert, Pfad und Ausnahmetext; `issues` nennt bei ungültiger Konfiguration jeden Fehler mit Schlüssel und Art (`ConfigIssue`), sonst ist die Liste leer. Festlegung: `ConfigIssue` ist als Typ der Signatur Teil der Zusage und die Art (`IssueKind`) ebenso; der Wortlaut des Schlüssels (ein Text, der das Konfigurationsfeld nennt) ist keine Zusage, ein Einbettender verlässt sich nicht auf bestimmte Namen. Der gebaute Stand führt dafür die Namen der Umgebungsvariablen (`SPEC-005`, `SPEC-010`). Ein Abbruch bindet keinen Port und startet keinen Thread des Servers. |
+| `StartOutcome.Aborted` | `reason` ist ein Text ohne Pfad, Ausnahmetext, Schlüsselmaterial und Kennwort; beim Bindefehler nennt er Adresse und Port; `issues` nennt bei ungültiger Konfiguration jeden Fehler mit Schlüssel und Art (`ConfigIssue`), sonst ist die Liste leer. Festlegung: `ConfigIssue` ist als Typ der Signatur Teil der Zusage und die Art (`IssueKind`) ebenso; der Wortlaut des Schlüssels (ein Text, der das Konfigurationsfeld nennt) ist keine Zusage, ein Einbettender verlässt sich nicht auf bestimmte Namen. Der gebaute Stand führt dafür die Namen der Umgebungsvariablen (`SPEC-005`, `SPEC-010`). Ein Abbruch bindet keinen Port und startet keinen Thread des Servers. |
 | Prüfung | Der Start prüft die Konfiguration, gleich auf welchem Weg sie entstand (`ConfigValidation.check`): `REQUIRED` verlangt Schlüsselspeicher und Passwort, `TEST_UNENCRYPTED` lässt beide nicht zu (`SPEC-010`); Port 0 bis 65535 (`SPEC-005`), Anmeldefrist 1 bis 3600 s (`SPEC-008`), Frist einer Anfrage und Frist des Abbruchs je 1 bis 3600 s (`SPEC-009`, `SPEC-033`), Größe der PRELOGIN-Nachricht 512 bis 65536 Byte (`SPEC-046`), Bind-Adresse nicht leer. Die Voreinstellungen von `ListenSettings`, `LoginSettings`, `RequestSettings` (`ServerConfig.requests`: `QUERY_TIMEOUT` 30 s, `CANCEL_TIMEOUT` 5 s) und der Verschlüsselung sind die der Spezifikation; ein Einbettender ohne Angabe bekommt also nach 30 s `TDS_TIMEOUT` für eine Anfrage. Umgebung und Dateien liest nicht die Bibliothek, sondern der Testserver; er baut eine `ServerConfig` und ruft `TdsServer.start` wie ein Einbettender (`SPEC-052`). |
 | Einmal-Konfiguration | Eine `ServerConfig` gilt für einen Start: sobald der Start das TLS-Material lädt, löscht er das Passwort im Schlüsselmaterial; bricht er vorher ab (JVM-Flag, Prüfung), bleibt es lesbar (Festlegung, getestet für Flag, Prüfung und Bindefehler). Wer neu startet, baut eine neue `ServerConfig`. |
 | Nicht erreichbar | Authentifizierungsadapter, Log und Telemetrie lassen sich über den Einstieg nicht ersetzen; der Einstieg schreibt kein Log. **Zielzustand, nicht gebaut:** Log und Telemetrie gehen an die übergebene Senke (Abschnitt 5); nur der Authentifizierungsadapter bleibt nicht erreichbar. |
