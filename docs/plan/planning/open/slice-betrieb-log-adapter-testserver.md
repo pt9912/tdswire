@@ -104,7 +104,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **Start** (`next` → `in-progress`), alle Bedingungen beobachtbar:
 
 1. [ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md) steht im ADR-Index auf `Accepted` (erfüllt: Annahme am 2026-11-01).
-2. [slice-testserver-herausloesen](slice-testserver-herausloesen.md) liegt in `done/` (der Testserver existiert, bindet nur die öffentliche Fläche, und die herausgenommenen Skript-Prüfungen tragen die Kennung dieses Slice).
+2. [slice-testserver-herausloesen](../next/slice-testserver-herausloesen.md) liegt in `done/` (der Testserver existiert, bindet nur die öffentliche Fläche, und die herausgenommenen Skript-Prüfungen tragen die Kennung dieses Slice).
 3. [slice-betrieb-log-schnittstelle](slice-betrieb-log-schnittstelle.md) liegt in `done/` (Modell, Senke, Parameter von `start` und Sammler stehen als öffentliche Fläche).
 4. [slice-spec-nachzug-telemetrie](slice-spec-nachzug-telemetrie.md) liegt in `done/` (die Spezifikation sagt `LOG_LEVEL`, Format und Warteschlange als Aussagen über den Testserver; folgt aus Bedingung 3, hier genannt, damit die Kante lesbar ist).
 5. Ein Verantwortlicher ist im Kopf eingetragen.
