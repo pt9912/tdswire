@@ -1,5 +1,6 @@
 package io.github.pt9912.tdswire.runtime
 
+import io.github.pt9912.tdswire.domain.telemetry.StartRefusal
 import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.simulation.SimCatalog
 import io.github.pt9912.tdswire.simulation.SimTable
@@ -13,8 +14,8 @@ internal sealed interface SimulationResult {
     /** Das Backend mit [tables] Tabellen. */
     class Ready(val backend: QueryBackend, val tables: Int) : SimulationResult
 
-    /** Der Start bricht ab; [reason] nennt nie den Inhalt einer Tabelle. */
-    class Failed(val reason: String) : SimulationResult
+    /** Der Start bricht aus dem Grund [refusal] ab; [reason] nennt nie den Inhalt einer Tabelle. */
+    class Failed(val refusal: StartRefusal, val reason: String) : SimulationResult
 }
 
 /**
@@ -28,12 +29,14 @@ internal sealed interface SimulationResult {
  * nicht besteht, wirft ihre eigene `IllegalArgumentException` aus dem Start.
  */
 internal object SimulationSetup {
+    private const val DUPLICATE_NAME = "Tabellen ungueltig: ein Name kommt doppelt vor"
+
     fun build(tables: List<SimTable>): SimulationResult {
         val all = tables.map(::owned)
         val catalog = catalogOf(all)
         return when {
             all.isEmpty() -> SimulationResult.Absent
-            catalog == null -> SimulationResult.Failed("Tabellen ungueltig: ein Name kommt doppelt vor")
+            catalog == null -> SimulationResult.Failed(StartRefusal.TABLE_NAME_DUPLICATE, DUPLICATE_NAME)
             else -> SimulationResult.Ready(SimulationBackend(catalog), all.size)
         }
     }

@@ -1,0 +1,44 @@
+package io.github.pt9912.tdswire.domain.telemetry
+
+/** Die Ebene eines Ereignisses (`TDS-FA-09.a`); sie ist je Ereignisart fest. */
+public enum class EventLevel {
+    /** Ein Fehler, den der Betreiber beheben muss. */
+    ERROR,
+
+    /** Eine Abweichung oder Abschwächung, die der Betreiber kennen soll. */
+    WARN,
+
+    /** Ein Zustand des Betriebs. */
+    INFO,
+
+    /** Ein Ereignis für die Diagnose im Einzelfall. */
+    DEBUG,
+}
+
+/**
+ * Die Senke für Log und Telemetrie (`SPEC-059`): `TdsServer.start` nimmt sie als Parameter entgegen. Die
+ * Bibliothek schreibt nirgends hin; wer ein Log will, übergibt eine Senke und formatiert das [TelemetryEvent]
+ * selbst.
+ *
+ * Vertrag der Senke:
+ * - [accept] kommt aus beliebigen Threads, auf dem Anfragepfad der Bibliothek.
+ * - [accept] blockiert nicht und wirft nicht. Eine Senke, die blockiert, hält den Anfragepfad an; davor schützt die
+ *   Bibliothek nicht.
+ * - Wirft [accept] dennoch eine `Exception`, fängt die Bibliothek sie ab und verwirft sie; weder die Anfrage noch die
+ *   Verbindung brechen. Eine `CancellationException` und jeder `Error` werden nicht gefangen und laufen zum Aufrufer
+ *   (Abbruch einer Coroutine und Fehler der JVM bleiben sichtbar).
+ * - Wer die Senke übergibt, besitzt sie und schließt sie; die Bibliothek schließt sie nicht.
+ * - Mehrere Server in einer JVM unterscheidet das Ereignis nicht: [TelemetryEvent.connectionId] zählt je Server.
+ *   Wer eine Senke für mehrere Server teilt, übergibt jedem Server eine Hülle, die den Server kennzeichnet.
+ *
+ * Das Ereignis trägt für Passwort, Prüfwert, Parameterwert, SQL-Text, Pfad und Ausnahmetext kein Feld.
+ */
+public fun interface TelemetrySink {
+    /** Nimmt ein Ereignis entgegen; siehe den Vertrag der Schnittstelle. */
+    public fun accept(event: TelemetryEvent)
+
+    public companion object {
+        /** Keine Senke, die Voreinstellung von `start`: die Bibliothek erzeugt dann kein Ereignis. */
+        public val NONE: TelemetrySink = TelemetrySink { }
+    }
+}

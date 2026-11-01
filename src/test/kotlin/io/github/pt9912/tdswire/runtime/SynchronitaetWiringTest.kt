@@ -73,7 +73,7 @@ internal class SynchronitaetWiringTest : RuntimeTestBase() {
     @Test
     fun `Anfragen hinter einem Fehler der Class 16 erhalten je genau ihre eigene Antwort`() = blocking {
         val backend = ScriptedBackend.inSequence(rowsThenFailure("TDS_BACKEND_ERROR"), oneRow(7), oneRow(8), oneRow(9))
-        val server = running(environment(), Wiring(log = log, requests = RequestSource(backend)))
+        val server = running(environment(), Wiring(telemetry = sink, requests = RequestSource(backend)))
         RawClient(server.port).use { client ->
             login(client)
             client.send(batch("erste") + batch("zweite") + batch("dritte"))
@@ -108,7 +108,7 @@ internal class SynchronitaetWiringTest : RuntimeTestBase() {
     @Test
     fun `Eine Anfrage hinter einem Fehler der Class 20 bleibt unbeantwortet und ohne Backend`() = blocking {
         val backend = ScriptedBackend.inSequence(rowsThenFailure("NOPE"), oneRow(7))
-        val server = running(environment(), Wiring(log = log, requests = RequestSource(backend)))
+        val server = running(environment(), Wiring(telemetry = sink, requests = RequestSource(backend)))
         RawClient(server.port).use { client ->
             login(client)
             client.send(batch("erste") + batch("zweite"))

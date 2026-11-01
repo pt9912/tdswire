@@ -2,6 +2,10 @@ package io.github.pt9912.tdswire.runtime
 
 import io.github.pt9912.tdswire.config.ConfigKeys
 import io.github.pt9912.tdswire.config.auth.pbkdf2Value
+import io.github.pt9912.tdswire.domain.telemetry.ConfigInvalid
+import io.github.pt9912.tdswire.domain.telemetry.PlainTestModeActive
+import io.github.pt9912.tdswire.domain.telemetry.ServerStarted
+import io.github.pt9912.tdswire.domain.telemetry.TlsStartRejected
 import io.github.pt9912.tdswire.testsupport.blocking
 import io.github.pt9912.tdswire.transport.listener.LOOPBACK
 import io.github.pt9912.tdswire.transport.listener.assertNoNewListenerThreads
@@ -10,6 +14,7 @@ import java.net.InetAddress
 import java.net.ServerSocket
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -43,13 +48,14 @@ internal class SecurityConfigNegativeTest : RuntimeTestBase() {
         environment: Map<String, String>,
         expected: List<String>,
     ) {
-        log.lines.clear()
+        sink.events.clear()
         val before = listenerThreads()
-        assertIs<StartOutcome.Aborted>(start(environment), label)
-        assertEquals(expected, log.lines.toList(), label)
-        log.lines.forEach { line ->
+        val aborted = assertIs<StartOutcome.Aborted>(start(environment), label)
+        assertEquals(expected, sink.of<ConfigInvalid>().map { "${it.key}: ${it.kind}" }, label)
+        assertEquals(expected.size, sink.events.size, label)
+        (sink.events.map { it.visibleText() } + aborted.reason).forEach { text ->
             listOf("Zk9", directory, ".p12", "tdswire-test", "kennwort").forEach {
-                assertTrue(!line.contains(it), "$label: Logzeile nennt $it: $line")
+                assertTrue(!text.contains(it), "$label: Ereignis nennt $it: $text")
             }
         }
         assertNoNewListenerThreads(before)
@@ -76,8 +82,8 @@ internal class SecurityConfigNegativeTest : RuntimeTestBase() {
             port,
             base,
             listOf(
-                "Konfiguration ungueltig: TLS_KEYSTORE_FILE: MISSING",
-                "Konfiguration ungueltig: TLS_KEYSTORE_PASSWORD_FILE: MISSING",
+                "TLS_KEYSTORE_FILE: MISSING",
+                "TLS_KEYSTORE_PASSWORD_FILE: MISSING",
             ),
         )
         assertAborts(
@@ -85,8 +91,8 @@ internal class SecurityConfigNegativeTest : RuntimeTestBase() {
             port,
             tls(port) + (ConfigKeys.ENCRYPTION_POLICY to "TEST_UNENCRYPTED"),
             listOf(
-                "Konfiguration ungueltig: TLS_KEYSTORE_FILE: CONFLICT",
-                "Konfiguration ungueltig: TLS_KEYSTORE_PASSWORD_FILE: CONFLICT",
+                "TLS_KEYSTORE_FILE: CONFLICT",
+                "TLS_KEYSTORE_PASSWORD_FILE: CONFLICT",
             ),
         )
     }
@@ -102,9 +108,11 @@ internal class SecurityConfigNegativeTest : RuntimeTestBase() {
     fun `Ein unlesbarer Speicher bricht den Start ab`() = blocking {
         val port = freePort()
         val broken = file("kaputt-Zk9.p12", "kein Schluesselspeicher")
-        log.lines.clear()
-        assertIs<StartOutcome.Aborted>(start(tls(port, store = broken)))
-        assertTrue(log.lines.single().startsWith("TLS-Konfiguration: CERTIFICATE"), log.lines.toString())
+        sink.events.clear()
+        val aborted = assertIs<StartOutcome.Aborted>(start(tls(port, store = broken)))
+        assertTrue(aborted.reason.startsWith("TLS-Konfiguration: CERTIFICATE"), aborted.reason)
+        assertEquals("CERTIFICATE", sink.events.filterIsInstance<TlsStartRejected>().single().part)
+        assertFalse(aborted.reason.contains(directory) || aborted.reason.contains("Zk9"), aborted.reason)
         assertFree(port)
     }
 
@@ -121,15 +129,13 @@ internal class SecurityConfigNegativeTest : RuntimeTestBase() {
         val port = freePort()
         val plain = users("Zk9-alice\t{plain}$secret\n", "users-plain-Zk9.txt")
         val withPlain = tls(port) + (ConfigKeys.AUTH_USERS_FILE to plain)
-        log.lines.clear()
+        sink.events.clear()
         val plainOn = withPlain + (ConfigKeys.AUTH_PLAIN_TESTMODE to "true")
         val server = assertIs<StartOutcome.Running>(start(plainOn)).server
         assertEquals(
-            listOf(
-                "gestartet, Port ${server.port}",
-                "ACHTUNG: AUTH_PLAIN_TESTMODE ist aktiv, das Verfahren plain ist zugelassen",
-            ),
-            log.lines.toList(),
+            listOf(ServerStarted::class, PlainTestModeActive::class),
+            sink.events.map { it::class },
         )
+        assertEquals(server.port, (sink.events.first() as ServerStarted).port)
     }
 }

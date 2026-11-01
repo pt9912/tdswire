@@ -2,6 +2,8 @@ package io.github.pt9912.tdswire.runtime
 
 import io.github.pt9912.tdswire.config.ConfigIssue
 import io.github.pt9912.tdswire.config.ServerConfig
+import io.github.pt9912.tdswire.domain.telemetry.ServerStopped
+import io.github.pt9912.tdswire.domain.telemetry.TelemetrySink
 import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.simulation.SimTable
 import io.github.pt9912.tdswire.transport.listener.TdsListener
@@ -66,9 +68,10 @@ public sealed interface StartOutcome {
  * baut eine neue Konfiguration.
  *
  * Das JVM-Flag `-Djdk.tls.server.newSessionTicketCount=0` setzt der Aufrufer; [start] prüft es und setzt es nicht
- * (`SPEC-023`). Der Einstieg schreibt kein Log; ein Abbruch steht in [StartOutcome.Aborted].
+ * (`SPEC-023`). Der Einstieg schreibt nirgends hin; Log und Telemetrie gehen an die Senke, die [start] übergeben
+ * bekommt, ein Abbruch steht in [StartOutcome.Aborted].
  */
-public class TdsServer internal constructor(private val listener: TdsListener, private val log: ServerLog) {
+public class TdsServer internal constructor(private val listener: TdsListener, private val telemetry: Telemetry) {
     private val stopped = AtomicBoolean(false)
 
     /** Der gebundene Port. */
@@ -77,16 +80,24 @@ public class TdsServer internal constructor(private val listener: TdsListener, p
     /** Beendet den Server; ein weiterer Aufruf hat keine Wirkung. */
     public suspend fun stop() {
         listener.shutdown()
-        if (stopped.compareAndSet(false, true)) log.line("gestoppt")
+        if (stopped.compareAndSet(false, true)) telemetry.emit { ServerStopped(it) }
     }
 
     public companion object {
         /**
          * Startet den Server mit [config] und [source] (`SPEC-059`). Geprüft werden das JVM-Flag, die Konfiguration
          * ([io.github.pt9912.tdswire.config.ConfigValidation]), die Tabellen und das TLS-Material; erst danach wird
-         * gebunden.
+         * gebunden. [telemetry] nimmt die Ereignisse des Servers entgegen (Vertrag in [TelemetrySink]); ohne Senke
+         * erzeugt und schreibt die Bibliothek nichts. Der Aufrufer besitzt die Senke und schließt sie nach [stop].
          */
-        public suspend fun start(config: ServerConfig, source: BackendSource): StartOutcome =
-            Bootstrap.launch(config, Wiring(requests = source.requests()), System::getProperty)
+        public suspend fun start(
+            config: ServerConfig,
+            source: BackendSource,
+            telemetry: TelemetrySink = TelemetrySink.NONE,
+        ): StartOutcome = Bootstrap.launch(
+            config,
+            Wiring(telemetry = telemetry, requests = source.requests()),
+            System::getProperty,
+        )
     }
 }

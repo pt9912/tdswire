@@ -2,6 +2,7 @@ package io.github.pt9912.tdswire.runtime
 
 import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.domain.SqlType
+import io.github.pt9912.tdswire.domain.telemetry.RequestFailed
 import io.github.pt9912.tdswire.port.ScriptedBackend
 import io.github.pt9912.tdswire.protocol.dispatch.BatchVectors
 import io.github.pt9912.tdswire.protocol.dispatch.resultStart
@@ -46,7 +47,7 @@ internal class RequestWiringTest : RuntimeTestBase() {
     @Test
     fun `Zwei Batches auf einer Verbindung werden beantwortet`() = blocking {
         val backend = ScriptedBackend.ofList(resultStart(), QueryEvent.Row(listOf(7)), QueryEvent.ResultEnd(1))
-        val server = running(environment(), Wiring(log = log, requests = RequestSource(backend)))
+        val server = running(environment(), Wiring(telemetry = sink, requests = RequestSource(backend)))
         RawClient(server.port).use { client ->
             login(client)
             val expected = listOf(BatchVectors.COLMETADATA_N, BatchVectors.row(7), BatchVectors.DONE_COUNT_1)
@@ -73,7 +74,7 @@ internal class RequestWiringTest : RuntimeTestBase() {
     @Test
     fun `Ein schliessender Ausgang schliesst die Verbindung am Socket`() = blocking {
         val backend = ScriptedBackend.ofList(QueryEvent.OutputParameter("p", SqlType.Int32, 1))
-        val server = running(environment(), Wiring(log = log, requests = RequestSource(backend)))
+        val server = running(environment(), Wiring(telemetry = sink, requests = RequestSource(backend)))
         RawClient(server.port).use { client ->
             login(client)
             client.send(batch("q"))
@@ -83,6 +84,9 @@ internal class RequestWiringTest : RuntimeTestBase() {
             assertTrue(client.closedByServerWithoutBytes())
         }
         assertEquals(1, backend.requests.size)
-        assertTrue(log.lines.any { it == "Fehler: TDS_UNSUPPORTED_TYPE" }, log.lines.toString())
+        val failed = sink.of<RequestFailed>().single { it.errorCode == "TDS_UNSUPPORTED_TYPE" }
+        assertEquals(1L, failed.connectionId)
+        assertNotNull(failed.sessionId)
+        assertEquals("tds-7.4:not_supported", failed.clientProfile)
     }
 }

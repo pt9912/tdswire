@@ -1,6 +1,8 @@
 package io.github.pt9912.tdswire.runtime
 
 import io.github.pt9912.tdswire.config.TempFilesTest
+import io.github.pt9912.tdswire.domain.telemetry.TelemetryEvent
+import io.github.pt9912.tdswire.domain.telemetry.TelemetrySink
 import io.github.pt9912.tdswire.protocol.session.SessionVectors
 import io.github.pt9912.tdswire.testsupport.handMessage
 import io.github.pt9912.tdswire.transport.listener.LOOPBACK
@@ -38,14 +40,28 @@ internal const val WERTPROBE = "wertprobe-xq9"
 /** Die Eigenschaft des Prozesses, wie sie der Start setzt: das Flag gegen das NewSessionTicket ist `0`. */
 internal val flagSet: (String) -> String? = { if (it == Bootstrap.TICKET_FLAG) "0" else null }
 
-/** Sammelt die Zeilen des Server-Logs. */
-internal class CapturedLog : ServerLog {
-    val lines = CopyOnWriteArrayList<String>()
+/** Der Sammler: hält die Ereignisse, die der Server an die Senke gibt, in der Reihenfolge des Eingangs. */
+internal class CapturedEvents : TelemetrySink {
+    val events = CopyOnWriteArrayList<TelemetryEvent>()
 
-    override fun line(text: String) {
-        lines += text
+    override fun accept(event: TelemetryEvent) {
+        events += event
     }
+
+    /** Die Ereignisse der Art [T]. */
+    inline fun <reified T : TelemetryEvent> of(): List<T> = events.filterIsInstance<T>()
 }
+
+/**
+ * Alles, was ein Adapter am Ereignis lesen kann, als Text: der Name der Art und der Wert jedes öffentlichen Feldes.
+ * Die Redaktionstests suchen darin; ein neues Feld liest dieser Weg ohne Änderung mit.
+ */
+internal fun TelemetryEvent.visibleText(): String = (
+    listOf(javaClass.simpleName) +
+        javaClass.methods
+            .filter { it.parameterCount == 0 && it.name.startsWith("get") && it.name != "getClass" }
+            .map { "${it.name.removePrefix("get")}=${it.invoke(this)}" }
+    ).joinToString(" ")
 
 /** Eine vollständige Nachricht des Servers: Pakettyp, Nutzdaten und alle Bytes samt Paketköpfen. */
 internal class RawMessage(val type: Int, val payload: ByteArray, val bytes: ByteArray)
@@ -140,15 +156,15 @@ fun loopbackEnvironment(usersFile: String, vararg more: Pair<String, String>): M
 /** Basis der Tests, die einen [TdsServer] im Prozess starten: nach jedem Test werden die Server beendet. */
 internal open class RuntimeTestBase : TempFilesTest() {
     private val started = ConcurrentLinkedQueue<TdsServer>()
-    val log = CapturedLog()
+    val sink = CapturedEvents()
 
-    suspend fun start(environment: Map<String, String>, wiring: Wiring = Wiring(log = log)): StartOutcome {
+    suspend fun start(environment: Map<String, String>, wiring: Wiring = Wiring(telemetry = sink)): StartOutcome {
         val result = Bootstrap.launch(configOf(environment), wiring, flagSet)
         if (result is StartOutcome.Running) started += result.server
         return result
     }
 
-    suspend fun running(environment: Map<String, String>, wiring: Wiring = Wiring(log = log)): TdsServer =
+    suspend fun running(environment: Map<String, String>, wiring: Wiring = Wiring(telemetry = sink)): TdsServer =
         assertIs<StartOutcome.Running>(start(environment, wiring)).server
 
     @AfterTest

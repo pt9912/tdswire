@@ -57,7 +57,7 @@ internal class LoginThrottleWiringTest : RuntimeTestBase() {
      */
     @Test
     fun `Wiederholte Fehlversuche einer Adresse warten, eine Annahme folgt`() = blocking {
-        val server = running(environment(), Wiring(log = log, authPool = AuthPool(throttle = throttle)))
+        val server = running(environment(), Wiring(telemetry = sink, authPool = AuthPool(throttle = throttle)))
         repeat(5) { assertContentEquals(LoginResponses.rejection.payload, attempt(server.port).payload) }
         assertEquals(emptyList<Duration>(), pauses)
         assertContentEquals(LoginResponses.rejection.payload, attempt(server.port).payload)
@@ -65,7 +65,8 @@ internal class LoginThrottleWiringTest : RuntimeTestBase() {
         val accepted = attempt(server.port, password = "secret")
         assertEquals(listOf(250.milliseconds, 500.milliseconds), pauses)
         assertFalse(accepted.payload.contentEquals(LoginResponses.rejection.payload), "Annahme trotz Wartezeit")
-        assertTrue(log.lines.none { it.contains(LOOPBACK) }, "Adresse im Log: ${log.lines}")
+        assertTrue(sink.events.isNotEmpty(), "keine Ereignisse, die Prüfung bewiese nichts")
+        assertTrue(sink.events.none { it.visibleText().contains(LOOPBACK) }, "Adresse im Ereignis: ${sink.events}")
     }
 
     /**
@@ -76,7 +77,7 @@ internal class LoginThrottleWiringTest : RuntimeTestBase() {
      */
     @Test
     fun `Nach Ablauf des Fensters ist die Anmeldung nicht blockiert`() = blocking {
-        val server = running(environment(), Wiring(log = log, authPool = AuthPool(throttle = throttle)))
+        val server = running(environment(), Wiring(telemetry = sink, authPool = AuthPool(throttle = throttle)))
         repeat(7) { attempt(server.port) }
         assertEquals(2, pauses.size)
         now += 60.seconds.inWholeNanoseconds
