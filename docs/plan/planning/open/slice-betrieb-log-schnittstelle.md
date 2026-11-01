@@ -44,7 +44,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - TLS-Modi und Konfigurationsnegativtests — [slice-qa-sicherheit](../done/slice-qa-sicherheit.md) (Tests liegen dort).
 - Kopien des Passworts im Speicher von JVM und Adapter — `BEO-TDS/geheimnis-kopien-im-speicher-nicht-gemessen`; das Log betrifft die Ausgabe, nicht den Speicher.
 - Rotation, Aggregation und Versand der Logzeilen, Ziel (Datei, Standardausgabe), Escaping im Adapter eines Embedders — Betreiber und Adapter ([ARC-014](../../../../spec/architecture.md#3-externe-abhängigkeiten): austauschbar); die Bibliothek schreibt nirgends hin.
-- Die Schlusszusage `explicitApi` für die neuen Typen — [slice-explicit-api-umbau](../next/slice-explicit-api-umbau.md); die neuen Typen tragen ihre ausdrückliche Sichtbarkeit trotzdem selbst, wenn der Umbau schon steht.
+- Die Schlusszusage `explicitApi` für die neuen Typen — [slice-explicit-api-umbau](../in-progress/slice-explicit-api-umbau.md); die neuen Typen tragen ihre ausdrückliche Sichtbarkeit trotzdem selbst, wenn der Umbau schon steht.
 
 ## 2. Definition of Done
 
