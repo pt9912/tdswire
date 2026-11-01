@@ -5,6 +5,7 @@ import io.github.pt9912.tdswire.transport.channel.ChannelFailure
 import io.github.pt9912.tdswire.transport.channel.ChannelResult
 import io.github.pt9912.tdswire.transport.channel.SuspendingChannel
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.channels.Channel
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 
@@ -23,9 +24,13 @@ data class WirePacket(val type: Int, val status: Int, val length: Int, val packe
  * Bytes nimmt er nichts mehr an: der Schreiber suspendiert, [stalled] ist gesetzt, und [release]
  * öffnet ihn wieder. Nach [failAfterPackets] angenommenen Paketen scheitert das Schreiben. Hängt
  * [retain] an, hält er alle Bytes und alle Köpfe; sonst nur Zähler, die ersten Nutzdatenbytes und das
- * letzte Paket, damit ein Lauf mit Millionen Zeilen keinen Speicher an den Draht bindet.
+ * letzte Paket, damit ein Lauf mit Millionen Zeilen keinen Speicher an den Draht bindet. Mit [live] schweigt die
+ * Gegenstelle nach den [inbound] Bytes, statt zu enden.
  */
 class ScriptedWire(private val inbound: ByteArray, private val retain: Boolean = false) : SuspendingChannel {
+    /** Nach den [inbound] Bytes schweigt die Gegenstelle, statt zu enden; [feed] und [endInput] steuern sie dann. */
+    var live = false
+
     /** Gesetzt, sobald ein Schreibvorgang wegen [stallAfterBytes] wartet. */
     val stalled = CompletableDeferred<Unit>()
 
@@ -99,11 +104,32 @@ class ScriptedWire(private val inbound: ByteArray, private val retain: Boolean =
         gate.complete(Unit)
     }
 
+    private val fed = Channel<ByteArray>(Channel.UNLIMITED)
+    private var pending = ByteArray(0)
+
+    /** Legt der Gegenstelle Bytes nach (nur mit `live`). */
+    fun feed(bytes: ByteArray) {
+        fed.trySend(bytes)
+    }
+
+    /** Beendet die Gegenstelle (nur mit `live`). */
+    fun endInput() {
+        fed.close()
+    }
+
     override suspend fun read(buffer: ByteBuffer): ChannelResult<Int> {
-        if (readPosition >= inbound.size) return ChannelResult.Ok(-1)
+        if (readPosition >= inbound.size) return if (live) readLive(buffer) else ChannelResult.Ok(-1)
         val count = minOf(buffer.remaining(), inbound.size - readPosition)
         buffer.put(inbound, readPosition, count)
         readPosition += count
+        return ChannelResult.Ok(count)
+    }
+
+    private suspend fun readLive(buffer: ByteBuffer): ChannelResult<Int> {
+        if (pending.isEmpty()) pending = fed.receiveCatching().getOrNull() ?: return ChannelResult.Ok(-1)
+        val count = minOf(buffer.remaining(), pending.size)
+        buffer.put(pending, 0, count)
+        pending = pending.copyOfRange(count, pending.size)
         return ChannelResult.Ok(count)
     }
 

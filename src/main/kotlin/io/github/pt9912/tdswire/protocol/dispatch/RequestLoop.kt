@@ -10,6 +10,7 @@ import io.github.pt9912.tdswire.protocol.response.ResponseForm
 import io.github.pt9912.tdswire.protocol.response.ResponseSequencer
 import io.github.pt9912.tdswire.protocol.response.SequenceOutcome
 import io.github.pt9912.tdswire.protocol.response.TokenSink
+import io.github.pt9912.tdswire.protocol.session.CloseReason
 import io.github.pt9912.tdswire.protocol.session.ConnectionState
 import io.github.pt9912.tdswire.protocol.session.HandshakeChannel
 import io.github.pt9912.tdswire.protocol.session.HandshakeEvent
@@ -20,7 +21,12 @@ import io.github.pt9912.tdswire.protocol.sqlbatch.SqlBatchParser
 import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
 import io.github.pt9912.tdswire.transport.framing.PacketType
 import io.github.pt9912.tdswire.transport.framing.TdsMessage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
 import java.util.UUID
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Die Anfrageschleife einer angemeldeten Sitzung (`ARC-005`, `SPEC-001`, `TDS-FA-03.a`): liest Nachrichten
@@ -29,16 +35,16 @@ import java.util.UUID
  *
  * Ablauf je SQL_BATCH: Der Rahmen setzt `READY` auf `RUNNING`; `SqlBatchParser` liest ALL_HEADERS und
  * Text; das [backend] bekommt Sitzungs-ID, eine neue Anfrage-ID aus [requestIds], den Text unverändert,
- * keine Parameter und keine Frist; der `ResponseSequencer` mit `ErrorMapper.sequencerMapping` schreibt die
- * Tokens in eine Senke ([StreamedResponse]), die Pakete der Packet Size der Sitzung auf den Kanal
- * schreibt und bei langsamem Kanal suspendiert (Rückstau); das erste COLMETADATA setzt `STREAMING`; das
- * letzte Paket schreibt die Schleife nach dem Ausgang, danach folgt der Übergang `RequestFinished`.
- * Die Verbindungsfolge liest die Schleife aus `ErrorMapper.fateOf` des Ausgangs. Nach einer offenen Folge
- * ist die Sitzung `READY` und die Schleife liest die nächste Nachricht.
+ * keine Parameter und die Frist (Beginn plus `QUERY_TIMEOUT` aus [times], `SPEC-009`); der `ResponseSequencer` mit
+ * `ErrorMapper.sequencerMapping` schreibt die Tokens in eine Senke ([StreamedResponse]), die Pakete der Packet
+ * Size der Sitzung auf den Kanal schreibt und bei langsamem Kanal suspendiert (Rückstau); das erste COLMETADATA
+ * setzt `STREAMING`; das letzte Paket schreibt die Schleife nach dem Ausgang, danach folgt der Übergang
+ * `RequestFinished`. Die Verbindungsfolge liest die Schleife aus `ErrorMapper.fateOf` des Ausgangs. Nach einer
+ * offenen Folge ist die Sitzung `READY` und die Schleife liest die nächste Nachricht.
  *
  * Ablauf je RPC (`TDS-FA-04.a`, `SPEC-030`): derselbe Rahmen (`RUNNING`, Antwort mit `RequestFinished`).
  * `RpcBinder` bindet die Nutzlast an Text und typisierte Parameter; das [backend] bekommt sie in einem
- * `QueryRequest` mit Sitzungs-ID, neuer Anfrage-ID und ohne Frist, der Rest wie beim Batch; die Antwort hat die
+ * `QueryRequest` mit Sitzungs-ID, neuer Anfrage-ID und Frist, der Rest wie beim Batch; die Antwort hat die
  * Form [ResponseForm.RPC] (DONEINPROC, RETURNSTATUS, RETURNVALUE, DONEPROC), die auf einen Batch die Form
  * [ResponseForm.BATCH]. Lehnt die
  * Bindung den RPC ab ([RpcRejection]), wird das Backend nicht gerufen. Weist der Parser die Nachricht ab,
@@ -59,32 +65,51 @@ import java.util.UUID
  * offen (Class 16). `sp_unprepare` und `sp_prepare` sind nicht im Katalog (`TDS_UNSUPPORTED_RPC`). Die Handles
  * enden mit der Schleife.
  *
+ * Abbruch (`SPEC-029`, `ADR-0027`): Während einer Anfrage liest die Schleife mit ([AbortableRun]). Ein ATTENTION in
+ * `RUNNING` oder `STREAMING` und der Ablauf der Frist gehen denselben Weg: der erste Übergang nach `CANCELLING`
+ * gewinnt, der Lauf des Sequencers wird abgebrochen (genau ein `cancel()` des Backends, `close()` der Ausführung, ein
+ * zurückgehaltener Abschluss entfällt), und die Antwort endet bei ATTENTION mit genau einem `DONE[ATTN]` ohne ERROR,
+ * bei der Frist mit ERROR `TDS_TIMEOUT` und DONE mit Fehlerstatus. Die Verbindung bleibt in beiden Fällen offen und die
+ * folgende Anfrage bekommt nur ihre eigene Antwort. Ist die Antwort beim Gewinn des Auslösers schon vollständig,
+ * entfällt der Abbruch: ATTENTION wird als eigene Nachricht bestätigt, die Frist ändert nichts. Beendet das Backend
+ * den Abbruch nicht innerhalb von `CANCEL_TIMEOUT`, schließt die Verbindung ohne weitere Bytes. ATTENTION in `READY`
+ * wird bestätigt, ohne Cancel. Ist der Strom nicht mehr zu schließen (ein Schreibvorgang scheitert), schließt die
+ * Verbindung ohne ERROR und DONE.
+ *
  * Die Schleife endet immer mit geschlossenem Kanal: nach `CLOSED`, nach einer Nachricht, die sie nicht
  * beantwortet, und bei einer Ausnahme oder dem Abbruch der Coroutine.
  *
- * Festlegungen ohne Messung: Transaction Manager und ATTENTION in `READY` bleiben unbeantwortet, die
+ * Festlegungen ohne Messung: Transaction Manager in `READY` bleibt unbeantwortet, die
  * Verbindung schließt; die Tokenfolge einer RPC-Antwort ist
  * nicht am Referenzclient gemessen; ein SQL_BATCH, dessen Nachricht
  * der Parser abweist, wird mit `TDS_PROTOCOL_ERROR` beantwortet (`ErrorMapper.protocol`, als ganze
  * Nachricht über den Sitzungsrahmen); die Pakete einer Antwort gehen außerhalb der Sperre des Rahmens
  * hinaus (die Schleife ist während einer Anfrage der einzige Schreiber); bei Ausfall der Senke bleiben
  * bereits geschriebene Pakete auf dem Draht, ein gehaltenes Paket und das EOM-Paket entfallen, und die
- * Verbindung schließt; während einer Anfrage liest die Schleife nicht.
+ * Verbindung schließt; die Frist wirkt nicht, solange ein Schreibvorgang am Rückstau hängt (er hält die Sperre,
+ * die der Übergang braucht).
  *
- * Kopplung: [sinkAround] umhüllt die Senke der Anfrage, bevor der `ResponseSequencer` sie bekommt; die
- * Voreinstellung reicht sie unverändert durch. Kein Backend-Ereignis lässt den Encoder ein Token
- * ablehnen (die Abbildungen von Spalten und Werten prüfen dieselben Grenzen); der Einhängepunkt erlaubt
- * es einem Test, eine Senke zu stellen, die ein Token nicht annimmt (Ausgang `CLOSE_WITHOUT_COMPLETION`).
+ * Kopplung: [hooks] sind die Einhängepunkte für Anfrage-Kennung und Senke ([RequestHooks]); [times] trägt die
+ * Fristen und die Uhr ([RequestTimes]).
  */
 class RequestLoop(
     private val ready: HandshakeOutcome.Ready,
     private val channel: HandshakeChannel,
     private val backend: QueryBackend,
     private val errors: ErrorMapper = ErrorMapper(),
-    private val requestIds: () -> String = { UUID.randomUUID().toString() },
-    private val sinkAround: (TokenSink) -> TokenSink = { it },
+    private val times: RequestTimes = RequestTimes(),
+    hooks: RequestHooks = RequestHooks(),
 ) {
-    private val sequencer = ResponseSequencer(errors.sequencerMapping())
+    private val requestIds = hooks.requestIds
+    private val sinkAround = hooks.sinkAround
+    private val mapping = errors.sequencerMapping()
+    private val sequencer = ResponseSequencer(mapping)
+    private val aborted = AbortedAnswer(errors, mapping)
+
+    /** Der Eingang und der Bereich der Läufe; gesetzt, sobald [run] beginnt. */
+    private class Rig(val tray: InboundTray, val detached: CoroutineScope)
+
+    private lateinit var rig: Rig
 
     /** Die Prepared-Handles dieser Sitzung; eine Schleife bedient genau eine Sitzung. */
     internal val handles = PreparedHandles()
@@ -92,9 +117,18 @@ class RequestLoop(
     /** Läuft, bis die Verbindung endet; schließt den Kanal in jedem Ausgang. */
     suspend fun run() {
         try {
-            channel.usePacketSize(ready.session.packetSize)
-            var running = true
-            while (running) running = step()
+            coroutineScope {
+                val tray = InboundTray(channel, this)
+                rig = Rig(tray, CoroutineScope(currentCoroutineContext().minusKey(Job)))
+                try {
+                    channel.usePacketSize(ready.session.packetSize)
+                    var running = true
+                    while (running) running = step()
+                } finally {
+                    channel.close()
+                    tray.release()
+                }
+            }
         } finally {
             handles.clear()
             channel.close()
@@ -104,15 +138,26 @@ class RequestLoop(
     /** Eine Nachricht; `false`, wenn die Schleife endet. */
     private suspend fun step(): Boolean {
         val live = ready.live
-        val event = when (val inbound = channel.receive()) {
+        val event = when (val inbound = rig.tray.take()) {
             is Inbound.Message -> HandshakeEvent.Message(inbound.message)
             Inbound.EndOfStream -> HandshakeEvent.PeerClosed
             Inbound.Failed -> HandshakeEvent.ReadFailed
         }
         live.dispatch(event)
-        if (event !is HandshakeEvent.Message || live.context.state != ConnectionState.RUNNING) return false
-        answer(event.message)?.let { live.dispatch(it) }
-        return live.context.state == ConnectionState.READY
+        val state = live.context.state
+        return when {
+            event !is HandshakeEvent.Message -> false
+
+            // Ein ATTENTION in READY hat der Rahmen bestätigt; die Sitzung bleibt READY.
+            event.message.type == PacketType.ATTENTION -> state == ConnectionState.READY
+
+            state != ConnectionState.RUNNING -> false
+
+            else -> {
+                answer(event.message)?.let { live.dispatch(it) }
+                live.context.state == ConnectionState.READY
+            }
+        }
     }
 
     /** Das Ereignis, das die Anfrage beendet; `null`, wenn die Sitzung beim Schreiben der Antwort geschlossen wurde. */
@@ -169,11 +214,29 @@ class RequestLoop(
         val live = ready.live
         val reply = live.openReply(PacketType.TABULAR_RESULT)
         val response = StreamedResponse(reply) { live.dispatch(HandshakeEvent.StreamStarted) }
-        val request = QueryRequest(ready.session.id, requestIds(), text, parameters, null)
-        val outcome = sequencer.run(via, request, sinkAround(response), form)
-        onOutcome(outcome)
-        val fate = errors.fateOf(outcome)
-        return if (live.context.state == ConnectionState.CLOSED) null else finished(fate, reply)
+        val deadline = times.queryTimeout?.let { times.now() + it.inWholeMilliseconds }
+        val request = QueryRequest(ready.session.id, requestIds(), text, parameters, deadline)
+        val remaining = deadline?.let { (it - times.now()).milliseconds }
+        val end = AbortableRun(live, rig.tray, times, rig.detached).run(remaining) {
+            sequencer.run(via, request, sinkAround(response), form)
+        }
+        return when (end) {
+            is RunEnd.Finished -> {
+                onOutcome(end.outcome)
+                val fate = errors.fateOf(end.outcome)
+                if (live.context.state == ConnectionState.CLOSED) null else finished(fate, reply)
+            }
+
+            is RunEnd.Cut -> {
+                onOutcome(end.outcome ?: SequenceOutcome.CLOSE_WITHOUT_COMPLETION)
+                if (live.context.state == ConnectionState.CLOSED) null else aborted.conclude(end, reply)
+            }
+
+            RunEnd.Abandoned -> {
+                live.abandon(CloseReason.CANCEL_TIMEOUT)
+                null
+            }
+        }
     }
 
     /** Schließt die Antwort mit dem EOM-Paket ab; scheitert das, schließt die Verbindung ohne weitere Antwort. */
@@ -184,6 +247,18 @@ class RequestLoop(
         return HandshakeEvent.RequestFinished(null, connectionOpen = fate == ConnectionFate.OPEN, replyWritten = true)
     }
 }
+
+/**
+ * Die Einhängepunkte der [RequestLoop]. [requestIds] liefert die Kennung jeder Anfrage. [sinkAround] umhüllt die
+ * Senke der Anfrage, bevor der `ResponseSequencer` sie bekommt; die Voreinstellung reicht sie unverändert durch. Kein
+ * Backend-Ereignis lässt den Encoder ein Token ablehnen (die Abbildungen von Spalten und Werten prüfen dieselben
+ * Grenzen); der Einhängepunkt erlaubt es einem Test, eine Senke zu stellen, die ein Token nicht annimmt (Ausgang
+ * `CLOSE_WITHOUT_COMPLETION`).
+ */
+class RequestHooks(
+    val requestIds: () -> String = { UUID.randomUUID().toString() },
+    val sinkAround: (TokenSink) -> TokenSink = { it },
+)
 
 /**
  * Das Ereignis, das eine Anfrage beendet: [reply] entfällt bei [ConnectionFate.CLOSE_WITHOUT_REPLY]; offen

@@ -18,11 +18,14 @@ internal class ConfigLoaderTest : TempFilesTest() {
 
     /**
      * Ohne optionale Schlüssel gelten die Voreinstellungen der Spezifikation: Port 1433, `LOGIN_TIMEOUT` 15 s,
-     * `MAX_PRELOGIN_MESSAGE_BYTES` 65536. Die Werte der Spezifikation sind vorläufig; der Test pinnt die Festlegung.
+     * `MAX_PRELOGIN_MESSAGE_BYTES` 65536, `QUERY_TIMEOUT` 30 s, `CANCEL_TIMEOUT` 5 s. Die Werte der Spezifikation sind
+     * vorläufig; der Test pinnt die Festlegung.
      *
      * @spec SPEC-005
      * @spec SPEC-008
      * @spec SPEC-046
+     * @spec SPEC-009
+     * @spec SPEC-033
      */
     @Test
     fun `Voreinstellungen entsprechen der Spezifikation`() {
@@ -31,6 +34,8 @@ internal class ConfigLoaderTest : TempFilesTest() {
         assertEquals("0.0.0.0", config.listen.host)
         assertEquals(15, config.login.timeoutSeconds)
         assertEquals(65536, config.login.maxPreloginMessageBytes)
+        assertEquals(30, config.requests.queryTimeoutSeconds)
+        assertEquals(5, config.requests.cancelTimeoutSeconds)
     }
 
     /**
@@ -48,12 +53,16 @@ internal class ConfigLoaderTest : TempFilesTest() {
                 ConfigKeys.LISTEN_PORT to "14330",
                 ConfigKeys.LOGIN_TIMEOUT to "7",
                 ConfigKeys.MAX_PRELOGIN_MESSAGE_BYTES to "4096",
+                ConfigKeys.QUERY_TIMEOUT to "11",
+                ConfigKeys.CANCEL_TIMEOUT to "3",
             ),
         ).loaded()
         assertEquals("127.0.0.1", config.listen.host)
         assertEquals(14330, config.listen.port)
         assertEquals(7, config.login.timeoutSeconds)
         assertEquals(4096, config.login.maxPreloginMessageBytes)
+        assertEquals(11, config.requests.queryTimeoutSeconds)
+        assertEquals(3, config.requests.cancelTimeoutSeconds)
         assertEquals(EncryptionSetting.TEST_UNENCRYPTED, config.encryption)
         assertTrue(config.auth.plainTestMode)
         assertNull(config.tls)
@@ -66,6 +75,8 @@ internal class ConfigLoaderTest : TempFilesTest() {
      * @spec SPEC-005
      * @spec SPEC-008
      * @spec SPEC-046
+     * @spec SPEC-009
+     * @spec SPEC-033
      */
     @Test
     fun `Bereichsgrenzen der Zahlenschluessel`() {
@@ -73,6 +84,8 @@ internal class ConfigLoaderTest : TempFilesTest() {
             Triple(ConfigKeys.LISTEN_PORT, 0, 65535),
             Triple(ConfigKeys.LOGIN_TIMEOUT, 1, 3600),
             Triple(ConfigKeys.MAX_PRELOGIN_MESSAGE_BYTES, 512, 65536),
+            Triple(ConfigKeys.QUERY_TIMEOUT, 1, 3600),
+            Triple(ConfigKeys.CANCEL_TIMEOUT, 1, 3600),
         )
         for ((key, low, high) in bounds) {
             ConfigLoader.load(base(key to low.toString())).loaded()

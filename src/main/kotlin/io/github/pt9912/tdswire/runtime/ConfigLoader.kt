@@ -9,6 +9,7 @@ import io.github.pt9912.tdswire.config.EncryptionSetting
 import io.github.pt9912.tdswire.config.IssueKind
 import io.github.pt9912.tdswire.config.ListenSettings
 import io.github.pt9912.tdswire.config.LoginSettings
+import io.github.pt9912.tdswire.config.RequestSettings
 import io.github.pt9912.tdswire.config.ServerConfig
 import io.github.pt9912.tdswire.config.TlsKeyMaterial
 import io.github.pt9912.tdswire.config.auth.PasswordChars
@@ -28,7 +29,8 @@ internal sealed interface ConfigResult {
  *
  * Wertebereiche und Paarungen prüft [ConfigValidation] je Schlüssel, die Voreinstellungen stehen in
  * [ConfigDefaults]; hier steht die Form der Schlüssel (Festlegungen, nicht gemessen):
- * - `LISTEN_PORT`, `LOGIN_TIMEOUT` und `MAX_PRELOGIN_MESSAGE_BYTES` bestehen aus ASCII-Ziffern.
+ * - `LISTEN_PORT`, `LOGIN_TIMEOUT`, `QUERY_TIMEOUT`, `CANCEL_TIMEOUT` und `MAX_PRELOGIN_MESSAGE_BYTES` bestehen aus
+ *   ASCII-Ziffern.
  * - `LISTEN_HOST` Voreinstellung `0.0.0.0`.
  * - `ENCRYPTION_POLICY` genau `REQUIRED` oder `TEST_UNENCRYPTED`, Voreinstellung `REQUIRED`. `REQUIRED` verlangt
  *   `TLS_KEYSTORE_FILE` (PKCS#12) und `TLS_KEYSTORE_PASSWORD_FILE` (ein Zeilenende am Ende wird entfernt);
@@ -65,6 +67,20 @@ internal object ConfigLoader {
             ConfigValidation::preloginBytes,
             issues,
         )
+        val queryTimeout = number(
+            environment,
+            ConfigKeys.QUERY_TIMEOUT,
+            ConfigDefaults.QUERY_TIMEOUT_SECONDS,
+            ConfigValidation::queryTimeout,
+            issues,
+        )
+        val cancelTimeout = number(
+            environment,
+            ConfigKeys.CANCEL_TIMEOUT,
+            ConfigDefaults.CANCEL_TIMEOUT_SECONDS,
+            ConfigValidation::cancelTimeout,
+            issues,
+        )
         val encryption = encryption(environment, issues)
         val tls = tls(environment, encryption, issues)
         val plain = plainTestMode(environment, issues)
@@ -81,7 +97,7 @@ internal object ConfigLoader {
                     tls,
                     AuthSettings(checkNotNull(users), checkNotNull(plain)),
                     simulation,
-                ),
+                ).also { it.requests = RequestSettings(checkNotNull(queryTimeout), checkNotNull(cancelTimeout)) },
             )
         }
     }

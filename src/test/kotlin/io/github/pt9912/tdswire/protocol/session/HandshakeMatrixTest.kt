@@ -4,6 +4,7 @@ import io.github.pt9912.tdswire.config.auth.NegotiatedEncryption
 import io.github.pt9912.tdswire.config.auth.RejectReason
 import io.github.pt9912.tdswire.domain.Principal
 import io.github.pt9912.tdswire.protocol.session.ConnectionState.AUTHENTICATING
+import io.github.pt9912.tdswire.protocol.session.ConnectionState.CANCELLING
 import io.github.pt9912.tdswire.protocol.session.ConnectionState.CLOSED
 import io.github.pt9912.tdswire.protocol.session.ConnectionState.CONNECTED
 import io.github.pt9912.tdswire.protocol.session.ConnectionState.LOGIN7
@@ -15,6 +16,7 @@ import io.github.pt9912.tdswire.protocol.session.ConnectionState.TLS_NEGOTIATION
 import io.github.pt9912.tdswire.protocol.session.EventKind.ATTENTION_MESSAGE
 import io.github.pt9912.tdswire.protocol.session.EventKind.AUTH_ACCEPTED
 import io.github.pt9912.tdswire.protocol.session.EventKind.AUTH_REJECTED
+import io.github.pt9912.tdswire.protocol.session.EventKind.DEADLINE_EXPIRED
 import io.github.pt9912.tdswire.protocol.session.EventKind.LOGIN7_MESSAGE
 import io.github.pt9912.tdswire.protocol.session.EventKind.LOGIN_TIMEOUT
 import io.github.pt9912.tdswire.protocol.session.EventKind.OTHER_MESSAGE
@@ -67,7 +69,8 @@ class HandshakeMatrixTest {
             ),
             READY to mapOf(
                 REQUEST_MESSAGE to to(RUNNING, "Forward"),
-                ATTENTION_MESSAGE to to(READY, "Forward"),
+                ATTENTION_MESSAGE to to(READY, "Send"),
+                DEADLINE_EXPIRED to to(READY),
                 LOGIN_TIMEOUT to to(READY),
                 PEER_CLOSED to peer,
                 READ_FAILED to failed,
@@ -75,17 +78,36 @@ class HandshakeMatrixTest {
             RUNNING to mapOf(
                 STREAM_STARTED to to(STREAMING),
                 REQUEST_FINISHED to to(READY, "Send"),
+                ATTENTION_MESSAGE to to(CANCELLING, "Cancel:ATTENTION"),
+                DEADLINE_EXPIRED to to(CANCELLING, "Cancel:DEADLINE"),
                 LOGIN_TIMEOUT to to(RUNNING),
                 PEER_CLOSED to peer,
                 READ_FAILED to failed,
             ),
             STREAMING to mapOf(
                 REQUEST_FINISHED to to(READY, "Send"),
+                ATTENTION_MESSAGE to to(CANCELLING, "Cancel:ATTENTION"),
+                DEADLINE_EXPIRED to to(CANCELLING, "Cancel:DEADLINE"),
                 LOGIN_TIMEOUT to to(STREAMING),
                 PEER_CLOSED to peer,
                 READ_FAILED to failed,
             ),
-            CLOSED to mapOf(LOGIN_TIMEOUT to to(CLOSED), PEER_CLOSED to to(CLOSED), READ_FAILED to to(CLOSED)),
+            CANCELLING to mapOf(
+                REQUEST_FINISHED to to(READY, "Send"),
+                STREAM_STARTED to to(CANCELLING),
+                ATTENTION_MESSAGE to to(CANCELLING),
+                DEADLINE_EXPIRED to to(CANCELLING),
+                LOGIN_TIMEOUT to to(CANCELLING),
+                PEER_CLOSED to peer,
+                READ_FAILED to failed,
+            ),
+            CLOSED to mapOf(
+                LOGIN_TIMEOUT to to(CLOSED),
+                PEER_CLOSED to to(CLOSED),
+                READ_FAILED to to(CLOSED),
+                DEADLINE_EXPIRED to to(CLOSED),
+                ATTENTION_MESSAGE to to(CLOSED),
+            ),
         )
     }
 
@@ -98,7 +120,7 @@ class HandshakeMatrixTest {
     private fun context(state: ConnectionState): HandshakeContext = when (state) {
         AUTHENTICATING -> authContext
         LOGIN7 -> HandshakeContext(state, encryption = NegotiatedEncryption.REQUIRED)
-        READY, RUNNING, STREAMING -> loggedIn(state)
+        READY, RUNNING, STREAMING, CANCELLING -> loggedIn(state)
         else -> HandshakeContext(state)
     }
 
@@ -107,6 +129,7 @@ class HandshakeMatrixTest {
 
     private fun requestEvent(kind: EventKind): HandshakeEvent = when (kind) {
         STREAM_STARTED -> HandshakeEvent.StreamStarted
+        DEADLINE_EXPIRED -> HandshakeEvent.DeadlineExpired
         else -> HandshakeEvent.RequestFinished(SessionVectors.message(PacketType.TABULAR_RESULT), true)
     }
 
@@ -118,7 +141,7 @@ class HandshakeMatrixTest {
         REQUEST_MESSAGE -> HandshakeEvent.Message(SessionVectors.message(PacketType.SQL_BATCH))
         ATTENTION_MESSAGE -> HandshakeEvent.Message(SessionVectors.message(PacketType.ATTENTION))
         OTHER_MESSAGE -> HandshakeEvent.Message(SessionVectors.message(PacketType.SSPI))
-        STREAM_STARTED, REQUEST_FINISHED -> requestEvent(kind)
+        STREAM_STARTED, REQUEST_FINISHED, DEADLINE_EXPIRED -> requestEvent(kind)
         AUTH_ACCEPTED -> HandshakeEvent.AuthAccepted(Principal("sa"), "s1")
         AUTH_REJECTED -> HandshakeEvent.AuthRejected(LoginRejection.from(RejectReason.WRONG_PASSWORD))
         LOGIN_TIMEOUT -> HandshakeEvent.LoginTimeout
@@ -127,7 +150,7 @@ class HandshakeMatrixTest {
     }
 
     /**
-     * Jede der 126 Zellen in beiden Reihenfolgen: Folgezustand und Aktionsfolge stimmen mit der
+     * Jede der 150 Zellen in beiden Reihenfolgen: Folgezustand und Aktionsfolge stimmen mit der
      * Handtabelle überein; eine Zelle ohne Eintrag ist unzulässig und schließt ohne Antwort.
      *
      * @spec SPEC-001
@@ -151,21 +174,22 @@ class HandshakeMatrixTest {
     }
 
     /**
-     * Die Zählung der Zellen kommt aus dem Code und weicht von der Zahl des Spike ab (140 Zellen,
-     * 10 Zustände mal 14 Ereignisse): hier 9 Zustände mal 14 Ereignisarten. Die Summen sind von Hand
-     * aus der Handtabelle gezählt: zulässig 25 + 4 (RUNNING) + 3 (STREAMING), ignoriert 4 + 1 + 1.
+     * Die Zählung der Zellen kommt aus dem Code: 10 Zustände (mit `CANCELLING`) mal 15 Ereignisarten (mit dem
+     * Fristablauf). Die Summen sind von Hand aus der Handtabelle gezählt: zulässig 25 in den Zuständen bis `READY`,
+     * 6 in `RUNNING`, 5 in `STREAMING`, 3 in `CANCELLING`; ignoriert 6 bisherige und 7 neue (Fristablauf in `READY`,
+     * vier in `CANCELLING`, zwei in `CLOSED`).
      *
      * @spec SPEC-001
      */
     @Test
     fun `Die Matrix zaehlt ihre Zellen aus dem Code`() {
         val census = HandshakeMatrix.census()
-        assertEquals(9, ConnectionState.entries.size)
-        assertEquals(14, EventKind.entries.size)
-        assertEquals(126, census.values.sum())
-        assertEquals(32, census[HandshakeMatrix.Cell.PERMITTED])
-        assertEquals(6, census[HandshakeMatrix.Cell.IGNORED])
-        assertEquals(88, census[HandshakeMatrix.Cell.ILLEGAL])
+        assertEquals(10, ConnectionState.entries.size)
+        assertEquals(15, EventKind.entries.size)
+        assertEquals(150, census.values.sum())
+        assertEquals(39, census[HandshakeMatrix.Cell.PERMITTED])
+        assertEquals(13, census[HandshakeMatrix.Cell.IGNORED])
+        assertEquals(98, census[HandshakeMatrix.Cell.ILLEGAL])
     }
 
     private fun assertClosedSilently(state: ConnectionState, message: HandshakeEvent) {
@@ -242,8 +266,9 @@ class HandshakeMatrixTest {
     /**
      * SQL_BATCH, RPC und ATTENTION vor `READY` sind unzulässig; in `READY` gehören sie der
      * Anfrageverarbeitung (Aktion `Forward`): ein SQL_BATCH und ein RPC setzen den Anfragezustand
-     * `RUNNING`, Transaction Manager und ATTENTION lassen `READY` stehen. In `RUNNING` und `STREAMING` ist jede
-     * Nachricht unzulässig und schließt ohne Antwort.
+     * `RUNNING`, Transaction Manager lässt `READY` stehen, ATTENTION wird in `READY` bestätigt (Aktion `Send`, ohne
+     * Cancel). In `RUNNING` und `STREAMING` ist außer ATTENTION jede Nachricht unzulässig und schließt ohne
+     * Antwort; in `CANCELLING` ist jede Anfrage unzulässig.
      *
      * @spec SPEC-001
      */
@@ -261,15 +286,20 @@ class HandshakeMatrixTest {
         val rpc = HandshakeAutomaton().step(context(READY), rpcEvent)
         assertEquals(RUNNING, rpc.context.state)
         assertEquals(listOf(HandshakeAction.Forward), rpc.actions)
-        listOf(PacketType.TRANSACTION_MANAGER, PacketType.ATTENTION).forEach { type ->
-            val other = HandshakeAutomaton().step(context(READY), HandshakeEvent.Message(SessionVectors.message(type)))
-            assertEquals(READY, other.context.state, "$type")
-            assertEquals(listOf(HandshakeAction.Forward), other.actions, "$type")
-        }
+        val manager = HandshakeEvent.Message(SessionVectors.message(PacketType.TRANSACTION_MANAGER))
+        val other = HandshakeAutomaton().step(context(READY), manager)
+        assertEquals(READY, other.context.state)
+        assertEquals(listOf(HandshakeAction.Forward), other.actions)
+        val ack = HandshakeAutomaton().step(context(READY), event(ATTENTION_MESSAGE))
+        assertEquals(READY, ack.context.state)
+        assertEquals(listOf(HandshakeAction.Send(AttentionAck.message)), ack.actions)
         listOf(RUNNING, STREAMING).forEach { state ->
-            listOf(PacketType.SQL_BATCH, PacketType.RPC, PacketType.ATTENTION).forEach { type ->
+            listOf(PacketType.SQL_BATCH, PacketType.RPC, PacketType.TRANSACTION_MANAGER).forEach { type ->
                 assertClosedSilently(state, HandshakeEvent.Message(SessionVectors.message(type)))
             }
+        }
+        listOf(PacketType.SQL_BATCH, PacketType.RPC, PacketType.TRANSACTION_MANAGER).forEach { type ->
+            assertClosedSilently(CANCELLING, HandshakeEvent.Message(SessionVectors.message(type)))
         }
     }
 
@@ -301,15 +331,20 @@ class HandshakeMatrixTest {
     }
 
     /**
-     * Nach `CLOSED` ist jede Nachricht unzulässig; der Zustand bleibt `CLOSED` und es wird nichts gesendet.
+     * Nach `CLOSED` ist jede Nachricht außer ATTENTION unzulässig; der Zustand bleibt `CLOSED` und es wird nichts
+     * gesendet. Ein ATTENTION nach dem Schließen (ein Auslöser, der zu spät kommt) bleibt ohne Wirkung und
+     * überschreibt den Grund des Schließens nicht.
      *
      * @spec SPEC-001
      */
     @Test
     fun `Nachricht nach CLOSED bleibt CLOSED ohne Antwort`() {
-        listOf(PRELOGIN_MESSAGE, LOGIN7_MESSAGE, REQUEST_MESSAGE, ATTENTION_MESSAGE, OTHER_MESSAGE).forEach { kind ->
+        listOf(PRELOGIN_MESSAGE, LOGIN7_MESSAGE, REQUEST_MESSAGE, OTHER_MESSAGE).forEach { kind ->
             assertClosedSilently(CLOSED, event(kind))
         }
+        val late = HandshakeAutomaton().step(context(CLOSED), event(ATTENTION_MESSAGE))
+        assertEquals(CLOSED, late.context.state)
+        assertEquals(emptyList(), late.actions)
     }
 
     /**
