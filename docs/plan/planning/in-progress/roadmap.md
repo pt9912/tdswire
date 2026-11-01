@@ -31,6 +31,10 @@ In Arbeit (Welle welle-betrieb-diagnose):
 
 - [slice-adr-observability](slice-adr-observability.md)
 
+In Arbeit (Welle welle-produktschnitt):
+
+- [slice-testserver-herausloesen](slice-testserver-herausloesen.md)
+
 ## Nächste Wellen
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
