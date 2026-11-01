@@ -71,7 +71,7 @@ internal class AbbruchWiringTest : RuntimeTestBase() {
     @Test
     fun `ATTENTION ueber den Socket wird mit DONE ATTN beantwortet und die Verbindung bleibt offen`() = blocking {
         val backend = FlowBackend(suspendedAfter(CompletableDeferred()), delivering(*oneRow))
-        val server = running(environment(), Wiring(log = log, requests = RequestSource(backend)))
+        val server = running(environment(), Wiring(telemetry = sink, requests = RequestSource(backend)))
         RawClient(server.port).use { client ->
             login(client)
             client.send(batch("haengt"))
@@ -99,7 +99,7 @@ internal class AbbruchWiringTest : RuntimeTestBase() {
         val backend = FlowBackend(suspendedAfter(CompletableDeferred()), delivering(*oneRow))
         val server = running(
             environment(ConfigKeys.QUERY_TIMEOUT to "1"),
-            Wiring(log = log, requests = RequestSource(backend)),
+            Wiring(telemetry = sink, requests = RequestSource(backend)),
         )
         RawClient(server.port).use { client ->
             login(client)

@@ -2,6 +2,7 @@ package io.github.pt9912.tdswire.runtime
 
 import io.github.pt9912.tdswire.config.ConfigKeys
 import io.github.pt9912.tdswire.config.auth.pbkdf2Value
+import io.github.pt9912.tdswire.domain.telemetry.TlsHandshakeFailed
 import io.github.pt9912.tdswire.protocol.session.SessionVectors
 import io.github.pt9912.tdswire.protocol.token.LoginAck
 import io.github.pt9912.tdswire.testsupport.JdkTlsPeer
@@ -62,12 +63,14 @@ internal class TlsHandshakeNegativeTest : RuntimeTestBase() {
     )
 
     private suspend fun assertHandshakeLogged(expected: String) {
-        eventually("Handschlag-Fehler im Log") { log.lines.any { it.startsWith("TLS-Handschlag gescheitert") } }
-        val lines = log.lines.toList()
-        assertTrue(lines.contains("TLS-Handschlag gescheitert: $expected"), lines.toString())
-        lines.forEach { line ->
+        eventually("Handschlag-Fehler im Ereignis") { sink.of<TlsHandshakeFailed>().isNotEmpty() }
+        val events = sink.events.toList()
+        val failed = events.filterIsInstance<TlsHandshakeFailed>()
+        assertTrue(failed.any { it.failure == expected }, events.toString())
+        assertTrue(failed.all { it.clientProfile == "unknown" && it.connectionId != null }, events.toString())
+        events.map { it.visibleText() }.forEach { text ->
             listOf("Zk9", "CN=", ".p12", "tdswire-test", "-----", "kennwort", "users").forEach {
-                assertTrue(!line.contains(it), "Logzeile nennt $it: $line")
+                assertTrue(!text.contains(it), "Ereignis nennt $it: $text")
             }
         }
     }

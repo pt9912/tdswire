@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
+import io.github.pt9912.tdswire.domain.telemetry.Frame
 import org.yaml.snakeyaml.Yaml
 
 internal object Fremd

@@ -1,6 +1,9 @@
 package io.github.pt9912.tdswire.runtime
 
 import io.github.pt9912.tdswire.domain.SqlType
+import io.github.pt9912.tdswire.domain.telemetry.SimulationBackendReady
+import io.github.pt9912.tdswire.domain.telemetry.StartRefusal
+import io.github.pt9912.tdswire.domain.telemetry.StartRefused
 import io.github.pt9912.tdswire.port.ScriptedBackend
 import io.github.pt9912.tdswire.protocol.dispatch.BatchVectors
 import io.github.pt9912.tdswire.protocol.session.SessionVectors
@@ -16,6 +19,7 @@ import io.github.pt9912.tdswire.testsupport.handMessage
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -51,7 +55,7 @@ internal class SimulationWiringTest : RuntimeTestBase() {
     }
 
     private fun wiringWith(table: SimTable) =
-        Wiring(log = log, requests = RequestSource(simulationTables = listOf(table)))
+        Wiring(telemetry = sink, requests = RequestSource(simulationTables = listOf(table)))
 
     private fun personColumns() =
         mutableListOf(SimColumn("Id", SqlType.Int32, nullable = false), SimColumn("Name", SqlType.UnicodeText))
@@ -80,7 +84,7 @@ internal class SimulationWiringTest : RuntimeTestBase() {
             listOf(listOf(1, "Ada"), listOf(2, "Bob")),
         )
         val person = integratorTable(personColumns(), mutableListOf("Id"), emptyList()).copy(name = "person")
-        val wiring = Wiring(log = log, requests = RequestSource(simulationTables = listOf(kunde, person)))
+        val wiring = Wiring(telemetry = sink, requests = RequestSource(simulationTables = listOf(kunde, person)))
         val server = running(environment(), wiring)
         RawClient(server.port).use { client ->
             login(client)
@@ -90,7 +94,7 @@ internal class SimulationWiringTest : RuntimeTestBase() {
             val empty = ask(client, "SELECT id FROM person")
             assertTrue(empty.none { it is RowToken })
         }
-        assertTrue(log.lines.contains("Simulations-Backend: 2 Tabellen"), log.lines.toString())
+        assertEquals(2, sink.of<SimulationBackendReady>().single().tables)
     }
 
     /**
@@ -128,7 +132,7 @@ internal class SimulationWiringTest : RuntimeTestBase() {
             client.send(handMessage(BATCH_TYPE, BatchVectors.payload("SELECT 1"), 4000))
             assertTrue(client.closedByServerWithoutBytes())
         }
-        assertTrue(log.lines.none { it.startsWith("Simulations-Backend") }, log.lines.toString())
+        assertTrue(sink.of<SimulationBackendReady>().isEmpty(), sink.events.toString())
     }
 
     /**
@@ -140,19 +144,20 @@ internal class SimulationWiringTest : RuntimeTestBase() {
     fun `Widersprueche zwischen Tabellen und Backend brechen den Start ab`() = blocking {
         val kunde = integratorTable(personColumns(), mutableListOf("Id"), emptyList())
         val twice = Wiring(
-            log = log,
+            telemetry = sink,
             requests = RequestSource(simulationTables = listOf(kunde, kunde.copy(name = "KUNDE"))),
         )
         val duplicate = assertIs<StartOutcome.Aborted>(start(environment(), twice))
-        assertEquals("Tabellen ungueltig: ein Name kommt doppelt vor", log.lines.last())
-        assertEquals(log.lines.last(), duplicate.reason)
+        assertEquals("Tabellen ungueltig: ein Name kommt doppelt vor", duplicate.reason)
+        assertFalse(duplicate.reason.contains("kunde", ignoreCase = true), "Tabellenname im Grund: ${duplicate.reason}")
+        assertEquals(StartRefusal.TABLE_NAME_DUPLICATE, sink.of<StartRefused>().last().reason)
 
         val backend = ScriptedBackend.ofList()
         val both = assertIs<StartOutcome.Aborted>(
-            start(environment(), Wiring(log = log, requests = RequestSource(backend, listOf(kunde)))),
+            start(environment(), Wiring(telemetry = sink, requests = RequestSource(backend, listOf(kunde)))),
         )
-        assertEquals("Backend und Simulations-Backend gleichzeitig konfiguriert", log.lines.last())
-        assertEquals(log.lines.last(), both.reason)
+        assertEquals("Backend und Simulations-Backend gleichzeitig konfiguriert", both.reason)
+        assertEquals(StartRefusal.BACKEND_AND_SIMULATION, sink.of<StartRefused>().last().reason)
     }
 
     /**
@@ -168,6 +173,6 @@ internal class SimulationWiringTest : RuntimeTestBase() {
         key.add("Nope")
         val error = assertFailsWith<IllegalArgumentException> { start(environment(), wiringWith(kunde)) }
         assertTrue("Nope" in error.message.orEmpty(), error.message)
-        assertTrue(log.lines.none { it.contains("doppelt") }, log.lines.toString())
+        assertTrue(sink.of<StartRefused>().isEmpty(), sink.events.toString())
     }
 }

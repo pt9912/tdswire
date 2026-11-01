@@ -7,6 +7,7 @@ import io.github.pt9912.tdswire.config.TlsKeyMaterial
 import io.github.pt9912.tdswire.config.auth.PasswordChars
 import io.github.pt9912.tdswire.config.auth.UserList
 import io.github.pt9912.tdswire.config.auth.UserListResult
+import io.github.pt9912.tdswire.domain.telemetry.ServerStopped
 import io.github.pt9912.tdswire.testsupport.blocking
 import io.github.pt9912.tdswire.transport.listener.LOOPBACK
 import java.io.File
@@ -32,10 +33,10 @@ internal class TdsServerLifecycleTest : RuntimeTestBase() {
         TlsKeyMaterial(File("$directory/gueltig.p12").readBytes(), PasswordChars(STORE_PASSWORD.toCharArray()))
 
     private suspend fun launch(config: ServerConfig, properties: (String) -> String? = flagSet): StartOutcome =
-        Bootstrap.launch(config, Wiring(log = log), properties)
+        Bootstrap.launch(config, Wiring(telemetry = sink), properties)
 
     /**
-     * Ein zweiter `stop` hat keine Wirkung: das Log nennt „gestoppt“ genau einmal, der Port bleibt frei.
+     * Ein zweiter `stop` hat keine Wirkung: die Senke bekommt das Ereignis „gestoppt“ genau einmal.
      *
      * @spec SPEC-059
      * @spec SPEC-044
@@ -45,7 +46,7 @@ internal class TdsServerLifecycleTest : RuntimeTestBase() {
         val server = running(loopbackEnvironment(file("users.txt", "alice\t{plain}pw\n")))
         server.stop()
         server.stop()
-        assertEquals(1, log.lines.count { it == "gestoppt" }, log.lines.toString())
+        assertEquals(1, sink.of<ServerStopped>().size, sink.events.toString())
     }
 
     /**

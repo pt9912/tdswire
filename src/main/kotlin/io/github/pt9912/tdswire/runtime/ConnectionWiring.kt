@@ -3,6 +3,11 @@ package io.github.pt9912.tdswire.runtime
 import io.github.pt9912.tdswire.config.LoginSettings
 import io.github.pt9912.tdswire.config.RequestSettings
 import io.github.pt9912.tdswire.config.auth.AuthAdapter
+import io.github.pt9912.tdswire.domain.telemetry.EventContext
+import io.github.pt9912.tdswire.domain.telemetry.LoginAccepted
+import io.github.pt9912.tdswire.domain.telemetry.TlsFirstNotOffered
+import io.github.pt9912.tdswire.domain.telemetry.TlsFirstRefusal
+import io.github.pt9912.tdswire.domain.telemetry.TlsHandshakeFailed
 import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.protocol.dispatch.RequestLoop
 import io.github.pt9912.tdswire.protocol.dispatch.RequestTimes
@@ -46,7 +51,7 @@ internal class HandlerSetup(
     val authPool: AuthPool,
     val login: LoginSettings,
     val tls: TlsMaterial?,
-    val log: ServerLog,
+    val telemetry: Telemetry,
 ) {
     /** Die Fristen einer Anfrage; die Voreinstellungen von `SPEC-009` und `SPEC-033`, bis der Prozess sie setzt. */
     var requests: RequestSettings = RequestSettings()
@@ -87,66 +92,82 @@ internal class HandshakeConnectionHandler(private val setup: HandlerSetup, priva
             TLS_HANDSHAKE_RECORD -> TlsPath.FROM_FIRST_BYTE
             else -> TlsPath.ENCAPSULATED_IN_TDS
         }
-        val config = handshakeConfig(path) ?: return
+        val early = EventContext(connection.id, clientProfile = profileOf(path, null))
+        val config = handshakeConfig(path, early) ?: return
         val wire = SwitchableChannel(peeked)
         val reader = MessageReader(wire, preLoginLimits(setup.login.maxPreloginMessageBytes))
         val channel = TransportHandshakeChannel(reader, MessageWriter(wire, PACKET_SIZE), wire) {
-            upgrade(peeked, wire, path)
+            upgrade(peeked, wire, path, early)
         }
         val driver = HandshakeDriver(
             config,
             setup.adapter,
-            HandshakeLog { setup.log.line("Login: ${describe(it)}") },
+            HandshakeLog { entry -> setup.telemetry.emit { entry.toEvent(it, early) } },
             setup.login.timeoutSeconds.seconds,
             setup.authPool,
         )
         val outcome = driver.run(channel, connection.remoteAddress)
         if (outcome is HandshakeOutcome.Ready) {
             connection.loginCompleted()
-            if (backend == null) channel.receive() else serve(outcome, channel, backend)
+            val context = EventContext(
+                connection.id,
+                outcome.session.id,
+                profileOf(path, outcome.live.context.encryption),
+            )
+            setup.telemetry.emit { LoginAccepted(it, context, outcome.session.principal.name) }
+            if (backend == null) channel.receive() else serve(outcome, channel, backend, context)
         }
     }
 
-    private suspend fun serve(outcome: HandshakeOutcome.Ready, channel: HandshakeChannel, backend: QueryBackend) {
+    private suspend fun serve(
+        outcome: HandshakeOutcome.Ready,
+        channel: HandshakeChannel,
+        backend: QueryBackend,
+        context: EventContext,
+    ) {
         val times = RequestTimes(
             queryTimeout = setup.requests.queryTimeoutSeconds.seconds,
             cancelTimeout = setup.requests.cancelTimeoutSeconds.seconds,
         )
-        RequestLoop(outcome, channel, backend, errorMapper(), times = times).run()
+        RequestLoop(outcome, channel, backend, errorMapper(context), times = times).run()
     }
 
-    /** Die Konfiguration des Pfads; `null` (und eine Logzeile), wenn der Prozess den TDS-8.0-Pfad nicht anbietet. */
-    private fun handshakeConfig(path: TlsPath): HandshakeConfig? = when {
+    /** Die Konfiguration des Pfads; `null` (und ein Ereignis), wenn der Prozess den TDS-8.0-Pfad nicht anbietet. */
+    private fun handshakeConfig(path: TlsPath, context: EventContext): HandshakeConfig? = when {
         path == TlsPath.ENCAPSULATED_IN_TDS -> setup.handshake
 
         setup.tls == null -> {
-            setup.log.line("TLS ab dem ersten Byte nicht angeboten: kein TLS-Material")
+            setup.telemetry.emit { TlsFirstNotOffered(it, context, TlsFirstRefusal.NO_TLS_MATERIAL) }
             null
         }
 
         // Verteidigung: die Konfiguration lässt TLS-Material nur mit REQUIRED zu, und HandshakeConfig verweigert
         // TLS_FIRST mit einer anderen Richtlinie; ein HandlerSetup anderer Herkunft trennt statt zu werfen.
         setup.handshake.encryptionPolicy != EncryptionPolicy.REQUIRED -> {
-            setup.log.line("TLS ab dem ersten Byte nicht angeboten: Richtlinie nicht REQUIRED")
+            setup.telemetry.emit { TlsFirstNotOffered(it, context, TlsFirstRefusal.POLICY_NOT_REQUIRED) }
             null
         }
 
         else -> setup.handshake.copy(order = HandshakeOrder.TLS_FIRST)
     }
 
-    private fun errorMapper() = ErrorMapper(
-        ErrorLog { setup.log.line("Fehler: ${it.code}${it.cause?.let { cause -> " ($cause)" }.orEmpty()}") },
-    )
+    private fun errorMapper(context: EventContext) =
+        ErrorMapper(ErrorLog { entry -> setup.telemetry.emit { entry.toEvent(it, context) } })
 
     /** Die Grenzen vor dem Login: höchstens [bytes] je Nachricht, kein Paket länger als die Nachricht. */
     private fun preLoginLimits(bytes: Int): FramingLimits =
         FramingLimits(maxPacketBytes = minOf(FramingLimits.MAX_TDS_PACKET_BYTES, bytes), maxMessageBytes = bytes)
 
-    private suspend fun upgrade(raw: SuspendingChannel, wire: SwitchableChannel, path: TlsPath): Boolean {
+    private suspend fun upgrade(
+        raw: SuspendingChannel,
+        wire: SwitchableChannel,
+        path: TlsPath,
+        context: EventContext,
+    ): Boolean {
         val material = setup.tls ?: return false
         return when (val accepted = TlsChannel.accept(raw, material.context, path, PARAMETERS)) {
             is TlsResult.Failed -> {
-                setup.log.line("TLS-Handschlag gescheitert: ${accepted.error.failure}")
+                setup.telemetry.emit { TlsHandshakeFailed(it, context, accepted.error.failure.name) }
                 false
             }
 

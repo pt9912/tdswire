@@ -23,9 +23,11 @@
 #                genau die Werte der Regel sein (ein Eintrag zu wenig oder zu viel faellt auf), jeder
 #                davon wird gemeldet; fuer sie gilt zudem (3).
 #   aufrufe      wertet den Bericht der Task detektSelbsttestAufrufe aus: jeder Eintrag von
-#                ForbiddenMethodCall in detekt.yml hat in Aufruf.kt jedes Kern-Packages einen Fund, die
-#                Markierungen `// erwartet: <Methode>` in Aufruf.kt sind genau diese Eintraege, und
-#                Erlaubt.kt hat keinen Fund.
+#                ForbiddenMethodCall in detekt.yml hat in Aufruf.kt jedes Kern-Packages (domain, port) einen
+#                Fund, jeder Eintrag von ForbiddenMethodCall/ausgabe in Aufruf.kt von runtime, protocol und
+#                transport unter selbsttest-aufrufe/src/main (der Pfad, auf den das includes der Instanz
+#                zeigt), die Markierungen `// erwartet: <Methode>` in Aufruf.kt sind genau diese Eintraege,
+#                und Erlaubt.kt hat keinen Fund.
 #   suppression  prueft an erzeugten Dateien, dass tools/suppression-check.sh jede Form von @Suppress
 #                meldet, die das Skript nennt, und erlaubte Namen nicht.
 #   jackson      prueft an erzeugten Dateien, dass tools/jackson-sperre.sh Import, qualifizierten Namen und
@@ -40,6 +42,7 @@ set -eu
 yml=config/detekt/detekt.yml
 td=config/detekt/selbsttest/io/github/pt9912/tdswire
 td_aufrufe=config/detekt/selbsttest-aufrufe/io/github/pt9912/tdswire
+td_ausgabe=config/detekt/selbsttest-aufrufe/src/main/kotlin/io/github/pt9912/tdswire
 out=build/selbsttest
 report=build/reports/detekt-selbsttest/detekt.xml
 report_aufrufe=build/reports/detekt-selbsttest/aufrufe.xml
@@ -172,34 +175,51 @@ check() {
   echo "detekt-selbsttest: OK - $anzahl Importregeln, $gemeldet verbotene Importe gemeldet, 0 Fehlmeldungen bei erlaubten"
 }
 
+# Prueft eine Instanz von ForbiddenMethodCall: $1 Name der Instanz (kern oder die Endung nach dem Schraegstrich),
+# $2 ihr Kopf in detekt.yml, $3 das Verzeichnis der Beispiele, $4 die Packages darin. Schreibt die Zahl der
+# geprueften Faelle auf die Standardausgabe; $funde ist die Liste der Funde aus aufrufe().
+aufrufe_instanz() {
+  inst=$1
+  kopf=$2
+  verzeichnis=$3
+  pakete=$4
+  methoden=$(awk -v kopf="  $kopf:" '$0 == kopf { i = 1; next } /^  [A-Za-z]/ { i = 0 } i && /^      - value: / { match($0, /\x27[^\x27]*\x27/); print substr($0, RSTART + 1, RLENGTH - 2) }' "$yml")
+  [ -n "$methoden" ] || fail "kein Eintrag unter $kopf in $yml"
+  zaehler=0
+  for pkg in $pakete; do
+    marker=$(sed -n 's#^ *// erwartet: ##p' "$verzeichnis/$pkg/Aufruf.kt" | sort -u)
+    soll=$(printf '%s\n' $methoden | sort -u)
+    [ "$marker" = "$soll" ] || fail "$pkg/Aufruf.kt erwartet ($(echo $marker)), detekt.yml fuehrt unter $kopf ($(echo $soll)) - ein Eintrag fehlt oder ist zu viel"
+    for m in $methoden; do
+      zaehler=$((zaehler + 1))
+      grep -qF "$inst $pkg Aufruf.kt $m" "$funde" || fail "$kopf meldet '$m' in $pkg/Aufruf.kt nicht - der Eintrag greift nicht, oder die Beispiele rufen ihn nicht auf; gemeldet sind: $(grep "^$inst $pkg Aufruf.kt " "$funde" | cut -d' ' -f4- | tr '\n' ';')"
+    done
+  done
+  echo "$zaehler"
+}
+
 aufrufe() {
   [ -f "$report_aufrufe" ] || fail "kein Bericht unter $report_aufrufe - lief detektSelbsttestAufrufe?"
   funde=$(mktemp)
-  # Zeile je Fund: Package, Dateiname, Methode
+  # Zeile je Fund: Instanz (kern oder die Endung nach dem Schraegstrich), Package, Dateiname, Methode
   awk '
     /<file name=/ { match($0, /name="[^"]*"/); f = substr($0, RSTART + 6, RLENGTH - 7); p = f; sub(/.*tdswire\//, "", p); sub(/\/.*/, "", p); sub(/.*\//, "", f); next }
-    /source="detekt\.ForbiddenMethodCall"/ {
+    /source="detekt\.ForbiddenMethodCall(\/[a-z-]+)?"/ {
+      match($0, /ForbiddenMethodCall(\/[a-z-]+)?/)
+      inst = substr($0, RSTART + 19, RLENGTH - 19)
+      sub(/^\//, "", inst)
+      if (inst == "") inst = "kern"
       match($0, /method `[^`]*`/)
       m = substr($0, RSTART + 8, RLENGTH - 9)
       gsub(/&lt;/, "<", m); gsub(/&gt;/, ">", m); gsub(/&amp;/, "\\&", m)
-      print p, f, m
+      print inst, p, f, m
     }
   ' "$report_aufrufe" > "$funde"
-  methoden=$(awk '/^  ForbiddenMethodCall:/ { i = 1; next } /^  [A-Za-z]/ { i = 0 } i && /^      - value: / { match($0, /\x27[^\x27]*\x27/); print substr($0, RSTART + 1, RLENGTH - 2) }' "$yml")
-  [ -n "$methoden" ] || fail "kein Eintrag unter ForbiddenMethodCall in $yml"
-  n=0
-  for pkg in domain port; do
-    marker=$(sed -n 's#^ *// erwartet: ##p' "$td_aufrufe/$pkg/Aufruf.kt" | sort -u)
-    soll=$(printf '%s\n' $methoden | sort -u)
-    [ "$marker" = "$soll" ] || fail "$pkg/Aufruf.kt erwartet ($(echo $marker)), detekt.yml fuehrt ($(echo $soll)) - ein Eintrag fehlt oder ist zu viel"
-    for m in $methoden; do
-      n=$((n + 1))
-      grep -qF "$pkg Aufruf.kt $m" "$funde" || fail "ForbiddenMethodCall meldet '$m' in $pkg/Aufruf.kt nicht - der Eintrag greift nicht, oder die Beispiele rufen ihn nicht auf; gemeldet sind: $(grep "^$pkg Aufruf.kt " "$funde" | cut -d' ' -f3- | tr '\n' ';')"
-    done
-  done
+  kern=$(aufrufe_instanz kern ForbiddenMethodCall "$td_aufrufe" "domain port")
+  ausgabe=$(aufrufe_instanz ausgabe ForbiddenMethodCall/ausgabe "$td_ausgabe" "runtime protocol transport")
   falsch=$(grep -c ' Erlaubt\.kt ' "$funde" || true)
   [ "$falsch" -eq 0 ] || fail "$falsch erlaubte Aufrufe gemeldet: $(grep ' Erlaubt\.kt ' "$funde" | tr '\n' ';')"
-  echo "detekt-selbsttest: OK - $n Aufruf-Faelle gemeldet (je Eintrag in domain und port), 0 Fehlmeldungen bei erlaubten"
+  echo "detekt-selbsttest: OK - $((kern + ausgabe)) Aufruf-Faelle gemeldet (ForbiddenMethodCall: $kern je Eintrag in domain und port; ForbiddenMethodCall/ausgabe: $ausgabe je Eintrag in runtime, protocol und transport), 0 Fehlmeldungen bei erlaubten"
 }
 
 suppression() {

@@ -4,6 +4,9 @@ import io.github.pt9912.tdswire.config.ConfigKeys
 import io.github.pt9912.tdswire.config.LoginSettings
 import io.github.pt9912.tdswire.config.TempFilesTest
 import io.github.pt9912.tdswire.config.auth.pbkdf2Value
+import io.github.pt9912.tdswire.domain.telemetry.TlsFirstNotOffered
+import io.github.pt9912.tdswire.domain.telemetry.TlsFirstRefusal
+import io.github.pt9912.tdswire.domain.telemetry.TlsHandshakeFailed
 import io.github.pt9912.tdswire.protocol.session.AuthPool
 import io.github.pt9912.tdswire.protocol.session.EncryptionPolicy
 import io.github.pt9912.tdswire.protocol.session.HandshakeConfig
@@ -98,7 +101,7 @@ private fun hasLoginAck(outcome: ReadOutcome): Boolean =
 internal class Tds8WiringTest : RuntimeTestBase() {
     private val events = RecordingEvents()
 
-    private suspend fun start() = running(keyEnvironment(this), Wiring(log = log, events = events))
+    private suspend fun start() = running(keyEnvironment(this), Wiring(telemetry = sink, events = events))
 
     private suspend fun assertStillServesStrict(port: Int) {
         val wire = connectTo(port)
@@ -109,8 +112,10 @@ internal class Tds8WiringTest : RuntimeTestBase() {
     }
 
     private suspend fun assertHandshakeLogged(expected: String) {
-        eventually("Handschlag-Fehler im Log") { log.lines.any { it.startsWith("TLS-Handschlag gescheitert") } }
-        assertTrue(log.lines.contains("TLS-Handschlag gescheitert: $expected"), log.lines.toList().toString())
+        eventually("Handschlag-Fehler im Ereignis") { sink.of<TlsHandshakeFailed>().isNotEmpty() }
+        val failed = sink.of<TlsHandshakeFailed>()
+        assertTrue(failed.any { it.failure == expected }, sink.events.toString())
+        assertTrue(failed.all { it.clientProfile == "tds-8.0:strict" }, sink.events.toString())
     }
 
     /**
@@ -166,7 +171,7 @@ internal class Tds8WiringTest : RuntimeTestBase() {
                 "HANDSHAKE_FAILED" to plaintextInRecord(preloginWire(SessionVectors.ENCRYPT_OFF)),
             )
             cases.forEach { (reason, bytes) ->
-                log.lines.clear()
+                sink.events.clear()
                 RawClient(server.port).use {
                     it.send(bytes)
                     if (reason == "HANDSHAKE_FAILED") assertTrue(it.closedByServerWithoutBytes(), reason)
@@ -188,7 +193,7 @@ internal class Tds8WiringTest : RuntimeTestBase() {
     fun `Ohne ALPN tds 8_0 kommt keine Verbindung zum PRELOGIN`() = blocking {
         val server = start()
         listOf(emptyList<String>() to "ALPN_MISMATCH", listOf("h2") to "HANDSHAKE_FAILED").forEach { (alpn, reason) ->
-            log.lines.clear()
+            sink.events.clear()
             val wire = connectTo(server.port)
             val peer = JdkTlsPeer(wire, strictEngine("TLSv1.3", alpn), encapsulated = false)
             if (peer.handshake() == null) {
@@ -240,9 +245,9 @@ internal class Tds8WiringTest : RuntimeTestBase() {
             it.send(tls11ClientHello())
             assertTrue(it.closedByServerWithoutBytes(), "Antwort ohne TLS-Material")
         }
-        eventually("Logzeile zum TLS-Anfang") {
-            log.lines.any { it.startsWith("TLS ab dem ersten Byte nicht angeboten") }
-        }
+        eventually("Ereignis zum TLS-Anfang") { sink.of<TlsFirstNotOffered>().isNotEmpty() }
+        assertEquals(TlsFirstRefusal.NO_TLS_MATERIAL, sink.of<TlsFirstNotOffered>().single().reason)
+        assertEquals("tds-8.0:strict", sink.of<TlsFirstNotOffered>().single().clientProfile)
         RawClient(server.port).use {
             it.send(preloginWire(SessionVectors.ENCRYPT_OFF))
             assertEquals(SessionVectors.ENCRYPT_NOT_SUP, encryptionOf(assertNotNull(it.readMessage()).payload))
@@ -272,19 +277,21 @@ internal class Tds8DefenseTest {
     fun `Material mit TEST_UNENCRYPTED bietet den Pfad ab dem ersten Byte nicht an`() = blocking {
         val store = KeyVariants.file(TestKeys.VALID)
         val loaded = assertIs<MaterialResult.Loaded>(TlsMaterial.load(store, KeyVariants.password()))
-        val log = CapturedLog()
+        val sink = CapturedEvents()
         val setup = HandlerSetup(
             handshake = HandshakeConfig(encryptionPolicy = EncryptionPolicy.TEST_UNENCRYPTED),
             adapter = RecordingAdapter { error("kein Adapteraufruf vor dem Handschlag") },
             authPool = AuthPool(),
             login = LoginSettings(timeoutSeconds = 5, maxPreloginMessageBytes = 65_536),
             tls = loaded.material,
-            log = log,
+            telemetry = Telemetry(sink),
         )
         val (local, remote) = MemoryChannel.pair(capacity = 64)
         remote.writeFully(ByteBuffer.wrap(byteArrayOf(TLS_RECORD_FIRST_BYTE.toByte())))
         HandshakeConnectionHandler(setup).handle(FakeConnection(local))
-        assertEquals(listOf("TLS ab dem ersten Byte nicht angeboten: Richtlinie nicht REQUIRED"), log.lines.toList())
+        val refused = sink.events.filterIsInstance<TlsFirstNotOffered>().single()
+        assertEquals(TlsFirstRefusal.POLICY_NOT_REQUIRED, refused.reason)
+        assertEquals(1, sink.events.size)
         local.close()
         assertEquals(ChannelResult.Ok(-1), remote.read(ByteBuffer.allocate(1)))
     }

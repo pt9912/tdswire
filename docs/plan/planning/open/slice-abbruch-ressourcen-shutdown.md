@@ -115,6 +115,7 @@ dasteht.
 - Zeitverhalten: Tests mit gesteuerter Uhr belegen den Ablauf, nicht reale Fristen unter Last; `SHUTDOWN_GRACE` (10 s) und `CANCEL_TIMEOUT` (5 s) sind vorläufige Defaults. — **Ausgang:** offen bis zur Closure
 - Disconnect bei vom Server geschlossener Verbindung mit Pooling im Client ist nicht gemessen; ebenso TDS 8.0. — **Ausgang:** weiter offen: → `BEO-TDS/tds-8-0-und-pooling-nicht-gemessen`
 - Ein Fake-Backend belegt die Freigabe von Strom und Sitzung, nicht die Freigabe von Ressourcen eines echten Treibers (Port-Vertrag: das Backend sorgt selbst, Annahme). — **Ausgang:** offen bis zur Closure
+- Der minimale Log-Anschluss (`ServerLog`) besteht nicht mehr: [slice-betrieb-log-schnittstelle](../done/slice-betrieb-log-schnittstelle.md) hat die Aufrufstellen auf die Senke (`domain.telemetry`, `Telemetry` in `runtime`) umgestellt, und die Ausgabe-Sperre verbietet `println` im Hauptmodul. Meldet dieser Slice etwas über das Beenden oder das Ende einer Verbindung, geht es über die Senke; neue Ereignisarten gehören zu [slice-betrieb-zustandsereignisse](slice-betrieb-zustandsereignisse.md), und Änderungen an `Bootstrap.kt` und `TdsServer.kt` treffen die Verdrahtung der Senke (der Review maß mit `git merge-tree` keinen Konflikt, übersetzt wurde nicht). — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 

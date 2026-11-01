@@ -5,6 +5,7 @@ import io.github.pt9912.tdswire.config.auth.AuthAdapter
 import io.github.pt9912.tdswire.config.auth.AuthRequest
 import io.github.pt9912.tdswire.config.auth.AuthResult
 import io.github.pt9912.tdswire.domain.Principal
+import io.github.pt9912.tdswire.domain.telemetry.AdapterFailed
 import io.github.pt9912.tdswire.protocol.session.AuthPool
 import io.github.pt9912.tdswire.protocol.session.LoginResponses
 import io.github.pt9912.tdswire.protocol.session.SessionVectors
@@ -72,7 +73,7 @@ internal class HandshakeWiringTest : RuntimeTestBase() {
 
     private suspend fun overlapWith(parallelism: Int): Int {
         val probe = OverlapProbe()
-        val wiring = Wiring(log = log, authPool = AuthPool(threads, parallelism), adapter = { probe })
+        val wiring = Wiring(telemetry = sink, authPool = AuthPool(threads, parallelism), adapter = { probe })
         val server = running(environment(), wiring)
         coroutineScope {
             List(2) { async(threads) { RawClient(server.port).use { login(it) } } }.awaitAll()
@@ -107,7 +108,7 @@ internal class HandshakeWiringTest : RuntimeTestBase() {
         val cancelling = object : AuthAdapter {
             override fun authenticate(request: AuthRequest): AuthResult = throw CancellationException("x")
         }
-        val wiring = Wiring(log = log, events = events, adapter = { cancelling })
+        val wiring = Wiring(telemetry = sink, events = events, adapter = { cancelling })
         val server = running(environment(), wiring)
         val answer = RawClient(server.port).use { login(it) }
         assertContentEquals(LoginResponses.rejection.payload, answer.payload)
@@ -115,7 +116,7 @@ internal class HandshakeWiringTest : RuntimeTestBase() {
         val closed = events.closed().single()
         assertEquals(ConnectionEnd.HANDLER_RETURNED, closed.end)
         assertNull(closed.failure)
-        assertTrue(log.lines.any { it.startsWith("Login: Adapterfehler") }, log.lines.toString())
+        assertEquals(1, sink.of<AdapterFailed>().size, sink.events.toString())
     }
 
     /**
@@ -126,7 +127,7 @@ internal class HandshakeWiringTest : RuntimeTestBase() {
      */
     @Test
     fun `Stop im Handshake ist SHUTDOWN und kein Handlerfehler`() = blocking {
-        val server = running(environment(), Wiring(log = log, events = events))
+        val server = running(environment(), Wiring(telemetry = sink, events = events))
         RawClient(server.port).use { client ->
             eventually("Verbindung angenommen") { events.events.isNotEmpty() }
             server.stop()
@@ -145,7 +146,7 @@ internal class HandshakeWiringTest : RuntimeTestBase() {
      */
     @Test
     fun `Stop trennt eine angemeldete Verbindung`() = blocking {
-        val server = running(environment(), Wiring(log = log, events = events))
+        val server = running(environment(), Wiring(telemetry = sink, events = events))
         RawClient(server.port).use { client ->
             assertEquals(4, login(client).type)
             withTimeout(STOP_MILLIS) { server.stop() }

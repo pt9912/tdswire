@@ -4,6 +4,15 @@ import io.github.pt9912.tdswire.config.ConfigIssue
 import io.github.pt9912.tdswire.config.ConfigKeys
 import io.github.pt9912.tdswire.config.IssueKind
 import io.github.pt9912.tdswire.config.auth.pbkdf2Value
+import io.github.pt9912.tdswire.domain.telemetry.BindFailed
+import io.github.pt9912.tdswire.domain.telemetry.ConfigInvalid
+import io.github.pt9912.tdswire.domain.telemetry.EncryptionWeakened
+import io.github.pt9912.tdswire.domain.telemetry.PlainTestModeActive
+import io.github.pt9912.tdswire.domain.telemetry.ServerStarted
+import io.github.pt9912.tdswire.domain.telemetry.ServerStopped
+import io.github.pt9912.tdswire.domain.telemetry.StartRefusal
+import io.github.pt9912.tdswire.domain.telemetry.StartRefused
+import io.github.pt9912.tdswire.domain.telemetry.TlsStartRejected
 import io.github.pt9912.tdswire.testsupport.blocking
 import io.github.pt9912.tdswire.transport.listener.LOOPBACK
 import io.github.pt9912.tdswire.transport.listener.assertNoNewListenerThreads
@@ -16,6 +25,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -42,18 +52,19 @@ internal class BootstrapTest : RuntimeTestBase() {
         val environment = loopbackEnvironment(users())
         listOf(null, "1", "00", "", "0 ", "-1").forEach { value ->
             val properties = { key: String -> if (key == Bootstrap.TICKET_FLAG) value else null }
-            val boot = Bootstrap.launch(configOf(environment), Wiring(log = log), properties)
-            assertIs<StartOutcome.Aborted>(boot, "Wert '$value'")
+            val boot = Bootstrap.launch(configOf(environment), Wiring(telemetry = sink), properties)
+            val aborted = assertIs<StartOutcome.Aborted>(boot, "Wert '$value'")
+            assertTrue(aborted.reason.contains("newSessionTicketCount=0"), aborted.reason)
         }
-        assertTrue(log.lines.all { it.contains("newSessionTicketCount=0") }, log.lines.toString())
-        assertEquals(6, log.lines.size)
+        assertEquals(6, sink.events.size)
+        assertTrue(sink.of<StartRefused>().all { it.reason == StartRefusal.JVM_FLAG_MISSING }, sink.events.toString())
         assertNoNewListenerThreads(before)
         assertIs<StartOutcome.Running>(start(environment))
     }
 
     /**
-     * Eine ungültige Konfiguration beendet den Start vor dem Binden: das Log nennt Schlüssel und Art jedes
-     * Fehlers, keinen Wert; es läuft kein Thread des Servers; der gewählte Port bleibt frei.
+     * Eine ungültige Konfiguration beendet den Start vor dem Binden: je Fehler ein Ereignis mit Schlüssel und Art,
+     * keinem Wert; es läuft kein Thread des Servers; der gewählte Port bleibt frei.
      *
      * @spec SPEC-005
      * @spec SPEC-043
@@ -71,11 +82,12 @@ internal class BootstrapTest : RuntimeTestBase() {
         val aborted = assertIs<StartOutcome.Aborted>(start(environment))
         assertEquals(
             listOf(
-                "Konfiguration ungueltig: LOGIN_TIMEOUT: OUT_OF_RANGE",
-                "Konfiguration ungueltig: MAX_PRELOGIN_MESSAGE_BYTES: OUT_OF_RANGE",
+                ConfigKeys.LOGIN_TIMEOUT to "OUT_OF_RANGE",
+                ConfigKeys.MAX_PRELOGIN_MESSAGE_BYTES to "OUT_OF_RANGE",
             ),
-            log.lines.toList(),
+            sink.of<ConfigInvalid>().map { it.key to it.kind },
         )
+        assertEquals(2, sink.events.size)
         assertEquals("Konfiguration ungueltig", aborted.reason)
         assertEquals(
             listOf(
@@ -99,8 +111,12 @@ internal class BootstrapTest : RuntimeTestBase() {
         val before = listenerThreads()
         ServerSocket(0, 1, InetAddress.getByName(LOOPBACK)).use { occupied ->
             val environment = loopbackEnvironment(users(), ConfigKeys.LISTEN_PORT to occupied.localPort.toString())
-            assertIs<StartOutcome.Aborted>(start(environment))
-            assertEquals(listOf("Start gescheitert: Port belegt: $LOOPBACK:${occupied.localPort}"), log.lines.toList())
+            val aborted = assertIs<StartOutcome.Aborted>(start(environment))
+            assertEquals("Start gescheitert: Port belegt: $LOOPBACK:${occupied.localPort}", aborted.reason)
+            val failed = sink.events.single() as BindFailed
+            assertEquals(LOOPBACK, failed.address)
+            assertEquals(occupied.localPort, failed.port)
+            assertNull(failed.exceptionType)
             assertNoNewListenerThreads(before)
             assertFalse(occupied.isClosed)
         }
@@ -108,7 +124,7 @@ internal class BootstrapTest : RuntimeTestBase() {
 
     /**
      * Ein Speicher mit abgelaufenem Zertifikat beendet den Start über die Startprobe, bevor ein Port gebunden
-     * ist; das Log nennt den Teil und die Form, nie Pfad oder Kennwort. Ein gültiger Speicher startet.
+     * ist; das Ereignis nennt den Teil und die Form, nie Pfad oder Kennwort. Ein gültiger Speicher startet.
      *
      * @spec SPEC-043
      */
@@ -117,10 +133,9 @@ internal class BootstrapTest : RuntimeTestBase() {
         val port = freePort()
         val before = listenerThreads()
         val bad = tlsEnvironment("abgelaufen.p12", port)
-        assertIs<StartOutcome.Aborted>(start(bad))
-        assertEquals(1, log.lines.size, log.lines.toString())
-        val line = log.lines.single()
-        assertTrue(line.startsWith("Start gescheitert: TLS-Konfiguration: CERTIFICATE"), line)
+        val aborted = assertIs<StartOutcome.Aborted>(start(bad))
+        assertTrue(aborted.reason.startsWith("Start gescheitert: TLS-Konfiguration: CERTIFICATE"), aborted.reason)
+        assertEquals("CERTIFICATE", (sink.events.single() as TlsStartRejected).part)
         assertNoNewListenerThreads(before)
         assertFree(port)
         val good = tlsEnvironment("gueltig.p12", port)
@@ -136,9 +151,12 @@ internal class BootstrapTest : RuntimeTestBase() {
     @Test
     fun `Ein falsches Kennwort des Speichers bricht den Start ab`() = blocking {
         val environment = tlsEnvironment("gueltig.p12", 0, password = "falsch-$WERTPROBE")
-        assertIs<StartOutcome.Aborted>(start(environment))
-        assertTrue(log.lines.single().startsWith("TLS-Konfiguration: CERTIFICATE"), log.lines.toString())
-        assertFalse(log.lines.single().contains(WERTPROBE))
+        val aborted = assertIs<StartOutcome.Aborted>(start(environment))
+        assertTrue(aborted.reason.startsWith("TLS-Konfiguration: CERTIFICATE"), aborted.reason)
+        val rejected = sink.events.single() as TlsStartRejected
+        assertEquals("CERTIFICATE", rejected.part)
+        assertFalse(rejected.visibleText().contains(WERTPROBE))
+        assertFalse(aborted.reason.contains(WERTPROBE))
     }
 
     private fun tlsEnvironment(store: String, port: Int, password: String = "tdswire-test"): Map<String, String> {
@@ -153,30 +171,28 @@ internal class BootstrapTest : RuntimeTestBase() {
     }
 
     /**
-     * Der Start-Log nennt Port und jede Abschwächung: bei `TEST_UNENCRYPTED` und `AUTH_PLAIN_TESTMODE=true` je
-     * eine Zeile `ACHTUNG`, bei `REQUIRED` mit `pbkdf2` keine. Keine Zeile nennt Benutzername, Prüfwert, Pfad oder
-     * die Bind-Adresse (`SPEC-010`, `TDS-QA-03`).
+     * Der Start nennt Port und jede Abschwächung: bei `TEST_UNENCRYPTED` und `AUTH_PLAIN_TESTMODE=true` je ein
+     * Ereignis der Abschwächung, bei `REQUIRED` mit `pbkdf2` keines. Kein Ereignis nennt Benutzername, Prüfwert, Pfad
+     * oder die Bind-Adresse (`SPEC-010`, `TDS-QA-03`).
      *
      * @spec SPEC-010
      */
     @Test
     fun `Der Start-Log nennt jede Abschwaechung und keinen Wert`() = blocking {
         val weak = running(loopbackEnvironment(users()))
+        val weakEvents = sink.events.toList()
         assertEquals(
-            listOf(
-                "gestartet, Port ${weak.port}",
-                "ACHTUNG: ENCRYPTION_POLICY ist TEST_UNENCRYPTED, Verbindungen sind nicht verschluesselt",
-                "ACHTUNG: AUTH_PLAIN_TESTMODE ist aktiv, das Verfahren plain ist zugelassen",
-            ),
-            log.lines.toList(),
+            listOf(ServerStarted::class, EncryptionWeakened::class, PlainTestModeActive::class),
+            weakEvents.map { it::class },
         )
-        val weakLines = log.lines.toList()
-        log.lines.clear()
+        assertEquals(weak.port, (weakEvents.first() as ServerStarted).port)
+        sink.events.clear()
         val strong = running(tlsEnvironment("gueltig.p12", 0))
-        assertEquals(listOf("gestartet, Port ${strong.port}"), log.lines.toList())
-        val all = weakLines + log.lines
+        assertEquals(listOf(strong.port), sink.of<ServerStarted>().map { it.port })
+        assertEquals(1, sink.events.size)
+        val all = (weakEvents + sink.events).map { it.visibleText() }
         listOf(WERTPROBE, "kennung", "passwort", "users", LOOPBACK, "tdswire-test").forEach { word ->
-            assertTrue(all.none { it.contains(word) }, "Log nennt $word: $all")
+            assertTrue(all.none { it.contains(word) }, "Ereignis nennt $word: $all")
         }
     }
 
@@ -208,6 +224,6 @@ internal class BootstrapTest : RuntimeTestBase() {
         server.stop()
         assertFree(server.port)
         assertNoNewListenerThreads(before)
-        assertEquals("gestoppt", log.lines.last())
+        assertIs<ServerStopped>(sink.events.last())
     }
 }

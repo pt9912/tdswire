@@ -269,6 +269,8 @@ style:
     forbiddenImports:
       - value: 'io.github.pt9912.tdswire.simulation.*'
         reason: 'der Protokollkern laeuft ohne das Simulations-Backend.'
+      - value: 'io.github.pt9912.tdswire.observability.*'
+        reason: 'protocol kennt von der Observability nur die Schnittstelle (domain.telemetry), nicht den Aggregator (ARC-009, ARC-014).'
       - value: 'io.github.pt9912.tdswire.runtime.*'
         reason: 'runtime ist der Composition Root - protocol darf ihn nicht kennen.'
   ForbiddenImport/transport:
@@ -281,6 +283,8 @@ style:
         reason: 'transport kennt keine Backend-Engine.'
       - value: 'io.github.pt9912.tdswire.runtime.*'
         reason: 'runtime ist der Composition Root - transport darf ihn nicht kennen.'
+      - value: 'io.github.pt9912.tdswire.observability.*'
+        reason: 'transport kennt von der Observability nur die Schnittstelle (domain.telemetry), nicht den Aggregator (ARC-009, ARC-014).'
   ForbiddenImport/observability:
     active: true
     includes: ['**/io/github/pt9912/tdswire/observability/**']
@@ -309,6 +313,8 @@ style:
         reason: 'ein Backend-Adapter kennt keinen Transport.'
       - value: 'io.github.pt9912.tdswire.observability.*'
         reason: 'simulation darf nur domain und port importieren.'
+      - value: 'io.github.pt9912.tdswire.domain.telemetry.*'
+        reason: 'simulation darf Observability nicht importieren (ARC-009); die Senke liegt in domain.telemetry, das die Regel domain.* nicht trifft (ADR-0020).'
       - value: 'io.github.pt9912.tdswire.runtime.*'
         reason: 'runtime ist der Composition Root - simulation darf ihn nicht kennen.'
       - value: 'com.fasterxml.jackson.*'
@@ -339,3 +345,36 @@ style:
         reason: 'Prozess: Start und Ende des Dienstes gehoeren der Composition Root, nicht dem Kern.'
       - value: 'java.lang.ProcessHandle.current'
         reason: 'Prozess: Start und Ende des Dienstes gehoeren der Composition Root, nicht dem Kern.'
+  # Ausgabe im Hauptmodul: die Bibliothek schreibt nirgends hin, Log und Telemetrie gehen an die Senke
+  # (ADR-0020). Gesperrt sind print, println und printStackTrace in jedem Package unter src/main, ohne
+  # Ausnahme; die Source-Sets test, integrator und testserver sind nicht betroffen. Grenze: wirkt nur mit
+  # Typaufloesung (detektMain), und nur die genannten Aufrufe; ein Schreiben ueber einen anderen Weg
+  # (Logger.log, Thread.dumpStack, ein Logger einer Fremdbibliothek) trifft die Regel nicht. `make detekt-selbsttest` fuehrt je Eintrag
+  # einen Rot-Fall unter config/detekt/selbsttest-aufrufe/src/main/.
+  ForbiddenMethodCall/ausgabe:
+    active: true
+    includes:
+      - '**/src/main/kotlin/io/github/pt9912/tdswire/**'
+    methods:
+      - value: 'kotlin.io.println'
+        reason: 'Ausgabe: die Bibliothek schreibt nirgends hin (ADR-0020).'
+      - value: 'kotlin.io.print'
+        reason: 'Ausgabe: die Bibliothek schreibt nirgends hin (ADR-0020).'
+      - value: 'java.io.PrintStream.println'
+        reason: 'Ausgabe: die Bibliothek schreibt nirgends hin, auch nicht ueber System.out oder System.err (ADR-0020).'
+      - value: 'java.io.PrintStream.print'
+        reason: 'Ausgabe: die Bibliothek schreibt nirgends hin, auch nicht ueber System.out oder System.err (ADR-0020).'
+      - value: 'kotlin.Throwable.printStackTrace'
+        reason: 'Ausgabe: eine Stapelspur gehoert in kein Log der Bibliothek (ADR-0020, SPEC-048).'
+      - value: 'java.io.PrintStream.write'
+        reason: 'Ausgabe: die Bibliothek schreibt nirgends hin, auch nicht ueber System.out oder System.err (ADR-0020).'
+      - value: 'java.io.PrintStream.printf'
+        reason: 'Ausgabe: die Bibliothek schreibt nirgends hin, auch nicht ueber System.out oder System.err (ADR-0020).'
+      - value: 'java.io.PrintStream.format'
+        reason: 'Ausgabe: die Bibliothek schreibt nirgends hin, auch nicht ueber System.out oder System.err (ADR-0020).'
+      - value: 'java.util.logging.Logger.info'
+        reason: 'Ausgabe: die Bibliothek schreibt nirgends hin, auch nicht ueber java.util.logging (ADR-0020).'
+      - value: 'java.util.logging.Logger.warning'
+        reason: 'Ausgabe: die Bibliothek schreibt nirgends hin, auch nicht ueber java.util.logging (ADR-0020).'
+      - value: 'java.util.logging.Logger.severe'
+        reason: 'Ausgabe: die Bibliothek schreibt nirgends hin, auch nicht ueber java.util.logging (ADR-0020).'
