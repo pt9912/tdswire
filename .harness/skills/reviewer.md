@@ -73,6 +73,14 @@ bewusst kurz (Ergänzungs-Kanal, nicht Hauptkanal).
 - **Aussage breiter als ihr Beleg** — in ADR, Spec, Vertrag, Slice, KDoc oder Test steht mehr, als
   Messzeile, Handvektor mit Quelle oder gekennzeichnete Setzung tragen, oder eine Abschnittsnummer
   eines externen Standards ohne belegbare Quelle (`AGENTS.md` §3.8)  (seit welle-protokollcodec)
+- **Mutationsbeschreibung nennt die gedachte statt der gemessenen Wirkung** — eine Matrix, ein Test
+  oder eine Closure-Notiz beschreibt eine Mutation mit einer Wirkung, die nicht gefahren wurde (die
+  Mutation `finish()` doppelt schließt die Verbindung, es entsteht keine zweite Nachricht
+  (slice-qa-synchronitaet, Review S-1);
+  Prüfung: die Mutation einmal fahren und die Wirkung vergleichen  (seit welle-qualitaet-grundlage)
+- **Zusage ohne ihre gemessene Bedingung im selben Satz** — eine Aussage gilt allgemein, gemessen ist
+  sie nur sequentiell, im Einzelfall oder an einem Client; die Bedingung steht in einem anderen
+  Absatz oder fehlt  (seit welle-qualitaet-grundlage)
 - **Eigencode, dessen Entfernung keinen Test rot macht** — eine Wartebedingung, ein Fehlerzweig oder
   ein `NonCancellable`, das im Diff neu ist und bei Streichung jeden Test grün lässt (Prüfung: den
   Zweig im Kopf oder per Mutation entfernen; bleibt alles grün, trägt kein Test die Zeile)
