@@ -1,7 +1,7 @@
 package io.github.pt9912.tdswire.protocol.error
 
 /** Was mit der Verbindung nach einem Fehler geschieht (`TDS-FA-06.a` Nr. 6, `ADR-0007`). */
-enum class ConnectionFate {
+internal enum class ConnectionFate {
     /** ERROR und DONE mit Fehlerstatus, die Verbindung bleibt offen. */
     OPEN,
 
@@ -17,7 +17,13 @@ enum class ConnectionFate {
  * Verbindung geschieht. [fate] ist [ConnectionFate.OPEN] oder [ConnectionFate.CLOSE_AFTER_REPLY];
  * `CLOSE_WITHOUT_REPLY` kommt aus dem Zustand des Stroms, nicht aus dem Code.
  */
-data class ErrorRule(val number: Int, val severity: Int, val state: Int, val text: String, val fate: ConnectionFate)
+internal data class ErrorRule(
+    val number: Int,
+    val severity: Int,
+    val state: Int,
+    val text: String,
+    val fate: ConnectionFate,
+)
 
 private const val REQUEST = 16
 private const val FATAL = 20
@@ -65,7 +71,7 @@ private const val N_VALUE = 245
  * Offen und nicht entschieden: die Zuordnung von [TDS_UNSUPPORTED_TYPE] und [TDS_SIM_UNKNOWN_OBJECT] zu einer
  * Gruppe; `slice-fehler-mapping` §6.
  */
-enum class ErrorCode(val rule: ErrorRule) {
+internal enum class ErrorCode(val rule: ErrorRule) {
     /** Class und Folge: Setzung des Nutzers; die Nummer aus dem Benutzerbereich ist Festlegung. */
     TDS_PROTOCOL_ERROR(ErrorRule(N_PROTOCOL, FATAL, STATE, "Protocol error.", ConnectionFate.CLOSE_AFTER_REPLY)),
 

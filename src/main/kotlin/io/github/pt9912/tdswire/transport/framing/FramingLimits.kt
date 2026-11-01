@@ -9,7 +9,7 @@ package io.github.pt9912.tdswire.transport.framing
  * (`SPEC-007`: 16 MiB; vor abgeschlossenem Login `SPEC-046`: 65536, siehe [preLogin]).
  * Festlegung: Gezählt werden die deklarierten Paketlängen einschließlich der Header.
  */
-data class FramingLimits(
+internal data class FramingLimits(
     val maxPacketBytes: Int = MAX_TDS_PACKET_BYTES,
     val maxMessageBytes: Int = MAX_MESSAGE_BYTES,
 ) {

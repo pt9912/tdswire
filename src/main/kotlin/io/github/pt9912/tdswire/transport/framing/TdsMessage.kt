@@ -7,7 +7,7 @@ package io.github.pt9912.tdswire.transport.framing
  * letzten (Festlegung nach MS-TDS 2.2.3.1.2). Die Textdarstellung nennt Typ und Länge, nie die
  * Nutzdaten: eine LOGIN7-Nachricht trägt das verschleierte Passwort.
  */
-class TdsMessage(
+internal class TdsMessage(
     val type: PacketType,
     val payload: ByteArray,
     val resetConnection: Boolean = false,

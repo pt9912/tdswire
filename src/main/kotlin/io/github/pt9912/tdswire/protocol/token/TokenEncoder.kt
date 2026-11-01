@@ -15,7 +15,7 @@ import io.github.pt9912.tdswire.protocol.wire.guarded
  * Encoder prüft nicht die Reihenfolge der Tokens, nur dass ROW ein COLMETADATA vorfindet.
  * Nicht thread-sicher.
  */
-class TokenEncoder {
+internal class TokenEncoder {
     private var stream = ByteWriter()
     private var columns: List<ColumnDef>? = null
 

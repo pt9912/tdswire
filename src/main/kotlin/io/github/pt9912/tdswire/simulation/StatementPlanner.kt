@@ -5,7 +5,7 @@ package io.github.pt9912.tdswire.simulation
  * `protocol` nicht importieren; die Namen sind die von `ErrorCode`, und ein Test in `runtime` hält sie
  * gegeneinander.
  */
-object SimCodes {
+internal object SimCodes {
     /** Anweisung außerhalb von `SPEC-036`. */
     const val UNSUPPORTED_SQL = "TDS_UNSUPPORTED_SQL"
 
@@ -20,7 +20,7 @@ object SimCodes {
 }
 
 /** Eine erkannte Anweisung mit den beschriebenen Objekten, die sie nennt. */
-data class Plan(
+internal data class Plan(
     val statement: Statement,
     val table: SimTable,
     /** Die Spalten der Auswahlliste in der Reihenfolge des Textes, bei `*` alle der Tabelle; sonst leer. */
@@ -28,7 +28,7 @@ data class Plan(
 )
 
 /** Das Ergebnis der Planung. */
-sealed interface PlanResult {
+internal sealed interface PlanResult {
     data class Planned(val plan: Plan) : PlanResult
 
     /** Die Anfrage endet mit dem Fehler [code] (ein Wert von [SimCodes]), bevor etwas gelesen wird. */
@@ -42,7 +42,7 @@ sealed interface PlanResult {
  *
  * Die Meldungen nennen nie Teile des Anweisungstextes.
  */
-class StatementPlanner(private val catalog: SimCatalog) {
+internal class StatementPlanner(private val catalog: SimCatalog) {
     fun plan(sql: String): PlanResult = when (val recognition = StatementParser.recognize(sql)) {
         is Recognition.NotRecognized ->
             reject(SimCodes.UNSUPPORTED_SQL, "Anweisung nicht erkannt: ${recognition.reason}")

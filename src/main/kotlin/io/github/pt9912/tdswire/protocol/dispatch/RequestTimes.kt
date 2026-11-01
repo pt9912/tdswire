@@ -16,7 +16,7 @@ import kotlin.time.Duration.Companion.seconds
  *   zu setzen, und ein zweites Mal, um sie in die Wartezeit umzurechnen.
  * - [pause] wartet eine Dauer ab; Tests ersetzen sie, um die Zeit zu steuern.
  */
-class RequestTimes(
+internal class RequestTimes(
     val queryTimeout: Duration? = DEFAULT_QUERY_TIMEOUT,
     val cancelTimeout: Duration = DEFAULT_CANCEL_TIMEOUT,
     val now: () -> Long = System::currentTimeMillis,

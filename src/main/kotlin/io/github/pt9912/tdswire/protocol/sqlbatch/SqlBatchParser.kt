@@ -12,7 +12,7 @@ import io.github.pt9912.tdswire.protocol.wire.violation
  * ALL_HEADERS-Block (1 Query Notifications, 2 Transaction Descriptor, 3 Trace Activity ID).
  * Die Textdarstellung nennt nur die Längen: der Text kann Literale und Kennwörter tragen.
  */
-class SqlBatchRequest(val text: String, val headerTypes: List<Int>) {
+internal class SqlBatchRequest(val text: String, val headerTypes: List<Int>) {
     override fun toString(): String = "SqlBatchRequest(textChars=${text.length}, headerTypes=$headerTypes)"
 }
 
@@ -24,7 +24,7 @@ class SqlBatchRequest(val text: String, val headerTypes: List<Int>) {
  * ALL_HEADERS-Block ist deshalb Pflicht. Die Summe der Header-Längen ist genau die Gesamtlänge des
  * Blocks; der Inhalt der Header wird übersprungen, nicht gedeutet.
  */
-object SqlBatchParser {
+internal object SqlBatchParser {
     /** Liest die Nachricht; jede Abweichung vom Format ist ein [ProtocolResult.Failed]. */
     fun parse(payload: ByteArray): ProtocolResult<SqlBatchRequest> = guarded { read(payload) }
 

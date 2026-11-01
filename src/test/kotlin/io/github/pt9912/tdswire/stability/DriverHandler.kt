@@ -27,7 +27,7 @@ import kotlin.time.Duration.Companion.seconds
  * liest danach Nachrichten, bis der Strom endet oder ein Fehler kommt. Es gibt keinen SQL_BATCH-Pfad:
  * eingehende Nachrichten nach dem Login werden verworfen. Der unverschlüsselte Testmodus ersetzt TLS.
  */
-class DriverHandler(private val adapter: AuthAdapter) : ConnectionHandler {
+internal class DriverHandler(private val adapter: AuthAdapter) : ConnectionHandler {
     /** Der Ausgang des Handshakes je Verbindung (Nummer der Verbindung im Listener). */
     val outcomes = ConcurrentHashMap<Long, String>()
     val afterLogin = ConcurrentLinkedQueue<String>()
@@ -94,7 +94,7 @@ class DriverHandler(private val adapter: AuthAdapter) : ConnectionHandler {
  * eingetreten und keiner ausgetreten ist. [peak] ist die größte gemessene Zahl gleichzeitig eingetretener
  * Handler. Kommen nicht alle innerhalb der Frist, wirft [enter] und der Handler endet mit einer Ausnahme.
  */
-class Rendezvous(private val parties: Int) {
+internal class Rendezvous(private val parties: Int) {
     private val inside = AtomicInteger()
     private val peakInside = AtomicInteger()
     private val opened = CompletableDeferred<Unit>()

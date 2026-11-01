@@ -5,7 +5,7 @@ package io.github.pt9912.tdswire.config.auth
  * Nutzers; Hashlänge und Salzmindestlänge (ohne Obergrenze) sind vom Nutzer entschieden (2026-10-30), eine
  * Setzung, nicht gemessen.
  */
-object Pbkdf2Limits {
+internal object Pbkdf2Limits {
     const val ITERATIONS_FLOOR = 210_000
 
     /** Wert der Konfiguration (`ADR-0011`); im Code liest ihn noch niemand. */

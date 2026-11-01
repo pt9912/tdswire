@@ -18,7 +18,7 @@ import java.nio.ByteBuffer
  * der Writer nicht. Ergebnisströme gehen über [open] ([MessageStream]), dessen Speicher ein Paket
  * beträgt. Nicht thread-sicher: ein Writer gehört einem Aufrufer.
  */
-class MessageWriter(private val channel: SuspendingChannel, private var packetSize: Int) {
+internal class MessageWriter(private val channel: SuspendingChannel, private var packetSize: Int) {
     /** Der Paketbau der Ströme aus [open]; Tests ersetzen ihn, um Ausnahmen im Paketbau auszulösen. */
     internal var packetBuilder: PacketBuilder = PacketWriter::packet
 

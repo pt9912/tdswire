@@ -1,7 +1,7 @@
 package io.github.pt9912.tdswire.simulation
 
 /** Warum ein Anweisungstext keiner Form von `SPEC-036` zugeordnet wurde. */
-enum class Unrecognized {
+internal enum class Unrecognized {
     EMPTY_TEXT,
     UNTERMINATED_LITERAL,
     UNTERMINATED_COMMENT,

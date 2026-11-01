@@ -88,7 +88,7 @@ internal class AuthExecutor(pool: AuthPool) {
  * gilt für alle Verbindungen, die den Pool teilen. Der Prozess gibt jedem Treiber denselben Pool; ein Treiber ohne
  * ausdrücklichen Pool bekommt einen eigenen mit eigener Tabelle, dort wirkt die Drosselung nur für seine Verbindung.
  */
-class AuthPool(
+internal class AuthPool(
     val dispatcher: CoroutineDispatcher = Dispatchers.IO,
     val parallelism: Int = DEFAULT_PARALLELISM,
     val throttle: LoginThrottle = LoginThrottle(),

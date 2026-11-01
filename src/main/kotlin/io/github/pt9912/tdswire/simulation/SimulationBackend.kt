@@ -37,7 +37,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * [QueryExecution.close]: bis dahin bleibt die Ausführung unter Sitzung und Anfrage registriert (für [cancel]); eine
  * zweite Ausführung mit demselben Schlüssel ersetzt die Registrierung der ersten.
  */
-class SimulationBackend(catalog: SimCatalog) : QueryBackend {
+public class SimulationBackend(catalog: SimCatalog) : QueryBackend {
     private val planner = StatementPlanner(catalog)
     private val running = ConcurrentHashMap<Pair<String, String>, Stoppable>()
 

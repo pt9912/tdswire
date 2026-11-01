@@ -1,7 +1,7 @@
 package io.github.pt9912.tdswire.transport.listener
 
 /** Wie eine Verbindung endet; die erste Ursache zählt. */
-enum class ConnectionEnd {
+internal enum class ConnectionEnd {
     /** Der Handler ist zurückgekehrt (auch nach dem Trennen durch die Gegenstelle). */
     HANDLER_RETURNED,
 
@@ -25,7 +25,7 @@ enum class ConnectionEnd {
 }
 
 /** Ereignisse des Listeners; sie tragen weder Adressen der Gegenstelle noch Nutzdaten. */
-sealed interface ListenerEvent {
+internal sealed interface ListenerEvent {
     data class Accepted(val connection: Long) : ListenerEvent
 
     /** [failure] ist der Typname der Ausnahme bei [ConnectionEnd.HANDLER_FAILED], sonst `null`; nie ihr Text. */
@@ -39,7 +39,7 @@ sealed interface ListenerEvent {
  * Empfänger der [ListenerEvent]s. Der Aufruf kommt aus beliebigen Threads, blockiert nicht und wirft
  * nicht; die Anbindung an Telemetrie liefert `observability`.
  */
-fun interface ListenerEvents {
+internal fun interface ListenerEvents {
     fun onEvent(event: ListenerEvent)
 
     companion object {

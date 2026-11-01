@@ -18,7 +18,7 @@ import io.github.pt9912.tdswire.transport.framing.TdsMessage
  * Antwort auf einen Fehler: [message] ist ERROR gefolgt von DONE mit Fehlerstatus, `null` genau bei
  * [ConnectionFate.CLOSE_WITHOUT_REPLY].
  */
-class ErrorResponse(val code: ErrorCode, val message: TdsMessage?, val fate: ConnectionFate) {
+internal class ErrorResponse(val code: ErrorCode, val message: TdsMessage?, val fate: ConnectionFate) {
     init {
         require((message == null) == (fate == ConnectionFate.CLOSE_WITHOUT_REPLY)) {
             "Antwort und Verbindungsfolge passen nicht zusammen"
@@ -31,10 +31,10 @@ class ErrorResponse(val code: ErrorCode, val message: TdsMessage?, val fate: Con
  * Code der Anlass war, deren Typnamen, oder die feste Marke des Anlasses (Ablehnungsgrund eines RPC);
  * weder den Text einer Ausnahme noch Parameterwerte.
  */
-data class ErrorLogEntry(val code: ErrorCode, val cause: String?)
+internal data class ErrorLogEntry(val code: ErrorCode, val cause: String?)
 
 /** Anschluss für [ErrorLogEntry]; der Aufruf wirft nicht und blockiert nicht. */
-fun interface ErrorLog {
+internal fun interface ErrorLog {
     fun record(entry: ErrorLogEntry)
 
     companion object {
@@ -43,7 +43,7 @@ fun interface ErrorLog {
 }
 
 /** Die ERROR-Meldung der Regel: Nummer, State, Class und fester Text; die einzige Stelle, die sie bildet. */
-fun ErrorRule.message(): ServerMessage = ServerMessage(number, state, severity, text)
+internal fun ErrorRule.message(): ServerMessage = ServerMessage(number, state, severity, text)
 
 /**
  * Das Fehler-Mapping (`TDS-FA-06.a`, `ADR-0007`): bildet einen Fehler auf ERROR und DONE mit
@@ -58,7 +58,7 @@ fun ErrorRule.message(): ServerMessage = ServerMessage(number, state, severity, 
  * Referenzclient gemessen). Ist der Strom nicht synchron, entfällt die Antwort (`SPEC-031`); der Sequenzierer
  * meldet denselben Fall als `CLOSE_WITHOUT_COMPLETION`, und [fateOf] bildet ihn auf `CLOSE_WITHOUT_REPLY` ab.
  */
-class ErrorMapper(private val log: ErrorLog = ErrorLog.NONE) {
+internal class ErrorMapper(private val log: ErrorLog = ErrorLog.NONE) {
     /** Ein Fehler mit eigenem Code; [cause] ist eine feste Marke für das Log, nie ein Wert. */
     fun code(code: ErrorCode, streamSynchronous: Boolean = true, cause: String? = null): ErrorResponse =
         response(code, streamSynchronous, cause)

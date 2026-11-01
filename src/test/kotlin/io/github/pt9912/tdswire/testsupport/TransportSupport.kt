@@ -15,7 +15,7 @@ private const val HEADER_BYTES = 8
 private const val BYTE_BITS = 8
 
 /** Führt [body] als Coroutine aus und bricht nach 20 s ab, damit ein hängender Test nicht den Lauf hält. */
-fun blocking(body: suspend CoroutineScope.() -> Unit) {
+internal fun blocking(body: suspend CoroutineScope.() -> Unit) {
     runBlocking { withTimeout(TEST_TIMEOUT_MILLIS) { body() } }
 }
 
@@ -23,7 +23,7 @@ fun blocking(body: suspend CoroutineScope.() -> Unit) {
  * Ein Paket von Hand gebaut, unabhängig vom Paket-Codec: Typ, Status, Länge (Big-Endian, samt
  * Header), SPID 0, Packet-ID, Window 0.
  */
-fun handPacket(type: Int, status: Int, payload: ByteArray, packetId: Int = 1): ByteArray {
+internal fun handPacket(type: Int, status: Int, payload: ByteArray, packetId: Int = 1): ByteArray {
     val length = HEADER_BYTES + payload.size
     val header = byteArrayOf(
         type.toByte(),
@@ -39,7 +39,7 @@ fun handPacket(type: Int, status: Int, payload: ByteArray, packetId: Int = 1): B
 }
 
 /** Eine Nachricht von Hand in Pakete mit höchstens [payloadPerPacket] Nutzdatenbytes zerlegt (Status 1 im letzten). */
-fun handMessage(type: Int, payload: ByteArray, payloadPerPacket: Int): ByteArray {
+internal fun handMessage(type: Int, payload: ByteArray, payloadPerPacket: Int): ByteArray {
     var wire = ByteArray(0)
     var from = 0
     var id = 1
@@ -53,7 +53,7 @@ fun handMessage(type: Int, payload: ByteArray, payloadPerPacket: Int): ByteArray
 }
 
 /** Liest bis zum ersten Ausgang, der keine Nachricht ist; liefert die Nachrichten und diesen Ausgang. */
-suspend fun MessageReader.drain(): Pair<List<TdsMessage>, ReadOutcome> {
+internal suspend fun MessageReader.drain(): Pair<List<TdsMessage>, ReadOutcome> {
     val messages = mutableListOf<TdsMessage>()
     while (true) {
         when (val outcome = next()) {
@@ -64,7 +64,7 @@ suspend fun MessageReader.drain(): Pair<List<TdsMessage>, ReadOutcome> {
 }
 
 /** Reicht jeden Aufruf an [inner] weiter und zählt die gelesenen Bytes. */
-class CountingChannel(private val inner: SuspendingChannel) : SuspendingChannel {
+internal class CountingChannel(private val inner: SuspendingChannel) : SuspendingChannel {
     var bytesRead = 0L
         private set
 

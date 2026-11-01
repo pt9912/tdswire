@@ -19,7 +19,7 @@ import io.github.pt9912.tdswire.protocol.wire.violation
  * Nachricht. Die FeatureExt-Tabelle wird nur gelesen, wenn `fExtension` gesetzt ist; ihr Zeiger
  * (`cbExtension`) ist dann 4 Byte lang. Der SSPI-Block wird nur gemessen, nicht gelesen.
  */
-object Login7Parser {
+internal object Login7Parser {
     const val FIXED_BYTES = 94
     private const val EXTENSION_POINTER_BYTES = 4
     private const val SSPI_LONG_MARKER = 0xFFFF

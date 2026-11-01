@@ -23,14 +23,14 @@ import io.github.pt9912.tdswire.transport.messaging.TransportHandshakeChannel
 import kotlin.test.assertIs
 
 /** Die Packet Size des Schreibers vor dem Login (wie `HandshakeConnectionHandler.PACKET_SIZE`). */
-const val WIRE_DEFAULT_PACKET_SIZE = 4096
+internal const val WIRE_DEFAULT_PACKET_SIZE = 4096
 
 /**
  * Eine Sitzung über dem echten Transport (Leser, Schreiber, Paket-Codec) und einem [ScriptedWire]:
  * der Login ist gelaufen, die Zähler des Drahts stehen auf null, und die SQL_BATCH-Nachrichten der
  * Gegenstelle liegen zum Lesen bereit. [serve] startet die Anfrageschleife.
  */
-class WireSession(
+internal class WireSession(
     val wire: ScriptedWire,
     val ready: HandshakeOutcome.Ready,
     private val channel: TransportHandshakeChannel,

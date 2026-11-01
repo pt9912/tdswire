@@ -11,7 +11,7 @@ import javax.net.ssl.KeyManagerFactory
 import javax.net.ssl.SSLContext
 
 /** Der Teil der TLS-Konfiguration, den die Startprobe als fehlerhaft meldet (`SPEC-043`). */
-enum class TlsPart {
+internal enum class TlsPart {
     /** Kette unlesbar oder jetzt nicht gültig. */
     CERTIFICATE,
 
@@ -27,10 +27,10 @@ enum class TlsPart {
  * oder Ausnahmetyp. [form] enthält nie einen Dateipfad, nie Zertifikats- oder Schlüsselinhalt und nie
  * den Text einer Ausnahme (`SPEC-043`).
  */
-data class TlsDiagnosis(val part: TlsPart, val form: String)
+internal data class TlsDiagnosis(val part: TlsPart, val form: String)
 
 /** Ausgang des Ladens von [TlsMaterial]. */
-sealed interface MaterialResult {
+internal sealed interface MaterialResult {
     class Loaded(val material: TlsMaterial) : MaterialResult {
         override fun toString(): String = "Loaded(verborgen)"
     }
@@ -47,7 +47,10 @@ sealed interface MaterialResult {
  * (Festlegung: ECDSA ist nicht gemessen, die Grenze 2048 ist gesetzt, nicht gemessen). Die Klasse hält
  * Schlüssel und Kette nur im `SSLContext`; ihre Darstellung als Text nennt nichts davon.
  */
-class TlsMaterial private constructor(internal val context: SSLContext, internal val chain: List<X509Certificate>) {
+internal class TlsMaterial private constructor(
+    internal val context: SSLContext,
+    internal val chain: List<X509Certificate>,
+) {
     override fun toString(): String = "TlsMaterial(verborgen)"
 
     companion object {

@@ -14,7 +14,7 @@ import kotlinx.coroutines.delay
 import java.util.concurrent.atomic.AtomicInteger
 
 /** Von Hand gebaute Eingaben (Tabellenlayout nach MS-TDS), unabhängig vom Codec. */
-object SessionVectors {
+internal object SessionVectors {
     const val ENCRYPT_OFF = 0x00
     const val ENCRYPT_ON = 0x01
     const val ENCRYPT_NOT_SUP = 0x02
@@ -39,7 +39,7 @@ object SessionVectors {
 }
 
 /** Ein Adapter, der Aufrufe zählt und die Eingabe während des Aufrufs festhält. */
-class RecordingAdapter(private val answer: (AuthRequest) -> AuthResult) : AuthAdapter {
+internal class RecordingAdapter(private val answer: (AuthRequest) -> AuthResult) : AuthAdapter {
     private val callCount = AtomicInteger()
     val calls: Int get() = callCount.get()
 
@@ -84,7 +84,7 @@ class RecordingAdapter(private val answer: (AuthRequest) -> AuthResult) : AuthAd
  * [feed] eine Nachricht nachlegt. [failReplyAfterWrites] lässt das Schreiben einer Antwort nach so vielen
  * angenommenen Stücken scheitern; [writtenChunks] hält die Stücke aller Antworten in der Reihenfolge.
  */
-class FakeHandshakeChannel(
+internal class FakeHandshakeChannel(
     inbound: List<Inbound>,
     private val tlsResult: Boolean = true,
     private val sendResult: Boolean = true,
@@ -193,7 +193,7 @@ class FakeHandshakeChannel(
 }
 
 /** Sammelt die Einträge des Logs. */
-class CollectingLog : HandshakeLog {
+internal class CollectingLog : HandshakeLog {
     val entries = mutableListOf<LogEntry>()
 
     override fun record(entry: LogEntry) {
@@ -201,7 +201,7 @@ class CollectingLog : HandshakeLog {
     }
 }
 
-fun HandshakeAction.label(): String = when (this) {
+internal fun HandshakeAction.label(): String = when (this) {
     is HandshakeAction.Send -> "Send"
     HandshakeAction.BeginTls -> "BeginTls"
     is HandshakeAction.Authenticate -> "Authenticate"

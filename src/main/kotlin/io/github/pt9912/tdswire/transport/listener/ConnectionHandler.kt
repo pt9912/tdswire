@@ -12,7 +12,7 @@ import java.net.InetAddress
  * Listener braucht, um `LOGIN_TIMEOUT` (`SPEC-008`) und das geordnete Beenden (`SPEC-044`) zu halten.
  * Die Protokollschicht darf die Form ändern.
  */
-interface Connection {
+internal interface Connection {
     /** Laufende Nummer dieser Verbindung im Listener; sie taucht in den [ListenerEvent]s auf. */
     val id: Long
 
@@ -38,6 +38,6 @@ interface Connection {
  * oder wirft, wird die Verbindung geschlossen; der Listener und die anderen Verbindungen bleiben
  * unberührt. Wird die Verbindung beendet (Frist, Beenden), ist [handle] abgebrochen.
  */
-fun interface ConnectionHandler {
+internal fun interface ConnectionHandler {
     suspend fun handle(connection: Connection)
 }

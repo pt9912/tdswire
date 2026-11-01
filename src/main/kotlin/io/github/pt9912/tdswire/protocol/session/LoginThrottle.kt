@@ -15,7 +15,7 @@ import kotlin.time.Duration.Companion.seconds
  * Adressen. Die Voreinstellungen sind Setzung, nicht gemessen und nicht konfigurierbar; die Parameter gibt es,
  * damit Tests kleine Werte setzen.
  */
-data class ThrottlePolicy(
+internal data class ThrottlePolicy(
     val freeFailures: Int = 5,
     val window: Duration = 60.seconds,
     val initialWait: Duration = 250.milliseconds,
@@ -47,7 +47,7 @@ data class ThrottlePolicy(
  *
  * [nanos] ist eine monotone Uhr, [pause] wartet; beide sind austauschbar, damit Tests die Zeit steuern.
  */
-class LoginThrottle(
+internal class LoginThrottle(
     private val policy: ThrottlePolicy = ThrottlePolicy(),
     private val nanos: () -> Long = System::nanoTime,
     private val pause: suspend (Duration) -> Unit = { delay(it) },

@@ -6,7 +6,7 @@ package io.github.pt9912.tdswire.protocol.login7
  * gehaltenen Einheiten. Festlegung: Der Codec schützt nur dieses Feld, nicht den Paket- oder
  * Lesepuffer des Aufrufers (`ADR-0009`, Geheimnisschutz).
  */
-class SecretChars(chars: CharArray) {
+internal class SecretChars(chars: CharArray) {
     private val units: CharArray = chars.copyOf()
 
     val length: Int get() = units.size
@@ -23,7 +23,7 @@ class SecretChars(chars: CharArray) {
 }
 
 /** Kopf des LOGIN7: Version, Paketgröße, Kennungen des Clients und die vier Flag-Bytes (MS-TDS 2.2.6.4). */
-data class Login7Header(
+internal data class Login7Header(
     val tdsVersion: Int,
     val packetSize: Int,
     val clientProgVer: Int,
@@ -38,7 +38,7 @@ data class Login7Header(
 )
 
 /** Die Textfelder des LOGIN7 außer Passwörtern; die Textdarstellung nennt sie nicht, sie tragen die Kennung. */
-data class Login7Fields(
+internal data class Login7Fields(
     val hostName: String,
     val userName: String,
     val appName: String,
@@ -57,7 +57,7 @@ data class Login7Fields(
  * gelesen. [featureIds] sind die Kennungen der FeatureExt-Optionen in der Reihenfolge der
  * Nachricht, ohne ihre Daten.
  */
-class Login7Request(
+internal class Login7Request(
     val header: Login7Header,
     val fields: Login7Fields,
     val password: SecretChars,

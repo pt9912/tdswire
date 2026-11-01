@@ -18,7 +18,7 @@ import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
  * `LocalTime` und `LocalDateTime`; jede andere Klasse, auch ein `Long` in einer 32-Bit-Spalte, ist ein
  * Typkonflikt. `null` ist NULL und gilt nur in einer nullbaren Spalte.
  */
-object ValueMapping {
+internal object ValueMapping {
     private const val INT_BYTES = 4
     private const val LONG_BYTES = 8
 

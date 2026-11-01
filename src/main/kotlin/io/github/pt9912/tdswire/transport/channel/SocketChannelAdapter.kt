@@ -21,7 +21,7 @@ import kotlin.coroutines.resume
  * [remoteAddress] wird bei der Erzeugung gelesen: der Adapter bekommt einen angenommenen, verbundenen Kanal. Ist
  * der Kanal schon geschlossen oder nicht verbunden, ist sie `null`.
  */
-class SocketChannelAdapter(private val channel: AsynchronousSocketChannel) : SuspendingChannel {
+internal class SocketChannelAdapter(private val channel: AsynchronousSocketChannel) : SuspendingChannel {
     override val remoteAddress: InetAddress? = try {
         (channel.remoteAddress as? InetSocketAddress)?.address
     } catch (ignored: IOException) {

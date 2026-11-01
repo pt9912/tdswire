@@ -8,14 +8,14 @@ package io.github.pt9912.tdswire.config.auth
  * Der Konstruktor kopiert: Wer ein Passwort aus einem anderen Typ abbildet (der Anmeldepfad aus `SecretChars`),
  * überschreibt das Zwischenfeld und das Feld des Quelltyps selbst.
  */
-class PasswordChars(chars: CharArray) {
+public class PasswordChars(chars: CharArray) {
     private val units: CharArray = chars.copyOf()
 
-    val length: Int get() = units.size
+    internal val length: Int get() = units.size
 
-    fun reveal(): CharArray = units.copyOf()
+    public fun reveal(): CharArray = units.copyOf()
 
-    fun wipe() = units.fill(WIPED)
+    public fun wipe(): Unit = units.fill(WIPED)
 
     override fun toString(): String = "PasswordChars(verborgen)"
 

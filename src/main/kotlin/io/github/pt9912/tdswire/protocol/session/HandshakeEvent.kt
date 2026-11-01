@@ -10,7 +10,7 @@ import io.github.pt9912.tdswire.transport.framing.TdsMessage
  * Wertetypen und Konstanten ([TdsMessage], [PacketType], `FramingLimits`, `PacketHeader`), keine
  * Leser, Schreiber oder Kanäle.
  */
-sealed interface HandshakeEvent {
+internal sealed interface HandshakeEvent {
     val kind: EventKind
 
     /** Die Verbindung steht. */

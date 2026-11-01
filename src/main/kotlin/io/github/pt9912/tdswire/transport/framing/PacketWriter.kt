@@ -6,7 +6,7 @@ package io.github.pt9912.tdswire.transport.framing
  * einziges Paket aus dem Header. Die Packet-ID zählt ab `firstPacketId` und läuft nach 255 auf 0
  * über. Der Writer setzt weder RESETCONNECTION noch IGNORE.
  */
-object PacketWriter {
+internal object PacketWriter {
     private const val ID_MODULUS = 256
 
     /**

@@ -19,15 +19,15 @@ import java.util.concurrent.atomic.AtomicBoolean
  * Die Tabellen von [Simulation] bilden einen Katalog; ein Name, der doppelt vorkommt, bricht den Start ab.
  * [Custom] mit Tabellen ist nicht darstellbar.
  */
-sealed interface BackendSource {
+public sealed interface BackendSource {
     /** Ein Backend des Integrators; der Server ruft es für jede Anfrage. */
-    class Custom(val backend: QueryBackend) : BackendSource
+    public class Custom(public val backend: QueryBackend) : BackendSource
 
     /** Tabellen mit Zeilenquellen des Integrators. */
-    class Simulation(val tables: List<SimTable>) : BackendSource
+    public class Simulation(public val tables: List<SimTable>) : BackendSource
 
     /** Weder Backend noch Tabellen. */
-    data object None : BackendSource
+    public data object None : BackendSource
 }
 
 /** Die Quelle in der Form der Verdrahtung; `RequestSource` gehört nicht zur Zusage. */
@@ -41,17 +41,17 @@ internal fun BackendSource.requests(): RequestSource = when (this) {
  * Ausgang von [TdsServer.start]: ein laufender Server oder der Abbruch. Der Start wirft keine Ausnahme für
  * Konfigurations- und Bindefehler (`SPEC-043`); wer nicht prüft, sieht den Abbruch nicht.
  */
-sealed interface StartOutcome {
+public sealed interface StartOutcome {
     /** Der Server läuft und ist gebunden. */
-    class Running(val server: TdsServer) : StartOutcome
+    public class Running(public val server: TdsServer) : StartOutcome
 
     /**
      * Der Start ist abgebrochen; kein Port ist gebunden und kein Thread des Servers läuft. [reason] ist ein Text ohne
      * Konfigurationswert, Pfad oder Ausnahmetext. [issues] nennt bei einer ungültigen Konfiguration jeden Fehler mit
      * Schlüssel und Art (kein Wert), sonst ist die Liste leer.
      */
-    class Aborted(val reason: String, issues: List<ConfigIssue> = emptyList()) : StartOutcome {
-        val issues: List<ConfigIssue> = issues.toList()
+    public class Aborted(public val reason: String, issues: List<ConfigIssue> = emptyList()) : StartOutcome {
+        public val issues: List<ConfigIssue> = issues.toList()
     }
 }
 
@@ -68,25 +68,25 @@ sealed interface StartOutcome {
  * Das JVM-Flag `-Djdk.tls.server.newSessionTicketCount=0` setzt der Aufrufer; [start] prüft es und setzt es nicht
  * (`SPEC-023`). Der Einstieg schreibt kein Log; ein Abbruch steht in [StartOutcome.Aborted].
  */
-class TdsServer internal constructor(private val listener: TdsListener, private val log: ServerLog) {
+public class TdsServer internal constructor(private val listener: TdsListener, private val log: ServerLog) {
     private val stopped = AtomicBoolean(false)
 
     /** Der gebundene Port. */
-    val port: Int get() = listener.port
+    public val port: Int get() = listener.port
 
     /** Beendet den Server; ein weiterer Aufruf hat keine Wirkung. */
-    suspend fun stop() {
+    public suspend fun stop() {
         listener.shutdown()
         if (stopped.compareAndSet(false, true)) log.line("gestoppt")
     }
 
-    companion object {
+    public companion object {
         /**
          * Startet den Server mit [config] und [source] (`SPEC-059`). Geprüft werden das JVM-Flag, die Konfiguration
          * ([io.github.pt9912.tdswire.config.ConfigValidation]), die Tabellen und das TLS-Material; erst danach wird
          * gebunden.
          */
-        suspend fun start(config: ServerConfig, source: BackendSource): StartOutcome =
+        public suspend fun start(config: ServerConfig, source: BackendSource): StartOutcome =
             Bootstrap.launch(config, Wiring(requests = source.requests()), System::getProperty)
     }
 }

@@ -5,7 +5,7 @@ package io.github.pt9912.tdswire.transport.framing
  *
  * Festlegung: Der Leser behält unbekannte Bits im Status-Byte und wertet sie nicht aus.
  */
-object PacketStatus {
+internal object PacketStatus {
     const val NORMAL = 0x00
     const val END_OF_MESSAGE = 0x01
     const val IGNORE = 0x02

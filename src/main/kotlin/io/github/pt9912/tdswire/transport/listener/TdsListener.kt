@@ -44,7 +44,7 @@ import kotlin.time.Duration.Companion.seconds
  * Handler müssen den Abbruch ihrer Coroutine beachten: [shutdown] kehrt erst zurück, wenn jeder Handler
  * beendet ist.
  */
-class TdsListener private constructor(
+internal class TdsListener private constructor(
     private val server: AsynchronousServerSocketChannel,
     private val io: IoGroup,
     setup: ListenerSetup,

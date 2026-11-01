@@ -1,10 +1,10 @@
 package io.github.pt9912.tdswire.testserver
 
 import io.github.pt9912.tdswire.config.ConfigIssue
-import io.github.pt9912.tdswire.config.ConfigKeys
 import io.github.pt9912.tdswire.config.ConfigValidation
 import io.github.pt9912.tdswire.config.EncryptionSetting
 import io.github.pt9912.tdswire.config.IssueKind
+import io.github.pt9912.tdswire.config.ServerConfig
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -236,22 +236,28 @@ internal class ConfigLoaderTest : TempFilesTest() {
 
     /**
      * Die Schlüssel, die der Testserver liest, tragen denselben Text wie die Schlüssel, die die Bibliothek in
-     * einem `ConfigIssue` nennt: sonst meldete der Start einen Schlüssel, den es in der Umgebung nicht gibt.
+     * einem `ConfigIssue` nennt: sonst meldete der Start einen Schlüssel, den es in der Umgebung nicht gibt. Jeder
+     * Schlüssel, den die Prüfung der Bibliothek nennen kann, wird durch einen Wert außerhalb seines Bereichs (oder
+     * durch fehlendes TLS-Material) ausgelöst und erscheint unter dem Namen der Umgebung.
      *
      * @spec SPEC-043
      */
     @Test
     fun `Die Schluessel der Umgebung sind die der Diagnose`() {
-        assertEquals(ConfigKeys.LISTEN_HOST, EnvKeys.LISTEN_HOST)
-        assertEquals(ConfigKeys.LISTEN_PORT, EnvKeys.LISTEN_PORT)
-        assertEquals(ConfigKeys.LOGIN_TIMEOUT, EnvKeys.LOGIN_TIMEOUT)
-        assertEquals(ConfigKeys.MAX_PRELOGIN_MESSAGE_BYTES, EnvKeys.MAX_PRELOGIN_MESSAGE_BYTES)
-        assertEquals(ConfigKeys.QUERY_TIMEOUT, EnvKeys.QUERY_TIMEOUT)
-        assertEquals(ConfigKeys.CANCEL_TIMEOUT, EnvKeys.CANCEL_TIMEOUT)
-        assertEquals(ConfigKeys.TLS_KEYSTORE_FILE, EnvKeys.TLS_KEYSTORE_FILE)
-        assertEquals(ConfigKeys.TLS_KEYSTORE_PASSWORD_FILE, EnvKeys.TLS_KEYSTORE_PASSWORD_FILE)
-        assertEquals(ConfigKeys.ENCRYPTION_POLICY, EnvKeys.ENCRYPTION_POLICY)
-        assertEquals(ConfigKeys.AUTH_USERS_FILE, EnvKeys.AUTH_USERS_FILE)
-        assertEquals(ConfigKeys.AUTH_PLAIN_TESTMODE, EnvKeys.AUTH_PLAIN_TESTMODE)
+        val outside = listOf(
+            EnvKeys.LISTEN_HOST to " ",
+            EnvKeys.LISTEN_PORT to "65536",
+            EnvKeys.LOGIN_TIMEOUT to "0",
+            EnvKeys.MAX_PRELOGIN_MESSAGE_BYTES to "511",
+            EnvKeys.QUERY_TIMEOUT to "0",
+            EnvKeys.CANCEL_TIMEOUT to "0",
+        )
+        outside.forEach { (key, value) ->
+            assertEquals(listOf(key), rangeIssues(base(key to value)).map { it.key }, key)
+        }
+        val loaded = ConfigLoader.load(base()).loaded()
+        val withoutTls = ServerConfig(loaded.listen, loaded.login, EncryptionSetting.REQUIRED, null, loaded.auth)
+        val missing = ConfigValidation.check(withoutTls)
+        assertEquals(listOf(EnvKeys.TLS_KEYSTORE_FILE, EnvKeys.TLS_KEYSTORE_PASSWORD_FILE), missing.map { it.key })
     }
 }

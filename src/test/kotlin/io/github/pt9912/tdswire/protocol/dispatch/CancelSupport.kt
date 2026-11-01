@@ -27,7 +27,7 @@ import kotlin.time.Duration
  * Eine gesteuerte Uhr: [pause] wartet, bis der Test die Frist mit [fire] auslöst. Es läuft keine echte Zeit; welche
  * Frist wann abläuft, bestimmt allein der Test (`SPEC-009`, `SPEC-033`). [started] nennt jede angeforderte Wartezeit.
  */
-class SteeredPause {
+internal class SteeredPause {
     private class Waiter(val duration: Duration, val gate: CompletableDeferred<Unit>)
 
     private val waiters = mutableListOf<Waiter>()
@@ -63,7 +63,7 @@ class SteeredPause {
  * Führt [body] aus und öffnet [gate] in jedem Ausgang. Ein Fake-Backend, das den Abbruch ignoriert, hält sonst die
  * Schleife fest, wenn ein Test vorzeitig endet; so bleibt ein roter Test rot und hängt nicht.
  */
-suspend fun withGate(gate: CompletableDeferred<Unit>, body: suspend () -> Unit) {
+internal suspend fun withGate(gate: CompletableDeferred<Unit>, body: suspend () -> Unit) {
     try {
         body()
     } finally {
@@ -72,7 +72,7 @@ suspend fun withGate(gate: CompletableDeferred<Unit>, body: suspend () -> Unit) 
 }
 
 /** Gibt die Ausführung ab, bis [done] gilt. */
-suspend fun awaitUntil(done: () -> Boolean) {
+internal suspend fun awaitUntil(done: () -> Boolean) {
     while (!done()) yield()
 }
 
@@ -81,7 +81,7 @@ suspend fun awaitUntil(done: () -> Boolean) {
  * es bei ihr). Es zählt die Anfragen, die Aufrufe von [cancel] und von [QueryExecution.close]. [collecting] ist
  * gesetzt, sobald ein Strom [begin] gerufen hat.
  */
-class FlowBackend(private vararg val flows: (FlowBackend) -> Flow<QueryEvent>) : QueryBackend {
+internal class FlowBackend(private vararg val flows: (FlowBackend) -> Flow<QueryEvent>) : QueryBackend {
     val requests = mutableListOf<QueryRequest>()
     val cancelled = mutableListOf<Pair<String, String>>()
     var closeCalls = 0
@@ -117,33 +117,37 @@ class FlowBackend(private vararg val flows: (FlowBackend) -> Flow<QueryEvent>) :
 }
 
 /** Ein Strom, der erst die [first] Ereignisse liefert, dann [FlowBackend.begin] meldet und bis [gate] suspendiert. */
-fun suspendedAfter(gate: CompletableDeferred<Unit>, vararg first: QueryEvent): (FlowBackend) -> Flow<QueryEvent> =
-    { backend ->
-        flow {
-            first.forEach { emit(it) }
-            backend.begin()
-            gate.await()
-        }
+internal fun suspendedAfter(
+    gate: CompletableDeferred<Unit>,
+    vararg first: QueryEvent,
+): (FlowBackend) -> Flow<QueryEvent> = { backend ->
+    flow {
+        first.forEach { emit(it) }
+        backend.begin()
+        gate.await()
     }
+}
 
 /**
  * Ein Strom, der den Abbruch nicht beachtet: nach den [first] Ereignissen wartet er in einem nicht abbrechbaren
  * Bereich auf [gate]. Er steht für ein Backend, das `cancel()` ignoriert.
  */
-fun ignoringCancel(gate: CompletableDeferred<Unit>, vararg first: QueryEvent): (FlowBackend) -> Flow<QueryEvent> =
-    { backend ->
-        flow {
-            first.forEach { emit(it) }
-            backend.begin()
-            withContext(NonCancellable) { gate.await() }
-        }
+internal fun ignoringCancel(
+    gate: CompletableDeferred<Unit>,
+    vararg first: QueryEvent,
+): (FlowBackend) -> Flow<QueryEvent> = { backend ->
+    flow {
+        first.forEach { emit(it) }
+        backend.begin()
+        withContext(NonCancellable) { gate.await() }
     }
+}
 
 /**
  * Ein Strom, der einen blockierenden Aufruf auf einem Thread des IO-Pools wartet (`ADR-0013`: ein blockierender
  * Treiber liegt hinter einem Pool und wird unterbrechbar gerufen); der Abbruch unterbricht den Thread.
  */
-fun blockingAfter(
+internal fun blockingAfter(
     latch: CountDownLatch,
     vararg first: QueryEvent,
     pool: CoroutineDispatcher = Dispatchers.IO,
@@ -156,25 +160,26 @@ fun blockingAfter(
 }
 
 /** Ein Strom, der die [events] liefert (für die Anfrage, die nach dem Abbruch folgt). */
-fun delivering(vararg events: QueryEvent): (FlowBackend) -> Flow<QueryEvent> = { flowOf(*events) }
+internal fun delivering(vararg events: QueryEvent): (FlowBackend) -> Flow<QueryEvent> = { flowOf(*events) }
 
 /**
  * Eine Senke, die nach dem Token, auf das [after] zutrifft, [onAccepted] ausführt, bevor sie zurückkehrt: so
  * geschieht der Eingriff zwischen zwei Schritten des Sequencers, ohne Uhr.
  */
-fun interposing(after: (Int, Token) -> Boolean, onAccepted: suspend () -> Unit): (TokenSink) -> TokenSink = { inner ->
-    var index = 0
-    TokenSink { token ->
-        val accepted = inner.accept(token)
-        if (after(++index, token)) onAccepted()
-        accepted
+internal fun interposing(after: (Int, Token) -> Boolean, onAccepted: suspend () -> Unit): (TokenSink) -> TokenSink =
+    { inner ->
+        var index = 0
+        TokenSink { token ->
+            val accepted = inner.accept(token)
+            if (after(++index, token)) onAccepted()
+            accepted
+        }
     }
-}
 
 /** Trifft auf das abschließende DONE ohne Fehlerstatus und ohne `MORE`. */
-fun isFinalDone(token: Token): Boolean = token is DoneToken && token.status and DoneStatus.MORE == 0
+internal fun isFinalDone(token: Token): Boolean = token is DoneToken && token.status and DoneStatus.MORE == 0
 
 /** Gibt die Ausführung ab, bis die Sitzung [state] hat. */
-suspend fun HandshakeOutcome.Ready.awaitState(state: ConnectionState) {
+internal suspend fun HandshakeOutcome.Ready.awaitState(state: ConnectionState) {
     awaitUntil { live.context.state == state }
 }

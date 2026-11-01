@@ -17,7 +17,7 @@ import io.github.pt9912.tdswire.protocol.wire.violation
  * MARS 1, TRACEID 36, FEDAUTHREQUIRED 1, NONCEOPT 32); INSTOPT hat beliebige Länge, unbekannte
  * Kennungen bleiben ungeprüft erhalten.
  */
-object PreloginCodec {
+internal object PreloginCodec {
     private const val ENTRY_BYTES = 5
     private const val TERMINATOR_BYTES = 1
     private const val MAX_OFFSET = 0xFFFF
