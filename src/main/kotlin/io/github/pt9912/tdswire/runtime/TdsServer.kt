@@ -62,7 +62,8 @@ sealed interface StartOutcome {
  * Lebenszyklus: [start] bis [stop]. [stop] ist idempotent: jeder weitere Aufruf endet ohne Wirkung. Aus welchem Thread
  * [start] und [stop] gerufen werden, ist nicht festgelegt; getestet sind sie nacheinander aus einem Thread.
  *
- * Eine [ServerConfig] gilt für einen Start: der Start löscht das Passwort im Schlüsselmaterial. Wer neu startet,
+ * Eine [ServerConfig] gilt für einen Start: sobald der Start das TLS-Material lädt, löscht er das Passwort im
+ * Schlüsselmaterial; bricht er vorher ab (JVM-Flag, Prüfung), bleibt es lesbar (Setzung, getestet). Wer neu startet,
  * baut eine neue Konfiguration.
  *
  * Das JVM-Flag `-Djdk.tls.server.newSessionTicketCount=0` setzt der Aufrufer; [start] prüft es und setzt es nicht

@@ -62,7 +62,8 @@ class TlsKeyMaterial(val keystore: ByteArray, val password: PasswordChars) {
  * über diesen Konstruktor; der Konstruktor prüft nichts, [ConfigValidation.check] und der Start weisen ungültige
  * Werte ab. Die Textdarstellung nennt keinen Wert (`TDS-QA-03`). [simulationFile] sind die Bytes der Datei der
  * Tabellenbeschreibung des Simulations-Backends (höchstens [MAX_SIMULATION_FILE_BYTES]) oder `null` ohne
- * Konfiguration. Eine Konfiguration gilt für einen Start: der Start löscht das Passwort in [tls].
+ * Konfiguration. Eine Konfiguration gilt für einen Start: sobald der Start das TLS-Material lädt, löscht er das
+ * Passwort in [tls]; bricht er vorher ab (JVM-Flag, Prüfung), bleibt es lesbar (Setzung).
  */
 class ServerConfig(
     val listen: ListenSettings = ListenSettings(),
