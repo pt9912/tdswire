@@ -1,6 +1,6 @@
 # ADR-0025: Produktschnitt: Bibliothek als Produkt, Testserver nur zum Testen
 
-**Status:** Proposed
+**Status:** Accepted (vom Nutzer entschieden)
 
 **Datum:** 2026-11-01
 
@@ -42,6 +42,8 @@
 **Annahme, die kippt:** Dass kein Betreiber das Jar als fertigen Prozess erwartet. Das Lastenheft 0.6.0 sagt es ausdrücklich; kippt es, kehrt ein Produkt-`main` mit eigener Entscheidung zurück (Trigger).
 
 ## Entscheidung
+
+Mit der Annahme am 2026-11-01 bestätigt der Nutzer die überarbeitete Fassung: **Option B** mit dem Testserver in einem eigenen, nicht assoziierten Source-Set, das die Bibliothek nur über die öffentliche Fläche bindet (Nutzerentscheidung: „danach ADR-0025 accepted“). Der Umbau selbst folgt nach den produktiven Vorhaben. Die Punkte unter „Offen“ bleiben ausdrücklich offen und werden bei der Umsetzung per Setzung oder per Folge-ADR geschlossen; das gilt insbesondere für die Öffentlichkeit von `SimulationBackend` und `SimCatalog` (Empfehlung (i) ist nicht entschieden).
 
 Wir wählen **Option B: Bibliothek als Produkt, Testserver in einem eigenen, nicht assoziierten Source-Set, der die Bibliothek nur über ihre öffentliche Fläche bindet**.
 
@@ -117,7 +119,8 @@ Ein Betreiber oder Integrator, der einen ausführbaren Server mit Betriebs-Image
 |---|---|---|
 | 2026-11-01 | Nutzerentscheidung: Bibliothek ist das Produkt, Testserver nur zum Testen, YAML-Beschreibung in den Testserver; Lastenheft 0.6.0 | Sitzung |
 | 2026-11-01 | Nutzerentscheidung: Testserver bindet die Bibliothek nur über die öffentliche Schnittstelle, eigenes Source-Set statt `src/test` mit `internal`; Log und Bereitschaftszeile nachgezogen | Sitzung |
-| 2026-11-01 | Proposed – Annahme durch den Nutzer steht aus | — |
+| 2026-11-01 | Proposed | — |
+| 2026-11-01 | Accepted – angenommen vom Nutzer in der überarbeiteten Fassung; offene Punkte bleiben offen | Sitzung |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit
