@@ -1,0 +1,2 @@
+**Vorgang:** slice-adr-observability
+**Fund:** Review M-4 und L-2 ([Report](../../../../../../reviews/2026-11-01-390f951-slice-adr-observability.md)): §1, §2, §3 und §6 des Slice nannten sechs Fragen und drei Folge-Slices, [ADR-0020](../../../../../adr/0020-logformat-und-observability-schnittstelle.md) führt acht Fragen und fünf Folge-Slices; die Spec-Arbeit (DoD 3) hatte `slice-spec-nachzug-telemetrie` übernommen, ohne dass es im Slice stand; `Accepted` kam vor dem Review. Behoben bei der Closure durch Angleichen des Plans und beidseitigen Vermerk.
