@@ -26,6 +26,10 @@ In Arbeit (Welle welle-qualitaet-grundlage):
 
 - [slice-e2e-geruest](slice-e2e-geruest.md)
 
+In Arbeit (Welle welle-anfrageverarbeitung):
+
+- [slice-integrations-einstieg](slice-integrations-einstieg.md)
+
 In Arbeit (Welle welle-betrieb-diagnose):
 
 - [slice-adr-observability](slice-adr-observability.md)

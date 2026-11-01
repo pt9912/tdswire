@@ -75,7 +75,7 @@ RUN keytool -genkeypair -alias server -keyalg RSA -keysize 2048 -validity 3650 -
       -validity 3650 -ext "san=dns:localhost" -outfile blatt.pem \
  && rm wurzel.p12 zwischen.p12 zwischen.csr blatt.csr
 
-# --- Test: `docker build --target test .` - fuehrt die Unit-Tests aus (kotlin.test auf der
+# --- Test: `docker build --target test .` - fuehrt die Unit-Tests und den Einbettungstest (`integratorTest`) aus (kotlin.test auf der
 # JUnit-Plattform, SPEC-024). Es kommen src/ und LICENSE hinzu; kein Test liest spec/ oder harness/ (die Kopplung
 # der Zahlen des Integrationslaufs an die Doku prueft die Stage `kopplung-zahlen`). Ein roter Test bricht den Build.
 FROM deps AS test
@@ -83,7 +83,7 @@ COPY --chown=gradle:gradle LICENSE LICENSE
 COPY --chown=gradle:gradle src src
 COPY --from=testkeys --chown=gradle:gradle /testkeys build/testkeys
 COPY --chown=gradle:gradle gradle/test-jvm.init.gradle.kts gradle/
-RUN gradle --no-daemon -I gradle/test-jvm.init.gradle.kts test
+RUN gradle --no-daemon -I gradle/test-jvm.init.gradle.kts test integratorTest
 
 # --- Smoke: `docker build --target smoke .` - der Rohbytes-Smoke der Welle allein (ServerSmokeTest): die
 # Kind-JVM startet `main` mit dem Flag der Test-JVM und einer Testkonfiguration, ein Rohbytes-Client spricht den
@@ -104,7 +104,7 @@ COPY --chown=gradle:gradle src src
 COPY --chown=gradle:gradle config config
 COPY --chown=gradle:gradle tools/suppression-check.sh tools/suppression-check.sh
 RUN sh tools/suppression-check.sh src \
- && gradle --no-daemon detekt detektMain detektTest
+ && gradle --no-daemon detekt detektMain detektTest detektIntegrator
 
 # --- Detekt-Selbsttest: `docker build --target detekt-selbsttest .` - belegt, dass jede
 # Importregel verbotene Importe meldet und erlaubte nicht, dass jeder verbotene Aufruf gemeldet
@@ -132,7 +132,7 @@ COPY --chown=gradle:gradle gradle/test-jvm.init.gradle.kts gradle/
 COPY --chown=gradle:gradle spec/spezifikation.md spec/spezifikation.md
 COPY --chown=gradle:gradle harness/README.md harness/README.md
 COPY --chown=gradle:gradle tools/spec-abdeckung.sh tools/
-RUN gradle --no-daemon -I gradle/test-jvm.init.gradle.kts test --continue || echo "spec-abdeckung: der Testlauf ist rot; rote Tests zaehlen nicht als Nachweis"
+RUN gradle --no-daemon -I gradle/test-jvm.init.gradle.kts test integratorTest --continue || echo "spec-abdeckung: der Testlauf ist rot; rote Tests zaehlen nicht als Nachweis"
 RUN mkdir -p /tmp/ausgabe \
  && ZIEL=/tmp/ausgabe/spec-abdeckung.md WAISEN_DATEI=/tmp/ausgabe/waisen sh tools/spec-abdeckung.sh
 

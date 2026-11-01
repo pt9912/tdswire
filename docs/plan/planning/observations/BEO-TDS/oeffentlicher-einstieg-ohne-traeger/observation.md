@@ -4,7 +4,7 @@
 
 [TDS-FA-08](../../../../../../spec/lastenheft.md#tds-fa-08--backend-anbindung) (dokumentierte Integrationsschnittstelle), [TDS-RB-04](../../../../../../spec/lastenheft.md#tds-rb-04--externes-backend) (austauschbares Backend) und [TDS-FA-11](../../../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) (vom Integrator bereitgestellte Zeilenquelle) setzen voraus, dass ein Integrator den Server mit eigenem `QueryBackend` und eigenen Zeilenquellen starten kann. Im Stand des Repos ist `QueryBackend` `public`, der Start (`Bootstrap`, Verdrahtung, `RequestSource`, `HandlerSetup`) `internal`, und `main()` startet nur ohne Backend oder mit `SIMULATION_DESCRIPTION_FILE`; keine Slice-Datei trug den öffentlichen Einstieg.
 
-Träger seit der Anlage dieser Beobachtung: [slice-integrations-einstieg](../../../open/slice-integrations-einstieg.md).
+Träger seit der Anlage dieser Beobachtung: [slice-integrations-einstieg](../../../in-progress/slice-integrations-einstieg.md).
 
 ## Benannt, nicht gezählt
 

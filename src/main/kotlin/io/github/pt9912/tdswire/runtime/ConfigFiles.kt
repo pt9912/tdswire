@@ -1,5 +1,10 @@
-package io.github.pt9912.tdswire.config
+package io.github.pt9912.tdswire.runtime
 
+import io.github.pt9912.tdswire.config.ConfigIssue
+import io.github.pt9912.tdswire.config.ConfigKeys
+import io.github.pt9912.tdswire.config.ConfigValidation
+import io.github.pt9912.tdswire.config.IssueKind
+import io.github.pt9912.tdswire.config.MAX_SIMULATION_FILE_BYTES
 import io.github.pt9912.tdswire.config.auth.UserList
 import io.github.pt9912.tdswire.config.auth.UserListResult
 import java.io.IOException
@@ -39,11 +44,9 @@ internal object ConfigFiles {
             path.isBlank() -> invalid(key, IssueKind.INVALID_VALUE, issues)
             else -> readAtMost(key, path, MAX_SIMULATION_FILE_BYTES, issues)
         }
-        return if (bytes != null && bytes.size > MAX_SIMULATION_FILE_BYTES) {
-            invalid(key, IssueKind.TOO_LARGE, issues)
-        } else {
-            bytes
-        }
+        val tooLarge = bytes?.let { ConfigValidation.simulationFile(it.size) }
+        if (tooLarge != null) issues += tooLarge
+        return bytes.takeIf { tooLarge == null }
     }
 
     private fun invalid(key: String, kind: IssueKind, issues: MutableList<ConfigIssue>): ByteArray? {

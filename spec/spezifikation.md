@@ -655,7 +655,8 @@ fest, was der Leser daraus liest. Ändert sich das Format dort, ist der Belegsta
   64 Codepunkte lang, Steuer-, Format-, Zeilen- und Absatztrennzeichen (Unicode-Kategorien Cc, Cf, Zl, Zp)
   und einzelne Ersatzzeichen als `?`; der Typname steht in der Meldung nur, wenn er einer der 21 Typen des
   Schemas ist.
-- **Verdrahtung:** Die Kotlin-Schnittstelle übernimmt die Tabellen des Integrators mit Zeilenquellen und Callbacks;
+- **Verdrahtung:** Die Kotlin-Schnittstelle übernimmt die Tabellen des Integrators mit Zeilenquellen und Callbacks
+  über den Einstieg `TdsServer.start` mit `BackendSource.Simulation` (`SPEC-059`);
   die Umgebungsvariable `SIMULATION_DESCRIPTION_FILE` nennt den Pfad der Datei (Name gesetzt, nicht gemessen). Beides
   bildet einen Katalog; ein Name, der zweimal vorkommt (ohne Beachtung der Schreibweise), bricht den Start ab. Der
   Katalog hält eigene Kopien der Listen `columns` und `primaryKey` der Tabellen des Integrators: ändert er seine Listen
@@ -903,6 +904,7 @@ aktive Backendoperationen, Abbrüche, Protokollfehler. Keine SQL-Texte als Metri
 | `SPEC-022` | Query-Backend | Projektvertrag v0: Typen und Schnittstellen als Quelltext (Setzung vom 2026-10-30, nicht gemessen); Pflichten und Grenzen nach Nutzerentscheidung vom 2026-10-31 (Messung im Spike, nicht am Produkt), Rest Entwurf | [Query-Backend](#query-backend-vertrag-zu-spec-022) |
 | `SPEC-023` | TLS | TLS 1.3 und TLS 1.2 (Mindestversion 1.2); Suiten TLS 1.3: `TLS_AES_256_GCM_SHA384`, `TLS_AES_128_GCM_SHA256`; TLS 1.2: ECDHE mit AES-GCM; Standard `REQUIRED` | [Sicherheitsprofil](#sicherheitsprofil-vertrag-zu-spec-023) |
 | `SPEC-051` | Authentifizierungsadapter | Schnittstelle als Kotlin-Quelltext (Festlegung, nicht gemessen); Prüfwert der festen Benutzerliste mit Verfahrenskennung (`plain` nur im Testmodus, `pbkdf2-sha256`), eigene Datei nur für die Benutzerliste, Iterationen mit Boden, Standard und Obergrenze, strenger Parser; Dateirechte und Behandlung eines BOM offen (Stand 2026-10-30) | [Authentifizierungsadapter](#authentifizierungsadapter-vertrag-zu-spec-051) |
+| `SPEC-059` | Einstieg des Integrators | Kotlin-Fassade `TdsServer.start(config, source)` im Package `runtime` mit `BackendSource` und `StartOutcome` (Festlegung, nicht gemessen); Prüfung der Konfiguration beim Start, Einmal-Konfiguration, Stop idempotent; Nachweis ohne Zugriff auf `internal`-Namen im Gate `make test` | [Einstieg des Integrators](#einstieg-des-integrators-vertrag-zu-spec-059) |
 
 ### Clientprofil (Vertrag zu `SPEC-021`)
 
@@ -1177,6 +1179,24 @@ Bauart des Vergleichs (Anforderung, strukturell belegt, Zeit gemessen, siehe unt
 
 Gemessen sind: LOGIN7-Felder, Entschleierung, Ablehnungsbytes, erkennbare Modi. Zu Prüfwert und Konfigurationsweg gemessen mit JDK 21 (Eclipse Adoptium 21.0.12.1) in einem Spike-Image auf einem Host (Intel Core i9-13900H): Ableitungsdauer je Iterationszahl, Kodierung des Passworts (wie UTF-8), Parser-Fälle, Sichtbarkeit des Prüfwerts je Weg; die Werte gelten nur für dieses Image und diese Hardware. Nicht gemessen: Dateirechte im Betrieb, Wirkung einer blockierenden Ableitung auf den Transport, Windows-SSPI (NTLM), Verschlüsselungsmodus als Adaptereingabe, TDS 8.0 mit SQL-Authentifizierung, LOGIN7 über mehrere Pakete, Pooling mit `ResetConnection`, andere Clients.
 
+### Einstieg des Integrators (Vertrag zu `SPEC-059`)
+
+Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigenen Zeilenquellen aus seinem Programm startet und beendet (`TDS-FA-08.a`, `TDS-RB-04`, `TDS-FA-11.a`). Alles in diesem Abschnitt ist eine Festlegung, soweit nicht ausdrücklich ein Test genannt ist; gemessen ist nichts an einem fremden Programm, nur der Einbettungstest dieses Repos.
+
+| Teil | Inhalt |
+|---|---|
+| `TdsServer.start(config, source)` | suspendierend, Package `runtime`; liefert `StartOutcome`: `Running(server)` oder `Aborted(reason, issues)`. Der Start wirft keine Ausnahme für Konfigurations-, Tabellen-, TLS- oder Bindefehler. |
+| `TdsServer` | `port` (der gebundene Port) und `suspend stop()`. `stop` ist idempotent: der zweite Aufruf endet ohne Wirkung (Test: Einbettungstest, nacheinander aus einem Thread). Aufruf von mehreren Threads und `stop` während `start` sind nicht festgelegt. |
+| `BackendSource` | `Custom(backend)`: ein `QueryBackend`; `Simulation(tables)`: `SimTable`-Werte mit Zeilenquelle und Callbacks (`SPEC-035`); `None`: wie `Simulation` mit leerer Liste. Tabellen aus `ServerConfig.simulationFile` kommen bei `Simulation` und `None` hinzu und bilden mit den übergebenen einen Katalog. `Custom` zusammen mit gesetzter `simulationFile` bricht den Start ab; `Custom` mit Tabellen ist nicht darstellbar. |
+| `StartOutcome.Aborted` | `reason` ist ein Text ohne Konfigurationswert, Pfad und Ausnahmetext; `issues` nennt bei ungültiger Konfiguration jeden Fehler mit Schlüssel und Art (`ConfigIssue`), sonst ist die Liste leer. Ein Abbruch bindet keinen Port und startet keinen Thread des Servers. |
+| Prüfung | Der Start prüft die Konfiguration, gleich auf welchem Weg sie entstand (`ConfigValidation.check`): `REQUIRED` verlangt Schlüsselspeicher und Passwort, `TEST_UNENCRYPTED` lässt beide nicht zu (`SPEC-010`); Port 0 bis 65535 (`SPEC-005`), Anmeldefrist 1 bis 3600 s (`SPEC-008`), Größe der PRELOGIN-Nachricht 512 bis 65536 Byte (`SPEC-046`), Bind-Adresse nicht leer, Beschreibung der Tabellen höchstens 1 MiB (`SPEC-035`). Die Voreinstellungen von `ListenSettings`, `LoginSettings` und der Verschlüsselung sind die der Spezifikation. Der Prozess liest die Umgebung und ruft `launch`, den Teil des Starts, den auch `TdsServer.start` ruft (Zwischenstand). |
+| Einmal-Konfiguration | Eine `ServerConfig` gilt für einen Start: sobald der Start das TLS-Material lädt, löscht er das Passwort im Schlüsselmaterial; bricht er vorher ab (JVM-Flag, Prüfung), bleibt es lesbar (Festlegung, getestet für Flag, Prüfung und Bindefehler). Wer neu startet, baut eine neue `ServerConfig`. |
+| Nicht erreichbar | Authentifizierungsadapter, Log und Telemetrie lassen sich über den Einstieg nicht ersetzen; der Einstieg schreibt kein Log. |
+| JVM-Flag | Der Einstieg prüft `-Djdk.tls.server.newSessionTicketCount=0` und setzt es nicht (`SPEC-023`); der Einbettende setzt es. |
+| Abhängigkeiten | Jar und `lib/` liegen auf dem Klassenpfad des Einbettenden (ein Artefakt, `SPEC-052`); die YAML-Bibliothek wird nur für `simulationFile` gebraucht (gelesen, nicht ohne sie gemessen). |
+| Zusage | Bis zur ersten Version `1.0` ändert sich diese Fläche nur durch eine Änderung dieser Spezifikation (Setzung); ab `1.0` gilt semantische Versionierung. Heute sind mehr Namen öffentlich als hier genannt; verbindlich für Einbettende sind `TdsServer`, `BackendSource`, `StartOutcome`, `ConfigValidation` (Vorab-Prüfung einer `ServerConfig`), `ConfigKeys` (Schlüssel in `ConfigIssue`) und die Typen ihrer Signaturen aus `port`, `domain`, der Zeilenquelle in `simulation` und `ServerConfig` mit ihren Teilen in `config`. Weitere öffentliche Namen sind keine Zusage. |
+| Nachweis | Ein Test in einem eigenen Source-Set, das gegen die Klassen des Hauptmoduls übersetzt und keinen `internal`-Namen sieht, startet den Server mit einem In-Memory-Backend und mit einer Zeilenquelle des Integrators und beantwortet Anfragen mit Rohbytes (`java.net`, kein Referenzclient); er läuft im selben Prozess in `make test`. Grenze: `internal` ist im Bytecode öffentlich, der Nachweis gilt für Kotlin-Quellen. |
+
 ## 7. Festlegungen der Harness-Werkzeuge
 
 | ID | Werkzeug | Festlegung |
@@ -1227,4 +1247,5 @@ Gemessen sind: LOGIN7-Felder, Entschleierung, Ablehnungsbytes, erkennbare Modi. 
 | 2026-10-31 | Drosselung wiederholter Anmeldeversuche je Quelladresse festgelegt: Staffel, Fenster, Tabellengrenze als Setzung ohne Lastenheft-Anker, nicht konfigurierbar (`SPEC-053`, `SPEC-012`) |
 | 2026-10-31 | Prepared-Statements festgelegt: Handle-Verwaltung je Sitzung, Grenze von 1000 Handles als Setzung, Handle als RETURNVALUE, Fehler für unbekanntes Handle und erreichte Grenze (`TDS-FA-04.a`, `SPEC-030`, `SPEC-057`, `SPEC-058`) |
 | 2026-10-31 | Simulations-Backend, Änderungen und Verdrahtung gebaut: Weitergabe von Einfügen, Ändern und Löschen an die Callbacks mit Reihenfolge der Prüfung und Fehlerabbildung, Katalog aus Datei und Tabellen des Integrators, Umgebungsvariable `SIMULATION_DESCRIPTION_FILE`, Größengrenze und Startabbruch (`SPEC-035`, `TDS-FA-11.a`) |
+| 2026-10-31 | Einstieg des Integrators festgelegt: Fassade `TdsServer.start` mit Backend-Quelle, Prüfung der Konfiguration beim Start, Einmal-Konfiguration, Zusage der Fläche, Nachweis ohne `internal` (`SPEC-059`, `SPEC-035`, `TDS-FA-08.a`) |
 

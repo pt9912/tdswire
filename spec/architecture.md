@@ -61,7 +61,7 @@ Pfeile zeigen Datenfluss und Aufrufrichtung zur Laufzeit, nicht die Import-Richt
 | `ARC-005` | SQL Batch / RPC Dispatch | TDS-Anfragen in interne QueryRequests übersetzen |
 | `ARC-006` | Query Backend Port | Austauschbare, asynchrone Ausführungs- und Abbruchschnittstelle |
 | `ARC-007` | Result / Error Encoder | COLMETADATA, ROW, DONE, ERROR und Login-Antworten |
-| `ARC-008` | Runtime / Bootstrap | Verdrahtung, Listener-Start, Shutdown und Ressourcenverwaltung |
+| `ARC-008` | Runtime / Bootstrap | Verdrahtung, Listener-Start, Shutdown und Ressourcenverwaltung; öffentliche Fassade zum Einbetten des Servers (Start mit Konfiguration und Backend-Quelle, Stop) |
 | `ARC-009` | Observability | Strukturierte Logs, Metriken und Traces ohne Geheimnisse |
 | `ARC-015` | Response Sequencer | Serialisiert Ergebnisereignisse, DONE-Familie und Abbruch; garantiert Antwortgrenzen |
 | `ARC-016` | Simulations-Backend | Optionaler Backend-Adapter hinter `ARC-006`: beantwortet abgegrenzte Anweisungsformen aus beschriebenen Tabellen; keine SQL-Engine, keine Persistenz |

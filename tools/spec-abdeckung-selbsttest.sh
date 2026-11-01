@@ -246,6 +246,30 @@ lauf env
 erwarte '^| `SPEC-001` .*| 0 | 0 | 0 | 2 | — | OHNE NACHWEIS |$' "ein umbenannter Test verliert den Nachweis"
 echo "spec-abdeckung-selbsttest: Umbenennung gruen"
 
+# Zweites Verzeichnis von Quelle und Bericht (src/integrator): ein bestandener Test dort belegt eine Festlegung.
+mkdir -p "$tmp/q2/b" "$tmp/b2"
+cat > "$tmp/q2/b/EinbettungTest.kt" <<'FIX'
+package fix.einbettung
+
+class EinbettungTest {
+    /**
+     * @spec SPEC-003
+     */
+    @Test
+    fun `von aussen`() {}
+}
+FIX
+cat > "$tmp/b2/TEST-fix.einbettung.EinbettungTest.xml" <<'FIX'
+<testsuite name="fix.einbettung.EinbettungTest" tests="1" skipped="0" failures="0" errors="0">
+  <testcase name="von aussen()" classname="fix.einbettung.EinbettungTest" time="0.001"/>
+</testsuite>
+FIX
+lauf env TEST_QUELLE="$tmp/q $tmp/q2" BERICHTE="$tmp/b $tmp/b2"
+erwarte '^| `SPEC-003` .*| 1 | 0 | 0 | 0 | EinbettungTest | mindestens ein bestandener getaggter Test |$' "ein Test im zweiten Quellverzeichnis mit Bericht im zweiten Berichtsverzeichnis belegt"
+lauf env TEST_QUELLE="$tmp/q $tmp/q2" BERICHTE="$tmp/b"
+erwarte '^| `SPEC-003` .*| OHNE NACHWEIS |$' "ohne den Bericht des zweiten Verzeichnisses zaehlt der Test dort nicht"
+echo "spec-abdeckung-selbsttest: zwei Verzeichnisse gruen"
+
 # Leere Berichte: der Erzeuger bricht ab, statt eine leere Matrix als Befund auszugeben.
 rm "$tmp/b"/*.xml
 lauf env && { echo "spec-abdeckung-selbsttest: ohne Berichte muss der Erzeuger Exit 2 liefern" >&2; exit 1; }
