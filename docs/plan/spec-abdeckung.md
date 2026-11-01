@@ -82,7 +82,7 @@ Stand: 40 von 56 Festlegungen mit mindestens einem bestandenen Test, 4 Gate-Fest
 | `SPEC-022` | Query-Backend | 4 | 0 | 0 | 0 | EmbeddingTest, QueryTimeoutTest | mindestens ein bestandener getaggter Test |
 | `SPEC-023` | TLS | 14 | 0 | 0 | 0 | TlsHandshakeNegativeTest, TlsLoopbackTest, TlsNegativeTest, TlsRenegotiationTest, TlsStartProbeTest | mindestens ein bestandener getaggter Test |
 | `SPEC-051` | Authentifizierungsadapter | 47 | 0 | 0 | 0 | AuthPrimitivesTest, AuthTextRepresentationTest, AuthTimingTest, UserListAuthAdapterTest, UserListParserTest, ConfigValidationTest, AuthPoolOccupationTest, LoginThrottleDriverTest, SecurityConfigNegativeTest, ConfigLoaderTest, ConfigUsersFileTest, TestserverStartTest | mindestens ein bestandener getaggter Test |
-| `SPEC-059` | Einstieg des Integrators | 14 | 0 | 0 | 0 | EmbeddingTest, TelemetryEmbeddingTest, TdsServerLifecycleTest, TelemetryTest | mindestens ein bestandener getaggter Test |
+| `SPEC-059` | Einstieg des Integrators | 15 | 0 | 0 | 0 | EmbeddingTest, TelemetryEmbeddingTest, TdsServerLifecycleTest, TelemetryTest | mindestens ein bestandener getaggter Test |
 | `SPEC-024` | Unit-Test-Gate | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-025` | Integrationstest (E2E-Durchgang) | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-026` | `make gates` | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
