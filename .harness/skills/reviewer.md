@@ -75,7 +75,8 @@ bewusst kurz (Ergänzungs-Kanal, nicht Hauptkanal).
   eines externen Standards ohne belegbare Quelle (`AGENTS.md` §3.8)  (seit welle-protokollcodec)
 - **Mutationsbeschreibung nennt die gedachte statt der gemessenen Wirkung** — eine Matrix, ein Test
   oder eine Closure-Notiz beschreibt eine Mutation mit einer Wirkung, die nicht gefahren wurde (die
-  Mutation `finish()` doppelt schließt die Verbindung, statt eine zweite Nachricht zu schreiben);
+  Mutation `finish()` doppelt schließt die Verbindung, es entsteht keine zweite Nachricht
+  (slice-qa-synchronitaet, Review S-1);
   Prüfung: die Mutation einmal fahren und die Wirkung vergleichen  (seit welle-qualitaet-grundlage)
 - **Zusage ohne ihre gemessene Bedingung im selben Satz** — eine Aussage gilt allgemein, gemessen ist
   sie nur sequentiell, im Einzelfall oder an einem Client; die Bedingung steht in einem anderen
