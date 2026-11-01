@@ -76,7 +76,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 - Blockiert: keine weitere Welle.
 - Wird blockiert von: keiner Welle; die Entscheidungen, auf die einzelne Slices warteten ([ADR-0007](../adr/0007-fehler-und-attention.md), [ADR-0008](../adr/0008-dotnet-kompatibilitaetstests.md), [ADR-0009](../adr/0009-authentifizierungsmodus.md)), stehen auf `Accepted` und waren kein Welle-Inhalt. [ADR-0010](../adr/0010-detekt-pre-release.md) (`Accepted`) ist Bezug von `slice-qa-wartbarkeit` und `slice-qa-reproduzierbarkeit` und gehört damit zu dieser Welle; sie hat keinen eigenen Entscheidungs-Slice.
 
-- Startbarkeit nach `slice-qa-sicherheit`: Der Start-Trigger von [slice-qa-anmeldedrosselung](in-progress/slice-qa-anmeldedrosselung.md) ist erfüllt, offen ist allein der Verantwortliche im Kopf; die Welle wartet auf ihn, weil [CO-003](../carveouts/CO-003-anmeldedrosselung-fehlt.md) erst mit ihm und einer `Accepted`-ADR zur Drosselung oder zum Verzicht aufgelöst ist. Die Welle schließt außerdem erst, wenn die übrigen Slices der Tabelle in `done/` liegen.
+- Startbarkeit nach `slice-qa-sicherheit`: Der Start-Trigger von [slice-qa-anmeldedrosselung](done/slice-qa-anmeldedrosselung.md) ist erfüllt, offen ist allein der Verantwortliche im Kopf; die Welle wartet auf ihn, weil [CO-003](../carveouts/CO-003-anmeldedrosselung-fehlt.md) erst mit ihm und einer `Accepted`-ADR zur Drosselung oder zum Verzicht aufgelöst ist. Die Welle schließt außerdem erst, wenn die übrigen Slices der Tabelle in `done/` liegen.
 
 ## 6. Out-of-Scope für diese Welle
 

@@ -8,7 +8,7 @@
 
 **Geltungsbereich:** Anmeldepfad des Serverprozesses (`src/main/kotlin/io/github/pt9912/tdswire/protocol/session/`, Aufruf des Adapters über `AuthPool`)
 
-**Folge-Slice:** [`slice-qa-anmeldedrosselung.md`](../planning/in-progress/slice-qa-anmeldedrosselung.md)
+**Folge-Slice:** [`slice-qa-anmeldedrosselung.md`](../planning/done/slice-qa-anmeldedrosselung.md)
 
 Regeln: Baseline-Regelwerk `modul-07-carveouts.md` §Ziel-Form: Carveout — ein
 Carveout braucht immer einen Auflösungs-Trigger **und** einen Folge-Slice.
