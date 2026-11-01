@@ -80,6 +80,10 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `build.gradle.kts` | update | `kotlin { explicitApi() }` |
 | `src/main/kotlin/` (76 Dateien laut ADR-Messung) | refactor | ausdrückliches `public` oder `internal` und Rückgabetypen, Sichtbarkeit nach der Liste der ADR |
+| `src/test/kotlin/` (Hilfsdateien) | update | Hilfsdeklarationen, die interne Typen der Bibliothek zeigen, werden `internal` (die Tests liegen im Hauptmodul und sehen `internal`) |
+| `src/integrator/kotlin/` (`EmbeddingTest.kt`) | update | nennt `ConfigKeys` nicht mehr; die Schlüssel eines `ConfigIssue` sind Text ohne Zusage (`SPEC-059`) |
+| `src/testserver/test/kotlin/` (`ConfigLoaderTest`, `ConfigUsersFileTest`, `SimDescriptionReaderTest`, neu `LoginProbe`) | update | kein Zugriff auf `ConfigKeys`, `SimTable.column` und die Typen des Authentifizierungsadapters; die Benutzerliste wird über eine Anmeldung am laufenden Server belegt |
+| `spec/spezifikation.md` (`SPEC-059`, `SPEC-047`, `SPEC-009`) | update | endgültige Liste der öffentlichen Namen, `SHUTDOWN_GRACE` als Zielzustand, Eingang von `QUERY_TIMEOUT` |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 
