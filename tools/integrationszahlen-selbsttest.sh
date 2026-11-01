@@ -12,7 +12,7 @@ trap 'rm -rf "$tmp"' EXIT
 fehler=0
 pruefe() { echo "integrationszahlen-selbsttest: FEHLER - $1" >&2; fehler=1; }
 
-kt=src/test/kotlin/io/github/pt9912/tdswire/runtime/IntegrationServer.kt
+kt=src/testserver/kotlin/io/github/pt9912/tdswire/testserver/IntegrationServer.kt
 cs=referenztest-dotnet/Integration/SimulationBackendTests.cs
 dateien="build.gradle.kts $kt $cs spec/spezifikation.md harness/README.md"
 frisch() { rm -rf "$tmp/w"; for d in $dateien; do mkdir -p "$tmp/w/$(dirname "$d")"; cp "$wurzel/$d" "$tmp/w/$d"; done; }
