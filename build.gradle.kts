@@ -155,3 +155,11 @@ tasks.register<JavaExec>("integrationsServer") {
     maxHeapSize = "48m"
     jvmArgs("-Djdk.tls.server.newSessionTicketCount=0")
 }
+
+// Der Serverprozess des Kompatibilitaetslaufs (Stage `kompatibilitaetsserver`, `make kompatibilitaet`): Klasse im
+// Test-Source-Set, Richtlinie REQUIRED mit Schluesselspeicher aus der Umgebung der Stage.
+tasks.register<JavaExec>("kompatibilitaetsServer") {
+    classpath = sourceSets.test.get().runtimeClasspath
+    mainClass.set("io.github.pt9912.tdswire.runtime.KompatibilitaetsServerKt")
+    jvmArgs("-Djdk.tls.server.newSessionTicketCount=0")
+}

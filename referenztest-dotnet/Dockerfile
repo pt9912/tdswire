@@ -34,6 +34,14 @@ COPY Integration Integration
 RUN --network=none dotnet build --no-restore --nologo
 CMD ["dotnet", "test", "--no-build", "--nologo", "--logger", "console;verbosity=detailed"]
 
+# --- Kompatibilitaet: die Szenarien und Messungen des Referenzclients gegen den Serverprozess (`make kompatibilitaet`,
+# ADR-0019). Gebaut wird ohne Netz; der Lauf braucht den Server im selben Netzwerk (TDSWIRE_ZIEL) und sein Zertifikat
+# (SSL_CERT_FILE) als Vertrauensanker. Der Lauf waehlt die Tests je Stufe mit `--filter Kategorie=...`. ---
+FROM restore AS kompatibilitaet
+COPY Kompatibilitaet Kompatibilitaet
+RUN --network=none dotnet build --no-restore --nologo
+CMD ["dotnet", "test", "--no-build", "--nologo", "--logger", "console;verbosity=detailed"]
+
 # --- Audit: meldet bekannte Schwachstellen der Pakete aus der Datenbank der Quelle am Tag des Laufs.
 # Das Ergebnis haengt am Abfragetag und ist nicht reproduzierbar; die Stage ist kein Gate (CO-001). -
 FROM restore AS audit

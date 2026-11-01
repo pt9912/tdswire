@@ -47,7 +47,8 @@ enum class EventKind {
 /**
  * Reihenfolge von TLS und PRELOGIN (`SPEC-001`, `SPEC-028`). [PRELOGIN_FIRST] ist der TDS-7.x-Pfad
  * (PRELOGIN vor TLS, die Aushandlung folgt der PRELOGIN-Antwort); [TLS_FIRST] ist der TDS-8.0-Pfad
- * (TLS vor PRELOGIN). Die Reihenfolge von TDS 8.0 ist Festlegung (`ADR-0001`).
+ * (TLS vor PRELOGIN). Die Reihenfolge von TDS 8.0 ist Festlegung (`ADR-0001`); der Referenzclient nimmt sie mit
+ * `Encrypt=Strict` an (`make kompatibilitaet KATEGORIE=Anmeldung`).
  */
 enum class HandshakeOrder { PRELOGIN_FIRST, TLS_FIRST }
 
