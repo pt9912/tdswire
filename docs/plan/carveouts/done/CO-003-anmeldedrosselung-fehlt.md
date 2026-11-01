@@ -1,14 +1,14 @@
 # CO-003: Keine Drosselung wiederholter Anmeldeversuche
 
-**Status:** Aufgelöst 2026-11-01: [ADR-0016](../adr/0016-anmeldedrosselung.md) `Accepted`, Folge-Slice in `done/`.
+**Status:** Aufgelöst 2026-11-01: [ADR-0016](../../adr/0016-anmeldedrosselung.md) `Accepted`, Folge-Slice in `done/`.
 
 **Datum angelegt:** 2026-10-31. **Letzte Prüfung:** 2026-11-01.
 
-**Betroffenes Gate:** keines. Die Aussage ist ein offener Punkt der Entscheidung ([ADR-0009](../adr/0009-authentifizierungsmodus.md) §Offen) und hat kein Gate. Der Carveout nimmt keine Regel und keine Schwelle aus, er führt den offenen Punkt mit Trigger und Folge-Slice, weil die Plan-DoD „entschieden oder als Carveout geführt“ zuließ; `make test` belegt nur die Messungen unter *Geltungs-Konfiguration*.
+**Betroffenes Gate:** keines. Die Aussage ist ein offener Punkt der Entscheidung ([ADR-0009](../../adr/0009-authentifizierungsmodus.md) §Offen) und hat kein Gate. Der Carveout nimmt keine Regel und keine Schwelle aus, er führt den offenen Punkt mit Trigger und Folge-Slice, weil die Plan-DoD „entschieden oder als Carveout geführt“ zuließ; `make test` belegt nur die Messungen unter *Geltungs-Konfiguration*.
 
 **Geltungsbereich:** Anmeldepfad des Serverprozesses (`src/main/kotlin/io/github/pt9912/tdswire/protocol/session/`, Aufruf des Adapters über `AuthPool`)
 
-**Folge-Slice:** [`slice-qa-anmeldedrosselung.md`](../planning/done/slice-qa-anmeldedrosselung.md)
+**Folge-Slice:** [`slice-qa-anmeldedrosselung.md`](../../planning/done/slice-qa-anmeldedrosselung.md)
 
 Regeln: Baseline-Regelwerk `modul-07-carveouts.md` §Ziel-Form: Carveout — ein
 Carveout braucht immer einen Auflösungs-Trigger **und** einen Folge-Slice.
@@ -17,7 +17,7 @@ Carveout braucht immer einen Auflösungs-Trigger **und** einen Folge-Slice.
 
 ## Begründung
 
-[ADR-0009](../adr/0009-authentifizierungsmodus.md) §Offen nennt den Schutz gegen wiederholte Anmeldeversuche (Drosselung, Sperre) weder entschieden noch gebaut: Bei gleicher Ablehnung für jeden Grund bleibt Raten ungebremst ([TDS-QA-03](../../../spec/lastenheft.md#tds-qa-03--sicherheit) verlangt keine Enumerationsfestigkeit). Die Wahl der Art (je Benutzername, je Quelladresse, Verzögerung oder Sperre) und der Grenzwerte ist eine Entscheidung des Nutzers, die eine neue ADR braucht; der Implementer entscheidet sie nicht. [slice-qa-sicherheit](../planning/done/slice-qa-sicherheit.md) misst die Grundlagen der Entscheidung: Eine Anmeldung mit 210000 Iterationen braucht auf dem Host des Laufs rund 57 ms, und vier Aufrufe belegen alle Plätze des `AuthPool` für die Dauer einer Ableitung; wie viele Versuche je Sekunde ein Client dem Server abverlangen kann, ist nicht gemessen.
+[ADR-0009](../../adr/0009-authentifizierungsmodus.md) §Offen nennt den Schutz gegen wiederholte Anmeldeversuche (Drosselung, Sperre) weder entschieden noch gebaut: Bei gleicher Ablehnung für jeden Grund bleibt Raten ungebremst ([TDS-QA-03](../../../../spec/lastenheft.md#tds-qa-03--sicherheit) verlangt keine Enumerationsfestigkeit). Die Wahl der Art (je Benutzername, je Quelladresse, Verzögerung oder Sperre) und der Grenzwerte ist eine Entscheidung des Nutzers, die eine neue ADR braucht; der Implementer entscheidet sie nicht. [slice-qa-sicherheit](../../planning/done/slice-qa-sicherheit.md) misst die Grundlagen der Entscheidung: Eine Anmeldung mit 210000 Iterationen braucht auf dem Host des Laufs rund 57 ms, und vier Aufrufe belegen alle Plätze des `AuthPool` für die Dauer einer Ableitung; wie viele Versuche je Sekunde ein Client dem Server abverlangen kann, ist nicht gemessen.
 
 ## Auflösungs-Trigger
 
@@ -27,7 +27,7 @@ Der Carveout ist aufgelöst, wenn der Folge-Slice `slice-qa-anmeldedrosselung` i
 
 | Datei | Zeile/Section | Wert |
 |---|---|---|
-| `src/main/kotlin/io/github/pt9912/tdswire/protocol/session/AuthExecutor.kt` | KDoc von `AuthExecutor` | nennt [ADR-0016](../adr/0016-anmeldedrosselung.md): der `AuthPool` trägt die Drosselung; `CO-003` wird nicht mehr genannt |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/session/AuthExecutor.kt` | KDoc von `AuthExecutor` | nennt [ADR-0016](../../adr/0016-anmeldedrosselung.md): der `AuthPool` trägt die Drosselung; `CO-003` wird nicht mehr genannt |
 | `src/test/kotlin/io/github/pt9912/tdswire/protocol/session/AuthPoolOccupationTest.kt` | KDoc der Platzbelegung | misst die Struktur der Warteschlange hinter belegten Plätzen, baut keine Abhilfe |
 
 ## Verifikation (nach Auflösung)
@@ -41,5 +41,5 @@ Der Carveout ist aufgelöst, wenn der Folge-Slice `slice-qa-anmeldedrosselung` i
 
 | Datum | Ereignis | Verweis |
 |---|---|---|
-| 2026-10-31 | Angelegt | [slice-qa-sicherheit](../planning/done/slice-qa-sicherheit.md) |
-| 2026-11-01 | Aufgelöst: Drosselung je Quelladresse gebaut und gemessen (Option B) | [slice-qa-anmeldedrosselung](../planning/done/slice-qa-anmeldedrosselung.md) |
+| 2026-10-31 | Angelegt | [slice-qa-sicherheit](../../planning/done/slice-qa-sicherheit.md) |
+| 2026-11-01 | Aufgelöst: Drosselung je Quelladresse gebaut und gemessen (Option B) | [slice-qa-anmeldedrosselung](../../planning/done/slice-qa-anmeldedrosselung.md) |
