@@ -37,7 +37,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Skript, Eingangslisten und deren Selbsttests — [slice-stempel-mechanismus](../done/slice-stempel-mechanismus.md); hier werden sie benutzt.
 - Die CI-Seite ([ADR-0023](../../adr/0023-gate-klassen-und-stempel.md) Entscheidung 7, dritter Schritt der Reihenfolge in [ADR-0024](../../adr/0024-lokale-stempel-zwei-klassen.md) Entscheidung 9): kein Slice angelegt, Begründung und Bedingung stehen in [slice-stempel-mechanismus](../done/slice-stempel-mechanismus.md) §1. Die CI führt weiter `make gates` ohne Note, also voll; das ändert dieser Slice nicht.
 - Notes zu pushen oder zu holen — nicht gewollt (Entscheidung des Nutzers, 2026-11-01).
-- E2E-Läufe (`make e2e`, `laufzeittest`, `simulations-integration`, `kompatibilitaet`) und Lasttest-Gates — stehen in keinem Stempel-Umfang ([ADR-0022](../../adr/0022-e2e-laeufe-nicht-in-den-gates.md), [ADR-0024](../../adr/0024-lokale-stempel-zwei-klassen.md) Entscheidung 6: Gates mit verstecktem Eingang laufen immer). `make e2e` ruft `referenztest-dotnet` weiter mit `FORCE=1`.
+- E2E-Läufe (`make e2e`, `laufzeittest`, `simulations-integration`, `kompatibilitaet`) und Lasttest-Gates — stehen in keinem Stempel-Umfang ([ADR-0022](../../adr/0022-e2e-laeufe-nicht-in-den-gates.md), [ADR-0024](../../adr/0024-lokale-stempel-zwei-klassen.md) Entscheidung 6: Gates mit verstecktem Eingang laufen immer). `make e2e` (sieben Stufen) ruft `referenztest-dotnet` nicht; wer den Lauf erzwingen will, ruft `make referenztest-dotnet FORCE=1`.
 - Aufteilung in weitere Stempel — nur per neuer Entscheidung ([ADR-0024](../../adr/0024-lokale-stempel-zwei-klassen.md) Re-Evaluierungs-Trigger).
 
 ## 2. Definition of Done
@@ -71,11 +71,11 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `tools/mk/stempel.mk` | update | Gruppenschritte `werkzeug` und `tests`, Zuordnung der Gates, Messwerte im Kopf (das Fragment entsteht in [slice-stempel-mechanismus](../done/slice-stempel-mechanismus.md)) |
 | `tools/mk/detekt-selbsttest.mk` | update | mtime-Stempel und Eingangsliste entfallen; Gate in `werkzeug` |
-| `tools/mk/referenztest-dotnet.mk` | update | Hash-Datei und Skip-Logik entfallen; Gate in `tests`; `FORCE=1` bleibt für `tools/e2e.sh` Stufe 4 |
+| `tools/mk/referenztest-dotnet.mk` | update | Hash-Datei und Skip-Logik entfallen; Gate in `tests`; `FORCE=1` bleibt als Schalter des Gruppenschritts |
 | `tools/mk/test.mk`, `tools/mk/build.mk`, `tools/mk/skript-selbsttest.mk`, `tools/mk/kopplung-zahlen.mk`, `harness/mk/doc-gate.mk`, `harness/mk/baseline.mk` | update | Zuordnung zur Klasse im Fragment ([ADR-0024](../../adr/0024-lokale-stempel-zwei-klassen.md) Entscheidung 3); `harness/mk/` gehört dem Werkzeug: ob die Zuordnung dort oder in `repo.mk` steht, entscheidet der Bau (Risiko in §6) |
 | `Makefile`, `repo.mk` | update | `GATE_CHECKS` und Gruppenschritte; Setup-Target ruft `einrichten` |
 | `tools/eingangs-hash.sh`, `tools/eingangs-hash-selbsttest.sh` | update oder entfernen | bleiben, solange ein Hash über Dateien nötig ist |
-| `tools/e2e.sh` | prüfen | Stufe 4 ruft `make referenztest-dotnet FORCE=1` |
+| `tools/e2e.sh` | prüfen | keine der sieben Stufen ruft `referenztest-dotnet`; nichts zu ändern, solange das so bleibt |
 | `harness/README.md` | update | Sensors-Tabelle, Bindung |
 | Test der Zuordnung (Skript oder Teil des Selbsttests) | neu | jedes Target in `GATE_CHECKS` in genau einer Klasse ([ADR-0024](../../adr/0024-lokale-stempel-zwei-klassen.md) Fitness Function) |
 
