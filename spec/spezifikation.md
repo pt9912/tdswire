@@ -147,10 +147,11 @@ Betriebsdaten.
    validieren.
 2. Fehlerhafte sicherheitsrelevante Konfiguration führt zu Startabbruch. Die TLS-Konfiguration
    prüft eine Startprobe vor dem Binden des Ports (`SPEC-043`).
-3. Sitzungs-, Anfrage- und Fehlerereignisse mit Korrelations-IDs erfassen. Passwörter werden nie
-   geloggt, auch nicht gekürzt oder verschleiert; Parameterwerte standardmäßig nicht. Die
-   Anmeldekennung erscheint in keiner Antwort an den Client und im Log nur in einem Feld, das die
-   Spezifikation dafür festlegt (bisher keines).
+3. Sitzungs-, Anfrage- und Fehlerereignisse mit Korrelations-IDs als Ereignisse an die Senke der
+   Bibliothek geben (die Diagnoseausgabe des Lastenhefts, Abschnitte 4 und 5); ohne übergebene
+   Senke schreibt die Bibliothek nichts. Passwörter werden nie geloggt, auch nicht gekürzt oder
+   verschleiert; Parameterwerte nie. Die Anmeldekennung erscheint in keiner Antwort an den Client
+   und im Log nur im Feld `principal` des Ereignisses „Anmeldung angenommen“ (Abschnitt 4).
 
 **Komplexität:** O(Anzahl Konfigurationswerte). **Fehlermodi:** ungültiges Zertifikat, Port belegt,
 fehlende Pflichtoption.
@@ -897,9 +898,49 @@ Ausnahme gehe ins Log. Offen: die Einzelzuordnung der Codes unter *Grundregel* u
 und Timeout als Fehler zählen; die Unterscheidung statement- und batch-abbrechender Fehler; die Messung
 aller Werte (`BEO-TDS/messung-am-echten-sql-server-fehlt`).
 
-Pflicht-Logfelder: `connection_id`, `session_id` (falls vorhanden), `request_id` (falls vorhanden),
-`event`, `duration_ms`, `error_code`, `client_profile`. Keine Zugangsdaten oder Parameterwerte im
-Standardlogging.
+Pflicht-Logfelder: `ts`, `level`, `connection_id`, `session_id` (falls vorhanden), `request_id`
+(falls vorhanden), `event`, `duration_ms`, `error_code`, `client_profile`; dazu `principal`, nur im
+Ereignis „Anmeldung angenommen“. Keine Zugangsdaten, keine Anmeldekennung abgelehnter Anmeldungen
+und keine Parameterwerte im Log.
+
+**Zielzustand, nicht gebaut:** Der gebaute Stand schreibt eine Textzeile und kennt weder `ts`,
+`level` noch `principal`. Die folgenden Festlegungen sind Setzungen, nicht gemessen,
+soweit nicht anders genannt; sie gelten für das Modell der Bibliothek und damit für jeden Adapter:
+
+- **Ereignismodell:** eine geschlossene Menge von Ereignisarten mit typisierten Feldern, kein
+  Freitextfeld. `level` (`ERROR`, `WARN`, `INFO`, `DEBUG`) ist je Ereignisart fest. `ts` ist der
+  Zeitpunkt des Ereignisses in UTC aus dem Zeitgeber der Bibliothek; die Darstellung über UTC hinaus
+  legt der Adapter fest (Voreinstellung ISO-8601, Setzung).
+- **Ereignisarten (Entwurf, keine geschlossene Liste dieser Spezifikation):** Start und Ende des
+  Servers, Port gebunden, Bindefehler, ungültige Konfiguration (Schlüssel und Art, kein Wert),
+  fehlgeschlagene Startprobe der TLS-Konfiguration, Beginn und Ende des geordneten Beendens,
+  Verbindung angenommen und beendet (mit der Art des Endes), Anmeldung angenommen und abgelehnt (mit
+  Grund-Marke), Adapterfehler, Anfrage beendet (mit Art, Dauer und Ergebnis), Abbruch durch
+  ATTENTION, aktive Abschwächung der Verschlüsselung (`SPEC-010`), Schnappschuss der Metriken und
+  Ende eines Spans (Abschnitt 5).
+- **`error_code`** ist ein `TDS_*`-Code aus diesem Abschnitt. Eine Ausnahme erscheint nur als
+  Typname, nie mit Text und nie mit Stapelspur.
+- **`principal`** ist die Kennung aus dem Authentifizierungsadapter und steht nur im Ereignis
+  „Anmeldung angenommen“. Ein Ereignis zu einer abgelehnten Anmeldung hat kein Feld für Kennung oder
+  Eingabe; es trägt eine Grund-Marke und `connection_id`. Für die mitgelieferte Benutzerliste stammt
+  die Kennung aus der Liste des Betreibers. Nicht zugesagt: dass die Kennung eines eigenen
+  Authentifizierungsadapters frei von Geheimnissen ist; das verantwortet dessen Betreiber.
+- **`client_profile`** wird aus dem ausgehandelten Protokoll abgeleitet: `tds-7.4` oder `tds-8.0`
+  mit dem Verschlüsselungsmodus (Schreibweise der Kombination nicht festgelegt), vor der Aushandlung
+  `unknown`. Angaben des Clients aus LOGIN7 gehen nicht ein.
+- **Herkunft der IDs:** `connection_id` ist der Zähler des Listeners (ab 1 je Prozessstart; er
+  wiederholt sich nach einem Neustart, Logs über Neustarts trennt `ts`); `session_id` und
+  `request_id` sind zufällige UUID. Nicht festgelegt: wie sich mehrere Server in einer JVM mit einer
+  gemeinsamen Senke unterscheiden.
+- **Redaktion durch Bauart:** Passwort, Prüfwert, Parameterwert, SQL-Text, Pfad und Ausnahmetext
+  haben im Modell kein Feld; es gibt keinen Schalter, der Parameterwerte zuließe. Zeichenketten
+  bleiben nur in `principal`, in der Adresse des Bindefehlers, im Typnamen einer Ausnahme und im
+  Schlüsselnamen der Konfiguration; jedes Zeichenketten-Feld ist auf 256 Zeichen begrenzt (Setzung,
+  darüber wird abgeschnitten). Nicht zugesagt: Escaping, Ziele und Aufbewahrung im Adapter eines
+  Embedders.
+- **Abbruch des Starts:** Das Ereignis zum Bindefehler nennt Adresse und Port (`SPEC-043`). Die
+  Adresse steht nur im Ereignis; `StartOutcome.Aborted.reason` bleibt ein Text ohne
+  Konfigurationswert (`SPEC-059`) und enthält weder Adresse noch Port.
 
 ## 5. Metriken und Tracing-Felder
 
@@ -911,6 +952,24 @@ Standardlogging.
 
 Metriken: aktive Sessions, Login-Erfolgs-/Fehlerquote, Anfragen/s, Anfrage-Latenz p50/p95/p99,
 aktive Backendoperationen, Abbrüche, Protokollfehler. Keine SQL-Texte als Metrik-Labels.
+
+**Zugang zu Metriken und Spans (Zielzustand, nicht gebaut; Festlegung, nicht gemessen):**
+
+- Der Schnappschuss der Metriken (Ereignis `metrics`) und das Ende eines Spans gehen als Ereignisse
+  an die Senke der Bibliothek, dieselbe wie für das Log (Abschnitt 4). Die Senke ist ein Parameter
+  von `TdsServer.start`; ohne Senke (Voreinstellung) schreibt und sendet die Bibliothek nichts. Name
+  und Form von Senke und Parameter sind nicht festgelegt.
+- Vertrag der Senke: Sie blockiert nicht und wirft nicht; die Bibliothek fängt Ausnahmen der Senke
+  ab und verwirft sie. Wer die Senke übergibt, besitzt und schließt sie; die Bibliothek schließt sie
+  nicht.
+- Der Abstand der Schnappschüsse ist ein Wert der `ServerConfig` in Sekunden (Voreinstellung 60,
+  0 schaltet ihn aus; Setzung, nicht gemessen) und wird in `config` geprüft; der Wertebereich ist
+  nicht festgelegt. Ob das Ereignis `metrics` die Verteilung als Perzentile (p50, p95, p99,
+  Voreinstellung dieser Spezifikation) oder als Zähler je Klasse trägt, ist nicht festgelegt.
+- Namen und Pflicht-Attribute der Spans (`SPEC-017` bis `SPEC-019`) bleiben. JMX, ein
+  Text-Endpunkt und eine Telemetrie-Bibliothek sind nicht Teil der Zusage; sie wären Adapter hinter
+  der Senke.
+- Für Log und Telemetrie gilt diese Festlegung vor der Zeile „Nicht erreichbar“ in `SPEC-059`.
 
 ## 6. Externe Verträge
 
@@ -1132,7 +1191,7 @@ Der Adapter liefert keinen Text und keine Nummer für den Client. Die Antwort an
 
 #### Pflichten des Authentifizierungsadapters
 
-- Das Passwort erscheint in keinem Log und in keiner Fehlermeldung, auch nicht gekürzt oder verschleiert. Der Benutzername erscheint in keiner Antwort an den Client und im Log nur in einem Feld, das die Spezifikation festlegt (bisher keines; `TDS-FA-09.a`). `Rejected(reason)` trägt den Grund ohne Passwort und ohne Benutzernamen.
+- Das Passwort erscheint in keinem Log und in keiner Fehlermeldung, auch nicht gekürzt oder verschleiert. Der Benutzername erscheint in keiner Antwort an den Client und im Log nur im Feld `principal` des Ereignisses „Anmeldung angenommen“ (Abschnitt 4; `TDS-FA-09.a`); abgelehnte Anmeldungen tragen kein Feld mit der Kennung. `Rejected(reason)` trägt den Grund ohne Passwort und ohne Benutzernamen.
 - Anforderung an den Produktivcode der Einstiegsimplementierung: Der Passwortvergleich läuft in konstanter Zeit über die Länge hinaus; bei unbekannter Kennung läuft ein Scheinvergleich. Gebaut und strukturell belegt (Abschnitt „Kotlin-Signatur des Authentifizierungsadapters“, Bauart des Vergleichs); Gemessen (Test mit echter Ableitung, Median von 15 Aufrufen, im Docker-Image des Repos; Dauer je Aufruf bei 210 000 Iterationen auf zwei Hosts 42 bis 64 ms, die Spanne gilt nur für diese Hosts): Bei einer Liste mit gleicher Iterationszahl brauchen bekannter Benutzername mit falschem Passwort, unbekannter Benutzername und bekannter Benutzername mit richtigem Passwort innerhalb einer Toleranz von 25 % gleich lang. Bei einer gemischten Liste (niedrigere Iterationszahl oder `plain` neben `pbkdf2-sha256`) trennt die Zeit bekannte von unbekannten Benutzernamen; das ist eine Grenze, keine Zusage. Ein Adapter mit eigener Benutzerverwaltung unterliegt derselben Anforderung, der Vertrag kann sie nicht erzwingen.
 - Die Antwort an den Client ist für unbekannten Benutzernamen und falsches Passwort in den Antwortbytes gleich (gemessen am Spike-Testserver, nicht am Produkt); das ist Sache des festen Antwortmusters des Anmeldepfads, nicht des Adapters.
 - Ein Adapter blockiert den Anmeldepfad nicht länger als `LOGIN_TIMEOUT` (`SPEC-008`).
@@ -1225,7 +1284,7 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | `SPEC-040` | Simulations-Tests (`make simulations-integration` im E2E-Durchgang) | Unit-Tests der Anweisungserkennung (jede Form aus `SPEC-036` positiv und negativ, Grenzen bei Literalen, Bezeichnern und Kommentaren), Unit-Tests des Lesers der Tabellenbeschreibung (jedes gelesene Feld, jeder Ladefehler mit Pfad, Zeile und Spalte, ohne Inhalt in der Meldung) und Integrationstest mit dem .NET-Referenzclient (`make simulations-integration`, Stufe des E2E-Durchgangs `make e2e`, nicht von `make gates`): Auswahl mit Bedingung, leeres Ergebnis, Zeilenquelle über der Speichergrenze (Angabe des Testservers: Serverprozess mit 48 MiB Heap, Text von 64 000 000 Zeichen; `make kopplung-zahlen` hält die Zahlen in Gradle, Kotlin, .NET, hier und im README gleich), Fehler der Zeilenquelle mit Folgeabfrage; der Lauf geht gegen den Testserver (`SPEC-052`; Zielzustand, nicht gebaut: der gebaute Integrationsserver bindet die Bibliothek noch an `TdsServer.start` vorbei) und belegt das Verhalten des Referenzclients gegen die Bibliothek, die er bindet, in TDS 7.4 ohne Verschlüsselung und ohne Pool, nicht gegen einen echten SQL Server. Cancel mit Folgeabfrage gehört nicht zum Lauf: der Server beantwortet ein ATTENTION-Paket während einer Anfrage nicht; die Ausnahme ist befristet, aufgelöst ist sie, sobald ein Cancel-Szenario mit Folgeabfrage am Referenzclient in diesem Lauf besteht |
 | `SPEC-041` | Static-Analysis-Gate (`make detekt`, `make detekt-selbsttest`) | detekt in Docker, Konfiguration auf Standardbasis mit dem ktlint-Regelsatz (prüft, schreibt nichts um), `warningsAsErrors` und den Importregeln der Schichten, im Kern als Erlaubnisliste ohne Fremdbibliothek; dazu Technik-Regeln für Kern und Port, die Prozess, Dateisystem und Ähnliches über `ForbiddenMethodCall` sperren und deshalb nur über `detektMain` und `detektTest` wirken (Typauflösung); keine Baseline; jeder Befund bricht den Lauf. Tests des Kerns bleiben frei von Fremdbibliotheken (`kotlin.test` statt JUnit), weil die Kernregeln auch für Test-Quellen gelten. Die Importregeln lesen nur `import`-Zeilen: ein voll qualifizierter Name im Code und ein `typealias` darauf umgehen sie; das Gate belegt die Einhaltung der Importgrenze, nicht des Classpaths. `@Suppress` und `@SuppressWarnings` im Quelltext brechen den Lauf vor detekt (Textprüfung des Suppression-Gates). Ein Selbsttest belegt, dass jede Importregel ihre verbotenen Importe meldet, die erlaubten Testdaten nicht und das Suppression-Verbot jede Form meldet; er läuft nur bei geänderten Eingängen |
 | `SPEC-042` | Build-Gate (`make build`) | Compile und Jar in Docker, ohne Tests; Basis-Images per Digest gepinnt, Abhängigkeitsversionen per Lock und Prüfsummen fixiert |
-| `SPEC-052` | Bibliotheks-Artefakt und Lizenz (E2E-Durchgang: `make laufzeittest` mit dem Testserver; der Tag `@spec` nennt nur den Lizenztext) | Das Artefakt ist ein Bibliotheks-Jar `tdswire.jar` **ohne `Main-Class`** im Manifest; die Bibliothek ist das Produkt (`TDS-RB-01`), und es gibt weder eine Startklasse noch ein Betriebs-Image als Produkt. Die Bibliotheken, die die Bibliothek braucht, liegen im Verzeichnis `lib` daneben und stehen im Class-Path des Manifests (Komfort für Einbettende, Setzung). Die Lizenz ist die MIT-Lizenz (Datei `LICENSE` im Wurzelverzeichnis, Rechteinhaber `pt9912`, Jahr 2026, `TDS-RB-05`); sie liegt im Jar unter `META-INF/LICENSE`, und der Bau des Jars bricht, wenn sie dort fehlt oder vom Inhalt der Datei abweicht (läuft in `make build`). Im Bau (`make build`) prüft eine Textprüfung ohne Container, dass das Manifest des Jars keine `Main-Class` nennt, der Class-Path nur Einträge `lib/<Name>` mit vorhandener Datei in `lib` führt und das Jar `tdswire.jar` heißt (nicht geprüft: der Start des Jars). Die Lizenzdatei prüft außerdem ein Unit-Test (MIT-Text, Rechteinhaber, Rechteeinräumung, Haftungsausschluss). **Testserver:** Ein ausführbarer Serverprozess, der nur der Prüfung der Bibliothek dient (E2E- und Kompatibilitätsläufe, kein Produkt), bindet die Bibliothek ausschließlich über `TdsServer.start` und ihre öffentliche Fläche (`SPEC-059`). Er liest Konfiguration und Benutzerliste zur Laufzeit aus der Umgebung und aus Dateien (Eingänge des Testservers, `SPEC-005`, `SPEC-010`, `SPEC-051`), nie aus dem Abbild (Setzung), und läuft mit `-Djdk.tls.server.newSessionTicketCount=0` (`SPEC-023`). Sein Container-Abbild entsteht aus dem Klassenpfad des Testservers (Setzung); ein Abbild als Betriebsweg gibt es nicht. `make laufzeittest` startet den Testserver als Container in einem internen Netzwerk, lässt einen Rohbytes-Client aus einem zweiten Container PRELOGIN und LOGIN7 sprechen und beendet den Container mit `docker stop`; die Ausgabe des Testservers nennt weder Benutzer noch Passwort. Gemessen am Server-Container vor dem Umbau, der den Server zum Testserver macht (2026-10-31): `docker stop` (SIGTERM) endet mit Exit-Code 143. Welche Prüfungen des heutigen Laufs (Nutzer 65532, Inhalt von `/app`, Lizenz im Abbild, Namen der Umgebung) mit dem Testserver-Abbild bleiben, ist nicht festgelegt. Nicht belegt: Annahme durch `Microsoft.Data.SqlClient`, TLS im Container, Last, der Inhalt der Jars und der Basis-Schichten. `make laufzeittest` ist Stufe des E2E-Durchgangs `make e2e` und steht nicht in `make gates`. **Zielzustand, nicht gebaut:** Der gebaute Stand trägt im Manifest noch eine Startklasse, prüft sie im Bau, hat ein Laufzeit-Image (Distroless Java 21 `nonroot`) mit der Konfiguration im Container und lässt `make laufzeittest` dieses Image prüfen; die Festlegungen dieser Zeile gelten ab dem Umbau, der den Server zum Testserver macht. |
+| `SPEC-052` | Bibliotheks-Artefakt und Lizenz (E2E-Durchgang: `make laufzeittest` mit dem Testserver; der Tag `@spec` nennt nur den Lizenztext) | Das Artefakt ist ein Bibliotheks-Jar `tdswire.jar` **ohne `Main-Class`** im Manifest; die Bibliothek ist das Produkt (`TDS-RB-01`), und es gibt weder eine Startklasse noch ein Betriebs-Image als Produkt. Die Bibliotheken, die die Bibliothek braucht, liegen im Verzeichnis `lib` daneben und stehen im Class-Path des Manifests (Komfort für Einbettende, Setzung). Die Lizenz ist die MIT-Lizenz (Datei `LICENSE` im Wurzelverzeichnis, Rechteinhaber `pt9912`, Jahr 2026, `TDS-RB-05`); sie liegt im Jar unter `META-INF/LICENSE`, und der Bau des Jars bricht, wenn sie dort fehlt oder vom Inhalt der Datei abweicht (läuft in `make build`). Im Bau (`make build`) prüft eine Textprüfung ohne Container, dass das Manifest des Jars keine `Main-Class` nennt, der Class-Path nur Einträge `lib/<Name>` mit vorhandener Datei in `lib` führt und das Jar `tdswire.jar` heißt (nicht geprüft: der Start des Jars). Die Lizenzdatei prüft außerdem ein Unit-Test (MIT-Text, Rechteinhaber, Rechteeinräumung, Haftungsausschluss). **Testserver:** Ein ausführbarer Serverprozess, der nur der Prüfung der Bibliothek dient (E2E- und Kompatibilitätsläufe, kein Produkt), bindet die Bibliothek ausschließlich über `TdsServer.start` und ihre öffentliche Fläche (`SPEC-059`). Er liest Konfiguration und Benutzerliste zur Laufzeit aus der Umgebung und aus Dateien (Eingänge des Testservers, `SPEC-005`, `SPEC-010`, `SPEC-051`), nie aus dem Abbild (Setzung), und läuft mit `-Djdk.tls.server.newSessionTicketCount=0` (`SPEC-023`). **Log und Metriken des Testservers** (Zielzustand, nicht gebaut; Setzung, nicht gemessen, auch die Zahlen): Er übergibt `TdsServer.start` eine Senke mit einem eigenen Adapter (Abschnitte 4 und 5) und liest dafür `LOG_LEVEL` (`ERROR`, `WARN`, `INFO`, `DEBUG`; Voreinstellung `INFO`; ein anderer Wert bricht den Start des Testservers ab) und `METRICS_INTERVAL_SECONDS` (Quelle des Abstands der Schnappschüsse in der `ServerConfig`); beide Schlüssel sind Eingänge des Testservers, nicht der Bibliothek. Der Adapter schreibt je Ereignis eine JSON-Zeile auf die Standardausgabe mit den Feldern `ts`, `level`, `event` und denen des Ereignisses und filtert nach `LOG_LEVEL`. Er hält eine begrenzte Warteschlange (1024 Zeilen); bei Überlauf wird die neue Zeile verworfen und gezählt, die Zahl steht im Feld `dropped` der nächsten geschriebenen Zeile. Ereignisse vor dem erfolgreichen Start und die Diagnose eines abgebrochenen Starts schreibt er synchron und ohne Warteschlange; vor dem Prozessende leert er die Warteschlange mit einer Frist von 2 Sekunden, der Rest geht verloren und wird in einer letzten Zeile mit `dropped` gemeldet, soweit der Kanal noch annimmt. Das sind Aussagen über den Testserver, kein Vertrag der Bibliothek. Die Bereitschaftszeile bleibt Sache des Testservers und ist kein Ereignis des Modells. Sein Container-Abbild entsteht aus dem Klassenpfad des Testservers (Setzung); ein Abbild als Betriebsweg gibt es nicht. `make laufzeittest` startet den Testserver als Container in einem internen Netzwerk, lässt einen Rohbytes-Client aus einem zweiten Container PRELOGIN und LOGIN7 sprechen und beendet den Container mit `docker stop`; die Ausgabe des Testservers nennt weder Benutzer noch Passwort. Gemessen am Server-Container vor dem Umbau, der den Server zum Testserver macht (2026-10-31): `docker stop` (SIGTERM) endet mit Exit-Code 143. Welche Prüfungen des heutigen Laufs (Nutzer 65532, Inhalt von `/app`, Lizenz im Abbild, Namen der Umgebung) mit dem Testserver-Abbild bleiben, ist nicht festgelegt. Nicht belegt: Annahme durch `Microsoft.Data.SqlClient`, TLS im Container, Last, der Inhalt der Jars und der Basis-Schichten. `make laufzeittest` ist Stufe des E2E-Durchgangs `make e2e` und steht nicht in `make gates`. **Zielzustand, nicht gebaut:** Der gebaute Stand trägt im Manifest noch eine Startklasse, prüft sie im Bau, hat ein Laufzeit-Image (Distroless Java 21 `nonroot`) mit der Konfiguration im Container und lässt `make laufzeittest` dieses Image prüfen; die Festlegungen dieser Zeile gelten ab dem Umbau, der den Server zum Testserver macht. |
 | `SPEC-050` | Referenzabgleich (vorläufig, E2E-Durchgang) | Live-Lauf und Mitschnitt-Lauf nach `SPEC-045` gegen eine SQL-Server-Referenzinstanz in Docker (eigener Container im eigenen Netzwerk, ohne Mount); Abweichungen nur über die Ausnahmeliste; ergänzt die Läufe von `SPEC-025` und `SPEC-032`, ersetzt sie nicht; Lauf des E2E-Durchgangs, noch einzurichten |
 | `SPEC-032` | Kompatibilitätstest (E2E-Durchgang) | Echter .NET-SqlClient prüft LOGINACK/ENVCHANGE/DONE, TLS-Profil (TDS 7.4 und TDS 8.0), RPC-Parameter, Streaming-Fehler, ATTENTION und Wiederverwendung; ein Szenario ist rot, sobald der Client es nicht besteht; Lauf des E2E-Durchgangs, noch einzurichten |
 
@@ -1266,4 +1325,5 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | 2026-10-31 | Simulations-Backend, Änderungen und Verdrahtung gebaut: Weitergabe von Einfügen, Ändern und Löschen an die Callbacks mit Reihenfolge der Prüfung und Fehlerabbildung, Katalog aus Datei und Tabellen des Integrators, Umgebungsvariable `SIMULATION_DESCRIPTION_FILE`, Größengrenze und Startabbruch (`SPEC-035`, `TDS-FA-11.a`) |
 | 2026-10-31 | Einstieg des Integrators festgelegt: Fassade `TdsServer.start` mit Backend-Quelle, Prüfung der Konfiguration beim Start, Einmal-Konfiguration, Zusage der Fläche, Nachweis ohne `internal` (`SPEC-059`, `SPEC-035`, `TDS-FA-08.a`) |
 | 2026-11-01 | Bibliothek als Produkt nachgezogen: Die Bibliothek ist das Produkt (Bibliotheks-Jar ohne Startklasse), Umgebungsvariablen, Dateien und die Tabellenbeschreibung als Datei gehören dem Testserver, die Läufe des E2E-Durchgangs gehen gegen den Testserver, `SimulationBackend` und `SimCatalog` sind verbindliche Namen mit Signaturzusage bis `1.0`, der Zwischenstand-Satz der Zusage entfällt, `ConfigKeys` ist nicht mehr zugesagt (die Schlüssel in `ConfigIssue` sind Text ohne zugesagten Wortlaut); was am Code noch nicht gilt, steht als Zielzustand an der Stelle (`SPEC-052`, `SPEC-040`, `SPEC-025`, `SPEC-005`, `SPEC-010`, `SPEC-023`, `SPEC-035`, `SPEC-051`, `SPEC-059`, `TDS-RB-01`, `TDS-QA-06`, `TDS-FA-08`, `TDS-FA-09`, `TDS-FA-11`) |
+| 2026-11-01 | Log und Telemetrie festgelegt: Pflicht-Logfelder um `ts`, `level` und `principal` (nur bei angenommener Anmeldung) ergänzt, Quelle von `client_profile` und Herkunft der IDs, Parameterwerte nie, Redaktion durch Bauart, Zugang zu Metriken und Spans über die Senke der Bibliothek, `LOG_LEVEL`, `METRICS_INTERVAL_SECONDS` und das Format der JSON-Zeile als Aussagen über den Testserver, Adresse des Bindefehlers nur im Ereignis (`TDS-FA-09.a`, Abschnitte 4 und 5, `SPEC-052`) |
 
