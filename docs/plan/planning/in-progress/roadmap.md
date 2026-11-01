@@ -37,7 +37,7 @@ In Arbeit (ohne Welle):
 
 In Arbeit (Welle welle-produktschnitt):
 
-- [slice-testserver-herausloesen](slice-testserver-herausloesen.md)
+- keiner; zuletzt geschlossen: [slice-testserver-herausloesen](../done/slice-testserver-herausloesen.md) (Closure-Notiz in §7 des Slice; Folge: [slice-explicit-api-umbau](../open/slice-explicit-api-umbau.md), [slice-betrieb-log-adapter-testserver](../open/slice-betrieb-log-adapter-testserver.md))
 
 ## Nächste Wellen
 
