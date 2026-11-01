@@ -6,10 +6,11 @@ using Xunit.Abstractions;
 namespace TdsWire.Referenztests.Kompatibilitaet;
 
 /// <summary>
-/// Messungen der Lücken 3, 4 und 14 der Kompatibilitätsmatrix am Referenzclient (Microsoft.Data.SqlClient 7.1.1)
+/// Messungen der Lücken 3, 4, 13 und 14 der Kompatibilitätsmatrix am Referenzclient (Microsoft.Data.SqlClient 7.1.1)
 /// gegen den Serverprozess (`make kompatibilitaet KATEGORIE=Luecken`, Stufe 6 von `make e2e`, ADR-0019, TDS-QA-01):
 /// `xml` als RPC-Parameter, mehrere RPCs in einer Nachricht (Batch-Flag, `SqlDataAdapter` mit `UpdateBatchSize`),
-/// Kennwortwechsel und FeatureExt der Anmeldung (Zugriffstoken). Jeder Test pinnt, was der Client sieht; die Zeilen
+/// Kennwortwechsel und FeatureExt der Anmeldung (Zugriffstoken) sowie `RESETCONNECTION` bei Pooling (vorbereitete
+/// Befehle über mehrere Open-Phasen derselben physischen Verbindung). Jeder Test pinnt, was der Client sieht; die Zeilen
 /// `messung: ...` im Bericht sind die Werte, die die Matrix zitiert. Der Grund der Ablehnung (Kennwortwechsel,
 /// Zugriffstoken) und die Fehler von xml und Batch stehen nur im Log des Servers; ihre Prüfung liegt in
 /// `tools/kompatibilitaetstest.sh`, ein `dotnet test` allein belegt sie nicht. Nicht belegt: Windows-SSPI, ein echter
@@ -80,6 +81,91 @@ public class LueckenTests
         Ziel.Messung(_ausgabe, $"UpdateBatchSize 1: Update meldet {zeilen}; Verbindung danach {verbindung.State}");
         Assert.Equal(2, zeilen);
         Assert.Equal(ConnectionState.Open, verbindung.State);
+    }
+
+    private static SqlConnectionStringBuilder MitPool()
+    {
+        var zeichenfolge = Ziel.Tds74();
+        zeichenfolge.Pooling = true;
+        zeichenfolge.MaxPoolSize = 1;
+        return zeichenfolge;
+    }
+
+    /// <summary>
+    /// Bereitet in einer offenen Verbindung bis zu <paramref name="anzahl"/> neue Befehle mit dem Marker-Parameter
+    /// <paramref name="marker"/> vor und führt sie je einmal aus (der Client sendet kein `sp_unprepare`). Zählt die
+    /// beantworteten Befehle; die erste Ablehnung hält <paramref name="abgewiesen"/> fest.
+    /// </summary>
+    private static int Vorbereiten(SqlConnection verbindung, string marker, int anzahl, ref SqlException? abgewiesen)
+    {
+        var beantwortet = 0;
+        while (abgewiesen is null && beantwortet < anzahl)
+        {
+            using var befehl = new SqlCommand($"SELECT Id FROM person WHERE Id = @{marker}", verbindung);
+            befehl.Parameters.Add($"@{marker}", SqlDbType.Int).Value = 1;
+            befehl.Prepare();
+            try
+            {
+                Assert.Equal(1, befehl.ExecuteScalar());
+                beantwortet++;
+            }
+            catch (SqlException ausnahme)
+            {
+                abgewiesen = ausnahme;
+            }
+        }
+
+        return beantwortet;
+    }
+
+    [Fact]
+    public void Pooling_mehr_als_1000_vorbereitete_Befehle_ueber_Open_Phasen_derselben_Verbindung_gelingen()
+    {
+        SqlConnection.ClearAllPools();
+        var zeichenfolge = MitPool();
+        SqlException? abgewiesen = null;
+        var beantwortet = 0;
+        for (var phase = 1; phase <= 3; phase++)
+        {
+            using var verbindung = Ziel.Oeffnen(zeichenfolge);
+            beantwortet += Vorbereiten(verbindung, "zuruecksetzen", 400, ref abgewiesen);
+        }
+
+        Ziel.Messung(_ausgabe, $"Pooling, drei Open-Phasen zu je 400 vorbereiteten Befehlen auf einer physischen Verbindung: " +
+            $"{beantwortet} beantwortet, " + (abgewiesen is null ? "keine Abweisung" : Ziel.Beschreibung(abgewiesen)));
+        SqlConnection.ClearAllPools();
+        Assert.Null(abgewiesen);
+        Assert.Equal(1200, beantwortet);
+    }
+
+    [Fact]
+    public void Pooling_innerhalb_einer_Open_Phase_endet_das_1001_Prepare_mit_50010_auch_nach_dem_Zuruecksetzen()
+    {
+        SqlConnection.ClearAllPools();
+        var zeichenfolge = MitPool();
+        SqlException? abgewiesen = null;
+        int erste_phase;
+        using (var erste = Ziel.Oeffnen(zeichenfolge))
+        {
+            erste_phase = Vorbereiten(erste, "grenze", 600, ref abgewiesen);
+        }
+
+        Assert.Null(abgewiesen);
+        using var zweite = Ziel.Oeffnen(zeichenfolge);
+        var zweite_phase = Vorbereiten(zweite, "grenze", 1100, ref abgewiesen);
+
+        Ziel.Messung(_ausgabe, $"Pooling, erste Open-Phase {erste_phase} vorbereitete Befehle, zweite Open-Phase derselben " +
+            $"physischen Verbindung: {zweite_phase} beantwortet, dann " +
+            (abgewiesen is null ? "keine Abweisung" : Ziel.Beschreibung(abgewiesen)) + "; Verbindung " + zweite.State);
+        Assert.Equal(600, erste_phase);
+        Assert.Equal(1000, zweite_phase);
+        Assert.NotNull(abgewiesen);
+        Assert.Equal(50010, abgewiesen!.Number);
+        Assert.Equal(ConnectionState.Open, zweite.State);
+        using var folge = new SqlCommand("SELECT Id FROM person WHERE Id = 1", zweite);
+        Assert.Equal(1, folge.ExecuteScalar());
+        zweite.Close();
+        SqlConnection.ClearAllPools();
     }
 
     [Fact]

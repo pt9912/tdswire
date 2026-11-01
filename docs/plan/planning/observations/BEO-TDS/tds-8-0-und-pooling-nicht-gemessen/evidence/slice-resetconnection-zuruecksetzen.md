@@ -1,0 +1,2 @@
+**Vorgang:** slice-resetconnection-zuruecksetzen
+**Fund:** Pooling mit RESETCONNECTION ist unter TDS 7.4 am Referenzclient (Microsoft.Data.SqlClient, `Pooling=true`, eine physische Verbindung) über die Wirkung gemessen: 1200 Befehle über drei Open-Phasen beantwortet, die 1001. Anfrage innerhalb einer Phase endet mit 50010. Das Bit selbst ist am Draht nicht gesehen; unter TDS 8.0 ist Pooling ungemessen. Die Wirkung im Test gegen ein Fake-Backend belegt den Rahmen, nicht den Pool des Clients. Träger bleibt `slice-qa-kompatibilitaet`/die Matrix.
