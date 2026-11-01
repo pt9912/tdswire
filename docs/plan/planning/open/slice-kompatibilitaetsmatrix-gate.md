@@ -29,11 +29,11 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** `make gates` wird rot, wenn die erzeugte Kompatibilitätsmatrix nicht gleich der Ausgabe des Erzeugers ist oder eine Waise meldet; so lässt sich die Datei nicht von Hand ändern. Das Gate gehört in die Stempelklasse `tests` ([ADR-0024](../../adr/0024-lokale-stempel-zwei-klassen.md)), liest die vorhandenen Berichte der Stage `test` (abgeleitete Stage, kein zweiter Testlauf) und lässt die Gate-Zeit von `make gates` nicht steigen.
+**Ziel:** `make gates` wird rot, wenn die erzeugte Sicht (die Kompatibilitätsmatrix) nicht gleich der Ausgabe des Erzeugers aus den committeten Eingängen ist (Spec, Tags, Berichte, E2E-Ergebnisdatei) oder der Erzeuger eine Waise meldet; so lässt sich die Datei nicht von Hand ändern. Die Ergebnisdatei darf veraltet sein, die Sicht nennt ihren Stand und ihr Datum; das Gate prüft nur „committet gleich erzeugt“ und braucht keinen Docker-Lauf des E2E-Teils. Das Gate gehört in die Stempelklasse `tests` ([ADR-0024](../../adr/0024-lokale-stempel-zwei-klassen.md)), liest die vorhandenen Berichte der Stage `test` (abgeleitete Stage, kein zweiter Testlauf) und lässt die Gate-Zeit von `make gates` nicht steigen.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Erzeuger, Quelle, Tags, Migration — [slice-kompatibilitaetsmatrix-erzeugen](slice-kompatibilitaetsmatrix-erzeugen.md); hier wird benutzt, was dort liegt.
+- Erzeuger, Selbsttest, Ergebnisdatei — [slice-kompatibilitaetsmatrix-erzeugen](slice-kompatibilitaetsmatrix-erzeugen.md); Spec-Nachzug, Tags, Umstellung — [slice-kompatibilitaetsmatrix-migration](slice-kompatibilitaetsmatrix-migration.md); hier wird benutzt, was dort liegt.
 - Eine Zuordnung zu einer anderen Klasse als `tests` oder ein Gate außerhalb der Stempel — nicht zulässig ([ADR-0023](../../adr/0023-gate-klassen-und-stempel.md)); eine Lockerung eines bestehenden Gates ist ausgeschlossen.
 - Bestehen der .NET-Referenzclient-Tests — `make kompatibilitaet` ist kein Gate ([ADR-0022](../../adr/0022-e2e-laeufe-nicht-in-den-gates.md)).
 
@@ -55,7 +55,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] **Gate:** ein Target (Name nach `make help`-Konvention, z. B. `kompatibilitaetsmatrix-pruefung`) erzeugt die Matrix aus den Berichten der Stage `test` in eine Datei außerhalb des Repos und vergleicht mit `cmp` gegen den committeten Stand, Exit 1 bei Abweichung oder Waise mit Hinweis `make kompatibilitaetsmatrix`; Aufnahme in `GATE_CHECKS` und Zuordnung zur Klasse `tests` samt Eingangsliste des Stempels (die Klasse darf bei Änderung der Quelle, der Tests oder der Matrix nicht überspringen).
+- [ ] **Gate:** ein Target (Name nach `make help`-Konvention, z. B. `kompatibilitaetsmatrix-pruefung`) erzeugt die Matrix aus den Berichten der Stage `test` in eine Datei außerhalb des Repos und vergleicht mit `cmp` gegen den committeten Stand, Exit 1 bei Abweichung oder Waise mit Hinweis `make kompatibilitaetsmatrix`; Aufnahme in `GATE_CHECKS` und Zuordnung zur Klasse `tests` samt Eingangsliste des Stempels (die Klasse darf bei Änderung von Spec, Tests, Matrix oder Erzeuger nicht überspringen; die E2E-Ergebnisdatei steht nicht in der Liste, sonst änderte ihr Commit den Hash).
 - [ ] **Gate-Zeit gemessen, nicht geschätzt:** Einzelmessung `make gates` vor und nach der Aufnahme, warm und kalt, für die Fälle ohne Beleg und mit Beleg der Klasse `tests` (Messprotokoll unter `docs/messungen/`); die Zeit steigt nicht über die Messunsicherheit hinaus, sonst ist das Gate nicht aufgenommen. Selbsttest-Fall: die von Hand geänderte Matrix macht das Gate rot.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -77,7 +77,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `tools/mk/kompatibilitaetsmatrix.mk`, `Dockerfile` | update | Gate-Target und abgeleitete Stage über die Berichte der Stage `test` |
-| Eingangslisten der Stempel, Zuordnung der Klassen | update | Eingänge der Klasse `tests` um Quelle, Tags-tragende Tests und Matrix erweitern (Verfahren aus slice-stempel-migration) |
+| Eingangslisten der Stempel, Zuordnung der Klassen | update | Eingänge der Klasse `tests` um Erzeuger und Matrix erweitern (Verfahren aus slice-stempel-migration) |
 | `harness/README.md` | update | Zeile des Gates |
 
 **Optional: Ansatz als Liste, wenn eine Zeile pro Datei nicht trägt** — z. B.
@@ -92,7 +92,7 @@ lässt. Ergänzt die Tabelle, ersetzt sie nicht:
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-stempel-migration](slice-stempel-migration.md) und [slice-kompatibilitaetsmatrix-erzeugen](slice-kompatibilitaetsmatrix-erzeugen.md) liegen in `done/`.
+**Start** (`next` → `in-progress`): [slice-stempel-migration](slice-stempel-migration.md) und [slice-kompatibilitaetsmatrix-erzeugen](slice-kompatibilitaetsmatrix-erzeugen.md) und [slice-kompatibilitaetsmatrix-migration](slice-kompatibilitaetsmatrix-migration.md) liegen in `done/`.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
