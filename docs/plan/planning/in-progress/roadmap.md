@@ -27,6 +27,10 @@ In Arbeit (Welle welle-qualitaet-grundlage):
 
 - [slice-e2e-geruest](slice-e2e-geruest.md)
 
+In Arbeit (Welle welle-fehler-abbruch):
+
+- [slice-attention-cancel-timeout](slice-attention-cancel-timeout.md)
+
 In Arbeit (Welle welle-betrieb-diagnose):
 
 - [slice-adr-observability](slice-adr-observability.md)
