@@ -39,7 +39,7 @@ erwarte() {
   [ "$ist" -eq "$soll" ] || pruefe "$name: Exit $ist statt $soll ($(tr '\n' ' ' < "$tmp/$name.aus"))"
 }
 
-main="Main-Class: io.github.pt9912.tdswire.runtime.MainKt"
+main="Main-Class: beispiel.Anwendung"
 
 erwarte gut 0 tdswire.jar "Class-Path: lib/a.jar lib/b.jar" a.jar b.jar
 erwarte main-vorhanden 1 tdswire.jar "$main
