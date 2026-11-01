@@ -602,12 +602,13 @@ festgelegt sind; die Überführung der Werte, das Lesen der Zeilenquelle und die
 - **Vergleich in der Bedingung** (Setzung, nicht am Server gemessen): Eine Zelle anderer JVM-Klasse als der
   Wert ist ungleich (`1` gegen `1L`), ohne Fehler.
 
-**Beschreibung als Datei.** Zusätzlich zur Kotlin-Schnittstelle kann der Server Tabellen aus einer Datei
-laden. Das Format ist das neutrale Schema-Modell von d-migrate in YAML, `schema_format` `1.0`; maßgeblich
+**Beschreibung als Datei.** Zusätzlich zur Kotlin-Schnittstelle kann der Testserver Tabellen aus einer Datei
+laden; die Bibliothek kennt weder die Datei noch ihr Format und nimmt nur `SimTable`-Werte (Verdrahtung unten).
+Das Format ist das neutrale Schema-Modell von d-migrate in YAML, `schema_format` `1.0`; maßgeblich
 ist die formale Beschreibung
 [spec/schema.json von d-migrate](https://github.com/pt9912/d-migrate/blob/a33984910bc3c760ad2f7c9733f5da0f12e1abf7/spec/schema.json)
 (geprüft gegen den Stand dieses Commits, 2026-10-30). Dieses Dokument kopiert das Format nicht; es legt
-fest, was der Leser daraus liest. Ändert sich das Format dort, ist der Belegstand zu erneuern.
+fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, ist der Belegstand zu erneuern.
 
 - **Gelesen:** `schema_format` (muss `1.0` sein), `name` und `version` (Pflicht, nicht ausgewertet),
   `tables`; je Tabelle `columns` und `primary_key` (beide Pflicht, jeder Eintrag des Schlüssels eine
@@ -656,19 +657,32 @@ fest, was der Leser daraus liest. Ändert sich das Format dort, ist der Belegsta
   und einzelne Ersatzzeichen als `?`; der Typname steht in der Meldung nur, wenn er einer der 21 Typen des
   Schemas ist.
 - **Verdrahtung:** Die Kotlin-Schnittstelle übernimmt die Tabellen des Integrators mit Zeilenquellen und Callbacks
-  über den Einstieg `TdsServer.start` mit `BackendSource.Simulation` (`SPEC-059`);
-  die Umgebungsvariable `SIMULATION_DESCRIPTION_FILE` nennt den Pfad der Datei (Name gesetzt, nicht gemessen). Beides
-  bildet einen Katalog; ein Name, der zweimal vorkommt (ohne Beachtung der Schreibweise), bricht den Start ab. Der
-  Katalog hält eigene Kopien der Listen `columns` und `primaryKey` der Tabellen des Integrators: ändert er seine Listen
-  nach der Übergabe, bleibt der Katalog unverändert. Ohne Datei und ohne Tabellen läuft der Server ohne
-  Simulations-Backend, beantwortet den Login und lässt eine Anfrage unbeantwortet. Der Wert der Variable ist nicht
-  leer, die Datei lesbar und höchstens 1 MiB groß (gelesen wird höchstens ein Byte mehr, ein Byte mehr als 1 MiB ist
-  ein Startfehler); sonst bricht der Start ab, bevor ein Port gebunden wird, und die Diagnose nennt Schlüssel und Art,
-  nie den Pfad. Die Datei liest `runtime`; das Package `simulation` bekommt einen Baum aus Abbildungen, Listen und
-  Skalaren mit Zeile und Spalte und kennt weder die Datei noch die YAML-Bibliothek (Setzung, nicht am Server
-  gemessen). Gemessen am Adapter mit Jackson 2.21.7: ein Anker an einem Skalar, auf den kein Alias verweist, bleibt
-  für die Strom-API unsichtbar und ohne Wirkung; ein Anker an einer Abbildung oder Liste, ein Alias und ein Tag sind
-  ein Ladefehler; ein leerer Wert ohne Anführungszeichen ist ein leerer Text.
+  über den Einstieg `TdsServer.start` mit `BackendSource.Simulation` (`SPEC-059`). Ein Name, der zweimal vorkommt
+  (ohne Beachtung der Schreibweise), bricht den Start ab. Der Katalog hält eigene Kopien der Listen `columns` und
+  `primaryKey` der Tabellen des Integrators: ändert er seine Listen nach der Übergabe, bleibt der Katalog
+  unverändert. Ohne Tabellen läuft der Server ohne Simulations-Backend, beantwortet den Login und lässt eine
+  Anfrage unbeantwortet.
+- **Weg `Custom`:** Wer ein Backend mit Katalog selbst baut (`SimulationBackend(SimCatalog(tables))`) und als
+  `BackendSource.Custom` übergibt (etwa um es mit einem eigenen `QueryBackend` zu umhüllen), ist ein zweiter Weg
+  neben `Simulation`, mit demselben Verhalten des Backends. Dieser Weg durchläuft die Namensprüfung des Einstiegs und
+  das Kopieren der inneren Listen nicht: `SimCatalog` meldet einen doppelten Namen (ohne Beachtung der Schreibweise)
+  selbst mit `IllegalArgumentException` und kopiert nur die Liste der Tabellen, nicht deren `columns` und
+  `primaryKey` (aus dem Quelltext gelesen, Setzung). Die Namen `SimulationBackend` und `SimCatalog` stehen unter der
+  Zusage von `SPEC-059`.
+- **Datei und Umgebungsvariable gehören dem Testserver:** Die Umgebungsvariable `SIMULATION_DESCRIPTION_FILE` nennt
+  den Pfad der Datei (Name gesetzt, nicht gemessen). Der Wert ist nicht leer, die Datei lesbar und höchstens 1 MiB
+  groß (gelesen wird höchstens ein Byte mehr, ein Byte mehr als 1 MiB ist ein Startfehler); sonst bricht der
+  Testserver den Start ab, bevor ein Port gebunden wird, und die Diagnose nennt Schlüssel und Art, nie den Pfad. Der
+  Testserver baut aus der Datei `SimTable`-Werte und übergibt sie wie ein Einbettender; die Bibliothek kennt weder
+  Datei noch Pfad noch Größengrenze noch die YAML-Bibliothek. Der Leser der Beschreibung bekommt einen Baum aus
+  Abbildungen, Listen und Skalaren mit Zeile und Spalte und kennt weder die Datei noch die YAML-Bibliothek (Setzung,
+  nicht am Server gemessen). Gemessen am Adapter mit Jackson 2.21.7: ein Anker an einem Skalar, auf den kein Alias
+  verweist, bleibt für die Strom-API unsichtbar und ohne Wirkung; ein Anker an einer Abbildung oder Liste, ein Alias
+  und ein Tag sind ein Ladefehler; ein leerer Wert ohne Anführungszeichen ist ein leerer Text.
+  **Zielzustand, nicht gebaut:** Der gebaute Stand liest die Datei noch in der Bibliothek (die Bytes der Datei sind
+  ein Feld von `ServerConfig`, die Größe prüft `ConfigValidation.check`, der Einstieg führt Datei und Tabellen des
+  Integrators zusammen), statt im Testserver; die Festlegungen dieses Absatzes gelten ab dem Umbau auf den
+  Produktschnitt.
 
 ### SPEC-036 — Erkannte Anweisungsformen des Simulations-Backends (vorläufig)
 
@@ -803,14 +817,14 @@ SQL-Server-Image setzt `ACCEPT_EULA=Y` voraus; die Zustimmung des Repo-Inhabers 
 
 | ID | Name | Wert | Begründung |
 |---|---|---|---|
-| `SPEC-005` | `LISTEN_PORT` | 1433 (konfigurierbar) | TDS-Standardport; Wertebereich 0 bis 65535, 0 wählt einen freien Port (Festlegung, nicht gemessen); dazu `LISTEN_HOST`, nicht leer, Voreinstellung `0.0.0.0` (Festlegung, nicht gemessen) |
+| `SPEC-005` | `LISTEN_PORT` (Eingang des Testservers) | 1433 (Voreinstellung von `ListenSettings`, konfigurierbar) | TDS-Standardport; Wertebereich 0 bis 65535, 0 wählt einen freien Port (Festlegung, nicht gemessen); dazu `LISTEN_HOST`, nicht leer, Voreinstellung `0.0.0.0` (Festlegung, nicht gemessen). Wertebereich und Voreinstellungen sind Aussagen über `ServerConfig` und ihre Prüfung (`ConfigValidation.check`); `LISTEN_PORT` und `LISTEN_HOST` sind die Umgebungsvariablen, aus denen der Testserver diese Werte liest, die Bibliothek liest keine Umgebung (Zielzustand, nicht gebaut: der gebaute Stand liest sie noch in der Bibliothek) |
 | `SPEC-006` | `MAX_TDS_PACKET_BYTES` | 65535, zusätzlich protokollkonforme Headerprüfung | Obergrenze des 16-Bit-Längenfelds |
 | `SPEC-007` | `MAX_MESSAGE_BYTES` | 16 MiB (vorläufig) | Speicherbegrenzung, gilt während des Zusammensetzens (`TDS-FA-01.a`); mit Clientprofil abgleichen |
 | `SPEC-008` | `LOGIN_TIMEOUT` | 15 s (vorläufig; konfigurierbar in ganzen Sekunden von 1 bis 3600, Festlegung, nicht gemessen) | Hängende Logins begrenzen; die Frist gilt ab Verbindungsaufbau über PRELOGIN, TLS-Handschlag und LOGIN7, danach schließt der Server ohne Antwort; für eine angemeldete Verbindung gilt sie nicht; die Wartezeit der Drosselung wiederholter Anmeldeversuche (`SPEC-053`) zählt zur Frist |
 | `SPEC-046` | `MAX_PRELOGIN_MESSAGE_BYTES` | 65536 (vorläufig; konfigurierbar von 512 bis 65536, die obere Grenze ist die der PRELOGIN-Verhandlung, Festlegung, nicht gemessen) | Vor abgeschlossenem Login kein großer Puffer: PRELOGIN und LOGIN7 sind klein, eine größere Nachricht wird abgewiesen |
 | `SPEC-047` | `SHUTDOWN_GRACE` | 10 s (vorläufig, konfigurierbar; 0 = sofort) | Frist für laufende Anfragen beim geordneten Beenden (`SPEC-044`) |
 | `SPEC-009` | `QUERY_TIMEOUT` | 30 s (vorläufig, konfigurierbar) | Backend-Timeout; Quelle der Frist einer Anfrage (`deadlineEpochMillis` = Beginn plus `QUERY_TIMEOUT`), die der Protokollkern durchsetzt (`SPEC-022`); Ablauf endet in `TDS_TIMEOUT` (`SPEC-016`) |
-| `SPEC-010` | `ENCRYPTION_POLICY` | Standard `REQUIRED`; Abschwächung nur durch ausdrückliche, im Log sichtbare Konfiguration, je Clientprofil; genau `REQUIRED` oder `TEST_UNENCRYPTED`; `REQUIRED` verlangt `TLS_KEYSTORE_FILE` (PKCS#12) und `TLS_KEYSTORE_PASSWORD_FILE`, `TEST_UNENCRYPTED` lässt beide nicht zu (Festlegung, nicht gemessen) | Keine unbemerkte TLS-Herabstufung |
+| `SPEC-010` | `ENCRYPTION_POLICY` | Standard `REQUIRED`; Abschwächung nur durch ausdrückliche, im Log sichtbare Konfiguration, je Clientprofil; genau `REQUIRED` oder `TEST_UNENCRYPTED`; `REQUIRED` verlangt Schlüsselspeicher (PKCS#12) und Passwort in `ServerConfig`, `TEST_UNENCRYPTED` lässt beide nicht zu (Festlegung, nicht gemessen); `ENCRYPTION_POLICY`, `TLS_KEYSTORE_FILE` und `TLS_KEYSTORE_PASSWORD_FILE` sind die Umgebungsvariablen, aus denen der Testserver Richtlinie, Speicherdatei und Passwortdatei liest, die Bibliothek liest keine Umgebung und keine Datei (Zielzustand, nicht gebaut: der gebaute Stand liest sie noch in der Bibliothek) | Keine unbemerkte TLS-Herabstufung |
 | `SPEC-033` | `CANCEL_TIMEOUT` | 5 s (vorläufig, konfigurierbar) | Frist für nicht abbrechbare Backendoperationen, danach Verbindung schließen |
 | `SPEC-034` | `MAX_CONNECTIONS` | 1000 (vorläufig, konfigurierbar) | Ressourcenlimit für gleichzeitige Verbindungen |
 | `SPEC-053` | Drosselung wiederholter Anmeldeversuche | je Quelladresse (die Adresse der Gegenstelle ohne Port; Kennung und Passwort gehen nicht in den Schlüssel ein): die ersten 5 Fehlversuche bleiben unverzögert, ab dem 6. wartet jede weitere Anmeldung dieser Adresse vor der Prüfung der Zugangsdaten 250 ms, verdoppelt je weiterem Versuch bis 5 s; der Zähler der Fehlversuche fällt 60 s nach dem letzten Fehlversuch der Adresse auf null und wird durch einen Erfolg nicht zurückgesetzt; gleichzeitig laufende Versuche einer Adresse zählen ab ihrem Beginn mit und werden bei Ende ohne Fehlversuch abgezogen; höchstens 10000 Adressen, bei Überlauf wird die Adresse verdrängt, deren Anlage oder letzter Fehlversuch am längsten zurückliegt, auch wenn nur ein Versuch läuft, und ihre Zähler gehen verloren; nicht konfigurierbar (alle Zahlen Setzung, nicht gemessen) | Setzung ohne Lastenheft-Anker, vom Nutzer bestätigt (das Lastenheft verlangt keine Drosselung). Raten gegen die Benutzerliste von einer Adresse bremsen, ohne Sperre und ohne Zustand je Kennung. Die Wartezeit hängt nur von der Adresse ab, ist ein Anhalten ohne Platz des Adapteraufrufs, gehört zu `LOGIN_TIMEOUT` (`SPEC-008`) und ist nicht an ihn gebunden: bei einer Frist unter der Wartezeit endet die Anmeldung ohne Antwort. Als Fehlversuch zählt die Ablehnung durch den Adapter, nicht eine Annahme, ein Adapterfehler oder ein Abbruch. Ein Kanal ohne bekannte Adresse der Gegenstelle wird nicht gedrosselt (Entscheidung des Nutzers). Ob die Drosselung ins Log schreibt und mit welcher Adressangabe, ist offen; heute schreibt sie nichts ins Log. Rund 12 Versuche je Minute (60 s / 5 s) gelten nur für eine Verbindung nach der anderen; bei gleichzeitigen Verbindungen wartet jede höchstens 5 s, und die Obergrenze gleichzeitiger Adapteraufrufe begrenzt die Rate, nicht die Staffel; ein Schwall gleichzeitiger Verbindungen ist nicht gemessen. Eine verteilte Suche über viele Adressen bleibt ungebremst; Clients hinter einer gemeinsamen Adresse teilen Zähler und Wartezeit |
@@ -1065,11 +1079,11 @@ Setzung dieses Profils, nicht gemessen und nicht aus dem Referenzclient abgeleit
 - Speicher- und Schlüsselkennwort sind derselbe Wert; der Server nimmt den ersten Schlüsseleintrag.
 - Zugelassen sind RSA-Schlüssel ab 2048 Bit; andere Arten und kürzere Schlüssel weist der Start ab (`SPEC-043`).
 - Die Startprobe prüft jedes Zertifikat der Kette auf Gültigkeit zum Startzeitpunkt, nicht Vertrauen oder Namen.
-- Die Konfiguration nennt den Speicher mit `TLS_KEYSTORE_FILE` und das Kennwort als Datei mit `TLS_KEYSTORE_PASSWORD_FILE` (beides Umgebungsvariablen, ein Zeilenende am Ende der Kennwortdatei wird entfernt); `ENCRYPTION_POLICY=REQUIRED` verlangt beide, `TEST_UNENCRYPTED` lässt sie nicht zu. Der Handler verdrahtet beide Pfade am selben Port, ohne Konfigurationsschalter, und wählt je Verbindung am ersten Byte (Setzung, nicht gemessen): das Byte `0x16` (TLS-Handshake-Record, kein TDS-Pakettyp) wählt den Pfad ab dem ersten Byte (TDS 8.0, ALPN `tds/8.0`, `CONNECTED → TLS_NEGOTIATION → PRELOGIN`), jedes andere Byte den Pfad TDS 7.4 (gekapselt in Paketen vom Typ `0x12`). Der Pfad ab dem ersten Byte besteht nur mit der Richtlinie `REQUIRED`; im Testmodus trennt der Server ein erstes Byte `0x16` ohne Antwort. Ein Klartext-Anfang hinter dem ersten Byte `0x16` und eine Gegenstelle ohne ALPN `tds/8.0` enden ohne TDS-Antwort (ob die TLS-Engine vorher einen Alert sendet, ist nicht beobachtet). Belegt ist der Pfad gegen eine JDK-Gegenstelle und Rohbytes, nicht gegen `Microsoft.Data.SqlClient`.
+- Die Bibliothek nimmt Speicher und Kennwort als Inhalt in `ServerConfig` (`TlsKeyMaterial`); der Testserver nennt den Speicher mit `TLS_KEYSTORE_FILE` und das Kennwort als Datei mit `TLS_KEYSTORE_PASSWORD_FILE` (beides Umgebungsvariablen des Testservers, ein Zeilenende am Ende der Kennwortdatei wird entfernt; Zielzustand, nicht gebaut: der gebaute Stand liest die Dateien noch in der Bibliothek); `ENCRYPTION_POLICY=REQUIRED` verlangt beide, `TEST_UNENCRYPTED` lässt sie nicht zu. Der Handler verdrahtet beide Pfade am selben Port, ohne Konfigurationsschalter, und wählt je Verbindung am ersten Byte (Setzung, nicht gemessen): das Byte `0x16` (TLS-Handshake-Record, kein TDS-Pakettyp) wählt den Pfad ab dem ersten Byte (TDS 8.0, ALPN `tds/8.0`, `CONNECTED → TLS_NEGOTIATION → PRELOGIN`), jedes andere Byte den Pfad TDS 7.4 (gekapselt in Paketen vom Typ `0x12`). Der Pfad ab dem ersten Byte besteht nur mit der Richtlinie `REQUIRED`; im Testmodus trennt der Server ein erstes Byte `0x16` ohne Antwort. Ein Klartext-Anfang hinter dem ersten Byte `0x16` und eine Gegenstelle ohne ALPN `tds/8.0` enden ohne TDS-Antwort (ob die TLS-Engine vorher einen Alert sendet, ist nicht beobachtet). Belegt ist der Pfad gegen eine JDK-Gegenstelle und Rohbytes, nicht gegen `Microsoft.Data.SqlClient`.
 
-#### JVM-Flag des Serverprozesses
+#### JVM-Flag
 
-Der Serverprozess läuft mit `-Djdk.tls.server.newSessionTicketCount=0`. Ohne das Flag sendet der JDK-Server bei TLS 1.3 ein NewSessionTicket noch im Handshake; im TDS-7.4-Pfad landet es in einem Paket vom Typ `0x12`, und der Client bricht ab („Unrecognized record version“). Das Flag gilt prozessweit, auch im TDS-8.0-Pfad; es ist beim Start des Serverprozesses zu setzen. Eine Lösung ohne das Flag ist nicht gebaut. `main` setzt das Flag nicht selbst: der Aufruf des Prozesses setzt es, und der Start bricht ab, wenn die Systemeigenschaft nicht genau `0` ist (Setzung). Geprüft ist der Wert der Eigenschaft beim Start vor dem ersten TLS-Aufruf, nicht die Wirkung auf dem Draht; sie belegt der Test mit Kind-JVM mit und ohne Flag.
+Jeder Prozess, der die Bibliothek trägt, also der Prozess des Einbettenden und der Testserver, läuft mit `-Djdk.tls.server.newSessionTicketCount=0`. Ohne das Flag sendet der JDK-Server bei TLS 1.3 ein NewSessionTicket noch im Handshake; im TDS-7.4-Pfad landet es in einem Paket vom Typ `0x12`, und der Client bricht ab („Unrecognized record version“). Das Flag gilt prozessweit, auch im TDS-8.0-Pfad; es ist beim Start des Prozesses zu setzen. Eine Lösung ohne das Flag ist nicht gebaut. Die Bibliothek setzt das Flag nicht selbst: der Aufruf des Prozesses setzt es, und der Start bricht ab, wenn die Systemeigenschaft nicht genau `0` ist (Setzung). Geprüft ist der Wert der Eigenschaft beim Start vor dem ersten TLS-Aufruf, nicht die Wirkung auf dem Draht; sie belegt der Test mit Kind-JVM mit und ohne Flag.
 
 #### Gemessen am Sicherheitsprofil
 
@@ -1130,12 +1144,12 @@ Prüfwertformat und Konfigurationsweg (vom Nutzer entschieden, 2026-10-30; was u
 - **Verfahren:** `plain` nur bei ausdrücklich eingeschaltetem Testmodus, sonst Startabbruch vor dem Binden des Ports; ein leerer `plain`-Wert ist zulässig (nur im Testmodus). `pbkdf2-sha256` (`PBKDF2WithHmacSHA256` des JDK, keine Fremdbibliothek), Wert `Salz$Iterationen$Hash`; Salz und Hash sind Standard-Base64 mit verlangtem Padding.
 - **Iterationszahl (Setzung):** Boden 210 000, Standard 600 000, Obergrenze 10 000 000; der Betreiber unterschreitet den Boden nicht. Gemessen (nur in einem Spike-Image auf einem Host, kein Produktivwert) ist die Dauer je Ableitung: 54 ms bei 210 000, 125 ms bei 600 000, 2,1 s bei 10 000 000. Die Werte für Boden, Standard und Obergrenze sind gesetzt, nicht gemessen. Die Obergrenze schützt nicht vor gleichzeitiger Last: 64 Threads mit je 3 Ableitungen (192 Ableitungen) mit 600 000 und `--cpus=1` erreichten im Spike als längste Dauer einer Ableitung 23,6 s; das ist die Dauer der letzten Ableitung unter dieser Last, nicht die Wartezeit einer einzelnen Anmeldung. Die Iterationen bestehen nur aus ASCII-Ziffern (keine Vorzeichen, keine anderen Ziffernschriften).
 - **Passwort-Randfälle:** Die Ableitung nimmt die UTF-8-Bytes des vom Client gelieferten Passworts (UTF-16 nach UTF-8 wie im JDK). Ein alleinstehendes Hochsurrogat ergibt denselben Hash wie `?` (gemessen); das ist eine bekannte Eigenschaft. Es gibt keine Unicode-Normalisierung (NFC und NFD ergeben verschiedene Hashes, gemessen). Ein leeres Passwort ist zulässig und wird abgeleitet.
-- **Konfigurationsweg:** eigene Datei nur für die Benutzerliste, eigenes Zeilenformat, eigener Parser. Der Pfad wird in der Umgebungsvariable `AUTH_USERS_FILE` übergeben, wie der Schalter `AUTH_PLAIN_TESTMODE` (Setzung (Voreinstellung 2026-10-30, nicht gemessen)); gemessen ist nur die Übergabe eines Werts per Umgebungsvariable, nicht die eines Pfades. Eine Zeile je Eintrag, `Benutzername<TAB>Prüfwert`, UTF-8, kein Escaping, Aufteilung am ersten TAB. Benutzernamen mit TAB, LF, CR oder alleinstehendem Hochsurrogat sind nicht darstellbar und ein Ladefehler. Ein doppelter Benutzername bricht den Start ab.
-- **Testmodus-Schalter:** `AUTH_PLAIN_TESTMODE`, gilt nur bei genau `true`; eigener Schalter nur für `plain`; der Start-Log nennt den Modus.
+- **Konfigurationsweg:** eigene Datei nur für die Benutzerliste, eigenes Zeilenformat, eigener Parser. Die Bibliothek nimmt die geprüfte Liste (`UserList` in `AuthSettings`); Datei und Umgebungsvariablen sind Eingänge des Testservers: Der Pfad wird in der Umgebungsvariable `AUTH_USERS_FILE` übergeben, wie der Schalter `AUTH_PLAIN_TESTMODE` (Setzung (Voreinstellung 2026-10-30, nicht gemessen)); gemessen ist nur die Übergabe eines Werts per Umgebungsvariable, nicht die eines Pfades (Zielzustand, nicht gebaut: der gebaute Stand liest die Datei noch in der Bibliothek). Eine Zeile je Eintrag, `Benutzername<TAB>Prüfwert`, UTF-8, kein Escaping, Aufteilung am ersten TAB. Benutzernamen mit TAB, LF, CR oder alleinstehendem Hochsurrogat sind nicht darstellbar und ein Ladefehler. Ein doppelter Benutzername bricht den Start ab.
+- **Testmodus-Schalter:** `AUTH_PLAIN_TESTMODE` (Umgebungsvariable des Testservers), gilt nur bei genau `true`; eigener Schalter nur für `plain`; der Start-Log nennt den Modus.
 - **Fehlerwerte:** je Abweichung genau eine Fehlerart mit Listenplatz, ohne Prüfwert und ohne Passwort. Der Listenplatz ist die Zeilennummer der Datei, 1-basiert (Setzung (Voreinstellung 2026-10-30, nicht gemessen)); gemessen ist im Spike die Position nach Sortierung, nicht die Zeilennummer.
 - **Entschieden** (Nutzer, 2026-10-30; Setzungen, nicht gemessen): derselbe Iterationsboden im Testmodus, keine Kommentare und keine Leerzeilen, CRLF nicht toleriert, Hash genau 32 Byte und Salz mindestens 16 Byte ohne Obergrenze, Ziffernfolge der Iterationen 1 bis 8 Stellen ohne führende Null.
 - **Offen** (vom Nutzer nicht entschieden, nicht gemessen): Dateirechte und Übergabe der Datei im Betrieb; weder der Lader noch der Start prüfen sie.
-- **Lesen der Datei** (Konfiguration, `ConfigFiles`; Setzung, nicht gemessen): Die Datei wird als UTF-8 gelesen, ungültiges UTF-8 ist ein Startfehler (`NOT_UTF8`). Ein UTF-8-BOM am Anfang wird abgewiesen (`BYTE_ORDER_MARK`), nicht entfernt; er würde Teil des ersten Benutzernamens. Die Zeilenenden werden nicht normalisiert, ein CR erreicht den Parser und ist dort ein Fehler. `AUTH_PLAIN_TESTMODE` schaltet nur bei genau `true` ein; fehlt der Schlüssel oder ist er leer oder `false`, ist `plain` verboten, jeder andere Wert (auch `TRUE`) ist ein Startfehler und schaltet nie ein. Die Diagnose nennt Schlüssel, Art und bei der Liste Fehlerart und Zeile, nie Pfad, Wert, Benutzername oder Prüfwert.
+- **Lesen der Datei** (Lader des Testservers, Zielzustand wie beim Konfigurationsweg; Setzung, nicht gemessen): Die Datei wird als UTF-8 gelesen, ungültiges UTF-8 ist ein Startfehler (`NOT_UTF8`). Ein UTF-8-BOM am Anfang wird abgewiesen (`BYTE_ORDER_MARK`), nicht entfernt; er würde Teil des ersten Benutzernamens. Die Zeilenenden werden nicht normalisiert, ein CR erreicht den Parser und ist dort ein Fehler. `AUTH_PLAIN_TESTMODE` schaltet nur bei genau `true` ein; fehlt der Schlüssel oder ist er leer oder `false`, ist `plain` verboten, jeder andere Wert (auch `TRUE`) ist ein Startfehler und schaltet nie ein. Die Diagnose nennt Schlüssel, Art und bei der Liste Fehlerart und Zeile, nie Pfad, Wert, Benutzername oder Prüfwert.
 
 #### Kotlin-Signatur des Authentifizierungsadapters
 
@@ -1160,7 +1174,7 @@ sealed interface AuthResult {
 - Eingaben über 128 UTF-16-Einheiten (Benutzername oder Passwort) ergeben `Rejected(INPUT_TOO_LONG)`, ohne Ausnahme und ohne Ableitung.
 - `AuthFeatures` wertet die Einstiegsimplementierung nicht aus; der Anmeldepfad lehnt die nicht unterstützten Modi vor dem Adapter ab.
 
-Validierung der Liste: `UserList.parse(text, plainTestMode)` liefert `Valid` oder `Invalid(UserListError(kind, line))`; `line` ist die 1-basierte Zeilennummer der Datei, bei einer Liste ohne Zeile `null`. Das Lesen der Datei, `AUTH_USERS_FILE` und das Auswerten von `AUTH_PLAIN_TESTMODE` (nur der Wert `true` schaltet ein, `UserList.plainTestModeFrom`) gehören der Konfiguration. Die Fehlerarten sind `UserListErrorKind`.
+Validierung der Liste: `UserList.parse(text, plainTestMode)` liefert `Valid` oder `Invalid(UserListError(kind, line))`; `line` ist die 1-basierte Zeilennummer der Datei, bei einer Liste ohne Zeile `null`. Das Lesen der Datei, `AUTH_USERS_FILE` und das Auswerten von `AUTH_PLAIN_TESTMODE` (nur der Wert `true` schaltet ein, `UserList.plainTestModeFrom`) gehören dem Testserver. Die Fehlerarten sind `UserListErrorKind`.
 
 Entschieden (Nutzer, 2026-10-30), Setzungen, nicht gemessen, jeweils im KDoc von `UserList` und `Pbkdf2Limits` gekennzeichnet:
 
