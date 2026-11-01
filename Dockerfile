@@ -75,7 +75,7 @@ RUN keytool -genkeypair -alias server -keyalg RSA -keysize 2048 -validity 3650 -
       -validity 3650 -ext "san=dns:localhost" -outfile blatt.pem \
  && rm wurzel.p12 zwischen.p12 zwischen.csr blatt.csr
 
-# --- Test: `docker build --target test .` - fuehrt die Unit-Tests aus (kotlin.test auf der
+# --- Test: `docker build --target test .` - fuehrt die Unit-Tests und den Einbettungstest (`integratorTest`) aus (kotlin.test auf der
 # JUnit-Plattform, SPEC-024). Es kommen src/ und LICENSE hinzu; kein Test liest spec/ oder harness/ (die Kopplung
 # der Zahlen des Integrationslaufs an die Doku prueft die Stage `kopplung-zahlen`). Ein roter Test bricht den Build.
 FROM deps AS test
