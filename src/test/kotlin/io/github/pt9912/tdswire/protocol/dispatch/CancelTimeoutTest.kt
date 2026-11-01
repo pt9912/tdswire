@@ -41,26 +41,28 @@ class CancelTimeoutTest {
         val pause = SteeredPause()
         val gate = CompletableDeferred<Unit>()
         val backend = FlowBackend(ignoringCancel(gate, resultStart()))
-        val session = Session.login(BatchVectors.message("stuck"))
-        val serving = launch { session.serve(backend, times = timesOf(pause)) }
-        backend.collecting.await()
-        assertFalse(pause.isWaiting(5.seconds), "CANCEL_TIMEOUT läuft schon vor dem Cancel")
-        session.channel.feed(BatchVectors.attention())
-        pause.awaitWaiting(5.seconds)
-        assertFalse(session.channel.closed, "der Cancel selbst schliesst")
-        assertEquals(ConnectionState.CANCELLING, session.ready.live.context.state)
-        pause.fire(5.seconds)
-        serving.join()
-        assertTrue(session.channel.closed)
-        assertEquals(ConnectionState.CLOSED, session.ready.live.context.state)
-        assertEquals(CloseReason.CANCEL_TIMEOUT, session.ready.live.closeReason)
-        assertEquals(0, session.replies.size)
-        val written = session.channel.writtenChunks.joinToString(" ") { it.toHex() }
-        assertFalse(written.contains(BatchVectors.DONE_ATTN), written)
-        gate.complete(Unit)
-        backend.closed.await()
-        assertEquals(1, backend.cancelled.size)
-        assertEquals(1, backend.closeCalls)
+        withGate(gate) {
+            val session = Session.login(BatchVectors.message("stuck"))
+            val serving = launch { session.serve(backend, times = timesOf(pause)) }
+            backend.collecting.await()
+            assertFalse(pause.isWaiting(5.seconds), "CANCEL_TIMEOUT läuft schon vor dem Cancel")
+            session.channel.feed(BatchVectors.attention())
+            pause.awaitWaiting(5.seconds)
+            assertFalse(session.channel.closed, "der Cancel selbst schliesst")
+            assertEquals(ConnectionState.CANCELLING, session.ready.live.context.state)
+            pause.fire(5.seconds)
+            serving.join()
+            assertTrue(session.channel.closed)
+            assertEquals(ConnectionState.CLOSED, session.ready.live.context.state)
+            assertEquals(CloseReason.CANCEL_TIMEOUT, session.ready.live.closeReason)
+            assertEquals(0, session.replies.size)
+            val written = session.channel.writtenChunks.joinToString(" ") { it.toHex() }
+            assertFalse(written.contains(BatchVectors.DONE_ATTN), written)
+            gate.complete(Unit)
+            backend.closed.await()
+            assertEquals(1, backend.cancelled.size)
+            assertEquals(1, backend.closeCalls)
+        }
     }
 
     /**
@@ -100,19 +102,21 @@ class CancelTimeoutTest {
         val pause = SteeredPause()
         val gate = CompletableDeferred<Unit>()
         val backend = FlowBackend(ignoringCancel(gate))
-        val session = Session.login(BatchVectors.message("stuck"))
-        val serving = launch { session.serve(backend, times = timesOf(pause)) }
-        backend.collecting.await()
-        pause.awaitWaiting(30.seconds)
-        pause.fire(30.seconds)
-        pause.awaitWaiting(5.seconds)
-        pause.fire(5.seconds)
-        serving.join()
-        assertTrue(session.channel.closed)
-        assertEquals(0, session.replies.size)
-        assertEquals(CloseReason.CANCEL_TIMEOUT, session.ready.live.closeReason)
-        gate.complete(Unit)
-        backend.closed.await()
-        assertEquals(1, backend.cancelled.size)
+        withGate(gate) {
+            val session = Session.login(BatchVectors.message("stuck"))
+            val serving = launch { session.serve(backend, times = timesOf(pause)) }
+            backend.collecting.await()
+            pause.awaitWaiting(30.seconds)
+            pause.fire(30.seconds)
+            pause.awaitWaiting(5.seconds)
+            pause.fire(5.seconds)
+            serving.join()
+            assertTrue(session.channel.closed)
+            assertEquals(0, session.replies.size)
+            assertEquals(CloseReason.CANCEL_TIMEOUT, session.ready.live.closeReason)
+            gate.complete(Unit)
+            backend.closed.await()
+            assertEquals(1, backend.cancelled.size)
+        }
     }
 }

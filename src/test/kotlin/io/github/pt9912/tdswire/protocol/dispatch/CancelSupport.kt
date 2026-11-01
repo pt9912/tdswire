@@ -59,6 +59,18 @@ class SteeredPause {
     }
 }
 
+/**
+ * Führt [body] aus und öffnet [gate] in jedem Ausgang. Ein Fake-Backend, das den Abbruch ignoriert, hält sonst die
+ * Schleife fest, wenn ein Test vorzeitig endet, und aus einem roten Test würde ein hängender.
+ */
+suspend fun withGate(gate: CompletableDeferred<Unit>, body: suspend () -> Unit) {
+    try {
+        body()
+    } finally {
+        gate.complete(Unit)
+    }
+}
+
 /** Gibt die Ausführung ab, bis [done] gilt. */
 suspend fun awaitUntil(done: () -> Boolean) {
     while (!done()) yield()
