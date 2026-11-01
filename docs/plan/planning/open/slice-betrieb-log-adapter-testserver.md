@@ -38,7 +38,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Modell, Senke, Parameter von `start`, Sammler, Ablösung von `ServerLog`, Sperren für `println` und `simulation` — [slice-betrieb-log-schnittstelle](../next/slice-betrieb-log-schnittstelle.md); Voraussetzung dieses Slice.
+- Modell, Senke, Parameter von `start`, Sammler, Ablösung von `ServerLog`, Sperren für `println` und `simulation` — [slice-betrieb-log-schnittstelle](../in-progress/slice-betrieb-log-schnittstelle.md); Voraussetzung dieses Slice.
 - Neue Ereignisarten, Startdiagnose als Inhalt (Adresse, Port, TLS-Teil ohne Pfad) und Konfigurationsabdeckung — [slice-betrieb-zustandsereignisse](slice-betrieb-zustandsereignisse.md); hier wird der Mechanismus des Prozessendes belegt, dort der Inhalt der Diagnose.
 - Das Ereignis `metrics`, Span-Ende und ihre Serialisierung — [slice-betrieb-metriken-tracing](slice-betrieb-metriken-tracing.md); der Adapter serialisiert die Ereignisarten, die beim Bau dieses Slice existieren, und bricht beim Hinzufügen einer Art die Übersetzung (geschlossene Menge, `when` ohne `else`).
 - Eine Warteschlange um jede übergebene Senke in der Bibliothek (Option D der Frage 7) — Re-Evaluierungs-Trigger der ADR; die Warteschlange ist Sache dieses Adapters.
@@ -105,7 +105,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 1. [ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md) steht im ADR-Index auf `Accepted` (erfüllt: Annahme am 2026-11-01).
 2. [slice-testserver-herausloesen](../done/slice-testserver-herausloesen.md) liegt in `done/` (der Testserver existiert, bindet nur die öffentliche Fläche, und die herausgenommenen Skript-Prüfungen tragen die Kennung dieses Slice).
-3. [slice-betrieb-log-schnittstelle](../next/slice-betrieb-log-schnittstelle.md) liegt in `done/` (Modell, Senke, Parameter von `start` und Sammler stehen als öffentliche Fläche).
+3. [slice-betrieb-log-schnittstelle](../in-progress/slice-betrieb-log-schnittstelle.md) liegt in `done/` (Modell, Senke, Parameter von `start` und Sammler stehen als öffentliche Fläche).
 4. [slice-spec-nachzug-telemetrie](../done/slice-spec-nachzug-telemetrie.md) liegt in `done/` (die Spezifikation sagt `LOG_LEVEL`, Format und Warteschlange als Aussagen über den Testserver; folgt aus Bedingung 3, hier genannt, damit die Kante lesbar ist).
 5. Ein Verantwortlicher ist im Kopf eingetragen.
 
