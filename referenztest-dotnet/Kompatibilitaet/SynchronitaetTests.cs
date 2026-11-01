@@ -12,6 +12,9 @@ namespace TdsWire.Referenztests.Kompatibilitaet;
 /// eigene Antwort, oder die Verbindung ist geschlossen. Jede Antwort der Folgeanfrage ist an ihrem Inhalt erkennbar
 /// (Id, Name, Zeilenzahl), nicht nur an der Abwesenheit einer Ausnahme. Jede Verbindung läuft mit TLS in TDS 7.4,
 /// ohne Pool, und stellt höchstens eine Anfrage zurzeit; die Tabellen stehen in `KompatibilitaetsServer.kt`.
+/// Der Test des verworfenen Lesers und der Zustand `Closed` nach Class 20 beschreiben das Verhalten des Clients in
+/// der gepinnten Version (7.1.1: `Dispose` meldet den Fehler der Quelle nicht, der Client schließt bei Class 20 selbst),
+/// nicht eine Eigenschaft des Servers.
 /// Nicht belegt: Cancel, ATTENTION und Timeout (der Server beantwortet ATTENTION während einer Anfrage nicht,
 /// CO-004), mehrere Anfragen in einem Schreibvorgang (das prüft der Rohbytes-Test `SynchronitaetWiringTest`, nicht
 /// der Referenzclient), MARS, asynchrone APIs, Pooling mit einer vom Server geschlossenen Verbindung, ein Fehler
@@ -119,11 +122,13 @@ public class SynchronitaetTests
             Assert.Equal(20, ausnahme.Class);
         }
 
+        object? antwort = null;
         string ergebnis;
         try
         {
             using var folge = new SqlCommand("SELECT Id FROM person WHERE Id = 1", verbindung);
-            ergebnis = "Antwort " + folge.ExecuteScalar();
+            antwort = folge.ExecuteScalar();
+            ergebnis = "Antwort " + antwort;
         }
         catch (Exception e) when (e is SqlException or InvalidOperationException)
         {
@@ -131,7 +136,7 @@ public class SynchronitaetTests
         }
 
         Ziel.Messung(_ausgabe, $"Folgeabfrage nach Class 20 auf derselben SqlConnection: {ergebnis}; Zustand {verbindung.State}");
-        Assert.DoesNotContain("Antwort", ergebnis);
+        Assert.Null(antwort);
         Assert.NotEqual(ConnectionState.Open, verbindung.State);
 
         using var neu = Ziel.Oeffnen();

@@ -26,10 +26,10 @@ private const val TABULAR_TYPE = 4
  * Paketierung.
  */
 internal class SynchronitaetWiringTest : RuntimeTestBase() {
-    private val rowAnswer = listOf(BatchVectors.COLMETADATA_N, BatchVectors.row(7), BatchVectors.DONE_COUNT_1)
-        .joinToString(" ")
+    private fun rowAnswer(value: Int) =
+        listOf(BatchVectors.COLMETADATA_N, BatchVectors.row(value), BatchVectors.DONE_COUNT_1).joinToString(" ")
 
-    private val oneRow = listOf(resultStart(), QueryEvent.Row(listOf(7)), QueryEvent.ResultEnd(1))
+    private fun oneRow(value: Int) = listOf(resultStart(), QueryEvent.Row(listOf(value)), QueryEvent.ResultEnd(1))
 
     private val rowsThenFailure = { code: String ->
         listOf(resultStart(), QueryEvent.Row(listOf(1)), QueryEvent.Row(listOf(2)), QueryEvent.Failure(code, "x"))
@@ -63,16 +63,16 @@ internal class SynchronitaetWiringTest : RuntimeTestBase() {
     /**
      * Fehler der Class 16 nach Teilzeilen (`TDS_BACKEND_ERROR`, die Verbindung bleibt offen), und zwei weitere
      * Anfragen stehen schon im selben Schreibvorgang: die Antworten kommen in der Reihenfolge der Anfragen, die
-     * erste endet mit dem DONE mit Fehlerstatus, die zweite und dritte sind genau die Antwort ihrer Anfrage. Eine
-     * vierte Anfrage danach bekommt wieder genau eine Antwort: eine überzählige Nachricht aus dem Fehler würde sie
-     * um eine verschieben.
+     * erste endet mit dem DONE mit Fehlerstatus, die zweite, dritte und vierte tragen je eine andere Zeile (7, 8, 9)
+     * des Backends und sind genau die Antwort ihrer Anfrage. Eine überzählige oder wiederholte Nachricht aus dem
+     * Fehler verschöbe die folgenden Antworten und ließe mindestens eine dieser Zeilen am falschen Platz stehen.
      *
      * @spec SPEC-031
      * @spec TDS-QA-07
      */
     @Test
     fun `Anfragen hinter einem Fehler der Class 16 erhalten je genau ihre eigene Antwort`() = blocking {
-        val backend = ScriptedBackend.inSequence(rowsThenFailure("TDS_BACKEND_ERROR"), oneRow)
+        val backend = ScriptedBackend.inSequence(rowsThenFailure("TDS_BACKEND_ERROR"), oneRow(7), oneRow(8), oneRow(9))
         val server = running(environment(), Wiring(log = log, requests = RequestSource(backend)))
         RawClient(server.port).use { client ->
             login(client)
@@ -83,11 +83,11 @@ internal class SynchronitaetWiringTest : RuntimeTestBase() {
             assertTrue(failed.endsWith(BatchVectors.DONE_ERROR), failed)
             val tokens = TokenDecoder(failedMessage.payload).decodeAll()
             assertEquals(listOf("ColMetadata", "Row", "Row", "Error", "Done"), names(tokens))
-            assertEquals(rowAnswer, client.reply("zweite"))
-            assertEquals(rowAnswer, client.reply("dritte"))
+            assertEquals(rowAnswer(7), client.reply("zweite"))
+            assertEquals(rowAnswer(8), client.reply("dritte"))
 
             client.send(batch("vierte"))
-            assertEquals(rowAnswer, client.reply("vierte"))
+            assertEquals(rowAnswer(9), client.reply("vierte"))
         }
         assertEquals(listOf("erste", "zweite", "dritte", "vierte"), backend.requests.map { it.sql })
         assertEquals(4, backend.requests.map { it.requestId }.toSet().size)
@@ -96,7 +96,10 @@ internal class SynchronitaetWiringTest : RuntimeTestBase() {
     /**
      * Fehler der Class 20 (ein fremder Code ist `TDS_INTERNAL_ERROR`, die Verbindung schließt nach der Antwort), und
      * eine zweite Anfrage steht schon im selben Schreibvorgang: sie bekommt keine Antwort, auch nicht den Rest der
-     * ersten, und erreicht das Backend nicht. Nach der Fehlerantwort kommt kein weiteres Byte.
+     * ersten, und erreicht das Backend nicht. Nach der Fehlerantwort kommt kein weiteres Byte. Grenze: Schließt der
+     * Server mit ungelesenen Bytes der zweiten Anfrage im Empfangspuffer, kann das Betriebssystem die Verbindung
+     * zurücksetzen und die Fehlerantwort beim Client verwerfen; dann scheitert das Lesen der ersten Antwort mit
+     * "Connection reset" (aus dem Code geschlossen, in den Läufen dieses Slice nicht aufgetreten).
      *
      * @spec SPEC-031
      * @spec SPEC-048
@@ -104,7 +107,7 @@ internal class SynchronitaetWiringTest : RuntimeTestBase() {
      */
     @Test
     fun `Eine Anfrage hinter einem Fehler der Class 20 bleibt unbeantwortet und ohne Backend`() = blocking {
-        val backend = ScriptedBackend.inSequence(rowsThenFailure("NOPE"), oneRow)
+        val backend = ScriptedBackend.inSequence(rowsThenFailure("NOPE"), oneRow(7))
         val server = running(environment(), Wiring(log = log, requests = RequestSource(backend)))
         RawClient(server.port).use { client ->
             login(client)
