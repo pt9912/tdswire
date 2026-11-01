@@ -1,6 +1,6 @@
 # ADR-0031: Gates ohne Stempel: Klasse `immer` für docs-check, gate-zuordnung und stempel-eingaenge-pruefung
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-11-01
 
@@ -82,3 +82,4 @@ Zur Entscheidung des Nutzers:
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-11-01 | Proposed – Review MEDIUM-2 und Verifikation zur Migration der Gate-Kette; Optionen A bis C, Empfehlung A; Status bleibt Proposed bis zur Entscheidung des Nutzers | [ADR-0024](0024-lokale-stempel-zwei-klassen.md), [ADR-0030](0030-dritter-stempel-fuer-die-selbsttests-der-stempel.md) |
+| 2026-11-01 | Accepted – Annahme durch den Nutzer; gewählt ist Option A (Klasse `immer` ohne Stempel); die Frage (b) zur Pflichtmenge in `gate-zuordnung` ist nicht beantwortet und bleibt offen | [ADR-0024](0024-lokale-stempel-zwei-klassen.md), [ADR-0030](0030-dritter-stempel-fuer-die-selbsttests-der-stempel.md) |
