@@ -1,6 +1,6 @@
 # ADR-0015: Spannungen zwischen angenommener ADR und Spezifikation: OutputParameter im RPC, Zuschnitt der Zustandsaufzählung
 
-**Status:** Proposed
+**Status:** Accepted (vom Nutzer entschieden)
 
 **Datum:** 2026-10-31
 
@@ -23,6 +23,8 @@ Zwei angenommene ADRs und die Spezifikation (Rang 2, höher als jede ADR) stehen
 **(b) Zuschnitt der Zustandsaufzählung.** [ADR-0004](0004-session-zustandsautomat.md) führt in „Nicht entschieden“ und „Offen“ den Zuschnitt der Zustände offen („flach oder getrennt nach Verbindungs- und Anfragezustand“). [SPEC-001](../../../spec/spezifikation.md#spec-001--zustandsautomat-einer-verbindung) legt „flach“ fest (Setzung des Nutzers, 2026-10-30, für den Anfragezustand nicht gemessen): eine Aufzählung führt Verbindungs- und Anfragezustände, `READY` ist der Anfragezustand `IDLE`, der Anfragezustand läuft `IDLE → RUNNING → STREAMING` und endet mit dem Ende der Antwort in einem Übergang nach `IDLE` oder `CLOSED`; `COMPLETED` ist kein Zustand der Aufzählung. Der Matrixtest des Baus (Closure des Slice für den SQL_BATCH-Dispatch) führt 126 Zellen: 32 zulässig, 6 ignoriert, 88 unzulässig. Der Spike von ADR-0004 maß eine flache Aufzählung (Option A); getrennte Aufzählungen sind dort nicht gebaut.
 
 ## Entscheidung
+
+Mit der Annahme am 2026-11-01 bestätigt der Nutzer **Option A** für beide Punkte: `OutputParameter` wird im RPC abgebildet und in der Antwort auf einen Batch abgelehnt; die Zustandsaufzählung ist flach. Die Festlegungen bleiben Setzungen (Punkt 3); die Punkte unter „Offen“ bleiben offen.
 
 Wir wählen **Option A** für beide Punkte.
 
@@ -65,6 +67,7 @@ Eine Messung am echten Server, nach der der Batch `OutputParameter` kennt oder d
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-31 | Proposed – Folge-ADR (Entscheidung des Nutzers 2026-10-31, Empfehlung übernommen); Teil-Supersede von ADR-0013 Entscheidung 6, Schließen eines offenen Punktes von ADR-0004; Status bleibt Proposed bis Review und Annahme durch den Nutzer | [ADR-0004](0004-session-zustandsautomat.md), [ADR-0013](0013-backend-grenzen.md) |
+| 2026-11-01 | Accepted – Option A für beide Punkte vom Nutzer angenommen; Ist-Zustand gegen den Bau gelesen (Aufzählung `ConnectionState`, Matrixtest mit 126 Zellen, RPC-Abbildung von `OutputParameter`) | [ADR-0013](0013-backend-grenzen.md), [ADR-0004](0004-session-zustandsautomat.md) |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit
