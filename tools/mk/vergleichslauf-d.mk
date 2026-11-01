@@ -17,7 +17,7 @@
 # Start des Servers (12 bis 24 s). Netz: Summe der komprimierten Layer laut Manifest der gepinnten Digests 627 MB (2022)
 # und 636 MB (2025); der Pull von 2025-latest dauerte 20 s, mit teils vorhandenen Layern, nicht kalt. Platte: 2346 MB (2022)
 # und 2426 MB (2025) laut `docker image inspect`, zusammen rund 4,8 GB (Layer teilweise geteilt, nicht gemessen); die Images
-# bleiben nach dem Lauf liegen. Speicher des Servers 671 bis 965 MiB (`docker stats`, ein Messpunkt nach dem Start).
+# bleiben nach dem Lauf liegen; der freie Platz wird vor dem Lauf nicht geprueft. Speicher des Servers 671 bis 965 MiB (`docker stats`, ein Messpunkt nach dem Start).
 # Die Messzeilen jedes Laufs stehen in seiner Ausgabe (`vergleichslauf-d: messung:`).
 .PHONY: vergleichslauf-d
 

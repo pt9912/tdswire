@@ -50,6 +50,8 @@ public class ReferenzTds8Tests
         {
             ReferenzZiel.Messung(_ausgabe, $"{bezeichnung} scheitert: " + ReferenzZiel.Beschreibung(ausnahme));
             Assert.Equal("scheitert", erwartung);
+            Assert.Equal(0, ausnahme.Number);
+            Assert.Equal(20, ausnahme.Class);
         }
         finally
         {

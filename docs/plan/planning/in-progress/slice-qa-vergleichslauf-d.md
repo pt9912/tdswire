@@ -153,6 +153,11 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei der Closure gefüllt.
 
+**Hinweise des Implementers zu den Mutationen (2026-11-01, Einzelbeobachtungen, kein Teil der Closure-Notiz):**
+
+- Rot gesehen: Selbsttest (CI-Prüfung, EULA-Prüfung entfernt; `GATE_CHECKS`-Zeile oder Workflow-Nennung ergänzt); Erwartungen des Laufs (Strict bei 2022 auf *gelingt*, `forcestrict` nicht geschrieben, Sonde bei 2025 auf *scheitert*); die Prüfung auf den internen State 8 des Logs; `Richtiges_Kennwort_meldet_an` bei zu früher Anmeldung (State 7); Abbruch per SIGTERM räumt auf; nach dem Review zusätzlich die Prüfung des Clients auf das Kennwort (`client_leck`, mit einem Ersatzmuster) und `Number 0, Class 20` in `PruefeVerhalten` (Class auf 21 gesetzt).
+- Nie rot gesehen: die C#-Assertions `State 1` und `Contains(Benutzername)` der Anmelde-Tests, `Beide_Faelle_…` (keine Mutation am Test gebaut).
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`

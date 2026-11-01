@@ -5,6 +5,10 @@
 # Workflow das Target nennen und keine Datei ausser dem Make-Fragment die EULA setzt (ADR-0008, ADR-0022, Entscheidung des
 # Nutzers pt9912 vom 2026-11-01). Docker ist ein Ersatz, der seine Aufrufe protokolliert und scheitert; es laeuft kein
 # Docker. Aufgerufen von der Dockerfile-Stage `skript-selbsttest`; braucht bash, grep, mktemp, find.
+# Grenze der Deklaration: die Stage enthaelt nur die kopierten Dateien (tools/e2e.sh, tools/mk, harness/mk, Makefile,
+# repo.mk, .github/workflows), nicht das ganze Repo. Die Suche nach der EULA-Variable laeuft nur dort; ein neues Skript
+# an anderer Stelle mit eigener EULA-Zeile sieht der Test nicht. Die Gate-Kette prueft er an `GATE_CHECKS += ...` mit dem
+# Namen auf derselben Zeile; `gates: vergleichslauf-d` als Voraussetzung oder ein Aufruf per `$(MAKE)` faellt durch.
 set -eu
 
 wurzel=$(cd "$(dirname "$0")/.." && pwd)

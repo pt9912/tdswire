@@ -11,7 +11,11 @@
 # nach aussen, kein veroeffentlichter Port, nichts wird gemountet; Namen mit PID). Zertifikat und Schluessel (CN und SAN
 # localhost) entstehen je Aufruf in einem Wegwerf-Container aus dem Image der Referenzinstanz und gehen per `docker cp`
 # mit der Datei mssql.conf in den Server-Container; das Zertifikat ist beim Client der Vertrauensanker (SSL_CERT_FILE).
-# Das SA-Kennwort entsteht je Aufruf zufaellig, steht nur in den Umgebungen der beiden Container und wird nicht ausgegeben.
+# Das SA-Kennwort entsteht je Aufruf zufaellig und wird nicht ausgegeben. Es steht in den Umgebungen der beiden Container
+# (`docker inspect` zeigt es lokal), in der Argumentliste der Docker-CLI-Aufrufe `docker create -e ...` (lokal in der
+# Prozessliste sichtbar, solange sie laufen) und im Speicher des Skripts; ein Wegwerf-Wert fuer einen Container, der mit dem
+# Aufruf endet. Die Ausgabe des Clients wird vor der Ausgabe auf das Kennwort geprueft; bei einem Treffer wird sie nicht
+# gedruckt. Der freie Platz fuer die Images (rund 4,8 GB, siehe tools/mk/vergleichslauf-d.mk) wird nicht vorab geprueft.
 # Warten auf die Zeile 'Recovery is complete' im Log des Servers (Bereitschaftsschleife): nach 'ready for client
 # connections' laufen noch Upgrade-Schritte der Systemdatenbanken, und die Anmeldung von sa scheitert in dieser Zeit
 # mit State 7 (gemessen 2026-11-01, Image 2022). Die Tests der Kategorie laufen im Client-Container;
@@ -163,7 +167,13 @@ einzellauf() { # einzellauf <Name>
   docker cp "$SCRATCH/server.pem" "$CLIENT:/tmp/server.pem" >/dev/null || return 1
   docker start -a "$CLIENT" >"$SCRATCH/client" 2>&1
   client_ok=$?
-  cat "$SCRATCH/client"
+  client_leck=0
+  if grep -qF -e "$kennwort" "$SCRATCH/client"; then
+    client_leck=1
+    echo "vergleichslauf-d: Ausgabe des Clients nennt das Kennwort des Servers; sie wird nicht gedruckt"
+  else
+    cat "$SCRATCH/client"
+  fi
   t_fertig=$((SECONDS - start))
 
   alle_bestanden() {
@@ -185,7 +195,7 @@ einzellauf() { # einzellauf <Name>
     echo "vergleichslauf-d: --- Log der Referenzinstanz (eine Pruefung ist rot) ---"
     docker logs "$SERVER" 2>&1 | cut -c1-220
   fi
-  pruefe "Ausgabe des Clients nennt das Kennwort des Servers nicht" sh -c "! grep -qF '$kennwort' '$SCRATCH/client'"
+  pruefe "Ausgabe des Clients nennt das Kennwort des Servers nicht" test "$client_leck" -eq 0
   echo "vergleichslauf-d: --- TLS-Zeilen im Log der Referenzinstanz ---"
   docker logs "$SERVER" 2>&1 | grep -i -E 'tls|strict|encrypt|certificate' | head -20
   echo "vergleichslauf-d: messung: Lauf $name $t_fertig s (mit Bau und Start $t_bereit s)"

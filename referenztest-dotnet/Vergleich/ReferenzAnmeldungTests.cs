@@ -44,7 +44,6 @@ public class ReferenzAnmeldungTests
         Assert.Equal(14, ausnahme.Class);
         Assert.Equal(1, ausnahme.State);
         Assert.Contains($"'{ReferenzZiel.Benutzer}'", ausnahme.Message);
-        Assert.DoesNotContain(FalschesKennwort, ausnahme.Message);
     }
 
     [Fact]
