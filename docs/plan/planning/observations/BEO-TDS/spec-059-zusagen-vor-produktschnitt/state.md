@@ -1,0 +1,1 @@
+**Stand:** offen — 1×; unter der Schwelle, kein Träger-Slice. Träger des Nachzugs: ein eigener Spec-Schritt nach Annahme von [ADR-0025](../../../../adr/0025-produktschnitt-bibliothek-und-testserver.md); Entscheidung beim Nutzer.

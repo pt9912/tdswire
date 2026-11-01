@@ -1,0 +1,2 @@
+**Vorgang:** slice-integrations-einstieg
+**Fund:** Verifikation F-2 und Review M-2: `SPEC-059` sagt `ConfigKeys`, `simulationFile` und „ein Artefakt“ zu; die Nutzerentscheidung vom 2026-11-01 und [ADR-0025](../../../../../adr/0025-produktschnitt-bibliothek-und-testserver.md) (`Proposed`) ziehen den Schnitt anders. Der Slice folgt der angenommenen [ADR-0021](../../../../../adr/0021-oeffentlicher-integrations-einstieg.md); die Closure kennzeichnet die Zusage als Zwischenstand (ein Satz in der Zusage-Zeile) und benennt den Nachzug als Folgepflicht.

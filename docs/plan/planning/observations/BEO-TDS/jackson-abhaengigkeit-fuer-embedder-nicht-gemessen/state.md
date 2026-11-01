@@ -1,0 +1,1 @@
+**Stand:** offen — 1×; unter der Schwelle. Träger: [ADR-0025](../../../../adr/0025-produktschnitt-bibliothek-und-testserver.md) (`Proposed`), das Auslagern von Jackson in den Testserver; nach Annahme ist die Aussage eine Messung am Klassenpfad der Bibliothek.
