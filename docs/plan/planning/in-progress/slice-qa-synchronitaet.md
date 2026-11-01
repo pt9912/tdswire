@@ -69,6 +69,15 @@ Aussagen-Berührung steht hier gar nicht.
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 
+**Ist-Zustand gegen den Plan (Lauf vom 2026-11-01).** Der Response Sequencer (ARC-015) kennt keinen Cancel-Zustand: Die Anfrageschleife liest während einer Anfrage nicht vom Transport und beantwortet ATTENTION nicht ([CO-004](../../carveouts/CO-004-cancel-szenario-spec-040-fehlt.md), Folge-Slice [slice-attention-cancel-timeout](../open/slice-attention-cancel-timeout.md)). Deshalb ändert dieser Lauf keinen Produktquelltext; die Zeile „Response Sequencer und Cancel-Zustand“ bleibt ungebaut. Geliefert ist der Teil, der an keiner offenen Nutzerentscheidung hängt: die **Fehler-Matrix mit Wiederverwendung der Verbindung** und die **Antwortgrenzen am Socket**. Der Cancel-Teil von DoD-Punkt 1 (`SqlCommand.Cancel()`, `CancellationToken`, Timeout, ATTENTION während Streaming mit unmittelbar folgender Abfrage; die Messmethode von [TDS-QA-07](../../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität)) ist **nicht lieferbar bis [CO-004](../../carveouts/CO-004-cancel-szenario-spec-040-fehlt.md) aufgelöst ist**, weil er den Inhalt der Cancel-Antwort, Cancel und Timeout als Fehler und ATTENTION im Handshake voraussetzt, die der Nutzer noch nicht entschieden hat.
+
+| Datei / Komponente | Änderungs-Art | Begründung |
+|---|---|---|
+| `referenztest-dotnet/Kompatibilitaet/SynchronitaetTests.cs` | neu | Fehler-Matrix am Referenzclient, vier Tests (Kategorie `Synchronitaet`) |
+| `src/test/kotlin/io/github/pt9912/tdswire/runtime/SynchronitaetWiringTest.kt` | neu | Rohbytes-Test: mehrere Anfragen in einem Schreibvorgang hinter einem Fehler der Class 16 und der Class 20 |
+| `tools/e2e.sh`, `tools/kompatibilitaetstest.sh`, `tools/e2e-selbsttest.sh`, `tools/mk/kompatibilitaet.mk` | update | Stufe 8 mit Kennung `TDS-QA-07`, Kategorie `Synchronitaet`, Selbsttest um Abbruch an Stufe 8 |
+| `docs/plan/e2e-abdeckung.md`, `docs/plan/kompatibilitaetsmatrix.md` (Abschnitt 7d), `harness/README.md` | update | Sicht neu erzeugt, Messungen, Zeilen der Targets |
+
 ## 4. Trigger
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
