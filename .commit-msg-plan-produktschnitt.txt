@@ -1,0 +1,7 @@
+Planung Produktschnitt: welle-produktschnitt und drei Slices (ADR-0025, TDS-RB-01, TDS-QA-06)
+
+Neue Welle welle-produktschnitt (Trigger: ADR-0025 Accepted, produktive
+Wellen done, slice-e2e-geruest done) mit slice-spec-nachzug-produktschnitt,
+slice-testserver-herausloesen und slice-jar-ohne-main-und-image in open/.
+Alle per cp aus den vendored Vorlagen angelegt (diff -q identisch) und
+in-place gefuellt; Roadmap verweist auf die Welle.
