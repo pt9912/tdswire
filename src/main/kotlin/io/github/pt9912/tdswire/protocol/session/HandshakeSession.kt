@@ -7,7 +7,7 @@ import kotlinx.coroutines.sync.withLock
 /**
  * Der Sitzungsrahmen einer Verbindung: hält den [HandshakeContext], führt die Aktionen des
  * Automaten aus und serialisiert Übergang und Schreiben unter einem `Mutex` je Sitzung
- * (`ADR-0004`, `SPEC-001`). Ausgeführt werden Senden, Log, Grenzwechsel und Schließen; [dispatch]
+ * (`ADR-0004`, `SPEC-001`). Ausgeführt werden Senden, Log, Grenzwechsel, Zurücksetzen (RESETCONNECTION) und Schließen; [dispatch]
  * gibt die Aktion zurück, auf die der Aufrufer wartet ([HandshakeAction.BeginTls],
  * [HandshakeAction.Authenticate] oder [HandshakeAction.Cancel]).
  */
@@ -17,12 +17,22 @@ internal class HandshakeSession(
     private val log: HandshakeLog,
 ) {
     private val lock = Mutex()
+    private var sessionReset: suspend () -> Unit = {}
 
     var context = HandshakeContext()
         private set
 
     var closeReason: CloseReason? = null
         private set
+
+    /**
+     * Legt fest, was [HandshakeAction.ResetSession] zurücksetzt: [reset] läuft unter der Sperre dieser Sitzung, im
+     * Übergang, der die Anfrage mit dem Bit RESETCONNECTION annimmt, und vor der Verarbeitung dieser Anfrage. Ohne
+     * Aufruf setzt die Aktion nichts zurück.
+     */
+    fun onSessionReset(reset: suspend () -> Unit) {
+        sessionReset = reset
+    }
 
     suspend fun dispatch(event: HandshakeEvent): HandshakeAction? = lock.withLock {
         val transition = automaton.step(context, event)
@@ -133,6 +143,8 @@ internal class HandshakeSession(
 
                 HandshakeAction.BeginTls, is HandshakeAction.Authenticate, is HandshakeAction.Cancel ->
                     awaited = action
+
+                HandshakeAction.ResetSession -> sessionReset()
 
                 HandshakeAction.Forward -> Unit
             }

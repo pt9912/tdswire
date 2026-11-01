@@ -63,7 +63,17 @@ import kotlin.time.Duration.Companion.milliseconds
  * die Handles bleiben gültig. `sp_execute` führt den gemerkten Text mit den neuen Parametern aus; ein Handle,
  * das die Sitzung nicht hält, ergibt `TDS_UNKNOWN_HANDLE` ohne Backend-Aufruf. Beide Fehler lassen die Verbindung
  * offen (Class 16). `sp_unprepare` und `sp_prepare` sind nicht im Katalog (`TDS_UNSUPPORTED_RPC`). Die Handles
- * enden mit der Schleife.
+ * enden mit der Schleife und mit dem Bit RESETCONNECTION (nächster Absatz).
+ *
+ * RESETCONNECTION (`ADR-0027` Entscheidung 5, `SPEC-001`): Das Bit steht im Status des ersten Pakets einer Nachricht.
+ * `MessageAssembler` liest es in `TdsMessage.resetConnection`, `TransportHandshakeChannel` gibt die Nachricht unverändert
+ * weiter, und der Automat des Sitzungsrahmens setzt an der Anfrage in `READY`, die es trägt, die Aktion
+ * `ResetSession`; der Rahmen führt sie unter seiner Sperre aus, vor der Verarbeitung dieser Anfrage. Die Schleife
+ * hängt dafür [PreparedHandles.clear] ein: alle Handles sind danach unbekannt (`TDS_UNKNOWN_HANDLE`), die Vergabe beginnt
+ * wieder bei 1, die Grenze von [PreparedHandles.MAX_HANDLES] gilt neu. Die Anfrage mit dem Bit wird danach wie jede
+ * andere beantwortet, ohne ENVCHANGE (Setzung, nicht gemessen). Das Bit an einer Nachricht außerhalb von `READY` wirkt
+ * nicht: dort ist eine Anfrage unzulässig und die Verbindung schließt (Festlegung; `ADR-0027` entscheidet es nicht).
+ * Weiteren Sitzungszustand als die Handles führt die Schleife nicht.
  *
  * Abbruch (`SPEC-029`, `ADR-0027`): Während einer Anfrage liest die Schleife mit ([AbortableRun]). Ein ATTENTION in
  * `RUNNING` oder `STREAMING` und der Ablauf der Frist gehen denselben Weg: der erste Übergang nach `CANCELLING`
@@ -114,6 +124,10 @@ internal class RequestLoop(
 
     /** Die Prepared-Handles dieser Sitzung; eine Schleife bedient genau eine Sitzung. */
     internal val handles = PreparedHandles()
+
+    init {
+        ready.live.onSessionReset { handles.clear() }
+    }
 
     /** Läuft, bis die Verbindung endet; schließt den Kanal in jedem Ausgang. */
     suspend fun run() {

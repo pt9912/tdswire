@@ -13,7 +13,10 @@ import kotlinx.coroutines.sync.withLock
  * Voreinstellung, nicht konfigurierbar). Die Handle-Werte zählen je Sitzung ab 1 aufwärts und werden nicht
  * wiederverwendet; `-1`, der Wert des Clients vor dem ersten Prepare, wird nie vergeben. Gehalten wird nur der
  * Text, nicht die Deklarationsliste; seine Größe ist nicht begrenzt. Ein Handle endet mit [clear] am
- * Sitzungsende oder mit [release] (ein `sp_prepexec`, dessen Antwort nicht vollständig wurde).
+ * Sitzungsende und bei RESETCONNECTION oder mit [release] (ein `sp_prepexec`, dessen Antwort nicht vollständig
+ * wurde). [clear] setzt auch den Zähler zurück (`ADR-0027` Entscheidung 5): nach RESETCONNECTION beginnt die Vergabe
+ * wieder bei 1, ein Handle aus der Zeit davor trifft dann, wenn sein Wert neu vergeben ist, den neuen Text; ob der
+ * Referenzclient seine Handles beim Zurücksetzen selbst verwirft, ist nicht gemessen.
  */
 internal class PreparedHandles {
     private val lock = Mutex()
@@ -39,9 +42,12 @@ internal class PreparedHandles {
     /** Die Zahl der gehaltenen Handles. */
     suspend fun size(): Int = lock.withLock { statements.size }
 
-    /** Verwirft alle Handles; das Sitzungsende. */
+    /** Verwirft alle Handles und beginnt die Vergabe wieder bei 1; das Sitzungsende und RESETCONNECTION. */
     suspend fun clear() {
-        lock.withLock { statements.clear() }
+        lock.withLock {
+            statements.clear()
+            last = 0
+        }
     }
 
     companion object {

@@ -208,6 +208,7 @@ internal fun HandshakeAction.label(): String = when (this) {
     HandshakeAction.SwitchToSessionLimits -> "SwitchToSessionLimits"
     is HandshakeAction.Log -> "Log"
     HandshakeAction.Forward -> "Forward"
+    HandshakeAction.ResetSession -> "ResetSession"
     is HandshakeAction.Close -> "Close:${reason.name}"
     is HandshakeAction.Cancel -> "Cancel:${cause.name}"
 }
