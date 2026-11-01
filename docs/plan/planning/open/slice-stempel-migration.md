@@ -114,6 +114,7 @@ dasteht.
 - Squash-Merges auf `main` und Rebase lassen die Note am alten Commit zurück; ein Klon ohne `einrichten` läuft nach Amend voll (Kosten: ein Lauf, irrt zur sicheren Seite). — **Ausgang:** entfallen: von [ADR-0024](../../adr/0024-lokale-stempel-zwei-klassen.md) als Negativ 1 geführt, kein Risiko des Slice
 - Mehrere Agenten schreiben Notes aus verschiedenen Arbeitsbäumen desselben Klons (parallele Läufe): im Selbsttest von [slice-stempel-mechanismus](../in-progress/slice-stempel-mechanismus.md) geprüft, im Betrieb nicht gemessen. — **Ausgang:** offen bis zur Closure
 - Die Laufzeitwerte sind Einzelmessungen auf einem Rechner und gelten nicht für die CI, die weiter voll läuft. — **Ausgang:** offen bis zur Closure
+- Die CI führt nur `make gates` und ruft die Selbsttests der Stempel (`stempel-selbsttest`, `stempel-eingaenge`, `stempel-abbild`, bisher kein Gate) nicht; ob sie einen eigenen Schritt bekommen und ob die Selbsttests als `werkzeug`-Gates in `GATE_CHECKS` oder mit engerem Stempel laufen (Verifikation V-4 von slice-stempel-mechanismus), entscheidet der Nutzer vor der Aufnahme. — **Ausgang:** offen bis zur Closure
 
 ## 7. Closure-Notiz
 
