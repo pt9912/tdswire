@@ -71,6 +71,28 @@ class ErrorMapperTest {
         ConnectionFate.OPEN,
     )
 
+    /** @spec SPEC-057 */
+    @Test
+    fun `TDS_UNKNOWN_HANDLE ist ERROR 50009 Class 16 und bleibt offen`() = assertBytes(
+        ErrorCode.TDS_UNKNOWN_HANDLE,
+        "AA 3E 00  59 C3 00 00  01  10  18 00  55 00 6E 00 6B 00 6E 00 6F 00 77 00 6E 00 20 00 70 00 72 00" +
+            " 65 00 70 00 61 00 72 00 65 00 64 00 20 00 68 00 61 00 6E 00 64 00 6C 00 65 00 2E 00" +
+            "  00  00  00 00 00 00",
+        16,
+        ConnectionFate.OPEN,
+    )
+
+    /** @spec SPEC-058 */
+    @Test
+    fun `TDS_PREPARE_LIMIT ist ERROR 50010 Class 16 und bleibt offen`() = assertBytes(
+        ErrorCode.TDS_PREPARE_LIMIT,
+        "AA 4A 00  5A C3 00 00  01  10  1E 00  50 00 72 00 65 00 70 00 61 00 72 00 65 00 64 00 20 00 68 00" +
+            " 61 00 6E 00 64 00 6C 00 65 00 20 00 6C 00 69 00 6D 00 69 00 74 00 20 00 72 00 65 00 61 00" +
+            " 63 00 68 00 65 00 64 00 2E 00  00  00  00 00 00 00",
+        16,
+        ConnectionFate.OPEN,
+    )
+
     /** @spec SPEC-014 */
     @Test
     fun `TDS_UNSUPPORTED_TYPE ist ERROR 50003 Class 20 und schliesst`() = assertBytes(
@@ -163,7 +185,7 @@ class ErrorMapperTest {
         val expected = setOf(
             "TDS_PROTOCOL_ERROR", "TDS_LOGIN_FAILED", "TDS_UNSUPPORTED_RPC", "TDS_UNSUPPORTED_TYPE",
             "TDS_BACKEND_ERROR", "TDS_TIMEOUT", "TDS_UNSUPPORTED_SQL", "TDS_SIM_UNKNOWN_OBJECT",
-            "TDS_SIM_INVALID_VALUE", "TDS_INTERNAL_ERROR", "TDS_SHUTDOWN",
+            "TDS_SIM_INVALID_VALUE", "TDS_INTERNAL_ERROR", "TDS_SHUTDOWN", "TDS_UNKNOWN_HANDLE", "TDS_PREPARE_LIMIT",
         )
         assertEquals(expected, ErrorCode.entries.map { it.name }.toSet())
         assertEquals(expected.size, ErrorCode.entries.map { it.rule.number }.toSet().size)
@@ -188,7 +210,7 @@ class ErrorMapperTest {
      * `TDS_INTERNAL_ERROR` Class 20 schließen, `TDS_UNSUPPORTED_RPC` und `TDS_SIM_INVALID_VALUE`
      * nach Voreinstellung bei den Anfragefehlern; Codes ohne Gruppe schließen (Grundregel).
      *
-     * @spec SPEC-013 SPEC-015 SPEC-037 SPEC-039 SPEC-048
+     * @spec SPEC-013 SPEC-015 SPEC-037 SPEC-039 SPEC-048 SPEC-057 SPEC-058
      */
     @Test
     fun `Gruppen der Entscheidung und Grundregel fuer Codes ohne Gruppe`() {
@@ -197,6 +219,8 @@ class ErrorMapperTest {
             ErrorCode.TDS_BACKEND_ERROR,
             ErrorCode.TDS_UNSUPPORTED_RPC,
             ErrorCode.TDS_SIM_INVALID_VALUE,
+            ErrorCode.TDS_UNKNOWN_HANDLE,
+            ErrorCode.TDS_PREPARE_LIMIT,
         )
         ErrorCode.entries.forEach {
             val expectedFate = if (it in open) ConnectionFate.OPEN else ConnectionFate.CLOSE_AFTER_REPLY
@@ -352,6 +376,8 @@ class ErrorMapperTest {
                 ErrorCode.TDS_PROTOCOL_ERROR,
                 ErrorCode.TDS_UNSUPPORTED_RPC,
                 ErrorCode.TDS_INTERNAL_ERROR,
+                ErrorCode.TDS_UNKNOWN_HANDLE,
+                ErrorCode.TDS_PREPARE_LIMIT,
             ),
             serverOnly.toSet(),
         )
