@@ -263,7 +263,7 @@ class ResetConnectionDispatchTest {
         )
         session.serve(backend)
         assertEquals(1, session.replies.size, "der Transaction Manager bleibt unbeantwortet")
-        assertEquals(ConnectionState.CLOSED, session.ready.live.context.state)
+        assertTrue(session.channel.closed, "die Schleife schliesst den Kanal")
         assertEquals(1, backend.requests.size)
     }
 

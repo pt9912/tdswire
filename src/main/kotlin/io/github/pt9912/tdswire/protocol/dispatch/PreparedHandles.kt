@@ -11,7 +11,8 @@ import kotlinx.coroutines.sync.withLock
  *
  * Festlegungen ohne Messung: Eine Sitzung hält höchstens [MAX_HANDLES] Handles gleichzeitig (Setzung,
  * Voreinstellung, nicht konfigurierbar). Die Handle-Werte zählen je Sitzung ab 1 aufwärts und werden nicht
- * wiederverwendet, außer nach RESETCONNECTION ([clear] beginnt bei 1 neu); `-1`, der Wert des Clients vor dem ersten Prepare, wird nie vergeben. Gehalten wird nur der
+ * wiederverwendet, außer nach RESETCONNECTION ([clear] beginnt bei 1 neu); `-1`, der Wert des Clients vor dem
+ * ersten Prepare, wird nie vergeben. Gehalten wird nur der
  * Text, nicht die Deklarationsliste; seine Größe ist nicht begrenzt. Ein Handle endet mit [clear] am
  * Sitzungsende und bei RESETCONNECTION oder mit [release] (ein `sp_prepexec`, dessen Antwort nicht vollständig
  * wurde). [clear] setzt auch den Zähler zurück (`ADR-0027` Entscheidung 5): nach RESETCONNECTION beginnt die Vergabe
