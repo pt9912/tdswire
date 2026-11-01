@@ -14,10 +14,11 @@
 # temporaeren Verzeichnis.
 # Host-Lauf mit bash und git (Setzung): die Host-Abhaengigkeiten des Repos sind bash, git und docker. Die Stage `basis`
 # (gradle:8.14-jdk21) fuehrt git (am 2026-11-01 mit `ls /usr/bin` geprueft); ein Lauf in Docker ist nicht gebaut, seine Laufzeit
-# nicht gemessen.
+# nicht gemessen. Dazu kommen bash ab 4.3 und GNU-Werkzeuge (sha256sum, sed -i und 0,/re/, find -mmin, cp -P --parents,
+# touch -t, date +%s%N, xargs -0); getestet nur unter Linux.
 # Messung zu gleichzeitigem Schreiben (Einzelmessung 2026-11-01, Git 2.43.0, ein Host): 60 `git notes append` aus zwei
 # Arbeitsbaeumen auf dieselbe Note gaben 60-mal Exit 0, in der Note blieben 39 Zeilen. Daher die Sperre im Skript.
-# Laufzeit (Einzelmessung 2026-11-01, fuenf Wiederholungslaeufe bei Lastmittel um 7; kein Beleg fuer andere Hosts): 11 bis 12 s. Ein
+# Laufzeit (Einzelmessung 2026-11-01, ein Lauf bei Lastmittel 8 bis 16; kein Beleg fuer andere Hosts): 18,7 s (ohne die Abbild-Faelle 11 bis 12 s). Ein
 # Lauf mit leerem Dateicache ist nicht gemessen (braucht Root); der Selbsttest nutzt keinen Docker-Cache, warm und kalt
 # unterscheiden sich hier nur durch den Dateicache des Hosts.
 set -u
@@ -310,6 +311,20 @@ erwarte "Liste fehlt" m 1 "Eingangsliste fehlt" pruefe tests
 neu m2
 printf '# nur Kommentar\n\n' > "$T/m2/tools/stempel/tests.eingaenge"
 erwarte "Liste ohne Eintrag" m2 1 "Eingangsliste leer" pruefe tests
+neu m3
+printf 'src\nDockerfile\ntools/stempel.sh\ntools/stempel\n../docs\n' > "$T/m3/tools/stempel/tests.eingaenge"
+erwarte "'..' in einem Listeneintrag" m3 1 "ohne '..'" pruefe tests
+neu m4
+printf 'src\nDockerfile\ntools/stempel.sh\ntools/stempel\nother' > "$T/m4/tools/stempel/tests.eingaenge"
+g m4 commit -q -a -m "Liste ohne Zeilenende am Ende"
+erwarte "Liste ohne Zeilenende: schreibe" m4 0 - schreibe tests
+erwarte "Liste ohne Zeilenende: Stempel steht" m4 0 - pruefe tests
+bearbeite m4 other/x.txt z
+erwarte "Liste ohne Zeilenende: der letzte Eintrag zaehlt (Aenderung in other laeuft)" m4 1 "kein Beleg" pruefe tests
+neu m5
+erwarte "schreibe mit leerem Hash-Argument" m5 1 "kein SHA-256" schreibe tests ""
+ist "schreibe mit leerem Hash-Argument: keine Note" leer "$(g m5 notes --ref=refs/notes/gates list)"
+erwarte "schreibe mit drei Argumenten" m5 1 "zu viele Argumente" schreibe tests "$(hash_von m5 tests)" extra
 
 # --- einrichten: idempotent ---------------------------------------------------------------------------------------------------------
 neu n
@@ -332,7 +347,10 @@ g o worktree add -q --detach "$T/o2"
 SP="$T/o/.git/gates-stempel.lock"
 mkdir "$SP"
 printf '%s\n' "$$" > "$SP/pid"
+ZEIT0=$(date +%s%N)
 erwarte "Sperre belegt: Stempel ungesetzt, Exit 0" o2 0 "Sperre belegt" schreibe tests
+WARTE=$((($(date +%s%N) - ZEIT0) / 1000000))
+ist "Sperre belegt: wartet die zwei Sekunden ab ($WARTE ms)" test "$WARTE" -ge 1800 -a "$WARTE" -lt 15000
 erwarte "Sperre belegt: danach Lauf" o2 1 "kein Beleg" pruefe tests
 ist "Sperre belegt: keine Note" leer "$(g o notes --ref=refs/notes/gates list)"
 rm -rf "$SP"
@@ -351,6 +369,13 @@ mkdir "$T/o3/.git/gates-stempel.lock"
 touch -t 200001010000 "$T/o3/.git/gates-stempel.lock"
 erwarte "Alte Sperre ohne pid wird uebernommen" o4 0 - schreibe tests
 erwarte "  ... und der Stempel steht" o3 0 - pruefe tests
+neu o5
+g o5 worktree add -q --detach "$T/o6"
+mkdir "$T/o5/.git/gates-stempel.lock"
+printf '%s\n' "$$" > "$T/o5/.git/gates-stempel.lock/pid"
+touch -t 200001010000 "$T/o5/.git/gates-stempel.lock"
+erwarte "Alte Sperre mit lebender pid (wiederverwendet) wird uebernommen" o6 0 - schreibe tests
+erwarte "  ... und der Stempel steht" o5 0 - pruefe tests
 
 # Zwei Arbeitsbaeume schreiben je 40 Stempel an eigene Commits; jeder als gesetzt gemeldete Stempel steht am Ende in der Note.
 neu p
@@ -427,6 +452,57 @@ for modus in mit ohne; do
 	if [ "$modus" = mit ]; then erwarte "Squash $modus rewriteRef: Note uebernommen" s 0 - pruefe tests
 	else erwarte "Squash $modus rewriteRef: Lauf" s 1 "kein Beleg" pruefe tests; fi
 done
+
+# --- Die echten Listen: jeder Eintrag aendert den Hash seiner Klasse ----------------------------------------------------------------
+# Abbild des Arbeitsbaums dieses Repos (versioniert und unversioniert ohne Ignoriertes, Symlinks als Symlinks) in einem
+# Wegwerf-Repo; je Eintrag beider echter Listen wird eine Datei darunter geaendert und committet, `pruefe` muss laufen.
+# Das belegt die Kopplung "Datei im Eintrag -> Hash", nicht die Vollstaendigkeit der Listen (das ist die Pruefung
+# tools/stempel-eingaenge-pruefung.sh).
+mkdir "$T/echt"
+(cd "$ECHT" && git ls-files --cached --others --exclude-standard -z | grep -z -v '^\.claude/worktrees/' | xargs -0 cp -P --parents -t "$T/echt" 2> /dev/null)
+git -C "$T/echt" init -q
+git -C "$T/echt" add -A
+git -C "$T/echt" commit -q -m abbild
+erwarte "Abbild: schreibe tests" echt 0 - schreibe tests
+erwarte "Abbild: schreibe werkzeug" echt 0 - schreibe werkzeug
+erwarte "Abbild: pruefe tests" echt 0 - pruefe tests
+erwarte "Abbild: pruefe werkzeug" echt 0 - pruefe werkzeug
+aendere_eintrag() { # aendere_eintrag <eintrag>: eine Datei unter dem Eintrag aendern; ohne Datei: Symlink umbiegen
+	local e=$1 f
+	f=$(g echt ls-files -s -- "$e" | grep -v '^120000' | head -n 1 | cut -f2)
+	if [ -n "$f" ]; then
+		printf '#x\n' >> "$T/echt/$f"
+	else
+		f=$(g echt ls-files -- "$e" | head -n 1)
+		[ -n "$f" ] || return 1
+		ln -sfn "$(readlink "$T/echt/$f")x" "$T/echt/$f"
+	fi
+	g echt add -A
+	g echt commit -q -m "aendere $f"
+}
+for klasse in tests werkzeug; do
+	while IFS= read -r eintrag; do
+		eintrag=${eintrag%%#*}
+		eintrag=$(printf '%s' "$eintrag" | tr -d '[:space:]')
+		[ -n "$eintrag" ] || continue
+		LAEUFE=$((LAEUFE + 1))
+		if ! aendere_eintrag "$eintrag"; then rot "$klasse: unter dem Eintrag $eintrag liegt keine Datei"; continue; fi
+		S echt pruefe "$klasse"
+		if [ "$RC" = 1 ] && printf '%s' "$ERR" | grep -q "kein Beleg"; then gut "$klasse: Aenderung unter $eintrag laeuft"; else rot "$klasse: Aenderung unter $eintrag laeuft nicht (Exit $RC: $ERR)"; fi
+		g echt reset -q --hard HEAD~1
+	done < "$ECHT/tools/stempel/$klasse.eingaenge"
+done
+# Der Image-Pin der Doku-Pruefung (d-check.mk) steht in der Liste von werkzeug und aendert deren Hash.
+sed -i 's/^DCHECK_DIGEST ?= sha256:\(.\)/DCHECK_DIGEST ?= sha256:0\1/' "$T/echt/d-check.mk"
+g echt commit -q -a -m "Pin geaendert"
+erwarte "werkzeug: Pin in d-check.mk geaendert -> Lauf" echt 1 "kein Beleg" pruefe werkzeug
+erwarte "tests: Pin in d-check.mk betrifft die Klasse nicht -> Ueberspringen" echt 0 - pruefe tests
+g echt reset -q --hard HEAD~1
+sed -i '0,/^FROM gradle:[^ ]*/s//&0/' "$T/echt/Dockerfile"
+g echt commit -q -a -m "Basis-Image geaendert"
+erwarte "tests: Basis-Image-Pin im Dockerfile geaendert -> Lauf" echt 1 "kein Beleg" pruefe tests
+erwarte "werkzeug: Basis-Image-Pin im Dockerfile geaendert -> Lauf" echt 1 "kein Beleg" pruefe werkzeug
+g echt reset -q --hard HEAD~1
 
 # --- Abschluss -----------------------------------------------------------------------------------------------------------------------
 NACHHER=$(schnappschuss)

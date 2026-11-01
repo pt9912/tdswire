@@ -8,13 +8,16 @@
 # rot; die Kontrollfaelle (COPY ausserhalb der Klassen, COPY --from, Quelle unter einem Eintrag) bleiben gruen. Ohne
 # diese Rot-Faelle gilt der Selbsttest als nicht gelaufen: er endet dann mit Exit 1. Er schreibt nur in ein temporaeres
 # Verzeichnis.
-# Laufzeit (Einzelmessung 2026-11-01, Wiederholungslauf bei Lastmittel um 7; kein Beleg fuer andere Hosts): Selbsttest
-# mit 64 Faellen 6,8 s, die Pruefung allein 0,1 s. Ein Lauf mit leerem Dateicache ist nicht gemessen (braucht Root); der
+# Voraussetzung: bash ab 4.3, git und GNU-Werkzeuge (sed, cp -P --parents, xargs -0, grep -z); getestet nur unter Linux.
+# Laufzeit (Einzelmessung 2026-11-01, ein Lauf bei Lastmittel 8 bis 16; kein Beleg fuer andere Hosts): Selbsttest mit 91 Faellen
+# 27,3 s, die Pruefung allein 0,26 s. Ein Lauf mit leerem Dateicache ist nicht gemessen (braucht Root); der
 # Lauf nutzt keinen Docker-Cache, warm und kalt unterscheiden sich hier nur durch den Dateicache des Hosts.
 set -u
 export LC_ALL=C
 cd "$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "stempel-eingaenge-selbsttest: kein Git-Arbeitsbaum" >&2; exit 1; }
+ECHT=$(pwd)
 PRUEFUNG=${STEMPEL_PRUEFUNG:-tools/stempel-eingaenge-pruefung.sh}
+case $PRUEFUNG in /*) PRUEFUNG_ABS=$PRUEFUNG ;; *) PRUEFUNG_ABS=$ECHT/$PRUEFUNG ;; esac
 T=$(mktemp -d "${TMPDIR:-/tmp}/stempel-eingaenge.XXXXXX") || exit 1
 trap 'rm -rf "$T"' EXIT
 FEHLER=0
@@ -59,7 +62,7 @@ DOTNET_ECHT=referenztest-dotnet/Dockerfile
 lauf "Bestand gruen" 0 "ok" STEMPEL_X=1
 
 # --- COPY ohne Listeneintrag: je Stage der Klassen, samt Vererbung ------------------------------------------------------
-for stage in test compile detekt build-jar smoke deps basis; do
+for stage in test compile detekt build-jar smoke build deps basis; do
 	docker_mit "m-$stage" "$stage" "COPY neu.txt neu.txt"
 	lauf "tests: COPY neu.txt in Stage $stage" 1 "kein Eintrag deckt 'neu.txt'" "STEMPEL_DOCKERFILE=$T/m-$stage"
 done
@@ -114,6 +117,25 @@ cp tools/stempel/*.eingaenge "$T/l-punkt/"
 printf '.\n' >> "$T/l-punkt/tests.eingaenge"
 lauf "COPY . mit Eintrag . bleibt Befund" 1 "COPY . holt den ganzen Kontext" "STEMPEL_DOCKERFILE=$T/m-punkt" "STEMPEL_LISTEN=$T/l-punkt"
 
+# --- letzte Stage, FROM-Formen, '..' -----------------------------------------------------------------------------------------
+{ cat "$DOCKERFILE_ECHT"; printf '\nFROM scratch AS neu\n'; } > "$T/m-letzte"
+lauf "andere letzte Stage als build" 1 "letzte Stage" "STEMPEL_DOCKERFILE=$T/m-letzte"
+sed 's/^FROM deps AS /FROM DEPS AS /' "$DOCKERFILE_ECHT" > "$T/k-gross"
+lauf "Kontrolle: FROM DEPS (Grossschreibung) vererbt weiter" 0 - "STEMPEL_DOCKERFILE=$T/k-gross"
+sed '/^FROM deps AS /!b;s//FROM DEPS AS /' "$DOCKERFILE_ECHT" > "$T/k-gross2"
+printf '%s\n' 'COPY neu.txt neu.txt' > "$T/einfuegung"
+sed '/^FROM basis AS deps$/r '"$T/einfuegung" "$T/k-gross2" > "$T/m-gross"
+lauf "FROM DEPS vererbt: COPY in deps wird ueber compile gesehen" 1 "kein Eintrag deckt 'neu.txt'" "STEMPEL_DOCKERFILE=$T/m-gross"
+sed 's/^FROM deps AS test$/FROM --platform=linux\/amd64 deps AS test/' "$DOCKERFILE_ECHT" > "$T/k-plattform"
+lauf "Kontrolle: FROM --platform= vererbt weiter" 0 - "STEMPEL_DOCKERFILE=$T/k-plattform"
+sed '/^FROM basis AS deps$/r '"$T/einfuegung" "$T/k-plattform" > "$T/m-plattform"
+sed 's/^FROM deps AS compile$/FROM --platform=linux\/amd64 deps AS compile/' "$T/m-plattform" > "$T/m-plattform2"
+lauf "FROM --platform=: COPY in deps wird ueber compile gesehen" 1 "kein Eintrag deckt 'neu.txt'" "STEMPEL_DOCKERFILE=$T/m-plattform2"
+sed 's/^FROM deps AS compile$/ARG B=deps\nFROM ${B} AS compile/' "$DOCKERFILE_ECHT" > "$T/m-variable"
+lauf "FROM mit Variable ist ein Befund" 1 "FROM mit Variable" "STEMPEL_DOCKERFILE=$T/m-variable"
+docker_mit m-punkte test "COPY src/../docs/x.md x.md"
+lauf "'..' in der Quelle ist ein Befund" 1 "'..' in der Quelle" "STEMPEL_DOCKERFILE=$T/m-punkte"
+
 # --- Stage fehlt ---------------------------------------------------------------------------------------------------------
 sed 's/^FROM deps AS smoke$/FROM deps AS rauch/' "$DOCKERFILE_ECHT" > "$T/m-umbenannt"
 lauf "Stage smoke umbenannt" 1 "Stage 'smoke' steht nicht im Dockerfile" "STEMPEL_DOCKERFILE=$T/m-umbenannt"
@@ -130,7 +152,10 @@ n=0
 for paar in tests:src tests:LICENSE tests:config tests:tools/stempel.sh tests:tools/stempel tests:Dockerfile tests:.dockerignore \
 	tests:tools/mk/referenztest-dotnet.mk werkzeug:README.md werkzeug:AGENTS.md werkzeug:.claude/agents werkzeug:docs \
 	werkzeug:harness werkzeug:tools werkzeug:Makefile werkzeug:.harness/baseline werkzeug:.d-check.yml werkzeug:config \
-	werkzeug:gradle/libs.versions.toml werkzeug:src/test/kotlin/io/github/pt9912/tdswire/runtime/IntegrationServer.kt; do
+	werkzeug:gradle/libs.versions.toml werkzeug:src/test/kotlin/io/github/pt9912/tdswire/runtime/IntegrationServer.kt \
+	werkzeug:d-check.mk werkzeug:referenztest-dotnet/Dockerfile werkzeug:.harness/skills \
+	werkzeug:src/main/kotlin/io/github/pt9912/tdswire/domain/SqlType.kt \
+	tests:Makefile tests:repo.mk tests:tools/mk/builder.mk tests:tools/stempel-liste.sh; do
 	n=$((n + 1))
 	listen_ohne "l$n" "${paar%%:*}" "${paar#*:}"
 	lauf "${paar%%:*}.eingaenge ohne ${paar#*:}" 1 "${paar%%:*}.eingaenge: kein Eintrag deckt" "STEMPEL_LISTEN=$T/l$n"
@@ -144,15 +169,60 @@ cp tools/stempel/werkzeug.eingaenge "$T/l-fehlt/"
 lauf "Liste fehlt" 1 "Eingangsliste fehlt" "STEMPEL_LISTEN=$T/l-fehlt"
 
 # --- .d-check.yml ------------------------------------------------------------------------------------------------------------
-sed 's|ignore: \["\*\*/\*.template.md", ".tmp/\*\*", ".harness/\*\*", |ignore: ["**/*.template.md", ".tmp/**", |' .d-check.yml > "$T/d-ohne-harness"
-cmp -s .d-check.yml "$T/d-ohne-harness" && { echo "ROT   d-ohne-harness: Mutation nicht eingefuegt" >&2; FEHLER=$((FEHLER + 1)); }
-lauf ".d-check.yml: scan.ignore ohne .harness/**" 1 "d-check liest sie nach scan.roots" "STEMPEL_DCHECK=$T/d-ohne-harness"
 sed 's|^  roots: \["\."\]|  roots: [".", "fremd"]|' .d-check.yml > "$T/d-wurzel"
 lauf "Kontrolle: weitere Wurzel ohne Markdown aendert nichts" 0 - "STEMPEL_DCHECK=$T/d-wurzel"
 sed 's|^  roots: \[spec, docs, harness\]|  roots: [spec, docs, harness, contracts]|' .d-check.yml > "$T/d-code"
 lauf ".d-check.yml: codepaths.roots um contracts erweitert" 1 "'contracts' (codepaths.roots)" "STEMPEL_DCHECK=$T/d-code"
 sed 's|^  roots: \["\."\]|  roots:\n    - "."|' .d-check.yml > "$T/d-form"
 lauf ".d-check.yml: scan.roots als Blockliste" 1 "nicht in der erkannten Form" "STEMPEL_DCHECK=$T/d-form"
+
+# --- Links, Make-Dateien und Symlinks in einem Abbild des Arbeitsbaums --------------------------------------------------------------
+mkdir "$T/abbild"
+(git ls-files --cached --others --exclude-standard -z | grep -z -v '^\.claude/worktrees/' | xargs -0 cp -P --parents -t "$T/abbild" 2> /dev/null)
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_AUTHOR_NAME=Test GIT_AUTHOR_EMAIL=test@example.invalid GIT_COMMITTER_NAME=Test GIT_COMMITTER_EMAIL=test@example.invalid
+git -C "$T/abbild" init -q
+git -C "$T/abbild" add -A
+git -C "$T/abbild" commit -q -m abbild
+# abbild_lauf <name> <erwartet> <muster|-> <datei> <inhalt>: Datei schreiben, Pruefung im Abbild, Zustand zuruecksetzen
+abbild_lauf() {
+	local name=$1 erwartet=$2 muster=$3 datei=$4 inhalt=$5 aus rc
+	mkdir -p "$T/abbild/$(dirname "$datei")"
+	printf '%s\n' "$inhalt" > "$T/abbild/$datei"
+	aus=$(cd "$T/abbild" && env "${ABBILD_ENV[@]}" bash "$PRUEFUNG_ABS" 2>&1 < /dev/null)
+	rc=$?
+	git -C "$T/abbild" clean -fdq
+	git -C "$T/abbild" checkout -q -- .
+	LAEUFE=$((LAEUFE + 1))
+	if [ "$rc" -ne "$erwartet" ]; then
+		printf 'ROT   %s: Exit %s, erwartet %s\n%s\n' "$name" "$rc" "$erwartet" "$aus" >&2
+		FEHLER=$((FEHLER + 1))
+	elif [ "$muster" != - ] && ! printf '%s' "$aus" | grep -q -F -- "$muster"; then
+		printf 'ROT   %s: Ausgabe nennt "%s" nicht\n%s\n' "$name" "$muster" "$aus" >&2
+		FEHLER=$((FEHLER + 1))
+	else
+		printf 'ok    %s (Exit %s)\n' "$name" "$rc"
+	fi
+}
+ABBILD_ENV=(STEMPEL_X=1)
+ANDERE=$(git -C "$T/abbild" ls-files -- src/main | grep -v 'domain/SqlType.kt' | head -n 1)
+[ -n "$ANDERE" ] || { echo "ROT   keine Quelldatei fuer den Linktest gefunden" >&2; FEHLER=$((FEHLER + 1)); }
+abbild_lauf "Abbild: Bestand gruen" 0 "ok" "docs/leer.txt" "x"
+abbild_lauf "Link auf eine Quelldatei ausserhalb der Eintraege" 1 "kein Eintrag deckt '$ANDERE' (Link in docs/tmp-link.md)" "docs/tmp-link.md" "[x](../$ANDERE)"
+abbild_lauf "Link mit Anker auf eine Quelldatei ausserhalb der Eintraege" 1 "kein Eintrag deckt '$ANDERE'" "docs/tmp-link.md" "[x](../$ANDERE#abschnitt)"
+abbild_lauf "Kontrolle: derselbe Link im Codeblock" 0 - "docs/tmp-link.md" $'```\n[x](../'"$ANDERE"$')\n```'
+abbild_lauf "Kontrolle: Link auf eine nicht vorhandene Datei" 0 - "docs/tmp-link.md" "[x](../src/main/gibt-es-nicht.kt)"
+abbild_lauf "Kontrolle: Link auf eine URL" 0 - "docs/tmp-link.md" "[x](https://example.invalid/a.kt)"
+abbild_lauf "Kontrolle: Text mit ](ziel) ohne oeffnende Klammer" 0 - "docs/tmp-link.md" "„x](../$ANDERE)“"
+abbild_lauf "Link verlaesst das Repo" 1 "verlaesst das Repo" "docs/tmp-link.md" "[x](../../a/b.kt)"
+abbild_lauf "Kontrolle: Markdown unter .tmp ist durch scan.ignore ausgenommen" 0 - ".tmp/neu.md" "# x"
+sed 's|".tmp/\*\*", ||' .d-check.yml > "$T/d-ohne-tmp"
+cmp -s .d-check.yml "$T/d-ohne-tmp" && { echo "ROT   d-ohne-tmp: Mutation nicht eingefuegt" >&2; FEHLER=$((FEHLER + 1)); }
+ABBILD_ENV=("STEMPEL_DCHECK=$T/d-ohne-tmp")
+abbild_lauf ".d-check.yml: scan.ignore ohne .tmp/** -> Markdown unter .tmp braucht einen Eintrag" 1 "kein Eintrag deckt '.tmp/neu.md'" ".tmp/neu.md" "# x"
+ABBILD_ENV=(STEMPEL_X=1)
+abbild_lauf "Neue Make-Datei im Wurzelverzeichnis" 1 "kein Eintrag deckt 'extra.mk'" "extra.mk" "x:"
+abbild_lauf "Neue Make-Datei unter src" 1 "kein Eintrag deckt 'src/main/neu.mk'" "src/main/neu.mk" "x:"
+abbild_lauf "Neue Markdown-Datei unter src" 1 "kein Eintrag deckt 'src/main/neu.md'" "src/main/neu.md" "# x"
 
 if [ "$LAEUFE" -lt 55 ]; then
 	printf 'ROT   nur %s Laeufe: der Selbsttest gilt als nicht gelaufen\n' "$LAEUFE" >&2

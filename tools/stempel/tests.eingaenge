@@ -3,6 +3,10 @@
 # Geprueft gegen die COPY-Quellen der Stages test, compile, detekt, build-jar und smoke samt Vorgaengern und gegen die
 # Stage test von referenztest-dotnet/Dockerfile: tools/stempel-eingaenge-pruefung.sh. Das Skript und beide Listen
 # stehen auch in werkzeug.eingaenge (dort deckt `tools` sie).
+# Abweichung von der Anfangsliste in ADR-0024 Entscheidung 10 (Setzung des Implementers, Begruendung im Slice): `config`
+# statt `config/detekt/` (das Dockerfile kopiert `config` ganz); zusaetzlich .dockerignore, Makefile, repo.mk,
+# tools/mk/{builder,test,build,referenztest-dotnet}.mk (Flags und Rezepte der Gates) und die zwei Skripte der Stages.
+# Grenze: Eingaenge, die kein COPY und kein Make-Fragment sind, sieht die Pruefung nicht.
 src
 LICENSE
 build.gradle.kts
@@ -19,6 +23,10 @@ tools/manifest-pruefung.sh
 tools/mk/test.mk
 tools/mk/build.mk
 tools/mk/referenztest-dotnet.mk
+tools/mk/builder.mk
+Makefile
+repo.mk
 tools/stempel.sh
+tools/stempel-liste.sh
 tools/stempel
 referenztest-dotnet

@@ -72,6 +72,7 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `tools/stempel.sh` | neu | `pruefe`, `schreibe`, `einrichten` ([ADR-0024](../../adr/0024-lokale-stempel-zwei-klassen.md) Entscheidung 4 und 5); im Kopf Zusage, Eingänge und Laufzeit des Selbsttests |
 | `tools/stempel/werkzeug.eingaenge`, `tools/stempel/tests.eingaenge` | neu | Eingangslisten, Anfangsinhalt aus [ADR-0024](../../adr/0024-lokale-stempel-zwei-klassen.md) Entscheidung 10 |
+| `tools/stempel-liste.sh` | neu | Lesen einer Eingangsliste, eine Syntax für Skript und Prüfung (Review I-5) |
 | `tools/stempel-selbsttest.sh` | neu | jeder Fehlerpfad einzeln, Amend/Rebase/Squash, gleichzeitiges Schreiben ([TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit)); legt Wegwerf-Repos im Scratch an |
 | `tools/stempel-eingaenge-pruefung.sh`, `tools/stempel-eingaenge-selbsttest.sh` | neu | Überdeckung der `COPY`-Quellen durch die Listen und die Mutation (Name der Skripte ein Vorschlag) |
 | `Dockerfile` | keine Änderung | Die Selbsttests laufen auf dem Host mit `bash` und `git` (Setzung des Implementers, Begründung im Kopf von `tools/stempel-selbsttest.sh`); `git` steht in der Stage `basis`, ein Lauf in Docker ist nicht gebaut |
@@ -109,6 +110,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 - **Falsch grün** ([ADR-0024](../../adr/0024-lokale-stempel-zwei-klassen.md) Entscheidung 10): Der Selbsttest belegt „kein `COPY` ohne Listeneintrag“, nicht „kein versteckter Eingang“; ein Gate, das eine Datei liest, die kein `COPY` holt (Netz zur Laufzeit, Host-Werkzeug), wird davon nicht erfasst. Die Aufnahmebedingung (6) der ADR trägt das, ohne Sensor. — **Ausgang:** weiter offen: → `BEO-TDS/eingangsliste-je-stage-von-hand`
+- Die Prüfung der Listen leitet `COPY`-Quellen, Ziele von Inline-Links in den von d-check gelesenen Markdown-Dateien und Make-Dateien ab; die Zuordnung der Gates zu Stages und die festen Eingänge (`.dockerignore`, `d-check.mk`, `Makefile`, Fragmente) stehen von Hand im Skript, Referenz-Definitionen von Links und HTML-Anker sieht sie nicht. — **Ausgang:** weiter offen: → `BEO-TDS/eingangsliste-je-stage-von-hand`
 - Die Auswertung des `Dockerfile` kennt nicht jede Form von `COPY` und `ADD` (Heredoc, `--chmod`, Variablen); eine unbekannte Form muss ein Befund sein, kein stilles Ignorieren. — **Ausgang:** offen bis zur Closure
 - Der Selbsttest des Skripts braucht `git` und Wegwerf-Repos; das Basis-Image enthält `git` nach dem `Dockerfile` nicht ausdrücklich (nicht geprüft). — **Ausgang:** offen bis zur Closure
 - Gleichzeitiges Schreiben der Note aus zwei Arbeitsbäumen sowie Rebase und Squash mit `notes.rewriteRef` sind bisher nicht geprüft ([ADR-0024](../../adr/0024-lokale-stempel-zwei-klassen.md) Kontext 3 und Negativ 7); der Selbsttest prüft sie, ein anderes Ergebnis als „Sperre, Stempel ungesetzt“ oder „Note übernommen, Hash entscheidet“ wäre ein Befund für die ADR. — **Ausgang:** offen bis zur Closure
@@ -130,7 +132,13 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-Wird bei der Closure gefüllt.
+Wird bei der Closure gefüllt. Vom Implementer bereitgestellter Text für die Closure-Notiz (der Planner übernimmt oder ändert ihn):
+
+- **Abweichungen vom Anfangsinhalt der Listen** ([ADR-0024](../../adr/0024-lokale-stempel-zwei-klassen.md) Entscheidung 10, Setzungen des Implementers, belegt durch die Prüfung `tools/stempel-eingaenge-pruefung.sh`): `config` statt `config/detekt/selbsttest*` (das `Dockerfile` kopiert `config` ganz); `werkzeug` zusätzlich `README.md`, `AGENTS.md`, `.claude/{agents,commands,rules}` (d-check liest sie nach `scan.roots`; `.` als Wurzel ist als Eintrag verboten, die Prüfung leitet die gelesenen Markdown-Dateien aus `git ls-files` und `scan.ignore` ab), `d-check.mk` (Image-Pin von `docs-check`), `referenztest-dotnet/Dockerfile` (liest die Prüfung), die Gradle-Dateien und Einzeldateien der `COPY`-Zeilen sowie `.harness/skills` und `SqlType.kt` (Ziele von Markdown-Links, deren Existenz d-check prüft); `tests` zusätzlich `.dockerignore`, `Makefile`, `repo.mk` und die Fragmente `builder`, `test`, `build`, `referenztest-dotnet` unter `tools/mk/`.
+- **Mehrere gleiche Zeilen mit demselben Hash** führen zum Überspringen ([ADR-0024](../../adr/0024-lokale-stempel-zwei-klassen.md) Entscheidung 4: „ändern nichts“); der DoD-Wortlaut zählt den Fall unter die Fehlerpfade, die im Lauf enden. Die ADR gilt.
+- **Gleichzeitiges Schreiben der Note** ([ADR-0024](../../adr/0024-lokale-stempel-zwei-klassen.md) Negativ 7 und Kontext 3): Die Erwartung der ADR („eine Sperre, der Stempel wird nicht gesetzt“) trifft nicht zu. Einzelmessungen (Git 2.43.0, ein Host, mehrere Wiederholungen): `git notes append` aus zwei Arbeitsbäumen endet mit Exit 0 und verliert still Zeilen (36 bis 47 von 60). Der Verlust geht in Richtung Lauf. `tools/stempel.sh` serialisiert deshalb seine Aufrufe mit einer eigenen Sperre im gemeinsamen Git-Verzeichnis. Das ersetzt keine Entscheidung der ADR; es ist eine Umsetzungsfolge. Register-Hinweis für den Planner: der Befund „die ADR sagt Sperre, git verliert still“ gehört als Beleg in das Register, wenn der Planner ihn als Klasse führt.
+- **Eingang fehlt in der Liste** (Review F-1, F-3): zweiter und dritter Treffer des Musters `BEO-TDS/eingangsliste-je-stage-von-hand` (`d-check.mk` fehlte; Link-Ziele wie `SqlType.kt` fehlten); der Sensor leitet seither Link-Ziele und Make-Dateien ab, die Zuordnung der Gates zu Stages und die festen Eingänge stehen weiter von Hand in der Prüfung.
+- **Ausgang der Risiken in §6:** unbekannte `COPY`-Formen: entfallen (Befund statt Ignorieren, im Selbsttest belegt); `git` im Basis-Image: entfallen (vorhanden; die Selbsttests laufen auf dem Host); gleichzeitiges Schreiben, Rebase und Squash: eingetreten und beherrscht (siehe oben); Laufzeit: Einzelmessung in den Skriptköpfen.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

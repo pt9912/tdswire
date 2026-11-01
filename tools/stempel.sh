@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # tools/stempel.sh <pruefe|schreibe|einrichten> ... - lokale Stempel der zwei Gate-Klassen `werkzeug` und `tests`
 # (ADR-0024, ADR-0023, TDS-QA-06). Aufrufer: noch keiner; Selbsttest: tools/stempel-selbsttest.sh.
+# Voraussetzung: bash ab 4.3 (mapfile, declare -A, local -n), git und GNU-Werkzeuge (sha256sum, find -mmin, sort, grep -a).
 #
 #   pruefe <klasse>           Exit 0 NUR, wenn ein Vorfahr von HEAD (HEAD eingeschlossen) den Eingangs-Hash von HEAD hat
 #                             und eine Note die Zeile `stempel <klasse> <hash> gruen` traegt. Jeder andere Fall (flacher
@@ -8,14 +9,28 @@
 #                             Pfad, unlesbare Note, fehlendes git) endet mit Exit 1 und genau einer Grund-Zeile auf
 #                             stderr; einen dritten Ausgang gibt es nicht. stdout traegt den Eingangs-Hash, sobald er
 #                             berechnet ist, auch bei Exit 1.
-#   schreibe <klasse> [hash]  haengt die Zeile per `git notes append` an die Note von HEAD in refs/notes/gates. Exit 1
-#                             ohne Schreiben, wenn der Hash jetzt ein anderer ist als der uebergebene oder die
-#                             Eingangspfade nicht sauber sind. Belegt ein anderer Aufruf die Sperre
-#                             `<gemeinsames Git-Verzeichnis>/gates-stempel.lock`, scheitert das Schreiben oder fehlt die
-#                             Zeile danach, ist der Stempel nicht gesetzt: eine Warnung auf stderr, Exit 0 - der
-#                             naechste Lauf laeuft, das Gate faellt nicht. Die Sperre ist noetig, weil `git notes
-#                             append` bei gleichzeitigen Schreibern Zeilen still verliert (Messung: Kopf von
-#                             tools/stempel-selbsttest.sh).
+#   schreibe <klasse> [hash]  haengt die Zeile per `git notes append` an die Note von HEAD in refs/notes/gates.
+#                             Exit-Code-Vertrag:
+#                             - Exit 1 = nichts geschrieben, Grund auf stderr: der Hash ist jetzt ein anderer als der
+#                               uebergebene, die Eingangspfade sind nicht sauber, Klasse, Liste, Pfad oder Argument sind
+#                               ungueltig. Ein zweites Argument, das nicht 64 Hex-Zeichen ist, auch das leere
+#                               (`schreibe tests ""`), ist ein Fehler und kein Auslassen der Pruefung.
+#                             - Exit 0 = die Zeile steht an HEAD - oder eine Warnung "nicht gesetzt" auf stderr nennt,
+#                               dass die Sperre `<gemeinsames Git-Verzeichnis>/gates-stempel.lock` belegt war, das
+#                               Schreiben scheiterte oder die Zeile danach fehlte. Der naechste Lauf laeuft dann; das
+#                               Gate faellt nicht.
+#                             Ein Aufrufer laesst die stderr-Zeile sichtbar, leitet nie aus dem Exit von `schreibe`
+#                             ab, dass ein Stempel steht (das entscheidet allein `pruefe`), und fasst Exit 1 nicht mit
+#                             einem blinden `|| true` zusammen: ob ein schmutziger Baum das Gate rot macht, ist Sache
+#                             seiner Verdrahtung, ein ungueltiger Aufruf soll auffallen.
+#                             Gleichzeitiges Schreiben: `git notes append` aus zwei Arbeitsbaeumen verlor in
+#                             Einzelmessungen (Git 2.43.0, ein Host, vier Wiederholungen) 36 bis 47 von 60 Zeilen
+#                             bzw. Notes, ohne zu scheitern. Der Verlust geht in Richtung Lauf (die Zeile fehlt), nicht
+#                             in Richtung Ueberspringen; die Sperre serialisiert die Aufrufe dieses Skripts. Die Sperre
+#                             wartet hoechstens zwei Sekunden; eine Sperre mit totem Prozess, ohne pid-Datei aelter als
+#                             eine Minute oder aelter als zehn Minuten wird uebernommen. Grenze: uebernehmen zwei
+#                             Wartende dieselbe tote Sperre gleichzeitig, koennen beide schreiben (Folge: hoechstens
+#                             ein verlorener Stempel; nicht gefahren). Schreiber ausserhalb dieses Skripts sperrt sie nicht.
 #   einrichten                setzt notes.rewriteRef fuer refs/notes/gates lokal im Klon, idempotent; `schreibe`
 #                             ruft es, wenn der Schluessel fehlt. Notes werden nie gepusht oder geholt.
 #
@@ -23,8 +38,8 @@
 # (sortiert, ID aus `git rev-parse <Commit>:<Pfad>`). Ein Eintrag ist ein literaler Pfad ohne Platzhalter; ein Eintrag,
 # der in HEAD fehlt, ist ein Fehler, kein leerer Wert. Sauber heisst: `git status --ignored` meldet in den Eintraegen
 # nichts (versioniert, unversioniert, ignoriert); Aenderungen ausserhalb zaehlen nicht.
-# Eingaenge: die Eintraege beider Listen; das Skript und beide Listen stehen in der Liste beider Klassen (die Pruefung
-# tools/stempel-eingaenge-pruefung.sh haelt das).
+# Eingaenge: die Eintraege beider Listen; das Skript, tools/stempel-liste.sh und beide Listen stehen in der Liste beider
+# Klassen (die Pruefung tools/stempel-eingaenge-pruefung.sh haelt das).
 # Grenze: Die Note ist lokal und wird von jedem mit Schreibrecht auf das Git-Verzeichnis gesetzt; der Hash-Vergleich
 # gegen den Vorfahren faengt eine Note am falschen Commit, nicht eine Note, die ein Mensch am richtigen setzt.
 # Laufzeit des Selbsttests: Kopf von tools/stempel-selbsttest.sh.
@@ -35,6 +50,10 @@ NOTES_REF=refs/notes/gates
 WARUM=
 HASH=
 E=()
+# shellcheck source=tools/stempel-liste.sh
+SKRIPTVERZ=${BASH_SOURCE[0]}
+case $SKRIPTVERZ in */*) SKRIPTVERZ=${SKRIPTVERZ%/*} ;; *) SKRIPTVERZ=. ;; esac
+. "$SKRIPTVERZ/stempel-liste.sh" || { printf 'stempel: tools/stempel-liste.sh nicht lesbar\n' >&2; exit 1; }
 
 grund() { printf 'stempel: %s\n' "$*" >&2; }
 
@@ -46,29 +65,8 @@ klasse_pruefen() {
 	esac
 }
 
-# lade_liste <klasse>: setzt E (sortiert, ohne Doppelte); ein Eintrag ist ein literaler Pfad.
-lade_liste() {
-	local datei="tools/stempel/$1.eingaenge" zeile
-	local -a roh=()
-	E=()
-	[ -f "$datei" ] || { WARUM="Eingangsliste fehlt: $datei"; return 1; }
-	while IFS= read -r zeile || [ -n "$zeile" ]; do
-		zeile=${zeile%%#*}
-		zeile=${zeile#"${zeile%%[![:space:]]*}"}
-		zeile=${zeile%"${zeile##*[![:space:]]}"}
-		[ -n "$zeile" ] || continue
-		while [[ $zeile == ./* ]]; do zeile=${zeile#./}; done
-		while [[ $zeile == */ && $zeile != / ]]; do zeile=${zeile%/}; done
-		if [[ $zeile == *[\*\?]* || $zeile == *\[* || $zeile == *\]* || $zeile == *' '* \
-			|| $zeile == /* || $zeile == *..* || $zeile == *:* ]]; then
-			WARUM="Eintrag '$zeile' in $datei ist kein literaler Pfad ohne Platzhalter"
-			return 1
-		fi
-		roh+=("$zeile")
-	done < "$datei"
-	[ ${#roh[@]} -gt 0 ] || { WARUM="Eingangsliste leer: $datei"; return 1; }
-	mapfile -t E < <(printf '%s\n' "${roh[@]}" | sort -u)
-}
+# lade_liste <klasse>: setzt E (sortiert, ohne Doppelte).
+lade_liste() { stempel_liste_lesen "tools/stempel/$1.eingaenge" E; }
 
 # eingangs_hash <commit>: setzt HASH aus E; ein Pfad, der im Commit fehlt, ist ein Fehler.
 eingangs_hash() {
@@ -119,9 +117,9 @@ beleg_suchen() {
 	return 1
 }
 
-# sperre_holen: ein Verzeichnis im gemeinsamen Git-Verzeichnis, belegt hoechstens zwei Sekunden lang abgewartet. `git notes
-# append` verliert bei gleichzeitigen Schreibern Zeilen, ohne zu scheitern; die Sperre serialisiert die Aufrufe dieses
-# Skripts. Eine Sperre, deren Prozess nicht mehr lebt (oder ohne pid-Datei aelter als eine Minute), wird entfernt.
+# sperre_holen: ein Verzeichnis im gemeinsamen Git-Verzeichnis, belegt hoechstens zwei Sekunden lang abgewartet (Kopf: Grund
+# und Grenzen). Uebernommen wird eine Sperre mit totem Prozess, ohne pid-Datei aelter als eine Minute oder aelter als zehn
+# Minuten (eine wiederverwendete pid haelt sie sonst dauerhaft).
 sperre_holen() {
 	local gd i p
 	gd=$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd) || { SPERRE="(Git-Verzeichnis)"; return 1; }
@@ -133,7 +131,9 @@ sperre_holen() {
 			return 0
 		fi
 		p=$(cat "$SPERRE/pid" 2>/dev/null)
-		if { [ -n "$p" ] && ! kill -0 "$p" 2>/dev/null; } || { [ -z "$p" ] && [ -n "$(find "$SPERRE" -maxdepth 0 -mmin +1 2>/dev/null)" ]; }; then
+		if { [ -n "$p" ] && ! kill -0 "$p" 2>/dev/null; } \
+			|| { [ -z "$p" ] && [ -n "$(find "$SPERRE" -maxdepth 0 -mmin +1 2>/dev/null)" ]; } \
+			|| [ -n "$(find "$SPERRE" -maxdepth 0 -mmin +10 2>/dev/null)" ]; then
 			rm -rf "$SPERRE"
 			continue
 		fi
@@ -159,11 +159,12 @@ cmd_pruefe() {
 cmd_schreibe() {
 	local klasse=${1:-} uebergeben=${2:-} head zeile aus
 	klasse_pruefen "$klasse" || return 1
-	[ -z "$uebergeben" ] || [[ $uebergeben =~ ^[0-9a-f]{64}$ ]] || { WARUM="uebergebener Hash ist kein SHA-256 in Hex"; return 1; }
+	if [ $# -ge 2 ]; then [[ $uebergeben =~ ^[0-9a-f]{64}$ ]] || { WARUM="uebergebener Hash ist kein SHA-256 in Hex (leer zaehlt nicht als ausgelassen)"; return 1; }; fi
+	[ $# -le 2 ] || { WARUM="zu viele Argumente"; return 1; }
 	head=$(git rev-parse --verify -q 'HEAD^{commit}' 2>/dev/null) || { WARUM="HEAD nicht lesbar"; return 1; }
 	lade_liste "$klasse" || return 1
 	eingangs_hash "$head" || return 1
-	if [ -n "$uebergeben" ] && [ "$uebergeben" != "$HASH" ]; then
+	if [ $# -ge 2 ] && [ "$uebergeben" != "$HASH" ]; then
 		WARUM="Eingangs-Hash hat sich seit dem Aufruf geaendert (uebergeben $uebergeben, jetzt $HASH)"
 		return 1
 	fi
