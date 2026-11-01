@@ -1,6 +1,6 @@
 # Review: slice-jar-ohne-main-und-image (Diff f53bda2..16223b9)
 
-* Rolle: Reviewer (Modul 10), frischer Kontext. Branch `worktree-agent-ad6230bb0b2e3feb1`. Plan: `docs/plan/planning/in-progress/slice-jar-ohne-main-und-image.md`. Geprüft gegen Plan, [ADR-0025](../plan/adr/0025-produktschnitt-bibliothek-und-testserver.md), [ADR-0022](../plan/adr/0022-e2e-laeufe-nicht-in-den-gates.md), [ADR-0023](../plan/adr/0023-gate-klassen-und-stempel.md), [ADR-0024](../plan/adr/0024-lokale-stempel-zwei-klassen.md), AGENTS 3.1, 3.2, 3.6, 3.7, 3.8; nicht gegen die DoD. Last am Host 7 bis 14 durch fremde Prozesse: Zeiten sind Einzelmessungen und nicht belastbar. Verdichtet vom Aufrufer abgelegt; Findings vollständig.
+* Rolle: Reviewer (Modul 10), frischer Kontext. Branch `worktree-agent-ad6230bb0b2e3feb1`. Plan: `docs/plan/planning/done/slice-jar-ohne-main-und-image.md`. Geprüft gegen Plan, [ADR-0025](../plan/adr/0025-produktschnitt-bibliothek-und-testserver.md), [ADR-0022](../plan/adr/0022-e2e-laeufe-nicht-in-den-gates.md), [ADR-0023](../plan/adr/0023-gate-klassen-und-stempel.md), [ADR-0024](../plan/adr/0024-lokale-stempel-zwei-klassen.md), AGENTS 3.1, 3.2, 3.6, 3.7, 3.8; nicht gegen die DoD. Last am Host 7 bis 14 durch fremde Prozesse: Zeiten sind Einzelmessungen und nicht belastbar. Verdichtet vom Aufrufer abgelegt; Findings vollständig.
 
 ## Ergebnis
 

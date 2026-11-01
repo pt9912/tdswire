@@ -1,6 +1,6 @@
 # Verifikationsbericht: slice-jar-ohne-main-und-image (Commit 7c1c3bd)
 
-* Rolle: Verifier (Modul 11), frischer Kontext. Gegenstand: Branch `worktree-agent-ad6230bb0b2e3feb1` (HEAD `7c1c3bd`, nicht gemergt) gegen DoD und Setzungen in `docs/plan/planning/in-progress/slice-jar-ohne-main-und-image.md`, [ADR-0025](../plan/adr/0025-produktschnitt-bibliothek-und-testserver.md). Der Review [16223b9](2026-11-01-16223b9-slice-jar-ohne-main-und-image.md) und die Fix-Runde sind Eingabe.
+* Rolle: Verifier (Modul 11), frischer Kontext. Gegenstand: Branch `worktree-agent-ad6230bb0b2e3feb1` (HEAD `7c1c3bd`, nicht gemergt) gegen DoD und Setzungen in `docs/plan/planning/done/slice-jar-ohne-main-und-image.md`, [ADR-0025](../plan/adr/0025-produktschnitt-bibliothek-und-testserver.md). Der Review [16223b9](2026-11-01-16223b9-slice-jar-ohne-main-und-image.md) und die Fix-Runde sind Eingabe.
 * Herkunft: Der Bericht des Verifier-Agenten, vom Planner in Kurzform übernommen und vollständig abgelegt. Linkziele dienen nur dem Doku-Gate.
 
 ## Gesamturteil
