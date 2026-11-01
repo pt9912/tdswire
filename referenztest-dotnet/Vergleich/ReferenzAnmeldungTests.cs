@@ -8,7 +8,7 @@ namespace TdsWire.Referenztests.Vergleich;
 /// <summary>
 /// Anmeldung am echten SQL Server (`make vergleichslauf-d`, ADR-0008, ADR-0009): falsches Kennwort und unbekannter
 /// Benutzer. Der Referenzclient (Microsoft.Data.SqlClient 7.1.1) beobachtet Number, Class, State und Meldung; die Zeilen
-/// `messung: ...` im Bericht sind die Werte, die die Ausnahmeliste (`docs/plan/referenzabgleich-ausnahmen.md`)
+/// `messung: ...` im Bericht sind die Werte, die die Ausnahmeliste (`docs/messungen/referenzabgleich.md`)
 /// zitiert. Der Server dieses Repos antwortet auf beide Fälle mit derselben festen Meldung ohne Kennung (SPEC-012);
 /// dieser Test misst die Gegenseite. Nicht belegt: der interne State des Servers (am Client nicht sichtbar), das
 /// Verhalten bei Drosselung oder Sperre nach mehreren Fehlversuchen, die Protokollfolge auf dem Draht (kein Mitschnitt).

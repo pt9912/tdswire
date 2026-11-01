@@ -41,7 +41,7 @@ Liefer-Punkte (drei):
 
 - [ ] **Spezifikation:** `SPEC-045` in `spec/spezifikation.md` (Absatz „Grenzen“, Satz „Gemessen ist nur eine Instanz der Version 2022 … der Abgleich beider Pfade entfällt dort“) nennt die gemessene Lage mit Bedingung im Satz (Instanz, Digest, Einzelmessung, Zertifikatsvarianten) und die zweite Referenzinstanz; die Spezifikation nennt dabei weder ADR noch Slice noch Datum einer Messreihe (`AGENTS.md` §3.4 gilt dem Sinn nach für die Stratumsgrenze).
 - [ ] **Pläne:** [slice-referenzabgleich-live](slice-referenzabgleich-live.md) §1 (Punkt „Der TDS-8.0-Pfad“: „gefolgert, nicht gemessen“, „der Abgleich entfällt dort“) und [slice-referenzabgleich-mitschnitt](slice-referenzabgleich-mitschnitt.md) §1 (Punkt „Verschlüsselte Mitschnitte und der TDS-8.0-Pfad“: „bietet TDS 8.0 nicht an“) tragen die gemessene Lage statt der Folgerung.
-- [ ] **Messwerkzeug wird Entscheidung:** Kommentar von `referenztest-dotnet/Dockerfile` (Stufe `referenzinstanz-2025`) und Kopf von `tools/mk/vergleichslauf-d.mk` nennen die Stufe als angenommene Referenzinstanz; Befund B-6 in [Ausnahmeliste](../../referenzabgleich-ausnahmen.md) ist mit Verweis auf die Annahme geschlossen.
+- [ ] **Messwerkzeug wird Entscheidung:** Kommentar von `referenztest-dotnet/Dockerfile` (Stufe `referenzinstanz-2025`) und Kopf von `tools/mk/vergleichslauf-d.mk` nennen die Stufe als angenommene Referenzinstanz; Befund B-6 in [Ausnahmeliste](../../../messungen/referenzabgleich.md) ist mit Verweis auf die Annahme geschlossen.
 
 Nachweis-Pflichten für alle drei Punkte:
 
@@ -60,7 +60,7 @@ Nachweis-Pflichten für alle drei Punkte:
 |---|---|---|
 | `spec/spezifikation.md` (`SPEC-045`) | update | Grenzen-Absatz, siehe Liefer-Punkt Spezifikation |
 | `docs/plan/planning/open/slice-referenzabgleich-live.md`, `…/slice-referenzabgleich-mitschnitt.md` | update | Aussage über die Referenzinstanz |
-| `referenztest-dotnet/Dockerfile`, `tools/mk/vergleichslauf-d.mk`, `docs/plan/referenzabgleich-ausnahmen.md` | update | Status der Stufe `referenzinstanz-2025`, Befund B-6 |
+| `referenztest-dotnet/Dockerfile`, `tools/mk/vergleichslauf-d.mk`, `docs/messungen/referenzabgleich.md` | update | Status der Stufe `referenzinstanz-2025`, Befund B-6 |
 
 ## 4. Trigger
 
