@@ -12,7 +12,7 @@
 
 **Supersedes (teilweise), jeweils nur wörtlich benannt, wirksam erst mit dem Status `Accepted`; die Datei von [ADR-0008](0008-dotnet-kompatibilitaetstests.md) bleibt unverändert und `Accepted` ([AGENTS.md](../../../AGENTS.md) §3.5):**
 
-- [ADR-0008](0008-dotnet-kompatibilitaetstests.md), Messung D, Abweichung von den Annahmen: „SQL Server 2022 bietet TDS 8.0 nicht an; der TDS-8.0-Pfad ist an dieser Referenzinstanz also nicht abgleichbar.“ Ersetzt durch die gemessene Wirkung im Kontext unten: Der Server 2022 erkennt den Strict-Versuch und lehnt ihn mit einer Meldung zur Zertifikatskonfiguration ab; „bietet nicht an“ ist damit nicht belegt.
+- [ADR-0008](0008-dotnet-kompatibilitaetstests.md), Messung D, Abweichung von den Annahmen: „SQL Server 2022 bietet TDS 8.0 nicht an; der TDS-8.0-Pfad ist an dieser Referenzinstanz also nicht abgleichbar.“ Ersetzt durch die gemessene Wirkung im Kontext unten: Der Server 2022 erkennt den Strict-Versuch und lehnt ihn mit einer Meldung zur Zertifikatskonfiguration ab (Einzelmessung 2026-11-01, ein Host, vier selbst erzeugte Zertifikatsvarianten); „bietet nicht an“ ist unter dieser Bedingung nicht belegt.
 - [ADR-0008](0008-dotnet-kompatibilitaetstests.md), derselbe Punkt: „Der Server-Image-Tag für TDS 8.0 (etwa eine neuere SQL-Server-Version) wurde nicht ermittelt.“ Ersetzt durch: Für `2025-latest` (Digest unten) gelingt `Encrypt=Strict` in der Messung vom 2026-11-01.
 - [ADR-0008](0008-dotnet-kompatibilitaetstests.md), Messung D, letzter Punkt: „Gegenüber SPEC-023 (Mindestversion 1.2, TLS 1.3 bevorzugt) ist die Referenzinstanz bei TLS 1.3 also kein Maßstab.“ Eingeschränkt auf `2022-latest`; für `2025-latest` zeigt das Log TLS 1.0 bis 1.3 als erlaubt.
 
@@ -43,7 +43,7 @@ Der Vergleichslauf D (`make vergleichslauf-d`) misst dazu. **Bedingung für alle
 
 ## Konsequenzen
 
-- Positiv: der TDS-8.0-Pfad wäre abgleichbar; der Befund „Class 20“ ist eingeordnet.
+- Positiv: der TDS-8.0-Pfad wäre abgleichbar; der Befund „Class 20“ ist eingegrenzt.
 - Negativ: zweite Instanz im Lauf D (Bedarf in `tools/mk/vergleichslauf-d.mk`); die Aussage über 2022 bleibt auf Image, Aufbau und die vier Zertifikatsvarianten beschränkt.
 - Folgepflicht: Der Plan des Live-Laufs im Referenzabgleich nennt den Abgleich des TDS-8.0-Pfads an der Referenzinstanz 2022 als „gefolgert, nicht gemessen“ und lässt ihn entfallen; das ist nach Annahme dieser ADR anzupassen (Planner). `SPEC-045` nennt dieselbe Grenze („der Abgleich beider Pfade entfällt dort“) und ist nach Annahme nachzuziehen.
 

@@ -36,6 +36,6 @@ Gemessen (Einzelmessung 2026-11-01, ein Host): `2025-latest` beantwortet `Encryp
 
 ## Grenzen der Messung
 
-- Einzelmessungen, ein Host, ein Lauf je Zeile (zwei Durchgänge von `make vergleichslauf-d`); die Tags sind beweglich, der Digest hält den Stand, nicht die Verfügbarkeit von `mcr.microsoft.com`.
+- Einzelmessungen, ein Host, ein Lauf je Zeile (drei Durchgänge von `make vergleichslauf-d`, dazu eine Wiederholung von `2022-anmeldung` mit gleichen Werten); die Tags sind beweglich, der Digest hält den Stand, nicht die Verfügbarkeit von `mcr.microsoft.com`.
 - Nicht gemessen: die TLS-Version des Referenzclients, das Verhalten von `2025-latest` mit dem Standardzertifikat des Servers ohne `tlscert`-Eintrag, andere Clients, Drosselung oder Sperre nach mehreren Fehlversuchen, die Protokollfolge auf dem Draht (kein Mitschnitt; dafür [slice-qa-vergleichslauf-d-messungen](planning/open/slice-qa-vergleichslauf-d-messungen.md)), CI-Runner (der Lauf ist lokal, siehe EULA).
 - Jede Zeile gilt für die genannte Instanz und den genannten Digest; eine andere Version des Servers kann anders antworten.

@@ -156,7 +156,8 @@ Wird bei der Closure gefüllt.
 **Hinweise des Implementers zu den Mutationen (2026-11-01, Einzelbeobachtungen, kein Teil der Closure-Notiz):**
 
 - Rot gesehen: Selbsttest (CI-Prüfung, EULA-Prüfung entfernt; `GATE_CHECKS`-Zeile oder Workflow-Nennung ergänzt); Erwartungen des Laufs (Strict bei 2022 auf *gelingt*, `forcestrict` nicht geschrieben, Sonde bei 2025 auf *scheitert*); die Prüfung auf den internen State 8 des Logs; `Richtiges_Kennwort_meldet_an` bei zu früher Anmeldung (State 7); Abbruch per SIGTERM räumt auf; nach dem Review zusätzlich die Prüfung des Clients auf das Kennwort (`client_leck`, mit einem Ersatzmuster) und `Number 0, Class 20` in `PruefeVerhalten` (Class auf 21 gesetzt).
-- Nie rot gesehen: die C#-Assertions `State 1` und `Contains(Benutzername)` der Anmelde-Tests, `Beide_Faelle_…` (keine Mutation am Test gebaut).
+- Nach der Verifikation rot gesehen: `State 1` (Erwartung 2) und `Contains(Benutzername)` (anderer Name) der Anmelde-Tests, je ein Test rot im Lauf `2022-anmeldung`. Nie rot gesehen: `Beide_Faelle_…` (keine Mutation gebaut).
+- Wiederholung `make vergleichslauf-d LAUF=2022-anmeldung` nach der Verifikation (Einzelmessung 2026-11-01, Lastmittel rund 20, 21 GB frei vor und nach dem Lauf): grün, 23 s (Bau und Start 20 s), Speicher 920,7 MiB; die Messzeilen sind gleich den bisherigen (falsches Kennwort und unbekannter Benutzer je `Number 18456, Class 14, State 1`; `ServerVersion 16.00.4305`, `PacketSize 8000`), das Log nennt State 8 und State 5 (A-1, B-1, B-2 bestätigt); danach standen kein Container, kein Netz und kein Image des Aufrufs mehr da.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
