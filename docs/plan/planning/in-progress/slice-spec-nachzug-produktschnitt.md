@@ -69,14 +69,14 @@ Liefer-Punkte (drei):
 Nachweis-Pflichten für alle Punkte:
 
 - [x] `make gates` grün (Implementer, vor jedem Commit mit Inhalt).
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Doku-Update: Änderungsprotokoll der Spezifikation um eine Zeile ergänzt; `make spec-abdeckung` neu erzeugt und committet, falls eine `SPEC-*`-Kennung entsteht oder entfällt (erwartet: keine).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo mit Wellen von der Welle-Closure geprüft.
+- [x] Doku-Update: Änderungsprotokoll der Spezifikation um eine Zeile ergänzt; `make spec-abdeckung` neu erzeugt und committet, falls eine `SPEC-*`-Kennung entsteht oder entfällt (erwartet: keine).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo mit Wellen von der Welle-Closure geprüft.
 
 ## 3. Plan (vor Code)
 
@@ -132,13 +132,13 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Die Spezifikation sagt früher als der Code (Greenfield, Spec führt): zwischen diesem Slice und `slice-testserver-herausloesen` stimmen `SPEC-035`, `SPEC-052`, `SPEC-059` nicht mit `src/main` überein; ein Leser des Quelltexts findet `simulationFile` und `MainKt` noch. — **Ausgang:** offen bis zur Closure.
-- Festlegungen außerhalb der sieben genannten tragen dieselbe Aussage (etwa `SPEC-043`, `SPEC-051`, Sicherheitsprofil, Kompatibilitätsmatrix) und bleiben beim Nachzug stehen (`BEO-TDS/fortschreibung-laesst-zweite-fundstelle-stehen`, 3×). — **Ausgang:** offen bis zur Closure.
+- Die Spezifikation sagt früher als der Code (Greenfield, Spec führt): zwischen diesem Slice und `slice-testserver-herausloesen` stimmen `SPEC-035`, `SPEC-052`, `SPEC-059` nicht mit `src/main` überein; ein Leser des Quelltexts findet `simulationFile` und `MainKt` noch. — **Ausgang:** weiter offen; Träger [slice-testserver-herausloesen](../open/slice-testserver-herausloesen.md) und [slice-jar-ohne-main-und-image](../open/slice-jar-ohne-main-und-image.md): die Zielzustand-Vermerke sind gekennzeichnet (14 Stellen), und beide Slices tragen die Nachweis-Pflicht, die Vermerke zu entfernen, mit Zuordnung der Stellen (Verifikation V-1).
+- Festlegungen außerhalb der sieben genannten tragen dieselbe Aussage (etwa `SPEC-043`, `SPEC-051`, Sicherheitsprofil, Kompatibilitätsmatrix) und bleiben beim Nachzug stehen (`BEO-TDS/fortschreibung-laesst-zweite-fundstelle-stehen`, 3×). — **Ausgang:** eingetreten: Review F-1 und F-2 fanden `SPEC-035` (Absatz „Beschreibung als Datei“), `SPEC-051` und das Schlüsselmaterial ohne Vermerk; die Fix-Runde (1e38f5d) hat sie behoben, die Evidence liegt im Register (jetzt 4×).
 - Die Folge-ADR zu Offen-Punkt 1 wird anders entschieden als die Empfehlung (i). — **Ausgang:** entfallen: [ADR-0026](../../adr/0026-oeffentlichkeit-simulations-backend-und-katalog.md) wählt (i) (2026-11-01).
-- Die Zusage-Zeile von `SPEC-059` nennt die Namen von `SimulationBackend` und `SimCatalog` vor dem Übersetzungslauf des Umbaus (`SimCatalog.find` als `internal` ist Setzung der ADR). — **Ausgang:** offen bis zur Closure (die Zusage nennt nur Konstruktoren und `tables`, `find` nicht).
-- `SPEC-059` wird von zwei Spec-Schritten berührt (dieser Slice: [ADR-0026](../../adr/0026-oeffentlichkeit-simulations-backend-und-katalog.md); `slice-betrieb-log-schnittstelle`: die Namen der Senke); die Fundstelle der Zusage kann dazwischen als vollständig gelesen werden (`BEO-TDS/fortschreibung-laesst-zweite-fundstelle-stehen`). — **Ausgang:** offen bis zur Closure (die Zusage-Zeile nennt die Senke nicht und trägt keinen Zwischenstand-Satz; die Namen folgen mit dem Bau der Log-Schnittstelle).
-- Ob [ADR-0011](../../adr/0011-pruefwertformat.md) und [ADR-0002](../../adr/0002-tls-und-verschluesselung.md) durch den Wegfall des Betriebswegs (Umgebung, Dateien) eine Folge-ADR brauchen, ist in [ADR-0025](../../adr/0025-produktschnitt-bibliothek-und-testserver.md) „nicht festgestellt“. — **Ausgang:** offen bis zur Closure.
-- Eine Zusage der Spezifikation hat nach dem Nachzug keinen Test mehr, der sie trägt (etwa der Container-Teil von `SPEC-052`, dessen Tag `@spec` heute nur den Lizenztext nennt); `make spec-abdeckung` zeigt Waisen erst nach dem Umbau. — **Ausgang:** offen bis zur Closure.
+- Die Zusage-Zeile von `SPEC-059` nennt die Namen von `SimulationBackend` und `SimCatalog` vor dem Übersetzungslauf des Umbaus (`SimCatalog.find` als `internal` ist Setzung der ADR). — **Ausgang:** weiter offen; Träger [slice-testserver-herausloesen](../open/slice-testserver-herausloesen.md): der Übersetzungslauf belegt die Namen. Die Zusage nennt nur Konstruktoren und `tables`, `find` nicht (Verifikation: bestätigt).
+- `SPEC-059` wird von zwei Spec-Schritten berührt (dieser Slice: [ADR-0026](../../adr/0026-oeffentlichkeit-simulations-backend-und-katalog.md); `slice-betrieb-log-schnittstelle`: die Namen der Senke); die Fundstelle der Zusage kann dazwischen als vollständig gelesen werden (`BEO-TDS/fortschreibung-laesst-zweite-fundstelle-stehen`). — **Ausgang:** weiter offen; Träger [slice-betrieb-log-schnittstelle](../open/slice-betrieb-log-schnittstelle.md): die Zusage-Zeile nennt die Senke nicht und trägt keinen Zwischenstand-Satz, die Namen folgen mit dem Bau der Log-Schnittstelle.
+- Ob [ADR-0011](../../adr/0011-pruefwertformat.md) und [ADR-0002](../../adr/0002-tls-und-verschluesselung.md) durch den Wegfall des Betriebswegs (Umgebung, Dateien) eine Folge-ADR brauchen, ist in [ADR-0025](../../adr/0025-produktschnitt-bibliothek-und-testserver.md) „nicht festgestellt“. — **Ausgang:** weiter offen; Entscheidung beim Nutzer, kein Träger-Slice. Das Register führt die Frage als `BEO-TDS/folge-adr-betriebsweg-nach-produktschnitt-ungeklaert`; keine Zeile der Spezifikation widerspricht den beiden ADRs.
+- Eine Zusage der Spezifikation hat nach dem Nachzug keinen Test mehr, der sie trägt (etwa der Container-Teil von `SPEC-052`, dessen Tag `@spec` heute nur den Lizenztext nennt); `make spec-abdeckung` zeigt Waisen erst nach dem Umbau. — **Ausgang:** weiter offen; Register `BEO-TDS/zusage-container-teil-spec-052-ohne-test`, die Welle-Closure prüft `make spec-abdeckung` nach dem Umbau.
 
 ## 7. Closure-Notiz
 
@@ -154,7 +154,7 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-Wird bei der Closure gefüllt. **Umsetzungsstand (Implementer, 2026-11-01, kein Closure-Eintrag):**
+**Umsetzungsstand (Implementer, 2026-11-01):**
 
 - Drift gemessen vor der Änderung (gelesen, nichts ausgeführt außer den Gates): `build.gradle.kts` setzt `Main-Class`, das `Dockerfile` führt die Stage `runtime`, `ServerConfig.simulationFile`, `ConfigKeys`, `ConfigLoader` und Jackson stehen in `src/main`. Die Spezifikation sagt daher an 14 Stellen Zielzustand (elf eigene Vermerke, drei Verweise; siehe §3).
 - Trefferliste der Suche (`Startklasse`, `MainKt`, `Laufzeit-Image`, `simulationFile`, `ein Artefakt`, `SIMULATION_DESCRIPTION_FILE`, `Serverprozess`, `Jackson`, `ConfigKeys`, `Zwischenstand` über `spec/spezifikation.md` und `spec/architecture.md`): `simulationFile`, `MainKt`, `ConfigKeys`, `ein Artefakt` ohne Treffer; `SIMULATION_DESCRIPTION_FILE` in `SPEC-035` (Testserver) und in Historie-Zeilen; `Jackson` in `SPEC-035` (Messung am Leser der Beschreibung); `Serverprozess` in `SPEC-040` (Angabe des Testservers, vom Gate `make kopplung-zahlen` im Wortlaut „Serverprozess mit 48 MiB Heap, Text von 64 000 000 Zeichen“ festgehalten) und `SPEC-052` (Testserver); `Startklasse` und `Laufzeit-Image` in `SPEC-052` (Aussage „ohne“ und Zielzustand-Satz) und in Historie-Zeilen; `Zwischenstand` nur in der neuen Zeile des Änderungsprotokolls. `spec/architecture.md`: keine Treffer, keine Aussage dem Schnitt widersprechend, unverändert.
@@ -163,6 +163,24 @@ Wird bei der Closure gefüllt. **Umsetzungsstand (Implementer, 2026-11-01, kein 
 - „Für Test und kleine Betriebe gedacht“ (`SPEC-051`, Review-Befund F-5): geprüft, trägt weiter als Aussage über die feste Benutzerliste der Bibliothek (kein Betriebsweg-Anspruch des Testservers); unverändert.
 - Fundstellen außerhalb der sieben genannten Festlegungen, die dieselbe Aussage trugen und hier mitgezogen wurden, ohne einen vierten Punkt zu ergeben: `SPEC-025` (Wort „Testserver“), `SPEC-051` (Konfigurationsweg, Lesen der Datei, Testmodus-Schalter, Zuordnung `AUTH_USERS_FILE`), Schlüsselmaterial des Sicherheitsprofils (`TLS_KEYSTORE_*`).
 - Folge-ADR zu [ADR-0011](../../adr/0011-pruefwertformat.md) und [ADR-0002](../../adr/0002-tls-und-verschluesselung.md) (Befund, keine Entscheidung): Beide Entscheidungen bleiben als Aussagen über Prüfwertformat, Datei und Schlüsselnamen lesbar, sobald man sie auf den Testserver bezieht; keine Zeile der Spezifikation widerspricht ihnen. Offen bleibt, ob die Zuordnung „Datei und Umgebung gehören dem Testserver“ eine Folge-ADR verlangt (Nutzer/Planner entscheidet).
+
+**Closure (Planner, 2026-11-01):**
+
+- **Was hat funktioniert:** Review ([Bericht](../../../reviews/2026-11-01-72d8ac8-slice-spec-nachzug-produktschnitt.md)) und Fix-Runde fanden die zweiten Fundstellen vor der Closure; die Verifikation ([Bericht](../../../reviews/2026-11-01-1e38f5d-verifikation-slice-spec-nachzug-produktschnitt.md)) bestätigte alle drei Liefer-Punkte und alle 14 Zielzustand-Stellen gegen den gebauten Stand (kein HIGH, kein MEDIUM). Die Mutation am Heap-Satz von `SPEC-040` (`48 MiB` auf `47 MiB`) machte `make kopplung-zahlen` rot und wurde zurückgesetzt.
+- **Zuordnung der Aussagen:**
+  - *Gemessen:* nur die Kopplung des Heap- und Textsatzes von `SPEC-040` an Gradle, Kotlin, .NET und README (Mutation, Exit 2 mit Befund). Der Slice enthält sonst keine Code-Aussage.
+  - *Handvektor:* keiner.
+  - *Selbstkonsistenz der Spezifikation:* Die Menge der `SPEC-*`-Kennungen ist gleich (56 und 56), keine ADR-, Slice-, Wellen- oder `docs/`-Token in `spec/`, jede Zielzustand-Aussage gegen den gelesenen Quelltext (`build.gradle.kts`, `Dockerfile`, `Main.kt`, `Bootstrap.kt`, `TdsServer.kt`) geprüft; das ist Lesen, kein Ausführen.
+  - *Festlegung:* die Zusage der Namen `SimulationBackend(catalog: SimCatalog)` und `SimCatalog(tables)`, die Spezifikation ohne YAML-Bibliothek in `lib/`, `Class-Path` als Komfort, die Wertebereiche der Eingänge des Testservers.
+  - *Nicht gemessen:* ob die Bibliothek ohne die YAML-Bibliothek läuft, der Container-Teil von `SPEC-052` am Testserver (beides erst nach dem Umbau), und V-4 der Verifikation (Lesehilfe-Lücke, siehe Folge-Slices).
+- **Was ging anders als geplant:** Der Nachzug führte die Spezifikation dem Code voraus und musste daher einen Zielzustand-Vermerk erfinden (Setzung des Implementers, Muster „Zielbild, nicht gebaut“). Die Fix-Runde nach dem Review ergänzte drei Vermerke und einen Verweis (F-1, F-2) und nahm den Planungsbegriff aus der Spezifikation (F-4). Die Verifikation fand, dass die Pflicht, die Vermerke nach dem Umbau zu entfernen, nur im Plan stand (V-1).
+- **Steering-Loop-Eintrag:** Eine Spec, die dem Code vorausgeht, braucht in den Trägern des Umbaus die Nachweis-Pflicht, ihre Zielzustand-Vermerke zu entfernen; sonst bleiben sie als falsche Präsens-Aussagen stehen. Eingetragen in beide Umbau-Slices ([slice-testserver-herausloesen](../open/slice-testserver-herausloesen.md), [slice-jar-ohne-main-und-image](../open/slice-jar-ohne-main-und-image.md)) als Nachweis-Pflicht mit Zuordnung der Stellen, einmalig (1×, Slice-Zuschnitt, keine Regel in `AGENTS.md`, Gate oder Skill). Verkörpert ist damit keine Regel, der Eintrag trägt kein `liegt in`: gezählt, nicht verkörpert.
+- **Über der Schwelle, nicht verkörpert, Entscheidung beim Nutzer:** `BEO-TDS/fortschreibung-laesst-zweite-fundstelle-stehen` steht mit diesem Slice bei 4× (`slice-antwort-mehrteilig-output`, `slice-qa-sicherheit`, `slice-qa-anmeldedrosselung`, `slice-spec-nachzug-produktschnitt`; Befunde innerhalb des Slice: Review F-1 und F-2, Verifikation V-1; ein Vorgang zählt einmal). Den Lese-Schritt macht die Welle-Closure; hier wird nichts verkörpert.
+- **Beobachtungs-Register (`../observations/`):** `evidence/slice-spec-nachzug-produktschnitt.md` ergänzt in `BEO-TDS/fortschreibung-laesst-zweite-fundstelle-stehen` (4×); neu angelegt `BEO-TDS/folge-adr-betriebsweg-nach-produktschnitt-ungeklaert` (1×) und `BEO-TDS/zusage-container-teil-spec-052-ohne-test` (1×).
+- **Folge-Slices:** keine neuen. V-1 steht als Nachweis-Pflicht ohne neuen Liefer-Punkt in [slice-testserver-herausloesen](../open/slice-testserver-herausloesen.md) (12 Stellen) und [slice-jar-ohne-main-und-image](../open/slice-jar-ohne-main-und-image.md) (2 Stellen); V-4 (`LOGIN_TIMEOUT`, `MAX_PRELOGIN_MESSAGE_BYTES`, `SHUTDOWN_GRACE`, `QUERY_TIMEOUT` nicht als Eingang des Testservers ausgezeichnet) steht als Lesehilfe-Hinweis im Nachweis von `slice-testserver-herausloesen`. V-5 (Start-Log in `SPEC-051`) gehört zu [slice-spec-nachzug-telemetrie](../open/slice-spec-nachzug-telemetrie.md).
+- **Folge-ADR-Frage (Nutzer):** Braucht der Wegfall des Betriebswegs eine Folge-ADR zu [ADR-0011](../../adr/0011-pruefwertformat.md) und [ADR-0002](../../adr/0002-tls-und-verschluesselung.md)? Befund: kein Widerspruch in der Spezifikation; Entscheidung beim Nutzer.
+- **Risiken aus §6:** siehe §6 (ein Risiko entfallen, eines eingetreten, fünf weiter offen mit Träger oder Register).
+- **Drei Paarungen:** Anker: kein Eintrag mit `liegt in`, nichts zu paaren. Folge-Slice: V-1 und V-4 stehen in den DoDs der Umbau-Slices. Register: die drei Einträge oben liegen als Dateien vor. Die Welle-Closure prüft sie erneut.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
