@@ -147,13 +147,19 @@ COPY tools/spec-abdeckung.sh tools/spec-abdeckung-selbsttest.sh tools/
 RUN sh tools/spec-abdeckung-selbsttest.sh
 
 # --- Skript-Selbsttest: `make skript-selbsttest` - belegt ohne Gradle, dass tools/e2e.sh an der ersten roten
-# Stufe abbricht und dass tools/manifest-pruefung.sh seine Fehlerfaelle abweist; das Dockerfile selbst ist
+# Stufe abbricht, dass tools/manifest-pruefung.sh seine Fehlerfaelle abweist und dass tools/vergleichslauf-d.sh ohne EULA-Variable,
+# in der CI und mit unbekanntem Namen vor jedem Docker-Aufruf endet (die Fragmente, das E2E-Skript und die Workflows sind dafuer Eingang); das Dockerfile selbst ist
 # Eingang, weil der Test den Aufruf der Pruefung in der Stage `build-jar` liest. ------------------------
 FROM basis AS skript-selbsttest
 WORKDIR /src
 COPY Dockerfile Dockerfile
 COPY tools/e2e.sh tools/e2e-selbsttest.sh tools/manifest-pruefung.sh tools/manifest-selbsttest.sh tools/eingangs-hash.sh tools/eingangs-hash-selbsttest.sh tools/
-RUN bash tools/e2e-selbsttest.sh && sh tools/manifest-selbsttest.sh && bash tools/eingangs-hash-selbsttest.sh
+COPY tools/vergleichslauf-d.sh tools/vergleichslauf-d-selbsttest.sh tools/
+COPY tools/mk tools/mk
+COPY harness/mk harness/mk
+COPY Makefile repo.mk ./
+COPY .github/workflows .github/workflows
+RUN bash tools/e2e-selbsttest.sh && sh tools/manifest-selbsttest.sh && bash tools/eingangs-hash-selbsttest.sh && bash tools/vergleichslauf-d-selbsttest.sh
 
 # --- Kopplung der Zahlen: `make kopplung-zahlen` - haelt Heap und Text von `gross` des Integrationslaufs (SPEC-040)
 # in build.gradle.kts, IntegrationServer.kt, dem .NET-Test, der Spezifikation und harness/README.md gleich und belegt

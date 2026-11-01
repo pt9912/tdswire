@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** SPEC-045 · SPEC-050
 
-**Verantwortlich:** — bis zur Priorisierung (pt9912 trägt sich beim Übergang `open` → `next` ein).
+**Verantwortlich:** pt9912.
 
 **Autor:** pt9912. **Datum:** 2026-10-30.
 
@@ -96,9 +96,13 @@ Aussagen-Berührung steht hier gar nicht.
 | Ausnahmeliste | neu | Abweichungen mit Pfad, Szenario, Grund und Art (*so gewollt* oder *Lücke*), nach [SPEC-045](../../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig) |
 | `referenztest-dotnet/` | update | Anmelde-Szenario (falsches Kennwort, unbekannter Benutzer) gegen den echten Server; `Kompatibilitaet/Ziel.cs` liest das Ziel aus `TDSWIRE_ZIEL`, hält aber Benutzer, Kennwort und Vertrauensanker des Testservers fest (gelesen am 2026-11-01), der echte Server braucht eigene Werte, ohne die Tests des Testservers zu ändern; Szenarien für Mehrfach-Resultset und RPC mit Ausgabewert gehören zu [slice-qa-vergleichslauf-d-messungen](../open/slice-qa-vergleichslauf-d-messungen.md) |
 | `Dockerfile` | update | Stage und Digest-Pin für das SQL-Server-Image (die Basis-Images stehen dort per Digest) |
-| Skript des Laufs <!-- d-check:ignore (geplant: Name nach dem Muster von tools/kompatibilitaetstest.sh) --> | neu | Ablauf, `trap`, Bereitschaft, Messzeiten; Selbsttest nach dem Muster von `make skript-selbsttest`, soweit der Ablauf Verzweigungen hat |
+| `tools/vergleichslauf-d.sh` | neu | Ablauf, `trap`, Bereitschaft (Zeile „Recovery is complete“), Messzeilen, Sonde für TDS 8.0; Erwartungen je Lauf als Tabelle `parameter` |
+| `tools/vergleichslauf-d-selbsttest.sh`, Dockerfile-Stage `skript-selbsttest` | neu / update | Selbsttest ohne Docker: Abbruch ohne EULA-Variable, in der CI und bei unbekanntem Namen; Lauf D steht in keinem Gate, keinem E2E-Skript, keinem Workflow |
+| `tools/mk/vergleichslauf-d.mk` | neu | Target `vergleichslauf-d`, EULA-Variable mit Zeiger, Bedarf im Kopf |
+| `referenztest-dotnet/Vergleich/` und `referenztest-dotnet/Dockerfile` | neu / update | eigene Zielklasse (Benutzer `sa`, Kennwort aus der Umgebung), Anmelde- und TDS-8.0-Tests; Stufen `vergleich`, `referenzinstanz-2022`, `referenzinstanz-2025` mit Digest; die Pins stehen im Dockerfile des Referenztests, nicht im Gradle-Dockerfile an der Wurzel (dort steht kein .NET-Basis-Image) |
+| `docs/plan/referenzabgleich-ausnahmen.md` | neu | die Ausnahmeliste samt Befunden (Ort in `docs/plan/` nach `AGENTS.md` §5 Regel 6) |
 
-Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
+Der Implementer-Agent hat die Liste am 2026-11-01 erweitert. Drift gegen den Plan, gemessen vor dem Edit: die Szenarien des Referenzclients fassen das Ziel über `TDSWIRE_ZIEL`, Benutzer und Kennwort aber fest (`Kompatibilitaet/Ziel.cs`); daher eine eigene Zielklasse unter `Vergleich/`, die Tests des Testservers bleiben unverändert. Der Digest von `2022-latest` ist am 2026-11-01 unverändert gleich dem der Messung D in [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md).
 
 ## 4. Trigger
 
