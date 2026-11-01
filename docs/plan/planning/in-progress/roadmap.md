@@ -41,7 +41,7 @@ In Arbeit (ohne Welle):
 
 In Arbeit (Welle welle-produktschnitt):
 
-- keiner; zuletzt geschlossen: [slice-explicit-api-umbau](../done/slice-explicit-api-umbau.md) (Closure-Notiz in §7 des Slice; offene Nutzerpunkte: Sensor für die Menge der öffentlichen Klassen und `Principal`, getragen in [slice-release-doku-prozess](../open/slice-release-doku-prozess.md); Folge: [slice-jar-ohne-main-und-image](../open/slice-jar-ohne-main-und-image.md), [slice-betrieb-log-adapter-testserver](../open/slice-betrieb-log-adapter-testserver.md))
+- keiner; zuletzt geschlossen: [slice-jar-ohne-main-und-image](../done/slice-jar-ohne-main-und-image.md) (Closure-Notiz in §7 des Slice; offene Nutzerpunkte: Zelle `make e2e` in `harness/README.md`, Name `make laufzeittest`; Folge: [slice-betrieb-log-adapter-testserver](../open/slice-betrieb-log-adapter-testserver.md), [slice-release-doku-prozess](../open/slice-release-doku-prozess.md))
 
 ## Nächste Wellen
 

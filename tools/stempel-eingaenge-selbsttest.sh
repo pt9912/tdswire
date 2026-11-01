@@ -4,7 +4,7 @@
 #
 # Zusage: Die Pruefung ist auf dem echten Bestand gruen. Eine COPY-Zeile ohne Listeneintrag in einer Stage jeder Klasse, in
 # einer vererbenden Vorgaenger-Stage, in einer Stage, aus der eine Stage der Klasse mit `COPY --from=` holt, im Dockerfile
-# von referenztest-dotnet und hinter der Stage `build`, jede nicht erkannte Form von COPY, ADD, RUN --mount und FROM, ein
+# von referenztest-dotnet und hinter der letzten Stage, jede nicht erkannte Form von COPY, ADD, RUN --mount und FROM, ein
 # entfernter Listeneintrag, ein Link- oder Make-Eingang ohne Eintrag und eine Scan-Wurzel von .d-check.yml ohne Eintrag machen
 # sie rot; die Kontrollfaelle (COPY ausserhalb der Klassen, COPY --from ohne Quellen, Quelle unter einem Eintrag, Link im
 # Codeblock) bleiben gruen. Ohne diese Rot-Faelle gilt der Selbsttest als nicht gelaufen: er endet dann mit Exit 1.
@@ -99,7 +99,7 @@ h_docker() {
 	fixture h1
 	lauf "Bestand gruen" 0 "ok"
 	local stage
-	for stage in test compile detekt build-jar smoke build deps basis; do
+	for stage in test compile detekt build-jar smoke deps basis; do
 		docker_mit "m-$stage" "$stage" "COPY neu.txt neu.txt"
 		lauf "tests: COPY neu.txt in Stage $stage" 1 "kein Eintrag deckt 'neu.txt'" "STEMPEL_DOCKERFILE=$T/m-$stage"
 	done
@@ -162,7 +162,7 @@ EOF
 	lauf "COPY . mit Eintrag . bleibt Befund" 1 "COPY . holt den ganzen Kontext" "STEMPEL_DOCKERFILE=$T/m-punkt" "STEMPEL_LISTEN=$T/l-punkt"
 	# Stages
 	{ cat "$ECHT/$DOCKERFILE_ECHT"; printf '\nFROM scratch AS neu\n'; } > "$T/m-letzte"
-	lauf "andere letzte Stage als build" 1 "letzte Stage" "STEMPEL_DOCKERFILE=$T/m-letzte"
+	lauf "andere letzte Stage als kompatibilitaetsserver" 1 "letzte Stage" "STEMPEL_DOCKERFILE=$T/m-letzte"
 	sed 's/^FROM deps AS /FROM DEPS AS /' "$ECHT/$DOCKERFILE_ECHT" > "$T/k-gross"
 	lauf "Kontrolle: FROM DEPS (Grossschreibung) vererbt weiter" 0 - "STEMPEL_DOCKERFILE=$T/k-gross"
 	printf '%s\n' 'COPY neu.txt neu.txt' > "$T/einfuegung.gross"

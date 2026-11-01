@@ -4,10 +4,10 @@
 # tools/stempel-eingaenge-selbsttest.sh.
 #
 # Zusage: Exit 0 nur, wenn
-#  - jede COPY/ADD-Quelle der Stages test, compile, detekt, build-jar, smoke und build samt Vorgaenger-Stages (bei
+#  - jede COPY/ADD-Quelle der Stages test, compile, detekt, build-jar und smoke samt Vorgaenger-Stages (bei
 #    `COPY --from=<stage>` zaehlen die Quellen der Quell-Stage fuer die holende Stage) von Dockerfile und der Stage test von
 #    referenztest-dotnet/Dockerfile von einem Eintrag in tests.eingaenge ueberdeckt
-#    ist und build die letzte Stage ist (`docker build .` baut die letzte),
+#    ist und kompatibilitaetsserver die letzte Stage ist (`docker build .` baut die letzte),
 #  - jede Quelle der Stages detekt-selbsttest, skript-selbsttest, kopplung-zahlen samt Vorgaengern, jede Markdown-Datei,
 #    die d-check nach scan.roots und scan.ignore aus .d-check.yml liest, jedes vorhandene Ziel eines Markdown-Links in diesen
 #    Dateien (Codebloecke und Symlinks ausgenommen), jede Make-Datei des Repos und jede Wurzel aus codepaths.roots von einem
@@ -19,7 +19,7 @@
 # ist ueberdeckt, wenn ein Eintrag ein Elternverzeichnis ihres Textes nennt (`tools/*.sh` unter `tools`).
 # Befund statt stillem Ignorieren: `COPY .`, `..` in einer Quelle, ein Zyklus aus `COPY --from=`, Heredoc, JSON-Form, Variable (auch in FROM),
 # Anfuehrungszeichen, URL, absolute Quelle, andere Optionen als --chown/--link/--from, `RUN --mount` ohne from= (bind,
-# secret, ssh), eine andere letzte Stage als build und eine nicht erkannte Form von scan/codepaths in .d-check.yml.
+# secret, ssh), eine andere letzte Stage als kompatibilitaetsserver und eine nicht erkannte Form von scan/codepaths in .d-check.yml.
 # Stage-Namen gelten ohne Beachtung der Gross-/Kleinschreibung.
 # Grenze: gezeigt wird "kein COPY, Link, Make-Fragment oder fester Eingang ausserhalb der Eintraege", nicht "kein versteckter
 # Eingang"; was ein Gate zur Laufzeit holt (Netz, Basis-Image, Paketmanager) oder ausserhalb von Docker liest, prueft das
@@ -48,11 +48,11 @@ LISTEN=${STEMPEL_LISTEN:-tools/stempel}
 
 # Zuordnung der Stages zu den Klassen: Make-Fragmente und Dockerfile nennen sie (tools/mk/test.mk, build.mk,
 # detekt-selbsttest.mk, skript-selbsttest.mk, kopplung-zahlen.mk, referenztest-dotnet.mk).
-STAGES_TESTS="test compile detekt build-jar smoke build"
+STAGES_TESTS="test compile detekt build-jar smoke"
 STAGES_TESTS_DOTNET="test"
 STAGES_WERKZEUG="detekt-selbsttest skript-selbsttest kopplung-zahlen"
-# Die letzte Stage des Dockerfile ist das Ziel von `docker build .` (make build, tools/mk/build.mk).
-LETZTE_STAGE=build
+# Die letzte Stage des Dockerfile ist das Ziel von `docker build .`; `make build` baut `build-jar` (tools/mk/build.mk).
+LETZTE_STAGE=kompatibilitaetsserver
 FEST_BEIDE="Dockerfile .dockerignore Makefile repo.mk tools/mk/builder.mk tools/stempel.sh tools/stempel-liste.sh tools/stempel/werkzeug.eingaenge tools/stempel/tests.eingaenge"
 FEST_WERKZEUG=".d-check.yml d-check.mk .harness/baseline harness tools referenztest-dotnet/Dockerfile"
 FEST_TESTS="tools/mk/test.mk tools/mk/build.mk tools/mk/referenztest-dotnet.mk"

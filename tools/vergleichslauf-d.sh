@@ -19,7 +19,7 @@
 # Warten auf die Zeile 'Recovery is complete' im Log des Servers (Bereitschaftsschleife): nach 'ready for client
 # connections' laufen noch Upgrade-Schritte der Systemdatenbanken, und die Anmeldung von sa scheitert in dieser Zeit
 # mit State 7 (gemessen 2026-11-01, Image 2022). Die Tests der Kategorie laufen im Client-Container;
-# die Zeilen `messung:` des Berichts sind die Werte, die die Ausnahmeliste (docs/plan/referenzabgleich-ausnahmen.md) zitiert.
+# die Zeilen `messung:` des Berichts sind die Werte, die die Ausnahmeliste (docs/messungen/referenzabgleich.md) zitiert.
 # Kategorie VergleichTds8: zusaetzlich eine Sonde (`openssl s_client` aus dem Image der Referenzinstanz im Netzwerk):
 # der TLS-Handschlag allein, ohne Client-Bibliothek und ohne Pruefung des Zertifikats; sie trennt "der Server beantwortet
 # TLS vor jedem TDS-Paket" von "der Client lehnt das Zertifikat ab". Die Erwartungen je Lauf (Client und Sonde) stehen
