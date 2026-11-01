@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tools/stempel.sh <pruefe|schreibe|einrichten> ... - lokale Stempel der zwei Gate-Klassen `werkzeug` und `tests`
+# tools/stempel.sh <pruefe|schreibe|einrichten> ... - lokale Stempel der drei Gate-Klassen `werkzeug`, `tests` und `stempel`
 # (ADR-0024, ADR-0023, TDS-QA-06). Aufrufer: noch keiner; Selbsttest: tools/stempel-selbsttest.sh.
 # Voraussetzung: bash ab 4.3 (mapfile, declare -A, local -n), git und GNU-Werkzeuge (sha256sum, find -mmin, sort, grep -a).
 #
@@ -40,8 +40,8 @@
 # <Commit>:<Pfad>`). Ein Eintrag ist ein literaler Pfad ohne Platzhalter; ein Eintrag, der in HEAD fehlt, ist ein Fehler,
 # kein leerer Wert. Sauber heisst: `git status --ignored` meldet in den Eintraegen nichts (versioniert, unversioniert,
 # ignoriert); Aenderungen ausserhalb zaehlen nicht.
-# Eingaenge: die Eintraege beider Listen; das Skript, tools/stempel-liste.sh und beide Listen stehen in der Liste beider
-# Klassen (die Pruefung tools/stempel-eingaenge-pruefung.sh haelt das).
+# Eingaenge: die Eintraege der drei Listen; das Skript, tools/stempel-liste.sh und alle drei Listen stehen in der Liste jeder
+# Klasse (die Pruefung tools/stempel-eingaenge-pruefung.sh haelt das).
 # Grenze: Die Note ist lokal und wird von jedem mit Schreibrecht auf das Git-Verzeichnis gesetzt; der Hash-Vergleich
 # gegen den Vorfahren faengt eine Note am falschen Commit, nicht eine Note, die ein Mensch am richtigen setzt.
 # Laufzeit des Selbsttests: Kopf von tools/mk/stempel.mk.
@@ -62,8 +62,8 @@ grund() { printf 'stempel: %s\n' "$*" >&2; }
 # klasse_pruefen <klasse>: nur die zwei Klassen der ADR-0024.
 klasse_pruefen() {
 	case ${1:-} in
-		werkzeug | tests) return 0 ;;
-		*) WARUM="unbekannte Klasse '${1:-}' (werkzeug oder tests)"; return 1 ;;
+		werkzeug | tests | stempel) return 0 ;;
+		*) WARUM="unbekannte Klasse '${1:-}' (werkzeug, tests oder stempel)"; return 1 ;;
 	esac
 }
 

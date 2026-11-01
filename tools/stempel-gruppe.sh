@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tools/stempel-gruppe.sh <klasse> <gate>... - Gruppenschritt einer Gate-Klasse (ADR-0024 Entscheidung 1 und 5, ADR-0023,
-# TDS-QA-06). Aufrufer: die Targets gruppe-werkzeug und gruppe-tests in tools/mk/stempel.mk; Selbsttest:
+# TDS-QA-06). Aufrufer: die Targets gruppe-werkzeug, gruppe-tests und gruppe-stempel in tools/mk/stempel.mk; Selbsttest:
 # tools/stempel-gruppe-selbsttest.sh.
 #
 #   1. `tools/stempel.sh pruefe <klasse>`: Exit 0 ueberspringt die Klasse, jeder andere Ausgang laesst sie laufen.
@@ -15,7 +15,7 @@
 # Ein Aufruf ohne Gate oder mit unbekannter Klasse endet mit Exit 2.
 set -u
 klasse=${1:-}
-case $klasse in werkzeug | tests) ;; *) printf 'stempel-gruppe: Klasse werkzeug oder tests erwartet, nicht %q\n' "$klasse" >&2; exit 2 ;; esac
+case $klasse in werkzeug | tests | stempel) ;; *) printf 'stempel-gruppe: Klasse werkzeug, tests oder stempel erwartet, nicht %q\n' "$klasse" >&2; exit 2 ;; esac
 shift
 [ $# -gt 0 ] || { printf 'stempel-gruppe: Klasse %s ohne Gate\n' "$klasse" >&2; exit 2; }
 

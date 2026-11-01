@@ -92,7 +92,7 @@ lässt. Ergänzt die Tabelle, ersetzt sie nicht:
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-stempel-migration](slice-stempel-migration.md) und [slice-kompatibilitaetsmatrix-erzeugen](slice-kompatibilitaetsmatrix-erzeugen.md) und [slice-kompatibilitaetsmatrix-migration](slice-kompatibilitaetsmatrix-migration.md) liegen in `done/`.
+**Start** (`next` → `in-progress`): [slice-stempel-migration](../in-progress/slice-stempel-migration.md) und [slice-kompatibilitaetsmatrix-erzeugen](slice-kompatibilitaetsmatrix-erzeugen.md) und [slice-kompatibilitaetsmatrix-migration](slice-kompatibilitaetsmatrix-migration.md) liegen in `done/`.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

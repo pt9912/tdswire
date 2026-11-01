@@ -41,6 +41,7 @@ export PROTOKOLL=$T/protokoll MAKE=$FAKE
 
 W="gw1 gw2"
 TS="gt1 gt2"
+SS="gs1 gs2"
 LAEUFE=0
 FEHLER=0
 rot() { printf 'ROT   %s\n' "$*"; FEHLER=$((FEHLER + 1)); }
@@ -48,7 +49,7 @@ g() { git -C "$R" "$@"; }
 schritt() { # schritt <klasse> <rc> <gerufen|-> <name> [VAR=wert]...: Gruppenschritt laufen lassen
 	local klasse=$1 soll=$2 gerufen=$3 name=$4 gates rc ist
 	shift 4
-	if [ "$klasse" = werkzeug ]; then gates=$W; else gates=$TS; fi
+	case $klasse in werkzeug) gates=$W ;; stempel) gates=$SS ;; *) gates=$TS ;; esac
 	: > "$PROTOKOLL"
 	# shellcheck disable=SC2086
 	(cd "$R" && env "$@" "$BASH_BIN" tools/stempel-gruppe.sh "$klasse" $gates > "$T/out" 2> "$T/err" < /dev/null)
@@ -59,9 +60,10 @@ schritt() { # schritt <klasse> <rc> <gerufen|-> <name> [VAR=wert]...: Gruppensch
 	if [ "$gerufen" = - ]; then [ -z "$ist" ] || rot "$name: Gates gerufen ($ist), erwartet keine"
 	else [ "$ist" = "$gerufen" ] || rot "$name: gerufen '$ist' statt '$gerufen'"; fi
 }
-alle() { # alle <name> <w|-> <t|->: beide Klassen in der Reihenfolge werkzeug, tests
+alle() { # alle <name> <w|-> <t|-> <s|->: die Klassen in der Reihenfolge werkzeug, tests, stempel
 	schritt werkzeug 0 "$([ "$2" = w ] && echo "$W" || echo -)" "$1 werkzeug" X=1
 	schritt tests 0 "$([ "$3" = t ] && echo "$TS" || echo -)" "$1 tests" X=1
+	schritt stempel 0 "$([ "${4:--}" = s ] && echo "$SS" || echo -)" "$1 stempel" X=1
 }
 neu_commit() { g add -A; g commit -q -m "$1"; }
 
@@ -70,19 +72,19 @@ mkdir "$R"
 (cd "$ECHT" && git ls-files --cached --others --exclude-standard -z | grep -z -v '^\.claude/worktrees/' | xargs -0 cp -P --parents -t "$R" 2> /dev/null)
 g init -q --template=
 neu_commit abbild
-alle "erster Lauf" w t
-alle "zweiter Lauf, derselbe Eingang" - -
-[ "$(g notes --ref=refs/notes/gates show HEAD 2> /dev/null | grep -c '^stempel ')" = 2 ] || rot "erster Lauf: nicht genau zwei Stempel an HEAD"
+alle "erster Lauf" w t s
+alle "zweiter Lauf, derselbe Eingang" - - -
+[ "$(g notes --ref=refs/notes/gates show HEAD 2> /dev/null | grep -c '^stempel ')" = 3 ] || rot "erster Lauf: nicht genau drei Stempel an HEAD"
 printf '\nx\n' >> "$R/docs/plan/adr/README.md" 2> /dev/null || printf 'x\n' >> "$R/docs/leer.md"
 neu_commit docs
-alle "docs geaendert" w -
+alle "docs geaendert" w - -
 printf '\n// x\n' >> "$(cd "$R" && git ls-files 'src/main/*.kt' | head -n 1 | sed "s|^|$R/|")"
 neu_commit src
-alle "src geaendert" - t
+alle "src geaendert" - t -
 printf '\n# x\n' >> "$R/Dockerfile"
 neu_commit dockerfile
-alle "Dockerfile geaendert" w t
-alle "Dockerfile, zweiter Lauf" - -
+alle "Dockerfile geaendert" w t s
+alle "Dockerfile, zweiter Lauf" - - -
 
 schritt tests 0 "$TS" "FORCE=1 trotz Stempel" FORCE=1
 printf '\n# y\n' >> "$R/Dockerfile"
@@ -98,7 +100,7 @@ printf 'u\n' > "$R/referenztest-dotnet/obj/x"
 schritt tests 0 "$TS" "obj/ unter referenztest-dotnet ruft" X=1
 schritt tests 0 "$TS" "obj/: nichts geschrieben" X=1
 rm -rf "$R/referenztest-dotnet/obj"
-alle "nach dem Aufraeumen" w t
+alle "nach dem Aufraeumen" w t s
 # rotes Gate: Exit 1, kein Stempel
 printf '\n# z\n' >> "$R/Dockerfile"
 neu_commit dockerfile-3
@@ -149,13 +151,16 @@ flags "T=[] K=[1]" -k -i
 # Gates, die sie roeten, muessen trotz Stempel laufen.
 printf '# n\n\n[x](gibt-es-nicht.md)\n' > "$R/src/NOTIZ.md"
 neu_commit notiz
-alle "Datei ausserhalb der Listen" w t
-alle "Datei ausserhalb der Listen, zweiter Lauf" - -
+alle "Datei ausserhalb der Listen" w t s
+alle "Datei ausserhalb der Listen, zweiter Lauf" - - -
 plan=$(cd "$R" && make -n gates 2>&1)
 LAEUFE=$((LAEUFE + 1))
 printf '%s\n' "$plan" | grep -q '^stempel-gruppe: Trockenlauf, werkzeug: .*docs-check' && rot "docs-check steht in der Gruppe werkzeug"
 printf '%s\n' "$plan" | grep -q '^stempel-gruppe: Trockenlauf, .*gate-zuordnung' && rot "gate-zuordnung steht in einer Gruppe"
 printf '%s\n' "$plan" | grep -q '^stempel-gruppe: Trockenlauf, .*stempel-eingaenge-pruefung' && rot "stempel-eingaenge-pruefung steht in einer Gruppe"
+LAEUFE=$((LAEUFE + 1))
+printf '%s\n' "$plan" | grep -q -x 'stempel-gruppe: Trockenlauf, stempel: stempel-selbsttest stempel-eingaenge stempel-abbild stempel-gruppe' \
+	|| rot "gruppe-stempel ruft nicht genau die vier Selbsttests"
 for g in 'ghcr.io/pt9912/d-check' 'tools/gate-zuordnung.sh' 'tools/stempel-eingaenge-pruefung.sh'; do
 	LAEUFE=$((LAEUFE + 1))
 	printf '%s\n' "$plan" | grep -q -F -- "$g" || rot "make -n gates plant $g nicht als eigenen Schritt"

@@ -12,9 +12,10 @@
 #    die d-check nach scan.roots und scan.ignore aus .d-check.yml liest, jedes vorhandene Ziel eines Markdown-Links in diesen
 #    Dateien (Codebloecke und Symlinks ausgenommen), jede Make-Datei des Repos und jede Wurzel aus codepaths.roots von einem
 #    Eintrag in werkzeug.eingaenge ueberdeckt ist,
-#  - die festen Eingaenge (Dockerfile, .dockerignore, Makefile, repo.mk, builder.mk, Skript, Liste-Lib und beide Listen in
-#    beiden Listen; .d-check.yml, d-check.mk (Image-Pin), .harness/baseline, harness, tools und referenztest-dotnet/Dockerfile
-#    in werkzeug; die Fragmente der Test-Gates in tests) ueberdeckt sind und jede genannte Stage im Dockerfile steht.
+#  - die festen Eingaenge (Skript, Liste-Lib und alle drei Listen in jeder der drei Listen; Dockerfile, .dockerignore, Makefile,
+#    repo.mk und builder.mk in tests und werkzeug; .d-check.yml, d-check.mk (Image-Pin), .harness/baseline, harness, tools und
+#    referenztest-dotnet/Dockerfile in werkzeug; die Fragmente der Test-Gates in tests; die Lese-Pfade der vier Selbsttests in
+#    stempel) ueberdeckt sind und jede genannte Stage im Dockerfile steht.
 # Ueberdeckt: ein Eintrag nennt denselben Pfad oder ein Elternverzeichnis (`.` deckt alles); eine Quelle mit Platzhalter
 # ist ueberdeckt, wenn ein Eintrag ein Elternverzeichnis ihres Textes nennt (`tools/*.sh` unter `tools`).
 # Befund statt stillem Ignorieren: `COPY .`, `..` in einer Quelle, ein Zyklus aus `COPY --from=`, Heredoc, JSON-Form, Variable (auch in FROM),
@@ -53,9 +54,12 @@ STAGES_TESTS_DOTNET="test"
 STAGES_WERKZEUG="detekt-selbsttest skript-selbsttest kopplung-zahlen"
 # Die letzte Stage des Dockerfile ist das Ziel von `docker build .`; `make build` baut `build-jar` (tools/mk/build.mk).
 LETZTE_STAGE=kompatibilitaetsserver
-FEST_BEIDE="Dockerfile .dockerignore Makefile repo.mk tools/mk/builder.mk tools/stempel.sh tools/stempel-liste.sh tools/stempel/werkzeug.eingaenge tools/stempel/tests.eingaenge"
+FEST_ALLE="tools/stempel.sh tools/stempel-liste.sh tools/stempel/werkzeug.eingaenge tools/stempel/tests.eingaenge tools/stempel/stempel.eingaenge"
+FEST_BEIDE="Dockerfile .dockerignore Makefile repo.mk tools/mk/builder.mk"
 FEST_WERKZEUG=".d-check.yml d-check.mk .harness/baseline harness tools referenztest-dotnet/Dockerfile"
 FEST_TESTS="tools/mk/test.mk tools/mk/build.mk tools/mk/referenztest-dotnet.mk tools/mk/stempel.mk tools/stempel-gruppe.sh"
+# Lese-Pfade der vier Selbsttests der Klasse stempel (Herleitung im Kopf von tools/stempel/stempel.eingaenge).
+FEST_STEMPEL="tools/stempel-gruppe.sh tools/stempel-selbsttest.sh tools/stempel-eingaenge-pruefung.sh tools/stempel-eingaenge-selbsttest.sh tools/stempel-abbild-selbsttest.sh tools/stempel-gruppe-selbsttest.sh tools/gate-zuordnung.sh tools/gate-zuordnung-selbsttest.sh tools/mk harness/mk d-check.mk Makefile repo.mk Dockerfile referenztest-dotnet/Dockerfile .d-check.yml"
 
 declare -A PARENT QUELLEN KENNT LETZTE VONREF
 BEFUNDE=()
@@ -208,6 +212,7 @@ ignoriert() { # <datei>: passt auf ein Muster aus scan.ignore (** wie *, ein fue
 # --- Eintraege und Dockerfiles lesen ---------------------------------------------------------------------------------
 lade_eintraege werkzeug
 lade_eintraege tests
+lade_eintraege stempel
 lese_dockerfile "$DOCKERFILE" root ""
 lese_dockerfile "$DOTNET_DOCKERFILE" dotnet "$DOTNET_KONTEXT/"
 
@@ -235,7 +240,7 @@ for s in $STAGES_TESTS_DOTNET; do
 	pruefe_quellen tests "Stage $s von $DOTNET_DOCKERFILE" "${q[@]+"${q[@]}"}"
 done
 # shellcheck disable=SC2086
-pruefe_quellen tests "fester Eingang" $FEST_BEIDE $FEST_TESTS
+pruefe_quellen tests "fester Eingang" $FEST_ALLE $FEST_BEIDE $FEST_TESTS
 
 # --- Klasse werkzeug -------------------------------------------------------------------------------------------------
 for s in $STAGES_WERKZEUG; do
@@ -243,7 +248,11 @@ for s in $STAGES_WERKZEUG; do
 	pruefe_quellen werkzeug "Stage $s" "${q[@]+"${q[@]}"}"
 done
 # shellcheck disable=SC2086
-pruefe_quellen werkzeug "fester Eingang" $FEST_BEIDE $FEST_WERKZEUG
+pruefe_quellen werkzeug "fester Eingang" $FEST_ALLE $FEST_BEIDE $FEST_WERKZEUG
+
+# --- Klasse stempel ---------------------------------------------------------------------------------------------------
+# shellcheck disable=SC2086
+pruefe_quellen stempel "fester Eingang" $FEST_ALLE $FEST_STEMPEL
 
 mapfile -t SCAN_ROOTS < <(d_check_lesen scanroot)
 mapfile -t SCAN_IGNORE < <(d_check_lesen scanignore)

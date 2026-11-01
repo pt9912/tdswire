@@ -36,10 +36,11 @@ E2E_ABDECKUNG_QUELLE = tools/e2e.sh
 E2E_ABDECKUNG_PRAEFIX = e2e
 E2E_ABDECKUNG_SPEC = spec/lastenheft.md
 
-# Gate-Klassen (ADR-0024 Entscheidung 1 und 3): steht NACH dem Einbinden aller Fragmente. GATE_CHECKS wird durch die zwei
+# Gate-Klassen (ADR-0024 Entscheidung 1 und 3, ADR-0030): steht NACH dem Einbinden aller Fragmente. GATE_CHECKS wird durch die drei
 # Gruppenschritte (tools/mk/stempel.mk) und jedes Gate ohne Klasse ersetzt; das Gate ohne Klasse laeuft weiter immer und
 # macht `make gate-zuordnung` rot. GATE_ROH haelt die Kette vor dem Ersetzen.
 GATE_ROH := $(GATE_CHECKS)
 GATE_GRUPPE_werkzeug := $(filter $(GATE_KLASSE_werkzeug),$(GATE_ROH))
 GATE_GRUPPE_tests := $(filter $(GATE_KLASSE_tests),$(GATE_ROH))
-GATE_CHECKS := gruppe-werkzeug gruppe-tests $(filter-out $(GATE_KLASSE_werkzeug) $(GATE_KLASSE_tests),$(GATE_ROH))
+GATE_GRUPPE_stempel := $(filter $(GATE_KLASSE_stempel),$(GATE_ROH))
+GATE_CHECKS := gruppe-werkzeug gruppe-tests gruppe-stempel $(filter-out $(GATE_KLASSE_werkzeug) $(GATE_KLASSE_tests) $(GATE_KLASSE_stempel),$(GATE_ROH))

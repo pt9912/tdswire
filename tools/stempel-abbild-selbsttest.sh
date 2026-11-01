@@ -4,7 +4,7 @@
 #
 # Zusage: In einem Wegwerf-Repo mit dem Inhalt dieses Arbeitsbaums (versioniert und unversioniert ohne Ignoriertes, Symlinks
 # als Symlinks) und den echten Listen aendert die Aenderung einer Datei unter jedem Eintrag einer Liste den Eingangs-Hash
-# ihrer Klasse, `pruefe` laeuft dann; der Image-Pin in d-check.mk betrifft `werkzeug`, nicht `tests`; ein anderer Basis-Image-
+# ihrer Klasse, `pruefe` laeuft dann; der Image-Pin in d-check.mk betrifft `werkzeug` und `stempel`, nicht `tests`; ein anderer Basis-Image-
 # Pin im Dockerfile betrifft beide. Das belegt die Kopplung "Datei im Eintrag -> Hash", nicht die Vollstaendigkeit der
 # Listen (die prueft tools/stempel-eingaenge-pruefung.sh). Der Lauf kopiert den Arbeitsbaum und ist deshalb ein eigenes
 # Target: noetig nach Aenderungen an tools/stempel*, tools/stempel/*.eingaenge oder dem Dockerfile, nicht bei jedem Gate-Lauf.
@@ -54,8 +54,10 @@ abbild() { # abbild <verz>: Arbeitsbaum kopieren, committen, beide Stempel setze
 	git -C "$T/$1" commit -q -m abbild
 	erwarte "Abbild $1: schreibe tests" "$1" 0 - schreibe tests
 	erwarte "Abbild $1: schreibe werkzeug" "$1" 0 - schreibe werkzeug
+	erwarte "Abbild $1: schreibe stempel" "$1" 0 - schreibe stempel
 	erwarte "Abbild $1: pruefe tests" "$1" 0 - pruefe tests
 	erwarte "Abbild $1: pruefe werkzeug" "$1" 0 - pruefe werkzeug
+	erwarte "Abbild $1: pruefe stempel" "$1" 0 - pruefe stempel
 }
 aendere_eintrag() { # aendere_eintrag <verz> <eintrag>: eine Datei unter dem Eintrag aendern; ohne Datei: Symlink umbiegen
 	local d=$1 e=$2 f
@@ -91,22 +93,25 @@ pins() {
 	g "$d" commit -q -a -m "Pin geaendert"
 	erwarte "werkzeug: Pin in d-check.mk geaendert -> Lauf" "$d" 1 "kein Beleg" pruefe werkzeug
 	erwarte "tests: Pin in d-check.mk betrifft die Klasse nicht -> Ueberspringen" "$d" 0 - pruefe tests
+	erwarte "stempel: Pin in d-check.mk geaendert -> Lauf" "$d" 1 "kein Beleg" pruefe stempel
 	g "$d" reset -q --hard HEAD~1
 	sed -i '0,/^FROM gradle:[^ ]*/s//&0/' "$T/$d/Dockerfile"
 	g "$d" commit -q -a -m "Basis-Image geaendert"
 	erwarte "tests: Basis-Image-Pin im Dockerfile geaendert -> Lauf" "$d" 1 "kein Beleg" pruefe tests
 	erwarte "werkzeug: Basis-Image-Pin im Dockerfile geaendert -> Lauf" "$d" 1 "kein Beleg" pruefe werkzeug
+	erwarte "stempel: Basis-Image-Pin im Dockerfile geaendert -> Lauf" "$d" 1 "kein Beleg" pruefe stempel
 }
 
 # Mindestzahl der Faelle je Gruppe: eine Gruppe, die nichts ausfuehrt, faellt auf (je Listeneintrag ein Fall plus die vier Abbild-Faelle).
-declare -A MIN=([je_tests]=10 [je_werkzeug]=10 [pins]=8)
-GRUPPEN=(je_tests je_werkzeug pins)
+declare -A MIN=([je_tests]=10 [je_werkzeug]=10 [je_stempel]=10 [pins]=10)
+GRUPPEN=(je_tests je_werkzeug je_stempel pins)
 for gr in "${GRUPPEN[@]}"; do
 	(
 		ERRF="$T/err.$BASHPID"
 		case $gr in
 			je_tests) je_eintrag tests ;;
 			je_werkzeug) je_eintrag werkzeug ;;
+			je_stempel) je_eintrag stempel ;;
 			pins) pins ;;
 		esac
 		echo "#ZAHLEN $LAEUFE $FEHLER"
