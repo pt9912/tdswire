@@ -1,7 +1,7 @@
 # Verifikation: slice-spec-nachzug-produktschnitt (Commit 1e38f5d)
 
 * Gegenstand: Branch `worktree-agent-a3ab5b5646d398b21`, HEAD 1e38f5d, Basis 902ab72, nicht gemergt.
-* Prüfgrundlage: Plan [slice-spec-nachzug-produktschnitt](../plan/planning/in-progress/slice-spec-nachzug-produktschnitt.md) (§2 DoD, §3 Setzungen, §6 Risiken, §7 Umsetzungsstand); Entscheidungen [ADR-0025](../plan/adr/0025-produktschnitt-bibliothek-und-testserver.md) (Folgepflicht 1), [ADR-0026](../plan/adr/0026-oeffentlichkeit-simulations-backend-und-katalog.md) (Spec-Folgepflicht), [ADR-0021](../plan/adr/0021-oeffentlicher-integrations-einstieg.md) (Entscheidung 3); Lastenheft 0.6.1; [Review zu 72d8ac8](2026-11-01-72d8ac8-slice-spec-nachzug-produktschnitt.md).
+* Prüfgrundlage: Plan [slice-spec-nachzug-produktschnitt](../plan/planning/done/slice-spec-nachzug-produktschnitt.md) (§2 DoD, §3 Setzungen, §6 Risiken, §7 Umsetzungsstand); Entscheidungen [ADR-0025](../plan/adr/0025-produktschnitt-bibliothek-und-testserver.md) (Folgepflicht 1), [ADR-0026](../plan/adr/0026-oeffentlichkeit-simulations-backend-und-katalog.md) (Spec-Folgepflicht), [ADR-0021](../plan/adr/0021-oeffentlicher-integrations-einstieg.md) (Entscheidung 3); Lastenheft 0.6.1; [Review zu 72d8ac8](2026-11-01-72d8ac8-slice-spec-nachzug-produktschnitt.md).
 * Rolle: Verifier, Frage „Bauen wir es richtig?“ gegen Plan und DoD; die Behauptungen des Implementers waren Eingabe, jeden DoD-Punkt hat der Verifier selbst gegen `spec/spezifikation.md`, `src/main` und `build.gradle.kts` gelesen.
 * Herkunft: Der Verifier-Agent durfte die Datei nicht anlegen; der Inhalt ist sein Bericht, vom Aufrufer abgelegt.
 
