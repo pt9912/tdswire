@@ -1,6 +1,6 @@
 # ADR-0024: Lokale Stempel als allgemeiner Mechanismus — genau zwei Stempel, Beleg als git note
 
-**Status:** Proposed
+**Status:** Accepted (vom Nutzer entschieden)
 
 **Datum:** 2026-10-31
 
@@ -39,6 +39,8 @@
 
 ## Entscheidung
 
+Mit der Annahme am 2026-11-01 bestätigt der Nutzer **Option B** mit zwei Stempeln und beantwortet die drei offenen Fragen: (1) Notes (`refs/notes/gates`) werden **nicht** gepusht und nicht geholt; (2) Lasttest-Gates mit Messwerten gegen Grenzwerte laufen **immer**; (3) `notes.rewriteRef` für `refs/notes/gates` wird per Setup **eingerichtet**.
+
 Wir wählen **Option B** (git notes, lokal) als **allgemeinen** Mechanismus, mit **genau zwei Stempeln**. Übernommen aus [ADR-0023](0023-gate-klassen-und-stempel.md), unverändert: Format des Stempels, Eingangs-Hash aus Git-Tree-IDs, Überspringen nur bei Beleg (Entscheidung 2 bis 5 dort), Bindung an `record-gates` und Stop-Hook.
 
 1. **Genau zwei Stempel:** `werkzeug` und `tests`. Die **Zahl der Stempel bleibt zwei**, der **Mechanismus ist einer** (ein Skript). Ein neues Gate bekommt keinen eigenen Stempel, sondern gehört zu einem der beiden.
@@ -50,14 +52,14 @@ Wir wählen **Option B** (git notes, lokal) als **allgemeinen** Mechanismus, mit
 3. **Zuordnungsregel für neue Gates:** ein Gate gehört zu `tests`, wenn es Quellcode oder Verhalten des Produkts prüft; sonst zu `werkzeug`; **braucht es beides, gehört es zu `tests`**. Die Zuordnung steht im Make-Fragment des Gates und in der Tabelle `harness/README.md` §Sensors (Bindung: diese ADR). Ein Gate wechselt die Klasse nur per Änderung dieser Zuordnung, nicht stillschweigend.
 4. **Speicherort (Option B): git note unter `refs/notes/gates`** am grünen Commit, eine Zeile je Stempel in der Form `stempel <klasse> <eingangs-hash> gruen`, mehrere Zeilen am selben Commit per `git notes append`. Gelesen wird die Zeile mit exakt passender Klasse und exaktem Hash; andere Zeilen, unlesbarer Inhalt oder mehrere gleiche Zeilen mit demselben Hash ändern nichts (gleicher Hash, gleiche Aussage). Schreibt ein Aufruf nicht (Sperre, Fehler), ist der Stempel nicht gesetzt: der nächste Lauf läuft, kein Fehler des Gates.
    - Die Note liegt im gemeinsamen Git-Verzeichnis und gilt für alle Worktrees und Agenten desselben Klons (Belegt in Kontext 3). Ein Agent im frischen Worktree übernimmt damit den Stempel des Hauptbaums.
-   - **Nicht übertragen** wird die Note: kein automatisches `push` oder `fetch`. Ein anderer Klon oder die CI sieht sie nicht und läuft voll. Ob Notes geteilt werden, ist nicht entschieden (offene Frage 1); die CI-Seite bleibt [ADR-0023](0023-gate-klassen-und-stempel.md) Entscheidung 7.
-   - `notes.rewriteRef` für `refs/notes/gates` ist **optional** (Kontext 3: Amend getestet, Rebase und Squash nicht): die Note trägt den Eingangs-Hash, eine übernommene Zeile ist darum nur dann wirksam, wenn der Hash des neuen Commits derselbe ist. Ohne die Einstellung läuft die Klasse nach Amend und Rebase.
+   - **Nicht übertragen** wird die Note: kein automatisches `push` oder `fetch`. Ein anderer Klon oder die CI sieht sie nicht und läuft voll. Notes werden nicht gepusht und nicht geholt (Entscheidung des Nutzers, 2026-11-01); die CI-Seite bleibt [ADR-0023](0023-gate-klassen-und-stempel.md) Entscheidung 7.
+   - `notes.rewriteRef` für `refs/notes/gates` wird **eingerichtet** (Entscheidung des Nutzers, 2026-11-01; Kontext 3: Amend getestet, Rebase und Squash nicht): `git config notes.rewriteRef refs/notes/gates` im Setup, damit Amend und Rebase die Note an den neuen Commit tragen. Die Note trägt den Eingangs-Hash; eine übernommene Zeile ist nur wirksam, wenn der Hash des neuen Commits derselbe ist, sonst läuft die Klasse. Wo: ein Schritt `einrichten` in `tools/stempel.sh` (idempotent, setzt den Schlüssel lokal im Klon), aufgerufen vom Setup-Target des Repos und von `schreibe`, falls der Schlüssel fehlt; welcher der beiden Aufrufer ihn trägt, entscheidet die Umsetzung.
 5. **Schnittstelle für Gates: ein Skript im `tools/`-Baum des Repos** (nicht unter `tools/harness/`, das dem Harness gehört): `bash tools/stempel.sh pruefe <klasse>` und `bash tools/stempel.sh schreibe <klasse> [hash]`. Das Skript liest die Eingangsliste der Klasse aus `tools/stempel/<klasse>.eingaenge` (Entscheidung 10); die Make-Fragmente geben keine Pfade mit.
    - `pruefe` endet mit Exit 0 **nur**, wenn die Übersprung-Bedingung aus [ADR-0023](0023-gate-klassen-und-stempel.md) Entscheidung 4 erfüllt ist; **jeder andere Fall** (kein Treffer, flacher Klon, Abfragefehler, nicht sauber, Beleg unlesbar, kein Vorfahr) endet mit Exit 1 und einer Grund-Zeile auf stderr. Es gibt keinen dritten Ausgang. `FORCE=1` im Aufruf des Targets überspringt `pruefe` und läuft.
    - `pruefe` gibt den berechneten Eingangs-Hash auf stdout aus; `schreibe` schreibt nach dem grünen Lauf die Zeile und bricht ab, wenn der Hash jetzt ein anderer ist als der übergebene (Änderung während des Laufs) oder die Eingangspfade nicht sauber sind. Das ist der Ablauf „Hash vor und nach dem Lauf derselbe“ aus [ADR-0023](0023-gate-klassen-und-stempel.md) Entscheidung 3.
    - Sauberkeit gilt **nur in den Eingangspfaden der Klasse** (versioniert, unversioniert, ignoriert; [ADR-0023](0023-gate-klassen-und-stempel.md) Entscheidung 3). Eine Änderung außerhalb macht die Klasse nicht schmutzig.
    - Gate-Verdrahtung: jede Klasse bekommt einen Gruppenschritt im Make-Fragment (`pruefe`, sonst Lauf der Gates der Klasse, dann `schreibe`); die genaue Form der Make-Verdrahtung ist Sache der Umsetzung.
-6. **Aufnahmebedingung für künftige Gates (Setzung):** ein Gate trägt im Stempel nur, wenn alle seine Eingänge in der Eingangsliste stehen (auch Image-Digests und Versionsstände, die der Lauf zieht). Ein Gate mit **verstecktem Eingang** (Netz zur Laufzeit, Wanduhr, Last als Ergebnis-Einfluss) steht **nicht** im Stempel-Umfang einer Klasse und läuft immer. Insbesondere gilt für Lasttests mit Messwerten gegen Grenzwerte: sie hängen an Rechner und Last; ob und wie ein Lasttest-Gate übersprungen werden darf, ist **nicht** durch diese ADR entschieden (offene Frage 2). Container-Läufe mit per Digest gepinntem Image und festem Szenario-Satz sind aufnahmefähig, sofern ihr Ergebnis nicht von der Uhr abhängt; ein Zeit-Szenario (Timeout, Abbruch) ist darauf in der Umsetzung zu prüfen, vor der Aufnahme.
+6. **Aufnahmebedingung für künftige Gates (Setzung):** ein Gate trägt im Stempel nur, wenn alle seine Eingänge in der Eingangsliste stehen (auch Image-Digests und Versionsstände, die der Lauf zieht). Ein Gate mit **verstecktem Eingang** (Netz zur Laufzeit, Wanduhr, Last als Ergebnis-Einfluss) steht **nicht** im Stempel-Umfang einer Klasse und läuft immer. Insbesondere gilt für Lasttests mit Messwerten gegen Grenzwerte: sie hängen an Rechner und Last und **laufen immer** (Entscheidung des Nutzers, 2026-11-01); sie stehen in keinem Stempel-Umfang. Container-Läufe mit per Digest gepinntem Image und festem Szenario-Satz sind aufnahmefähig, sofern ihr Ergebnis nicht von der Uhr abhängt; ein Zeit-Szenario (Timeout, Abbruch) ist darauf in der Umsetzung zu prüfen, vor der Aufnahme.
 7. **Migration der zwei Altmechanismen.** `.harness/state/detekt-selbsttest.ok` (mtime) und `.harness/state/referenztest-dotnet.hash` (Inhalts-Hash) entfallen; beide Gates gehen in die zwei Stempel auf (`detekt-selbsttest` nach `werkzeug`, `referenztest-dotnet` nach `tests`). Die Skip-Logik in den beiden Fragmenten entfällt zugunsten des Gruppenschritts. `tools/eingangs-hash.sh` und sein Selbsttest bleiben, solange ein Hash über Dateien nötig ist, sonst entfallen sie mit Begründung ([ADR-0023](0023-gate-klassen-und-stempel.md) Folgepflicht 4). Zu prüfen in der Umsetzung: `bin/` und `obj/` unter `referenztest-dotnet/` zählten im alten Hash nicht mit; die Sauberkeitsprüfung zählt auch Ignoriertes, und es darf nicht dazu führen, dass die Klasse dauerhaft „nicht sauber“ und damit immer Lauf ist (auf dem Host baut nichts, siehe Fragment; der Selbsttest belegt es).
 8. **Verhältnis zu `record-gates` und Stop-Hook: unverändert bindend.** Sie behalten Gesamtbaum-Hash und HEAD als Nachweis (`.harness/state/gates-passed.*`). `make gates` ist grün, wenn jede Klasse entweder grün lief oder mit Beleg übersprungen wurde; erst dann wird der Nachweis geschrieben. Die Stempel sind ein Beleg über Klassen, der Nachweis einer über den Gesamtbaum; keiner ersetzt den anderen.
 9. **Reihenfolge der Umsetzung** (nach `Accepted`): **erstens** die Entkopplung der Test-Stage ([ADR-0023](0023-gate-klassen-und-stempel.md) Folgepflicht 1, läuft bereits); **zweitens** der lokale Stempel-Mechanismus dieser ADR (Skript, Selbsttest, Migration); **drittens** die CI-Seite ([ADR-0023](0023-gate-klassen-und-stempel.md) Entscheidung 7). Der Zeitpunkt des zweiten Schritts hängt nicht mehr am Trigger aus [ADR-0023](0023-gate-klassen-und-stempel.md) Entscheidung 8; der Satz „lokale Stempel zurückgestellt“ ist damit abgelöst, der Rest dieser Entscheidung gilt weiter.
@@ -98,16 +100,17 @@ Wir wählen **Option B** (git notes, lokal) als **allgemeinen** Mechanismus, mit
   1. Skript `tools/stempel.sh` mit Selbsttest, der jeden Fehlerpfad aus Entscheidung 5 einzeln belegt (flacher Klon, schmutziger Eingangsbaum, geänderte Datei, unlesbare Note, Hash ändert sich während des Laufs, gleichzeitiges Schreiben).
   2. Gruppenschritte und Zuordnung in den Fragmenten; Eingangslisten aus den `COPY`-Quellen; `harness/README.md` nennt die zwei Klassen und die Bindung auf diese ADR und [ADR-0023](0023-gate-klassen-und-stempel.md).
   3. Migration der zwei Altmechanismen (Entscheidung 7).
+  3a. Einrichtung von `notes.rewriteRef` (Entscheidung 4): Schritt `einrichten` in `tools/stempel.sh`, im Selbsttest belegt (Schlüssel gesetzt, zweiter Aufruf ändert nichts); Rebase und Squash mit der Einstellung sind dort zu prüfen, bisher nicht geprüft.
   4. Nachmessung der Laufzeit nach Migration (warm und kalt); ohne Messung trägt keine Laufzeitaussage.
 
 ## Akzeptierte Negative
 
-1. **Rebase, Squash und Amend** (ohne `notes.rewriteRef`) lassen die Note am alten Commit: die Klasse läuft. Kosten: ein Lauf; irrt zur sicheren Seite.
+1. **Rebase und Squash** übernehmen die Note nur, soweit `notes.rewriteRef` sie trägt (Amend ist getestet, Rebase und Squash nicht); ändert sich der Eingangs-Hash, läuft die Klasse. Ein Klon ohne das Setup läuft nach Amend und Rebase voll. Kosten: ein Lauf; irrt zur sicheren Seite.
 2. **Ein schmutziger Eingangsbaum** läuft voll und schreibt nichts.
 3. **Ein falscher Beleg** (von Hand gesetzte Note, unvollständige Eingangsliste jenseits dessen, was der Selbsttest über die `COPY`-Quellen sieht, versteckter Eingang) ergibt ein grünes Gate ohne Lauf. Begrenzt durch: Schreiben nur durch `schreibe` nach grünem Lauf aller Gates der Klasse, Eingangsliste aus den `COPY`-Quellen mit Selbsttest, Vollauf in der CI. Nicht ausgeschlossen ist der Beleg durch jemanden mit Schreibrecht auf das Git-Verzeichnis; die Vertrauensgrenze ist dieselbe wie die von `.harness/state/` heute.
 4. **Grobe Granularität:** zwei Stempel heißen, dass eine Änderung an `src/` alle Gates von `tests` fährt, auch `referenztest-dotnet`, und eine Änderung an `Dockerfile` oder den Gradle-Dateien beide Klassen. Akzeptiert: es irrt zur sicheren Seite, und je Gate wäre das Wachstum aus Kontext 2.
-5. **Notes sind nur lokal:** ein frischer Klon und die CI laufen voll, bis (offene Frage 1) oder [ADR-0023](0023-gate-klassen-und-stempel.md) Entscheidung 7 etwas anderes festlegen.
-6. **Lasttest-Gates sind durch diese ADR nicht übersprungbar gemacht** (Entscheidung 6); das Argument 1 des Kontexts trägt für sie nicht ohne eigene Entscheidung. Einmaliges, benanntes Negativ, kein Folge-Dokument.
+5. **Notes sind nur lokal:** ein frischer Klon und die CI laufen voll, bis [ADR-0023](0023-gate-klassen-und-stempel.md) Entscheidung 7 oder eine Folge-ADR etwas anderes festlegt (Notes zu pushen ist nicht gewollt: wer pushen darf, setzt Belege).
+6. **Lasttest-Gates laufen immer** (Entscheidung 6); das Argument 1 des Kontexts trägt für sie nicht. Einmaliges, benanntes Negativ, kein Folge-Dokument.
 7. **Gleichzeitiges Schreiben der Note aus zwei Arbeitsbäumen ist nicht geprüft.** Folge im ungünstigen Fall: eine Sperre, der Stempel wird nicht gesetzt, der nächste Lauf läuft (Entscheidung 4).
 
 ## Fitness Function (falls maschinell prüfbar)
@@ -129,9 +132,7 @@ Wir wählen **Option B** (git notes, lokal) als **allgemeinen** Mechanismus, mit
 
 ## Offene Fragen an den Nutzer
 
-1. Sollen Notes (`refs/notes/gates`) je gepusht und geholt werden, damit andere Klone und die CI sie sehen? (Vertrauensgrenze: wer pushen darf, setzt Belege. Standard dieser ADR: nein.)
-2. Dürfen Lasttest-Gates mit Messwerten gegen Grenzwerte je mit Beleg übersprungen werden, oder laufen sie immer? (Standard dieser ADR: immer.)
-3. Soll `notes.rewriteRef` für `refs/notes/gates` per Setup eingerichtet werden (Amend wurde getestet, Rebase und Squash nicht)?
+Beantwortet am 2026-11-01 (Entscheidung 4 und 6); keine offen.
 
 ## Geschichte
 
@@ -139,6 +140,7 @@ Wir wählen **Option B** (git notes, lokal) als **allgemeinen** Mechanismus, mit
 |---|---|---|
 | 2026-10-31 | Nutzerargument: Zurückstellen beruhe nur auf heutigen Gates; Korrektur: zwei Stempel, Tool und Tests | Sitzung |
 | 2026-10-31 | Proposed | — |
+| 2026-11-01 | Accepted – vom Nutzer angenommen; drei Fragen beantwortet: keine Notes-Übertragung, Lasttest-Gates laufen immer, `notes.rewriteRef` per Setup eingerichtet | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit
