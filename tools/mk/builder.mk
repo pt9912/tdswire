@@ -5,10 +5,10 @@
 # BUILDER leer (Voreinstellung): alle docker-build-Aufrufe laufen wie ohne diese Datei, ueber den
 # aktiven Builder des Hosts; die CI auf GitHub setzt BUILDER nicht.
 # BUILDER=<name>: build.mk, test.mk, smoke.mk, ci.mk, spec-abdeckung.mk, detekt-selbsttest.mk und
-# referenztest-dotnet.mk rufen `docker build --builder <name>` (BUILDER_FLAGS). Wo das Ergebnis das
-# Image $(IMAGE):$(TAG) ist, kommt --load dazu (BUILDER_LOAD): der docker-container-Treiber legt
-# das Image sonst nicht in den lokalen Image-Speicher. Targets mit --output type=local lesen das
-# Ergebnis per --output, nichts wird gemountet.
+# referenztest-dotnet.mk rufen `docker build --builder <name>` (BUILDER_FLAGS). Wo das Ergebnis ein Image im
+# lokalen Speicher sein muss (tools/laufzeittest.sh), steht --load im Aufruf: der docker-container-Treiber legt
+# das Image sonst nicht dort ab. Targets mit --output type=local lesen das Ergebnis per --output, nichts wird
+# gemountet.
 #
 # Grenze: der Builder hat einen eigenen BuildKit-Cache und zieht Basis-Images selbst aus der
 # Registry. Der erste Lauf ueber einen frischen Builder ist ein Kaltstart (kein Layer-Cache des
@@ -29,7 +29,6 @@ BUILDER_MEMORY ?= 24g
 BUILDER_CPUSET ?= 0-$(shell expr $(BUILDER_CPUS) - 1)
 
 BUILDER_FLAGS = $(if $(BUILDER),--builder $(BUILDER))
-BUILDER_LOAD  = $(if $(BUILDER),--load)
 
 .PHONY: builder-create builder-rm
 
