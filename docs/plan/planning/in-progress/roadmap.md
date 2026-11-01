@@ -27,6 +27,10 @@ In Arbeit (Welle welle-qualitaet-grundlage):
 
 - [slice-e2e-geruest](slice-e2e-geruest.md)
 
+In Arbeit (Welle welle-fehler-abbruch):
+
+- keiner; zuletzt geschlossen: [slice-attention-cancel-timeout](../done/slice-attention-cancel-timeout.md) (Closure-Notiz in §7 des Slice; Folge: [slice-cancel-referenzclient-szenario](../open/slice-cancel-referenzclient-szenario.md), [slice-resetconnection-zuruecksetzen](../open/slice-resetconnection-zuruecksetzen.md), [slice-abbruch-ressourcen-shutdown](../open/slice-abbruch-ressourcen-shutdown.md))
+
 In Arbeit (Welle welle-betrieb-diagnose):
 
 - keiner; zuletzt geschlossen: [slice-adr-observability](../done/slice-adr-observability.md) (Closure-Notiz in §7 des Slice; Folge: [slice-spec-nachzug-telemetrie](../open/slice-spec-nachzug-telemetrie.md), Startbedingung [ADR-0029](../../adr/0029-log-parameter-am-einstieg.md) für [slice-betrieb-log-schnittstelle](../open/slice-betrieb-log-schnittstelle.md))

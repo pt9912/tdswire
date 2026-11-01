@@ -14,6 +14,8 @@ object ConfigKeys {
     const val TLS_KEYSTORE_PASSWORD_FILE = "TLS_KEYSTORE_PASSWORD_FILE"
     const val AUTH_USERS_FILE = "AUTH_USERS_FILE"
     const val AUTH_PLAIN_TESTMODE = "AUTH_PLAIN_TESTMODE"
+    const val QUERY_TIMEOUT = "QUERY_TIMEOUT"
+    const val CANCEL_TIMEOUT = "CANCEL_TIMEOUT"
 }
 
 /**
@@ -31,6 +33,8 @@ internal object ConfigDefaults {
     const val PORT = 1433
     const val LOGIN_TIMEOUT_SECONDS = 15
     const val MAX_PRELOGIN_MESSAGE_BYTES = 65536
+    const val QUERY_TIMEOUT_SECONDS = 30
+    const val CANCEL_TIMEOUT_SECONDS = 5
     val ENCRYPTION = EncryptionSetting.REQUIRED
 }
 
@@ -41,6 +45,16 @@ data class ListenSettings(val host: String = ConfigDefaults.HOST, val port: Int 
 data class LoginSettings(
     val timeoutSeconds: Int = ConfigDefaults.LOGIN_TIMEOUT_SECONDS,
     val maxPreloginMessageBytes: Int = ConfigDefaults.MAX_PRELOGIN_MESSAGE_BYTES,
+)
+
+/**
+ * Fristen einer Anfrage in ganzen Sekunden (`SPEC-009`, `SPEC-033`): [queryTimeoutSeconds] ist `QUERY_TIMEOUT`, die
+ * Frist ab dem Beginn einer Anfrage; [cancelTimeoutSeconds] ist `CANCEL_TIMEOUT`, die Frist, die ein Backend für den
+ * Abbruch hat, bevor die Verbindung schließt.
+ */
+data class RequestSettings(
+    val queryTimeoutSeconds: Int = ConfigDefaults.QUERY_TIMEOUT_SECONDS,
+    val cancelTimeoutSeconds: Int = ConfigDefaults.CANCEL_TIMEOUT_SECONDS,
 )
 
 /** Die validierte Benutzerliste und der Schalter für das Verfahren `plain` (`ADR-0011`). */
@@ -65,6 +79,7 @@ class ServerConfig(
     val encryption: EncryptionSetting = ConfigDefaults.ENCRYPTION,
     val tls: TlsKeyMaterial? = null,
     val auth: AuthSettings,
+    val requests: RequestSettings = RequestSettings(),
 ) {
     override fun toString(): String = "ServerConfig(verborgen)"
 }

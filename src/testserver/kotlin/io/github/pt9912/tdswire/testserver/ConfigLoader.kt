@@ -6,6 +6,7 @@ import io.github.pt9912.tdswire.config.EncryptionSetting
 import io.github.pt9912.tdswire.config.IssueKind
 import io.github.pt9912.tdswire.config.ListenSettings
 import io.github.pt9912.tdswire.config.LoginSettings
+import io.github.pt9912.tdswire.config.RequestSettings
 import io.github.pt9912.tdswire.config.ServerConfig
 import io.github.pt9912.tdswire.config.TlsKeyMaterial
 import io.github.pt9912.tdswire.config.auth.PasswordChars
@@ -31,7 +32,8 @@ internal sealed interface ConfigResult {
  * PRELOGIN-Nachricht, leere Bind-Adresse) prüft der Start der Bibliothek (`ConfigValidation.check`). Ein Wert mit
  * falscher Form steht als `INVALID_VALUE` im Ergebnis und wird durch die Voreinstellung ersetzt, damit er nicht
  * doppelt gemeldet wird. Formen (Festlegungen, nicht gemessen):
- * - `LISTEN_PORT`, `LOGIN_TIMEOUT` und `MAX_PRELOGIN_MESSAGE_BYTES` bestehen aus ASCII-Ziffern.
+ * - `LISTEN_PORT`, `LOGIN_TIMEOUT`, `QUERY_TIMEOUT`, `CANCEL_TIMEOUT` und `MAX_PRELOGIN_MESSAGE_BYTES` bestehen
+ *   aus ASCII-Ziffern.
  * - `LISTEN_HOST` Voreinstellung `0.0.0.0`.
  * - `ENCRYPTION_POLICY` genau `REQUIRED` oder `TEST_UNENCRYPTED`, Voreinstellung `REQUIRED`. `REQUIRED` verlangt
  *   `TLS_KEYSTORE_FILE` (PKCS#12) und `TLS_KEYSTORE_PASSWORD_FILE` (ein Zeilenende am Ende wird entfernt);
@@ -51,6 +53,7 @@ internal object ConfigLoader {
     private val DIGITS = Regex("[0-9]{1,9}")
     private val DEFAULT_LISTEN = ListenSettings()
     private val DEFAULT_LOGIN = LoginSettings()
+    private val DEFAULT_REQUESTS = RequestSettings()
 
     fun load(environment: Map<String, String>): ConfigResult {
         val issues = mutableListOf<ConfigIssue>()
@@ -63,6 +66,8 @@ internal object ConfigLoader {
             DEFAULT_LOGIN.maxPreloginMessageBytes,
             issues,
         )
+        val queryTimeout = number(environment, EnvKeys.QUERY_TIMEOUT, DEFAULT_REQUESTS.queryTimeoutSeconds, issues)
+        val cancelTimeout = number(environment, EnvKeys.CANCEL_TIMEOUT, DEFAULT_REQUESTS.cancelTimeoutSeconds, issues)
         val encryption = encryption(environment, issues)
         val tls = tls(environment, encryption, issues)
         val plain = plainTestMode(environment, issues)
@@ -78,6 +83,7 @@ internal object ConfigLoader {
                 checkNotNull(encryption),
                 tls,
                 auth,
+                RequestSettings(queryTimeout, cancelTimeout),
             )
             ConfigResult.Loaded(config, simulation)
         }

@@ -17,6 +17,9 @@ enum class CloseReason {
 
     /** Der Ausgang einer Anfrage schließt die Verbindung (`ErrorMapper.fateOf`), mit oder ohne Antwort. */
     REQUEST_ENDED,
+
+    /** Das Backend hat den Cancel nicht innerhalb von `CANCEL_TIMEOUT` beendet (`SPEC-033`). */
+    CANCEL_TIMEOUT,
 }
 
 /**
@@ -81,4 +84,20 @@ sealed interface HandshakeAction {
     data object Forward : HandshakeAction
 
     data class Close(val reason: CloseReason) : HandshakeAction
+
+    /**
+     * Der Übergang nach `CANCELLING` hat [cause] gewonnen: genau dieser Auslöser bricht die Anfrage ab. Der
+     * Sitzungsrahmen führt die Aktion nicht aus, sondern gibt sie dem Aufrufer von `dispatch` zurück; ein
+     * Auslöser, der verliert, bekommt sie nicht.
+     */
+    data class Cancel(val cause: CancelCause) : HandshakeAction
+}
+
+/** Wer den Abbruch einer laufenden Anfrage ausgelöst hat (`ADR-0027` Entscheidung 2). */
+enum class CancelCause {
+    /** ATTENTION des Clients; die Antwort ist `DONE[ATTN]` ohne ERROR. */
+    ATTENTION,
+
+    /** Ablauf der Frist der Anfrage; die Antwort ist ERROR `TDS_TIMEOUT` und DONE mit Fehlerstatus. */
+    DEADLINE,
 }

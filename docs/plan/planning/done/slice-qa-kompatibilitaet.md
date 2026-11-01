@@ -36,7 +36,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 - Referenzabgleich gegen eine SQL-Server-Instanz (`SPEC-045`, `SPEC-050`) — [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md) hat ihn als Vergleichslauf D entschieden; Träger ist [slice-qa-vergleichslauf-d](../done/slice-qa-vergleichslauf-d.md), dieser Slice führt keinen Referenzabgleich.
 - Lastmessung — gehört zu `slice-qa-performance`, weil sie eine andere Messmethode und ein anderes Gate braucht.
-- Abbruch (Cancel) am Referenzclient — der Server beantwortet ATTENTION während einer Anfrage nicht, ein Test mit Folgeabfrage kann nicht bestehen; Führung als Carveout [CO-004](../../carveouts/CO-004-cancel-szenario-spec-040-fehlt.md), Folge-Slice [slice-attention-cancel-timeout](../open/slice-attention-cancel-timeout.md). Das Wort „Abbruch“ im Ziel ist damit nicht geliefert.
+- Abbruch (Cancel) am Referenzclient — der Server beantwortet ATTENTION während einer Anfrage nicht, ein Test mit Folgeabfrage kann nicht bestehen; Führung als Carveout [CO-004](../../carveouts/CO-004-cancel-szenario-spec-040-fehlt.md), Folge-Slice [slice-attention-cancel-timeout](../done/slice-attention-cancel-timeout.md). Das Wort „Abbruch“ im Ziel ist damit nicht geliefert.
 - Mehrteilige Antworten und Ausgabewerte ([TDS-FA-10](../../../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte)) am Referenzclient — das Simulations-Backend liefert sie nicht (zwei Anweisungen in einem Text: `Unsupported SQL.`, 50001; ein Ausgabeparameter bekommt keinen Rückgabewert); der Codec baut die Antwortform, kein Backend füllt sie. Lücke 16 der Matrix, Ausgang in §6.
 
 ## 2. Definition of Done
@@ -162,7 +162,7 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 **Register.** Fortgeschrieben: `BEO-TDS/tds-8-0-und-pooling-nicht-gemessen` (16 Evidence-Dateien), `BEO-TDS/aussagen-ueber-messung-hinaus`, `BEO-TDS/dod-satz-verlangt-ablage-die-der-slice-ersetzt`; neu: `BEO-TDS/fa-10-mehrteilige-antwort-ohne-backend-traeger` (1×), `BEO-TDS/spec-nachzug-nach-messung-offen` (1×). **Über der Schwelle, Entscheidung beim Nutzer:** `BEO-TDS/tds-8-0-und-pooling-nicht-gemessen` hat mit diesem Slice 16 Evidence-Dateien; der Planner verkörpert nicht und weist weder `verkörpert` noch `geplant` zu. Die beiden anderen fortgeschriebenen Einträge sind bereits verkörpert.
 
-**Paarungen.** Anker: kein `liegt in`, nichts verkörpert. Folge-Slice: Cancel hat [slice-attention-cancel-timeout](../open/slice-attention-cancel-timeout.md) ([CO-004](../../carveouts/CO-004-cancel-szenario-spec-040-fehlt.md)); die Backend-Seite von FA-10, der Spec-Nachzug und der Rest der TDS-8.0-Beobachtung haben keinen Folge-Slice (Entscheidung beim Nutzer). Register: oben.
+**Paarungen.** Anker: kein `liegt in`, nichts verkörpert. Folge-Slice: Cancel hat [slice-attention-cancel-timeout](../done/slice-attention-cancel-timeout.md) ([CO-004](../../carveouts/CO-004-cancel-szenario-spec-040-fehlt.md)); die Backend-Seite von FA-10, der Spec-Nachzug und der Rest der TDS-8.0-Beobachtung haben keinen Folge-Slice (Entscheidung beim Nutzer). Register: oben.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

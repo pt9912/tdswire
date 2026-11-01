@@ -55,6 +55,12 @@ object BatchVectors {
     /** DONE mit Fehlerstatus (`0x0002`), curCmd 0, Zeilenzahl 0. */
     const val DONE_ERROR = "FD 02 00 00 00 00 00 00 00 00 00 00 00"
 
+    /** DONE mit dem Statusbit ATTENTION (`0x0020`), curCmd 0, Zeilenzahl 0: die Bestätigung eines Cancel. */
+    const val DONE_ATTN = "FD 20 00 00 00 00 00 00 00 00 00 00 00"
+
+    /** Ein ATTENTION-Paket: leere Nutzlast. */
+    fun attention(): Inbound = raw(PacketType.ATTENTION, ByteArray(0))
+
     /** ROW mit einem Int4-Wert, little endian. */
     fun row(value: Int): String = "D1 " + ByteArray(4) { (value shr (8 * it)).toByte() }.toHex()
 }
@@ -80,15 +86,17 @@ class Session(val channel: FakeHandshakeChannel, val ready: HandshakeOutcome.Rea
         backend: QueryBackend,
         errors: ErrorMapper = ErrorMapper(),
         sinkAround: (TokenSink) -> TokenSink = { it },
+        times: RequestTimes = fixedTimes(),
         requestIds: () -> String = Counter()::next,
-    ) = RequestLoop(ready, channel, backend, errors, requestIds, sinkAround)
+    ) = RequestLoop(ready, channel, backend, errors, times, RequestHooks(requestIds, sinkAround))
 
     suspend fun serve(
         backend: QueryBackend,
         errors: ErrorMapper = ErrorMapper(),
         sinkAround: (TokenSink) -> TokenSink = { it },
+        times: RequestTimes = fixedTimes(),
         requestIds: () -> String = Counter()::next,
-    ) = loop(backend, errors, sinkAround, requestIds).run()
+    ) = loop(backend, errors, sinkAround, times, requestIds).run()
 
     companion object {
         suspend fun login(vararg later: Inbound): Session {
@@ -102,6 +110,15 @@ class Session(val channel: FakeHandshakeChannel, val ready: HandshakeOutcome.Rea
         }
     }
 }
+
+/** Die Wanduhr der Dispatch-Tests: fest, damit die Frist einer Anfrage (Beginn plus `QUERY_TIMEOUT`) genau ist. */
+const val FIXED_NOW = 1_700_000_000_000L
+
+/** Die Fristen der Dispatch-Tests: Voreinstellungen von `SPEC-009` und `SPEC-033`, feste Uhr. */
+fun fixedTimes() = RequestTimes(now = { FIXED_NOW })
+
+/** Die Frist einer Anfrage mit der Voreinstellung `QUERY_TIMEOUT`. */
+val DEFAULT_DEADLINE = FIXED_NOW + RequestTimes.DEFAULT_QUERY_TIMEOUT.inWholeMilliseconds
 
 /** Zählt Anfrage-Kennungen: `r1`, `r2`, ... */
 class Counter {

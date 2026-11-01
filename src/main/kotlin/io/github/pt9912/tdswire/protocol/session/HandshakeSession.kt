@@ -8,8 +8,8 @@ import kotlinx.coroutines.sync.withLock
  * Der Sitzungsrahmen einer Verbindung: hält den [HandshakeContext], führt die Aktionen des
  * Automaten aus und serialisiert Übergang und Schreiben unter einem `Mutex` je Sitzung
  * (`ADR-0004`, `SPEC-001`). Ausgeführt werden Senden, Log, Grenzwechsel und Schließen; [dispatch]
- * gibt die Aktion zurück, auf die der Aufrufer wartet ([HandshakeAction.BeginTls] oder
- * [HandshakeAction.Authenticate]).
+ * gibt die Aktion zurück, auf die der Aufrufer wartet ([HandshakeAction.BeginTls],
+ * [HandshakeAction.Authenticate] oder [HandshakeAction.Cancel]).
  */
 internal class HandshakeSession(
     private val automaton: HandshakeAutomaton,
@@ -36,18 +36,41 @@ internal class HandshakeSession(
      * Schreibvorgängen ausgeführt, nicht in einem. Ist die Sitzung `CLOSED`, schreibt der Strom nicht
      * mehr; scheitert ein Schreibvorgang, schließt die Sitzung wie beim Senden einer Nachricht
      * (`CloseReason.WRITE_FAILED`).
+     *
+     * Abbruch (`ADR-0027`): Ab `CANCELLING` schreibt die reguläre Antwort nicht mehr; [write] und [finish]
+     * liefern dann `false`, ohne die Sitzung zu schließen. Der Abbruch beendet die Antwort mit
+     * [GuardedReply.conclude].
      */
-    fun openReply(type: PacketType): ReplyStream {
-        val inner = channel.openReply(type)
-        return object : ReplyStream {
-            override suspend fun write(bytes: ByteArray): Boolean = guarded { inner.write(bytes) }
+    fun openReply(type: PacketType): GuardedReply = GuardedReply(channel.openReply(type))
 
-            override suspend fun finish(): Boolean = guarded { inner.finish() }
-        }
+    /** Die Antwort aus [openReply]. */
+    inner class GuardedReply internal constructor(private val inner: ReplyStream) : ReplyStream {
+        override suspend fun write(bytes: ByteArray): Boolean = guarded(REGULAR_STOPS) { inner.write(bytes) }
+
+        override suspend fun finish(): Boolean = guarded(REGULAR_STOPS) { inner.finish() }
+
+        /**
+         * Beendet die Antwort im Abbruch: hängt [tail] an, falls vorhanden, und schreibt den Rest samt EOM-Bit.
+         * Anders als [write] und [finish] schreibt sie auch in `CANCELLING`; `false` bei `CLOSED` und wenn
+         * das Schreiben scheitert (die Sitzung schließt dann).
+         */
+        suspend fun conclude(tail: ByteArray?): Boolean =
+            guarded(CLOSED_ONLY) { (tail == null || inner.write(tail)) && inner.finish() }
     }
 
-    private suspend fun guarded(step: suspend () -> Boolean): Boolean = lock.withLock {
-        if (context.state == ConnectionState.CLOSED) return@withLock false
+    /**
+     * Ein Schreibvorgang unter der Sperre. Festlegung zu `ADR-0004` (Schreiben eines Pakets und Abbruch): der Abbruch
+     * einer Anfrage unterbricht kein Paket. Beide Auslöser des Abbruchs (ATTENTION, Frist) gehen über [dispatch] und
+     * brauchen dieselbe Sperre; sie warten, bis das Paket im Schreiben ganz auf dem Draht ist, und erst danach, mit
+     * dem Zustand `CANCELLING`, bricht die Anfrage ab. Danach beginnt kein reguläres Schreiben mehr
+     * ([GuardedReply.write] und [GuardedReply.finish]), und die Bestätigung hängt an ein vollständiges Paket an.
+     * Ein abgebrochener Schreibvorgang schließt den Kanal (Vertrag von `SuspendingChannel`); den Abbruch der
+     * Verbindung selbst (Disconnect, Beenden) unterbricht ein Paket weiterhin. Grenze: hängt ein Schreibvorgang am
+     * Rückstau, hält er die Sperre; bis zu seiner Rückkehr wirken weder die Frist noch ATTENTION noch `CANCEL_TIMEOUT`
+     * (der Abbruch beginnt erst mit dem Übergang nach `CANCELLING`).
+     */
+    private suspend fun guarded(stopped: Set<ConnectionState>, step: suspend () -> Boolean): Boolean = lock.withLock {
+        if (context.state in stopped) return@withLock false
         val written = step()
         if (!written) abortWrite()
         written
@@ -59,11 +82,10 @@ internal class HandshakeSession(
      * ohne Wirkung, und der Zweig unten schließt den Kanal und setzt den Zustand auf `CLOSED`
      * (fail-closed; ein Test hält diesen Zweig).
      *
-     * Festlegung ohne Messung / offen (`ADR-0004`): Das Schreiben einer Antwort ist abbrechbar, nicht
-     * durch `NonCancellable` geschützt. Bricht die Frist oder der Aufrufer es ab, kann ein Paket halb
-     * geschrieben sein; die Verbindung wird danach geschlossen und nicht weiterverwendet. Ob das
-     * Schreiben eines Pakets gegen Abbruch zu schützen ist, ist in `ADR-0004` offen, ebenso der
-     * Zeitpunkt des Schließens nach `TDS_SHUTDOWN`; der Handshake berührt ihn nicht.
+     * Das Schreiben einer Handshake-Antwort ([execute]) ist abbrechbar, nicht durch `NonCancellable`
+     * geschützt. Bricht die Frist oder der Aufrufer es ab, kann ein Paket halb geschrieben sein; die
+     * Verbindung wird danach geschlossen und nicht weiterverwendet. Die Antwort einer Anfrage ([openReply])
+     * schreibt ihre Pakete dagegen geschützt.
      */
     suspend fun expire() {
         dispatch(HandshakeEvent.LoginTimeout)
@@ -72,6 +94,21 @@ internal class HandshakeSession(
                 context = HandshakeContext(state = ConnectionState.CLOSED)
                 closeReason = CloseReason.LOGIN_TIMEOUT
                 channel.close()
+            }
+        }
+    }
+
+    /**
+     * Schließt die Verbindung, weil das Backend den Cancel nicht beendet hat (`SPEC-033`). Der Abbruch hat den
+     * Übergang nach `CANCELLING` gewonnen, also hält kein regulärer Schreibvorgang die Sperre; der Kanal schließt
+     * vor dem Zustandswechsel.
+     */
+    suspend fun abandon(reason: CloseReason) {
+        channel.close()
+        lock.withLock {
+            if (context.state != ConnectionState.CLOSED) {
+                context = context.closed()
+                closeReason = reason
             }
         }
     }
@@ -94,7 +131,8 @@ internal class HandshakeSession(
                     channel.close()
                 }
 
-                HandshakeAction.BeginTls, is HandshakeAction.Authenticate -> awaited = action
+                HandshakeAction.BeginTls, is HandshakeAction.Authenticate, is HandshakeAction.Cancel ->
+                    awaited = action
 
                 HandshakeAction.Forward -> Unit
             }
@@ -106,5 +144,10 @@ internal class HandshakeSession(
         context = HandshakeContext(state = ConnectionState.CLOSED)
         closeReason = CloseReason.WRITE_FAILED
         channel.close()
+    }
+
+    private companion object {
+        val REGULAR_STOPS = setOf(ConnectionState.CLOSED, ConnectionState.CANCELLING)
+        val CLOSED_ONLY = setOf(ConnectionState.CLOSED)
     }
 }

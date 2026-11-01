@@ -15,8 +15,9 @@ import io.github.pt9912.tdswire.transport.framing.TdsMessage
  *
  * Festlegung ohne Messung / offen (`ADR-0004`): Ein unzulässiger Übergang, jedes Lesen mit Fehler,
  * ein ungültiges PRELOGIN oder LOGIN7 und der Fristablauf beenden die Verbindung ohne Antwort
- * ([CloseReason]); die Antwort auf einen unzulässigen Übergang und die Reichweite von ATTENTION im
- * Handshake sind dort offen. Die Fehlerkategorie `TDS_PROTOCOL_ERROR` (`SPEC-011`) verlangt in der
+ * ([CloseReason]); die Antwort auf einen unzulässigen Übergang ist dort offen. ATTENTION im Handshake
+ * ist ein unzulässiger Übergang und schließt ohne Antwort (`ADR-0027` Entscheidung 3, Grundregel A, über
+ * die Matrix). Die Fehlerkategorie `TDS_PROTOCOL_ERROR` (`SPEC-011`) verlangt in der
  * Aktionsspalte "Abbruch oder ERROR, je nach Zustand"; hier gilt Abbruch. Nachrichten über
  * [FramingLimits.MAX_PRELOGIN_MESSAGE_BYTES] weist der Automat zusätzlich zur Grenze des Paket-Codecs
  * ab (`SPEC-046`).
@@ -37,6 +38,7 @@ class HandshakeAutomaton(private val config: HandshakeConfig = HandshakeConfig()
         HandshakeEvent.TlsEstablished -> tlsEstablished(context)
         is HandshakeEvent.Message -> message(context, event.message)
         HandshakeEvent.StreamStarted -> Transition(context.copy(state = ConnectionState.STREAMING), emptyList())
+        HandshakeEvent.DeadlineExpired -> cancelling(context, CancelCause.DEADLINE)
         is HandshakeEvent.RequestFinished -> requestFinished(context, event)
         is HandshakeEvent.AuthAccepted -> login.accepted(context, event)
         is HandshakeEvent.AuthRejected -> login.rejected(context, event)
@@ -63,13 +65,23 @@ class HandshakeAutomaton(private val config: HandshakeConfig = HandshakeConfig()
     /**
      * PRELOGIN und LOGIN7 haben ihr eigenes Ziel; in `READY` gehört die Nachricht der
      * Anfrageverarbeitung (`Forward`). Ein SQL_BATCH und ein RPC setzen den Anfragezustand auf `RUNNING`;
-     * Transaction Manager und ATTENTION lassen `READY` stehen.
+     * Transaction Manager lässt `READY` stehen. ATTENTION in `READY` ist der Fall „nach Ende der Antwort“: die
+     * Bestätigung geht hinaus, ohne Cancel. ATTENTION in `RUNNING` und `STREAMING` gewinnt den Übergang nach
+     * `CANCELLING` (`ADR-0027` Entscheidung 1 und 2).
      */
-    private fun message(context: HandshakeContext, message: TdsMessage): Transition = when (context.state) {
-        ConnectionState.PRELOGIN -> onPrelogin(context, message.payload)
-        ConnectionState.LOGIN7 -> login.onLogin7(context, message.payload)
-        else -> forward(context, message)
+    private fun message(context: HandshakeContext, message: TdsMessage): Transition = when {
+        context.state == ConnectionState.PRELOGIN -> onPrelogin(context, message.payload)
+        context.state == ConnectionState.LOGIN7 -> login.onLogin7(context, message.payload)
+        message.type != PacketType.ATTENTION -> forward(context, message)
+        context.state == ConnectionState.READY -> acknowledge(context)
+        else -> cancelling(context, CancelCause.ATTENTION)
     }
+
+    private fun acknowledge(context: HandshakeContext): Transition =
+        Transition(context, listOf(HandshakeAction.Send(AttentionAck.message)))
+
+    private fun cancelling(context: HandshakeContext, cause: CancelCause): Transition =
+        Transition(context.copy(state = ConnectionState.CANCELLING), listOf(HandshakeAction.Cancel(cause)))
 
     private fun forward(context: HandshakeContext, message: TdsMessage): Transition {
         val starts = message.type == PacketType.SQL_BATCH || message.type == PacketType.RPC

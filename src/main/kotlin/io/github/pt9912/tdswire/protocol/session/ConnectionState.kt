@@ -7,8 +7,12 @@ package io.github.pt9912.tdswire.protocol.session
  * der Zustand, in dem der Adapteraufruf läuft und kein weiteres LOGIN7 angenommen wird. [READY] ist
  * der Leerlauf einer angemeldeten Sitzung (Anfragezustand `IDLE`); [RUNNING] und [STREAMING] sind die
  * Anfragezustände derselben Aufzählung (flacher Zuschnitt, `SPEC-001`): [RUNNING] von der Annahme eines
- * SQL_BATCH bis zum ersten Ergebnis, [STREAMING] ab dem ersten COLMETADATA bis zur Antwort. `COMPLETED`
- * und `CANCELLING` sind nicht abgebildet; `COMPLETED` ist hier der Übergang `RequestFinished`.
+ * SQL_BATCH bis zum ersten Ergebnis, [STREAMING] ab dem ersten COLMETADATA bis zur Antwort. [CANCELLING]
+ * ist der Zwischenschritt zwischen [RUNNING] oder [STREAMING] und [READY] (`ADR-0027`): ein Auslöser des
+ * Abbruchs (ATTENTION des Clients, Ablauf der Frist einer Anfrage) hat den Übergang gewonnen, die reguläre
+ * Antwort schreibt nicht mehr, und die Bestätigung oder der Fehler der Frist steht noch aus. `COMPLETED`
+ * ist nicht abgebildet; es ist hier der Übergang `RequestFinished`. Der Zuschnitt bleibt flach (`ADR-0015`):
+ * `CANCELLING` ist ein Eintrag der einen Aufzählung, kein zweiter Automat.
  */
 enum class ConnectionState {
     CONNECTED,
@@ -19,6 +23,7 @@ enum class ConnectionState {
     READY,
     RUNNING,
     STREAMING,
+    CANCELLING,
     CLOSED,
 }
 
@@ -36,6 +41,7 @@ enum class EventKind {
     ATTENTION_MESSAGE,
     OTHER_MESSAGE,
     STREAM_STARTED,
+    DEADLINE_EXPIRED,
     REQUEST_FINISHED,
     AUTH_ACCEPTED,
     AUTH_REJECTED,

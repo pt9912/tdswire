@@ -25,7 +25,8 @@ sealed interface HandshakeEvent {
 
     /**
      * Eine vollständige Nachricht. Festlegung ohne Messung: SQL_BATCH, RPC und Transaction Manager
-     * sind Anfragen; ATTENTION ist eigene Art; jeder andere Pakettyp ist [EventKind.OTHER_MESSAGE].
+     * sind Anfragen; ATTENTION ist eigene Art, auch während `RUNNING` und `STREAMING`; jeder andere Pakettyp
+     * ist [EventKind.OTHER_MESSAGE].
      * Die Bits RESETCONNECTION und IGNORE der Nachricht wertet der Automat nicht aus (offen,
      * `ADR-0004`).
      */
@@ -45,6 +46,14 @@ sealed interface HandshakeEvent {
     /** Das erste Ergebnis einer Anfrage beginnt (COLMETADATA ist geschrieben); `RUNNING` wird `STREAMING`. */
     data object StreamStarted : HandshakeEvent {
         override val kind: EventKind get() = EventKind.STREAM_STARTED
+    }
+
+    /**
+     * Die Frist einer Anfrage (`QUERY_TIMEOUT`, `SPEC-009`) ist abgelaufen. Sie ist neben ATTENTION der zweite
+     * Auslöser des Abbruchs; wer zuerst übergeht, gewinnt (`SPEC-029`).
+     */
+    data object DeadlineExpired : HandshakeEvent {
+        override val kind: EventKind get() = EventKind.DEADLINE_EXPIRED
     }
 
     /**

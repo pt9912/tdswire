@@ -50,6 +50,9 @@ private const val N_VALUE = 245
  *   der Benutzerbereich ab 50001 für Codes ohne SQL-Server-Entsprechung.
  * - Setzung des Nutzers (2026-10-30): Class und Folge von `TDS_PROTOCOL_ERROR`, `TDS_BACKEND_ERROR`,
  *   `TDS_UNSUPPORTED_SQL` und `TDS_INTERNAL_ERROR`; die Folge von `TDS_SHUTDOWN` und `TDS_LOGIN_FAILED`.
+ * - Setzung des Nutzers (2026-11-01, `ADR-0027` Entscheidung 2): `TDS_TIMEOUT` ist ein Fehler der Anfragefehler-Gruppe
+ *   (Class 16, Verbindung offen), wenn ERROR und DONE vollständig gesendet sind; ein Cancel ist kein Fehler und hat
+ *   keinen Code. Die Nummer 50005 ist Festlegung.
  * - Voreinstellung: `TDS_UNSUPPORTED_RPC` und `TDS_SIM_INVALID_VALUE` bei den Anfragefehlern
  *   (Class 16, offen), nicht entschieden.
  * - Setzung (Voreinstellung, nicht gemessen): `TDS_UNKNOWN_HANDLE` und `TDS_PREPARE_LIMIT` in der
@@ -59,8 +62,8 @@ private const val N_VALUE = 245
  * - Festlegung (nicht gemessen): alle übrigen Werte, nämlich die Nummern ohne Vorschlag, jeder State
  *   (1), jeder Text und die Class 20 der Codes ohne Gruppe.
  *
- * Offen und nicht entschieden: die Zuordnung von [TDS_UNSUPPORTED_TYPE], [TDS_SIM_UNKNOWN_OBJECT]
- * und [TDS_TIMEOUT] zu einer Gruppe, sowie ob Cancel und Timeout als Fehler gelten; `slice-fehler-mapping` §6.
+ * Offen und nicht entschieden: die Zuordnung von [TDS_UNSUPPORTED_TYPE] und [TDS_SIM_UNKNOWN_OBJECT] zu einer
+ * Gruppe; `slice-fehler-mapping` §6.
  */
 enum class ErrorCode(val rule: ErrorRule) {
     /** Class und Folge: Setzung des Nutzers; die Nummer aus dem Benutzerbereich ist Festlegung. */
@@ -78,11 +81,8 @@ enum class ErrorCode(val rule: ErrorRule) {
     /** Anfragefehler-Gruppe (Setzung des Nutzers). */
     TDS_BACKEND_ERROR(ErrorRule(N_BACKEND, REQUEST, STATE, "Backend error.", ConnectionFate.OPEN)),
 
-    /**
-     * Ohne Gruppe: die Folge (schließt) ist Grundregel, Class 20 ist Festlegung; der Ablauf der
-     * Frist gehört einem anderen Slice.
-     */
-    TDS_TIMEOUT(ErrorRule(N_TIMEOUT, FATAL, STATE, "Timeout.", ConnectionFate.CLOSE_AFTER_REPLY)),
+    /** Anfragefehler-Gruppe (Setzung des Nutzers, `ADR-0027`); der Ablauf der Frist einer Anfrage (`SPEC-009`). */
+    TDS_TIMEOUT(ErrorRule(N_TIMEOUT, REQUEST, STATE, "Timeout.", ConnectionFate.OPEN)),
 
     /** Anfragefehler-Gruppe (Setzung des Nutzers); keine SQL-Server-Entsprechung. */
     TDS_UNSUPPORTED_SQL(ErrorRule(N_SQL, REQUEST, STATE, "Unsupported SQL.", ConnectionFate.OPEN)),

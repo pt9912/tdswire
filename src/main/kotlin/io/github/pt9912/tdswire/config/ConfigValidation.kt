@@ -11,12 +11,14 @@ package io.github.pt9912.tdswire.config
  * - `MAX_PRELOGIN_MESSAGE_BYTES` 512 bis 65536 (`SPEC-046`, vorläufig); die obere Grenze ist die der
  *   PRELOGIN-Verhandlung.
  * - `REQUIRED` verlangt Schlüsselspeicher und Kennwort, `TEST_UNENCRYPTED` lässt beide nicht zu (`SPEC-010`).
+ * - `QUERY_TIMEOUT` und `CANCEL_TIMEOUT` ganze Sekunden von 1 bis 3600 (`SPEC-009`, `SPEC-033`, vorläufig).
  *
  * Eine [ServerConfig] kann ungeprüft existieren; erst [check] und der Start weisen sie ab.
  */
 object ConfigValidation {
     private const val MAX_PORT = 65535
     private const val MAX_LOGIN_TIMEOUT = 3600
+    private const val MAX_REQUEST_TIMEOUT = 3600
     private const val MIN_PRELOGIN_BYTES = 512
     private const val MAX_PRELOGIN_BYTES = 65536
 
@@ -28,6 +30,8 @@ object ConfigValidation {
             port(config.listen.port),
             loginTimeout(config.login.timeoutSeconds),
             preloginBytes(config.login.maxPreloginMessageBytes),
+            queryTimeout(config.requests.queryTimeoutSeconds),
+            cancelTimeout(config.requests.cancelTimeoutSeconds),
         ) + pairing(config.encryption, hasKeystore = keyMaterial, hasPassword = keyMaterial)
     }
 
@@ -38,6 +42,12 @@ object ConfigValidation {
 
     internal fun loginTimeout(seconds: Int): ConfigIssue? =
         range(ConfigKeys.LOGIN_TIMEOUT, seconds, 1..MAX_LOGIN_TIMEOUT)
+
+    internal fun queryTimeout(seconds: Int): ConfigIssue? =
+        range(ConfigKeys.QUERY_TIMEOUT, seconds, 1..MAX_REQUEST_TIMEOUT)
+
+    internal fun cancelTimeout(seconds: Int): ConfigIssue? =
+        range(ConfigKeys.CANCEL_TIMEOUT, seconds, 1..MAX_REQUEST_TIMEOUT)
 
     internal fun preloginBytes(bytes: Int): ConfigIssue? =
         range(ConfigKeys.MAX_PRELOGIN_MESSAGE_BYTES, bytes, MIN_PRELOGIN_BYTES..MAX_PRELOGIN_BYTES)
