@@ -1,4 +1,4 @@
-package io.github.pt9912.tdswire.simulation
+package io.github.pt9912.tdswire.testserver
 
 import io.github.pt9912.tdswire.domain.SqlType
 

@@ -1,1 +1,1 @@
-**Stand:** offen — 1×; unter der Schwelle. Träger: [ADR-0025](../../../../adr/0025-produktschnitt-bibliothek-und-testserver.md) (`Proposed`), das Auslagern von Jackson in den Testserver; nach Annahme ist die Aussage eine Messung am Klassenpfad der Bibliothek.
+**Stand:** offen — 1×; unter der Schwelle. Träger gebaut mit slice-testserver-herausloesen: Jackson steht nur in den Konfigurationen des Testservers (gemessen am `gradle.lockfile` und am Klassenpfad), kein Test fällt, wenn Jackson im Klassenpfad von `integrator` läge; offen bleibt der Test, der die Aussage hält.

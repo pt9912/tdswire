@@ -1,16 +1,15 @@
-package io.github.pt9912.tdswire.runtime
+package io.github.pt9912.tdswire.testserver
 
 import io.github.pt9912.tdswire.config.ConfigIssue
-import io.github.pt9912.tdswire.config.ConfigKeys
 import io.github.pt9912.tdswire.config.ServerConfig
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
 /** Die Umgebung eines gültigen Testmodus-Starts: unverschlüsselt, Benutzerliste mit einem `plain`-Eintrag. */
 internal fun testModeEnvironment(usersFile: String, vararg more: Pair<String, String>): Map<String, String> = mapOf(
-    ConfigKeys.ENCRYPTION_POLICY to "TEST_UNENCRYPTED",
-    ConfigKeys.AUTH_PLAIN_TESTMODE to "true",
-    ConfigKeys.AUTH_USERS_FILE to usersFile,
+    EnvKeys.ENCRYPTION_POLICY to "TEST_UNENCRYPTED",
+    EnvKeys.AUTH_PLAIN_TESTMODE to "true",
+    EnvKeys.AUTH_USERS_FILE to usersFile,
 ) + more
 
 internal fun ConfigResult.loaded(): ServerConfig = assertIs<ConfigResult.Loaded>(this).config

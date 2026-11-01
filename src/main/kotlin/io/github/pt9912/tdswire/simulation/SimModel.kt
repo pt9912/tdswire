@@ -47,15 +47,18 @@ data class SimTable(
     fun column(columnName: String): SimColumn? = byName[SimNames.fold(columnName)]
 }
 
+/** Höchste Precision einer Dezimalzahl (`SPEC-003`). */
+private const val MAX_DECIMAL_PRECISION = 38
+
 /**
  * Eine Spalte; der Typ stammt aus dem Mindestkatalog von [SqlType], [nullable] sagt, ob NULL vorkommen darf.
- * Eine Dezimalzahl hat höchstens 38 Stellen (`SPEC-003`); die Grenze gilt für Schnittstelle und Datei.
+ * Eine Dezimalzahl hat höchstens 38 Stellen (`SPEC-003`); die Grenze gilt für jede Spalte.
  */
 data class SimColumn(val name: String, val type: SqlType, val nullable: Boolean = true) {
     init {
         require(name.isNotEmpty()) { "Spaltenname darf nicht leer sein" }
-        require(type !is SqlType.Decimal || type.precision <= SimColumnTypes.MAX_PRECISION) {
-            "Spalte $name: Precision über ${SimColumnTypes.MAX_PRECISION}"
+        require(type !is SqlType.Decimal || type.precision <= MAX_DECIMAL_PRECISION) {
+            "Spalte $name: Precision über $MAX_DECIMAL_PRECISION"
         }
     }
 }

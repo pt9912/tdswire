@@ -1,9 +1,10 @@
-package io.github.pt9912.tdswire.runtime
+package io.github.pt9912.tdswire.testserver
 
 import io.github.pt9912.tdswire.domain.QueryRequest
 import io.github.pt9912.tdswire.domain.SqlType
 import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.port.QueryExecution
+import io.github.pt9912.tdswire.runtime.BackendSource
 import io.github.pt9912.tdswire.simulation.RowSource
 import io.github.pt9912.tdswire.simulation.SimCatalog
 import io.github.pt9912.tdswire.simulation.SimColumn
@@ -29,6 +30,15 @@ internal const val DELETED_ROWS = 3L
 /** Zeichen der Sitzungskennung in der Logzeile; die Kennung ist je Anmeldung zufällig. */
 private const val SESSION_CHARS = 8
 
+/** Alter von `Ada` und `Cy`; gleich, damit die Auswahl nach `Age` zwei Zeilen trifft. */
+private const val ADA_AGE = 36
+
+/** Stellen der Dezimalspalten `Score` und `Preis`. */
+private const val MONEY_PRECISION = 10
+
+/** Ein Wert von `Gross` außerhalb von `Int`. */
+private const val BIG_VALUE = 9_000_000_000L
+
 private val KEY = SimColumn("Id", SqlType.Int32, nullable = false)
 
 /**
@@ -48,14 +58,14 @@ internal object KompatibilitaetsTables {
             KEY,
             SimColumn("Name", SqlType.UnicodeText),
             SimColumn("Age", SqlType.Int32),
-            SimColumn("Score", SqlType.Decimal(10, 2)),
+            SimColumn("Score", SqlType.Decimal(MONEY_PRECISION, 2)),
         ),
         primaryKey = listOf("Id"),
         rows = {
             val rows = listOf(
-                listOf(1, "Ada", 36, BigDecimal("10.50")),
+                listOf(1, "Ada", ADA_AGE, BigDecimal("10.50")),
                 listOf(2, "Bob", null, BigDecimal("7.25")),
-                listOf(3, "Cy", 36, null),
+                listOf(3, "Cy", ADA_AGE, null),
             )
             var next = 0
             RowSource { rows.getOrNull(next++) }
@@ -72,7 +82,7 @@ internal object KompatibilitaetsTables {
             SimColumn("Gross", SqlType.Int64),
             SimColumn("Flag", SqlType.Bool),
             SimColumn("Text", SqlType.UnicodeText),
-            SimColumn("Preis", SqlType.Decimal(10, 2)),
+            SimColumn("Preis", SqlType.Decimal(MONEY_PRECISION, 2)),
             SimColumn("Tag", SqlType.Date),
             SimColumn("Uhr", SqlType.Time),
             SimColumn("Zeit", SqlType.DateTime),
@@ -82,7 +92,7 @@ internal object KompatibilitaetsTables {
             val rows = listOf(
                 listOf(
                     1,
-                    9_000_000_000L,
+                    BIG_VALUE,
                     true,
                     "ü€😀",
                     BigDecimal("12345678.90"),
@@ -124,7 +134,7 @@ internal object KompatibilitaetsTables {
  * Reicht jede Anfrage an [inner] weiter und schreibt vorher eine Zeile `kompatibilitaet: anfrage` mit den ersten
  * Zeichen der Sitzungskennung, dem Text und den Parametern (Name, Typ, Richtung) auf die Standardausgabe: der Lauf
  * liest daran, welchen Text der Referenzclient stellt und auf welcher Sitzung er läuft. Der Wert eines Parameters
- * steht nicht in der Zeile. Nur der Testserver schreibt sie; das Produkt schreibt keinen Text einer Anfrage.
+ * steht nicht in der Zeile. Nur der Testserver schreibt sie; die Bibliothek schreibt keinen Text einer Anfrage.
  */
 internal class RecordingBackend(private val inner: QueryBackend, private val out: (String) -> Unit = ::println) :
     QueryBackend {
@@ -140,12 +150,13 @@ internal class RecordingBackend(private val inner: QueryBackend, private val out
 }
 
 /**
- * Der Serverprozess des Kompatibilitätslaufs (Dockerfile-Stage `kompatibilitaetsserver`): `Main` mit den Tabellen
- * von [KompatibilitaetsTables] hinter [RecordingBackend]. Die Konfiguration kommt aus der Umgebung der Stage
- * (Richtlinie `REQUIRED` mit Schlüsselspeicher).
+ * Der Testserver des Kompatibilitätslaufs (Dockerfile-Stage `kompatibilitaetsserver`): [runTestserver] mit den
+ * Tabellen von [KompatibilitaetsTables] hinter [RecordingBackend], übergeben als `BackendSource.Custom`. Die
+ * Konfiguration kommt aus der Umgebung der Stage (Richtlinie `REQUIRED` mit Schlüsselspeicher); eine Datei der
+ * Beschreibung bricht den Start ab.
  */
 fun main() {
     val backend = RecordingBackend(SimulationBackend(SimCatalog(KompatibilitaetsTables.all())))
     println("kompatibilitaetsserver: Tabellen person, typen, breit, kaputt")
-    runServer(Wiring(log = ServerLog.STDOUT, requests = RequestSource(backend = backend)))
+    runTestserver { fromFile -> BackendSource.Custom(backend).takeIf { fromFile.isEmpty() } }
 }

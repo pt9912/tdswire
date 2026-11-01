@@ -13,7 +13,7 @@ fehler=0
 befund() { echo "integrationszahlen: FEHLER - $1" >&2; fehler=1; }
 
 gradle="$w/build.gradle.kts"
-server="$w/src/test/kotlin/io/github/pt9912/tdswire/runtime/IntegrationServer.kt"
+server="$w/src/testserver/kotlin/io/github/pt9912/tdswire/testserver/IntegrationServer.kt"
 dotnet="$w/referenztest-dotnet/Integration/SimulationBackendTests.cs"
 spec="$w/spec/spezifikation.md"
 readme="$w/harness/README.md"

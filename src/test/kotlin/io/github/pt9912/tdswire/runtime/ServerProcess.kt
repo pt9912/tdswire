@@ -11,8 +11,8 @@ private const val MEMORY_LIMIT = "-Xmx256m"
 private const val FLAG = "-D${Bootstrap.TICKET_FLAG}=0"
 
 /**
- * Der Serverprozess als Kind-JVM mit `main` aus dem Klassenpfad des Tests (Systemeigenschaft
- * `tdswire.testclasspath`). Die Umgebung des Kindes besteht nur aus [environment]; Standardausgabe und
+ * Der Testserver als Kind-JVM mit `main` aus dem Klassenpfad des Source-Sets `testserver` (Systemeigenschaft
+ * `tdswire.testserverclasspath`). Die Umgebung des Kindes besteht nur aus [environment]; Standardausgabe und
  * Fehlerausgabe werden zeilenweise in [output] gesammelt. [withFlag] steuert, ob der Start das JVM-Flag setzt.
  */
 internal class ServerProcess(environment: Map<String, String>, withFlag: Boolean = true) : AutoCloseable {
@@ -22,7 +22,7 @@ internal class ServerProcess(environment: Map<String, String>, withFlag: Boolean
 
     init {
         val java = File(System.getProperty("java.home"), "bin/java").path
-        val classpath = checkNotNull(System.getProperty("tdswire.testclasspath"))
+        val classpath = checkNotNull(System.getProperty("tdswire.testserverclasspath"))
         val command = listOfNotNull(java, MEMORY_LIMIT, FLAG.takeIf { withFlag }, "-cp", classpath, MAIN_CLASS)
         val builder = ProcessBuilder(command).redirectErrorStream(true)
         builder.environment().clear()
@@ -79,6 +79,6 @@ internal class ServerProcess(environment: Map<String, String>, withFlag: Boolean
 
     companion object {
         const val PREFIX = "tdswire:"
-        private const val MAIN_CLASS = "io.github.pt9912.tdswire.runtime.MainKt"
+        private const val MAIN_CLASS = "io.github.pt9912.tdswire.testserver.MainKt"
     }
 }
