@@ -1,0 +1,2 @@
+**Vorgang:** slice-spec-nachzug-produktschnitt
+**Fund:** Der Nachzug der Spezifikation las beide ADRs gegen die geänderten Festlegungen (`SPEC-005`, `SPEC-010`, `SPEC-051`, Schlüsselmaterial) und fand keinen Widerspruch; ob „Datei und Umgebung gehören dem Testserver“ trotzdem eine Folge-ADR verlangt, entschied weder der Slice noch [ADR-0025](../../../../../adr/0025-produktschnitt-bibliothek-und-testserver.md) („nicht festgestellt“).

@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [TDS-RB-01](../../../../spec/lastenheft.md#tds-rb-01--implementierungssprache), [TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [TDS-RB-05](../../../../spec/lastenheft.md#tds-rb-05--lizenz) (Lizenz im Jar bleibt); [ADR-0025](../../adr/0025-produktschnitt-bibliothek-und-testserver.md) (`Accepted`, Entscheidungen 3 und 4, Folgepflicht 2 (b)), [ADR-0022](../../adr/0022-e2e-laeufe-nicht-in-den-gates.md) (Option M1, Begriff E2E-Lauf), [ADR-0018](../../adr/0018-laufzeit-artefakt.md) (Entscheidungen 1 bis 4 teilweise ersetzt), [ADR-0019](../../adr/0019-kompatibilitaetstests-zuschnitt.md) (Container-Modell bleibt).
 
-**Berührte Spec-Stellen:** SPEC-052 · SPEC-042 (Build-Gate, Digest-Pin der Basis-Images) · SPEC-040 (die Aussagen stehen nach `slice-spec-nachzug-produktschnitt`; dieser Slice setzt sie im Bau um).
+**Berührte Spec-Stellen:** SPEC-052 · SPEC-042 (Build-Gate, Digest-Pin der Basis-Images) · SPEC-040 (die Aussagen stehen nach `slice-spec-nachzug-produktschnitt`; dieser Slice setzt sie im Bau um und nimmt die Zielzustand-Vermerke heraus, die er erfüllt, Nachweis-Pflicht in der DoD).
 
 **Verantwortlich:** — bis zur Priorisierung.
 
@@ -39,7 +39,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Das Herauslösen des Testservers, die Umstellung der Test-Einstiege und die Logprüfungen der Skripte — `slice-testserver-herausloesen`; dieser Slice setzt voraus, dass sie stehen.
-- Die Spezifikation — sie steht nach `slice-spec-nachzug-produktschnitt`.
+- Die Spezifikation — sie steht nach `slice-spec-nachzug-produktschnitt`; dieser Slice nimmt nur die Zielzustand-Vermerke heraus, die er erfüllt (DoD, Nachweis-Pflichten), und ändert sie sonst nur bei einem Befund.
 - Lizenzhinweise der Bibliotheken in `lib/` — offener Punkt von [ADR-0018](../../adr/0018-laufzeit-artefakt.md), nach [ADR-0025](../../adr/0025-produktschnitt-bibliothek-und-testserver.md) Sache des Release-Prozesses (`slice-release-doku-prozess`, Register `BEO-TDS/lizenzhinweise-der-bibliotheken-rechtsfrage`); der Slice entscheidet ihn nicht.
 - Ein Alterssensor für die Digests der entfallenden Basis-Images — er entfällt mit dem Image ([ADR-0025](../../adr/0025-produktschnitt-bibliothek-und-testserver.md): akzeptiertes Negativ); ein Ersatz wird nicht gebaut.
 - Der Wortlaut der Nutzer-Doku zum Start im Container: sie ist Inhalt von `slice-release-doku-prozess`; dieser Slice schreibt nur den Plan von [welle-referenzabgleich-release](../welle-referenzabgleich-release.md) um (Liefer-Punkt 3), nicht die Doku.
@@ -68,6 +68,15 @@ Liefer-Punkte (drei):
 Nachweis-Pflichten für alle Punkte:
 
 - [ ] `make gates` grün.
+- [ ] **Zielzustand-Vermerke der Spezifikation entfernt** (Nachweis, kein Liefer-Punkt; Zusage aus `slice-spec-nachzug-produktschnitt` §3): Die Zielzustand-Vermerke in `spec/spezifikation.md`, die dieser Slice erfüllt, sind an den Stellen entfernt (Stand per `grep -n Zielzustand spec/spezifikation.md` im Nachweis geprüft, mit Treffern vor und nach dem Umbau); die Stellen, die der jeweils andere Slice trägt, bleiben stehen. Ein stehengebliebener Vermerk ist ein Befund (`BEO-TDS/fortschreibung-laesst-zweite-fundstelle-stehen`), ein entfernter Satz ohne tragenden Code ebenso. Die Zeilennummern gelten für den Stand nach `slice-spec-nachzug-produktschnitt` und verschieben sich mit jeder Änderung der Datei; maßgeblich ist der Text der Stelle.
+
+  | Zeile | Stelle |
+  |---|---|
+  | 1213 | `SPEC-059` Zeile Abhängigkeiten: `lib/` führt noch die YAML-Bibliothek (fällt mit dem Entfernen von Jackson durch `slice-testserver-herausloesen`; dieser Slice belegt den Inhalt von `lib/` in Beleg (3) des ersten Liefer-Punkts) |
+  | 1228 | `SPEC-052`: Startklasse im Manifest, Laufzeit-Image, Konfiguration im Container, `make laufzeittest` gegen das Image |
+
+  Die Stellen 607, 685, 823, 830, 1085, 1150, 1151, 1155, 1180, 1207, 1209 und 1225 trägt `slice-testserver-herausloesen`.
+
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).

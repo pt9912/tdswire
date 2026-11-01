@@ -39,7 +39,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Die Namen der Senke, des Ereignismodells und des Parameters von `start` in `SPEC-059`: Arbeitsnamen der ADR (Offen (g)); sie trägt `SPEC-059` mit der Closure von [slice-betrieb-log-schnittstelle](slice-betrieb-log-schnittstelle.md) (`AGENTS.md` §3.8).
-- Die Fläche und Läufe des Produktschnitts (`SPEC-052`, `SPEC-005`, `SPEC-010`, `SPEC-023`, `SPEC-035`, `SPEC-040`, `SPEC-059` ohne die Senke) — [slice-spec-nachzug-produktschnitt](slice-spec-nachzug-produktschnitt.md), Voraussetzung dieses Slice.
+- Die Fläche und Läufe des Produktschnitts (`SPEC-052`, `SPEC-005`, `SPEC-010`, `SPEC-023`, `SPEC-035`, `SPEC-040`, `SPEC-059` ohne die Senke) — [slice-spec-nachzug-produktschnitt](../done/slice-spec-nachzug-produktschnitt.md), Voraussetzung dieses Slice.
 - Code, Tests, Skripte und Gates — [slice-betrieb-log-schnittstelle](slice-betrieb-log-schnittstelle.md), [slice-betrieb-log-adapter-testserver](slice-betrieb-log-adapter-testserver.md), [slice-betrieb-metriken-tracing](slice-betrieb-metriken-tracing.md); der Slice sagt, was gilt, und baut nichts.
 - Das Lastenheft und angenommene ADRs (`AGENTS.md` §3.5). Ob der Satz zum Log in [ADR-0021](../../adr/0021-oeffentlicher-integrations-einstieg.md) Entscheidung 1 eine Folge-ADR mit `Supersedes` braucht (Offen (b) der [ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md)), entscheidet der Nutzer; der Slice meldet es nicht neu.
 - Die Entscheidung, ob das Ereignis `metrics` Perzentile oder Zähler je Klasse trägt (Offen (d)): sie trägt [slice-betrieb-metriken-tracing](slice-betrieb-metriken-tracing.md); die Spezifikation behält p50, p95, p99 als Voreinstellung.
@@ -102,7 +102,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **Start** (`next` → `in-progress`), alle Bedingungen beobachtbar:
 
 1. [ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md) steht im ADR-Index auf `Accepted` (erfüllt: Annahme am 2026-11-01).
-2. [slice-spec-nachzug-produktschnitt](slice-spec-nachzug-produktschnitt.md) liegt in `done/`: dieselbe Datei, dieselben Festlegungen der Läufe gegen den Testserver; der Wortlaut „Eingänge des Testservers“ steht, bevor dieser Slice ihn ergänzt.
+2. [slice-spec-nachzug-produktschnitt](../done/slice-spec-nachzug-produktschnitt.md) liegt in `done/`: dieselbe Datei, dieselben Festlegungen der Läufe gegen den Testserver; der Wortlaut „Eingänge des Testservers“ steht, bevor dieser Slice ihn ergänzt.
 3. Der Start-Trigger von [welle-betrieb-diagnose](../welle-betrieb-diagnose.md) ist eingetreten (erfüllt: die Wellen `welle-transport-tls` und `welle-handshake-login` liegen in `done/`).
 4. Ein Verantwortlicher ist im Kopf eingetragen.
 
