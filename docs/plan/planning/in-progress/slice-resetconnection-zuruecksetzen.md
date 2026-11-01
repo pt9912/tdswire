@@ -122,6 +122,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 - **Zähler beginnt neu, nicht weiter:** [ADR-0027](../../adr/0027-abbruch-und-zuruecksetzen.md) setzt „Zähler und Grenze von 1000 beginnen neu“. Dann kann ein früher vergebenes Handle mit kleinem Wert (z. B. 1) nach einem neuen `sp_prepexec` wieder gültig sein, mit anderem Text; ein Client, der ein Handle aus der Zeit vor dem Zurücksetzen hält, trifft dann nicht 50009, sondern den falschen Text. Der Referenzclient verwirft seine Handles beim Zurücksetzen selbst (nicht gemessen). Der Slice setzt wie die ADR, weist die Folge im Test und im KDoc aus und stellt die Frage dem Nutzer (ein weiterlaufender Zähler wäre eine Abweichung von der ADR und braucht eine Folge-Entscheidung). — **Ausgang:** offen bis zur Closure
+- **Handle-Aliasing nach dem Zurücksetzen (vom Review gefunden, offen, nicht entschieden):** Ein Client, der ein Handle aus der Zeit vor dem Zurücksetzen hält, bekommt nach einem neuen `sp_prepexec` mit gleichem Wert still den Text des neuen Handles statt 50009. Die Messung übt kein gehaltenes Handle über das Zurücksetzen hinweg (je Befehl neu vorbereitet, einmal ausgeführt); ob langlebige vorbereitete `SqlCommand`s das Pooling sicher überstehen, ist nicht gemessen. Entscheidung beim Nutzer oder Architect (Folge-ADR nach [ADR-0027](../../adr/0027-abbruch-und-zuruecksetzen.md) §Re-Evaluierung). — **Ausgang:** offen bis zur Closure
 - Der Sitzungsrahmen und die Sitzungssperre sind dieselben wie in [slice-attention-cancel-timeout](../done/slice-attention-cancel-timeout.md); zwei Slices in `in-progress` an `RequestLoop` erzeugen Konflikte und eine Reihenfolge-Abhängigkeit im Zustandsautomaten. — **Ausgang:** offen bis zur Closure
 - Dass der Referenzclient mit Pooling gegen einen Server dieses Repos das Bit sendet, ist nicht gemessen (R18, R19 stammen vom echten Server); fällt die Messung negativ aus, bleibt die Handle-Erschöpfung unter Pooling bestehen und Zeile 13 der Lücken offen. — **Ausgang:** weiter offen: → `BEO-TDS/tds-8-0-und-pooling-nicht-gemessen`
 - ENVCHANGE in der Antwort auf `RESETCONNECTION`: Typ und Inhalt am echten Server nicht ausgewertet (R18); ob der Referenzclient eines verlangt, misst Punkt 2 (c). — **Ausgang:** weiter offen: → `BEO-TDS/messung-am-echten-sql-server-fehlt`
@@ -141,6 +142,8 @@ diese Sektion die Zeile `Gegenstand:` mit Kennung oder Grund und jedes Risiko
 aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
+
+Offener Punkt aus dem Review, vom Implementer nur eingetragen: Handle-Aliasing nach dem Zurücksetzen mit gehaltenen Handles (§6), Entscheidung beim Nutzer oder Architect.
 
 Wird bei der Closure gefüllt.
 

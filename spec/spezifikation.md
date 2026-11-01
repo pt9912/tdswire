@@ -248,14 +248,16 @@ Cancel, damit der Client nicht auf sie wartet (Setzung; am echten Server ist nur
 gesendeter Antwort gemessen, im Leerlauf ohne laufende Anfrage nicht). Offen: die Antwort auf unzulässige
 Übergänge außerhalb des Handshakes und ATTENTION in jedem Anfragezustand über diese Bestätigung hinaus.
 
-RESETCONNECTION: Trägt das erste Paket einer Anfrage (SQL_BATCH, RPC) in `IDLE` das Statusbit
-`RESETCONNECTION` (`0x08`), setzt der Sitzungsrahmen den Sitzungszustand zurück, mindestens die Handle-Tabelle
+RESETCONNECTION: Trägt das erste Paket einer Anfrage-Nachricht (SQL_BATCH, RPC, Transaction Manager) in `IDLE`
+das Statusbit `RESETCONNECTION` (`0x08`), setzt der Sitzungsrahmen den Sitzungszustand zurück, mindestens die Handle-Tabelle
 (`SPEC-030`): im Übergang, der die Anfrage annimmt, unter der Sperre der Sitzung und vor der Verarbeitung dieser
-Anfrage. Die Anfrage mit dem Bit wird danach wie jede andere beantwortet. Das Zurücksetzen ist eine Aktion am
+Anfrage. Die Anfrage mit dem Bit wird danach wie jede andere beantwortet (ein Transaction Manager bleibt unbeantwortet
+und die Verbindung schließt wie ohne das Bit). Das Zurücksetzen ist eine Aktion am
 Übergang, kein Zustand der Aufzählung. Wer weiteren Sitzungszustand einführt (heute führt der Server nur die
 Handles), setzt ihn an dieser Stelle zurück. Das Bit in einem anderen Zustand als `IDLE` wertet der Server nicht
 aus: eine Anfrage dort ist ein unzulässiger Übergang, an ATTENTION und an den Nachrichten des Handshakes bleibt
-das Bit ohne Wirkung (Festlegung, nicht gemessen). Gemessen am Referenzclient (`Microsoft.Data.SqlClient` 7.1.1,
+das Bit ohne Wirkung; das Statusbit `0x10` (RESETCONNECTIONSKIPTRAN) wertet der Server nicht aus und es wirkt
+nicht wie `0x08`, weil der Server keine Transaktion führt (Festlegung, nicht gemessen). Gemessen am Referenzclient (`Microsoft.Data.SqlClient` 7.1.1,
 TDS 7.4, `Pooling=true`, eine physische Verbindung): über mehrere Open-Phasen gelingen mehr als 1000 vorbereitete
 Befehle (das 1001. einer Open-Phase endet weiter mit `SPEC-058`); das Bit ist damit über seine Wirkung beobachtet,
 am Draht nicht gesehen. Die Antwort auf die Anfrage mit dem Bit trägt kein ENVCHANGE: der Referenzclient nahm sie so an;
@@ -484,7 +486,7 @@ Handvektoren, die Zahl 1000 ist eine Setzung, Voreinstellung, und nicht konfigur
 - Eine Sitzung hält höchstens 1000 Handles gleichzeitig. Das `sp_prepexec`, das das 1001. Handle vergäbe,
   ergibt `SPEC-058` (ERROR und DONE mit Fehlerstatus), ohne dass das Backend gerufen wird; die Verbindung
   bleibt offen, die vorhandenen Handles bleiben gültig.
-- `sp_prepexec` vergibt ein neues Handle: ein Zähler je Sitzung ab 1, aufsteigend, ohne Wiederverwendung. Der
+- `sp_prepexec` vergibt ein neues Handle: ein Zähler je Sitzung ab 1, aufsteigend, ohne Wiederverwendung außer nach `RESETCONNECTION` (dort beginnt er bei 1 neu). Der
   Wert im OUTPUT-Parameter der Nachricht (−1 beim Erstaufruf, ein altes Handle bei einem erneuten Prepare)
   bleibt unberücksichtigt; ein altes Handle bleibt bis zum Sitzungsende oder bis zu `RESETCONNECTION` gültig. Der Server merkt den
   SQL-Text (nicht die Deklarationsliste; die Größe des Textes ist nicht begrenzt), ruft das Backend mit dem

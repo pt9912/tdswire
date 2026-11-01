@@ -236,6 +236,37 @@ class ResetConnectionDispatchTest {
         assertTrue(concurrentFinished, "der wartende Übergang läuft nach dem Zurücksetzen")
     }
 
+    /**
+     * Das Bit an einer Transaction-Manager-Nachricht in `READY` setzt zurück wie an SQL_BATCH und RPC (jede
+     * Anfrage-Nachricht, `SPEC-001`); der Zustand bleibt `READY`, die Anfrageschleife beendet die Sitzung danach
+     * unbeantwortet. Ohne das Bit setzt die Nachricht nicht zurück. Wächter: Zurücksetzen nur für SQL_BATCH und RPC.
+     *
+     * @spec SPEC-001
+     */
+    @Test
+    fun `Das Bit an Transaction Manager setzt zurueck, die Verbindung schliesst danach unbeantwortet`() = blocking {
+        val live = Session.login().ready.live
+        var resets = 0
+        live.onSessionReset { resets++ }
+        live.dispatch(HandshakeEvent.Message(TdsMessage(PacketType.TRANSACTION_MANAGER, ByteArray(0))))
+        assertEquals(0, resets, "ohne das Bit")
+        val marked = TdsMessage(PacketType.TRANSACTION_MANAGER, ByteArray(0), resetConnection = true)
+        live.dispatch(HandshakeEvent.Message(marked))
+        assertEquals(1, resets, "mit dem Bit")
+        assertEquals(ConnectionState.READY, live.context.state)
+
+        val backend = ScriptedBackend.ofList(*oneRow.toTypedArray())
+        val session = Session.login(
+            rpc(prepExec(-1, "select 1", "")),
+            resetting(PacketType.TRANSACTION_MANAGER, ByteArray(0)),
+            rpc(execute(1)),
+        )
+        session.serve(backend)
+        assertEquals(1, session.replies.size, "der Transaction Manager bleibt unbeantwortet")
+        assertEquals(ConnectionState.CLOSED, session.ready.live.context.state)
+        assertEquals(1, backend.requests.size)
+    }
+
     private companion object {
         const val PACKET_SIZE = 4096
         const val EOM = 0x01

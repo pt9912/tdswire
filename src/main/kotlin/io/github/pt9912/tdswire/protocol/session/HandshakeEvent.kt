@@ -28,8 +28,8 @@ internal sealed interface HandshakeEvent {
      * sind Anfragen; ATTENTION ist eigene Art, auch während `RUNNING` und `STREAMING`; jeder andere Pakettyp
      * ist [EventKind.OTHER_MESSAGE].
      * Das Bit RESETCONNECTION einer Anfrage in `READY` wertet der Automat aus
-     * ([HandshakeAction.ResetSession]); an jeder anderen Nachricht und das Bit IGNORE wertet er nicht aus (offen,
-     * `ADR-0004`, `ADR-0027`).
+     * ([HandshakeAction.ResetSession]), gleich ob SQL_BATCH, RPC oder Transaction Manager. Das Bit RESETCONNECTION an
+     * jeder anderen Nachricht und das Bit IGNORE wertet er nicht aus (offen, `ADR-0004`, `ADR-0027`).
      */
     class Message(val message: TdsMessage) : HandshakeEvent {
         override val kind: EventKind
