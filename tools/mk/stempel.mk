@@ -26,14 +26,14 @@
 #
 # Laufzeit von `make gates` (Einzelmessungen 2026-11-01 auf einem Host, Docker-Layer-Cache warm, Lastmittel in Klammern, keine
 # Streuung behauptet; kalt, mit leerem Cache, nicht gemessen; gilt nicht fuer die CI):
-#   Alle drei Klassen mit Beleg: 5,1 / 4,8 / 4,6 s (Lastmittel 10); nur Doku geaendert 8,1 s (11, tests und stempel
-#   uebersprungen); tools/gate-zuordnung.sh geaendert 19,2 s (11, werkzeug und stempel laufen). Die drei ungestempelten Gates
-#   (Klasse immer) machen davon rund 1,7 s aus. Nur src/ geaendert 254 s (4), fast alles der Gradle-Neubau der Stages test,
-#   detekt und build; Dockerfile geaendert 15,0 s (4, vor den Klassen immer und stempel gemessen).
+#   Alle drei Klassen mit Beleg: 5,8 / 8,6 s (Lastmittel 20), 4,6 / 4,2 s nach einer Doku-Aenderung (20, alle drei Klassen
+#   uebersprungen); harness/README.md geaendert 9,9 s (16, werkzeug laeuft); tools/gate-zuordnung.sh geaendert 21,2 s (18,
+#   werkzeug und stempel laufen); Dockerfile geaendert 32,6 s (18, alle drei laufen). Die drei ungestempelten Gates (Klasse immer)
+#   machen davon rund 1,7 s aus. Nur src/ geaendert 254 s (4), fast alles der Gradle-Neubau der Stages test, detekt und build.
 #   Einzeln, warm, ohne Stempel: docs-check 1,2 s, baseline-verify 0,03 s, detekt-selbsttest 0,9 s, skript-selbsttest 0,9 s,
 #   kopplung-zahlen 0,9 s, gate-zuordnung 0,13 s, stempel-eingaenge-pruefung 0,3 s, test 1,1 s, detekt 1,0 s, build 1,1 s,
 #   referenztest-dotnet 1,1 s, stempel-selbsttest 1,3 s, stempel-eingaenge (Selbsttest) rund 3 s, stempel-abbild 3,0 s,
-#   stempel-gruppe 2,3 s (die vier letzten bei Lastmittel 3 bis 5, vor der Klasse stempel).
+#   stempel-gruppe 2,3 s (die vier letzten bei Lastmittel 3 bis 5).
 .PHONY: gruppe-werkzeug gruppe-tests gruppe-stempel gate-zuordnung stempel-eingaenge-pruefung stempel-selbsttest stempel-eingaenge stempel-abbild stempel-gruppe
 
 GATE_KLASSE_werkzeug += baseline-verify
