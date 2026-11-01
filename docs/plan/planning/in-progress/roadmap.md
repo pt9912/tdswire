@@ -29,7 +29,7 @@ In Arbeit (Welle welle-qualitaet-grundlage):
 
 In Arbeit (Welle welle-fehler-abbruch):
 
-- [slice-attention-cancel-timeout](slice-attention-cancel-timeout.md)
+- keiner; zuletzt geschlossen: [slice-attention-cancel-timeout](slice-attention-cancel-timeout.md) (Closure-Notiz in §7 des Slice; Folge: [slice-cancel-referenzclient-szenario](../open/slice-cancel-referenzclient-szenario.md), [slice-resetconnection-zuruecksetzen](../open/slice-resetconnection-zuruecksetzen.md), [slice-abbruch-ressourcen-shutdown](../open/slice-abbruch-ressourcen-shutdown.md))
 
 In Arbeit (Welle welle-betrieb-diagnose):
 
