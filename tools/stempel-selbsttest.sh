@@ -26,6 +26,8 @@
 # gemessen, das braucht Root. Der Selbsttest nutzt keinen Docker-Cache.
 set -u
 export LC_ALL=C
+# Die Umgebung des Aufrufers (make gates FORCE=1, make -n, ...) gehoert nicht zum Gegenstand: die Faelle setzen ihre Werte selbst.
+unset FORCE TROCKEN KEIN_STEMPEL MAKEFLAGS MFLAGS MAKELEVEL GZ_ENDKETTE GZ_GRUPPE_W GZ_GRUPPE_T GZ_GRUPPE_S GZ_PFLICHT
 cd "$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "stempel-selbsttest: kein Git-Arbeitsbaum" >&2; exit 1; }
 SKRIPT=$(cd "$(dirname "${STEMPEL_SKRIPT:-tools/stempel.sh}")" && pwd)/$(basename "${STEMPEL_SKRIPT:-tools/stempel.sh}")
 [ -f "$SKRIPT" ] || { echo "stempel-selbsttest: $SKRIPT fehlt" >&2; exit 1; }
@@ -97,6 +99,7 @@ git -C "$V" init -q --template=
 cp "$SKRIPT" "$V/tools/stempel.sh"
 printf '# Fixture\ndocs\ntools\nMakefile\n' > "$V/tools/stempel/werkzeug.eingaenge"
 printf 'src\nDockerfile\ntools/stempel.sh\ntools/stempel\n' > "$V/tools/stempel/tests.eingaenge"
+printf 'tools/stempel.sh\ntools/stempel\nMakefile\n' > "$V/tools/stempel/stempel.eingaenge"
 printf 'a\n' > "$V/docs/a.md"
 printf 'class A\n' > "$V/src/A.kt"
 printf 'FROM scratch\n' > "$V/Dockerfile"
@@ -141,6 +144,15 @@ g_grund() {
 	ist "zwei Zeilen in der Note" gleich "$(g a notes --ref=refs/notes/gates show HEAD | grep -c '^stempel ')" 2
 	erwarte "schreibe zum zweiten Mal: nichts doppelt" a 0 "liegt schon" schreibe tests
 	ist "weiterhin zwei Zeilen" gleich "$(g a notes --ref=refs/notes/gates show HEAD | grep -c '^stempel ')" 2
+	# dritte Klasse stempel
+	neu st
+	erwarte "Klasse stempel: kein Beleg vorab" st 1 "kein Beleg" pruefe stempel
+	erwarte "Klasse stempel: schreibe" st 0 - schreibe stempel
+	erwarte "Klasse stempel: pruefe" st 0 - pruefe stempel
+	bearbeite st docs/a.md "x"
+	erwarte "Klasse stempel: Aenderung unter docs/ aendert nichts" st 0 - pruefe stempel
+	bearbeite st Makefile "y:"
+	erwarte "Klasse stempel: Aenderung am Makefile -> Lauf" st 1 "kein Beleg" pruefe stempel
 	# Aufrufvertrag
 	erwarte "unbekannte Klasse" a 1 "unbekannte Klasse" pruefe fremd
 	erwarte "schreibe ohne Klasse" a 1 "unbekannte Klasse" schreibe

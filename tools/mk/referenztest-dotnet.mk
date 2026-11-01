@@ -5,28 +5,21 @@
 # Eigener Build-Kontext: das Verzeichnis referenztest-dotnet/. Gemountet wird nichts; die Lock-Datei
 # kommt per --output heraus, wie bei `make deps-lock`.
 #
-# Der Lauf erfolgt nur, wenn sich der Inhalt der Eingaenge geaendert hat. .harness/state/referenztest-dotnet.hash
-# (nicht versioniert) haelt den Hash (tools/eingangs-hash.sh) des Stands, der gruen lief; mtimes zaehlen nicht,
-# ein checkout, merge oder rebase ohne Inhaltsaenderung loest nichts aus. Eingaenge: alles unter referenztest-dotnet/
-# (Dockerfile mit den Basis-Image-Digests, csproj, Lock, Tests) ausser bin/ und obj/, dazu diese Datei. Ein
-# frischer Klon und ein frischer CI-Runner haben keine Hash-Datei und fuehren den Lauf aus.
-# Setzung: `make referenztest-dotnet FORCE=1` erzwingt den Lauf.
-# Setzung: der Hash wird vor dem Lauf berechnet, die Datei vor dem Lauf entfernt und nach gruenem Lauf mit dem
-# vorab berechneten Hash geschrieben. Ein Abbruch oder roter Lauf hinterlaesst keine Datei; eine Aenderung
-# waehrend des Laufs weicht vom gespeicherten Hash ab und loest den naechsten aus. Beides irrt zur sicheren Seite.
+# Klasse `tests` (ADR-0024 Entscheidung 2 und 3): in `make gates` laeuft `referenztest-dotnet` im Gruppenschritt
+# gruppe-tests und wird uebersprungen, wenn der Stempel der Klasse zum Eingang passt (tools/mk/stempel.mk); `make gates
+# FORCE=1` erzwingt den Lauf. Aufgerufen als `make referenztest-dotnet` laeuft es immer, der Layer-Cache uebergeht die Stage,
+# wenn nichts davon geaendert ist, was sie kopiert. Eingaenge: referenztest-dotnet/ ganz; auf dem Host baut nichts dorthin,
+# ein bin/ oder obj/ machte die Klasse nicht sauber (Lauf ohne Stempel, tools/stempel-gruppe-selbsttest.sh), dazu diese Datei
+# (tools/stempel/tests.eingaenge).
+# Aufnahmebedingung (ADR-0024 Entscheidung 6): Basis-Image per Digest, Wiederherstellung der Pakete aus packages.lock.json,
+# Stage `test` ohne Netz und ohne Server (Smoke). Eine Uhr gibt es in KeinServerSmokeTests: die Dauer des Verbindungsfehlers
+# gegen eine Grenze von 5 s (Setzung dort, Messwert 702 ms); sie kann einen Lauf rot machen, nicht einen roten Stand gruen.
 .PHONY: referenztest-dotnet referenztest-dotnet-lock referenztest-dotnet-audit
 
 REFERENZTEST_DOTNET_DIR = referenztest-dotnet
-REFERENZTEST_DOTNET_HASH = .harness/state/referenztest-dotnet.hash
 
-referenztest-dotnet: ## .NET-Referenztests (Smoke ohne Server) ausfuehren; laeuft nur bei geaendertem Eingangs-Inhalt, FORCE=1 erzwingt
-	@h=$$(bash tools/eingangs-hash.sh $(REFERENZTEST_DOTNET_DIR) tools/mk/referenztest-dotnet.mk) || exit 1; \
-	if [ -z "$(FORCE)" ] && [ "$$(cat $(REFERENZTEST_DOTNET_HASH) 2>/dev/null)" = "$$h" ]; then \
-		echo "referenztest-dotnet: Eingaenge unveraendert ($$h), uebersprungen; FORCE=1 erzwingt den Lauf"; exit 0; \
-	fi; \
-	rm -f $(REFERENZTEST_DOTNET_HASH); \
-	docker build $(BUILDER_FLAGS) --target test --progress=plain $(REFERENZTEST_DOTNET_DIR) || exit 1; \
-	mkdir -p $(dir $(REFERENZTEST_DOTNET_HASH)); echo "$$h" > $(REFERENZTEST_DOTNET_HASH)
+referenztest-dotnet: ## .NET-Referenztests (Smoke ohne Server) ausfuehren (Stage `test`); in make gates im Gruppenschritt tests
+	docker build $(BUILDER_FLAGS) --target test --progress=plain $(REFERENZTEST_DOTNET_DIR)
 
 # Nach einer Versionsaenderung in der csproj. Das erste Lock vertraut nuget.org beim Schreiben
 # (CO-002); die Signaturpruefung der Pakete ist aus.
@@ -40,3 +33,5 @@ referenztest-dotnet-audit: ## Bekannte Schwachstellen der Pakete melden; haengt 
 	docker build $(BUILDER_FLAGS) --target audit --no-cache-filter audit --progress=plain $(REFERENZTEST_DOTNET_DIR)
 
 GATE_CHECKS += referenztest-dotnet
+GATE_KLASSE_tests += referenztest-dotnet
+GATE_STAGE += referenztest-dotnet=dotnet:test

@@ -35,3 +35,19 @@ E2E_ABDECKUNG_ZIEL = docs/plan/e2e-abdeckung.md
 E2E_ABDECKUNG_QUELLE = tools/e2e.sh
 E2E_ABDECKUNG_PRAEFIX = e2e
 E2E_ABDECKUNG_SPEC = spec/lastenheft.md
+
+# Gate-Klassen (ADR-0024 Entscheidung 1 und 3, ADR-0030): steht NACH dem Einbinden aller Fragmente. GATE_CHECKS wird durch die drei
+# Gruppenschritte (tools/mk/stempel.mk) und jedes Gate ohne Klasse ersetzt; das Gate ohne Klasse laeuft weiter immer und
+# macht `make gate-zuordnung` rot. GATE_ROH haelt die Kette vor dem Ersetzen.
+GATE_ROH := $(GATE_CHECKS)
+GATE_GRUPPE_werkzeug := $(filter $(GATE_KLASSE_werkzeug),$(GATE_ROH))
+GATE_GRUPPE_tests := $(filter $(GATE_KLASSE_tests),$(GATE_ROH))
+GATE_GRUPPE_stempel := $(filter $(GATE_KLASSE_stempel),$(GATE_ROH))
+GATE_CHECKS := gruppe-werkzeug gruppe-tests gruppe-stempel $(filter-out $(GATE_KLASSE_werkzeug) $(GATE_KLASSE_tests) $(GATE_KLASSE_stempel),$(GATE_ROH))
+
+# gruppe-stempel laeuft nach den anderen Gruppenschritten, wenn `make gates` Ziel ist: stempel-abbild beobachtet refs/notes und die
+# lokale Konfiguration des Repos, die gruppe-werkzeug und gruppe-tests beim Schreiben ihres Stempels aendern. Die Reihenfolge gilt
+# nur fuer `gates` und `record-gates`; `make gruppe-stempel` allein ruft die anderen nicht.
+ifneq ($(filter gates record-gates,$(MAKECMDGOALS)),)
+gruppe-stempel: | gruppe-werkzeug gruppe-tests
+endif

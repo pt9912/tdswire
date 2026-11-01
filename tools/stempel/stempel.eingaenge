@@ -1,0 +1,41 @@
+# Eingangsliste des Stempels `stempel` (ADR-0030 Entscheidung 1 und 3, ADR-0024): die Lese-Pfade der vier Gates stempel-selbsttest,
+# stempel-eingaenge (nur sein Selbsttest mit Mutationen), stempel-abbild und stempel-gruppe, soweit sie festen Dateien gelten. Ein
+# literaler Pfad je Zeile, Verzeichnisse gelten rekursiv, `#` beginnt einen Kommentar. Nicht in der Liste: docs, spec, harness
+# (ausser harness/mk), src, referenztest-dotnet (ausser seinem Dockerfile); eine Aenderung dort loest die Klasse nicht aus.
+# Herleitung (gelesen aus den Skripten, nicht gemessen):
+#  - stempel-selbsttest.sh liest tools/stempel.sh, das tools/stempel-liste.sh einbindet; es baut seine Wegwerf-Repos selbst.
+#  - stempel-eingaenge-selbsttest.sh liest tools/stempel-eingaenge-pruefung.sh (und darin tools/stempel-liste.sh), kopiert
+#    Dockerfile, referenztest-dotnet/Dockerfile, .d-check.yml und tools/stempel/*.eingaenge als Vorlage der Mutationen und faehrt
+#    die Pruefung einmal gegen das echte Repo: dabei liest sie jede .mk-Datei des Repos (git ls-files) und deren Zeilen
+#    GATE_KLASSE_*. Diesen Lese-Pfad deckt die Liste nicht; derselbe Befund laeuft in der Klasse immer (stempel-eingaenge-pruefung)
+#    bei jedem make gates.
+#  - stempel-abbild-selbsttest.sh kopiert den Arbeitsbaum, ruft tools/stempel.sh mit den echten Listen und aendert je Eintrag
+#    eine Datei; d-check.mk (Image-Pin) und Dockerfile (Basis-Image-Pin) sind Vorlage zweier Faelle.
+#  - stempel-gruppe-selbsttest.sh ruft tools/stempel-gruppe.sh und tools/stempel.sh, liest die Zeilen STEMPEL_* aus
+#    tools/mk/stempel.mk und fuehrt `make -n gates` am Abbild aus, das Makefile, repo.mk, tools/mk, harness/mk und d-check.mk
+#    einliest.
+#  - Die Gates gate-zuordnung und stempel-eingaenge-pruefung gehoeren zur Klasse immer und stehen hier nur als Dateien
+#    (tools/gate-zuordnung*.sh), weil gate-zuordnung die Pflichtmenge dieser Klasse haelt.
+# Geprueft gegen die festen Eingaenge: tools/stempel-eingaenge-pruefung.sh (FEST_ALLE, FEST_STEMPEL). Die Liste und
+# tools/stempel.sh stehen auch in tests.eingaenge und werkzeug.eingaenge.
+# Grenze: Die Selbsttests setzen voraus, dass jeder Eintrag der beiden anderen Listen im Baum steht (abbild) und dass unter
+# src/main eine .kt-Datei liegt (gruppe); das Entfernen solcher Dateien loest die Klasse nicht aus.
+tools/stempel.sh
+tools/stempel-liste.sh
+tools/stempel-gruppe.sh
+tools/stempel-selbsttest.sh
+tools/stempel-eingaenge-pruefung.sh
+tools/stempel-eingaenge-selbsttest.sh
+tools/stempel-abbild-selbsttest.sh
+tools/stempel-gruppe-selbsttest.sh
+tools/gate-zuordnung.sh
+tools/gate-zuordnung-selbsttest.sh
+tools/stempel
+tools/mk
+harness/mk
+d-check.mk
+Makefile
+repo.mk
+Dockerfile
+referenztest-dotnet/Dockerfile
+.d-check.yml

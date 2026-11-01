@@ -37,7 +37,7 @@ In Arbeit (Welle welle-betrieb-diagnose):
 
 In Arbeit (ohne Welle):
 
-- keiner; zuletzt geschlossen: [slice-stempel-mechanismus](../done/slice-stempel-mechanismus.md) (Closure-Notiz in §7 des Slice; Folge: [slice-stempel-migration](../open/slice-stempel-migration.md))
+- keiner; zuletzt geschlossen: [slice-stempel-migration](../done/slice-stempel-migration.md) (Closure-Notiz in §7 des Slice; offene Nutzerpunkte: Pflichtmenge der Klasse `immer` ([ADR-0031](../../adr/0031-gates-ohne-stempel-klasse-immer.md) Frage (b)), Grenze `assume-unchanged`, Host-Gates ohne Stage-Paar, CI-Seite)
 
 In Arbeit (Welle welle-produktschnitt):
 
