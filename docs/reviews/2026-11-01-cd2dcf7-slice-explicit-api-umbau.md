@@ -1,6 +1,6 @@
 # Review: slice-explicit-api-umbau (Diff 4166ef4..cd2dcf7)
 
-* Rolle: Reviewer (Modul 10), frischer Kontext. Branch `worktree-agent-a61105e28be42fcdb`. Plan: `docs/plan/planning/in-progress/slice-explicit-api-umbau.md`. Geprüft gegen Plan, [ADR-0021](../plan/adr/0021-oeffentlicher-integrations-einstieg.md) (Entscheidung 3, Option c2), [ADR-0026](../plan/adr/0026-oeffentlichkeit-simulations-backend-und-katalog.md), [ADR-0025](../plan/adr/0025-produktschnitt-bibliothek-und-testserver.md), AGENTS 3.2, 3.6, 3.7, 3.8; nicht gegen die DoD. Verdichtet vom Aufrufer abgelegt; Findings vollständig. Last am Host 14 bis 16 durch fremde Prozesse: Dauern unzuverlässig. `make docs-check`: 666 Dateien, 0 Befunde; `make detekt` aus dem Cache grün; `make test` und `make gates` nicht gefahren (Verifier).
+* Rolle: Reviewer (Modul 10), frischer Kontext. Branch `worktree-agent-a61105e28be42fcdb`. Plan: `docs/plan/planning/done/slice-explicit-api-umbau.md`. Geprüft gegen Plan, [ADR-0021](../plan/adr/0021-oeffentlicher-integrations-einstieg.md) (Entscheidung 3, Option c2), [ADR-0026](../plan/adr/0026-oeffentlichkeit-simulations-backend-und-katalog.md), [ADR-0025](../plan/adr/0025-produktschnitt-bibliothek-und-testserver.md), AGENTS 3.2, 3.6, 3.7, 3.8; nicht gegen die DoD. Verdichtet vom Aufrufer abgelegt; Findings vollständig. Last am Host 14 bis 16 durch fremde Prozesse: Dauern unzuverlässig. `make docs-check`: 666 Dateien, 0 Befunde; `make detekt` aus dem Cache grün; `make test` und `make gates` nicht gefahren (Verifier).
 
 ## Findings
 

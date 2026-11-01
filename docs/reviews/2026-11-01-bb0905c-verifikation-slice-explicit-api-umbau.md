@@ -1,6 +1,6 @@
 # Verifikationsbericht: slice-explicit-api-umbau
 
-* Rolle: Verifier (Modul 11), frischer Kontext. Branch `worktree-agent-a61105e28be42fcdb`, HEAD `bb0905c`, Merge-Basis mit `main` `4166ef4`. Plan/DoD: `docs/plan/planning/in-progress/slice-explicit-api-umbau.md` §2 (keine Haken gesetzt). Entscheidungen [ADR-0021](../plan/adr/0021-oeffentlicher-integrations-einstieg.md), [ADR-0026](../plan/adr/0026-oeffentlichkeit-simulations-backend-und-katalog.md), [ADR-0025](../plan/adr/0025-produktschnitt-bibliothek-und-testserver.md); Review [2026-11-01-cd2dcf7-slice-explicit-api-umbau.md](2026-11-01-cd2dcf7-slice-explicit-api-umbau.md). Verdichtet vom Aufrufer abgelegt; Findings vollständig.
+* Rolle: Verifier (Modul 11), frischer Kontext. Branch `worktree-agent-a61105e28be42fcdb`, HEAD `bb0905c`, Merge-Basis mit `main` `4166ef4`. Plan/DoD: `docs/plan/planning/done/slice-explicit-api-umbau.md` §2 (keine Haken gesetzt). Entscheidungen [ADR-0021](../plan/adr/0021-oeffentlicher-integrations-einstieg.md), [ADR-0026](../plan/adr/0026-oeffentlichkeit-simulations-backend-und-katalog.md), [ADR-0025](../plan/adr/0025-produktschnitt-bibliothek-und-testserver.md); Review [2026-11-01-cd2dcf7-slice-explicit-api-umbau.md](2026-11-01-cd2dcf7-slice-explicit-api-umbau.md). Verdichtet vom Aufrufer abgelegt; Findings vollständig.
 
 ## Gesamturteil: closure-fähig mit Bedingungen
 
