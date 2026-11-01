@@ -155,6 +155,12 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei der Closure gefüllt.
 
+Belege des Implementers für die Closure-Notiz (Eingabe, nicht das Urteil):
+
+- Mutation „Einstieg `internal`“: `TdsServer.start` als `internal` macht `compileIntegratorKotlin` rot („Cannot access ‚suspend fun start …‘: it is internal“, an beiden Aufrufstellen in `EmbeddingTest`). `class TdsServer` als `internal` ist keine Mutation für diesen Beleg: das Hauptmodul bricht vorher.
+- Mutation „Source-Set assoziiert“: `associateWith(main)` ohne die Abhängigkeit auf `main.output` bricht schon die Auflösung in der Stage `deps` (Lock); mit der Task `integratorOhneAssoziation` allein (Einzellauf) meldet der Sensor „Source-Set integrator ist assoziiert mit [main]“.
+- Mutationen der Tests: ohne die Sperre (`AtomicBoolean`) in `stop` und ohne `wipe()` beim Laden des Materials sind `TdsServerLifecycleTest` (beide Tests) rot; weitere Mutationen stehen im Bericht des Implementers.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
