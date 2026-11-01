@@ -27,6 +27,10 @@ In Arbeit (Welle welle-qualitaet-grundlage):
 
 - [slice-e2e-geruest](slice-e2e-geruest.md)
 
+In Arbeit (Welle welle-anfrageverarbeitung):
+
+- keiner; zuletzt geschlossen: [slice-anfragefolge-gesamttest](../done/slice-anfragefolge-gesamttest.md) (Closure-Notiz in §7 des Slice; offener Nutzerpunkt: Lesart „Nachrichten, nicht Transport“ des Wellen-Wortlauts „Rohbytes-Lauf“, die Welle schließt nicht ohne diesen Zusatz)
+
 In Arbeit (Welle welle-fehler-abbruch):
 
 - keiner; zuletzt geschlossen: [slice-attention-cancel-timeout](../done/slice-attention-cancel-timeout.md) (Closure-Notiz in §7 des Slice; Folge: [slice-cancel-referenzclient-szenario](../open/slice-cancel-referenzclient-szenario.md), [slice-resetconnection-zuruecksetzen](../open/slice-resetconnection-zuruecksetzen.md), [slice-abbruch-ressourcen-shutdown](../open/slice-abbruch-ressourcen-shutdown.md))
