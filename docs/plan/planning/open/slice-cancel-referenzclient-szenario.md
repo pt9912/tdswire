@@ -32,11 +32,11 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Der Referenzclient `Microsoft.Data.SqlClient` bricht eine laufende Anfrage gegen den Serverprozess per `SqlCommand.Cancel()`, `CancellationToken` und Command-Timeout ab und erhält danach auf derselben Verbindung nur die Antwort der Folgeabfrage; läuft die Frist `QUERY_TIMEOUT` am Server ab, sieht der Client einen Serverfehler und behält die offene Verbindung. Der Lauf löst den Carveout [CO-004](../../carveouts/CO-004-cancel-szenario-spec-040-fehlt.md) auf und liefert den Cancel-Teil der Messmethode von [TDS-QA-07](../../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität), den kein anderer Slice trägt.
 
-Der Slice entstand am 2026-11-01 aus den ehemaligen DoD-Punkten 4 und 5 von [slice-attention-cancel-timeout](slice-attention-cancel-timeout.md) (Zerlegung nach [ADR-0027](../../adr/0027-abbruch-und-zuruecksetzen.md), Grenze höchstens drei Liefer-Punkte je Slice).
+Der Slice entstand am 2026-11-01 aus den ehemaligen DoD-Punkten 4 und 5 von [slice-attention-cancel-timeout](../next/slice-attention-cancel-timeout.md) (Zerlegung nach [ADR-0027](../../adr/0027-abbruch-und-zuruecksetzen.md), Grenze höchstens drei Liefer-Punkte je Slice).
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Der Abbruchpfad im Server (ATTENTION erkennen, genau ein Cancel, `DONE[ATTN]`, `CANCEL_TIMEOUT`, Frist mit `TDS_TIMEOUT`) — [slice-attention-cancel-timeout](slice-attention-cancel-timeout.md); er ist Voraussetzung (§4), dieser Slice misst ihn nur von außen.
+- Der Abbruchpfad im Server (ATTENTION erkennen, genau ein Cancel, `DONE[ATTN]`, `CANCEL_TIMEOUT`, Frist mit `TDS_TIMEOUT`) — [slice-attention-cancel-timeout](../next/slice-attention-cancel-timeout.md); er ist Voraussetzung (§4), dieser Slice misst ihn nur von außen.
 - Die Zwei-Nachrichten-Form der Cancel-Antwort — [ADR-0027](../../adr/0027-abbruch-und-zuruecksetzen.md) baut sie nur, wenn dieser Lauf mit der Ein-Nachricht-Form scheitert. Das ist dann eine Re-Evaluierung der ADR und ein neuer Zuschnitt, nicht Teil dieses Slice (Rückführung in §4).
 - `RESETCONNECTION` und Pooling — [slice-resetconnection-zuruecksetzen](slice-resetconnection-zuruecksetzen.md); der Lauf hier ist TDS 7.4 ohne Verschlüsselung und ohne Pool (`SPEC-040`).
 - Der Vergleich der Cancel-Antwort mit einem echten SQL Server (R11 bis R16) — `slice-qa-vergleichslauf-d`; dieser Slice misst den Referenzclient gegen den Server dieses Repos.
@@ -76,7 +76,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `referenztest-dotnet/Integration/SimulationBackendTests.cs` | update | fünftes Szenario: `Cancel()` einer laufenden Anfrage über die Zeilenquelle, Folgeabfrage ([TDS-FA-07](../../../../spec/lastenheft.md#tds-fa-07--abbruch-und-ressourcenfreigabe), [TDS-QA-07](../../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität)) |
 | `src/test/kotlin/io/github/pt9912/tdswire/runtime/IntegrationServer.kt` | update | falls die Zeilenquelle `gross` nicht lange genug läuft, um sicher im Lauf abgebrochen zu werden: eine Quelle, die auf den Abbruch wartet (Test-Quelltext, kein Produkt) |
 | `referenztest-dotnet/Kompatibilitaet/SynchronitaetTests.cs` | update | `Cancel()`, `CancellationToken`, Command-Timeout, ATTENTION während des Streamings, `TDS_TIMEOUT`, je mit Folgeabfrage ([TDS-QA-07](../../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität)) |
-| `src/test/kotlin/io/github/pt9912/tdswire/runtime/KompatibilitaetsServer.kt` | update | `QUERY_TIMEOUT` kurz einstellbar (nutzt die Einstellung aus [slice-attention-cancel-timeout](slice-attention-cancel-timeout.md)); Quelle für die Streaming-Fälle |
+| `src/test/kotlin/io/github/pt9912/tdswire/runtime/KompatibilitaetsServer.kt` | update | `QUERY_TIMEOUT` kurz einstellbar (nutzt die Einstellung aus [slice-attention-cancel-timeout](../next/slice-attention-cancel-timeout.md)); Quelle für die Streaming-Fälle |
 | `tools/e2e.sh`, `tools/kompatibilitaetstest.sh` | update | Text und Abdeckungs-Zeile der Stufen 3 und 8 (Kennungen [TDS-FA-07](../../../../spec/lastenheft.md#tds-fa-07--abbruch-und-ressourcenfreigabe), [TDS-QA-07](../../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität), „ohne Cancel“ entfällt) |
 | `spec/spezifikation.md`, `docs/plan/kompatibilitaetsmatrix.md`, `harness/README.md`, `docs/plan/carveouts/` | update | Doku-Update in §2, Auflösung von [CO-004](../../carveouts/CO-004-cancel-szenario-spec-040-fehlt.md) |
 
@@ -87,7 +87,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf, inklusive einer
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-attention-cancel-timeout](slice-attention-cancel-timeout.md) liegt in `done/` (der Abbruchpfad mit Fristen und die Einstellung von `QUERY_TIMEOUT` stehen auf `main`), [ADR-0027](../../adr/0027-abbruch-und-zuruecksetzen.md) steht im ADR-Index auf `Accepted` (erfüllt), die Stufen 3 und 8 des Produkt-E2E laufen (`make e2e` ist auf `main` grün) und ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): [slice-attention-cancel-timeout](../next/slice-attention-cancel-timeout.md) liegt in `done/` (der Abbruchpfad mit Fristen und die Einstellung von `QUERY_TIMEOUT` stehen auf `main`), [ADR-0027](../../adr/0027-abbruch-und-zuruecksetzen.md) steht im ADR-Index auf `Accepted` (erfüllt), die Stufen 3 und 8 des Produkt-E2E laufen (`make e2e` ist auf `main` grün) und ein Verantwortlicher ist im Kopf eingetragen.
 
 **Carveout:** [CO-004](../../carveouts/CO-004-cancel-szenario-spec-040-fehlt.md) nennt diesen Slice als Folge-Slice. Er ist aufgelöst, wenn dieser Slice in `done/` liegt und das Cancel-Szenario in `make simulations-integration` besteht (Auflösungs-Trigger des Carveouts).
 
