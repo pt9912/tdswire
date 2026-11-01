@@ -9,9 +9,9 @@ namespace TdsWire.Referenztests.Kompatibilitaet;
 /// Anmeldemessungen und RPC-Messungen des Referenzclients (Microsoft.Data.SqlClient 7.1.1) am Serverprozess
 /// (`make kompatibilitaet KATEGORIE=Anmeldung`, Stufe 6 von `make e2e`, ADR-0019, TDS-QA-01, TDS-QA-03): TDS 8.0
 /// (`Encrypt=Strict`) mit SQL-Authentifizierung, Anmeldung mit den längsten Feldern und kleiner Paketgröße, Pooling,
-/// `Prepare`, die `SET`-Texte von `SchemaOnly` und `KeyInfo`, Transaktionen und die Größen der RPC-Parametertypen.
+/// `Prepare` (sp_prepexec und Wiederholung, Grenze der Handles), die `SET`-Texte von `SchemaOnly` und `KeyInfo`, Transaktionen und die Größen der RPC-Parametertypen.
 /// Die Zeilen `messung: ...` im Bericht sind die Werte, die die Matrix zitiert. Dass beide Pooling-Anfragen auf
-/// derselben Sitzung liefen, und die SET-Texte stehen nur im Log des Servers; ihre Prüfung liegt in
+/// derselben Sitzung liefen, die SET-Texte und dass keine unbekannte Prozedur (`sp_unprepare`) ankam, stehen nur im Log des Servers; ihre Prüfung liegt in
 /// `tools/kompatibilitaetstest.sh`, ein `dotnet test` allein belegt sie nicht. Nicht belegt: Windows-SSPI (nicht
 /// lieferbar, ADR-0019); ob ein LOGIN7 in mehreren Paketen ankam (kein Mitschnitt, die Paketzahl ist nicht beobachtet);
 /// das RESETCONNECTION-Bit selbst (der Server wertet es nicht aus, beobachtet ist die zweite Nutzung der gepoolten
@@ -148,26 +148,95 @@ public class AnmeldungTests
     }
 
     [Fact]
-    public void Prepare_wird_vom_Server_als_unbekannte_RPC_abgewiesen_und_die_Verbindung_bleibt_nutzbar()
+    public void Prepare_fuehrt_wiederholt_mit_anderen_Werten_aus_und_Dispose_laesst_die_Verbindung_nutzbar()
     {
         SqlConnection.ClearAllPools();
         var zeichenfolge = MitPool();
         using (var verbindung = Ziel.Oeffnen(zeichenfolge))
         {
-            using var befehl = new SqlCommand("SELECT Id FROM person WHERE Id = @id", verbindung);
-            befehl.Parameters.Add("@id", SqlDbType.Int).Value = 1;
+            var befehl = new SqlCommand("SELECT Id FROM person WHERE Id = @id", verbindung);
+            var parameter = befehl.Parameters.Add("@id", SqlDbType.Int);
+            parameter.Value = 1;
             befehl.Prepare();
+            var erste = befehl.ExecuteScalar();
+            parameter.Value = 2;
+            var zweite = befehl.ExecuteScalar();
+            parameter.Value = 1;
+            var dritte = befehl.ExecuteScalar();
+            Ziel.Messung(_ausgabe, $"Prepare, drei Ausfuehrungen mit den Werten 1, 2, 1: Ergebnisse {erste}, {zweite}, {dritte}");
+            Assert.Equal(1, erste);
+            Assert.Equal(2, zweite);
+            Assert.Equal(1, dritte);
 
-            var ausnahme = Assert.Throws<SqlException>(() => befehl.ExecuteScalar());
-
-            Ziel.Messung(_ausgabe, "Prepare und Ausfuehren (sp_prepexec): " + Ziel.Beschreibung(ausnahme));
-            Assert.Equal(50002, ausnahme.Number);
+            befehl.Dispose();
+            Ziel.Messung(_ausgabe, "Dispose des vorbereiteten Befehls: keine Ausnahme, Verbindung " + verbindung.State);
             Assert.Equal(ConnectionState.Open, verbindung.State);
+            using var folge = new SqlCommand("SELECT Id FROM person WHERE Id = 1", verbindung);
+            Assert.Equal(1, folge.ExecuteScalar());
         }
 
         using var wieder = Ziel.Oeffnen(zeichenfolge);
-        using var folge = new SqlCommand("SELECT Id FROM person WHERE Id = 1", wieder);
-        Assert.Equal(1, folge.ExecuteScalar());
+        using var danach = new SqlCommand("SELECT Id FROM person WHERE Id = 1", wieder);
+        Assert.Equal(1, danach.ExecuteScalar());
+        SqlConnection.ClearAllPools();
+    }
+
+    [Fact]
+    public void Prepare_wiederholte_Ausfuehrung_desselben_Befehls_bleibt_ueber_der_Grenze_der_Handles()
+    {
+        SqlConnection.ClearAllPools();
+        using (var verbindung = Ziel.Oeffnen(MitPool()))
+        {
+            using var befehl = new SqlCommand("SELECT Id FROM person WHERE Id = @wiederholung", verbindung);
+            var parameter = befehl.Parameters.Add("@wiederholung", SqlDbType.Int);
+            befehl.Prepare();
+            for (var i = 1; i <= 1100; i++)
+            {
+                parameter.Value = i % 2 + 1;
+                Assert.Equal(i % 2 + 1, befehl.ExecuteScalar());
+            }
+
+            Ziel.Messung(_ausgabe, "Prepare, 1100 Ausfuehrungen desselben Befehls mit wechselnden Werten: alle beantwortet, Verbindung " + verbindung.State);
+        }
+
+        SqlConnection.ClearAllPools();
+    }
+
+    [Fact]
+    public void Prepare_je_neuem_Befehl_trifft_auf_der_gepoolten_Sitzung_die_Grenze_der_Handles()
+    {
+        SqlConnection.ClearAllPools();
+        var zeichenfolge = MitPool();
+        using (var verbindung = Ziel.Oeffnen(zeichenfolge))
+        {
+            SqlException? abgewiesen = null;
+            var beantwortet = 0;
+            while (abgewiesen is null && beantwortet < 1100)
+            {
+                using var befehl = new SqlCommand("SELECT Id FROM person WHERE Id = @einzeln", verbindung);
+                befehl.Parameters.Add("@einzeln", SqlDbType.Int).Value = 1;
+                befehl.Prepare();
+                try
+                {
+                    Assert.Equal(1, befehl.ExecuteScalar());
+                    beantwortet++;
+                }
+                catch (SqlException ausnahme)
+                {
+                    abgewiesen = ausnahme;
+                }
+            }
+
+            Ziel.Messung(_ausgabe, $"Prepare je neuem Befehl, danach Dispose: {beantwortet} beantwortet, dann " +
+                (abgewiesen is null ? "keine Abweisung" : Ziel.Beschreibung(abgewiesen)) + "; Verbindung " + verbindung.State);
+            Assert.Equal(1000, beantwortet);
+            Assert.NotNull(abgewiesen);
+            Assert.Equal(50010, abgewiesen!.Number);
+            Assert.Equal(ConnectionState.Open, verbindung.State);
+            using var folge = new SqlCommand("SELECT Id FROM person WHERE Id = 1", verbindung);
+            Assert.Equal(1, folge.ExecuteScalar());
+        }
+
         SqlConnection.ClearAllPools();
     }
 

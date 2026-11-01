@@ -108,6 +108,17 @@ if [ "$KATEGORIE" = Anmeldung ]; then
       docker logs "$SERVER" 2>&1 | grep -qF 'sql=[ SET FMTONLY OFF; SET NO_BROWSETABLE ON;SELECT Id, Name FROM person SET NO_BROWSETABLE OFF;]'
   }
   pruefe "Log nennt die SET-Texte von SchemaOnly und KeyInfo" set_texte
+  # Prepare (sp_prepexec, sp_execute) am Referenzclient: Zaehlung der Aufrufe je Marker-Parameter im Log. Der Client sieht
+  # nur Ergebnisse; dass er bei Dispose und Wiederholung keine unbekannte Prozedur (sp_unprepare, sp_prepare) sendet,
+  # zeigt allein das Log (Ursache UNKNOWN_PROCEDURE des Dispatch).
+  pruefe "Prepare: drei Ausfuehrungen eines vorbereiteten Befehls erreichen das Backend (Marker @id)" \
+    sh -c "[ \"\$(docker logs '$SERVER' 2>&1 | grep -cF 'sql=[SELECT Id FROM person WHERE Id = @id] parameter=[@id:Int32:INPUT]')\" = 3 ]"
+  pruefe "Prepare: 1100 Ausfuehrungen desselben Befehls erreichen das Backend (Marker @wiederholung)" \
+    sh -c "[ \"\$(docker logs '$SERVER' 2>&1 | grep -cF 'parameter=[@wiederholung:Int32:INPUT]')\" = 1100 ]"
+  pruefe "Prepare: 1000 Befehle erreichen das Backend, der 1001. endet mit TDS_PREPARE_LIMIT (Marker @einzeln)" \
+    sh -c "[ \"\$(docker logs '$SERVER' 2>&1 | grep -cF 'parameter=[@einzeln:Int32:INPUT]')\" = 1000 ] && [ \"\$(docker logs '$SERVER' 2>&1 | grep -cF 'tdswire: Fehler: TDS_PREPARE_LIMIT (handle-limit)')\" = 1 ]"
+  pruefe "Prepare: keine unbekannte Prozedur (sp_unprepare, sp_prepare) erreicht den Server" \
+    sh -c "! docker logs '$SERVER' 2>&1 | grep -qF 'TDS_UNSUPPORTED_RPC (UNKNOWN_PROCEDURE)'"
 fi
 
 if [ "$KATEGORIE" = Luecken ]; then
