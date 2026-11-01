@@ -28,6 +28,8 @@
 #                Erlaubt.kt hat keinen Fund.
 #   suppression  prueft an erzeugten Dateien, dass tools/suppression-check.sh jede Form von @Suppress
 #                meldet, die das Skript nennt, und erlaubte Namen nicht.
+#   jackson      prueft an erzeugten Dateien, dass tools/jackson-sperre.sh Import, qualifizierten Namen und
+#                Kommentar mit com.fasterxml in Kotlin und Java meldet, und erlaubte Namen nicht.
 #
 # Aufgerufen von der Dockerfile-Stage `detekt-selbsttest`; braucht sh, awk, sed, grep, sort, cut, ls, tr
 # und mktemp. Grenze: geprueft ist, dass die Regeln greifen und nichts treffen, was Allowed.kt und
@@ -224,10 +226,29 @@ suppression() {
   echo "detekt-selbsttest: OK - $n Formen von @Suppress gemeldet, erlaubte Namen nicht"
 }
 
+jackson() {
+  skript=tools/jackson-sperre.sh
+  d=build/jackson-test
+  mkdir -p "$d/verboten" "$d/erlaubt"
+  printf 'package a\n\nimport com.fasterxml.jackson.core.JsonToken\n' > "$d/verboten/Import.kt"
+  printf 'package a\n\nval t = com.fasterxml.jackson.core.JsonToken.NOT_AVAILABLE\n' > "$d/verboten/Qualified.kt"
+  printf 'package a\n\n// com.fasterxml.jackson im Kommentar\nclass A\n' > "$d/verboten/Comment.kt"
+  printf 'package a;\n\nimport com.fasterxml.jackson.databind.ObjectMapper;\n' > "$d/verboten/Java.java"
+  printf 'package a\n\nval fasterxml = 0\nval x = "jackson"\n' > "$d/erlaubt/Names.kt"
+  n=0
+  for f in "$d"/verboten/*; do
+    n=$((n + 1))
+    if sh "$skript" "$f" > /dev/null 2>&1; then fail "$skript meldet $f nicht"; fi
+  done
+  sh "$skript" "$d/erlaubt" > /dev/null || fail "$skript meldet einen erlaubten Namen"
+  echo "detekt-selbsttest: OK - $n Formen eines Jackson-Verweises gemeldet, erlaubte Namen nicht"
+}
+
 case "${1:-}" in
   generate) generate ;;
   check) check ;;
   aufrufe) aufrufe ;;
   suppression) suppression ;;
-  *) echo "Aufruf: $0 generate|check|aufrufe|suppression" >&2; exit 2 ;;
+  jackson) jackson ;;
+  *) echo "Aufruf: $0 generate|check|aufrufe|suppression|jackson" >&2; exit 2 ;;
 esac

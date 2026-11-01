@@ -21,9 +21,12 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+/** Exit-Code des Testservers bei abgebrochenem Start. */
+private const val EXIT_START_FAILED = 1
+
 /**
- * Der Rohbytes-Smoke der Welle (`make smoke`, Teil von `make gates`): ein Serverprozess, gestartet über `main`
- * mit dem JVM-Flag und einer Testkonfiguration, beantwortet einen Rohbytes-Client vom Prozessstart bis zur
+ * Der Rohbytes-Smoke der Welle (`make smoke`, Teil von `make gates`): der Testserver als Prozess, gestartet über sein
+ * `main` mit dem JVM-Flag und einer Testkonfiguration, beantwortet einen Rohbytes-Client vom Prozessstart bis zur
  * Login-Antwort. Der Client baut seine Bytes von Hand (kein Codec des Produkts, kein Referenzclient); der Smoke
  * belegt, was der Server auf diese Bytes antwortet, nicht dass `Microsoft.Data.SqlClient` die Antwort annimmt.
  */

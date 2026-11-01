@@ -1,6 +1,9 @@
-package io.github.pt9912.tdswire.simulation
+package io.github.pt9912.tdswire.testserver
 
 import io.github.pt9912.tdswire.domain.SqlType
+import io.github.pt9912.tdswire.simulation.SimColumn
+import io.github.pt9912.tdswire.simulation.SimQuery
+import io.github.pt9912.tdswire.simulation.SimTable
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals

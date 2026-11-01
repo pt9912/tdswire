@@ -1,12 +1,15 @@
-package io.github.pt9912.tdswire.simulation
+package io.github.pt9912.tdswire.testserver
 
 import io.github.pt9912.tdswire.domain.SqlType
-import io.github.pt9912.tdswire.simulation.SimTreeAccess.asList
-import io.github.pt9912.tdswire.simulation.SimTreeAccess.asMap
-import io.github.pt9912.tdswire.simulation.SimTreeAccess.child
-import io.github.pt9912.tdswire.simulation.SimTreeAccess.fail
-import io.github.pt9912.tdswire.simulation.SimTreeAccess.fields
-import io.github.pt9912.tdswire.simulation.SimTreeAccess.required
+import io.github.pt9912.tdswire.simulation.RowSource
+import io.github.pt9912.tdswire.simulation.SimColumn
+import io.github.pt9912.tdswire.simulation.SimTable
+import io.github.pt9912.tdswire.testserver.SimTreeAccess.asList
+import io.github.pt9912.tdswire.testserver.SimTreeAccess.asMap
+import io.github.pt9912.tdswire.testserver.SimTreeAccess.child
+import io.github.pt9912.tdswire.testserver.SimTreeAccess.fail
+import io.github.pt9912.tdswire.testserver.SimTreeAccess.fields
+import io.github.pt9912.tdswire.testserver.SimTreeAccess.required
 
 private val DOCUMENT_READ = setOf("schema_format", "name", "version", "tables")
 private val DOCUMENT_IGNORED = setOf(
@@ -59,7 +62,7 @@ object SimDescriptionReader {
 
     private fun checkNames(entries: List<SimEntry>, path: String) {
         entries.firstOrNull { it.key.isEmpty() }?.let { fail(child(path, it.key), it.keyPosition, "Name leer") }
-        SimNames.firstDuplicate(entries.map { it.key })?.let {
+        NameFold.firstDuplicate(entries.map { it.key })?.let {
             val entry = entries[it]
             fail(child(path, entry.key), entry.keyPosition, "Name doppelt (ohne Beachtung der Schreibweise)")
         }
@@ -76,9 +79,9 @@ object SimDescriptionReader {
         val raw = readColumns(columnsMap, columnsPath)
         val keyEntry = required(f, "primary_key", map, path)
         val key = readKey(asList(keyEntry.value, child(path, "primary_key")), child(path, "primary_key"), raw)
-        val keySet = key.map { SimNames.fold(it) }.toSet()
+        val keySet = key.map { NameFold.fold(it) }.toSet()
         val columns = raw.map {
-            SimColumn(it.name, it.type, nullable = !(it.notNull || SimNames.fold(it.name) in keySet))
+            SimColumn(it.name, it.type, nullable = !(it.notNull || NameFold.fold(it.name) in keySet))
         }
         return SimTable(name = entry.key, columns = columns, primaryKey = key, rows = { RowSource { null } })
     }
@@ -127,12 +130,12 @@ object SimDescriptionReader {
 
     private fun readKey(list: SimList, path: String, columns: List<RawColumn>): List<String> {
         if (list.items.isEmpty()) fail(path, list.position, "mindestens ein Schlüsseleintrag erforderlich")
-        val byName = columns.associateBy { SimNames.fold(it.name) }
+        val byName = columns.associateBy { NameFold.fold(it.name) }
         val resolved = ArrayList<String>(list.items.size)
         for ((index, node) in list.items.withIndex()) {
             val here = SimTreeAccess.item(path, index)
             val name = SimTreeAccess.text(node, here)
-            val column = byName[SimNames.fold(name)] ?: fail(here, node.position, "Schlüsselspalte nicht vorhanden")
+            val column = byName[NameFold.fold(name)] ?: fail(here, node.position, "Schlüsselspalte nicht vorhanden")
             if (column.name in resolved) fail(here, node.position, "Schlüsselspalte doppelt")
             resolved += column.name
         }

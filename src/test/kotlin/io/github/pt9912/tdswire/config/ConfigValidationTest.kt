@@ -19,11 +19,8 @@ class ConfigValidationTest {
 
     private fun keyMaterial() = TlsKeyMaterial(byteArrayOf(1), PasswordChars(charArrayOf('x')))
 
-    private fun unencrypted(
-        listen: ListenSettings = ListenSettings(),
-        login: LoginSettings = LoginSettings(),
-        simulationFile: ByteArray? = null,
-    ) = ServerConfig(listen, login, EncryptionSetting.TEST_UNENCRYPTED, null, users(), simulationFile)
+    private fun unencrypted(listen: ListenSettings = ListenSettings(), login: LoginSettings = LoginSettings()) =
+        ServerConfig(listen, login, EncryptionSetting.TEST_UNENCRYPTED, null, users())
 
     /**
      * Eine Konfiguration mit den Voreinstellungen und unverschlüsseltem Testmodus ist gültig; die Voreinstellungen sind
@@ -92,21 +89,6 @@ class ConfigValidationTest {
     }
 
     /**
-     * Die Datei der Tabellenbeschreibung darf höchstens 1 MiB groß sein, die Grenze selbst ist gültig.
-     *
-     * @spec SPEC-035
-     */
-    @Test
-    fun `Die Beschreibung der Tabellen ist auf 1 MiB begrenzt`() {
-        val key = ConfigKeys.SIMULATION_DESCRIPTION_FILE
-        assertEquals(emptyList(), ConfigValidation.check(unencrypted(simulationFile = ByteArray(1_048_576))))
-        assertEquals(
-            listOf(ConfigIssue(key, IssueKind.TOO_LARGE)),
-            ConfigValidation.check(unencrypted(simulationFile = ByteArray(1_048_577))),
-        )
-    }
-
-    /**
      * Mehrere Fehler werden zusammen gemeldet, in fester Reihenfolge, und die Diagnose nennt keinen Wert.
      *
      * @spec SPEC-051
@@ -118,7 +100,6 @@ class ConfigValidationTest {
             listen = ListenSettings(host = " ", port = 70000),
             login = LoginSettings(0, 1),
             auth = users(),
-            simulationFile = ByteArray(1_048_577),
         )
         val issues = ConfigValidation.check(config)
         assertEquals(
@@ -129,7 +110,6 @@ class ConfigValidationTest {
                 ConfigIssue(ConfigKeys.MAX_PRELOGIN_MESSAGE_BYTES, IssueKind.OUT_OF_RANGE),
                 ConfigIssue(ConfigKeys.TLS_KEYSTORE_FILE, IssueKind.MISSING),
                 ConfigIssue(ConfigKeys.TLS_KEYSTORE_PASSWORD_FILE, IssueKind.MISSING),
-                ConfigIssue(ConfigKeys.SIMULATION_DESCRIPTION_FILE, IssueKind.TOO_LARGE),
             ),
             issues,
         )

@@ -1,4 +1,4 @@
-package io.github.pt9912.tdswire.simulation
+package io.github.pt9912.tdswire.testserver
 
 /**
  * Zugriff auf den Baum für den Leser der Tabellenbeschreibung. Jeder Fehler ist eine

@@ -1,4 +1,4 @@
-package io.github.pt9912.tdswire.simulation
+package io.github.pt9912.tdswire.testserver
 
 /**
  * Baut Bäume für den Leser der Tabellenbeschreibung von Hand, ohne YAML-Bibliothek. Jeder Knoten und jeder

@@ -113,7 +113,7 @@ class EmbeddingTest {
     /**
      * Eine ungültige Konfiguration ergibt `StartOutcome.Aborted` mit jedem Fehler nach Schlüssel und Art, keine
      * Ausnahme und keinen gebundenen Port: `REQUIRED` ohne Schlüsselmaterial, `TEST_UNENCRYPTED` mit Material, ein
-     * Wert außerhalb des Bereichs, und ein Backend zugleich mit einer Datei der Tabellenbeschreibung.
+     * Wert außerhalb des Bereichs.
      *
      * @spec SPEC-059
      * @spec SPEC-010
@@ -142,10 +142,6 @@ class EmbeddingTest {
         )
         val outside = abortedBy(unencrypted(ListenSettings(LOOPBACK, MAX_PORT + 1)), BackendSource.None)
         assertEquals(listOf(ConfigIssue(ConfigKeys.LISTEN_PORT, IssueKind.OUT_OF_RANGE)), outside.issues)
-        val withFile = unencrypted(onLoopback, DESCRIPTION.toByteArray())
-        val both = abortedBy(withFile, BackendSource.Custom(MemoryBackend()))
-        assertEquals(emptyList(), both.issues)
-        assertEquals("Backend und Simulations-Backend gleichzeitig konfiguriert", both.reason)
         assertEquals("Konfiguration ungueltig", required.reason)
         ServerSocket(port, 1, InetAddress.getByName(LOOPBACK)).use { assertEquals(port, it.localPort) }
     }
@@ -200,24 +196,11 @@ class EmbeddingTest {
         return AuthSettings(parsed.list, plainTestMode = true)
     }
 
-    private fun unencrypted(listen: ListenSettings = ListenSettings(LOOPBACK, 0), file: ByteArray? = null) =
-        ServerConfig(listen, encryption = EncryptionSetting.TEST_UNENCRYPTED, auth = users(), simulationFile = file)
+    private fun unencrypted(listen: ListenSettings = ListenSettings(LOOPBACK, 0)) =
+        ServerConfig(listen, encryption = EncryptionSetting.TEST_UNENCRYPTED, auth = users())
 
     private fun freePort(): Int = ServerSocket(0, 1, InetAddress.getByName(LOOPBACK)).use { it.localPort }
 }
-
-/** Eine Beschreibung der Tabellen im Format der Datei, hier als Bytes der Konfiguration. */
-private const val DESCRIPTION = """
-schema_format: "1.0"
-name: einbettung
-version: "1"
-tables:
-  leer:
-    columns:
-      Id:
-        type: identifier
-    primary_key: [Id]
-"""
 
 private const val MAX_PORT = 65535
 

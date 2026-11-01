@@ -3,8 +3,8 @@
 #
 # Eingaenge (Umgebung, Vorgaben in Klammern):
 #   SPEC_DATEI    (spec/spezifikation.md)    Festlegungen: `### SPEC-<NNN> — <Titel>` und Tabellenzeilen `| `SPEC-<NNN>` | <Titel> | ...`
-#   TEST_QUELLE   (src/test src/integrator)  Verzeichnisse (durch Leerzeichen getrennt) mit Kotlin-Tests mit dem KDoc-Block-Tag `@spec SPEC-<NNN> [SPEC-<NNN> ...]`
-#   BERICHTE      (build/test-results/test build/test-results/integratorTest)  Verzeichnisse mit JUnit-XML-Berichten des Gradle-Testlaufs (TEST-*.xml)
+#   TEST_QUELLE   (src/test src/integrator src/testserver)  Verzeichnisse (durch Leerzeichen getrennt) mit Kotlin-Tests mit dem KDoc-Block-Tag `@spec SPEC-<NNN> [SPEC-<NNN> ...]`
+#   BERICHTE      (build/test-results/test build/test-results/integratorTest build/test-results/testserverTest)  Verzeichnisse mit JUnit-XML-Berichten des Gradle-Testlaufs (TEST-*.xml)
 #   ZIEL          (docs/plan/spec-abdeckung.md)  die zu schreibende Matrix
 #   WAISEN_DATEI  (leer)                     wenn gesetzt: dorthin die Zahl der Festlegungen ohne Nachweis
 #   STRENG        (0)                        1: Exit 1, sobald eine Festlegung ohne Nachweis ist
@@ -36,8 +36,8 @@
 set -eu
 
 spec=${SPEC_DATEI:-spec/spezifikation.md}
-quelle=${TEST_QUELLE:-src/test src/integrator}
-berichte=${BERICHTE:-build/test-results/test build/test-results/integratorTest}
+quelle=${TEST_QUELLE:-src/test src/integrator src/testserver}
+berichte=${BERICHTE:-build/test-results/test build/test-results/integratorTest build/test-results/testserverTest}
 ziel=${ZIEL:-docs/plan/spec-abdeckung.md}
 streng=${STRENG:-0}
 
@@ -154,7 +154,7 @@ cat "$tmp/s.tsv" "$tmp/t.tsv" "$tmp/r.tsv" | awk -F '\t' -v spec="$spec" '
     for (j = 1; j <= ns; j++) if (gesamt[sid[j]] == 0) { if (klasse[sid[j]] == "gate") gates++; else waisen++ }
     print "# Abdeckung der Festlegungen der Spezifikation durch Tests"
     print ""
-    print "Erzeugt von `make spec-abdeckung` aus den `@spec`-Tags im KDoc der Testfunktionen unter `src/test`"
+    print "Erzeugt von `make spec-abdeckung` aus den `@spec`-Tags im KDoc der Testfunktionen unter `src/test`, `src/integrator` und `src/testserver`"
     print "und den JUnit-Berichten des Testlaufs, der diese Matrix erzeugt hat. Die Festlegungen sind die"
     print "`SPEC-<NNN>`-Überschriften und die Tabellenzeilen mit `SPEC-<NNN>` in der ersten Zelle von"
     print "[`" spec "`](../../" spec ")."

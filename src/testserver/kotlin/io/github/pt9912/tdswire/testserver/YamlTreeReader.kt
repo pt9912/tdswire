@@ -1,18 +1,10 @@
-package io.github.pt9912.tdswire.runtime
+package io.github.pt9912.tdswire.testserver
 
 import com.fasterxml.jackson.core.JsonLocation
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.core.JsonToken
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.dataformat.yaml.YAMLParser
-import io.github.pt9912.tdswire.simulation.SimEntry
-import io.github.pt9912.tdswire.simulation.SimList
-import io.github.pt9912.tdswire.simulation.SimLoadException
-import io.github.pt9912.tdswire.simulation.SimMap
-import io.github.pt9912.tdswire.simulation.SimNode
-import io.github.pt9912.tdswire.simulation.SimPosition
-import io.github.pt9912.tdswire.simulation.SimScalar
-import io.github.pt9912.tdswire.simulation.SimTreeAccess
 import java.nio.ByteBuffer
 import java.nio.charset.CharacterCodingException
 import java.nio.charset.CodingErrorAction
