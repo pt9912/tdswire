@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** SPEC-001 · SPEC-002 · SPEC-009 · SPEC-016 · SPEC-022 · SPEC-029 · SPEC-031 · SPEC-033 · [TDS-FA-06.a](../../../../spec/spezifikation.md#tds-fa-06a--fehlerabbildung) · ARC-015
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** pt9912.
 
 **Autor:** pt9912. **Datum:** 2026-10-30; zugeschnitten am 2026-11-01 nach [ADR-0027](../../adr/0027-abbruch-und-zuruecksetzen.md).
 
