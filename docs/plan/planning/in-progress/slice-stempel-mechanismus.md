@@ -74,9 +74,10 @@ Aussagen-Berührung steht hier gar nicht.
 | `tools/stempel/werkzeug.eingaenge`, `tools/stempel/tests.eingaenge` | neu | Eingangslisten, Anfangsinhalt aus [ADR-0024](../../adr/0024-lokale-stempel-zwei-klassen.md) Entscheidung 10 |
 | `tools/stempel-selbsttest.sh` | neu | jeder Fehlerpfad einzeln, Amend/Rebase/Squash, gleichzeitiges Schreiben ([TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit)); legt Wegwerf-Repos im Scratch an |
 | `tools/stempel-eingaenge-pruefung.sh`, `tools/stempel-eingaenge-selbsttest.sh` | neu | Überdeckung der `COPY`-Quellen durch die Listen und die Mutation (Name der Skripte ein Vorschlag) |
-| `Dockerfile` | update | Stage für die Selbsttests der beiden Skripte (die Stage `skript-selbsttest` kopiert nur Skripte und `Dockerfile` und kostet Sekunden; ob die Selbsttests dort laufen oder in einer eigenen Stage, entscheidet der Bau; die Tests brauchen `git`, Risiko in §6) |
-| `tools/mk/stempel.mk` | neu | Target(s) für die Selbsttests, hängen an `GATE_CHECKS` (Klasse `werkzeug`, Namen ein Vorschlag) |
+| `Dockerfile` | keine Änderung | Die Selbsttests laufen auf dem Host mit `bash` und `git` (Setzung des Implementers, Begründung im Kopf von `tools/stempel-selbsttest.sh`); `git` steht in der Stage `basis`, ein Lauf in Docker ist nicht gebaut |
+| `tools/mk/stempel.mk` | neu | Targets `stempel-selbsttest` und `stempel-eingaenge`, hängen an `GATE_CHECKS` (Klasse `werkzeug`) |
 | `harness/README.md` | update | Sensors-Tabelle |
+| `docs/plan/planning/in-progress/roadmap.md` | update | Block „In Arbeit (ohne Welle)“ |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf, inklusive einer Testdatei-Zeile mit der Akzeptanzkriterien-ID in `Begründung`.
 

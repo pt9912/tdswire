@@ -1,0 +1,24 @@
+# Eingangsliste des Stempels `tests` (ADR-0024 Entscheidung 1 und 10): die Vereinigung der Eingaenge von test, detekt,
+# build und referenztest-dotnet. Ein literaler Pfad je Zeile, Verzeichnisse gelten rekursiv, `#` beginnt einen Kommentar.
+# Geprueft gegen die COPY-Quellen der Stages test, compile, detekt, build-jar und smoke samt Vorgaengern und gegen die
+# Stage test von referenztest-dotnet/Dockerfile: tools/stempel-eingaenge-pruefung.sh. Das Skript und beide Listen
+# stehen auch in werkzeug.eingaenge (dort deckt `tools` sie).
+src
+LICENSE
+build.gradle.kts
+settings.gradle.kts
+gradle.properties
+gradle
+gradle.lockfile
+settings-gradle.lockfile
+Dockerfile
+.dockerignore
+config
+tools/suppression-check.sh
+tools/manifest-pruefung.sh
+tools/mk/test.mk
+tools/mk/build.mk
+tools/mk/referenztest-dotnet.mk
+tools/stempel.sh
+tools/stempel
+referenztest-dotnet

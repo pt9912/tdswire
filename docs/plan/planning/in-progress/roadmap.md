@@ -31,6 +31,10 @@ In Arbeit (Welle welle-betrieb-diagnose):
 
 - [slice-adr-observability](slice-adr-observability.md)
 
+In Arbeit (ohne Welle):
+
+- [slice-stempel-mechanismus](slice-stempel-mechanismus.md)
+
 ## Nächste Wellen
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
