@@ -33,7 +33,7 @@ In Arbeit (Welle welle-fehler-abbruch):
 
 In Arbeit (Welle welle-betrieb-diagnose):
 
-- keiner; zuletzt geschlossen: [slice-adr-observability](../done/slice-adr-observability.md) (Closure-Notiz in §7 des Slice; Folge: [slice-spec-nachzug-telemetrie](../in-progress/slice-spec-nachzug-telemetrie.md), Startbedingung [ADR-0029](../../adr/0029-log-parameter-am-einstieg.md) für [slice-betrieb-log-schnittstelle](../open/slice-betrieb-log-schnittstelle.md))
+- keiner; zuletzt geschlossen: [slice-spec-nachzug-telemetrie](../in-progress/slice-spec-nachzug-telemetrie.md) (Closure-Notiz in §7 des Slice; Folge: [slice-betrieb-log-schnittstelle](../open/slice-betrieb-log-schnittstelle.md) mit offenen Nutzerpunkten [ADR-0029](../../adr/0029-log-parameter-am-einstieg.md) (`Proposed`) und `StartOutcome.Aborted.reason`)
 
 In Arbeit (ohne Welle):
 
