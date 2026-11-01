@@ -29,7 +29,7 @@ In Arbeit (Welle welle-qualitaet-grundlage):
 
 In Arbeit (Welle welle-betrieb-diagnose):
 
-- [slice-adr-observability](slice-adr-observability.md)
+- [slice-adr-observability](../done/slice-adr-observability.md)
 
 In Arbeit (ohne Welle):
 
