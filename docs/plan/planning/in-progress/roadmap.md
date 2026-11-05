@@ -10,6 +10,8 @@ gezeigt, nicht als Treiber.
 
 ## Offene Wellen
 
+Nichts in Arbeit.
+
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte — *Offene Wellen* ist **derivativ**: Der
 Zustand sind die flachen Welle-Dateien; woran gearbeitet wird, sagt das
@@ -30,7 +32,7 @@ In Arbeit (Welle welle-qualitaet-grundlage):
 
 In Arbeit (Welle welle-testserver-manuell):
 
-- [slice-tls-d-migrate](../done/slice-tls-d-migrate.md) in Arbeit (Zweig `slice-tls-d-migrate`; Entscheidung zur Flag-Variante steht aus). Zuletzt geschlossen: [slice-d-migrate-verbindung-und-export](../done/slice-d-migrate-verbindung-und-export.md) (`data export` mit d-migrate läuft, Exit 0, 0 Zeilen; Closure-Notiz in §7 des Slice), [slice-prelogin-serverversion](../done/slice-prelogin-serverversion.md), [slice-testserver-manuell-doku](../done/slice-testserver-manuell-doku.md), [slice-testserver-up-down](../done/slice-testserver-up-down.md). Welle neu geschnitten (Ziel: d-migrate als Prüfclient läuft gegen den Testserver, [TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate) vom Nutzer freigegeben). Nächste: [slice-adr-testserver-bestand-und-katalog](../open/slice-adr-testserver-bestand-und-katalog.md) (Spike zuerst, Reihenfolge zu [slice-oeffentliche-flaeche-verkleinern-und-belegen](../open/slice-oeffentliche-flaeche-verkleinern-und-belegen.md) offen)
+- keiner in `in-progress/`; zuletzt geschlossen: [slice-tls-d-migrate](../done/slice-tls-d-migrate.md) ([ADR-0032](../../adr/0032-tls-obergrenze-je-pfad-und-ticket-flag.md): der TDS-7.4-Pfad bietet höchstens TLS 1.2 an, das JVM-Flag entfällt; inkompatible Änderung der Fläche: `StartRefusal.JVM_FLAG_MISSING` entfernt; offener Nutzerpunkt: Wächter gegen ein weiter gesetztes Flag), [slice-d-migrate-verbindung-und-export](../done/slice-d-migrate-verbindung-und-export.md), [slice-prelogin-serverversion](../done/slice-prelogin-serverversion.md), [slice-testserver-manuell-doku](../done/slice-testserver-manuell-doku.md), [slice-testserver-up-down](../done/slice-testserver-up-down.md). Welle neu geschnitten (Ziel: d-migrate als Prüfclient läuft gegen den Testserver, [TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate) vom Nutzer freigegeben). Nächste: [slice-adr-testserver-bestand-und-katalog](../open/slice-adr-testserver-bestand-und-katalog.md) (Spike zuerst, Reihenfolge zu [slice-oeffentliche-flaeche-verkleinern-und-belegen](../open/slice-oeffentliche-flaeche-verkleinern-und-belegen.md) offen)
 
 In Arbeit (Welle welle-anfrageverarbeitung):
 
