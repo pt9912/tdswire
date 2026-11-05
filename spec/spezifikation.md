@@ -484,11 +484,9 @@ DONE-Statusbits sind gegen MS-TDS zu prüfen. **Offen:** die Behandlung der `SET
 
 Text ohne Deklarationsliste und Wertparameter ohne Namen. Gemessen am 2026-11-05 mit d-migrate 1.12.0 (Treiber
 mssql-jdbc 13.4.0.jre11) gegen den Testserver: Für eine Anweisung ohne Parameter sendet der Treiber `sp_executesql` mit
-genau einem Parameter, dem Text, ohne Deklarationsliste (`SELECT * FROM [kunden] WHERE 1 = 0`). Die Bibliothek verlangte
-zwei Parameter, beantwortete die Nachricht mit `INVALID_RPC_FORM` ("Protocol error", Fehler 50006) und schloss die
-Verbindung. Für eine Anweisung mit Parameter sendet er den Text, die Deklarationsliste (`@P0 bigint`) und den Wert als
-`INTN` 8 mit Namenslänge 0, also ohne Namen. Die Bibliothek wies den Parameter ab (`TDS_UNSUPPORTED_RPC`, "Unsupported
-RPC."). Festlegung (Setzung, nicht gemessen): Der Text an Position 0 ist Pflicht und ein NVARCHAR ohne NULL; die
+genau einem Parameter, dem Text, ohne Deklarationsliste (`SELECT * FROM [kunden] WHERE 1 = 0`). Für eine Anweisung mit
+Parameter sendet er den Text, die Deklarationsliste (`@P0 bigint`) und den Wert als `INTN` 8 mit Namenslänge 0, also
+ohne Namen. Die Bibliothek nimmt beide Formen an (`INVALID_RPC_FORM` bei weniger als einem Parameter). Festlegung (Setzung, nicht gemessen): Der Text an Position 0 ist Pflicht und ein NVARCHAR ohne NULL; die
 Deklarationsliste ist optional und fehlt als leere Liste, sie wird nicht gedeutet. Ein Wertparameter ohne Namen von
 `sp_executesql`, `sp_prepexec` und `sp_execute` heißt `@P<i>` mit `i` als Stelle unter den Wertparametern, gezählt ab 0
 ohne Text, Deklarationsliste und Handle; die Namen, die der Treiber in der Deklarationsliste nennt (`@P0`, `@P1`, ...),
@@ -749,7 +747,7 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   wenn beide Zahlen gleich sind, sonst für keine; `WHERE 1 = 0` liefert also die Spalten der Auswahl und keine Zeile,
   ohne dass die Zeilenquelle geöffnet wird, `WHERE 1 = 1` jede Zeile. Der Konstantenterm ist eine Setzung: gemessen ist
   nur der Text `1 = 0` (d-migrate 1.12.0, mssql-jdbc 13.4.0, 2026-11-05, `SELECT * FROM [kunden] WHERE 1 = 0` als
-  Probe der Spaltenmetadaten); vorher antwortete die Bibliothek mit `TDS_UNSUPPORTED_SQL` (`UNEXPECTED_TOKEN`). Der
+  Probe der Spaltenmetadaten). Der
   Term ist kein Ausdruck im Sinn der Liste „Nicht erkannt“ (kein Operator außer `=`, keine Spalte, kein Parameter).
   In `UPDATE` und `DELETE` ist er nicht erkannt: ein Filter ohne Spaltenterm wäre dort ein Filter ohne Vorfilter, den
   ein Callback als „alle Zeilen“ liest.
@@ -772,9 +770,7 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   Testserver; für den Referenzclient ist keine Anweisung der Form gemessen): `SELECT 1` ist der Verbindungstest des
   Pools, `SET LOCK_TIMEOUT 30000` folgt jedem Verbindungsaufbau, und `data import` sendet in einem Text sieben
   `SET`-Anweisungen (`ANSI_NULLS ON`, `ANSI_PADDING ON`, `ANSI_WARNINGS ON`, `ARITHABORT ON`,
-  `CONCAT_NULL_YIELDS_NULL ON`, `NUMERIC_ROUNDABORT OFF`, `QUOTED_IDENTIFIER ON`). Vorher antwortete die Bibliothek
-  auf `SELECT 1` und `SET LOCK_TIMEOUT 30000` mit `TDS_UNSUPPORTED_SQL` ("Unsupported SQL.", beim Client "Failed to
-  initialize pool"). Erkannt ist `SELECT 1` genau (kein anderer Wert, kein `FROM`, keine Spaltenliste) und jede
+  `CONCAT_NULL_YIELDS_NULL ON`, `NUMERIC_ROUNDABORT OFF`, `QUOTED_IDENTIFIER ON`). Erkannt ist `SELECT 1` genau (kein anderer Wert, kein `FROM`, keine Spaltenliste) und jede
   Folge von `SET`-Anweisungen aus: `SET <Option> ON|OFF` mit `ANSI_NULLS`, `ANSI_PADDING`, `ANSI_WARNINGS`,
   `ARITHABORT`, `CONCAT_NULL_YIELDS_NULL`, `NUMERIC_ROUNDABORT`, `QUOTED_IDENTIFIER`, `IMPLICIT_TRANSACTIONS`, und
   `SET LOCK_TIMEOUT <Ganzzahl>`; die Liste ist eine Setzung (die ersten sieben und `LOCK_TIMEOUT` gemessen,
@@ -782,8 +778,8 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   hier nicht erneut gemessen). Die Anweisungen sind durch `;` getrennt (Leerraum und Zeilenumbruch dazwischen,
   ein abschließendes `;`); ein Text, der eine Anweisung außerhalb der Liste enthält, ist als Ganzes nicht erkannt
   (alles oder nichts). Die Antwort auf `SET` ist der Änderungszähler 0, nicht das Ende eines Ergebnisses ohne Anfang
-  (`ResultEnd` ohne `ResultStart` beantwortete die Sitzung am 2026-11-05 mit Fehler 50007, Class 20, und schloss die
-  Verbindung). Die Wirkung der Optionen auf spätere Anweisungen ist nicht modelliert: `SET` ändert keinen Zustand der
+  (`ResultEnd` ohne `ResultStart` beantwortet die Sitzung mit Fehler 50007, Class 20, und schließt die Verbindung;
+  gemessen mit mssql-jdbc 13.4.0 am 2026-11-05). Die Wirkung der Optionen auf spätere Anweisungen ist nicht modelliert: `SET` ändert keinen Zustand der
   Sitzung. Form C nennt keine Tabelle; das Backend ruft weder Zeilenquelle noch Callback.
 - **Scanner** (Setzungen, nicht am Server gemessen): Leerraum sind Leerzeichen, Tab, CR und LF.
   Blockkommentare dürfen sich schachteln; ein offenes Literal oder ein offener Kommentar ist nicht

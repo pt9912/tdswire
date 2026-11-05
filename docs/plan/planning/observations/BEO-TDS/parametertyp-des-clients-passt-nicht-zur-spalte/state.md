@@ -1,0 +1,1 @@
+**Stand:** offen — 1×, unter der Schwelle; kein Träger; Hinweis: [slice-schreibpfad-bulk-load](../../../open/slice-schreibpfad-bulk-load.md) und [slice-schreibpfad-merge-output](../../../open/slice-schreibpfad-merge-output.md), deren Client Ganzzahlparameter sendet, sollten die Überführung gegen `Int32`-Spalten prüfen.

@@ -1,0 +1,5 @@
+# Ein Client sendet einen Parametertyp, den die strenge Überführung der Spalte nicht annimmt
+
+**Sub-Area:** `*` (Slice [slice-d-migrate-verbindung-und-export](../../../in-progress/slice-d-migrate-verbindung-und-export.md))
+
+Die Überführung eines Parameters in den Spaltentyp ([SPEC-035](../../../../../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends)) ist streng und verlustfrei; sie weitet nur `Int32` auf `Int64`. Ein Client wählt den Typ seiner Parameter selbst: mssql-jdbc in d-migrate 1.12.0 sendet einen Ganzzahlwert als `bigint`, die Spalte `Id` der Beispieldatei ist `Int32`, und die Anfrage endet mit `TDS_SIM_INVALID_VALUE` („Invalid value.“). Ein Datumsfilter neben einem Textfilter endete ebenso, die Ursache dort ist nicht untersucht. Die Ursache für `bigint` ist aus dem Code gelesen, nicht gemessen. Betroffen sind `--filter` (steht nicht im Soll von [TDS-FA-12](../../../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate)) und, vermutlich, die Schreibpfade, die Ganzzahlparameter gegen Spalten senden.
