@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** —
 
-**Verantwortlich:** pt9912.
+**Verantwortlich:** pt9912 (Zweig worktree-agent-a202fbb3da2b7c48b).
 
 **Autor:** pt9912. **Datum:** 2026-10-31.
 
@@ -94,7 +94,7 @@ Aussagen-Berührung steht hier gar nicht.
 | [TDS-FA-09](../../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose) (Zustandsereignisse im Log) | Stufe 1 belegt nur Start und Exit-Code; Ereignisse am Prozess fehlen | [slice-betrieb-zustandsereignisse](../open/slice-betrieb-zustandsereignisse.md) |
 | [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) (Anweisung außerhalb der erkannten Formen, Änderungsanweisung) | Negativfall am Referenzclient fehlt in Stufe 3 | [slice-sim-aenderung-integration](../done/welle-simulations-backend/slice-sim-aenderung-integration.md) |
 | [TDS-QA-04](../../../../spec/lastenheft.md#tds-qa-04--performance) | Lasttest fehlt | [slice-qa-performance](../open/slice-qa-performance.md) |
-| [TDS-FA-08](../../../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-RB-04](../../../../spec/lastenheft.md#tds-rb-04--externes-backend) | Der öffentliche Einstieg für ein Backend fehlt; ein Backend außerhalb des Moduls ohne `internal`-Zugriff gegen den Serverprozess ist nicht belegt (Stufe 3 setzt die Tabellen über den Test-Einstieg) | `slice-integrations-einstieg` (liegt in diesem Stand nicht vor; der DoD-Punkt ist dort nachzutragen) |
+| [TDS-FA-08](../../../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-RB-04](../../../../spec/lastenheft.md#tds-rb-04--externes-backend) | Der öffentliche Einstieg für ein Backend fehlt; ein Backend außerhalb des Moduls ohne `internal`-Zugriff gegen den Serverprozess ist nicht belegt (Stufe 3 setzt die Tabellen über den Test-Einstieg) | [slice-integrations-einstieg](../done/slice-integrations-einstieg.md) (liegt in `done/` und führt keinen E2E-Punkt; die Stufe fehlt, siehe Befund in §7) |
 | [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität) (Referenzabgleich) | vorläufig, kein Lauf | [slice-qa-vergleichslauf-d](../done/slice-qa-vergleichslauf-d.md) (Werkzeug, kein Gate; keine Stufe verlangt) |
 
 **Ansatz.** Das Skript führt jede Stufe als `make <Target>` und deklariert sie mit `e2e_abdeckung "<Kennungen>" "<Kurzbeschreibung>" "<Anker>"`, der Anker ein Ausschnitt der `make`-Zeile derselben Stufe. Die Sicht ist eine Deklaration, kein Lauf-Beleg (Kopf des Erzeugers): dass eine Stufe ihre Kennungen trägt, belegt der grüne Lauf der Stufe, nicht die Datei. Ob die Selbstprüfung des Harness als fünfte Stufe mit Kennung `—` im Skript steht oder aus der Sicht ausscheidet, ist die offene Frage zu mehreren Quellen (der Erzeuger liest genau eine Quelle mit einem Präfix).
@@ -157,6 +157,10 @@ Wird bei der Closure gefüllt.
 | `make e2e` nach Quelltext-Änderung (Gradle-Layer neu, Basis-Images im Cache) | 187 s (Stufen 54 s, 63 s, 69 s, 1 s) |
 | `make gates` warm mit `laufzeittest` und `simulations-integration` | 49 s |
 | `make gates` warm ohne beide (Stand nach der ADR zu den E2E-Läufen) | 9 s (alle Stages aus dem Cache; Einzelwert, kein Maß für einen Lauf nach Quelltext-Änderung) |
+
+**Messung des Implementers am 2026-11-05 (sieben Stufen, ein Lauf, Last 15, Zweig `worktree-agent-a202fbb3da2b7c48b`, Cache nicht kontrolliert):** `make e2e` 360 s (Stufen 58 s, 113 s, 57 s, 60 s, 24 s, 24 s, 24 s). Warm-Wert und Vergleich mit der Summe der Einzelläufe für sieben Stufen sind nicht neu gemessen; kalt nicht gemessen.
+
+**Befund zu DoD 3 (Übergabe der Lücken):** [slice-integrations-einstieg](../done/slice-integrations-einstieg.md) ist in `done/` ohne E2E-Punkt; [TDS-FA-08](../../../../spec/lastenheft.md#tds-fa-08--backend-anbindung) und [TDS-RB-04](../../../../spec/lastenheft.md#tds-rb-04--externes-backend) haben keine Stufe in der Sicht.
 
 Der Durchgang kostet warm so viel wie die Summe der Einzelläufe (Differenz 1 s); die Stufen laufen nicht doppelt gegenüber ihrem Einzellauf, sondern doppelt gegenüber der Zeit, die `make gates` bisher für zwei von ihnen aufwendete. Die Kaltzeiten der Stufen 1 bis 3 liegen bei je rund 105 s (106 s, 108 s, 104 s); ob und warum sie unter den früheren Einzel-Kaltwerten (88 bis 171 s, 131 s) liegen, ist nicht gemessen; die Summe der vier Einzel-Kaltläufe ist nicht gemessen. Setzungen: der Durchgang bricht an der ersten roten Stufe ab; die Harness-Selbstprüfung fällt aus der Sicht (Option a), sie bleibt Werkzeug ohne Gate.
 
