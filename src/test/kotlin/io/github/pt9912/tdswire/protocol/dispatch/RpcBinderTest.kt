@@ -299,7 +299,7 @@ class RpcBinderTest {
 
     /**
      * Parameternamen: gültig sind `@` plus Bezeichnerzeichen (auch Unicode-Buchstaben) bis 128 Zeichen;
-     * ohne `@`, nur `@`, mit Leerzeichen, Semikolon, Klammer oder Anführungszeichen, 129 Zeichen, leer und
+     * ohne `@`, nur `@`, mit Leerzeichen, Semikolon, Klammer oder Anführungszeichen, 129 Zeichen und
      * doppelt (ohne Beachtung der Schreibweise) sind abgelehnt. Ein Name mit `@@` am Anfang ist nur beim RPC
      * per Prozedurname abgelehnt (Festlegung ohne Messung: im Aufruftext stünde er rechts von `=`, wo er eine
      * globale Funktion bezeichnen kann); bei `sp_executesql` steht der Name nicht im Text und ist
@@ -315,7 +315,7 @@ class RpcBinderTest {
             assertEquals(name, query(executeSql("s", "d", param(name, int4(1)))).parameters.single().name, name)
         }
         val invalid = listOf(
-            "a", "@", "", "@a b", "@a;b", "@a)", "@a'", "@a-b", "@" + "x".repeat(128), "@a\n",
+            "a", "@", "@a b", "@a;b", "@a)", "@a'", "@a-b", "@" + "x".repeat(128), "@a\n",
         )
         invalid.forEach { name ->
             assertEquals(
@@ -326,7 +326,7 @@ class RpcBinderTest {
         }
         val duplicate = executeSql("s", "d", param("@a", int4(1)), param("@A", int4(2)))
         assertEquals(RpcRejection.PARAMETER_NAME, rejection(duplicate))
-        invalid.filter { it != "@a\n" }.forEach { name ->
+        (invalid + "").filter { it != "@a\n" }.forEach { name ->
             assertEquals(RpcRejection.PARAMETER_NAME, rejection(byName("p", param(name, int4(1)))), name)
         }
         assertEquals(2, query(executeSql("s", "d", param("@a", int4(1)), param("@b", int4(2)))).parameters.size)
@@ -410,15 +410,16 @@ class RpcBinderTest {
     }
 
     /**
-     * Ein Parameter ohne Namen ist abgelehnt, in `sp_executesql` wie per Name (Festlegung: die Deklarationsliste
-     * wird nicht gedeutet, eine Zuordnung nach Position gibt es nicht).
+     * Ein Parameter ohne Namen ist beim RPC per Prozedurname abgelehnt: der Name stünde im Aufruftext
+     * (Festlegung). Bei `sp_executesql` heißt er `@P<i>` (`RpcPositionalNamesTest`).
+     * Wächter: eine Ersetzung des leeren Namens, die nicht an `nameInText` hängt.
      *
      * @spec SPEC-030
      */
     @Test
-    fun `Ein Parameter ohne Namen ist abgelehnt`() {
-        assertEquals(RpcRejection.PARAMETER_NAME, rejection(executeSql("s", "d", param("", int4(1)))))
+    fun `Ein Parameter ohne Namen ist per Prozedurname abgelehnt`() {
         assertEquals(RpcRejection.PARAMETER_NAME, rejection(byName("p", param("", int4(1)))))
+        assertEquals(RpcRejection.PARAMETER_NAME, rejection(byName("p", param("@a", int4(1)), param("", int4(2)))))
     }
 
     /**

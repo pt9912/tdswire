@@ -5,16 +5,19 @@ import io.github.pt9912.tdswire.protocol.wire.ProtocolFailure
 import io.github.pt9912.tdswire.protocol.wire.violation
 
 /**
- * Bindet die Parameter einer Katalog-ProcID an ihre Form (`SPEC-030`): `sp_executesql` mit Text
- * und Deklarationsliste an Position 0 und 1, `sp_prepexec` mit OUTPUT-Handle, Deklarationsliste
- * und Text an Position 0 bis 2, `sp_execute` mit Handle an Position 0. Der Rest sind Wertparameter.
+ * Bindet die Parameter einer Katalog-ProcID an ihre Form (`SPEC-030`): `sp_executesql` mit Text an Position 0
+ * und, wenn vorhanden, Deklarationsliste an Position 1 (ein Aufruf mit nur dem Text hat die Deklaration `""`,
+ * Setzung nach der Messung von mssql-jdbc 13.4.0 für Anweisungen ohne Parameter), `sp_prepexec` mit
+ * OUTPUT-Handle, Deklarationsliste und Text an Position 0 bis 2, `sp_execute` mit Handle an Position 0. Der
+ * Rest sind Wertparameter.
  *
- * Festlegungen (ohne Orakel): Text und Deklarationsliste sind `NVARCHAR`/`NCHAR` und nicht NULL;
+ Festlegungen (ohne Orakel): Text und Deklarationsliste sind `NVARCHAR`/`NCHAR` und nicht NULL;
  * das Handle ist `INTN` mit 4 Byte und nicht NULL, bei `sp_prepexec` zusätzlich OUTPUT. Eine
  * Abweichung ist `INVALID_RPC_FORM`.
  */
 internal object RpcCatalog {
     private const val HANDLE_BYTES = 4
+    private const val EXECUTESQL_TEXT_ONLY = 1
     private const val EXECUTESQL_FIXED = 2
     private const val PREPEXEC_FIXED = 3
 
@@ -26,8 +29,9 @@ internal object RpcCatalog {
     }
 
     private fun executeSql(all: List<RpcParameter>): RpcCall {
-        requireCount(all, EXECUTESQL_FIXED)
-        return RpcCall.ExecuteSql(text(all[0]), text(all[1]), all.drop(EXECUTESQL_FIXED))
+        requireCount(all, EXECUTESQL_TEXT_ONLY)
+        val declarations = if (all.size >= EXECUTESQL_FIXED) text(all[1]) else ""
+        return RpcCall.ExecuteSql(text(all[0]), declarations, all.drop(EXECUTESQL_FIXED))
     }
 
     private fun prepExec(all: List<RpcParameter>): RpcCall {
