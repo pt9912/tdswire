@@ -1,6 +1,6 @@
 # Lastenheft — JVM TDS Server
 
-**Version:** 0.6.1  
+**Version:** 0.7.0  
 **Status:** Draft  
 **Autor:** pt9912
 **Datum:** 2026-10-29
@@ -138,14 +138,25 @@ Primärer Client ist eine .NET-Anwendung. Die konkrete Treiberversion, erforderl
 
 ### TDS-FA-11 — Mitgeliefertes Simulations-Backend
 
-**Beschreibung:** Das Projekt liefert ein optionales Backend mit, das den Backend-Vertrag (`TDS-FA-08`) implementiert und Anfragen aus deklarativ beschriebenen Tabellen beantwortet (Spalten, Typen, Schlüssel; Zeilen aus einer vom Integrator bereitgestellten Zeilenquelle). Es erkennt eine abgegrenzte Menge einfacher Anweisungsformen anhand ihres Textes: Auswahl von Spalten einer Tabelle mit einfachen Gleichheits- und Mengenbedingungen sowie der Prüfung auf NULL (`IS NULL`, `IS NOT NULL`), verknüpft durch UND; einfache Einfüge-, Änderungs- und Löschanweisungen, die an den Integrator weitergegeben werden; sowie die Abfragen, die der Referenzclient laut Clientprofil beim Verbindungsaufbau oder für seine Metadaten stellt. Es wertet kein SQL aus und speichert keine Daten: Was gespeichert wird, entscheidet der Integrator. Der Protokollkern ist vom Simulations-Backend unabhängig und läuft ohne es.
+**Beschreibung:** Das Projekt liefert ein optionales Backend mit, das den Backend-Vertrag (`TDS-FA-08`) implementiert und Anfragen aus deklarativ beschriebenen Tabellen beantwortet (Spalten, Typen, Schlüssel; Zeilen aus einer vom Integrator bereitgestellten Zeilenquelle). Es erkennt eine abgegrenzte Menge einfacher Anweisungsformen anhand ihres Textes: Auswahl von Spalten einer Tabelle mit einfachen Gleichheits- und Mengenbedingungen sowie der Prüfung auf NULL (`IS NULL`, `IS NOT NULL`), verknüpft durch UND; einfache Einfüge-, Änderungs- und Löschanweisungen, Strukturänderungen (Anlegen und Erweitern einer Tabelle) und das Massenladen von Zeilen, die an den Integrator weitergegeben werden; Katalogabfragen (Systemsichten) für die dem Backend mitgeteilten Tabellen, beantwortet aus deren Beschreibung; sowie die Abfragen, die der Referenzclient laut Clientprofil beim Verbindungsaufbau oder für seine Metadaten stellt. Es wertet kein SQL aus und speichert keine Daten: Was gespeichert wird, entscheidet der Integrator. Der Protokollkern ist vom Simulations-Backend unabhängig und läuft ohne es.
 
 **Akzeptanzkriterien:**
-- **Happy Path:** Given eine beschriebene Tabelle mit Zeilen und eine erkannte Auswahl mit Bedingung, when der Referenzclient sie ausführt, then erhält er genau die passenden Zeilen mit den beschriebenen Spaltentypen und NULL-Werten.
+- **Happy Path:** Given eine beschriebene Tabelle mit Zeilen und eine erkannte Auswahl mit Bedingung, when der Referenzclient sie ausführt, then erhält er genau die passenden Zeilen mit den beschriebenen Spaltentypen und NULL-Werten. Given eine mitgeteilte Tabelle, when ein Client ihre Struktur über die Katalogabfragen liest, then entsprechen Spalten, Typen, Nullbarkeit und Schlüssel der Beschreibung; Given eine Strukturänderung oder ein Massenladen, when sie eintreffen, then werden sie an den Integrator weitergegeben und dessen Ergebnis oder Fehler erreicht den Client.
 - **Boundary:** Given eine Zeilenquelle, deren Zeilen nicht gleichzeitig in den Speicher des Servers passen, when der Client das Resultset liest, then überträgt der Server es schrittweise, ohne es vollständig zu halten; Given eine Bedingung, die keine Zeile trifft, then erhält der Client gültige Spaltenmetadaten und einen ordnungsgemäßen Abschluss.
 - **Negative:** Given eine Anweisung oder Bedingung außerhalb der erkannten Formen (Verbund, Aggregat, Ausdruck, Unterabfrage), when sie ausgeführt wird, then erhält der Client einen definierten SQL-Fehler statt eines stillen Erfolgs oder eines falschen Ergebnisses; Given ein Fehler beim Lesen der Zeilenquelle, then erhält der Client einen definierten Fehler und die Sitzung bleibt, soweit zulässig, nutzbar.
 
-**Out-of-Scope:** Auswertung beliebigen SQLs (Verbunde, Aggregate, Ausdrücke, Unterabfragen, Sortierung), Persistenz, Transaktionssemantik über die Weitergabe an den Integrator hinaus und SQL-Server-Systemkataloge, soweit sie der Referenzclient nach Clientprofil nicht selbst abfragt.
+**Out-of-Scope:** Auswertung beliebigen SQLs (Verbunde, Aggregate, Ausdrücke, Unterabfragen, Sortierung), Persistenz, Transaktionssemantik über die Weitergabe an den Integrator hinaus und SQL-Server-Systemkataloge, soweit sie der Referenzclient nach Clientprofil nicht selbst abfragt und soweit sie nicht die Katalogabfragen für die mitgeteilten Tabellen nach der Beschreibung oben sind.
+
+### TDS-FA-12 — Testserver mit veränderlichem Arbeitsspeicher-Bestand und Prüfclient d-migrate
+
+**Beschreibung:** Der Testserver (Glossar; kein Produkt) ist der Integrator der Bibliothek: Er legt die konkreten Tabellen an, teilt sie dem Simulations-Backend (`TDS-FA-11`) mit, hält ihre Zeilen in seinem Arbeitsspeicher und führt Schreibzugriffe, Strukturänderungen und das Massenladen aus, die die Bibliothek an ihn weitergibt. Die Funktionen der Bibliothek dafür (Anweisungsformen, Katalogabfragen, Weitergabe) beschreibt `TDS-FA-11`; die Bibliothek speichert nichts. Als zweiter, nicht verbindlicher Prüfclient neben dem Referenzclient dient das Werkzeug d-migrate (Version und Treiber legt die Spezifikation fest) für Verbindung, Strukturlesen und Strukturvergleich, Strukturänderung mit Ausführung, Datenexport, Datenimport und Datenübertragung. Der Bestand lebt nur im Arbeitsspeicher des Testserver-Prozesses und ist nach dessen Neustart wieder der Ausgangsbestand. Der verbindliche Client bleibt der des `TDS-RB-02`.
+
+**Akzeptanzkriterien:**
+- **Happy Path:** Given ein gestarteter Testserver mit angelegten Tabellen, when d-migrate Verbindung, Strukturlesen (`schema reverse`), Strukturvergleich (`schema compare`), Datenexport (`data export`) und Strukturänderung mit Ausführung (`schema migrate --execute`) ausführt, then endet jeder Lauf mit Exit 0, der Export enthält die Zeilen mit den beschriebenen Typen und NULL-Werten, und ein erneutes Strukturlesen zeigt die geänderte Struktur; Given ein Datenimport und eine Datenübertragung (`data import`, `data transfer`) in eine Tabelle des Testservers, jeweils im Standardpfad des Werkzeugs und mit `--on-conflict skip`, then endet der Lauf mit Exit 0 und ein anschließender Export enthält die übertragenen Zeilen.
+- **Boundary:** Given die Verbindung mit dem Standard des Treibers (verschlüsselt, `encrypt=true`) und ein Testserver mit TLS, when d-migrate sich anmeldet und eine Abfrage stellt, then gelingt sie; Given ein Neustart des Testservers, then enthält der Bestand wieder genau den Ausgangsbestand.
+- **Negative:** Given eine Anweisung außerhalb der erkannten Formen (zum Beispiel die Aggregate und Ausdrücke von `data profile`), when sie ausgeführt wird, then erhält der Client einen definierten SQL-Fehler statt eines stillen Erfolgs oder eines falschen Ergebnisses; Given ein Schreibzugriff, der gegen die Struktur der Tabelle verstößt (unbekannte Spalte, Verletzung des Schlüssels), then wird er mit einem definierten Fehler abgewiesen und der Bestand bleibt unverändert.
+
+**Out-of-Scope:** `data profile` von d-migrate, Dauerhaftigkeit über den Prozess hinaus, Transaktionssemantik mit Rücknahme über mehrere Anweisungen, Zusage für andere Clients oder Versionen von d-migrate und Treiber als die in der Spezifikation festgelegten, Betrieb als Produkt.
 
 ## 4. Nichtfunktionale Anforderungen und Randbedingungen
 
@@ -218,7 +229,7 @@ Jede offene Festlegung hat eine verantwortliche Rolle und einen Trigger; ohne di
 ## 5. Globale Out-of-Scope-Punkte
 
 - Kein vollständiger Ersatz für Microsoft SQL Server.
-- Keine vollständige T-SQL-Kompatibilität, keine SQL-Server-Systemkataloge oder Administrationsfunktionen, außer den Abfragen des Referenzclients, die das Clientprofil festlegt (`TDS-FA-11`).
+- Keine vollständige T-SQL-Kompatibilität, keine SQL-Server-Systemkataloge oder Administrationsfunktionen, außer den Abfragen des Referenzclients, die das Clientprofil festlegt (`TDS-FA-11`), und den Katalogabfragen für die dem Simulations-Backend mitgeteilten Tabellen (`TDS-FA-11`).
 - Keine Unterstützung für Entity Framework Core, SSMS, Power BI oder DBeaver als eigenständiges Abnahmeziel, sofern nicht später vereinbart.
 - Keine Hochverfügbarkeit, Replikation, Clustering oder verteilte Transaktionen in der ersten Version.
 - Keine integrierte SQL-Engine oder persistente Datenbank; das mitgelieferte Simulations-Backend (`TDS-FA-11`) erkennt nur abgegrenzte Anweisungsformen und speichert nichts.
@@ -241,6 +252,7 @@ Jede offene Festlegung hat eine verantwortliche Rolle und einen Trigger; ohne di
 | Simulations-Backend | Mitgeliefertes optionales Backend, das einfache Anweisungsformen aus deklarativ beschriebenen Tabellen beantwortet; keine SQL-Engine |
 | Server         | Der von der Bibliothek bereitgestellte, in eine Anwendung eingebettete TDS-Serverendpunkt; kein eigenständiges Produkt |
 | Testserver     | Ausführbarer Serverprozess, der nur der Prüfung der Bibliothek dient (E2E- und Kompatibilitätstests); kein Produkt |
+| Testserver-Bestand | Die Tabellen und Zeilen, die der Testserver als Integrator in seinem Arbeitsspeicher hält (`TDS-FA-12`); nach einem Neustart wieder der Ausgangsbestand |
 | Zeilenquelle   | Vom Integrator bereitgestellte Quelle der Zeilen einer Tabelle, die schrittweise gelesen wird    |
 
 ## 7. Historie
@@ -253,3 +265,4 @@ Jede offene Festlegung hat eine verantwortliche Rolle und einen Trigger; ohne di
 | 0.5.0   | 2026-10-30 | Prüfung auf NULL (`IS NULL`, `IS NOT NULL`) als erkannte Bedingung des Simulations-Backends aufgenommen | `TDS-FA-11` |
 | 0.6.0   | 2026-11-01 | Produkt ist die JVM-Bibliothek; ein eigenständig ausführbarer Server ist kein Produkt, der Testserver dient nur der Prüfung | `TDS-RB-01`, `TDS-QA-06`, `TDS-FA-09` |
 | 0.6.1   | 2026-11-01 | Happy Path von `TDS-FA-09` präzisiert: Zustandsereignisse gehen an die vom Integrator übergebene Diagnoseausgabe; ohne sie schreibt die Bibliothek kein Log | `TDS-FA-09` |
+| 0.7.0   | 2026-11-05 | Simulations-Backend: Katalogabfragen für mitgeteilte Tabellen, Weitergabe von Strukturänderungen und Massenladen an den Integrator; Testserver als Integrator mit Bestand im Arbeitsspeicher und d-migrate als zweitem Prüfclient aufgenommen; die Bibliothek speichert weiter nichts | `TDS-FA-11`, `TDS-FA-12` |

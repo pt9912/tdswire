@@ -1,4 +1,4 @@
-# Welle welle-testserver-manuell: Testserver von Hand starten und stoppen: Make-Targets `up`/`down` und Test-Image
+# Welle welle-testserver-manuell: Testserver von Hand starten und mit d-migrate als fremdem Client benutzen
 
 
 **Lifecycle:** Diese Datei entsteht bei der **Eröffnung** der Welle und liegt
@@ -10,7 +10,7 @@ zwei Positionen, nicht drei.
 
 **Zielmeilenstein:** kein Meilenstein-Bezug.
 
-**Verantwortlich:** pt9912. **Datum:** 2026-11-01.
+**Verantwortlich:** pt9912. **Datum:** 2026-11-01 (Umschnitt 2026-11-05).
 
 ---
 
@@ -20,11 +20,19 @@ zwei Positionen, nicht drei.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Wann Arbeit eine Welle braucht.
 
-Ein Mensch kann den Testserver auf seinem Rechner mit einem Make-Target starten, mit einem eigenen Client (Port und Anmeldung stehen in der Doku) gegen die Bibliothek testen und mit einem Make-Target wieder stoppen; das Image ist ein Test-Image und kein Produkt ([ADR-0025](../adr/0025-produktschnitt-bibliothek-und-testserver.md), [TDS-RB-01](../../../spec/lastenheft.md#tds-rb-01--implementierungssprache), [TDS-QA-06](../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit)). Heute startet der Testserver-Container nur in den Läufen `make laufzeittest`, `make simulations-integration` und `make kompatibilitaet`: in einem internen Netzwerk, ohne veröffentlichten Port, mit Stop am Ende des Laufs. Nutzerwunsch vom 2026-11-01: manuelles Testen, auch auf einem anderen Rechner; deshalb steht der Auftrag hier und nicht in einer Sitzungsnotiz.
+Ein Mensch kann den Testserver auf seinem Rechner mit einem Make-Target starten, mit einem eigenen Client (Port und Anmeldung stehen in der Doku) gegen die Bibliothek testen und mit einem Make-Target wieder stoppen; das Image ist ein Test-Image und kein Produkt ([ADR-0025](../adr/0025-produktschnitt-bibliothek-und-testserver.md), [TDS-RB-01](../../../spec/lastenheft.md#tds-rb-01--implementierungssprache), [TDS-QA-06](../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit)). Nutzerwunsch vom 2026-11-01: manuelles Testen, auch auf einem anderen Rechner; deshalb steht der Auftrag hier und nicht in einer Sitzungsnotiz.
 
-**Grenzen zu den Nachbarn (nicht doppeln).** Die Stage `testserver` und der Klassenpfad bestehen ([slice-jar-ohne-main-und-image](done/slice-jar-ohne-main-und-image.md)); diese Welle ergänzt Start im Hintergrund, veröffentlichten Port und Stop, ersetzt aber keinen der E2E-Läufe. Nutzer-Doku zur Einbettung der Bibliothek und Release-Schritte liegen bei [slice-release-doku-prozess](open/slice-release-doku-prozess.md) ([welle-referenzabgleich-release](welle-referenzabgleich-release.md)).
+**Umschnitt vom 2026-11-05 (Nutzerentscheidung, wörtlich):** „Die Welle können wir erst schließen, wenn alles funktioniert“; „Dann haben wir auch eine funktionierende API“; „Hürde 6 ja — 7, 9, 10 auch, das Schreiben muss gehen — ohne data profile“; „Ja, auch das Lastenheft entsprechend anpassen.“; „Der Test-Server ist zum Testen der API da. Die Funktionalität ist in der Lib.“; „Die konkreten Tabellen zum Lesen/Schreiben werden im Testserver angelegt und der API mitgeteilt.“ Die Welle umfasst damit mehr als Start und Stop: **d-migrate 1.12.0** (Image `ghcr.io/pt9912/d-migrate:latest`, Treiber mssql-jdbc 13.4.0) ist als echter fremder Client der Beleg für die Wire-Seite, und folgende Funktionen laufen gegen den Testserver: Verbindung und Anmeldung, `data export`, `schema reverse`, `schema compare`, `schema migrate` einschließlich `--execute`, `data import` und `data transfer` im Standardpfad (Massenladen) und mit `--on-conflict skip|update` (`MERGE ... OUTPUT $action`), die Anmeldung mit dem Treiber-Standard `encrypt=true`, und der Typ FLOAT, soweit eine dieser Funktionen ihn braucht (nicht gemessen; die Entscheidung in [slice-adr-testserver-bestand-und-katalog](open/slice-adr-testserver-bestand-und-katalog.md) legt es fest). Die Kotlin-Fläche belegen die Slices zur öffentlichen Fläche ([slice-oeffentliche-flaeche-verkleinern-und-belegen](open/slice-oeffentliche-flaeche-verkleinern-und-belegen.md)), nicht diese Welle.
 
-**Register-Sichtung (Eröffnung, Schritt 2).** `observations/` durchgegangen: Treffer ist `BEO-TDS/benutzerliste-dateirechte-im-betrieb-offen` (1×; Übergabe der Benutzerliste an den Container, hier für den manuellen Lauf mit einem Testwert berührt, nicht gelöst). Weitere Treffer: keine.
+**Grundlage und Vorbehalt.** Die Slices stützen sich auf die Sonde vom 2026-11-05: [d-migrate-sonde-2026-11-05](../../messungen/d-migrate-sonde-2026-11-05.md), mit dreizehn Hürden in Reihenfolge, ihrem Aufwand (S/M/L, Schätzung der Sonde) und den Log-Auszügen. **Alles, was die Sonde „laufen“ sah, lief gegen erfundene Katalogantworten;** belegt ist, was d-migrate sendet und dass Treiber und d-migrate die TDS-Antworten der Bibliothek verarbeiten, nicht, dass ein Server die Katalogsichten liefern kann. Erst die Abnahme ([slice-abnahme-d-migrate](open/slice-abnahme-d-migrate.md)) belegt die Funktionen gegen den Testserver selbst.
+
+**Verteilung: Bibliothek = Funktion, Testserver = Integrator.** Die Bibliothek (`src/main`) enthält die Funktionalität und **speichert nichts**: Katalog (`sys.*`, `INFORMATION_SCHEMA`) aus den mitgeteilten Tabellen, die Anweisungsformen (SET, `SELECT 1`, `WHERE 1 = 0`, `INSERT`, Massenladen 0x07, `MERGE ... OUTPUT $action`, DDL) und die Weitergabe von Schreiben und Strukturänderungen an den Integrator. Der Testserver (`src/testserver`) ist Integrator und Prüfling der API: Er legt die konkreten Tabellen an, hält die Zeilen im Arbeitsspeicher, teilt der API Tabellen mit Zeilenquelle und Callbacks mit und implementiert die Callbacks. Jeder Slice unten, der beide Seiten berührt, trennt seine Liefer-Punkte nach Anteil (Bibliothek, Testserver).
+
+**Das Lastenheft ist angepasst, der Wortlaut vom Nutzer am 2026-11-05 freigegeben.** Das Lastenheft schloss Persistenz, Schreiben und Systemkataloge für den Server aus ([TDS-FA-11](../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), Abschnitt 5). „Speichert keine Daten“ und der Ausschluss der Persistenz bleiben wahr. Fassung 0.7.0 gibt [TDS-FA-11](../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) die Fähigkeiten der Bibliothek (Katalogabfragen für mitgeteilte Tabellen, Weitergabe von Strukturänderung und Massenladen) und nimmt [TDS-FA-12](../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate) auf (Testserver als Integrator mit Bestand im Arbeitsspeicher, d-migrate als nicht verbindlicher Prüfclient); sie steht in einem eigenen Commit (`090092d`) auf dem Zweig der Planung und ist vom Nutzer am 2026-11-05 freigegeben („Ja, Wortlaut passt, Weg A aufnehmen.“).
+
+**Grenzen zu den Nachbarn (nicht doppeln).** Die Stage `testserver` und der Klassenpfad bestehen ([slice-jar-ohne-main-und-image](done/slice-jar-ohne-main-und-image.md)); diese Welle ergänzt Start im Hintergrund, veröffentlichten Port und Stop sowie die Funktionen für d-migrate, ersetzt aber keinen der E2E-Läufe. Nutzer-Doku zur Einbettung der Bibliothek und Release-Schritte liegen bei [slice-release-doku-prozess](open/slice-release-doku-prozess.md) ([welle-referenzabgleich-release](welle-referenzabgleich-release.md)). Der Slice [slice-prelogin-serverversion](open/slice-prelogin-serverversion.md) war als Slice von [welle-qualitaet-grundlage](welle-qualitaet-grundlage.md) angelegt und gehört seit dem Umschnitt hierher (Hürde 1; der Abschnitt „Welle“ des Slice begründet es).
+
+**Register-Sichtung (Eröffnung, Schritt 2).** `observations/` durchgegangen: Treffer ist `BEO-TDS/benutzerliste-dateirechte-im-betrieb-offen` (1×; Übergabe der Benutzerliste an den Container, hier für den manuellen Lauf mit einem Testwert berührt, nicht gelöst). Beim Umschnitt kommen hinzu: [festlegung-gilt-nur-fuer-das-clientprofil](observations/BEO-TDS/festlegung-gilt-nur-fuer-das-clientprofil/observation.md) (d-migrate als zweiter Client; Hürde 1) und [lesart-einer-nutzerentscheidung-unbestaetigt](observations/BEO-TDS/lesart-einer-nutzerentscheidung-unbestaetigt/observation.md) (SPEC-036 „abschließend“; die Namensliste durchgegangen, Texte nicht einzeln gelesen).
 
 ## 2. Trigger (Welle startet)
 
@@ -45,9 +53,9 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Wann Arbeit eine Welle braucht — der Trigger muss das *Mehr* gegenüber den
 einzelnen Slice-DoDs benennen; kann er das nicht, liegt keine Welle vor.
 
-- Alle Slices in `done/`.
+- Alle Slices in `done/`; die Welle schließt erst, wenn alles funktioniert (Nutzerentscheidung vom 2026-11-05): ein nicht behobener Fund der Abnahme hält die Welle offen, bis er behoben ist oder der Nutzer ihn als Grenze entscheidet.
 - `make gates` grün.
-- Das Mehr gegenüber den Slice-DoDs: ein Validator-Agent in frischem Kontext ohne Planwissen (Nutzerentscheidung vom 2026-11-05: ein Agent ersetzt den Menschen; als eigener Client dient d-migrate) startet von einem frischen Klon aus nur nach der Doku den Testserver mit `make testserver-up`, meldet sich mit einem eigenen Client an, liest die Ausgabe der Anfrage, stoppt mit `make testserver-down` und findet danach weder Container noch Netzwerk noch Port belegt. Die Closure-Notiz nennt Rechner, Last und das benutzte Client-Programm. Einzelne Slices belegen nur ihren Teil (Targets mit Rohbytes-Login; Doku ohne Lauf).
+- Das Mehr gegenüber den Slice-DoDs: ein Validator-Agent in frischem Kontext ohne Planwissen (Nutzerentscheidung vom 2026-11-05: ein Agent ersetzt den Menschen; als eigener Client dient d-migrate) (a) startet von einem frischen Klon aus nur nach der Doku den Testserver mit `make testserver-up`, meldet sich mit d-migrate an, liest die Ausgabe der Anfrage, stoppt mit `make testserver-down` und findet danach weder Container noch Netzwerk noch Port belegt, und (b) führt dabei die d-migrate-Funktionen des Solls aus (Anmeldung mit und ohne `encrypt=true`, `data export`, `schema reverse`, `schema compare`, `schema migrate` mit `--execute`, `data import` und `data transfer` im Standardpfad und mit `--on-conflict skip|update`) und belegt jede mit ihrer Ausgabe; `data profile` gehört nicht zum Soll. Die Closure-Notiz nennt Rechner, Last, Image-Digest von d-migrate und Testserver. Einzelne Slices belegen nur ihren Teil (Targets mit Rohbytes-Login; Doku ohne Lauf; je Hürde ein d-migrate-Lauf); die Abnahme belegt das Zusammenspiel und liefert [slice-abnahme-d-migrate](open/slice-abnahme-d-migrate.md).
 - Closure-Notiz in `welle-testserver-manuell-results.md`.
 
 ## 4. Slices in dieser Welle
@@ -57,12 +65,58 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Lifecycle als State Machine — der Zustand eines Slice ist sein
 Lifecycle-Verzeichnis und wird hier **nicht** gespiegelt.
 
+Hürden in der Nummerierung der Sonde ([Messprotokoll](../../messungen/d-migrate-sonde-2026-11-05.md)); Aufwand ist die Schätzung der Sonde (S = Stunden, M = Tage, L = Wochen oder Feature mit Entscheidungen), für die Slices ohne Sonden-Hürde eine Setzung des Planers, nicht gemessen.
+
+**Start und Stop von Hand (geschlossen)**
+
 | Slice | Titel | Bezug |
 |---|---|---|
 | slice-testserver-up-down | Make-Targets `testserver-up` und `testserver-down` (dazu `-logs`, `-status`), Test-Image, veröffentlichter Port, Konfiguration, Selbsttest | [TDS-RB-01](../../../spec/lastenheft.md#tds-rb-01--implementierungssprache), [TDS-QA-06](../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [ADR-0025](../adr/0025-produktschnitt-bibliothek-und-testserver.md) |
 | slice-testserver-manuell-doku | Anleitung zum manuellen Test: Befehle, Port, Anmeldung, TLS, Beispiel-Tabellen, Beispielaufrufe mit Clients, Grenzen | [TDS-FA-09](../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose), [TDS-QA-05](../../../spec/lastenheft.md#tds-qa-05--wartbarkeit), [ADR-0025](../adr/0025-produktschnitt-bibliothek-und-testserver.md) |
 
-Reihenfolge: Die Targets zuerst; die Doku beschreibt gebaute Targets und steht danach. Den Nachvollzug (Closure-Trigger) liefert die Welle, nicht ein Slice.
+**Verbindung und Export (Hürden 1 bis 5 und 8)**
+
+| Slice | Hürde | Aufwand | Titel | Bezug |
+|---|---|---|---|---|
+| [slice-prelogin-serverversion](open/slice-prelogin-serverversion.md) | 1 | S | Server-Version in der PRELOGIN-Antwort so festlegen, dass der JDBC-Treiber (mssql-jdbc) den Testserver annimmt (aus [welle-qualitaet-grundlage](welle-qualitaet-grundlage.md) umgehängt) | [TDS-QA-01](../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [TDS-FA-01](../../../spec/lastenheft.md#tds-fa-01--verbindungsaufbau-und-protokollverhandlung), [ADR-0001](../adr/0001-tds-version-und-clientprofil.md) |
+| [slice-d-migrate-verbindung-und-export](open/slice-d-migrate-verbindung-und-export.md) | 2, 3, 4, 5, 8 | M | `SELECT 1`, SET-Anweisungen ohne Ergebnis, `sp_executesql` mit einem Parameter und ohne Parameternamen, `WHERE 1 = 0`; Beleg: Anmeldung und `data export` mit d-migrate | [TDS-QA-01](../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [TDS-FA-04](../../../spec/lastenheft.md#tds-fa-04--parametrisierte-abfragen-über-rpc), [TDS-FA-11](../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-FA-12](../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate) |
+
+**Entscheidung (Voraussetzung für Katalog und Schreiben)** — Ort und Richtung sind gewählt (bestehende Callbacks, `QueryBackend` unverändert, Katalog-Anbieter; Setzung des Planners, vom Nutzer als Richtung gewählt, unter Vorbehalt des Spikes); offen sind FLOAT, Einschaltung, öffentliche Fläche, PRELOGIN-Wert, „abschließend“
+
+| Slice | Hürde | Aufwand | Titel | Bezug |
+|---|---|---|---|---|
+| [slice-adr-testserver-bestand-und-katalog](open/slice-adr-testserver-bestand-und-katalog.md) | 6, 7, 9, 10, 12 (Ort und Schnitt) | S bis M (Setzung) | Spike der Callback-Lösung (Weitergabe, Katalog-Anbieter, Massenladen als Abbildung), ADR, Spec-Liste; FLOAT, öffentliche Fläche (voraussichtlich zwei neue Namen), Reihenfolge | [TDS-FA-12](../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), [TDS-FA-11](../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-RB-03](../../../spec/lastenheft.md#tds-rb-03--protokollstandard), [ADR-0025](../adr/0025-produktschnitt-bibliothek-und-testserver.md), [ADR-0026](../adr/0026-oeffentlichkeit-simulations-backend-und-katalog.md) |
+
+**Katalog und Zustand (Hürden 6 und 7)** — Anteil Bibliothek: Katalog aus mitgeteilten Tabellen, DDL-Formen und Weitergabe; Anteil Testserver: veränderlicher Bestand, Struktur-Callbacks, Beispieltabellen
+
+| Slice | Hürde | Aufwand | Titel | Bezug |
+|---|---|---|---|---|
+| [slice-katalog-und-ddl-zustand](open/slice-katalog-und-ddl-zustand.md) | 6, 7 | L | Katalog (`sys.*`, `INFORMATION_SCHEMA`) aus den mitgeteilten Tabellen und Strukturänderung über den Integrator für `schema reverse`, `schema compare`, `schema migrate --execute` | [TDS-FA-12](../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), [TDS-FA-11](../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-QA-01](../../../spec/lastenheft.md#tds-qa-01--kompatibilität) |
+
+**Schreiben (Hürden 9 und 10)** — Anteil Bibliothek: Paket 0x07, Form des MERGE, Weitergabe; Anteil Testserver: Speichern und Konfliktbehandlung im Bestand
+
+| Slice | Hürde | Aufwand | Titel | Bezug |
+|---|---|---|---|---|
+| [slice-schreibpfad-bulk-load](open/slice-schreibpfad-bulk-load.md) | 9 | L | Massenladen: Paket BULK_LOAD (0x07) und Weitergabe, `data import` und `data transfer` im Standardpfad | [TDS-FA-12](../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), [TDS-RB-03](../../../spec/lastenheft.md#tds-rb-03--protokollstandard), [TDS-QA-01](../../../spec/lastenheft.md#tds-qa-01--kompatibilität) |
+| [slice-schreibpfad-merge-output](open/slice-schreibpfad-merge-output.md) | 10 | M bis L | `MERGE ... OUTPUT $action`: Form in der Bibliothek, Konfliktbehandlung beim Integrator, für `--on-conflict skip` und `update` | [TDS-FA-12](../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), [TDS-FA-04](../../../spec/lastenheft.md#tds-fa-04--parametrisierte-abfragen-über-rpc), [TDS-QA-01](../../../spec/lastenheft.md#tds-qa-01--kompatibilität) |
+
+**TLS (Hürde 13)**
+
+| Slice | Hürde | Aufwand | Titel | Bezug |
+|---|---|---|---|---|
+| [slice-tls-d-migrate](open/slice-tls-d-migrate.md) | 13 | M bis L | `encrypt=true`: erst Messung der Ursache, dann Behebung | [TDS-FA-12](../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), [TDS-QA-03](../../../spec/lastenheft.md#tds-qa-03--sicherheit), [ADR-0002](../adr/0002-tls-und-verschluesselung.md) |
+
+**Abnahme (das Mehr der Welle)**
+
+| Slice | Hürde | Aufwand | Titel | Bezug |
+|---|---|---|---|---|
+| [slice-abnahme-d-migrate](open/slice-abnahme-d-migrate.md) | alle des Solls | M (Setzung) | Validator-Lauf mit d-migrate über alle Funktionen des Solls | [TDS-FA-12](../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), [TDS-QA-01](../../../spec/lastenheft.md#tds-qa-01--kompatibilität) |
+
+Nicht im Soll und deshalb ohne Slice: Hürde 11 (`data profile`) und die Aggregate dahinter; Hürde 12 (FLOAT) hat keinen eigenen Slice, die Entscheidung legt fest, ob der Typ aufgenommen wird, und der Slice, dessen Funktion ihn braucht, setzt es um (Sonde: nur im Aggregat von `data profile` gesehen, aus dem Code gelesen, nicht gemessen).
+
+Gesamtaufwand nach der Schätzung der Sonde: zwei L (Katalog und Zustand, Massenladen), ein bis zwei L bis M (TLS, MERGE), mehrere S bis M; **Größenordnung Wochen, nicht Tage.** Die Schätzung ist nicht gemessen; die Summe ist keine Zusage.
+
+Reihenfolge: Start und Stop zuerst (geschlossen). Dann [slice-prelogin-serverversion](open/slice-prelogin-serverversion.md) und, auf ihm aufbauend, [slice-d-migrate-verbindung-und-export](open/slice-d-migrate-verbindung-und-export.md); unabhängig davon die Entscheidung [slice-adr-testserver-bestand-und-katalog](open/slice-adr-testserver-bestand-und-katalog.md). Nach der Entscheidung Katalog und Zustand, danach Massenladen und MERGE (voneinander unabhängig). [slice-tls-d-migrate](open/slice-tls-d-migrate.md) hängt nur an der PRELOGIN-Version. Zuletzt die Abnahme. Den Nachvollzug (Closure-Trigger) liefert die Welle, nicht ein Slice; die Abnahme ist der Slice, der ihn trägt.
 
 ## 5. Abhängigkeiten
 
@@ -70,8 +124,19 @@ Reihenfolge: Die Targets zuerst; die Doku beschreibt gebaute Targets und steht d
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte.
 
+Kanten innerhalb der Welle (A → B heißt: B startet erst, wenn A in `done/` liegt):
+
+- Freigabe des Wortlauts von Lastenheft 0.7.0 durch den Nutzer (2026-11-05, erfüllt) → [slice-adr-testserver-bestand-und-katalog](open/slice-adr-testserver-bestand-und-katalog.md).
+- [slice-prelogin-serverversion](open/slice-prelogin-serverversion.md) → [slice-d-migrate-verbindung-und-export](open/slice-d-migrate-verbindung-und-export.md) und → [slice-tls-d-migrate](open/slice-tls-d-migrate.md).
+- [slice-adr-testserver-bestand-und-katalog](open/slice-adr-testserver-bestand-und-katalog.md) → [slice-katalog-und-ddl-zustand](open/slice-katalog-und-ddl-zustand.md) → [slice-schreibpfad-bulk-load](open/slice-schreibpfad-bulk-load.md) und [slice-schreibpfad-merge-output](open/slice-schreibpfad-merge-output.md).
+- Alle Slices des Solls → [slice-abnahme-d-migrate](open/slice-abnahme-d-migrate.md).
+
+Nachbarn:
+
 - Blockiert: keine Welle.
 - Wird blockiert von: nichts außer den Triggern oben. Berührt, blockiert aber nicht: [welle-betrieb-diagnose](welle-betrieb-diagnose.md) (Log-Adapter im Testserver: [slice-betrieb-log-adapter-testserver](open/slice-betrieb-log-adapter-testserver.md) ändert die Ausgabe, die `testserver-logs` zeigt).
+- Berührt über die öffentliche Fläche: [slice-oeffentliche-flaeche-verkleinern-und-belegen](open/slice-oeffentliche-flaeche-verkleinern-und-belegen.md) (der Schnitt der Fläche soll vor den Slices stehen, die Namen hinzufügen: Weitergabe, Massenladen, Anbieter der Tabellenliste) und [slice-e2e-backend-ausserhalb-modul](open/slice-e2e-backend-ausserhalb-modul.md) (der Testserver als Integrator mit eigenen Callbacks ist ein weiterer Beleg für den Backend-Vertrag; wächst der Vertrag oder wachsen die Callbacks, ist dessen Stufe gegen den neuen Stand zu lesen). Die Reihenfolge entscheidet der Nutzer bei der Priorisierung; hier ist sie nicht gesetzt.
+- Berührt, aus der Welle [welle-referenzabgleich-release](welle-referenzabgleich-release.md): [slice-qa-vergleichslauf-d-messungen](open/slice-qa-vergleichslauf-d-messungen.md) misst am echten SQL Server, was hier Setzung bleibt (Antworten auf Massenladen, MERGE, Katalog).
 
 ## 6. Out-of-Scope für diese Welle
 
@@ -81,11 +146,13 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 Zielsetzung: Was nicht ausdrücklich ausgeschlossen ist, dehnt die Welle, bis
 der Closure-Trigger unerreichbar wird.
 
-- Ein Produkt-Image, ein Server-Tool als Produkt, Veröffentlichung in einer Registry, Signierung: [ADR-0025](../adr/0025-produktschnitt-bibliothek-und-testserver.md) schließt ein Produkt-Image aus; das Image dieser Welle wird nur lokal gebaut und gehört nicht zu `make gates`, `make e2e` oder der CI.
+- `data profile` von d-migrate (Aggregate, `CAST`, `TOP`, `GROUP BY`, `ORDER BY`; Hürden 11 und 12 der Sonde): [TDS-FA-11](../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) schließt wörtlich aus: „Auswertung beliebigen SQLs (Verbunde, Aggregate, Ausdrücke, Unterabfragen, Sortierung)“; [TDS-FA-12](../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate) nimmt `data profile` in seinem Out-of-Scope ausdrücklich aus, und der Nutzer hat es am 2026-11-05 ausgeschlossen („ohne data profile“).
+- Ein Produkt-Image, ein Server-Tool als Produkt, Veröffentlichung in einer Registry, Signierung, Produktbetrieb: [ADR-0025](../adr/0025-produktschnitt-bibliothek-und-testserver.md) schließt ein Produkt-Image aus; das Image dieser Welle wird nur lokal gebaut und gehört nicht zu `make gates`, `make e2e` oder der CI. Der Bestand im Arbeitsspeicher gehört dem Testserver als Integrator; die Bibliothek speichert nichts.
+- Dauerhaftigkeit über den Prozess hinaus und Transaktionssemantik mit Rücknahme über mehrere Anweisungen: Out-of-Scope von [TDS-FA-12](../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate).
 - Last, Durchsatz und Dauerbetrieb: [slice-qa-performance](open/slice-qa-performance.md).
 - Verschlüsselung für echte Daten und Benutzerverwaltung im Betrieb: der manuelle Lauf nimmt Testwerte (`AUTH_PLAIN_TESTMODE`), kein Betriebsweg; Dateirechte der Benutzerliste im Betrieb bleiben bei `BEO-TDS/benutzerliste-dateirechte-im-betrieb-offen`.
-- Der Vergleichslauf D gegen einen echten SQL Server: bleibt ein eigenes Make-Target mit EULA-Entscheidung des Nutzers.
-- Änderungen an der Bibliothek oder an `src/main`.
+- Der Vergleichslauf D gegen einen echten SQL Server: bleibt ein eigenes Make-Target mit EULA-Entscheidung des Nutzers; der Abgleich von Katalog, Massenladen und MERGE mit dem echten Server liegt bei [slice-qa-vergleichslauf-d-messungen](open/slice-qa-vergleichslauf-d-messungen.md).
+- Andere Clients oder Versionen von d-migrate und Treiber als d-migrate 1.12.0 mit mssql-jdbc 13.4.0: keine Zusage ([TDS-FA-12](../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate) Out-of-Scope); die Aufnahme in das Clientprofil von [ADR-0001](../adr/0001-tds-version-und-clientprofil.md) ist eine eigene Entscheidung.
 
 ## 7. Closure-Notiz
 
