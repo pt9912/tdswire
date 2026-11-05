@@ -1,6 +1,6 @@
 # Lastenheft — JVM TDS Server
 
-**Version:** 0.6.1  
+**Version:** 0.7.0  
 **Status:** Draft  
 **Autor:** pt9912
 **Datum:** 2026-10-29
@@ -145,7 +145,18 @@ Primärer Client ist eine .NET-Anwendung. Die konkrete Treiberversion, erforderl
 - **Boundary:** Given eine Zeilenquelle, deren Zeilen nicht gleichzeitig in den Speicher des Servers passen, when der Client das Resultset liest, then überträgt der Server es schrittweise, ohne es vollständig zu halten; Given eine Bedingung, die keine Zeile trifft, then erhält der Client gültige Spaltenmetadaten und einen ordnungsgemäßen Abschluss.
 - **Negative:** Given eine Anweisung oder Bedingung außerhalb der erkannten Formen (Verbund, Aggregat, Ausdruck, Unterabfrage), when sie ausgeführt wird, then erhält der Client einen definierten SQL-Fehler statt eines stillen Erfolgs oder eines falschen Ergebnisses; Given ein Fehler beim Lesen der Zeilenquelle, then erhält der Client einen definierten Fehler und die Sitzung bleibt, soweit zulässig, nutzbar.
 
-**Out-of-Scope:** Auswertung beliebigen SQLs (Verbunde, Aggregate, Ausdrücke, Unterabfragen, Sortierung), Persistenz, Transaktionssemantik über die Weitergabe an den Integrator hinaus und SQL-Server-Systemkataloge, soweit sie der Referenzclient nach Clientprofil nicht selbst abfragt.
+**Out-of-Scope:** Auswertung beliebigen SQLs (Verbunde, Aggregate, Ausdrücke, Unterabfragen, Sortierung), Persistenz, Transaktionssemantik über die Weitergabe an den Integrator hinaus und SQL-Server-Systemkataloge, soweit sie der Referenzclient nach Clientprofil nicht selbst abfragt. Ausgenommen ist, was `TDS-FA-12` für den Testserver verlangt.
+
+### TDS-FA-12 — Testserver mit veränderlichem Arbeitsspeicher-Bestand und Prüfclient d-migrate
+
+**Beschreibung:** Der Testserver (Glossar; kein Produkt) hält Tabellen in seinem Arbeitsspeicher, nimmt Schreibzugriffe und Änderungen der Tabellenstruktur an und beantwortet die Katalogabfragen, mit denen Clientwerkzeuge die Struktur dieser Tabellen lesen. Damit lässt sich das Werkzeug d-migrate (Version und Treiber legt die Spezifikation fest) als zweiter, nicht verbindlicher Prüfclient neben dem Referenzclient gegen den Testserver betreiben, und zwar für Verbindung, Strukturlesen und Strukturvergleich, Strukturänderung mit Ausführung, Datenexport, Datenimport und Datenübertragung. Der Bestand lebt nur im Arbeitsspeicher des Testserver-Prozesses und ist nach dessen Neustart wieder der Ausgangsbestand. Der verbindliche Client bleibt der des `TDS-RB-02`; die Bibliothek bleibt ohne eigene Datenhaltung (`TDS-FA-08`, `TDS-FA-11`).
+
+**Akzeptanzkriterien:**
+- **Happy Path:** Given ein gestarteter Testserver mit beschriebenen Tabellen, when d-migrate Verbindung, Strukturlesen (`schema reverse`), Strukturvergleich (`schema compare`), Datenexport (`data export`) und Strukturänderung mit Ausführung (`schema migrate --execute`) ausführt, then endet jeder Lauf mit Exit 0, der Export enthält die Zeilen mit den beschriebenen Typen und NULL-Werten, und ein erneutes Strukturlesen zeigt die geänderte Struktur; Given ein Datenimport und eine Datenübertragung (`data import`, `data transfer`) in eine Tabelle des Testservers, jeweils im Standardpfad des Werkzeugs und mit `--on-conflict skip`, then endet der Lauf mit Exit 0 und ein anschließender Export enthält die übertragenen Zeilen.
+- **Boundary:** Given die Verbindung mit dem Standard des Treibers (verschlüsselt, `encrypt=true`) und ein Testserver mit TLS, when d-migrate sich anmeldet und eine Abfrage stellt, then gelingt sie; Given ein Neustart des Testservers, then enthält der Bestand wieder genau den Ausgangsbestand.
+- **Negative:** Given eine Anweisung außerhalb der erkannten Formen (zum Beispiel die Aggregate und Ausdrücke von `data profile`), when sie ausgeführt wird, then erhält der Client einen definierten SQL-Fehler statt eines stillen Erfolgs oder eines falschen Ergebnisses; Given ein Schreibzugriff, der gegen die Struktur der Tabelle verstößt (unbekannte Spalte, Verletzung des Schlüssels), then wird er mit einem definierten Fehler abgewiesen und der Bestand bleibt unverändert.
+
+**Out-of-Scope:** `data profile` von d-migrate, Dauerhaftigkeit über den Prozess hinaus, Transaktionssemantik mit Rücknahme über mehrere Anweisungen, Zusage für andere Clients oder Versionen von d-migrate und Treiber als die in der Spezifikation festgelegten, Betrieb als Produkt.
 
 ## 4. Nichtfunktionale Anforderungen und Randbedingungen
 
@@ -218,10 +229,10 @@ Jede offene Festlegung hat eine verantwortliche Rolle und einen Trigger; ohne di
 ## 5. Globale Out-of-Scope-Punkte
 
 - Kein vollständiger Ersatz für Microsoft SQL Server.
-- Keine vollständige T-SQL-Kompatibilität, keine SQL-Server-Systemkataloge oder Administrationsfunktionen, außer den Abfragen des Referenzclients, die das Clientprofil festlegt (`TDS-FA-11`).
+- Keine vollständige T-SQL-Kompatibilität, keine SQL-Server-Systemkataloge oder Administrationsfunktionen, außer den Abfragen des Referenzclients, die das Clientprofil festlegt (`TDS-FA-11`), und den Katalogabfragen von d-migrate für die Tabellen des Testservers (`TDS-FA-12`).
 - Keine Unterstützung für Entity Framework Core, SSMS, Power BI oder DBeaver als eigenständiges Abnahmeziel, sofern nicht später vereinbart.
 - Keine Hochverfügbarkeit, Replikation, Clustering oder verteilte Transaktionen in der ersten Version.
-- Keine integrierte SQL-Engine oder persistente Datenbank; das mitgelieferte Simulations-Backend (`TDS-FA-11`) erkennt nur abgegrenzte Anweisungsformen und speichert nichts.
+- Keine integrierte SQL-Engine oder persistente Datenbank; das mitgelieferte Simulations-Backend (`TDS-FA-11`) erkennt nur abgegrenzte Anweisungsformen und speichert nichts. Ausgenommen ist der Arbeitsspeicher-Bestand des Testservers (`TDS-FA-12`), der nie über den Prozess hinaus besteht.
 - Keine Zusage für beliebige TDS-/SqlClient-Versionen.
 - Keine Windows-Authentifizierung in der ersten Version.
 
@@ -241,6 +252,7 @@ Jede offene Festlegung hat eine verantwortliche Rolle und einen Trigger; ohne di
 | Simulations-Backend | Mitgeliefertes optionales Backend, das einfache Anweisungsformen aus deklarativ beschriebenen Tabellen beantwortet; keine SQL-Engine |
 | Server         | Der von der Bibliothek bereitgestellte, in eine Anwendung eingebettete TDS-Serverendpunkt; kein eigenständiges Produkt |
 | Testserver     | Ausführbarer Serverprozess, der nur der Prüfung der Bibliothek dient (E2E- und Kompatibilitätstests); kein Produkt |
+| Testserver-Bestand | Die Tabellen und Zeilen im Arbeitsspeicher des Testservers (`TDS-FA-12`); nach einem Neustart wieder der Ausgangsbestand |
 | Zeilenquelle   | Vom Integrator bereitgestellte Quelle der Zeilen einer Tabelle, die schrittweise gelesen wird    |
 
 ## 7. Historie
@@ -253,3 +265,4 @@ Jede offene Festlegung hat eine verantwortliche Rolle und einen Trigger; ohne di
 | 0.5.0   | 2026-10-30 | Prüfung auf NULL (`IS NULL`, `IS NOT NULL`) als erkannte Bedingung des Simulations-Backends aufgenommen | `TDS-FA-11` |
 | 0.6.0   | 2026-11-01 | Produkt ist die JVM-Bibliothek; ein eigenständig ausführbarer Server ist kein Produkt, der Testserver dient nur der Prüfung | `TDS-RB-01`, `TDS-QA-06`, `TDS-FA-09` |
 | 0.6.1   | 2026-11-01 | Happy Path von `TDS-FA-09` präzisiert: Zustandsereignisse gehen an die vom Integrator übergebene Diagnoseausgabe; ohne sie schreibt die Bibliothek kein Log | `TDS-FA-09` |
+| 0.7.0   | 2026-11-05 | Testserver mit veränderlichem Arbeitsspeicher-Bestand, Katalogabfragen und d-migrate als zweitem Prüfclient aufgenommen; Ausnahmen in den Ausschlüssen von `TDS-FA-11` und §5 | `TDS-FA-12`, `TDS-FA-11` |
