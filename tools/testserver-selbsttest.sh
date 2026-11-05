@@ -104,6 +104,7 @@ pruefe "zweiter up bricht ab und nennt den Container" sh -c "[ $code -ne 0 ] && 
 bash tools/testserver.sh down >/dev/null 2>&1
 pruefe "down entfernt den Container" keiner
 pruefe "Port nach down frei" port_frei
+pruefe "nach down steht kein Netzwerk des Laufs" sh -c "! docker network ls --format '{{.Name}}' | grep -q '$LAUF'"
 pruefe "down ohne Container ist ein Erfolg" bash tools/testserver.sh down
 
 export TESTSERVER_BAUEN=0

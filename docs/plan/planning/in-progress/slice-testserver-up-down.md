@@ -12,11 +12,11 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-testserver-manuell
 
-**Bezug:** [TDS-RB-01](../../../../spec/lastenheft.md#tds-rb-01--implementierungssprache), [TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [ADR-0025](../../adr/0025-produktschnitt-bibliothek-und-testserver.md).
+**Bezug:** [TDS-RB-01](../../../../spec/lastenheft.md#tds-rb-01--implementierungssprache), [TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [ADR-0025](../../adr/0025-produktschnitt-bibliothek-und-testserver.md), [ADR-0022](../../adr/0022-e2e-laeufe-nicht-in-den-gates.md).
 
 **Berührte Spec-Stellen:** SPEC-052 (Harness-Werkzeug `laufzeittest`, Stage `testserver`) · SPEC-005 · SPEC-010 (Umgebungsvariablen des Testservers). Ob SPEC-052 um ein Target für den Handlauf zu ergänzen ist, klärt der Slice in §6; die Spec nennt diesen Slice nie.
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912
 
 **Autor:** pt9912. **Datum:** 2026-11-01.
 
@@ -60,18 +60,18 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] `make testserver-up` / `testserver-down` (mit `-logs`, `-status`): Start im Hintergrund, Host-Port veröffentlicht (Voreinstellung nur Loopback `127.0.0.1`, Port und Image-Tag über Make-Variablen), Rückkehr erst bei Bereitschaft (Zeile `tdswire: gestartet` im Log), zweiter `up` bei laufendem Container bricht mit klarer Meldung ab, `down` ohne Container ist ein Erfolg ohne Wirkung.
-- [ ] Konfiguration des manuellen Laufs: Benutzerliste (Voreinstellung der Testwert `alice` / `secret` im Testmodus), Verschlüsselungsrichtlinie, optionale eigene Beschreibungsdatei der Simulations-Tabellen; eine Beispielbeschreibung mit Tabellen liegt bei. Die Voreinstellung nennt in der Ausgabe von `up` Host, Port, Benutzer und den Hinweis „Testwerte, keine Verschlüsselung“.
-- [ ] Selbsttest (`make testserver-selbsttest`, kein Gate): `up`, Rohbytes-Login gegen den veröffentlichten Port vom Host-Netz aus, `down`; danach kein Container, kein Netzwerk, Port frei. Zu jedem Zweig des Skripts (zweiter `up`, `down` ohne Container, Port belegt) eine Mutation, die den Selbsttest rot färbt.
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] `make testserver-up` / `testserver-down` (mit `-logs`, `-status`): Start im Hintergrund, Host-Port veröffentlicht (Voreinstellung nur Loopback `127.0.0.1`, Port und Image-Tag über Make-Variablen), Rückkehr erst bei Bereitschaft (Zeile `tdswire: gestartet` im Log), zweiter `up` bei laufendem Container bricht mit klarer Meldung ab, `down` ohne Container ist ein Erfolg ohne Wirkung.
+- [x] Konfiguration des manuellen Laufs: Benutzerliste (Voreinstellung der Testwert `alice` / `secret` im Testmodus), Verschlüsselungsrichtlinie, optionale eigene Beschreibungsdatei der Simulations-Tabellen; eine Beispielbeschreibung mit Tabellen liegt bei. Die Voreinstellung nennt in der Ausgabe von `up` Host, Port, Benutzer und den Hinweis „Testwerte, keine Verschlüsselung“.
+- [x] Selbsttest (`make testserver-selbsttest`, kein Gate): `up`, Rohbytes-Login gegen den veröffentlichten Port vom Host-Netz aus, `down`; danach kein Container, kein Netzwerk, Port frei. Zu jedem Zweig des Skripts (zweiter `up`, `down` ohne Container, Port belegt) eine Mutation, die den Selbsttest rot färbt.
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Zeilen in `harness/README.md` §Sensors (Werkzeuge) für die neuen Targets; `make help` zeigt sie.
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Zeilen in `harness/README.md` §Sensors (Werkzeuge) für die neuen Targets; `make help` zeigt sie.
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -127,11 +127,11 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- [ADR-0025](../../adr/0025-produktschnitt-bibliothek-und-testserver.md) sagt, der Testserver bindet die Bibliothek, damit sie getestet wird; ob ein Handlauf mit veröffentlichtem Port darunter fällt oder eine Fortschreibung (neue ADR, Teil-Supersedes) braucht, ist nicht entschieden — **Ausgang:** offen bis zur Prüfung durch den Architect vor Start.
-- Port-Bindung und Anmeldung: Voreinstellung Loopback und Testwert `alice` / `secret` (Setzung des Planners, nicht gemessen); ein Bind auf `0.0.0.0` macht den Testmodus ohne Verschlüsselung im Netz erreichbar — **Ausgang:** offen bis zur Nutzerentscheidung (Frage: nur Loopback, oder wählbar mit Warnung?).
-- Name und Ort des Images: `tdswire-testserver:lokal` als Setzung; ein Registry-Push ist ausgeschlossen — **Ausgang:** offen bis zur Nutzerentscheidung über den Namen.
-- Ein Handlauf neben `make laufzeittest` kann um denselben Port oder Containernamen streiten — **Ausgang:** offen; der Selbsttest wählt einen eigenen Namen und Port.
-- Der Dauerlauf-Container wird nach einem Absturz des Rechners nicht aufgeräumt — **Ausgang:** offen → `BEO-TDS/benutzerliste-dateirechte-im-betrieb-offen` ist nicht einschlägig; ein eigener Eintrag entsteht bei Eintreten.
+- [ADR-0025](../../adr/0025-produktschnitt-bibliothek-und-testserver.md) sagt, der Testserver bindet die Bibliothek, damit sie getestet wird; ob ein Handlauf mit veröffentlichtem Port darunter fällt oder eine Fortschreibung braucht — **Ausgang:** **entfallen:** der Architect hat vor dem Start geprüft ([ADR-0025](../../adr/0025-produktschnitt-bibliothek-und-testserver.md) Entscheidungen 1 und 4, [ADR-0022](../../adr/0022-e2e-laeufe-nicht-in-den-gates.md) Entscheidungen 1 und 2): ein Handlauf ist Testen, eine Bind-Adresse ist eine Setzung des Slice, keine Fortschreibung nötig. Die Prüfung steht im Verlauf dieser Sitzung, nicht in einer Datei; der Satz in §4 zur Rückführung nach `open/` überzieht, eine geänderte Voreinstellung der Port-Bindung berührt [ADR-0025](../../adr/0025-produktschnitt-bibliothek-und-testserver.md) nicht.
+- Port-Bindung und Anmeldung — **Ausgang:** **entfallen:** Nutzerentscheidung am 2026-11-05: Loopback voreingestellt, per `TESTSERVER_HOST` wählbar, `up` warnt bei einem Host außer Loopback; die Voreinstellung `alice` / `secret` bleibt. Belegt durch den Selbsttest (Bindung an `127.0.0.1`, Warnung, Mutationen `loopback` und `warnung`).
+- Name und Ort des Images — **Ausgang:** **entfallen:** Nutzerentscheidung am 2026-11-05: `tdswire-testserver:lokal`, über `TESTSERVER_IMAGE` überschreibbar, kein Registry-Push.
+- Streit mit `make laufzeittest` um Port oder Containernamen — **Ausgang:** **entfallen:** der Selbsttest nimmt Namen und Port aus der Prozessnummer (`tdswire-st-<pid>`, Port 20000 bis 39999), `laufzeittest` benutzt ein eigenes internes Netzwerk ohne veröffentlichten Port; ein Handlauf auf 1433 und der Selbsttest liefen nebeneinander. Ein zweiter Handlauf auf demselben Port bricht mit der Meldung „Port belegt?“ ab (Mutationen `port-belegt-*`).
+- Der Dauerlauf-Container wird nach einem Absturz des Rechners nicht aufgeräumt — **Ausgang:** **weiter offen:** nicht eingetreten. Verwandt ist die Grenze „Abbruch von `up` durch SIGINT lässt den Container stehen“ (Review F-9, im Kopf von `tools/testserver.sh` genannt); der nächste `up` meldet ihn klar. Ein eigener Register-Eintrag entsteht bei Eintreten.
 
 ## 7. Closure-Notiz
 
@@ -148,7 +148,22 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-Noch nicht geschrieben; der Planner füllt die Sektion bei der Closure.
+**Gegenstand:** geliefert, DoD vollständig. Code: `7c1bef2` (Targets, Skript, Selbsttest, Beispielbeschreibung), Fix-Runde `d469afc` (Review F-1 bis F-8), danach die Prüfung „kein Netzwerk“ im Selbsttest und die Hilfe von `testserver-status`. Berichte: [Review](../../../reviews/2026-11-05-7c1bef2-slice-testserver-up-down.md) (kein HIGH, vier MEDIUM, alle eingearbeitet), [Verifikation](../../../reviews/2026-11-05-d469afc-verifikation-slice-testserver-up-down.md) (closure-fähig mit drei Bedingungen, kein HIGH, kein MEDIUM).
+
+| Bedingung der Verifikation | Ausgang |
+|---|---|
+| B-1 `make gates` und `make testserver-selbsttest` auf `main` | `make gates` grün auf `d469afc` (Exit 0); `make testserver-selbsttest` grün auf dem Stand dieser Closure: 59 s mit Stages im Cache (Last 12 bis 15), beim ersten Lauf 159 s; 9 Mutationen färben rot (`zweiter-up-abbruch`, `zweiter-up-meldung`, `down-ohne-container`, `port-belegt-aufraeumen`, `port-belegt-meldung`, `nicht-bereit-aufraeumen`, `nicht-bereit-meldung`, `loopback`, `warnung`). `make gates` nach den letzten Änderungen steht im Commit dieser Closure. |
+| B-2 Ausgang des ersten Risikos | **entfallen**, siehe §6 (Architect-Prüfung vor dem Start; die Prüfung liegt nicht als Datei vor, die Begründung steht in §6). |
+| B-3 Lauf auf `main` mit Last (§5) | Aufrufe der Kurzhilfe am 2026-11-05 auf `main`, Last 15,7 (20 Kerne): `make testserver-up` kehrte nach 3,4 s zurück (Image im Cache), Ausgabe `bereit auf 127.0.0.1:1433`, `alice` / `secret`, „Testwerte, keine Verschluesselung“; `make testserver-status` meldet „laeuft“; `make testserver-logs` zeigt `tdswire: gestartet, Port 1433`; `make testserver-down` entfernt den Container, ein zweites `down` ist ein Erfolg ohne Wirkung; danach 0 Container, Port 1433 frei. Ausführender: der Implementer (Agent) und, in frischem Kontext, der Verifier. Kein Mensch, der den Plan nicht geschrieben hat, und kein frischer Klon; das Mehr der Welle bleibt Sache von [slice-testserver-manuell-doku](../open/slice-testserver-manuell-doku.md). |
+
+Weitere Punkte der Verifikation: Die Hilfe von `testserver-status` sagte „Exit 1“; über `make` endet der Aufruf mit Exit 2 — Hilfe und README sagen jetzt „sonst Fehler“. Die Kostenzeile des Selbsttests nennt Last, Cache-Zustand und Kernel. „Kein Netzwerk“ (DoD Punkt 3) war wahr, aber ungeprüft: `up` legt keines an; der Selbsttest prüft es jetzt (`docker network ls`). Die Stempel-Eingangslisten sind bewusst nicht angefasst (`make stempel-eingaenge-pruefung` grün), das Dockerfile ist unverändert.
+
+**Grenzen (nicht belegt):** TLS im Handlauf (`REQUIRED` mit Schlüsselspeicher und Passwortdatei, Dateirechte nach `docker cp`), ein Login mit der eigenen Benutzerliste, Fehlerpfade von `docker cp`, Abbruch durch SIGINT — im Kopf von `tools/testserver.sh` und des Selbsttests als „Nicht belegt“ genannt (`AGENTS.md` §3.8). Die Anleitung dafür liegt bei [slice-testserver-manuell-doku](../open/slice-testserver-manuell-doku.md).
+
+**Steering-Loop-Eintrag:** geschärfte Beobachtung, keine neue Regel: Der Review fand im Selbsttest eines Werkzeug-Skripts Zweige ohne unterscheidende Mutation (Loopback-Voreinstellung, Warnung, Pfad „nicht bereit“) und eine Mutation, die den Zweig nur über sein Aufräumen traf. Register: Evidenz in [BEO-TDS/zeile-oder-zweig-ohne-unterscheidenden-test](../observations/BEO-TDS/zeile-oder-zweig-ohne-unterscheidenden-test/observation.md) (weiteres Auftreten, Klasse bereits verkörpert in `.harness/skills/reviewer.md`, kein neuer Zielort). Für den Slice galt: je Zweig des Skripts ein Vermerk `zweig:<name>` am Code und eine Mutation, die genau diesen Vermerk trifft, geprüft mit „die Mutation ändert das Skript“ im Selbsttest selbst (`mutiere` bricht rot ab, wenn `sed` nichts ändert).
+
+**Beobachtungs-Register:** eine weitere Datei in `BEO-TDS/zeile-oder-zweig-ohne-unterscheidenden-test/evidence/slice-testserver-up-down.md`; sonst keine Beobachtung angefallen. Die Klasse `BEO-TDS/benutzerliste-dateirechte-im-betrieb-offen` bleibt unberührt (Testwert, keine Lösung).
+
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

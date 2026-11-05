@@ -1,0 +1,3 @@
+**Vorgang:** slice-testserver-up-down
+**Fund:** Review (F-1 bis F-4): im Skript `tools/testserver.sh` hatten die Voreinstellung Loopback, der Zweig der Warnung, der Pfad „der Server wurde nicht bereit“ und das Aufräumen im Zweig „Port belegt“ keinen Test, der ihr Entfernen unterscheidet; die Mutation des Selbsttests sollte den Zweig `port-belegt` rot färben und tat es nur über das Aufräumen. Behoben in der Fix-Runde `d469afc`: 9 Mutationen (je Zweig getrennt nach Ausgang und Meldung), alle rot. Offen bleiben die Fehlerpfade von `docker cp` und der Abbruch durch SIGINT, im Kopf des Skripts unter „Nicht belegt“ genannt.
+**Stand:** verkörpert wie in `state.md` der Klasse; hier ein weiteres Auftreten.

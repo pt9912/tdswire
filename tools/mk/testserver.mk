@@ -13,7 +13,7 @@ testserver-down: ## Den Testserver-Container stoppen und entfernen (ohne Contain
 testserver-logs: ## Log des Testserver-Containers (TESTSERVER_FOLGEN=1 verfolgt es)
 	bash tools/testserver.sh logs
 
-testserver-status: ## Laeuft der Testserver-Container? Exit 0 ja, 1 nein
+testserver-status: ## Laeuft der Testserver-Container? Exit 0 ja, sonst Fehler
 	bash tools/testserver.sh status
 
 testserver-selbsttest: ## Selbsttest der Targets: up, Rohbytes-Login vom Host-Netz, down, Port frei; Mutationen je Zweig (kein Gate)
