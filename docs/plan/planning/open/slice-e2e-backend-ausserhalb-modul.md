@@ -26,7 +26,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Bestand und Abgrenzung gegen Stufe 4:** Stufe 4 von `make e2e` (und 5 bis 7) läuft gegen `kompatibilitaetsserver` im Source-Set `testserver` (nicht mit dem Hauptmodul assoziiert, nur öffentliche Fläche, `BackendSource.Custom`), mit dem Referenzclient über die Prozessgrenze. Der dort angebundene `RecordingBackend` zeichnet auf und delegiert an das Simulations-Backend; Stufe 4 deklariert FA-08 und RB-04 nicht. Backend-Fehler bei offener Verbindung liefern die Stufen 3, 4 und 7 (50004, `TDS_BACKEND_ERROR`, Folgeabfrage gelingt), aber über die Simulation; es fehlt ein eigenes `QueryBackend`, dessen `execute` scheitert oder das nicht erreichbar ist, mit der Prüfung, dass der Server verfügbar bleibt. Die neue Stufe wiederholt Stufe 4 nicht: sie wiederholt weder die Szenarien noch den Aufzeichner, sondern belegt das Backend, das nicht die Simulation ist, und den Fehlpfad eines solchen Backends. Zeigt die Umsetzung, dass eine Ergänzung der Kennungen an Stufe 4 mit einem zusätzlichen Fall derselben Kategorie genügt, ist das die zu wählende Form (keine doppelte Stufe, Änderung von §2 und `tools/e2e.sh` dann mit Begründung in §7).
 
-**Träger-Slice:** [slice-integrations-einstieg](../done/slice-integrations-einstieg.md) (liegt in `done/` und führt keinen E2E-Punkt); Zeiger und Befund stehen in [slice-e2e-geruest](../in-progress/slice-e2e-geruest.md) §3 und §7.
+**Träger-Slice:** [slice-integrations-einstieg](../done/slice-integrations-einstieg.md) (liegt in `done/` und führt keinen E2E-Punkt); Zeiger und Befund stehen in [slice-e2e-geruest](../done/slice-e2e-geruest.md) §3 und §7.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -70,7 +70,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-e2e-geruest](../in-progress/slice-e2e-geruest.md) liegt in `done/`; `make gates` ist auf `main` grün.
+**Start** (`next` → `in-progress`): [slice-e2e-geruest](../done/slice-e2e-geruest.md) liegt in `done/`; `make gates` ist auf `main` grün.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
