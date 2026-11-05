@@ -43,12 +43,21 @@ internal object TlsAcceptor {
         val engine = context.createSSLEngine()
         engine.useClientMode = false
         val settings = engine.sslParameters
-        settings.protocols = parameters.protocols.toTypedArray()
+        settings.protocols = protocolsFor(path, parameters).toTypedArray()
         settings.cipherSuites = parameters.cipherSuites.toTypedArray()
         if (path == TlsPath.FROM_FIRST_BYTE) settings.applicationProtocols = arrayOf(TlsChannel.ALPN_TDS_8_0)
         engine.sslParameters = settings
         return engine
     }
+
+    /**
+     * Der Pfad bestimmt die höchste Version: TDS 7.4 bietet höchstens TLS 1.2 an, TDS 8.0 alle konfigurierten
+     * Versionen (`SPEC-023`). Bleibt im 7.4-Pfad keine Version übrig, scheitert der Handshake.
+     */
+    private fun protocolsFor(path: TlsPath, parameters: TlsParameters): List<String> =
+        if (path == TlsPath.ENCAPSULATED_IN_TDS) parameters.protocols.filter { it != TLS_1_3 } else parameters.protocols
+
+    private const val TLS_1_3 = "TLSv1.3"
 
     private fun switchToStream(io: TlsRecordIo, path: TlsPath): TlsResult<Unit> = when {
         path == TlsPath.FROM_FIRST_BYTE && io.engine.applicationProtocol != TlsChannel.ALPN_TDS_8_0 ->

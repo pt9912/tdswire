@@ -64,12 +64,12 @@ public sealed interface StartOutcome {
  * [start] und [stop] gerufen werden, ist nicht festgelegt; getestet sind sie nacheinander aus einem Thread.
  *
  * Eine [ServerConfig] gilt für einen Start: sobald der Start das TLS-Material lädt, löscht er das Passwort im
- * Schlüsselmaterial; bricht er vorher ab (JVM-Flag, Prüfung), bleibt es lesbar (Setzung, getestet). Wer neu startet,
- * baut eine neue Konfiguration.
+ * Schlüsselmaterial; bricht er vorher ab (Prüfung der Konfiguration), bleibt es lesbar (Setzung, getestet). Wer
+ * neu startet, baut eine neue Konfiguration.
  *
- * Das JVM-Flag `-Djdk.tls.server.newSessionTicketCount=0` setzt der Aufrufer; [start] prüft es und setzt es nicht
- * (`SPEC-023`). Der Einstieg schreibt nirgends hin; Log und Telemetrie gehen an die Senke, die [start] übergeben
- * bekommt, ein Abbruch steht in [StartOutcome.Aborted].
+ * Der Einstieg verlangt keine JVM-Option und liest keine Systemeigenschaft (`SPEC-023`). Er schreibt nirgends
+ * hin; Log und Telemetrie gehen an die Senke, die [start] übergeben bekommt, ein Abbruch steht in
+ * [StartOutcome.Aborted].
  */
 public class TdsServer internal constructor(private val listener: TdsListener, private val telemetry: Telemetry) {
     private val stopped = AtomicBoolean(false)
@@ -85,7 +85,7 @@ public class TdsServer internal constructor(private val listener: TdsListener, p
 
     public companion object {
         /**
-         * Startet den Server mit [config] und [source] (`SPEC-059`). Geprüft werden das JVM-Flag, die Konfiguration
+         * Startet den Server mit [config] und [source] (`SPEC-059`). Geprüft werden die Konfiguration
          * ([io.github.pt9912.tdswire.config.ConfigValidation]), die Tabellen und das TLS-Material; erst danach wird
          * gebunden. [telemetry] nimmt die Ereignisse des Servers entgegen (Vertrag in [TelemetrySink]); ohne Senke
          * erzeugt und schreibt die Bibliothek nichts. Der Aufrufer besitzt die Senke und schließt sie nach [stop].
@@ -97,7 +97,6 @@ public class TdsServer internal constructor(private val listener: TdsListener, p
         ): StartOutcome = Bootstrap.launch(
             config,
             Wiring(telemetry = telemetry, requests = source.requests()),
-            System::getProperty,
         )
     }
 }

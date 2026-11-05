@@ -37,9 +37,6 @@ const val BATCH_TYPE = 0x01
  */
 internal const val WERTPROBE = "wertprobe-xq9"
 
-/** Die Eigenschaft des Prozesses, wie sie der Start setzt: das Flag gegen das NewSessionTicket ist `0`. */
-internal val flagSet: (String) -> String? = { if (it == Bootstrap.TICKET_FLAG) "0" else null }
-
 /** Der Sammler: hält die Ereignisse, die der Server an die Senke gibt, in der Reihenfolge des Eingangs. */
 internal class CapturedEvents : TelemetrySink {
     val events = CopyOnWriteArrayList<TelemetryEvent>()
@@ -159,7 +156,7 @@ internal open class RuntimeTestBase : TempFilesTest() {
     val sink = CapturedEvents()
 
     suspend fun start(environment: Map<String, String>, wiring: Wiring = Wiring(telemetry = sink)): StartOutcome {
-        val result = Bootstrap.launch(configOf(environment), wiring, flagSet)
+        val result = Bootstrap.launch(configOf(environment), wiring)
         if (result is StartOutcome.Running) started += result.server
         return result
     }

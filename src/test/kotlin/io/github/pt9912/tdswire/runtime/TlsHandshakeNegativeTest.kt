@@ -199,6 +199,32 @@ internal class TlsHandshakeNegativeTest : RuntimeTestBase() {
         assertStillServes(server.port)
     }
 
+    /**
+     * Der TDS-7.4-Pfad bietet höchstens TLS 1.2 an (`SPEC-023`): Ein Client, der nur TLS 1.3 kann, kommt nicht zur
+     * Anmeldung, der Server trennt ohne Antwort, das Ereignis nennt `HANDSHAKE_FAILED`. Hintergrund ist `mssql-jdbc`
+     * 13.4.0, das unter TLS 1.3 im Mantel sein `Finished` nicht an den Server schickt (Messprotokoll in
+     * `docs/messungen/`).
+     *
+     * @spec SPEC-023
+     */
+    @Test
+    fun `Ein reiner TLS-1_3-Client scheitert im TDS-7_4-Pfad`() = blocking {
+        val server = running(environment())
+        val wire = connectTo(server.port)
+        MessageWriter(wire, PACKET_SIZE)
+            .write(TdsMessage(PacketType.PRELOGIN, SessionVectors.preloginPayload(SessionVectors.ENCRYPT_ON)))
+        assertNotNull(MessageReader(wire).next())
+        val engine = JdkTlsPeer.clientEngine(
+            TestKeys.clientContext(),
+            listOf("TLSv1.3"),
+            TlsParameters.SPEC_023.cipherSuites,
+        )
+        assertNotNull(JdkTlsPeer(wire, engine, encapsulated = true).handshake(), "TLS 1.3 im 7.4-Pfad ausgehandelt")
+        wire.close()
+        assertHandshakeLogged("HANDSHAKE_FAILED")
+        assertStillServes(server.port)
+    }
+
     private companion object {
         const val PACKET_SIZE = 4096
         const val TRUNCATED_HELLO_BYTES = 20

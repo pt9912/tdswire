@@ -32,8 +32,7 @@ internal class TdsServerLifecycleTest : RuntimeTestBase() {
     private fun freshKey() =
         TlsKeyMaterial(File("$directory/gueltig.p12").readBytes(), PasswordChars(STORE_PASSWORD.toCharArray()))
 
-    private suspend fun launch(config: ServerConfig, properties: (String) -> String? = flagSet): StartOutcome =
-        Bootstrap.launch(config, Wiring(telemetry = sink), properties)
+    private suspend fun launch(config: ServerConfig): StartOutcome = Bootstrap.launch(config, Wiring(telemetry = sink))
 
     /**
      * Ein zweiter `stop` hat keine Wirkung: die Senke bekommt das Ereignis „gestoppt“ genau einmal.
@@ -50,8 +49,8 @@ internal class TdsServerLifecycleTest : RuntimeTestBase() {
     }
 
     /**
-     * Das Passwort im Schlüsselmaterial bleibt lesbar, wenn der Start vor dem Laden des Materials abbricht (Flag,
-     * Prüfung der Konfiguration); nach einem Bindefehler ist es gelöscht, und ein zweiter Start mit derselben
+     * Das Passwort im Schlüsselmaterial bleibt lesbar, wenn der Start vor dem Laden des Materials abbricht (Prüfung
+     * der Konfiguration); nach einem Bindefehler ist es gelöscht, und ein zweiter Start mit derselben
      * Konfiguration bricht ab. Setzung: eine Konfiguration gilt für einen Start, sobald das Material geladen wird.
      *
      * @spec SPEC-059
@@ -60,9 +59,6 @@ internal class TdsServerLifecycleTest : RuntimeTestBase() {
     @Test
     fun `Das Passwort wird erst beim Laden des Materials geloescht`() = blocking {
         val expected = STORE_PASSWORD.toCharArray()
-        val noFlag = config(0)
-        assertIs<StartOutcome.Aborted>(launch(noFlag) { null })
-        assertContentEquals(expected, noFlag.tls?.password?.reveal())
         val invalid = config(PORT_OUTSIDE)
         assertIs<StartOutcome.Aborted>(launch(invalid))
         assertContentEquals(expected, invalid.tls?.password?.reveal())

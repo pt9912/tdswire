@@ -23,8 +23,7 @@ private const val CONFIG_INVALID = "Konfiguration ungueltig"
  * Umgebung und die Dateien, die sie nennt ([ConfigLoader]), baut eine `ServerConfig` und ruft `TdsServer.start` wie
  * ein Einbettender; er kennt von der Bibliothek nur ihre öffentliche Fläche. Er bleibt laufen, bis die JVM beendet
  * wird (SIGTERM oder SIGINT); der Shutdown-Hook ruft `TdsServer.stop`. Ein abgebrochener Start beendet den Prozess
- * mit [EXIT_START_FAILED]. Das JVM-Flag `-Djdk.tls.server.newSessionTicketCount=0` setzt der Aufrufer; der Start der
- * Bibliothek verlangt es.
+ * mit [EXIT_START_FAILED]. Der Prozess braucht keine JVM-Option.
  *
  * Standardausgabe (die Skripte der E2E-Läufe lesen sie): nach dem Start die Zeile `tdswire: gestartet, Port <port>`
  * mit dem Port des laufenden Servers, im Hook die Zeile `tdswire: gestoppt`, bei einem Abbruch der Grund oder je

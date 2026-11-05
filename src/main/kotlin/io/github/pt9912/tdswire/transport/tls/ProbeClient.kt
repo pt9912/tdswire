@@ -29,6 +29,20 @@ internal class ProbeClient(private val engine: SSLEngine, private val wire: Susp
         rejected.javaClass.simpleName
     }
 
+    /**
+     * Liest und verwirft, was der Server nach dem Handschlag schreibt, bis sein Ende des Drahts geschlossen ist oder
+     * der Draht scheitert. Das Ende kommt vom Schließen des Servers, nicht von einer Zeit.
+     */
+    suspend fun drain() {
+        val scratch = ByteBuffer.allocate(DRAIN_BYTES)
+        var open = true
+        while (open) {
+            scratch.clear()
+            val read = wire.read(scratch)
+            open = read is ChannelResult.Ok && read.value >= 0
+        }
+    }
+
     private suspend fun run(): Boolean {
         while (true) {
             val done = when (engine.handshakeStatus) {
@@ -103,5 +117,6 @@ internal class ProbeClient(private val engine: SSLEngine, private val wire: Susp
     private companion object {
         val EMPTY: ByteBuffer = ByteBuffer.allocate(0)
         const val ALERT_ROUNDS = 4
+        const val DRAIN_BYTES = 4096
     }
 }

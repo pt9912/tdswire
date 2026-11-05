@@ -7,6 +7,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Startprobe der TLS-Konfiguration (`SPEC-043`) gegen die Zertifikate der Dockerfile-Stage
@@ -52,6 +53,41 @@ class TlsStartProbeTest {
         assertEquals(ProbeResult.Passed("TLSv1.2", TlsParameters.TLS12_SUITES.first()), twelve)
         val thirteen = probeOf(KeyVariants.file(TestKeys.OTHER_NAME), tls13)
         assertEquals(ProbeResult.Passed("TLSv1.3", TlsParameters.TLS13_SUITES.first()), thirteen)
+    }
+
+    /**
+     * Die Probe besteht im TLS-1.3-Pfad, in dem der Server nach dem Handschlag ein NewSessionTicket schreibt. Wird das
+     * Ende der Gegenstelle gleich nach ihrem Handschlag geschlossen, scheitert die Probe mit `PAIR` (gesehen als
+     * Eingriff, siehe Messprotokoll). Das Urteil hängt weder von einer Zeit noch vom Auswerten des Tickets ab. Dass der
+     * Server nach dem Handschlag einen weiteren Record schreibt, hält `TlsSessionTicketTest` fest.
+     *
+     * @spec SPEC-043
+     */
+    @Test
+    fun `probe passes with TLS 1_3 although the server writes a session ticket after the handshake`() = blocking {
+        val result = probeOf(KeyVariants.file(TestKeys.VALID), tls13)
+        assertEquals(ProbeResult.Passed("TLSv1.3", TlsParameters.TLS13_SUITES.first()), result)
+    }
+
+    /**
+     * Die Probe besteht auch, wenn der Server nach dem Handschlag mehr schreibt, als der Speicherkanal fasst: bei einem
+     * Kanal von 256 Byte je Richtung (das NewSessionTicket des Servers hat rund 1000 Byte) liest die Gegenstelle nach
+     * ihrem Handschlag weiter und verwirft die Bytes, bis die Schleife schließt. Die Frist ist kurz gesetzt, damit ein
+     * Fehlschlag schnell auffällt; im gelungenen Lauf wirkt sie nicht.
+     * Mutation, die den Test rot färbt: in `TlsStartProbe` den Aufruf `probeClient.drain()` streichen (die Probe
+     * endet dann an der Frist als `PAIR`).
+     *
+     * @spec SPEC-043
+     */
+    @Test
+    fun `probe passes when the server writes more after the handshake than the memory channel holds`() = blocking {
+        val result = TlsStartProbe.run(
+            materialOf(KeyVariants.file(TestKeys.VALID)),
+            tls13,
+            timeout = 5.seconds,
+            memoryCapacity = SMALL_CHANNEL,
+        )
+        assertEquals(ProbeResult.Passed("TLSv1.3", TlsParameters.TLS13_SUITES.first()), result)
     }
 
     /**
@@ -142,5 +178,9 @@ class TlsStartProbeTest {
         texts.forEach { text ->
             forbidden.forEach { assertTrue(it !in text, "Text enthält $it: $text") }
         }
+    }
+
+    private companion object {
+        const val SMALL_CHANNEL = 256
     }
 }

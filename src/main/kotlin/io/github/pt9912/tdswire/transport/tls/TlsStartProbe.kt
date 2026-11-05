@@ -28,6 +28,13 @@ internal sealed interface ProbeResult {
  * `IllegalArgumentException` kommt wie bei [TlsChannel.accept] nur, wenn die JVM eine genannte
  * Version oder Suite nicht kennt.
  *
+ * Das Urteil kommt von der Schleife: die Gegenstelle liest nach ihrem Handschlag weiter und verwirft, was der
+ * Server noch schreibt (im TLS-1.3-Pfad sein NewSessionTicket), bis die Schleife ihren Kanal schließt. Ihr Ende
+ * bleibt so bis zum Urteil offen und nimmt jede Menge Nachschrift an, auch mehr, als der Speicherkanal fasst. Das
+ * Ende der Gegenstelle fällt mit dem Schließen durch die Schleife; es braucht weder Schlaf noch Zeitgrenze. Die
+ * Zeitgrenze [timeout] fängt nur eine Probe, die nicht endet. Scheitert die Gegenstelle selbst, schließt sie ihr
+ * Ende sofort (Vorsorge gegen Warten; dieser Zweig hat keinen eigenen Test).
+ *
  * Grenze (`SPEC-043`): die Probe prüft weder, ob ein Client dem Zertifikat vertraut, noch die
  * TDS-Kapselung des Handschlags (Pfad [TlsPath.ENCAPSULATED_IN_TDS]), noch den Namen im Zertifikat.
  * Festlegung (nicht gemessen): scheitert der Handschlag und ist keine Kette abgelaufen, ist der Teil
@@ -41,9 +48,10 @@ internal object TlsStartProbe {
         material: TlsMaterial,
         parameters: TlsParameters,
         timeout: Duration = DEFAULT_TIMEOUT,
+        memoryCapacity: Int = MEMORY_CAPACITY,
     ): ProbeResult {
         val trust = ValidityOnlyTrust()
-        val outcome = withTimeoutOrNull(timeout) { handshake(material.context, parameters, trust) }
+        val outcome = withTimeoutOrNull(timeout) { handshake(material.context, parameters, trust, memoryCapacity) }
         return when {
             trust.rejectedChain -> failed(TlsPart.CERTIFICATE, "Kette jetzt nicht gueltig")
 
@@ -54,7 +62,10 @@ internal object TlsStartProbe {
                 failed(TlsPart.PAIR, "Handschlag $server / Gegenstelle ${outcome.clientFailure}")
             }
 
-            outcome.server is TlsResult.Ok -> passed(outcome.server.value)
+            outcome.server is TlsResult.Ok -> {
+                val negotiated = outcome.server.value
+                ProbeResult.Passed(negotiated.protocol, negotiated.cipherSuite)
+            }
 
             else -> failed(TlsPart.PAIR, "Handschlag")
         }
@@ -62,20 +73,44 @@ internal object TlsStartProbe {
 
     private fun failed(part: TlsPart, form: String) = ProbeResult.Failed(TlsDiagnosis(part, form))
 
-    private fun passed(channel: TlsChannel): ProbeResult =
-        ProbeResult.Passed(channel.protocol, channel.cipherSuite).also { channel.close() }
+    /** Version und Suite, die die Schleife ausgehandelt hat. */
+    private class Negotiated(val protocol: String, val cipherSuite: String)
 
-    private class Outcome(val server: TlsResult<TlsChannel>, val clientFailure: String?)
+    private class Outcome(val server: TlsResult<Negotiated>, val clientFailure: String?)
 
-    private suspend fun handshake(context: SSLContext, parameters: TlsParameters, trust: ValidityOnlyTrust): Outcome =
-        coroutineScope {
-            val (serverEnd, clientEnd) = MemoryChannel.pair(MEMORY_CAPACITY)
-            val server = async { TlsChannel.accept(serverEnd, context, TlsPath.FROM_FIRST_BYTE, parameters) }
-            val client = async {
-                ProbeClient(clientEngine(trust, parameters), clientEnd).handshake().also { clientEnd.close() }
+    /**
+     * Der Handschlag der Schleife; ein gelungener Kanal wird hier geschlossen, denn das Schließen ist das Ende, auf das
+     * die Gegenstelle wartet (sie liest bis dahin weiter, siehe [ProbeClient.drain]).
+     */
+    private suspend fun accept(
+        end: MemoryChannel,
+        context: SSLContext,
+        parameters: TlsParameters,
+    ): TlsResult<Negotiated> {
+        val accepted = TlsChannel.accept(end, context, TlsPath.FROM_FIRST_BYTE, parameters)
+        if (accepted is TlsResult.Failed) return accepted
+        val channel = (accepted as TlsResult.Ok).value
+        val negotiated = Negotiated(channel.protocol, channel.cipherSuite)
+        channel.close()
+        return TlsResult.Ok(negotiated)
+    }
+
+    private suspend fun handshake(
+        context: SSLContext,
+        parameters: TlsParameters,
+        trust: ValidityOnlyTrust,
+        memoryCapacity: Int,
+    ): Outcome = coroutineScope {
+        val (serverEnd, clientEnd) = MemoryChannel.pair(memoryCapacity)
+        val server = async { accept(serverEnd, context, parameters) }
+        val client = async {
+            val probeClient = ProbeClient(clientEngine(trust, parameters), clientEnd)
+            probeClient.handshake().also { failure ->
+                if (failure != null) clientEnd.close() else probeClient.drain()
             }
-            Outcome(server.await(), client.await())
         }
+        Outcome(server.await(), client.await())
+    }
 
     private fun clientEngine(trust: ValidityOnlyTrust, parameters: TlsParameters): SSLEngine {
         val context = SSLContext.getInstance("TLS").also { it.init(null, arrayOf(trust), null) }

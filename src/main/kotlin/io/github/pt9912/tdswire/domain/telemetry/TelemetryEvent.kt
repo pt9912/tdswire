@@ -66,9 +66,6 @@ public sealed class TelemetryEvent protected constructor(
 
 /** Warum ein Start vor dem Binden abbricht, ohne dass Konfiguration oder TLS-Material die Ursache nennen. */
 public enum class StartRefusal {
-    /** Das JVM-Flag gegen das NewSessionTicket fehlt (`SPEC-023`). */
-    JVM_FLAG_MISSING,
-
     /** Ein Backend und Tabellen des Simulations-Backends sind zugleich konfiguriert. */
     BACKEND_AND_SIMULATION,
 

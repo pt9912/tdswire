@@ -1,1 +1,1 @@
-**Stand:** offen — 2×; unter der Schwelle (slice-qa-anmeldedrosselung, slice-integrations-einstieg).
+**Stand:** offen — 3×; über der Schwelle (slice-qa-anmeldedrosselung, slice-integrations-einstieg, slice-tls-d-migrate), noch keine Regel verkörpert. Der Lese-Schritt (Verkörperung oder Verwerfen) ist Sache der Closure der Welle `welle-testserver-manuell`; `AGENTS.md` §3.7 trägt die Regel schon, offen ist, ob ein Sensor oder ein Reviewer-Punkt dazukommt.

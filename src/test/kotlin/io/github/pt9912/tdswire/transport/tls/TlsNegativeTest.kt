@@ -179,7 +179,8 @@ class TlsNegativeTest {
             Triple(listOf("TLSv1.3"), listOf("TLS_AES_128_GCM_SHA256"), listOf("TLS_AES_256_GCM_SHA384")),
         )
         bothPaths.forEach { path ->
-            others.forEach { (protocols, peerSuites, serverSuites) ->
+            val offered = others.filter { path == TlsPath.FROM_FIRST_BYTE || it.first == tls12 }
+            offered.forEach { (protocols, peerSuites, serverSuites) ->
                 val rejected = runHandshake(TlsSetup(path, protocols, peerSuites, serverSuites = serverSuites))
                 assertEquals(TlsFailure.HANDSHAKE_FAILED, failureOf(rejected.server).failure, "$path $peerSuites")
                 assertNotNull(rejected.peerFailure)
@@ -227,20 +228,21 @@ class TlsNegativeTest {
     }
 
     /**
-     * Ein letztes Handshake-Paket, dessen Nutzdaten über das Ende von `FINISHED` hinaus in den Puffer der
-     * Engine nicht mehr passen (hier 30000 Nullbytes hinter Client-Finished), ist ein `PROTOCOL_VIOLATION`:
-     * der Rest gehört dem Paket, nicht dem rohen Strom. Nicht geprüft ist ein kleiner Rest, der noch in den
-     * Puffer passt: er scheitert erst in der Datenphase (fail-closed, nicht am Umschaltpunkt gemeldet).
+     * Ein letztes Handshake-Paket des Clients (TLS 1.2: ClientKeyExchange, ChangeCipherSpec, Finished), dessen
+     * Nutzdaten über das Ende von `Finished` hinaus in den Puffer der Engine nicht mehr passen (hier 30000
+     * Nullbytes dahinter), ist ein `PROTOCOL_VIOLATION`: der Rest gehört dem Paket, nicht dem rohen Strom. Nicht
+     * geprüft ist ein kleiner Rest, der noch in den Puffer passt.
+     * Mutation, die den Test rot färbt: die Prüfung `endPackets()` in `TlsAcceptor.switchToStream` streichen.
      *
      * @spec SPEC-028
      */
     @Test
     fun `rest of a last handshake packet too large for the engine buffer is a protocol violation`() = blocking {
         coroutineScope {
-            val setup = TlsSetup(TlsPath.ENCAPSULATED_IN_TDS, listOf("TLSv1.3"))
+            val setup = TlsSetup(TlsPath.ENCAPSULATED_IN_TDS, listOf("TLSv1.2"))
             val (serverEnd, peerEnd) = MemoryChannel.pair(1 shl 17)
             val recording = RecordingChannel(serverEnd)
-            val peer = peerFor(setup, peerEnd, payloadPerPacket = 30000, trailingJunk = 30000)
+            val peer = peerFor(setup, peerEnd, payloadPerPacket = JUNK_BYTES, trailingJunk = JUNK_BYTES)
             val accepted = async {
                 val parameters = TlsParameters(setup.protocols, setup.suites)
                 TlsChannel.accept(recording, TestKeys.serverContext(), setup.path, parameters)
@@ -354,5 +356,9 @@ class TlsNegativeTest {
             val results = (1..3).map { server.writeFully(ByteBuffer.wrap(ByteArray(100))) }
             assertTrue(results.any { it is ChannelResult.Failed }, "$results")
         }
+    }
+
+    private companion object {
+        const val JUNK_BYTES = 30000
     }
 }

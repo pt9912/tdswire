@@ -243,7 +243,6 @@ tasks.register<JavaExec>("integrationsServer") {
     classpath = testserver.runtimeClasspath
     mainClass.set("io.github.pt9912.tdswire.testserver.IntegrationServerKt")
     maxHeapSize = "48m"
-    jvmArgs("-Djdk.tls.server.newSessionTicketCount=0")
 }
 
 // Der Testserver des Kompatibilitaetslaufs (Stage `kompatibilitaetsserver`, `make kompatibilitaet`): Klasse im
@@ -251,5 +250,4 @@ tasks.register<JavaExec>("integrationsServer") {
 tasks.register<JavaExec>("kompatibilitaetsServer") {
     classpath = testserver.runtimeClasspath
     mainClass.set("io.github.pt9912.tdswire.testserver.KompatibilitaetsServerKt")
-    jvmArgs("-Djdk.tls.server.newSessionTicketCount=0")
 }

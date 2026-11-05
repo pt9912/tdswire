@@ -23,7 +23,7 @@ internal class TelemetryEventTest {
     private fun samples(): List<Sample> = listOf(
         Sample(ServerStarted(at, 1433), EventLevel.INFO, false),
         Sample(ServerStopped(at), EventLevel.INFO, false),
-        Sample(StartRefused(at, StartRefusal.JVM_FLAG_MISSING), EventLevel.ERROR, false),
+        Sample(StartRefused(at, StartRefusal.TABLE_NAME_DUPLICATE), EventLevel.ERROR, false),
         Sample(ConfigInvalid(at, "SCHLUESSEL", "MISSING"), EventLevel.ERROR, false),
         Sample(TlsStartRejected(at, "CERTIFICATE", "Kette unbrauchbar"), EventLevel.ERROR, false),
         Sample(BindFailed(at, "127.0.0.1", 1433, null), EventLevel.ERROR, false),

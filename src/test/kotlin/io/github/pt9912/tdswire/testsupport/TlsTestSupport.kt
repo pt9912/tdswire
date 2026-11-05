@@ -129,29 +129,22 @@ internal class RecordingChannel(private val inner: SuspendingChannel) : Suspendi
  * Die Gegenstelle der TLS-Tests: ein TLS-Client auf einer JDK-`SSLEngine`, unabhängig von der
  * Schleife im Produktionscode geschrieben (eigene Puffer, eigenes Auspacken der Pakete, Pakete von
  * Hand gebaut). [encapsulated] verpackt den Handshake in Pakete vom Typ `0x12` und schaltet mit
- * `FINISHED` auf rohes TLS um. [trailingJunk] hängt so viele Nullbytes an die letzte Handshake-Folge.
- * Mit [holdLastFlight] schreibt die Gegenstelle die letzte Handshake-Folge nicht sofort, sondern
- * zusammen mit den ersten verschlüsselten Nutzdaten in einem Schreibvorgang; [denseWriteBytes] nennt
- * dessen Größe.
+ * `FINISHED` auf rohes TLS um. [trailingJunk] hängt so viele Nullbytes an die zweite Handshake-Folge der
+ * Gegenstelle (TLS 1.2: ClientKeyExchange, ChangeCipherSpec, Finished).
  */
 internal class JdkTlsPeer(
     private val wire: SuspendingChannel,
     private val engine: SSLEngine,
     private val encapsulated: Boolean,
-    private val holdLastFlight: Boolean = false,
     private val payloadPerPacket: Int = PAYLOAD_PER_PACKET,
     private val trailingJunk: Int = 0,
 ) : SuspendingChannel {
     private var raw = ByteArray(0)
     private var tls = ByteArray(0)
-    private var held = ByteArray(0)
+    private var flightsSent = 0
     private var inHandshake = true
     private var plain = ByteBuffer.allocate(0)
     private var ended = false
-
-    /** Größe des Schreibvorgangs, der die gehaltene Handshake-Folge und Nutzdaten zusammen trug; sonst 0. */
-    var denseWriteBytes = 0
-        private set
 
     /** `null`, wenn der Handshake gelang; sonst die Ausnahme, mit der er endete. */
     suspend fun handshake(): Throwable? = try {
@@ -199,12 +192,7 @@ internal class JdkTlsPeer(
                 else -> throw PeerWireException("Status ${engine.handshakeStatus}")
             }
         }
-        val last = framed(flight.toByteArray() + ByteArray(if (flight.size() > 0) trailingJunk else 0))
-        if (holdLastFlight) {
-            held = last
-        } else if (last.isNotEmpty()) {
-            send(last)
-        }
+        sendFlight(flight)
         tls += raw
         raw = ByteArray(0)
         inHandshake = false
@@ -229,7 +217,9 @@ internal class JdkTlsPeer(
 
     private suspend fun sendFlight(flight: ByteArrayOutputStream) {
         if (flight.size() == 0) return
-        val bytes = framed(flight.toByteArray())
+        flightsSent++
+        val junk = if (flightsSent == JUNK_FLIGHT) trailingJunk else 0
+        val bytes = framed(flight.toByteArray() + ByteArray(junk))
         flight.reset()
         send(bytes)
     }
@@ -359,16 +349,12 @@ internal class JdkTlsPeer(
 
     override suspend fun writeFully(buffer: ByteBuffer): ChannelResult<Unit> {
         val out = ByteArrayOutputStream()
-        out.write(held)
-        val prefix = held.size
-        held = ByteArray(0)
         while (buffer.hasRemaining()) {
             val encrypted = ByteBuffer.allocate(engine.session.packetBufferSize)
             engine.wrap(buffer, encrypted)
             encrypted.flip()
             out.write(ByteArray(encrypted.remaining()).also { encrypted.get(it) })
         }
-        if (prefix > 0) denseWriteBytes = out.size()
         return wire.writeFully(ByteBuffer.wrap(out.toByteArray()))
     }
 
@@ -396,6 +382,7 @@ internal class JdkTlsPeer(
 
     companion object {
         const val TYPE_PRELOGIN = 0x12
+        private const val JUNK_FLIGHT = 2
         private const val PAYLOAD_PER_PACKET = 4000
         private const val HEADER = 8
         private const val BYTE = 0xFF

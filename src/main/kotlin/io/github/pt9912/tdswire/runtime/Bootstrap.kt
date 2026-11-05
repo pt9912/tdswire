@@ -61,16 +61,13 @@ internal class Wiring(
     val requests: RequestSource = RequestSource(),
 )
 
-private fun flagProblem(properties: (String) -> String?): String? =
-    if (properties(Bootstrap.TICKET_FLAG) != "0") "JVM-Flag -D${Bootstrap.TICKET_FLAG}=0 fehlt" else null
-
 private fun policyOf(setting: EncryptionSetting): EncryptionPolicy = when (setting) {
     EncryptionSetting.REQUIRED -> EncryptionPolicy.REQUIRED
     EncryptionSetting.TEST_UNENCRYPTED -> EncryptionPolicy.TEST_UNENCRYPTED
 }
 
 /**
- * Start-Reihenfolge (`ARC-008`, `TDS-FA-09.a`). [launch] ist der Teil, den `TdsServer.start` ruft: JVM-Flag und
+ * Start-Reihenfolge (`ARC-008`, `TDS-FA-09.a`). [launch] ist der Teil, den `TdsServer.start` ruft: die
  * Konfiguration prüfen (`ConfigValidation.check`), das Simulations-Backend verdrahten (ein doppelter Tabellenname
  * bricht den Start ab, bevor ein Port gebunden wird), TLS-Material laden, Startprobe und Binden im Listener
  * (`SPEC-043`). Bis zum Binden läuft kein Thread des Servers; scheitert ein Schritt, läuft danach keiner weiter
@@ -80,21 +77,15 @@ private fun policyOf(setting: EncryptionSetting): EncryptionPolicy = when (setti
  * (`SPEC-047`); die Frist des geordneten Beendens (`SPEC-044`) trägt `slice-abbruch-ressourcen-shutdown`, bis
  * dahin schließt der Stop ohne Frist.
  *
- * Das Flag `-Djdk.tls.server.newSessionTicketCount=0` setzt der Aufrufer des Prozesses (die JVM-Optionen
- * des Starts); [Bootstrap] liest die Systemeigenschaft vor jedem TLS-Aufruf und bricht ab, wenn sie nicht
- * genau `0` ist. Geprüft ist der Wert der Eigenschaft beim Start; dass die Wirkung auf dem Draht eintritt, belegt
- * der TLS-Test mit Kind-JVM, nicht dieser Start.
+ * Der Start liest keine Systemeigenschaft und verlangt keine JVM-Option.
  */
 internal object Bootstrap {
-    const val TICKET_FLAG = "jdk.tls.server.newSessionTicketCount"
     private const val CONFIG_INVALID = "Konfiguration ungueltig"
 
-    suspend fun launch(config: ServerConfig, wiring: Wiring, properties: (String) -> String?): StartOutcome {
+    suspend fun launch(config: ServerConfig, wiring: Wiring): StartOutcome {
         val launch = Launch(config, wiring, Telemetry(wiring.telemetry))
-        val flag = flagProblem(properties)
         val issues = ConfigValidation.check(config)
         return when {
-            flag != null -> launch.abort(flag) { StartRefused(it, StartRefusal.JVM_FLAG_MISSING) }
             issues.isNotEmpty() -> launch.reject(issues)
             else -> launch.bindBackend()
         }

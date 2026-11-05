@@ -87,7 +87,7 @@ COPY --chown=gradle:gradle gradle/test-jvm.init.gradle.kts gradle/
 RUN gradle --no-daemon -I gradle/test-jvm.init.gradle.kts test integratorTest testserverTest
 
 # --- Smoke: `docker build --target smoke .` - der Rohbytes-Smoke der Welle allein (ServerSmokeTest): die
-# Kind-JVM startet das `main` des Testservers mit dem Flag der Test-JVM und einer Testkonfiguration, ein Rohbytes-Client spricht den
+# Kind-JVM startet das `main` des Testservers mit einer Testkonfiguration, ein Rohbytes-Client spricht den
 # Login-Pfad. Dieselben Tests laufen auch in der Stage `test`; die Stage ist der engste Sensor dafuer. ----
 FROM deps AS smoke
 COPY --chown=gradle:gradle src src
@@ -222,12 +222,12 @@ CMD ["gradle", "--no-daemon", "--offline", "-q", "laufzeitClient"]
 # Source-Sets `testserver` (ADR-0025 Entscheidung 4). Der Klassenpfad
 # steht in build/testserver-klassenpfad.txt; `exec java` macht die JVM zum Prozess 1, SIGTERM von `docker stop` laeuft
 # in den Shutdown-Hook (Exit-Code 143). Konfiguration und Benutzerliste kommen zur Laufzeit ueber die Umgebung und
-# Dateien im Container. Das Flag gegen das NewSessionTicket steht in der Startzeile (SPEC-023). ----
+# Dateien im Container. Die Startzeile traegt keine TLS-Option (SPEC-023). ----
 FROM deps AS testserver
 COPY --chown=gradle:gradle src src
 RUN gradle --no-daemon --offline testserverKlassenpfad
 EXPOSE 1433
-ENTRYPOINT ["sh", "-c", "exec java -Djdk.tls.server.newSessionTicketCount=0 -XX:+ExitOnOutOfMemoryError -cp \"$(cat /src/build/testserver-klassenpfad.txt)\" io.github.pt9912.tdswire.testserver.MainKt"]
+ENTRYPOINT ["sh", "-c", "exec java -XX:+ExitOnOutOfMemoryError -cp \"$(cat /src/build/testserver-klassenpfad.txt)\" io.github.pt9912.tdswire.testserver.MainKt"]
 
 # --- Integrationsserver: der Serverprozess des Integrationslaufs (`make simulations-integration`) als Container
 # neben dem .NET-Referenzclient (referenztest-dotnet, Stage `integration`). Die Tabellen kommen aus
