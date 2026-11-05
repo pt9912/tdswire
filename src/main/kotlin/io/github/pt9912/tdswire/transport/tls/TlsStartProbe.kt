@@ -100,18 +100,17 @@ internal object TlsStartProbe {
         parameters: TlsParameters,
         trust: ValidityOnlyTrust,
         memoryCapacity: Int,
-    ): Outcome =
-        coroutineScope {
-            val (serverEnd, clientEnd) = MemoryChannel.pair(memoryCapacity)
-            val server = async { accept(serverEnd, context, parameters) }
-            val client = async {
-                val probeClient = ProbeClient(clientEngine(trust, parameters), clientEnd)
-                probeClient.handshake().also { failure ->
-                    if (failure != null) clientEnd.close() else probeClient.drain()
-                }
+    ): Outcome = coroutineScope {
+        val (serverEnd, clientEnd) = MemoryChannel.pair(memoryCapacity)
+        val server = async { accept(serverEnd, context, parameters) }
+        val client = async {
+            val probeClient = ProbeClient(clientEngine(trust, parameters), clientEnd)
+            probeClient.handshake().also { failure ->
+                if (failure != null) clientEnd.close() else probeClient.drain()
             }
-            Outcome(server.await(), client.await())
         }
+        Outcome(server.await(), client.await())
+    }
 
     private fun clientEngine(trust: ValidityOnlyTrust, parameters: TlsParameters): SSLEngine {
         val context = SSLContext.getInstance("TLS").also { it.init(null, arrayOf(trust), null) }
