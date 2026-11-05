@@ -16,7 +16,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** —
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912 (Zweig slice-testserver-manuell-doku)
 
 **Autor:** pt9912. **Datum:** 2026-11-01.
 
