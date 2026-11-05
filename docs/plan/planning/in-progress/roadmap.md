@@ -10,8 +10,6 @@ gezeigt, nicht als Treiber.
 
 ## Offene Wellen
 
-Nichts in Arbeit.
-
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte — *Offene Wellen* ist **derivativ**: Der
 Zustand sind die flachen Welle-Dateien; woran gearbeitet wird, sagt das
@@ -32,7 +30,7 @@ In Arbeit (Welle welle-qualitaet-grundlage):
 
 In Arbeit (Welle welle-testserver-manuell):
 
-- keiner in `in-progress/`; Welle neu geschnitten (Ziel: d-migrate als Prüfclient läuft gegen den Testserver, Lastenheft 0.7.0 [TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate) vom Nutzer freigegeben). Geschlossen: [slice-testserver-up-down](../done/slice-testserver-up-down.md), [slice-testserver-manuell-doku](../done/slice-testserver-manuell-doku.md). Erster Schritt: [slice-prelogin-serverversion](../in-progress/slice-prelogin-serverversion.md); Entscheidung: [slice-adr-testserver-bestand-und-katalog](../open/slice-adr-testserver-bestand-und-katalog.md) (Spike zuerst, Reihenfolge zu [slice-oeffentliche-flaeche-verkleinern-und-belegen](../open/slice-oeffentliche-flaeche-verkleinern-und-belegen.md) offen)
+- [slice-prelogin-serverversion](slice-prelogin-serverversion.md) in Arbeit; Welle neu geschnitten (Ziel: d-migrate als Prüfclient läuft gegen den Testserver, Lastenheft 0.7.0 [TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate) vom Nutzer freigegeben). Geschlossen: [slice-testserver-up-down](../done/slice-testserver-up-down.md), [slice-testserver-manuell-doku](../done/slice-testserver-manuell-doku.md). Erster Schritt: [slice-prelogin-serverversion](../in-progress/slice-prelogin-serverversion.md); Entscheidung: [slice-adr-testserver-bestand-und-katalog](../open/slice-adr-testserver-bestand-und-katalog.md) (Spike zuerst, Reihenfolge zu [slice-oeffentliche-flaeche-verkleinern-und-belegen](../open/slice-oeffentliche-flaeche-verkleinern-und-belegen.md) offen)
 
 In Arbeit (Welle welle-anfrageverarbeitung):
 
