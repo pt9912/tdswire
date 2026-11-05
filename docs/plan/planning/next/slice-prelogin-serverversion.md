@@ -29,9 +29,9 @@ Auslöser ist die Messung vom 2026-11-05 (frischer Klon; d-migrate 1.12.0 aus `g
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Katalogabfragen auf `sys.*` und `INFORMATION_SCHEMA` und weitere Anfrageformen, die `schema reverse` und die `data`-Befehle von d-migrate brauchen: Das sind eigene Gegenstände mit eigener Spec-Frage (`SPEC-036`). Sie sind inzwischen gemessen (Sonde vom 2026-11-05) und zugeordnet: Anmeldung und Export in [slice-d-migrate-verbindung-und-export](slice-d-migrate-verbindung-und-export.md), Katalog und Zustand nach DDL in [slice-katalog-und-ddl-zustand](slice-katalog-und-ddl-zustand.md), Schreiben in [slice-schreibpfad-bulk-load](slice-schreibpfad-bulk-load.md) und [slice-schreibpfad-merge-output](slice-schreibpfad-merge-output.md); die Entscheidung über Ort und Zuschnitt trifft [slice-adr-testserver-bestand-und-katalog](slice-adr-testserver-bestand-und-katalog.md).
+- Katalogabfragen auf `sys.*` und `INFORMATION_SCHEMA` und weitere Anfrageformen, die `schema reverse` und die `data`-Befehle von d-migrate brauchen: Das sind eigene Gegenstände mit eigener Spec-Frage (`SPEC-036`). Sie sind inzwischen gemessen (Sonde vom 2026-11-05) und zugeordnet: Anmeldung und Export in [slice-d-migrate-verbindung-und-export](../open/slice-d-migrate-verbindung-und-export.md), Katalog und Zustand nach DDL in [slice-katalog-und-ddl-zustand](../open/slice-katalog-und-ddl-zustand.md), Schreiben in [slice-schreibpfad-bulk-load](../open/slice-schreibpfad-bulk-load.md) und [slice-schreibpfad-merge-output](../open/slice-schreibpfad-merge-output.md); die Entscheidung über Ort und Zuschnitt trifft [slice-adr-testserver-bestand-und-katalog](../open/slice-adr-testserver-bestand-und-katalog.md).
 - Aufnahme von JDBC oder d-migrate in das Clientprofil: Das Clientprofil führt den .NET-Referenzclient ([ADR-0001](../../adr/0001-tds-version-und-clientprofil.md)); ob ein zweiter Client ins Profil kommt, ist eine Entscheidung, nicht Teil einer Versionsnummer.
-- Ein Nachmessen der Version an einem echten SQL Server: gehört in den Referenzabgleich ([slice-qa-vergleichslauf-d-messungen](slice-qa-vergleichslauf-d-messungen.md)); dieser Slice setzt einen Wert, er misst keinen.
+- Ein Nachmessen der Version an einem echten SQL Server: gehört in den Referenzabgleich ([slice-qa-vergleichslauf-d-messungen](../open/slice-qa-vergleichslauf-d-messungen.md)); dieser Slice setzt einen Wert, er misst keinen.
 
 ## 2. Definition of Done
 
@@ -79,6 +79,6 @@ DoD vollständig, `make gates` grün, Closure-Notiz mit Steering-Loop-Lerneintra
 
 **Vorgelagert — Sub-Area-Wahl prüfen:** Eine Sub-Area (`*`, Kürzel `TDS`); keine Aufteilung nötig.
 
-**Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen. Treffer: [festlegung-gilt-nur-fuer-das-clientprofil](../observations/BEO-TDS/festlegung-gilt-nur-fuer-das-clientprofil/observation.md) (1×, neu); verwandt ohne Zählung hier: [messung-am-echten-sql-server-fehlt](../observations/BEO-TDS/messung-am-echten-sql-server-fehlt/observation.md) (geplant bei [slice-qa-vergleichslauf-d-messungen](slice-qa-vergleichslauf-d-messungen.md)).
+**Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen. Treffer: [festlegung-gilt-nur-fuer-das-clientprofil](../observations/BEO-TDS/festlegung-gilt-nur-fuer-das-clientprofil/observation.md) (1×, neu); verwandt ohne Zählung hier: [messung-am-echten-sql-server-fehlt](../observations/BEO-TDS/messung-am-echten-sql-server-fehlt/observation.md) (geplant bei [slice-qa-vergleichslauf-d-messungen](../open/slice-qa-vergleichslauf-d-messungen.md)).
 
 Alle berührten Sub-Areas GF.

@@ -32,7 +32,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- PRELOGIN-Version (Hürde 1) — [slice-prelogin-serverversion](slice-prelogin-serverversion.md); ohne sie kommt die Anmeldung nicht bis hierher, der Slice setzt sie voraus.
+- PRELOGIN-Version (Hürde 1) — [slice-prelogin-serverversion](../next/slice-prelogin-serverversion.md); ohne sie kommt die Anmeldung nicht bis hierher, der Slice setzt sie voraus.
 - Katalogabfragen auf `sys.*` und `INFORMATION_SCHEMA` (Hürde 6) und Zustand nach DDL (Hürde 7) — [slice-katalog-und-ddl-zustand](slice-katalog-und-ddl-zustand.md); sie hängen an der Entscheidung in [slice-adr-testserver-bestand-und-katalog](slice-adr-testserver-bestand-und-katalog.md), der Ort des Katalogs ist offen.
 - Schreiben in Tabellen (Hürden 9 und 10) — [slice-schreibpfad-bulk-load](slice-schreibpfad-bulk-load.md) und [slice-schreibpfad-merge-output](slice-schreibpfad-merge-output.md); hier nur Lesen.
 - Zeilen im Export: Tabellen aus der Beschreibungsdatei haben keine Zeilen (SPEC-035, Setzung, `docs/user/testserver-manuell.md`); der Beleg dieses Slice ist ein Export ohne Zeilen. Zeilen belegt der Schreibpfad und die Abnahme.
@@ -79,7 +79,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-prelogin-serverversion](slice-prelogin-serverversion.md) liegt in `done/`; die Welle [welle-testserver-manuell](../welle-testserver-manuell.md) läuft; ein Verantwortlicher ist eingetragen.
+**Start** (`next` → `in-progress`): [slice-prelogin-serverversion](../next/slice-prelogin-serverversion.md) liegt in `done/`; die Welle [welle-testserver-manuell](../welle-testserver-manuell.md) läuft; ein Verantwortlicher ist eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

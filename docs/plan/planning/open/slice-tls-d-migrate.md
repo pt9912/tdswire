@@ -76,7 +76,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-prelogin-serverversion](slice-prelogin-serverversion.md) liegt in `done/` (ohne sie kommt d-migrate nicht bis LOGIN7); der Slice hängt nicht an der Entscheidung in [slice-adr-testserver-bestand-und-katalog](slice-adr-testserver-bestand-und-katalog.md).
+**Start** (`next` → `in-progress`): [slice-prelogin-serverversion](../next/slice-prelogin-serverversion.md) liegt in `done/` (ohne sie kommt d-migrate nicht bis LOGIN7); der Slice hängt nicht an der Entscheidung in [slice-adr-testserver-bestand-und-katalog](slice-adr-testserver-bestand-und-katalog.md).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
