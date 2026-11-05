@@ -15,7 +15,7 @@ import kotlinx.coroutines.withTimeout
 /**
  * Hauptprogramm der Kind-JVM des Tests zum JVM-Flag `jdk.tls.server.newSessionTicketCount`: das JDK
  * liest das Flag einmal je Prozess, ein Test in derselben JVM kann es nicht umschalten. Die Kind-JVM
- * führt im TDS-7.4-Pfad mit TLS 1.3 einen Handshake und eine Nachricht des Servers aus und schreibt
+ * führt im TDS-8.0-Pfad mit TLS 1.3 einen Handshake und eine Nachricht des Servers aus und schreibt
  * eine Zeile `TICKET_PROBE <Ausgang>` auf die Standardausgabe; ob das Flag gesetzt ist, bestimmt der
  * Aufrufer über den Prozessstart.
  */
@@ -29,7 +29,7 @@ object TicketProbe {
     }
 
     private suspend fun probe(): String {
-        val outcome = runHandshake(TlsSetup(TlsPath.ENCAPSULATED_IN_TDS, listOf("TLSv1.3")))
+        val outcome = runHandshake(TlsSetup(TlsPath.FROM_FIRST_BYTE, listOf("TLSv1.3")))
         val server = outcome.server
         return if (outcome.peerFailure != null || server !is TlsResult.Ok) {
             "handshake_failed"

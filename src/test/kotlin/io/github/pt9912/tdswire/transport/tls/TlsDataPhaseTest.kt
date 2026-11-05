@@ -58,14 +58,15 @@ class TlsDataPhaseTest {
     /**
      * Ein Schreiber, der auf einen vollen inneren Kanal wartet (die Gegenstelle liest nichts), hält den
      * Lesepfad nicht auf: Was die Gegenstelle währenddessen sendet, liefert `read`, auch nach einem
-     * KeyUpdate der Gegenstelle (TLS 1.3), dessen Antwort der Schreiber dann nachholt. Danach liest die
+     * KeyUpdate der Gegenstelle (TLS 1.3, nur im TDS-8.0-Pfad), dessen Antwort der Schreiber dann nachholt. Danach
+     * liest die
      * Gegenstelle alles, was der Schreiber geschrieben hat, unversehrt; die Records verschränken sich nicht.
      *
      * @spec SPEC-028
      */
     @Test
     fun `a blocked writer does not hold up the reader`() = blocking {
-        bothPaths.forEach { path ->
+        listOf(TlsPath.FROM_FIRST_BYTE).forEach { path ->
             val capacity = 1 shl 14
             val setup = TlsSetup(path, tls13)
             val (serverEnd, peerEnd) = MemoryChannel.pair(capacity)

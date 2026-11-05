@@ -64,7 +64,7 @@ internal class TlsWiringTest : RuntimeTestBase() {
     @Test
     fun `REQUIRED fuehrt den TLS-Handschlag aus und nimmt den Login ueber TLS an`() = blocking {
         val server = running(environment())
-        listOf(listOf("TLSv1.3"), listOf("TLSv1.2")).forEach { protocols ->
+        listOf(listOf("TLSv1.2")).forEach { protocols ->
             val ok = assertIs<ReadOutcome.Message>(loginOverTls(server.port, protocols, "pw")).message
             assertTrue(TokenDecoder(ok.payload).decodeAll().any { it is LoginAck }, "Annahme über $protocols")
             val refused = assertIs<ReadOutcome.Message>(loginOverTls(server.port, protocols, "falsch")).message

@@ -91,9 +91,6 @@ internal class FragmentingChannel(
     override fun close() = inner.close()
 }
 
-/** Was die Gegenstelle mit ihrer letzten Handshake-Folge tut: sofort schreiben, mit Nutzdaten schreiben oder nie. */
-internal enum class LastFlight { SEND, HOLD, DROP }
-
 /** Reicht jeden Aufruf an [inner] weiter und hält fest, was gelesen und geschrieben wurde. */
 internal class RecordingChannel(private val inner: SuspendingChannel) : SuspendingChannel {
     private val writtenBytes = ByteArrayOutputStream()
@@ -133,16 +130,15 @@ internal class RecordingChannel(private val inner: SuspendingChannel) : Suspendi
  * Schleife im Produktionscode geschrieben (eigene Puffer, eigenes Auspacken der Pakete, Pakete von
  * Hand gebaut). [encapsulated] verpackt den Handshake in Pakete vom Typ `0x12` und schaltet mit
  * `FINISHED` auf rohes TLS um. [trailingJunk] hängt so viele Nullbytes an die letzte Handshake-Folge.
- * Mit [LastFlight.HOLD] schreibt die Gegenstelle die letzte Handshake-Folge nicht sofort, sondern
+ * Mit [holdLastFlight] schreibt die Gegenstelle die letzte Handshake-Folge nicht sofort, sondern
  * zusammen mit den ersten verschlüsselten Nutzdaten in einem Schreibvorgang; [denseWriteBytes] nennt
- * dessen Größe. Mit [LastFlight.DROP] erreicht die letzte Handshake-Folge (in TLS 1.3 das `Finished` des Clients)
- * den Draht nie; danach laufen Nutzdaten als rohe Records, wie es ein Treiber tut, der die Folge nicht schreibt.
+ * dessen Größe.
  */
 internal class JdkTlsPeer(
     private val wire: SuspendingChannel,
     private val engine: SSLEngine,
     private val encapsulated: Boolean,
-    private val lastFlight: LastFlight = LastFlight.SEND,
+    private val holdLastFlight: Boolean = false,
     private val payloadPerPacket: Int = PAYLOAD_PER_PACKET,
     private val trailingJunk: Int = 0,
 ) : SuspendingChannel {
@@ -204,9 +200,10 @@ internal class JdkTlsPeer(
             }
         }
         val last = framed(flight.toByteArray() + ByteArray(if (flight.size() > 0) trailingJunk else 0))
-        when {
-            lastFlight == LastFlight.HOLD -> held = last
-            lastFlight == LastFlight.SEND && last.isNotEmpty() -> send(last)
+        if (holdLastFlight) {
+            held = last
+        } else if (last.isNotEmpty()) {
+            send(last)
         }
         tls += raw
         raw = ByteArray(0)

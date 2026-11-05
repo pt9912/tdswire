@@ -11,7 +11,7 @@ import kotlin.test.assertTrue
 import kotlin.test.fail
 
 /**
- * Das JVM-Flag `jdk.tls.server.newSessionTicketCount` im TDS-7.4-Pfad mit TLS 1.3. Das JDK liest das
+ * Das JVM-Flag `jdk.tls.server.newSessionTicketCount` im TDS-8.0-Pfad mit TLS 1.3. Das JDK liest das
  * Flag einmal je Prozess, deshalb läuft jeder Fall in einer Kind-JVM mit [TicketProbe]; die Gegenstelle
  * ist die JDK-`SSLEngine` im selben Prozess, nicht der Referenzclient.
  */
@@ -56,21 +56,20 @@ class TlsTicketFlagTest {
     }
 
     /**
-     * Mit `-Djdk.tls.server.newSessionTicketCount=0` kommt eine Nachricht des Servers im TDS-7.4-Pfad mit
-     * TLS 1.3 bei der Gegenstelle an; ohne das Flag scheitert dieselbe Anordnung beim Lesen der Nachricht
-     * (Kind-JVM, JDK 21 der Testumgebung). Das bestätigt für diese Gegenstelle die Aussage des
-     * Sicherheitsprofils, nicht ihre Ursache im Einzelnen.
+     * Mit `-Djdk.tls.server.newSessionTicketCount=0` kommt eine Nachricht des Servers im TDS-8.0-Pfad mit
+     * TLS 1.3 bei der Gegenstelle an (Kind-JVM, JDK 21 der Testumgebung). Ohne das Flag ist der Ausgang hier
+     * nicht behauptet: der TDS-7.4-Pfad, in dem ein NewSessionTicket in einem Paket `0x12` den Client brach,
+     * bietet kein TLS 1.3 mehr an.
      *
      * @spec SPEC-028
      */
     @Test
-    fun `without the session ticket flag the encapsulated TLS 1_3 exchange fails`() {
+    fun `with the session ticket flag the TLS 1_3 exchange of the 8_0 path works`() {
         assertEquals("${TicketProbe.MARKER} exchange_ok", probe("0"))
-        assertTrue(probe(null).startsWith("${TicketProbe.MARKER} exchange_failed"), "ohne Flag")
     }
 
     /**
-     * Die Test-JVM selbst läuft mit dem Flag; die übrigen TLS-Tests im TDS-7.4-Pfad mit TLS 1.3 stehen darauf.
+     * Die Test-JVM selbst läuft mit dem Flag; die übrigen TLS-Tests mit TLS 1.3 stehen darauf.
      *
      * @spec SPEC-028
      */

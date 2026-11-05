@@ -1,6 +1,5 @@
 package io.github.pt9912.tdswire.transport.tls
 
-import io.github.pt9912.tdswire.testsupport.RecordingChannel
 import io.github.pt9912.tdswire.testsupport.Slicing
 import io.github.pt9912.tdswire.testsupport.TestKeys
 import io.github.pt9912.tdswire.testsupport.TlsSetup
@@ -10,13 +9,7 @@ import io.github.pt9912.tdswire.testsupport.exchangeMessages
 import io.github.pt9912.tdswire.testsupport.peerFor
 import io.github.pt9912.tdswire.testsupport.runHandshake
 import io.github.pt9912.tdswire.transport.channel.ChannelResult
-import io.github.pt9912.tdswire.transport.channel.MemoryChannel
 import io.github.pt9912.tdswire.transport.channel.SocketChannelAdapter
-import io.github.pt9912.tdswire.transport.framing.PacketType
-import io.github.pt9912.tdswire.transport.framing.TdsMessage
-import io.github.pt9912.tdswire.transport.messaging.MessageReader
-import io.github.pt9912.tdswire.transport.messaging.MessageWriter
-import io.github.pt9912.tdswire.transport.messaging.ReadOutcome
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import java.net.InetAddress
@@ -55,8 +48,10 @@ class TlsLoopbackTest {
     }
 
     private suspend fun everySuite(path: TlsPath, slicing: Slicing) {
-        TlsParameters.TLS13_SUITES.forEach { suite ->
-            worksWith(TlsSetup(path, tls13, listOf(suite), slicing), "TLSv1.3", suite)
+        if (path == TlsPath.FROM_FIRST_BYTE) {
+            TlsParameters.TLS13_SUITES.forEach { suite ->
+                worksWith(TlsSetup(path, tls13, listOf(suite), slicing), "TLSv1.3", suite)
+            }
         }
         TlsParameters.TLS12_SUITES.forEach { suite ->
             worksWith(TlsSetup(path, tls12, listOf(suite), slicing), "TLSv1.2", suite)
@@ -83,7 +78,7 @@ class TlsLoopbackTest {
         blocking { everySuite(TlsPath.FROM_FIRST_BYTE, Slicing.RANDOM) }
 
     /**
-     * TDS-7.4-Pfad: Handshake in `0x12`-Paketen, danach rohes TLS; je Suite kommen vier Nachrichten
+     * TDS-7.4-Pfad: Handshake in `0x12`-Paketen, danach rohes TLS (nur TLS 1.2); je Suite kommen vier Nachrichten
      * je Richtung gleich an, wenn jede Seite byteweise liest und schreibt.
      *
      * @spec SPEC-023 SPEC-028
@@ -102,56 +97,20 @@ class TlsLoopbackTest {
         blocking { everySuite(TlsPath.ENCAPSULATED_IN_TDS, Slicing.RANDOM) }
 
     /**
-     * Bieten beide Seiten TLS 1.3 und TLS 1.2 mit allen Suiten von `SPEC-023` an, einigen sie sich auf
-     * TLS 1.3; der 8.0-Pfad verlangt und meldet das ALPN `tds/8.0`, der 7.4-Pfad meldet keines.
+     * Bieten beide Seiten TLS 1.3 und TLS 1.2 mit allen Suiten von `SPEC-023` an, einigen sie sich im 8.0-Pfad auf
+     * TLS 1.3 und im 7.4-Pfad auf TLS 1.2 (dieser bietet höchstens TLS 1.2 an); der 8.0-Pfad verlangt und meldet
+     * das ALPN `tds/8.0`, der 7.4-Pfad meldet keines.
      *
      * @spec SPEC-023 SPEC-028
      */
     @Test
-    fun `both versions offered negotiate TLS 1_3 and the path decides about ALPN`() = blocking {
+    fun `both versions offered negotiate by path and the path decides about ALPN`() = blocking {
         val eight = runHandshake(TlsSetup(TlsPath.FROM_FIRST_BYTE)).channel()
         assertEquals("TLSv1.3", eight.protocol)
         assertEquals(TlsChannel.ALPN_TDS_8_0, eight.applicationProtocol)
         val seven = runHandshake(TlsSetup(TlsPath.ENCAPSULATED_IN_TDS)).channel()
-        assertEquals("TLSv1.3", seven.protocol)
+        assertEquals("TLSv1.2", seven.protocol)
         assertEquals(null, seven.applicationProtocol)
-    }
-
-    /**
-     * Dicht gepackt: die Gegenstelle schreibt das letzte Handshake-Paket (Client-Finished, TLS 1.3)
-     * und den ersten verschlüsselten Datensatz in einem Schreibvorgang. Der Server liest beides in
-     * einem Lesevorgang (dessen Größe mindestens der des Schreibvorgangs entspricht), schließt den
-     * Handshake ab und liefert die Nachricht aus den Bytes hinter dem letzten Handshake-Paket.
-     *
-     * @spec SPEC-028
-     */
-    @Test
-    fun `bytes behind the last handshake packet reach the data phase`() = blocking {
-        coroutineScope {
-            val setup = TlsSetup(TlsPath.ENCAPSULATED_IN_TDS, tls13)
-            val (serverEnd, peerEnd) = MemoryChannel.pair(1 shl 16)
-            val recording = RecordingChannel(serverEnd)
-            val peer = peerFor(setup, peerEnd, holdLastFlight = true)
-            val accepted = async {
-                TlsChannel.accept(recording, TestKeys.serverContext(), setup.path, TlsParameters(tls13, setup.suites))
-            }
-            val message = TdsMessage(PacketType.SQL_BATCH, Random(5).nextBytes(300))
-            val peerWork = async {
-                assertEquals(null, peer.handshake())
-                MessageWriter(peer, 4096).write(message)
-            }
-            val server = accepted.await()
-            assertIs<TlsResult.Ok<TlsChannel>>(server)
-            val received = MessageReader(server.value).next()
-            peerWork.await()
-            assertEquals(ReadOutcome.Message(message), received)
-            assertTrue(peer.denseWriteBytes > 0, "die Gegenstelle hat dicht geschrieben")
-            assertTrue(
-                recording.readChunks.any { it.size >= peer.denseWriteBytes },
-                "ein Lesevorgang des Servers trug Handshake-Paket und Datensatz zusammen: " +
-                    "${recording.readChunks.map { it.size }} gegen ${peer.denseWriteBytes}",
-            )
-        }
     }
 
     private data class Packet(val type: Int, val length: Int)
@@ -282,15 +241,16 @@ class TlsLoopbackTest {
      * KeyUpdate: löst die Gegenstelle in TLS 1.3 nach dem Handshake ein KeyUpdate aus (JDK-Engine,
      * `beginHandshake`) und schickt danach Daten, schreibt der Server die Antwort, ohne selbst Nutzdaten zu
      * schreiben: Auf seinem Draht steht genau ein kurzer Record (Typ `0x17`, kleiner als 64 Bytes), der
-     * nicht von ihm als Nutzdaten stammt. Danach laufen die Nachrichten in beiden Richtungen weiter (beide
-     * Pfade). Beobachtet ist Ort und Größe der Antwort, nicht ihr Inhalt (er ist verschlüsselt).
+     * nicht von ihm als Nutzdaten stammt. Danach laufen die Nachrichten in beiden Richtungen weiter (nur der
+     * TDS-8.0-Pfad, der 7.4-Pfad bietet kein TLS 1.3 an). Beobachtet ist Ort und Größe der Antwort, nicht ihr
+     * Inhalt (er ist verschlüsselt).
      * Neuverhandlung in TLS 1.2 ist nicht Gegenstand und nicht getestet.
      *
      * @spec SPEC-028
      */
     @Test
     fun `key update requested by the peer is answered and data keeps flowing`() = blocking {
-        listOf(TlsPath.FROM_FIRST_BYTE, TlsPath.ENCAPSULATED_IN_TDS).forEach { path ->
+        listOf(TlsPath.FROM_FIRST_BYTE).forEach { path ->
             val outcome = runHandshake(TlsSetup(path, tls13))
             val server = outcome.channel()
             val before = outcome.serverWire.written.size
