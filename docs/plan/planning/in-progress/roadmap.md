@@ -10,8 +10,6 @@ gezeigt, nicht als Treiber.
 
 ## Offene Wellen
 
-Nichts in Arbeit.
-
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte — *Offene Wellen* ist **derivativ**: Der
 Zustand sind die flachen Welle-Dateien; woran gearbeitet wird, sagt das
@@ -28,11 +26,11 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 
 In Arbeit (Welle welle-qualitaet-grundlage):
 
-- keiner; zurückgestellt nach `next/`: [slice-e2e-geruest](../in-progress/slice-e2e-geruest.md) (kein DoD-Punkt abgehakt)
+- [slice-e2e-geruest](slice-e2e-geruest.md)
 
 In Arbeit (Welle welle-testserver-manuell):
 
-- keiner; zuletzt geschlossen: [slice-testserver-up-down](../done/slice-testserver-up-down.md) (Closure-Notiz in §7 des Slice; offene Grenzen: TLS im Handlauf, Login mit eigener Benutzerliste; Folge: [slice-testserver-manuell-doku](../in-progress/slice-testserver-manuell-doku.md))
+- [slice-testserver-manuell-doku](slice-testserver-manuell-doku.md); zuletzt geschlossen: [slice-testserver-up-down](../done/slice-testserver-up-down.md) (Closure-Notiz in §7 des Slice; offene Grenzen: TLS im Handlauf, Login mit eigener Benutzerliste)
 
 In Arbeit (Welle welle-anfrageverarbeitung):
 
