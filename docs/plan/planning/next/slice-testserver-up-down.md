@@ -36,7 +36,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Die Anleitung zum manuellen Test (Beispielaufrufe mit Clients, TLS-Schritte, Grenzen): [slice-testserver-manuell-doku](slice-testserver-manuell-doku.md); die Targets tragen nur eine Kurzhilfe in `make help`.
+- Die Anleitung zum manuellen Test (Beispielaufrufe mit Clients, TLS-Schritte, Grenzen): [slice-testserver-manuell-doku](../open/slice-testserver-manuell-doku.md); die Targets tragen nur eine Kurzhilfe in `make help`.
 - Ein Produkt-Image, Registry, Signierung: [ADR-0025](../../adr/0025-produktschnitt-bibliothek-und-testserver.md) schließt das Produkt-Image aus; das Image bleibt lokal.
 - Aufnahme in `make gates`, `make e2e` oder die CI: ein dauerhaft laufender Container gehört in keinen Durchgang; der Selbsttest ist ein Werkzeug (kein Gate), Zuordnung nach [ADR-0022](../../adr/0022-e2e-laeufe-nicht-in-den-gates.md).
 - Änderungen an `src/main` oder am Verhalten des Testservers: der Container startet den vorhandenen `main`.
