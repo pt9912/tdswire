@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** —
 
-**Verantwortlich:** pt9912 (Zweig worktree-agent-a202fbb3da2b7c48b).
+**Verantwortlich:** pt9912 (Zweig slice-e2e-geruest).
 
 **Autor:** pt9912. **Datum:** 2026-10-31.
 
