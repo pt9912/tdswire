@@ -1,1 +1,1 @@
-**Stand:** offen — 1×, unter der Schwelle; der Einzelfall hat den Träger [slice-prelogin-serverversion](../../../next/slice-prelogin-serverversion.md) (geplant, nicht gebaut); die Klasse (Festlegung wirkt nur für Clients des Profils) ist weder verkörpert noch geplant.
+**Stand:** offen — 1×, unter der Schwelle; der Einzelfall hat den Träger [slice-prelogin-serverversion](../../../in-progress/slice-prelogin-serverversion.md) (geplant, nicht gebaut); die Klasse (Festlegung wirkt nur für Clients des Profils) ist weder verkörpert noch geplant.
