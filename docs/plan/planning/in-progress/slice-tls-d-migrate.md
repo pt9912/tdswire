@@ -17,6 +17,8 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Verantwortlich:** pt9912
 
+**Abweichung vom Entwurf (Nutzerentscheidung 2026-11-05):** Die Ursache liegt im Treiber ([Messprotokoll](../../../messungen/tls-d-migrate-2026-11-05.md)); der Nutzer entscheidet, dass der TDS-7.4-Pfad höchstens TLS 1.2 anbietet und der TDS-8.0-Pfad bei TLS 1.3 bleibt. Die Liefer-Punkte unten tragen den geänderten Wortlaut; die Entscheidung hält eine ADR fest.
+
 **Autor:** pt9912 (Entwurf in der Planner-Rolle). **Datum:** 2026-11-05.
 
 ---
@@ -45,8 +47,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 Liefer-Punkte (3):
 
 - [x] **Messung:** Ein Mitschnitt oder ein Log des Servers (TLS-Version, Cipher, Richtung der Datensätze, erstes Anwendungspaket nach dem Handshake) nennt, an welcher Stelle der Server nach LOGIN7 schließt; die Ursache steht als Befund mit Rechner, Last, JDK-Version des Treibers und Image-Digest im Slice oder in `docs/messungen/`. Vergleich: derselbe Lauf mit dem .NET-Referenzclient (Version laut Clientprofil) und mit `-Djdk.tls.client.protocols=TLSv1.2`. Beleg: [tls-d-migrate-2026-11-05](../../../messungen/tls-d-migrate-2026-11-05.md).
-- [ ] **Behebung:** Der Server beantwortet LOGIN7 unter TLS 1.3 wie unter TLS 1.2, mit einem Test in der Bibliothek (Handvektor oder Handschlag im Speicher, Muster SPEC-043), der das Verhalten ohne den Treiber festhält; die Behebung ändert keinen TLS-Default ([TDS-QA-03](../../../../spec/lastenheft.md#tds-qa-03--sicherheit)).
-- [ ] **Beleg am fremden Client:** d-migrate 1.12.0 mit `encrypt=true&trustServerCertificate=true` gegen den Testserver (`REQUIRED`) endet für `schema reverse` mit Exit 0 ohne Eingriff in die JVM-Optionen; Ausgabe mit Rechner, Last und Image-Digest.
+- [ ] **Behebung:** Der TDS-7.4-Pfad (Handschlag in PRELOGIN-gerahmten Paketen) bietet höchstens TLS 1.2 an, der TDS-8.0-Pfad bleibt bei TLS 1.3 (SPEC-023); Tests in der Bibliothek halten beides fest (ein reiner TLS-1.3-Client scheitert im 7.4-Pfad, der 8.0-Pfad handelt TLS 1.3 aus); die Behebung ändert keinen TLS-Default der Konfiguration ([TDS-QA-03](../../../../spec/lastenheft.md#tds-qa-03--sicherheit)); die Entscheidung steht in einer ADR (Architect).
+- [ ] **Beleg am fremden Client:** d-migrate 1.12.0 mit `encrypt=true&trustServerCertificate=true` im Treiber-Standard (ohne `sslProtocol`) gegen den Testserver (`REQUIRED`) meldet sich an; `schema reverse` endet dann mit Exit 4 „Unsupported SQL“, der nächsten, fremden Hürde (Hürde 2 des Parallel-Slice). Ausgabe mit Rechner, Last und Image-Digest. Der .NET-Referenzclient (`make kompatibilitaet KATEGORIE=Anmeldung`) bleibt grün.
 
 Nachweis-Pflichten für alle Punkte:
 
