@@ -11,7 +11,7 @@ import io.github.pt9912.tdswire.protocol.wire.violation
  * OUTPUT-Handle, Deklarationsliste und Text an Position 0 bis 2, `sp_execute` mit Handle an Position 0. Der
  * Rest sind Wertparameter.
  *
- Festlegungen (ohne Orakel): Text und Deklarationsliste sind `NVARCHAR`/`NCHAR` und nicht NULL;
+ * Festlegungen (ohne Orakel): Text und Deklarationsliste sind `NVARCHAR`/`NCHAR` und nicht NULL;
  * das Handle ist `INTN` mit 4 Byte und nicht NULL, bei `sp_prepexec` zusätzlich OUTPUT. Eine
  * Abweichung ist `INVALID_RPC_FORM`.
  */

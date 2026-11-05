@@ -129,6 +129,43 @@ class RpcPositionalNamesTest {
         assertEquals(RpcRejection.PARAMETER_NAME, rejection(byName("p", param("", int4(1)))))
     }
 
+    /**
+     * `sp_prepexec` und `sp_execute` benennen einen Wert ohne Namen ebenso nach der Stelle. Die Nachrichten sind
+     * aus den Bausteinen von `RpcWire` konstruiert (Layout nach MS-TDS), nicht aufgezeichnet: mit d-migrate wurde
+     * weder `sp_prepexec` noch `sp_execute` gemessen.
+     * Wächter: `nameInText = true` in `RpcBinder` für `PrepExec` oder `Execute`.
+     *
+     * @spec SPEC-030
+     */
+    @Test
+    fun `sp_prepexec und sp_execute benennen Werte ohne Namen`() {
+        val prepared = assertIs<RpcBinding.Prepare>(
+            RpcBinder.bind(RpcWire.prepExec(-1, "select @a", "@a int", param("", int4(7)))),
+        )
+        assertEquals(listOf(QueryParameter("@P0", SqlType.Int32, 7)), prepared.parameters)
+
+        val executed = assertIs<RpcBinding.ExecutePrepared>(
+            RpcBinder.bind(RpcWire.execute(5, param("", int4(1)), param("", int8(2)))),
+        )
+        assertEquals(listOf("@P0", "@P1"), executed.parameters.map { it.name })
+        assertEquals(listOf<Any?>(1, 2L), executed.parameters.map { it.value })
+    }
+
+    /**
+     * Ein Parameter ohne Namen mit OUTPUT-Bit bekommt denselben Namen; mit Wert ist er `INPUT_OUTPUT`, mit NULL
+     * `OUTPUT`. Konstruiert, nicht aufgezeichnet.
+     * Wächter: `nameInText = true` an `ExecuteSql`, oder eine Namensbildung, die das Statusbyte ausnimmt.
+     *
+     * @spec SPEC-030
+     */
+    @Test
+    fun `ein Parameter ohne Namen mit OUTPUT-Bit heisst P0`() {
+        val withValue = query(executeSql("s", "d", param("", int4(1), status = 1))).parameters.single()
+        assertEquals(QueryParameter("@P0", SqlType.Int32, 1, ParameterDirection.INPUT_OUTPUT), withValue)
+        val withNull = query(executeSql("s", "d", param("", "26 04 00", status = 1))).parameters.single()
+        assertEquals(QueryParameter("@P0", SqlType.Int32, null, ParameterDirection.OUTPUT), withNull)
+    }
+
     private companion object {
         const val HEAD = "16 00 00 00 12 00 00 00 02 00 00 00 00 00 00 00 00 00 01 00 00 00 FF FF 0A 00 00 00 "
         const val TEXT_HEAD = "00 00 E7 40 1F 09 04 D0 00 34 "
