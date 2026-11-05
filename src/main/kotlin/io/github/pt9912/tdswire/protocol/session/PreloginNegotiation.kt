@@ -31,7 +31,7 @@ internal sealed interface Negotiation {
  * bei Unvereinbarkeit schließt der Server vor LOGIN7 ohne Antwort (kein stilles Downgrade). In der
  * Reihenfolge [HandshakeOrder.TLS_FIRST] besteht TLS schon, die ENCRYPTION-Option des Clients wird
  * nicht ausgewertet, die Antwort ist ENCRYPT_REQ ohne folgenden Handschlag. Die übrigen Optionen der
- * Antwort (VERSION `0.0.0.0`, leerer INSTOPT, MARS aus) sind Festlegung; FEDAUTHREQUIRED sendet der
+ * Antwort (VERSION `16.0.1000.6`, leerer INSTOPT, MARS aus) sind Festlegung; FEDAUTHREQUIRED sendet der
  * Server nicht, weil er föderierte Authentifizierung nicht unterstützt. Die Antwort trägt den
  * Pakettyp TABULAR_RESULT (Festlegung, MS-TDS-Lesart).
  */
@@ -64,7 +64,7 @@ internal class PreloginNegotiation(private val config: HandshakeConfig) {
     private fun agreed(mode: Int, tlsFollows: Boolean): Negotiation {
         val message = PreloginMessage(
             listOf(
-                PreloginOption.version(0, 0, 0, 0),
+                PreloginOption.version(SERVER_MAJOR, SERVER_MINOR, SERVER_BUILD, SERVER_SUB_BUILD),
                 PreloginOption.encryption(mode),
                 PreloginOption.instance(""),
                 PreloginOption.mars(false),
@@ -83,5 +83,11 @@ internal class PreloginNegotiation(private val config: HandshakeConfig) {
     private companion object {
         val REQUIRED_ACCEPTS = setOf(EncryptionMode.OFF, EncryptionMode.ON, EncryptionMode.REQUIRED)
         val TEST_ACCEPTS = setOf(EncryptionMode.OFF, EncryptionMode.NOT_SUPPORTED)
+
+        // VERSION der PRELOGIN-Antwort: Setzung ohne Messung am echten Server (spec/spezifikation.md, Login-Antwort).
+        const val SERVER_MAJOR = 16
+        const val SERVER_MINOR = 0
+        const val SERVER_BUILD = 1000
+        const val SERVER_SUB_BUILD = 6
     }
 }

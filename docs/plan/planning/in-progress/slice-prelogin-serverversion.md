@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** `spezifikation.md`, Tabelle *Login-Antwort des Servers (Festlegung)*, Zeile *PRELOGIN-Antwort*; Code `src/main/kotlin/io/github/pt9912/tdswire/protocol/session/PreloginNegotiation.kt` (Aufruf `PreloginOption.version(0, 0, 0, 0)`); Test `PreloginNegotiationTest` (Handvektor der Antwort).
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** pt9912.
 
 **Autor:** pt9912. **Datum:** 2026-11-05.
 
@@ -35,9 +35,9 @@ Auslöser ist die Messung vom 2026-11-05 (frischer Klon; d-migrate 1.12.0 aus `g
 
 ## 2. Definition of Done
 
-- [ ] Wert gewählt und als Setzung in `spezifikation.md` festgelegt: Tabelle *Login-Antwort des Servers (Festlegung)* nennt den neuen Wert, kennzeichnet ihn als Setzung (nicht gemessen) und nennt die Messung der Ablehnung von `0.0.0.0` mit Datum, Client und Fehlertext.
-- [ ] Code und Test: `PreloginNegotiation.kt` sendet den Wert; `PreloginNegotiationTest` hält den Handvektor der Antwort (VERSION-Bytes) fest; die .NET-Referenztests bleiben grün.
-- [ ] Beleg am JDBC-Treiber: ein Login mit mssql-jdbc oder d-migrate gegen den Testserver (`make testserver-up`) kommt über die Anmeldung hinaus; die Messung nennt Client, Version, Datum und Host, oder ein Treiber-Lauf im Repo belegt es als Test. Was danach scheitert, wird gemeldet, nicht behoben.
+- [x] Wert gewählt und als Setzung in `spezifikation.md` festgelegt: Tabelle *Login-Antwort des Servers (Festlegung)* nennt den neuen Wert, kennzeichnet ihn als Setzung (nicht gemessen) und nennt die Messung der Ablehnung von `0.0.0.0` mit Datum, Client und Fehlertext.
+- [x] Code und Test: `PreloginNegotiation.kt` sendet den Wert; `PreloginNegotiationTest` hält den Handvektor der Antwort (VERSION-Bytes) fest; die .NET-Referenztests bleiben grün. — Code und Test bestätigt (`10 00 03 E8 00 06`). „Referenztests bleiben grün“ ist im Sinn von „Anmeldung und alle Szenarien gelingen mit `16.0.1000.6`“ erfüllt (`make kompatibilitaet`: 13 Tests grün laut [Verifikation](../../../reviews/2026-11-05-bc7d7fe-verifikation-slice-prelogin-serverversion.md)). Der Wert am .NET-Client ist nicht gesondert gemessen: `ServerVersion` wird nur auf „nicht leer“ geprüft und stammt aus dem LOGINACK, nicht aus der PRELOGIN-VERSION.
+- [x] Beleg am JDBC-Treiber: ein Login mit mssql-jdbc oder d-migrate gegen den Testserver (`make testserver-up`) kommt über die Anmeldung hinaus; die Messung nennt Client, Version, Datum und Host, oder ein Treiber-Lauf im Repo belegt es als Test. Was danach scheitert, wird gemeldet, nicht behoben.
 
 ## 3. Plan (vor Code)
 
@@ -62,18 +62,31 @@ DoD vollständig, `make gates` grün, Closure-Notiz mit Steering-Loop-Lerneintra
 
 ## 6. Risiken und offene Punkte
 
-- **Offene Frage zum Wert:** die Version eines echten SQL Servers, wie ihn der Referenzabgleich liefert, oder ein fester Wert? Beides ist eine Setzung; ein gemessener Wert liegt erst vor, wenn der Referenzabgleich ihn liefert, und er wird hier nicht erfunden. Der Wert muss die Mindestversion beachten, die mssql-jdbc verlangt (nicht gemessen; die Messung nannte nur den abgelehnten Wert 0). — **Ausgang:** weiter offen: → `BEO-TDS/festlegung-gilt-nur-fuer-das-clientprofil` im Register
-- **ADR nötig?** Die Spezifikation wird geschärft, das Lastenheft bleibt unverändert (die Server-Version ist keine Anforderung; [TDS-FA-01](../../../../spec/lastenheft.md#tds-fa-01--verbindungsaufbau-und-protokollverhandlung) nimmt „undokumentierte Clientvarianten“ aus). Eine Setzung innerhalb der Spezifikation braucht nach heutiger Lesart keine ADR. Eine ADR (neue, die [ADR-0001](../../adr/0001-tds-version-und-clientprofil.md) nicht überschreibt) wird nötig, sobald JDBC oder d-migrate ins Clientprofil aufgenommen werden soll. Der Slice entscheidet das nicht; der Implementer legt die Frage dem Nutzer vor, bevor er den Wert als Profil-Zusage formuliert. — **Ausgang:** weiter offen: → `BEO-TDS/festlegung-gilt-nur-fuer-das-clientprofil` im Register
-- Der Wert bricht den Referenzclient: Die Referenztests nehmen `0.0.0.0` an, ein anderer Wert ist dort nicht gemessen. — **Ausgang:** weiter offen: → `BEO-TDS/festlegung-gilt-nur-fuer-das-clientprofil` im Register (durch die .NET-Referenztests der DoD zu belegen)
+- **Offene Frage zum Wert:** die Version eines echten SQL Servers, wie ihn der Referenzabgleich liefert, oder ein fester Wert? Beides ist eine Setzung; ein gemessener Wert liegt erst vor, wenn der Referenzabgleich ihn liefert, und er wird hier nicht erfunden. Der Wert muss die Mindestversion beachten, die mssql-jdbc verlangt (nicht gemessen; die Messung nannte nur den abgelehnten Wert 0). — **Ausgang:** **entfallen** als Entscheidung dieses Slice: Der Wert `16.0.1000.6` ist als Setzung gewählt (Spec, Messprotokoll [prelogin-serverversion-2026-11-05](../../../messungen/prelogin-serverversion-2026-11-05.md)). Der echte Wert kommt aus dem Referenzabgleich [slice-qa-vergleichslauf-d-messungen](../open/slice-qa-vergleichslauf-d-messungen.md); dorthin geht er als Hinweis, die Frage bleibt dort offen. Die Mindest-Hauptversion von mssql-jdbc ist nicht gemessen.
+- **ADR nötig?** Die Spezifikation wird geschärft, das Lastenheft bleibt unverändert (die Server-Version ist keine Anforderung; [TDS-FA-01](../../../../spec/lastenheft.md#tds-fa-01--verbindungsaufbau-und-protokollverhandlung) nimmt „undokumentierte Clientvarianten“ aus). Eine Setzung innerhalb der Spezifikation braucht nach heutiger Lesart keine ADR. Eine ADR (neue, die [ADR-0001](../../adr/0001-tds-version-und-clientprofil.md) nicht überschreibt) wird nötig, sobald JDBC oder d-migrate ins Clientprofil aufgenommen werden soll. Der Slice entscheidet das nicht; der Implementer legt die Frage dem Nutzer vor, bevor er den Wert als Profil-Zusage formuliert. — **Ausgang:** **entfallen**, solange JDBC und d-migrate nicht ins Clientprofil kommen; der Wert steht in der Spec ausdrücklich außerhalb des Clientprofils. Die Frage zum Clientprofil bleibt offen → [festlegung-gilt-nur-fuer-das-clientprofil](../observations/BEO-TDS/festlegung-gilt-nur-fuer-das-clientprofil/observation.md) im Register (Evidenz ergänzt); die Entscheidung liegt beim Nutzer.
+- Der Wert bricht den Referenzclient: Die Referenztests nehmen `0.0.0.0` an, ein anderer Wert ist dort nicht gemessen. — **Ausgang:** Referenzclient bricht nicht: Anmeldung und alle Szenarien gelingen mit `16.0.1000.6` (`make kompatibilitaet`, 13 Tests grün, Verifikation). Der Wert am Client ist nicht gesondert gemessen (DoD Punkt 2).
 
 ## 7. Closure-Notiz
 
-- **Was hat funktioniert:** —
-- **Was ging anders als geplant:** —
-- **Steering-Loop-Eintrag:** —
-- **Beobachtungs-Register (`../observations/`):** —
-- **Folge-Slices:** —
-- **Risiken aus §6:** —
+**Gegenstand:** geliefert, DoD vollständig (Punkt 2 mit der benannten Messgrenze). Code: `fbd2a44` (VERSION `16.0.1000.6`, Handvektor, Spec, Matrix), `5b1ad85` (Messprotokoll der Anmeldung), `bc7d7fe` (Review-Befunde F-1 bis F-4: Ablehnung von `0.0.0.0` nachgemessen). Berichte: [Review](../../../reviews/2026-11-05-5b1ad85-slice-prelogin-serverversion.md) (kein HIGH, ein MEDIUM, drei LOW, alle eingearbeitet), [Verifikation](../../../reviews/2026-11-05-bc7d7fe-verifikation-slice-prelogin-serverversion.md) (closure-fähig mit drei Bedingungen, kein HIGH, kein MEDIUM). Messprotokoll: [prelogin-serverversion-2026-11-05](../../../messungen/prelogin-serverversion-2026-11-05.md).
+
+| Bedingung der Verifikation | Ausgang |
+|---|---|
+| B-1 `make gates` | grün (Exit 0) auf dem Zweig `slice-prelogin-serverversion` (Code-Stand `bc7d7fe`; seither nur Dokumente); Stempel-Gruppen mit Beleg übersprungen, Doku-Gate 0 Befunde. Auf `main` folgt der Lauf des Aufrufers nach dem Merge. |
+| B-2 Ausgänge in §6 | alle drei geschlossen, siehe §6 (Wert: Setzung; ADR: entfallen; Referenzclient: Anmeldung gelingt). |
+| B-3 Aussage zu DoD 2 | wörtlich in der DoD-Zeile: Anmeldung und Szenarien gelingen, der Wert am .NET-Client ist nicht gesondert gemessen. |
+
+**Messung:** Ablehnung mit `0.0.0.0` (Lauf A): Exit 4, `Server major version:0 is not supported by this driver`. Annahme mit `16.0.1000.6` (Lauf B): die Meldung zur Version entfällt, Exit 4 mit `Unsupported SQL.` (Fehler nach dem Login, kein Versionsfehler). `make clean-build` (Verifier): 907 Testfälle `PASSED`, keiner `FAILED`; Handvektor `10 00 03 E8 00 06` im Test grün. Einzelmessung, ein Host.
+
+**Grenzen (nicht belegt):** Der Wert ist eine Setzung, kein Wert eines echten SQL Servers; die Mindest-Hauptversion von mssql-jdbc ist nicht gemessen; der Wert am .NET-Client ist nicht gesondert gemessen (ein eigener Test wäre ein eigener Gegenstand). Nach dem Login scheitert `schema reverse` mit `Unsupported SQL.`, vermutlich am Verbindungstest `SELECT 1`; das gehört in [slice-d-migrate-verbindung-und-export](../open/slice-d-migrate-verbindung-und-export.md) und wurde nicht behoben.
+
+**Steering-Loop-Eintrag:** geschärfte Beobachtung, keine neue Regel: Eine Messaussage der Spec („Gemessen am 2026-11-05 … lehnt der Treiber ab“) stand breiter als das Protokoll, das nur die Annahme belegte; der Review fand es als MEDIUM, behoben durch Nachmessen und ein Protokoll mit beiden Läufen. Register: Evidenz in [aussagen-ueber-messung-hinaus](../observations/BEO-TDS/aussagen-ueber-messung-hinaus/observation.md) (weiteres Auftreten, Klasse bereits verkörpert in `AGENTS.md` §3.8 und `.harness/skills/reviewer.md`, kein neuer Zielort).
+
+**Beobachtungs-Register (`../observations/`):** zwei Evidence-Dateien: `BEO-TDS/aussagen-ueber-messung-hinaus/evidence/slice-prelogin-serverversion.md` und `BEO-TDS/festlegung-gilt-nur-fuer-das-clientprofil/evidence/slice-prelogin-serverversion.md`; Zähler nicht gesetzt.
+
+**Folge-Slices:** [slice-d-migrate-verbindung-und-export](../open/slice-d-migrate-verbindung-und-export.md) (`Unsupported SQL.` nach dem Login), [slice-qa-vergleichslauf-d-messungen](../open/slice-qa-vergleichslauf-d-messungen.md) (echter Wert der VERSION).
+
+**Risiken aus §6:** alle drei mit Ausgang (siehe oben).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

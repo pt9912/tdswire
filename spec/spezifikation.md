@@ -1086,10 +1086,12 @@ Was der Server auf PRELOGIN und LOGIN7 sendet, ist eine Festlegung ohne Messung 
 
 | Gegenstand | Festlegung des Servers (Package `protocol/session`) |
 |---|---|
-| PRELOGIN-Antwort | Pakettyp `0x04`; Optionen VERSION (`0.0.0.0`), ENCRYPTION, INSTOPT (leer), MARS (aus); kein FEDAUTHREQUIRED. ENCRYPTION ist ENCRYPT_REQ bei `REQUIRED`, ENCRYPT_NOT_SUP im ausdrücklich konfigurierten Testmodus |
+| PRELOGIN-Antwort | Pakettyp `0x04`; Optionen VERSION (`16.0.1000.6`, Setzung, siehe unter der Tabelle), ENCRYPTION, INSTOPT (leer), MARS (aus); kein FEDAUTHREQUIRED. ENCRYPTION ist ENCRYPT_REQ bei `REQUIRED`, ENCRYPT_NOT_SUP im ausdrücklich konfigurierten Testmodus |
 | Annahme | Pakettyp `0x04`; ENVCHANGE Datenbank, Packet Size, SQL-Collation, dann LOGINACK (Interface 1, TDS-Version `0x74000004`, bei TDS 8.0 `0x08000000`) und DONE ohne Statusbits |
 | Ablehnung | genau ein ERROR (18456, State 1, Class 14, Text "Login failed." ohne Kennung), dann DONE mit dem Fehlerbit; danach schließt der Server |
 | Datenbank und Packet Size | die Datenbank aus LOGIN7, sonst `master`; die verlangte Packet Size, wenn der Paket-Codec sie schreiben kann (größer als der Paketkopf von 8 Byte und höchstens `MAX_TDS_PACKET_BYTES`), sonst 4096. Die Packet Size wird per ENVCHANGE angekündigt und steht in der Sitzung; **angewandt wird sie nicht**: der Paket-Schreiber des Transports schreibt mit der Größe, mit der er gebaut wird. Ein Client, der weniger als diese Größe verlangt, kann Pakete über seiner Größe sehen. Wer die Größe anwendet, ist nicht festgelegt |
+
+**VERSION der PRELOGIN-Antwort (Setzung, nicht gemessen).** `16.0.1000.6`; Hauptversion, Build und Unter-Build sind gesetzt, nicht an einem echten Server abgelesen, und die Byteordnung des Unter-Builds bleibt Festlegung. Grund: Der Wert ging in einer Sonde mit mssql-jdbc 13.4.0 (in d-migrate 1.12.0) bei der Anmeldung durch. Gemessen am 2026-11-05 (Einzelmessung, ein Host, Protokoll im Messprotokoll-Verzeichnis des Repos) lehnt derselbe Treiber gegen den Testserver mit VERSION `0.0.0.0` ab (`SQL Server version 0 is not supported by this driver`, Exit 4 von d-migrate) und nimmt `16.0.1000.6` an. Welche Hauptversion mssql-jdbc mindestens verlangt, ist nicht gemessen; dass der .NET-Referenzclient den Wert annimmt, ist nicht gesondert gemessen (die Referenztests prüfen `ServerVersion` nur auf nicht leer). Der Wert gehört nicht zum Clientprofil und sagt nichts über einen echten SQL Server.
 
 #### RPC-Katalog des Referenzclients
 
