@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** SPEC-023 (TLS-Versionen und Suiten) · SPEC-043 · Protokollteil TLS im TDS-Mantel (TDS 7.4) · [TDS-FA-01](../../../../spec/lastenheft.md#tds-fa-01--verbindungsaufbau-und-protokollverhandlung)
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** pt9912
 
 **Autor:** pt9912 (Entwurf in der Planner-Rolle). **Datum:** 2026-11-05.
 
@@ -44,7 +44,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 Liefer-Punkte (3):
 
-- [ ] **Messung:** Ein Mitschnitt oder ein Log des Servers (TLS-Version, Cipher, Richtung der Datensätze, erstes Anwendungspaket nach dem Handshake) nennt, an welcher Stelle der Server nach LOGIN7 schließt; die Ursache steht als Befund mit Rechner, Last, JDK-Version des Treibers und Image-Digest im Slice oder in `docs/messungen/`. Vergleich: derselbe Lauf mit dem .NET-Referenzclient (Version laut Clientprofil) und mit `-Djdk.tls.client.protocols=TLSv1.2`.
+- [x] **Messung:** Ein Mitschnitt oder ein Log des Servers (TLS-Version, Cipher, Richtung der Datensätze, erstes Anwendungspaket nach dem Handshake) nennt, an welcher Stelle der Server nach LOGIN7 schließt; die Ursache steht als Befund mit Rechner, Last, JDK-Version des Treibers und Image-Digest im Slice oder in `docs/messungen/`. Vergleich: derselbe Lauf mit dem .NET-Referenzclient (Version laut Clientprofil) und mit `-Djdk.tls.client.protocols=TLSv1.2`. Beleg: [tls-d-migrate-2026-11-05](../../../messungen/tls-d-migrate-2026-11-05.md).
 - [ ] **Behebung:** Der Server beantwortet LOGIN7 unter TLS 1.3 wie unter TLS 1.2, mit einem Test in der Bibliothek (Handvektor oder Handschlag im Speicher, Muster SPEC-043), der das Verhalten ohne den Treiber festhält; die Behebung ändert keinen TLS-Default ([TDS-QA-03](../../../../spec/lastenheft.md#tds-qa-03--sicherheit)).
 - [ ] **Beleg am fremden Client:** d-migrate 1.12.0 mit `encrypt=true&trustServerCertificate=true` gegen den Testserver (`REQUIRED`) endet für `schema reverse` mit Exit 0 ohne Eingriff in die JVM-Optionen; Ausgabe mit Rechner, Last und Image-Digest.
 
