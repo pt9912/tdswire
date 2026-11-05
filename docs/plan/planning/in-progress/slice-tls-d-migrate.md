@@ -11,7 +11,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-testserver-manuell
 
-**Bezug:** [TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [TDS-QA-03](../../../../spec/lastenheft.md#tds-qa-03--sicherheit), [TDS-RB-03](../../../../spec/lastenheft.md#tds-rb-03--protokollstandard), [ADR-0002](../../adr/0002-tls-und-verschluesselung.md)
+**Bezug:** [TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [TDS-QA-03](../../../../spec/lastenheft.md#tds-qa-03--sicherheit), [TDS-RB-03](../../../../spec/lastenheft.md#tds-rb-03--protokollstandard), [ADR-0002](../../adr/0002-tls-und-verschluesselung.md), [ADR-0032](../../adr/0032-tls-obergrenze-je-pfad-und-ticket-flag.md)
 
 **Berührte Spec-Stellen:** SPEC-023 (TLS-Versionen und Suiten) · SPEC-043 · Protokollteil TLS im TDS-Mantel (TDS 7.4) · [TDS-FA-01](../../../../spec/lastenheft.md#tds-fa-01--verbindungsaufbau-und-protokollverhandlung)
 
@@ -47,8 +47,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 Liefer-Punkte (3):
 
 - [x] **Messung:** Ein Mitschnitt oder ein Log des Servers (TLS-Version, Cipher, Richtung der Datensätze, erstes Anwendungspaket nach dem Handshake) nennt, an welcher Stelle der Server nach LOGIN7 schließt; die Ursache steht als Befund mit Rechner, Last, JDK-Version des Treibers und Image-Digest im Slice oder in `docs/messungen/`. Vergleich: derselbe Lauf mit dem .NET-Referenzclient (Version laut Clientprofil) und mit `-Djdk.tls.client.protocols=TLSv1.2`. Beleg: [tls-d-migrate-2026-11-05](../../../messungen/tls-d-migrate-2026-11-05.md).
-- [ ] **Behebung:** Der TDS-7.4-Pfad (Handschlag in PRELOGIN-gerahmten Paketen) bietet höchstens TLS 1.2 an, der TDS-8.0-Pfad bleibt bei TLS 1.3 (SPEC-023); Tests in der Bibliothek halten beides fest (ein reiner TLS-1.3-Client scheitert im 7.4-Pfad, der 8.0-Pfad handelt TLS 1.3 aus); die Behebung ändert keinen TLS-Default der Konfiguration ([TDS-QA-03](../../../../spec/lastenheft.md#tds-qa-03--sicherheit)); die Entscheidung steht in einer ADR (Architect).
-- [ ] **Beleg am fremden Client:** d-migrate 1.12.0 mit `encrypt=true&trustServerCertificate=true` im Treiber-Standard (ohne `sslProtocol`) gegen den Testserver (`REQUIRED`) meldet sich an; `schema reverse` endet dann mit Exit 4 „Unsupported SQL“, der nächsten, fremden Hürde (Hürde 2 des Parallel-Slice). Ausgabe mit Rechner, Last und Image-Digest. Der .NET-Referenzclient (`make kompatibilitaet KATEGORIE=Anmeldung`) bleibt grün.
+- [x] **Behebung:** Der TDS-7.4-Pfad (Handschlag in PRELOGIN-gerahmten Paketen) bietet höchstens TLS 1.2 an, der TDS-8.0-Pfad bleibt bei TLS 1.3 (SPEC-023); Tests in der Bibliothek halten beides fest (ein reiner TLS-1.3-Client scheitert im 7.4-Pfad, der 8.0-Pfad handelt TLS 1.3 aus); die Behebung ändert keinen TLS-Default der Konfiguration ([TDS-QA-03](../../../../spec/lastenheft.md#tds-qa-03--sicherheit)); die Entscheidung steht in einer ADR (Architect), [ADR-0032](../../adr/0032-tls-obergrenze-je-pfad-und-ticket-flag.md). Beleg: die Tests `TlsHandshakeNegativeTest > Ein reiner TLS-1_3-Client scheitert im TDS-7_4-Pfad` und `TlsLoopbackTest > both versions offered negotiate by path and the path decides about ALPN`; der Server startet und läuft ohne JVM-Option (`BootstrapTest > Der Start mit TLS gelingt ohne JVM-Option`, `ServerSmokeTest > Ein Prozess ohne JVM-Option startet mit TLS`).
+- [x] **Beleg am fremden Client:** d-migrate 1.12.0 mit `encrypt=true&trustServerCertificate=true` im Treiber-Standard (ohne `sslProtocol`) gegen den Testserver (`REQUIRED`) meldet sich an; `schema reverse` endet dann mit Exit 4 „Unsupported SQL“, der nächsten, fremden Hürde (Hürde 2 des Parallel-Slice). Ausgabe mit Rechner, Last und Image-Digest. Der .NET-Referenzclient (`make kompatibilitaet KATEGORIE=Anmeldung`) bleibt grün. Beleg: Abschnitt „Umsetzung der Entscheidung“ in [tls-d-migrate-2026-11-05](../../../messungen/tls-d-migrate-2026-11-05.md) (d-migrate Exit 4 „Unsupported SQL“ nach gelungener Anmeldung; .NET 19 von 19).
 
 Nachweis-Pflichten für alle Punkte:
 
@@ -69,9 +69,10 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `src/main/kotlin/io/github/pt9912/tdswire/transport/tls/` und `.../transport/framing/` | update (nach der Messung) | Kandidaten laut Verdacht: TLS im TDS-Mantel, Rahmung der ersten Datensätze; nicht gemessen |
-| Tests unter `src/test/kotlin/` | neu | Ursachen-Test aus der Messung; Negativfall bleibt |
-| `spec/spezifikation.md` | update | falls die Messung eine Festlegung ändert |
+| `src/main/kotlin/io/github/pt9912/tdswire/transport/tls/` (`TlsAcceptor`, `TlsStartProbe`), `.../runtime/` (`Bootstrap`, `TdsServer`), `.../domain/telemetry/` (`StartRefusal`) | update | Obergrenze im 7.4-Pfad, Startprobe mit Ticket, Prüfung des JVM-Flags entfällt ([ADR-0032](../../adr/0032-tls-obergrenze-je-pfad-und-ticket-flag.md)) |
+| `Dockerfile`, `build.gradle.kts`, `gradle/test-jvm.init.gradle.kts`, `src/testserver/` | update | Startzeilen ohne JVM-Flag |
+| Tests unter `src/test/kotlin/` | update, neu | `TlsSessionTicketTest`, Probe mit Ticket, Start ohne JVM-Option, Obergrenze-Tests |
+| `spec/spezifikation.md`, `docs/user/testserver-manuell.md`, `docs/plan/kompatibilitaetsmatrix.md` | update | `SPEC-023`, `SPEC-043`, Sicherheitsprofil; Nutzer-Doku und Matrix ohne Flag |
 
 ## 4. Trigger
 
