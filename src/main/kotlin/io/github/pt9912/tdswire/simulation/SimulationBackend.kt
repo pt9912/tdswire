@@ -8,6 +8,7 @@ import io.github.pt9912.tdswire.port.QueryExecution
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
+import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.onCompletion
@@ -79,7 +80,7 @@ public class SimulationBackend(catalog: SimCatalog) : QueryBackend {
 
     /** Form C (`SPEC-036`): die Antwort steht fest, es wird weder eine Zeilenquelle noch ein Callback gerufen. */
     private fun fixed(form: FixedForm): QueryExecution = object : QueryExecution {
-        override val events: Flow<QueryEvent> = flowOf(*FixedAnswers.of(form).toTypedArray())
+        override val events: Flow<QueryEvent> = FixedAnswers.of(form).asFlow()
 
         override suspend fun close() = Unit
     }
