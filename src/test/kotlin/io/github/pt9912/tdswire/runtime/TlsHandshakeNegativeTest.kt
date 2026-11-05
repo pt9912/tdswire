@@ -6,6 +6,7 @@ import io.github.pt9912.tdswire.domain.telemetry.TlsHandshakeFailed
 import io.github.pt9912.tdswire.protocol.session.SessionVectors
 import io.github.pt9912.tdswire.protocol.token.LoginAck
 import io.github.pt9912.tdswire.testsupport.JdkTlsPeer
+import io.github.pt9912.tdswire.testsupport.LastFlight
 import io.github.pt9912.tdswire.testsupport.TestKeys
 import io.github.pt9912.tdswire.testsupport.TokenDecoder
 import io.github.pt9912.tdswire.testsupport.blocking
@@ -196,6 +197,62 @@ internal class TlsHandshakeNegativeTest : RuntimeTestBase() {
         assertNotNull(failure, "der Client hat dem fremden Zertifikat vertraut")
         wire.close()
         assertHandshakeLogged("HANDSHAKE_FAILED")
+        assertStillServes(server.port)
+    }
+
+    /** Meldet sich mit TLS 1.3 im Mantel an; mit [drop] erreicht das `Finished` des Clients den Draht nie. */
+    private suspend fun tls13Login(port: Int, drop: Boolean): ReadOutcome {
+        val wire = connectTo(port)
+        MessageWriter(wire, PACKET_SIZE)
+            .write(TdsMessage(PacketType.PRELOGIN, SessionVectors.preloginPayload(SessionVectors.ENCRYPT_ON)))
+        assertIs<ReadOutcome.Message>(MessageReader(wire).next())
+        val engine = JdkTlsPeer.clientEngine(
+            TestKeys.clientContext(),
+            listOf("TLSv1.3"),
+            TlsParameters.SPEC_023.cipherSuites,
+        )
+        val flight = if (drop) LastFlight.DROP else LastFlight.HOLD
+        val peer = JdkTlsPeer(wire, engine, encapsulated = true, lastFlight = flight)
+        assertNull(peer.handshake())
+        MessageWriter(peer, PACKET_SIZE).write(
+            SessionVectors.login7 {
+                userName = user
+                this.password = this@TlsHandshakeNegativeTest.password.toCharArray()
+            },
+        )
+        val outcome = MessageReader(peer).next()
+        wire.close()
+        return outcome
+    }
+
+    /**
+     * TLS 1.3 im Mantel von TDS 7.4: Schreibt der Client sein `Finished` in einem Paket `0x12` und das LOGIN7 im
+     * selben Schreibvorgang dahinter, antwortet der Server mit `LoginAck`. Gegenprobe zum nächsten Fall.
+     *
+     * @spec SPEC-023
+     */
+    @Test
+    fun `Ein TLS-1_3-Client mit Finished im Handschlagpaket wird angemeldet`() = blocking {
+        val server = running(environment())
+        val outcome = tls13Login(server.port, drop = false)
+        val answer = assertIs<ReadOutcome.Message>(outcome).message
+        assertTrue(TokenDecoder(answer.payload).decodeAll().any { it is LoginAck })
+    }
+
+    /**
+     * Erreicht das `Finished` des Clients den Draht nie und folgt gleich das LOGIN7 als roher TLS-Record, trennt der
+     * Server ohne Antwort und nennt `PROTOCOL_VIOLATION`: Der Handschlag ist nicht abgeschlossen, und ein Record vom
+     * Typ `0x17` ist im Handschlag kein Paket `0x12`. So sieht der Draht bei `mssql-jdbc` 13.4.0 mit
+     * `encrypt=true` unter TLS 1.3 aus (Messung am Draht, Messprotokoll in `docs/messungen/`).
+     *
+     * @spec SPEC-023
+     */
+    @Test
+    fun `Ein TLS-1_3-Client ohne gesendetes Finished wird ohne Antwort getrennt`() = blocking {
+        val server = running(environment())
+        val outcome = tls13Login(server.port, drop = true)
+        assertTrue(outcome !is ReadOutcome.Message, "Antwort auf ein LOGIN7 vor dem Finished: $outcome")
+        assertHandshakeLogged("PROTOCOL_VIOLATION")
         assertStillServes(server.port)
     }
 

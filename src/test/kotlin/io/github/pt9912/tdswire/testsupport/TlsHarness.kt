@@ -82,7 +82,14 @@ internal fun peerFor(
     val context = TestKeys.clientContext(setup.clientTrust)
     val engine = JdkTlsPeer.clientEngine(context, setup.protocols, setup.suites, setup.peerAlpn ?: pathAlpn)
     val wired = sliced(wire, setup, PEER_SALT)
-    return JdkTlsPeer(wired, engine, setup.encapsulated, holdLastFlight, payloadPerPacket, trailingJunk)
+    return JdkTlsPeer(
+        wired,
+        engine,
+        setup.encapsulated,
+        if (holdLastFlight) LastFlight.HOLD else LastFlight.SEND,
+        payloadPerPacket,
+        trailingJunk,
+    )
 }
 
 private const val PEER_SALT = 1000L
