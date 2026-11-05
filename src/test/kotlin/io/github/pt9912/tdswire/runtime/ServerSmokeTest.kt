@@ -140,19 +140,27 @@ internal class ServerSmokeTest : TempFilesTest() {
     }
 
     /**
-     * Ein Prozess ohne `-Djdk.tls.server.newSessionTicketCount=0` startet nicht: Exit-Code ungleich null, die
-     * Ausgabe nennt das Flag, es gibt weder eine Start- noch eine Port-Zeile.
+     * Ein Prozess ohne jede JVM-Option außer dem Heap startet mit TLS (`REQUIRED`, Speicher `gueltig.p12`): die Zeile
+     * `gestartet, Port <n>` kommt, der Prozess läuft weiter. Die Startprobe des Prozesses läuft im 8.0-Pfad mit TLS
+     * 1.3 und dem NewSessionTicket des Servers, ohne dass der Start daran scheitert.
      *
-     * @spec SPEC-028
+     * @spec SPEC-043
      */
     @Test
-    fun `Ein Prozess ohne das JVM-Flag startet nicht`() {
-        ServerProcess(environment(), withFlag = false).use { server ->
-            val exit = server.awaitExit()
-            assertNotNull(exit)
-            assertEquals(EXIT_START_FAILED, exit)
-            val expected = "${ServerProcess.PREFIX} JVM-Flag -D${Bootstrap.TICKET_FLAG}=0 fehlt"
-            assertEquals(listOf(expected), server.output.toList())
+    fun `Ein Prozess ohne JVM-Option startet mit TLS`() {
+        val directory = checkNotNull(System.getProperty("tdswire.testkeys"))
+        val tls = environment(
+            ConfigKeys.ENCRYPTION_POLICY to "REQUIRED",
+            ConfigKeys.TLS_KEYSTORE_FILE to "$directory/gueltig.p12",
+            ConfigKeys.TLS_KEYSTORE_PASSWORD_FILE to file("kennwort.txt", "tdswire-test\n"),
+            ConfigKeys.AUTH_PLAIN_TESTMODE to "false",
+            ConfigKeys.AUTH_USERS_FILE to file("users-tls.txt", "alice\t${pbkdf2Value("secret")}\n"),
+        )
+        ServerProcess(tls).use { server ->
+            assertTrue(server.port() > 0, server.output.toString())
+            assertNotNull(server.terminate(), "der Prozess endet nach SIGTERM")
+            assertNotNull(server.awaitLine("${ServerProcess.PREFIX} gestoppt"), server.output.toString())
+            assertNull(server.output.firstOrNull { it.contains("gescheitert") }, server.output.toString())
         }
     }
 

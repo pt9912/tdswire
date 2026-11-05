@@ -28,6 +28,11 @@ internal sealed interface ProbeResult {
  * `IllegalArgumentException` kommt wie bei [TlsChannel.accept] nur, wenn die JVM eine genannte
  * Version oder Suite nicht kennt.
  *
+ * Das Urteil kommt von der Schleife: die Gegenstelle bleibt nach ihrem Handschlag offen, bis die Schleife endet,
+ * denn der TLS-1.3-Server schreibt sein NewSessionTicket noch vor `FINISHED` in den Kanal; die Gegenstelle liest
+ * es nicht. Ein Fehler der Gegenstelle schließt ihr Ende sofort. Das Urteil hängt nicht von der Zeit ab; die
+ * Zeitgrenze [timeout] fängt nur eine Probe, die nicht endet.
+ *
  * Grenze (`SPEC-043`): die Probe prüft weder, ob ein Client dem Zertifikat vertraut, noch die
  * TDS-Kapselung des Handschlags (Pfad [TlsPath.ENCAPSULATED_IN_TDS]), noch den Namen im Zertifikat.
  * Festlegung (nicht gemessen): scheitert der Handschlag und ist keine Kette abgelaufen, ist der Teil
@@ -72,9 +77,13 @@ internal object TlsStartProbe {
             val (serverEnd, clientEnd) = MemoryChannel.pair(MEMORY_CAPACITY)
             val server = async { TlsChannel.accept(serverEnd, context, TlsPath.FROM_FIRST_BYTE, parameters) }
             val client = async {
-                ProbeClient(clientEngine(trust, parameters), clientEnd).handshake().also { clientEnd.close() }
+                ProbeClient(clientEngine(trust, parameters), clientEnd).handshake().also { failure ->
+                    if (failure != null) clientEnd.close()
+                }
             }
-            Outcome(server.await(), client.await())
+            val verdict = server.await()
+            clientEnd.close()
+            Outcome(verdict, client.await())
         }
 
     private fun clientEngine(trust: ValidityOnlyTrust, parameters: TlsParameters): SSLEngine {

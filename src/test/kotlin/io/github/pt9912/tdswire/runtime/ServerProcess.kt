@@ -8,14 +8,13 @@ import kotlin.concurrent.thread
 private const val WAIT_SECONDS = 60L
 private const val POLL_MILLIS = 20L
 private const val MEMORY_LIMIT = "-Xmx256m"
-private const val FLAG = "-D${Bootstrap.TICKET_FLAG}=0"
 
 /**
  * Der Testserver als Kind-JVM mit `main` aus dem Klassenpfad des Source-Sets `testserver` (Systemeigenschaft
  * `tdswire.testserverclasspath`). Die Umgebung des Kindes besteht nur aus [environment]; Standardausgabe und
- * Fehlerausgabe werden zeilenweise in [output] gesammelt. [withFlag] steuert, ob der Start das JVM-Flag setzt.
+ * Fehlerausgabe werden zeilenweise in [output] gesammelt. Der Start der Kind-JVM setzt keine JVM-Option außer dem Heap.
  */
-internal class ServerProcess(environment: Map<String, String>, withFlag: Boolean = true) : AutoCloseable {
+internal class ServerProcess(environment: Map<String, String>) : AutoCloseable {
     val output = CopyOnWriteArrayList<String>()
     private val process: Process
     private val reader: Thread
@@ -23,7 +22,7 @@ internal class ServerProcess(environment: Map<String, String>, withFlag: Boolean
     init {
         val java = File(System.getProperty("java.home"), "bin/java").path
         val classpath = checkNotNull(System.getProperty("tdswire.testserverclasspath"))
-        val command = listOfNotNull(java, MEMORY_LIMIT, FLAG.takeIf { withFlag }, "-cp", classpath, MAIN_CLASS)
+        val command = listOf(java, MEMORY_LIMIT, "-cp", classpath, MAIN_CLASS)
         val builder = ProcessBuilder(command).redirectErrorStream(true)
         builder.environment().clear()
         builder.environment().putAll(environment)

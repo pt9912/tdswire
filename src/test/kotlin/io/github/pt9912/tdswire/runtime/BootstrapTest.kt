@@ -10,7 +10,6 @@ import io.github.pt9912.tdswire.domain.telemetry.EncryptionWeakened
 import io.github.pt9912.tdswire.domain.telemetry.PlainTestModeActive
 import io.github.pt9912.tdswire.domain.telemetry.ServerStarted
 import io.github.pt9912.tdswire.domain.telemetry.ServerStopped
-import io.github.pt9912.tdswire.domain.telemetry.StartRefusal
 import io.github.pt9912.tdswire.domain.telemetry.StartRefused
 import io.github.pt9912.tdswire.domain.telemetry.TlsStartRejected
 import io.github.pt9912.tdswire.testsupport.blocking
@@ -40,26 +39,19 @@ internal class BootstrapTest : RuntimeTestBase() {
     }
 
     /**
-     * Ein Prozess ohne `-Djdk.tls.server.newSessionTicketCount=0` startet nicht: jede Eigenschaft außer genau `0`
-     * (fehlend, `1`, `00`, leer, `0 `) bricht ab, bevor eine Datei gelesen oder ein Port gebunden wird. Mit `0`
-     * startet derselbe Aufruf. Geprüft ist der Wert der Eigenschaft beim Start, nicht die Wirkung auf dem Draht.
+     * Der Start verlangt keine JVM-Option: ohne eine Systemeigenschaft zu setzen startet ein Server mit TLS
+     * (`REQUIRED`), die Startprobe führt im 8.0-Pfad mit TLS 1.3 den Handschlag aus, dessen Server danach ein
+     * NewSessionTicket schreibt (`TlsSessionTicketTest` hält das fest). Es gibt kein Ereignis `StartRefused`, und der
+     * Server bindet. Wäre die Probe am Ticket gescheitert, endete der Start mit `TLS-Konfiguration: PAIR`.
      *
-     * @spec SPEC-028
+     * @spec SPEC-043
      */
     @Test
-    fun `Ohne das JVM-Flag startet der Server nicht`() = blocking {
-        val before = listenerThreads()
-        val environment = loopbackEnvironment(users())
-        listOf(null, "1", "00", "", "0 ", "-1").forEach { value ->
-            val properties = { key: String -> if (key == Bootstrap.TICKET_FLAG) value else null }
-            val boot = Bootstrap.launch(configOf(environment), Wiring(telemetry = sink), properties)
-            val aborted = assertIs<StartOutcome.Aborted>(boot, "Wert '$value'")
-            assertTrue(aborted.reason.contains("newSessionTicketCount=0"), aborted.reason)
-        }
-        assertEquals(6, sink.events.size)
-        assertTrue(sink.of<StartRefused>().all { it.reason == StartRefusal.JVM_FLAG_MISSING }, sink.events.toString())
-        assertNoNewListenerThreads(before)
-        assertIs<StartOutcome.Running>(start(environment))
+    fun `Der Start mit TLS gelingt ohne JVM-Option`() = blocking {
+        val server = running(tlsEnvironment("gueltig.p12", 0))
+        assertTrue(server.port > 0)
+        assertEquals(emptyList(), sink.of<StartRefused>())
+        assertEquals(listOf(server.port), sink.of<ServerStarted>().map { it.port })
     }
 
     /**

@@ -55,6 +55,20 @@ class TlsStartProbeTest {
     }
 
     /**
+     * Die Probe besteht im TLS-1.3-Pfad, in dem der Server nach dem Handschlag ein NewSessionTicket schreibt: die
+     * Gegenstelle der Probe bleibt offen, bis die Schleife ihr Urteil hat, sonst scheitert die Schleife beim Schreiben
+     * des Tickets an einem geschlossenen Ende (`PAIR`). Das Urteil hängt weder von einer Zeit noch vom Lesen des
+     * Tickets ab. Dass der Server das Ticket schreibt, hält `TlsSessionTicketTest` fest.
+     *
+     * @spec SPEC-043
+     */
+    @Test
+    fun `probe passes with TLS 1_3 although the server writes a session ticket after the handshake`() = blocking {
+        val result = probeOf(KeyVariants.file(TestKeys.VALID), tls13)
+        assertEquals(ProbeResult.Passed("TLSv1.3", TlsParameters.TLS13_SUITES.first()), result)
+    }
+
+    /**
      * Eine abgelaufene Kette scheitert als `CERTIFICATE`, auch wenn Schlüssel und Paar stimmen.
      *
      * @spec SPEC-043
