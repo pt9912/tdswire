@@ -32,7 +32,7 @@ class PreloginNegotiationTest {
     }
 
     /**
-     * Die Antwort bei `REQUIRED` als Handvektor: VERSION `0.0.0.0`, ENCRYPT_REQ, leerer INSTOPT, MARS
+     * Die Antwort bei `REQUIRED` als Handvektor: VERSION `16.0.1000.6`, ENCRYPT_REQ, leerer INSTOPT, MARS
      * aus; Tabelle mit Offsets ab Nachrichtenanfang (Festlegung, nicht am Referenzclient gemessen).
      *
      * @spec SPEC-028
@@ -46,7 +46,7 @@ class PreloginNegotiationTest {
         assertEquals(listOf("Send", "BeginTls"), step.actions.map { it.label() })
         val send = step.actions.first() as HandshakeAction.Send
         assertContentEquals(
-            hex("00 00 15 00 06  01 00 1B 00 01  02 00 1C 00 01  04 00 1D 00 01  FF  00 00 00 00 00 00  03  00  00"),
+            hex("00 00 15 00 06  01 00 1B 00 01  02 00 1C 00 01  04 00 1D 00 01  FF  10 00 03 E8 00 06  03  00  00"),
             send.message.payload,
         )
     }

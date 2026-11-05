@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** `spezifikation.md`, Tabelle *Login-Antwort des Servers (Festlegung)*, Zeile *PRELOGIN-Antwort*; Code `src/main/kotlin/io/github/pt9912/tdswire/protocol/session/PreloginNegotiation.kt` (Aufruf `PreloginOption.version(0, 0, 0, 0)`); Test `PreloginNegotiationTest` (Handvektor der Antwort).
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** pt9912.
 
 **Autor:** pt9912. **Datum:** 2026-11-05.
 
