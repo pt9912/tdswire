@@ -1,6 +1,6 @@
 # Anmeldung mit mssql-jdbc nach der VERSION-Setzung: Messprotokoll vom 2026-11-05
 
-Messprotokoll zu [TDS-QA-01](../../spec/lastenheft.md#tds-qa-01--kompatibilität) und [TDS-FA-01](../../spec/lastenheft.md#tds-fa-01--verbindungsaufbau-und-protokollverhandlung) (`AGENTS.md` §5 Regel 7), Träger: [slice-prelogin-serverversion](../plan/planning/in-progress/slice-prelogin-serverversion.md). Einzelmessung je Zeile, ein Host (Linux, Docker, `--network host`), Datum 2026-11-05; Last (`uptime`, Lastmittel 1/5/15 min): Lauf 0.0.0.0 gemessen 11:19 Ortszeit `7,67 7,68 9,85`; Lauf 16.0.1000.6 Last nicht erfasst (Host zur selben Zeit unter wechselnder Last, zuvor 5,6 bis 9,9 beobachtet).
+Messprotokoll zu [TDS-QA-01](../../spec/lastenheft.md#tds-qa-01--kompatibilität) und [TDS-FA-01](../../spec/lastenheft.md#tds-fa-01--verbindungsaufbau-und-protokollverhandlung) (`AGENTS.md` §5 Regel 7), Träger: [slice-prelogin-serverversion](../plan/planning/done/slice-prelogin-serverversion.md). Einzelmessung je Zeile, ein Host (Linux, Docker, `--network host`), Datum 2026-11-05; Last (`uptime`, Lastmittel 1/5/15 min): Lauf 0.0.0.0 gemessen 11:19 Ortszeit `7,67 7,68 9,85`; Lauf 16.0.1000.6 Last nicht erfasst (Host zur selben Zeit unter wechselnder Last, zuvor 5,6 bis 9,9 beobachtet).
 
 Gleicher Client und gleicher Befehl in beiden Läufen; nur der Testserver-Stand (und der Port) unterscheidet sich.
 
