@@ -1,0 +1,2 @@
+**Vorgang:** [slice-prelogin-serverversion](../../../../in-progress/slice-prelogin-serverversion.md), Review 5b1ad85 F-1
+**Fund:** Die Spezifikation schrieb „Gemessen am 2026-11-05 mit mssql-jdbc 13.4.0 … lehnt der Treiber die Antwort mit VERSION `0.0.0.0` ab“; im Repo stand kein Protokoll der Ablehnung, nur der Annahme. Behoben durch Nachmessen und ein Messprotokoll mit beiden Läufen (bc7d7fe) und Entfernen einer Außenaussage („wie SQL Server 2022“). Regel ist verkörpert (`AGENTS.md` §3.8).
