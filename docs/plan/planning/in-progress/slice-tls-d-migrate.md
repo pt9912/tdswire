@@ -52,11 +52,11 @@ Liefer-Punkte (3):
 
 Nachweis-Pflichten für alle Punkte:
 
-- [ ] `make gates` grün.
+- [x] `make gates` grün (`make gates FORCE=1`, Exit 0, Stand nach dem Commit der Umsetzung).
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Doku-Update, falls ein öffentlicher Vertrag berührt ist.
+- [x] Doku-Update, falls ein öffentlicher Vertrag berührt ist (`SPEC-023`, `SPEC-043`, Sicherheitsprofil, Festlegungen des Einstiegs, Nutzer-Doku, Kompatibilitätsmatrix).
 - [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
 - [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen“ in §7 notiert.
 - [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
