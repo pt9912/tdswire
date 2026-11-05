@@ -27,10 +27,11 @@ class TlsSessionTicketTest {
     }
 
     /**
-     * Der Server schreibt im 8.0-Pfad nach seinem Handschlag-Flug (ServerHello, ChangeCipherSpec, verschlüsselter Flug)
-     * einen vierten Record, das NewSessionTicket, noch bevor der Handschlag als beendet gemeldet wird. Die Gegenstelle
-     * nimmt es an, und der Austausch von Nachrichten in beide Richtungen gelingt danach. Die Zahl der Records
-     * ist die des JDK 21 der Testumgebung.
+     * Nach dem Handschlag des 8.0-Pfads (beide Seiten fertig) steht auf dem Draht des Servers hinter seinem
+     * Handschlag-Flug (ServerHello, ChangeCipherSpec, verschlüsselter Flug) ein vierter Record; das ist das
+     * NewSessionTicket (der Inhalt ist verschlüsselt und nicht gelesen). Wann in der Engine der Record entsteht, ist
+     * nicht beobachtet. Die Gegenstelle nimmt es an, und der Austausch von Nachrichten in beide Richtungen gelingt
+     * danach. Die Zahl der Records ist die des JDK 21 der Testumgebung.
      *
      * @spec SPEC-023 SPEC-028
      */

@@ -35,6 +35,7 @@ import kotlin.test.assertTrue
  */
 class TlsDataPhaseTest {
     private val tls13 = listOf("TLSv1.3")
+    private val tls12 = listOf("TLSv1.2")
     private val bothPaths = listOf(TlsPath.FROM_FIRST_BYTE, TlsPath.ENCAPSULATED_IN_TDS)
 
     private suspend fun JdkTlsPeer.readExactly(size: Int): ByteArray {
@@ -57,30 +58,30 @@ class TlsDataPhaseTest {
 
     /**
      * Ein Schreiber, der auf einen vollen inneren Kanal wartet (die Gegenstelle liest nichts), hält den
-     * Lesepfad nicht auf: Was die Gegenstelle währenddessen sendet, liefert `read`, auch nach einem
-     * KeyUpdate der Gegenstelle (TLS 1.3, nur im TDS-8.0-Pfad), dessen Antwort der Schreiber dann nachholt. Danach
-     * liest die
-     * Gegenstelle alles, was der Schreiber geschrieben hat, unversehrt; die Records verschränken sich nicht.
+     * Lesepfad nicht auf: Was die Gegenstelle währenddessen sendet, liefert `read`. Im TDS-8.0-Pfad (TLS 1.3) gilt das
+     * auch nach einem KeyUpdate der Gegenstelle, dessen Antwort der Schreiber dann nachholt; im TDS-7.4-Pfad (TLS 1.2)
+     * gibt es kein KeyUpdate. Danach liest die Gegenstelle alles, was der Schreiber geschrieben hat, unversehrt; die
+     * Records verschränken sich nicht.
      *
      * @spec SPEC-028
      */
     @Test
     fun `a blocked writer does not hold up the reader`() = blocking {
-        listOf(TlsPath.FROM_FIRST_BYTE).forEach { path ->
+        listOf(TlsPath.FROM_FIRST_BYTE to tls13, TlsPath.ENCAPSULATED_IN_TDS to tls12).forEach { (path, protocols) ->
             val capacity = 1 shl 14
-            val setup = TlsSetup(path, tls13)
+            val setup = TlsSetup(path, protocols)
             val (serverEnd, peerEnd) = MemoryChannel.pair(capacity)
             val peer = peerFor(setup, peerEnd)
             coroutineScope {
                 val accepted = async {
-                    TlsChannel.accept(serverEnd, TestKeys.serverContext(), path, TlsParameters(tls13, setup.suites))
+                    TlsChannel.accept(serverEnd, TestKeys.serverContext(), path, TlsParameters(protocols, setup.suites))
                 }
                 assertEquals(null, peer.handshake())
                 val server = (accepted.await() as TlsResult.Ok).value
                 val outgoing = Random(7).nextBytes(1 shl 20)
                 val writing = async { server.writeFully(ByteBuffer.wrap(outgoing)) }
                 withTimeout(WAIT_MILLIS) { while (serverEnd.bufferedBytes < capacity) delay(POLL_MILLIS) }
-                peer.requestKeyUpdate()
+                if (protocols == tls13) peer.requestKeyUpdate()
                 val incoming = Random(8).nextBytes(300)
                 incoming.toList().chunked(100).forEach { peer.writeFully(ByteBuffer.wrap(it.toByteArray())) }
                 assertContentEquals(incoming, withTimeout(WAIT_MILLIS) { server.readExactly(incoming.size) })

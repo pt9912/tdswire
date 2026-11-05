@@ -74,7 +74,6 @@ private fun sliced(inner: SuspendingChannel, setup: TlsSetup, salt: Long): Suspe
 internal fun peerFor(
     setup: TlsSetup,
     wire: SuspendingChannel,
-    holdLastFlight: Boolean = false,
     payloadPerPacket: Int = 4000,
     trailingJunk: Int = 0,
 ): JdkTlsPeer {
@@ -82,7 +81,7 @@ internal fun peerFor(
     val context = TestKeys.clientContext(setup.clientTrust)
     val engine = JdkTlsPeer.clientEngine(context, setup.protocols, setup.suites, setup.peerAlpn ?: pathAlpn)
     val wired = sliced(wire, setup, PEER_SALT)
-    return JdkTlsPeer(wired, engine, setup.encapsulated, holdLastFlight, payloadPerPacket, trailingJunk)
+    return JdkTlsPeer(wired, engine, setup.encapsulated, payloadPerPacket, trailingJunk)
 }
 
 private const val PEER_SALT = 1000L

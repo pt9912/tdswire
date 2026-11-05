@@ -297,7 +297,7 @@ internal class Tds8DefenseTest {
     }
 }
 
-/** Derselbe Pfad am Serverprozess (Kind-JVM mit `main` und JVM-Flag), nicht im Prozess des Tests. */
+/** Derselbe Pfad am Serverprozess (Kind-JVM mit `main`), nicht im Prozess des Tests. */
 internal class Tds8ProcessTest : TempFilesTest() {
     /**
      * Ein Serverprozess nimmt eine Anmeldung ab dem ersten Byte (JDK-Gegenstelle, ALPN `tds/8.0`) an und trennt
