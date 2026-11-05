@@ -62,7 +62,10 @@ internal object TlsStartProbe {
                 failed(TlsPart.PAIR, "Handschlag $server / Gegenstelle ${outcome.clientFailure}")
             }
 
-            outcome.server is TlsResult.Ok -> ProbeResult.Passed(outcome.server.value.protocol, outcome.server.value.cipherSuite)
+            outcome.server is TlsResult.Ok -> {
+                val negotiated = outcome.server.value
+                ProbeResult.Passed(negotiated.protocol, negotiated.cipherSuite)
+            }
 
             else -> failed(TlsPart.PAIR, "Handschlag")
         }
@@ -83,11 +86,13 @@ internal object TlsStartProbe {
         end: MemoryChannel,
         context: SSLContext,
         parameters: TlsParameters,
-    ): TlsResult<Negotiated> = when (val accepted = TlsChannel.accept(end, context, TlsPath.FROM_FIRST_BYTE, parameters)) {
-        is TlsResult.Failed -> accepted
-
-        is TlsResult.Ok -> TlsResult.Ok(Negotiated(accepted.value.protocol, accepted.value.cipherSuite))
-            .also { accepted.value.close() }
+    ): TlsResult<Negotiated> {
+        val accepted = TlsChannel.accept(end, context, TlsPath.FROM_FIRST_BYTE, parameters)
+        if (accepted is TlsResult.Failed) return accepted
+        val channel = (accepted as TlsResult.Ok).value
+        val negotiated = Negotiated(channel.protocol, channel.cipherSuite)
+        channel.close()
+        return TlsResult.Ok(negotiated)
     }
 
     private suspend fun handshake(
