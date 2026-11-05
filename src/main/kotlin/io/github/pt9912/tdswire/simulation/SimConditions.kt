@@ -18,10 +18,18 @@ internal sealed interface RowTerm {
     class IsNull(private val index: Int, private val negated: Boolean) : RowTerm {
         override fun matches(values: List<Any?>): Boolean = (values[index] == null) != negated
     }
+
+    /** `<Ganzzahl> = <Ganzzahl>`: gilt für jede Zeile oder für keine. */
+    class Constant(val holds: Boolean) : RowTerm {
+        override fun matches(values: List<Any?>): Boolean = holds
+    }
 }
 
 /** Die Bedingung einer Auswahl: alle Terme gelten gemeinsam (UND), ohne Terme trifft jede Zeile. */
 internal class RowCondition(private val terms: List<RowTerm>) {
+    /** Wahr, wenn ein Konstantenterm nie gilt: keine Zeile trifft, die Zeilenquelle wird nicht geöffnet. */
+    val never: Boolean = terms.any { it is RowTerm.Constant && !it.holds }
+
     fun matches(values: List<Any?>): Boolean = terms.all { it.matches(values) }
 }
 
@@ -40,7 +48,7 @@ internal sealed interface PreparedCondition {
  */
 internal object RowConditions {
     private sealed interface Built {
-        data class Done(val term: RowTerm, val hint: FilterTerm) : Built
+        data class Done(val term: RowTerm, val hint: FilterTerm?) : Built
 
         data class Failed(val reason: String) : Built
     }
@@ -49,11 +57,10 @@ internal object RowConditions {
         val terms = ArrayList<RowTerm>(where.size)
         val hints = ArrayList<FilterTerm>(where.size)
         for (term in where) {
-            val column = requireNotNull(table.column(term.column)) { "Spalte ist nach der Objektprüfung bekannt" }
-            when (val built = of(term, column, table.columns.indexOf(column), parameters)) {
+            when (val built = of(term, table, parameters)) {
                 is Built.Done -> {
                     terms += built.term
-                    hints += built.hint
+                    built.hint?.let { hints += it }
                 }
 
                 is Built.Failed -> return PreparedCondition.Invalid(built.reason)
@@ -62,7 +69,16 @@ internal object RowConditions {
         return PreparedCondition.Ready(RowCondition(terms), if (hints.isEmpty()) null else RowFilter(hints))
     }
 
-    private fun of(term: Term, column: SimColumn, index: Int, given: List<QueryParameter>): Built = when (term) {
+    private fun of(term: Term, table: SimTable, given: List<QueryParameter>): Built = when (term) {
+        is Term.Constant -> Built.Done(RowTerm.Constant(term.holds), null)
+
+        is Term.Named -> {
+            val column = requireNotNull(table.column(term.column)) { "Spalte ist nach der Objektprüfung bekannt" }
+            of(term, column, table.columns.indexOf(column), given)
+        }
+    }
+
+    private fun of(term: Term.Named, column: SimColumn, index: Int, given: List<QueryParameter>): Built = when (term) {
         is Term.IsNull -> Built.Done(RowTerm.IsNull(index, term.negated), FilterTerm.IsNull(column.name, term.negated))
         is Term.In -> buildIn(term, column, index, given)
     }

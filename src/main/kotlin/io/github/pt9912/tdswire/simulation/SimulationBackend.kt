@@ -8,6 +8,7 @@ import io.github.pt9912.tdswire.port.QueryExecution
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
+import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.onCompletion
@@ -19,6 +20,10 @@ import java.util.concurrent.atomic.AtomicBoolean
  * aus der Zeilenquelle der beschriebenen Tabelle und gibt Einfügen, Ändern und Löschen (W1 bis W3) an die Callbacks
  * der Tabelle weiter ([SimulationChanges]); es kennt weder Pakete noch Tokens. Eine Tabelle ohne Callback für die
  * Anweisung antwortet mit `TDS_UNSUPPORTED_SQL`.
+ *
+ * Form C (`SPEC-036`) beantwortet das Backend ohne Tabelle: `SELECT 1` mit einer Spalte und einer Zeile, eine
+ * `SET`-Anweisung mit dem Änderungszähler 0. Eine Auswahl mit einem Konstantenterm, der nie gilt (`WHERE 1 = 0`),
+ * liefert Spaltenmetadaten und keine Zeile, ohne die Zeilenquelle zu öffnen.
  *
  * Zusagen für die Auswahl (Festlegung, nicht am Server gemessen): `execute` wirft für keinen Fehler der
  * Anfrage, jeder erscheint als einziges [QueryEvent.Failure] im Strom, bevor eine Zeilenquelle gelesen wird.
@@ -45,6 +50,7 @@ public class SimulationBackend(catalog: SimCatalog) : QueryBackend {
         when (val result = planner.plan(request.sql)) {
             is PlanResult.Rejected -> failed(result.code, result.message)
             is PlanResult.Planned -> start(result.plan, request)
+            is PlanResult.Fixed -> fixed(result.form)
         }
 
     override suspend fun cancel(sessionId: String, requestId: String) {
@@ -70,6 +76,13 @@ public class SimulationBackend(catalog: SimCatalog) : QueryBackend {
     private fun <E> register(key: Pair<String, String>, execution: E): E where E : QueryExecution, E : Stoppable {
         running[key] = execution
         return execution
+    }
+
+    /** Form C (`SPEC-036`): die Antwort steht fest, es wird weder eine Zeilenquelle noch ein Callback gerufen. */
+    private fun fixed(form: FixedForm): QueryExecution = object : QueryExecution {
+        override val events: Flow<QueryEvent> = FixedAnswers.of(form).asFlow()
+
+        override suspend fun close() = Unit
     }
 
     private fun failed(code: String, message: String): QueryExecution = object : QueryExecution {
@@ -104,6 +117,11 @@ private class SelectExecution(
 
     private suspend fun FlowCollector<QueryEvent>.read() {
         if (stopped.get()) return
+        if (prepared.condition.never) {
+            emit(QueryEvent.ResultStart(plan.resultColumns.map { ResultColumn(it.name, it.type, it.nullable) }))
+            emit(QueryEvent.ResultEnd(0))
+            return
+        }
         val opened = guarded { table.rows(SimQuery(table.columns, prepared.hint)) }.getOrNull()?.let { Opened(it) }
         if (opened == null) {
             emit(sourceFailure())

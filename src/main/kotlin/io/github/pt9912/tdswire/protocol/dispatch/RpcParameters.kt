@@ -63,11 +63,16 @@ internal class RpcRejected(val reason: RpcRejection) : RuntimeException(reason.n
  * zählt das `@` mit. Ein zweites `@` an zweiter Stelle (`@@x`) ist beim RPC per Prozedurname abgelehnt, wo
  * der Name im Aufruftext auch rechts von `=` steht und `@@x` eine globale Funktion des Ziels bezeichnen kann
  * statt des gesendeten Wertes; bei `sp_executesql` steht der Name nicht im Text und `@@x` ist nicht
- * abgelehnt (Festlegung ohne Messung, Nutzerentscheidung vom 2026-10-31). Ein Parameter ohne Namen ist [RpcRejection.PARAMETER_NAME].
+ * abgelehnt (Festlegung ohne Messung, Nutzerentscheidung vom 2026-10-31). Ein Parameter ohne Namen ist beim RPC
+ * per Prozedurname [RpcRejection.PARAMETER_NAME]; bei `sp_executesql`, `sp_prepexec` und `sp_execute` heißt der
+ * Wertparameter an Stelle `i` (ab 0, in der Reihenfolge der Wertparameter) `@P<i>` (Setzung: mssql-jdbc 13.4.0
+ * sendet die Werte ohne Namen und nennt sie in der Deklaration so; ein Name, der danach doppelt ist, bleibt
+ * [RpcRejection.PARAMETER_NAME]).
  */
 internal object RpcParameters {
     const val MAX_NAME_CHARS = 128
     private const val NAME_PREFIX = '@'
+    private const val POSITIONAL_PREFIX = "@P"
     private const val INT32_BYTES = 4
     private const val INT64_BYTES = 8
 
@@ -77,20 +82,21 @@ internal object RpcParameters {
      */
     fun map(parameters: List<RpcParameter>, nameInText: Boolean): List<QueryParameter> {
         val seen = mutableSetOf<String>()
-        return parameters.map { parameter ->
-            checkName(parameter.name, nameInText)
-            if (!seen.add(parameter.name.lowercase(Locale.ROOT))) {
+        return parameters.mapIndexed { index, parameter ->
+            val name = if (parameter.name.isEmpty() && !nameInText) "$POSITIONAL_PREFIX$index" else parameter.name
+            checkName(name, nameInText)
+            if (!seen.add(name.lowercase(Locale.ROOT))) {
                 throw RpcRejected(RpcRejection.PARAMETER_NAME)
             }
-            map(parameter)
+            map(parameter, name)
         }
     }
 
-    private fun map(parameter: RpcParameter): QueryParameter {
+    private fun map(parameter: RpcParameter, name: String): QueryParameter {
         if (parameter.status and RpcParameter.STATUS_OUTPUT.inv() != 0) throw RpcRejected(RpcRejection.STATUS)
         val type = sqlType(parameter.type)
         val value = value(type, parameter.type, parameter.value)
-        return QueryParameter(parameter.name, type, value, direction(parameter.output, value))
+        return QueryParameter(name, type, value, direction(parameter.output, value))
     }
 
     private fun direction(output: Boolean, value: Any?): ParameterDirection = when {

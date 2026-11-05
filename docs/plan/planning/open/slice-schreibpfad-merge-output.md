@@ -100,6 +100,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 - Aufwand der Sonde: M bis L; die Erkennung von `MERGE` weitet die Liste der Formen, die SPEC-036 „abschließend“ nennt (nicht vom Nutzer bestätigt). — **Ausgang:** offen bis zur Closure.
 - Die Gestalt des MERGE hängt an d-migrate 1.12.0 und seiner Spaltenliste; eine andere Version kann einen anderen Text senden (nicht gemessen). — **Ausgang:** offen bis zur Closure.
 - Da die Bibliothek nichts speichert, muss die Weitergabe die Konfliktsemantik (Schlüsselvergleich, Aktion) tragen; ob dafür ein eigener Callback nötig ist oder eine Folge aus Lesen und Einfügen genügt, entscheidet [slice-adr-testserver-bestand-und-katalog](slice-adr-testserver-bestand-und-katalog.md). — **Ausgang:** offen bis zur Closure.
+- Der Client wählt den Typ seiner Parameter selbst: d-migrate 1.12.0 sendet Ganzzahlwerte als `bigint`, die strenge Überführung ([SPEC-035](../../../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends)) weitet nur `Int32` auf `Int64`; ein Filter `Id = 7` gegen eine `Int32`-Spalte endete im Export mit „Invalid value“ (Beobachtung [parametertyp-des-clients-passt-nicht-zur-spalte](../observations/BEO-TDS/parametertyp-des-clients-passt-nicht-zur-spalte/observation.md), Ursache aus dem Code gelesen, nicht gemessen). Der Slice prüft die Parameter seines Pfades gegen die Spaltentypen. — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 

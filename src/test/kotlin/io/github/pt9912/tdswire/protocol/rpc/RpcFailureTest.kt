@@ -161,9 +161,10 @@ class RpcFailureTest {
     }
 
     /**
-     * Festlegung: Die Katalogform wird nach Position geprüft. `sp_executesql` braucht zwei
-     * Textparameter ohne NULL, `sp_prepexec` ein OUTPUT-Handle `INTN` 4 und zwei Textparameter,
-     * `sp_execute` ein Handle `INTN` 4 ohne NULL; sonst `INVALID_RPC_FORM`.
+     * Festlegung: Die Katalogform wird nach Position geprüft. `sp_executesql` braucht einen
+     * Textparameter ohne NULL (die Deklaration ist optional, `RpcPositionalNamesTest`), `sp_prepexec` ein
+     * OUTPUT-Handle `INTN` 4 und zwei Textparameter, `sp_execute` ein Handle `INTN` 4 ohne NULL; sonst
+     * `INVALID_RPC_FORM`.
      *
      * @spec SPEC-030
      */
@@ -177,7 +178,6 @@ class RpcFailureTest {
         assertAll(
             ProtocolFailure.INVALID_RPC_FORM,
             execSql,
-            "$execSql $stmt",
             "$execSql 00 00 26 04 04 01 00 00 00  $decl",
             "$execSql 00 00 E7 12 00 $coll FF FF  $decl",
             "$execSql $stmt  00 00 28 03 01 00 00",

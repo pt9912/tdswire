@@ -1,0 +1,3 @@
+**Vorgang:** [slice-d-migrate-verbindung-und-export](../../../../in-progress/slice-d-migrate-verbindung-und-export.md)
+**Fund:** Review (F-2): [SPEC-030](../../../../../../../spec/spezifikation.md#spec-030--rpc-varianten-und-parameter-metadaten) legt `@P<i>` für drei Aufrufstellen fest (`sp_executesql`, `sp_prepexec`, `sp_execute`) und für Parameter mit OUTPUT-Bit; getestet war nur `sp_executesql`, das Setzen von `nameInText = true` an den beiden anderen Stellen ließ jeden Test grün. Behoben in `4a57b46`; die Verifikation fuhr vier Mutationen einzeln (`nameInText` an drei Stellen, Namensbildung nur ohne OUTPUT-Bit), jede färbt mindestens einen Test rot.
+**Stand:** verkörpert wie in `state.md` der Klasse; hier ein weiteres Auftreten.

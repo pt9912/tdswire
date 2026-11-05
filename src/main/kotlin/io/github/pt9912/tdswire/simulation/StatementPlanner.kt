@@ -31,6 +31,9 @@ internal data class Plan(
 internal sealed interface PlanResult {
     data class Planned(val plan: Plan) : PlanResult
 
+    /** Ein Text der Form C: keine Tabelle, die Antwort steht fest. */
+    data class Fixed(val form: FixedForm) : PlanResult
+
     /** Die Anfrage endet mit dem Fehler [code] (ein Wert von [SimCodes]), bevor etwas gelesen wird. */
     data class Rejected(val code: String, val message: String) : PlanResult
 }
@@ -46,6 +49,8 @@ internal class StatementPlanner(private val catalog: SimCatalog) {
     fun plan(sql: String): PlanResult = when (val recognition = StatementParser.recognize(sql)) {
         is Recognition.NotRecognized ->
             reject(SimCodes.UNSUPPORTED_SQL, "Anweisung nicht erkannt: ${recognition.reason}")
+
+        is Recognition.Fixed -> PlanResult.Fixed(recognition.form)
 
         is Recognition.Recognized -> resolve(recognition.statement)
     }
@@ -64,11 +69,14 @@ internal class StatementPlanner(private val catalog: SimCatalog) {
 
     /** Alle Spaltennamen des Textes: Auswahlliste, Spalten von `INSERT` und `SET` zuerst, dann die Bedingung. */
     private fun namedColumns(statement: Statement): List<String> = when (statement) {
-        is Statement.Select -> statement.columns.orEmpty() + statement.where.map { it.column }
+        is Statement.Select -> statement.columns.orEmpty() + whereColumns(statement.where)
         is Statement.Insert -> statement.columns
-        is Statement.Update -> statement.set.map { it.column } + statement.where.map { it.column }
-        is Statement.Delete -> statement.where.map { it.column }
+        is Statement.Update -> statement.set.map { it.column } + whereColumns(statement.where)
+        is Statement.Delete -> whereColumns(statement.where)
     }
+
+    /** Die Spalten der Bedingung; ein Konstantenterm nennt keine. */
+    private fun whereColumns(where: List<Term>): List<String> = where.filterIsInstance<Term.Named>().map { it.column }
 
     private fun resultColumns(statement: Statement, table: SimTable): List<SimColumn> = when {
         statement !is Statement.Select -> emptyList()

@@ -243,7 +243,7 @@ class StatementFormsTest {
             "SELECT a + 1 FROM t",
             "SELECT UPPER(a) FROM t",
             "SELECT 1 FROM t",
-            "SELECT 1",
+            "SELECT 2",
             "SELECT a FROM t WHERE a = 1 + 1",
             "SELECT a FROM t WHERE a = 'x' + 'y'",
             "SELECT a FROM t WHERE a = UPPER(b)",
