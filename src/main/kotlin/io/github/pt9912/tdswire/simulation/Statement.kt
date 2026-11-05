@@ -18,15 +18,21 @@ internal sealed interface SimValue {
     data class Parameter(val name: String) : SimValue
 }
 
-/** Ein Term einer Bedingung (`SPEC-036` Term); [column] ist der Name, wie er im Text steht. */
+/** Ein Term einer Bedingung (`SPEC-036` Term). */
 internal sealed interface Term {
-    val column: String
+    /** Ein Term über eine Spalte; [column] ist der Name, wie er im Text steht. */
+    sealed interface Named : Term {
+        val column: String
+    }
 
     /** `<Spalte> = <Wert>` (ein Wert) oder `<Spalte> IN (<Wert> {, <Wert>})`. */
-    data class In(override val column: String, val values: List<SimValue>) : Term
+    data class In(override val column: String, val values: List<SimValue>) : Named
 
     /** `<Spalte> IS [NOT] NULL`. */
-    data class IsNull(override val column: String, val negated: Boolean) : Term
+    data class IsNull(override val column: String, val negated: Boolean) : Named
+
+    /** `<Ganzzahl> = <Ganzzahl>` (`SPEC-036` Konstantenterm); [holds] ist, ob beide Zahlen gleich sind. Nur in S1. */
+    data class Constant(val holds: Boolean) : Term
 }
 
 /** Eine Tabelle, wie der Text sie nennt; [schema] ist `null`, wenn der Text keines nennt. */
@@ -52,9 +58,23 @@ internal sealed interface Statement {
     data class Delete(override val table: TableRef, val where: List<Term>) : Statement
 }
 
+/** Eine `SET`-Anweisung der Form C: Option in ASCII-Großschreibung und ihr Argument (`ON`, `OFF` oder die Zahl). */
+internal data class SetOption(val option: String, val argument: String)
+
+/** Die Texte der Form C (`SPEC-036`), die keine Tabelle nennen. */
+internal sealed interface FixedForm {
+    /** `SELECT 1`: der Verbindungstest. */
+    data object Probe : FixedForm
+
+    /** Eine oder mehrere `SET`-Anweisungen, durch `;` getrennt. */
+    data class Settings(val options: List<SetOption>) : FixedForm
+}
+
 /** Das Ergebnis der Erkennung. */
 internal sealed interface Recognition {
     data class Recognized(val statement: Statement) : Recognition
+
+    data class Fixed(val form: FixedForm) : Recognition
 
     data class NotRecognized(val reason: Unrecognized) : Recognition
 }

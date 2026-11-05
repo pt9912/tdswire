@@ -230,7 +230,7 @@ class SimulationBackendSelectTest {
     @Test
     fun `Anweisungen ohne Auswahl enden vor dem Lesen`() {
         val cases = mapOf(
-            "SELECT 1" to "TDS_UNSUPPORTED_SQL",
+            "SELECT 2" to "TDS_UNSUPPORTED_SQL",
             "SELECT * FROM person ORDER BY id" to "TDS_UNSUPPORTED_SQL",
             "INSERT INTO person (id) VALUES (1)" to "TDS_UNSUPPORTED_SQL",
             "UPDATE person SET age = 1" to "TDS_UNSUPPORTED_SQL",

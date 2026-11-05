@@ -1,5 +1,9 @@
 package io.github.pt9912.tdswire.simulation
 
+import java.math.BigInteger
+
+private val INTEGER = Regex("-?[0-9]+")
+
 /** Abbruch der Zuordnung mit Grund; ohne Stapelspur, weil er nur den Ablauf lenkt. */
 private class Reject(val reason: Unrecognized) : Exception(null, null, false, false)
 
@@ -10,11 +14,11 @@ private val RESERVED = setOf(
 )
 
 /** Das Wort in ASCII-Großschreibung; Schlüsselwörter sind ASCII, `ınto` ist keines. */
-private fun asciiUpper(word: String): String = buildString(word.length) {
+internal fun asciiUpper(word: String): String = buildString(word.length) {
     for (c in word) append(if (c in 'a'..'z') c - ('a' - 'A') else c)
 }
 
-private fun Token.isKeyword(word: String): Boolean = this is Token.Word && asciiUpper(text) == word
+internal fun Token.isKeyword(word: String): Boolean = this is Token.Word && asciiUpper(text) == word
 
 private fun unexpected(): Reject = Reject(Unrecognized.UNEXPECTED_TOKEN)
 
@@ -28,6 +32,8 @@ private class TokenStream(private val tokens: List<Token>) {
     }
 
     fun atEnd(): Boolean = index >= tokens.size
+
+    fun peek(): Token? = tokens.getOrNull(index)
 
     fun keyword(word: String) {
         if (!next().isKeyword(word)) throw unexpected()
@@ -71,13 +77,29 @@ private class Parts(private val stream: TokenStream) {
         return if (stream.acceptSymbol('.')) TableRef(first, identifier()) else TableRef(null, first)
     }
 
-    fun whereClause(): List<Term> {
+    /** [constants] erlaubt den Konstantenterm `<Ganzzahl> = <Ganzzahl>`; nur eine Auswahl darf ihn tragen. */
+    fun whereClause(constants: Boolean = false): List<Term> {
         if (!stream.acceptKeyword("WHERE")) return emptyList()
         val terms = ArrayList<Term>()
         do {
-            terms += term()
+            terms += if (constants) constantOrTerm() else term()
         } while (stream.acceptKeyword("AND"))
         return terms
+    }
+
+    private fun constantOrTerm(): Term {
+        val left = stream.peek()
+        if (left !is Token.Number) return term()
+        stream.next()
+        stream.symbol('=')
+        val right = stream.next()
+        if (right !is Token.Number) throw unexpected()
+        return Term.Constant(integer(left) == integer(right))
+    }
+
+    private fun integer(token: Token.Number): BigInteger {
+        if (!INTEGER.matches(token.text)) throw Reject(Unrecognized.MALFORMED_NUMBER)
+        return BigInteger(token.text)
     }
 
     private fun term(): Term {
@@ -129,11 +151,14 @@ internal object StatementParser {
     private fun parse(scanned: List<Token>): Recognition {
         val tokens = if (scanned.lastOrNull() == Token.Symbol(';')) scanned.dropLast(1) else scanned
         if (tokens.isEmpty()) return Recognition.NotRecognized(Unrecognized.EMPTY_TEXT)
-        return try {
-            Recognition.Recognized(statement(TokenStream(tokens)))
-        } catch (reject: Reject) {
-            Recognition.NotRecognized(reject.reason)
-        }
+        val fixed = FixedForms.recognize(tokens)
+        return if (fixed != null) Recognition.Fixed(fixed) else table(tokens)
+    }
+
+    private fun table(tokens: List<Token>): Recognition = try {
+        Recognition.Recognized(statement(TokenStream(tokens)))
+    } catch (reject: Reject) {
+        Recognition.NotRecognized(reject.reason)
     }
 
     private fun statement(stream: TokenStream): Statement {
@@ -153,7 +178,7 @@ internal object StatementParser {
     private fun select(stream: TokenStream, parts: Parts): Statement {
         val columns = if (stream.acceptSymbol('*')) null else parts.list { parts.identifier() }
         stream.keyword("FROM")
-        return Statement.Select(parts.tableRef(), columns, parts.whereClause())
+        return Statement.Select(parts.tableRef(), columns, parts.whereClause(constants = true))
     }
 
     private fun insert(stream: TokenStream, parts: Parts): Statement {
