@@ -32,7 +32,7 @@ In Arbeit (Welle welle-qualitaet-grundlage):
 
 In Arbeit (Welle welle-testserver-manuell):
 
-- keiner; zuletzt geschlossen: [slice-testserver-up-down](../done/slice-testserver-up-down.md) (Closure-Notiz in §7 des Slice; offene Grenzen: TLS im Handlauf, Login mit eigener Benutzerliste; Folge: [slice-testserver-manuell-doku](../open/slice-testserver-manuell-doku.md))
+- keiner; zuletzt geschlossen: [slice-testserver-up-down](../done/slice-testserver-up-down.md) (Closure-Notiz in §7 des Slice; offene Grenzen: TLS im Handlauf, Login mit eigener Benutzerliste; Folge: [slice-testserver-manuell-doku](../next/slice-testserver-manuell-doku.md))
 
 In Arbeit (Welle welle-anfrageverarbeitung):
 

@@ -37,7 +37,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Die Targets selbst: [slice-testserver-up-down](../done/slice-testserver-up-down.md); diese Doku beschreibt gebaute Targets und beginnt erst, wenn der Slice in `done/` liegt.
-- Die Einbettung der Bibliothek in eine eigene Anwendung und die Release-Schritte: [slice-release-doku-prozess](slice-release-doku-prozess.md); der Testserver ist dort nur ein Verweis.
+- Die Einbettung der Bibliothek in eine eigene Anwendung und die Release-Schritte: [slice-release-doku-prozess](../open/slice-release-doku-prozess.md); der Testserver ist dort nur ein Verweis.
 - Der Nachvollzug von einem frischen Klon durch eine zweite Person: Closure-Trigger der Welle [welle-testserver-manuell](../welle-testserver-manuell.md), nicht dieses Slice.
 
 **Keine Mindestzahl.** Ein Slice mit *einem* echten Ausschluss ist besser als
