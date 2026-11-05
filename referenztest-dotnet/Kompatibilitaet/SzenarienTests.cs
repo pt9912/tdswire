@@ -192,7 +192,7 @@ public class SzenarienTests
     public void Anweisung_ausserhalb_der_erkannten_Formen_ist_ein_Anfragefehler_und_die_Verbindung_bleibt_nutzbar()
     {
         using var verbindung = Ziel.Oeffnen();
-        using var befehl = new SqlCommand("SELECT 1", verbindung);
+        using var befehl = new SqlCommand("SELECT 2", verbindung);
 
         var ausnahme = Assert.Throws<SqlException>(() => { befehl.ExecuteScalar(); });
 
