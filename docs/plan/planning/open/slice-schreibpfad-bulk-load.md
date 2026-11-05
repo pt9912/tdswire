@@ -102,6 +102,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 - Der Speicherbedarf bei großem Import ist nicht gemessen (Messpunkt iv); Gegendruck ist Setzung von Weg A. — **Ausgang:** offen bis zur Closure.
 - Vergleichswert eines echten SQL Servers fehlt (`BEO-TDS/messung-am-echten-sql-server-fehlt`): die Antwort auf das Massenladen ist eine Setzung, bis der Referenzabgleich sie misst. — **Ausgang:** offen bis zur Closure.
 - Der Vertrag oder die Callbacks wachsen; Reihenfolge zu [slice-oeffentliche-flaeche-verkleinern-und-belegen](slice-oeffentliche-flaeche-verkleinern-und-belegen.md) und [slice-e2e-backend-ausserhalb-modul](slice-e2e-backend-ausserhalb-modul.md) siehe [welle-testserver-manuell](../welle-testserver-manuell.md) §5. — **Ausgang:** offen bis zur Closure.
+- Der Client wählt den Typ seiner Parameter selbst: d-migrate 1.12.0 sendet Ganzzahlwerte als `bigint`, die strenge Überführung ([SPEC-035](../../../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends)) weitet nur `Int32` auf `Int64`; ein Filter `Id = 7` gegen eine `Int32`-Spalte endete im Export mit „Invalid value“ (Beobachtung [parametertyp-des-clients-passt-nicht-zur-spalte](../observations/BEO-TDS/parametertyp-des-clients-passt-nicht-zur-spalte/observation.md), Ursache aus dem Code gelesen, nicht gemessen). Der Slice prüft die Parameter seines Pfades gegen die Spaltentypen. — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 
