@@ -2,19 +2,23 @@
 # tools/testserver.sh - Testserver von Hand starten und stoppen (TDS-RB-01, TDS-QA-06, ADR-0025; Dockerfile-Stage
 # `testserver`). Aufruf ueber `make testserver-up|-down|-logs|-status`; BUILDER_FLAGS kommt aus der Umgebung.
 #
+# Voreinstellung: Loopback (127.0.0.1), Port 1433, Benutzer `alice` mit Kennwort `secret` im Testmodus ohne Verschluesselung
+# (Testwerte, Setzung); `up` nennt das in seiner Ausgabe und warnt bei einem Host ausser Loopback.
 # Zusage: `up` startet den Container im Hintergrund, veroeffentlicht den TDS-Port auf TESTSERVER_HOST (Voreinstellung
 # Loopback) und kehrt zurueck, sobald das Log `tdswire: gestartet, Port 1433` zeigt; `down` entfernt den Container. Das Image ist
 # ein lokales Test-Image ohne Registry (ADR-0025 Entscheidung 4). Nicht belegt: Annahme durch einen Client ausser dem
-# Rohbytes-Client des Selbsttests, TLS im Handlauf.
+# Rohbytes-Client des Selbsttests, TLS im Handlauf (REQUIRED mit TESTSERVER_TLS_SPEICHER), die Dateirechte der
+# kopierten Dateien, die Fehlerpfade des `docker cp` und ein Abbruch von `up` durch SIGINT (der Container bleibt dann
+# stehen, der naechste `up` meldet es).
 # Eingaenge (Umgebung): TESTSERVER_NAME, TESTSERVER_IMAGE, TESTSERVER_HOST, TESTSERVER_PORT, TESTSERVER_BAUEN (0 = Image
 # nicht bauen), TESTSERVER_VERSCHLUESSELUNG (TEST_UNENCRYPTED | REQUIRED), TESTSERVER_BENUTZER_DATEI,
-# TESTSERVER_BESCHREIBUNG, TESTSERVER_TLS_SPEICHER, TESTSERVER_TLS_PASSWORT_DATEI, TESTSERVER_FOLGEN (1 = Log verfolgen).
+# TESTSERVER_BESCHREIBUNG, TESTSERVER_TLS_SPEICHER, TESTSERVER_TLS_PASSWORT_DATEI, TESTSERVER_FOLGEN (1 = Log verfolgen), TESTSERVER_WARTEN (Sekunden bis zur Bereitschaft, Voreinstellung 60).
 # Kopplung: tools/testserver-selbsttest.sh mutiert die Zeilen mit dem Vermerk `zweig:<name>`.
 set -u
 
 NAME="${TESTSERVER_NAME:-tdswire-testserver}"
 IMAGE="${TESTSERVER_IMAGE:-tdswire-testserver:lokal}"
-HOST="${TESTSERVER_HOST:-127.0.0.1}"
+HOST="${TESTSERVER_HOST:-127.0.0.1}" # zweig:loopback
 PORT="${TESTSERVER_PORT:-1433}"
 VERSCHLUESSELUNG="${TESTSERVER_VERSCHLUESSELUNG:-TEST_UNENCRYPTED}"
 INTERN_PORT=1433
@@ -80,17 +84,17 @@ up() {
     exit 1 # zweig:port-belegt
   fi # zweig:port-belegt
 
-  for _ in $(seq 1 60); do
+  for _ in $(seq 1 "${TESTSERVER_WARTEN:-60}"); do
     if docker logs "$NAME" 2>&1 | grep -q "tdswire: gestartet, Port $INTERN_PORT"; then bereit=1; break; fi
     if [ "$(docker inspect --format '{{.State.Running}}' "$NAME")" != "true" ]; then break; fi
     sleep 1
   done
-  if [ "${bereit:-0}" != "1" ]; then
-    echo "testserver-up: der Server wurde nicht bereit; Log:" >&2
-    docker logs "$NAME" >&2
-    docker rm -f "$NAME" >/dev/null 2>&1
-    exit 1
-  fi
+  if [ "${bereit:-0}" != "1" ]; then # zweig:nicht-bereit
+    echo "testserver-up: der Server wurde nicht bereit; Log:" >&2 # zweig:nicht-bereit
+    docker logs "$NAME" >&2 # zweig:nicht-bereit
+    docker rm -f "$NAME" >/dev/null 2>&1 # zweig:nicht-bereit
+    exit 1 # zweig:nicht-bereit
+  fi # zweig:nicht-bereit
 
   echo "testserver-up: bereit auf $HOST:$PORT (Container $NAME, Image $IMAGE)"
   if [ -z "${TESTSERVER_BENUTZER_DATEI:-}" ]; then
@@ -104,8 +108,8 @@ up() {
     echo "testserver-up: Verschluesselung REQUIRED mit dem Schluesselspeicher aus TESTSERVER_TLS_SPEICHER"
   fi
   case "$HOST" in
-    127.0.0.1 | localhost | ::1) ;;
-    *) echo "testserver-up: WARNUNG: $HOST ist nicht Loopback; der Server ist im Netz erreichbar" ;;
+    127.0.0.1 | ::1 | '[::1]') ;;
+    *) echo "testserver-up: WARNUNG: $HOST ist nicht Loopback; der Server ist im Netz erreichbar" ;; # zweig:warnung
   esac
   echo "testserver-up: Stop mit 'make testserver-down', Log mit 'make testserver-logs'"
 }
