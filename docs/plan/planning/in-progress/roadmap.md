@@ -26,7 +26,7 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 
 In Arbeit (Welle welle-qualitaet-grundlage):
 
-- [slice-e2e-geruest](slice-e2e-geruest.md)
+- [slice-e2e-geruest](../next/slice-e2e-geruest.md)
 
 In Arbeit (Welle welle-anfrageverarbeitung):
 
