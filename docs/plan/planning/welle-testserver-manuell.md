@@ -79,7 +79,7 @@ Hürden in der Nummerierung der Sonde ([Messprotokoll](../../messungen/d-migrate
 | Slice | Hürde | Aufwand | Titel | Bezug |
 |---|---|---|---|---|
 | [slice-prelogin-serverversion](done/slice-prelogin-serverversion.md) | 1 | S | Server-Version in der PRELOGIN-Antwort so festlegen, dass der JDBC-Treiber (mssql-jdbc) den Testserver annimmt (aus [welle-qualitaet-grundlage](welle-qualitaet-grundlage.md) umgehängt) | [TDS-QA-01](../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [TDS-FA-01](../../../spec/lastenheft.md#tds-fa-01--verbindungsaufbau-und-protokollverhandlung), [ADR-0001](../adr/0001-tds-version-und-clientprofil.md) |
-| [slice-d-migrate-verbindung-und-export](in-progress/slice-d-migrate-verbindung-und-export.md) | 2, 3, 4, 5, 8 | M | `SELECT 1`, SET-Anweisungen ohne Ergebnis, `sp_executesql` mit einem Parameter und ohne Parameternamen, `WHERE 1 = 0`; Beleg: Anmeldung und `data export` mit d-migrate | [TDS-QA-01](../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [TDS-FA-04](../../../spec/lastenheft.md#tds-fa-04--parametrisierte-abfragen-über-rpc), [TDS-FA-11](../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-FA-12](../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate) |
+| [slice-d-migrate-verbindung-und-export](done/slice-d-migrate-verbindung-und-export.md) | 2, 3, 4, 5, 8 | M | `SELECT 1`, SET-Anweisungen ohne Ergebnis, `sp_executesql` mit einem Parameter und ohne Parameternamen, `WHERE 1 = 0`; Beleg: Anmeldung und `data export` mit d-migrate | [TDS-QA-01](../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [TDS-FA-04](../../../spec/lastenheft.md#tds-fa-04--parametrisierte-abfragen-über-rpc), [TDS-FA-11](../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-FA-12](../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate) |
 
 **Entscheidung (Voraussetzung für Katalog und Schreiben)** — Ort und Richtung sind gewählt (bestehende Callbacks, `QueryBackend` unverändert, Katalog-Anbieter; Setzung des Planners, vom Nutzer als Richtung gewählt, unter Vorbehalt des Spikes); offen sind FLOAT, Einschaltung, öffentliche Fläche, PRELOGIN-Wert, „abschließend“
 
@@ -116,7 +116,7 @@ Nicht im Soll und deshalb ohne Slice: Hürde 11 (`data profile`) und die Aggrega
 
 Gesamtaufwand nach der Schätzung der Sonde: zwei L (Katalog und Zustand, Massenladen), ein bis zwei L bis M (TLS, MERGE), mehrere S bis M; **Größenordnung Wochen, nicht Tage.** Die Schätzung ist nicht gemessen; die Summe ist keine Zusage.
 
-Reihenfolge: Start und Stop zuerst (geschlossen). Dann [slice-prelogin-serverversion](done/slice-prelogin-serverversion.md) und, auf ihm aufbauend, [slice-d-migrate-verbindung-und-export](in-progress/slice-d-migrate-verbindung-und-export.md); unabhängig davon die Entscheidung [slice-adr-testserver-bestand-und-katalog](open/slice-adr-testserver-bestand-und-katalog.md). Nach der Entscheidung Katalog und Zustand, danach Massenladen und MERGE (voneinander unabhängig). [slice-tls-d-migrate](in-progress/slice-tls-d-migrate.md) hängt nur an der PRELOGIN-Version. Zuletzt die Abnahme. Den Nachvollzug (Closure-Trigger) liefert die Welle, nicht ein Slice; die Abnahme ist der Slice, der ihn trägt.
+Reihenfolge: Start und Stop zuerst (geschlossen). Dann [slice-prelogin-serverversion](done/slice-prelogin-serverversion.md) und, auf ihm aufbauend, [slice-d-migrate-verbindung-und-export](done/slice-d-migrate-verbindung-und-export.md); unabhängig davon die Entscheidung [slice-adr-testserver-bestand-und-katalog](open/slice-adr-testserver-bestand-und-katalog.md). Nach der Entscheidung Katalog und Zustand, danach Massenladen und MERGE (voneinander unabhängig). [slice-tls-d-migrate](in-progress/slice-tls-d-migrate.md) hängt nur an der PRELOGIN-Version. Zuletzt die Abnahme. Den Nachvollzug (Closure-Trigger) liefert die Welle, nicht ein Slice; die Abnahme ist der Slice, der ihn trägt.
 
 ## 5. Abhängigkeiten
 
@@ -127,7 +127,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 Kanten innerhalb der Welle (A → B heißt: B startet erst, wenn A in `done/` liegt):
 
 - Freigabe des Wortlauts von Lastenheft 0.7.0 durch den Nutzer (2026-11-05, erfüllt) → [slice-adr-testserver-bestand-und-katalog](open/slice-adr-testserver-bestand-und-katalog.md).
-- [slice-prelogin-serverversion](done/slice-prelogin-serverversion.md) → [slice-d-migrate-verbindung-und-export](in-progress/slice-d-migrate-verbindung-und-export.md) und → [slice-tls-d-migrate](in-progress/slice-tls-d-migrate.md).
+- [slice-prelogin-serverversion](done/slice-prelogin-serverversion.md) → [slice-d-migrate-verbindung-und-export](done/slice-d-migrate-verbindung-und-export.md) und → [slice-tls-d-migrate](in-progress/slice-tls-d-migrate.md).
 - [slice-adr-testserver-bestand-und-katalog](open/slice-adr-testserver-bestand-und-katalog.md) → [slice-katalog-und-ddl-zustand](open/slice-katalog-und-ddl-zustand.md) → [slice-schreibpfad-bulk-load](open/slice-schreibpfad-bulk-load.md) und [slice-schreibpfad-merge-output](open/slice-schreibpfad-merge-output.md).
 - Alle Slices des Solls → [slice-abnahme-d-migrate](open/slice-abnahme-d-migrate.md).
 

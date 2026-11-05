@@ -34,7 +34,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 - Schreiben von Zeilen (Einfügen, Massenladen, MERGE) — [slice-schreibpfad-bulk-load](slice-schreibpfad-bulk-load.md) und [slice-schreibpfad-merge-output](slice-schreibpfad-merge-output.md); hier nur Struktur.
 - Die Entscheidungen zu Weitergabe, Katalog nach Änderungen, FLOAT und Fläche — [slice-adr-testserver-bestand-und-katalog](slice-adr-testserver-bestand-und-katalog.md); dieser Slice setzt sie um. Die Verteilung (Bibliothek = Funktion ohne Speicher, Testserver = Integrator) ist entschieden (Nutzer, 2026-11-05).
-- Anmeldung, SET-Anweisungen, `sp_executesql`-Formen und `WHERE 1 = 0` — [slice-d-migrate-verbindung-und-export](../in-progress/slice-d-migrate-verbindung-und-export.md).
+- Anmeldung, SET-Anweisungen, `sp_executesql`-Formen und `WHERE 1 = 0` — [slice-d-migrate-verbindung-und-export](../done/slice-d-migrate-verbindung-und-export.md).
 - Katalogsichten, die kein Lauf des Solls stellt (zum Beispiel Partitionen oder Volltextindizes mit Inhalt): erst die Sichten, die die Läufe tatsächlich abfragen; im Rest antworten leere Resultsets mit den Spalten (die Sonde: leere Antworten genügen für `--include-all`, gemessen nur gegen ihr aufzeichnendes Backend).
 - Typ FLOAT, soweit die Entscheidung ihn nicht aufnimmt (Hürde 12).
 

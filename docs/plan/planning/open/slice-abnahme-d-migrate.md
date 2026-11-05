@@ -76,7 +76,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): Alle anderen Slices der Welle [welle-testserver-manuell](../welle-testserver-manuell.md) für das Soll liegen in `done/`: [slice-prelogin-serverversion](../done/slice-prelogin-serverversion.md), [slice-d-migrate-verbindung-und-export](../in-progress/slice-d-migrate-verbindung-und-export.md), [slice-katalog-und-ddl-zustand](slice-katalog-und-ddl-zustand.md), [slice-schreibpfad-bulk-load](slice-schreibpfad-bulk-load.md), [slice-schreibpfad-merge-output](slice-schreibpfad-merge-output.md), [slice-tls-d-migrate](../in-progress/slice-tls-d-migrate.md).
+**Start** (`next` → `in-progress`): Alle anderen Slices der Welle [welle-testserver-manuell](../welle-testserver-manuell.md) für das Soll liegen in `done/`: [slice-prelogin-serverversion](../done/slice-prelogin-serverversion.md), [slice-d-migrate-verbindung-und-export](../done/slice-d-migrate-verbindung-und-export.md), [slice-katalog-und-ddl-zustand](slice-katalog-und-ddl-zustand.md), [slice-schreibpfad-bulk-load](slice-schreibpfad-bulk-load.md), [slice-schreibpfad-merge-output](slice-schreibpfad-merge-output.md), [slice-tls-d-migrate](../in-progress/slice-tls-d-migrate.md).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

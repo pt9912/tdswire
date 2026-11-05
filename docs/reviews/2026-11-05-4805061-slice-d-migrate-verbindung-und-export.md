@@ -8,7 +8,7 @@
 
 **Eingangs-Kontext:**
 
-- Plan: [slice-d-migrate-verbindung-und-export](../plan/planning/in-progress/slice-d-migrate-verbindung-und-export.md) (DoD, §1, §3, §6)
+- Plan: [slice-d-migrate-verbindung-und-export](../plan/planning/done/slice-d-migrate-verbindung-und-export.md) (DoD, §1, §3, §6)
 - [ADR-0025](../plan/adr/0025-produktschnitt-bibliothek-und-testserver.md) und [ADR-0026](../plan/adr/0026-oeffentlichkeit-simulations-backend-und-katalog.md) (siehe Hinweis unten)
 - [TDS-FA-11](../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-FA-12](../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), [TDS-QA-01](../../spec/lastenheft.md#tds-qa-01--kompatibilität)
 - `AGENTS.md` §3.2, §3.6, §3.7, §3.8

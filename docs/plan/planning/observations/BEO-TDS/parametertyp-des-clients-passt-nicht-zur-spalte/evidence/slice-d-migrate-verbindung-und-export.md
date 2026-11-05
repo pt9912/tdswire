@@ -1,2 +1,2 @@
-**Vorgang:** [slice-d-migrate-verbindung-und-export](../../../../in-progress/slice-d-migrate-verbindung-und-export.md)
+**Vorgang:** [slice-d-migrate-verbindung-und-export](../../../../done/slice-d-migrate-verbindung-und-export.md)
 **Fund:** Messung 2026-11-05, d-migrate 1.12.0 gegen den Testserver, `data export --tables kunden --filter "Id = 7"`: Exit 5, „Failed to export table 'kunden': Invalid value.“; `--filter "Name = 'Ada'"` und `--filter "Name IS NULL"` Exit 0 ([Messprotokoll](../../../../../../messungen/d-migrate-verbindung-und-export-2026-11-05.md)). Einzelmessung, ein Host. Ursache (`bigint` gegen `Int32`) aus dem Code gelesen, nicht gemessen.

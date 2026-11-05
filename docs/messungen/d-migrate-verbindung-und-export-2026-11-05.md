@@ -1,6 +1,6 @@
 # d-migrate meldet sich an und exportiert: Messprotokoll vom 2026-11-05
 
-Messprotokoll zu [TDS-QA-01](../../spec/lastenheft.md#tds-qa-01--kompatibilität) und [TDS-FA-12](../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate) (`AGENTS.md` §5 Regel 7), Träger: [slice-d-migrate-verbindung-und-export](../plan/planning/in-progress/slice-d-migrate-verbindung-und-export.md). Es hält fest, was gemessen wurde, nicht, ob eine Anforderung belegt ist. Gegenstand sind die Hürden 2 bis 5 und 8 der [Sonde](d-migrate-sonde-2026-11-05.md); anders als dort läuft der Testserver ohne Eingriffe, ohne aufzeichnendes Backend und ohne Protokoll-Hacks.
+Messprotokoll zu [TDS-QA-01](../../spec/lastenheft.md#tds-qa-01--kompatibilität) und [TDS-FA-12](../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate) (`AGENTS.md` §5 Regel 7), Träger: [slice-d-migrate-verbindung-und-export](../plan/planning/done/slice-d-migrate-verbindung-und-export.md). Es hält fest, was gemessen wurde, nicht, ob eine Anforderung belegt ist. Gegenstand sind die Hürden 2 bis 5 und 8 der [Sonde](d-migrate-sonde-2026-11-05.md); anders als dort läuft der Testserver ohne Eingriffe, ohne aufzeichnendes Backend und ohne Protokoll-Hacks.
 
 ## Bedingungen
 
