@@ -1,0 +1,26 @@
+schema_format: "1.0"
+name: manuell
+version: "1"
+tables:
+  kunden:
+    columns:
+      Id:
+        type: identifier
+      Name:
+        type: text
+        max_length: 100
+      Eintritt:
+        type: date
+    primary_key: [Id]
+  bestellungen:
+    columns:
+      Id:
+        type: identifier
+      KundenId:
+        type: integer
+        required: true
+      Betrag:
+        type: decimal
+        precision: 10
+        scale: 2
+    primary_key: [Id]
