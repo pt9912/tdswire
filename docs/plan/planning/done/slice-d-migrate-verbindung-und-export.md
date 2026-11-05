@@ -33,7 +33,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - PRELOGIN-Version (Hürde 1) — [slice-prelogin-serverversion](../done/slice-prelogin-serverversion.md); ohne sie kommt die Anmeldung nicht bis hierher, der Slice setzt sie voraus.
-- Katalogabfragen auf `sys.*` und `INFORMATION_SCHEMA` (Hürde 6) und Zustand nach DDL (Hürde 7) — [slice-katalog-und-ddl-zustand](../open/slice-katalog-und-ddl-zustand.md); sie hängen an der Entscheidung in [slice-adr-testserver-bestand-und-katalog](../open/slice-adr-testserver-bestand-und-katalog.md), der Ort des Katalogs ist offen.
+- Katalogabfragen auf `sys.*` und `INFORMATION_SCHEMA` (Hürde 6) und Zustand nach DDL (Hürde 7) — [slice-katalog-und-ddl-zustand](../open/slice-katalog-und-ddl-zustand.md); sie hängen an der Entscheidung in [slice-adr-testserver-bestand-und-katalog](../next/slice-adr-testserver-bestand-und-katalog.md), der Ort des Katalogs ist offen.
 - Schreiben in Tabellen (Hürden 9 und 10) — [slice-schreibpfad-bulk-load](../open/slice-schreibpfad-bulk-load.md) und [slice-schreibpfad-merge-output](../open/slice-schreibpfad-merge-output.md); hier nur Lesen.
 - Zeilen im Export: Tabellen aus der Beschreibungsdatei haben keine Zeilen (SPEC-035, Setzung, `docs/user/testserver-manuell.md`); der Beleg dieses Slice ist ein Export ohne Zeilen. Zeilen belegt der Schreibpfad und die Abnahme.
 - TLS mit dem Standard des Treibers (Hürde 13) — [slice-tls-d-migrate](../done/slice-tls-d-migrate.md); die Belege dieses Slice laufen mit `encrypt=false` gegen `TEST_UNENCRYPTED`.
@@ -85,7 +85,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): mehr als drei Liefer-Punkte; Schnittvorschlag: Protokoll (Hürden 4, 5) und Anweisungsformen (2, 3, 8) trennen.
-- `in-progress` → `open` (blockiert): die Entscheidung in [slice-adr-testserver-bestand-und-katalog](../open/slice-adr-testserver-bestand-und-katalog.md) ändert den Zuschnitt der öffentlichen Fläche.
+- `in-progress` → `open` (blockiert): die Entscheidung in [slice-adr-testserver-bestand-und-katalog](../next/slice-adr-testserver-bestand-und-katalog.md) ändert den Zuschnitt der öffentlichen Fläche.
 
 ## 5. Closure-Trigger
 

@@ -28,7 +28,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Ziel:** Die Bibliothek decodiert das Massenladen (Paket 0x07), ordnet Spalten zu, wandelt Typen und gibt die Zeilen mit Gegendruck an den bestehenden Einfüge-Callback weiter (Weg A); der Testserver speichert sie in seinem Arbeitsspeicher, sodass `data import` und `data transfer` von d-migrate im Standardpfad (SQLServerBulkCopy) durchlaufen und ein anschließender Export die Zeilen enthält (Hürde 9 der Sonde).
 
-**Quelle und Vorbehalt.** Auslöser ist die Sonde vom 2026-11-05 ([d-migrate-sonde-2026-11-05](../../../messungen/d-migrate-sonde-2026-11-05.md)). Ihr Vorbehalt gilt hier: alles, was dort „lief“, lief gegen erfundene Katalogantworten; belegt ist, was d-migrate sendet und dass Treiber und d-migrate die TDS-Antworten der Bibliothek verarbeiten. Aufwandsgrößen (S/M/L) sind Schätzungen der Sonde, nicht gemessen. Gemessen ist nur, was d-migrate vor dem Paket sendet (`INSERT BULK [dbo].[kunden] (...) with (...)`, `SET FMTONLY ON`-Proben, `select collation_name, is_computed from sys.columns ...`); das Paket 0x07 selbst und die Reaktion des Treibers auf unsere Antwort sind nicht gemessen. **Hülle:** Der Plan ist knapp; der Implementer erweitert §3 im ersten Lauf, nachdem die Entscheidung in [slice-adr-testserver-bestand-und-katalog](slice-adr-testserver-bestand-und-katalog.md) vorliegt (Form der Weitergabe und Namen der Fläche hängen an ihr). **Aufteilung:** Die Funktion liegt in der Bibliothek (`src/main`, Packages `simulation`, `protocol`); der Testserver (`src/testserver`) ist Integrator: Bestand, Callbacks, Beispieltabellen. Jeder Liefer-Punkt unten nennt seinen Anteil.
+**Quelle und Vorbehalt.** Auslöser ist die Sonde vom 2026-11-05 ([d-migrate-sonde-2026-11-05](../../../messungen/d-migrate-sonde-2026-11-05.md)). Ihr Vorbehalt gilt hier: alles, was dort „lief“, lief gegen erfundene Katalogantworten; belegt ist, was d-migrate sendet und dass Treiber und d-migrate die TDS-Antworten der Bibliothek verarbeiten. Aufwandsgrößen (S/M/L) sind Schätzungen der Sonde, nicht gemessen. Gemessen ist nur, was d-migrate vor dem Paket sendet (`INSERT BULK [dbo].[kunden] (...) with (...)`, `SET FMTONLY ON`-Proben, `select collation_name, is_computed from sys.columns ...`); das Paket 0x07 selbst und die Reaktion des Treibers auf unsere Antwort sind nicht gemessen. **Hülle:** Der Plan ist knapp; der Implementer erweitert §3 im ersten Lauf, nachdem die Entscheidung in [slice-adr-testserver-bestand-und-katalog](../next/slice-adr-testserver-bestand-und-katalog.md) vorliegt (Form der Weitergabe und Namen der Fläche hängen an ihr). **Aufteilung:** Die Funktion liegt in der Bibliothek (`src/main`, Packages `simulation`, `protocol`); der Testserver (`src/testserver`) ist Integrator: Bestand, Callbacks, Beispieltabellen. Jeder Liefer-Punkt unten nennt seinen Anteil.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -78,12 +78,12 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-adr-testserver-bestand-und-katalog](slice-adr-testserver-bestand-und-katalog.md) liegt in `done/` (Weitergabe, Katalog nach Änderungen und Fläche entschieden) und [slice-katalog-und-ddl-zustand](slice-katalog-und-ddl-zustand.md) liegt in `done/` (Katalog und veränderlicher Bestand des Testservers bestehen).
+**Start** (`next` → `in-progress`): [slice-adr-testserver-bestand-und-katalog](../next/slice-adr-testserver-bestand-und-katalog.md) liegt in `done/` (Weitergabe, Katalog nach Änderungen und Fläche entschieden) und [slice-katalog-und-ddl-zustand](slice-katalog-und-ddl-zustand.md) liegt in `done/` (Katalog und veränderlicher Bestand des Testservers bestehen).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): mehr als drei Liefer-Punkte; Schnittvorschlag: Anteil der Bibliothek und Anteil des Testservers als zwei Slices.
-- `in-progress` → `open` (blockiert): die Entscheidung in [slice-adr-testserver-bestand-und-katalog](slice-adr-testserver-bestand-und-katalog.md) trägt den Fall nicht oder wird überstimmt.
+- `in-progress` → `open` (blockiert): die Entscheidung in [slice-adr-testserver-bestand-und-katalog](../next/slice-adr-testserver-bestand-und-katalog.md) trägt den Fall nicht oder wird überstimmt.
 
 ## 5. Closure-Trigger
 
