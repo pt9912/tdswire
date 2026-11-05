@@ -1,0 +1,2 @@
+**Vorgang:** slice-e2e-geruest
+**Fund:** Verifikation V-1 ([Verifikation](../../../../../../reviews/2026-11-05-c012ede-verifikation-slice-e2e-geruest.md)): Die Folge-Stufen-Tabelle im Slice-Plan („Stand 2026-10-31“) widersprach der erzeugten Sicht `docs/plan/e2e-abdeckung.md` in fünf Zeilen (FA-04/FA-05, QA-01/RB-02, QA-03 TLS, FA-11, QA-02): die Sicht deklarierte die Kennungen längst in den Stufen 4 bis 6. Die Tabelle wurde zur Closure gegen die Sicht nachgezogen und nennt für die Stufen 4 bis 7 nur noch den Zeiger auf die Sicht.
