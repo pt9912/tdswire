@@ -28,7 +28,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Ziel:** Ein Validator-Agent in frischem Kontext ohne Planwissen führt nach der Anleitung `docs/user/testserver-manuell.md` alle Funktionen des Solls mit d-migrate 1.12.0 gegen den Testserver aus und belegt jede mit der Ausgabe: Anmeldung (unverschlüsselt und mit `encrypt=true`), `data export`, `schema reverse`, `schema compare`, `schema migrate` einschließlich `--execute`, `data import` und `data transfer` im Standardpfad und mit `--on-conflict skip|update`. Das ist das „Mehr“ der Welle [welle-testserver-manuell](../welle-testserver-manuell.md) gegenüber den Slice-DoDs.
 
-**Quelle und Vorbehalt.** Auslöser ist die Sonde vom 2026-11-05 ([d-migrate-sonde-2026-11-05](../../../messungen/d-migrate-sonde-2026-11-05.md)). Ihr Vorbehalt gilt hier: alles, was dort „lief“, lief gegen erfundene Katalogantworten; belegt ist, was d-migrate sendet und dass Treiber und d-migrate die TDS-Antworten der Bibliothek verarbeiten. Aufwandsgrößen (S/M/L) sind Schätzungen der Sonde, nicht gemessen. Dieser Slice ist der Beleg, den die Sonde nicht liefern konnte: gegen einen Server, der den Katalog und den Bestand selbst führt, nicht gegen vorbereitete Antworten.
+**Quelle und Vorbehalt.** Auslöser ist die Sonde vom 2026-11-05 ([d-migrate-sonde-2026-11-05](../../../messungen/d-migrate-sonde-2026-11-05.md)). Ihr Vorbehalt gilt hier: alles, was dort „lief“, lief gegen erfundene Katalogantworten; belegt ist, was d-migrate sendet und dass Treiber und d-migrate die TDS-Antworten der Bibliothek verarbeiten. Aufwandsgrößen (S/M/L) sind Schätzungen der Sonde, nicht gemessen. Dieser Slice ist der Beleg, den die Sonde nicht liefern konnte: gegen die Bibliothek mit dem Testserver als Integrator (Katalog aus den mitgeteilten Tabellen, Bestand im Arbeitsspeicher des Testservers), nicht gegen vorbereitete Antworten.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -46,7 +46,7 @@ Liefer-Punkte (3):
 
 - [ ] **Lauf durch den Validator:** Ein Agent des Typs `validator` in frischem Kontext führt die Funktionen des Solls aus (Rechner, Last, Image-Digest von d-migrate und Testserver, Befehle, Exit-Codes, Auszüge der Ausgabe); jede Abweichung von der Anleitung ist ein Fund.
 - [ ] **Beleg je Funktion:** eine Zeile je Funktion in einem Messprotokoll unter `docs/messungen/` mit Exit-Code und dem Zustand danach (Export nach Import, Struktur nach `--execute`); nicht gelaufene Funktionen stehen als nicht gelaufen, nicht als grün.
-- [ ] **Anleitung nachgezogen:** `docs/user/testserver-manuell.md` beschreibt den Ist-Zustand (keine Chronik): die Grenze zu JDBC und die Aussage „Tabellen aus der Datei sind leer, Einfügen wird abgewiesen“ entsprechen dem Stand nach der Welle.
+- [ ] **Anleitung nachgezogen:** `docs/user/testserver-manuell.md` beschreibt den Ist-Zustand (keine Chronik): die Grenze zu JDBC und die Aussage „Tabellen aus der Datei sind leer, Einfügen wird abgewiesen“ entsprechen dem Stand nach der Welle; sie nennt, wie der Bestand des Testservers zustande kommt und was er nicht tut (keine Dauerhaftigkeit).
 
 Nachweis-Pflichten für alle Punkte:
 

@@ -84,7 +84,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): mehr als drei Liefer-Punkte; Schnittvorschlag: Protokoll (Hürden 4, 5) und Anweisungsformen (2, 3, 8) trennen.
-- `in-progress` → `open` (blockiert): die Frage, ob die Formen in der Bibliothek (Simulations-Backend) oder im Testserver (Custom-Backend) erkannt werden, ist durch [slice-adr-testserver-bestand-und-katalog](slice-adr-testserver-bestand-und-katalog.md) noch nicht entschieden und berührt die öffentliche Fläche.
+- `in-progress` → `open` (blockiert): die Sichtprüfung von [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend)/[TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate) steht aus oder die Entscheidung in [slice-adr-testserver-bestand-und-katalog](slice-adr-testserver-bestand-und-katalog.md) ändert den Zuschnitt der öffentlichen Fläche.
 
 ## 5. Closure-Trigger
 
@@ -98,7 +98,7 @@ DoD vollständig, `make gates` grün, die Ausgabe des d-migrate-Laufs liegt vor,
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Offene Risiken werden bei Closure aufgelöst — jedes Risiko bekommt genau einen Ausgang.
 
-- Formen für d-migrate in der Bibliothek zu erkennen weitet das Simulations-Backend über den Referenzclient hinaus; ob das vom Lastenheft gedeckt ist, entscheidet [TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate) (Wortlaut noch nicht freigegeben) und die Entscheidung in [slice-adr-testserver-bestand-und-katalog](slice-adr-testserver-bestand-und-katalog.md). — **Ausgang:** offen bis zur Closure.
+- Die Formen für d-migrate stehen in der Bibliothek (Nutzerentscheidung 2026-11-05: die Funktionalität ist in der Lib) und weiten das Simulations-Backend über den Referenzclient hinaus; gedeckt ist das vom Prüfclient d-migrate in [TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), dessen Wortlaut der Nutzer noch nicht gesichtet hat. — **Ausgang:** offen bis zur Closure.
 - Die Handvektoren der Pakete stammen aus einem Treiber, der nicht Teil des Clientprofils ist ([TDS-RB-02](../../../../spec/lastenheft.md#tds-rb-02--externer-client)); die Aussage gilt für mssql-jdbc 13.4.0, nicht für andere Versionen. — **Ausgang:** offen bis zur Closure.
 - Eine Änderung an `RpcParameters` kann den .NET-Referenzclient berühren (anderer Parameterpfad); nicht gemessen. — **Ausgang:** offen bis zur Closure.
 

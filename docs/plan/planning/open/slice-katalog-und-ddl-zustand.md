@@ -1,4 +1,4 @@
-# Slice slice-katalog-und-ddl-zustand: Katalog-Adapter (sys.*, INFORMATION_SCHEMA) und Zustand nach DDL für schema reverse, compare und migrate --execute
+# Slice slice-katalog-und-ddl-zustand: Katalog aus den mitgeteilten Tabellen und Strukturänderung über den Integrator: schema reverse, compare und migrate --execute
 
 **Lifecycle:** Der Zustand dieses Slice ist das Verzeichnis, in dem diese
 Datei liegt — eines von `open/`, `next/`, `in-progress/`, `done/`. Er
@@ -26,16 +26,16 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Ziel-Form: Slice — Schnitt nach Lieferwert; jeder Ausschluss mit Begründung.
 
-**Ziel:** Die Katalogabfragen, die d-migrate für `schema reverse` (auch `--include-all`), `schema compare` und `schema migrate` stellt, werden aus dem Bestand der Tabellen beantwortet, und DDL (`CREATE TABLE`, `ALTER TABLE ... ADD`) ändert diesen Bestand, sodass die Nachprüfung von `schema migrate --execute` besteht (Hürden 6 und 7 der Sonde).
+**Ziel:** Die Bibliothek beantwortet die Katalogabfragen, die d-migrate für `schema reverse` (auch `--include-all`), `schema compare` und `schema migrate` stellt, aus den ihr mitgeteilten Tabellen, gibt DDL (`CREATE TABLE`, `ALTER TABLE ... ADD`) an den Integrator weiter und zeigt danach die geänderte Struktur; der Testserver legt als Integrator die Tabellen an, hält sie veränderlich im Arbeitsspeicher und führt die DDL aus, sodass die Nachprüfung von `schema migrate --execute` besteht (Hürden 6 und 7 der Sonde).
 
-**Quelle und Vorbehalt.** Auslöser ist die Sonde vom 2026-11-05 ([d-migrate-sonde-2026-11-05](../../../messungen/d-migrate-sonde-2026-11-05.md)). Ihr Vorbehalt gilt hier: alles, was dort „lief“, lief gegen erfundene Katalogantworten; belegt ist, was d-migrate sendet und dass Treiber und d-migrate die TDS-Antworten der Bibliothek verarbeiten. Aufwandsgrößen (S/M/L) sind Schätzungen der Sonde, nicht gemessen. Die Sonde sah 26 bis 29 Katalogabfragen je `schema reverse` und die DDL des `--execute`-Laufs; die Antworten waren erfunden. **Hülle:** Der Plan ist knapp; der Implementer erweitert §3 im ersten Lauf, nachdem die Entscheidung in [slice-adr-testserver-bestand-und-katalog](slice-adr-testserver-bestand-und-katalog.md) vorliegt (Ort und Schnitt hängen an ihr).
+**Quelle und Vorbehalt.** Auslöser ist die Sonde vom 2026-11-05 ([d-migrate-sonde-2026-11-05](../../../messungen/d-migrate-sonde-2026-11-05.md)). Ihr Vorbehalt gilt hier: alles, was dort „lief“, lief gegen erfundene Katalogantworten; belegt ist, was d-migrate sendet und dass Treiber und d-migrate die TDS-Antworten der Bibliothek verarbeiten. Aufwandsgrößen (S/M/L) sind Schätzungen der Sonde, nicht gemessen. Die Sonde sah 26 bis 29 Katalogabfragen je `schema reverse` und die DDL des `--execute`-Laufs; die Antworten waren erfunden. **Hülle:** Der Plan ist knapp; der Implementer erweitert §3 im ersten Lauf, nachdem die Entscheidung in [slice-adr-testserver-bestand-und-katalog](slice-adr-testserver-bestand-und-katalog.md) vorliegt (Form der Weitergabe und Namen der Fläche hängen an ihr). **Aufteilung:** Die Funktion liegt in der Bibliothek (`src/main`, Packages `simulation`, `protocol`); der Testserver (`src/testserver`) ist Integrator: Bestand, Callbacks, Beispieltabellen. Jeder Liefer-Punkt unten nennt seinen Anteil.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Schreiben von Zeilen (Einfügen, Massenladen, MERGE) — [slice-schreibpfad-bulk-load](slice-schreibpfad-bulk-load.md) und [slice-schreibpfad-merge-output](slice-schreibpfad-merge-output.md); hier nur Struktur.
-- Die Entscheidung über Ort von Katalog und Bestand — [slice-adr-testserver-bestand-und-katalog](slice-adr-testserver-bestand-und-katalog.md); dieser Slice setzt sie um.
+- Die Entscheidungen zu Weitergabe, Katalog nach Änderungen, FLOAT und Fläche — [slice-adr-testserver-bestand-und-katalog](slice-adr-testserver-bestand-und-katalog.md); dieser Slice setzt sie um. Die Verteilung (Bibliothek = Funktion ohne Speicher, Testserver = Integrator) ist entschieden (Nutzer, 2026-11-05).
 - Anmeldung, SET-Anweisungen, `sp_executesql`-Formen und `WHERE 1 = 0` — [slice-d-migrate-verbindung-und-export](slice-d-migrate-verbindung-und-export.md).
-- Katalogsichten, die kein Lauf des Solls stellt (zum Beispiel Partitionen oder Volltextindizes mit Inhalt): erst die Sichten, die die Läufe tatsächlich abfragen, im Rest antworten leere Resultsets mit den Spalten (die Sonde: leere Antworten genügen für `--include-all`, gemessen nur gegen ihr aufzeichnendes Backend).
+- Katalogsichten, die kein Lauf des Solls stellt (zum Beispiel Partitionen oder Volltextindizes mit Inhalt): erst die Sichten, die die Läufe tatsächlich abfragen; im Rest antworten leere Resultsets mit den Spalten (die Sonde: leere Antworten genügen für `--include-all`, gemessen nur gegen ihr aufzeichnendes Backend).
 - Typ FLOAT, soweit die Entscheidung ihn nicht aufnimmt (Hürde 12).
 
 ## 2. Definition of Done
@@ -45,9 +45,9 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 Liefer-Punkte (3):
 
-- [ ] **Katalog:** Die Abfragen von `schema reverse` und `schema compare` (Tabellen, Spalten mit Typ, Schlüssel, Indizes, Defaults, Prüfbedingungen; Sichten, Sequenzen, Routinen leer) werden aus dem Bestand beantwortet; ein Test je Abfragegruppe liest die Antwort mit dem Treiber oder mit Handvektoren aus einem erneuten Mitschnitt.
-- [ ] **Zustand nach DDL:** `CREATE TABLE`, `ALTER TABLE ... ADD` und die Transaktionsanweisungen als SQL-Text (`set implicit_transactions on|off`, `IF @@TRANCOUNT > 0 COMMIT TRAN`) werden angenommen; ein folgendes `schema reverse` zeigt die geänderte Struktur. Rücknahme über mehrere Anweisungen ist Out-of-Scope von [TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate).
-- [ ] **Beleg am fremden Client:** `schema reverse`, `schema compare` und `schema migrate --execute` von d-migrate 1.12.0 gegen den Testserver enden mit Exit 0; die Ausgabe (inklusive der Nachprüfung) steht mit Rechner, Last und Image-Digest im Slice oder in einem Messprotokoll.
+- [ ] **Bibliothek, Katalog:** Die Abfragen von `schema reverse` und `schema compare` (Tabellen, Spalten mit Typ, Schlüssel, Indizes, Defaults, Prüfbedingungen; Sichten, Sequenzen, Routinen leer) werden aus den mitgeteilten Tabellen beantwortet; ein Test je Abfragegruppe liest die Antwort mit dem Treiber oder mit Handvektoren aus einem erneuten Mitschnitt.
+- [ ] **Bibliothek, Strukturänderung:** `CREATE TABLE`, `ALTER TABLE ... ADD` und die Transaktionsanweisungen als SQL-Text (`set implicit_transactions on|off`, `IF @@TRANCOUNT > 0 COMMIT TRAN`) werden erkannt, die DDL geht nach der Entscheidung an den Integrator, und der Katalog zeigt danach die vom Integrator gemeldete Struktur. Rücknahme über mehrere Anweisungen ist Out-of-Scope von [TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate).
+- [ ] **Testserver und Beleg:** Der Testserver hält die Tabellen veränderlich im Arbeitsspeicher, implementiert die Struktur-Callbacks und teilt der API die Tabellen mit; `schema reverse`, `schema compare` und `schema migrate --execute` von d-migrate 1.12.0 enden mit Exit 0; die Ausgabe (inklusive der Nachprüfung) steht mit Rechner, Last und Image-Digest im Slice oder in einem Messprotokoll.
 
 Nachweis-Pflichten für alle Punkte:
 
@@ -68,21 +68,22 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| Katalog-Adapter (Ort laut ADR) | neu | Ableitung von `sys.*` aus dem Bestand; Umfang laut Sonde Hürde 6 |
-| Bestand mit DDL (Ort laut ADR) | neu | veränderlich, nur im Arbeitsspeicher ([TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate)) |
-| `spec/spezifikation.md` | update | Formen und Katalog festlegen; Setzung gekennzeichnet |
-| Tests; `tools/` und `make`-Lauf mit d-migrate | neu | Lauf mit Image per Digest, nicht in `make gates` (Muster [ADR-0022](../../adr/0022-e2e-laeufe-nicht-in-den-gates.md)-Läufe: Docker, netzfrei prüfen) |
+| `src/main/kotlin/io/github/pt9912/tdswire/simulation/` (Katalog-Ableitung, DDL-Formen, `internal`) | neu / update | Ableitung von `sys.*` aus den mitgeteilten Tabellen; Umfang laut Sonde Hürde 6 |
+| `src/main/kotlin/io/github/pt9912/tdswire/runtime/SimulationSetup.kt` und die Weitergabe (Callback oder Vertrag nach ADR) | update | DDL an den Integrator, Katalog danach (Frage 2 der ADR); öffentliche Namen nur nach Begründung |
+| `src/testserver/kotlin/` (Bestand, Callbacks, Beispieltabellen) | update | Integrator-Anteil: veränderlicher Bestand im Arbeitsspeicher; keine Katalog- oder Parserlogik dort |
+| `spec/spezifikation.md` SPEC-035, SPEC-036, SPEC-040, SPEC-059 | update | Formen, Katalog und Weitergabe festlegen; Setzungen gekennzeichnet |
+| Tests; Lauf mit d-migrate | neu | Lauf mit Image per Digest, nicht in `make gates`; ob ein `make`-Ziel entsteht, entscheidet [slice-abnahme-d-migrate](slice-abnahme-d-migrate.md) |
 
 ## 4. Trigger
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-adr-testserver-bestand-und-katalog](slice-adr-testserver-bestand-und-katalog.md) liegt in `done/` (Ort des Katalogs und des Bestands entschieden).
+**Start** (`next` → `in-progress`): [slice-adr-testserver-bestand-und-katalog](slice-adr-testserver-bestand-und-katalog.md) liegt in `done/` (Weitergabe, Katalog nach Änderungen und Fläche entschieden).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next` (zu groß, zurück zur Zerlegung): mehr als drei Liefer-Punkte.
+- `in-progress` → `next` (zu groß, zurück zur Zerlegung): mehr als drei Liefer-Punkte; Schnittvorschlag: Anteil der Bibliothek und Anteil des Testservers als zwei Slices.
 - `in-progress` → `open` (blockiert): die Entscheidung in [slice-adr-testserver-bestand-und-katalog](slice-adr-testserver-bestand-und-katalog.md) trägt den Fall nicht oder wird überstimmt.
 
 ## 5. Closure-Trigger
@@ -97,9 +98,9 @@ DoD vollständig, `make gates` grün, die Ausgabe der drei d-migrate-Läufe lieg
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Offene Risiken werden bei Closure aufgelöst — jedes Risiko bekommt genau einen Ausgang.
 
-- Umfang des Katalogs: 14 verschiedene `sys.*`-Quellen laut Sonde; ob der Adapter alle oder nur die abgefragten braucht, ist nicht gemessen (Aufwand der Sonde: L). — **Ausgang:** offen bis zur Closure.
-- Die Nachprüfung von `schema migrate --execute` vergleicht Struktur gegen die Soll-Datei; Abweichungen in Typabbildung (zum Beispiel FLOAT, Hürde 12) können sie rot färben — nicht gemessen. — **Ausgang:** offen bis zur Closure.
-- Wachsen Namen der öffentlichen Fläche, kollidiert das mit [slice-oeffentliche-flaeche-verkleinern-und-belegen](slice-oeffentliche-flaeche-verkleinern-und-belegen.md) (Reihenfolge in [welle-testserver-manuell](../welle-testserver-manuell.md) §5). — **Ausgang:** offen bis zur Closure.
+- Umfang des Katalogs: 14 verschiedene `sys.*`-Quellen laut Sonde; ob die Ableitung alle oder nur die abgefragten braucht, ist nicht gemessen (Aufwand der Sonde: L). — **Ausgang:** offen bis zur Closure.
+- Die Nachprüfung von `schema migrate --execute` vergleicht Struktur gegen die Soll-Datei; Abweichungen in der Typabbildung (zum Beispiel FLOAT, Hürde 12) können sie rot färben — nicht gemessen. — **Ausgang:** offen bis zur Closure.
+- Wachsen Namen der öffentlichen Fläche (Callbacks, Anbieter der Tabellenliste), kollidiert das mit [slice-oeffentliche-flaeche-verkleinern-und-belegen](slice-oeffentliche-flaeche-verkleinern-und-belegen.md) (Reihenfolge in [welle-testserver-manuell](../welle-testserver-manuell.md) §5). — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 
