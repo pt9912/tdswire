@@ -26,11 +26,11 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 
 In Arbeit (Welle welle-qualitaet-grundlage):
 
-- [slice-e2e-geruest](../done/slice-e2e-geruest.md)
+- keiner; zuletzt geschlossen: [slice-e2e-geruest](../done/slice-e2e-geruest.md) (Closure-Notiz in §7 des Slice; offen: Warm-/Kaltmessung der sieben Stufen, Register `BEO-TDS/e2e-nachweis-ohne-stufe-oder-messung`; Folge: [slice-e2e-backend-ausserhalb-modul](../open/slice-e2e-backend-ausserhalb-modul.md))
 
 In Arbeit (Welle welle-testserver-manuell):
 
-- [slice-prelogin-serverversion](../done/slice-prelogin-serverversion.md) in Arbeit; Welle neu geschnitten (Ziel: d-migrate als Prüfclient läuft gegen den Testserver, Lastenheft 0.7.0 [TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate) vom Nutzer freigegeben). Geschlossen: [slice-testserver-up-down](../done/slice-testserver-up-down.md), [slice-testserver-manuell-doku](../done/slice-testserver-manuell-doku.md). Erster Schritt: [slice-prelogin-serverversion](../done/slice-prelogin-serverversion.md); Nächster Schritt: [slice-d-migrate-verbindung-und-export](../done/slice-d-migrate-verbindung-und-export.md); Entscheidung: [slice-adr-testserver-bestand-und-katalog](../open/slice-adr-testserver-bestand-und-katalog.md) (Spike zuerst, Reihenfolge zu [slice-oeffentliche-flaeche-verkleinern-und-belegen](../open/slice-oeffentliche-flaeche-verkleinern-und-belegen.md) offen)
+- [slice-tls-d-migrate](slice-tls-d-migrate.md) in Arbeit (Zweig `slice-tls-d-migrate`; Entscheidung zur Flag-Variante steht aus). Zuletzt geschlossen: [slice-d-migrate-verbindung-und-export](../done/slice-d-migrate-verbindung-und-export.md) (`data export` mit d-migrate läuft, Exit 0, 0 Zeilen; Closure-Notiz in §7 des Slice), [slice-prelogin-serverversion](../done/slice-prelogin-serverversion.md), [slice-testserver-manuell-doku](../done/slice-testserver-manuell-doku.md), [slice-testserver-up-down](../done/slice-testserver-up-down.md). Welle neu geschnitten (Ziel: d-migrate als Prüfclient läuft gegen den Testserver, [TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate) vom Nutzer freigegeben). Nächste: [slice-adr-testserver-bestand-und-katalog](../open/slice-adr-testserver-bestand-und-katalog.md) (Spike zuerst, Reihenfolge zu [slice-oeffentliche-flaeche-verkleinern-und-belegen](../open/slice-oeffentliche-flaeche-verkleinern-und-belegen.md) offen)
 
 In Arbeit (Welle welle-anfrageverarbeitung):
 
