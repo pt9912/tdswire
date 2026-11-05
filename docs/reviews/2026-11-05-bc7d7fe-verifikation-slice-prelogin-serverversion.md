@@ -71,4 +71,4 @@ Keine Änderung außerhalb der benannten Stellen; die Ausschlüsse aus §1 (Kata
 
 ## Übergabe an den Planner
 
-Closure erst nach B-1 bis B-3. Für die Closure-Notiz (§7): Die Messgrenze zu DoD 2 gehört wörtlich hinein; ein eigener Test für den Wert am .NET-Client (z. B. Rohbytes-Mitschnitt oder Treiberlauf als Test) wäre ein eigener Gegenstand, kein Mangel dieses Slice. Die Frage, was `Unsupported SQL.` auslöst, bleibt bei [slice-d-migrate-verbindung-und-export](../plan/planning/next/slice-d-migrate-verbindung-und-export.md).
+Closure erst nach B-1 bis B-3. Für die Closure-Notiz (§7): Die Messgrenze zu DoD 2 gehört wörtlich hinein; ein eigener Test für den Wert am .NET-Client (z. B. Rohbytes-Mitschnitt oder Treiberlauf als Test) wäre ein eigener Gegenstand, kein Mangel dieses Slice. Die Frage, was `Unsupported SQL.` auslöst, bleibt bei [slice-d-migrate-verbindung-und-export](../plan/planning/in-progress/slice-d-migrate-verbindung-und-export.md).
