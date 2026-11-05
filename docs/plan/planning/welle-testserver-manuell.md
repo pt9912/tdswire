@@ -47,7 +47,7 @@ einzelnen Slice-DoDs benennen; kann er das nicht, liegt keine Welle vor.
 
 - Alle Slices in `done/`.
 - `make gates` grün.
-- Das Mehr gegenüber den Slice-DoDs: ein Mensch, der den Plan nicht geschrieben hat, startet von einem frischen Klon aus nur nach der Doku den Testserver mit `make testserver-up`, meldet sich mit einem eigenen Client an, liest die Ausgabe der Anfrage, stoppt mit `make testserver-down` und findet danach weder Container noch Netzwerk noch Port belegt. Die Closure-Notiz nennt Rechner, Last und das benutzte Client-Programm. Einzelne Slices belegen nur ihren Teil (Targets mit Rohbytes-Login; Doku ohne Lauf).
+- Das Mehr gegenüber den Slice-DoDs: ein Validator-Agent in frischem Kontext ohne Planwissen (Nutzerentscheidung vom 2026-11-05: ein Agent ersetzt den Menschen; als eigener Client dient d-migrate) startet von einem frischen Klon aus nur nach der Doku den Testserver mit `make testserver-up`, meldet sich mit einem eigenen Client an, liest die Ausgabe der Anfrage, stoppt mit `make testserver-down` und findet danach weder Container noch Netzwerk noch Port belegt. Die Closure-Notiz nennt Rechner, Last und das benutzte Client-Programm. Einzelne Slices belegen nur ihren Teil (Targets mit Rohbytes-Login; Doku ohne Lauf).
 - Closure-Notiz in `welle-testserver-manuell-results.md`.
 
 ## 4. Slices in dieser Welle

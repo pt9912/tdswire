@@ -30,7 +30,7 @@ In Arbeit (Welle welle-qualitaet-grundlage):
 
 In Arbeit (Welle welle-testserver-manuell):
 
-- [slice-testserver-manuell-doku](../done/slice-testserver-manuell-doku.md); zuletzt geschlossen: [slice-testserver-up-down](../done/slice-testserver-up-down.md) (Closure-Notiz in §7 des Slice; offene Grenzen: TLS im Handlauf, Login mit eigener Benutzerliste)
+- keiner; zuletzt geschlossen: [slice-testserver-manuell-doku](../done/slice-testserver-manuell-doku.md) (Closure-Notiz in §7 des Slice; offen: Nachvollzug der Anleitung durch einen Validator in frischem Kontext mit d-migrate als Client, Ort `docs/user/` unbestätigt)
 
 In Arbeit (Welle welle-anfrageverarbeitung):
 
