@@ -28,7 +28,7 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 
 In Arbeit (Welle welle-qualitaet-grundlage):
 
-- keiner; zurückgestellt nach `next/`: [slice-e2e-geruest](../next/slice-e2e-geruest.md) (kein DoD-Punkt abgehakt)
+- keiner; zurückgestellt nach `next/`: [slice-e2e-geruest](../in-progress/slice-e2e-geruest.md) (kein DoD-Punkt abgehakt)
 
 In Arbeit (Welle welle-testserver-manuell):
 
