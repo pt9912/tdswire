@@ -1,0 +1,122 @@
+# ADR-0033: Callback-Lösung für Schreiben, Strukturänderung und Massenladen des Simulations-Backends
+
+**Status:** Proposed (Entwurf des Implementers nach dem Spike; die Entscheidung trifft der Nutzer, Wortlaut und `Accepted` stehen aus)
+
+**Datum:** 2026-11-05
+
+**Autor:** pt9912
+
+**Bezug:** [TDS-FA-12](../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), [TDS-FA-11](../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-FA-08](../../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-RB-03](../../../spec/lastenheft.md#tds-rb-03--protokollstandard), [TDS-RB-04](../../../spec/lastenheft.md#tds-rb-04--externes-backend), [ADR-0006](0006-backend-vertrag-und-streaming.md), [ADR-0012](0012-simulations-backend-beschreibung-und-formen.md), [ADR-0017](0017-prepared-handles-grenzwert.md), [ADR-0021](0021-oeffentlicher-integrations-einstieg.md), [ADR-0025](0025-produktschnitt-bibliothek-und-testserver.md), [ADR-0026](0026-oeffentlichkeit-simulations-backend-und-katalog.md)
+
+**Schärft (nach `Accepted`):** [SPEC-035](../../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends) (Callbacks, Anbieter, Strukturänderung, Überführung), [SPEC-036](../../../spec/spezifikation.md#spec-036--erkannte-anweisungsformen-des-simulations-backends-vorläufig) (Formen, „abschließend“), [SPEC-059](../../../spec/spezifikation.md#einstieg-des-integrators-vertrag-zu-spec-059) (öffentliche Fläche), [TDS-FA-11.a](../../../spec/spezifikation.md#tds-fa-11a--simulations-backend), die Tabelle „Login-Antwort des Servers (Festlegung)“ (PRELOGIN-Version) und den Protokollteil der Pakettypen (0x07). Betroffen ohne eigene Schärfung: `SPEC-040` (Läufe gegen den Testserver), `SPEC-030` (Parameter), `SPEC-007` (Obergrenze der Nachricht).
+
+**Supersedes:** keines. Die Handle-Grenze von [ADR-0017](0017-prepared-handles-grenzwert.md) bleibt unberührt; ein Vorschlag, sie zu ändern, steht unter Offen (Nr. 5) und wäre eine eigene ADR.
+
+---
+
+## Kontext
+
+**Nutzerentscheidungen vom 2026-11-05** (wörtlich im Slice): „Der Test-Server ist zum Testen der API da. Die Funktionalität ist in der Lib.“ und „Die konkreten Tabellen zum Lesen/Schreiben werden im Testserver angelegt und der API mitgeteilt.“ Daraus folgt: die Bibliothek versteht die Anweisungsformen, beantwortet den Katalog aus den mitgeteilten Tabellen und speichert nichts; der Testserver ist der Integrator mit dem Bestand im Arbeitsspeicher. Der Wortlaut von [TDS-FA-11](../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) und [TDS-FA-12](../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate) (Lastenheft 0.7.x) ist freigegeben. Als Richtung hat der Nutzer die Empfehlung des Planners gewählt: `QueryBackend` bleibt unverändert, Einfügen, Ändern und Löschen laufen über die Callbacks von `SimTable`, `MERGE` zerlegt die Bibliothek, das Massenladen geht nach „Weg A“ (die Bibliothek dekodiert Paket 0x07 und ruft den Einfüge-Callback), Strukturänderungen brauchen einen Callback und einen Katalog-Anbieter statt eines festen `SimCatalog`. Diese ADR prüft die Richtung an einem Prototyp und schlägt die Einzelheiten vor.
+
+**Spike (2026-11-05, Wegwerf, Code nie im Repo).** Ein Prototyp der Callback-Lösung lief mit d-migrate 1.12.0 (mssql-jdbc 13.4.0) gegen den Testserver. Alle Messzeilen, Rechner, Last und Image-Digest stehen im [Messprotokoll](../../messungen/callback-loesung-spike-2026-11-05.md); die Nummern der Spalte „Beleg“ unten sind dessen Zeilen. Vorbehalt: gemessen ist das Verhalten des Clients gegen einen Prototyp, nicht gegen einen echten SQL Server.
+
+| Prüfpunkt | Befund | Beleg |
+|---|---|---|
+| (a) `MERGE` zerlegen, Zeilenquelle nach Schlüssel | `--on-conflict skip` und `update` laufen mit Exit 0 (eingefügt, übersprungen, geändert, Export stimmt). Die Zeilenquelle liest nach dem Schlüssel als Vorfilter; beachtet sie den Hinweis nicht, bleibt das Ergebnis richtig, die Laufzeit wird quadratisch (20 000 Zeilen: 8,8 s gegen 29,7 s) | a1, a2, a4, a5 |
+| (a) was der MERGE-Pfad sonst braucht | Int64-Parameter in einer INT-Spalte (Verengung im Wertebereich), `DECIMALN`-Werte mit weniger Bytes als der Typ (2 bis 4 von 17), Zeit und Zeitpunkt als `DATETIMN`; die Handle-Grenze 1000 bricht den Import nach 1001 `MERGE` je Sitzung ab, ein `sp_unprepare` kam in 2002 Anweisungen nicht an | a3, a6, a7 |
+| (b)(i) Massenladen: Zeilenzahl und Inhalt | `data import` und `data transfer` im Standardpfad enden mit Exit 0, der Export stimmt (byte-gleich nach `data transfer`) für Tabellen ohne INT-Spalte. Der Zeitpunkt kommt aus `data transfer` als `2026-01-02 13:14:15.0` | b1, b2 |
+| (b)(i) INT-Spalte | **scheitert im Treiber**, bevor Zeilen den Server erreichen (`Long` nach `Integer`, gleich bei ganzzahlig geschriebenem DECIMAL); ob ein echter SQL Server das ändert, ist nicht gemessen | b3 |
+| (b)(ii) Fehler mitten im Strom | d-migrate erhält `Msg 50004, Level 16, State 1, „Backend error.“`, Exit 5; die Zeilen vor dem Fehler bleiben im Bestand. 2627 wird nicht gesendet | b5, b6, b7 |
+| (b)(iii) Typen | BIGINT, INT, NVARCHAR(4000), DECIMAL(10,2), BIT sowie Datum, Zeit und Zeitpunkt als `VARCHAR(10)`, `VARCHAR(16)`, `VARCHAR(27)`; weitere nicht gemessen | Tabelle (iii) |
+| (b)(iv) Speicher, Gegendruck | 500 000 Zeilen mit 64 MiB Heap und der Voreinstellung von 10 000 Zeilen je Nachricht (1,55 MB): Exit 0, 6,2 s. Eine Nachricht über 16 MiB schließt die Verbindung; 15,9 MB brauchen mehr als 32 MiB Heap (`OutOfMemoryError`). Gegendruck gibt es zwischen den Zeilen und den Nachrichten, nicht innerhalb einer Nachricht | b9 bis b13 |
+| (b) IGNORE-Bit | Der Client bricht ein Massenladen mit gesetztem IGNORE-Bit ab; ohne Beachtung steht die erste Zeile im Bestand | b8 |
+| (b) Variante ohne neuen Port | jede Zeile als `INSERT` über `QueryBackend.execute`: 500 000 Zeilen in 14,8 s gegen 6,2 s | b14 |
+| (c) Katalog-Anbieter, Strukturänderung | `schema reverse`, `schema migrate --execute` mit Nachprüfung und erneutes `schema reverse` laufen mit Exit 0; mit festem Katalog endet dieselbe Nachprüfung mit Exit 5. Der Katalog meldet `nvarchar(4000)`: ein Soll mit anderer Länge führt zu `ALTER COLUMN` mit einem T-SQL-Block und endet mit Exit 5 | c1 bis c5 |
+| (d) mehrere Callbacks, Fehler in der Mitte | Die Struktur bleibt halb geändert, obwohl d-migrate `ROLLBACK TRAN` sendet und im Bericht `FULL_ROLLBACK_CONFIRMED` schreibt | d1, d2 |
+| Einschaltung | Ohne Strukturänderungs-Callback bleibt `schema reverse` möglich und `schema migrate --execute` wird abgewiesen | e1 |
+| PRELOGIN-Version | mssql-jdbc 13.4.0 nimmt die gemessenen Hauptversionen 9 bis 17 (ohne 14) an (`schema reverse`), 0 und 8 nicht | Tabelle PRELOGIN |
+
+**Annahme, die kippt:** Dass der Client unverändert gegen die Bibliothek arbeitet. Verlangt ein echter SQL Server vom Client etwas anderes als der Prototyp (Fehlernummern, Typen, die Wirkung von `ROLLBACK`), sind die Zahlen dieser ADR Setzungen mit anderem Wert; der Träger der Gegenmessung ist der Slice der Vergleichsmessungen am echten SQL Server.
+
+## Entscheidung (Vorschlag)
+
+Die Richtung trägt mit den Grenzen unter „Konsequenzen“. Wir schlagen vor, sie mit diesen Einzelheiten zu verbindlichen Festlegungen zu machen; jeder Punkt trägt die Messzeile oder ist als Setzung gekennzeichnet.
+
+1. **Weitergabe von Schreiben.** `INSERT`, `UPDATE` und `DELETE` laufen unverändert über `onInsert`, `onUpdate`, `onDelete` von `SimTable` ([SPEC-035](../../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends)). `MERGE ... OUTPUT $action` zerlegt die Bibliothek je Anweisung in ein Lesen über die Zeilenquelle mit dem Schlüssel als Vorfilter und höchstens einen Callback (a1, a2). Das Backend prüft den Schlüssel der gelieferten Zeilen selbst: der Vorfilter bleibt ein Hinweis (a5). Bei `update` ruft der Prototyp `onUpdate` mit dem Schlüssel als `where` und den übrigen Spalten als `set` (a2).
+2. **Katalog-Anbieter.** `SimulationBackend` erhält einen zweiten Konstruktor, der statt eines festen `SimCatalog` eine Funktion nimmt, die bei jeder Anfrage die aktuelle Tabellenliste liefert; die Bibliothek hält keinen Zustand (c4: ohne Anbieter besteht die Nachprüfung nicht). Die Katalogantworten (`sys.*`, `SCHEMA_NAME()`, die Probe der Sortierung) entstehen aus dieser Liste; die Ableitung bleibt `internal`. Die Typen im Katalog folgen `SqlType`: `Int32` als `int`, `Int64` als `bigint`, `Bool` als `bit`, `UnicodeText` als `nvarchar(4000)`, `Decimal` als `decimal`, `Date`, `Time`, `DateTime` als `date`, `time`, `datetime2` (c1; die Längen sind Setzung).
+3. **Strukturänderung.** Der zweite Konstruktor nimmt einen optionalen Strukturänderungs-Callback. Die Bibliothek erkennt `CREATE TABLE` mit Schlüssel und `ALTER TABLE … ADD` (c2), ruft den Callback und antwortet mit dem Änderungszähler 0; ein Fehler des Callbacks endet die Anweisung. Ohne Callback ist die Anweisung abgewiesen (`TDS_UNSUPPORTED_SQL`, e1). Form des Aufrufs: siehe Nr. 4.
+4. **Öffentliche Fläche.** Jeder neue öffentliche Name steht in dieser Liste; zwei Fassungen stehen zur Wahl (Offen Nr. 2). Die kleinere Fassung **F** ist unser Vorschlag.
+
+   | Fassung | Neue öffentliche Namen | Begründung nach dem Kriterium „nur, was man dafür braucht“ |
+   |---|---|---|
+   | **F** (Funktionstypen) | **keine neuen Typnamen.** Neu ist ein zweiter Konstruktor von `SimulationBackend(catalog: () -> SimCatalog, onStructure: (suspend (schema: String, name: String, columns: List<SimColumn>, primaryKey: List<String>) -> Unit)? = null)`. Der Callback bekommt die Struktur der Tabelle **nach** der Anweisung (anlegen oder ersetzen); der Integrator vergleicht mit seinem Stand | Die Parameter verwenden nur `SimCatalog`, `SimColumn`, bereits öffentlich ([ADR-0026](0026-oeffentlichkeit-simulations-backend-und-katalog.md)). Gemessen ist der Prototyp mit Änderungen (Anlegen, Spalten hinzufügen) statt der Struktur nach der Anweisung; die Form der Fassung F ist eine Setzung, nicht gemessen |
+   | N (benannte Typen) | `SimCatalogProvider` (Anbieter), `SimStructureChange` mit den Fällen `CreateTable` und `AddColumns` (vier Namen) | Der Integrator bekommt die Änderung als Absicht, nicht als Zustand; so ist der Prototyp gebaut (c2 bis c4) |
+
+   Für das Massenladen entsteht in beiden Fassungen **kein** neuer Name, wenn Nr. 5 Fassung A gilt. `SimTable` und `QueryBackend` bleiben unverändert. Ein Stapel-Callback (Nr. 5, Fassung C) wäre ein weiterer Parameter von `SimTable`.
+5. **Massenladen, Weg A.** Die Bibliothek erkennt `INSERT BULK`, merkt sich das Ziel für die nächste Nachricht vom Typ 0x07, dekodiert COLMETADATA und die ROW-Token der Nachricht, wandelt die Werte in die Spaltentypen und gibt jede Zeile dem Einfüge-Callback; am Ende meldet sie die Zahl. Davor beantwortet sie `SET FMTONLY ON` (auch als `sp_executesql N'…'` im SQL-Text) und die Probe der Sortierung aus `sys.columns` (b1). Drei Fassungen der Weitergabe:
+
+   | Fassung | Weg | Messung | Neue Namen |
+   |---|---|---|---|
+   | **A** (Vorschlag) | jede Zeile wird zu `INSERT INTO … VALUES (…)` mit Literalen und über `QueryBackend.execute` an das Backend gegeben; das `SimulationBackend` ruft `onInsert` | 14,8 s für 500 000 Zeilen (b14) | keine |
+   | B | ein neuer Port (Erweiterung von `QueryBackend` oder eine zweite Schnittstelle) bekommt die dekodierten Zeilen | 6,2 s (b9) | ein bis zwei, und `QueryBackend` ändert sich (berührt [ADR-0006](0006-backend-vertrag-und-streaming.md)) |
+   | C | wie A oder B, dazu ein Stapel-Callback je Nachricht in `SimTable`, damit der Integrator die Zeilen einer Nachricht atomar übernehmen kann | nicht gemessen | ein weiterer Parameter von `SimTable` |
+
+   Festlegungen dazu: (i) **Die Nachricht gilt als Ganzes.** Die Bibliothek setzt sie vor dem ersten Callback im Speicher zusammen; die Obergrenze bleibt die von `SPEC-007` (16 MiB), eine größere Nachricht schließt die Verbindung (b11), der Speicherbedarf ist mindestens die Größe der Nachricht (b12). Gegendruck gibt es nur zwischen Zeilen und Nachrichten (b13). Streaming des Pakets 0x07 über Paketgrenzen ist nicht Teil dieser Entscheidung. (ii) **Das IGNORE-Bit** einer Nachricht 0x07 verwirft sie ohne Callback (b8; ohne Beachtung steht eine Zeile im Bestand, die der Client verwerfen wollte). (iii) **Fehler eines Callbacks** beenden das Massenladen mit dem Fehler des Callbacks (b5); die Zeilen davor bleiben. (iv) Die Textwerte des Zeitpunkts im Format `yyyy-MM-dd HH:mm:ss[.f]` und die Verengung eines Int64-Parameters im Wertebereich einer Int32-Spalte sind Änderungen der Überführung in `SPEC-035` (b2, a3), nicht dieser ADR.
+6. **Keine Transaktion (Zusage).** Mehrere Callbacks einer Anweisung sind **keine Transaktion**. Die Bibliothek nimmt nichts zurück: ein Fehler in der Mitte hinterlässt den Teilbestand beim Integrator (b5, d1), und `ROLLBACK TRAN` beantwortet sie mit dem Änderungszähler 0, ohne Wirkung (d1). Das deckt „Transaktionssemantik über die Weitergabe an den Integrator hinaus“ im Out-of-Scope von [TDS-FA-11](../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) und „Transaktionssemantik mit Rücknahme über mehrere Anweisungen“ in [TDS-FA-12](../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate). **Folge, die der Wortlaut nicht deckt:** das Akzeptanzkriterium „Schreibzugriff gegen die Struktur … wird abgewiesen und der Bestand bleibt unverändert“ gilt für eine Anweisung mit einem Callback; für ein Massenladen mit mehreren Zeilen gilt es nur mit einem Stapel-Callback (Fassung C) (Offen Nr. 1).
+7. **Fehlernummern.** Ein Fehler des Integrators erreicht den Client als `TDS_BACKEND_ERROR`, Nummer 50004, Meldung „Backend error.“, Class 16, die Verbindung bleibt offen (b5). Eine Schlüsselverletzung trägt nicht die Nummer 2627 (b6). Ob d-migrate die Nummer auswertet, ist nicht gemessen; `--on-error skip` und `log` verhalten sich wie `abort` (b7).
+8. **Einschaltung ohne Schalter.** Die neuen Fähigkeiten gelten, sobald der Integrator die Mittel dafür setzt: ohne Zeilen-Callback bleibt die Anweisung abgewiesen („Einfügen wird abgewiesen“, [SPEC-035](../../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends)), ohne Strukturänderungs-Callback bleibt die Strukturänderung abgewiesen (e1), der bisherige Konstruktor und `BackendSource.Simulation(tables)` ändern sich nicht. Der Prototyp hat den Fall „Zeilen-Callback fehlt“ im MERGE-Pfad nicht sauber abgewiesen (e2); die Abweisung mit `TDS_UNSUPPORTED_SQL` ist Setzung für die Umsetzung.
+9. **FLOAT wird nicht aufgenommen (Setzung).** In keinem Lauf des Spikes (Lesen, Vergleichen, Ändern, Export, Import, Übertragung) kam ein FLOAT vor; die Beschreibung der Tabellen weist `float` ab, es gab also keine Spalte, die ihn erzwungen hätte. `SqlType` bleibt wie es ist. Trigger: eine Tabelle des Solls mit FLOAT-Spalte; dann Folge-ADR (öffentlicher Name `SqlType.…`).
+10. **PRELOGIN-Version `16.0.1000.6` bleibt (Setzung).** Der Treiber nimmt die Hauptversionen 9, 10, 11, 12, 13, 15, 16 und 17 an und lehnt 0 und 8 ab (14 ist nicht gemessen); der Wert gehört nicht zum Clientprofil und sagt nichts über einen echten SQL Server. **Clientprofil:** d-migrate ist weder verbindlicher Client noch Teil von [ADR-0001](0001-tds-version-und-clientprofil.md); eine ADR dazu ist nicht nötig (Setzung). [TDS-FA-12](../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate) verlangt, dass die Spezifikation „Version und Treiber“ festlegt: d-migrate 1.12.0 mit mssql-jdbc 13.4.0 (Image-Digest im Messprotokoll). Das ist eine Festlegung in der Spezifikation (Folge-Slice der Abnahme), keine Entscheidung dieser ADR.
+11. **„Abschließend“ in SPEC-036.** Vorschlag: die Liste der Formen bleibt abschließend in dem Sinn, dass alles Fremde mit `TDS_UNSUPPORTED_SQL` endet. Sie wächst nur durch Änderung der Spezifikation und nur um Formen, die das Lastenheft nennt: Katalogabfragen, Strukturänderungen, Massenladen und die Abfragen, die der Prüfclient für Verbindung und Metadaten stellt. **`MERGE` nennt das Lastenheft nicht wörtlich;** gedeckt ist es nur über das Akzeptanzkriterium von [TDS-FA-12](../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate) („mit `--on-conflict skip`“) und über „einfache … Änderungsanweisungen“ von [TDS-FA-11](../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) (Offen Nr. 3).
+12. **Reihenfolge der Folge-Slices.** (1) der Slice für Katalog und Strukturänderung: der Import und der Export brauchen schon die Katalogabfragen (`sys.identity_columns`, `sys.computed_columns`, `SELECT SCHEMA_NAME()`) und die Transaktionstexte; (2) danach der Slice für `MERGE ... OUTPUT $action` und der Slice für das Massenladen in beliebiger Reihenfolge; (3) der Slice der Abnahme mit d-migrate zuletzt; der Slice für TLS mit d-migrate ist erledigt. Zum Slice zum Schnitt der öffentlichen Fläche: mit Fassung F fügt der erste Folge-Slice einen Konstruktor hinzu und keinen Typnamen; die Reihenfolge zum Schnitt der Fläche entscheidet der Nutzer (Offen Nr. 4). Die Spec-Änderungen je Folge-Slice stehen im Slice dieser ADR.
+
+## Verglichene Alternativen
+
+| Option | Pro | Contra |
+|---|---|---|
+| A — `QueryBackend` erweitern (Schreib-, Struktur- und Massenlade-Methoden am Port, [ADR-0006](0006-backend-vertrag-und-streaming.md)) | Der Port sagt, was die Bibliothek weitergibt; jedes Backend (nicht nur das Simulations-Backend) kann Massenladen bekommen | Ändert den dünnen Port, den ein Embedder implementiert und der unter der Zusage von [ADR-0021](0021-oeffentlicher-integrations-einstieg.md) steht; berührt jedes Custom-Backend; der Spike hat den Bedarf nicht gezeigt (b14: die Zeile als `INSERT` genügt) |
+| **B — Callback-Lösung (Vorschlag):** bestehende Callbacks von `SimTable`, Katalog-Anbieter, Strukturänderungs-Callback, Massenladen als Folge von Einfügungen | `QueryBackend` und `SimTable` bleiben; Katalog besteht die Nachprüfung (c4); Massenladen und MERGE laufen am fremden Client (a1 bis a5, b1, b2); höchstens ein neuer Konstruktor in Fassung F | Keine Transaktion (d1); Nachricht im Speicher (b11, b12); der Weg über `execute` ist 2,4-mal so langsam wie der direkte (b14); INT-Spalten scheitern im Treiber (b3) |
+| C — nichts tun | Keine neue Fläche, keine neue Zusage | [TDS-FA-12](../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate) bleibt unerfüllbar: `schema reverse`, `schema migrate`, `data import` und `data transfer` scheitern an den Katalogabfragen und am Massenladen (Sonde, Hürden 6, 7, 9, 10) |
+
+Die Verteilung (Bibliothek ohne Speicher, Testserver als Integrator) ist entschieden und keine Alternative dieser ADR.
+
+## Konsequenzen
+
+- Positiv: Der Testserver kann Struktur und Zeilen halten, ohne dass die Bibliothek speichert; alle Läufe des Solls bis auf die unten genannten Grenzen laufen mit Exit 0 am fremden Client; in Fassung F wächst die öffentliche Fläche um einen Konstruktor.
+- Negativ: Die Zusage „keine Transaktion“ ist für Clients sichtbar: d-migrate schreibt `FULL_ROLLBACK_CONFIRMED` in seinen Bericht, obwohl der Bestand halb geändert bleibt (d1). Das Massenladen hält die ganze Nachricht im Speicher (bis 16 MiB und mehr als das Doppelte davon als Heap, b12). Der Katalog kennt keine Länge von Texten (`nvarchar(4000)`), keine Identität und keinen Unterschied von `identifier` und `integer`: ein Soll mit anderen Längen endet mit Exit 5 (c5), ein `schema compare` meldet `identifier -> integer` (c6).
+- **Grenzen, die diese Entscheidung nicht auflöst:** (1) INT-Spalten und ganzzahlig geschriebene DECIMAL-Werte scheitern im Standardpfad von `data import` im Treiber (b3); der Beleg für [TDS-FA-12](../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate) („im Standardpfad des Werkzeugs“) gilt nur für Tabellen ohne INT-Spalte, mit `--on-conflict skip` auch für INT; (2) die Handle-Grenze von [ADR-0017](0017-prepared-handles-grenzwert.md) bricht den MERGE-Pfad nach rund 1000 Zeilen je Sitzung (a6); (3) Fehlernummern des echten Servers (2627) sendet die Bibliothek nicht (b6).
+- Folgepflicht Spezifikation: je Folge-Slice, siehe die Liste im Slice dieser ADR. Änderungen an `spec/` erst nach `Accepted`.
+- Folgepflicht Umsetzung: die Folge-Slices; das Messprotokoll ist ihre Quelle für Handvektoren (Bytes der Nachricht 0x07, Wortlaut der Anweisungen von d-migrate 1.12.0).
+
+## Offen (Entscheidungen des Nutzers)
+
+1. **Atomarität des Massenladens.** Bleibt es bei „Zeilen vor dem Fehler bleiben“ (b5) und wird das Akzeptanzkriterium „Bestand bleibt unverändert“ von [TDS-FA-12](../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate) auf eine Anweisung mit einem Callback eingeschränkt, oder kommt der Stapel-Callback (Fassung C von Nr. 5) mit einem weiteren Parameter in `SimTable`? Träger: der Slice für das Massenladen.
+2. **Fassung F oder N** der öffentlichen Fläche (Nr. 4) und **Fassung A, B oder C** der Weitergabe des Massenladens (Nr. 5).
+3. **MERGE und „abschließend“** (Nr. 11): bestätigt der Nutzer die Lesart, und deckt er `MERGE` als Form durch das Lastenheft ab, oder soll das Lastenheft die Form nennen? Träger bis zur Entscheidung: das Risiko im Slice dieser ADR; die Lesart steht außerdem unter `BEO-TDS/lesart-einer-nutzerentscheidung-unbestaetigt`.
+4. **Reihenfolge zur öffentlichen Fläche:** Schnitt zuerst oder der erste Folge-Slice zuerst (Nr. 12)? Träger: Priorisierung.
+5. **Handle-Grenze und MERGE-Import** (a6): bleibt 1000 je Sitzung (der MERGE-Pfad ist dann auf rund 1000 Zeilen je Verbindung begrenzt), oder soll die Grenze einstellbar werden bzw. steigen (eine eigene ADR, die Entscheidung 1 und 4 von [ADR-0017](0017-prepared-handles-grenzwert.md) ersetzt)? Träger: der Slice für `MERGE ... OUTPUT $action`.
+6. **Länge von Texten und Identität im Katalog** (c5, c6): bleibt `nvarchar(4000)` ohne Länge und `integer` ohne Identität, oder bekommt `SimColumn` ein Feld (öffentliche Fläche, Folge-ADR)? Träger: der Slice für Katalog und Strukturänderung.
+7. **INT-Spalten im Standardpfad** (b3): Beispieltabellen mit BIGINT-Schlüssel, MERGE-Pfad für INT, oder Gegenmessung am echten SQL Server? Träger: der Slice der Vergleichsmessungen am echten SQL Server und der Slice der Abnahme mit d-migrate.
+
+## Fitness Function (falls maschinell prüfbar)
+
+| Tooling | Regel | Make-Target |
+|---|---|---|
+| Source-Set `testserver` ohne Assoziation zu `main` | der Testserver als Integrator (Anbieter, Strukturänderung, Zeilen-Callbacks) übersetzt nur gegen die öffentliche Fläche; ein weiterer nötiger Name ist ein Befund über diese Entscheidung ([ADR-0026](0026-oeffentlichkeit-simulations-backend-und-katalog.md) Entscheidung 4) | `make test` |
+| Handvektoren und Tests der Folge-Slices | Nachricht 0x07 (auch mit IGNORE-Bit, abgeschnitten, zu groß), Katalogabfragen aus d-migrate 1.12.0, `MERGE`-Zerlegung, Anbieter statt festem Katalog (Gegenprobe c4) | `make test` |
+| Lauf mit d-migrate (kein Gate) | `schema reverse`, `schema compare`, `schema migrate --execute`, `data export`, `data import`, `data transfer` am Testserver | der Slice der Abnahme mit d-migrate |
+
+## Re-Evaluierungs-Trigger
+
+Ein Lauf von d-migrate gegen einen echten SQL Server (oder eine andere Version von d-migrate oder mssql-jdbc) weicht von b3, b5 bis b7 oder c5 ab; ein Embedder verlangt Atomarität des Massenladens oder eine Nachricht über 16 MiB; der Weg über `execute` (Fassung A) wird zum Engpass; eine Tabelle des Solls braucht FLOAT; ein Folge-Slice braucht über Nr. 4 hinaus einen öffentlichen Namen.
+
+## Geschichte
+
+| Datum | Ereignis | Verweis |
+|---|---|---|
+| 2026-11-05 | Proposed (Entwurf nach dem Spike, Entscheid des Nutzers steht aus) | Entscheidungs-Slice zu Bestand und Katalog, [Messprotokoll](../../messungen/callback-loesung-spike-2026-11-05.md) |
+
+Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
+Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit
+`Supersedes ADR-NNNN` (Baseline-Regelwerk `modul-04-adrs.md`
+§Hard Rule für Accepted-ADRs).
