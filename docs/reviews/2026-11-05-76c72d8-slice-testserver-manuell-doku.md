@@ -2,7 +2,7 @@
 
 **Review-Art:** Doku (gegen Plan, ADR, Hard Rules; nicht gegen die DoD)
 
-**Gegenstand:** Commit 76c72d8 (`docs/user/testserver-manuell.md`, `README.md`, Kopf von `docs/plan/planning/in-progress/slice-testserver-manuell-doku.md`)
+**Gegenstand:** Commit 76c72d8 (`docs/user/testserver-manuell.md`, `README.md`, Kopf von `docs/plan/planning/done/slice-testserver-manuell-doku.md`)
 
 **Skill:** `.harness/skills/reviewer.md` · **Modell:** claude-sonnet-5-5 · **Datum:** 2026-11-05
 
