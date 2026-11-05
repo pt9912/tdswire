@@ -89,7 +89,7 @@ testserver-up: Stop mit 'make testserver-down', Log mit 'make testserver-logs'
 testserver-status: laeuft (tdswire-testserver, 127.0.0.1:14333)
 tdswire: gestartet, Port 1433                       (make testserver-logs)
 laufzeit-client: Login ok                           (Exit 0)
-laufzeit-client: Login fehlgeschlagen               (mit -e TDSWIRE_PASSWORT=falsch, Exit 1)
+laufzeit-client: Login fehlgeschlagen               (mit -e TDSWIRE_PASSWORT=falsch, Exit 1; danach Gradle-Meldung `BUILD FAILED`)
 testserver-down: Container tdswire-testserver gestoppt und entfernt
 ```
 
@@ -119,6 +119,7 @@ Was der Testserver nicht kann:
 - Keine Windows-Authentifizierung, kein Kerberos, kein Entra ID (Out-of-Scope im [Lastenheft](../../spec/lastenheft.md)); angemeldet wird mit Benutzer und Kennwort aus der Liste.
 - Keine Lastaussage: unter Last, mit vielen Verbindungen oder langer Laufzeit ist der Container nicht gemessen.
 - Abbruch einer laufenden Anfrage (Cancel) mit Folgeabfrage am Referenzclient: im Integrationslauf nicht belegt ([CO-004](../plan/carveouts/CO-004-cancel-szenario-spec-040-fehlt.md)); im Handlauf nicht gemessen.
+- Grenze zu JDBC (gemessen am 2026-11-05, ein Host, ein Lauf, Last 8 bis 16): d-migrate 1.12.0 (Image `ghcr.io/pt9912/d-migrate:latest`, Digest `sha256:308f27753036c9cc423f716b9fc4c9e68016543a8003ecd2f8282e05a2ee6491`) bricht die Anmeldung mit mssql-jdbc ab (`SQL Server version 0 is not supported by this driver`, `Server major version:0`). Alle Funktionen von d-migrate, die eine Datenbank brauchen, sind deshalb nicht prüfbar; `schema validate` und `schema generate` ohne Datenbank liefen. Die Festlegung der Server-Version im PRELOGIN trägt der Folge-Slice [slice-prelogin-serverversion](../plan/planning/open/slice-prelogin-serverversion.md); ob danach weitere Hürden folgen (etwa Katalogabfragen), ist nicht gemessen.
 - Die Testwerte (`alice`/`secret`, Klartext) dürfen nicht für Daten genutzt werden, die Schutz brauchen. Ein Host außer Loopback macht den Server im Netz erreichbar.
 
 Nicht belegt (Stand: Handlauf am 2026-11-05):
