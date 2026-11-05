@@ -84,7 +84,7 @@ internal class PreloginNegotiation(private val config: HandshakeConfig) {
         val REQUIRED_ACCEPTS = setOf(EncryptionMode.OFF, EncryptionMode.ON, EncryptionMode.REQUIRED)
         val TEST_ACCEPTS = setOf(EncryptionMode.OFF, EncryptionMode.NOT_SUPPORTED)
 
-        // Setzung (nicht gemessen): 16.0.1000.6; mssql-jdbc lehnt 0.0.0.0 ab (spec/spezifikation.md, Login-Antwort).
+        // VERSION der PRELOGIN-Antwort: Setzung ohne Messung am echten Server (spec/spezifikation.md, Login-Antwort).
         const val SERVER_MAJOR = 16
         const val SERVER_MINOR = 0
         const val SERVER_BUILD = 1000
