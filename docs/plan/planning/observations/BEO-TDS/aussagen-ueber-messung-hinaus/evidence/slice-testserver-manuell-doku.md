@@ -1,0 +1,2 @@
+**Vorgang:** slice-testserver-manuell-doku
+**Fund:** Review 76c72d8 F-1 und F-2: Die Anleitung zeigte das Verhalten bei `REQUIRED` ohne passende Benutzerliste und die Zeichenfolge der Anfragen (Setzung der Spezifikation, vom Nutzer nicht bestätigt) ohne den Vermerk „abgeleitet“ beziehungsweise „nicht gemessen“; behoben durch Kennzeichnung (68ea37f). Ein Beispielaufruf (SqlClient-Zeichenfolge) bleibt als nicht gemessen gekennzeichnet. Regel ist verkörpert (`AGENTS.md` §3.8).

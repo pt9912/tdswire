@@ -19,6 +19,7 @@ Serverprozess nur zur Prüfung der Bibliothek (E2E- und Kompatibilitätsläufe),
 
 - `make gates` führt die Gates aus (Tests, detekt, Build, Dokumentreferenzen, vendored Baseline).
 - `make e2e` führt den E2E-Durchgang in sieben Stufen aus, ein Gate ist er nicht.
+- `make testserver-up` startet den Testserver von Hand, `make testserver-down` stoppt ihn; Anleitung, Anmeldung und Grenzen: [`docs/user/testserver-manuell.md`](docs/user/testserver-manuell.md).
 - `make help` listet alle vorhandenen Targets.
 - Lastenheft, Spezifikation und Architektursicht liegen unter `spec/`.
 - Die Architekturentscheidungen mit ihrem Status stehen im [ADR-Index](docs/plan/adr/README.md).

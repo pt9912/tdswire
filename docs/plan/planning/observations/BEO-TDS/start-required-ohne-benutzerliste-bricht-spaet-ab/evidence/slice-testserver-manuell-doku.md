@@ -1,0 +1,2 @@
+**Vorgang:** slice-testserver-manuell-doku
+**Fund:** Review 76c72d8 F-1 und Verifikation 97b47e6 F-4: Beim Schreiben der Anleitung zeigte sich, dass das Skript die Kombination `REQUIRED` mit der Voreinstellungsliste nicht vorab prüft; der Abbruch kommt erst mit „der Server wurde nicht bereit“ (Zeile 93 des Skripts). Der Start mit `REQUIRED` wurde nicht gefahren (kein Zertifikat zur Hand), die Anleitung kennzeichnet ihn als abgeleitet.
