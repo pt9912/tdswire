@@ -793,9 +793,10 @@ Senke, im Ereignis des Bindefehlers (Abschnitt 4). Nach jedem fehlgeschlagenen S
 und kein Listener des Servers weiter; ein neuer Versuch legt einen neuen Server an. Die Probe prüft
 weder, ob ein Client dem Zertifikat vertraut, noch die TDS-Kapselung des Handschlags (`SPEC-028`).
 Schreibt der TLS-1.3-Server nach dem Handschlag ein NewSessionTicket, besteht die Probe: ihr Urteil ist
-das Ergebnis des Handschlags auf der Seite des Servers, ob die Gegenstelle das Ticket liest, ändert es
-nicht, und es hängt von keiner Wartezeit ab (Setzung); nur eine Probe, die nicht endet, bricht nach einer
-Frist als `PAIR` ab. Der Start verlangt keine JVM-Option.
+das Ergebnis des Handschlags auf der Seite des Servers. Die Gegenstelle liest nach ihrem Handschlag weiter
+und verwirft, was der Server noch schreibt, bis der Server seinen Kanal schließt; das Urteil hängt weder
+von der Größe der Nachschrift noch von einer Wartezeit ab (Setzung). Nur eine Probe, die nicht endet,
+bricht nach einer Frist als `PAIR` ab. Der Start verlangt keine JVM-Option.
 
 ### SPEC-044 — Geordnetes Beenden
 
@@ -1203,7 +1204,7 @@ Mindestversion ist TLS 1.2. TLS 1.1 und älter, CBC-Suiten, RSA-Schlüsselaustau
 
 Die Obergrenze gilt je Pfad: Der TDS-7.4-Pfad (Handschlag in Paketen vom Typ `0x12`) bietet höchstens TLS 1.2 an, der TDS-8.0-Pfad (`Encrypt=Strict`) alle konfigurierten Versionen, also TLS 1.3. Sie ändert keinen Standard der Konfiguration (`TlsParameters`) und fügt keinen Schlüssel hinzu; bleibt im 7.4-Pfad keine Version übrig, scheitert der Handschlag. Der Server nimmt keine Anmeldung ohne das `Finished` des Clients an (Setzung).
 
-Die Bibliothek verlangt keine JVM-Option und liest keine Systemeigenschaft. Der JDK-Server sendet im TLS-1.3-Pfad nach dem Handschlag sein NewSessionTicket; im 8.0-Pfad ist es ein TLS-Record wie jeder andere, der Strom ist roh TLS ab dem ersten Byte. Ein Einbettender setzt keine der JDK-Systemeigenschaften `jdk.tls.server.*`, die Session-Tickets abschalten oder zählen: Schaltet er die Tickets ab, kündigt der Server im 7.4-Pfad unter TLS 1.2 die Session-Ticket-Erweiterung weiter an und sendet kein Ticket, und `Microsoft.Data.SqlClient` 7.1.1 bricht den Handschlag ab („unexpected message“; gemessen, ein Host, ein Lauf je Zelle). Das ist keine Prüfung der Bibliothek, sondern eine Pflicht des Einbettenden, die der Server nicht erkennt.
+Die Bibliothek verlangt keine JVM-Option und liest keine Systemeigenschaft. Der JDK-Server sendet im TLS-1.3-Pfad nach dem Handschlag sein NewSessionTicket; im 8.0-Pfad ist es ein TLS-Record wie jeder andere, der Strom ist roh TLS ab dem ersten Byte. Gemessen ist: Ein Server, dessen Ticket-Zahl 0 ist, kündigt im 7.4-Pfad unter TLS 1.2 die Session-Ticket-Erweiterung weiter an und sendet kein Ticket, und `Microsoft.Data.SqlClient` 7.1.1 bricht den Handschlag ab („unexpected message“; ein Host, ein Lauf je Zelle). Ein Einbettender setzt deshalb die Ticket-Zahl der JDK-Systemeigenschaften `jdk.tls.server.*` nicht auf 0. Ein Server ohne die Session-Ticket-Erweiterung war im 7.4-Pfad mit demselben Client grün; andere Werte der Ticket-Zahl sind nicht gemessen. Das ist keine Prüfung der Bibliothek, sondern eine Pflicht des Einbettenden, die der Server nicht erkennt.
 
 #### Festlegungen der TLS-Schleife
 
@@ -1227,13 +1228,13 @@ Setzung dieses Profils, nicht gemessen und nicht aus dem Referenzclient abgeleit
 
 #### Gemessen am Sicherheitsprofil
 
-TLS 1.3 mit `TLS_AES_256_GCM_SHA384` im TDS-8.0-Pfad (`Microsoft.Data.SqlClient` 7.1.1, .NET 10); im TDS-7.4-Pfad war dieser Wert vor der Obergrenze TLS 1.2 (unten) gemessen und gilt dort nicht mehr. Der unverschlüsselte Testmodus ist nur mit dem Referenzclient und `Encrypt=false` gemessen.
+TLS 1.3 mit `TLS_AES_256_GCM_SHA384` im TDS-8.0-Pfad (`Microsoft.Data.SqlClient` 7.1.1, .NET 10); der TDS-7.4-Pfad bietet kein TLS 1.3 an (unten). Der unverschlüsselte Testmodus ist nur mit dem Referenzclient und `Encrypt=false` gemessen.
 
 Mit `Microsoft.Data.SqlClient` 7.1.1 gegen einen Testserver mit RSA-Zertifikat in beiden Pfaden (TDS 7.4 im Tunnel und `Encrypt=Strict`):
 
 - nur TLS 1.2 mit `TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384` und `…_AES_128_GCM_SHA256`: Handshake und LOGIN7 gelingen, der Client wählt die 256-Bit-Suite, wenn beide angeboten sind;
 - nur TLS 1.2 mit der 128-Bit-Suite: gelingt;
-- nur TLS 1.3 mit `TLS_AES_128_GCM_SHA256`: gelingt;
+- nur TLS 1.3 mit `TLS_AES_128_GCM_SHA256`: gelingt im Pfad `Encrypt=Strict`;
 - nur TLS 1.1: der Client lehnt ab („tlsv1 alert protocol version“).
 
 Entscheidung des Nutzers (2026-11-05): Der TDS-7.4-Pfad bietet höchstens TLS 1.2 an; der TDS-8.0-Pfad (`Encrypt=Strict`) bleibt bei TLS 1.3. Begründung, nach Microsoft Learn (laut Suchergebnis, nicht selbst am Server gemessen): Ein echter SQL Server verhandelt im TDS-7.x-Pfad höchstens TLS 1.2, TLS 1.3 gibt es nur mit TDS 8.0. Gemessen (Rohbytes-Mitschnitt, ein Host, ein Lauf) mit `mssql-jdbc` 13.4.0 (JDK 21, `encrypt=true`) im 7.4-Pfad unter TLS 1.3: Der Treiber sendet sein `Finished` nicht an den Server und schickt LOGIN7 gleich als rohen TLS-Record ohne TDS-Kopf; der Server trennt und meldet `PROTOCOL_VIOLATION`. Mit der Obergrenze TLS 1.2 gelingt die Anmeldung. Die Obergrenze trägt der Test `TlsHandshakeNegativeTest`: ein reiner TLS-1.3-Client scheitert im 7.4-Pfad mit `HANDSHAKE_FAILED`.
