@@ -747,8 +747,8 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   wenn beide Zahlen gleich sind, sonst für keine; `WHERE 1 = 0` liefert also die Spalten der Auswahl und keine Zeile,
   ohne dass die Zeilenquelle geöffnet wird, `WHERE 1 = 1` jede Zeile. Der Konstantenterm ist eine Setzung: gemessen ist
   nur der Text `1 = 0` (d-migrate 1.12.0, mssql-jdbc 13.4.0, 2026-11-05, `SELECT * FROM [kunden] WHERE 1 = 0` als
-  Probe der Spaltenmetadaten). Der
-  Term ist kein Ausdruck im Sinn der Liste „Nicht erkannt“ (kein Operator außer `=`, keine Spalte, kein Parameter).
+  Probe der Spaltenmetadaten). Das
+  Lastenheft nimmt ihn ausdrücklich auf (`TDS-FA-11`); die Liste „Nicht erkannt“ gilt für ihn nicht.
   In `UPDATE` und `DELETE` ist er nicht erkannt: ein Filter ohne Spaltenterm wäre dort ein Filter ohne Vorfilter, den
   ein Callback als „alle Zeilen“ liest.
 - **Wert:** Zahl, `'…'`, `N'…'`, `NULL` oder `@<Parametername>`.
