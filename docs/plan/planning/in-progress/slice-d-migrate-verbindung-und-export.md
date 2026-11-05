@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** SPEC-030 (RPC-Varianten und Parameter-Metadaten) · SPEC-036 (Formen, Form C) · SPEC-004 (Testprofil, füllt Form C) · [TDS-FA-11.a](../../../../spec/spezifikation.md#tds-fa-11a--simulations-backend) (Simulations-Backend)
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** pt9912
 
 **Autor:** pt9912 (Entwurf in der Planner-Rolle). **Datum:** 2026-11-05.
 
@@ -72,6 +72,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 | `spec/spezifikation.md` SPEC-030, SPEC-036, SPEC-004 | update | Festlegung der Parameternamen, Form C, Konstantenbedingung; Setzung gekennzeichnet |
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/rpc/RpcCatalog.kt`, `src/main/kotlin/io/github/pt9912/tdswire/protocol/dispatch/RpcParameters.kt` | update | Sonde: `executeSql` verlangt mindestens zwei Parameter, `checkName` weist leere Namen ab (Messung im Messprotokoll, Hürden 4 und 5) |
 | `src/main/kotlin/io/github/pt9912/tdswire/simulation/` (Parser, Planer, Backend) | update | Form C und `1 = 0`; Antwort ohne Ergebnis als Änderungszähler |
+| `src/main/kotlin/io/github/pt9912/tdswire/simulation/FixedForms.kt`, `FixedAnswers.kt` (neu), `Statement.kt`, `StatementParser.kt`, `StatementPlanner.kt`, `SimConditions.kt`, `SimulationBackend.kt` | neu / update | Form C (`SELECT 1`, `SET`), Konstantenterm nur in S1, Antworten ohne Tabelle; `WHERE 1 = 0` öffnet die Zeilenquelle nicht |
 | Tests unter `src/test/kotlin/` und `.NET`-Referenztests | neu / update | Happy/Boundary/Negative je neuer Form nach [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend); der Referenzclient darf nicht rot werden ([TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität)) |
 
 ## 4. Trigger
