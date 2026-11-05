@@ -28,7 +28,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Ziel:** Die Bibliothek erkennt das `MERGE` mit Parametern, gibt es nach der Entscheidung an den Integrator weiter und liefert dessen Ergebnis als Ergebniszeile `$action`; der Testserver führt die Konfliktbehandlung gegen seinen Bestand aus, sodass `data import` und `data transfer` von d-migrate mit `--on-conflict skip` und `update` durchlaufen und ein Export die Zeilen enthält (Hürde 10 der Sonde).
 
-**Quelle und Vorbehalt.** Auslöser ist die Sonde vom 2026-11-05 ([d-migrate-sonde-2026-11-05](../../../messungen/d-migrate-sonde-2026-11-05.md)). Ihr Vorbehalt gilt hier: alles, was dort „lief“, lief gegen erfundene Katalogantworten; belegt ist, was d-migrate sendet und dass Treiber und d-migrate die TDS-Antworten der Bibliothek verarbeiten. Aufwandsgrößen (S/M/L) sind Schätzungen der Sonde, nicht gemessen. Gemessen ist der Text und die Parametertypen (Int64, UnicodeText, Date, vom Binder angenommen); die Sonde beantwortete das MERGE mit einer festen Zeile, nichts wurde gespeichert. Der Abbruch-Pfad (`abort`) nimmt laut Sonde den Massenpfad; ein `INSERT` mit Parametern wurde nicht beobachtet. **Hülle:** Der Plan ist knapp; der Implementer erweitert §3 im ersten Lauf, nachdem die Entscheidung in [slice-adr-testserver-bestand-und-katalog](../next/slice-adr-testserver-bestand-und-katalog.md) vorliegt (Form der Weitergabe und Namen der Fläche hängen an ihr). **Aufteilung:** Die Funktion liegt in der Bibliothek (`src/main`, Packages `simulation`, `protocol`); der Testserver (`src/testserver`) ist Integrator: Bestand, Callbacks, Beispieltabellen. Jeder Liefer-Punkt unten nennt seinen Anteil.
+**Quelle und Vorbehalt.** Auslöser ist die Sonde vom 2026-11-05 ([d-migrate-sonde-2026-11-05](../../../messungen/d-migrate-sonde-2026-11-05.md)). Ihr Vorbehalt gilt hier: alles, was dort „lief“, lief gegen erfundene Katalogantworten; belegt ist, was d-migrate sendet und dass Treiber und d-migrate die TDS-Antworten der Bibliothek verarbeiten. Aufwandsgrößen (S/M/L) sind Schätzungen der Sonde, nicht gemessen. Gemessen ist der Text und die Parametertypen (Int64, UnicodeText, Date, vom Binder angenommen); die Sonde beantwortete das MERGE mit einer festen Zeile, nichts wurde gespeichert. Der Abbruch-Pfad (`abort`) nimmt laut Sonde den Massenpfad; ein `INSERT` mit Parametern wurde nicht beobachtet. **Hülle:** Der Plan ist knapp; der Implementer erweitert §3 im ersten Lauf, nachdem die Entscheidung in [slice-adr-testserver-bestand-und-katalog](../in-progress/slice-adr-testserver-bestand-und-katalog.md) vorliegt (Form der Weitergabe und Namen der Fläche hängen an ihr). **Aufteilung:** Die Funktion liegt in der Bibliothek (`src/main`, Packages `simulation`, `protocol`); der Testserver (`src/testserver`) ist Integrator: Bestand, Callbacks, Beispieltabellen. Jeder Liefer-Punkt unten nennt seinen Anteil.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -78,12 +78,12 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-adr-testserver-bestand-und-katalog](../next/slice-adr-testserver-bestand-und-katalog.md) liegt in `done/` (Weitergabe, Katalog nach Änderungen und Fläche entschieden) und [slice-katalog-und-ddl-zustand](slice-katalog-und-ddl-zustand.md) liegt in `done/` (Bestand des Testservers besteht).
+**Start** (`next` → `in-progress`): [slice-adr-testserver-bestand-und-katalog](../in-progress/slice-adr-testserver-bestand-und-katalog.md) liegt in `done/` (Weitergabe, Katalog nach Änderungen und Fläche entschieden) und [slice-katalog-und-ddl-zustand](slice-katalog-und-ddl-zustand.md) liegt in `done/` (Bestand des Testservers besteht).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): mehr als drei Liefer-Punkte; Schnittvorschlag: Anteil der Bibliothek und Anteil des Testservers als zwei Slices.
-- `in-progress` → `open` (blockiert): die Entscheidung in [slice-adr-testserver-bestand-und-katalog](../next/slice-adr-testserver-bestand-und-katalog.md) trägt den Fall nicht oder wird überstimmt.
+- `in-progress` → `open` (blockiert): die Entscheidung in [slice-adr-testserver-bestand-und-katalog](../in-progress/slice-adr-testserver-bestand-und-katalog.md) trägt den Fall nicht oder wird überstimmt.
 
 ## 5. Closure-Trigger
 
@@ -99,7 +99,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 - Aufwand der Sonde: M bis L; die Erkennung von `MERGE` weitet die Liste der Formen, die SPEC-036 „abschließend“ nennt (nicht vom Nutzer bestätigt). — **Ausgang:** offen bis zur Closure.
 - Die Gestalt des MERGE hängt an d-migrate 1.12.0 und seiner Spaltenliste; eine andere Version kann einen anderen Text senden (nicht gemessen). — **Ausgang:** offen bis zur Closure.
-- Da die Bibliothek nichts speichert, muss die Weitergabe die Konfliktsemantik (Schlüsselvergleich, Aktion) tragen; ob dafür ein eigener Callback nötig ist oder eine Folge aus Lesen und Einfügen genügt, entscheidet [slice-adr-testserver-bestand-und-katalog](../next/slice-adr-testserver-bestand-und-katalog.md). — **Ausgang:** offen bis zur Closure.
+- Da die Bibliothek nichts speichert, muss die Weitergabe die Konfliktsemantik (Schlüsselvergleich, Aktion) tragen; ob dafür ein eigener Callback nötig ist oder eine Folge aus Lesen und Einfügen genügt, entscheidet [slice-adr-testserver-bestand-und-katalog](../in-progress/slice-adr-testserver-bestand-und-katalog.md). — **Ausgang:** offen bis zur Closure.
 - Der Client wählt den Typ seiner Parameter selbst: d-migrate 1.12.0 sendet Ganzzahlwerte als `bigint`, die strenge Überführung ([SPEC-035](../../../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends)) weitet nur `Int32` auf `Int64`; ein Filter `Id = 7` gegen eine `Int32`-Spalte endete im Export mit „Invalid value“ (Beobachtung [parametertyp-des-clients-passt-nicht-zur-spalte](../observations/BEO-TDS/parametertyp-des-clients-passt-nicht-zur-spalte/observation.md), Ursache aus dem Code gelesen, nicht gemessen). Der Slice prüft die Parameter seines Pfades gegen die Spaltentypen. — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz

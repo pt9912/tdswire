@@ -28,12 +28,12 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Ziel:** Die Bibliothek beantwortet die Katalogabfragen, die d-migrate für `schema reverse` (auch `--include-all`), `schema compare` und `schema migrate` stellt, aus den ihr mitgeteilten Tabellen, gibt DDL (`CREATE TABLE`, `ALTER TABLE ... ADD`) an den Integrator weiter und zeigt danach die geänderte Struktur; der Testserver legt als Integrator die Tabellen an, hält sie veränderlich im Arbeitsspeicher und führt die DDL aus, sodass die Nachprüfung von `schema migrate --execute` besteht (Hürden 6 und 7 der Sonde).
 
-**Quelle und Vorbehalt.** Auslöser ist die Sonde vom 2026-11-05 ([d-migrate-sonde-2026-11-05](../../../messungen/d-migrate-sonde-2026-11-05.md)). Ihr Vorbehalt gilt hier: alles, was dort „lief“, lief gegen erfundene Katalogantworten; belegt ist, was d-migrate sendet und dass Treiber und d-migrate die TDS-Antworten der Bibliothek verarbeiten. Aufwandsgrößen (S/M/L) sind Schätzungen der Sonde, nicht gemessen. Die Sonde sah 26 bis 29 Katalogabfragen je `schema reverse` und die DDL des `--execute`-Laufs; die Antworten waren erfunden. **Hülle:** Der Plan ist knapp; der Implementer erweitert §3 im ersten Lauf, nachdem die Entscheidung in [slice-adr-testserver-bestand-und-katalog](../next/slice-adr-testserver-bestand-und-katalog.md) vorliegt (Form der Weitergabe und Namen der Fläche hängen an ihr). **Aufteilung:** Die Funktion liegt in der Bibliothek (`src/main`, Packages `simulation`, `protocol`); der Testserver (`src/testserver`) ist Integrator: Bestand, Callbacks, Beispieltabellen. Jeder Liefer-Punkt unten nennt seinen Anteil.
+**Quelle und Vorbehalt.** Auslöser ist die Sonde vom 2026-11-05 ([d-migrate-sonde-2026-11-05](../../../messungen/d-migrate-sonde-2026-11-05.md)). Ihr Vorbehalt gilt hier: alles, was dort „lief“, lief gegen erfundene Katalogantworten; belegt ist, was d-migrate sendet und dass Treiber und d-migrate die TDS-Antworten der Bibliothek verarbeiten. Aufwandsgrößen (S/M/L) sind Schätzungen der Sonde, nicht gemessen. Die Sonde sah 26 bis 29 Katalogabfragen je `schema reverse` und die DDL des `--execute`-Laufs; die Antworten waren erfunden. **Hülle:** Der Plan ist knapp; der Implementer erweitert §3 im ersten Lauf, nachdem die Entscheidung in [slice-adr-testserver-bestand-und-katalog](../in-progress/slice-adr-testserver-bestand-und-katalog.md) vorliegt (Form der Weitergabe und Namen der Fläche hängen an ihr). **Aufteilung:** Die Funktion liegt in der Bibliothek (`src/main`, Packages `simulation`, `protocol`); der Testserver (`src/testserver`) ist Integrator: Bestand, Callbacks, Beispieltabellen. Jeder Liefer-Punkt unten nennt seinen Anteil.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Schreiben von Zeilen (Einfügen, Massenladen, MERGE) — [slice-schreibpfad-bulk-load](slice-schreibpfad-bulk-load.md) und [slice-schreibpfad-merge-output](slice-schreibpfad-merge-output.md); hier nur Struktur.
-- Die Entscheidungen zu Weitergabe, Katalog nach Änderungen, FLOAT und Fläche — [slice-adr-testserver-bestand-und-katalog](../next/slice-adr-testserver-bestand-und-katalog.md); dieser Slice setzt sie um. Die Verteilung (Bibliothek = Funktion ohne Speicher, Testserver = Integrator) ist entschieden (Nutzer, 2026-11-05).
+- Die Entscheidungen zu Weitergabe, Katalog nach Änderungen, FLOAT und Fläche — [slice-adr-testserver-bestand-und-katalog](../in-progress/slice-adr-testserver-bestand-und-katalog.md); dieser Slice setzt sie um. Die Verteilung (Bibliothek = Funktion ohne Speicher, Testserver = Integrator) ist entschieden (Nutzer, 2026-11-05).
 - Anmeldung, SET-Anweisungen, `sp_executesql`-Formen und `WHERE 1 = 0` — [slice-d-migrate-verbindung-und-export](../done/slice-d-migrate-verbindung-und-export.md).
 - Katalogsichten, die kein Lauf des Solls stellt (zum Beispiel Partitionen oder Volltextindizes mit Inhalt): erst die Sichten, die die Läufe tatsächlich abfragen; im Rest antworten leere Resultsets mit den Spalten (die Sonde: leere Antworten genügen für `--include-all`, gemessen nur gegen ihr aufzeichnendes Backend).
 - Typ FLOAT, soweit die Entscheidung ihn nicht aufnimmt (Hürde 12).
@@ -79,12 +79,12 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-adr-testserver-bestand-und-katalog](../next/slice-adr-testserver-bestand-und-katalog.md) liegt in `done/` (Weitergabe, Katalog nach Änderungen und Fläche entschieden).
+**Start** (`next` → `in-progress`): [slice-adr-testserver-bestand-und-katalog](../in-progress/slice-adr-testserver-bestand-und-katalog.md) liegt in `done/` (Weitergabe, Katalog nach Änderungen und Fläche entschieden).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): mehr als drei Liefer-Punkte; Schnittvorschlag: Anteil der Bibliothek und Anteil des Testservers als zwei Slices.
-- `in-progress` → `open` (blockiert): die Entscheidung in [slice-adr-testserver-bestand-und-katalog](../next/slice-adr-testserver-bestand-und-katalog.md) trägt den Fall nicht oder wird überstimmt.
+- `in-progress` → `open` (blockiert): die Entscheidung in [slice-adr-testserver-bestand-und-katalog](../in-progress/slice-adr-testserver-bestand-und-katalog.md) trägt den Fall nicht oder wird überstimmt.
 
 ## 5. Closure-Trigger
 
