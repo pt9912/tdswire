@@ -36,7 +36,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Die Targets selbst: [slice-testserver-up-down](../in-progress/slice-testserver-up-down.md); diese Doku beschreibt gebaute Targets und beginnt erst, wenn der Slice in `done/` liegt.
+- Die Targets selbst: [slice-testserver-up-down](../done/slice-testserver-up-down.md); diese Doku beschreibt gebaute Targets und beginnt erst, wenn der Slice in `done/` liegt.
 - Die Einbettung der Bibliothek in eine eigene Anwendung und die Release-Schritte: [slice-release-doku-prozess](slice-release-doku-prozess.md); der Testserver ist dort nur ein Verweis.
 - Der Nachvollzug von einem frischen Klon durch eine zweite Person: Closure-Trigger der Welle [welle-testserver-manuell](../welle-testserver-manuell.md), nicht dieses Slice.
 
@@ -97,7 +97,7 @@ lässt. Ergänzt die Tabelle, ersetzt sie nicht:
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-testserver-up-down](../in-progress/slice-testserver-up-down.md) liegt in `done/`.
+**Start** (`next` → `in-progress`): [slice-testserver-up-down](../done/slice-testserver-up-down.md) liegt in `done/`.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
