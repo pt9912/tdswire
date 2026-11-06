@@ -86,9 +86,10 @@ pruefe "Backend: 1 Anfrage an wirft" anfragen_je_tabelle wirft 1
 
 laeuft() { [ "$(docker inspect --format '{{.State.Running}}' "$SERVER")" = "true" ]; }
 pruefe "Server laeuft nach den Tests" laeuft
-# Grenze: TdsServer.start laeuft ohne Senke, die Bibliothek schreibt kein Log; geprueft ist nur, dass das Backend des Testservers
-# selbst nichts davon schreibt. Dass die Bibliothek nichts ausgibt, belegt dieser Punkt nicht (der Client-Teil prueft die Meldung).
-pruefe "Ausgabe des Testservers (nur Zeilen des Backends) nennt weder Kennwort noch Text der Ausnahme oder des Fehlers" \
+# Der Testserver schreibt je Ereignis der Bibliothek eine JSON-Zeile (ADR-0020). Geprueft ist das Log dieses Laufs, also die
+# Pfade der Tests (Fehler am Start, nach Zeilen, `execute` wirft): Kennwort, Text der Ausnahme und Text des Fehlers stehen in
+# keiner Zeile, auch nicht in den Ereigniszeilen der Bibliothek.
+pruefe "Ausgabe des Testservers (Ereigniszeilen und Backend) nennt weder Kennwort noch Text der Ausnahme oder des Fehlers" \
   sh -c "! docker logs '$SERVER' 2>&1 | grep -Eq 'secret|Geheimnis|Text des Backends'"
 
 echo "eigenes-backend: --- Log des Servers ---"

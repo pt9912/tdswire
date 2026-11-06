@@ -8,9 +8,9 @@
 # (referenztest-dotnet, Stage `integration`) bauen; beide Container laufen in einem eigenen internen Netzwerk
 # (kein Zugang nach aussen, nichts wird gemountet). Der Lauf prueft, dass der Text der Tabelle `gross` groesser ist
 # als der Heap des Servers, fuehrt die Tests des Referenzclients aus und prueft, dass der Server danach laeuft und
-# kein Kennwort ausgegeben hat. Der Testserver schreibt kein Log der Bibliothek (ADR-0025 Entscheidung 7); die
-# Pruefungen von `Simulations-Backend: 4 Tabellen` und `Handlerfehler` sind herausgenommen, Ersatz traegt
-# slice-betrieb-log-adapter-testserver.
+# kein Kennwort ausgegeben hat. Der Testserver laeuft mit LOG_LEVEL=DEBUG und schreibt je Ereignis der Bibliothek eine
+# JSON-Zeile (ADR-0020); der Lauf liest das Ereignis `simulation_backend_ready` mit der Zahl der Tabellen und prueft, dass
+# kein Ereignis `connection_failed` oder `adapter_failed` (Ausnahme im Handler oder im Authentifizierungsadapter) steht.
 # Zusage: Auswahl mit Bedingung, leeres Ergebnis, Zeilenquelle ueber dem Heap, Fehler der Zeilenquelle mit
 # Folgeabfrage und Cancel einer laufenden Anfrage (Quelle `laufend` ohne Ende) mit Folgeabfrage am Referenzclient
 # (Microsoft.Data.SqlClient), TDS 7.4 ohne Verschluesselung und ohne Pool; die Quelle von `laufend` wird nach dem
@@ -48,7 +48,7 @@ docker build ${BUILDER_FLAGS:-} --load --target integration -t "$CLIENT_IMAGE" r
 gebaut=$(date +%s)
 
 docker network create --internal "$NETZ" >/dev/null || exit 1
-docker run -d --name "$SERVER" --network "$NETZ" "$SERVER_IMAGE" >/dev/null || exit 1
+docker run -d --name "$SERVER" --network "$NETZ" -e LOG_LEVEL=DEBUG "$SERVER_IMAGE" >/dev/null || exit 1
 
 gestartet() {
   local i
@@ -60,7 +60,11 @@ gestartet() {
   return 1
 }
 pruefe "Server im Container meldet 'gestartet, Port 1433'" gestartet
-# Entfallen, Ersatz in slice-betrieb-log-adapter-testserver: 'tdswire: Simulations-Backend: 4 Tabellen' (Zeile der Bibliothek).
+# Die Tabellen: `leer` aus der Beschreibungsdatei und person, gross, kaputt, laufend aus IntegrationServer.kt (Kopplung).
+simulations_backend_verdrahtet() {
+  docker logs "$SERVER" 2>&1 | grep -F '"event":"simulation_backend_ready"' | grep -qF '"tables":5'
+}
+pruefe "Log nennt das Ereignis simulation_backend_ready mit 5 Tabellen" simulations_backend_verdrahtet
 
 # Der Text der Tabelle `gross` muss groesser sein als der Heap: sonst belegt der Lauf nicht, dass die Zeilen
 # einzeln gelesen werden.
@@ -83,8 +87,9 @@ pruefe "Die Quelle von laufend ist nach dem Cancel genau einmal geschlossen" que
 
 laeuft() { [ "$(docker inspect --format '{{.State.Running}}' "$SERVER")" = "true" ]; }
 pruefe "Server laeuft nach den Tests" laeuft
-# Entfallen, Ersatz in slice-betrieb-log-adapter-testserver: 'Handlerfehler' (Zeile der Bibliothek) keinmal.
-pruefe "Ausgabe des Testservers nennt weder Kennwort noch Text der Quellenausnahme" \
+pruefe "Log nennt keinen Handlerfehler und keinen Fehler des Authentifizierungsadapters" \
+  sh -c "! docker logs '$SERVER' 2>&1 | grep -Eq '\"event\":\"(connection_failed|adapter_failed)\"'"
+pruefe "Ausgabe des Testservers (Ereigniszeilen und Backend) nennt weder Kennwort noch Text der Quellenausnahme" \
   sh -c "! docker logs '$SERVER' 2>&1 | grep -Eq 'secret|Geheimnis'"
 
 echo "simulationstest: Laufzeit $((fertig - start)) s, davon Bau $((gebaut - start)) s und Tests $((fertig - gebaut)) s"
