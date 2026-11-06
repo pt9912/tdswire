@@ -11,8 +11,8 @@ repositories {
 }
 
 // Der Testserver (ADR-0034): ein eigenes Gradle-Modul, das die Bibliothek als Projekt-Abhaengigkeit bindet und
-// nur ihre oeffentliche Flaeche (`TdsServer.start`) sieht. Das Modul hat weder Assoziation noch `friend`-Pfad zur
-// Bibliothek; `internal` der Bibliothek ist hier nicht uebersetzbar (Messung M1:
+// nur ihre oeffentliche Flaeche (`TdsServer.start`) sieht. `internal` der Bibliothek ist hier nicht uebersetzbar, solange die
+// Modulgrenze zu bleibt (tools/modulgrenze-sperre.sh prueft diese Datei; Messung M1:
 // docs/messungen/testserver-gradle-modul-2026-11-06.md).
 // Jackson liest die Datei der Tabellenbeschreibung und gehoert nur diesem Modul; es steht weder im Klassenpfad der
 // Bibliothek noch in `build/libs/lib`. Grenze des Nachweises: `internal` ist im Bytecode oeffentlich, er gilt fuer

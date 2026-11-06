@@ -4,7 +4,7 @@
 # ohne BUILDER).
 #
 # Ablauf: Testserver-Image (Dockerfile-Stage `integrationsserver`, JVM mit begrenztem Heap, Tabellen von
-# IntegrationServer.kt, Beschreibung aus src/testserver/resources/integration/sim.yaml) und Client-Image
+# IntegrationServer.kt, Beschreibung aus testserver/resources/integration/sim.yaml) und Client-Image
 # (referenztest-dotnet, Stage `integration`) bauen; beide Container laufen in einem eigenen internen Netzwerk
 # (kein Zugang nach aussen, nichts wird gemountet). Der Lauf prueft, dass der Text der Tabelle `gross` groesser ist
 # als der Heap des Servers, fuehrt die Tests des Referenzclients aus und prueft, dass der Server danach laeuft und

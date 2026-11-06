@@ -101,7 +101,8 @@ COPY --chown=gradle:gradle gradle/test-jvm.init.gradle.kts gradle/
 RUN gradle --no-daemon -I gradle/test-jvm.init.gradle.kts :test --tests 'io.github.pt9912.tdswire.runtime.ServerSmokeTest'
 
 # --- Detekt: `docker build --target detekt .` - zuerst das Suppression-Verbot (AGENTS.md 3.2,
-# tools/suppression-check.sh), dann die statische Analyse samt ktlint-Regelsatz und Regeln der
+# tools/suppression-check.sh), die Sperren gegen Jackson in der Bibliothek und gegen friend/associate im Modul
+# `testserver`, dann die statische Analyse samt ktlint-Regelsatz und Regeln der
 # Schichten (config/detekt/detekt.yml). `detekt` liest nur Quelltext; `detektMain` und
 # `detektTest` loesen Typen auf und kompilieren dafuer, ForbiddenMethodCall wirkt nur dort. Jeder
 # Befund bricht den Build, es gibt keine Baseline. ----------------------------
@@ -109,9 +110,10 @@ FROM deps AS detekt
 COPY --chown=gradle:gradle src src
 COPY --chown=gradle:gradle testserver testserver
 COPY --chown=gradle:gradle config config
-COPY --chown=gradle:gradle tools/suppression-check.sh tools/jackson-sperre.sh tools/
+COPY --chown=gradle:gradle tools/suppression-check.sh tools/jackson-sperre.sh tools/modulgrenze-sperre.sh tools/
 RUN sh tools/suppression-check.sh src testserver \
  && sh tools/jackson-sperre.sh src/main \
+ && sh tools/modulgrenze-sperre.sh testserver/build.gradle.kts \
  && gradle --no-daemon detekt detektMain detektTest detektIntegrator
 
 # --- Detekt-Selbsttest: `docker build --target detekt-selbsttest .` - belegt, dass jede
@@ -121,13 +123,14 @@ RUN sh tools/suppression-check.sh src testserver \
 # laeuft nur neu, wenn sich Regeln, Testdaten, Skripte oder Toolchain aendern. -----
 FROM deps AS detekt-selbsttest
 COPY --chown=gradle:gradle config config
-COPY --chown=gradle:gradle tools/detekt-selbsttest.sh tools/suppression-check.sh tools/jackson-sperre.sh tools/
+COPY --chown=gradle:gradle tools/detekt-selbsttest.sh tools/suppression-check.sh tools/jackson-sperre.sh tools/modulgrenze-sperre.sh tools/
 RUN sh tools/detekt-selbsttest.sh generate \
  && gradle --no-daemon detektSelbsttest detektSelbsttestAufrufe \
  && sh tools/detekt-selbsttest.sh check \
  && sh tools/detekt-selbsttest.sh aufrufe \
  && sh tools/detekt-selbsttest.sh suppression \
- && sh tools/detekt-selbsttest.sh jackson
+ && sh tools/detekt-selbsttest.sh jackson \
+ && sh tools/detekt-selbsttest.sh modulgrenze
 
 # --- Spec-Abdeckung: `make spec-abdeckung` - fuehrt die Tests aus (rote Tests brechen die Stage
 # nicht: sie stehen dann in der Matrix als nicht bestanden) und erzeugt aus den @spec-Tags und den
@@ -172,14 +175,14 @@ COPY .github/workflows .github/workflows
 RUN bash tools/e2e-selbsttest.sh && sh tools/manifest-selbsttest.sh && bash tools/vergleichslauf-d-selbsttest.sh
 
 # --- Kopplung der Zahlen: `make kopplung-zahlen` - haelt Heap und Text von `gross` des Integrationslaufs (SPEC-040)
-# in build.gradle.kts, IntegrationServer.kt, dem .NET-Test, der Spezifikation und harness/README.md gleich und belegt
+# in testserver/build.gradle.kts, IntegrationServer.kt, dem .NET-Test, der Spezifikation und harness/README.md gleich und belegt
 # an Mutationen, dass jede Abweichung rot macht. Ohne Gradle; Eingang sind nur diese fuenf Dateien und die Skripte,
 # damit eine Doku-Aenderung die Stage `test` nicht ausloest (ADR-0023). ----------------------------------------
 FROM basis AS kopplung-zahlen
 WORKDIR /src
 COPY tools/integrationszahlen-pruefung.sh tools/integrationszahlen-selbsttest.sh tools/
-COPY build.gradle.kts build.gradle.kts
-COPY src/testserver/kotlin/io/github/pt9912/tdswire/testserver/IntegrationServer.kt src/testserver/kotlin/io/github/pt9912/tdswire/testserver/IntegrationServer.kt
+COPY testserver/build.gradle.kts testserver/build.gradle.kts
+COPY testserver/kotlin/io/github/pt9912/tdswire/testserver/IntegrationServer.kt testserver/kotlin/io/github/pt9912/tdswire/testserver/IntegrationServer.kt
 COPY referenztest-dotnet/Integration/SimulationBackendTests.cs referenztest-dotnet/Integration/SimulationBackendTests.cs
 COPY spec/spezifikation.md spec/spezifikation.md
 COPY harness/README.md harness/README.md

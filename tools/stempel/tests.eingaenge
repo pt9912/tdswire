@@ -6,8 +6,10 @@
 # Abweichung von der Anfangsliste in ADR-0024 Entscheidung 10 (Setzung des Implementers, Begruendung im Slice): `config`
 # statt `config/detekt/` (das Dockerfile kopiert `config` ganz); zusaetzlich .dockerignore, Makefile, repo.mk,
 # tools/mk/{builder,test,build,referenztest-dotnet}.mk (Flags und Rezepte der Gates) und die zwei Skripte der Stages.
+# `testserver` ist das Gradle-Modul des Testservers (ADR-0034): Quellen, Tests, Ressourcen, build.gradle.kts und gradle.lockfile.
 # Grenze: Eingaenge, die kein COPY und kein Make-Fragment sind, sieht die Pruefung nicht.
 src
+testserver
 LICENSE
 build.gradle.kts
 settings.gradle.kts
@@ -19,6 +21,7 @@ Dockerfile
 .dockerignore
 config
 tools/suppression-check.sh
+tools/modulgrenze-sperre.sh
 tools/manifest-pruefung.sh
 tools/mk/test.mk
 tools/mk/build.mk
