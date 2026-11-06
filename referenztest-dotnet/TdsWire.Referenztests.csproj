@@ -22,6 +22,12 @@
     <NuGetAudit>false</NuGetAudit>
   </PropertyGroup>
 
+  <!-- Das Testschema der Referenzinstanz (Vergleich/testschema.sql) liegt im Test-Assembly; die Glob-Form lässt Stages
+       ohne das Verzeichnis `Vergleich` bauen. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Vergleich/*.sql" LogicalName="%(Filename)%(Extension)" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.SqlClient" Version="7.1.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />

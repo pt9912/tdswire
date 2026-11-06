@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # vergleichslauf-d-selbsttest.sh - belegt, dass tools/vergleichslauf-d.sh vor jedem Docker-Aufruf abbricht (Exit 2),
 # wenn die EULA-Variable nicht `Y` ist, wenn CI oder GITHUB_ACTIONS gesetzt sind und wenn der Name des Laufs unbekannt
-# ist; dass ein gueltiger Aufruf bis zum ersten Docker-Aufruf kommt; und dass kein Gate, kein E2E-Skript und kein
+# ist; dass ein gueltiger Aufruf bis zum ersten Docker-Aufruf kommt; dass der Vergleich des Live-Laufs (`--vergleich`) nur
+# bei Gleichheit oder genau der gelisteten Abweichung gruen ist; und dass kein Gate, kein E2E-Skript und kein
 # Workflow das Target nennen und keine Datei ausser dem Make-Fragment die EULA setzt (ADR-0008, ADR-0022, Entscheidung des
 # Nutzers pt9912 vom 2026-11-01). Docker ist ein Ersatz, der seine Aufrufe protokolliert und scheitert; es laeuft kein
 # Docker. Aufgerufen von der Dockerfile-Stage `skript-selbsttest`; braucht bash, grep, mktemp, find.
@@ -63,6 +64,43 @@ ARG=2022-anmeldung
 aufruf VERGLEICH_ACCEPT_EULA=Y
 [ "$status" -eq 1 ] || pruefe "gueltiger Aufruf: Exit $status statt 1 (Docker-Ersatz scheitert)"
 head -1 "$tmp/log" | grep -q 'build.*--target vergleich' || pruefe "gueltiger Aufruf: erster Docker-Aufruf ist [$(head -1 "$tmp/log")]"
+
+# Vergleich des Live-Laufs (`--vergleich`, SPEC-045): gruen genau bei Gleichheit oder bei der gelisteten Abweichung; jede andere
+# Abweichung ist rot. Docker und EULA-Variable sind dafuer nicht noetig; die Dateien entstehen hier.
+vergleich() { # vergleich <Name> <erwarteter Exit> <Referenz> <Server> <Ausnahmen> [<Stufe>]
+  local name="$1" erwartet="$2" ist=0
+  printf '%b' "$3" > "$tmp/v-ref"
+  printf '%b' "$4" > "$tmp/v-srv"
+  printf '%b' "$5" > "$tmp/v-aus"
+  env -i PATH="$PATH" HOME="$tmp" bash "$lauf" --vergleich "$tmp/v-ref" "$tmp/v-srv" "$tmp/v-aus" ${6:+"$6"} > "$tmp/v-aus.log" 2>&1 || ist=$?
+  [ "$ist" -eq "$erwartet" ] || pruefe "Vergleich $name: Exit $ist statt $erwartet [$(tr '\n' '|' < "$tmp/v-aus.log")]"
+}
+R='a\tgleich\nb\tNummer 208, Class 16\nc\tzwei Zeilen\n'
+S='a\tgleich\nb\tNummer 208, Class 20\nc\tzwei Zeilen\n'
+REGEL='b\tNummer 208, Class 16\tNummer 208, Class 20\tso gewollt\tGrund\tSPEC-1\n'
+vergleich "gleich ohne Regel" 0 'a\tx\n' 'a\tx\n' ''
+vergleich "gelistete Abweichung" 0 "$R" "$S" "$REGEL"
+vergleich "kleinere Abweichung (Server weicht weniger ab)" 1 "$R" 'a\tgleich\nb\tNummer 208, Class 16\nc\tzwei Zeilen\n' "$REGEL"
+vergleich "groessere Abweichung (Server weicht anders ab)" 1 "$R" 'a\tgleich\nb\tNummer 208, Class 21\nc\tzwei Zeilen\n' "$REGEL"
+vergleich "groessere Abweichung (Referenz weicht anders ab)" 1 'a\tgleich\nb\tNummer 207, Class 16\nc\tzwei Zeilen\n' "$S" "$REGEL"
+vergleich "nicht gelistete Abweichung" 1 "$R" 'a\tgleich\nb\tNummer 208, Class 20\nc\tdrei Zeilen\n' "$REGEL"
+vergleich "Abweichung ohne jede Regel" 1 "$R" "$S" ''
+vergleich "Regel ohne Abweichung" 1 'a\tx\n' 'a\tx\n' 'a\tx\ty\tso gewollt\tG\tV\n'
+vergleich "Regel ohne Schritt" 1 'a\tx\n' 'a\tx\n' "$REGEL"
+vergleich "doppelte Regel" 1 "$R" "$S" "$REGEL$REGEL"
+vergleich "zwei Regeln, die zweite trifft" 0 "$R" "$S" 'b\tNummer 1\tNummer 2\tLuecke\tG\tV\n'"$REGEL"
+vergleich "zwei Regeln, keine trifft" 1 "$R" 'a\tgleich\nb\tNummer 208, Class 22\nc\tzwei Zeilen\n' 'b\tNummer 1\tNummer 2\tLuecke\tG\tV\n'"$REGEL"
+vergleich "unbekannte Art" 1 "$R" "$S" 'b\tNummer 208, Class 16\tNummer 208, Class 20\tegal\tGrund\tSPEC-1\n'
+vergleich "Regel ohne Grund" 1 "$R" "$S" 'b\tNummer 208, Class 16\tNummer 208, Class 20\tLuecke\n'
+vergleich "Schritt fehlt auf dem Server" 1 'a\tx\nb\ty\n' 'a\tx\n' ''
+vergleich "Schritt fehlt bei der Referenz" 1 'a\tx\n' 'a\tx\nb\ty\n' ''
+vergleich "Regel der eigenen Stufe" 0 "$R" "$S" 'b@2022\tNummer 208, Class 16\tNummer 208, Class 20\tLuecke\tG\tV\n' 2022
+vergleich "Regel einer anderen Stufe gilt nicht" 1 "$R" "$S" 'b@2025\tNummer 208, Class 16\tNummer 208, Class 20\tLuecke\tG\tV\n' 2022
+vergleich "Kommentar und Leerzeile zaehlen nicht" 0 "$R" "$S" "# Kopf\n\n$REGEL"
+: > "$tmp/leer"
+status=0
+env -i PATH="$PATH" HOME="$tmp" bash "$lauf" --vergleich "$tmp/leer" "$tmp/gibtesnicht" "$tmp/leer" > /dev/null 2>&1 || status=$?
+[ "$status" -eq 2 ] || pruefe "Vergleich mit fehlender Datei: Exit $status statt 2"
 
 # Kopplung: Gate-Kette, E2E-Skript, Workflows und die EULA-Variable. Fehlt eine Quelle, ist der Test rot statt leer.
 for datei in tools/e2e.sh tools/mk/vergleichslauf-d.mk Makefile repo.mk .github/workflows/gates.yml .github/workflows/e2e.yml; do

@@ -19,10 +19,15 @@
 # und 2426 MB (2025) laut `docker image inspect`, zusammen rund 4,8 GB (Layer teilweise geteilt, nicht gemessen); die Images
 # bleiben nach dem Lauf liegen; der freie Platz wird vor dem Lauf nicht geprueft. Speicher des Servers 671 bis 965 MiB (`docker stats`, ein Messpunkt nach dem Start).
 # Die Messzeilen jedes Laufs stehen in seiner Ausgabe (`vergleichslauf-d: messung:`).
+# Live-Lauf (`LAUF=live-2022`, `live-2025`, `live` fuer beide) und Gegenmessungen (`LAUF=messung-2022`, `messung-2025`) laufen
+# mit derselben EULA-Entscheidung und denselben Images (gepinnte Digests); der Live-Lauf baut zusaetzlich die Dockerfile-Stage
+# `kompatibilitaetsserver` (JVM). Einzelmessungen am 2026-11-06 auf demselben Host (Lastmittel 8 bis 9): ein Teillauf des
+# Live-Laufs 35 bis 46 s einschliesslich Bau und Start der Referenzinstanz (13 bis 22 s, einmal 55 s), `live` zusammen 77 bis
+# 98 s; ein Lauf `messung-*` 22 und 23 s. Die Images und der Speicher des Servers sind die der anderen Laeufe.
 .PHONY: vergleichslauf-d
 
 VERGLEICH_ACCEPT_EULA = Y
 LAUF ?= alle
 
-vergleichslauf-d: ## Vergleichslauf D: Referenzclient gegen echten SQL Server (Developer-Image, EULA-Entscheidung des Nutzers), LAUF=alle|2022-anmeldung|2022-tds8|2025-anmeldung|2025-tds8|2025-tds8-forcestrict — KEIN Gate, nur lokal
+vergleichslauf-d: ## Vergleichslauf D: Referenzclient gegen echten SQL Server (Developer-Image, EULA-Entscheidung des Nutzers), LAUF=alle|live|messung-2022|messung-2025|live-2022|live-2025|2022-anmeldung|2022-tds8|2025-anmeldung|2025-tds8|2025-tds8-forcestrict — KEIN Gate, nur lokal
 	VERGLEICH_ACCEPT_EULA="$(VERGLEICH_ACCEPT_EULA)" BUILDER_FLAGS="$(BUILDER_FLAGS)" bash tools/vergleichslauf-d.sh "$(LAUF)"

@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # tools/vergleichslauf-d.sh - Vergleichslauf D: der .NET-Referenzclient gegen einen echten SQL Server im Container
 # (ADR-0008 Option D, SPEC-045, TDS-QA-01). Aufruf ueber `make vergleichslauf-d [LAUF=<Name>]`; BUILDER_FLAGS kommt
-# aus der Umgebung (leer ohne BUILDER). Kein Gate und keine Stufe von `make e2e`: der Lauf spricht den Server dieses
-# Repos nicht an (ADR-0022).
+# aus der Umgebung (leer ohne BUILDER). Kein Gate und keine Stufe von `make e2e` (ADR-0022). Nur die Laeufe `live-*`
+# starten zusaetzlich den Server dieses Repos (Stufe `kompatibilitaetsserver`); alle anderen sprechen nur die Referenzinstanz an.
 #
 # Laeufe (Name = Image-Stufe, Kategorie, Einstellung `network.forcestrict`):
 #   2022-anmeldung | 2022-tds8 | 2025-anmeldung | 2025-tds8 | 2025-tds8-forcestrict | alle (Voreinstellung)
+#   live-2022 | live-2025 | live (beide): Live-Lauf nach SPEC-045, siehe `livelauf`; messung-2022 | messung-2025: Gegenmessungen
+#   an der Referenzinstanz (referenztest-dotnet/Vergleich/ReferenzMessungTests.cs, Kategorie VergleichMessung), kein Urteil.
 # Je Lauf: Image der Referenzinstanz bauen (Dockerfile-Stufe `referenzinstanz-<jahr>` in referenztest-dotnet, Digest
 # dort gepinnt) und Client-Image (Stufe `vergleich`); zwei Container in einem eigenen internen Netzwerk (kein Zugang
 # nach aussen, kein veroeffentlichter Port, nichts wird gemountet; Namen mit PID). Zertifikat und Schluessel (CN und SAN
@@ -33,8 +35,96 @@
 # Kopf der Testklassen in referenztest-dotnet/Vergleich.
 set -u
 
+# Vergleich der Ausgaben des Live-Laufs (SPEC-045): `bash tools/vergleichslauf-d.sh --vergleich <Referenz> <Server> <Ausnahmen> [<Stufe>]`.
+# Es braucht weder Docker noch die EULA-Variable und liest nur die drei Dateien. Referenz und Server: eine Zeile je Schritt,
+# `Kennung TAB Ergebnis`. Ausnahmen: `Kennung TAB Ergebnis der Referenz TAB Ergebnis des Servers TAB Art TAB Grund TAB Verweis`,
+# Art `so gewollt` oder `Luecke`; Zeilen mit `#` am Anfang und leere Zeilen zaehlen nicht. Exit 0 genau dann, wenn
+# beide Dateien dieselben Kennungen fuehren und jeder Schritt gleich ist oder genau der gelisteten Abweichung entspricht
+# (beide Ergebnisse wortgleich); jede andere Abweichung, eine Regel ohne Abweichung, eine Regel ohne Schritt, eine doppelte
+# Regel und eine unbekannte Art machen den Vergleich rot (Exit 1). Ein Schritt darf mehrere Regeln mit verschiedenen
+# Ergebnispaaren haben (eine Instanz, die je Lauf verschieden antwortet); jedes Paar steht wortgleich da. Eine Regel `Kennung@<Stufe>` gilt nur fuer die Referenzinstanz
+# dieser Stufe (2022 oder 2025), eine Regel ohne `@` fuer jede; Regeln anderer Stufen zaehlen nicht. Eingabefehler (Datei fehlt): Exit 2.
+vergleichen() { # vergleichen <Referenz> <Server> <Ausnahmen> [<Stufe 2022|2025>]
+  local datei rot=0 kennung ref srv art grund verweis zeile
+  local -A werte_ref werte_srv regel_hat regel_art
+  local -a kennungen=()
+  local sep=$'\x1f' schluessel
+  for datei in "$1" "$2" "$3"; do
+    [ -f "$datei" ] || { echo "vergleichslauf-d: Datei fehlt: $datei" >&2; return 2; }
+  done
+  while IFS=$'\t' read -r kennung ref; do
+    [ -n "$kennung" ] || continue
+    [ -z "${werte_ref[$kennung]+x}" ] || { echo "vergleichslauf-d: live: FEHLER Schritt $kennung doppelt in der Ausgabe der Referenz"; rot=1; }
+    werte_ref[$kennung]="$ref"
+    kennungen+=("$kennung")
+  done <"$1"
+  while IFS=$'\t' read -r kennung srv; do
+    [ -n "$kennung" ] || continue
+    [ -z "${werte_srv[$kennung]+x}" ] || { echo "vergleichslauf-d: live: FEHLER Schritt $kennung doppelt in der Ausgabe des Servers"; rot=1; }
+    werte_srv[$kennung]="$srv"
+    [ -n "${werte_ref[$kennung]+x}" ] || kennungen+=("$kennung")
+  done <"$2"
+  while IFS=$'\t' read -r kennung ref srv art grund verweis; do
+    case "$kennung" in '' | '#'*) continue ;; esac
+    case "$kennung" in
+      *@*)
+        [ "${kennung#*@}" = "${4:-}" ] || continue
+        kennung="${kennung%@*}"
+        ;;
+    esac
+    schluessel="$kennung$sep$ref$sep$srv"
+    [ -z "${regel_art[$schluessel]+x}" ] || { echo "vergleichslauf-d: live: FEHLER Regel $kennung doppelt (gleiche Ergebnisse)"; rot=1; }
+    case "$art" in
+      'so gewollt' | 'Luecke') ;;
+      *) echo "vergleichslauf-d: live: FEHLER Regel $kennung: Art '$art' ist weder 'so gewollt' noch 'Luecke'"; rot=1 ;;
+    esac
+    [ -n "$grund" ] && [ -n "$verweis" ] || { echo "vergleichslauf-d: live: FEHLER Regel $kennung: Grund oder Verweis fehlt"; rot=1; }
+    regel_art[$schluessel]="$art"
+    regel_hat[$kennung]=1
+    [ -n "${werte_ref[$kennung]+x}${werte_srv[$kennung]+x}" ] || { echo "vergleichslauf-d: live: FEHLER Regel $kennung gehoert zu keinem Schritt"; rot=1; }
+  done <"$3"
+  for kennung in "${kennungen[@]}"; do
+    if [ -z "${werte_ref[$kennung]+x}" ] || [ -z "${werte_srv[$kennung]+x}" ]; then
+      echo "vergleichslauf-d: live: FEHLER Schritt $kennung fehlt in der Ausgabe der $([ -z "${werte_ref[$kennung]+x}" ] && echo Referenz || echo Servers)"
+      rot=1
+      continue
+    fi
+    ref="${werte_ref[$kennung]}"
+    srv="${werte_srv[$kennung]}"
+    if [ "$ref" = "$srv" ]; then
+      if [ -n "${regel_hat[$kennung]+x}" ]; then
+        echo "vergleichslauf-d: live: FEHLER Schritt $kennung ist gleich, die Ausnahme dazu entfaellt"
+        rot=1
+      else
+        echo "vergleichslauf-d: live: ok   gleich       $kennung"
+      fi
+    elif [ -n "${regel_art[$kennung$sep$ref$sep$srv]+x}" ]; then
+      echo "vergleichslauf-d: live: ok   Ausnahme (${regel_art[$kennung$sep$ref$sep$srv]}) $kennung"
+    else
+      if [ -n "${regel_hat[$kennung]+x}" ]; then
+        echo "vergleichslauf-d: live: FEHLER Schritt $kennung weicht anders ab als gelistet"
+      else
+        echo "vergleichslauf-d: live: FEHLER Schritt $kennung weicht ab und steht nicht in der Ausnahmeliste"
+      fi
+      echo "vergleichslauf-d: live:   Referenz: $ref"
+      echo "vergleichslauf-d: live:   Server:   $srv"
+      rot=1
+    fi
+  done
+  zeile="${#kennungen[@]} Schritte"
+  if [ "$rot" -eq 0 ]; then echo "vergleichslauf-d: live: gruen ($zeile)"; else echo "vergleichslauf-d: live: ROT ($zeile)"; fi
+  return "$rot"
+}
+if [ "${1:-}" = "--vergleich" ]; then
+  [ "$#" -ge 4 ] && [ "$#" -le 5 ] || { echo "vergleichslauf-d: --vergleich <Referenz> <Server> <Ausnahmen> [<Stufe>]" >&2; exit 2; }
+  vergleichen "$2" "$3" "$4" "${5:-}"
+  exit $?
+fi
+
 LAUFNAME="${1:-alle}"
 ALLE="2022-anmeldung 2022-tds8 2025-anmeldung 2025-tds8 2025-tds8-forcestrict"
+LIVE="live-2022 live-2025"
+MESSUNG="messung-2022 messung-2025"
 
 # parameter <Lauf>: setzt STUFE, KATEGORIE, FORCESTRICT, ERWARTE_STRICT, ERWARTE_SONDE und ERWARTE_MANDATORY (gelingt|scheitert|-).
 parameter() {
@@ -44,16 +134,22 @@ parameter() {
     2025-anmeldung) STUFE=2025 KATEGORIE=VergleichAnmeldung FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
     2025-tds8) STUFE=2025 KATEGORIE=VergleichTds8 FORCESTRICT=0 ERWARTE_STRICT=gelingt ERWARTE_SONDE=gelingt ERWARTE_MANDATORY=gelingt ;;
     2025-tds8-forcestrict) STUFE=2025 KATEGORIE=VergleichTds8 FORCESTRICT=1 ERWARTE_STRICT=gelingt ERWARTE_SONDE=gelingt ERWARTE_MANDATORY=scheitert ;;
+    messung-2022) STUFE=2022 KATEGORIE=VergleichMessung FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
+    messung-2025) STUFE=2025 KATEGORIE=VergleichMessung FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
+    live-2022) STUFE=2022 KATEGORIE=Live FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
+    live-2025) STUFE=2025 KATEGORIE=Live FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
     *) return 1 ;;
   esac
 }
 
 if [ "$LAUFNAME" = alle ]; then
   LISTE="$ALLE"
+elif [ "$LAUFNAME" = live ]; then
+  LISTE="$LIVE"
 elif parameter "$LAUFNAME"; then
   LISTE="$LAUFNAME"
 else
-  echo "vergleichslauf-d: LAUF muss alle oder einer von [$ALLE] sein (war '$LAUFNAME')" >&2
+  echo "vergleichslauf-d: LAUF muss alle, live oder einer von [$ALLE $LIVE $MESSUNG] sein (war '$LAUFNAME')" >&2
   exit 2
 fi
 if [ -n "${CI:-}${GITHUB_ACTIONS:-}" ]; then
@@ -74,8 +170,13 @@ CLIENT_IMAGE="tdswire-vergleich-client:$LAUF"
 SCRATCH="$(mktemp -d)"
 FEHLER=0
 
+SIM_SERVER=""
+SIM_IMAGE=""
+
 aufraeumen() {
   [ -z "$CLIENT" ] || docker rm -f "$CLIENT" >/dev/null 2>&1
+  [ -z "$SIM_SERVER" ] || docker rm -f "$SIM_SERVER" >/dev/null 2>&1
+  [ -z "$SIM_IMAGE" ] || docker rmi -f "$SIM_IMAGE" >/dev/null 2>&1
   [ -z "$SERVER" ] || docker rm -f "$SERVER" >/dev/null 2>&1
   [ -z "$NETZ" ] || docker network rm "$NETZ" >/dev/null 2>&1
   [ -z "$SERVER_IMAGE" ] || docker rmi -f "$SERVER_IMAGE" >/dev/null 2>&1
@@ -103,22 +204,22 @@ zertifikat_erzeugen() { # zertifikat_erzeugen <Image>
   grep -q 'BEGIN CERTIFICATE' "$SCRATCH/server.pem" && grep -q 'PRIVATE KEY' "$SCRATCH/server.key"
 }
 
-einzellauf() { # einzellauf <Name>
-  local name="$1" start t_bereit t_fertig kennwort groesse
-  parameter "$name" || return 1
+# referenz_hochfahren <Name>: baut das Image der Referenzinstanz (STUFE), startet sie mit selbst erzeugtem Zertifikat im
+# eigenen internen Netzwerk und wartet auf 'Recovery is complete'. Setzt NETZ, SERVER, SERVER_IMAGE, KENNWORT, START
+# und T_BEREIT; die Container und das Image raeumt `aufraeumen` oder der Aufrufer ab.
+referenz_hochfahren() {
+  local name="$1" groesse
   NETZ="$LAUF-$name-netz"
   SERVER="$LAUF-$name-server"
-  CLIENT="$LAUF-$name-client"
   SERVER_IMAGE="tdswire-referenz-$STUFE:$LAUF"
-  echo "vergleichslauf-d: --- Lauf $name (Stufe $STUFE, Kategorie $KATEGORIE, forcestrict $FORCESTRICT) ---"
-  start=$SECONDS
+  START=$SECONDS
   # shellcheck disable=SC2086
   docker build ${BUILDER_FLAGS:-} --load --target "referenzinstanz-$STUFE" -t "$SERVER_IMAGE" referenztest-dotnet || return 1
   groesse=$(docker image inspect --format '{{.Size}}' "$SERVER_IMAGE")
   echo "vergleichslauf-d: messung: Image der Referenzinstanz $STUFE auf der Platte $((groesse / 1000000)) MB (Digest im Dockerfile gepinnt)"
   [ -s "$SCRATCH/server.pem" ] || zertifikat_erzeugen "$SERVER_IMAGE" || return 1
 
-  kennwort="Tdswire-Ref-1-$(LC_ALL=C tr -dc "a-z0-9" </dev/urandom | head -c 16)"
+  KENNWORT="Tdswire-Ref-1-$(LC_ALL=C tr -dc "a-z0-9" </dev/urandom | head -c 16)"
   {
     echo "[network]"
     echo "tlscert = /var/opt/mssql/tdswire-server.pem"
@@ -129,7 +230,7 @@ einzellauf() { # einzellauf <Name>
 
   docker network create --internal "$NETZ" >/dev/null || return 1
   docker create --name "$SERVER" --network "$NETZ" --network-alias referenz -e "ACCEPT_EULA=$VERGLEICH_ACCEPT_EULA" -e MSSQL_PID=Developer \
-    -e "MSSQL_SA_PASSWORD=$kennwort" "$SERVER_IMAGE" >/dev/null || return 1
+    -e "MSSQL_SA_PASSWORD=$KENNWORT" "$SERVER_IMAGE" >/dev/null || return 1
   docker cp "$SCRATCH/server.pem" "$SERVER:/var/opt/mssql/tdswire-server.pem" >/dev/null || return 1
   docker cp "$SCRATCH/server.key" "$SERVER:/var/opt/mssql/tdswire-server.key" >/dev/null || return 1
   docker cp "$SCRATCH/mssql.conf" "$SERVER:/var/opt/mssql/mssql.conf" >/dev/null || return 1
@@ -146,9 +247,21 @@ einzellauf() { # einzellauf <Name>
   }
   pruefe "Server der Referenzinstanz meldet 'Recovery is complete'" bereit
   [ "$FEHLER" -eq 0 ] || { docker logs "$SERVER" 2>&1 | tail -30; return 1; }
-  t_bereit=$((SECONDS - start))
-  echo "vergleichslauf-d: messung: Start der Referenzinstanz $STUFE bis 'Recovery is complete' (mit Bau des Images) $t_bereit s; Speicher des Servers $(docker stats --no-stream --format '{{.MemUsage}}' "$SERVER")"
+  T_BEREIT=$((SECONDS - START))
+  echo "vergleichslauf-d: messung: Start der Referenzinstanz $STUFE bis 'Recovery is complete' (mit Bau des Images) $T_BEREIT s; Speicher des Servers $(docker stats --no-stream --format '{{.MemUsage}}' "$SERVER")"
   docker logs "$SERVER" 2>&1 | grep -m1 -E 'Microsoft SQL Server' | sed 's/^/vergleichslauf-d: server: /'
+  return 0
+}
+
+einzellauf() { # einzellauf <Name>
+  local name="$1" t_bereit t_fertig kennwort start
+  parameter "$name" || return 1
+  CLIENT="$LAUF-$name-client"
+  echo "vergleichslauf-d: --- Lauf $name (Stufe $STUFE, Kategorie $KATEGORIE, forcestrict $FORCESTRICT) ---"
+  referenz_hochfahren "$name" || return 1
+  kennwort="$KENNWORT"
+  start=$START
+  t_bereit=$T_BEREIT
 
   if [ "$ERWARTE_SONDE" != "-" ]; then
     local sonde urteil
@@ -207,12 +320,90 @@ einzellauf() { # einzellauf <Name>
   return 0
 }
 
+# live_client <Anzeigename> <Ziel> <Benutzer> <Kennwort> <Aufbau 0|1> <Zertifikat> <Ausgabedatei>: fuehrt das Szenario der Kategorie
+# Live (referenztest-dotnet/Vergleich/LiveSzenarioTests.cs) in einem Client-Container gegen ein Ziel aus und legt die
+# Schrittzeilen in <Ausgabedatei> ab. Der Aufbau des Testschemas (1) gilt nur der Referenzinstanz.
+live_client() {
+  local anzeige="$1" ziel="$2" benutzer="$3" kennwort="$4" aufbau="$5" zertifikat="$6" ausgabe="$7" ok leck=0
+  CLIENT="$LAUF-live-$anzeige-client"
+  docker create --name "$CLIENT" --network "$NETZ" -e "TDSWIRE_ZIEL=$ziel" -e "TDSWIRE_LIVE_BENUTZER=$benutzer" \
+    -e "TDSWIRE_LIVE_KENNWORT=$kennwort" -e "TDSWIRE_LIVE_AUFBAU=$aufbau" -e TDSWIRE_LIVE_DATENBANK="$([ "$aufbau" = 1 ] && echo tdswire_live)" \
+    -e TDSWIRE_LIVE_AUSGABE=/tmp/live.txt -e SSL_CERT_FILE=/tmp/server.pem \
+    "$CLIENT_IMAGE" dotnet test --no-build --nologo --filter "Kategorie=Live" --logger "console;verbosity=detailed" >/dev/null || return 1
+  docker cp "$zertifikat" "$CLIENT:/tmp/server.pem" >/dev/null || return 1
+  docker start -a "$CLIENT" >"$SCRATCH/client-$anzeige" 2>&1
+  ok=$?
+  if grep -qF -e "$kennwort" "$SCRATCH/client-$anzeige" && [ "$aufbau" = 1 ]; then
+    leck=1
+    echo "vergleichslauf-d: Ausgabe des Clients ($anzeige) nennt das Kennwort des Servers; sie wird nicht gedruckt"
+  else
+    cat "$SCRATCH/client-$anzeige"
+  fi
+  docker cp "$CLIENT:/tmp/live.txt" "$ausgabe" >/dev/null 2>&1
+  docker rm -f "$CLIENT" >/dev/null 2>&1
+  CLIENT=""
+  pruefe "Live-Szenario gegen $anzeige: Client-Lauf bestanden, Ausgabedatei mit Schritten" \
+    sh -c "[ $ok -eq 0 ] && [ -s '$ausgabe' ]"
+  pruefe "Ausgabe des Clients ($anzeige) nennt das Kennwort des Servers nicht" test "$leck" -eq 0
+}
+
+# livelauf <Name>: der Live-Lauf nach SPEC-045. Dasselbe Szenario laeuft nacheinander gegen die Referenzinstanz (Stufe) und
+# gegen den Serverprozess mit Simulations-Backend (Dockerfile-Stage `kompatibilitaetsserver`, dieselbe wie bei
+# `make kompatibilitaet`), im selben internen Netzwerk; danach vergleicht `vergleichen` die beiden Ausgaben mit
+# referenztest-dotnet/Vergleich/live-ausnahmen.tsv. Die Zeilen `live: referenz|server <Schritt>` sind die Messwerte, die
+# die Ausnahmeliste (docs/messungen/referenzabgleich.md) zitiert.
+livelauf() {
+  local name="$1" t_fertig
+  parameter "$name" || return 1
+  echo "vergleichslauf-d: --- Lauf $name (Stufe $STUFE, Kategorie $KATEGORIE) ---"
+  referenz_hochfahren "$name" || return 1
+  docker logs "$SERVER" 2>&1 | grep -q 'Recovery is complete' || return 1
+  live_client referenz referenz:1433 sa "$KENNWORT" 1 "$SCRATCH/server.pem" "$SCRATCH/live-referenz.txt" || return 1
+  [ "$FEHLER" -eq 0 ] || return 1
+
+  SIM_IMAGE="tdswire-live-server:$LAUF"
+  SIM_SERVER="$LAUF-$name-sim"
+  # shellcheck disable=SC2086
+  docker build ${BUILDER_FLAGS:-} --load --target kompatibilitaetsserver -t "$SIM_IMAGE" . || return 1
+  docker run -d --name "$SIM_SERVER" --network "$NETZ" --network-alias testserver "$SIM_IMAGE" >/dev/null || return 1
+  gestartet() {
+    local i
+    for i in $(seq 1 120); do
+      docker logs "$SIM_SERVER" 2>&1 | grep -q 'tdswire: gestartet, Port 1433' && return 0
+      [ "$(docker inspect --format '{{.State.Running}}' "$SIM_SERVER")" = "true" ] || return 1
+      sleep 1
+    done
+    return 1
+  }
+  pruefe "Server mit Simulations-Backend meldet 'gestartet, Port 1433'" gestartet
+  [ "$FEHLER" -eq 0 ] || { docker logs "$SIM_SERVER" 2>&1 | tail -20; return 1; }
+  docker cp "$SIM_SERVER:/home/gradle/server.pem" "$SCRATCH/sim.pem" >/dev/null || return 1
+  live_client server testserver:1433 alice secret 0 "$SCRATCH/sim.pem" "$SCRATCH/live-server.txt" || return 1
+  [ "$FEHLER" -eq 0 ] || return 1
+
+  sed 's/^/vergleichslauf-d: live: referenz /' "$SCRATCH/live-referenz.txt"
+  sed 's/^/vergleichslauf-d: live: server   /' "$SCRATCH/live-server.txt"
+  pruefe "Live-Vergleich: gleich oder genau die gelistete Abweichung" \
+    vergleichen "$SCRATCH/live-referenz.txt" "$SCRATCH/live-server.txt" referenztest-dotnet/Vergleich/live-ausnahmen.tsv "$STUFE"
+  t_fertig=$((SECONDS - START))
+  echo "vergleichslauf-d: messung: Lauf $name $t_fertig s (mit Bau und Start $T_BEREIT s)"
+
+  docker rm -f "$SIM_SERVER" "$SERVER" >/dev/null 2>&1
+  docker network rm "$NETZ" >/dev/null 2>&1
+  docker rmi -f "$SERVER_IMAGE" "$SIM_IMAGE" >/dev/null 2>&1
+  SERVER="" SIM_SERVER="" NETZ="" SERVER_IMAGE="" SIM_IMAGE=""
+  return 0
+}
+
 gesamt=$SECONDS
 # shellcheck disable=SC2086
 docker build ${BUILDER_FLAGS:-} --load --target vergleich -t "$CLIENT_IMAGE" referenztest-dotnet || exit 1
 echo "vergleichslauf-d: messung: Bau des Client-Images $((SECONDS - gesamt)) s"
 for lauf in $LISTE; do
-  einzellauf "$lauf" || FEHLER=1
+  case "$lauf" in
+    live-*) livelauf "$lauf" || FEHLER=1 ;;
+    *) einzellauf "$lauf" || FEHLER=1 ;;
+  esac
   [ "$FEHLER" -eq 0 ] || break
 done
 echo "vergleichslauf-d: messung: Laufzeit gesamt $((SECONDS - gesamt)) s"

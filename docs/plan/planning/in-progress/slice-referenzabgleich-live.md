@@ -50,16 +50,16 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 Liefer-Punkte (drei):
 
 - [ ] **Server-Seite:** Die Tabellenbeschreibung des Simulations-Backends bildet das Testschema der Referenzinstanz ab (beide getrennt gepflegt und gemeinsam geändert, SPEC-045; der Weg des Ladens folgt der ADR aus [slice-adr-simulation-formen](../done/welle-simulations-backend/slice-adr-simulation-formen.md)); der Server mit Simulations-Backend läuft für den Lauf in Docker (eigener Container im eigenen Netzwerk, ohne Mount, Basis-Image per Digest).
-- [ ] **Live-Lauf:** Das Szenario (Anmeldung, SELECT mit und ohne Parameter, NULL, Unicode, Decimal, Datum, leere und mehrteilige Ergebnisse, Fehler vor und nach Zeilen, OUTPUT und RETURNSTATUS soweit freigegeben, Cancel mit Folgeabfrage) läuft nacheinander gegen beide Ziele, je Schritt eine Ausgabezeile; vom Server selbst vergebene Werte (Objekt-IDs, Sitzungs-IDs, Zeitstempel, Versionstext) werden nur auf vorhanden oder nicht vorhanden verglichen, Dauern werden nicht verglichen.
-- [ ] **Ausnahmeliste und Urteil:** Jede Abweichung steht mit Pfad, Anweisung oder Szenario, Grund und Art (*so gewollt* oder *Lücke* mit Verweis auf die offene Arbeit) in der Liste; eine kleinere oder größere Abweichung als die dokumentierte macht den Lauf rot (Test mit verschiedenen Abweichungen); ob der Lauf in `make gates` kommt, entscheidet die in [slice-qa-vergleichslauf-d](../done/slice-qa-vergleichslauf-d.md) gemessene Laufzeit.
+- [x] **Live-Lauf:** Das Szenario (Anmeldung, SELECT mit und ohne Parameter, NULL, Unicode, Decimal, Datum, leere und mehrteilige Ergebnisse, Fehler vor und nach Zeilen, OUTPUT und RETURNSTATUS soweit freigegeben, Cancel mit Folgeabfrage) läuft nacheinander gegen beide Ziele, je Schritt eine Ausgabezeile; vom Server selbst vergebene Werte (Objekt-IDs, Sitzungs-IDs, Zeitstempel, Versionstext) werden nur auf vorhanden oder nicht vorhanden verglichen, Dauern werden nicht verglichen.
+- [x] **Ausnahmeliste und Urteil:** Jede Abweichung steht mit Pfad, Anweisung oder Szenario, Grund und Art (*so gewollt* oder *Lücke* mit Verweis auf die offene Arbeit) in der Liste; eine kleinere oder größere Abweichung als die dokumentierte macht den Lauf rot (Test mit verschiedenen Abweichungen); ob der Lauf in `make gates` kommt, entscheidet die in [slice-qa-vergleichslauf-d](../done/slice-qa-vergleichslauf-d.md) gemessene Laufzeit.
 
 Nachweis-Pflichten für alle drei Punkte:
 
-- [ ] `make gates` grün.
+- [x] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Doku-Update, falls ein öffentlicher Vertrag berührt ist.
+- [x] Doku-Update, falls ein öffentlicher Vertrag berührt ist.
 - [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
 - [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
 - [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
@@ -79,7 +79,17 @@ Aussagen-Berührung steht hier gar nicht.
 | Ausnahmeliste <!-- d-check:ignore (geplant: neue Datei) --> | neu | Ablage nach dem Rahmen aus [slice-qa-vergleichslauf-d](../done/slice-qa-vergleichslauf-d.md) |
 | `tools/mk/` | update | Make-Target des Vergleichslaufs aus [slice-qa-vergleichslauf-d](../done/slice-qa-vergleichslauf-d.md) erweitern; Eintrag in `harness/README.md` §Sensors |
 
-Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
+Erweitert im ersten Lauf des Implementers:
+
+| Datei / Komponente | Änderungs-Art | Begründung |
+|---|---|---|
+| `referenztest-dotnet/Vergleich/LiveSzenarioTests.cs` | neu | das Szenario des Live-Laufs, 25 Schritte, Ziel und Benutzer aus der Umgebung, eine Ausgabezeile je Schritt |
+| `referenztest-dotnet/Vergleich/testschema.sql` | neu | Testschema der Referenzinstanz (Gegenstück zu den Tabellen im Code des Kompatibilitätsservers); als Ressource im Test-Assembly (`TdsWire.Referenztests.csproj`) |
+| `referenztest-dotnet/Vergleich/live-ausnahmen.tsv` | neu | maschinenlesbare Ausnahmeliste; die Prosa steht in `docs/messungen/referenzabgleich.md` |
+| `referenztest-dotnet/Vergleich/ReferenzMessungTests.cs` | neu | Gegenmessungen an der Referenzinstanz zu den Befunden der Spikes (kein Urteil) |
+| `tools/vergleichslauf-d.sh`, `tools/mk/vergleichslauf-d.mk` | update | Läufe `live-*` und `messung-*`, Vergleich mit der Ausnahmeliste (`--vergleich`), Start der Referenzinstanz als Funktion |
+| `tools/vergleichslauf-d-selbsttest.sh` | update | Vergleich mit Gleichheit, gelisteter, kleinerer, größerer und nicht gelisteter Abweichung (Teil von `make skript-selbsttest`) |
+| `docs/messungen/referenzabgleich.md`, `harness/README.md` | update | Ausnahmeliste A-2 bis A-9, Messungen mit Befehl, Bedingungen und Digest; Zeile in §Sensors |
 
 ## 4. Trigger
 
