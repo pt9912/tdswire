@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** SPEC-030 (Antwort auf `sp_prepexec` einschließlich Name des Handle-RETURNVALUE, Handle-Verwaltung, Antwort der Batch-Freigabe auf ein unbekanntes Handle nach [ADR-0037](../../adr/0037-sp-unprepare-unbekanntes-handle-ergibt-fehler-8179.md), Zählung, Voreinstellung 1000, Parameter 0, RPC-Tabelle) · SPEC-001 (Batch-Form der Freigabe im Sitzungsrahmen) · SPEC-058 (Grenze als Voreinstellung) · SPEC-034 und §3 (Eingang der Grenze, Speicher je Sitzung) · SPEC-059 (falls die Grenze ein öffentlicher Name wird) · §4 (Codes: neue Zeile mit Nummer 8179, Class 16, Namensvorschlag `TDS_SIM_UNKNOWN_PREPARED_HANDLE`; Ausnahme vom Satz „State ist für jeden Code 1“, State 8) · Abschnitt „RPC-Katalog des Referenzclients“; unverändert: SPEC-013, SPEC-036, SPEC-040, SPEC-057, Nicht-Ziel 6; vollständige Liste in der Tabelle „Liste der Spec-Änderungen“ von [ADR-0036](../../adr/0036-handle-freigabe-und-grenze-je-sitzung.md) und, für die Antwort auf ein unbekanntes Handle, von [ADR-0037](../../adr/0037-sp-unprepare-unbekanntes-handle-ergibt-fehler-8179.md)
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** pt9912.
 
 **Autor:** pt9912 (Entwurf in der Planner-Rolle). **Datum:** 2026-11-06.
 
