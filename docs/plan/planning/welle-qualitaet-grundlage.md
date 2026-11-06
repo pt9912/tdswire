@@ -73,6 +73,7 @@ Lifecycle-Verzeichnis und wird hier **nicht** gespiegelt.
 | slice-kompatibilitaetsmatrix-migration | Spec-Nachzug, Tags und Umstellung auf die erzeugte Sicht | [TDS-QA-05](../../../spec/lastenheft.md#tds-qa-05--wartbarkeit) |
 | slice-kompatibilitaetsmatrix-gate | Erzeugte Kompatibilitätsmatrix als Gate der Klasse tests | [TDS-QA-05](../../../spec/lastenheft.md#tds-qa-05--wartbarkeit) |
 | slice-qa-passwortvergleich-gemischte-liste | Passwortvergleich in konstanter Zeit bei gemischten Benutzerlisten angleichen und messen | [TDS-QA-03](../../../spec/lastenheft.md#tds-qa-03--sicherheit), [TDS-FA-02](../../../spec/lastenheft.md#tds-fa-02--anmeldung-und-sitzungsverwaltung) |
+| slice-qa-test-stage-run-kopplung | `RUN`-Zeile der Gate-Stage `test` an die Basis `test-quellen` koppeln (Gleichlauf mit `test-bericht`) | [TDS-QA-05](../../../spec/lastenheft.md#tds-qa-05--wartbarkeit), [TDS-QA-06](../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
 
 ## 5. Abhängigkeiten
 

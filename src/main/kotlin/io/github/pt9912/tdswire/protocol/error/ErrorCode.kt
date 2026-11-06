@@ -23,6 +23,7 @@ internal data class ErrorRule(
     val state: Int,
     val text: String,
     val fate: ConnectionFate,
+    val namesHandle: Boolean = false,
 )
 
 private const val REQUEST = 16
@@ -39,13 +40,15 @@ private const val N_INTERNAL = 50007
 private const val N_SHUTDOWN = 50008
 private const val N_HANDLE = 50009
 private const val N_HANDLE_LIMIT = 50010
+private const val N_PREPARED_HANDLE = 8179
+private const val STATE_PREPARED_HANDLE = 8
 private const val N_LOGIN = 18456
 private const val N_OBJECT = 208
 private const val N_VALUE = 245
 
 /**
  * Die eigenen Fehlercodes (`SPEC-011` bis `SPEC-016`, `SPEC-037` bis `SPEC-039`, `SPEC-048`,
- * `SPEC-049`, `SPEC-057`, `SPEC-058`, `SPEC-012`). Jeder Code hat genau eine [rule]; die Zuordnung steht in
+ * `SPEC-049`, `SPEC-057`, `SPEC-058`, `SPEC-012`, `SPEC-060`). Jeder Code hat genau eine [rule]; die Zuordnung steht in
  * `spec/spezifikation.md` (Abschnitt 4).
  *
  * Herkunft der Werte, je Wert getrennt, mit denselben Stufen wie die Tabelle in der Spezifikation
@@ -63,10 +66,13 @@ private const val N_VALUE = 245
  *   (Class 16, offen), nicht entschieden.
  * - Setzung (Voreinstellung, nicht gemessen): `TDS_UNKNOWN_HANDLE` und `TDS_PREPARE_LIMIT` in der
  *   Anfragefehler-Gruppe (Class 16, offen); die Nummern 50009 und 50010 sind Festlegung.
+ * - Gemessen am Referenzclient gegen einen echten SQL Server (Zeile M-4 des Messprotokolls
+ *   `docs/messungen/referenzabgleich.md`, 2022 und 2025): Nummer 8179, Class 16, State 8 und der Text von
+ *   `TDS_SIM_UNKNOWN_PREPARED_HANDLE`; der Wortlaut für andere Handle-Nummern als 1 ist als gleich gesetzt.
  * - Grundregel (im Zweifel schließen): nur die Folge der Codes ohne Gruppe. Die Class 20 dieser
  *   Codes ist Festlegung, nicht Grundregel.
  * - Festlegung (nicht gemessen): alle übrigen Werte, nämlich die Nummern ohne Vorschlag, jeder State
- *   (1), jeder Text und die Class 20 der Codes ohne Gruppe.
+ *   (1, außer bei `TDS_SIM_UNKNOWN_PREPARED_HANDLE`), jeder Text und die Class 20 der Codes ohne Gruppe.
  *
  * Offen und nicht entschieden: die Zuordnung von [TDS_UNSUPPORTED_TYPE] und [TDS_SIM_UNKNOWN_OBJECT] zu einer
  * Gruppe; `slice-fehler-mapping` §6.
@@ -114,5 +120,21 @@ internal enum class ErrorCode(val rule: ErrorRule) {
     /** `sp_prepexec` bei erreichter Handle-Grenze der Sitzung; Anfragefehler-Gruppe, Nummer: Festlegung. */
     TDS_PREPARE_LIMIT(
         ErrorRule(N_HANDLE_LIMIT, REQUEST, STATE, "Prepared handle limit reached.", ConnectionFate.OPEN),
+    ),
+
+    /**
+     * Die Batch-Freigabe `EXEC sp_unprepare <n>` mit einem Handle, das die Sitzung nicht hält; Anfragefehler-Gruppe.
+     * Nummer, Class und State sind gemessen (M-4); der Text endet mit der Nummer des Handles
+     * ([ErrorRule.namesHandle], gebildet von [ErrorRule.message]).
+     */
+    TDS_SIM_UNKNOWN_PREPARED_HANDLE(
+        ErrorRule(
+            N_PREPARED_HANDLE,
+            REQUEST,
+            STATE_PREPARED_HANDLE,
+            "Could not find prepared statement with handle",
+            ConnectionFate.OPEN,
+            namesHandle = true,
+        ),
     ),
 }

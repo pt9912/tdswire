@@ -9,7 +9,10 @@ import java.util.concurrent.Executors
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * Die Handle-Tabelle einer Sitzung (`SPEC-030`, `SPEC-001`) ohne Verbindung. Grenze, Zählung und Vergabe sind
@@ -31,8 +34,8 @@ class PreparedHandlesTest {
     @Test
     fun `Die Tabelle haelt hoechstens 1000 Handles und vergibt Werte nicht erneut`() = runBlocking {
         val handles = PreparedHandles()
-        val given = (1..PreparedHandles.MAX_HANDLES).map { handles.register("select $it") }
-        assertEquals((1..PreparedHandles.MAX_HANDLES).toList(), given)
+        val given = (1..PreparedHandles.DEFAULT_MAX_HANDLES).map { handles.register("select $it") }
+        assertEquals((1..PreparedHandles.DEFAULT_MAX_HANDLES).toList(), given)
         assertEquals(1000, handles.size())
         assertNull(handles.register("zu viel"))
         assertEquals(1000, handles.size())
@@ -43,6 +46,43 @@ class PreparedHandlesTest {
         assertNull(handles.sql(7))
         assertEquals(1001, handles.register("neu"))
         assertNull(handles.register("wieder zu viel"))
+    }
+
+    /**
+     * Die eingestellte Grenze gilt statt der Voreinstellung: bei 3 sind drei Handles möglich, das vierte ist `null`;
+     * ein `release` schafft Platz, die Zählung ist vergebene minus freigegebene, und der Wert wird nicht erneut
+     * vergeben. `release` meldet, ob die Tabelle das Handle hielt (nie vergeben und doppelt freigegeben: nein).
+     * Wächter: eine Grenze, die die Voreinstellung 1000 ignoriert; eine Zählung der je vergebenen Handles ohne Abzug;
+     * ein `release`, das für ein unbekanntes Handle wahr meldet; ein wiederverwendeter Wert.
+     *
+     * @spec SPEC-030
+     * @spec SPEC-058
+     */
+    @Test
+    fun `Die eingestellte Grenze zaehlt gehaltene Handles, release meldet ob gehalten`() = runBlocking {
+        val handles = PreparedHandles(3)
+        assertEquals(listOf(1, 2, 3), List(3) { handles.register("s$it") })
+        assertNull(handles.register("vierte"))
+        assertTrue(handles.release(2))
+        assertEquals(2, handles.size())
+        assertFalse(handles.release(2))
+        assertFalse(handles.release(99))
+        assertEquals(2, handles.size())
+        assertEquals(4, handles.register("vierte"))
+        assertNull(handles.register("fuenfte"))
+        assertEquals(3, handles.size())
+    }
+
+    /**
+     * Eine Grenze unter 1 ist ein Programmierfehler der Verdrahtung (die Konfiguration prüft 1 bis 100000 vor dem
+     * Start). Wächter: eine Tabelle, die mit Grenze 0 jedes `sp_prepexec` abweist, ohne es zu melden.
+     *
+     * @spec SPEC-058
+     */
+    @Test
+    fun `Eine Grenze unter 1 wird abgewiesen`() {
+        assertFailsWith<IllegalArgumentException> { PreparedHandles(0) }
+        assertFailsWith<IllegalArgumentException> { PreparedHandles(-1) }
     }
 
     /**
@@ -77,14 +117,14 @@ class PreparedHandlesTest {
                 (1..WORKERS).map { worker ->
                     async {
                         gate.await()
-                        List(PreparedHandles.MAX_HANDLES / WORKERS + EXTRA) { handles.register("w$worker") }
+                        List(PreparedHandles.DEFAULT_MAX_HANDLES / WORKERS + EXTRA) { handles.register("w$worker") }
                     }
                 }.also { gate.countDown() }.awaitAll().flatten()
             }
             val granted = given.filterNotNull()
-            assertEquals(PreparedHandles.MAX_HANDLES, granted.size)
-            assertEquals((1..PreparedHandles.MAX_HANDLES).toSet(), granted.toSet())
-            assertEquals(PreparedHandles.MAX_HANDLES, runBlocking { handles.size() })
+            assertEquals(PreparedHandles.DEFAULT_MAX_HANDLES, granted.size)
+            assertEquals((1..PreparedHandles.DEFAULT_MAX_HANDLES).toSet(), granted.toSet())
+            assertEquals(PreparedHandles.DEFAULT_MAX_HANDLES, runBlocking { handles.size() })
         }
     }
 

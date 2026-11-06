@@ -11,7 +11,10 @@ internal const val DEFAULT_SCHEMA = "dbo"
  * eine Spalte und einen Schlüssel, jeder Schlüsseleintrag nennt eine vorhandene, nicht nullbare Spalte
  * (Setzung, nicht am Server gemessen). Der Schlüssel wirkt weder auf Resultset noch auf Callbacks.
  *
- * `columns` und `primaryKey` werden nicht kopiert: ein Konstruktor mit acht Parametern erlaubt die Regel
+ * [onInsertBatch] nimmt die Zeilen einer Massenlade-Nachricht als Liste; dieser Stand der Bibliothek ruft ihn nicht,
+ * das Massenladen ist nicht gebaut.
+ *
+ * `columns` und `primaryKey` werden nicht kopiert: ein Konstruktor mit neun Parametern erlaubt die Regel
  * `LongParameterList` nur an einer `data class`, und deren Konstruktor kann die Listen nicht ersetzen. Der Aufrufer
  * ändert sie nach der Übergabe nicht; [column] liest einen Index, der bei der Übergabe gebaut wurde.
  */
@@ -24,6 +27,7 @@ public data class SimTable(
     val onInsert: (suspend (values: Map<String, Any?>) -> Long)? = null,
     val onUpdate: (suspend (set: Map<String, Any?>, where: RowFilter?) -> Long)? = null,
     val onDelete: (suspend (where: RowFilter?) -> Long)? = null,
+    val onInsertBatch: (suspend (rows: List<Map<String, Any?>>) -> Long)? = null,
 ) {
     private val byName: Map<String, SimColumn>
 
@@ -50,15 +54,33 @@ public data class SimTable(
 /** Höchste Precision einer Dezimalzahl (`SPEC-003`). */
 private const val MAX_DECIMAL_PRECISION = 38
 
+/** Höchste Länge eines Textes in UTF-16-Einheiten (`SPEC-003`); zugleich der Vorgabewert von [SimColumn.maxLength]. */
+internal const val MAX_TEXT_LENGTH = 4000
+
+/** Der Wert von [SimColumn.maxLength] für `NVARCHAR(MAX)`: der Katalog meldet `max_length` -1. */
+internal const val UNBOUNDED_TEXT = -1
+
 /**
  * Eine Spalte; der Typ stammt aus dem Mindestkatalog von [SqlType], [nullable] sagt, ob NULL vorkommen darf.
  * Eine Dezimalzahl hat höchstens 38 Stellen (`SPEC-003`); die Grenze gilt für jede Spalte.
+ *
+ * [maxLength] ist die Länge eines Textes in Zeichen, wie der Katalog sie meldet (`nvarchar(<maxLength>)`); sie
+ * gilt nur für [SqlType.UnicodeText], liegt zwischen 1 und 4000 oder ist -1 (`nvarchar(max)`, der Katalog meldet
+ * `max_length` -1) und wirkt weder auf Zeilen noch auf die Metadaten eines Ergebnisses (dort gilt `SPEC-003`).
  */
-public data class SimColumn(val name: String, val type: SqlType, val nullable: Boolean = true) {
+public data class SimColumn(
+    val name: String,
+    val type: SqlType,
+    val nullable: Boolean = true,
+    val maxLength: Int = MAX_TEXT_LENGTH,
+) {
     init {
         require(name.isNotEmpty()) { "Spaltenname darf nicht leer sein" }
         require(type !is SqlType.Decimal || type.precision <= MAX_DECIMAL_PRECISION) {
             "Spalte $name: Precision über $MAX_DECIMAL_PRECISION"
+        }
+        require(maxLength == UNBOUNDED_TEXT || maxLength in 1..MAX_TEXT_LENGTH) {
+            "Spalte $name: maxLength außerhalb 1..$MAX_TEXT_LENGTH und nicht $UNBOUNDED_TEXT"
         }
     }
 }

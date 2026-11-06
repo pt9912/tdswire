@@ -104,7 +104,7 @@ internal sealed interface RpcCall {
     }
 
     /**
-     * `sp_prepexec` (ProcID 13): `handle` ist der Wert des OUTPUT-Parameters 0 (beim Erstaufruf −1),
+     * `sp_prepexec` (ProcID 13): `handle` ist der Wert des OUTPUT-Parameters 0 (beim Erstaufruf −1 oder 0),
      * dann Deklarationsliste und Text, danach die Wertparameter.
      */
     class PrepExec(

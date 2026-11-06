@@ -186,7 +186,9 @@ O(übertragene Bytes).
 
 1. Anweisungstext normalisieren: Leerraum und Kommentare außerhalb von Literalen und Bezeichnern
    überlesen, ein einzelnes abschließendes `;` entfernen. Mehrere Anweisungen in einem Text gelten
-   als nicht erkannt, solange das Clientprofil sie nicht verlangt.
+   als nicht erkannt, solange das Clientprofil sie nicht verlangt; die Texte, die d-migrate verlangt
+   (Form C, `SPEC-036`), sind die Ausnahme. Ein Text, der dem Wortlaut einer Katalogabfrage entspricht
+   (Form K), wird vor dem Zeichenscanner zugeordnet.
 2. Die Anweisung anhand ihres Textes genau einer Form aus `SPEC-036` zuordnen. Das geschieht mit
    einem Zeichenscanner, der Literale, Bezeichner und Kommentare erkennt, nicht mit einer
    Auswertung von SQL. Ohne Zuordnung endet die Anfrage mit `TDS_UNSUPPORTED_SQL`, bevor eine
@@ -209,8 +211,22 @@ O(übertragene Bytes).
 7. Fehler der Zeilenquelle oder eines Callbacks vor `ResultStart` sind `Failure` ohne Metadaten
    (`TDS_BACKEND_ERROR`). Nach `ResultStart` gilt `SPEC-031`. Cancel und Disconnect beenden das
    Lesen und schließen die Zeilenquelle (`SPEC-029`).
+8. Katalogabfrage (Form K): die Antwort entsteht aus den Tabellen, die der Katalog-Anbieter bei dieser Anfrage
+   liefert (`SPEC-035`): Tabellen, Spalten und Schlüssel aus den Beschreibungen, alles andere als leeres
+   Ergebnis mit den Spalten der Abfrage. Es wird weder eine Zeilenquelle gelesen noch ein Callback gerufen.
+9. Strukturänderung (Form D): `CREATE TABLE` und `ALTER TABLE … ADD` werden gegen den Katalog dieser Anfrage
+   geprüft (Tabelle vorhanden oder nicht, Spalten, Schlüssel); hat der Integrator einen Strukturänderungs-Callback
+   gesetzt (`SPEC-035`), bekommt er die Tabelle im Zustand nach der Anweisung, und die Antwort ist der Änderungszähler 0.
+   Ohne Callback endet die Anweisung mit `TDS_UNSUPPORTED_SQL`, ein Fehler des Callbacks mit `TDS_BACKEND_ERROR`.
+   Die Bibliothek nimmt nichts zurück: `ROLLBACK TRAN` ist der Änderungszähler 0 (Form C). Beim Sammeln plant das
+   Backend den Text unter einer Sperre erneut gegen den dann aktuellen Katalog und ruft den Callback mit diesem Stand:
+   zwei gleichzeitige Strukturänderungen eines Backends laufen nacheinander, und die zweite ist abgewiesen, wenn die
+   erste sie ungültig machte (Setzung; Test `SimulationBackendStructureTest`). Grenze der Sperre (Lesen des Codes,
+   nicht gemessen): sie ist nicht reentrant, ein Callback, der dasselbe Backend aufruft und die Antwort abwartet, hängt;
+   ein hängender Callback hält sie und blockiert alle weiteren Strukturänderungen dieses Backends bis zum Abbruch seines
+   Sammlers.
 
-**Komplexität:** O(gelesene Zeilen) je Auswahl, O(n) für die Erkennung des Textes. **Fehlermodi:**
+**Komplexität:** O(gelesene Zeilen) je Auswahl, O(n) für die Erkennung des Textes, O(Spalten) je Katalogantwort. **Fehlermodi:**
 nicht erkannte Anweisung, unbekannte Tabelle oder Spalte, nicht überführbarer Wert, Fehler der
 Zeilenquelle, Abbruch.
 
@@ -265,6 +281,12 @@ Befehle (das 1001. einer Open-Phase endet weiter mit `SPEC-058`); das Bit ist da
 am Draht gesehen: Status `0x09` im ersten Paket der ersten Anfrage nach der Wiederverwendung (Messprotokoll, Messreihe am Draht, W-7,
 Einzelmessung je Instanz 2022 und 2025). Die Antwort auf die Anfrage mit dem Bit trägt kein ENVCHANGE: der Referenzclient nahm sie so an;
 der echte Server beginnt die Antwort mit ENVCHANGE Typ 18 mit leerem neuem und leerem altem Wert (gleiche Quelle).
+
+Freigabe der Prepared-Handles: Ein SQL_BATCH, dessen Text ganz die Form `EXEC sp_unprepare <n>[;EXEC sp_unprepare <n>…]`
+hat (Schreibweise und Zahlenbereich in `SPEC-030`), beantwortet der Sitzungsrahmen, ohne das Backend zu rufen: er gibt die
+genannten Handles der Sitzung frei und antwortet nach `SPEC-030` und `SPEC-060`. Der Ort ist der von
+`RESETCONNECTION` (die Sitzung, vor einem Backend), die Art nicht: dort ist es ein Statusbit im Paketkopf, hier ein
+Text. Jeder andere Text geht an das Backend (`SPEC-002`).
 
 Der Abschluss einer Anfrage wird genau einmal gesendet.
 
@@ -470,16 +492,20 @@ zum Fehlerfall (unbekanntes Handle, unbekannte Form) sind Festlegungen, nicht Me
 | RPC | Erkennung | Pflichtverhalten |
 |---|---|---|
 | `sp_executesql` | ProcID 10 | Parameter 0 SQL-Text, Parameter 1 Deklarationsliste, optional (beide ohne Namen); danach Wertparameter, benannt oder ohne Namen (unten), INPUT, NULL und OUTPUT/InputOutput (Statusbyte `0x01`) |
-| `sp_prepexec` | ProcID 13 | Parameter 0 OUTPUT-Handle (`INTN` 4, bei Erstaufruf −1), Parameter 1 Deklarationsliste, Parameter 2 SQL-Text; Antwort liefert das Handle als RETURNVALUE |
+| `sp_prepexec` | ProcID 13 | Parameter 0 OUTPUT-Handle (`INTN` 4, beim Erstaufruf −1 oder 0: mssql-jdbc 13.4.0 sendet 0, Messzeile h6; beide Werte heißen „kein Handle“), Parameter 1 Deklarationsliste, Parameter 2 SQL-Text; Antwort liefert RETURNSTATUS 0 und das Handle als RETURNVALUE |
 | `sp_execute` | ProcID 12 | Parameter 0 Handle (`INTN` 4), danach nur die Nutzerparameter; unbekanntes Handle ergibt einen definierten Fehler |
 | RPC per Prozedurname | Name als String (`NameLenProcID` = Zeichenzahl), `OptionFlags=0x0000` | Name wie in `CommandText` (auch `[dbo].[p]`); der ReturnValue-Parameter wird nicht gesendet, RETURNSTATUS trägt ihn; nicht gesetzte Parameter fehlen in der Nachricht |
 
-Prepare-Handles gehören zur Sitzung und enden mit ihr; der Client sendete in den gemessenen
+Prepare-Handles gehören zur Sitzung und enden mit ihr; der Referenzclient sendete in den gemessenen
 Szenarien (ohne Pool) kein `sp_unprepare`, daher ist die Anzahl je Sitzung zu begrenzen (Festlegung); unter
-Pooling ist das nicht gemessen, ein gepoolter Client kann `sp_unprepare` senden, das der Katalog mit einem
-Fehler beantwortet. Ohne RETURNSTATUS und
+Pooling ist das nicht gemessen. Freigegeben wird nur durch die Batch-Form `EXEC sp_unprepare <n>` (unten), die
+mssql-jdbc 13.4.0 sendet; ein gepoolter Client, der `sp_unprepare` als RPC sendet, wird mit einem Fehler
+beantwortet (`SPEC-013`). Ohne RETURNSTATUS und
 RETURNVALUE bleiben ReturnValue, OUTPUT-Parameter und Prepare-Handle beim Client leer bzw. −1; die
-Tokens sind für diese Formen Pflicht und durch Tests nachzuweisen. Die Collation aus der
+Tokens sind für diese Formen Pflicht und durch Tests nachzuweisen. Der Server sendet bei `sp_prepexec` RETURNSTATUS 0
+vor dem Handle (Mitschnitte `prepare`, 2022 und 2025 der Referenzinstanz; ohne ihn übernimmt mssql-jdbc 13.4.0 das
+Handle nicht, Messzeilen h2, h3 und t1); bei `sp_executesql` und `sp_execute` sendet er noch keinen RETURNSTATUS, das
+ist eine bekannte Abweichung von der Referenzinstanz (Ausnahme A-16 des Referenzabgleichs, `SPEC-045`). Die Collation aus der
 Login-Antwort (ENVCHANGE Typ 7) ist Voraussetzung für jeden RPC mit Zeichenparametern. Alle anderen RPCs,
 auch `sp_prepare`, `sp_unprepare` und `sp_cursor*`, ergeben eine explizite Fehlermeldung ohne
 Verbindungsabbruch. **Messgrenzen:** Gemessen ist nur das Verhalten des Referenzclients gegen einen Testserver, nicht
@@ -504,22 +530,32 @@ sind dieselben. Ein so gebildeter Name, der einen gesendeten Namen doppelt (ohne
 Belegt ist die Form der Nachricht an zwei aufgezeichneten Nutzlasten (ein Treiber, eine Version); für andere Treiber
 und Versionen gilt die Festlegung nicht als gemessen.
 
-Handle-Verwaltung (Festlegungen, nicht gemessen; Tokenfolge, Ordinal und Name des Handle-RETURNVALUE sind
-Handvektoren, die Zahl 1000 ist eine Setzung, Voreinstellung, und nicht konfigurierbar. Am echten Server gemessen
-(Messprotokoll, Messreihe am Draht, W-5, Einzelmessung je Instanz 2022 und 2025): das Handle von `sp_prepexec` hat
-Ordinal 0 und keinen Namen, ein Ausgabewert dahinter trägt die Position in der Aufrufliste; die Festlegung hier ist
-davon nicht berührt):
+Handle-Verwaltung (Festlegungen, nicht gemessen, soweit nichts anderes dabeisteht; Tokenfolge, Ordinal und Name des
+Handle-RETURNVALUE sind an den Mitschnitten der Referenzinstanz gelesen, die Zahl 1000 ist eine Setzung,
+Voreinstellung, einstellbar. Am echten Server gemessen (Messprotokoll, Messreihe am Draht, W-5, Einzelmessung je
+Instanz 2022 und 2025): das Handle von `sp_prepexec` hat Ordinal 0 und keinen Namen, ein Ausgabewert dahinter trägt
+die Position in der Aufrufliste):
 
-- Eine Sitzung hält höchstens 1000 Handles gleichzeitig. Das `sp_prepexec`, das das 1001. Handle vergäbe,
-  ergibt `SPEC-058` (ERROR und DONE mit Fehlerstatus), ohne dass das Backend gerufen wird; die Verbindung
-  bleibt offen, die vorhandenen Handles bleiben gültig.
-- `sp_prepexec` vergibt ein neues Handle: ein Zähler je Sitzung ab 1, aufsteigend, ohne Wiederverwendung außer nach `RESETCONNECTION` (dort beginnt er bei 1 neu). Der
-  Wert im OUTPUT-Parameter der Nachricht (−1 beim Erstaufruf, ein altes Handle bei einem erneuten Prepare)
-  bleibt unberücksichtigt; ein altes Handle bleibt bis zum Sitzungsende oder bis zu `RESETCONNECTION` gültig. Der Server merkt den
+- Eine Sitzung hält höchstens so viele Handles gleichzeitig, wie `RequestSettings.maxPreparedHandles` (`MAX_PREPARED_HANDLES`
+  des Testservers) festlegt; die Voreinstellung ist 1000, der Bereich 1 bis 100000 (Setzung, nicht gemessen; null,
+  negative und nichtnumerische Werte weist der Start ab, `SPEC-034`). Gezählt werden die gleichzeitig gehaltenen
+  Handles: vergebene minus freigegebene. Das `sp_prepexec`, das das Handle über der Grenze vergäbe (bei der
+  Voreinstellung das 1001.), ergibt `SPEC-058` (ERROR und DONE mit Fehlerstatus), ohne dass das Backend gerufen wird;
+  die Verbindung bleibt offen, die vorhandenen Handles bleiben gültig. Der Speicher je Sitzung wächst mit Grenze mal
+  Textgröße (der Text ist nicht begrenzt); gemessen ist er nicht.
+- `sp_prepexec` vergibt ein neues Handle: ein Zähler je Sitzung ab 1, aufsteigend, ohne Wiederverwendung (auch nicht
+  einer freigegebenen Nummer) außer nach `RESETCONNECTION` (dort beginnt er bei 1 neu). Der
+  Wert im OUTPUT-Parameter der Nachricht (−1 oder 0 beim Erstaufruf, ein altes Handle bei einem erneuten Prepare)
+  bleibt unberücksichtigt; ein altes Handle bleibt bis zur Freigabe, zum Sitzungsende oder bis zu `RESETCONNECTION`
+  gültig. Der Server merkt den
   SQL-Text (nicht die Deklarationsliste; die Größe des Textes ist nicht begrenzt), ruft das Backend mit dem
-  Text und den Wertparametern der Nachricht und beantwortet nach der Form RPC. Das Handle steht als
-  RETURNVALUE mit dem Namen `@handle` (`INTN` 4, nullbar) vor dem ersten Ausgabewert des Backends, sonst am
-  Ende des Stroms, und hat damit das Ordinal 0; ein Ausgabewert des Backends zählt ab 1. Endet die Antwort
+  Text und den Wertparametern der Nachricht und beantwortet nach der Form RPC. Auf die Ergebnisse des Backends folgt
+  ein RETURNSTATUS mit dem Wert 0 (hat das Backend selbst einen RETURNSTATUS gesendet, bleibt es bei dem einen), dann
+  das Handle als RETURNVALUE **ohne Namen** (Namenslänge 0; so sendet es die Referenzinstanz, Mitschnitte `prepare`,
+  2022 und 2025; `INTN` 4, Status 1) vor dem ersten Ausgabewert des Backends, sonst am
+  Ende des Stroms, und hat damit das Ordinal 0; ein Ausgabewert des Backends zählt ab 1. Die Stelle bei einem Ausgabewert
+  des Backends ist nicht gemessen. Das Flag-Feld des RETURNVALUE ist hier 0x0001 (nullbar), der Mitschnitt zeigt 0x0000;
+  der Mitschnitt-Lauf vergleicht es nicht (Ausnahme A-19 des Referenzabgleichs). Endet die Antwort
   mit einem Fehler, bevor das Handle im Strom steht (Fehler vor dem ersten Ausgabewert), entsteht kein Handle
   und der Wert wird nicht wieder vergeben; steht das Handle schon im Strom (Fehler nach einem Ausgabewert),
   bleibt es gültig.
@@ -527,11 +563,31 @@ davon nicht berührt):
   nach der Form RPC ohne Handle-RETURNVALUE. Ein Handle, das die Sitzung nicht hält (nie vergeben, −1, 0), ergibt
   `SPEC-057`, ohne das Backend zu rufen; die Verbindung bleibt offen. Ein ungültiger Parameter wird vor der
   Suche des Handles abgelehnt (`SPEC-013`).
-- `sp_unprepare` und `sp_prepare` sind nicht im Katalog (`SPEC-013`) und geben kein Handle frei.
+- Der RPC `sp_unprepare` und `sp_prepare` sind nicht im Katalog (`SPEC-013`) und geben kein Handle frei. Frei gibt die
+  Batch-Form: ein SQL_BATCH, dessen Text ganz aus `EXEC sp_unprepare <n>` besteht, weitere Anweisungen derselben Form
+  durch `;` getrennt, höchstens ein `;` am Ende (die Form, die mssql-jdbc 13.4.0 sendet, Messzeile t5; das Ende des
+  Textes steht nicht im Mitschnitt). Schreibweise (Festlegung, nicht gemessen): genau `EXEC sp_unprepare ` mit einem
+  Leerzeichen vor der Nummer, kein Leerraum um das `;`, keine Klammern, kein Zeilenumbruch, `EXEC` groß und
+  `sp_unprepare` klein; die Nummer besteht aus ASCII-Ziffern ohne führende Null (außer `0`) und liegt im Bereich von
+  32-Bit-Ganzzahlen; ein Minuszeichen, ein anderes Zeichen, eine größere Zahl oder jede andere Abweichung macht den
+  ganzen Text zu keiner Freigabe, er geht wie jeder SQL_BATCH an das Backend (`SPEC-036`, `SPEC-037`). Die Freigabe wird
+  im Sitzungsrahmen beantwortet, ohne das Backend zu rufen. Die Nummern werden der Reihe nach bearbeitet: ein
+  gehaltenes Handle wird freigegeben (die Zählung sinkt, der Wert wird nicht wieder vergeben); die Antwort ist, wenn die
+  Sitzung jede genannte Nummer hielt, ein DONE ohne Bits und ohne Zeilenzahl (Erfolg ohne Zeilen; die Tokenfolge eines
+  echten Servers ist nicht gemessen). Eine Nummer, die die Sitzung nicht hält (nie vergeben, schon freigegeben, aus der
+  Zeit vor `RESETCONNECTION`), ergibt `SPEC-060`: ein ERROR je solcher Nummer, danach ein DONE mit Fehlerstatus; die
+  Verbindung bleibt offen, das Backend wird nicht gerufen, die Zählung ändert sich durch diese Nummer nicht. Die Antwort nennt
+  höchstens die ersten 100 solcher Nummern eines Batches (Setzung, nicht gemessen: ein echter Server hat keine bekannte Grenze
+  für die Zahl der Fehler); alle Nummern des Batches werden bearbeitet. Gemessen
+  (am Referenzclient gegen den echten SQL Server, 2022 und 2025): ein Handle freigeben gelingt, dasselbe ein zweites Mal
+  und ein nie vergebenes ergeben Nummer 8179, Class 16, State 8, die Verbindung bleibt offen, auch in der Form des
+  SQL_BATCH. Ebenso gemessen: ein Batch gehalten/unbekannt/gehalten bricht bei dem Fehler nicht ab, beide gehaltenen
+  Handles sind danach frei, der Fehler ist einer; zwei unbekannte Nummern ergeben zwei Fehler. Nicht gemessen: ob der
+  Server die Fehler als mehrere ERROR-Token mit einem oder mit mehreren DONE sendet.
 - Die Handles enden mit der Sitzung; zwei Sitzungen sehen die Handles der jeweils anderen nicht. Der Zugriff
   auf die Tabelle einer Sitzung ist gegen gleichzeitigen Zugriff geschützt.
-- `RESETCONNECTION` (`SPEC-001`) leert die Tabelle: jedes Handle aus der Zeit davor ist unbekannt (`SPEC-057`), der
-  Zähler beginnt wieder bei 1, und die Grenze von 1000 gilt neu. Ein Handle, das ein Client aus der Zeit davor hält,
+- `RESETCONNECTION` (`SPEC-001`) leert die Tabelle: jedes Handle aus der Zeit davor ist unbekannt (bei `sp_execute`
+  `SPEC-057`, bei der Batch-Freigabe `SPEC-060`), der Zähler beginnt wieder bei 1, und die Grenze gilt neu. Ein Handle, das ein Client aus der Zeit davor hält,
   trifft nach einem neuen `sp_prepexec` mit gleichem Wert den neuen Text. Der Zähler ab 1 nach dem Zurücksetzen ist
   eine Setzung, nicht gemessen; ob der Referenzclient seine Handles beim Zurücksetzen selbst verwirft, ist nicht
   gemessen.
@@ -584,9 +640,15 @@ data class SimTable(
     val rows: suspend (SimQuery) -> RowSource,
     val onInsert: (suspend (values: Map<String, Any?>) -> Long)? = null,
     val onUpdate: (suspend (set: Map<String, Any?>, where: RowFilter?) -> Long)? = null,
-    val onDelete: (suspend (where: RowFilter?) -> Long)? = null
+    val onDelete: (suspend (where: RowFilter?) -> Long)? = null,
+    val onInsertBatch: (suspend (rows: List<Map<String, Any?>>) -> Long)? = null
 )
-data class SimColumn(val name: String, val type: SqlType, val nullable: Boolean = true)
+data class SimColumn(
+    val name: String,
+    val type: SqlType,
+    val nullable: Boolean = true,
+    val maxLength: Int = 4000
+)
 data class SimQuery(val columns: List<SimColumn>, val filter: RowFilter?)
 data class RowFilter(val terms: List<FilterTerm>)
 sealed interface FilterTerm {
@@ -629,6 +691,15 @@ festgelegt sind; die Überführung der Werte, das Lesen der Zeilenquelle und die
   als `SimQuery.columns` und nennt im Filter die Spaltennamen der Beschreibung mit den in den Spaltentyp
   überführten Werten (NULL in einer Liste bleibt erhalten); ohne `WHERE` ist der Filter `null` (Setzung,
   nicht am Server gemessen).
+- `SimColumn.maxLength` ist die Länge eines Textes in Zeichen, wie der Katalog sie meldet (`nvarchar(<maxLength>)`, 1 bis
+  4000, Vorgabe 4000) oder -1 für `nvarchar(max)` (der Katalog meldet `max_length` -1); Wertebereich, Vorgabe und der
+  Sonderwert -1 sind Setzung dieser Spezifikation (die Entscheidung zur Länge nennt Vorgabe 4000, aber keinen
+  Sonderwert). Belegt ist -1 durch den Lauf mit d-migrate 1.12.0: ein Soll mit `NVARCHAR(MAX)` endet ohne -1 mit Exit 5,
+  mit -1 mit Exit 0 und `IDENTICAL`.
+  Sie gilt nur für `UnicodeText`, prüft keine Zeile und ändert die Metadaten eines Ergebnisses nicht (dort gilt `SPEC-003`,
+  `NVARCHAR(4000)`). Andere Werte weist der Konstruktor ab.
+  `SimTable.onInsertBatch` ist der Rahmen für das Massenladen (die Zeilen einer Nachricht als Liste); dieser Stand der
+  Bibliothek ruft ihn nicht.
 - `primaryKey` nennt eine oder mehrere Spalten der Tabelle; sie müssen vorhanden und nicht nullbar
   sein. Der Schlüssel ist nur Teil der Beschreibung: er wirkt weder auf das Resultset noch auf
   Callbacks, das Backend speichert nichts und prüft keine Eindeutigkeit. Als Metadatum zum Client wird
@@ -697,8 +768,10 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
 - **Typabbildung:** `identifier` auf `Int32` (nicht nullbar), `integer` auf `Int32`, `biginteger` auf
   `Int64`, `boolean` auf `Bool`, `text` und `email` auf `UnicodeText`, `decimal` auf
   `Decimal(precision, scale)` bis Precision 38, `date` auf `Date`, `time` auf `Time`, `datetime` ohne
-  `timezone: true` auf `DateTime`. `max_length` wird auf eine positive Ganzzahl geprüft, aber weder
-  durchgesetzt noch gemeldet (der Client sieht `NVARCHAR(4000)`, `SPEC-003`). Jeder andere Typ
+  `timezone: true` auf `DateTime`. `max_length` wird auf eine positive Ganzzahl geprüft und als
+  `SimColumn.maxLength` gemeldet (der Katalog zeigt `nvarchar(<max_length>)`); ein Wert über 4000 gilt als 4000, ohne
+  Angabe gilt 4000 (Setzung); durchgesetzt wird er nicht, und das Metadatum eines Ergebnisses bleibt `NVARCHAR(4000)`
+  (`SPEC-003`). Jeder andere Typ
   (`smallint`, `char`, `float`, `uuid`, `binary`, `xml`, `json`, `array`, `enum`, `geometry`,
   `fulltext`, `datetime` mit `timezone: true`) und eine Precision über 38 weisen die Datei ab.
 - **Skalare und Dokument** (Setzung, nicht gemessen): `required` nur `true` oder `false`; Ganzzahlen
@@ -726,8 +799,12 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   über den Einstieg `TdsServer.start` mit `BackendSource.Simulation` (`SPEC-059`). Ein Name, der zweimal vorkommt
   (ohne Beachtung der Schreibweise), bricht den Start ab. Der Katalog hält eigene Kopien der Listen `columns` und
   `primaryKey` der Tabellen des Integrators: ändert er seine Listen nach der Übergabe, bleibt der Katalog
-  unverändert. Ohne Tabellen läuft der Server ohne Simulations-Backend, beantwortet den Login und lässt eine
-  Anfrage unbeantwortet.
+  unverändert. Mit `BackendSource.Simulation` ohne Tabellen (und mit `BackendSource.None`) läuft der Server ohne
+  Simulations-Backend, beantwortet den Login und lässt eine Anfrage unbeantwortet. Die Hauptklasse des Testservers
+  verhält sich anders (Setzung dieses Stands): sie übergibt immer ein Backend über dem Bestand (`BackendSource.Custom`);
+  ohne Datei der Beschreibung antwortet es auf eine Auswahl mit `TDS_SIM_UNKNOWN_OBJECT` („Tabelle nicht beschrieben“),
+  nimmt `CREATE TABLE` an und schließt die Verbindung nicht (Test `TableStoreTest`, `make e2e` Stufe 1 meldet den Login
+  ohne Datei).
 - **Weg `Custom`:** Wer ein Backend mit Katalog selbst baut (`SimulationBackend(SimCatalog(tables))`) und als
   `BackendSource.Custom` übergibt (etwa um es mit einem eigenen `QueryBackend` zu umhüllen), ist ein zweiter Weg
   neben `Simulation`, mit demselben Verhalten des Backends. Dieser Weg durchläuft die Namensprüfung des Einstiegs und
@@ -735,6 +812,39 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   selbst mit `IllegalArgumentException` und kopiert nur die Liste der Tabellen, nicht deren `columns` und
   `primaryKey` (aus dem Quelltext gelesen, Setzung). Die Namen `SimulationBackend` und `SimCatalog` stehen unter der
   Zusage von `SPEC-059`.
+- **Katalog-Anbieter und Strukturänderung** (Namen und Form sind Setzung, nicht an einem Server gemessen): Neben
+  `SimulationBackend(catalog: SimCatalog)` gibt es den zweiten Konstruktor `SimulationBackend(catalog: () -> SimCatalog,
+  onStructure: (suspend (schema: String, name: String, columns: List<SimColumn>, primaryKey: List<String>) -> Unit)? = null)`;
+  er fügt keinen Typnamen hinzu. Der Anbieter liefert bei **jeder** Anfrage die aktuelle Tabellenliste; das Backend hält
+  keinen Stand, und die Antworten auf Katalogabfragen (`SPEC-036` Form K) entstehen aus dem Stand dieser Anfrage. Wirft der
+  Anbieter, endet die Anfrage mit `TDS_BACKEND_ERROR` und fester Meldung. Der Konstruktor mit festem Katalog gilt wie ein
+  Anbieter, der immer denselben Katalog liefert, ohne Callback. Gemessen (d-migrate 1.12.0, mssql-jdbc 13.4.0, Testserver
+  mit Bestand im Arbeitsspeicher, 2026-11-06): `schema migrate --execute` besteht die Nachprüfung, weil der Anbieter nach der
+  Strukturänderung den neuen Stand liefert; ein fester Katalog zeigte im Spike dieselbe Nachprüfung als Abweichung
+  (Exit 5, Einzelmessung 2026-11-05). Der Callback `onStructure` bekommt für `CREATE TABLE` und `ALTER TABLE … ADD` die
+  Tabelle im Zustand **nach** der Anweisung (Schema, Name wie im Katalog, alle Spalten in der Reihenfolge, Schlüssel); er
+  wird beim Sammeln der Ausführung genau einmal gerufen, und die Antwort ist der Änderungszähler 0 (Setzung; gemessen ist der
+  Zähler 0 nur für `ROLLBACK TRAN`). Die Prüfung gegen den Katalog (`CREATE TABLE` einer vorhandenen Tabelle, `ADD` einer
+  vorhandenen Spalte, `CREATE TABLE` ohne Schlüssel, eine Schlüsselspalte, die es nicht gibt) endet vor dem Callback mit
+  `TDS_UNSUPPORTED_SQL` beziehungsweise `TDS_SIM_UNKNOWN_OBJECT` (Setzung; der echte Server antwortet mit eigenen Nummern,
+  die die Bibliothek nicht sendet). Eine Schlüsselspalte ist nach der Anweisung nicht nullbar, auch wenn der Text es nicht
+  sagt (Setzung nach dem Server). Ohne Callback endet die Anweisung mit `TDS_UNSUPPORTED_SQL`; ein Fehler des Callbacks ist
+  `TDS_BACKEND_ERROR` mit fester Meldung. **Keine Transaktion (Zusage):** mehrere Callbacks einer Anweisung oder mehrerer
+  Anweisungen sind keine Transaktion; die Bibliothek nimmt nichts zurück, ein Fehler hinterlässt den Zustand beim
+  Integrator, und `ROLLBACK TRAN` ist der Änderungszähler 0. Gemessen mit d-migrate: nach einem Fehler des Callbacks
+  meldet d-migrate `FULL_ROLLBACK_CONFIRMED`, obwohl die erste Änderung im Bestand bleibt (Spike, Einzelmessung 2026-11-05).
+- **Katalog der Spalten** (Abbildung von `SqlType` auf `sys.types` und `sys.columns`; Setzung, am Server nicht gemessen; gemessen
+  ist, dass d-migrate 1.12.0 die Antworten als `integer`, `biginteger`, `boolean`, `text`, `decimal`, `date`, `time` und
+  `datetime` liest und `schema compare` danach „IDENTICAL“ meldet): `Int32` als `int` (4 Byte, Precision 10),
+  `Int64` als `bigint` (8, 19), `Bool` als `bit` (1, 1), `UnicodeText` als `nvarchar` mit `2 * maxLength` Byte (-1 bei `maxLength` -1),
+  `Decimal(p, s)` als `decimal` (5, 9, 13 oder 17 Byte bei Precision bis 9, 19, 28 oder 38), `Date` als `date` (3, 10),
+  `Time` als `time` (5 Byte, Precision 16, Skala 7), `DateTime` als `datetime2` (8 Byte, Precision 27, Skala 7). Die
+  Spalten `max_length`, `precision` und `scale` heißen im Server `smallint` und `tinyint`; hier sind es `Int32` (der Typ
+  der Antwort ist der nächste von `SqlType`; am Referenzclient gemessen: `max_length` `smallint`, `precision` und `scale`
+  `tinyint`, `is_nullable` und `is_identity` `bit`, Namen `nvarchar`). Eine Identität, ein Standardwert, eine berechnete
+  Spalte, ein Fremdschlüssel, ein Index (außer dem Schlüssel), eine Prüfbedingung, eine Sicht, eine Sequenz und eine
+  Routine kommen nicht vor: ihre Abfragen antworten leer, mit den Spalten der Abfrage. `is_identity` ist immer 0; ein Soll mit
+  dem Typ `identifier` zeigt bei `schema compare` deshalb `identifier -> biginteger` (Exit 1, gemessen).
 - **Datei und Umgebungsvariable gehören dem Testserver:** Die Umgebungsvariable `SIMULATION_DESCRIPTION_FILE` nennt
   den Pfad der Datei (Name gesetzt, nicht gemessen). Der Wert ist nicht leer, die Datei lesbar und höchstens 1 MiB
   groß (gelesen wird höchstens ein Byte mehr, ein Byte mehr als 1 MiB ist ein Startfehler); sonst bricht der
@@ -754,7 +864,10 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
 | W1 | `INSERT INTO [<Schema>.]<Tabelle> (<Spalten>) VALUES (<Werte>)` | Änderungszähler |
 | W2 | `UPDATE [<Schema>.]<Tabelle> SET <Spalte> = <Wert> {, <Spalte> = <Wert>} [WHERE <Term> {AND <Term>}]` | Änderungszähler |
 | W3 | `DELETE FROM [<Schema>.]<Tabelle> [WHERE <Term> {AND <Term>}]` | Änderungszähler |
-| C | `SELECT 1`, oder eine oder mehrere `SET`-Anweisungen aus der Liste unten, durch `;` getrennt | `SELECT 1`: Resultset mit einer Spalte ohne Namen (`Int32`, nicht NULL) und der Zeile 1; `SET`: Änderungszähler 0 |
+| C | `SELECT 1`, oder eine oder mehrere `SET`-Anweisungen aus der Liste unten, durch `;` getrennt, oder ein Transaktionstext (unten) | `SELECT 1`: Resultset mit einer Spalte ohne Namen (`Int32`, nicht NULL) und der Zeile 1; `SET` und Transaktionstext: Änderungszähler 0 |
+| K | der Wortlaut einer Katalogabfrage von d-migrate 1.12.0 (Liste unten) | Resultset aus dem Katalog |
+| D1 | `CREATE TABLE [<Schema>.]<Tabelle> (<Spalte> {, <Spalte>} [, [CONSTRAINT <Name>] PRIMARY KEY (<Spalte> {, <Spalte>})])` | Änderungszähler 0 |
+| D2 | `ALTER TABLE [<Schema>.]<Tabelle> ADD <Spalte> {, <Spalte>}` | Änderungszähler 0 |
 
 - **Term:** `<Spalte> = <Wert>`, `<Spalte> IN (<Wert> {, <Wert>})` oder `<Spalte> IS [NOT] NULL`. Nur in S1 zusätzlich
   der Konstantenterm `<Ganzzahl> = <Ganzzahl>` (Ganzzahl: Ziffern mit optionalem führendem `-`): er gilt für jede Zeile,
@@ -779,7 +892,7 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   `JOIN` und weitere Relationen, Unterabfragen, `WITH`,
   Aggregate und `GROUP BY`, `DISTINCT`, `TOP`, `ORDER BY`, `OFFSET`/`FETCH`, Aliase für Tabellen und
   Spalten, Ausdrücke und Funktionen in Listen und Bedingungen, `OR`, `NOT`, `<`, `>`, `LIKE`, `BETWEEN`,
-  `OUTPUT`-Klauseln, mehrere Anweisungen in einem Text und alles, was keine Form der Tabelle ist.
+  `OUTPUT`-Klauseln, mehrere Anweisungen in einem Text (außer Form C) und alles, was keine Form der Tabelle ist.
 - **Form C** (Setzung nach der Aufzeichnung von d-migrate 1.12.0 mit mssql-jdbc 13.4.0.jre11, 2026-11-05, gegen den
   Testserver; für den Referenzclient ist keine Anweisung der Form gemessen): `SELECT 1` ist der Verbindungstest des
   Pools, `SET LOCK_TIMEOUT 30000` folgt jedem Verbindungsaufbau, und `data import` sendet in einem Text sieben
@@ -795,6 +908,39 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   (`ResultEnd` ohne `ResultStart` beantwortet die Sitzung mit Fehler 50007, Class 20, und schließt die Verbindung;
   gemessen mit mssql-jdbc 13.4.0 am 2026-11-05). Die Wirkung der Optionen auf spätere Anweisungen ist nicht modelliert: `SET` ändert keinen Zustand der
   Sitzung. Form C nennt keine Tabelle; das Backend ruft weder Zeilenquelle noch Callback.
+- **Transaktionstexte** (Form C, gemessen mit d-migrate 1.12.0, mssql-jdbc 13.4.0, 2026-11-06 und 2026-11-05): beim Schreiben
+  einer Struktur sendet d-migrate `set implicit_transactions on`, danach `IF @@TRANCOUNT > 0 COMMIT TRAN` und
+  `set implicit_transactions off IF @@TRANCOUNT > 0 COMMIT TRAN` (zwei Anweisungen ohne `;` in einem Text), bei einem Fehler
+  `IF @@TRANCOUNT > 0 ROLLBACK TRAN` (Spike, Einzelmessung 2026-11-05). Erkannt ist genau dieser Wortlaut: optional
+  `SET IMPLICIT_TRANSACTIONS ON|OFF`, dann `IF @@TRANCOUNT > 0`, dann `COMMIT` oder `ROLLBACK`, dann `TRAN`, getrennt durch
+  Leerraum, ohne Kommentar und ohne weiteren Text, ASCII-Buchstaben ohne Beachtung der Schreibweise; `TRANSACTION`, ein anderer
+  Vergleich oder eine andere Option sind nicht erkannt. Das Erkennen liest den Text, ohne den Scanner (`@@` und `>` gehören
+  nicht zu seinen Zeichen); die Kombinationen, die d-migrate nicht gesendet hat, sind Setzung. Die Antwort ist der
+  Änderungszähler 0; die Bibliothek hat keine Transaktion und nimmt nichts zurück.
+- **Form K, Katalogabfragen** (Wortlaut aus `MssqlMetadataQueries` und `MssqlRoutineQueries` des Treibers
+  `driver-mssql-1.12.0`, gelesen aus dem Bytecode, und der Mitschnitt der Läufe `schema reverse`, `schema reverse
+  --include-all`, `schema compare` und `schema migrate --execute` vom 2026-11-06; 20 Formen): `SELECT SCHEMA_NAME() AS
+  schema_name`; Tabellen eines Schemas (`sys.tables`, `sys.schemas`); Spalten einer Tabelle (`sys.columns` mit
+  `sys.types`, `sys.default_constraints`, `sys.identity_columns`, `sys.computed_columns`, Parameter `OBJECT_ID(?)`); Schlüssel
+  (`sys.key_constraints`, `kc.type = 'PK'`); und leer beantwortet: Eindeutigkeiten, Fremdschlüssel, Indizes, Volltextspalten,
+  Partitionierung, Prüfbedingungen, Sequenzen, Sichten und ihre Spalten, Identität (`TOP 1`), berechnete Spalten, Identitätsspalten,
+  Objekte ohne Text, Routinen, Parameter und Abhängigkeiten von Routinen. Der Text einer Anfrage gilt als erkannt, wenn er
+  nach der Normalisierung gleich dem Wortlaut einer Form ist: Leerraum (Leerzeichen, Tab, CR, LF) zu einem Leerzeichen,
+  Anfang und Ende ohne Leerraum, ein abschließendes `;` entfernt, und ein Parameter `@P<n>` samt dem Leerzeichen davor und
+  dahinter gleich `?` (mssql-jdbc setzt `@P0` mit Leerzeichen ein, gemessen). Ein Textvergleich, keine Auswertung von SQL: ein
+  anderer Wortlaut, ein Kommentar oder andere Schreibweise der Schlüsselwörter ist nicht erkannt. Der Parameter kommt aus der
+  Anfrage (`@P0`, Text): für `OBJECT_ID(?)` ein Name mit einem oder zwei Teilen, jeder unquotiert oder in `[…]`
+  (gemessen: `[dbo].[kunden]`); eine unbekannte Tabelle oder ein Name mit mehr als zwei Teilen ergibt ein leeres Ergebnis
+  ohne Fehler (der Server: `OBJECT_ID` ergibt NULL); ein Parameter, der kein Text ist, ist `TDS_SIM_INVALID_VALUE`. Die
+  Abfragen des Imports (`sys.identity_columns`, `sys.computed_columns`) stammen aus dem Bytecode, im Lauf von `schema reverse`
+  sendet d-migrate sie nicht. Nicht erkannt sind Abfragen, die kein Lauf der Soll-Funktionen stellt; sie enden mit
+  `TDS_UNSUPPORTED_SQL`.
+- **Form D, Strukturänderung** (gemessen: der Wortlaut von `schema migrate --execute`, 2026-11-06): eine Spalte ist `<Name> <Typ>
+  [NOT NULL | NULL]` mit `INT`, `BIGINT`, `BIT`, `DATE`, `TIME`, `DATETIME2`, `NVARCHAR(<n>)` (`n` von 1 bis 4000) oder
+  `NVARCHAR(MAX)` (`maxLength` -1) und `DECIMAL(<p>, <s>)` (Precision bis 38); der Schlüssel heißt im gesendeten Text
+  `CONSTRAINT [pk_<Tabelle>] PRIMARY KEY ([Id])`. Mehrere Spalten in `ADD` sind Setzung. Ein anderer Typ (`SMALLINT`, `FLOAT`, …) oder
+  eine weitere Klausel (`DEFAULT`, `IDENTITY`, `UNIQUE`, `WITH`) macht den Text nicht erkannt. Ein abschließendes `;` ist erlaubt.
+  Die Prüfung gegen den Katalog und die Antwort stehen in `SPEC-035`.
 - **Scanner** (Setzungen, nicht am Server gemessen): Leerraum sind Leerzeichen, Tab, CR und LF.
   Blockkommentare dürfen sich schachteln; ein offenes Literal oder ein offener Kommentar ist nicht
   erkannt. `N'…'` gilt nur mit `N` unmittelbar vor dem Hochkomma; ein verdoppeltes Hochkomma steht für
@@ -929,7 +1075,8 @@ SQL-Server-Image setzt `ACCEPT_EULA=Y` voraus; die Zustimmung des Repo-Inhabers 
 | `SPEC-009` | `QUERY_TIMEOUT` | 30 s (vorläufig; konfigurierbar in ganzen Sekunden von 1 bis 3600, Festlegung, nicht gemessen; Eingang der Bibliothek ist `ServerConfig.requests`, Umgebungsvariable des Testservers) | Backend-Timeout; Quelle der Frist einer Anfrage (`deadlineEpochMillis` = Beginn plus `QUERY_TIMEOUT`), die der Protokollkern durchsetzt (`SPEC-022`), solange kein Schreibvorgang der Antwort am Rückstau hängt (er hält die Sitzungssperre, die Frist wirkt erst nach seiner Rückkehr); Ablauf endet in `TDS_TIMEOUT` (`SPEC-016`) |
 | `SPEC-010` | `ENCRYPTION_POLICY` | Standard `REQUIRED`; Abschwächung nur durch ausdrückliche, im Log sichtbare (wenn eine Senke übergeben ist) Konfiguration, je Clientprofil; genau `REQUIRED` oder `TEST_UNENCRYPTED`; `REQUIRED` verlangt Schlüsselspeicher (PKCS#12) und Passwort in `ServerConfig`, `TEST_UNENCRYPTED` lässt beide nicht zu (Festlegung, nicht gemessen); `ENCRYPTION_POLICY`, `TLS_KEYSTORE_FILE` und `TLS_KEYSTORE_PASSWORD_FILE` sind die Umgebungsvariablen, aus denen der Testserver Richtlinie, Speicherdatei und Passwortdatei liest, die Bibliothek liest keine Umgebung und keine Datei | Keine unbemerkte TLS-Herabstufung |
 | `SPEC-033` | `CANCEL_TIMEOUT` | 5 s (vorläufig; konfigurierbar in ganzen Sekunden von 1 bis 3600, Festlegung, nicht gemessen; Umgebungsvariable des Testservers) | Frist für nicht abbrechbare Backendoperationen, danach Verbindung schließen; sie läuft ab dem Gewinn des Abbruchs (ATTENTION oder Frist der Anfrage), nicht vorher, und damit nicht, solange ein Schreibvorgang am Rückstau die Sitzungssperre hält |
-| `SPEC-034` | `MAX_CONNECTIONS` | 1000 (vorläufig; konfigurierbar als ganze Zahl von 1 bis 100000, Festlegung, vom Nutzer bestätigt am 2026-11-06, nicht gemessen; Eingang der Bibliothek ist `ServerConfig.listen` (`ListenSettings.maxConnections`), Umgebungsvariable des Testservers). Der Listener nimmt höchstens so viele Verbindungen zugleich auf (gezählt im Verbindungsregister, ab der Annahme bis zum Ende des Handlers); eine weitere wird ohne Antwortbytes geschlossen, ohne dass der Prozess oder eine bestehende Verbindung leidet, und nach dem Ende einer Verbindung nimmt er wieder auf. Dass der Client einer abgewiesenen Verbindung ein Schließen ohne Antwort sieht (statt ERROR vor dem Login), ist Festlegung, vom Nutzer bestätigt am 2026-11-06, und am Referenzclient nicht gemessen | Ressourcenlimit für gleichzeitige Verbindungen |
+| `SPEC-034` | `MAX_CONNECTIONS` | 1000 (vorläufig; konfigurierbar als ganze Zahl von 1 bis 100000, Festlegung, vom Nutzer bestätigt am 2026-11-06, nicht gemessen; Eingang der Bibliothek ist `ServerConfig.listen` (`ListenSettings.maxConnections`), Umgebungsvariable des Testservers). Der Listener nimmt höchstens so viele Verbindungen zugleich auf (gezählt im Verbindungsregister, ab der Annahme bis zum Ende des Handlers); eine weitere wird ohne Antwortbytes geschlossen, ohne dass der Prozess oder eine bestehende Verbindung leidet, und nach dem Ende einer Verbindung nimmt er wieder auf. Dass der Client einer abgewiesenen Verbindung ein Schließen ohne Antwort sieht (statt ERROR vor dem Login), ist Festlegung, vom Nutzer bestätigt am 2026-11-06, und am Referenzclient nicht gemessen | Ressourcenlimit für gleichzeitige Verbindungen; der Speicher je Sitzung hängt an der Grenze der Prepared-Handles (`SPEC-061`), ein Limit für den Speicher aller Sitzungen zusammen gibt es nicht |
+| `SPEC-061` | `MAX_PREPARED_HANDLES` | 1000 (Voreinstellung, Setzung, nicht gemessen; einstellbar als ganze Zahl von 1 bis 100000, Festlegung; Eingang der Bibliothek ist `ServerConfig.requests` (`RequestSettings.maxPreparedHandles`), Umgebungsvariable des Testservers). Die Zahl der Prepared-Handles, die eine Sitzung gleichzeitig hält (`SPEC-030`, gezählt: vergebene minus freigegebene); null, negative und nichtnumerische Werte weist der Start ab | Ressourcenlimit je Sitzung gegen einen Client, der Handles nicht freigibt (`TDS-QA-02`); der Speicher ist höchstens Grenze mal Textgröße mal `MAX_CONNECTIONS` (`SPEC-034`); die Textgröße ist nicht begrenzt, der Speicher ist nicht gemessen; ob ein Client seine Handles freigibt, ist je Client nicht gemessen (mssql-jdbc 13.4.0 gibt geschlossene Anweisungen frei, Messzeile t3) |
 | `SPEC-053` | Drosselung wiederholter Anmeldeversuche | je Quelladresse (die Adresse der Gegenstelle ohne Port; Kennung und Passwort gehen nicht in den Schlüssel ein): die ersten 5 Fehlversuche bleiben unverzögert, ab dem 6. wartet jede weitere Anmeldung dieser Adresse vor der Prüfung der Zugangsdaten 250 ms, verdoppelt je weiterem Versuch bis 5 s; der Zähler der Fehlversuche fällt 60 s nach dem letzten Fehlversuch der Adresse auf null und wird durch einen Erfolg nicht zurückgesetzt; gleichzeitig laufende Versuche einer Adresse zählen ab ihrem Beginn mit und werden bei Ende ohne Fehlversuch abgezogen; höchstens 10000 Adressen, bei Überlauf wird die Adresse verdrängt, deren Anlage oder letzter Fehlversuch am längsten zurückliegt, auch wenn nur ein Versuch läuft, und ihre Zähler gehen verloren; nicht konfigurierbar (alle Zahlen Setzung, nicht gemessen) | Setzung ohne Lastenheft-Anker, vom Nutzer bestätigt (das Lastenheft verlangt keine Drosselung). Raten gegen die Benutzerliste von einer Adresse bremsen, ohne Sperre und ohne Zustand je Kennung. Die Wartezeit hängt nur von der Adresse ab, ist ein Anhalten ohne Platz des Adapteraufrufs, gehört zu `LOGIN_TIMEOUT` (`SPEC-008`) und ist nicht an ihn gebunden: bei einer Frist unter der Wartezeit endet die Anmeldung ohne Antwort. Als Fehlversuch zählt die Ablehnung durch den Adapter, nicht eine Annahme, ein Adapterfehler oder ein Abbruch. Ein Kanal ohne bekannte Adresse der Gegenstelle wird nicht gedrosselt (Entscheidung des Nutzers). Ob die Drosselung ins Log schreibt und mit welcher Adressangabe, ist offen; heute schreibt sie nichts ins Log. Rund 12 Versuche je Minute (60 s / 5 s) gelten nur für eine Verbindung nach der anderen; bei gleichzeitigen Verbindungen wartet jede höchstens 5 s, und die Obergrenze gleichzeitiger Adapteraufrufe begrenzt die Rate, nicht die Staffel; ein Schwall gleichzeitiger Verbindungen ist nicht gemessen. Eine verteilte Suche über viele Adressen bleibt ungebremst; Clients hinter einer gemeinsamen Adresse teilen Zähler und Wartezeit |
 
 Vorläufige Werte sind technische Entwurfsannahmen, keine aus dem Lastenheft abgeleiteten
@@ -950,8 +1097,9 @@ Abnahmegrenzen.
 | `SPEC-039` | `TDS_SIM_INVALID_VALUE` | Wert nicht in den Spaltentyp überführbar | ERROR und DONE mit Fehlerstatus; vorgesehene SQL-Server-Nummern 245 (Konvertierung) und 8115 (Überlauf), an der Referenzinstanz zu messen |
 | `SPEC-048` | `TDS_INTERNAL_ERROR` | unerwartete Ausnahme im Server oder im Backend-Adapter, auch ein `OutOfMemoryError` beim Erzeugen oder Senden der Antwort (`SPEC-031`) | ERROR (Severity 20) und DONE mit Fehlerstatus, fester Text ohne den Text der Ausnahme, danach Verbindungsende; die Ausnahme geht nur als Typname ins Log, nie mit Text (Abschnitt 4). Gebaut: die Art `REQUEST_FAILED` trägt den Code und den vollqualifizierten Typnamen der Ausnahme oder eine feste Marke, nie den Text der Ausnahme (Abschnitt 4; Tests: `TelemetryRedactionTest`, `RequestWiringTest`) |
 | `SPEC-049` | `TDS_SHUTDOWN` | Anfrage nach Beginn des geordneten Beendens (`SPEC-044`) | ERROR und DONE mit Fehlerstatus, danach Verbindungsende; Herkunft des Schließens: ERROR und DONE werden vollständig gesendet, erst danach wird geschlossen (Setzung des Nutzers vom 2026-11-01, am Referenzclient wird „ERROR, DONE, dann Schließen“ gelesen, ein Herunterfahren am echten Server ist nicht gemessen); vorgesehen: die SQL-Server-Meldung für ein Herunterfahren, Nummer im Mapping nach `TDS-FA-06.a` festlegen |
-| `SPEC-057` | `TDS_UNKNOWN_HANDLE` | `sp_execute` mit einem Handle, das die Sitzung nicht hält, auch nach `RESETCONNECTION` (`SPEC-030`) | ERROR und DONE mit Fehlerstatus; die Verbindung bleibt offen (Class 16), das Backend wird nicht gerufen; das Log nennt die feste Marke `unknown-handle` |
-| `SPEC-058` | `TDS_PREPARE_LIMIT` | `sp_prepexec` bei erreichter Grenze von 1000 Handles der Sitzung (`SPEC-030`) | ERROR und DONE mit Fehlerstatus; die Verbindung bleibt offen (Class 16), das Backend wird nicht gerufen, die vorhandenen Handles bleiben gültig; das Log nennt die feste Marke `handle-limit` |
+| `SPEC-057` | `TDS_UNKNOWN_HANDLE` | `sp_execute` mit einem Handle, das die Sitzung nicht hält, auch nach `RESETCONNECTION` (`SPEC-030`) | ERROR und DONE mit Fehlerstatus; die Verbindung bleibt offen (Class 16), das Backend wird nicht gerufen; das Log nennt die feste Marke `unknown-handle`. Der echte SQL Server antwortet auf `sp_execute` mit einem unbekannten Handle mit Nummer 8179, Class 16, State 4 (Messung am Referenzclient, 2022 und 2025, als Prozedur und als SQL_BATCH `EXEC sp_execute <n>`), nicht mit 50009; die Abweichung ist gemessen, ihre Behandlung nicht entschieden |
+| `SPEC-058` | `TDS_PREPARE_LIMIT` | `sp_prepexec` bei erreichter Grenze der gleichzeitig gehaltenen Handles der Sitzung (Voreinstellung 1000, einstellbar, `SPEC-061`, `SPEC-030`) | ERROR und DONE mit Fehlerstatus; die Verbindung bleibt offen (Class 16), das Backend wird nicht gerufen, die vorhandenen Handles bleiben gültig; das Log nennt die feste Marke `handle-limit` |
+| `SPEC-060` | `TDS_SIM_UNKNOWN_PREPARED_HANDLE` | die Batch-Freigabe `EXEC sp_unprepare <n>` (`SPEC-030`) nennt ein Handle, das die Sitzung nicht hält: nie vergeben, schon freigegeben oder aus der Zeit vor `RESETCONNECTION` | ERROR (Nummer 8179, Class 16, State 8, Text „Could not find prepared statement with handle <n>.“ mit der Nummer) je nicht gehaltener Nummer, höchstens für die ersten 100 Nummern des Batches in der Reihenfolge des Textes (Setzung, nicht gemessen), danach ein DONE mit Fehlerstatus; die Verbindung bleibt offen, das Backend wird nicht gerufen, die Zählung ändert sich nicht; die übrigen Nummern des Batches werden bearbeitet; das Log nennt die feste Marke `unknown-prepared-handle` je gemeldeter Nummer (höchstens 100 Einträge je Batch). Nummer, Class, State, Text für Handle 1 und die offene Verbindung sind am Referenzclient gegen den echten SQL Server gemessen (2022 und 2025); der Text für andere Nummern, die Bearbeitung der übrigen Nummern (am Client bestätigt, die Tokenfolge auf dem Draht nicht) und die weiteren Felder des ERROR-Tokens (Servername, Prozedur und Zeile leer bzw. 0) sind Setzung. Die Obergrenze von 100 weicht vom echten Server ab, der nach M-7 jede unbekannte Nummer meldet (zwei Unbekannte, zwei Fehler); ob und ab welcher Zahl der echte Server die Meldung begrenzt, ist nicht gemessen. Auflösungs-Trigger der Setzung: eine Messung am echten SQL Server mit sehr vielen unbekannten Nummern in einem Batch; ergibt sie eine andere Grenze oder keine, wird die Setzung dem Messwert angeglichen und der Schutz nach [TDS-QA-02](lastenheft.md#tds-qa-02--stabilität) anders getragen |
 
 Die Nummern in der Aktionsspalte sind ein Vorschlag für das Mapping nach `TDS-FA-06.a`. Für
 `TDS_UNSUPPORTED_SQL` gibt es keine SQL-Server-Entsprechung, denn dort ist die Anweisung gültig; die
@@ -964,8 +1112,8 @@ echten SQL Server einmal beobachtet (`SPEC-012`); der Text dort nennt den Benutz
 dieser Tabelle nicht. Die Spalte *Herkunft* trennt: *Vorschlag* (Nummer aus der Aktionsspalte oben,
 „an der Referenzinstanz zu messen“), *Setzung des Nutzers* (Gruppe und Class, 2026-10-30; `TDS_TIMEOUT` 2026-11-01),
 *Voreinstellung* (Gruppe nach der Voreinstellung vom 2026-10-30, nicht entschieden), *Festlegung* (vom Mapping gewählt, nicht
-gemessen), *Grundregel* (nur die Folge: kein Gruppenmitglied, im Zweifel schließen; die Class 20 dieser Codes ist Festlegung). State ist für jeden Code 1, der
-Text fest und englisch; der Text einer Backend-Meldung oder Ausnahme erreicht den Client nie.
+gemessen), *Grundregel* (nur die Folge: kein Gruppenmitglied, im Zweifel schließen; die Class 20 dieser Codes ist Festlegung). State ist für jeden Code 1 (Ausnahme `TDS_SIM_UNKNOWN_PREPARED_HANDLE`: State 8, gemessen), der
+Text fest und englisch (bei `TDS_SIM_UNKNOWN_PREPARED_HANDLE` endet er mit der Nummer des Handles); der Text einer Backend-Meldung oder Ausnahme erreicht den Client nie.
 
 | Code | Nummer | Class | Folge nach ERROR und DONE | Herkunft |
 |---|---|---|---|---|
@@ -982,6 +1130,7 @@ Text fest und englisch; der Text einer Backend-Meldung oder Ausnahme erreicht de
 | `TDS_SHUTDOWN` | 50008 | 20 | schließt | Folge: Setzung des Nutzers (`SPEC-049`); Nummer und Class: Festlegung (die SQL-Server-Nummer für ein Herunterfahren ist nicht gemessen) |
 | `TDS_UNKNOWN_HANDLE` | 50009 | 16 | offen | Gruppe: Setzung (Voreinstellung, nicht gemessen); Nummer: Festlegung |
 | `TDS_PREPARE_LIMIT` | 50010 | 16 | offen | Gruppe: Setzung (Voreinstellung, nicht gemessen); Nummer: Festlegung |
+| `TDS_SIM_UNKNOWN_PREPARED_HANDLE` | 8179 | 16 | offen | Nummer, Class, State 8 und Text für Handle 1: gemessen am echten SQL Server (2022 und 2025), die Verbindung bleibt offen; der Text für andere Nummern: Setzung |
 
 Das DONE trägt für jeden Code das Statusbit `ERROR`, Befehlskennung 0 und Zeilenzahl 0; ob der
 Referenzclient es so annimmt, ist nicht am Produkt gemessen. Am echten SQL Server trägt das DONE bei
@@ -1174,7 +1323,7 @@ Was der Server auf PRELOGIN und LOGIN7 sendet, ist eine Festlegung ohne Messung 
 
 #### RPC-Katalog des Referenzclients
 
-Der Referenzclient sendete in den gemessenen Szenarien (Messgrenzen: Testserver, ohne echten SQL Server; TDS 7.4 unverschlüsselt, kein TDS 8.0, kein TLS; `Pooling=false`; eine Verbindung je Szenario; ein Lauf): Batch (`0x01`) für Text ohne Parameter; `sp_executesql` (ProcID 10) für Text mit Parametern; `sp_prepexec` (ProcID 13) und `sp_execute` (ProcID 12) bei `Prepare()` mit Parametern; RPC mit Prozedurnamen für `CommandType.StoredProcedure`. `sp_prepare`, `sp_unprepare` und `sp_cursor*` erschienen in diesen Szenarien nicht; unter Pooling ist das nicht gemessen. `ExecuteReader(SchemaOnly)` sendet einen Batch mit `SET FMTONLY OFF; SET FMTONLY ON;` im Text (Behandlung offen). `ExecuteReader(KeyInfo|SingleRow)` sendet `sp_executesql` mit `SET FMTONLY OFF; SET NO_BROWSETABLE ON;` im Text (Behandlung offen); Transaktionen sind Pakettyp `0x0E`, kein RPC (offen). Der Katalog ist als Entwurf in `SPEC-030` festgelegt und noch nicht freigegeben.
+Der Referenzclient sendete in den gemessenen Szenarien (Messgrenzen: Testserver, ohne echten SQL Server; TDS 7.4 unverschlüsselt, kein TDS 8.0, kein TLS; `Pooling=false`; eine Verbindung je Szenario; ein Lauf): Batch (`0x01`) für Text ohne Parameter; `sp_executesql` (ProcID 10) für Text mit Parametern; `sp_prepexec` (ProcID 13) und `sp_execute` (ProcID 12) bei `Prepare()` mit Parametern; RPC mit Prozedurnamen für `CommandType.StoredProcedure`. `sp_prepare`, `sp_unprepare` und `sp_cursor*` erschienen in diesen Szenarien nicht; unter Pooling ist das nicht gemessen. mssql-jdbc 13.4.0 (der Treiber von d-migrate 1.12.0) sendet `sp_unprepare` nicht als RPC, sondern als SQL_BATCH `EXEC sp_unprepare <n>[;EXEC sp_unprepare <n>…]` mit elf Handles je Batch (Messzeile t5), wenn die Antwort auf `sp_prepexec` ein RETURNSTATUS vor dem Handle trägt (ohne es übernimmt der Treiber das Handle nicht und bereitet je Ausführung neu vor, Messzeilen h2, h3 und t1); gemessen ist der Treiber allein gegen den Server dieses Repos, nicht d-migrate und kein echter SQL Server als Gegenstelle des Treibers. `ExecuteReader(SchemaOnly)` sendet einen Batch mit `SET FMTONLY OFF; SET FMTONLY ON;` im Text (Behandlung offen). `ExecuteReader(KeyInfo|SingleRow)` sendet `sp_executesql` mit `SET FMTONLY OFF; SET NO_BROWSETABLE ON;` im Text (Behandlung offen); Transaktionen sind Pakettyp `0x0E`, kein RPC (offen). Der Katalog ist als Entwurf in `SPEC-030` festgelegt und noch nicht freigegeben.
 
 #### Antwortformen des Servers (Festlegung)
 
@@ -1422,12 +1571,12 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | `TdsServer` | `port` (der gebundene Port) und `suspend stop()`. `stop` beginnt das geordnete Beenden (`SPEC-044`) und kehrt zurück, wenn alle Verbindungen beendet sind. `stop` ist idempotent: der zweite Aufruf endet ohne Wirkung (Test: Einbettungstest, nacheinander aus einem Thread). Aufruf von mehreren Threads und `stop` während `start` sind nicht festgelegt. |
 | `BackendSource` | `Custom(backend)`: ein `QueryBackend`, auch ein selbst gebautes `SimulationBackend(SimCatalog(tables))` (`SPEC-035`); `Simulation(tables)`: `SimTable`-Werte mit Zeilenquelle und Callbacks (`SPEC-035`); `None`: wie `Simulation` mit leerer Liste. `Custom` mit Tabellen ist nicht darstellbar. Die Bibliothek kennt keine Datei der Tabellenbeschreibung; den Weg über die Datei geht der Testserver (`SPEC-035`). |
 | `StartOutcome.Aborted` | `reason` ist ein Text ohne Pfad, Ausnahmetext, Schlüsselmaterial und Kennwort; beim Bindefehler nennt er Adresse und Port; `issues` nennt bei ungültiger Konfiguration jeden Fehler mit Schlüssel und Art (`ConfigIssue`), sonst ist die Liste leer. Festlegung: `ConfigIssue` ist als Typ der Signatur Teil der Zusage und die Art (`IssueKind`) ebenso; der Wortlaut des Schlüssels (ein Text, der das Konfigurationsfeld nennt) ist keine Zusage, ein Einbettender verlässt sich nicht auf bestimmte Namen. Der gebaute Stand führt dafür die Namen der Umgebungsvariablen (`SPEC-005`, `SPEC-010`). Ein Abbruch bindet keinen Port und startet keinen Thread des Servers. |
-| Prüfung | Der Start prüft die Konfiguration, gleich auf welchem Weg sie entstand (die Prüfung ist nicht öffentlich; ihre Befunde sind `StartOutcome.Aborted.issues`): `REQUIRED` verlangt Schlüsselspeicher und Passwort, `TEST_UNENCRYPTED` lässt beide nicht zu (`SPEC-010`); Port 0 bis 65535 (`SPEC-005`), Anmeldefrist 1 bis 3600 s (`SPEC-008`), Frist einer Anfrage und Frist des Abbruchs je 1 bis 3600 s (`SPEC-009`, `SPEC-033`), Frist des geordneten Beendens 0 bis 3600 s (`SPEC-047`), Zahl der Verbindungen 1 bis 100000 (`SPEC-034`), Größe der PRELOGIN-Nachricht 512 bis 65536 Byte (`SPEC-046`), Bind-Adresse nicht leer. Die Voreinstellungen von `ListenSettings` (`MAX_CONNECTIONS` 1000), `LoginSettings`, `RequestSettings` (`ServerConfig.requests`: `QUERY_TIMEOUT` 30 s, `CANCEL_TIMEOUT` 5 s, `SHUTDOWN_GRACE` 10 s) und der Verschlüsselung sind die der Spezifikation; ein Einbettender ohne Angabe bekommt also nach 30 s `TDS_TIMEOUT` für eine Anfrage. Umgebung und Dateien liest nicht die Bibliothek, sondern der Testserver; er baut eine `ServerConfig` und ruft `TdsServer.start` wie ein Einbettender (`SPEC-052`). |
+| Prüfung | Der Start prüft die Konfiguration, gleich auf welchem Weg sie entstand (die Prüfung ist nicht öffentlich; ihre Befunde sind `StartOutcome.Aborted.issues`): `REQUIRED` verlangt Schlüsselspeicher und Passwort, `TEST_UNENCRYPTED` lässt beide nicht zu (`SPEC-010`); Port 0 bis 65535 (`SPEC-005`), Anmeldefrist 1 bis 3600 s (`SPEC-008`), Frist einer Anfrage und Frist des Abbruchs je 1 bis 3600 s (`SPEC-009`, `SPEC-033`), Frist des geordneten Beendens 0 bis 3600 s (`SPEC-047`), Zahl der Verbindungen 1 bis 100000 (`SPEC-034`), Zahl der Prepared-Handles je Sitzung 1 bis 100000 (`SPEC-061`), Größe der PRELOGIN-Nachricht 512 bis 65536 Byte (`SPEC-046`), Bind-Adresse nicht leer. Die Voreinstellungen von `ListenSettings` (`MAX_CONNECTIONS` 1000), `LoginSettings`, `RequestSettings` (`ServerConfig.requests`: `QUERY_TIMEOUT` 30 s, `CANCEL_TIMEOUT` 5 s, `SHUTDOWN_GRACE` 10 s, `MAX_PREPARED_HANDLES` 1000) und der Verschlüsselung sind die der Spezifikation; ein Einbettender ohne Angabe bekommt also nach 30 s `TDS_TIMEOUT` für eine Anfrage. Umgebung und Dateien liest nicht die Bibliothek, sondern der Testserver; er baut eine `ServerConfig` und ruft `TdsServer.start` wie ein Einbettender (`SPEC-052`). |
 | Einmal-Konfiguration | Eine `ServerConfig` gilt für einen Start: sobald der Start das TLS-Material lädt, löscht er das Passwort im Schlüsselmaterial; bricht er vorher ab (Prüfung), bleibt es lesbar (Festlegung, getestet für Prüfung und Bindefehler). Wer neu startet, baut eine neue `ServerConfig`. |
 | Nicht erreichbar | Der Authentifizierungsadapter lässt sich über den Einstieg nicht ersetzen. Der Einstieg schreibt nirgends hin; Log und Telemetrie gehen an die übergebene Senke (Abschnitt 5). |
 | Abhängigkeiten | Jar und `lib/` liegen auf dem Klassenpfad des Einbettenden (`SPEC-052`); `lib/` führt keine YAML-Bibliothek, die Bibliothek braucht keine (Festlegung). Gemessen: `gradle.lockfile` der Bibliothek führt kein Jackson, die Sperre des Moduls `testserver/gradle.lockfile` führt es (einmalige Zählung am 2026-11-06, kein Gate hält sie), und der Einbettungstest (`make test`) startet und bedient den Server ohne Jackson im Klassenpfad. |
-| Zusage | Bis zur ersten Version `1.0` ändert sich diese Fläche nur durch eine Änderung dieser Spezifikation (Setzung); ab `1.0` gilt semantische Versionierung. Gemeint ist: öffentlich ist genau diese Fläche, alles andere in der Bibliothek ist `internal`. Der Maßstab für einen Namen ist die Aufgabe des Einbettenden: Konfiguration, Start und Stop, Anbindung eines Backends, Anmeldung und Benutzerliste, Entgegennehmen von Telemetrie (Nutzerentscheidung vom 2026-11-05: nur die Klassen, die man dafür braucht). Belegt ist davon: `explicitApi` (Modus `strict`) verlangt im Hauptmodul für jede Deklaration eine ausdrückliche Sichtbarkeit (gilt nicht für das Source-Set `integrator` und nicht für das Modul `testserver`), und der Sensor `make flaeche` hält die Typnamen dieser Liste gegen die öffentlichen Typdeklarationen des Hauptmoduls und gegen die Verwendung in `src/integrator` und `testserver/kotlin`: ein Typname der Liste ohne öffentliche Deklaration, ohne Verwendung dort oder eine öffentliche Typdeklaration ohne Eintrag bricht ihn. Seine Grenzen: er vergleicht Typnamen, nicht Mitglieder (Felder, Konstanten, Funktionen, Konstruktoren); Namenssuche ist kein Aufrufbeleg; er liest Kotlin-Quellen, und `internal` ist im Bytecode öffentlich. Die Namen nach Package: `runtime`: `TdsServer`, `BackendSource` (`Custom`, `Simulation`, `None`), `StartOutcome` (`Running`, `Aborted`); `config`: `ServerConfig`, `ListenSettings`, `LoginSettings`, `RequestSettings`, `EncryptionSetting`, `TlsKeyMaterial`, `AuthSettings`, `ConfigIssue`, `IssueKind`; `config.auth`: `PasswordChars` (Konstruktor), `UserList` (`parse`, `plainTestModeFrom`), `UserListResult` (`Valid`, `Invalid`), `UserListError`, `UserListErrorKind`; `port`: `QueryBackend`, `QueryExecution`; `domain`: `QueryRequest`, `QueryParameter`, `ParameterDirection`, `QueryEvent` (`ResultStart`, `Row`, `ResultEnd`, `UpdateCount`, `ReturnStatus`, `OutputParameter`, `Failure`), `ResultColumn`, `SqlType` (`Int32`, `Int64`, `Bool`, `Decimal`, `Date`, `Time`, `DateTime`, `UnicodeText`); `domain.telemetry`: `TelemetrySink` (`accept`, `NONE`), `TelemetryEvent` (`kind`, `at`, `level`, `connectionId`, `sessionId`, `clientProfile` und je Art `port`, `tables`, `reason`, `key`, `issueKind`, `part`, `form`, `address`, `exceptionType`, `principal`, `failure`, `errorCode`, `cause`), `EventKind` (die Arten des Ereignismodells, Abschnitt 4), `EventLevel`; `simulation`: `SimTable`, `SimColumn`, `SimQuery`, `RowFilter`, `FilterTerm` (`In`, `IsNull`), `RowSource`, `SimulationBackend(catalog: SimCatalog)` und `SimCatalog(tables: List<SimTable>)` mit `tables`. Für die Signaturen von `SimulationBackend` und `SimCatalog` (Konstruktoren, `tables`) gilt dieselbe Zusage: Änderung nur durch eine Änderung dieser Spezifikation, im Änderungsprotokoll genannt; das Verhalten des Backends legt `SPEC-035` fest, die Zusage der Namen erweitert es nicht. Die Typnamen sind festgelegt und hält der Sensor. Die Felder von `TelemetryEvent` und die Konstanten von `EventKind` sind ebenfalls festgelegt (Setzung dieses Stands, die Nutzerentscheidung dazu steht aus); sie hält nur ein Test (`TelemetryEventTest`, `TelemetryEmbeddingTest`), kein Sensor. Dass die Ereignisarten nicht je ein öffentlicher Typ sind, ist der Zuschnitt des Ereignismodells (Abschnitt 4). Ein Sammler für Tests gehört nicht zur Fläche, jedes Source-Set bringt ihren eigenen mit. Nicht öffentlich sind `SimCatalog.find` und `SimTable.column` (Festlegung: Aufrufer ist der Planer des Hauptmoduls), `ConfigValidation` (die Prüfung läuft im Start; ihre Befunde erreichen den Einbettenden als `StartOutcome.Aborted.issues`), `Principal`, `PasswordChars.reveal` und die Aufzählungen der Gründe von Ereignissen (ihre Werte stehen als Text in `reason`). Authentifizierungsadapter (`AuthAdapter` und seine Typen) und Konfigurationsschlüssel (`ConfigKeys`) gehören nicht zur Fläche. Weitere Namen sind keine Zusage. |
-| Nachweis | Ein Test in einem eigenen Source-Set, das gegen die Klassen des Hauptmoduls übersetzt und keinen `internal`-Namen sieht, startet den Server mit einem In-Memory-Backend und mit einer Zeilenquelle des Integrators und beantwortet Anfragen mit Rohbytes (`java.net`, kein Referenzclient); er läuft im selben Prozess in `make test`. Dazu gehören ein Backend, das die Parameter eines `sp_executesql` liest und Änderungszähler, Rückgabestatus und Ausgabeparameter meldet, eine Tabelle, deren Callback die Bedingung eines `UPDATE` als Filter liest, und eine ungültige Benutzerliste (Test: `FlaecheEmbeddingTest`); belegt ist, dass diese Namen von außen übersetzbar sind und ihre Werte ankommen, nicht die Vollständigkeit ihrer Felder. Grenze: `internal` ist im Bytecode öffentlich, der Nachweis gilt für Kotlin-Quellen. |
+| Zusage | Bis zur ersten Version `1.0` ändert sich diese Fläche nur durch eine Änderung dieser Spezifikation (Setzung); ab `1.0` gilt semantische Versionierung. Gemeint ist: öffentlich ist genau diese Fläche, alles andere in der Bibliothek ist `internal`. Der Maßstab für einen Namen ist die Aufgabe des Einbettenden: Konfiguration, Start und Stop, Anbindung eines Backends, Anmeldung und Benutzerliste, Entgegennehmen von Telemetrie (Nutzerentscheidung vom 2026-11-05: nur die Klassen, die man dafür braucht). Belegt ist davon: `explicitApi` (Modus `strict`) verlangt im Hauptmodul für jede Deklaration eine ausdrückliche Sichtbarkeit (gilt nicht für das Source-Set `integrator` und nicht für das Modul `testserver`), und der Sensor `make flaeche` hält die Typnamen dieser Liste gegen die öffentlichen Typdeklarationen des Hauptmoduls und gegen die Verwendung in `src/integrator` und `testserver/kotlin`: ein Typname der Liste ohne öffentliche Deklaration, ohne Verwendung dort oder eine öffentliche Typdeklaration ohne Eintrag bricht ihn. Seine Grenzen: er vergleicht Typnamen, nicht Mitglieder (Felder, Konstanten, Funktionen, Konstruktoren); Namenssuche ist kein Aufrufbeleg; er liest Kotlin-Quellen, und `internal` ist im Bytecode öffentlich. Die Namen nach Package: `runtime`: `TdsServer`, `BackendSource` (`Custom`, `Simulation`, `None`), `StartOutcome` (`Running`, `Aborted`); `config`: `ServerConfig`, `ListenSettings`, `LoginSettings`, `RequestSettings`, `EncryptionSetting`, `TlsKeyMaterial`, `AuthSettings`, `ConfigIssue`, `IssueKind`; `config.auth`: `PasswordChars` (Konstruktor), `UserList` (`parse`, `plainTestModeFrom`), `UserListResult` (`Valid`, `Invalid`), `UserListError`, `UserListErrorKind`; `port`: `QueryBackend`, `QueryExecution`; `domain`: `QueryRequest`, `QueryParameter`, `ParameterDirection`, `QueryEvent` (`ResultStart`, `Row`, `ResultEnd`, `UpdateCount`, `ReturnStatus`, `OutputParameter`, `Failure`), `ResultColumn`, `SqlType` (`Int32`, `Int64`, `Bool`, `Decimal`, `Date`, `Time`, `DateTime`, `UnicodeText`); `domain.telemetry`: `TelemetrySink` (`accept`, `NONE`), `TelemetryEvent` (`kind`, `at`, `level`, `connectionId`, `sessionId`, `clientProfile` und je Art `port`, `tables`, `reason`, `key`, `issueKind`, `part`, `form`, `address`, `exceptionType`, `principal`, `failure`, `errorCode`, `cause`), `EventKind` (die Arten des Ereignismodells, Abschnitt 4), `EventLevel`; `simulation`: `SimTable`, `SimColumn`, `SimQuery`, `RowFilter`, `FilterTerm` (`In`, `IsNull`), `RowSource`, `SimulationBackend(catalog: SimCatalog)` und der zweite Konstruktor `SimulationBackend(catalog: () -> SimCatalog, onStructure: (suspend (schema: String, name: String, columns: List<SimColumn>, primaryKey: List<String>) -> Unit)? = null)` (Katalog-Anbieter und Strukturänderungs-Callback, `SPEC-035`; er fügt keinen Typnamen hinzu) und `SimCatalog(tables: List<SimTable>)` mit `tables`; als Mitglieder von Typen der Liste das Feld `SimColumn.maxLength` (Länge eines Textes im Katalog, 1 bis 4000 oder -1 für `NVARCHAR(MAX)`, Vorgabe 4000) und der Parameter `SimTable.onInsertBatch` (Rahmen des Massenladens, am Ende von `SimTable`; dieser Stand ruft ihn nicht). Für die Signaturen von `SimulationBackend` und `SimCatalog` (beide Konstruktoren von `SimulationBackend`, der von `SimCatalog`, `tables`) und für die Mitglieder `SimColumn.maxLength` und `SimTable.onInsertBatch` gilt dieselbe Zusage: Änderung nur durch eine Änderung dieser Spezifikation, im Änderungsprotokoll genannt; das Verhalten des Backends legt `SPEC-035` fest, die Zusage der Namen erweitert es nicht. Die Typnamen sind festgelegt und hält der Sensor. Die Felder von `TelemetryEvent` und die Konstanten von `EventKind` sind ebenfalls festgelegt (Setzung dieses Stands, die Nutzerentscheidung dazu steht aus); sie hält nur ein Test (`TelemetryEventTest`, `TelemetryEmbeddingTest`), kein Sensor. Dass die Ereignisarten nicht je ein öffentlicher Typ sind, ist der Zuschnitt des Ereignismodells (Abschnitt 4). Ein Sammler für Tests gehört nicht zur Fläche, jedes Source-Set bringt ihren eigenen mit. Nicht öffentlich sind `SimCatalog.find` und `SimTable.column` (Festlegung: Aufrufer ist der Planer des Hauptmoduls), `ConfigValidation` (die Prüfung läuft im Start; ihre Befunde erreichen den Einbettenden als `StartOutcome.Aborted.issues`), `Principal`, `PasswordChars.reveal` und die Aufzählungen der Gründe von Ereignissen (ihre Werte stehen als Text in `reason`). Authentifizierungsadapter (`AuthAdapter` und seine Typen) und Konfigurationsschlüssel (`ConfigKeys`) gehören nicht zur Fläche. Weitere Namen sind keine Zusage. |
+| Nachweis | Ein Test in einem eigenen Source-Set, das gegen die Klassen des Hauptmoduls übersetzt und keinen `internal`-Namen sieht, startet den Server mit einem In-Memory-Backend und mit einer Zeilenquelle des Integrators und beantwortet Anfragen mit Rohbytes (`java.net`, kein Referenzclient); er läuft im selben Prozess in `make test`. Dazu gehören ein Backend, das die Parameter eines `sp_executesql` liest und Änderungszähler, Rückgabestatus und Ausgabeparameter meldet, eine Tabelle, deren Callback die Bedingung eines `UPDATE` als Filter liest, ein Integrator, der über den zweiten Konstruktor von `SimulationBackend` mit Katalog-Anbieter und Strukturänderungs-Callback eine Tabelle anlegt und im Katalog sieht (mit `SimColumn.maxLength` und einer Tabelle mit `SimTable.onInsertBatch`), und eine ungültige Benutzerliste (Test: `FlaecheEmbeddingTest`); belegt ist, dass diese Namen von außen übersetzbar sind und ihre Werte ankommen, nicht die Vollständigkeit ihrer Felder. Grenze: `internal` ist im Bytecode öffentlich, der Nachweis gilt für Kotlin-Quellen. |
 
 ## 7. Festlegungen der Harness-Werkzeuge
 
@@ -1437,7 +1586,7 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | `SPEC-025` | Integrationstest (E2E-Durchgang) | Containerisierter Testserver + echter .NET-Referenzclient (`Microsoft.Data.SqlClient` 7.1.1, .NET 10) prüfen Login, SQL_BATCH, RPC, Typen, Fehler, Cancel; ohne lokale .NET-Installation und ohne Mount, Basis-Images per Digest, Pakete per Lock und Hash; Lauf: `make e2e` (Stufen 3 bis 8, kein Gate) |
 | `SPEC-026` | `make gates` | Aggregator: führt alle eingerichteten Gates aus; neue Gates für Formatierung, statische Prüfung und Tests werden in ihn aufgenommen |
 | `SPEC-027` | Fuzz-/Property-Tests | Defekte Paketlängen, Offsets, Fragmentierung und Typwerte dürfen keinen ungefangenen Prozessabsturz verursachen |
-| `SPEC-040` | Simulations-Tests (`make simulations-integration` im E2E-Durchgang) | Unit-Tests der Anweisungserkennung (jede Form aus `SPEC-036` positiv und negativ, Grenzen bei Literalen, Bezeichnern und Kommentaren), Unit-Tests des Lesers der Tabellenbeschreibung (jedes gelesene Feld, jeder Ladefehler mit Pfad, Zeile und Spalte, ohne Inhalt in der Meldung) und Integrationstest mit dem .NET-Referenzclient (`make simulations-integration`, Stufe des E2E-Durchgangs `make e2e`, nicht von `make gates`): Auswahl mit Bedingung, leeres Ergebnis, Zeilenquelle über der Speichergrenze (Angabe des Testservers, Task `integrationsServer` in `testserver/build.gradle.kts`: Serverprozess mit 48 MiB Heap, Text von 64 000 000 Zeichen; `make kopplung-zahlen` hält die Zahlen in Gradle, Kotlin, .NET, hier und im README gleich), Fehler der Zeilenquelle mit Folgeabfrage und Cancel einer laufenden Anfrage (`SqlCommand.Cancel()` gegen eine Zeilenquelle ohne Ende, nach 50 gelesenen Zeilen) mit Folgeabfrage auf derselben Verbindung, die nur ihre Antwort erhält; der Lauf geht gegen den Testserver (`SPEC-052`) und belegt das Verhalten des Referenzclients gegen die Bibliothek, die er bindet, in TDS 7.4 ohne Verschlüsselung und ohne Pool, nicht gegen einen echten SQL Server. `CancellationToken`, Command-Timeout und der Ablauf von `QUERY_TIMEOUT` am Referenzclient gehören nicht zu diesem Lauf, sondern zu Stufe 7 (`make kompatibilitaet KATEGORIE=Synchronitaet`) |
+| `SPEC-040` | Simulations-Tests (`make simulations-integration` im E2E-Durchgang) | Unit-Tests der Anweisungserkennung (jede Form aus `SPEC-036` positiv und negativ, Grenzen bei Literalen, Bezeichnern und Kommentaren), Unit-Tests des Lesers der Tabellenbeschreibung (jedes gelesene Feld, jeder Ladefehler mit Pfad, Zeile und Spalte, ohne Inhalt in der Meldung), Unit-Tests der Katalogabfragen (jede Form K mit dem gesendeten Wortlaut von d-migrate 1.12.0, Antworten aus dem Katalog, Anbieter bei jeder Anfrage) und der Strukturänderung (Form D, Callback, Fehlerfälle, Transaktionstexte) und des Bestands des Testservers, die Läufe `schema reverse` (auch `--include-all`), `schema compare` und `schema migrate --execute` von d-migrate 1.12.0 (mssql-jdbc 13.4.0) gegen den Testserver mit Exit 0 (von Hand, Image per Digest, weder in `make gates` noch in `make e2e`; Ausgabe im Messprotokoll der Messungen) und Integrationstest mit dem .NET-Referenzclient (`make simulations-integration`, Stufe des E2E-Durchgangs `make e2e`, nicht von `make gates`): Auswahl mit Bedingung, leeres Ergebnis, Zeilenquelle über der Speichergrenze (Angabe des Testservers, Task `integrationsServer` in `testserver/build.gradle.kts`: Serverprozess mit 48 MiB Heap, Text von 64 000 000 Zeichen; `make kopplung-zahlen` hält die Zahlen in Gradle, Kotlin, .NET, hier und im README gleich), Fehler der Zeilenquelle mit Folgeabfrage und Cancel einer laufenden Anfrage (`SqlCommand.Cancel()` gegen eine Zeilenquelle ohne Ende, nach 50 gelesenen Zeilen) mit Folgeabfrage auf derselben Verbindung, die nur ihre Antwort erhält; der Lauf geht gegen den Testserver (`SPEC-052`) und belegt das Verhalten des Referenzclients gegen die Bibliothek, die er bindet, in TDS 7.4 ohne Verschlüsselung und ohne Pool, nicht gegen einen echten SQL Server. `CancellationToken`, Command-Timeout und der Ablauf von `QUERY_TIMEOUT` am Referenzclient gehören nicht zu diesem Lauf, sondern zu Stufe 7 (`make kompatibilitaet KATEGORIE=Synchronitaet`) |
 | `SPEC-041` | Static-Analysis-Gate (`make detekt`, `make detekt-selbsttest`) | detekt in Docker, Konfiguration auf Standardbasis mit dem ktlint-Regelsatz (prüft, schreibt nichts um), `warningsAsErrors` und den Importregeln der Schichten, im Kern als Erlaubnisliste ohne Fremdbibliothek; dazu Technik-Regeln für Kern und Port, die Prozess, Dateisystem und Ähnliches über `ForbiddenMethodCall` sperren und deshalb nur über `detektMain` und `detektTest` wirken (Typauflösung); keine Baseline; jeder Befund bricht den Lauf. Tests des Kerns bleiben frei von Fremdbibliotheken (`kotlin.test` statt JUnit), weil die Kernregeln auch für Test-Quellen gelten. Die Importregeln lesen nur `import`-Zeilen: ein voll qualifizierter Name im Code und ein `typealias` darauf umgehen sie; das Gate belegt die Einhaltung der Importgrenze, nicht des Classpaths. `@Suppress` und `@SuppressWarnings` im Quelltext brechen den Lauf vor detekt (Textprüfung des Suppression-Gates). Ein Selbsttest belegt, dass jede Importregel ihre verbotenen Importe meldet, die erlaubten Testdaten nicht und das Suppression-Verbot jede Form meldet; er läuft nur bei geänderten Eingängen |
 | `SPEC-042` | Build-Gate (`make build`) | Compile und Jar in Docker, ohne Tests (die Stage ruft `:assemble` des Wurzelprojekts, der Bibliothek); Basis-Images per Digest gepinnt, Abhängigkeitsversionen per Lock (je Gradle-Projekt eine Datei: `gradle.lockfile` der Bibliothek und `testserver/gradle.lockfile` des Moduls `testserver`) und Prüfsummen (Gradle-Verifikationsdatei) fixiert |
 | `SPEC-052` | Bibliotheks-Artefakt und Lizenz (E2E-Durchgang: `make laufzeittest` mit dem Testserver; der Tag `@spec` nennt nur den Lizenztext) | Das Artefakt ist ein Bibliotheks-Jar `tdswire.jar` **ohne `Main-Class`** im Manifest; die Bibliothek ist das Produkt (`TDS-RB-01`), und es gibt weder eine Startklasse noch ein Betriebs-Image als Produkt. Die Bibliotheken, die die Bibliothek braucht, liegen im Verzeichnis `lib` daneben und stehen im Class-Path des Manifests (Komfort für Einbettende, Setzung). Die Lizenz ist die MIT-Lizenz (Datei `LICENSE` im Wurzelverzeichnis, Rechteinhaber `pt9912`, Jahr 2026, `TDS-RB-05`); sie liegt im Jar unter `META-INF/LICENSE`, und der Bau des Jars bricht, wenn sie dort fehlt oder vom Inhalt der Datei abweicht (läuft in `make build`). Im Bau (`make build`) prüft eine Textprüfung ohne Container, dass das Manifest des Jars keine `Main-Class` nennt, das Jar keine Klasse des Testservers und `lib` kein Jackson führt, der Class-Path nur Einträge `lib/<Name>` mit vorhandener Datei in `lib` führt und das Jar `tdswire.jar` heißt (nicht geprüft: der Start des Jars). Die Lizenzdatei prüft außerdem ein Unit-Test (MIT-Text, Rechteinhaber, Rechteeinräumung, Haftungsausschluss). **Testserver:** Ein ausführbarer Serverprozess, der nur der Prüfung der Bibliothek dient (E2E- und Kompatibilitätsläufe, kein Produkt), bindet die Bibliothek ausschließlich über `TdsServer.start` und ihre öffentliche Fläche (`SPEC-059`). Er ist ein eigenes Gradle-Modul `testserver` (Verzeichnis `testserver/` mit eigener `build.gradle.kts` und eigener `gradle.lockfile`), das die Bibliothek als Projekt-Abhängigkeit `project(":")` bindet; Jackson steht nur in seiner Sperre (einmalige Zählung am 2026-11-06, kein Gate hält sie). Gemessen (Messprotokoll vom 2026-11-06, M1 und M2): Ein Zugriff auf einen `internal`-Namen aus Kotlin-Quellen des Moduls bricht dessen Übersetzung, und der Laufzeit-Klassenpfad des Moduls trägt das Jar `tdswire.jar` (mit Manifest und Lizenz), nicht das Klassenverzeichnis; nicht gemessen sind Java-Quellen und Reflection (`internal` bleibt im Bytecode öffentlich). Er liest Konfiguration und Benutzerliste zur Laufzeit aus der Umgebung und aus Dateien (Eingänge des Testservers, `SPEC-005`, `SPEC-010`, `SPEC-051`), nie aus dem Abbild (Setzung),. **Log und Metriken des Testservers** (Log gebaut, Metriken Zielzustand, nicht gebaut; Setzung, nicht gemessen, auch die Zahlen): Er übergibt `TdsServer.start` eine Senke mit einem eigenen Adapter (Abschnitte 4 und 5) und liest dafür `LOG_LEVEL` (`ERROR`, `WARN`, `INFO`, `DEBUG`; Voreinstellung `INFO`; ein anderer Wert bricht den Start des Testservers ab) und, als Zielzustand, `METRICS_INTERVAL_SECONDS` (Quelle des Abstands der Schnappschüsse in der `ServerConfig`); beide Schlüssel sind Eingänge des Testservers, nicht der Bibliothek. Der Adapter schreibt je Ereignis eine JSON-Zeile auf die Standardausgabe mit den Feldern `ts`, `level`, `event` und denen des Ereignisses und filtert nach `LOG_LEVEL`. Er hält eine begrenzte Warteschlange (1024 Zeilen); bei Überlauf wird die neue Zeile verworfen und gezählt, die Zahl steht im Feld `dropped` der nächsten geschriebenen Zeile. Ereignisse vor dem erfolgreichen Start und die Diagnose eines abgebrochenen Starts schreibt er synchron und ohne Warteschlange; vor dem Prozessende leert er die Warteschlange mit einer Frist von 2 Sekunden, der Rest geht verloren und wird in einer letzten Zeile mit `dropped` gemeldet, soweit der Kanal noch annimmt. Das sind Aussagen über den Testserver, kein Vertrag der Bibliothek. Die Bereitschaftszeile bleibt Sache des Testservers und ist kein Ereignis des Modells. Sein Container-Abbild entsteht aus dem Klassenpfad des Moduls `testserver` (Setzung); ein Abbild als Betriebsweg gibt es nicht. `make laufzeittest` startet den Testserver als Container in einem internen Netzwerk, lässt einen Rohbytes-Client aus einem zweiten Container PRELOGIN und LOGIN7 sprechen und beendet den Container mit `docker stop`; die Ausgabe des Testservers nennt nie ein Passwort und einen Benutzer nur im Feld `principal` des Ereignisses „Anmeldung angenommen“ (Abschnitt 4). Gemessen am Server-Container vor dem Umbau, der den Server zum Testserver macht (2026-10-31): `docker stop` (SIGTERM) endet mit Exit-Code 143. Prüfungen, die ein Produkt-Image voraussetzen (Nutzer 65532, Inhalt von `/app`, Lizenz im Abbild, `JAVA_TOOL_OPTIONS`), gibt es nicht, weil es kein Produkt-Image gibt; die Lizenz im Jar prüft der Bau. Nicht belegt: Annahme durch `Microsoft.Data.SqlClient`, TLS im Container, Last, der Inhalt der Jars und der Basis-Schichten. `make laufzeittest` ist Stufe des E2E-Durchgangs `make e2e` und steht nicht in `make gates`. |
@@ -1496,4 +1645,7 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | 2026-11-06 | Nachzug der Spezifikation hinter den gebauten Stand nach einem Review der Spezifikation (Grundsatz des Nutzers: Spezifikation ist Zielbild; kein Zielbild verengt): Packet Size (Zeile „Datenbank und Packet Size“): „angewandt wird sie nicht“ entfällt, belegt ist die Anwendung ab Beginn der Anfrageschleife (`RequestLoop.kt`, `channel.usePacketSize(ready.session.packetSize)`; Test `StreamingDispatchTest` mit 512 und 1000), die Antworten vor der Schleife behalten 4096 (Lesen des Codes, nicht am Referenzclient gemessen); die Voreinstellung 4096 ist als Setzung gekennzeichnet (`TlsChannel.DEFAULT_PACKET_SIZE`, `LoginResponses.DEFAULT_PACKET_SIZE`); der Zielzustand-Vermerk zum Feld `principal` im Abschnitt zur Kennung im Anmeldepfad entfällt (gebaut: `LoginAccepted.principal` in `TelemetryEvent.kt`, Änderung vom 2026-11-01); `SPEC-025` und `SPEC-032` nennen `make e2e` statt „noch einzurichten“ (die Targets `e2e` und `kompatibilitaet` bestehen, Einzelmessung vom 2026-11-01: 103 s warm für `e2e`, in diesem Nachzug nicht wiederholt; `SPEC-050` bleibt Zielzustand); der Vermerk zur Meldung des Testservers beim Start nennt den Beleg des gebauten Stands (KDoc von `SimLoadException`); die Nutzerentscheidung vom 2026-10-31 zu `TDS-FA-06` (nicht synchroner Strom) ist am 2026-11-06 bestätigt („deine empfehlungen“), der Wortlaut bleibt (`SPEC-031`, `SPEC-048`, `TDS-FA-06`) |
 | 2026-11-06 | Öffentliche Fläche der Bibliothek auf das Nötige verkleinert und belegt (Nutzerentscheidung vom 2026-11-05 und vom 2026-11-06): `TelemetryEvent` ist die einzige öffentliche Ereignisklasse, die Art steht in der Aufzählung `EventKind` (17 Arten; die zwei Abschwächungen sind eine Art `SECURITY_WEAKENED` mit `reason`), die 18 Klassen je Art und `StartRefusal`, `LoginRejectionReason`, `TlsFirstRefusal` sind nicht mehr öffentlich, ihre Gründe stehen als Text in `reason`; `ConfigValidation`, `Principal` und `PasswordChars.reveal` sind `internal`; die Liste in `SPEC-059` nennt jetzt jeden Typnamen (61), auch die Fälle von `QueryEvent`, `SqlType` und `FilterTerm`; `make flaeche` hält die Typnamen der Liste gegen die öffentlichen Typdeklarationen und ihre Verwendung in `src/integrator` und `testserver/kotlin`, der Einbettungstest belegt die Namen, die Testserver und bisheriger Einbettungstest nicht nannten; Felder und Konstanten sind keine Namen des Sensors (`SPEC-059`, `SPEC-012`, `SPEC-048`, `SPEC-043`, `TDS-QA-05`, `TDS-RB-04`) |
 | 2026-11-06 | `SPEC-025`: der E2E-Durchgang hat eine achte Stufe (`make eigenes-backend`, Referenzclient gegen ein eigenes In-Memory-Backend, `TDS-FA-08`, `TDS-RB-04`) |
+| 2026-11-06 | Katalog und Strukturänderung des Simulations-Backends (`TDS-FA-11`, `TDS-FA-12`): zweiter Konstruktor `SimulationBackend(catalog: () -> SimCatalog, onStructure: …? = null)` ohne neuen Typnamen, `SimColumn.maxLength` (1 bis 4000 und der Sonderwert -1 für `NVARCHAR(MAX)`, beides Setzung dieser Spezifikation; Vorgabe 4000) und `SimTable.onInsertBatch` als Mitglieder (`SPEC-035`, `SPEC-059`); Formen K (20 Katalogabfragen von d-migrate 1.12.0, Antworten aus dem Katalog), D1 und D2 (`CREATE TABLE`, `ALTER TABLE … ADD`) und die Transaktionstexte in Form C (`SPEC-036`); Schritte 8 und 9 in `TDS-FA-11.a`; Läufe von d-migrate in `SPEC-040`; `max_length` der Beschreibung wird als Länge gemeldet (`SPEC-035`) |
+| 2026-11-06 | Strukturänderungen eines Simulations-Backends sind gegeneinander gesperrt (`TDS-FA-11.a` Schritt 9): Planung unter Sperre beim Sammeln, genau eine von zwei gleichzeitigen `CREATE TABLE` derselben Tabelle gewinnt, `ALTER TABLE … ADD` verliert keine Spalte; belegt nur für Schreiber über dasselbe Backend; die Sperre ist nicht reentrant, ein hängender Callback blockiert die weiteren Strukturänderungen dieses Backends (Lesen des Codes, nicht gemessen). Der Sonderwert -1 von `SimColumn.maxLength` ist Setzung dieser Spezifikation (Wertebereich der Länge; die angenommene Entscheidung bleibt unverändert). Die Hauptklasse des Testservers übergibt immer ein Backend (`SPEC-035`, Verdrahtung) |
+| 2026-11-06 | Prepared-Handles: `sp_prepexec` antwortet mit RETURNSTATUS 0 und dem Handle als RETURNVALUE ohne Namen (an den Mitschnitten der Referenzinstanz gelesen); der SQL_BATCH `EXEC sp_unprepare <n>[;…]` gibt Handles im Sitzungsrahmen frei, ein nicht gehaltenes Handle ergibt Fehler 8179 (Class 16, State 8; neuer Code `TDS_SIM_UNKNOWN_PREPARED_HANDLE`, `SPEC-060`; Ausnahme zum Satz „State ist 1“); gezählt werden die gleichzeitig gehaltenen Handles; die Grenze (Voreinstellung 1000) ist einstellbar (`RequestSettings.maxPreparedHandles`, `MAX_PREPARED_HANDLES`, `SPEC-061`, `SPEC-058`); der RPC `sp_unprepare` bleibt abgelehnt (`SPEC-013`, Nicht-Ziel 6); `sp_execute` mit unbekanntem Handle: Messung 8179 State 4 am echten Server, Abweichung von `SPEC-057` festgehalten, nicht entschieden |
 | 2026-11-06 | Log-Adapter des Testservers gebaut: JSON-Zeile je Ereignis mit `ts`, `level`, `event` und den Feldern der Art, `LOG_LEVEL`, Warteschlange und Prozessende wie in `SPEC-052` (Vermerk „Zielzustand, nicht gebaut“ gilt nur noch für `METRICS_INTERVAL_SECONDS`; `TDS-FA-09.a`, `SPEC-052`) |

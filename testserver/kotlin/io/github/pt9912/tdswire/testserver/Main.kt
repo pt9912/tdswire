@@ -22,9 +22,10 @@ private const val CONFIG_INVALID = "Konfiguration ungueltig"
 /**
  * Der Testserver (`SPEC-052`, `SPEC-059`): ein Serverprozess, der nur der Prüfung der Bibliothek dient. Er liest die
  * Umgebung und die Dateien, die sie nennt ([ConfigLoader]), baut eine `ServerConfig` und ruft `TdsServer.start` wie
- * ein Einbettender; er kennt von der Bibliothek nur ihre öffentliche Fläche. Er bleibt laufen, bis die JVM beendet
- * wird (SIGTERM oder SIGINT); der Shutdown-Hook ruft `TdsServer.stop`. Ein abgebrochener Start beendet den Prozess
- * mit [EXIT_START_FAILED]. Der Prozess braucht keine JVM-Option.
+ * ein Einbettender; er kennt von der Bibliothek nur ihre öffentliche Fläche. Die Tabellen der Datei und die, die ein
+ * Client anlegt, hält der [TableStore] im Arbeitsspeicher; das Backend ist ein `SimulationBackend` über ihm. Er bleibt
+ * laufen, bis die JVM beendet wird (SIGTERM oder SIGINT); der Shutdown-Hook ruft `TdsServer.stop`. Ein abgebrochener
+ * Start beendet den Prozess mit [EXIT_START_FAILED]. Der Prozess braucht keine JVM-Option.
  *
  * Standardausgabe (die Skripte der E2E-Läufe lesen sie): nach dem Start die Zeile `tdswire: gestartet, Port <port>`
  * mit dem Port des laufenden Servers, im Hook die Zeile `tdswire: gestoppt` als letzte, bei einem Abbruch der Grund
@@ -33,7 +34,14 @@ private const val CONFIG_INVALID = "Konfiguration ungueltig"
  * Start und für den Grund eines Abbruchs synchron, danach über seine Warteschlange. Der Hook und der Abbruch rufen
  * [LogAdapter.close] vor dem Prozessende.
  */
-fun main() = runTestserver()
+fun main() = runTestserver(choose = ::storeSource)
+
+/**
+ * Die Quelle der Anfragen des Prozesses: immer ein Backend über dem [TableStore] mit den Tabellen der Datei, auch ohne
+ * Tabellen (`SPEC-035`). Ohne Datei antwortet es auf eine Auswahl mit „Tabelle nicht beschrieben“
+ * (`TDS_SIM_UNKNOWN_OBJECT`) und nimmt `CREATE TABLE` an; es schließt die Verbindung nicht.
+ */
+internal fun storeSource(tables: List<SimTable>): BackendSource = BackendSource.Custom(TableStore(tables).backend())
 
 /**
  * Startet den Testserver aus [environment]; [choose] bekommt die Tabellen der Datei der Beschreibung und liefert die
