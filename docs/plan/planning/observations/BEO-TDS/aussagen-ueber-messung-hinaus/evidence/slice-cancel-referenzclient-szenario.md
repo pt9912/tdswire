@@ -1,0 +1,2 @@
+**Vorgang:** slice-cancel-referenzclient-szenario
+**Fund:** Review F-1 bis F-3: Die Matrix führte `SELECT 1` mit Number 50001 weiter, obwohl der Test seit Form C `SELECT 2` fragt (Messung, die der Test nicht mehr macht); „je Anfrage genau ein Cancel“ stand in Abdeckung und Matrix, belegt war nur die Summe der Cancels gegen die Summe der Anfragen; „nicht vermischt“ stand ohne seine Bedingung (ob der Client ein zweites ATTENTION sendet, ist nicht beobachtet). Behoben durch Einschränken (f809e5e4).

@@ -1,8 +1,8 @@
 # CO-004: Cancel-Szenario des Integrationslaufs nach SPEC-040 fehlt
 
-**Status:** Aktiv.
+**Status:** Aufgelöst 2026-11-06: [slice-attention-cancel-timeout](../planning/done/slice-attention-cancel-timeout.md) und [slice-cancel-referenzclient-szenario](../planning/in-progress/slice-cancel-referenzclient-szenario.md) in `done/`, das Cancel-Szenario besteht in `make simulations-integration`.
 
-**Datum angelegt:** 2026-10-31. **Letzte Prüfung:** 2026-10-31.
+**Datum angelegt:** 2026-10-31. **Letzte Prüfung:** 2026-11-06.
 
 **Betroffener Lauf:** `make simulations-integration` (Integrationslauf nach `SPEC-040`, Stufe 3 des E2E-Durchgangs `make e2e`, kein Gate nach [ADR-0022](../adr/0022-e2e-laeufe-nicht-in-den-gates.md)). Der Carveout nimmt keine Schwelle und keine Regel aus: Der Lauf ist grün mit vier Szenarien (Auswahl mit Bedingung, leeres Ergebnis, Zeilenquelle oberhalb der Speichergrenze, Fehler der Zeilenquelle); das fünfte, Cancel mit Folgeabfrage, hat keinen Test.
 
@@ -29,7 +29,7 @@ Der Carveout ist aufgelöst, wenn beides zutrifft: (a) `slice-attention-cancel-t
 
 ## Geltungs-Konfiguration
 
-Stellen, die den Lauf beschreiben (keine Gate-Konfiguration; Stand nach dem Szenario, der Carveout bleibt bis zur Closure des Folge-Slice):
+Stellen, die den Lauf beschreiben (keine Gate-Konfiguration; Stand nach dem Szenario, Zustand nach der Closure des Folge-Slice):
 
 | Datei | Zeile/Section | Wert |
 |---|---|---|
@@ -40,10 +40,10 @@ Stellen, die den Lauf beschreiben (keine Gate-Konfiguration; Stand nach dem Szen
 
 ## Verifikation (nach Auflösung)
 
-- [ ] Das Cancel-Szenario läuft in `make simulations-integration` und besteht; `SPEC-040` nennt es als Teil des Laufs.
-- [ ] `make gates` und `make e2e` grün ohne Ausnahme.
-- [ ] Datei wird nach `docs/plan/carveouts/done/` bewegt (reiner `git mv`). <!-- d-check:ignore (done/ entsteht erst bei erster Carveout-Auflösung) -->
-- [ ] Folge-Slice geschlossen oder explizit dokumentiert.
+- [x] Das Cancel-Szenario läuft in `make simulations-integration` und besteht; `SPEC-040` nennt es als Teil des Laufs.
+- [x] `make gates` und `make e2e` grün ohne Ausnahme.
+- [x] Datei wird nach `docs/plan/carveouts/done/` bewegt (reiner `git mv`). <!-- d-check:ignore (done/ entsteht erst bei erster Carveout-Auflösung) -->
+- [x] Folge-Slice geschlossen oder explizit dokumentiert.
 
 ## Geschichte
 
@@ -53,3 +53,4 @@ Stellen, die den Lauf beschreiben (keine Gate-Konfiguration; Stand nach dem Szen
 | 2026-10-31 | Option A vom Nutzer bestätigt | Sitzung |
 | 2026-11-01 | Folge-Slice geteilt: Das Szenario am Referenzclient liegt in [slice-cancel-referenzclient-szenario](../planning/in-progress/slice-cancel-referenzclient-szenario.md), der Abbruchpfad bleibt in [slice-attention-cancel-timeout](../planning/done/slice-attention-cancel-timeout.md); die Start-Bedingung der Nutzerentscheidungen ist mit [ADR-0027](../adr/0027-abbruch-und-zuruecksetzen.md) erfüllt | [slice-attention-cancel-timeout](../planning/done/slice-attention-cancel-timeout.md) |
 | 2026-11-06 | Das Cancel-Szenario besteht in `make simulations-integration` (Stufe 3), der Cancel-Teil von [TDS-QA-07](../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität) in Stufe 7; die vier Stellen der Geltungs-Konfiguration sind berichtigt. Der Carveout bleibt `Aktiv`, bis der Folge-Slice in `done/` liegt (Auflösungs-Trigger a) | [slice-cancel-referenzclient-szenario](../planning/in-progress/slice-cancel-referenzclient-szenario.md) |
+| 2026-11-06 | Aufgelöst: Folge-Slice in `done/`, `make simulations-integration` 5 von 5 grün, `make e2e` grün (7 Stufen), `make gates` grün. Der Carveout trägt nicht die Folgepflichten (a) und (c) des Cancel-Teils von [TDS-QA-07](../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität): sie stehen in Zeile 12 der Kompatibilitätsmatrix und hängen an `slice-referenzabgleich-mitschnitt` | [slice-cancel-referenzclient-szenario](../planning/in-progress/slice-cancel-referenzclient-szenario.md) |

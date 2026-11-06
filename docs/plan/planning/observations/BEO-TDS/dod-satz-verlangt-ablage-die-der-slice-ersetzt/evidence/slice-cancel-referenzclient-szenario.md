@@ -1,0 +1,2 @@
+**Vorgang:** slice-cancel-referenzclient-szenario
+**Fund:** Review F-5: Die DoD verlangte „der Server loggt danach keinen Handlerfehler“; die Prüfung war schon vor dem Slice aus den Skripten genommen ([ADR-0025](../../../../../adr/0025-produktschnitt-bibliothek-und-testserver.md) Entscheidung 7), geliefert ist „Quelle genau einmal geschlossen“. Den Wortlaut änderte der Planner (5e99150b); der Haken hing bis dahin.
