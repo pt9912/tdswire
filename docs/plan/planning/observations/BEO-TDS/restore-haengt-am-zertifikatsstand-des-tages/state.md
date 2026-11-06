@@ -1,1 +1,1 @@
-**Stand:** offen — 1×; kein Träger-Slice, Entscheidung beim Nutzer (Wächter, etwa ein periodischer Frischlauf, oder Hinnahme).
+**Stand:** offen — 1×; hingenommen ohne Wächter (Entscheidung des Nutzers, 2026-11-06): kein periodischer Frischlauf, kein Träger-Slice. Bei einem roten Restore nach Zertifikatswechsel gilt die Vorgehensweise in `slice-qa-dotnet-lieferkette-haerten.md` §7 (Zertifikatsrotation).

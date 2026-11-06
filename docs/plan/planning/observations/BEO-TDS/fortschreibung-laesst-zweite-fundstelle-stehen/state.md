@@ -1,1 +1,1 @@
-**Stand:** offen — 11 Evidence-Dateien (zuletzt slice-qa-dotnet-lieferkette-haerten); über der Schwelle, nicht verkörpert, Entscheidung beim Nutzer; Lese-Schritt bei der Welle-Closure. Verkörperungsvorschlag (nicht entschieden): Reviewer-Skill um die Prüfung „Änderungsliste nennt die widersprechenden Stellen der Kernaussage“ erweitern.
+**Stand:** verkörpert — `.harness/skills/reviewer.md` (MEDIUM, Prüfung „Fortschreibung lässt die zweite Fundstelle stehen“), Anker `seit slice-qa-dotnet-lieferkette-haerten`; Nachtrag in `slice-qa-dotnet-lieferkette-haerten.md` §7

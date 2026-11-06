@@ -89,6 +89,13 @@ bewusst kurz (Ergänzungs-Kanal, nicht Hauptkanal).
   Wert aus mehreren gewählt oder zwei Dinge gleich behandelt werden, aber alle Eingaben sind gleich
   (eine Kette mit einem Zertifikat, ein Backend mit einer Antwort); jede Mutation der Auswahl bleibt
   grün (seit welle-transport-tls)
+- **Fortschreibung lässt die zweite Fundstelle stehen** — eine Änderung berichtigt oder löst eine Aussage
+  ab (Fix-Runde, Teilablösung einer ADR, neuer Wortlaut), und die Änderungsliste nennt nicht die
+  widersprechenden Stellen der Kernaussage. Prüfung: die Kernaussage in ihrer alten Lesart per Grep über
+  das ganze Repo suchen (`spec/`, `docs/`, `harness/`, `tools/`, Kommentare in Code und Konfiguration),
+  nicht nur die vom Review genannte Zeile; jeder Treffer steht in der Änderungsliste oder trägt einen
+  Grund, warum er bleibt. Eine angenommene ADR wird nicht umgeschrieben (`AGENTS.md` §3.5): ihr
+  widersprechende Stellen brauchen eine Folge-ADR  (seit slice-qa-dotnet-lieferkette-haerten)
 - **Vertragstest belegt nur den Fake** — ein Test des Port-Vertrags gibt das Skript zurück, das er
   selbst in das Test-Backend gelegt hat; keine Änderung am Produktionscode macht ihn rot (Gegenprobe:
   ein Backend, das den Vertrag verletzt, muss die Suite röten)  (seit welle-backend-streaming)
