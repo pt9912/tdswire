@@ -2,7 +2,7 @@
 
 **Rolle:** Verifier (Modul 11), Frage „Bauen wir es richtig?“ gegen Plan und DoD. Kein Review des Diffs (siehe [Review-Report](2026-11-06-4436821-slice-e2e-backend-ausserhalb-modul.md)), keine Validierung.
 
-**Gegenstand:** Slice [slice-e2e-backend-ausserhalb-modul](../plan/planning/in-progress/slice-e2e-backend-ausserhalb-modul.md); Zweig `worktree-agent-ae2dacd15aa73d2f5`; Commits b3b71d76 (Implementierung), 4436821d (DoD-Haken), b8e1f7b9/00f0a804 (Review), 0cd8db72 (Nachbesserung).
+**Gegenstand:** Slice [slice-e2e-backend-ausserhalb-modul](../plan/planning/done/slice-e2e-backend-ausserhalb-modul.md); Zweig `worktree-agent-ae2dacd15aa73d2f5`; Commits b3b71d76 (Implementierung), 4436821d (DoD-Haken), b8e1f7b9/00f0a804 (Review), 0cd8db72 (Nachbesserung).
 
 **Maßstab:** DoD §2 des Slice; [ADR-0022](../plan/adr/0022-e2e-laeufe-nicht-in-den-gates.md), [ADR-0025](../plan/adr/0025-produktschnitt-bibliothek-und-testserver.md), [ADR-0034](../plan/adr/0034-testserver-als-gradle-modul.md); `SPEC-025`, `SPEC-040`, `SPEC-048`, `SPEC-059`; [TDS-FA-08](../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-RB-04](../../spec/lastenheft.md#tds-rb-04--externes-backend).
 
