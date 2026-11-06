@@ -25,6 +25,9 @@ internal sealed class Antwort
 
     public List<string> Rueckgabe { get; } = new();
 
+    /// <summary>Werte, die der Vergleich nicht führt (LOGINACK, ENVCHANGE mit Werten, SESSIONSTATE, FEATUREEXTACK); Ablage der Messung.</summary>
+    public List<string> Einzelheiten { get; } = new();
+
     public bool AttnQuittung { get; set; }
 
     public string? Problem { get; set; }
@@ -37,7 +40,7 @@ internal sealed class Antwort
 /// Zerlegt einen Tokenstrom einer Antwort (MS-TDS 2.2.7, TDS 7.4) in die Felder des Vergleichs. Er rechnet nur so weit, wie
 /// der Vergleich Werte braucht: Werte erscheinen als Text oder Hex, Längen bestimmen das Ende eines Werts. Ein Token oder ein
 /// Typ außerhalb der Liste unten setzt <see cref="Antwort.Problem"/> und beendet die Zerlegung; der Vergleich zeigt das Problem
-/// als Abweichung. Grenze: Tokens `TEXT`/`NTEXT`/`IMAGE`, UDT, DATACLASSIFICATION und FEATUREEXTACK sind nicht zerlegt.
+/// als Abweichung. Grenze: Tokens `TEXT`/`NTEXT`/`IMAGE`, UDT und DATACLASSIFICATION sind nicht zerlegt.
 /// Vom Server vergebene Werte stehen nur als vorhanden oder leer: Name des Servers in ERROR und INFO, Werte von ENVCHANGE,
 /// Rückgabewerte des Parameters `@handle` und eines Rückgabewerts ohne Namen (das Handle von `sp_prepexec`, Setzung).
 /// </summary>
@@ -206,11 +209,15 @@ internal sealed class TokenLeser
                     break;
                 case 0xAD:
                     name = "LOGINACK";
-                    Nimm(U16());
+                    LoginAck(a);
+                    break;
+                case 0xAE:
+                    name = "FEATUREEXTACK";
+                    FeatureExtAck(a);
                     break;
                 case 0xE4:
                     name = "SESSIONSTATE";
-                    Nimm(U32());
+                    SessionState(a);
                     break;
                 case 0xED:
                     name = "SSPI";
@@ -412,10 +419,54 @@ internal sealed class TokenLeser
         ziel.Add($"{(fehler ? "Fehler" : "Info")} Nummer {nummer}, Class {klasse}, State {status}, Meldung '{Sauber(text)}', Server {(server.Length > 0 ? "vorhanden" : "leer")}, Prozedur '{Sauber(prozedur)}', Zeile {zeile}");
     }
 
+    private void LoginAck(Antwort a)
+    {
+        var laenge = U16();
+        var ende = _p + laenge;
+        var schnittstelle = U8();
+        var tds = U32();
+        var programm = BVarchar();
+        var version = Nimm(4);
+        _p = ende;
+        a.Einzelheiten.Add($"LOGINACK Schnittstelle {schnittstelle}, TDS 0x{tds:x8}, Programm '{Sauber(programm).Replace("\0", "\\0", StringComparison.Ordinal)}', Version {version[0]}.{version[1]}.{(version[2] << 8) | version[3]}");
+    }
+
+    private void FeatureExtAck(Antwort a)
+    {
+        while (true)
+        {
+            var id = U8();
+            if (id == 0xFF) break;
+            var daten = Nimm(U32());
+            a.Einzelheiten.Add($"FEATUREEXTACK Merkmal 0x{id:x2}, Daten 0x{Convert.ToHexString(daten).ToLowerInvariant()}");
+        }
+    }
+
+    private void SessionState(Antwort a)
+    {
+        var laenge = U32();
+        var ende = _p + (int)laenge;
+        var folge = U32();
+        var wiederherstellbar = U8();
+        var zustaende = new List<string>();
+        while (_p < ende)
+        {
+            var id = U8();
+            long l = U8();
+            if (l == 0xFF) l = U32();
+            var daten = Nimm(l);
+            zustaende.Add($"{id}:{l}=0x{Convert.ToHexString(daten).ToLowerInvariant()}");
+        }
+
+        _p = ende;
+        a.Einzelheiten.Add($"SESSIONSTATE Laenge {laenge}, Folge {folge}, wiederherstellbar {wiederherstellbar}, Zustaende [{string.Join("; ", zustaende)}]");
+    }
+
     private void EnvChange(Antwort a)
     {
         var laenge = U16();
         var ende = _p + laenge;
+        var anfang = _p;
         var typ = U8();
         var neu = U8();
         // Die Länge steht bei den Textwerten in Zeichen, bei den Bytewerten in Bytes (MS-TDS 2.2.7.9); nur ob ein Wert da ist, geht in den Vergleich.
@@ -429,7 +480,27 @@ internal sealed class TokenLeser
         }
 
         _p = ende;
+        a.Einzelheiten.Add($"ENVCHANGE Typ {typ}, Rest 0x{Convert.ToHexString(_b, anfang + 1, ende - anfang - 1).ToLowerInvariant()}{(typ is 1 or 2 or 3 or 4 or 5 or 6 or 13 ? ", Text " + EnvText(_b, anfang + 1, ende) : string.Empty)}");
         a.Umgebung.Add($"ENVCHANGE Typ {typ}, neuer Wert {(neu > 0 ? "vorhanden" : "leer")}, alter Wert {(alt > 0 ? "vorhanden" : "leer")}");
+    }
+
+    // Typen mit Textwerten (neu, alt) tragen B_VARCHAR; ein beschädigter Text ergibt den Hinweis statt einer Ausnahme.
+    private static string EnvText(byte[] b, int von, int ende)
+    {
+        try
+        {
+            var p = von;
+            var neu = b[p++];
+            var neuText = Encoding.Unicode.GetString(b, p, neu * 2);
+            p += neu * 2;
+            var alt = p < ende ? b[p++] : 0;
+            var altText = p + (alt * 2) <= ende ? Encoding.Unicode.GetString(b, p, alt * 2) : "?";
+            return $"neu '{Sauber(neuText)}', alt '{Sauber(altText)}'";
+        }
+        catch (Exception e) when (e is ArgumentException or IndexOutOfRangeException)
+        {
+            return "nicht lesbar";
+        }
     }
 
     private static string Bits(int status)

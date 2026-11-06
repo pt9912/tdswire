@@ -21,6 +21,8 @@
 # Die Messzeilen jedes Laufs stehen in seiner Ausgabe (`vergleichslauf-d: messung:`).
 # Mitschnitt-Lauf (`LAUF=aufnahme`, `LAUF=mitschnitt`; SPEC-045): die Aufnahme braucht die Referenzinstanz (EULA wie oben), das Abspielen nur den Server dieses Repos
 # und das Client-Image; Einzelmessungen am 2026-11-06: Aufnahme beider Instanzen 90 s, Abspielen je Teillauf 14 bis 17 s.
+# Messreihe am Draht (`LAUF=wire`, `wire-2022`, `wire-2025`; SPEC-045): TLS-beendender Proxy im Client-Container, 22 Szenarien je Instanz; Einzelmessung am 2026-11-06:
+# beide Instanzen zusammen 70 s einschliesslich Bau und Start; Ablage in referenztest-dotnet/Mitschnitt/messung/; `MESSUNG_NUR=<Szenarien>` fuer eine Teilmenge ohne Ablage.
 # Live-Lauf (`LAUF=live-2022`, `live-2025`, `live` fuer beide) und Gegenmessungen (`LAUF=messung-2022`, `messung-2025`) laufen
 # mit derselben EULA-Entscheidung und denselben Images (gepinnte Digests); der Live-Lauf baut zusaetzlich die Dockerfile-Stage
 # `kompatibilitaetsserver` (JVM). Einzelmessungen am 2026-11-06 auf demselben Host (Lastmittel 8 bis 9): ein Teillauf des
@@ -31,5 +33,5 @@
 VERGLEICH_ACCEPT_EULA = Y
 LAUF ?= alle
 
-vergleichslauf-d: ## Vergleichslauf D: Referenzclient gegen echten SQL Server (Developer-Image, EULA-Entscheidung des Nutzers), LAUF=alle|live|aufnahme|mitschnitt|aufnahme-2022|aufnahme-2025|mitschnitt-2022|mitschnitt-2025|messung-2022|messung-2025|live-2022|live-2025|2022-anmeldung|2022-tds8|2025-anmeldung|2025-tds8|2025-tds8-forcestrict — KEIN Gate, nur lokal
+vergleichslauf-d: ## Vergleichslauf D: Referenzclient gegen echten SQL Server (Developer-Image, EULA-Entscheidung des Nutzers), LAUF=alle|live|aufnahme|mitschnitt|wire|wire-2022|wire-2025|aufnahme-2022|aufnahme-2025|mitschnitt-2022|mitschnitt-2025|messung-2022|messung-2025|live-2022|live-2025|2022-anmeldung|2022-tds8|2025-anmeldung|2025-tds8|2025-tds8-forcestrict — KEIN Gate, nur lokal
 	VERGLEICH_ACCEPT_EULA="$(VERGLEICH_ACCEPT_EULA)" BUILDER_FLAGS="$(BUILDER_FLAGS)" bash tools/vergleichslauf-d.sh "$(LAUF)"
