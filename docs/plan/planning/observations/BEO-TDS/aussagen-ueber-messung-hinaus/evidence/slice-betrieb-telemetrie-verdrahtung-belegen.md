@@ -1,0 +1,2 @@
+**Vorgang:** [slice-betrieb-telemetrie-verdrahtung-belegen](../../../../done/slice-betrieb-telemetrie-verdrahtung-belegen.md)
+**Fund:** Review F-1: Test-KDoc und Spezifikation nannten `ACCEPT_FAILED` und das Wiederannehmen ohne die gemessene Bedingung; ohne das Vorladen der Klassen (`preloadClasses()` in `AcceptChild`, gefahrene Mutation) entsteht unter erschöpftem Limit kein Ereignis. Behoben im Review-Nachzug `77c9a718` durch Einschränkung (Bedingung im Satz), verkörpert wie in `state.md` der Klasse; hier ein weiteres Auftreten.
