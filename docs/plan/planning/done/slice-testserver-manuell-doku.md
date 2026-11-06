@@ -37,7 +37,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Die Targets selbst: [slice-testserver-up-down](../done/slice-testserver-up-down.md); diese Doku beschreibt gebaute Targets und beginnt erst, wenn der Slice in `done/` liegt.
-- Die Einbettung der Bibliothek in eine eigene Anwendung und die Release-Schritte: [slice-release-doku-prozess](../next/slice-release-doku-prozess.md); der Testserver ist dort nur ein Verweis.
+- Die Einbettung der Bibliothek in eine eigene Anwendung und die Release-Schritte: [slice-release-doku-prozess](../in-progress/slice-release-doku-prozess.md); der Testserver ist dort nur ein Verweis.
 - Der Nachvollzug von einem frischen Klon durch eine zweite Person: Closure-Trigger der Welle [welle-testserver-manuell](../welle-testserver-manuell.md), nicht dieses Slice.
 
 **Keine Mindestzahl.** Ein Slice mit *einem* echten Ausschluss ist besser als
@@ -163,7 +163,7 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 - Weiteres Auftreten: [BEO-TDS/aussagen-ueber-messung-hinaus](../observations/BEO-TDS/aussagen-ueber-messung-hinaus/observation.md), Evidence `evidence/slice-testserver-manuell-doku.md`.
 - Neu: [BEO-TDS/start-required-ohne-benutzerliste-bricht-spaet-ab](../observations/BEO-TDS/start-required-ohne-benutzerliste-bricht-spaet-ab/observation.md) (1×, offen, Träger: noch keiner; Folge-Hinweis im `state.md`, kein Slice angelegt).
-- Berührt, nicht fortgeschrieben: [BEO-TDS/lesart-einer-nutzerentscheidung-unbestaetigt](../observations/BEO-TDS/lesart-einer-nutzerentscheidung-unbestaetigt/observation.md) (Ort und Client-Wahl, §6) und [BEO-TDS/benutzerliste-dateirechte-im-betrieb-offen](../observations/BEO-TDS/benutzerliste-dateirechte-im-betrieb-offen/observation.md) (die Anleitung nennt die Testwerte; Dateirechte im Betrieb bleiben Sache von [slice-release-doku-prozess](../next/slice-release-doku-prozess.md)).
+- Berührt, nicht fortgeschrieben: [BEO-TDS/lesart-einer-nutzerentscheidung-unbestaetigt](../observations/BEO-TDS/lesart-einer-nutzerentscheidung-unbestaetigt/observation.md) (Ort und Client-Wahl, §6) und [BEO-TDS/benutzerliste-dateirechte-im-betrieb-offen](../observations/BEO-TDS/benutzerliste-dateirechte-im-betrieb-offen/observation.md) (die Anleitung nennt die Testwerte; Dateirechte im Betrieb bleiben Sache von [slice-release-doku-prozess](../in-progress/slice-release-doku-prozess.md)).
 
 **Paarungen:** Anker — keiner, nichts verkörpert (kein `liegt in`). Folge-Slice — keiner angelegt; der neue Register-Eintrag trägt „Träger: noch keiner“ ausdrücklich. Register — getragen (oben).
 
