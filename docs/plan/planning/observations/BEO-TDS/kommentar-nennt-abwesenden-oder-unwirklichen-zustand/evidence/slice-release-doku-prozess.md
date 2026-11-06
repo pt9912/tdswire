@@ -1,0 +1,2 @@
+**Vorgang:** [slice-release-doku-prozess](../../../../in-progress/slice-release-doku-prozess.md)
+**Fund:** Review F-4 und F-5: Eine Zustandszeile „Stand dieser Anleitung `v6.18.1`“ ohne Anker oder Sensor und vier `d-check:ignore`-Marker „geplant: neue Datei“ im Slice-Plan, die nach dem Entstehen der Dateien einen Zustand beschrieben, den es nicht mehr gab. Behoben (Zeile entfernt, Messung mit Datum und Grenze, Marker entfernt).
