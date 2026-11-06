@@ -1,0 +1,57 @@
+# Review-Report: slice-qa-dotnet-lieferkette-haerten, Re-Review der Nachbesserung (HEAD ec67bb05) — 2026-11-06
+
+**Review-Art:** Code und Dokumente (gegen Plan, ADR, Hard Rules `AGENTS.md` §3.5, §3.6, §3.7, §3.8, Reviewer-Skill; nicht gegen die DoD, das ist die Frage des Verifiers)
+
+**Gegenstand:** `git diff f2ba2cc4..ec67bb05` (7 Dateien, +90/-14): [ADR-0035](../plan/adr/0035-dotnet-restore-signaturliste-und-audit-verzicht.md), ADR-Index, Beobachtung `BEO-TDS/signaturliste-ohne-selbsttest`, `referenztest-dotnet/nuget.config` (Kommentar), Messprotokoll [dotnet-signaturpruefung-2026-11-06](../messungen/dotnet-signaturpruefung-2026-11-06.md). Vorgänger: [Review d08d891a](2026-11-06-d08d891a-slice-qa-dotnet-lieferkette-haerten.md) (F-1 bis F-6).
+
+**Skill:** `.harness/skills/reviewer.md` · **Modell:** claude-sonnet-5-5 · **Datum:** 2026-11-06
+
+**Eingangs-Kontext:** ADR-0035, ADR-0008, CO-001, CO-002, `TDS-QA-06`, `AGENTS.md` §3, Slice `slice-qa-dotnet-lieferkette-haerten` (in `in-progress/`, im Diff unverändert), Verifikationsbericht `ec67bb0`. Nicht gefahren: Docker-Läufe, `make gates`, `make docs-check`; gelesen und gegen `main` verglichen (`git merge-tree`, `git show main:docs/plan/adr/README.md`).
+
+## Behebung der Findings F-1 bis F-6 des Vorgänger-Reviews
+
+| ID | Stand | Beleg am Text |
+|---|---|---|
+| F-1 | behoben in `nuget.config` und Messprotokoll; Rest in ADR-0035 (R-1) | Kommentar sagt ODER und „fuer ein neues Paket ... nicht gemessen“; „prüfen jedes Paket doppelt“ gestrichen, Folgerung nennt ODER |
+| F-2 | behoben | Messzeile nennt acht Pakete; Liste stimmt mit der Nachmessung des Vorgängers überein |
+| F-3 | behoben | eigene Messzeile „nur das Repository-Zertifikat `1F4B311D…`“ mit zwei Paketen, Folgerung erklärt ADR-0008 |
+| F-4 | behoben | Kommentar zeigt auf `docs/messungen/dotnet-signaturpruefung-2026-11-06.md` statt auf den Slice |
+| F-5 | teilweise behoben | ADR-0035 benennt den Ablöser, aber nicht alle überholten Stellen (R-4) |
+| F-6 | behoben | Gültigkeitsdaten, Zuordnung der Pakete, Abschnitt „Rotation (Folgerung, nicht gemessen)“; Ursache der bestandenen Läufe ausdrücklich nicht gemessen |
+
+## Findings
+
+| ID | Kategorie | Befund | Quelle | Pfad | Verifizierbar | Klasse |
+|---|---|---|---|---|---|---|
+| R-1 | MEDIUM | Entscheidung 1 sagt „Ein neues Paket mit unbekanntem Signierer ist ein Eintrag in der Liste und ein Review-Punkt“. Der Kontext derselben ADR und das Protokoll sagen ODER: ein neues Paket mit nuget.org-Gegensignatur braucht keinen Eintrag und lässt den Restore grün; das Protokoll führt das als „nicht gemessen“. Failure-Szenario: Ein Review verlässt sich darauf, dass ein neuer Autor den Restore bricht und einen Eintrag erzwingt; nichts bricht, kein Gate und kein Review-Anlass entsteht. Zusätzlich steht im Kontext „die Autorenzertifikate binden erst, wenn er fehlt“ im Block „Gemessen“, im Protokoll heißt dieselbe Aussage „Folgerung“; und die Alternativen-Zeile „bricht bei unsigniertem oder unbekanntem Signierer, wenn beide Einträge fehlen“ ist mehrdeutig. | `AGENTS.md` §3.8; Skill „Zusage ohne ihre gemessene Bedingung im selben Satz“ | `docs/plan/adr/0035-dotnet-restore-signaturliste-und-audit-verzicht.md` · `Ein neues Paket mit unbekanntem Signierer ist ein Eintrag in der Liste` | ja — Kopie der Datei, Paket mit anderem Autor und nuget.org-Gegensignatur: Exit 0 nach Zeilen „ohne xUnit-Autoren“ | Wirkung der Liste auf neue Pakete breiter gesagt als gemessen (Wiederkehr von F-1 in der ADR) |
+| R-2 | LOW | Die Alternative „nur Repository-Zertifikate“ wird mit „Bindet an nuget.org als Aussteller, nicht an die Autoren“ abgelehnt, die gebaute Konfiguration wirkt aber nach der ADR selbst als ODER und trägt über den Repository-Eintrag dasselbe. Grund der Wahl ist allein „Slice-Vorgabe“; gemessen ist die Konfiguration „drei Repository-Zertifikate, keine Autoren“ nicht (gemessen: nur `1F4B311D…`, und Autoren allein). Die Zeile ist keine als Setzung gekennzeichnete Festlegung. | `AGENTS.md` §3.8 | `docs/plan/adr/0035-dotnet-restore-signaturliste-und-audit-verzicht.md` · `Bindet an nuget.org als Aussteller, nicht an die Autoren` | ja — Restore mit drei Repository-Einträgen allein | Abwägung einer Alternative ohne Messzeile und ohne Setzungs-Kennzeichen |
+| R-3 | LOW | Indexkollision mit `main`: `main` führt ADR-0033 und ADR-0034 nach der Zeile ADR-0032; der Zweig hängt ADR-0035 an derselben Stelle an. `git merge-tree main HEAD` meldet Inhaltskonflikt in `docs/plan/adr/README.md`. Die Nummer 0035 ist frei (auf `main` und allen lokalen Zweigen nur hier vergeben); Dateiname kollidiert nicht. Beim Merge ist der Index von Hand zusammenzuführen. | `AGENTS.md` §5 Regel 3 (Index) | `docs/plan/adr/README.md` · `[ADR-0035](0035-dotnet-restore-signaturliste-und-audit-verzicht.md)` | ja — `git merge-tree --write-tree main HEAD` | Indexzeile am Zweigende kollidiert mit Nachbarzweigen |
+| R-4 | LOW | Die Teilablösung benennt zwei Stellen von ADR-0008 wörtlich (Satz zur Messung, Offene Punkte (1)/(2)). Nicht genannt und unverändert „offen“ bzw. „nicht gebaut“: Messgrenzen („eine funktionierende `trustedSigners`-Liste“), Tabelle der Optionen („NuGet-Audit und `trustedSigners` offen“), Aufzählung „Offen:“ und Geschichtszeile 2026-10-30. Der Index-Eintrag von ADR-0008 trägt keinen Hinweis auf die Teilablösung. Wer ADR-0008 allein liest, findet vier Stellen, die ADR-0035 widersprechen, ohne Zeiger. Die „nur wörtlich“-Begrenzung ist gewollt; ob sie genügt, steht beim Architect. | `AGENTS.md` §3.5 | `docs/plan/adr/0008-dotnet-kompatibilitaetstests.md` · `eine funktionierende \`trustedSigners\`-Liste` | nein | Teilablösung lässt überholte Stellen ohne Zeiger |
+| R-5 | LOW | Entscheidung 3 ist als „Gate-Lockerung nach `AGENTS.md` §3.6“ überschrieben und sagt im selben Absatz, es werde kein Gate gesenkt und es gebe das Gate nie. Die Überschrift behauptet, was der Text verneint. „... nicht werden soll“ (wegen TDS-QA-06) ist eine Setzung, trägt aber kein Kennzeichen. Die Rechtsgrundlage (ADR statt PR-Kommentar) ist erfüllt. | `AGENTS.md` §3.6, §3.8 | `docs/plan/adr/0035-dotnet-restore-signaturliste-und-audit-verzicht.md` · `Gate-Lockerung nach` | nein | Überschrift widerspricht dem Absatz; Setzung nicht gekennzeichnet |
+| R-6 | INFO | Das Zitat „deine empfehlungen“ (Nutzer, 2026-11-06) und die fünf Punkte des Kontexts sind im Repo nicht belegbar (kein Transkript; ADR-0034 zitiert „ja deine empfehlungen“ als eigene Antwort). Die Punkte (1) bis (5) sind die Paraphrase der Koordinator-Empfehlung. Datum und Form entsprechen dem Muster von ADR-0034. Rolle: Koordinator/Nutzer bestätigt. | `AGENTS.md` §3.8 | `docs/plan/adr/0035-dotnet-restore-signaturliste-und-audit-verzicht.md` · `deine empfehlungen` | nein | Nutzerentscheid nur im Text, ohne auflösbaren Beleg |
+| R-7 | INFO | Für V-1 (Entscheidung Planner/Nutzer, hier nicht entschieden): Die enge Lesart (Autor- und Repository-Eintrag wirken als ODER, roter Lauf nur bei Fehlen beider) steht in ADR-0035 Kontext („Die Einträge wirken als ODER ... die Autorenzertifikate binden erst, wenn er fehlt“), Alternativen-Zeile (Contra: „die Autoren binden solange nichts“), Konsequenzen/Negativ, im `nuget.config`-Kommentar und im Folgerungsabsatz des Messprotokolls. Die Slice-DoD (Liefer-Punkt 1, „roten [Lauf] bei einem Paket, dessen Signierer nicht in der Liste steht“) ist im Diff unverändert und verweist nicht auf ODER. ADR-0035 sagt nirgends, welche Lesart der DoD sie als erfüllt ansieht. Entscheidung 1 (R-1) legt die weite Lesart nahe. | Slice Liefer-Punkt 1 | `docs/plan/planning/in-progress/slice-qa-dotnet-lieferkette-haerten.md` · `einen roten bei einem Paket, dessen Signierer nicht in der Liste steht` | nein | DoD-Wortlaut und gemessene Wirkung nicht abgeglichen |
+
+## Prüfpunkte der Beauftragung
+
+1. ADR-0035 gegen §3.5/§3.6/§3.8: ADR-0008 bleibt unverändert (Diff berührt sie nicht, §3.5 erfüllt). Das Supersedes-Zitat des Satzes stimmt wörtlich mit ADR-0008 überein (geprüft gegen Zeile „Mit dem Repository-Zertifikat von nuget.org als einzigem Eintrag ... nicht gebaut.“); „Offene Punkte (1)/(2)“ stimmen mit der Datei überein. Alternativen, Konsequenzen, Fitness Function, „Nicht gemessen“ vorhanden. Ein Gate wird nicht gesenkt, die ADR liegt vor (§3.6). Messzeilen des Kontexts stimmen mit dem Protokoll überein (36 Pakete, 5+3 Zertifikate, acht Pakete, zwei Pakete). Abweichungen: R-1, R-2, R-5. Die Zahl „zwei Advisories“ stimmt mit CO-001 (High und Moderate) überein; „Folgerung, nicht gemessen“ für `-warnaserror` ist gekennzeichnet. Trigger-Zuordnung: CO-002 (a) und CO-001 (b) stimmen mit den Carveout-Texten überein (beide verlangen `done/`).
+2. F-1 bis F-6: siehe Tabelle oben.
+3. Nummern und Index: R-3. ADR-0035 kollidiert mit keiner Nummer auf `main` (0033, 0034). Die Indexzeile ist auf `main` nicht enthalten, Link-Ziele und Spaltenform entsprechen dem Rest.
+4. Register: Verzeichnis `BEO-TDS/signaturliste-ohne-selbsttest/` mit `observation.md`, `state.md`, `evidence/slice-qa-dotnet-lieferkette-haerten.md` entspricht der Form in `observations/README.md`; Zähler 1× entspricht einer Evidence-Datei; Stand „offen“ als Zustand ohne Chronik, mit Nutzerentscheid als Begründung; Links der `observation.md` lösen auf. Ohne Befund. Hinweis: Das Register nennt als Schreibzeit die Slice-Closure; hier wurde sie vor der Closure geschrieben (kein Verstoß, keine Aktion erwartet).
+
+## Negativbefunde
+
+| Bereich | Ergebnis |
+|---|---|
+| `docs/plan/adr/0035-...` | geprüft, Befunde R-1, R-2, R-5, R-6 |
+| `docs/plan/adr/README.md` | geprüft, Befund R-3 |
+| `docs/plan/adr/0008-...` | im Diff unverändert, geprüft; Befund R-4 |
+| `docs/plan/planning/observations/BEO-TDS/signaturliste-ohne-selbsttest/` | geprüft, ohne Befund |
+| `referenztest-dotnet/nuget.config` | geprüft (Kommentar; Konfiguration unverändert), ohne Befund; Kommentarklassen Zusage/Grenze/Rang-Zeiger erfüllt, keine verworfene Alternative |
+| `docs/messungen/dotnet-signaturpruefung-2026-11-06.md` | geprüft, ohne Befund (Messzeilen und Folgerung getrennt gekennzeichnet) |
+| `docs/plan/carveouts/CO-001`, `CO-002` | unverändert im Diff, Trigger gelesen, ohne Befund |
+| `docs/plan/planning/in-progress/slice-qa-...` | unverändert im Diff; siehe R-7 |
+| Hard Rules §3.1, §3.2 | geprüft, ohne Befund (kein Host-Aufruf, keine Suppression im Diff) |
+
+## Summary
+
+0 HIGH, 1 MEDIUM (R-1), 4 LOW (R-2 bis R-5), 2 INFO (R-6, R-7). F-1 bis F-4 und F-6 sind am Text behoben, F-5 teilweise. Kein Rollenkonflikt, daher keine Konflikt-Sequenz.
