@@ -1,0 +1,75 @@
+# Review-Report: slice-abbruch-ressourcen-shutdown — 2026-11-06
+
+**Review-Art:** Code (Diff gegen Plan, Entscheidungen und Hard Rules). Gegen die DoD wird nicht geprüft; das ist die Frage des Verifiers.
+
+**Gegenstand:** Diff `4b3fc138..4e79d285` (Commit `4e79d285`, Zweig `slice-abbruch-ressourcen-shutdown`): `AbortableRun` (`watch`, `hangUp`, `RunEnd.Disconnected`), `ShutdownGate`, `ConnectionShutdownGate`, `RequestLoop`, `AbortedAnswer`, Matrix um `SHUTDOWN_GRACE_EXPIRED`, `ConnectionRegistry`/`ManagedConnection`/`TdsListener`, `ListenSettings.maxConnections`, `RequestSettings.shutdownGraceSeconds`, Testserver-Eingänge, Spec-/Doku-Nachzug, Tests.
+
+**Skill:** `.harness/skills/reviewer.md` @ 4e79d285
+**Modell:** claude-sonnet-5-5 · **Datum:** 2026-11-06
+
+**Eingangs-Kontext:**
+
+- Slice-Plan slice-abbruch-ressourcen-shutdown (§1 bis §3, §6)
+- ADR-0004, ADR-0007, ADR-0027 (Entscheidungen 1, 2, 2c, 4)
+- `SPEC-029`, `SPEC-031`, `SPEC-033`, `SPEC-034`, `SPEC-044`, `SPEC-047`, `SPEC-049`, `SPEC-059`, `ARC-015`
+- TDS-FA-07, TDS-QA-02, TDS-QA-07
+- `AGENTS.md` §3.1 bis §3.8
+
+**Eigene Läufe (Worktree):**
+
+| Lauf | Ergebnis |
+|---|---|
+| `make test` auf `4e79d285` | Exit 0, aber Docker-Schicht `CACHED` (Lauf des Implementers wiederverwendet) |
+| Mutation M1: in `AbortableRun.watch` die zweite Lesung nach gewonnenem ATTENTION (`seen = tray.peek()`) gestrichen, `make test` frisch (890 Tests) | rot: genau `DisconnectTest > Ende der Gegenstelle in CANCELLING verhindert die Bestaetigung und einen zweiten Cancel`; `DisconnectTest` (übrige 5), `ListenerLimitTest` (4), `ShutdownDispatchTest` (6), `ListenerAbortTest` (5), `ShutdownWiringTest` (5), `ConnectionLeakTest`, `ServerSmokeTest` (6) PASSED |
+| Mutation M2: in `watch` den Aufruf `hangUp(seen)` gestrichen (Disconnect-Erkennung entfernt), `make test` frisch | rot: 4 Tests `DisconnectTest` und `ConnectionLeakTest`; `ServerSmokeTest` (RST, beschädigtes PRELOGIN, Prozess-Stop) bleibt grün (siehe F-3) |
+| Mutationen zurückgenommen | `git status` sauber |
+| Grep der alten Lesart (Frist 0 beim Stop, „MAX_CONNECTIONS nicht gebaut“, „SHUTDOWN_GRACE nicht gebaut“, „kein Limit“, „kein Eingang“, „ohne Frist-Logik“) über `README.md`, `spec/`, `docs/user`, `docs/plan` (ohne `done/`), `harness/`, `tools/`, `src/main`, `src/testserver` | keine Treffer außer F-5, F-6 und den Historienzeilen des Änderungsprotokolls (bleiben) |
+
+Nicht ausgeführt: `make gates`, `make detekt`, `make docs-check`, `make e2e`.
+
+---
+
+## Findings
+
+| ID | Kategorie | Befund | Quelle | Pfad | Verifizierbar | Klasse |
+|---|---|---|---|---|---|---|
+| F-1 | MEDIUM | Die Nutzer-Doku sagt unbedingt „eine Anfrage, die nach dem Beginn eintrifft, erhält `TDS_SHUTDOWN`“; gebaut erhält sie nur eine Anfrage, die schon eingetroffen ist, während die vorige läuft. Eine Verbindung ohne laufende Anfrage endet beim Beginn sofort (`open.filterNot { it.busy }.forEach { it.end(SHUTDOWN) }`), ein sequentieller Client sieht ein Schließen, nie `TDS_SHUTDOWN`. `SPEC-044` Nr. 3 sagt das mit „Gebaut:“, die Zeile `SPEC-049` und die Testnamen/KDoc (`ShutdownWiringTest`, `ShutdownDispatchTest`: „Eine Anfrage nach dem Beginn …“) tragen die Einschränkung nicht; der Dispatch-Test setzt `FakeGate.begun = true` auf eine Verbindung, die der echte Listener schon geschlossen hätte. | AGENTS.md §3.8; ADR-0027 Entscheidung 4 | `docs/user/einbettung-und-betrieb.md` · „eine Anfrage, die nach dem Beginn eintrifft, erhält `TDS_SHUTDOWN`“; `spec/spezifikation.md` · Zeile `SPEC-049` · „Anfrage nach Beginn des geordneten Beendens (`SPEC-044`)“; `src/test/.../ShutdownDispatchTest.kt` · „Eine Anfrage nach dem Beginn des Beendens wird mit TDS_SHUTDOWN beantwortet“ | ja — Grep/Lesen; Verhalten: `ShutdownWiringTest` schickt beide Anfragen in einem Zug (`batch("laeuft") + batch("spaet")`) | Aussage breiter als Beleg (Reichweite einer Antwort) |
+| F-2 | MEDIUM | `SPEC-044` Nr. 2 („ohne unvollständig empfangene Nachricht“) und der Schlussabsatz („Eine Verbindung, die mitten in einer Nachricht kein EOM mehr sendet, bleibt bis zum Ablauf der Frist offen und wird dann getrennt“) stehen unverändert neben den neuen „Gebaut:“-Sätzen. Gebaut endet jede Verbindung mit `busy == false` sofort, auch mit halber Nachricht und im Handshake; der Widerspruch ist im Slice (§3, §6) als offene Nutzerentscheidung benannt, in der Spezifikation und in der Nutzer-Doku nicht gekennzeichnet. Wer die Spec liest, nimmt die „Gebaut:“-Sätze als vollständigen Ist-Stand. | AGENTS.md §3.8; SPEC-044 | `spec/spezifikation.md` · „bleibt bis zum Ablauf der Frist\noffen und wird dann getrennt“ (Abschnitt `SPEC-044`, Schlussabsatz) | nein — Test mit halber Nachricht beim Beginn fehlt; Lesen von `TdsListener.shutdown` | Spec widerspricht gebautem Stand ohne Kennzeichnung |
+| F-3 | LOW | `ServerSmokeTest > Ein abrupter TCP-Abbruch waehrend einer Anfrage laesst den Prozess erreichbar` trägt `@spec SPEC-029` und `TDS-QA-02`, bleibt aber grün, wenn die Disconnect-Erkennung entfernt ist (Mutation M2: 5 rote Tests, keiner davon `ServerSmokeTest`); ein Schreibfehler auf den toten Socket beendet die Verbindung auch ohne `hangUp`. Dasselbe gilt für das beschädigte PRELOGIN (Code unverändert, Test belegt Bestand). Der KDoc des RST-Tests ist ehrlich (verweist für das Zählen am Strom auf `ConnectionLeakTest`/`DisconnectTest`), das Tag zählt in `make spec-abdeckung` aber als Beleg für `SPEC-029`. | AGENTS.md §3.8; Maintainability | `src/test/.../runtime/ServerSmokeTest.kt` · „Ein abrupter TCP-Abbruch waehrend einer Anfrage laesst den Prozess erreichbar“ (`@spec SPEC-029`) | ja — Mutation M2 | Nicht diskriminierender Test trägt Spec-Tag |
+| F-4 | LOW | `ConnectionRegistry.refusal()` nimmt die Sperre ein zweites Mal, nachdem `admit` abgewiesen hat. Gibt in der Lücke eine Verbindung einen Platz frei (und das Beenden hat nicht begonnen), meldet das Ereignis `REFUSED_AT_SHUTDOWN` für eine Abweisung an der Grenze. Wirkung nur auf die Ursache im Ereignis; ein Test dafür fehlt. | Maintainability | `src/main/.../ConnectionRegistry.kt` · „open fun refusal(): ConnectionEnd“ | nein | Ursache in zweitem Sperrfenster erhoben |
+| F-5 | LOW | Die Zeile „TCP-Listener“ der Kompatibilitätsmatrix beschreibt das Beenden unverändert („eine laufende Anfrage hält ihre Verbindung bis zum Abschluss oder zum Fristablauf, Frist 0 trennt sofort“). Auf Listener-Ebene ohne angemeldeten Abbruch gilt das; mit der Verdrahtung des Produkts folgt auf den Fristablauf der Abbruch und erst nach `CANCEL_TIMEOUT` das Trennen. Die Änderungsliste des Slice nennt die Matrix nicht; Disconnect und `MAX_CONNECTIONS` haben dort keine Zeile. | AGENTS.md §3.8; Fortschreibung | `docs/plan/kompatibilitaetsmatrix.md` · „Frist 0 trennt sofort“ | ja — `make matrix-zitate` prüft nur die Zitate, nicht die Aussage | Fortschreibung lässt zweite Fundstelle stehen |
+| F-6 | LOW | `docs/user/einbettung-und-betrieb.md` und `SPEC-047` nennen, dass `SHUTDOWN_GRACE` plus `CANCEL_TIMEOUT` (15 s) die Voreinstellung von `docker stop` (10 s) übersteigt; `docs/user/testserver-manuell.md` (dort stoppt `make testserver-down` den Container mit laufender Anfrage) und die Zeilen zu `make testserver-down`/`make laufzeittest` in `harness/README.md` sagen es nicht. Die Aussage in der Betriebsdoku ist als „nicht gemessen“ gekennzeichnet. | Maintainability; AGENTS.md §5 Nr. 5 | `docs/user/testserver-manuell.md` · „`make testserver-down` \| stoppt und entfernt den Container“ | nein | Zweite Fundstelle einer neuen Einschränkung |
+| F-7 | INFO | Die Festlegungen sind gekennzeichnet: 250 ms `HANDLER_EXIT_WAIT` („Festlegung, nicht gemessen“, `SPEC-044` Nr. 5, KDoc `TdsListener.shutdown`, Nutzer-Doku), Wertebereiche `MAX_CONNECTIONS` 1 bis 100000 und `SHUTDOWN_GRACE` 0 bis 3600 (`SPEC-034`, `SPEC-047`: „Festlegung, nicht gemessen“), Form `DONE[ATTN]` ohne ERROR im Beenden, Abweisung ohne Antwortbytes, Ende der Gegenstelle als Disconnect auch bei halb geschlossener Verbindung. Kein Befund. | AGENTS.md §3.8 | `spec/spezifikation.md` · „höchstens 250 ms auf sein Ende“ | nein | — |
+| F-8 | INFO | Die Test-Gegenstellen `FakeHandshakeChannel.holdEndWhile`, `ScriptedWire.holdEndWhile` und die Vorbelegung in `Session`/`WireSession` verzögern Ende und Lesefehler, solange der Zustand `RUNNING`/`STREAMING`/`CANCELLING` ist, per `while (holdEndWhile()) yield()`. Alle bestehenden Tests blieben grün; die Verzögerung nimmt keinem bestehenden Test eine Aussage (ein Ende während der Anfrage ist jetzt Disconnect und hat `DisconnectTest`). Bleibt der Zustand je in einem Anfragezustand hängen, wird aus einem Assertionsfehler ein Warten bis zur Zeitgrenze des Tests. | Maintainability | `src/test/.../session/SessionSupport.kt` · „while (holdEndWhile()) yield()“ | nein | Test-Gegenstelle mit Busy-Wait |
+| F-9 | INFO | Öffentliche Fläche und Gates: `ListenSettings` und `RequestSettings` bekommen je ein Feld mit Voreinstellung (am Ende, positionelle Aufrufe bleiben gültig, `data class`-`copy`/`componentN` ändern sich, binär inkompatibel vor `1.0`, durch die Zusage von `SPEC-059` „nur durch Änderung der Spezifikation“ gedeckt). Kein neuer öffentlicher Typ; `SPEC-059`-Namensliste führt nur Typen und bleibt richtig. Kein `@Suppress`, `config/detekt/detekt.yml`, `build.gradle.kts`, `Dockerfile` unverändert: kein Gate gelockert. Der Verzicht auf einen Typ `ConnectionSettings` wegen `LongParameterList` ist damit ohne Lockerung gelöst. | AGENTS.md §3.2, §3.6 | `src/main/.../config/ServerConfig.kt` · „val maxConnections: Int = ConfigDefaults.MAX_CONNECTIONS“ | ja — `make detekt` (nicht gelaufen) | — |
+| F-10 | INFO | Für den Merge mit dem Umbau `slice-testserver-gradle-modul` (ADR-0034): berührte Dateien, die der Umbau mitverschiebt: `src/testserver/.../ConfigLoader.kt`, `EnvKeys.kt`, `src/testserver/test/.../ConfigLoaderTest.kt` (Pfad und Package ändern sich); `tools/e2e.sh` (eine Zeile, `e2e_abdeckung` Stufe 1, sehr lang: Konfliktpunkt bei jeder Änderung derselben Zeile); `docs/plan/e2e-abdeckung.md` (erzeugt: nach dem Merge mit `make e2e-abdeckung` neu erzeugen, nicht von Hand mergen); zusätzlich `src/test/.../runtime/ServerProcess.kt` (Parameter `mainClass`, Konstante `RUNNING_TABLE_MAIN` mit dem Klassennamen `io.github.pt9912.tdswire.testserver.KompatibilitaetsServerKt` und der Klassenpfad des Testservers), `ServerSmokeTest` und `ShutdownWiringTest` (starten das `main` des Testservers per Klassenpfad bzw. nutzen `ConfigKeys` der Bibliothek). Die Tabellen `spec/spezifikation.md` (`SPEC-005`, `SPEC-034`, `SPEC-047`, `SPEC-052`, `SPEC-059`) berühren beide Slices. | Maintainability | `src/test/.../runtime/ServerProcess.kt` · „RUNNING_TABLE_MAIN“ | nein | — |
+
+## Prüfung der gestellten Fragen (Kurzantworten)
+
+1. **Korrektheit.** Cancel genau einmal: gelesen (`fire` gewinnt über `claim`; `inertWhileCancelling` enthält `SHUTDOWN_GRACE_EXPIRED`) und durch `DisconnectTest` (CANCELLING) mit M1 rot belegt. Keine Schreibzugriffe nach Disconnect: `RequestLoop` prüft `CLOSED` vor `finished`/`aborted.conclude`; `watcher.cancelAndJoin()` kommt nach `endsInTime`, `hangUp` läuft in `NonCancellable`, damit schließt die Sitzung, bevor `Cut` geschrieben wird. Ein Schreibvorgang des Laufs zwischen Lesen des Endes und `dispatch(PeerClosed)` ist möglich, trifft aber einen toten Kanal (kein Befund; `SPEC-029` sagt „es wird nichts mehr geschrieben“, der Test misst `writtenChunks`). Race beim Beenden: Eine Anfrage, die zwischen Lesen und `announce(true)` mit dem Beginn zusammentrifft, geht mit dem Schließen verloren; `SPEC-044` Nr. 3 hält fest, dass was nach dem Ende der vorigen eintrifft, die getrennte Verbindung trifft (Festlegung) — dokumentiert und vertretbar, aber die Reichweite in Nutzer-Doku und `SPEC-049` fehlt (F-1). Listener-Rückkehr bei ignorierendem Handler: begrenzt durch Frist + `CANCEL_TIMEOUT` + 250 ms, durch `ListenerAbortTest > ein Handler, der den Abbruch ignoriert, …` und `ShutdownWiringTest` belegt, 250 ms als Festlegung gekennzeichnet. Ein Ablauf der Frist, während `RequestLoop.active == null` (zwischen Annahme und Start des Laufs), ruft keinen Abbruch; der Listener trennt nach `CANCEL_TIMEOUT` (begrenzt, kein Befund).
+2. **Tests.** Siehe M1/M2. Diskriminierend gegen die Disconnect-Erkennung: `DisconnectTest` (4 von 6), `ConnectionLeakTest`. Nicht diskriminierend: RST-Test und beschädigtes PRELOGIN im `ServerSmokeTest` (F-3). Der Prozess-Stop-Test belegt den Abbruch nach der Frist über die Prozessgrenze (`DONE[ATTN]` am Ende), nicht Disconnect.
+3. **Aussage ≤ Beleg.** Wertebereiche und Docker-Vergleich gekennzeichnet (F-7); Widersprüche F-1, F-2.
+4. **Öffentliche Fläche.** F-9.
+5. **Zweite Fundstellen.** F-5, F-6; kein Treffer mehr für die alte Lesart in `spec/`, `docs/user`, `README.md`, `harness/`, `src/main`.
+6. **Merge-Punkte.** F-10.
+
+## Negativbefunde
+
+| Bereich | Ergebnis |
+|---|---|
+| `src/main/.../protocol/dispatch` (`AbortableRun`, `AbortedAnswer`, `InboundTray`, `RequestLoop`, `ShutdownGate`) | geprüft, ohne Befund (Cancel-Race, Schreiben nach Disconnect, `SHUTDOWN`-Pfad gelesen; M1/M2 rot an der erwarteten Stelle) |
+| `src/main/.../protocol/session` (Matrix, Automat, Ereignisse) | geprüft, ohne Befund (`SHUTDOWN_GRACE_EXPIRED` in allen Zellen, `HandshakeMatrixTest` zählt Zellen aus der Matrix) |
+| `src/main/.../transport/listener` (`TdsListener`, `ManagedConnection`, `ConnectionRegistry`, `ListenerConfig`, `ListenerEvents`) | geprüft, Befund F-4 |
+| `src/main/.../runtime` (`Bootstrap`, `ConnectionWiring`, `ConnectionShutdownGate`) | geprüft, ohne Befund; Schichtrichtung `runtime` → `transport`/`protocol` eingehalten, `protocol` kennt den Transport nicht |
+| `src/main/.../config` | geprüft, ohne Befund (Bereiche, Voreinstellungen, Doku in KDoc stimmen mit Spec überein) |
+| `src/testserver` (Eingänge `MAX_CONNECTIONS`, `SHUTDOWN_GRACE`) und `ConfigLoaderTest` | geprüft, ohne Befund |
+| Kommentare im Diff (`AGENTS.md` §3.7) | geprüft, ohne Befund (Indikativ, keine verworfenen Alternativen, keine abwesenden Texte) |
+| Suppression, `detekt.yml`, `build.gradle.kts`, `Dockerfile` | geprüft, ohne Befund (unverändert) |
+| `spec/architecture.md`, `spec/lastenheft.md`, ADRs | geprüft, ohne Befund (unverändert; keine Slice-/ADR-Bezüge in der Sicht) |
+| Slice-Plan §2/§3 | geprüft, ohne Befund (Änderungsliste deckt die Dateien; fehlende Nennung der Matrix siehe F-5) |
+
+## Summary
+
+0 HIGH, 2 MEDIUM, 4 LOW, 4 INFO. Kein Korrektheitsfehler im kritischen Pfad (`TDS-QA-07`) gefunden; die Disconnect-Erkennung ist durch zwei Mutationen als diskriminierend belegt. Die MEDIUM-Befunde betreffen die Reichweite von `TDS_SHUTDOWN` in Doku/`SPEC-049` und den ungekennzeichneten Widerspruch von `SPEC-044` (Verbindung mit halber Nachricht) zum gebauten Stand. Kein Konflikt-Pfad nötig (kein HIGH, kein Rollen-Widerspruch).
+
+Klassen für den Zähler: „Aussage breiter als Beleg (Reichweite einer Antwort)“, „Spec widerspricht gebautem Stand ohne Kennzeichnung“, „Nicht diskriminierender Test trägt Spec-Tag“, „Fortschreibung lässt zweite Fundstelle stehen“.
