@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** [TDS-FA-10](../../../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte).a Schritt 2 und 3 (Statusbits, RETURNSTATUS, Ordinal) · SPEC-030 (RETURNSTATUS-Regel, Ordinal der RETURNVALUE, Handle) · SPEC-031 (`DONE_MORE` bei statement-abbrechendem Fehler, `curCmd`) · Abschnitt „Query-Backend (Vertrag zu `SPEC-022`)“ (Festlegungen des Response Sequencers, Herkunft der Befehlskennung, RPC im Backend-Vertrag) · SPEC-045 (Ausnahmeliste: Zeilen A-10 und A-16). Die Spezifikation ändert dieser Slice bei der Umsetzung, nicht der Plan.
 
-**Verantwortlich:** — bis zur Priorisierung (pt9912 trägt sich beim Übergang `open` → `next` ein).
+**Verantwortlich:** Implementer-Agent, Auftrag des Nutzers 2026-11-06.
 
 **Autor:** pt9912 (Entwurf in der Planner-Rolle). **Datum:** 2026-11-06.
 
