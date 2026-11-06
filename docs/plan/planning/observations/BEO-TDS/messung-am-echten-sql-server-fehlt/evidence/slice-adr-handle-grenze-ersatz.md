@@ -1,0 +1,2 @@
+**Vorgang:** [slice-adr-handle-grenze-ersatz](../../../../in-progress/slice-adr-handle-grenze-ersatz.md)
+**Fund:** [ADR-0036](../../../../../adr/0036-handle-freigabe-und-grenze-je-sitzung.md) Offen 3: RETURNSTATUS auf `sp_prepexec`, Antwort auf `sp_unprepare` mit unbekanntem Handle, Handles je Sitzung und Speicher je Handle sind am echten SQL Server nicht gemessen; Träger [slice-qa-vergleichslauf-d-messungen](../../../../open/slice-qa-vergleichslauf-d-messungen.md).

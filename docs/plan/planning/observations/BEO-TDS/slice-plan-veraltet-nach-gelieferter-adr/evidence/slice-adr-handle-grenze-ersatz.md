@@ -1,0 +1,2 @@
+**Vorgang:** [slice-adr-handle-grenze-ersatz](../../../../in-progress/slice-adr-handle-grenze-ersatz.md)
+**Fund:** [Verifikation](../../../../../../reviews/2026-11-06-b75f58c-verifikation-slice-adr-handle-grenze-ersatz.md) V-1: Slice-§3 nannte [ADR-0036](../../../../../adr/0036-handle-freigabe-und-grenze-je-sitzung.md) `Proposed`, und die DoD-Haken „Optionen“, „Liste der Spec-Änderungen“, „Review“, „`make gates`“ standen offen, obwohl `Accepted` und die Belege vorlagen. Zählerstand 3×: Schwelle erreicht, Verkörperungsvorschlag an den Nutzer steht in §7 des Slice.
