@@ -320,7 +320,7 @@ class PreparedHandlesDispatchTest {
 
     /**
      * Folgt dem Handle-RETURNVALUE ein Fehler des Backends (Ausgabewert, dann `Failure`), hat das Handle den
-     * Client schon erreicht: die Antwort trägt `@handle` mit Ordinal 0 vor dem ERROR, und das Handle bleibt
+     * Client schon erreicht: die Antwort trägt das Handle ohne Namen mit Ordinal 0 vor dem ERROR, und das Handle bleibt
      * gültig (`sp_execute` wird ausgeführt). Gemessen ist das gegen das Test-Backend; die Aussage gilt
      * nur für diesen Fall (Setzung). Wächter: ein Freigeben trotz gesendetem Handle.
      *

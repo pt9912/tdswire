@@ -168,6 +168,39 @@ class UnprepareDispatchTest {
     }
 
     /**
+     * Die Antwort auf eine Freigabe mit sehr vielen unbekannten Nummern ist begrenzt (`SPEC-060`, Setzung nach
+     * `UnprepareBatch.MAX_REPORTED`): 50000 unbekannte Nummern vor einem gehaltenen Handle ergeben genau
+     * `MAX_REPORTED` ERROR (die ersten, in der Reihenfolge des Textes), ein DONE mit Fehlerstatus und ebenso viele
+     * Log-Einträge; das gehaltene Handle am Ende des Textes ist trotzdem frei. Wächter: eine Antwort mit einem ERROR je
+     * Nummer (50000 Token), ein Log mit einem Eintrag je Nummer, eine Begrenzung, die die Bearbeitung der übrigen
+     * Nummern abbricht (das Handle 1 bliebe gehalten).
+     *
+     * @spec SPEC-060
+     * @spec SPEC-030
+     */
+    @Test
+    fun `Sehr viele unbekannte Nummern ergeben eine begrenzte Antwort und ein begrenztes Log`() = blocking {
+        val backend = ScriptedBackend.ofList(*oneRow.toTypedArray())
+        val count = 50_000
+        val text = (1..count).joinToString(";") { "EXEC sp_unprepare ${it + 1}" } + ";EXEC sp_unprepare 1"
+        val session = Session.login(
+            rpc(prepExec(-1, "select 1", "")),
+            batch(text),
+            rpc(execute(1)),
+            Inbound.EndOfStream,
+        )
+        val logged = mutableListOf<ErrorLogEntry>()
+        val loop = session.loop(backend, ErrorMapper(ErrorLog { logged += it }))
+        loop.run()
+        val limit = UnprepareBatch.MAX_REPORTED
+        assertEquals((2..limit + 1).map { notFound(it) }, session.errors(1))
+        assertEquals(limit + 1, session.tokens(1).size)
+        assertEquals(DoneStatus.ERROR, session.tokens(1).lastDone().status)
+        assertEquals(limit, logged.count { it.code == ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE })
+        assertEquals(unknownHandle, session.errors(2).single())
+    }
+
+    /**
      * Ein Text, der nicht ganz die Form der Freigabe hat, geht unverändert an das Backend und gibt nichts frei:
      * gemischter Batch, andere Schreibweise, nichtnumerisches und negatives Argument, eine Zahl über `Int`. Das Handle
      * 1 bleibt danach gültig. Wächter: ein Leser, der Teile eines gemischten Textes freigibt oder die Schreibweise

@@ -75,6 +75,7 @@ class HandleLimitEmbeddingTest {
      *
      * @spec SPEC-058
      * @spec SPEC-059
+     * @spec SPEC-061
      * @spec SPEC-030
      */
     @Test
@@ -109,6 +110,7 @@ class HandleLimitEmbeddingTest {
      *
      * @spec SPEC-058
      * @spec SPEC-059
+     * @spec SPEC-061
      */
     @Test
     fun nullUndNegativeGrenzenBrechenDenStartAbUndDieVoreinstellungIst1000() {

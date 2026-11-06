@@ -31,6 +31,12 @@ internal object UnprepareBatch {
     private const val MAX_DIGITS = 10
     private const val FAILED = -1
 
+    /**
+     * Die Obergrenze der Nummern, die eine Antwort mit einem ERROR (und das Log mit einem Eintrag) nennt (`SPEC-060`,
+     * Setzung, nicht gemessen); weitere unbekannte Nummern desselben Batches bleiben ohne eigenen ERROR.
+     */
+    const val MAX_REPORTED = 100
+
     /** Die feste Marke im Log für eine Nummer, die die Sitzung nicht hielt. */
     const val UNKNOWN_CAUSE = "unknown-prepared-handle"
 
@@ -71,14 +77,16 @@ internal object UnprepareBatch {
      * Gibt jede der [numbers] der Reihe nach in [handles] frei und beantwortet den Batch, ohne ein Backend zu rufen:
      * hielt die Sitzung jedes Handle, ein DONE ohne Bits und ohne Zeilenzahl, wie die Antwort eines Batches ohne
      * Ergebnis (Festlegung, die Tokenfolge eines echten Servers ist nicht gemessen); sonst die Antwort des [errors]
-     * mit einem ERROR je Nummer, die die Sitzung nicht hielt. Die Verbindung bleibt in beiden Fällen offen.
+     * mit einem ERROR je Nummer, die die Sitzung nicht hielt, für höchstens die ersten [MAX_REPORTED] davon (alle
+     * Nummern werden bearbeitet; das Log trägt ebenso viele Einträge wie die Antwort ERROR). Die Verbindung bleibt in
+     * beiden Fällen offen.
      */
     suspend fun answer(
         numbers: List<Int>,
         handles: PreparedHandles,
         errors: ErrorMapper,
     ): HandshakeEvent.RequestFinished {
-        val unknown = numbers.filterNot { handles.release(it) }
+        val unknown = numbers.filterNot { handles.release(it) }.take(MAX_REPORTED)
         if (unknown.isNotEmpty()) {
             val code = ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE
             val response = errors.code(code, cause = UNKNOWN_CAUSE, handles = unknown)

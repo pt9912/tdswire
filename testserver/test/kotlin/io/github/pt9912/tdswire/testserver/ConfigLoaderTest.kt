@@ -158,6 +158,7 @@ internal class ConfigLoaderTest : TempFilesTest() {
      * `0` oder `-1` still annimmt oder durch die Voreinstellung ersetzt, ein vertauschter Schlüssel.
      *
      * @spec SPEC-058
+     * @spec SPEC-061
      */
     @Test
     fun `MAX_PREPARED_HANDLES null ist ausserhalb, negativ und nichtnumerisch ungueltig`() {
