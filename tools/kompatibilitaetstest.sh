@@ -133,7 +133,7 @@ fi
 
 if [ "$KATEGORIE" = Synchronitaet ]; then
   # Jede Anfrage an `laufend` endet nur durch einen Abbruch (ATTENTION des Clients oder Frist des Servers); das Backend
-  # erhaelt je Anfrage genau einen Cancel, auch wenn Cancel() und Command-Timeout des Clients zusammentreffen.
+  # gleicht die Summe der Cancels am Backend der Summe dieser Anfragen (kein Vergleich je Anfrage).
   cancel_je_laufende_anfrage() {
     local anfragen cancels
     anfragen="$(docker logs "$SERVER" 2>&1 | grep -cF 'sql=[SELECT Id, Text FROM laufend]')"
@@ -141,7 +141,7 @@ if [ "$KATEGORIE" = Synchronitaet ]; then
     echo "kompatibilitaetstest: Anfragen an laufend: $anfragen, Cancel am Backend: $cancels"
     [ "$anfragen" -gt 0 ] && [ "$anfragen" = "$cancels" ]
   }
-  pruefe "Backend: genau ein Cancel je Anfrage an laufend" cancel_je_laufende_anfrage
+  pruefe "Backend: Summe der Cancels gleicht der Summe der Anfragen an laufend" cancel_je_laufende_anfrage
 fi
 
 if [ "$KATEGORIE" = Luecken ]; then

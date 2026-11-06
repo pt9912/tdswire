@@ -29,14 +29,14 @@ Der Carveout ist aufgelöst, wenn beides zutrifft: (a) `slice-attention-cancel-t
 
 ## Geltungs-Konfiguration
 
-Stellen, die die Lücke nennen (keine Gate-Konfiguration):
+Stellen, die den Lauf beschreiben (keine Gate-Konfiguration; Stand nach dem Szenario, der Carveout bleibt bis zur Closure des Folge-Slice):
 
 | Datei | Zeile/Section | Wert |
 |---|---|---|
-| `spec/spezifikation.md` | `SPEC-040` | „Cancel mit Folgeabfrage gehört nicht zum Lauf“ |
-| `referenztest-dotnet/Integration/SimulationBackendTests.cs` | KDoc | nennt die Lücke |
-| `tools/simulationstest.sh` | Kopf | nennt die Lücke |
-| `harness/README.md` | Sensor-Zeile `make simulations-integration` | nennt die vier laufenden Szenarien und diesen Carveout als Bindung |
+| `spec/spezifikation.md` | `SPEC-040` | nennt das Cancel-Szenario als Teil des Laufs; `CancellationToken`, Command-Timeout und `QUERY_TIMEOUT` stehen in Stufe 7 |
+| `referenztest-dotnet/Integration/SimulationBackendTests.cs` | KDoc | nennt das Cancel-Szenario |
+| `tools/simulationstest.sh` | Kopf | nennt das Cancel-Szenario |
+| `harness/README.md` | Sensor-Zeile `make simulations-integration` | nennt Cancel unter den Zielen des Laufs, ohne Bindung an diesen Carveout |
 
 ## Verifikation (nach Auflösung)
 

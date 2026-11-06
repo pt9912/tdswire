@@ -9,7 +9,7 @@
 **Eingangs-Kontext:**
 
 - `slice-cancel-referenzclient-szenario` (Plan, DoD, Risiken)
-- ADR-0027 (Entscheidungen 1 und 2, Re-Evaluierungs-Trigger), ADR-0025 (Testserver nur über die öffentliche Fläche), CO-004
+- [ADR-0027](../plan/adr/0027-abbruch-und-zuruecksetzen.md) (Entscheidungen 1 und 2, Re-Evaluierungs-Trigger), [ADR-0025](../plan/adr/0025-produktschnitt-bibliothek-und-testserver.md) (Testserver nur über die öffentliche Fläche), CO-004
 - `TDS-FA-07`, `TDS-QA-07` (Lastenheft), SPEC-040, SPEC-036 (Form C)
 - `AGENTS.md` §3.6, §3.7, §3.8
 
@@ -33,7 +33,7 @@
 
 1. **Messaussagen und Belege.** 418–419 Zeilen, `Number 0/Class 11`, `-2` nach 2006 ms (Lauf: 2005 ms), 50005, Rohbefunde in Matrix und `messung:`-Zeilen des Berichts: nachvollzogen und im Lauf wiederholt. Die Messzeilen stehen nur im Testbericht des Laufs (Konvention der Matrix), nicht als abgelegtes Messprotokoll; sie sind durch Wiederholung nachlesbar. Nicht nachlesbar: der Erkundungslauf bei 3 s (F-6). Rot-gesehen-Gegenproben sind einmalige Läufe, hier nicht wiederholt; für die Skript-Prüfungen fehlen sie (F-2).
 2. **`SELECT 1` → `SELECT 2`.** Gerechtfertigt: `SELECT 1` ist Form C (SPEC-036; `FixedForms.kt`, `FixedAnswers.kt`) und wird beantwortet, der Test erwartet 50001. Dass der Test auf der Basis rot war, folgt aus dem Code und der Commit-Nachricht („seit Form C gültig“); ein Lauf auf der Basis wurde weder hier noch (nach Aktenlage) vom Implementer belegt. Die Matrix zieht die Änderung nicht nach (F-1).
-3. **Öffentliche Fläche (ADR-0025).** `LaufendeQuelle.kt` importiert `SqlType`, `RowSource`, `SimColumn`, `SimTable` (alle `public`); `internal` betrifft nur Deklarationen im Source-Set `testserver` selbst. Kein Zugriff auf `internal` der Bibliothek.
+3. **Öffentliche Fläche ([ADR-0025](../plan/adr/0025-produktschnitt-bibliothek-und-testserver.md)).** `LaufendeQuelle.kt` importiert `SqlType`, `RowSource`, `SimColumn`, `SimTable` (alle `public`); `internal` betrifft nur Deklarationen im Source-Set `testserver` selbst. Kein Zugriff auf `internal` der Bibliothek.
 4. **Grün aus falschem Grund.** Cancel-Tests: Der Client-Fehler `Number 0, Class 11` und der Server-Fristfehler 50005 unterscheiden sich; ein Ende durch die Frist färbt die Tests rot. Token- und Command-Timeout-Test binden die Folgeabfrage zusätzlich an `< 5 s`. Der Frist-Test fordert 4 bis 10 s. Der kombinierte Test (Cancel + Command-Timeout) fordert nur `Open` und die eigene Antwort, nicht die Art der Ausnahme; die Matrix zitiert die Nummern (0 vor, −2 gleichzeitig und danach) als Messung, im Lauf bestätigt, vom Test nicht erzwungen. Kein Test ist nach Aktenlage grün, wenn die Frist des Servers statt des Client-Cancels die Anfrage beendet, mit Ausnahme der Lücke in F-2 (Summenprüfung).
 5. **DoD „Handlerfehler“.** Siehe F-5.
 6. **CO-004 nicht verschoben.** Korrekt: Trigger (a) verlangt beide Slices in `done/`; die Geschichte hält „bleibt Aktiv“. Die DoD-Punkte 1 und 2 sind zu Recht nicht abgehakt (Verschieben des Carveouts gehört zur Closure; Folgepflicht (c) ATTENTION im Leerlauf ist am Referenzclient ausdrücklich „nicht belegt“, (a) nur teilweise, siehe F-3) — für den Verifier. Verbleibend: F-4.
@@ -50,11 +50,11 @@
 | `spec/spezifikation.md` (SPEC-040) | geprüft, ohne Befund (präzisiert, erweitert das Lastenheft nicht; Fehler/Abbruch deckt `TDS-FA-07`) |
 | `harness/README.md` (Sensor-Zeilen) | geprüft, ohne Befund (196 Zeichen je Zelle; die Bindung an CO-004 entfällt, der Carveout nennt die Zeilen weiter, F-4) |
 | `docs/plan/e2e-abdeckung.md`, `docs/user/testserver-manuell.md` | geprüft, ohne Befund über F-2 hinaus |
-| `docs/plan/kompatibilitaetsmatrix.md` | Befunde F-1, F-3; ADR-0027-Trigger-Aussage (Entscheidungen 1 und 2 nicht eingetreten) vom Lauf getragen, ohne Befund |
+| `docs/plan/kompatibilitaetsmatrix.md` | Befunde F-1, F-3; [ADR-0027](../plan/adr/0027-abbruch-und-zuruecksetzen.md)-Trigger-Aussage (Entscheidungen 1 und 2 nicht eingetreten) vom Lauf getragen, ohne Befund |
 | `docs/plan/carveouts/CO-004-…` | Befund F-4 |
 | `docs/plan/planning/in-progress/slice-cancel-referenzclient-szenario.md` | Befund F-5 |
 | Hard Rules §3.1, §3.2, §3.5, §3.6 | geprüft, ohne Befund (kein Gate gelockert, keine ADR geändert, keine Suppression) |
 
 ## Summary
 
-0 HIGH, 2 MEDIUM (F-1, F-2), 2 LOW (F-3, F-4), 3 INFO (F-5 bis F-7). Die Messaussagen der Matrix tragen im wiederholten Lauf; die Re-Evaluierungs-Trigger von ADR-0027 sind nicht eingetreten. Konflikt-Pfad nicht ausgelöst (kein HIGH, kein Rollen-Widerspruch bisher).
+0 HIGH, 2 MEDIUM (F-1, F-2), 2 LOW (F-3, F-4), 3 INFO (F-5 bis F-7). Die Messaussagen der Matrix tragen im wiederholten Lauf; die Re-Evaluierungs-Trigger von [ADR-0027](../plan/adr/0027-abbruch-und-zuruecksetzen.md) sind nicht eingetreten. Konflikt-Pfad nicht ausgelöst (kein HIGH, kein Rollen-Widerspruch bisher).
