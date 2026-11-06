@@ -18,7 +18,6 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 
 - [welle-qualitaet-grundlage](../welle-qualitaet-grundlage.md)
 - [welle-anfrageverarbeitung](../welle-anfrageverarbeitung.md)
-- [welle-fehler-abbruch](../welle-fehler-abbruch.md)
 - [welle-betrieb-diagnose](../welle-betrieb-diagnose.md)
 - [welle-referenzabgleich-release](../welle-referenzabgleich-release.md)
 - [welle-produktschnitt](../welle-produktschnitt.md)
@@ -35,10 +34,6 @@ In Arbeit (Welle welle-testserver-manuell):
 In Arbeit (Welle welle-anfrageverarbeitung):
 
 - keiner; zuletzt geschlossen: [slice-anfragefolge-gesamttest](../done/slice-anfragefolge-gesamttest.md) (Closure-Notiz in §7 des Slice; offener Nutzerpunkt: Lesart „Nachrichten, nicht Transport“ des Wellen-Wortlauts „Rohbytes-Lauf“, die Welle schließt nicht ohne diesen Zusatz)
-
-In Arbeit (Welle welle-fehler-abbruch):
-
-- keiner; zuletzt geschlossen: [slice-abbruch-ressourcen-shutdown](../done/slice-abbruch-ressourcen-shutdown.md) (Closure-Notiz in §7 des Slice; offene Nutzerpunkte: Spannung zwischen `SPEC-044` Nr. 2 und Nr. 3 und Handshake, `BEO-TDS/shutdown-ruhende-verbindung-endet-vor-tds-shutdown`; alle Slices der Welle in `done/`, Welle-Closure fällig), davor [slice-cancel-referenzclient-szenario](../done/slice-cancel-referenzclient-szenario.md) (Closure-Notiz in §7 des Slice; [CO-004](../../carveouts/done/CO-004-cancel-szenario-spec-040-fehlt.md) aufgelöst; offen: Folgepflichten (a) und (c) des Cancel-Teils von [TDS-QA-07](../../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität), Träger [slice-referenzabgleich-mitschnitt](../done/slice-referenzabgleich-mitschnitt.md)), davor [slice-resetconnection-zuruecksetzen](../done/slice-resetconnection-zuruecksetzen.md) (offener Nutzerpunkt: Handle-Aliasing nach dem Zurücksetzen)
 
 In Arbeit (Welle welle-betrieb-diagnose):
 
@@ -113,6 +108,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 | welle-handshake-login | 2026-10-31 | [welle-handshake-login-results](../done/welle-handshake-login-results.md) |
 | welle-backend-streaming | 2026-10-31 | [welle-backend-streaming-results](../done/welle-backend-streaming-results.md) |
 | welle-simulations-backend | 2026-10-31 | [welle-simulations-backend-results](../done/welle-simulations-backend-results.md) |
+| welle-fehler-abbruch | 2026-11-06 | [welle-fehler-abbruch-results](../done/welle-fehler-abbruch-results.md) |
 
 ## Historische Trigger-Verschiebungen
 
