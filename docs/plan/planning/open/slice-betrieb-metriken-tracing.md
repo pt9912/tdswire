@@ -79,7 +79,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `src/main/kotlin/io/github/pt9912/tdswire/observability/` <!-- d-check:ignore (geplant: neue Datei) --> | update | Adapter für Spans und Metriken nach der ADR |
 | Instrumentierung in `transport`, `protocol` und im Backend-Adapter | update | Aufrufe der Schnittstelle an den Stellen der drei Spans; keine fachliche Entscheidung im Adapter (ARC-009) |
 | `src/main/kotlin/io/github/pt9912/tdswire/config/` (`ServerConfig`, `ConfigValidation`) | update | Feld und Prüfung für den Abstand der Schnappschüsse |
-| `src/testserver/` | update | Lader liest `METRICS_INTERVAL_SECONDS`; Adapter serialisiert `metrics` und Span-Ende |
+| `testserver/` | update | Lader liest `METRICS_INTERVAL_SECONDS`; Adapter serialisiert `metrics` und Span-Ende |
 | `src/test/kotlin/io/github/pt9912/tdswire/observability/` <!-- d-check:ignore (geplant: neue Datei) --> | neu | Rohbytes-Lauf mit Sammler, Kardinalität, Ausfall des Adapters; `@spec`-Tag SPEC-017, SPEC-018, SPEC-019 |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.

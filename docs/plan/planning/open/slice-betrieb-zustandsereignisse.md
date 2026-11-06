@@ -79,7 +79,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `src/main/kotlin/io/github/pt9912/tdswire/runtime/` und `config/` <!-- d-check:ignore (geplant: neue Datei) --> | update | Zustandsereignisse (Aufrufe der Senke) an den Stellen von Start, Bindung, Beenden; fehlende Konfigurationsschlüssel in `ServerConfig` und `ConfigValidation` |
-| `src/testserver/` | update | Lader liest fehlende Umgebungsnamen; Adapter serialisiert neue Ereignisarten (geschlossene Menge, ein `when` ohne `else` bricht die Übersetzung, wenn eine Art fehlt) |
+| `testserver/` | update | Lader liest fehlende Umgebungsnamen; Adapter serialisiert neue Ereignisarten (geschlossene Menge, ein `when` ohne `else` bricht die Übersetzung, wenn eine Art fehlt) |
 | `src/test/kotlin/io/github/pt9912/tdswire/runtime/` <!-- d-check:ignore (geplant: neue Datei) --> | neu | Ereignisfolge am Serverprozess mit Sammler; Konfigurationstests Happy/Boundary/Negative; `@spec`-Tag SPEC-005, SPEC-010, SPEC-043 |
 | `tools/mk/` | update | Make-Target des Prozesstests in Docker (Name legt der Implementer fest, Eintrag in `harness/README.md` §Sensors) |
 

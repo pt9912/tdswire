@@ -90,7 +90,7 @@ Diese Datei dupliziert sie nicht.
 
 | Target | Tut was | Bindung |
 |---|---|---|
-| `make deps-lock` | schreibt `gradle.lockfile` und `gradle/verification-metadata.xml` neu (braucht Netz), prüft nichts | kein Gate |
+| `make deps-lock` | schreibt `gradle.lockfile`, `testserver/gradle.lockfile`, `settings-gradle.lockfile` und `gradle/verification-metadata.xml` neu (braucht Netz), prüft nichts | kein Gate |
 | `make spec-abdeckung` | führt die Tests aus, schreibt `docs/plan/spec-abdeckung.md` (je `SPEC-*` bestandene Tests, Waisen); `SPEC_ABDECKUNG_STRENG=1` bricht bei Waisen; Tag `@spec`: Kopf von `tools/spec-abdeckung.sh` | kein Gate |
 | `make spec-abdeckung-selbsttest` | prüft den Erzeuger der Abdeckungsmatrix an einem erzeugten Mini-Bestand: roter, nicht gelaufener, übersprungener und unbekannt getaggter Test zählen nicht | kein Gate |
 | `make matrix-zitate` | baut die Stage `test` frisch; jedes Zitat `Klasse > Testfall` der Kompatibilitätsmatrix muss als PASSED im Bericht stehen, sonst Exit 1 mit Liste | kein Gate, [TDS-QA-05](../spec/lastenheft.md#tds-qa-05--wartbarkeit) |
