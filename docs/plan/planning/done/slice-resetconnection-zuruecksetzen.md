@@ -37,7 +37,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Der Abbruchpfad (ATTENTION, Cancel, Fristen) — [slice-attention-cancel-timeout](../done/slice-attention-cancel-timeout.md); anderer Auslöser, anderer Übergang. Beide Slices ändern den Sitzungsrahmen (Risiko in §6).
-- Das Cancel-Szenario am Referenzclient — [slice-cancel-referenzclient-szenario](../open/slice-cancel-referenzclient-szenario.md); dort läuft der Lauf ohne Pool, hier mit.
+- Das Cancel-Szenario am Referenzclient — [slice-cancel-referenzclient-szenario](../next/slice-cancel-referenzclient-szenario.md); dort läuft der Lauf ohne Pool, hier mit.
 - Die Messung des ENVCHANGE im ersten Antwortpaket am echten SQL Server (Teil (a) der Messung in [ADR-0027](../../adr/0027-abbruch-und-zuruecksetzen.md)) — braucht einen echten SQL Server mit Mitschnitt; Träger ist `slice-qa-vergleichslauf-d-messungen` (Liefer-Punkt 3, Planung 2026-11-01), der Container kommt aus `slice-qa-vergleichslauf-d`. Die Messung hängt nicht an Teil (b): sie läuft dort unabhängig davon, ob die Folgeabfrage nach dem Zurücksetzen ohne ENVCHANGE am Referenzclient gelingt (Teil (b), in Punkt 2 dieses Slice). Bis ihr Ergebnis vorliegt, ist die Antwort ohne ENVCHANGE eine Setzung der Entscheidung 5, nicht gemessen.
 - `RESETCONNECTION` in einem anderen Zustand als `IDLE` — von [ADR-0027](../../adr/0027-abbruch-und-zuruecksetzen.md) nicht entschieden (akzeptiertes Negativ: der Referenzclient setzt das Bit nur im ersten Paket nach `Open()`, R18, R19); der Slice baut dafür nichts und benennt im KDoc, was der Code tut.
 - Weiterer Sitzungszustand jenseits der Handle-Tabelle (Transaktionen sind nicht im Katalog, `SPEC-030`) — wer ihn einführt, setzt ihn an dieser Stelle zurück, ohne neue Entscheidung ([ADR-0027](../../adr/0027-abbruch-und-zuruecksetzen.md)).
@@ -165,7 +165,7 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 **Register:** Evidenz `slice-resetconnection-zuruecksetzen.md` ergänzt zu [BEO-TDS/tds-8-0-und-pooling-nicht-gemessen](../observations/BEO-TDS/tds-8-0-und-pooling-nicht-gemessen/observation.md), [BEO-TDS/messung-am-echten-sql-server-fehlt](../observations/BEO-TDS/messung-am-echten-sql-server-fehlt/observation.md), [BEO-TDS/zustandspunkte-nach-fehler-ohne-entscheidung](../observations/BEO-TDS/zustandspunkte-nach-fehler-ohne-entscheidung/observation.md), [BEO-TDS/aussagen-ueber-messung-hinaus](../observations/BEO-TDS/aussagen-ueber-messung-hinaus/observation.md), [BEO-TDS/zahl-an-mehreren-orten-ohne-sensor](../observations/BEO-TDS/zahl-an-mehreren-orten-ohne-sensor/observation.md). Zähler nicht gesetzt.
 
-**Folge-Slice:** keiner neu; die Aufgabe L-2 liegt in [slice-kompatibilitaetsmatrix-erzeugen](../open/slice-kompatibilitaetsmatrix-erzeugen.md) (§6), die Messung des Cancel am Referenzclient in [slice-cancel-referenzclient-szenario](../open/slice-cancel-referenzclient-szenario.md). Das Handle-Aliasing wartet auf die Entscheidung des Nutzers.
+**Folge-Slice:** keiner neu; die Aufgabe L-2 liegt in [slice-kompatibilitaetsmatrix-erzeugen](../open/slice-kompatibilitaetsmatrix-erzeugen.md) (§6), die Messung des Cancel am Referenzclient in [slice-cancel-referenzclient-szenario](../next/slice-cancel-referenzclient-szenario.md). Das Handle-Aliasing wartet auf die Entscheidung des Nutzers.
 
 **Drei Paarungen:** Das Repo führt Wellen; die Paarungen prüft die Welle-Closure. Anker ↔ Folge-Slice: kein Anker gesetzt. Register ↔ Closure-Notiz: getragen (Pfade oben). Folge-Slice: genannt.
 
