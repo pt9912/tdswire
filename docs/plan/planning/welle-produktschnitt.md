@@ -70,7 +70,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 
 - Blockiert: [welle-referenzabgleich-release](welle-referenzabgleich-release.md) nur im Wortlaut ihres Closure-Kriteriums („Läufe gegen das Laufzeit-Image aus `slice-release-artefakt-lizenz`“) und der Nutzer-Doku zum Start im Container: [ADR-0025](../adr/0025-produktschnitt-bibliothek-und-testserver.md) entfernt das Produkt-Image. Die Umschreibung jener Welle ist Teil von `slice-jar-ohne-main-und-image` (Nutzerentscheidung 2026-11-01: umschreiben erst dann) und nicht Inhalt dieser Welle. Ebenso blockiert diese Welle teilweise [welle-betrieb-diagnose](welle-betrieb-diagnose.md): die Slices `slice-betrieb-log-schnittstelle` und `slice-betrieb-log-adapter-testserver` starten erst, wenn `slice-testserver-herausloesen` in `done/` liegt (`ServerLog.STDOUT` und `main()` verlassen dort `src/main`; der Adapter braucht den Testserver).
 - Wird blockiert von: [ADR-0025](../adr/0025-produktschnitt-bibliothek-und-testserver.md) `Accepted` (erfüllt) und der Nennung des Starts durch den Nutzer (§2). Entfallen sind die Kanten zu [welle-anfrageverarbeitung](welle-anfrageverarbeitung.md), [welle-fehler-abbruch](welle-fehler-abbruch.md) und [welle-betrieb-diagnose](welle-betrieb-diagnose.md) (Nutzerentscheidung 2026-11-01) und die Folge-ADR zu Offen-Punkt 1 der ADR ([ADR-0026](../adr/0026-oeffentlichkeit-simulations-backend-und-katalog.md) angenommen).
-- Berührt, blockiert aber nicht: [welle-fehler-abbruch](welle-fehler-abbruch.md) und die Slices zu [ADR-0027](../adr/0027-abbruch-und-zuruecksetzen.md) (gleichzeitige Änderungen an `Bootstrap` und Stop-Pfad, Risiko in `slice-testserver-herausloesen`); [slice-release-doku-prozess](open/slice-release-doku-prozess.md) (Lizenzhinweise der Bibliotheken, Doku zum Start im Container).
+- Berührt, blockiert aber nicht: [welle-fehler-abbruch](welle-fehler-abbruch.md) und die Slices zu [ADR-0027](../adr/0027-abbruch-und-zuruecksetzen.md) (gleichzeitige Änderungen an `Bootstrap` und Stop-Pfad, Risiko in `slice-testserver-herausloesen`); [slice-release-doku-prozess](next/slice-release-doku-prozess.md) (Lizenzhinweise der Bibliotheken, Doku zum Start im Container).
 
 ## 6. Out-of-Scope für diese Welle
 
@@ -84,7 +84,7 @@ der Closure-Trigger unerreichbar wird.
 - Ein Produkt-`main`, ein Betriebs-Image oder die Veröffentlichung in einem Artefakt-Repository: Re-Evaluierungs-Trigger der ADR, eigene Entscheidung.
 - Ein Sensor gegen Java-Quellen oder Reflection im Source-Set `testserver` (`BEO-TDS/java-quelle-umgeht-kotlin-regel`): akzeptiertes Negativ der ADR.
 - Änderungen an Format, Teilmenge, Typabbildung und Fehlerfällen der Tabellenbeschreibung ([ADR-0012](../adr/0012-simulations-backend-beschreibung-und-formen.md)): sie gelten für die Datei des Testservers unverändert; die Welle verschiebt den Leser, sie ändert ihn nicht.
-- Lizenzhinweise der Bibliotheken in `lib/` (Rechtsfrage, Träger [slice-release-doku-prozess](open/slice-release-doku-prozess.md)) und Änderungen am Protokollverhalten: nicht Gegenstand dieses Schnitts.
+- Lizenzhinweise der Bibliotheken in `lib/` (Rechtsfrage, Träger [slice-release-doku-prozess](next/slice-release-doku-prozess.md)) und Änderungen am Protokollverhalten: nicht Gegenstand dieses Schnitts.
 
 ## 7. Closure-Notiz
 

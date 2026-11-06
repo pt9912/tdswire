@@ -34,7 +34,7 @@ dieser Welle**: Steht er in der Slice-Liste unten, ist er falsch platziert.
 
 - `make gates` ist auf `main` grün.
 - Die Welle [welle-simulations-backend](done/welle-simulations-backend/welle-simulations-backend.md) liegt in `done/` (Server-Seite des Live-Laufs), und [slice-qa-vergleichslauf-d](done/slice-qa-vergleichslauf-d.md) und [slice-qa-kompatibilitaet](done/slice-qa-kompatibilitaet.md) liegen in `done/` (Vergleichslauf D, Referenzinstanz, Szenarien).
-- Weitere Voraussetzungen gelten je Slice und stehen in dessen §4 (für [slice-release-doku-prozess](open/slice-release-doku-prozess.md) die Welle [welle-betrieb-diagnose](welle-betrieb-diagnose.md)): sie verzögern einen Slice, nicht den Start der Welle.
+- Weitere Voraussetzungen gelten je Slice und stehen in dessen §4 (für [slice-release-doku-prozess](next/slice-release-doku-prozess.md) die Welle [welle-betrieb-diagnose](welle-betrieb-diagnose.md)): sie verzögern einen Slice, nicht den Start der Welle.
 
 ## 3. Closure-Trigger (Welle schließt)
 
@@ -69,7 +69,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte.
 
 - Blockiert: keine weitere Welle; sie ist das Ende der Planung dieses Repos bis zum Release.
-- Wird blockiert von: [welle-simulations-backend](done/welle-simulations-backend/welle-simulations-backend.md) (Server-Seite), [slice-qa-vergleichslauf-d](done/slice-qa-vergleichslauf-d.md) (Vergleichslauf D, Referenzinstanz), [slice-qa-kompatibilitaet](done/slice-qa-kompatibilitaet.md) (Szenarien), [slice-bootstrap-konfiguration](done/welle-handshake-login/slice-bootstrap-konfiguration.md) (`main`), [welle-betrieb-diagnose](welle-betrieb-diagnose.md) (nur [slice-release-doku-prozess](open/slice-release-doku-prozess.md)).
+- Wird blockiert von: [welle-simulations-backend](done/welle-simulations-backend/welle-simulations-backend.md) (Server-Seite), [slice-qa-vergleichslauf-d](done/slice-qa-vergleichslauf-d.md) (Vergleichslauf D, Referenzinstanz), [slice-qa-kompatibilitaet](done/slice-qa-kompatibilitaet.md) (Szenarien), [slice-bootstrap-konfiguration](done/welle-handshake-login/slice-bootstrap-konfiguration.md) (`main`), [welle-betrieb-diagnose](welle-betrieb-diagnose.md) (nur [slice-release-doku-prozess](next/slice-release-doku-prozess.md)).
 - Berührt, blockiert aber nicht: [welle-qualitaet-grundlage](welle-qualitaet-grundlage.md). Sie schließt auf Basis von [slice-qa-vergleichslauf-d](done/slice-qa-vergleichslauf-d.md) und [slice-qa-kompatibilitaet](done/slice-qa-kompatibilitaet.md); ob [TDS-QA-01](../../../spec/lastenheft.md#tds-qa-01--kompatibilität) ohne den Referenzabgleich dieser Welle als belegt gilt, ist offen, denn das Lastenheft nennt den Abgleich „ergänzend“ und „vorläufig“ (Frage an den Nutzer).
 
 ## 6. Out-of-Scope für diese Welle
@@ -83,7 +83,7 @@ der Closure-Trigger unerreichbar wird.
 - NuGet-Audit und Signaturprüfung der Abhängigkeiten des Referenztests: [slice-qa-dotnet-lieferkette-haerten](in-progress/slice-qa-dotnet-lieferkette-haerten.md) (Carveouts [CO-001](../carveouts/CO-001-nuget-audit-aus.md), [CO-002](../carveouts/CO-002-nuget-signaturpruefung-fehlt.md)).
 - Das Beheben gefundener Abweichungen im Server: je Befund ein Slice nach der Messung; Ausnahmeliste und Closure nennen sie als *Lücke* mit Verweis.
 - Der Abgleich von TDS 8.0 und TLS 1.3 an einer Referenzinstanz: Version 2022 bietet beides nicht an ([ADR-0008](../adr/0008-dotnet-kompatibilitaetstests.md)); ein anderer Image-Tag ist Gegenstand von [slice-qa-vergleichslauf-d](done/slice-qa-vergleichslauf-d.md).
-- Veröffentlichung (Registry, Signierung, Software-Stückliste) und Orchestrierung: nicht verlangt; was ein Release davon braucht, entscheidet der Nutzer in [slice-release-doku-prozess](open/slice-release-doku-prozess.md).
+- Veröffentlichung (Registry, Signierung, Software-Stückliste) und Orchestrierung: nicht verlangt; was ein Release davon braucht, entscheidet der Nutzer in [slice-release-doku-prozess](next/slice-release-doku-prozess.md).
 - Last und Durchsatz: [slice-qa-performance](open/slice-qa-performance.md). Fuzz und Fragmentierung: [slice-qa-stabilitaet](done/slice-qa-stabilitaet.md).
 - Hochverfügbarkeit, Replikation, Windows-Authentifizierung und alles andere aus den globalen Out-of-Scope-Punkten des Lastenhefts.
 - Neue Anforderungen oder Änderungen am Lastenheft.
