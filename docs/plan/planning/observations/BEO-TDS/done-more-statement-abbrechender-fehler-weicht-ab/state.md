@@ -1,2 +1,4 @@
 **Stand:** Träger entschieden — die Messung ist im Mitschnitt-Lauf erfolgt (Messvermerk unten); der Bau (`Failure` um die Klasse erweitern, Sequenzierer angleichen) trägt nach der Nutzerentscheidung vom 2026-11-06 („Spec dem echten Server angleichen“) [slice-antwort-tokens-an-messung-angleichen](../../../open/slice-antwort-tokens-an-messung-angleichen.md) (Konflikt 3)
  Messung am Draht liegt vor (Mitschnitt-Lauf, `docs/messungen/referenzabgleich.md`, Ergebnis 2 und A-17): statement-abbrechender Fehler mit Folgeanweisung `DONE` mit `MORE|ERROR`, batch-abbrechender und einzelner Fehler `DONE` mit `ERROR`; ein Fall je Instanz, am Server nicht abgespielt (`Unsupported SQL`).
+
+Nutzerentscheidung 2026-11-06 („deine Empfehlungen“): `Failure` mit Klasse bestätigt; es berührt die öffentliche Fläche (`SPEC-059`), der Bau braucht dort einen Eintrag.
