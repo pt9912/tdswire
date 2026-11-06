@@ -1,0 +1,1 @@
+**Stand:** Träger entschieden — [slice-qa-performance](../../../open/slice-qa-performance.md), DoD-Punkt „Lasttest“ nennt blockierendes Backend und Simulations-Backend (Nutzerentscheid 2026-11-06, Träger-Vorschlag übernommen). Verwandt: `BEO-TDS/rueckstau-im-produktivbetrieb-nicht-gemessen` (Socket, Last)

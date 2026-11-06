@@ -1,0 +1,2 @@
+**Vorgang:** spec-zielbild-abweichungen
+**Fund:** Review F-4 (MEDIUM, `docs/reviews/2026-11-06-f6ce18c7-spec-zielbild-abweichungen.md`): `spec/spezifikation.md`, Kennung im Anmeldepfad und Bauart des Vergleichs, je „das ist eine Grenze, keine Zusage“. Historie: `4cc94d16` (2026-10-29) schwächte zu „nicht zugesichert“ ab, die Korrektur nach Review (2026-10-30) stellte die Anforderung wieder her und führte die Grenze ein. Das Lastenheft verlangt keine Zeitgleichheit; die Anforderung kommt aus der Spezifikation.
