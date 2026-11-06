@@ -854,18 +854,15 @@ Beginn ist die Shutdown-Anforderung mit der Frist `SHUTDOWN_GRACE` (`SPEC-047`; 
    Batches läuft nach dem Beginn nichts mehr. Herkunft des Schließens (Setzung des Nutzers vom 2026-11-01,
    nicht am echten Server gemessen): ERROR und DONE werden vollständig gesendet, erst danach wird geschlossen;
    das Ende der Antwort führt in einem Übergang nach `CLOSED`. Dieselbe Herkunft hat das Ende der Verbindung
-   nach `DONE` mit ATTENTION-Status im Beenden. Gebaut: Eine Anfrage, die schon eingetroffen ist, während die
-   vorige läuft, bekommt `TDS_SHUTDOWN`; was erst nach dem Ende der vorigen eintrifft, trifft die getrennte
-   Verbindung (Festlegung, nicht gemessen).
+   nach `DONE` mit ATTENTION-Status im Beenden.
+   Nicht gebaut: „Von den übrigen Anweisungen eines Batches läuft nach dem Beginn nichts mehr“: der Server reicht den
+   Text unverändert an das Backend und kennt keine Anweisungsgrenzen darin; ein Backend, das mehrere Anweisungen
+   ausführt, erfährt vom Beginn nur über das Cancel nach der Frist.
 4. Nach Ablauf der Frist wird jede noch laufende Anfrage wie bei ATTENTION abgebrochen (`SPEC-029`,
    Cancel an das Backend); gelingt das nicht innerhalb `CANCEL_TIMEOUT` (`SPEC-033`), wird die
-   Verbindung getrennt. Gebaut: Die Antwort der abgebrochenen Anfrage endet mit genau einem `DONE` mit
-   ATTENTION-Status ohne ERROR, danach endet die Verbindung (Festlegung, nicht gemessen).
+   Verbindung getrennt.
 5. Die Shutdown-Anforderung kehrt zurück, wenn alle Verbindungen beendet sind, spätestens
-   `SHUTDOWN_GRACE` plus `CANCEL_TIMEOUT` nach dem Beginn. Eine zweite ist wirkungslos. Gebaut: Beachtet
-   ein Handler den Abbruch seiner Coroutine nicht, wartet die Anforderung nach Frist und `CANCEL_TIMEOUT` noch
-   höchstens 250 ms auf sein Ende und kehrt dann zurück (Festlegung, nicht gemessen); die Obergrenze ist damit um
-   diese Wartezeit größer.
+   `SHUTDOWN_GRACE` plus `CANCEL_TIMEOUT` nach dem Beginn. Eine zweite ist wirkungslos.
 
 Eine Verbindung, die mitten in einer Nachricht kein EOM mehr sendet, bleibt bis zum Ablauf der Frist
 offen und wird dann getrennt. Eine Verbindung ohne laufende Anfrage wird ohne Meldung getrennt,
@@ -1467,4 +1464,4 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | 2026-11-05 | Anmeldung und Export des Prüfclients d-migrate festgelegt: `sp_executesql` mit nur dem Text und Wertparameter ohne Namen als `@P<i>` (`SPEC-030`), Form C mit `SELECT 1` und `SET`-Anweisungen und der Konstantenterm `1 = 0` in S1 (`SPEC-036`), Verweis im Testprofil (`SPEC-004`); `TDS-FA-11`, `TDS-FA-12` |
 | 2026-11-05 | Der TDS-7.4-Pfad bietet höchstens TLS 1.2 an, TDS 8.0 bleibt bei TLS 1.3 (Entscheidung des Nutzers); Messung mit `mssql-jdbc` 13.4.0 und die offene Messung mit `Microsoft.Data.SqlClient` im Sicherheitsprofil; kein Default ändert sich (`SPEC-023`, `SPEC-010`) |
 | 2026-11-05 | Der Start verlangt keine JVM-Option mehr: Abschnitt „JVM-Flag“ des Sicherheitsprofils, die Prüfung im Einstieg, der Abbruchgrund „JVM-Flag fehlt“ von `StartRefused` und die Zeile „JVM-Flag“ der Festlegungen des Einstiegs entfallen, die Startprobe besteht mit dem NewSessionTicket des TLS-1.3-Servers, die offene Messung mit `Microsoft.Data.SqlClient` ist beantwortet (`SPEC-023`, `SPEC-043`, `SPEC-059`) |
-| 2026-11-06 | Disconnect, geordnetes Beenden und `MAX_CONNECTIONS` gebaut: Ende der Gegenstelle in jedem Anfragezustand schließt die Sitzung und bricht die Backendoperation einmal ab (`SPEC-029`); `TdsServer.stop` ist das geordnete Beenden mit `SHUTDOWN_GRACE` aus `ServerConfig.requests`, `TDS_SHUTDOWN` für eine eingetroffene Anfrage, Abbruch wie bei ATTENTION nach der Frist, Trennen nach `CANCEL_TIMEOUT`; Herkunft des Schließens nach ERROR und DONE gekennzeichnet (`SPEC-044`, `SPEC-049`, `SPEC-047`); `MAX_CONNECTIONS` als Grenze des Listeners mit Eingang (`SPEC-034`, `SPEC-059`) |
+| 2026-11-06 | Disconnect, geordnetes Beenden und `MAX_CONNECTIONS` gebaut, mit einer Ausnahme (nicht gebaut: Anweisungsgrenzen eines Batches nach dem Beginn, `SPEC-044` Nr. 3): Ende der Gegenstelle in jedem Anfragezustand schließt die Sitzung und bricht die Backendoperation einmal ab (`SPEC-029`); `TdsServer.stop` ist das geordnete Beenden mit `SHUTDOWN_GRACE` aus `ServerConfig.requests`, eine Verbindung mit unvollständiger Nachricht oder laufender Anfrage bleibt bis zum Abschluss oder Fristablauf offen, jede danach vollständig werdende Nachricht erhält `TDS_SHUTDOWN`, Abbruch wie bei ATTENTION nach der Frist, Trennen nach `CANCEL_TIMEOUT`; Herkunft des Schließens nach ERROR und DONE gekennzeichnet (`SPEC-044`, `SPEC-049`, `SPEC-047`); `MAX_CONNECTIONS` als Grenze des Listeners mit Eingang (`SPEC-034`, `SPEC-059`) |

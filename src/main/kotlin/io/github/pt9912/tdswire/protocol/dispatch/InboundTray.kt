@@ -30,12 +30,6 @@ internal class InboundTray(private val channel: HandshakeChannel, private val sc
         return inbound
     }
 
-    /**
-     * Wahr, wenn [take] ohne Warten liefert: eine Nachricht ist gesehen oder der laufende Lesevorgang ist
-     * zurückgekehrt (auch mit Ende oder Fehler der Gegenstelle).
-     */
-    fun hasReady(): Boolean = held != null || pending?.isCompleted == true
-
     /** Verbraucht die zuletzt gesehene Nachricht. */
     fun drop() {
         held = null

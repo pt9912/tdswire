@@ -17,7 +17,7 @@ Docker und GNU `make`, sonst nichts auf dem Host (Docker-only). Alle Befehle lau
 | `make testserver-logs` | Log des Containers; mit `TESTSERVER_FOLGEN=1` verfolgt es das Log |
 | `make testserver-down` | stoppt und entfernt den Container; ohne Container ein Erfolg ohne Wirkung |
 
-Ein zweites `make testserver-up` bei bestehendem Container bricht ab und nennt `make testserver-down`. Die Targets sind kein Gate und laufen nicht in `make gates` ([ADR-0022](../plan/adr/0022-e2e-laeufe-nicht-in-den-gates.md)); ihre Zweige prüft `make testserver-selbsttest`.
+Ein zweites `make testserver-up` bei bestehendem Container bricht ab und nennt `make testserver-down`. Die Targets sind kein Gate und laufen nicht in `make gates` ([ADR-0022](../plan/adr/0022-e2e-laeufe-nicht-in-den-gates.md)); ihre Zweige prüft `make testserver-selbsttest`. `make testserver-down` stoppt den Container mit `docker stop`; ohne laufende Anfrage endet der Server sofort. Läuft eine Anfrage, wartet er bis `SHUTDOWN_GRACE` (Voreinstellung 10 s) plus `CANCEL_TIMEOUT` (5 s), `docker stop` wartet nach Docker-Voreinstellung 10 s bis SIGKILL; dieser Vergleich ist nicht gemessen.
 
 ## Host, Port, Benutzer, Verschlüsselung
 

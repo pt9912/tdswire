@@ -107,36 +107,35 @@ class ShutdownDispatchTest {
     }
 
     /**
-     * Endet die laufende Anfrage im Beenden ohne weitere Anfrage, meldet die Schleife „Anfrage beendet“, nachdem die
-     * Antwort vollständig geschrieben ist; der Listener beendet die Verbindung danach.
+     * Endet die laufende Anfrage im Beenden regulär, bleibt die Verbindung als „läuft“ gemeldet und offen (`SPEC-044`
+     * Nr. 3): eine Anfrage, die erst danach eintrifft (nicht vorausgeschickt), erhält `TDS_SHUTDOWN`; erst danach
+     * meldet die Schleife „beendet“. Die Antwort auf die erste ist vor dem Eintreffen der zweiten vollständig geschrieben.
      *
      * @spec SPEC-044
+     * @spec SPEC-049
+     * @spec TDS-FA-07
      */
     @Test
-    fun `Das Ende der Anfrage wird nach der vollstaendigen Antwort gemeldet`() = blocking {
-        val release = CompletableDeferred<Unit>()
-        val backend = FlowBackend(suspendedAfter(release, *oneRow))
-        val gate = FakeGate()
-        val session = Session.login(BatchVectors.message("laeuft"))
-        var repliesWhenEnded = -1
-        val reporting = object : ShutdownGate by gate {
-            override fun requestRunning(running: Boolean) {
-                if (!running && repliesWhenEnded < 0) repliesWhenEnded = session.replies.size
-                gate.requestRunning(running)
-            }
+    fun `Nach der regulaeren Antwort bleibt die Verbindung offen und eine spaetere Anfrage erhaelt TDS_SHUTDOWN`() =
+        blocking {
+            val release = CompletableDeferred<Unit>()
+            val backend = FlowBackend(suspendedAfter(release, *oneRow), delivering(*oneRow))
+            val gate = FakeGate()
+            val session = Session.login(BatchVectors.message("laeuft"))
+            val serving = launch { session.shutdownLoop(backend, gate).run() }
+            backend.collecting.await()
+            gate.begun = true
+            release.complete(Unit)
+            awaitUntil { session.replies.size == 1 }
+            awaitUntil { session.ready.live.context.state == ConnectionState.READY }
+            assertEquals(listOf(true), gate.running.toList(), "die Verbindung bleibt als 'läuft' gemeldet")
+            assertEquals(oneRowReply, session.hex(0))
+            session.channel.feed(BatchVectors.message("spaet"))
+            serving.join()
+            assertEquals(shutdown, session.tokens(1).errorMessage())
+            assertEquals(1, backend.requests.size)
+            assertEquals(listOf(true, false), gate.running.toList())
         }
-        val serving = launch {
-            RequestLoop(session.ready, session.channel, backend, hooks = RequestHooks(gate = reporting)).run()
-        }
-        backend.collecting.await()
-        gate.begun = true
-        release.complete(Unit)
-        awaitUntil { gate.running.size >= 2 }
-        assertEquals(listOf(true, false), gate.running.toList())
-        assertEquals(1, repliesWhenEnded, "die Antwort war schon geschrieben")
-        session.channel.feed(Inbound.EndOfStream)
-        serving.join()
-    }
 
     /**
      * Nach Ablauf von `SHUTDOWN_GRACE` bricht der angemeldete Abbruch die laufende Anfrage wie ATTENTION ab (`SPEC-044`
@@ -169,13 +168,13 @@ class ShutdownDispatchTest {
     }
 
     /**
-     * Der Abbruch nach Ablauf der Frist trifft nur eine laufende Anfrage: ohne Lauf ruft er nichts auf, schreibt keine
-     * Bestätigung und ändert die Sitzung nicht.
+     * Der Abbruch nach Ablauf der Frist trifft ohne laufende Anfrage (die Verbindung wartet im Beenden auf eine weitere
+     * Nachricht) nur den Kanal: er wird geschlossen, es gibt keinen Cancel und keine Bestätigung.
      *
      * @spec SPEC-044
      */
     @Test
-    fun `Der Abbruch ohne laufende Anfrage ist wirkungslos`() = blocking {
+    fun `Der Abbruch ohne laufende Anfrage schliesst den Kanal und schreibt nichts`() = blocking {
         val backend = FlowBackend(delivering(*oneRow))
         val gate = FakeGate()
         val session = Session.login(BatchVectors.message("kurz"))
@@ -183,7 +182,7 @@ class ShutdownDispatchTest {
         awaitUntil { session.replies.size == 1 }
         awaitUntil { session.ready.live.context.state == ConnectionState.READY }
         checkNotNull(gate.abort)()
-        assertEquals(ConnectionState.READY, session.ready.live.context.state)
+        assertTrue(session.channel.closed, "ohne laufende Anfrage schließt der Abbruch den Kanal")
         assertEquals(1, session.replies.size)
         assertEquals(0, backend.cancelled.size)
         session.channel.feed(Inbound.EndOfStream)

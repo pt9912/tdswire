@@ -115,9 +115,9 @@ internal class TdsListener private constructor(
      * ([Connection.onShutdownGraceExpired]; der Abbruch der Anfrage am Backend gehört der Session), und trennt jede
      * Verbindung, die `CANCEL_TIMEOUT` später noch besteht; eine Verbindung ohne angemeldeten Abbruch trennt er
      * beim Ablauf der Frist. Die Rückkehr erfolgt damit spätestens `SHUTDOWN_GRACE` plus `CANCEL_TIMEOUT` nach
-     * dem Beginn zuzüglich höchstens [HANDLER_EXIT_WAIT] Wartezeit auf das Ende der Handler (Festlegung, nicht
-     * gemessen); beachtet ein Handler den Abbruch seiner Coroutine nicht, wartet der Aufruf danach nicht mehr auf ihn,
-     * und die Gruppe wird beendet. Ein zweiter Aufruf ist wirkungslos
+     * dem Beginn: nach `SHUTDOWN_GRACE` plus `CANCEL_TIMEOUT` gibt der Listener jede noch bestehende Verbindung auf
+     * ([ManagedConnection.abandon]), auch wenn ihr Handler den Abbruch seiner Coroutine nicht beachtet; auf ihn wartet
+     * der Aufruf dann nicht, und die Gruppe wird beendet. Ein zweiter Aufruf ist wirkungslos
      * und kehrt sofort zurück. Wird der Aufruf abgebrochen, räumt er trotzdem auf: die Verbindungen
      * werden getrennt, die Gruppe beendet und abgewartet (`TDS-QA-02`).
      */
@@ -139,13 +139,9 @@ internal class TdsListener private constructor(
             val waiting = open.map { launch { it.awaitEnd() } }
             val expiry = launch {
                 if (times.shutdownGrace > Duration.ZERO) times.delayer.delay(times.shutdownGrace)
-                val aborting = open.filter { it.expireGrace() }
-                if (aborting.isNotEmpty()) {
-                    times.delayer.delay(times.cancelTimeout)
-                    aborting.forEach { it.end(ConnectionEnd.SHUTDOWN_GRACE_EXPIRED) }
-                }
-                withTimeoutOrNull(HANDLER_EXIT_WAIT) { open.forEach { it.awaitEnd() } }
-                waiting.forEach { it.cancel() }
+                open.forEach { it.expireGrace() }
+                times.delayer.delay(times.cancelTimeout)
+                open.forEach { it.abandon(ConnectionEnd.SHUTDOWN_GRACE_EXPIRED) }
             }
             waiting.joinAll()
             expiry.cancel()
@@ -157,9 +153,6 @@ internal class TdsListener private constructor(
         const val THREAD_NAME_PREFIX = "tdswire-listener-io-"
         const val IO_THREADS = 2
         private val TERMINATION_WAIT = 5.seconds
-
-        /** Wartezeit auf das Ende der Handler, nachdem der Listener ihre Verbindungen getrennt hat. */
-        private val HANDLER_EXIT_WAIT = 250.milliseconds
         private val TERMINATION_POLL = 1.milliseconds
         private val ACCEPT_RETRY = 100.milliseconds
 

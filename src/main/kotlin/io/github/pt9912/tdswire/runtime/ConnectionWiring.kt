@@ -97,7 +97,11 @@ internal class HandshakeConnectionHandler(private val setup: HandlerSetup, priva
         val early = EventContext(connection.id, clientProfile = profileOf(path, null))
         val config = handshakeConfig(path, early) ?: return
         val wire = SwitchableChannel(peeked)
-        val reader = MessageReader(wire, preLoginLimits(setup.login.maxPreloginMessageBytes))
+        val reader = MessageReader(
+            wire,
+            preLoginLimits(setup.login.maxPreloginMessageBytes),
+            onMidMessage = connection::messageInProgress,
+        )
         val channel = TransportHandshakeChannel(reader, MessageWriter(wire, PACKET_SIZE), wire) {
             upgrade(peeked, wire, path, early)
         }

@@ -90,7 +90,7 @@ internal class ShutdownWiringTest : RuntimeTestBase() {
      * @spec TDS-FA-07
      */
     @Test
-    fun `der Stop wartet auf die laufende Anfrage und trennt danach`() = blocking {
+    fun `der Stop wartet auf die laufende Anfrage, eine spaetere Anfrage erhaelt TDS_SHUTDOWN`() = blocking {
         val release = CompletableDeferred<Unit>()
         val backend = FlowBackend(suspendedAfter(release, *oneRow))
         val server = serverOf(backend, ConfigKeys.SHUTDOWN_GRACE to "10")
@@ -106,6 +106,9 @@ internal class ShutdownWiringTest : RuntimeTestBase() {
                 assertTrue(stopping.isAlive, "der Stop wartet auf die laufende Anfrage")
                 release.complete(Unit)
                 assertEquals(rowAnswer, busy.reply("reguläre Antwort").payload.toHex())
+                busy.send(batch("danach"))
+                val tokens = TokenDecoder(busy.reply("TDS_SHUTDOWN").payload).decodeAll()
+                assertEquals(shutdown, tokens.filterIsInstance<ErrorToken>().single().message)
                 assertTrue(busy.closedByServerWithoutBytes(), "danach endet die Verbindung")
                 stopping.join(STOP_MILLIS)
                 assertFalse(stopping.isAlive, "der Stop kehrt zurück")
@@ -237,8 +240,96 @@ internal class ShutdownWiringTest : RuntimeTestBase() {
         }
     }
 
+    /**
+     * Nach der regulären Antwort bleibt die Verbindung offen, bis eine weitere Anfrage `TDS_SHUTDOWN` erhält oder die
+     * Frist (hier 1 s) abläuft; dann wird sie ohne weitere Bytes getrennt, und der Stop kehrt zurück.
+     *
+     * @spec SPEC-044
+     * @spec SPEC-047
+     */
+    @Test
+    fun `eine Verbindung nach der regulaeren Antwort wird beim Ablauf der Frist getrennt`() = blocking {
+        val release = CompletableDeferred<Unit>()
+        val backend = FlowBackend(suspendedAfter(release, *oneRow))
+        val server = serverOf(backend, ConfigKeys.SHUTDOWN_GRACE to "1")
+        RawClient(server.port).use { client ->
+            login(client)
+            client.send(batch("laeuft"))
+            backend.collecting.await()
+            val before = System.nanoTime()
+            val stopping = stopInBackground(server)
+            delay(SETTLE_MILLIS)
+            release.complete(Unit)
+            assertEquals(rowAnswer, client.reply("reguläre Antwort").payload.toHex())
+            assertTrue(client.closedByServerWithoutBytes())
+            stopping.join(STOP_MILLIS)
+            val waited = (System.nanoTime() - before) / NANOS_PER_MILLI
+            assertTrue(waited >= MILLIS_PER_SECOND, "die Verbindung blieb bis zur Frist: $waited ms")
+        }
+        assertEquals(0, backend.cancelled.size)
+    }
+
+    private val splitBatch = handMessage(BATCH_TYPE, BatchVectors.payload("select 1"), PIECE)
+    private val firstPacket = splitBatch.copyOf(HEADER + PIECE)
+
+    /**
+     * Eine Verbindung mit unvollständig empfangener Nachricht ruht nicht (`SPEC-044` Nr. 2): sie bleibt beim Beginn
+     * offen, der Stop wartet; trifft der Rest ein, ist die Anfrage eine nach dem Beginn eingetroffene und erhält
+     * `TDS_SHUTDOWN`, danach endet die Verbindung. Das Backend sieht sie nicht.
+     *
+     * @spec SPEC-044
+     * @spec SPEC-049
+     * @spec TDS-FA-07
+     */
+    @Test
+    fun `eine unvollstaendige Nachricht haelt die Verbindung offen und erhaelt nach dem Rest TDS_SHUTDOWN`() = blocking {
+        val backend = FlowBackend(delivering(*oneRow))
+        val server = serverOf(backend, ConfigKeys.SHUTDOWN_GRACE to "10")
+        RawClient(server.port).use { client ->
+            login(client)
+            client.send(firstPacket)
+            delay(SETTLE_MILLIS)
+            val stopping = stopInBackground(server)
+            delay(SETTLE_MILLIS)
+            assertTrue(stopping.isAlive, "die Verbindung mit halber Nachricht hält den Stop")
+            client.send(splitBatch.copyOfRange(firstPacket.size, splitBatch.size))
+            val tokens = TokenDecoder(client.reply("TDS_SHUTDOWN").payload).decodeAll()
+            assertEquals(shutdown, tokens.filterIsInstance<ErrorToken>().single().message)
+            assertTrue(client.closedByServerWithoutBytes())
+            stopping.join(STOP_MILLIS)
+            assertFalse(stopping.isAlive, "der Stop kehrt zurück")
+        }
+        assertEquals(0, backend.requests.size)
+    }
+
+    /**
+     * Kommt der Rest der Nachricht nicht, bleibt die Verbindung bis zum Ablauf der Frist offen (hier 1 s) und wird dann
+     * ohne weitere Bytes getrennt; der Stop kehrt danach zurück.
+     *
+     * @spec SPEC-044
+     * @spec SPEC-047
+     */
+    @Test
+    fun `eine Nachricht ohne Ende wird beim Ablauf der Frist getrennt`() = blocking {
+        val backend = FlowBackend(delivering(*oneRow))
+        val server = serverOf(backend, ConfigKeys.SHUTDOWN_GRACE to "1")
+        RawClient(server.port).use { client ->
+            login(client)
+            client.send(firstPacket)
+            delay(SETTLE_MILLIS)
+            val before = System.nanoTime()
+            withTimeout(STOP_MILLIS) { server.stop() }
+            val waited = (System.nanoTime() - before) / NANOS_PER_MILLI
+            assertTrue(waited >= MILLIS_PER_SECOND, "der Stop wartet die Frist ab: $waited ms")
+            assertTrue(client.closedByServerWithoutBytes())
+        }
+        assertEquals(0, backend.requests.size)
+    }
+
     private companion object {
         const val SETTLE_MILLIS = 300L
+        const val PIECE = 20
+        const val HEADER = 8
         const val NANOS_PER_MILLI = 1_000_000L
         const val LIMIT_MILLIS = 4_000L
     }

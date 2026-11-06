@@ -246,11 +246,9 @@ internal class ServerSmokeTest : TempFilesTest() {
      * Abrupter TCP-Abbruch (RST) gegen den Serverprozess, während eine Anfrage läuft: der Prozess läuft weiter, eine
      * neue Verbindung meldet sich an und wird bedient, die Ausgabe nennt keine Ausnahme, und der Backend-Strom der
      * Anfrage ist geschlossen (die Quelle `laufend` endet mit dem Abbruch; das Zählen am Strom belegen
-     * `ConnectionLeakTest` und `DisconnectTest`).
-     *
-     * @spec SPEC-029
-     * @spec TDS-FA-07
-     * @spec TDS-QA-02
+     * `ConnectionLeakTest` und `DisconnectTest`). Der Test belegt Erreichbarkeit und keine Ausnahme in der Ausgabe, er
+     * diskriminiert die Disconnect-Erkennung nicht (unter ausgeschalteter Erkennung blieb er grün) und trägt deshalb
+     * kein `@spec`.
      */
     @Test
     fun `Ein abrupter TCP-Abbruch waehrend einer Anfrage laesst den Prozess erreichbar`() {

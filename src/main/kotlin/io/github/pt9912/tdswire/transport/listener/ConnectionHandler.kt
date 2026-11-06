@@ -26,11 +26,17 @@ internal interface Connection {
     fun loginCompleted()
 
     /**
-     * Meldet, ob eine Anfrage läuft ([running] = `true`) oder nicht. Auch eine unvollständig empfangene
-     * Nachricht ist hier „läuft“: der Transport sieht Nachrichtengrenzen nicht, `SPEC-044` Nr. 2
-     * behandelt beide gleich. Ist das geordnete Beenden im Gang, endet die Verbindung mit der Meldung `false`.
+     * Meldet, ob eine Anfrage läuft ([running] = `true`) oder nicht. Eine unvollständig empfangene Nachricht
+     * meldet [messageInProgress]; erst wenn beides ruht, endet die Verbindung im geordneten Beenden (`SPEC-044`
+     * Nr. 2), und zwar mit der Meldung, die den letzten der beiden Zustände löst.
      */
     fun requestRunning(running: Boolean)
+
+    /**
+     * Meldet, ob Bytes einer unvollständig empfangenen Nachricht vorliegen. Eine solche Verbindung gilt im geordneten
+     * Beenden nicht als ruhend und bleibt bis zum Ablauf der Frist offen (`SPEC-044` Nr. 2 und Schlussabsatz).
+     */
+    fun messageInProgress(inProgress: Boolean) = Unit
 
     /**
      * Wahr ab dem Beginn des geordneten Beendens (`SPEC-044`). Eine Anfrage, die danach eintrifft, beantwortet der

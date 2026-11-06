@@ -146,6 +146,8 @@ internal class ListenerAbortTest : ListenerTestBase() {
             withTimeout(shortTimeout) { shutdown.await() }
             assertTrue(client.awaitClosedByPeer(), "die Verbindung ist getrennt")
             assertFalse(handler.release.isCompleted)
+            assertEquals(1, events.endsOf(ConnectionEnd.SHUTDOWN_GRACE_EXPIRED).size, "das Ende ist gemeldet")
+            assertEquals(0, listener.activeConnections)
             assertNoNewListenerThreads(before)
         } finally {
             handler.release.complete(Unit)

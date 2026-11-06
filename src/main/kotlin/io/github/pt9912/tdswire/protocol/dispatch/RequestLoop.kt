@@ -95,9 +95,10 @@ import kotlin.time.Duration.Companion.milliseconds
  * Geordnetes Beenden (`SPEC-044`, `ADR-0027` Entscheidung 4 und 2c): Die Schleife meldet dem [ShutdownGate], wenn eine
  * Anfrage läuft. Eine Anfrage, die nach dem Beginn des Beendens angenommen wird, beantwortet sie mit ERROR
  * `TDS_SHUTDOWN` und DONE mit Fehlerstatus, ohne das Backend zu rufen; danach schließt die Verbindung. Endet eine
- * Anfrage im Beenden, endet die Verbindung, außer eine weitere Anfrage ist schon eingetroffen: diese wird mit
- * `TDS_SHUTDOWN` beantwortet (Festlegung: was nach dem Ende der laufenden Anfrage eintrifft, trifft die getrennte
- * Verbindung). Nach Ablauf von `SHUTDOWN_GRACE` bricht die Schleife die laufende Anfrage wie bei ATTENTION ab
+ * Anfrage im Beenden regulär, bleibt die Verbindung (als „läuft“ gemeldet) offen: jede weitere Nachricht, die
+ * danach vollständig wird, erhält `TDS_SHUTDOWN` (`SPEC-044` Nr. 3), danach endet die Verbindung. Sie endet auch beim
+ * Ende der Gegenstelle und beim Ablauf von `SHUTDOWN_GRACE`: ohne laufende Anfrage schließt der angemeldete Abbruch
+ * dann den Kanal. Eine Verbindung, die beim Beginn ruhte, hat der Listener schon beendet (Nr. 2). Nach Ablauf von `SHUTDOWN_GRACE` bricht die Schleife die laufende Anfrage wie bei ATTENTION ab
  * ([CancelCause.SHUTDOWN]): genau ein `cancel()`, die Antwort endet mit `DONE[ATTN]`, die Verbindung endet.
  *
  * Die Schleife endet immer mit geschlossenem Kanal: nach `CLOSED`, nach einer Nachricht, die sie nicht
@@ -150,7 +151,10 @@ internal class RequestLoop(
 
     init {
         ready.live.onSessionReset { handles.clear() }
-        gate.onGraceExpired { active?.abortForShutdown() }
+        gate.onGraceExpired {
+            val run = active
+            if (run != null) run.abortForShutdown() else channel.close()
+        }
     }
 
     /** Läuft, bis die Verbindung endet; schließt den Kanal in jedem Ausgang. */
@@ -203,7 +207,7 @@ internal class RequestLoop(
                 announce(true)
                 answer(event.message)?.let { live.dispatch(it) }
                 val open = live.context.state == ConnectionState.READY
-                if (!(open && gate.begun && rig.tray.hasReady())) announce(false)
+                if (!(open && gate.begun)) announce(false)
                 open
             }
         }
