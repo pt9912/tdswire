@@ -1,6 +1,6 @@
 # ADR-0038: Abschluss einer RPC-Antwort im Fehlerfall folgt dem echten Server
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-11-06
 
@@ -33,7 +33,7 @@ Die Frage aus [ADR-0014](0014-fehlerfolge-rpc-antwort.md) bleibt: wie endet die 
 
 ## Entscheidung
 
-Wir wählen **Option A** (Empfehlung des Architects; der Nutzer entscheidet): Die Antwort auf eine RPC-Nachricht endet im Fehlerfall **wie am echten Server gemessen**, und der Backend-Vertrag trägt dafür die Klasse des Fehlers.
+Wir wählen **Option A** (Nutzerentscheid vom 2026-11-06, „deine Empfehlungen“, bestätigt die Empfehlung des Architects; bestätigt sind auch die Setzungen in Entscheidung 3 und 4): Die Antwort auf eine RPC-Nachricht endet im Fehlerfall **wie am echten Server gemessen**, und der Backend-Vertrag trägt dafür die Klasse des Fehlers.
 
 1. **Abschluss ist DONEPROC, nie DONE** (M1 bis M6; Setzung nur für die nicht gemessenen RPC-Formen: `sp_prepexec`, `sp_execute`, `sp_prepare` folgen derselben Regel). Das gilt für ein `Failure` im Strom, für eine Ablehnung vor dem Backend (`SPEC-013`), für `TDS_INTERNAL_ERROR` und `TDS_SHUTDOWN`, soweit überhaupt ERROR und Abschluss geschrieben werden. Die Antwort auf einen SQL_BATCH bleibt ERROR und DONE (gemessen in [ADR-0007](0007-fehler-und-attention.md), R01, R05 bis R07).
 2. **Statusbit nach Lage des Fehlers** (M1 bis M3). Tritt der Fehler **vor** dem ersten Ergebnis der RPC-Antwort auf: `ERROR`, `RETURNSTATUS`, `DONEPROC[ERROR]` (ohne `MORE`, ohne `COUNT`). Tritt er **nach** Beginn eines Ergebnisses auf: `ERROR`, `DONEINPROC[MORE|ERROR]` für die betroffene Anweisung, `RETURNSTATUS`, `DONEPROC` **ohne** Fehlerbit. Die Zuordnung „Fehlerbit am Abschluss der Anweisung, nicht am Abschluss der Prozedur, sobald eine Anweisung abgeschlossen oder begonnen ist“ ist die am Draht gemessene Regel für `sp_executesql` mit einer bzw. zwei Anweisungen; die Verallgemeinerung auf andere Verschachtelungen ist **Setzung**.
@@ -70,9 +70,9 @@ Wir wählen **Option A** (Empfehlung des Architects; der Nutzer entscheidet): Di
 
 ## Offen
 
-- Für den Nutzer: Option A, B, C oder D (Empfehlung A); bei A die Bestätigung der Setzungen in Entscheidung 3 (Klasse der eigenen Fehler des Servers: batch-abbrechend) und Entscheidung 4 (kein RETURNSTATUS bei Fehlern ohne SQL-Server-Nummer).
+- Entschieden am 2026-11-06 (Quelle: Nutzerentscheid): Option A, mit den Setzungen „eigene Server-Fehler sind batch-abbrechend“ (Entscheidung 3) und „kein RETURNSTATUS bei Fehlern ohne SQL-Server-Nummer“ (Entscheidung 4).
 - Nicht gemessen: siehe Kontext, „Nicht gemessen“.
-- Link auf den Messabschnitt nachtragen, sobald der Zweig des Slice für die Messungen auf `main` liegt.
+- Der Messabschnitt liegt auf `main`: [Messreihe am Draht](../../messungen/referenzabgleich.md#messreihe-am-draht-messungen-vom-2026-11-06).
 
 ## Re-Evaluierungs-Trigger
 
@@ -83,6 +83,7 @@ Eine Messung, nach der einer der Fälle M1 bis M5 auf einer weiteren Serverversi
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-11-06 | Proposed – Folge-Entscheidung zur zurückgezogenen [ADR-0014](0014-fehlerfolge-rpc-antwort.md) (Nutzerentscheid „ADR-0014 wie von dir empfohlen“); Messbeleg W-1 bis W-3 vom 2026-11-06; Annahme steht aus | [ADR-0014](0014-fehlerfolge-rpc-antwort.md) |
+| 2026-11-06 | Accepted – Option A mit den Setzungen zu Entscheidung 3 und 4; Quelle: Nutzerentscheid („deine Empfehlungen“) | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit

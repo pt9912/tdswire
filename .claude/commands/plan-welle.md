@@ -80,6 +80,11 @@ die Antwort und wird notiert.
    wird vor dem Start umformuliert oder in zwei Slices geschnitten (Entscheidung und Lieferung
    getrennt); die DoD nennt nur das Lieferbare (seit slice-referenzabgleich-mitschnitt).
 
+6c. **Liefer-Punkte der DoD legst du ungehakt an, ohne Rollen-Text.** Der Haken eines Liefer-Punkts
+   gehört dem Planner und kommt erst, nachdem der Verifier den Punkt bestätigt hat (bei der Closure,
+   `/implement-slice` Schritt 24); die DoD nennt das Lieferbare, nicht, wer es behauptet oder
+   bestätigt  (seit slice-qa-vergleichslauf-d-messungen).
+
 6a. **Wechselt eine ADR auf `Accepted` (Slice-Closure oder Bau-Slice-Anlage), ziehst du die
    Zustandsfelder der Nachbar-Slices im selben Zug nach.** Grep über das **ganze Repo** (`docs/`,
    `spec/`, `.claude/`, `harness/`) nach der alten Lesart: `Proposed`, `Entwurf`, „gilt erst mit
