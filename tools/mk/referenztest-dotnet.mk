@@ -28,7 +28,7 @@ referenztest-dotnet-lock: ## Nach einer Versionsaenderung in der csproj: referen
 
 # Die Stage `audit` fragt die Schwachstellen-Datenbank der Quelle am Tag des Laufs ab; das Ergebnis
 # haengt am Abfragetag. --no-cache-filter erzwingt den Lauf der Stage, sonst zeigt ein gecachter
-# Layer den Stand eines frueheren Tages (CO-001).
+# Layer den Stand eines frueheren Tages (ADR-0035).
 referenztest-dotnet-audit: ## Bekannte Schwachstellen der Pakete melden; haengt am Abfragetag, nicht reproduzierbar, KEIN Gate
 	docker build $(BUILDER_FLAGS) --target audit --no-cache-filter audit --progress=plain $(REFERENZTEST_DOTNET_DIR)
 

@@ -17,7 +17,7 @@
   </PropertyGroup>
 
   <!-- NuGet-Audit ist aus: das Ergebnis haengt am Abfragetag und ist nicht reproduzierbar.
-       Befristet; Trigger und Folge-Slice stehen im Carveout CO-001. -->
+       Dauerhaft entschieden in ADR-0035; Ersatz ist `make referenztest-dotnet-audit`. -->
   <PropertyGroup>
     <NuGetAudit>false</NuGetAudit>
   </PropertyGroup>

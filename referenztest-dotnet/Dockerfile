@@ -60,7 +60,7 @@ FROM mcr.microsoft.com/mssql/server:2022-latest@sha256:cf8f0ab2ebe61feec2eed2629
 FROM mcr.microsoft.com/mssql/server:2025-latest@sha256:245f6b1c8903edae52cb20fa31419cefcde1a49938bb8c3447099011fc871ca3 AS referenzinstanz-2025
 
 # --- Audit: meldet bekannte Schwachstellen der Pakete aus der Datenbank der Quelle am Tag des Laufs.
-# Das Ergebnis haengt am Abfragetag und ist nicht reproduzierbar; die Stage ist kein Gate (CO-001). -
+# Das Ergebnis haengt am Abfragetag und ist nicht reproduzierbar; die Stage ist kein Gate (ADR-0035). -
 FROM restore AS audit
 RUN dotnet list package --vulnerable --include-transitive
 
