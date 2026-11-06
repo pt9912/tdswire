@@ -52,6 +52,10 @@ In Arbeit (Welle welle-produktschnitt):
 
 - keiner; zuletzt geschlossen: [slice-jar-ohne-main-und-image](../done/slice-jar-ohne-main-und-image.md) (Closure-Notiz in §7 des Slice; offene Nutzerpunkte: Zelle `make e2e` in `harness/README.md`, Name `make laufzeittest`; Folge: [slice-betrieb-log-adapter-testserver](../open/slice-betrieb-log-adapter-testserver.md), [slice-release-doku-prozess](../done/slice-release-doku-prozess.md))
 
+In Arbeit (Welle welle-referenzabgleich-release):
+
+- keiner; zuletzt geschlossen: [slice-release-doku-prozess](../done/slice-release-doku-prozess.md) (Closure-Notiz in §7 des Slice; offene Nutzerpunkte: Entscheidungen zu Version, Tag, Registry, Signierung, Stückliste und Wächter-Form, Sensor Schlüsseltabelle gegen `ServerConfig`; Folge: [slice-release-entscheidungen](../open/slice-release-entscheidungen.md))
+
 ## Nächste Wellen
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
