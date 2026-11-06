@@ -59,7 +59,7 @@ Nachweis-Pflichten für alle Punkte:
 - [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
 - [x] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen“ in §7 notiert.
 - [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
 
 ## 3. Plan (vor Code)
 
@@ -122,7 +122,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 - **Folge-Slices:** [slice-katalog-indizes-defaults-fremdschluessel](../open/slice-katalog-indizes-defaults-fremdschluessel.md) (neu, Indizes, Standardwerte, Prüfbedingungen, Fremdschlüssel); [slice-qa-vergleichslauf-d-messungen-bulk-merge](../open/slice-qa-vergleichslauf-d-messungen-bulk-merge.md) (Liefer-Punkt 2: Katalogmessung am echten Server); [slice-schreibpfad-bulk-load](../open/slice-schreibpfad-bulk-load.md) (`onInsertBatch`) und [slice-schreibpfad-merge-output](../open/slice-schreibpfad-merge-output.md) (Start-Trigger „Katalog-Slice in `done/`“ erfüllt).
 - **Risiken aus §6:** acht, jedes mit genau einem Ausgang in §6: entfallen 4 (Umfang des Katalogs, Typabbildung und Nachprüfung, Fläche, Sperre), weiter offen 4 (Gegenmessung am echten Server, leere Sichten, `onInsertBatch`, Zahlen des Messprotokolls als Grenze) mit je einem Träger, der die Closure überlebt.
 - **Zuordnung Messung | Handvektor | Festlegung (`AGENTS.md` §3.8):** *Messung (am Testserver mit d-migrate 1.12.0, nicht am echten Server):* Läufe k1 bis k11, Exit-Codes und Berichtsfelder, die Nachprüfung von `schema migrate --execute`; *Handvektor:* 17 der 20 Katalogformen aus dem Mitschnitt vom 2026-11-06 (`DMigrateWire.kt`); *aus dem Bytecode des Treibers:* Identität, berechnete Spalten, größter Wert (nicht gelaufen); *Festlegung:* Typnamen und Maße für `bigint`, `bit`, `time`, `datetime2`, `maxLength` -1, Änderungszähler 0, Fehlerarten der Strukturabweisung, leere Sichten, Reihenfolge der Ankunft bei zwei gleichzeitigen Strukturänderungen.
-- **Drei Paarungen:** Wird nach dem Move geprüft und im nächsten Commit eingetragen.
+- **Drei Paarungen:** geprüft nach dem Move (2026-11-06): *Anker* — kein Steering-Loop-Eintrag trägt ein Zielort-Feld, nichts zu paaren (die Wörter stehen nur in der Trigger-Formulierung von §1 und §4 und im Satz „kein `liegt in`“ dieser Notiz, außerhalb der Feld-Form); *Folge-Slice* — die vier genannten Folge-Slices liegen als Dateien in `open/`; *Register* — jede genannte `BEO-TDS/<slug>` (acht) ist ein Verzeichnis mit nicht leerem `evidence/`. Rot: keine.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
