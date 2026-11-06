@@ -72,6 +72,14 @@ die Antwort und wird notiert.
    Verlauf der genannten Stelle); sie nennt die Folgepflicht, nicht einen Werkzeugzustand, den
    eine Reparatur auf `main` schon behoben hat  (seit welle-backend-streaming).
 
+6b. **Jeden Lieferpunkt der DoD gegen Bauart und Werkzeug lesen, bevor der Slice nach `open/` oder
+   `next/` geht.** Zwei Fragen je Punkt: (1) Sieht das Werkzeug den Lieferpunkt, und kann die Bauart
+   ihn liefern (Test-Werkzeug und Sprache der Tests, Tag, Stage, Rolle, Schlüsselraum einer „einen“
+   Datei)? (2) Nennt der Punkt eine Entscheidung des Nutzers als Lieferinhalt („nach den
+   Entscheidungen …“)? Ein Punkt, den ein Werkzeug nicht sieht oder den die Bauart nicht trägt,
+   wird vor dem Start umformuliert oder in zwei Slices geschnitten (Entscheidung und Lieferung
+   getrennt); die DoD nennt nur das Lieferbare (seit slice-referenzabgleich-mitschnitt).
+
 6a. **Wechselt eine ADR auf `Accepted` (Slice-Closure oder Bau-Slice-Anlage), ziehst du die
    Zustandsfelder der Nachbar-Slices im selben Zug nach.** Grep über das **ganze Repo** (`docs/`,
    `spec/`, `.claude/`, `harness/`) nach der alten Lesart: `Proposed`, `Entwurf`, „gilt erst mit
