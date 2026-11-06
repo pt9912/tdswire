@@ -50,10 +50,10 @@ class ResponseDecoderTest {
             start(), QueryEvent.ResultEnd(0),
         )
         val expected = listOf<Token>(
-            metadata, intRow(1), intRow(2), done(COUNT_MORE, 2),
+            metadata, intRow(1), intRow(2), doneSelect(COUNT_MORE, 2),
             done(COUNT_MORE, 5),
-            metadata, intRow(3), done(COUNT_MORE, 1),
-            metadata, done(DoneStatus.COUNT, 0),
+            metadata, intRow(3), doneSelect(COUNT_MORE, 1),
+            metadata, doneSelect(DoneStatus.COUNT, 0),
         )
         assertEquals(expected, decoded)
         assertEquals(written, decoded)
@@ -79,9 +79,9 @@ class ResponseDecoderTest {
     @Test
     fun `leeres Ergebnis und leerer Strom werden vom Decoder gleich zurueckgelesen`() {
         val (_, empty) = roundTrip(start(), QueryEvent.ResultEnd(0))
-        assertEquals(listOf<Token>(metadata, done(DoneStatus.COUNT, 0)), empty)
+        assertEquals(listOf<Token>(metadata, doneSelect(DoneStatus.COUNT, 0)), empty)
         val (_, nothing) = roundTrip()
-        assertEquals(listOf<Token>(done(DoneStatus.FINAL, 0)), nothing)
+        assertEquals(listOf<Token>(doneBatch(DoneStatus.FINAL, 0)), nothing)
     }
 
     /**
@@ -97,7 +97,7 @@ class ResponseDecoderTest {
             intRow(1),
             intRow(2),
             ErrorToken(BACKEND_MESSAGE),
-            done(DoneStatus.ERROR),
+            doneSelect(DoneStatus.ERROR),
         )
         assertEquals(expected, decoded)
         assertEquals(written, decoded)

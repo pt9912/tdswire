@@ -43,12 +43,13 @@ import kotlin.test.assertTrue
 class RpcDispatchTest {
     private val oneRow = listOf(resultStart(), QueryEvent.Row(listOf(7)), QueryEvent.ResultEnd(1))
 
-    /** COLMETADATA, ROW, DONEINPROC (`MORE|COUNT`, Zeilenzahl 1), DONEPROC ohne Bits (Handvektor, Festlegung). */
+    /** COLMETADATA, ROW, DONEINPROC (`MORE|COUNT`, `0x00c1`, Zeilenzahl 1), RETURNSTATUS 0, DONEPROC (`0x00e0`). */
     private val oneRowReply = listOf(
         BatchVectors.COLMETADATA_N,
         BatchVectors.row(7),
-        "FF 11 00 00 00 01 00 00 00 00 00 00 00",
-        "FE 00 00 00 00 00 00 00 00 00 00 00 00",
+        "FF 11 00 C1 00 01 00 00 00 00 00 00 00",
+        "79 00 00 00 00",
+        "FE 00 00 E0 00 00 00 00 00 00 00 00 00",
     ).joinToString(" ")
 
     /** Die Antwort auf einen Batch mit demselben Ergebnis: ein DONE statt DONEINPROC und DONEPROC. */
@@ -167,7 +168,7 @@ class RpcDispatchTest {
             assertEquals(2, session.replies.size, name)
             assertEquals(unsupportedRpc, session.tokens(0).errorMessage(), name)
             assertEquals(2, session.tokens(0).size, name)
-            assertTrue(session.hex(0).endsWith(BatchVectors.DONE_ERROR), name)
+            assertTrue(session.hex(0).endsWith(BatchVectors.DONEPROC_ERROR), name)
             assertEquals(DoneStatus.ERROR, session.tokens(0).lastDone().status, name)
             assertEquals(oneRowReply, session.hex(1), name)
             assertEquals(1, backend.requests.size, name)
@@ -199,7 +200,7 @@ class RpcDispatchTest {
             val session = Session.login(rpc(payload), rpc(goodRpc))
             session.serve(backend)
             assertEquals(ServerMessage(50006, 1, 20, "Protocol error."), session.tokens(0).errorMessage(), name)
-            assertTrue(session.hex(0).endsWith(BatchVectors.DONE_ERROR), name)
+            assertTrue(session.hex(0).endsWith(BatchVectors.DONEPROC_ERROR), name)
             assertEquals(1, session.replies.size, name)
             assertEquals(0, backend.requests.size, name)
             assertTrue(session.channel.closed, name)
@@ -314,7 +315,7 @@ class RpcDispatchTest {
         )
         session.serve(backend)
         assertEquals(4, session.replies.size)
-        val failed = session.replies.indices.map { session.hex(it).endsWith(BatchVectors.DONE_ERROR) }
+        val failed = session.replies.indices.map { session.hex(it).endsWith(BatchVectors.DONEPROC_ERROR) }
         assertEquals(listOf(true, true, true, false), failed)
         assertEquals(1, backend.requests.size)
         assertEquals(5, session.channel.receiveCalls - 2)

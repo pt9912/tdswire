@@ -1,6 +1,7 @@
 package io.github.pt9912.tdswire.protocol.dispatch
 
 import io.github.pt9912.tdswire.domain.QueryParameter
+import io.github.pt9912.tdswire.protocol.response.CallLayout
 import io.github.pt9912.tdswire.protocol.rpc.RpcCall
 import io.github.pt9912.tdswire.protocol.rpc.RpcParser
 import io.github.pt9912.tdswire.protocol.wire.ProtocolError
@@ -10,9 +11,10 @@ import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
 /** Das Ergebnis der Bindung einer RPC-Nachricht: eine Anfrage an das Backend oder die Ablehnung. */
 internal sealed interface RpcBinding {
     /**
-     * Der Text und die Parameter für den `QueryRequest`. Die Textdarstellung nennt weder Text noch Werte.
+     * Der Text und die Parameter für den `QueryRequest`; [layout] sagt, wo die Parameter in der Aufrufliste stehen.
+     * Die Textdarstellung nennt weder Text noch Werte.
      */
-    class Query(val sql: String, val parameters: List<QueryParameter>) : RpcBinding {
+    class Query(val sql: String, val parameters: List<QueryParameter>, val layout: CallLayout) : RpcBinding {
         override fun toString(): String = "Query(sqlChars=${sql.length}, parameters=$parameters)"
     }
 
@@ -81,7 +83,11 @@ internal object RpcBinder {
 
     private fun bind(call: RpcCall): RpcBinding = when (call) {
         is RpcCall.ExecuteSql ->
-            RpcBinding.Query(call.statement, RpcParameters.map(call.parameters, nameInText = false))
+            RpcBinding.Query(
+                call.statement,
+                RpcParameters.map(call.parameters, nameInText = false),
+                CallLayout.EXECUTE_SQL,
+            )
 
         is RpcCall.ByName -> byName(call)
 
@@ -101,7 +107,7 @@ internal object RpcBinder {
 
         else -> {
             val parameters = RpcParameters.map(call.parameters, nameInText = true)
-            RpcBinding.Query(RpcProcedureName.execText(call.name, parameters), parameters)
+            RpcBinding.Query(RpcProcedureName.execText(call.name, parameters), parameters, CallLayout.PROCEDURE)
         }
     }
 }

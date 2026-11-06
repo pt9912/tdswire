@@ -76,6 +76,22 @@ class BackendModelTest {
         assertEquals("Failure", name(QueryEvent.Failure("c", "m")))
     }
 
+    /**
+     * Ein `Failure` ohne Angabe ist batch-abbrechend; die zweistellige Form bleibt übersetzbar und gleich der
+     * dreistelligen mit `BATCH` (`SPEC-031`, Rückwärtsverträglichkeit für Backends ohne Klasse). Wächter: eine
+     * Voreinstellung `STATEMENT`, die ein Backend ohne Angabe unbemerkt weiterlaufen ließe.
+     *
+     * @spec SPEC-031
+     */
+    @Test
+    fun `Failure ohne Klasse ist batch-abbrechend`() {
+        val plain = QueryEvent.Failure("c", "m")
+        assertEquals(FailureScope.BATCH, plain.scope)
+        assertEquals(QueryEvent.Failure("c", "m", FailureScope.BATCH), plain)
+        assertEquals(FailureScope.STATEMENT, QueryEvent.Failure("c", "m", FailureScope.STATEMENT).scope)
+        assertFalse(plain == QueryEvent.Failure("c", "m", FailureScope.STATEMENT))
+    }
+
     private fun name(event: QueryEvent): String = when (event) {
         is QueryEvent.ResultStart -> "ResultStart"
         is QueryEvent.Row -> "Row"

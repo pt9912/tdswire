@@ -21,6 +21,12 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 
+/** Das DONE des Mappers trägt `0x00fd` (kein offenes Ergebnis); im offenen Ergebnis steht `0x00c1`. */
+private const val SELECT_COMMAND = 0xC1.toByte()
+
+/** Abstand des niederwertigen Bytes der Befehlskennung vom Ende des DONE-Tokens (Zeilenzahl 8 Byte, Kennung 2 Byte). */
+private const val DONE_COMMAND_FROM_END = 10
+
 /**
  * Sequenzierer und echter [ErrorMapper] zusammen, ohne Fake für den Mapper: für jeden Code liefern
  * die Bytes in der laufenden Nachricht und die Verbindungsfolge dieselben Werte wie die Einzelantwort
@@ -78,7 +84,9 @@ class ResponseErrorMapperTest {
         val backend = ScriptedBackend.ofList(start(), row(1), QueryEvent.Failure("TDS_SIM_INVALID_VALUE", "m"))
         val result = run(backend)
         assertIs<RowToken>(result.tokens[1])
-        assertContentEquals(expected(ErrorCode.TDS_SIM_INVALID_VALUE), result.bytes)
+        val mapperBytes = expected(ErrorCode.TDS_SIM_INVALID_VALUE).copyOf()
+        mapperBytes[mapperBytes.size - DONE_COMMAND_FROM_END] = SELECT_COMMAND
+        assertContentEquals(mapperBytes, result.bytes)
     }
 
     /**

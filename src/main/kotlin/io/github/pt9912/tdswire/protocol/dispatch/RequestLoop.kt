@@ -6,6 +6,7 @@ import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.protocol.error.ConnectionFate
 import io.github.pt9912.tdswire.protocol.error.ErrorCode
 import io.github.pt9912.tdswire.protocol.error.ErrorMapper
+import io.github.pt9912.tdswire.protocol.response.CallLayout
 import io.github.pt9912.tdswire.protocol.response.ResponseForm
 import io.github.pt9912.tdswire.protocol.response.ResponseSequencer
 import io.github.pt9912.tdswire.protocol.response.SequenceOutcome
@@ -18,6 +19,8 @@ import io.github.pt9912.tdswire.protocol.session.HandshakeOutcome
 import io.github.pt9912.tdswire.protocol.session.Inbound
 import io.github.pt9912.tdswire.protocol.session.ReplyStream
 import io.github.pt9912.tdswire.protocol.sqlbatch.SqlBatchParser
+import io.github.pt9912.tdswire.protocol.token.EnvChange
+import io.github.pt9912.tdswire.protocol.token.TokenEncoder
 import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
 import io.github.pt9912.tdswire.transport.framing.PacketType
 import io.github.pt9912.tdswire.transport.framing.TdsMessage
@@ -76,9 +79,10 @@ import kotlin.time.Duration.Companion.milliseconds
  * Aktion `ResetSession`; der Rahmen führt sie unter seiner Sperre aus, vor der Verarbeitung dieser Anfrage. Die
  * Schleife hängt dafür [PreparedHandles.clear] ein: alle Handles sind danach unbekannt (`TDS_UNKNOWN_HANDLE`), die
  * Vergabe beginnt wieder bei 1, die Grenze von [handleLimit] gilt neu. Die Anfrage mit dem Bit wird
- * danach wie jede andere beantwortet, ohne ENVCHANGE (der Referenzclient nahm das an; ein echter Server ist nicht
- * gemessen). Das Bit an einer Nachricht außerhalb von `READY` wirkt nicht: dort ist eine Anfrage unzulässig und die
- * Verbindung schließt (Festlegung; `ADR-0027` entscheidet es nicht).
+ * danach wie jede andere beantwortet; erstes Token jeder Antwort ist ENVCHANGE Typ 18 mit leerem neuem und leerem altem
+ * Wert (am echten Server gemessen, Messprotokoll W-7, Batch; für den RPC Setzung nach derselben Regel). Das Bit an
+ * einer Nachricht außerhalb von `READY` wirkt nicht: dort ist eine Anfrage unzulässig und die Verbindung schließt
+ * (Festlegung; `ADR-0027` entscheidet es nicht).
  * Weiteren Sitzungszustand als die Handles führt die Schleife nicht.
  *
  * Abbruch (`SPEC-029`, `ADR-0027`): Während einer Anfrage liest die Schleife mit ([AbortableRun]). Ein ATTENTION in
@@ -156,6 +160,9 @@ internal class RequestLoop(
     /** Was die Schleife dem [gate] zuletzt gemeldet hat; es bekommt nur Wechsel. */
     private var announced = false
 
+    /** Wahr, solange die Antwort auf eine Anfrage mit `RESETCONNECTION` ihr ENVCHANGE Typ 18 noch nicht trägt. */
+    private var resetPending = false
+
     init {
         ready.live.onSessionReset { handles.clear() }
         gate.onGraceExpired {
@@ -212,7 +219,10 @@ internal class RequestLoop(
 
             else -> {
                 announce(true)
-                answer(event.message)?.let { live.dispatch(it) }
+                resetPending = event.message.resetConnection
+                val finished = answer(event.message)
+                (if (resetPending) withResetFirst(finished) else finished)?.let { live.dispatch(it) }
+                resetPending = false
                 val open = live.context.state == ConnectionState.READY
                 if (!(open && gate.begun)) announce(false)
                 open
@@ -222,7 +232,7 @@ internal class RequestLoop(
 
     /** Das Ereignis, das die Anfrage beendet; `null`, wenn die Sitzung beim Schreiben der Antwort geschlossen wurde. */
     private suspend fun answer(message: TdsMessage): HandshakeEvent.RequestFinished? = when {
-        gate.begun -> refuse(ErrorCode.TDS_SHUTDOWN, "shutdown")
+        gate.begun -> refuse(ErrorCode.TDS_SHUTDOWN, "shutdown", formOf(message))
         message.type == PacketType.RPC -> answerRpc(message)
         else -> answerBatch(message)
     }
@@ -235,7 +245,7 @@ internal class RequestLoop(
                 val text = parsed.value.text
                 val released = UnprepareBatch.parse(text)
                 if (released == null) {
-                    execute(text, emptyList(), ResponseForm.BATCH)
+                    execute(text, emptyList(), layout = null)
                 } else {
                     UnprepareBatch.answer(released, handles, errors)
                 }
@@ -245,12 +255,12 @@ internal class RequestLoop(
     private suspend fun answerRpc(rpc: TdsMessage): HandshakeEvent.RequestFinished? =
         when (val bound = RpcBinder.bind(rpc.payload)) {
             is RpcBinding.Rejected -> {
-                val response = bound.error?.let { errors.protocol(it) }
-                    ?: errors.code(ErrorCode.TDS_UNSUPPORTED_RPC, cause = bound.reason.name)
+                val response = bound.error?.let { errors.protocol(it, form = ResponseForm.RPC) }
+                    ?: errors.code(ErrorCode.TDS_UNSUPPORTED_RPC, cause = bound.reason.name, form = ResponseForm.RPC)
                 requestFinished(response.fate, response.message)
             }
 
-            is RpcBinding.Query -> execute(bound.sql, bound.parameters, ResponseForm.RPC)
+            is RpcBinding.Query -> execute(bound.sql, bound.parameters, bound.layout)
 
             is RpcBinding.Prepare -> prepare(bound)
 
@@ -258,31 +268,35 @@ internal class RequestLoop(
         }
 
     private suspend fun prepare(bound: RpcBinding.Prepare): HandshakeEvent.RequestFinished? {
-        val handle = handles.register(bound.sql) ?: return refuse(ErrorCode.TDS_PREPARE_LIMIT, "handle-limit")
+        val handle = handles.register(bound.sql)
+            ?: return refuse(ErrorCode.TDS_PREPARE_LIMIT, "handle-limit", ResponseForm.RPC)
         val returning = HandleReturningBackend(backend, handle)
-        return execute(bound.sql, bound.parameters, ResponseForm.RPC, returning) {
+        return execute(bound.sql, bound.parameters, CallLayout.PREPARE_EXECUTE, returning) {
             if (it != SequenceOutcome.COMPLETED && !returning.returned) handles.release(handle)
         }
     }
 
     private suspend fun executePrepared(bound: RpcBinding.ExecutePrepared): HandshakeEvent.RequestFinished? {
-        val sql = handles.sql(bound.handle) ?: return refuse(ErrorCode.TDS_UNKNOWN_HANDLE, "unknown-handle")
-        return execute(sql, bound.parameters, ResponseForm.RPC)
+        val sql = handles.sql(bound.handle)
+            ?: return refuse(ErrorCode.TDS_UNKNOWN_HANDLE, "unknown-handle", ResponseForm.RPC)
+        return execute(sql, bound.parameters, CallLayout.EXECUTE_PREPARED)
     }
 
     /** Die Antwort mit einem eigenen Fehlercode, ohne das Backend zu rufen; [cause] ist die feste Marke fürs Log. */
-    private fun refuse(code: ErrorCode, cause: String): HandshakeEvent.RequestFinished {
-        val response = errors.code(code, cause = cause)
+    private fun refuse(code: ErrorCode, cause: String, form: ResponseForm): HandshakeEvent.RequestFinished {
+        val response = errors.code(code, cause = cause, form = form)
         return requestFinished(response.fate, response.message)
     }
 
+    /** Führt die Anfrage aus; [layout] ist `null` für einen SQL_BATCH (Form BATCH), sonst die Aufrufform des RPC. */
     private suspend fun execute(
         text: String,
         parameters: List<QueryParameter>,
-        form: ResponseForm,
+        layout: CallLayout?,
         via: QueryBackend = backend,
         onOutcome: suspend (SequenceOutcome) -> Unit = {},
     ): HandshakeEvent.RequestFinished? {
+        val form = if (layout == null) ResponseForm.BATCH else ResponseForm.RPC
         val live = ready.live
         val reply = live.openReply(PacketType.TABULAR_RESULT)
         val response = StreamedResponse(reply) { live.dispatch(HandshakeEvent.StreamStarted) }
@@ -290,9 +304,11 @@ internal class RequestLoop(
         val request = QueryRequest(ready.session.id, requestIds(), text, parameters, deadline)
         val remaining = deadline?.let { (it - times.now()).milliseconds }
         val run = AbortableRun(live, rig.tray, times, rig.detached)
+        val sink = if (resetPending) LeadingToken(response, EnvChange.ResetConnection) else response
+        resetPending = false
         active = run
         val end = try {
-            run.run(remaining) { sequencer.run(via, request, sinkAround(response), form) }
+            run.run(remaining) { sequencer.run(via, request, sinkAround(sink), form, layout ?: CallLayout.PROCEDURE) }
         } finally {
             active = null
         }
@@ -305,7 +321,7 @@ internal class RequestLoop(
 
             is RunEnd.Cut -> {
                 onOutcome(end.outcome ?: SequenceOutcome.CLOSE_WITHOUT_COMPLETION)
-                if (live.context.state == ConnectionState.CLOSED) null else aborted.conclude(end, reply)
+                if (live.context.state == ConnectionState.CLOSED) null else aborted.conclude(end, reply, form)
             }
 
             RunEnd.Abandoned -> {
@@ -354,3 +370,18 @@ internal fun requestFinished(fate: ConnectionFate, reply: TdsMessage?): Handshak
         reply.takeIf { fate != ConnectionFate.CLOSE_WITHOUT_REPLY },
         connectionOpen = fate == ConnectionFate.OPEN,
     )
+
+/** Die Antwortform zur Art der Anfrage: RPC für einen RPC, sonst die Form des Batches. */
+private fun formOf(message: TdsMessage) = if (message.type == PacketType.RPC) ResponseForm.RPC else ResponseForm.BATCH
+
+/**
+ * Stellt dem fertigen Antworttext ENVCHANGE Typ 18 voran (Antwort auf eine Anfrage mit `RESETCONNECTION`); eine
+ * Antwort, die der Lauf schon in den Strom geschrieben hat, trägt es und bleibt unverändert.
+ */
+private fun withResetFirst(finished: HandshakeEvent.RequestFinished?): HandshakeEvent.RequestFinished? {
+    val reply = finished?.reply ?: return finished
+    val encoder = TokenEncoder()
+    check(encoder.write(EnvChange.ResetConnection) is ProtocolResult.Ok) { "ENVCHANGE nicht schreibbar" }
+    val prefixed = TdsMessage(reply.type, encoder.toByteArray() + reply.payload)
+    return HandshakeEvent.RequestFinished(prefixed, finished.connectionOpen, finished.replyWritten)
+}

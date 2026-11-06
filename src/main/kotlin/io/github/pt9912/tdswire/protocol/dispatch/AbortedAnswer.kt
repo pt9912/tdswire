@@ -5,13 +5,13 @@ import io.github.pt9912.tdswire.protocol.error.ConnectionFate
 import io.github.pt9912.tdswire.protocol.error.ErrorCode
 import io.github.pt9912.tdswire.protocol.error.ErrorMapper
 import io.github.pt9912.tdswire.protocol.response.ErrorMapping
+import io.github.pt9912.tdswire.protocol.response.ResponseForm
 import io.github.pt9912.tdswire.protocol.response.SequenceOutcome
-import io.github.pt9912.tdswire.protocol.response.failedDone
+import io.github.pt9912.tdswire.protocol.response.errorAnswer
 import io.github.pt9912.tdswire.protocol.session.AttentionAck
 import io.github.pt9912.tdswire.protocol.session.CancelCause
 import io.github.pt9912.tdswire.protocol.session.HandshakeEvent.RequestFinished
 import io.github.pt9912.tdswire.protocol.session.HandshakeSession.GuardedReply
-import io.github.pt9912.tdswire.protocol.token.ErrorToken
 import io.github.pt9912.tdswire.protocol.token.TokenEncoder
 import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
 
@@ -31,7 +31,7 @@ import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
  * Scheitert das Schreiben, ist die Sitzung geschlossen und das Ergebnis `null` (kein Ereignis mehr).
  */
 internal class AbortedAnswer(private val errors: ErrorMapper, private val mapping: ErrorMapping) {
-    suspend fun conclude(end: RunEnd.Cut, reply: GuardedReply): RequestFinished? {
+    suspend fun conclude(end: RunEnd.Cut, reply: GuardedReply, form: ResponseForm): RequestFinished? {
         val outcome = end.outcome
         return when {
             outcome != null && outcome != SequenceOutcome.CLOSE_WITHOUT_COMPLETION ->
@@ -41,7 +41,7 @@ internal class AbortedAnswer(private val errors: ErrorMapper, private val mappin
 
             end.cause == CancelCause.SHUTDOWN -> appended(AttentionAck.bytes, reply, connectionOpen = false)
 
-            else -> timedOut(reply)
+            else -> timedOut(reply, form)
         }
     }
 
@@ -56,10 +56,10 @@ internal class AbortedAnswer(private val errors: ErrorMapper, private val mappin
         }
     }
 
-    private suspend fun timedOut(reply: GuardedReply): RequestFinished? {
+    private suspend fun timedOut(reply: GuardedReply, form: ResponseForm): RequestFinished? {
         val mapped = mapping.backend(QueryEvent.Failure(ErrorCode.TDS_TIMEOUT.name, ""))
         val encoder = TokenEncoder()
-        listOf(ErrorToken(mapped.message), failedDone()).forEach {
+        errorAnswer(form, listOf(mapped.message)).forEach {
             check(encoder.write(it) is ProtocolResult.Ok) { "Fehlerantwort nicht schreibbar" }
         }
         return appended(encoder.toByteArray(), reply, connectionOpen = !mapped.closesConnection)

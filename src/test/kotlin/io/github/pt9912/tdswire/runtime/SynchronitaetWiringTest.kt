@@ -80,7 +80,7 @@ internal class SynchronitaetWiringTest : RuntimeTestBase() {
 
             val failedMessage = client.message("erste")
             val failed = failedMessage.payload.toHex()
-            assertTrue(failed.endsWith(BatchVectors.DONE_ERROR), failed)
+            assertTrue(failed.endsWith(BatchVectors.DONE_ERROR_OPEN), failed)
             val tokens = TokenDecoder(failedMessage.payload).decodeAll()
             assertEquals(listOf("ColMetadata", "Row", "Row", "Error", "Done"), names(tokens))
             assertEquals(rowAnswer(7), client.reply("zweite"))
@@ -114,7 +114,7 @@ internal class SynchronitaetWiringTest : RuntimeTestBase() {
             client.send(batch("erste") + batch("zweite"))
 
             val failed = client.reply("erste")
-            assertTrue(failed.endsWith(BatchVectors.DONE_ERROR), failed)
+            assertTrue(failed.endsWith(BatchVectors.DONE_ERROR_OPEN), failed)
             assertTrue(client.closedByServerWithoutBytes())
         }
         assertEquals(listOf("erste"), backend.requests.map { it.sql })

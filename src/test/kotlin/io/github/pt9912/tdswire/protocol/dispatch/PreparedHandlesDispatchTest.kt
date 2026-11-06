@@ -39,25 +39,25 @@ import kotlin.test.assertTrue
 class PreparedHandlesDispatchTest {
     private val oneRow = listOf(resultStart(), QueryEvent.Row(listOf(7)), QueryEvent.ResultEnd(1))
 
-    private val doneInProcMore = "FF 11 00 00 00 01 00 00 00 00 00 00 00"
-    private val doneProcFinal = "FE 00 00 00 00 00 00 00 00 00 00 00 00"
+    private val doneInProcMore = "FF 11 00 C1 00 01 00 00 00 00 00 00 00"
+    private val doneProcFinal = "FE 00 00 E0 00 00 00 00 00 00 00 00 00"
 
-    /** COLMETADATA, ROW, DONEINPROC (`MORE|COUNT`), DONEPROC: die Antwort auf `sp_executesql` und `sp_execute`. */
+    /** RETURNSTATUS 0: vor dem Handle und in jeder RPC-Antwort ohne Rückgabestatus (Mitschnitte `prepare`, `rpc-*`). */
+    private val returnStatusZero = "79 00 00 00 00"
+
+    /** COLMETADATA, ROW, DONEINPROC, RETURNSTATUS 0, DONEPROC: die Antwort auf `sp_executesql` und `sp_execute`. */
     private val oneRowReply =
-        listOf(BatchVectors.COLMETADATA_N, BatchVectors.row(7), doneInProcMore, doneProcFinal).joinToString(" ")
+        listOf(BatchVectors.COLMETADATA_N, BatchVectors.row(7), doneInProcMore, returnStatusZero, doneProcFinal)
+            .joinToString(" ")
 
     /**
-     * RETURNVALUE des Handles: Ordinal, Namenslänge 0, Status 1, Typ `INTN` 4 nullbar, Wert [handle]. Namenslänge 0,
-     * Status, Typ und Stellung hinter dem RETURNSTATUS stehen im Mitschnitt `prepare` der Referenzinstanz (2022 und
-     * 2025: `79 00 00 00 00 AC 00 00 00 01 00 00 00 00 00 00 26 04 04 01 00 00 00`); das Flag-Feld ist hier `01 00`
-     * (nullbar), im Mitschnitt `00 00`, und wird vom Mitschnitt-Lauf nicht verglichen (Abweichung, nicht gemessen
-     * auf Wirkung).
+     * RETURNVALUE des Handles: Ordinal, Namenslänge 0, Status 1, Flag-Feld `00 00`, Typ `INTN` 4, Wert [handle].
+     * Namenslänge, Status, Flag-Feld, Typ und Stellung hinter dem RETURNSTATUS sind die Bytes des Mitschnitts
+     * `prepare` der Referenzinstanz (2022 und 2025: `79 00 00 00 00 AC 00 00 00 01 00 00 00 00 00 00 26 04 04 01 00
+     * 00 00`; Messprotokoll A-19). Der Mitschnitt-Lauf liest das Flag-Feld nicht; dieser Test belegt es.
      */
     private fun handleValue(ordinal: Int, handle: Int) =
-        "AC ${RpcWire.le(ordinal.toLong(), 2)} 00 01 00 00 00 00 01 00 26 04 04 ${RpcWire.le(handle.toLong(), 4)}"
-
-    /** RETURNSTATUS 0 vor dem Handle, wie die Referenzinstanz ihn sendet (Mitschnitt `prepare`: `79 00 00 00 00`). */
-    private val returnStatusZero = "79 00 00 00 00"
+        "AC ${RpcWire.le(ordinal.toLong(), 2)} 00 01 00 00 00 00 00 00 26 04 04 ${RpcWire.le(handle.toLong(), 4)}"
 
     /** Die Antwort auf `sp_prepexec` mit [oneRow]: RETURNSTATUS und Handle stehen vor dem DONEPROC. */
     private fun prepReply(handle: Int) = listOf(
@@ -140,9 +140,11 @@ class PreparedHandlesDispatchTest {
     /**
      * NULL-Parameter und OUTPUT folgen den Regeln von `sp_executesql`: das Backend bekommt Richtung und
      * NULL wie dort. Liefert das Backend RETURNSTATUS und einen Ausgabewert, steht das Handle als erster
-     * Ausgabewert (Ordinal 0) hinter dem RETURNSTATUS, der Ausgabewert des Backends hat Ordinal 1; bei
-     * `sp_execute` zählt der Ausgabewert ab 0. Wächter: das Handle hinter dem Ausgabewert des Backends oder
-     * vor dem RETURNSTATUS, ein Handle bei `sp_execute`.
+     * Ausgabewert (Ordinal 0) hinter dem RETURNSTATUS, der Ausgabewert des Backends hat die Position seines
+     * Parameters in der Aufrufliste (`sp_prepexec`: Handle, Deklarationsliste und Text davor, `@o` an zweiter Stelle
+     * der Wertparameter, Ordinal 4; `sp_execute`: das Handle davor, Ordinal 2; Messprotokoll W-5). Wächter: das
+     * Handle hinter dem Ausgabewert des Backends oder vor dem RETURNSTATUS, ein Handle bei `sp_execute`, ein
+     * Ordinal, das die Ausgabewerte zählt.
      *
      * @spec SPEC-030
      * @spec SPEC-002
@@ -163,10 +165,10 @@ class PreparedHandlesDispatchTest {
         fun output(ordinal: String) = "AC $ordinal 02 40 00 6F 00 01 00 00 00 00 01 00 26 04 04 2A 00 00 00"
         val status = "79 00 00 00 00"
         assertEquals(
-            listOf(status, handleValue(0, 1), output("01 00"), doneProcFinal).joinToString(" "),
+            listOf(status, handleValue(0, 1), output("04 00"), doneProcFinal).joinToString(" "),
             session.hex(0),
         )
-        assertEquals(listOf(status, output("00 00"), doneProcFinal).joinToString(" "), session.hex(1))
+        assertEquals(listOf(status, output("02 00"), doneProcFinal).joinToString(" "), session.hex(1))
         assertEquals(
             listOf(
                 QueryParameter("@a", SqlType.Int32, null, ParameterDirection.INPUT),

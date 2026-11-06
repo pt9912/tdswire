@@ -89,6 +89,7 @@ internal class TokenDecoder(private val bytes: ByteArray) {
             1 -> EnvChange.Database(bVarchar(), bVarchar())
             4 -> EnvChange.PacketSize(bVarchar().toInt(), bVarchar().toInt())
             7 -> sqlCollation()
+            18 -> EnvChange.ResetConnection.also { check(bVarchar().isEmpty() && bVarchar().isEmpty()) }
             else -> error("ENVCHANGE-Typ $type")
         }
     }

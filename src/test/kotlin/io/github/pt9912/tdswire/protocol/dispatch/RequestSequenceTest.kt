@@ -45,8 +45,8 @@ import kotlin.test.assertTrue
 class RequestSequenceTest {
     private val oneRow = listOf(resultStart(), QueryEvent.Row(listOf(7)), QueryEvent.ResultEnd(1))
 
-    private val doneInProcMore = "FF 11 00 00 00 01 00 00 00 00 00 00 00"
-    private val doneProcFinal = "FE 00 00 00 00 00 00 00 00 00 00 00 00"
+    private val doneInProcMore = "FF 11 00 C1 00 01 00 00 00 00 00 00 00"
+    private val doneProcFinal = "FE 00 00 E0 00 00 00 00 00 00 00 00 00"
 
     /** Handvektor: COLMETADATA, ROW, DONE (`COUNT`, 1) der Antwort auf einen Batch; Quelle `SqlBatchDispatchTest`. */
     private val batchReply = listOf(
@@ -57,7 +57,8 @@ class RequestSequenceTest {
 
     /** Handvektor: dasselbe Ergebnis als RPC-Antwort (DONEINPROC, DONEPROC); Quelle `PreparedHandlesDispatchTest`. */
     private val rpcReply =
-        listOf(BatchVectors.COLMETADATA_N, BatchVectors.row(7), doneInProcMore, doneProcFinal).joinToString(" ")
+        listOf(BatchVectors.COLMETADATA_N, BatchVectors.row(7), doneInProcMore, "79 00 00 00 00", doneProcFinal)
+            .joinToString(" ")
 
     /**
      * Handvektor: `sp_prepexec`, RETURNSTATUS 0 und Handle 1 als RETURNVALUE ohne Namen vor dem DONEPROC; Quelle
@@ -68,7 +69,7 @@ class RequestSequenceTest {
         BatchVectors.row(7),
         doneInProcMore,
         "79 00 00 00 00",
-        "AC 00 00 00 01 00 00 00 00 01 00 26 04 04 01 00 00 00",
+        "AC 00 00 00 01 00 00 00 00 00 00 26 04 04 01 00 00 00",
         doneProcFinal,
     ).joinToString(" ")
 
@@ -79,7 +80,7 @@ class RequestSequenceTest {
      */
     private val outputReply = listOf(
         "79 00 00 00 00",
-        "AC 00 00 02 40 00 6F 00 01 00 00 00 00 01 00 26 04 04 2A 00 00 00",
+        "AC 03 00 02 40 00 6F 00 01 00 00 00 00 01 00 26 04 04 2A 00 00 00",
         doneProcFinal,
     ).joinToString(" ")
 
@@ -87,7 +88,7 @@ class RequestSequenceTest {
     private val twoResultsReply = listOf(
         BatchVectors.COLMETADATA_N,
         BatchVectors.row(1),
-        "FD 11 00 00 00 01 00 00 00 00 00 00 00",
+        "FD 11 00 C1 00 01 00 00 00 00 00 00 00",
         BatchVectors.COLMETADATA_N,
         BatchVectors.row(2),
         BatchVectors.DONE_COUNT_1,

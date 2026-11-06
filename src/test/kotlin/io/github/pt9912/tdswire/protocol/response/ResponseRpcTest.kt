@@ -5,6 +5,7 @@ import io.github.pt9912.tdswire.domain.SqlType
 import io.github.pt9912.tdswire.port.ScriptedBackend
 import io.github.pt9912.tdswire.protocol.token.ColMetadataToken
 import io.github.pt9912.tdswire.protocol.token.ColumnDef
+import io.github.pt9912.tdswire.protocol.token.DoneCommand
 import io.github.pt9912.tdswire.protocol.token.DoneKind
 import io.github.pt9912.tdswire.protocol.token.DoneStatus
 import io.github.pt9912.tdswire.protocol.token.DoneToken
@@ -44,13 +45,16 @@ class ResponseRpcTest {
 
     private fun intColumn(name: String) = ColumnDef(name, TdsType.IntNType(4), nullable = true)
 
-    private val doneProcFinal = DoneToken(DoneKind.DONE_PROC, DoneStatus.FINAL, 0, 0)
+    private val doneProcFinal = DoneToken(DoneKind.DONE_PROC, DoneStatus.FINAL, DoneCommand.PROC, 0)
+
+    private val doneInProcFailed =
+        DoneToken(DoneKind.DONE_IN_PROC, DoneStatus.MORE or DoneStatus.ERROR, DoneCommand.SELECT, 0)
 
     /**
-     * Ergebnis, Rückgabestatus und zwei Ausgabewerte: DONEINPROC mit `MORE` und `COUNT`, RETURNSTATUS, je
-     * ein RETURNVALUE mit Ordinal ab 0 in der Reihenfolge der Ereignisse (Status 1, nullbarer Typ), zuletzt
-     * DONEPROC ohne Bits. Wächter: ein DONE statt DONEINPROC, ein fehlendes `MORE` vor dem RETURNSTATUS,
-     * ein Ordinal, das nicht zählt.
+     * Ergebnis, Rückgabestatus und zwei Ausgabewerte, die die Anfrage nicht nennt: DONEINPROC mit `MORE`,
+     * `COUNT` und der Kennung `0x00c1`, RETURNSTATUS, je ein RETURNVALUE (Status 1, nullbarer Typ) mit der
+     * Position hinter den Parametern der Anfrage, zuletzt DONEPROC ohne Bits mit der Kennung `0x00e0`. Wächter:
+     * ein DONE statt DONEINPROC, ein fehlendes `MORE` vor dem RETURNSTATUS, eine Kennung 0.
      *
      * @spec SPEC-030
      * @spec SPEC-031
@@ -70,7 +74,7 @@ class ResponseRpcTest {
             listOf(
                 ColMetadataToken(listOf(ColumnDef("n", TdsType.Int4Type, nullable = false))),
                 RowToken(listOf(TdsValue.IntegerValue(7))),
-                DoneToken(DoneKind.DONE_IN_PROC, COUNT_MORE, 0, 1),
+                DoneToken(DoneKind.DONE_IN_PROC, COUNT_MORE, DoneCommand.SELECT, 1),
                 ReturnStatusToken(-3),
                 ReturnValueToken(0, "@a", 1, intColumn("@a"), TdsValue.IntegerValue(1)),
                 ReturnValueToken(1, "@b", 1, intColumn("@b"), TdsValue.NullValue),
@@ -81,18 +85,23 @@ class ResponseRpcTest {
     }
 
     /**
-     * Ohne Ereignis endet die RPC-Antwort in einem DONEPROC; ohne `OutputParameter` entsteht kein
-     * RETURNVALUE, und ein Update-Zähler ist ein DONEINPROC mit `COUNT` und `MORE`. Wächter: ein DONE am
-     * Ende, ein RETURNVALUE ohne Ereignis, ein DONEINPROC ohne `MORE` vor dem DONEPROC.
+     * Ohne Ereignis endet die RPC-Antwort in RETURNSTATUS 0 und DONEPROC (gemessen: jede RPC-Antwort trägt
+     * einen RETURNSTATUS, Messprotokoll W-5); ohne `OutputParameter` entsteht kein RETURNVALUE, und ein
+     * Update-Zähler ist ein DONEINPROC mit `COUNT`, `MORE` und der Kennung 0 (keine Aussage). Wächter: ein DONE
+     * am Ende, ein fehlender RETURNSTATUS, ein RETURNVALUE ohne Ereignis, ein DONEINPROC ohne `MORE`.
      *
      * @spec SPEC-030
      */
     @Test
     fun `RPC ohne Ausgabewerte schreibt kein RETURNVALUE`() {
-        assertEquals(listOf<Token>(doneProcFinal), rpc().second)
+        assertEquals(listOf(ReturnStatusToken(0), doneProcFinal), rpc().second)
         val (_, counted) = rpc(QueryEvent.UpdateCount(5))
         assertEquals(
-            listOf<Token>(DoneToken(DoneKind.DONE_IN_PROC, COUNT_MORE, 0, 5), doneProcFinal),
+            listOf<Token>(
+                DoneToken(DoneKind.DONE_IN_PROC, COUNT_MORE, DoneCommand.NONE, 5),
+                ReturnStatusToken(0),
+                doneProcFinal,
+            ),
             counted,
         )
         assertEquals(listOf(ReturnStatusToken(0), doneProcFinal), rpc(QueryEvent.ReturnStatus(0)).second)
@@ -109,34 +118,43 @@ class ResponseRpcTest {
         for (event in listOf(QueryEvent.ReturnStatus(1), output("@a", 1))) {
             val (outcome, tokens) = sequence(ResponseForm.BATCH, event)
             assertEquals(SequenceOutcome.FAILED, outcome, "$event")
-            assertEquals(listOf(ErrorToken(TYPE_MESSAGE), done(DoneStatus.ERROR)), tokens, "$event")
+            assertEquals(listOf(ErrorToken(TYPE_MESSAGE), doneBatch(DoneStatus.ERROR)), tokens, "$event")
         }
     }
 
     /**
      * Ein zweiter `ReturnStatus`, ein `ReturnStatus` oder `OutputParameter` in einem offenen Ergebnis sind
-     * Reihenfolgeverstöße: ERROR (intern), DONE mit Fehlerstatus, Ausgang „Verbindung schließen“, kein
-     * RETURNVALUE. Wächter: ein Lauf, der den zweiten RETURNSTATUS schreibt oder im offenen Ergebnis
-     * schreibt.
+     * Reihenfolgeverstöße: ERROR (intern, eigene Nummer, deshalb ohne RETURNSTATUS), Ausgang „Verbindung
+     * schließen“, kein RETURNVALUE. Vor dem ersten Ergebnis endet die Antwort in DONEPROC mit `ERROR`, im
+     * offenen Ergebnis in DONEINPROC `MORE|ERROR` und DONEPROC ohne Fehlerbit (Messprotokoll W-1, W-2).
+     * Wächter: ein Lauf, der den zweiten RETURNSTATUS schreibt oder im offenen Ergebnis schreibt.
      *
      * @spec SPEC-031
      * @spec SPEC-048
      */
     @Test
     fun `RPC-Ereignisse in falscher Folge sind ein Reihenfolgeverstoss`() {
+        val internalError = ErrorToken(INTERNAL_MESSAGE)
         val cases = mapOf(
-            "zweiter ReturnStatus" to listOf(QueryEvent.ReturnStatus(0), QueryEvent.ReturnStatus(1)),
-            "ReturnStatus im offenen Ergebnis" to listOf(start(), QueryEvent.ReturnStatus(0)),
-            "OutputParameter im offenen Ergebnis" to listOf(start(), output("@a", 1)),
+            "zweiter ReturnStatus" to (
+                listOf(QueryEvent.ReturnStatus(0), QueryEvent.ReturnStatus(1)) to
+                    listOf(internalError, failedDone(ResponseForm.RPC))
+                ),
+            "ReturnStatus im offenen Ergebnis" to (
+                listOf(start(), QueryEvent.ReturnStatus(0)) to
+                    listOf(internalError, doneInProcFailed, doneProcFinal)
+                ),
+            "OutputParameter im offenen Ergebnis" to (
+                listOf(start(), output("@a", 1)) to listOf(internalError, doneInProcFailed, doneProcFinal)
+                ),
         )
-        for ((name, events) in cases) {
+        for ((name, case) in cases) {
+            val (events, expected) = case
             val (outcome, tokens) = rpc(*events.toTypedArray())
             assertEquals(SequenceOutcome.FAILED_CLOSE_CONNECTION, outcome, name)
-            assertEquals(listOf(ErrorToken(INTERNAL_MESSAGE), done(DoneStatus.ERROR)), tokens.takeLast(2), name)
-            assertTrue(tokens.none { it is ReturnValueToken }, name)
+            assertEquals(expected, tokens.dropWhile { it !is ErrorToken }, name)
+            assertTrue(tokens.none { it is ReturnValueToken || it is ReturnStatusToken }, name)
         }
-        val (_, second) = rpc(QueryEvent.ReturnStatus(0), QueryEvent.ReturnStatus(1))
-        assertEquals(1, second.count { it is ReturnStatusToken })
     }
 
     /**
@@ -158,28 +176,32 @@ class ResponseRpcTest {
         for ((name, event) in cases) {
             val (outcome, tokens) = rpc(event)
             assertEquals(SequenceOutcome.FAILED, outcome, name)
-            assertEquals(listOf(ErrorToken(TYPE_MESSAGE), done(DoneStatus.ERROR)), tokens, name)
+            assertEquals(listOf(ErrorToken(TYPE_MESSAGE), failedDone(ResponseForm.RPC)), tokens, name)
         }
     }
 
     /**
      * Ein Fehler des Backends nach einem Ergebnis: das zurückgehaltene DONEINPROC bekommt `MORE`, danach
-     * ERROR und DONE mit Fehlerstatus; kein DONEPROC folgt (`SPEC-031`).
+     * ERROR, ein DONEINPROC `MORE|ERROR` für die betroffene Anweisung und ein DONEPROC ohne Fehlerbit; nie
+     * ein DONE (Messprotokoll W-2). Die Meldung trägt eine eigene Nummer, deshalb steht kein RETURNSTATUS da.
      *
      * @spec SPEC-031
+     * @spec SPEC-030
      */
     @Test
-    fun `Ein Fehler nach einem Ergebnis beendet die RPC-Antwort ohne Erfolgsabschluss`() {
+    fun `Ein Fehler nach einem Ergebnis beendet die RPC-Antwort mit DONEINPROC und DONEPROC`() {
         val (outcome, tokens) = rpc(start(), QueryEvent.ResultEnd(null), QueryEvent.Failure("x", "m"))
         assertEquals(SequenceOutcome.FAILED, outcome)
         assertIs<ColMetadataToken>(tokens.first())
         assertEquals(
             listOf(
-                DoneToken(DoneKind.DONE_IN_PROC, DoneStatus.MORE, 0, 0),
+                DoneToken(DoneKind.DONE_IN_PROC, DoneStatus.MORE, DoneCommand.SELECT, 0),
                 ErrorToken(BACKEND_MESSAGE),
-                done(DoneStatus.ERROR),
+                DoneToken(DoneKind.DONE_IN_PROC, DoneStatus.MORE or DoneStatus.ERROR, DoneCommand.NONE, 0),
+                doneProcFinal,
             ),
             tokens.drop(1),
         )
+        assertTrue(tokens.none { it is DoneToken && it.kind == DoneKind.DONE })
     }
 }

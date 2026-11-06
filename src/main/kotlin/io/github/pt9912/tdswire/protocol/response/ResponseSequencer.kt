@@ -3,6 +3,7 @@ package io.github.pt9912.tdswire.protocol.response
 import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.domain.QueryRequest
 import io.github.pt9912.tdswire.port.QueryBackend
+import io.github.pt9912.tdswire.protocol.token.DoneCommand
 import io.github.pt9912.tdswire.protocol.token.ServerMessage
 import io.github.pt9912.tdswire.protocol.token.Token
 import io.github.pt9912.tdswire.protocol.wire.ProtocolError
@@ -78,11 +79,14 @@ internal enum class SequenceOutcome {
  * Festlegungen (nicht gemessen; Setzungen des Nutzers vom 2026-10-30, wo genannt):
  * - Ein [QueryEvent.Failure] zählt in der Vorschau als nächstes Ereignis: ein zurückgehaltener
  *   Abschluss bekommt `DONE_MORE`, danach folgen ERROR und ein DONE mit Fehlerstatus (Nutzer).
- *   Dasselbe gilt für jedes andere nächste Ereignis, auch für eine Ausnahme des Stroms. Beleg nur
- *   für das Bit vor dem ERROR: der Referenzclient gegen einen echten SQL Server zeigt
- *   `DONE[MORE|COUNT]` vor dem ERROR eines batch-abbrechenden Fehlers (ADR-0007 R05); am Produkt ist
- *   es nicht gemessen. Für einen statement-abbrechenden Fehler (R04: `DONE[MORE|ERR]`) schreibt der
- *   Sequenzierer die Variante ohne `MORE`, weil `Failure` keine Klasse trägt.
+ *   Dasselbe gilt für jedes andere nächste Ereignis, auch für eine Ausnahme des Stroms. Belegt am echten
+ *   SQL Server (Messprotokoll, Szenarien `batch-statement-abbrechend`, `batch-batch-abbrechend`, W-1 bis W-3; ein
+ *   Fall je Instanz): `DONE[MORE|COUNT]` vor dem ERROR eines batch-abbrechenden Fehlers.
+ * - Die Klasse des Fehlers ([QueryEvent.Failure.scope]) bestimmt den Fortgang. `BATCH`: ERROR und ein DONE mit
+ *   `ERROR` (ohne `MORE`), der Lauf endet; ebenso jeder Fehler, den die Abbildung als verbindungsschließend
+ *   ausweist. `STATEMENT` (gemessen: `SELECT 1/0; SELECT 2`): ERROR und ein zurückgehaltenes DONE mit `ERROR`, das
+ *   `MORE` bekommt, sobald ein Ereignis folgt; der Lauf liest weiter. Die Fehler des Servers selbst sind `BATCH`
+ *   (Setzung des Nutzers, kein Messbefund).
  * - Ein zurückgehaltener Abschluss wird bei Abbruch der Coroutine (Cancel, Disconnect) verworfen,
  *   nicht geschrieben (Nutzer). `close()` der Ausführung läuft trotzdem.
  * - Ein Verstoß des Backends gegen die Reihenfolge ([QueryEvent.Row] oder [QueryEvent.ResultEnd] ohne
@@ -96,28 +100,30 @@ internal enum class SequenceOutcome {
  *   Abbildung: mit dem `ErrorMapper` ist die Ablehnung `TDS_UNSUPPORTED_TYPE` (Class 20) und der Ausgang
  *   [SequenceOutcome.FAILED_CLOSE_CONNECTION], die Verbindung schließt nach der Antwort; ebenso jeder
  *   andere Typfehler. Die Einzelzuordnung des Codes ist offen.
- * - [ResponseForm.RPC] (Festlegungen des Implementers, nicht gemessen): der Abschluss eines Ergebnisses
- *   oder Update-Zählers ist ein DONEINPROC, den Strom schließt ein DONEPROC ohne Bits und ohne Zahl. Ein
- *   zurückgehaltenes DONEINPROC bekommt `DONE_MORE`, auch wenn nur das DONEPROC folgt (der Testserver des
- *   Spikes schrieb dort kein `MORE`). [QueryEvent.ReturnStatus] wird RETURNSTATUS, [QueryEvent.OutputParameter]
- *   ein RETURNVALUE (Statusbyte 1, Ordinal ab 0 in der Reihenfolge der Ereignisse und nicht als Position in
- *   der Aufrufliste, Typ nullbar), beide an der Stelle im Strom. Ein zweiter `ReturnStatus` und ein Ereignis
- *   beider Arten in einem offenen Ergebnis sind ein Reihenfolgeverstoß; ein Typ oder Wert, den die
- *   Abbildung ablehnt, ist ein Fehler der Typabbildung.
- *   ERROR und der Abschluss mit Fehlerstatus bleiben auch hier ein DONE; dagegen zeigt die Messzeile R02
- *   (ADR-0007), dass der echte Server einen Fehler im Prozedur-Kontext als DONEPROC mit Fehlerstatus schreibt.
- *   Die Fehlerabbildung (`welle-fehler-abbruch`) entscheidet, ob die RPC-Antwort so schreibt.
- *   Ein Ergebnis nach einem Ausgabewert ist nicht ausgeschlossen (Clientannahme nicht gemessen).
+ * - [ResponseForm.RPC] (gemessen für `sp_executesql` und `sp_prepexec`, ein Fall je Instanz und Form; sonst
+ *   Setzung nach derselben Regel): der Abschluss eines Ergebnisses oder Update-Zählers ist ein DONEINPROC mit `MORE`
+ *   (auch wenn nur das DONEPROC folgt); die Antwort endet mit RETURNSTATUS, den RETURNVALUE in der Reihenfolge der
+ *   Aufrufliste und einem DONEPROC ohne Bits. Der Sequenzierer hält RETURNSTATUS und RETURNVALUE bis zum Ende der
+ *   Antwort ([RpcOutputs]); ein Ergebnis nach einem Ausgabewert steht damit vor dem RETURNSTATUS. Ohne
+ *   [QueryEvent.ReturnStatus] ist der Wert 0. Ein zweiter `ReturnStatus` und ein Ereignis beider Arten in einem
+ *   offenen Ergebnis sind ein Reihenfolgeverstoß; ein Typ oder Wert, den die Abbildung ablehnt, ist ein Fehler der
+ *   Typabbildung.
+ * - Fehler in der Form RPC (Messprotokoll W-1 bis W-3): vor dem ersten Ergebnis ERROR, RETURNSTATUS, DONEPROC mit
+ *   `ERROR`; danach ERROR, DONEINPROC `MORE|ERROR`, RETURNSTATUS, RETURNVALUE, DONEPROC ohne Fehlerbit. Der
+ *   RETURNSTATUS ist ohne Wert des Backends die Nummer des letzten ERROR, wenn der Fehler die Ausführung beendet hat
+ *   und die Nummer unter 50000 liegt (SQL-Server-Nummer), und 0, wenn die Ausführung weiterlief; für eigene Nummern
+ *   entsteht keiner.
  * - „Synchron“ (`SPEC-031` definiert den Begriff nicht): der Strom ist synchron, solange die Senke
  *   jedes Token vollständig angenommen hat. Nimmt sie ein Token nicht vollständig an, wird nichts
  *   mehr geschrieben, auch kein ERROR und kein DONE: [SequenceOutcome.CLOSE_WITHOUT_COMPLETION]
  *   (Festlegung des Implementers).
- * - [QueryEvent.Failure] beendet den Lauf; weitere Ereignisse werden nicht gelesen (Festlegung des
- *   Implementers). Ein Strom ohne Ereignis endet in einem DONE ohne Bits (Festlegung des
- *   Implementers).
- * - `curCmd` aller DONE ist 0: der Port trägt keine Befehlskennung (benannte Spec-Lücke); die
- *   Zeilenzahl steht mit dem Bit `COUNT`, wenn das Ereignis eine Zahl trägt, sonst steht 0 ohne das
- *   Bit (Festlegung des Implementers).
+ * - Ein batch-abbrechendes [QueryEvent.Failure] beendet den Lauf; weitere Ereignisse werden nicht gelesen
+ *   (Festlegung des Implementers). Ein Strom ohne Ereignis endet im Batch in einem DONE ohne Bits.
+ * - `curCmd` folgt der Form des Ereignisses ([DoneCommand], Messprotokoll W-6): `ResultEnd` und ein Fehler bei
+ *   offenem Ergebnis `0x00c1`, ein Fehler ohne offenes Ergebnis und ein Strom ohne Ereignis `0x00fd`, DONEPROC
+ *   `0x00e0`. Wo die Form den Wert nicht festlegt (`UpdateCount`: INSERT, UPDATE und DELETE), steht 0, weil der Port
+ *   die Art der Anweisung nicht trägt. Die Zeilenzahl steht mit dem Bit `COUNT`, wenn das Ereignis eine Zahl trägt,
+ *   sonst steht 0 ohne das Bit (Festlegung des Implementers).
  * - „Ausnahme“ heißt jedes `Throwable` außer einer [CancellationException]; die Ausnahme geht an
  *   [ErrorMapping.internal]. Eine [CancellationException] läuft aus `execute()` wie aus dem Strom
  *   nach außen, auch wenn die Coroutine nicht abgebrochen ist (etwa ein Zeitlimit im Backend).
@@ -132,7 +138,8 @@ internal enum class SequenceOutcome {
  */
 internal class ResponseSequencer(private val errors: ErrorMapping) {
     /**
-     * Führt [request] auf [backend] aus und schreibt die Tokens der Antwortform [form] in [sink]. `close()`
+     * Führt [request] auf [backend] aus und schreibt die Tokens der Antwortform [form] in [sink]; [layout] sagt, wo
+     * die Parameter der Anfrage in der Aufrufliste des RPC stehen (Ordinal der RETURNVALUE). `close()`
      * der Ausführung läuft in jedem Ausgang, auch beim Abbruch der Coroutine. Endet das Lesen durch den Abbruch der
      * Coroutine, durch eine Senke, die ein Token nicht annimmt, oder durch eine Ausnahme der Senke,
      * ruft der Lauf zuvor genau einmal `cancel()` des Backends; kein weiteres Ereignis wird danach
@@ -143,8 +150,9 @@ internal class ResponseSequencer(private val errors: ErrorMapping) {
         request: QueryRequest,
         sink: TokenSink,
         form: ResponseForm = ResponseForm.BATCH,
+        layout: CallLayout = CallLayout.PROCEDURE,
     ): SequenceOutcome {
-        val run = ResponseRun(errors, sink, form)
+        val run = ResponseRun(errors, sink, form, RpcOutputs(layout, request.parameters))
         val started = runCatching { backend.execute(request) }
         val cause = started.exceptionOrNull()
         if (cause != null) {

@@ -24,19 +24,20 @@ import kotlin.test.assertTrue
  * Antwortformen der Anfrageschleife (`TDS-FA-10.a`, `SPEC-002`, `SPEC-030`, `SPEC-031`) gegen das
  * Test-Backend [ScriptedBackend]: mehrere Ergebnisse in Reihenfolge, RPC mit Rückgabestatus und OUTPUT und
  * Antwortformen, die das Profil nicht kennt. Die Bytes sind Handvektoren nach dem Tabellenlayout von
- * MS-TDS; Tokenfolge, Statusbits und Ordinale sind Festlegungen und weder am Referenzclient noch an einem
- * echten SQL Server gemessen.
+ * MS-TDS; Tokenfolge, Statusbits, Befehlskennungen und Ordinale folgen der Messung am echten SQL Server
+ * (Messprotokoll W-1 bis W-6, Einzelmessung je Instanz), soweit sie reicht, sonst sind sie Festlegungen.
  */
 class AnswerFormsDispatchTest {
     private val rpcOutput = executeSql("select @o", "@o int output", param("@o", "26 04 00", status = 1))
 
     private fun rpc(payload: ByteArray) = BatchVectors.raw(PacketType.RPC, payload)
 
-    private fun counted(more: Boolean, rows: Long) = "FD ${if (more) "11" else "10"} 00 00 00 ${RpcWire.le(rows, 8)}"
+    private fun counted(more: Boolean, rows: Long, command: String = "C1 00") =
+        "FD ${if (more) "11" else "10"} 00 $command ${RpcWire.le(rows, 8)}"
 
-    private fun doneInProc(rows: Long) = "FF 11 00 00 00 ${RpcWire.le(rows, 8)}"
+    private fun doneInProc(rows: Long, command: String = "C1 00") = "FF 11 00 $command ${RpcWire.le(rows, 8)}"
 
-    private val doneProcFinal = "FE 00 00 00 00 00 00 00 00 00 00 00 00"
+    private val doneProcFinal = "FE 00 00 E0 00 00 00 00 00 00 00 00 00"
 
     private val returnStatus0 = "79 00 00 00 00"
 
@@ -82,7 +83,7 @@ class AnswerFormsDispatchTest {
             BatchVectors.COLMETADATA_N,
             BatchVectors.row(1),
             counted(more = true, rows = 1),
-            counted(more = true, rows = 5),
+            counted(more = true, rows = 5, command = "00 00"),
             BatchVectors.COLMETADATA_N,
             BatchVectors.row(2),
             counted(more = false, rows = 1),
@@ -116,7 +117,7 @@ class AnswerFormsDispatchTest {
             BatchVectors.row(1),
             counted(more = true, rows = 1),
             BatchVectors.COLMETADATA_N,
-            "FD 01 00 00 00 00 00 00 00 00 00 00 00",
+            "FD 01 00 C1 00 00 00 00 00 00 00 00 00",
             BatchVectors.COLMETADATA_N,
             BatchVectors.row(2),
             counted(more = false, rows = 1),
@@ -126,8 +127,9 @@ class AnswerFormsDispatchTest {
 
     /**
      * Ein RPC mit Ergebnis, Rückgabestatus und OUTPUT-Parameter: DONEINPROC, RETURNSTATUS, RETURNVALUE
-     * (Name wie vom Backend genannt, Ordinal 0, Status 1) und DONEPROC. Wächter: DONE statt DONEINPROC oder
-     * DONEPROC, eine andere Folge, ein Ordinal ungleich 0.
+     * (Name wie vom Backend genannt, Ordinal 2 als Position des ersten Wertparameters von `sp_executesql` hinter Text
+     * und Deklarationsliste, Status 1) und DONEPROC. Wächter: DONE statt DONEINPROC oder DONEPROC, eine andere
+     * Folge, ein Ordinal 0.
      *
      * @spec SPEC-030
      */
@@ -146,7 +148,7 @@ class AnswerFormsDispatchTest {
             BatchVectors.row(7),
             doneInProc(1),
             returnStatus0,
-            returnValueInt(0, nameO, "04 2A 00 00 00"),
+            returnValueInt(2, nameO, "04 2A 00 00 00"),
             doneProcFinal,
         ).joinToString(" ")
         assertEquals(expected, session.hex(0))
@@ -154,7 +156,8 @@ class AnswerFormsDispatchTest {
 
     /**
      * Ein NULL im OUTPUT-Parameter bleibt NULL (Längenbyte 0 im Wert); zwei OUTPUT-Parameter zählen
-     * die Ordinale 0 und 1. Wächter: ein Ordinal, das nicht weiterzählt, ein NULL, das als 0 ankommt.
+     * die Positionen 2 (`@o`, Parameter der Anfrage) und 3 (`@p`, nicht in der Aufrufliste: hinter dem letzten
+     * Parameter). Wächter: ein Ordinal, das die Ereignisse zählt, ein NULL, das als 0 ankommt.
      *
      * @spec SPEC-030
      */
@@ -166,8 +169,9 @@ class AnswerFormsDispatchTest {
             QueryEvent.OutputParameter("@p", SqlType.Int32, 1),
         )
         val expected = listOf(
-            returnValueInt(0, nameO, "00"),
-            returnValueInt(1, "40 00 70 00", "04 01 00 00 00"),
+            returnStatus0,
+            returnValueInt(2, nameO, "00"),
+            returnValueInt(3, "40 00 70 00", "04 01 00 00 00"),
             doneProcFinal,
         ).joinToString(" ")
         assertEquals(expected, session.hex(0))
@@ -183,9 +187,9 @@ class AnswerFormsDispatchTest {
      * @spec SPEC-030
      */
     @Test
-    fun `Ohne Ausgabewerte im Strom entstehen weder RETURNVALUE noch RETURNSTATUS`() = blocking {
+    fun `Ohne Ausgabewerte im Strom entsteht kein RETURNVALUE und der RETURNSTATUS ist 0`() = blocking {
         val (_, session) = runRpc(executeSql("select 1", ""), QueryEvent.UpdateCount(2))
-        assertEquals(listOf(doneInProc(2), doneProcFinal).joinToString(" "), session.hex(0))
+        assertEquals(listOf(doneInProc(2, "00 00"), returnStatus0, doneProcFinal).joinToString(" "), session.hex(0))
     }
 
     /**
@@ -230,16 +234,20 @@ class AnswerFormsDispatchTest {
         val sessions = listOf(runBatch(*events).second, runRpc(rpcOutput, *events).second)
         for (session in sessions) {
             val tokens = session.tokens(0)
-            val dones = tokens.filterIsInstance<DoneToken>()
-            assertEquals(2, dones.size)
-            assertEquals(DoneStatus.COUNT or DoneStatus.MORE, dones[0].status)
-            assertEquals(DoneStatus.ERROR, dones[1].status)
-            assertTrue(dones.none { it.status and (DoneStatus.MORE or DoneStatus.ERROR) == 0 })
             assertEquals(ErrorCode.TDS_INTERNAL_ERROR.rule.message(), tokens.errorMessage())
             assertTrue(session.channel.closed)
         }
-        val rpcDone = sessions[1].tokens(0).filterIsInstance<DoneToken>()[0]
-        assertEquals(DoneKind.DONE_IN_PROC, rpcDone.kind)
+        val batchDones = sessions[0].tokens(0).filterIsInstance<DoneToken>()
+        assertEquals(listOf(DoneStatus.COUNT or DoneStatus.MORE, DoneStatus.ERROR), batchDones.map { it.status })
+        val rpcDones = sessions[1].tokens(0).filterIsInstance<DoneToken>()
+        assertEquals(
+            listOf(DoneKind.DONE_IN_PROC, DoneKind.DONE_IN_PROC, DoneKind.DONE_PROC),
+            rpcDones.map { it.kind },
+        )
+        assertEquals(
+            listOf(DoneStatus.COUNT or DoneStatus.MORE, DoneStatus.MORE or DoneStatus.ERROR, DoneStatus.FINAL),
+            rpcDones.map { it.status },
+        )
     }
 
     /**
