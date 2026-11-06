@@ -22,8 +22,15 @@ import java.util.concurrent.atomic.AtomicBoolean
  * Anweisung antwortet mit `TDS_UNSUPPORTED_SQL`.
  *
  * Form C (`SPEC-036`) beantwortet das Backend ohne Tabelle: `SELECT 1` mit einer Spalte und einer Zeile, eine
- * `SET`-Anweisung mit dem Änderungszähler 0. Eine Auswahl mit einem Konstantenterm, der nie gilt (`WHERE 1 = 0`),
- * liefert Spaltenmetadaten und keine Zeile, ohne die Zeilenquelle zu öffnen.
+ * `SET`-Anweisung und die Transaktionstexte mit dem Änderungszähler 0. Eine Auswahl mit einem Konstantenterm, der nie
+ * gilt (`WHERE 1 = 0`), liefert Spaltenmetadaten und keine Zeile, ohne die Zeilenquelle zu öffnen.
+ *
+ * Form K (`SPEC-036`) beantwortet die Katalogabfragen von d-migrate aus dem Katalog ([CatalogAnswers]); der Katalog
+ * kommt bei jeder Anfrage frisch aus dem Anbieter des Konstruktors, das Backend hält keinen Stand. Form D
+ * (`CREATE TABLE`, `ALTER TABLE … ADD`) ruft den Strukturänderungs-Callback mit der Tabelle nach der Anweisung und
+ * antwortet mit dem Änderungszähler 0; das Backend nimmt nichts zurück, mehrere Callbacks sind keine Transaktion
+ * (`ADR-0033`). Der Konstruktor mit festem Katalog hat keinen Callback: Form D ist dort abgewiesen
+ * (`TDS_UNSUPPORTED_SQL`), ebenso mit dem Anbieter und ohne Callback.
  *
  * Zusagen für die Auswahl (Festlegung, nicht am Server gemessen): `execute` wirft für keinen Fehler der
  * Anfrage, jeder erscheint als einziges [QueryEvent.Failure] im Strom, bevor eine Zeilenquelle gelesen wird.
@@ -42,15 +49,29 @@ import java.util.concurrent.atomic.AtomicBoolean
  * [QueryExecution.close]: bis dahin bleibt die Ausführung unter Sitzung und Anfrage registriert (für [cancel]); eine
  * zweite Ausführung mit demselben Schlüssel ersetzt die Registrierung der ersten.
  */
-public class SimulationBackend(catalog: SimCatalog) : QueryBackend {
+public class SimulationBackend(
+    /** Liefert bei jeder Anfrage die aktuelle Tabellenliste; wirft er, endet die Anfrage mit `TDS_BACKEND_ERROR`. */
+    catalog: () -> SimCatalog,
+    /**
+     * Nimmt die Tabelle nach einer Strukturänderung entgegen: Schema, Name, Spalten in der Reihenfolge und Schlüssel;
+     * ohne ihn ist jede Strukturänderung abgewiesen.
+     */
+    private val onStructure: (suspend (String, String, List<SimColumn>, List<String>) -> Unit)? = null,
+) : QueryBackend {
+    /** Das Backend mit festem Katalog; es nimmt weder Strukturänderungen an noch ändert sich sein Katalog. */
+    public constructor(catalog: SimCatalog) : this({ catalog })
+
     private val planner = StatementPlanner(catalog)
     private val running = ConcurrentHashMap<Pair<String, String>, Stoppable>()
 
     override suspend fun execute(request: QueryRequest): QueryExecution =
-        when (val result = planner.plan(request.sql)) {
+        when (val result = guarded { planner.plan(request.sql) }.getOrNull()) {
+            null -> failed(SimCodes.BACKEND_ERROR, "Katalog nicht lieferbar")
             is PlanResult.Rejected -> failed(result.code, result.message)
             is PlanResult.Planned -> start(result.plan, request)
-            is PlanResult.Fixed -> fixed(result.form)
+            is PlanResult.Fixed -> events(FixedAnswers.of(result.form))
+            is PlanResult.Catalog -> events(CatalogAnswers.of(result.form, result.catalog, request.parameters))
+            is PlanResult.Structure -> structure(result.plan, request)
         }
 
     override suspend fun cancel(sessionId: String, requestId: String) {
@@ -78,11 +99,28 @@ public class SimulationBackend(catalog: SimCatalog) : QueryBackend {
         return execution
     }
 
-    /** Form C (`SPEC-036`): die Antwort steht fest, es wird weder eine Zeilenquelle noch ein Callback gerufen. */
-    private fun fixed(form: FixedForm): QueryExecution = object : QueryExecution {
-        override val events: Flow<QueryEvent> = FixedAnswers.of(form).asFlow()
+    /**
+     * Die Antwort steht fest (Form C und Form K, `SPEC-036`): es wird weder eine Zeilenquelle noch ein Callback
+     * gerufen.
+     */
+    private fun events(answer: List<QueryEvent>): QueryExecution = object : QueryExecution {
+        override val events: Flow<QueryEvent> = answer.asFlow()
 
         override suspend fun close() = Unit
+    }
+
+    /**
+     * Form D (`SPEC-036`): ruft den Strukturänderungs-Callback genau einmal beim Sammeln und antwortet mit dem
+     * Änderungszähler 0. Ohne Callback ist die Anweisung abgewiesen.
+     */
+    private fun structure(plan: StructurePlan, request: QueryRequest): QueryExecution {
+        val callback = onStructure ?: return failed(SimCodes.UNSUPPORTED_SQL, "Strukturänderung nicht verfügbar")
+        val key = request.sessionId to request.requestId
+        val call = PreparedChange.Ready {
+            callback(plan.schema, plan.name, plan.columns, plan.primaryKey)
+            0L
+        }
+        return register(key, ChangeExecution(call) { running.remove(key, it) })
     }
 
     private fun failed(code: String, message: String): QueryExecution = object : QueryExecution {

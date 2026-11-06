@@ -5,7 +5,7 @@ import java.math.BigInteger
 private val INTEGER = Regex("-?[0-9]+")
 
 /** Abbruch der Zuordnung mit Grund; ohne Stapelspur, weil er nur den Ablauf lenkt. */
-private class Reject(val reason: Unrecognized) : Exception(null, null, false, false)
+internal class Reject(val reason: Unrecognized) : Exception(null, null, false, false)
 
 /** Die fünfzehn Wörter, die nur quotiert Bezeichner sind (`SPEC-036` Scanner). */
 private val RESERVED = setOf(
@@ -20,10 +20,10 @@ internal fun asciiUpper(word: String): String = buildString(word.length) {
 
 internal fun Token.isKeyword(word: String): Boolean = this is Token.Word && asciiUpper(text) == word
 
-private fun unexpected(): Reject = Reject(Unrecognized.UNEXPECTED_TOKEN)
+internal fun unexpected(): Reject = Reject(Unrecognized.UNEXPECTED_TOKEN)
 
 /** Die Token einer Anweisung, von vorn nach hinten gelesen. */
-private class TokenStream(private val tokens: List<Token>) {
+internal class TokenStream(private val tokens: List<Token>) {
     private var index = 0
 
     fun next(): Token {
@@ -57,7 +57,7 @@ private class TokenStream(private val tokens: List<Token>) {
 }
 
 /** Die Bausteine der Formen: Bezeichner, Wert, Tabelle, Bedingung, Liste. */
-private class Parts(private val stream: TokenStream) {
+internal class Parts(private val stream: TokenStream) {
     fun identifier(): String = when (val token = stream.next()) {
         is Token.Quoted -> token.text
         is Token.Word -> token.text.takeUnless { asciiUpper(it) in RESERVED } ?: throw unexpected()
@@ -143,9 +143,18 @@ private class Parts(private val stream: TokenStream) {
  * und `SET` höchstens einmal.
  */
 internal object StatementParser {
-    fun recognize(sql: String): Recognition = when (val scanned = SqlScanner(sql).scan()) {
-        is ScanResult.Failed -> Recognition.NotRecognized(scanned.reason)
-        is ScanResult.Tokens -> parse(scanned.tokens)
+    fun recognize(sql: String): Recognition {
+        val catalog = CatalogForms.recognize(sql)
+        return when {
+            catalog != null -> Recognition.Catalog(catalog)
+
+            TransactionForms.matches(sql) -> Recognition.Fixed(FixedForm.Transaction)
+
+            else -> when (val scanned = SqlScanner(sql).scan()) {
+                is ScanResult.Failed -> Recognition.NotRecognized(scanned.reason)
+                is ScanResult.Tokens -> parse(scanned.tokens)
+            }
+        }
     }
 
     private fun parse(scanned: List<Token>): Recognition {
@@ -169,6 +178,8 @@ internal object StatementParser {
             first.isKeyword("INSERT") -> insert(stream, parts)
             first.isKeyword("UPDATE") -> update(stream, parts)
             first.isKeyword("DELETE") -> delete(stream, parts)
+            first.isKeyword("CREATE") -> StructureParts(stream, parts).createTable()
+            first.isKeyword("ALTER") -> StructureParts(stream, parts).addColumns()
             else -> throw unexpected()
         }
         if (!stream.atEnd()) throw unexpected()
