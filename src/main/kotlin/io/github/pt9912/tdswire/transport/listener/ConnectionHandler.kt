@@ -31,6 +31,20 @@ internal interface Connection {
      * behandelt beide gleich. Ist das geordnete Beenden im Gang, endet die Verbindung mit der Meldung `false`.
      */
     fun requestRunning(running: Boolean)
+
+    /**
+     * Wahr ab dem Beginn des geordneten Beendens (`SPEC-044`). Eine Anfrage, die danach eintrifft, beantwortet der
+     * Handler mit `TDS_SHUTDOWN`, statt sie auszuführen.
+     */
+    val shutdownBegun: Boolean get() = false
+
+    /**
+     * Meldet, was nach Ablauf von `SHUTDOWN_GRACE` mit einer laufenden Anfrage geschieht (`SPEC-044` Nr. 4): der
+     * Listener ruft [abort] einmal in diesem Scope der Verbindung, und der Handler bricht die Anfrage wie bei
+     * ATTENTION ab. Ohne Meldung trennt der Listener die Verbindung beim Ablauf der Frist sofort; mit Meldung nach
+     * `CANCEL_TIMEOUT`, falls die Verbindung dann noch besteht.
+     */
+    fun onShutdownGraceExpired(abort: suspend () -> Unit) = Unit
 }
 
 /**

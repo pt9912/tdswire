@@ -7,6 +7,7 @@ import io.github.pt9912.tdswire.protocol.dispatch.RequestLoop
 import io.github.pt9912.tdswire.protocol.dispatch.RequestTimes
 import io.github.pt9912.tdswire.protocol.error.ErrorMapper
 import io.github.pt9912.tdswire.protocol.response.TokenSink
+import io.github.pt9912.tdswire.protocol.session.ConnectionState
 import io.github.pt9912.tdswire.protocol.session.HandshakeConfig
 import io.github.pt9912.tdswire.protocol.session.HandshakeDriver
 import io.github.pt9912.tdswire.protocol.session.HandshakeOutcome
@@ -22,6 +23,8 @@ import io.github.pt9912.tdswire.transport.messaging.MessageWriter
 import io.github.pt9912.tdswire.transport.messaging.TransportHandshakeChannel
 import kotlin.test.assertIs
 
+private val requestStates = setOf(ConnectionState.RUNNING, ConnectionState.STREAMING, ConnectionState.CANCELLING)
+
 /** Die Packet Size des Schreibers vor dem Login (wie `HandshakeConnectionHandler.PACKET_SIZE`). */
 internal const val WIRE_DEFAULT_PACKET_SIZE = 4096
 
@@ -35,6 +38,11 @@ internal class WireSession(
     val ready: HandshakeOutcome.Ready,
     private val channel: TransportHandshakeChannel,
 ) {
+    init {
+        // Die Gegenstelle der Tests schließt erst nach der Antwort; ein Ende während der Anfrage ist ein Disconnect.
+        wire.holdEndWhile = { ready.live.context.state in requestStates }
+    }
+
     suspend fun serve(
         backend: QueryBackend,
         sinkAround: (TokenSink) -> TokenSink = { it },

@@ -27,6 +27,7 @@ private const val HEADER_BYTES = 8
 private const val BYTE = 0xFF
 private const val BYTE_BITS = 8
 private const val EOM = 1
+private const val SOME_BYTES = 512
 const val PRELOGIN_TYPE = 0x12
 const val LOGIN7_TYPE = 0x10
 const val BATCH_TYPE = 0x01
@@ -115,6 +116,22 @@ internal class RawClient(port: Int, host: String = LOOPBACK) : AutoCloseable {
         input.read() < 0
     } catch (reset: IOException) {
         reset.message?.contains("reset", ignoreCase = true) == true
+    }
+
+    /** Die nächsten Bytes, sobald welche da sind (bis zu [max]); leer beim Ende der Gegenstelle. */
+    fun readSome(max: Int = SOME_BYTES): ByteArray {
+        val buffer = ByteArray(max)
+        val count = input.read(buffer)
+        return if (count <= 0) ByteArray(0) else buffer.copyOf(count)
+    }
+
+    /** Alle Bytes bis zum Ende der Gegenstelle; ein Lesefehler bricht den Test ab. */
+    fun readToEnd(): ByteArray = input.readAllBytes()
+
+    /** Bricht die Verbindung mit RST ab (`SO_LINGER` 0), wie ein Client, der abstürzt. */
+    fun reset() {
+        socket.setSoLinger(true, 0)
+        socket.close()
     }
 
     override fun close() = socket.close()

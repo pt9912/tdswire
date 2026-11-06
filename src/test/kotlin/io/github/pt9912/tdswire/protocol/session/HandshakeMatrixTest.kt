@@ -25,6 +25,7 @@ import io.github.pt9912.tdswire.protocol.session.EventKind.PRELOGIN_MESSAGE
 import io.github.pt9912.tdswire.protocol.session.EventKind.READ_FAILED
 import io.github.pt9912.tdswire.protocol.session.EventKind.REQUEST_FINISHED
 import io.github.pt9912.tdswire.protocol.session.EventKind.REQUEST_MESSAGE
+import io.github.pt9912.tdswire.protocol.session.EventKind.SHUTDOWN_GRACE_EXPIRED
 import io.github.pt9912.tdswire.protocol.session.EventKind.START
 import io.github.pt9912.tdswire.protocol.session.EventKind.STREAM_STARTED
 import io.github.pt9912.tdswire.protocol.session.EventKind.TLS_ESTABLISHED
@@ -71,45 +72,54 @@ class HandshakeMatrixTest {
                 REQUEST_MESSAGE to to(RUNNING, "Forward"),
                 ATTENTION_MESSAGE to to(READY, "Send"),
                 DEADLINE_EXPIRED to to(READY),
+                SHUTDOWN_GRACE_EXPIRED to to(READY),
                 LOGIN_TIMEOUT to to(READY),
                 PEER_CLOSED to peer,
                 READ_FAILED to failed,
             ),
-            RUNNING to mapOf(
-                STREAM_STARTED to to(STREAMING),
-                REQUEST_FINISHED to to(READY, "Send"),
-                ATTENTION_MESSAGE to to(CANCELLING, "Cancel:ATTENTION"),
-                DEADLINE_EXPIRED to to(CANCELLING, "Cancel:DEADLINE"),
-                LOGIN_TIMEOUT to to(RUNNING),
-                PEER_CLOSED to peer,
-                READ_FAILED to failed,
-            ),
-            STREAMING to mapOf(
-                REQUEST_FINISHED to to(READY, "Send"),
-                ATTENTION_MESSAGE to to(CANCELLING, "Cancel:ATTENTION"),
-                DEADLINE_EXPIRED to to(CANCELLING, "Cancel:DEADLINE"),
-                LOGIN_TIMEOUT to to(STREAMING),
-                PEER_CLOSED to peer,
-                READ_FAILED to failed,
-            ),
-            CANCELLING to mapOf(
-                REQUEST_FINISHED to to(READY, "Send"),
-                STREAM_STARTED to to(CANCELLING),
-                ATTENTION_MESSAGE to to(CANCELLING),
-                DEADLINE_EXPIRED to to(CANCELLING),
-                LOGIN_TIMEOUT to to(CANCELLING),
-                PEER_CLOSED to peer,
-                READ_FAILED to failed,
-            ),
-            CLOSED to mapOf(
-                LOGIN_TIMEOUT to to(CLOSED),
-                PEER_CLOSED to to(CLOSED),
-                READ_FAILED to to(CLOSED),
-                DEADLINE_EXPIRED to to(CLOSED),
-                ATTENTION_MESSAGE to to(CLOSED),
-            ),
-        )
+        ) + requestRows()
     }
+
+    /** Die Zeilen der Anfragezustände und von `CLOSED` der Handtabelle. */
+    private fun requestRows(): Map<ConnectionState, Map<EventKind, Expect>> = mapOf(
+        RUNNING to mapOf(
+            STREAM_STARTED to to(STREAMING),
+            REQUEST_FINISHED to to(READY, "Send"),
+            ATTENTION_MESSAGE to to(CANCELLING, "Cancel:ATTENTION"),
+            DEADLINE_EXPIRED to to(CANCELLING, "Cancel:DEADLINE"),
+            SHUTDOWN_GRACE_EXPIRED to to(CANCELLING, "Cancel:SHUTDOWN"),
+            LOGIN_TIMEOUT to to(RUNNING),
+            PEER_CLOSED to peer,
+            READ_FAILED to failed,
+        ),
+        STREAMING to mapOf(
+            REQUEST_FINISHED to to(READY, "Send"),
+            ATTENTION_MESSAGE to to(CANCELLING, "Cancel:ATTENTION"),
+            DEADLINE_EXPIRED to to(CANCELLING, "Cancel:DEADLINE"),
+            SHUTDOWN_GRACE_EXPIRED to to(CANCELLING, "Cancel:SHUTDOWN"),
+            LOGIN_TIMEOUT to to(STREAMING),
+            PEER_CLOSED to peer,
+            READ_FAILED to failed,
+        ),
+        CANCELLING to mapOf(
+            REQUEST_FINISHED to to(READY, "Send"),
+            STREAM_STARTED to to(CANCELLING),
+            ATTENTION_MESSAGE to to(CANCELLING),
+            DEADLINE_EXPIRED to to(CANCELLING),
+            SHUTDOWN_GRACE_EXPIRED to to(CANCELLING),
+            LOGIN_TIMEOUT to to(CANCELLING),
+            PEER_CLOSED to peer,
+            READ_FAILED to failed,
+        ),
+        CLOSED to mapOf(
+            LOGIN_TIMEOUT to to(CLOSED),
+            PEER_CLOSED to to(CLOSED),
+            READ_FAILED to to(CLOSED),
+            DEADLINE_EXPIRED to to(CLOSED),
+            SHUTDOWN_GRACE_EXPIRED to to(CLOSED),
+            ATTENTION_MESSAGE to to(CLOSED),
+        ),
+    )
 
     private val authContext = HandshakeContext(
         state = AUTHENTICATING,
@@ -130,6 +140,7 @@ class HandshakeMatrixTest {
     private fun requestEvent(kind: EventKind): HandshakeEvent = when (kind) {
         STREAM_STARTED -> HandshakeEvent.StreamStarted
         DEADLINE_EXPIRED -> HandshakeEvent.DeadlineExpired
+        SHUTDOWN_GRACE_EXPIRED -> HandshakeEvent.ShutdownGraceExpired
         else -> HandshakeEvent.RequestFinished(SessionVectors.message(PacketType.TABULAR_RESULT), true)
     }
 
@@ -141,7 +152,7 @@ class HandshakeMatrixTest {
         REQUEST_MESSAGE -> HandshakeEvent.Message(SessionVectors.message(PacketType.SQL_BATCH))
         ATTENTION_MESSAGE -> HandshakeEvent.Message(SessionVectors.message(PacketType.ATTENTION))
         OTHER_MESSAGE -> HandshakeEvent.Message(SessionVectors.message(PacketType.SSPI))
-        STREAM_STARTED, REQUEST_FINISHED, DEADLINE_EXPIRED -> requestEvent(kind)
+        STREAM_STARTED, REQUEST_FINISHED, DEADLINE_EXPIRED, SHUTDOWN_GRACE_EXPIRED -> requestEvent(kind)
         AUTH_ACCEPTED -> HandshakeEvent.AuthAccepted(Principal("sa"), "s1")
         AUTH_REJECTED -> HandshakeEvent.AuthRejected(LoginRejection.from(RejectReason.WRONG_PASSWORD))
         LOGIN_TIMEOUT -> HandshakeEvent.LoginTimeout
@@ -150,7 +161,7 @@ class HandshakeMatrixTest {
     }
 
     /**
-     * Jede der 150 Zellen in beiden Reihenfolgen: Folgezustand und Aktionsfolge stimmen mit der
+     * Jede der 160 Zellen in beiden Reihenfolgen: Folgezustand und Aktionsfolge stimmen mit der
      * Handtabelle überein; eine Zelle ohne Eintrag ist unzulässig und schließt ohne Antwort.
      *
      * @spec SPEC-001
@@ -174,11 +185,12 @@ class HandshakeMatrixTest {
     }
 
     /**
-     * Die Zählung der Zellen kommt aus dem Code: 10 Zustände (mit `CANCELLING`) mal 15 Ereignisarten (mit dem
-     * Fristablauf). Die Summen sind von Hand aus der Handtabelle gezählt: zulässig 25 in den Zuständen bis `READY`,
-     * 6 in `RUNNING`, 5 in `STREAMING`, 3 in `CANCELLING`; ignoriert 13 (je eine `LOGIN_TIMEOUT` in `READY`, `RUNNING`,
-     * `STREAMING` und `CANCELLING`, drei Ende-Ereignisse und zwei späte Ereignisse in `CLOSED`, Fristablauf in `READY`,
-     * drei weitere in `CANCELLING`).
+     * Die Zählung der Zellen kommt aus dem Code: 10 Zustände (mit `CANCELLING`) mal 16 Ereignisarten (mit dem
+     * Fristablauf der Anfrage und dem Ablauf von `SHUTDOWN_GRACE`). Die Summen sind von Hand aus der Handtabelle
+     * gezählt: zulässig 25 in den Zuständen bis `READY`, 7 in `RUNNING`, 6 in `STREAMING`, 3 in `CANCELLING`;
+     * ignoriert 16 (je eine `LOGIN_TIMEOUT` in `READY`, `RUNNING`, `STREAMING` und `CANCELLING`, drei Ende-Ereignisse
+     * und zwei späte Ereignisse in `CLOSED`, zwei Fristabläufe in `READY`, vier weitere in `CANCELLING`, ein
+     * Ablauf von `SHUTDOWN_GRACE` in `CLOSED`).
      *
      * @spec SPEC-001
      */
@@ -186,11 +198,11 @@ class HandshakeMatrixTest {
     fun `Die Matrix zaehlt ihre Zellen aus dem Code`() {
         val census = HandshakeMatrix.census()
         assertEquals(10, ConnectionState.entries.size)
-        assertEquals(15, EventKind.entries.size)
-        assertEquals(150, census.values.sum())
-        assertEquals(39, census[HandshakeMatrix.Cell.PERMITTED])
-        assertEquals(13, census[HandshakeMatrix.Cell.IGNORED])
-        assertEquals(98, census[HandshakeMatrix.Cell.ILLEGAL])
+        assertEquals(16, EventKind.entries.size)
+        assertEquals(160, census.values.sum())
+        assertEquals(41, census[HandshakeMatrix.Cell.PERMITTED])
+        assertEquals(16, census[HandshakeMatrix.Cell.IGNORED])
+        assertEquals(103, census[HandshakeMatrix.Cell.ILLEGAL])
     }
 
     private fun assertClosedSilently(state: ConnectionState, message: HandshakeEvent) {

@@ -17,11 +17,17 @@ internal enum class ConnectionEnd {
     /** Das geordnete Beenden hat die Verbindung beendet: ohne laufende Anfrage oder nach deren Ende (`SPEC-044`). */
     SHUTDOWN,
 
-    /** `SHUTDOWN_GRACE` ist abgelaufen, die Verbindung wurde getrennt (`SPEC-044`). */
+    /**
+     * `SHUTDOWN_GRACE` ist abgelaufen und die Verbindung wurde getrennt: sofort, wenn der Handler keinen Abbruch
+     * angemeldet hat, sonst nach `CANCEL_TIMEOUT`, wenn der Abbruch die Verbindung nicht beendet hat (`SPEC-044`).
+     */
     SHUTDOWN_GRACE_EXPIRED,
 
     /** Die Verbindung wurde im Moment des Beginns des Beendens angenommen und sofort geschlossen (`SPEC-044`). */
     REFUSED_AT_SHUTDOWN,
+
+    /** Die Verbindung wurde über `MAX_CONNECTIONS` hinaus angenommen und sofort geschlossen (`SPEC-034`). */
+    REFUSED_AT_LIMIT,
 }
 
 /** Ereignisse des Listeners; sie tragen weder Adressen der Gegenstelle noch Nutzdaten. */

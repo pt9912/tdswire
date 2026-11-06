@@ -55,6 +55,11 @@ internal class ManagedConnection(
     var busy = false
         private set
 
+    @Volatile
+    private var abort: (suspend () -> Unit)? = null
+
+    override val shutdownBegun: Boolean get() = environment.registry.shuttingDown
+
     /** Startet Frist und Handler; der Aufrufer hat die Verbindung vorher im Register aufgenommen. */
     fun start(handler: ConnectionHandler) {
         loginTimer = scope.launch {
@@ -65,10 +70,10 @@ internal class ManagedConnection(
         handlerJob.invokeOnCompletion { failure -> finish(failure) }
     }
 
-    /** Schließt eine Verbindung, die nie gestartet wurde. */
-    fun refuse() {
+    /** Schließt eine Verbindung, die nie gestartet wurde; [reason] nennt, warum sie abgewiesen wurde. */
+    fun refuse(reason: ConnectionEnd = ConnectionEnd.REFUSED_AT_SHUTDOWN) {
         channel.close()
-        environment.events.onEvent(ListenerEvent.Closed(id, ConnectionEnd.REFUSED_AT_SHUTDOWN, null))
+        environment.events.onEvent(ListenerEvent.Closed(id, reason, null))
     }
 
     override fun loginCompleted() {
@@ -79,6 +84,26 @@ internal class ManagedConnection(
     override fun requestRunning(running: Boolean) {
         busy = running
         if (!running && environment.registry.shuttingDown) end(ConnectionEnd.SHUTDOWN)
+    }
+
+    override fun onShutdownGraceExpired(abort: suspend () -> Unit) {
+        this.abort = abort
+    }
+
+    /**
+     * Der Ablauf von `SHUTDOWN_GRACE` für diese Verbindung (`SPEC-044` Nr. 4). Hat der Handler einen Abbruch
+     * angemeldet, läuft er im Scope der Verbindung, und die Meldung ist `true`: der Aufrufer wartet `CANCEL_TIMEOUT`
+     * ab und trennt dann mit [end]. Sonst trennt die Verbindung sofort (`SHUTDOWN_GRACE_EXPIRED`), die Meldung ist
+     * `false`.
+     */
+    fun expireGrace(): Boolean {
+        val action = abort
+        if (action == null || finished.isCompleted) {
+            end(ConnectionEnd.SHUTDOWN_GRACE_EXPIRED)
+            return false
+        }
+        scope.launch { action() }
+        return true
     }
 
     /** Beendet die Verbindung aus [reason]: schließt den Kanal und bricht den Scope ab; wirkungslos nach dem Ende. */

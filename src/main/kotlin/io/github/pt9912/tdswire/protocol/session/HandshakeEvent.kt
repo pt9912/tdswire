@@ -58,6 +58,15 @@ internal sealed interface HandshakeEvent {
     }
 
     /**
+     * `SHUTDOWN_GRACE` ist im geordneten Beenden abgelaufen (`SPEC-044` Nr. 4). Es ist der dritte Auslöser des
+     * Abbruchs neben ATTENTION und der Frist der Anfrage; wer zuerst übergeht, gewinnt. Ohne laufende Anfrage hat das
+     * Ereignis keine Wirkung.
+     */
+    data object ShutdownGraceExpired : HandshakeEvent {
+        override val kind: EventKind get() = EventKind.SHUTDOWN_GRACE_EXPIRED
+    }
+
+    /**
      * Die Antwort auf die Anfrage steht fest. [reply] ist die vollständige Antwort-Nachricht oder `null`,
      * wenn die Verbindung ohne Antwort schließt oder die Antwort schon als [ReplyStream] geschrieben ist
      * ([replyWritten]); [connectionOpen] sagt, ob die Sitzung danach wieder `READY` ist. Eine offene

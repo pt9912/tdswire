@@ -39,9 +39,9 @@ class ConfigValidationTest {
     fun `Voreinstellungen sind gueltig und entsprechen der Spezifikation`() {
         val config = unencrypted()
         assertEquals(emptyList(), ConfigValidation.check(config))
-        assertEquals(ListenSettings("0.0.0.0", 1433), config.listen)
+        assertEquals(ListenSettings("0.0.0.0", 1433, 1000), config.listen)
         assertEquals(LoginSettings(15, 65536), config.login)
-        assertEquals(RequestSettings(30, 5), config.requests)
+        assertEquals(RequestSettings(30, 5, 10), config.requests)
         assertEquals(EncryptionSetting.REQUIRED, ServerConfig(auth = users()).encryption)
     }
 
@@ -66,6 +66,10 @@ class ConfigValidationTest {
                 { v: Int -> unencrypted(requests = RequestSettings(queryTimeoutSeconds = v)) },
             Triple(ConfigKeys.CANCEL_TIMEOUT, 1, 3600) to
                 { v: Int -> unencrypted(requests = RequestSettings(cancelTimeoutSeconds = v)) },
+            Triple(ConfigKeys.MAX_CONNECTIONS, 1, 100_000) to
+                { v: Int -> unencrypted(listen = ListenSettings(maxConnections = v)) },
+            Triple(ConfigKeys.SHUTDOWN_GRACE, 0, 3600) to
+                { v: Int -> unencrypted(requests = RequestSettings(shutdownGraceSeconds = v)) },
         )
         for ((bounds, build) in cases) {
             val (key, low, high) = bounds

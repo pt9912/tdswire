@@ -36,6 +36,8 @@ internal class ConfigLoaderTest : TempFilesTest() {
         assertEquals(65536, config.login.maxPreloginMessageBytes)
         assertEquals(30, config.requests.queryTimeoutSeconds)
         assertEquals(5, config.requests.cancelTimeoutSeconds)
+        assertEquals(1000, config.listen.maxConnections)
+        assertEquals(10, config.requests.shutdownGraceSeconds)
     }
 
     /**
@@ -55,6 +57,8 @@ internal class ConfigLoaderTest : TempFilesTest() {
                 EnvKeys.MAX_PRELOGIN_MESSAGE_BYTES to "4096",
                 EnvKeys.QUERY_TIMEOUT to "11",
                 EnvKeys.CANCEL_TIMEOUT to "3",
+                EnvKeys.MAX_CONNECTIONS to "17",
+                EnvKeys.SHUTDOWN_GRACE to "2",
             ),
         ).loaded()
         assertEquals("127.0.0.1", config.listen.host)
@@ -63,6 +67,8 @@ internal class ConfigLoaderTest : TempFilesTest() {
         assertEquals(4096, config.login.maxPreloginMessageBytes)
         assertEquals(11, config.requests.queryTimeoutSeconds)
         assertEquals(3, config.requests.cancelTimeoutSeconds)
+        assertEquals(17, config.listen.maxConnections)
+        assertEquals(2, config.requests.shutdownGraceSeconds)
         assertEquals(EncryptionSetting.TEST_UNENCRYPTED, config.encryption)
         assertTrue(config.auth.plainTestMode)
         assertNull(config.tls)
@@ -87,6 +93,8 @@ internal class ConfigLoaderTest : TempFilesTest() {
             Triple(EnvKeys.MAX_PRELOGIN_MESSAGE_BYTES, 512, 65536),
             Triple(EnvKeys.QUERY_TIMEOUT, 1, 3600),
             Triple(EnvKeys.CANCEL_TIMEOUT, 1, 3600),
+            Triple(EnvKeys.MAX_CONNECTIONS, 1, 100_000),
+            Triple(EnvKeys.SHUTDOWN_GRACE, 0, 3600),
         )
         for ((key, low, high) in bounds) {
             assertEquals(emptyList(), rangeIssues(base(key to low.toString())))
@@ -251,6 +259,8 @@ internal class ConfigLoaderTest : TempFilesTest() {
             EnvKeys.MAX_PRELOGIN_MESSAGE_BYTES to "511",
             EnvKeys.QUERY_TIMEOUT to "0",
             EnvKeys.CANCEL_TIMEOUT to "0",
+            EnvKeys.MAX_CONNECTIONS to "0",
+            EnvKeys.SHUTDOWN_GRACE to "3601",
         )
         outside.forEach { (key, value) ->
             assertEquals(listOf(key), rangeIssues(base(key to value)).map { it.key }, key)

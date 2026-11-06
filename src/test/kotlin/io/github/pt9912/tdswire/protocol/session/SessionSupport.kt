@@ -11,6 +11,7 @@ import io.github.pt9912.tdswire.transport.framing.PacketType
 import io.github.pt9912.tdswire.transport.framing.TdsMessage
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.yield
 import java.util.concurrent.atomic.AtomicInteger
 
 /** Von Hand gebaute Eingaben (Tabellenlayout nach MS-TDS), unabhängig vom Codec. */
@@ -125,10 +126,19 @@ internal class FakeHandshakeChannel(
     /** Wahr, wenn die Gegenstelle alle Einträge des Drehbuchs geliefert hat. */
     val exhausted: Boolean get() = script.isEmpty()
 
+    /**
+     * Solange sie wahr ist, liefert [receive] das Ende der Gegenstelle und den Lesefehler nicht: die Gegenstelle des
+     * Tests schließt erst, wenn die Antwort da ist. Ein Test, der den Disconnect während einer Anfrage prüft, setzt
+     * sie auf `{ false }`.
+     */
+    var holdEndWhile: () -> Boolean = { false }
+
     override suspend fun receive(): Inbound {
         receiveCalls++
         onReceive()
-        return script.removeFirstOrNull() ?: later.receive()
+        val next = script.removeFirstOrNull() ?: later.receive()
+        if (next !is Inbound.Message) while (holdEndWhile()) yield()
+        return next
     }
 
     override suspend fun send(message: TdsMessage): Boolean {

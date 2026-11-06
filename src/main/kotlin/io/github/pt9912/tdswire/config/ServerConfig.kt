@@ -16,6 +16,8 @@ internal object ConfigKeys {
     const val AUTH_PLAIN_TESTMODE = "AUTH_PLAIN_TESTMODE"
     const val QUERY_TIMEOUT = "QUERY_TIMEOUT"
     const val CANCEL_TIMEOUT = "CANCEL_TIMEOUT"
+    const val MAX_CONNECTIONS = "MAX_CONNECTIONS"
+    const val SHUTDOWN_GRACE = "SHUTDOWN_GRACE"
 }
 
 /**
@@ -25,7 +27,8 @@ internal object ConfigKeys {
 public enum class EncryptionSetting { REQUIRED, TEST_UNENCRYPTED }
 
 /**
- * Die Voreinstellungen der Konfiguration (`SPEC-005`, `SPEC-008`, `SPEC-010`, `SPEC-046`): Die Konstruktoren der
+ * Die Voreinstellungen der Konfiguration (`SPEC-005`, `SPEC-008`, `SPEC-010`, `SPEC-034`, `SPEC-046`,
+ * `SPEC-047`): Die Konstruktoren der
  * Einstellungen nutzen dieselben Werte.
  */
 internal object ConfigDefaults {
@@ -35,11 +38,21 @@ internal object ConfigDefaults {
     const val MAX_PRELOGIN_MESSAGE_BYTES = 65536
     const val QUERY_TIMEOUT_SECONDS = 30
     const val CANCEL_TIMEOUT_SECONDS = 5
+    const val MAX_CONNECTIONS = 1000
+    const val SHUTDOWN_GRACE_SECONDS = 10
     val ENCRYPTION = EncryptionSetting.REQUIRED
 }
 
-/** Bind-Adresse und Port; Port 0 lässt das System einen freien Port wählen. */
-public data class ListenSettings(val host: String = ConfigDefaults.HOST, val port: Int = ConfigDefaults.PORT)
+/**
+ * Bind-Adresse, Port und Grenze des Listeners. Port 0 lässt das System einen freien Port wählen. [maxConnections] ist
+ * `MAX_CONNECTIONS` (`SPEC-034`): die Zahl der gleichzeitig aufgenommenen Verbindungen; eine weitere wird abgewiesen,
+ * bis eine endet.
+ */
+public data class ListenSettings(
+    val host: String = ConfigDefaults.HOST,
+    val port: Int = ConfigDefaults.PORT,
+    val maxConnections: Int = ConfigDefaults.MAX_CONNECTIONS,
+)
 
 /** Größen und Fristen vor abgeschlossenem Login (`SPEC-008`, `SPEC-046`). */
 public data class LoginSettings(
@@ -48,13 +61,15 @@ public data class LoginSettings(
 )
 
 /**
- * Fristen einer Anfrage in ganzen Sekunden (`SPEC-009`, `SPEC-033`): [queryTimeoutSeconds] ist `QUERY_TIMEOUT`, die
- * Frist ab dem Beginn einer Anfrage; [cancelTimeoutSeconds] ist `CANCEL_TIMEOUT`, die Frist, die ein Backend für den
- * Abbruch hat, bevor die Verbindung schließt.
+ * Fristen einer Anfrage in ganzen Sekunden (`SPEC-009`, `SPEC-033`, `SPEC-047`): [queryTimeoutSeconds] ist
+ * `QUERY_TIMEOUT`, die Frist ab dem Beginn einer Anfrage; [cancelTimeoutSeconds] ist `CANCEL_TIMEOUT`, die Frist, die
+ * ein Backend für den Abbruch hat, bevor die Verbindung schließt; [shutdownGraceSeconds] ist `SHUTDOWN_GRACE`, die
+ * Frist, die eine laufende Anfrage beim geordneten Beenden hat (0 = sofort).
  */
 public data class RequestSettings(
     val queryTimeoutSeconds: Int = ConfigDefaults.QUERY_TIMEOUT_SECONDS,
     val cancelTimeoutSeconds: Int = ConfigDefaults.CANCEL_TIMEOUT_SECONDS,
+    val shutdownGraceSeconds: Int = ConfigDefaults.SHUTDOWN_GRACE_SECONDS,
 )
 
 /** Die validierte Benutzerliste und der Schalter für das Verfahren `plain` (`ADR-0011`). */

@@ -20,7 +20,7 @@ when (outcome) {
 ```
 
 - `start` wirft für Konfigurations-, Tabellen-, TLS- und Bindefehler keine Ausnahme. Wer das Ergebnis nicht prüft, sieht den Abbruch nicht.
-- `stop()` schließt den Listener und alle Verbindungen; offene Verbindungen endet der Stop sofort (Festlegung, nicht gemessen); ein zweiter Aufruf endet ohne Wirkung. Die Frist `SHUTDOWN_GRACE` ist kein Eingang (siehe unten).
+- `stop()` ist das geordnete Beenden ([`SPEC-044`](../../spec/spezifikation.md#spec-044--geordnetes-beenden)): der Listener schließt zuerst; eine Verbindung ohne laufende Anfrage endet sofort; eine laufende Anfrage darf bis `SHUTDOWN_GRACE` zu Ende laufen, ihre Antwort wird vollständig gesendet, danach endet die Verbindung; eine Anfrage, die nach dem Beginn eintrifft, erhält `TDS_SHUTDOWN` (ERROR und DONE mit Fehlerstatus) und danach endet die Verbindung. Nach Ablauf der Frist wird die laufende Anfrage wie bei ATTENTION abgebrochen (genau ein `cancel()` am Backend, die Antwort endet mit `DONE[ATTN]`); beendet das Backend den Abbruch nicht innerhalb von `CANCEL_TIMEOUT`, wird getrennt. `stop()` kehrt zurück, wenn alle Verbindungen beendet sind, spätestens `SHUTDOWN_GRACE` plus `CANCEL_TIMEOUT` nach dem Beginn und höchstens 250 ms Wartezeit auf ein Backend, das den Abbruch seiner Coroutine nicht beachtet; ein zweiter Aufruf endet ohne Wirkung. Die Reihenfolge „ERROR, DONE, dann Schließen“ ist Setzung und am echten Server nicht gemessen. Beachtet das Backend den Abbruch nicht, bleibt sein Aufruf bis zu seiner Rückkehr belegt.
 - Eine `ServerConfig` gilt für einen Start: der Start löscht das Passwort im Schlüsselmaterial, sobald er es lädt. Wer neu startet, baut eine neue Konfiguration.
 - Der Einstieg liest keine Umgebung und keine Datei, verlangt keine JVM-Option und schreibt nirgends hin. Den Authentifizierungsadapter lässt er nicht ersetzen: angemeldet wird gegen die mitgelieferte Benutzerliste.
 - `BackendSource` wählt die Antworten: `Custom(backend)` mit einem eigenen `QueryBackend`, `Simulation(tables)` mit Tabellen und Zeilenquellen des Integrators, `None` (wie `Simulation` mit leerer Liste). `Custom` zusammen mit Tabellen gibt es nicht; ein doppelter Tabellenname bricht den Start ab.
@@ -39,6 +39,7 @@ Die Bibliothek liest keine Umgebung. Der Integrator baut eine `ServerConfig`; de
 |---|---|---|---|---|
 | `listen.host` | `LISTEN_HOST` | `0.0.0.0` | nicht leer | `SPEC-005` |
 | `listen.port` | `LISTEN_PORT` | 1433 | 0 bis 65535, 0 wählt einen freien Port | `SPEC-005` |
+| `listen.maxConnections` | `MAX_CONNECTIONS` | 1000 | 1 bis 100000 | `SPEC-034` |
 | `login.timeoutSeconds` | `LOGIN_TIMEOUT` | 15 s | 1 bis 3600 | `SPEC-008` |
 | `login.maxPreloginMessageBytes` | `MAX_PRELOGIN_MESSAGE_BYTES` | 65536 | 512 bis 65536 | `SPEC-046` |
 | `encryption` | `ENCRYPTION_POLICY` | `REQUIRED` | `REQUIRED` oder `TEST_UNENCRYPTED` | `SPEC-010` |
@@ -46,6 +47,7 @@ Die Bibliothek liest keine Umgebung. Der Integrator baut eine `ServerConfig`; de
 | `auth` (`AuthSettings`) | `AUTH_USERS_FILE`, `AUTH_PLAIN_TESTMODE` | keine Liste | Benutzerliste (`UserList` aus `UserList.parse`), Verfahren `plain` nur im Testmodus | `SPEC-051` |
 | `requests.queryTimeoutSeconds` | `QUERY_TIMEOUT` | 30 s | 1 bis 3600 | `SPEC-009` |
 | `requests.cancelTimeoutSeconds` | `CANCEL_TIMEOUT` | 5 s | 1 bis 3600 | `SPEC-033` |
+| `requests.shutdownGraceSeconds` | `SHUTDOWN_GRACE` | 10 s | 0 bis 3600, 0 = sofort | `SPEC-047` |
 
 Alle Bereiche und Voreinstellungen sind Festlegungen, nicht gemessen ([Abschnitt Defaults](../../spec/spezifikation.md#3-defaults-und-konstanten)); die Voreinstellungen stehen in `ServerConfig.kt`, die Prüfung in `ConfigValidation.kt`. Ein Einbettender ohne Angabe bekommt für eine Anfrage nach 30 s `TDS_TIMEOUT`.
 
@@ -53,7 +55,9 @@ Alle Bereiche und Voreinstellungen sind Festlegungen, nicht gemessen ([Abschnitt
 
 **Benutzerliste.** Eine Zeile je Benutzer, `Benutzername<TAB>Prüfwert`, UTF-8; der Prüfwert trägt eine Verfahrenskennung (`{pbkdf2-sha256}Salz$Iterationen$Hash`; `{plain}` nur im Testmodus). Format und Fehlerarten: [Authentifizierungsadapter](../../spec/spezifikation.md#authentifizierungsadapter-vertrag-zu-spec-051) (Setzungen, nicht gemessen). Der Integrator liest die Datei selbst und ruft `UserList.parse(text, plainTestMode)`; das Ergebnis ist ein `UserListResult`: `Valid` trägt die `UserList` (Feld `list`), die `AuthSettings(users, plainTestMode)` entgegennimmt, `Invalid` trägt einen `UserListError` mit Art und Zeile. Zur Datei auf dem Betriebsrechner: belegt ist nur, dass eine root-eigene, weltlesbare Datei, per `docker cp` in einen Container gelegt, im Testserver gelesen wird. **Dateirechte und Besitzer für den Betrieb sind nicht entschieden und nicht gemessen**; diese Anleitung empfiehlt keine.
 
-**Nicht einstellbar.** Weder `ServerConfig` noch `start` nehmen `SHUTDOWN_GRACE` (der Stop beendet offene Verbindungen sofort) und `MAX_CONNECTIONS` (es gibt kein Limit) entgegen; `MAX_TDS_PACKET_BYTES` und `MAX_MESSAGE_BYTES` sind Konstanten der Spezifikation und kein Feld der Konfiguration. Die Drosselung wiederholter Anmeldeversuche (`SPEC-053`) ist nicht konfigurierbar.
+**Verbindungen.** Der Listener nimmt höchstens `MAX_CONNECTIONS` Verbindungen zugleich auf; eine weitere wird ohne Antwortbytes geschlossen, und nach dem Ende einer Verbindung nimmt er wieder auf. Was der Referenzclient bei einer abgewiesenen Verbindung sieht, ist nicht gemessen. Endet die Gegenstelle während einer Anfrage (Schließen oder Abbruch mit RST), wird die Anfrage am Backend abgebrochen, ihr Strom geschlossen und nichts mehr geschrieben. Die Voreinstellung von `SHUTDOWN_GRACE` plus `CANCEL_TIMEOUT` (15 s) ist länger als die Voreinstellung von `docker stop` (10 s bis SIGKILL; Voreinstellung von Docker, hier nicht gemessen); wer den Testserver im Container beendet, setzt `SHUTDOWN_GRACE` kleiner.
+
+**Nicht einstellbar.** `MAX_TDS_PACKET_BYTES` und `MAX_MESSAGE_BYTES` sind Konstanten der Spezifikation und kein Feld der Konfiguration. Die Drosselung wiederholter Anmeldeversuche (`SPEC-053`) ist nicht konfigurierbar.
 
 ## Log und Startdiagnose
 
@@ -105,7 +109,7 @@ Die Beschreibung der Tabellen **als Datei** (YAML im Schema-Modell von d-migrate
 
 ## Grenzen und nicht Belegtes
 
-- Nicht gebaut: Metriken, Spans, `request_id`, `duration_ms`, Ereignisse zu Verbindung angenommen/beendet, Anfrage beendet und geordnetem Beenden; `SHUTDOWN_GRACE` und `MAX_CONNECTIONS` als Eingang. Ein Log liefert die Bibliothek nicht; der JSON-Adapter mit `LOG_LEVEL` ist nicht gebaut.
+- Nicht gebaut: Metriken, Spans, `request_id`, `duration_ms`, Ereignisse zu Verbindung angenommen/beendet, Anfrage beendet und geordnetem Beenden. Ein Log liefert die Bibliothek nicht; der JSON-Adapter mit `LOG_LEVEL` ist nicht gebaut.
 - Keine Windows-Authentifizierung, kein Kerberos, kein Entra ID ([Lastenheft](../../spec/lastenheft.md)); angemeldet wird mit Benutzer und Kennwort aus der Liste.
 - Gemessen ist das Verhalten des Referenzclients `Microsoft.Data.SqlClient` gegen den Testserver in den Läufen dieses Repos, nicht gegen einen echten SQL Server, nicht unter Last, nicht mit vielen Verbindungen oder langer Laufzeit.
 - Abbruch einer laufenden Anfrage (Cancel) mit Folgeabfrage ist am Referenzclient im Integrationslauf belegt (`make simulations-integration` und `make kompatibilitaet KATEGORIE=Synchronitaet`, TDS 7.4); nicht belegt sind Abbruch im Leerlauf und mehrere Abbrüche je Anfrage ([Kompatibilitätsmatrix](../plan/kompatibilitaetsmatrix.md), Zeile 12).

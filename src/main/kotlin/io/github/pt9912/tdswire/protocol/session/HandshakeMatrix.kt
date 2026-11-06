@@ -15,10 +15,11 @@ package io.github.pt9912.tdswire.protocol.session
  * gilt (`SPEC-008`).
  *
  * Abbruch (`ADR-0027`): In `RUNNING` und `STREAMING` ist ATTENTION zulässig und führt mit dem Fristablauf
- * ([EventKind.DEADLINE_EXPIRED]) nach `CANCELLING`; jede andere Nachricht dort ist unzulässig. In `CANCELLING`
- * bleiben ein weiteres ATTENTION, der Fristablauf und der Beginn eines Ergebnisses ohne Wirkung (der erste
+ * ([EventKind.DEADLINE_EXPIRED]) und dem Ablauf von `SHUTDOWN_GRACE` ([EventKind.SHUTDOWN_GRACE_EXPIRED]) nach
+ * `CANCELLING`; jede andere Nachricht dort ist unzulässig. In `CANCELLING`
+ * bleiben ein weiteres ATTENTION, jeder Fristablauf und der Beginn eines Ergebnisses ohne Wirkung (der erste
  * Auslöser hat gewonnen, ein zweiter Cancel entsteht nie); nur das Ende der Anfrage ist zulässig. In `READY`
- * und `CLOSED` ist ein Fristablauf ohne Wirkung (die Antwort ist schon gesendet oder die Verbindung zu); in
+ * und `CLOSED` ist jeder Fristablauf ohne Wirkung (die Antwort ist schon gesendet oder die Verbindung zu); in
  * `CLOSED` ist es auch ein ATTENTION. ATTENTION in `READY` ist zulässig und wird bestätigt. In den
  * Zuständen des Handshakes ist ATTENTION unzulässig und schließt ohne Antwort (Grundregel A).
  */
@@ -32,8 +33,14 @@ internal object HandshakeMatrix {
         ConnectionState.CANCELLING,
     )
 
-    private val inertWhileCancelling =
-        setOf(EventKind.STREAM_STARTED, EventKind.ATTENTION_MESSAGE, EventKind.DEADLINE_EXPIRED)
+    private val inertWhileCancelling = setOf(
+        EventKind.STREAM_STARTED,
+        EventKind.ATTENTION_MESSAGE,
+        EventKind.DEADLINE_EXPIRED,
+        EventKind.SHUTDOWN_GRACE_EXPIRED,
+    )
+
+    private val expiries = setOf(EventKind.DEADLINE_EXPIRED, EventKind.SHUTDOWN_GRACE_EXPIRED)
 
     private val ending = setOf(EventKind.PEER_CLOSED, EventKind.READ_FAILED, EventKind.LOGIN_TIMEOUT)
 
@@ -49,11 +56,13 @@ internal object HandshakeMatrix {
             EventKind.REQUEST_FINISHED,
             EventKind.ATTENTION_MESSAGE,
             EventKind.DEADLINE_EXPIRED,
+            EventKind.SHUTDOWN_GRACE_EXPIRED,
         ),
         ConnectionState.STREAMING to setOf(
             EventKind.REQUEST_FINISHED,
             EventKind.ATTENTION_MESSAGE,
             EventKind.DEADLINE_EXPIRED,
+            EventKind.SHUTDOWN_GRACE_EXPIRED,
         ),
         ConnectionState.CANCELLING to setOf(EventKind.REQUEST_FINISHED),
         ConnectionState.CLOSED to emptySet(),
@@ -69,9 +78,12 @@ internal object HandshakeMatrix {
         else -> Cell.ILLEGAL
     }
 
-    /** Ein Fristablauf nach dem Ende der Antwort und ein ATTENTION nach dem Schließen; beide kommen zu spät. */
+    /**
+     * Ein Fristablauf (der Anfrage oder des Beendens) nach dem Ende der Antwort und ein ATTENTION nach dem Schließen;
+     * sie kommen zu spät.
+     */
     private fun isLate(state: ConnectionState, kind: EventKind): Boolean =
-        (kind == EventKind.DEADLINE_EXPIRED && (state == ConnectionState.READY || state == ConnectionState.CLOSED)) ||
+        (kind in expiries && (state == ConnectionState.READY || state == ConnectionState.CLOSED)) ||
             (kind == EventKind.ATTENTION_MESSAGE && state == ConnectionState.CLOSED)
 
     /** Die Zellen je Art, aus [cell] gezählt (nicht aus einer Zahl im Text). */

@@ -107,4 +107,10 @@ internal enum class CancelCause {
 
     /** Ablauf der Frist der Anfrage; die Antwort ist ERROR `TDS_TIMEOUT` und DONE mit Fehlerstatus. */
     DEADLINE,
+
+    /**
+     * Ablauf von `SHUTDOWN_GRACE` im geordneten Beenden (`SPEC-044` Nr. 4): Abbruch wie bei ATTENTION, die Antwort ist
+     * genau ein `DONE[ATTN]` ohne ERROR; danach endet die Verbindung (`ADR-0027` Entscheidung 2c).
+     */
+    SHUTDOWN,
 }
