@@ -14,7 +14,7 @@ Datenhaltung gehören nicht dazu.
 
 Das Produkt ist eine Bibliothek: `make build` baut das Bibliotheks-Jar `tdswire.jar` ohne `Main-Class`.
 Einbettende starten den Server über `TdsServer.start`. Ein Produkt-Image und einen Start des
-Produkts im Container gibt es nicht. Der Testserver in `src/testserver` ist ein ausführbarer
+Produkts im Container gibt es nicht. Der Testserver in `testserver` ist ein ausführbarer
 Serverprozess nur zur Prüfung der Bibliothek (E2E- und Kompatibilitätsläufe), kein Produkt.
 
 - `make gates` führt die Gates aus (Tests, detekt, Build, Dokumentreferenzen, vendored Baseline).

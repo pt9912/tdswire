@@ -79,7 +79,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `spec/spezifikation.md` | update | Feld `Kategorie`, Festlegungen, Marker, Tabellen je Fall |
-| Kotlin-Tests in `src/test`, `src/integrator`, `src/testserver` | update (Tag) | `@spec` für die neuen Festlegungen |
+| Kotlin-Tests in `src/test`, `src/integrator`, `testserver` | update (Tag) | `@spec` für die neuen Festlegungen |
 | `referenztest-dotnet/**/*.cs` | update (Trait) | `Spec`-Trait neben `Kategorie` |
 | `docs/plan/kompatibilitaetsmatrix.md` | wird erzeugt | ersetzt die Handdatei |
 | `tools/matrix-zitate.sh`, `tools/mk/matrix-zitate.mk`, `harness/README.md` | entfernt / update | Zitate gibt es nicht mehr |

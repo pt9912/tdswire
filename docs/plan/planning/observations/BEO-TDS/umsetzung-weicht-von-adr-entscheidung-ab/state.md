@@ -1,0 +1,1 @@
+**Stand:** offen — 1×; unter der Schwelle. Für diesen Vorgang hingenommen (Entscheidung des Nutzers, 2026-11-06): die Dateilösung bleibt, [ADR-0034](../../../../adr/0034-testserver-als-gradle-modul.md) bleibt unverändert, die Konfigurationslösung ist nicht gefahren. Kein Träger-Slice.

@@ -17,7 +17,7 @@ FROM gradle:8.14-jdk21@sha256:b3453e88792ea90b526f5d04fa2961bba183ae57ded4ad3437
 # --- Deps: laedt die Artefakte aller Konfigurationen, die compile, test, detekt und assemble
 # brauchen (Gradle-Task `abhaengigkeitenLaden`, build.gradle.kts), mit aktiver Sperre und
 # Verifikation. Die Stage steht direkt nach `basis` und kopiert genau die Dateien, die die
-# Aufloesung bestimmen; src/, config/, tools/, Doku und Harness liegen nicht im Eingang. compile,
+# Aufloesung bestimmen (im Modul `testserver` nur Build-Datei und Sperre); src/, die Quellen von testserver/, config/, tools/, Doku und Harness liegen nicht im Eingang. compile,
 # test, detekt, detekt-selbsttest und spec-abdeckung erben von ihr, eine Quelltextaenderung loest dort
 # also keinen Download aus; testkeys, lock und spec-abdeckung-selbsttest erben von `basis`. Eine neue
 # Eingangsdatei der Aufloesung gehoert in die COPY-Zeilen dieser Stage und nirgends sonst hin.
@@ -27,12 +27,14 @@ FROM basis AS deps
 WORKDIR /src
 COPY --chown=gradle:gradle settings.gradle.kts build.gradle.kts gradle.properties gradle.lockfile settings-gradle.lockfile ./
 COPY --chown=gradle:gradle gradle/libs.versions.toml gradle/verification-metadata.xml gradle/
+COPY --chown=gradle:gradle testserver/build.gradle.kts testserver/gradle.lockfile testserver/
 RUN gradle --no-daemon abhaengigkeitenLaden
 
-# --- Compile: kompiliert den Produktionscode. Es kommt nur src/ hinzu, damit eine Aenderung an
+# --- Compile: kompiliert den Produktionscode. Es kommen nur src/ und testserver/ hinzu, damit eine Aenderung an
 # Doku oder Harness diese Stage nicht neu laufen laesst. -----------------------
 FROM deps AS compile
 COPY --chown=gradle:gradle src src
+COPY --chown=gradle:gradle testserver testserver
 RUN gradle --no-daemon classes
 
 # --- Testkeys: erzeugt per `keytool` die PKCS#12-Speicher der TLS-Tests (ein gueltiges Zertifikat fuer
@@ -76,52 +78,59 @@ RUN keytool -genkeypair -alias server -keyalg RSA -keysize 2048 -validity 3650 -
       -validity 3650 -ext "san=dns:localhost" -outfile blatt.pem \
  && rm wurzel.p12 zwischen.p12 zwischen.csr blatt.csr
 
-# --- Test: `docker build --target test .` - fuehrt die Unit-Tests, den Einbettungstest (`integratorTest`) und die Tests des Testservers (`testserverTest`) aus (kotlin.test auf der
-# JUnit-Plattform, SPEC-024). Es kommen src/ und LICENSE hinzu; kein Test liest spec/ oder harness/ (die Kopplung
+# --- Test: `docker build --target test .` - fuehrt die Unit-Tests, den Einbettungstest (`integratorTest`) und, in `:testserver`, die Tests des Testservers aus (kotlin.test auf der
+# JUnit-Plattform, SPEC-024). Es kommen src/, testserver/ und LICENSE hinzu; kein Test liest spec/ oder harness/ (die Kopplung
 # der Zahlen des Integrationslaufs an die Doku prueft die Stage `kopplung-zahlen`). Ein roter Test bricht den Build.
 FROM deps AS test
 COPY --chown=gradle:gradle LICENSE LICENSE
 COPY --chown=gradle:gradle src src
+COPY --chown=gradle:gradle testserver testserver
 COPY --from=testkeys --chown=gradle:gradle /testkeys build/testkeys
 COPY --chown=gradle:gradle gradle/test-jvm.init.gradle.kts gradle/
-RUN gradle --no-daemon -I gradle/test-jvm.init.gradle.kts test integratorTest testserverTest
+RUN gradle --no-daemon -I gradle/test-jvm.init.gradle.kts test integratorTest
 
 # --- Smoke: `docker build --target smoke .` - der Rohbytes-Smoke der Welle allein (ServerSmokeTest): die
 # Kind-JVM startet das `main` des Testservers mit einer Testkonfiguration, ein Rohbytes-Client spricht den
 # Login-Pfad. Dieselben Tests laufen auch in der Stage `test`; die Stage ist der engste Sensor dafuer. ----
 FROM deps AS smoke
+COPY --chown=gradle:gradle LICENSE LICENSE
 COPY --chown=gradle:gradle src src
+COPY --chown=gradle:gradle testserver testserver
 COPY --from=testkeys --chown=gradle:gradle /testkeys build/testkeys
 COPY --chown=gradle:gradle gradle/test-jvm.init.gradle.kts gradle/
-RUN gradle --no-daemon -I gradle/test-jvm.init.gradle.kts test --tests 'io.github.pt9912.tdswire.runtime.ServerSmokeTest'
+RUN gradle --no-daemon -I gradle/test-jvm.init.gradle.kts :test --tests 'io.github.pt9912.tdswire.runtime.ServerSmokeTest'
 
 # --- Detekt: `docker build --target detekt .` - zuerst das Suppression-Verbot (AGENTS.md 3.2,
-# tools/suppression-check.sh), dann die statische Analyse samt ktlint-Regelsatz und Regeln der
+# tools/suppression-check.sh), die Sperren gegen Jackson in der Bibliothek und gegen friend/associate im Modul
+# `testserver`, dann die statische Analyse samt ktlint-Regelsatz und Regeln der
 # Schichten (config/detekt/detekt.yml). `detekt` liest nur Quelltext; `detektMain` und
 # `detektTest` loesen Typen auf und kompilieren dafuer, ForbiddenMethodCall wirkt nur dort. Jeder
 # Befund bricht den Build, es gibt keine Baseline. ----------------------------
 FROM deps AS detekt
 COPY --chown=gradle:gradle src src
+COPY --chown=gradle:gradle testserver testserver
 COPY --chown=gradle:gradle config config
-COPY --chown=gradle:gradle tools/suppression-check.sh tools/jackson-sperre.sh tools/
-RUN sh tools/suppression-check.sh src \
+COPY --chown=gradle:gradle tools/suppression-check.sh tools/jackson-sperre.sh tools/modulgrenze-sperre.sh tools/
+RUN sh tools/suppression-check.sh src testserver \
  && sh tools/jackson-sperre.sh src/main \
- && gradle --no-daemon detekt detektMain detektTest detektIntegrator detektTestserver
+ && sh tools/modulgrenze-sperre.sh testserver/build.gradle.kts \
+ && gradle --no-daemon detekt detektMain detektTest detektIntegrator
 
 # --- Detekt-Selbsttest: `docker build --target detekt-selbsttest .` - belegt, dass jede
 # Importregel verbotene Importe meldet und erlaubte nicht, dass jeder verbotene Aufruf gemeldet
 # wird, und dass das Suppression-Verbot die Formen von @Suppress meldet, die das Skript nennt
-# (tools/detekt-selbsttest.sh). Kopiert weder src/ noch Doku: die Stage
+# (tools/detekt-selbsttest.sh). Kopiert weder src/ noch testserver/ noch Doku: die Stage
 # laeuft nur neu, wenn sich Regeln, Testdaten, Skripte oder Toolchain aendern. -----
 FROM deps AS detekt-selbsttest
 COPY --chown=gradle:gradle config config
-COPY --chown=gradle:gradle tools/detekt-selbsttest.sh tools/suppression-check.sh tools/jackson-sperre.sh tools/
+COPY --chown=gradle:gradle tools/detekt-selbsttest.sh tools/suppression-check.sh tools/jackson-sperre.sh tools/modulgrenze-sperre.sh tools/
 RUN sh tools/detekt-selbsttest.sh generate \
  && gradle --no-daemon detektSelbsttest detektSelbsttestAufrufe \
  && sh tools/detekt-selbsttest.sh check \
  && sh tools/detekt-selbsttest.sh aufrufe \
  && sh tools/detekt-selbsttest.sh suppression \
- && sh tools/detekt-selbsttest.sh jackson
+ && sh tools/detekt-selbsttest.sh jackson \
+ && sh tools/detekt-selbsttest.sh modulgrenze
 
 # --- Spec-Abdeckung: `make spec-abdeckung` - fuehrt die Tests aus (rote Tests brechen die Stage
 # nicht: sie stehen dann in der Matrix als nicht bestanden) und erzeugt aus den @spec-Tags und den
@@ -130,12 +139,13 @@ RUN sh tools/detekt-selbsttest.sh generate \
 FROM deps AS spec-abdeckung
 COPY --chown=gradle:gradle LICENSE LICENSE
 COPY --chown=gradle:gradle src src
+COPY --chown=gradle:gradle testserver testserver
 COPY --from=testkeys --chown=gradle:gradle /testkeys build/testkeys
 COPY --chown=gradle:gradle gradle/test-jvm.init.gradle.kts gradle/
 COPY --chown=gradle:gradle spec/spezifikation.md spec/spezifikation.md
 COPY --chown=gradle:gradle harness/README.md harness/README.md
 COPY --chown=gradle:gradle tools/spec-abdeckung.sh tools/
-RUN gradle --no-daemon -I gradle/test-jvm.init.gradle.kts test integratorTest testserverTest --continue || echo "spec-abdeckung: der Testlauf ist rot; rote Tests zaehlen nicht als Nachweis"
+RUN gradle --no-daemon -I gradle/test-jvm.init.gradle.kts test integratorTest --continue || echo "spec-abdeckung: der Testlauf ist rot; rote Tests zaehlen nicht als Nachweis"
 RUN mkdir -p /tmp/ausgabe \
  && ZIEL=/tmp/ausgabe/spec-abdeckung.md WAISEN_DATEI=/tmp/ausgabe/waisen sh tools/spec-abdeckung.sh
 
@@ -165,14 +175,14 @@ COPY .github/workflows .github/workflows
 RUN bash tools/e2e-selbsttest.sh && sh tools/manifest-selbsttest.sh && bash tools/vergleichslauf-d-selbsttest.sh
 
 # --- Kopplung der Zahlen: `make kopplung-zahlen` - haelt Heap und Text von `gross` des Integrationslaufs (SPEC-040)
-# in build.gradle.kts, IntegrationServer.kt, dem .NET-Test, der Spezifikation und harness/README.md gleich und belegt
+# in testserver/build.gradle.kts, IntegrationServer.kt, dem .NET-Test, der Spezifikation und harness/README.md gleich und belegt
 # an Mutationen, dass jede Abweichung rot macht. Ohne Gradle; Eingang sind nur diese fuenf Dateien und die Skripte,
 # damit eine Doku-Aenderung die Stage `test` nicht ausloest (ADR-0023). ----------------------------------------
 FROM basis AS kopplung-zahlen
 WORKDIR /src
 COPY tools/integrationszahlen-pruefung.sh tools/integrationszahlen-selbsttest.sh tools/
-COPY build.gradle.kts build.gradle.kts
-COPY src/testserver/kotlin/io/github/pt9912/tdswire/testserver/IntegrationServer.kt src/testserver/kotlin/io/github/pt9912/tdswire/testserver/IntegrationServer.kt
+COPY testserver/build.gradle.kts testserver/build.gradle.kts
+COPY testserver/kotlin/io/github/pt9912/tdswire/testserver/IntegrationServer.kt testserver/kotlin/io/github/pt9912/tdswire/testserver/IntegrationServer.kt
 COPY referenztest-dotnet/Integration/SimulationBackendTests.cs referenztest-dotnet/Integration/SimulationBackendTests.cs
 COPY spec/spezifikation.md spec/spezifikation.md
 COPY harness/README.md harness/README.md
@@ -192,6 +202,7 @@ COPY --chown=gradle:gradle LICENSE LICENSE
 COPY --chown=gradle:gradle spec/spezifikation.md spec/spezifikation.md
 COPY --chown=gradle:gradle harness/README.md harness/README.md
 COPY --chown=gradle:gradle src src
+COPY --chown=gradle:gradle testserver testserver
 COPY --chown=gradle:gradle config config
 COPY --from=testkeys --chown=gradle:gradle /testkeys build/testkeys
 COPY --chown=gradle:gradle gradle/test-jvm.init.gradle.kts gradle/
@@ -199,12 +210,13 @@ RUN gradle --no-daemon -q -I gradle/test-jvm.init.gradle.kts --write-locks --wri
 
 FROM scratch AS lock-export
 COPY --from=lock /src/gradle.lockfile /src/settings-gradle.lockfile /
+COPY --from=lock /src/testserver/gradle.lockfile /testserver/
 COPY --from=lock /src/gradle/verification-metadata.xml /gradle/
 
 # --- Build-Jar: `make build` - das Bibliotheks-Jar mit Lizenz und Manifest-Pruefung (kein Produkt-Image, ADR-0025). -------
 FROM compile AS build-jar
 COPY --chown=gradle:gradle LICENSE LICENSE
-RUN gradle --no-daemon assemble \
+RUN gradle --no-daemon :assemble \
  && jar tf build/libs/tdswire.jar | grep -qx 'META-INF/LICENSE' \
  && unzip -p build/libs/tdswire.jar META-INF/LICENSE | cmp - LICENSE
 # Manifest ohne Container pruefen (keine Main-Class, Class-Path gegen lib/, Jar-Name, kein Jackson): tools/manifest-pruefung.sh.
@@ -215,44 +227,51 @@ RUN sh tools/manifest-pruefung.sh build/libs
 # die Abhaengigkeiten liegen schon in `deps`, der Start braucht kein Netz. ----
 FROM deps AS laufzeit-client
 COPY --chown=gradle:gradle src src
+COPY --chown=gradle:gradle testserver testserver
 RUN gradle --no-daemon --offline testClasses
 CMD ["gradle", "--no-daemon", "--offline", "-q", "laufzeitClient"]
 
 # --- Testserver: der Testserver als Container des Laufzeittests (`make laufzeittest`): der Klassenpfad des
-# Source-Sets `testserver` (ADR-0025 Entscheidung 4). Der Klassenpfad
-# steht in build/testserver-klassenpfad.txt; `exec java` macht die JVM zum Prozess 1, SIGTERM von `docker stop` laeuft
+# Moduls `:testserver` (ADR-0034 Entscheidung 2): Modulklassen, Ressourcen und das Jar `tdswire.jar` der Bibliothek.
+# Der Klassenpfad steht in testserver/build/testserver-klassenpfad.txt; `exec java` macht die JVM zum Prozess 1, SIGTERM von `docker stop` laeuft
 # in den Shutdown-Hook (Exit-Code 143). Konfiguration und Benutzerliste kommen zur Laufzeit ueber die Umgebung und
 # Dateien im Container. Die Startzeile traegt keine TLS-Option (SPEC-023). ----
 FROM deps AS testserver
+COPY --chown=gradle:gradle LICENSE LICENSE
 COPY --chown=gradle:gradle src src
-RUN gradle --no-daemon --offline testserverKlassenpfad
+COPY --chown=gradle:gradle testserver testserver
+RUN gradle --no-daemon --offline :testserver:testserverKlassenpfad
 EXPOSE 1433
-ENTRYPOINT ["sh", "-c", "exec java -XX:+ExitOnOutOfMemoryError -cp \"$(cat /src/build/testserver-klassenpfad.txt)\" io.github.pt9912.tdswire.testserver.MainKt"]
+ENTRYPOINT ["sh", "-c", "exec java -XX:+ExitOnOutOfMemoryError -cp \"$(cat /src/testserver/build/testserver-klassenpfad.txt)\" io.github.pt9912.tdswire.testserver.MainKt"]
 
 # --- Integrationsserver: der Serverprozess des Integrationslaufs (`make simulations-integration`) als Container
 # neben dem .NET-Referenzclient (referenztest-dotnet, Stage `integration`). Die Tabellen kommen aus
-# src/testserver/kotlin/io/github/pt9912/tdswire/testserver/IntegrationServer.kt, die Beschreibung der Tabelle `leer` aus
-# src/testserver/resources/integration/sim.yaml; den Heap begrenzt die Task `integrationsServer` in build.gradle.kts.
+# testserver/kotlin/io/github/pt9912/tdswire/testserver/IntegrationServer.kt, die Beschreibung der Tabelle `leer` aus
+# testserver/resources/integration/sim.yaml; den Heap begrenzt die Task `integrationsServer` in testserver/build.gradle.kts.
 # Die Anmeldung alice/secret ist ein Testwert im Testmodus ohne Verschluesselung; der Container erreicht nur sein
 # internes Netzwerk. ----
 FROM deps AS integrationsserver
+COPY --chown=gradle:gradle LICENSE LICENSE
 COPY --chown=gradle:gradle src src
-RUN gradle --no-daemon --offline testserverClasses \
+COPY --chown=gradle:gradle testserver testserver
+RUN gradle --no-daemon --offline :testserver:classes \
  && printf 'alice\t{plain}secret\n' > /home/gradle/users.txt
 ENV LISTEN_HOST=0.0.0.0 LISTEN_PORT=1433 ENCRYPTION_POLICY=TEST_UNENCRYPTED AUTH_PLAIN_TESTMODE=true \
-    AUTH_USERS_FILE=/home/gradle/users.txt SIMULATION_DESCRIPTION_FILE=/src/src/testserver/resources/integration/sim.yaml
+    AUTH_USERS_FILE=/home/gradle/users.txt SIMULATION_DESCRIPTION_FILE=/src/testserver/resources/integration/sim.yaml
 CMD ["gradle", "--no-daemon", "--offline", "-q", "integrationsServer"]
 
 # --- Kompatibilitaetsserver: der Serverprozess des Kompatibilitaetslaufs (`make kompatibilitaet`) als Container neben
 # dem .NET-Referenzclient (referenztest-dotnet, Stage `kompatibilitaet`). Die Tabellen kommen aus
-# src/testserver/kotlin/io/github/pt9912/tdswire/testserver/KompatibilitaetsServer.kt. Richtlinie REQUIRED mit dem
+# testserver/kotlin/io/github/pt9912/tdswire/testserver/KompatibilitaetsServer.kt. Richtlinie REQUIRED mit dem
 # Schluesselspeicher `gueltig.p12` aus `testkeys` (CN=localhost); sein Zertifikat liegt als /home/gradle/server.pem,
 # damit der Lauf es dem Client als Vertrauensanker geben kann (TDS 8.0 prueft die Kette). Die Anmeldung alice/secret
 # ist ein Testwert; der Container erreicht nur sein internes Netzwerk. ----
 FROM deps AS kompatibilitaetsserver
+COPY --chown=gradle:gradle LICENSE LICENSE
 COPY --chown=gradle:gradle src src
+COPY --chown=gradle:gradle testserver testserver
 COPY --from=testkeys --chown=gradle:gradle /testkeys/gueltig.p12 /home/gradle/gueltig.p12
-RUN gradle --no-daemon --offline testserverClasses \
+RUN gradle --no-daemon --offline :testserver:classes \
  && printf 'alice\t{plain}secret\n' > /home/gradle/users.txt \
  && printf 'tdswire-test\n' > /home/gradle/kennwort.txt \
  && keytool -exportcert -alias server -keystore /home/gradle/gueltig.p12 -storepass tdswire-test -rfc \

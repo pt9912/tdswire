@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tools/integrationszahlen-pruefung.sh [wurzel] - haelt die Zahlen des Integrationslaufs (SPEC-040, `make
 # simulations-integration`) an allen Orten gleich (TDS-FA-11, TDS-QA-06): Heap (`maxHeapSize` der Task
-# `integrationsServer` in build.gradle.kts), Zeilen und Zeichen von `gross` (BIG_ROWS, BIG_TEXT_CHARS in
+# `integrationsServer` in testserver/build.gradle.kts), Zeilen und Zeichen von `gross` (BIG_ROWS, BIG_TEXT_CHARS in
 # IntegrationServer.kt und die Konstanten GrosseZeilen, GrosseZeichen im .NET-Test), die Zeile SPEC-040 der
 # Spezifikation (Heap und Zeichenzahl) und die Zeile des Ziels in harness/README.md (Heap). [wurzel] ist das
 # Repo-Verzeichnis (Vorgabe: .). Ausgang 0 nur, wenn alle Orte stimmen; jeder Befund steht auf stderr.
@@ -12,8 +12,8 @@ w="${1:-.}"
 fehler=0
 befund() { echo "integrationszahlen: FEHLER - $1" >&2; fehler=1; }
 
-gradle="$w/build.gradle.kts"
-server="$w/src/testserver/kotlin/io/github/pt9912/tdswire/testserver/IntegrationServer.kt"
+gradle="$w/testserver/build.gradle.kts"
+server="$w/testserver/kotlin/io/github/pt9912/tdswire/testserver/IntegrationServer.kt"
 dotnet="$w/referenztest-dotnet/Integration/SimulationBackendTests.cs"
 spec="$w/spec/spezifikation.md"
 readme="$w/harness/README.md"
@@ -22,7 +22,7 @@ for d in "$gradle" "$server" "$dotnet" "$spec" "$readme"; do
 done
 
 heap=$(sed -n 's/.*maxHeapSize *= *"\([0-9][0-9]*\)m".*/\1/p' "$gradle")
-[ "$(printf '%s\n' "$heap" | grep -c .)" = 1 ] || { echo "integrationszahlen: FEHLER - maxHeapSize in build.gradle.kts nicht genau einmal" >&2; exit 1; }
+[ "$(printf '%s\n' "$heap" | grep -c .)" = 1 ] || { echo "integrationszahlen: FEHLER - maxHeapSize in testserver/build.gradle.kts nicht genau einmal" >&2; exit 1; }
 zeilen=$(sed -n 's/^internal const val BIG_ROWS = \([0-9_]*\)$/\1/p' "$server" | tr -d _)
 zeichen=$(sed -n 's/^internal const val BIG_TEXT_CHARS = \([0-9_]*\)$/\1/p' "$server" | tr -d _)
 [ -n "$zeilen" ] && [ -n "$zeichen" ] || { echo "integrationszahlen: FEHLER - BIG_ROWS oder BIG_TEXT_CHARS fehlt in IntegrationServer.kt" >&2; exit 1; }
