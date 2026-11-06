@@ -1,0 +1,2 @@
+**Vorgang:** slice-referenzabgleich-live
+**Fund:** Review F-7 (LOW): „eine Instanz Version 2022“ stand im Slice an zwei Stellen und in `SPEC-045`, der Diff berichtigte keine; Verifikation V-1 (MEDIUM): nach der Plan-Änderung zu Liefer-Punkt 1 (Schema bleibt im Code des Integrators) führte die Tabelle in §3 weiter „Tabellenbeschreibung des Testschemas, neu“, und das erste Risiko in §6 beschrieb die Beschreibungsdatei als gemeinsame Quelle und die Quelle des Skripts als offen. Gesucht wurde in beiden Fällen die genannte Zeile, nicht die Kernaussage im ganzen Slice.

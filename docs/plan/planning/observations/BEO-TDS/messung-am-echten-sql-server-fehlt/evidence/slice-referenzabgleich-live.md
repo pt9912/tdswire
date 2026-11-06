@@ -1,0 +1,2 @@
+**Vorgang:** slice-referenzabgleich-live
+**Fund:** Der Live-Lauf liefert die Server-Referenz für den Teil, den der Client beobachtet (25 Schritte, 2022 und 2025, Einzelmessung 2026-11-06, `Microsoft.Data.SqlClient` 7.1.1, TDS 7.4): 12 gleich, 13 gleich der gelisteten Abweichung; erstmals gemessen ist der Fehler nach Zeilen (Fehler 8134, Verbindung offen). Der Wire (Tokenfolge, Statusbits, ENVCHANGE, Senden von ATTENTION) ist nicht gemessen; „grün“ belegt Übereinstimmung mit der Liste, nicht mit dem Zielbild.

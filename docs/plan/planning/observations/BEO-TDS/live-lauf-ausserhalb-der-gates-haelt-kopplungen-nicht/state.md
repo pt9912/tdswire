@@ -1,0 +1,1 @@
+**Stand:** offen — kein Träger; die Aufnahme des Laufs in `make gates` ist abgelehnt (Nutzerentscheidung 2026-11-06, Gate-Aufnahme: nein). Ein Sensor, der nur die Kopplungen hält (Stage-Name und Pfad im Skript gegen das Dockerfile, Spalten und Typen beider Schemata gegeneinander), ist denkbar und nicht vorgeschlagen; Entscheidung beim Nutzer.
