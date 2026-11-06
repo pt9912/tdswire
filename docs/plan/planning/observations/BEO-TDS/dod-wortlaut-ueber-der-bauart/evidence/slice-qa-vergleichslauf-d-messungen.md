@@ -1,0 +1,2 @@
+**Vorgang:** slice-qa-vergleichslauf-d-messungen
+**Fund:** Verifikation V-1 und V-2: der DoD-Wortlaut nannte `MitschnittLaufTests.cs` und "Ergebnis in der Ausnahmeliste", die Lieferung ist `MessungWireTests.cs` und das Messprotokoll (die Messungen werden nicht abgespielt, die Ausnahmeliste gilt für abgespielte Mitschnitte); der Ausschluss "keine Spezifikationsänderung" stand gegen den Messvermerk. In der Closure an die Lieferung angeglichen und als Abweichung gekennzeichnet.

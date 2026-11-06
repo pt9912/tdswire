@@ -1,0 +1,2 @@
+**Vorgang:** slice-qa-vergleichslauf-d-messungen
+**Fund:** Review F-11 und Verifikation V-5: das Messprotokoll sagte "alle sechs Konflikte gehen zum Bau-Slice", der Bau-Slice führte nur vier; für ENVCHANGE bei `RESETCONNECTION`, SESSIONSTATE und RETURNSTATUS/RETURNVALUE im Fehlerfall fehlte der Eintrag (Grep: 0 Treffer). Dazu eine neue Lücke aus der Messung selbst: die Ursache des Instanzunterschieds bei SESSIONSTATE nach dem Abbruch (nur 2022, Zustandskennung 254) ist nicht geklärt und hat keinen Träger. Träger-Einträge im Bau-Slice in der Closure angelegt (Nr 5 bis 8).

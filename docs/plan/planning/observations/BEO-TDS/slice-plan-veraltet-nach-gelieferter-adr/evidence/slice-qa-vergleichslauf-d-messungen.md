@@ -1,0 +1,2 @@
+**Vorgang:** slice-qa-vergleichslauf-d-messungen
+**Fund:** Verifikation V-6: Bezug, Herkunft, DoD und Risiko des Slice nannten [ADR-0014](../../../../../adr/0014-fehlerfolge-rpc-antwort.md) als `Proposed` mit der Wahl "Option A annehmen oder zurückziehen", nachdem der Nutzer sie zurückgezogen und [ADR-0038](../../../../../adr/0038-abschluss-einer-rpc-antwort-im-fehlerfall-folgt-dem-echten-server.md) angelegt hatte (Stand `main`); der Plan wurde in der Closure nachgezogen, nicht beim Zurückziehen.

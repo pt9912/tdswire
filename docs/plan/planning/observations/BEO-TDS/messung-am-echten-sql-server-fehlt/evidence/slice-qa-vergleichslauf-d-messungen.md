@@ -1,0 +1,2 @@
+**Vorgang:** slice-qa-vergleichslauf-d-messungen
+**Fund:** Die Messreihe am Draht (W-1 bis W-9, 22 Szenarien je Instanz, 2022 und 2025) ist gefahren und liegt redigiert im Repo: Fehler im RPC, Ordinal mit mehreren Ausgabewerten, `curCmd`, ENVCHANGE bei `RESETCONNECTION`, Anmeldeantwort, SESSIONSTATE. Nicht gemessen bleiben COLMETADATA hinter RETURNVALUE (nicht eingetreten), die Ursache des SESSIONSTATE-Unterschieds nach dem Abbruch und die Antworten auf Massenladen, MERGE und Katalog (kein Träger).
