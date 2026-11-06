@@ -1,0 +1,5 @@
+# Angenommene ADRs führen nach einem Umbau eine Ortsangabe, die nicht mehr stimmt
+
+**Sub-Area:** `*` (ADRs, Fitness Functions)
+
+Ein Umbau ändert den Ort eines Prüfgegenstands (hier: Source-Set `testserver` wird Gradle-Modul `:testserver`). Die Entscheidung dazu ersetzt nur Teile einer älteren ADR; zwei weitere angenommene ADRs führen den alten Ort in ihrer Fitness Function ([ADR-0020](../../../../adr/0020-logformat-und-observability-schnittstelle.md), Zeile „Übersetzung des Source-Sets `testserver`“; [ADR-0026](../../../../adr/0026-oeffentlichkeit-simulations-backend-und-katalog.md), Zeile „Source-Set `testserver` ohne Assoziation zu `main`“). Angenommene ADRs bleiben unverändert (`AGENTS.md` §3.5); ohne Folge-ADR bleibt die Ortsangabe stehen. Gesucht wird beim Schreiben einer ADR, die einen Ort verschiebt: welche angenommene ADR nennt ihn in einer Fitness Function. Verwandt mit `BEO-TDS/fortschreibung-laesst-zweite-fundstelle-stehen` (dort die Fundstelle in Spec und Plänen, hier die unveränderliche ADR-Seite).
