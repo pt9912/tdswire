@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [TDS-FA-04](../../../../spec/lastenheft.md#tds-fa-04--parametrisierte-abfragen-über-rpc), [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität), [TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), [ADR-0017](../../adr/0017-prepared-handles-grenzwert.md), [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md), [ADR-0005](../../adr/0005-rpc-und-prepared-statements.md), [ADR-0004](../../adr/0004-session-zustandsautomat.md), [ADR-0014](../../adr/0014-fehlerfolge-rpc-antwort.md)
 
-**Berührte Spec-Stellen:** SPEC-030 (Anzahl der Handles je Sitzung, Setzung 1000; Antwortform, Freigabe) · SPEC-034 (`MAX_CONNECTIONS`, Speicher je Sitzung, Eingang der Grenze) · SPEC-040 (Läufe `--on-conflict skip|update` gegen den Testserver; unverändert) · SPEC-001 · SPEC-013 · SPEC-058 · SPEC-059 (falls die Grenze ein öffentlicher Name wird) · Nicht-Ziel 6; vollständige Liste in §3
+**Berührte Spec-Stellen:** SPEC-030 (Anzahl der Handles je Sitzung, Setzung 1000; Antwortform, Freigabe) · SPEC-034 (`MAX_CONNECTIONS`, Speicher je Sitzung, Eingang der Grenze) · SPEC-040 (Läufe `--on-conflict skip|update` gegen den Testserver; unverändert) · SPEC-001 · SPEC-058 · SPEC-059 (falls die Grenze ein öffentlicher Name wird); vollständige Liste in §3
 
 **Verantwortlich:** — bis zur Priorisierung.
 
@@ -48,7 +48,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 Liefer-Punkte (3):
 
 - [ ] **Optionen mit Messung oder Setzung** *(Beleg: Tabelle in der ADR, Messzeilen im Messprotokoll [callback-loesung-spike-2026-11-05](../../../messungen/callback-loesung-spike-2026-11-05.md) oder einem neuen Protokoll unter `docs/messungen/`)*: je Option die Kosten (Speicher je Handle bei `MAX_CONNECTIONS`, Verhalten von d-migrate bei der Überschreitung und bei `sp_unprepare`, soweit mit dem Testserver messbar); nicht Gemessenes steht als Setzung, nicht als Befund.
-- [ ] **ADR mit Entscheidung des Nutzers** *(nächste freie Nummer laut ADR-Index; `Accepted` erst nach dem Entscheid des Nutzers; `Supersedes` nur wörtlich Entscheidung 1 und 4 von [ADR-0017](../../adr/0017-prepared-handles-grenzwert.md), Fitness Function und Index nachgezogen)*: jede Aussage trägt eine Messzeile oder ist als Setzung gekennzeichnet; die Folgen für `SPEC-030` und die Verträge sind benannt.
+- [x] **ADR mit Entscheidung des Nutzers** *(nächste freie Nummer laut ADR-Index; `Accepted` erst nach dem Entscheid des Nutzers; `Supersedes` nur wörtlich Entscheidung 1 und 4 von [ADR-0017](../../adr/0017-prepared-handles-grenzwert.md), Fitness Function und Index nachgezogen)*: jede Aussage trägt eine Messzeile oder ist als Setzung gekennzeichnet; die Folgen für `SPEC-030` und die Verträge sind benannt.
 - [ ] **Liste der Spec-Änderungen und Anschluss** *(in §3 und im Anschluss von [slice-schreibpfad-merge-output](../open/slice-schreibpfad-merge-output.md))*: Änderungen an SPEC-030 und SPEC-034, die der MERGE-Slice schreibt; Start-Trigger und Risiko des MERGE-Slice an die Entscheidung angeschlossen. Die Spezifikation ändert dieser Slice nicht.
 
 Nachweis-Pflichten für alle Punkte:
@@ -76,7 +76,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 | [slice-schreibpfad-merge-output](../open/slice-schreibpfad-merge-output.md) | update | Start-Trigger (die ADR `Accepted`), Anschluss, Risiko |
 | `spec/spezifikation.md` | nicht in diesem Slice | SPEC-030 und SPEC-034 schreibt der MERGE-Slice nach `Accepted` |
 
-**Spec-Änderungen, die der MERGE-Slice (oder ein vom Nutzer geschnittener Bau-Slice) nach `Accepted` schreibt** (Vorschlag der Fassung D mit B; Liste mit Einzelheiten in der Tabelle „Liste der Spec-Änderungen“ von [ADR-0036](../../adr/0036-handle-freigabe-und-grenze-je-sitzung.md)): SPEC-030 (Antwort auf `sp_prepexec` mit RETURNSTATUS, Freigabe über `sp_unprepare` als RPC und Batch, Zählung, Voreinstellung 1000 statt „nicht konfigurierbar“, Erstaufruf 0 oder −1, RPC-Tabelle), SPEC-013 (`sp_unprepare` aus der Liste), SPEC-058 (Grenze als Voreinstellung), SPEC-034 und §3 (Eingang der Grenze, Speicher je Sitzung), SPEC-001 (Batch-Form im Sitzungsrahmen), SPEC-059 (falls öffentlicher Name), Nicht-Ziel 6, Abschnitt „RPC-Katalog des Referenzclients“, die Kompatibilitätsmatrix (`make matrix-zitate`) und die Kommentare und Tests in `src/` (Einzelliste in der ADR). [ADR-0005](../../adr/0005-rpc-und-prepared-statements.md) wird nach Offen 8 der ADR teilweise abgelöst. SPEC-036 und SPEC-040 ändern sich durch diese Entscheidung nicht. Wählt der Nutzer eine andere Option, ändert sich die Liste mit ihr.
+**Spec-Änderungen, die der MERGE-Slice (oder ein vom Nutzer geschnittener Bau-Slice) nach `Accepted` schreibt** (entschieden: Fassung D mit B, Freigabe nur als Batch; Liste mit Einzelheiten in der Tabelle „Liste der Spec-Änderungen“ von [ADR-0036](../../adr/0036-handle-freigabe-und-grenze-je-sitzung.md)): SPEC-030 (Antwort auf `sp_prepexec` mit RETURNSTATUS, Freigabe über `sp_unprepare` als Batch (der RPC bleibt abgelehnt), Zählung, Voreinstellung 1000 statt „nicht konfigurierbar“, Erstaufruf 0 oder −1, RPC-Tabelle), SPEC-058 (Grenze als Voreinstellung), SPEC-034 und §3 (Eingang der Grenze, Speicher je Sitzung), SPEC-001 (Batch-Form im Sitzungsrahmen), SPEC-059 (falls öffentlicher Name; Name und Ort mit dem Slice zur öffentlichen Fläche abgestimmt), Abschnitt „RPC-Katalog des Referenzclients“, die Kompatibilitätsmatrix (`make matrix-zitate`) und die Kommentare und Tests in `src/` (Einzelliste in der ADR). SPEC-013, SPEC-036, SPEC-040 und Nicht-Ziel 6 ändern sich durch diese Entscheidung nicht; [ADR-0005](../../adr/0005-rpc-und-prepared-statements.md) bleibt unberührt. Der Bau-Slice vor dem MERGE-Slice wird vom Planner angelegt.
 
 ## 4. Trigger
 
@@ -105,7 +105,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Offene Risiken werden bei Closure aufgelöst — jedes Risiko bekommt genau einen Ausgang.
 
 - Die Messung der Optionen stützt sich auf d-migrate gegen den Testserver, nicht gegen einen echten SQL Server; ob dieser Handles je Sitzung begrenzt und wie er die Überschreitung beantwortet, ist nicht gemessen (`BEO-TDS/messung-am-echten-sql-server-fehlt`). — **Ausgang:** offen bis zur Closure.
-- `sp_unprepare` ist in SPEC-030 als abgelehnt festgelegt; wählt der Nutzer die Freigabe, ändert die Entscheidung auch den Katalog der unterstützten RPCs. — **Ausgang:** offen bis zur Closure.
+- `sp_unprepare` ist in SPEC-030 als abgelehnt festgelegt; die Entscheidung gibt nur die Batch-Form frei und lässt den Katalog der RPCs unverändert. — **Ausgang:** offen bis zur Closure.
 - Zählt die ADR die Grenze anders (je Sitzung, je Anweisungstext), bleibt die Zusage von [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität) (Ressourcenverbrauch nach oben begrenzt) zu belegen. — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
