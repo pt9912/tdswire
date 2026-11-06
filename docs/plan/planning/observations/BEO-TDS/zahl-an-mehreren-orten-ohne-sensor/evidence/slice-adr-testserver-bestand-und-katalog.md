@@ -1,0 +1,3 @@
+**Vorgang:** [slice-adr-testserver-bestand-und-katalog](../../../../done/slice-adr-testserver-bestand-und-katalog.md)
+**Fund:** [Review](../../../../../../reviews/2026-11-05-f0fdc87-slice-adr-testserver-bestand-und-katalog.md) F-12: Die Messwerte des Spikes stehen in drei Fassungen (Messprotokoll, Tabelle in `§3` des Slice, Tabelle in [ADR-0033](../../../../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md)); eine Nachmessung zieht drei Orte nach, und kein Sensor hält sie gegeneinander. Gefunden wurde es beim Nachrechnen (F-10, b13: 5,8 s gegen 6,3 s), nicht durch ein Gate.
+**Stand:** weiteres Auftreten; die Orte sind hier Dokumente, nicht Quelltext und Build. Eine Regel gibt es nicht.

@@ -1,0 +1,2 @@
+**Vorgang:** [slice-adr-testserver-bestand-und-katalog](../../../../done/slice-adr-testserver-bestand-und-katalog.md)
+**Fund:** [Review](../../../../../../reviews/2026-11-05-f0fdc87-slice-adr-testserver-bestand-und-katalog.md) F-9, F-10, F-14 und [Verifikation](../../../../../../reviews/2026-11-06-fef4b5b-verifikation-slice-adr-testserver-bestand-und-katalog.md) V-7: Quelle für Handvektoren ohne Bytes, Einzelmessungen unter wechselnder Last, a6 (2002 `MERGE`) und a7 (2004 Parameter) nur über d3 („aus dem Prototyp gelesen“) verbunden; Prototyp „nicht reproduzierbar abgelegt“.
