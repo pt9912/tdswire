@@ -80,7 +80,7 @@ Summe: 12 + 2 + 1 + 1 = 16 Lücken; 3 + 2 + 1 = 6 Zeilen ohne Zitat; 10 + 7 + 31
 - **Spec-Nachzug, Tags an Tests, Löschen der Handmatrix** — [slice-kompatibilitaetsmatrix-migration](slice-kompatibilitaetsmatrix-migration.md): hängt an den Entscheidungen des Nutzers über die Spec; dieser Slice baut den Erzeuger und prüft ihn am Mini-Bestand.
 - **Gate-Aufnahme** — [slice-kompatibilitaetsmatrix-gate](slice-kompatibilitaetsmatrix-gate.md): braucht die verdrahtete Klasse `tests` aus [slice-stempel-migration](../done/slice-stempel-migration.md) und eine Messung der Gate-Zeit.
 - **Bestehen der Referenzclient-Tests im Gate** — [ADR-0022](../../adr/0022-e2e-laeufe-nicht-in-den-gates.md): `make e2e` bleibt kein Gate; die Sicht trägt dessen letzten Lauf als Datum.
-- **Cancel-Szenario und Messungen am echten SQL Server** — [slice-cancel-referenzclient-szenario](../done/slice-cancel-referenzclient-szenario.md) bzw. [slice-qa-vergleichslauf-d-messungen](../in-progress/slice-qa-vergleichslauf-d-messungen.md) (Messreihe am Draht W-1 bis W-9, geschlossen); weitere Messungen haben keinen Träger (`BEO-TDS/messung-am-echten-sql-server-fehlt`).
+- **Cancel-Szenario und Messungen am echten SQL Server** — [slice-cancel-referenzclient-szenario](../done/slice-cancel-referenzclient-szenario.md) bzw. [slice-qa-vergleichslauf-d-messungen](../done/slice-qa-vergleichslauf-d-messungen.md) (Messreihe am Draht W-1 bis W-9, geschlossen); weitere Messungen haben keinen Träger (`BEO-TDS/messung-am-echten-sql-server-fehlt`).
 - **Schreiben der ADR und der Änderungen an Spec und `AGENTS.md`** — Entscheidungen des Nutzers.
 
 **Keine Mindestzahl.** Ein Slice mit *einem* echten Ausschluss ist besser als
