@@ -32,6 +32,9 @@
 #                meldet, die das Skript nennt, und erlaubte Namen nicht.
 #   jackson      prueft an erzeugten Dateien, dass tools/jackson-sperre.sh Import, qualifizierten Namen und
 #                Kommentar mit com.fasterxml in Kotlin und Java meldet, und erlaubte Namen nicht.
+#   modulgrenze  prueft an erzeugten Dateien, dass tools/modulgrenze-sperre.sh friend- und associate-Eintraege
+#                (friendPaths, -Xfriend-paths, associateWith, associateCompilations; auch im Kommentar) in einer
+#                Build-Datei meldet, eine fehlende Datei mit Exit 2 abweist und eine Datei ohne diese Namen durchlaesst.
 #
 # Aufgerufen von der Dockerfile-Stage `detekt-selbsttest`; braucht sh, awk, sed, grep, sort, cut, ls, tr
 # und mktemp. Grenze: geprueft ist, dass die Regeln greifen und nichts treffen, was Allowed.kt und
@@ -264,11 +267,35 @@ jackson() {
   echo "detekt-selbsttest: OK - $n Formen eines Jackson-Verweises gemeldet, erlaubte Namen nicht"
 }
 
+modulgrenze() {
+  skript=tools/modulgrenze-sperre.sh
+  d=build/modulgrenze-test
+  mkdir -p "$d/verboten" "$d/erlaubt"
+  printf 'kotlin { target.compilations.getByName("main").associateWith(x) }\n' > "$d/verboten/AssociateWith.kts"
+  printf 'compilerOptions.freeCompilerArgs.add("-Xfriend-paths=lib.jar")\n' > "$d/verboten/FriendPaths.kts"
+  printf 'val p = friendPaths\n' > "$d/verboten/FriendPathsName.kts"
+  printf 'val a = associatedCompilations\n' > "$d/verboten/Associated.kts"
+  printf '// associateWith im Kommentar\n' > "$d/verboten/Kommentar.kts"
+  printf 'val f = FRIEND\n' > "$d/verboten/Gross.kts"
+  printf 'dependencies { implementation(project(":")) }\n// Assoziation ist hier kein Treffer\n' > "$d/erlaubt/Build.kts"
+  n=0
+  for f in "$d"/verboten/*; do
+    n=$((n + 1))
+    if sh "$skript" "$f" > /dev/null 2>&1; then fail "$skript meldet $f nicht"; fi
+  done
+  sh "$skript" "$d/erlaubt/Build.kts" > /dev/null || fail "$skript meldet eine Datei ohne diese Namen"
+  rc=0
+  sh "$skript" "$d/fehlt.kts" > /dev/null 2>&1 || rc=$?
+  [ "$rc" = 2 ] || fail "$skript endet bei fehlender Datei mit $rc statt 2"
+  echo "detekt-selbsttest: OK - $n Formen eines friend- oder associate-Eintrags gemeldet, fehlende Datei Exit 2, Datei ohne diese Namen nicht"
+}
+
 case "${1:-}" in
   generate) generate ;;
   check) check ;;
   aufrufe) aufrufe ;;
   suppression) suppression ;;
   jackson) jackson ;;
-  *) echo "Aufruf: $0 generate|check|aufrufe|suppression|jackson" >&2; exit 2 ;;
+  modulgrenze) modulgrenze ;;
+  *) echo "Aufruf: $0 generate|check|aufrufe|suppression|jackson|modulgrenze" >&2; exit 2 ;;
 esac

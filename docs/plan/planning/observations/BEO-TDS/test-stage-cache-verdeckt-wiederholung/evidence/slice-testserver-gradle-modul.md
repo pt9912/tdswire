@@ -1,0 +1,2 @@
+**Vorgang:** [slice-testserver-gradle-modul](../../../../done/slice-testserver-gradle-modul.md)
+**Fund:** Verifikation V-1: `make gates FORCE=1` am Stand `ca952e3b` zeigte alle Docker-Schichten `CACHED` und belegt Stempel, Host-Selbsttests und Doku, nicht frische Gradle-Arbeit. Der Frischbeleg war `make clean-build` (`--no-cache`, Exit 0, 8 min 40 s, 933 Zeilen `PASSED`); `make e2e` baute die Testserver-Stages teilweise neu, nicht vollständig kalt.

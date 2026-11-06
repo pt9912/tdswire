@@ -4,7 +4,7 @@
 # Aufruf: jackson-sperre.sh <verzeichnis>...   Exit 1 bei einem Treffer, 2 bei falschem Aufruf.
 # Jeder Verweis auf `com.fasterxml` in *.kt und *.java unter den Verzeichnissen ist ein Treffer: ein Import,
 # ein voll qualifizierter Name, auch in einem Kommentar. Die Bibliothek liest keine Datei und kein YAML; Jackson
-# gehoert dem Testserver (Source-Set `testserver`) und steht nicht im Klassenpfad der Bibliothek. Die Pruefung laeuft
+# gehoert dem Testserver (Gradle-Modul `testserver`) und steht nicht im Klassenpfad der Bibliothek. Die Pruefung laeuft
 # vor detekt in der Dockerfile-Stage `detekt` und nennt `src/main`; sie ist eine Textpruefung, weil die Importregeln in
 # config/detekt/detekt.yml je Package der Schichten gelten (ihr Selbsttest vergleicht die Packages mit den Testdaten)
 # und `runtime` keine Regel hat.

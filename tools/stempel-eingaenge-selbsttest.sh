@@ -190,12 +190,12 @@ EOF
 h_eintraege() {
 	fixture h2
 	local n=0 paar
-	for paar in tests:src tests:LICENSE tests:config tests:tools/stempel.sh tests:tools/stempel tests:Dockerfile tests:.dockerignore \
+	for paar in tests:src tests:testserver tests:LICENSE tests:config tests:tools/stempel.sh tests:tools/stempel tests:Dockerfile tests:.dockerignore \
 		tests:tools/mk/referenztest-dotnet.mk tests:Makefile tests:repo.mk tests:tools/mk/builder.mk tests:tools/stempel-liste.sh tests:tools/stempel-gruppe.sh tests:tools/mk/stempel.mk \
 		werkzeug:harness/mk werkzeug:harness/README.md werkzeug:spec/spezifikation.md werkzeug:tools werkzeug:Makefile \
 		werkzeug:.harness/baseline werkzeug:.github/workflows werkzeug:config werkzeug:gradle/libs.versions.toml \
 		werkzeug:referenztest-dotnet/Integration/SimulationBackendTests.cs \
-		werkzeug:src/testserver/kotlin/io/github/pt9912/tdswire/testserver/IntegrationServer.kt tests:tools/jackson-sperre.sh \
+		werkzeug:testserver/build.gradle.kts werkzeug:testserver/gradle.lockfile werkzeug:testserver/kotlin/io/github/pt9912/tdswire/testserver/IntegrationServer.kt tests:tools/jackson-sperre.sh \
 		stempel:tools/stempel-gruppe.sh stempel:tools/gate-zuordnung.sh stempel:tools/mk stempel:harness/mk stempel:d-check.mk stempel:Dockerfile stempel:.d-check.yml stempel:tools/stempel stempel:Makefile stempel:repo.mk; do
 		n=$((n + 1))
 		listen_ohne "l$n" "${paar%%:*}" "${paar#*:}"
