@@ -1,0 +1,2 @@
+**Vorgang:** [slice-katalog-und-ddl-zustand](../../../../in-progress/slice-katalog-und-ddl-zustand.md)
+**Fund:** Review F-5 und Verifikation V-6: Das Messprotokoll nennt Anfragezahlen (26/27, 22/24 mit `sys.`, 69/70/85) aus einem Wegwerf-Wrapper, der nicht im Repo steht; die Grenze ist im Protokoll benannt, die Zahlen tragen als Größenordnung. Die Wiederholung des Verifiers bestätigt Exit-Codes und Berichtsfelder, nicht die Zahlen. Vierte Datei; der Stand bleibt `offen`, die Entscheidung des Nutzers steht aus.

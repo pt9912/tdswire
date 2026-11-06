@@ -1,0 +1,2 @@
+**Vorgang:** [slice-katalog-und-ddl-zustand](../../../../in-progress/slice-katalog-und-ddl-zustand.md)
+**Fund:** Review F-3 und Verifikation V-5: Der Sonderwert `maxLength` -1 stand in `SPEC-035`, nicht in der Fundstelle im Änderungsprotokoll von `SPEC-059`; das Änderungsprotokoll ordnete die Sperre `SPEC-035` zu, der Text steht in `TDS-FA-11.a` Schritt 9; das KDoc von `ChangeExecution` nannte `ChangeRejected` nicht. Alle drei behoben. Verkörpert wie in `state.md` der Klasse; hier ein weiteres Auftreten.
