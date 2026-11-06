@@ -142,7 +142,10 @@ ist eine Lifecycle-Rücksprungkante (11).
     der Stop-Hook deckt nur `make gates`. Das ist die *Behauptung* der Implementer-Rolle und die
     *Eingabe* des Verifiers — **nicht** das finale DoD-Urteil (Modul 11: „Behauptung ohne
     Bestätigung ist die häufigste Verifier-Lücke"; eine DoD-Verletzung ist eine Verifier-only-Klasse,
-    unsichtbar für Review und Tests). Ausgeführte Sensors + Restrisiken berichten.
+    unsichtbar für Review und Tests). Ausgeführte Sensors + Restrisiken berichten. **Du setzt
+    keinen Haken eines Liefer-Punkts der DoD** und schreibst keinen Rollen-Text („Behauptung des
+    Implementers“) in die DoD: der Bericht behauptet, den Haken setzt der Planner nach der
+    Verifikation (Schritt 24)  (seit slice-qa-vergleichslauf-d-messungen).
 19. **Zu jedem neuen oder geänderten Wächter die rot färbende Mutation benennen**
     (`AGENTS.md` §3.6). Ein grüner Gate-Lauf belegt nur, dass nichts *bricht* — nicht, dass
     der Wächter greift. Pro Zusage also: *welche Änderung am geprüften Code müsste diesen
@@ -182,7 +185,8 @@ Hier endet die Implementation. Die übrigen Rollen laufen in **getrennten Kontex
 ## Closure — Planner-Rolle (Modul 8 + Modul 5)
 
 24. Erst wenn der Review konform **und** die Verifikation die DoD bestätigt hat, schließt der
-    **Planner**: die Closure-Notiz mit einem **Steering-Loop-Eintrag** schreiben (geschärfte Regel ·
+    **Planner** — er setzt dabei die Haken der Liefer-Punkte, die der Verifier bestätigt hat, und
+    keinen davor  (seit slice-qa-vergleichslauf-d-messungen): die Closure-Notiz mit einem **Steering-Loop-Eintrag** schreiben (geschärfte Regel ·
     neuer Sensor · benannte Spec-Lücke — Modul 5: der `→ done`-Übergang verlangt einen Lerneintrag,
     nicht nur grüne Gates), dann den Slice `in-progress → done` verschieben —
     **`make slice-mv SLICE=slice-<Kennung> TO=done`**, derselbe Aufruf wie in Schritt 9: reiner

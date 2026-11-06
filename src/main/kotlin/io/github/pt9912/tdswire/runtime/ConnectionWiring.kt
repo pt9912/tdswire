@@ -136,7 +136,10 @@ internal class HandshakeConnectionHandler(private val setup: HandlerSetup, priva
             queryTimeout = setup.requests.queryTimeoutSeconds.seconds,
             cancelTimeout = setup.requests.cancelTimeoutSeconds.seconds,
         )
-        val hooks = RequestHooks(gate = ConnectionShutdownGate(connection))
+        val hooks = RequestHooks(
+            gate = ConnectionShutdownGate(connection),
+            handleLimit = setup.requests.maxPreparedHandles,
+        )
         RequestLoop(outcome, channel, backend, errorMapper(context), times = times, hooks = hooks).run()
     }
 

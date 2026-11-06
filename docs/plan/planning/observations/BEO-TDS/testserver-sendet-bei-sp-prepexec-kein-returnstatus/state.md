@@ -1,3 +1,3 @@
-**Stand:** geplant — [slice-handle-freigabe-und-grenze-bauen](../../../in-progress/slice-handle-freigabe-und-grenze-bauen.md) baut die Antwortform mit RETURNSTATUS und den Test dazu.
+**Stand:** gestrichen — Ursache behoben: [slice-handle-freigabe-und-grenze-bauen](../../../done/slice-handle-freigabe-und-grenze-bauen.md) liefert die Antwortform mit RETURNSTATUS 0 vor dem Handle (Tests `HandleReturningBackendTest`, `HandleLimitEmbeddingTest`; Treiber-Beleg `make messung-treiber-handles`: 198 von 200 Ausführungen als `sp_execute`). Das Flag-Feld des Handle-RETURNVALUE weicht weiter ab (A-19, Träger [slice-antwort-tokens-an-messung-angleichen](../../../in-progress/slice-antwort-tokens-an-messung-angleichen.md)).
 
 Nutzerentscheidung 2026-11-06 („deine Empfehlungen“): der Name des Handle-RETURNVALUE von `sp_prepexec` (am echten Server leer, Spezifikation `@handle`) gehört zur Antwortform und liegt im selben Träger.

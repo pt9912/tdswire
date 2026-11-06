@@ -16,6 +16,7 @@ import io.github.pt9912.tdswire.transport.framing.PacketType
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -92,6 +93,71 @@ class ErrorMapperTest {
         16,
         ConnectionFate.OPEN,
     )
+
+    /**
+     * `TDS_SIM_UNKNOWN_PREPARED_HANDLE` ist ERROR 8179, State 8, Class 16 mit dem Text „Could not find prepared
+     * statement with handle <n>.“ und bleibt offen. Nummer, Class, State und Wortlaut für Handle 1 sind am
+     * Referenzclient gegen den echten SQL Server gemessen (Zeile M-4); die Bytes sind Handvektor. Zwei Nummern
+     * ergeben zwei ERROR vor dem einen DONE mit Fehlerstatus, je ein Log-Eintrag mit der festen Marke. Wächter:
+     * State 1 statt 8, eine andere Nummer, ein Text ohne Handle, ein ERROR nur für die erste Nummer, ein fehlender
+     * Log-Eintrag.
+     *
+     * @spec SPEC-060
+     */
+    @Test
+    fun `TDS_SIM_UNKNOWN_PREPARED_HANDLE ist ERROR 8179 State 8 Class 16 mit der Nummer im Text`() {
+        val entries = mutableListOf<ErrorLogEntry>()
+        val logging = ErrorMapper { entries += it }
+        val code = ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE
+        val one = assertNotNull(logging.code(code, cause = "unknown-prepared-handle", handles = listOf(1)).message)
+        assertEquals(PacketType.TABULAR_RESULT, one.type)
+        assertEquals(
+            hex(
+                "AA 6E 00 F3 1F 00 00 08 10 30 00 43 00 6F 00 75 00 6C 00 64 00 20 00 6E" +
+                    " 00 6F 00 74 00 20 00 66 00 69 00 6E 00 64 00 20 00 70 00 72 00 65 00 70" +
+                    " 00 61 00 72 00 65 00 64 00 20 00 73 00 74 00 61 00 74 00 65 00 6D 00 65" +
+                    " 00 6E 00 74 00 20 00 77 00 69 00 74 00 68 00 20 00 68 00 61 00 6E 00 64" +
+                    " 00 6C 00 65 00 20 00 31 00 2E 00 00 00 00 00 00 00  $done",
+            ).toHex(),
+            one.payload.toHex(),
+        )
+        val two = logging.code(code, cause = "unknown-prepared-handle", handles = listOf(1, 12))
+        assertEquals(
+            hex(
+                "AA 6E 00 F3 1F 00 00 08 10 30 00 43 00 6F 00 75 00 6C 00 64 00 20 00 6E" +
+                    " 00 6F 00 74 00 20 00 66 00 69 00 6E 00 64 00 20 00 70 00 72 00 65 00 70" +
+                    " 00 61 00 72 00 65 00 64 00 20 00 73 00 74 00 61 00 74 00 65 00 6D 00 65" +
+                    " 00 6E 00 74 00 20 00 77 00 69 00 74 00 68 00 20 00 68 00 61 00 6E 00 64" +
+                    " 00 6C 00 65 00 20 00 31 00 2E 00 00 00 00 00 00 00  " +
+                    "AA 70 00 F3 1F 00 00 08 10 31 00 43 00 6F 00 75 00 6C 00 64 00 20 00 6E" +
+                    " 00 6F 00 74 00 20 00 66 00 69 00 6E 00 64 00 20 00 70 00 72 00 65 00 70" +
+                    " 00 61 00 72 00 65 00 64 00 20 00 73 00 74 00 61 00 74 00 65 00 6D 00 65" +
+                    " 00 6E 00 74 00 20 00 77 00 69 00 74 00 68 00 20 00 68 00 61 00 6E 00 64" +
+                    " 00 6C 00 65 00 20 00 31 00 32 00 2E 00 00 00 00 00 00 00  $done",
+            ).toHex(),
+            assertNotNull(two.message).payload.toHex(),
+        )
+        assertEquals(ConnectionFate.OPEN, two.fate)
+        assertEquals(code, two.code)
+        assertEquals(16, code.rule.severity)
+        assertEquals(8, code.rule.state)
+        assertEquals(List(3) { ErrorLogEntry(code, "unknown-prepared-handle") }, entries)
+    }
+
+    /**
+     * Die Regel mit Nummer im Text verlangt die Nummer, und eine Regel ohne verbietet sie: `message` für die falsche
+     * Seite wirft, statt einen Text ohne Nummer oder mit einer fremden zu senden; die Antwort auf null Nummern gibt es
+     * nicht. Wächter: ein `message()` ohne Prüfung.
+     *
+     * @spec SPEC-060
+     */
+    @Test
+    fun `Eine Regel mit Handle im Text verlangt die Nummer und die anderen verbieten sie`() {
+        assertFailsWith<IllegalArgumentException> { ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE.rule.message() }
+        assertFailsWith<IllegalArgumentException> { ErrorCode.TDS_UNKNOWN_HANDLE.rule.message(1) }
+        assertFailsWith<IllegalArgumentException> { mapper.code(ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE) }
+        assertFailsWith<IllegalArgumentException> { mapper.code(ErrorCode.TDS_UNKNOWN_HANDLE, handles = listOf(1)) }
+    }
 
     /** @spec SPEC-014 */
     @Test
@@ -186,6 +252,7 @@ class ErrorMapperTest {
             "TDS_PROTOCOL_ERROR", "TDS_LOGIN_FAILED", "TDS_UNSUPPORTED_RPC", "TDS_UNSUPPORTED_TYPE",
             "TDS_BACKEND_ERROR", "TDS_TIMEOUT", "TDS_UNSUPPORTED_SQL", "TDS_SIM_UNKNOWN_OBJECT",
             "TDS_SIM_INVALID_VALUE", "TDS_INTERNAL_ERROR", "TDS_SHUTDOWN", "TDS_UNKNOWN_HANDLE", "TDS_PREPARE_LIMIT",
+            "TDS_SIM_UNKNOWN_PREPARED_HANDLE",
         )
         assertEquals(expected, ErrorCode.entries.map { it.name }.toSet())
         assertEquals(expected.size, ErrorCode.entries.map { it.rule.number }.toSet().size)
@@ -222,6 +289,7 @@ class ErrorMapperTest {
             ErrorCode.TDS_SIM_INVALID_VALUE,
             ErrorCode.TDS_UNKNOWN_HANDLE,
             ErrorCode.TDS_PREPARE_LIMIT,
+            ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE,
             ErrorCode.TDS_TIMEOUT,
         )
         ErrorCode.entries.forEach {
@@ -380,6 +448,7 @@ class ErrorMapperTest {
                 ErrorCode.TDS_INTERNAL_ERROR,
                 ErrorCode.TDS_UNKNOWN_HANDLE,
                 ErrorCode.TDS_PREPARE_LIMIT,
+                ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE,
             ),
             serverOnly.toSet(),
         )

@@ -14,6 +14,8 @@ package io.github.pt9912.tdswire.config
  * - `QUERY_TIMEOUT` und `CANCEL_TIMEOUT` ganze Sekunden von 1 bis 3600 (`SPEC-009`, `SPEC-033`, vorläufig).
  * - `MAX_CONNECTIONS` ganze Zahl von 1 bis 100000 (`SPEC-034`, vorläufig); `SHUTDOWN_GRACE` ganze Sekunden von 0
  *   bis 3600, 0 = sofort (`SPEC-047`, vorläufig).
+ * - `MAX_PREPARED_HANDLES` ganze Zahl von 1 bis 100000 (`SPEC-058`, Festlegung); null und negative Werte sind
+ *   `OUT_OF_RANGE`.
  *
  * Eine [ServerConfig] kann ungeprüft existieren; erst [check] und der Start weisen sie ab.
  */
@@ -23,6 +25,7 @@ internal object ConfigValidation {
     private const val MAX_REQUEST_TIMEOUT = 3600
     private const val MAX_CONNECTION_LIMIT = 100_000
     private const val MAX_SHUTDOWN_GRACE = 3600
+    private const val MAX_PREPARED_HANDLE_LIMIT = 100_000
     private const val MIN_PRELOGIN_BYTES = 512
     private const val MAX_PRELOGIN_BYTES = 65536
 
@@ -38,6 +41,7 @@ internal object ConfigValidation {
             cancelTimeout(config.requests.cancelTimeoutSeconds),
             maxConnections(config.listen.maxConnections),
             shutdownGrace(config.requests.shutdownGraceSeconds),
+            range(ConfigKeys.MAX_PREPARED_HANDLES, config.requests.maxPreparedHandles, 1..MAX_PREPARED_HANDLE_LIMIT),
         ) + pairing(config.encryption, hasKeystore = keyMaterial, hasPassword = keyMaterial)
     }
 

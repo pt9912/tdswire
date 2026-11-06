@@ -1,0 +1,2 @@
+**Vorgang:** [slice-handle-freigabe-und-grenze-bauen](../../../../done/slice-handle-freigabe-und-grenze-bauen.md)
+**Fund:** Verifikation V-1: Die Haken der drei Liefer-Punkte, von `make gates` und Doku-Update standen seit `f2a38e70` vor Review und Verifikation, drei spätere Commits änderten noch Code, Test und Spec; durch die Läufe des Verifiers am HEAD gedeckt, der Review-Haken folgte erst nach dem Re-Review. Vierte Instanz; die Regel ist verkörpert (Stand dieses Eintrags).
