@@ -122,6 +122,10 @@ Aussagen-Berührung steht hier gar nicht.
 | `src/test/` (Sequenzierer) und `testserver/` | update / neu | Happy/Boundary/Negative je Konflikt nach [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität) und [TDS-FA-10](../../../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte), Tag `@spec` |
 | `referenztest-dotnet/Vergleich/mitschnitt-ausnahmen.tsv`, `docs/messungen/referenzabgleich.md` | update | A-10 entfällt, A-16 gekürzt, Grenze des Abspielens benannt |
 | `docs/plan/kompatibilitaetsmatrix.md` | update | Zeilen zu RETURNSTATUS, RETURNVALUE, DONE-Familie; `make matrix-zitate` |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/response/RpcTrailer.kt` und `protocol/dispatch/LeadingToken.kt` | neu | Ende der RPC-Antwort (RETURNSTATUS, RETURNVALUE nach Aufrufliste, DONEPROC) und Vorspann ENVCHANGE Typ 18; `CallLayout` (Lage der Parameter in der Aufrufliste) steht in `RpcOutputs.kt` |
+| `protocol/dispatch/` (`RequestLoop.kt`, `RpcBinder.kt`, `AbortedAnswer.kt`, `HandleReturningBackend.kt`), `protocol/error/ErrorMapper.kt`, `protocol/session/AttentionAck.kt` | update | Antwortform und Aufrufform bis zu den Fehlerantworten vor dem Backend, ENVCHANGE bei `RESETCONNECTION`, Befehlskennung der ATTENTION-Bestätigung, Name des Handle-Ausgabewerts |
+| `src/test/kotlin/io/github/pt9912/tdswire/protocol/response/ResponseMeasuredTest.kt`, `src/integrator/` (`FlaecheEmbeddingTest.kt`) | neu / update | Handvektoren aus den Messdateien; `FailureScope` von außen übersetzbar (Flächen-Sensor) |
+| `docs/user/einbettung-und-betrieb.md` | update | Klasse des Fehlers und Name des Ausgabewerts im Backend-Vertrag |
 
 **Optional: Ansatz als Liste, wenn eine Zeile pro Datei nicht trägt** — z. B.
 eine Schnittstellenänderung über viele gleichrangige Dateien mit derselben
