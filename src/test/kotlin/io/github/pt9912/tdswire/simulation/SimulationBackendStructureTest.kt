@@ -307,6 +307,8 @@ class SimulationBackendStructureTest {
 
         val same = runAll(store.backend, "ALTER TABLE [kunden] ADD [C] INT;", "ALTER TABLE [kunden] ADD [C] INT;")
         assertEquals(1, same.count { it.single() is QueryEvent.Failure })
+        val lost = assertIs<QueryEvent.Failure>(same.single { it.single() is QueryEvent.Failure }.single())
+        assertEquals(SimCodes.UNSUPPORTED_SQL, lost.code)
         assertEquals(listOf("Id", "Name", "A", "B", "C"), store.tables.single().columns.map { it.name })
     }
 }

@@ -96,8 +96,11 @@ internal interface Stoppable {
 /**
  * Eine Änderung: ruft den Callback beim Sammeln genau einmal und sendet dessen Zahl als [QueryEvent.UpdateCount].
  * Ein Fehler des Callbacks und eine negative Zahl sind ein [QueryEvent.Failure] mit `TDS_BACKEND_ERROR` und fester
- * Meldung, nie dem Text der Ausnahme (Festlegung, nicht am Server gemessen). [stop] vor dem Sammeln lässt den
- * Callback ungerufen; ein laufender Callback endet nur mit dem Abbruch des Sammlers.
+ * Meldung, nie dem Text der Ausnahme (Festlegung, nicht am Server gemessen). Eine [ChangeRejected] beim erneuten
+ * Planen unter der Sperre einer Strukturänderung ist ein [QueryEvent.Failure] mit dem Code und der Meldung der
+ * Planung (`TDS_UNSUPPORTED_SQL`, `TDS_SIM_UNKNOWN_OBJECT`), kein `TDS_BACKEND_ERROR`. [stop] vor dem Sammeln lässt
+ * den Callback ungerufen; ein laufender Callback endet nur mit dem Abbruch des Sammlers und hält bis dahin die
+ * Sperre der Strukturänderung des Backends, nicht reentrant (`SimulationBackend.structure`).
  */
 internal class ChangeExecution(
     private val change: PreparedChange.Ready,

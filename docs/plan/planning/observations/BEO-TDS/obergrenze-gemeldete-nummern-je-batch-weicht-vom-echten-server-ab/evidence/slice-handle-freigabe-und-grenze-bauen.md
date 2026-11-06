@@ -1,0 +1,2 @@
+**Vorgang:** [slice-handle-freigabe-und-grenze-bauen](../../../../done/slice-handle-freigabe-und-grenze-bauen.md)
+**Fund:** Review F-1 (Verstärkung ohne Obergrenze, behoben mit Grenze 100), Verifikation V-2 und Re-Review R-1, R-2: die Grenze war als Setzung in SPEC-060 und im Slice §6 benannt, aber ohne Träger über die Closure hinaus; Nutzer-Doku und Matrix sagten „wie am echten SQL Server“ und „jede Nummer“.

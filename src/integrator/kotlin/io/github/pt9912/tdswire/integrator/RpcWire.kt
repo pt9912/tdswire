@@ -15,6 +15,17 @@ internal fun executeSqlPayload(statement: String, declarations: String, vararg p
     return head + texts + params.fold(ByteArray(0), ByteArray::plus)
 }
 
+/**
+ * Der Rumpf eines `sp_prepexec` (RPC, ProcID 13): ALL_HEADERS, der Ausgabeparameter für das Handle mit dem Wert 0 (so
+ * sendet mssql-jdbc 13.4.0 ihn, Messzeile h6 des Messprotokolls `handle-grenze-optionen-2026-11-06`), die Deklaration
+ * [declarations] und die Anweisung [statement].
+ */
+internal fun prepExecPayload(statement: String, declarations: String = ""): ByteArray {
+    val head = allHeaders() + hex("FF FF 0D 00 02 00")
+    return head + rpcParam("", STATUS_OUTPUT, intn(0)) + hex("00 00") + nvarchar(declarations) + hex("00 00") +
+        nvarchar(statement)
+}
+
 /** Ein Eingabeparameter `INTN` mit 4 Byte (`@name`); [value] `null` ist NULL. */
 internal fun inputInt(name: String, value: Int?): ByteArray = rpcParam(name, STATUS_INPUT, intn(value))
 

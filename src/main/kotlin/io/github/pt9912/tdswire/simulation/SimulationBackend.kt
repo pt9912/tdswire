@@ -119,6 +119,10 @@ public class SimulationBackend(
      * Callback mit diesem Stand; zwei gleichzeitige Strukturänderungen laufen nacheinander, die zweite sieht die
      * erste (`CREATE TABLE` derselben Tabelle ist dann abgewiesen wie bei einer schon beschriebenen Tabelle). Die
      * Sperre gilt für dieses Backend; ein Anbieter, den ein anderer Schreiber ändert, bekommt sie nicht.
+     *
+     * Grenze (Lesen des Codes, nicht gemessen): die Sperre ist ein [Mutex] und nicht reentrant. Ein Callback, der
+     * dasselbe Backend aufruft und die Antwort abwartet, hängt; ein hängender Callback hält die Sperre und blockiert
+     * alle weiteren Strukturänderungen dieses Backends, bis sein Sammler abbricht.
      */
     private fun structure(plan: StructurePlan, request: QueryRequest): QueryExecution {
         val callback = onStructure ?: return failed(SimCodes.UNSUPPORTED_SQL, "Strukturänderung nicht verfügbar")

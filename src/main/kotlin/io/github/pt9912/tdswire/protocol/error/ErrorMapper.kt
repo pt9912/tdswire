@@ -42,8 +42,14 @@ internal fun interface ErrorLog {
     }
 }
 
-/** Die ERROR-Meldung der Regel: Nummer, State, Class und fester Text; die einzige Stelle, die sie bildet. */
-internal fun ErrorRule.message(): ServerMessage = ServerMessage(number, state, severity, text)
+/**
+ * Die ERROR-Meldung der Regel: Nummer, State, Class und fester Text; die einzige Stelle, die sie bildet. Eine Regel mit
+ * [ErrorRule.namesHandle] verlangt [handle] und hängt ` <handle>.` an den Text.
+ */
+internal fun ErrorRule.message(handle: Int? = null): ServerMessage {
+    require((handle != null) == namesHandle) { "Handle und Regel passen nicht zusammen" }
+    return ServerMessage(number, state, severity, if (handle == null) text else "$text $handle.")
+}
 
 /**
  * Das Fehler-Mapping (`TDS-FA-06.a`, `ADR-0007`): bildet einen Fehler auf ERROR und DONE mit
@@ -59,9 +65,18 @@ internal fun ErrorRule.message(): ServerMessage = ServerMessage(number, state, s
  * meldet denselben Fall als `CLOSE_WITHOUT_COMPLETION`, und [fateOf] bildet ihn auf `CLOSE_WITHOUT_REPLY` ab.
  */
 internal class ErrorMapper(private val log: ErrorLog = ErrorLog.NONE) {
-    /** Ein Fehler mit eigenem Code; [cause] ist eine feste Marke für das Log, nie ein Wert. */
-    fun code(code: ErrorCode, streamSynchronous: Boolean = true, cause: String? = null): ErrorResponse =
-        response(code, streamSynchronous, cause)
+    /**
+     * Ein Fehler mit eigenem Code; [cause] ist eine feste Marke für das Log, nie ein Wert. Ein Code, dessen Text die
+     * Nummer eines Handles nennt ([ErrorRule.namesHandle]), verlangt [handles], nicht leer: die Antwort trägt ein ERROR
+     * je Nummer in der Reihenfolge von [handles], danach ein DONE mit Fehlerstatus, und das Log einen Eintrag je ERROR.
+     * Für jeden anderen Code ist [handles] leer.
+     */
+    fun code(
+        code: ErrorCode,
+        streamSynchronous: Boolean = true,
+        cause: String? = null,
+        handles: List<Int> = emptyList(),
+    ): ErrorResponse = response(code, streamSynchronous, cause, handles)
 
     /**
      * Ein erwarteter Fehler des Backends. Nur ein Code aus [BACKEND_CODES] ist eine erwartete
@@ -130,17 +145,25 @@ internal class ErrorMapper(private val log: ErrorLog = ErrorLog.NONE) {
         ProtocolErrorCategory.TDS_UNSUPPORTED_TYPE -> ErrorCode.TDS_UNSUPPORTED_TYPE
     }
 
-    private fun response(code: ErrorCode, streamSynchronous: Boolean, cause: String?): ErrorResponse {
-        log.record(ErrorLogEntry(code, cause))
+    private fun response(
+        code: ErrorCode,
+        streamSynchronous: Boolean,
+        cause: String?,
+        handles: List<Int> = emptyList(),
+    ): ErrorResponse {
+        val rule = code.rule
+        val messages = if (rule.namesHandle) handles.map { rule.message(it) } else listOf(rule.message())
+        require(messages.isNotEmpty() && (handles.isEmpty() || rule.namesHandle)) { "Nummern und Code passen nicht" }
+        repeat(messages.size) { log.record(ErrorLogEntry(code, cause)) }
         if (!streamSynchronous) {
             return ErrorResponse(code, null, ConnectionFate.CLOSE_WITHOUT_REPLY)
         }
-        return ErrorResponse(code, serialize(code.rule), code.rule.fate)
+        return ErrorResponse(code, serialize(messages), code.rule.fate)
     }
 
-    private fun serialize(rule: ErrorRule): TdsMessage {
+    private fun serialize(messages: List<ServerMessage>): TdsMessage {
         val encoder = TokenEncoder()
-        listOf(ErrorToken(rule.message()), failedDone()).forEach {
+        (messages.map { ErrorToken(it) } + failedDone()).forEach {
             check(encoder.write(it) is ProtocolResult.Ok) { "Fehlerantwort nicht schreibbar" }
         }
         return TdsMessage(PacketType.TABULAR_RESULT, encoder.toByteArray())
