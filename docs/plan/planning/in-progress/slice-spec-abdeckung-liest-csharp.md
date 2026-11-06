@@ -63,19 +63,19 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 Liefer-Punkte (zwei):
 
-- [ ] **Der Erzeuger liest C# und den .NET-Bericht:** `tools/spec-abdeckung.sh` liest zusätzlich den Kommentar-Tag in den C#-Quellen des Referenzclients (Eingang `TEST_QUELLE`-Verwandtschaft: ein eigener Eingang für die C#-Verzeichnisse mit Vorgabe) und den Testbericht der Stage `test` des .NET-Gerüsts (ein TRX-Bericht des eingebauten Loggers, aus der Stage per Ausgabe herausgeführt wie Matrix und Waisenzahl heute); ein getaggter C#-Test zählt, wenn Klasse und Methode im Bericht ohne Fehler und ohne Übersprung stehen, sonst steht er in den bestehenden Abschnitten „rot/übersprungen“ und „nicht gelaufen“. `make spec-abdeckung` bleibt kein Gate; die Zeile in `harness/README.md` (Werkzeuge) und der Kopf des Erzeugers nennen den neuen Eingang. Nach dem Lauf führt `docs/plan/spec-abdeckung.md` für `SPEC-045` die bestandenen C#-Tests (Beleg: die Matrix, erzeugt und eingecheckt wie bisher).
-- [ ] **Selbsttest:** `make spec-abdeckung-selbsttest` erzeugt einen Mini-Bestand mit C#-Quelle und TRX-Bericht und belegt je Fall (Happy: bestandener Test zählt; Negative: roter, nicht gelaufener, übersprungener, unbekannt getaggter C#-Test zählt nicht; Boundary: mehrere Tags und mehrere Zeilen addieren sich, Tag ohne folgende Testmethode, Kotlin- und C#-Nachweis derselben Kennung, Methode mit mehreren Attributen); mindestens eine Mutation des Erzeugers (C#-Eingang entfernt) macht den Selbsttest rot.
+- [x] **Der Erzeuger liest C# und den .NET-Bericht:** `tools/spec-abdeckung.sh` liest zusätzlich den Kommentar-Tag in den C#-Quellen des Referenzclients (Eingang `TEST_QUELLE`-Verwandtschaft: ein eigener Eingang für die C#-Verzeichnisse mit Vorgabe) und den Testbericht der Stage `test` des .NET-Gerüsts (ein TRX-Bericht des eingebauten Loggers, aus der Stage per Ausgabe herausgeführt wie Matrix und Waisenzahl heute); ein getaggter C#-Test zählt, wenn Klasse und Methode im Bericht ohne Fehler und ohne Übersprung stehen, sonst steht er in den bestehenden Abschnitten „rot/übersprungen“ und „nicht gelaufen“. `make spec-abdeckung` bleibt kein Gate; die Zeile in `harness/README.md` (Werkzeuge) und der Kopf des Erzeugers nennen den neuen Eingang. Nach dem Lauf führt `docs/plan/spec-abdeckung.md` für `SPEC-045` die bestandenen C#-Tests (Beleg: die Matrix, erzeugt und eingecheckt wie bisher).
+- [x] **Selbsttest:** `make spec-abdeckung-selbsttest` erzeugt einen Mini-Bestand mit C#-Quelle und TRX-Bericht und belegt je Fall (Happy: bestandener Test zählt; Negative: roter, nicht gelaufener, übersprungener, unbekannt getaggter C#-Test zählt nicht; Boundary: mehrere Tags und mehrere Zeilen addieren sich, Tag ohne folgende Testmethode, Kotlin- und C#-Nachweis derselben Kennung, Methode mit mehreren Attributen); mindestens eine Mutation des Erzeugers (C#-Eingang entfernt) macht den Selbsttest rot.
 
 Nachweis-Pflichten für beide Punkte:
 
-- [ ] Wirkung am echten Bestand: `make spec-abdeckung` vorher und nachher, die Zahl der Nachweise von `SPEC-045` und die Waisenzahl stehen in der Closure-Notiz (vorher null Nachweise, 2026-11-06).
-- [ ] `make gates` grün.
+- [x] Wirkung am echten Bestand: `make spec-abdeckung` vorher und nachher, die Zahl der Nachweise von `SPEC-045` und die Waisenzahl stehen in der Closure-Notiz (vorher null Nachweise, 2026-11-06).
+- [x] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Doku-Update, falls ein öffentlicher Vertrag berührt ist (`harness/README.md` §Werkzeuge: Zeilen `make spec-abdeckung` und `make spec-abdeckung-selbsttest`).
+- [x] Doku-Update, falls ein öffentlicher Vertrag berührt ist (`harness/README.md` §Werkzeuge: Zeilen `make spec-abdeckung` und `make spec-abdeckung-selbsttest`).
 - [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
 - [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
 - [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
@@ -147,7 +147,17 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-Wird bei der Closure gefüllt.
+Wird bei der Closure gefüllt. Bis dahin steht hier der Stand des Implementers (Review, Verifikation und Closure offen).
+
+**Stand des Implementers (2026-11-06).**
+
+- **Wirkung am echten Bestand.** Vorher (eingecheckte Matrix auf `cbe4fb06`, Lauf vom selben Tag): `SPEC-045` mit 0 Nachweisen, 10 Festlegungen ohne Nachweis (`Stand: 42 von 56`). Nachher (`make spec-abdeckung`): `SPEC-045` mit 20 bestandenen Modul-Tests (`MitschnittEinheitTests`), 2 nicht gelaufen (die zwei Tests von `LAUF=mitschnitt`, wie entschieden), 9 ohne Nachweis (`Stand: 43 von 56`). Die übrigen Zeilenänderungen der Matrix stammen von Kotlin-Tests, die seit der letzten Erzeugung auf `main` hinzukamen (`FlaecheEmbeddingTest`, `TelemetryFelderEmbeddingTest`).
+- **Setzung Weg des Berichts.** Die Stage `test-bericht` in `referenztest-dotnet/Dockerfile` führt dieselben Tests wie `test` mit dem eingebauten TRX-Logger aus (`|| echo`, ein roter Test bricht sie nicht; ein Bau-Fehler lässt `/bericht` fehlen und bricht den Export); `test-bericht-export` gibt `bericht.trx` per `--output` heraus. `make spec-abdeckung` baut das zuerst und reicht das Verzeichnis als benannten Build-Kontext `dotnet-bericht` an die Wurzel-Stage `spec-abdeckung-export` weiter. Die Stage `test` und damit `make referenztest-dotnet` in `make gates` bleiben unverändert; kein neues NuGet-Paket.
+- **Setzung Cache-Falle (Risiko 3).** Der Aufruf trägt `--no-cache-filter test-bericht`: die C#-Tests laufen bei jedem `make spec-abdeckung` neu (Restore bleibt im Cache), ein alter Lauf kann nicht in die Matrix. Belegt: im Lauf mit unveränderten Quellen, die schon einmal gebaut waren, zeigt das Bau-Protokoll die Schritte `COPY` und `RUN dotnet test` der Stage als ausgeführt (nicht `CACHED`, `Passed: 28`). Die Wirkung eines roten Tests am echten Bestand: ein absichtlich roter Assert in `MitschnittEinheitTests.cs` (zurückgesetzt) ergab 19 bestanden und 3 nicht bestanden mit dem Test als `rot`, nach dem Zurücksetzen wieder 20 und 2. Offen bleibt der Gradle-Teil, der weiter am Layer-Cache seiner Quellen hängt (`BEO-TDS/abdeckungsmatrix-veraltet-ohne-sensor`, Nachweis-Datei ergänzt).
+- **Rot gesehen.** `make spec-abdeckung-selbsttest` prüft je Mutation des Erzeugers, dass die C#-Fälle rot werden: `cs-eingang-entfernt`, `trx-ergebnis-immer-bestanden`, `tag-haftet-ueber-andere-zeilen`, `trx-ohne-methodenzuordnung` (je Ausgabe „Mutation … rot gesehen“); eine Mutation, die den Erzeuger nicht ändert, bricht den Selbsttest. Am echten Bestand: der rote Assert oben.
+- **Spec-Stelle.** `spec/spezifikation.md` nennt den Erzeuger und seine Leseorte nicht (nur die Zeile `SPEC-052` erwähnt den Tag `@spec`); kein Nachzug nötig.
+- **Grenzen, die gelten.** Ein C#-Tag haftet nur an einer Methodenzeile in einer Zeile mit Typ, Namen und `(`; Attribute über mehrere Zeilen, geschachtelte Klassen und `record`/`struct` sind nicht gelesen (Kopf von `tools/spec-abdeckung.sh`). Risiko 2 (Tag über der falschen Methode) bleibt wie benannt: gefangen wird nur ein fehlender, kein vertauschter Name.
+- **Befund an anderer Stelle.** Der Kopfkommentar von `referenztest-dotnet/Mitschnitt/MitschnittEinheitTests.cs` sagt, `make spec-abdeckung` lese nur Kotlin-Tests; das stimmt nicht mehr. Die Datei gehört dem parallelen Slice `slice-qa-vergleichslauf-d-messungen` und ist hier nicht geändert.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

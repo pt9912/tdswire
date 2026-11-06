@@ -27,6 +27,18 @@ COPY Smoke Smoke
 COPY Mitschnitt Mitschnitt
 RUN --network=none dotnet test --no-restore --nologo
 
+# --- Test-Bericht: dieselben Quellen und derselbe Lauf wie `test`, aber der Bericht (TRX, eingebauter Logger,
+# kein Paket) bleibt erhalten, auch bei roten Tests (`make spec-abdeckung`, kein Gate). Fehlt der Bericht, weil der
+# Bau scheitert, endet der Export ohne Datei und der Erzeuger bricht ab. `test-bericht-export` gibt ihn per --output heraus. ---
+FROM restore AS test-bericht
+COPY Smoke Smoke
+COPY Mitschnitt Mitschnitt
+RUN --network=none dotnet test --no-restore --nologo --logger "trx;LogFileName=bericht.trx" --results-directory /bericht \
+ || echo "test-bericht: der Testlauf ist rot; rote Tests zaehlen nicht als Nachweis"
+
+FROM scratch AS test-bericht-export
+COPY --from=test-bericht /bericht/ /
+
 # --- Integration: der Referenzclient gegen den Serverprozess mit Simulations-Backend (`make simulations-integration`,
 # SPEC-040). Gebaut wird ohne Netz; der Lauf des Containers braucht den Server im selben Netzwerk (TDSWIRE_ZIEL).
 # Die Stage `test` kopiert nur Smoke und Mitschnitt und laeuft ohne Server. ---
