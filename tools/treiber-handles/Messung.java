@@ -132,6 +132,9 @@ public class Messung {
         ersterUnprepareBatch = null;
         String url = "jdbc:sqlserver://127.0.0.1:" + durchlauf.getLocalPort()
                 + ";user=alice;password=secret;encrypt=false;" + optionen;
+        // Kopplung: Tabelle `bestellungen` und Spalte `KundenId` stammen aus den Beispieldaten des Testservers
+        // (`testserver/resources/manuell/sim.yaml`). Ein Schema, das `slice-katalog-und-ddl-zustand` aendert,
+        // laesst die Erwartung dieser Messung verfehlen (Exit 1); `make messung-treiber-handles` ist kein Gate, `make gates` meldet es nicht.
         String sql = "SELECT * FROM bestellungen WHERE KundenId = ?";
         int gelungen = 0;
         String fehler = "-";
