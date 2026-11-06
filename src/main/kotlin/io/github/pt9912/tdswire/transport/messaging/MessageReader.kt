@@ -56,7 +56,8 @@ internal class MessageReader(
         if (ready.isEmpty() && terminal == null) onMidMessage(assembler.midMessage)
         while (ready.isEmpty() && terminal == null) {
             terminal = fillOnce()
-            if (terminal != null) onMidMessage(false) else if (assembler.midMessage) onMidMessage(true)
+            val mid = terminal == null && assembler.midMessage
+            if (mid || terminal != null) onMidMessage(mid)
         }
         return ready.removeFirstOrNull()?.let { ReadOutcome.Message(it) } ?: checkNotNull(terminal)
     }

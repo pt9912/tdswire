@@ -109,7 +109,8 @@ class ShutdownDispatchTest {
     /**
      * Endet die laufende Anfrage im Beenden regulär, bleibt die Verbindung als „läuft“ gemeldet und offen (`SPEC-044`
      * Nr. 3): eine Anfrage, die erst danach eintrifft (nicht vorausgeschickt), erhält `TDS_SHUTDOWN`; erst danach
-     * meldet die Schleife „beendet“. Die Antwort auf die erste ist vor dem Eintreffen der zweiten vollständig geschrieben.
+     * meldet die Schleife „beendet“. Die Antwort auf die erste ist vor dem Eintreffen der zweiten vollständig
+     * geschrieben.
      *
      * @spec SPEC-044
      * @spec SPEC-049

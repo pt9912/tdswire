@@ -26,7 +26,8 @@ class MessageReaderMidMessageTest {
     @Test
     fun `ein Rest einer unvollstaendigen Nachricht wird gemeldet`() = blocking {
         val reported = mutableListOf<Boolean>()
-        val reader = MessageReader(ScriptedChannel(listOf(first + second.copyOf(10))), onMidMessage = { reported += it })
+        val channel = ScriptedChannel(listOf(first + second.copyOf(10)))
+        val reader = MessageReader(channel, onMidMessage = { reported += it })
         assertIs<ReadOutcome.Message>(reader.next())
         assertTrue(reported.last(), "Rest gepuffert: $reported")
         assertIs<ReadOutcome.Failed>(reader.next())
@@ -41,7 +42,8 @@ class MessageReaderMidMessageTest {
     @Test
     fun `vollstaendig eintreffende Nachrichten melden keinen Rest`() = blocking {
         val reported = mutableListOf<Boolean>()
-        val reader = MessageReader(ScriptedChannel(listOf(first, second)), onMidMessage = { reported += it })
+        val channel = ScriptedChannel(listOf(first, second))
+        val reader = MessageReader(channel, onMidMessage = { reported += it })
         assertIs<ReadOutcome.Message>(reader.next())
         assertIs<ReadOutcome.Message>(reader.next())
         assertEquals(setOf(false), reported.toSet())

@@ -282,7 +282,7 @@ internal class ShutdownWiringTest : RuntimeTestBase() {
      * @spec TDS-FA-07
      */
     @Test
-    fun `eine unvollstaendige Nachricht haelt die Verbindung offen und erhaelt nach dem Rest TDS_SHUTDOWN`() = blocking {
+    fun `eine halbe Nachricht haelt die Verbindung offen und erhaelt nach dem Rest TDS_SHUTDOWN`() = blocking {
         val backend = FlowBackend(delivering(*oneRow))
         val server = serverOf(backend, ConfigKeys.SHUTDOWN_GRACE to "10")
         RawClient(server.port).use { client ->

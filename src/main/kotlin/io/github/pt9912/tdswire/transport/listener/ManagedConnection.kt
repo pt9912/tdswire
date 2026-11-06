@@ -5,6 +5,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -90,15 +91,11 @@ internal class ManagedConnection(
 
     override fun requestRunning(running: Boolean) {
         this.running = running
-        endIfIdleInShutdown()
+        if (!busy && environment.registry.shuttingDown) end(ConnectionEnd.SHUTDOWN)
     }
 
     override fun messageInProgress(inProgress: Boolean) {
         partial = inProgress
-        endIfIdleInShutdown()
-    }
-
-    private fun endIfIdleInShutdown() {
         if (!busy && environment.registry.shuttingDown) end(ConnectionEnd.SHUTDOWN)
     }
 
@@ -109,7 +106,8 @@ internal class ManagedConnection(
     /**
      * Der Ablauf von `SHUTDOWN_GRACE` für diese Verbindung (`SPEC-044` Nr. 4). Hat der Handler einen Abbruch
      * angemeldet und läuft eine Anfrage, läuft er im Scope der Verbindung, und die Meldung ist `true`: der Aufrufer
-     * wartet `CANCEL_TIMEOUT` ab und gibt die Verbindung dann mit [abandon] auf. Sonst (keine Anfrage, etwa eine unvollständige Nachricht)
+     * wartet `CANCEL_TIMEOUT` ab und gibt die Verbindung dann mit [abandon] auf. Sonst (keine Anfrage, etwa eine
+     * unvollständige Nachricht)
      * trennt die Verbindung sofort (`SHUTDOWN_GRACE_EXPIRED`), die Meldung ist `false`.
      */
     fun expireGrace(): Boolean {
@@ -129,8 +127,8 @@ internal class ManagedConnection(
         scope.cancel()
     }
 
-    /** Kehrt zurück, wenn der Handler beendet und das Ereignis gemeldet ist. */
-    suspend fun awaitEnd() = finished.await()
+    /** Abgeschlossen, wenn der Handler beendet und das Ende gemeldet ist. */
+    val ended: Deferred<Unit> get() = finished
 
     /**
      * Gibt die Verbindung auf, ohne auf das Ende des Handlers zu warten: trennt sie mit [reason], gibt sie im Register

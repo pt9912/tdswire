@@ -98,7 +98,8 @@ import kotlin.time.Duration.Companion.milliseconds
  * Anfrage im Beenden regulär, bleibt die Verbindung (als „läuft“ gemeldet) offen: jede weitere Nachricht, die
  * danach vollständig wird, erhält `TDS_SHUTDOWN` (`SPEC-044` Nr. 3), danach endet die Verbindung. Sie endet auch beim
  * Ende der Gegenstelle und beim Ablauf von `SHUTDOWN_GRACE`: ohne laufende Anfrage schließt der angemeldete Abbruch
- * dann den Kanal. Eine Verbindung, die beim Beginn ruhte, hat der Listener schon beendet (Nr. 2). Nach Ablauf von `SHUTDOWN_GRACE` bricht die Schleife die laufende Anfrage wie bei ATTENTION ab
+ * dann den Kanal. Eine Verbindung, die beim Beginn ruhte, hat der Listener schon beendet (Nr. 2).
+ * Nach Ablauf von `SHUTDOWN_GRACE` bricht die Schleife die laufende Anfrage wie bei ATTENTION ab
  * ([CancelCause.SHUTDOWN]): genau ein `cancel()`, die Antwort endet mit `DONE[ATTN]`, die Verbindung endet.
  *
  * Die Schleife endet immer mit geschlossenem Kanal: nach `CLOSED`, nach einer Nachricht, die sie nicht

@@ -136,7 +136,7 @@ internal class TdsListener private constructor(
     private suspend fun awaitConnections(open: List<ManagedConnection>) {
         val times = config.times
         coroutineScope {
-            val waiting = open.map { launch { it.awaitEnd() } }
+            val waiting = open.map { launch { it.ended.await() } }
             val expiry = launch {
                 if (times.shutdownGrace > Duration.ZERO) times.delayer.delay(times.shutdownGrace)
                 open.forEach { it.expireGrace() }

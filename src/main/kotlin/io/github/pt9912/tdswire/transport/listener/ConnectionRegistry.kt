@@ -30,14 +30,19 @@ internal open class ConnectionRegistry<T>(private val maxConnections: Int = Int.
         if (admitted) {
             connections[id] = connection
         } else {
-            lastRefusal = if (!shuttingDown && full) ConnectionEnd.REFUSED_AT_LIMIT else ConnectionEnd.REFUSED_AT_SHUTDOWN
+            lastRefusal = if (!shuttingDown && full) {
+                ConnectionEnd.REFUSED_AT_LIMIT
+            } else {
+                ConnectionEnd.REFUSED_AT_SHUTDOWN
+            }
         }
         admitted
     }
 
     /**
      * Warum das letzte [admit], das abwies, abgewiesen hat: die Grenze, sonst das Beenden. Der Grund ist der der
-     * Entscheidung, nicht der Zustand beim Lesen; der Listener nimmt in einer Coroutine an und ruft beides nacheinander.
+     * Entscheidung, nicht der Zustand beim Lesen; der Listener nimmt in einer Coroutine an und ruft beides
+     * nacheinander.
      */
     open fun refusal(): ConnectionEnd = lastRefusal
 
