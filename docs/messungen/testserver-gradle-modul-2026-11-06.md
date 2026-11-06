@@ -1,6 +1,6 @@
 # Testserver als Gradle-Modul: Messprotokoll vom 2026-11-06
 
-Messprotokoll zu [TDS-RB-01](../../spec/lastenheft.md#tds-rb-01--implementierungssprache) und [TDS-QA-06](../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) (`AGENTS.md` §5 Regel 7), Grundlage der Messpunkte M1, M2 und M4 von [ADR-0034](../plan/adr/0034-testserver-als-gradle-modul.md). Es hält fest, was gemessen wurde, nicht, ob eine Anforderung belegt ist. Stand dieses Protokolls: Messpunkte M1 bis M6; M7 steht unten als offen.
+Messprotokoll zu [TDS-RB-01](../../spec/lastenheft.md#tds-rb-01--implementierungssprache) und [TDS-QA-06](../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) (`AGENTS.md` §5 Regel 7), Grundlage der Messpunkte M1, M2 und M4 von [ADR-0034](../plan/adr/0034-testserver-als-gradle-modul.md). Es hält fest, was gemessen wurde, nicht, ob eine Anforderung belegt ist. Stand dieses Protokolls: Messpunkte M1 bis M7, dazu die Läufe E1 und E2 und G1 und G2.
 
 **Vorbehalt, der für jede Zeile gilt.** Jede Zeile ist ein Einzellauf auf einem Rechner unter fremder Last. Die Zeiten vergleichen nichts und sind keine Leistungszusage. Die Läufe liegen im Arbeitsbaum des Zweigs `slice-testserver-gradle-modul` nach dem reinen Umzug `src/testserver` → `testserver` und dem Modul-Stand dieses Commits; die Rohprotokolle liegen im Scratchpad der Sitzung und nicht im Repo.
 
@@ -127,7 +127,7 @@ Grenze: die Pfade in Skripten ohne `COPY` (zum Beispiel `tools/testserver.sh`) s
 | E1.4 | `make testserver-selbsttest` | grün, 71 s laut Ausgabe; alle Mutationen rot gesehen (Ausgabe „Mutation … färbt rot“, neun Zeilen) |
 | E1.5 | Mutation: in `tools/testserver.sh` der Pfad der mitgelieferten Beschreibung wieder `/src/src/testserver/resources/manuell/sim.yaml`, `make testserver-up` | **rot**: „tdswire: Konfiguration ungueltig: SIMULATION_DESCRIPTION_FILE: UNREADABLE“; Pfad danach wiederhergestellt |
 
-Aussage, die E1 trägt: die Stufen 1 bis 6 laufen auf dem Aufbau mit Modul grün. Stufe 7 ist am Merge-Base ebenso rot; ob sie nach einem Zusammenführen mit `main` grün ist, ist nicht gemessen.
+Aussage, die E1 trägt: die Stufen 1 bis 6 laufen auf dem Aufbau mit Modul grün. Stufe 7 ist am Merge-Base ebenso rot; ob sie nach einem Zusammenführen mit `main` grün ist, beantwortet E2.
 
 ## G1 — `make gates FORCE=1`
 
@@ -138,6 +138,43 @@ Aussage, die E1 trägt: die Stufen 1 bis 6 laufen auf dem Aufbau mit Modul grün
 
 Grenze: G1.2 belegt die Stages über den Layer-Cache; die ausgeführte Fassung der Stages ist die aus G1.1 mit gleichem Inhalt der Eingänge.
 
+## E2 und G2 — Läufe nach dem Zusammenführen mit `main`
+
+Stand: Zweig `slice-testserver-gradle-modul` auf `a572c5de` (Merge von `main` `cd0e2368` in den Zweig; bringt unter anderem `LaufendeQuelle.kt` und die Cancel-Tests), Arbeitsbaum sauber. Einzelläufe nacheinander; Load Average (1 Minute) zu Beginn des jeweiligen Laufs aus `uptime`.
+
+| Nr. | Lauf | Ergebnis |
+|---|---|---|
+| G2.1 | `make gates FORCE=1`, Load 5,23 | Exit 0, 309 s; im Protokoll 933 Zeilen „PASSED“ (Stage `test`), keine Zeile mit „FAILED“ für einen Test; `stempel-selbsttest` 118, `stempel-eingaenge` 95, `stempel-abbild` 99, `stempel-gruppe` 64 Fälle wie erwartet; `d-check` 843 Dateien, 0 Befunde; `gate-zuordnung` 15 Gates, Selbsttest 33 Fälle |
+| E2.1 | `make e2e`, Load 7,20 | Exit 0, 293 s, alle sieben Stufen grün: 1 `make smoke` 48 s, 2 `make laufzeittest` 85 s, 3 `make simulations-integration` 57 s, 4 `KATEGORIE=Szenario` 38 s, 5 `KATEGORIE=Anmeldung` 15 s, 6 `KATEGORIE=Luecken` 14 s, 7 `KATEGORIE=Synchronitaet` 36 s |
+| E2.2 | Stufe 7 im Einzelnen | „Alle Tests der Kategorie Synchronitaet bestanden (Total tests: 10)“; darunter `Anfragefehler_im_Batch_und_in_der_RPC_lassen_die_naechste_Anfrage_nur_ihre_Antwort_erhalten` (in E1.1 rot) und `CancellationToken_bricht_die_laufende_Anfrage_ab_…` |
+| E2.3 | `make testserver-selbsttest`, Load 5,93 | Exit 0, 61 s Wanduhr, 60 s laut Ausgabe; sieben Zeilen „Grundlage“ und neun Zeilen „Mutation … färbt rot“ |
+| E2.4 | `make docs-check` | Exit 0, 843 Dateien, 0 Befunde (auf dem Stand vor den Nachzügen von Spezifikation und Doku) |
+
+Aussage, die E2 trägt: Auf dem Stand nach dem Zusammenführen sind `make gates FORCE=1`, alle sieben Stufen von `make e2e` und `make testserver-selbsttest` grün; Stufe 7 war in E1.1 am Merge-Base rot, weil `SELECT 1` Form C ist, und ist nach dem Zusammenführen grün. Ob der Wechsel an der Testdatei von `main` oder am Modul hängt, trennt dieser Lauf nicht (E1.2 und E1.3 sind die Vorläufe).
+
+## M7 — Laufzeiten vorher und nachher
+
+**Zuschnitt.** „Vorher“ ist `main` `cd0e2368` (der zweite Elternteil des Merges `a572c5de`), „nachher“ ist `a572c5de`: beide tragen dieselben Quellen der Bibliothek und der Tests von `main`, der Unterschied ist das Modul. Der Merge-Base `f1d1c429` ist 31 Commits älter und hätte den Unterschied von `main` mitgemessen; er ist hier nicht gemessen. Beide Stände liegen als `git archive` in getrennten Wegwerf-Verzeichnissen im Scratchpad (danach entfernt) und teilen den Docker-Cache des Hosts.
+
+**Ablauf.** Je Stand und Runde: ein Kommentar in `src/main/kotlin/io/github/pt9912/tdswire/runtime/Telemetry.kt` (Zeile 25) wird um eine Markierung der Runde ergänzt, damit alle Stages ab `compile` neu laufen, danach nacheinander `make build`, `make test`, `make detekt`, `make smoke`, `make laufzeittest` (Spalte „Quelle“). Reihenfolge: Runde 1 vorher, nachher; Runde 2 nachher, vorher. Vor jedem Target ist der Load Average (1 Minute) gelesen. Anschließend je Stand dieselben fünf Targets ohne Änderung („warm“).
+
+| Target | vorher R1 | nachher R1 | nachher R2 | vorher R2 |
+|---|---|---|---|---|
+| `make build` | 34 s | 86 s | 40 s | 37 s |
+| `make test` | 88 s | 98 s | 90 s | 92 s |
+| `make detekt` | 142 s | 156 s | 149 s | 156 s |
+| `make smoke` | 45 s | 51 s | 51 s | 50 s |
+| `make laufzeittest` | 77 s | 87 s | 86 s | 95 s |
+| Load (1 min) vor dem ersten Target des Blocks | 6,29 | 8,08 | 10,90 | 11,09 |
+
+Load (1 Minute) vor `make test`, `detekt`, `smoke`, `laufzeittest` je Block in dieser Folge: vorher R1 9,36, 6,94, 9,03, 8,93; nachher R1 7,38, 8,37, 7,68, 9,05; nachher R2 10,57, 7,05, 10,50, 10,78; vorher R2 10,31, 8,65, 10,30, 8,82. Alle Läufe Exit 0; in den vier Läufen von `make test` stehen je 933 Zeilen „PASSED“ (die Zahl der Tests gleicht damit vorher und nachher; in M4.2 war sie nicht verglichen).
+
+Warm (ohne Änderung, Stages aus dem Cache): `make build`, `make test`, `make detekt`, `make smoke` je 1 bis 2 s; `make laufzeittest` 12 s und 24 s vorher, 15 s und 15 s nachher. Diese Zeilen messen den Cache, nicht die Arbeit.
+
+**Lesung, so weit sie trägt.** Die Spannweiten von vorher und nachher überlappen bei `make test`, `detekt`, `smoke` und `laufzeittest`; der Abstand zwischen den Spannweiten (zum Beispiel `make smoke`: 45 und 50 s gegen 51 und 51 s) ist kleiner als die Streuung zwischen zwei Läufen desselben Standes bei `make laufzeittest` (77 und 95 s). Bei `make build` liegt ein Lauf nachher (86 s) deutlich über den übrigen drei (34 bis 40 s); die Ursache ist nicht untersucht. Eine Schwelle gilt nicht.
+
+**Grenzen.** Zwei Läufe je Zelle, ein Rechner, Last von 6 bis 11 und nicht konstant (zum Ende des Gesamtlaufs 25); die Ursache der Last ist nicht geklärt. Die Zeiten sagen nichts über Kaltläufe (kein `--no-cache`), nichts über den Cache anderer Hosts und nichts über `make gates` als Ganzes. Frühere Läufe desselben Tages (zwei je Target, eine Runde mit Quelländerung) liegen nur als Rohprotokolle ohne Zeitangabe im Scratchpad, ihr Stand ist nicht festgehalten und der erste Lauf von `make test` kam aus dem Cache; sie fließen hier nicht ein.
+
 ## Offen
 
-M7 (Laufzeiten vorher und nachher) ist nicht gemessen; es gehört zu Liefer-Punkt 3 des Slice. Die Zeitangaben dieses Protokolls vergleichen nichts.
+Nichts Gemessenes offen. Nicht gemessen und oben benannt: Kaltläufe, Java-Quellen und Reflection an der Modulgrenze (M1), eine fehlende `testserver/gradle.lockfile` (M3), der Klassenpfad des Prozesses von `make testserver-up` im laufenden Container (M2.5).
