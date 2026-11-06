@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -63,6 +65,7 @@ public class SimulationBackend(
 
     private val planner = StatementPlanner(catalog)
     private val running = ConcurrentHashMap<Pair<String, String>, Stoppable>()
+    private val structureLock = Mutex()
 
     override suspend fun execute(request: QueryRequest): QueryExecution =
         when (val result = guarded { planner.plan(request.sql) }.getOrNull()) {
@@ -111,14 +114,28 @@ public class SimulationBackend(
 
     /**
      * Form D (`SPEC-036`): ruft den Strukturänderungs-Callback genau einmal beim Sammeln und antwortet mit dem
-     * Änderungszähler 0. Ohne Callback ist die Anweisung abgewiesen.
+     * Änderungszähler 0. Ohne Callback ist die Anweisung abgewiesen. Prüfen und Ändern sind je Backend atomar: beim
+     * Sammeln plant das Backend den Text unter einer Sperre gegen den dann aktuellen Katalog erneut und ruft den
+     * Callback mit diesem Stand; zwei gleichzeitige Strukturänderungen laufen nacheinander, die zweite sieht die
+     * erste (`CREATE TABLE` derselben Tabelle ist dann abgewiesen wie bei einer schon beschriebenen Tabelle). Die
+     * Sperre gilt für dieses Backend; ein Anbieter, den ein anderer Schreiber ändert, bekommt sie nicht.
      */
     private fun structure(plan: StructurePlan, request: QueryRequest): QueryExecution {
         val callback = onStructure ?: return failed(SimCodes.UNSUPPORTED_SQL, "Strukturänderung nicht verfügbar")
         val key = request.sessionId to request.requestId
         val call = PreparedChange.Ready {
-            callback(plan.schema, plan.name, plan.columns, plan.primaryKey)
-            0L
+            structureLock.withLock {
+                when (val again = planner.plan(request.sql)) {
+                    is PlanResult.Structure -> {
+                        callback(again.plan.schema, again.plan.name, again.plan.columns, again.plan.primaryKey)
+                        0L
+                    }
+
+                    is PlanResult.Rejected -> throw ChangeRejected(again.code, again.message)
+
+                    else -> -1L
+                }
+            }
         }
         return register(key, ChangeExecution(call) { running.remove(key, it) })
     }

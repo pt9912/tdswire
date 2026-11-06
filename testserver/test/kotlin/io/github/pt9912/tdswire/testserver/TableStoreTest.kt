@@ -5,11 +5,15 @@ import io.github.pt9912.tdswire.domain.QueryParameter
 import io.github.pt9912.tdswire.domain.QueryRequest
 import io.github.pt9912.tdswire.domain.SqlType
 import io.github.pt9912.tdswire.port.QueryBackend
+import io.github.pt9912.tdswire.runtime.BackendSource
 import io.github.pt9912.tdswire.simulation.RowSource
 import io.github.pt9912.tdswire.simulation.SimColumn
 import io.github.pt9912.tdswire.simulation.SimTable
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
+import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -105,5 +109,78 @@ class TableStoreTest {
         store.replace("dbo", "neu", listOf(SimColumn("a", SqlType.Int32, nullable = false)), listOf("a"))
         assertEquals(listOf("kunden"), before.tables.map { it.name })
         assertEquals(listOf("kunden", "neu"), store.catalog().tables.map { it.name })
+    }
+
+    /**
+     * Happy: ein Leser, der `catalog()` in Schleife ruft, und mehrere Schreiber, die Tabellen anlegen und erweitern,
+     * laufen gleichzeitig; kein Aufruf wirft, und am Ende stehen alle angelegten Tabellen und alle angefügten
+     * Spalten im
+     * Bestand (keine Strukturänderung geht verloren). Belegt ist der einzelne Aufruf von `catalog()` und `replace`
+     * sowie die Folge „Planung, Callback“ über das Backend; ein Zugriff über mehrere Backends auf einen Bestand ist
+     * nicht belegt.
+     * Wächter: `catalog()` und `replace` ohne Sperre (der Leser läuft in die gleichzeitige Änderung der Tabellenliste
+     * und wirft), ein Backend ohne Sperre um Planung und Callback (eine Spalte geht verloren).
+     * @spec SPEC-035
+     */
+    @Test
+    fun `gleichzeitiger Zugriff verliert nichts`() {
+        val store = TableStore(listOf(kunden))
+        val backend = store.backend()
+        val writers = 4
+        val perWriter = 150
+        val failures = ConcurrentLinkedQueue<Throwable>()
+        val done = AtomicBoolean(false)
+        val reader = Thread {
+            try {
+                while (!done.get()) store.catalog().tables.size
+            } catch (e: ConcurrentModificationException) {
+                failures += e
+            }
+        }
+        reader.start()
+        val start = CountDownLatch(1)
+        val threads = (0 until writers).map { w ->
+            Thread {
+                start.await()
+                for (n in 0 until perWriter) {
+                    val events = ask(backend, "CREATE TABLE [t_${w}_$n] (a INT NOT NULL, PRIMARY KEY (a))")
+                    if (events != listOf<QueryEvent>(QueryEvent.UpdateCount(0))) failures += AssertionError("$events")
+                    ask(backend, "ALTER TABLE [kunden] ADD [c_${w}_$n] INT")
+                }
+            }
+        }
+        threads.forEach { it.start() }
+        start.countDown()
+        threads.forEach { it.join() }
+        done.set(true)
+        reader.join()
+
+        assertEquals(emptyList(), failures.toList())
+        val catalog = store.catalog()
+        assertEquals(1 + writers * perWriter, catalog.tables.size)
+        assertEquals(2 + writers * perWriter, catalog.tables.single { it.name == "kunden" }.columns.size)
+    }
+
+    /**
+     * Happy: die Quelle des Prozesses ([storeSource]) ist auch ohne Tabellen der Datei ein Backend: eine Auswahl
+     * endet mit
+     * `TDS_SIM_UNKNOWN_OBJECT` und „Tabelle nicht beschrieben“, `CREATE TABLE` wird angenommen und die Tabelle ist
+     * danach lesbar (anders als die Bibliothek mit `BackendSource.Simulation` ohne Tabellen,
+     * die keine Anfrage beantwortet).
+     * Wächter: eine Quelle, die ohne Tabellen kein Backend liefert (die Anfrage bliebe unbeantwortet).
+     * @spec SPEC-035
+     */
+    @Test
+    fun `ohne Beschreibungsdatei antwortet der Prozess mit Tabelle nicht beschrieben`() {
+        val source = assertIs<BackendSource.Custom>(storeSource(emptyList()))
+        val backend = source.backend
+        val failure = assertIs<QueryEvent.Failure>(ask(backend, "SELECT a FROM t").single())
+        assertEquals("TDS_SIM_UNKNOWN_OBJECT", failure.code)
+        assertEquals("Tabelle nicht beschrieben", failure.message)
+        assertEquals(
+            listOf<QueryEvent>(QueryEvent.UpdateCount(0)),
+            ask(backend, "CREATE TABLE t (a INT NOT NULL, PRIMARY KEY (a))"),
+        )
+        assertEquals(listOf("t"), listed(backend))
     }
 }

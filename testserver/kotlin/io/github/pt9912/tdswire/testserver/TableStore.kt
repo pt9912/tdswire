@@ -12,8 +12,11 @@ import io.github.pt9912.tdswire.simulation.SimulationBackend
  * `ALTER TABLE … ADD` erweitert; die Bibliothek fragt [catalog] bei jeder Anfrage und meldet jede Strukturänderung an
  * [replace]. Der Testserver kennt keine Katalog- und keine Parserlogik, nur diesen Bestand. Gespeichert wird die
  * Struktur; eine Tabelle hat eine leere Zeilenquelle und keine Callbacks für Zeilen (Schreiben von Zeilen ist nicht
- * Teil dieses Stands). Ein Neustart des Prozesses leert den Bestand bis auf die Tabellen der Datei. Der Zugriff ist
- * synchronisiert; eine Strukturänderung ersetzt die Tabelle als Ganzes, ohne Rücknahme über mehrere Anweisungen.
+ * Teil dieses Stands). Ein Neustart des Prozesses leert den Bestand bis auf die Tabellen der Datei. [catalog] und
+ * [replace] sind je Aufruf gegeneinander gesperrt; eine Strukturänderung ersetzt die Tabelle als Ganzes, ohne Rücknahme
+ * über mehrere Anweisungen. Dass die Prüfung der Anweisung und das [replace] eine Einheit sind, trägt das Backend der
+ * Bibliothek (es plant unter einer Sperre erneut, `SPEC-035`), nicht dieser Bestand: das Backend aus [backend] ist der
+ * einzige Schreiber, den dies deckt.
  */
 internal class TableStore(initial: List<SimTable>) {
     private val tables = LinkedHashMap<String, SimTable>()

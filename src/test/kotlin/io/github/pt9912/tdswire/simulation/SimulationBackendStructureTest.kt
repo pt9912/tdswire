@@ -3,6 +3,10 @@ package io.github.pt9912.tdswire.simulation
 import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.domain.QueryParameter
 import io.github.pt9912.tdswire.domain.SqlType
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -239,5 +243,70 @@ class SimulationBackendStructureTest {
         run(store, "set implicit_transactions on ")
         assertEquals(emptyList(), store.calls)
         assertEquals(listOf(kunden), store.tables)
+    }
+
+    /** Ein Integrator, dessen Callback unterbricht, bevor er die Tabelle ersetzt: zwei Anfragen überlappen sich. */
+    private class SlowStore {
+        var tables: List<SimTable> = emptyList()
+        var calls = 0
+
+        val backend = SimulationBackend({ SimCatalog(tables) }) { schema, name, columns, key ->
+            calls++
+            delay(50)
+            tables = tables.filterNot { it.schema == schema && it.name == name } +
+                SimTable(schema, name, columns, key, rows = { RowSource { null } })
+        }
+    }
+
+    private fun runAll(backend: SimulationBackend, vararg sql: String): List<List<QueryEvent>> = runBlocking {
+        sql.map { text ->
+            async {
+                val execution = backend.execute(queryRequest(text))
+                try {
+                    execution.events.toList()
+                } finally {
+                    execution.close()
+                }
+            }
+        }.awaitAll()
+    }
+
+    /**
+     * Negativ: zwei gleichzeitige `CREATE TABLE` derselben neuen Tabelle laufen nacheinander; die erste legt sie an,
+     * die
+     * zweite sieht sie beim Sammeln und ist abgewiesen wie eine schon beschriebene Tabelle (`TDS_UNSUPPORTED_SQL`),
+     * der Callback läuft einmal (`ADR-0033` Nr. 3, Prüfen und Ändern atomar je Backend).
+     * Wächter: ein Backend ohne Sperre um Planung und Callback; beide Anfragen riefen den Callback, und die zweite
+     * Tabelle ersetzte die erste still.
+     * @spec SPEC-036
+     */
+    @Test
+    fun `zwei gleichzeitige CREATE TABLE derselben Tabelle - genau eine gewinnt`() {
+        val store = SlowStore()
+        val results = runAll(store.backend, createText, createText)
+        assertEquals(1, results.count { it == listOf<QueryEvent>(QueryEvent.UpdateCount(0)) })
+        val failed = results.single { it.single() is QueryEvent.Failure }
+        val rejected = assertIs<QueryEvent.Failure>(failed.single())
+        assertEquals(SimCodes.UNSUPPORTED_SQL, rejected.code)
+        assertEquals(1, store.calls)
+    }
+
+    /**
+     * Happy: zwei gleichzeitige `ALTER TABLE … ADD` derselben Tabelle mit verschiedenen Spalten behalten beide Spalten;
+     * mit derselben Spalte gewinnt eine, die andere ist abgewiesen.
+     * Wächter: ein Backend ohne Sperre (die zweite Anfrage ersetzte die Tabelle durch den Stand ohne die Spalte der
+     * ersten).
+     * @spec SPEC-036
+     */
+    @Test
+    fun `zwei gleichzeitige ALTER TABLE ADD verlieren keine Spalte`() {
+        val store = SlowStore()
+        store.tables = listOf(kunden)
+        runAll(store.backend, "ALTER TABLE [kunden] ADD [A] INT;", "ALTER TABLE [kunden] ADD [B] INT;")
+        assertEquals(listOf("Id", "Name", "A", "B"), store.tables.single().columns.map { it.name })
+
+        val same = runAll(store.backend, "ALTER TABLE [kunden] ADD [C] INT;", "ALTER TABLE [kunden] ADD [C] INT;")
+        assertEquals(1, same.count { it.single() is QueryEvent.Failure })
+        assertEquals(listOf("Id", "Name", "A", "B", "C"), store.tables.single().columns.map { it.name })
     }
 }

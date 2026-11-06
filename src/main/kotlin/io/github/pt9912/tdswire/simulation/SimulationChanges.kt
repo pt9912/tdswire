@@ -84,6 +84,9 @@ internal object SimulationChanges {
     }
 }
 
+/** Die Strukturänderung ist beim erneuten Planen unter der Sperre abgewiesen: [code] ist ein Wert von [SimCodes]. */
+internal class ChangeRejected(val code: String, val reason: String) : RuntimeException(reason)
+
 /** Eine registrierte Ausführung, die [SimulationBackend.cancel] beendet. */
 internal interface Stoppable {
     /** Beendet die Ausführung vor dem nächsten Schritt. */
@@ -117,7 +120,9 @@ internal class ChangeExecution(
 
     private suspend fun run(): QueryEvent = guarded { change.call() }.fold(
         onSuccess = { count -> if (count >= 0) QueryEvent.UpdateCount(count) else failure() },
-        onFailure = { failure() },
+        onFailure = { error ->
+            (error as? ChangeRejected)?.let { QueryEvent.Failure(it.code, it.reason) } ?: failure()
+        },
     )
 
     private fun failure() = QueryEvent.Failure(SimCodes.BACKEND_ERROR, "Änderung fehlgeschlagen")

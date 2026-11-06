@@ -31,7 +31,14 @@ private const val CONFIG_INVALID = "Konfiguration ungueltig"
  * Konfigurationsfehler eine Zeile `tdswire: Konfiguration ungueltig: <Schlüssel>: <Art>`. Aus der Bibliothek kommt
  * kein Log (der Einstieg schreibt keines); der Testserver schreibt nur diese Zeilen.
  */
-fun main() = runTestserver(choose = { BackendSource.Custom(TableStore(it).backend()) })
+fun main() = runTestserver(choose = ::storeSource)
+
+/**
+ * Die Quelle der Anfragen des Prozesses: immer ein Backend über dem [TableStore] mit den Tabellen der Datei, auch ohne
+ * Tabellen (`SPEC-035`). Ohne Datei antwortet es auf eine Auswahl mit „Tabelle nicht beschrieben“
+ * (`TDS_SIM_UNKNOWN_OBJECT`) und nimmt `CREATE TABLE` an; es schließt die Verbindung nicht.
+ */
+internal fun storeSource(tables: List<SimTable>): BackendSource = BackendSource.Custom(TableStore(tables).backend())
 
 /**
  * Startet den Testserver aus [environment]; [choose] bekommt die Tabellen der Datei der Beschreibung und liefert die
