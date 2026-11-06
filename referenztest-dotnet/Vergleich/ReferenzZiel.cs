@@ -7,7 +7,7 @@ namespace TdsWire.Referenztests.Vergleich;
 /// Das Ziel des Vergleichslaufs D (`make vergleichslauf-d`, ADR-0008): ein echter SQL Server im Container, nicht der
 /// Serverprozess dieses Repos. Ziel, Kennwort des Benutzers `sa` und die Erwartung für `Encrypt=Strict` kommen aus der
 /// Umgebung (TDSWIRE_ZIEL als host:port, TDSWIRE_REFERENZ_KENNWORT, TDSWIRE_ERWARTE_STRICT). Das Zertifikat des Servers
-/// liegt als Vertrauensanker in SSL_CERT_FILE (Name localhost); kein Test setzt TrustServerCertificate.
+/// liegt als Vertrauensanker in SSL_CERT_FILE (Name localhost); außer der Messreihe am Draht (`MessungWireTests.cs`, nur auf der Strecke zum Proxy) setzt kein Test TrustServerCertificate.
 /// Eigene Klasse statt `Kompatibilitaet/Ziel.cs`: das Ziel dort hält Benutzer und Kennwort des Testservers fest.
 /// </summary>
 internal static class ReferenzZiel

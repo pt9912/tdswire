@@ -29,13 +29,17 @@ public class MessungEinheitTests
     private static byte[] Text(string t) => Encoding.Unicode.GetBytes(t);
 
     /// <summary>Eine LOGIN7-Nachricht mit den Textfeldern (Reihenfolge der Tabelle in MS-TDS 2.2.6.4) und einer Merkmalsliste.</summary>
-    private static byte[] Login7(string rechner, string benutzer, string kennwort, string anwendung, string server, string datenbank, byte[]? merkmale = null)
+    private static byte[] Login7(string rechner, string benutzer, string kennwort, string anwendung, string server, string datenbank, byte[]? merkmale = null,
+        byte[]? sspi = null, string? neuesKennwort = null, string? datenbankDatei = null)
     {
-        var werte = new (int Angabe, byte[] Bytes, int Zeichen)[]
+        var werte = new List<(int Angabe, byte[] Bytes, int Zeichen)>
         {
             (36, Text(rechner), rechner.Length), (40, Text(benutzer), benutzer.Length), (44, Redaktion.Verschleiert(Text(kennwort)), kennwort.Length),
             (48, Text(anwendung), anwendung.Length), (52, Text(server), server.Length), (68, Text(datenbank), datenbank.Length),
         };
+        if (sspi != null) werte.Add((78, sspi, sspi.Length));
+        if (datenbankDatei != null) werte.Add((82, Text(datenbankDatei), datenbankDatei.Length));
+        if (neuesKennwort != null) werte.Add((86, Redaktion.Verschleiert(Text(neuesKennwort)), neuesKennwort.Length));
         var kopf = new byte[Login7Redaktion.FesterTeil];
         kopf[4] = 4;
         kopf[7] = 0x74;
@@ -95,6 +99,32 @@ public class MessungEinheitTests
         Assert.All(ergebnis[16..24], b => Assert.Equal(0, b));
         Assert.Equal(new[] { "0x01:3=0x000000" }, Login7Redaktion.Merkmale(ergebnis));
         Assert.Contains("Kennwort=" + kennwort.Length, Login7Redaktion.Zusammenfassung(ergebnis), StringComparison.Ordinal);
+    }
+
+    // @spec SPEC-045
+    [Fact]
+    public void Login7_redigiert_SSPI_Kennwortwechsel_und_Datenbankdatei()
+    {
+        var sspi = Encoding.ASCII.GetBytes("NTLMSSP-Token-4711-geheim");
+        const string Neu = "Neues-Kennwort-0815";
+        const string Datei = @"C:\geheim\daten.mdf";
+        var roh = Login7("r", "u", Kennwort, "app", "s", "d", null, sspi, Neu, Datei);
+        Assert.True(Redaktion.Enthaelt(roh, Neu));
+        Assert.True(roh.AsSpan().IndexOf(sspi) >= 0);
+
+        var ergebnis = Login7Redaktion.Redigieren(roh);
+
+        Assert.Equal(roh.Length, ergebnis.Length);
+        Assert.Equal(-1, ergebnis.AsSpan().IndexOf(sspi));
+        Assert.False(Redaktion.Enthaelt(ergebnis, Neu));
+        Assert.DoesNotContain("geheim", Encoding.Unicode.GetString(ergebnis), StringComparison.Ordinal);
+        var sspiOffset = ergebnis[78] | (ergebnis[79] << 8);
+        Assert.All(ergebnis[sspiOffset..(sspiOffset + sspi.Length)], b => Assert.Equal((byte)'x', b));
+        var neuOffset = ergebnis[86] | (ergebnis[87] << 8);
+        var entschleiert = ergebnis[neuOffset..(neuOffset + (Neu.Length * 2))].Select(b => (byte)(((b ^ 0xA5) << 4) | ((b ^ 0xA5) >> 4))).ToArray();
+        Assert.Equal(new string('x', Neu.Length), Encoding.Unicode.GetString(entschleiert));
+        var dateiOffset = ergebnis[82] | (ergebnis[83] << 8);
+        Assert.Equal(new string('x', Datei.Length), Encoding.Unicode.GetString(ergebnis, dateiOffset, Datei.Length * 2));
     }
 
     // @spec SPEC-045

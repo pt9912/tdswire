@@ -260,9 +260,10 @@ aus: eine Anfrage dort ist ein unzulässiger Übergang, an ATTENTION und an den 
 das Bit ohne Wirkung; das Statusbit `0x10` (RESETCONNECTIONSKIPTRAN) wertet der Server nicht aus und es wirkt
 nicht wie `0x08`, weil der Server keine Transaktion führt (Festlegung, nicht gemessen). Gemessen am Referenzclient (`Microsoft.Data.SqlClient` 7.1.1,
 TDS 7.4, `Pooling=true`, eine physische Verbindung): über mehrere Open-Phasen gelingen mehr als 1000 vorbereitete
-Befehle (das 1001. einer Open-Phase endet weiter mit `SPEC-058`); das Bit ist damit über seine Wirkung beobachtet,
-am Draht nicht gesehen. Die Antwort auf die Anfrage mit dem Bit trägt kein ENVCHANGE: der Referenzclient nahm sie so an;
-ob und wie die Antwort eines echten Servers mit ENVCHANGE beginnt, ist nicht gemessen.
+Befehle (das 1001. einer Open-Phase endet weiter mit `SPEC-058`); das Bit ist damit über seine Wirkung beobachtet;
+am Draht gesehen: Status `0x09` im ersten Paket der ersten Anfrage nach der Wiederverwendung (Messprotokoll, Messreihe am Draht, W-7,
+Einzelmessung je Instanz 2022 und 2025). Die Antwort auf die Anfrage mit dem Bit trägt kein ENVCHANGE: der Referenzclient nahm sie so an;
+der echte Server beginnt die Antwort mit ENVCHANGE Typ 18 mit leerem neuem und leerem altem Wert (gleiche Quelle).
 
 Der Abschluss einer Anfrage wird genau einmal gesendet.
 

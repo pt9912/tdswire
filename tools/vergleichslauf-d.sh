@@ -558,7 +558,7 @@ wirelauf() {
   CLIENT=""
   pruefe "Messreihe $name: Test bestanden, Messungen vorhanden" sh -c "[ $ok -eq 0 ] && ls '$SCRATCH/messung-$STUFE'/*.messung >/dev/null 2>&1"
   keine_kennwort_treffer() { ! grep -rqF -e "$KENNWORT" "$SCRATCH/messung-$STUFE"; }
-  pruefe "Messreihe $name: das Kennwort steht in keiner Datei der Ablage" keine_kennwort_treffer
+  pruefe "Messreihe $name: Klartextsuche nach dem Kennwort in der Ablage ohne Treffer (Nutzlasten stehen als Hex; die tragende Prüfung ist MessDatei.Treffer im Test)" keine_kennwort_treffer
   [ "$FEHLER" -eq 0 ] || return 1
   ziel_verzeichnis="referenztest-dotnet/Mitschnitt/messung/$STUFE"
   # MESSUNG_NUR (Namen der Szenarien, durch Komma getrennt) ist die Teilmenge fuer die Fehlersuche: sie ersetzt die Ablage nicht.
