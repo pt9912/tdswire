@@ -35,6 +35,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Herkunft.** `BEO-TDS/messung-am-echten-sql-server-fehlt` (Antworten auf Massenladen, MERGE und Katalog ohne Träger) und die Verifikation V-1 von [slice-katalog-und-ddl-zustand](../done/slice-katalog-und-ddl-zustand.md): die Katalogmessung hatte keinen Träger (Kreis zwischen dem Messprotokoll des Katalog-Slice, diesem Slice und dem Register); **dieser Slice trägt sie** (Nutzerentscheid 2026-11-06, „deine Empfehlungen“). Läufe nur lokal; die EULA für das gepinnte Image hat der Nutzer bestätigt (2026-11-06).
 
+**Schnitt und Name (Nutzerentscheid 2026-11-06, „deine Empfehlungen“):** Der Name des Slice bleibt, und der Schnitt bleibt bei drei Liefer-Punkten.
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Der Bau der Katalogsichten für Indizes, Standardwerte, Prüfbedingungen und Fremdschlüssel — [slice-katalog-indizes-defaults-fremdschluessel](slice-katalog-indizes-defaults-fremdschluessel.md); dieser Slice misst die Antworten, die der Katalog-Slice schon gebaut hat (Spalten, Schlüssel, Strukturänderung), und liefert dem Folge-Slice die Messung der übrigen Sichten als Eingang, soweit sie dieselbe Messreihe trägt.

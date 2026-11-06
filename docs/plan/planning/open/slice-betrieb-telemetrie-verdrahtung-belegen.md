@@ -40,7 +40,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Umfang der öffentlichen Fläche (18 Ereignisarten, 4 Aufzählungen, rund 50 Namen; Optionen (a), (b), (c) in §6 von [slice-betrieb-log-schnittstelle](../done/slice-betrieb-log-schnittstelle.md)) — entschieden und umgesetzt in [slice-oeffentliche-flaeche-verkleinern-und-belegen](../done/slice-oeffentliche-flaeche-verkleinern-und-belegen.md) (`BEO-TDS/oeffentliche-flaeche-der-telemetrie-ohne-entscheidung`, gestrichen); die Arten stehen als `EventKind`, die Tests dieses Slice belegen sie in dieser Form.
 - Neue Ereignisarten, `request_id` und `duration_ms` — [slice-betrieb-zustandsereignisse](slice-betrieb-zustandsereignisse.md) und [slice-betrieb-metriken-tracing](slice-betrieb-metriken-tracing.md); hier wird nur belegt, was gebaut ist.
 - Der JSON-Adapter und die Inspektion des laufenden Prozesses — [slice-betrieb-log-adapter-testserver](slice-betrieb-log-adapter-testserver.md).
-- `Error` aus der Senke bei `ACCEPT_FAILED` und `CONNECTION_FAILED`: bleibt „weder gemessen noch zugesagt“ (KDoc von `TelemetrySink`); der Slice darf es messen, muss es nicht, und eine Zusage braucht eine Entscheidung des Nutzers.
+- `Error` aus der Senke bei `ACCEPT_FAILED` und `CONNECTION_FAILED`: bleibt „weder gemessen noch zugesagt“ (KDoc von `TelemetrySink`); der Slice darf es messen, muss es nicht. Nutzerentscheid 2026-11-06: Ein `Error` aus der Senke als Auslöser von `CONNECTION_FAILED` genügt als Grenze des Tests; ein anderer Auslöser wird nicht gesucht, und eine Zusage darüber hinaus gibt es nicht.
+- Weitere Methoden von `java.util.logging.Logger` (`config`, `fine` und weitere): bleiben unter der benannten Grenze der Sperre, ohne eigene Sperre (Nutzerentscheid 2026-11-06).
 
 ## 2. Definition of Done
 
@@ -58,6 +59,7 @@ Liefer-Punkte (drei):
 
 Nachweis-Pflichten für alle drei Punkte:
 
+- [ ] Der Flake von `TelemetryRedactionTest` (einmal rot in der mutierten Kopie unter Last, Verifikation V-7 von [slice-katalog-und-ddl-zustand](../done/slice-katalog-und-ddl-zustand.md)) wird in diesem Slice stabilisiert, ohne eigenen Träger (Nutzerentscheid 2026-11-06); die Stabilisierung steht in §3 und trägt einen reproduzierten Fehler (`BEO-TDS/flake-fix-ohne-reproduzierten-fehler`).
 - [ ] Jeder neue Test trägt im KDoc den Block-Tag `@spec SPEC-<NNN>`; die Tests laufen in `make test` und sind grün.
 - [ ] Jede Aussage steht an einem Test oder ist als Festlegung gekennzeichnet (`BEO-TDS/aussagen-ueber-messung-hinaus`).
 - [ ] `make gates` grün.
@@ -84,6 +86,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `config/detekt/selbsttest-aufrufe/src/main/kotlin/io/github/pt9912/tdswire/` | neu | Rot-Fälle je Package (`domain`, `port`, `config`, `observability`, `simulation`) |
 | `config/detekt/detekt.yml` | update | Eintrag oder benannte Grenze für `Logger.log`; nur Verschärfung (`AGENTS.md` §3.6) |
 | `spec/spezifikation.md` Abschnitt 4 | update | Satz zu `CONNECTION_FAILED` mit Verweis auf den Test |
+| `src/test/kotlin/io/github/pt9912/tdswire/runtime/TelemetryRedactionTest.kt` | update | Stabilisierung des Flakes (Wartebedingung auf das Ereignis), nur Test |
 
 
 ## 4. Trigger
