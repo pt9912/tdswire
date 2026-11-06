@@ -5,7 +5,8 @@ tables:
   kunden:
     columns:
       Id:
-        type: identifier
+        type: biginteger
+        required: true
       Name:
         type: text
         max_length: 100
@@ -15,9 +16,10 @@ tables:
   bestellungen:
     columns:
       Id:
-        type: identifier
+        type: biginteger
+        required: true
       KundenId:
-        type: integer
+        type: biginteger
         required: true
       Betrag:
         type: decimal

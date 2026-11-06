@@ -1,0 +1,2 @@
+**Vorgang:** [slice-katalog-und-ddl-zustand](../../../../done/slice-katalog-und-ddl-zustand.md)
+**Fund:** Verifikation V-3: Liefer-Punkt 1 nannte „Indizes, Defaults und Prüfbedingungen“ als aus den Tabellen beantwortet; geliefert sind sie leer (Setzung, `SimColumn` führt sie nicht). Der Wortlaut der DoD ist in der Closure an die Lieferung angeglichen, mit Vermerk „Abweichung vom Plan-Wortlaut“. Verkörpert wie in `state.md` der Klasse; hier ein weiteres Auftreten.

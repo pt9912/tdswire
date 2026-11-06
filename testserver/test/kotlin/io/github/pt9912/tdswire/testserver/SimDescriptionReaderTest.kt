@@ -73,7 +73,7 @@ class SimDescriptionReaderTest {
         assertEquals(
             listOf(
                 SimColumn("id", SqlType.Int32, nullable = false),
-                SimColumn("name", SqlType.UnicodeText, nullable = false),
+                SimColumn("name", SqlType.UnicodeText, nullable = false, maxLength = 100),
                 SimColumn("age", SqlType.Int32),
                 SimColumn("big", SqlType.Int64),
                 SimColumn("flag", SqlType.Bool),
@@ -381,19 +381,24 @@ class SimDescriptionReaderTest {
     }
 
     /**
-     * `max_length` wird geprüft (positiv, passt in Int), aber nicht durchgesetzt und nicht gemeldet: Typ und
-     * Nullbarkeit hängen nicht an ihm.
+     * `max_length` wird geprüft (positiv, passt in Int) und als Länge des Textes gemeldet (`SimColumn.maxLength`, der
+     * Katalog zeigt `nvarchar(n)`); ein Wert über 4000 gilt als 4000, ohne Angabe gilt 4000. Typ und Nullbarkeit hängen
+     * nicht an ihm.
+     * Wächter: ein Leser, der die Länge verwirft (der Katalog meldete immer 4000 und ein Soll mit anderer Länge
+     * scheiterte an `ALTER COLUMN`) oder über 4000 abweist.
      * @spec SPEC-035
      */
     @Test
-    fun `liest max_length ohne Wirkung`() {
-        val lengths = listOf("1", "5", "4000", "100000")
-        for (length in lengths) {
+    fun `liest max_length als Laenge des Textes`() {
+        val lengths = mapOf("1" to 1, "5" to 5, "4000" to 4000, "100000" to 4000)
+        for ((length, expected) in lengths) {
             val columns = b.m("k" to b.col("integer"), "c" to b.col("text", "max_length" to b.s(length)))
             val tree = tableDoc(columns, b.keys("k"))
             val column = load(tree).single().columns.first { it.name == "c" }
-            assertEquals(SimColumn("c", SqlType.UnicodeText, nullable = true), column, length)
+            assertEquals(SimColumn("c", SqlType.UnicodeText, nullable = true, maxLength = expected), column, length)
         }
+        val plain = tableDoc(b.m("k" to b.col("integer"), "c" to b.col("text")), b.keys("k"))
+        assertEquals(4000, load(plain).single().columns.first { it.name == "c" }.maxLength)
         for (bad in listOf("0", "2147483648", "99999999999")) {
             val node = b.s(bad)
             val tree = b.doc(b.m("t" to b.table(b.m("c" to b.col("text", "max_length" to node)), b.keys("c"))))

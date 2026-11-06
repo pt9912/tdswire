@@ -44,14 +44,27 @@ Die Beschreibung `testserver/resources/manuell/sim.yaml` gilt, solange `TESTSERV
 
 | Tabelle | Spalte | Typ in der Beschreibung | Nullbar |
 |---|---|---|---|
-| `kunden` | `Id` | `identifier` (Int32) | nein (Schlüssel) |
-| | `Name` | `text` | ja |
+| `kunden` | `Id` | `biginteger` (Int64), `required` | nein (Schlüssel) |
+| | `Name` | `text`, `max_length` 100 | ja |
 | | `Eintritt` | `date` | ja |
-| `bestellungen` | `Id` | `identifier` (Int32) | nein (Schlüssel) |
-| | `KundenId` | `integer` (Int32), `required` | nein |
+| `bestellungen` | `Id` | `biginteger` (Int64), `required` | nein (Schlüssel) |
+| | `KundenId` | `biginteger` (Int64), `required` | nein |
 | | `Betrag` | `decimal`, Precision 10, Skala 2 | ja |
 
+Die Schlüssel sind `BIGINT`: ein INT-Schlüssel scheitert beim Massenladen im Treiber von d-migrate, bevor Zeilen den Server erreichen ([Messprotokoll des Spikes](../messungen/callback-loesung-spike-2026-11-05.md), Messung b3).
+
 Beide Tabellen haben **keine Zeilen**. Nach [SPEC-035](../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends) liefert eine aus einer Datei geladene Tabelle Metadaten und ein leeres Ergebnis; Einfügen, Ändern und Löschen enden mit `TDS_UNSUPPORTED_SQL`. Der Testserver gibt also nur ein Schema her, keine Daten.
+
+## Struktur ändern und lesen (Katalog)
+
+Der Testserver hält seine Tabellen im Arbeitsspeicher und ändert sie auf `CREATE TABLE` und `ALTER TABLE … ADD`; die Tabellen aus der Beschreibung sind der Anfangsstand. Ein Neustart des Containers stellt diesen Anfangsstand wieder her. Die Katalogabfragen, die d-migrate 1.12.0 für `schema reverse`, `schema compare` und `schema migrate` stellt, beantwortet der Server aus dem jeweils aktuellen Stand ([SPEC-036](../../spec/spezifikation.md#spec-036--erkannte-anweisungsformen-des-simulations-backends-vorläufig), Formen K und D). Gemessen (2026-11-06, ein Host, [Messprotokoll](../messungen/katalog-und-ddl-zustand-2026-11-06.md)): `schema reverse` (auch `--include-all`), `schema compare` gegen das Ergebnis von `schema reverse` und gegen die Beschreibung, und `schema migrate --execute` mit einer neuen Tabelle und einer neuen Spalte enden mit Exit 0.
+
+```sh
+docker run --rm --network host --user "$(id -u):$(id -g)" -v "$PWD:/work" ghcr.io/pt9912/d-migrate@sha256:308f27753036c9cc423f716b9fc4c9e68016543a8003ecd2f8282e05a2ee6491 \
+  schema reverse --source 'mssql://alice:secret@127.0.0.1:1433/manuell?encrypt=false' --output /work/ist.yaml
+```
+
+Grenzen: Gespeichert wird die Struktur, keine Zeilen. Die Bibliothek hat keine Transaktion: bricht `schema migrate --execute` in der Mitte ab, bleibt die erste Änderung stehen, auch wenn d-migrate `FULL_ROLLBACK_CONFIRMED` meldet. Identität, Standardwerte, Fremdschlüssel, Indizes und Prüfbedingungen kennt der Katalog nicht; ein Soll mit dem Typ `identifier` zeigt bei `schema compare` einen Unterschied (`identifier -> biginteger`, Exit 1). Eine Spalte, die ein Client mit `NVARCHAR(MAX)` anlegt, zeigt der Katalog als unbegrenzt (`max_length` -1); eine Spalte aus der Beschreibung ohne `max_length` zeigt er als 4000 Zeichen, sodass ein Soll mit `text` ohne `max_length` gegen sie einen Unterschied meldet.
 
 ## Anfragen
 
@@ -114,12 +127,12 @@ Server=tcp:127.0.0.1,1433;User ID=alice;Password=secret;Encrypt=false;Pooling=fa
 Was der Testserver nicht kann:
 
 - Kein Produkt: kein Betrieb, keine Registry, keine Zusage für andere Rechner oder Netze ([ADR-0025](../plan/adr/0025-produktschnitt-bibliothek-und-testserver.md)).
-- Keine Daten: die Tabellen aus der Datei sind leer, Einfügen, Ändern und Löschen werden abgewiesen. Daten braucht eine Zeilenquelle im Code eines Einbettenden.
+- Keine Daten: die Tabellen sind leer (auch die mit `CREATE TABLE` angelegten), Einfügen, Ändern und Löschen werden abgewiesen. Daten braucht eine Zeilenquelle im Code eines Einbettenden.
 - Nur die Anfrageformen von [SPEC-036](../../spec/spezifikation.md#spec-036--erkannte-anweisungsformen-des-simulations-backends-vorläufig); dass die Liste abschließend ist, ist eine Setzung (nicht gemessen).
 - Keine Windows-Authentifizierung, kein Kerberos, kein Entra ID (Out-of-Scope im [Lastenheft](../../spec/lastenheft.md)); angemeldet wird mit Benutzer und Kennwort aus der Liste.
 - Keine Lastaussage: unter Last, mit vielen Verbindungen oder langer Laufzeit ist der Container nicht gemessen.
 - Abbruch einer laufenden Anfrage (Cancel) mit Folgeabfrage am Referenzclient: im Integrationslauf (`make simulations-integration`) am Referenzclient belegt, TDS 7.4 ohne Verschlüsselung und ohne Pool; im Handlauf nicht gemessen.
-- Grenze zu JDBC (gemessen am 2026-11-05, ein Host, Läufe einzeln, Last 14 bis 21): d-migrate 1.12.0 (Image `ghcr.io/pt9912/d-migrate:latest`, Digest `sha256:308f27753036c9cc423f716b9fc4c9e68016543a8003ecd2f8282e05a2ee6491`, mssql-jdbc 13.4.0) meldet sich mit `encrypt=false` an, der Verbindungstest des Pools läuft, und `data export --tables kunden` (auch `bestellungen`; JSON, CSV, YAML) endet mit Exit 0 und einem Ergebnis ohne Zeilen. Es scheitern, ohne dass hier etwas dagegen gebaut wäre: Abfragen auf `sys.*` und `INFORMATION_SCHEMA` (`schema reverse`, `data export` ohne `--tables`, `data profile`), Schreiben (`data import`) und ein Filter, dessen Wert nicht verlustfrei in den Spaltentyp passt (`--filter "Id = 7"`: Meldung `Invalid value`; vermutete Ursache, aus dem Code gelesen: d-migrate sendet `bigint`, die Spalte ist `Int32`; Textfilter laufen). Einzelheiten und Auszüge: [Messprotokoll](../messungen/d-migrate-verbindung-und-export-2026-11-05.md).
+- Grenze zu JDBC (gemessen am 2026-11-05, ein Host, Läufe einzeln, Last 14 bis 21): d-migrate 1.12.0 (Image `ghcr.io/pt9912/d-migrate:latest`, Digest `sha256:308f27753036c9cc423f716b9fc4c9e68016543a8003ecd2f8282e05a2ee6491`, mssql-jdbc 13.4.0) meldet sich mit `encrypt=false` an, der Verbindungstest des Pools läuft, und `data export --tables kunden` (auch `bestellungen`; JSON, CSV, YAML) endet mit Exit 0 und einem Ergebnis ohne Zeilen. Es scheiterten damals, ohne dass hier etwas dagegen gebaut wäre: Abfragen auf `sys.*` und `INFORMATION_SCHEMA` (`schema reverse` läuft seit dem Katalog, siehe oben; `data export` ohne `--tables` ist nicht erneut gemessen), `data profile`, Schreiben (`data import`) und ein Filter, dessen Wert nicht verlustfrei in den Spaltentyp passt (`--filter "Id = 7"`: Meldung `Invalid value`; vermutete Ursache, aus dem Code gelesen: d-migrate sendet `bigint`, die Spalte war `Int32`; seit den `BIGINT`-Schlüsseln der Beispieltabellen nicht erneut gemessen; Textfilter liefen). Einzelheiten und Auszüge: [Messprotokoll](../messungen/d-migrate-verbindung-und-export-2026-11-05.md).
 - TLS bei `REQUIRED` (gemessen am 2026-11-05, ein Host, ein Lauf; [Messprotokoll](../messungen/tls-d-migrate-2026-11-05.md)): Der Testserver bietet im TDS-7.4-Pfad höchstens TLS 1.2 an, der TDS-8.0-Pfad (`Encrypt=Strict`) TLS 1.3. d-migrate 1.12.0 meldet sich mit `encrypt=true` im Treiber-Standard an (mssql-jdbc 13.4.0 sendet unter TLS 1.3 im 7.4-Mantel sein `Finished` nicht); zum Zeitpunkt der Messung endete der Lauf danach mit „Unsupported SQL“ (der Verbindungstest `SELECT 1` war damals nicht gebaut; er läuft seit dem Slice zu Verbindung und Export, die Kombination mit `encrypt=true` ist nicht erneut gemessen). Der Testserver braucht keine JVM-Option; wer die Bibliothek einbettet, setzt die Ticket-Zahl der JDK-Systemeigenschaften `jdk.tls.server.*` nicht auf 0: Gemessen ist, dass `Microsoft.Data.SqlClient` im 7.4-Pfad den Handschlag abbricht („unexpected message“), wenn der Server die Session-Ticket-Erweiterung ankündigt und wegen Ticket-Zahl 0 kein Ticket sendet. Ohne die Erweiterung war der Handschlag grün; andere Werte der Ticket-Zahl sind nicht gemessen.
 - Die Testwerte (`alice`/`secret`, Klartext) dürfen nicht für Daten genutzt werden, die Schutz brauchen. Ein Host außer Loopback macht den Server im Netz erreichbar.
 
