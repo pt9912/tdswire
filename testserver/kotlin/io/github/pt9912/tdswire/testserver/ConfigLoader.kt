@@ -154,8 +154,11 @@ internal object ConfigLoader {
     }
 
     private fun passwordOf(bytes: ByteArray, issues: MutableList<ConfigIssue>): PasswordChars {
-        val text = ConfigFiles.decode(EnvKeys.TLS_KEYSTORE_PASSWORD_FILE, bytes, issues).orEmpty()
-        val chars = text.removeSuffix("\n").toCharArray()
+        val chars = passwordText(bytes, issues).toCharArray()
         return PasswordChars(chars).also { chars.fill('\u0000') }
     }
+
+    /** Der Inhalt der Kennwortdatei ohne Zeilenende am Ende; ein Test liest ihn, `PasswordChars` gibt ihn nicht her. */
+    internal fun passwordText(bytes: ByteArray, issues: MutableList<ConfigIssue>): String =
+        ConfigFiles.decode(EnvKeys.TLS_KEYSTORE_PASSWORD_FILE, bytes, issues).orEmpty().removeSuffix("\n")
 }

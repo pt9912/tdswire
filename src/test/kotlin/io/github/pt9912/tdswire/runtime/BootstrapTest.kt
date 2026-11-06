@@ -6,8 +6,7 @@ import io.github.pt9912.tdswire.config.IssueKind
 import io.github.pt9912.tdswire.config.auth.pbkdf2Value
 import io.github.pt9912.tdswire.domain.telemetry.BindFailed
 import io.github.pt9912.tdswire.domain.telemetry.ConfigInvalid
-import io.github.pt9912.tdswire.domain.telemetry.EncryptionWeakened
-import io.github.pt9912.tdswire.domain.telemetry.PlainTestModeActive
+import io.github.pt9912.tdswire.domain.telemetry.EventKind
 import io.github.pt9912.tdswire.domain.telemetry.ServerStarted
 import io.github.pt9912.tdswire.domain.telemetry.ServerStopped
 import io.github.pt9912.tdswire.domain.telemetry.StartRefused
@@ -77,7 +76,7 @@ internal class BootstrapTest : RuntimeTestBase() {
                 ConfigKeys.LOGIN_TIMEOUT to "OUT_OF_RANGE",
                 ConfigKeys.MAX_PRELOGIN_MESSAGE_BYTES to "OUT_OF_RANGE",
             ),
-            sink.of<ConfigInvalid>().map { it.key to it.kind },
+            sink.of<ConfigInvalid>().map { it.key to it.issueKind },
         )
         assertEquals(2, sink.events.size)
         assertEquals("Konfiguration ungueltig", aborted.reason)
@@ -174,8 +173,12 @@ internal class BootstrapTest : RuntimeTestBase() {
         val weak = running(loopbackEnvironment(users()))
         val weakEvents = sink.events.toList()
         assertEquals(
-            listOf(ServerStarted::class, EncryptionWeakened::class, PlainTestModeActive::class),
-            weakEvents.map { it::class },
+            listOf(
+                EventKind.SERVER_STARTED to null,
+                EventKind.SECURITY_WEAKENED to "ENCRYPTION_TEST_UNENCRYPTED",
+                EventKind.SECURITY_WEAKENED to "PLAIN_TEST_MODE",
+            ),
+            weakEvents.map { it.kind to it.reason },
         )
         assertEquals(weak.port, (weakEvents.first() as ServerStarted).port)
         sink.events.clear()

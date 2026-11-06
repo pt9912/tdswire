@@ -10,8 +10,7 @@ import io.github.pt9912.tdswire.config.auth.UserList
 import io.github.pt9912.tdswire.config.auth.UserListAuthAdapter
 import io.github.pt9912.tdswire.domain.telemetry.BindFailed
 import io.github.pt9912.tdswire.domain.telemetry.ConfigInvalid
-import io.github.pt9912.tdswire.domain.telemetry.EncryptionWeakened
-import io.github.pt9912.tdswire.domain.telemetry.PlainTestModeActive
+import io.github.pt9912.tdswire.domain.telemetry.SecurityWeakened
 import io.github.pt9912.tdswire.domain.telemetry.ServerStarted
 import io.github.pt9912.tdswire.domain.telemetry.SimulationBackendReady
 import io.github.pt9912.tdswire.domain.telemetry.StartRefusal
@@ -19,6 +18,7 @@ import io.github.pt9912.tdswire.domain.telemetry.StartRefused
 import io.github.pt9912.tdswire.domain.telemetry.TelemetryEvent
 import io.github.pt9912.tdswire.domain.telemetry.TelemetrySink
 import io.github.pt9912.tdswire.domain.telemetry.TlsStartRejected
+import io.github.pt9912.tdswire.domain.telemetry.WeakeningReason
 import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.protocol.session.AuthPool
 import io.github.pt9912.tdswire.protocol.session.EncryptionPolicy
@@ -172,8 +172,10 @@ internal object Bootstrap {
 
         private fun running(listener: TdsListener): StartOutcome {
             telemetry.emit { ServerStarted(it, listener.port) }
-            if (config.encryption == EncryptionSetting.TEST_UNENCRYPTED) telemetry.emit { EncryptionWeakened(it) }
-            if (config.auth.plainTestMode) telemetry.emit { PlainTestModeActive(it) }
+            if (config.encryption == EncryptionSetting.TEST_UNENCRYPTED) {
+                telemetry.emit { SecurityWeakened(it, WeakeningReason.ENCRYPTION_TEST_UNENCRYPTED) }
+            }
+            if (config.auth.plainTestMode) telemetry.emit { SecurityWeakened(it, WeakeningReason.PLAIN_TEST_MODE) }
             return StartOutcome.Running(TdsServer(listener, telemetry))
         }
 

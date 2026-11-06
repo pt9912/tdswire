@@ -210,7 +210,11 @@ internal class ConfigUsersFileTest : TempFilesTest() {
         )
         val words = listOf("4711", "kennung", "passwort", "kennwort", "inhalt")
         shown.forEach { text -> words.forEach { assertFalse(text.contains(it), "$text nennt $it") } }
-        val tls = assertIs<TlsKeyMaterial>(config.tls)
-        assertEquals(password, String(tls.password.reveal()), "ein Zeilenende am Ende gehört nicht zum Kennwort")
+        assertIs<TlsKeyMaterial>(config.tls)
+        assertEquals(
+            password,
+            ConfigLoader.passwordText("$password\n".toByteArray(), mutableListOf()),
+            "ein Zeilenende am Ende gehört nicht zum Kennwort",
+        )
     }
 }

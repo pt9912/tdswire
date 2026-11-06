@@ -39,13 +39,17 @@ private const val LIMIT = 256
 private const val LONG = 300
 private val BASE_STRINGS = setOf("sessionId", "clientProfile")
 private val STRINGS_BY_KIND = mapOf(
-    "ConfigInvalid" to setOf("key", "kind"),
+    "StartRefused" to setOf("reason"),
+    "ConfigInvalid" to setOf("key", "issueKind"),
     "TlsStartRejected" to setOf("part", "form"),
     "BindFailed" to setOf("address", "exceptionType"),
+    "SecurityWeakened" to setOf("reason"),
     "AcceptFailed" to setOf("exceptionType"),
     "ConnectionFailed" to setOf("exceptionType"),
     "LoginAccepted" to setOf("principal"),
+    "LoginRejected" to setOf("reason"),
     "AdapterFailed" to setOf("exceptionType"),
+    "TlsFirstNotOffered" to setOf("reason"),
     "TlsHandshakeFailed" to setOf("failure"),
     "RequestFailed" to setOf("errorCode", "cause"),
 )
@@ -54,6 +58,7 @@ private val ALLOWED_TYPES = setOf(
     EventLevel::class.java,
     Long::class.javaObjectType,
     Long::class.javaPrimitiveType,
+    Int::class.javaObjectType,
     Int::class.javaPrimitiveType,
     String::class.java,
 )
@@ -105,8 +110,14 @@ internal class TelemetryRedactionTest : RuntimeTestBase() {
     fun `Kein Ereignis hat ein Feld fuer Passwort, Pruefwert, Parameter, SQL, Pfad oder Ausnahmetext`() {
         val kinds: List<Class<*>> = TelemetryEvent::class.java.permittedSubclasses.orEmpty().toList()
         assertTrue(kinds.isNotEmpty(), "die Unterklassen sind nicht lesbar")
+        assertEquals(STRINGS_BY_KIND.keys, kinds.map { it.simpleName }.filter { it in STRINGS_BY_KIND }.toSet())
+        val everyString = BASE_STRINGS + STRINGS_BY_KIND.values.flatten()
         (kinds + listOf(TelemetryEvent::class.java)).forEach { kind ->
-            val getters = kind.methods.filter { it.parameterCount == 0 && it.name.startsWith("get") }
+            // Je Klasse nur die eigenen Zugriffe: die Unterklasse überschreibt die ihrer Art, die Brücken der
+            // Überschreibung (Rückgabetyp `Integer` gegen `int`) zählen nicht.
+            val getters = kind.declaredMethods.filter {
+                it.parameterCount == 0 && it.name.startsWith("get") && !it.isBridge && !it.isSynthetic
+            }
             getters.filter { it.name != "getClass" }.forEach { getter ->
                 val name = getter.name.removePrefix("get").replaceFirstChar { it.lowercase() }
                 val type = getter.returnType
@@ -115,7 +126,11 @@ internal class TelemetryRedactionTest : RuntimeTestBase() {
                     "${kind.simpleName}.$name hat den Typ ${type.name}",
                 )
                 if (type == String::class.java) {
-                    val allowed = BASE_STRINGS + STRINGS_BY_KIND[kind.simpleName].orEmpty()
+                    val allowed = if (kind == TelemetryEvent::class.java) {
+                        everyString
+                    } else {
+                        STRINGS_BY_KIND[kind.simpleName].orEmpty()
+                    }
                     assertTrue(name in allowed, "${kind.simpleName}.$name ist ein unbekanntes Textfeld der Art")
                 }
             }

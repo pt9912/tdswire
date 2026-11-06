@@ -1,15 +1,20 @@
 package io.github.pt9912.tdswire.testserver
 
 import io.github.pt9912.tdswire.config.ConfigIssue
-import io.github.pt9912.tdswire.config.ConfigValidation
 import io.github.pt9912.tdswire.config.EncryptionSetting
 import io.github.pt9912.tdswire.config.IssueKind
 import io.github.pt9912.tdswire.config.ServerConfig
+import io.github.pt9912.tdswire.runtime.BackendSource
+import io.github.pt9912.tdswire.runtime.StartOutcome
+import io.github.pt9912.tdswire.runtime.TdsServer
+import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+
+private const val LOOPBACK = "127.0.0.1"
 
 /** Schlüssel, Voreinstellungen und Bereiche der Konfiguration (`TDS-FA-09.a`). */
 internal class ConfigLoaderTest : TempFilesTest() {
@@ -76,7 +81,7 @@ internal class ConfigLoaderTest : TempFilesTest() {
 
     /**
      * Grenzen der Zahlenschlüssel: der Lader reicht jede Ziffernfolge weiter; der kleinste und der größte zulässige
-     * Wert besteht die Prüfung der Bibliothek (`ConfigValidation.check`), der Wert davor und danach ist außerhalb des
+     * Wert besteht die Prüfung der Bibliothek (Start der Bibliothek), der Wert davor und danach ist außerhalb des
      * Bereichs.
      *
      * @spec SPEC-005
@@ -105,8 +110,28 @@ internal class ConfigLoaderTest : TempFilesTest() {
         }
     }
 
-    private fun rangeIssues(environment: Map<String, String>): List<ConfigIssue> =
-        ConfigValidation.check(ConfigLoader.load(environment).loaded())
+    /**
+     * Die Befunde der Prüfung der Bibliothek, über ihre öffentliche Fläche: der Start liefert sie als `Aborted.issues`.
+     * Ein gültiger Wert startet den Server (Loopback, Port 0 wenn nicht gesetzt) und stoppt ihn wieder; ein Abbruch
+     * ohne Befund bricht den Test, damit ein anderer Grund nicht als „gültig“ zählt.
+     */
+    private fun issuesOf(config: ServerConfig): List<ConfigIssue> =
+        when (val outcome = runBlocking { TdsServer.start(config, BackendSource.None) }) {
+            is StartOutcome.Aborted -> {
+                check(outcome.issues.isNotEmpty()) { "Abbruch ohne Befund: ${outcome.reason}" }
+                outcome.issues
+            }
+
+            is StartOutcome.Running -> {
+                runBlocking { outcome.server.stop() }
+                emptyList()
+            }
+        }
+
+    private fun rangeIssues(environment: Map<String, String>): List<ConfigIssue> {
+        val onLoopback = mapOf(EnvKeys.LISTEN_HOST to LOOPBACK, EnvKeys.LISTEN_PORT to "0") + environment
+        return issuesOf(ConfigLoader.load(onLoopback).loaded())
+    }
 
     /**
      * Ein Zahlenwert besteht nur aus ASCII-Ziffern: Vorzeichen, Leerzeichen, Einheit, Dezimalpunkt, andere
@@ -238,7 +263,7 @@ internal class ConfigLoaderTest : TempFilesTest() {
      */
     @Test
     fun `Leere Bind-Adresse ist ungueltig`() {
-        val issues = ConfigValidation.check(ConfigLoader.load(base(EnvKeys.LISTEN_HOST to " ")).loaded())
+        val issues = rangeIssues(base(EnvKeys.LISTEN_HOST to " "))
         assertEquals(listOf(ConfigIssue(EnvKeys.LISTEN_HOST, IssueKind.INVALID_VALUE)), issues)
     }
 
@@ -267,7 +292,7 @@ internal class ConfigLoaderTest : TempFilesTest() {
         }
         val loaded = ConfigLoader.load(base()).loaded()
         val withoutTls = ServerConfig(loaded.listen, loaded.login, EncryptionSetting.REQUIRED, null, loaded.auth)
-        val missing = ConfigValidation.check(withoutTls)
+        val missing = issuesOf(withoutTls)
         assertEquals(listOf(EnvKeys.TLS_KEYSTORE_FILE, EnvKeys.TLS_KEYSTORE_PASSWORD_FILE), missing.map { it.key })
     }
 }

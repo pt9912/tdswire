@@ -13,7 +13,7 @@ public class PasswordChars(chars: CharArray) {
 
     internal val length: Int get() = units.size
 
-    public fun reveal(): CharArray = units.copyOf()
+    internal fun reveal(): CharArray = units.copyOf()
 
     internal fun wipe() = units.fill(WIPED)
 
