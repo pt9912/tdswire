@@ -26,8 +26,6 @@ internal class EigenesBackendTest {
 
     /**
      * `eigen` liefert zwei Zeilen, `leer` die Spalten ohne Zeile.
-     *
-     * @spec SPEC-059
      */
     @Test
     fun `ein gefuelltes und ein leeres Ergebnis`() {
@@ -42,8 +40,6 @@ internal class EigenesBackendTest {
     /**
      * `fehler` endet am Start mit `TDS_BACKEND_ERROR`, `fehler_nach_zeilen` nach den Zeilen, `wirft` wirft aus
      * `execute`, ein fremder Text ergibt `TDS_UNSUPPORTED_SQL`; der Text einer Ausnahme steht nicht in der Ausgabe.
-     *
-     * @spec SPEC-059
      */
     @Test
     fun `die Fehlerpfade des Backends`() {

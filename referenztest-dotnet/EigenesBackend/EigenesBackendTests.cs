@@ -17,7 +17,9 @@ namespace TdsWire.Referenztests.EigenesBackend;
 /// und der Server beantwortet danach Anfragen (dieselbe oder eine neue Verbindung).
 /// Nicht belegt: ein Backend, das hängt (Frist des Servers: Stufe 7 an der Simulation), Cancel am eigenen Backend,
 /// parametrisierte Abfragen und Änderungsanweisungen, TLS und TDS 8.0, Pooling, ein Verbraucher außerhalb des
-/// Gradle-Projekts gegen das gebaute Jar, ein echtes externes Backend (Datenbank, Netz).
+/// Gradle-Projekts gegen das gebaute Jar, ein echtes externes Backend (Datenbank, Netz), das Schließen der Verbindung
+/// durch den Server nach 50007 (`Closed` ist der Zustand am Client, wie in Stufe 7), die Ausgabe der Bibliothek (der
+/// Server läuft ohne Senke).
 /// </summary>
 [Trait("Kategorie", "EigenesBackend")]
 public class EigenesBackendTests

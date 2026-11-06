@@ -9,7 +9,7 @@
 # Die Tests des Referenzclients (Kategorie EigenesBackend) lesen ein gefuelltes und ein leeres Ergebnis und die
 # Fehlerpfade des Backends (Fehler am Start, Fehler nach Zeilen, `execute` wirft). Danach prueft der Lauf am Log des
 # Servers, dass jede Anfrage das eigene Backend erreicht hat (Zeilen `eigenes-backend: anfrage <Tabelle>`, gezaehlt je
-# Tabelle), dass der Server laeuft und dass weder Kennwort noch Text der Ausnahme oder des Fehlers im Log stehen.
+# Tabelle), dass der Server laeuft und dass weder Kennwort noch Text der Ausnahme oder des Fehlers in den Zeilen des Backends stehen.
 # Zusage: die vier Tests bestehen gegen den Serverprozess; nicht belegt steht im Kopf von
 # referenztest-dotnet/EigenesBackend/EigenesBackendTests.cs. Der Lauf ist Stufe 8 von `make e2e` und kein Gate (ADR-0022).
 set -u
@@ -86,7 +86,9 @@ pruefe "Backend: 1 Anfrage an wirft" anfragen_je_tabelle wirft 1
 
 laeuft() { [ "$(docker inspect --format '{{.State.Running}}' "$SERVER")" = "true" ]; }
 pruefe "Server laeuft nach den Tests" laeuft
-pruefe "Ausgabe des Testservers nennt weder Kennwort noch Text der Ausnahme oder des Fehlers" \
+# Grenze: TdsServer.start laeuft ohne Senke, die Bibliothek schreibt kein Log; geprueft ist nur, dass das Backend des Testservers
+# selbst nichts davon schreibt. Dass die Bibliothek nichts ausgibt, belegt dieser Punkt nicht (der Client-Teil prueft die Meldung).
+pruefe "Ausgabe des Testservers (nur Zeilen des Backends) nennt weder Kennwort noch Text der Ausnahme oder des Fehlers" \
   sh -c "! docker logs '$SERVER' 2>&1 | grep -Eq 'secret|Geheimnis|Text des Backends'"
 
 echo "eigenes-backend: --- Log des Servers ---"

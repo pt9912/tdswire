@@ -9,7 +9,7 @@ Baseline-Regelwerk `modul-05-planning-harness.md` §Lifecycle als State Machine.
 
 **Bezug:** [TDS-FA-08](../../../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-RB-04](../../../../spec/lastenheft.md#tds-rb-04--externes-backend) (Scope); [ADR-0021](../../adr/0021-oeffentlicher-integrations-einstieg.md) (öffentlicher Integrations-Einstieg), [ADR-0022](../../adr/0022-e2e-laeufe-nicht-in-den-gates.md) (E2E-Läufe nicht in den Gates)
 
-**Berührte Spec-Stellen:** —
+**Berührte Spec-Stellen:** `SPEC-025` (Zahl der Stufen des E2E-Durchgangs in der Zelle „Lauf“ und Zeile im Änderungsprotokoll; Nachzug an den Bestand, kein neuer Vertrag)
 
 **Verantwortlich:** pt9912.
 
@@ -64,6 +64,13 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 | `tools/e2e.sh` | update | neue Stufe mit Deklaration; Aufruf als `make <Target>` |
 | `tools/mk/` (Fragment des Targets) | neu | Target der Stufe; Zeile in `harness/README.md` §Sensors |
 | `docs/plan/e2e-abdeckung.md` | update (erzeugt) | `make e2e-abdeckung`; nicht von Hand |
+| `Dockerfile` (Stage `eigenesbackendserver`), `referenztest-dotnet/Dockerfile` (Stage `eigenes-backend`), `testserver/build.gradle.kts` (Task `eigenesBackendServer`) | update | Server- und Client-Image und Gradle-Task des Laufs |
+| `referenztest-dotnet/EigenesBackend/EigenesBackendTests.cs`, `tools/eigenes-backend-test.sh` | neu | Tests des Referenzclients und Lauf mit Zählung am Log |
+| `testserver/test/kotlin/.../EigenesBackendTest.kt` | neu | Antworten des Fixtures ohne Server (läuft in `make test`; kein `@spec`-Tag, er belegt nicht den Einstieg) |
+| `tools/e2e-selbsttest.sh` | update | acht Stufen, Fall „Rot in Stufe 8“ |
+| `README.md`, `harness/README.md` (Zellen `make e2e`, `make eigenes-backend`), `tools/mk/e2e.mk` | update | Stufenzahl, Zeile des Targets |
+| `spec/spezifikation.md` (`SPEC-025`, Änderungsprotokoll) | update | „Stufen 3 bis 8“ |
+| `docs/plan/planning/welle-produktschnitt.md`, `docs/plan/planning/open/slice-betrieb-log-adapter-testserver.md` | update | zweite Fundstellen der Stufenzahl |
 
 ## 4. Trigger
 
@@ -98,6 +105,15 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 Wird bei der Closure gefüllt.
 
 **Messung der Laufzeit (Einzelmessung, 2026-11-06, Implementer):** `make eigenes-backend` im Durchgang `make e2e` (Stufe 8): 13 s mit warmem Cache der Images (Last zu Beginn des Durchgangs 16,6 / 17,9 / 16,0, am Ende 7,9 / 13,1 / 14,9); der Durchgang aus acht Stufen: 366 s (Stufen 1 bis 7: 95, 87, 53, 46, 17, 18 und 37 s). Erstlauf des Targets mit Bau der beiden Images: 108 s (Bau 98 s, Tests 10 s). Kein Mittelwert, keine Streuung.
+
+**Rot gesehen (Mutationen des Implementers, 2026-11-06, je ein Lauf von `make eigenes-backend`, danach zurückgenommen):**
+
+| # | Mutation in `EigenesBackendServer.kt` | Ergebnis |
+|---|---|---|
+| M1 | Tabelle `fehler` liefert `ResultStart` und `ResultEnd(0)` statt eines `Failure` | Exit 2: Test „Ein_Fehler_des_Backends_am_Start …“ rot (3 von 4 bestanden), dazu die Zählung „6 Anfragen an eigen“ rot |
+| M2 | Tabelle `wirft` beendet den Prozess (`Runtime.getRuntime().halt(1)`) statt eine Ausnahme zu werfen | Exit 2: Test „… der Server bleibt verfügbar“ rot (2 von 4 bestanden), neue Verbindungen scheitern mit „server not found“ |
+
+**Nicht rot gesehen (Grenzen):** (a) Dass der Text des Backends und der Ausnahme den Client nicht erreicht: im .NET-Test assertiert (`DoesNotContain`), aber keine Mutation an der Fehlerabbildung der Bibliothek gefahren. (b) Die Stufenzählung `stufen=8` in `tools/e2e-selbsttest.sh`: nur grün gelaufen, keine Gegenprobe mit einem Skript mit neun Stufen. (c) Die Prüfung des Server-Logs auf Kennwort und Ausnahmetext sieht nur Zeilen des Backends (der Server läuft ohne Senke); sie kann nur rot werden, wenn das Backend selbst schreibt. (d) Dass das Modul nur öffentliche Namen nutzt, trägt die Übersetzung des Moduls ([ADR-0034](../../adr/0034-testserver-als-gradle-modul.md)); eine Mutation mit einem `internal`-Zugriff habe ich nicht gefahren.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
