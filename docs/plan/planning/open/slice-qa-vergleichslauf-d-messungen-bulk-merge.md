@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md), [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md)
 
-**Berührte Spec-Stellen:** SPEC-036 (`INSERT BULK`, `SET FMTONLY`, Form des `MERGE`; dort heute Setzungen ohne Messung) · Protokollteil Pakettypen und Dispatch (Paket 0x07) · SPEC-045 (Ausnahmeliste, soweit Zeilen entstehen). Die Spezifikation ändern die Bau-Slices [slice-schreibpfad-bulk-load](slice-schreibpfad-bulk-load.md) und [slice-schreibpfad-merge-output](slice-schreibpfad-merge-output.md), nicht dieser Slice.
+**Berührte Spec-Stellen:** SPEC-036 (`INSERT BULK`, `SET FMTONLY`, Form des `MERGE`; dort heute Setzungen ohne Messung) · Protokollteil Pakettypen und Dispatch (Paket 0x07) · SPEC-045 (Ausnahmeliste, soweit Zeilen entstehen) · SPEC-060 (nur der Messvermerk der Obergrenze, falls die Zusatzmessung sie bestätigt oder widerlegt). Die Spezifikation ändern die Bau-Slices [slice-schreibpfad-bulk-load](slice-schreibpfad-bulk-load.md) und [slice-schreibpfad-merge-output](slice-schreibpfad-merge-output.md), nicht dieser Slice.
 
 **Verantwortlich:** — bis zur Priorisierung.
 
@@ -55,7 +55,7 @@ Liefer-Punkte (drei):
 
 - [ ] **Messreihe Massenladen** ([TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität)): `SqlBulkCopy` gegen beide Instanzen am Draht aufgenommen (Muster: `referenztest-dotnet/Vergleich/MessungWireTests.cs`, Mitschnitt unter `referenztest-dotnet/Mitschnitt/messung/{2022,2025}/`, redigiert): Quelle mit mehreren Typen und NULL, Quelle über mehrere Nachrichten, leere Quelle, Verstoß gegen Typ oder Länge; je Szenario Tokenfolge, Statusbits und Zähler der Antwort und die Ausnahme des Clients; Zeilen im Messprotokoll mit der nächsten freien Nummer.
 - [ ] **Messreihe MERGE** ([TDS-FA-04](../../../../spec/lastenheft.md#tds-fa-04--parametrisierte-abfragen-über-rpc), [TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate)): `MERGE ... OUTPUT $action` mit Parametern am Draht aufgenommen, mit der Form, die [slice-schreibpfad-merge-output](slice-schreibpfad-merge-output.md) festlegt: Treffer, kein Treffer, mehrere Zeilen, Fehlerfall; Tokenfolge, Ergebnisspalte `$action`, Zähler und Abschluss; Zeilen im Messprotokoll.
-- [ ] **Zuordnung** ([TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität)): Je Befund steht im Messprotokoll, ob er eine Setzung der Spezifikation (`SPEC-036`) stützt oder ihr widerspricht (Konflikt mit dem Zielbild, Träger: der Bau-Slice); die Bau-Slices tragen den Zeiger auf diese Zeilen; das Register `BEO-TDS/messung-am-echten-sql-server-fehlt` ist fortgeschrieben. Grenze „ein Fall je Instanz“ steht bei jeder Zeile.
+- [ ] **Zuordnung** ([TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität)): Je Befund steht im Messprotokoll, ob er eine Setzung der Spezifikation (`SPEC-036`) stützt oder ihr widerspricht (Konflikt mit dem Zielbild, Träger: der Bau-Slice); die Bau-Slices tragen den Zeiger auf diese Zeilen; das Register `BEO-TDS/messung-am-echten-sql-server-fehlt` ist fortgeschrieben. Grenze „ein Fall je Instanz“ steht bei jeder Zeile. **Zusatzmessung aus [slice-handle-freigabe-und-grenze-bauen](../in-progress/slice-handle-freigabe-und-grenze-bauen.md)** (Auflösungs-Trigger der Setzung in `SPEC-060`, Register `BEO-TDS/obergrenze-gemeldete-nummern-je-batch-weicht-vom-echten-server-ab`): `EXEC sp_unprepare <n>` mit sehr vielen unbekannten Nummern in einem Batch (Größenordnung 150 und mehr, gestuft) gegen beide Instanzen; Zeile im Messprotokoll neben M-7: meldet der echte Server jede Nummer, oder begrenzt er, und ab welcher Zahl? Ergebnis stützt die Setzung (100) oder widerspricht ihr; im Widerspruch ist der Folgeweg eine Angleichung der Spezifikation und des Bau-Pfads, der Auftrag dazu geht an den Nutzer.
 
 Nachweis-Pflichten für alle Punkte:
 
@@ -121,6 +121,7 @@ dasteht.
 - **Referenzclient gegen d-migrate.** `Microsoft.Data.SqlClient` sendet nicht den Text und die Pakete von d-migrate; die Messung trägt nur den Referenzclient (`AGENTS.md` §3.8). — **Ausgang:** offen bis zur Closure.
 - **Einzelmessung je Instanz.** Ein Fall je Szenario und Instanz, keine Verteilung; Abweichungen zwischen 2022 und 2025 sind Befund, nicht Rauschen. — **Ausgang:** offen bis zur Closure.
 - **Abhängigkeit vom Katalog-Slice ist eine Setzung des Planners.** — **Ausgang:** offen bis zur Closure.
+- **Obergrenze der gemeldeten Nummern je Batch ist ohne Messung.** Die Zusatzmessung in Liefer-Punkt 3 hängt an derselben Instanz-Freigabe (EULA, Nutzer) wie die Messreihen; entfällt der Lauf, bleibt die Setzung in `SPEC-060` mit ihrem Auflösungs-Trigger stehen und das Register `BEO-TDS/obergrenze-gemeldete-nummern-je-batch-weicht-vom-echten-server-ab` offen. — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 
