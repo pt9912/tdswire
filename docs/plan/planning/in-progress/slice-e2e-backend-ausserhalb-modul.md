@@ -40,10 +40,10 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Ziel-Form: Slice — ≤ 3 Liefer-Punkte.
 
-- [ ] **Backend und Lauf:** Ein eigenes Backend (nicht die Simulation, nur öffentliche Fläche, im Modul `testserver` oder einem eigenen ohne Assoziation) wird im Serverprozess angebunden; ein Referenzclient erhält Antworten aus ihm (leeres und gefülltes Resultset) und für ein fehlerhaftes oder nicht erreichbares Backend einen definierten Fehler, der Server bleibt verfügbar; der Lauf ist ein `make`-Target oder eine Kategorie von `make kompatibilitaet`.
-- [ ] **Stufe und Sicht:** `tools/e2e.sh` führt das Target als Stufe mit Deklaration `e2e_abdeckung` (Kennungen [TDS-FA-08](../../../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-RB-04](../../../../spec/lastenheft.md#tds-rb-04--externes-backend); Kurzbeschreibung mit „Nicht belegt: …“); `make e2e-abdeckung` schreibt die Sicht; Zeile in `harness/README.md` §Sensors.
-- [ ] **Laufzeit:** Die Zeit der neuen Stufe ist gemessen (Einzelmessung mit Datum, Last und Cache-Zustand, §7).
-- [ ] `make gates` grün.
+- [x] **Backend und Lauf:** Ein eigenes Backend (nicht die Simulation, nur öffentliche Fläche, im Modul `testserver` oder einem eigenen ohne Assoziation) wird im Serverprozess angebunden; ein Referenzclient erhält Antworten aus ihm (leeres und gefülltes Resultset) und für ein fehlerhaftes oder nicht erreichbares Backend einen definierten Fehler, der Server bleibt verfügbar; der Lauf ist ein `make`-Target oder eine Kategorie von `make kompatibilitaet`.
+- [x] **Stufe und Sicht:** `tools/e2e.sh` führt das Target als Stufe mit Deklaration `e2e_abdeckung` (Kennungen [TDS-FA-08](../../../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-RB-04](../../../../spec/lastenheft.md#tds-rb-04--externes-backend); Kurzbeschreibung mit „Nicht belegt: …“); `make e2e-abdeckung` schreibt die Sicht; Zeile in `harness/README.md` §Sensors.
+- [x] **Laufzeit:** Die Zeit der neuen Stufe ist gemessen (Einzelmessung mit Datum, Last und Cache-Zustand, §7).
+- [x] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
@@ -96,6 +96,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 ## 7. Closure-Notiz
 
 Wird bei der Closure gefüllt.
+
+**Messung der Laufzeit (Einzelmessung, 2026-11-06, Implementer):** `make eigenes-backend` im Durchgang `make e2e` (Stufe 8): 13 s mit warmem Cache der Images (Last zu Beginn des Durchgangs 16,6 / 17,9 / 16,0, am Ende 7,9 / 13,1 / 14,9); der Durchgang aus acht Stufen: 366 s (Stufen 1 bis 7: 95, 87, 53, 46, 17, 18 und 37 s). Erstlauf des Targets mit Bau der beiden Images: 108 s (Bau 98 s, Tests 10 s). Kein Mittelwert, keine Streuung.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
