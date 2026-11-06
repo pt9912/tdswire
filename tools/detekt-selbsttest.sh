@@ -24,10 +24,11 @@
 #                davon wird gemeldet; fuer sie gilt zudem (3).
 #   aufrufe      wertet den Bericht der Task detektSelbsttestAufrufe aus: jeder Eintrag von
 #                ForbiddenMethodCall in detekt.yml hat in Aufruf.kt jedes Kern-Packages (domain, port) einen
-#                Fund, jeder Eintrag von ForbiddenMethodCall/ausgabe in Aufruf.kt von runtime, protocol und
-#                transport unter selbsttest-aufrufe/src/main (der Pfad, auf den das includes der Instanz
-#                zeigt), die Markierungen `// erwartet: <Methode>` in Aufruf.kt sind genau diese Eintraege,
-#                und Erlaubt.kt hat keinen Fund.
+#                Fund, jeder Eintrag von ForbiddenMethodCall/ausgabe in Aufruf.kt jedes Packages unter
+#                selbsttest-aufrufe/src/main (der Pfad, auf den das includes der Instanz zeigt; die Packages sind
+#                die der Testdaten der Importregeln), die Markierungen `// erwartet: <Methode>` in Aufruf.kt
+#                sind genau diese Eintraege, eine Markierung je Aufruf, und die Zahl der Funde je Methode ist
+#                die Zahl der Markierungen (eine Ueberladung ohne Fund faellt auf); Erlaubt.kt hat keinen Fund.
 #   suppression  prueft an erzeugten Dateien, dass tools/suppression-check.sh jede Form von @Suppress
 #                meldet, die das Skript nennt, und erlaubte Namen nicht.
 #   jackson      prueft an erzeugten Dateien, dass tools/jackson-sperre.sh Import, qualifizierten Namen und
@@ -195,6 +196,9 @@ aufrufe_instanz() {
     [ "$marker" = "$soll" ] || fail "$pkg/Aufruf.kt erwartet ($(echo $marker)), detekt.yml fuehrt unter $kopf ($(echo $soll)) - ein Eintrag fehlt oder ist zu viel"
     for m in $methoden; do
       zaehler=$((zaehler + 1))
+      soll_n=$(sed -n 's#^ *// erwartet: ##p' "$verzeichnis/$pkg/Aufruf.kt" | grep -cxF "$m" || true)
+      ist_n=$(grep -cxF "$inst $pkg Aufruf.kt $m" "$funde" || true)
+      [ "$ist_n" -eq "$soll_n" ] || fail "$kopf meldet '$m' in $pkg/Aufruf.kt $ist_n-mal, die Beispiele erwarten $soll_n Aufrufe - eine Ueberladung oder ein Aufruf greift nicht"
       grep -qF "$inst $pkg Aufruf.kt $m" "$funde" || fail "$kopf meldet '$m' in $pkg/Aufruf.kt nicht - der Eintrag greift nicht, oder die Beispiele rufen ihn nicht auf; gemeldet sind: $(grep "^$inst $pkg Aufruf.kt " "$funde" | cut -d' ' -f4- | tr '\n' ';')"
     done
   done
@@ -219,10 +223,14 @@ aufrufe() {
     }
   ' "$report_aufrufe" > "$funde"
   kern=$(aufrufe_instanz kern ForbiddenMethodCall "$td_aufrufe" "domain port")
-  ausgabe=$(aufrufe_instanz ausgabe ForbiddenMethodCall/ausgabe "$td_ausgabe" "runtime protocol transport")
+  # Jedes Package der Testdaten der Importregeln hat einen Rot-Fall der Ausgabe-Sperre (includes: ganzes Hauptmodul).
+  pakete_ausgabe=$(ls "$td_ausgabe" | sort | tr '\n' ' ')
+  pakete_regeln=$(ls "$td" | sort | tr '\n' ' ')
+  [ "$pakete_ausgabe" = "$pakete_regeln" ] || fail "Rot-Faelle der Ausgabe-Sperre fuer ($pakete_ausgabe), Packages der Testdaten der Importregeln ($pakete_regeln) - ein Package ohne Rot-Fall oder ein Rot-Fall ohne Package"
+  ausgabe=$(aufrufe_instanz ausgabe ForbiddenMethodCall/ausgabe "$td_ausgabe" "$pakete_ausgabe")
   falsch=$(grep -c ' Erlaubt\.kt ' "$funde" || true)
   [ "$falsch" -eq 0 ] || fail "$falsch erlaubte Aufrufe gemeldet: $(grep ' Erlaubt\.kt ' "$funde" | tr '\n' ';')"
-  echo "detekt-selbsttest: OK - $((kern + ausgabe)) Aufruf-Faelle gemeldet (ForbiddenMethodCall: $kern je Eintrag in domain und port; ForbiddenMethodCall/ausgabe: $ausgabe je Eintrag in runtime, protocol und transport), 0 Fehlmeldungen bei erlaubten"
+  echo "detekt-selbsttest: OK - $((kern + ausgabe)) Aufruf-Faelle gemeldet (ForbiddenMethodCall: $kern je Eintrag in domain und port; ForbiddenMethodCall/ausgabe: $ausgabe je Eintrag und Package, in $(echo $pakete_ausgabe | wc -w) Packages), 0 Fehlmeldungen bei erlaubten"
 }
 
 suppression() {
