@@ -1,0 +1,2 @@
+**Vorgang:** slice-spec-abdeckung-liest-csharp
+**Fund:** Review F-6 und Verifikation V-3: der Kopfkommentar `referenztest-dotnet/Mitschnitt/MitschnittEinheitTests.cs` sagt weiter, `make spec-abdeckung` lese nur Kotlin-Tests. Die Datei gehört dem parallelen Slice `slice-qa-vergleichslauf-d-messungen`; benannt und dorthin übergeben, nicht geändert. Ein Grep im ganzen Repo (V-4) fand sonst keine lebende Fundstelle.

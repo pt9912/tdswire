@@ -1,0 +1,2 @@
+**Vorgang:** slice-spec-abdeckung-liest-csharp
+**Fund:** Review F-1 (MEDIUM), F-2, F-3 und Verifikation V-2: „Bericht der Stage `test`“ trifft eine Schwesterstage, die Leseregel im Kopf des Erzeugers war breiter als das Verhalten (Feldzeile mit Zuweisung), die Grenze „vertauschter Name“ stand nur im Zeitdokument, die Setzung „Gleichlauf-Sensor nicht nötig“ war breiter als der Beleg (Mutation an der `RUN`-Zeile blieb grün). Behoben durch Nachmessen und Einschränken auf `COPY` und `DOTNET_TEST_ARGS`.
