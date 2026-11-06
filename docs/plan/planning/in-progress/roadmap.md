@@ -10,7 +10,6 @@ gezeigt, nicht als Treiber.
 
 ## Offene Wellen
 
-Nichts in Arbeit.
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte — *Offene Wellen* ist **derivativ**: Der
