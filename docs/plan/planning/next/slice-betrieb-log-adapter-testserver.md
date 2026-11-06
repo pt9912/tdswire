@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** [TDS-FA-09.a](../../../../spec/spezifikation.md#tds-fa-09a--konfiguration-und-diagnose) (Nr. 3) · SPEC-012 · SPEC-043 · SPEC-048 · SPEC-040 (Läufe gegen den Testserver; die Aussagen stehen nach `slice-spec-nachzug-telemetrie`, dieser Slice setzt sie im Testserver um und ändert die Spezifikation nur bei einem Befund).
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** Implementer-Agent, Auftrag des Nutzers 2026-11-06.
 
 **Autor:** pt9912. **Datum:** 2026-11-01.
 
