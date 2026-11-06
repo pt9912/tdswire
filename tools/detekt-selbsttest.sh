@@ -37,6 +37,11 @@
 #                (friendPaths, -Xfriend-paths, associateWith, associateCompilations; auch im Kommentar) in einer
 #                Build-Datei meldet, eine fehlende Datei mit Exit 2 abweist und eine Datei ohne diese Namen durchlaesst.
 #
+# Grenze der Ausgabe-Sperre: der Rot-Fall je Package wird gegen die Packages von src/main (Liste aus der Stage
+# `quellpakete`) und gegen die Testdaten der Importregeln gehalten; `observability` hat einen Rot-Fall, aber kein
+# Verzeichnis unter src/main - er ist Vorsorge fuer das Package, das die Architekturtabelle nennt, und kein Beleg
+# fuer vorhandenen Code.
+#
 # Aufgerufen von der Dockerfile-Stage `detekt-selbsttest`; braucht sh, awk, sed, grep, sort, cut, ls, tr
 # und mktemp. Grenze: geprueft ist, dass die Regeln greifen und nichts treffen, was Allowed.kt und
 # Erlaubt.kt als erlaubt nennen; die Wahrheit dieser Dateien gegenueber spec/architecture.md prueft ein
@@ -50,6 +55,7 @@ td_ausgabe=config/detekt/selbsttest-aufrufe/src/main/kotlin/io/github/pt9912/tds
 out=build/selbsttest
 report=build/reports/detekt-selbsttest/detekt.xml
 report_aufrufe=build/reports/detekt-selbsttest/aufrufe.xml
+quellpakete=build/quellpakete
 
 fail() { echo "detekt-selbsttest: FEHLER - $*" >&2; exit 1; }
 
@@ -224,9 +230,13 @@ aufrufe() {
   ' "$report_aufrufe" > "$funde"
   kern=$(aufrufe_instanz kern ForbiddenMethodCall "$td_aufrufe" "domain port")
   # Jedes Package der Testdaten der Importregeln hat einen Rot-Fall der Ausgabe-Sperre (includes: ganzes Hauptmodul).
+  [ -f "$quellpakete" ] || fail "keine Liste der Packages von src/main unter $quellpakete - Stage quellpakete"
   pakete_ausgabe=$(ls "$td_ausgabe" | sort | tr '\n' ' ')
   pakete_regeln=$(ls "$td" | sort | tr '\n' ' ')
+  pakete_quelle=$(sort -u "$quellpakete" | tr '\n' ' ')
   [ "$pakete_ausgabe" = "$pakete_regeln" ] || fail "Rot-Faelle der Ausgabe-Sperre fuer ($pakete_ausgabe), Packages der Testdaten der Importregeln ($pakete_regeln) - ein Package ohne Rot-Fall oder ein Rot-Fall ohne Package"
+  ohne_rotfall=$(for p in $pakete_quelle; do printf '%s\n' "$pakete_ausgabe" | tr ' ' '\n' | grep -qx "$p" || printf '%s ' "$p"; done)
+  [ -z "$ohne_rotfall" ] || fail "Package(s) von src/main ohne Rot-Fall der Ausgabe-Sperre unter selbsttest-aufrufe: $ohne_rotfall"
   ausgabe=$(aufrufe_instanz ausgabe ForbiddenMethodCall/ausgabe "$td_ausgabe" "$pakete_ausgabe")
   falsch=$(grep -c ' Erlaubt\.kt ' "$funde" || true)
   [ "$falsch" -eq 0 ] || fail "$falsch erlaubte Aufrufe gemeldet: $(grep ' Erlaubt\.kt ' "$funde" | tr '\n' ';')"

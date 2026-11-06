@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [TDS-FA-09](../../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose), [TDS-QA-05](../../../../spec/lastenheft.md#tds-qa-05--wartbarkeit), [ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md) (`Accepted`, Frage 2 und Frage 7)
 
-**Berührte Spec-Stellen:** SPEC-059 · SPEC-041 · [TDS-FA-09.a](../../../../spec/spezifikation.md#tds-fa-09a--konfiguration-und-diagnose)
+**Berührte Spec-Stellen:** SPEC-059 · SPEC-041 · SPEC-048 · [TDS-FA-09.a](../../../../spec/spezifikation.md#tds-fa-09a--konfiguration-und-diagnose)
 
 **Verantwortlich:** Implementer-Agent, Auftrag des Nutzers 2026-11-06.
 
@@ -86,6 +86,9 @@ Aussagen-Berührung steht hier gar nicht.
 | `spec/spezifikation.md` Abschnitt 4 | update | Satz zu `CONNECTION_FAILED` mit Verweis auf den Test |
 | `tools/detekt-selbsttest.sh` | update | Packages der Rot-Fälle aus den Testdaten der Importregeln abgeleitet, Funde je Methode gegen die Markierungen gezählt (eine Überladung ohne Fund fällt auf) |
 | `src/test/kotlin/io/github/pt9912/tdswire/runtime/AcceptChild.kt` | neu | Kind-JVM mit `ulimit -n`: Auslöser für `ACCEPT_FAILED` ohne Naht im Produktcode |
+| `config/detekt/selbsttest-aufrufe/src/main/kotlin/io/github/pt9912/tdswire/{runtime,protocol,transport}/Aufruf.kt` | update | Umbenennung des Objekts `Aufruf` in `AusgabeAufruf` (keine Namenskollision mit dem Kern-Objekt im selben Source-Set) und je drei neue Aufrufe der erweiterten Sperre |
+| `src/test/kotlin/io/github/pt9912/tdswire/runtime/TelemetryRedactionTest.kt` | update | Stabilisierung `eventually("LOGIN_ACCEPTED")` vor `server.stop()`: `loginAndSend` wartet nicht auf das Ereignis (Wettlauf, den der Test mit den neuen Fällen sichtbar machte) |
+| `Dockerfile` (Stage `quellpakete`), `tools/stempel/werkzeug.eingaenge` | neu / update | Liste der Packages von `src/main` für den Selbsttest der Ausgabe-Sperre (Review F-6) |
 
 Umsetzung: `ACCEPT_FAILED` entsteht am Limit offener Dateien einer Kind-JVM (keine Naht im Produktcode, `BEO-TDS/test-naht-im-produktivcode` nicht berührt); `CONNECTION_FAILED` entsteht, wenn die Senke nach `LOGIN_ACCEPTED` einen `Error` wirft, weil Backend und Adapter eine Ausnahme jeder Klasse auf eine Antwort abbilden. Die Sperre nennt zusätzlich `Logger.logp`, `Logger.logrb` und `Thread.dumpStack`; `printStackTrace(PrintStream)` und `printStackTrace(PrintWriter)` melden unter `kotlin.Throwable.printStackTrace` (gemessen).
 
@@ -122,6 +125,7 @@ dasteht.
 
 - Ein Test über den Server für `ACCEPT_FAILED` verlangt einen Listener, dessen Annehmen scheitert; ob das ohne eine Naht im Produktcode geht (`BEO-TDS/test-naht-im-produktivcode`), ist ungeklärt. — **Ausgang:** offen bis zur Closure.
 - Der Rot-Fall je Package belegt die Konfiguration des `includes`, nicht jeden künftigen Aufruf (Typauflösung, nur genannte Aufrufe). — **Ausgang:** offen bis zur Closure.
+- Bei erschöpftem Limit offener Dateien endet der `failed`-Callback von `TdsListener.acceptOne` mit einem `NoClassDefFoundError`, wenn die Klasse des Fehlerpfads nicht geladen ist: die Annahmeschleife steht ohne Meldung; der Test von `ACCEPT_FAILED` belegt das Ereignis nur mit vorgeladenen Klassen (Review F-2). Produktcode bleibt in diesem Slice unverändert. — **Ausgang:** weiter offen, Register `BEO-TDS/listener-annahmeschleife-steht-bei-erschoepftem-dateilimit-still`.
 
 ## 7. Closure-Notiz
 

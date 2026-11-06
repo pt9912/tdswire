@@ -48,8 +48,10 @@ fun main(): Unit = runBlocking {
 
 /**
  * Lädt jede Klasse der Verzeichnisse im Klassenpfad vor. Ist das Limit offener Dateien erschöpft, kann die JVM keine
- * Klassendatei mehr öffnen: ohne das Vorladen endet die Meldestelle des Listeners selbst mit einem
- * `NoClassDefFoundError` (Beobachtung dieses Tests, siehe [AcceptChild]), und es käme kein Ereignis an.
+ * Klassendatei mehr öffnen. Gemessen ohne dieses Vorladen: der `failed`-Callback von `TdsListener.acceptOne` endet mit
+ * einem `NoClassDefFoundError` (Thread `tdswire-listener-io-1`), die Annahmeschleife steht, und es kommt kein Ereignis
+ * an. Der Test belegt `ACCEPT_FAILED` also nur mit vorgeladenen Klassen; ob der Produktcode das ändert, ist offen
+ * (Register `BEO-TDS/listener-annahmeschleife-steht-bei-erschoepftem-dateilimit-still`).
  */
 private fun preloadClasses() {
     val loader = Thread.currentThread().contextClassLoader

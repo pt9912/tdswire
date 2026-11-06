@@ -110,7 +110,11 @@ internal class TelemetryWiringTest : RuntimeTestBase() {
      * Scheitert das Annehmen am Betriebssystem (die Kind-JVM hat 128 offene Dateien und wird mit gehaltenen
      * Verbindungen erschöpft), entsteht `ACCEPT_FAILED` mit dem Typnamen der Ausnahme, der Ebene `ERROR`, ohne
      * Verbindung und Sitzung und mit dem Profil `unknown`. Der Server nimmt nach dem Schließen der Verbindungen wieder
-     * an und beantwortet PRELOGIN. Die Grenze von 128 Dateien ist eine Setzung des Tests.
+     * an und beantwortet PRELOGIN. Beides gilt unter der Bedingung, dass [AcceptChild] die Klassen der Kind-JVM
+     * vorlädt: ohne Vorladen kann die JVM unter erschöpftem Limit die Klasse des Fehlerpfads nicht laden, die
+     * Meldestelle des Listeners endet mit `NoClassDefFoundError`, und weder ein Ereignis noch ein Wiederannehmen ist
+     * belegt (gemessen, siehe `preloadClasses` in [AcceptChild]). Die Grenze von 128 Dateien ist eine Setzung des
+     * Tests.
      *
      * @spec SPEC-048
      * @spec TDS-FA-09
