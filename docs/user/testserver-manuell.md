@@ -87,7 +87,7 @@ testserver-up: Testwerte, keine Verschluesselung (TDS 7.4 im Klartext)
 testserver-up: Stop mit 'make testserver-down', Log mit 'make testserver-logs'
 
 testserver-status: laeuft (tdswire-testserver, 127.0.0.1:14333)
-tdswire: gestartet, Port 1433                       (make testserver-logs)
+tdswire: gestartet, Port 1433                       (make testserver-logs; daneben stehen JSON-Zeilen der Ereignisse)
 laufzeit-client: Login ok                           (Exit 0)
 laufzeit-client: Login fehlgeschlagen               (mit -e TDSWIRE_PASSWORT=falsch, Exit 1; danach Gradle-Meldung `BUILD FAILED`)
 testserver-down: Container tdswire-testserver gestoppt und entfernt

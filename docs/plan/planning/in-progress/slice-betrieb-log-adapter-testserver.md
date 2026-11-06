@@ -85,16 +85,22 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `testserver/kotlin/…/testserver/` (Adapter, Warteschlange, Schreiber) <!-- d-check:ignore (geplant: neue Datei) --> | neu | Senke des Testservers; `jackson-core` nur hier |
-| `testserver/kotlin/…/testserver/Main.kt` und Lader <!-- d-check:ignore (geplant: Pfad nach slice-testserver-herausloesen) --> | update | `LOG_LEVEL`, Registrierung über den Parameter von `start`, `close` im Hook und vor `exitProcess`, synchrone Diagnose vor dem Prozessende |
-| `testserver/` (Tests) | neu | Escaping, Ebene, Warteschlange, Prozessende, Inspektion; `@spec`-Tag SPEC-012, SPEC-043, SPEC-048 |
-| `testserver/build.gradle.kts`, `testserver/gradle.lockfile`, `gradle/verification-metadata.xml` | update (erzeugt) | `jackson-core` im Modul, falls der Eintrag nach dem Umbau fehlt (`make deps-lock`, braucht Netz) |
-| `tools/simulationstest.sh`, `tools/kompatibilitaetstest.sh`, `tools/laufzeittest.sh` | update | Muster auf Felder des Modells; Kennzeichnungen aus `slice-testserver-herausloesen` entfernt |
+| `testserver/kotlin/io/github/pt9912/tdswire/testserver/LogAdapter.kt` | neu | Senke des Testservers: Warteschlange von 1024 Ereignissen, ein Schreiber-Thread, `close` mit Frist, `writeDirect` und `writeLast` |
+| `testserver/kotlin/io/github/pt9912/tdswire/testserver/TelemetryJson.kt` | neu | JSON-Zeile mit dem Streaming-Generator von `jackson-core`; `jackson-core` nur hier |
+| `testserver/kotlin/io/github/pt9912/tdswire/testserver/LogLevelSetting.kt` | neu | `LOG_LEVEL` als Eingang des Testservers, eigene Datei, damit `EnvKeys.kt` und der Lader der parallelen Zweige unberührt bleiben |
+| `testserver/kotlin/io/github/pt9912/tdswire/testserver/Main.kt` | update, klein | Adapter erzeugen, über den Parameter von `start` übergeben, `startWriter` nach dem Start, `close` im Hook und vor `exitProcess`, Prüfung von `LOG_LEVEL` |
+| `testserver/test/kotlin/io/github/pt9912/tdswire/testserver/` (`TelemetryJsonTest`, `LogAdapterTest`, `LogLevelSettingTest`, `LogStartTest`, `LogTestSupport`) | neu | Escaping, Ebene, Warteschlange, Prozessende, Start im Prozess; Ereignisse kommen aus einem Start im Prozess, weil die Klassen je Art `internal` sind; `@spec`-Tag SPEC-012, SPEC-043, SPEC-052 |
+| `src/test/kotlin/io/github/pt9912/tdswire/runtime/` (`TestserverLogProcessTest`, `FlatJson`, `ServerProcess`, `ServerSmokeTest`, `Tds8WiringTest`) | neu und update | Inspektion über die Prozessgrenze (Kind-JVM), Leser für die Zeile ohne Jackson, Kanal ohne Leser; die bestehenden Prozesstests lassen die Kennung im Feld `principal` der Annahme zu |
+| `src/main/kotlin/io/github/pt9912/tdswire/domain/telemetry/TelemetrySink.kt` | update (nur KDoc) | Verweis auf den Adapter des Testservers, den `slice-betrieb-log-schnittstelle` nachzuziehen auftrug |
+| `gradle/libs.versions.toml`, `testserver/build.gradle.kts` | update | Eintrag `jackson-core` im Katalog, `implementation` im Modul; `testserver/gradle.lockfile` und `gradle/verification-metadata.xml` bleiben unverändert, weil `jackson-core` über `jackson-dataformat-yaml` schon gesperrt und geprüft ist (Befund, `make deps-lock` nicht gefahren) |
+| `tools/simulationstest.sh`, `tools/kompatibilitaetstest.sh`, `tools/eigenes-backend-test.sh`, `tools/laufzeittest.sh` | update | Muster auf Felder des Modells; Kennzeichnungen aus `slice-testserver-herausloesen` entfernt |
 | `tools/e2e.sh` | update | Kennungen und Texte der Stufen, die Ereignisse lesen |
+| `spec/spezifikation.md` | update, Vermerk | Der Vermerk „Zielzustand, nicht gebaut“ in `SPEC-052` gilt nur noch für `METRICS_INTERVAL_SECONDS`; eine Zeile im Änderungsprotokoll |
+| `docs/user/einbettung-und-betrieb.md`, `docs/user/testserver-manuell.md` | update | Log des Testservers (Format, `LOG_LEVEL`, Warteschlange, Prozessende) |
 | `docs/plan/e2e-abdeckung.md`, `docs/plan/spec-abdeckung.md` | update (erzeugt) | `make e2e-abdeckung`, `make spec-abdeckung` |
-| `harness/README.md` | update | Zeilen `make smoke`, `make simulations-integration` und `make e2e`, soweit sie das Log des Testservers nennen |
+| `harness/README.md` | unverändert | keine Zeile nennt das Log des Testservers; die Zelle von `make test` darf höchstens 200 Zeichen tragen (`section-cell-oversized`), der Prozesstest des Log-Adapters hat dort keinen Platz |
 
-Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
+Die Liste ist im ersten Lauf des Implementer-Agents gegen den Bestand abgeglichen und erweitert.
 
 ## 4. Trigger
 
