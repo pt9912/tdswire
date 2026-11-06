@@ -71,6 +71,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 | `docs/user/testserver-manuell.md` | update | Ist-Zustand nach der Welle |
 | optional `tools/` und `tools/mk/` — Skript und Ziel für den Lauf | neu | nur wenn der Lauf wiederholbar sein soll; nicht in `make gates` |
 
+**Anschluss an die Entscheidung** ([ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md), `Accepted` am 2026-11-06, Messungen: [Messprotokoll des Spikes](../../../messungen/callback-loesung-spike-2026-11-05.md); Liste in §3 von [slice-adr-testserver-bestand-und-katalog](../in-progress/slice-adr-testserver-bestand-und-katalog.md)). Spec-Änderungen dieses Slice: `SPEC-040` (alle Läufe mit d-migrate, Exit 0) und die Festlegung von Version und Treiber des Prüfclients (d-migrate 1.12.0, mssql-jdbc 13.4.0, Image-Digest), die [TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate) der Spezifikation überlässt; ein Eintrag im Clientprofil braucht keine ADR (Entscheid 2026-11-06). Aus dem Spike: Der Standardpfad von `data import` ist für Tabellen mit INT-Spalte nicht zu belegen (b3); mit `--on-conflict skip` lief INT nur mit Verengung Int64 auf Int32, angepasstem RPC-Parser und unter der Handle-Grenze (a3, a6, a7); die Abnahme sagt das aus, statt es zu überspielen (Entscheid 2026-11-06: BIGINT-Schlüssel in den Beispieltabellen, Gegenmessung am echten SQL Server bleibt offen).
+
 ## 4. Trigger
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
