@@ -356,6 +356,31 @@ public class MessungEinheitTests
         lauscher.Stop();
     }
 
+    // @spec SPEC-045
+    [Fact]
+    public async Task Der_TlsProxy_schliesst_weitere_Verbindungen_sofort_und_zaehlt_sie()
+    {
+        var lauscher = new TcpListener(IPAddress.Loopback, 0);
+        lauscher.Start();
+        using var aufnahme = new TlsAufnahme("127.0.0.1", ((IPEndPoint)lauscher.LocalEndpoint).Port, "localhost", (_, _, _, _) => true);
+        using var erste = new TcpClient();
+        erste.Connect(IPAddress.Loopback, aufnahme.Port);
+        using var amZiel = await lauscher.AcceptTcpClientAsync();
+        Assert.Equal(0, aufnahme.WeitereVerbindungen);
+
+        for (var i = 1; i <= 3; i++)
+        {
+            using var weitere = new TcpClient();
+            weitere.Connect(IPAddress.Loopback, aufnahme.Port);
+            var frist = DateTime.UtcNow.AddSeconds(10);
+            while (aufnahme.WeitereVerbindungen < i && DateTime.UtcNow < frist) await Task.Delay(20);
+            Assert.Equal(i, aufnahme.WeitereVerbindungen);
+            Assert.Equal(0, await weitere.GetStream().ReadAsync(new byte[1]));
+        }
+
+        lauscher.Stop();
+    }
+
     // ---- Zerlegung --------------------------------------------------------------------------------------------------
 
     // @spec SPEC-045
