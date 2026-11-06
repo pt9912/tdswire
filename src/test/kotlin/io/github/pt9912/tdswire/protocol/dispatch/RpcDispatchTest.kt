@@ -200,7 +200,7 @@ class RpcDispatchTest {
             val session = Session.login(rpc(payload), rpc(goodRpc))
             session.serve(backend)
             assertEquals(ServerMessage(50006, 1, 20, "Protocol error."), session.tokens(0).errorMessage(), name)
-            assertTrue(session.hex(0).endsWith(BatchVectors.DONEPROC_ERROR), name)
+            assertTrue(session.hex(0).endsWith(BatchVectors.DONE_ERROR), name)
             assertEquals(1, session.replies.size, name)
             assertEquals(0, backend.requests.size, name)
             assertTrue(session.channel.closed, name)
