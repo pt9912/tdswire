@@ -1,6 +1,6 @@
 # ADR-0014: Fehlerfolge der RPC-Antwort: DONEPROC im Fehlerfall, ungültig kodierte RPC-Nachricht, statement- gegen batch-abbrechende Fehler
 
-**Status:** Proposed
+**Status:** Withdrawn (zurückgezogen am 2026-11-06 vom Nutzer; die Frage führt [ADR-0038](0038-abschluss-einer-rpc-antwort-im-fehlerfall-folgt-dem-echten-server.md) weiter)
 
 **Datum:** 2026-10-31
 
@@ -9,6 +9,20 @@
 **Bezug:** [ADR-0005](0005-rpc-und-prepared-statements.md), [ADR-0006](0006-backend-vertrag-und-streaming.md), [ADR-0007](0007-fehler-und-attention.md), [TDS-FA-04](../../../spec/lastenheft.md#tds-fa-04--parametrisierte-abfragen-über-rpc), [TDS-FA-06](../../../spec/lastenheft.md#tds-fa-06--fehler-und-abschlusszustände), [TDS-FA-10](../../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte)
 
 **Schärft:** [SPEC-030](../../../spec/spezifikation.md#spec-030--rpc-varianten-und-parameter-metadaten), [SPEC-013](../../../spec/spezifikation.md#4-fehler-codes-und-logging-felder), [SPEC-011](../../../spec/spezifikation.md#4-fehler-codes-und-logging-felder), [SPEC-031](../../../spec/spezifikation.md#spec-031--streaming-fehler-und-atomarität), [TDS-FA-04.a](../../../spec/spezifikation.md#tds-fa-04a--rpc-und-parameter), [TDS-FA-06.a](../../../spec/spezifikation.md#tds-fa-06a--fehlerabbildung). Verhältnis zu den angenommenen ADRs: [ADR-0005](0005-rpc-und-prepared-statements.md) (Antwortform der RPC-Antwort im Fehlerfall) und [ADR-0007](0007-fehler-und-attention.md) (Fehlerfolge einer ungültig kodierten RPC-Nachricht) werden **geschärft**, nicht ersetzt: beide sagen dazu nichts, kein Satz von ihnen wird überstimmt (siehe „Verhältnis zu angenommenen ADRs“). Kein `Supersedes`.
+
+---
+
+## Zurückziehung (2026-11-06)
+
+Der Nutzer hat diese ADR am 2026-11-06 nach der Messreihe am Draht zurückgezogen („ADR-0014 wie von dir empfohlen“). Sie war nie `Accepted`; es gilt keine Sperre nach [AGENTS.md](../../../AGENTS.md) §3.5. Der Entscheidungstext unten bleibt als Verlauf stehen. Grund (Messung vom 2026-11-06, Messpunkte W-1 bis W-3 des Messprotokolls `docs/messungen/referenzabgleich.md`; Einzelmessungen auf `2022-latest` und `2025-latest`, Referenzclient `Microsoft.Data.SqlClient` 7.1.1):
+
+- Option A (DONEPROC mit Fehlerstatus, ohne `MORE`) passt nur, wenn der Fehler **vor dem ersten Ergebnis** auftritt.
+- Der echte Server beendet RPC-Antworten in keinem gemessenen Fall mit DONE, immer mit DONEPROC.
+- RETURNSTATUS ist die Fehlernummer (208, 8134); RETURNVALUE steht auch nach einem Fehler in der Antwort.
+- Fehler nach Zeilen: DONEINPROC `MORE|ERROR`, DONEPROC ohne Fehlerbit, RETURNSTATUS 8134.
+- Statement-abbrechender Fehler: die Folgeanweisung läuft weiter, RETURNSTATUS 0.
+
+Entscheidung 4 (statement-abbrechend „nicht Gegenstand“) ist damit gemessen, nicht mehr ohne Messung. Die Nachfolge der Frage ist [ADR-0038](0038-abschluss-einer-rpc-antwort-im-fehlerfall-folgt-dem-echten-server.md) (`Proposed`); sie ersetzt diese ADR nicht (`Supersedes` entfällt, weil nichts angenommen war).
 
 ---
 
@@ -70,6 +84,7 @@ Eine Messung (im Slice für den Vergleichslauf D oder ein Lauf gegen den echten 
 
 | Datum | Ereignis | Verweis |
 |---|---|---|
+| 2026-11-06 | Withdrawn – vom Nutzer zurückgezogen nach der Messreihe am Draht (W-1 bis W-3); Nachfolge der Frage: [ADR-0038](0038-abschluss-einer-rpc-antwort-im-fehlerfall-folgt-dem-echten-server.md) | [ADR-0038](0038-abschluss-einer-rpc-antwort-im-fehlerfall-folgt-dem-echten-server.md) |
 | 2026-10-31 | Proposed – Folge-ADR (Entscheidung des Nutzers 2026-10-31, Empfehlung übernommen); Setzung, nicht gemessen; Status bleibt Proposed bis Review und Annahme durch den Nutzer | [ADR-0005](0005-rpc-und-prepared-statements.md), [ADR-0007](0007-fehler-und-attention.md) |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.

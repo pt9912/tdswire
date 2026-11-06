@@ -5,6 +5,9 @@
 #   SPEC_DATEI    (spec/spezifikation.md)    Festlegungen: `### SPEC-<NNN> — <Titel>` und Tabellenzeilen `| `SPEC-<NNN>` | <Titel> | ...`
 #   TEST_QUELLE   (src/test src/integrator testserver)  Verzeichnisse (durch Leerzeichen getrennt) mit Kotlin-Tests mit dem KDoc-Block-Tag `@spec SPEC-<NNN> [SPEC-<NNN> ...]`
 #   BERICHTE      (build/test-results/test build/test-results/integratorTest testserver/build/test-results/test)  Verzeichnisse mit JUnit-XML-Berichten des Gradle-Testlaufs (TEST-*.xml)
+#   CS_QUELLE     (referenztest-dotnet)      Verzeichnisse (durch Leerzeichen getrennt) mit C#-Tests mit dem Kommentar-Tag `// @spec SPEC-<NNN> [SPEC-<NNN> ...]`;
+#                                            gesetzt und leer: keine C#-Tests lesen (dann ist auch kein Bericht noetig); bin/ und obj/ werden nicht gelesen
+#   CS_BERICHTE   (build/dotnet-bericht)     Verzeichnisse mit TRX-Berichten (*.trx) des Laufs `dotnet test --logger trx` des .NET-Geruests
 #   ZIEL          (docs/plan/spec-abdeckung.md)  die zu schreibende Matrix
 #   WAISEN_DATEI  (leer)                     wenn gesetzt: dorthin die Zahl der Festlegungen ohne Nachweis
 #   STRENG        (0)                        1: Exit 1, sobald eine Festlegung ohne Nachweis ist
@@ -15,6 +18,23 @@
 # gehoert nicht zum Tag. Der Tag haftet an der naechsten `fun` (Modifikatoren nur `private`/`internal`;
 # bei `suspend fun` oder `override fun` haftet er an der naechsten passenden `fun`). Ein Einzeilen-KDoc
 # `/** @spec ... */` wird nicht gelesen. Ein neuer KDoc-Block oder eine Klasse verwirft einen offenen Tag.
+#
+# Konvention des C#-Tags: eine Kommentarzeile `// @spec SPEC-<NNN> [SPEC-<NNN> ...]` ueber der Testmethode, Kennungen durch Leerzeichen
+# getrennt; mehrere `// @spec`-Zeilen untereinander addieren sich. Zwischen Tag und Methode duerfen Leerzeilen, andere Kommentarzeilen und
+# Attributzeilen stehen (`[Fact]`, `[Theory]`, `[InlineData(...)]`, `[Trait(...)]`; jedes Attribut in einer Zeile). Der Tag haftet an der
+# ersten Zeile danach, die eine Methode mit Typ, Namen und `(` ist (ohne `=` vor der ersten `(`: eine Feld- oder Eigenschaftszeile mit
+# Zuweisung ist keine Methode); jede andere Zeile (Feld, Klasse, Namensraum, ein Attribut ueber mehrere
+# Zeilen) verwirft ihn. Der Testfall heisst `<Namensraum>.<Klasse>.<Methode>`: Namensraum der Zeile `namespace` (Datei- oder Blockform),
+# Klasse die zuletzt gelesene `class`; geschachtelte Klassen (TRX: `Aussen+Innen`) sind nicht gelesen. Ein `[Theory]` zaehlt als bestanden,
+# wenn alle seine Faelle bestanden sind (schlechtestes Ergebnis). Der Bericht der C#-Tests ist TRX (eingebauter Logger von `dotnet test`,
+# kein Paket): `Passed` ist bestanden, `NotExecuted` uebersprungen, jedes andere Ergebnis rot. Ein getaggter C#-Test ohne Testfall im Bericht
+# steht als „nicht gelaufen“; so stehen die zwei Tests des Abspielens (`LAUF=mitschnitt`, nur in `make vergleichslauf-d`), weil der Bericht
+# nur die Stage `test-bericht` des .NET-Geruests kennt. Diese Stage teilt die COPY-Zeilen und die Variable DOTNET_TEST_ARGS mit der Stage `test`
+# (Basis `test-quellen` in referenztest-dotnet/Dockerfile) und fuegt nur den TRX-Logger hinzu. Weitere Flags in der RUN-Zeile von `test`
+# (etwa ein --filter) sind nicht gekoppelt: der Erzeuger sieht sie nicht, die Matrix zaehlt dann weiter, was das Gate nicht mehr ausfuehrt.
+# Grenze: der C#-Tag haftet an der naechsten Methodenzeile, ob sie die gemeinte Testmethode ist, sieht der Erzeuger nicht; ein Tag ueber
+# einer anderen vorhandenen und bestandenen Methode zaehlt fuer diese. Nur ein fehlender Name faellt als „nicht gelaufen“ auf.
+# Die Art eines C#-Tests ist Smoke-Test unter `/Smoke/`, sonst Modul-Test.
 #
 # Ein Nachweis ist ein Test, dessen Tag die Kennung nennt UND dessen Klasse und Methode im Bericht
 # ohne Fehler und ohne Uebersprung stehen; das Urteil lautet „mindestens ein bestandener getaggter
@@ -31,6 +51,9 @@
 # Die Namenszusage gilt gegen den Bericht: ein getaggter Test ohne gleichnamigen Testfall im Bericht
 # steht als „nicht gelaufen“; ein frischer Lauf kennt den alten Namen nicht mehr.
 #
+# Der Erzeuger sieht dem TRX-Bericht sein Alter nicht an: `make spec-abdeckung` fuehrt die C#-Tests bei jedem Aufruf neu aus
+# (`--no-cache-filter test-bericht`), damit der Layer-Cache keinen alten Lauf in die Matrix traegt.
+#
 # Aufgerufen von der Dockerfile-Stage `spec-abdeckung` und von tools/spec-abdeckung-selbsttest.sh;
 # braucht sh, awk, sed, find, xargs, sort, cmp, mktemp.
 set -eu
@@ -40,6 +63,8 @@ quelle=${TEST_QUELLE:-src/test src/integrator testserver}
 berichte=${BERICHTE:-build/test-results/test build/test-results/integratorTest testserver/build/test-results/test}
 ziel=${ZIEL:-docs/plan/spec-abdeckung.md}
 streng=${STRENG:-0}
+csquelle=${CS_QUELLE-referenztest-dotnet}
+csberichte=${CS_BERICHTE-build/dotnet-bericht}
 
 fehler() { echo "spec-abdeckung: $*" >&2; exit 2; }
 
@@ -52,6 +77,17 @@ done
 # shellcheck disable=SC2086
 berichtsdateien=$(find $berichte -name 'TEST-*.xml' | sort)
 [ -n "$berichtsdateien" ] || fehler "keine TEST-*.xml unter $berichte"
+
+trxdateien=
+if [ -n "$csquelle" ]; then
+  for verzeichnis in $csquelle; do [ -d "$verzeichnis" ] || fehler "C#-Testquelle fehlt: $verzeichnis"; done
+  for verzeichnis in $csberichte; do
+    [ -d "$verzeichnis" ] || fehler "kein C#-Testbericht unter $verzeichnis — der Testlauf hat keinen geschrieben"
+  done
+  # shellcheck disable=SC2086
+  trxdateien=$(find $csberichte -name '*.trx' | sort)
+  [ -n "$trxdateien" ] || fehler "keine *.trx unter $csberichte"
+fi
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
@@ -102,6 +138,41 @@ find $quelle -name '*.kt' | sort | xargs awk '
   }
 ' > "$tmp/t.tsv"
 
+# T (C#): dieselben Spalten. Der Tag steht in `// @spec`-Zeilen und haftet an der ersten Methodenzeile danach; Attribut-, Kommentar- und
+# Leerzeilen dazwischen halten ihn, jede andere Zeile verwirft ihn.
+if [ -n "$csquelle" ]; then
+  # shellcheck disable=SC2086
+  find $csquelle \( -name bin -o -name obj \) -prune -o -name '*.cs' -print | sort | xargs -r awk '
+    FNR == 1 { ns = ""; cls = ""; pend = "" }
+    /^[ \t]*namespace[ \t]/ {
+      s = $0; sub(/^[ \t]*namespace[ \t]+/, "", s); sub(/[ \t]*[;{].*$/, "", s); sub(/[ \t]+$/, "", s)
+      ns = s; pend = ""; next
+    }
+    /^[ \t]*((public|internal|private|protected|sealed|static|abstract|partial)[ \t]+)*class[ \t]+[A-Za-z0-9_]+/ {
+      s = $0; sub(/^[ \t]*((public|internal|private|protected|sealed|static|abstract|partial)[ \t]+)*class[ \t]+/, "", s); sub(/[^A-Za-z0-9_].*$/, "", s)
+      cls = s; pend = ""; next
+    }
+    /^[ \t]*\/\/[ \t]*@spec[ \t]/ {
+      s = $0; sub(/^[ \t]*\/\/[ \t]*@spec[ \t]+/, "", s); sub(/[ \t]+$/, "", s); pend = pend " " s; next
+    }
+    /^[ \t]*$/ { next }
+    /^[ \t]*\[.*\][ \t]*$/ { next }
+    /^[ \t]*\/\// { next }
+    pend == "" { next }
+    /\(/ {
+      s = $0; sub(/\(.*$/, "", s); sub(/<[^>]*>[ \t]*$/, "", s); sub(/[ \t]+$/, "", s)
+      if (s !~ /=/ && s ~ /[]A-Za-z0-9_>?][ \t]+[A-Za-z0-9_]+$/ && s !~ /^[ \t]*(if|for|foreach|while|switch|using|return|new|else|throw|await|var)[ \t(]/) {
+        sub(/^.*[ \t]/, "", s)
+        art = "Modul-Test"
+        if (FILENAME ~ /\/Smoke\//) art = "Smoke-Test"
+        n = split(pend, ids, /[ \t]+/)
+        for (i = 1; i <= n; i++) if (ids[i] != "") printf "T\t%s\t%s.%s\t%s\t%s\n", ids[i], ns, cls, s, art
+      }
+    }
+    { pend = "" }
+  ' >> "$tmp/t.tsv"
+fi
+
 # R: Ergebnis je Testfall der Berichte: Klasse, Methode, pass | fail | skip.
 # Gradle haengt `()` an den Methodennamen; ein Testfall ohne Kindelement ist bestanden.
 # Das Wort-Splitting der Dateiliste ist beabsichtigt (Pfade ohne Leerzeichen).
@@ -127,6 +198,35 @@ awk '
   /<\/testcase>/ { flush() }
 ' $berichtsdateien > "$tmp/r.tsv"
 [ -s "$tmp/r.tsv" ] || fehler "keine Testfaelle in den Berichten unter $berichte"
+
+# R (C#): Ergebnis je Testfall der TRX-Berichte. `UnitTestResult` nennt Test-Id und Ergebnis, Klasse und Methode stehen im Block
+# `UnitTest`/`TestMethod` unter derselben Id (ein `[Theory]` hat mehrere Ids mit derselben Klasse und Methode).
+if [ -n "$csquelle" ]; then
+  # shellcheck disable=SC2086
+  awk '
+    function entity(s) {
+      gsub(/&lt;/, "<", s); gsub(/&gt;/, ">", s); gsub(/&quot;/, "\"", s); gsub(/&apos;/, "\047", s); gsub(/&amp;/, "\\&", s)
+      return s
+    }
+    function attr(zeile, name,   s) {
+      if (!match(zeile, " " name "=\"[^\"]*\"")) return ""
+      s = substr(zeile, RSTART + length(name) + 3, RLENGTH - length(name) - 4)
+      return entity(s)
+    }
+    /<UnitTestResult / { nr++; rid[nr] = attr($0, "testId"); rerg[nr] = attr($0, "outcome") }
+    /<UnitTest / { aktuell = attr($0, "id") }
+    /<TestMethod / && aktuell != "" { dkl[aktuell] = attr($0, "className"); dme[aktuell] = attr($0, "name") }
+    END {
+      for (i = 1; i <= nr; i++) {
+        if (!(rid[i] in dkl)) continue
+        e = (rerg[i] == "Passed") ? "pass" : (rerg[i] == "NotExecuted" ? "skip" : "fail")
+        printf "R\t%s\t%s\t%s\n", dkl[rid[i]], dme[rid[i]], e
+      }
+    }
+  ' $trxdateien > "$tmp/r-cs.tsv"
+  [ -s "$tmp/r-cs.tsv" ] || fehler "keine Testfaelle in den TRX-Berichten unter $csberichte"
+  cat "$tmp/r-cs.tsv" >> "$tmp/r.tsv"
+fi
 
 cat "$tmp/s.tsv" "$tmp/t.tsv" "$tmp/r.tsv" | awk -F '\t' -v spec="$spec" '
   function zelle(s) { gsub(/\|/, "\\|", s); return s }
@@ -154,8 +254,9 @@ cat "$tmp/s.tsv" "$tmp/t.tsv" "$tmp/r.tsv" | awk -F '\t' -v spec="$spec" '
     for (j = 1; j <= ns; j++) if (gesamt[sid[j]] == 0) { if (klasse[sid[j]] == "gate") gates++; else waisen++ }
     print "# Abdeckung der Festlegungen der Spezifikation durch Tests"
     print ""
-    print "Erzeugt von `make spec-abdeckung` aus den `@spec`-Tags im KDoc der Testfunktionen unter `src/test`, `src/integrator` und `testserver`"
-    print "und den JUnit-Berichten des Testlaufs, der diese Matrix erzeugt hat. Die Festlegungen sind die"
+    print "Erzeugt von `make spec-abdeckung` aus den `@spec`-Tags im KDoc der Testfunktionen unter `src/test`, `src/integrator` und `testserver`,"
+    print "aus den `// @spec`-Kommentaren der C#-Tests unter `referenztest-dotnet`"
+    print "und den Berichten des Testlaufs, der diese Matrix erzeugt hat (JUnit-XML des Gradle-Laufs, TRX der Stage `test-bericht` des .NET-Gerüsts). Die Festlegungen sind die"
     print "`SPEC-<NNN>`-Überschriften und die Tabellenzeilen mit `SPEC-<NNN>` in der ersten Zelle von"
     print "[`" spec "`](../../" spec ")."
     print ""
@@ -168,6 +269,11 @@ cat "$tmp/s.tsv" "$tmp/t.tsv" "$tmp/r.tsv" | awk -F '\t' -v spec="$spec" '
     print "(Modifikatoren nur `private`/`internal`; bei `suspend fun` oder `override fun` haftet er an der"
     print "nächsten passenden `fun`); ein Einzeilen-KDoc `/** @spec ... */` wird nicht gelesen; ein neuer"
     print "KDoc-Block oder eine Klasse verwirft einen offenen Tag."
+    print ""
+    print "**Konvention des C#-Tags:** eine Kommentarzeile `// @spec SPEC-<NNN> [SPEC-<NNN> ...]` über der Testmethode; Attributzeilen"
+    print "(`[Fact]`, `[Theory]`, `[InlineData(...)]`), Leer- und Kommentarzeilen dazwischen halten ihn, jede andere Zeile verwirft ihn."
+    print "Der Bericht der C#-Tests ist der der Stage `test-bericht` des .NET-Gerüsts (COPY-Quellen und DOTNET_TEST_ARGS wie die Stage `test`; weitere Flags in deren RUN-Zeile sind nicht gekoppelt); ein getaggter C#-Test, den sie nicht"
+    print "ausführt (die zwei Tests des Abspielens, die nur in `make vergleichslauf-d` laufen), steht als „nicht gelaufen“."
     print ""
     print "Ein **Nachweis** ist ein Test, dessen Tag die Kennung nennt und der im Bericht desselben Laufs"
     print "bestanden steht (Klasse und Methodenname stimmen überein); das Urteil lautet „mindestens ein"
@@ -183,7 +289,7 @@ cat "$tmp/s.tsv" "$tmp/t.tsv" "$tmp/r.tsv" | awk -F '\t' -v spec="$spec" '
     print "deren Titelzelle ein `make`-Target nennt oder die „Gate noch einzurichten“ trägt, steht ohne"
     print "bestandenen Test als „Gate-Festlegung, ungemessen“ und ist weder Nachweis noch Waise. Nennt"
     print "irgendein Test ihre Kennung, steht sie als Nachweis da und die Klasse ist nicht mehr zu sehen."
-    print "Die Art folgt dem Verzeichnis des Tests: `smoke/` Smoke-Test, `e2e/` E2E-Test, sonst Modul-Test."
+    print "Die Art folgt dem Verzeichnis des Tests: `smoke/` (C#: `Smoke/`) Smoke-Test, `e2e/` E2E-Test, sonst Modul-Test."
     print ""
     printf "Stand: %d von %d Festlegungen mit mindestens einem bestandenen Test, %d Gate-Festlegungen ungemessen, %d ohne Nachweis.\n", ns - waisen - gates, ns, gates, waisen
     print ""
