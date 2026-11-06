@@ -36,7 +36,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 - Lastmessung, Referenz-Workload und Grenzwerte — [slice-qa-performance](slice-qa-performance.md); dieser Slice liefert die Messpunkte, keine Zahl über Durchsatz oder Overhead.
 - Export-Backend, Collector, Dashboards und Alarmierung — Betreiber (ARC-014); der Server liefert nach der ADR den Zugang, betreibt aber keine Auswertung.
-- Das Log — [slice-betrieb-log-schnittstelle](../done/slice-betrieb-log-schnittstelle.md); Zustandsereignisse — [slice-betrieb-zustandsereignisse](slice-betrieb-zustandsereignisse.md); der JSON-Adapter, die Warteschlange und das Prozessende des Testservers — [slice-betrieb-log-adapter-testserver](slice-betrieb-log-adapter-testserver.md) (dieser Slice ergänzt dort nur die Serialisierung der neuen Ereignisarten).
+- Das Log — [slice-betrieb-log-schnittstelle](../done/slice-betrieb-log-schnittstelle.md); Zustandsereignisse — [slice-betrieb-zustandsereignisse](slice-betrieb-zustandsereignisse.md); der JSON-Adapter, die Warteschlange und das Prozessende des Testservers — [slice-betrieb-log-adapter-testserver](../next/slice-betrieb-log-adapter-testserver.md) (dieser Slice ergänzt dort nur die Serialisierung der neuen Ereignisarten).
 - Adapter für JMX, einen Text-Endpunkt oder eine Telemetrie-Bibliothek — jeweils eigene Entscheidung mit eigener Angriffsflächen-Prüfung ([ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md) Frage 6, Re-Evaluierungs-Trigger); der Zugang ist die Senke.
 - Die Definition, ob Cancel und Timeout als Fehler zählen — [slice-attention-cancel-timeout](../done/slice-attention-cancel-timeout.md) und [slice-fehler-mapping](../done/slice-fehler-mapping.md); die Zähler „Abbrüche“ und „Protokollfehler“ folgen deren Entscheidung (§6).
 
@@ -89,7 +89,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-betrieb-log-schnittstelle](../done/slice-betrieb-log-schnittstelle.md) und [slice-betrieb-log-adapter-testserver](slice-betrieb-log-adapter-testserver.md) liegen in `done/` ([ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md) ist `Accepted`, erfüllt; die Senke und der Adapter, der die neuen Ereignisarten serialisiert, stehen), und die Wellen [welle-anfrageverarbeitung](../welle-anfrageverarbeitung.md), [welle-backend-streaming](../done/welle-backend-streaming/welle-backend-streaming.md) und [welle-fehler-abbruch](../done/welle-fehler-abbruch.md) sind abgeschlossen (Anfrage, Backend-Aufruf und Abbruch existieren als Code), und ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): [slice-betrieb-log-schnittstelle](../done/slice-betrieb-log-schnittstelle.md) und [slice-betrieb-log-adapter-testserver](../next/slice-betrieb-log-adapter-testserver.md) liegen in `done/` ([ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md) ist `Accepted`, erfüllt; die Senke und der Adapter, der die neuen Ereignisarten serialisiert, stehen), und die Wellen [welle-anfrageverarbeitung](../welle-anfrageverarbeitung.md), [welle-backend-streaming](../done/welle-backend-streaming/welle-backend-streaming.md) und [welle-fehler-abbruch](../done/welle-fehler-abbruch.md) sind abgeschlossen (Anfrage, Backend-Aufruf und Abbruch existieren als Code), und ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

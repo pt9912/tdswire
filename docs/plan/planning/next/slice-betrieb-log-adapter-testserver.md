@@ -39,11 +39,11 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Modell, Senke, Parameter von `start`, Sammler, Ablösung von `ServerLog`, Sperren für `println` und `simulation` — [slice-betrieb-log-schnittstelle](../done/slice-betrieb-log-schnittstelle.md); Voraussetzung dieses Slice.
-- Neue Ereignisarten, Startdiagnose als Inhalt (Adresse, Port, TLS-Teil ohne Pfad) und Konfigurationsabdeckung — [slice-betrieb-zustandsereignisse](slice-betrieb-zustandsereignisse.md); hier wird der Mechanismus des Prozessendes belegt, dort der Inhalt der Diagnose.
-- Das Ereignis `metrics`, Span-Ende und ihre Serialisierung — [slice-betrieb-metriken-tracing](slice-betrieb-metriken-tracing.md); der Adapter serialisiert die Ereignisarten, die beim Bau dieses Slice existieren, und bricht beim Hinzufügen einer Art die Übersetzung (geschlossene Menge, `when` ohne `else`).
+- Neue Ereignisarten, Startdiagnose als Inhalt (Adresse, Port, TLS-Teil ohne Pfad) und Konfigurationsabdeckung — [slice-betrieb-zustandsereignisse](../open/slice-betrieb-zustandsereignisse.md); hier wird der Mechanismus des Prozessendes belegt, dort der Inhalt der Diagnose.
+- Das Ereignis `metrics`, Span-Ende und ihre Serialisierung — [slice-betrieb-metriken-tracing](../open/slice-betrieb-metriken-tracing.md); der Adapter serialisiert die Ereignisarten, die beim Bau dieses Slice existieren, und bricht beim Hinzufügen einer Art die Übersetzung (geschlossene Menge, `when` ohne `else`).
 - Eine Warteschlange um jede übergebene Senke in der Bibliothek (Option D der Frage 7) — Re-Evaluierungs-Trigger der ADR; die Warteschlange ist Sache dieses Adapters.
 - Adapter für Embedder (SLF4J, `System.Logger`, Logging-Brücken) und alle Aussagen über deren Escaping, Ziele, Aufbewahrung — Embedder; sie sind ein Beispiel, kein Vertrag.
-- Die Wirkung der Warteschlange und des Generators unter Last — [slice-qa-performance](slice-qa-performance.md) (`BEO-TDS/rueckstau-im-produktivbetrieb-nicht-gemessen`); dieser Slice belegt Verhalten, keine Durchsatzzahl.
+- Die Wirkung der Warteschlange und des Generators unter Last — [slice-qa-performance](../open/slice-qa-performance.md) (`BEO-TDS/rueckstau-im-produktivbetrieb-nicht-gemessen`); dieser Slice belegt Verhalten, keine Durchsatzzahl.
 - Die Spezifikation — sie steht nach [slice-spec-nachzug-telemetrie](../done/slice-spec-nachzug-telemetrie.md); ein Widerspruch, den der Bau findet, ist ein Befund für den Nutzer, kein stilles Ändern.
 - Java-Quellen oder Reflection im Modul `testserver` — akzeptiertes Negativ der [ADR-0025](../../adr/0025-produktschnitt-bibliothek-und-testserver.md).
 
@@ -110,7 +110,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 5. [slice-oeffentliche-flaeche-verkleinern-und-belegen](../done/slice-oeffentliche-flaeche-verkleinern-und-belegen.md) liegt in `done/` (erfüllt: der Adapter formatiert die Arten des Schnitts, `TelemetryEvent` mit `EventKind`).
 6. Ein Verantwortlicher ist im Kopf eingetragen.
 
-**Folge-Kanten:** [slice-betrieb-zustandsereignisse](slice-betrieb-zustandsereignisse.md) und [slice-betrieb-metriken-tracing](slice-betrieb-metriken-tracing.md) warten auf diesen Slice.
+**Folge-Kanten:** [slice-betrieb-zustandsereignisse](../open/slice-betrieb-zustandsereignisse.md) und [slice-betrieb-metriken-tracing](../open/slice-betrieb-metriken-tracing.md) warten auf diesen Slice.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
