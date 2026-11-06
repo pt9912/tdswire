@@ -38,7 +38,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Bau und Nachzug der Spezifikation (`SPEC-057`, `SPEC-030`, Fehlertabelle, Tests, Kompatibilitätsmatrix) — Folge-Slice, den der Planner nach `Accepted` der ADR anlegt; vorher wäre er ein Bau gegen eine offene Entscheidung.
-- Bau von Freigabe, Zählung und Antwortform der Handles — [slice-handle-freigabe-und-grenze-bauen](../in-progress/slice-handle-freigabe-und-grenze-bauen.md) (in Arbeit); dort liegen `SPEC-030` und der Pfad von `sp_unprepare`, dieser Slice berührt beide nicht (kein Konflikt zweier Slices an derselben Stelle).
+- Bau von Freigabe, Zählung und Antwortform der Handles — [slice-handle-freigabe-und-grenze-bauen](../done/slice-handle-freigabe-und-grenze-bauen.md) (in Arbeit); dort liegen `SPEC-030` und der Pfad von `sp_unprepare`, dieser Slice berührt beide nicht (kein Konflikt zweier Slices an derselben Stelle).
 - Die Reaktion eines Treibers auf den Fehler bei `sp_execute` mit unbekanntem Handle — in `docs/messungen/handle-grenze-optionen-2026-11-06.md` als nicht gemessen geführt; sie ist kein Teil der Frage „welche Nummer“.
 - Eine inhaltliche Änderung von [ADR-0037](../../adr/0037-sp-unprepare-unbekanntes-handle-ergibt-fehler-8179.md) oder [ADR-0036](../../adr/0036-handle-freigabe-und-grenze-je-sitzung.md) — beide sind `Accepted` und unveränderlich (`AGENTS.md` §3.5); die neue ADR schärft sie über ihr `Schärft:`-Feld.
 
