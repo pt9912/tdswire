@@ -165,3 +165,7 @@ Spalten: Package; `SPEC-059`: `Name` (die Spezifikation nennt den Namen), `Fall`
 | `UserListErrorKind` | `config.auth` | Name | 0 | 0 | 8 | I: -; T: -; TT: ConfigUsersFileTest.kt:30 |
 | `UserListResult` | `config.auth` | Name | 4 | 3 | 0 | I: TelemetryEmbeddingTest.kt:51; T: ConfigFiles.kt:87; TT: - |
 | `Valid` | `config.auth` | Name | 2 | 1 | 0 | I: TelemetryEmbeddingTest.kt:51; T: ConfigFiles.kt:87; TT: - |
+
+## Nachmessung nach der Umsetzung (Sensor)
+
+Stand: Arbeitsbaum der Umsetzung (Commits nach `6b28cd69`), derselbe Tag, Einzelmessung je Lauf. `make flaeche` (Stage `flaeche`, `tools/flaeche-pruefung.sh`) meldete 61 Namen der Liste in `SPEC-059`, alle öffentlich deklariert und in `src/integrator` oder `testserver/kotlin` belegt (Pfad des Testservers jetzt `testserver/kotlin`, nicht `src/testserver`). Vor der Ergänzung des Einbettungstests meldete derselbe Lauf genau einen Namen ohne Beleg: `EventLevel`; mit `Principal` wieder öffentlich meldete er `Principal` als öffentliche Deklaration ohne Eintrag. Die Zahl 61 ist die Zahl der Typnamen der Liste, nicht der Mitglieder. Die Zählweise des Sensors weicht von der der Tabelle oben ab: ein geschachtelter Name zählt nur als `Eltern.Name`, ein Treffer in `src/testserver/test` zählt nicht.
