@@ -10,6 +10,8 @@ gezeigt, nicht als Treiber.
 
 ## Offene Wellen
 
+Nichts in Arbeit.
+
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte — *Offene Wellen* ist **derivativ**: Der
 Zustand sind die flachen Welle-Dateien; woran gearbeitet wird, sagt das
@@ -42,7 +44,7 @@ In Arbeit (Welle welle-fehler-abbruch):
 
 In Arbeit (Welle welle-betrieb-diagnose):
 
-- in `in-progress/`: [slice-oeffentliche-flaeche-verkleinern-und-belegen](../done/slice-oeffentliche-flaeche-verkleinern-und-belegen.md) (Schnitt-Vorlage; der Sensor wartet auf `slice-testserver-gradle-modul`); zuletzt geschlossen: [slice-betrieb-log-schnittstelle](../done/slice-betrieb-log-schnittstelle.md) (Closure-Notiz in §7 des Slice; offener Nutzerpunkt: Umfang der öffentlichen Fläche des Ereignismodells, `BEO-TDS/oeffentliche-flaeche-der-telemetrie-ohne-entscheidung`, Option (c) ändert die API und muss vor einem Release fallen; Folge: [slice-betrieb-log-adapter-testserver](../open/slice-betrieb-log-adapter-testserver.md), [slice-betrieb-telemetrie-verdrahtung-belegen](../open/slice-betrieb-telemetrie-verdrahtung-belegen.md))
+- keiner in `in-progress/`; zuletzt geschlossen: [slice-oeffentliche-flaeche-verkleinern-und-belegen](../done/slice-oeffentliche-flaeche-verkleinern-und-belegen.md) (Closure-Notiz in §7 des Slice; `make flaeche` hält die 61 Typnamen von `SPEC-059`; `BEO-TDS/oeffentliche-flaeche-der-telemetrie-ohne-entscheidung` gestrichen; offene Nutzerpunkte: `SECURITY_WEAKENED` mit `reason`, Namen `EventKind`/`issueKind`, Felder je Art nur durch Test gehalten; Folge: [slice-betrieb-log-adapter-testserver](../open/slice-betrieb-log-adapter-testserver.md), [slice-betrieb-telemetrie-verdrahtung-belegen](../open/slice-betrieb-telemetrie-verdrahtung-belegen.md)), davor [slice-betrieb-log-schnittstelle](../done/slice-betrieb-log-schnittstelle.md) (Closure-Notiz in §7 des Slice)
 
 In Arbeit (ohne Welle):
 

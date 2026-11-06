@@ -37,7 +37,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Umfang der öffentlichen Fläche (18 Ereignisarten, 4 Aufzählungen, rund 50 Namen; Optionen (a), (b), (c) in §6 von [slice-betrieb-log-schnittstelle](../done/slice-betrieb-log-schnittstelle.md)) — Nutzerentscheidung, `BEO-TDS/oeffentliche-flaeche-der-telemetrie-ohne-entscheidung`; schrumpft die Fläche, ändern sich Arten und damit die Tests dieses Slice, deshalb steht die Entscheidung vor ihm.
+- Umfang der öffentlichen Fläche (18 Ereignisarten, 4 Aufzählungen, rund 50 Namen; Optionen (a), (b), (c) in §6 von [slice-betrieb-log-schnittstelle](../done/slice-betrieb-log-schnittstelle.md)) — entschieden und umgesetzt in [slice-oeffentliche-flaeche-verkleinern-und-belegen](../done/slice-oeffentliche-flaeche-verkleinern-und-belegen.md) (`BEO-TDS/oeffentliche-flaeche-der-telemetrie-ohne-entscheidung`, gestrichen); die Arten stehen als `EventKind`, die Tests dieses Slice belegen sie in dieser Form.
 - Neue Ereignisarten, `request_id` und `duration_ms` — [slice-betrieb-zustandsereignisse](slice-betrieb-zustandsereignisse.md) und [slice-betrieb-metriken-tracing](slice-betrieb-metriken-tracing.md); hier wird nur belegt, was gebaut ist.
 - Der JSON-Adapter und die Inspektion des laufenden Prozesses — [slice-betrieb-log-adapter-testserver](slice-betrieb-log-adapter-testserver.md).
 - `Error` aus der Senke bei `ACCEPT_FAILED` und `CONNECTION_FAILED`: bleibt „weder gemessen noch zugesagt“ (KDoc von `TelemetrySink`); der Slice darf es messen, muss es nicht, und eine Zusage braucht eine Entscheidung des Nutzers.
@@ -92,7 +92,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-betrieb-log-schnittstelle](../done/slice-betrieb-log-schnittstelle.md) liegt in `done/`; die Nutzerentscheidung zum Umfang der öffentlichen Fläche (`BEO-TDS/oeffentliche-flaeche-der-telemetrie-ohne-entscheidung`) ist gefallen, weil Option (c) die Arten ändert, die dieser Slice belegt; ein Verantwortlicher ist eingetragen.
+**Start** (`next` → `in-progress`): [slice-betrieb-log-schnittstelle](../done/slice-betrieb-log-schnittstelle.md) liegt in `done/`; [slice-oeffentliche-flaeche-verkleinern-und-belegen](../done/slice-oeffentliche-flaeche-verkleinern-und-belegen.md) liegt in `done/` (erfüllt: die Nutzerentscheidung zum Umfang der öffentlichen Fläche ist gefallen und umgesetzt, die Arten stehen als `EventKind`); ein Verantwortlicher ist eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
