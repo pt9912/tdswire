@@ -12,7 +12,7 @@
 # stehen, der naechste `up` meldet es).
 # Eingaenge (Umgebung): TESTSERVER_NAME, TESTSERVER_IMAGE, TESTSERVER_HOST, TESTSERVER_PORT, TESTSERVER_BAUEN (0 = Image
 # nicht bauen), TESTSERVER_VERSCHLUESSELUNG (TEST_UNENCRYPTED | REQUIRED), TESTSERVER_BENUTZER_DATEI,
-# TESTSERVER_BESCHREIBUNG, TESTSERVER_TLS_SPEICHER, TESTSERVER_TLS_PASSWORT_DATEI, TESTSERVER_FOLGEN (1 = Log verfolgen), TESTSERVER_WARTEN (Sekunden bis zur Bereitschaft, Voreinstellung 60).
+# TESTSERVER_BESCHREIBUNG, TESTSERVER_TLS_SPEICHER, TESTSERVER_TLS_PASSWORT_DATEI, TESTSERVER_FOLGEN (1 = Log verfolgen), TESTSERVER_LOG_LEVEL (ERROR | WARN | INFO | DEBUG, wird als LOG_LEVEL an den Container gereicht; ohne Wert gilt die Voreinstellung des Testservers), TESTSERVER_WARTEN (Sekunden bis zur Bereitschaft, Voreinstellung 60).
 # Kopplung: tools/testserver-selbsttest.sh mutiert die Zeilen mit dem Vermerk `zweig:<name>`.
 set -u
 
@@ -58,6 +58,7 @@ up() {
   env_args=(-e LISTEN_HOST=0.0.0.0 -e "LISTEN_PORT=$INTERN_PORT" -e "ENCRYPTION_POLICY=$VERSCHLUESSELUNG"
     -e AUTH_USERS_FILE=/home/gradle/users.txt)
   [ "$VERSCHLUESSELUNG" = "TEST_UNENCRYPTED" ] && env_args+=(-e AUTH_PLAIN_TESTMODE=true)
+  [ -n "${TESTSERVER_LOG_LEVEL:-}" ] && env_args+=(-e "LOG_LEVEL=$TESTSERVER_LOG_LEVEL")
   if [ -n "${TESTSERVER_BESCHREIBUNG:-}" ]; then
     env_args+=(-e SIMULATION_DESCRIPTION_FILE=/home/gradle/sim.yaml)
   else

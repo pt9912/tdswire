@@ -11,13 +11,13 @@
 # `docker cp` zum Client und ist dort der Vertrauensanker (SSL_CERT_FILE). Danach laufen die Tests der Kategorie;
 # der Lauf prueft, dass der Server danach laeuft und kein Kennwort ausgegeben hat, und gibt die Ausgabe des
 # Testservers aus (Zeilen `kompatibilitaet: anfrage` des Aufzeichners zeigen den Text, den der Referenzclient stellt).
-# Der Testserver schreibt kein Log der Bibliothek (ADR-0025 Entscheidung 7). Herausgenommen sind die Pruefungen, die
-# Zeilen der Bibliothek lasen (`Handlerfehler`, `Login: abgelehnt (...)`, `Fehler: <Code>`); Ersatz traegt
-# slice-betrieb-log-adapter-testserver.
+# Der Testserver schreibt je Ereignis der Bibliothek eine JSON-Zeile (ADR-0020); die Pruefungen lesen Felder dieser
+# Zeilen (`event`, `reason`, `error_code`, `cause`) statt Text der Bibliothek.
 # `trap` raeumt bei Ende, SIGINT und SIGTERM Container, Netzwerk und Images ab; bei SIGKILL bleiben sie stehen.
 # Zusage: die Tests der Kategorie bestehen gegen den Serverprozess; nicht belegt steht im Kopf der Testklassen.
 # Der Lauf ist eine Stufe von `make e2e` und kein Gate (ADR-0022).
 set -u
+. "$(dirname "$0")/log-muster.sh" || { echo "log-muster.sh nicht lesbar" >&2; exit 1; }
 
 KATEGORIE="${1:-}"
 case "$KATEGORIE" in
@@ -94,9 +94,14 @@ pruefe "Alle Tests der Kategorie $KATEGORIE bestanden ($(grep -Eo 'Total tests: 
 
 laeuft() { [ "$(docker inspect --format '{{.State.Running}}' "$SERVER")" = "true" ]; }
 pruefe "Server laeuft nach den Tests" laeuft
-# Entfallen, Ersatz in slice-betrieb-log-adapter-testserver: 'Handlerfehler' (Zeile der Bibliothek) keinmal.
-pruefe "Ausgabe des Testservers nennt weder Kennwort noch Text der Quellenausnahme" \
-  sh -c "! docker logs '$SERVER' 2>&1 | grep -Eq 'secret|Geheimnis'"
+# Positivprobe: ohne sie bliebe die Negativpruefung auch bei leerem Log gruen (TDS-FA-09, SPEC-052). Jede Kategorie meldet sich
+# an; INFO ist die Voreinstellung von LOG_LEVEL, login_accepted hat die Ebene INFO.
+log_nennt_anmeldung() { docker logs "$SERVER" 2>&1 | log_nennt_ereignis login_accepted; }
+pruefe "Log nennt mindestens ein Ereignis login_accepted" log_nennt_anmeldung
+kein_handlerfehler() { docker logs "$SERVER" 2>&1 | log_ohne_ereignis 'connection_failed|adapter_failed'; }
+kein_kennwort() { docker logs "$SERVER" 2>&1 | log_ohne_text 'secret|Geheimnis'; }
+pruefe "Log nennt keinen Handlerfehler und keinen Fehler des Authentifizierungsadapters" kein_handlerfehler
+pruefe "Ausgabe des Testservers (Ereigniszeilen und Backend) nennt weder Kennwort noch Text der Quellenausnahme" kein_kennwort
 
 if [ "$KATEGORIE" = Anmeldung ]; then
   # Der Client beobachtet nur, dass die zweite Nutzung der gepoolten Verbindung gelingt; ob sie dieselbe Sitzung am
@@ -122,10 +127,16 @@ if [ "$KATEGORIE" = Anmeldung ]; then
     sh -c "[ \"\$(docker logs '$SERVER' 2>&1 | grep -cF 'sql=[SELECT Id FROM person WHERE Id = @id] parameter=[@id:Int32:INPUT]')\" = 3 ]"
   pruefe "Prepare: 1100 Ausfuehrungen desselben Befehls erreichen das Backend (Marker @wiederholung)" \
     sh -c "[ \"\$(docker logs '$SERVER' 2>&1 | grep -cF 'parameter=[@wiederholung:Int32:INPUT]')\" = 1100 ]"
-  # Entfallen, Ersatz in slice-betrieb-log-adapter-testserver: 'tdswire: Fehler: TDS_PREPARE_LIMIT (handle-limit)' genau
-  # einmal (Zeile der Bibliothek).
-  # Entfallen, Ersatz in slice-betrieb-log-adapter-testserver: 'TDS_UNSUPPORTED_RPC (UNKNOWN_PROCEDURE)' keinmal
-  # (Negativpruefung; eine unbekannte Prozedur erreicht das Backend nicht, der Aufzeichner sieht sie nicht).
+  # Das Ereignis `request_failed` mit `TDS_PREPARE_LIMIT` und der Marke `handle-limit` steht genau einmal; mit
+  # `TDS_UNSUPPORTED_RPC` und der Ursache `UNKNOWN_PROCEDURE` steht es keinmal (Negativpruefung; eine unbekannte
+  # Prozedur erreicht das Backend nicht, der Aufzeichner sieht sie nicht).
+  anfrage_fehler() { # anfrage_fehler <Code> <Ursache>: Zahl der Ereignisse request_failed mit diesem Code und dieser Ursache
+    docker logs "$SERVER" 2>&1 | log_zaehle_fehler "$1" "$2"
+  }
+  prepare_limit_einmal() { [ "$(anfrage_fehler TDS_PREPARE_LIMIT handle-limit)" = 1 ]; }
+  unbekannte_prozedur_keinmal() { [ "$(anfrage_fehler TDS_UNSUPPORTED_RPC UNKNOWN_PROCEDURE)" = 0 ]; }
+  pruefe "Log: request_failed mit TDS_PREPARE_LIMIT (handle-limit) genau einmal" prepare_limit_einmal
+  pruefe "Log: kein request_failed mit TDS_UNSUPPORTED_RPC (UNKNOWN_PROCEDURE)" unbekannte_prozedur_keinmal
   # Geprueft bleibt die Zahl der Anfragen, die das Backend erreichen.
   pruefe "Prepare: 1000 Befehle erreichen das Backend (Marker @einzeln)" \
     sh -c "[ \"\$(docker logs '$SERVER' 2>&1 | grep -cF 'parameter=[@einzeln:Int32:INPUT]')\" = 1000 ]"
@@ -145,14 +156,17 @@ if [ "$KATEGORIE" = Synchronitaet ]; then
 fi
 
 if [ "$KATEGORIE" = Luecken ]; then
-  # Entfallen, Ersatz in slice-betrieb-log-adapter-testserver (der Referenzclient sieht nur 18456 bzw. den Fehler, den
-  # Grund nannte allein das Log der Bibliothek):
-  # - 'Login: abgelehnt (UNSUPPORTED_PASSWORD_CHANGE)'
-  # - 'Login: abgelehnt (UNSUPPORTED_FEDERATED_AUTHENTICATION)'
-  # - 'tdswire: Fehler: TDS_PROTOCOL_ERROR' (mehrere RPCs)
-  # - 'tdswire: Fehler: TDS_UNSUPPORTED_TYPE' (xml)
-  # Wo `src/test` den Grund der Ablehnung ueber `Wiring` liest (LoginLogInspectionTest, HandshakeWiringTest), bleibt er
-  # geprueft; ob das jede dieser Pruefungen ersetzt, ist nicht festgestellt.
+  # Der Referenzclient sieht nur 18456 bzw. den Fehler; den Grund nennt allein das Log des Testservers:
+  # - `login_rejected` mit `reason` UNSUPPORTED_PASSWORD_CHANGE und UNSUPPORTED_FEDERATED_AUTHENTICATION
+  # - `request_failed` mit `error_code` TDS_PROTOCOL_ERROR (mehrere RPCs) und TDS_UNSUPPORTED_TYPE (xml)
+  grund() { # grund <event> <Feld> <Wert>: mindestens eine Zeile des Ereignisses mit diesem Feldwert
+    docker logs "$SERVER" 2>&1 | log_nennt_ereignis "$1" "\"$2\":\"$3\""
+  }
+  pruefe "Log: login_rejected mit UNSUPPORTED_PASSWORD_CHANGE" grund login_rejected reason UNSUPPORTED_PASSWORD_CHANGE
+  pruefe "Log: login_rejected mit UNSUPPORTED_FEDERATED_AUTHENTICATION" \
+    grund login_rejected reason UNSUPPORTED_FEDERATED_AUTHENTICATION
+  pruefe "Log: request_failed mit TDS_PROTOCOL_ERROR (mehrere RPCs)" grund request_failed error_code TDS_PROTOCOL_ERROR
+  pruefe "Log: request_failed mit TDS_UNSUPPORTED_TYPE (xml)" grund request_failed error_code TDS_UNSUPPORTED_TYPE
   # Pooling mit einer physischen Verbindung (RESETCONNECTION): der Client sieht nur Ergebnisse; dass alle Anfragen mit dem
   # Marker auf einer einzigen Sitzung des Servers liefen (eine physische Verbindung, ein LOGIN7), zeigt allein das Log.
   eine_sitzung_mit() { # eine_sitzung_mit <Marker> <erwartete Zahl der Anfragen>

@@ -301,7 +301,8 @@ internal class Tds8DefenseTest {
 internal class Tds8ProcessTest : TempFilesTest() {
     /**
      * Ein Serverprozess nimmt eine Anmeldung ab dem ersten Byte (JDK-Gegenstelle, ALPN `tds/8.0`) an und trennt
-     * ein erstes Byte `0x16` ohne gültigen TLS-Anfang ohne Antwort; die Ausgabe nennt weder Benutzer noch Passwort.
+     * ein erstes Byte `0x16` ohne gültigen TLS-Anfang ohne Antwort; die Ausgabe nennt weder Passwort noch Benutzer
+     * (außer im Feld `principal` der Annahme).
      *
      * @spec SPEC-001
      * @spec SPEC-020
@@ -320,8 +321,11 @@ internal class Tds8ProcessTest : TempFilesTest() {
                 assertTrue(it.closedByServerWithoutBytes(), "Antwort auf ein ungültiges TLS")
             }
             assertNotNull(server.terminate(), "der Prozess endet nach SIGTERM")
+            val handshake = server.output.filter { it.contains("\"event\":\"tls_handshake_failed\"") }
+            assertEquals(1, handshake.size, server.output.toString())
             listOf(USER, PASSWORD).forEach { word ->
-                assertTrue(server.output.none { it.contains(word) }, "Ausgabe nennt $word: ${server.output}")
+                val lines = server.outputWithoutPrincipal()
+                assertTrue(lines.none { it.contains(word) }, "Ausgabe nennt $word: ${server.output}")
             }
         }
     }

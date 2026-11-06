@@ -16,6 +16,9 @@ detekt-ktlint = { module = "dev.detekt:detekt-rules-ktlint-wrapper", version.ref
 # Laufzeit des Transports (ADR-0003): suspendierendes Lesen und Schreiben ueber den Kanal.
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 
+# Schreiben der JSON-Zeilen des Log-Adapters im Testserver (ADR-0020): nur der Streaming-Generator, nur im Modul testserver.
+jackson-core = { module = "com.fasterxml.jackson.core:jackson-core", version.ref = "jackson" }
+
 # Lesen der Tabellenbeschreibung des Simulations-Backends (ADR-0012): nur die Strom-API, nur in runtime.
 jackson-dataformat-yaml = { module = "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml", version.ref = "jackson" }
 

@@ -1,0 +1,2 @@
+**Vorgang:** [slice-betrieb-log-adapter-testserver](../../../../done/slice-betrieb-log-adapter-testserver.md)
+**Fund:** Verifikation V-1 ([Bericht](../../../../../../reviews/2026-11-06-db98080c-verifikation-slice-betrieb-log-adapter-testserver.md)): Zielbild-Konflikt `LOG_LEVEL=DEBUG` am Prozess; der Implementer hat die Erwartung des Prozesstests nach dem Merge von `main` (Backend über dem `TableStore`) angepasst, ehrlich und im KDoc begründet, der Satz in `einbettung-und-betrieb.md` fehlte (Nachzug in der Closure).

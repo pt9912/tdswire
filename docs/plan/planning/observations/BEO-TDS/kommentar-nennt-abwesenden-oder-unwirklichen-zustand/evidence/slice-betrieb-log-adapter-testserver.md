@@ -1,0 +1,2 @@
+**Vorgang:** [slice-betrieb-log-adapter-testserver](../../../../done/slice-betrieb-log-adapter-testserver.md)
+**Fund:** [Review](../../../../../../reviews/2026-11-06-e0715125-review-slice-betrieb-log-adapter-testserver.md) F-3 (LOW): das KDoc in `TelemetryJson.kt` nannte `TelemetryEventSchemaTest`, den es nirgends gibt (Kopplungs-Kommentar mit nicht auflösbarem Ziel); behoben in `c30f627e` (zeigt auf `TelemetryJsonTest`).

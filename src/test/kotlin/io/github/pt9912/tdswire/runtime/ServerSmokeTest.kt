@@ -99,7 +99,8 @@ internal class ServerSmokeTest : TempFilesTest() {
      * `pbkdf2`) führt zu LOGINACK; unbekannte Kennung und falsches Passwort ergeben dieselben Bytes wie die
      * feste Ablehnung; SSPI-Merkmal, FeatureExt `0x02` und Passwortwechsel werden mit denselben Bytes abgelehnt;
      * ein LOGIN7 in 20-Byte-Paketen, byteweise gesendet, führt zur Anmeldung. Danach beendet SIGTERM den
-     * Prozess, eine angemeldete Verbindung wird getrennt, und die Standardausgabe nennt weder Benutzer noch Passwort.
+     * Prozess, eine angemeldete Verbindung wird getrennt, und die Standardausgabe nennt weder Passwort noch Benutzer
+     * (außer die Kennung im Feld `principal` des Ereignisses „Anmeldung angenommen“).
      *
      * @spec SPEC-005
      * @spec SPEC-008
@@ -134,7 +135,8 @@ internal class ServerSmokeTest : TempFilesTest() {
             assertTrue(open.closedByServerWithoutBytes(), "die angemeldete Verbindung ist getrennt")
             assertNotNull(server.awaitLine("${ServerProcess.PREFIX} gestoppt"), server.output.toString())
             listOf("alice", "bob", "secret", "geheim", "falsch", "mallory").forEach { word ->
-                assertTrue(server.output.none { it.contains(word) }, "Ausgabe nennt $word: ${server.output}")
+                val lines = server.outputWithoutPrincipal()
+                assertTrue(lines.none { it.contains(word) }, "Ausgabe nennt $word: ${server.output}")
             }
             open.close()
         }
@@ -189,7 +191,8 @@ internal class ServerSmokeTest : TempFilesTest() {
             val port = ConfigKeys.LISTEN_PORT to occupied.localPort.toString()
             ServerProcess(environment(port)).use { server ->
                 assertEquals(EXIT_START_FAILED, server.awaitExit())
-                assertTrue(server.output.single().contains("Port belegt"), server.output.toString())
+                val plain = server.output.filter { it.startsWith(ServerProcess.PREFIX) }
+                assertTrue(plain.single().contains("Port belegt"), server.output.toString())
                 assertNull(server.output.firstOrNull { it.contains("gestartet") })
             }
         }

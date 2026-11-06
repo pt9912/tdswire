@@ -12,12 +12,14 @@ private const val MEMORY_LIMIT = "-Xmx256m"
 /**
  * Der Testserver als Kind-JVM mit `main` aus dem Klassenpfad des Gradle-Moduls `testserver` (Systemeigenschaft
  * `tdswire.testserverclasspath`). Die Umgebung des Kindes besteht nur aus [environment]; Standardausgabe und
- * Fehlerausgabe werden zeilenweise in [output] gesammelt. Der Start der Kind-JVM setzt keine JVM-Option außer dem Heap.
+ * Fehlerausgabe werden zeilenweise in [output] gesammelt; mit `drain = false` liest der Test die Ausgabe nicht, und
+ * der Kanal des Kindes füllt sich. Der Start der Kind-JVM setzt keine JVM-Option außer dem Heap.
  */
-internal class ServerProcess(environment: Map<String, String>, mainClass: String = MAIN_CLASS) : AutoCloseable {
+internal class ServerProcess(environment: Map<String, String>, mainClass: String = MAIN_CLASS, drain: Boolean = true) :
+    AutoCloseable {
     val output = CopyOnWriteArrayList<String>()
     private val process: Process
-    private val reader: Thread
+    private var reader: Thread
 
     init {
         val java = File(System.getProperty("java.home"), "bin/java").path
@@ -27,9 +29,25 @@ internal class ServerProcess(environment: Map<String, String>, mainClass: String
         builder.environment().clear()
         builder.environment().putAll(environment)
         process = builder.start()
-        reader = thread(isDaemon = true, name = "tdswire-test-server-output") {
-            process.inputStream.bufferedReader().forEachLine { output += it }
-        }
+        reader = thread(isDaemon = true, name = "tdswire-test-server-output") { if (drain) readOutput() }
+    }
+
+    private fun readOutput() = process.inputStream.bufferedReader().forEachLine { output += it }
+
+    /** Beginnt, die Ausgabe zu lesen, wenn der Prozess mit `drain = false` gestartet wurde. */
+    fun startDraining() {
+        reader = thread(isDaemon = true, name = "tdswire-test-server-output") { readOutput() }
+    }
+
+    /** Ob der Prozess läuft. */
+    fun alive(): Boolean = process.isAlive
+
+    /**
+     * Die Zeilen der Ausgabe, in denen das Feld `principal` des Ereignisses `login_accepted` leer ist: die Kennung der
+     * angenommenen Anmeldung darf dort stehen (`ADR-0020`), sonst nichts, was eine Kennung oder ein Geheimnis nennt.
+     */
+    fun outputWithoutPrincipal(): List<String> = output.map { line ->
+        if (line.contains("\"event\":\"login_accepted\"")) line.replace(PRINCIPAL_FIELD, "\"principal\":\"\"") else line
     }
 
     /** Wartet auf eine Zeile, die mit [prefix] beginnt; `null`, wenn der Prozess vorher endet oder die Zeit abläuft. */
@@ -50,12 +68,12 @@ internal class ServerProcess(environment: Map<String, String>, mainClass: String
         .substringAfterLast(' ').toInt()
 
     /** Wartet auf das Ende des Prozesses und gibt den Exit-Code zurück; `null` nach Ablauf der Zeit (dann beendet). */
-    fun awaitExit(): Int? {
-        if (!process.waitFor(WAIT_SECONDS, TimeUnit.SECONDS)) {
+    fun awaitExit(seconds: Long = WAIT_SECONDS): Int? {
+        if (!process.waitFor(seconds, TimeUnit.SECONDS)) {
             process.destroyForcibly()
             return null
         }
-        reader.join(TimeUnit.SECONDS.toMillis(WAIT_SECONDS))
+        reader.join(TimeUnit.SECONDS.toMillis(seconds))
         return process.exitValue()
     }
 
@@ -63,9 +81,14 @@ internal class ServerProcess(environment: Map<String, String>, mainClass: String
      * Sendet SIGTERM, wie `docker stop`, und wartet auf das Ende; der Shutdown-Hook schreibt `gestoppt`. `kill`
      * statt `Process.destroy`: `destroy` schließt die Ausgabe des Kindes, bevor der Hook sie geschrieben hat.
      */
-    fun terminate(): Int? {
+    fun terminate(seconds: Long = WAIT_SECONDS): Int? {
+        signalTerm()
+        return awaitExit(seconds)
+    }
+
+    /** Sendet SIGTERM und kehrt zurück, ohne auf das Ende zu warten. */
+    fun signalTerm() {
         check(ProcessBuilder("kill", "-TERM", process.pid().toString()).start().waitFor() == 0) { "kill gescheitert" }
-        return awaitExit()
     }
 
     /** Beendet das Kind, falls es läuft, und wartet bis zu [WAIT_SECONDS] auf sein Ende. */
@@ -78,6 +101,7 @@ internal class ServerProcess(environment: Map<String, String>, mainClass: String
 
     companion object {
         const val PREFIX = "tdswire:"
+        private val PRINCIPAL_FIELD = Regex(""""principal":"(?:[^"\\]|\\.)*"""")
         private const val MAIN_CLASS = "io.github.pt9912.tdswire.testserver.MainKt"
 
         /** Das `main` des Testservers mit den Tabellen des Kompatibilitätslaufs; `laufend` liefert Zeilen ohne Ende. */
