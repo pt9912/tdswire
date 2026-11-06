@@ -80,8 +80,9 @@ internal enum class SequenceOutcome {
  * - Ein [QueryEvent.Failure] zählt in der Vorschau als nächstes Ereignis: ein zurückgehaltener
  *   Abschluss bekommt `DONE_MORE`, danach folgen ERROR und ein DONE mit Fehlerstatus (Nutzer).
  *   Dasselbe gilt für jedes andere nächste Ereignis, auch für eine Ausnahme des Stroms. Belegt am echten
- *   SQL Server (Messprotokoll, Szenarien `batch-statement-abbrechend`, `batch-batch-abbrechend`, W-1 bis W-3; ein
- *   Fall je Instanz): `DONE[MORE|COUNT]` vor dem ERROR eines batch-abbrechenden Fehlers.
+ *   SQL Server ist nur das Bit vor dem ERROR eines batch-abbrechenden Fehlers: `DONE[MORE|COUNT]` hinter dem
+ *   Ergebnis, dann ERROR, dann `DONE[ERR]` (`ADR-0007` Messung R05, `SELECT 1; SELECT * FROM dbo.nope; SELECT 3`;
+ *   ein Fall; die Szenarien des Mitschnitts zeigen dieses Bit nicht).
  * - Die Klasse des Fehlers ([QueryEvent.Failure.scope]) bestimmt den Fortgang. `BATCH`: ERROR und ein DONE mit
  *   `ERROR` (ohne `MORE`), der Lauf endet; ebenso jeder Fehler, den die Abbildung als verbindungsschließend
  *   ausweist. `STATEMENT` (gemessen: `SELECT 1/0; SELECT 2`): ERROR und ein zurückgehaltenes DONE mit `ERROR`, das

@@ -90,12 +90,12 @@ import kotlin.time.Duration.Companion.milliseconds
  * `RUNNING` oder `STREAMING` und der Ablauf der Frist gehen denselben Weg: der erste Übergang nach `CANCELLING`
  * gewinnt, der Lauf des Sequencers wird abgebrochen (genau ein `cancel()` des Backends, `close()` der Ausführung, ein
  * zurückgehaltener Abschluss entfällt), und die Antwort endet bei ATTENTION mit genau einem `DONE[ATTN]` ohne ERROR,
- * bei der Frist mit ERROR `TDS_TIMEOUT` und DONE mit Fehlerstatus. Die Verbindung bleibt in beiden Fällen offen und die
- * folgende Anfrage bekommt nur ihre eigene Antwort. Ist die Antwort beim Gewinn des Auslösers schon vollständig,
- * entfällt der Abbruch: ATTENTION wird als eigene Nachricht bestätigt, die Frist ändert nichts. Beendet das Backend
- * den Abbruch nicht innerhalb von `CANCEL_TIMEOUT`, schließt die Verbindung ohne weitere Bytes. ATTENTION in `READY`
- * wird bestätigt, ohne Cancel. Ist der Strom nicht mehr zu schließen (ein Schreibvorgang scheitert), schließt die
- * Verbindung ohne ERROR und DONE.
+ * bei der Frist mit ERROR `TDS_TIMEOUT` und DONE mit Fehlerstatus (in der Antwort auf einen RPC DONEPROC). Die
+ * Verbindung bleibt in beiden Fällen offen und die folgende Anfrage bekommt nur ihre eigene Antwort. Ist die Antwort
+ * beim Gewinn des Auslösers schon vollständig, entfällt der Abbruch: ATTENTION wird als eigene Nachricht bestätigt,
+ * die Frist ändert nichts. Beendet das Backend den Abbruch nicht innerhalb von `CANCEL_TIMEOUT`, schließt die
+ * Verbindung ohne weitere Bytes. ATTENTION in `READY` wird bestätigt, ohne Cancel. Ist der Strom nicht mehr zu
+ * schließen (ein Schreibvorgang scheitert), schließt die Verbindung ohne ERROR und DONE.
  *
  * Disconnect (`TDS-FA-07.a`, `SPEC-029`, `SPEC-031`): Meldet das Lesen während einer Anfrage das Ende der Gegenstelle
  * oder einen Fehler, schließt die Sitzung, der Lauf wird abgebrochen (genau ein `cancel()` des Backends, `close()` der
@@ -104,7 +104,8 @@ import kotlin.time.Duration.Companion.milliseconds
  *
  * Geordnetes Beenden (`SPEC-044`, `ADR-0027` Entscheidung 4 und 2c): Die Schleife meldet dem [ShutdownGate], wenn eine
  * Anfrage läuft. Eine Anfrage, die nach dem Beginn des Beendens angenommen wird, beantwortet sie mit ERROR
- * `TDS_SHUTDOWN` und DONE mit Fehlerstatus, ohne das Backend zu rufen; danach schließt die Verbindung. Endet eine
+ * `TDS_SHUTDOWN` und DONE mit Fehlerstatus (im RPC DONEPROC), ohne das Backend zu rufen; danach schließt die
+ * Verbindung. Endet eine
  * Anfrage im Beenden regulär, bleibt die Verbindung (als „läuft“ gemeldet) offen: jede weitere Nachricht, die
  * danach vollständig wird, erhält `TDS_SHUTDOWN` (`SPEC-044` Nr. 3), danach endet die Verbindung. Sie endet auch beim
  * Ende der Gegenstelle und beim Ablauf von `SHUTDOWN_GRACE`: ohne laufende Anfrage schließt der angemeldete Abbruch

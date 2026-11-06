@@ -28,7 +28,8 @@ import kotlin.test.assertTrue
  * RESETCONNECTION (`TDS-FA-07`, `TDS-QA-02`, `TDS-FA-04`, `SPEC-001`, `SPEC-030`, `SPEC-057`): Das Bit `0x08` im
  * ersten Paket einer Anfrage in `READY` leert die Handle-Tabelle der Sitzung vor der Verarbeitung dieser Anfrage.
  * Gegenstelle ist ein Fake-Backend (`ScriptedBackend`) und ein Rohbytes-Client; Handle-Werte, Zähler, Grenze und
- * Antwort ohne ENVCHANGE sind Festlegungen und weder am Referenzclient noch an einem SQL Server gemessen. Die Tests
+ * Antwort mit ENVCHANGE Typ 18 als erstem Token im RPC sind Festlegungen, für den RPC weder am Referenzclient noch an
+ * einem SQL Server gemessen (am Batch ist das ENVCHANGE gemessen, W-7). Die Tests
  * belegen den Sitzungsrahmen, nicht den Pool des Clients.
  */
 class ResetConnectionDispatchTest {

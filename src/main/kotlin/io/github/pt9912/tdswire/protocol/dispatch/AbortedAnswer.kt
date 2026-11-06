@@ -18,8 +18,8 @@ import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
 /**
  * Das Ende einer Antwort, die ein Auslöser des Abbruchs unterbrochen hat (`ADR-0027` Entscheidung 1 und 2):
  * - ATTENTION, Antwort unterbrochen: genau ein `DONE[ATTN]`, an die laufende Nachricht angehängt, kein ERROR.
- * - Ablauf der Frist, Antwort unterbrochen: ERROR `TDS_TIMEOUT` und DONE mit Fehlerstatus, an die laufende Nachricht
- *   angehängt (Mapping des `ErrorMapper`, Class 16, Verbindung offen).
+ * - Ablauf der Frist, Antwort unterbrochen: ERROR `TDS_TIMEOUT` und DONE mit Fehlerstatus (im RPC DONEPROC), an die
+ *   laufende Nachricht angehängt (Mapping des `ErrorMapper`, Class 16, Verbindung offen).
  * - Ablauf von `SHUTDOWN_GRACE` im geordneten Beenden, Antwort unterbrochen: wie bei ATTENTION genau ein `DONE[ATTN]`
  *   ohne ERROR (`SPEC-044` Nr. 4; die Form ist Festlegung, nicht gemessen); die Verbindung endet danach
  *   (`ADR-0027` Entscheidung 2c).
