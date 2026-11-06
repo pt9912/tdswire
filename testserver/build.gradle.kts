@@ -102,3 +102,10 @@ tasks.register<JavaExec>("kompatibilitaetsServer") {
     classpath = sourceSets.main.get().runtimeClasspath
     mainClass.set("io.github.pt9912.tdswire.testserver.KompatibilitaetsServerKt")
 }
+
+// Der Testserver des Laufs mit eigenem Backend (Stage `eigenesbackendserver`, `make eigenes-backend`): kein
+// Simulations-Backend, Anmeldung und Richtlinie aus der Umgebung der Stage.
+tasks.register<JavaExec>("eigenesBackendServer") {
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set("io.github.pt9912.tdswire.testserver.EigenesBackendServerKt")
+}

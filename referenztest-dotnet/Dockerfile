@@ -34,6 +34,13 @@ COPY Integration Integration
 RUN --network=none dotnet build --no-restore --nologo
 CMD ["dotnet", "test", "--no-build", "--nologo", "--logger", "console;verbosity=detailed"]
 
+# --- Eigenes Backend: der Referenzclient gegen den Serverprozess mit einem eigenen In-Memory-Backend (`make eigenes-backend`,
+# TDS-FA-08, TDS-RB-04). Gebaut wird ohne Netz; der Lauf des Containers braucht den Server im selben Netzwerk (TDSWIRE_ZIEL). ---
+FROM restore AS eigenes-backend
+COPY EigenesBackend EigenesBackend
+RUN --network=none dotnet build --no-restore --nologo
+CMD ["dotnet", "test", "--no-build", "--nologo", "--logger", "console;verbosity=detailed"]
+
 # --- Kompatibilitaet: die Szenarien und Messungen des Referenzclients gegen den Serverprozess (`make kompatibilitaet`,
 # ADR-0019). Gebaut wird ohne Netz; der Lauf braucht den Server im selben Netzwerk (TDSWIRE_ZIEL) und sein Zertifikat
 # (SSL_CERT_FILE) als Vertrauensanker. Der Lauf waehlt die Tests je Stufe mit `--filter Kategorie=...`. ---

@@ -1,0 +1,2 @@
+**Vorgang:** [slice-e2e-backend-ausserhalb-modul](../../../../done/slice-e2e-backend-ausserhalb-modul.md)
+**Fund:** [Review](../../../../../../reviews/2026-11-06-4436821-slice-e2e-backend-ausserhalb-modul.md) F-3 (LOW): „50007 (Class 20, Verbindung danach geschlossen)“ in Deklaration und Testkommentar; gemessen ist `State Closed` am Client, und der Client schließt bei Class 20 selbst. Die Aussage über das Schließen durch den Server trug der Lauf nicht. Am Text berichtigt.

@@ -1,1 +1,1 @@
-**Stand:** offen
+**Stand:** offen — 3 Evidence-Dateien (Schwelle erreicht mit `slice-e2e-backend-ausserhalb-modul`); nicht verkörpert, Entscheidung beim Nutzer (Prüfpunkt im Reviewer-Skill, Sensor, Träger-Slice oder Streichung), siehe Vorschlag (a) in `slice-e2e-backend-ausserhalb-modul` §7. Der Lese-Schritt der Welle-Closure entscheidet.
