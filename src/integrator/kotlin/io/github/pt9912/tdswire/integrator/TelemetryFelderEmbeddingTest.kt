@@ -98,8 +98,8 @@ class TelemetryFelderEmbeddingTest {
     /**
      * Ein belegter Port ergibt `BIND_FAILED` mit Adresse und Port und ohne Typname der Ausnahme; eine TLS-Konfiguration
      * ohne gültiges Material ergibt `TLS_START_REJECTED` mit `part` und `form`; ein doppelter Tabellenname ergibt
-     * `START_REFUSED` mit der Marke `TABLE_NAME_DUPLICATE`; ein ungültiger Wert ergibt `CONFIG_INVALID` mit dem Schlüssel
-     * der Diagnose in `Aborted.issues`.
+     * `START_REFUSED` mit der Marke `TABLE_NAME_DUPLICATE`; ein ungültiger Wert ergibt `CONFIG_INVALID`
+     * mit dem Schlüssel der Diagnose in `Aborted.issues`.
      *
      * @spec SPEC-059
      * @spec SPEC-043
