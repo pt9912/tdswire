@@ -138,6 +138,13 @@ Aussage, die E1 trägt: die Stufen 1 bis 6 laufen auf dem Aufbau mit Modul grün
 
 Grenze: G1.2 belegt die Stages über den Layer-Cache; die ausgeführte Fassung der Stages ist die aus G1.1 mit gleichem Inhalt der Eingänge.
 
+## G3 — `make gates` ohne `FORCE` auf dem Stand mit den Nachzügen
+
+| Nr. | Lauf | Ergebnis |
+|---|---|---|
+| G3.1 | `make gates` (ohne `FORCE`) auf `54d35b64`, Arbeitsbaum sauber | Exit 0; Ausgabe „kein Beleg für werkzeug“ und „kein Beleg für tests mit diesem Eingangs-Hash“, beide Klassen liefen also; die Klasse `stempel` wurde übersprungen („Beleg für 7130e759…“, Beleg am Eingangs-Hash); `d-check` 0 Befunde |
+| G3.2 | `make docs-check` vor dem Nachzug der Zeile von `SPEC-042` | rot: `matrix-forbidden`, Verweis der Spezifikation auf `gradle/verification-metadata.xml` (Spec verweist nicht auf Dateien außerhalb der Strata); die Zeile nennt die Datei seither in Worten, danach 0 Befunde |
+
 ## E2 und G2 — Läufe nach dem Zusammenführen mit `main`
 
 Stand: Zweig `slice-testserver-gradle-modul` auf `a572c5de` (Merge von `main` `cd0e2368` in den Zweig; bringt unter anderem `LaufendeQuelle.kt` und die Cancel-Tests), Arbeitsbaum sauber. Einzelläufe nacheinander; Load Average (1 Minute) zu Beginn des jeweiligen Laufs aus `uptime`.

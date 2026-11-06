@@ -53,7 +53,7 @@ Liefer-Punkte (drei):
 
 Nachweis-Pflichten für alle drei Punkte:
 
-- [ ] `make gates` grün; zusätzlich laufen `make e2e` (Stufen 1 bis 7) und `make testserver-selbsttest` grün auf dem neuen Aufbau (kein Gate, [ADR-0022](../../adr/0022-e2e-laeufe-nicht-in-den-gates.md)); ein rotes Gate erreicht `done/` nur mit Carveout.
+- [x] `make gates` grün; zusätzlich laufen `make e2e` (Stufen 1 bis 7) und `make testserver-selbsttest` grün auf dem neuen Aufbau (kein Gate, [ADR-0022](../../adr/0022-e2e-laeufe-nicht-in-den-gates.md)); ein rotes Gate erreicht `done/` nur mit Carveout.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
