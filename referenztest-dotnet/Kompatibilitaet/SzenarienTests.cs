@@ -10,7 +10,7 @@ namespace TdsWire.Referenztests.Kompatibilitaet;
 /// (`make kompatibilitaet`, Stufe 4 von `make e2e`, ADR-0019, TDS-QA-01): Anmeldung, SELECT, parametrisierte Abfrage,
 /// NULL, Typkatalog, Einfügen/Ändern/Löschen, Fehler vor und nach Zeilen. Jede Verbindung läuft mit TLS in TDS 7.4
 /// (Encrypt=Mandatory, Kette und Name geprüft); die Tabellen und Zahlen stehen in `KompatibilitaetsServer.kt`.
-/// Nicht belegt: Cancel (der Server beantwortet ATTENTION während einer Anfrage nicht, CO-004), mehrteilige Antworten
+/// Nicht belegt: Cancel (steht in `SynchronitaetTests`), mehrteilige Antworten
 /// und Rückgabewerte von Ausgabeparametern (das Simulations-Backend liefert sie nicht; zwei Tests messen die
 /// Abweisung), ein echter SQL Server.
 /// </summary>

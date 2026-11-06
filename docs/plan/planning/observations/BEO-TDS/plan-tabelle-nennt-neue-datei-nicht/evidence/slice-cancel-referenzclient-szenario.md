@@ -1,0 +1,2 @@
+**Vorgang:** slice-cancel-referenzclient-szenario
+**Fund:** Verifikation, Plan gegen Diff: Zwei Zeilen von §3 nannten `IntegrationServer.kt` und `KompatibilitaetsServer.kt` unter `src/test/kotlin/.../runtime/`, geliefert und gebaut sind sie unter `src/testserver/kotlin/.../testserver/`. Abweichung der Klasse: die Tabelle nennt nicht die Datei an ihrem Ort (hier ein veralteter Pfad statt einer fehlenden Datei). Berichtigt bei der Closure.

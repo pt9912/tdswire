@@ -11,8 +11,9 @@ namespace TdsWire.Referenztests.Integration;
 /// TDSWIRE_ZIEL (host:port). Belegt ist das Verhalten des Referenzclients gegen den Server dieses Repos in TDS 7.4
 /// ohne Verschlüsselung und ohne Pool, nicht gegen einen echten SQL Server, nicht TDS 8.0, nicht Last.
 /// Die Tabellen und Zahlen stehen in `IntegrationServer.kt` (BIG_ROWS, BIG_TEXT_CHARS, BROKEN_AFTER).
-/// Cancel mit Folgeabfrage gehört nicht zu diesem Lauf: der Server beantwortet ein ATTENTION-Paket während einer
-/// Anfrage nicht. Die Ausnahme ist befristet und als CO-004 geführt (docs/plan/carveouts/); der Lauf ist Stufe 3 des
+/// Das Cancel-Szenario bricht die Tabelle `laufend` (Zeilenquelle ohne Ende) nach 50 gelesenen Zeilen mit
+/// `SqlCommand.Cancel()` ab; die Folgeabfrage derselben Verbindung erhält nur ihre Antwort. `CancellationToken`,
+/// Command-Timeout und der Ablauf von `QUERY_TIMEOUT` stehen in Stufe 7 (`SynchronitaetTests`). Der Lauf ist Stufe 3 des
 /// E2E-Durchgangs `make e2e`, kein Gate.
 /// </summary>
 [Trait("Kategorie", "Integration")]
@@ -22,6 +23,7 @@ public class SimulationBackendTests
     private const int GrosseZeilen = 500_000;
     private const int GrosseZeichen = 128;
     private const int ZeilenVorDemFehler = 3;
+    private const int ZeilenVorDemCancel = 50;
 
     private readonly ITestOutputHelper _ausgabe;
 
@@ -131,4 +133,55 @@ public class SimulationBackendTests
         Assert.Equal(1, leserFolge.GetInt32(0));
         Assert.False(leserFolge.Read());
     }
+
+    [Fact]
+    public void Cancel_einer_laufenden_Anfrage_laesst_die_Folgeabfrage_nur_ihre_Antwort_erhalten()
+    {
+        using var verbindung = Verbinden();
+        var gelesen = 0;
+        var nachCancel = 0;
+        SqlException? ausnahme = null;
+
+        using (var befehl = new SqlCommand("SELECT Id, Text FROM laufend", verbindung))
+        using (var leser = befehl.ExecuteReader())
+        {
+            // Die Anfrage läuft nachweislich: die Quelle hat keine Wanduhr und kein Ende, 50 Zeilen sind angekommen.
+            while (gelesen < ZeilenVorDemCancel && leser.Read()) gelesen++;
+            Assert.Equal(ZeilenVorDemCancel, gelesen);
+
+            befehl.Cancel();
+
+            var uhr = Stopwatch.StartNew();
+            try
+            {
+                while (leser.Read())
+                {
+                    nachCancel++;
+                    Assert.True(uhr.Elapsed < TimeSpan.FromSeconds(30), "der Strom endet nach Cancel nicht");
+                }
+            }
+            catch (SqlException e)
+            {
+                ausnahme = e;
+            }
+        }
+
+        _ausgabe.WriteLine($"laufend: {gelesen} Zeilen vor Cancel, {nachCancel} danach gelesen; Ausgang: {(ausnahme == null ? "Strom endet ohne Ausnahme" : Beschreibung(ausnahme))}; Zustand {verbindung.State}");
+        // Gemessen mit SqlClient 7.1.1: der Client beendet das Lesen selbst mit Number 0, Class 11 ("Operation cancelled by user.").
+        Assert.NotNull(ausnahme);
+        Assert.Equal(0, ausnahme!.Number);
+        Assert.Equal(11, ausnahme.Class);
+        Assert.Equal(System.Data.ConnectionState.Open, verbindung.State);
+
+        using var folge = new SqlCommand("SELECT Id, Name FROM person WHERE Id = 2", verbindung);
+        using var leserFolge = folge.ExecuteReader();
+        Assert.Equal(2, leserFolge.FieldCount);
+        Assert.True(leserFolge.Read());
+        Assert.Equal((2, "Bob"), (leserFolge.GetInt32(0), leserFolge.GetString(1)));
+        Assert.False(leserFolge.Read());
+        Assert.False(leserFolge.NextResult());
+    }
+
+    private static string Beschreibung(SqlException e) =>
+        $"SqlException Number {e.Number}, Class {e.Class}, State {e.State}, Meldung '{e.Message}'";
 }
