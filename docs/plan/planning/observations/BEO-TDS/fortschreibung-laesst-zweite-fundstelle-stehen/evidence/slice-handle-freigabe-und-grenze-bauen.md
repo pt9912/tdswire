@@ -1,0 +1,2 @@
+**Vorgang:** [slice-handle-freigabe-und-grenze-bauen](../../../../done/slice-handle-freigabe-und-grenze-bauen.md)
+**Fund:** Review F-4 (KDoc nennt `@handle` nach der Änderung des Namens) und Re-Review R-1: die Obergrenze 100 stand in Spec, Slice und KDoc, nicht in Nutzer-Doku und Matrix-Zeile „Freigabe der Handles“, die „wie am echten SQL Server“ und „jede Nummer“ sagten (Messvermerk breiter als der Beleg); behoben in der Closure.

@@ -266,6 +266,12 @@ am Draht gesehen: Status `0x09` im ersten Paket der ersten Anfrage nach der Wied
 Einzelmessung je Instanz 2022 und 2025). Die Antwort auf die Anfrage mit dem Bit trägt kein ENVCHANGE: der Referenzclient nahm sie so an;
 der echte Server beginnt die Antwort mit ENVCHANGE Typ 18 mit leerem neuem und leerem altem Wert (gleiche Quelle).
 
+Freigabe der Prepared-Handles: Ein SQL_BATCH, dessen Text ganz die Form `EXEC sp_unprepare <n>[;EXEC sp_unprepare <n>…]`
+hat (Schreibweise und Zahlenbereich in `SPEC-030`), beantwortet der Sitzungsrahmen, ohne das Backend zu rufen: er gibt die
+genannten Handles der Sitzung frei und antwortet nach `SPEC-030` und `SPEC-060`. Der Ort ist der von
+`RESETCONNECTION` (die Sitzung, vor einem Backend), die Art nicht: dort ist es ein Statusbit im Paketkopf, hier ein
+Text. Jeder andere Text geht an das Backend (`SPEC-002`).
+
 Der Abschluss einer Anfrage wird genau einmal gesendet.
 
 ### SPEC-002 — Interner Query-Vertrag
@@ -470,16 +476,20 @@ zum Fehlerfall (unbekanntes Handle, unbekannte Form) sind Festlegungen, nicht Me
 | RPC | Erkennung | Pflichtverhalten |
 |---|---|---|
 | `sp_executesql` | ProcID 10 | Parameter 0 SQL-Text, Parameter 1 Deklarationsliste, optional (beide ohne Namen); danach Wertparameter, benannt oder ohne Namen (unten), INPUT, NULL und OUTPUT/InputOutput (Statusbyte `0x01`) |
-| `sp_prepexec` | ProcID 13 | Parameter 0 OUTPUT-Handle (`INTN` 4, bei Erstaufruf −1), Parameter 1 Deklarationsliste, Parameter 2 SQL-Text; Antwort liefert das Handle als RETURNVALUE |
+| `sp_prepexec` | ProcID 13 | Parameter 0 OUTPUT-Handle (`INTN` 4, beim Erstaufruf −1 oder 0: mssql-jdbc 13.4.0 sendet 0, Messzeile h6; beide Werte heißen „kein Handle“), Parameter 1 Deklarationsliste, Parameter 2 SQL-Text; Antwort liefert RETURNSTATUS 0 und das Handle als RETURNVALUE |
 | `sp_execute` | ProcID 12 | Parameter 0 Handle (`INTN` 4), danach nur die Nutzerparameter; unbekanntes Handle ergibt einen definierten Fehler |
 | RPC per Prozedurname | Name als String (`NameLenProcID` = Zeichenzahl), `OptionFlags=0x0000` | Name wie in `CommandText` (auch `[dbo].[p]`); der ReturnValue-Parameter wird nicht gesendet, RETURNSTATUS trägt ihn; nicht gesetzte Parameter fehlen in der Nachricht |
 
-Prepare-Handles gehören zur Sitzung und enden mit ihr; der Client sendete in den gemessenen
+Prepare-Handles gehören zur Sitzung und enden mit ihr; der Referenzclient sendete in den gemessenen
 Szenarien (ohne Pool) kein `sp_unprepare`, daher ist die Anzahl je Sitzung zu begrenzen (Festlegung); unter
-Pooling ist das nicht gemessen, ein gepoolter Client kann `sp_unprepare` senden, das der Katalog mit einem
-Fehler beantwortet. Ohne RETURNSTATUS und
+Pooling ist das nicht gemessen. Freigegeben wird nur durch die Batch-Form `EXEC sp_unprepare <n>` (unten), die
+mssql-jdbc 13.4.0 sendet; ein gepoolter Client, der `sp_unprepare` als RPC sendet, wird mit einem Fehler
+beantwortet (`SPEC-013`). Ohne RETURNSTATUS und
 RETURNVALUE bleiben ReturnValue, OUTPUT-Parameter und Prepare-Handle beim Client leer bzw. −1; die
-Tokens sind für diese Formen Pflicht und durch Tests nachzuweisen. Die Collation aus der
+Tokens sind für diese Formen Pflicht und durch Tests nachzuweisen. Der Server sendet bei `sp_prepexec` RETURNSTATUS 0
+vor dem Handle (Mitschnitte `prepare`, 2022 und 2025 der Referenzinstanz; ohne ihn übernimmt mssql-jdbc 13.4.0 das
+Handle nicht, Messzeilen h2, h3 und t1); bei `sp_executesql` und `sp_execute` sendet er noch keinen RETURNSTATUS, das
+ist eine bekannte Abweichung von der Referenzinstanz (Ausnahme A-16 des Referenzabgleichs, `SPEC-045`). Die Collation aus der
 Login-Antwort (ENVCHANGE Typ 7) ist Voraussetzung für jeden RPC mit Zeichenparametern. Alle anderen RPCs,
 auch `sp_prepare`, `sp_unprepare` und `sp_cursor*`, ergeben eine explizite Fehlermeldung ohne
 Verbindungsabbruch. **Messgrenzen:** Gemessen ist nur das Verhalten des Referenzclients gegen einen Testserver, nicht
@@ -504,22 +514,32 @@ sind dieselben. Ein so gebildeter Name, der einen gesendeten Namen doppelt (ohne
 Belegt ist die Form der Nachricht an zwei aufgezeichneten Nutzlasten (ein Treiber, eine Version); für andere Treiber
 und Versionen gilt die Festlegung nicht als gemessen.
 
-Handle-Verwaltung (Festlegungen, nicht gemessen; Tokenfolge, Ordinal und Name des Handle-RETURNVALUE sind
-Handvektoren, die Zahl 1000 ist eine Setzung, Voreinstellung, und nicht konfigurierbar. Am echten Server gemessen
-(Messprotokoll, Messreihe am Draht, W-5, Einzelmessung je Instanz 2022 und 2025): das Handle von `sp_prepexec` hat
-Ordinal 0 und keinen Namen, ein Ausgabewert dahinter trägt die Position in der Aufrufliste; die Festlegung hier ist
-davon nicht berührt):
+Handle-Verwaltung (Festlegungen, nicht gemessen, soweit nichts anderes dabeisteht; Tokenfolge, Ordinal und Name des
+Handle-RETURNVALUE sind an den Mitschnitten der Referenzinstanz gelesen, die Zahl 1000 ist eine Setzung,
+Voreinstellung, einstellbar. Am echten Server gemessen (Messprotokoll, Messreihe am Draht, W-5, Einzelmessung je
+Instanz 2022 und 2025): das Handle von `sp_prepexec` hat Ordinal 0 und keinen Namen, ein Ausgabewert dahinter trägt
+die Position in der Aufrufliste):
 
-- Eine Sitzung hält höchstens 1000 Handles gleichzeitig. Das `sp_prepexec`, das das 1001. Handle vergäbe,
-  ergibt `SPEC-058` (ERROR und DONE mit Fehlerstatus), ohne dass das Backend gerufen wird; die Verbindung
-  bleibt offen, die vorhandenen Handles bleiben gültig.
-- `sp_prepexec` vergibt ein neues Handle: ein Zähler je Sitzung ab 1, aufsteigend, ohne Wiederverwendung außer nach `RESETCONNECTION` (dort beginnt er bei 1 neu). Der
-  Wert im OUTPUT-Parameter der Nachricht (−1 beim Erstaufruf, ein altes Handle bei einem erneuten Prepare)
-  bleibt unberücksichtigt; ein altes Handle bleibt bis zum Sitzungsende oder bis zu `RESETCONNECTION` gültig. Der Server merkt den
+- Eine Sitzung hält höchstens so viele Handles gleichzeitig, wie `RequestSettings.maxPreparedHandles` (`MAX_PREPARED_HANDLES`
+  des Testservers) festlegt; die Voreinstellung ist 1000, der Bereich 1 bis 100000 (Setzung, nicht gemessen; null,
+  negative und nichtnumerische Werte weist der Start ab, `SPEC-034`). Gezählt werden die gleichzeitig gehaltenen
+  Handles: vergebene minus freigegebene. Das `sp_prepexec`, das das Handle über der Grenze vergäbe (bei der
+  Voreinstellung das 1001.), ergibt `SPEC-058` (ERROR und DONE mit Fehlerstatus), ohne dass das Backend gerufen wird;
+  die Verbindung bleibt offen, die vorhandenen Handles bleiben gültig. Der Speicher je Sitzung wächst mit Grenze mal
+  Textgröße (der Text ist nicht begrenzt); gemessen ist er nicht.
+- `sp_prepexec` vergibt ein neues Handle: ein Zähler je Sitzung ab 1, aufsteigend, ohne Wiederverwendung (auch nicht
+  einer freigegebenen Nummer) außer nach `RESETCONNECTION` (dort beginnt er bei 1 neu). Der
+  Wert im OUTPUT-Parameter der Nachricht (−1 oder 0 beim Erstaufruf, ein altes Handle bei einem erneuten Prepare)
+  bleibt unberücksichtigt; ein altes Handle bleibt bis zur Freigabe, zum Sitzungsende oder bis zu `RESETCONNECTION`
+  gültig. Der Server merkt den
   SQL-Text (nicht die Deklarationsliste; die Größe des Textes ist nicht begrenzt), ruft das Backend mit dem
-  Text und den Wertparametern der Nachricht und beantwortet nach der Form RPC. Das Handle steht als
-  RETURNVALUE mit dem Namen `@handle` (`INTN` 4, nullbar) vor dem ersten Ausgabewert des Backends, sonst am
-  Ende des Stroms, und hat damit das Ordinal 0; ein Ausgabewert des Backends zählt ab 1. Endet die Antwort
+  Text und den Wertparametern der Nachricht und beantwortet nach der Form RPC. Auf die Ergebnisse des Backends folgt
+  ein RETURNSTATUS mit dem Wert 0 (hat das Backend selbst einen RETURNSTATUS gesendet, bleibt es bei dem einen), dann
+  das Handle als RETURNVALUE **ohne Namen** (Namenslänge 0; so sendet es die Referenzinstanz, Mitschnitte `prepare`,
+  2022 und 2025; `INTN` 4, Status 1) vor dem ersten Ausgabewert des Backends, sonst am
+  Ende des Stroms, und hat damit das Ordinal 0; ein Ausgabewert des Backends zählt ab 1. Die Stelle bei einem Ausgabewert
+  des Backends ist nicht gemessen. Das Flag-Feld des RETURNVALUE ist hier 0x0001 (nullbar), der Mitschnitt zeigt 0x0000;
+  der Mitschnitt-Lauf vergleicht es nicht (Ausnahme A-19 des Referenzabgleichs). Endet die Antwort
   mit einem Fehler, bevor das Handle im Strom steht (Fehler vor dem ersten Ausgabewert), entsteht kein Handle
   und der Wert wird nicht wieder vergeben; steht das Handle schon im Strom (Fehler nach einem Ausgabewert),
   bleibt es gültig.
@@ -527,11 +547,31 @@ davon nicht berührt):
   nach der Form RPC ohne Handle-RETURNVALUE. Ein Handle, das die Sitzung nicht hält (nie vergeben, −1, 0), ergibt
   `SPEC-057`, ohne das Backend zu rufen; die Verbindung bleibt offen. Ein ungültiger Parameter wird vor der
   Suche des Handles abgelehnt (`SPEC-013`).
-- `sp_unprepare` und `sp_prepare` sind nicht im Katalog (`SPEC-013`) und geben kein Handle frei.
+- Der RPC `sp_unprepare` und `sp_prepare` sind nicht im Katalog (`SPEC-013`) und geben kein Handle frei. Frei gibt die
+  Batch-Form: ein SQL_BATCH, dessen Text ganz aus `EXEC sp_unprepare <n>` besteht, weitere Anweisungen derselben Form
+  durch `;` getrennt, höchstens ein `;` am Ende (die Form, die mssql-jdbc 13.4.0 sendet, Messzeile t5; das Ende des
+  Textes steht nicht im Mitschnitt). Schreibweise (Festlegung, nicht gemessen): genau `EXEC sp_unprepare ` mit einem
+  Leerzeichen vor der Nummer, kein Leerraum um das `;`, keine Klammern, kein Zeilenumbruch, `EXEC` groß und
+  `sp_unprepare` klein; die Nummer besteht aus ASCII-Ziffern ohne führende Null (außer `0`) und liegt im Bereich von
+  32-Bit-Ganzzahlen; ein Minuszeichen, ein anderes Zeichen, eine größere Zahl oder jede andere Abweichung macht den
+  ganzen Text zu keiner Freigabe, er geht wie jeder SQL_BATCH an das Backend (`SPEC-036`, `SPEC-037`). Die Freigabe wird
+  im Sitzungsrahmen beantwortet, ohne das Backend zu rufen. Die Nummern werden der Reihe nach bearbeitet: ein
+  gehaltenes Handle wird freigegeben (die Zählung sinkt, der Wert wird nicht wieder vergeben); die Antwort ist, wenn die
+  Sitzung jede genannte Nummer hielt, ein DONE ohne Bits und ohne Zeilenzahl (Erfolg ohne Zeilen; die Tokenfolge eines
+  echten Servers ist nicht gemessen). Eine Nummer, die die Sitzung nicht hält (nie vergeben, schon freigegeben, aus der
+  Zeit vor `RESETCONNECTION`), ergibt `SPEC-060`: ein ERROR je solcher Nummer, danach ein DONE mit Fehlerstatus; die
+  Verbindung bleibt offen, das Backend wird nicht gerufen, die Zählung ändert sich durch diese Nummer nicht. Die Antwort nennt
+  höchstens die ersten 100 solcher Nummern eines Batches (Setzung, nicht gemessen: ein echter Server hat keine bekannte Grenze
+  für die Zahl der Fehler); alle Nummern des Batches werden bearbeitet. Gemessen
+  (am Referenzclient gegen den echten SQL Server, 2022 und 2025): ein Handle freigeben gelingt, dasselbe ein zweites Mal
+  und ein nie vergebenes ergeben Nummer 8179, Class 16, State 8, die Verbindung bleibt offen, auch in der Form des
+  SQL_BATCH. Ebenso gemessen: ein Batch gehalten/unbekannt/gehalten bricht bei dem Fehler nicht ab, beide gehaltenen
+  Handles sind danach frei, der Fehler ist einer; zwei unbekannte Nummern ergeben zwei Fehler. Nicht gemessen: ob der
+  Server die Fehler als mehrere ERROR-Token mit einem oder mit mehreren DONE sendet.
 - Die Handles enden mit der Sitzung; zwei Sitzungen sehen die Handles der jeweils anderen nicht. Der Zugriff
   auf die Tabelle einer Sitzung ist gegen gleichzeitigen Zugriff geschützt.
-- `RESETCONNECTION` (`SPEC-001`) leert die Tabelle: jedes Handle aus der Zeit davor ist unbekannt (`SPEC-057`), der
-  Zähler beginnt wieder bei 1, und die Grenze von 1000 gilt neu. Ein Handle, das ein Client aus der Zeit davor hält,
+- `RESETCONNECTION` (`SPEC-001`) leert die Tabelle: jedes Handle aus der Zeit davor ist unbekannt (bei `sp_execute`
+  `SPEC-057`, bei der Batch-Freigabe `SPEC-060`), der Zähler beginnt wieder bei 1, und die Grenze gilt neu. Ein Handle, das ein Client aus der Zeit davor hält,
   trifft nach einem neuen `sp_prepexec` mit gleichem Wert den neuen Text. Der Zähler ab 1 nach dem Zurücksetzen ist
   eine Setzung, nicht gemessen; ob der Referenzclient seine Handles beim Zurücksetzen selbst verwirft, ist nicht
   gemessen.
@@ -929,7 +969,8 @@ SQL-Server-Image setzt `ACCEPT_EULA=Y` voraus; die Zustimmung des Repo-Inhabers 
 | `SPEC-009` | `QUERY_TIMEOUT` | 30 s (vorläufig; konfigurierbar in ganzen Sekunden von 1 bis 3600, Festlegung, nicht gemessen; Eingang der Bibliothek ist `ServerConfig.requests`, Umgebungsvariable des Testservers) | Backend-Timeout; Quelle der Frist einer Anfrage (`deadlineEpochMillis` = Beginn plus `QUERY_TIMEOUT`), die der Protokollkern durchsetzt (`SPEC-022`), solange kein Schreibvorgang der Antwort am Rückstau hängt (er hält die Sitzungssperre, die Frist wirkt erst nach seiner Rückkehr); Ablauf endet in `TDS_TIMEOUT` (`SPEC-016`) |
 | `SPEC-010` | `ENCRYPTION_POLICY` | Standard `REQUIRED`; Abschwächung nur durch ausdrückliche, im Log sichtbare (wenn eine Senke übergeben ist) Konfiguration, je Clientprofil; genau `REQUIRED` oder `TEST_UNENCRYPTED`; `REQUIRED` verlangt Schlüsselspeicher (PKCS#12) und Passwort in `ServerConfig`, `TEST_UNENCRYPTED` lässt beide nicht zu (Festlegung, nicht gemessen); `ENCRYPTION_POLICY`, `TLS_KEYSTORE_FILE` und `TLS_KEYSTORE_PASSWORD_FILE` sind die Umgebungsvariablen, aus denen der Testserver Richtlinie, Speicherdatei und Passwortdatei liest, die Bibliothek liest keine Umgebung und keine Datei | Keine unbemerkte TLS-Herabstufung |
 | `SPEC-033` | `CANCEL_TIMEOUT` | 5 s (vorläufig; konfigurierbar in ganzen Sekunden von 1 bis 3600, Festlegung, nicht gemessen; Umgebungsvariable des Testservers) | Frist für nicht abbrechbare Backendoperationen, danach Verbindung schließen; sie läuft ab dem Gewinn des Abbruchs (ATTENTION oder Frist der Anfrage), nicht vorher, und damit nicht, solange ein Schreibvorgang am Rückstau die Sitzungssperre hält |
-| `SPEC-034` | `MAX_CONNECTIONS` | 1000 (vorläufig; konfigurierbar als ganze Zahl von 1 bis 100000, Festlegung, vom Nutzer bestätigt am 2026-11-06, nicht gemessen; Eingang der Bibliothek ist `ServerConfig.listen` (`ListenSettings.maxConnections`), Umgebungsvariable des Testservers). Der Listener nimmt höchstens so viele Verbindungen zugleich auf (gezählt im Verbindungsregister, ab der Annahme bis zum Ende des Handlers); eine weitere wird ohne Antwortbytes geschlossen, ohne dass der Prozess oder eine bestehende Verbindung leidet, und nach dem Ende einer Verbindung nimmt er wieder auf. Dass der Client einer abgewiesenen Verbindung ein Schließen ohne Antwort sieht (statt ERROR vor dem Login), ist Festlegung, vom Nutzer bestätigt am 2026-11-06, und am Referenzclient nicht gemessen | Ressourcenlimit für gleichzeitige Verbindungen |
+| `SPEC-034` | `MAX_CONNECTIONS` | 1000 (vorläufig; konfigurierbar als ganze Zahl von 1 bis 100000, Festlegung, vom Nutzer bestätigt am 2026-11-06, nicht gemessen; Eingang der Bibliothek ist `ServerConfig.listen` (`ListenSettings.maxConnections`), Umgebungsvariable des Testservers). Der Listener nimmt höchstens so viele Verbindungen zugleich auf (gezählt im Verbindungsregister, ab der Annahme bis zum Ende des Handlers); eine weitere wird ohne Antwortbytes geschlossen, ohne dass der Prozess oder eine bestehende Verbindung leidet, und nach dem Ende einer Verbindung nimmt er wieder auf. Dass der Client einer abgewiesenen Verbindung ein Schließen ohne Antwort sieht (statt ERROR vor dem Login), ist Festlegung, vom Nutzer bestätigt am 2026-11-06, und am Referenzclient nicht gemessen | Ressourcenlimit für gleichzeitige Verbindungen; der Speicher je Sitzung hängt an der Grenze der Prepared-Handles (`SPEC-061`), ein Limit für den Speicher aller Sitzungen zusammen gibt es nicht |
+| `SPEC-061` | `MAX_PREPARED_HANDLES` | 1000 (Voreinstellung, Setzung, nicht gemessen; einstellbar als ganze Zahl von 1 bis 100000, Festlegung; Eingang der Bibliothek ist `ServerConfig.requests` (`RequestSettings.maxPreparedHandles`), Umgebungsvariable des Testservers). Die Zahl der Prepared-Handles, die eine Sitzung gleichzeitig hält (`SPEC-030`, gezählt: vergebene minus freigegebene); null, negative und nichtnumerische Werte weist der Start ab | Ressourcenlimit je Sitzung gegen einen Client, der Handles nicht freigibt (`TDS-QA-02`); der Speicher ist höchstens Grenze mal Textgröße mal `MAX_CONNECTIONS` (`SPEC-034`); die Textgröße ist nicht begrenzt, der Speicher ist nicht gemessen; ob ein Client seine Handles freigibt, ist je Client nicht gemessen (mssql-jdbc 13.4.0 gibt geschlossene Anweisungen frei, Messzeile t3) |
 | `SPEC-053` | Drosselung wiederholter Anmeldeversuche | je Quelladresse (die Adresse der Gegenstelle ohne Port; Kennung und Passwort gehen nicht in den Schlüssel ein): die ersten 5 Fehlversuche bleiben unverzögert, ab dem 6. wartet jede weitere Anmeldung dieser Adresse vor der Prüfung der Zugangsdaten 250 ms, verdoppelt je weiterem Versuch bis 5 s; der Zähler der Fehlversuche fällt 60 s nach dem letzten Fehlversuch der Adresse auf null und wird durch einen Erfolg nicht zurückgesetzt; gleichzeitig laufende Versuche einer Adresse zählen ab ihrem Beginn mit und werden bei Ende ohne Fehlversuch abgezogen; höchstens 10000 Adressen, bei Überlauf wird die Adresse verdrängt, deren Anlage oder letzter Fehlversuch am längsten zurückliegt, auch wenn nur ein Versuch läuft, und ihre Zähler gehen verloren; nicht konfigurierbar (alle Zahlen Setzung, nicht gemessen) | Setzung ohne Lastenheft-Anker, vom Nutzer bestätigt (das Lastenheft verlangt keine Drosselung). Raten gegen die Benutzerliste von einer Adresse bremsen, ohne Sperre und ohne Zustand je Kennung. Die Wartezeit hängt nur von der Adresse ab, ist ein Anhalten ohne Platz des Adapteraufrufs, gehört zu `LOGIN_TIMEOUT` (`SPEC-008`) und ist nicht an ihn gebunden: bei einer Frist unter der Wartezeit endet die Anmeldung ohne Antwort. Als Fehlversuch zählt die Ablehnung durch den Adapter, nicht eine Annahme, ein Adapterfehler oder ein Abbruch. Ein Kanal ohne bekannte Adresse der Gegenstelle wird nicht gedrosselt (Entscheidung des Nutzers). Ob die Drosselung ins Log schreibt und mit welcher Adressangabe, ist offen; heute schreibt sie nichts ins Log. Rund 12 Versuche je Minute (60 s / 5 s) gelten nur für eine Verbindung nach der anderen; bei gleichzeitigen Verbindungen wartet jede höchstens 5 s, und die Obergrenze gleichzeitiger Adapteraufrufe begrenzt die Rate, nicht die Staffel; ein Schwall gleichzeitiger Verbindungen ist nicht gemessen. Eine verteilte Suche über viele Adressen bleibt ungebremst; Clients hinter einer gemeinsamen Adresse teilen Zähler und Wartezeit |
 
 Vorläufige Werte sind technische Entwurfsannahmen, keine aus dem Lastenheft abgeleiteten
@@ -950,8 +991,9 @@ Abnahmegrenzen.
 | `SPEC-039` | `TDS_SIM_INVALID_VALUE` | Wert nicht in den Spaltentyp überführbar | ERROR und DONE mit Fehlerstatus; vorgesehene SQL-Server-Nummern 245 (Konvertierung) und 8115 (Überlauf), an der Referenzinstanz zu messen |
 | `SPEC-048` | `TDS_INTERNAL_ERROR` | unerwartete Ausnahme im Server oder im Backend-Adapter, auch ein `OutOfMemoryError` beim Erzeugen oder Senden der Antwort (`SPEC-031`) | ERROR (Severity 20) und DONE mit Fehlerstatus, fester Text ohne den Text der Ausnahme, danach Verbindungsende; die Ausnahme geht nur als Typname ins Log, nie mit Text (Abschnitt 4). Gebaut: die Art `REQUEST_FAILED` trägt den Code und den vollqualifizierten Typnamen der Ausnahme oder eine feste Marke, nie den Text der Ausnahme (Abschnitt 4; Tests: `TelemetryRedactionTest`, `RequestWiringTest`) |
 | `SPEC-049` | `TDS_SHUTDOWN` | Anfrage nach Beginn des geordneten Beendens (`SPEC-044`) | ERROR und DONE mit Fehlerstatus, danach Verbindungsende; Herkunft des Schließens: ERROR und DONE werden vollständig gesendet, erst danach wird geschlossen (Setzung des Nutzers vom 2026-11-01, am Referenzclient wird „ERROR, DONE, dann Schließen“ gelesen, ein Herunterfahren am echten Server ist nicht gemessen); vorgesehen: die SQL-Server-Meldung für ein Herunterfahren, Nummer im Mapping nach `TDS-FA-06.a` festlegen |
-| `SPEC-057` | `TDS_UNKNOWN_HANDLE` | `sp_execute` mit einem Handle, das die Sitzung nicht hält, auch nach `RESETCONNECTION` (`SPEC-030`) | ERROR und DONE mit Fehlerstatus; die Verbindung bleibt offen (Class 16), das Backend wird nicht gerufen; das Log nennt die feste Marke `unknown-handle` |
-| `SPEC-058` | `TDS_PREPARE_LIMIT` | `sp_prepexec` bei erreichter Grenze von 1000 Handles der Sitzung (`SPEC-030`) | ERROR und DONE mit Fehlerstatus; die Verbindung bleibt offen (Class 16), das Backend wird nicht gerufen, die vorhandenen Handles bleiben gültig; das Log nennt die feste Marke `handle-limit` |
+| `SPEC-057` | `TDS_UNKNOWN_HANDLE` | `sp_execute` mit einem Handle, das die Sitzung nicht hält, auch nach `RESETCONNECTION` (`SPEC-030`) | ERROR und DONE mit Fehlerstatus; die Verbindung bleibt offen (Class 16), das Backend wird nicht gerufen; das Log nennt die feste Marke `unknown-handle`. Der echte SQL Server antwortet auf `sp_execute` mit einem unbekannten Handle mit Nummer 8179, Class 16, State 4 (Messung am Referenzclient, 2022 und 2025, als Prozedur und als SQL_BATCH `EXEC sp_execute <n>`), nicht mit 50009; die Abweichung ist gemessen, ihre Behandlung nicht entschieden |
+| `SPEC-058` | `TDS_PREPARE_LIMIT` | `sp_prepexec` bei erreichter Grenze der gleichzeitig gehaltenen Handles der Sitzung (Voreinstellung 1000, einstellbar, `SPEC-061`, `SPEC-030`) | ERROR und DONE mit Fehlerstatus; die Verbindung bleibt offen (Class 16), das Backend wird nicht gerufen, die vorhandenen Handles bleiben gültig; das Log nennt die feste Marke `handle-limit` |
+| `SPEC-060` | `TDS_SIM_UNKNOWN_PREPARED_HANDLE` | die Batch-Freigabe `EXEC sp_unprepare <n>` (`SPEC-030`) nennt ein Handle, das die Sitzung nicht hält: nie vergeben, schon freigegeben oder aus der Zeit vor `RESETCONNECTION` | ERROR (Nummer 8179, Class 16, State 8, Text „Could not find prepared statement with handle <n>.“ mit der Nummer) je nicht gehaltener Nummer, höchstens für die ersten 100 Nummern des Batches in der Reihenfolge des Textes (Setzung, nicht gemessen), danach ein DONE mit Fehlerstatus; die Verbindung bleibt offen, das Backend wird nicht gerufen, die Zählung ändert sich nicht; die übrigen Nummern des Batches werden bearbeitet; das Log nennt die feste Marke `unknown-prepared-handle` je gemeldeter Nummer (höchstens 100 Einträge je Batch). Nummer, Class, State, Text für Handle 1 und die offene Verbindung sind am Referenzclient gegen den echten SQL Server gemessen (2022 und 2025); der Text für andere Nummern, die Bearbeitung der übrigen Nummern (am Client bestätigt, die Tokenfolge auf dem Draht nicht) und die weiteren Felder des ERROR-Tokens (Servername, Prozedur und Zeile leer bzw. 0) sind Setzung. Die Obergrenze von 100 weicht vom echten Server ab, der nach M-7 jede unbekannte Nummer meldet (zwei Unbekannte, zwei Fehler); ob und ab welcher Zahl der echte Server die Meldung begrenzt, ist nicht gemessen. Auflösungs-Trigger der Setzung: eine Messung am echten SQL Server mit sehr vielen unbekannten Nummern in einem Batch; ergibt sie eine andere Grenze oder keine, wird die Setzung dem Messwert angeglichen und der Schutz nach [TDS-QA-02](lastenheft.md#tds-qa-02--stabilität) anders getragen |
 
 Die Nummern in der Aktionsspalte sind ein Vorschlag für das Mapping nach `TDS-FA-06.a`. Für
 `TDS_UNSUPPORTED_SQL` gibt es keine SQL-Server-Entsprechung, denn dort ist die Anweisung gültig; die
@@ -964,8 +1006,8 @@ echten SQL Server einmal beobachtet (`SPEC-012`); der Text dort nennt den Benutz
 dieser Tabelle nicht. Die Spalte *Herkunft* trennt: *Vorschlag* (Nummer aus der Aktionsspalte oben,
 „an der Referenzinstanz zu messen“), *Setzung des Nutzers* (Gruppe und Class, 2026-10-30; `TDS_TIMEOUT` 2026-11-01),
 *Voreinstellung* (Gruppe nach der Voreinstellung vom 2026-10-30, nicht entschieden), *Festlegung* (vom Mapping gewählt, nicht
-gemessen), *Grundregel* (nur die Folge: kein Gruppenmitglied, im Zweifel schließen; die Class 20 dieser Codes ist Festlegung). State ist für jeden Code 1, der
-Text fest und englisch; der Text einer Backend-Meldung oder Ausnahme erreicht den Client nie.
+gemessen), *Grundregel* (nur die Folge: kein Gruppenmitglied, im Zweifel schließen; die Class 20 dieser Codes ist Festlegung). State ist für jeden Code 1 (Ausnahme `TDS_SIM_UNKNOWN_PREPARED_HANDLE`: State 8, gemessen), der
+Text fest und englisch (bei `TDS_SIM_UNKNOWN_PREPARED_HANDLE` endet er mit der Nummer des Handles); der Text einer Backend-Meldung oder Ausnahme erreicht den Client nie.
 
 | Code | Nummer | Class | Folge nach ERROR und DONE | Herkunft |
 |---|---|---|---|---|
@@ -982,6 +1024,7 @@ Text fest und englisch; der Text einer Backend-Meldung oder Ausnahme erreicht de
 | `TDS_SHUTDOWN` | 50008 | 20 | schließt | Folge: Setzung des Nutzers (`SPEC-049`); Nummer und Class: Festlegung (die SQL-Server-Nummer für ein Herunterfahren ist nicht gemessen) |
 | `TDS_UNKNOWN_HANDLE` | 50009 | 16 | offen | Gruppe: Setzung (Voreinstellung, nicht gemessen); Nummer: Festlegung |
 | `TDS_PREPARE_LIMIT` | 50010 | 16 | offen | Gruppe: Setzung (Voreinstellung, nicht gemessen); Nummer: Festlegung |
+| `TDS_SIM_UNKNOWN_PREPARED_HANDLE` | 8179 | 16 | offen | Nummer, Class, State 8 und Text für Handle 1: gemessen am echten SQL Server (2022 und 2025), die Verbindung bleibt offen; der Text für andere Nummern: Setzung |
 
 Das DONE trägt für jeden Code das Statusbit `ERROR`, Befehlskennung 0 und Zeilenzahl 0; ob der
 Referenzclient es so annimmt, ist nicht am Produkt gemessen. Am echten SQL Server trägt das DONE bei
@@ -1174,7 +1217,7 @@ Was der Server auf PRELOGIN und LOGIN7 sendet, ist eine Festlegung ohne Messung 
 
 #### RPC-Katalog des Referenzclients
 
-Der Referenzclient sendete in den gemessenen Szenarien (Messgrenzen: Testserver, ohne echten SQL Server; TDS 7.4 unverschlüsselt, kein TDS 8.0, kein TLS; `Pooling=false`; eine Verbindung je Szenario; ein Lauf): Batch (`0x01`) für Text ohne Parameter; `sp_executesql` (ProcID 10) für Text mit Parametern; `sp_prepexec` (ProcID 13) und `sp_execute` (ProcID 12) bei `Prepare()` mit Parametern; RPC mit Prozedurnamen für `CommandType.StoredProcedure`. `sp_prepare`, `sp_unprepare` und `sp_cursor*` erschienen in diesen Szenarien nicht; unter Pooling ist das nicht gemessen. `ExecuteReader(SchemaOnly)` sendet einen Batch mit `SET FMTONLY OFF; SET FMTONLY ON;` im Text (Behandlung offen). `ExecuteReader(KeyInfo|SingleRow)` sendet `sp_executesql` mit `SET FMTONLY OFF; SET NO_BROWSETABLE ON;` im Text (Behandlung offen); Transaktionen sind Pakettyp `0x0E`, kein RPC (offen). Der Katalog ist als Entwurf in `SPEC-030` festgelegt und noch nicht freigegeben.
+Der Referenzclient sendete in den gemessenen Szenarien (Messgrenzen: Testserver, ohne echten SQL Server; TDS 7.4 unverschlüsselt, kein TDS 8.0, kein TLS; `Pooling=false`; eine Verbindung je Szenario; ein Lauf): Batch (`0x01`) für Text ohne Parameter; `sp_executesql` (ProcID 10) für Text mit Parametern; `sp_prepexec` (ProcID 13) und `sp_execute` (ProcID 12) bei `Prepare()` mit Parametern; RPC mit Prozedurnamen für `CommandType.StoredProcedure`. `sp_prepare`, `sp_unprepare` und `sp_cursor*` erschienen in diesen Szenarien nicht; unter Pooling ist das nicht gemessen. mssql-jdbc 13.4.0 (der Treiber von d-migrate 1.12.0) sendet `sp_unprepare` nicht als RPC, sondern als SQL_BATCH `EXEC sp_unprepare <n>[;EXEC sp_unprepare <n>…]` mit elf Handles je Batch (Messzeile t5), wenn die Antwort auf `sp_prepexec` ein RETURNSTATUS vor dem Handle trägt (ohne es übernimmt der Treiber das Handle nicht und bereitet je Ausführung neu vor, Messzeilen h2, h3 und t1); gemessen ist der Treiber allein gegen den Server dieses Repos, nicht d-migrate und kein echter SQL Server als Gegenstelle des Treibers. `ExecuteReader(SchemaOnly)` sendet einen Batch mit `SET FMTONLY OFF; SET FMTONLY ON;` im Text (Behandlung offen). `ExecuteReader(KeyInfo|SingleRow)` sendet `sp_executesql` mit `SET FMTONLY OFF; SET NO_BROWSETABLE ON;` im Text (Behandlung offen); Transaktionen sind Pakettyp `0x0E`, kein RPC (offen). Der Katalog ist als Entwurf in `SPEC-030` festgelegt und noch nicht freigegeben.
 
 #### Antwortformen des Servers (Festlegung)
 
@@ -1422,7 +1465,7 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | `TdsServer` | `port` (der gebundene Port) und `suspend stop()`. `stop` beginnt das geordnete Beenden (`SPEC-044`) und kehrt zurück, wenn alle Verbindungen beendet sind. `stop` ist idempotent: der zweite Aufruf endet ohne Wirkung (Test: Einbettungstest, nacheinander aus einem Thread). Aufruf von mehreren Threads und `stop` während `start` sind nicht festgelegt. |
 | `BackendSource` | `Custom(backend)`: ein `QueryBackend`, auch ein selbst gebautes `SimulationBackend(SimCatalog(tables))` (`SPEC-035`); `Simulation(tables)`: `SimTable`-Werte mit Zeilenquelle und Callbacks (`SPEC-035`); `None`: wie `Simulation` mit leerer Liste. `Custom` mit Tabellen ist nicht darstellbar. Die Bibliothek kennt keine Datei der Tabellenbeschreibung; den Weg über die Datei geht der Testserver (`SPEC-035`). |
 | `StartOutcome.Aborted` | `reason` ist ein Text ohne Pfad, Ausnahmetext, Schlüsselmaterial und Kennwort; beim Bindefehler nennt er Adresse und Port; `issues` nennt bei ungültiger Konfiguration jeden Fehler mit Schlüssel und Art (`ConfigIssue`), sonst ist die Liste leer. Festlegung: `ConfigIssue` ist als Typ der Signatur Teil der Zusage und die Art (`IssueKind`) ebenso; der Wortlaut des Schlüssels (ein Text, der das Konfigurationsfeld nennt) ist keine Zusage, ein Einbettender verlässt sich nicht auf bestimmte Namen. Der gebaute Stand führt dafür die Namen der Umgebungsvariablen (`SPEC-005`, `SPEC-010`). Ein Abbruch bindet keinen Port und startet keinen Thread des Servers. |
-| Prüfung | Der Start prüft die Konfiguration, gleich auf welchem Weg sie entstand (die Prüfung ist nicht öffentlich; ihre Befunde sind `StartOutcome.Aborted.issues`): `REQUIRED` verlangt Schlüsselspeicher und Passwort, `TEST_UNENCRYPTED` lässt beide nicht zu (`SPEC-010`); Port 0 bis 65535 (`SPEC-005`), Anmeldefrist 1 bis 3600 s (`SPEC-008`), Frist einer Anfrage und Frist des Abbruchs je 1 bis 3600 s (`SPEC-009`, `SPEC-033`), Frist des geordneten Beendens 0 bis 3600 s (`SPEC-047`), Zahl der Verbindungen 1 bis 100000 (`SPEC-034`), Größe der PRELOGIN-Nachricht 512 bis 65536 Byte (`SPEC-046`), Bind-Adresse nicht leer. Die Voreinstellungen von `ListenSettings` (`MAX_CONNECTIONS` 1000), `LoginSettings`, `RequestSettings` (`ServerConfig.requests`: `QUERY_TIMEOUT` 30 s, `CANCEL_TIMEOUT` 5 s, `SHUTDOWN_GRACE` 10 s) und der Verschlüsselung sind die der Spezifikation; ein Einbettender ohne Angabe bekommt also nach 30 s `TDS_TIMEOUT` für eine Anfrage. Umgebung und Dateien liest nicht die Bibliothek, sondern der Testserver; er baut eine `ServerConfig` und ruft `TdsServer.start` wie ein Einbettender (`SPEC-052`). |
+| Prüfung | Der Start prüft die Konfiguration, gleich auf welchem Weg sie entstand (die Prüfung ist nicht öffentlich; ihre Befunde sind `StartOutcome.Aborted.issues`): `REQUIRED` verlangt Schlüsselspeicher und Passwort, `TEST_UNENCRYPTED` lässt beide nicht zu (`SPEC-010`); Port 0 bis 65535 (`SPEC-005`), Anmeldefrist 1 bis 3600 s (`SPEC-008`), Frist einer Anfrage und Frist des Abbruchs je 1 bis 3600 s (`SPEC-009`, `SPEC-033`), Frist des geordneten Beendens 0 bis 3600 s (`SPEC-047`), Zahl der Verbindungen 1 bis 100000 (`SPEC-034`), Zahl der Prepared-Handles je Sitzung 1 bis 100000 (`SPEC-061`), Größe der PRELOGIN-Nachricht 512 bis 65536 Byte (`SPEC-046`), Bind-Adresse nicht leer. Die Voreinstellungen von `ListenSettings` (`MAX_CONNECTIONS` 1000), `LoginSettings`, `RequestSettings` (`ServerConfig.requests`: `QUERY_TIMEOUT` 30 s, `CANCEL_TIMEOUT` 5 s, `SHUTDOWN_GRACE` 10 s, `MAX_PREPARED_HANDLES` 1000) und der Verschlüsselung sind die der Spezifikation; ein Einbettender ohne Angabe bekommt also nach 30 s `TDS_TIMEOUT` für eine Anfrage. Umgebung und Dateien liest nicht die Bibliothek, sondern der Testserver; er baut eine `ServerConfig` und ruft `TdsServer.start` wie ein Einbettender (`SPEC-052`). |
 | Einmal-Konfiguration | Eine `ServerConfig` gilt für einen Start: sobald der Start das TLS-Material lädt, löscht er das Passwort im Schlüsselmaterial; bricht er vorher ab (Prüfung), bleibt es lesbar (Festlegung, getestet für Prüfung und Bindefehler). Wer neu startet, baut eine neue `ServerConfig`. |
 | Nicht erreichbar | Der Authentifizierungsadapter lässt sich über den Einstieg nicht ersetzen. Der Einstieg schreibt nirgends hin; Log und Telemetrie gehen an die übergebene Senke (Abschnitt 5). |
 | Abhängigkeiten | Jar und `lib/` liegen auf dem Klassenpfad des Einbettenden (`SPEC-052`); `lib/` führt keine YAML-Bibliothek, die Bibliothek braucht keine (Festlegung). Gemessen: `gradle.lockfile` der Bibliothek führt kein Jackson, die Sperre des Moduls `testserver/gradle.lockfile` führt es (einmalige Zählung am 2026-11-06, kein Gate hält sie), und der Einbettungstest (`make test`) startet und bedient den Server ohne Jackson im Klassenpfad. |
@@ -1496,3 +1539,4 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | 2026-11-06 | Nachzug der Spezifikation hinter den gebauten Stand nach einem Review der Spezifikation (Grundsatz des Nutzers: Spezifikation ist Zielbild; kein Zielbild verengt): Packet Size (Zeile „Datenbank und Packet Size“): „angewandt wird sie nicht“ entfällt, belegt ist die Anwendung ab Beginn der Anfrageschleife (`RequestLoop.kt`, `channel.usePacketSize(ready.session.packetSize)`; Test `StreamingDispatchTest` mit 512 und 1000), die Antworten vor der Schleife behalten 4096 (Lesen des Codes, nicht am Referenzclient gemessen); die Voreinstellung 4096 ist als Setzung gekennzeichnet (`TlsChannel.DEFAULT_PACKET_SIZE`, `LoginResponses.DEFAULT_PACKET_SIZE`); der Zielzustand-Vermerk zum Feld `principal` im Abschnitt zur Kennung im Anmeldepfad entfällt (gebaut: `LoginAccepted.principal` in `TelemetryEvent.kt`, Änderung vom 2026-11-01); `SPEC-025` und `SPEC-032` nennen `make e2e` statt „noch einzurichten“ (die Targets `e2e` und `kompatibilitaet` bestehen, Einzelmessung vom 2026-11-01: 103 s warm für `e2e`, in diesem Nachzug nicht wiederholt; `SPEC-050` bleibt Zielzustand); der Vermerk zur Meldung des Testservers beim Start nennt den Beleg des gebauten Stands (KDoc von `SimLoadException`); die Nutzerentscheidung vom 2026-10-31 zu `TDS-FA-06` (nicht synchroner Strom) ist am 2026-11-06 bestätigt („deine empfehlungen“), der Wortlaut bleibt (`SPEC-031`, `SPEC-048`, `TDS-FA-06`) |
 | 2026-11-06 | Öffentliche Fläche der Bibliothek auf das Nötige verkleinert und belegt (Nutzerentscheidung vom 2026-11-05 und vom 2026-11-06): `TelemetryEvent` ist die einzige öffentliche Ereignisklasse, die Art steht in der Aufzählung `EventKind` (17 Arten; die zwei Abschwächungen sind eine Art `SECURITY_WEAKENED` mit `reason`), die 18 Klassen je Art und `StartRefusal`, `LoginRejectionReason`, `TlsFirstRefusal` sind nicht mehr öffentlich, ihre Gründe stehen als Text in `reason`; `ConfigValidation`, `Principal` und `PasswordChars.reveal` sind `internal`; die Liste in `SPEC-059` nennt jetzt jeden Typnamen (61), auch die Fälle von `QueryEvent`, `SqlType` und `FilterTerm`; `make flaeche` hält die Typnamen der Liste gegen die öffentlichen Typdeklarationen und ihre Verwendung in `src/integrator` und `testserver/kotlin`, der Einbettungstest belegt die Namen, die Testserver und bisheriger Einbettungstest nicht nannten; Felder und Konstanten sind keine Namen des Sensors (`SPEC-059`, `SPEC-012`, `SPEC-048`, `SPEC-043`, `TDS-QA-05`, `TDS-RB-04`) |
 | 2026-11-06 | `SPEC-025`: der E2E-Durchgang hat eine achte Stufe (`make eigenes-backend`, Referenzclient gegen ein eigenes In-Memory-Backend, `TDS-FA-08`, `TDS-RB-04`) |
+| 2026-11-06 | Prepared-Handles: `sp_prepexec` antwortet mit RETURNSTATUS 0 und dem Handle als RETURNVALUE ohne Namen (an den Mitschnitten der Referenzinstanz gelesen); der SQL_BATCH `EXEC sp_unprepare <n>[;…]` gibt Handles im Sitzungsrahmen frei, ein nicht gehaltenes Handle ergibt Fehler 8179 (Class 16, State 8; neuer Code `TDS_SIM_UNKNOWN_PREPARED_HANDLE`, `SPEC-060`; Ausnahme zum Satz „State ist 1“); gezählt werden die gleichzeitig gehaltenen Handles; die Grenze (Voreinstellung 1000) ist einstellbar (`RequestSettings.maxPreparedHandles`, `MAX_PREPARED_HANDLES`, `SPEC-061`, `SPEC-058`); der RPC `sp_unprepare` bleibt abgelehnt (`SPEC-013`, Nicht-Ziel 6); `sp_execute` mit unbekanntem Handle: Messung 8179 State 4 am echten Server, Abweichung von `SPEC-057` festgehalten, nicht entschieden |

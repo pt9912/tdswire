@@ -30,8 +30,10 @@ import kotlin.test.assertTrue
 /**
  * Prepared-Statements einer Sitzung (`TDS-FA-04`, `SPEC-030`, `SPEC-057`, `SPEC-058`, `SPEC-001`) gegen das
  * Test-Backend [ScriptedBackend]: `sp_prepexec` und `sp_execute`, die Handle-Tabelle je Sitzung, ihre Grenze
- * und die definierten Fehler. Die Antwort-Bytes sind Handvektoren; Tokenfolge, Ordinal und Name des
- * Handle-RETURNVALUE, Handle-Werte, Grenze und Fehlercodes sind Festlegungen und weder am Referenzclient
+ * und die definierten Fehler. Die Antwort-Bytes sind Handvektoren; Tokenfolge (RETURNSTATUS 0, RETURNVALUE ohne
+ * Namen mit Ordinal 0) und Name des Handle-RETURNVALUE sind an den Mitschnitten der Referenzinstanz belegt
+ * (`make vergleichslauf-d LAUF=mitschnitt`);
+ * Handle-Werte, Grenze und Fehlercodes sind Festlegungen und weder am Referenzclient
  * noch an einem SQL Server gemessen. Aussagen über einen Pool oder einen echten Server tragen diese Tests nicht.
  */
 class PreparedHandlesDispatchTest {
@@ -44,15 +46,25 @@ class PreparedHandlesDispatchTest {
     private val oneRowReply =
         listOf(BatchVectors.COLMETADATA_N, BatchVectors.row(7), doneInProcMore, doneProcFinal).joinToString(" ")
 
-    /** RETURNVALUE `@handle`: Ordinal, Status 1, Typ `INTN` 4 nullbar, Wert [handle] (Handvektor). */
-    private fun handleValue(ordinal: Int, handle: Int) = "AC ${RpcWire.le(ordinal.toLong(), 2)} 07 " +
-        "${RpcWire.utf16("@handle")} 01 00 00 00 00 01 00 26 04 04 ${RpcWire.le(handle.toLong(), 4)}"
+    /**
+     * RETURNVALUE des Handles: Ordinal, Namenslänge 0, Status 1, Typ `INTN` 4 nullbar, Wert [handle]. Namenslänge 0,
+     * Status, Typ und Stellung hinter dem RETURNSTATUS stehen im Mitschnitt `prepare` der Referenzinstanz (2022 und
+     * 2025: `79 00 00 00 00 AC 00 00 00 01 00 00 00 00 00 00 26 04 04 01 00 00 00`); das Flag-Feld ist hier `01 00`
+     * (nullbar), im Mitschnitt `00 00`, und wird vom Mitschnitt-Lauf nicht verglichen (Abweichung, nicht gemessen
+     * auf Wirkung).
+     */
+    private fun handleValue(ordinal: Int, handle: Int) =
+        "AC ${RpcWire.le(ordinal.toLong(), 2)} 00 01 00 00 00 00 01 00 26 04 04 ${RpcWire.le(handle.toLong(), 4)}"
 
-    /** Die Antwort auf `sp_prepexec` mit [oneRow]: das Handle steht vor dem DONEPROC. */
+    /** RETURNSTATUS 0 vor dem Handle, wie die Referenzinstanz ihn sendet (Mitschnitt `prepare`: `79 00 00 00 00`). */
+    private val returnStatusZero = "79 00 00 00 00"
+
+    /** Die Antwort auf `sp_prepexec` mit [oneRow]: RETURNSTATUS und Handle stehen vor dem DONEPROC. */
     private fun prepReply(handle: Int) = listOf(
         BatchVectors.COLMETADATA_N,
         BatchVectors.row(7),
         doneInProcMore,
+        returnStatusZero,
         handleValue(0, handle),
         doneProcFinal,
     ).joinToString(" ")
@@ -96,8 +108,9 @@ class PreparedHandlesDispatchTest {
 
     /**
      * Jedes `sp_prepexec` vergibt ein neues Handle ab 1 mit eigenem Text; der Wert im OUTPUT-Parameter der
-     * Nachricht (−1 beim Erstaufruf, ein altes Handle bei einem erneuten Prepare) ändert die Vergabe nicht.
-     * Wächter: ein Zähler, der bei 0 beginnt oder das Handle des Clients übernimmt; ein gemeinsamer Text.
+     * Nachricht (−1 oder 0 beim Erstaufruf: mssql-jdbc 13.4.0 sendet 0; ein altes Handle bei einem erneuten Prepare)
+     * ändert die Vergabe nicht. Wächter: ein Zähler, der bei 0 beginnt oder das Handle des Clients übernimmt; ein
+     * gemeinsamer Text.
      *
      * @spec SPEC-030
      */
@@ -108,18 +121,20 @@ class PreparedHandlesDispatchTest {
             rpc(prepExec(-1, "select 1", "")),
             rpc(prepExec(-1, "select 2", "")),
             rpc(prepExec(1, "select 3", "")),
+            rpc(prepExec(0, "select 4", "")),
             rpc(execute(2)),
             rpc(execute(1)),
             rpc(execute(3)),
+            rpc(execute(4)),
             Inbound.EndOfStream,
         )
         session.serve(backend)
         assertEquals(
-            listOf("select 1", "select 2", "select 3", "select 2", "select 1", "select 3"),
+            listOf("select 1", "select 2", "select 3", "select 4", "select 2", "select 1", "select 3", "select 4"),
             backend.requests.map { it.sql },
         )
-        assertEquals(listOf(prepReply(1), prepReply(2), prepReply(3)), (0..2).map { session.hex(it) })
-        assertEquals(listOf(oneRowReply, oneRowReply, oneRowReply), (3..5).map { session.hex(it) })
+        assertEquals(listOf(prepReply(1), prepReply(2), prepReply(3), prepReply(4)), (0..3).map { session.hex(it) })
+        assertEquals(List(4) { oneRowReply }, (4..7).map { session.hex(it) })
     }
 
     /**
@@ -182,7 +197,7 @@ class PreparedHandlesDispatchTest {
     @Test
     fun `Das 1001 Handle wird abgelehnt, die Verbindung bleibt offen und die Handles gueltig`() = blocking {
         val backend = ScriptedBackend.ofList(*oneRow.toTypedArray())
-        val limit = PreparedHandles.MAX_HANDLES
+        val limit = PreparedHandles.DEFAULT_MAX_HANDLES
         val prepares = (1..limit).map { rpc(prepExec(-1, "select $it", "")) }
         val session = Session.login(
             *prepares.toTypedArray(),
@@ -305,7 +320,7 @@ class PreparedHandlesDispatchTest {
 
     /**
      * Folgt dem Handle-RETURNVALUE ein Fehler des Backends (Ausgabewert, dann `Failure`), hat das Handle den
-     * Client schon erreicht: die Antwort trägt `@handle` mit Ordinal 0 vor dem ERROR, und das Handle bleibt
+     * Client schon erreicht: die Antwort trägt das Handle ohne Namen mit Ordinal 0 vor dem ERROR, und das Handle bleibt
      * gültig (`sp_execute` wird ausgeführt). Gemessen ist das gegen das Test-Backend; die Aussage gilt
      * nur für diesen Fall (Setzung). Wächter: ein Freigeben trotz gesendetem Handle.
      *
@@ -322,7 +337,7 @@ class PreparedHandlesDispatchTest {
         assertEquals(2, session.replies.size)
         val first = session.tokens(0)
         val value = first.filterIsInstance<ReturnValueToken>().first()
-        assertEquals("@handle", value.name)
+        assertEquals("", value.name)
         assertEquals(0, value.ordinal)
         assertEquals(ServerMessage(50004, 1, 16, "Backend error."), first.errorMessage())
         assertEquals(oneRowReply, session.hex(1))

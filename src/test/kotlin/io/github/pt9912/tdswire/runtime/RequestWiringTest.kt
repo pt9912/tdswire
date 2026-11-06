@@ -7,6 +7,9 @@ import io.github.pt9912.tdswire.port.ScriptedBackend
 import io.github.pt9912.tdswire.protocol.dispatch.BatchVectors
 import io.github.pt9912.tdswire.protocol.dispatch.resultStart
 import io.github.pt9912.tdswire.protocol.session.SessionVectors
+import io.github.pt9912.tdswire.protocol.token.ErrorToken
+import io.github.pt9912.tdswire.protocol.token.ServerMessage
+import io.github.pt9912.tdswire.testsupport.TokenDecoder
 import io.github.pt9912.tdswire.testsupport.blocking
 import io.github.pt9912.tdswire.testsupport.handMessage
 import io.github.pt9912.tdswire.testsupport.toHex
@@ -88,5 +91,39 @@ internal class RequestWiringTest : RuntimeTestBase() {
         assertEquals(1L, failed.connectionId)
         assertNotNull(failed.sessionId)
         assertEquals("tds-7.4:not_supported", failed.clientProfile)
+    }
+
+    /**
+     * Die Batch-Freigabe mit einem Handle, das die Sitzung nicht hält, ergibt am Socket ERROR 8179 (Class 16, State 8)
+     * und DONE mit Fehlerstatus, ohne das Backend zu rufen, und genau ein Ereignis `REQUEST_FAILED` mit dem Code
+     * `TDS_SIM_UNKNOWN_PREPARED_HANDLE`; die Verbindung bleibt offen und beantwortet die nächste Anfrage. Wächter: eine
+     * Nummer außerhalb der Ereignisabbildung, ein Backend-Aufruf, ein Verbindungsende.
+     *
+     * @spec SPEC-060
+     * @spec SPEC-059
+     */
+    @Test
+    fun `Die Freigabe eines unbekannten Handles ergibt 8179 am Socket und ein Ereignis`() = blocking {
+        val backend = ScriptedBackend.ofList(resultStart(), QueryEvent.Row(listOf(7)), QueryEvent.ResultEnd(1))
+        val server = running(environment(), Wiring(telemetry = sink, requests = RequestSource(backend)))
+        RawClient(server.port).use { client ->
+            login(client)
+            client.send(batch("EXEC sp_unprepare 99"))
+            val reply = assertNotNull(client.readMessage())
+            assertEquals(TABULAR_TYPE, reply.type)
+            val tokens = TokenDecoder(reply.payload).decodeAll()
+            assertEquals(
+                ServerMessage(8179, 8, 16, "Could not find prepared statement with handle 99."),
+                tokens.filterIsInstance<ErrorToken>().single().message,
+            )
+            assertTrue(reply.payload.toHex().endsWith(BatchVectors.DONE_ERROR))
+            client.send(batch("select 1"))
+            assertTrue(assertNotNull(client.readMessage()).payload.toHex().endsWith(BatchVectors.DONE_COUNT_1))
+        }
+        assertEquals(listOf("select 1"), backend.requests.map { it.sql })
+        assertEquals(
+            listOf("TDS_SIM_UNKNOWN_PREPARED_HANDLE"),
+            sink.of<RequestFailed>().map { it.errorCode },
+        )
     }
 }

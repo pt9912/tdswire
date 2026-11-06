@@ -38,7 +38,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Bau und Nachzug der Spezifikation (`SPEC-057`, `SPEC-030`, Fehlertabelle, Tests, Kompatibilitätsmatrix) — Folge-Slice, den der Planner nach `Accepted` der ADR anlegt; vorher wäre er ein Bau gegen eine offene Entscheidung.
-- Bau von Freigabe, Zählung und Antwortform der Handles — [slice-handle-freigabe-und-grenze-bauen](../in-progress/slice-handle-freigabe-und-grenze-bauen.md) (in Arbeit); dort liegen `SPEC-030` und der Pfad von `sp_unprepare`, dieser Slice berührt beide nicht (kein Konflikt zweier Slices an derselben Stelle).
+- Bau von Freigabe, Zählung und Antwortform der Handles — [slice-handle-freigabe-und-grenze-bauen](../done/slice-handle-freigabe-und-grenze-bauen.md) (geliefert, `done/`); dort liegen `SPEC-030` und der Pfad von `sp_unprepare`, dieser Slice berührt beide nicht (kein Konflikt zweier Slices an derselben Stelle).
 - Die Reaktion eines Treibers auf den Fehler bei `sp_execute` mit unbekanntem Handle — in `docs/messungen/handle-grenze-optionen-2026-11-06.md` als nicht gemessen geführt; sie ist kein Teil der Frage „welche Nummer“.
 - Eine inhaltliche Änderung von [ADR-0037](../../adr/0037-sp-unprepare-unbekanntes-handle-ergibt-fehler-8179.md) oder [ADR-0036](../../adr/0036-handle-freigabe-und-grenze-je-sitzung.md) — beide sind `Accepted` und unveränderlich (`AGENTS.md` §3.5); die neue ADR schärft sie über ihr `Schärft:`-Feld.
 
@@ -118,7 +118,7 @@ dasteht.
 
 - **M-6 ohne Beleg im Repo.** Die Angabe 8179 mit State 4 kommt vom Auftraggeber; ohne Zeile im Messprotokoll trägt die ADR eine Aussage breiter als ihr Beleg (`AGENTS.md` §3.8, `BEO-TDS/aussagen-ueber-messung-hinaus`). — **Ausgang:** offen bis zur Closure (Liefer-Punkt 1).
 - **State je Pfad.** M-4 zeigt State 8 bei `sp_unprepare`, M-6 State 4 bei `sp_execute`; ob der Server den State je Pfad führt oder einen Wert setzt, ist eine Setzung der ADR. — **Ausgang:** offen bis zur Closure.
-- **Kante zu `slice-handle-freigabe-und-grenze-bauen` an `SPEC-030`.** Ändert der Bau-Slice dieselbe Spec-Stelle, während der Handle-Slice noch in Arbeit ist, entsteht ein Konflikt; die Reihenfolge legt der Planner beim Anlegen des Bau-Slice fest. — **Ausgang:** offen bis zur Closure.
+- **Kante zu `slice-handle-freigabe-und-grenze-bauen` an `SPEC-030`.** Der Handle-Slice liegt in `done/` und hat `SPEC-030` geschrieben; der Bau-Slice nach der ADR ändert danach dieselbe Stelle, ein Konflikt zweier Slices entsteht nicht mehr. — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 

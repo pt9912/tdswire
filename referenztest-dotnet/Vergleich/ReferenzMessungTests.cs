@@ -206,4 +206,75 @@ public class ReferenzMessungTests
         ReferenzZiel.Messung(_ausgabe, "SQL-Batch 'EXEC sp_unprepare 999999' (Form, die der Treiber von d-migrate laut Messung t5 sendet): " + Batch("EXEC sp_unprepare 999999"));
         ReferenzZiel.Messung(_ausgabe, "Verbindung danach: " + verbindung.State);
     }
+    /// <summary>
+    /// Messaufträge zu ADR-0037 (Offen 1 und 2): `sp_execute` mit unbekanntem Handle (als Prozedur und als SQL-Batch) und der
+    /// gemischte Batch gehalten/unbekannt/gehalten. Gemessen ist am Client, ob der Batch bei 8179 abbricht: beide gehaltenen
+    /// Handles werden danach mit `EXEC sp_execute` sondiert (gelingt = noch gehalten, 8179 = freigegeben). Die Zahl der Fehler
+    /// des Batches steht in `Errors.Count` der Ausnahme; die Tokenfolge auf dem Draht ist am Client nicht sichtbar.
+    /// </summary>
+    [Fact]
+    public void Execute_mit_unbekanntem_Handle_und_gemischter_Unprepare_Batch()
+    {
+        using var verbindung = Oeffnen();
+
+        int Prepexec()
+        {
+            using var befehl = new SqlCommand("sp_prepexec", verbindung) { CommandType = CommandType.StoredProcedure };
+            var handle = befehl.Parameters.Add("@handle", SqlDbType.Int);
+            handle.Direction = ParameterDirection.InputOutput;
+            handle.Value = DBNull.Value;
+            befehl.Parameters.Add("@params", SqlDbType.NVarChar, -1).Value = "";
+            befehl.Parameters.Add("@stmt", SqlDbType.NVarChar, -1).Value = "SELECT 1";
+            using var leser = befehl.ExecuteReader();
+            while (leser.Read()) { }
+            leser.Close();
+            return (int)handle.Value;
+        }
+
+        string Batch(string text)
+        {
+            try
+            {
+                using var befehl = new SqlCommand(text, verbindung);
+                befehl.ExecuteNonQuery();
+                return "gelungen";
+            }
+            catch (SqlException a)
+            {
+                var alle = string.Join(" | ", a.Errors.Cast<SqlError>().Select(f => $"Number {f.Number}, Class {f.Class}, State {f.State}, '{f.Message}'"));
+                return $"{a.Errors.Count} Fehler: {alle}";
+            }
+        }
+
+        string ExecuteProzedur(int wert)
+        {
+            using var befehl = new SqlCommand("sp_execute", verbindung) { CommandType = CommandType.StoredProcedure };
+            befehl.Parameters.Add("@handle", SqlDbType.Int).Value = wert;
+            try
+            {
+                befehl.ExecuteNonQuery();
+                return "gelungen";
+            }
+            catch (SqlException a)
+            {
+                return ReferenzZiel.Beschreibung(a);
+            }
+        }
+
+        ReferenzZiel.Messung(_ausgabe, "sp_execute (StoredProcedure) mit unbekanntem Handle 999999: " + ExecuteProzedur(999999));
+        ReferenzZiel.Messung(_ausgabe, "SQL-Batch 'EXEC sp_execute 999999': " + Batch("EXEC sp_execute 999999"));
+
+        var h1 = Prepexec();
+        var h2 = Prepexec();
+        ReferenzZiel.Messung(_ausgabe, $"zwei Handles vergeben ({(h1 != h2 ? "verschieden" : "gleich")}), sp_execute auf beide: {ExecuteProzedur(h1)} / {ExecuteProzedur(h2)}");
+        ReferenzZiel.Messung(_ausgabe, $"gemischter Batch 'EXEC sp_unprepare h1;EXEC sp_unprepare 999999;EXEC sp_unprepare h2': {Batch($"EXEC sp_unprepare {h1};EXEC sp_unprepare 999999;EXEC sp_unprepare {h2}")}");
+        ReferenzZiel.Messung(_ausgabe, $"danach sp_execute auf h1: {ExecuteProzedur(h1)}; auf h2: {ExecuteProzedur(h2)}");
+        ReferenzZiel.Messung(_ausgabe, "Verbindung danach: " + verbindung.State);
+
+        var a1 = Prepexec();
+        var a2 = Prepexec();
+        ReferenzZiel.Messung(_ausgabe, $"Batch mit zwei Unbekannten und einem Gehaltenen 'EXEC sp_unprepare 999998;EXEC sp_unprepare a1;EXEC sp_unprepare 999999': {Batch($"EXEC sp_unprepare 999998;EXEC sp_unprepare {a1};EXEC sp_unprepare 999999")}");
+        ReferenzZiel.Messung(_ausgabe, $"danach sp_execute auf a1: {ExecuteProzedur(a1)}; auf a2 (nicht genannt): {ExecuteProzedur(a2)}");
+        Assert.Equal(ConnectionState.Open, verbindung.State);
+    }
 }

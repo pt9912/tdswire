@@ -99,6 +99,15 @@ internal class Session(val channel: FakeHandshakeChannel, val ready: HandshakeOu
         requestIds: () -> String = Counter()::next,
     ) = RequestLoop(ready, channel, backend, errors, times, RequestHooks(requestIds, sinkAround))
 
+    /** Die Schleife dieser Sitzung mit der Grenze [handleLimit] für die gleichzeitig gehaltenen Prepared-Handles. */
+    fun loopWithLimit(backend: QueryBackend, handleLimit: Int) = RequestLoop(
+        ready,
+        channel,
+        backend,
+        times = fixedTimes(),
+        hooks = RequestHooks(Counter()::next, handleLimit = handleLimit),
+    )
+
     suspend fun serve(
         backend: QueryBackend,
         errors: ErrorMapper = ErrorMapper(),
