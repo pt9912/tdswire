@@ -91,6 +91,47 @@ Aussagen-Berührung steht hier gar nicht.
 | `spec/spezifikation.md` (SPEC-059, Abschnitte 4 und 5, Änderungsprotokoll) | update | Rang 2; Zusage nennt die bestätigte Liste |
 | `harness/README.md` §Sensors | update | Zeile des Sensors, falls Gate oder Werkzeug |
 
+### Schnitt (Liefer-Punkt 1, vom Nutzer am 2026-11-06 bestätigt: „deine empfehlungen“)
+
+Maßstab ist das Kriterium aus §1. Die Zahlen und Befehle stehen im [Messprotokoll](../../../messungen/oeffentliche-flaeche-ausgang-2026-11-06.md) (Z-Nummern), dort auch die Tabelle mit der Aufrufstelle je Typname. Ein Beleg unten ist die erste Stelle mit Namenstreffer, kein Nachweis der Wirkung (`AGENTS.md` §3.8). Kürzel der Pfade: **T** `src/testserver/kotlin`, **I** `src/integrator`, **TT** `src/testserver/test`.
+
+**Ausgang der Neumessung (Typnamen, Messprotokoll Z1 bis Z15):** 83 öffentliche Typen im Hauptmodul; `SPEC-059` nennt 66 mit Namen, 15 weitere deckt „mit seinen Fällen“, 2 (`FilterTerm.In`, `FilterTerm.IsNull`) nennt sie nicht. 54 der 83 haben einen Namenstreffer in I oder T, 29 keinen (davon 4 nur in TT).
+
+| Nr. | Gruppe | Namen | Entscheidung | Beleg (Aufrufstelle) |
+|---|---|---|---|---|
+| 1 | Start und Stop | `TdsServer`, `BackendSource` (`Custom`, `Simulation`, `None`), `StartOutcome` (`Running`, `Aborted`): 8 | bleibt | T `Main.kt:42-47, 76, 91`; I `TelemetryEmbeddingTest.kt:77-78`, `EmbeddingTest.kt:153` |
+| 2 | Konfiguration | `ServerConfig`, `ListenSettings`, `LoginSettings`, `RequestSettings`, `EncryptionSetting`, `TlsKeyMaterial`, `AuthSettings`, `ConfigIssue`, `IssueKind`: 9 | bleibt | T `ConfigLoader.kt:20, 24, 54-56, 79, 100, 104, 127`; I `TelemetryEmbeddingTest.kt:50-56` (`LoginSettings`, `RequestSettings`, `ConfigIssue` nur T) |
+| 3 | Konfiguration | `ConfigValidation`: 1 | wird `internal` | Aufrufer im Hauptmodul `Bootstrap.kt:87` (`start` prüft immer, Befunde als `Aborted.issues`); außerhalb nur TT `ConfigLoaderTest.kt:101, 233, 260`, die danach anders prüfen |
+| 4 | Backend-Anbindung | `QueryBackend`, `QueryExecution`, `QueryRequest`, `ResultColumn`, `QueryEvent` (`ResultStart`, `Row`, `ResultEnd`, `Failure`), `SqlType` (8 Fälle): 18 | bleibt | I `EmbeddingTest.kt:207-223`, `TelemetryEmbeddingTest.kt:155-164`; T `KompatibilitaetsServer.kt:141-153`, `SimColumnTypes.kt:31-64` |
+| 5 | Backend-Anbindung | `QueryParameter`, `ParameterDirection`, `QueryEvent.UpdateCount`, `QueryEvent.ReturnStatus`, `QueryEvent.OutputParameter`: 5 | bleibt; der Einbettungstest belegt sie (siehe unten) | kein Treffer in I, T, TT; `QueryParameter` steht in `QueryRequest.parameters` (`QueryRequest.kt:18`) |
+| 6 | Anmeldung | `Principal`: 1 | wird `internal` | Treffer nur im Hauptmodul (`HandshakeContext.kt:13`, `UserListAuthAdapter.kt:82`, `HandshakeEvent.kt:80`, alle `internal`), in keiner öffentlichen Signatur |
+| 7 | Anmeldung und Benutzerliste | `UserList` (`parse`, `plainTestModeFrom`), `UserListResult` (`Valid`, `Invalid`), `PasswordChars`: 5 | bleibt | I `EmbeddingTest.kt:127, 190`; T `ConfigLoader.kt:113, 115, 154`, `ConfigFiles.kt:87, 89` |
+| 8 | Anmeldung und Benutzerliste | `UserListError`, `UserListErrorKind`: 2 | bleibt (Signaturtypen von `ConfigIssue.detail`, `ConfigIssue.kt:40`, und `UserListResult.Invalid.error`, `UserList.kt:36`); der Einbettungstest belegt sie | TT `ConfigUsersFileTest.kt:30-31, 140`; in I kein Treffer |
+| 9 | Anmeldung | Mitglied `PasswordChars.reveal` | wird `internal` | Aufrufer im Hauptmodul `Bootstrap.kt:146`, `UserListAuthAdapter.kt:88`; außerhalb nur TT `ConfigUsersFileTest.kt:214`, das danach anders prüft |
+| 10 | Backend-Anbindung (Simulation) | `SimTable`, `SimColumn`, `RowSource`, `SimCatalog`, `SimulationBackend`: 5 | bleibt | [ADR-0026](../../adr/0026-oeffentlichkeit-simulations-backend-und-katalog.md); I `EmbeddingTest.kt:168-181`; T `Main.kt:91`, `KompatibilitaetsServer.kt:164`, `DescriptionFile.kt:8` |
+| 11 | Backend-Anbindung (Zeilenquelle) | `SimQuery`, `RowFilter`, `FilterTerm` (`In`, `IsNull`): 5 | bleibt (Signaturtypen von `SimTable.rows`, `onUpdate`, `onDelete`, `SimModel.kt:23-26`); der Einbettungstest belegt sie | `SimQuery` nur TT `SimDescriptionReaderTest.kt:653`; `RowFilter`, `FilterTerm`, `In`, `IsNull` nirgends |
+| 12 | Telemetrie (Rumpf) | `TelemetrySink` (`accept`, `NONE`), `TelemetryEvent`, `EventLevel`: 3 | bleibt | I `TelemetryEmbeddingTest.kt:76, 98, 147`; `EventLevel` ohne Treffer, Typ von `level` (`TelemetryEvent.kt:59`) |
+| 13 | Telemetrie (Arten) | 18 Ereignisklassen, `StartRefusal`, `LoginRejectionReason`, `TlsFirstRefusal`: 21 | Option B: entfallen als öffentliche Namen (unten) | 7 Arten mit Treffer in I, 11 Arten und die 3 Aufzählungen ohne Treffer in I, T, TT |
+
+**Summe:** Die Gruppen 1 bis 13 decken die 83 Typen (8 + 9 + 1 + 18 + 5 + 1 + 5 + 2 + 5 + 5 + 3 + 21). Nach dem Schnitt sind 61 Typen öffentlich: 83 − `ConfigValidation` − `Principal` − 21 Telemetrie-Typen + `EventKind`. Mitglieder zählt der Sensor nicht (benannte Grenze).
+
+**Telemetrie, Option B:** `TelemetryEvent` ist die einzige öffentliche Ereignisklasse; die Art steht in der Aufzählung `EventKind` (Name Setzung). Die 18 Klassen und `StartRefusal`, `LoginRejectionReason`, `TlsFirstRefusal` sind nicht mehr öffentlich (`internal` oder Felder der einen Klasse; die Form der Felder legt die Umsetzung fest und schreibt sie in `SPEC-059`). `EncryptionWeakened` und `PlainTestModeActive` (beide `WARN`, ohne Feld) werden eine Art. Preis: Felder sind nicht mehr je Art typisiert, und ein `when` über die Art ist nicht mehr compilerseitig vollständig; jede neue Art bricht ein `when` des Adapters (Risiko aus §6). Abbildung, Tests je Art und Einbettungstest werden umgebaut.
+
+**Prüfung vor der Umsetzung: nennt `StartOutcome.Aborted.reason` die Felder der Abbruch-Arten?** Gelesen aus dem Quelltext, nicht ausgeführt (Messprotokoll, Abschnitt „Aborted.reason gegen die Felder der Abbruch-Arten“): `StartRefused` (Feld `reason`: `StartRefusal`) hat je Konstante einen festen Text (`Bootstrap.kt:133-142`, `SimulationSetup.kt:32`); `TlsStartRejected` (`part`, `form`) nennt beide im Text (`Bootstrap.kt:113`, `ListenerConfig.kt:54`); `BindFailed` (`address`, `port`, `exceptionType`) nennt Adresse und Port und bei einem Bindefehler den Typnamen, bei belegtem Port keinen, wie das Feld `null` ist (`ListenerConfig.kt:59, 64`). Alle Felder stehen im Text, aber als Prosa: `Aborted.reason` ist ein `String`, kein Feld ist strukturiert lesbar. Folge für B: das Ereignis bleibt der einzige strukturierte Weg zu diesen Feldern.
+
+**Beleg im Einbettungstest für die Gruppen 5, 8 und 11:** Ein Test in `src/integrator` (Block-Tag `@spec SPEC-059`) belegt sie über die öffentliche Fläche: ein Backend liest einen `QueryParameter` samt `ParameterDirection` aus `QueryRequest.parameters` und erzeugt `UpdateCount`, `ReturnStatus` und `OutputParameter`; das `onUpdate` einer `SimTable` liest den `RowFilter` (`FilterTerm.In`, `FilterTerm.IsNull`, `SimQuery` über `rows`); `UserListError` und `UserListErrorKind` belegt ein Aufruf von `UserList.parse` mit ungültigem Text.
+
+**Sensor von Liefer-Punkt 2:** Er vergleicht Typnamen (83 vor, 61 nach dem Schnitt); Mitglieder gehören nicht dazu, das steht als Grenze im Kopf des Sensors und in der Closure-Notiz.
+
+**ADR:** keine. Die Änderung steht in `SPEC-059` und im Änderungsprotokoll; [ADR-0021](../../adr/0021-oeffentlicher-integrations-einstieg.md) bleibt unverändert.
+
+**Kanten, die der Schnitt nicht entscheidet:**
+
+- [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) (angenommen, noch nicht gebaut) fügt einen zweiten Konstruktor von `SimulationBackend`, den Parameter `SimTable.onInsertBatch` und das Feld `SimColumn.maxLength` hinzu, alles Mitglieder der Gruppe 10, kein neuer Typname; der Schnitt lässt diese Typen unberührt.
+- Die Handle-Grenze ([slice-adr-handle-grenze-ersatz](slice-adr-handle-grenze-ersatz.md), Entwurf auf dem Zweig `slice-adr-handle-grenze-ersatz`, nicht auf `main`) kann einen öffentlichen Namen verlangen, etwa ein Feld in `RequestSettings` (Gruppe 2) oder einen neuen Typ. Der Schnitt reserviert nichts; der Träger stimmt den Namen mit dieser Liste ab, bevor er ihn anlegt.
+- Die Slices `slice-katalog-und-ddl-zustand`, `slice-schreibpfad-bulk-load` und `slice-schreibpfad-merge-output` beginnen nach dem Schnitt (§4) und fügen ihre Namen zur Liste hinzu.
+- Die Umsetzung beginnt erst, wenn `main` den Abbruch-Slice (`slice-abbruch-ressourcen-shutdown`, kann Ereignisse und `TelemetryEvent` ändern) und den Modul-Umbau (`testserver/` statt `src/testserver`) enthält.
+
 ## 4. Trigger
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
