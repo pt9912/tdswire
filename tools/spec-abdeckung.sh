@@ -22,13 +22,18 @@
 # Konvention des C#-Tags: eine Kommentarzeile `// @spec SPEC-<NNN> [SPEC-<NNN> ...]` ueber der Testmethode, Kennungen durch Leerzeichen
 # getrennt; mehrere `// @spec`-Zeilen untereinander addieren sich. Zwischen Tag und Methode duerfen Leerzeilen, andere Kommentarzeilen und
 # Attributzeilen stehen (`[Fact]`, `[Theory]`, `[InlineData(...)]`, `[Trait(...)]`; jedes Attribut in einer Zeile). Der Tag haftet an der
-# ersten Zeile danach, die eine Methode mit Typ, Namen und `(` ist; jede andere Zeile (Feld, Klasse, Namensraum, ein Attribut ueber mehrere
+# ersten Zeile danach, die eine Methode mit Typ, Namen und `(` ist (ohne `=` vor der ersten `(`: eine Feld- oder Eigenschaftszeile mit
+# Zuweisung ist keine Methode); jede andere Zeile (Feld, Klasse, Namensraum, ein Attribut ueber mehrere
 # Zeilen) verwirft ihn. Der Testfall heisst `<Namensraum>.<Klasse>.<Methode>`: Namensraum der Zeile `namespace` (Datei- oder Blockform),
 # Klasse die zuletzt gelesene `class`; geschachtelte Klassen (TRX: `Aussen+Innen`) sind nicht gelesen. Ein `[Theory]` zaehlt als bestanden,
 # wenn alle seine Faelle bestanden sind (schlechtestes Ergebnis). Der Bericht der C#-Tests ist TRX (eingebauter Logger von `dotnet test`,
 # kein Paket): `Passed` ist bestanden, `NotExecuted` uebersprungen, jedes andere Ergebnis rot. Ein getaggter C#-Test ohne Testfall im Bericht
 # steht als „nicht gelaufen“; so stehen die zwei Tests des Abspielens (`LAUF=mitschnitt`, nur in `make vergleichslauf-d`), weil der Bericht
-# nur die Stage `test` des .NET-Geruests kennt. Die Art eines C#-Tests ist Smoke-Test unter `/Smoke/`, sonst Modul-Test.
+# nur die Stage `test-bericht` des .NET-Geruests kennt. Diese Stage teilt Quellen und Argumente von `dotnet test` mit der Stage `test`
+# (Basis `test-quellen`, Variable DOTNET_TEST_ARGS in referenztest-dotnet/Dockerfile) und fuegt nur den TRX-Logger hinzu.
+# Grenze: der C#-Tag haftet an der naechsten Methodenzeile, ob sie die gemeinte Testmethode ist, sieht der Erzeuger nicht; ein Tag ueber
+# einer anderen vorhandenen und bestandenen Methode zaehlt fuer diese. Nur ein fehlender Name faellt als „nicht gelaufen“ auf.
+# Die Art eines C#-Tests ist Smoke-Test unter `/Smoke/`, sonst Modul-Test.
 #
 # Ein Nachweis ist ein Test, dessen Tag die Kennung nennt UND dessen Klasse und Methode im Bericht
 # ohne Fehler und ohne Uebersprung stehen; das Urteil lautet „mindestens ein bestandener getaggter
@@ -155,7 +160,7 @@ if [ -n "$csquelle" ]; then
     pend == "" { next }
     /\(/ {
       s = $0; sub(/\(.*$/, "", s); sub(/<[^>]*>[ \t]*$/, "", s); sub(/[ \t]+$/, "", s)
-      if (s ~ /[]A-Za-z0-9_>?][ \t]+[A-Za-z0-9_]+$/ && s !~ /^[ \t]*(if|for|foreach|while|switch|using|return|new|else|throw|await|var)[ \t(]/) {
+      if (s !~ /=/ && s ~ /[]A-Za-z0-9_>?][ \t]+[A-Za-z0-9_]+$/ && s !~ /^[ \t]*(if|for|foreach|while|switch|using|return|new|else|throw|await|var)[ \t(]/) {
         sub(/^.*[ \t]/, "", s)
         art = "Modul-Test"
         if (FILENAME ~ /\/Smoke\//) art = "Smoke-Test"
@@ -250,7 +255,7 @@ cat "$tmp/s.tsv" "$tmp/t.tsv" "$tmp/r.tsv" | awk -F '\t' -v spec="$spec" '
     print ""
     print "Erzeugt von `make spec-abdeckung` aus den `@spec`-Tags im KDoc der Testfunktionen unter `src/test`, `src/integrator` und `testserver`,"
     print "aus den `// @spec`-Kommentaren der C#-Tests unter `referenztest-dotnet`"
-    print "und den Berichten des Testlaufs, der diese Matrix erzeugt hat (JUnit-XML des Gradle-Laufs, TRX des .NET-Laufs der Stage `test`). Die Festlegungen sind die"
+    print "und den Berichten des Testlaufs, der diese Matrix erzeugt hat (JUnit-XML des Gradle-Laufs, TRX der Stage `test-bericht` des .NET-Gerüsts). Die Festlegungen sind die"
     print "`SPEC-<NNN>`-Überschriften und die Tabellenzeilen mit `SPEC-<NNN>` in der ersten Zelle von"
     print "[`" spec "`](../../" spec ")."
     print ""
@@ -266,7 +271,7 @@ cat "$tmp/s.tsv" "$tmp/t.tsv" "$tmp/r.tsv" | awk -F '\t' -v spec="$spec" '
     print ""
     print "**Konvention des C#-Tags:** eine Kommentarzeile `// @spec SPEC-<NNN> [SPEC-<NNN> ...]` über der Testmethode; Attributzeilen"
     print "(`[Fact]`, `[Theory]`, `[InlineData(...)]`), Leer- und Kommentarzeilen dazwischen halten ihn, jede andere Zeile verwirft ihn."
-    print "Der Bericht der C#-Tests ist der der Stage `test` des .NET-Gerüsts; ein getaggter C#-Test, den diese Stage nicht"
+    print "Der Bericht der C#-Tests ist der der Stage `test-bericht` des .NET-Gerüsts (Quellen und Argumente wie die Stage `test`); ein getaggter C#-Test, den sie nicht"
     print "ausführt (die zwei Tests des Abspielens, die nur in `make vergleichslauf-d` laufen), steht als „nicht gelaufen“."
     print ""
     print "Ein **Nachweis** ist ein Test, dessen Tag die Kennung nennt und der im Bericht desselben Laufs"

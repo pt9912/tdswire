@@ -2,7 +2,7 @@
 
 Erzeugt von `make spec-abdeckung` aus den `@spec`-Tags im KDoc der Testfunktionen unter `src/test`, `src/integrator` und `testserver`,
 aus den `// @spec`-Kommentaren der C#-Tests unter `referenztest-dotnet`
-und den Berichten des Testlaufs, der diese Matrix erzeugt hat (JUnit-XML des Gradle-Laufs, TRX des .NET-Laufs der Stage `test`). Die Festlegungen sind die
+und den Berichten des Testlaufs, der diese Matrix erzeugt hat (JUnit-XML des Gradle-Laufs, TRX der Stage `test-bericht` des .NET-Gerüsts). Die Festlegungen sind die
 `SPEC-<NNN>`-Überschriften und die Tabellenzeilen mit `SPEC-<NNN>` in der ersten Zelle von
 [`spec/spezifikation.md`](../../spec/spezifikation.md).
 
@@ -18,7 +18,7 @@ KDoc-Block oder eine Klasse verwirft einen offenen Tag.
 
 **Konvention des C#-Tags:** eine Kommentarzeile `// @spec SPEC-<NNN> [SPEC-<NNN> ...]` über der Testmethode; Attributzeilen
 (`[Fact]`, `[Theory]`, `[InlineData(...)]`), Leer- und Kommentarzeilen dazwischen halten ihn, jede andere Zeile verwirft ihn.
-Der Bericht der C#-Tests ist der der Stage `test` des .NET-Gerüsts; ein getaggter C#-Test, den diese Stage nicht
+Der Bericht der C#-Tests ist der der Stage `test-bericht` des .NET-Gerüsts (Quellen und Argumente wie die Stage `test`); ein getaggter C#-Test, den sie nicht
 ausführt (die zwei Tests des Abspielens, die nur in `make vergleichslauf-d` laufen), steht als „nicht gelaufen“.
 
 Ein **Nachweis** ist ein Test, dessen Tag die Kennung nennt und der im Bericht desselben Laufs

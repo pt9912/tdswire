@@ -21,19 +21,22 @@ FROM basis AS restore
 COPY nuget.config TdsWire.Referenztests.csproj packages.lock.json ./
 RUN dotnet restore
 
-# --- Test: Build und Tests ohne Netz. Ein roter Test bricht den Build. -------------------------
-FROM restore AS test
+# --- Test: Build und Tests ohne Netz. Ein roter Test bricht den Build. `test-quellen` ist die gemeinsame Basis von `test`
+# und `test-bericht`: Quellen (COPY) und Argumente von `dotnet test` (DOTNET_TEST_ARGS) stehen nur hier. ----------------
+FROM restore AS test-quellen
 COPY Smoke Smoke
 COPY Mitschnitt Mitschnitt
-RUN --network=none dotnet test --no-restore --nologo
+ENV DOTNET_TEST_ARGS="--no-restore --nologo"
 
-# --- Test-Bericht: dieselben Quellen und derselbe Lauf wie `test`, aber der Bericht (TRX, eingebauter Logger,
-# kein Paket) bleibt erhalten, auch bei roten Tests (`make spec-abdeckung`, kein Gate). Fehlt der Bericht, weil der
-# Bau scheitert, endet der Export ohne Datei und der Erzeuger bricht ab. `test-bericht-export` gibt ihn per --output heraus. ---
-FROM restore AS test-bericht
-COPY Smoke Smoke
-COPY Mitschnitt Mitschnitt
-RUN --network=none dotnet test --no-restore --nologo --logger "trx;LogFileName=bericht.trx" --results-directory /bericht \
+FROM test-quellen AS test
+RUN --network=none dotnet test $DOTNET_TEST_ARGS
+
+# --- Test-Bericht: dieselbe Basis und dieselben Argumente wie `test`, zusaetzlich der TRX-Logger (eingebaut, kein Paket);
+# der Bericht bleibt auch bei roten Tests erhalten (`make spec-abdeckung`, kein Gate). Scheitert der Bau, entsteht
+# `/bericht` nicht und der Build von `test-bericht-export` bricht ab (`"/bericht": not found`). `test-bericht-export`
+# gibt den Bericht per --output heraus. ---
+FROM test-quellen AS test-bericht
+RUN --network=none dotnet test $DOTNET_TEST_ARGS --logger "trx;LogFileName=bericht.trx" --results-directory /bericht \
  || echo "test-bericht: der Testlauf ist rot; rote Tests zaehlen nicht als Nachweis"
 
 FROM scratch AS test-bericht-export

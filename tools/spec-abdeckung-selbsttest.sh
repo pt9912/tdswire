@@ -286,6 +286,7 @@ cat > "$tmp/spec-cs.md" <<'FIX'
 ### SPEC-010 — Kotlin und C#
 ### SPEC-011 — Smoke
 ### SPEC-012 — Nur im Mini-Test ohne Tag
+### SPEC-013 — Tag ueber Feld mit Zuweisung
 FIX
 
 cat > "$tmp/cs/Mini/SeiteATests.cs" <<'FIX'
@@ -328,6 +329,12 @@ namespace Fix.Mini
 
         [Fact]
         public void OhneTag() { }
+
+        // @spec SPEC-013
+        private readonly SeiteATests _feld = new SeiteATests();
+
+        [Fact]
+        public void NachFeld() { }
 
         // @spec SPEC-009
         [Theory]
@@ -392,6 +399,7 @@ cat > "$tmp/csb/bericht.trx" <<'FIX'
     <UnitTestResult executionId="e7" testId="t-ohne" testName="Fix.Mini.SeiteATests.OhneTag" outcome="Passed" />
     <UnitTestResult executionId="e8" testId="t-th-1" testName="Fix.Mini.SeiteATests.TheorieMitRot(x: 1)" outcome="Passed" />
     <UnitTestResult executionId="e9" testId="t-th-2" testName="Fix.Mini.SeiteATests.TheorieMitRot(x: 2)" outcome="Failed" />
+    <UnitTestResult executionId="e13" testId="t-nachfeld" testName="Fix.Mini.SeiteATests.NachFeld" outcome="Passed" />
     <UnitTestResult executionId="e10" testId="t-datei" testName="Fix.Datei.DateiTests.Gleiche_Kennung_wie_Kotlin" outcome="Passed" />
     <UnitTestResult executionId="e11" testId="t-rauch" testName="Fix.Rauch.RauchTests.Rauch" outcome="Passed" />
     <UnitTestResult executionId="e12" testId="t-erzeugt" testName="Fix.Bin.ErzeugtTests.Erzeugt" outcome="Passed" />
@@ -418,6 +426,9 @@ cat > "$tmp/csb/bericht.trx" <<'FIX'
     </UnitTest>
     <UnitTest name="Fix.Mini.SeiteATests.OhneTag" id="t-ohne">
       <TestMethod className="Fix.Mini.SeiteATests" name="OhneTag" />
+    </UnitTest>
+    <UnitTest name="Fix.Mini.SeiteATests.NachFeld" id="t-nachfeld">
+      <TestMethod className="Fix.Mini.SeiteATests" name="NachFeld" />
     </UnitTest>
     <UnitTest name="Fix.Mini.SeiteATests.TheorieMitRot(x: 1)" id="t-th-1">
       <TestMethod className="Fix.Mini.SeiteATests" name="TheorieMitRot" />
@@ -475,6 +486,8 @@ faelle_cs() {
   erwarte '^| `SPEC-009` .*| 0 | 0 | 0 | 1 | — | OHNE NACHWEIS |$' "eine Theorie mit einem roten Fall ist rot"
   erwarte '^| `SPEC-010` .*| 2 | 0 | 0 | 0 | KotlinSeiteTest, DateiTests | mindestens ein bestandener getaggter Test |$' "Kotlin- und C#-Nachweis derselben Kennung addieren sich (Dateiform des Namensraums)"
   erwarte '^| `SPEC-011` .*| 0 | 1 | 0 | 0 | RauchTests | mindestens ein bestandener getaggter Test |$' "die Art folgt dem Verzeichnis Smoke/"
+  erwarte '^| `SPEC-013` .*| 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |$' "ein Tag ueber einer Feldzeile mit Zuweisung haftet nicht am Konstruktoraufruf"
+  verbiete '`SPEC-013` | `Fix' "das Feld steht in keinem Abschnitt als Test"
   verbiete 'SPEC-012` | `Fix' "unter bin/ wird nichts gelesen"
   erwarte '^| `SPEC-012` .*| OHNE NACHWEIS |$' "ein Test unter bin/ belegt nichts"
 }
@@ -500,6 +513,7 @@ mutiere() { # mutiere <Name> <sed-Ausdruck>
 mutiere cs-eingang-entfernt 's|^csquelle=.*|csquelle=|'
 mutiere trx-ergebnis-immer-bestanden 's|^        e = (rerg\[i\].*|        e = "pass"|'
 mutiere tag-haftet-ueber-andere-zeilen 's|^    { pend = "" }$||'
+mutiere feldzeile-mit-zuweisung-ist-methode 's#s !~ /=/ && ##'
 mutiere trx-ohne-methodenzuordnung 's|if (!(rid\[i\] in dkl)) continue|dkl[rid[i]] = "x"; dme[rid[i]] = "y"|'
 
 # Leere Berichte: der Erzeuger bricht ab, statt eine leere Matrix als Befund auszugeben.
