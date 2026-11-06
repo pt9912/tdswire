@@ -1,6 +1,6 @@
 # Öffentliche Fläche der Bibliothek: Ausgangszahlen vom 2026-11-06
 
-Messprotokoll zu [TDS-QA-05](../../spec/lastenheft.md#tds-qa-05--wartbarkeit) und [TDS-RB-04](../../spec/lastenheft.md#tds-rb-04--externes-backend) (`AGENTS.md` §5 Regel 7). Es hält fest, was gemessen wurde, nicht, ob eine Anforderung belegt ist und nicht, was der Schnitt ist: er steht in [slice-oeffentliche-flaeche-verkleinern-und-belegen](../plan/planning/in-progress/slice-oeffentliche-flaeche-verkleinern-und-belegen.md) §3 (Liefer-Punkt 1). Gegenstand ist die Neumessung der Ausgangszahlen nach der Anweisung des Slice: öffentliche Deklarationen des Hauptmoduls gegen die Namensliste von [SPEC-059](../../spec/spezifikation.md#einstieg-des-integrators-vertrag-zu-spec-059) und gegen die Verwendungen im Einbettungstest und im Testserver.
+Messprotokoll zu [TDS-QA-05](../../spec/lastenheft.md#tds-qa-05--wartbarkeit) und [TDS-RB-04](../../spec/lastenheft.md#tds-rb-04--externes-backend) (`AGENTS.md` §5 Regel 7). Es hält fest, was gemessen wurde, nicht, ob eine Anforderung belegt ist und nicht, was der Schnitt ist: er steht in [slice-oeffentliche-flaeche-verkleinern-und-belegen](../plan/planning/done/slice-oeffentliche-flaeche-verkleinern-und-belegen.md) §3 (Liefer-Punkt 1). Gegenstand ist die Neumessung der Ausgangszahlen nach der Anweisung des Slice: öffentliche Deklarationen des Hauptmoduls gegen die Namensliste von [SPEC-059](../../spec/spezifikation.md#einstieg-des-integrators-vertrag-zu-spec-059) und gegen die Verwendungen im Einbettungstest und im Testserver.
 
 ## Bedingungen
 

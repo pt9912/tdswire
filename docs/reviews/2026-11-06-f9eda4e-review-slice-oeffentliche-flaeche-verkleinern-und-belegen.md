@@ -78,7 +78,7 @@ Arbeitsbaum nach den Mutationen zurückgesetzt (`git status` sauber).
 
 * kategorie: INFO
 * quelle: Nutzerentscheid (Option B, „ohne Feld“ in der Vorlage); `SPEC-059`
-* pfad: `docs/plan/planning/in-progress/slice-oeffentliche-flaeche-verkleinern-und-belegen.md` · „Das ist eine Ergänzung gegenüber „ohne Feld“ in der Vorlage und steht zur Bestätigung aus.“
+* pfad: `docs/plan/planning/done/slice-oeffentliche-flaeche-verkleinern-und-belegen.md` · „Das ist eine Ergänzung gegenüber „ohne Feld“ in der Vorlage und steht zur Bestätigung aus.“
 * befund: Die Begründung trägt (zwei aktive Abschwächungen wären ohne `reason` zwei gleiche Ereignisse; der Einbettungstest `TelemetryEmbeddingTest` belegt zwei Ereignisse mit den beiden Gründen). Die Spezifikation (Abschnitt 4, Änderungsprotokoll) führt `reason` bereits als Festlegung und kennzeichnet nur im Satz „Dass beide Abschwächungen eine Art sind … ist eine Setzung“; die ausstehende Nutzerbestätigung steht nur im Slice. Vor der Closure zu klären; keine Aktion des Reviewers.
 * verifizierbar: nein
 * klasse: Abweichung von der Vorlage ohne Bestätigung
