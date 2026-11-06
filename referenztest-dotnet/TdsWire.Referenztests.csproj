@@ -31,6 +31,7 @@
   <!-- Die Mitschnitte (Mitschnitt/aufnahmen) liegen beim Test-Assembly; der Abspiel-Lauf liest sie von dort. -->
   <ItemGroup>
     <None Update="Mitschnitt/aufnahmen/**" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Mitschnitt/messung/**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

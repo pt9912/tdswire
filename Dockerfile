@@ -135,7 +135,10 @@ RUN sh tools/detekt-selbsttest.sh generate \
 # --- Spec-Abdeckung: `make spec-abdeckung` - fuehrt die Tests aus (rote Tests brechen die Stage
 # nicht: sie stehen dann in der Matrix als nicht bestanden) und erzeugt aus den @spec-Tags und den
 # Berichten die Abdeckungsmatrix (tools/spec-abdeckung.sh). `spec-abdeckung-export` gibt Matrix und
-# Waisenzahl per `docker build --output` heraus, nichts wird gemountet. ------------------
+# Waisenzahl per `docker build --output` heraus, nichts wird gemountet. Der TRX-Bericht der C#-Tests kommt als
+# benannter Build-Kontext `dotnet-bericht` (Export der Stage `test-bericht-export` von referenztest-dotnet/Dockerfile,
+# vom Make-Target frisch erzeugt); ohne diesen Kontext ist die Stage nicht baubar. Die C#-Quellen kommen aus dem Kontext
+# der Wurzel. Quellen und Skript stehen nach dem Gradle-Lauf, damit ihre Aenderung ihn nicht neu startet. ------------------
 FROM deps AS spec-abdeckung
 COPY --chown=gradle:gradle LICENSE LICENSE
 COPY --chown=gradle:gradle src src
@@ -144,8 +147,10 @@ COPY --from=testkeys --chown=gradle:gradle /testkeys build/testkeys
 COPY --chown=gradle:gradle gradle/test-jvm.init.gradle.kts gradle/
 COPY --chown=gradle:gradle spec/spezifikation.md spec/spezifikation.md
 COPY --chown=gradle:gradle harness/README.md harness/README.md
-COPY --chown=gradle:gradle tools/spec-abdeckung.sh tools/
 RUN gradle --no-daemon -I gradle/test-jvm.init.gradle.kts test integratorTest --continue || echo "spec-abdeckung: der Testlauf ist rot; rote Tests zaehlen nicht als Nachweis"
+COPY --chown=gradle:gradle referenztest-dotnet referenztest-dotnet
+COPY --from=dotnet-bericht --chown=gradle:gradle / build/dotnet-bericht/
+COPY --chown=gradle:gradle tools/spec-abdeckung.sh tools/
 RUN mkdir -p /tmp/ausgabe \
  && ZIEL=/tmp/ausgabe/spec-abdeckung.md WAISEN_DATEI=/tmp/ausgabe/waisen sh tools/spec-abdeckung.sh
 

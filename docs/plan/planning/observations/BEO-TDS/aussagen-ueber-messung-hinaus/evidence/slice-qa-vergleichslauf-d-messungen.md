@@ -1,0 +1,2 @@
+**Vorgang:** slice-qa-vergleichslauf-d-messungen
+**Fund:** Review F-4 (RETURNSTATUS: "Fehlernummer bei abbrechenden Fehlern, 0 bei statement-abbrechendem" war breiter als die Messung, dieselbe Fehlernummer 8134 ergibt beide Werte), F-7 (die ok-Zeile des Skripts sagte "Kennwort in keiner Datei", die Klartextsuche sieht Hex nicht) und Verifikation V-7 (Zuordnung Messung / Festlegung je Aussage stand aus). Behoben durch Einschränken auf die Bedingung und durch die Zuordnungstabelle in §7.

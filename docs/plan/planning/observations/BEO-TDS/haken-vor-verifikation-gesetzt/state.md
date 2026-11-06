@@ -1,1 +1,1 @@
-**Stand:** offen — 1×, unter der Schwelle.
+**Stand:** offen — 3×, über der Schwelle; nicht verkörpert, Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung); der Lese-Schritt gehört in die Closure der Welle. Beleg `evidence/slice-qa-vergleichslauf-d-messungen.md` ergänzt in der Closure von [slice-qa-vergleichslauf-d-messungen](../../../done/slice-qa-vergleichslauf-d-messungen.md).

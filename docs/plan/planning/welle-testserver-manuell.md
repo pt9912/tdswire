@@ -148,7 +148,7 @@ Nachbarn:
 - Blockiert: keine Welle.
 - Wird blockiert von: nichts außer den Triggern oben. Berührt, blockiert aber nicht: [welle-betrieb-diagnose](welle-betrieb-diagnose.md) (Log-Adapter im Testserver: [slice-betrieb-log-adapter-testserver](open/slice-betrieb-log-adapter-testserver.md) ändert die Ausgabe, die `testserver-logs` zeigt).
 - Berührt über die öffentliche Fläche: [slice-oeffentliche-flaeche-verkleinern-und-belegen](done/slice-oeffentliche-flaeche-verkleinern-und-belegen.md) (der Schnitt der Fläche steht vor den Slices, die Namen hinzufügen: Katalog-Anbieter als zweiter Konstruktor, `SimColumn.maxLength`, `SimTable.onInsertBatch`) und [slice-e2e-backend-ausserhalb-modul](done/slice-e2e-backend-ausserhalb-modul.md) (der Testserver als Integrator mit eigenen Callbacks ist ein weiterer Beleg für den Backend-Vertrag; wächst der Vertrag oder wachsen die Callbacks, ist dessen Stufe gegen den neuen Stand zu lesen). Die Reihenfolge ist am 2026-11-06 vom Nutzer entschieden (siehe oben).
-- Berührt, aus der Welle [welle-referenzabgleich-release](welle-referenzabgleich-release.md): [slice-qa-vergleichslauf-d-messungen](open/slice-qa-vergleichslauf-d-messungen.md) misst am echten SQL Server, was hier Setzung bleibt (Antworten auf Massenladen, MERGE, Katalog).
+- Berührt, aus der Welle [welle-referenzabgleich-release](welle-referenzabgleich-release.md): [slice-qa-vergleichslauf-d-messungen](done/slice-qa-vergleichslauf-d-messungen.md) hat am echten SQL Server andere Antworten gemessen (RPC, Anmeldung, Zurücksetzen); was hier Setzung bleibt (Antworten auf Massenladen, MERGE, Katalog), ist nicht gemessen und hat keinen Träger (`BEO-TDS/messung-am-echten-sql-server-fehlt`).
 
 ## 6. Out-of-Scope für diese Welle
 
@@ -163,7 +163,7 @@ der Closure-Trigger unerreichbar wird.
 - Dauerhaftigkeit über den Prozess hinaus und Transaktionssemantik mit Rücknahme über mehrere Anweisungen: Out-of-Scope von [TDS-FA-12](../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate).
 - Last, Durchsatz und Dauerbetrieb: [slice-qa-performance](open/slice-qa-performance.md).
 - Verschlüsselung für echte Daten und Benutzerverwaltung im Betrieb: der manuelle Lauf nimmt Testwerte (`AUTH_PLAIN_TESTMODE`), kein Betriebsweg; Dateirechte der Benutzerliste im Betrieb bleiben bei `BEO-TDS/benutzerliste-dateirechte-im-betrieb-offen`.
-- Der Vergleichslauf D gegen einen echten SQL Server: bleibt ein eigenes Make-Target mit EULA-Entscheidung des Nutzers; der Abgleich von Katalog, Massenladen und MERGE mit dem echten Server liegt bei [slice-qa-vergleichslauf-d-messungen](open/slice-qa-vergleichslauf-d-messungen.md).
+- Der Vergleichslauf D gegen einen echten SQL Server: bleibt ein eigenes Make-Target mit EULA-Entscheidung des Nutzers; der Abgleich von Katalog, Massenladen und MERGE mit dem echten Server ist nicht gemessen und hat keinen Träger (`BEO-TDS/messung-am-echten-sql-server-fehlt`; [slice-qa-vergleichslauf-d-messungen](done/slice-qa-vergleichslauf-d-messungen.md) hat andere Antworten gemessen).
 - Andere Clients oder Versionen von d-migrate und Treiber als d-migrate 1.12.0 mit mssql-jdbc 13.4.0: keine Zusage ([TDS-FA-12](../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate) Out-of-Scope); die Aufnahme in das Clientprofil von [ADR-0001](../adr/0001-tds-version-und-clientprofil.md) ist eine eigene Entscheidung.
 
 ## 7. Closure-Notiz
