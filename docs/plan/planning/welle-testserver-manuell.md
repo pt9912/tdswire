@@ -100,6 +100,12 @@ Hürden in der Nummerierung der Sonde ([Messprotokoll](../../messungen/d-migrate
 | [slice-schreibpfad-bulk-load](open/slice-schreibpfad-bulk-load.md) | 9 | L | Massenladen: Paket BULK_LOAD (0x07) und Weitergabe, `data import` und `data transfer` im Standardpfad | [TDS-FA-12](../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), [TDS-RB-03](../../../spec/lastenheft.md#tds-rb-03--protokollstandard), [TDS-QA-01](../../../spec/lastenheft.md#tds-qa-01--kompatibilität) |
 | [slice-schreibpfad-merge-output](open/slice-schreibpfad-merge-output.md) | 10 | M bis L | `MERGE ... OUTPUT $action`: Form in der Bibliothek, Konfliktbehandlung beim Integrator, für `--on-conflict skip` und `update` | [TDS-FA-12](../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), [TDS-FA-04](../../../spec/lastenheft.md#tds-fa-04--parametrisierte-abfragen-über-rpc), [TDS-QA-01](../../../spec/lastenheft.md#tds-qa-01--kompatibilität) |
 
+**Anbindung des Testservers an die Bibliothek (kein Soll der Sonde)** — Nutzerentscheidung vom 2026-11-06: der Testserver wird ein eigenes Gradle-Modul, das die Bibliothek als Abhängigkeit bindet
+
+| Slice | Hürde | Aufwand | Titel | Bezug |
+|---|---|---|---|---|
+| [slice-testserver-gradle-modul](open/slice-testserver-gradle-modul.md) | — | M (Setzung) | Modul `:testserver` mit eigener Build-Datei und Lock, Projekt-Abhängigkeit auf die Bibliothek, Dockerfile, detekt, Stempel-Eingänge | [TDS-RB-01](../../../spec/lastenheft.md#tds-rb-01--implementierungssprache), [TDS-QA-06](../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [ADR-0034](../adr/0034-testserver-als-gradle-modul.md), [ADR-0025](../adr/0025-produktschnitt-bibliothek-und-testserver.md) |
+
 **TLS (Hürde 13)**
 
 | Slice | Hürde | Aufwand | Titel | Bezug |
@@ -129,6 +135,7 @@ Kanten innerhalb der Welle (A → B heißt: B startet erst, wenn A in `done/` li
 - Freigabe des Wortlauts von Lastenheft 0.7.0 durch den Nutzer (2026-11-05, erfüllt) → [slice-adr-testserver-bestand-und-katalog](in-progress/slice-adr-testserver-bestand-und-katalog.md).
 - [slice-prelogin-serverversion](done/slice-prelogin-serverversion.md) → [slice-d-migrate-verbindung-und-export](done/slice-d-migrate-verbindung-und-export.md) und → [slice-tls-d-migrate](done/slice-tls-d-migrate.md).
 - [slice-adr-testserver-bestand-und-katalog](in-progress/slice-adr-testserver-bestand-und-katalog.md) → [slice-katalog-und-ddl-zustand](open/slice-katalog-und-ddl-zustand.md) → [slice-schreibpfad-bulk-load](open/slice-schreibpfad-bulk-load.md) und [slice-schreibpfad-merge-output](open/slice-schreibpfad-merge-output.md).
+- [ADR-0034](../adr/0034-testserver-als-gradle-modul.md) `Accepted` → [slice-testserver-gradle-modul](open/slice-testserver-gradle-modul.md). Weiche Kante (Setzung, Reihenfolge entscheidet der Nutzer): der Slice steht vor [slice-katalog-und-ddl-zustand](open/slice-katalog-und-ddl-zustand.md), [slice-schreibpfad-bulk-load](open/slice-schreibpfad-bulk-load.md) und [slice-schreibpfad-merge-output](open/slice-schreibpfad-merge-output.md), weil diese Dateien des Testservers ändern; er ist kein Soll der Abnahme und blockiert sie nicht.
 - Alle Slices des Solls → [slice-abnahme-d-migrate](open/slice-abnahme-d-migrate.md).
 
 Nachbarn:
