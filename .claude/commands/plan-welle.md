@@ -72,6 +72,15 @@ die Antwort und wird notiert.
    Verlauf der genannten Stelle); sie nennt die Folgepflicht, nicht einen Werkzeugzustand, den
    eine Reparatur auf `main` schon behoben hat  (seit welle-backend-streaming).
 
+6a. **Wechselt eine ADR auf `Accepted` (Slice-Closure oder Bau-Slice-Anlage), ziehst du die
+   Zustandsfelder der Nachbar-Slices im selben Zug nach.** Grep über das **ganze Repo** (`docs/`,
+   `spec/`, `.claude/`, `harness/`) nach der alten Lesart: `Proposed`, `Entwurf`, „gilt erst mit
+   `Accepted`“, den Start-Trigger („ADR angenommen“), Anschluss-Blöcke und Haken der Nachbar-Slices,
+   Welle-§4/§5, Roadmap-Zeilen und Links auf verschobene Slices. Gefundene Stellen werden
+   fortgeschrieben oder in der Änderungsliste als bewusst belassen benannt. Die ADR selbst bleibt
+   unberührt (`AGENTS.md` §3.5); widerspricht sie einer Aussage, braucht es eine Folge-ADR
+   (seit slice-adr-handle-grenze-ersatz).
+
 ## Welle-Plan per cp anlegen und füllen (der Kern-Schritt)
 
 7. **`cp` aus `.harness/baseline/<tag>/templates/docs/plan/planning/welle.template.md` nach
