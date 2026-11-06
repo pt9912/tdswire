@@ -26,7 +26,7 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 
 In Arbeit (Welle welle-qualitaet-grundlage):
 
-- keiner; zuletzt geschlossen: [slice-qa-dotnet-lieferkette-haerten](../done/slice-qa-dotnet-lieferkette-haerten.md) (Closure-Notiz in §7 des Slice; [CO-001](../../carveouts/done/CO-001-nuget-audit-aus.md) und [CO-002](../../carveouts/done/CO-002-nuget-signaturpruefung-fehlt.md) aufgelöst, [ADR-0035](../../adr/0035-dotnet-restore-signaturliste-und-audit-verzicht.md); offen: Selbsttest der Signaturliste, `BEO-TDS/signaturliste-ohne-selbsttest`, Zertifikatsrotation, `BEO-TDS/restore-haengt-am-zertifikatsstand-des-tages`), davor [slice-e2e-geruest](../done/slice-e2e-geruest.md) (Closure-Notiz in §7 des Slice; offen: Warm-/Kaltmessung der sieben Stufen, Register `BEO-TDS/e2e-nachweis-ohne-stufe-oder-messung`; Folge: [slice-e2e-backend-ausserhalb-modul](../next/slice-e2e-backend-ausserhalb-modul.md))
+- keiner; zuletzt geschlossen: [slice-qa-dotnet-lieferkette-haerten](../done/slice-qa-dotnet-lieferkette-haerten.md) (Closure-Notiz in §7 des Slice; [CO-001](../../carveouts/done/CO-001-nuget-audit-aus.md) und [CO-002](../../carveouts/done/CO-002-nuget-signaturpruefung-fehlt.md) aufgelöst, [ADR-0035](../../adr/0035-dotnet-restore-signaturliste-und-audit-verzicht.md); offen: Selbsttest der Signaturliste, `BEO-TDS/signaturliste-ohne-selbsttest`, Zertifikatsrotation, `BEO-TDS/restore-haengt-am-zertifikatsstand-des-tages`), davor [slice-e2e-geruest](../done/slice-e2e-geruest.md) (Closure-Notiz in §7 des Slice; offen: Warm-/Kaltmessung der sieben Stufen, Register `BEO-TDS/e2e-nachweis-ohne-stufe-oder-messung`; Folge: [slice-e2e-backend-ausserhalb-modul](../in-progress/slice-e2e-backend-ausserhalb-modul.md))
 
 In Arbeit (Welle welle-testserver-manuell):
 
