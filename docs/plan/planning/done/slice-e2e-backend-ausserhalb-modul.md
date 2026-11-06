@@ -70,7 +70,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 | `tools/e2e-selbsttest.sh` | update | acht Stufen, Fall „Rot in Stufe 8“ |
 | `README.md`, `harness/README.md` (Zellen `make e2e`, `make eigenes-backend`), `tools/mk/e2e.mk` | update | Stufenzahl, Zeile des Targets |
 | `spec/spezifikation.md` (`SPEC-025`, Änderungsprotokoll) | update | „Stufen 3 bis 8“ |
-| `docs/plan/planning/welle-produktschnitt.md`, `docs/plan/planning/next/slice-betrieb-log-adapter-testserver.md` | update | zweite Fundstellen der Stufenzahl |
+| `docs/plan/planning/welle-produktschnitt.md`, `docs/plan/planning/in-progress/slice-betrieb-log-adapter-testserver.md` | update | zweite Fundstellen der Stufenzahl |
 
 ## 4. Trigger
 
