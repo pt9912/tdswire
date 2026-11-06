@@ -1,1 +1,6 @@
-**Stand:** offen — Bau ohne Träger; die Ausnahmeliste `referenztest-dotnet/Vergleich/mitschnitt-ausnahmen.tsv` (Regeln A-10, A-11, A-15, A-18) ist der Sensor.
+**Stand:** offen — Bau ohne Träger; die Ausnahmeliste `referenztest-dotnet/Vergleich/mitschnitt-ausnahmen.tsv` (Regeln A-10, A-11, A-15, A-18) ist der Sensor. Träger-Vorschläge des Planners (Setzung, zur Bestätigung durch den Nutzer; kein Slice angelegt, keine DoD geändert):
+
+- A-10 (`curCmd`): Teil der Entscheidung `BEO-TDS/spec-setzung-widerspricht-messung-am-echten-server` (Konflikt 2); Träger nach der Entscheidung der Bau-Slice „Antwort-Tokens an die Messung angleichen“ (ohne Kennung).
+- A-11 (Länge 17 statt 9 im TYPE_INFO von `decimal(10,2)`): [slice-codec-datentypen-erweiterung](../../../open/slice-codec-datentypen-erweiterung.md) (Typen im Codec, trägt auch A-12); die Ursache ist vorher zu untersuchen.
+- A-15 (`WAITFOR`, Abbruch eines wartenden Befehls): der Folge-Slice „erkannte Anweisungsformen erweitern“ aus `BEO-TDS/anweisungsformen-des-simulations-backends-enger-als-der-server` (ohne Kennung), nach der Entscheidung des Nutzers über die Lesart dort.
+- A-18 (SESSIONSTATE bei `ConnectRetryCount=1`, nur 2022): [slice-qa-vergleichslauf-d-messungen](../../../open/slice-qa-vergleichslauf-d-messungen.md) untersucht die Verhandlung in der Anmeldung zusammen mit `BEO-TDS/anmeldung-am-draht-nicht-aufgenommen`; ob der Server dieses Repos SESSIONSTATE senden soll, entscheidet der Nutzer nach der Untersuchung.

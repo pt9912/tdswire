@@ -110,6 +110,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Start** (`next` → `in-progress`): [slice-qa-vergleichslauf-d](../done/slice-qa-vergleichslauf-d.md) liegt in `done/` (Container, Target, Ausnahmeliste), die Wahl der Aufnahme-Methode ist entschieden (Frage in [slice-referenzabgleich-mitschnitt](../in-progress/slice-referenzabgleich-mitschnitt.md) §6; Vorschlag des Planners: mitschneidender Proxy wie in der Messreihe R, sonst entfällt der Wire-Teil und der Slice schrumpft auf die vom Client beobachtbaren Punkte), und ein Verantwortlicher ist im Kopf eingetragen.
 
+**Stand des Start-Triggers:** Die Aufnahme-Methode ist als mitschneidender Proxy gebaut ([slice-referenzabgleich-mitschnitt](../in-progress/slice-referenzabgleich-mitschnitt.md), Setzung des Planners, vom Nutzer nicht bestätigt; die Bestätigung ist Bedingung dieses Triggers). Proxy, Redaktion und 17 Mitschnitte je Instanz liegen im Repo; gemessen sind dort Tokenfolge, DONE-Statusbits, Ordinal der RETURNVALUE, RETURNSTATUS, ATTENTION und die Cancel-Antwort (`docs/messungen/referenzabgleich.md`, Ergebnis 1 bis 6). Offen für diesen Slice bleiben Fehler in `sp_executesql`, ENVCHANGE bei `RESETCONNECTION`, die Anmeldung am Draht (`BEO-TDS/anmeldung-am-draht-nicht-aufgenommen`), SESSIONSTATE (A-18) und ein zweiter Fall für das Ordinal; die DoD in §2 ist noch nicht gekürzt (Entscheidung des Nutzers, siehe Closure-Notiz des Mitschnitt-Slice).
+
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): mehr als drei Liefer-Punkte in §2, oder der Proxy sprengt den Rahmen; Schnittvorschlag: Proxy mit Antwort-Tokens als einer, Fehler in `sp_executesql` und Zurücksetzen mit Abbruch als zweiter Slice.

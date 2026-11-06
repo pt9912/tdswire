@@ -1,0 +1,2 @@
+**Vorgang:** slice-referenzabgleich-mitschnitt
+**Fund:** Review F-4 (MEDIUM): der Diff berichtigte Messprotokoll, Matrix und drei Zeilen, nicht die Kernaussage „nicht gemessen“ in Spec (Zeilen 171, 484, 503, 1162, 1222) und Register; Verifikation V-1 (LOW): nach der Nachbesserung standen noch Matrix Zeile 275 (ATTENTION im Leerlauf) und Spec Zeile 1224 (Form RPC, „nicht gemessen“). Gesucht wurde die genannte Zeile, nicht die Kernaussage im ganzen Repo.

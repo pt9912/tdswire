@@ -1,0 +1,1 @@
+**Stand:** offen — 1×, unter der Schwelle. Sensor: Prüfung von Review und Verifikation am Dateiinhalt (alle UTF-16LE-Zeichenketten ab 5 Zeichen gelistet); kein Gate, weil die Ablage nur beim Aufnehmen entsteht.

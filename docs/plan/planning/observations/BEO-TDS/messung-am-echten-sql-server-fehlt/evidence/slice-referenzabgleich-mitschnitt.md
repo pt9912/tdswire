@@ -1,0 +1,2 @@
+**Vorgang:** slice-referenzabgleich-mitschnitt
+**Fund:** Der Mitschnitt-Lauf liefert die Messung am Draht (Tokenfolge, DONE-Statusbits, RETURNSTATUS und RETURNVALUE, Ordinal, ATTENTION, Cancel-Antwort) für 17 Szenarien gegen 2022 und 2025 (`docs/messungen/referenzabgleich.md`, Ergebnis 1 bis 6); nicht gemessen bleiben die Anmeldung, ENVCHANGE nach der Anmeldung, `RESETCONNECTION`, Fehler im RPC, TDS 8.0.
