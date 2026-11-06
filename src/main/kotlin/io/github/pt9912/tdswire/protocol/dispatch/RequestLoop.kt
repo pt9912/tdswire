@@ -56,21 +56,26 @@ import kotlin.time.Duration.Companion.milliseconds
  *
  * Prepared-Statements (`TDS-FA-04.a` Nr. 5, `SPEC-030`): `sp_prepexec` merkt den Text unter einem neuen Handle der
  * Sitzung ([PreparedHandles]), führt ihn mit den Parametern der Nachricht über das [backend] aus und
- * liefert das Handle als RETURNVALUE ([HandleReturningBackend]); endet die Antwort mit einem Fehler,
- * bevor das Handle im Strom steht, gibt die Schleife es wieder frei; ein schon gesendetes Handle bleibt
+ * liefert das Handle als RETURNVALUE hinter einem RETURNSTATUS ([HandleReturningBackend]); endet die Antwort mit einem
+ * Fehler, bevor das Handle im Strom steht, gibt die Schleife es wieder frei; ein schon gesendetes Handle bleibt
  * gültig. Hält die Sitzung schon
- * [PreparedHandles.MAX_HANDLES] Handles, ergibt `sp_prepexec` `TDS_PREPARE_LIMIT`, ohne das Backend zu rufen;
+ * [handleLimit] Handles, ergibt `sp_prepexec` `TDS_PREPARE_LIMIT`, ohne das Backend zu rufen;
  * die Handles bleiben gültig. `sp_execute` führt den gemerkten Text mit den neuen Parametern aus; ein Handle,
  * das die Sitzung nicht hält, ergibt `TDS_UNKNOWN_HANDLE` ohne Backend-Aufruf. Beide Fehler lassen die Verbindung
- * offen (Class 16). `sp_unprepare` und `sp_prepare` sind nicht im Katalog (`TDS_UNSUPPORTED_RPC`). Die Handles
- * enden mit der Schleife und mit dem Bit RESETCONNECTION (nächster Absatz).
+ * offen (Class 16). Der RPC `sp_unprepare` und `sp_prepare` sind nicht im Katalog (`TDS_UNSUPPORTED_RPC`) und geben
+ * nichts frei. Die Freigabe läuft als SQL_BATCH `EXEC sp_unprepare <n>` ([UnprepareBatch]): die Schleife beantwortet
+ * ihn ohne das Backend, gibt jedes gehaltene Handle der Reihe nach frei, und jede Nummer, die die Sitzung nicht hält
+ * (nie vergeben, schon freigegeben, vor RESETCONNECTION), ergibt einen ERROR `TDS_SIM_UNKNOWN_PREPARED_HANDLE` in
+ * derselben Antwort, die dann mit einem DONE mit Fehlerstatus endet; die Verbindung bleibt offen. Ein Text, der nicht
+ * ganz diese Form hat, geht wie jeder Batch an das Backend. Die Handles enden mit der Schleife und mit dem Bit
+ * RESETCONNECTION (nächster Absatz).
  *
  * RESETCONNECTION (`ADR-0027` Entscheidung 5, `SPEC-001`): Das Bit steht im Status des ersten Pakets einer
  * Nachricht. `MessageAssembler` liest es in `TdsMessage.resetConnection`, `TransportHandshakeChannel` gibt die
  * Nachricht unverändert weiter, und der Automat des Sitzungsrahmens setzt an der Anfrage in `READY`, die es trägt, die
  * Aktion `ResetSession`; der Rahmen führt sie unter seiner Sperre aus, vor der Verarbeitung dieser Anfrage. Die
  * Schleife hängt dafür [PreparedHandles.clear] ein: alle Handles sind danach unbekannt (`TDS_UNKNOWN_HANDLE`), die
- * Vergabe beginnt wieder bei 1, die Grenze von [PreparedHandles.MAX_HANDLES] gilt neu. Die Anfrage mit dem Bit wird
+ * Vergabe beginnt wieder bei 1, die Grenze von [handleLimit] gilt neu. Die Anfrage mit dem Bit wird
  * danach wie jede andere beantwortet, ohne ENVCHANGE (der Referenzclient nahm das an; ein echter Server ist nicht
  * gemessen). Das Bit an einer Nachricht außerhalb von `READY` wirkt nicht: dort ist eine Anfrage unzulässig und die
  * Verbindung schließt (Festlegung; `ADR-0027` entscheidet es nicht).
@@ -116,8 +121,8 @@ import kotlin.time.Duration.Companion.milliseconds
  * Verbindung schließt; die Frist wirkt nicht, solange ein Schreibvorgang am Rückstau hängt (er hält die Sperre,
  * die der Übergang braucht).
  *
- * Kopplung: [hooks] sind die Einhängepunkte für Anfrage-Kennung, Senke und geordnetes Beenden ([RequestHooks]);
- * [times] trägt die
+ * Kopplung: [hooks] sind die Einhängepunkte für Anfrage-Kennung, Senke und geordnetes Beenden und die Grenze der
+ * Prepared-Handles ([RequestHooks]); [times] trägt die
  * Fristen und die Uhr ([RequestTimes]).
  */
 internal class RequestLoop(
@@ -131,6 +136,7 @@ internal class RequestLoop(
     private val requestIds = hooks.requestIds
     private val sinkAround = hooks.sinkAround
     private val gate = hooks.gate
+    private val handleLimit = hooks.handleLimit
     private val mapping = errors.sequencerMapping()
     private val sequencer = ResponseSequencer(mapping)
     private val aborted = AbortedAnswer(errors, mapping)
@@ -141,7 +147,7 @@ internal class RequestLoop(
     private lateinit var rig: Rig
 
     /** Die Prepared-Handles dieser Sitzung; eine Schleife bedient genau eine Sitzung. */
-    internal val handles = PreparedHandles()
+    internal val handles = PreparedHandles(handleLimit)
 
     /** Der Lauf der Anfrage, die gerade ausgeführt wird; `null` zwischen den Anfragen. */
     @Volatile
@@ -224,7 +230,16 @@ internal class RequestLoop(
     private suspend fun answerBatch(batch: TdsMessage): HandshakeEvent.RequestFinished? =
         when (val parsed = SqlBatchParser.parse(batch.payload)) {
             is ProtocolResult.Failed -> errors.protocol(parsed.error).let { requestFinished(it.fate, it.message) }
-            is ProtocolResult.Ok -> execute(parsed.value.text, emptyList(), ResponseForm.BATCH)
+
+            is ProtocolResult.Ok -> {
+                val text = parsed.value.text
+                val released = UnprepareBatch.parse(text)
+                if (released == null) {
+                    execute(text, emptyList(), ResponseForm.BATCH)
+                } else {
+                    UnprepareBatch.answer(released, handles, errors)
+                }
+            }
         }
 
     private suspend fun answerRpc(rpc: TdsMessage): HandshakeEvent.RequestFinished? =
@@ -320,12 +335,14 @@ internal class RequestLoop(
  * Backend-Ereignis lässt den Encoder ein Token ablehnen (die Abbildungen von Spalten und Werten prüfen dieselben
  * Grenzen); der Einhängepunkt erlaubt es einem Test, eine Senke zu stellen, die ein Token nicht annimmt (Ausgang
  * `CLOSE_WITHOUT_COMPLETION`). [gate] verbindet die Schleife mit dem geordneten Beenden des Servers ([ShutdownGate]);
- * die Voreinstellung kennt keines.
+ * die Voreinstellung kennt keines. [handleLimit] ist die Grenze der gleichzeitig gehaltenen Prepared-Handles einer
+ * Sitzung (`RequestSettings.maxPreparedHandles`, `SPEC-058`).
  */
 internal class RequestHooks(
     val requestIds: () -> String = { UUID.randomUUID().toString() },
     val sinkAround: (TokenSink) -> TokenSink = { it },
     val gate: ShutdownGate = ShutdownGate.NONE,
+    val handleLimit: Int = PreparedHandles.DEFAULT_MAX_HANDLES,
 )
 
 /**

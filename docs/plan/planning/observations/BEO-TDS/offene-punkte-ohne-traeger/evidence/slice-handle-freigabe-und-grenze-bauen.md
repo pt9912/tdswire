@@ -1,0 +1,2 @@
+**Vorgang:** [slice-handle-freigabe-und-grenze-bauen](../../../../done/slice-handle-freigabe-und-grenze-bauen.md)
+**Fund:** Verifikation V-2, V-3, Re-Review R-2, R-3: Obergrenze 100 hatte nur Slice §6 als Träger, der Stand der M-6-Entscheidung nannte Slice §6 und einen Folge-Slice ohne Kennung; behoben mit Register-Eintrag, Auflösungs-Trigger und Folge-Slice `slice-adr-sp-execute-unbekanntes-handle` in `open/`.

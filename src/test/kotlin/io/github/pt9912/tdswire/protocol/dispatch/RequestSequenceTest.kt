@@ -59,12 +59,16 @@ class RequestSequenceTest {
     private val rpcReply =
         listOf(BatchVectors.COLMETADATA_N, BatchVectors.row(7), doneInProcMore, doneProcFinal).joinToString(" ")
 
-    /** Handvektor: `sp_prepexec`, Handle 1 als RETURNVALUE vor dem DONEPROC; Quelle `PreparedHandlesDispatchTest`. */
+    /**
+     * Handvektor: `sp_prepexec`, RETURNSTATUS 0 und Handle 1 als RETURNVALUE ohne Namen vor dem DONEPROC; Quelle
+     * `PreparedHandlesDispatchTest` (dort zu den Grenzen gegenüber dem Mitschnitt `prepare` der Referenzinstanz).
+     */
     private val prepReply = listOf(
         BatchVectors.COLMETADATA_N,
         BatchVectors.row(7),
         doneInProcMore,
-        "AC 00 00 07 ${RpcWire.utf16("@handle")} 01 00 00 00 00 01 00 26 04 04 01 00 00 00",
+        "79 00 00 00 00",
+        "AC 00 00 00 01 00 00 00 00 01 00 26 04 04 01 00 00 00",
         doneProcFinal,
     ).joinToString(" ")
 
