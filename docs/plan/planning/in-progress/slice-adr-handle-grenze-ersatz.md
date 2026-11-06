@@ -70,11 +70,13 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `docs/plan/adr/` — neue ADR <!-- d-check:ignore (geplant: neue Datei) --> | neu | Entscheidung samt Optionen, Messzeilen und Offen-Liste mit Trägern |
+| [ADR-0036](../../adr/0036-handle-freigabe-und-grenze-je-sitzung.md) | neu (`Proposed`) | Entscheidung samt Optionen, Messzeilen und Offen-Liste mit Trägern |
 | `docs/plan/adr/README.md` | update | ADR-Index (`AGENTS.md` §5 Regel 2 und 3) |
-| `docs/messungen/` | neu oder update | Messzeilen der Optionen, soweit messbar |
-| [slice-schreibpfad-merge-output](../open/slice-schreibpfad-merge-output.md) | update | Start-Trigger und Anschluss an die Entscheidung |
+| [handle-grenze-optionen-2026-11-06](../../../messungen/handle-grenze-optionen-2026-11-06.md) | neu | Messzeilen der Optionen, soweit messbar |
+| [slice-schreibpfad-merge-output](../open/slice-schreibpfad-merge-output.md) | update | Start-Trigger (die ADR `Accepted`), Anschluss, Risiko |
 | `spec/spezifikation.md` | nicht in diesem Slice | SPEC-030 und SPEC-034 schreibt der MERGE-Slice nach `Accepted` |
+
+**Spec-Änderungen, die der MERGE-Slice (oder ein vom Nutzer geschnittener Bau-Slice) nach `Accepted` schreibt** (Vorschlag der Fassung D mit B; Liste mit Einzelheiten in der Tabelle „Liste der Spec-Änderungen“ von [ADR-0036](../../adr/0036-handle-freigabe-und-grenze-je-sitzung.md)): SPEC-030 (Antwort auf `sp_prepexec` mit RETURNSTATUS, Freigabe über `sp_unprepare` als RPC und Batch, Zählung, Voreinstellung 1000 statt „nicht konfigurierbar“, Erstaufruf 0 oder −1, RPC-Tabelle), SPEC-013 (`sp_unprepare` aus der Liste), SPEC-058 (Grenze als Voreinstellung), SPEC-034 und §3 (Eingang der Grenze, Speicher je Sitzung), SPEC-001 (Batch-Form im Sitzungsrahmen), Abschnitt „RPC-Katalog des Referenzclients“. SPEC-036 und SPEC-040 ändern sich durch diese Entscheidung nicht. Wählt der Nutzer eine andere Option, ändert sich die Liste mit ihr.
 
 ## 4. Trigger
 
