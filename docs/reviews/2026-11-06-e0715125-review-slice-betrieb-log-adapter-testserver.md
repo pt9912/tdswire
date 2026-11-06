@@ -58,7 +58,7 @@ Wanduhr-Tests (2 s, 250 ms, 5 s, 1 500 Anmeldungen, Pipe voll): `TestserverLogPr
 
 * kategorie: MEDIUM
 * quelle: Maintainability; Reviewer-Skill „Plan-Tabelle nennt die berührten Dateien nicht“; Slice §1 („ändert die Spezifikation nur bei einem Befund“)
-* pfad: `docs/plan/planning/in-progress/slice-betrieb-log-adapter-testserver.md` · „Berührte Spec-Stellen“ und die Tabelle in §3
+* pfad: `docs/plan/planning/done/slice-betrieb-log-adapter-testserver.md` · „Berührte Spec-Stellen“ und die Tabelle in §3
 * befund: Der Diff ändert `docs/plan/planning/in-progress/roadmap.md` (neuer Eintrag der Welle) und über `slice-mv` rund 20 Dateien (Slices, Wellen, Register) an Verweisen; keine steht in der Tabelle. `SPEC-052` ist in der Tabelle (Vermerk), fehlt aber im Kopf „Berührte Spec-Stellen“, und §1 sagt „kein stilles Ändern“ der Spezifikation, während §3 den Vermerk plant: der Slice widerspricht sich in der Frage, ob die Spezifikation geändert wird. Failure-Szenario: Der Negativbefund „keine Datei darüber hinaus“ ist nach dem Abgleich nicht haltbar; ein Leser des Kopfes erwartet keine Änderung an `SPEC-052`.
 * verifizierbar: ja (Abgleich `git diff --stat 652d5667..HEAD` gegen §3)
 * klasse: Plan-Tabelle nennt berührte Dateien nicht

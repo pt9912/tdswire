@@ -1,1 +1,1 @@
-**Stand:** offen — 1×; unter der Schwelle, keine Regel. Gelernt und im Slice behoben (Selbsttest der Muster); die Grenze der Beispielzeilen steht in §7 der Closure-Notiz von [slice-betrieb-log-adapter-testserver](../../../in-progress/slice-betrieb-log-adapter-testserver.md).
+**Stand:** offen — 1×; unter der Schwelle, keine Regel. Gelernt und im Slice behoben (Selbsttest der Muster); die Grenze der Beispielzeilen steht in §7 der Closure-Notiz von [slice-betrieb-log-adapter-testserver](../../../done/slice-betrieb-log-adapter-testserver.md).

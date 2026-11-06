@@ -1,2 +1,2 @@
-**Vorgang:** [slice-betrieb-log-adapter-testserver](../../../../in-progress/slice-betrieb-log-adapter-testserver.md)
+**Vorgang:** [slice-betrieb-log-adapter-testserver](../../../../done/slice-betrieb-log-adapter-testserver.md)
 **Fund:** [Verifikation](../../../../../../reviews/2026-11-06-db98080c-verifikation-slice-betrieb-log-adapter-testserver.md) V-2 (LOW): `c30f627e` (Test, `tools/log-muster.sh`, `tools/log-muster-selbsttest.sh`, vier Laufskripte, `testserver.sh`), `98b65613`, `db98080c` ohne Re-Review; der Verifier las die Muster und fand keinen Fehler (`log_zaehle_fehler` endet bei null Treffern mit Exit 1, `[ -n … ] && env_args+=` ohne `set -e` harmlos); Sensoren: Selbsttest mit 8 Mutationen, `make e2e`.

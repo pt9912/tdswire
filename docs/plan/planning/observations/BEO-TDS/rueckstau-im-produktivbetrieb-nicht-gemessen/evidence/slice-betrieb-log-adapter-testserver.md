@@ -1,2 +1,2 @@
-**Vorgang:** [slice-betrieb-log-adapter-testserver](../../../../in-progress/slice-betrieb-log-adapter-testserver.md)
+**Vorgang:** [slice-betrieb-log-adapter-testserver](../../../../done/slice-betrieb-log-adapter-testserver.md)
 **Fund:** Der Log-Adapter des Testservers bringt die begrenzte Warteschlange (1024 Zeilen) mit Überlauf, `dropped` und der Frist von 2 s; belegt ist das Verhalten (Überlauf blockiert nicht, Zähler, Erhaltung bei Leser innerhalb der Frist), nicht Durchsatz, Zeit und Speicher des Jackson-Generators unter Last (Risiken in §6 des Slice, Ausgang weiter offen). Träger der Messung bleibt `slice-qa-performance`.
