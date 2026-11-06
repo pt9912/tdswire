@@ -38,7 +38,7 @@ In Arbeit (Welle welle-anfrageverarbeitung):
 
 In Arbeit (Welle welle-fehler-abbruch):
 
-- keiner; zuletzt geschlossen: [slice-cancel-referenzclient-szenario](../done/slice-cancel-referenzclient-szenario.md) (Closure-Notiz in §7 des Slice; [CO-004](../../carveouts/done/CO-004-cancel-szenario-spec-040-fehlt.md) aufgelöst; offen: Folgepflichten (a) und (c) des Cancel-Teils von [TDS-QA-07](../../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität), Träger [slice-referenzabgleich-mitschnitt](../open/slice-referenzabgleich-mitschnitt.md)), davor [slice-resetconnection-zuruecksetzen](../done/slice-resetconnection-zuruecksetzen.md) (offener Nutzerpunkt: Handle-Aliasing nach dem Zurücksetzen; Folge: [slice-abbruch-ressourcen-shutdown](../next/slice-abbruch-ressourcen-shutdown.md))
+- keiner; zuletzt geschlossen: [slice-cancel-referenzclient-szenario](../done/slice-cancel-referenzclient-szenario.md) (Closure-Notiz in §7 des Slice; [CO-004](../../carveouts/done/CO-004-cancel-szenario-spec-040-fehlt.md) aufgelöst; offen: Folgepflichten (a) und (c) des Cancel-Teils von [TDS-QA-07](../../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität), Träger [slice-referenzabgleich-mitschnitt](../open/slice-referenzabgleich-mitschnitt.md)), davor [slice-resetconnection-zuruecksetzen](../done/slice-resetconnection-zuruecksetzen.md) (offener Nutzerpunkt: Handle-Aliasing nach dem Zurücksetzen; Folge: [slice-abbruch-ressourcen-shutdown](../in-progress/slice-abbruch-ressourcen-shutdown.md))
 
 In Arbeit (Welle welle-betrieb-diagnose):
 
