@@ -80,7 +80,7 @@ Zielsetzung: Was nicht ausdrücklich ausgeschlossen ist, dehnt die Welle, bis
 der Closure-Trigger unerreichbar wird.
 
 - Die Szenarien S1 bis S18 selbst: [slice-qa-kompatibilitaet](done/slice-qa-kompatibilitaet.md). Make-Target, Container, EULA-Prüfung und Ressourcenmessung des Vergleichslaufs D: [slice-qa-vergleichslauf-d](done/slice-qa-vergleichslauf-d.md).
-- NuGet-Audit und Signaturprüfung der Abhängigkeiten des Referenztests: [slice-qa-dotnet-lieferkette-haerten](in-progress/slice-qa-dotnet-lieferkette-haerten.md) (Carveouts [CO-001](../carveouts/CO-001-nuget-audit-aus.md), [CO-002](../carveouts/CO-002-nuget-signaturpruefung-fehlt.md)).
+- NuGet-Audit und Signaturprüfung der Abhängigkeiten des Referenztests: [slice-qa-dotnet-lieferkette-haerten](done/slice-qa-dotnet-lieferkette-haerten.md) (Carveouts [CO-001](../carveouts/CO-001-nuget-audit-aus.md), [CO-002](../carveouts/CO-002-nuget-signaturpruefung-fehlt.md)).
 - Das Beheben gefundener Abweichungen im Server: je Befund ein Slice nach der Messung; Ausnahmeliste und Closure nennen sie als *Lücke* mit Verweis.
 - Der Abgleich von TDS 8.0 und TLS 1.3 an einer Referenzinstanz: Version 2022 bietet beides nicht an ([ADR-0008](../adr/0008-dotnet-kompatibilitaetstests.md)); ein anderer Image-Tag ist Gegenstand von [slice-qa-vergleichslauf-d](done/slice-qa-vergleichslauf-d.md).
 - Veröffentlichung (Registry, Signierung, Software-Stückliste) und Orchestrierung: nicht verlangt; was ein Release davon braucht, entscheidet der Nutzer in [slice-release-doku-prozess](in-progress/slice-release-doku-prozess.md).

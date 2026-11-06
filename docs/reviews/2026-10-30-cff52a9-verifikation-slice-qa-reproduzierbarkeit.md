@@ -23,7 +23,7 @@ Der Slice hat drei Liefer-Punkte (Grenze ≤ 3 eingehalten) und danach die Nachw
 |---|---|---|---|
 | 1 | CI-Workflow führt `make gates` in Docker aus und ist grün | **bestätigt** | §3.1 |
 | 2 | Clean-Build ohne Host-Toolchain, einschließlich .NET-Restore | **bestätigt mit Einschränkung** | §3.2, §3.3; der .NET-Restore ist durch `make clean-build` nicht gedeckt, nur durch den CI-Lauf (M-2) |
-| 2a | NuGet-Audit und `trustedSigners` | **offen, Träger vorhanden:** [slice-qa-dotnet-lieferkette-haerten](../plan/planning/in-progress/slice-qa-dotnet-lieferkette-haerten.md) | [CO-001](../plan/carveouts/CO-001-nuget-audit-aus.md) und [CO-002](../plan/carveouts/CO-002-nuget-signaturpruefung-fehlt.md) nennen ihn als Folge-Slice; der Slice liegt in `open/`, seine DoD hat zwei Liefer-Punkte (Signaturprüfung, Schwachstellenprüfung). Der gesperrte Restore liegt bei [slice-qa-dotnet-referenztest-geruest](../plan/planning/done/slice-qa-dotnet-referenztest-geruest.md) (`done/`). |
+| 2a | NuGet-Audit und `trustedSigners` | **offen, Träger vorhanden:** [slice-qa-dotnet-lieferkette-haerten](../plan/planning/done/slice-qa-dotnet-lieferkette-haerten.md) | [CO-001](../plan/carveouts/CO-001-nuget-audit-aus.md) und [CO-002](../plan/carveouts/CO-002-nuget-signaturpruefung-fehlt.md) nennen ihn als Folge-Slice; der Slice liegt in `open/`, seine DoD hat zwei Liefer-Punkte (Signaturprüfung, Schwachstellenprüfung). Der gesperrte Restore liegt bei [slice-qa-dotnet-referenztest-geruest](../plan/planning/done/slice-qa-dotnet-referenztest-geruest.md) (`done/`). |
 | 3 | Vergleichslauf D als eigenes Make-Target, Ausnahmeliste, Messungen, Anmelde-Szenario, Codec-Antwortseite | **offen, kein weiterer Träger** | Kein Target, keine Ausnahmeliste, keine Messung im Repo (`make help`, `tools/mk/` geprüft). Das Nicht-Anlegen eines Stubs ist richtig und deckt sich mit `harness/README.md` §Nicht behauptet. Die Wire-Messung (Tokenreihenfolge, DONE-Statusbits, RETURNVALUE-Zählung) liegt bei [slice-referenzabgleich-mitschnitt](../plan/planning/open/slice-referenzabgleich-mitschnitt.md); hier bleibt, was der Client beobachtet. |
 | 4 | `make gates` grün | **bestätigt für CI** (Lauf auf `bda6cd6`), lokal nicht von mir gefahren | §3.1; HEAD `cff52a9` ist nicht gepusht (19 Commits vor `origin/main`), auf HEAD gibt es daher keinen CI-Lauf. Die Workflow-Datei ist auf `bda6cd6` und HEAD byte-gleich (`git show bda6cd6:.github/workflows/gates.yml \| diff`). |
 | 5 | Review-Report unter `docs/reviews/` | **nicht bestätigt** | Kein Report zu diesem Slice in `docs/reviews/` |
@@ -107,7 +107,7 @@ Diese Berichtsdatei kommt hinzu. Nicht committet, kein Push.
 - **Out-of-Scope (7):** Die Wahl des Referenzclients ([ADR-0008](../plan/adr/0008-dotnet-kompatibilitaetstests.md)) ist nicht angefasst. Keine
   Gate-Lockerung ([AGENTS.md](../../AGENTS.md) §3.6): `make gates` unverändert, `clean-build` und `workflow-lint` sind additiv.
 - **Zusagen ohne Träger:** NuGet-Audit und `trustedSigners` haben Träger und Carveouts mit Trigger. Der Slice
-  [slice-qa-dotnet-lieferkette-haerten](../plan/planning/in-progress/slice-qa-dotnet-lieferkette-haerten.md) trägt „ohne Welle" und fehlt in der Slice-Tabelle von
+  [slice-qa-dotnet-lieferkette-haerten](../plan/planning/done/slice-qa-dotnet-lieferkette-haerten.md) trägt „ohne Welle" und fehlt in der Slice-Tabelle von
   [welle-qualitaet-grundlage](../plan/planning/welle-qualitaet-grundlage.md); [welle-referenzabgleich-release](../plan/planning/welle-referenzabgleich-release.md) nennt ihn. Verweise sind vorhanden und lösen auf.
   Zusage von D ohne anderen Träger: siehe H-1.
 
@@ -143,10 +143,10 @@ Der frische Runner belegt den Restore (§3.1, nicht cached), das ist ein gültig
 - **L-2:** HEAD ist 19 Commits vor `origin/main`; der grüne Beleg liegt auf `bda6cd6`. Für die Workflow-Datei unerheblich (byte-gleich), für „`make gates` grün auf HEAD" fehlt der CI-Beleg bis zum Push.
 - **L-3:** `ci.mk` „drei Stages" ungenau (§5). Laufzeit 470 s statt 356 s (§3.2), lastabhängig.
 - **L-4:** `--target test` konnte ich für die `deps`-Probe nicht belastbar machen (Layer lag im Cache); `compile`, `detekt` und `build-jar` tragen die Aussage.
-- **L-5:** [slice-qa-dotnet-lieferkette-haerten](../plan/planning/in-progress/slice-qa-dotnet-lieferkette-haerten.md) steht „ohne Welle" und in keiner Slice-Tabelle der Wellen-Pläne der Qualitäts-Welle; die Welle-Closure-Paarung (Folge-Slice) wird das sehen.
+- **L-5:** [slice-qa-dotnet-lieferkette-haerten](../plan/planning/done/slice-qa-dotnet-lieferkette-haerten.md) steht „ohne Welle" und in keiner Slice-Tabelle der Wellen-Pläne der Qualitäts-Welle; die Welle-Closure-Paarung (Folge-Slice) wird das sehen.
 
 ## 7. Zusammenfassung
 
 - Bestätigt: DoD 1 (CI, 5 grüne Läufe, `deps` und .NET-Gate im Log von 41048175295), DoD 2 (Clean-Build 470 s, `deps` mit Quelltext-Änderung nicht neu, Mutationen M6/M7 rot), `workflow-lint` rot bei M1/M1b/M2/M5, grün bei M3/M4 (bekannte Lücke), Working Tree sauber.
-- Offen mit Träger: NuGet-Audit und `trustedSigners` ([slice-qa-dotnet-lieferkette-haerten](../plan/planning/in-progress/slice-qa-dotnet-lieferkette-haerten.md), [CO-001](../plan/carveouts/CO-001-nuget-audit-aus.md), [CO-002](../plan/carveouts/CO-002-nuget-signaturpruefung-fehlt.md)); Wire-Messung ([slice-referenzabgleich-mitschnitt](../plan/planning/open/slice-referenzabgleich-mitschnitt.md)).
+- Offen mit Träger: NuGet-Audit und `trustedSigners` ([slice-qa-dotnet-lieferkette-haerten](../plan/planning/done/slice-qa-dotnet-lieferkette-haerten.md), [CO-001](../plan/carveouts/CO-001-nuget-audit-aus.md), [CO-002](../plan/carveouts/CO-002-nuget-signaturpruefung-fehlt.md)); Wire-Messung ([slice-referenzabgleich-mitschnitt](../plan/planning/open/slice-referenzabgleich-mitschnitt.md)).
 - Offen ohne weiteren Träger: Vergleichslauf D (H-1). Closure daher nicht möglich; Schnitt (a) vorgeschlagen.

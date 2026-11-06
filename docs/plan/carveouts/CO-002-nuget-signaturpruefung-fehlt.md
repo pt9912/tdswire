@@ -8,7 +8,7 @@
 
 **Geltungsbereich:** `referenztest-dotnet/nuget.config` (`trustedSigners` und `signatureValidationMode` fehlen)
 
-**Folge-Slice:** [`slice-qa-dotnet-lieferkette-haerten.md`](../planning/in-progress/slice-qa-dotnet-lieferkette-haerten.md)
+**Folge-Slice:** [`slice-qa-dotnet-lieferkette-haerten.md`](../planning/done/slice-qa-dotnet-lieferkette-haerten.md)
 
 Regeln: Baseline-Regelwerk `modul-07-carveouts.md` §Ziel-Form: Carveout — ein
 Carveout braucht immer einen Auflösungs-Trigger **und** einen Folge-Slice.
