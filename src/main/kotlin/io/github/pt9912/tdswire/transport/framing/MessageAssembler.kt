@@ -31,6 +31,9 @@ internal class MessageAssembler(var limits: FramingLimits = FramingLimits()) {
 
     private val insideMessage: Boolean get() = headerFill > 0 || packet != null || messageType != null
 
+    /** Wahr, wenn Bytes einer noch nicht vollendeten Nachricht gepuffert sind (auch ein Teil eines Headers). */
+    val midMessage: Boolean get() = insideMessage
+
     /** Anzahl gepufferter Nutzdatenbytes der laufenden Nachricht. */
     val bufferedBytes: Int get() = payload.size()
 

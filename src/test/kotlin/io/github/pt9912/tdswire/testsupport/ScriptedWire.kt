@@ -6,6 +6,7 @@ import io.github.pt9912.tdswire.transport.channel.ChannelResult
 import io.github.pt9912.tdswire.transport.channel.SuspendingChannel
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.yield
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 
@@ -117,16 +118,28 @@ internal class ScriptedWire(private val inbound: ByteArray, private val retain: 
         fed.close()
     }
 
+    /**
+     * Solange sie wahr ist, meldet [read] das Ende der Gegenstelle nach den [inbound] Bytes nicht: die Gegenstelle des
+     * Tests schließt erst, wenn die Antwort da ist. Ein Test des Disconnects während einer Anfrage setzt sie auf
+     * `{ false }`.
+     */
+    var holdEndWhile: () -> Boolean = { false }
+
     override suspend fun read(buffer: ByteBuffer): ChannelResult<Int> {
-        if (readPosition >= inbound.size) return if (live) readLive(buffer) else ChannelResult.Ok(-1)
+        if (readPosition >= inbound.size) return if (live) readLive(buffer) else end()
         val count = minOf(buffer.remaining(), inbound.size - readPosition)
         buffer.put(inbound, readPosition, count)
         readPosition += count
         return ChannelResult.Ok(count)
     }
 
+    private suspend fun end(): ChannelResult<Int> {
+        while (holdEndWhile()) yield()
+        return ChannelResult.Ok(-1)
+    }
+
     private suspend fun readLive(buffer: ByteBuffer): ChannelResult<Int> {
-        if (pending.isEmpty()) pending = fed.receiveCatching().getOrNull() ?: return ChannelResult.Ok(-1)
+        if (pending.isEmpty()) pending = fed.receiveCatching().getOrNull() ?: return end()
         val count = minOf(buffer.remaining(), pending.size)
         buffer.put(pending, 0, count)
         pending = pending.copyOfRange(count, pending.size)

@@ -31,7 +31,7 @@ bestandenen Test als „Gate-Festlegung, ungemessen“ und ist weder Nachweis no
 irgendein Test ihre Kennung, steht sie als Nachweis da und die Klasse ist nicht mehr zu sehen.
 Die Art folgt dem Verzeichnis des Tests: `smoke/` Smoke-Test, `e2e/` E2E-Test, sonst Modul-Test.
 
-Stand: 40 von 56 Festlegungen mit mindestens einem bestandenen Test, 4 Gate-Festlegungen ungemessen, 12 ohne Nachweis.
+Stand: 42 von 56 Festlegungen mit mindestens einem bestandenen Test, 4 Gate-Festlegungen ungemessen, 10 ohne Nachweis.
 
 ## Matrix
 
@@ -42,24 +42,24 @@ Stand: 40 von 56 Festlegungen mit mindestens einem bestandenen Test, 4 Gate-Fest
 | `SPEC-003` | Typmapping (initialer Mindestkatalog) | 54 | 0 | 0 | 0 | BackendModelTest, RpcBinderTest, ColumnMappingTest, MappingFuzzTest, ValueMappingTest, RpcFailureTest, RpcTypesTest, DecimalValuesTest, TokenEncoderTest, TokenRoundtripTest, NameFoldTest | mindestens ein bestandener getaggter Test |
 | `SPEC-004` | Testprofil | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-028` | PRELOGIN, TLS und LOGIN7: Zustands- und Antwortvertrag | 131 | 2 | 0 | 0 | DispatchFailureTest, StreamingDispatchTest, Login7ParserTest, PreloginCodecTest, HandshakeDriverTest, HandshakeMatrixTest, HandshakeTransportTest, LoginAdmissionTest, LoginResponseTest, PreloginNegotiationTest, SqlBatchParserTest, TokenEncoderTest, TokenRoundtripTest, Tds8WiringTest, Tds8DefenseTest, TlsWiringTest, CodecSmokeTest, ConnectionStormTest, FramingFuzzTest, HandshakeFuzzTest, StreamCutoffTest, SocketChannelLoopbackTest, SwitchableChannelTest, MessageAssemblerTest, PacketHeaderTest, PacketWriterTest, ListenerSmokeTest, MessageReaderTest, MessageStreamTest, MessageWriterTest, NetInboundTest, TlsDataPhaseTest, TlsLoopbackTest, TlsNegativeTest, TlsSessionTicketTest | mindestens ein bestandener getaggter Test |
-| `SPEC-029` | ATTENTION und Wiederverwendung der Verbindung | 29 | 0 | 0 | 0 | AttentionCancelTest, AttentionWireTest, CancelTimeoutTest, QueryTimeoutTest, StreamingDispatchTest, ResponseFailureTest, ResponseMappingTest, AbbruchWiringTest, SimulationBackendChangeTest, SimulationBackendSourceTest, MessageAssemblerTest | mindestens ein bestandener getaggter Test |
+| `SPEC-029` | ATTENTION und Wiederverwendung der Verbindung | 34 | 0 | 0 | 0 | AttentionCancelTest, AttentionWireTest, CancelTimeoutTest, DisconnectTest, QueryTimeoutTest, ShutdownDispatchTest, StreamingDispatchTest, ResponseFailureTest, ResponseMappingTest, AbbruchWiringTest, ConnectionLeakTest, ShutdownWiringTest, SimulationBackendChangeTest, SimulationBackendSourceTest, MessageAssemblerTest | mindestens ein bestandener getaggter Test |
 | `SPEC-030` | RPC-Varianten und Parameter-Metadaten | 70 | 1 | 0 | 0 | AnswerFormsDispatchTest, HandleReturningBackendTest, PreparedHandlesDispatchTest, PreparedHandlesTest, RequestSequenceTest, ResetConnectionDispatchTest, RpcBinderTest, RpcDispatchTest, RpcPositionalNamesTest, ResponseRpcTest, RpcCatalogFormsTest, RpcFailureTest, RpcTypesTest, TokenEncoderTest, CodecSmokeTest | mindestens ein bestandener getaggter Test |
-| `SPEC-031` | Streaming-Fehler und Atomarität | 98 | 3 | 0 | 4 | AnswerFormsDispatchTest, AttentionCancelTest, AttentionWireTest, DispatchClosingTest, DispatchFailureTest, DispatchFateTest, QueryTimeoutTest, SqlBatchDispatchTest, StreamingDispatchTest, ErrorMapperTest, ResponseDecoderTest, ResponseErrorMapperTest, ResponseFailureTest, ResponseMappingTest, ResponseOrderTest, ResponseRpcTest, ColumnMappingTest, MappingFuzzTest, ValueMappingTest, RequestWiringTest, SynchronitaetWiringTest, SimulationBackendSourceTest, SimulationMemoryTest, StreamingSmokeTest, MessageStreamTest | mindestens ein bestandener getaggter Test |
+| `SPEC-031` | Streaming-Fehler und Atomarität | 101 | 3 | 0 | 4 | AnswerFormsDispatchTest, AttentionCancelTest, AttentionWireTest, DisconnectTest, DispatchClosingTest, DispatchFailureTest, DispatchFateTest, QueryTimeoutTest, ShutdownDispatchTest, SqlBatchDispatchTest, StreamingDispatchTest, ErrorMapperTest, ResponseDecoderTest, ResponseErrorMapperTest, ResponseFailureTest, ResponseMappingTest, ResponseOrderTest, ResponseRpcTest, ColumnMappingTest, MappingFuzzTest, ValueMappingTest, ConnectionLeakTest, RequestWiringTest, SynchronitaetWiringTest, SimulationBackendSourceTest, SimulationMemoryTest, StreamingSmokeTest, MessageStreamTest | mindestens ein bestandener getaggter Test |
 | `SPEC-035` | Tabellenbeschreibung und Zeilenquelle des Simulations-Backends | 83 | 0 | 0 | 0 | EmbeddingTest, SimulationWiringTest, TestserverSimulationProcessTest, SimModelTest, SimulationBackendChangeTest, SimulationBackendSelectTest, SimValuesTest, ConfigSimulationFileTest, SimDescriptionReaderTest, TestserverStartTest, YamlTreeReaderTest | mindestens ein bestandener getaggter Test |
 | `SPEC-036` | Erkannte Anweisungsformen des Simulations-Backends (vorläufig) | 66 | 0 | 0 | 0 | FixedFormsTest, SimModelTest, SimulationBackendFixedTest, SimulationBackendSelectTest, SimValuesTest, StatementFormsTest, StatementOracleTest, StatementPlannerTest, StatementScannerTest, NameFoldTest | mindestens ein bestandener getaggter Test |
 | `SPEC-043` | Startprüfung: TLS-Konfiguration und Port | 34 | 0 | 0 | 0 | TelemetryEmbeddingTest, BootstrapTest, SecurityConfigNegativeTest, ServerSmokeTest, TdsServerLifecycleTest, TelemetryRedactionTest, TlsHandshakeNegativeTest, IoGroupTest, ListenerStartTest, TlsStartProbeTest, ConfigLoaderTest, TestserverStartTest | mindestens ein bestandener getaggter Test |
-| `SPEC-044` | Geordnetes Beenden | 18 | 0 | 0 | 0 | EmbeddingTest, BootstrapTest, HandshakeWiringTest, ServerSmokeTest, TdsServerLifecycleTest, ListenerLifecycleTest, ListenerShutdownTest, ListenerTestBaseTest | mindestens ein bestandener getaggter Test |
+| `SPEC-044` | Geordnetes Beenden | 44 | 0 | 0 | 0 | EmbeddingTest, ShutdownDispatchTest, BootstrapTest, HandshakeWiringTest, ServerSmokeTest, ShutdownWiringTest, TdsServerLifecycleTest, ListenerAbortTest, ListenerLifecycleTest, ListenerPartialMessageTest, ListenerShutdownTest, ListenerTestBaseTest, MessageReaderMidMessageTest | mindestens ein bestandener getaggter Test |
 | `SPEC-045` | Referenzabgleich: Ablauf und Ausnahmeliste (vorläufig) | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-005` | `LISTEN_PORT` (Eingang des Testservers) | 20 | 0 | 0 | 0 | ConfigValidationTest, BootstrapTest, ServerSmokeTest, ConnectionStormTest, ListenerLifecycleTest, ListenerRemoteAddressTest, ListenerSmokeTest, ListenerStartTest, ConfigLoaderTest, TestserverStartTest | mindestens ein bestandener getaggter Test |
 | `SPEC-006` | `MAX_TDS_PACKET_BYTES` | 16 | 0 | 0 | 0 | ConnectionStormTest, FramingFuzzTest, HandshakeFuzzTest, StreamCutoffTest, PacketHeaderTest, PacketWriterTest | mindestens ein bestandener getaggter Test |
 | `SPEC-007` | `MAX_MESSAGE_BYTES` | 9 | 0 | 0 | 0 | HandshakeTransportTest, ConnectionStormTest, FramingFuzzTest, MessageAssemblerTest, MessageReaderTest | mindestens ein bestandener getaggter Test |
 | `SPEC-008` | `LOGIN_TIMEOUT` (Eingang des Testservers) | 35 | 0 | 0 | 0 | ConfigValidationTest, AuthExecutorTest, AuthPoolOccupationTest, HandshakeDriverTest, LoginThrottleDriverTest, LoginThrottleTimingTest, HandshakeWiringTest, ServerSmokeTest, ConnectionStormTest, ListenerLifecycleTest, ListenerSmokeTest, ConfigLoaderTest | mindestens ein bestandener getaggter Test |
 | `SPEC-046` | `MAX_PRELOGIN_MESSAGE_BYTES` (Eingang des Testservers) | 20 | 0 | 0 | 0 | ConfigValidationTest, HandshakeTransportTest, PreloginNegotiationTest, HandshakeWiringTest, ConnectionStormTest, FramingFuzzTest, HandshakeFuzzTest, SocketChannelLoopbackTest, MessageAssemblerTest, MessageReaderTest, ConfigLoaderTest | mindestens ein bestandener getaggter Test |
-| `SPEC-047` | `SHUTDOWN_GRACE` | 3 | 0 | 0 | 0 | ListenerShutdownTest | mindestens ein bestandener getaggter Test |
+| `SPEC-047` | `SHUTDOWN_GRACE` | 8 | 0 | 0 | 0 | ServerSmokeTest, ShutdownWiringTest, ListenerShutdownTest | mindestens ein bestandener getaggter Test |
 | `SPEC-009` | `QUERY_TIMEOUT` | 8 | 0 | 0 | 0 | ConfigValidationTest, QueryTimeoutTest, AbbruchWiringTest, ConfigLoaderTest | mindestens ein bestandener getaggter Test |
 | `SPEC-010` | `ENCRYPTION_POLICY` | 25 | 0 | 0 | 0 | EmbeddingTest, ConfigValidationTest, HandshakeDriverTest, PreloginNegotiationTest, BootstrapTest, HandshakeWiringTest, SecurityConfigNegativeTest, ServerSmokeTest, Tds8WiringTest, Tds8DefenseTest, TlsHandshakeNegativeTest, TlsWiringTest, ConfigLoaderTest | mindestens ein bestandener getaggter Test |
-| `SPEC-033` | `CANCEL_TIMEOUT` | 8 | 0 | 0 | 0 | ConfigValidationTest, CancelTimeoutTest, QueryTimeoutTest, ConfigLoaderTest | mindestens ein bestandener getaggter Test |
-| `SPEC-034` | `MAX_CONNECTIONS` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
+| `SPEC-033` | `CANCEL_TIMEOUT` | 12 | 0 | 0 | 0 | ConfigValidationTest, CancelTimeoutTest, QueryTimeoutTest, ShutdownDispatchTest, ShutdownWiringTest, ListenerAbortTest, ConfigLoaderTest | mindestens ein bestandener getaggter Test |
+| `SPEC-034` | `MAX_CONNECTIONS` | 4 | 0 | 0 | 0 | ListenerLimitTest | mindestens ein bestandener getaggter Test |
 | `SPEC-053` | Drosselung wiederholter Anmeldeversuche | 23 | 0 | 0 | 0 | LoginThrottleDriverTest, LoginThrottleTest, LoginThrottleTimingTest, LoginThrottleWiringTest | mindestens ein bestandener getaggter Test |
 | `SPEC-011` | `TDS_PROTOCOL_ERROR` | 9 | 0 | 0 | 0 | DispatchFailureTest, RpcDispatchTest, ErrorMapperTest, PreloginCodecTest, TokenEncoderTest, MessageAssemblerTest, PacketHeaderTest | mindestens ein bestandener getaggter Test |
 | `SPEC-012` | `TDS_LOGIN_FAILED` | 31 | 0 | 0 | 0 | TelemetryEmbeddingTest, UserListAuthAdapterTest, TelemetryEventTest, ErrorMapperTest, HandshakeDriverTest, HandshakeTransportTest, LoginAdmissionTest, LoginPathTextTest, LoginResponseTest, LoginThrottleDriverTest, LoginLogInspectionTest, LoginThrottleWiringTest, ServerSmokeTest, TelemetryRedactionTest | mindestens ein bestandener getaggter Test |
@@ -71,7 +71,7 @@ Stand: 40 von 56 Festlegungen mit mindestens einem bestandenen Test, 4 Gate-Fest
 | `SPEC-038` | `TDS_SIM_UNKNOWN_OBJECT` | 8 | 0 | 0 | 0 | SimulationCodesTest, SimulationBackendChangeTest, SimulationBackendFixedTest, SimulationBackendSelectTest, StatementPlannerTest | mindestens ein bestandener getaggter Test |
 | `SPEC-039` | `TDS_SIM_INVALID_VALUE` | 14 | 0 | 0 | 0 | ErrorMapperTest, SimulationCodesTest, SimulationBackendChangeTest, SimulationBackendSelectTest, SimValuesTest | mindestens ein bestandener getaggter Test |
 | `SPEC-048` | `TDS_INTERNAL_ERROR` | 38 | 0 | 0 | 0 | AnswerFormsDispatchTest, DispatchClosingTest, DispatchFailureTest, DispatchFateTest, RpcBinderTest, RpcDispatchTest, StreamingDispatchTest, ErrorMapperTest, ResponseErrorMapperTest, ResponseFailureTest, ResponseOrderTest, ResponseRpcTest, HandshakeDriverTest, HandshakeWiringTest, LoginLogInspectionTest, RequestWiringTest, SynchronitaetWiringTest, TelemetryRedactionTest | mindestens ein bestandener getaggter Test |
-| `SPEC-049` | `TDS_SHUTDOWN` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
+| `SPEC-049` | `TDS_SHUTDOWN` | 5 | 0 | 0 | 0 | ShutdownDispatchTest, ShutdownWiringTest | mindestens ein bestandener getaggter Test |
 | `SPEC-057` | `TDS_UNKNOWN_HANDLE` | 7 | 0 | 0 | 0 | PreparedHandlesDispatchTest, RequestSequenceTest, ResetConnectionDispatchTest, ErrorMapperTest | mindestens ein bestandener getaggter Test |
 | `SPEC-058` | `TDS_PREPARE_LIMIT` | 3 | 0 | 0 | 0 | PreparedHandlesDispatchTest, ResetConnectionDispatchTest, ErrorMapperTest | mindestens ein bestandener getaggter Test |
 | `SPEC-017` | `tds.connection` | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
@@ -86,7 +86,7 @@ Stand: 40 von 56 Festlegungen mit mindestens einem bestandenen Test, 4 Gate-Fest
 | `SPEC-024` | Unit-Test-Gate | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-025` | Integrationstest (E2E-Durchgang) | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-026` | `make gates` | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
-| `SPEC-027` | Fuzz-/Property-Tests | 24 | 0 | 0 | 0 | Login7ParserTest, PreloginCodecTest, RpcFailureTest, RpcFuzzTest, SqlBatchParserTest, TokenRoundtripTest, ConnectionStormTest, FramingFuzzTest, HandshakeFuzzTest, StreamCutoffTest, SocketChannelLoopbackTest, MessageAssemblerTest, PacketHeaderTest, RpcAssemblyTest, MessageReaderTest | mindestens ein bestandener getaggter Test |
+| `SPEC-027` | Fuzz-/Property-Tests | 25 | 0 | 0 | 0 | Login7ParserTest, PreloginCodecTest, RpcFailureTest, RpcFuzzTest, SqlBatchParserTest, TokenRoundtripTest, ServerSmokeTest, ConnectionStormTest, FramingFuzzTest, HandshakeFuzzTest, StreamCutoffTest, SocketChannelLoopbackTest, MessageAssemblerTest, PacketHeaderTest, RpcAssemblyTest, MessageReaderTest | mindestens ein bestandener getaggter Test |
 | `SPEC-040` | Simulations-Tests (`make simulations-integration` im E2E-Durchgang) | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
 | `SPEC-041` | Static-Analysis-Gate (`make detekt`, `make detekt-selbsttest`) | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
 | `SPEC-042` | Build-Gate (`make build`) | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
@@ -119,10 +119,24 @@ Stand: 40 von 56 Festlegungen mit mindestens einem bestandenen Test, 4 Gate-Fest
 | `TDS-FA-07` | `io.github.pt9912.tdswire.protocol.dispatch.AttentionCancelTest.Eine Ausnahme beim Mitlesen bricht den Lauf des Backends ab` |
 | `TDS-FA-07` | `io.github.pt9912.tdswire.protocol.dispatch.AttentionWireTest.ATTENTION mitten in einem Paket laesst kein halbes Paket und endet mit DONE ATTN` |
 | `TDS-FA-07` | `io.github.pt9912.tdswire.protocol.dispatch.CancelTimeoutTest.Ein Backend, das den Cancel ignoriert, fuehrt nach CANCEL_TIMEOUT zum Schliessen` |
+| `TDS-FA-07` | `io.github.pt9912.tdswire.protocol.dispatch.DisconnectTest.Ende der Gegenstelle in RUNNING bricht die Anfrage ab und schreibt nichts` |
+| `TDS-QA-02` | `io.github.pt9912.tdswire.protocol.dispatch.DisconnectTest.Ende der Gegenstelle in RUNNING bricht die Anfrage ab und schreibt nichts` |
+| `TDS-FA-07` | `io.github.pt9912.tdswire.protocol.dispatch.DisconnectTest.Ende der Gegenstelle in STREAMING schliesst den Strom ohne weiteren Schreibvorgang` |
+| `TDS-QA-02` | `io.github.pt9912.tdswire.protocol.dispatch.DisconnectTest.Ende der Gegenstelle in STREAMING schliesst den Strom ohne weiteren Schreibvorgang` |
+| `TDS-FA-07` | `io.github.pt9912.tdswire.protocol.dispatch.DisconnectTest.Lesefehler in STREAMING wirkt wie das Ende der Gegenstelle` |
+| `TDS-QA-02` | `io.github.pt9912.tdswire.protocol.dispatch.DisconnectTest.Lesefehler in STREAMING wirkt wie das Ende der Gegenstelle` |
+| `TDS-FA-07` | `io.github.pt9912.tdswire.protocol.dispatch.DisconnectTest.Ende der Gegenstelle in CANCELLING verhindert die Bestaetigung und einen zweiten Cancel` |
+| `TDS-QA-02` | `io.github.pt9912.tdswire.protocol.dispatch.DisconnectTest.Ende der Gegenstelle in CANCELLING verhindert die Bestaetigung und einen zweiten Cancel` |
+| `TDS-FA-07` | `io.github.pt9912.tdswire.protocol.dispatch.DisconnectTest.Ende der Gegenstelle im Leerlauf beendet die Schleife ohne Backend-Aufruf` |
+| `TDS-QA-02` | `io.github.pt9912.tdswire.protocol.dispatch.DisconnectTest.Ende der Gegenstelle im Leerlauf beendet die Schleife ohne Backend-Aufruf` |
+| `TDS-FA-07` | `io.github.pt9912.tdswire.protocol.dispatch.DisconnectTest.Ende der Gegenstelle nach der beantworteten Anfrage ruft kein cancel` |
 | `TDS-QA-07` | `io.github.pt9912.tdswire.protocol.dispatch.DispatchFateTest.Eine Folge offener Fehler vermischt keine Antworten` |
 | `TDS-QA-07` | `io.github.pt9912.tdswire.protocol.dispatch.DispatchFateTest.Ein Fehler der Class 20 nach Teilzeilen schliesst nach genau einer Fehlerantwort` |
 | `TDS-QA-07` | `io.github.pt9912.tdswire.protocol.dispatch.DispatchFateTest.Ein nicht abschliessbarer Strom schliesst ohne Antwort und ohne weiteres Token` |
 | `TDS-FA-07` | `io.github.pt9912.tdswire.protocol.dispatch.ResetConnectionDispatchTest.Das Bit im Status des ersten Pakets erreicht den Sitzungsrahmen ueber den Transport` |
+| `TDS-FA-07` | `io.github.pt9912.tdswire.protocol.dispatch.ShutdownDispatchTest.Eine Anfrage nach dem Beginn des Beendens wird mit TDS_SHUTDOWN beantwortet` |
+| `TDS-FA-07` | `io.github.pt9912.tdswire.protocol.dispatch.ShutdownDispatchTest.Nach der regulaeren Antwort bleibt die Verbindung offen und eine spaetere Anfrage erhaelt TDS_SHUTDOWN` |
+| `TDS-FA-07` | `io.github.pt9912.tdswire.protocol.dispatch.ShutdownDispatchTest.Der Ablauf der Frist bricht die Anfrage wie ATTENTION ab und beendet die Verbindung` |
 | `TDS-FA-07` | `io.github.pt9912.tdswire.protocol.session.AttentionHandshakeTest.ATTENTION in PRELOGIN schliesst ohne Antwortbytes` |
 | `TDS-FA-07` | `io.github.pt9912.tdswire.protocol.session.AttentionHandshakeTest.ATTENTION in PRELOGIN nach TLS ab dem ersten Byte schliesst ohne Antwortbytes` |
 | `TDS-FA-07` | `io.github.pt9912.tdswire.protocol.session.AttentionHandshakeTest.ATTENTION in LOGIN7 schliesst ohne weitere Antwortbytes` |
@@ -130,5 +144,18 @@ Stand: 40 von 56 Festlegungen mit mindestens einem bestandenen Test, 4 Gate-Fest
 | `TDS-FA-07` | `io.github.pt9912.tdswire.runtime.AbbruchWiringTest.ATTENTION ueber den Socket wird mit DONE ATTN beantwortet und die Verbindung bleibt offen` |
 | `TDS-QA-07` | `io.github.pt9912.tdswire.runtime.AbbruchWiringTest.ATTENTION ueber den Socket wird mit DONE ATTN beantwortet und die Verbindung bleibt offen` |
 | `TDS-FA-07` | `io.github.pt9912.tdswire.runtime.AbbruchWiringTest.QUERY_TIMEOUT aus der Umgebung endet in TDS_TIMEOUT bei offener Verbindung` |
+| `TDS-FA-07` | `io.github.pt9912.tdswire.runtime.ConnectionLeakTest.viele Abbrueche in jedem Zustand lassen weder Strom noch Verbindung noch Thread zurueck` |
+| `TDS-QA-02` | `io.github.pt9912.tdswire.runtime.ConnectionLeakTest.viele Abbrueche in jedem Zustand lassen weder Strom noch Verbindung noch Thread zurueck` |
+| `TDS-FA-07` | `io.github.pt9912.tdswire.runtime.ServerSmokeTest.Der Prozess-Stop beendet eine ruhende Verbindung und bricht die laufende Anfrage nach der Frist ab` |
+| `TDS-FA-01` | `io.github.pt9912.tdswire.runtime.ServerSmokeTest.Ein beschaedigtes PRELOGIN schliesst ohne Antwort und der Prozess bleibt erreichbar` |
+| `TDS-QA-02` | `io.github.pt9912.tdswire.runtime.ServerSmokeTest.Ein beschaedigtes PRELOGIN schliesst ohne Antwort und der Prozess bleibt erreichbar` |
+| `TDS-FA-07` | `io.github.pt9912.tdswire.runtime.ShutdownWiringTest.der Stop wartet auf die laufende Anfrage, eine spaetere Anfrage erhaelt TDS_SHUTDOWN` |
+| `TDS-FA-07` | `io.github.pt9912.tdswire.runtime.ShutdownWiringTest.eine Anfrage nach dem Beginn erhaelt TDS_SHUTDOWN und danach endet die Verbindung` |
+| `TDS-FA-07` | `io.github.pt9912.tdswire.runtime.ShutdownWiringTest.nach Ablauf der Frist wird die Anfrage abgebrochen und die Verbindung endet` |
+| `TDS-FA-07` | `io.github.pt9912.tdswire.runtime.ShutdownWiringTest.eine halbe Nachricht haelt die Verbindung offen und erhaelt nach dem Rest TDS_SHUTDOWN` |
 | `TDS-QA-07` | `io.github.pt9912.tdswire.runtime.SynchronitaetWiringTest.Anfragen hinter einem Fehler der Class 16 erhalten je genau ihre eigene Antwort` |
 | `TDS-QA-07` | `io.github.pt9912.tdswire.runtime.SynchronitaetWiringTest.Eine Anfrage hinter einem Fehler der Class 20 bleibt unbeantwortet und ohne Backend` |
+| `TDS-FA-07` | `io.github.pt9912.tdswire.transport.listener.ListenerLimitTest.genau MAX_CONNECTIONS Verbindungen sind im Handler, die naechste wird abgewiesen` |
+| `TDS-QA-02` | `io.github.pt9912.tdswire.transport.listener.ListenerLimitTest.genau MAX_CONNECTIONS Verbindungen sind im Handler, die naechste wird abgewiesen` |
+| `TDS-QA-02` | `io.github.pt9912.tdswire.transport.listener.ListenerLimitTest.eine bestehende Verbindung bleibt bedienbar, wenn eine weitere abgewiesen wird` |
+| `TDS-QA-02` | `io.github.pt9912.tdswire.transport.listener.ListenerLimitTest.der Verbindungssturm ueber der Grenze nimmt genau MAX_CONNECTIONS auf` |

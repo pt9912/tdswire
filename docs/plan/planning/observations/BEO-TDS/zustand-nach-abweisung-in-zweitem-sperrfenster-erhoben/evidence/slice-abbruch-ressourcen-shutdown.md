@@ -1,0 +1,2 @@
+**Vorgang:** [slice-abbruch-ressourcen-shutdown](../../../../done/slice-abbruch-ressourcen-shutdown.md)
+**Fund:** [Code-Review](../../../../../../reviews/2026-11-06-4e79d285-slice-abbruch-ressourcen-shutdown.md) F-4 (LOW); [Verifikation](../../../../../../reviews/2026-11-06-47d3020e-verifikation-slice-abbruch-ressourcen-shutdown.md) Prüfpunkt 3: behoben, Annahme in einer Coroutine im KDoc benannt, kein Test der Rennlage.

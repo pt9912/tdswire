@@ -20,6 +20,13 @@ import java.nio.ByteBuffer
  * Leser liest danach nicht weiter. Gelesen sind dann mindestens die Bytes bis zu diesem Header
  * und höchstens diese plus die Bytes des letzten Lesevorgangs von höchstens `readBufferSize`.
  *
+ * [onMidMessage] meldet, ob Bytes einer unvollständigen Nachricht gepuffert sind (`SPEC-044` Nr. 2: eine solche
+ * Verbindung gilt im Beenden nicht als ruhend): `true`, sobald ein Lesevorgang einen Rest hinterlässt; `false`, wenn
+ * [next] auf die nächste Nachricht wartet und kein Rest gepuffert ist, und beim Ende des Stroms. Die Meldung `false`
+ * kommt bewusst erst mit dem Warten auf die nächste Nachricht, nicht mit dem Vollenden der vorigen: so ist die
+ * Verbindung nie zwischen „Nachricht da“ und „Anfrage läuft“ als ruhend gemeldet, außer die Nachricht kam in einem
+ * Stück.
+ *
  * Nach dem ersten Fehler oder dem Ende liefert [next] immer wieder dasselbe Ergebnis und liest
  * nicht mehr. Vor einem Fehler vollendete Nachrichten werden zuerst geliefert. Nicht thread-sicher:
  * ein Leser gehört einem Aufrufer.
@@ -28,6 +35,7 @@ internal class MessageReader(
     private val channel: SuspendingChannel,
     limits: FramingLimits = FramingLimits(),
     readBufferSize: Int = DEFAULT_READ_BUFFER,
+    private val onMidMessage: (Boolean) -> Unit = {},
 ) {
     private val assembler = MessageAssembler(limits)
     private val buffer = ByteBuffer.allocate(readBufferSize)
@@ -45,8 +53,11 @@ internal class MessageReader(
 
     /** Die nächste Nachricht, das Ende der Gegenstelle oder der Fehler, der den Strom beendet. */
     suspend fun next(): ReadOutcome {
+        if (ready.isEmpty() && terminal == null) onMidMessage(assembler.midMessage)
         while (ready.isEmpty() && terminal == null) {
             terminal = fillOnce()
+            val mid = terminal == null && assembler.midMessage
+            if (mid || terminal != null) onMidMessage(mid)
         }
         return ready.removeFirstOrNull()?.let { ReadOutcome.Message(it) } ?: checkNotNull(terminal)
     }

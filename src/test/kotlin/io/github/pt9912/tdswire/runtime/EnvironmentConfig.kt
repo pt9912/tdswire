@@ -26,6 +26,7 @@ internal fun configOf(environment: Map<String, String>): ServerConfig {
     val listen = ListenSettings(
         host = environment[ConfigKeys.LISTEN_HOST] ?: defaults.first.host,
         port = environment[ConfigKeys.LISTEN_PORT]?.toInt() ?: defaults.first.port,
+        maxConnections = environment[ConfigKeys.MAX_CONNECTIONS]?.toInt() ?: defaults.first.maxConnections,
     )
     val login = LoginSettings(
         timeoutSeconds = environment[ConfigKeys.LOGIN_TIMEOUT]?.toInt() ?: defaults.second.timeoutSeconds,
@@ -48,6 +49,7 @@ internal fun configOf(environment: Map<String, String>): ServerConfig {
     val requests = RequestSettings(
         queryTimeoutSeconds = environment[ConfigKeys.QUERY_TIMEOUT]?.toInt() ?: requestDefaults.queryTimeoutSeconds,
         cancelTimeoutSeconds = environment[ConfigKeys.CANCEL_TIMEOUT]?.toInt() ?: requestDefaults.cancelTimeoutSeconds,
+        shutdownGraceSeconds = environment[ConfigKeys.SHUTDOWN_GRACE]?.toInt() ?: requestDefaults.shutdownGraceSeconds,
     )
     return ServerConfig(listen, login, encryption, tls, AuthSettings(users, plain), requests)
 }

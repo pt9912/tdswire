@@ -14,7 +14,7 @@ private const val MEMORY_LIMIT = "-Xmx256m"
  * `tdswire.testserverclasspath`). Die Umgebung des Kindes besteht nur aus [environment]; Standardausgabe und
  * Fehlerausgabe werden zeilenweise in [output] gesammelt. Der Start der Kind-JVM setzt keine JVM-Option außer dem Heap.
  */
-internal class ServerProcess(environment: Map<String, String>) : AutoCloseable {
+internal class ServerProcess(environment: Map<String, String>, mainClass: String = MAIN_CLASS) : AutoCloseable {
     val output = CopyOnWriteArrayList<String>()
     private val process: Process
     private val reader: Thread
@@ -22,7 +22,7 @@ internal class ServerProcess(environment: Map<String, String>) : AutoCloseable {
     init {
         val java = File(System.getProperty("java.home"), "bin/java").path
         val classpath = checkNotNull(System.getProperty("tdswire.testserverclasspath"))
-        val command = listOf(java, MEMORY_LIMIT, "-cp", classpath, MAIN_CLASS)
+        val command = listOf(java, MEMORY_LIMIT, "-cp", classpath, mainClass)
         val builder = ProcessBuilder(command).redirectErrorStream(true)
         builder.environment().clear()
         builder.environment().putAll(environment)
@@ -79,5 +79,8 @@ internal class ServerProcess(environment: Map<String, String>) : AutoCloseable {
     companion object {
         const val PREFIX = "tdswire:"
         private const val MAIN_CLASS = "io.github.pt9912.tdswire.testserver.MainKt"
+
+        /** Das `main` des Testservers mit den Tabellen des Kompatibilitätslaufs; `laufend` liefert Zeilen ohne Ende. */
+        const val RUNNING_TABLE_MAIN = "io.github.pt9912.tdswire.testserver.KompatibilitaetsServerKt"
     }
 }

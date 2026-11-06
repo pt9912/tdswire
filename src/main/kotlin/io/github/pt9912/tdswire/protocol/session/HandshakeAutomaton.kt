@@ -39,6 +39,7 @@ internal class HandshakeAutomaton(private val config: HandshakeConfig = Handshak
         is HandshakeEvent.Message -> message(context, event.message)
         HandshakeEvent.StreamStarted -> Transition(context.copy(state = ConnectionState.STREAMING), emptyList())
         HandshakeEvent.DeadlineExpired -> cancelling(context, CancelCause.DEADLINE)
+        HandshakeEvent.ShutdownGraceExpired -> cancelling(context, CancelCause.SHUTDOWN)
         is HandshakeEvent.RequestFinished -> requestFinished(context, event)
         is HandshakeEvent.AuthAccepted -> login.accepted(context, event)
         is HandshakeEvent.AuthRejected -> login.rejected(context, event)

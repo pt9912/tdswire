@@ -36,7 +36,6 @@ import io.github.pt9912.tdswire.transport.tls.MaterialResult
 import io.github.pt9912.tdswire.transport.tls.TlsMaterial
 import io.github.pt9912.tdswire.transport.tls.TlsParameters
 import java.time.Instant
-import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -73,9 +72,8 @@ private fun policyOf(setting: EncryptionSetting): EncryptionPolicy = when (setti
  * (`SPEC-043`). Bis zum Binden läuft kein Thread des Servers; scheitert ein Schritt, läuft danach keiner weiter
  * und kein Port ist gebunden.
  *
- * `shutdownGrace` ist 0: Festlegung, nicht gemessen und nicht die Voreinstellung `SHUTDOWN_GRACE` von 10 s
- * (`SPEC-047`); die Frist des geordneten Beendens (`SPEC-044`) trägt `slice-abbruch-ressourcen-shutdown`, bis
- * dahin schließt der Stop ohne Frist.
+ * Der Stop des Servers ist das geordnete Beenden (`SPEC-044`): `SHUTDOWN_GRACE` und `CANCEL_TIMEOUT` kommen aus
+ * `ServerConfig.requests`, `MAX_CONNECTIONS` aus `ServerConfig.listen`.
  *
  * Der Start liest keine Systemeigenschaft und verlangt keine JVM-Option.
  */
@@ -120,8 +118,14 @@ internal object Bootstrap {
             val listener = ListenerConfig(
                 host = config.listen.host,
                 port = config.listen.port,
-                times = ListenerTimes(config.login.timeoutSeconds.seconds, Duration.ZERO, wiring.delayer),
+                times = ListenerTimes(
+                    loginTimeout = config.login.timeoutSeconds.seconds,
+                    shutdownGrace = config.requests.shutdownGraceSeconds.seconds,
+                    delayer = wiring.delayer,
+                    cancelTimeout = config.requests.cancelTimeoutSeconds.seconds,
+                ),
                 tls = material?.let { TlsServerConfig(it, TlsParameters.SPEC_023) },
+                maxConnections = config.listen.maxConnections,
             )
             val handler = HandshakeConnectionHandler(handlerSetup(material), backend)
             return when (val started = TdsListener.start(listener, handler, events())) {

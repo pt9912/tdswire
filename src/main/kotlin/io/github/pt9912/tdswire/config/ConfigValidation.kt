@@ -12,6 +12,8 @@ package io.github.pt9912.tdswire.config
  *   PRELOGIN-Verhandlung.
  * - `REQUIRED` verlangt Schlüsselspeicher und Kennwort, `TEST_UNENCRYPTED` lässt beide nicht zu (`SPEC-010`).
  * - `QUERY_TIMEOUT` und `CANCEL_TIMEOUT` ganze Sekunden von 1 bis 3600 (`SPEC-009`, `SPEC-033`, vorläufig).
+ * - `MAX_CONNECTIONS` ganze Zahl von 1 bis 100000 (`SPEC-034`, vorläufig); `SHUTDOWN_GRACE` ganze Sekunden von 0
+ *   bis 3600, 0 = sofort (`SPEC-047`, vorläufig).
  *
  * Eine [ServerConfig] kann ungeprüft existieren; erst [check] und der Start weisen sie ab.
  */
@@ -19,6 +21,8 @@ public object ConfigValidation {
     private const val MAX_PORT = 65535
     private const val MAX_LOGIN_TIMEOUT = 3600
     private const val MAX_REQUEST_TIMEOUT = 3600
+    private const val MAX_CONNECTION_LIMIT = 100_000
+    private const val MAX_SHUTDOWN_GRACE = 3600
     private const val MIN_PRELOGIN_BYTES = 512
     private const val MAX_PRELOGIN_BYTES = 65536
 
@@ -32,6 +36,8 @@ public object ConfigValidation {
             preloginBytes(config.login.maxPreloginMessageBytes),
             queryTimeout(config.requests.queryTimeoutSeconds),
             cancelTimeout(config.requests.cancelTimeoutSeconds),
+            maxConnections(config.listen.maxConnections),
+            shutdownGrace(config.requests.shutdownGraceSeconds),
         ) + pairing(config.encryption, hasKeystore = keyMaterial, hasPassword = keyMaterial)
     }
 
@@ -48,6 +54,12 @@ public object ConfigValidation {
 
     internal fun cancelTimeout(seconds: Int): ConfigIssue? =
         range(ConfigKeys.CANCEL_TIMEOUT, seconds, 1..MAX_REQUEST_TIMEOUT)
+
+    internal fun maxConnections(count: Int): ConfigIssue? =
+        range(ConfigKeys.MAX_CONNECTIONS, count, 1..MAX_CONNECTION_LIMIT)
+
+    internal fun shutdownGrace(seconds: Int): ConfigIssue? =
+        range(ConfigKeys.SHUTDOWN_GRACE, seconds, 0..MAX_SHUTDOWN_GRACE)
 
     internal fun preloginBytes(bytes: Int): ConfigIssue? =
         range(ConfigKeys.MAX_PRELOGIN_MESSAGE_BYTES, bytes, MIN_PRELOGIN_BYTES..MAX_PRELOGIN_BYTES)

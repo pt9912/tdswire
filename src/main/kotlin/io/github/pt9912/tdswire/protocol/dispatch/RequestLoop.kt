@@ -87,6 +87,21 @@ import kotlin.time.Duration.Companion.milliseconds
  * wird bestätigt, ohne Cancel. Ist der Strom nicht mehr zu schließen (ein Schreibvorgang scheitert), schließt die
  * Verbindung ohne ERROR und DONE.
  *
+ * Disconnect (`TDS-FA-07.a`, `SPEC-029`, `SPEC-031`): Meldet das Lesen während einer Anfrage das Ende der Gegenstelle
+ * oder einen Fehler, schließt die Sitzung, der Lauf wird abgebrochen (genau ein `cancel()` des Backends, `close()` der
+ * Ausführung), und es folgt kein Schreibvorgang mehr; das gilt in `RUNNING`, `STREAMING` und `CANCELLING`. Im
+ * Leerlauf endet die Schleife mit dem Lesen. Die Sitzungsressourcen (Handles) sind mit der Schleife freigegeben.
+ *
+ * Geordnetes Beenden (`SPEC-044`, `ADR-0027` Entscheidung 4 und 2c): Die Schleife meldet dem [ShutdownGate], wenn eine
+ * Anfrage läuft. Eine Anfrage, die nach dem Beginn des Beendens angenommen wird, beantwortet sie mit ERROR
+ * `TDS_SHUTDOWN` und DONE mit Fehlerstatus, ohne das Backend zu rufen; danach schließt die Verbindung. Endet eine
+ * Anfrage im Beenden regulär, bleibt die Verbindung (als „läuft“ gemeldet) offen: jede weitere Nachricht, die
+ * danach vollständig wird, erhält `TDS_SHUTDOWN` (`SPEC-044` Nr. 3), danach endet die Verbindung. Sie endet auch beim
+ * Ende der Gegenstelle und beim Ablauf von `SHUTDOWN_GRACE`: ohne laufende Anfrage schließt der angemeldete Abbruch
+ * dann den Kanal. Eine Verbindung, die beim Beginn ruhte, hat der Listener schon beendet (Nr. 2).
+ * Nach Ablauf von `SHUTDOWN_GRACE` bricht die Schleife die laufende Anfrage wie bei ATTENTION ab
+ * ([CancelCause.SHUTDOWN]): genau ein `cancel()`, die Antwort endet mit `DONE[ATTN]`, die Verbindung endet.
+ *
  * Die Schleife endet immer mit geschlossenem Kanal: nach `CLOSED`, nach einer Nachricht, die sie nicht
  * beantwortet, und bei einer Ausnahme oder dem Abbruch der Coroutine.
  *
@@ -101,7 +116,8 @@ import kotlin.time.Duration.Companion.milliseconds
  * Verbindung schließt; die Frist wirkt nicht, solange ein Schreibvorgang am Rückstau hängt (er hält die Sperre,
  * die der Übergang braucht).
  *
- * Kopplung: [hooks] sind die Einhängepunkte für Anfrage-Kennung und Senke ([RequestHooks]); [times] trägt die
+ * Kopplung: [hooks] sind die Einhängepunkte für Anfrage-Kennung, Senke und geordnetes Beenden ([RequestHooks]);
+ * [times] trägt die
  * Fristen und die Uhr ([RequestTimes]).
  */
 internal class RequestLoop(
@@ -114,6 +130,7 @@ internal class RequestLoop(
 ) {
     private val requestIds = hooks.requestIds
     private val sinkAround = hooks.sinkAround
+    private val gate = hooks.gate
     private val mapping = errors.sequencerMapping()
     private val sequencer = ResponseSequencer(mapping)
     private val aborted = AbortedAnswer(errors, mapping)
@@ -126,8 +143,19 @@ internal class RequestLoop(
     /** Die Prepared-Handles dieser Sitzung; eine Schleife bedient genau eine Sitzung. */
     internal val handles = PreparedHandles()
 
+    /** Der Lauf der Anfrage, die gerade ausgeführt wird; `null` zwischen den Anfragen. */
+    @Volatile
+    private var active: AbortableRun? = null
+
+    /** Was die Schleife dem [gate] zuletzt gemeldet hat; es bekommt nur Wechsel. */
+    private var announced = false
+
     init {
         ready.live.onSessionReset { handles.clear() }
+        gate.onGraceExpired {
+            val run = active
+            if (run != null) run.abortForShutdown() else channel.close()
+        }
     }
 
     /** Läuft, bis die Verbindung endet; schließt den Kanal in jedem Ausgang. */
@@ -146,9 +174,16 @@ internal class RequestLoop(
                 }
             }
         } finally {
+            announce(false)
             handles.clear()
             channel.close()
         }
+    }
+
+    private fun announce(running: Boolean) {
+        if (announced == running) return
+        announced = running
+        gate.requestRunning(running)
     }
 
     /** Eine Nachricht; `false`, wenn die Schleife endet. */
@@ -170,15 +205,21 @@ internal class RequestLoop(
             state != ConnectionState.RUNNING -> false
 
             else -> {
+                announce(true)
                 answer(event.message)?.let { live.dispatch(it) }
-                live.context.state == ConnectionState.READY
+                val open = live.context.state == ConnectionState.READY
+                if (!(open && gate.begun)) announce(false)
+                open
             }
         }
     }
 
     /** Das Ereignis, das die Anfrage beendet; `null`, wenn die Sitzung beim Schreiben der Antwort geschlossen wurde. */
-    private suspend fun answer(message: TdsMessage): HandshakeEvent.RequestFinished? =
-        if (message.type == PacketType.RPC) answerRpc(message) else answerBatch(message)
+    private suspend fun answer(message: TdsMessage): HandshakeEvent.RequestFinished? = when {
+        gate.begun -> refuse(ErrorCode.TDS_SHUTDOWN, "shutdown")
+        message.type == PacketType.RPC -> answerRpc(message)
+        else -> answerBatch(message)
+    }
 
     private suspend fun answerBatch(batch: TdsMessage): HandshakeEvent.RequestFinished? =
         when (val parsed = SqlBatchParser.parse(batch.payload)) {
@@ -233,8 +274,12 @@ internal class RequestLoop(
         val deadline = times.queryTimeout?.let { times.now() + it.inWholeMilliseconds }
         val request = QueryRequest(ready.session.id, requestIds(), text, parameters, deadline)
         val remaining = deadline?.let { (it - times.now()).milliseconds }
-        val end = AbortableRun(live, rig.tray, times, rig.detached).run(remaining) {
-            sequencer.run(via, request, sinkAround(response), form)
+        val run = AbortableRun(live, rig.tray, times, rig.detached)
+        active = run
+        val end = try {
+            run.run(remaining) { sequencer.run(via, request, sinkAround(response), form) }
+        } finally {
+            active = null
         }
         return when (end) {
             is RunEnd.Finished -> {
@@ -250,6 +295,11 @@ internal class RequestLoop(
 
             RunEnd.Abandoned -> {
                 live.abandon(CloseReason.CANCEL_TIMEOUT)
+                null
+            }
+
+            RunEnd.Disconnected -> {
+                onOutcome(SequenceOutcome.CLOSE_WITHOUT_COMPLETION)
                 null
             }
         }
@@ -269,11 +319,13 @@ internal class RequestLoop(
  * Senke der Anfrage, bevor der `ResponseSequencer` sie bekommt; die Voreinstellung reicht sie unverändert durch. Kein
  * Backend-Ereignis lässt den Encoder ein Token ablehnen (die Abbildungen von Spalten und Werten prüfen dieselben
  * Grenzen); der Einhängepunkt erlaubt es einem Test, eine Senke zu stellen, die ein Token nicht annimmt (Ausgang
- * `CLOSE_WITHOUT_COMPLETION`).
+ * `CLOSE_WITHOUT_COMPLETION`). [gate] verbindet die Schleife mit dem geordneten Beenden des Servers ([ShutdownGate]);
+ * die Voreinstellung kennt keines.
  */
 internal class RequestHooks(
     val requestIds: () -> String = { UUID.randomUUID().toString() },
     val sinkAround: (TokenSink) -> TokenSink = { it },
+    val gate: ShutdownGate = ShutdownGate.NONE,
 )
 
 /**

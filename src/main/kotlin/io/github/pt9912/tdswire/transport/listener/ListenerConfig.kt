@@ -18,14 +18,16 @@ internal fun interface Delayer {
 }
 
 /**
- * Fristen des Listeners. [loginTimeout] (`LOGIN_TIMEOUT`, `SPEC-008`) und [shutdownGrace]
- * (`SHUTDOWN_GRACE`, `SPEC-047`; [Duration.ZERO] = sofort) tragen die vorläufigen Werte der
- * Spezifikation; [delayer] wartet sie ab.
+ * Fristen des Listeners. [loginTimeout] (`LOGIN_TIMEOUT`, `SPEC-008`), [shutdownGrace]
+ * (`SHUTDOWN_GRACE`, `SPEC-047`; [Duration.ZERO] = sofort) und [cancelTimeout] (`CANCEL_TIMEOUT`, `SPEC-033`)
+ * tragen die vorläufigen Werte der Spezifikation; [delayer] wartet sie ab. [cancelTimeout] gilt im Beenden: nach
+ * Ablauf von [shutdownGrace] hat eine Verbindung mit angemeldetem Abbruch so lange Zeit, bevor der Listener sie trennt.
  */
 internal data class ListenerTimes(
     val loginTimeout: Duration = 15.seconds,
     val shutdownGrace: Duration = 10.seconds,
     val delayer: Delayer = Delayer.SYSTEM,
+    val cancelTimeout: Duration = 5.seconds,
 )
 
 /** TLS-Material und -Parameter, gegen die die Startprobe vor dem Binden läuft (`SPEC-043`). */
@@ -34,7 +36,8 @@ internal data class TlsServerConfig(val material: TlsMaterial, val parameters: T
 /**
  * Was der Listener von außen bekommt: eine validierte Bind-Adresse [host] und [port] (0 = ein freier
  * Port), die Fristen, optional die TLS-Konfiguration für die Startprobe und den Dispatcher der
- * Verbindungs-Scopes. Wer die Werte aus Umgebung oder Datei liest, gehört dem Package `config`.
+ * Verbindungs-Scopes. [maxConnections] ist `MAX_CONNECTIONS` (`SPEC-034`): der Listener nimmt höchstens so viele
+ * Verbindungen zugleich auf. Wer die Werte aus Umgebung oder Datei liest, gehört dem Package `config`.
  * Ohne [tls] läuft keine Probe; ob und wie eine Verbindung verschlüsselt wird, entscheidet der Handler.
  */
 internal data class ListenerConfig(
@@ -43,6 +46,7 @@ internal data class ListenerConfig(
     val times: ListenerTimes = ListenerTimes(),
     val tls: TlsServerConfig? = null,
     val dispatcher: CoroutineDispatcher = Dispatchers.Default,
+    val maxConnections: Int = Int.MAX_VALUE,
 )
 
 /** Warum der Start nicht gelingt; [message] nennt Teil, Adresse oder Port, nie Pfad oder Inhalt (`SPEC-043`). */

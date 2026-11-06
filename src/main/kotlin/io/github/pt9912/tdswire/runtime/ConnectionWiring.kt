@@ -9,6 +9,7 @@ import io.github.pt9912.tdswire.domain.telemetry.TlsFirstNotOffered
 import io.github.pt9912.tdswire.domain.telemetry.TlsFirstRefusal
 import io.github.pt9912.tdswire.domain.telemetry.TlsHandshakeFailed
 import io.github.pt9912.tdswire.port.QueryBackend
+import io.github.pt9912.tdswire.protocol.dispatch.RequestHooks
 import io.github.pt9912.tdswire.protocol.dispatch.RequestLoop
 import io.github.pt9912.tdswire.protocol.dispatch.RequestTimes
 import io.github.pt9912.tdswire.protocol.error.ErrorLog
@@ -64,7 +65,8 @@ internal class HandlerSetup(
  * den Treiber danach. Dessen eigene Frist (gleicher Wert) beginnt mit `run` und endet damit nie vor der des
  * Listeners.
  *
- * Nach der Annahme beantwortet die [RequestLoop] die Anfragen an das [backend]. Ist keines
+ * Nach der Annahme beantwortet die [RequestLoop] die Anfragen an das [backend]; sie meldet dem Listener über
+ * [ConnectionShutdownGate], ob eine Anfrage läuft (geordnetes Beenden, `SPEC-044`). Ist keines
  * gesetzt (der Betrieb hat noch kein Backend), gibt es keinen Anfragepfad (Festlegung ohne Messung): der
  * Handler wartet auf die nächste Nachricht oder das Ende der Gegenstelle und kehrt dann zurück; der
  * Listener schließt die Verbindung, eine Anfrage bleibt unbeantwortet. Der Paket-Schreiber arbeitet bis zum
@@ -95,7 +97,11 @@ internal class HandshakeConnectionHandler(private val setup: HandlerSetup, priva
         val early = EventContext(connection.id, clientProfile = profileOf(path, null))
         val config = handshakeConfig(path, early) ?: return
         val wire = SwitchableChannel(peeked)
-        val reader = MessageReader(wire, preLoginLimits(setup.login.maxPreloginMessageBytes))
+        val reader = MessageReader(
+            wire,
+            preLoginLimits(setup.login.maxPreloginMessageBytes),
+            onMidMessage = connection::messageInProgress,
+        )
         val channel = TransportHandshakeChannel(reader, MessageWriter(wire, PACKET_SIZE), wire) {
             upgrade(peeked, wire, path, early)
         }
@@ -115,11 +121,12 @@ internal class HandshakeConnectionHandler(private val setup: HandlerSetup, priva
                 profileOf(path, outcome.live.context.encryption),
             )
             setup.telemetry.emit { LoginAccepted(it, context, outcome.session.principal.name) }
-            if (backend == null) channel.receive() else serve(outcome, channel, backend, context)
+            if (backend == null) channel.receive() else serve(connection, outcome, channel, backend, context)
         }
     }
 
     private suspend fun serve(
+        connection: Connection,
         outcome: HandshakeOutcome.Ready,
         channel: HandshakeChannel,
         backend: QueryBackend,
@@ -129,7 +136,8 @@ internal class HandshakeConnectionHandler(private val setup: HandlerSetup, priva
             queryTimeout = setup.requests.queryTimeoutSeconds.seconds,
             cancelTimeout = setup.requests.cancelTimeoutSeconds.seconds,
         )
-        RequestLoop(outcome, channel, backend, errorMapper(context), times = times).run()
+        val hooks = RequestHooks(gate = ConnectionShutdownGate(connection))
+        RequestLoop(outcome, channel, backend, errorMapper(context), times = times, hooks = hooks).run()
     }
 
     /** Die Konfiguration des Pfads; `null` (und ein Ereignis), wenn der Prozess den TDS-8.0-Pfad nicht anbietet. */

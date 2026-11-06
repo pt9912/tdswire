@@ -9,6 +9,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -99,15 +100,24 @@ internal class TdsListener private constructor(
     private fun admit(accepted: AsynchronousSocketChannel) {
         val connection = ManagedConnection(ids.incrementAndGet(), SocketChannelAdapter(accepted), environment)
         events.onEvent(ListenerEvent.Accepted(connection.id))
-        if (registry.admit(connection.id, connection)) connection.start(handler) else connection.refuse()
+        if (registry.admit(connection.id, connection)) {
+            connection.start(handler)
+        } else {
+            connection.refuse(registry.refusal())
+        }
     }
 
     /**
      * Beginnt das geordnete Beenden (`SPEC-044`) und kehrt zurück, wenn jede Verbindung beendet ist:
      * der Listener schließt zuerst, eine im selben Moment angenommene Verbindung endet sofort, eine
      * Verbindung ohne laufende Anfrage ([Connection.requestRunning]) endet sofort, die übrigen
-     * höchstens bis `SHUTDOWN_GRACE`; danach werden sie getrennt. Abbruch laufender Anfragen am Backend
-     * und `CANCEL_TIMEOUT` gehören der Session, nicht dem Listener. Ein zweiter Aufruf ist wirkungslos
+     * höchstens bis `SHUTDOWN_GRACE`. Danach ruft der Listener den Abbruch, den der Handler angemeldet hat
+     * ([Connection.onShutdownGraceExpired]; der Abbruch der Anfrage am Backend gehört der Session), und trennt jede
+     * Verbindung, die `CANCEL_TIMEOUT` später noch besteht; eine Verbindung ohne angemeldeten Abbruch trennt er
+     * beim Ablauf der Frist. Die Rückkehr erfolgt damit spätestens `SHUTDOWN_GRACE` plus `CANCEL_TIMEOUT` nach
+     * dem Beginn: nach `SHUTDOWN_GRACE` plus `CANCEL_TIMEOUT` gibt der Listener jede noch bestehende Verbindung auf
+     * ([ManagedConnection.abandon]), auch wenn ihr Handler den Abbruch seiner Coroutine nicht beachtet; auf ihn wartet
+     * der Aufruf dann nicht, und die Gruppe wird beendet. Ein zweiter Aufruf ist wirkungslos
      * und kehrt sofort zurück. Wird der Aufruf abgebrochen, räumt er trotzdem auf: die Verbindungen
      * werden getrennt, die Gruppe beendet und abgewartet (`TDS-QA-02`).
      */
@@ -124,13 +134,16 @@ internal class TdsListener private constructor(
     }
 
     private suspend fun awaitConnections(open: List<ManagedConnection>) {
-        val grace = config.times.shutdownGrace
+        val times = config.times
         coroutineScope {
+            val waiting = open.map { launch { it.ended.await() } }
             val expiry = launch {
-                if (grace > Duration.ZERO) config.times.delayer.delay(grace)
-                open.forEach { it.end(ConnectionEnd.SHUTDOWN_GRACE_EXPIRED) }
+                if (times.shutdownGrace > Duration.ZERO) times.delayer.delay(times.shutdownGrace)
+                open.forEach { it.expireGrace() }
+                times.delayer.delay(times.cancelTimeout)
+                open.forEach { it.abandon(ConnectionEnd.SHUTDOWN_GRACE_EXPIRED) }
             }
-            open.forEach { it.awaitEnd() }
+            waiting.joinAll()
             expiry.cancel()
         }
     }
@@ -149,7 +162,7 @@ internal class TdsListener private constructor(
          * nennt den Teil bzw. Adresse und Port.
          */
         suspend fun start(config: ListenerConfig, handler: ConnectionHandler, events: ListenerEvents): StartResult =
-            start(ListenerSetup(config, handler, events, ConnectionRegistry()))
+            start(ListenerSetup(config, handler, events, ConnectionRegistry(config.maxConnections)))
 
         /** Wie [start] mit einem vorgegebenen Register; die Tests belegen damit die Verdrahtung der Abweisung. */
         internal suspend fun start(setup: ListenerSetup): StartResult {

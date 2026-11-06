@@ -6,6 +6,7 @@ import io.github.pt9912.tdswire.domain.SqlType
 import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.protocol.error.ErrorMapper
 import io.github.pt9912.tdswire.protocol.response.TokenSink
+import io.github.pt9912.tdswire.protocol.session.ConnectionState
 import io.github.pt9912.tdswire.protocol.session.FakeHandshakeChannel
 import io.github.pt9912.tdswire.protocol.session.HandshakeConfig
 import io.github.pt9912.tdswire.protocol.session.HandshakeDriver
@@ -69,11 +70,19 @@ internal val INT_COLUMN = ResultColumn("n", SqlType.Int32, nullable = false)
 
 internal fun resultStart() = QueryEvent.ResultStart(listOf(INT_COLUMN))
 
+private val requestStates = setOf(ConnectionState.RUNNING, ConnectionState.STREAMING, ConnectionState.CANCELLING)
+
 /** Der Rahmen der Login-Antworten: zwei Nachrichten (PRELOGIN, LOGIN7) stehen vor jeder Antwort einer Anfrage. */
 internal const val LOGIN_REPLIES = 2
 
 /** Eine angemeldete Sitzung `s1` über einem [FakeHandshakeChannel]; sein Drehbuch geht nach dem Login weiter. */
 internal class Session(val channel: FakeHandshakeChannel, val ready: HandshakeOutcome.Ready) {
+    init {
+        // Die Gegenstelle der meisten Tests schließt erst nach der Antwort; ein Ende während der Anfrage ist ein
+        // Disconnect (`DisconnectTest` setzt die Bedingung zurück).
+        channel.holdEndWhile = { ready.live.context.state in requestStates }
+    }
+
     /** Die Antworten auf Anfragen, ohne die beiden Login-Antworten. */
     val replies: List<TdsMessage> get() = channel.sent.drop(LOGIN_REPLIES)
 

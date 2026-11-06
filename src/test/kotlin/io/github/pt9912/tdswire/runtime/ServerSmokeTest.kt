@@ -3,6 +3,7 @@ package io.github.pt9912.tdswire.runtime
 import io.github.pt9912.tdswire.config.ConfigKeys
 import io.github.pt9912.tdswire.config.TempFilesTest
 import io.github.pt9912.tdswire.config.auth.pbkdf2Value
+import io.github.pt9912.tdswire.protocol.dispatch.BatchVectors
 import io.github.pt9912.tdswire.protocol.session.LoginResponses
 import io.github.pt9912.tdswire.protocol.session.SessionVectors
 import io.github.pt9912.tdswire.protocol.token.LoginAck
@@ -192,5 +193,106 @@ internal class ServerSmokeTest : TempFilesTest() {
                 assertNull(server.output.firstOrNull { it.contains("gestartet") })
             }
         }
+    }
+
+    private fun loggedIn(port: Int): RawClient = connect(port).also {
+        it.send(loginWire(user = "alice", password = "secret"))
+        assertLoginAck(assertNotNull(it.readMessage()))
+    }
+
+    private fun batchWire(text: String): ByteArray = handMessage(BATCH_TYPE, BatchVectors.payload(text), 4000)
+
+    /** Ein Prozess mit der Tabelle `laufend` (Zeilen ohne Ende); Fristen von einer Sekunde halten den Test kurz. */
+    private fun runningProcess() = ServerProcess(
+        environment(ConfigKeys.SHUTDOWN_GRACE to "1", ConfigKeys.CANCEL_TIMEOUT to "1"),
+        ServerProcess.RUNNING_TABLE_MAIN,
+    )
+
+    /** Startet die Anfrage ohne Ende und wartet, bis die ersten Bytes der Antwort da sind. */
+    private fun startRunningQuery(port: Int): RawClient = loggedIn(port).also {
+        it.send(batchWire("SELECT * FROM laufend"))
+        assertTrue(it.readSome().isNotEmpty(), "die Antwort beginnt")
+    }
+
+    /**
+     * Prozess-Stop mit einer ruhenden Verbindung und einer laufenden Anfrage (Zeilen ohne Ende, `SHUTDOWN_GRACE` 1 s,
+     * `CANCEL_TIMEOUT` 1 s): SIGTERM beendet den Prozess mit der Zeile `gestoppt`, die ruhende Verbindung ist
+     * getrennt, die laufende Anfrage endet nach der Frist mit genau einem `DONE[ATTN]` am Ende der Antwort, ohne
+     * weitere Bytes danach. Gemessen ist der Prozess mit Rohbytes-Client, nicht der Referenzclient.
+     *
+     * @spec SPEC-044
+     * @spec SPEC-047
+     * @spec TDS-FA-07
+     */
+    @Test
+    fun `Der Prozess-Stop beendet eine ruhende Verbindung und bricht die laufende Anfrage nach der Frist ab`() {
+        runningProcess().use { server ->
+            val port = server.port()
+            val idle = loggedIn(port)
+            val busy = startRunningQuery(port)
+            assertNotNull(server.terminate(), "der Prozess endet nach SIGTERM")
+            assertNotNull(server.awaitLine("${ServerProcess.PREFIX} gestoppt"), server.output.toString())
+            assertTrue(idle.closedByServerWithoutBytes(), "die ruhende Verbindung ist getrennt")
+            val rest = busy.readToEnd()
+            val attention = BatchVectors.DONE_ATTN.split(" ").map { it.toInt(HEX).toByte() }
+            assertEquals(attention, rest.takeLast(attention.size), "die Antwort endet mit DONE[ATTN]: ${rest.toHex()}")
+            assertNull(server.output.firstOrNull { it.contains("Exception") }, server.output.toString())
+            idle.close()
+            busy.close()
+        }
+    }
+
+    /**
+     * Abrupter TCP-Abbruch (RST) gegen den Serverprozess, während eine Anfrage läuft: der Prozess läuft weiter, eine
+     * neue Verbindung meldet sich an und wird bedient, die Ausgabe nennt keine Ausnahme, und der Backend-Strom der
+     * Anfrage ist geschlossen (die Quelle `laufend` endet mit dem Abbruch; das Zählen am Strom belegen
+     * `ConnectionLeakTest` und `DisconnectTest`). Der Test belegt Erreichbarkeit und keine Ausnahme in der Ausgabe, er
+     * diskriminiert die Disconnect-Erkennung nicht (unter ausgeschalteter Erkennung blieb er grün) und trägt deshalb
+     * kein `@spec`.
+     */
+    @Test
+    fun `Ein abrupter TCP-Abbruch waehrend einer Anfrage laesst den Prozess erreichbar`() {
+        runningProcess().use { server ->
+            val port = server.port()
+            repeat(RESETS) { startRunningQuery(port).reset() }
+            loggedIn(port).use { client ->
+                client.send(batchWire("SELECT * FROM person WHERE Id = 1"))
+                assertEquals(4, assertNotNull(client.readMessage()).type)
+            }
+            assertNull(server.output.firstOrNull { it.contains("Exception") }, server.output.toString())
+            assertNotNull(server.terminate(), "der Prozess endet nach SIGTERM")
+        }
+    }
+
+    /**
+     * Beschädigtes PRELOGIN (Nutzdaten ohne gültige Optionstabelle, dann ein Paketkopf mit unbekanntem Typ): der Server
+     * schließt ohne Antwortbytes, der Prozess bleibt erreichbar, und eine neue Verbindung meldet sich an.
+     *
+     * @spec SPEC-027
+     * @spec TDS-FA-01
+     * @spec TDS-QA-02
+     */
+    @Test
+    fun `Ein beschaedigtes PRELOGIN schliesst ohne Antwort und der Prozess bleibt erreichbar`() {
+        ServerProcess(environment()).use { server ->
+            val port = server.port()
+            RawClient(port).use {
+                it.send(handMessage(PRELOGIN_TYPE, ByteArray(UNPARSABLE_BYTES) { b -> (b * 7 + 3).toByte() }, 4000))
+                assertTrue(it.closedByServerWithoutBytes(), "ohne Antwort geschlossen")
+            }
+            RawClient(port).use {
+                it.send(byteArrayOf(0x7F, 1, 0, 8, 0, 0, 1, 0))
+                assertTrue(it.closedByServerWithoutBytes(), "unbekannter Pakettyp: ohne Antwort geschlossen")
+            }
+            loggedIn(port).close()
+            assertNull(server.output.firstOrNull { it.contains("Exception") }, server.output.toString())
+            assertNotNull(server.terminate(), "der Prozess endet nach SIGTERM")
+        }
+    }
+
+    private companion object {
+        const val RESETS = 5
+        const val UNPARSABLE_BYTES = 40
+        const val HEX = 16
     }
 }
