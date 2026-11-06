@@ -82,6 +82,14 @@ internal class WireClient(port: Int) : AutoCloseable {
         assertTrue(payload.any { it.toInt() and BYTE_MASK == LOGINACK_TOKEN }, "LOGINACK fehlt")
     }
 
+    /** PRELOGIN, dann LOGIN7 von [user] mit [password]; `true`, wenn die Antwort ein LOGINACK trägt. */
+    fun tryLogin(user: String, password: String): Boolean {
+        send(TYPE_PRELOGIN, preloginPayload())
+        assertEquals(TYPE_RESPONSE, readMessage().first)
+        send(TYPE_LOGIN7, login7Payload(user, password))
+        return readMessage().second.any { it.toInt() and BYTE_MASK == LOGINACK_TOKEN }
+    }
+
     /** Ein SQL_BATCH mit [sql] und die Antwort darauf. */
     fun batch(sql: String): Answer {
         send(TYPE_SQL_BATCH, allHeaders() + utf16(sql))

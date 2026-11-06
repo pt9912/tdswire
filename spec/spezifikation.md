@@ -1033,7 +1033,7 @@ soweit nicht anders genannt; sie gelten für das Modell der Bibliothek und damit
   `ADAPTER_FAILED`; `WARN` für `SECURITY_WEAKENED`, `LOGIN_REJECTED`, `ENCRYPTION_NOT_OFFERED`,
   `TLS_FIRST_NOT_OFFERED`, `TLS_HANDSHAKE_FAILED` und `REQUEST_FAILED`; `INFO` für `SERVER_STARTED`, `SERVER_STOPPED`
   und `LOGIN_ACCEPTED`; `DEBUG` für `SIMULATION_BACKEND_READY`. Dass beide Abschwächungen eine Art sind
-  und `reason` sie unterscheidet, ist eine Setzung des Zuschnitts. **Zielzustand, nicht gebaut:** Beginn und Ende des geordneten Beendens, Verbindung
+  und `reason` sie unterscheidet, ist eine Setzung des Zuschnitts. Belegt über die öffentliche Fläche (Einbettungstests `TelemetryEmbeddingTest`, `TelemetryFelderEmbeddingTest`) ist die Zuordnung der Felder `port`, `principal`, `reason` (`START_REFUSED`, `SECURITY_WEAKENED`, `LOGIN_REJECTED`), `issueKind`, `key`, `part` und `form` (nur nicht leer), `address`, `exceptionType` (`BIND_FAILED`, `null` bei belegtem Port), `tables` und `errorCode`. Nicht von außen ausgelöst und nur durch die Kotlin-Typen der internen Klassen gehalten (Grenze) sind `exceptionType` bei `ACCEPT_FAILED`, `CONNECTION_FAILED` und `ADAPTER_FAILED`, `failure`, `reason` bei `TLS_FIRST_NOT_OFFERED` und `cause`; ebenso die Wertemengen der Marken außer `WRONG_PASSWORD`, `TABLE_NAME_DUPLICATE` und den zwei Marken der Abschwächung. **Zielzustand, nicht gebaut:** Beginn und Ende des geordneten Beendens, Verbindung
   angenommen und beendet (mit der Art des Endes), Anfrage beendet (mit Art, Dauer und Ergebnis), Abbruch durch
   ATTENTION, Schnappschuss der Metriken und Ende eines Spans (Abschnitt 5).
 - **`error_code`** ist ein `TDS_*`-Code aus diesem Abschnitt (gebaut in der Art `REQUEST_FAILED`, Feld `errorCode`,

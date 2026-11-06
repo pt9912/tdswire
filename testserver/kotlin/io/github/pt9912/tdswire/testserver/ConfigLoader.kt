@@ -158,7 +158,11 @@ internal object ConfigLoader {
         return PasswordChars(chars).also { chars.fill('\u0000') }
     }
 
-    /** Der Inhalt der Kennwortdatei ohne Zeilenende am Ende; ein Test liest ihn, `PasswordChars` gibt ihn nicht her. */
+    /**
+     * Der Inhalt der Kennwortdatei ohne Zeilenende am Ende; ein Test liest ihn, `PasswordChars` gibt ihn nicht her.
+     * Grenze: dass dieser Text im `PasswordChars` des Materials ankommt, hält dieser Zugang nicht; das belegen die
+     * Prozesstests des TLS-Starts (`ServerSmokeTest`, `Tds8ProcessTest`).
+     */
     internal fun passwordText(bytes: ByteArray, issues: MutableList<ConfigIssue>): String =
         ConfigFiles.decode(EnvKeys.TLS_KEYSTORE_PASSWORD_FILE, bytes, issues).orEmpty().removeSuffix("\n")
 }
