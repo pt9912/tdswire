@@ -1,0 +1,1 @@
+**Stand:** offen — Träger-Vorschlag des Planners (Setzung, zur Bestätigung): `slice-qa-vergleichslauf-d-messungen` (misst DONE-Statusbits am echten Server) um den Punkt „statement- und batch-abbrechende Fehler unterscheiden, `Failure` um die Klasse erweitern, Sequenzierer angleichen“ ergänzen, oder ein eigener Folge-Slice nach der Entscheidung zur Einzelzuordnung der Fehlercodes

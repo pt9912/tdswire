@@ -1,0 +1,1 @@
+**Stand:** offen — Träger-Vorschlag des Planners (Setzung, zur Bestätigung): den DoD-Punkt „Lasttest“ von `slice-qa-performance` um den Rückstau beim blockierenden Backend und beim Simulations-Backend ergänzen (je Punkt eine Messzeile oder Benennung als nicht lieferbar). Verwandt: `BEO-TDS/rueckstau-im-produktivbetrieb-nicht-gemessen` (Socket, Last)
