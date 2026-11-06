@@ -52,19 +52,19 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 Liefer-Punkte (drei):
 
-- [ ] **Verdrahtung von `ACCEPT_FAILED` und `CONNECTION_FAILED`** ([TDS-FA-09](../../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose)): ein Test löst jede der beiden Arten über den Server aus (ein Handler, der wirft; ein Listener, dessen Annehmen scheitert) und liest sie im Sammler; er prüft die Felder der Art und die Grenze „`CONNECTION_FAILED` trägt keine `session_id` und das Profil `unknown`“ aus der Spezifikation (Abschnitt 4). **Beleg:** die Mutationen „`ListenerEvent.Closed` liefert kein Ereignis“ und „`ListenerEvent.AcceptFailed` liefert kein Ereignis“ machen je mindestens einen Test rot. Der Redaktionstest (`TelemetryRedactionTest`) bekommt für beide Arten einen Fall über den Server, mit je verschiedenen Eingabewerten.
-- [ ] **Rot-Fälle der Ausgabe-Sperre je Package** ([TDS-QA-05](../../../../spec/lastenheft.md#tds-qa-05--wartbarkeit)): unter `config/detekt/selbsttest-aufrufe/` liegt ein Rot-Fall für `domain`, `port`, `config`, `observability` und `simulation`, den `make detekt-selbsttest` fährt; **Beleg:** die Verengung des `includes` von `ForbiddenMethodCall/ausgabe` auf drei Packages macht `make detekt-selbsttest` rot (Mutation M11 der Verifikation). Der Erlaubt-Fall in `domain` und `port` (heute ohne `println`) belegt, dass die Kern-Regel dort nicht trifft; bleibt er, trägt er sein `println` wieder oder die Datei nennt, was sie nicht belegt.
-- [ ] **Lücke `Logger.log`** ([TDS-QA-05](../../../../spec/lastenheft.md#tds-qa-05--wartbarkeit)): entweder ein Eintrag der Sperre für `java.util.logging.Logger.log` (alle Überladungen, die der Übersetzer auflöst) mit Rot-Fall, oder die Grenze steht mit Begründung in `config/detekt/detekt.yml` und in der Closure-Notiz; Ziel ist ein Beleg, kein Versprechen. Die Aufrufe `Thread.dumpStack` und `printStackTrace(PrintStream)` sind dabei gemessen und genannt (der Review fuhr sie nicht).
+- [x] **Verdrahtung von `ACCEPT_FAILED` und `CONNECTION_FAILED`** ([TDS-FA-09](../../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose)): ein Test löst jede der beiden Arten über den Server aus (ein Handler, der wirft; ein Listener, dessen Annehmen scheitert) und liest sie im Sammler; er prüft die Felder der Art und die Grenze „`CONNECTION_FAILED` trägt keine `session_id` und das Profil `unknown`“ aus der Spezifikation (Abschnitt 4). **Beleg:** die Mutationen „`ListenerEvent.Closed` liefert kein Ereignis“ und „`ListenerEvent.AcceptFailed` liefert kein Ereignis“ machen je mindestens einen Test rot. Der Redaktionstest (`TelemetryRedactionTest`) bekommt für beide Arten einen Fall über den Server, mit je verschiedenen Eingabewerten.
+- [x] **Rot-Fälle der Ausgabe-Sperre je Package** ([TDS-QA-05](../../../../spec/lastenheft.md#tds-qa-05--wartbarkeit)): unter `config/detekt/selbsttest-aufrufe/` liegt ein Rot-Fall für `domain`, `port`, `config`, `observability` und `simulation`, den `make detekt-selbsttest` fährt; **Beleg:** die Verengung des `includes` von `ForbiddenMethodCall/ausgabe` auf drei Packages macht `make detekt-selbsttest` rot (Mutation M11 der Verifikation). Der Erlaubt-Fall in `domain` und `port` (heute ohne `println`) belegt, dass die Kern-Regel dort nicht trifft; bleibt er, trägt er sein `println` wieder oder die Datei nennt, was sie nicht belegt.
+- [x] **Lücke `Logger.log`** ([TDS-QA-05](../../../../spec/lastenheft.md#tds-qa-05--wartbarkeit)): entweder ein Eintrag der Sperre für `java.util.logging.Logger.log` (alle Überladungen, die der Übersetzer auflöst) mit Rot-Fall, oder die Grenze steht mit Begründung in `config/detekt/detekt.yml` und in der Closure-Notiz; Ziel ist ein Beleg, kein Versprechen. Die Aufrufe `Thread.dumpStack` und `printStackTrace(PrintStream)` sind dabei gemessen und genannt (der Review fuhr sie nicht).
 
 Nachweis-Pflichten für alle drei Punkte:
 
-- [ ] Jeder neue Test trägt im KDoc den Block-Tag `@spec SPEC-<NNN>`; die Tests laufen in `make test` und sind grün.
-- [ ] Jede Aussage steht an einem Test oder ist als Festlegung gekennzeichnet (`BEO-TDS/aussagen-ueber-messung-hinaus`).
-- [ ] `make gates` grün.
+- [x] Jeder neue Test trägt im KDoc den Block-Tag `@spec SPEC-<NNN>`; die Tests laufen in `make test` und sind grün.
+- [x] Jede Aussage steht an einem Test oder ist als Festlegung gekennzeichnet (`BEO-TDS/aussagen-ueber-messung-hinaus`).
+- [x] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Doku-Update: der Satz zu `CONNECTION_FAILED` in Abschnitt 4 der Spezifikation trägt nach dem Test die Kennzeichnung „gebaut“ mit Verweis auf den Test; `SPEC-059` ändert sich durch diesen Slice nicht (die Arten stehen dort als `EventKind`).
+- [x] Doku-Update: der Satz zu `CONNECTION_FAILED` in Abschnitt 4 der Spezifikation trägt nach dem Test die Kennzeichnung „gebaut“ mit Verweis auf den Test; `SPEC-059` ändert sich durch diesen Slice nicht (die Arten stehen dort als `EventKind`).
 - [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
 - [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
 - [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
@@ -84,6 +84,10 @@ Aussagen-Berührung steht hier gar nicht.
 | `config/detekt/selbsttest-aufrufe/src/main/kotlin/io/github/pt9912/tdswire/` | neu | Rot-Fälle je Package (`domain`, `port`, `config`, `observability`, `simulation`) |
 | `config/detekt/detekt.yml` | update | Eintrag oder benannte Grenze für `Logger.log`; nur Verschärfung (`AGENTS.md` §3.6) |
 | `spec/spezifikation.md` Abschnitt 4 | update | Satz zu `CONNECTION_FAILED` mit Verweis auf den Test |
+| `tools/detekt-selbsttest.sh` | update | Packages der Rot-Fälle aus den Testdaten der Importregeln abgeleitet, Funde je Methode gegen die Markierungen gezählt (eine Überladung ohne Fund fällt auf) |
+| `src/test/kotlin/io/github/pt9912/tdswire/runtime/AcceptChild.kt` | neu | Kind-JVM mit `ulimit -n`: Auslöser für `ACCEPT_FAILED` ohne Naht im Produktcode |
+
+Umsetzung: `ACCEPT_FAILED` entsteht am Limit offener Dateien einer Kind-JVM (keine Naht im Produktcode, `BEO-TDS/test-naht-im-produktivcode` nicht berührt); `CONNECTION_FAILED` entsteht, wenn die Senke nach `LOGIN_ACCEPTED` einen `Error` wirft, weil Backend und Adapter eine Ausnahme jeder Klasse auf eine Antwort abbilden. Die Sperre nennt zusätzlich `Logger.logp`, `Logger.logrb` und `Thread.dumpStack`; `printStackTrace(PrintStream)` und `printStackTrace(PrintWriter)` melden unter `kotlin.Throwable.printStackTrace` (gemessen).
 
 
 ## 4. Trigger
