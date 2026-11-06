@@ -1,1 +1,1 @@
-**Stand:** offen — 3×, Schwelle erreicht (slice-adr-observability, slice-adr-testserver-bestand-und-katalog, slice-adr-handle-grenze-ersatz); nichts verkörpert, kein Träger gesetzt. Verkörperungsvorschlag an den Nutzer: Planner-Schritt „Anschluss-Blöcke und Zustandsfelder der Nachbar-Slices beim Wechsel einer ADR auf Accepted nachziehen“ in `.claude/commands/plan-welle.md`; die Entscheidung liegt beim Nutzer.
+**Stand:** verkörpert — `.claude/commands/plan-welle.md` (Schritt 6a), Anker `seit slice-adr-handle-grenze-ersatz`; Nachtrag in `slice-adr-handle-grenze-ersatz.md` §7
