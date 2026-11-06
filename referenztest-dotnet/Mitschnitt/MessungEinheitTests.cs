@@ -11,7 +11,7 @@ namespace TdsWire.Referenztests.Mitschnitt;
 /// Tests des Werkzeugs der Messreihe am Draht ohne Referenzinstanz (SPEC-045, TDS-QA-01): Redaktion von LOGIN7, Ablage der Messung,
 /// Zusammensetzen der Nachrichten mit Status, Handschlag-Strom und TLS-beendender Proxy gegen einen Server aus der Hand, Zerlegung
 /// von LOGINACK, FEATUREEXTACK, SESSIONSTATE und ENVCHANGE sowie des RPC-Kopfs. Sie belegen das Werkzeug, nicht das Verhalten einer
-/// Referenzinstanz. Zuordnung `@spec SPEC-045` je Test als Kommentar (`make spec-abdeckung` liest nur Kotlin-Tests).
+/// Referenzinstanz. Zuordnung `@spec SPEC-045` je Test als Kommentar `// @spec` (`make spec-abdeckung` liest ihn, Kopf von `tools/spec-abdeckung.sh`).
 /// </summary>
 [Trait("Kategorie", "MitschnittEinheit")]
 public class MessungEinheitTests
