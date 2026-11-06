@@ -8,6 +8,12 @@
 #   2022-anmeldung | 2022-tds8 | 2025-anmeldung | 2025-tds8 | 2025-tds8-forcestrict | alle (Voreinstellung)
 #   live-2022 | live-2025 | live (beide): Live-Lauf nach SPEC-045, siehe `livelauf`; messung-2022 | messung-2025: Gegenmessungen
 #   an der Referenzinstanz (referenztest-dotnet/Vergleich/ReferenzMessungTests.cs, Kategorie VergleichMessung), kein Urteil.
+#   aufnahme-2022 | aufnahme-2025 | aufnahme (beide): Aufnahme der Mitschnitte (SPEC-045) an der Referenzinstanz ueber den
+#   mitschneidenden Proxy im Client-Container; die redigierten Dateien ersetzen referenztest-dotnet/Mitschnitt/aufnahmen/<stufe>/
+#   im Arbeitsbaum (der Lauf schreibt dorthin, committet nichts). mitschnitt-2022 | mitschnitt-2025 | mitschnitt (beide):
+#   Abspielen der abgelegten Mitschnitte gegen einen frisch gestarteten Server dieses Repos (Stage `kompatibilitaetsserver`,
+#   ENCRYPTION_POLICY=TEST_UNENCRYPTED) und feldweiser Vergleich mit referenztest-dotnet/Vergleich/mitschnitt-ausnahmen.tsv;
+#   das Abspielen startet keine Referenzinstanz.
 # Je Lauf: Image der Referenzinstanz bauen (Dockerfile-Stufe `referenzinstanz-<jahr>` in referenztest-dotnet, Digest
 # dort gepinnt) und Client-Image (Stufe `vergleich`); zwei Container in einem eigenen internen Netzwerk (kein Zugang
 # nach aussen, kein veroeffentlichter Port, nichts wird gemountet; Namen mit PID). Zertifikat und Schluessel (CN und SAN
@@ -125,6 +131,8 @@ LAUFNAME="${1:-alle}"
 ALLE="2022-anmeldung 2022-tds8 2025-anmeldung 2025-tds8 2025-tds8-forcestrict"
 LIVE="live-2022 live-2025"
 MESSUNG="messung-2022 messung-2025"
+AUFNAHME="aufnahme-2022 aufnahme-2025"
+MITSCHNITT="mitschnitt-2022 mitschnitt-2025"
 
 # parameter <Lauf>: setzt STUFE, KATEGORIE, FORCESTRICT, ERWARTE_STRICT, ERWARTE_SONDE und ERWARTE_MANDATORY (gelingt|scheitert|-).
 parameter() {
@@ -138,6 +146,10 @@ parameter() {
     messung-2025) STUFE=2025 KATEGORIE=VergleichMessung FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
     live-2022) STUFE=2022 KATEGORIE=Live FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
     live-2025) STUFE=2025 KATEGORIE=Live FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
+    aufnahme-2022) STUFE=2022 KATEGORIE=MitschnittAufnahme FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
+    aufnahme-2025) STUFE=2025 KATEGORIE=MitschnittAufnahme FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
+    mitschnitt-2022) STUFE=2022 KATEGORIE=MitschnittAbspielen FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
+    mitschnitt-2025) STUFE=2025 KATEGORIE=MitschnittAbspielen FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
     *) return 1 ;;
   esac
 }
@@ -146,10 +158,14 @@ if [ "$LAUFNAME" = alle ]; then
   LISTE="$ALLE"
 elif [ "$LAUFNAME" = live ]; then
   LISTE="$LIVE"
+elif [ "$LAUFNAME" = aufnahme ]; then
+  LISTE="$AUFNAHME"
+elif [ "$LAUFNAME" = mitschnitt ]; then
+  LISTE="$MITSCHNITT"
 elif parameter "$LAUFNAME"; then
   LISTE="$LAUFNAME"
 else
-  echo "vergleichslauf-d: LAUF muss alle, live oder einer von [$ALLE $LIVE $MESSUNG] sein (war '$LAUFNAME')" >&2
+  echo "vergleichslauf-d: LAUF muss alle, live, aufnahme, mitschnitt oder einer von [$ALLE $LIVE $MESSUNG $AUFNAHME $MITSCHNITT] sein (war '$LAUFNAME')" >&2
   exit 2
 fi
 if [ -n "${CI:-}${GITHUB_ACTIONS:-}" ]; then
@@ -395,6 +411,109 @@ livelauf() {
   return 0
 }
 
+# aufnahmelauf <Name>: die Aufnahme der Mitschnitte (SPEC-045). Die Referenzinstanz (Stufe) startet frisch; der Client-Container
+# fuehrt die Szenarien der Kategorie MitschnittAufnahme (referenztest-dotnet/Vergleich/MitschnittLaufTests.cs) ueber den
+# mitschneidenden Proxy in seinem Container aus und legt die Mitschnitte in /tmp/aufnahme ab. Danach liegen die Dateien in
+# $SCRATCH, werden auf das Kennwort der Instanz geprueft (Klartextsuche; die Formen im Draht prueft der Test) und ersetzen
+# referenztest-dotnet/Mitschnitt/aufnahmen/<Stufe>/ im Arbeitsbaum. Die Herkunft (Instanz laut Log, Image mit Digest laut
+# Dockerfile, Hash des Testschemas) geht als Umgebung an den Test und steht im Kopf jeder Datei.
+aufnahmelauf() {
+  local name="$1" instanz image schema ok ziel_verzeichnis
+  parameter "$name" || return 1
+  CLIENT="$LAUF-$name-client"
+  echo "vergleichslauf-d: --- Lauf $name (Stufe $STUFE, Kategorie $KATEGORIE) ---"
+  referenz_hochfahren "$name" || return 1
+  instanz=$(docker logs "$SERVER" 2>&1 | grep -m1 -E 'Microsoft SQL Server' | tr -d '\r' | sed -E 's/^[0-9: .-]+Server +//; s/ +$//')
+  image=$(grep -E "AS referenzinstanz-$STUFE\$" referenztest-dotnet/Dockerfile | sed -E 's/^FROM ([^ ]+) AS .*/\1/')
+  schema="sha256:$(sha256sum referenztest-dotnet/Vergleich/testschema.sql | cut -d' ' -f1)"
+  docker create --name "$CLIENT" --network "$NETZ" -e "TDSWIRE_ZIEL=referenz:1433" -e "TDSWIRE_REFERENZ_KENNWORT=$KENNWORT" \
+    -e SSL_CERT_FILE=/tmp/server.pem -e TDSWIRE_MITSCHNITT_AUSGABE=/tmp/aufnahme -e "TDSWIRE_HERKUNFT_INSTANZ=$instanz" \
+    -e "TDSWIRE_HERKUNFT_IMAGE=$image" -e "TDSWIRE_HERKUNFT_SCHEMA=$schema" \
+    "$CLIENT_IMAGE" dotnet test --no-build --nologo --filter "Kategorie=MitschnittAufnahme" --logger "console;verbosity=detailed" >/dev/null || return 1
+  docker cp "$SCRATCH/server.pem" "$CLIENT:/tmp/server.pem" >/dev/null || return 1
+  docker start -a "$CLIENT" >"$SCRATCH/client-$name" 2>&1
+  ok=$?
+  if grep -qF -e "$KENNWORT" "$SCRATCH/client-$name"; then
+    echo "vergleichslauf-d: Ausgabe des Clients nennt das Kennwort des Servers; sie wird nicht gedruckt"
+    FEHLER=1
+  else
+    cat "$SCRATCH/client-$name"
+  fi
+  docker cp "$CLIENT:/tmp/aufnahme/." "$SCRATCH/aufnahme-$STUFE" >/dev/null 2>&1
+  docker rm -f "$CLIENT" >/dev/null 2>&1
+  CLIENT=""
+  pruefe "Aufnahme $name: Test bestanden, Mitschnitte vorhanden" sh -c "[ $ok -eq 0 ] && ls '$SCRATCH/aufnahme-$STUFE'/*.mitschnitt >/dev/null 2>&1"
+  keine_kennwort_treffer() { ! grep -rqF -e "$KENNWORT" "$SCRATCH/aufnahme-$STUFE"; }
+  pruefe "Aufnahme $name: das Kennwort steht in keiner Datei der Ablage" keine_kennwort_treffer
+  [ "$FEHLER" -eq 0 ] || return 1
+  ziel_verzeichnis="referenztest-dotnet/Mitschnitt/aufnahmen/$STUFE"
+  mkdir -p "$ziel_verzeichnis" && rm -f "$ziel_verzeichnis"/*.mitschnitt && cp "$SCRATCH/aufnahme-$STUFE"/*.mitschnitt "$ziel_verzeichnis"/ || return 1
+  echo "vergleichslauf-d: messung: Aufnahme $name: $(ls "$ziel_verzeichnis" | wc -l) Mitschnitte in $ziel_verzeichnis"
+  docker rm -f "$SERVER" >/dev/null 2>&1
+  docker network rm "$NETZ" >/dev/null 2>&1
+  docker rmi -f "$SERVER_IMAGE" >/dev/null 2>&1
+  SERVER="" NETZ="" SERVER_IMAGE=""
+  return 0
+}
+
+# mitschnittlauf <Name>: das Abspielen der abgelegten Mitschnitte (SPEC-045) gegen einen frisch gestarteten Server dieses
+# Repos im eigenen internen Netzwerk: Dockerfile-Stage `kompatibilitaetsserver`, im Klartext (ENCRYPTION_POLICY=TEST_UNENCRYPTED,
+# ohne Schluesselspeicher; der Relais des Clients spielt die Anfragen im Klartext ab). Der Client-Container fuehrt die Kategorie
+# MitschnittAbspielen aus und legt je Seite eine Datei `Kennung TAB Ergebnis` ab; `vergleichen` urteilt mit
+# referenztest-dotnet/Vergleich/mitschnitt-ausnahmen.tsv. Eine Referenzinstanz startet nicht.
+mitschnittlauf() {
+  local name="$1" ok t_fertig
+  parameter "$name" || return 1
+  echo "vergleichslauf-d: --- Lauf $name (Stufe $STUFE, Kategorie $KATEGORIE) ---"
+  START=$SECONDS
+  NETZ="$LAUF-$name-netz"
+  docker network create --internal "$NETZ" >/dev/null || return 1
+  SIM_IMAGE="tdswire-live-server:$LAUF"
+  SIM_SERVER="$LAUF-$name-sim"
+  # shellcheck disable=SC2086
+  docker build ${BUILDER_FLAGS:-} --load --target kompatibilitaetsserver -t "$SIM_IMAGE" . || return 1
+  docker run -d --name "$SIM_SERVER" --network "$NETZ" --network-alias testserver --entrypoint env "$SIM_IMAGE" \
+    -u TLS_KEYSTORE_FILE -u TLS_KEYSTORE_PASSWORD_FILE ENCRYPTION_POLICY=TEST_UNENCRYPTED \
+    gradle --no-daemon --offline -q kompatibilitaetsServer >/dev/null || return 1
+  gestartet() {
+    local i
+    for i in $(seq 1 120); do
+      docker logs "$SIM_SERVER" 2>&1 | grep -q 'tdswire: gestartet, Port 1433' && return 0
+      [ "$(docker inspect --format '{{.State.Running}}' "$SIM_SERVER")" = "true" ] || return 1
+      sleep 1
+    done
+    return 1
+  }
+  pruefe "Server mit Simulations-Backend (Klartext) meldet 'gestartet, Port 1433'" gestartet
+  [ "$FEHLER" -eq 0 ] || { docker logs "$SIM_SERVER" 2>&1 | tail -20; return 1; }
+  CLIENT="$LAUF-$name-client"
+  docker create --name "$CLIENT" --network "$NETZ" -e "TDSWIRE_ZIEL=testserver:1433" -e "TDSWIRE_STUFE=$STUFE" \
+    -e TDSWIRE_LIVE_BENUTZER=alice -e TDSWIRE_LIVE_KENNWORT=secret -e TDSWIRE_MITSCHNITT_REFERENZ=/tmp/mref.txt \
+    -e TDSWIRE_MITSCHNITT_SERVER=/tmp/msrv.txt \
+    "$CLIENT_IMAGE" dotnet test --no-build --nologo --filter "Kategorie=MitschnittAbspielen" --logger "console;verbosity=detailed" >/dev/null || return 1
+  docker start -a "$CLIENT" >"$SCRATCH/client-$name" 2>&1
+  ok=$?
+  cat "$SCRATCH/client-$name"
+  docker cp "$CLIENT:/tmp/mref.txt" "$SCRATCH/mitschnitt-referenz.txt" >/dev/null 2>&1
+  docker cp "$CLIENT:/tmp/msrv.txt" "$SCRATCH/mitschnitt-server.txt" >/dev/null 2>&1
+  docker rm -f "$CLIENT" >/dev/null 2>&1
+  CLIENT=""
+  pruefe "Abspielen $name: Client-Lauf bestanden, beide Ausgabedateien vorhanden" \
+    sh -c "[ $ok -eq 0 ] && [ -s '$SCRATCH/mitschnitt-referenz.txt' ] && [ -s '$SCRATCH/mitschnitt-server.txt' ]"
+  [ "$FEHLER" -eq 0 ] || return 1
+  sed 's/^/vergleichslauf-d: mitschnitt: referenz /' "$SCRATCH/mitschnitt-referenz.txt"
+  sed 's/^/vergleichslauf-d: mitschnitt: server   /' "$SCRATCH/mitschnitt-server.txt"
+  pruefe "Mitschnitt-Vergleich: gleich oder genau die gelistete Abweichung" \
+    vergleichen "$SCRATCH/mitschnitt-referenz.txt" "$SCRATCH/mitschnitt-server.txt" referenztest-dotnet/Vergleich/mitschnitt-ausnahmen.tsv "$STUFE"
+  t_fertig=$((SECONDS - START))
+  echo "vergleichslauf-d: messung: Lauf $name $t_fertig s (mit Bau und Start des Servers)"
+  docker rm -f "$SIM_SERVER" >/dev/null 2>&1
+  docker network rm "$NETZ" >/dev/null 2>&1
+  docker rmi -f "$SIM_IMAGE" >/dev/null 2>&1
+  SIM_SERVER="" NETZ="" SIM_IMAGE=""
+  return 0
+}
+
 gesamt=$SECONDS
 # shellcheck disable=SC2086
 docker build ${BUILDER_FLAGS:-} --load --target vergleich -t "$CLIENT_IMAGE" referenztest-dotnet || exit 1
@@ -402,6 +521,8 @@ echo "vergleichslauf-d: messung: Bau des Client-Images $((SECONDS - gesamt)) s"
 for lauf in $LISTE; do
   case "$lauf" in
     live-*) livelauf "$lauf" || FEHLER=1 ;;
+    aufnahme-*) aufnahmelauf "$lauf" || FEHLER=1 ;;
+    mitschnitt-*) mitschnittlauf "$lauf" || FEHLER=1 ;;
     *) einzellauf "$lauf" || FEHLER=1 ;;
   esac
   [ "$FEHLER" -eq 0 ] || break
