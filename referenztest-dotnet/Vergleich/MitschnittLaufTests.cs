@@ -39,7 +39,7 @@ internal static class MitschnittZiel
             Password = kennwort,
             Encrypt = SqlConnectionEncryptOption.Optional,
             Pooling = false,
-            ConnectRetryCount = 0,
+            ConnectRetryCount = 1,
             ConnectTimeout = 15,
             CommandTimeout = 60,
             InitialCatalog = datenbank ?? "",
@@ -66,6 +66,13 @@ public class MitschnittAufnahmeTests
             using var befehl = new SqlCommand(stapel, verbindung);
             befehl.ExecuteNonQuery();
         }
+    }
+
+    private static string ServerName()
+    {
+        using var verbindung = ReferenzZiel.Oeffnen(ReferenzZiel.Tds74(ReferenzZiel.Benutzer, ReferenzZiel.Umgebung("TDSWIRE_REFERENZ_KENNWORT")));
+        using var befehl = new SqlCommand("SELECT @@SERVERNAME", verbindung);
+        return (string)befehl.ExecuteScalar()!;
     }
 
     // ---- Szenarien --------------------------------------------------------------------------------------------------
@@ -250,6 +257,7 @@ public class MitschnittAufnahmeTests
         var (host, port) = MitschnittZiel.Ziel();
         Directory.CreateDirectory(ausgabe);
         SchemaAnlegen();
+        var servername = ServerName();
 
         foreach (var (name, koerper) in Szenarien)
         {
@@ -267,13 +275,15 @@ public class MitschnittAufnahmeTests
             datei.Herkunft.Add(new("schema", "testschema.sql " + Herkunft("TDSWIRE_HERKUNFT_SCHEMA")));
             datei.Herkunft.Add(new("methode", "Proxy im Container des Clients, Encrypt=false (Anmeldung verschluesselt und nicht abgelegt, Anfragen im Klartext), PacketSize " + packetSize));
             datei.Herkunft.Add(new("aufnahme", DateTime.UtcNow.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)));
-            datei.Ereignisse.AddRange(ereignisse);
+            // Der Servername (Name des Containers) steht in ERROR und INFO; er gehoert der Instanz, nicht dem Verhalten.
+            datei.Ereignisse.AddRange(ereignisse.Select(e => e.Art == 'R' ? e with { Daten = Redaktion.NameErsetzen(e.Daten, servername) } : e));
             Assert.True(aufnahme.Schreiber.Klartext, $"{name}: kein Klartext-Abschnitt (Sitzung vollstaendig verschluesselt?)");
             Assert.NotEmpty(datei.Austausche());
             Assert.True(datei.Ereignisse.Sum(e => e.Daten.Length) <= 256 * 1024, $"{name}: der Mitschnitt ist groesser als 256 KiB");
 
             var text = datei.Serialisieren();
             Assert.Null(Redaktion.Treffer(text, kennwort));
+            Assert.Null(Redaktion.Treffer(text, servername));
             _ = MitschnittDatei.Lesen(text);
             File.WriteAllText(Path.Combine(ausgabe, name + ".mitschnitt"), text, new UTF8Encoding(false));
             foreach (var (kennung, wert) in Ergebnis.AusMitschnitt(datei))

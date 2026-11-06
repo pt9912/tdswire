@@ -461,6 +461,9 @@ aufnahmelauf() {
 # ohne Schluesselspeicher; der Relais des Clients spielt die Anfragen im Klartext ab). Der Client-Container fuehrt die Kategorie
 # MitschnittAbspielen aus und legt je Seite eine Datei `Kennung TAB Ergebnis` ab; `vergleichen` urteilt mit
 # referenztest-dotnet/Vergleich/mitschnitt-ausnahmen.tsv. Eine Referenzinstanz startet nicht.
+# Kopplung: der Lauf haengt an den ENV-Namen TLS_KEYSTORE_FILE, TLS_KEYSTORE_PASSWORD_FILE und ENCRYPTION_POLICY der Dockerfile-Stage
+# `kompatibilitaetsserver` (Wurzel-Dockerfile, SPEC-010) und an deren Gradle-Task `kompatibilitaetsServer` (CMD); ein Umbenennen dort
+# aendert diesen Lauf. Das Versagen ist laut: der Abspieler bricht ab, wenn die PRELOGIN-Antwort nicht ENCRYPT_NOT_SUP ist.
 mitschnittlauf() {
   local name="$1" ok t_fertig
   parameter "$name" || return 1

@@ -208,6 +208,10 @@ internal sealed class TokenLeser
                     name = "LOGINACK";
                     Nimm(U16());
                     break;
+                case 0xE4:
+                    name = "SESSIONSTATE";
+                    Nimm(U32());
+                    break;
                 case 0xED:
                     name = "SSPI";
                     Nimm(U16());

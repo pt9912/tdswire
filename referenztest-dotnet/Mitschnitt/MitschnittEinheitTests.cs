@@ -132,6 +132,31 @@ public class MitschnittEinheitTests
         Assert.Null(Redaktion.Treffer(datei.Serialisieren(), Kennwort));
     }
 
+    // @spec SPEC-045
+    [Fact]
+    public void Der_Servername_im_ERROR_wird_ersetzt_ohne_die_Laenge_zu_aendern()
+    {
+        var fehler = Fehler(208, 16, "Invalid object name 'x'.", "B429388440C4");
+        var ersetzt = Redaktion.NameErsetzen(fehler, "b429388440c4");
+
+        Assert.Equal(fehler.Length, ersetzt.Length);
+        Assert.True(Redaktion.Enthaelt(fehler, "b429388440c4") || fehler.AsSpan().IndexOf(Text("B429388440C4")) >= 0);
+        Assert.Equal(-1, ersetzt.AsSpan().IndexOf(Text("B429388440C4")));
+        Assert.Equal("Fehler Nummer 208, Class 16, State 1, Meldung 'Invalid object name 'x'.', Server vorhanden, Prozedur '', Zeile 1", TokenLeser.Lesen(ersetzt).Fehler.Single());
+        Assert.Same(fehler, Redaktion.NameErsetzen(fehler, ""));
+    }
+
+    // @spec SPEC-045
+    [Fact]
+    public void Der_Leser_ueberspringt_SESSIONSTATE_und_nennt_ihn_in_der_Folge()
+    {
+        var sessionstate = Cat(Bytes(0xE4), U32(7), Bytes(1, 2, 3, 4, 5, 6, 7));
+        var a = TokenLeser.Lesen(Cat(sessionstate, Done(0x02, 0)));
+
+        Assert.Null(a.Problem);
+        Assert.Equal(new[] { "SESSIONSTATE", "DONE" }, a.Folge);
+    }
+
     // ---- Mitschreiber und Dateiform --------------------------------------------------------------------------------
 
     // @spec SPEC-045

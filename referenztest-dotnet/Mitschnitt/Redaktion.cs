@@ -38,6 +38,30 @@ internal static class Redaktion
         return formen;
     }
 
+    /// <summary>
+    /// Ersetzt jedes Vorkommen von <paramref name="name"/> in UTF-16LE (ohne Beachtung der Schreibweise) durch gleich viele `x`;
+    /// die Länge der Nachricht und der Tokens bleibt gleich. Für Namen, die der Instanz gehören (Servername im ERROR-Token).
+    /// </summary>
+    public static byte[] NameErsetzen(byte[] daten, string name)
+    {
+        if (string.IsNullOrEmpty(name)) return daten;
+        var ergebnis = (byte[])daten.Clone();
+        var zeichen = name.Length * 2;
+        for (var i = 0; i + zeichen <= ergebnis.Length; i++)
+        {
+            if (!string.Equals(Encoding.Unicode.GetString(ergebnis, i, zeichen), name, StringComparison.OrdinalIgnoreCase)) continue;
+            for (var k = 0; k < name.Length; k++)
+            {
+                ergebnis[i + (2 * k)] = (byte)'x';
+                ergebnis[i + (2 * k) + 1] = 0;
+            }
+
+            i += zeichen - 1;
+        }
+
+        return ergebnis;
+    }
+
     public static bool Enthaelt(byte[] daten, string geheimnis) =>
         Formen(geheimnis).Any(form => daten.AsSpan().IndexOf(form) >= 0);
 
