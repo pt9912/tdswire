@@ -79,6 +79,9 @@ Aussagen-Berührung steht hier gar nicht.
 | `src/test/kotlin/io/github/pt9912/tdswire/runtime/KompatibilitaetsServer.kt` | update | `QUERY_TIMEOUT` kurz einstellbar (nutzt die Einstellung aus [slice-attention-cancel-timeout](../done/slice-attention-cancel-timeout.md)); Quelle für die Streaming-Fälle |
 | `tools/e2e.sh`, `tools/kompatibilitaetstest.sh` | update | Text und Abdeckungs-Zeile der Stufen 3 und 7 (Kennungen [TDS-FA-07](../../../../spec/lastenheft.md#tds-fa-07--abbruch-und-ressourcenfreigabe), [TDS-QA-07](../../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität), „ohne Cancel“ entfällt) |
 | `spec/spezifikation.md`, `docs/plan/kompatibilitaetsmatrix.md`, `harness/README.md`, `docs/plan/carveouts/` | update | Doku-Update in §2, Auflösung von [CO-004](../../carveouts/CO-004-cancel-szenario-spec-040-fehlt.md) |
+| `src/testserver/kotlin/io/github/pt9912/tdswire/testserver/LaufendeQuelle.kt` | new | Tabelle `laufend`: Zeilenquelle ohne Ende, abbrechbar; beide Testserver-Läufe (Stufe 3 und 7) lesen sie ([TDS-FA-07](../../../../spec/lastenheft.md#tds-fa-07--abbruch-und-ressourcenfreigabe)) |
+| `tools/kompatibilitaetstest.sh` | update | Server der Kategorie `Synchronitaet` mit `QUERY_TIMEOUT` 5 s; Prüfung „ein Cancel am Backend je Anfrage an `laufend`“ ([TDS-QA-07](../../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität)) |
+| `docs/plan/e2e-abdeckung.md`, `docs/plan/carveouts/CO-004-cancel-szenario-spec-040-fehlt.md`, `docs/user/testserver-manuell.md` | update | erzeugte Sicht der Stufen; Geschichte des Carveouts; Satz zu Cancel im Nutzerhandbuch |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf, inklusive einer Testdatei-Zeile mit der Akzeptanzkriterien-ID in `Begründung`.
 
