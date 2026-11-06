@@ -1,0 +1,1 @@
+**Stand:** offen — 1×, unter der Schwelle; nichts verkörpert, kein Träger gesetzt. Die Folge-Slices tragen die Neubeschaffung der Wortlaute; die Gegenmessung am echten Server liegt bei `BEO-TDS/messung-am-echten-sql-server-fehlt`.

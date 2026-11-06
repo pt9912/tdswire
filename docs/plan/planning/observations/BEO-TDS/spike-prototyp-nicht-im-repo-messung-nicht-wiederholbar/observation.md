@@ -1,0 +1,5 @@
+# Ein Spike misst einen fremden Client gegen einen Prototyp, der nicht im Repo liegt, und die Messzeilen sind nicht wiederholbar
+
+**Sub-Area:** `*` (Entscheidungs-Slices, Messprotokolle)
+
+Der Spike der Callback-Lösung ([Messprotokoll](../../../../../messungen/callback-loesung-spike-2026-11-05.md)) misst d-migrate 1.12.0 gegen einen Wegwerf-Prototyp des Testservers; der Code liegt im Scratchpad (Slice-Vorgabe: „nie im Repo“). Gemessen ist damit das Verhalten **des Clients gegen den Prototyp**, nicht gegen einen echten SQL Server und nicht gegen das gebaute Produkt; Reviewer und Verifier konnten die Zeilen lesen und nachrechnen, nicht wiederholen. Folgen: Handvektoren (`AGENTS.md` §3.8) und vollständige Wortlaute fehlen und sind in den Folge-Slices neu zu beschaffen ([ADR-0033](../../../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Folgepflicht Umsetzung); Einzelmessungen unter Last 3,8 bis 23,4 erlauben Vergleiche nur innerhalb eines Laufs. Die Messklasse braucht einen eigenen Namen, damit eine Aussage „gemessen“ ihre Seite nennt: Client gegen Prototyp · Client gegen gebautes Produkt · Client gegen echten Server.

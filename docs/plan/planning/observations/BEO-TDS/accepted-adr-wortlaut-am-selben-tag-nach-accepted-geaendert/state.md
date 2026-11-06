@@ -1,0 +1,1 @@
+**Stand:** offen — 1×, unter der Schwelle; Frage an den Nutzer aus der Closure von `slice-adr-testserver-bestand-und-katalog`: gilt der Nachzug als zulässig, oder verlangt `AGENTS.md` §3.5 hier eine Folge-ADR? Nichts verkörpert, kein Träger gesetzt.
