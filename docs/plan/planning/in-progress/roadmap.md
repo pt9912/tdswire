@@ -38,7 +38,7 @@ In Arbeit (Welle welle-anfrageverarbeitung):
 
 In Arbeit (Welle welle-fehler-abbruch):
 
-- keiner; zuletzt geschlossen: [slice-resetconnection-zuruecksetzen](../done/slice-resetconnection-zuruecksetzen.md) (Closure-Notiz in §7 des Slice; offene Nutzerpunkte: Handle-Aliasing nach dem Zurücksetzen; Folge: [slice-cancel-referenzclient-szenario](../next/slice-cancel-referenzclient-szenario.md), [slice-abbruch-ressourcen-shutdown](../open/slice-abbruch-ressourcen-shutdown.md))
+- keiner; zuletzt geschlossen: [slice-resetconnection-zuruecksetzen](../done/slice-resetconnection-zuruecksetzen.md) (Closure-Notiz in §7 des Slice; offene Nutzerpunkte: Handle-Aliasing nach dem Zurücksetzen; Folge: [slice-cancel-referenzclient-szenario](../in-progress/slice-cancel-referenzclient-szenario.md), [slice-abbruch-ressourcen-shutdown](../open/slice-abbruch-ressourcen-shutdown.md))
 
 In Arbeit (Welle welle-betrieb-diagnose):
 
