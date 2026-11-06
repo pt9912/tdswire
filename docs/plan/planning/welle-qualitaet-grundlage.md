@@ -71,6 +71,7 @@ Lifecycle-Verzeichnis und wird hier **nicht** gespiegelt.
 | slice-kompatibilitaetsmatrix-erzeugen | Kompatibilitätsmatrix als erzeugte Sicht auf die Spezifikation (Erzeuger, E2E-Ergebnisdatei) | [TDS-QA-05](../../../spec/lastenheft.md#tds-qa-05--wartbarkeit) |
 | slice-kompatibilitaetsmatrix-migration | Spec-Nachzug, Tags und Umstellung auf die erzeugte Sicht | [TDS-QA-05](../../../spec/lastenheft.md#tds-qa-05--wartbarkeit) |
 | slice-kompatibilitaetsmatrix-gate | Erzeugte Kompatibilitätsmatrix als Gate der Klasse tests | [TDS-QA-05](../../../spec/lastenheft.md#tds-qa-05--wartbarkeit) |
+| slice-qa-passwortvergleich-gemischte-liste | Passwortvergleich in konstanter Zeit bei gemischten Benutzerlisten angleichen und messen | [TDS-QA-03](../../../spec/lastenheft.md#tds-qa-03--sicherheit), [TDS-FA-02](../../../spec/lastenheft.md#tds-fa-02--anmeldung-und-sitzungsverwaltung) |
 
 ## 5. Abhängigkeiten
 
