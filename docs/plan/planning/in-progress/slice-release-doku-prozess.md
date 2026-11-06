@@ -55,7 +55,7 @@ Liefer-Punkte (drei):
 
 Nachweis-Pflichten für alle drei Punkte:
 
-- [ ] `make gates` grün.
+- [x] `make gates` grün (Lauf auf `4b7132d0` plus Haken-Commit, Exit 0; die Klassen `tests` und `stempel` übersprungen bei passendem Stempel, die Klasse `werkzeug` und `make docs-check` liefen).
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
