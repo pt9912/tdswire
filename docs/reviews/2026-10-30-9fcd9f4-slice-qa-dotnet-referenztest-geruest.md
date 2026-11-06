@@ -2,7 +2,7 @@
 
 * Gegenstand: Diff `dc208ef..9fcd9f4` (`referenztest-dotnet/`, `tools/mk/referenztest-dotnet.mk`, `harness/README.md`, Carveouts, Folge-Slice)
 * Plan: [slice-qa-dotnet-referenztest-geruest](../plan/planning/done/slice-qa-dotnet-referenztest-geruest.md), Welle [welle-qualitaet-grundlage](../plan/planning/welle-qualitaet-grundlage.md)
-* Grundlage: [ADR-0008](../plan/adr/README.md), [ADR-0001](../plan/adr/README.md), [TDS-QA-01](../../spec/lastenheft.md), [TDS-QA-06](../../spec/lastenheft.md), [CO-001](../plan/carveouts/CO-001-nuget-audit-aus.md), [CO-002](../plan/carveouts/CO-002-nuget-signaturpruefung-fehlt.md), `AGENTS.md` §3.1–3.8, Nutzerentscheidungen F1–F4
+* Grundlage: [ADR-0008](../plan/adr/README.md), [ADR-0001](../plan/adr/README.md), [TDS-QA-01](../../spec/lastenheft.md), [TDS-QA-06](../../spec/lastenheft.md), [CO-001](../plan/carveouts/done/CO-001-nuget-audit-aus.md), [CO-002](../plan/carveouts/done/CO-002-nuget-signaturpruefung-fehlt.md), `AGENTS.md` §3.1–3.8, Nutzerentscheidungen F1–F4
 * Sensor: `make referenztest-dotnet` (gecacht 1,0 s; Test-Stage mit `--no-cache-filter test` neu ausgeführt: 1/1 bestanden, 11,9 s), `make referenztest-dotnet-audit` (5,8 s, meldet `System.Security.Cryptography.Pkcs` 9.0.18, High und Moderate, Exit 0), `make gates` grün (Exit 0, 8,8 s, warm). Digest-Auflösung per `docker buildx imagetools inspect`. Nicht ausgeführt: `make referenztest-dotnet-lock` (schreibt eine Datei im Arbeitsbaum), die Selbstproben mit verfälschtem `contentHash` und geänderter Version, ein Kaltlauf.
 
 Ergebnis: kein HIGH, ein MEDIUM, drei LOW, drei INFO. Die Carveouts erfüllen die Carveout-Form; die Pins sind belegt.
@@ -17,14 +17,14 @@ Ergebnis: kein HIGH, ein MEDIUM, drei LOW, drei INFO. Die Carveouts erfüllen di
 * klasse: Aussage breiter als Beleg (Kommentar)
 
 ### F2 · LOW · `nuget.config` schließt aus fehlendem `signatureValidationMode` auf "allein Lock und contentHash"
-* quelle: Hard Rule 3.8, [CO-002](../plan/carveouts/CO-002-nuget-signaturpruefung-fehlt.md)
+* quelle: Hard Rule 3.8, [CO-002](../plan/carveouts/done/CO-002-nuget-signaturpruefung-fehlt.md)
 * pfad: `referenztest-dotnet/nuget.config` · "die Integritaet nach dem ersten Lock tragen allein packages.lock.json und contentHash"
-* befund: [CO-002](../plan/carveouts/CO-002-nuget-signaturpruefung-fehlt.md) hält selbst fest, dass der Wert von `signatureValidationMode` ohne Eintrag nicht gemessen ist; ob NuGet beim Restore dennoch Signaturen auswertet, ist damit offen. Die Config-Aussage "allein" trägt weiter als diese Messzeile.
+* befund: [CO-002](../plan/carveouts/done/CO-002-nuget-signaturpruefung-fehlt.md) hält selbst fest, dass der Wert von `signatureValidationMode` ohne Eintrag nicht gemessen ist; ob NuGet beim Restore dennoch Signaturen auswertet, ist damit offen. Die Config-Aussage "allein" trägt weiter als diese Messzeile.
 * verifizierbar: nein
 * klasse: Aussage breiter als Beleg (Konfigurationskommentar)
 
 ### F3 · LOW · `README.md` der Carveouts nennt als Trigger eine Kurzform, die vom Carveout abweicht
-* quelle: Maintainability, [CO-001](../plan/carveouts/CO-001-nuget-audit-aus.md), [CO-002](../plan/carveouts/CO-002-nuget-signaturpruefung-fehlt.md)
+* quelle: Maintainability, [CO-001](../plan/carveouts/done/CO-001-nuget-audit-aus.md), [CO-002](../plan/carveouts/done/CO-002-nuget-signaturpruefung-fehlt.md)
 * pfad: `docs/plan/carveouts/README.md` · "`NuGetAudit` nicht mehr `false` oder ADR zum Verzicht"
 * befund: Im Carveout gilt der Trigger erst, wenn der Folge-Slice in `done/` liegt und eine der Bedingungen zutrifft; der Index lässt die Bedingung "Folge-Slice in `done/`" weg. Index ist derivativ; ein Leser des Index löst einen Carveout früher auf, als der Carveout erlaubt.
 * verifizierbar: nein
@@ -53,14 +53,14 @@ Ergebnis: kein HIGH, ein MEDIUM, drei LOW, drei INFO. Die Carveouts erfüllen di
 
 ### F7 · INFO · Carveout-Form erfüllt; Trigger beobachtbar, kein Wächter
 * quelle: Hard Rule 3.6, `modul-07-carveouts.md`
-* pfad: `docs/plan/carveouts/CO-001-nuget-audit-aus.md` · "Der Carveout ist aufgelöst, wenn der Folge-Slice"
+* pfad: `docs/plan/carveouts/done/CO-001-nuget-audit-aus.md` · "Der Carveout ist aufgelöst, wenn der Folge-Slice"
 * befund: Beide Carveouts tragen Begründung mit Messzeile, Folgerungen als solche gekennzeichnet, Trigger (Dateistand und Lifecycle-Ort, beobachtbar), Geltungs-Konfiguration und existierenden Folge-Slice in `open/` (Verantwortlicher "—", bis zur Priorisierung). Die Schwelle der Gates bleibt, Hard Rule 3.6 ist eingehalten. Kein Sensor prüft Trigger oder Frist; das deklariert `harness/conventions.md` für Modul 7 ("liegt bei, nicht verdrahtet"). Die `Letzte Prüfung` ist der Anlegetag.
 * verifizierbar: nein
 * klasse: Trigger ohne Wächter (deklariert)
 
 ## Geprüft, ohne Befund
 * `referenztest-dotnet/Dockerfile`: Frontend-Digest `sha256:4edf897a…` löst gegen `docker/dockerfile:1` auf; SDK-Digest `sha256:de4fe90a…` ist der Index-Digest des Tags `10.0.403` (beide per `imagetools inspect` bestätigt, wie der Kommentar sagt); kein Mount; `RUN --network=none` im Testschritt; Restore-Stage mit drei Dateien; Lock per `--output` aus `scratch`-Stage; Kommentare tragen Zusage/Kopplung/Grenze.
-* `referenztest-dotnet/TdsWire.Referenztests.csproj`: `RestoreLockedMode` außer bei `LockErzeugen=true`; kein `NoWarn`, kein `SuppressMessage`-Äquivalent; `NuGetAudit=false` trägt Verweis auf [CO-001](../plan/carveouts/CO-001-nuget-audit-aus.md); `TreatWarningsAsErrors` an.
-* `referenztest-dotnet/nuget.config`, `packages.lock.json`, `.dockerignore`: `<clear />`, eine Quelle, `packageSourceMapping`; Lock führt `Pkcs` 9.0.18 wie in [CO-001](../plan/carveouts/CO-001-nuget-audit-aus.md) genannt.
-* `tools/mk/referenztest-dotnet.mk` und `harness/README.md`: `GATE_CHECKS` nur für das Test-Target; Audit- und Lock-Target stehen als "kein Gate" mit Bindung an [CO-001](../plan/carveouts/CO-001-nuget-audit-aus.md)/[CO-002](../plan/carveouts/CO-002-nuget-signaturpruefung-fehlt.md); die Gate-Zeile bindet beide Carveouts zutreffend; Docker-only.
+* `referenztest-dotnet/TdsWire.Referenztests.csproj`: `RestoreLockedMode` außer bei `LockErzeugen=true`; kein `NoWarn`, kein `SuppressMessage`-Äquivalent; `NuGetAudit=false` trägt Verweis auf [CO-001](../plan/carveouts/done/CO-001-nuget-audit-aus.md); `TreatWarningsAsErrors` an.
+* `referenztest-dotnet/nuget.config`, `packages.lock.json`, `.dockerignore`: `<clear />`, eine Quelle, `packageSourceMapping`; Lock führt `Pkcs` 9.0.18 wie in [CO-001](../plan/carveouts/done/CO-001-nuget-audit-aus.md) genannt.
+* `tools/mk/referenztest-dotnet.mk` und `harness/README.md`: `GATE_CHECKS` nur für das Test-Target; Audit- und Lock-Target stehen als "kein Gate" mit Bindung an [CO-001](../plan/carveouts/done/CO-001-nuget-audit-aus.md)/[CO-002](../plan/carveouts/done/CO-002-nuget-signaturpruefung-fehlt.md); die Gate-Zeile bindet beide Carveouts zutreffend; Docker-only.
 * `docs/plan/planning/done/slice-qa-dotnet-lieferkette-haerten.md`: nimmt beide Carveouts an, Liefer-Punkte sind prüfbar.

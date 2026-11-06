@@ -1,14 +1,14 @@
 # CO-001: NuGet-Audit des .NET-Referenztests ist ausgeschaltet
 
-**Status:** Aktiv.
+**Status:** Aufgelöst 2026-11-06: Trigger (b): [ADR-0035](../../adr/0035-dotnet-restore-signaturliste-und-audit-verzicht.md) `Accepted` hält den dauerhaften Verzicht fest und nennt `make referenztest-dotnet-audit` als Ersatz, Folge-Slice in `done/`.
 
-**Datum angelegt:** 2026-10-30. **Letzte Prüfung:** 2026-10-30.
+**Datum angelegt:** 2026-10-30. **Letzte Prüfung:** 2026-11-06.
 
 **Betroffenes Gate:** `make referenztest-dotnet`
 
 **Geltungsbereich:** `referenztest-dotnet/TdsWire.Referenztests.csproj` (Eigenschaft `NuGetAudit`)
 
-**Folge-Slice:** [`slice-qa-dotnet-lieferkette-haerten.md`](../planning/done/slice-qa-dotnet-lieferkette-haerten.md)
+**Folge-Slice:** [`slice-qa-dotnet-lieferkette-haerten.md`](../../planning/done/slice-qa-dotnet-lieferkette-haerten.md)
 
 Regeln: Baseline-Regelwerk `modul-07-carveouts.md` §Ziel-Form: Carveout — ein
 Carveout braucht immer einen Auflösungs-Trigger **und** einen Folge-Slice.
@@ -17,7 +17,7 @@ Carveout braucht immer einen Auflösungs-Trigger **und** einen Folge-Slice.
 
 ## Begründung
 
-NuGet-Audit fragt beim Restore online nach Schwachstellen. Gemessen ([ADR-0008](../adr/0008-dotnet-kompatibilitaetstests.md), Spike): `Microsoft.Data.SqlClient` 7.1.1 zieht `System.Security.Cryptography.Pkcs` 9.0.18 nach, für das zum Messzeitpunkt `NU1902` und `NU1903` gemeldet wurden; mit `-warnaserror` bricht der Build. Ein Ergebnis, das vom Tag der Abfrage abhängt, ist nicht reproduzierbar ([TDS-QA-06](../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit)); ein grünes `make gates` von heute wäre morgen rot, ohne dass sich eine Datei im Repo geändert hat (Folgerung, nicht gemessen).
+NuGet-Audit fragt beim Restore online nach Schwachstellen. Gemessen ([ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md), Spike): `Microsoft.Data.SqlClient` 7.1.1 zieht `System.Security.Cryptography.Pkcs` 9.0.18 nach, für das zum Messzeitpunkt `NU1902` und `NU1903` gemeldet wurden; mit `-warnaserror` bricht der Build. Ein Ergebnis, das vom Tag der Abfrage abhängt, ist nicht reproduzierbar ([TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit)); ein grünes `make gates` von heute wäre morgen rot, ohne dass sich eine Datei im Repo geändert hat (Folgerung, nicht gemessen).
 
 Entscheidung des Nutzers (2026-10-30): `NuGetAudit=false` befristet, dazu ein eigenes, ausdrücklich nicht reproduzierbares Werkzeug ohne Gate-Wirkung, `make referenztest-dotnet-audit`. Es meldet bekannte Schwachstellen am Tag des Laufs; gemessen am 2026-10-30 meldete es `System.Security.Cryptography.Pkcs` 9.0.18 als transitive Abhängigkeit mit zwei Advisories: High [GHSA-846f-f764-76mx](https://github.com/advisories/GHSA-846f-f764-76mx) und Moderate `GHSA-2fmv-rv2c-59x7`. Messzeile: `make referenztest-dotnet-audit` im Klon (Verifikation vom selben Tag, Exit 0, einzige Quelle nuget.org, 5,7 s). Beide Advisories hängen am Abfragetag.
 
@@ -36,13 +36,14 @@ Der Carveout ist aufgelöst, wenn der Folge-Slice `slice-qa-dotnet-lieferkette-h
 
 ## Verifikation (nach Auflösung)
 
-- [ ] Gate ist für den Geltungsbereich aktiviert (Gate-Konfiguration aktualisiert) oder der Verzicht ist per ADR entschieden.
-- [ ] `make gates` grün ohne Ausnahme.
-- [ ] Datei wird nach `docs/plan/carveouts/done/` bewegt (reiner `git mv`). <!-- d-check:ignore (done/ entsteht erst bei erster Carveout-Auflösung) -->
-- [ ] Folge-Slice geschlossen oder explizit dokumentiert.
+- [x] Gate ist für den Geltungsbereich aktiviert (Gate-Konfiguration aktualisiert) oder der Verzicht ist per ADR entschieden.
+- [x] `make gates` grün ohne Ausnahme.
+- [x] Datei wird nach `docs/plan/carveouts/done/` bewegt (reiner `git mv`).
+- [x] Folge-Slice geschlossen oder explizit dokumentiert.
 
 ## Geschichte
 
 | Datum | Ereignis | Verweis |
 |---|---|---|
-| 2026-10-30 | Angelegt | [slice-qa-dotnet-referenztest-geruest](../planning/done/slice-qa-dotnet-referenztest-geruest.md) |
+| 2026-10-30 | Angelegt | [slice-qa-dotnet-referenztest-geruest](../../planning/done/slice-qa-dotnet-referenztest-geruest.md) |
+| 2026-11-06 | Aufgelöst: dauerhafter Verzicht auf `NuGetAudit` | [slice-qa-dotnet-lieferkette-haerten](../../planning/done/slice-qa-dotnet-lieferkette-haerten.md), [ADR-0035](../../adr/0035-dotnet-restore-signaturliste-und-audit-verzicht.md) |

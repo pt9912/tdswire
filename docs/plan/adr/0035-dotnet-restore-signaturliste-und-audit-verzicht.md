@@ -6,7 +6,7 @@
 
 **Autor:** pt9912
 
-**Bezug:** [TDS-QA-06](../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [ADR-0008](0008-dotnet-kompatibilitaetstests.md), [CO-001](../carveouts/CO-001-nuget-audit-aus.md), [CO-002](../carveouts/CO-002-nuget-signaturpruefung-fehlt.md), [Messprotokoll](../../messungen/dotnet-signaturpruefung-2026-11-06.md)
+**Bezug:** [TDS-QA-06](../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [ADR-0008](0008-dotnet-kompatibilitaetstests.md), [CO-001](../carveouts/done/CO-001-nuget-audit-aus.md), [CO-002](../carveouts/done/CO-002-nuget-signaturpruefung-fehlt.md), [Messprotokoll](../../messungen/dotnet-signaturpruefung-2026-11-06.md)
 
 **Schärft:** [SPEC-025](../../../spec/spezifikation.md#7-festlegungen-der-harness-werkzeuge) (Pakete per Lock und Hash; hier zusätzlich Signaturprüfung).
 
@@ -25,7 +25,7 @@ Weitere Stellen von ADR-0008, die diese ADR überholt, ohne dass die Datei sie �
 
 **Gemessen** ([Messprotokoll](../../messungen/dotnet-signaturpruefung-2026-11-06.md), ein Host, Einzelmessung je Zeile): Die 36 Pakete des Locks tragen fünf Autoren- und drei Repository-Zertifikate. Mit `signatureValidationMode=require` und allen acht Zertifikaten läuft der Restore grün. Ohne Liste scheitert er mit `NU3034`. Ohne xUnit-Autoren und ohne Repository-Eintrag scheitern acht Pakete mit „signed but not by a trusted signer“. Mit nur dem Repository-Zertifikat `1F4B311D…` scheitern genau zwei Pakete, deren Repository-Zertifikat ein anderes ist; das erklärt den Befund von ADR-0008. Gemessen ist: ohne xUnit-Autoren bleibt der Restore grün, ohne Repository-Eintrag ebenfalls, rot wird er erst, wenn beide fehlen. Daraus folgt (Folgerung, nicht eigens gemessen), dass die Einträge als ODER wirken: Der Repository-Eintrag ohne `owners` lässt jedes von nuget.org gegengezeichnete Paket zu, die Autorenzertifikate binden erst, wenn er fehlt.
 
-**NuGet-Audit** ([CO-001](../carveouts/CO-001-nuget-audit-aus.md)): Das Ergebnis hängt am Abfragetag; gemessen meldete es am 2026-10-30 für `System.Security.Cryptography.Pkcs` 9.0.18 zwei Advisories. Mit `-warnaserror` bräche der Build an einem Tag, an dem sich keine Datei im Repo geändert hat (Folgerung, nicht gemessen).
+**NuGet-Audit** ([CO-001](../carveouts/done/CO-001-nuget-audit-aus.md)): Das Ergebnis hängt am Abfragetag; gemessen meldete es am 2026-10-30 für `System.Security.Cryptography.Pkcs` 9.0.18 zwei Advisories. Mit `-warnaserror` bräche der Build an einem Tag, an dem sich keine Datei im Repo geändert hat (Folgerung, nicht gemessen).
 
 **Annahmen, die kippen:** (a) dass die Zertifikate der Pakete im Lock zwischen zwei `make referenztest-dotnet-lock` stabil bleiben; (b) dass ein manuell gerufenes Werkzeug ausreicht, um bekannte Schwachstellen zu sehen.
 
@@ -56,7 +56,7 @@ Weitere Stellen von ADR-0008, die diese ADR überholt, ohne dass die Datei sie �
 | Tooling | Regel | Make-Target |
 |---|---|---|
 | NuGet-Restore in Docker | Restore mit `require` und der Liste grün | `make referenztest-dotnet` |
-| manuell | bekannte Schwachstellen der .NET-Pakete am Tag des Laufs | `make referenztest-dotnet-audit` (kein Gate, [CO-001](../carveouts/CO-001-nuget-audit-aus.md)) |
+| manuell | bekannte Schwachstellen der .NET-Pakete am Tag des Laufs | `make referenztest-dotnet-audit` (kein Gate, [CO-001](../carveouts/done/CO-001-nuget-audit-aus.md)) |
 
 ## Nicht gemessen
 
