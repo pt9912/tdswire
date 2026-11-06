@@ -19,4 +19,5 @@ internal object EnvKeys {
     const val CANCEL_TIMEOUT = "CANCEL_TIMEOUT"
     const val MAX_CONNECTIONS = "MAX_CONNECTIONS"
     const val SHUTDOWN_GRACE = "SHUTDOWN_GRACE"
+    const val MAX_PREPARED_HANDLES = "MAX_PREPARED_HANDLES"
 }

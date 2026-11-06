@@ -105,6 +105,12 @@ internal class WireClient(port: Int) : AutoCloseable {
         return readMessage().second
     }
 
+    /** Ein RPC mit dem fertigen Rumpf [payload]; die Antwort sind die rohen Nutzdaten. */
+    fun rpc(payload: ByteArray): ByteArray {
+        send(TYPE_RPC, payload)
+        return readMessage().second
+    }
+
     /** `true`, wenn der Server schließt, ohne vorher ein weiteres Byte zu senden. */
     fun closedByServer(): Boolean = try {
         socket.getInputStream().read() < 0

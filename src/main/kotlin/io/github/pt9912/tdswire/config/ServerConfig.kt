@@ -18,6 +18,7 @@ internal object ConfigKeys {
     const val CANCEL_TIMEOUT = "CANCEL_TIMEOUT"
     const val MAX_CONNECTIONS = "MAX_CONNECTIONS"
     const val SHUTDOWN_GRACE = "SHUTDOWN_GRACE"
+    const val MAX_PREPARED_HANDLES = "MAX_PREPARED_HANDLES"
 }
 
 /**
@@ -28,7 +29,7 @@ public enum class EncryptionSetting { REQUIRED, TEST_UNENCRYPTED }
 
 /**
  * Die Voreinstellungen der Konfiguration (`SPEC-005`, `SPEC-008`, `SPEC-010`, `SPEC-034`, `SPEC-046`,
- * `SPEC-047`): Die Konstruktoren der
+ * `SPEC-047`, `SPEC-058`): Die Konstruktoren der
  * Einstellungen nutzen dieselben Werte.
  */
 internal object ConfigDefaults {
@@ -40,6 +41,7 @@ internal object ConfigDefaults {
     const val CANCEL_TIMEOUT_SECONDS = 5
     const val MAX_CONNECTIONS = 1000
     const val SHUTDOWN_GRACE_SECONDS = 10
+    const val MAX_PREPARED_HANDLES = 1000
     val ENCRYPTION = EncryptionSetting.REQUIRED
 }
 
@@ -61,15 +63,18 @@ public data class LoginSettings(
 )
 
 /**
- * Fristen einer Anfrage in ganzen Sekunden (`SPEC-009`, `SPEC-033`, `SPEC-047`): [queryTimeoutSeconds] ist
+ * Fristen einer Anfrage in ganzen Sekunden und die Grenze der Prepared-Handles (`SPEC-009`, `SPEC-033`, `SPEC-047`,
+ * `SPEC-058`): [queryTimeoutSeconds] ist
  * `QUERY_TIMEOUT`, die Frist ab dem Beginn einer Anfrage; [cancelTimeoutSeconds] ist `CANCEL_TIMEOUT`, die Frist, die
  * ein Backend für den Abbruch hat, bevor die Verbindung schließt; [shutdownGraceSeconds] ist `SHUTDOWN_GRACE`, die
- * Frist, die eine laufende Anfrage beim geordneten Beenden hat (0 = sofort).
+ * Frist, die eine laufende Anfrage beim geordneten Beenden hat (0 = sofort); [maxPreparedHandles] ist
+ * `MAX_PREPARED_HANDLES`, die Zahl der Prepared-Handles, die eine Sitzung gleichzeitig hält.
  */
 public data class RequestSettings(
     val queryTimeoutSeconds: Int = ConfigDefaults.QUERY_TIMEOUT_SECONDS,
     val cancelTimeoutSeconds: Int = ConfigDefaults.CANCEL_TIMEOUT_SECONDS,
     val shutdownGraceSeconds: Int = ConfigDefaults.SHUTDOWN_GRACE_SECONDS,
+    val maxPreparedHandles: Int = ConfigDefaults.MAX_PREPARED_HANDLES,
 )
 
 /** Die validierte Benutzerliste und der Schalter für das Verfahren `plain` (`ADR-0011`). */

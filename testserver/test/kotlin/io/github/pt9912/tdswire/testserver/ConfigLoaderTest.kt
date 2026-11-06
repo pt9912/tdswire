@@ -43,6 +43,7 @@ internal class ConfigLoaderTest : TempFilesTest() {
         assertEquals(5, config.requests.cancelTimeoutSeconds)
         assertEquals(1000, config.listen.maxConnections)
         assertEquals(10, config.requests.shutdownGraceSeconds)
+        assertEquals(1000, config.requests.maxPreparedHandles)
     }
 
     /**
@@ -64,6 +65,7 @@ internal class ConfigLoaderTest : TempFilesTest() {
                 EnvKeys.CANCEL_TIMEOUT to "3",
                 EnvKeys.MAX_CONNECTIONS to "17",
                 EnvKeys.SHUTDOWN_GRACE to "2",
+                EnvKeys.MAX_PREPARED_HANDLES to "250",
             ),
         ).loaded()
         assertEquals("127.0.0.1", config.listen.host)
@@ -74,6 +76,7 @@ internal class ConfigLoaderTest : TempFilesTest() {
         assertEquals(3, config.requests.cancelTimeoutSeconds)
         assertEquals(17, config.listen.maxConnections)
         assertEquals(2, config.requests.shutdownGraceSeconds)
+        assertEquals(250, config.requests.maxPreparedHandles)
         assertEquals(EncryptionSetting.TEST_UNENCRYPTED, config.encryption)
         assertTrue(config.auth.plainTestMode)
         assertNull(config.tls)
@@ -100,6 +103,7 @@ internal class ConfigLoaderTest : TempFilesTest() {
             Triple(EnvKeys.CANCEL_TIMEOUT, 1, 3600),
             Triple(EnvKeys.MAX_CONNECTIONS, 1, 100_000),
             Triple(EnvKeys.SHUTDOWN_GRACE, 0, 3600),
+            Triple(EnvKeys.MAX_PREPARED_HANDLES, 1, 100_000),
         )
         for ((key, low, high) in bounds) {
             assertEquals(emptyList(), rangeIssues(base(key to low.toString())))
@@ -144,6 +148,29 @@ internal class ConfigLoaderTest : TempFilesTest() {
         listOf("-1", "+80", " 80", "80 ", "15s", "1.5", "", "٨٠", "８０", "0x50", "1234567890").forEach { value ->
             val issue = singleIssue(base(EnvKeys.LISTEN_PORT to value))
             assertEquals(ConfigIssue(EnvKeys.LISTEN_PORT, IssueKind.INVALID_VALUE), issue, "Wert '$value'")
+        }
+    }
+
+    /**
+     * Die Grenze der Prepared-Handles: ein Wert aus Ziffern kommt an; null ist außerhalb des Bereichs (Start der
+     * Bibliothek), ein negativer oder nichtnumerischer Wert ist `INVALID_VALUE` des Laders, und weder Wert noch
+     * Nachbarschlüssel ändern sich dadurch. Der Name des Schlüssels ist der der Diagnose. Wächter: ein Lader, der
+     * `0` oder `-1` still annimmt oder durch die Voreinstellung ersetzt, ein vertauschter Schlüssel.
+     *
+     * @spec SPEC-058
+     */
+    @Test
+    fun `MAX_PREPARED_HANDLES null ist ausserhalb, negativ und nichtnumerisch ungueltig`() {
+        assertEquals("MAX_PREPARED_HANDLES", EnvKeys.MAX_PREPARED_HANDLES)
+        val one = ConfigLoader.load(base(EnvKeys.MAX_PREPARED_HANDLES to "1")).loaded()
+        assertEquals(1, one.requests.maxPreparedHandles)
+        assertEquals(
+            listOf(ConfigIssue(EnvKeys.MAX_PREPARED_HANDLES, IssueKind.OUT_OF_RANGE)),
+            rangeIssues(base(EnvKeys.MAX_PREPARED_HANDLES to "0")),
+        )
+        listOf("-1", "abc", "", "1.5", " 5").forEach { value ->
+            val issue = singleIssue(base(EnvKeys.MAX_PREPARED_HANDLES to value))
+            assertEquals(ConfigIssue(EnvKeys.MAX_PREPARED_HANDLES, IssueKind.INVALID_VALUE), issue, "Wert '$value'")
         }
     }
 
@@ -286,6 +313,7 @@ internal class ConfigLoaderTest : TempFilesTest() {
             EnvKeys.CANCEL_TIMEOUT to "0",
             EnvKeys.MAX_CONNECTIONS to "0",
             EnvKeys.SHUTDOWN_GRACE to "3601",
+            EnvKeys.MAX_PREPARED_HANDLES to "0",
         )
         outside.forEach { (key, value) ->
             assertEquals(listOf(key), rangeIssues(base(key to value)).map { it.key }, key)

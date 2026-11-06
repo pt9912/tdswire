@@ -130,7 +130,7 @@ class ResetConnectionDispatchTest {
     @Test
     fun `Nach RESETCONNECTION gelingen wieder 1000 Handles, das 1001 ergibt 50010`() = blocking {
         val backend = ScriptedBackend.ofList(*oneRow.toTypedArray())
-        val limit = PreparedHandles.MAX_HANDLES
+        val limit = PreparedHandles.DEFAULT_MAX_HANDLES
         val before = (1..limit).map { rpc(prepExec(-1, "select $it", "")) }
         val after = (2..limit).map { rpc(prepExec(-1, "select again $it", "")) }
         val session = Session.login(

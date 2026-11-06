@@ -10,12 +10,14 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /**
- * Die Einspeisung des Handles in den Strom des Backends (`SPEC-030`, `SPEC-002`) ohne Verbindung. Name,
- * Typ und Stelle im Strom sind Festlegungen ohne Messung.
+ * Die Einspeisung des Handles in den Strom des Backends (`SPEC-030`, `SPEC-002`) ohne Verbindung. Der leere
+ * Name und der RETURNSTATUS 0 davor sind an der Referenzinstanz gemessen (Mitschnitte `prepare`); die Stelle im Strom
+ * bei Ausgabewerten des Backends ist Festlegung ohne Messung.
  */
 class HandleReturningBackendTest {
     private val request = QueryRequest("s1", "r1", "select 1", emptyList(), null)
-    private val handle = QueryEvent.OutputParameter("@handle", SqlType.Int32, 4)
+    private val handle = QueryEvent.OutputParameter("", SqlType.Int32, 4)
+    private val status = QueryEvent.ReturnStatus(0)
     private val output = QueryEvent.OutputParameter("@o", SqlType.Int32, 1)
 
     private suspend fun events(vararg source: QueryEvent): List<QueryEvent> =
@@ -23,17 +25,17 @@ class HandleReturningBackendTest {
 
     /**
      * Ohne Ausgabewert des Backends steht das Handle am Ende des Stroms; mit Ausgabewerten steht es vor dem
-     * ersten, und nur einmal. Wächter: ein Handle am Ende trotz Ausgabewerten, ein Handle je Ausgabewert,
-     * ein fehlendes Handle bei leerem Strom.
+     * ersten, und nur einmal. Vor dem Handle steht ein RETURNSTATUS 0. Wächter: ein Handle am Ende trotz
+     * Ausgabewerten, ein Handle je Ausgabewert, ein fehlendes Handle bei leerem Strom, ein fehlender Status.
      *
      * @spec SPEC-030
      */
     @Test
-    fun `Das Handle steht vor dem ersten Ausgabewert, sonst am Ende`() = blocking {
+    fun `Das Handle steht hinter einem RETURNSTATUS vor dem ersten Ausgabewert, sonst am Ende`() = blocking {
         val end = QueryEvent.ResultEnd(1)
-        assertEquals(listOf(end, handle), events(end))
-        assertEquals(listOf(handle), events())
-        assertEquals(listOf(end, handle, output, output), events(end, output, output))
+        assertEquals(listOf(end, status, handle), events(end))
+        assertEquals(listOf(status, handle), events())
+        assertEquals(listOf(end, status, handle, output, output), events(end, output, output))
         val atEnd = HandleReturningBackend(ScriptedBackend.ofList(end), 4)
         assertEquals(false, atEnd.returned)
         atEnd.execute(request).events.toList()
@@ -67,5 +69,18 @@ class HandleReturningBackendTest {
         assertEquals(listOf(request), inner.requests)
         assertEquals(listOf("s1" to "r1"), inner.cancelled)
         assertEquals(1, inner.closeCalls)
+    }
+
+    /**
+     * Sendet das Backend selbst einen RETURNSTATUS vor seinem ersten Ausgabewert, bleibt es bei dem einen; der
+     * eingespeiste kommt dann nicht dazu. Wächter: ein zweiter RETURNSTATUS, der Status des Backends hinter dem Handle.
+     *
+     * @spec SPEC-030
+     */
+    @Test
+    fun `Ein RETURNSTATUS des Backends vor dem Handle wird nicht verdoppelt`() = blocking {
+        val own = QueryEvent.ReturnStatus(5)
+        assertEquals(listOf(own, handle, output), events(own, output))
+        assertEquals(listOf(own, handle), events(own))
     }
 }

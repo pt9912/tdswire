@@ -1,5 +1,6 @@
 package io.github.pt9912.tdswire.protocol.dispatch
 
+import io.github.pt9912.tdswire.config.ConfigDefaults
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -9,24 +10,30 @@ import kotlinx.coroutines.sync.withLock
  * der jeweils anderen nicht. Jeder Zugriff läuft unter dem eigenen `Mutex` der Tabelle; das ist nicht der Mutex des
  * Sitzungsrahmens (`HandshakeSession`), der Zustandsübergänge und das Schreiben der Antwort schützt.
  *
- * Festlegungen ohne Messung: Eine Sitzung hält höchstens [MAX_HANDLES] Handles gleichzeitig (Setzung,
- * Voreinstellung, nicht konfigurierbar). Die Handle-Werte zählen je Sitzung ab 1 aufwärts und werden nicht
- * wiederverwendet, außer nach RESETCONNECTION ([clear] beginnt bei 1 neu); `-1`, der Wert des Clients vor dem
- * ersten Prepare, wird nie vergeben. Gehalten wird nur der
+ * Festlegungen ohne Messung: Eine Sitzung hält höchstens [limit] Handles gleichzeitig (Setzung; Voreinstellung
+ * [DEFAULT_MAX_HANDLES], einstellbar über `RequestSettings.maxPreparedHandles`). Gezählt werden die gleichzeitig
+ * gehaltenen Handles: vergebene minus freigegebene. Die Handle-Werte zählen je Sitzung ab 1 aufwärts und werden nicht
+ * wiederverwendet, auch nicht nach [release], außer nach RESETCONNECTION ([clear] beginnt bei 1 neu); `-1`, der Wert
+ * des Clients vor dem ersten Prepare, wird nie vergeben. Gehalten wird nur der
  * Text, nicht die Deklarationsliste; seine Größe ist nicht begrenzt. Ein Handle endet mit [clear] am
- * Sitzungsende und bei RESETCONNECTION oder mit [release] (ein `sp_prepexec`, dessen Antwort nicht vollständig
- * wurde). [clear] setzt auch den Zähler zurück (`ADR-0027` Entscheidung 5): nach RESETCONNECTION beginnt die Vergabe
- * wieder bei 1, ein Handle aus der Zeit davor trifft dann, wenn sein Wert neu vergeben ist, den neuen Text; ob der
- * Referenzclient seine Handles beim Zurücksetzen selbst verwirft, ist nicht gemessen.
+ * Sitzungsende und bei RESETCONNECTION oder mit [release] (die Batch-Freigabe `EXEC sp_unprepare`, oder ein
+ * `sp_prepexec`, dessen Antwort nicht vollständig wurde). [clear] setzt auch den Zähler zurück (`ADR-0027`
+ * Entscheidung 5): nach RESETCONNECTION beginnt die Vergabe wieder bei 1, ein Handle aus der Zeit davor trifft dann,
+ * wenn sein Wert neu vergeben ist, den neuen Text; ob der Referenzclient seine Handles beim Zurücksetzen selbst
+ * verwirft, ist nicht gemessen.
  */
-internal class PreparedHandles {
+internal class PreparedHandles(private val limit: Int = DEFAULT_MAX_HANDLES) {
     private val lock = Mutex()
     private val statements = HashMap<Int, String>()
     private var last = 0
 
-    /** Das neue Handle für [sql]; `null`, wenn die Sitzung schon [MAX_HANDLES] Handles hält. */
+    init {
+        require(limit >= 1) { "Grenze unter 1" }
+    }
+
+    /** Das neue Handle für [sql]; `null`, wenn die Sitzung schon [limit] Handles hält. */
     suspend fun register(sql: String): Int? = lock.withLock {
-        if (statements.size >= MAX_HANDLES) return@withLock null
+        if (statements.size >= limit) return@withLock null
         last++
         statements[last] = sql
         last
@@ -35,10 +42,8 @@ internal class PreparedHandles {
     /** Der gemerkte Text zu [handle]; `null` für ein Handle, das die Sitzung nicht hält. */
     suspend fun sql(handle: Int): String? = lock.withLock { statements[handle] }
 
-    /** Entfernt [handle]; der Wert wird nicht wieder vergeben. */
-    suspend fun release(handle: Int) {
-        lock.withLock { statements.remove(handle) }
-    }
+    /** Entfernt [handle]; der Wert wird nicht wieder vergeben. Wahr, wenn die Sitzung es hielt. */
+    suspend fun release(handle: Int): Boolean = lock.withLock { statements.remove(handle) != null }
 
     /** Die Zahl der gehaltenen Handles. */
     suspend fun size(): Int = lock.withLock { statements.size }
@@ -52,7 +57,7 @@ internal class PreparedHandles {
     }
 
     companion object {
-        /** Der Grenzwert je Sitzung: Setzung, Voreinstellung, nicht gemessen. */
-        const val MAX_HANDLES = 1000
+        /** Die Voreinstellung der Grenze je Sitzung (`SPEC-058`): Setzung, nicht gemessen. */
+        const val DEFAULT_MAX_HANDLES = ConfigDefaults.MAX_PREPARED_HANDLES
     }
 }

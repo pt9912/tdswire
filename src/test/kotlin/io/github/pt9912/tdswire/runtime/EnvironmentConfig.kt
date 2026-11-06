@@ -22,7 +22,6 @@ import kotlin.test.assertIs
  */
 internal fun configOf(environment: Map<String, String>): ServerConfig {
     val defaults = ListenSettings() to LoginSettings()
-    val requestDefaults = RequestSettings()
     val listen = ListenSettings(
         host = environment[ConfigKeys.LISTEN_HOST] ?: defaults.first.host,
         port = environment[ConfigKeys.LISTEN_PORT]?.toInt() ?: defaults.first.port,
@@ -46,12 +45,7 @@ internal fun configOf(environment: Map<String, String>): ServerConfig {
     } else {
         null
     }
-    val requests = RequestSettings(
-        queryTimeoutSeconds = environment[ConfigKeys.QUERY_TIMEOUT]?.toInt() ?: requestDefaults.queryTimeoutSeconds,
-        cancelTimeoutSeconds = environment[ConfigKeys.CANCEL_TIMEOUT]?.toInt() ?: requestDefaults.cancelTimeoutSeconds,
-        shutdownGraceSeconds = environment[ConfigKeys.SHUTDOWN_GRACE]?.toInt() ?: requestDefaults.shutdownGraceSeconds,
-    )
-    return ServerConfig(listen, login, encryption, tls, AuthSettings(users, plain), requests)
+    return ServerConfig(listen, login, encryption, tls, AuthSettings(users, plain), requestsOf(environment))
 }
 
 /** Die Umgebung eines gültigen Testmodus-Starts: unverschlüsselt, Benutzerliste mit einem `plain`-Eintrag. */
@@ -60,3 +54,14 @@ internal fun testModeEnvironment(usersFile: String, vararg more: Pair<String, St
     ConfigKeys.AUTH_PLAIN_TESTMODE to "true",
     ConfigKeys.AUTH_USERS_FILE to usersFile,
 ) + more
+
+/** Die Fristen und die Handle-Grenze aus der Umgebung; fehlt ein Schlüssel, gilt die Voreinstellung. */
+private fun requestsOf(environment: Map<String, String>): RequestSettings {
+    val defaults = RequestSettings()
+    return RequestSettings(
+        queryTimeoutSeconds = environment[ConfigKeys.QUERY_TIMEOUT]?.toInt() ?: defaults.queryTimeoutSeconds,
+        cancelTimeoutSeconds = environment[ConfigKeys.CANCEL_TIMEOUT]?.toInt() ?: defaults.cancelTimeoutSeconds,
+        shutdownGraceSeconds = environment[ConfigKeys.SHUTDOWN_GRACE]?.toInt() ?: defaults.shutdownGraceSeconds,
+        maxPreparedHandles = environment[ConfigKeys.MAX_PREPARED_HANDLES]?.toInt() ?: defaults.maxPreparedHandles,
+    )
+}
