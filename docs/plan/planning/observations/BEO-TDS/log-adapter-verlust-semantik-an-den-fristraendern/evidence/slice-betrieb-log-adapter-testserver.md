@@ -1,0 +1,2 @@
+**Vorgang:** [slice-betrieb-log-adapter-testserver](../../../../in-progress/slice-betrieb-log-adapter-testserver.md)
+**Fund:** [Review](../../../../../../reviews/2026-11-06-e0715125-review-slice-betrieb-log-adapter-testserver.md) F-8 (INFO, nicht verifizierbar) und [Verifikation](../../../../../../reviews/2026-11-06-db98080c-verifikation-slice-betrieb-log-adapter-testserver.md) V-5 (a): die Grenze stand im KDoc und in §6 des Slice mit „erwartet: weiter offen“, ohne Träger, der die Closure überlebt; hier angelegt.

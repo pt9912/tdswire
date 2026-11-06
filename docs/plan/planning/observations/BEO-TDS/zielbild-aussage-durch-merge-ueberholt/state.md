@@ -1,0 +1,1 @@
+**Stand:** offen — 1×; unter der Schwelle, keine Regel. Prüfpunkt für den Merge von `main` in einen laufenden Slice: Aussagen über Verhalten am Prozess gegen die Änderungen von `main` lesen. Folgeentscheidung zur Sache selbst: `BEO-TDS/backend-ueber-tablestore-meldet-kein-bereit-ereignis`.

@@ -1,0 +1,2 @@
+**Vorgang:** [slice-betrieb-log-adapter-testserver](../../../../in-progress/slice-betrieb-log-adapter-testserver.md)
+**Fund:** [Verifikation](../../../../../../reviews/2026-11-06-db98080c-verifikation-slice-betrieb-log-adapter-testserver.md) V-1: die Anpassung des Tests nach dem Merge von `main` (`e66b7812`) war ehrlich und im KDoc begründet, die Nutzer-Doku, §6 und die Closure-Notiz trugen sie nicht; Nachzug in der Closure.
