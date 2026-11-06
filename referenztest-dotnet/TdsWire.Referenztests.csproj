@@ -28,6 +28,11 @@
     <EmbeddedResource Include="Vergleich/*.sql" LogicalName="%(Filename)%(Extension)" />
   </ItemGroup>
 
+  <!-- Die Mitschnitte (Mitschnitt/aufnahmen) liegen beim Test-Assembly; der Abspiel-Lauf liest sie von dort. -->
+  <ItemGroup>
+    <None Update="Mitschnitt/aufnahmen/**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.SqlClient" Version="7.1.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />

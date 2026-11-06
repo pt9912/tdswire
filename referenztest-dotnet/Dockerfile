@@ -24,13 +24,21 @@ RUN dotnet restore
 # --- Test: Build und Tests ohne Netz. Ein roter Test bricht den Build. -------------------------
 FROM restore AS test
 COPY Smoke Smoke
+COPY Mitschnitt Mitschnitt
 RUN --network=none dotnet test --no-restore --nologo
 
 # --- Integration: der Referenzclient gegen den Serverprozess mit Simulations-Backend (`make simulations-integration`,
 # SPEC-040). Gebaut wird ohne Netz; der Lauf des Containers braucht den Server im selben Netzwerk (TDSWIRE_ZIEL).
-# Die Stage `test` kopiert nur Smoke und laeuft ohne Server. ---
+# Die Stage `test` kopiert nur Smoke und Mitschnitt und laeuft ohne Server. ---
 FROM restore AS integration
 COPY Integration Integration
+RUN --network=none dotnet build --no-restore --nologo
+CMD ["dotnet", "test", "--no-build", "--nologo", "--logger", "console;verbosity=detailed"]
+
+# --- Eigenes Backend: der Referenzclient gegen den Serverprozess mit einem eigenen In-Memory-Backend (`make eigenes-backend`,
+# TDS-FA-08, TDS-RB-04). Gebaut wird ohne Netz; der Lauf des Containers braucht den Server im selben Netzwerk (TDSWIRE_ZIEL). ---
+FROM restore AS eigenes-backend
+COPY EigenesBackend EigenesBackend
 RUN --network=none dotnet build --no-restore --nologo
 CMD ["dotnet", "test", "--no-build", "--nologo", "--logger", "console;verbosity=detailed"]
 
@@ -46,6 +54,7 @@ CMD ["dotnet", "test", "--no-build", "--nologo", "--logger", "console;verbosity=
 # Gebaut wird ohne Netz; der Lauf braucht den Server im selben Netzwerk (TDSWIRE_ZIEL), sein Zertifikat
 # (SSL_CERT_FILE), das Kennwort von `sa` und die Erwartung fuer Encrypt=Strict (Umgebung, siehe Vergleich/ReferenzZiel.cs). ---
 FROM restore AS vergleich
+COPY Mitschnitt Mitschnitt
 COPY Vergleich Vergleich
 RUN --network=none dotnet build --no-restore --nologo
 CMD ["dotnet", "test", "--no-build", "--nologo", "--logger", "console;verbosity=detailed"]

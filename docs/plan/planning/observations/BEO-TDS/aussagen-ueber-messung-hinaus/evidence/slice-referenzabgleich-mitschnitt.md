@@ -1,0 +1,2 @@
+**Vorgang:** slice-referenzabgleich-mitschnitt
+**Fund:** Review F-1 (MEDIUM): die Aufnahme lief mit `ConnectRetryCount=0`, die Aussage zum Draht galt für den Standard 1 nicht (SESSIONSTATE auf 2022); F-2 (MEDIUM): *so gewollt* (A-13, A-14) ohne Beleg, der die Art trägt; F-3 (MEDIUM): ATTENTION „einzeln“ bestätigt, belegt war ein ATTENTION je Szenario. Verifikation V-1: zwei Vermerke „nicht gemessen“ trugen weiter als der Beleg nicht mehr trägt (siehe `fortschreibung-laesst-zweite-fundstelle-stehen`). Behoben durch Nachmessen und Einschränken.

@@ -1,1 +1,1 @@
-**Stand:** offen
+**Stand:** verkörpert — `.harness/skills/reviewer.md` (MEDIUM, Prüfpunkt „Plan-Tabelle nennt die berührten Dateien nicht“), Anker `seit slice-e2e-backend-ausserhalb-modul`; Nachtrag in `slice-e2e-backend-ausserhalb-modul.md` §7. Ob ein Sensor den Abgleich Tabelle gegen Diff übernimmt, entscheidet der Nutzer.

@@ -1,1 +1,1 @@
-**Stand:** offen — 1×, unter der Schwelle; in dieser Instanz behoben durch Kürzung der DoD und den Folge-Slice [slice-release-entscheidungen](../../../open/slice-release-entscheidungen.md).
+**Stand:** verkörpert — `.claude/commands/plan-welle.md` (Schritt 6b, Frage 2), Anker `seit slice-referenzabgleich-mitschnitt`; Nachtrag in `slice-referenzabgleich-mitschnitt.md` §7. Eigene Zählung 1×; verkörpert als Entscheidung des Nutzers über die Familie der DoD-Wortlaut-Klassen (2026-11-06).

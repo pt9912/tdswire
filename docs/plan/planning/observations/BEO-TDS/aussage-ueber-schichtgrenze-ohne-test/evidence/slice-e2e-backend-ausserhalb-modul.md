@@ -1,0 +1,2 @@
+**Vorgang:** [slice-e2e-backend-ausserhalb-modul](../../../../done/slice-e2e-backend-ausserhalb-modul.md)
+**Fund:** [Review](../../../../../../reviews/2026-11-06-4436821-slice-e2e-backend-ausserhalb-modul.md) F-2 (LOW): Der Prüfpunkt „Ausgabe des Testservers nennt weder Kennwort noch Text der Ausnahme“ sagt etwas über die Bibliothek, sieht aber nur Zeilen des Backends (die Bibliothek schreibt ohne Senke kein Log); er kann nur rot werden, wenn das Backend selbst schreibt. Der Prüfpunkt wurde auf „nur Zeilen des Backends“ eingeschränkt.

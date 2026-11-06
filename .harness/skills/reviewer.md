@@ -96,6 +96,18 @@ bewusst kurz (Ergänzungs-Kanal, nicht Hauptkanal).
   nicht nur die vom Review genannte Zeile; jeder Treffer steht in der Änderungsliste oder trägt einen
   Grund, warum er bleibt. Eine angenommene ADR wird nicht umgeschrieben (`AGENTS.md` §3.5): ihr
   widersprechende Stellen brauchen eine Folge-ADR  (seit slice-qa-dotnet-lieferkette-haerten)
+- **Aussage über eine Gegenseite ruht auf Zeilen, die nur die eigene Seite schreibt** — ein Nachweis
+  (Log-Prüfung, Zustand eines Clients, Zählung am Fixture) behauptet etwas über das Verhalten der
+  anderen Seite einer Grenze, sieht aber nur, was die eigene Seite schreibt oder meldet (ein Log
+  ohne Senke der Bibliothek, `Closed` als Zustand des Clients statt beobachtetem Schließen durch den
+  Server). Prüfung: die Quelle der Zeilen benennen; schreibt die Gegenseite dort nichts, trägt der
+  Nachweis nur die eigene Seite, und die Aussage ist auf sie einzuschränken oder braucht einen Test
+  an der Grenze  (seit slice-e2e-backend-ausserhalb-modul)
+- **Plan-Tabelle nennt die berührten Dateien nicht** — die Tabelle in Slice §3 und der Kopf
+  „Berührte Spec-Stellen“ werden gegen den Diff gelesen: jede berührte Datei (auch eine beim Bau
+  durch Zerlegung neu entstandene) steht in der Tabelle, jede tatsächlich berührte `SPEC-`-Stelle im
+  Kopf. Der Negativbefund „keine Datei darüber hinaus“ gilt erst nach diesem Abgleich
+  (seit slice-e2e-backend-ausserhalb-modul)
 - **Vertragstest belegt nur den Fake** — ein Test des Port-Vertrags gibt das Skript zurück, das er
   selbst in das Test-Backend gelegt hat; keine Änderung am Produktionscode macht ihn rot (Gegenprobe:
   ein Backend, das den Vertrag verletzt, muss die Suite röten)  (seit welle-backend-streaming)

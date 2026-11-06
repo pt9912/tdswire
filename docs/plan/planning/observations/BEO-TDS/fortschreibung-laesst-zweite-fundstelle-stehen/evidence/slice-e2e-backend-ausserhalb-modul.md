@@ -1,0 +1,2 @@
+**Vorgang:** [slice-e2e-backend-ausserhalb-modul](../../../../done/slice-e2e-backend-ausserhalb-modul.md)
+**Fund:** [Review](../../../../../../reviews/2026-11-06-4436821-slice-e2e-backend-ausserhalb-modul.md) F-1 (MEDIUM): Die Stufenzahl „sieben Stufen“ blieb nach dem Anhängen von Stufe 8 an der DoD von `welle-produktschnitt` und im Closure-Trigger von `slice-betrieb-log-adapter-testserver` stehen; die Änderungsliste nannte sie nicht. Die verkörperte Prüfung des Reviewer-Skills fand sie; behoben, Verifikation per Grep bestätigt.

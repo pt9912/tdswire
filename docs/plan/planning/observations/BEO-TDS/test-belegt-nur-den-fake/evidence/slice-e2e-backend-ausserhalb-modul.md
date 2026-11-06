@@ -1,0 +1,2 @@
+**Vorgang:** [slice-e2e-backend-ausserhalb-modul](../../../../done/slice-e2e-backend-ausserhalb-modul.md)
+**Fund:** [Review](../../../../../../reviews/2026-11-06-4436821-slice-e2e-backend-ausserhalb-modul.md) F-4 (LOW): `@spec SPEC-059` an `EigenesBackendTest.kt`; die Tests prüfen die Antworten des Fixtures `EigenesBackend` ohne Server, nicht den Einstieg `TdsServer.start`, die Matrix hätte sie als Nachweis für den Einstieg gezählt. Tags entfernt.

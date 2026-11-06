@@ -1,1 +1,1 @@
-**Stand:** offen
+**Stand:** verkörpert — `.harness/skills/reviewer.md` (MEDIUM, Prüfpunkt „Aussage über eine Gegenseite ruht auf Zeilen, die nur die eigene Seite schreibt“), Anker `seit slice-e2e-backend-ausserhalb-modul`; Nachtrag in `slice-e2e-backend-ausserhalb-modul.md` §7

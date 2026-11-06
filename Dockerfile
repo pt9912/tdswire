@@ -273,6 +273,21 @@ ENV LISTEN_HOST=0.0.0.0 LISTEN_PORT=1433 ENCRYPTION_POLICY=TEST_UNENCRYPTED AUTH
     AUTH_USERS_FILE=/home/gradle/users.txt SIMULATION_DESCRIPTION_FILE=/src/testserver/resources/integration/sim.yaml
 CMD ["gradle", "--no-daemon", "--offline", "-q", "integrationsServer"]
 
+# --- Eigenesbackendserver: der Serverprozess des Laufs mit eigenem Backend (`make eigenes-backend`) als Container neben
+# dem .NET-Referenzclient (referenztest-dotnet, Stage `eigenes-backend`). Das Backend steht in
+# testserver/kotlin/io/github/pt9912/tdswire/testserver/EigenesBackendServer.kt und delegiert nicht an das
+# Simulations-Backend; es gibt keine Datei der Beschreibung. Anmeldung und Verschluesselung wie in `integrationsserver`
+# (Testwert alice/secret, TEST_UNENCRYPTED, internes Netzwerk). ----
+FROM deps AS eigenesbackendserver
+COPY --chown=gradle:gradle LICENSE LICENSE
+COPY --chown=gradle:gradle src src
+COPY --chown=gradle:gradle testserver testserver
+RUN gradle --no-daemon --offline :testserver:classes \
+ && printf 'alice\t{plain}secret\n' > /home/gradle/users.txt
+ENV LISTEN_HOST=0.0.0.0 LISTEN_PORT=1433 ENCRYPTION_POLICY=TEST_UNENCRYPTED AUTH_PLAIN_TESTMODE=true \
+    AUTH_USERS_FILE=/home/gradle/users.txt
+CMD ["gradle", "--no-daemon", "--offline", "-q", "eigenesBackendServer"]
+
 # --- Kompatibilitaetsserver: der Serverprozess des Kompatibilitaetslaufs (`make kompatibilitaet`) als Container neben
 # dem .NET-Referenzclient (referenztest-dotnet, Stage `kompatibilitaet`). Die Tabellen kommen aus
 # testserver/kotlin/io/github/pt9912/tdswire/testserver/KompatibilitaetsServer.kt. Richtlinie REQUIRED mit dem
