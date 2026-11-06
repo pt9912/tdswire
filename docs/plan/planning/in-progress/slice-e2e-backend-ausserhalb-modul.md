@@ -44,14 +44,14 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 - [x] **Stufe und Sicht:** `tools/e2e.sh` führt das Target als Stufe mit Deklaration `e2e_abdeckung` (Kennungen [TDS-FA-08](../../../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-RB-04](../../../../spec/lastenheft.md#tds-rb-04--externes-backend); Kurzbeschreibung mit „Nicht belegt: …“); `make e2e-abdeckung` schreibt die Sicht; Zeile in `harness/README.md` §Sensors.
 - [x] **Laufzeit:** Die Zeit der neuen Stufe ist gemessen (Einzelmessung mit Datum, Last und Cache-Zustand, §7).
 - [x] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Doku-Update, falls ein öffentlicher Vertrag berührt ist.
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen“ in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+- [x] Doku-Update, falls ein öffentlicher Vertrag berührt ist (`SPEC-025`, `README.md`, `harness/README.md`, `tools/mk/e2e.mk`; kein öffentlicher Vertrag des Einstiegs berührt).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen“ in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
 
 ## 3. Plan (vor Code)
 
@@ -96,13 +96,28 @@ Alle Punkte der DoD in §2 erledigt, `make e2e` grün mit der neuen Stufe, `make
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Offene Risiken werden bei Closure aufgelöst.
 
-- Die Stufe deklariert mehr, als ihr Lauf belegt (Kennung breiter als der Test) — Gegenmittel: „Nicht belegt“ in der Kurzbeschreibung, Abgleich im Review. — **Ausgang:** offen bis zur Closure.
-- Die Stufe dupliziert Stufe 4 oder nutzt unbemerkt `internal`-Zugriff (Source-Set mit Assoziation) — Gegenmittel: die Abgrenzung in §1, ein Source-Set ohne Assoziation (`integratorOhneAssoziation`-artige Prüfung). — **Ausgang:** offen bis zur Closure.
-- Laufzeit des Durchgangs wächst um die neue Stufe ([ADR-0022](../../adr/0022-e2e-laeufe-nicht-in-den-gates.md)); die Messung steht in §7 des Träger-Gerüsts. — **Ausgang:** offen bis zur Closure.
+- Die Stufe deklariert mehr, als ihr Lauf belegt (Kennung breiter als der Test) — Gegenmittel: „Nicht belegt“ in der Kurzbeschreibung, Abgleich im Review. — **Ausgang:** eingetreten in kleinem Maß: der Review fand zwei Aussagen breiter als der Lauf (F-2 Log-Prüfung ohne Quelle, die schreiben könnte; F-3 `Closed` am Client als Verhalten des Servers gelesen); beide am Text behoben (Deklaration, Skript, Testkopf), die Grenzen stehen in „Nicht belegt“ und unten in §7.
+- Die Stufe dupliziert Stufe 4 oder nutzt unbemerkt `internal`-Zugriff (Source-Set mit Assoziation) — Gegenmittel: die Abgrenzung in §1, ein Source-Set ohne Assoziation (`integratorOhneAssoziation`-artige Prüfung). — **Ausgang:** entfallen für Delegation und Wiederholung (kein Simulations-Import, Modul `testserver` ohne `associate`/`friend` nach [ADR-0034](../../adr/0034-testserver-als-gradle-modul.md), Review Prüfpunkt 1, Verifikation §4); als Grenze bleibt (d) unten, die Mutation mit einem `internal`-Zugriff ist nicht gefahren.
+- Laufzeit des Durchgangs wächst um die neue Stufe ([ADR-0022](../../adr/0022-e2e-laeufe-nicht-in-den-gates.md)); die Messung steht in §7 des Träger-Gerüsts. — **Ausgang:** eingetreten und gemessen: Stufe 8 kostet 13 bis 15 s im Durchgang (Einzelmessungen des Implementers und des Verifiers, unter verschiedener Last, nicht vergleichbar); der Durchgang aus acht Stufen: 366 s und 311 s. Eine Warm-/Kaltmessung bleibt im Register (`BEO-TDS/e2e-nachweis-ohne-stufe-oder-messung`).
 
 ## 7. Closure-Notiz
 
-Wird bei der Closure gefüllt.
+**Gegenstand:** geliefert: Stufe 8 von `make e2e` (`make eigenes-backend`): ein eigenes `QueryBackend` im Modul `testserver` (`EigenesBackendServer.kt`, ohne Delegation an die Simulation, nur öffentliche Fläche), im Serverprozess angebunden, vom Referenzclient im zweiten Container gelesen (gefülltes und leeres Ergebnis; `fehler` am Start und `fehler_nach_zeilen` mit `Number 50004, Class 16`, Verbindung danach nutzbar; `wirft` mit `Number 50007, Class 20`, Server beantwortet danach neue Verbindungen); Deklaration `TDS-FA-08 TDS-RB-04` mit „Nicht belegt“ in der erzeugten Sicht; `SPEC-025` auf „Stufen 3 bis 8“. Die Folge 50007/Class 20 bei werfendem `execute` ist keine bloße Messung, sondern durch `SPEC-048` festgelegt (unerwartete Ausnahme im Backend-Adapter, Severity 20, fester Text, Verbindungsende); der Satz des Reviews (F-7), sie sei „nirgends als Zusage festgelegt“, ist damit berichtigt (Verifikation V-3). Commits des Zweigs `worktree-agent-ae2dacd15aa73d2f5` (Basis `6b28cd69`): `b3b71d76` (Implementierung), `4436821d` (Messung, Haken), `b8e1f7b9`/`00f0a804` (Review), `0cd8db72` (Nachbesserung), `125a5456`/`8da14650` (Verifikation), danach die Commits dieser Closure. Berichte: [Review](../../../reviews/2026-11-06-4436821-slice-e2e-backend-ausserhalb-modul.md) (0 HIGH, 1 MEDIUM, 4 LOW, 4 INFO), [Verifikation](../../../reviews/2026-11-06-0cd8db72-verifikation-slice-e2e-backend-ausserhalb-modul.md) (konform, 0 Abweichungen, 4 Anmerkungen INFO).
+
+**Gates (Belege):** Frischbeleg ist `make clean-build` (Verifier, `--no-cache`, Exit 0; Unit-Tests und detekt frisch, `EigenesBackendTest` beide Fälle PASSED), dazu `make e2e` mit acht Stufen grün (311 s) und `docker build --no-cache --target skript-selbsttest .` grün. `make gates` ist grün, stützt sich für die Gruppen `werkzeug`, `tests` und `stempel` aber auf Stempelbelege und ist deshalb für Tests und detekt kein Frischbeleg; `make docs-check` 0 Befunde. Lauf des Planners am Ende der Closure: siehe Abschluss unten.
+
+**Befunde des Reviews und ihr Ausgang (Klassen):**
+
+| Befund | Klasse | Ausgang |
+|---|---|---|
+| F-1 (MEDIUM) | zweite Fundstellen der Stufenzahl („sieben Stufen“ in `welle-produktschnitt`, `slice-betrieb-log-adapter-testserver`) | in `0cd8db72` nachgezogen; Verifikation §5 per Grep bestätigt |
+| F-2 (LOW) | Prüfpunkt belegt nichts über die Bibliothek: die Log-Prüfung sieht nur Zeilen des Backends, die Bibliothek schreibt ohne Senke nichts | Name und Skriptkommentar auf die Grenze gebracht; die Aussage über die Bibliothek trägt `TelemetryRedactionTest` (`SPEC-048`), nicht diese Stufe |
+| F-3 (LOW) | Nachweisgrenze: `Closed` ist ein Zustand des Clients, kein beobachtetes Schließen durch den Server | Deklaration, Skript und Testkopf berichtigt |
+| F-4 (LOW) | `@spec SPEC-059` an einem Test des Fixtures, nicht des Einstiegs; die Matrix hätte zwei Nachweise gezählt, die nichts über den Einstieg sagen | Tags entfernt |
+| F-5 (LOW) | Plan-Tabelle und Kopf „Berührte Spec-Stellen“ nennen berührte Dateien und `SPEC-025` nicht | Tabelle und Kopf ergänzt |
+| F-6 (INFO) | Mutationen M1/M2 und Grenzen standen nicht im Repo | stehen unten; der Verifier hat M1 und M2 selbst gefahren und dieselben Ergebnisse gesehen (M1 3 von 4, M2 2 von 4) |
+| F-7 (INFO) | 50007/Class 20 „nirgends als Zusage“ | berichtigt: `SPEC-048` legt es fest (siehe Gegenstand) |
+| F-8, F-9 (INFO) | Messwerte reproduziert; `make kompatibilitaet` bleibt „Stufen 4 bis 7“ zu Recht | kein Ausgang nötig |
 
 **Messung der Laufzeit (Einzelmessung, 2026-11-06, Implementer):** `make eigenes-backend` im Durchgang `make e2e` (Stufe 8): 13 s mit warmem Cache der Images (Last zu Beginn des Durchgangs 16,6 / 17,9 / 16,0, am Ende 7,9 / 13,1 / 14,9); der Durchgang aus acht Stufen: 366 s (Stufen 1 bis 7: 95, 87, 53, 46, 17, 18 und 37 s). Erstlauf des Targets mit Bau der beiden Images: 108 s (Bau 98 s, Tests 10 s). Kein Mittelwert, keine Streuung.
 
@@ -114,6 +129,18 @@ Wird bei der Closure gefüllt.
 | M2 | Tabelle `wirft` beendet den Prozess (`Runtime.getRuntime().halt(1)`) statt eine Ausnahme zu werfen | Exit 2: Test „… der Server bleibt verfügbar“ rot (2 von 4 bestanden), neue Verbindungen scheitern mit „server not found“ |
 
 **Nicht rot gesehen (Grenzen):** (a) Dass der Text des Backends und der Ausnahme den Client nicht erreicht: im .NET-Test assertiert (`DoesNotContain`), aber keine Mutation an der Fehlerabbildung der Bibliothek gefahren. (b) Die Stufenzählung `stufen=8` in `tools/e2e-selbsttest.sh`: nur grün gelaufen, keine Gegenprobe mit einem Skript mit neun Stufen. (c) Die Prüfung des Server-Logs auf Kennwort und Ausnahmetext sieht nur Zeilen des Backends (der Server läuft ohne Senke); sie kann nur rot werden, wenn das Backend selbst schreibt. (d) Dass das Modul nur öffentliche Namen nutzt, trägt die Übersetzung des Moduls ([ADR-0034](../../adr/0034-testserver-als-gradle-modul.md)); eine Mutation mit einem `internal`-Zugriff habe ich nicht gefahren.
+
+**Weitere Grenzen der Closure:** (e) Die Nachbesserung `0cd8db72` ist nicht erneut gereviewt worden. Entscheidung, begründet: sie ändert keine Logik der Bibliothek und des Servers, sondern Text (Deklaration, Skript- und Testkommentare, Name eines Prüfpunkts), das Entfernen zweier `@spec`-Tags, die Plan-Tabelle und zwei Stufenzahlen; der Verifier hat jeden Befund F-1 bis F-6 am Text gegen den Review geprüft und danach `make clean-build`, `make e2e` und M1/M2 selbst gefahren. Ein zweiter Review durch einen dritten Kontext hat die Nachbesserung nicht gesehen; das ist die Grenze, kein Beleg. (f) Warm-/Kaltwert der acht Stufen und Vergleich mit den Einzelläufen sind nicht gemessen; die zwei Durchgänge (366 s, 311 s) stammen aus verschiedenen Lasten. (g) „Nicht erreichbar“ ist als `Failure` am Start des Backends modelliert; ein Backend, das beim Start des Servers nicht erreichbar ist, belegt die Stufe nicht (steht unter „Nicht belegt“). (h) Verbraucher außerhalb des Gradle-Projekts gegen das gebaute Jar: nicht Teil dieses Slice (§1).
+
+**Steering-Loop-Eintrag:** gezählt, nicht verkörpert; der Planner verkörpert nichts still. Lerneintrag (Klassen der Befunde): (1) Ein Nachweis, der nur Zeilen einer Seite sieht (Log ohne Senke der Bibliothek; Zustand `Closed` des Clients), trägt nur diese Seite; die Deklaration der Stufe nannte die breitere Aussage, der Review fand sie über die Quelle der Zeilen. (2) Die bereits verkörperte Prüfung „Fortschreibung lässt die zweite Fundstelle stehen“ (`.harness/skills/reviewer.md`) traf wieder, als MEDIUM, an zwei Planungsdokumenten, die ein lebendes Ziel mit der alten Stufenzahl führten: die Regel wirkt, die Fundstellen kennt der Plan weiter nicht vorab. (3) Ein `@spec`-Tag an einem Test des Fixtures zählt in der Abdeckungsmatrix als Nachweis für den Einstieg. (4) Die Plan-Tabelle nannte wieder berührte Dateien nicht (4× im Register). Zähler und Vorschläge: Register unten.
+
+**Vorschläge zu Schwellen-Übertritten (Entscheidung beim Nutzer, keine Regel geschrieben):** (a) `BEO-TDS/aussage-ueber-schichtgrenze-ohne-test` steht mit diesem Slice bei 3× und überschreitet die Schwelle; Vorschlag: Prüfpunkt im Reviewer-Skill (MEDIUM-Liste) „Aussage über das Verhalten einer Gegenseite ruht auf Zeilen, die nur die eigene Seite schreibt“ mit Anker `seit welle-qualitaet-grundlage`, oder bewusste Streichung mit Begründung; der Lese-Schritt der Welle-Closure entscheidet. (b) `BEO-TDS/plan-tabelle-nennt-neue-datei-nicht` steht bei 4× (Stand im Register noch „offen“ trotz 3× vor diesem Slice); Vorschlag: Prüfpunkt „Plan-Tabelle gegen Diff abgleichen“ in den Reviewer-Skill (Plan-Review) oder Sensor, der Dateien des Diffs gegen die Tabelle in §3 listet; Spec-Straten und Hard Rules bleiben unberührt.
+
+**Beobachtungs-Register (`../observations/`):** Evidence `slice-e2e-backend-ausserhalb-modul.md` neu in [BEO-TDS/fortschreibung-laesst-zweite-fundstelle-stehen](../observations/BEO-TDS/fortschreibung-laesst-zweite-fundstelle-stehen/observation.md) (F-1), [BEO-TDS/aussagen-ueber-messung-hinaus](../observations/BEO-TDS/aussagen-ueber-messung-hinaus/observation.md) (F-3), [BEO-TDS/aussage-ueber-schichtgrenze-ohne-test](../observations/BEO-TDS/aussage-ueber-schichtgrenze-ohne-test/observation.md) (F-2, jetzt 3×), [BEO-TDS/test-belegt-nur-den-fake](../observations/BEO-TDS/test-belegt-nur-den-fake/observation.md) (F-4) und [BEO-TDS/plan-tabelle-nennt-neue-datei-nicht](../observations/BEO-TDS/plan-tabelle-nennt-neue-datei-nicht/observation.md) (F-5, jetzt 4×). Keine neue Klasse: F-6 (Mutationen nicht im Repo) war ein Zeitpunkt vor der Closure, nicht ein Fehlen.
+
+**Folge-Slices:** keine. Die Folgepunkte sind Grenzen (e) bis (h) und die Register-Vorschläge; ein Start-Trigger eines offenen Slice nennt diesen Slice nicht (Grep: nur die Reihenfolge-Verweise in `welle-testserver-manuell` §5 und im Risiko von `slice-schreibpfad-bulk-load`, Pfade vom Move nachgezogen).
+
+**Drei Paarungen:** Anker: kein Anker gesetzt, weil nichts verkörpert wurde. Folge-Slice: keiner genannt. Register: jede genannte Kennung `BEO-TDS/<slug>` besteht als Verzeichnis, jedes trägt ein nicht leeres `evidence/`.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

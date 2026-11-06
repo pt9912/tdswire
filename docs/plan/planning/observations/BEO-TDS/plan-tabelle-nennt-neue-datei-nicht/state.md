@@ -1,1 +1,1 @@
-**Stand:** offen
+**Stand:** offen — 4 Evidence-Dateien; nicht verkörpert, Entscheidung beim Nutzer (Prüfpunkt Plan-Tabelle gegen Diff im Reviewer-Skill oder Sensor), siehe Vorschlag (b) in `slice-e2e-backend-ausserhalb-modul` §7.
