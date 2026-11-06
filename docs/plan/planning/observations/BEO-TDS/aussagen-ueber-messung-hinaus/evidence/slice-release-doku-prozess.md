@@ -1,2 +1,2 @@
-**Vorgang:** [slice-release-doku-prozess](../../../../in-progress/slice-release-doku-prozess.md)
+**Vorgang:** [slice-release-doku-prozess](../../../../done/slice-release-doku-prozess.md)
 **Fund:** Review F-2: Die Anleitung `releasing.md` setzte die Bedingung „Lauf auf dem Release-Stand von `main` ist `success`“ ohne Kennzeichnung als Setzung, obwohl sie das Release-Kriterium sonst als nicht entschieden führt. Behoben durch Kennzeichnung (Verifikation bestätigt). Der Review fand es, nicht die Umsetzung.

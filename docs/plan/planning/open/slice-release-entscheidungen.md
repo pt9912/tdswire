@@ -23,7 +23,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Ziel-Form: Slice — Schnitt nach Lieferwert, nicht nach Schichten; jeder Slice
 ist einzeln lieferbar.
 
-**Ziel:** Die Entscheidungen des Nutzers, die [slice-release-doku-prozess](../in-progress/slice-release-doku-prozess.md) in `docs/maintainer/releasing.md` als offen führt, sind getroffen und in der Anleitung als Schritte eingetragen. Der Slice liefert Entscheidungen, keine Erfindungen: Was der Nutzer nicht wählt, bleibt in der Anleitung offen.
+**Ziel:** Die Entscheidungen des Nutzers, die [slice-release-doku-prozess](../done/slice-release-doku-prozess.md) in `docs/maintainer/releasing.md` als offen führt, sind getroffen und in der Anleitung als Schritte eingetragen. Der Slice liefert Entscheidungen, keine Erfindungen: Was der Nutzer nicht wählt, bleibt in der Anleitung offen.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -65,7 +65,7 @@ Nachweis-Pflichten für alle drei Punkte:
 
 ## 4. Trigger
 
-**Start** (`open` → `next`): [slice-release-doku-prozess](../in-progress/slice-release-doku-prozess.md) liegt in `done/` (die Anleitung führt die Punkte als offen), und der Nutzer hat die Entscheidungen getroffen oder ihren Zeitpunkt benannt; ein Verantwortlicher ist eingetragen.
+**Start** (`open` → `next`): [slice-release-doku-prozess](../done/slice-release-doku-prozess.md) liegt in `done/` (die Anleitung führt die Punkte als offen), und der Nutzer hat die Entscheidungen getroffen oder ihren Zeitpunkt benannt; ein Verantwortlicher ist eingetragen.
 
 **Rückführungen:**
 
