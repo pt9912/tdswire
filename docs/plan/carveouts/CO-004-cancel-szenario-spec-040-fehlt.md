@@ -1,6 +1,6 @@
 # CO-004: Cancel-Szenario des Integrationslaufs nach SPEC-040 fehlt
 
-**Status:** Aufgelöst 2026-11-06: [slice-attention-cancel-timeout](../planning/done/slice-attention-cancel-timeout.md) und [slice-cancel-referenzclient-szenario](../planning/in-progress/slice-cancel-referenzclient-szenario.md) in `done/`, das Cancel-Szenario besteht in `make simulations-integration`.
+**Status:** Aufgelöst 2026-11-06: [slice-attention-cancel-timeout](../planning/done/slice-attention-cancel-timeout.md) und [slice-cancel-referenzclient-szenario](../planning/done/slice-cancel-referenzclient-szenario.md) in `done/`, das Cancel-Szenario besteht in `make simulations-integration`.
 
 **Datum angelegt:** 2026-10-31. **Letzte Prüfung:** 2026-11-06.
 
@@ -8,7 +8,7 @@
 
 **Geltungsbereich:** Cancel-Teil von `SPEC-040` in [`spec/spezifikation.md`](../../../spec/spezifikation.md) und DoD-Punkt 3 von [slice-sim-aenderung-integration](../planning/done/welle-simulations-backend/slice-sim-aenderung-integration.md); Tests unter `referenztest-dotnet/Integration/`, Skript `tools/simulationstest.sh`.
 
-**Folge-Slice:** [`slice-cancel-referenzclient-szenario.md`](../planning/in-progress/slice-cancel-referenzclient-szenario.md); sein Abbruchpfad im Server steht in [`slice-attention-cancel-timeout.md`](../planning/done/slice-attention-cancel-timeout.md) (Zerlegung vom 2026-11-01)
+**Folge-Slice:** [`slice-cancel-referenzclient-szenario.md`](../planning/done/slice-cancel-referenzclient-szenario.md); sein Abbruchpfad im Server steht in [`slice-attention-cancel-timeout.md`](../planning/done/slice-attention-cancel-timeout.md) (Zerlegung vom 2026-11-01)
 
 **Verantwortlich:** pt9912 (Autor des Slice-Plans) bis zur Priorisierung von `slice-cancel-referenzclient-szenario`.
 
@@ -51,6 +51,6 @@ Stellen, die den Lauf beschreiben (keine Gate-Konfiguration; Stand nach dem Szen
 |---|---|---|
 | 2026-10-31 | Angelegt (Voreinstellung des Koordinators) | [slice-sim-aenderung-integration](../planning/done/welle-simulations-backend/slice-sim-aenderung-integration.md) |
 | 2026-10-31 | Option A vom Nutzer bestätigt | Sitzung |
-| 2026-11-01 | Folge-Slice geteilt: Das Szenario am Referenzclient liegt in [slice-cancel-referenzclient-szenario](../planning/in-progress/slice-cancel-referenzclient-szenario.md), der Abbruchpfad bleibt in [slice-attention-cancel-timeout](../planning/done/slice-attention-cancel-timeout.md); die Start-Bedingung der Nutzerentscheidungen ist mit [ADR-0027](../adr/0027-abbruch-und-zuruecksetzen.md) erfüllt | [slice-attention-cancel-timeout](../planning/done/slice-attention-cancel-timeout.md) |
-| 2026-11-06 | Das Cancel-Szenario besteht in `make simulations-integration` (Stufe 3), der Cancel-Teil von [TDS-QA-07](../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität) in Stufe 7; die vier Stellen der Geltungs-Konfiguration sind berichtigt. Der Carveout bleibt `Aktiv`, bis der Folge-Slice in `done/` liegt (Auflösungs-Trigger a) | [slice-cancel-referenzclient-szenario](../planning/in-progress/slice-cancel-referenzclient-szenario.md) |
-| 2026-11-06 | Aufgelöst: Folge-Slice in `done/`, `make simulations-integration` 5 von 5 grün, `make e2e` grün (7 Stufen), `make gates` grün. Der Carveout trägt nicht die Folgepflichten (a) und (c) des Cancel-Teils von [TDS-QA-07](../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität): sie stehen in Zeile 12 der Kompatibilitätsmatrix und hängen an `slice-referenzabgleich-mitschnitt` | [slice-cancel-referenzclient-szenario](../planning/in-progress/slice-cancel-referenzclient-szenario.md) |
+| 2026-11-01 | Folge-Slice geteilt: Das Szenario am Referenzclient liegt in [slice-cancel-referenzclient-szenario](../planning/done/slice-cancel-referenzclient-szenario.md), der Abbruchpfad bleibt in [slice-attention-cancel-timeout](../planning/done/slice-attention-cancel-timeout.md); die Start-Bedingung der Nutzerentscheidungen ist mit [ADR-0027](../adr/0027-abbruch-und-zuruecksetzen.md) erfüllt | [slice-attention-cancel-timeout](../planning/done/slice-attention-cancel-timeout.md) |
+| 2026-11-06 | Das Cancel-Szenario besteht in `make simulations-integration` (Stufe 3), der Cancel-Teil von [TDS-QA-07](../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität) in Stufe 7; die vier Stellen der Geltungs-Konfiguration sind berichtigt. Der Carveout bleibt `Aktiv`, bis der Folge-Slice in `done/` liegt (Auflösungs-Trigger a) | [slice-cancel-referenzclient-szenario](../planning/done/slice-cancel-referenzclient-szenario.md) |
+| 2026-11-06 | Aufgelöst: Folge-Slice in `done/`, `make simulations-integration` 5 von 5 grün, `make e2e` grün (7 Stufen), `make gates` grün. Der Carveout trägt nicht die Folgepflichten (a) und (c) des Cancel-Teils von [TDS-QA-07](../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität): sie stehen in Zeile 12 der Kompatibilitätsmatrix und hängen an `slice-referenzabgleich-mitschnitt` | [slice-cancel-referenzclient-szenario](../planning/done/slice-cancel-referenzclient-szenario.md) |
