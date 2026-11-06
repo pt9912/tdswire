@@ -29,9 +29,9 @@ internal sealed interface ConfigResult {
  * Bibliothek liest weder Umgebung noch Datei (`SPEC-005`, `SPEC-010`, `SPEC-051`).
  *
  * Der Lader prüft die Form der Schlüssel und liest die Dateien; die Wertebereiche (Port, Frist, Größe der
- * PRELOGIN-Nachricht, leere Bind-Adresse) prüft der Start der Bibliothek (`ConfigValidation.check`). Ein Wert mit
- * falscher Form steht als `INVALID_VALUE` im Ergebnis und wird durch die Voreinstellung ersetzt, damit er nicht
- * doppelt gemeldet wird. Formen (Festlegungen, nicht gemessen):
+ * PRELOGIN-Nachricht, leere Bind-Adresse) prüft der Start der Bibliothek (Befunde als `Aborted.issues` von
+ * `TdsServer.start`). Ein Wert mit falscher Form steht als `INVALID_VALUE` im Ergebnis und wird durch die
+ * Voreinstellung ersetzt, damit er nicht doppelt gemeldet wird. Formen (Festlegungen, nicht gemessen):
  * - `LISTEN_PORT`, `LOGIN_TIMEOUT`, `QUERY_TIMEOUT`, `CANCEL_TIMEOUT`, `MAX_CONNECTIONS`, `SHUTDOWN_GRACE` und
  *   `MAX_PRELOGIN_MESSAGE_BYTES` bestehen aus ASCII-Ziffern.
  * - `LISTEN_HOST` Voreinstellung `0.0.0.0`.
