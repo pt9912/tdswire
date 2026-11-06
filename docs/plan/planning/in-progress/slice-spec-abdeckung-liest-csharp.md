@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** SPEC-045 (der Nachweis, der heute fehlt) · SPEC-050 (Festlegungen der Harness-Werkzeuge, Abschnitt 7 der Spezifikation, soweit sie den Erzeuger der Abdeckungsmatrix beschreiben; ob der Abschnitt den `@spec`-Tag und seine Leseorte nennt, prüft der Implementer und zieht ihn nach)
 
-**Verantwortlich:** — bis zur Priorisierung (pt9912 trägt sich beim Übergang `open` → `next` ein).
+**Verantwortlich:** pt9912.
 
 **Autor:** pt9912 (Entwurf in der Planner-Rolle). **Datum:** 2026-11-06.
 
