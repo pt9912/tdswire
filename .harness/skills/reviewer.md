@@ -113,6 +113,13 @@ bewusst kurz (Ergänzungs-Kanal, nicht Hauptkanal).
   („Behauptung des Implementers, Bestätigung beim Verifier“). Prüfung: die Haken im Diff gegen den
   Stand von Review und Verifikation lesen; der Implementer behauptet im Bericht, den Haken setzt
   der Planner nach der Verifikation  (seit slice-qa-vergleichslauf-d-messungen)
+- **Messzahl aus einem Erzeuger, der nicht im Repo liegt** — ein Messprotokoll, eine Spec-Stelle,
+  eine ADR oder ein Slice nennt Zahlen (Anfragezahlen, Zeiten, Größen), die ein Wegwerf-Erzeuger oder
+  ein nicht committeter Stand (Prototyp, Wrapper im Scratchpad) lieferte, und führt sie präziser als
+  als Größenordnung; oder das Protokoll nennt nicht, ob der Erzeuger im Repo liegt. Prüfung: die
+  Herkunft jeder Zahl benennen; liegt ihr Erzeuger nicht im Repo, ist die Aussage nicht präziser als
+  ein im Repo wiederholbarer Beleg (Größenordnung, Grenze im Protokoll benannt)
+  (seit slice-katalog-und-ddl-zustand)
 - **Vertragstest belegt nur den Fake** — ein Test des Port-Vertrags gibt das Skript zurück, das er
   selbst in das Test-Backend gelegt hat; keine Änderung am Produktionscode macht ihn rot (Gegenprobe:
   ein Backend, das den Vertrag verletzt, muss die Suite röten)  (seit welle-backend-streaming)

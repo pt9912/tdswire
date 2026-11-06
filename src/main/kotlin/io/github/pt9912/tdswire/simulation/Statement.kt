@@ -56,6 +56,15 @@ internal sealed interface Statement {
 
     /** W3. */
     data class Delete(override val table: TableRef, val where: List<Term>) : Statement
+
+    /**
+     * D1: `CREATE TABLE` mit den Spalten in der Reihenfolge des Textes; [key] ist `null`, wenn der Text keinen
+     * Schlüssel nennt.
+     */
+    data class CreateTable(override val table: TableRef, val cols: List<SimColumn>, val key: List<String>?) : Statement
+
+    /** D2: `ALTER TABLE … ADD` mit den neuen Spalten. */
+    data class AddColumns(override val table: TableRef, val columns: List<SimColumn>) : Statement
 }
 
 /** Eine `SET`-Anweisung der Form C: Option in ASCII-Großschreibung und ihr Argument (`ON`, `OFF` oder die Zahl). */
@@ -68,11 +77,17 @@ internal sealed interface FixedForm {
 
     /** Eine oder mehrere `SET`-Anweisungen, durch `;` getrennt. */
     data class Settings(val options: List<SetOption>) : FixedForm
+
+    /** Ein Text der Transaktionssteuerung nach [TransactionForms]: `IF @@TRANCOUNT > 0 COMMIT|ROLLBACK TRAN`. */
+    data object Transaction : FixedForm
 }
 
 /** Das Ergebnis der Erkennung. */
 internal sealed interface Recognition {
     data class Recognized(val statement: Statement) : Recognition
+
+    /** Eine Katalogabfrage (`SPEC-036`, Form K); ihre Parameter stehen in der Anfrage, nicht im Text. */
+    data class Catalog(val form: CatalogForm) : Recognition
 
     data class Fixed(val form: FixedForm) : Recognition
 

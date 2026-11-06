@@ -19,6 +19,6 @@ internal object FixedAnswers {
             QueryEvent.ResultEnd(1),
         )
 
-        is FixedForm.Settings -> listOf(QueryEvent.UpdateCount(0))
+        is FixedForm.Settings, FixedForm.Transaction -> listOf(QueryEvent.UpdateCount(0))
     }
 }

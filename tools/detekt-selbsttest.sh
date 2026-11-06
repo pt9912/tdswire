@@ -24,10 +24,11 @@
 #                davon wird gemeldet; fuer sie gilt zudem (3).
 #   aufrufe      wertet den Bericht der Task detektSelbsttestAufrufe aus: jeder Eintrag von
 #                ForbiddenMethodCall in detekt.yml hat in Aufruf.kt jedes Kern-Packages (domain, port) einen
-#                Fund, jeder Eintrag von ForbiddenMethodCall/ausgabe in Aufruf.kt von runtime, protocol und
-#                transport unter selbsttest-aufrufe/src/main (der Pfad, auf den das includes der Instanz
-#                zeigt), die Markierungen `// erwartet: <Methode>` in Aufruf.kt sind genau diese Eintraege,
-#                und Erlaubt.kt hat keinen Fund.
+#                Fund, jeder Eintrag von ForbiddenMethodCall/ausgabe in Aufruf.kt jedes Packages unter
+#                selbsttest-aufrufe/src/main (der Pfad, auf den das includes der Instanz zeigt; die Packages sind
+#                die der Testdaten der Importregeln), die Markierungen `// erwartet: <Methode>` in Aufruf.kt
+#                sind genau diese Eintraege, eine Markierung je Aufruf, und die Zahl der Funde je Methode ist
+#                die Zahl der Markierungen (eine Ueberladung ohne Fund faellt auf); Erlaubt.kt hat keinen Fund.
 #   suppression  prueft an erzeugten Dateien, dass tools/suppression-check.sh jede Form von @Suppress
 #                meldet, die das Skript nennt, und erlaubte Namen nicht.
 #   jackson      prueft an erzeugten Dateien, dass tools/jackson-sperre.sh Import, qualifizierten Namen und
@@ -35,6 +36,11 @@
 #   modulgrenze  prueft an erzeugten Dateien, dass tools/modulgrenze-sperre.sh friend- und associate-Eintraege
 #                (friendPaths, -Xfriend-paths, associateWith, associateCompilations; auch im Kommentar) in einer
 #                Build-Datei meldet, eine fehlende Datei mit Exit 2 abweist und eine Datei ohne diese Namen durchlaesst.
+#
+# Grenze der Ausgabe-Sperre: der Rot-Fall je Package wird gegen die Packages von src/main (Liste aus der Stage
+# `quellpakete`) und gegen die Testdaten der Importregeln gehalten; `observability` hat einen Rot-Fall, aber kein
+# Verzeichnis unter src/main - er ist Vorsorge fuer das Package, das die Architekturtabelle nennt, und kein Beleg
+# fuer vorhandenen Code.
 #
 # Aufgerufen von der Dockerfile-Stage `detekt-selbsttest`; braucht sh, awk, sed, grep, sort, cut, ls, tr
 # und mktemp. Grenze: geprueft ist, dass die Regeln greifen und nichts treffen, was Allowed.kt und
@@ -49,6 +55,7 @@ td_ausgabe=config/detekt/selbsttest-aufrufe/src/main/kotlin/io/github/pt9912/tds
 out=build/selbsttest
 report=build/reports/detekt-selbsttest/detekt.xml
 report_aufrufe=build/reports/detekt-selbsttest/aufrufe.xml
+quellpakete=build/quellpakete
 
 fail() { echo "detekt-selbsttest: FEHLER - $*" >&2; exit 1; }
 
@@ -195,6 +202,9 @@ aufrufe_instanz() {
     [ "$marker" = "$soll" ] || fail "$pkg/Aufruf.kt erwartet ($(echo $marker)), detekt.yml fuehrt unter $kopf ($(echo $soll)) - ein Eintrag fehlt oder ist zu viel"
     for m in $methoden; do
       zaehler=$((zaehler + 1))
+      soll_n=$(sed -n 's#^ *// erwartet: ##p' "$verzeichnis/$pkg/Aufruf.kt" | grep -cxF "$m" || true)
+      ist_n=$(grep -cxF "$inst $pkg Aufruf.kt $m" "$funde" || true)
+      [ "$ist_n" -eq "$soll_n" ] || fail "$kopf meldet '$m' in $pkg/Aufruf.kt $ist_n-mal, die Beispiele erwarten $soll_n Aufrufe - eine Ueberladung oder ein Aufruf greift nicht"
       grep -qF "$inst $pkg Aufruf.kt $m" "$funde" || fail "$kopf meldet '$m' in $pkg/Aufruf.kt nicht - der Eintrag greift nicht, oder die Beispiele rufen ihn nicht auf; gemeldet sind: $(grep "^$inst $pkg Aufruf.kt " "$funde" | cut -d' ' -f4- | tr '\n' ';')"
     done
   done
@@ -219,10 +229,18 @@ aufrufe() {
     }
   ' "$report_aufrufe" > "$funde"
   kern=$(aufrufe_instanz kern ForbiddenMethodCall "$td_aufrufe" "domain port")
-  ausgabe=$(aufrufe_instanz ausgabe ForbiddenMethodCall/ausgabe "$td_ausgabe" "runtime protocol transport")
+  # Jedes Package der Testdaten der Importregeln hat einen Rot-Fall der Ausgabe-Sperre (includes: ganzes Hauptmodul).
+  [ -f "$quellpakete" ] || fail "keine Liste der Packages von src/main unter $quellpakete - Stage quellpakete"
+  pakete_ausgabe=$(ls "$td_ausgabe" | sort | tr '\n' ' ')
+  pakete_regeln=$(ls "$td" | sort | tr '\n' ' ')
+  pakete_quelle=$(sort -u "$quellpakete" | tr '\n' ' ')
+  [ "$pakete_ausgabe" = "$pakete_regeln" ] || fail "Rot-Faelle der Ausgabe-Sperre fuer ($pakete_ausgabe), Packages der Testdaten der Importregeln ($pakete_regeln) - ein Package ohne Rot-Fall oder ein Rot-Fall ohne Package"
+  ohne_rotfall=$(for p in $pakete_quelle; do printf '%s\n' "$pakete_ausgabe" | tr ' ' '\n' | grep -qx "$p" || printf '%s ' "$p"; done)
+  [ -z "$ohne_rotfall" ] || fail "Package(s) von src/main ohne Rot-Fall der Ausgabe-Sperre unter selbsttest-aufrufe: $ohne_rotfall"
+  ausgabe=$(aufrufe_instanz ausgabe ForbiddenMethodCall/ausgabe "$td_ausgabe" "$pakete_ausgabe")
   falsch=$(grep -c ' Erlaubt\.kt ' "$funde" || true)
   [ "$falsch" -eq 0 ] || fail "$falsch erlaubte Aufrufe gemeldet: $(grep ' Erlaubt\.kt ' "$funde" | tr '\n' ';')"
-  echo "detekt-selbsttest: OK - $((kern + ausgabe)) Aufruf-Faelle gemeldet (ForbiddenMethodCall: $kern je Eintrag in domain und port; ForbiddenMethodCall/ausgabe: $ausgabe je Eintrag in runtime, protocol und transport), 0 Fehlmeldungen bei erlaubten"
+  echo "detekt-selbsttest: OK - $((kern + ausgabe)) Aufruf-Faelle gemeldet (ForbiddenMethodCall: $kern je Eintrag in domain und port; ForbiddenMethodCall/ausgabe: $ausgabe je Eintrag und Package, in $(echo $pakete_ausgabe | wc -w) Packages), 0 Fehlmeldungen bei erlaubten"
 }
 
 suppression() {

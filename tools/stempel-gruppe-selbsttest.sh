@@ -6,7 +6,7 @@
 # erfundenen `make`, das nur die Namen der gerufenen Gates aufzeichnet:
 #   - ein erster Lauf beider Klassen ruft alle ihre Gates und schreibt beide Stempel; derselbe Eingang ein zweites Mal
 #     ruft keines;
-#   - eine Aenderung unter docs/ ruft die Gates von werkzeug, nicht die von tests; eine Aenderung unter src/ umgekehrt; eine
+#   - eine Aenderung unter docs/ ruft die Gates von werkzeug, nicht die von tests; eine Aenderung unter src/test umgekehrt, unter src/main beide (src/main ist Eingang der Stage quellpakete); eine
 #     Aenderung am Dockerfile beide;
 #   - ein rotes Gate beendet den Schritt mit Exit 1 und schreibt keinen Stempel; der naechste Lauf ruft die Gates wieder;
 #   - ein Commit waehrend des Laufs (anderer Eingangs-Hash) schreibt keinen Stempel;
@@ -81,9 +81,12 @@ alle "zweiter Lauf, derselbe Eingang" - - -
 printf '\nx\n' >> "$R/docs/plan/adr/README.md" 2> /dev/null || printf 'x\n' >> "$R/docs/leer.md"
 neu_commit docs
 alle "docs geaendert" - - -
-printf '\n// x\n' >> "$(cd "$R" && git ls-files 'src/main/*.kt' | head -n 1 | sed "s|^|$R/|")"
+printf '\n// x\n' >> "$(cd "$R" && git ls-files 'src/test/*.kt' | head -n 1 | sed "s|^|$R/|")"
 neu_commit src
-alle "src geaendert" - t -
+alle "src/test geaendert" - t -
+printf '\n// x\n' >> "$(cd "$R" && git ls-files 'src/main/*.kt' | head -n 1 | sed "s|^|$R/|")"
+neu_commit src-main
+alle "src/main geaendert" w t -
 printf '\n# x\n' >> "$R/Dockerfile"
 neu_commit dockerfile
 alle "Dockerfile geaendert" w t s

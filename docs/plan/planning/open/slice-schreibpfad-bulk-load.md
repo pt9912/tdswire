@@ -33,7 +33,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Der Pfad `--on-conflict skip|update` mit `MERGE ... OUTPUT $action` — [slice-schreibpfad-merge-output](slice-schreibpfad-merge-output.md).
-- Katalog und DDL — [slice-katalog-und-ddl-zustand](../in-progress/slice-katalog-und-ddl-zustand.md); das Massenladen liest die Spaltenbeschreibung (`sys.columns`) aus dem dort geschaffenen Katalog und setzt ihn voraus.
+- Katalog und DDL — [slice-katalog-und-ddl-zustand](../done/slice-katalog-und-ddl-zustand.md); das Massenladen liest die Spaltenbeschreibung (`sys.columns`) aus dem dort geschaffenen Katalog und setzt ihn voraus.
 - Speichern in der Bibliothek, Persistenz über den Prozess hinaus und Transaktionssemantik: die Bibliothek speichert nichts ([TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend)), das Weitere ist Out-of-Scope von [TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate).
 - Alle Pakettypen und Optionen von [MS-TDS] jenseits von COLMETADATA und ROW für die Spaltentypen des Solls (Sonde: INT, NVARCHAR(4000), VARCHAR(10)); weitere Typen erst, wenn ein Lauf sie braucht.
 
@@ -80,7 +80,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-adr-testserver-bestand-und-katalog](../done/slice-adr-testserver-bestand-und-katalog.md) liegt in `done/` (Weitergabe, Katalog nach Änderungen und Fläche entschieden) und [slice-katalog-und-ddl-zustand](../in-progress/slice-katalog-und-ddl-zustand.md) liegt in `done/` (Katalog und veränderlicher Bestand des Testservers bestehen); damit stehen [slice-testserver-gradle-modul](../done/slice-testserver-gradle-modul.md) und [slice-oeffentliche-flaeche-verkleinern-und-belegen](../done/slice-oeffentliche-flaeche-verkleinern-und-belegen.md) vor diesem Slice (Kette über den Katalog-Slice, Reihenfolge vom Nutzer am 2026-11-06 entschieden). Dieser Slice fügt `SimTable.onInsertBatch` hinzu ([ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md)).
+**Start** (`next` → `in-progress`): [slice-adr-testserver-bestand-und-katalog](../done/slice-adr-testserver-bestand-und-katalog.md) liegt in `done/` (Weitergabe, Katalog nach Änderungen und Fläche entschieden) und [slice-katalog-und-ddl-zustand](../done/slice-katalog-und-ddl-zustand.md) liegt in `done/` (Katalog und veränderlicher Bestand des Testservers bestehen); damit stehen [slice-testserver-gradle-modul](../done/slice-testserver-gradle-modul.md) und [slice-oeffentliche-flaeche-verkleinern-und-belegen](../done/slice-oeffentliche-flaeche-verkleinern-und-belegen.md) vor diesem Slice (Kette über den Katalog-Slice, Reihenfolge vom Nutzer am 2026-11-06 entschieden). Dieser Slice fügt `SimTable.onInsertBatch` hinzu ([ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md)).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

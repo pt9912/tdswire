@@ -346,11 +346,13 @@ style:
       - value: 'java.lang.ProcessHandle.current'
         reason: 'Prozess: Start und Ende des Dienstes gehoeren der Composition Root, nicht dem Kern.'
   # Ausgabe im Hauptmodul: die Bibliothek schreibt nirgends hin, Log und Telemetrie gehen an die Senke
-  # (ADR-0020). Gesperrt sind print, println und printStackTrace in jedem Package unter src/main, ohne
-  # Ausnahme; das Source-Set test, das Source-Set integrator und das Modul testserver sind nicht betroffen. Grenze: wirkt nur mit
-  # Typaufloesung (detektMain), und nur die genannten Aufrufe; ein Schreiben ueber einen anderen Weg
-  # (Logger.log, Thread.dumpStack, ein Logger einer Fremdbibliothek) trifft die Regel nicht. `make detekt-selbsttest` fuehrt je Eintrag
-  # einen Rot-Fall unter config/detekt/selbsttest-aufrufe/src/main/.
+  # (ADR-0020). Gesperrt sind print, println, printStackTrace (alle Ueberladungen), Thread.dumpStack und die Methoden
+  # log, logp und logrb von java.util.logging.Logger in jedem Package unter src/main, ohne Ausnahme; das Source-Set test,
+  # das Source-Set integrator und das Modul testserver sind nicht betroffen. Grenze: wirkt nur mit Typaufloesung
+  # (detektMain), und nur die genannten Aufrufe; nicht gesperrt sind die Stufenmethoden config, fine, finer und finest
+  # sowie entering, exiting und throwing von Logger und ein Logger einer Fremdbibliothek.
+  # `make detekt-selbsttest` fuehrt je Eintrag und je Package einen Rot-Fall unter config/detekt/selbsttest-aufrufe/src/main/,
+  # je Ueberladung einen Aufruf.
   ForbiddenMethodCall/ausgabe:
     active: true
     includes:
@@ -378,3 +380,11 @@ style:
         reason: 'Ausgabe: die Bibliothek schreibt nirgends hin, auch nicht ueber java.util.logging (ADR-0020).'
       - value: 'java.util.logging.Logger.severe'
         reason: 'Ausgabe: die Bibliothek schreibt nirgends hin, auch nicht ueber java.util.logging (ADR-0020).'
+      - value: 'java.util.logging.Logger.log'
+        reason: 'Ausgabe: die Bibliothek schreibt nirgends hin, auch nicht ueber java.util.logging (ADR-0020).'
+      - value: 'java.util.logging.Logger.logp'
+        reason: 'Ausgabe: die Bibliothek schreibt nirgends hin, auch nicht ueber java.util.logging (ADR-0020).'
+      - value: 'java.util.logging.Logger.logrb'
+        reason: 'Ausgabe: die Bibliothek schreibt nirgends hin, auch nicht ueber java.util.logging (ADR-0020).'
+      - value: 'java.lang.Thread.dumpStack'
+        reason: 'Ausgabe: eine Stapelspur gehoert in kein Log der Bibliothek, auch nicht ueber Thread.dumpStack (ADR-0020, SPEC-048).'

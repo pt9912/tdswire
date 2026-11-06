@@ -49,6 +49,8 @@ internal object SimulationChanges {
             }
 
             is Statement.Select -> error("eine Auswahl ist keine Änderung")
+
+            is Statement.CreateTable, is Statement.AddColumns -> error("eine Strukturänderung hat keinen Callback")
         }
     }
 
@@ -82,6 +84,9 @@ internal object SimulationChanges {
     }
 }
 
+/** Die Strukturänderung ist beim erneuten Planen unter der Sperre abgewiesen: [code] ist ein Wert von [SimCodes]. */
+internal class ChangeRejected(val code: String, val reason: String) : RuntimeException(reason)
+
 /** Eine registrierte Ausführung, die [SimulationBackend.cancel] beendet. */
 internal interface Stoppable {
     /** Beendet die Ausführung vor dem nächsten Schritt. */
@@ -91,8 +96,11 @@ internal interface Stoppable {
 /**
  * Eine Änderung: ruft den Callback beim Sammeln genau einmal und sendet dessen Zahl als [QueryEvent.UpdateCount].
  * Ein Fehler des Callbacks und eine negative Zahl sind ein [QueryEvent.Failure] mit `TDS_BACKEND_ERROR` und fester
- * Meldung, nie dem Text der Ausnahme (Festlegung, nicht am Server gemessen). [stop] vor dem Sammeln lässt den
- * Callback ungerufen; ein laufender Callback endet nur mit dem Abbruch des Sammlers.
+ * Meldung, nie dem Text der Ausnahme (Festlegung, nicht am Server gemessen). Eine [ChangeRejected] beim erneuten
+ * Planen unter der Sperre einer Strukturänderung ist ein [QueryEvent.Failure] mit dem Code und der Meldung der
+ * Planung (`TDS_UNSUPPORTED_SQL`, `TDS_SIM_UNKNOWN_OBJECT`), kein `TDS_BACKEND_ERROR`. [stop] vor dem Sammeln lässt
+ * den Callback ungerufen; ein laufender Callback endet nur mit dem Abbruch des Sammlers und hält bis dahin die
+ * Sperre der Strukturänderung des Backends, nicht reentrant (`SimulationBackend.structure`).
  */
 internal class ChangeExecution(
     private val change: PreparedChange.Ready,
@@ -115,7 +123,9 @@ internal class ChangeExecution(
 
     private suspend fun run(): QueryEvent = guarded { change.call() }.fold(
         onSuccess = { count -> if (count >= 0) QueryEvent.UpdateCount(count) else failure() },
-        onFailure = { failure() },
+        onFailure = { error ->
+            (error as? ChangeRejected)?.let { QueryEvent.Failure(it.code, it.reason) } ?: failure()
+        },
     )
 
     private fun failure() = QueryEvent.Failure(SimCodes.BACKEND_ERROR, "Änderung fehlgeschlagen")

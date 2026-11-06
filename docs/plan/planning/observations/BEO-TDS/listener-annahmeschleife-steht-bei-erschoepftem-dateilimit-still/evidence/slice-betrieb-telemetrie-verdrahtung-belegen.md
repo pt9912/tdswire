@@ -1,0 +1,2 @@
+**Vorgang:** slice-betrieb-telemetrie-verdrahtung-belegen
+**Fund:** Der Test von `ACCEPT_FAILED` am Server (`TelemetryWiringTest`, Kind-JVM `AcceptChild` mit `ulimit -n 128`) belegt das Ereignis nur, wenn die Klassen vorgeladen sind; ohne Vorladen endet der `failed`-Callback von `TdsListener.acceptOne` mit `NoClassDefFoundError`, kein Ereignis, die Annahmeschleife steht (Review F-2, Mutation gefahren).

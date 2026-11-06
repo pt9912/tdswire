@@ -10,6 +10,7 @@ import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.domain.QueryRequest
 import io.github.pt9912.tdswire.domain.SqlType
 import io.github.pt9912.tdswire.domain.telemetry.BindFailed
+import io.github.pt9912.tdswire.domain.telemetry.ConnectionFailed
 import io.github.pt9912.tdswire.domain.telemetry.EventLevel
 import io.github.pt9912.tdswire.domain.telemetry.LoginAccepted
 import io.github.pt9912.tdswire.domain.telemetry.RequestFailed
@@ -26,6 +27,7 @@ import io.github.pt9912.tdswire.simulation.SimTable
 import io.github.pt9912.tdswire.testsupport.blocking
 import io.github.pt9912.tdswire.testsupport.handMessage
 import io.github.pt9912.tdswire.transport.listener.LOOPBACK
+import io.github.pt9912.tdswire.transport.listener.eventually
 import java.io.File
 import java.time.Instant
 import kotlin.test.Test
@@ -239,6 +241,61 @@ internal class TelemetryRedactionTest : RuntimeTestBase() {
     }
 
     /**
+     * Handlerfehler: der Text der Ausnahme, die den Handler einer Verbindung beendet, trägt je Lauf eine andere Marke
+     * (Benutzername, Kennwort und Ausnahmetext); `CONNECTION_FAILED` nennt den Typnamen und keine der Marken.
+     *
+     * @spec SPEC-048
+     */
+    @Test
+    fun `Der Text der Ausnahme eines Handlers erreicht CONNECTION_FAILED nicht`() = blocking {
+        markers.forEach { marker ->
+            sink.events.clear()
+            val server = running(
+                loopbackEnvironment(file("users-$marker.txt", "alice-$marker\t{plain}pw-$marker\n")),
+                Wiring(telemetry = ThrowsAfterLogin(sink, LinkageError("Ausnahmetext $marker"))),
+            )
+            RawClient(server.port).use { client ->
+                client.send(preloginWire(SessionVectors.ENCRYPT_OFF))
+                assertNotNull(client.readMessage())
+                val payload = SessionVectors.login7Payload {
+                    userName = "alice-$marker"
+                    password = "pw-$marker".toCharArray()
+                }
+                client.send(handMessage(LOGIN7_TYPE, payload, 4000))
+                eventually("CONNECTION_FAILED $marker") { sink.of<ConnectionFailed>().isNotEmpty() }
+            }
+            server.stop()
+            assertEquals("java.lang.LinkageError", sink.of<ConnectionFailed>().single().exceptionType)
+            assertClean(marker, "Handlerfehler $marker")
+        }
+    }
+
+    /**
+     * Annehmen gescheitert: die Kind-JVM erreicht ihr Limit offener Dateien mit zwei verschiedenen Limits, Benutzername
+     * und Kennwort tragen je Lauf eine andere Marke; `ACCEPT_FAILED` nennt den Typnamen und weder Marke, Pfad noch den
+     * Text der Ausnahme des Betriebssystems („Too many open files“). Eine Eingabe, die das Ereignis erreichen könnte,
+     * gibt es dort nicht außer dem Text der Ausnahme; die Marken belegen nur, dass keine Konfiguration eintritt.
+     *
+     * @spec SPEC-048
+     */
+    @Test
+    fun `Der Text der Ausnahme des Betriebssystems erreicht ACCEPT_FAILED nicht`() {
+        listOf(128, 160).zip(markers).forEach { (descriptors, marker) ->
+            val environment = loopbackEnvironment(file("users-$marker.txt", "alice-$marker\t{plain}pw-$marker\n"))
+            AcceptChild(environment, descriptors).use { child ->
+                val lines = child.provokeAcceptFailure(child.port())
+                val failed = lines.filter { "Kind=ACCEPT_FAILED" in it }
+                assertTrue(failed.isNotEmpty(), "Limit $descriptors: kein ACCEPT_FAILED")
+                lines.forEach { line ->
+                    assertTrue(!line.contains(marker, ignoreCase = true), "Limit $descriptors: Marke in $line")
+                    assertTrue(!line.contains(directory), "Limit $descriptors: Pfad in $line")
+                    assertTrue(!line.contains("Too many open files", ignoreCase = true), "Limit $descriptors: $line")
+                }
+            }
+        }
+    }
+
+    /**
      * `principal`: ein Authentifizierungsadapter, der die Eingabe als Kennung zurückgibt (Steuerzeichen,
      * Anführungszeichen, länger als 256 Zeichen), bringt sie nur gekürzt und nur im Ereignis „Anmeldung angenommen“
      * ins Modell. Das belegt die Längengrenze und den Ort des Feldes, nicht die Abwesenheit eines Geheimnisses in der
@@ -257,6 +314,7 @@ internal class TelemetryRedactionTest : RuntimeTestBase() {
             Wiring(telemetry = sink, adapter = { echo }),
         )
         loginAndSend(server.port, "a\"b\u0001\nkk", "pw", null)
+        eventually("LOGIN_ACCEPTED") { sink.of<LoginAccepted>().isNotEmpty() }
         server.stop()
         val accepted = sink.of<LoginAccepted>().single()
         assertEquals(LIMIT, accepted.principal.length)

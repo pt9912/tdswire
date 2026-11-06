@@ -23,9 +23,11 @@ import io.github.pt9912.tdswire.runtime.TdsServer
 import io.github.pt9912.tdswire.simulation.FilterTerm
 import io.github.pt9912.tdswire.simulation.RowFilter
 import io.github.pt9912.tdswire.simulation.RowSource
+import io.github.pt9912.tdswire.simulation.SimCatalog
 import io.github.pt9912.tdswire.simulation.SimColumn
 import io.github.pt9912.tdswire.simulation.SimQuery
 import io.github.pt9912.tdswire.simulation.SimTable
+import io.github.pt9912.tdswire.simulation.SimulationBackend
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.runBlocking
@@ -39,7 +41,9 @@ import kotlin.test.assertTrue
 /**
  * Namen der öffentlichen Fläche, die weder der Testserver noch ein anderer Test dieses Source-Sets benutzt
  * (`SPEC-059`): die Parameter und Antworten eines Backends bei `sp_executesql`, die Bedingung, die eine Tabelle des
- * Integrators an `rows` und `onUpdate` bekommt, und der Fehler einer ungültigen Benutzerliste. Das Source-Set sieht
+ * Integrators an `rows` und `onUpdate` bekommt, der zweite Konstruktor von `SimulationBackend` mit Katalog-Anbieter und
+ * Strukturänderungs-Callback samt `SimColumn.maxLength` und `SimTable.onInsertBatch`, und der Fehler einer ungültigen
+ * Benutzerliste. Das Source-Set sieht
  * nur die öffentliche Fläche; belegt ist, dass diese Namen von außen übersetzbar sind und die Werte ankommen, nicht
  * die Vollständigkeit ihrer Felder.
  */
@@ -145,6 +149,41 @@ class FlaecheEmbeddingTest {
         assertEquals(RowFilter(listOf(FilterTerm.In("Id", listOf(2)))), seen.queries.single().filter)
         assertEquals(listOf("Id", "Name"), seen.queries.single().columns.map { it.name })
         assertEquals(RowFilter(terms), seen.updates.single())
+    }
+
+    /**
+     * Ein Integrator hält Tabellen über den zweiten Konstruktor von `SimulationBackend`: der Anbieter liefert bei jeder
+     * Anfrage den aktuellen Stand, der Strukturänderungs-Callback legt die Tabelle an (`CREATE TABLE` als SQL-Text auf
+     * den Rohbytes), die nächste Anfrage sieht sie, und ein zweites `CREATE TABLE` derselben Tabelle ruft den Callback
+     * nicht. Der Callback bekommt die Spalten mit `SimColumn.maxLength`; die
+     * Tabelle trägt `SimTable.onInsertBatch` (die Bibliothek ruft ihn in diesem Stand nicht).
+     *
+     * @spec SPEC-059
+     * @spec SPEC-035
+     * @spec SPEC-036
+     */
+    @Test
+    fun einIntegratorLegtTabellenUeberAnbieterUndStrukturCallbackAn() {
+        val store = CopyOnWriteArrayList<SimTable>()
+        val calls = CopyOnWriteArrayList<List<String>>()
+        val backend = SimulationBackend({ SimCatalog(store.toList()) }) { schema, name, columns, key ->
+            calls += listOf(schema, name) + columns.map { "${it.name}:${it.type}:${it.maxLength}" } + key
+            store += SimTable(schema, name, columns, key, rows = { RowSource { null } }, onInsertBatch = { 0L })
+        }
+        val server = start(BackendSource.Custom(backend))
+        WireClient(server.port).use { client ->
+            client.login()
+            val ddl = "CREATE TABLE geraete (Seriennummer BIGINT NOT NULL, Name NVARCHAR(40), " +
+                "PRIMARY KEY (Seriennummer))"
+            assertEquals(0, client.batch(ddl).doneStatus and DONE_ERROR)
+            assertTrue(client.batch(ddl).doneStatus and DONE_ERROR != 0, "die Tabelle gibt es schon")
+            val seen = client.batch("SELECT Seriennummer FROM geraete WHERE 1 = 0")
+            assertEquals(0, seen.doneStatus and DONE_ERROR)
+            assertTrue(seen.contains("Seriennummer"), "die Spalte steht im Ergebnis")
+            assertTrue(client.batch("SELECT SCHEMA_NAME() AS schema_name").contains("dbo"), "Katalogabfrage")
+        }
+        val columns = listOf("Seriennummer:Int64:4000", "Name:UnicodeText:40")
+        assertEquals(listOf(listOf("dbo", "geraete") + columns + "Seriennummer"), calls)
     }
 
     /**

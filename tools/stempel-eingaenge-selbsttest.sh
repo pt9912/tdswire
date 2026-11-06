@@ -214,7 +214,7 @@ h_dateien() {
 	fixture h3
 	mit_datei "Neues Fragment, das ein Gate der Klasse tests einhaengt" 1 "tests.eingaenge: kein Eintrag deckt 'tools/mk/neu.mk' (Make-Fragment der Klasse tests)" tools/mk/neu.mk $'neu:\n\t@false\nGATE_CHECKS += neu\nGATE_KLASSE_tests += neu'
 	mit_datei "Kontrolle: Fragment der Klasse werkzeug unter tools/mk" 0 - tools/mk/neu.mk $'neu:\n\t@false\nGATE_CHECKS += neu\nGATE_KLASSE_werkzeug += neu'
-	mit_datei "Fragment der Klasse werkzeug ausserhalb der Eintraege" 1 "werkzeug.eingaenge: kein Eintrag deckt 'src/main/neu.mk' (Make-Fragment der Klasse werkzeug)" src/main/neu.mk $'GATE_KLASSE_werkzeug += neu'
+	mit_datei "Fragment der Klasse werkzeug ausserhalb der Eintraege" 1 "werkzeug.eingaenge: kein Eintrag deckt 'src/test/neu.mk' (Make-Fragment der Klasse werkzeug)" src/test/neu.mk $'GATE_KLASSE_werkzeug += neu'
 	mit_datei "Fragment der Klasse stempel ausserhalb der Eintraege" 1 "stempel.eingaenge: kein Eintrag deckt 'src/main/neu.mk' (Make-Fragment der Klasse stempel)" src/main/neu.mk $'GATE_KLASSE_stempel += neu'
 	mit_datei "Kontrolle: Make-Datei ohne Klasse ausserhalb der Eintraege" 0 - src/main/neu.mk "x:"
 	mit_datei "Kontrolle: Markdown-Datei unter src braucht keinen Eintrag" 0 - src/main/neu.md "# x"
