@@ -32,13 +32,13 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Die Bibliothek beantwortet die Katalogabfragen von d-migrate für Eindeutigkeiten, Fremdschlüssel, Indizes, Standardwerte und Prüfbedingungen aus den ihr mitgeteilten Tabellen (heute antworten sie leer), sodass `schema reverse` und `schema compare` mit einem Soll, das diese Elemente führt, gegen den Testserver das Ergebnis des echten SQL Servers zeigen (Maßstab: „Spezifikation ist Zielbild, der echte SQL Server ist die Referenz“, Nutzer 2026-11-06).
 
-**Herkunft.** Verifikation V-3 von [slice-katalog-und-ddl-zustand](../in-progress/slice-katalog-und-ddl-zustand.md): dessen Liefer-Punkt 1 sagte „Indizes, Defaults, Prüfbedingungen“ aus den Tabellen beantwortet; geliefert sind sie leer (Setzung, `SimColumn` führt sie nicht), und kein offener Slice trug Fremdschlüssel, Indizes oder Standardwerte. Dieser Slice ist der Träger (Nutzerentscheid 2026-11-06, „deine Empfehlungen“). Das Messprotokoll [katalog-und-ddl-zustand-2026-11-06](../../../messungen/katalog-und-ddl-zustand-2026-11-06.md) nennt „Soll-Dateien mit Fremdschlüsseln, Indizes oder Standardwerten“ als nicht gemessen.
+**Herkunft.** Verifikation V-3 von [slice-katalog-und-ddl-zustand](../done/slice-katalog-und-ddl-zustand.md): dessen Liefer-Punkt 1 sagte „Indizes, Defaults, Prüfbedingungen“ aus den Tabellen beantwortet; geliefert sind sie leer (Setzung, `SimColumn` führt sie nicht), und kein offener Slice trug Fremdschlüssel, Indizes oder Standardwerte. Dieser Slice ist der Träger (Nutzerentscheid 2026-11-06, „deine Empfehlungen“). Das Messprotokoll [katalog-und-ddl-zustand-2026-11-06](../../../messungen/katalog-und-ddl-zustand-2026-11-06.md) nennt „Soll-Dateien mit Fremdschlüsseln, Indizes oder Standardwerten“ als nicht gemessen.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Die Messung der Antworten am echten SQL Server — [slice-qa-vergleichslauf-d-messungen-bulk-merge](slice-qa-vergleichslauf-d-messungen-bulk-merge.md) (Liefer-Punkt 2, Katalog); sie ist der Eingang dieses Slice, nicht sein Gegenstand (EULA, Nutzer-Lauf).
 - Schreiben von Zeilen (Einfügen, Massenladen, MERGE) — [slice-schreibpfad-bulk-load](slice-schreibpfad-bulk-load.md) und [slice-schreibpfad-merge-output](slice-schreibpfad-merge-output.md).
-- Sichten, Sequenzen, Routinen, Partitionen und Volltextindizes mit Inhalt — kein Lauf des Solls stellt sie mit Inhalt; sie bleiben leere Resultsets mit den Spalten ([slice-katalog-und-ddl-zustand](../in-progress/slice-katalog-und-ddl-zustand.md) §1).
+- Sichten, Sequenzen, Routinen, Partitionen und Volltextindizes mit Inhalt — kein Lauf des Solls stellt sie mit Inhalt; sie bleiben leere Resultsets mit den Spalten ([slice-katalog-und-ddl-zustand](../done/slice-katalog-und-ddl-zustand.md) §1).
 - Identität (`is_identity`) und berechnete Spalten — Grenze von [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) (Identität ohne Feld); eine Aufnahme ist eine eigene Entscheidung des Nutzers.
 - Referentielle Integrität im Bestand (Fremdschlüssel erzwingen, Indizes nutzen) — der Katalog beschreibt, der Testserver prüft nichts.
 
@@ -89,7 +89,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf. **Wachsen öffe
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-katalog-und-ddl-zustand](../in-progress/slice-katalog-und-ddl-zustand.md) liegt in `done/`, die Messung der Katalogantworten ([slice-qa-vergleichslauf-d-messungen-bulk-merge](slice-qa-vergleichslauf-d-messungen-bulk-merge.md), Liefer-Punkt 2, Zeile (e)) liegt vor — oder der Nutzer entscheidet, ohne Messung zu bauen (dann bleibt die Antwort Setzung, nachträglich verglichen) — und ein Verantwortlicher ist eingetragen. Dieser Slice blockiert die Abnahme nicht, solange das Soll von [slice-abnahme-d-migrate](slice-abnahme-d-migrate.md) keine dieser Elemente führt; führt es sie, startet die Abnahme erst danach.
+**Start** (`next` → `in-progress`): [slice-katalog-und-ddl-zustand](../done/slice-katalog-und-ddl-zustand.md) liegt in `done/`, die Messung der Katalogantworten ([slice-qa-vergleichslauf-d-messungen-bulk-merge](slice-qa-vergleichslauf-d-messungen-bulk-merge.md), Liefer-Punkt 2, Zeile (e)) liegt vor — oder der Nutzer entscheidet, ohne Messung zu bauen (dann bleibt die Antwort Setzung, nachträglich verglichen) — und ein Verantwortlicher ist eingetragen. Dieser Slice blockiert die Abnahme nicht, solange das Soll von [slice-abnahme-d-migrate](slice-abnahme-d-migrate.md) keine dieser Elemente führt; führt es sie, startet die Abnahme erst danach.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

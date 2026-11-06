@@ -1,2 +1,2 @@
-**Vorgang:** [slice-katalog-und-ddl-zustand](../../../../in-progress/slice-katalog-und-ddl-zustand.md)
+**Vorgang:** [slice-katalog-und-ddl-zustand](../../../../done/slice-katalog-und-ddl-zustand.md)
 **Fund:** Review F-1: Wurde `@Synchronized` von `catalog()` und `replace()` entfernt, blieb `make test` grün; die Folge „prüfen im Planer, ändern im Callback“ war nicht atomar. Behoben mit einer Sperre je Backend und Tests mit überlappenden Anfragen; die Verifikation mutierte die Sperre (rot, deterministisch im Bibliothekstest, der Bestandstest allein ist probabilistisch: V-9). Verkörpert wie in `state.md` der Klasse; hier ein weiteres Auftreten.
