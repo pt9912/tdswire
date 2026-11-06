@@ -1,5 +1,5 @@
 -- Testschema der Referenzinstanz fuer den Live-Lauf (SPEC-045, `make vergleichslauf-d LAUF=live-2022|live-2025`).
--- Gegenstueck zu den Tabellen des Simulations-Backends in src/testserver/kotlin/io/github/pt9912/tdswire/testserver/KompatibilitaetsServer.kt
+-- Gegenstueck zu den Tabellen des Simulations-Backends in testserver/kotlin/io/github/pt9912/tdswire/testserver/KompatibilitaetsServer.kt
 -- (person, typen, breit, kaputt, laufend); beide werden getrennt gepflegt und gemeinsam geaendert (SPEC-045). Die Typen
 -- folgen der Typabbildung des Servers (SPEC-003): Int32 -> int, Int64 -> bigint, Bool -> bit, Unicode-Text ->
 -- nvarchar(4000), Decimal(10,2) -> decimal(10,2), Date -> date, Time -> time(7), DateTime -> datetime2(7).
