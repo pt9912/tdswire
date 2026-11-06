@@ -1,0 +1,2 @@
+**Vorgang:** slice-referenzabgleich-live
+**Fund:** Review F-8 (LOW): in `tools/vergleichslauf-d.sh` hat der Zweig `leck` (Ausgabe nennt das Kennwort des Servers) und die Wartebedingung `gestartet` hinter echtem Docker keinen Test; der Selbsttest nutzt einen Docker-Ersatz, die Streichung lässt `make skript-selbsttest` grün. Auswirkung klein (Wegwerf-Kennwort, internes Netz, nur lokal). Verifikation V-3: offen, nicht behoben.

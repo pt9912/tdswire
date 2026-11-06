@@ -1,0 +1,2 @@
+**Vorgang:** slice-referenzabgleich-live
+**Fund:** Ausnahmeliste des Live-Laufs: Review F-1, F-2, F-6 (MEDIUM, LOW): drei Abweichungen (A-3, A-4/A-5, A-9) trugen die Art „so gewollt“, ohne dass Spezifikation oder ADR sie als Ziel belegen (unbestätigte Setzung, offene Festlegung, Konstante der Fixture); F-9 und Verifikation V-3: „in zwei früheren Läufen“ im Protokoll ohne abgelegte Ausgabe. Behoben durch Art *Lücke* und Kennzeichnung als Aussage ohne abgelegten Beleg.

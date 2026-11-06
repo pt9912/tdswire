@@ -1,0 +1,2 @@
+**Vorgang:** slice-referenzabgleich-live
+**Fund:** Die Messklasse „Client gegen echten Server“ liegt hier erstmals im Repo wiederholbar vor (`make vergleichslauf-d LAUF=live|messung-*`, Messcode `referenztest-dotnet/Vergleich/`, Digests gepinnt): `Microsoft.Data.SqlClient` 7.1.1 gegen 2022 und 2025 sowie gegen den gebauten Server dieses Repos, TDS 7.4, Einzelmessungen unter Last. Die Klasse bleibt eng: gemessen ist die Ausgabe des Clients, nicht der Draht; nicht gemessen ist, was ein anderer Client (JDBC von d-migrate) sieht (Gegenmessung M-2).

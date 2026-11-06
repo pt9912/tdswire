@@ -1,0 +1,2 @@
+**Vorgang:** slice-referenzabgleich-live
+**Fund:** Live-Lauf, Schritt `fehler-vor-zeilen` (Einzelmessung 2026-11-06, 2022 und 2025): Referenz `Number 208, Class 16, State 1`, Verbindung offen, Folgeabfrage gelingt; Server `Number 208, Class 20, State 1`, „Unknown object.“, Verbindung `Closed`. Review F-2 (MEDIUM): vorher als „so gewollt“ geführt, jetzt Art *Lücke*; Nutzerentscheidung 2026-11-06: bleibt Lücke.

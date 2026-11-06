@@ -1,1 +1,1 @@
-**Stand:** offen — 1×; unter der Schwelle, kein Träger-Slice für die Backend-Seite, Entscheidung beim Nutzer (Matrix Lücke 16).
+**Stand:** offen — kein Träger-Slice für die Backend-Seite, Entscheidung beim Nutzer (Matrix Lücke 16). Träger-Vorschlag des Planners (Setzung, zur Bestätigung durch den Nutzer): ein eigener Folge-Slice „Backend liefert mehrere Anweisungen je Text und Ausgabewerte“ (ohne Kennung, nicht angelegt); der Live-Lauf (Schritt `mehrteilig`, Ausnahme A-2) ist sein Sensor, die Ausnahme-Regel fällt mit dem Bau weg. Weder Slice angelegt noch Slice geändert.

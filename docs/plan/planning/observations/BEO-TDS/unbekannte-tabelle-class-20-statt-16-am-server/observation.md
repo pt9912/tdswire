@@ -1,0 +1,5 @@
+# Der Server dieses Repos antwortet auf eine unbekannte Tabelle mit Class 20, der echte SQL Server mit Class 16
+
+**Sub-Area:** `*` (Simulations-Backend, Fehler-Codes)
+
+Auf `SELECT Id FROM gibtesnicht` sendet der echte SQL Server (2022 und 2025) `Number 208, Class 16`, „Invalid object name 'gibtesnicht'.“ und hält die Verbindung offen; der Server dieses Repos sendet `Number 208, Class 20`, „Unknown object.“, und der Client schließt die Verbindung. Die Spezifikation (Abschnitt 4) führt Class 20 für `TDS_SIM_UNKNOWN_OBJECT` als Festlegung mit offener Einzelzuordnung und nennt den Unterschied zur Messung R05 von [ADR-0007](../../../../adr/0007-fehler-und-attention.md). Am Zielbild gemessen ist es eine Abweichung des Servers; ein Tippfehler im Tabellennamen kostet den Client die Verbindung. Verwandt, eigener Mechanismus: `BEO-TDS/client-schliesst-bei-class-20-selbst` (dort geht es um die Aussagekraft eines Clienttests, hier um die Zuordnung am Server).

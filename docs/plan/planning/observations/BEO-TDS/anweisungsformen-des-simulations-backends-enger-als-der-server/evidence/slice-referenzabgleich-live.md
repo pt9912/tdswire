@@ -1,0 +1,2 @@
+**Vorgang:** slice-referenzabgleich-live
+**Fund:** Live-Lauf, Schritte `anweisung-ohne-tabelle` (`SELECT 2`) und `bedingung-mit-or` (Einzelmessung 2026-11-06, 2022 und 2025): Referenz gelingt, Server `Number 50001, Class 16`, „Unsupported SQL.“. Review F-1 (MEDIUM): vorher „so gewollt“ auf unbestätigter Setzung, jetzt Art *Lücke*; Nutzerentscheidung 2026-11-06: A-4 und A-5 bleiben Lücke. Eine Datei für beide Schritte, weil ein Vorgang einmal zählt.

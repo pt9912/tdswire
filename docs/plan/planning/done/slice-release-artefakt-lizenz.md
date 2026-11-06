@@ -35,7 +35,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - `main`, Konfiguration, Verdrahtung und der Rohbytes-Smoke — [slice-bootstrap-konfiguration](../done/welle-handshake-login/slice-bootstrap-konfiguration.md); dieser Slice verpackt und startet dasselbe, er schreibt sie nicht neu.
-- Die Läufe des Referenzclients gegen das Image — [slice-qa-kompatibilitaet](../done/slice-qa-kompatibilitaet.md) und [slice-referenzabgleich-live](../in-progress/slice-referenzabgleich-live.md) nutzen es, sobald es besteht; entstand dort schon ein Image, übernimmt dieser Slice es als das eine Artefakt (§6).
+- Die Läufe des Referenzclients gegen das Image — [slice-qa-kompatibilitaet](../done/slice-qa-kompatibilitaet.md) und [slice-referenzabgleich-live](../done/slice-referenzabgleich-live.md) nutzen es, sobald es besteht; entstand dort schon ein Image, übernimmt dieser Slice es als das eine Artefakt (§6).
 - Veröffentlichung (Registry, Signierung, Software-Stückliste) und Orchestrierung (Compose, Kubernetes) — das Lastenheft verlangt sie nicht ([TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) verlangt Reproduktion in Docker); ob ein Release sie braucht, entscheidet der Nutzer in [slice-release-doku-prozess](../done/slice-release-doku-prozess.md).
 - Bit-genau gleiche Jars aus zwei Builds — nicht gefordert; [TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) verlangt eine reproduzierbare Umgebung, keine bitgleichen Artefakte.
 

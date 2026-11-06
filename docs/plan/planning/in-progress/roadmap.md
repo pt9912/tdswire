@@ -54,7 +54,7 @@ In Arbeit (Welle welle-produktschnitt):
 
 In Arbeit (Welle welle-referenzabgleich-release):
 
-- in `in-progress/`: [slice-referenzabgleich-live](../in-progress/slice-referenzabgleich-live.md); zuletzt geschlossen: [slice-release-doku-prozess](../done/slice-release-doku-prozess.md) (Closure-Notiz in §7 des Slice; offene Nutzerpunkte: Entscheidungen zu Version, Tag, Registry, Signierung, Stückliste und Wächter-Form, Sensor Schlüsseltabelle gegen `ServerConfig`; Folge: [slice-release-entscheidungen](../open/slice-release-entscheidungen.md))
+- in `in-progress/`: keiner; zuletzt geschlossen: [slice-referenzabgleich-live](../done/slice-referenzabgleich-live.md) (Closure-Notiz in §7 des Slice; offene Nutzerpunkte: Träger-Vorschläge im Register für sechs Lücken der Ausnahmeliste, Nachzug von `SPEC-045` und `SPEC-050`; startbar: [slice-referenzabgleich-mitschnitt](../open/slice-referenzabgleich-mitschnitt.md)) und [slice-release-doku-prozess](../done/slice-release-doku-prozess.md) (Closure-Notiz in §7 des Slice; offene Nutzerpunkte: Entscheidungen zu Version, Tag, Registry, Signierung, Stückliste und Wächter-Form, Sensor Schlüsseltabelle gegen `ServerConfig`; Folge: [slice-release-entscheidungen](../open/slice-release-entscheidungen.md))
 
 ## Nächste Wellen
 

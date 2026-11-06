@@ -1,0 +1,2 @@
+**Vorgang:** slice-referenzabgleich-live
+**Fund:** Live-Lauf, Schritt `cancel-mit-folgeabfrage` (Einzelmessung 2026-11-06): Referenz mit kurzem oder langem Text je Lauf, beide Instanzen beide Varianten; Server immer „Operation cancelled by user.“. Review F-9 (INFO) und Verifikation V-3: die Zählung früherer Läufe im Protokoll ist Berichtsaussage ohne abgelegte Ausgabe; belegt ist, was der Lauf ausgibt.
