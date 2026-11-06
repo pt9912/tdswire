@@ -1,6 +1,6 @@
 # Öffentliche Fläche der Bibliothek: Ausgangszahlen vom 2026-11-06
 
-Messprotokoll zu [TDS-QA-05](../../spec/lastenheft.md#tds-qa-05--wartbarkeit) und [TDS-RB-04](../../spec/lastenheft.md#tds-rb-04--externes-backend) (`AGENTS.md` §5 Regel 7). Es hält fest, was gemessen wurde, nicht, ob eine Anforderung belegt ist und nicht, was der Schnitt sein soll: der Vorschlag steht in [slice-oeffentliche-flaeche-verkleinern-und-belegen](../plan/planning/in-progress/slice-oeffentliche-flaeche-verkleinern-und-belegen.md) §3 (Liefer-Punkt 1). Gegenstand ist die Neumessung der Ausgangszahlen nach der Anweisung des Slice: öffentliche Deklarationen des Hauptmoduls gegen die Namensliste von [SPEC-059](../../spec/spezifikation.md#einstieg-des-integrators-vertrag-zu-spec-059) und gegen die Verwendungen im Einbettungstest und im Testserver.
+Messprotokoll zu [TDS-QA-05](../../spec/lastenheft.md#tds-qa-05--wartbarkeit) und [TDS-RB-04](../../spec/lastenheft.md#tds-rb-04--externes-backend) (`AGENTS.md` §5 Regel 7). Es hält fest, was gemessen wurde, nicht, ob eine Anforderung belegt ist und nicht, was der Schnitt ist: er steht in [slice-oeffentliche-flaeche-verkleinern-und-belegen](../plan/planning/in-progress/slice-oeffentliche-flaeche-verkleinern-und-belegen.md) §3 (Liefer-Punkt 1). Gegenstand ist die Neumessung der Ausgangszahlen nach der Anweisung des Slice: öffentliche Deklarationen des Hauptmoduls gegen die Namensliste von [SPEC-059](../../spec/spezifikation.md#einstieg-des-integrators-vertrag-zu-spec-059) und gegen die Verwendungen im Einbettungstest und im Testserver.
 
 ## Bedingungen
 
@@ -63,6 +63,18 @@ done
 - Unit-Tests in `src/test` mit `internal`-Zugriff sind nicht Teil der Zählung: sie belegen Verhalten, nicht Erreichbarkeit über die öffentliche Fläche.
 - Mitglieder (Felder, Konstanten, Funktionen) sind nicht gezählt; Z2 zählt sie nur als Zeilen. Die Tabelle gilt für Typnamen.
 - Z6 bis Z9 zählen `import`; wer ohne `import` qualifiziert (`io.github…`), wird nicht gefunden (ein Platzhalter-`import` kommt in beiden Quellbäumen nicht vor: `grep -rn 'tdswire\.[a-z.]*\*' src/integrator src/testserver` ohne Treffer).
+
+## Aborted.reason gegen die Felder der Abbruch-Arten
+
+Gelesen aus dem Quelltext, nicht ausgeführt; Stand wie oben.
+
+| Art (Felder) | Text von `StartOutcome.Aborted.reason` | Stelle |
+|---|---|---|
+| `StartRefused` (`reason`: `StartRefusal`) | fester Text je Grund: „Backend und Simulations-Backend gleichzeitig konfiguriert“ (`BACKEND_AND_SIMULATION`), „Tabellen ungueltig: ein Name kommt doppelt vor“ (`TABLE_NAME_DUPLICATE`) | `Bootstrap.kt:133-142`, `SimulationSetup.kt:32, 39` |
+| `TlsStartRejected` (`part`, `form`) | „TLS-Konfiguration: <Teil> (<Form>)“ | `Bootstrap.kt:113`, `ListenerConfig.kt:54` |
+| `BindFailed` (`address`, `port`, `exceptionType`) | „Port belegt: <Adresse>:<Port>“ (Typname `null`) oder „Binden an <Adresse>:<Port> gescheitert: <Typname>“ | `Bootstrap.kt:193-194`, `ListenerConfig.kt:59, 64` |
+
+Alle Felder stehen im Text, als Prosa; `Aborted.reason` ist ein `String`, kein Feld ist strukturiert lesbar. `ConfigInvalid` dagegen deckt sich mit `Aborted.issues` (`TelemetryEmbeddingTest.kt:135`).
 
 ## Tabelle je Typname
 
