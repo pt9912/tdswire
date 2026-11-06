@@ -38,7 +38,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Chronik, Forensik und Planung in der Nutzer-Doku — `AGENTS.md` §5, Regel 5: Was war, steht in `git`; was kommt, in `docs/plan/planning/`.
 - Ein Sensor, der die Release-Liste des Kurs-Repos abruft — `harness/conventions.md` führt ihn als *kommt nicht mit*, weil er Netzzugriff über `bash`, `git` und `docker` hinaus bräuchte; der Audit bleibt eine Handlung im Release-Ablauf.
 - Der Wechsel von detekt auf eine 2.x-Stabilversion — ein eigener Slice nach Eintritt des Triggers, mit neuer ADR (`Supersedes` [ADR-0010](../../adr/0010-detekt-pre-release.md)); [ADR-0010](../../adr/0010-detekt-pre-release.md) ist `Accepted` und bleibt unverändert (`AGENTS.md` §3.5). Eine Lockerung der Gates bräuchte eine ADR (`AGENTS.md` §3.6).
-- Veröffentlichung in einer Registry, Signierung und Versionsschema des Releases als Entscheidung — Nutzerentscheidung (Frage in §6); der Slice dokumentiert, was entschieden ist, und erfindet nichts.
+- Versionsschema, Tag, Veröffentlichung in einer Registry, Signierung, Software-Stückliste, `make e2e` im Release und die Form des Wächters (Werkzeug-Target) als Entscheidung — Nutzerentscheidungen, geliefert von [slice-release-entscheidungen](../open/slice-release-entscheidungen.md); dieser Slice dokumentiert sie als offen und erfindet nichts.
 
 ## 2. Definition of Done
 
@@ -50,8 +50,8 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 Liefer-Punkte (drei):
 
 - [ ] **Nutzer-Doku** (Ist-Zustand): Einbettung der Bibliothek über `TdsServer.start`; der Testserver-Container dient nur der Prüfung und ist kein Betriebsweg ([ADR-0025](../../adr/0025-produktschnitt-bibliothek-und-testserver.md)), Konfigurationsschlüssel (die Tabelle aus [slice-betrieb-zustandsereignisse](../open/slice-betrieb-zustandsereignisse.md)), Logfelder und Startdiagnose, Metriken und Spans, Anbindung eines Backends über den Port (`spec/spezifikation.md` `SPEC-022`) und Nutzung des Simulations-Backends (Beschreibung der Tabellen, erkannte Formen als Verweis auf SPEC-036, nicht als Kopie), der Betriebstext aus [ADR-0013](../../adr/0013-backend-grenzen.md) (Betreiberschalter `-XX:+ExitOnOutOfMemoryError` mit Supervisor-Neustart und Pflichttext für Integratoren: Backend und Zeilenquelle suspendierend, blockweise Aufrufe empfohlen; Zahlen als Spike-Messung gekennzeichnet), Grenzen mit Verweis auf die Kompatibilitätsmatrix; die Hinweise in `AGENTS.md` und `harness/README.md`, die `docs/user` und `docs/maintainer` als „falls vorhanden“ führen (mit `d-check:ignore`), werden auf Links umgestellt, soweit das Verzeichnis besteht.
-- [ ] **Maintainer-Doku** `docs/maintainer/releasing.md` (geliefert; offen bleibt der Haken, weil Versionsschema, Tag und Veröffentlichung Entscheidungen des Nutzers sind und die Datei sie als offen führt, Frage im Bericht des Implementers): die Schritte eines Releases (Gates, Version, Artefakt, Lizenz, Tag) nach den Entscheidungen des Nutzers, der Freshness-Audit der vendored Baseline als Schritt (die Release-Liste des Kurs-Repos gegen den gepinnten Tag halten, Ergebnis im Ablauf vermerken) und der Pfad im Rang 6 der Quellen in `harness/README.md`.
-- [ ] **Wächter für [ADR-0010](../../adr/0010-detekt-pre-release.md)** (als Schritt mit Abfrage in `releasing.md` geliefert; offen bleibt der Haken, bis der Nutzer die Form wählt, ob zusätzlich ein Werkzeug-Target entsteht): Der Trigger „Stabil-Release von detekt 2.x erscheint“ hat einen benannten Träger in der Form, die der Nutzer wählt (Frage in §6): ein Schritt in `releasing.md`, oder zusätzlich ein Werkzeug-Target außerhalb von `make gates`, das in Docker die Versionsliste abfragt und meldet; der Ausgang beim Eintreten ist ein Slice mit neuer ADR.
+- [x] **Maintainer-Doku** `docs/maintainer/releasing.md`: die Schritte eines Releases, soweit entschieden und gebaut (Gates, Artefakt, Lizenz), der Freshness-Audit der vendored Baseline als Schritt (die Release-Liste des Kurs-Repos gegen den gepinnten Tag halten, Ergebnis im Ablauf vermerken), die Entscheidungen des Nutzers (Versionsschema, Tag, Registry, Signierung, Stückliste, `make e2e` im Release) als **offen** geführt, nicht gesetzt, und der Pfad im Rang 6 der Quellen in `harness/README.md`. Die Entscheidungen selbst liefert [slice-release-entscheidungen](../open/slice-release-entscheidungen.md).
+- [x] **Wächter für [ADR-0010](../../adr/0010-detekt-pre-release.md)** als Schritt mit Abfrage in `releasing.md`: Der Trigger „Stabil-Release von detekt 2.x erscheint“ hat einen benannten Träger (den Schritt); die Grenze der Deklaration steht in der Closure. Ein zusätzliches Werkzeug-Target außerhalb von `make gates` ist Entscheidung des Nutzers und liegt in [slice-release-entscheidungen](../open/slice-release-entscheidungen.md); der Ausgang beim Eintreten des Triggers ist ein Slice mit neuer ADR.
 
 Nachweis-Pflichten für alle drei Punkte:
 
@@ -91,7 +91,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): mehr als drei Liefer-Punkte in §2; Schnittvorschlag: Nutzer-Doku und Maintainer-Doku als zwei Slices.
-- `in-progress` → `open` (blockiert — Carveout?): die Entscheidungen des Nutzers zu Versionsschema und Veröffentlichung stehen aus.
+- `in-progress` → `open` (blockiert — Carveout?): entfällt; die Entscheidungen des Nutzers zu Versionsschema und Veröffentlichung blockieren diesen Slice nicht, sie tragen [slice-release-entscheidungen](../open/slice-release-entscheidungen.md).
 
 ## 5. Closure-Trigger
 
