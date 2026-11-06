@@ -170,7 +170,8 @@ TDS-Tokenstrom.
    Parametermetadaten erzeugen; dazu zählt RETURNVALUE mit dem Handle von `sp_prepexec` (Ordinal 0,
    `INTN` 4; so beantwortete es der Testserver; an einem echten SQL Server gemessen: Ordinal 0 für das Handle von
    `sp_prepexec`, Ordinal 2 für einen OUTPUT-Parameter an dritter Stelle von `sp_executesql`, je ein Fall;
-   die Zählung darüber hinaus ist nicht gemessen und gegen MS-TDS zu prüfen) und je ein RETURNVALUE je OUTPUT-Parameter.
+   weitere zehn Aufrufe beider Instanzen zeigen die Position in der Aufrufliste als Ordinal (Messprotokoll, Messreihe
+   am Draht, W-5, Einzelmessung je Instanz); die Zählung darüber hinaus ist nicht gemessen und gegen MS-TDS zu prüfen) und je ein RETURNVALUE je OUTPUT-Parameter.
 4. Nach dem ersten gesendeten Byte niemals eine alternative vollständige Antwort beginnen; Fehler
    als zulässige Folgetokens senden oder Verbindung schließen.
 
@@ -260,9 +261,10 @@ aus: eine Anfrage dort ist ein unzulässiger Übergang, an ATTENTION und an den 
 das Bit ohne Wirkung; das Statusbit `0x10` (RESETCONNECTIONSKIPTRAN) wertet der Server nicht aus und es wirkt
 nicht wie `0x08`, weil der Server keine Transaktion führt (Festlegung, nicht gemessen). Gemessen am Referenzclient (`Microsoft.Data.SqlClient` 7.1.1,
 TDS 7.4, `Pooling=true`, eine physische Verbindung): über mehrere Open-Phasen gelingen mehr als 1000 vorbereitete
-Befehle (das 1001. einer Open-Phase endet weiter mit `SPEC-058`); das Bit ist damit über seine Wirkung beobachtet,
-am Draht nicht gesehen. Die Antwort auf die Anfrage mit dem Bit trägt kein ENVCHANGE: der Referenzclient nahm sie so an;
-ob und wie die Antwort eines echten Servers mit ENVCHANGE beginnt, ist nicht gemessen.
+Befehle (das 1001. einer Open-Phase endet weiter mit `SPEC-058`); das Bit ist damit über seine Wirkung beobachtet;
+am Draht gesehen: Status `0x09` im ersten Paket der ersten Anfrage nach der Wiederverwendung (Messprotokoll, Messreihe am Draht, W-7,
+Einzelmessung je Instanz 2022 und 2025). Die Antwort auf die Anfrage mit dem Bit trägt kein ENVCHANGE: der Referenzclient nahm sie so an;
+der echte Server beginnt die Antwort mit ENVCHANGE Typ 18 mit leerem neuem und leerem altem Wert (gleiche Quelle).
 
 Der Abschluss einer Anfrage wird genau einmal gesendet.
 
@@ -484,7 +486,7 @@ Verbindungsabbruch. **Messgrenzen:** Gemessen ist nur das Verhalten des Referenz
 die Antwort eines Microsoft-SQL-Servers; TDS 7.4 unverschlüsselt (kein TDS 8.0, kein TLS), `Pooling=false`,
 eine Verbindung je Szenario, ein Lauf. An einem Microsoft-SQL-Server (Referenzclient über einen mitschneidenden Proxy, TDS 7.4,
 `Encrypt=false`, 17 Szenarien) gemessen sind Tokenreihenfolge, Statusbits der DONE-Familie und je ein Ordinal der RETURNVALUE;
-darüber hinaus sind sie gegen MS-TDS zu prüfen. **Offen:** die Behandlung der `SET`-Anweisungen im Batchtext von
+die Messreihe am Draht (Messprotokoll, W-1 bis W-9, `Encrypt=Mandatory`, TLS 1.2) kommt hinzu; darüber hinaus sind sie gegen MS-TDS zu prüfen. **Offen:** die Behandlung der `SET`-Anweisungen im Batchtext von
 `ExecuteReader(SchemaOnly)` (`SET FMTONLY`) und im Text von
 `ExecuteReader(KeyInfo|SingleRow)` (`SET FMTONLY`, `SET NO_BROWSETABLE`) und die Transaktionen
 (Pakettyp `0x0E`, kein RPC, nicht im Katalog).
@@ -503,7 +505,10 @@ Belegt ist die Form der Nachricht an zwei aufgezeichneten Nutzlasten (ein Treibe
 und Versionen gilt die Festlegung nicht als gemessen.
 
 Handle-Verwaltung (Festlegungen, nicht gemessen; Tokenfolge, Ordinal und Name des Handle-RETURNVALUE sind
-Handvektoren, die Zahl 1000 ist eine Setzung, Voreinstellung, und nicht konfigurierbar):
+Handvektoren, die Zahl 1000 ist eine Setzung, Voreinstellung, und nicht konfigurierbar. Am echten Server gemessen
+(Messprotokoll, Messreihe am Draht, W-5, Einzelmessung je Instanz 2022 und 2025): das Handle von `sp_prepexec` hat
+Ordinal 0 und keinen Namen, ein Ausgabewert dahinter trägt die Position in der Aufrufliste; die Festlegung hier ist
+davon nicht berührt):
 
 - Eine Sitzung hält höchstens 1000 Handles gleichzeitig. Das `sp_prepexec`, das das 1001. Handle vergäbe,
   ergibt `SPEC-058` (ERROR und DONE mit Fehlerstatus), ohne dass das Backend gerufen wird; die Verbindung
@@ -565,7 +570,9 @@ Return Status und Ausgabeparameter werden in der Antwort auf einen Batch mit ein
 (`SPEC-014`) abgelehnt (in der Antwort auf einen RPC werden sie abgebildet, siehe „RPC im Backend-Vertrag“); mit der Zuordnung in §4 ist das `TDS_UNSUPPORTED_TYPE` (Class 20), und die
 Verbindung schließt nach der Antwort, ebenso bei jedem anderen Typfehler (die Einzelzuordnung des
 Codes ist offen). Die Befehlskennung (`curCmd`) der DONE-Tokens ist 0; woher sie kommt, ist
-nicht festgelegt (Spec-Lücke).
+nicht festgelegt (Spec-Lücke). Am echten Server gemessen (Messprotokoll, Messreihe am Draht, W-6, Einzelmessung je
+Instanz 2022 und 2025): die Kennung ist nach der Anmeldung in keinem Abschluss 0 und hängt von der Anweisungsart ab;
+die Festlegung hier ist davon nicht berührt.
 
 ### SPEC-035 — Tabellenbeschreibung und Zeilenquelle des Simulations-Backends
 ```kotlin
@@ -1154,7 +1161,7 @@ Versioniertes Profil des Referenzclients für die Kompatibilitätsabnahme (`SPEC
 
 #### Login-Antwort des Servers (Festlegung)
 
-Was der Server auf PRELOGIN und LOGIN7 sendet, ist eine Festlegung ohne Messung am Produkt; sie sagt nicht, dass der Referenzclient sie annimmt. Gemessen am Referenzclient gegen den Spike-Testserver (TDS 7.4, ohne Pool) sind nur: LOGINACK mit DONE genügt dem Client beim `Open`, die Collation-ENVCHANGE braucht der RPC mit Zeichenparametern, und die Ablehnung braucht genau ein ERROR mit DONE.
+Was der Server auf PRELOGIN und LOGIN7 sendet, ist eine Festlegung ohne Messung am Produkt; sie sagt nicht, dass der Referenzclient sie annimmt. Die Anmeldeantwort eines echten SQL Servers ist am Draht gemessen (Messprotokoll, Messreihe am Draht, W-8, Einzelmessung je Instanz 2022 und 2025, `Encrypt=Mandatory`, TLS 1.2 über einen mitschneidenden Proxy); die Festlegung der Tabelle ist davon nicht berührt. Gemessen am Referenzclient gegen den Spike-Testserver (TDS 7.4, ohne Pool) sind nur: LOGINACK mit DONE genügt dem Client beim `Open`, die Collation-ENVCHANGE braucht der RPC mit Zeichenparametern, und die Ablehnung braucht genau ein ERROR mit DONE.
 
 | Gegenstand | Festlegung des Servers (Package `protocol/session`) |
 |---|---|
@@ -1171,7 +1178,7 @@ Der Referenzclient sendete in den gemessenen Szenarien (Messgrenzen: Testserver,
 
 #### Antwortformen des Servers (Festlegung)
 
-Die Formen, die der Server liefert, sind Setzungen ohne Messung am Referenzclient; an einem echten SQL Server sind Tokenfolge, Statusbits und Ordinale für 17 aufgenommene Szenarien gemessen (Abweichungen des Servers stehen in der Ausnahmeliste des Messprotokolls), sonst Handvektoren (`TDS-FA-10.a`, `SPEC-030`, `SPEC-031`).
+Die Formen, die der Server liefert, sind Setzungen ohne Messung am Referenzclient; an einem echten SQL Server sind Tokenfolge, Statusbits und Ordinale für 17 aufgenommene Szenarien gemessen (Abweichungen des Servers stehen in der Ausnahmeliste des Messprotokolls), dazu 22 Szenarien der Messreihe am Draht (W-1 bis W-9, Einzelmessung je Instanz 2022 und 2025), sonst Handvektoren (`TDS-FA-10.a`, `SPEC-030`, `SPEC-031`).
 
 | Form | Antwort |
 |---|---|

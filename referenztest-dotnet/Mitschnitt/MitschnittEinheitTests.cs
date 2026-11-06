@@ -10,8 +10,8 @@ namespace TdsWire.Referenztests.Mitschnitt;
 /// Tests des Aufnahme- und Vergleichswerkzeugs ohne Server (SPEC-045, TDS-QA-01): Redaktion, Mitschreiber, Dateiform,
 /// Zerlegung der Tokens, Abbildung auf die Felder des Vergleichs und das Abspielen gegen einen Server aus der Hand.
 /// Sie laufen in der Dockerfile-Stage `test` (`make referenztest-dotnet`, in `make gates`) und belegen das Werkzeug, nicht
-/// das Verhalten einer Referenzinstanz oder des Servers dieses Repos. `make spec-abdeckung` liest nur Kotlin-Tests: diese
-/// Tests stehen dort nicht in der Matrix; die Zuordnung steht im Kopf hier (`@spec SPEC-045` je Test als Kommentar).
+/// das Verhalten einer Referenzinstanz oder des Servers dieses Repos. `make spec-abdeckung` liest den Kommentar-Tag
+/// `// @spec` dieser Tests (Kopf von `tools/spec-abdeckung.sh`); die Zuordnung steht je Test als Kommentar (`@spec SPEC-045`).
 /// </summary>
 [Trait("Kategorie", "MitschnittEinheit")]
 public class MitschnittEinheitTests

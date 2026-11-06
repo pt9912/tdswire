@@ -7,7 +7,7 @@ namespace TdsWire.Referenztests.Kompatibilitaet;
 /// Das Ziel der Kompatibilitätsläufe: der Serverprozess der Dockerfile-Stage `kompatibilitaetsserver` (Richtlinie
 /// REQUIRED, Zertifikat CN=localhost). Das Ziel steht in TDSWIRE_ZIEL (host:port), das Zertifikat liegt als
 /// Vertrauensanker in SSL_CERT_FILE. Jede Verbindung prüft die Kette und den Namen (HostNameInCertificate=localhost),
-/// kein Test setzt TrustServerCertificate.
+/// außer die Messreihe am Draht (`Vergleich/MessungWireTests.cs`) setzt kein Test TrustServerCertificate; dort gilt es nur auf der Strecke zum Proxy.
 /// </summary>
 internal static class Ziel
 {
