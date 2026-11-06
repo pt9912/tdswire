@@ -14,6 +14,8 @@
 # Aufnahmebedingung (ADR-0024 Entscheidung 6): Basis-Image per Digest, Wiederherstellung der Pakete aus packages.lock.json,
 # Stage `test` ohne Netz und ohne Server (Smoke). Eine Uhr gibt es in KeinServerSmokeTests: die Dauer des Verbindungsfehlers
 # gegen eine Grenze von 5 s (Setzung dort, Messwert 702 ms); sie kann einen Lauf rot machen, nicht einen roten Stand gruen.
+# Signaturpruefung (nuget.config, ADR-0035): der Layer-Cache wiederholt den Restore nicht, ein gruener Lauf aus dem Cache belegt
+# sie nicht neu. Frischbeleg: docker build --no-cache-filter restore --target test referenztest-dotnet (braucht Netz).
 .PHONY: referenztest-dotnet referenztest-dotnet-lock referenztest-dotnet-audit
 
 REFERENZTEST_DOTNET_DIR = referenztest-dotnet
@@ -28,7 +30,7 @@ referenztest-dotnet-lock: ## Nach einer Versionsaenderung in der csproj: referen
 
 # Die Stage `audit` fragt die Schwachstellen-Datenbank der Quelle am Tag des Laufs ab; das Ergebnis
 # haengt am Abfragetag. --no-cache-filter erzwingt den Lauf der Stage, sonst zeigt ein gecachter
-# Layer den Stand eines frueheren Tages (CO-001).
+# Layer den Stand eines frueheren Tages (ADR-0035).
 referenztest-dotnet-audit: ## Bekannte Schwachstellen der Pakete melden; haengt am Abfragetag, nicht reproduzierbar, KEIN Gate
 	docker build $(BUILDER_FLAGS) --target audit --no-cache-filter audit --progress=plain $(REFERENZTEST_DOTNET_DIR)
 

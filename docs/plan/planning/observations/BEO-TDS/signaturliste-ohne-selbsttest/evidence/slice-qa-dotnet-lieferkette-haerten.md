@@ -1,2 +1,2 @@
 **Vorgang:** slice-qa-dotnet-lieferkette-haerten
-**Fund:** Rotfälle des Restore nur im Messprotokoll, ohne Sensor; Nutzer verweist den Selbsttest in dieses Register (2026-11-06).
+**Fund:** Rotfälle des Restore nur im Messprotokoll, ohne Sensor; Nutzer verweist den Selbsttest in dieses Register (2026-11-06). [Verifikation](../../../../../../reviews/2026-11-06-ec67bb0-verifikation-slice-qa-dotnet-lieferkette-haerten.md) V-2: von Hand gemessen und einmal wiederholt, `make gates` sieht den Rotfall nicht; wegen des ODER (roter Lauf erst, wenn Autoren- und Repository-Eintrag fehlen) müsste ein Selbsttest beide Einträge mutieren.

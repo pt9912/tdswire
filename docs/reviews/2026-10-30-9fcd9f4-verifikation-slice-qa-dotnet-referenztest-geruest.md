@@ -71,7 +71,7 @@ Bewertung der 5-s-Grenze: Messbereich unter Last höchstens etwa 1 s bei `Connec
 | Closure-Notiz mit Lerneintrag | **nicht bestätigt (offen)** | §7 „Wird bei der Closure gefüllt“ |
 | Beobachtungs-Register fortgeschrieben | **nicht bestätigt (offen)** | kein neuer Eintrag, keine „keine Beobachtung“-Antwort in §7 |
 | Risiken aus §6 mit Ausgang | **nicht bestätigt (offen)** | alle sieben stehen auf „offen bis zur Closure“ |
-| Drei Paarungen | **teilweise** | Anker ↔ Folge-Slice: [CO-001](../plan/carveouts/CO-001-nuget-audit-aus.md) und [CO-002](../plan/carveouts/CO-002-nuget-signaturpruefung-fehlt.md) nennen [slice-qa-dotnet-lieferkette-haerten](../plan/planning/in-progress/slice-qa-dotnet-lieferkette-haerten.md), und dieser nennt beide zurück; Register offen |
+| Drei Paarungen | **teilweise** | Anker ↔ Folge-Slice: [CO-001](../plan/carveouts/done/CO-001-nuget-audit-aus.md) und [CO-002](../plan/carveouts/done/CO-002-nuget-signaturpruefung-fehlt.md) nennen [slice-qa-dotnet-lieferkette-haerten](../plan/planning/done/slice-qa-dotnet-lieferkette-haerten.md), und dieser nennt beide zurück; Register offen |
 
 Die offenen Punkte sind Closure-Arbeit, keine Verletzung: Der Slice liegt in `in-progress/` und darf noch nicht nach `done/`.
 
@@ -97,9 +97,9 @@ Eingehalten. Kein Test setzt einen TDS-Server voraus, es gibt keinen Vergleichsl
 
 **LOW**
 
-* **L-1 · `nuget.config`: „allein packages.lock.json und contentHash“ (Hard Rule 3.8).** [CO-002](../plan/carveouts/CO-002-nuget-signaturpruefung-fehlt.md) hält selbst fest, der Wert von `signatureValidationMode` ohne Eintrag sei nicht gemessen; `dotnet nuget config get signatureValidationMode` meldet nur „Key not found“, das ist keine Messung der Wirkung. „Allein“ ist breiter als die Messzeile (Review F2, offen).
+* **L-1 · `nuget.config`: „allein packages.lock.json und contentHash“ (Hard Rule 3.8).** [CO-002](../plan/carveouts/done/CO-002-nuget-signaturpruefung-fehlt.md) hält selbst fest, der Wert von `signatureValidationMode` ohne Eintrag sei nicht gemessen; `dotnet nuget config get signatureValidationMode` meldet nur „Key not found“, das ist keine Messung der Wirkung. „Allein“ ist breiter als die Messzeile (Review F2, offen).
 * **L-2 · Index `docs/plan/carveouts/README.md` kürzt den Trigger** und lässt „Folge-Slice in `done/`“ weg (Review F3, offen).
-* **L-3 · [CO-001](../plan/carveouts/CO-001-nuget-audit-aus.md) nennt nur „Schweregrad High“.** Der Lauf vom selben Tag meldet für Pkcs zwei Advisories (High und Moderate). Nicht falsch, aber unvollständig; auch die Zeile „Exit 0 auch bei Fund“ in der README ist bestätigt.
+* **L-3 · [CO-001](../plan/carveouts/done/CO-001-nuget-audit-aus.md) nennt nur „Schweregrad High“.** Der Lauf vom selben Tag meldet für Pkcs zwei Advisories (High und Moderate). Nicht falsch, aber unvollständig; auch die Zeile „Exit 0 auch bei Fund“ in der README ist bestätigt.
 * **L-4 · Folge-Slice führt `SPEC-050` als berührte Spec-Stelle.** `SPEC-050` ist das Referenzabgleich-Gate (Vergleich mit SQL-Server-Referenzinstanz), das der Slice ausdrücklich nicht berührt; das Lock-und-Hash-Versprechen steht in `SPEC-025` (Folgerung aus dem Spec-Text, nicht von der Slice-Autorschaft bestätigt).
 * **L-5 · Fehlerbild des Smoke-Tests nur als Klasse 20 / Number 0 belegt.** Die Annahme „Verbindung abgelehnt“ aus dem Review (F4) trifft nach Dauer (etwa 0,8 × Timeout) und Text nicht zu; der Test ist trotzdem in 22 Läufen stabil. Eine Verschiebung des Fehlerpfads durch eine neue SqlClient-Version würde den Test rot machen, ohne dass das Gerüst defekt wäre; das ist das Risiko, das `RestoreLockedMode` auf die Version begrenzt.
 * **L-6 · Die Messwerte stehen nicht im Repo** (Kaltbau, gecacht, Image, Smoke-Dauer, Plattform). Closure-Notiz ausstehend; der Kaltwert des Auftrags (23 s) ließ sich mit 17,6 s nicht reproduzieren.
