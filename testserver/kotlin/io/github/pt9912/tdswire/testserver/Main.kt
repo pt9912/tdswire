@@ -1,5 +1,6 @@
 package io.github.pt9912.tdswire.testserver
 
+import io.github.pt9912.tdswire.domain.telemetry.TelemetrySink
 import io.github.pt9912.tdswire.runtime.BackendSource
 import io.github.pt9912.tdswire.runtime.StartOutcome
 import io.github.pt9912.tdswire.runtime.TdsServer
@@ -26,9 +27,11 @@ private const val CONFIG_INVALID = "Konfiguration ungueltig"
  * mit [EXIT_START_FAILED]. Der Prozess braucht keine JVM-Option.
  *
  * Standardausgabe (die Skripte der E2E-Läufe lesen sie): nach dem Start die Zeile `tdswire: gestartet, Port <port>`
- * mit dem Port des laufenden Servers, im Hook die Zeile `tdswire: gestoppt`, bei einem Abbruch der Grund oder je
- * Konfigurationsfehler eine Zeile `tdswire: Konfiguration ungueltig: <Schlüssel>: <Art>`. Aus der Bibliothek kommt
- * kein Log (der Einstieg schreibt keines); der Testserver schreibt nur diese Zeilen.
+ * mit dem Port des laufenden Servers, im Hook die Zeile `tdswire: gestoppt` als letzte, bei einem Abbruch der Grund
+ * oder je Konfigurationsfehler eine Zeile `tdswire: Konfiguration ungueltig: <Schlüssel>: <Art>`. Dazu schreibt der
+ * [LogAdapter] je Ereignis der Bibliothek eine JSON-Zeile, gefiltert nach `LOG_LEVEL` ([LogLevelSetting]); vor dem
+ * Start und für den Grund eines Abbruchs synchron, danach über seine Warteschlange. Der Hook und der Abbruch rufen
+ * [LogAdapter.close] vor dem Prozessende.
  */
 fun main() = runTestserver()
 
@@ -41,14 +44,20 @@ internal fun runTestserver(
     environment: Map<String, String> = System.getenv(),
     choose: (List<SimTable>) -> BackendSource? = { BackendSource.Simulation(it) },
 ) {
-    when (val boot = runBlocking { startTestserver(environment, choose, ::println) }) {
-        is StartOutcome.Aborted -> exitProcess(EXIT_START_FAILED)
+    val log = LogAdapter(LogLevelSetting.levelOf(environment), StandardOutput)
+    when (val boot = runBlocking { startTestserver(environment, choose, log::writeDirect, log) }) {
+        is StartOutcome.Aborted -> {
+            log.close()
+            exitProcess(EXIT_START_FAILED)
+        }
 
         is StartOutcome.Running -> {
+            log.startWriter()
             Runtime.getRuntime().addShutdownHook(
                 Thread {
                     runBlocking { boot.server.stop() }
-                    println("$LINE_PREFIX gestoppt")
+                    log.close()
+                    log.writeLast("$LINE_PREFIX gestoppt")
                 },
             )
             CountDownLatch(1).await()
@@ -57,14 +66,19 @@ internal fun runTestserver(
 }
 
 /**
- * Lader, Beschreibung der Tabellen und `TdsServer.start`; jede Zeile geht an [out]. Die Zeile der Bereitschaft
- * schreibt diese Funktion erst, nachdem der Start den laufenden Server geliefert hat.
+ * Lader, Beschreibung der Tabellen und `TdsServer.start` mit [telemetry]; jede Zeile des Testservers geht an [out].
+ * Die Zeile der Bereitschaft schreibt diese Funktion erst, nachdem der Start den laufenden Server geliefert hat.
+ * Ein ungültiger `LOG_LEVEL` bricht den Start ab, bevor etwas geladen wird; er ist dann der einzige gemeldete Fehler.
  */
 internal suspend fun startTestserver(
     environment: Map<String, String>,
     choose: (List<SimTable>) -> BackendSource?,
     out: (String) -> Unit,
+    telemetry: TelemetrySink = TelemetrySink.NONE,
 ): StartOutcome {
+    LogLevelSetting.issue(environment)?.let { issue ->
+        return StartOutcome.Aborted(CONFIG_INVALID, listOf(issue)).also { report(it, out) }
+    }
     val outcome = when (val loaded = ConfigLoader.load(environment)) {
         is ConfigResult.Invalid -> StartOutcome.Aborted(CONFIG_INVALID, loaded.issues)
 
@@ -73,7 +87,12 @@ internal suspend fun startTestserver(
 
             is DescriptionResult.Read -> when (val source = choose(described.tables)) {
                 null -> StartOutcome.Aborted("Backend und Simulations-Backend gleichzeitig konfiguriert")
-                else -> TdsServer.start(loaded.config, withEmptyCatalog(source, loaded.simulationFile != null))
+
+                else -> TdsServer.start(
+                    loaded.config,
+                    withEmptyCatalog(source, loaded.simulationFile != null),
+                    telemetry,
+                )
             }
         }
     }
