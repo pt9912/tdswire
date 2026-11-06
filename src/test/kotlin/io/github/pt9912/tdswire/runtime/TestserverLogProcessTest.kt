@@ -156,7 +156,9 @@ internal class TestserverLogProcessTest : TempFilesTest() {
      * `LOG_LEVEL` filtert am Prozess: bei `ERROR` steht keine JSON-Zeile da (die Bereitschaftszeile und `gestoppt`
      * sind keine Ereignisse und stehen), bei `WARN` stehen die zwei Abschwächungen der Sicherheit des Testmodus, je
      * Anmeldung ohne angebotene Verschlüsselung `encryption_not_offered` und die Ablehnung, bei `DEBUG` jedes Ereignis
-     * des Laufs.
+     * des Laufs. Das Backend des Prozesses ist eine eigene Quelle über dem `TableStore`: die Bibliothek meldet für sie
+     * kein `simulation_backend_ready` (die Art entsteht nur bei `BackendSource.Simulation`), also steht in diesem Lauf
+     * kein Ereignis der Ebene `DEBUG`; die Ebene `DEBUG` mit einem Ereignis hält `LogAdapterTest`.
      *
      * @spec SPEC-052
      */
@@ -170,7 +172,6 @@ internal class TestserverLogProcessTest : TempFilesTest() {
             "DEBUG" to (
                 weakened + notOffered + listOf(
                     "server_started",
-                    "simulation_backend_ready",
                     "login_accepted",
                     "login_rejected",
                     "server_stopped",

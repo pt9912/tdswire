@@ -17,6 +17,7 @@
 # Zusage: die Tests der Kategorie bestehen gegen den Serverprozess; nicht belegt steht im Kopf der Testklassen.
 # Der Lauf ist eine Stufe von `make e2e` und kein Gate (ADR-0022).
 set -u
+. "$(dirname "$0")/log-muster.sh" || { echo "log-muster.sh nicht lesbar" >&2; exit 1; }
 
 KATEGORIE="${1:-}"
 case "$KATEGORIE" in
@@ -93,10 +94,14 @@ pruefe "Alle Tests der Kategorie $KATEGORIE bestanden ($(grep -Eo 'Total tests: 
 
 laeuft() { [ "$(docker inspect --format '{{.State.Running}}' "$SERVER")" = "true" ]; }
 pruefe "Server laeuft nach den Tests" laeuft
-pruefe "Log nennt keinen Handlerfehler und keinen Fehler des Authentifizierungsadapters" \
-  sh -c "! docker logs '$SERVER' 2>&1 | grep -Eq '\"event\":\"(connection_failed|adapter_failed)\"'"
-pruefe "Ausgabe des Testservers (Ereigniszeilen und Backend) nennt weder Kennwort noch Text der Quellenausnahme" \
-  sh -c "! docker logs '$SERVER' 2>&1 | grep -Eq 'secret|Geheimnis'"
+# Positivprobe: ohne sie bliebe die Negativpruefung auch bei leerem Log gruen (TDS-FA-09, SPEC-052). Jede Kategorie meldet sich
+# an; INFO ist die Voreinstellung von LOG_LEVEL, login_accepted hat die Ebene INFO.
+log_nennt_anmeldung() { docker logs "$SERVER" 2>&1 | log_nennt_ereignis login_accepted; }
+pruefe "Log nennt mindestens ein Ereignis login_accepted" log_nennt_anmeldung
+kein_handlerfehler() { docker logs "$SERVER" 2>&1 | log_ohne_ereignis 'connection_failed|adapter_failed'; }
+kein_kennwort() { docker logs "$SERVER" 2>&1 | log_ohne_text 'secret|Geheimnis'; }
+pruefe "Log nennt keinen Handlerfehler und keinen Fehler des Authentifizierungsadapters" kein_handlerfehler
+pruefe "Ausgabe des Testservers (Ereigniszeilen und Backend) nennt weder Kennwort noch Text der Quellenausnahme" kein_kennwort
 
 if [ "$KATEGORIE" = Anmeldung ]; then
   # Der Client beobachtet nur, dass die zweite Nutzung der gepoolten Verbindung gelingt; ob sie dieselbe Sitzung am
@@ -126,8 +131,7 @@ if [ "$KATEGORIE" = Anmeldung ]; then
   # `TDS_UNSUPPORTED_RPC` und der Ursache `UNKNOWN_PROCEDURE` steht es keinmal (Negativpruefung; eine unbekannte
   # Prozedur erreicht das Backend nicht, der Aufzeichner sieht sie nicht).
   anfrage_fehler() { # anfrage_fehler <Code> <Ursache>: Zahl der Ereignisse request_failed mit diesem Code und dieser Ursache
-    docker logs "$SERVER" 2>&1 | grep -F '"event":"request_failed"' | grep -F "\"error_code\":\"$1\"" |
-      grep -cF "\"cause\":\"$2\""
+    docker logs "$SERVER" 2>&1 | log_zaehle_fehler "$1" "$2"
   }
   prepare_limit_einmal() { [ "$(anfrage_fehler TDS_PREPARE_LIMIT handle-limit)" = 1 ]; }
   unbekannte_prozedur_keinmal() { [ "$(anfrage_fehler TDS_UNSUPPORTED_RPC UNKNOWN_PROCEDURE)" = 0 ]; }
@@ -156,7 +160,7 @@ if [ "$KATEGORIE" = Luecken ]; then
   # - `login_rejected` mit `reason` UNSUPPORTED_PASSWORD_CHANGE und UNSUPPORTED_FEDERATED_AUTHENTICATION
   # - `request_failed` mit `error_code` TDS_PROTOCOL_ERROR (mehrere RPCs) und TDS_UNSUPPORTED_TYPE (xml)
   grund() { # grund <event> <Feld> <Wert>: mindestens eine Zeile des Ereignisses mit diesem Feldwert
-    docker logs "$SERVER" 2>&1 | grep -F "\"event\":\"$1\"" | grep -qF "\"$2\":\"$3\""
+    docker logs "$SERVER" 2>&1 | log_nennt_ereignis "$1" "\"$2\":\"$3\""
   }
   pruefe "Log: login_rejected mit UNSUPPORTED_PASSWORD_CHANGE" grund login_rejected reason UNSUPPORTED_PASSWORD_CHANGE
   pruefe "Log: login_rejected mit UNSUPPORTED_FEDERATED_AUTHENTICATION" \

@@ -18,7 +18,11 @@ internal const val QUEUE_CAPACITY = 1024
 /** Frist, in der [LogAdapter.close] die Warteschlange leert (Setzung der `ADR-0020`, Frage 7). */
 internal val CLOSE_GRACE: Duration = Duration.ofSeconds(2)
 
-/** Frist je Zeile, die [LogAdapter.writeLast] und das Schließen noch schreiben (Setzung, nicht gemessen). */
+/**
+ * Frist je Zeile, die [LogAdapter.writeLast] und das Schließen noch schreiben. Setzung des Testservers: `ADR-0020`
+ * (Frage 7) nennt für diese Zeile keine Zahl; 250 ms sind nicht gemessen. Den Wert hält kein Test; das Warten auf die
+ * Frist hält `LogAdapterTest`.
+ */
 internal val LAST_LINE_GRACE: Duration = Duration.ofMillis(250)
 
 private const val POLL_MILLIS = 50L
@@ -50,6 +54,13 @@ private enum class Phase { BEFORE_START, RUNNING, CLOSING, CLOSED }
  * Die Zeilen von [writeDirect] und [writeLast] gehen ohne Warteschlange in denselben Kanal; ihre Reihenfolge zu den
  * Zeilen der Warteschlange ist nicht festgelegt. Ein hängender Kanal hält [writeDirect] an; [close] und
  * [writeLast] kehren nach ihrer Frist zurück.
+ *
+ * Grenzen der Verlust-Zählung (nicht gemessen): Das Ereignis, das der Schreiber bei hängendem Kanal in der Hand hält,
+ * zählt weder in der Rest-Zahl von [close] noch in `dropped`; ein Ereignis nach [close] wird gezählt, aber nicht mehr
+ * gemeldet; ein [accept], das die Phase vor [close] las und danach einreiht, geht ungezählt verloren; schreibt ein
+ * zuvor hängender Kanal nachträglich, kann diese Zeile nach der letzten stehen. Mit [StandardOutput] wirft
+ * [LineChannel.write] keine `IOException` (`PrintStream` meldet Fehler über `checkError`); die Zweige darauf laufen
+ * nur mit Kanälen, die sie werfen.
  */
 internal class LogAdapter(
     private val chosen: EventLevel,

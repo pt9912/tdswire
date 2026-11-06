@@ -13,6 +13,7 @@
 # Zusage: die vier Tests bestehen gegen den Serverprozess; nicht belegt steht im Kopf von
 # referenztest-dotnet/EigenesBackend/EigenesBackendTests.cs. Der Lauf ist Stufe 8 von `make e2e` und kein Gate (ADR-0022).
 set -u
+. "$(dirname "$0")/log-muster.sh" || { echo "log-muster.sh nicht lesbar" >&2; exit 1; }
 
 LAUF="tdswire-eb-$$"
 NETZ="$LAUF-netz"
@@ -86,11 +87,12 @@ pruefe "Backend: 1 Anfrage an wirft" anfragen_je_tabelle wirft 1
 
 laeuft() { [ "$(docker inspect --format '{{.State.Running}}' "$SERVER")" = "true" ]; }
 pruefe "Server laeuft nach den Tests" laeuft
-# Der Testserver schreibt je Ereignis der Bibliothek eine JSON-Zeile (ADR-0020). Geprueft ist das Log dieses Laufs, also die
-# Pfade der Tests (Fehler am Start, nach Zeilen, `execute` wirft): Kennwort, Text der Ausnahme und Text des Fehlers stehen in
-# keiner Zeile, auch nicht in den Ereigniszeilen der Bibliothek.
-pruefe "Ausgabe des Testservers (Ereigniszeilen und Backend) nennt weder Kennwort noch Text der Ausnahme oder des Fehlers" \
-  sh -c "! docker logs '$SERVER' 2>&1 | grep -Eq 'secret|Geheimnis|Text des Backends'"
+# Der Server dieser Stufe uebergibt `TdsServer.start` keine Senke und schreibt keine Ereigniszeilen (ADR-0020); im Log stehen
+# die Zeilen des Backends. Geprueft ist das Log dieses Laufs, also die Pfade der Tests (Fehler am Start, nach Zeilen,
+# `execute` wirft): Kennwort, Text der Ausnahme und Text des Fehlers stehen in keiner Zeile.
+kein_kennwort_und_text() { docker logs "$SERVER" 2>&1 | log_ohne_text 'secret|Geheimnis|Text des Backends'; }
+pruefe "Ausgabe des Servers (Zeilen des Backends) nennt weder Kennwort noch Text der Ausnahme oder des Fehlers" \
+  kein_kennwort_und_text
 
 echo "eigenes-backend: --- Log des Servers ---"
 docker logs "$SERVER" 2>&1

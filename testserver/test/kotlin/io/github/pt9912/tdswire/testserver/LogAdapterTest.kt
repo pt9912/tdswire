@@ -211,6 +211,27 @@ internal class LogAdapterTest : TempFilesTest() {
     }
 
     /**
+     * `writeLast` wartet, bis die Zeile im Kanal steht: ein Kanal, der erst nach [SLOW_MILLIS] annimmt, hat die Zeile
+     * beim Rückkehren des Aufrufs. Die Frist ist hier weit über der Dauer des Kanals; rot wird der Test, wenn der
+     * Aufruf die übergebene Frist nicht abwartet. Getestet ist das Warten, keine Wanduhr-Grenze.
+     *
+     * @spec SPEC-052
+     */
+    @Test
+    fun `WriteLast wartet auf die Zeile`() {
+        val written = AtomicInteger()
+        val adapter = adapter(
+            EventLevel.DEBUG,
+            LineChannel {
+                Thread.sleep(SLOW_MILLIS)
+                written.incrementAndGet()
+            },
+        )
+        adapter.writeLast("tdswire: gestoppt", Duration.ofMillis(BOUND_MILLIS))
+        assertEquals(1, written.get())
+    }
+
+    /**
      * Die Zeile `tdswire: gestartet, Port <n>` geht nie über die Warteschlange: bei voller Warteschlange und einem
      * Schreiber, der die Zeilen des Adapters festhält, steht sie sofort im Kanal.
      *

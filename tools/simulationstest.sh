@@ -17,6 +17,7 @@
 # Cancel genau einmal geschlossen (eine Zeile des Testservers je Schliessen). Nicht belegt: echter SQL Server, TDS 8.0,
 # Last. Der Lauf ist Stufe 3 von `make e2e` und kein Gate.
 set -u
+. "$(dirname "$0")/log-muster.sh" || { echo "log-muster.sh nicht lesbar" >&2; exit 1; }
 
 LAUF="tdswire-sim-$$"
 NETZ="$LAUF-netz"
@@ -60,9 +61,10 @@ gestartet() {
   return 1
 }
 pruefe "Server im Container meldet 'gestartet, Port 1433'" gestartet
-# Die Tabellen: `leer` aus der Beschreibungsdatei und person, gross, kaputt, laufend aus IntegrationServer.kt (Kopplung).
+# Die 5 Tabellen sind die vier von `IntegrationTables.all()` (IntegrationServer.kt: person, gross, kaputt, laufend) und `leer` aus
+# testserver/resources/integration/sim.yaml (Kopplung: ein Wechsel der Tabellenzahl dort aendert diese Zahl).
 simulations_backend_verdrahtet() {
-  docker logs "$SERVER" 2>&1 | grep -F '"event":"simulation_backend_ready"' | grep -qF '"tables":5'
+  docker logs "$SERVER" 2>&1 | log_nennt_ereignis simulation_backend_ready '"tables":5'
 }
 pruefe "Log nennt das Ereignis simulation_backend_ready mit 5 Tabellen" simulations_backend_verdrahtet
 
@@ -87,10 +89,10 @@ pruefe "Die Quelle von laufend ist nach dem Cancel genau einmal geschlossen" que
 
 laeuft() { [ "$(docker inspect --format '{{.State.Running}}' "$SERVER")" = "true" ]; }
 pruefe "Server laeuft nach den Tests" laeuft
-pruefe "Log nennt keinen Handlerfehler und keinen Fehler des Authentifizierungsadapters" \
-  sh -c "! docker logs '$SERVER' 2>&1 | grep -Eq '\"event\":\"(connection_failed|adapter_failed)\"'"
-pruefe "Ausgabe des Testservers (Ereigniszeilen und Backend) nennt weder Kennwort noch Text der Quellenausnahme" \
-  sh -c "! docker logs '$SERVER' 2>&1 | grep -Eq 'secret|Geheimnis'"
+kein_handlerfehler() { docker logs "$SERVER" 2>&1 | log_ohne_ereignis 'connection_failed|adapter_failed'; }
+kein_kennwort() { docker logs "$SERVER" 2>&1 | log_ohne_text 'secret|Geheimnis'; }
+pruefe "Log nennt keinen Handlerfehler und keinen Fehler des Authentifizierungsadapters" kein_handlerfehler
+pruefe "Ausgabe des Testservers (Ereigniszeilen und Backend) nennt weder Kennwort noch Text der Quellenausnahme" kein_kennwort
 
 echo "simulationstest: Laufzeit $((fertig - start)) s, davon Bau $((gebaut - start)) s und Tests $((fertig - gebaut)) s"
 [ "$FEHLER" -eq 0 ] || { echo "simulationstest: ROT"; exit 1; }

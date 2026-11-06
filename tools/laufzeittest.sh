@@ -12,6 +12,7 @@
 # `gestoppt` und je einer JSON-Zeile je Ereignis der Bibliothek (ADR-0020); der Lauf prueft, dass die Anmeldung als
 # Ereignis `login_accepted` mit der Kennung im Feld `principal` dasteht und dass nirgends sonst Benutzer oder Passwort stehen.
 set -u
+. "$(dirname "$0")/log-muster.sh" || { echo "log-muster.sh nicht lesbar" >&2; exit 1; }
 
 LAUF="tdswire-lz-$$"
 NETZ="$LAUF-netz"
@@ -74,11 +75,11 @@ ende="$(docker inspect --format '{{.State.ExitCode}}' "$SERVER")"
 pruefe "docker stop beendet den Prozess durch SIGTERM, Exit-Code 143 (gemessen: $ende)" test "$ende" = "143"
 pruefe "Ausgabe des Testservers nennt 'gestoppt'" sh -c "docker logs '$SERVER' 2>&1 | grep -q 'tdswire: gestoppt'"
 anmeldung_als_ereignis() {
-  docker logs "$SERVER" 2>&1 | grep -F '"event":"login_accepted"' | grep -qF '"principal":"alice"'
+  docker logs "$SERVER" 2>&1 | log_nennt_ereignis login_accepted '"principal":"alice"'
 }
 pruefe "Ausgabe des Testservers nennt die Anmeldung als Ereignis login_accepted mit principal alice" anmeldung_als_ereignis
 benutzer_nur_im_principal() {
-  ! docker logs "$SERVER" 2>&1 | grep -v '"event":"login_accepted"' | grep -q 'alice'
+  docker logs "$SERVER" 2>&1 | log_text_nur_im_ereignis alice login_accepted
 }
 pruefe "Ausgabe des Testservers nennt den Benutzer nur im Ereignis login_accepted" benutzer_nur_im_principal
 kein_passwort() { ! docker logs "$SERVER" 2>&1 | grep -q 'secret'; }

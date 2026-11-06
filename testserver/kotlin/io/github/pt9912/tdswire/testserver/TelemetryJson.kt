@@ -36,7 +36,7 @@ private class EventProperty(val property: String, val json: String, val read: (T
  * Zeichenkodierung der Standardausgabe (die Locale des Prozesses) kein Zeichen verändert. Eine Zeile enthält keinen
  * Zeilenumbruch.
  *
- * Die Felder des Ereignisses liest [fieldsOf] aus der Tabelle [PROPERTIES]; `TelemetryEventSchemaTest` hält sie gleich
+ * Die Felder des Ereignisses liest [fieldsOf] aus der Tabelle [PROPERTIES]; `TelemetryJsonTest` hält sie gleich
  * den öffentlichen Zugriffen von `TelemetryEvent`. Der Name jeder Art steht in [eventName]; das `when` hat kein
  * `else`, eine neue Art bricht die Übersetzung.
  */
