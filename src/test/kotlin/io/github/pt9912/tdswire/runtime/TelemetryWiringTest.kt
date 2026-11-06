@@ -90,6 +90,7 @@ internal class TelemetryWiringTest : RuntimeTestBase() {
      * Endet die Verbindung ohne Ausnahme des Handlers (der Client schließt oder bricht nach der Anmeldung ab, der
      * Server wird beendet), entsteht kein `CONNECTION_FAILED`.
      *
+     * @spec SPEC-048
      * @spec TDS-FA-09
      */
     @Test
