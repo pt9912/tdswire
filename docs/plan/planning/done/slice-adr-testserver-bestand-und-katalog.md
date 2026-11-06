@@ -73,7 +73,7 @@ Liefer-Punkte (3):
 
 Nachweis-Pflichten für alle Punkte:
 
-- [ ] `make gates` grün.
+- [x] `make gates` grün. *(Beleg: Exit 0 am 2026-11-06 nach dem Move, §7; die Gate-Gruppen kamen mit Beleg aus dem Stempel, weil der Diff nur `docs/` berührt; `make docs-check` 795 Dateien, 0 Befunde.)*
 - [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8). *(Beleg: [Review](../../../reviews/2026-11-05-f0fdc87-slice-adr-testserver-bestand-und-katalog.md) und [Verifikation](../../../reviews/2026-11-06-fef4b5b-verifikation-slice-adr-testserver-bestand-und-katalog.md); ein Re-Review der Fix-Stellen steht aus, siehe §7.)*
@@ -189,7 +189,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 | Bedingung der Verifikation | Ausgang |
 |---|---|
 | 1 V-1, V-2 (Anschluss-Blöcke, Zeile bulk-load/SPEC-059) | in `680033f` auf den Stand `Accepted` gezogen (Z3, `onInsertBatch`, `SimColumn.maxLength`, Fassung F); vom Planner bei der Closure gegen die Folge-Slices gelesen. **Ein Re-Review der geänderten Stellen, wie die Verifikation ihn verlangt, ist nicht gelaufen**; der Planner ersetzt ihn nicht (kein Self-Review). Offener Punkt für den Nutzer. |
-| 2 `make gates`, §7, Risiko-Ausgänge, Register | Risiko-Ausgänge in §6, Register unten, Haken gesetzt. `make gates` im Zweig `closure-slice-adr-bestand` am 2026-11-06 vor dem Move: alle Gate-Gruppen übersprungen mit Beleg (kein Quelltext geändert), Doku-Gate rot allein an den Verweisen der Evidence-Dateien auf `done/` (löst erst der Move) und an drei fehlenden Links, danach behoben. Der Lauf nach dem Move steht in der Übergabe. |
+| 2 `make gates`, §7, Risiko-Ausgänge, Register | Risiko-Ausgänge in §6, Register unten, Haken gesetzt. `make gates` im Zweig `closure-slice-adr-bestand` am 2026-11-06 vor dem Move: alle Gate-Gruppen übersprungen mit Beleg (kein Quelltext geändert), Doku-Gate rot allein an den Verweisen der Evidence-Dateien auf `done/` (löst erst der Move) und an drei fehlenden Links, danach behoben. Nach dem Move: `make docs-check` 795 Dateien, 0 Befunde; `make gates` Exit 0 (Gruppen `werkzeug`, `tests`, `stempel` übersprungen mit Beleg, `FORCE=1` nicht gefahren; Doku-Gate, `gate-zuordnung` mit 33 Fällen und `stempel-eingaenge` gelaufen). |
 | 3 Folge-Slice für die Handle-Grenze (Planner) | angelegt: [slice-adr-handle-grenze-ersatz](../open/slice-adr-handle-grenze-ersatz.md), vor [slice-schreibpfad-merge-output](../open/slice-schreibpfad-merge-output.md). |
 
 **Was hat funktioniert:** Der Spike gegen einen Prototyp hat die Richtung belegt und die Fragen an den Nutzer in eine kleine Zahl entscheidbarer Wahlen verdichtet (Fassung F gegen N, Weitergabe Z1 bis Z3); der Nutzer entschied am 2026-11-06 alle Punkte auf die Empfehlungen der ADR. Review und Verifikation fanden die Aussagen, die breiter als die Messzeilen waren, bevor der Nutzer auf ihnen entschied.
