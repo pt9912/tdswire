@@ -162,6 +162,11 @@ ist eine Lifecycle-Rücksprungkante (11).
     `· seit slice-<Kennung>`) — alles andere ist Zustand, keine Chronik, und wird vor der Übergabe
     umformuliert statt mitgeschleift.
 
+20a. **Ein Messprotokoll nennt, ob der Erzeuger der Zahlen im Repo liegt.** Stammen Zahlen aus
+    einem Wegwerf-Erzeuger oder einem nicht committeten Stand, steht das im Protokoll, und Protokoll,
+    Spec, Doku und Bericht führen sie nur als Größenordnung; eine präzisere Aussage braucht einen
+    Beleg, den der Verifier im Repo wiederholen kann (seit slice-katalog-und-ddl-zustand).
+
 Hier endet die Implementation. Die übrigen Rollen laufen in **getrennten Kontexten** (Modul 8).
 
 ## Übergaben an nachgelagerte Rollen (Modul 8 → 10 → 11)
