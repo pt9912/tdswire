@@ -347,7 +347,7 @@ style:
         reason: 'Prozess: Start und Ende des Dienstes gehoeren der Composition Root, nicht dem Kern.'
   # Ausgabe im Hauptmodul: die Bibliothek schreibt nirgends hin, Log und Telemetrie gehen an die Senke
   # (ADR-0020). Gesperrt sind print, println und printStackTrace in jedem Package unter src/main, ohne
-  # Ausnahme; die Source-Sets test, integrator und testserver sind nicht betroffen. Grenze: wirkt nur mit
+  # Ausnahme; das Source-Set test, das Source-Set integrator und das Modul testserver sind nicht betroffen. Grenze: wirkt nur mit
   # Typaufloesung (detektMain), und nur die genannten Aufrufe; ein Schreiben ueber einen anderen Weg
   # (Logger.log, Thread.dumpStack, ein Logger einer Fremdbibliothek) trifft die Regel nicht. `make detekt-selbsttest` fuehrt je Eintrag
   # einen Rot-Fall unter config/detekt/selbsttest-aufrufe/src/main/.

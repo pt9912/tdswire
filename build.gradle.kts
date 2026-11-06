@@ -80,8 +80,8 @@ tasks.register<Test>("integratorTest") {
 // Der Testserver (ADR-0034) ist das Gradle-Modul `:testserver` (testserver/build.gradle.kts) und bindet diese
 // Bibliothek als Projekt-Abhaengigkeit. Die Tests der Bibliothek starten ihn als Kind-JVM (`ServerProcess`); sein
 // Klassenpfad kommt aus der Datei, die die Task `testserverKlassenpfad` des Moduls schreibt, als Systemeigenschaft.
-// Die Wurzel loest den Klassenpfad des Moduls nicht selbst auf: eine aufgeloeste Konfiguration auf `:testserver`
-// brachte dessen Abhaengigkeiten (Jackson) in die Sperre der Bibliothek.
+// Die Wurzel loest den Klassenpfad des Moduls nicht als Konfiguration auf, sondern liest die Datei der Modul-Task;
+// die Sperre der Bibliothek (gradle.lockfile) fuehrt damit kein Jackson (Messprotokoll 2026-11-06, M3.3).
 evaluationDependsOn(":testserver")
 
 val testserverKlassenpfad = project(":testserver").tasks.named("testserverKlassenpfad")

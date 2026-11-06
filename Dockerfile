@@ -17,7 +17,7 @@ FROM gradle:8.14-jdk21@sha256:b3453e88792ea90b526f5d04fa2961bba183ae57ded4ad3437
 # --- Deps: laedt die Artefakte aller Konfigurationen, die compile, test, detekt und assemble
 # brauchen (Gradle-Task `abhaengigkeitenLaden`, build.gradle.kts), mit aktiver Sperre und
 # Verifikation. Die Stage steht direkt nach `basis` und kopiert genau die Dateien, die die
-# Aufloesung bestimmen; src/, config/, tools/, Doku und Harness liegen nicht im Eingang. compile,
+# Aufloesung bestimmen (im Modul `testserver` nur Build-Datei und Sperre); src/, die Quellen von testserver/, config/, tools/, Doku und Harness liegen nicht im Eingang. compile,
 # test, detekt, detekt-selbsttest und spec-abdeckung erben von ihr, eine Quelltextaenderung loest dort
 # also keinen Download aus; testkeys, lock und spec-abdeckung-selbsttest erben von `basis`. Eine neue
 # Eingangsdatei der Aufloesung gehoert in die COPY-Zeilen dieser Stage und nirgends sonst hin.
@@ -30,7 +30,7 @@ COPY --chown=gradle:gradle gradle/libs.versions.toml gradle/verification-metadat
 COPY --chown=gradle:gradle testserver/build.gradle.kts testserver/gradle.lockfile testserver/
 RUN gradle --no-daemon abhaengigkeitenLaden
 
-# --- Compile: kompiliert den Produktionscode. Es kommt nur src/ hinzu, damit eine Aenderung an
+# --- Compile: kompiliert den Produktionscode. Es kommen nur src/ und testserver/ hinzu, damit eine Aenderung an
 # Doku oder Harness diese Stage nicht neu laufen laesst. -----------------------
 FROM deps AS compile
 COPY --chown=gradle:gradle src src
@@ -79,7 +79,7 @@ RUN keytool -genkeypair -alias server -keyalg RSA -keysize 2048 -validity 3650 -
  && rm wurzel.p12 zwischen.p12 zwischen.csr blatt.csr
 
 # --- Test: `docker build --target test .` - fuehrt die Unit-Tests, den Einbettungstest (`integratorTest`) und, in `:testserver`, die Tests des Testservers aus (kotlin.test auf der
-# JUnit-Plattform, SPEC-024). Es kommen src/ und LICENSE hinzu; kein Test liest spec/ oder harness/ (die Kopplung
+# JUnit-Plattform, SPEC-024). Es kommen src/, testserver/ und LICENSE hinzu; kein Test liest spec/ oder harness/ (die Kopplung
 # der Zahlen des Integrationslaufs an die Doku prueft die Stage `kopplung-zahlen`). Ein roter Test bricht den Build.
 FROM deps AS test
 COPY --chown=gradle:gradle LICENSE LICENSE
@@ -119,7 +119,7 @@ RUN sh tools/suppression-check.sh src testserver \
 # --- Detekt-Selbsttest: `docker build --target detekt-selbsttest .` - belegt, dass jede
 # Importregel verbotene Importe meldet und erlaubte nicht, dass jeder verbotene Aufruf gemeldet
 # wird, und dass das Suppression-Verbot die Formen von @Suppress meldet, die das Skript nennt
-# (tools/detekt-selbsttest.sh). Kopiert weder src/ noch Doku: die Stage
+# (tools/detekt-selbsttest.sh). Kopiert weder src/ noch testserver/ noch Doku: die Stage
 # laeuft nur neu, wenn sich Regeln, Testdaten, Skripte oder Toolchain aendern. -----
 FROM deps AS detekt-selbsttest
 COPY --chown=gradle:gradle config config

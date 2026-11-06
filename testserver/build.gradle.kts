@@ -37,7 +37,7 @@ dependencies {
     testRuntimeOnly(libs.junit.platform.launcher)
 }
 
-// Die Verzeichnisse behalten ihre Form aus der Zeit vor dem Modul: Quellen unter kotlin, Tests unter test/kotlin,
+// Die Verzeichnisse des Moduls: Quellen unter kotlin, Tests unter test/kotlin,
 // Ressourcen unter resources. Der Pfad `**/test/**` der Tests ist fuer detekt der Standardausschluss fuer Tests.
 sourceSets {
     main {

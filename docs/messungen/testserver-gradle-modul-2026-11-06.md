@@ -1,6 +1,6 @@
 # Testserver als Gradle-Modul: Messprotokoll vom 2026-11-06
 
-Messprotokoll zu [TDS-RB-01](../../spec/lastenheft.md#tds-rb-01--implementierungssprache) und [TDS-QA-06](../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) (`AGENTS.md` §5 Regel 7), Grundlage der Messpunkte M1, M2 und M4 von [ADR-0034](../plan/adr/0034-testserver-als-gradle-modul.md). Es hält fest, was gemessen wurde, nicht, ob eine Anforderung belegt ist. Stand dieses Protokolls: Messpunkte M1 bis M7, dazu die Läufe E1 und E2 und G1 und G2.
+Messprotokoll zu [TDS-RB-01](../../spec/lastenheft.md#tds-rb-01--implementierungssprache) und [TDS-QA-06](../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) (`AGENTS.md` §5 Regel 7), Grundlage der Messpunkte M1 bis M7 von [ADR-0034](../plan/adr/0034-testserver-als-gradle-modul.md). Es hält fest, was gemessen wurde, nicht, ob eine Anforderung belegt ist. Stand dieses Protokolls: Messpunkte M1 bis M7, dazu die Läufe E1 und E2 und G1 und G2.
 
 **Vorbehalt, der für jede Zeile gilt.** Jede Zeile ist ein Einzellauf auf einem Rechner unter fremder Last. Die Zeiten vergleichen nichts und sind keine Leistungszusage. Die Läufe liegen im Arbeitsbaum des Zweigs `slice-testserver-gradle-modul` nach dem reinen Umzug `src/testserver` → `testserver` und dem Modul-Stand dieses Commits; die Rohprotokolle liegen im Scratchpad der Sitzung und nicht im Repo.
 
@@ -48,7 +48,9 @@ Klassenpfad-Datei der Stage `testserver` (`testserver/build/testserver-klassenpf
 | M2.3 | Stage `testserver` mit `COPY LICENSE` | `unzip -l` zeigt `META-INF/MANIFEST.MF` und `META-INF/LICENSE`; `unzip -p … META-INF/LICENSE \| cmp - LICENSE` ohne Unterschied |
 | M2.4 | Mutation: `implementation(project(":"))` durch `implementation(<main.output der Wurzel>)` ersetzt (Klassenverzeichnis statt Jar), Stage `testserver` | **rot**: `:testserver:testserverKlassenpfad` bricht mit „Klassenpfad des Testservers nennt tdswire.jar nicht“; die Task prüft seit diesem Commit, dass `tdswire.jar` im Klassenpfad steht und kein Verzeichnis außerhalb des Moduls |
 
-Ein Lauf in der Kind-JVM und im Container nutzt dieselbe Datei: `make smoke` (M4.1) startet den Testserver mit diesem Klassenpfad. | Nr. | Lauf | Ergebnis |
+Ein Lauf in der Kind-JVM und im Container nutzt dieselbe Datei: `make smoke` (M4.1) startet den Testserver mit diesem Klassenpfad.
+
+| Nr. | Lauf | Ergebnis |
 |---|---|---|
 | M2.5 | Images der Stages `integrationsserver` und `kompatibilitaetsserver` gebaut und gestartet (`docker run -d`, 25 s Wartezeit); in `/proc/<pid>/cmdline` der Server-JVM den Klassenpfad gelesen | beide Klassenpfade beginnen mit `/src/testserver/build/classes/java/main:/src/testserver/build/classes/kotlin/main:/src/testserver/build/resources/main:/src/build/libs/tdswire.jar:` und führen danach Fremd-Jars aus dem Gradle-Cache (Jackson 2.21.7, `snakeyaml-2.5.jar`); `build/classes` der Bibliothek steht nicht darin. In beiden Images enthält `/src/build/libs/tdswire.jar` `META-INF/MANIFEST.MF` und `META-INF/LICENSE` (`unzip -l`, zwei Treffer je Image). Die Server-JVM des Integrationsservers trägt `-Xmx48m`, sein Log meldet „Heap max 50331648 Bytes“ |
 | M2.6 | Stage `laufzeit-client` | nicht über das Modul: die Task `laufzeitClient` nutzt `sourceSets.test.runtimeClasspath` der Wurzel; die Stage baut `testClasses` und startet den Client im Lauf von `make laufzeittest` (Stufe 2 von `make e2e`, grün, siehe E1) |
@@ -62,6 +64,8 @@ Nicht gemessen in M2.5: der Klassenpfad des Prozesses von `make testserver-up` (
 | M4.1 | `make smoke` (Gradle-Aufruf `:test --tests …ServerSmokeTest`) | grün: die drei Tests von `ServerSmokeTest` bestanden, darunter „Serverprozess beantwortet den Login-Pfad mit Rohbytes“ (Kind-JVM mit `tdswire.testserverclasspath` aus der Datei des Moduls) und „Ein Prozess ohne JVM-Option startet mit TLS“; 47 s Gradle-Zeit, 50,7 s Wanduhr |
 | M4.2 | `make test` | grün: `BUILD SUCCESSFUL in 1m 50s`; Reihenfolge der Tasks im Protokoll: `:integratorTest`, `:testserver:testserverKlassenpfad`, `:testserver:test`, `:test`; 933 Zeilen „PASSED“, kein Test rot; 1 m 55 s Wanduhr |
 | M4.3 | Mutation: `tasks.named("testserverKlassenpfad") { dependsOn(":test") }` an `testserver/build.gradle.kts` angehängt (die Rückkante Modul → Wurzel-`test`), `make smoke` | **rot**: „Circular dependency between the following tasks: :test \--- :testserver:testserverKlassenpfad \--- :test“ |
+
+**Abweichung von [ADR-0034](../plan/adr/0034-testserver-als-gradle-modul.md) Entscheidung 8.** Die ADR setzt für die Wurzel-`test` „eine auflösbare Konfiguration (`project(":testserver")`, Laufzeit)“; gebaut ist die Datei der Modul-Task `testserverKlassenpfad` als Systemeigenschaft (M4.1, M4.2). Gemessen ist diese Lösung (kein Zyklus, M4.3; Jackson nur in der Modul-Sperre, M3.3); die Konfigurationslösung ist nicht gefahren, ihre Wirkung auf die Sperre der Bibliothek ist nicht gemessen.
 
 Aussage, die M4 trägt: Die Kante Wurzel-`test` → Klassenpfad-Datei des Moduls → Jar der Bibliothek hat keinen Zyklus. Die Wurzel löst `:testserver` nicht als Konfiguration auf, sondern liest die Datei der Modul-Task. Nicht gemessen: ob die Zahl der Tests der Zahl vor dem Umzug gleicht (der Vergleichslauf vorher kam aus dem Cache, ohne Einzelzeilen).
 
@@ -91,6 +95,9 @@ Grenze: M3.4 mutiert die Task, nicht die Sperre des Moduls; dass eine fehlende D
 |---|---|---|
 | M5.1 | `make detekt-selbsttest` (Stage `detekt-selbsttest`), `config/detekt/detekt.yml` unverändert | Exit 0; Meldungen: 9 Importregeln und 69 verbotene Importe gemeldet, 45 Aufruf-Fälle gemeldet, 10 Formen von `@Suppress` gemeldet, 4 Formen eines Jackson-Verweises gemeldet, 6 Formen eines `friend`- oder `associate`-Eintrags gemeldet (neuer Modus `modulgrenze`, siehe S1) |
 | M5.2 | `make detekt` (Stage `detekt` mit den Sperren und allen detekt-Tasks), Lauf 1 (N2) und in `make gates FORCE=1` dieses Laufs | grün; Ergebnis des Gate-Laufs: siehe unten G1 |
+| M5.3 | Kommentar in `config/detekt/detekt.yml` (Ausgabe-Sperre): „Modul `testserver`“ statt „Source-Set `testserver`“; `git diff` der Datei zeigt nur Kommentarzeilen | **nur Kommentar**, keine Regel, kein Wert geändert; M5.1 wurde vor dieser Kommentarzeile gemessen, die Regeln sind dieselben |
+
+**`explicitApi()` im Modul.** Die Wurzel setzt `explicitApi()` (Modus `strict`) für `main`; das Modul `testserver` setzt es nicht. Das ist keine Lockerung: die Quellen des Testservers trugen schon vor dem Umbau Deklarationen ohne ausdrückliche Sichtbarkeit (zum Beispiel `object SimDescriptionReader`, `data class SimPosition`, `fun main()`), weil der Schalter für das Hauptmodul galt und nicht für das Source-Set `testserver`; der Umzug war ein reiner Move (Commit `76a2e07c`), `config/detekt/detekt.yml` ist in den Regeln unverändert. Gelesen aus dem Code, nicht als eigene Mutation gemessen.
 
 ## S1 — Sperre der Modulgrenze (`tools/modulgrenze-sperre.sh`)
 
@@ -157,7 +164,7 @@ Stand: Zweig `slice-testserver-gradle-modul` auf `a572c5de` (Merge von `main` `c
 | E2.3 | `make testserver-selbsttest`, Load 5,93 | Exit 0, 61 s Wanduhr, 60 s laut Ausgabe; sieben Zeilen „Grundlage“ und neun Zeilen „Mutation … färbt rot“ |
 | E2.4 | `make docs-check` | Exit 0, 843 Dateien, 0 Befunde (auf dem Stand vor den Nachzügen von Spezifikation und Doku) |
 
-Aussage, die E2 trägt: Auf dem Stand nach dem Zusammenführen sind `make gates FORCE=1`, alle sieben Stufen von `make e2e` und `make testserver-selbsttest` grün; Stufe 7 war in E1.1 am Merge-Base rot, weil `SELECT 1` Form C ist, und ist nach dem Zusammenführen grün. Ob der Wechsel an der Testdatei von `main` oder am Modul hängt, trennt dieser Lauf nicht (E1.2 und E1.3 sind die Vorläufe).
+Aussage, die E2 trägt: Auf dem Stand nach dem Zusammenführen sind `make gates FORCE=1`, alle sieben Stufen von `make e2e` und `make testserver-selbsttest` grün; Stufe 7 war in E1.1 am Merge-Base rot, weil `SELECT 1` Form C ist, und ist nach dem Zusammenführen grün. Aus den vier Läufen folgt, woran der Wechsel hängt: alte Testdatei mit Modul (E1.1) rot, alte Testdatei ohne Modul (E1.2) rot, neue Testdatei von `main` ohne Modul (E1.3) grün, neue Testdatei mit Modul (E2.2) grün. Der Wechsel von rot nach grün hängt damit an der Testdatei von `main`, nicht am Modul (je ein Lauf je Zelle).
 
 ## M7 — Laufzeiten vorher und nachher
 
@@ -178,7 +185,7 @@ Load (1 Minute) vor `make test`, `detekt`, `smoke`, `laufzeittest` je Block in d
 
 Warm (ohne Änderung, Stages aus dem Cache): `make build`, `make test`, `make detekt`, `make smoke` je 1 bis 2 s; `make laufzeittest` 12 s und 24 s vorher, 15 s und 15 s nachher. Diese Zeilen messen den Cache, nicht die Arbeit.
 
-**Lesung, so weit sie trägt.** Die Spannweiten von vorher und nachher überlappen bei `make test`, `detekt`, `smoke` und `laufzeittest`; der Abstand zwischen den Spannweiten (zum Beispiel `make smoke`: 45 und 50 s gegen 51 und 51 s) ist kleiner als die Streuung zwischen zwei Läufen desselben Standes bei `make laufzeittest` (77 und 95 s). Bei `make build` liegt ein Lauf nachher (86 s) deutlich über den übrigen drei (34 bis 40 s); die Ursache ist nicht untersucht. Eine Schwelle gilt nicht.
+**Lesung, so weit sie trägt.** Die Spannweiten von vorher und nachher überlappen bei `make test`, `detekt` und `laufzeittest`; bei `make smoke` überlappen sie nicht (45 und 50 s gegen 51 und 51 s), der Abstand von 1 s zwischen den Spannen ist kleiner als die Streuung zwischen zwei Läufen desselben Standes bei `make laufzeittest` (77 und 95 s). Bei `make build` liegt ein Lauf nachher (86 s) deutlich über den übrigen drei (34 bis 40 s); die Ursache ist nicht untersucht. Eine Schwelle gilt nicht.
 
 **Grenzen.** Zwei Läufe je Zelle, ein Rechner, Last von 6 bis 11 und nicht konstant (zum Ende des Gesamtlaufs 25); die Ursache der Last ist nicht geklärt. Die Zeiten sagen nichts über Kaltläufe (kein `--no-cache`), nichts über den Cache anderer Hosts und nichts über `make gates` als Ganzes. Frühere Läufe desselben Tages (zwei je Target, eine Runde mit Quelländerung) liegen nur als Rohprotokolle ohne Zeitangabe im Scratchpad, ihr Stand ist nicht festgehalten und der erste Lauf von `make test` kam aus dem Cache; sie fließen hier nicht ein.
 
