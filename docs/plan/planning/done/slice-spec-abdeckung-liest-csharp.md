@@ -195,7 +195,7 @@ Closure am 2026-11-06 (Planner). Zuerst der Stand des Implementers (mit den Beri
 
 **Drei Paarungen:** Anker: kein Anker gesetzt, weil nichts verkörpert wurde. Folge-Slice: keiner genannt; die Anschlüsse (a) und (b) sind keine Folge-Slices. Register: jede genannte Kennung `BEO-TDS/<slug>` besteht als Verzeichnis und trägt ein nicht leeres `evidence/` (nach dem `git mv` zu prüfen).
 
-**Gate-Läufe:** GATES_PLATZHALTER
+**Gate-Läufe:** `make gates` im Worktree des Zweigs auf `199226e5` (Planner): Exit 0, einschließlich `gate-zuordnung` (16 Gates), `stempel-eingaenge` und der Selbsttests der Stempel. `make docs-check`: 1004 Dateien, 0 Befunde. `make spec-abdeckung` nach der Textänderung: Matrix unverändert, 9 Festlegungen ohne Nachweis, `SPEC-045` 20 bestanden / 2 nicht gelaufen. `git merge main`: bereits aktuell. Kein Frischbeleg `--no-cache` der Stage `test-bericht` durch den Planner; er stützt sich auf `--no-cache-filter test-bericht` im Aufruf von `make spec-abdeckung` (Bau-Protokoll des Planner-Laufs: Matrix reproduziert) und die Frischläufe des Verifiers.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
