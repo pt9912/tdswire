@@ -23,12 +23,16 @@ private val COLUMN_IGNORED = setOf(
     "length", "float_precision", "values", "ref_type", "element_type", "geometry_type", "srid",
 )
 
+/** Längste Textlänge des Katalogs der Bibliothek (`SPEC-003`); ein größeres `max_length` gilt als dieser Wert. */
+private const val TEXT_LENGTH_LIMIT = 4000
+
 /** Eine Spalte, wie die Datei sie beschreibt, vor der Nullbarkeit durch den Schlüssel. */
 private class RawColumn(
     val name: String,
     val type: SqlType,
     val notNull: Boolean,
     val ordinal: Pair<Int, SimPosition>?,
+    val maxLength: Int,
 )
 
 /**
@@ -81,7 +85,7 @@ object SimDescriptionReader {
         val key = readKey(asList(keyEntry.value, child(path, "primary_key")), child(path, "primary_key"), raw)
         val keySet = key.map { NameFold.fold(it) }.toSet()
         val columns = raw.map {
-            SimColumn(it.name, it.type, nullable = !(it.notNull || NameFold.fold(it.name) in keySet))
+            SimColumn(it.name, it.type, nullable = !(it.notNull || NameFold.fold(it.name) in keySet), it.maxLength)
         }
         return SimTable(name = entry.key, columns = columns, primaryKey = key, rows = { RowSource { null } })
     }
@@ -115,14 +119,15 @@ object SimDescriptionReader {
         val typeEntry = required(f, "type", map, path)
         val typeName = SimTreeAccess.text(typeEntry.value, child(path, "type"))
         val notNull = f["required"]?.let { SimTreeAccess.boolean(it.value, child(path, "required")) } ?: false
-        f["max_length"]?.let { SimTreeAccess.integer(it.value, child(path, "max_length"), 1) }
+        val maxLength = f["max_length"]?.let { SimTreeAccess.integer(it.value, child(path, "max_length"), 1) }
         val precision = number(f, "precision", path, 1)
         val scale = number(f, "scale", path, 0)
         val timezone = f["timezone"]?.let { SimTreeAccess.boolean(it.value, child(path, "timezone")) } ?: false
         val ordinal = number(f, "ordinal", path, 1)
         val fieldsOfType = ColumnTypeFields(typeName, typeEntry.value.position, precision, scale, timezone)
         val type = SimColumnTypes.map(fieldsOfType, path, map.position)
-        return RawColumn(entry.key, type, notNull || SimColumnTypes.isIdentifier(typeName), ordinal)
+        val length = minOf(maxLength ?: TEXT_LENGTH_LIMIT, TEXT_LENGTH_LIMIT)
+        return RawColumn(entry.key, type, notNull || SimColumnTypes.isIdentifier(typeName), ordinal, length)
     }
 
     private fun number(f: Map<String, SimEntry>, key: String, path: String, min: Int): Pair<Int, SimPosition>? =

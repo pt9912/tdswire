@@ -68,7 +68,7 @@
 | `docs/plan/adr/0033-…md` | geprüft; Status `Proposed` korrekt, Index-Zeile gleich dem Titel und dem Status, Setzungen (Nr. 4 F, 8, 9, 10) gekennzeichnet; Funde F-1, F-2, F-4 bis F-6, F-8, F-9, F-13 |
 | `docs/plan/adr/README.md` | geprüft, ohne Befund (eine Zeile, Status `Proposed`, Bezüge verlinkt) |
 | `slice-adr-testserver-bestand-und-katalog.md` | geprüft; Haken nur dort gesetzt, wo Beleg steht; Funde F-7, F-11, F-12 |
-| `in-progress/slice-katalog-und-ddl-zustand.md`, `slice-schreibpfad-bulk-load.md`, `slice-schreibpfad-merge-output.md`, `slice-abnahme-d-migrate.md` | geprüft; Anschluss-Blöcke verweisen auf [ADR-0033](../plan/adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) und Messzeilen, ändern §4 nicht; Funde F-4, F-5, F-7, F-11 |
+| `done/slice-katalog-und-ddl-zustand.md`, `slice-schreibpfad-bulk-load.md`, `slice-schreibpfad-merge-output.md`, `slice-abnahme-d-migrate.md` | geprüft; Anschluss-Blöcke verweisen auf [ADR-0033](../plan/adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) und Messzeilen, ändern §4 nicht; Funde F-4, F-5, F-7, F-11 |
 | `spec/` (Lastenheft, Spezifikation, Architektur) | geprüft, ohne Befund (nicht im Diff; Richtung der Verweise nicht berührt) |
 | Kennungen und Links | `make docs-check`: 771 Dateien, 0 Befunde; [ADR-0033](../plan/adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md), SPEC-035/036/059, [TDS-FA-11](../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend)/12, [ADR-0006](../plan/adr/0006-backend-vertrag-und-streaming.md)/0012/0017/0021/0025/0026 verlinkt |
 | `AGENTS.md` §3.2, §3.1, §3.6 | geprüft, ohne Befund (kein Kotlin, kein Host-Aufruf, kein Gate verändert) |
