@@ -6,7 +6,7 @@ Das Produkt ist das Bibliotheks-Jar `tdswire.jar` mit seinem Verzeichnis `lib/`.
 
 ## Schritte
 
-1. **Gates.** `make gates` im Wurzelverzeichnis muss grün sein. Es fährt unter anderem `make test`, `make detekt`, `make build`, `make docs-check` und `make baseline-verify` (Klassen und Stempel: [`harness/README.md`](../../harness/README.md) §Sensors). Das CI-Gegenstück ist `.github/workflows/gates.yml`; der Lauf auf dem Release-Stand von `main` muss `success` sein (Abfrage `gh run list --workflow gates`).
+1. **Gates.** `make gates` im Wurzelverzeichnis muss grün sein. Es fährt unter anderem `make test`, `make detekt`, `make build`, `make docs-check` und `make baseline-verify` (Klassen und Stempel: [`harness/README.md`](../../harness/README.md) §Sensors). Das CI-Gegenstück ist `.github/workflows/gates.yml`; als Setzung dieser Anleitung (nicht entschieden) gilt der Lauf auf dem Release-Stand von `main` nur bei `success` (Abfrage `gh run list --workflow gates`).
 2. **E2E-Durchgang.** `make e2e` ist kein Gate ([ADR-0022](../plan/adr/0022-e2e-laeufe-nicht-in-den-gates.md)). **Ob ein Release ihn verlangt, ist nicht entschieden**; wer ihn laufen lässt, vermerkt Ergebnis und Dauer im Release-Vermerk (Schritt 8).
 3. **Freshness-Audit der vendored Baseline.** Siehe [Freshness-Audit](#freshness-audit-der-vendored-baseline).
 4. **Beobachtung von detekt.** Siehe [Wächter für ADR-0010](#wächter-für-adr-0010-stabil-release-von-detekt-2x).
@@ -21,12 +21,12 @@ Nicht Teil dieses Ablaufs, weil nicht gebaut und nicht entschieden: Veröffentli
 
 `make baseline-verify` hält den Baum unter `.harness/baseline/` gegen `SHA256SUMS`; das ist die Integritätshälfte und sagt über das Alter nichts ([`harness/conventions.md`](../../harness/conventions.md) §Baseline). Das Alter prüft diese Handlung, kein Sensor: Die Gates laufen netzlos, und ein Sensor dafür *kommt nicht mit*.
 
-1. Den gepinnten Tag lesen: das Verzeichnis unter `.harness/baseline/` (Stand dieser Anleitung `v6.18.1`; `make baseline-verify` nennt ihn in der Ausgabe).
+1. Den gepinnten Tag lesen: das Verzeichnis unter `.harness/baseline/` (`make baseline-verify` nennt ihn in der Ausgabe).
 2. Die **Release-Liste** des Kurs-Repos ansehen, nicht das Asset des Tags: `gh release list -R pt9912/ai-harness-course -L 5` oder die Release-Übersicht <https://github.com/pt9912/ai-harness-course/releases>. Ein Abgleich des Assets zeigt, ob sich dieser Tag änderte, nicht, ob ein neuerer existiert.
 3. Steht ein neuerer Tag in der Liste, ist der Pin zu heben (eigener Slice: Baseline tauschen, die Tabelle der Regelblöcke in `harness/conventions.md` von Hand gegen den neuen Baum prüfen, jede aktive Adaption `MR-*` gegen die neue Fassung lesen). Steht keiner, ist der Pin aktuell.
 4. Das Ergebnis mit Datum und dem Tag, der als jüngster erschien, im Release-Vermerk festhalten (Schritt 8).
 
-**Erster Lauf, 2026-11-06:** `gh release list -R pt9912/ai-harness-course -L 1 --json tagName,isLatest` lieferte `v6.18.1` als `Latest`. Der gepinnte Tag `v6.18.1` ist damit der jüngste der Liste; ein Lauf, eine Quelle, Abruf vom Host an diesem Tag. Die Grenze: Der Schritt ist eine Handlung. Wer ihn auslässt, wird von keinem Gate erwischt.
+**Grenze:** Der Schritt ist eine Handlung. Wer ihn auslässt, wird von keinem Gate erwischt.
 
 ## Wächter für ADR-0010: Stabil-Release von detekt 2.x
 

@@ -24,7 +24,7 @@
 | `curl` auf die Maven-Metadaten von `dev.detekt:detekt-cli` mit der Abfrage aus `releasing.md` | `latest`/`release` = `2.0.0-alpha.6`, Versionen `alpha.0` bis `alpha.6`, Abfrage ohne Ausgabe (stimmt mit der Aussage der Anleitung) |
 | `gh release list -R pt9912/ai-harness-course -L 2 --json tagName,isLatest` | `v6.18.1` Latest, `v6.18.0` (stimmt mit der Aussage der Anleitung; ein Lauf an diesem Tag) |
 | `git tag`; `build.gradle.kts`; `gradle/libs.versions.toml` | kein Tag; `version = "0.1.0-SNAPSHOT"`; `detekt = "2.0.0-alpha.6"` |
-| ADR-0013-Zahlen (M1, M2, M7) | 173/454 Byte, 1,54 Mio Zeilen, 3099 ms/77 Threads, 377 ms/11, 707 ms stehen so in der ADR |
+| [ADR-0013](../plan/adr/0013-backend-grenzen.md)-Zahlen (M1, M2, M7) | 173/454 Byte, 1,54 Mio Zeilen, 3099 ms/77 Threads, 377 ms/11, 707 ms stehen so in der ADR |
 
 Nicht ausgeführt: `make gates`, `make docs-check` (Aussage des Implementers im Slice-Plan unbestätigt von mir).
 
@@ -48,10 +48,10 @@ Nicht ausgeführt: `make gates`, `make docs-check` (Aussage des Implementers im 
 
 1. **Konfigurationstabelle** — alle 11 Schlüssel (`LISTEN_HOST`, `LISTEN_PORT`, `LOGIN_TIMEOUT`, `MAX_PRELOGIN_MESSAGE_BYTES`, `ENCRYPTION_POLICY`, `TLS_KEYSTORE_FILE`, `TLS_KEYSTORE_PASSWORD_FILE`, `AUTH_USERS_FILE`, `AUTH_PLAIN_TESTMODE`, `QUERY_TIMEOUT`, `CANCEL_TIMEOUT`) und die Feldzuordnung (`listen`, `login`, `requests`, `encryption`, `tls`, `auth`) stimmen mit `ServerConfig.kt`, `ConfigValidation.kt` und den Zeilen der Spezifikation überein: 0.0.0.0, 1433, 15 s, 65536, `REQUIRED`, 30 s, 5 s; Bereiche 0..65535, 1..3600, 512..65536, Host nicht leer, Paarung REQUIRED/TEST_UNENCRYPTED. Ohne Befund.
 2. **„Gebaut“ gegen Code** — Metriken, Spans, `request_id`, `duration_ms`, `METRICS_INTERVAL_SECONDS`, `MAX_CONNECTIONS` stehen als nicht gebaut und sind im Code nicht vorhanden; `SHUTDOWN_GRACE` ist kein Eingang (Stop mit Frist 0, `Bootstrap`). Die genannten Ereignisarten (`EncryptionWeakened`, `ConfigInvalid`, `TlsStartRejected`, `BindFailed`, `StartRefused`, `LoginAccepted`, `RequestFailed`), Ebenen, Kürzung auf 256 und Clientprofil-Werte stimmen. Ohne Befund.
-3. **Aussage ≤ Beleg** — ADR-0013-Zahlen sind als Spike-Messung mit Bedingungen gekennzeichnet; Setzungen sind benannt. Freshness-Audit (`v6.18.1` Latest) und detekt-Beobachtung (Metadaten, `alpha.6`) von mir nachgemessen und gleich. Zwei kleine Lücken: F-2, F-4. Ein Nachweis, dass die detekt-Abfrage bei `2.0.0` greift, habe ich nicht wiederholt; die Anleitung nennt ihn als Prüfung an einer Kopie.
+3. **Aussage ≤ Beleg** — [ADR-0013](../plan/adr/0013-backend-grenzen.md)-Zahlen sind als Spike-Messung mit Bedingungen gekennzeichnet; Setzungen sind benannt. Freshness-Audit (`v6.18.1` Latest) und detekt-Beobachtung (Metadaten, `alpha.6`) von mir nachgemessen und gleich. Zwei kleine Lücken: F-2, F-4. Ein Nachweis, dass die detekt-Abfrage bei `2.0.0` greift, habe ich nicht wiederholt; die Anleitung nennt ihn als Prüfung an einer Kopie.
 4. **Regel 5 / Chronik** — F-3 (Nutzer-Doku), F-4 (Maintainer-Doku, Regel 5 gilt dort nicht wörtlich, §3.7 für Zustandsfelder).
 5. **Entfernte Marker und Links** — Marker in `AGENTS.md` (Rang 6 und Regel 5) und `harness/README.md` (Rang 6) entfernt, Links lösen auf existierende Dateien auf; `README.md` ergänzt. F-5 für die im Slice-Plan verbliebenen Marker. Der Lauf von `make docs-check` ist nicht meiner.
-6. **Entscheidungen, die dem Nutzer vorbehalten sind** — Versionsschema, Tag, Registry, Signierung, SBOM, `make e2e` im Release, Werkzeug-Target für den Wächter, Lizenzhinweise, Dateirechte: alle als offen geführt, keine gesetzt. Der Wächter als Schritt ist der Grundfall des Plans und als solcher ausgewiesen; der Ausgang beim Eintreten (neuer Slice mit `Supersedes`, ADR-0010 unverändert) folgt Plan und AGENTS §3.5. Nur F-2 setzt eine unausgewiesene Bedingung. Das DoD-Wortlaut-Problem ist F-1.
+6. **Entscheidungen, die dem Nutzer vorbehalten sind** — Versionsschema, Tag, Registry, Signierung, SBOM, `make e2e` im Release, Werkzeug-Target für den Wächter, Lizenzhinweise, Dateirechte: alle als offen geführt, keine gesetzt. Der Wächter als Schritt ist der Grundfall des Plans und als solcher ausgewiesen; der Ausgang beim Eintreten (neuer Slice mit `Supersedes`, [ADR-0010](../plan/adr/0010-detekt-pre-release.md) unverändert) folgt Plan und AGENTS §3.5. Nur F-2 setzt eine unausgewiesene Bedingung. Das DoD-Wortlaut-Problem ist F-1.
 
 ## Negativbefunde
 
@@ -60,7 +60,7 @@ Nicht ausgeführt: `make gates`, `make docs-check` (Aussage des Implementers im 
 | `src/main` (`config`, `runtime`, `domain/telemetry`, `simulation`) gegen die Aussagen der Nutzer-Doku | geprüft, ohne Befund (außer F-7) |
 | `spec/spezifikation.md` (SPEC-005/008/009/010/033/034/046/047/053) | geprüft, ohne Befund |
 | `AGENTS.md`, `harness/README.md`, `README.md` | geprüft, ohne Befund |
-| `docs/plan/adr/` (ADR-0010 Status Accepted, unverändert; ADR-0013, ADR-0018) | geprüft, ohne Befund; keine ADR im Diff geändert |
+| `docs/plan/adr/` ([ADR-0010](../plan/adr/0010-detekt-pre-release.md) Status Accepted, unverändert; [ADR-0013](../plan/adr/0013-backend-grenzen.md), [ADR-0018](../plan/adr/0018-laufzeit-artefakt.md)) | geprüft, ohne Befund; keine ADR im Diff geändert |
 | Quelltext, `config/detekt/`, `build.gradle.kts`, `Dockerfile` | nicht im Diff; keine Suppression, keine Gate-Änderung |
 | Schichtregeln, Protokollkern, Anmeldepfad | nicht berührt |
 
