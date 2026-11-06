@@ -1,0 +1,2 @@
+**Vorgang:** [slice-adr-handle-grenze-ersatz](../../../../done/slice-adr-handle-grenze-ersatz.md)
+**Fund:** Messprotokoll [handle-grenze-optionen-2026-11-06](../../../../../../messungen/handle-grenze-optionen-2026-11-06.md): Messwerkzeug (Java-Durchlauf mit Eingriff in die Antwort) im Scratchpad, nicht im Repo; die Zeilen h, t, u sind nachrechenbar, nicht wiederholbar. Gemessen ist der Treiber mit gebautem Testserver (Stand `cd0e2368`), nicht d-migrate und nicht ein echter Server. Der Bau-Slice legt die Wiederholbarkeit seines Belegs fest.

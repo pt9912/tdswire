@@ -1,1 +1,1 @@
-**Stand:** offen — 1×, unter der Schwelle; nichts verkörpert, kein Träger gesetzt. In [ADR-0033](../../../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) mit teilweisem, wörtlich benanntem `Supersedes` behoben.
+**Stand:** offen — 2×, unter der Schwelle; nichts verkörpert, kein Träger gesetzt. In [ADR-0033](../../../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) mit teilweisem, wörtlich benanntem `Supersedes` behoben.
