@@ -1,0 +1,2 @@
+**Vorgang:** [slice-abbruch-ressourcen-shutdown](../../../../done/slice-abbruch-ressourcen-shutdown.md)
+**Fund:** `TDS_SHUTDOWN` mit der Reihenfolge „ERROR, DONE, dann Schließen“ (Setzung des Nutzers vom 2026-11-01, [ADR-0027](../../../../../adr/0027-abbruch-und-zuruecksetzen.md) Entscheidung 4), das Ende nach `DONE[ATTN]` im Beenden und die Abweisung einer Verbindung über `MAX_CONNECTIONS` ohne Antwortbytes sind am echten SQL Server nicht gemessen; am Referenzclient ist nur „ERROR, DONE, Schließen“ gelesen (S21, S22), die Abweisung ist auch dort nicht gemessen.

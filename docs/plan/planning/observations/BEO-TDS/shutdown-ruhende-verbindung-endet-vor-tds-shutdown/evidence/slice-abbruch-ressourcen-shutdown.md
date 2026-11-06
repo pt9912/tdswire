@@ -1,0 +1,2 @@
+**Vorgang:** [slice-abbruch-ressourcen-shutdown](../../../../done/slice-abbruch-ressourcen-shutdown.md)
+**Fund:** [Verifikation](../../../../../../reviews/2026-11-06-47d3020e-verifikation-slice-abbruch-ressourcen-shutdown.md) V-1 (MEDIUM): die Spannung stand weder im Slice §6 noch in der Spezifikation; Nutzer-Doku sagt es sachlich ohne Bezug zur Zusage. Geführt in `SPEC-044` (offene Frage) und im Slice §6.

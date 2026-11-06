@@ -1,0 +1,1 @@
+**Stand:** offen — 1×; unter der Schwelle, nichts verkörpert, kein Träger gesetzt. In diesem Vorgang behoben (Zugabe und Verengung entfernt, Code nachgezogen, Rest als „Nicht gebaut“ und offene Frage geführt).

@@ -1,0 +1,1 @@
+**Stand:** offen — 1×; Träger-Vorschlag des Planners (Setzung, zur Bestätigung durch den Nutzer): [slice-qa-performance](../../../open/slice-qa-performance.md), DoD-Punkt „Lasttest“ um das Beenden unter Last (Rückkehr von `stop()` innerhalb Frist plus `CANCEL_TIMEOUT` bei vielen Verbindungen) ergänzen. Weder Slice angelegt noch Slice geändert.

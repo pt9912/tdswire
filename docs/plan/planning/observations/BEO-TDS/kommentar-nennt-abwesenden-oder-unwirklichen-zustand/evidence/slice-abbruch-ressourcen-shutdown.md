@@ -1,0 +1,2 @@
+**Vorgang:** [slice-abbruch-ressourcen-shutdown](../../../../done/slice-abbruch-ressourcen-shutdown.md)
+**Fund:** [Verifikation](../../../../../../reviews/2026-11-06-47d3020e-verifikation-slice-abbruch-ressourcen-shutdown.md) V-2 (LOW): KDoc von `ListenerAbortTest > ein Handler, der den Abbruch ignoriert, …` nannte „eine kurze Wartezeit auf das Ende der Handler (Festlegung, 250 ms Wanduhr)“, nachdem die Zugabe aus dem Code entfernt war. Behoben in `c6987c8a` (Indikativ über Frist plus `CANCEL_TIMEOUT`).
