@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** SPEC-059 (Tabelle „Zusage“, „Die Namen nach Package“) · SPEC-035 (nur falls `simulation`-Namen fallen) · `spezifikation.md` Abschnitte 4 und 5 (Ereignismodell) · Änderungsprotokoll
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912.
 
 **Autor:** pt9912 (Entwurf in der Planner-Rolle). **Datum:** 2026-11-05.
 
