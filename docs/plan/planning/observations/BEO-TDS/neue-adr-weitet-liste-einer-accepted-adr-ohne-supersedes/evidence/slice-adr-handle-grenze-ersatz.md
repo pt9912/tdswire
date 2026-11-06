@@ -1,2 +1,2 @@
-**Vorgang:** [slice-adr-handle-grenze-ersatz](../../../../in-progress/slice-adr-handle-grenze-ersatz.md)
+**Vorgang:** [slice-adr-handle-grenze-ersatz](../../../../done/slice-adr-handle-grenze-ersatz.md)
 **Fund:** [Review](../../../../../../reviews/2026-11-06-1a1b468-slice-adr-handle-grenze-ersatz.md) F-2: der Entwurf nahm den RPC `sp_unprepare` in den Katalog auf, den [ADR-0005](../../../../../adr/0005-rpc-und-prepared-statements.md) als geschlossen führt, ohne `Supersedes` oder `Schärft`. Aufgelöst durch den Nutzer: der RPC-Teil ist gestrichen, [ADR-0005](../../../../../adr/0005-rpc-und-prepared-statements.md) bleibt unberührt (Verifikation bestätigt).

@@ -1,2 +1,2 @@
-**Vorgang:** [slice-adr-handle-grenze-ersatz](../../../../in-progress/slice-adr-handle-grenze-ersatz.md)
+**Vorgang:** [slice-adr-handle-grenze-ersatz](../../../../done/slice-adr-handle-grenze-ersatz.md)
 **Fund:** [Review](../../../../../../reviews/2026-11-06-1a1b468-slice-adr-handle-grenze-ersatz.md) F-3 („die Handle-Zahl folgt den lebenden Anweisungen“ ohne Bedingung, kein Server gab frei) und F-7 (Überschrift „Muster entsteht schon im Treiber“ breiter als h2/h3 für mssql-jdbc 13.4.0 gegen den Testserver). Beide in der ADR auf die Messgrenze eingeschränkt.

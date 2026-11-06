@@ -77,7 +77,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 | `docs/plan/kompatibilitaetsmatrix.md` | update | Zeilen `sp_prepexec`, Handle-Verwaltung, Lücke 13; `make matrix-zitate` |
 | `docs/messungen/` — neues Messprotokoll | neu | Beleg am Treiber gegen den gebauten Stand |
 
-**Anschluss:** Die Spec-Änderungen und ihre Einzelstellen stehen in [ADR-0036](../../adr/0036-handle-freigabe-und-grenze-je-sitzung.md) („Liste der Spec-Änderungen“) und in §3 von [slice-adr-handle-grenze-ersatz](../in-progress/slice-adr-handle-grenze-ersatz.md). Der Implementer erweitert die Liste im ersten Lauf und schlägt die Reihenfolge der Commits vor (Spec getrennt vom Code).
+**Anschluss:** Die Spec-Änderungen und ihre Einzelstellen stehen in [ADR-0036](../../adr/0036-handle-freigabe-und-grenze-je-sitzung.md) („Liste der Spec-Änderungen“) und in §3 von [slice-adr-handle-grenze-ersatz](../done/slice-adr-handle-grenze-ersatz.md). Der Implementer erweitert die Liste im ersten Lauf und schlägt die Reihenfolge der Commits vor (Spec getrennt vom Code).
 
 ## 4. Trigger
 
