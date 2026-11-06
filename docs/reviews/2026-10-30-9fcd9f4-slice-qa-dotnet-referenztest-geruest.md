@@ -63,4 +63,4 @@ Ergebnis: kein HIGH, ein MEDIUM, drei LOW, drei INFO. Die Carveouts erfüllen di
 * `referenztest-dotnet/TdsWire.Referenztests.csproj`: `RestoreLockedMode` außer bei `LockErzeugen=true`; kein `NoWarn`, kein `SuppressMessage`-Äquivalent; `NuGetAudit=false` trägt Verweis auf [CO-001](../plan/carveouts/CO-001-nuget-audit-aus.md); `TreatWarningsAsErrors` an.
 * `referenztest-dotnet/nuget.config`, `packages.lock.json`, `.dockerignore`: `<clear />`, eine Quelle, `packageSourceMapping`; Lock führt `Pkcs` 9.0.18 wie in [CO-001](../plan/carveouts/CO-001-nuget-audit-aus.md) genannt.
 * `tools/mk/referenztest-dotnet.mk` und `harness/README.md`: `GATE_CHECKS` nur für das Test-Target; Audit- und Lock-Target stehen als "kein Gate" mit Bindung an [CO-001](../plan/carveouts/CO-001-nuget-audit-aus.md)/[CO-002](../plan/carveouts/CO-002-nuget-signaturpruefung-fehlt.md); die Gate-Zeile bindet beide Carveouts zutreffend; Docker-only.
-* `docs/plan/planning/next/slice-qa-dotnet-lieferkette-haerten.md`: nimmt beide Carveouts an, Liefer-Punkte sind prüfbar.
+* `docs/plan/planning/in-progress/slice-qa-dotnet-lieferkette-haerten.md`: nimmt beide Carveouts an, Liefer-Punkte sind prüfbar.
