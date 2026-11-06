@@ -63,7 +63,7 @@ In dieser Reihenfolge:
 3. [`spec/architecture.md`](spec/architecture.md) — Komponenten- und Sequenzsicht.
 4. [`docs/plan/adr/`](docs/plan/adr/) — ADR-Verzeichnis und -Index.
 5. [`docs/plan/planning/in-progress/roadmap.md`](docs/plan/planning/in-progress/roadmap.md) — Wellen-Sequenz.
-6. `docs/user/*` und `docs/maintainer/*` *(falls vorhanden)* — Nutzer-Doku (Betrieb, Qualität) und Maintainer-Doku (z. B. `releasing.md`). <!-- d-check:ignore (Verzeichnisse optional; entlinkt, da im frischen Repo selten vorhanden) -->
+6. [`docs/user/`](docs/user/einbettung-und-betrieb.md) und [`docs/maintainer/`](docs/maintainer/releasing.md) — Nutzer-Doku (Betrieb, Qualität) und Maintainer-Doku (`releasing.md`).
 7. [`README.md`](README.md) — Projekt-Überblick.
 8. **AGENTS.md (diese Datei).**
 9. [`harness/README.md`](harness/README.md) — Harness-Einstieg.
@@ -193,7 +193,7 @@ Kein Target nennen, das im Makefile nicht existiert — auch nicht in Prosa.
 | 2 | Vergeben werden IDs beim Spec-/ADR-Schreiben nach dem in `harness/conventions.md` deklarierten ID-Schema (Default: `<PREFIX>-FA-<NN>` / `<PREFIX>-QA-<NN>` / `<PREFIX>-RB-<NN>` aus dem Lastenheft, `SPEC-<NNN>` in der Spezifikation, `ARC-<NNN>` in der Sicht, ADR-Nummern über den ADR-Index) — nie ad hoc im PR. | — |
 | 3 | Neue ADRs müssen den ADR-Index aktualisieren. | — |
 | 4 | Roadmap/Status-Geschichte lebt in `docs/plan/planning/`, nicht in `spec/architecture.md`. | — |
-| 5 | Nutzer-Doku liegt in `docs/user/` und bildet den Ist-Zustand ab: keine Chronik, keine Forensik, keine Planung. Was war, steht in `git`; was kommt, in `docs/plan/planning/`. <!-- d-check:ignore (Verzeichnis entsteht mit der ersten Nutzer-Doku) --> | — |
+| 5 | Nutzer-Doku liegt in `docs/user/` und bildet den Ist-Zustand ab: keine Chronik, keine Forensik, keine Planung. Was war, steht in `git`; was kommt, in `docs/plan/planning/`. | — |
 | 6 | Abdeckungs-Dokumente liegen in `docs/plan/` (z. B. die E2E-Abdeckungs-Sicht aus `make e2e-abdeckung` und die Kompatibilitätsmatrix der Spezifikation). Die Requirements Traceability Matrix ist davon ausgenommen: sie verfolgt Anforderungen nach (`make doc-trace` erzeugt sie bei Bedarf auf stdout, sie wird nicht abgespeichert). Eine Abdeckungsmatrix dagegen weist nach: ein Beleg ist ein bestandener Test- oder Gate-Lauf, nicht ein Verweis. | — |
 | 7 | Messprotokolle liegen in `docs/messungen/`: Einzelmessungen mit Datum, Host und Bedingung sowie die Ausnahmeliste, die sich auf sie stützt. Ein Messprotokoll ist keine Abdeckungsmatrix (Regel 6) und kein Review (`docs/reviews/`): es sagt, was gemessen wurde, nicht, ob eine Anforderung belegt ist. | — |
 
