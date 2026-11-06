@@ -22,7 +22,7 @@ referenztest-dotnet: ## .NET-Referenztests (Smoke ohne Server) ausfuehren (Stage
 	docker build $(BUILDER_FLAGS) --target test --progress=plain $(REFERENZTEST_DOTNET_DIR)
 
 # Nach einer Versionsaenderung in der csproj. Das erste Lock vertraut nuget.org beim Schreiben
-# (CO-002); die Signaturpruefung der Pakete ist aus.
+# (Erstschreiben ohne Gegenpruefung); die Signaturpruefung nach nuget.config (require, trustedSigners) laeuft auch hier.
 referenztest-dotnet-lock: ## Nach einer Versionsaenderung in der csproj: referenztest-dotnet/packages.lock.json neu schreiben (braucht Netz)
 	docker build $(BUILDER_FLAGS) --target lock-export --progress=plain --output type=local,dest=$(REFERENZTEST_DOTNET_DIR) $(REFERENZTEST_DOTNET_DIR)
 
