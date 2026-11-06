@@ -117,7 +117,7 @@ Diese Berichtsdatei kommt hinzu. Nicht committet, kein Push.
 
 **H-1 — DoD-Punkt 3 (Vergleichslauf D) ist offen, hat keinen anderen Träger und eine nicht deklarierte Abhängigkeit.**
 D ist laut [slice-qa-kompatibilitaet](../plan/planning/done/slice-qa-kompatibilitaet.md) §1 dort ausdrücklich ausgeschlossen („Träger ist slice-qa-reproduzierbarkeit"),
-laut [slice-referenzabgleich-live](../plan/planning/open/slice-referenzabgleich-live.md), [slice-referenzabgleich-mitschnitt](../plan/planning/open/slice-referenzabgleich-mitschnitt.md) und
+laut [slice-referenzabgleich-live](../plan/planning/in-progress/slice-referenzabgleich-live.md), [slice-referenzabgleich-mitschnitt](../plan/planning/open/slice-referenzabgleich-mitschnitt.md) und
 [welle-referenzabgleich-release](../plan/planning/welle-referenzabgleich-release.md) die Voraussetzung ihrer Starts (Make-Target, Container, EULA, Messung, Image-Tag). Der Slice kann nur nach `done/`, wenn D geliefert ist;
 D braucht Referenzclient-Szenarien (Anmelde-Szenario, Mehrfach-Resultset, RPC mit Ausgabewert), die erst `slice-qa-kompatibilitaet` schreibt. Die Rückführungen in §4 des Slice nennen nur „CI-Runner ohne Docker", nicht
 „Szenarien des Referenzclients fehlen". Die Kette ist damit nicht aufgelöst: live wartet auf reproduzierbarkeit, reproduzierbarkeit auf Szenarien, die in `slice-qa-kompatibilitaet` liegen, und dieser Slice wiederum hat keinen Eintrag in §4, der das benennt.

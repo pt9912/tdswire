@@ -12,7 +12,7 @@ detekt: ## Suppression-Verbot und statische Analyse samt Importregeln der Schich
 # nicht aus; es steht hier, damit Lock und Pruefsummen auch die Konfigurationen erfassen, die es
 # aufloest). Manche Konfigurationen loest Gradle erst waehrend der Ausfuehrung auf; Lock und
 # Pruefsummen brauchen darum jede dieser Tasks.
-DEPS_TASKS = dependencies help classes test integratorTest testserverTest detekt detektMain detektTest detektIntegrator detektTestserver detektSelbsttest detektSelbsttestAufrufe assemble
+DEPS_TASKS = dependencies help classes test integratorTest detekt detektMain detektTest detektIntegrator detektSelbsttest detektSelbsttestAufrufe assemble
 
 # Die Stage `lock` im Dockerfile schreibt die Dateien, `lock-export` gibt sie per --output heraus:
 # nichts wird gemountet, auf dem Host entsteht kein build/ und kein .gradle/.

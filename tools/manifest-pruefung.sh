@@ -27,7 +27,7 @@ if printf '%s\n' "$manifest" | grep -qi '^Main-Class:'; then
   melde "Manifest nennt eine Main-Class ($(printf '%s\n' "$manifest" | sed -n 's/^[Mm]ain-[Cc]lass: *//p')); die Bibliothek hat keine Startklasse"
 fi
 
-# Das Testserver-Source-Set liegt nicht im Jar der Bibliothek.
+# Das Gradle-Modul `testserver` liegt nicht im Jar der Bibliothek.
 if unzip -Z1 "$jar" | grep -q '^io/github/pt9912/tdswire/testserver/'; then
   melde "das Jar fuehrt Klassen des Testservers (io/github/pt9912/tdswire/testserver/)"
 fi

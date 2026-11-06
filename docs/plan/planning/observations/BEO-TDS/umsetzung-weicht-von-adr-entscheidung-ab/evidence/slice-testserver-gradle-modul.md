@@ -1,0 +1,2 @@
+**Vorgang:** [slice-testserver-gradle-modul](../../../../done/slice-testserver-gradle-modul.md)
+**Fund:** Review F-3 und Verifikation Nutzerpunkt (b): Entscheidung 8 von [ADR-0034](../../../../../adr/0034-testserver-als-gradle-modul.md) (auflösbare Konfiguration) ist als Datei der Modul-Task gebaut; weder Plan noch Protokoll nannten die Abweichung, bis der Review sie fand. Hinnahme durch den Nutzer am 2026-11-06.

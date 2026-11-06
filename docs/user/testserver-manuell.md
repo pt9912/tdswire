@@ -40,7 +40,7 @@ Die Variablen stehen im Kopf von `tools/testserver.sh`, ihre Prüfungen und Meld
 
 ## Beispiel-Tabellen
 
-Die Beschreibung `src/testserver/resources/manuell/sim.yaml` gilt, solange `TESTSERVER_BESCHREIBUNG` fehlt. Format: das Schema-Modell von d-migrate in YAML, gelesen nach [SPEC-035](../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends).
+Die Beschreibung `testserver/resources/manuell/sim.yaml` gilt, solange `TESTSERVER_BESCHREIBUNG` fehlt. Format: das Schema-Modell von d-migrate in YAML, gelesen nach [SPEC-035](../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends).
 
 | Tabelle | Spalte | Typ in der Beschreibung | Nullbar |
 |---|---|---|---|

@@ -35,7 +35,7 @@ private val ID = SimColumn("Id", SqlType.Int32, nullable = false)
  * drei Zeilen, `gross` mit [BIG_ROWS] Zeilen zu [BIG_TEXT_CHARS] Zeichen, jede Zeile frisch erzeugt, und `kaputt`,
  * dessen Quelle nach [BROKEN_AFTER] Zeilen mit einer Ausnahme endet, und `laufend` mit einer Quelle ohne Ende
  * (`LaufendeQuelle.kt`). Die Tabelle `leer` steht nur in der Datei der
- * Beschreibung (`src/testserver/resources/integration/sim.yaml`) und hat eine leere Quelle.
+ * Beschreibung (`testserver/resources/integration/sim.yaml`) und hat eine leere Quelle.
  */
 internal object IntegrationTables {
     fun all(): List<SimTable> = listOf(person(), big(), broken(), running())

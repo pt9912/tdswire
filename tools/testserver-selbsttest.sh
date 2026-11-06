@@ -114,7 +114,7 @@ pruefe "Eingabefehler: REQUIRED ohne Schluesselspeicher" sh -c "! TESTSERVER_VER
 pruefe "Eingabefehler: unbekannte Verschluesselung" sh -c "! TESTSERVER_VERSCHLUESSELUNG=EGAL bash tools/testserver.sh up >'$SCRATCH/e' 2>&1 && grep -q 'TEST_UNENCRYPTED oder REQUIRED' '$SCRATCH/e'"
 pruefe "nach den Eingabefehlern steht kein Container" keiner
 printf 'bob\t{plain}geheim\n' >"$SCRATCH/eigene-users.txt"
-TESTSERVER_BENUTZER_DATEI="$SCRATCH/eigene-users.txt" TESTSERVER_BESCHREIBUNG=src/testserver/resources/manuell/sim.yaml \
+TESTSERVER_BENUTZER_DATEI="$SCRATCH/eigene-users.txt" TESTSERVER_BESCHREIBUNG=testserver/resources/manuell/sim.yaml \
   bash tools/testserver.sh up >"$SCRATCH/eigene" 2>&1
 code=$?
 pruefe "up mit eigener Benutzerliste und eigener Beschreibung endet mit 0 und nennt die Liste" \

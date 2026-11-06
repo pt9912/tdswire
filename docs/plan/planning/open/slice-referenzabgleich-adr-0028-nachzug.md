@@ -30,7 +30,7 @@ ist einzeln lieferbar.
 - Eine Änderung von [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md) — die ADR ist `Accepted` und bleibt unverändert (`AGENTS.md` §3.5); die drei wörtlich benannten Sätze ersetzt [ADR-0028](../../adr/0028-referenzinstanz-fuer-tds-8-0.md) selbst.
 - Die Annahme von [ADR-0028](../../adr/0028-referenzinstanz-fuer-tds-8-0.md) — Entscheidung des Nutzers, kein Schritt eines Slice.
 - Die Klärung, ob `2022-latest` unter einer anderen Konfiguration `Encrypt=Strict` annimmt — Messung, nicht Nachzug; der Re-Evaluierungs-Trigger der ADR nennt sie.
-- Der Live-Lauf selbst — [slice-referenzabgleich-live](slice-referenzabgleich-live.md); hier wird nur seine Aussage über die Referenzinstanz angepasst.
+- Der Live-Lauf selbst — [slice-referenzabgleich-live](../in-progress/slice-referenzabgleich-live.md); hier wird nur seine Aussage über die Referenzinstanz angepasst.
 
 ## 2. Definition of Done
 
@@ -40,7 +40,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 Liefer-Punkte (drei):
 
 - [ ] **Spezifikation:** `SPEC-045` in `spec/spezifikation.md` (Absatz „Grenzen“, Satz „Gemessen ist nur eine Instanz der Version 2022 … der Abgleich beider Pfade entfällt dort“) nennt die gemessene Lage mit Bedingung im Satz (Instanz, Digest, Einzelmessung, Zertifikatsvarianten) und die zweite Referenzinstanz; die Spezifikation nennt dabei weder ADR noch Slice noch Datum einer Messreihe (`AGENTS.md` §3.4 gilt dem Sinn nach für die Stratumsgrenze).
-- [ ] **Pläne:** [slice-referenzabgleich-live](slice-referenzabgleich-live.md) §1 (Punkt „Der TDS-8.0-Pfad“: „gefolgert, nicht gemessen“, „der Abgleich entfällt dort“) und [slice-referenzabgleich-mitschnitt](slice-referenzabgleich-mitschnitt.md) §1 (Punkt „Verschlüsselte Mitschnitte und der TDS-8.0-Pfad“: „bietet TDS 8.0 nicht an“) tragen die gemessene Lage statt der Folgerung.
+- [ ] **Pläne:** [slice-referenzabgleich-live](../in-progress/slice-referenzabgleich-live.md) §1 (Punkt „Der TDS-8.0-Pfad“: „gefolgert, nicht gemessen“, „der Abgleich entfällt dort“) und [slice-referenzabgleich-mitschnitt](slice-referenzabgleich-mitschnitt.md) §1 (Punkt „Verschlüsselte Mitschnitte und der TDS-8.0-Pfad“: „bietet TDS 8.0 nicht an“) tragen die gemessene Lage statt der Folgerung.
 - [ ] **Messwerkzeug wird Entscheidung:** Kommentar von `referenztest-dotnet/Dockerfile` (Stufe `referenzinstanz-2025`) und Kopf von `tools/mk/vergleichslauf-d.mk` nennen die Stufe als angenommene Referenzinstanz; Befund B-6 in [Ausnahmeliste](../../../messungen/referenzabgleich.md) ist mit Verweis auf die Annahme geschlossen.
 
 Nachweis-Pflichten für alle drei Punkte:
@@ -59,7 +59,7 @@ Nachweis-Pflichten für alle drei Punkte:
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `spec/spezifikation.md` (`SPEC-045`) | update | Grenzen-Absatz, siehe Liefer-Punkt Spezifikation |
-| `docs/plan/planning/open/slice-referenzabgleich-live.md`, `…/slice-referenzabgleich-mitschnitt.md` | update | Aussage über die Referenzinstanz |
+| `docs/plan/planning/in-progress/slice-referenzabgleich-live.md`, `…/slice-referenzabgleich-mitschnitt.md` | update | Aussage über die Referenzinstanz |
 | `referenztest-dotnet/Dockerfile`, `tools/mk/vergleichslauf-d.mk`, `docs/messungen/referenzabgleich.md` | update | Status der Stufe `referenzinstanz-2025`, Befund B-6 |
 
 ## 4. Trigger

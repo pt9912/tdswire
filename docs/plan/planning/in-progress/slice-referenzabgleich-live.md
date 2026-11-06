@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** SPEC-025 · SPEC-032 · SPEC-035 · SPEC-045 · SPEC-050 · [TDS-FA-11.a](../../../../spec/spezifikation.md#tds-fa-11a--simulations-backend)
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** pt9912.
 
 **Autor:** pt9912. **Datum:** 2026-10-30.
 
@@ -36,7 +36,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 - Make-Target des Vergleichslaufs D, Container der Referenzinstanz, die Referenz-Seite der Läufe, EULA-Prüfung, Messung von Laufzeit und Ressourcen und der Image-Tag für TDS 8.0 — [slice-qa-vergleichslauf-d](../done/slice-qa-vergleichslauf-d.md); dieser Slice nutzt sie und ergänzt die Server-Seite. Fehlt dort etwas, wenn dieser Slice startet, ist das ein Rückführungsgrund, kein stilles Nachbauen.
 - Die Szenarien des Referenzclients selbst (S1 bis S18) — [slice-qa-kompatibilitaet](../done/slice-qa-kompatibilitaet.md); dieser Slice führt dieselben Szenarien gegen zwei Ziele aus (das Ziel ist ein Parameter) und schreibt keine zweite Fassung.
-- Der Mitschnitt-Lauf nach SPEC-045 — [slice-referenzabgleich-mitschnitt](slice-referenzabgleich-mitschnitt.md); die Tokenfolge sieht der Live-Lauf nicht, er vergleicht, was der Client ausgibt.
+- Der Mitschnitt-Lauf nach SPEC-045 — [slice-referenzabgleich-mitschnitt](../open/slice-referenzabgleich-mitschnitt.md); die Tokenfolge sieht der Live-Lauf nicht, er vergleicht, was der Client ausgibt.
 - Der TDS-8.0-Pfad — an der Referenzinstanz Version 2022 scheitert `Encrypt=Strict`; dass sie TDS 8.0 nicht anbietet, ist gefolgert, nicht gemessen ([ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md), SPEC-045; offene Frage in [slice-qa-vergleichslauf-d](../done/slice-qa-vergleichslauf-d.md) §6); der Abgleich entfällt dort und steht als Grenze in der Ausnahmeliste.
 - Das Beheben gefundener Abweichungen im Server — je Befund ein Slice nach der Messung; dieser Slice dokumentiert sie als *Lücke* mit Verweis auf die offene Arbeit.
 
@@ -149,7 +149,7 @@ Hälften.
 
 **Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen (`../observations/BEO-TDS/`, 19 Beobachtungen, Stand des Worktrees auf `main`); alle tragen die Sub-Area `*`. Treffer mit Zähler-Stand (Zahl der Dateien unter `evidence/`):
 
-- `BEO-TDS/messung-am-echten-sql-server-fehlt` — 9×, Stand *geplant* (Träger [slice-qa-vergleichslauf-d](../done/slice-qa-vergleichslauf-d.md)). Träger der Server-Seite für den Teil, den der Client beobachtet; die Wire-Messung trägt [slice-referenzabgleich-mitschnitt](slice-referenzabgleich-mitschnitt.md).
+- `BEO-TDS/messung-am-echten-sql-server-fehlt` — 9×, Stand *geplant* (Träger [slice-qa-vergleichslauf-d](../done/slice-qa-vergleichslauf-d.md)). Träger der Server-Seite für den Teil, den der Client beobachtet; die Wire-Messung trägt [slice-referenzabgleich-mitschnitt](../open/slice-referenzabgleich-mitschnitt.md).
 - `BEO-TDS/vergleichslauf-d-ungeklaert` — 1×, offen (Träger [slice-qa-vergleichslauf-d](../done/slice-qa-vergleichslauf-d.md)). Betrifft CI-Machbarkeit, EULA und Häufigkeit des Laufs: Träger bleibt [slice-qa-vergleichslauf-d](../done/slice-qa-vergleichslauf-d.md), dieser Slice wartet auf deren Ergebnis.
 - `BEO-TDS/tds-8-0-und-pooling-nicht-gemessen` — 7×, Stand *geplant* (Träger [slice-qa-kompatibilitaet](../done/slice-qa-kompatibilitaet.md)). Betrifft die Grenze des Laufs: TDS 8.0 ist an der Referenzinstanz nicht abgleichbar.
 - `BEO-TDS/aussagen-ueber-messung-hinaus` — 16×, Stand *verkörpert* (`AGENTS.md` §3.8, Reviewer-Skill). Betrifft diesen Slice: Jede Aussage über „gleich wie die Referenz“ nennt Instanz, Version und Szenario (§6).

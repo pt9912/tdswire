@@ -61,7 +61,7 @@ up() {
   if [ -n "${TESTSERVER_BESCHREIBUNG:-}" ]; then
     env_args+=(-e SIMULATION_DESCRIPTION_FILE=/home/gradle/sim.yaml)
   else
-    env_args+=(-e SIMULATION_DESCRIPTION_FILE=/src/src/testserver/resources/manuell/sim.yaml)
+    env_args+=(-e SIMULATION_DESCRIPTION_FILE=/src/testserver/resources/manuell/sim.yaml)
   fi
   if [ "$VERSCHLUESSELUNG" = "REQUIRED" ]; then
     env_args+=(-e TLS_KEYSTORE_FILE=/home/gradle/keystore.p12 -e TLS_KEYSTORE_PASSWORD_FILE=/home/gradle/keystore.pw)

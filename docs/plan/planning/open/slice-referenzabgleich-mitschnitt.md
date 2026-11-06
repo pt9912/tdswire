@@ -34,7 +34,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Der Live-Lauf — [slice-referenzabgleich-live](slice-referenzabgleich-live.md); ein Mitschnitt spielt die Anfragen des Clients ab, nicht den Client (SPEC-045): fragt der Client wegen einer anderen Antwort anders, zeigt das nur der Live-Lauf.
+- Der Live-Lauf — [slice-referenzabgleich-live](../in-progress/slice-referenzabgleich-live.md); ein Mitschnitt spielt die Anfragen des Clients ab, nicht den Client (SPEC-045): fragt der Client wegen einer anderen Antwort anders, zeigt das nur der Live-Lauf.
 - Referenzinstanz, Container, Make-Target des Vergleichslaufs und EULA — [slice-qa-vergleichslauf-d](../done/slice-qa-vergleichslauf-d.md).
 - Verschlüsselte Mitschnitte und der TDS-8.0-Pfad — die Referenzinstanz bietet TDS 8.0 nicht an ([ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md)); Mitschnitte entstehen unverschlüsselt (`Encrypt=false`), der verschlüsselte Pfad bleibt ohne Wire-Abgleich und steht so in der Closure.
 - Fuzz und Fragmentierung — [slice-qa-stabilitaet](../done/slice-qa-stabilitaet.md); der Mitschnitt spielt gültige Nachrichten ab.
@@ -89,7 +89,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-referenzabgleich-live](slice-referenzabgleich-live.md) liegt in `done/` (Format der Ausnahmeliste, Server-Seite und Schema), und ein Verantwortlicher ist im Kopf eingetragen.
+**Start** (`next` → `in-progress`): [slice-referenzabgleich-live](../in-progress/slice-referenzabgleich-live.md) liegt in `done/` (Format der Ausnahmeliste, Server-Seite und Schema), und ein Verantwortlicher ist im Kopf eingetragen.
 
 **Anschluss** (Nutzerentscheid 2026-11-06, aus [slice-cancel-referenzclient-szenario](../done/slice-cancel-referenzclient-szenario.md)): Dieser Slice trägt die Lücke, die jener Slice beim Cancel-Teil von [TDS-QA-07](../../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität) ungemessen lässt, damit sie nicht an keiner Datei hängt. Zu messen sind am Draht des Referenzclients (aufgenommen gegen die Referenzinstanz, abgespielt gegen den Server): (a) „N ATTENTION ergeben N Bestätigungen“, also ob der Client bei `Cancel()` und Command-Timeout kurz hintereinander zwei ATTENTION sendet und das zweite `DONE[ATTN]` der Folgeabfrage zuordnet, und (c) ATTENTION im Leerlauf. Beide gehören zu den Cancel-Szenarien der Aufnahme (§2, erster Punkt), kein vierter Liefer-Punkt. Ist (c) über die Client-API nicht auslösbar (Annahme, nicht gemessen), steht das in der Closure-Notiz als Ergebnis, und die Lücke bleibt in Zeile 12 der Kompatibilitätsmatrix benannt. Weicht die Messung von der Setzung „der Server bestätigt jedes ATTENTION einzeln“ ab, ist das ein Re-Evaluierungs-Fall von [ADR-0027](../../adr/0027-abbruch-und-zuruecksetzen.md). Start-Trigger: unverändert (siehe **Start**); der Anschluss ändert ihn nicht.
 

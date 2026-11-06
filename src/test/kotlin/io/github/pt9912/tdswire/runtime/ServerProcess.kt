@@ -10,7 +10,7 @@ private const val POLL_MILLIS = 20L
 private const val MEMORY_LIMIT = "-Xmx256m"
 
 /**
- * Der Testserver als Kind-JVM mit `main` aus dem Klassenpfad des Source-Sets `testserver` (Systemeigenschaft
+ * Der Testserver als Kind-JVM mit `main` aus dem Klassenpfad des Gradle-Moduls `testserver` (Systemeigenschaft
  * `tdswire.testserverclasspath`). Die Umgebung des Kindes besteht nur aus [environment]; Standardausgabe und
  * Fehlerausgabe werden zeilenweise in [output] gesammelt. Der Start der Kind-JVM setzt keine JVM-Option außer dem Heap.
  */
