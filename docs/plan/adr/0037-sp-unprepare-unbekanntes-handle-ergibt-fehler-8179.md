@@ -1,8 +1,8 @@
 # ADR-0037: `sp_unprepare` im SQL-Batch mit unbekanntem Handle ergibt Fehler 8179 (ersetzt teilweise ADR-0036)
 
-**Status:** Proposed (Entwurf des Architects; der Nutzer entscheidet `Accepted`)
+**Status:** Accepted (vom Nutzer entschieden, 2026-11-06: „ADR-0037 ja“; Begleitpunkte: „deine empfehlungen“)
 
-**Datum:** 2026-11-06 (Entwurf)
+**Datum:** 2026-11-06 (Entwurf und Annahme)
 
 **Autor:** pt9912
 
@@ -78,11 +78,11 @@ Wir wählen **Option B: Fehler 8179**, wie der echte Server.
 
 ## Offen
 
-1. **Batch mit mehreren Handles, davon eines unbekannt** (Entscheidung 3): Abbruch des Batches oder Weitermachen am echten Server nicht gemessen. Träger: eine Messzeile im nächsten Lauf der Gegenmessungen (Planner entscheidet, ob und wo); Re-Evaluierung, wenn sie von der Setzung abweicht.
-2. **`sp_execute` mit unbekanntem Handle** am echten Server: nicht gemessen; vermutlich ebenfalls 8179, dann wäre `SPEC-057` (50009) eine weitere Abweichung. Entscheidung dazu nach der Messung (neue ADR, falls sie abweicht).
-3. **RPC `sp_unprepare`:** M-4 ruft ihn „als Prozedur“ auf (am Client `CommandType.StoredProcedure`, nach Name; ob dabei ProcID 15 oder ein Name auf dem Draht steht, ist nicht gemessen) und der echte Server nimmt ihn an. Das ist eine Abweichung des Katalogs (Nicht-Ziel 6, [ADR-0036](0036-handle-freigabe-und-grenze-je-sitzung.md) Entscheidung 2, vom Nutzer so entschieden); sie wird hier nicht geändert und ist eine Frage an den Nutzer.
+1. **Batch mit mehreren Handles, davon eines unbekannt** (Entscheidung 3; bleibt Setzung, ungemessen): Abbruch des Batches oder Weitermachen am echten Server nicht gemessen. Messauftrag: eine Messzeile im Live-Lauf (Ort und Slice legt der Planner fest); weicht sie von der Setzung ab, gilt der Re-Evaluierungs-Trigger.
+2. **`sp_execute` mit unbekanntem Handle** am echten Server: nicht gemessen; vermutlich ebenfalls 8179, dann wäre `SPEC-057` (50009) eine weitere Abweichung. Bleibt Setzung (50009); Messauftrag: Messung im Live-Lauf, ausstehend; weicht sie ab, entscheidet eine neue ADR.
+3. **RPC `sp_unprepare`:** M-4 ruft ihn „als Prozedur“ auf (am Client `CommandType.StoredProcedure`, nach Name; ob dabei ProcID 15 oder ein Name auf dem Draht steht, ist nicht gemessen) und der echte Server nimmt ihn an. Das ist eine Abweichung des Katalogs (Nicht-Ziel 6, [ADR-0036](0036-handle-freigabe-und-grenze-je-sitzung.md) Entscheidung 2, vom Nutzer so entschieden); sie wird hier nicht geändert. Entscheid des Nutzers („deine empfehlungen“, 2026-11-06): der RPC bleibt abgelehnt, kein Supersedes von [ADR-0005](0005-rpc-und-prepared-statements.md); die Abweichung steht als offene Schuld im Beobachtungs-Register (`BEO-TDS/messung-am-echten-sql-server-fehlt`).
 4. **Wortlaut und Felder des ERROR-Tokens** außer Nummer, Class, State, Text: Setzung der Spezifikation.
-5. **Entscheidungsnummer:** der Auftrag nannte „Entscheidung 5“ von ADR-0036; die Setzung steht dort in Entscheidung 2 (Entscheidung 5 ist die Überschreitung). Diese ADR ersetzt den Halbsatz in Entscheidung 2 wörtlich.
+5. **Entscheidungsnummer:** der Auftrag nannte „Entscheidung 5“ von ADR-0036; die Setzung steht dort in Entscheidung 2 (Entscheidung 5 ist die Überschreitung). Diese ADR ersetzt den Halbsatz in Entscheidung 2 wörtlich; der Vermerk bleibt als Abweichung vom Auftragstext stehen.
 
 ## Re-Evaluierungs-Trigger
 
@@ -92,6 +92,7 @@ Eine Messung am echten Server (andere Version oder Image-Digest) liefert für `s
 
 | Datum | Ereignis | Verweis |
 |---|---|---|
+| 2026-11-06 | Accepted – der Nutzer antwortet „ADR-0037 ja“ (Option B) und „deine empfehlungen“ für die Begleitpunkte: RPC `sp_unprepare` bleibt abgelehnt (offene Schuld im Register), `sp_execute` mit unbekanntem Handle und gemischter Batch bleiben Setzung mit Messauftrag | Entscheid des Nutzers |
 | 2026-11-06 | Proposed – Entwurf: Option B (Fehler 8179) ersetzt den Halbsatz „ein unbekanntes Handle ist kein Fehler“ aus Entscheidung 2 von ADR-0036 | Messprotokoll `docs/messungen/referenzabgleich.md` M-4; Review vom 2026-11-06 zur Lieferung 7cb411b2 des Live-Laufs, F-4 |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
