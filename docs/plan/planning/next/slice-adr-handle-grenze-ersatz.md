@@ -34,10 +34,10 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Code für Handle-Tabelle, Grenze oder `sp_unprepare` — [slice-schreibpfad-merge-output](slice-schreibpfad-merge-output.md) baut, was die ADR entscheidet; dieser Slice entscheidet nur und baut nicht.
+- Code für Handle-Tabelle, Grenze oder `sp_unprepare` — [slice-schreibpfad-merge-output](../open/slice-schreibpfad-merge-output.md) baut, was die ADR entscheidet; dieser Slice entscheidet nur und baut nicht.
 - Die Zerlegung von `MERGE`, die Zeilenquelle nach Schlüssel und die Weitergabe an den Integrator — durch [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) entschieden und unberührt.
 - Änderungen an [ADR-0017](../../adr/0017-prepared-handles-grenzwert.md) selbst — die Datei bleibt `Accepted` und unverändert (`AGENTS.md` §3.5); die Entscheidungen 2 und 3 (definierter Fehler bei Überschreitung, Zugriff unter dem Sitzungsschutz) bleiben, soweit die neue ADR sie nicht wörtlich nennt.
-- Die Gegenmessung am echten SQL Server (Zahl und Verhalten der Handles) — [slice-qa-vergleichslauf-d-messungen](slice-qa-vergleichslauf-d-messungen.md) und die EULA-Entscheidung des Nutzers; hier bleibt die Zahl Setzung, wo sie nicht gemessen ist.
+- Die Gegenmessung am echten SQL Server (Zahl und Verhalten der Handles) — [slice-qa-vergleichslauf-d-messungen](../open/slice-qa-vergleichslauf-d-messungen.md) und die EULA-Entscheidung des Nutzers; hier bleibt die Zahl Setzung, wo sie nicht gemessen ist.
 - Die Auswahl der Optionen durch den Planner — die Entscheidung gehört dem Nutzer.
 
 ## 2. Definition of Done
@@ -49,7 +49,7 @@ Liefer-Punkte (3):
 
 - [ ] **Optionen mit Messung oder Setzung** *(Beleg: Tabelle in der ADR, Messzeilen im Messprotokoll [callback-loesung-spike-2026-11-05](../../../messungen/callback-loesung-spike-2026-11-05.md) oder einem neuen Protokoll unter `docs/messungen/`)*: je Option die Kosten (Speicher je Handle bei `MAX_CONNECTIONS`, Verhalten von d-migrate bei der Überschreitung und bei `sp_unprepare`, soweit mit dem Testserver messbar); nicht Gemessenes steht als Setzung, nicht als Befund.
 - [ ] **ADR mit Entscheidung des Nutzers** *(nächste freie Nummer laut ADR-Index; `Accepted` erst nach dem Entscheid des Nutzers; `Supersedes` nur wörtlich Entscheidung 1 und 4 von [ADR-0017](../../adr/0017-prepared-handles-grenzwert.md), Fitness Function und Index nachgezogen)*: jede Aussage trägt eine Messzeile oder ist als Setzung gekennzeichnet; die Folgen für `SPEC-030` und die Verträge sind benannt.
-- [ ] **Liste der Spec-Änderungen und Anschluss** *(in §3 und im Anschluss von [slice-schreibpfad-merge-output](slice-schreibpfad-merge-output.md))*: Änderungen an SPEC-030 und SPEC-034, die der MERGE-Slice schreibt; Start-Trigger und Risiko des MERGE-Slice an die Entscheidung angeschlossen. Die Spezifikation ändert dieser Slice nicht.
+- [ ] **Liste der Spec-Änderungen und Anschluss** *(in §3 und im Anschluss von [slice-schreibpfad-merge-output](../open/slice-schreibpfad-merge-output.md))*: Änderungen an SPEC-030 und SPEC-034, die der MERGE-Slice schreibt; Start-Trigger und Risiko des MERGE-Slice an die Entscheidung angeschlossen. Die Spezifikation ändert dieser Slice nicht.
 
 Nachweis-Pflichten für alle Punkte:
 
@@ -73,7 +73,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 | `docs/plan/adr/` — neue ADR <!-- d-check:ignore (geplant: neue Datei) --> | neu | Entscheidung samt Optionen, Messzeilen und Offen-Liste mit Trägern |
 | `docs/plan/adr/README.md` | update | ADR-Index (`AGENTS.md` §5 Regel 2 und 3) |
 | `docs/messungen/` | neu oder update | Messzeilen der Optionen, soweit messbar |
-| [slice-schreibpfad-merge-output](slice-schreibpfad-merge-output.md) | update | Start-Trigger und Anschluss an die Entscheidung |
+| [slice-schreibpfad-merge-output](../open/slice-schreibpfad-merge-output.md) | update | Start-Trigger und Anschluss an die Entscheidung |
 | `spec/spezifikation.md` | nicht in diesem Slice | SPEC-030 und SPEC-034 schreibt der MERGE-Slice nach `Accepted` |
 
 ## 4. Trigger
@@ -83,7 +83,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Start** (`next` → `in-progress`): [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) steht auf `Accepted` (erfüllt am 2026-11-06) und ein Verantwortlicher ist eingetragen.
 
-**Kante:** Dieser Slice steht **vor** [slice-schreibpfad-merge-output](slice-schreibpfad-merge-output.md) (Nutzerentscheidung vom 2026-11-06, Folgepflicht 1 von [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md)); der MERGE-Slice trägt die Kante als eigenen Start-Trigger. Zu den Slices Katalog und Massenladen besteht keine Kante.
+**Kante:** Dieser Slice steht **vor** [slice-schreibpfad-merge-output](../open/slice-schreibpfad-merge-output.md) (Nutzerentscheidung vom 2026-11-06, Folgepflicht 1 von [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md)); der MERGE-Slice trägt die Kante als eigenen Start-Trigger. Zu den Slices Katalog und Massenladen besteht keine Kante.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
