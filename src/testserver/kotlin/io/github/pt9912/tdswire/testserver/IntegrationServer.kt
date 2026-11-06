@@ -25,16 +25,23 @@ private const val ADA_AGE = 36
 /** Stellen der Dezimalspalten `Score` und `Preis`. */
 private const val MONEY_PRECISION = 10
 
+/** Zeile der Standardausgabe beim Schließen einer Quelle von `laufend`; `tools/simulationstest.sh` zählt sie. */
+internal const val RUNNING_CLOSED_LINE = "integrationsserver: Quelle laufend geschlossen"
+
 private val ID = SimColumn("Id", SqlType.Int32, nullable = false)
 
 /**
  * Die Tabellen des Integrationslaufs mit Zeilenquellen (die Kotlin-Schnittstelle der Verdrahtung): `person` mit
  * drei Zeilen, `gross` mit [BIG_ROWS] Zeilen zu [BIG_TEXT_CHARS] Zeichen, jede Zeile frisch erzeugt, und `kaputt`,
- * dessen Quelle nach [BROKEN_AFTER] Zeilen mit einer Ausnahme endet. Die Tabelle `leer` steht nur in der Datei der
+ * dessen Quelle nach [BROKEN_AFTER] Zeilen mit einer Ausnahme endet, und `laufend` mit einer Quelle ohne Ende
+ * (`LaufendeQuelle.kt`). Die Tabelle `leer` steht nur in der Datei der
  * Beschreibung (`src/testserver/resources/integration/sim.yaml`) und hat eine leere Quelle.
  */
 internal object IntegrationTables {
-    fun all(): List<SimTable> = listOf(person(), big(), broken())
+    fun all(): List<SimTable> = listOf(person(), big(), broken(), running())
+
+    /** `laufend`: Quelle ohne Ende; jedes Schließen einer Quelle schreibt [RUNNING_CLOSED_LINE]. */
+    private fun running() = runningTable { println(RUNNING_CLOSED_LINE) }
 
     private fun person() = SimTable(
         name = "person",

@@ -58,7 +58,11 @@ docker build ${BUILDER_FLAGS:-} --load --target kompatibilitaet -t "$CLIENT_IMAG
 gebaut=$(date +%s)
 
 docker network create --internal "$NETZ" >/dev/null || exit 1
-docker run -d --name "$SERVER" --network "$NETZ" "$SERVER_IMAGE" >/dev/null || exit 1
+# Die Kategorie Synchronitaet stellt die Frist einer Anfrage auf 5 s (QUERY_TIMEOUT, SPEC-009), damit der Ablauf der
+# Frist in Sekunden messbar ist; FristDesServersSekunden in SynchronitaetTests.cs ist dieselbe Zahl.
+SERVER_ENV=()
+[ "$KATEGORIE" = Synchronitaet ] && SERVER_ENV=(-e QUERY_TIMEOUT=5)
+docker run -d --name "$SERVER" --network "$NETZ" ${SERVER_ENV[@]+"${SERVER_ENV[@]}"} "$SERVER_IMAGE" >/dev/null || exit 1
 
 gestartet() {
   local i
@@ -125,6 +129,19 @@ if [ "$KATEGORIE" = Anmeldung ]; then
   # Geprueft bleibt die Zahl der Anfragen, die das Backend erreichen.
   pruefe "Prepare: 1000 Befehle erreichen das Backend (Marker @einzeln)" \
     sh -c "[ \"\$(docker logs '$SERVER' 2>&1 | grep -cF 'parameter=[@einzeln:Int32:INPUT]')\" = 1000 ]"
+fi
+
+if [ "$KATEGORIE" = Synchronitaet ]; then
+  # Jede Anfrage an `laufend` endet nur durch einen Abbruch (ATTENTION des Clients oder Frist des Servers); das Backend
+  # erhaelt je Anfrage genau einen Cancel, auch wenn Cancel() und Command-Timeout des Clients zusammentreffen.
+  cancel_je_laufende_anfrage() {
+    local anfragen cancels
+    anfragen="$(docker logs "$SERVER" 2>&1 | grep -cF 'sql=[SELECT Id, Text FROM laufend]')"
+    cancels="$(docker logs "$SERVER" 2>&1 | grep -c '^kompatibilitaet: cancel session=')"
+    echo "kompatibilitaetstest: Anfragen an laufend: $anfragen, Cancel am Backend: $cancels"
+    [ "$anfragen" -gt 0 ] && [ "$anfragen" = "$cancels" ]
+  }
+  pruefe "Backend: genau ein Cancel je Anfrage an laufend" cancel_je_laufende_anfrage
 fi
 
 if [ "$KATEGORIE" = Luecken ]; then

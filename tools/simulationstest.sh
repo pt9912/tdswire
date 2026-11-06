@@ -12,9 +12,10 @@
 # Pruefungen von `Simulations-Backend: 4 Tabellen` und `Handlerfehler` sind herausgenommen, Ersatz traegt
 # slice-betrieb-log-adapter-testserver.
 # Zusage: Auswahl mit Bedingung, leeres Ergebnis, Zeilenquelle ueber dem Heap, Fehler der Zeilenquelle mit
-# Folgeabfrage am Referenzclient (Microsoft.Data.SqlClient), TDS 7.4 ohne Verschluesselung und ohne Pool; nicht
-# belegt: Cancel (der Server beantwortet ATTENTION waehrend einer Anfrage nicht; befristet ausgenommen, CO-004 in
-# docs/plan/carveouts/), echter SQL Server, TDS 8.0, Last. Der Lauf ist Stufe 3 von `make e2e` und kein Gate.
+# Folgeabfrage und Cancel einer laufenden Anfrage (Quelle `laufend` ohne Ende) mit Folgeabfrage am Referenzclient
+# (Microsoft.Data.SqlClient), TDS 7.4 ohne Verschluesselung und ohne Pool; die Quelle von `laufend` wird nach dem
+# Cancel genau einmal geschlossen (eine Zeile des Testservers je Schliessen). Nicht belegt: echter SQL Server, TDS 8.0,
+# Last. Der Lauf ist Stufe 3 von `make e2e` und kein Gate.
 set -u
 
 LAUF="tdswire-sim-$$"
@@ -73,9 +74,12 @@ pruefe "Text von gross ($text Zeichen) ist groesser als der Heap ($heap Bytes)" 
 docker run --rm --network "$NETZ" -e "TDSWIRE_ZIEL=$SERVER:1433" "$CLIENT_IMAGE" >"$SCRATCH/client" 2>&1
 client_ok=$?
 cat "$SCRATCH/client"
-pruefe "Alle 4 Tests des Referenzclients bestanden" \
-  sh -c "[ $client_ok -eq 0 ] && grep -q 'Test Run Successful' '$SCRATCH/client' && grep -q 'Total tests: 4' '$SCRATCH/client' && grep -q 'Passed: 4' '$SCRATCH/client'"
+pruefe "Alle 5 Tests des Referenzclients bestanden" \
+  sh -c "[ $client_ok -eq 0 ] && grep -q 'Test Run Successful' '$SCRATCH/client' && grep -q 'Total tests: 5' '$SCRATCH/client' && grep -q 'Passed: 5' '$SCRATCH/client'"
 fertig=$(date +%s)
+
+quelle_einmal_geschlossen() { [ "$(docker logs "$SERVER" 2>&1 | grep -cx 'integrationsserver: Quelle laufend geschlossen')" = 1 ]; }
+pruefe "Die Quelle von laufend ist nach dem Cancel genau einmal geschlossen" quelle_einmal_geschlossen
 
 laeuft() { [ "$(docker inspect --format '{{.State.Running}}' "$SERVER")" = "true" ]; }
 pruefe "Server laeuft nach den Tests" laeuft
