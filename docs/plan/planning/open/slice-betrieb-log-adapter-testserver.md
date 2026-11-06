@@ -107,7 +107,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 2. [slice-testserver-herausloesen](../done/slice-testserver-herausloesen.md) liegt in `done/` (der Testserver existiert, bindet nur die öffentliche Fläche, und die herausgenommenen Skript-Prüfungen tragen die Kennung dieses Slice).
 3. [slice-betrieb-log-schnittstelle](../done/slice-betrieb-log-schnittstelle.md) liegt in `done/` (Modell, Senke, Parameter von `start` und Sammler stehen als öffentliche Fläche).
 4. [slice-spec-nachzug-telemetrie](../done/slice-spec-nachzug-telemetrie.md) liegt in `done/` (die Spezifikation sagt `LOG_LEVEL`, Format und Warteschlange als Aussagen über den Testserver; folgt aus Bedingung 3, hier genannt, damit die Kante lesbar ist).
-5. Ein Verantwortlicher ist im Kopf eingetragen.
+5. [slice-oeffentliche-flaeche-verkleinern-und-belegen](../done/slice-oeffentliche-flaeche-verkleinern-und-belegen.md) liegt in `done/` (erfüllt: der Adapter formatiert die Arten des Schnitts, `TelemetryEvent` mit `EventKind`).
+6. Ein Verantwortlicher ist im Kopf eingetragen.
 
 **Folge-Kanten:** [slice-betrieb-zustandsereignisse](slice-betrieb-zustandsereignisse.md) und [slice-betrieb-metriken-tracing](slice-betrieb-metriken-tracing.md) warten auf diesen Slice.
 

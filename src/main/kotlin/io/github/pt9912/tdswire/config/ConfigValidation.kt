@@ -17,7 +17,7 @@ package io.github.pt9912.tdswire.config
  *
  * Eine [ServerConfig] kann ungeprüft existieren; erst [check] und der Start weisen sie ab.
  */
-public object ConfigValidation {
+internal object ConfigValidation {
     private const val MAX_PORT = 65535
     private const val MAX_LOGIN_TIMEOUT = 3600
     private const val MAX_REQUEST_TIMEOUT = 3600
@@ -27,7 +27,7 @@ public object ConfigValidation {
     private const val MAX_PRELOGIN_BYTES = 65536
 
     /** Alle Fehler von [config] in fester Reihenfolge; leer, wenn die Konfiguration gültig ist. */
-    public fun check(config: ServerConfig): List<ConfigIssue> {
+    fun check(config: ServerConfig): List<ConfigIssue> {
         val keyMaterial = config.tls != null
         return listOfNotNull(
             host(config.listen.host),

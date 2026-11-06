@@ -10,13 +10,9 @@ import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.domain.QueryRequest
 import io.github.pt9912.tdswire.domain.ResultColumn
 import io.github.pt9912.tdswire.domain.SqlType
-import io.github.pt9912.tdswire.domain.telemetry.ConfigInvalid
-import io.github.pt9912.tdswire.domain.telemetry.EncryptionNotOffered
-import io.github.pt9912.tdswire.domain.telemetry.EncryptionWeakened
-import io.github.pt9912.tdswire.domain.telemetry.LoginAccepted
-import io.github.pt9912.tdswire.domain.telemetry.PlainTestModeActive
-import io.github.pt9912.tdswire.domain.telemetry.ServerStarted
-import io.github.pt9912.tdswire.domain.telemetry.ServerStopped
+import io.github.pt9912.tdswire.domain.telemetry.EventKind
+import io.github.pt9912.tdswire.domain.telemetry.EventLevel.INFO
+import io.github.pt9912.tdswire.domain.telemetry.EventLevel.WARN
 import io.github.pt9912.tdswire.domain.telemetry.TelemetryEvent
 import io.github.pt9912.tdswire.domain.telemetry.TelemetrySink
 import io.github.pt9912.tdswire.port.QueryBackend
@@ -101,17 +97,25 @@ class TelemetryEmbeddingTest {
         assertEquals(1L, served.second)
         assertEquals(
             listOf(
-                ServerStarted::class,
-                EncryptionWeakened::class,
-                PlainTestModeActive::class,
-                EncryptionNotOffered::class,
-                LoginAccepted::class,
-                ServerStopped::class,
+                EventKind.SERVER_STARTED,
+                EventKind.SECURITY_WEAKENED,
+                EventKind.SECURITY_WEAKENED,
+                EventKind.ENCRYPTION_NOT_OFFERED,
+                EventKind.LOGIN_ACCEPTED,
+                EventKind.SERVER_STOPPED,
             ),
-            events.map { it::class },
+            events.map { it.kind },
         )
-        assertEquals(served.first, events.filterIsInstance<ServerStarted>().single().port)
-        val accepted = events.filterIsInstance<LoginAccepted>().single()
+        assertEquals(
+            listOf(INFO, WARN, WARN, WARN, INFO, INFO),
+            events.map { it.level },
+        )
+        assertEquals(
+            listOf("ENCRYPTION_TEST_UNENCRYPTED", "PLAIN_TEST_MODE"),
+            events.filter { it.kind == EventKind.SECURITY_WEAKENED }.map { it.reason },
+        )
+        assertEquals(served.first, events.single { it.kind == EventKind.SERVER_STARTED }.port)
+        val accepted = events.single { it.kind == EventKind.LOGIN_ACCEPTED }
         assertEquals("alice", accepted.principal)
         assertEquals(1L, accepted.connectionId)
     }
@@ -132,7 +136,10 @@ class TelemetryEmbeddingTest {
         }
         assertIs<StartOutcome.Aborted>(aborted)
         assertEquals("", output)
-        assertEquals(aborted.issues.map { it.kind.name }, events.filterIsInstance<ConfigInvalid>().map { it.kind })
+        assertEquals(
+            aborted.issues.map { it.kind.name },
+            events.filter { it.kind == EventKind.CONFIG_INVALID }.map { it.issueKind },
+        )
         assertEquals(2, events.size, events.toString())
     }
 

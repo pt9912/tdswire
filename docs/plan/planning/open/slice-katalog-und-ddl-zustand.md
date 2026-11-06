@@ -81,7 +81,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-adr-testserver-bestand-und-katalog](../done/slice-adr-testserver-bestand-und-katalog.md) liegt in `done/` (Weitergabe, Katalog nach Änderungen und Fläche entschieden), [slice-testserver-gradle-modul](../done/slice-testserver-gradle-modul.md) liegt in `done/` (der Testserver hat seinen Pfad im Modul, damit dieser Slice ihn nur einmal schreibt) und [slice-oeffentliche-flaeche-verkleinern-und-belegen](../in-progress/slice-oeffentliche-flaeche-verkleinern-und-belegen.md) liegt in `done/` (der Schnitt der Fläche steht vor den Namen, die dieser Slice hinzufügt: zweiter Konstruktor von `SimulationBackend`, `SimColumn.maxLength`). Reihenfolge vom Nutzer am 2026-11-06 entschieden ([ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md)).
+**Start** (`next` → `in-progress`): [slice-adr-testserver-bestand-und-katalog](../done/slice-adr-testserver-bestand-und-katalog.md) liegt in `done/` (Weitergabe, Katalog nach Änderungen und Fläche entschieden), [slice-testserver-gradle-modul](../done/slice-testserver-gradle-modul.md) liegt in `done/` (der Testserver hat seinen Pfad im Modul, damit dieser Slice ihn nur einmal schreibt) und [slice-oeffentliche-flaeche-verkleinern-und-belegen](../done/slice-oeffentliche-flaeche-verkleinern-und-belegen.md) liegt in `done/` (der Schnitt der Fläche steht vor den Namen, die dieser Slice hinzufügt: zweiter Konstruktor von `SimulationBackend`, `SimColumn.maxLength`). Reihenfolge vom Nutzer am 2026-11-06 entschieden ([ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md)).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -102,7 +102,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 - Umfang des Katalogs: 14 verschiedene `sys.*`-Quellen laut Sonde; ob die Ableitung alle oder nur die abgefragten braucht, ist nicht gemessen (Aufwand der Sonde: L). — **Ausgang:** offen bis zur Closure.
 - Die Nachprüfung von `schema migrate --execute` vergleicht Struktur gegen die Soll-Datei; Abweichungen in der Typabbildung (zum Beispiel FLOAT, Hürde 12) können sie rot färben — nicht gemessen. — **Ausgang:** offen bis zur Closure.
-- Wachsen Namen der öffentlichen Fläche (Callbacks, Anbieter der Tabellenliste), kollidiert das mit [slice-oeffentliche-flaeche-verkleinern-und-belegen](../in-progress/slice-oeffentliche-flaeche-verkleinern-und-belegen.md) (Reihenfolge in [welle-testserver-manuell](../welle-testserver-manuell.md) §5). — **Ausgang:** offen bis zur Closure.
+- Wachsen Namen der öffentlichen Fläche (Callbacks, Anbieter der Tabellenliste), kollidiert das mit [slice-oeffentliche-flaeche-verkleinern-und-belegen](../done/slice-oeffentliche-flaeche-verkleinern-und-belegen.md) (Reihenfolge in [welle-testserver-manuell](../welle-testserver-manuell.md) §5). — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 

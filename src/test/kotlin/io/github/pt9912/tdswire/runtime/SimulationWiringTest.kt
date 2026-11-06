@@ -150,14 +150,14 @@ internal class SimulationWiringTest : RuntimeTestBase() {
         val duplicate = assertIs<StartOutcome.Aborted>(start(environment(), twice))
         assertEquals("Tabellen ungueltig: ein Name kommt doppelt vor", duplicate.reason)
         assertFalse(duplicate.reason.contains("kunde", ignoreCase = true), "Tabellenname im Grund: ${duplicate.reason}")
-        assertEquals(StartRefusal.TABLE_NAME_DUPLICATE, sink.of<StartRefused>().last().reason)
+        assertEquals(StartRefusal.TABLE_NAME_DUPLICATE.name, sink.of<StartRefused>().last().reason)
 
         val backend = ScriptedBackend.ofList()
         val both = assertIs<StartOutcome.Aborted>(
             start(environment(), Wiring(telemetry = sink, requests = RequestSource(backend, listOf(kunde)))),
         )
         assertEquals("Backend und Simulations-Backend gleichzeitig konfiguriert", both.reason)
-        assertEquals(StartRefusal.BACKEND_AND_SIMULATION, sink.of<StartRefused>().last().reason)
+        assertEquals(StartRefusal.BACKEND_AND_SIMULATION.name, sink.of<StartRefused>().last().reason)
     }
 
     /**

@@ -84,7 +84,7 @@ public class TlsKeyMaterial(public val keystore: ByteArray, public val password:
 
 /**
  * Die Konfiguration des Servers (`TDS-FA-09.a`). Sie entsteht über diesen Konstruktor; er prüft nichts,
- * [ConfigValidation.check] und der Start weisen ungültige Werte ab. Die Textdarstellung nennt keinen Wert
+ * der Start weist ungültige Werte ab (Befunde in `StartOutcome.Aborted.issues`). Die Textdarstellung nennt keinen Wert
  * (`TDS-QA-03`). Eine Konfiguration gilt für einen Start: sobald der Start das TLS-Material lädt, löscht er das
  * Passwort in [tls]; bricht er vorher ab (Prüfung der Konfiguration), bleibt es lesbar (Setzung).
  */

@@ -17,6 +17,7 @@ private const val READ_MILLIS = 20_000
 private const val HEADER_BYTES = 8
 private const val BYTE_BITS = 8
 private const val TYPE_SQL_BATCH = 0x01
+private const val TYPE_RPC = 0x03
 private const val TYPE_RESPONSE = 4
 private const val TYPE_LOGIN7 = 0x10
 private const val TYPE_PRELOGIN = 0x12
@@ -33,8 +34,8 @@ private const val OBFUSCATION = 0xA5
 private const val ALL_HEADERS_BYTES = 22
 private const val ALL_HEADERS_INNER_BYTES = 18
 private const val TRANSACTION_DESCRIPTOR = 2
-private const val INT_BYTES = 4
-private const val SHORT_BYTES = 2
+internal const val INT_BYTES = 4
+internal const val SHORT_BYTES = 2
 private const val CLIENT_ID_BYTES = 6
 private const val HEX_RADIX = 16
 
@@ -81,10 +82,27 @@ internal class WireClient(port: Int) : AutoCloseable {
         assertTrue(payload.any { it.toInt() and BYTE_MASK == LOGINACK_TOKEN }, "LOGINACK fehlt")
     }
 
+    /** PRELOGIN, dann LOGIN7 von [user] mit [password]; `true`, wenn die Antwort ein LOGINACK trägt. */
+    fun tryLogin(user: String, password: String): Boolean {
+        send(TYPE_PRELOGIN, preloginPayload())
+        assertEquals(TYPE_RESPONSE, readMessage().first)
+        send(TYPE_LOGIN7, login7Payload(user, password))
+        return readMessage().second.any { it.toInt() and BYTE_MASK == LOGINACK_TOKEN }
+    }
+
     /** Ein SQL_BATCH mit [sql] und die Antwort darauf. */
     fun batch(sql: String): Answer {
         send(TYPE_SQL_BATCH, allHeaders() + utf16(sql))
         return Answer(readMessage().second)
+    }
+
+    /**
+     * Ein `sp_executesql` (RPC, ProcID 10) mit [statement], [declarations] und den fertigen [params]
+     * (MS-TDS 2.2.6.6); die Antwort sind die rohen Nutzdaten, ohne Annahme über das letzte Token.
+     */
+    fun executeSql(statement: String, declarations: String, vararg params: ByteArray): ByteArray {
+        send(TYPE_RPC, executeSqlPayload(statement, declarations, *params))
+        return readMessage().second
     }
 
     /** `true`, wenn der Server schließt, ohne vorher ein weiteres Byte zu senden. */
@@ -132,7 +150,7 @@ internal class WireClient(port: Int) : AutoCloseable {
 private fun preloginPayload(): ByteArray = hex("00 00 0B 00 06  01 00 11 00 01  FF  00 00 00 00 00 00  00")
 
 /** ALL_HEADERS mit dem Header der Transaktionsbeschreibung (MS-TDS 2.2.5.3). */
-private fun allHeaders(): ByteArray = le(ALL_HEADERS_BYTES.toLong(), INT_BYTES) +
+internal fun allHeaders(): ByteArray = le(ALL_HEADERS_BYTES.toLong(), INT_BYTES) +
     le(ALL_HEADERS_INNER_BYTES.toLong(), INT_BYTES) + le(TRANSACTION_DESCRIPTOR.toLong(), SHORT_BYTES) +
     ByteArray(LONG_BYTES) + le(1, INT_BYTES)
 
@@ -176,15 +194,15 @@ private fun login7Payload(user: String, password: String): ByteArray {
     return out.toByteArray()
 }
 
-private fun le(value: Long, count: Int): ByteArray =
+internal fun le(value: Long, count: Int): ByteArray =
     ByteArray(count) { index -> ((value ushr (BYTE_BITS * index)) and BYTE_MASK.toLong()).toByte() }
 
-private fun utf16(text: String): ByteArray = text.toByteArray(Charsets.UTF_16LE)
+internal fun utf16(text: String): ByteArray = text.toByteArray(Charsets.UTF_16LE)
 
 private fun obfuscate(plain: ByteArray): ByteArray = ByteArray(plain.size) { index ->
     val b = plain[index].toInt() and BYTE_MASK
     ((((b shl NIBBLE_BITS) or (b ushr NIBBLE_BITS)) and BYTE_MASK) xor OBFUSCATION).toByte()
 }
 
-private fun hex(text: String): ByteArray =
+internal fun hex(text: String): ByteArray =
     text.split(' ').filter { it.isNotEmpty() }.map { it.toInt(HEX_RADIX).toByte() }.toByteArray()

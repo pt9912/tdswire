@@ -1,0 +1,2 @@
+**Vorgang:** [slice-oeffentliche-flaeche-verkleinern-und-belegen](../../../../done/slice-oeffentliche-flaeche-verkleinern-und-belegen.md)
+**Fund:** Review (Mutation „ServerStopped mit Art SERVER_STARTED“) und Verifikation bestätigen: rot wurde `TelemetryEmbeddingTest` im Task `integratorTest`, der Lauf brach ab, `TelemetryEventTest > Jede Art der Aufzaehlung gehoert zu genau einer Klasse` lief nicht. Erst der zweite Anlauf der Verifikation (`AcceptFailed` mit Art `CONNECTION_FAILED`, vom Einbettungstest nicht ausgelöst) belegte den Unit-Test allein.

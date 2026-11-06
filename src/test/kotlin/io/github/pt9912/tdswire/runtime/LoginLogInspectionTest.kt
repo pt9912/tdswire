@@ -94,10 +94,10 @@ internal class LoginLogInspectionTest : RuntimeTestBase() {
         assertNoMarker(seen)
         assertEquals(
             setOf(
-                LoginRejectionReason.WRONG_PASSWORD,
-                LoginRejectionReason.UNKNOWN_USER,
-                LoginRejectionReason.INPUT_TOO_LONG,
-                LoginRejectionReason.ADAPTER_FAILURE,
+                LoginRejectionReason.WRONG_PASSWORD.name,
+                LoginRejectionReason.UNKNOWN_USER.name,
+                LoginRejectionReason.INPUT_TOO_LONG.name,
+                LoginRejectionReason.ADAPTER_FAILURE.name,
             ),
             sink.of<LoginRejected>().map { it.reason }.toSet(),
         )

@@ -188,6 +188,19 @@ COPY spec/spezifikation.md spec/spezifikation.md
 COPY harness/README.md harness/README.md
 RUN bash tools/integrationszahlen-pruefung.sh && bash tools/integrationszahlen-selbsttest.sh
 
+# --- Flaeche: `make flaeche` - haelt die Typnamen der Liste in SPEC-059 gegen die oeffentlichen Typdeklarationen des
+# Hauptmoduls und gegen ihre Verwendung im Einbettungstest und im Testserver (TDS-QA-05, TDS-RB-04); der Selbsttest macht
+# jeden Zweig des Sensors an einem Mini-Repo rot. Ohne Gradle; Eingang sind die Quellen der drei Orte, die Spezifikation und die
+# zwei Skripte. -------------------------------------------------------------------------------------------------------
+FROM basis AS flaeche
+WORKDIR /src
+COPY tools/flaeche-pruefung.sh tools/flaeche-selbsttest.sh tools/
+COPY spec/spezifikation.md spec/spezifikation.md
+COPY src/main/kotlin src/main/kotlin
+COPY src/integrator/kotlin src/integrator/kotlin
+COPY testserver/kotlin testserver/kotlin
+RUN sh tools/flaeche-selbsttest.sh && sh tools/flaeche-pruefung.sh
+
 # --- Lock: schreibt gradle.lockfile, settings-gradle.lockfile und gradle/verification-metadata.xml
 # neu (`make deps-lock`, braucht Netz). Es wird nichts gemountet: die Stage `lock-export` liefert
 # die drei Dateien per `docker build --output`. DEPS_TASKS nennt die Gradle-Tasks, die dieses

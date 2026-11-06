@@ -246,7 +246,7 @@ internal class Tds8WiringTest : RuntimeTestBase() {
             assertTrue(it.closedByServerWithoutBytes(), "Antwort ohne TLS-Material")
         }
         eventually("Ereignis zum TLS-Anfang") { sink.of<TlsFirstNotOffered>().isNotEmpty() }
-        assertEquals(TlsFirstRefusal.NO_TLS_MATERIAL, sink.of<TlsFirstNotOffered>().single().reason)
+        assertEquals(TlsFirstRefusal.NO_TLS_MATERIAL.name, sink.of<TlsFirstNotOffered>().single().reason)
         assertEquals("tds-8.0:strict", sink.of<TlsFirstNotOffered>().single().clientProfile)
         RawClient(server.port).use {
             it.send(preloginWire(SessionVectors.ENCRYPT_OFF))
@@ -290,7 +290,7 @@ internal class Tds8DefenseTest {
         remote.writeFully(ByteBuffer.wrap(byteArrayOf(TLS_RECORD_FIRST_BYTE.toByte())))
         HandshakeConnectionHandler(setup).handle(FakeConnection(local))
         val refused = sink.events.filterIsInstance<TlsFirstNotOffered>().single()
-        assertEquals(TlsFirstRefusal.POLICY_NOT_REQUIRED, refused.reason)
+        assertEquals(TlsFirstRefusal.POLICY_NOT_REQUIRED.name, refused.reason)
         assertEquals(1, sink.events.size)
         local.close()
         assertEquals(ChannelResult.Ok(-1), remote.read(ByteBuffer.allocate(1)))

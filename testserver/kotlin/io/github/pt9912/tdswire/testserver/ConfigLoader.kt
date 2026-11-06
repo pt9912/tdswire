@@ -29,9 +29,9 @@ internal sealed interface ConfigResult {
  * Bibliothek liest weder Umgebung noch Datei (`SPEC-005`, `SPEC-010`, `SPEC-051`).
  *
  * Der Lader prüft die Form der Schlüssel und liest die Dateien; die Wertebereiche (Port, Frist, Größe der
- * PRELOGIN-Nachricht, leere Bind-Adresse) prüft der Start der Bibliothek (`ConfigValidation.check`). Ein Wert mit
- * falscher Form steht als `INVALID_VALUE` im Ergebnis und wird durch die Voreinstellung ersetzt, damit er nicht
- * doppelt gemeldet wird. Formen (Festlegungen, nicht gemessen):
+ * PRELOGIN-Nachricht, leere Bind-Adresse) prüft der Start der Bibliothek (Befunde als `Aborted.issues` von
+ * `TdsServer.start`). Ein Wert mit falscher Form steht als `INVALID_VALUE` im Ergebnis und wird durch die
+ * Voreinstellung ersetzt, damit er nicht doppelt gemeldet wird. Formen (Festlegungen, nicht gemessen):
  * - `LISTEN_PORT`, `LOGIN_TIMEOUT`, `QUERY_TIMEOUT`, `CANCEL_TIMEOUT`, `MAX_CONNECTIONS`, `SHUTDOWN_GRACE` und
  *   `MAX_PRELOGIN_MESSAGE_BYTES` bestehen aus ASCII-Ziffern.
  * - `LISTEN_HOST` Voreinstellung `0.0.0.0`.
@@ -154,8 +154,15 @@ internal object ConfigLoader {
     }
 
     private fun passwordOf(bytes: ByteArray, issues: MutableList<ConfigIssue>): PasswordChars {
-        val text = ConfigFiles.decode(EnvKeys.TLS_KEYSTORE_PASSWORD_FILE, bytes, issues).orEmpty()
-        val chars = text.removeSuffix("\n").toCharArray()
+        val chars = passwordText(bytes, issues).toCharArray()
         return PasswordChars(chars).also { chars.fill('\u0000') }
     }
+
+    /**
+     * Der Inhalt der Kennwortdatei ohne Zeilenende am Ende; ein Test liest ihn, `PasswordChars` gibt ihn nicht her.
+     * Grenze: dass dieser Text im `PasswordChars` des Materials ankommt, hält dieser Zugang nicht; das belegen die
+     * Prozesstests des TLS-Starts (`ServerSmokeTest`, `Tds8ProcessTest`).
+     */
+    internal fun passwordText(bytes: ByteArray, issues: MutableList<ConfigIssue>): String =
+        ConfigFiles.decode(EnvKeys.TLS_KEYSTORE_PASSWORD_FILE, bytes, issues).orEmpty().removeSuffix("\n")
 }

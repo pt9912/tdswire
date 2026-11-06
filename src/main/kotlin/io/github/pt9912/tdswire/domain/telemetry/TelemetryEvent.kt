@@ -39,33 +39,101 @@ internal data class EventContext(
 }
 
 /**
- * Ein Ereignis des Servers (`TDS-FA-09.a`, `SPEC-059`). Die Menge der Ereignisarten ist geschlossen; jede Art trägt
- * typisierte Felder und keinen Freitext. Für Passwort, Prüfwert, Parameterwert, SQL-Text, Pfad und Ausnahmetext hat
- * keine Art ein Feld; eine Ausnahme erscheint nur als Typname. Jedes Zeichenketten-Feld ist auf 256 UTF-16-Einheiten
- * gekürzt. Die Bibliothek erzeugt Ereignisse; für Kotlin-Aufrufer sind die Konstruktoren `internal`. Aus Java sind
- * sie im Bytecode öffentlich und aufrufbar (die Grenze von `internal`); die Längengrenze gilt dort weiter, ein Java-
- * Aufrufer kann nur Ereignisse für die eigene Senke bauen. `TelemetrySink.NONE` ist aus Java nur über
- * `TelemetrySink.Companion.getNONE()` erreichbar.
+ * Die Art eines Ereignisses (`TDS-FA-09.a`, `SPEC-059`). Die Menge ist geschlossen; die Ebene ([TelemetryEvent.level])
+ * ist je Art fest und steht an der Konstante. Welche Felder eine Art füllt, steht ebenfalls an der Konstante; ein
+ * Feld, das die Art nicht trägt, ist `null`.
  *
- * Gemeinsame Felder: [at] ist der Zeitpunkt aus dem Zeitgeber der Bibliothek, [level] ist je Art fest. [connectionId]
- * ist der Zähler des Listeners (ab 1 je Server) und fehlt bei Ereignissen ohne Verbindung. [sessionId] ist die
- * zufällige UUID der Sitzung und fehlt vor der Annahme der Anmeldung. [clientProfile] ist `unknown`,
- * `tds-8.0:strict` oder `tds-7.4:<mode>` mit `<mode>` aus `off`, `on`, `not_supported`, `required`; bei einer
- * Verbindung im Pfad TDS 7.4 vor der Annahme der Anmeldung ist es `unknown`. Eine Anfrage-Kennung trägt noch kein
- * Ereignis.
+ * Ein `when` über die Art ist vollständig, solange die Menge dieselbe bleibt; jede neue Art bricht ein `when` des
+ * Einbettenden bei der Übersetzung.
  */
-public sealed class TelemetryEvent protected constructor(
-    public val at: Instant,
-    public val level: EventLevel,
-    context: EventContext = EventContext.NONE,
-) {
-    public val connectionId: Long? = context.connectionId
-    public val sessionId: String? = context.sessionId
-    public val clientProfile: String = context.clientProfile
+public enum class EventKind {
+    /** Der Server läuft; [TelemetryEvent.port] ist der gebundene Port. Ebene `INFO`. */
+    SERVER_STARTED,
+
+    /** Der Server ist beendet; genau ein Ereignis je Server. Ebene `INFO`. */
+    SERVER_STOPPED,
+
+    /**
+     * Der Start bricht vor dem Binden ab, ohne dass Konfiguration oder TLS-Material die Ursache nennen;
+     * [TelemetryEvent.reason] ist `BACKEND_AND_SIMULATION` oder `TABLE_NAME_DUPLICATE`. Ebene `ERROR`.
+     */
+    START_REFUSED,
+
+    /**
+     * Ein Konfigurationsfehler beim Start; [TelemetryEvent.key] nennt das Konfigurationsfeld,
+     * [TelemetryEvent.issueKind] die Art des Fehlers, nie der Wert. Ein Start mit mehreren Fehlern erzeugt je Fehler
+     * ein Ereignis. Ebene `ERROR`.
+     */
+    CONFIG_INVALID,
+
+    /**
+     * Die Startprobe oder das Laden der TLS-Konfiguration ist gescheitert (`SPEC-043`); [TelemetryEvent.part] nennt
+     * den fehlerhaften Teil, [TelemetryEvent.form] die gefundene Form als feste Beschreibung oder Ausnahmetyp, nie
+     * Pfad, Inhalt oder Ausnahmetext. Ebene `ERROR`.
+     */
+    TLS_START_REJECTED,
+
+    /**
+     * Das Binden ist gescheitert (`SPEC-043`); [TelemetryEvent.address] und [TelemetryEvent.port] nennen das Ziel,
+     * [TelemetryEvent.exceptionType] den Typnamen der Ausnahme oder `null`, wenn der Port belegt ist. Ebene `ERROR`.
+     */
+    BIND_FAILED,
+
+    /**
+     * Eine Abschwächung der Sicherheit ist aktiv; [TelemetryEvent.reason] ist `ENCRYPTION_TEST_UNENCRYPTED`
+     * (`ENCRYPTION_POLICY` ist `TEST_UNENCRYPTED`, `SPEC-010`) oder `PLAIN_TEST_MODE` (`AUTH_PLAIN_TESTMODE` ist
+     * aktiv, das Verfahren `plain` ist zugelassen). Ebene `WARN`.
+     */
+    SECURITY_WEAKENED,
+
+    /** Das Simulations-Backend ist verdrahtet; [TelemetryEvent.tables] ist die Zahl der Tabellen. Ebene `DEBUG`. */
+    SIMULATION_BACKEND_READY,
+
+    /** Annehmen scheiterte, der Listener läuft weiter; [TelemetryEvent.exceptionType]. Ebene `ERROR`. */
+    ACCEPT_FAILED,
+
+    /** Der Handler einer Verbindung hat eine Ausnahme geworfen; [TelemetryEvent.exceptionType]. Ebene `ERROR`. */
+    CONNECTION_FAILED,
+
+    /**
+     * Die Anmeldung ist angenommen; [TelemetryEvent.principal] ist die Kennung aus dem Authentifizierungsadapter und
+     * steht in keiner anderen Art. Für die mitgelieferte Benutzerliste stammt sie aus der Liste des Betreibers; dass
+     * die Kennung eines eigenen Adapters frei von Geheimnissen ist, sagt die Bibliothek nicht zu. Ebene `INFO`.
+     */
+    LOGIN_ACCEPTED,
+
+    /**
+     * Die Anmeldung ist abgelehnt; [TelemetryEvent.reason] ist eine feste Marke (`UNKNOWN_USER`, `WRONG_PASSWORD`,
+     * `INPUT_TOO_LONG`, `UNSUPPORTED_INTEGRATED_SECURITY`, `UNSUPPORTED_FEDERATED_AUTHENTICATION`,
+     * `UNSUPPORTED_PASSWORD_CHANGE`, `ADAPTER_FAILURE`), ein Feld für die Kennung fehlt. Ebene `WARN`.
+     */
+    LOGIN_REJECTED,
+
+    /** Der Authentifizierungsadapter hat eine Ausnahme geworfen; [TelemetryEvent.exceptionType]. Ebene `ERROR`. */
+    ADAPTER_FAILED,
+
+    /** Der Client bietet im PRELOGIN keine Verschlüsselung an, die Richtlinie verlangt sie. Ebene `WARN`. */
+    ENCRYPTION_NOT_OFFERED,
+
+    /**
+     * Der Client beginnt mit TLS, der Server bietet TLS ab dem ersten Byte nicht an; [TelemetryEvent.reason] ist
+     * `NO_TLS_MATERIAL` oder `POLICY_NOT_REQUIRED`. Ebene `WARN`.
+     */
+    TLS_FIRST_NOT_OFFERED,
+
+    /** Der TLS-Handschlag ist gescheitert; [TelemetryEvent.failure] ist die Art, nie der Text. Ebene `WARN`. */
+    TLS_HANDSHAKE_FAILED,
+
+    /**
+     * Eine Anfrage ist mit dem Fehler [TelemetryEvent.errorCode] (`TDS_*`) beantwortet worden;
+     * [TelemetryEvent.cause] ist der Typname der Ausnahme oder eine feste Marke des Anlasses, sonst `null`, nie der
+     * Text einer Ausnahme und nie ein Wert. Ebene `WARN`.
+     */
+    REQUEST_FAILED,
 }
 
 /** Warum ein Start vor dem Binden abbricht, ohne dass Konfiguration oder TLS-Material die Ursache nennen. */
-public enum class StartRefusal {
+internal enum class StartRefusal {
     /** Ein Backend und Tabellen des Simulations-Backends sind zugleich konfiguriert. */
     BACKEND_AND_SIMULATION,
 
@@ -73,8 +141,17 @@ public enum class StartRefusal {
     TABLE_NAME_DUPLICATE,
 }
 
+/** Welche Abschwächung der Sicherheit aktiv ist. */
+internal enum class WeakeningReason {
+    /** `ENCRYPTION_POLICY` ist `TEST_UNENCRYPTED` (`SPEC-010`). */
+    ENCRYPTION_TEST_UNENCRYPTED,
+
+    /** `AUTH_PLAIN_TESTMODE` ist aktiv: das Verfahren `plain` ist zugelassen. */
+    PLAIN_TEST_MODE,
+}
+
 /** Die Grund-Marke einer abgelehnten Anmeldung; sie nennt nie Kennung oder Eingabe (`SPEC-012`). */
-public enum class LoginRejectionReason {
+internal enum class LoginRejectionReason {
     UNKNOWN_USER,
     WRONG_PASSWORD,
     INPUT_TOO_LONG,
@@ -85,7 +162,7 @@ public enum class LoginRejectionReason {
 }
 
 /** Warum der Server TLS ab dem ersten Byte nicht anbietet. */
-public enum class TlsFirstRefusal {
+internal enum class TlsFirstRefusal {
     /** Der Server hat kein TLS-Material. */
     NO_TLS_MATERIAL,
 
@@ -93,120 +170,152 @@ public enum class TlsFirstRefusal {
     POLICY_NOT_REQUIRED,
 }
 
-/** Der Server läuft und ist an [port] gebunden. Ebene `INFO`. */
-public class ServerStarted internal constructor(at: Instant, public val port: Int) :
-    TelemetryEvent(at, EventLevel.INFO)
-
-/** Der Server ist beendet; genau ein Ereignis je Server. Ebene `INFO`. */
-public class ServerStopped internal constructor(at: Instant) : TelemetryEvent(at, EventLevel.INFO)
-
-/** Der Start bricht aus dem Grund [reason] ab. Ebene `ERROR`. */
-public class StartRefused internal constructor(at: Instant, public val reason: StartRefusal) :
-    TelemetryEvent(at, EventLevel.ERROR)
-
 /**
- * Ein Konfigurationsfehler beim Start: [key] nennt das Konfigurationsfeld, [kind] die Art des Fehlers; nie der Wert.
- * Ein Start mit mehreren Fehlern erzeugt je Fehler ein Ereignis. Ebene `ERROR`.
+ * Ein Ereignis des Servers (`TDS-FA-09.a`, `SPEC-059`) und die einzige öffentliche Ereignisklasse. Die Art steht in
+ * [kind]; die Menge der Arten ist geschlossen und trägt keinen Freitext. Die Felder jeder Art stehen an den Konstanten
+ * von [EventKind]; ein Feld, das die Art nicht trägt, ist `null`. Für Passwort, Prüfwert, Parameterwert, SQL-Text,
+ * Pfad und Ausnahmetext hat keine Art ein Feld; eine Ausnahme erscheint nur als Typname. Jedes Zeichenketten-Feld ist
+ * auf 256 UTF-16-Einheiten gekürzt. Die Bibliothek erzeugt Ereignisse; für Kotlin-Aufrufer sind die Unterklassen und
+ * ihre Konstruktoren `internal`. Aus Java sind sie im Bytecode öffentlich und aufrufbar (die Grenze von `internal`);
+ * die Längengrenze gilt dort weiter, ein Java-Aufrufer kann nur Ereignisse für die eigene Senke bauen.
+ * `TelemetrySink.NONE` ist aus Java nur über `TelemetrySink.Companion.getNONE()` erreichbar.
+ *
+ * Gemeinsame Felder: [at] ist der Zeitpunkt aus dem Zeitgeber der Bibliothek, [level] ist je Art fest. [connectionId]
+ * ist der Zähler des Listeners (ab 1 je Server) und fehlt bei Ereignissen ohne Verbindung. [sessionId] ist die
+ * zufällige UUID der Sitzung und fehlt vor der Annahme der Anmeldung. [clientProfile] ist `unknown`,
+ * `tds-8.0:strict` oder `tds-7.4:<mode>` mit `<mode>` aus `off`, `on`, `not_supported`, `required`; bei einer
+ * Verbindung im Pfad TDS 7.4 vor der Annahme der Anmeldung ist es `unknown`. Eine Anfrage-Kennung trägt noch kein
+ * Ereignis.
+ *
+ * Die Felder der Arten sind in dieser Klasse Zugriffe, die `null` liefern; die internen Unterklassen überschreiben
+ * die Zugriffe ihrer Art.
  */
-public class ConfigInvalid internal constructor(at: Instant, key: String, kind: String) :
-    TelemetryEvent(at, EventLevel.ERROR) {
-    public val key: String = bounded(key)
-    public val kind: String = bounded(kind)
+public sealed class TelemetryEvent protected constructor(
+    public val kind: EventKind,
+    public val at: Instant,
+    public val level: EventLevel,
+    context: EventContext = EventContext.NONE,
+) {
+    public val connectionId: Long? = context.connectionId
+    public val sessionId: String? = context.sessionId
+    public val clientProfile: String = context.clientProfile
+
+    /** Der Port: gebunden ([EventKind.SERVER_STARTED]) oder verfehlt ([EventKind.BIND_FAILED]). */
+    public open val port: Int? get() = null
+
+    /** Die Zahl der Tabellen ([EventKind.SIMULATION_BACKEND_READY]). */
+    public open val tables: Int? get() = null
+
+    /** Die feste Marke des Grundes, wo [EventKind] sie nennt. */
+    public open val reason: String? get() = null
+
+    /** Das Konfigurationsfeld ([EventKind.CONFIG_INVALID]). */
+    public open val key: String? get() = null
+
+    /** Die Art des Konfigurationsfehlers ([EventKind.CONFIG_INVALID]). */
+    public open val issueKind: String? get() = null
+
+    /** Der fehlerhafte Teil der TLS-Konfiguration ([EventKind.TLS_START_REJECTED]). */
+    public open val part: String? get() = null
+
+    /** Die gefundene Form der TLS-Konfiguration ([EventKind.TLS_START_REJECTED]). */
+    public open val form: String? get() = null
+
+    /** Die Bind-Adresse ([EventKind.BIND_FAILED]). */
+    public open val address: String? get() = null
+
+    /** Der Typname einer Ausnahme, wo [EventKind] ihn nennt. */
+    public open val exceptionType: String? get() = null
+
+    /** Die Kennung der angenommenen Anmeldung ([EventKind.LOGIN_ACCEPTED]). */
+    public open val principal: String? get() = null
+
+    /** Die Art des Handschlag-Fehlers ([EventKind.TLS_HANDSHAKE_FAILED]). */
+    public open val failure: String? get() = null
+
+    /** Der `TDS_*`-Code der Antwort ([EventKind.REQUEST_FAILED]). */
+    public open val errorCode: String? get() = null
+
+    /** Typname oder feste Marke des Anlasses ([EventKind.REQUEST_FAILED]). */
+    public open val cause: String? get() = null
 }
 
-/**
- * Die Startprobe oder das Laden der TLS-Konfiguration ist gescheitert (`SPEC-043`): [part] nennt den fehlerhaften
- * Teil, [form] die gefundene Form als feste Beschreibung oder Ausnahmetyp; nie Pfad, Inhalt oder Ausnahmetext.
- * Ebene `ERROR`.
- */
-public class TlsStartRejected internal constructor(at: Instant, part: String, form: String) :
-    TelemetryEvent(at, EventLevel.ERROR) {
-    public val part: String = bounded(part)
-    public val form: String = bounded(form)
+internal class ServerStarted(at: Instant, override val port: Int) :
+    TelemetryEvent(EventKind.SERVER_STARTED, at, EventLevel.INFO)
+
+internal class ServerStopped(at: Instant) : TelemetryEvent(EventKind.SERVER_STOPPED, at, EventLevel.INFO)
+
+internal class StartRefused(at: Instant, refusal: StartRefusal) :
+    TelemetryEvent(EventKind.START_REFUSED, at, EventLevel.ERROR) {
+    override val reason: String = refusal.name
 }
 
-/**
- * Das Binden an [address] und [port] ist gescheitert (`SPEC-043`). [exceptionType] ist der Typname der Ausnahme
- * oder `null`, wenn der Port belegt ist. Ebene `ERROR`.
- */
-public class BindFailed internal constructor(
-    at: Instant,
-    address: String,
-    public val port: Int,
-    exceptionType: String?,
-) : TelemetryEvent(at, EventLevel.ERROR) {
-    public val address: String = bounded(address)
-    public val exceptionType: String? = exceptionType?.let(::bounded)
+internal class ConfigInvalid(at: Instant, key: String, kind: String) :
+    TelemetryEvent(EventKind.CONFIG_INVALID, at, EventLevel.ERROR) {
+    override val key: String = bounded(key)
+    override val issueKind: String = bounded(kind)
 }
 
-/** Die Verschlüsselung ist abgeschwächt: `ENCRYPTION_POLICY` ist `TEST_UNENCRYPTED` (`SPEC-010`). Ebene `WARN`. */
-public class EncryptionWeakened internal constructor(at: Instant) : TelemetryEvent(at, EventLevel.WARN)
-
-/** Das Verfahren `plain` ist zugelassen: `AUTH_PLAIN_TESTMODE` ist aktiv. Ebene `WARN`. */
-public class PlainTestModeActive internal constructor(at: Instant) : TelemetryEvent(at, EventLevel.WARN)
-
-/** Das Simulations-Backend ist mit [tables] Tabellen verdrahtet. Ebene `DEBUG`. */
-public class SimulationBackendReady internal constructor(at: Instant, public val tables: Int) :
-    TelemetryEvent(at, EventLevel.DEBUG)
-
-/** Annehmen einer Verbindung scheiterte, der Listener läuft weiter; [exceptionType] ist der Typname. Ebene `ERROR`. */
-public class AcceptFailed internal constructor(at: Instant, exceptionType: String) :
-    TelemetryEvent(at, EventLevel.ERROR) {
-    public val exceptionType: String = bounded(exceptionType)
+internal class TlsStartRejected(at: Instant, part: String, form: String) :
+    TelemetryEvent(EventKind.TLS_START_REJECTED, at, EventLevel.ERROR) {
+    override val part: String = bounded(part)
+    override val form: String = bounded(form)
 }
 
-/** Der Handler einer Verbindung hat eine Ausnahme geworfen; [exceptionType] ist ihr Typname. Ebene `ERROR`. */
-public class ConnectionFailed internal constructor(at: Instant, context: EventContext, exceptionType: String) :
-    TelemetryEvent(at, EventLevel.ERROR, context) {
-    public val exceptionType: String = bounded(exceptionType)
+internal class BindFailed(at: Instant, address: String, override val port: Int, exceptionType: String?) :
+    TelemetryEvent(EventKind.BIND_FAILED, at, EventLevel.ERROR) {
+    override val address: String = bounded(address)
+    override val exceptionType: String? = exceptionType?.let(::bounded)
 }
 
-/**
- * Die Anmeldung ist angenommen. [principal] ist die Kennung aus dem Authentifizierungsadapter und steht in keinem
- * anderen Ereignis. Für die mitgelieferte Benutzerliste stammt sie aus der Liste des Betreibers; dass die Kennung
- * eines eigenen Adapters frei von Geheimnissen ist, sagt die Bibliothek nicht zu. Ebene `INFO`.
- */
-public class LoginAccepted internal constructor(at: Instant, context: EventContext, principal: String) :
-    TelemetryEvent(at, EventLevel.INFO, context) {
-    public val principal: String = bounded(principal)
+internal class SecurityWeakened(at: Instant, weakening: WeakeningReason) :
+    TelemetryEvent(EventKind.SECURITY_WEAKENED, at, EventLevel.WARN) {
+    override val reason: String = weakening.name
 }
 
-/** Die Anmeldung ist abgelehnt; [reason] ist eine feste Marke, ein Feld für die Kennung fehlt. Ebene `WARN`. */
-public class LoginRejected internal constructor(
-    at: Instant,
-    context: EventContext,
-    public val reason: LoginRejectionReason,
-) : TelemetryEvent(at, EventLevel.WARN, context)
+internal class SimulationBackendReady(at: Instant, override val tables: Int) :
+    TelemetryEvent(EventKind.SIMULATION_BACKEND_READY, at, EventLevel.DEBUG)
 
-/** Der Authentifizierungsadapter hat eine Ausnahme geworfen; [exceptionType] ist ihr Typname. Ebene `ERROR`. */
-public class AdapterFailed internal constructor(at: Instant, context: EventContext, exceptionType: String) :
-    TelemetryEvent(at, EventLevel.ERROR, context) {
-    public val exceptionType: String = bounded(exceptionType)
+internal class AcceptFailed(at: Instant, exceptionType: String) :
+    TelemetryEvent(EventKind.ACCEPT_FAILED, at, EventLevel.ERROR) {
+    override val exceptionType: String = bounded(exceptionType)
 }
 
-/** Der Client bietet im PRELOGIN keine Verschlüsselung an, die Richtlinie verlangt sie. Ebene `WARN`. */
-public class EncryptionNotOffered internal constructor(at: Instant, context: EventContext) :
-    TelemetryEvent(at, EventLevel.WARN, context)
-
-/** Der Client beginnt mit TLS, der Server bietet TLS ab dem ersten Byte aus [reason] nicht an. Ebene `WARN`. */
-public class TlsFirstNotOffered internal constructor(
-    at: Instant,
-    context: EventContext,
-    public val reason: TlsFirstRefusal,
-) : TelemetryEvent(at, EventLevel.WARN, context)
-
-/** Der TLS-Handschlag einer Verbindung ist gescheitert; [failure] ist die Art, nie der Text. Ebene `WARN`. */
-public class TlsHandshakeFailed internal constructor(at: Instant, context: EventContext, failure: String) :
-    TelemetryEvent(at, EventLevel.WARN, context) {
-    public val failure: String = bounded(failure)
+internal class ConnectionFailed(at: Instant, context: EventContext, exceptionType: String) :
+    TelemetryEvent(EventKind.CONNECTION_FAILED, at, EventLevel.ERROR, context) {
+    override val exceptionType: String = bounded(exceptionType)
 }
 
-/**
- * Eine Anfrage ist mit dem Fehler [errorCode] (`TDS_*`) beantwortet worden. [cause] ist der Typname der Ausnahme oder
- * eine feste Marke des Anlasses, sonst `null`; nie der Text einer Ausnahme und nie ein Wert. Ebene `WARN`.
- */
-public class RequestFailed internal constructor(at: Instant, context: EventContext, errorCode: String, cause: String?) :
-    TelemetryEvent(at, EventLevel.WARN, context) {
-    public val errorCode: String = bounded(errorCode)
-    public val cause: String? = cause?.let(::bounded)
+internal class LoginAccepted(at: Instant, context: EventContext, principal: String) :
+    TelemetryEvent(EventKind.LOGIN_ACCEPTED, at, EventLevel.INFO, context) {
+    override val principal: String = bounded(principal)
+}
+
+internal class LoginRejected(at: Instant, context: EventContext, rejection: LoginRejectionReason) :
+    TelemetryEvent(EventKind.LOGIN_REJECTED, at, EventLevel.WARN, context) {
+    override val reason: String = rejection.name
+}
+
+internal class AdapterFailed(at: Instant, context: EventContext, exceptionType: String) :
+    TelemetryEvent(EventKind.ADAPTER_FAILED, at, EventLevel.ERROR, context) {
+    override val exceptionType: String = bounded(exceptionType)
+}
+
+internal class EncryptionNotOffered(at: Instant, context: EventContext) :
+    TelemetryEvent(EventKind.ENCRYPTION_NOT_OFFERED, at, EventLevel.WARN, context)
+
+internal class TlsFirstNotOffered(at: Instant, context: EventContext, refusal: TlsFirstRefusal) :
+    TelemetryEvent(EventKind.TLS_FIRST_NOT_OFFERED, at, EventLevel.WARN, context) {
+    override val reason: String = refusal.name
+}
+
+internal class TlsHandshakeFailed(at: Instant, context: EventContext, failure: String) :
+    TelemetryEvent(EventKind.TLS_HANDSHAKE_FAILED, at, EventLevel.WARN, context) {
+    override val failure: String = bounded(failure)
+}
+
+internal class RequestFailed(at: Instant, context: EventContext, errorCode: String, cause: String?) :
+    TelemetryEvent(EventKind.REQUEST_FAILED, at, EventLevel.WARN, context) {
+    override val errorCode: String = bounded(errorCode)
+    override val cause: String? = cause?.let(::bounded)
 }

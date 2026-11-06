@@ -1,4 +1,4 @@
-# Slice slice-betrieb-telemetrie-verdrahtung-belegen: Telemetrie: Verdrahtung von AcceptFailed und ConnectionFailed, Rot-Fälle der Ausgabe-Sperre je Package und die Lücke von Logger.log
+# Slice slice-betrieb-telemetrie-verdrahtung-belegen: Telemetrie: Verdrahtung von ACCEPT_FAILED und CONNECTION_FAILED, Rot-Fälle der Ausgabe-Sperre je Package und die Lücke von Logger.log
 
 **Lifecycle:** Der Zustand dieses Slice ist das Verzeichnis, in dem diese
 Datei liegt — eines von `open/`, `next/`, `in-progress/`, `done/`. Er
@@ -31,16 +31,16 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Drei Aussagen aus Review und Verifikation von [slice-betrieb-log-schnittstelle](../done/slice-betrieb-log-schnittstelle.md) bekommen einen Beleg, den heute nur das Lesen des Codes trägt: (1) `AcceptFailed` und `ConnectionFailed` entstehen am Server und nicht nur im Modell-Test (Verifikation V-3: die Mutationen M9 und M10 überleben); (2) „im ganzen Hauptmodul ohne Ausnahme“ der Ausgabe-Sperre ist für jedes Package des Hauptmoduls durch einen Rot-Fall belegt oder als Grenze benannt (V-6: Rot-Fälle nur für `runtime`, `protocol`, `transport`); (3) die Lücke von `java.util.logging.Logger.log(Level, …)` ist geschlossen oder bleibt mit Begründung benannt (V-6, Mutation M6).
+**Ziel:** Drei Aussagen aus Review und Verifikation von [slice-betrieb-log-schnittstelle](../done/slice-betrieb-log-schnittstelle.md) bekommen einen Beleg, den heute nur das Lesen des Codes trägt: (1) `ACCEPT_FAILED` und `CONNECTION_FAILED` entstehen am Server und nicht nur im Modell-Test (Verifikation V-3: die Mutationen M9 und M10 überleben); (2) „im ganzen Hauptmodul ohne Ausnahme“ der Ausgabe-Sperre ist für jedes Package des Hauptmoduls durch einen Rot-Fall belegt oder als Grenze benannt (V-6: Rot-Fälle nur für `runtime`, `protocol`, `transport`); (3) die Lücke von `java.util.logging.Logger.log(Level, …)` ist geschlossen oder bleibt mit Begründung benannt (V-6, Mutation M6).
 
 **Herkunft:** die Punkte stammen aus dem Bericht `docs/reviews/2026-11-01-2e6b7ba-verifikation-slice-betrieb-log-schnittstelle.md` (V-3, V-6) und aus der Closure-Notiz von [slice-betrieb-log-schnittstelle](../done/slice-betrieb-log-schnittstelle.md).
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Umfang der öffentlichen Fläche (18 Ereignisarten, 4 Aufzählungen, rund 50 Namen; Optionen (a), (b), (c) in §6 von [slice-betrieb-log-schnittstelle](../done/slice-betrieb-log-schnittstelle.md)) — Nutzerentscheidung, `BEO-TDS/oeffentliche-flaeche-der-telemetrie-ohne-entscheidung`; schrumpft die Fläche, ändern sich Arten und damit die Tests dieses Slice, deshalb steht die Entscheidung vor ihm.
+- Umfang der öffentlichen Fläche (18 Ereignisarten, 4 Aufzählungen, rund 50 Namen; Optionen (a), (b), (c) in §6 von [slice-betrieb-log-schnittstelle](../done/slice-betrieb-log-schnittstelle.md)) — entschieden und umgesetzt in [slice-oeffentliche-flaeche-verkleinern-und-belegen](../done/slice-oeffentliche-flaeche-verkleinern-und-belegen.md) (`BEO-TDS/oeffentliche-flaeche-der-telemetrie-ohne-entscheidung`, gestrichen); die Arten stehen als `EventKind`, die Tests dieses Slice belegen sie in dieser Form.
 - Neue Ereignisarten, `request_id` und `duration_ms` — [slice-betrieb-zustandsereignisse](slice-betrieb-zustandsereignisse.md) und [slice-betrieb-metriken-tracing](slice-betrieb-metriken-tracing.md); hier wird nur belegt, was gebaut ist.
 - Der JSON-Adapter und die Inspektion des laufenden Prozesses — [slice-betrieb-log-adapter-testserver](slice-betrieb-log-adapter-testserver.md).
-- `Error` aus der Senke bei `AcceptFailed` und `ConnectionFailed`: bleibt „weder gemessen noch zugesagt“ (KDoc von `TelemetrySink`); der Slice darf es messen, muss es nicht, und eine Zusage braucht eine Entscheidung des Nutzers.
+- `Error` aus der Senke bei `ACCEPT_FAILED` und `CONNECTION_FAILED`: bleibt „weder gemessen noch zugesagt“ (KDoc von `TelemetrySink`); der Slice darf es messen, muss es nicht, und eine Zusage braucht eine Entscheidung des Nutzers.
 
 ## 2. Definition of Done
 
@@ -52,7 +52,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 Liefer-Punkte (drei):
 
-- [ ] **Verdrahtung von `AcceptFailed` und `ConnectionFailed`** ([TDS-FA-09](../../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose)): ein Test löst jede der beiden Arten über den Server aus (ein Handler, der wirft; ein Listener, dessen Annehmen scheitert) und liest sie im Sammler; er prüft die Felder der Art und die Grenze „`ConnectionFailed` trägt keine `session_id` und das Profil `unknown`“ aus der Spezifikation (Abschnitt 4). **Beleg:** die Mutationen „`ListenerEvent.Closed` liefert kein Ereignis“ und „`ListenerEvent.AcceptFailed` liefert kein Ereignis“ machen je mindestens einen Test rot. Der Redaktionstest (`TelemetryRedactionTest`) bekommt für beide Arten einen Fall über den Server, mit je verschiedenen Eingabewerten.
+- [ ] **Verdrahtung von `ACCEPT_FAILED` und `CONNECTION_FAILED`** ([TDS-FA-09](../../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose)): ein Test löst jede der beiden Arten über den Server aus (ein Handler, der wirft; ein Listener, dessen Annehmen scheitert) und liest sie im Sammler; er prüft die Felder der Art und die Grenze „`CONNECTION_FAILED` trägt keine `session_id` und das Profil `unknown`“ aus der Spezifikation (Abschnitt 4). **Beleg:** die Mutationen „`ListenerEvent.Closed` liefert kein Ereignis“ und „`ListenerEvent.AcceptFailed` liefert kein Ereignis“ machen je mindestens einen Test rot. Der Redaktionstest (`TelemetryRedactionTest`) bekommt für beide Arten einen Fall über den Server, mit je verschiedenen Eingabewerten.
 - [ ] **Rot-Fälle der Ausgabe-Sperre je Package** ([TDS-QA-05](../../../../spec/lastenheft.md#tds-qa-05--wartbarkeit)): unter `config/detekt/selbsttest-aufrufe/` liegt ein Rot-Fall für `domain`, `port`, `config`, `observability` und `simulation`, den `make detekt-selbsttest` fährt; **Beleg:** die Verengung des `includes` von `ForbiddenMethodCall/ausgabe` auf drei Packages macht `make detekt-selbsttest` rot (Mutation M11 der Verifikation). Der Erlaubt-Fall in `domain` und `port` (heute ohne `println`) belegt, dass die Kern-Regel dort nicht trifft; bleibt er, trägt er sein `println` wieder oder die Datei nennt, was sie nicht belegt.
 - [ ] **Lücke `Logger.log`** ([TDS-QA-05](../../../../spec/lastenheft.md#tds-qa-05--wartbarkeit)): entweder ein Eintrag der Sperre für `java.util.logging.Logger.log` (alle Überladungen, die der Übersetzer auflöst) mit Rot-Fall, oder die Grenze steht mit Begründung in `config/detekt/detekt.yml` und in der Closure-Notiz; Ziel ist ein Beleg, kein Versprechen. Die Aufrufe `Thread.dumpStack` und `printStackTrace(PrintStream)` sind dabei gemessen und genannt (der Review fuhr sie nicht).
 
@@ -64,7 +64,7 @@ Nachweis-Pflichten für alle drei Punkte:
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Doku-Update: der Satz zu `ConnectionFailed` in Abschnitt 4 der Spezifikation trägt nach dem Test die Kennzeichnung „gebaut“ mit Verweis auf den Test; `SPEC-059` ändert sich nicht.
+- [ ] Doku-Update: der Satz zu `CONNECTION_FAILED` in Abschnitt 4 der Spezifikation trägt nach dem Test die Kennzeichnung „gebaut“ mit Verweis auf den Test; `SPEC-059` ändert sich durch diesen Slice nicht (die Arten stehen dort als `EventKind`).
 - [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
 - [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
 - [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
@@ -83,7 +83,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `src/test/kotlin/io/github/pt9912/tdswire/runtime/` (Wiring-Tests, `TelemetryRedactionTest`) | update / neu | Handler, der wirft; Listener, dessen Annehmen scheitert; Felder und Redaktion beider Arten (Happy, Negative) nach [TDS-FA-09](../../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose) |
 | `config/detekt/selbsttest-aufrufe/src/main/kotlin/io/github/pt9912/tdswire/` | neu | Rot-Fälle je Package (`domain`, `port`, `config`, `observability`, `simulation`) |
 | `config/detekt/detekt.yml` | update | Eintrag oder benannte Grenze für `Logger.log`; nur Verschärfung (`AGENTS.md` §3.6) |
-| `spec/spezifikation.md` Abschnitt 4 | update | Satz zu `ConnectionFailed` mit Verweis auf den Test |
+| `spec/spezifikation.md` Abschnitt 4 | update | Satz zu `CONNECTION_FAILED` mit Verweis auf den Test |
 
 
 ## 4. Trigger
@@ -92,7 +92,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-betrieb-log-schnittstelle](../done/slice-betrieb-log-schnittstelle.md) liegt in `done/`; die Nutzerentscheidung zum Umfang der öffentlichen Fläche (`BEO-TDS/oeffentliche-flaeche-der-telemetrie-ohne-entscheidung`) ist gefallen, weil Option (c) die Arten ändert, die dieser Slice belegt; ein Verantwortlicher ist eingetragen.
+**Start** (`next` → `in-progress`): [slice-betrieb-log-schnittstelle](../done/slice-betrieb-log-schnittstelle.md) liegt in `done/`; [slice-oeffentliche-flaeche-verkleinern-und-belegen](../done/slice-oeffentliche-flaeche-verkleinern-und-belegen.md) liegt in `done/` (erfüllt: die Nutzerentscheidung zum Umfang der öffentlichen Fläche ist gefallen und umgesetzt, die Arten stehen als `EventKind`); ein Verantwortlicher ist eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -116,7 +116,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Ein Test über den Server für `AcceptFailed` verlangt einen Listener, dessen Annehmen scheitert; ob das ohne eine Naht im Produktcode geht (`BEO-TDS/test-naht-im-produktivcode`), ist ungeklärt. — **Ausgang:** offen bis zur Closure.
+- Ein Test über den Server für `ACCEPT_FAILED` verlangt einen Listener, dessen Annehmen scheitert; ob das ohne eine Naht im Produktcode geht (`BEO-TDS/test-naht-im-produktivcode`), ist ungeklärt. — **Ausgang:** offen bis zur Closure.
 - Der Rot-Fall je Package belegt die Konfiguration des `includes`, nicht jeden künftigen Aufruf (Typauflösung, nur genannte Aufrufe). — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz

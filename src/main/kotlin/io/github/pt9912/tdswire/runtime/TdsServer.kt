@@ -86,7 +86,7 @@ public class TdsServer internal constructor(private val listener: TdsListener, p
     public companion object {
         /**
          * Startet den Server mit [config] und [source] (`SPEC-059`). Geprüft werden die Konfiguration
-         * ([io.github.pt9912.tdswire.config.ConfigValidation]), die Tabellen und das TLS-Material; erst danach wird
+         * (Befunde als [StartOutcome.Aborted.issues]), die Tabellen und das TLS-Material; erst danach wird
          * gebunden. [telemetry] nimmt die Ereignisse des Servers entgegen (Vertrag in [TelemetrySink]); ohne Senke
          * erzeugt und schreibt die Bibliothek nichts. Der Aufrufer besitzt die Senke und schließt sie nach [stop].
          */

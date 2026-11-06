@@ -3,7 +3,7 @@ package io.github.pt9912.tdswire.runtime
 import io.github.pt9912.tdswire.config.ConfigKeys
 import io.github.pt9912.tdswire.config.auth.pbkdf2Value
 import io.github.pt9912.tdswire.domain.telemetry.ConfigInvalid
-import io.github.pt9912.tdswire.domain.telemetry.PlainTestModeActive
+import io.github.pt9912.tdswire.domain.telemetry.EventKind
 import io.github.pt9912.tdswire.domain.telemetry.ServerStarted
 import io.github.pt9912.tdswire.domain.telemetry.TlsStartRejected
 import io.github.pt9912.tdswire.testsupport.blocking
@@ -51,7 +51,7 @@ internal class SecurityConfigNegativeTest : RuntimeTestBase() {
         sink.events.clear()
         val before = listenerThreads()
         val aborted = assertIs<StartOutcome.Aborted>(start(environment), label)
-        assertEquals(expected, sink.of<ConfigInvalid>().map { "${it.key}: ${it.kind}" }, label)
+        assertEquals(expected, sink.of<ConfigInvalid>().map { "${it.key}: ${it.issueKind}" }, label)
         assertEquals(expected.size, sink.events.size, label)
         (sink.events.map { it.visibleText() } + aborted.reason).forEach { text ->
             listOf("Zk9", directory, ".p12", "tdswire-test", "kennwort").forEach {
@@ -133,8 +133,8 @@ internal class SecurityConfigNegativeTest : RuntimeTestBase() {
         val plainOn = withPlain + (ConfigKeys.AUTH_PLAIN_TESTMODE to "true")
         val server = assertIs<StartOutcome.Running>(start(plainOn)).server
         assertEquals(
-            listOf(ServerStarted::class, PlainTestModeActive::class),
-            sink.events.map { it::class },
+            listOf(EventKind.SERVER_STARTED to null, EventKind.SECURITY_WEAKENED to "PLAIN_TEST_MODE"),
+            sink.events.map { it.kind to it.reason },
         )
         assertEquals(server.port, (sink.events.first() as ServerStarted).port)
     }

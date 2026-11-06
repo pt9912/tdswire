@@ -27,8 +27,8 @@ internal class TelemetryEventTest {
         Sample(ConfigInvalid(at, "SCHLUESSEL", "MISSING"), EventLevel.ERROR, false),
         Sample(TlsStartRejected(at, "CERTIFICATE", "Kette unbrauchbar"), EventLevel.ERROR, false),
         Sample(BindFailed(at, "127.0.0.1", 1433, null), EventLevel.ERROR, false),
-        Sample(EncryptionWeakened(at), EventLevel.WARN, false),
-        Sample(PlainTestModeActive(at), EventLevel.WARN, false),
+        Sample(SecurityWeakened(at, WeakeningReason.ENCRYPTION_TEST_UNENCRYPTED), EventLevel.WARN, false),
+        Sample(SecurityWeakened(at, WeakeningReason.PLAIN_TEST_MODE), EventLevel.WARN, false),
         Sample(SimulationBackendReady(at, 2), EventLevel.DEBUG, false),
         Sample(AcceptFailed(at, "java.io.IOException"), EventLevel.ERROR, false),
         Sample(ConnectionFailed(at, context, "java.lang.IllegalStateException"), EventLevel.ERROR, true),
@@ -50,8 +50,21 @@ internal class TelemetryEventTest {
     @Test
     fun `Jede Ereignisart hat ein Muster`() {
         val declared = TelemetryEvent::class.java.permittedSubclasses.orEmpty().map { it.name }.toSet()
-        assertTrue(declared.size >= samples().size, "die Unterklassen sind nicht lesbar: $declared")
+        assertTrue(declared.size >= EventKind.entries.size, "die Unterklassen sind nicht lesbar: $declared")
         assertEquals(declared, samples().map { it.event.javaClass.name }.toSet())
+    }
+
+    /**
+     * Die Aufzählung der Arten und die Unterklassen decken sich: jede Art hat ein Muster, und jede Unterklasse trägt
+     * genau eine Art. Eine Art ohne Klasse oder eine Klasse mit fremder Art macht den Test rot.
+     *
+     * @spec SPEC-059
+     */
+    @Test
+    fun `Jede Art der Aufzaehlung gehoert zu genau einer Klasse`() {
+        assertEquals(EventKind.entries.toSet(), samples().map { it.event.kind }.toSet())
+        val classesPerKind = samples().groupBy({ it.event.kind }, { it.event.javaClass }).mapValues { it.value.toSet() }
+        classesPerKind.forEach { (kind, classes) -> assertEquals(1, classes.size, "$kind: $classes") }
     }
 
     /**
@@ -90,7 +103,7 @@ internal class TelemetryEventTest {
         val long = "x".repeat(LONG)
         val cut = "x".repeat(LIMIT)
         assertEquals(cut, ConfigInvalid(at, long, long).key)
-        assertEquals(cut, ConfigInvalid(at, long, long).kind)
+        assertEquals(cut, ConfigInvalid(at, long, long).issueKind)
         assertEquals(cut, TlsStartRejected(at, long, long).part)
         assertEquals(cut, TlsStartRejected(at, long, long).form)
         assertEquals(cut, BindFailed(at, long, 1, long).address)
