@@ -1,1 +1,4 @@
 **Stand:** offen — über der Schwelle (3×), bei den Closures von welle-transport-tls und welle-handshake-login gelesen und nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung). Zähler laut Evidence-Dateien: 4×. Zwei Wege, beide Nutzerentscheidung: ein DoD-Punkt (Speicherabzug) in `slice-qa-sicherheit`, dessen Abschnitt 8 den Slice als Träger nennt, ohne dass die DoD einen Punkt dazu führt, oder Streichen mit der Begründung „Aussage im Code als nicht gemessen gekennzeichnet“.
+
+
+**Lese-Schritt welle-fehler-abbruch (2026-11-06):** 4× gelesen, über der Schwelle, nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung), siehe `welle-fehler-abbruch-results.md` §Steering-Loop-Einträge und §Offene Fragen. Die Closure ändert weder Regel noch Gate. Der Stand `offen` bleibt.

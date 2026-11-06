@@ -4,3 +4,6 @@
 **Lese-Schritt welle-simulations-backend (2026-10-31):** 10× gelesen, über der Schwelle, nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung). Die Closure ändert weder Regel noch Gate.
 
 **Lese-Schritt welle-Closure (Entscheidung des Nutzers, 2026-11-06):** nicht verkörpert; die Klasse (15 Evidence-Dateien) wird bei der Welle-Closure gelesen, ohne Regel, Sensor oder Träger-Slice. Der Stand `offen` bleibt.
+
+
+**Lese-Schritt welle-fehler-abbruch (2026-11-06):** 16× gelesen, über der Schwelle, nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung), siehe `welle-fehler-abbruch-results.md` §Steering-Loop-Einträge und §Offene Fragen. Die Closure ändert weder Regel noch Gate. Der Stand `offen` bleibt. Es gilt die Entscheidung des Nutzers vom 2026-11-06 oben: gelesen, ohne Regel, Sensor oder Träger-Slice.
