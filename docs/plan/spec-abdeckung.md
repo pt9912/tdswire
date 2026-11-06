@@ -1,7 +1,8 @@
 # Abdeckung der Festlegungen der Spezifikation durch Tests
 
-Erzeugt von `make spec-abdeckung` aus den `@spec`-Tags im KDoc der Testfunktionen unter `src/test`, `src/integrator` und `testserver`
-und den JUnit-Berichten des Testlaufs, der diese Matrix erzeugt hat. Die Festlegungen sind die
+Erzeugt von `make spec-abdeckung` aus den `@spec`-Tags im KDoc der Testfunktionen unter `src/test`, `src/integrator` und `testserver`,
+aus den `// @spec`-Kommentaren der C#-Tests unter `referenztest-dotnet`
+und den Berichten des Testlaufs, der diese Matrix erzeugt hat (JUnit-XML des Gradle-Laufs, TRX der Stage `test-bericht` des .NET-Gerüsts). Die Festlegungen sind die
 `SPEC-<NNN>`-Überschriften und die Tabellenzeilen mit `SPEC-<NNN>` in der ersten Zelle von
 [`spec/spezifikation.md`](../../spec/spezifikation.md).
 
@@ -14,6 +15,11 @@ untereinander im selben Block sind erlaubt und addieren sich. Der Tag haftet an 
 (Modifikatoren nur `private`/`internal`; bei `suspend fun` oder `override fun` haftet er an der
 nächsten passenden `fun`); ein Einzeilen-KDoc `/** @spec ... */` wird nicht gelesen; ein neuer
 KDoc-Block oder eine Klasse verwirft einen offenen Tag.
+
+**Konvention des C#-Tags:** eine Kommentarzeile `// @spec SPEC-<NNN> [SPEC-<NNN> ...]` über der Testmethode; Attributzeilen
+(`[Fact]`, `[Theory]`, `[InlineData(...)]`), Leer- und Kommentarzeilen dazwischen halten ihn, jede andere Zeile verwirft ihn.
+Der Bericht der C#-Tests ist der der Stage `test-bericht` des .NET-Gerüsts (COPY-Quellen und DOTNET_TEST_ARGS wie die Stage `test`; weitere Flags in deren RUN-Zeile sind nicht gekoppelt); ein getaggter C#-Test, den sie nicht
+ausführt (die zwei Tests des Abspielens, die nur in `make vergleichslauf-d` laufen), steht als „nicht gelaufen“.
 
 Ein **Nachweis** ist ein Test, dessen Tag die Kennung nennt und der im Bericht desselben Laufs
 bestanden steht (Klasse und Methodenname stimmen überein); das Urteil lautet „mindestens ein
@@ -29,9 +35,9 @@ Ein Gate als Nachweis (ein Make-Target statt eines Tests) kennt der Erzeuger nic
 deren Titelzelle ein `make`-Target nennt oder die „Gate noch einzurichten“ trägt, steht ohne
 bestandenen Test als „Gate-Festlegung, ungemessen“ und ist weder Nachweis noch Waise. Nennt
 irgendein Test ihre Kennung, steht sie als Nachweis da und die Klasse ist nicht mehr zu sehen.
-Die Art folgt dem Verzeichnis des Tests: `smoke/` Smoke-Test, `e2e/` E2E-Test, sonst Modul-Test.
+Die Art folgt dem Verzeichnis des Tests: `smoke/` (C#: `Smoke/`) Smoke-Test, `e2e/` E2E-Test, sonst Modul-Test.
 
-Stand: 42 von 56 Festlegungen mit mindestens einem bestandenen Test, 4 Gate-Festlegungen ungemessen, 10 ohne Nachweis.
+Stand: 43 von 56 Festlegungen mit mindestens einem bestandenen Test, 4 Gate-Festlegungen ungemessen, 9 ohne Nachweis.
 
 ## Matrix
 
@@ -43,13 +49,13 @@ Stand: 42 von 56 Festlegungen mit mindestens einem bestandenen Test, 4 Gate-Fest
 | `SPEC-004` | Testprofil | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-028` | PRELOGIN, TLS und LOGIN7: Zustands- und Antwortvertrag | 131 | 2 | 0 | 0 | DispatchFailureTest, StreamingDispatchTest, Login7ParserTest, PreloginCodecTest, HandshakeDriverTest, HandshakeMatrixTest, HandshakeTransportTest, LoginAdmissionTest, LoginResponseTest, PreloginNegotiationTest, SqlBatchParserTest, TokenEncoderTest, TokenRoundtripTest, Tds8WiringTest, Tds8DefenseTest, TlsWiringTest, CodecSmokeTest, ConnectionStormTest, FramingFuzzTest, HandshakeFuzzTest, StreamCutoffTest, SocketChannelLoopbackTest, SwitchableChannelTest, MessageAssemblerTest, PacketHeaderTest, PacketWriterTest, ListenerSmokeTest, MessageReaderTest, MessageStreamTest, MessageWriterTest, NetInboundTest, TlsDataPhaseTest, TlsLoopbackTest, TlsNegativeTest, TlsSessionTicketTest | mindestens ein bestandener getaggter Test |
 | `SPEC-029` | ATTENTION und Wiederverwendung der Verbindung | 34 | 0 | 0 | 0 | AttentionCancelTest, AttentionWireTest, CancelTimeoutTest, DisconnectTest, QueryTimeoutTest, ShutdownDispatchTest, StreamingDispatchTest, ResponseFailureTest, ResponseMappingTest, AbbruchWiringTest, ConnectionLeakTest, ShutdownWiringTest, SimulationBackendChangeTest, SimulationBackendSourceTest, MessageAssemblerTest | mindestens ein bestandener getaggter Test |
-| `SPEC-030` | RPC-Varianten und Parameter-Metadaten | 70 | 1 | 0 | 0 | AnswerFormsDispatchTest, HandleReturningBackendTest, PreparedHandlesDispatchTest, PreparedHandlesTest, RequestSequenceTest, ResetConnectionDispatchTest, RpcBinderTest, RpcDispatchTest, RpcPositionalNamesTest, ResponseRpcTest, RpcCatalogFormsTest, RpcFailureTest, RpcTypesTest, TokenEncoderTest, CodecSmokeTest | mindestens ein bestandener getaggter Test |
+| `SPEC-030` | RPC-Varianten und Parameter-Metadaten | 71 | 1 | 0 | 0 | FlaecheEmbeddingTest, AnswerFormsDispatchTest, HandleReturningBackendTest, PreparedHandlesDispatchTest, PreparedHandlesTest, RequestSequenceTest, ResetConnectionDispatchTest, RpcBinderTest, RpcDispatchTest, RpcPositionalNamesTest, ResponseRpcTest, RpcCatalogFormsTest, RpcFailureTest, RpcTypesTest, TokenEncoderTest, CodecSmokeTest | mindestens ein bestandener getaggter Test |
 | `SPEC-031` | Streaming-Fehler und Atomarität | 101 | 3 | 0 | 4 | AnswerFormsDispatchTest, AttentionCancelTest, AttentionWireTest, DisconnectTest, DispatchClosingTest, DispatchFailureTest, DispatchFateTest, QueryTimeoutTest, ShutdownDispatchTest, SqlBatchDispatchTest, StreamingDispatchTest, ErrorMapperTest, ResponseDecoderTest, ResponseErrorMapperTest, ResponseFailureTest, ResponseMappingTest, ResponseOrderTest, ResponseRpcTest, ColumnMappingTest, MappingFuzzTest, ValueMappingTest, ConnectionLeakTest, RequestWiringTest, SynchronitaetWiringTest, SimulationBackendSourceTest, SimulationMemoryTest, StreamingSmokeTest, MessageStreamTest | mindestens ein bestandener getaggter Test |
-| `SPEC-035` | Tabellenbeschreibung und Zeilenquelle des Simulations-Backends | 83 | 0 | 0 | 0 | EmbeddingTest, SimulationWiringTest, TestserverSimulationProcessTest, SimModelTest, SimulationBackendChangeTest, SimulationBackendSelectTest, SimValuesTest, ConfigSimulationFileTest, SimDescriptionReaderTest, TestserverStartTest, YamlTreeReaderTest | mindestens ein bestandener getaggter Test |
+| `SPEC-035` | Tabellenbeschreibung und Zeilenquelle des Simulations-Backends | 84 | 0 | 0 | 0 | EmbeddingTest, FlaecheEmbeddingTest, SimulationWiringTest, TestserverSimulationProcessTest, SimModelTest, SimulationBackendChangeTest, SimulationBackendSelectTest, SimValuesTest, ConfigSimulationFileTest, SimDescriptionReaderTest, TestserverStartTest, YamlTreeReaderTest | mindestens ein bestandener getaggter Test |
 | `SPEC-036` | Erkannte Anweisungsformen des Simulations-Backends (vorläufig) | 66 | 0 | 0 | 0 | FixedFormsTest, SimModelTest, SimulationBackendFixedTest, SimulationBackendSelectTest, SimValuesTest, StatementFormsTest, StatementOracleTest, StatementPlannerTest, StatementScannerTest, NameFoldTest | mindestens ein bestandener getaggter Test |
-| `SPEC-043` | Startprüfung: TLS-Konfiguration und Port | 34 | 0 | 0 | 0 | TelemetryEmbeddingTest, BootstrapTest, SecurityConfigNegativeTest, ServerSmokeTest, TdsServerLifecycleTest, TelemetryRedactionTest, TlsHandshakeNegativeTest, IoGroupTest, ListenerStartTest, TlsStartProbeTest, ConfigLoaderTest, TestserverStartTest | mindestens ein bestandener getaggter Test |
+| `SPEC-043` | Startprüfung: TLS-Konfiguration und Port | 35 | 0 | 0 | 0 | TelemetryEmbeddingTest, TelemetryFelderEmbeddingTest, BootstrapTest, SecurityConfigNegativeTest, ServerSmokeTest, TdsServerLifecycleTest, TelemetryRedactionTest, TlsHandshakeNegativeTest, IoGroupTest, ListenerStartTest, TlsStartProbeTest, ConfigLoaderTest, TestserverStartTest | mindestens ein bestandener getaggter Test |
 | `SPEC-044` | Geordnetes Beenden | 44 | 0 | 0 | 0 | EmbeddingTest, ShutdownDispatchTest, BootstrapTest, HandshakeWiringTest, ServerSmokeTest, ShutdownWiringTest, TdsServerLifecycleTest, ListenerAbortTest, ListenerLifecycleTest, ListenerPartialMessageTest, ListenerShutdownTest, ListenerTestBaseTest, MessageReaderMidMessageTest | mindestens ein bestandener getaggter Test |
-| `SPEC-045` | Referenzabgleich: Ablauf und Ausnahmeliste (vorläufig) | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
+| `SPEC-045` | Referenzabgleich: Ablauf und Ausnahmeliste (vorläufig) | 20 | 0 | 0 | 2 | MitschnittEinheitTests | mindestens ein bestandener getaggter Test |
 | `SPEC-005` | `LISTEN_PORT` (Eingang des Testservers) | 20 | 0 | 0 | 0 | ConfigValidationTest, BootstrapTest, ServerSmokeTest, ConnectionStormTest, ListenerLifecycleTest, ListenerRemoteAddressTest, ListenerSmokeTest, ListenerStartTest, ConfigLoaderTest, TestserverStartTest | mindestens ein bestandener getaggter Test |
 | `SPEC-006` | `MAX_TDS_PACKET_BYTES` | 16 | 0 | 0 | 0 | ConnectionStormTest, FramingFuzzTest, HandshakeFuzzTest, StreamCutoffTest, PacketHeaderTest, PacketWriterTest | mindestens ein bestandener getaggter Test |
 | `SPEC-007` | `MAX_MESSAGE_BYTES` | 9 | 0 | 0 | 0 | HandshakeTransportTest, ConnectionStormTest, FramingFuzzTest, MessageAssemblerTest, MessageReaderTest | mindestens ein bestandener getaggter Test |
@@ -62,7 +68,7 @@ Stand: 42 von 56 Festlegungen mit mindestens einem bestandenen Test, 4 Gate-Fest
 | `SPEC-034` | `MAX_CONNECTIONS` | 4 | 0 | 0 | 0 | ListenerLimitTest | mindestens ein bestandener getaggter Test |
 | `SPEC-053` | Drosselung wiederholter Anmeldeversuche | 23 | 0 | 0 | 0 | LoginThrottleDriverTest, LoginThrottleTest, LoginThrottleTimingTest, LoginThrottleWiringTest | mindestens ein bestandener getaggter Test |
 | `SPEC-011` | `TDS_PROTOCOL_ERROR` | 9 | 0 | 0 | 0 | DispatchFailureTest, RpcDispatchTest, ErrorMapperTest, PreloginCodecTest, TokenEncoderTest, MessageAssemblerTest, PacketHeaderTest | mindestens ein bestandener getaggter Test |
-| `SPEC-012` | `TDS_LOGIN_FAILED` | 31 | 0 | 0 | 0 | TelemetryEmbeddingTest, UserListAuthAdapterTest, TelemetryEventTest, ErrorMapperTest, HandshakeDriverTest, HandshakeTransportTest, LoginAdmissionTest, LoginPathTextTest, LoginResponseTest, LoginThrottleDriverTest, LoginLogInspectionTest, LoginThrottleWiringTest, ServerSmokeTest, TelemetryRedactionTest | mindestens ein bestandener getaggter Test |
+| `SPEC-012` | `TDS_LOGIN_FAILED` | 32 | 0 | 0 | 0 | TelemetryEmbeddingTest, TelemetryFelderEmbeddingTest, UserListAuthAdapterTest, TelemetryEventTest, ErrorMapperTest, HandshakeDriverTest, HandshakeTransportTest, LoginAdmissionTest, LoginPathTextTest, LoginResponseTest, LoginThrottleDriverTest, LoginLogInspectionTest, LoginThrottleWiringTest, ServerSmokeTest, TelemetryRedactionTest | mindestens ein bestandener getaggter Test |
 | `SPEC-013` | `TDS_UNSUPPORTED_RPC` | 10 | 0 | 0 | 0 | PreparedHandlesDispatchTest, RequestSequenceTest, RpcBinderTest, RpcDispatchTest, ErrorMapperTest | mindestens ein bestandener getaggter Test |
 | `SPEC-014` | `TDS_UNSUPPORTED_TYPE` | 27 | 0 | 0 | 0 | AnswerFormsDispatchTest, DispatchFailureTest, ErrorMapperTest, ResponseErrorMapperTest, ResponseFailureTest, ResponseMappingTest, ColumnMappingTest, MappingFuzzTest, ValueMappingTest, DecimalValuesTest, TokenEncoderTest | mindestens ein bestandener getaggter Test |
 | `SPEC-015` | `TDS_BACKEND_ERROR` | 6 | 0 | 0 | 0 | ErrorMapperTest, ResponseErrorMapperTest | mindestens ein bestandener getaggter Test |
@@ -81,8 +87,8 @@ Stand: 42 von 56 Festlegungen mit mindestens einem bestandenen Test, 4 Gate-Fest
 | `SPEC-021` | .NET SQL-Client | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-022` | Query-Backend | 4 | 0 | 0 | 0 | EmbeddingTest, QueryTimeoutTest | mindestens ein bestandener getaggter Test |
 | `SPEC-023` | TLS | 16 | 0 | 0 | 0 | TlsHandshakeNegativeTest, TlsLoopbackTest, TlsNegativeTest, TlsRenegotiationTest, TlsSessionTicketTest, TlsStartProbeTest | mindestens ein bestandener getaggter Test |
-| `SPEC-051` | Authentifizierungsadapter | 47 | 0 | 0 | 0 | AuthPrimitivesTest, AuthTextRepresentationTest, AuthTimingTest, UserListAuthAdapterTest, UserListParserTest, ConfigValidationTest, AuthPoolOccupationTest, LoginThrottleDriverTest, SecurityConfigNegativeTest, ConfigLoaderTest, ConfigUsersFileTest, TestserverStartTest | mindestens ein bestandener getaggter Test |
-| `SPEC-059` | Einstieg des Integrators | 15 | 0 | 0 | 0 | EmbeddingTest, TelemetryEmbeddingTest, TdsServerLifecycleTest, TelemetryTest | mindestens ein bestandener getaggter Test |
+| `SPEC-051` | Authentifizierungsadapter | 48 | 0 | 0 | 0 | FlaecheEmbeddingTest, AuthPrimitivesTest, AuthTextRepresentationTest, AuthTimingTest, UserListAuthAdapterTest, UserListParserTest, ConfigValidationTest, AuthPoolOccupationTest, LoginThrottleDriverTest, SecurityConfigNegativeTest, ConfigLoaderTest, ConfigUsersFileTest, TestserverStartTest | mindestens ein bestandener getaggter Test |
+| `SPEC-059` | Einstieg des Integrators | 21 | 0 | 0 | 0 | EmbeddingTest, FlaecheEmbeddingTest, TelemetryEmbeddingTest, TelemetryFelderEmbeddingTest, TelemetryEventTest, TdsServerLifecycleTest, TelemetryTest | mindestens ein bestandener getaggter Test |
 | `SPEC-024` | Unit-Test-Gate | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-025` | Integrationstest (E2E-Durchgang) | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-026` | `make gates` | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
@@ -107,6 +113,8 @@ Stand: 42 von 56 Festlegungen mit mindestens einem bestandenen Test, 4 Gate-Fest
 | `SPEC-031` | `io.github.pt9912.tdswire.port..Generator laeuft waehrend der Wartezeit des Lesers nicht voraus` | nicht gelaufen (kein Ergebnis im Bericht) |
 | `SPEC-031` | `io.github.pt9912.tdswire.port..close beendet den laufenden Strom an der Zeilenquelle` | nicht gelaufen (kein Ergebnis im Bericht) |
 | `SPEC-031` | `io.github.pt9912.tdswire.port..cancel beendet den laufenden Strom an der Zeilenquelle` | nicht gelaufen (kein Ergebnis im Bericht) |
+| `SPEC-045` | `TdsWire.Referenztests.Vergleich.MitschnittAufnahmeTests.Die_Szenarien_laufen_ueber_den_Proxy_und_die_Ablage_ist_frei_von_Kennwort` | nicht gelaufen (kein Ergebnis im Bericht) |
+| `SPEC-045` | `TdsWire.Referenztests.Vergleich.MitschnittAbspielenTests.Die_Mitschnitte_laufen_gegen_den_Server_und_beide_Seiten_liegen_als_Ausgabe_vor` | nicht gelaufen (kein Ergebnis im Bericht) |
 
 ## Tags auf unbekannte Festlegungen
 
