@@ -120,8 +120,15 @@ RUN sh tools/suppression-check.sh src testserver \
 # Importregel verbotene Importe meldet und erlaubte nicht, dass jeder verbotene Aufruf gemeldet
 # wird, und dass das Suppression-Verbot die Formen von @Suppress meldet, die das Skript nennt
 # (tools/detekt-selbsttest.sh). Kopiert weder src/ noch testserver/ noch Doku: die Stage
-# laeuft nur neu, wenn sich Regeln, Testdaten, Skripte oder Toolchain aendern. -----
+# laeuft nur neu, wenn sich Regeln, Testdaten, Skripte, Toolchain oder die Liste der Packages von
+# src/main aendern (Stage `quellpakete`, nur diese Liste kommt in die Stage). -----
+FROM basis AS quellpakete
+WORKDIR /src
+COPY src/main src/main
+RUN cd src/main/kotlin/io/github/pt9912/tdswire && for d in */; do echo "${d%/}"; done > /pakete
+
 FROM deps AS detekt-selbsttest
+COPY --from=quellpakete --chown=gradle:gradle /pakete build/quellpakete
 COPY --chown=gradle:gradle config config
 COPY --chown=gradle:gradle tools/detekt-selbsttest.sh tools/suppression-check.sh tools/jackson-sperre.sh tools/modulgrenze-sperre.sh tools/
 RUN sh tools/detekt-selbsttest.sh generate \
