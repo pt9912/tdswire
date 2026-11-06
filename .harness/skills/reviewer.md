@@ -108,6 +108,11 @@ bewusst kurz (Ergänzungs-Kanal, nicht Hauptkanal).
   durch Zerlegung neu entstandene) steht in der Tabelle, jede tatsächlich berührte `SPEC-`-Stelle im
   Kopf. Der Negativbefund „keine Datei darüber hinaus“ gilt erst nach diesem Abgleich
   (seit slice-e2e-backend-ausserhalb-modul)
+- **Haken vor der Verifikation gesetzt** — ein Liefer-Punkt der DoD steht im Diff als `- [x]`,
+  bevor Review und Verifikation abgeschlossen sind, oder der DoD-Wortlaut trägt Rollen-Text
+  („Behauptung des Implementers, Bestätigung beim Verifier“). Prüfung: die Haken im Diff gegen den
+  Stand von Review und Verifikation lesen; der Implementer behauptet im Bericht, den Haken setzt
+  der Planner nach der Verifikation  (seit slice-qa-vergleichslauf-d-messungen)
 - **Vertragstest belegt nur den Fake** — ein Test des Port-Vertrags gibt das Skript zurück, das er
   selbst in das Test-Backend gelegt hat; keine Änderung am Produktionscode macht ihn rot (Gegenprobe:
   ein Backend, das den Vertrag verletzt, muss die Suite röten)  (seit welle-backend-streaming)
