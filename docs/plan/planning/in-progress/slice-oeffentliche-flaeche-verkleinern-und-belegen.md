@@ -63,7 +63,7 @@ Liefer-Punkte (drei):
 Nachweis-Pflichten für alle drei Punkte:
 
 - [x] Jeder neue Test trägt im KDoc den Block-Tag `@spec SPEC-059`; die Tests laufen in `make test` und sind grün.
-- [ ] `make gates` grün; ist der Sensor ein Gate, ist er in der Sensors-Tabelle von `harness/README.md` mit Klasse und Bindung eingetragen und `make gate-zuordnung` grün.
+- [x] `make gates` grün; ist der Sensor ein Gate, ist er in der Sensors-Tabelle von `harness/README.md` mit Klasse und Bindung eingetragen und `make gate-zuordnung` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
