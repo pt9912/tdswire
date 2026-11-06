@@ -71,7 +71,7 @@ Bewertung der 5-s-Grenze: Messbereich unter Last höchstens etwa 1 s bei `Connec
 | Closure-Notiz mit Lerneintrag | **nicht bestätigt (offen)** | §7 „Wird bei der Closure gefüllt“ |
 | Beobachtungs-Register fortgeschrieben | **nicht bestätigt (offen)** | kein neuer Eintrag, keine „keine Beobachtung“-Antwort in §7 |
 | Risiken aus §6 mit Ausgang | **nicht bestätigt (offen)** | alle sieben stehen auf „offen bis zur Closure“ |
-| Drei Paarungen | **teilweise** | Anker ↔ Folge-Slice: [CO-001](../plan/carveouts/CO-001-nuget-audit-aus.md) und [CO-002](../plan/carveouts/CO-002-nuget-signaturpruefung-fehlt.md) nennen [slice-qa-dotnet-lieferkette-haerten](../plan/planning/open/slice-qa-dotnet-lieferkette-haerten.md), und dieser nennt beide zurück; Register offen |
+| Drei Paarungen | **teilweise** | Anker ↔ Folge-Slice: [CO-001](../plan/carveouts/CO-001-nuget-audit-aus.md) und [CO-002](../plan/carveouts/CO-002-nuget-signaturpruefung-fehlt.md) nennen [slice-qa-dotnet-lieferkette-haerten](../plan/planning/next/slice-qa-dotnet-lieferkette-haerten.md), und dieser nennt beide zurück; Register offen |
 
 Die offenen Punkte sind Closure-Arbeit, keine Verletzung: Der Slice liegt in `in-progress/` und darf noch nicht nach `done/`.
 
