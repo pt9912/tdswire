@@ -46,11 +46,11 @@ private val KEY = SimColumn("Id", SqlType.Int32, nullable = false)
  * Einfügen, Ändern und Löschen, `typen` mit je einer Spalte der acht Typen von `SqlType` und zwei Zeilen (eine
  * gefüllt, eine mit NULL), `breit` mit [WIDE_ROWS] Zeilen zu [WIDE_TEXT_CHARS] Zeichen (Zeilen über der
  * Paketgröße 512; die Wirkung auf die Paketierung der Antworten ist nicht beobachtet, ein Server mit fester
- * Paketgröße ließ den Test grün) und `kaputt`, dessen Quelle nach [KOMPAT_BROKEN_AFTER] Zeilen mit einer Ausnahme
- * endet.
+ * Paketgröße ließ den Test grün), `kaputt`, dessen Quelle nach [KOMPAT_BROKEN_AFTER] Zeilen mit einer Ausnahme
+ * endet, und `laufend` mit einer Quelle ohne Ende (`LaufendeQuelle.kt`).
  */
 internal object KompatibilitaetsTables {
-    fun all(): List<SimTable> = listOf(person(), types(), wide(), broken())
+    fun all(): List<SimTable> = listOf(person(), types(), wide(), broken(), runningTable())
 
     private fun person() = SimTable(
         name = "person",
@@ -134,7 +134,9 @@ internal object KompatibilitaetsTables {
  * Reicht jede Anfrage an [inner] weiter und schreibt vorher eine Zeile `kompatibilitaet: anfrage` mit den ersten
  * Zeichen der Sitzungskennung, dem Text und den Parametern (Name, Typ, Richtung) auf die Standardausgabe: der Lauf
  * liest daran, welchen Text der Referenzclient stellt und auf welcher Sitzung er läuft. Der Wert eines Parameters
- * steht nicht in der Zeile. Nur der Testserver schreibt sie; die Bibliothek schreibt keinen Text einer Anfrage.
+ * steht nicht in der Zeile. Jeder Cancel, der das Backend erreicht (ATTENTION oder Frist), schreibt eine Zeile
+ * `kompatibilitaet: cancel` mit der Sitzungskennung. Nur der Testserver schreibt die Zeilen; die Bibliothek schreibt
+ * keinen Text einer Anfrage.
  */
 internal class RecordingBackend(private val inner: QueryBackend, private val out: (String) -> Unit = ::println) :
     QueryBackend {
@@ -146,7 +148,10 @@ internal class RecordingBackend(private val inner: QueryBackend, private val out
         return inner.execute(request)
     }
 
-    override suspend fun cancel(sessionId: String, requestId: String) = inner.cancel(sessionId, requestId)
+    override suspend fun cancel(sessionId: String, requestId: String) {
+        out("kompatibilitaet: cancel session=${sessionId.take(SESSION_CHARS)}")
+        inner.cancel(sessionId, requestId)
+    }
 }
 
 /**
@@ -157,6 +162,6 @@ internal class RecordingBackend(private val inner: QueryBackend, private val out
  */
 fun main() {
     val backend = RecordingBackend(SimulationBackend(SimCatalog(KompatibilitaetsTables.all())))
-    println("kompatibilitaetsserver: Tabellen person, typen, breit, kaputt")
+    println("kompatibilitaetsserver: Tabellen person, typen, breit, kaputt, laufend")
     runTestserver { fromFile -> BackendSource.Custom(backend).takeIf { fromFile.isEmpty() } }
 }
