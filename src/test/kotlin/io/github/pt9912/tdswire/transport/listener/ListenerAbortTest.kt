@@ -122,9 +122,8 @@ internal class ListenerAbortTest : ListenerTestBase() {
     /**
      * Obergrenze des Beendens (Review F-10 von `slice-transport-listener-lebenszyklus`): ein Handler, der den Abbruch
      * seiner Coroutine nicht beachtet, hält das Beenden nicht länger als `SHUTDOWN_GRACE` plus `CANCEL_TIMEOUT`
-     * (gesteuerte
-     * Zeit) und eine kurze Wartezeit auf das Ende der Handler (Festlegung, 250 ms Wanduhr); danach ist die Gruppe
-     * beendet und kein Thread des Listeners lebt.
+     * (gesteuerte Zeit): der Listener gibt die Verbindung dann auf (`abandon`), meldet ihr Ende und wartet nicht auf
+     * den Handler, ohne Zugabe. Danach ist die Gruppe beendet und kein Thread des Listeners lebt.
      *
      * @spec SPEC-044
      */
