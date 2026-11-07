@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** SPEC-017 · SPEC-018 · SPEC-019 · SPEC-029 · ARC-009 · [TDS-FA-09.a](../../../../spec/spezifikation.md#tds-fa-09a--konfiguration-und-diagnose)
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** Implementer-Agent, Auftrag des Nutzers 2026-11-07.
 
 **Autor:** pt9912. **Datum:** 2026-10-30.
 
@@ -76,11 +76,20 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `src/main/kotlin/io/github/pt9912/tdswire/observability/` <!-- d-check:ignore (geplant: neue Datei) --> | update | Adapter für Spans und Metriken nach der ADR |
-| Instrumentierung in `transport`, `protocol` und im Backend-Adapter | update | Aufrufe der Schnittstelle an den Stellen der drei Spans; keine fachliche Entscheidung im Adapter (ARC-009) |
-| `src/main/kotlin/io/github/pt9912/tdswire/config/` (`ServerConfig`, `ConfigValidation`) | update | Feld und Prüfung für den Abstand der Schnappschüsse |
-| `testserver/` | update | Lader liest `METRICS_INTERVAL_SECONDS`; Adapter serialisiert `metrics` und Span-Ende |
-| `src/test/kotlin/io/github/pt9912/tdswire/observability/` <!-- d-check:ignore (geplant: neue Datei) --> | neu | Rohbytes-Lauf mit Sammler, Kardinalität, Ausfall des Adapters; `@spec`-Tag SPEC-017, SPEC-018, SPEC-019 |
+| `src/main/kotlin/io/github/pt9912/tdswire/domain/telemetry/TelemetryEvent.kt` | update | `EventKind` um `METRICS` und `SPAN_ENDED`; `TelemetryEvent` um die Felder `span`, `outcome`, `requestId`, `durationMs`, `phase`, `requestKind`, `metrics` (keine neuen Typnamen, `make flaeche` bleibt bei 61); Konfliktfläche mit dem Zweig der Zustandsereignisse |
+| `src/main/kotlin/io/github/pt9912/tdswire/domain/telemetry/MeasurementEvents.kt` <!-- d-check:ignore (geplant: neue Datei) --> | neu | interne Ereignisklassen `MetricsSnapshot` und `SpanEnded`, interne Aufzählungen der `outcome`-, `phase`- und `request_kind`-Werte |
+| `src/main/kotlin/io/github/pt9912/tdswire/domain/telemetry/Instruments.kt` <!-- d-check:ignore (geplant: neue Datei) --> | neu | interne Schnittstelle der Spans (Verbindung, Anfrage, Backend-Aufruf) mit `NONE`; `protocol` und `runtime` rufen nur sie (ARC-009: keine fachliche Entscheidung im Adapter) |
+| `src/main/kotlin/io/github/pt9912/tdswire/observability/` <!-- d-check:ignore (geplant: neue Datei) --> | neu | `Observer` (Spans, Zähler, Verteilung, Schnappschuss), `LatencyHistogram`; importiert nur `domain` |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/dispatch/InstrumentedBackend.kt` <!-- d-check:ignore (geplant: neue Datei) --> | neu | Hülle um das `QueryBackend`: Span `backend.execute` von `execute` bis `close` |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/dispatch/RequestLoop.kt` | update | Span `tds.query` je Anfrage, Ausgang an den Stellen der Antwort; Anfrage-Kennung je Anfrage in `step`; kleine Änderung, Konfliktfläche mit dem Zweig des Schreibpfads |
+| `src/main/kotlin/io/github/pt9912/tdswire/runtime/` (`ConnectionWiring.kt`, `Bootstrap.kt`, `TdsServer.kt`) | update | Span `tds.connection` im Handler, Verdrahtung des `Observer`, Zeitgeber des Schnappschusses (Aufgabe von `TdsServer`, endet mit `stop`) |
+| `src/main/kotlin/io/github/pt9912/tdswire/config/` (`ServerConfig`, `ConfigValidation`) | update | Feld `metricsIntervalSeconds` (Voreinstellung 60, 0 = aus) und Prüfung |
+| `testserver/kotlin/io/github/pt9912/tdswire/testserver/` (`ConfigLoader`, `EnvKeys`, `TelemetryJson`) | update | Lader liest `METRICS_INTERVAL_SECONDS`; Zeile für `metrics` und Span-Ende |
+| `src/test/kotlin/io/github/pt9912/tdswire/observability/` und `runtime/` <!-- d-check:ignore (geplant: neue Datei) --> | neu | Unit-Tests des `Observer`; Rohbytes-Lauf mit Sammler (Login, Anfrage, Fehler, Cancel, Disconnect), Kardinalität, Ausfall der Senke; `@spec`-Tag SPEC-017, SPEC-018, SPEC-019 |
+| `testserver/test/` und `src/test/.../TestserverLogProcessTest.kt` | update | Lader, Zeilen `metrics` und `span_ended` am Prozess `main` |
+| `spec/spezifikation.md` (Abschnitt 5, Abschnitt 4, Tabelle der Eingänge des Testservers), `docs/user/einbettung-und-betrieb.md` | update | Zielzustand wird gebaut: Stand der Zusage, Werte von `outcome`, Schlüssel von `metrics`, `METRICS_INTERVAL_SECONDS`; Konfliktfläche mit dem Zweig der Zustandsereignisse |
+
+**Zuschnitt der Fläche (vorab).** Neue öffentliche Typnamen entstehen nicht: Das Ereignis `metrics` und das Span-Ende sind zwei Arten und sieben Zugriffe an `EventKind` und `TelemetryEvent`, ein Konstruktorparameter an `ServerConfig`. Die Ereignisklassen, die Schnittstelle der Spans und der `Observer` sind `internal`. Ob die Anfrage-Kennung auch in `REQUEST_FAILED` geht, bleibt dem Nutzer (§6, letztes Risiko); dieser Lauf erweitert `REQUEST_FAILED` nicht.
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 
@@ -89,7 +98,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-betrieb-log-schnittstelle](../done/slice-betrieb-log-schnittstelle.md) und [slice-betrieb-log-adapter-testserver](../done/slice-betrieb-log-adapter-testserver.md) liegen in `done/` ([ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md) ist `Accepted`, erfüllt; die Senke und der Adapter, der die neuen Ereignisarten serialisiert, stehen), und die Wellen [welle-anfrageverarbeitung](../done/welle-anfrageverarbeitung.md), [welle-backend-streaming](../done/welle-backend-streaming/welle-backend-streaming.md) und [welle-fehler-abbruch](../done/welle-fehler-abbruch.md) sind abgeschlossen (Anfrage, Backend-Aufruf und Abbruch existieren als Code; erfüllt: alle drei Wellen sind geschlossen, die Closure-Notiz von `welle-anfrageverarbeitung` ist `welle-anfrageverarbeitung-results.md` in `done/`), und ein Verantwortlicher ist im Kopf eingetragen (offen: der Kopf trägt „bis zur Priorisierung“).
+**Start** (`next` → `in-progress`): [slice-betrieb-log-schnittstelle](../done/slice-betrieb-log-schnittstelle.md) und [slice-betrieb-log-adapter-testserver](../done/slice-betrieb-log-adapter-testserver.md) liegen in `done/` ([ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md) ist `Accepted`, erfüllt; die Senke und der Adapter, der die neuen Ereignisarten serialisiert, stehen), und die Wellen [welle-anfrageverarbeitung](../done/welle-anfrageverarbeitung.md), [welle-backend-streaming](../done/welle-backend-streaming/welle-backend-streaming.md) und [welle-fehler-abbruch](../done/welle-fehler-abbruch.md) sind abgeschlossen (Anfrage, Backend-Aufruf und Abbruch existieren als Code; erfüllt: alle drei Wellen sind geschlossen, die Closure-Notiz von `welle-anfrageverarbeitung` ist `welle-anfrageverarbeitung-results.md` in `done/`), und ein Verantwortlicher ist im Kopf eingetragen (erfüllt: Implementer-Agent, Auftrag des Nutzers 2026-11-07).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
