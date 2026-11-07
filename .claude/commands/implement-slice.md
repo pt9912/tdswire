@@ -173,7 +173,7 @@ ist eine Lifecycle-Rücksprungkante (11).
     Regel 5): keine Planung, keine „nicht gebaut“-, „vorläufig“-, „bisher“-Sätze, keine Chronik;
     Abwesendes steht nur als sachliche Eigenschaft („die Bibliothek schreibt kein Log“). Veraltete
     Gegenstellen (Aufgabenliste, Referenzseiten, Beispielcode im Einbettungstest) gehören in dieselbe
-    Änderung  (seit slice-katalog-und-ddl-zustand).
+    Änderung  (Auftrag des Nutzers 2026-11-07; Beobachtung `planung-und-register-zeiger-in-nutzer-doku`, 2×, ohne Anker).
 
 Hier endet die Implementation. Die übrigen Rollen laufen in **getrennten Kontexten** (Modul 8).
 

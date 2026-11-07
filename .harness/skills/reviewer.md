@@ -127,7 +127,8 @@ bewusst kurz (Ergänzungs-Kanal, nicht Hauptkanal).
   Prüfung: jede Datei unter `docs/user/` vollständig gegen den Stand nach dem Slice lesen, nicht nur den
   geänderten Absatz; jede Aussage gegen Code, Spezifikation und Messprotokoll abgleichen; Treffer auf die
   Wörter oben per Grep nennen; veraltete Gegenstellen (Aufgabenliste, Referenzseiten, Beispielcode im
-  Einbettungstest) stehen in der Änderungsliste oder tragen einen Grund, warum sie bleiben  (seit slice-katalog-und-ddl-zustand)
+  Einbettungstest) stehen in der Änderungsliste oder tragen einen Grund, warum sie bleiben
+  (Auftrag des Nutzers 2026-11-07; Beobachtung `planung-und-register-zeiger-in-nutzer-doku`, 2×, ohne Anker)
 - **Vertragstest belegt nur den Fake** — ein Test des Port-Vertrags gibt das Skript zurück, das er
   selbst in das Test-Backend gelegt hat; keine Änderung am Produktionscode macht ihn rot (Gegenprobe:
   ein Backend, das den Vertrag verletzt, muss die Suite röten)  (seit welle-backend-streaming)

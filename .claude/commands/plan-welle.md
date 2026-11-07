@@ -96,7 +96,7 @@ die Antwort und wird notiert.
    nach dem Slice gelesen und auf den Ist-Zustand gebracht** (`AGENTS.md` §5 Regel 5): keine
    Planung, keine „nicht gebaut“-Sätze, keine Chronik, keine veralteten Gegenstellen (Aufgabenliste,
    Referenzseiten, Beispielcode im Einbettungstest). Die Tabelle in §3 führt jede berührte Datei
-   (seit slice-katalog-und-ddl-zustand).
+   (Auftrag des Nutzers 2026-11-07; Beobachtung `planung-und-register-zeiger-in-nutzer-doku`, 2×, ohne Anker).
 
 6a. **Wechselt eine ADR auf `Accepted` (Slice-Closure oder Bau-Slice-Anlage), ziehst du die
    Zustandsfelder der Nachbar-Slices im selben Zug nach.** Grep über das **ganze Repo** (`docs/`,
