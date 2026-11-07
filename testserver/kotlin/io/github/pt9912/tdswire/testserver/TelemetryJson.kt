@@ -30,8 +30,9 @@ private class EventProperty(val property: String, val json: String, val read: (T
 
 /**
  * Die JSON-Zeile je Ereignis (`ADR-0020`, `SPEC-052`): `ts` (UTC, ISO-8601, aus `at`), `level`, `event`, dann die
- * Felder des Ereignisses, die nicht `null` sind, dann `dropped`, wenn Zeilen verworfen wurden. Geschrieben wird mit
- * dem Streaming-Generator von `jackson-core`; das Escaping der Zeichenketten ist das der Bibliothek, mit
+ * Felder des Ereignisses, die nicht `null` sind, dann `dropped`, wenn Zeilen verworfen wurden. Die Messwerte von
+ * `metrics` stehen als Felder `metrics.<Schlüssel>` in der flachen Zeile. Geschrieben wird mit dem
+ * Streaming-Generator von `jackson-core`; das Escaping der Zeichenketten ist das der Bibliothek, mit
  * `ESCAPE_NON_ASCII` und DEL als Steuerzeichen: die Zeile besteht nur aus druckbaren ASCII-Zeichen, damit die
  * Zeichenkodierung der Standardausgabe (die Locale des Prozesses) kein Zeichen verändert. Eine Zeile enthält keinen
  * Zeilenumbruch.
@@ -63,6 +64,13 @@ internal object TelemetryJson {
         EventProperty("failure", "failure") { it.failure },
         EventProperty("errorCode", "error_code") { it.errorCode },
         EventProperty("cause", "cause") { it.cause },
+        EventProperty("span", "span") { it.span },
+        EventProperty("outcome", "outcome") { it.outcome },
+        EventProperty("requestId", "request_id") { it.requestId },
+        EventProperty("durationMs", "duration_ms") { it.durationMs },
+        EventProperty("phase", "phase") { it.phase },
+        EventProperty("requestKind", "request_kind") { it.requestKind },
+        EventProperty("metrics", "metrics") { it.metrics },
     )
 
     /** Die Namen der Zugriffe von `TelemetryEvent`, die die Zeile abdeckt: Kopf (`kind`, `at`, `level`) und Tabelle. */
@@ -94,17 +102,24 @@ internal object TelemetryJson {
         EventKind.SERVER_STOPPING,
         EventKind.CONNECTION_OPENED,
         EventKind.CONNECTION_CLOSED,
+        EventKind.METRICS,
+        EventKind.SPAN_ENDED,
         -> kind.name.lowercase()
     }
 
     /**
-     * Die Felder des Ereignisses ohne Kopf, die nicht `null` sind, in der Reihenfolge der Tabelle. Die Einstellungen
-     * von `CONFIG_EFFECTIVE` stehen danach je Schlüssel als ein Feld, dessen Name der Schlüssel in Kleinbuchstaben
-     * ist; ein Wert aus Ziffern steht als Zahl, jeder andere als Zeichenkette.
+     * Die Felder des Ereignisses ohne Kopf, die nicht `null` sind, in der Reihenfolge der Tabelle. Die Messwerte von
+     * `METRICS` stehen als Felder `metrics.<Schlüssel>`. Die Einstellungen von `CONFIG_EFFECTIVE` stehen danach je
+     * Schlüssel als ein Feld, dessen Name der Schlüssel in Kleinbuchstaben ist; ein Wert aus Ziffern steht als Zahl,
+     * jeder andere als Zeichenkette.
      */
-    fun fieldsOf(event: TelemetryEvent): List<JsonField> =
-        PROPERTIES.mapNotNull { property -> property.read(event)?.let { JsonField(property.json, it) } } +
-            event.settings.orEmpty().map { (key, value) -> JsonField(key.lowercase(), value.toLongOrNull() ?: value) }
+    fun fieldsOf(event: TelemetryEvent): List<JsonField> = PROPERTIES.flatMap { property ->
+        when (val value = property.read(event)) {
+            null -> emptyList()
+            is Map<*, *> -> value.map { (key, number) -> JsonField("${property.json}.$key", number) }
+            else -> listOf(JsonField(property.json, value))
+        }
+    } + event.settings.orEmpty().map { (key, value) -> JsonField(key.lowercase(), value.toLongOrNull() ?: value) }
 
     /** Die Zeile zu [event]; [dropped] größer null steht als letztes Feld `dropped`. */
     fun line(event: TelemetryEvent, dropped: Long = 0): String {

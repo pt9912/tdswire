@@ -260,7 +260,7 @@ Lesart der Zeilen:
 - `encryption_not_offered` ist eine Warnung: der Client hat im PRELOGIN keine Verschlüsselung angeboten; die Verbindung läuft im Klartext weiter, die Anmeldung folgt in der nächsten Zeile (`login_accepted`, `principal` ist der Benutzer).
 - Eine abgelehnte Anmeldung erscheint als `login_rejected` mit `reason`, etwa `WRONG_PASSWORD` (gefahren am 2026-11-07 mit dem Rohbytes-Client und falschem Kennwort); die Gründe stehen in der [Anleitung zur Fehlersuche](einbettung-und-betrieb.md#6-eine-abgelehnte-anmeldung-suchen).
 
-Format, Felder und alle Ereignisarten: [Referenz der Ereignisse](referenz-ereignisse.md). Mit `LOG_LEVEL=DEBUG` erscheint im Handlauf kein weiteres Ereignis (gemessen am 2026-11-06 einmal von Hand: der Container trägt `LOG_LEVEL=DEBUG` laut `docker inspect`, am Prozess gemessen von `TestserverLogProcessTest`); `make testserver-selbsttest` prüft die Weitergabe der Ebene nicht.
+Format, Felder und alle Ereignisarten: [Referenz der Ereignisse](referenz-ereignisse.md). Mit `LOG_LEVEL=DEBUG` erscheint zusätzlich je Verbindung eine Zeile `span_ended` (gemessen am 2026-11-07 im Handlauf: `"event":"span_ended",…,"span":"tds.connection","outcome":"ok",…,"phase":"session"`, und am Prozess von `TestserverLogProcessTest`); alle 60 Sekunden folgt eine Zeile `metrics` (Ebene `INFO`, auch ohne `DEBUG`; Beispiel in der [Referenz](referenz-ereignisse.md#log-des-testservers)). `make testserver-selbsttest` prüft die Weitergabe der Ebene nicht.
 
 **Wenn der Start scheitert.** `make testserver-up` meldet `testserver-up: der Server wurde nicht bereit; Log:` mit den Zeilen des Containers und einem Make-Fehler (Exit 2), oder bricht schon vorher ab. Die Diagnose des Prozesses nennt den Grund ohne Pfad und Inhalt (gefahren am 2026-11-07):
 
@@ -298,6 +298,7 @@ Format, Felder und alle Ereignisarten: [Referenz der Ereignisse](referenz-ereign
 | Image bauen | ja | `TESTSERVER_BAUEN=0` baut nicht (Image muss vorhanden sein) |
 | Log-Ebene | `INFO` | `TESTSERVER_LOG_LEVEL=DEBUG` (`ERROR`, `WARN`, `INFO`, `DEBUG`) |
 | Wartezeit bis zur Bereitschaft | 60 Sekunden | `TESTSERVER_WARTEN=<Sekunden>` |
+| Abstand der Schnappschüsse der Metriken | 60 Sekunden (`METRICS_INTERVAL_SECONDS`) | nicht über `make` einstellbar; am Prozess `METRICS_INTERVAL_SECONDS=<Sekunden>` (0 = aus) |
 
 Die folgenden Abschnitte fahren je eine Einstellung durch (Läufe vom 2026-11-07, ein Host).
 

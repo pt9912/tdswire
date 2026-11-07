@@ -1,0 +1,2 @@
+**Vorgang:** [slice-betrieb-metriken-tracing](../../../../done/slice-betrieb-metriken-tracing.md)
+**Fund:** [Review](../../../../../../reviews/2026-11-07-33f67126-review-slice-betrieb-metriken-tracing.md) F-9 und [Verifikation](../../../../../../reviews/2026-11-07-4ed6a526-verifikation-slice-betrieb-metriken-tracing.md) V-5: zwei Konstanten von `EventKind`, sieben Zugriffe von `TelemetryEvent` und der sechste Parameter von `RequestSettings` (aus Java entfällt der Konstruktor mit weniger Parametern), kein Typname; kein Sensor hält die Mitglieder.

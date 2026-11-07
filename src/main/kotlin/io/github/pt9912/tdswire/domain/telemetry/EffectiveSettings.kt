@@ -25,6 +25,7 @@ internal data class EffectiveSettings(
     val maxConnections: Int,
     val maxPreparedHandles: Int,
     val maxMessageBytes: Int,
+    val metricsIntervalSeconds: Int,
 ) {
     /** Schlüssel und Wert in fester Reihenfolge; der Wert ist die Zahl, der Name der Aufzählung oder `true`/`false`. */
     fun asMap(): Map<String, String> = linkedMapOf(
@@ -39,5 +40,6 @@ internal data class EffectiveSettings(
         "MAX_CONNECTIONS" to maxConnections.toString(),
         "MAX_PREPARED_HANDLES" to maxPreparedHandles.toString(),
         "MAX_MESSAGE_BYTES" to maxMessageBytes.toString(),
+        "METRICS_INTERVAL_SECONDS" to metricsIntervalSeconds.toString(),
     )
 }

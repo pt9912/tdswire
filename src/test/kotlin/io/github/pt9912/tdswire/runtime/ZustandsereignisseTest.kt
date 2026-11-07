@@ -96,7 +96,8 @@ internal class ZustandsereignisseTest : RuntimeTestBase() {
     /**
      * Ein Lauf mit Anmeldung, einem Anfragefehler, dem Ende der Verbindung durch den Client und dem Beenden ergibt die
      * Folge: wirksame Konfiguration, Start, die zwei Abschwächungen, Verbindung geöffnet, Anmeldung, Anfragefehler
-     * mit `error_code`, Verbindung geschlossen, Beginn und Ende des Beendens. Jedes Ereignis trägt die Ebene seiner
+     * mit `error_code`, Ende der Spans von Anfrage und Verbindung, Verbindung geschlossen, Beginn und Ende des
+     * Beendens. Jedes Ereignis trägt die Ebene seiner
      * Art; die Ereignisse der Verbindung tragen dieselbe `connection_id`, die der Sitzung dieselbe `session_id`.
      *
      * @spec SPEC-005
@@ -124,6 +125,8 @@ internal class ZustandsereignisseTest : RuntimeTestBase() {
                 EventKind.ENCRYPTION_NOT_OFFERED,
                 EventKind.LOGIN_ACCEPTED,
                 EventKind.REQUEST_FAILED,
+                EventKind.SPAN_ENDED,
+                EventKind.SPAN_ENDED,
                 EventKind.CONNECTION_CLOSED,
                 EventKind.SERVER_STOPPING,
                 EventKind.SERVER_STOPPED,
@@ -188,6 +191,7 @@ internal class ZustandsereignisseTest : RuntimeTestBase() {
                 ConfigKeys.MAX_CONNECTIONS to "1000",
                 ConfigKeys.MAX_PREPARED_HANDLES to "1000",
                 ConfigKeys.MAX_MESSAGE_BYTES to "16777216",
+                ConfigKeys.METRICS_INTERVAL_SECONDS to "60",
             ),
             settings,
         )
@@ -213,7 +217,7 @@ internal class ZustandsereignisseTest : RuntimeTestBase() {
         val settings = config.effectiveSettings().asMap()
         assertEquals("SET", settings[ConfigKeys.TLS_KEYSTORE_FILE])
         assertEquals("true", settings[ConfigKeys.AUTH_PLAIN_TESTMODE])
-        assertEquals(11, settings.size, settings.toString())
+        assertEquals(12, settings.size, settings.toString())
         assertTrue(settings.none { (key, value) -> key.contains(WERTPROBE) || value.contains(WERTPROBE) }, "$settings")
     }
 
@@ -240,6 +244,7 @@ internal class ZustandsereignisseTest : RuntimeTestBase() {
                 ConfigKeys.MAX_CONNECTIONS,
                 ConfigKeys.MAX_PREPARED_HANDLES,
                 ConfigKeys.MAX_MESSAGE_BYTES,
+                ConfigKeys.METRICS_INTERVAL_SECONDS,
             ),
             config.effectiveSettings().asMap().keys.toList(),
         )
@@ -269,7 +274,12 @@ internal class ZustandsereignisseTest : RuntimeTestBase() {
             server.stop()
             val atReturn = seen.drop(before).map { it.kind }
             assertEquals(
-                listOf(EventKind.SERVER_STOPPING, EventKind.CONNECTION_CLOSED, EventKind.SERVER_STOPPED),
+                listOf(
+                    EventKind.SERVER_STOPPING,
+                    EventKind.SPAN_ENDED,
+                    EventKind.CONNECTION_CLOSED,
+                    EventKind.SERVER_STOPPED,
+                ),
                 atReturn,
             )
             assertEquals("SHUTDOWN", seen.filterIsInstance<ConnectionClosed>().single().reason)

@@ -21,6 +21,7 @@ Die Bibliothek liest keine Umgebung. Der Integrator baut eine `ServerConfig`; de
 | `requests.shutdownGraceSeconds` | `SHUTDOWN_GRACE` | 10 s | 0 bis 3600, 0 = sofort | `SPEC-047` |
 | `requests.maxPreparedHandles` | `MAX_PREPARED_HANDLES` | 1000 | 1 bis 100000 | `SPEC-061` |
 | `requests.maxMessageBytes` | `MAX_MESSAGE_BYTES` | 16 MiB | 65535 bis 268435456 Byte, Summe der Paketlängen einer Nachricht nach dem Login | `SPEC-007` |
+| `requests.metricsIntervalSeconds` | `METRICS_INTERVAL_SECONDS` | 60 s | 0 bis 86400, 0 = keine Schnappschüsse der Metriken; wirkt nur mit Senke | `SPEC-062` |
 
 Alle Bereiche und Voreinstellungen sind Festlegungen, nicht gemessen ([Abschnitt Defaults](../../spec/spezifikation.md#3-defaults-und-konstanten)); die Voreinstellungen stehen in `ServerConfig.kt`. Der Testserver liest zusätzlich `LOG_LEVEL` und `SIMULATION_DESCRIPTION_FILE` ([Log](referenz-ereignisse.md#log-des-testservers)). Die Namen der Umgebungsvariablen des Testservers pinnt `ConfigLoaderTest`; die Schlüsseltabelle und die Konfiguration im Code halten sich nur durch Lesen, kein Test vergleicht die Liste mit den Feldern von `ServerConfig`.
 

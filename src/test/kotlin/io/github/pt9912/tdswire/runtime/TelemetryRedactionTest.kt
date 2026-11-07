@@ -58,7 +58,9 @@ private val STRINGS_BY_KIND = mapOf(
     "TlsFirstNotOffered" to setOf("reason"),
     "TlsHandshakeFailed" to setOf("failure"),
     "RequestFailed" to setOf("errorCode", "cause"),
+    "SpanEnded" to setOf("span", "outcome", "requestId", "phase", "requestKind"),
 )
+private val MAPS = setOf("metrics", "settings")
 private val ALLOWED_TYPES = setOf(
     Instant::class.java,
     EventLevel::class.java,
@@ -108,7 +110,8 @@ internal class TelemetryRedactionTest : RuntimeTestBase() {
      * Die Bauart: jede Art trägt nur Zeitpunkt, Ebene, Zahlen, Aufzählungen und Zeichenketten aus der Liste ihrer
      * eigenen Felder (Kennung nur in der Annahme, Fehlercode nur im Anfragefehler und so fort).
      * Ein Feld vom Typ einer Ausnahme, einer Bytefolge oder einer Liste, oder eine Zeichenkette unter einem
-     * unbekannten Namen, macht den Test rot.
+     * unbekannten Namen, macht den Test rot. Die Messwerte `metrics` sind die einzige Abbildung; ihre Schlüssel sind
+     * feste Namen und hängen nicht von der Eingabe ab (`MetricsTracingWiringTest`, Kardinalität).
      *
      * @spec SPEC-048
      */
@@ -128,7 +131,7 @@ internal class TelemetryRedactionTest : RuntimeTestBase() {
                 val name = getter.name.removePrefix("get").replaceFirstChar { it.lowercase() }
                 val type = getter.returnType
                 assertTrue(
-                    type in ALLOWED_TYPES || type.isEnum || (type == Map::class.java && name == "settings"),
+                    type in ALLOWED_TYPES || type.isEnum || (type == Map::class.java && name in MAPS),
                     "${kind.simpleName}.$name hat den Typ ${type.name}",
                 )
                 if (type == String::class.java) {
