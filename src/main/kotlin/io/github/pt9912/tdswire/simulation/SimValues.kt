@@ -26,13 +26,16 @@ internal sealed interface Converted {
  * Rest in den Zielwert passt (`1.0` und `100` in einer Ganzzahlspalte, `3.500` in `Decimal(10,2)`); die Zahlen
  * `0` und `1` sind in einer Bool-Spalte falsch und wahr, jede andere Zahl ist ungültig; NULL als Parameter
  * gilt für jeden Spaltentyp; ein Parameter, den die Anfrage nicht trägt, ist ungültig; die Richtung eines
- * Parameters bleibt unbeachtet.
+ * Parameters bleibt unbeachtet. Ein `Int64`-Parameter gilt in einer `Int32`-Spalte im Wertebereich von `Int32`
+ * (d-migrate 1.12.0 sendet jede Ganzzahl als `bigint`; der echte SQL Server nimmt `MERGE` mit einem `bigint`-Parameter
+ * in einer `int`-Spalte an, Messprotokoll der Referenzabgleiche M-29), darüber ist er ungültig.
  */
 internal object SimValues {
     private const val INVALID = "Wert nicht in den Spaltentyp überführbar"
     private const val MISSING = "Parameter nicht übergeben"
     private const val INT_BITS = Int.SIZE_BITS - 1
     private const val LONG_BITS = Long.SIZE_BITS - 1
+    private val INT_RANGE = Int.MIN_VALUE..Int.MAX_VALUE
 
     /** [value] in den Typ von [column]; [parameters] sind die der Anfrage. */
     fun convert(value: SimValue, column: SimColumn, parameters: List<QueryParameter>): Converted = when (value) {
@@ -114,6 +117,7 @@ internal object SimValues {
             target is SqlType.Decimal -> widenToDecimal(value, target)
             parameter.type == target -> Converted.Value(value)
             target == SqlType.Int64 && value is Int -> Converted.Value(value.toLong())
+            target == SqlType.Int32 && value is Long && value in INT_RANGE -> Converted.Value(value.toInt())
             else -> invalid()
         }
     }
