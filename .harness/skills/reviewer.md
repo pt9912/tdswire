@@ -120,6 +120,14 @@ bewusst kurz (Ergänzungs-Kanal, nicht Hauptkanal).
   Herkunft jeder Zahl benennen; liegt ihr Erzeuger nicht im Repo, ist die Aussage nicht präziser als
   ein im Repo wiederholbarer Beleg (Größenordnung, Grenze im Protokoll benannt)
   (seit slice-katalog-und-ddl-zustand)
+- **Nutzer-Doku nicht komplett gegen den Slice gelesen** — der Slice ändert Verhalten, Schnittstelle,
+  Konfiguration, Ereignisse oder Grenzen, und `docs/user/` ist nur an der Stelle fortgeschrieben, die
+  der Plan nennt, oder sagt Abwesendes und Geplantes („nicht gebaut“, „Zielzustand“, „vorläufig“,
+  „bisher“, „noch nicht“, „soll“, „seit Slice“) statt des Ist-Zustands (`AGENTS.md` §5 Regel 5).
+  Prüfung: jede Datei unter `docs/user/` vollständig gegen den Stand nach dem Slice lesen, nicht nur den
+  geänderten Absatz; jede Aussage gegen Code, Spezifikation und Messprotokoll abgleichen; Treffer auf die
+  Wörter oben per Grep nennen; veraltete Gegenstellen (Aufgabenliste, Referenzseiten, Beispielcode im
+  Einbettungstest) stehen in der Änderungsliste oder tragen einen Grund, warum sie bleiben  (seit slice-katalog-und-ddl-zustand)
 - **Vertragstest belegt nur den Fake** — ein Test des Port-Vertrags gibt das Skript zurück, das er
   selbst in das Test-Backend gelegt hat; keine Änderung am Produktionscode macht ihn rot (Gegenprobe:
   ein Backend, das den Vertrag verletzt, muss die Suite röten)  (seit welle-backend-streaming)
