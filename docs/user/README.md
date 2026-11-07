@@ -20,6 +20,7 @@ Die Anleitungen sind nach Aufgaben geordnet. Sie bilden den Ist-Zustand ab (`AGE
 | mit d-migrate gegen den Testserver prüfen | [Testserver, Aufgabe 3](testserver-manuell.md#3-mit-d-migrate-struktur-lesen-und-ändern) |
 | das Log des Testservers lesen | [Testserver, Aufgabe 4](testserver-manuell.md#4-das-log-lesen) |
 | den Testserver anders einstellen (Benutzer, Tabellen, Verschlüsselung, Host) | [Testserver, Aufgabe 5](testserver-manuell.md#5-den-server-anders-einstellen) |
+| Zeilen in den Testserver laden und lesen | [Testserver, Aufgabe 6](testserver-manuell.md#6-daten-laden-massenladen) |
 
 ## Referenz
 

@@ -20,10 +20,11 @@ Die Bibliothek liest keine Umgebung. Der Integrator baut eine `ServerConfig`; de
 | `requests.cancelTimeoutSeconds` | `CANCEL_TIMEOUT` | 5 s | 1 bis 3600 | `SPEC-033` |
 | `requests.shutdownGraceSeconds` | `SHUTDOWN_GRACE` | 10 s | 0 bis 3600, 0 = sofort | `SPEC-047` |
 | `requests.maxPreparedHandles` | `MAX_PREPARED_HANDLES` | 1000 | 1 bis 100000 | `SPEC-061` |
+| `requests.maxMessageBytes` | `MAX_MESSAGE_BYTES` | 16 MiB | 65535 bis 268435456 Byte, Summe der Paketlängen einer Nachricht nach dem Login | `SPEC-007` |
 
 Alle Bereiche und Voreinstellungen sind Festlegungen, nicht gemessen ([Abschnitt Defaults](../../spec/spezifikation.md#3-defaults-und-konstanten)); die Voreinstellungen stehen in `ServerConfig.kt`. Der Testserver liest zusätzlich `LOG_LEVEL` und `SIMULATION_DESCRIPTION_FILE` ([Log](referenz-ereignisse.md#log-des-testservers)). Die Namen der Umgebungsvariablen des Testservers pinnt `ConfigLoaderTest`; die Schlüsseltabelle und die Konfiguration im Code halten sich nur durch Lesen, kein Test vergleicht die Liste mit den Feldern von `ServerConfig`.
 
-**Nicht einstellbar.** `MAX_TDS_PACKET_BYTES` und `MAX_MESSAGE_BYTES` sind Konstanten der Spezifikation und kein Feld der Konfiguration. Die Drosselung wiederholter Anmeldeversuche (`SPEC-053`) ist nicht konfigurierbar.
+**Nicht einstellbar.** `MAX_TDS_PACKET_BYTES` (65535, `SPEC-006`) ist die Protokollgrenze des 16-Bit-Längenfelds und keine Einstellung; `MAX_MESSAGE_BYTES` ist einstellbar (Tabelle). Die Drosselung wiederholter Anmeldeversuche (`SPEC-053`) ist nicht konfigurierbar.
 
 **Verschlüsselung.** `REQUIRED` verlangt Schlüsselmaterial. `TEST_UNENCRYPTED` (TDS 7.4 im Klartext) ist eine ausdrückliche Abschwächung für Tests und erscheint mit Senke als Ereignis `SECURITY_WEAKENED` mit `reason = ENCRYPTION_TEST_UNENCRYPTED`. Welche TLS-Version der Server je Pfad anbietet, steht in `SPEC-023` (TDS 7.4 höchstens TLS 1.2, TDS 8.0 TLS 1.3). Wer die Bibliothek einbettet, setzt die Ticket-Zahl der JDK-Systemeigenschaften `jdk.tls.server.*` nicht auf 0: gemessen ist, dass `Microsoft.Data.SqlClient` im 7.4-Pfad den Handschlag abbricht („unexpected message“), wenn der Server die Session-Ticket-Erweiterung ankündigt und wegen Ticket-Zahl 0 kein Ticket sendet; ohne die Erweiterung war der Handschlag grün, andere Werte sind nicht gemessen ([Messprotokoll](../messungen/tls-d-migrate-2026-11-05.md)).
 
@@ -57,8 +58,11 @@ Jeder Fehler des Servers erreicht den Client als ERROR (feste englische Meldung,
 | `TDS_PREPARE_LIMIT` | 50010 | 16 | offen |
 | `TDS_SIM_UNKNOWN_OBJECT` | 208 | 20 | schließt |
 | `TDS_SIM_INVALID_VALUE` | 245 | 16 | offen |
+| `TDS_SIM_KEY_VIOLATION` | 2627 | 14 | offen |
 | `TDS_SIM_UNKNOWN_PREPARED_HANDLE` | 8179 | 16 | offen |
 | `TDS_LOGIN_FAILED` | 18456 | 14 | schließt |
+
+Die Antworten auf das Massenladen sind an `SqlBulkCopy` am echten SQL Server 2022 und 2025 gemessen (Form von `INSERT BULK` und der Nachricht, Schlüsselverstoß; [Messprotokoll](../messungen/referenzabgleich.md), M-8 bis M-12); gemessen ist nur der Schlüsselverstoß, die Zuordnung jedes Fehlers des Einfügens zu 2627 ist Setzung.
 
 Die Anmeldung mit falschem Kennwort und mit unbekanntem Benutzer ergibt dieselbe Antwort (Nummer 18456, Class 14, State 1, Text `Login failed.` ohne Kennung). Am echten SQL Server (2022 und 2025) nennt der Text den Benutzernamen; diese Abweichung ist gewollt ([Messprotokoll](../messungen/referenzabgleich.md), A-1). `TDS_SIM_UNKNOWN_OBJECT` sendet Class 20 und schließt die Verbindung, der echte Server sendet Class 16 und lässt sie offen (A-3).
 
@@ -72,6 +76,9 @@ Die Anmeldung mit falschem Kennwort und mit unbekanntem Benutzer ergibt dieselbe
 | `sp_prepexec` | `RETURNSTATUS 0` vor dem `RETURNVALUE` mit dem Handle (Ordinal 0) |
 | Fehler in der Anfrage | `ERROR` und `DONE` mit Fehlerstatus (im RPC `DONEPROC`); der Abschluss nach einem Fehler trägt die Befehlskennung nach der Form des Abschlusses (`SPEC-031`) |
 | erste Anfrage nach `RESETCONNECTION` | beginnt mit `ENVCHANGE` Typ 18 (leerer neuer und alter Wert), gleich welche Antwort folgt (`SPEC-001`) |
+| `INSERT BULK` (Massenladen, Form B) | `DONE` mit Befehl `0x00fd`, ohne Zähler und ohne Statusbits; danach erwartet die Sitzung die Nachricht `0x07` |
+| Nachricht `0x07` mit den Zeilen | `DONE` mit `COUNT` (Zahl der geladenen Zeilen) und Befehl `0x00f0` |
+| Fehler beim Laden (Schlüsselverstoß) | `ERROR` 2627 (Class 14, State 1, gekürzter Text), `INFO` 3621 „The statement has been terminated.“ und `DONE` mit `ERROR`, Befehl `0x00f0`, ohne Zähler; die ganze Nachricht ist abgewiesen |
 | Abbruch (ATTENTION) | `DONE` mit `ATTN`; der Server antwortet mit einer Nachricht, der echte Server im Stream mit zwei |
 
 Der Fehlerabschluss laut Festlegung (`SPEC-031`): ein Fehler nach teilweise übertragenen Zeilen wird als ERROR plus Abschluss mit Fehlerstatus gemeldet, wenn der Strom synchron bleibt („synchron“ heißt: der Transport hat jedes bisher erzeugte Token vollständig angenommen); andernfalls schließt die Verbindung ohne ERROR und Abschluss. `FailureScope.STATEMENT` lässt die Folgeanweisung des Batches laufen (das DONE des Fehlers trägt dann `MORE|ERROR`, gemessen am echten Server für Division durch null), `FailureScope.BATCH` beendet den Lauf (`ERROR` ohne `MORE`). Welche Fehler welcher Klasse angehören, bestimmt das Backend; die Fehler des Servers selbst sind batch-abbrechend (Setzung). Ordinal der RETURNVALUE ist die Position des Parameters in der Aufrufliste (gemessen: der dritte Parameter von `sp_executesql` hat Ordinal 2, ein Fall je Instanz).

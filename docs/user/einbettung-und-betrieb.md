@@ -4,7 +4,7 @@ Diese Anleitung führt durch die Aufgaben eines Integrators und eines Betreibers
 
 Das Produkt ist die JVM-Bibliothek. Sie hat keine ausführbare Startklasse und kein Produkt-Image ([ADR-0025](../plan/adr/0025-produktschnitt-bibliothek-und-testserver.md)); der Testserver ist ein Prüfwerkzeug, kein Betriebsweg. Den Prozess baut der Integrator aus der Bibliothek. Sie schreibt kein Log und liest weder Umgebung noch Datei; Ereignisse gehen an die Senke des Integrators. Angemeldet wird mit Benutzer und Kennwort aus einer Liste; Windows-Authentifizierung, Kerberos und Entra ID sind ausgeschlossen ([Lastenheft](../../spec/lastenheft.md)).
 
-Die Codeblöcke dieser Anleitung stehen im Source-Set `integrator` in `AnleitungTest` (`src/integrator/kotlin/io/github/pt9912/tdswire/integrator/AnleitungTest.kt`), die Einrückung ausgenommen wörtlich. Der Test übersetzt sie gegen die öffentliche Fläche und fährt sie mit `make test` gegen einen Rohbytes-Client, der kein Referenzclient ist; belegt ist, dass die Beispiele übersetzen und die beschriebene Antwort liefern. Kein Gate hält Test und Doku gleich.
+Die Kotlin-Blöcke, die eine Funktion oder Klasse mit dem Namen `anleitung…` oder `Anleitung…` zeigen, stehen im Source-Set `integrator` in `AnleitungTest` (`src/integrator/kotlin/io/github/pt9912/tdswire/integrator/AnleitungTest.kt`), die Einrückung ausgenommen wörtlich; zehn Deklarationen sind es. Die übrigen Blöcke sind Aufruffragmente (Start, Senke, Rückgabewert von `start`), Shell-Befehle und Auszüge aus der Schnittstelle, die der Test in anderer Form aufruft. Der Test übersetzt die Beispiele gegen die öffentliche Fläche und fährt sie mit `make test` gegen einen Rohbytes-Client, der kein Referenzclient ist; belegt ist, dass die Beispiele übersetzen und die beschriebene Antwort liefern. Kein Gate hält Test und Doku gleich.
 
 ## Aufgaben
 
@@ -100,7 +100,15 @@ Die Codeblöcke dieser Anleitung stehen im Source-Set `integrator` in `Anleitung
 | `Aborted.reason` ist `Port belegt: <Adresse>:<Port>` | der Port ist vergeben | anderen Port wählen |
 | der Fehler wird nicht bemerkt | `start` wirft für Konfigurations-, Tabellen-, TLS- und Bindefehler keine Ausnahme | das Ergebnis immer prüfen |
 
-`Aborted.reason` nennt den Grund ohne Pfad, Ausnahmetext, Schlüsselmaterial und Kennwort; ein Start, der abbricht, bindet keinen Port.
+`Aborted.reason` nennt den Grund ohne Pfad, Ausnahmetext, Schlüsselmaterial und Kennwort; ein Start, der abbricht, bindet keinen Port und startet keinen Thread des Servers. Mit Senke erscheint dieselbe Diagnose als Ereignis. Am Serverprozess des Testservers gemessen (`ZustandsereignisseProzessTest`, Exit-Code 1 des Prozesses):
+
+| Ursache | `Aborted.reason` / Ereignis |
+|---|---|
+| der Port ist belegt | `Port belegt: <Adresse>:<Port>`; Ereignis `BIND_FAILED` mit `address` und `port` |
+| das Zertifikat im Schlüsselspeicher ist abgelaufen, oder die Datei ist kein PKCS#12-Speicher | Ereignis `TLS_START_REJECTED` mit `part` (etwa `CERTIFICATE`) und `form` (etwa `Kette jetzt nicht gueltig`), ohne Pfad und Inhalt |
+| die Konfiguration ist unsicher oder ungültig (etwa `{plain}` ohne Testmodus, ein Wert außerhalb des Bereichs) | Ereignis `CONFIG_INVALID` mit `key` und `issueKind`, je Fehler eines |
+
+Ein Start, der gelingt, meldet vor `SERVER_STARTED` genau ein Ereignis `CONFIG_EFFECTIVE` mit den wirksamen Einstellungen (nie Pfad, Prüfwert, Passwort oder Benutzerliste; der Schlüsselspeicher nur als `SET` oder `UNSET`). Die Reihenfolge beider Ereignisse bei festem Port und einem Client, der sofort verbindet, ist nicht gemessen.
 
 **Öffentliche Fläche.** Öffentlich ist, was [`SPEC-059`](../../spec/spezifikation.md#einstieg-des-integrators-vertrag-zu-spec-059) aufzählt; alles andere ist `internal`. `explicitApi` (Modus `strict`) verlangt im Hauptmodul für jede Deklaration eine ausdrückliche Sichtbarkeit, und `make flaeche` hält die Typnamen der Liste gegen die öffentlichen Typdeklarationen und ihre Verwendung im Einbettungstest und im Testserver. Felder, Konstanten und Funktionen vergleicht er nicht; `internal` ist im Bytecode öffentlich, ein Java-Aufrufer sieht es. Maßgeblich ist die Liste der Spezifikation, nicht das, was der Compiler zeigt. Alles in `SPEC-059` ist Festlegung, soweit kein Test genannt ist; belegt sind die Einstiege durch `EmbeddingTest` und `FlaecheEmbeddingTest`.
 
@@ -164,7 +172,7 @@ Die Codeblöcke dieser Anleitung stehen im Source-Set `integrator` in `Anleitung
 
 | Beobachtung | Ursache | Abhilfe |
 |---|---|---|
-| der Client sieht `TDS_INTERNAL_ERROR`, die Verbindung schließt | das Backend warf eine Ausnahme, verletzte die Ereignisreihenfolge (Zeile ohne `ResultStart`, Strom endet im offenen Ergebnis) oder meldete einen Code außerhalb der erlaubten Menge | Ausnahmen als `Failure` melden; erlaubt sind `TDS_BACKEND_ERROR`, `TDS_UNSUPPORTED_SQL`, `TDS_UNSUPPORTED_TYPE`, `TDS_SIM_UNKNOWN_OBJECT`, `TDS_SIM_INVALID_VALUE`, `TDS_TIMEOUT` ([Fehlercodes](referenz-konfiguration.md#fehlercodes-und-antwortformen)) |
+| der Client sieht `TDS_INTERNAL_ERROR`, die Verbindung schließt | das Backend warf eine Ausnahme, verletzte die Ereignisreihenfolge (Zeile ohne `ResultStart`, Strom endet im offenen Ergebnis) oder meldete einen Code außerhalb der erlaubten Menge | Ausnahmen als `Failure` melden; erlaubt sind `TDS_BACKEND_ERROR`, `TDS_UNSUPPORTED_SQL`, `TDS_UNSUPPORTED_TYPE`, `TDS_SIM_UNKNOWN_OBJECT`, `TDS_SIM_INVALID_VALUE`, `TDS_SIM_KEY_VIOLATION`, `TDS_TIMEOUT` ([Fehlercodes](referenz-konfiguration.md#fehlercodes-und-antwortformen)) |
 | der Client sieht `TDS_SIM_UNKNOWN_OBJECT` und die Verbindung schließt | der Code gehört zur Class 20 (schließt die Verbindung); der echte SQL Server lässt sie offen | die Tabelle der Fehlercodes in der Referenz lesen |
 | die Sitzung schließt nach einem Abbruch | das Backend beachtet den Abbruch seiner Coroutine nicht und beendet ihn nicht innerhalb von `CANCEL_TIMEOUT`; sein Aufruf bleibt bis zur Rückkehr belegt | suspendierend und unterbrechbar arbeiten |
 
@@ -203,12 +211,24 @@ Die Codeblöcke dieser Anleitung stehen im Source-Set `integrator` in `Anleitung
    ```
 
 2. Die Zeilenquelle: `rows` bekommt eine `SimQuery` (alle Spalten der Tabelle in der Reihenfolge der Beschreibung, ein Filter als Hinweis zum Vorfiltern) und liefert eine `RowSource`. `next()` liefert die Werte einer Zeile in der Reihenfolge von `SimQuery.columns` oder `null` am Ende, suspendiert und blockiert nicht; `close()` wird genau einmal gerufen, nach dem Ende, einem Fehler oder einem Abbruch.
-3. Die Callbacks: `onInsert(values)`, `onUpdate(set, where)` und `onDelete(where)` bekommen die Werte der Anweisung in den Spaltentyp überführt und liefern die Zahl der betroffenen Zeilen; `where = null` heißt alle Zeilen. Jede Anweisung ruft ihren Callback genau einmal.
+3. Die Callbacks: `onInsert(values)`, `onUpdate(set, where)` und `onDelete(where)` bekommen die Werte der Anweisung in den Spaltentyp überführt und liefern die Zahl der betroffenen Zeilen; `where = null` heißt alle Zeilen. Jede Anweisung ruft ihren Callback genau einmal. Fürs Massenladen (`INSERT BULK`, siehe unten) gibt es `onInsertBatch(rows)`: die Zeilen einer Nachricht als Liste von Abbildungen, ein Aufruf je Nachricht. Ein Auszug (Fragment, kein Block des Tests):
+
+   ```kotlin
+   SimTable(
+       name = "kunden",
+       columns = spalten,
+       primaryKey = listOf("Id"),
+       rows = { query -> /* RowSource wie oben */ },
+       onInsertBatch = { zeilen -> speichere(zeilen); zeilen.size.toLong() },
+   )
+   ```
+
+   `speichere` ist Code der Anwendung. Ohne `onInsertBatch` ruft die Bibliothek `onInsert` je Zeile in der Reihenfolge der Nachricht; die Zahl des Callbacks ist die Zahl der geladenen Zeilen. Eine Tabelle ohne beide Callbacks weist `INSERT BULK` mit `TDS_UNSUPPORTED_SQL` ab. Zuerst werden alle Werte der Nachricht geprüft, dann wird gerufen. Ein Fehler des Callbacks ist `TDS_SIM_KEY_VIOLATION` (Nummer 2627, Class 14); Zeilen, die ein Callback davor angenommen hat, bleiben: es gibt keine Transaktion, atomar ist nur, was die Anwendung im Stapel-Callback atomar macht.
 4. Mit `BackendSource.Simulation(tables)` an `TdsServer.start` übergeben (oder `SimulationBackend(SimCatalog(tables))` als `Custom`).
 
 **Erwartetes Ergebnis.** `SELECT Name FROM kunden` liefert eine Zeile (Test `dasEinbettungsbeispielStartetBedientUndStoppt`). Der Referenzclient liest Auswahl und leere Ergebnisse gegen das Simulations-Backend (`make simulations-integration`, `make kompatibilitaet`); der Beleg-Typ ist der Lauf am Referenzclient gegen den Server dieses Repos, nicht gegen einen echten SQL Server als Gegenstelle der Tabellen.
 
-**Was das Backend erkennt.** Eine feste Liste von Anweisungsformen ([`SPEC-036`](../../spec/spezifikation.md#spec-036--erkannte-anweisungsformen-des-simulations-backends-vorläufig)): `SELECT` mit einfacher Bedingung (`=`, `IN`, `IS [NOT] NULL`, mit `AND`), `INSERT`, `UPDATE`, `DELETE` einfacher Form, `SELECT 1`, `SET`-Anweisungen aus der Liste der Spezifikation, die Transaktionstexte von d-migrate (`SET IMPLICIT_TRANSACTIONS ON|OFF`, `IF @@TRANCOUNT > 0 COMMIT TRAN` und `… ROLLBACK TRAN`), die Katalogabfragen von d-migrate 1.12.0 und `CREATE TABLE` sowie `ALTER TABLE … ADD`. Die Transaktionstexte beantwortet das Backend mit dem Änderungszähler 0; die Bibliothek hat keine Transaktion und nimmt nichts zurück. Alles andere endet mit `TDS_UNSUPPORTED_SQL`; dass die Liste abschließend ist, ist eine Setzung. Die Liste steht nur in der Spezifikation.
+**Was das Backend erkennt.** Eine feste Liste von Anweisungsformen ([`SPEC-036`](../../spec/spezifikation.md#spec-036--erkannte-anweisungsformen-des-simulations-backends-vorläufig)): `SELECT` mit einfacher Bedingung (`=`, `IN`, `IS [NOT] NULL`, mit `AND`), `INSERT`, `UPDATE`, `DELETE` einfacher Form, `SELECT 1`, `SET`-Anweisungen aus der Liste der Spezifikation, die Transaktionstexte von d-migrate (`SET IMPLICIT_TRANSACTIONS ON|OFF`, `IF @@TRANCOUNT > 0 COMMIT TRAN` und `… ROLLBACK TRAN`), die Katalogabfragen von d-migrate 1.12.0, `CREATE TABLE` sowie `ALTER TABLE … ADD` und das Massenladen `INSERT BULK` mit der Nachricht `0x07` (Form B). Die Transaktionstexte beantwortet das Backend mit dem Änderungszähler 0; die Bibliothek hat keine Transaktion und nimmt nichts zurück. Alles andere endet mit `TDS_UNSUPPORTED_SQL`; dass die Liste abschließend ist, ist eine Setzung. Die Liste steht nur in der Spezifikation.
 
 **Eigenschaften.**
 
@@ -266,7 +286,7 @@ Die Codeblöcke dieser Anleitung stehen im Source-Set `integrator` in `Anleitung
 
 2. Mit `BackendSource.Custom(anleitungVeraenderlich())` starten.
 
-**Erwartetes Ergebnis.** Nach `CREATE TABLE dbo.neu (Id BIGINT NOT NULL, Name NVARCHAR(50) NULL, CONSTRAINT [pk_neu] PRIMARY KEY ([Id]))` liefert `SELECT Id, Name FROM neu` ein Ergebnis ohne Zeile (Test `dieStrukturaenderungLegtEineTabelleAn`). Der Änderungszähler der Strukturanweisung ist 0.
+**Erwartetes Ergebnis.** Nach `CREATE TABLE dbo.neu (Id BIGINT NOT NULL, Name NVARCHAR(50) NULL, CONSTRAINT [pk_neu] PRIMARY KEY ([Id]))` liefert `SELECT Id, Name FROM neu` ein Ergebnis ohne Zeile (Test `dieStrukturaenderungLegtEineTabelleAn`). Der Änderungszähler der Strukturanweisung ist 0 (Setzung; gemessen ist der Zähler 0 nur für `ROLLBACK TRAN`).
 
 **Eigenschaften.**
 
@@ -323,11 +343,12 @@ Die Codeblöcke dieser Anleitung stehen im Source-Set `integrator` in `Anleitung
 
 3. Die Senke schließt, wer sie übergeben hat. Ohne Senke (Voreinstellung `TelemetrySink.NONE`) entsteht kein Ereignis.
 
-**Erwartetes Ergebnis.** Nach einer abgelehnten Anmeldung steht in der Warteschlange eine Zeile `<Zeitpunkt> WARN LOGIN_REJECTED connection_id=1 reason=WRONG_PASSWORD` (Test `eineAbgelehnteAnmeldungErscheintMitGrundInDerZeile`, geprüft auf `LOGIN_REJECTED`, `reason=WRONG_PASSWORD` und `connection_id=1`). Nach Start, Anmeldung und `stop()` liefert eine Senke, die alle Ereignisse sammelt, `SERVER_STARTED`, `LOGIN_ACCEPTED` und `SERVER_STOPPED` (Test `dasEinbettungsbeispielStartetBedientUndStoppt`). Arten und Felder: [Referenz der Ereignisse](referenz-ereignisse.md).
+**Erwartetes Ergebnis.** Nach einer abgelehnten Anmeldung steht in der Warteschlange eine Zeile `<Zeitpunkt> WARN LOGIN_REJECTED connection_id=1 reason=WRONG_PASSWORD` (Test `eineAbgelehnteAnmeldungErscheintMitGrundInDerZeile`, geprüft auf `LOGIN_REJECTED`, `reason=WRONG_PASSWORD` und `connection_id=1`). Nach Start, Anmeldung und `stop()` liefert eine Senke, die alle Ereignisse sammelt, unter anderem `CONFIG_EFFECTIVE`, `SERVER_STARTED`, `LOGIN_ACCEPTED`, `SERVER_STOPPING` und `SERVER_STOPPED` (geprüft sind `SERVER_STARTED`, `LOGIN_ACCEPTED` und `SERVER_STOPPED`) (Test `dasEinbettungsbeispielStartetBedientUndStoppt`). Arten und Felder: [Referenz der Ereignisse](referenz-ereignisse.md).
 
 **Vertrag der Senke** (KDoc von `TelemetrySink`, Tests `TelemetryTest`):
 
 - `accept` blockiert nicht und wirft nicht. Eine blockierende Senke hält den Anfragepfad an und belegt Threads von `Dispatchers.Default`, die andere Coroutinen des Prozesses mitnutzen; davor schützt die Bibliothek nicht.
+- `accept` ruft `TdsServer.stop` nicht: bei `SERVER_STOPPING` und `SERVER_STOPPED` kehrt ein solcher Aufruf nicht zurück (die Sperre von `stop` ist nicht wiedereintrittsfähig; gemessen mit einer Zeitgrenze von 3 s, kein Test im Repo).
 - Wirft `accept` eine `Exception`, fängt die Bibliothek sie ab und verwirft sie. Eine `CancellationException` wird nicht gefangen; dass auch ein `Error` nicht gefangen wird, ist eine Festlegung.
 - Teilen mehrere Server in einer JVM eine Senke, unterscheidet das Ereignis sie nicht: `connection_id` zählt je Server.
 - Passwort, Prüfwert, Parameterwert, SQL-Text, Pfad und Ausnahmetext haben im Modell kein Feld; eine Ausnahme erscheint nur als Typname, jede Zeichenkette ist auf 256 UTF-16-Einheiten gekürzt (Tests `TelemetryEventTest`, `TelemetryRedactionTest`).
@@ -511,7 +532,7 @@ Dateirechte und Besitzer der Benutzerliste setzt die Bibliothek nicht; sie liest
    )
    ```
 
-   Der Listener nimmt höchstens `maxConnections` Verbindungen zugleich auf; eine weitere wird ohne Antwortbytes geschlossen, und nach dem Ende einer Verbindung nimmt er wieder auf. Eine Anfrage über `queryTimeoutSeconds` endet mit `TDS_TIMEOUT` (Verbindung offen). Eine Sitzung hält höchstens `maxPreparedHandles` Handles ([Referenz](referenz-konfiguration.md#prepared-handles)).
+   Der Listener nimmt höchstens `maxConnections` Verbindungen zugleich auf; eine weitere wird ohne Antwortbytes geschlossen, und nach dem Ende einer Verbindung nimmt er wieder auf. Eine Anfrage über `queryTimeoutSeconds` endet mit `TDS_TIMEOUT` (Verbindung offen). Eine Nachricht nach dem Login ist höchstens `requests.maxMessageBytes` groß (Voreinstellung 16 MiB, 65535 bis 268435456; die Summe der Paketlängen einer Nachricht); die Protokollgrenze eines Pakets (`MAX_TDS_PACKET_BYTES`, 65535) ist keine Einstellung. Eine Sitzung hält höchstens `maxPreparedHandles` Handles ([Referenz](referenz-konfiguration.md#prepared-handles)).
 2. Beenden mit `server.stop()`. Das ist das geordnete Beenden ([`SPEC-044`](../../spec/spezifikation.md#spec-044--geordnetes-beenden)):
    - der Listener schließt zuerst;
    - eine Verbindung ohne laufende Anfrage und ohne unvollständig empfangene Nachricht endet sofort;
@@ -519,6 +540,7 @@ Dateirechte und Besitzer der Benutzerliste setzt die Bibliothek nicht; sie liest
    - eine laufende Anfrage darf bis `shutdownGraceSeconds` zu Ende laufen, ihre Antwort wird vollständig gesendet, danach endet die Verbindung;
    - jede Anfrage, die nach dem Beginn vollständig wird, erhält `TDS_SHUTDOWN` (ERROR und DONE mit Fehlerstatus), danach endet die Verbindung;
    - nach Ablauf der Frist wird die laufende Anfrage wie bei ATTENTION abgebrochen (genau ein `cancel()` am Backend, die Antwort endet mit `DONE[ATTN]`); beendet das Backend den Abbruch nicht innerhalb von `cancelTimeoutSeconds`, wird getrennt;
+   - mit Senke melden `SERVER_STOPPING` den Beginn, `CONNECTION_CLOSED` (mit `reason`, etwa `SHUTDOWN`) jede Verbindung und `SERVER_STOPPED` das Ende; `stop()` kehrt erst zurück, nachdem das Ereignis zum Ende an die Senke gegeben wurde; zwei nebenläufige Aufrufe warten aufeinander;
    - `stop()` kehrt zurück, wenn alle Verbindungen beendet sind, spätestens `shutdownGraceSeconds` plus `cancelTimeoutSeconds` nach dem Beginn; ein zweiter Aufruf endet ohne Wirkung. Beachtet das Backend den Abbruch nicht, bleibt sein Aufruf bis zu seiner Rückkehr belegt.
 3. Im Container: die Voreinstellung von `SHUTDOWN_GRACE` plus `CANCEL_TIMEOUT` (15 s) ist länger als die Voreinstellung von `docker stop` (10 s bis SIGKILL; Voreinstellung von Docker, nicht gemessen); `shutdownGraceSeconds` dann kleiner setzen.
 4. Speicher: die JVM der Anwendung mit `-XX:+ExitOnOutOfMemoryError` starten und von einem Supervisor neu starten lassen, wenn hängende Verbindungen nach einem `OutOfMemoryError` nicht hinnehmbar sind. Ein `OutOfMemoryError` im Anfragepfad wird gefangen und als `TDS_INTERNAL_ERROR` beantwortet, die Verbindung schließt nach der Antwort. Die Bibliothek setzt den Schalter nicht; einen Supervisor oder Betriebs-Container liefert das Repo nicht ([ADR-0025](../plan/adr/0025-produktschnitt-bibliothek-und-testserver.md)). Zur Messlage ([ADR-0013](../plan/adr/0013-backend-grenzen.md)): ob das Fangen allein hängende Verbindungen hinterlässt, und ob der Schalter es ersetzt, ist am Produkt nicht gemessen.
