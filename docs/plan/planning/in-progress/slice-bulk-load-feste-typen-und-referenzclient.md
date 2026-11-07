@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** SPEC-036 (Pakettypen: gelesene Typen der Nutzlast des Massenladens, Form der Anfragen des Katalogs) · SPEC-035 (Überführung der Werte fester Typen) · SPEC-040 (Referenztest mit `SqlBulkCopy`) · SPEC-059 (`make flaeche` bleibt grün; der Slice fügt keinen öffentlichen Namen hinzu, sonst Rückführung).
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** Implementer-Agent, Auftrag des Nutzers 2026-11-07.
 
 **Autor:** pt9912 (Entwurf in der Planner-Rolle). **Datum:** 2026-11-07.
 
@@ -85,11 +85,14 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `src/main/kotlin/io/github/pt9912/tdswire/protocol/bulk/BulkLoadReader.kt`, `BulkValueReader.kt` | update | feste Typen der Nachricht 0x07 |
-| `src/main/kotlin/io/github/pt9912/tdswire/simulation/CatalogForms.kt`, `CatalogAnswers.kt`, `StatementPlanner.kt` | update | Form des Katalog-Batchs von `SqlBulkCopy` |
-| `src/test/kotlin/io/github/pt9912/tdswire/protocol/bulk/` | update | Messnachrichten byte-genau als Vektor (Eingang: `referenztest-dotnet/Mitschnitt/messung/bulk-merge-katalog/`) |
-| `referenztest-dotnet/` | update | `SqlBulkCopy`-Szenario gegen den Testserver |
-| `spec/spezifikation.md` (`SPEC-036`), `docs/plan/kompatibilitaetsmatrix.md`, `docs/user/testserver-manuell.md` | update | die Grenze „Nutzlast des Referenzclients wird nicht gelesen“ entfällt |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/bulk/BulkLoadReader.kt`, `BulkValueReader.kt`, `BulkColumnType.kt` (neu) | update | feste Typen der Nachricht 0x07 (BIGINT gemessen; INT, SMALLINT, TINYINT, BIT als Handvektor); beide Formen von COLMETADATA (mit und ohne zwei Nullbyte hinter der Spaltenzahl) |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/dispatch/BulkDispatch.kt` | update | V-6: Zustand `awaiting` nach IGNORE zurücksetzen; Erkennung der Probe der Zieltabelle |
+| `src/main/kotlin/io/github/pt9912/tdswire/port/BulkLoading.kt`, `runtime/SimulationBulk.kt` | update | interne Fähigkeit `bulkProbe` (keine öffentliche Fläche) |
+| `src/main/kotlin/io/github/pt9912/tdswire/simulation/BulkCopyForms.kt` (neu), `SimulationBackend.kt` | update | Wortlaut des Katalog-Batchs von `SqlBulkCopy` erkennen, Spalten der Tabelle liefern |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/dispatch/BulkCopyProbe.kt` (neu), `RequestLoop.kt` | update | Antwort aus vier Ergebnissen (binäre Spalte `tds_collation`, im Typmodell der Bibliothek nicht ausdrückbar, daher im Protokollkern) |
+| `src/test/kotlin/io/github/pt9912/tdswire/protocol/bulk/`, `protocol/dispatch/`, `simulation/`, `src/test/resources/messung/` (neu) | update | Messnachrichten byte-genau als Vektor; Probe gegen die gemessene Antwort; V-6 |
+| `referenztest-dotnet/Integration/`, `testserver/resources/integration/sim.yaml`, `tools/simulationstest.sh` | update | `SqlBulkCopy`-Szenario gegen den Testserver (Tabelle mit BIGINT-Schlüssel) |
+| `spec/spezifikation.md` (`SPEC-036`), `docs/plan/kompatibilitaetsmatrix.md`, `docs/user/*` | update | die Grenze „Nutzlast des Referenzclients wird nicht gelesen“ entfällt |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 
