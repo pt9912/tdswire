@@ -157,7 +157,7 @@ Nicht gefahren: Kardinalität über einen Schlüssel der Metriken aus Eingabe (d
 ### V-4 MEDIUM — Plan und Slice sind nicht auf dem Stand des Merges; die Festlegung `sql_batch` für Bulk-Load steht nicht im Slice
 
 * quelle: Reviewer-Regel „Plan-Tabelle nennt die berührten Dateien nicht“; `AGENTS.md` §3.8; Maßstab „Abweichungen sichtbar mit Träger“
-* pfad: `docs/plan/planning/in-progress/slice-betrieb-metriken-tracing.md` · „Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.“; Kopf „Bezug“ und „Berührte Spec-Stellen“
+* pfad: `docs/plan/planning/done/slice-betrieb-metriken-tracing.md` · „Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.“; Kopf „Bezug“ und „Berührte Spec-Stellen“
 * befund: (a) §3 nennt `EffectiveSettings.kt`, `runtime/TelemetryEvents.kt`, `ZustandsereignisseTest.kt` und den Bulk-Zweig in `RequestLoop` nicht; „Bezug“ nennt [ADR-0040](../plan/adr/0040-wirksame-konfiguration-im-ereignis-aus-typisiertem-wertobjekt.md) nicht, obwohl der zwölfte Schlüssel aus ihr folgt. (b) „Berührte Spec-Stellen“ nennt `SPEC-031` und `SPEC-033` nicht (getaggt in `SpanOutcomesDispatchTest`). (c) Die Entscheidung, Bulk-Load als `sql_batch` zu führen, steht in Spezifikation, Nutzer-Doku und KDoc, nicht in „Abweichung vom Plan-Wortlaut“ und nicht in §6. Die Begründung der Spezifikation („ein dritter wäre eine Erweiterung der öffentlichen Marken“) trägt nicht weit: `requestKind` ist ein öffentliches `String?`, ein dritter Wert wäre kein neuer Typname und bräuchte keine Änderung der Fläche nach `SPEC-059`; für den Betreiber ist ein Massenladen als `sql_batch` unehrlich gemessen (Dauer und Zeilenzahl eines Ladens mischen sich in die Verteilung der Batches). (d) Die DoD-Zeile 2 nennt weiter „Feld der `ServerConfig`“.
 * verifizierbar: ja (`git diff f5250140..HEAD --name-only` gegen §3)
 * klasse: Plan nennt die berührten Stellen nicht (zweite Wiederholung nach den Zustandsereignissen); Festlegung ohne Träger
@@ -165,7 +165,7 @@ Nicht gefahren: Kardinalität über einen Schlüssel der Metriken aus Eingabe (d
 ### V-5 LOW — Öffentliche Mitglieder und offene Nutzerentscheidungen haben keinen Träger außerhalb des Slice
 
 * quelle: Maßstab „Abweichungen sichtbar mit Träger“; [ADR-0033](../plan/adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Nr. 4
-* pfad: `docs/plan/planning/in-progress/slice-betrieb-metriken-tracing.md` · „Der Nutzer entscheidet, ob ein eigener Typ folgt.“ und §6 letztes Risiko („entscheidet er mit dem Nutzer“)
+* pfad: `docs/plan/planning/done/slice-betrieb-metriken-tracing.md` · „Der Nutzer entscheidet, ob ein eigener Typ folgt.“ und §6 letztes Risiko („entscheidet er mit dem Nutzer“)
 * befund: Drei Entscheidungen sind offen und tragen nur den Satz im Slice: (1) sechster Parameter von `RequestSettings` statt eines eigenen Typs (Java: Konstruktoren mit weniger als sechs Parametern entfallen), (2) `REQUEST_FAILED` ohne `requestId` und kein Ereignis „Anfrage beendet“ (Spezifikation: „Zielzustand, nicht gebaut“), (3) Bulk-Load als `sql_batch` (V-4). Die Beobachtung `BEO-TDS/oeffentliche-flaeche-der-telemetrie-ohne-entscheidung` steht auf „gestrichen“; die Closure muss sagen, ob sie mit den neuen Zugriffen wieder zählt. Ohne eine Architect-Frage oder einen Folge-Slice als Träger gilt §6 nicht als aufgelöst.
 * verifizierbar: nein (Lesart)
 * klasse: Entscheidung ohne Träger
@@ -230,7 +230,7 @@ Dieser Zweig ändert `docs/user/einbettung-und-betrieb.md` an fünf Stellen (Sta
 | Positionale Aufrufe von `RequestSettings` | geprüft, keiner (Haupt-, Test-, Testserver-, Integrator-Code; kein Java, kein C#) |
 | Suppression-Verbot (`@Suppress` in `src`, `testserver`) | geprüft, ohne Befund (`make detekt` in `clean-build` grün) |
 | `harness/README.md`, `AGENTS.md`, `harness/conventions.md` | im Diff unverändert; keine Behauptung eines nicht vorhandenen Targets neu eingeführt |
-| Roadmap | verweist auf `in-progress/slice-betrieb-metriken-tracing.md` und `done/slice-betrieb-zustandsereignisse.md`, beide Pfade existieren |
+| Roadmap | verweist auf `done/slice-betrieb-metriken-tracing.md` und `done/slice-betrieb-zustandsereignisse.md`, beide Pfade existieren |
 
 ## Risiken aus §6 (Vorschlag der Ausgänge, Entscheid beim Planner)
 

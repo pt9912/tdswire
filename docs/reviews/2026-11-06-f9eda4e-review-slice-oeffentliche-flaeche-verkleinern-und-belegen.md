@@ -60,7 +60,7 @@ Arbeitsbaum nach den Mutationen zurückgesetzt (`git status` sauber).
 
 * kategorie: LOW (Plan-Befund)
 * quelle: Maintainability; Reviewer-Skill „zweite Fundstelle“ (hier nicht MEDIUM, weil die internen Klassen mit gleichem Namen weiterbestehen und die Slices eigene Verdrahtungstests auf ihnen planen)
-* pfad: `docs/plan/planning/done/slice-betrieb-telemetrie-verdrahtung-belegen.md` · „Verdrahtung von `AcceptFailed` und `ConnectionFailed`“ und „`SPEC-059` ändert sich nicht“; `docs/plan/planning/in-progress/slice-betrieb-metriken-tracing.md` · „ob sie auch als Feld in `RequestFailed`“; `docs/plan/planning/welle-betrieb-diagnose.md` · Zeile des Verdrahtungs-Slice
+* pfad: `docs/plan/planning/done/slice-betrieb-telemetrie-verdrahtung-belegen.md` · „Verdrahtung von `AcceptFailed` und `ConnectionFailed`“ und „`SPEC-059` ändert sich nicht“; `docs/plan/planning/done/slice-betrieb-metriken-tracing.md` · „ob sie auch als Feld in `RequestFailed`“; `docs/plan/planning/welle-betrieb-diagnose.md` · Zeile des Verdrahtungs-Slice
 * befund: Die Namen gelten nur noch als `internal`-Klassen oder als `EventKind`-Konstanten; ein neues Feld (`request_id`) ist jetzt ein Mitglied der einen öffentlichen Klasse `TelemetryEvent` und ändert `SPEC-059` (Abschnitt 4 und die Zeile „Zusage“, die die Felder von `TelemetryEvent` nennt), was der Verdrahtungs-Slice mit „ändert sich nicht“ bereits für sich nicht berührt. Der Slice listet diese Slices nicht als nachzuziehen; die Schnitt-Tabelle (§3) nennt den Nachzug nicht.
 * verifizierbar: ja (Grep)
 * klasse: Fortschreibung lässt die zweite Fundstelle stehen

@@ -1,2 +1,2 @@
-**Vorgang:** [slice-betrieb-metriken-tracing](../../../../in-progress/slice-betrieb-metriken-tracing.md)
+**Vorgang:** [slice-betrieb-metriken-tracing](../../../../done/slice-betrieb-metriken-tracing.md)
 **Fund:** [Verifikation](../../../../../../reviews/2026-11-07-4ed6a526-verifikation-slice-betrieb-metriken-tracing.md) V-2: der Satz "Zielzustand, nicht gebaut: … Schnappschuss der Metriken und Ende eines Spans" stammte aus dem Text der Zustandsereignisse auf `main` (dort wahr) und wurde durch den Merge mit diesem Slice falsch; ebenso die Aussage der Nutzer-Doku, `LOG_LEVEL=DEBUG` ändere am Prozess nichts.

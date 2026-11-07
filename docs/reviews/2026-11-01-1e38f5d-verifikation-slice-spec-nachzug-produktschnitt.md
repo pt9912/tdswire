@@ -11,7 +11,7 @@
 * Mutation am Heap-Satz SPEC-040: `48 MiB` auf `47 MiB`: `make kopplung-zahlen` Exit 2 mit „SPEC-040 nennt nicht 'Serverprozess mit 48 MiB Heap, Text von 64 000 000 Zeichen'“; danach `git checkout -- spec/spezifikation.md`, `git diff` leer.
 * Token-Grep in `spec/`: Die d-check-Regexe für `ADR-`, Slice, Welle und `docs/` finden nichts; einziger Treffer ist `BEO-TDS/messung-am-echten-sql-server-fehlt` (schon in 902ab72, vom Gate akzeptiert). „Produktschnitt“ kommt 0-mal in `spec/` vor.
 * Diff gegen 902ab72: `spec/architecture.md`, `spec/lastenheft.md`, `docs/plan/adr/` und `harness/` unverändert (3.4, 3.5; `harness/README.md` bewusst); die Menge der `SPEC-*`-Kennungen ist gleich (56 und 56), `make spec-abdeckung` musste nicht neu erzeugt werden.
-* `git merge-tree` gegen main: sauber. Gegen den Branch des Abbruchpfads: Inhaltskonflikte in `docs/plan/planning/in-progress/slice-betrieb-metriken-tracing.md` und `slice-betrieb-zustandsereignisse.md` (beide Branches ändern diese Dateien, Linkpfade nach `slice-mv`); `spec/` nicht betroffen, `roadmap.md` merged automatisch; beim zweiten Merge von Hand zu lösen.
+* `git merge-tree` gegen main: sauber. Gegen den Branch des Abbruchpfads: Inhaltskonflikte in `docs/plan/planning/done/slice-betrieb-metriken-tracing.md` und `slice-betrieb-zustandsereignisse.md` (beide Branches ändern diese Dateien, Linkpfade nach `slice-mv`); `spec/` nicht betroffen, `roadmap.md` merged automatisch; beim zweiten Merge von Hand zu lösen.
 
 ## DoD-Punkte
 

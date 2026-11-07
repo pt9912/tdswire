@@ -55,7 +55,7 @@ Nicht gefahren: Kardinalität über einen Schlüssel der Metriken aus SQL-Text (
 
 * kategorie: MEDIUM
 * quelle: Reviewer-Skill „Plan-Tabelle nennt die berührten Dateien nicht“
-* pfad: `docs/plan/planning/in-progress/slice-betrieb-metriken-tracing.md` · „Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.“
+* pfad: `docs/plan/planning/done/slice-betrieb-metriken-tracing.md` · „Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.“
 * befund: Der Diff berührt Dateien ohne Zeile in §3: `src/main/.../protocol/dispatch/RequestOutcomes.kt` (neu, bei der Zerlegung entstanden), `src/integrator/.../TelemetryEmbeddingTest.kt` und `TelemetryFelderEmbeddingTest.kt`, `src/test/.../ConfigValidationTest.kt`, `EnvironmentConfig.kt`, `TelemetryEventTest.kt`, `TelemetryRedactionTest.kt`, `SpanOutcomesDispatchTest.kt` und `docs/plan/spec-abdeckung.md`. Der Kopf „Berührte Spec-Stellen“ nennt `SPEC-029`, das der Diff nicht ändert, aber nicht `SPEC-052` (Zeile der Spezifikation geändert), `SPEC-059`, `SPEC-044`, `SPEC-048`, `SPEC-009`, `SPEC-011`, `SPEC-030` (als `@spec`-Tags und Abdeckung berührt). Der Absatz „Zuschnitt der Fläche (vorab)“ und die DoD nennen „ein Konstruktorparameter an `ServerConfig`“; gebaut ist `RequestSettings.metricsIntervalSeconds` (Abweichung ist in der Spezifikation benannt, im Slice noch nicht). Die Closure-Notiz steht aus („Wird bei der Closure gefüllt“); sie muss die Abweichung tragen.
 * verifizierbar: ja (Diff gegen §3: `git diff f0886534..HEAD --name-only`)
 * klasse: Plan-Tabelle ohne die berührten Dateien

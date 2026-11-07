@@ -1,2 +1,2 @@
-**Vorgang:** [slice-betrieb-metriken-tracing](../../../../in-progress/slice-betrieb-metriken-tracing.md)
+**Vorgang:** [slice-betrieb-metriken-tracing](../../../../done/slice-betrieb-metriken-tracing.md)
 **Fund:** [Review](../../../../../../reviews/2026-11-07-33f67126-review-slice-betrieb-metriken-tracing.md) F-1 (`abandoned`, `closed`, Abbildung des Laufendes: Mutationen M6 und M10 grün) und [Verifikation](../../../../../../reviews/2026-11-07-4ed6a526-verifikation-slice-betrieb-metriken-tracing.md) V-3 (Bulk-Load-Zweig von `RequestLoop.answer`: Mutation M12 grün); behoben mit `SpanOutcomesDispatchTest` und `SpanOutcomesBulkTest`.

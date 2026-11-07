@@ -1,2 +1,2 @@
-**Vorgang:** [slice-betrieb-metriken-tracing](../../../../in-progress/slice-betrieb-metriken-tracing.md)
+**Vorgang:** [slice-betrieb-metriken-tracing](../../../../done/slice-betrieb-metriken-tracing.md)
 **Fund:** [Review](../../../../../../reviews/2026-11-07-33f67126-review-slice-betrieb-metriken-tracing.md) F-2 (Zeichenketten-Felder, Tabelle der Defaults, Nutzer-Doku) und [Verifikation](../../../../../../reviews/2026-11-07-4ed6a526-verifikation-slice-betrieb-metriken-tracing.md) V-2: ein Satz in Abschnitt 4 der Spezifikation ("Zielzustand, nicht gebaut: … Schnappschuss der Metriken und Ende eines Spans") blieb nach dem Merge stehen und sagte das Gegenteil des Absatzes davor. Drei Treffer in einem Vorgang zählen einmal.
