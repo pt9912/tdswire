@@ -27,14 +27,16 @@ import io.github.pt9912.tdswire.testsupport.handPacket
 import io.github.pt9912.tdswire.transport.listener.ConnectionEnd
 import io.github.pt9912.tdswire.transport.listener.ListenerEvent
 import io.github.pt9912.tdswire.transport.listener.eventually
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -77,6 +79,12 @@ internal class ZustandsereignisseTest : RuntimeTestBase() {
         client.send(handMessage(BATCH_TYPE, BatchVectors.payload("EXEC sp_unprepare 99"), 4000))
         assertEquals(TABULAR_TYPE, assertNotNull(client.readMessage()).type)
     }
+
+    /** Zwei Threads für nebenläufige `stop`; die Senke des Tests hält einen davon an. */
+    private val pool = Executors.newFixedThreadPool(2).asCoroutineDispatcher()
+
+    @AfterTest
+    fun closePool() = pool.close()
 
     private fun kinds(): List<EventKind> = sink.events.map { it.kind }
 
@@ -345,9 +353,9 @@ internal class ZustandsereignisseTest : RuntimeTestBase() {
         RawClient(server.port).use { client ->
             login(client)
             eventually("Anmeldung gemeldet") { sink.events.any { it.kind == EventKind.LOGIN_ACCEPTED } }
-            val first = launch(Dispatchers.Default) { server.stop() }
+            val first = launch(pool) { server.stop() }
             assertTrue(entered.await(GATE_SECONDS, TimeUnit.SECONDS), "Beginn nicht gemeldet")
-            val second = launch(Dispatchers.Default) { server.stop() }
+            val second = launch(pool) { server.stop() }
             delay(SETTLE_MILLIS)
             assertTrue(second.isActive, "der zweite stop ist zurückgekehrt, bevor das Beenden fertig ist")
             assertFalse(sink.events.any { it.kind == EventKind.SERVER_STOPPED })
@@ -374,7 +382,7 @@ internal class ZustandsereignisseTest : RuntimeTestBase() {
             login(client)
             client.send(handPacket(BATCH_TYPE, 0, ByteArray(PARTIAL_BYTES)))
             delay(SETTLE_MILLIS)
-            val first = launch(Dispatchers.Default) { server.stop() }
+            val first = launch(pool) { server.stop() }
             eventually("Beginn gemeldet") { sink.events.any { it.kind == EventKind.SERVER_STOPPING } }
             first.cancelAndJoin()
             assertTrue(first.isCancelled, "der Aufruf war schon fertig, der Test belegt nichts")
