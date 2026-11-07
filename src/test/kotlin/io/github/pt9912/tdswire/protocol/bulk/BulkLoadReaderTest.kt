@@ -76,9 +76,10 @@ class BulkLoadReaderTest {
 
     /**
      * Jede echte Teilnachricht des Mitschnitts, vom leeren Anfang bis eins vor dem letzten Byte, ist abgewiesen und
-     * wirft nie: eine abgeschnittene Nachricht ergibt einen Fehler des Lesers, kein Teilergebnis. Wächter: ein
-     * Leser, der DONE nicht verlangt (eine Teilnachricht an einer Zeilengrenze wäre dann gültig), oder einer, der an
-     * einer Grenze mit einer Ausnahme endet.
+     * wirft nie: eine abgeschnittene Nachricht ergibt einen Fehler des Lesers, kein Teilergebnis. Ausgenommen ist die
+     * Teilnachricht, der die letzten vier Byte fehlen: sie gleicht einer Nachricht des Referenzclients mit DONE von 8
+     * Byte und ist angenommen (`BulkLoadReaderReferenceClientTest`). Wächter: ein Leser, der DONE nicht verlangt (eine
+     * Teilnachricht an einer Zeilengrenze wäre dann gültig), oder einer, der an einer Grenze mit einer Ausnahme endet.
      *
      * @spec SPEC-036
      */
@@ -86,6 +87,7 @@ class BulkLoadReaderTest {
     fun `jede Teilnachricht ist ein Fehler des Lesers`() {
         val full = hex(MITSCHNITT_DREI_ZEILEN)
         for (length in 0 until full.size) {
+            if (length == full.size - SHORT_DONE_GAP) continue
             assertIs<ProtocolResult.Failed>(BulkLoadReader.read(full.copyOf(length)), "Länge $length")
         }
     }
@@ -243,6 +245,9 @@ class BulkLoadReaderTest {
     }
 
     private companion object {
+        /** Die Differenz zwischen DONE mit 12 und mit 8 Byte. */
+        const val SHORT_DONE_GAP = 4
+
         /** DONE: Status 0, curCmd 0, Zeilenzahl 0 (Mitschnitt: der Treiber sendet sie so). */
         const val DONE = "FD 00 00 00 00 00 00 00 00 00 00 00 00"
 

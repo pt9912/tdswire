@@ -62,7 +62,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 public class SimulationBackend(
     /** Liefert bei jeder Anfrage die aktuelle Tabellenliste; wirft er, endet die Anfrage mit `TDS_BACKEND_ERROR`. */
-    private val catalog: () -> SimCatalog,
+    internal val catalog: () -> SimCatalog,
     /**
      * Nimmt die Tabelle nach einer Strukturänderung entgegen: Schema, Name, Spalten in der Reihenfolge und Schlüssel;
      * ohne ihn ist jede Strukturänderung abgewiesen.
