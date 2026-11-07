@@ -63,5 +63,6 @@ private fun requestsOf(environment: Map<String, String>): RequestSettings {
         cancelTimeoutSeconds = environment[ConfigKeys.CANCEL_TIMEOUT]?.toInt() ?: defaults.cancelTimeoutSeconds,
         shutdownGraceSeconds = environment[ConfigKeys.SHUTDOWN_GRACE]?.toInt() ?: defaults.shutdownGraceSeconds,
         maxPreparedHandles = environment[ConfigKeys.MAX_PREPARED_HANDLES]?.toInt() ?: defaults.maxPreparedHandles,
+        maxMessageBytes = environment[ConfigKeys.MAX_MESSAGE_BYTES]?.toInt() ?: defaults.maxMessageBytes,
     )
 }

@@ -11,7 +11,7 @@ import io.github.pt9912.tdswire.transport.framing.TdsMessage
 /**
  * Setzt [HandshakeChannel] auf [MessageReader], [MessageWriter] und [SuspendingChannel] um
  * (`ARC-003`, `ARC-004`). Der Leser trägt die Vor-Login-Grenze ([FramingLimits.preLogin]), solange der
- * Handshake läuft; [useSessionLimits] wechselt sie an demselben Leser auf die Standardgrenze, damit
+ * Handshake läuft; [useSessionLimits] wechselt sie an demselben Leser auf [sessionLimits], damit
  * gepufferte Bytes und fertige Nachrichten hinter dem LOGIN7 erhalten bleiben. Der TLS-Handschlag
  * gehört dem Aufrufer und kommt als [tlsHandshake]; er liest und schreibt über denselben Kanal.
  */
@@ -19,6 +19,7 @@ internal class TransportHandshakeChannel(
     private val reader: MessageReader,
     private val writer: MessageWriter,
     private val channel: SuspendingChannel,
+    private val sessionLimits: FramingLimits = FramingLimits(),
     private val tlsHandshake: suspend () -> Boolean,
 ) : HandshakeChannel {
     override suspend fun receive(): Inbound = when (val outcome = reader.next()) {
@@ -35,7 +36,7 @@ internal class TransportHandshakeChannel(
 
     override suspend fun startTls(): Boolean = tlsHandshake()
 
-    override fun useSessionLimits() = reader.useLimits(FramingLimits())
+    override fun useSessionLimits() = reader.useLimits(sessionLimits)
 
     override fun close() = channel.close()
 }

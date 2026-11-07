@@ -10,7 +10,9 @@ import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.domain.QueryRequest
 import io.github.pt9912.tdswire.domain.SqlType
 import io.github.pt9912.tdswire.domain.telemetry.BindFailed
+import io.github.pt9912.tdswire.domain.telemetry.ConfigEffective
 import io.github.pt9912.tdswire.domain.telemetry.ConnectionFailed
+import io.github.pt9912.tdswire.domain.telemetry.EffectiveSettings
 import io.github.pt9912.tdswire.domain.telemetry.EventLevel
 import io.github.pt9912.tdswire.domain.telemetry.LoginAccepted
 import io.github.pt9912.tdswire.domain.telemetry.RequestFailed
@@ -41,7 +43,9 @@ private const val LIMIT = 256
 private const val LONG = 300
 private val BASE_STRINGS = setOf("sessionId", "clientProfile")
 private val STRINGS_BY_KIND = mapOf(
+    "ServerStarted" to setOf("address"),
     "StartRefused" to setOf("reason"),
+    "ConnectionClosed" to setOf("reason"),
     "ConfigInvalid" to setOf("key", "issueKind"),
     "TlsStartRejected" to setOf("part", "form"),
     "BindFailed" to setOf("address", "exceptionType"),
@@ -124,7 +128,7 @@ internal class TelemetryRedactionTest : RuntimeTestBase() {
                 val name = getter.name.removePrefix("get").replaceFirstChar { it.lowercase() }
                 val type = getter.returnType
                 assertTrue(
-                    type in ALLOWED_TYPES || type.isEnum,
+                    type in ALLOWED_TYPES || type.isEnum || (type == Map::class.java && name == "settings"),
                     "${kind.simpleName}.$name hat den Typ ${type.name}",
                 )
                 if (type == String::class.java) {
@@ -136,6 +140,46 @@ internal class TelemetryRedactionTest : RuntimeTestBase() {
                     assertTrue(name in allowed, "${kind.simpleName}.$name ist ein unbekanntes Textfeld der Art")
                 }
             }
+        }
+    }
+
+    /**
+     * Bauart der wirksamen Konfiguration (`ADR-0040`): die Felder von `EffectiveSettings` sind nur Zahlentypen,
+     * Aufzählungen und `Boolean`, und der Konstruktor von `ConfigEffective` nimmt keinen Parameter vom Typ Text oder
+     * Abbildung. Ein Feld mit Text oder Bytes macht den Test rot (Sensor seit slice-betrieb-zustandsereignisse).
+     *
+     * @spec SPEC-048
+     */
+    @Test
+    fun `Die wirksame Konfiguration besteht nur aus Zahlen, Aufzaehlungen und Schaltern`() {
+        val allowed = setOf(
+            Int::class.javaPrimitiveType,
+            Long::class.javaPrimitiveType,
+            Boolean::class.javaPrimitiveType,
+        )
+        val fields = EffectiveSettings::class.java.declaredFields.filterNot { it.isSynthetic }
+        assertTrue(fields.isNotEmpty())
+        fields.forEach { assertTrue(it.type in allowed || it.type.isEnum, "${it.name} hat den Typ ${it.type.name}") }
+        val constructors = ConfigEffective::class.java.declaredConstructors
+        constructors.flatMap { it.parameterTypes.toList() }.forEach {
+            val free = it == String::class.java || Map::class.java.isAssignableFrom(it)
+            assertTrue(!free, "Parameter vom Typ ${it.name}")
+        }
+    }
+
+    /**
+     * Die Einstellungen im Ereignis der wirksamen Konfiguration sind nur Zahlen, Namen und Schalter, auch wenn Pfade,
+     * Benutzerliste und Namen Prüfwörter tragen; kein Wert nennt ein Prüfwort.
+     *
+     * @spec SPEC-048
+     */
+    @Test
+    fun `Die Einstellungen der wirksamen Konfiguration nennen weder Pfad noch Liste`() = blocking {
+        markers.forEach { marker ->
+            sink.events.clear()
+            running(loopbackEnvironment(file("users-$marker.txt", "alice-$marker\t{plain}pw-$marker\n")))
+            assertSettingsAreShapedAsNames(sink.events)
+            assertTrue(sink.events.none { it.visibleText().contains(marker) }, "Ereignis nennt $marker")
         }
     }
 

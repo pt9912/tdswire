@@ -50,7 +50,8 @@ internal class LogAdapterTest : TempFilesTest() {
             EnvKeys.LISTEN_PORT to "0",
             EnvKeys.SIMULATION_DESCRIPTION_FILE to file("sim.yaml", PERSON_YAML),
         )
-        val served = RealEvents.collect(environment) { port ->
+        val settle = listOf(EventKind.LOGIN_ACCEPTED, EventKind.LOGIN_REJECTED)
+        val served = RealEvents.collect(environment, settle) { port ->
             LoginProbe(port).use { assertTrue(it.login("alice", "secret")) }
             LoginProbe(port).use { assertFalse(it.login("alice", "falsch")) }
         }.also {
