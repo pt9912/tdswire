@@ -1,6 +1,6 @@
 # Testserver von Hand starten und ausprobieren
 
-Diese Anleitung führt durch die Aufgaben eines Menschen, der den Testserver der Bibliothek von Hand bedient: starten und stoppen, einen Client anmelden, mit d-migrate Struktur lesen und ändern, das Log lesen, den Server anders einstellen. Jede Aufgabe hat Ziel, Voraussetzungen, Schritte, erwartetes Ergebnis und typische Fehler; die Ausgaben stammen aus Läufen am gebauten Stand (Datum und Bedingung bei jeder Aufgabe). Einstellungen, Beispiel-Tabellen und Grenzen stehen am Ende. Bezug: [TDS-FA-09](../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose), [TDS-FA-12](../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), [TDS-QA-05](../../spec/lastenheft.md#tds-qa-05--wartbarkeit).
+Diese Anleitung führt durch die Aufgaben eines Menschen, der den Testserver der Bibliothek von Hand bedient: starten und stoppen, einen Client anmelden, mit d-migrate Struktur lesen und ändern, das Log lesen, den Server anders einstellen (eigene Benutzer, eigene Tabellen, Verschlüsselung). Jede Aufgabe hat Ziel, Voraussetzungen, Schritte, erwartetes Ergebnis und typische Fehler; die Ausgaben stammen aus Läufen am gebauten Stand (Datum bei jeder Aufgabe). Einstellungen, Beispiel-Tabellen und Grenzen stehen am Ende. Bezug: [TDS-FA-09](../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose), [TDS-FA-12](../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), [TDS-QA-05](../../spec/lastenheft.md#tds-qa-05--wartbarkeit).
 
 Der Testserver ist **kein Produkt**: er ist ein Serverprozess zur Prüfung der Bibliothek, das Image `tdswire-testserver:lokal` ist ein lokales Test-Image ohne Registry ([ADR-0025](../plan/adr/0025-produktschnitt-bibliothek-und-testserver.md), Entscheidungen 2 und 4). Wer die Bibliothek in ein eigenes Programm einbettet, liest [Die Bibliothek einbetten und betreiben](einbettung-und-betrieb.md).
 
@@ -12,7 +12,7 @@ Der Testserver ist **kein Produkt**: er ist ein Serverprozess zur Prüfung der B
 | mich mit einem Client anmelden | [2](#2-mit-einem-client-anmelden) |
 | mit d-migrate Struktur lesen und ändern | [3](#3-mit-d-migrate-struktur-lesen-und-ändern) |
 | das Log lesen | [4](#4-das-log-lesen) |
-| den Server anders einstellen (Host, Tabellen, Benutzer, Verschlüsselung) | [5](#5-den-server-anders-einstellen) |
+| den Server anders einstellen (Host, Benutzer, Tabellen, Verschlüsselung) | [5](#5-den-server-anders-einstellen) |
 
 ## 1. Den Testserver starten, prüfen und stoppen
 
@@ -59,7 +59,7 @@ testserver-down: Container tdswire-testserver gestoppt und entfernt
 |---|---|---|
 | `make testserver-up` bricht ab und nennt `make testserver-down` | es besteht schon ein Container | `make testserver-down` |
 | Port belegt | ein anderer Prozess nutzt 1433 | `TESTSERVER_PORT=14333 make testserver-up` (der Container-Port ist immer 1433; die Variable wählt den Port auf dem Host) |
-| „der Server wurde nicht bereit“ | die Wartezeit (60 s) reichte nicht, oder die Konfiguration ist ungültig (etwa `REQUIRED` mit der Voreinstellungsliste, [Abschnitt 5](#5-den-server-anders-einstellen)) | `make testserver-logs`; `TESTSERVER_WARTEN=<Sekunden>` |
+| `testserver-up: der Server wurde nicht bereit; Log:` mit Zeilen `tdswire: …` und Make-Fehler | die Wartezeit (60 s) reichte nicht, oder die Konfiguration ist ungültig (Beispiele in [Aufgabe 5](#5-den-server-anders-einstellen)) | die Zeilen `tdswire: …` lesen; `TESTSERVER_WARTEN=<Sekunden>` |
 | der Container bleibt nach Abbruch von `make testserver-up` mit SIGINT stehen | der Abbruch räumt nicht auf | der nächste Aufruf meldet es; `make testserver-down` |
 
 Die Targets sind kein Gate und laufen nicht in `make gates` ([ADR-0022](../plan/adr/0022-e2e-laeufe-nicht-in-den-gates.md)); ihre Zweige prüft `make testserver-selbsttest`.
@@ -79,7 +79,7 @@ docker run --rm --network host -e TDSWIRE_ZIEL=127.0.0.1:1433 tdswire-laufzeit-c
 make testserver-down
 ```
 
-**Erwartetes Ergebnis** (Lauf vom 2026-11-07, Exit 0): `laufzeit-client: Login ok`. Der Client liest `TDSWIRE_BENUTZER` und `TDSWIRE_PASSWORT` (Voreinstellung `alice`, `secret`); mit `-e TDSWIRE_PASSWORT=falsch` meldet er `laufzeit-client: Login fehlgeschlagen` und endet mit Exit 1 (Lauf vom 2026-11-05, danach folgt eine Gradle-Meldung `BUILD FAILED`). Das Log zeigt die Anmeldung als Ereignis `login_accepted` ([Aufgabe 4](#4-das-log-lesen)).
+**Erwartetes Ergebnis** (Lauf vom 2026-11-07, Exit 0): `laufzeit-client: Login ok`. Der Client liest `TDSWIRE_BENUTZER` und `TDSWIRE_PASSWORT` (Voreinstellung `alice`, `secret`); mit einem falschen Kennwort meldet er `laufzeit-client: Login fehlgeschlagen` und endet mit Exit 1 (gefahren am 2026-11-07, danach folgt eine Gradle-Meldung `BUILD FAILED`). Das Log zeigt die Anmeldung als Ereignis `login_accepted`, die Ablehnung als `login_rejected` mit `reason` ([Aufgabe 4](#4-das-log-lesen)).
 
 **Schritte mit Microsoft.Data.SqlClient.** Die Zeichenfolge ist die des Integrationstests `referenztest-dotnet/Integration/SimulationBackendTests.cs`, der gegen einen Testserver mit `TEST_UNENCRYPTED` läuft (`make simulations-integration`):
 
@@ -100,9 +100,9 @@ Server=tcp:127.0.0.1,1433;User ID=alice;Password=secret;Encrypt=false;Pooling=fa
 
 **Ziel.** d-migrate liest die Struktur des Testservers, vergleicht sie mit einem Soll und legt Tabellen und Spalten an.
 
-**Voraussetzungen.** Der Testserver läuft mit den Voreinstellungen. Docker kann das Image `ghcr.io/pt9912/d-migrate` per Digest ziehen (d-migrate 1.12.0, mssql-jdbc 13.4.0). Das Arbeitsverzeichnis ist beschreibbar.
+**Voraussetzungen.** Der Testserver läuft mit den Voreinstellungen. Docker kann das Image `ghcr.io/pt9912/d-migrate` per Digest ziehen (d-migrate 1.12.0, mssql-jdbc 13.4.0). Das Arbeitsverzeichnis ist beschreibbar und enthält keine Datei namens `soll.yaml`, `ist.yaml` oder `kunden.json`. Die Befehle verwenden den Digest `sha256:308f27753036c9cc423f716b9fc4c9e68016543a8003ecd2f8282e05a2ee6491`; die Verbindung ist `mssql://alice:secret@127.0.0.1:1433/manuell?encrypt=false`.
 
-**Schritte.** Die Befehle bilden `docker run` mit dem gepinnten Digest; die Verbindung ist `mssql://alice:secret@127.0.0.1:1433/manuell?encrypt=false`:
+**Schritte.**
 
 1. Die Struktur lesen:
 
@@ -112,8 +112,59 @@ Server=tcp:127.0.0.1,1433;User ID=alice;Password=secret;Encrypt=false;Pooling=fa
      schema reverse --source 'mssql://alice:secret@127.0.0.1:1433/manuell?encrypt=false' --output /work/ist.yaml
    ```
 
-   Ergebnis (Lauf vom 2026-11-07, Exit 0): `Schema written to /work/ist.yaml`; die Datei beschreibt `kunden` (`Id` biginteger, `Name` text mit `max_length` 100, `Eintritt` date) und `bestellungen` (`Id`, `KundenId`, `Betrag` decimal 10,2) mit Schlüssel `Id`.
-2. Eine Soll-Datei schreiben: `ist.yaml` kopieren, in `kunden` die Spalte `Email` (`type: text`, `max_length: 200`, `ordinal: 4`) ergänzen und unter `tables` eine Tabelle `produkte` (`Id` biginteger `required: true`, `Bezeichnung` text `max_length` 50, `primary_key: [Id]`) hinzufügen.
+   Ergebnis (Lauf vom 2026-11-07, Exit 0): die Ausgabe
+
+   ```text
+   Schema written to /work/ist.yaml
+   Report written to /work/ist.report.yaml
+   ```
+
+   und die Dateien `ist.yaml` (Schema: `kunden` mit `Id` biginteger, `Name` text mit `max_length` 100, `Eintritt` date; `bestellungen` mit `Id`, `KundenId`, `Betrag` decimal 10,2; Schlüssel `Id`) und `ist.report.yaml` (Bericht mit `notes: 0`, `warnings: 0`).
+2. Das Soll schreiben: die Beschreibung der Beispiel-Tabellen, ergänzt um die Spalte `Email` in `kunden` und die neue Tabelle `produkte`. Die Datei `soll.yaml`:
+
+   ```yaml
+   schema_format: "1.0"
+   name: manuell
+   version: "1"
+   tables:
+     kunden:
+       columns:
+         Id:
+           type: biginteger
+           required: true
+         Name:
+           type: text
+           max_length: 100
+         Eintritt:
+           type: date
+         Email:
+           type: text
+           max_length: 200
+       primary_key: [Id]
+     bestellungen:
+       columns:
+         Id:
+           type: biginteger
+           required: true
+         KundenId:
+           type: biginteger
+           required: true
+         Betrag:
+           type: decimal
+           precision: 10
+           scale: 2
+       primary_key: [Id]
+     produkte:
+       columns:
+         Id:
+           type: biginteger
+           required: true
+         Bezeichnung:
+           type: text
+           max_length: 50
+       primary_key: [Id]
+   ```
+
 3. Vergleichen (Soll gegen den Server):
 
    ```sh
@@ -131,17 +182,17 @@ Server=tcp:127.0.0.1,1433;User ID=alice;Password=secret;Encrypt=false;Pooling=fa
      schema migrate --source /work/soll.yaml --target 'db:mssql://alice:secret@127.0.0.1:1433/manuell?encrypt=false' --execute --report /work/migrate.yaml
    ```
 
-   Ergebnis (Exit 0, ohne Ausgabe auf dem Terminal): der Bericht hat `"status": "ok"`, `statementsAttempted` 2 und `transactionRolledBack` false; gesendet wurden `CREATE TABLE [produkte] (…)` und `ALTER TABLE [kunden] ADD [Email] NVARCHAR(200);`.
+   Ergebnis (Exit 0, ohne Ausgabe auf dem Terminal): der Bericht `migrate.yaml` hat `"status": "ok"`, `statementsAttempted` 2 und `transactionRolledBack` false; gesendet wurden `CREATE TABLE [produkte] (…)` und `ALTER TABLE [kunden] ADD [Email] NVARCHAR(200);`.
 5. Erneut vergleichen (Schritt 3): `Status: IDENTICAL`, `No differences found.`, Exit 0.
 6. Daten exportieren (die Tabellen haben keine Zeilen):
 
    ```sh
    docker run --rm --network host --user "$(id -u):$(id -g)" -v "$PWD:/work" \
      ghcr.io/pt9912/d-migrate@sha256:308f27753036c9cc423f716b9fc4c9e68016543a8003ecd2f8282e05a2ee6491 \
-     data export --source 'mssql://alice:secret@127.0.0.1:1433/manuell?encrypt=false' --tables kunden --format json --output /work/kunden-neu.json
+     data export --source 'mssql://alice:secret@127.0.0.1:1433/manuell?encrypt=false' --tables kunden --format json --output /work/kunden.json
    ```
 
-   Ergebnis (Exit 0): `Exported 1 table(s) (0 rows, 0.00 MB)`, die Datei enthält `[]`.
+   Ergebnis (Exit 0): die letzten Zeilen lauten `Exported table 'kunden' | 0 rows | 1 chunks | 0.00 MB` und `Exported 1 table(s) (0 rows, 0.00 MB) in <Zeit> s`; die Datei `kunden.json` enthält `[]`.
 
 **Erwartetes Ergebnis.** `schema reverse`, `schema compare`, `schema migrate --execute` und `data export --tables` enden wie oben. Beleg-Typ: Läufe vom 2026-11-07 auf einem Host, Einzelläufe; die Reihe vom 2026-11-06 steht im [Messprotokoll zu Katalog und Strukturänderung](../messungen/katalog-und-ddl-zustand-2026-11-06.md) (Exit 0 auch für `schema reverse --include-all`). Gemessen ist das Verhalten von d-migrate gegen den **Testserver**; die Typnamen und Maße des Katalogs für `bigint`, `bit`, `time` und `datetime2` sind Setzung nach dem Handbuch des Servers, gemessen ist, dass d-migrate sie liest. Für andere Befehle von d-migrate ist keine Aussage gemacht.
 
@@ -151,14 +202,14 @@ Server=tcp:127.0.0.1,1433;User ID=alice;Password=secret;Encrypt=false;Pooling=fa
 - Keine Transaktion: bricht `schema migrate --execute` in der Mitte ab, bleibt die erste Änderung stehen, auch wenn d-migrate `FULL_ROLLBACK_CONFIRMED` meldet.
 - Identität, Standardwerte, Fremdschlüssel, Indizes und Prüfbedingungen kennt der Katalog nicht; ein Soll mit dem Typ `identifier` zeigt bei `schema compare` einen Unterschied (`identifier -> biginteger`, Exit 1).
 - Eine Spalte, die ein Client mit `NVARCHAR(MAX)` anlegt, zeigt der Katalog als unbegrenzt (`max_length` -1); eine Spalte aus der Beschreibung ohne `max_length` zeigt er als 4000 Zeichen, sodass ein Soll mit `text` ohne `max_length` gegen sie einen Unterschied meldet.
-- Die Schlüssel der Beispiel-Tabellen sind `BIGINT`: ein INT-Schlüssel scheitert beim Massenladen im Treiber von d-migrate, bevor Zeilen den Server erreichen ([Messprotokoll des Spikes](../messungen/callback-loesung-spike-2026-11-05.md), Messung b3).
+- Die Schlüssel der Beispiel-Tabellen sind `BIGINT`: ein INT-Schlüssel scheitert beim Massenladen im Treiber von d-migrate, bevor Zeilen den Server erreichen ([Messprotokoll zur Callback-Lösung](../messungen/callback-loesung-spike-2026-11-05.md), Messung b3).
 
 **Typische Fehler.**
 
 | Beobachtung | Ursache | Abhilfe |
 |---|---|---|
 | `Export failed: /work/<datei>` mit Exit 5 | die Ausgabedatei existiert schon und gehört einem anderen Benutzer (Lauf vom 2026-11-07) | einen neuen Dateinamen wählen |
-| `Failed to read operand: Duplicate field 'columns'` | die Soll-Datei ist ungültiges YAML (etwa fehlender Zeilenumbruch beim Anhängen) | die Datei prüfen |
+| `Failed to read operand: Duplicate field 'columns'` | die Soll-Datei ist ungültiges YAML (etwa fehlender Zeilenumbruch beim Anhängen an `ist.yaml`) | die Datei prüfen |
 | `--execute requires a DB target (db:<url>)` | bei `schema migrate` fehlt das Präfix `db:` | `--target 'db:mssql://…'` |
 | Exit 5 „Post-execute compare detected drift“ bei `schema migrate` | Soll und Katalog weichen nach der Änderung ab (etwa `text` ohne `max_length`) | `max_length` im Soll angeben |
 | Verbindung scheitert | der Container läuft nicht, oder `--network host` fehlt | `make testserver-status` |
@@ -172,7 +223,7 @@ Server=tcp:127.0.0.1,1433;User ID=alice;Password=secret;Encrypt=false;Pooling=fa
 **Schritte.**
 
 1. `make testserver-logs` (mit `TESTSERVER_FOLGEN=1` verfolgt es das Log).
-2. Die Ebene wählen: `TESTSERVER_LOG_LEVEL=<ERROR|WARN|INFO|DEBUG> make testserver-up` (Voreinstellung `INFO`); der Wert wird als `LOG_LEVEL` an den Container gereicht, ein anderer Wert bricht den Start des Servers ab.
+2. Die Ebene wählen: `TESTSERVER_LOG_LEVEL=<ERROR|WARN|INFO|DEBUG> make testserver-up` (Voreinstellung `INFO`); der Wert wird als `LOG_LEVEL` an den Container gereicht.
 
 **Erwartetes Ergebnis** (Lauf vom 2026-11-07, nach einem Rohbytes-Login und den Läufen von d-migrate; Kürzungen mit `…`):
 
@@ -185,20 +236,20 @@ tdswire: gestartet, Port 1433
 {"ts":"2026-11-07T06:19:58.345779651Z","level":"INFO","event":"login_accepted","connection_id":10,"session_id":"8f335eae-…","client_profile":"tds-7.4:not_supported","principal":"alice"}
 ```
 
-Die Warnungen `security_weakened` erscheinen, weil der Handlauf im Klartext mit Testkennwort läuft. Neben den Zeilen `tdswire: …` steht eine JSON-Zeile je Ereignis; Format, Felder und alle Ereignisarten: [Referenz der Ereignisse](referenz-ereignisse.md). Mit `LOG_LEVEL=DEBUG` erscheint im Handlauf kein weiteres Ereignis (gemessen am 2026-11-06 einmal von Hand: der Container trägt `LOG_LEVEL=DEBUG` laut `docker inspect`, am Prozess gemessen von `TestserverLogProcessTest`); `make testserver-selbsttest` prüft die Weitergabe der Ebene nicht.
+Lesart der Zeilen: `security_weakened` erscheint zweimal, weil der Handlauf im Klartext (`ENCRYPTION_TEST_UNENCRYPTED`) und mit Testkennwort (`PLAIN_TEST_MODE`) läuft. `encryption_not_offered` ist eine Warnung: der Client hat im PRELOGIN keine Verschlüsselung angeboten; die Verbindung läuft im Klartext weiter, die Anmeldung folgt in der nächsten Zeile (`login_accepted`, `principal` ist der Benutzer). Eine abgelehnte Anmeldung erscheint als `login_rejected` mit `reason`, etwa `WRONG_PASSWORD` (gefahren am 2026-11-07 mit dem Rohbytes-Client und falschem Kennwort); die Gründe stehen in der [Anleitung zur Fehlersuche](einbettung-und-betrieb.md#6-eine-abgelehnte-anmeldung-suchen). Format, Felder und alle Ereignisarten: [Referenz der Ereignisse](referenz-ereignisse.md). Mit `LOG_LEVEL=DEBUG` erscheint im Handlauf kein weiteres Ereignis (gemessen am 2026-11-06 einmal von Hand: der Container trägt `LOG_LEVEL=DEBUG` laut `docker inspect`, am Prozess gemessen von `TestserverLogProcessTest`); `make testserver-selbsttest` prüft die Weitergabe der Ebene nicht.
 
 **Typische Fehler.**
 
 | Beobachtung | Ursache | Abhilfe |
 |---|---|---|
-| nur `tdswire: …`-Zeilen | der Container ist neu und noch ohne Ereignis | einen Client anmelden |
-| Start bricht mit Exit 1 ab | `LOG_LEVEL` ist kein gültiger Wert (auch kleingeschrieben) | `ERROR`, `WARN`, `INFO` oder `DEBUG` |
+| nur `tdswire: …`-Zeilen und `server_started` | der Container ist neu und noch ohne Verbindung | einen Client anmelden |
+| `testserver-up: der Server wurde nicht bereit; Log:` mit `tdswire: Konfiguration ungueltig: LOG_LEVEL: INVALID_VALUE` und Make-Fehler (`make: *** … Fehler 1`, Exit 2) | `LOG_LEVEL` ist kein gültiger Wert (auch kleingeschrieben, gefahren mit `debug`) | `ERROR`, `WARN`, `INFO` oder `DEBUG` |
 
 ## 5. Den Server anders einstellen
 
-**Ziel.** Der Testserver läuft mit anderem Host, Port, anderen Tabellen, Benutzern oder mit Verschlüsselung.
+**Ziel.** Der Testserver läuft mit anderem Host oder Port, eigenen Benutzern, eigenen Tabellen oder mit Verschlüsselung.
 
-**Voraussetzungen.** Kein Container läuft (`make testserver-down`). Die Variablen stehen im Kopf von `tools/testserver.sh`, ihre Prüfungen und Meldungen im Rumpf von `up`.
+**Voraussetzungen.** Kein Container läuft (`make testserver-down`). Die Variablen stehen im Kopf von `tools/testserver.sh`, ihre Prüfungen und Meldungen im Rumpf von `up`. Die Befehle laufen im Wurzelverzeichnis des Repos; Dateien liegen im Arbeitsverzeichnis.
 
 **Schritte.** Variablen vor `make testserver-up` setzen:
 
@@ -214,20 +265,131 @@ Die Warnungen `security_weakened` erscheinen, weil der Handlauf im Klartext mit 
 | Log-Ebene | `INFO` | `TESTSERVER_LOG_LEVEL=DEBUG` (`ERROR`, `WARN`, `INFO`, `DEBUG`) |
 | Wartezeit bis zur Bereitschaft | 60 Sekunden | `TESTSERVER_WARTEN=<Sekunden>` |
 
-- **Anderer Host.** `TESTSERVER_HOST=0.0.0.0 make testserver-up` macht den Server im Netz erreichbar; `make testserver-up` warnt dann mit `WARNUNG: <Host> ist nicht Loopback; der Server ist im Netz erreichbar` (der Zweig ist im Selbsttest belegt). Wer das tut, setzt Klartext und Testkennwort dem Netz aus; ein Zugriff von einem anderen Rechner ist nicht gemessen.
-- **Benutzerliste.** Eine Zeile je Benutzer, `Benutzername<TAB>Prüfwert`, UTF-8. `{plain}Kennwort` gilt nur im Testmodus, den das Skript nur mit `TEST_UNENCRYPTED` einschaltet (`AUTH_PLAIN_TESTMODE=true`); das zweite Verfahren ist `{pbkdf2-sha256}Salz$Iterationen$Hash` (Format in der [Referenz](referenz-konfiguration.md#konfigurationsfelder)). Der Start mit einer eigenen Liste endet im Selbsttest mit Exit 0 und der Meldung `Benutzerliste aus …`; ein Login mit einem Benutzer dieser Liste an einem laufenden Container ist nicht gemessen.
-- **Tabellen.** Die Beschreibung ist das Schema-Modell von d-migrate in YAML ([SPEC-035](../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends)); sie legt den Anfangsstand fest. Ohne Datei gilt `testserver/resources/manuell/sim.yaml`.
-- **Verschlüsselung `REQUIRED`.** Zusätzlich nötig sind `TESTSERVER_TLS_SPEICHER` (PKCS#12-Datei) und `TESTSERVER_TLS_PASSWORT_DATEI` (Datei mit dem Kennwort des Speichers); fehlt eines, bricht `make testserver-up` mit einer Meldung ab (belegt im Selbsttest). Das Skript legt beide Dateien mit `docker cp` in den Container. Das Skript schaltet `AUTH_PLAIN_TESTMODE` mit `REQUIRED` nicht ein: `TESTSERVER_BENUTZER_DATEI` mit Prüfwerten `{pbkdf2-sha256}…` ist Pflicht, sonst endet der Start mit „der Server wurde nicht bereit“. Ein Zertifikat erzeugt diese Anleitung nicht. Gefahren am 2026-11-05 (ein Host, [Messprotokoll](../messungen/tls-d-migrate-2026-11-05.md)): Start mit `REQUIRED`, Schlüsselspeicher `gueltig.p12` und pbkdf2-Benutzerliste (600000 Iterationen) gelingt; die Anmelde-Tests des Referenzclients `Microsoft.Data.SqlClient` 7.1.1 liefen am 2026-11-05 mit 19 von 19 grün (ein Host, ein Lauf). Der Testserver bietet im TDS-7.4-Pfad höchstens TLS 1.2 an, der TDS-8.0-Pfad (`Encrypt=Strict`) TLS 1.3; d-migrate 1.12.0 meldet sich mit `encrypt=true` im Treiber-Standard an (mssql-jdbc 13.4.0 sendet unter TLS 1.3 im 7.4-Mantel sein `Finished` nicht). Nicht gemessen sind die Dateirechte der kopierten Dateien und die Annahme durch andere Clients.
+Die folgenden Abschnitte fahren je eine Einstellung durch (Läufe vom 2026-11-07, ein Host).
 
-**Erwartetes Ergebnis.** `make testserver-up` meldet Host, Port und Benutzer in seiner Ausgabe; die Voreinstellung der Bibliothek ist `REQUIRED` (`SPEC-010`), der Testserver setzt für den Handlauf `TEST_UNENCRYPTED` und sagt es mit `Testwerte, keine Verschluesselung`.
+### Eigene Benutzer
+
+1. Die Liste schreiben (eine Zeile je Benutzer, `Benutzername<TAB>Prüfwert`, UTF-8; `{plain}Kennwort` gilt nur im Testmodus, den das Skript nur mit `TEST_UNENCRYPTED` einschaltet):
+
+   ```sh
+   printf 'bob\t{plain}geheim\n' > benutzer.txt
+   ```
+
+2. Starten und anmelden:
+
+   ```sh
+   TESTSERVER_BENUTZER_DATEI=benutzer.txt make testserver-up
+   docker run --rm --network host -e TDSWIRE_ZIEL=127.0.0.1:1433 -e TDSWIRE_BENUTZER=bob -e TDSWIRE_PASSWORT=geheim tdswire-laufzeit-client:lokal
+   ```
+
+   (Das Image `tdswire-laufzeit-client:lokal` baut [Aufgabe 2](#2-mit-einem-client-anmelden).) Ergebnis: `testserver-up: Benutzerliste aus benutzer.txt` und `laufzeit-client: Login ok`; mit `-e TDSWIRE_PASSWORT=falsch` `laufzeit-client: Login fehlgeschlagen`. Das Log zeigt `login_accepted` mit `"principal":"bob"` und `login_rejected` mit `"reason":"WRONG_PASSWORD"`.
+
+### Eigene Tabellen
+
+1. Eine Beschreibung `tabellen.yaml` schreiben (das Schema-Modell von d-migrate in YAML, [SPEC-035](../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends)); sie legt den Anfangsstand fest. Beispiel mit einer Tabelle:
+
+   ```yaml
+   schema_format: "1.0"
+   name: eigene
+   version: "1"
+   tables:
+     artikel:
+       columns:
+         Nr:
+           type: biginteger
+           required: true
+         Bezeichnung:
+           type: text
+           max_length: 80
+       primary_key: [Nr]
+   ```
+
+2. Starten: `TESTSERVER_BESCHREIBUNG=tabellen.yaml make testserver-up`. Der Katalog führt danach `artikel` statt `kunden` und `bestellungen` (`schema reverse` wie in [Aufgabe 3](#3-mit-d-migrate-struktur-lesen-und-ändern)).
+3. Ist die Beschreibung ungültig, bricht der Start ab, bevor ein Port gebunden wird. Ein unbekannter Typ (`type: uuid`) ergibt, gefahren:
+
+   ```text
+   testserver-up: der Server wurde nicht bereit; Log:
+   tdswire: Beschreibung der Tabellen ungueltig: tables.t.columns.A.type (Zeile 8, Spalte 15): Typ uuid ohne Entsprechung
+   make: *** [tools/mk/testserver.mk:8: testserver-up] Fehler 1
+   ```
+
+   Eine Datei über 1 MiB ergibt `tdswire: Konfiguration ungueltig: SIMULATION_DESCRIPTION_FILE: TOO_LARGE` (gefahren mit einer Datei von 1100000 Byte). Die Meldung nennt je nach Fehler den Pfad im Dokument mit Zeile und Spalte oder den Schlüssel der Einstellung mit der Art; den Inhalt der Datei nennt sie nie.
+
+### Verschlüsselung `REQUIRED`
+
+`REQUIRED` verlangt einen Schlüsselspeicher im PKCS#12-Format, eine Datei mit seinem Kennwort und eine Benutzerliste mit `pbkdf2`-Prüfwerten (`{plain}` ist ohne Testmodus nicht zugelassen).
+
+1. Einen Speicher erzeugen (ein selbst erzeugtes Zertifikat taugt für Tests) und das Kennwort in eine Datei legen:
+
+   ```sh
+   printf '%s' 'speicher-geheim' > speicher-kennwort.txt
+   docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" -w /work \
+     gradle:8.14-jdk21@sha256:b3453e88792ea90b526f5d04fa2961bba183ae57ded4ad3437a49fb4e8381c06 \
+     keytool -genkeypair -alias server -keyalg RSA -keysize 2048 -validity 365 -storetype PKCS12 \
+       -keystore server.p12 -storepass speicher-geheim -dname "CN=localhost" -ext "san=dns:localhost,ip:127.0.0.1"
+   ```
+
+2. Einen Prüfwert erzeugen. Die Datei `Pruefwert.java`:
+
+   ```java
+   import java.security.SecureRandom;
+   import java.util.Base64;
+   import javax.crypto.SecretKeyFactory;
+   import javax.crypto.spec.PBEKeySpec;
+
+   public class Pruefwert {
+       public static void main(String[] args) throws Exception {
+           int iterationen = 600000;
+           byte[] salz = new byte[16];
+           new SecureRandom().nextBytes(salz);
+           PBEKeySpec spec = new PBEKeySpec(args[0].toCharArray(), salz, iterationen, 32 * 8);
+           byte[] hash = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).getEncoded();
+           Base64.Encoder base64 = Base64.getEncoder();
+           System.out.println("{pbkdf2-sha256}" + base64.encodeToString(salz) + "$" + iterationen + "$" + base64.encodeToString(hash));
+       }
+   }
+   ```
+
+   Der Aufruf im JDK-Image schreibt die Liste (Ergebnis: eine Zeile `bob<TAB>{pbkdf2-sha256}…$600000$…`):
+
+   ```sh
+   WERT=$(docker run --rm -v "$PWD:/work" -w /work \
+     gradle:8.14-jdk21@sha256:b3453e88792ea90b526f5d04fa2961bba183ae57ded4ad3437a49fb4e8381c06 java Pruefwert.java geheim)
+   printf 'bob\t%s\n' "$WERT" > benutzer-pbkdf2.txt
+   ```
+
+3. Starten:
+
+   ```sh
+   TESTSERVER_VERSCHLUESSELUNG=REQUIRED TESTSERVER_TLS_SPEICHER=server.p12 \
+     TESTSERVER_TLS_PASSWORT_DATEI=speicher-kennwort.txt TESTSERVER_BENUTZER_DATEI=benutzer-pbkdf2.txt make testserver-up
+   ```
+
+   Ergebnis: `testserver-up: Verschluesselung REQUIRED mit dem Schluesselspeicher aus TESTSERVER_TLS_SPEICHER`; das Skript legt Speicher, Passwortdatei und Liste mit `docker cp` in den Container. Ohne `TESTSERVER_TLS_SPEICHER` und `TESTSERVER_TLS_PASSWORT_DATEI` bricht es ab: `testserver-up: REQUIRED verlangt TESTSERVER_TLS_SPEICHER und TESTSERVER_TLS_PASSWORT_DATEI`.
+4. Mit TLS anmelden, hier mit d-migrate (Bild und Digest wie in [Aufgabe 3](#3-mit-d-migrate-struktur-lesen-und-ändern)):
+
+   ```sh
+   docker run --rm --network host --user "$(id -u):$(id -g)" -v "$PWD:/work" \
+     ghcr.io/pt9912/d-migrate@sha256:308f27753036c9cc423f716b9fc4c9e68016543a8003ecd2f8282e05a2ee6491 \
+     schema reverse --source 'mssql://bob:geheim@localhost:1433/manuell?encrypt=true&trustServerCertificate=true' --output /work/tls-ist.yaml
+   ```
+
+   Ergebnis (Exit 0): `Schema written to /work/tls-ist.yaml`; das Log zeigt `login_accepted` mit `"client_profile":"tds-7.4:required"` und `"principal":"bob"`.
+
+Der Testserver bietet im TDS-7.4-Pfad höchstens TLS 1.2 an, der TDS-8.0-Pfad (`Encrypt=Strict`) TLS 1.3 (gemessen am 2026-11-05, [Messprotokoll](../messungen/tls-d-migrate-2026-11-05.md)); die Anmelde-Tests des Referenzclients `Microsoft.Data.SqlClient` 7.1.1 liefen dort mit 19 von 19 grün (ein Host, ein Lauf). Das Skript schaltet `AUTH_PLAIN_TESTMODE` mit `REQUIRED` nicht ein: ohne `TESTSERVER_BENUTZER_DATEI` mit `pbkdf2`-Prüfwerten endet der Start mit „der Server wurde nicht bereit“. Dateirechte der mit `docker cp` kopierten Dateien setzt das Skript nicht; eine Aussage dazu macht diese Anleitung nicht.
+
+### Anderer Host
+
+`TESTSERVER_HOST=0.0.0.0 make testserver-up` macht den Server im Netz erreichbar; `make testserver-up` warnt dann mit `WARNUNG: <Host> ist nicht Loopback; der Server ist im Netz erreichbar` (der Zweig ist im Selbsttest belegt). Wer das tut, setzt Klartext und Testkennwort dem Netz aus; ein Zugriff von einem anderen Rechner ist nicht gemessen.
 
 **Typische Fehler.**
 
 | Beobachtung | Ursache | Abhilfe |
 |---|---|---|
-| Abbruch mit einer Meldung zu `REQUIRED` | Speicher oder Passwortdatei fehlt | beide Variablen setzen |
-| „der Server wurde nicht bereit“ | `REQUIRED` mit der Voreinstellungsliste (`plain` ist nur im Testmodus zulässig) | `TESTSERVER_BENUTZER_DATEI` mit pbkdf2-Werten |
-| Start bricht ab, Log nennt Schlüssel und Art | die Beschreibung ist ungültig (unbekannter Typ, doppelter Name, Datei über 1 MiB) | die Meldung nennt den Pfad im Dokument, Zeile und Spalte, nie den Inhalt ([SPEC-035](../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends), Setzung) |
+| Abbruch mit `REQUIRED verlangt TESTSERVER_TLS_SPEICHER und TESTSERVER_TLS_PASSWORT_DATEI` | Speicher oder Passwortdatei fehlt | beide Variablen setzen |
+| „der Server wurde nicht bereit“ bei `REQUIRED` | die Benutzerliste enthält `{plain}` oder fehlt | `TESTSERVER_BENUTZER_DATEI` mit pbkdf2-Werten |
+| „der Server wurde nicht bereit“ mit `Beschreibung der Tabellen ungueltig` | die Beschreibung ist ungültig | Pfad, Zeile und Spalte der Meldung lesen |
+| der Client bricht den TLS-Handschlag ab | der Client vertraut dem selbst erzeugten Zertifikat nicht | `trustServerCertificate=true` (nur Tests) oder ein vertrauenswürdiges Zertifikat |
 
 ## Referenz: Beispiel-Tabellen und Anfragen
 
@@ -263,4 +425,4 @@ Belegt ist das so weit: der Test `Leeres_Ergebnis_hat_Metadaten_und_keine_Zeile`
 - Die Testwerte (`alice`/`secret`, Klartext) gehören nicht zu Daten, die Schutz brauchen; ein Host außer Loopback macht den Server im Netz erreichbar.
 - Cancel einer laufenden Anfrage mit Folgeabfrage ist am Referenzclient im Integrationslauf (`make simulations-integration`, TDS 7.4 ohne Verschlüsselung und ohne Pool) belegt; im Handlauf nicht gemessen.
 - Gegenstand der Messungen: d-migrate 1.12.0 (Image `ghcr.io/pt9912/d-migrate`, Digest `sha256:308f27753036c9cc423f716b9fc4c9e68016543a8003ecd2f8282e05a2ee6491`, mssql-jdbc 13.4.0) meldet sich mit `encrypt=false` an, der Verbindungstest des Pools läuft, und `data export --tables kunden` (auch `bestellungen`; JSON, CSV, YAML) endet mit Exit 0 und einem Ergebnis ohne Zeilen ([Messprotokoll](../messungen/d-migrate-verbindung-und-export-2026-11-05.md), Läufe einzeln, Last 14 bis 21).
-- Nicht gemessen: Dateirechte nach `docker cp` (Benutzerliste, Beschreibung, Schlüsselspeicher) im Container; Abfragen gegen die Beispiel-Tabellen durch irgendeinen Client am handgestarteten Container; Zugriff von einem anderen Rechner.
+- Nicht gemessen: Abfragen gegen die Beispiel-Tabellen durch irgendeinen Client am handgestarteten Container; Zugriff von einem anderen Rechner; die Annahme des Zertifikats durch andere Clients als d-migrate 1.12.0 und `Microsoft.Data.SqlClient` 7.1.1.
