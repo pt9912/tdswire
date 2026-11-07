@@ -167,6 +167,14 @@ ist eine Lifecycle-Rücksprungkante (11).
     Spec, Doku und Bericht führen sie nur als Größenordnung; eine präzisere Aussage braucht einen
     Beleg, den der Verifier im Repo wiederholen kann (seit slice-katalog-und-ddl-zustand).
 
+20b. **Die Nutzer-Doku komplett lesen, nicht nur den geänderten Absatz.** Berührt der Slice Verhalten,
+    Schnittstelle, Konfiguration, Ereignisse oder Grenzen, liest du jede Datei unter `docs/user/`
+    vollständig gegen den Stand nach dem Slice und bringst sie auf den Ist-Zustand (`AGENTS.md` §5
+    Regel 5): keine Planung, keine „nicht gebaut“-, „vorläufig“-, „bisher“-Sätze, keine Chronik;
+    Abwesendes steht nur als sachliche Eigenschaft („die Bibliothek schreibt kein Log“). Veraltete
+    Gegenstellen (Aufgabenliste, Referenzseiten, Beispielcode im Einbettungstest) gehören in dieselbe
+    Änderung  (Auftrag des Nutzers 2026-11-07; Beobachtung `planung-und-register-zeiger-in-nutzer-doku`, 2×, ohne Anker).
+
 Hier endet die Implementation. Die übrigen Rollen laufen in **getrennten Kontexten** (Modul 8).
 
 ## Übergaben an nachgelagerte Rollen (Modul 8 → 10 → 11)

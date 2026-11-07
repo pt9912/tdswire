@@ -1,1 +1,1 @@
-**Stand:** offen — 1×, unter der Schwelle.
+**Stand:** offen — 2×, unter der Schwelle (`evidence/slice-release-doku-prozess.md`, `evidence/planner-nutzerdoku-aufgabenbezogen.md`); nicht verkörpert, kein `liegt in`. Die Prüfpunkte im Reviewer-Skill, in `/plan-welle` Schritt 6e und `/implement-slice` Schritt 20b stehen auf Auftrag des Nutzers vom 2026-11-07 und tragen keinen Herkunfts-Anker.
