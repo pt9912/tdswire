@@ -102,7 +102,8 @@ internal class HandshakeConnectionHandler(private val setup: HandlerSetup, priva
             preLoginLimits(setup.login.maxPreloginMessageBytes),
             onMidMessage = connection::messageInProgress,
         )
-        val channel = TransportHandshakeChannel(reader, MessageWriter(wire, PACKET_SIZE), wire) {
+        val sessionLimits = FramingLimits(maxMessageBytes = setup.requests.maxMessageBytes)
+        val channel = TransportHandshakeChannel(reader, MessageWriter(wire, PACKET_SIZE), wire, sessionLimits) {
             upgrade(peeked, wire, path, early)
         }
         val driver = HandshakeDriver(

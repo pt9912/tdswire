@@ -21,8 +21,12 @@ internal class TelemetryEventTest {
     private class Sample(val event: TelemetryEvent, val level: EventLevel, val scoped: Boolean)
 
     private fun samples(): List<Sample> = listOf(
-        Sample(ServerStarted(at, 1433), EventLevel.INFO, false),
+        Sample(ServerStarted(at, "0.0.0.0", 1433), EventLevel.INFO, false),
         Sample(ServerStopped(at), EventLevel.INFO, false),
+        Sample(ServerStopping(at), EventLevel.INFO, false),
+        Sample(ConfigEffective(at, mapOf("LOGIN_TIMEOUT" to "15")), EventLevel.INFO, false),
+        Sample(ConnectionOpened(at, context), EventLevel.INFO, true),
+        Sample(ConnectionClosed(at, context, ConnectionCloseReason.SHUTDOWN), EventLevel.INFO, true),
         Sample(StartRefused(at, StartRefusal.TABLE_NAME_DUPLICATE), EventLevel.ERROR, false),
         Sample(ConfigInvalid(at, "SCHLUESSEL", "MISSING"), EventLevel.ERROR, false),
         Sample(TlsStartRejected(at, "CERTIFICATE", "Kette unbrauchbar"), EventLevel.ERROR, false),
@@ -102,6 +106,8 @@ internal class TelemetryEventTest {
     fun `Zeichenketten sind auf 256 Einheiten gekuerzt`() {
         val long = "x".repeat(LONG)
         val cut = "x".repeat(LIMIT)
+        assertEquals(cut, ServerStarted(at, long, 1).address)
+        assertEquals(mapOf(cut to cut), ConfigEffective(at, mapOf(long to long)).settings)
         assertEquals(cut, ConfigInvalid(at, long, long).key)
         assertEquals(cut, ConfigInvalid(at, long, long).issueKind)
         assertEquals(cut, TlsStartRejected(at, long, long).part)

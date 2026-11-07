@@ -168,6 +168,45 @@ internal class TelemetryJsonTest : TempFilesTest() {
     }
 
     /**
+     * Die Zeilen der Zustandsereignisse, an einem Start im Prozess mit einer Verbindung: `server_started` nennt
+     * Adresse und Port, `config_effective` je Einstellung ein Feld unter dem Schlüssel in Kleinbuchstaben (Zahlen als
+     * Zahl, `ENCRYPTION_POLICY` als Zeichenkette, kein Pfad), `connection_opened` und `connection_closed` die
+     * `connection_id` und das Ende den `reason` (`SHUTDOWN`: die Verbindung ruht beim Beenden), `server_stopping` hat
+     * keine Felder außer dem Kopf.
+     *
+     * @spec SPEC-052
+     * @spec SPEC-005
+     */
+    @Test
+    fun `Die Zustandsereignisse tragen ihre Felder in der Zeile`() {
+        val held = mutableListOf<LoginProbe>()
+        val recorder = RealEvents.collect(environment("alice\t{plain}secret\n")) { port ->
+            held += LoginProbe(port).also { assertTrue(it.login("alice", "secret")) }
+        }
+        held.forEach { it.close() }
+        val started = assertWellFormed(TelemetryJson.line(recorder.ofKind(EventKind.SERVER_STARTED).single()))
+        assertEquals(LOOPBACK, started["address"])
+        assertTrue(started["port"] is Long && started["event"] == "server_started", started.toString())
+
+        val effective = assertWellFormed(TelemetryJson.line(recorder.ofKind(EventKind.CONFIG_EFFECTIVE).single()))
+        assertEquals("config_effective", effective["event"])
+        assertEquals(15L, effective["login_timeout"])
+        assertEquals("TEST_UNENCRYPTED", effective["encryption_policy"])
+        assertEquals("UNSET", effective["tls_keystore_file"])
+        assertEquals("true", effective["auth_plain_testmode"])
+        assertEquals(16_777_216L, effective["max_message_bytes"])
+        assertFalse(effective.values.any { it is String && it.contains("users.txt") }, effective.toString())
+
+        val opened = assertWellFormed(TelemetryJson.line(recorder.ofKind(EventKind.CONNECTION_OPENED).single()))
+        assertTrue(opened["connection_id"] == 1L && opened["event"] == "connection_opened", opened.toString())
+        val closed = assertWellFormed(TelemetryJson.line(recorder.ofKind(EventKind.CONNECTION_CLOSED).single()))
+        assertEquals("SHUTDOWN", closed["reason"])
+        assertEquals(1L, closed["connection_id"])
+        val stopping = assertWellFormed(TelemetryJson.line(recorder.ofKind(EventKind.SERVER_STOPPING).single()))
+        assertEquals(setOf("ts", "level", "event", "client_profile"), stopping.keys)
+    }
+
+    /**
      * Mit `dropped` größer null steht das Feld als letztes in der Zeile; die Zeile des Adapters für verlorene Zeilen
      * trägt Ebene `WARN`, den Namen `log_dropped` und die Zahl.
      *

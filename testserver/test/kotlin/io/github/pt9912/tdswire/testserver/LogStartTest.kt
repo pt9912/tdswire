@@ -105,11 +105,12 @@ internal class LogStartTest : TempFilesTest() {
     }
 
     /**
-     * Ein Lauf mit Anmeldung angenommen und abgelehnt: die Zeilen `server_started` und die der zwei Abschwächungen des
-     * Testmodus (`security_weakened`) stehen beim Start synchron da, die Zeilen der Anmeldungen kommen vom
-     * Schreiber (dazu je Anmeldung `encryption_not_offered`: die Sonde bietet keine Verschlüsselung an),
-     * `server_stopped` kommt nach dem Beenden; die Kennung steht nur im Feld `principal` der Annahme,
-     * weder Passwort noch Kennung der Ablehnung stehen in einer Zeile.
+     * Ein Lauf mit Anmeldung angenommen und abgelehnt: die Zeilen `config_effective`, `server_started` und die der zwei
+     * Abschwächungen des Testmodus (`security_weakened`) stehen beim Start synchron da, die Zeilen der Anmeldungen
+     * und der Verbindungen kommen vom Schreiber (dazu je Anmeldung `encryption_not_offered`: die Sonde bietet keine
+     * Verschlüsselung an), `server_stopping` beginnt das Beenden und `server_stopped` kommt als letzte Zeile; die
+     * Kennung steht nur im Feld `principal` der Annahme, weder Passwort noch Kennung der Ablehnung stehen in einer
+     * Zeile.
      *
      * @spec SPEC-012
      * @spec SPEC-052
@@ -120,7 +121,7 @@ internal class LogStartTest : TempFilesTest() {
         val adapter = LogAdapter(EventLevel.INFO, channel)
         val running = assertIs<StartOutcome.Running>(start(adapter, environment()))
         val before = channel.lines.map(::parseFlat)
-        val expected = listOf("security_weakened", "security_weakened", "server_started")
+        val expected = listOf("config_effective", "security_weakened", "security_weakened", "server_started")
         assertEquals(expected, before.map { it["event"] as String }.sorted())
         assertEquals(running.server.port.toLong(), before.single { it["event"] == "server_started" }["port"])
 
@@ -135,7 +136,12 @@ internal class LogStartTest : TempFilesTest() {
         val events = parsed.map { it["event"] as String }
         assertEquals("server_stopped", events.last())
         val middle = events.drop(before.size).dropLast(1)
-        assertEquals(setOf("encryption_not_offered", "login_accepted", "login_rejected"), middle.toSet(), "$events")
+        val states = setOf("connection_opened", "connection_closed", "server_stopping")
+        assertEquals(
+            setOf("encryption_not_offered", "login_accepted", "login_rejected") + states,
+            middle.toSet(),
+            "$events",
+        )
         assertEquals("alice", parsed.single { it["event"] == "login_accepted" }["principal"])
         assertEquals("UNKNOWN_USER", parsed.single { it["event"] == "login_rejected" }["reason"])
         assertEquals(1, parsed.count { it.containsKey("principal") })

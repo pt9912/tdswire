@@ -25,6 +25,7 @@ private const val STUCK_START_MILLIS = 30_000L
 private const val STUCK_POLL_MILLIS = 50L
 private const val CONNECT_MILLIS = 500
 private const val LOGIN_MILLIS = 4000
+private const val EVENTS_PER_LOGIN = 4L
 
 /** Wörter, die in keiner Zeile der Standardausgabe stehen: Passwörter, Prüfwerte und die Kennung der Ablehnungen. */
 private val FORBIDDEN = listOf("secret", "geheim-bob", "falsch", "mallory", "pbkdf2", "wertprobe")
@@ -105,7 +106,7 @@ internal class TestserverLogProcessTest : TempFilesTest() {
                 listOf("UNKNOWN_USER", "WRONG_PASSWORD"),
                 events.filter { it["event"] == "login_rejected" }.map { it["reason"] },
             )
-            assertEquals(port.toLong(), events.first()["port"])
+            assertEquals(port.toLong(), events.single { it["event"] == "server_started" }["port"])
             events.forEach { assertTrue(it.keys.containsAll(listOf("ts", "level", "event", "client_profile"))) }
 
             val text = server.outputWithoutPrincipal().joinToString("\n")
@@ -156,7 +157,8 @@ internal class TestserverLogProcessTest : TempFilesTest() {
      * `LOG_LEVEL` filtert am Prozess: bei `ERROR` steht keine JSON-Zeile da (die Bereitschaftszeile und `gestoppt`
      * sind keine Ereignisse und stehen), bei `WARN` stehen die zwei Abschwächungen der Sicherheit des Testmodus, je
      * Anmeldung ohne angebotene Verschlüsselung `encryption_not_offered` und die Ablehnung, bei `DEBUG` jedes Ereignis
-     * des Laufs. Das Backend des Prozesses ist eine eigene Quelle über dem `TableStore`: die Bibliothek meldet für sie
+     * des Laufs, darunter die der Ebene `INFO` (wirksame Konfiguration, Verbindungen, Beginn des Beendens). Das
+     * Backend des Prozesses ist eine eigene Quelle über dem `TableStore`: die Bibliothek meldet für sie
      * kein `simulation_backend_ready` (die Art entsteht nur bei `BackendSource.Simulation`), also steht in diesem Lauf
      * kein Ereignis der Ebene `DEBUG`; die Ebene `DEBUG` mit einem Ereignis hält `LogAdapterTest`.
      *
@@ -171,9 +173,15 @@ internal class TestserverLogProcessTest : TempFilesTest() {
             "WARN" to (weakened + notOffered + "login_rejected").sorted(),
             "DEBUG" to (
                 weakened + notOffered + listOf(
+                    "config_effective",
                     "server_started",
+                    "connection_opened",
+                    "connection_opened",
+                    "connection_closed",
+                    "connection_closed",
                     "login_accepted",
                     "login_rejected",
+                    "server_stopping",
                     "server_stopped",
                 )
                 ).sorted(),
@@ -197,7 +205,8 @@ internal class TestserverLogProcessTest : TempFilesTest() {
      * Test nach einer halben Sekunde zu lesen, also innerhalb der Frist von 2 Sekunden: der Prozess endet mit dem
      * Exit-Code des Signals, `tdswire: gestoppt` steht als letzte Zeile, und kein Ereignis geht unbemerkt verloren:
      * die Zeilen des Schreibers und die Zahlen in `dropped` ergeben zusammen die Zahl der Ereignisse (je Anmeldung
-     * zwei, `encryption_not_offered` und `login_accepted`, dazu `server_stopped`).
+     * vier: `connection_opened`, `encryption_not_offered`, `login_accepted` und `connection_closed`, dazu
+     * `server_stopping` und `server_stopped`).
      *
      * @spec SPEC-052
      */
@@ -215,10 +224,11 @@ internal class TestserverLogProcessTest : TempFilesTest() {
             val last = server.output.takeLast(3)
             assertEquals("${ServerProcess.PREFIX} gestoppt", last.last(), last.toString())
             val events = jsonLines(server)
-            val synchronous = 3
+            val synchronous = 4
             val dropped = events.sumOf { (it["dropped"] as? Long) ?: 0L }
             val written = events.count { it["event"] != "log_dropped" } - synchronous
-            assertEquals(2L * STUCK_LOGINS + 1, written + dropped, "geschrieben $written, verworfen $dropped")
+            val expected = EVENTS_PER_LOGIN * STUCK_LOGINS + 2L
+            assertEquals(expected, written + dropped, "geschrieben $written, verworfen $dropped")
             assertTrue(dropped > 0, "die Warteschlange ist übergelaufen")
         }
     }

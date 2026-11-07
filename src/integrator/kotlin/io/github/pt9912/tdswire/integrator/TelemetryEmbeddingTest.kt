@@ -97,17 +97,21 @@ class TelemetryEmbeddingTest {
         assertEquals(1L, served.second)
         assertEquals(
             listOf(
+                EventKind.CONFIG_EFFECTIVE,
                 EventKind.SERVER_STARTED,
                 EventKind.SECURITY_WEAKENED,
                 EventKind.SECURITY_WEAKENED,
+                EventKind.CONNECTION_OPENED,
                 EventKind.ENCRYPTION_NOT_OFFERED,
                 EventKind.LOGIN_ACCEPTED,
+                EventKind.SERVER_STOPPING,
+                EventKind.CONNECTION_CLOSED,
                 EventKind.SERVER_STOPPED,
             ),
             events.map { it.kind },
         )
         assertEquals(
-            listOf(INFO, WARN, WARN, WARN, INFO, INFO),
+            listOf(INFO, INFO, WARN, WARN, INFO, WARN, INFO, INFO, INFO, INFO),
             events.map { it.level },
         )
         assertEquals(

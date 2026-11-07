@@ -3,6 +3,7 @@ package io.github.pt9912.tdswire.runtime
 import io.github.pt9912.tdswire.config.ConfigIssue
 import io.github.pt9912.tdswire.config.ServerConfig
 import io.github.pt9912.tdswire.domain.telemetry.ServerStopped
+import io.github.pt9912.tdswire.domain.telemetry.ServerStopping
 import io.github.pt9912.tdswire.domain.telemetry.TelemetrySink
 import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.simulation.SimTable
@@ -77,10 +78,17 @@ public class TdsServer internal constructor(private val listener: TdsListener, p
     /** Der gebundene Port. */
     public val port: Int get() = listener.port
 
-    /** Beendet den Server; ein weiterer Aufruf hat keine Wirkung. */
+    /**
+     * Beendet den Server; ein weiterer Aufruf hat keine Wirkung. Der erste Aufruf gibt das Ereignis zum Beginn des
+     * Beendens vor dem Schließen des Listeners an die Senke und das Ereignis zum Ende, nachdem jede Verbindung beendet
+     * ist; es ist an die Senke gegeben, wenn der Aufruf zurückkehrt. Wird der Aufruf abgebrochen, bevor das Beenden
+     * fertig ist, entfällt das Ereignis zum Ende.
+     */
     public suspend fun stop() {
+        val first = stopped.compareAndSet(false, true)
+        if (first) telemetry.emit { ServerStopping(it) }
         listener.shutdown()
-        if (stopped.compareAndSet(false, true)) telemetry.emit { ServerStopped(it) }
+        if (first) telemetry.emit { ServerStopped(it) }
     }
 
     public companion object {
