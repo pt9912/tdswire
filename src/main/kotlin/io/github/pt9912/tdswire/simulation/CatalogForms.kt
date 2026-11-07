@@ -12,7 +12,7 @@ private fun long(name: String, nullable: Boolean = false) = ResultColumn(name, S
 private fun bool(name: String, nullable: Boolean = false) = ResultColumn(name, SqlType.Bool, nullable)
 
 /** Woher die Zeilen einer Katalogantwort kommen: aus den Tabellen des Katalogs oder gar nicht (leer). */
-internal enum class CatalogSource { TABLES, COLUMNS, PRIMARY_KEY, SCHEMA_NAME, EMPTY }
+internal enum class CatalogSource { TABLES, COLUMNS, PRIMARY_KEY, SCHEMA_NAME, COLLATIONS, EMPTY }
 
 /**
  * Die Katalogabfragen, die d-migrate 1.12.0 (Treiber `driver-mssql-1.12.0`, mssql-jdbc 13.4.0) für `schema reverse`
@@ -25,6 +25,11 @@ internal enum class CatalogSource { TABLES, COLUMNS, PRIMARY_KEY, SCHEMA_NAME, E
  * `Int32` und `UnicodeText`, Setzung).
  */
 internal enum class CatalogForm(val template: String, val source: CatalogSource, val columns: List<ResultColumn>) {
+    COLLATIONS(
+        "select collation_name, is_computed from sys.columns where object_id=OBJECT_ID(?) order by column_id ASC",
+        CatalogSource.COLLATIONS,
+        listOf(text("collation_name", nullable = true), bool("is_computed")),
+    ),
     SCHEMA_NAME(
         "SELECT SCHEMA_NAME() AS schema_name",
         CatalogSource.SCHEMA_NAME,
@@ -367,4 +372,18 @@ internal object CatalogForms {
         sql.trim(' ', '\t', '\r', '\n').removeSuffix(";").replace(SPACE, " ").trimEnd().replace(PARAMETER, "?")
 
     fun recognize(sql: String): CatalogForm? = byText[normalize(sql)]
+
+    private val collationsWithLiteral = Regex(
+        "select collation_name, is_computed from sys\\.columns where object_id ?= ?OBJECT_ID ?\\( ?" +
+            "'((?:[^']|'')*)' ?\\) order by column_id ASC",
+    )
+
+    /**
+     * Die Probe der Kollation aus `SQLServerBulkCopy` (`SPEC-036`, Form K): sie trägt den Namen der Tabelle als Literal
+     * in `OBJECT_ID('…')` statt als Parameter. Liefert die Form und den Namen oder `null`. Ein Textvergleich nach
+     * [normalize] wie bei den anderen Formen, in der Schreibweise des Treibers (kleingeschrieben bis auf `OBJECT_ID`
+     * und `ASC`; gemessen im Spike, Wortlaut gekürzt).
+     */
+    fun recognizeLiteral(sql: String): Pair<CatalogForm, String>? = collationsWithLiteral.matchEntire(normalize(sql))
+        ?.let { CatalogForm.COLLATIONS to it.groupValues[1].replace("''", "'") }
 }

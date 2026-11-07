@@ -145,8 +145,11 @@ internal class Parts(private val stream: TokenStream) {
 internal object StatementParser {
     fun recognize(sql: String): Recognition {
         val catalog = CatalogForms.recognize(sql)
+        val literal = if (catalog == null) CatalogForms.recognizeLiteral(sql) else null
         return when {
             catalog != null -> Recognition.Catalog(catalog)
+
+            literal != null -> Recognition.Catalog(literal.first, literal.second)
 
             TransactionForms.matches(sql) -> Recognition.Fixed(FixedForm.Transaction)
 
@@ -160,8 +163,13 @@ internal object StatementParser {
     private fun parse(scanned: List<Token>): Recognition {
         val tokens = if (scanned.lastOrNull() == Token.Symbol(';')) scanned.dropLast(1) else scanned
         if (tokens.isEmpty()) return Recognition.NotRecognized(Unrecognized.EMPTY_TEXT)
-        val fixed = FixedForms.recognize(tokens)
-        return if (fixed != null) Recognition.Fixed(fixed) else table(tokens)
+        val bulk = BulkForms.probe(tokens, ::parse) ?: BulkForms.insertBulk(tokens)
+        val fixed = if (bulk == null) FixedForms.recognize(tokens) else null
+        return when {
+            bulk != null -> bulk
+            fixed != null -> Recognition.Fixed(fixed)
+            else -> table(tokens)
+        }
     }
 
     private fun table(tokens: List<Token>): Recognition = try {

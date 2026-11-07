@@ -99,7 +99,7 @@ internal object SimValues {
             SqlType.UnicodeText -> Converted.Value(value)
             SqlType.Date -> Converted.Value(LocalDate.parse(value))
             SqlType.Time -> Converted.Value(LocalTime.parse(value))
-            SqlType.DateTime -> Converted.Value(LocalDateTime.parse(value))
+            SqlType.DateTime -> Converted.Value(SimTemporal.dateTime(value))
             SqlType.Int32, SqlType.Int64, SqlType.Bool, is SqlType.Decimal -> invalid()
         }
     } catch (ignored: DateTimeException) {
@@ -118,7 +118,7 @@ internal object SimValues {
         }
     }
 
-    private fun widenToDecimal(value: Any, target: SqlType.Decimal): Converted {
+    fun widenToDecimal(value: Any, target: SqlType.Decimal): Converted {
         val number = when (value) {
             is Int -> BigDecimal(value)
             is Long -> BigDecimal(value)

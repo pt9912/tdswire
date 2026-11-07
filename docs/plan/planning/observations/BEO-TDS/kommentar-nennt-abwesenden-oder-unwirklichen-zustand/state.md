@@ -6,3 +6,5 @@
 **Lese-Schritt welle-anfrageverarbeitung (2026-11-07):** 7× gelesen (Beleg dieser Welle: `slice-integrations-einstieg`), über der Schwelle, nicht verkörpert; Entscheidung weiter bei der Closure von `welle-testserver-manuell` (Frage 2 in `welle-anfrageverarbeitung-results.md`). Die Closure ändert weder Regel noch Gate. Der Stand `offen` bleibt.
 
 **Fläche slice-qa-vergleichslauf-d-messungen-bulk-merge (2026-11-07):** drei `Stand`-Zellen des Registers (Review F-1), 8× nach Dateien; Entscheidung weiter bei der Closure von `welle-testserver-manuell`.
+
+**Fläche slice-schreibpfad-bulk-load (2026-11-07):** 9× nach Dateien (V-3 (a): KDoc von `TableStore` sagte `TDS_BACKEND_ERROR` nach dem Wechsel auf 2627); Entscheidung weiter bei der Closure von `welle-testserver-manuell`.

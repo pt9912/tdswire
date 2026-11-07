@@ -230,6 +230,15 @@ O(übertragene Bytes).
    nicht gemessen): sie ist nicht reentrant, ein Callback, der dasselbe Backend aufruft und die Antwort abwartet, hängt;
    ein hängender Callback hält sie und blockiert alle weiteren Strukturänderungen dieses Backends bis zum Abbruch seines
    Sammlers.
+10. Massenladen (Form B): `INSERT BULK` wird gegen den Katalog geprüft (Tabelle, genannte Spalten, mindestens ein Callback für
+    Zeilen) und setzt das Ziel der Sitzung (`SPEC-001`); die Probe der Zieltabelle (`SET FMTONLY ON …`) und die Probe der
+    Kollation sind Katalogformen ohne Zeile. Jede Nachricht `0x07` ordnet ihre Spalten den Spalten der Beschreibung zu (ohne
+    Beachtung der Schreibweise), überführt jeden Wert (`SPEC-035`) und gibt alle Zeilen der Nachricht in einem Aufruf an
+    `SimTable.onInsertBatch`, ohne ihn an `onInsert` je Zeile in der Reihenfolge der Nachricht; die Zahl des Callbacks ist
+    der Änderungszähler. Zuerst werden alle Werte geprüft, dann wird gerufen. Ein Fehler des Callbacks ist
+    `TDS_SIM_KEY_VIOLATION` (2627, Class 14, mit fester Meldung, `SPEC-001`; gemessen ist der Schlüsselverstoß am echten
+    Server); Zeilen, die ein Callback davor angenommen hat, bleiben (keine Transaktion, außer der Integrator macht den
+    Stapel atomar; der echte Server nimmt in dem gemessenen Fall keine Zeile der Nachricht auf). Das Backend speichert nichts.
 
 **Komplexität:** O(gelesene Zeilen) je Auswahl, O(n) für die Erkennung des Textes, O(Spalten) je Katalogantwort. **Fehlermodi:**
 nicht erkannte Anweisung, unbekannte Tabelle oder Spalte, nicht überführbarer Wert, Fehler der
@@ -271,13 +280,13 @@ Cancel, damit der Client nicht auf sie wartet (Setzung; am echten Server ist nur
 gesendeter Antwort gemessen, im Leerlauf ohne laufende Anfrage nicht). Offen: die Antwort auf unzulässige
 Übergänge außerhalb des Handshakes und ATTENTION in jedem Anfragezustand über diese Bestätigung hinaus.
 
-RESETCONNECTION: Trägt das erste Paket einer Anfrage-Nachricht (SQL_BATCH, RPC, Transaction Manager) in `IDLE`
+RESETCONNECTION: Trägt das erste Paket einer Anfrage-Nachricht (SQL_BATCH, RPC, Transaction Manager, Massenladen `0x07`) in `IDLE`
 das Statusbit `RESETCONNECTION` (`0x08`), setzt der Sitzungsrahmen den Sitzungszustand zurück, mindestens die Handle-Tabelle
-(`SPEC-030`): im Übergang, der die Anfrage annimmt, unter der Sperre der Sitzung und vor der Verarbeitung dieser
+(`SPEC-030`) und das Ziel des Massenladens (unten): im Übergang, der die Anfrage annimmt, unter der Sperre der Sitzung und vor der Verarbeitung dieser
 Anfrage. Die Anfrage mit dem Bit wird danach wie jede andere beantwortet (ein Transaction Manager bleibt unbeantwortet
 und die Verbindung schließt wie ohne das Bit). Das Zurücksetzen ist eine Aktion am
-Übergang, kein Zustand der Aufzählung. Wer weiteren Sitzungszustand einführt (heute führt der Server nur die
-Handles), setzt ihn an dieser Stelle zurück. Das Bit in einem anderen Zustand als `IDLE` wertet der Server nicht
+Übergang, kein Zustand der Aufzählung. Wer weiteren Sitzungszustand einführt (heute führt der Server die
+Handles und das Ziel des Massenladens), setzt ihn an dieser Stelle zurück. Das Bit in einem anderen Zustand als `IDLE` wertet der Server nicht
 aus: eine Anfrage dort ist ein unzulässiger Übergang, an ATTENTION und an den Nachrichten des Handshakes bleibt
 das Bit ohne Wirkung; das Statusbit `0x10` (RESETCONNECTIONSKIPTRAN) wertet der Server nicht aus und es wirkt
 nicht wie `0x08`, weil der Server keine Transaktion führt (Festlegung, nicht gemessen). Gemessen am Referenzclient (`Microsoft.Data.SqlClient` 7.1.1,
@@ -295,6 +304,44 @@ hat (Schreibweise und Zahlenbereich in `SPEC-030`), beantwortet der Sitzungsrahm
 genannten Handles der Sitzung frei und antwortet nach `SPEC-030` und `SPEC-060`. Der Ort ist der von
 `RESETCONNECTION` (die Sitzung, vor einem Backend), die Art nicht: dort ist es ein Statusbit im Paketkopf, hier ein
 Text. Jeder andere Text geht an das Backend (`SPEC-002`).
+
+Massenladen (Pakettyp `BULK_LOAD`, `0x07`; die Antworten sind mit `SqlBulkCopy` am echten Server gemessen, Messprotokoll M-8 bis M-12
+des Referenzabgleichs, `Microsoft.Data.SqlClient` 7.1.1, Instanz 2022 und 2025, ein Fall je Zeile; was die Messung nicht
+stützt, ist Setzung und so benannt. **Grenze der Messung:** gemessen ist die Form der Antworten an `SqlBulkCopy`; die Nutzlast von
+`SqlBulkCopy` liest die Bibliothek heute nicht: der Referenzclient sendet nicht nullbare Spalten als feste Typen (die erste
+Spalte der Messreihe als BIGINT fest, Typkennung `0x7f`), der Leser kennt nur die nullbaren Formen, und alle 10 aufgezeichneten
+Nachrichten `0x07` des Referenzclients (Messreihe M-8 bis M-12) weist er mit dem Fehler des Parsers ab; auch den Katalog-Batch,
+mit dem `SqlBulkCopy` das Massenladen beginnt, beantwortet das Simulations-Backend nicht. Der Lader ist mit mssql-jdbc
+(d-migrate 1.12.0) belegt, nicht mit dem Referenzclient; die Annahme der Nutzlast von `SqlBulkCopy` ist eine bekannte Lücke gegen das
+Zielbild des echten Servers): eine Nachricht `0x07`
+ist eine Anfrage wie SQL_BATCH und RPC (`RUNNING`, Antwort mit `RequestFinished`). Der Sitzungsrahmen hält den Zustand
+„Massenladen erwartet“: ein SQL_BATCH, dessen Text ein `INSERT BULK` ist (`SPEC-036`, Form B), setzt das Ziel, wenn das
+Backend das Massenladen trägt (heute das Simulations-Backend); jede folgende Nachricht `0x07` lädt in dieses Ziel, und jede
+Anfrage, die kein `INSERT BULK` ist (ein RPC, ein anderer Batch), löscht es, und ebenso `RESETCONNECTION`. Gemessen: der Referenzclient
+sendet je Batch der Quelle einen eigenen `INSERT BULK` und genau eine Nachricht `0x07` (2500 Zeilen mit `BatchSize` 1000: drei Paare mit 1000,
+1000 und 500), ohne Nachlauf; eine leere Quelle sendet nichts. Setzung (mit mssql-jdbc von d-migrate am Testserver gemessen, am echten Server
+nicht): das Ziel bleibt nach einer Nachricht stehen, weil der Treiber nach der letzten Zeile eine weitere Nachricht mit COLMETADATA und ohne
+Zeile sendet. Die Antwort auf `INSERT BULK` ist ein DONE ohne Zähler und ohne Bits, Befehl `0x00fd` (gemessen); die auf eine Nachricht `0x07` ein
+DONE mit `COUNT`, Befehl `0x00f0` und der Zahl der Zeilen der Nachricht, die das Backend meldet (gemessen). Eine Nachricht aus mehreren Paketen trägt
+beim Referenzclient im ersten Paket das Statusbit `0x04` (gemessen, M-9; die Bedeutung ist nicht festgestellt): der Leser behält das Bit und wertet es
+nicht aus. Erkennt der Client einen Verstoß gegen Typ, Länge oder NULL, sendet er nach `INSERT BULK` statt der Nachricht ein ATTENTION (gemessen,
+M-11): die Antwort ist ein DONE mit `ERROR` und `ATTENTION`, Befehl `0x00fd`, ohne ERROR-Token, die Verbindung bleibt offen, das Ziel entfällt;
+nach einer geladenen Nachricht ist ein ATTENTION die gewöhnliche Bestätigung. Ein Fehler des Einfüge-Callbacks beantwortet der Server wie der echte
+Server den Schlüsselverstoß (gemessen, M-12, ein Fall mit drei Zeilen in einem Paket): ERROR `TDS_SIM_KEY_VIOLATION` (Nummer 2627, Class 14,
+State 1; der Text ist gekürzt, Setzung), INFO 3621 „The statement has been terminated.“ und ein DONE mit `ERROR`, Befehl `0x00f0`, ohne Zähler; die
+Verbindung bleibt offen. Setzung: jeder Fehler des Callbacks einer Nachricht `0x07` erhält diese Antwort, weil die Bibliothek die Ursache nicht
+unterscheidet; ob eine Nachricht ganz oder gar nicht gilt, entscheidet der Integrator (der echte Server nimmt in dem gemessenen Fall keine Zeile der
+Nachricht auf; die Allaussage ist nicht belegt). Das weicht vom Wortlaut der angenommenen Entscheidung zum Massenladen ab (Fehler des Callbacks als
+`TDS_BACKEND_ERROR`, Teilbestand beim Integrator); die Antwort folgt der Messung bis zur Folge-Entscheidung. Die Nutzlast ist COLMETADATA, ROW je Zeile und DONE (die Beschreibung des Pakets „Bulk Load“ in `MS-TDS`; Abschnittsnummern stehen hier nicht, das Dokument liegt nicht im Repo); gelesen werden die Typen `INTN`, `BITN`,
+`DECIMALN`, `NUMERICN`, `NVARCHAR`, `NCHAR`, `BIGVARCHAR`, `BIGCHAR`, `DATEN`, `TIMEN` und `DATETIME2N` (gedeckt durch einen Mitschnitt von d-migrate 1.12.0 mit mssql-jdbc 13.4.0 sind nur `INTN` mit 8 Byte, `NVARCHAR` und `BIGVARCHAR`; Datum, Zeit und Zeitpunkt sendet d-migrate als `VARCHAR`; `INTN` mit 1, 2 und 4 Byte, `BITN`, `DECIMALN`, `NUMERICN`, `NCHAR`, `BIGCHAR`, `DATEN`, `TIMEN` und `DATETIME2N` sind Handvektoren nach der Beschreibung von `MS-TDS` ohne Mitschnitt); jede andere
+Typkennung, ein PLP-Typ, NBCROW und eine abgeschnittene Nachricht (auch ohne DONE) ergeben den Fehler des Parsers
+(`TDS_PROTOCOL_ERROR` beziehungsweise `TDS_UNSUPPORTED_TYPE`, Class 20, die Verbindung schließt wie bei einem SQL_BATCH, den
+der Parser abweist), ohne dass das Backend gerufen wird. Höchstens 1024 Spalten und 262 144 Zellen (Spalten mal Zeilen) je Nachricht, eine größere Nachricht ist wie eine abgeschnittene ein Fehler des Parsers (Setzung; die Zellenzahl begrenzt die Werte, die Leser und Überführung anlegen, nicht die Größe der Nachricht). Gelesen werden `VARCHAR`-Werte als Windows-1252, gleich welche Kollation die Spalte trägt, und ein `DECIMALN`-Wert darf kürzer sein als die Typlänge (beides Setzung, toleranter als `MS-TDS`; die Länge von fünf Byte stammt aus dem RPC, nicht aus einem Massenladen).
+Das IGNORE-Bit einer Nachricht verwirft sie ohne Aufruf des Backends; die Antwort ist DONE mit `COUNT`, Zähler 0 und Befehl `0x00f0` (Setzung, nicht gemessen). Eine Nachricht
+`0x07` ohne Ziel, oder an einem Backend ohne Massenladen, ist `TDS_UNSUPPORTED_SQL` bei offener Verbindung. Die Nachricht gilt
+als Ganzes: der Transport setzt sie bis zur Grenze von `SPEC-007` (16 MiB) im Speicher zusammen, eine größere schließt die
+Verbindung (gemessen, Messprotokoll des Spikes, b11), und der Speicherbedarf ist ein Vielfaches ihrer Größe: gemessen ist, dass 15,9 MB Nutzlast mit 130-Byte-Zeilen bei 32 MiB Heap mit `OutOfMemoryError` endeten (b12), und dass eine gültige Nachricht von 15,7 MiB mit 16 000 Zeilen zu 1024 NULL-Spalten (ohne die Grenze der Zellen) bei 128 MiB Heap in der Überführung endete (Wegwerf-Probe, einmal gefahren); die Grenze der Zellen ist die Antwort darauf; gemessen ist, dass die Zeilen einer Nachricht an der Grenze 12 bis 64 MiB belegen (4 bis 120 Byte je Zelle im Leser, 48 bis 256 mit der Überführung, je nach Typ, Messprotokoll des Massenladens), ein Beleg für den Wert am Heap eines Prozesses ist das nicht. Der Gegendruck des Backends wirkt zwischen den Nachrichten, nicht innerhalb einer: die
+Schleife liest die nächste erst nach der Antwort (b13).
 
 Der Abschluss einer Anfrage wird genau einmal gesendet.
 
@@ -735,8 +782,13 @@ festgelegt sind; die Überführung der Werte, das Lesen der Zeilenquelle und die
   mit -1 mit Exit 0 und `IDENTICAL`.
   Sie gilt nur für `UnicodeText`, prüft keine Zeile und ändert die Metadaten eines Ergebnisses nicht (dort gilt `SPEC-003`,
   `NVARCHAR(4000)`). Andere Werte weist der Konstruktor ab.
-  `SimTable.onInsertBatch` ist der Rahmen für das Massenladen (die Zeilen einer Nachricht als Liste); dieser Stand der
-  Bibliothek ruft ihn nicht.
+  `SimTable.onInsertBatch` nimmt die Zeilen einer Massenlade-Nachricht (`0x07`) als Liste: eine Nachricht ist eine Anweisung
+  (Nutzer, 2026-11-06), ein Aufruf je Nachricht, jede Zeile eine Abbildung von Spaltennamen der Beschreibung auf überführte
+  Werte (eine Spalte, die die Nachricht nicht nennt, fehlt). Hat die Tabelle ihn nicht, aber `onInsert`, geht jede Zeile der
+  Nachricht an `onInsert`, und ein Fehler hinterlässt die davor gerufenen Zeilen (Setzung). Die Zusage „keine Transaktion“
+  gilt: atomar ist nur, was der Integrator im Stapel-Callback atomar macht. Der Heap-Bedarf einer Nachricht
+  ist mindestens ihre Größe (bis 16 MiB, `SPEC-001`). Eine Tabelle ohne beide Callbacks lehnt `INSERT BULK` mit
+  `TDS_UNSUPPORTED_SQL` ab.
 - `primaryKey` nennt eine oder mehrere Spalten der Tabelle; sie müssen vorhanden und nicht nullbar
   sein. Der Schlüssel ist nur Teil der Beschreibung: er wirkt weder auf das Resultset noch auf
   Callbacks, das Backend speichert nichts und prüft keine Eindeutigkeit. Als Metadatum zum Client wird
@@ -748,7 +800,7 @@ festgelegt sind; die Überführung der Werte, das Lesen der Zeilenquelle und die
   nicht (Setzung, nicht am Server gemessen). Der Vergleich der Namen ist der von `SPEC-036`.
 - **Überführung eines Werts in den Spaltentyp** (`TDS-FA-11.a` Schritt 4; Literal und Parameter;
   Setzung, nicht am Server gemessen): streng und verlustfrei. Gleiche Typfamilie; Datum, Zeit und
-  Zeitpunkt nur im ISO-Format (Zeitpunkt nur mit `T`); keine Rundung und keine Überführung zwischen
+  Zeitpunkt nur im ISO-Format (Zeitpunkt mit `T` oder, wie mssql-jdbc ihn im Massenladen sendet, mit einem Leerzeichen an dessen Stelle); keine Rundung und keine Überführung zwischen
   Zahl und Text; ein Parameter wird nur verlustfrei erweitert (Int32 zu Int64 zu Decimal). Überlauf
   (Int32, Int64, Stellen der Dezimalzahl) ist immer `TDS_SIM_INVALID_VALUE`. Dezimalwerte werden mit
   `compareTo` verglichen (1.0 gleich 1.00), Textwerte ohne Beachtung der Groß-/Kleinschreibung
@@ -763,7 +815,16 @@ festgelegt sind; die Überführung der Werte, das Lesen der Zeilenquelle und die
   Anfrage nicht trägt, ist `TDS_SIM_INVALID_VALUE`; die Richtung eines Parameters bleibt unbeachtet. „ISO-Format“
   heißt der Formatraum der ISO-Parser der Laufzeit: bei der Zeit sind Sekunden optional und Bruchteile bis zu
   Nanosekunden gelten, beim Datum gilt auch ein Jahr mit Vorzeichen und mehr als vier Stellen, beim Zeitpunkt
-  ist das `T` Pflicht; Zeitzonen gelten nicht.
+  ist das `T` oder ein einzelnes Leerzeichen an dessen Stelle (hinter einem vierstelligen Jahr) Pflicht; Zeitzonen gelten nicht.
+  **Überführung im Massenladen** (Setzung, am Server nicht gemessen; gemessen ist nur, was d-migrate sendet, Messprotokoll des
+  Spikes, Tabelle (iii) und Messprotokoll des Massenladens): der Wert aus `0x07` hat die JVM-Klasse des Typs, den der
+  Client in COLMETADATA nennt. `Int` und `Long` gelten in einer `Int32`-Spalte, wenn sie in deren Wertebereich passen (der
+  Treiber sendet auch `INT`-Werte mit 8 Byte; die Verengung ist die einzige Abweichung von „verlustfrei erweitern“), in
+  `Int64` immer; `Boolean` in `Bool`, die Zahlen `0` und `1` ebenso; `BigDecimal`, `Int` und `Long` in `Decimal`, wenn sie ohne
+  Rundung und Überlauf in Precision und Skala passen; ein Text in `UnicodeText` und, im ISO-Format (der Zeitpunkt auch mit
+  Leerzeichen), in `Date`, `Time` und `DateTime` (so sendet der Treiber sie, als `VARCHAR`); ein Datum, eine Zeit und ein
+  Zeitpunkt in die Spalte ihres Typs. Jede andere Paarung und jeder Wert, der nicht passt, ist `TDS_SIM_INVALID_VALUE`, bevor
+  eine Zeile den Integrator erreicht. NULL gilt für jede Spalte (die Nullbarkeit und der Schlüssel prüfen den Integrator).
   Alle Werte der Bedingung werden vor dem Öffnen der Zeilenquelle überführt.
 - **Fehler der Zeilenquelle** (`TDS-FA-11.a` Schritt 7; Setzung, nicht am Server gemessen): ein Fehler beim
   Öffnen oder Lesen der Zeilenquelle ist `TDS_BACKEND_ERROR` mit fester Meldung, die den Text der Ausnahme nie
@@ -841,7 +902,14 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   verhält sich anders (Setzung dieses Stands): sie übergibt immer ein Backend über dem Bestand (`BackendSource.Custom`);
   ohne Datei der Beschreibung antwortet es auf eine Auswahl mit `TDS_SIM_UNKNOWN_OBJECT` („Tabelle nicht beschrieben“),
   nimmt `CREATE TABLE` an und schließt die Verbindung nicht (Test `TableStoreTest`, `make e2e` Stufe 1 meldet den Login
-  ohne Datei).
+  ohne Datei). Der Bestand des Testservers nimmt höchstens 2 097 152 Zellen (Zeilen mal Spalten, über alle
+  Tabellen) auf; eine Nachricht des Massenladens darüber weist der Bestand ab wie jede andere abgewiesene Nachricht
+  (wie jeden Fehler des Callbacks einer Nachricht `0x07` meldet die Bibliothek das als 2627, `SPEC-036`; der Bestand bleibt unverändert), statt dass der Prozess mit `OutOfMemoryError` endet (Setzung,
+  nicht am Server gemessen; der Wert ist nicht am Heap gemessen, ein kleinerer Heap als die Zellen brauchen endet weiter
+  mit `OutOfMemoryError`; `ALTER TABLE … ADD` auf einer gefüllten Tabelle prüft die Grenze nicht; `TableStoreTest`).
+  `SimColumn.maxLength` wirkt nicht auf das Massenladen: ein Text über der Länge der Beschreibung wird angenommen, die
+  Länge begrenzt nur der Typ, den der Client in COLMETADATA nennt (Setzung; der echte Server weist ihn ab, nicht
+  gemessen).
 - **Weg `Custom`:** Wer ein Backend mit Katalog selbst baut (`SimulationBackend(SimCatalog(tables))`) und als
   `BackendSource.Custom` übergibt (etwa um es mit einem eigenen `QueryBackend` zu umhüllen), ist ein zweiter Weg
   neben `Simulation`, mit demselben Verhalten des Backends. Dieser Weg durchläuft die Namensprüfung des Einstiegs und
@@ -906,6 +974,7 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
 | K | der Wortlaut einer Katalogabfrage von d-migrate 1.12.0 (Liste unten) | Resultset aus dem Katalog |
 | D1 | `CREATE TABLE [<Schema>.]<Tabelle> (<Spalte> {, <Spalte>} [, [CONSTRAINT <Name>] PRIMARY KEY (<Spalte> {, <Spalte>})])` | Änderungszähler 0 |
 | D2 | `ALTER TABLE [<Schema>.]<Tabelle> ADD <Spalte> {, <Spalte>}` | Änderungszähler 0 |
+| B | `INSERT BULK [<Schema>.]<Tabelle> (<Spalte> <Typ> {, <Spalte> <Typ>}) [WITH (<Optionen>)]`, danach die Nachricht `0x07` (`SPEC-001`) | `INSERT BULK`: DONE ohne Zähler, Befehl `0x00fd`; die Nachricht: DONE mit Zähler der geladenen Zeilen, Befehl `0x00f0` (beides gemessen, `SPEC-001`) |
 
 - **Term:** `<Spalte> = <Wert>`, `<Spalte> IN (<Wert> {, <Wert>})` oder `<Spalte> IS [NOT] NULL`. Nur in S1 zusätzlich
   der Konstantenterm `<Ganzzahl> = <Ganzzahl>` (Ganzzahl: Ziffern mit optionalem führendem `-`): er gilt für jede Zeile,
@@ -957,7 +1026,7 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   Änderungszähler 0; die Bibliothek hat keine Transaktion und nimmt nichts zurück.
 - **Form K, Katalogabfragen** (Wortlaut aus `MssqlMetadataQueries` und `MssqlRoutineQueries` des Treibers
   `driver-mssql-1.12.0`, gelesen aus dem Bytecode, und der Mitschnitt der Läufe `schema reverse`, `schema reverse
-  --include-all`, `schema compare` und `schema migrate --execute` vom 2026-11-06; 20 Formen): `SELECT SCHEMA_NAME() AS
+  --include-all`, `schema compare` und `schema migrate --execute` vom 2026-11-06; 21 Formen, die 21. ist die Probe der Kollation unter Form B): `SELECT SCHEMA_NAME() AS
   schema_name`; Tabellen eines Schemas (`sys.tables`, `sys.schemas`); Spalten einer Tabelle (`sys.columns` mit
   `sys.types`, `sys.default_constraints`, `sys.identity_columns`, `sys.computed_columns`, Parameter `OBJECT_ID(?)`); Schlüssel
   (`sys.key_constraints`, `kc.type = 'PK'`); und leer beantwortet: Eindeutigkeiten, Fremdschlüssel, Indizes, Volltextspalten,
@@ -973,6 +1042,20 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   Abfragen des Imports (`sys.identity_columns`, `sys.computed_columns`) stammen aus dem Bytecode, im Lauf von `schema reverse`
   sendet d-migrate sie nicht. Nicht erkannt sind Abfragen, die kein Lauf der Soll-Funktionen stellt; sie enden mit
   `TDS_UNSUPPORTED_SQL`.
+- **Form B, Massenladen** (gemessen: der Wortlaut von `data import` und `data transfer` mit d-migrate 1.12.0, mssql-jdbc 13.4.0,
+  2026-11-05 und 2026-11-07, Messprotokoll des Massenladens; alles Weitere ist Setzung): `INSERT BULK` liest die
+  Tabelle und die Namen der Spalten; der Typ einer Spalte samt Zusätzen (`COLLATE …`) und die Optionen von `WITH (…)` (gesendet:
+  `CHECK_CONSTRAINTS, FIRE_TRIGGERS, ROWS_PER_BATCH = <n>`) bleiben ungelesen, aber geklammert ausgeglichen; die Typen gelten
+  nach COLMETADATA der Nachricht `0x07`. Die Tabelle und jede Spalte müssen beschrieben sein (`TDS_SIM_UNKNOWN_OBJECT`), die
+  Tabelle braucht `onInsertBatch` oder `onInsert` (`TDS_UNSUPPORTED_SQL`), ein Spaltenname steht höchstens einmal in der
+  Liste. Davor stellt der Treiber vier Proben, die Katalogformen beantworten: `set fmtonly on <Auswahl> set fmtonly off` und
+  `sp_executesql N'SET FMTONLY ON <Auswahl>'` (als SQL-Text, auch mit `EXEC`/`EXECUTE`) liefern die Spalten der Auswahl und nie
+  eine Zeile, die Zeilenquelle wird nicht geöffnet (die Auswahl ist S1; nur mit `SET FMTONLY ON` gilt `sp_executesql N'…'` als
+  Form, ein anderer Text darin ist nicht erkannt); `select collation_name, is_computed from sys.columns where
+  object_id=OBJECT_ID('<Name>') order by column_id ASC` (der Name als Literal, nicht als Parameter) liefert je Spalte die
+  Kollation (`SQL_Latin1_General_CP1_CI_AS` für Text, Setzung; sonst NULL) und `is_computed` falsch. Zu Form K zählt die
+  Probe der Kollation mit; der Import fragt außerdem `SELECT SCHEMA_NAME()` und `sys.identity_columns`/`sys.computed_columns`
+  (Form K).
 - **Form D, Strukturänderung** (gemessen: der Wortlaut von `schema migrate --execute`, 2026-11-06): eine Spalte ist `<Name> <Typ>
   [NOT NULL | NULL]` mit `INT`, `BIGINT`, `BIT`, `DATE`, `TIME`, `DATETIME2`, `NVARCHAR(<n>)` (`n` von 1 bis 4000) oder
   `NVARCHAR(MAX)` (`maxLength` -1) und `DECIMAL(<p>, <s>)` (Precision bis 38); der Schlüssel heißt im gesendeten Text
@@ -1168,16 +1251,17 @@ Text fest und englisch (bei `TDS_SIM_UNKNOWN_PREPARED_HANDLE` endet er mit der N
 | `TDS_SHUTDOWN` | 50008 | 20 | schließt | Folge: Setzung des Nutzers (`SPEC-049`); Nummer und Class: Festlegung (die SQL-Server-Nummer für ein Herunterfahren ist nicht gemessen) |
 | `TDS_UNKNOWN_HANDLE` | 50009 | 16 | offen | Gruppe: Setzung (Voreinstellung, nicht gemessen); Nummer: Festlegung |
 | `TDS_PREPARE_LIMIT` | 50010 | 16 | offen | Gruppe: Setzung (Voreinstellung, nicht gemessen); Nummer: Festlegung |
+| `TDS_SIM_KEY_VIOLATION` | 2627 | 14 | offen | Nummer, Class und State 1: gemessen am echten SQL Server (2022 und 2025, `SqlBulkCopy`, Schlüsselverstoß, M-12); der Text ist gekürzt (Setzung); Form des Massenladens mit INFO 3621 und DONE `0x00f0` (`SPEC-001`) |
 | `TDS_SIM_UNKNOWN_PREPARED_HANDLE` | 8179 | 16 | offen | Nummer, Class, State 8 und Text für Handle 1: gemessen am echten SQL Server (2022 und 2025), die Verbindung bleibt offen; der Text für andere Nummern: Setzung |
 
 Der Abschluss (DONE; in der Antwort auf einen RPC DONEPROC, `SPEC-031`) trägt für jeden Code das Statusbit `ERROR`, die
 Befehlskennung nach der Form des Abschlusses (`0x00fd` im DONE ohne offenes Ergebnis, `0x00c1` bei offenem Ergebnis,
-`0x00e0` im DONEPROC; Absatz „Befehlskennung (`curCmd`)“ in `SPEC-031`) und Zeilenzahl 0; ob der
+`0x00e0` im DONEPROC, `0x00f0` in der Antwort auf eine Nachricht des Massenladens, gemessen in M-12; Absatz „Befehlskennung (`curCmd`)“ in `SPEC-031`) und Zeilenzahl 0; ob der
 Referenzclient es so annimmt, ist nicht am Produkt gemessen. Die Antwort an die Anmeldung (`SPEC-012`) trägt 0. Am echten SQL Server trägt das DONE bei
 Class 20 und 25 zusätzlich das Statusbit `SRVERR` und es folgen weitere ERROR-Token (Messung R10); das
 Mapping sendet für jeden Code nur ERROR und DONE mit `ERROR`, diese Abweichung ist nicht am Produkt
 gemessen. Ein Backend meldet als `Failure` nur `TDS_BACKEND_ERROR`, `TDS_UNSUPPORTED_SQL`,
-`TDS_UNSUPPORTED_TYPE`, `TDS_SIM_UNKNOWN_OBJECT`, `TDS_SIM_INVALID_VALUE` und `TDS_TIMEOUT`
+`TDS_UNSUPPORTED_TYPE`, `TDS_SIM_UNKNOWN_OBJECT`, `TDS_SIM_INVALID_VALUE`, `TDS_SIM_KEY_VIOLATION` und `TDS_TIMEOUT`
 (Festlegung); jeder andere Code, auch ein anderer eigener wie `TDS_LOGIN_FAILED` oder `TDS_SHUTDOWN`,
 erreicht den Client als `TDS_INTERNAL_ERROR`. Ist der Strom nicht synchron, entfällt die
 Antwort und die Verbindung schließt (`SPEC-031`). Der Log-Eintrag einer unerwarteten Ausnahme trägt den
@@ -1642,7 +1726,7 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | `SPEC-025` | Integrationstest (E2E-Durchgang) | Containerisierter Testserver + echter .NET-Referenzclient (`Microsoft.Data.SqlClient` 7.1.1, .NET 10) prüfen Login, SQL_BATCH, RPC, Typen, Fehler, Cancel; ohne lokale .NET-Installation und ohne Mount, Basis-Images per Digest, Pakete per Lock und Hash; Lauf: `make e2e` (Stufen 3 bis 8, kein Gate) |
 | `SPEC-026` | `make gates` | Aggregator: führt alle eingerichteten Gates aus; neue Gates für Formatierung, statische Prüfung und Tests werden in ihn aufgenommen |
 | `SPEC-027` | Fuzz-/Property-Tests | Defekte Paketlängen, Offsets, Fragmentierung und Typwerte dürfen keinen ungefangenen Prozessabsturz verursachen |
-| `SPEC-040` | Simulations-Tests (`make simulations-integration` im E2E-Durchgang) | Unit-Tests der Anweisungserkennung (jede Form aus `SPEC-036` positiv und negativ, Grenzen bei Literalen, Bezeichnern und Kommentaren), Unit-Tests des Lesers der Tabellenbeschreibung (jedes gelesene Feld, jeder Ladefehler mit Pfad, Zeile und Spalte, ohne Inhalt in der Meldung), Unit-Tests der Katalogabfragen (jede Form K mit dem gesendeten Wortlaut von d-migrate 1.12.0, Antworten aus dem Katalog, Anbieter bei jeder Anfrage) und der Strukturänderung (Form D, Callback, Fehlerfälle, Transaktionstexte) und des Bestands des Testservers, die Läufe `schema reverse` (auch `--include-all`), `schema compare` und `schema migrate --execute` von d-migrate 1.12.0 (mssql-jdbc 13.4.0) gegen den Testserver mit Exit 0 (von Hand, Image per Digest, weder in `make gates` noch in `make e2e`; Ausgabe im Messprotokoll der Messungen) und Integrationstest mit dem .NET-Referenzclient (`make simulations-integration`, Stufe des E2E-Durchgangs `make e2e`, nicht von `make gates`): Auswahl mit Bedingung, leeres Ergebnis, Zeilenquelle über der Speichergrenze (Angabe des Testservers, Task `integrationsServer` in `testserver/build.gradle.kts`: Serverprozess mit 48 MiB Heap, Text von 64 000 000 Zeichen; `make kopplung-zahlen` hält die Zahlen in Gradle, Kotlin, .NET, hier und im README gleich), Fehler der Zeilenquelle mit Folgeabfrage und Cancel einer laufenden Anfrage (`SqlCommand.Cancel()` gegen eine Zeilenquelle ohne Ende, nach 50 gelesenen Zeilen) mit Folgeabfrage auf derselben Verbindung, die nur ihre Antwort erhält; der Lauf geht gegen den Testserver (`SPEC-052`) und belegt das Verhalten des Referenzclients gegen die Bibliothek, die er bindet, in TDS 7.4 ohne Verschlüsselung und ohne Pool, nicht gegen einen echten SQL Server. `CancellationToken`, Command-Timeout und der Ablauf von `QUERY_TIMEOUT` am Referenzclient gehören nicht zu diesem Lauf, sondern zu Stufe 7 (`make kompatibilitaet KATEGORIE=Synchronitaet`) |
+| `SPEC-040` | Simulations-Tests (`make simulations-integration` im E2E-Durchgang) | Unit-Tests der Anweisungserkennung (jede Form aus `SPEC-036` positiv und negativ, Grenzen bei Literalen, Bezeichnern und Kommentaren), Unit-Tests des Lesers der Tabellenbeschreibung (jedes gelesene Feld, jeder Ladefehler mit Pfad, Zeile und Spalte, ohne Inhalt in der Meldung), Unit-Tests der Katalogabfragen (jede Form K mit dem gesendeten Wortlaut von d-migrate 1.12.0, Antworten aus dem Katalog, Anbieter bei jeder Anfrage) und der Strukturänderung (Form D, Callback, Fehlerfälle, Transaktionstexte) und des Massenladens (Form B, Leser der Nachricht `0x07` gegen den Mitschnitt von mssql-jdbc und Handvektoren nach `MS-TDS`, Zuordnung und Überführung der Werte, Stapel-Callback und Rückfall `onInsert`, Zustand der Sitzung im Dispatch, Fuzz der Nutzlast) und des Bestands des Testservers (Zeilen, atomare Nachricht, Schlüssel- und Typprüfung), die Läufe `schema reverse` (auch `--include-all`), `schema compare`, `schema migrate --execute`, `data import` und `data transfer` im Standardpfad (ohne `--on-conflict`, jeweils mit anschließendem `data export`) von d-migrate 1.12.0 (mssql-jdbc 13.4.0) gegen den Testserver mit Exit 0 (von Hand, Image per Digest, weder in `make gates` noch in `make e2e`; Ausgabe im Messprotokoll der Messungen; `INT`-Spalten und ganzzahlig geschriebene `DECIMAL`-Werte scheitern im Treiber, siehe `TDS-FA-12`) und Integrationstest mit dem .NET-Referenzclient (`make simulations-integration`, Stufe des E2E-Durchgangs `make e2e`, nicht von `make gates`): Auswahl mit Bedingung, leeres Ergebnis, Zeilenquelle über der Speichergrenze (Angabe des Testservers, Task `integrationsServer` in `testserver/build.gradle.kts`: Serverprozess mit 48 MiB Heap, Text von 64 000 000 Zeichen; `make kopplung-zahlen` hält die Zahlen in Gradle, Kotlin, .NET, hier und im README gleich), Fehler der Zeilenquelle mit Folgeabfrage und Cancel einer laufenden Anfrage (`SqlCommand.Cancel()` gegen eine Zeilenquelle ohne Ende, nach 50 gelesenen Zeilen) mit Folgeabfrage auf derselben Verbindung, die nur ihre Antwort erhält; der Lauf geht gegen den Testserver (`SPEC-052`) und belegt das Verhalten des Referenzclients gegen die Bibliothek, die er bindet, in TDS 7.4 ohne Verschlüsselung und ohne Pool, nicht gegen einen echten SQL Server. `CancellationToken`, Command-Timeout und der Ablauf von `QUERY_TIMEOUT` am Referenzclient gehören nicht zu diesem Lauf, sondern zu Stufe 7 (`make kompatibilitaet KATEGORIE=Synchronitaet`) |
 | `SPEC-041` | Static-Analysis-Gate (`make detekt`, `make detekt-selbsttest`) | detekt in Docker, Konfiguration auf Standardbasis mit dem ktlint-Regelsatz (prüft, schreibt nichts um), `warningsAsErrors` und den Importregeln der Schichten, im Kern als Erlaubnisliste ohne Fremdbibliothek; dazu Technik-Regeln für Kern und Port, die Prozess, Dateisystem und Ähnliches über `ForbiddenMethodCall` sperren und deshalb nur über `detektMain` und `detektTest` wirken (Typauflösung); keine Baseline; jeder Befund bricht den Lauf. Tests des Kerns bleiben frei von Fremdbibliotheken (`kotlin.test` statt JUnit), weil die Kernregeln auch für Test-Quellen gelten. Die Importregeln lesen nur `import`-Zeilen: ein voll qualifizierter Name im Code und ein `typealias` darauf umgehen sie; das Gate belegt die Einhaltung der Importgrenze, nicht des Classpaths. `@Suppress` und `@SuppressWarnings` im Quelltext brechen den Lauf vor detekt (Textprüfung des Suppression-Gates). Ein Selbsttest belegt, dass jede Importregel ihre verbotenen Importe meldet, die erlaubten Testdaten nicht und das Suppression-Verbot jede Form meldet; er läuft nur bei geänderten Eingängen |
 | `SPEC-042` | Build-Gate (`make build`) | Compile und Jar in Docker, ohne Tests (die Stage ruft `:assemble` des Wurzelprojekts, der Bibliothek); Basis-Images per Digest gepinnt, Abhängigkeitsversionen per Lock (je Gradle-Projekt eine Datei: `gradle.lockfile` der Bibliothek und `testserver/gradle.lockfile` des Moduls `testserver`) und Prüfsummen (Gradle-Verifikationsdatei) fixiert |
 | `SPEC-052` | Bibliotheks-Artefakt und Lizenz (E2E-Durchgang: `make laufzeittest` mit dem Testserver; der Tag `@spec` nennt nur den Lizenztext) | Das Artefakt ist ein Bibliotheks-Jar `tdswire.jar` **ohne `Main-Class`** im Manifest; die Bibliothek ist das Produkt (`TDS-RB-01`), und es gibt weder eine Startklasse noch ein Betriebs-Image als Produkt. Die Bibliotheken, die die Bibliothek braucht, liegen im Verzeichnis `lib` daneben und stehen im Class-Path des Manifests (Komfort für Einbettende, Setzung). Die Lizenz ist die MIT-Lizenz (Datei `LICENSE` im Wurzelverzeichnis, Rechteinhaber `pt9912`, Jahr 2026, `TDS-RB-05`); sie liegt im Jar unter `META-INF/LICENSE`, und der Bau des Jars bricht, wenn sie dort fehlt oder vom Inhalt der Datei abweicht (läuft in `make build`). Im Bau (`make build`) prüft eine Textprüfung ohne Container, dass das Manifest des Jars keine `Main-Class` nennt, das Jar keine Klasse des Testservers und `lib` kein Jackson führt, der Class-Path nur Einträge `lib/<Name>` mit vorhandener Datei in `lib` führt und das Jar `tdswire.jar` heißt (nicht geprüft: der Start des Jars). Die Lizenzdatei prüft außerdem ein Unit-Test (MIT-Text, Rechteinhaber, Rechteeinräumung, Haftungsausschluss). **Testserver:** Ein ausführbarer Serverprozess, der nur der Prüfung der Bibliothek dient (E2E- und Kompatibilitätsläufe, kein Produkt), bindet die Bibliothek ausschließlich über `TdsServer.start` und ihre öffentliche Fläche (`SPEC-059`). Er ist ein eigenes Gradle-Modul `testserver` (Verzeichnis `testserver/` mit eigener `build.gradle.kts` und eigener `gradle.lockfile`), das die Bibliothek als Projekt-Abhängigkeit `project(":")` bindet; Jackson steht nur in seiner Sperre (einmalige Zählung am 2026-11-06, kein Gate hält sie). Gemessen (Messprotokoll vom 2026-11-06, M1 und M2): Ein Zugriff auf einen `internal`-Namen aus Kotlin-Quellen des Moduls bricht dessen Übersetzung, und der Laufzeit-Klassenpfad des Moduls trägt das Jar `tdswire.jar` (mit Manifest und Lizenz), nicht das Klassenverzeichnis; nicht gemessen sind Java-Quellen und Reflection (`internal` bleibt im Bytecode öffentlich). Er liest Konfiguration und Benutzerliste zur Laufzeit aus der Umgebung und aus Dateien (Eingänge des Testservers, `SPEC-005`, `SPEC-010`, `SPEC-051`), nie aus dem Abbild (Setzung),. **Log und Metriken des Testservers** (Log gebaut, Metriken Zielzustand, nicht gebaut; Setzung, nicht gemessen, auch die Zahlen): Er übergibt `TdsServer.start` eine Senke mit einem eigenen Adapter (Abschnitte 4 und 5) und liest dafür `LOG_LEVEL` (`ERROR`, `WARN`, `INFO`, `DEBUG`; Voreinstellung `INFO`; ein anderer Wert bricht den Start des Testservers ab) und, als Zielzustand, `METRICS_INTERVAL_SECONDS` (Quelle des Abstands der Schnappschüsse in der `ServerConfig`); beide Schlüssel sind Eingänge des Testservers, nicht der Bibliothek. Der Adapter schreibt je Ereignis eine JSON-Zeile auf die Standardausgabe mit den Feldern `ts`, `level`, `event` und denen des Ereignisses und filtert nach `LOG_LEVEL`; die Einstellungen von `CONFIG_EFFECTIVE` stehen je Schlüssel als ein Feld, dessen Name der Schlüssel in Kleinbuchstaben ist (Zahlen als Zahl, sonst Zeichenkette; Setzung). Er hält eine begrenzte Warteschlange (1024 Zeilen); bei Überlauf wird die neue Zeile verworfen und gezählt, die Zahl steht im Feld `dropped` der nächsten geschriebenen Zeile. Ereignisse vor dem erfolgreichen Start und die Diagnose eines abgebrochenen Starts schreibt er synchron und ohne Warteschlange; vor dem Prozessende leert er die Warteschlange mit einer Frist von 2 Sekunden, der Rest geht verloren und wird in einer letzten Zeile mit `dropped` gemeldet, soweit der Kanal noch annimmt. Die Schreibweise der Feldnamen der Zeile (mit Unterstrich, etwa `error_code`), der Name `log_dropped` der letzten Zeile und die Wartezeit von 250 ms für jede letzte Zeile sind Setzung des Adapters, nicht gemessen. Das sind Aussagen über den Testserver, kein Vertrag der Bibliothek. Die Bereitschaftszeile bleibt Sache des Testservers und ist kein Ereignis des Modells. Sein Container-Abbild entsteht aus dem Klassenpfad des Moduls `testserver` (Setzung); ein Abbild als Betriebsweg gibt es nicht. `make laufzeittest` startet den Testserver als Container in einem internen Netzwerk, lässt einen Rohbytes-Client aus einem zweiten Container PRELOGIN und LOGIN7 sprechen und beendet den Container mit `docker stop`; die Ausgabe des Testservers nennt nie ein Passwort und einen Benutzer nur im Feld `principal` des Ereignisses „Anmeldung angenommen“ (Abschnitt 4). Gemessen am Server-Container vor dem Umbau, der den Server zum Testserver macht (2026-10-31): `docker stop` (SIGTERM) endet mit Exit-Code 143. Prüfungen, die ein Produkt-Image voraussetzen (Nutzer 65532, Inhalt von `/app`, Lizenz im Abbild, `JAVA_TOOL_OPTIONS`), gibt es nicht, weil es kein Produkt-Image gibt; die Lizenz im Jar prüft der Bau. Nicht belegt: Annahme durch `Microsoft.Data.SqlClient`, TLS im Container, Last, der Inhalt der Jars und der Basis-Schichten. `make laufzeittest` ist Stufe des E2E-Durchgangs `make e2e` und steht nicht in `make gates`. |
@@ -1702,6 +1786,7 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | 2026-11-06 | Öffentliche Fläche der Bibliothek auf das Nötige verkleinert und belegt (Nutzerentscheidung vom 2026-11-05 und vom 2026-11-06): `TelemetryEvent` ist die einzige öffentliche Ereignisklasse, die Art steht in der Aufzählung `EventKind` (17 Arten; die zwei Abschwächungen sind eine Art `SECURITY_WEAKENED` mit `reason`), die 18 Klassen je Art und `StartRefusal`, `LoginRejectionReason`, `TlsFirstRefusal` sind nicht mehr öffentlich, ihre Gründe stehen als Text in `reason`; `ConfigValidation`, `Principal` und `PasswordChars.reveal` sind `internal`; die Liste in `SPEC-059` nennt jetzt jeden Typnamen (61), auch die Fälle von `QueryEvent`, `SqlType` und `FilterTerm`; `make flaeche` hält die Typnamen der Liste gegen die öffentlichen Typdeklarationen und ihre Verwendung in `src/integrator` und `testserver/kotlin`, der Einbettungstest belegt die Namen, die Testserver und bisheriger Einbettungstest nicht nannten; Felder und Konstanten sind keine Namen des Sensors (`SPEC-059`, `SPEC-012`, `SPEC-048`, `SPEC-043`, `TDS-QA-05`, `TDS-RB-04`) |
 | 2026-11-06 | `SPEC-025`: der E2E-Durchgang hat eine achte Stufe (`make eigenes-backend`, Referenzclient gegen ein eigenes In-Memory-Backend, `TDS-FA-08`, `TDS-RB-04`) |
 | 2026-11-06 | Katalog und Strukturänderung des Simulations-Backends (`TDS-FA-11`, `TDS-FA-12`): zweiter Konstruktor `SimulationBackend(catalog: () -> SimCatalog, onStructure: …? = null)` ohne neuen Typnamen, `SimColumn.maxLength` (1 bis 4000 und der Sonderwert -1 für `NVARCHAR(MAX)`, beides Setzung dieser Spezifikation; Vorgabe 4000) und `SimTable.onInsertBatch` als Mitglieder (`SPEC-035`, `SPEC-059`); Formen K (20 Katalogabfragen von d-migrate 1.12.0, Antworten aus dem Katalog), D1 und D2 (`CREATE TABLE`, `ALTER TABLE … ADD`) und die Transaktionstexte in Form C (`SPEC-036`); Schritte 8 und 9 in `TDS-FA-11.a`; Läufe von d-migrate in `SPEC-040`; `max_length` der Beschreibung wird als Länge gemeldet (`SPEC-035`) |
+| 2026-11-07 | Massenladen des Simulations-Backends (`TDS-FA-11`, `TDS-FA-12`): Pakettyp `0x07` als Anfrage mit Zustand „Massenladen erwartet“ im Sitzungsrahmen (`SPEC-001`), Form B in `SPEC-036` (`INSERT BULK`, Probe mit `SET FMTONLY`, Probe der Kollation als 21. Form K), Schritt 10 in `TDS-FA-11.a`, `SimTable.onInsertBatch` wird gerufen (Weitergabe, Überführung der Werte der Nachricht, Zeitpunkt auch mit Leerzeichen; `SPEC-035`), kein neuer öffentlicher Name (`SPEC-059`); Läufe von `data import` und `data transfer` in `SPEC-040`; zweiter Durchgang: die Antworten folgen der Messung am echten Server (M-8 bis M-12): `INSERT BULK` mit DONE `0x00fd` ohne Zähler, die Nachricht mit DONE `COUNT` `0x00f0`, ATTENTION nach `INSERT BULK` mit `ERROR|ATTENTION`, Fehler des Callbacks als `TDS_SIM_KEY_VIOLATION` (2627) mit INFO 3621 und DONE `0x00f0`; Abweichung vom Wortlaut der angenommenen Entscheidung bis zur Folge-Entscheidung |
 | 2026-11-06 | Strukturänderungen eines Simulations-Backends sind gegeneinander gesperrt (`TDS-FA-11.a` Schritt 9): Planung unter Sperre beim Sammeln, genau eine von zwei gleichzeitigen `CREATE TABLE` derselben Tabelle gewinnt, `ALTER TABLE … ADD` verliert keine Spalte; belegt nur für Schreiber über dasselbe Backend; die Sperre ist nicht reentrant, ein hängender Callback blockiert die weiteren Strukturänderungen dieses Backends (Lesen des Codes, nicht gemessen). Der Sonderwert -1 von `SimColumn.maxLength` ist Setzung dieser Spezifikation (Wertebereich der Länge; die angenommene Entscheidung bleibt unverändert). Die Hauptklasse des Testservers übergibt immer ein Backend (`SPEC-035`, Verdrahtung) |
 | 2026-11-06 | Prepared-Handles: `sp_prepexec` antwortet mit RETURNSTATUS 0 und dem Handle als RETURNVALUE ohne Namen (an den Mitschnitten der Referenzinstanz gelesen); der SQL_BATCH `EXEC sp_unprepare <n>[;…]` gibt Handles im Sitzungsrahmen frei, ein nicht gehaltenes Handle ergibt Fehler 8179 (Class 16, State 8; neuer Code `TDS_SIM_UNKNOWN_PREPARED_HANDLE`, `SPEC-060`; Ausnahme zum Satz „State ist 1“); gezählt werden die gleichzeitig gehaltenen Handles; die Grenze (Voreinstellung 1000) ist einstellbar (`RequestSettings.maxPreparedHandles`, `MAX_PREPARED_HANDLES`, `SPEC-061`, `SPEC-058`); der RPC `sp_unprepare` bleibt abgelehnt (`SPEC-013`, Nicht-Ziel 6); `sp_execute` mit unbekanntem Handle: Messung 8179 State 4 am echten Server, Abweichung von `SPEC-057` festgehalten, nicht entschieden |
 | 2026-11-06 | Antwort-Tokens an die Messung am echten SQL Server angeglichen (Nutzerentscheidung vom 2026-11-06: Spezifikation ist Zielbild, der echte Server die Referenz): Befehlskennung `curCmd` je Abschlussart aus der Form des Ereignisses (`SPEC-031`), `Failure` mit Klasse `FailureScope` (neuer Name in `SPEC-059`), `DONE` mit `MORE\|ERROR` bei statement-abbrechendem Fehler, RETURNSTATUS in jeder RPC-Antwort, Ordinal der RETURNVALUE als Position in der Aufrufliste, Handle-RETURNVALUE mit Flag-Feld `0x0000`, Fehler im RPC als DONEINPROC `MORE\|ERROR` und DONEPROC (`SPEC-030`, `TDS-FA-10.a`), ENVCHANGE Typ 18 als erstes Token der Antwort auf `RESETCONNECTION` (`SPEC-001`), SESSIONSTATE als dokumentierte Lücke |

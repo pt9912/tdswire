@@ -141,7 +141,8 @@ internal class HandshakeConnectionHandler(private val setup: HandlerSetup, priva
             gate = ConnectionShutdownGate(connection),
             handleLimit = setup.requests.maxPreparedHandles,
         )
-        RequestLoop(outcome, channel, backend, errorMapper(context), times = times, hooks = hooks).run()
+        val served = SimulationBulk.of(backend)
+        RequestLoop(outcome, channel, served, errorMapper(context), times = times, hooks = hooks).run()
     }
 
     /** Die Konfiguration des Pfads; `null` (und ein Ereignis), wenn der Prozess den TDS-8.0-Pfad nicht anbietet. */
