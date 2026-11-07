@@ -571,7 +571,7 @@ die Position in der Aufrufliste):
   `@a` an Position 4 hinter `@w`, W-5), und die RETURNVALUE stehen in der Reihenfolge der Aufrufliste, das Handle
   zuerst. Das Flag-Feld des Handle-RETURNVALUE ist 0x0000 (nicht nullbar), wie in den Mitschnitten `prepare` (2022 und
   2025, ein Fall je Instanz); der Mitschnitt-Lauf liest das Feld nicht (Ausnahme A-19 des Referenzabgleichs, Beleg ist
-  ein Test mit Handvektor). Endet die Antwort
+  ein Test mit Handvektor). Das Flag-Feld des RETURNVALUE eines Ausgabewerts des Backends schreibt der Server mit 0x0001; am echten Server steht 0x0000 (A-20 des Referenzabgleichs, 22 von 22 Treffern je Instanz, nur `INTN` 4 mit Wert; bekannte Abweichung vom Zielbild, `BEO-TDS/zielbild-luecken-der-antwort-tokens`). Endet die Antwort
   mit einem Fehler, bevor das Handle im Strom steht (Fehler vor dem ersten Ausgabewert), entsteht kein Handle
   und der Wert wird nicht wieder vergeben; steht das Handle schon im Strom (Fehler nach einem Ausgabewert),
   bleibt es gültig.
@@ -662,7 +662,7 @@ ein DONEPROC `0x00e0`. Wo der Wert an der Form des Ereignisses nicht hängt, ste
 eines Update-Zählers (`UpdateCount`; gemessen INSERT `0x00c3`, DELETE `0x00c4`, UPDATE `0x00c5`), ein DONEINPROC ohne
 offenes Ergebnis und `EXEC sp_unprepare`. Der Fehlerabschluss nach einem Abbruch durch die Frist trägt `0x00fd` (DONE)
 bzw. `0x00e0` (DONEPROC), auch wenn ein Ergebnis offen war (dort misst die Referenz `0x00c1`; bekannte Abweichung vom Zielbild,
-im Beobachtungs-Register geführt). Die Werte sind je Instanz an einem Fall gemessen; die Bedeutung darüber hinaus ist nicht festgestellt.
+im Beobachtungs-Register geführt: `BEO-TDS/zielbild-luecken-der-antwort-tokens`). Die Werte sind je Instanz an einem Fall gemessen; die Bedeutung darüber hinaus ist nicht festgestellt.
 
 ### SPEC-035 — Tabellenbeschreibung und Zeilenquelle des Simulations-Backends
 ```kotlin
@@ -1430,7 +1430,7 @@ Das Ergebnis ist ein asynchroner Strom (`Flow`) von Ereignissen: `ResultStart` (
 #### Offene Punkte des Backend-Vertrags
 
 - Die Verbindungsfolge nach Severity und die Abbildung von `Failure.code` bleiben Sache der Fehlerabbildung; welche Fehler statement- und welche batch-abbrechend sind, bestimmt das Backend mit `FailureScope` (`SPEC-031`).
-- Befehlskennung (`curCmd`) des Abschlusses eines Update-Zählers (`UpdateCount`): der Sequencer schreibt 0, weil der Port INSERT, UPDATE und DELETE nicht unterscheidet; am echten Server sind `0x00c3`, `0x00c5` und `0x00c4` gemessen (W-6), `SELECT INTO`, `CREATE TABLE`, `DROP TABLE`, `SET` und `USE` haben eigene Werte, die der Server nicht schreibt (bekannte Abweichung vom Zielbild, im Beobachtungs-Register geführt, ohne Bau-Slice; ein Wert, den die Messung nicht an der Form des Ereignisses festmacht, steht nicht im Strom).
+- Befehlskennung (`curCmd`) des Abschlusses eines Update-Zählers (`UpdateCount`): der Sequencer schreibt 0, weil der Port INSERT, UPDATE und DELETE nicht unterscheidet; am echten Server sind `0x00c3`, `0x00c5` und `0x00c4` gemessen (W-6), `SELECT INTO`, `CREATE TABLE`, `DROP TABLE`, `SET` und `USE` haben eigene Werte, die der Server nicht schreibt (bekannte Abweichung vom Zielbild, im Beobachtungs-Register geführt, `BEO-TDS/zielbild-luecken-der-antwort-tokens`, ohne Bau-Slice; ein Wert, den die Messung nicht an der Form des Ereignisses festmacht, steht nicht im Strom).
 - Verzögerung durch den zurückgehaltenen Abschluss der `DONE_MORE`-Vorschau: nicht gemessen.
 
 #### Gemessen am Backend-Vertrag
