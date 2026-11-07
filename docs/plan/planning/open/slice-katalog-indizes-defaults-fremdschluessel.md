@@ -37,7 +37,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Die Messung der Antworten am echten SQL Server — [slice-qa-vergleichslauf-d-messungen-bulk-merge](slice-qa-vergleichslauf-d-messungen-bulk-merge.md) (Liefer-Punkt 2, Katalog); sie ist der Eingang dieses Slice, nicht sein Gegenstand (EULA, Nutzer-Lauf).
-- Schreiben von Zeilen (Einfügen, Massenladen, MERGE) — [slice-schreibpfad-bulk-load](../next/slice-schreibpfad-bulk-load.md) und [slice-schreibpfad-merge-output](slice-schreibpfad-merge-output.md).
+- Schreiben von Zeilen (Einfügen, Massenladen, MERGE) — [slice-schreibpfad-bulk-load](../in-progress/slice-schreibpfad-bulk-load.md) und [slice-schreibpfad-merge-output](slice-schreibpfad-merge-output.md).
 - Sichten, Sequenzen, Routinen, Partitionen und Volltextindizes mit Inhalt — kein Lauf des Solls stellt sie mit Inhalt; sie bleiben leere Resultsets mit den Spalten ([slice-katalog-und-ddl-zustand](../done/slice-katalog-und-ddl-zustand.md) §1).
 - Identität (`is_identity`) und berechnete Spalten — Grenze von [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) (Identität ohne Feld); eine Aufnahme ist eine eigene Entscheidung des Nutzers.
 - Referentielle Integrität im Bestand (Fremdschlüssel erzwingen, Indizes nutzen) — der Katalog beschreibt, der Testserver prüft nichts.
