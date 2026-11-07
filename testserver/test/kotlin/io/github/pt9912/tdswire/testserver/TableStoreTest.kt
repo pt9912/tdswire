@@ -95,7 +95,7 @@ class TableStoreTest {
         val failure = assertIs<QueryEvent.Failure>(
             ask(backend, "CREATE TABLE KUNDEN (a INT, PRIMARY KEY (a))").single(),
         )
-        assertEquals("TDS_UNSUPPORTED_SQL", failure.code)
+        assertEquals("TDS_SIM_OBJECT_EXISTS", failure.code)
         assertEquals(listOf("kunden"), listed(backend))
         val rows = ask(backend, "SELECT Id, Name FROM kunden")
         assertEquals(listOf(QueryEvent.ResultEnd(0)), rows.drop(1))
@@ -259,6 +259,26 @@ class TableStoreTest {
         assertEquals(listOf(listOf(1L, "Ada", null)), stored(store))
         assertEquals(1, insert(store, mapOf("Id" to 2L, "Email" to "a@b")))
         assertEquals(listOf(null, "a@b"), stored(store)[1].drop(1))
+    }
+
+    /**
+     * Happy (gemessen, M-19): `CREATE TABLE` ohne Schlüssel legt die Tabelle an; sie hat einen leeren Schlüssel im
+     * Katalog und nimmt gleiche Zeilen mehrfach an (kein Schlüssel, keine Eindeutigkeit).
+     * Wächter: eine Eindeutigkeitsprüfung über den leeren Schlüssel (der Bestand wiese die zweite Zeile ab).
+     * @spec SPEC-035
+     */
+    @Test
+    fun `eine Tabelle ohne Schluessel nimmt gleiche Zeilen an`() {
+        val store = TableStore(emptyList())
+        assertEquals(
+            listOf<QueryEvent>(QueryEvent.UpdateCount(0)),
+            ask(store.backend(), "CREATE TABLE [ohneschluessel] ([Id] INT NOT NULL, [Text] NVARCHAR(10));"),
+        )
+        val table = store.catalog().tables.single()
+        assertEquals(emptyList(), table.primaryKey)
+        val same = mapOf("Id" to 1, "Text" to "a")
+        assertEquals(2, runBlocking { requireNotNull(table.onInsertBatch)(listOf(same, same)) })
+        assertEquals(1, runBlocking { requireNotNull(table.onInsertBatch)(listOf(same)) })
     }
 
     /**

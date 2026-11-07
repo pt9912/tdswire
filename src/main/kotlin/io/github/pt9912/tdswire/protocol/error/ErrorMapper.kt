@@ -189,6 +189,9 @@ internal class ErrorMapper(private val log: ErrorLog = ErrorLog.NONE) {
             ErrorCode.TDS_SIM_UNKNOWN_OBJECT,
             ErrorCode.TDS_SIM_INVALID_VALUE,
             ErrorCode.TDS_SIM_KEY_VIOLATION,
+            ErrorCode.TDS_SIM_OBJECT_EXISTS,
+            ErrorCode.TDS_SIM_COLUMN_EXISTS,
+            ErrorCode.TDS_SIM_OBJECT_NOT_FOUND,
             ErrorCode.TDS_TIMEOUT,
         )
 

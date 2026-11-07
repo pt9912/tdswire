@@ -8,8 +8,9 @@ internal const val DEFAULT_SCHEMA = "dbo"
 /**
  * Eine beschriebene Tabelle (`SPEC-035`). Die Validierung gilt für die Kotlin-Schnittstelle und den Leser
  * der Datei gleichermaßen: Spaltennamen sind ohne Beachtung der Schreibweise eindeutig, es gibt mindestens
- * eine Spalte und einen Schlüssel, jeder Schlüsseleintrag nennt eine vorhandene, nicht nullbare Spalte
- * (Setzung, nicht am Server gemessen). Der Schlüssel wirkt weder auf Resultset noch auf Callbacks.
+ * eine Spalte, jeder Schlüsseleintrag nennt eine vorhandene, nicht nullbare Spalte (Setzung, nicht am Server
+ * gemessen). Der Schlüssel darf leer sein: der echte Server nimmt `CREATE TABLE` ohne Schlüssel an (Messprotokoll
+ * M-19). Der Schlüssel wirkt weder auf Resultset noch auf Callbacks.
  *
  * [onInsertBatch] nimmt die Zeilen einer Massenlade-Nachricht (Pakettyp 0x07, `SPEC-036` Form B) als Liste: die
  * Bibliothek ruft ihn einmal je Nachricht mit allen Zeilen; ob die Nachricht ganz oder gar nicht gilt, entscheidet der
@@ -39,7 +40,6 @@ public data class SimTable(
         val duplicate = SimNames.firstDuplicate(columns.map { it.name })
         require(duplicate == null) { "Spalte doppelt in Tabelle $name (ohne Beachtung der Schreibweise)" }
         byName = columns.associateBy { SimNames.fold(it.name) }
-        require(primaryKey.isNotEmpty()) { "Tabelle $name braucht einen Schlüssel" }
         require(SimNames.firstDuplicate(primaryKey) == null) { "Schlüssel von Tabelle $name nennt eine Spalte doppelt" }
         for (entry in primaryKey) {
             val column = byName[SimNames.fold(entry)]

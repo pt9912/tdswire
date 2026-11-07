@@ -53,13 +53,15 @@ class SimModelTest {
     }
 
     /**
-     * Eine Tabelle braucht mindestens eine Spalte und einen Schlüssel; Namen sind nicht leer.
+     * Eine Tabelle braucht mindestens eine Spalte; Namen sind nicht leer. Ein leerer Schlüssel ist zulässig (der echte
+     * Server nimmt `CREATE TABLE` ohne Schlüssel an, M-19).
+     * Wächter: ein `require` auf einen nicht leeren Schlüssel (die Tabelle ohne Schlüssel wäre nicht beschreibbar).
      * @spec SPEC-035
      */
     @Test
-    fun `weist eine leere Spaltenliste, einen leeren Schlüssel und leere Namen ab`() {
+    fun `weist eine leere Spaltenliste und leere Namen ab und nimmt einen leeren Schlüssel an`() {
         assertFailsWith<IllegalArgumentException> { table(emptyList(), emptyList()) }
-        assertFailsWith<IllegalArgumentException> { table(listOf(id), emptyList()) }
+        assertEquals(emptyList(), table(listOf(id), emptyList()).primaryKey)
         assertFailsWith<IllegalArgumentException> { table(listOf(id), listOf("id"), name = "") }
         assertFailsWith<IllegalArgumentException> { table(listOf(id), listOf("id"), schema = "") }
         assertFailsWith<IllegalArgumentException> { SimColumn("", SqlType.Int32) }

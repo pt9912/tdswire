@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** SPEC-035 (Katalog der Spalten: Typen von `max_length`, `precision`, `scale`, `is_nullable`; Strukturabweisung mit Fehlernummern; Änderungszähler 0, Setzung) · SPEC-036 (Form D: `CREATE TABLE` ohne Schlüssel abgewiesen) · Abschnitt Fehlercodes (`TDS_UNSUPPORTED_SQL`, `TDS_SIM_UNKNOWN_OBJECT` bei der Strukturabweisung). **Die Spezifikation ändert dieser Slice** (Spezifikation ist Zielbild: der Wortlaut folgt dem Messwert, die „bekannte Abweichung“ und die Messvermerke entfallen oder werden zur Zusage).
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** Implementer-Agent, Auftrag des Nutzers 2026-11-07.
 
 **Autor:** pt9912 (Entwurf in der Planner-Rolle). **Datum:** 2026-11-07.
 
@@ -85,7 +85,16 @@ Aussagen-Berührung steht hier gar nicht.
 | `docs/messungen/katalog-und-ddl-zustand-2026-11-06.md`, `docs/user/` (Grenzen) | update | Nachziehen der Aussagen über Typen und Fehler des Katalogs |
 | Tests (Kotlin, `src/test`) | neu / update | Happy/Boundary/Negative nach [TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate) |
 
-Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
+Erweiterung im ersten Lauf (Implementer-Agent, Auftrag des Nutzers 2026-11-07):
+
+| Datei / Komponente | Änderungs-Art | Begründung |
+|---|---|---|
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/error/ErrorCode.kt`, `ErrorMapper.kt` | update | drei Codes für 2714, 2705, 4902 (intern, `BACKEND_CODES`) |
+| `src/main/kotlin/io/github/pt9912/tdswire/simulation/StatementPlanner.kt`, `SimModel.kt` | update | Codes der Abweisung; `CREATE TABLE` ohne Schlüssel, `SimTable` mit leerem Schlüssel (kein neuer Name, gelockerte Prüfung) |
+| `testserver/kotlin/io/github/pt9912/tdswire/testserver/TableStore.kt` | update | Tabelle ohne Schlüssel prüft keine Eindeutigkeit |
+| `docs/user/einbettung-und-betrieb.md`, `docs/user/referenz-konfiguration.md`, `docs/messungen/referenzabgleich.md` | update | Fehlercodes, Schlüssel, Zuordnung M-19 |
+
+**Befund des ersten Laufs (Prüfung der Fläche, Liefer-Punkte 1 und 3).** Liefer-Punkt 2 braucht keinen neuen öffentlichen Namen und ist gebaut. Liefer-Punkt 1 braucht ihn: die Katalogspalten `smallint` und `tinyint` sind mit `SqlType` nicht auszudrücken (`Int32`, `Int64`, `Bool`, `UnicodeText`, `Decimal`, `Date`, `Time`, `DateTime`; `ResultColumn.type` ist `SqlType`), also neue Mitglieder von `SqlType` (öffentliche Fläche, [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Nr. 4 und 9). Liefer-Punkt 3 braucht ihn ebenfalls oder eine Entscheidung über den Ort: `QueryEvent.UpdateCount` schließt immer mit `COUNT`, und der Port trägt weder die Anweisungsart noch einen Zustandswechsel; die Tokens `ENVCHANGE` Typ 8 und 9 hängen an Sitzungszustand (`implicit_transactions`, Transaktionsbeschreiber), den die Schleife heute nicht führt. Rückführung `in-progress` → `next` nach §4 (die Fläche wächst); Schnitt wie in §4 vorgeschlagen.
 
 ## 4. Trigger
 

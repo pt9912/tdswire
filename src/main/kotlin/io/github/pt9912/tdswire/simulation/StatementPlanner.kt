@@ -21,6 +21,15 @@ internal object SimCodes {
     /** Der Einfüge-Callback einer Massenlade-Nachricht ist fehlgeschlagen (Schlüsselverstoß, Messprotokoll M-12). */
     const val KEY_VIOLATION = "TDS_SIM_KEY_VIOLATION"
 
+    /** `CREATE TABLE` einer vorhandenen Tabelle (2714, Messprotokoll M-19). */
+    const val OBJECT_EXISTS = "TDS_SIM_OBJECT_EXISTS"
+
+    /** `ALTER TABLE … ADD` einer vorhandenen Spalte (2705, Messprotokoll M-19). */
+    const val COLUMN_EXISTS = "TDS_SIM_COLUMN_EXISTS"
+
+    /** `ALTER TABLE` einer Tabelle, die der Katalog nicht führt (4902, Messprotokoll M-19). */
+    const val OBJECT_NOT_FOUND = "TDS_SIM_OBJECT_NOT_FOUND"
+
     /** Die Zeilenquelle ist fehlgeschlagen (`TDS-FA-11.a` Schritt 7). */
     const val BACKEND_ERROR = "TDS_BACKEND_ERROR"
 }
@@ -126,9 +135,10 @@ internal class StatementPlanner(private val catalogs: () -> SimCatalog) {
     }
 
     /**
-     * `CREATE TABLE`: die Tabelle darf nicht beschrieben sein, der Schlüssel nennt vorhandene Spalten, und eine
-     * Schlüsselspalte ist nicht nullbar (Setzung nach dem Server, am Server dieses Repos nicht gemessen). Ohne
-     * Schlüssel ist die Tabelle nicht beschreibbar (`SPEC-035`) und der Text abgewiesen.
+     * `CREATE TABLE`: die Tabelle darf nicht beschrieben sein (sonst [SimCodes.OBJECT_EXISTS], gemessen M-19), der
+     * Schlüssel nennt vorhandene Spalten, und eine Schlüsselspalte ist nicht nullbar (Setzung nach dem Server, am
+     * Server dieses Repos nicht gemessen). Ohne Schlüssel gelingt die Anweisung, die Tabelle hat dann einen leeren
+     * Schlüssel (gemessen M-19).
      */
     private fun create(statement: Statement.CreateTable, catalog: SimCatalog): PlanResult {
         val schema = statement.table.schema ?: DEFAULT_SCHEMA
@@ -136,30 +146,31 @@ internal class StatementPlanner(private val catalogs: () -> SimCatalog) {
         val known = statement.cols.associateBy { SimNames.fold(it.name) }
         return when {
             catalog.find(schema, statement.table.name) != null ->
-                reject(SimCodes.UNSUPPORTED_SQL, "Tabelle ist schon beschrieben")
+                reject(SimCodes.OBJECT_EXISTS, "Tabelle ist schon beschrieben")
 
-            key == null -> reject(SimCodes.UNSUPPORTED_SQL, "Tabelle ohne Schlüssel nicht beschreibbar")
-
-            key.any { SimNames.fold(it) !in known } ->
+            key != null && key.any { SimNames.fold(it) !in known } ->
                 reject(SimCodes.UNKNOWN_OBJECT, "Schlüsselspalte nicht beschrieben")
 
             else -> {
-                val keyed = key.map { SimNames.fold(it) }.toSet()
+                val keyed = key.orEmpty().map { SimNames.fold(it) }.toSet()
                 val columns = statement.cols.map {
                     if (SimNames.fold(it.name) in keyed) it.copy(nullable = false) else it
                 }
-                val names = key.map { known.getValue(SimNames.fold(it)).name }
+                val names = key.orEmpty().map { known.getValue(SimNames.fold(it)).name }
                 PlanResult.Structure(StructurePlan(schema, statement.table.name, columns, names))
             }
         }
     }
 
-    /** `ALTER TABLE … ADD`: die Tabelle ist beschrieben, die neuen Spalten nicht; Schlüssel und Name bleiben. */
+    /**
+     * `ALTER TABLE … ADD`: die Tabelle ist beschrieben (sonst [SimCodes.OBJECT_NOT_FOUND]), die neuen Spalten nicht
+     * (sonst [SimCodes.COLUMN_EXISTS]); Schlüssel und Name bleiben. Beide Fehler sind gemessen (M-19).
+     */
     private fun addColumns(statement: Statement.AddColumns, catalog: SimCatalog): PlanResult {
         val table = catalog.find(statement.table.schema, statement.table.name)
-            ?: return reject(SimCodes.UNKNOWN_OBJECT, "Tabelle nicht beschrieben")
+            ?: return reject(SimCodes.OBJECT_NOT_FOUND, "Tabelle nicht beschrieben")
         return if (statement.columns.any { table.column(it.name) != null }) {
-            reject(SimCodes.UNSUPPORTED_SQL, "Spalte ist schon beschrieben")
+            reject(SimCodes.COLUMN_EXISTS, "Spalte ist schon beschrieben")
         } else {
             PlanResult.Structure(
                 StructurePlan(table.schema, table.name, table.columns + statement.columns, table.primaryKey),
