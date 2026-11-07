@@ -1,0 +1,2 @@
+**Vorgang:** [slice-betrieb-zustandsereignisse](../../../../in-progress/slice-betrieb-zustandsereignisse.md)
+**Fund:** [Verifikation](../../../../../../reviews/2026-11-07-b0ac40c5-verifikation-slice-betrieb-zustandsereignisse.md) V-2: §1 und §2 verlangen für jede Konstante einen Konfigurationsschlüssel, auch für `MAX_TDS_PACKET_BYTES`; §3 sagt „bleibt Protokollkonstante“ (`SPEC-006`). Der Slice widersprach sich selbst; gebaut ist die Konstante. Entscheid des Planners nach Empfehlung des Verifiers: Abweichung bestätigt, Wortlaut in §1 bis §3 angeglichen.
