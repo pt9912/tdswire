@@ -37,6 +37,9 @@ public enum class EventLevel {
  *   Wer eine Senke für mehrere Server teilt, übergibt jedem Server eine Hülle, die den Server kennzeichnet.
  *
  * Das Ereignis trägt für Passwort, Prüfwert, Parameterwert, SQL-Text, Pfad und Ausnahmetext kein Feld.
+ *
+ * Ein Beispiel einer Senke liegt im Modul `testserver` (`LogAdapter`): eine JSON-Zeile je Ereignis, begrenzte
+ * Warteschlange mit einem Schreiber, Leeren mit Frist beim Prozessende. Die Bibliothek ist daran nicht gebunden.
  */
 public fun interface TelemetrySink {
     /** Nimmt ein Ereignis entgegen; siehe den Vertrag der Schnittstelle. */

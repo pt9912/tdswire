@@ -14,7 +14,8 @@ repositories {
 // nur ihre oeffentliche Flaeche (`TdsServer.start`) sieht. `internal` der Bibliothek ist hier nicht uebersetzbar, solange die
 // Modulgrenze zu bleibt (tools/modulgrenze-sperre.sh prueft diese Datei; Messung M1:
 // docs/messungen/testserver-gradle-modul-2026-11-06.md).
-// Jackson liest die Datei der Tabellenbeschreibung und gehoert nur diesem Modul; es steht weder im Klassenpfad der
+// Jackson liest die Datei der Tabellenbeschreibung (dataformat-yaml) und schreibt die JSON-Zeilen des Log-Adapters
+// (jackson-core, ADR-0020) und gehoert nur diesem Modul; es steht weder im Klassenpfad der
 // Bibliothek noch in `build/libs/lib`. Grenze des Nachweises: `internal` ist im Bytecode oeffentlich, er gilt fuer
 // Kotlin-Quellen im Modul.
 // Jede aufgeloeste Version steht in testserver/gradle.lockfile; `make deps-lock` schreibt sie bewusst neu.
@@ -29,6 +30,7 @@ dependencies {
     implementation(project(":"))
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.jackson.dataformat.yaml)
+    implementation(libs.jackson.core)
 
     testImplementation(libs.kotlin.test)
     testImplementation(libs.kotlin.test.junit5)

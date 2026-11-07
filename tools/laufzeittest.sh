@@ -8,9 +8,11 @@
 # meldet sich an; `docker stop` beendet den Prozess (SIGTERM, Exit-Code 143). Zusage: Start, Login und Stop des
 # Testserver-Containers mit Rohbytes; nicht belegt: Annahme durch Microsoft.Data.SqlClient, TLS, Last.
 # Der Container ist kein Produkt-Image (ADR-0025 Entscheidung 4): Nutzer, Inhalt von /app, Lizenz im Image und
-# JAVA_TOOL_OPTIONS sind keine Zusage dieses Laufs. Die Pruefung der Ausgabe auf Zeilen der Bibliothek ist nicht
-# Teil des Laufs: der Testserver schreibt nur die Zeilen `gestartet` und `gestoppt`.
+# JAVA_TOOL_OPTIONS sind keine Zusage dieses Laufs. Die Ausgabe des Testservers besteht aus den Zeilen `gestartet` und
+# `gestoppt` und je einer JSON-Zeile je Ereignis der Bibliothek (ADR-0020); der Lauf prueft, dass die Anmeldung als
+# Ereignis `login_accepted` mit der Kennung im Feld `principal` dasteht und dass nirgends sonst Benutzer oder Passwort stehen.
 set -u
+. "$(dirname "$0")/log-muster.sh" || { echo "log-muster.sh nicht lesbar" >&2; exit 1; }
 
 LAUF="tdswire-lz-$$"
 NETZ="$LAUF-netz"
@@ -72,8 +74,16 @@ ende="$(docker inspect --format '{{.State.ExitCode}}' "$SERVER")"
 # 143 = 128 + SIGTERM: die JVM endet nach dem Shutdown-Hook mit diesem Code (gemessen am 2026-10-31).
 pruefe "docker stop beendet den Prozess durch SIGTERM, Exit-Code 143 (gemessen: $ende)" test "$ende" = "143"
 pruefe "Ausgabe des Testservers nennt 'gestoppt'" sh -c "docker logs '$SERVER' 2>&1 | grep -q 'tdswire: gestoppt'"
-pruefe "Ausgabe des Testservers nennt weder Benutzer noch Passwort" \
-  sh -c "! docker logs '$SERVER' 2>&1 | grep -Eq 'alice|secret'"
+anmeldung_als_ereignis() {
+  docker logs "$SERVER" 2>&1 | log_nennt_ereignis login_accepted '"principal":"alice"'
+}
+pruefe "Ausgabe des Testservers nennt die Anmeldung als Ereignis login_accepted mit principal alice" anmeldung_als_ereignis
+benutzer_nur_im_principal() {
+  docker logs "$SERVER" 2>&1 | log_text_nur_im_ereignis alice login_accepted
+}
+pruefe "Ausgabe des Testservers nennt den Benutzer nur im Ereignis login_accepted" benutzer_nur_im_principal
+kein_passwort() { ! docker logs "$SERVER" 2>&1 | grep -q 'secret'; }
+pruefe "Ausgabe des Testservers nennt das Passwort nicht" kein_passwort
 
 echo "laufzeittest: Laufzeit $(( $(date +%s) - start )) s (Builds eingeschlossen)"
 [ "$FEHLER" -eq 0 ] || { echo "laufzeittest: ROT"; exit 1; }

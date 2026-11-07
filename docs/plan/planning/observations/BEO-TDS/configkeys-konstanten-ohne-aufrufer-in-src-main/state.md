@@ -1,0 +1,1 @@
+**Stand:** offen — 1×; kein Slice. Der Auslöser („beim Anfassen von `EnvKeys` und des Laders entscheiden“) ist im Slice [slice-betrieb-log-adapter-testserver](../../../done/slice-betrieb-log-adapter-testserver.md) nicht eingetreten (der Diff berührt weder `EnvKeys` noch den Lader); der Eintrag trägt die Aufgabe über die Closure hinaus.

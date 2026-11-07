@@ -30,9 +30,12 @@ Ein zweites `make testserver-up` bei bestehendem Container bricht ab und nennt `
 | Tabellen | die zwei Beispiel-Tabellen unten | `TESTSERVER_BESCHREIBUNG=<Datei>` |
 | Container, Image | `tdswire-testserver`, `tdswire-testserver:lokal` | `TESTSERVER_NAME=`, `TESTSERVER_IMAGE=` |
 | Image bauen | ja | `TESTSERVER_BAUEN=0` baut nicht (Image muss vorhanden sein) |
+| Log-Ebene | `INFO` (Voreinstellung des Testservers) | `TESTSERVER_LOG_LEVEL=DEBUG` (`ERROR`, `WARN`, `INFO`, `DEBUG`); ein anderer Wert bricht den Start des Servers ab |
 | Wartezeit bis zur Bereitschaft | 60 Sekunden | `TESTSERVER_WARTEN=<Sekunden>` |
 
 Die Variablen stehen im Kopf von `tools/testserver.sh`, ihre Prüfungen und Meldungen im Rumpf von `up`. Die Voreinstellung der Bibliothek ist `REQUIRED` (`SPEC-010`, [Abschnitt Defaults](../../spec/spezifikation.md#3-defaults-und-konstanten)); der Testserver setzt für den Handlauf `TEST_UNENCRYPTED`, und `make testserver-up` sagt es in seiner Ausgabe: `Testwerte, keine Verschluesselung`. Das Kennwort `secret` ist ein Testwert.
+
+**Log-Ebene.** `make testserver-logs` zeigt neben den Zeilen `tdswire: …` eine JSON-Zeile je Ereignis; `TESTSERVER_LOG_LEVEL` wird als `LOG_LEVEL` an den Container gereicht. Format, Ebenen, Überlauf und Prozessende beschreibt der Absatz „Log des Testservers“ in [Einbettung und Betrieb](einbettung-und-betrieb.md). Gemessen am 2026-11-06 (einmal von Hand): der Container trägt `LOG_LEVEL=DEBUG` (`docker inspect`); im Handlauf erscheint dabei kein weiteres Ereignis (das Backend ist eine eigene Quelle, die Art `simulation_backend_ready` der Ebene `DEBUG` entsteht nur bei der Simulation der Bibliothek; am Prozess gemessen von `TestserverLogProcessTest` in `make test`), und `make testserver-selbsttest` prüft die Weitergabe nicht.
 
 **Anderer Host.** `TESTSERVER_HOST=0.0.0.0 make testserver-up` macht den Server im Netz erreichbar. `make testserver-up` warnt dann mit `WARNUNG: <Host> ist nicht Loopback; der Server ist im Netz erreichbar`; der Zweig ist im Selbsttest belegt. Ein Zugriff von einem anderen Rechner ist nicht gemessen. Wer das tut, setzt Klartext und Testkennwort dem Netz aus.
 
@@ -100,7 +103,7 @@ testserver-up: Testwerte, keine Verschluesselung (TDS 7.4 im Klartext)
 testserver-up: Stop mit 'make testserver-down', Log mit 'make testserver-logs'
 
 testserver-status: laeuft (tdswire-testserver, 127.0.0.1:14333)
-tdswire: gestartet, Port 1433                       (make testserver-logs)
+tdswire: gestartet, Port 1433                       (make testserver-logs; daneben stehen JSON-Zeilen der Ereignisse)
 laufzeit-client: Login ok                           (Exit 0)
 laufzeit-client: Login fehlgeschlagen               (mit -e TDSWIRE_PASSWORT=falsch, Exit 1; danach Gradle-Meldung `BUILD FAILED`)
 testserver-down: Container tdswire-testserver gestoppt und entfernt
