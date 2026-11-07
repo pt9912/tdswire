@@ -7,6 +7,9 @@ import io.github.pt9912.tdswire.domain.telemetry.RequestKind
 import io.github.pt9912.tdswire.domain.telemetry.SpanOutcome
 import io.github.pt9912.tdswire.domain.telemetry.TelemetryEvent
 import java.time.Instant
+import java.util.concurrent.CyclicBarrier
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.concurrent.thread
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -202,5 +205,34 @@ internal class ObserverTest {
         assertEquals(few, many)
         assertTrue(many.none { "a-" in it || "select" in it }, many.toString())
         assertEquals(501L, metrics().getValue(MetricKeys.REQUESTS))
+    }
+
+    /**
+     * Das Ende ist atomar: acht Threads beenden je Runde denselben Span gleichzeitig (Barriere vor jedem Aufruf), und
+     * jeder Span erzeugt genau ein Ereignis; danach ist kein Span offen. Ein Stresstest, kein Beweis: eine
+     * Prüfen-dann-Setzen-Lücke zeigt er mit hoher Wahrscheinlichkeit, nicht mit Sicherheit.
+     *
+     * @spec SPEC-018
+     * @spec TDS-QA-02
+     */
+    @Test
+    fun `Das Ende eines Spans ist unter Nebenlaeufigkeit atomar`() {
+        val count = AtomicInteger()
+        val concurrent = Observer(emit = { build -> if (build(Instant.EPOCH) != null) count.incrementAndGet() })
+        val threads = 8
+        val rounds = 5_000
+        val spans = List(rounds) { concurrent.connection(it.toLong()) }
+        val barrier = CyclicBarrier(threads)
+        val workers = List(threads) {
+            thread {
+                spans.forEach { span ->
+                    barrier.await()
+                    span.end(SpanOutcome.OK)
+                }
+            }
+        }
+        workers.forEach { it.join() }
+        assertEquals(rounds, count.get())
+        assertEquals(0, concurrent.openSpans())
     }
 }

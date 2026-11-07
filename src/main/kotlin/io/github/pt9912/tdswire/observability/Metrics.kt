@@ -25,7 +25,8 @@ internal object MetricKeys {
  * Die Zähler und Messwerte der Bibliothek. Zähler (`*_total`) wachsen seit dem Start des Servers;
  * `sessions_active`, `backend_active` und `spans_open` (ergänzt der [Observer]) sind Momentwerte. Die
  * Latenz-Perzentile gelten für alle Anfragen seit dem Start und sind die Klassengrenzen von [LatencyHistogram], nicht
- * gemessene Dauern.
+ * gemessene Dauern. [read] liest die Werte einzeln: bei gleichzeitigem Ende eines Spans können `requests_total` und die
+ * Verteilung um einen Eintrag auseinanderliegen.
  *
  * Eine Anfrage zählt als Abbruch, wenn sie mit [SpanOutcome.CANCELLED] oder [SpanOutcome.TIMEOUT] endet, und als
  * Protokollfehler bei [SpanOutcome.PROTOCOL_ERROR]; eine Anmeldung zählt als Fehler bei

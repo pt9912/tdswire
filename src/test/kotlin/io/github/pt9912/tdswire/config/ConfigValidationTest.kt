@@ -55,6 +55,7 @@ class ConfigValidationTest {
      * @spec SPEC-009
      * @spec SPEC-033
      * @spec SPEC-017
+     * @spec SPEC-062
      */
     @Test
     fun `Bereichsgrenzen gelten auch ohne Lader`() {

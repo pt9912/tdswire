@@ -21,8 +21,9 @@ import java.util.concurrent.atomic.AtomicInteger
  * Die Aggregation von Spans und Metriken (`ADR-0020` Frage 2 und 6, `ARC-009`): zählt Verbindungen, Anfragen und
  * Backend-Aufrufe, misst deren Dauer und gibt das Ende jedes Spans sowie den Schnappschuss der Metriken über [emit] als
  * Ereignis weiter. [emit] baut das Ereignis mit dem Zeitpunkt des Zeitgebers der Bibliothek und reicht es an die
- * Senke; es wirft nicht. Die Dauer misst [nanoTime] (monoton). Der Beobachter trifft keine fachliche Entscheidung: die
- * Stellen der Bibliothek nennen ihm das Ende und dessen Marke ([SpanOutcome]).
+ * Senke; es fängt eine `Exception` der Senke, lässt `CancellationException` und `Error` zum Aufrufer laufen und hält
+ * den Aufrufer an, solange die Senke blockiert. Die Dauer misst [nanoTime] (monoton). Der Beobachter trifft keine
+ * fachliche Entscheidung: die Stellen der Bibliothek nennen ihm das Ende und dessen Marke ([SpanOutcome]).
  *
  * Ein Span endet genau einmal ([Span.end]); [openSpans] zählt die Spans, die begonnen und nicht beendet sind.
  */

@@ -41,6 +41,14 @@ internal class ThrowsOnMeasurements(private val inner: CapturedEvents) : Telemet
     }
 }
 
+/** Eine Senke, die jedes Ereignis aufnimmt und beim ersten Schnappschuss einen `Error` wirft. */
+internal class ErrorOnMetrics(private val inner: CapturedEvents) : TelemetrySink {
+    override fun accept(event: TelemetryEvent) {
+        inner.accept(event)
+        if (event.kind == EventKind.METRICS) throw AssertionError("senke gebrochen $WERTPROBE")
+    }
+}
+
 /**
  * Spans und Metriken am Socket (`SPEC-017` bis `SPEC-019`, `TDS-FA-09`): der Server läuft im Prozess, der
  * Rohbytes-Client spricht PRELOGIN, LOGIN7 und Anfragen, ein Fake-Backend antwortet, die Senke ist der Sammler.
@@ -463,6 +471,31 @@ internal class MetricsTracingWiringTest : RuntimeTestBase() {
         assertEquals(listOf("error"), spans("tds.connection").map { it.outcome })
         val metrics = awaitMetrics("Ruhe") { it[MetricKeys.SPANS_OPEN] == 0L }
         assertEquals(0L, metrics.value(MetricKeys.SESSIONS_ACTIVE))
+    }
+
+    /**
+     * Wirft die Senke beim Schnappschuss einen `Error`, endet der Zeitgeber (der `Error` läuft aus ihm heraus, wie am
+     * Anfragepfad): nach zwei Abständen steht genau ein `METRICS` im Sammler. Der Server nimmt weiter an und
+     * beantwortet Anfragen, und die Spans enden weiter.
+     *
+     * @spec SPEC-017
+     * @spec TDS-FA-09
+     */
+    @Test
+    fun `Ein Error der Senke beendet den Zeitgeber, nicht den Server`() = blocking {
+        val backend = FlowBackend(delivering(*oneRow))
+        val server = running(environment(), Wiring(telemetry = ErrorOnMetrics(sink), requests = RequestSource(backend)))
+        eventually("erster Schnappschuss") { sink.events.any { it.kind == EventKind.METRICS } }
+        delay(SHORT_WAIT_MILLIS)
+        assertEquals(1, sink.events.count { it.kind == EventKind.METRICS })
+        RawClient(server.port).use { client ->
+            assertTrue(login(client))
+            client.send(batch("ergebnis"))
+            client.reply("ok")
+        }
+        eventually("Verbindung beendet") { spans("tds.connection").size == 1 }
+        assertEquals(listOf("ok"), spans("tds.query").map { it.outcome })
+        assertEquals(1, sink.events.count { it.kind == EventKind.METRICS })
     }
 
     private companion object {

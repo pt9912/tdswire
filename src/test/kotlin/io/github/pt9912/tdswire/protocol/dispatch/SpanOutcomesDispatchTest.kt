@@ -8,20 +8,28 @@ import io.github.pt9912.tdswire.domain.telemetry.Span
 import io.github.pt9912.tdswire.domain.telemetry.SpanOutcome
 import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.port.QueryExecution
+import io.github.pt9912.tdswire.protocol.response.SequenceOutcome
+import io.github.pt9912.tdswire.protocol.response.TokenSink
+import io.github.pt9912.tdswire.protocol.session.CancelCause
+import io.github.pt9912.tdswire.protocol.token.Token
 import io.github.pt9912.tdswire.testsupport.RpcVectors
 import io.github.pt9912.tdswire.testsupport.blocking
 import io.github.pt9912.tdswire.testsupport.hex
 import io.github.pt9912.tdswire.transport.framing.PacketType
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertSame
+import kotlin.time.Duration.Companion.seconds
 
 /** Ein Span, der jedes Ende mitschreibt; mehr als ein Eintrag heißt: das Ende kam mehrfach an. */
 private class RecordedSpan(val requestId: String, val kind: RequestKind?) : Span {
@@ -52,14 +60,25 @@ private class RecordingSession : SessionInstruments {
 class SpanOutcomesDispatchTest {
     private val oneRow = arrayOf(resultStart(), QueryEvent.Row(listOf(7)), QueryEvent.ResultEnd(1))
 
-    private fun loop(session: Session, backend: QueryBackend, observed: SessionInstruments, gate: ShutdownGate) =
-        RequestLoop(
-            session.ready,
-            session.channel,
-            backend,
-            times = fixedTimes(),
-            hooks = RequestHooks(Counter()::next, gate = gate, session = observed),
-        )
+    private fun loop(
+        session: Session,
+        backend: QueryBackend,
+        observed: SessionInstruments,
+        times: RequestTimes = fixedTimes(),
+        sinkAround: (TokenSink) -> TokenSink = { it },
+    ) = RequestLoop(
+        session.ready,
+        session.channel,
+        backend,
+        times = times,
+        hooks = RequestHooks(Counter()::next, sinkAround, session = observed),
+    )
+
+    private class RejectingSink(private val inner: TokenSink) : TokenSink {
+        private var seen = 0
+
+        override suspend fun accept(token: Token): Boolean = if (++seen == 2) false else inner.accept(token)
+    }
 
     private fun rpc(payload: String) = BatchVectors.raw(PacketType.RPC, hex(payload))
 
@@ -80,7 +99,9 @@ class SpanOutcomesDispatchTest {
 
             override fun onGraceExpired(abort: suspend () -> Unit) = Unit
         }
-        loop(Session.login(BatchVectors.message("spaet")), backend, observed, gate).run()
+        val session = Session.login(BatchVectors.message("spaet"))
+        val hooks = RequestHooks(Counter()::next, gate = gate, session = observed)
+        RequestLoop(session.ready, session.channel, backend, times = fixedTimes(), hooks = hooks).run()
         assertEquals(listOf(listOf(SpanOutcome.SHUTDOWN)), observed.requests.map { it.outcomes.toList() })
         assertEquals(0, observed.backends.size)
         assertEquals(0, backend.requests.size)
@@ -106,7 +127,7 @@ class SpanOutcomesDispatchTest {
             rpc(RpcVectors.EXECUTE),
             BatchVectors.raw(PacketType.RPC, ByteArray(3)),
         )
-        loop(session, backend, observed, ShutdownGate.NONE).run()
+        loop(session, backend, observed).run()
         assertEquals(
             listOf("r1", "r2", "r3", "r4", "r5"),
             observed.requests.map { it.requestId },
@@ -195,5 +216,90 @@ class SpanOutcomesDispatchTest {
 
         val plain = Scripted { execution(flowOf()) }
         assertSame(plain, plain.observed(SessionInstruments.NONE))
+    }
+
+    /**
+     * Die Abbildung des Laufendes auf das `outcome` von `tds.query`, Fall für Fall: der Ausgang des Sequenzierers, der
+     * Auslöser des Abbruchs, wenn die Antwort nicht vollständig war, der Ausgang der Antwort, wenn sie es war, und die
+     * Enden ohne Antwort.
+     *
+     * @spec SPEC-018
+     */
+    @Test
+    fun `Das Ende des Laufs ergibt das outcome von tds_query`() {
+        assertEquals(SpanOutcome.OK, RunEnd.Finished(SequenceOutcome.COMPLETED).spanOutcome())
+        assertEquals(SpanOutcome.ERROR, RunEnd.Finished(SequenceOutcome.FAILED).spanOutcome())
+        assertEquals(SpanOutcome.ERROR, RunEnd.Finished(SequenceOutcome.FAILED_CLOSE_CONNECTION).spanOutcome())
+        assertEquals(SpanOutcome.CLOSED, RunEnd.Finished(SequenceOutcome.CLOSE_WITHOUT_COMPLETION).spanOutcome())
+        assertEquals(SpanOutcome.CANCELLED, RunEnd.Cut(CancelCause.ATTENTION, null).spanOutcome())
+        assertEquals(SpanOutcome.TIMEOUT, RunEnd.Cut(CancelCause.DEADLINE, null).spanOutcome())
+        assertEquals(SpanOutcome.SHUTDOWN, RunEnd.Cut(CancelCause.SHUTDOWN, null).spanOutcome())
+        val unfinished = SequenceOutcome.CLOSE_WITHOUT_COMPLETION
+        assertEquals(SpanOutcome.CANCELLED, RunEnd.Cut(CancelCause.ATTENTION, unfinished).spanOutcome())
+        assertEquals(SpanOutcome.OK, RunEnd.Cut(CancelCause.ATTENTION, SequenceOutcome.COMPLETED).spanOutcome())
+        assertEquals(SpanOutcome.ERROR, RunEnd.Cut(CancelCause.DEADLINE, SequenceOutcome.FAILED).spanOutcome())
+        assertEquals(SpanOutcome.ABANDONED, RunEnd.Abandoned.spanOutcome())
+        assertEquals(SpanOutcome.DISCONNECTED, RunEnd.Disconnected.spanOutcome())
+    }
+
+    /**
+     * Ein Backend, das den Abbruch ignoriert: nach `CANCEL_TIMEOUT` endet `tds.query` mit `abandoned`, der Span
+     * `backend.execute` ist dann noch offen und endet erst, wenn das Backend zurückkehrt (hier mit `ok`: sein Strom
+     * endet regulär, auch wenn es den Abbruch ignorierte).
+     *
+     * @spec SPEC-018
+     * @spec SPEC-019
+     * @spec SPEC-033
+     */
+    @Test
+    fun `Ein Backend, das den Abbruch ignoriert, endet tds_query mit abandoned und backend_execute spaeter`() =
+        blocking {
+            val pause = SteeredPause()
+            val gate = CompletableDeferred<Unit>()
+            val backend = FlowBackend(ignoringCancel(gate, resultStart()))
+            val observed = RecordingSession()
+            val times = RequestTimes(30.seconds, 5.seconds, now = { FIXED_NOW }, pause = pause::pause)
+            withGate(gate) {
+                val session = Session.login(BatchVectors.message("stuck"))
+                val serving = launch { loop(session, backend, observed, times = times).run() }
+                backend.collecting.await()
+                session.channel.feed(BatchVectors.attention())
+                pause.awaitWaiting(5.seconds)
+                pause.fire(5.seconds)
+                serving.join()
+                assertEquals(listOf(SpanOutcome.ABANDONED), observed.requests.single().outcomes.toList())
+                assertEquals(emptyList(), observed.backends.single().outcomes.toList(), "Backend-Aufruf noch offen")
+                gate.complete(Unit)
+                awaitUntil { observed.backends.single().outcomes.isNotEmpty() }
+                assertEquals(listOf(SpanOutcome.OK), observed.backends.single().outcomes.toList())
+            }
+        }
+
+    /**
+     * Endet die Anfrage ohne Antwort (die Senke nimmt ein Token nicht an, `CLOSE_WITHOUT_COMPLETION`), endet
+     * `tds.query` mit `closed`; ebenso, wenn die Coroutine der Schleife mitten in der Anfrage abgebrochen wird (die
+     * Voreinstellung der Stelle in `answer`).
+     *
+     * @spec SPEC-018
+     * @spec SPEC-031
+     */
+    @Test
+    fun `Eine Anfrage ohne vollstaendige Antwort endet mit closed`() = blocking {
+        val rejected = RecordingSession()
+        val oneRowBackend = FlowBackend(delivering(*oneRow))
+        val session = Session.login(BatchVectors.message("q"))
+        loop(session, oneRowBackend, rejected, sinkAround = { RejectingSink(it) }).run()
+        assertEquals(listOf(SpanOutcome.CLOSED), rejected.requests.single().outcomes.toList())
+
+        val cancelled = RecordingSession()
+        val gate = CompletableDeferred<Unit>()
+        val hanging = FlowBackend(suspendedAfter(gate))
+        withGate(gate) {
+            val running = Session.login(BatchVectors.message("haengt"))
+            val serving = launch { loop(running, hanging, cancelled).run() }
+            hanging.collecting.await()
+            serving.cancelAndJoin()
+        }
+        assertEquals(listOf(SpanOutcome.CLOSED), cancelled.requests.single().outcomes.toList())
     }
 }

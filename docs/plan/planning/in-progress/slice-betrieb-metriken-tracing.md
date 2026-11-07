@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [TDS-FA-09](../../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose), [TDS-FA-08](../../../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-QA-04](../../../../spec/lastenheft.md#tds-qa-04--performance), [ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md) (`Accepted`, Fragen 2 und 6: Schnittstelle in `domain`, Aggregation in `observability`, Schnappschuss und Span-Ende als Ereignisse an die Senke)
 
-**Berührte Spec-Stellen:** SPEC-017 · SPEC-018 · SPEC-019 · SPEC-029 · ARC-009 · [TDS-FA-09.a](../../../../spec/spezifikation.md#tds-fa-09a--konfiguration-und-diagnose)
+**Berührte Spec-Stellen:** SPEC-017 · SPEC-018 · SPEC-019 · SPEC-062 · SPEC-052 · SPEC-059 · SPEC-044 · SPEC-048 · SPEC-009 · SPEC-011 · SPEC-030 · ARC-009 · [TDS-FA-09.a](../../../../spec/spezifikation.md#tds-fa-09a--konfiguration-und-diagnose)
 
 **Verantwortlich:** Implementer-Agent, Auftrag des Nutzers 2026-11-07.
 
@@ -87,9 +87,18 @@ Aussagen-Berührung steht hier gar nicht.
 | `testserver/kotlin/io/github/pt9912/tdswire/testserver/` (`ConfigLoader`, `EnvKeys`, `TelemetryJson`) | update | Lader liest `METRICS_INTERVAL_SECONDS`; Zeile für `metrics` und Span-Ende |
 | `src/test/kotlin/io/github/pt9912/tdswire/observability/` und `runtime/` <!-- d-check:ignore (geplant: neue Datei) --> | neu | Unit-Tests des `Observer`; Rohbytes-Lauf mit Sammler (Login, Anfrage, Fehler, Cancel, Disconnect), Kardinalität, Ausfall der Senke; `@spec`-Tag SPEC-017, SPEC-018, SPEC-019 |
 | `testserver/test/` und `src/test/.../TestserverLogProcessTest.kt` | update | Lader, Zeilen `metrics` und `span_ended` am Prozess `main` |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/dispatch/RequestOutcomes.kt` | neu | Abbildung des Laufendes und des Ausgangs des Sequenzierers auf das `outcome` von `tds.query`; bei der Zerlegung von `RequestLoop` entstanden (Grenze `TooManyFunctions`) |
+| `src/test/kotlin/io/github/pt9912/tdswire/protocol/dispatch/SpanOutcomesDispatchTest.kt` | neu | `outcome` an den Stellen der Schleife und der Hülle um das Backend, ohne Netz |
+| `src/integrator/kotlin/io/github/pt9912/tdswire/integrator/` (`TelemetryEmbeddingTest`, `TelemetryFelderEmbeddingTest`) | update | Ereignisliste mit den Enden der Spans, Felder und Schnappschuss über die öffentliche Fläche |
+| `src/test/kotlin/` (`ConfigValidationTest`, `EnvironmentConfig`, `TelemetryEventTest`, `TelemetryRedactionTest`, `TestserverLogProcessTest`) | update | Bereich und Voreinstellung des Abstands, Ereignisse der neuen Arten, Typliste der Redaktion (`Map` nur für `metrics`), Zeilen am Prozess |
+| `docs/plan/spec-abdeckung.md` | update | mit `make spec-abdeckung` erzeugt, `SPEC-017` bis `SPEC-019` mit bestandenen Tests |
 | `spec/spezifikation.md` (Abschnitt 5, Abschnitt 4, Tabelle der Eingänge des Testservers), `docs/user/einbettung-und-betrieb.md` | update | Zielzustand wird gebaut: Stand der Zusage, Werte von `outcome`, Schlüssel von `metrics`, `METRICS_INTERVAL_SECONDS`; Konfliktfläche mit dem Zweig der Zustandsereignisse |
 
-**Zuschnitt der Fläche (vorab).** Neue öffentliche Typnamen entstehen nicht: Das Ereignis `metrics` und das Span-Ende sind zwei Arten und sieben Zugriffe an `EventKind` und `TelemetryEvent`, ein Konstruktorparameter an `ServerConfig`. Die Ereignisklassen, die Schnittstelle der Spans und der `Observer` sind `internal`. Ob die Anfrage-Kennung auch in `REQUEST_FAILED` geht, bleibt dem Nutzer (§6, letztes Risiko); dieser Lauf erweitert `REQUEST_FAILED` nicht.
+**Zuschnitt der Fläche (vorab).** Neue öffentliche Typnamen entstehen nicht: Das Ereignis `metrics` und das Span-Ende sind zwei Arten und sieben Zugriffe an `EventKind` und `TelemetryEvent`, ein Konstruktorparameter an `ServerConfig`. Die Ereignisklassen, die Schnittstelle der Spans und der `Observer` sind `internal`.
+
+**Abweichung vom Plan-Wortlaut.** Der Abstand der Schnappschüsse ist kein Konstruktorparameter von `ServerConfig`, sondern `RequestSettings.metricsIntervalSeconds` (in `ServerConfig.requests`): ein siebter Parameter von `ServerConfig` bricht die Grenze `LongParameterList` (6) von detekt, und ein eigener Typ wäre ein neuer öffentlicher Name. Der Nutzer entscheidet, ob ein eigener Typ folgt. Die Spezifikation führt den Ort (Abschnitt 5, `SPEC-062`). Dazu sind im Plan nicht vorhergesehen: `SPEC-062` als neue Zeile der Tabelle der Defaults (zweite Fundstelle des Abstands), der Zusatzschlüssel `spans_open` und die Hülle `InstrumentedBackend` statt einer Instrumentierung in `transport`.
+
+Ob die Anfrage-Kennung auch in `REQUEST_FAILED` geht, bleibt dem Nutzer (§6, letztes Risiko); dieser Lauf erweitert `REQUEST_FAILED` nicht.
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 

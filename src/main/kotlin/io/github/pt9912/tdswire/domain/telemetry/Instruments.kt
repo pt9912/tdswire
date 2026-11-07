@@ -84,8 +84,9 @@ internal enum class RequestKind {
 }
 
 /**
- * Ein Span (`SPEC-017` bis `SPEC-019`). [end] beendet ihn genau einmal; jeder weitere Aufruf hat keine Wirkung. Der
- * Aufruf wirft nicht und blockiert nicht.
+ * Ein Span (`SPEC-017` bis `SPEC-019`). [end] beendet ihn genau einmal; jeder weitere Aufruf hat keine Wirkung. Das
+ * Ende läuft auf dem Pfad des Aufrufers und ruft die Senke: eine Ausnahme der Senke fängt die Bibliothek ab, außer
+ * `CancellationException` und `Error` (Vertrag von `TelemetrySink`), und eine blockierende Senke hält den Aufrufer an.
  */
 internal interface Span {
     fun end(outcome: SpanOutcome)
