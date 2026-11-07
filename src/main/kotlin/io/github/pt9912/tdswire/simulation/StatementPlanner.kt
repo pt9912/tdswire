@@ -18,6 +18,9 @@ internal object SimCodes {
     /** Ein Wert der Anweisung ist nicht in den Spaltentyp überführbar (`SPEC-039`). */
     const val INVALID_VALUE = "TDS_SIM_INVALID_VALUE"
 
+    /** Der Einfüge-Callback einer Massenlade-Nachricht ist fehlgeschlagen (Schlüsselverstoß, Messprotokoll M-12). */
+    const val KEY_VIOLATION = "TDS_SIM_KEY_VIOLATION"
+
     /** Die Zeilenquelle ist fehlgeschlagen (`TDS-FA-11.a` Schritt 7). */
     const val BACKEND_ERROR = "TDS_BACKEND_ERROR"
 }

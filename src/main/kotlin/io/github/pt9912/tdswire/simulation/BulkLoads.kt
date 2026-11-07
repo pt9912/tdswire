@@ -17,6 +17,12 @@ import java.time.LocalTime
  * Transaktion). Es wird erst überführt, dann gerufen: ein Wert, der nicht passt, endet mit `TDS_SIM_INVALID_VALUE`,
  * bevor eine Zeile den Integrator erreicht. Eine Nachricht ohne Zeile ruft keinen Callback und zählt 0.
  *
+ * Ein Fehler des Callbacks meldet die Bibliothek als `TDS_SIM_KEY_VIOLATION` (2627, Class 14): so antwortet der echte
+ * Server auf den Schlüsselverstoß einer Nachricht, und keine Zeile der Nachricht bleibt (Messprotokoll M-12, ein Fall,
+ * `SqlBulkCopy`). Das weicht vom Wortlaut von `ADR-0033` Nr. 5 (iii) („Fehler des Callbacks“, `TDS_BACKEND_ERROR`) und
+ * Nr. 6 („Teilbestand“) ab; die Folge-ADR ist Slice `slice-adr-massenladen-atomar-an-messung`, bis dahin folgt der
+ * Code der Messung. Ob der Callback atomar arbeitet, entscheidet der Integrator; die Bibliothek nimmt nichts zurück.
+ *
  * Überführung der Werte der Nachricht (Setzung, nicht am Server gemessen): `Int` und `Long` gelten in einer
  * `Int32`-Spalte, wenn sie in deren Wertebereich passen (der Treiber sendet auch Werte einer `INT`-Spalte als 8 Byte),
  * in `Int64` immer; `Boolean` in `Bool`, `0` und `1` ebenso; `BigDecimal`, `Int` und `Long` in `Decimal`, wenn die
@@ -82,7 +88,7 @@ internal object BulkLoads {
             onSuccess = { count ->
                 if (count >= 0) QueryEvent.UpdateCount(count) else QueryEvent.Failure(SimCodes.BACKEND_ERROR, FAILED)
             },
-            onFailure = { QueryEvent.Failure(SimCodes.BACKEND_ERROR, FAILED) },
+            onFailure = { QueryEvent.Failure(SimCodes.KEY_VIOLATION, FAILED) },
         )
     }
 

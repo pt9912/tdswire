@@ -236,8 +236,9 @@ O(übertragene Bytes).
     Beachtung der Schreibweise), überführt jeden Wert (`SPEC-035`) und gibt alle Zeilen der Nachricht in einem Aufruf an
     `SimTable.onInsertBatch`, ohne ihn an `onInsert` je Zeile in der Reihenfolge der Nachricht; die Zahl des Callbacks ist
     der Änderungszähler. Zuerst werden alle Werte geprüft, dann wird gerufen. Ein Fehler des Callbacks ist
-    `TDS_BACKEND_ERROR` mit fester Meldung; Zeilen, die ein Callback davor angenommen hat, bleiben (keine Transaktion,
-    außer der Integrator macht den Stapel atomar). Das Backend speichert nichts.
+    `TDS_SIM_KEY_VIOLATION` (2627, Class 14, mit fester Meldung, `SPEC-001`; gemessen ist der Schlüsselverstoß am echten
+    Server); Zeilen, die ein Callback davor angenommen hat, bleiben (keine Transaktion, außer der Integrator macht den
+    Stapel atomar; der echte Server nimmt in dem gemessenen Fall keine Zeile der Nachricht auf). Das Backend speichert nichts.
 
 **Komplexität:** O(gelesene Zeilen) je Auswahl, O(n) für die Erkennung des Textes, O(Spalten) je Katalogantwort. **Fehlermodi:**
 nicht erkannte Anweisung, unbekannte Tabelle oder Spalte, nicht überführbarer Wert, Fehler der
@@ -304,19 +305,33 @@ genannten Handles der Sitzung frei und antwortet nach `SPEC-030` und `SPEC-060`.
 `RESETCONNECTION` (die Sitzung, vor einem Backend), die Art nicht: dort ist es ein Statusbit im Paketkopf, hier ein
 Text. Jeder andere Text geht an das Backend (`SPEC-002`).
 
-Massenladen (Pakettyp `BULK_LOAD`, `0x07`; Setzung, die Antworten sind nicht am echten Server gemessen): eine Nachricht `0x07`
+Massenladen (Pakettyp `BULK_LOAD`, `0x07`; die Antworten sind mit `SqlBulkCopy` am echten Server gemessen, Messprotokoll M-8 bis M-12
+des Referenzabgleichs, `Microsoft.Data.SqlClient` 7.1.1, Instanz 2022 und 2025, ein Fall je Zeile; was die Messung nicht
+stützt, ist Setzung und so benannt): eine Nachricht `0x07`
 ist eine Anfrage wie SQL_BATCH und RPC (`RUNNING`, Antwort mit `RequestFinished`). Der Sitzungsrahmen hält den Zustand
 „Massenladen erwartet“: ein SQL_BATCH, dessen Text ein `INSERT BULK` ist (`SPEC-036`, Form B), setzt das Ziel, wenn das
 Backend das Massenladen trägt (heute das Simulations-Backend); jede folgende Nachricht `0x07` lädt in dieses Ziel, und jede
-Anfrage, die kein `INSERT BULK` ist (ein RPC, ein anderer Batch), löscht es. Das Ziel bleibt nach einer Nachricht stehen
-(der Treiber sendet nach der letzten Zeile eine weitere Nachricht mit COLMETADATA und ohne Zeile). Die Antwort auf
-`INSERT BULK` ist DONE mit dem Änderungszähler 0; die auf eine Nachricht `0x07` ist DONE mit der Zahl, die das Backend
-meldet. Die Nutzlast ist COLMETADATA, ROW je Zeile und DONE (die Beschreibung des Pakets „Bulk Load“ in `MS-TDS`; Abschnittsnummern stehen hier nicht, das Dokument liegt nicht im Repo); gelesen werden die Typen `INTN`, `BITN`,
+Anfrage, die kein `INSERT BULK` ist (ein RPC, ein anderer Batch), löscht es, und ebenso `RESETCONNECTION`. Gemessen: der Referenzclient
+sendet je Batch der Quelle einen eigenen `INSERT BULK` und genau eine Nachricht `0x07` (2500 Zeilen mit `BatchSize` 1000: drei Paare mit 1000,
+1000 und 500), ohne Nachlauf; eine leere Quelle sendet nichts. Setzung (mit mssql-jdbc von d-migrate am Testserver gemessen, am echten Server
+nicht): das Ziel bleibt nach einer Nachricht stehen, weil der Treiber nach der letzten Zeile eine weitere Nachricht mit COLMETADATA und ohne
+Zeile sendet. Die Antwort auf `INSERT BULK` ist ein DONE ohne Zähler und ohne Bits, Befehl `0x00fd` (gemessen); die auf eine Nachricht `0x07` ein
+DONE mit `COUNT`, Befehl `0x00f0` und der Zahl der Zeilen der Nachricht, die das Backend meldet (gemessen). Eine Nachricht aus mehreren Paketen trägt
+beim Referenzclient im ersten Paket das Statusbit `0x04` (gemessen, M-9; die Bedeutung ist nicht festgestellt): der Leser behält das Bit und wertet es
+nicht aus. Erkennt der Client einen Verstoß gegen Typ, Länge oder NULL, sendet er nach `INSERT BULK` statt der Nachricht ein ATTENTION (gemessen,
+M-11): die Antwort ist ein DONE mit `ERROR` und `ATTENTION`, Befehl `0x00fd`, ohne ERROR-Token, die Verbindung bleibt offen, das Ziel entfällt;
+nach einer geladenen Nachricht ist ein ATTENTION die gewöhnliche Bestätigung. Ein Fehler des Einfüge-Callbacks beantwortet der Server wie der echte
+Server den Schlüsselverstoß (gemessen, M-12, ein Fall mit drei Zeilen in einem Paket): ERROR `TDS_SIM_KEY_VIOLATION` (Nummer 2627, Class 14,
+State 1; der Text ist gekürzt, Setzung), INFO 3621 „The statement has been terminated.“ und ein DONE mit `ERROR`, Befehl `0x00f0`, ohne Zähler; die
+Verbindung bleibt offen. Setzung: jeder Fehler des Callbacks einer Nachricht `0x07` erhält diese Antwort, weil die Bibliothek die Ursache nicht
+unterscheidet; ob eine Nachricht ganz oder gar nicht gilt, entscheidet der Integrator (der echte Server nimmt in dem gemessenen Fall keine Zeile der
+Nachricht auf; die Allaussage ist nicht belegt). Das weicht vom Wortlaut der angenommenen Entscheidung zum Massenladen ab (Fehler des Callbacks als
+`TDS_BACKEND_ERROR`, Teilbestand beim Integrator); die Antwort folgt der Messung bis zur Folge-Entscheidung. Die Nutzlast ist COLMETADATA, ROW je Zeile und DONE (die Beschreibung des Pakets „Bulk Load“ in `MS-TDS`; Abschnittsnummern stehen hier nicht, das Dokument liegt nicht im Repo); gelesen werden die Typen `INTN`, `BITN`,
 `DECIMALN`, `NUMERICN`, `NVARCHAR`, `NCHAR`, `BIGVARCHAR`, `BIGCHAR`, `DATEN`, `TIMEN` und `DATETIME2N` (gedeckt durch einen Mitschnitt von d-migrate 1.12.0 mit mssql-jdbc 13.4.0 sind nur `INTN` mit 8 Byte, `NVARCHAR` und `BIGVARCHAR`; Datum, Zeit und Zeitpunkt sendet d-migrate als `VARCHAR`; `INTN` mit 1, 2 und 4 Byte, `BITN`, `DECIMALN`, `NUMERICN`, `NCHAR`, `BIGCHAR`, `DATEN`, `TIMEN` und `DATETIME2N` sind Handvektoren nach der Beschreibung von `MS-TDS` ohne Mitschnitt); jede andere
 Typkennung, ein PLP-Typ, NBCROW und eine abgeschnittene Nachricht (auch ohne DONE) ergeben den Fehler des Parsers
 (`TDS_PROTOCOL_ERROR` beziehungsweise `TDS_UNSUPPORTED_TYPE`, Class 20, die Verbindung schließt wie bei einem SQL_BATCH, den
 der Parser abweist), ohne dass das Backend gerufen wird. Höchstens 1024 Spalten und 262 144 Zellen (Spalten mal Zeilen) je Nachricht, eine größere Nachricht ist wie eine abgeschnittene ein Fehler des Parsers (Setzung; die Zellenzahl begrenzt die Werte, die Leser und Überführung anlegen, nicht die Größe der Nachricht). Gelesen werden `VARCHAR`-Werte als Windows-1252, gleich welche Kollation die Spalte trägt, und ein `DECIMALN`-Wert darf kürzer sein als die Typlänge (beides Setzung, toleranter als `MS-TDS`; die Länge von fünf Byte stammt aus dem RPC, nicht aus einem Massenladen).
-Das IGNORE-Bit einer Nachricht verwirft sie ohne Aufruf des Backends; die Antwort ist DONE mit dem Zähler 0. Eine Nachricht
+Das IGNORE-Bit einer Nachricht verwirft sie ohne Aufruf des Backends; die Antwort ist DONE mit `COUNT`, Zähler 0 und Befehl `0x00f0` (Setzung, nicht gemessen). Eine Nachricht
 `0x07` ohne Ziel, oder an einem Backend ohne Massenladen, ist `TDS_UNSUPPORTED_SQL` bei offener Verbindung. Die Nachricht gilt
 als Ganzes: der Transport setzt sie bis zur Grenze von `SPEC-007` (16 MiB) im Speicher zusammen, eine größere schließt die
 Verbindung (gemessen, Messprotokoll des Spikes, b11), und der Speicherbedarf ist ein Vielfaches ihrer Größe: gemessen ist, dass 15,9 MB Nutzlast mit 130-Byte-Zeilen bei 32 MiB Heap mit `OutOfMemoryError` endeten (b12), und dass eine gültige Nachricht von 15,7 MiB mit 16 000 Zeilen zu 1024 NULL-Spalten (ohne die Grenze der Zellen) bei 128 MiB Heap in der Überführung endete (Wegwerf-Probe, einmal gefahren); die Grenze der Zellen ist die Antwort darauf; gemessen ist, dass die Zeilen einer Nachricht an der Grenze 12 bis 64 MiB belegen (4 bis 120 Byte je Zelle im Leser, 48 bis 256 mit der Überführung, je nach Typ, Messprotokoll des Massenladens), ein Beleg für den Wert am Heap eines Prozesses ist das nicht. Der Gegendruck des Backends wirkt zwischen den Nachrichten, nicht innerhalb einer: die
@@ -597,7 +612,7 @@ die Position in der Aufrufliste):
   `@a` an Position 4 hinter `@w`, W-5), und die RETURNVALUE stehen in der Reihenfolge der Aufrufliste, das Handle
   zuerst. Das Flag-Feld des Handle-RETURNVALUE ist 0x0000 (nicht nullbar), wie in den Mitschnitten `prepare` (2022 und
   2025, ein Fall je Instanz); der Mitschnitt-Lauf liest das Feld nicht (Ausnahme A-19 des Referenzabgleichs, Beleg ist
-  ein Test mit Handvektor). Das Flag-Feld des RETURNVALUE eines Ausgabewerts des Backends schreibt der Server mit 0x0001; am echten Server steht 0x0000 (A-20 des Referenzabgleichs, 22 von 22 Treffern je Instanz, nur `INTN` 4 mit Wert; bekannte Abweichung vom Zielbild, `BEO-TDS/zielbild-luecken-der-antwort-tokens`). Endet die Antwort
+  ein Test mit Handvektor). Das Flag-Feld des RETURNVALUE eines Ausgabewerts des Backends schreibt der Server mit 0x0001; am echten Server steht 0x0000 (A-20 des Referenzabgleichs, 22 von 22 Treffern je Instanz mit `INTN` 4 mit Wert; Messvermerk 2026-11-07, M-24: ebenso 24 von 24 je Instanz für `INTN` 2 und 8 Byte, `BITN`, `NUMERICN`, `FLOATN`, `nvarchar`, `date`, `time`, `datetime2`, mit Wert, mit NULL und ohne Zuweisung; bekannte Abweichung vom Zielbild, `BEO-TDS/zielbild-luecken-der-antwort-tokens`). Endet die Antwort
   mit einem Fehler, bevor das Handle im Strom steht (Fehler vor dem ersten Ausgabewert), entsteht kein Handle
   und der Wert wird nicht wieder vergeben; steht das Handle schon im Strom (Fehler nach einem Ausgabewert),
   bleibt es gültig.
@@ -615,8 +630,10 @@ die Position in der Aufrufliste):
   ganzen Text zu keiner Freigabe, er geht wie jeder SQL_BATCH an das Backend (`SPEC-036`, `SPEC-037`). Die Freigabe wird
   im Sitzungsrahmen beantwortet, ohne das Backend zu rufen. Die Nummern werden der Reihe nach bearbeitet: ein
   gehaltenes Handle wird freigegeben (die Zählung sinkt, der Wert wird nicht wieder vergeben); die Antwort ist, wenn die
-  Sitzung jede genannte Nummer hielt, ein DONE ohne Bits und ohne Zeilenzahl (Erfolg ohne Zeilen; die Tokenfolge eines
-  echten Servers ist nicht gemessen). Eine Nummer, die die Sitzung nicht hält (nie vergeben, schon freigegeben, aus der
+  Sitzung jede genannte Nummer hielt, ein DONE ohne Bits und ohne Zeilenzahl (Erfolg ohne Zeilen; Messvermerk
+  2026-11-07, M-23 des Referenzabgleichs, beide Instanzen, ein Fall je Instanz: der echte Server antwortet im Erfolgsfall mit
+  RETURNSTATUS und DONEPROC, Befehl `0x00e0`, ohne DONE; bekannte Abweichung vom Zielbild: der Server dieses Repos sendet ein
+  DONE ohne RETURNSTATUS, `BEO-TDS/zielbild-luecken-der-antwort-tokens`). Eine Nummer, die die Sitzung nicht hält (nie vergeben, schon freigegeben, aus der
   Zeit vor `RESETCONNECTION`), ergibt `SPEC-060`: ein ERROR je solcher Nummer, danach ein DONE mit Fehlerstatus; die
   Verbindung bleibt offen, das Backend wird nicht gerufen, die Zählung ändert sich durch diese Nummer nicht. Die Antwort nennt
   höchstens die ersten 100 solcher Nummern eines Batches (Setzung, nicht gemessen: ein echter Server hat keine bekannte Grenze
@@ -624,8 +641,9 @@ die Position in der Aufrufliste):
   (am Referenzclient gegen den echten SQL Server, 2022 und 2025): ein Handle freigeben gelingt, dasselbe ein zweites Mal
   und ein nie vergebenes ergeben Nummer 8179, Class 16, State 8, die Verbindung bleibt offen, auch in der Form des
   SQL_BATCH. Ebenso gemessen: ein Batch gehalten/unbekannt/gehalten bricht bei dem Fehler nicht ab, beide gehaltenen
-  Handles sind danach frei, der Fehler ist einer; zwei unbekannte Nummern ergeben zwei Fehler. Nicht gemessen: ob der
-  Server die Fehler als mehrere ERROR-Token mit einem oder mit mehreren DONE sendet.
+  Handles sind danach frei, der Fehler ist einer; zwei unbekannte Nummern ergeben zwei Fehler. Die Tokenfolge ist
+  gemessen (Messvermerk 2026-11-07, M-22 und M-23, beide Instanzen, ein Fall je Instanz): je unbekannter Nummer ein ERROR
+  (8179, State 8), ein RETURNSTATUS 8179 und ein DONEPROC (`MORE|ERROR`, Befehl `0x00e0`), kein DONE.
 - Die Handles enden mit der Sitzung; zwei Sitzungen sehen die Handles der jeweils anderen nicht. Der Zugriff
   auf die Tabelle einer Sitzung ist gegen gleichzeitigen Zugriff geschützt.
 - `RESETCONNECTION` (`SPEC-001`) leert die Tabelle: jedes Handle aus der Zeit davor ist unbekannt (bei `sp_execute`
@@ -905,10 +923,11 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   (Exit 5, Einzelmessung 2026-11-05). Der Callback `onStructure` bekommt für `CREATE TABLE` und `ALTER TABLE … ADD` die
   Tabelle im Zustand **nach** der Anweisung (Schema, Name wie im Katalog, alle Spalten in der Reihenfolge, Schlüssel); er
   wird beim Sammeln der Ausführung genau einmal gerufen, und die Antwort ist der Änderungszähler 0 (Setzung; gemessen ist der
-  Zähler 0 nur für `ROLLBACK TRAN`). Die Prüfung gegen den Katalog (`CREATE TABLE` einer vorhandenen Tabelle, `ADD` einer
+  Zähler 0 nur für `ROLLBACK TRAN`; Messvermerk 2026-11-07, M-20: der Server antwortet auf `CREATE TABLE` und `ALTER TABLE … ADD` mit einem `DONE` ohne `COUNT`, Befehl `0x00c6` bzw. `0x00d8`). Die Prüfung gegen den Katalog (`CREATE TABLE` einer vorhandenen Tabelle, `ADD` einer
   vorhandenen Spalte, `CREATE TABLE` ohne Schlüssel, eine Schlüsselspalte, die es nicht gibt) endet vor dem Callback mit
   `TDS_UNSUPPORTED_SQL` beziehungsweise `TDS_SIM_UNKNOWN_OBJECT` (Setzung; der echte Server antwortet mit eigenen Nummern,
-  die die Bibliothek nicht sendet). Eine Schlüsselspalte ist nach der Anweisung nicht nullbar, auch wenn der Text es nicht
+  die die Bibliothek nicht sendet; Messvermerk 2026-11-07, M-19: `CREATE TABLE` einer vorhandenen Tabelle 2714 (State 6), `ADD` einer
+  vorhandenen Spalte 2705 (State 4), `ALTER TABLE` einer unbekannten Tabelle 4902, jeweils Class 16; `CREATE TABLE` ohne Schlüssel gelingt am Server). Eine Schlüsselspalte ist nach der Anweisung nicht nullbar, auch wenn der Text es nicht
   sagt (Setzung nach dem Server). Ohne Callback endet die Anweisung mit `TDS_UNSUPPORTED_SQL`; ein Fehler des Callbacks ist
   `TDS_BACKEND_ERROR` mit fester Meldung. **Keine Transaktion (Zusage):** mehrere Callbacks einer Anweisung oder mehrerer
   Anweisungen sind keine Transaktion; die Bibliothek nimmt nichts zurück, ein Fehler hinterlässt den Zustand beim
@@ -922,7 +941,7 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   `Time` als `time` (5 Byte, Precision 16, Skala 7), `DateTime` als `datetime2` (8 Byte, Precision 27, Skala 7). Die
   Spalten `max_length`, `precision` und `scale` heißen im Server `smallint` und `tinyint`; hier sind es `Int32` (der Typ
   der Antwort ist der nächste von `SqlType`; am Referenzclient gemessen: `max_length` `smallint`, `precision` und `scale`
-  `tinyint`, `is_nullable` und `is_identity` `bit`, Namen `nvarchar`). Eine Identität, ein Standardwert, eine berechnete
+  `tinyint`, `is_nullable` und `is_identity` `bit`, Namen `nvarchar`). Messvermerk (2026-11-07, M-16 bis M-18 des Referenzabgleichs, beide Instanzen, ein Fall je Instanz, Abfragen von d-migrate 1.12.0 als Text vom Referenzclient): die Werte dieser Abbildung für `int`, `bigint`, `bit`, `decimal`, `date`, `time`, `datetime2` und `nvarchar` (einschließlich -1 für `nvarchar(max)`) stimmen mit dem echten Server überein; abweichend vom Zielbild bleibt der Typ der Spalten (`max_length` `smallint`, `precision` und `scale` `tinyint`, `is_nullable` `bit` nullbar, `is_identity` `bit` nicht nullbar, hier `Int32`); Identität, Standardwert, Fremdschlüssel, Index, Prüfbedingung antworten am echten Server mit Zeilen (M-21). Eine Identität, ein Standardwert, eine berechnete
   Spalte, ein Fremdschlüssel, ein Index (außer dem Schlüssel), eine Prüfbedingung, eine Sicht, eine Sequenz und eine
   Routine kommen nicht vor: ihre Abfragen antworten leer, mit den Spalten der Abfrage. `is_identity` ist immer 0; ein Soll mit
   dem Typ `identifier` zeigt bei `schema compare` deshalb `identifier -> biginteger` (Exit 1, gemessen).
@@ -949,7 +968,7 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
 | K | der Wortlaut einer Katalogabfrage von d-migrate 1.12.0 (Liste unten) | Resultset aus dem Katalog |
 | D1 | `CREATE TABLE [<Schema>.]<Tabelle> (<Spalte> {, <Spalte>} [, [CONSTRAINT <Name>] PRIMARY KEY (<Spalte> {, <Spalte>})])` | Änderungszähler 0 |
 | D2 | `ALTER TABLE [<Schema>.]<Tabelle> ADD <Spalte> {, <Spalte>}` | Änderungszähler 0 |
-| B | `INSERT BULK [<Schema>.]<Tabelle> (<Spalte> <Typ> {, <Spalte> <Typ>}) [WITH (<Optionen>)]`, danach die Nachricht `0x07` (`SPEC-001`) | `INSERT BULK`: Änderungszähler 0; die Nachricht: Änderungszähler der geladenen Zeilen |
+| B | `INSERT BULK [<Schema>.]<Tabelle> (<Spalte> <Typ> {, <Spalte> <Typ>}) [WITH (<Optionen>)]`, danach die Nachricht `0x07` (`SPEC-001`) | `INSERT BULK`: DONE ohne Zähler, Befehl `0x00fd`; die Nachricht: DONE mit Zähler der geladenen Zeilen, Befehl `0x00f0` (beides gemessen, `SPEC-001`) |
 
 - **Term:** `<Spalte> = <Wert>`, `<Spalte> IN (<Wert> {, <Wert>})` oder `<Spalte> IS [NOT] NULL`. Nur in S1 zusätzlich
   der Konstantenterm `<Ganzzahl> = <Ganzzahl>` (Ganzzahl: Ziffern mit optionalem führendem `-`): er gilt für jede Zeile,
@@ -1034,7 +1053,7 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
 - **Form D, Strukturänderung** (gemessen: der Wortlaut von `schema migrate --execute`, 2026-11-06): eine Spalte ist `<Name> <Typ>
   [NOT NULL | NULL]` mit `INT`, `BIGINT`, `BIT`, `DATE`, `TIME`, `DATETIME2`, `NVARCHAR(<n>)` (`n` von 1 bis 4000) oder
   `NVARCHAR(MAX)` (`maxLength` -1) und `DECIMAL(<p>, <s>)` (Precision bis 38); der Schlüssel heißt im gesendeten Text
-  `CONSTRAINT [pk_<Tabelle>] PRIMARY KEY ([Id])`. Mehrere Spalten in `ADD` sind Setzung. Ein anderer Typ (`SMALLINT`, `FLOAT`, …) oder
+  `CONSTRAINT [pk_<Tabelle>] PRIMARY KEY ([Id])`. Mehrere Spalten in `ADD` sind Setzung (Messvermerk 2026-11-07, M-19: `ADD [A] INT, [B] NVARCHAR(10)` gelingt am Server). Ein anderer Typ (`SMALLINT`, `FLOAT`, …) oder
   eine weitere Klausel (`DEFAULT`, `IDENTITY`, `UNIQUE`, `WITH`) macht den Text nicht erkannt. Ein abschließendes `;` ist erlaubt.
   Die Prüfung gegen den Katalog und die Antwort stehen in `SPEC-035`.
 - **Scanner** (Setzungen, nicht am Server gemessen): Leerraum sind Leerzeichen, Tab, CR und LF.
@@ -1195,7 +1214,7 @@ Abnahmegrenzen.
 | `SPEC-049` | `TDS_SHUTDOWN` | Anfrage nach Beginn des geordneten Beendens (`SPEC-044`) | ERROR und DONE mit Fehlerstatus (in der Antwort auf einen RPC DONEPROC), danach Verbindungsende; Herkunft des Schließens: ERROR und DONE werden vollständig gesendet, erst danach wird geschlossen (Setzung des Nutzers vom 2026-11-01, am Referenzclient wird „ERROR, DONE, dann Schließen“ gelesen, ein Herunterfahren am echten Server ist nicht gemessen); vorgesehen: die SQL-Server-Meldung für ein Herunterfahren, Nummer im Mapping nach `TDS-FA-06.a` festlegen |
 | `SPEC-057` | `TDS_UNKNOWN_HANDLE` | `sp_execute` mit einem Handle, das die Sitzung nicht hält, auch nach `RESETCONNECTION` (`SPEC-030`) | ERROR und DONEPROC mit Fehlerstatus (`0x00e0`; die Fehler dieser Zeile gibt es nur in der Antwort auf einen RPC); die Verbindung bleibt offen (Class 16), das Backend wird nicht gerufen; das Log nennt die feste Marke `unknown-handle`. Der echte SQL Server antwortet auf `sp_execute` mit einem unbekannten Handle mit Nummer 8179, Class 16, State 4 (Messung am Referenzclient, 2022 und 2025, als Prozedur und als SQL_BATCH `EXEC sp_execute <n>`), nicht mit 50009; die Abweichung ist gemessen, ihre Behandlung nicht entschieden |
 | `SPEC-058` | `TDS_PREPARE_LIMIT` | `sp_prepexec` bei erreichter Grenze der gleichzeitig gehaltenen Handles der Sitzung (Voreinstellung 1000, einstellbar, `SPEC-061`, `SPEC-030`) | ERROR und DONEPROC mit Fehlerstatus (`0x00e0`; die Fehler dieser Zeile gibt es nur in der Antwort auf einen RPC); die Verbindung bleibt offen (Class 16), das Backend wird nicht gerufen, die vorhandenen Handles bleiben gültig; das Log nennt die feste Marke `handle-limit` |
-| `SPEC-060` | `TDS_SIM_UNKNOWN_PREPARED_HANDLE` | die Batch-Freigabe `EXEC sp_unprepare <n>` (`SPEC-030`) nennt ein Handle, das die Sitzung nicht hält: nie vergeben, schon freigegeben oder aus der Zeit vor `RESETCONNECTION` | ERROR (Nummer 8179, Class 16, State 8, Text „Could not find prepared statement with handle <n>.“ mit der Nummer) je nicht gehaltener Nummer, höchstens für die ersten 100 Nummern des Batches in der Reihenfolge des Textes (Setzung, nicht gemessen), danach ein DONE mit Fehlerstatus; die Verbindung bleibt offen, das Backend wird nicht gerufen, die Zählung ändert sich nicht; die übrigen Nummern des Batches werden bearbeitet; das Log nennt die feste Marke `unknown-prepared-handle` je gemeldeter Nummer (höchstens 100 Einträge je Batch). Nummer, Class, State, Text für Handle 1 und die offene Verbindung sind am Referenzclient gegen den echten SQL Server gemessen (2022 und 2025); der Text für andere Nummern, die Bearbeitung der übrigen Nummern (am Client bestätigt, die Tokenfolge auf dem Draht nicht) und die weiteren Felder des ERROR-Tokens (Servername, Prozedur und Zeile leer bzw. 0) sind Setzung. Die Obergrenze von 100 weicht vom echten Server ab, der nach M-7 jede unbekannte Nummer meldet (zwei Unbekannte, zwei Fehler); ob und ab welcher Zahl der echte Server die Meldung begrenzt, ist nicht gemessen. Auflösungs-Trigger der Setzung: eine Messung am echten SQL Server mit sehr vielen unbekannten Nummern in einem Batch; ergibt sie eine andere Grenze oder keine, wird die Setzung dem Messwert angeglichen und der Schutz nach [TDS-QA-02](lastenheft.md#tds-qa-02--stabilität) anders getragen |
+| `SPEC-060` | `TDS_SIM_UNKNOWN_PREPARED_HANDLE` | die Batch-Freigabe `EXEC sp_unprepare <n>` (`SPEC-030`) nennt ein Handle, das die Sitzung nicht hält: nie vergeben, schon freigegeben oder aus der Zeit vor `RESETCONNECTION` | ERROR (Nummer 8179, Class 16, State 8, Text „Could not find prepared statement with handle <n>.“ mit der Nummer) je nicht gehaltener Nummer, höchstens für die ersten 100 Nummern des Batches in der Reihenfolge des Textes (Setzung; der Messwert widerspricht ihr, Messvermerk unten), danach ein DONE mit Fehlerstatus; die Verbindung bleibt offen, das Backend wird nicht gerufen, die Zählung ändert sich nicht; die übrigen Nummern des Batches werden bearbeitet; das Log nennt die feste Marke `unknown-prepared-handle` je gemeldeter Nummer (höchstens 100 Einträge je Batch). Nummer, Class, State, Text für Handle 1 und die offene Verbindung sind am Referenzclient gegen den echten SQL Server gemessen (2022 und 2025); der Text für andere Nummern, die Bearbeitung der übrigen Nummern (am Client bestätigt; die Tokenfolge auf dem Draht ist gemessen, M-22 und M-23: je Nummer ERROR, RETURNSTATUS 8179 und DONEPROC, kein DONE, der Server dieses Repos sendet am Ende ein DONE) und die weiteren Felder des ERROR-Tokens (Servername, Prozedur und Zeile leer bzw. 0) sind Setzung. Die Obergrenze von 100 weicht vom echten Server ab, der nach M-7 jede unbekannte Nummer meldet (zwei Unbekannte, zwei Fehler); ob der echte Server die Meldung begrenzt, ist gemessen (Messvermerk 2026-11-07, M-22 des Referenzabgleichs, beide Instanzen, ein Fall je Instanz): er meldet jede Nummer ohne Obergrenze, 100, 101 und 150 Nummern auf dem Draht und bis 2000 Nummern am Client; die Obergrenze von 100 widerspricht damit dem Messwert (Konflikt mit dem Zielbild; Nutzerentscheid 2026-11-07, Beleg im Register `BEO-TDS/obergrenze-gemeldete-nummern-je-batch-weicht-vom-echten-server-ab`: Spezifikation und Bau werden dem Messwert angeglichen, Träger ist der dort genannte Bau-Slice; bis dahin gilt die Setzung). Auflösungs-Trigger der Setzung (eingetreten): eine Messung am echten SQL Server mit sehr vielen unbekannten Nummern in einem Batch; ergibt sie eine andere Grenze oder keine, wird die Setzung dem Messwert angeglichen und der Schutz nach [TDS-QA-02](lastenheft.md#tds-qa-02--stabilität) anders getragen |
 
 Die Nummern in der Aktionsspalte sind ein Vorschlag für das Mapping nach `TDS-FA-06.a`. Für
 `TDS_UNSUPPORTED_SQL` gibt es keine SQL-Server-Entsprechung, denn dort ist die Anweisung gültig; die
@@ -1226,16 +1245,17 @@ Text fest und englisch (bei `TDS_SIM_UNKNOWN_PREPARED_HANDLE` endet er mit der N
 | `TDS_SHUTDOWN` | 50008 | 20 | schließt | Folge: Setzung des Nutzers (`SPEC-049`); Nummer und Class: Festlegung (die SQL-Server-Nummer für ein Herunterfahren ist nicht gemessen) |
 | `TDS_UNKNOWN_HANDLE` | 50009 | 16 | offen | Gruppe: Setzung (Voreinstellung, nicht gemessen); Nummer: Festlegung |
 | `TDS_PREPARE_LIMIT` | 50010 | 16 | offen | Gruppe: Setzung (Voreinstellung, nicht gemessen); Nummer: Festlegung |
+| `TDS_SIM_KEY_VIOLATION` | 2627 | 14 | offen | Nummer, Class und State 1: gemessen am echten SQL Server (2022 und 2025, `SqlBulkCopy`, Schlüsselverstoß, M-12); der Text ist gekürzt (Setzung); Form des Massenladens mit INFO 3621 und DONE `0x00f0` (`SPEC-001`) |
 | `TDS_SIM_UNKNOWN_PREPARED_HANDLE` | 8179 | 16 | offen | Nummer, Class, State 8 und Text für Handle 1: gemessen am echten SQL Server (2022 und 2025), die Verbindung bleibt offen; der Text für andere Nummern: Setzung |
 
 Der Abschluss (DONE; in der Antwort auf einen RPC DONEPROC, `SPEC-031`) trägt für jeden Code das Statusbit `ERROR`, die
 Befehlskennung nach der Form des Abschlusses (`0x00fd` im DONE ohne offenes Ergebnis, `0x00c1` bei offenem Ergebnis,
-`0x00e0` im DONEPROC; Absatz „Befehlskennung (`curCmd`)“ in `SPEC-031`) und Zeilenzahl 0; ob der
+`0x00e0` im DONEPROC, `0x00f0` in der Antwort auf eine Nachricht des Massenladens, gemessen in M-12; Absatz „Befehlskennung (`curCmd`)“ in `SPEC-031`) und Zeilenzahl 0; ob der
 Referenzclient es so annimmt, ist nicht am Produkt gemessen. Die Antwort an die Anmeldung (`SPEC-012`) trägt 0. Am echten SQL Server trägt das DONE bei
 Class 20 und 25 zusätzlich das Statusbit `SRVERR` und es folgen weitere ERROR-Token (Messung R10); das
 Mapping sendet für jeden Code nur ERROR und DONE mit `ERROR`, diese Abweichung ist nicht am Produkt
 gemessen. Ein Backend meldet als `Failure` nur `TDS_BACKEND_ERROR`, `TDS_UNSUPPORTED_SQL`,
-`TDS_UNSUPPORTED_TYPE`, `TDS_SIM_UNKNOWN_OBJECT`, `TDS_SIM_INVALID_VALUE` und `TDS_TIMEOUT`
+`TDS_UNSUPPORTED_TYPE`, `TDS_SIM_UNKNOWN_OBJECT`, `TDS_SIM_INVALID_VALUE`, `TDS_SIM_KEY_VIOLATION` und `TDS_TIMEOUT`
 (Festlegung); jeder andere Code, auch ein anderer eigener wie `TDS_LOGIN_FAILED` oder `TDS_SHUTDOWN`,
 erreicht den Client als `TDS_INTERNAL_ERROR`. Ist der Strom nicht synchron, entfällt die
 Antwort und die Verbindung schließt (`SPEC-031`). Der Log-Eintrag einer unerwarteten Ausnahme trägt den
@@ -1746,7 +1766,7 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | 2026-11-06 | Öffentliche Fläche der Bibliothek auf das Nötige verkleinert und belegt (Nutzerentscheidung vom 2026-11-05 und vom 2026-11-06): `TelemetryEvent` ist die einzige öffentliche Ereignisklasse, die Art steht in der Aufzählung `EventKind` (17 Arten; die zwei Abschwächungen sind eine Art `SECURITY_WEAKENED` mit `reason`), die 18 Klassen je Art und `StartRefusal`, `LoginRejectionReason`, `TlsFirstRefusal` sind nicht mehr öffentlich, ihre Gründe stehen als Text in `reason`; `ConfigValidation`, `Principal` und `PasswordChars.reveal` sind `internal`; die Liste in `SPEC-059` nennt jetzt jeden Typnamen (61), auch die Fälle von `QueryEvent`, `SqlType` und `FilterTerm`; `make flaeche` hält die Typnamen der Liste gegen die öffentlichen Typdeklarationen und ihre Verwendung in `src/integrator` und `testserver/kotlin`, der Einbettungstest belegt die Namen, die Testserver und bisheriger Einbettungstest nicht nannten; Felder und Konstanten sind keine Namen des Sensors (`SPEC-059`, `SPEC-012`, `SPEC-048`, `SPEC-043`, `TDS-QA-05`, `TDS-RB-04`) |
 | 2026-11-06 | `SPEC-025`: der E2E-Durchgang hat eine achte Stufe (`make eigenes-backend`, Referenzclient gegen ein eigenes In-Memory-Backend, `TDS-FA-08`, `TDS-RB-04`) |
 | 2026-11-06 | Katalog und Strukturänderung des Simulations-Backends (`TDS-FA-11`, `TDS-FA-12`): zweiter Konstruktor `SimulationBackend(catalog: () -> SimCatalog, onStructure: …? = null)` ohne neuen Typnamen, `SimColumn.maxLength` (1 bis 4000 und der Sonderwert -1 für `NVARCHAR(MAX)`, beides Setzung dieser Spezifikation; Vorgabe 4000) und `SimTable.onInsertBatch` als Mitglieder (`SPEC-035`, `SPEC-059`); Formen K (20 Katalogabfragen von d-migrate 1.12.0, Antworten aus dem Katalog), D1 und D2 (`CREATE TABLE`, `ALTER TABLE … ADD`) und die Transaktionstexte in Form C (`SPEC-036`); Schritte 8 und 9 in `TDS-FA-11.a`; Läufe von d-migrate in `SPEC-040`; `max_length` der Beschreibung wird als Länge gemeldet (`SPEC-035`) |
-| 2026-11-07 | Massenladen des Simulations-Backends (`TDS-FA-11`, `TDS-FA-12`): Pakettyp `0x07` als Anfrage mit Zustand „Massenladen erwartet“ im Sitzungsrahmen (`SPEC-001`), Form B in `SPEC-036` (`INSERT BULK`, Probe mit `SET FMTONLY`, Probe der Kollation als 21. Form K), Schritt 10 in `TDS-FA-11.a`, `SimTable.onInsertBatch` wird gerufen (Weitergabe, Überführung der Werte der Nachricht, Zeitpunkt auch mit Leerzeichen; `SPEC-035`), kein neuer öffentlicher Name (`SPEC-059`); Läufe von `data import` und `data transfer` in `SPEC-040` |
+| 2026-11-07 | Massenladen des Simulations-Backends (`TDS-FA-11`, `TDS-FA-12`): Pakettyp `0x07` als Anfrage mit Zustand „Massenladen erwartet“ im Sitzungsrahmen (`SPEC-001`), Form B in `SPEC-036` (`INSERT BULK`, Probe mit `SET FMTONLY`, Probe der Kollation als 21. Form K), Schritt 10 in `TDS-FA-11.a`, `SimTable.onInsertBatch` wird gerufen (Weitergabe, Überführung der Werte der Nachricht, Zeitpunkt auch mit Leerzeichen; `SPEC-035`), kein neuer öffentlicher Name (`SPEC-059`); Läufe von `data import` und `data transfer` in `SPEC-040`; zweiter Durchgang: die Antworten folgen der Messung am echten Server (M-8 bis M-12): `INSERT BULK` mit DONE `0x00fd` ohne Zähler, die Nachricht mit DONE `COUNT` `0x00f0`, ATTENTION nach `INSERT BULK` mit `ERROR|ATTENTION`, Fehler des Callbacks als `TDS_SIM_KEY_VIOLATION` (2627) mit INFO 3621 und DONE `0x00f0`; Abweichung vom Wortlaut der angenommenen Entscheidung bis zur Folge-Entscheidung |
 | 2026-11-06 | Strukturänderungen eines Simulations-Backends sind gegeneinander gesperrt (`TDS-FA-11.a` Schritt 9): Planung unter Sperre beim Sammeln, genau eine von zwei gleichzeitigen `CREATE TABLE` derselben Tabelle gewinnt, `ALTER TABLE … ADD` verliert keine Spalte; belegt nur für Schreiber über dasselbe Backend; die Sperre ist nicht reentrant, ein hängender Callback blockiert die weiteren Strukturänderungen dieses Backends (Lesen des Codes, nicht gemessen). Der Sonderwert -1 von `SimColumn.maxLength` ist Setzung dieser Spezifikation (Wertebereich der Länge; die angenommene Entscheidung bleibt unverändert). Die Hauptklasse des Testservers übergibt immer ein Backend (`SPEC-035`, Verdrahtung) |
 | 2026-11-06 | Prepared-Handles: `sp_prepexec` antwortet mit RETURNSTATUS 0 und dem Handle als RETURNVALUE ohne Namen (an den Mitschnitten der Referenzinstanz gelesen); der SQL_BATCH `EXEC sp_unprepare <n>[;…]` gibt Handles im Sitzungsrahmen frei, ein nicht gehaltenes Handle ergibt Fehler 8179 (Class 16, State 8; neuer Code `TDS_SIM_UNKNOWN_PREPARED_HANDLE`, `SPEC-060`; Ausnahme zum Satz „State ist 1“); gezählt werden die gleichzeitig gehaltenen Handles; die Grenze (Voreinstellung 1000) ist einstellbar (`RequestSettings.maxPreparedHandles`, `MAX_PREPARED_HANDLES`, `SPEC-061`, `SPEC-058`); der RPC `sp_unprepare` bleibt abgelehnt (`SPEC-013`, Nicht-Ziel 6); `sp_execute` mit unbekanntem Handle: Messung 8179 State 4 am echten Server, Abweichung von `SPEC-057` festgehalten, nicht entschieden |
 | 2026-11-06 | Antwort-Tokens an die Messung am echten SQL Server angeglichen (Nutzerentscheidung vom 2026-11-06: Spezifikation ist Zielbild, der echte Server die Referenz): Befehlskennung `curCmd` je Abschlussart aus der Form des Ereignisses (`SPEC-031`), `Failure` mit Klasse `FailureScope` (neuer Name in `SPEC-059`), `DONE` mit `MORE\|ERROR` bei statement-abbrechendem Fehler, RETURNSTATUS in jeder RPC-Antwort, Ordinal der RETURNVALUE als Position in der Aufrufliste, Handle-RETURNVALUE mit Flag-Feld `0x0000`, Fehler im RPC als DONEINPROC `MORE\|ERROR` und DONEPROC (`SPEC-030`, `TDS-FA-10.a`), ENVCHANGE Typ 18 als erstes Token der Antwort auf `RESETCONNECTION` (`SPEC-001`), SESSIONSTATE als dokumentierte Lücke |

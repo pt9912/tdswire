@@ -11,6 +11,7 @@ import io.github.pt9912.tdswire.protocol.response.ResponseForm
 import io.github.pt9912.tdswire.protocol.response.ResponseSequencer
 import io.github.pt9912.tdswire.protocol.response.SequenceOutcome
 import io.github.pt9912.tdswire.protocol.response.TokenSink
+import io.github.pt9912.tdswire.protocol.session.AttentionAck
 import io.github.pt9912.tdswire.protocol.session.CloseReason
 import io.github.pt9912.tdswire.protocol.session.ConnectionState
 import io.github.pt9912.tdswire.protocol.session.HandshakeChannel
@@ -166,11 +167,14 @@ internal class RequestLoop(
     /** Wahr, solange die Antwort auf eine Anfrage mit `RESETCONNECTION` ihr ENVCHANGE Typ 18 noch nicht trägt. */
     private var resetPending = false
 
+    private val forms = AnswerForms()
+
     init {
         ready.live.onSessionReset {
             handles.clear()
             bulk.clear()
         }
+        ready.live.onAttentionWhenIdle { if (bulk.abandon()) AttentionAck.bulkAborted else AttentionAck.message }
         gate.onGraceExpired {
             val run = active
             if (run != null) run.abortForShutdown() else channel.close()
@@ -253,7 +257,10 @@ internal class RequestLoop(
                 requestFinished(response.fate, response.message)
             }
 
-            is BulkDispatch.Answer.Reply -> execute("", emptyList(), layout = null, via = loaded.via)
+            is BulkDispatch.Answer.Reply -> {
+                forms.next = loaded.form
+                execute("", emptyList(), layout = null, via = loaded.via)
+            }
         }
 
         else -> answerBatch(message)
@@ -319,7 +326,7 @@ internal class RequestLoop(
         via: QueryBackend = backend,
         onOutcome: suspend (SequenceOutcome) -> Unit = {},
     ): HandshakeEvent.RequestFinished? {
-        val form = if (layout == null) ResponseForm.BATCH else ResponseForm.RPC
+        val form = forms.take(layout)
         val live = ready.live
         val reply = live.openReply(PacketType.TABULAR_RESULT)
         val response = StreamedResponse(reply) { live.dispatch(HandshakeEvent.StreamStarted) }
@@ -393,6 +400,21 @@ internal fun requestFinished(fate: ConnectionFate, reply: TdsMessage?): Handshak
         reply.takeIf { fate != ConnectionFate.CLOSE_WITHOUT_REPLY },
         connectionOpen = fate == ConnectionFate.OPEN,
     )
+
+/**
+ * Die Form der nächsten Antwort einer Schleife: [next] merkt die Form, wenn sie nicht aus der Aufrufform folgt
+ * (Nachricht 0x07); [take] liefert sie genau einmal, sonst die Form der Aufrufform ([layout] `null` ist ein Batch,
+ * sonst ein RPC).
+ */
+private class AnswerForms {
+    var next: ResponseForm? = null
+
+    fun take(layout: CallLayout?): ResponseForm {
+        val form = next ?: if (layout == null) ResponseForm.BATCH else ResponseForm.RPC
+        next = null
+        return form
+    }
+}
 
 /** Die Antwortform zur Art der Anfrage: RPC für einen RPC, sonst die Form des Batches. */
 private fun formOf(message: TdsMessage) = if (message.type == PacketType.RPC) ResponseForm.RPC else ResponseForm.BATCH

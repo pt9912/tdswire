@@ -319,18 +319,19 @@ class SimulationBackendBulkTest {
     }
 
     /**
-     * Ein Fehler des Callbacks und eine negative Zahl enden mit `TDS_BACKEND_ERROR` und der festen Meldung, die den
-     * Text
-     * der Ausnahme nie nennt (Setzung nach `ADR-0033` Nr. 7). Wächter: der Text der Ausnahme in der Meldung, ein
-     * durchgereichter Fehler.
+     * Ein Fehler des Callbacks endet mit `TDS_SIM_KEY_VIOLATION` (2627, Class 14: so antwortet der echte Server
+     * auf den Schlüsselverstoß einer Nachricht, Messprotokoll M-12; Abweichung vom Wortlaut von `ADR-0033` Nr. 5
+     * (iii), Folge-ADR offen), eine negative Zahl mit `TDS_BACKEND_ERROR`; beide mit der festen Meldung, die den
+     * Text der Ausnahme nie nennt (Setzung nach `ADR-0033` Nr. 7). Wächter: der Text der Ausnahme in der Meldung,
+     * ein durchgereichter Fehler, `TDS_BACKEND_ERROR` für den Fehler des Callbacks.
      *
      * @spec SPEC-035
      */
     @Test
-    fun `ein Fehler des Callbacks ergibt TDS_BACKEND_ERROR mit fester Meldung`() {
+    fun `ein Fehler des Callbacks ergibt TDS_SIM_KEY_VIOLATION, eine negative Zahl TDS_BACKEND_ERROR`() {
         val failing = Sink().also { it.failAt = 0 }
         val event = load(backend(failing), message(col("Id", SqlType.Int64) to listOf(1L)))
-        assertEquals(QueryEvent.Failure("TDS_BACKEND_ERROR", "Änderung fehlgeschlagen"), event)
+        assertEquals(QueryEvent.Failure("TDS_SIM_KEY_VIOLATION", "Änderung fehlgeschlagen"), event)
         val negative = Sink().also { it.result = -1 }
         assertEquals(
             QueryEvent.Failure("TDS_BACKEND_ERROR", "Änderung fehlgeschlagen"),
@@ -355,7 +356,7 @@ class SimulationBackendBulkTest {
         assertEquals(listOf(1L, 2L, 3L), sink.singles.map { it["Id"] })
         val failing = Sink(batch = false, single = true).also { it.failAt = 2 }
         val event = load(backend(failing), rows)
-        assertEquals("TDS_BACKEND_ERROR", assertIs<QueryEvent.Failure>(event).code)
+        assertEquals("TDS_SIM_KEY_VIOLATION", assertIs<QueryEvent.Failure>(event).code)
         assertEquals(listOf(1L, 2L), failing.singles.map { it["Id"] })
     }
 }

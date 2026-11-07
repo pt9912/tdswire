@@ -11,9 +11,12 @@ import io.github.pt9912.tdswire.port.QueryExecution
 import io.github.pt9912.tdswire.port.ScriptedBackend
 import io.github.pt9912.tdswire.protocol.dispatch.RpcWire.prepExec
 import io.github.pt9912.tdswire.protocol.session.Inbound
+import io.github.pt9912.tdswire.protocol.token.DoneCommand
 import io.github.pt9912.tdswire.protocol.token.DoneKind
 import io.github.pt9912.tdswire.protocol.token.DoneStatus
 import io.github.pt9912.tdswire.protocol.token.DoneToken
+import io.github.pt9912.tdswire.protocol.token.ErrorToken
+import io.github.pt9912.tdswire.protocol.token.InfoToken
 import io.github.pt9912.tdswire.protocol.token.ServerMessage
 import io.github.pt9912.tdswire.testsupport.blocking
 import io.github.pt9912.tdswire.testsupport.hex
@@ -96,8 +99,8 @@ class BulkDispatchTest {
         val session = Session.login(batch(insertBulk), bulk(), batch("SELECT 1"), Inbound.EndOfStream)
         session.serve(backend)
         assertEquals(3, session.replies.size)
-        assertEquals(DoneToken(DoneKind.DONE, DoneStatus.COUNT, 0, 0), session.done(0))
-        assertEquals(DoneToken(DoneKind.DONE, DoneStatus.COUNT, 0, 3), session.done(1))
+        assertEquals(DoneToken(DoneKind.DONE, DoneStatus.FINAL, DoneCommand.BATCH, 0), session.done(0))
+        assertEquals(DoneToken(DoneKind.DONE, DoneStatus.COUNT, DoneCommand.INSERT_BULK, 3), session.done(1))
         assertEquals(listOf(BulkTarget("dbo", "t")), backend.loads.map { it.first })
         assertEquals(3, backend.loads.single().second.rows.size)
         assertEquals(listOf("SELECT 1"), backend.executed)
@@ -146,7 +149,7 @@ class BulkDispatchTest {
         val session = Session.login(batch(insertBulk), bulk(ignore = true), batch("SELECT 1"), Inbound.EndOfStream)
         session.serve(backend)
         assertEquals(emptyList(), backend.loads)
-        assertEquals(DoneToken(DoneKind.DONE, DoneStatus.COUNT, 0, 0), session.done(1))
+        assertEquals(DoneToken(DoneKind.DONE, DoneStatus.COUNT, DoneCommand.INSERT_BULK, 0), session.done(1))
         assertEquals(listOf("SELECT 1"), backend.executed)
     }
 
@@ -275,6 +278,73 @@ class BulkDispatchTest {
         assertEquals(BatchVectors.DONE_ATTN, session.hex(1))
         assertEquals(1, backend.loads.size)
         assertEquals(listOf("SELECT 1"), backend.executed)
+    }
+
+    /**
+     * Gemessen mit `SqlBulkCopy` (Messprotokoll M-8, M-9, M-12): die Antwort auf `INSERT BULK` ist ein DONE ohne
+     * Zähler und Bits, Befehl `0x00fd`; die Antwort auf die Nachricht 0x07 ein DONE mit `COUNT`, Befehl `0x00f0` und
+     * der Zahl der Zeilen der Nachricht; jeder Batch der Quelle ist ein eigenes Paar (`INSERT BULK`, Nachricht 0x07),
+     * ohne Nachlauf. Ein Fehler des Callbacks ist ERROR 2627 (Class 14, State 1), INFO 3621 und DONE mit `ERROR`,
+     * Befehl `0x00f0`, ohne Zähler; die Verbindung bleibt offen. Wächter: ein DONE mit Zähler auf `INSERT BULK`, ein
+     * Befehl `0x0000` statt `0x00f0`, ein fehlendes INFO, eine andere Nummer.
+     *
+     * @spec SPEC-036
+     * @spec TDS-QA-01
+     */
+    @Test
+    fun `die Antworten folgen der Messung am echten Server`() = blocking {
+        val failing = Loading(onLoad = { QueryEvent.Failure("TDS_SIM_KEY_VIOLATION", "x") })
+        val session = Session.login(
+            batch(insertBulk),
+            bulk(),
+            batch(insertBulk),
+            bulk(EMPTY),
+            batch("SELECT 1"),
+            Inbound.EndOfStream,
+        )
+        session.serve(failing)
+        assertEquals(DoneToken(DoneKind.DONE, DoneStatus.FINAL, DoneCommand.BATCH, 0), session.done(0))
+        val tokens = session.tokens(1)
+        val text = "Violation of PRIMARY KEY constraint. Cannot insert duplicate key."
+        assertEquals(ServerMessage(2627, 1, 14, text), tokens.errorMessage())
+        val info = tokens.filterIsInstance<InfoToken>().single().message
+        assertEquals(ServerMessage(3621, 0, 0, "The statement has been terminated."), info)
+        assertEquals(DoneToken(DoneKind.DONE, DoneStatus.ERROR, DoneCommand.INSERT_BULK, 0), tokens.lastDone())
+        assertEquals(5, session.replies.size)
+        assertEquals(listOf("SELECT 1"), failing.executed)
+    }
+
+    /**
+     * Gemessen mit `SqlBulkCopy` (Messprotokoll M-11): erkennt der Client einen Verstoß gegen Typ, Länge oder NULL,
+     * sendet er nach `INSERT BULK` statt der Nachricht 0x07 ein ATTENTION; die Antwort ist ein DONE mit `ERROR` und
+     * `ATTENTION`, Befehl `0x00fd`, ohne ERROR-Token, die Verbindung bleibt offen, das Ziel entfällt, die Folgeabfrage
+     * wird beantwortet. Nach einer geladenen Nachricht ist das ATTENTION die gewöhnliche Bestätigung (nur `ATTENTION`,
+     * M-12). Wächter: die gewöhnliche Bestätigung nach `INSERT BULK`; der Fehlerstatus nach einer geladenen Nachricht;
+     * ein Ziel, das das ATTENTION überlebt.
+     *
+     * @spec SPEC-036
+     * @spec TDS-QA-01
+     */
+    @Test
+    fun `ATTENTION statt der Nachricht 0x07 bricht das Massenladen ab`() = blocking {
+        val backend = Loading()
+        val session = Session.login(
+            batch(insertBulk),
+            BatchVectors.attention(),
+            bulk(),
+            batch(insertBulk),
+            bulk(),
+            BatchVectors.attention(),
+            Inbound.EndOfStream,
+        )
+        session.serve(backend)
+        val aborted = DoneStatus.ERROR or DoneStatus.ATTENTION
+        assertEquals(DoneToken(DoneKind.DONE, aborted, DoneCommand.BATCH, 0), session.done(1))
+        assertTrue(session.tokens(1).none { it is ErrorToken })
+        assertEquals(unsupported, session.tokens(2).errorMessage())
+        assertEquals(DoneToken(DoneKind.DONE, DoneStatus.ATTENTION, DoneCommand.BATCH, 0), session.done(5))
+        assertEquals(1, backend.loads.size)
+        assertTrue(session.channel.exhausted)
     }
 
     private companion object {
