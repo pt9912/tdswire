@@ -338,10 +338,14 @@ public class Aufnahme {
             int namenLaenge = p.u8();
             String pn = p.text16(namenLaenge);
             int status = p.u8();
+            int von = p.p;
             Typ t = typInfo(p);
             String w = wert(p, t);
             s.append(" | ").append(pn.isEmpty() ? "#" + index : pn).append(status != 0 ? "(out)" : "").append(' ')
                 .append(t.name()).append(" = ").append(w.length() > 2500 ? w.substring(0, 2500) + "..." : w);
+            if (t.id != 0xe7 && t.id != 0xef) {
+                s.append(" [hex=").append(hex(n, von, p.p)).append(']');
+            }
             index++;
         }
         return s.toString().replace("\r", "\\r").replace("\n", "\\n");

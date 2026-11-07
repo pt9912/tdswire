@@ -626,10 +626,15 @@ jdbclauf() {
   for db in messdb messdb2; do
     sql "USE $db; CREATE TABLE dbo.kunden (Id BIGINT NOT NULL PRIMARY KEY, Name NVARCHAR(4000) NULL, Eintritt DATE NULL); INSERT dbo.kunden VALUES (1, N'vorhanden', '2020-02-02');
          CREATE TABLE dbo.kunden_neu (Id BIGINT NOT NULL PRIMARY KEY, Name NVARCHAR(4000) NULL, Eintritt DATE NULL);
-         CREATE TABLE dbo.kunden_int (Id INT NOT NULL PRIMARY KEY, Name NVARCHAR(4000) NULL, Eintritt DATE NULL); INSERT dbo.kunden_int VALUES (1, N'vorhanden', '2020-02-02');" || return 1
+         CREATE TABLE dbo.kunden_int (Id INT NOT NULL PRIMARY KEY, Name NVARCHAR(4000) NULL, Eintritt DATE NULL); INSERT dbo.kunden_int VALUES (1, N'vorhanden', '2020-02-02');
+         CREATE TABLE dbo.bestellungen (Id BIGINT NOT NULL PRIMARY KEY, KundenId BIGINT NOT NULL, Betrag DECIMAL(10,2) NULL); INSERT dbo.bestellungen VALUES (1, 1, 1.50);
+         CREATE TABLE dbo.zeiten (Id BIGINT NOT NULL PRIMARY KEY, Uhr TIME NULL, Zeitpunkt DATETIME2 NULL, Flag BIT NULL, Datum DATE NULL);
+         INSERT dbo.zeiten VALUES (1, '01:02:03', '2020-02-02 01:02:03', 0, '2020-02-02');" || return 1
   done
   printf '%s\n' '[{"Id":1,"Name":"Ada Ünï","Eintritt":"2026-01-02"},{"Id":2,"Name":null,"Eintritt":null},{"Id":3,"Name":"Cäcilie","Eintritt":"2025-12-31"}]' >"$work/kunden.json"
-  chmod 666 "$work/kunden.json"
+  printf '%s\n' '[{"Id":1,"KundenId":7,"Betrag":12.50},{"Id":2,"KundenId":7,"Betrag":null},{"Id":3,"KundenId":8,"Betrag":-0.05},{"Id":4,"KundenId":8,"Betrag":99999999.99},{"Id":5,"KundenId":9,"Betrag":0}]' >"$work/bestellungen.json"
+  printf '%s\n' '[{"Id":1,"Uhr":"13:14:15","Zeitpunkt":"2026-01-02T13:14:15","Flag":true,"Datum":"2026-01-02"},{"Id":2,"Uhr":null,"Zeitpunkt":null,"Flag":null,"Datum":null},{"Id":3,"Uhr":"00:00:00","Zeitpunkt":"2026-01-02T23:59:59.123","Flag":false,"Datum":"0001-01-01"}]' >"$work/zeiten.json"
+  chmod 666 "$work"/*.json
   docker run -d --name "$proxy" --network "$NETZ" --network-alias proxy -v "$klassen:/klassen:ro" -e AUFNAHME_PAKETE="${AUFNAHME_PAKETE:-}" --entrypoint java "$JDBC_IMAGE" \
     -cp /klassen Aufnahme 1433 referenz 1433 >/dev/null || return 1
   for i in $(seq 1 30); do docker logs "$proxy" 2>&1 | grep -q 'aufnahme: bereit' && break; sleep 1; done
@@ -662,10 +667,17 @@ jdbclauf() {
   schritt bulk-int data import --target "$url" --source /work/kunden.json --table kunden_int
   schritt merge-int data import --target "$url" --source /work/kunden.json --table kunden_int --on-conflict skip
   schritt export-int data export --source "$url" --format json --tables kunden_int -o /work/nach-int.json
+  schritt merge-decimal-skip data import --target "$url" --source /work/bestellungen.json --table bestellungen --on-conflict skip
+  schritt merge-decimal-update data import --target "$url" --source /work/bestellungen.json --table bestellungen --on-conflict update
+  schritt export-decimal data export --source "$url" --format json --tables bestellungen -o /work/nach-decimal.json
+  schritt merge-zeit-skip data import --target "$url" --source /work/zeiten.json --table zeiten --on-conflict skip
+  schritt merge-zeit-update data import --target "$url" --source /work/zeiten.json --table zeiten --on-conflict update
+  schritt export-zeit data export --source "$url" --format json --tables zeiten -o /work/nach-zeit.json
+  schritt transfer-decimal-zeit data transfer --source "$url" --target "$url2" --tables bestellungen,zeiten --on-conflict skip
   schritt transfer-skip data transfer --source "$url" --target "$url2" --tables kunden --on-conflict skip
   schritt transfer-update data transfer --source "$url" --target "$url2" --tables kunden --on-conflict update
   schritt transfer-bulk data transfer --source "$url" --target "$url2" --tables kunden_neu
-  for f in nach-skip nach-update nach-bulk nach-int; do
+  for f in nach-skip nach-update nach-bulk nach-int nach-decimal nach-zeit; do
     [ -f "$work/$f.json" ] && sed "s/^/aufnahme: datei $f.json: /" "$work/$f.json" >>"$SCRATCH/aufnahme.txt"
   done
   if grep -qF -e "$KENNWORT" "$SCRATCH/aufnahme.txt"; then
