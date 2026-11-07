@@ -20,6 +20,7 @@ import io.github.pt9912.tdswire.transport.framing.PacketType
 import io.github.pt9912.tdswire.transport.listener.eventually
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeout
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -404,7 +405,68 @@ internal class MetricsTracingWiringTest : RuntimeTestBase() {
         assertEquals(1, spans("tds.query").size)
     }
 
+    /**
+     * Im geordneten Beenden mit `SHUTDOWN_GRACE` 0 bricht der Stop die laufende Anfrage ab: `tds.query` endet mit
+     * `shutdown`, der Backend-Aufruf mit `cancelled`, und die Verbindung endet vor dem Ereignis zum Ende des Servers;
+     * jeder Span endet genau einmal.
+     *
+     * @spec SPEC-018
+     * @spec SPEC-044
+     */
+    @Test
+    fun `Der Abbruch im Beenden endet tds_query mit shutdown`() = blocking {
+        val gate = CompletableDeferred<Unit>()
+        val backend = FlowBackend(suspendedAfter(gate))
+        val server = running(
+            environment(ConfigKeys.SHUTDOWN_GRACE to "0"),
+            Wiring(telemetry = sink, requests = RequestSource(backend)),
+        )
+        RawClient(server.port).use { client ->
+            assertTrue(login(client))
+            client.send(batch("haengt"))
+            backend.collecting.await()
+            withTimeout(STOP_MILLIS) { server.stop() }
+            client.reply("Bestaetigung")
+        }
+        assertEquals(listOf("shutdown"), spans("tds.query").map { it.outcome })
+        assertEquals(listOf("cancelled"), spans("backend.execute").map { it.outcome })
+        assertEquals(1, spans("tds.connection").size)
+        val stopped = sink.events.indexOfFirst { it.kind == EventKind.SERVER_STOPPED }
+        val connectionEnd = sink.events.indexOfFirst {
+            it.kind == EventKind.SPAN_ENDED && it.span == "tds.connection"
+        }
+        assertTrue(connectionEnd in 0 until stopped, "Span-Ende $connectionEnd, Ende des Servers $stopped")
+        gate.complete(Unit)
+    }
+
+    /**
+     * Wirft der Handler einer Verbindung eine Ausnahme (hier ein `Error` der Senke nach der Anmeldung), endet
+     * `tds.connection` mit `error`, und der Span bleibt nicht offen. Die Ausnahme ist der Auslöser, kein Gegenstand der
+     * Zusage (`TelemetrySink`).
+     *
+     * @spec SPEC-017
+     * @spec SPEC-048
+     */
+    @Test
+    fun `Eine Ausnahme des Handlers endet tds_connection mit error`() = blocking {
+        val server = running(environment(), Wiring(telemetry = ThrowsAfterLogin(sink, AssertionError(WERTPROBE))))
+        RawClient(server.port).use { client ->
+            client.send(preloginWire(SessionVectors.ENCRYPT_OFF))
+            assertNotNull(client.readMessage())
+            val payload = SessionVectors.login7Payload {
+                userName = "alice"
+                password = "secret".toCharArray()
+            }
+            client.send(handMessage(LOGIN7_TYPE, payload, 4000))
+            eventually("Verbindung beendet") { spans("tds.connection").size == 1 }
+        }
+        assertEquals(listOf("error"), spans("tds.connection").map { it.outcome })
+        val metrics = awaitMetrics("Ruhe") { it[MetricKeys.SPANS_OPEN] == 0L }
+        assertEquals(0L, metrics.value(MetricKeys.SESSIONS_ACTIVE))
+    }
+
     private companion object {
         const val MANY = 200
+        const val STOP_MILLIS = 15_000L
     }
 }
