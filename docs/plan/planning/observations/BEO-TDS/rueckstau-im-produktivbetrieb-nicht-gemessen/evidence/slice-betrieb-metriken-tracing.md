@@ -1,0 +1,2 @@
+**Vorgang:** [slice-betrieb-metriken-tracing](../../../../in-progress/slice-betrieb-metriken-tracing.md)
+**Fund:** Overhead der Telemetrie unter Last und eine blockierende Senke sind ungemessen ([Verifikation](../../../../../../reviews/2026-11-07-4ed6a526-verifikation-slice-betrieb-metriken-tracing.md), Abschnitt Sicherheit und Ressourcen); Träger [slice-qa-performance](../../../../open/slice-qa-performance.md).
