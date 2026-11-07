@@ -91,6 +91,13 @@ die Antwort und wird notiert.
    verlangt keine Zahl präziser, als ein im Repo wiederholbarer Beleg sie trägt; soll sie genau
    tragen, gehört der Erzeuger in den Slice (seit slice-katalog-und-ddl-zustand).
 
+6e. **Ändert ein Slice Verhalten, Schnittstelle, Konfiguration, Ereignisse oder Grenzen, nennt sein Plan
+   die Nutzer-Doku als Liefer-Punkt: alle Dateien unter `docs/user/` werden komplett gegen den Stand
+   nach dem Slice gelesen und auf den Ist-Zustand gebracht** (`AGENTS.md` §5 Regel 5): keine
+   Planung, keine „nicht gebaut“-Sätze, keine Chronik, keine veralteten Gegenstellen (Aufgabenliste,
+   Referenzseiten, Beispielcode im Einbettungstest). Die Tabelle in §3 führt jede berührte Datei
+   (Auftrag des Nutzers 2026-11-07; Beobachtung `planung-und-register-zeiger-in-nutzer-doku`, 2×, ohne Anker).
+
 6a. **Wechselt eine ADR auf `Accepted` (Slice-Closure oder Bau-Slice-Anlage), ziehst du die
    Zustandsfelder der Nachbar-Slices im selben Zug nach.** Grep über das **ganze Repo** (`docs/`,
    `spec/`, `.claude/`, `harness/`) nach der alten Lesart: `Proposed`, `Entwurf`, „gilt erst mit
