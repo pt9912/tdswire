@@ -9,7 +9,7 @@ aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
 Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (§Ein Slice, dessen Gegenstand ein anderer übernimmt).
 
-**Welle:** welle-anfrageverarbeitung (Vorrat, kein Closure-Kriterium der Welle, Nutzerentscheid 2026-11-07)
+**Welle:** keine (Vorrat; war `welle-anfrageverarbeitung` zugeordnet (Nutzerentscheid 2026-11-07), seit deren Closure am selben Tag ohne Welle; Start-Trigger unverändert (Priorisierung durch den Nutzer).)
 
 **Bezug:** [TDS-FA-04](../../../../spec/lastenheft.md#tds-fa-04--parametrisierte-abfragen-über-rpc), [TDS-FA-10](../../../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte), [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [ADR-0005](../../adr/0005-rpc-und-prepared-statements.md), [ADR-0039](../../adr/0039-abschluss-der-antwort-auf-eine-rpc-nachricht-die-der-parser-abweist.md) (`Accepted`; der Mehrfach-RPC liegt dort auf der Seite ERROR und DONE, bis dieser Slice ihn unterstützt)
 

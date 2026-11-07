@@ -9,7 +9,7 @@ aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
 Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (§Ein Slice, dessen Gegenstand ein anderer übernimmt).
 
-**Welle:** [welle-anfrageverarbeitung](../welle-anfrageverarbeitung.md) — der Slice trägt das *Mehr* des Closure-Triggers (§3 der Welle, dritter Punkt), das keiner der Slice-DoDs der Welle allein belegt.
+**Welle:** [welle-anfrageverarbeitung](welle-anfrageverarbeitung.md) — der Slice trägt das *Mehr* des Closure-Triggers (§3 der Welle, dritter Punkt), das keiner der Slice-DoDs der Welle allein belegt.
 
 **Bezug:** [TDS-FA-03](../../../../spec/lastenheft.md#tds-fa-03--einfache-sql-batches), [TDS-FA-04](../../../../spec/lastenheft.md#tds-fa-04--parametrisierte-abfragen-über-rpc), [TDS-FA-10](../../../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte), [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität), [ADR-0004](../../adr/0004-session-zustandsautomat.md), [ADR-0005](../../adr/0005-rpc-und-prepared-statements.md)
 
@@ -31,14 +31,14 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Ein Gesamttest belegt auf **einer** Sitzung ab `READY` gegen ein Test-Backend, das den Backend-Port implementiert, die Folge des Closure-Triggers von [welle-anfrageverarbeitung](../welle-anfrageverarbeitung.md) (§3, dritter Punkt) und damit das *Mehr* gegenüber den Slice-DoDs: der Anfragezustand kehrt nach jeder Anfrageart nach `IDLE` zurück, die Handle-Tabelle überlebt Anfragen derselben Sitzung, und ein Fehler beendet die Sitzung nicht ([TDS-FA-03](../../../../spec/lastenheft.md#tds-fa-03--einfache-sql-batches), [TDS-FA-04](../../../../spec/lastenheft.md#tds-fa-04--parametrisierte-abfragen-über-rpc), [TDS-FA-10](../../../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte)).
+**Ziel:** Ein Gesamttest belegt auf **einer** Sitzung ab `READY` gegen ein Test-Backend, das den Backend-Port implementiert, die Folge des Closure-Triggers von [welle-anfrageverarbeitung](welle-anfrageverarbeitung.md) (§3, dritter Punkt) und damit das *Mehr* gegenüber den Slice-DoDs: der Anfragezustand kehrt nach jeder Anfrageart nach `IDLE` zurück, die Handle-Tabelle überlebt Anfragen derselben Sitzung, und ein Fehler beendet die Sitzung nicht ([TDS-FA-03](../../../../spec/lastenheft.md#tds-fa-03--einfache-sql-batches), [TDS-FA-04](../../../../spec/lastenheft.md#tds-fa-04--parametrisierte-abfragen-über-rpc), [TDS-FA-10](../../../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte)).
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Eine Änderung am Produktivcode — der Slice ist ein Beleg, kein Umbau; findet der Test eine Abweichung, ist das ein Befund, den der Implementer als Folge-Slice oder Beobachtung meldet (§6), nicht im selben Slice behebt.
 - PLP, NBCROW und Typen außerhalb des Mindestkatalogs — `slice-codec-datentypen-erweiterung` (Vorrat); die Folge enthält laut Closure-Trigger keine dieser Formen.
 - Paket-Framing, Socket, TLS und Login — gehören den Wellen `welle-transport-tls` und `welle-handshake-login` (beide `done/`); der Socket-Pfad mit zwei Batches steht in `RequestWiringTest`. Die Aussage des Gesamttests gilt für Nachrichten (Pakettyp und Nutzlast) einer Sitzung, nicht für Pakete auf einem Socket.
-- Der Referenzclient und ein echter SQL Server — `slice-qa-kompatibilitaet` (`done/`) und `slice-qa-reproduzierbarkeit`; der Test trägt keine Aussage über deren Verhalten ([welle-anfrageverarbeitung](../welle-anfrageverarbeitung.md) §6).
+- Der Referenzclient und ein echter SQL Server — `slice-qa-kompatibilitaet` (`done/`) und `slice-qa-reproduzierbarkeit`; der Test trägt keine Aussage über deren Verhalten ([welle-anfrageverarbeitung](welle-anfrageverarbeitung.md) §6).
 - ATTENTION, Cancel, Timeout und Backend-Fehler im Strom — `welle-fehler-abbruch`; die Folge enthält nur Fehler, die der Dispatch selbst erzeugt (unbekannter RPC, unbekanntes Handle).
 - Die Grenze der Handle-Tabelle (1000) — `PreparedHandlesDispatchTest`; die Folge belegt Überleben, nicht die Grenze.
 

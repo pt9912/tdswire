@@ -571,7 +571,7 @@ die Position in der Aufrufliste):
   `@a` an Position 4 hinter `@w`, W-5), und die RETURNVALUE stehen in der Reihenfolge der Aufrufliste, das Handle
   zuerst. Das Flag-Feld des Handle-RETURNVALUE ist 0x0000 (nicht nullbar), wie in den Mitschnitten `prepare` (2022 und
   2025, ein Fall je Instanz); der Mitschnitt-Lauf liest das Feld nicht (Ausnahme A-19 des Referenzabgleichs, Beleg ist
-  ein Test mit Handvektor). Das Flag-Feld des RETURNVALUE eines Ausgabewerts des Backends schreibt der Server mit 0x0001; am echten Server steht 0x0000 (A-20 des Referenzabgleichs, 22 von 22 Treffern je Instanz, nur `INTN` 4 mit Wert; bekannte Abweichung vom Zielbild, `BEO-TDS/zielbild-luecken-der-antwort-tokens`). Endet die Antwort
+  ein Test mit Handvektor). Das Flag-Feld des RETURNVALUE eines Ausgabewerts des Backends schreibt der Server mit 0x0001; am echten Server steht 0x0000 (A-20 des Referenzabgleichs, 22 von 22 Treffern je Instanz mit `INTN` 4 mit Wert; Messvermerk 2026-11-07, M-24: ebenso 24 von 24 je Instanz für `INTN` 2 und 8 Byte, `BITN`, `NUMERICN`, `FLOATN`, `nvarchar`, `date`, `time`, `datetime2`, mit Wert, mit NULL und ohne Zuweisung; bekannte Abweichung vom Zielbild, `BEO-TDS/zielbild-luecken-der-antwort-tokens`). Endet die Antwort
   mit einem Fehler, bevor das Handle im Strom steht (Fehler vor dem ersten Ausgabewert), entsteht kein Handle
   und der Wert wird nicht wieder vergeben; steht das Handle schon im Strom (Fehler nach einem Ausgabewert),
   bleibt es gültig.
@@ -589,8 +589,10 @@ die Position in der Aufrufliste):
   ganzen Text zu keiner Freigabe, er geht wie jeder SQL_BATCH an das Backend (`SPEC-036`, `SPEC-037`). Die Freigabe wird
   im Sitzungsrahmen beantwortet, ohne das Backend zu rufen. Die Nummern werden der Reihe nach bearbeitet: ein
   gehaltenes Handle wird freigegeben (die Zählung sinkt, der Wert wird nicht wieder vergeben); die Antwort ist, wenn die
-  Sitzung jede genannte Nummer hielt, ein DONE ohne Bits und ohne Zeilenzahl (Erfolg ohne Zeilen; die Tokenfolge eines
-  echten Servers ist nicht gemessen). Eine Nummer, die die Sitzung nicht hält (nie vergeben, schon freigegeben, aus der
+  Sitzung jede genannte Nummer hielt, ein DONE ohne Bits und ohne Zeilenzahl (Erfolg ohne Zeilen; Messvermerk
+  2026-11-07, M-23 des Referenzabgleichs, beide Instanzen, ein Fall je Instanz: der echte Server antwortet im Erfolgsfall mit
+  RETURNSTATUS und DONEPROC, Befehl `0x00e0`, ohne DONE; bekannte Abweichung vom Zielbild: der Server dieses Repos sendet ein
+  DONE ohne RETURNSTATUS, `BEO-TDS/zielbild-luecken-der-antwort-tokens`). Eine Nummer, die die Sitzung nicht hält (nie vergeben, schon freigegeben, aus der
   Zeit vor `RESETCONNECTION`), ergibt `SPEC-060`: ein ERROR je solcher Nummer, danach ein DONE mit Fehlerstatus; die
   Verbindung bleibt offen, das Backend wird nicht gerufen, die Zählung ändert sich durch diese Nummer nicht. Die Antwort nennt
   höchstens die ersten 100 solcher Nummern eines Batches (Setzung, nicht gemessen: ein echter Server hat keine bekannte Grenze
@@ -598,8 +600,9 @@ die Position in der Aufrufliste):
   (am Referenzclient gegen den echten SQL Server, 2022 und 2025): ein Handle freigeben gelingt, dasselbe ein zweites Mal
   und ein nie vergebenes ergeben Nummer 8179, Class 16, State 8, die Verbindung bleibt offen, auch in der Form des
   SQL_BATCH. Ebenso gemessen: ein Batch gehalten/unbekannt/gehalten bricht bei dem Fehler nicht ab, beide gehaltenen
-  Handles sind danach frei, der Fehler ist einer; zwei unbekannte Nummern ergeben zwei Fehler. Nicht gemessen: ob der
-  Server die Fehler als mehrere ERROR-Token mit einem oder mit mehreren DONE sendet.
+  Handles sind danach frei, der Fehler ist einer; zwei unbekannte Nummern ergeben zwei Fehler. Die Tokenfolge ist
+  gemessen (Messvermerk 2026-11-07, M-22 und M-23, beide Instanzen, ein Fall je Instanz): je unbekannter Nummer ein ERROR
+  (8179, State 8), ein RETURNSTATUS 8179 und ein DONEPROC (`MORE|ERROR`, Befehl `0x00e0`), kein DONE.
 - Die Handles enden mit der Sitzung; zwei Sitzungen sehen die Handles der jeweils anderen nicht. Der Zugriff
   auf die Tabelle einer Sitzung ist gegen gleichzeitigen Zugriff geschützt.
 - `RESETCONNECTION` (`SPEC-001`) leert die Tabelle: jedes Handle aus der Zeit davor ist unbekannt (bei `sp_execute`
@@ -858,10 +861,11 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   (Exit 5, Einzelmessung 2026-11-05). Der Callback `onStructure` bekommt für `CREATE TABLE` und `ALTER TABLE … ADD` die
   Tabelle im Zustand **nach** der Anweisung (Schema, Name wie im Katalog, alle Spalten in der Reihenfolge, Schlüssel); er
   wird beim Sammeln der Ausführung genau einmal gerufen, und die Antwort ist der Änderungszähler 0 (Setzung; gemessen ist der
-  Zähler 0 nur für `ROLLBACK TRAN`). Die Prüfung gegen den Katalog (`CREATE TABLE` einer vorhandenen Tabelle, `ADD` einer
+  Zähler 0 nur für `ROLLBACK TRAN`; Messvermerk 2026-11-07, M-20: der Server antwortet auf `CREATE TABLE` und `ALTER TABLE … ADD` mit einem `DONE` ohne `COUNT`, Befehl `0x00c6` bzw. `0x00d8`). Die Prüfung gegen den Katalog (`CREATE TABLE` einer vorhandenen Tabelle, `ADD` einer
   vorhandenen Spalte, `CREATE TABLE` ohne Schlüssel, eine Schlüsselspalte, die es nicht gibt) endet vor dem Callback mit
   `TDS_UNSUPPORTED_SQL` beziehungsweise `TDS_SIM_UNKNOWN_OBJECT` (Setzung; der echte Server antwortet mit eigenen Nummern,
-  die die Bibliothek nicht sendet). Eine Schlüsselspalte ist nach der Anweisung nicht nullbar, auch wenn der Text es nicht
+  die die Bibliothek nicht sendet; Messvermerk 2026-11-07, M-19: `CREATE TABLE` einer vorhandenen Tabelle 2714 (State 6), `ADD` einer
+  vorhandenen Spalte 2705 (State 4), `ALTER TABLE` einer unbekannten Tabelle 4902, jeweils Class 16; `CREATE TABLE` ohne Schlüssel gelingt am Server). Eine Schlüsselspalte ist nach der Anweisung nicht nullbar, auch wenn der Text es nicht
   sagt (Setzung nach dem Server). Ohne Callback endet die Anweisung mit `TDS_UNSUPPORTED_SQL`; ein Fehler des Callbacks ist
   `TDS_BACKEND_ERROR` mit fester Meldung. **Keine Transaktion (Zusage):** mehrere Callbacks einer Anweisung oder mehrerer
   Anweisungen sind keine Transaktion; die Bibliothek nimmt nichts zurück, ein Fehler hinterlässt den Zustand beim
@@ -875,7 +879,7 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   `Time` als `time` (5 Byte, Precision 16, Skala 7), `DateTime` als `datetime2` (8 Byte, Precision 27, Skala 7). Die
   Spalten `max_length`, `precision` und `scale` heißen im Server `smallint` und `tinyint`; hier sind es `Int32` (der Typ
   der Antwort ist der nächste von `SqlType`; am Referenzclient gemessen: `max_length` `smallint`, `precision` und `scale`
-  `tinyint`, `is_nullable` und `is_identity` `bit`, Namen `nvarchar`). Eine Identität, ein Standardwert, eine berechnete
+  `tinyint`, `is_nullable` und `is_identity` `bit`, Namen `nvarchar`). Messvermerk (2026-11-07, M-16 bis M-18 des Referenzabgleichs, beide Instanzen, ein Fall je Instanz, Abfragen von d-migrate 1.12.0 als Text vom Referenzclient): die Werte dieser Abbildung für `int`, `bigint`, `bit`, `decimal`, `date`, `time`, `datetime2` und `nvarchar` (einschließlich -1 für `nvarchar(max)`) stimmen mit dem echten Server überein; abweichend vom Zielbild bleibt der Typ der Spalten (`max_length` `smallint`, `precision` und `scale` `tinyint`, `is_nullable` `bit` nullbar, `is_identity` `bit` nicht nullbar, hier `Int32`); Identität, Standardwert, Fremdschlüssel, Index, Prüfbedingung antworten am echten Server mit Zeilen (M-21). Eine Identität, ein Standardwert, eine berechnete
   Spalte, ein Fremdschlüssel, ein Index (außer dem Schlüssel), eine Prüfbedingung, eine Sicht, eine Sequenz und eine
   Routine kommen nicht vor: ihre Abfragen antworten leer, mit den Spalten der Abfrage. `is_identity` ist immer 0; ein Soll mit
   dem Typ `identifier` zeigt bei `schema compare` deshalb `identifier -> biginteger` (Exit 1, gemessen).
@@ -972,7 +976,7 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
 - **Form D, Strukturänderung** (gemessen: der Wortlaut von `schema migrate --execute`, 2026-11-06): eine Spalte ist `<Name> <Typ>
   [NOT NULL | NULL]` mit `INT`, `BIGINT`, `BIT`, `DATE`, `TIME`, `DATETIME2`, `NVARCHAR(<n>)` (`n` von 1 bis 4000) oder
   `NVARCHAR(MAX)` (`maxLength` -1) und `DECIMAL(<p>, <s>)` (Precision bis 38); der Schlüssel heißt im gesendeten Text
-  `CONSTRAINT [pk_<Tabelle>] PRIMARY KEY ([Id])`. Mehrere Spalten in `ADD` sind Setzung. Ein anderer Typ (`SMALLINT`, `FLOAT`, …) oder
+  `CONSTRAINT [pk_<Tabelle>] PRIMARY KEY ([Id])`. Mehrere Spalten in `ADD` sind Setzung (Messvermerk 2026-11-07, M-19: `ADD [A] INT, [B] NVARCHAR(10)` gelingt am Server). Ein anderer Typ (`SMALLINT`, `FLOAT`, …) oder
   eine weitere Klausel (`DEFAULT`, `IDENTITY`, `UNIQUE`, `WITH`) macht den Text nicht erkannt. Ein abschließendes `;` ist erlaubt.
   Die Prüfung gegen den Katalog und die Antwort stehen in `SPEC-035`.
 - **Scanner** (Setzungen, nicht am Server gemessen): Leerraum sind Leerzeichen, Tab, CR und LF.
@@ -1133,7 +1137,7 @@ Abnahmegrenzen.
 | `SPEC-049` | `TDS_SHUTDOWN` | Anfrage nach Beginn des geordneten Beendens (`SPEC-044`) | ERROR und DONE mit Fehlerstatus (in der Antwort auf einen RPC DONEPROC), danach Verbindungsende; Herkunft des Schließens: ERROR und DONE werden vollständig gesendet, erst danach wird geschlossen (Setzung des Nutzers vom 2026-11-01, am Referenzclient wird „ERROR, DONE, dann Schließen“ gelesen, ein Herunterfahren am echten Server ist nicht gemessen); vorgesehen: die SQL-Server-Meldung für ein Herunterfahren, Nummer im Mapping nach `TDS-FA-06.a` festlegen |
 | `SPEC-057` | `TDS_UNKNOWN_HANDLE` | `sp_execute` mit einem Handle, das die Sitzung nicht hält, auch nach `RESETCONNECTION` (`SPEC-030`) | ERROR und DONEPROC mit Fehlerstatus (`0x00e0`; die Fehler dieser Zeile gibt es nur in der Antwort auf einen RPC); die Verbindung bleibt offen (Class 16), das Backend wird nicht gerufen; das Log nennt die feste Marke `unknown-handle`. Der echte SQL Server antwortet auf `sp_execute` mit einem unbekannten Handle mit Nummer 8179, Class 16, State 4 (Messung am Referenzclient, 2022 und 2025, als Prozedur und als SQL_BATCH `EXEC sp_execute <n>`), nicht mit 50009; die Abweichung ist gemessen, ihre Behandlung nicht entschieden |
 | `SPEC-058` | `TDS_PREPARE_LIMIT` | `sp_prepexec` bei erreichter Grenze der gleichzeitig gehaltenen Handles der Sitzung (Voreinstellung 1000, einstellbar, `SPEC-061`, `SPEC-030`) | ERROR und DONEPROC mit Fehlerstatus (`0x00e0`; die Fehler dieser Zeile gibt es nur in der Antwort auf einen RPC); die Verbindung bleibt offen (Class 16), das Backend wird nicht gerufen, die vorhandenen Handles bleiben gültig; das Log nennt die feste Marke `handle-limit` |
-| `SPEC-060` | `TDS_SIM_UNKNOWN_PREPARED_HANDLE` | die Batch-Freigabe `EXEC sp_unprepare <n>` (`SPEC-030`) nennt ein Handle, das die Sitzung nicht hält: nie vergeben, schon freigegeben oder aus der Zeit vor `RESETCONNECTION` | ERROR (Nummer 8179, Class 16, State 8, Text „Could not find prepared statement with handle <n>.“ mit der Nummer) je nicht gehaltener Nummer, höchstens für die ersten 100 Nummern des Batches in der Reihenfolge des Textes (Setzung, nicht gemessen), danach ein DONE mit Fehlerstatus; die Verbindung bleibt offen, das Backend wird nicht gerufen, die Zählung ändert sich nicht; die übrigen Nummern des Batches werden bearbeitet; das Log nennt die feste Marke `unknown-prepared-handle` je gemeldeter Nummer (höchstens 100 Einträge je Batch). Nummer, Class, State, Text für Handle 1 und die offene Verbindung sind am Referenzclient gegen den echten SQL Server gemessen (2022 und 2025); der Text für andere Nummern, die Bearbeitung der übrigen Nummern (am Client bestätigt, die Tokenfolge auf dem Draht nicht) und die weiteren Felder des ERROR-Tokens (Servername, Prozedur und Zeile leer bzw. 0) sind Setzung. Die Obergrenze von 100 weicht vom echten Server ab, der nach M-7 jede unbekannte Nummer meldet (zwei Unbekannte, zwei Fehler); ob und ab welcher Zahl der echte Server die Meldung begrenzt, ist nicht gemessen. Auflösungs-Trigger der Setzung: eine Messung am echten SQL Server mit sehr vielen unbekannten Nummern in einem Batch; ergibt sie eine andere Grenze oder keine, wird die Setzung dem Messwert angeglichen und der Schutz nach [TDS-QA-02](lastenheft.md#tds-qa-02--stabilität) anders getragen |
+| `SPEC-060` | `TDS_SIM_UNKNOWN_PREPARED_HANDLE` | die Batch-Freigabe `EXEC sp_unprepare <n>` (`SPEC-030`) nennt ein Handle, das die Sitzung nicht hält: nie vergeben, schon freigegeben oder aus der Zeit vor `RESETCONNECTION` | ERROR (Nummer 8179, Class 16, State 8, Text „Could not find prepared statement with handle <n>.“ mit der Nummer) je nicht gehaltener Nummer, höchstens für die ersten 100 Nummern des Batches in der Reihenfolge des Textes (Setzung; der Messwert widerspricht ihr, Messvermerk unten), danach ein DONE mit Fehlerstatus; die Verbindung bleibt offen, das Backend wird nicht gerufen, die Zählung ändert sich nicht; die übrigen Nummern des Batches werden bearbeitet; das Log nennt die feste Marke `unknown-prepared-handle` je gemeldeter Nummer (höchstens 100 Einträge je Batch). Nummer, Class, State, Text für Handle 1 und die offene Verbindung sind am Referenzclient gegen den echten SQL Server gemessen (2022 und 2025); der Text für andere Nummern, die Bearbeitung der übrigen Nummern (am Client bestätigt; die Tokenfolge auf dem Draht ist gemessen, M-22 und M-23: je Nummer ERROR, RETURNSTATUS 8179 und DONEPROC, kein DONE, der Server dieses Repos sendet am Ende ein DONE) und die weiteren Felder des ERROR-Tokens (Servername, Prozedur und Zeile leer bzw. 0) sind Setzung. Die Obergrenze von 100 weicht vom echten Server ab, der nach M-7 jede unbekannte Nummer meldet (zwei Unbekannte, zwei Fehler); ob der echte Server die Meldung begrenzt, ist gemessen (Messvermerk 2026-11-07, M-22 des Referenzabgleichs, beide Instanzen, ein Fall je Instanz): er meldet jede Nummer ohne Obergrenze, 100, 101 und 150 Nummern auf dem Draht und bis 2000 Nummern am Client; die Obergrenze von 100 widerspricht damit dem Messwert (Konflikt mit dem Zielbild; Nutzerentscheid 2026-11-07, Beleg im Register `BEO-TDS/obergrenze-gemeldete-nummern-je-batch-weicht-vom-echten-server-ab`: Spezifikation und Bau werden dem Messwert angeglichen, Träger ist der dort genannte Bau-Slice; bis dahin gilt die Setzung). Auflösungs-Trigger der Setzung (eingetreten): eine Messung am echten SQL Server mit sehr vielen unbekannten Nummern in einem Batch; ergibt sie eine andere Grenze oder keine, wird die Setzung dem Messwert angeglichen und der Schutz nach [TDS-QA-02](lastenheft.md#tds-qa-02--stabilität) anders getragen |
 
 Die Nummern in der Aktionsspalte sind ein Vorschlag für das Mapping nach `TDS-FA-06.a`. Für
 `TDS_UNSUPPORTED_SQL` gibt es keine SQL-Server-Entsprechung, denn dort ist die Anweisung gültig; die
