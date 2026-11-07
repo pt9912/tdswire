@@ -47,5 +47,5 @@ Nicht geprüft (Verifier): DoD-Häkchen, `make gates`. Geprüft: `make docs-chec
 - `docs/plan/adr/` ([ADR-0017](../plan/adr/0017-prepared-handles-grenzwert.md) unverändert, Index-Zeile von [ADR-0036](../plan/adr/0036-handle-freigabe-und-grenze-je-sitzung.md) vorhanden, Verweise lösen): geprüft, ohne Befund außer F-2/F-5.
 - `docs/messungen/` (Bedingungen, Host, Last, Datum, Nachrechnen der Zeilen h/t/u): geprüft, ohne Befund.
 - `docs/plan/planning/done/slice-adr-handle-grenze-ersatz.md` (§3-Änderung): geprüft, ohne Befund außer F-5.
-- `docs/plan/planning/next/slice-schreibpfad-merge-output.md` (Anschluss, Risiko): geprüft, ohne Befund; Kommentar-Klassen (`AGENTS.md` §3.7) in den geänderten Zeilen eingehalten (Indikativ, Zustandsangabe „Stand `Proposed`“ als Zustand).
+- `docs/plan/planning/in-progress/slice-schreibpfad-merge-output.md` (Anschluss, Risiko): geprüft, ohne Befund; Kommentar-Klassen (`AGENTS.md` §3.7) in den geänderten Zeilen eingehalten (Indikativ, Zustandsangabe „Stand `Proposed`“ als Zustand).
 - `spec/`, `src/`, `tools/`, `config/`, `harness/`: im Diff nicht geändert (geprüft nur als Greps für F-1); Hard Rules §3.1/§3.2 nicht berührt.
