@@ -1,0 +1,2 @@
+**Vorgang:** [slice-schreibpfad-bulk-load](../../../../done/slice-schreibpfad-bulk-load.md)
+**Fund:** [Verifikation](../../../../../../reviews/2026-11-07-631d273d-verifikation-slice-schreibpfad-bulk-load.md) V-3 (a): das KDoc von `TableStore` sagte „die Bibliothek meldet das dem Client als `TDS_BACKEND_ERROR`“, seit dem zweiten Durchgang meldet sie 2627; der Kommentar beschrieb einen Zustand, der nicht mehr da ist.

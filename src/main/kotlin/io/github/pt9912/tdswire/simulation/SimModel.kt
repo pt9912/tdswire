@@ -11,8 +11,9 @@ internal const val DEFAULT_SCHEMA = "dbo"
  * eine Spalte und einen Schlüssel, jeder Schlüsseleintrag nennt eine vorhandene, nicht nullbare Spalte
  * (Setzung, nicht am Server gemessen). Der Schlüssel wirkt weder auf Resultset noch auf Callbacks.
  *
- * [onInsertBatch] nimmt die Zeilen einer Massenlade-Nachricht als Liste; dieser Stand der Bibliothek ruft ihn nicht,
- * das Massenladen ist nicht gebaut.
+ * [onInsertBatch] nimmt die Zeilen einer Massenlade-Nachricht (Pakettyp 0x07, `SPEC-036` Form B) als Liste: die
+ * Bibliothek ruft ihn einmal je Nachricht mit allen Zeilen; ob die Nachricht ganz oder gar nicht gilt, entscheidet der
+ * Integrator (`ADR-0033` Nr. 5). Hat die Tabelle ihn nicht, ruft die Bibliothek [onInsert] je Zeile.
  *
  * `columns` und `primaryKey` werden nicht kopiert: ein Konstruktor mit neun Parametern erlaubt die Regel
  * `LongParameterList` nur an einer `data class`, und deren Konstruktor kann die Listen nicht ersetzen. Der Aufrufer

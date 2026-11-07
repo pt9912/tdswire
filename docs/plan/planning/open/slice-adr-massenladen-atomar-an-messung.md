@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md), [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md)
 
-**Berührte Spec-Stellen:** [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) (Nr. 5 (iii) und Nr. 6, Folgepflicht 3) · SPEC-035 (Zeilenquelle, Stapel-Callback) · SPEC-036 (Massenladen). Die Spezifikation ändert der Bau-Slice [slice-schreibpfad-bulk-load](slice-schreibpfad-bulk-load.md) nach `Accepted`, nicht dieser Slice.
+**Berührte Spec-Stellen:** [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) (Nr. 5 (iii) und Nr. 6, Folgepflicht 3) · SPEC-035 (Zeilenquelle, Stapel-Callback) · SPEC-036 (Massenladen). Die Spezifikation ändert der Bau-Slice [slice-schreibpfad-bulk-load](../done/slice-schreibpfad-bulk-load.md) nach `Accepted`, nicht dieser Slice.
 
 **Verantwortlich:** — bis zur Priorisierung.
 
@@ -37,7 +37,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Der Bau der Atomarität und der Weitergabe der Zeilen — [slice-schreibpfad-bulk-load](slice-schreibpfad-bulk-load.md); er richtet sich nach `Accepted` (Setzung des Planners: der Bau beginnt nicht vor dem Entscheid, sonst baut er gegen den Wortlaut, den die Messung widerlegt).
+- Der Bau der Atomarität und der Weitergabe der Zeilen — [slice-schreibpfad-bulk-load](../done/slice-schreibpfad-bulk-load.md); er richtet sich nach `Accepted` (Setzung des Planners: der Bau beginnt nicht vor dem Entscheid, sonst baut er gegen den Wortlaut, den die Messung widerlegt).
 - Eine Änderung von [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) selbst — sie ist `Accepted` und unveränderlich; die neue ADR schärft über `Supersedes (teilweise)`.
 - Messungen mit mssql-jdbc (Treiber von d-migrate) — Folgepflicht 2 der ADR hat ihren Träger in [slice-schreibpfad-merge-output](slice-schreibpfad-merge-output.md) (Messauftrag).
 
@@ -52,8 +52,8 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 Liefer-Punkte (drei):
 
 - [ ] **Messung der Atomarität** ([TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md)): Das [Messprotokoll](../../../messungen/referenzabgleich.md#messreihe-zu-massenladen-merge-katalog-und-strukturänderung-messungen-vom-2026-11-07) führt Zeilen mit der nächsten freien Nummer für den Schlüsselverstoß an erster, mittlerer und letzter Zeile einer Nachricht, in der zweiten von drei Nachrichten (mehrere Pakete, mehrere `BatchSize`) und für eine Quelle mit mehreren Verstößen: Zustand der Tabelle danach (Zeilen), Tokenfolge, Zähler, Verbindung; Einzelmessung je Instanz 2022 und 2025 (lokal, EULA für das gepinnte Image: Nutzer, 2026-11-06), Grenze „Referenzclient, nicht mssql-jdbc“ im selben Satz. Beleg: `make vergleichslauf-d`, Messprotokoll, `make docs-check`.
-- [ ] **ADR `Proposed`** ([TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate)): Der Architect schreibt die ADR aus der ADR-Vorlage (`.harness/baseline/v6.18.1/templates`): Optionen mindestens A (die Nachricht ist eine Anweisung mit atomarer Übernahme, wie der echte Server) und B (Teilbestand bleibt wie in [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Nr. 5 (iii) und Nr. 6, Abweichung als Setzung), dazu die Frage, was der Stapel-Callback des Integrators bei Fehler zurückgibt; Empfehlung auf Grundlage der Messung; `Supersedes (teilweise)`: [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md); `Schärft:`-Feld; Folgepflicht-Liste; Eintrag im ADR-Index. Beleg: `make docs-check`.
-- [ ] **Entscheid und Nachzug** ([TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate)): Der Nutzer entscheidet; mit `Accepted` zieht der Planner [slice-schreibpfad-bulk-load](slice-schreibpfad-bulk-load.md) nach (Wortlaut, Teilbestand, Tests) und trägt das Ergebnis in das Register [`BEO-TDS/folge-adr-zu-adr-0033-massenladen-verstoss-und-teilbestand`](../observations/BEO-TDS/folge-adr-zu-adr-0033-massenladen-verstoss-und-teilbestand/state.md) ein. Beleg: ADR-Status, Stand des Registers.
+- [ ] **ADR `Proposed`** ([TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate)): Der Architect schreibt die ADR aus der ADR-Vorlage (`.harness/baseline/v6.18.1/templates`): Optionen mindestens A (die Nachricht ist eine Anweisung mit atomarer Übernahme, wie der echte Server) und B (Teilbestand bleibt wie in [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Nr. 5 (iii) und Nr. 6, Abweichung als Setzung), dazu die Frage, was der Stapel-Callback des Integrators bei Fehler zurückgibt, und die Zuordnung der Fehlercodes je Fehlerursache (Schlüsselverstoß, Typfehler, NULL in nicht nullbarer Spalte, volle Zellgrenze des Bestands, Fehler im Code des Integrators): der Bau von [slice-schreibpfad-bulk-load](../done/slice-schreibpfad-bulk-load.md) meldet heute jede Ausnahme des Callbacks als 2627 mit dem Text eines Schlüsselverstoßes (Setzung, Verifikation V-4), und diese Zuordnung hat über die Closure dieses Slice hinaus keinen anderen Träger; wo der echte Server messbar andere Nummern nennt, tragen die Zeilen des ersten Liefer-Punkts sie, sonst bleibt die Zuordnung eine benannte Setzung der ADR; Empfehlung auf Grundlage der Messung; `Supersedes (teilweise)`: [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md); `Schärft:`-Feld; Folgepflicht-Liste; Eintrag im ADR-Index. Beleg: `make docs-check`.
+- [ ] **Entscheid und Nachzug** ([TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate)): Der Nutzer entscheidet; mit `Accepted` zieht der Planner [slice-schreibpfad-bulk-load](../done/slice-schreibpfad-bulk-load.md) nach (Wortlaut, Teilbestand, Tests) und trägt das Ergebnis in das Register [`BEO-TDS/folge-adr-zu-adr-0033-massenladen-verstoss-und-teilbestand`](../observations/BEO-TDS/folge-adr-zu-adr-0033-massenladen-verstoss-und-teilbestand/state.md) ein. Beleg: ADR-Status, Stand des Registers.
 
 Nachweis-Pflichten für alle Punkte:
 
@@ -82,6 +82,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `docs/messungen/referenzabgleich.md` | update | Zeilen M-25 ff. (nächste freie Nummer) |
 | `docs/plan/adr/` (neue ADR) und `docs/plan/adr/README.md` | neu / update | Entscheidung zur Atomarität, Index |
 | `docs/plan/planning/observations/BEO-TDS/folge-adr-zu-adr-0033-massenladen-verstoss-und-teilbestand/` | update | Stand, Verweis auf die ADR |
+| `src/main/kotlin/io/github/pt9912/tdswire/simulation/BulkLoads.kt`, `spec/spezifikation.md` (`SPEC-036`, Fehlercode-Tabelle) | update (nach `Accepted`, durch den Bau-Slice) | Code je Fehlerursache statt Sammelcode 2627 |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 
@@ -105,7 +106,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Closure- und Lerneintrag-Regeln — zwei beobachtbare Kriterien **und** ein
 Lerneintrag; ohne ihn ist der Slice nur abgelegt.
 
-Alle drei Liefer-Punkte der DoD erledigt, die ADR steht auf `Accepted` (Entscheidung des Nutzers), [slice-schreibpfad-bulk-load](slice-schreibpfad-bulk-load.md) ist nachgezogen, `make gates` grün, der Review-Report liegt vor, und die Closure-Notiz trägt den Steering-Loop-Lerneintrag sowie die Zuordnung *Messung | Festlegung* für die Atomarität.
+Alle drei Liefer-Punkte der DoD erledigt, die ADR steht auf `Accepted` (Entscheidung des Nutzers), [slice-schreibpfad-bulk-load](../done/slice-schreibpfad-bulk-load.md) ist nachgezogen, `make gates` grün, der Review-Report liegt vor, und die Closure-Notiz trägt den Steering-Loop-Lerneintrag sowie die Zuordnung *Messung | Festlegung* für die Atomarität.
 
 ## 6. Risiken und offene Punkte
 
@@ -117,7 +118,7 @@ dasteht.
 
 - Die Erweiterung der Messung kann M-12 nicht bestätigen (etwa Teilbestand bei Fehler in der Mitte einer Nachricht mit mehreren Paketen); dann ändert sich die Option, nicht der Slice. — **Ausgang:** offen bis zur Closure.
 - Die Messung trägt den Referenzclient (`SqlBulkCopy`), nicht mssql-jdbc; der Treiber von d-migrate kann eine andere Nachrichtenfolge senden ([callback-loesung-spike](../../../messungen/callback-loesung-spike-2026-11-05.md)); die ADR trägt die Grenze im selben Satz. — **Ausgang:** offen bis zur Closure.
-- [slice-schreibpfad-bulk-load](slice-schreibpfad-bulk-load.md) kann vor dem Entscheid in `in-progress/` stehen (anderer Zweig); dann gilt Setzung des Planners: das Verhalten bei Fehler wird zurückgestellt oder als Abweichung gekennzeichnet. — **Ausgang:** offen bis zur Closure.
+- [slice-schreibpfad-bulk-load](../done/slice-schreibpfad-bulk-load.md) kann vor dem Entscheid in `in-progress/` stehen (anderer Zweig); dann gilt Setzung des Planners: das Verhalten bei Fehler wird zurückgestellt oder als Abweichung gekennzeichnet. — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 

@@ -8,14 +8,19 @@ import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.runtime.BackendSource
 import io.github.pt9912.tdswire.simulation.RowSource
 import io.github.pt9912.tdswire.simulation.SimColumn
+import io.github.pt9912.tdswire.simulation.SimQuery
 import io.github.pt9912.tdswire.simulation.SimTable
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
+import java.math.BigDecimal
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.CyclicBarrier
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 
 /**
@@ -182,5 +187,156 @@ class TableStoreTest {
             ask(backend, "CREATE TABLE t (a INT NOT NULL, PRIMARY KEY (a))"),
         )
         assertEquals(listOf("t"), listed(backend))
+    }
+
+    private fun tableOf(store: TableStore): SimTable = store.catalog().tables.single { it.name == "kunden" }
+
+    private fun insert(store: TableStore, vararg rows: Map<String, Any?>): Long =
+        runBlocking { requireNotNull(tableOf(store).onInsertBatch)(rows.toList()) }
+
+    private fun stored(store: TableStore): List<List<Any?>> = runBlocking {
+        val table = tableOf(store)
+        val source = table.rows(SimQuery(table.columns, null))
+        buildList { while (true) add(source.next() ?: break) }
+    }
+
+    /**
+     * Happy: der Stapel-Callback der Tabelle des Bestands nimmt die Zeilen einer Nachricht auf und liefert ihre Zahl;
+     * die Zeilenquelle liefert sie in der Reihenfolge der Spalten (eine fehlende Spalte als NULL), auch aus einem
+     * später
+     * gebauten Katalog; die zweite Nachricht hängt an.
+     * Wächter: ein Bestand ohne Zeilen (nur Struktur), eine Zeilenquelle, die den Stand der Übergabe zeigt.
+     * @spec SPEC-035
+     * @spec SPEC-036
+     */
+    @Test
+    fun `der Stapel-Callback speichert die Zeilen der Nachricht`() {
+        val store = TableStore(listOf(kunden))
+        assertEquals(2, insert(store, mapOf("Id" to 1L, "Name" to "Ada"), mapOf("Id" to 2L)))
+        assertEquals(listOf(listOf(1L, "Ada"), listOf(2L, null)), stored(store))
+        assertEquals(1, insert(store, mapOf("Id" to 3L, "Name" to "Cäcilie")))
+        assertEquals(listOf(1L, 2L, 3L), stored(store).map { it[0] })
+    }
+
+    /**
+     * Negativ: eine Nachricht gilt ganz oder gar nicht. Ein doppelter Schlüssel in der Nachricht, einer gegen den
+     * Bestand, ein Text für eine Ganzzahlspalte, ein NULL im Schlüssel und eine Textspalte, die sich nur in der
+     * Schreibweise unterscheidet (Setzung: Textschlüssel ohne Beachtung der Schreibweise), werfen, und der Bestand
+     * behält genau die Zeile davor. Wächter: ein Einfügen der ersten Zeilen vor dem Fehler (Teilbestand), eine
+     * fehlende Prüfung von Schlüssel, Typ oder NULL.
+     * @spec SPEC-035
+     * @spec SPEC-036
+     */
+    @Test
+    fun `eine fehlerhafte Nachricht aendert den Bestand nicht`() {
+        val store = TableStore(listOf(kunden))
+        insert(store, mapOf("Id" to 1L, "Name" to "Ada"))
+        val bad = listOf(
+            listOf(mapOf("Id" to 5L), mapOf("Id" to 5L)),
+            listOf(mapOf("Id" to 6L), mapOf("Id" to 1L)),
+            listOf(mapOf("Id" to 7L), mapOf("Id" to "8")),
+            listOf(mapOf("Id" to 9L), mapOf("Id" to null)),
+            listOf(mapOf("Id" to 10L), mapOf("Name" to "ohne Schluessel")),
+            listOf(mapOf("Id" to 11L, "Name" to 5)),
+        )
+        for (batch in bad) {
+            assertFailsWith<RuntimeException>("$batch") { insert(store, *batch.toTypedArray()) }
+            assertEquals(listOf(listOf(1L, "Ada")), stored(store), "$batch")
+        }
+    }
+
+    /**
+     * Happy: `ALTER TABLE … ADD` behält die Zeilen und füllt die neue Spalte mit NULL; ein Schlüssel eines Textes
+     * unterscheidet nicht nach der Schreibweise (zwei Tabellen mit Textschlüssel ohne Beachtung der Schreibweise).
+     * Wächter: eine Erweiterung, die die Zeilen verwirft oder verschiebt.
+     * @spec SPEC-035
+     */
+    @Test
+    fun `die Erweiterung der Tabelle behaelt die Zeilen`() {
+        val store = TableStore(listOf(kunden))
+        insert(store, mapOf("Id" to 1L, "Name" to "Ada"))
+        ask(store.backend(), "ALTER TABLE [kunden] ADD [Email] NVARCHAR(50)")
+        assertEquals(listOf(listOf(1L, "Ada", null)), stored(store))
+        assertEquals(1, insert(store, mapOf("Id" to 2L, "Email" to "a@b")))
+        assertEquals(listOf(null, "a@b"), stored(store)[1].drop(1))
+    }
+
+    /**
+     * Happy: ein Dezimalschlüssel gilt nach `compareTo` (1.0 gleich 1.00), ein Textschlüssel ohne Beachtung der
+     * Schreibweise; beides ist Setzung, nicht am Server gemessen.
+     * @spec SPEC-035
+     */
+    @Test
+    fun `Dezimal- und Textschluessel sind eindeutig nach compareTo und ohne Schreibweise`() {
+        val store = TableStore(emptyList())
+        store.replace(
+            "dbo",
+            "kunden",
+            listOf(SimColumn("Id", SqlType.Decimal(5, 2), nullable = false), SimColumn("Name", SqlType.UnicodeText)),
+            listOf("Id"),
+        )
+        insert(store, mapOf("Id" to BigDecimal("1.0")))
+        assertFailsWith<RuntimeException> { insert(store, mapOf("Id" to BigDecimal("1.00"))) }
+        val text = TableStore(emptyList())
+        text.replace("dbo", "kunden", listOf(SimColumn("Id", SqlType.UnicodeText, nullable = false)), listOf("Id"))
+        insert(text, mapOf("Id" to "Ada"))
+        assertFailsWith<RuntimeException> { insert(text, mapOf("Id" to "ADA")) }
+    }
+
+    /**
+     * Zwei Sitzungen laden gleichzeitig dieselben Schlüssel in dieselbe Tabelle: je Runde sendet jede Sitzung eine
+     * Nachricht mit denselben zehn Schlüsseln, beide starten an einer Schranke. Genau eine Nachricht gelingt je Runde,
+     * die andere wirft („Schlüssel nicht eindeutig“); am Ende hat der Bestand jeden Schlüssel genau einmal. Wächter:
+     * `insertBatch` ohne Sperre (beide Prüfungen bestehen, die Zeilen stehen doppelt, oder die Liste der Zeilen wirft
+     * bei gleichzeitiger Änderung). Der Lauf ist zufallsabhängig: ein roter Lauf ist ein Befund, ein grüner beweist die
+     * Sperre nicht; der Mutationsnachweis steht im Messprotokoll des Massenladens.
+     * @spec SPEC-035
+     * @spec TDS-QA-02
+     */
+    @Test
+    fun `zwei Sitzungen mit denselben Schluesseln laden jeden Schluessel einmal`() {
+        val store = TableStore(listOf(kunden))
+        val rounds = 2_000
+        val perRound = 10
+        val barrier = CyclicBarrier(2)
+        val successes = AtomicInteger()
+        val unexpected = ConcurrentLinkedQueue<Throwable>()
+        val sessions = (0 until 2).map {
+            Thread {
+                for (round in 0 until rounds) {
+                    val batch = (0 until perRound).map { mapOf<String, Any?>("Id" to (round * perRound + it).toLong()) }
+                    barrier.await()
+                    val failure = runCatching { insert(store, *batch.toTypedArray()) }.exceptionOrNull()
+                    when {
+                        failure == null -> successes.incrementAndGet()
+                        failure.message != "Schlüssel nicht eindeutig" -> unexpected += failure
+                    }
+                }
+            }
+        }
+        sessions.forEach { it.start() }
+        sessions.forEach { it.join() }
+
+        assertEquals(emptyList(), unexpected.toList())
+        assertEquals(rounds, successes.get())
+        assertEquals((0L until rounds * perRound.toLong()).toList(), stored(store).map { it[0] as Long }.sorted())
+    }
+
+    /**
+     * Die Obergrenze des Bestands (Setzung): bei einer Grenze von 10 Zellen nimmt der Bestand fünf Zeilen zu zwei
+     * Spalten an, eine weitere Zeile wirft („Bestand voll“) und ändert nichts. Wächter: eine fehlende Prüfung (der
+     * Bestand wüchse über die Grenze, bis der Heap endet), eine Prüfung nach dem Einfügen (Teilbestand), eine Zählung
+     * nur in Zeilen.
+     * @spec SPEC-035
+     * @spec TDS-QA-02
+     */
+    @Test
+    fun `der Bestand weist eine Nachricht ueber der Grenze der Zellen ab`() {
+        val store = TableStore(listOf(kunden), cellLimit = 10)
+        val five = (1L..5L).map { mapOf<String, Any?>("Id" to it) }
+        assertEquals(5, insert(store, *five.toTypedArray()))
+        val failure = assertFailsWith<IllegalArgumentException> { insert(store, mapOf("Id" to 6L)) }
+        assertEquals("Bestand voll", failure.message)
+        assertEquals(listOf(1L, 2L, 3L, 4L, 5L), stored(store).map { it[0] })
     }
 }

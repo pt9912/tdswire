@@ -11,6 +11,7 @@ import io.github.pt9912.tdswire.protocol.token.DoneKind
 import io.github.pt9912.tdswire.protocol.token.DoneStatus
 import io.github.pt9912.tdswire.protocol.token.DoneToken
 import io.github.pt9912.tdswire.protocol.token.ErrorToken
+import io.github.pt9912.tdswire.protocol.token.InfoToken
 import io.github.pt9912.tdswire.protocol.token.ReturnStatusToken
 import io.github.pt9912.tdswire.protocol.token.RowToken
 import io.github.pt9912.tdswire.protocol.token.ServerMessage
@@ -22,6 +23,15 @@ import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
 /** Die erste Fehlernummer, die der Server selbst vergibt: SQL Server nutzt Nummern ab 50000 für eigene Meldungen. */
 internal const val FIRST_OWN_ERROR_NUMBER = 50000
 
+private const val STATEMENT_TERMINATED = 3621
+
+/**
+ * Das INFO, das auf den ERROR einer Nachricht des Massenladens folgt (Messprotokoll M-12: Nummer 3621, State 0,
+ * Class 0, „The statement has been terminated.“); gemessen für den Schlüsselverstoß, für andere Fehler gesetzt.
+ */
+internal val BULK_TERMINATED =
+    InfoToken(ServerMessage(STATEMENT_TERMINATED, 0, 0, "The statement has been terminated."))
+
 /**
  * Das Abschluss-Token eines Fehlers ohne Fortsetzung; die einzige Stelle, die es bildet (auch für den `ErrorMapper`).
  * Batch: DONE mit `ERROR`, Befehlskennung `0x00c1` bei offenem Ergebnis ([resultOpen]), sonst `0x00fd`. RPC: DONEPROC
@@ -30,6 +40,8 @@ internal const val FIRST_OWN_ERROR_NUMBER = 50000
 internal fun failedDone(form: ResponseForm = ResponseForm.BATCH, resultOpen: Boolean = false): DoneToken = when (form) {
     ResponseForm.BATCH ->
         DoneToken(DoneKind.DONE, DoneStatus.ERROR, if (resultOpen) DoneCommand.SELECT else DoneCommand.BATCH, 0)
+
+    ResponseForm.BULK -> DoneToken(DoneKind.DONE, DoneStatus.ERROR, DoneCommand.INSERT_BULK, 0)
 
     ResponseForm.RPC -> DoneToken(DoneKind.DONE_PROC, DoneStatus.ERROR, DoneCommand.PROC, 0)
 }
@@ -41,7 +53,9 @@ internal fun failedDone(form: ResponseForm = ResponseForm.BATCH, resultOpen: Boo
  */
 internal fun errorAnswer(form: ResponseForm, messages: List<ServerMessage>): List<Token> {
     val status = messages.last().number.takeIf { form == ResponseForm.RPC && it < FIRST_OWN_ERROR_NUMBER }
-    return messages.map { ErrorToken(it) } + listOfNotNull(status?.let { ReturnStatusToken(it) }) + failedDone(form)
+    val info = listOfNotNull(BULK_TERMINATED.takeIf { form == ResponseForm.BULK })
+    val returned = listOfNotNull(status?.let { ReturnStatusToken(it) })
+    return messages.map { ErrorToken(it) } + info + returned + failedDone(form)
 }
 
 /**
@@ -113,7 +127,11 @@ internal class ResponseRun(
         }
         val written = when (form) {
             ResponseForm.RPC -> flushHeld(more = true) && trailer.finish(errorBit = false)
+
             ResponseForm.BATCH -> write(held ?: DoneToken(DoneKind.DONE, DoneStatus.FINAL, DoneCommand.BATCH, 0))
+
+            ResponseForm.BULK ->
+                write(held ?: DoneToken(DoneKind.DONE, DoneStatus.FINAL, DoneCommand.INSERT_BULK, 0))
         }
         held = null
         if (written) outcome = if (trailer.failed) SequenceOutcome.FAILED else SequenceOutcome.COMPLETED
@@ -146,7 +164,12 @@ internal class ResponseRun(
         begun = true
         val status = if (affectedRows != null) DoneStatus.COUNT else DoneStatus.FINAL
         val kind = if (form == ResponseForm.RPC) DoneKind.DONE_IN_PROC else DoneKind.DONE
-        held = DoneToken(kind, status, if (inResult) DoneCommand.SELECT else DoneCommand.NONE, affectedRows ?: 0)
+        val command = when {
+            inResult -> DoneCommand.SELECT
+            form == ResponseForm.BULK -> DoneCommand.INSERT_BULK
+            else -> DoneCommand.NONE
+        }
+        held = DoneToken(kind, status, command, affectedRows ?: 0)
         return false
     }
 
@@ -212,6 +235,7 @@ internal class ResponseRun(
         trailer.record(mapped.message.number, continued = false)
         val written = write(ErrorToken(mapped.message)) && when (form) {
             ResponseForm.BATCH -> write(failedDone(form, resultOpen))
+            ResponseForm.BULK -> write(BULK_TERMINATED) && write(failedDone(form, resultOpen))
             ResponseForm.RPC -> if (begun) trailer.afterResult(resultOpen) else trailer.finish(errorBit = true)
         }
         if (written) {

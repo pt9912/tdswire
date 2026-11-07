@@ -1,0 +1,2 @@
+**Vorgang:** [slice-schreibpfad-bulk-load](../../../../done/slice-schreibpfad-bulk-load.md)
+**Fund:** [Verifikation](../../../../../../reviews/2026-11-07-631d273d-verifikation-slice-schreibpfad-bulk-load.md) V-6 (LOW): `src/main/kotlin/io/github/pt9912/tdswire/protocol/dispatch/BulkDispatch.kt`, Funktion `answer`, Zweig `message.ignore`: `awaiting` bleibt gesetzt; von Hand gelesen, nicht gefahren.

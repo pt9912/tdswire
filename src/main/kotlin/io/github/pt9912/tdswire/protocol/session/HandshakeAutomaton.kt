@@ -65,10 +65,10 @@ internal class HandshakeAutomaton(private val config: HandshakeConfig = Handshak
 
     /**
      * PRELOGIN und LOGIN7 haben ihr eigenes Ziel; in `READY` gehört die Nachricht der
-     * Anfrageverarbeitung (`Forward`). Ein SQL_BATCH und ein RPC setzen den Anfragezustand auf `RUNNING`;
-     * Transaction Manager lässt `READY` stehen. ATTENTION in `READY` ist der Fall „nach Ende der Antwort“: die
-     * Bestätigung geht hinaus, ohne Cancel. ATTENTION in `RUNNING` und `STREAMING` gewinnt den Übergang nach
-     * `CANCELLING` (`ADR-0027` Entscheidung 1 und 2).
+     * Anfrageverarbeitung (`Forward`). Ein SQL_BATCH, ein RPC und eine Nachricht BULK_LOAD setzen den
+     * Anfragezustand auf `RUNNING`; Transaction Manager lässt `READY` stehen. ATTENTION in `READY` ist der Fall
+     * „nach Ende der Antwort“: die Bestätigung geht hinaus, ohne Cancel. ATTENTION in `RUNNING` und `STREAMING`
+     * gewinnt den Übergang nach `CANCELLING` (`ADR-0027` Entscheidung 1 und 2).
      */
     private fun message(context: HandshakeContext, message: TdsMessage): Transition = when {
         context.state == ConnectionState.PRELOGIN -> onPrelogin(context, message.payload)
@@ -91,7 +91,8 @@ internal class HandshakeAutomaton(private val config: HandshakeConfig = Handshak
      * unzulässig (Matrix), und die Bits von ATTENTION und der Nachrichten des Handshakes wertet der Automat nicht aus.
      */
     private fun forward(context: HandshakeContext, message: TdsMessage): Transition {
-        val starts = message.type == PacketType.SQL_BATCH || message.type == PacketType.RPC
+        val type = message.type
+        val starts = type == PacketType.SQL_BATCH || type == PacketType.RPC || type == PacketType.BULK_LOAD
         val next = if (starts) ConnectionState.RUNNING else context.state
         val actions = if (message.resetConnection) {
             listOf(HandshakeAction.ResetSession, HandshakeAction.Forward)
