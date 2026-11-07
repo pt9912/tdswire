@@ -60,7 +60,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 Liefer-Punkte (drei; Vorschlag, bei der Priorisierung zu bestätigen):
 
-- [ ] **Messung:** die Antwort des echten SQL Servers auf eine RPC-Nachricht mit mehreren RPCs (`UpdateBatchSize` 2, beide Instanzen) am Draht aufgezeichnet: Reihenfolge von DONEINPROC, DONEPROC, RETURNSTATUS, RETURNVALUE je Aufruf, Statusbits, Ordinal (Messprotokoll `docs/messungen/referenzabgleich.md`).
+- [ ] **Messung:** die Antwort des echten SQL Servers auf eine RPC-Nachricht mit mehreren RPCs (`UpdateBatchSize` 2, beide Instanzen) am Draht aufgezeichnet: Reihenfolge von DONEINPROC, DONEPROC, RETURNSTATUS, RETURNVALUE je Aufruf, Statusbits, Ordinal (Messprotokoll `docs/messungen/referenzabgleich.md`); der Erzeuger der Messung liegt im Repo (Muster `referenztest-dotnet/Vergleich/MessungWireTests.cs`, Mitschnitt unter `referenztest-dotnet/Mitschnitt/messung/{2022,2025}/`), kein Wegwerf-Prototyp.
 - [ ] **Spezifikation und Bau:** Parser und Dispatch nehmen mehrere RPCs an und rufen das Backend je Aufruf; die Spezifikation führt die gemessene Antwortform; die Zuordnung des Mehrfach-RPC zur Seite ERROR und DONE in `SPEC-030` entfällt.
 - [ ] **Nachweis:** der Test `Mehrere_RPCs_in_einer_Nachricht_enden_mit_Protokollfehler_und_geschlossener_Verbindung` wird durch einen Test ersetzt, der `UpdateBatchSize` 2 gelingen lässt (Begründung im Commit, kein stilles Löschen); Matrix (Lücke 4) und `make e2e` auf den neuen Stand.
 
