@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** SPEC-036 (`INSERT BULK`, `SET FMTONLY`, Form des `MERGE`, Katalogabfragen und DDL-Formen; dort heute Setzungen ohne Messung) · SPEC-035 (Katalog der Spalten: Typen der Katalogspalten, Typnamen und Maße von `bigint`, `bit`, `time`, `datetime2`, Sonderwert `maxLength` -1, Fehler der Strukturabweisung) · Protokollteil Pakettypen und Dispatch (Paket 0x07) · SPEC-045 (Ausnahmeliste, soweit Zeilen entstehen) · SPEC-060 (nur der Messvermerk der Obergrenze, falls die Zusatzmessung sie bestätigt oder widerlegt) · SPEC-030 (nur der Messvermerk zum Flag-Feld der Ausgabewerte, A-20). Die Spezifikation ändern die Bau-Slices [slice-schreibpfad-bulk-load](../open/slice-schreibpfad-bulk-load.md) und [slice-schreibpfad-merge-output](../open/slice-schreibpfad-merge-output.md) und, für den Katalog, ein Bau-Slice nach dem Befund (Folge-Slice [slice-katalog-indizes-defaults-fremdschluessel](../open/slice-katalog-indizes-defaults-fremdschluessel.md) für Indizes, Standardwerte, Prüfbedingungen, Fremdschlüssel), nicht dieser Slice.
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** Implementer-Agent, Auftrag des Nutzers 2026-11-07.
 
 **Autor:** pt9912. **Datum:** 2026-11-06.
 
