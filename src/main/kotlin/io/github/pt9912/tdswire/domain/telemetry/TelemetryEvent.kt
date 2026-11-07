@@ -1,6 +1,7 @@
 package io.github.pt9912.tdswire.domain.telemetry
 
 import java.time.Instant
+import java.util.Collections
 
 /** Obergrenze jedes Zeichenketten-Feldes eines Ereignisses in UTF-16-Einheiten (Setzung, nicht gemessen). */
 internal const val MAX_TEXT_LENGTH = 256
@@ -313,9 +314,9 @@ internal class ServerStopped(at: Instant) : TelemetryEvent(EventKind.SERVER_STOP
 
 internal class ServerStopping(at: Instant) : TelemetryEvent(EventKind.SERVER_STOPPING, at, EventLevel.INFO)
 
-internal class ConfigEffective(at: Instant, settings: Map<String, String>) :
+internal class ConfigEffective(at: Instant, settings: EffectiveSettings) :
     TelemetryEvent(EventKind.CONFIG_EFFECTIVE, at, EventLevel.INFO) {
-    override val settings: Map<String, String> = settings.entries.associate { bounded(it.key) to bounded(it.value) }
+    override val settings: Map<String, String> = Collections.unmodifiableMap(settings.asMap())
 }
 
 internal class ConnectionOpened(at: Instant, context: EventContext) :

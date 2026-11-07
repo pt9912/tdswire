@@ -18,13 +18,17 @@ internal class TelemetryEventTest {
     private val at: Instant = Instant.parse("2026-11-01T10:00:00Z")
     private val context = EventContext(7L, "sitzung-1", ClientProfile.tds74("on"))
 
+    private val settings = EffectiveSettings(
+        15, 65536, EncryptionMode.REQUIRED, KeystoreState.SET, false, 30, 5, 10, 1000, 1000, 16_777_216,
+    )
+
     private class Sample(val event: TelemetryEvent, val level: EventLevel, val scoped: Boolean)
 
     private fun samples(): List<Sample> = listOf(
         Sample(ServerStarted(at, "0.0.0.0", 1433), EventLevel.INFO, false),
         Sample(ServerStopped(at), EventLevel.INFO, false),
         Sample(ServerStopping(at), EventLevel.INFO, false),
-        Sample(ConfigEffective(at, mapOf("LOGIN_TIMEOUT" to "15")), EventLevel.INFO, false),
+        Sample(ConfigEffective(at, settings), EventLevel.INFO, false),
         Sample(ConnectionOpened(at, context), EventLevel.INFO, true),
         Sample(ConnectionClosed(at, context, ConnectionCloseReason.SHUTDOWN), EventLevel.INFO, true),
         Sample(StartRefused(at, StartRefusal.TABLE_NAME_DUPLICATE), EventLevel.ERROR, false),
@@ -107,7 +111,6 @@ internal class TelemetryEventTest {
         val long = "x".repeat(LONG)
         val cut = "x".repeat(LIMIT)
         assertEquals(cut, ServerStarted(at, long, 1).address)
-        assertEquals(mapOf(cut to cut), ConfigEffective(at, mapOf(long to long)).settings)
         assertEquals(cut, ConfigInvalid(at, long, long).key)
         assertEquals(cut, ConfigInvalid(at, long, long).issueKind)
         assertEquals(cut, TlsStartRejected(at, long, long).part)

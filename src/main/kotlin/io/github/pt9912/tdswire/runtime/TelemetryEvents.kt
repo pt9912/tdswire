@@ -1,6 +1,6 @@
 package io.github.pt9912.tdswire.runtime
 
-import io.github.pt9912.tdswire.config.ConfigKeys
+import io.github.pt9912.tdswire.config.EncryptionSetting
 import io.github.pt9912.tdswire.config.ServerConfig
 import io.github.pt9912.tdswire.config.auth.NegotiatedEncryption
 import io.github.pt9912.tdswire.domain.telemetry.AcceptFailed
@@ -10,8 +10,11 @@ import io.github.pt9912.tdswire.domain.telemetry.ConnectionCloseReason
 import io.github.pt9912.tdswire.domain.telemetry.ConnectionClosed
 import io.github.pt9912.tdswire.domain.telemetry.ConnectionFailed
 import io.github.pt9912.tdswire.domain.telemetry.ConnectionOpened
+import io.github.pt9912.tdswire.domain.telemetry.EffectiveSettings
+import io.github.pt9912.tdswire.domain.telemetry.EncryptionMode
 import io.github.pt9912.tdswire.domain.telemetry.EncryptionNotOffered
 import io.github.pt9912.tdswire.domain.telemetry.EventContext
+import io.github.pt9912.tdswire.domain.telemetry.KeystoreState
 import io.github.pt9912.tdswire.domain.telemetry.LoginRejected
 import io.github.pt9912.tdswire.domain.telemetry.LoginRejectionReason
 import io.github.pt9912.tdswire.domain.telemetry.RequestFailed
@@ -81,27 +84,26 @@ private fun ConnectionEnd.closeReason(): ConnectionCloseReason = when (this) {
     ConnectionEnd.REFUSED_AT_LIMIT -> ConnectionCloseReason.REFUSED_AT_LIMIT
 }
 
-private const val KEYSTORE_SET = "SET"
-private const val KEYSTORE_UNSET = "UNSET"
-
 /**
- * Die Einstellungen, mit denen der Server läuft, als Schlüssel und Wert für das Ereignis `CONFIG_EFFECTIVE`.
- * Aufgenommen sind nur Zahlen, Namen von Aufzählungen und Schalter; Bind-Adresse und Port stehen in
- * `SERVER_STARTED`. Für den Schlüsselspeicher steht `SET` oder `UNSET`; Pfad, Inhalt, Passwort und Benutzerliste haben
- * kein Feld (`TDS-QA-03`).
+ * Die Einstellungen, mit denen der Server läuft, für das Ereignis `CONFIG_EFFECTIVE`. Aufgenommen sind nur Zahlen,
+ * Aufzählungen und Schalter (Typen von [EffectiveSettings]); Bind-Adresse und Port stehen in `SERVER_STARTED`. Für den
+ * Schlüsselspeicher steht nur, ob er konfiguriert ist (`TDS-QA-03`).
  */
-internal fun ServerConfig.effectiveSettings(): Map<String, String> = linkedMapOf(
-    ConfigKeys.LOGIN_TIMEOUT to login.timeoutSeconds.toString(),
-    ConfigKeys.MAX_PRELOGIN_MESSAGE_BYTES to login.maxPreloginMessageBytes.toString(),
-    ConfigKeys.ENCRYPTION_POLICY to encryption.name,
-    ConfigKeys.TLS_KEYSTORE_FILE to if (tls != null) KEYSTORE_SET else KEYSTORE_UNSET,
-    ConfigKeys.AUTH_PLAIN_TESTMODE to auth.plainTestMode.toString(),
-    ConfigKeys.QUERY_TIMEOUT to requests.queryTimeoutSeconds.toString(),
-    ConfigKeys.CANCEL_TIMEOUT to requests.cancelTimeoutSeconds.toString(),
-    ConfigKeys.SHUTDOWN_GRACE to requests.shutdownGraceSeconds.toString(),
-    ConfigKeys.MAX_CONNECTIONS to listen.maxConnections.toString(),
-    ConfigKeys.MAX_PREPARED_HANDLES to requests.maxPreparedHandles.toString(),
-    ConfigKeys.MAX_MESSAGE_BYTES to requests.maxMessageBytes.toString(),
+internal fun ServerConfig.effectiveSettings(): EffectiveSettings = EffectiveSettings(
+    loginTimeoutSeconds = login.timeoutSeconds,
+    maxPreloginMessageBytes = login.maxPreloginMessageBytes,
+    encryption = when (encryption) {
+        EncryptionSetting.REQUIRED -> EncryptionMode.REQUIRED
+        EncryptionSetting.TEST_UNENCRYPTED -> EncryptionMode.TEST_UNENCRYPTED
+    },
+    keystore = if (tls != null) KeystoreState.SET else KeystoreState.UNSET,
+    plainTestMode = auth.plainTestMode,
+    queryTimeoutSeconds = requests.queryTimeoutSeconds,
+    cancelTimeoutSeconds = requests.cancelTimeoutSeconds,
+    shutdownGraceSeconds = requests.shutdownGraceSeconds,
+    maxConnections = listen.maxConnections,
+    maxPreparedHandles = requests.maxPreparedHandles,
+    maxMessageBytes = requests.maxMessageBytes,
 )
 
 /**

@@ -69,8 +69,8 @@ private val SETTING_SHAPE = Regex("[A-Za-z0-9_]{1,40}")
 /**
  * Jede Einstellung eines Ereignisses `CONFIG_EFFECTIVE` in [events] hat Schlüssel und Wert von der Form einer Zahl,
  * eines Namens oder eines Schalters (Buchstaben, Ziffern, Unterstrich, höchstens 40 Zeichen): ein Pfad, der Inhalt
- * eines Schlüsselspeichers, ein Passwort oder ein Eintrag der Benutzerliste hat diese Form nicht. Mindestens ein solches
- * Ereignis muss da sein, sonst bewiese die Prüfung nichts.
+ * eines Schlüsselspeichers, ein Passwort oder ein Eintrag der Benutzerliste hat diese Form nicht. Mindestens ein
+ * solches Ereignis muss da sein, sonst bewiese die Prüfung nichts.
  */
 internal fun assertSettingsAreShapedAsNames(events: Iterable<TelemetryEvent>) {
     val all = events.filter { it.kind == EventKind.CONFIG_EFFECTIVE }.map { assertNotNull(it.settings) }

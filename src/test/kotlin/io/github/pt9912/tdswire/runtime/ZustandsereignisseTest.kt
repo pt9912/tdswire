@@ -27,14 +27,14 @@ import io.github.pt9912.tdswire.testsupport.handPacket
 import io.github.pt9912.tdswire.transport.listener.ConnectionEnd
 import io.github.pt9912.tdswire.transport.listener.ListenerEvent
 import io.github.pt9912.tdswire.transport.listener.eventually
-import java.time.Instant
-import java.util.concurrent.CopyOnWriteArrayList
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -202,11 +202,39 @@ internal class ZustandsereignisseTest : RuntimeTestBase() {
         val tls = TlsKeyMaterial("schluessel-$WERTPROBE".toByteArray(), PasswordChars("kw-$WERTPROBE".toCharArray()))
         val listen = ListenSettings("host-$WERTPROBE", 0)
         val config = ServerConfig(listen, tls = tls, auth = AuthSettings(users.list, true))
-        val settings = config.effectiveSettings()
+        val settings = config.effectiveSettings().asMap()
         assertEquals("SET", settings[ConfigKeys.TLS_KEYSTORE_FILE])
         assertEquals("true", settings[ConfigKeys.AUTH_PLAIN_TESTMODE])
         assertEquals(11, settings.size, settings.toString())
         assertTrue(settings.none { (key, value) -> key.contains(WERTPROBE) || value.contains(WERTPROBE) }, "$settings")
+    }
+
+    /**
+     * Die Schlüssel der Abbildung, die `EffectiveSettings` ableitet, sind die Namen der Konfiguration (`ConfigKeys`):
+     * der Typ der Bibliothek im Package `domain` kennt `ConfigKeys` nicht und führt die Namen selbst.
+     *
+     * @spec SPEC-051
+     */
+    @Test
+    fun `Die Schluessel der wirksamen Konfiguration sind die Namen der Konfiguration`() {
+        val users = assertIs<UserListResult.Valid>(UserList.parse("", true)).list
+        val config = ServerConfig(auth = AuthSettings(users, true))
+        assertEquals(
+            listOf(
+                ConfigKeys.LOGIN_TIMEOUT,
+                ConfigKeys.MAX_PRELOGIN_MESSAGE_BYTES,
+                ConfigKeys.ENCRYPTION_POLICY,
+                ConfigKeys.TLS_KEYSTORE_FILE,
+                ConfigKeys.AUTH_PLAIN_TESTMODE,
+                ConfigKeys.QUERY_TIMEOUT,
+                ConfigKeys.CANCEL_TIMEOUT,
+                ConfigKeys.SHUTDOWN_GRACE,
+                ConfigKeys.MAX_CONNECTIONS,
+                ConfigKeys.MAX_PREPARED_HANDLES,
+                ConfigKeys.MAX_MESSAGE_BYTES,
+            ),
+            config.effectiveSettings().asMap().keys.toList(),
+        )
     }
 
     /**

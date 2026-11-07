@@ -1204,7 +1204,8 @@ Der Server schreibt kein Log; er gibt Ereignisse an die Senke, die `TdsServer.st
 soweit nicht anders genannt; sie gelten für das Modell der Bibliothek und damit für jeden Adapter:
 
 - **Ereignismodell:** eine geschlossene Menge von Ereignisarten, kein Freitextfeld (das Feld `settings` ist eine Abbildung von
-  Schlüssel auf Wert, die die Bibliothek aus Zahlen, Namen von Aufzählungen und Schaltern baut, nie aus Eingabe). Die einzige öffentliche
+  Schlüssel auf Wert, die die Bibliothek aus Zahlen, Namen von Aufzählungen und Schaltern baut, nie aus Eingabe; sie entsteht aus einem
+  internen typisierten Wertobjekt, dessen Felder nur Zahlentypen, Aufzählungen und `Boolean` sind, ohne eigenen öffentlichen Typnamen). Die einzige öffentliche
   Ereignisklasse ist `TelemetryEvent`; die Art steht im Feld `kind` (Aufzählung `EventKind`, der Name ist eine
   Setzung). Die Felder einer Art sind Felder derselben Klasse und `null`, wo die Art sie nicht trägt; typisiert sind
   sie nach dem Feld (`port`, `tables` als Zahl, `settings` als Abbildung von Text auf Text, die übrigen als Text), nicht je Art. Die Klassen je Art sind nicht
