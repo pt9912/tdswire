@@ -21,7 +21,7 @@
 #   bulk-2022 | bulk-2025 | bulk (beide): Messreihe zu Massenladen, MERGE, Katalog, Strukturaenderung und den Zusatzmessungen (Kategorie
 #   MessungBulk, referenztest-dotnet/Vergleich/MessungBulkTests.cs) mit derselben Methode wie `wire`; die Dateien ersetzen
 #   referenztest-dotnet/Mitschnitt/messung/bulk-merge-katalog/<stufe>/ im Arbeitsbaum (die Ablage von `wire` bleibt unberuehrt).
-#   MESSUNG_NUR=<Szenarien> waehlt eine Teilmenge ohne Ablage; mit MESSUNG_WIEDERHOLEN=<N> faehrt jedes gewaehlte Szenario N-mal ueber
+#   MESSUNG_NUR=<Szenarien> waehlt eine Teilmenge ohne Ablage; mit MESSUNG_WIEDERHOLEN=<N> (Exit 0 bei gruenem Test, ohne Ablage) faehrt jedes gewaehlte Szenario N-mal ueber
 #   einen frisch aufgebauten Bestand und nennt die Rate roter Laeufe (MESSUNG_DIREKT=1: der Client verbindet sich ohne Proxy).
 # Je Lauf: Image der Referenzinstanz bauen (Dockerfile-Stufe `referenzinstanz-<jahr>` in referenztest-dotnet, Digest
 # dort gepinnt) und Client-Image (Stufe `vergleich`); zwei Container in einem eigenen internen Netzwerk (kein Zugang
@@ -566,7 +566,11 @@ wirelauf() {
   docker cp "$CLIENT:/tmp/messung/." "$SCRATCH/messung-$STUFE" >/dev/null 2>&1
   docker rm -f "$CLIENT" >/dev/null 2>&1
   CLIENT=""
-  pruefe "Messreihe $name: Test bestanden, Messungen vorhanden" sh -c "[ $ok -eq 0 ] && ls '$SCRATCH/messung-$STUFE'/*.messung >/dev/null 2>&1"
+  # Eine Wiederholung (MESSUNG_WIEDERHOLEN > 0) legt nichts ab: dort zaehlt der Test allein, sonst endete jeder gruene Lauf mit Exit 2.
+  case "${MESSUNG_WIEDERHOLEN:-0}" in
+    0|"") pruefe "Messreihe $name: Test bestanden, Messungen vorhanden" sh -c "[ $ok -eq 0 ] && ls '$SCRATCH/messung-$STUFE'/*.messung >/dev/null 2>&1" ;;
+    *) pruefe "Messreihe $name: Test bestanden (Wiederholung, keine Ablage)" sh -c "[ $ok -eq 0 ]" ;;
+  esac
   keine_kennwort_treffer() { ! grep -rqF -e "$KENNWORT" "$SCRATCH/messung-$STUFE"; }
   pruefe "Messreihe $name: Klartextsuche nach dem Kennwort in der Ablage ohne Treffer (Nutzlasten stehen als Hex; die tragende Prüfung ist MessDatei.Treffer im Test)" keine_kennwort_treffer
   [ "$FEHLER" -eq 0 ] || return 1
