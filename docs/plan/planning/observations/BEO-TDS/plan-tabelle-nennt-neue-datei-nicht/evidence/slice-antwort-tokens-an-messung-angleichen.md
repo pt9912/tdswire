@@ -1,2 +1,2 @@
-**Vorgang:** [slice-antwort-tokens-an-messung-angleichen](../../../../in-progress/slice-antwort-tokens-an-messung-angleichen.md)
+**Vorgang:** [slice-antwort-tokens-an-messung-angleichen](../../../../done/slice-antwort-tokens-an-messung-angleichen.md)
 **Fund:** Review F-4 und Verifikation V-5: Kopf und Tabelle §3 nannten `SPEC-001`, `SPEC-059`, `LoginTokenWriters.kt`, `RpcTrailer.kt` und weitere Dateien nicht; nach der Behebung fehlten weiter `HandshakeAction.kt`, `ErrorCode.kt`, `ResponseForm.kt`, `tools/matrix-zitate-rot.sh`, `tools/mk/matrix-zitate.mk`, `tools/e2e.sh`, `docs/plan/e2e-abdeckung.md` und `harness/README.md` (Behebung von F-8 entstand nach der Tabelle). Die Closure trägt sie nach.

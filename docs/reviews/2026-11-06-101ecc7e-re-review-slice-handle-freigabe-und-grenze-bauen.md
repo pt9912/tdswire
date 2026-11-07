@@ -46,6 +46,6 @@ Hinweis zur Bewertung des Trägers (Auftrag): Flag-Feld A-19 und M-6 haben einen
 - `tools/treiber-handles/`: geprüft, ohne Befund.
 - `spec/spezifikation.md` (SPEC-030, 045-Verweis, 060, 061): geprüft, ohne Befund (Aussage <= Beleg, Setzung gekennzeichnet).
 - `docs/messungen/referenzabgleich.md` (A-16, A-19): geprüft, ohne Befund.
-- `docs/plan/planning/` (Register, `in-progress/slice-antwort-tokens-an-messung-angleichen.md`): geprüft, Befund R-2, R-3.
+- `docs/plan/planning/` (Register, `done/slice-antwort-tokens-an-messung-angleichen.md`): geprüft, Befund R-2, R-3.
 - `docs/user/`, `docs/plan/kompatibilitaetsmatrix.md`: Befund R-1.
 - `harness/`, ADRs: unverändert, geprüft, ohne Befund.
