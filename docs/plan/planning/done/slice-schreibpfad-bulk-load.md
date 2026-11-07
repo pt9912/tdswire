@@ -58,7 +58,7 @@ Nachweis-Pflichten für alle Punkte:
 - [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
 - [x] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen“ in §7 notiert.
 - [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
 
 ## 3. Plan (vor Code)
 
@@ -203,6 +203,7 @@ Closure am 2026-11-07 (Planner). Zuerst der Stand der Rollen, danach die Entsche
 - **Folge-Slices:** [slice-bulk-load-feste-typen-und-referenzclient](../open/slice-bulk-load-feste-typen-und-referenzclient.md) (neu, Welle `welle-testserver-manuell`), [slice-adr-massenladen-atomar-an-messung](../open/slice-adr-massenladen-atomar-an-messung.md) (Umfang um die Zuordnung der Codes erweitert), [slice-schreibpfad-merge-output](../open/slice-schreibpfad-merge-output.md) (Messauftrag mit mssql-jdbc, unverändert), [slice-abnahme-d-migrate](../open/slice-abnahme-d-migrate.md).
 - **Offene Nutzerpunkte:** (1) die Nachbesserung `631d273d` und die Behebungen als „Nachbesserung ohne zweiten Review“ führen (so geschehen) oder einen Re-Review nachholen; `BEO-TDS/nachbesserung-ohne-zweiten-review` (5×) wartet auf Regel, Sensor, Träger oder Streichung; (2) V-6 ist ein Auftrag an einen Implementer (Zustand bei IGNORE zurücksetzen, ein Test), kein Teil dieser Closure; (3) `BEO-TDS/wanduhr-tests-flackern-unter-last` (2 Vorgänge): Empfehlung für das dritte Auftreten im `state.md`; (4) F-15 (`SimColumn.maxLength` wirkt nicht auf das Massenladen) bleibt Setzung bis zur Gegenmessung am echten Server; (5) die Reihenfolge des neuen Slice zu den übrigen Slices der Welle (Setzung des Planners: nicht vor der Abnahme, weil d-migrate mit mssql-jdbc lädt); (6) Merge des Zweigs der Nutzer-Doku (Konflikt in `docs/user/testserver-manuell.md`, siehe Merge-Hinweis).
 - **Risiken aus §6:** jedes mit genau einem Ausgang, siehe §6 (eingetreten: Aufwand, Wanduhr-Flakes als Beobachtung; entfallen: Vertrag wächst für Typen und Parameter; weiter offen mit Träger: Option zum Abschalten, Speicher, Setzungen der Messung, Abweichung vom ADR-Wortlaut samt Sammelcode, Parameter des Clients, IGNORE-Bit).
+- **Drei Paarungen:** geprüft nach dem Move (2026-11-07): *Anker* — kein Steering-Loop-Eintrag trägt ein Zielort-Feld, nichts zu paaren; *Folge-Slice* — die vier genannten Slices ([slice-bulk-load-feste-typen-und-referenzclient](../open/slice-bulk-load-feste-typen-und-referenzclient.md), [slice-adr-massenladen-atomar-an-messung](../open/slice-adr-massenladen-atomar-an-messung.md), [slice-schreibpfad-merge-output](../open/slice-schreibpfad-merge-output.md), [slice-abnahme-d-migrate](../open/slice-abnahme-d-migrate.md)) existieren als Dateien; *Register* — alle 13 in §6 und §7 genannten `BEO-TDS/<slug>` sind Verzeichnisse mit nicht leerem `evidence/` (maschinell geprüft). Rot: keine.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
