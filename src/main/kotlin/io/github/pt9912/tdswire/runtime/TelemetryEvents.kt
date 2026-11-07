@@ -1,12 +1,20 @@
 package io.github.pt9912.tdswire.runtime
 
+import io.github.pt9912.tdswire.config.EncryptionSetting
+import io.github.pt9912.tdswire.config.ServerConfig
 import io.github.pt9912.tdswire.config.auth.NegotiatedEncryption
 import io.github.pt9912.tdswire.domain.telemetry.AcceptFailed
 import io.github.pt9912.tdswire.domain.telemetry.AdapterFailed
 import io.github.pt9912.tdswire.domain.telemetry.ClientProfile
+import io.github.pt9912.tdswire.domain.telemetry.ConnectionCloseReason
+import io.github.pt9912.tdswire.domain.telemetry.ConnectionClosed
 import io.github.pt9912.tdswire.domain.telemetry.ConnectionFailed
+import io.github.pt9912.tdswire.domain.telemetry.ConnectionOpened
+import io.github.pt9912.tdswire.domain.telemetry.EffectiveSettings
+import io.github.pt9912.tdswire.domain.telemetry.EncryptionMode
 import io.github.pt9912.tdswire.domain.telemetry.EncryptionNotOffered
 import io.github.pt9912.tdswire.domain.telemetry.EventContext
+import io.github.pt9912.tdswire.domain.telemetry.KeystoreState
 import io.github.pt9912.tdswire.domain.telemetry.LoginRejected
 import io.github.pt9912.tdswire.domain.telemetry.LoginRejectionReason
 import io.github.pt9912.tdswire.domain.telemetry.RequestFailed
@@ -14,6 +22,7 @@ import io.github.pt9912.tdswire.domain.telemetry.TelemetryEvent
 import io.github.pt9912.tdswire.protocol.error.ErrorLogEntry
 import io.github.pt9912.tdswire.protocol.session.LogEntry
 import io.github.pt9912.tdswire.protocol.session.LoginRejection
+import io.github.pt9912.tdswire.transport.listener.ConnectionEnd
 import io.github.pt9912.tdswire.transport.listener.ListenerEvent
 import io.github.pt9912.tdswire.transport.tls.TlsPath
 import java.time.Instant
@@ -43,8 +52,8 @@ internal fun ErrorLogEntry.toEvent(at: Instant, context: EventContext): Telemetr
     RequestFailed(at, context, code.name, cause)
 
 /**
- * Das Ereignis zu einem Ereignis des Listeners; `null`, wo der Listener meldet, ohne dass ein Betriebsereignis
- * entsteht (Annahme und regulärer Abschluss einer Verbindung).
+ * Das Fehlerereignis zu einem Ereignis des Listeners; `null`, wo der Listener ohne Fehler meldet (Annahme und Ende
+ * einer Verbindung ohne Ausnahme des Handlers).
  */
 internal fun ListenerEvent.toEvent(at: Instant): TelemetryEvent? = when (this) {
     is ListenerEvent.Closed ->
@@ -54,6 +63,49 @@ internal fun ListenerEvent.toEvent(at: Instant): TelemetryEvent? = when (this) {
 
     is ListenerEvent.Accepted -> null
 }
+
+/**
+ * Das Zustandsereignis zu einem Ereignis des Listeners: Annahme und Ende einer Verbindung; `null` für den
+ * Annahmefehler, der kein Zustand einer Verbindung ist.
+ */
+internal fun ListenerEvent.toStateEvent(at: Instant): TelemetryEvent? = when (this) {
+    is ListenerEvent.Accepted -> ConnectionOpened(at, EventContext(connectionId = connection))
+    is ListenerEvent.Closed -> ConnectionClosed(at, EventContext(connectionId = connection), end.closeReason())
+    is ListenerEvent.AcceptFailed -> null
+}
+
+private fun ConnectionEnd.closeReason(): ConnectionCloseReason = when (this) {
+    ConnectionEnd.HANDLER_RETURNED -> ConnectionCloseReason.HANDLER_RETURNED
+    ConnectionEnd.HANDLER_FAILED -> ConnectionCloseReason.HANDLER_FAILED
+    ConnectionEnd.LOGIN_TIMEOUT -> ConnectionCloseReason.LOGIN_TIMEOUT
+    ConnectionEnd.SHUTDOWN -> ConnectionCloseReason.SHUTDOWN
+    ConnectionEnd.SHUTDOWN_GRACE_EXPIRED -> ConnectionCloseReason.SHUTDOWN_GRACE_EXPIRED
+    ConnectionEnd.REFUSED_AT_SHUTDOWN -> ConnectionCloseReason.REFUSED_AT_SHUTDOWN
+    ConnectionEnd.REFUSED_AT_LIMIT -> ConnectionCloseReason.REFUSED_AT_LIMIT
+}
+
+/**
+ * Die Einstellungen, mit denen der Server läuft, für das Ereignis `CONFIG_EFFECTIVE`. Aufgenommen sind nur Zahlen,
+ * Aufzählungen und Schalter (Typen von [EffectiveSettings]); Bind-Adresse und Port stehen in `SERVER_STARTED`. Für den
+ * Schlüsselspeicher steht nur, ob er konfiguriert ist (`TDS-QA-03`).
+ */
+internal fun ServerConfig.effectiveSettings(): EffectiveSettings = EffectiveSettings(
+    loginTimeoutSeconds = login.timeoutSeconds,
+    maxPreloginMessageBytes = login.maxPreloginMessageBytes,
+    encryption = when (encryption) {
+        EncryptionSetting.REQUIRED -> EncryptionMode.REQUIRED
+        EncryptionSetting.TEST_UNENCRYPTED -> EncryptionMode.TEST_UNENCRYPTED
+    },
+    keystore = if (tls != null) KeystoreState.SET else KeystoreState.UNSET,
+    plainTestMode = auth.plainTestMode,
+    queryTimeoutSeconds = requests.queryTimeoutSeconds,
+    cancelTimeoutSeconds = requests.cancelTimeoutSeconds,
+    shutdownGraceSeconds = requests.shutdownGraceSeconds,
+    maxConnections = listen.maxConnections,
+    maxPreparedHandles = requests.maxPreparedHandles,
+    maxMessageBytes = requests.maxMessageBytes,
+    metricsIntervalSeconds = requests.metricsIntervalSeconds,
+)
 
 /**
  * Das Profil des Clients aus dem, was der Handler weiß (`TDS-FA-09.a`): TLS ab dem ersten Byte ist TDS 8.0; im Pfad

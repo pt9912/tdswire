@@ -9,6 +9,7 @@ import io.github.pt9912.tdswire.config.auth.AuthAdapter
 import io.github.pt9912.tdswire.config.auth.UserList
 import io.github.pt9912.tdswire.config.auth.UserListAuthAdapter
 import io.github.pt9912.tdswire.domain.telemetry.BindFailed
+import io.github.pt9912.tdswire.domain.telemetry.ConfigEffective
 import io.github.pt9912.tdswire.domain.telemetry.ConfigInvalid
 import io.github.pt9912.tdswire.domain.telemetry.Instruments
 import io.github.pt9912.tdswire.domain.telemetry.SecurityWeakened
@@ -183,10 +184,12 @@ internal object Bootstrap {
         private fun events(): ListenerEvents = ListenerEvents { event ->
             wiring.events.onEvent(event)
             telemetry.emit { at -> event.toEvent(at) }
+            telemetry.emit { at -> event.toStateEvent(at) }
         }
 
         private fun running(listener: TdsListener): StartOutcome {
-            telemetry.emit { ServerStarted(it, listener.port) }
+            telemetry.emit { ConfigEffective(it, config.effectiveSettings()) }
+            telemetry.emit { ServerStarted(it, config.listen.host, listener.port) }
             if (config.encryption == EncryptionSetting.TEST_UNENCRYPTED) {
                 telemetry.emit { SecurityWeakened(it, WeakeningReason.ENCRYPTION_TEST_UNENCRYPTED) }
             }

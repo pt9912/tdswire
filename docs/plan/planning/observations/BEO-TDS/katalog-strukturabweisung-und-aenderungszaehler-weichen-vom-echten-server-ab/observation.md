@@ -1,0 +1,5 @@
+# Katalog, Strukturabweisung und Änderungszähler des Servers weichen vom echten SQL Server ab
+
+**Sub-Area:** `*` (Simulations-Backend, Katalog, Strukturänderung, Response Sequencer)
+
+Die Messreihe vom 2026-11-07 (je Instanz 2022 und 2025, [Messprotokoll](../../../../../messungen/referenzabgleich.md#messreihe-zu-massenladen-merge-katalog-und-strukturänderung-messungen-vom-2026-11-07)) widerspricht drei Setzungen der Spezifikation: (1) M-16: die Katalogspalten `max_length` (`smallint`), `precision` und `scale` (`tinyint`) und `is_nullable` (`bit` nullbar, `BITN`) haben am echten Server andere Typen als `Int32` in `SPEC-035`; (2) M-19: die Strukturabweisung antwortet am echten Server mit 2714 (State 6), 2705 (State 4) und 4902 statt mit `TDS_UNSUPPORTED_SQL` bzw. `TDS_SIM_UNKNOWN_OBJECT`, und `CREATE TABLE` ohne Schlüssel gelingt dort, statt abgewiesen zu werden (`SPEC-035`, `SPEC-036` Form D); (3) M-20: `CREATE TABLE` und `ALTER TABLE` enden am echten Server mit `DONE` ohne `COUNT` (Befehl `0x00c6` bzw. `0x00d8`), die Spezifikation setzt den Änderungszähler 0. Maßstab des Nutzers: die Spezifikation ist Zielbild, der echte SQL Server die Referenz.

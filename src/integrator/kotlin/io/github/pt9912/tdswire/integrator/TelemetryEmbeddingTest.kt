@@ -27,6 +27,8 @@ import kotlinx.coroutines.runBlocking
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -34,9 +36,6 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
-private const val WAIT_MILLIS = 5_000L
-private const val POLL_MILLIS = 20L
 
 /**
  * Die Senke des Integrators von außen (`SPEC-059`, `TDS-FA-09`): dieses Source-Set sieht nur die öffentliche Fläche.
@@ -76,22 +75,23 @@ class TelemetryEmbeddingTest {
         }
     }
 
-    private fun serve(telemetry: TelemetrySink, afterClose: () -> Unit = {}): Pair<Int, Long> {
+    /**
+     * Startet, bedient eine Verbindung und beendet den Server. Mit [closed] wartet der Aufruf nach dem Schließen des
+     * Clients, bis der Server das Ende der Verbindung gemeldet hat; ohne das Warten wäre die Reihenfolge von Ende der
+     * Verbindung und Beginn des Beendens ein Wettlauf.
+     */
+    private fun serve(telemetry: TelemetrySink, closed: CountDownLatch? = null): Pair<Int, Long> {
         val outcome = runBlocking { TdsServer.start(unencrypted(), BackendSource.Custom(OneRowBackend()), telemetry) }
         val server = assertIs<StartOutcome.Running>(outcome).server.also { running += it }
         val rows = WireClient(server.port).use { client ->
             client.login()
             client.batch("irgendein text").rowCount
         }
-        afterClose()
+        if (closed != null) {
+            assertTrue(closed.await(CLOSE_WAIT_SECONDS, TimeUnit.SECONDS), "Ende der Verbindung nicht gemeldet")
+        }
         runBlocking { server.stop() }
         return server.port to rows
-    }
-
-    /** Wartet, bis das Ende des Spans [span] in [events] steht; sonst endet die Verbindung erst im Stop. */
-    private fun awaitEvent(events: List<TelemetryEvent>, span: String) {
-        val end = System.currentTimeMillis() + WAIT_MILLIS
-        while (events.none { it.span == span } && System.currentTimeMillis() < end) Thread.sleep(POLL_MILLIS)
     }
 
     /**
@@ -108,27 +108,34 @@ class TelemetryEmbeddingTest {
     @Test
     fun eineSenkeEmpfaengtDieEreignisseUndDieStandardausgabeBleibtLeer() {
         val events = CopyOnWriteArrayList<TelemetryEvent>()
-        val (served, output) = captured {
-            serve({ events += it }) { awaitEvent(events, "tds.connection") }
+        val closed = CountDownLatch(1)
+        val sink = TelemetrySink {
+            events += it
+            if (it.kind == EventKind.CONNECTION_CLOSED) closed.countDown()
         }
+        val (served, output) = captured { serve(sink, closed) }
         assertEquals("", output)
         assertEquals(1L, served.second)
         assertEquals(
             listOf(
+                EventKind.CONFIG_EFFECTIVE,
                 EventKind.SERVER_STARTED,
                 EventKind.SECURITY_WEAKENED,
                 EventKind.SECURITY_WEAKENED,
+                EventKind.CONNECTION_OPENED,
                 EventKind.ENCRYPTION_NOT_OFFERED,
                 EventKind.LOGIN_ACCEPTED,
                 EventKind.SPAN_ENDED,
                 EventKind.SPAN_ENDED,
                 EventKind.SPAN_ENDED,
+                EventKind.CONNECTION_CLOSED,
+                EventKind.SERVER_STOPPING,
                 EventKind.SERVER_STOPPED,
             ),
             events.map { it.kind },
         )
         assertEquals(
-            listOf(INFO, WARN, WARN, WARN, INFO, DEBUG, DEBUG, DEBUG, INFO),
+            listOf(INFO, INFO, WARN, WARN, INFO, WARN, INFO, DEBUG, DEBUG, DEBUG, INFO, INFO, INFO),
             events.map { it.level },
         )
         val spans = events.filter { it.kind == EventKind.SPAN_ENDED }
@@ -187,6 +194,8 @@ class TelemetryEmbeddingTest {
         assertEquals("", output)
     }
 }
+
+private const val CLOSE_WAIT_SECONDS = 20L
 
 /** Ein Backend, das jede Anfrage mit einer Zeile beantwortet. */
 private class OneRowBackend : QueryBackend {

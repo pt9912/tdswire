@@ -89,16 +89,17 @@ COPY --from=testkeys --chown=gradle:gradle /testkeys build/testkeys
 COPY --chown=gradle:gradle gradle/test-jvm.init.gradle.kts gradle/
 RUN gradle --no-daemon -I gradle/test-jvm.init.gradle.kts test integratorTest
 
-# --- Smoke: `docker build --target smoke .` - der Rohbytes-Smoke der Welle allein (ServerSmokeTest): die
-# Kind-JVM startet das `main` des Testservers mit einer Testkonfiguration, ein Rohbytes-Client spricht den
-# Login-Pfad. Dieselben Tests laufen auch in der Stage `test`; die Stage ist der engste Sensor dafuer. ----
+# --- Smoke: `docker build --target smoke .` - die Prozesstests des Serverprozesses allein (ServerSmokeTest und
+# ZustandsereignisseProzessTest): die Kind-JVM startet das `main` des Testservers mit einer Testkonfiguration, ein
+# Rohbytes-Client spricht den Login-Pfad, die Standardausgabe zeigt Startdiagnose und Zustandsereignisse. Dieselben
+# Tests laufen auch in der Stage `test`; die Stage ist der engste Sensor dafuer. ----
 FROM deps AS smoke
 COPY --chown=gradle:gradle LICENSE LICENSE
 COPY --chown=gradle:gradle src src
 COPY --chown=gradle:gradle testserver testserver
 COPY --from=testkeys --chown=gradle:gradle /testkeys build/testkeys
 COPY --chown=gradle:gradle gradle/test-jvm.init.gradle.kts gradle/
-RUN gradle --no-daemon -I gradle/test-jvm.init.gradle.kts :test --tests 'io.github.pt9912.tdswire.runtime.ServerSmokeTest'
+RUN gradle --no-daemon -I gradle/test-jvm.init.gradle.kts :test --tests 'io.github.pt9912.tdswire.runtime.ServerSmokeTest' --tests 'io.github.pt9912.tdswire.runtime.ZustandsereignisseProzessTest'
 
 # --- Detekt: `docker build --target detekt .` - zuerst das Suppression-Verbot (AGENTS.md 3.2,
 # tools/suppression-check.sh), die Sperren gegen Jackson in der Bibliothek und gegen friend/associate im Modul

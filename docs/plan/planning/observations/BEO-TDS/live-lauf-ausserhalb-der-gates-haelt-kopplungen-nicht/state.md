@@ -1,1 +1,3 @@
 **Stand:** offen — kein Träger; die Aufnahme des Laufs in `make gates` ist abgelehnt (Nutzerentscheidung 2026-11-06, Gate-Aufnahme: nein). Ein Sensor, der nur die Kopplungen hält (Stage-Name und Pfad im Skript gegen das Dockerfile, Spalten und Typen beider Schemata gegeneinander), ist denkbar und nicht vorgeschlagen; Entscheidung beim Nutzer.
+
+**Dritte Kopplung (slice-qa-vergleichslauf-d-messungen-bulk-merge, 2026-11-07):** der Wortlaut der Texte von d-migrate in `referenztest-dotnet/Vergleich/DMigrateTexte.cs` gegen `DMigrateWire.kt`; heute gleich (maschinell geprüft, 24 Texte), kein Sensor. 3×, über der Schwelle; der Lese-Schritt gehört in die Closure der Welle.

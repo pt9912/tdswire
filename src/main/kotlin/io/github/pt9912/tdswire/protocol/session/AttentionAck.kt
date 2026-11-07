@@ -25,6 +25,18 @@ internal object AttentionAck {
         encoder.toByteArray()
     }
 
+    /**
+     * Die Bestätigung eines ATTENTION, das ein angekündigtes Massenladen abbricht (nach `INSERT BULK`, vor der
+     * Nachricht 0x07): ein DONE mit `ERROR` und `ATTENTION`, Befehl `0x00fd`, ohne ERROR-Token (Messprotokoll M-11,
+     * Instanz 2022 und 2025, `SqlBulkCopy`).
+     */
+    val bulkAborted: TdsMessage by lazy {
+        val encoder = TokenEncoder()
+        val token = DoneToken(DoneKind.DONE, DoneStatus.ERROR or DoneStatus.ATTENTION, DoneCommand.BATCH, rowCount = 0)
+        check(encoder.write(token) is ProtocolResult.Ok) { "Bestätigung nicht schreibbar" }
+        TdsMessage(PacketType.TABULAR_RESULT, encoder.toByteArray())
+    }
+
     /** Die Bestätigung als eigene Antwort-Nachricht (ATTENTION ohne laufende Anfrage). */
     val message: TdsMessage by lazy { TdsMessage(PacketType.TABULAR_RESULT, bytes) }
 }

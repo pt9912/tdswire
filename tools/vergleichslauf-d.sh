@@ -18,6 +18,11 @@
 #   MessungWireTests.cs): Fehler im RPC, Ordinal der RETURNVALUE, curCmd, RESETCONNECTION, Anmeldung und SESSIONSTATE ueber den
 #   TLS-beendenden Proxy; die redigierten Dateien ersetzen referenztest-dotnet/Mitschnitt/messung/<stufe>/ im Arbeitsbaum (der
 #   Lauf schreibt dorthin, committet nichts). Die Zeilen `messung:` der Ausgabe sind die Werte, die das Messprotokoll zitiert.
+#   bulk-2022 | bulk-2025 | bulk (beide): Messreihe zu Massenladen, MERGE, Katalog, Strukturaenderung und den Zusatzmessungen (Kategorie
+#   MessungBulk, referenztest-dotnet/Vergleich/MessungBulkTests.cs) mit derselben Methode wie `wire`; die Dateien ersetzen
+#   referenztest-dotnet/Mitschnitt/messung/bulk-merge-katalog/<stufe>/ im Arbeitsbaum (die Ablage von `wire` bleibt unberuehrt).
+#   MESSUNG_NUR=<Szenarien> waehlt eine Teilmenge ohne Ablage; mit MESSUNG_WIEDERHOLEN=<N> (Exit 0 bei gruenem Test, ohne Ablage) faehrt jedes gewaehlte Szenario N-mal ueber
+#   einen frisch aufgebauten Bestand und nennt die Rate roter Laeufe (MESSUNG_DIREKT=1: der Client verbindet sich ohne Proxy).
 # Je Lauf: Image der Referenzinstanz bauen (Dockerfile-Stufe `referenzinstanz-<jahr>` in referenztest-dotnet, Digest
 # dort gepinnt) und Client-Image (Stufe `vergleich`); zwei Container in einem eigenen internen Netzwerk (kein Zugang
 # nach aussen, kein veroeffentlichter Port, nichts wird gemountet; Namen mit PID). Zertifikat und Schluessel (CN und SAN
@@ -138,6 +143,7 @@ MESSUNG="messung-2022 messung-2025"
 AUFNAHME="aufnahme-2022 aufnahme-2025"
 MITSCHNITT="mitschnitt-2022 mitschnitt-2025"
 WIRE="wire-2022 wire-2025"
+BULK="bulk-2022 bulk-2025"
 
 # parameter <Lauf>: setzt STUFE, KATEGORIE, FORCESTRICT, ERWARTE_STRICT, ERWARTE_SONDE und ERWARTE_MANDATORY (gelingt|scheitert|-).
 parameter() {
@@ -157,6 +163,8 @@ parameter() {
     mitschnitt-2025) STUFE=2025 KATEGORIE=MitschnittAbspielen FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
     wire-2022) STUFE=2022 KATEGORIE=MessungWire FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
     wire-2025) STUFE=2025 KATEGORIE=MessungWire FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
+    bulk-2022) STUFE=2022 KATEGORIE=MessungBulk FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
+    bulk-2025) STUFE=2025 KATEGORIE=MessungBulk FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
     *) return 1 ;;
   esac
 }
@@ -171,10 +179,12 @@ elif [ "$LAUFNAME" = mitschnitt ]; then
   LISTE="$MITSCHNITT"
 elif [ "$LAUFNAME" = wire ]; then
   LISTE="$WIRE"
+elif [ "$LAUFNAME" = bulk ]; then
+  LISTE="$BULK"
 elif parameter "$LAUFNAME"; then
   LISTE="$LAUFNAME"
 else
-  echo "vergleichslauf-d: LAUF muss alle, live, aufnahme, mitschnitt, wire oder einer von [$ALLE $LIVE $MESSUNG $AUFNAHME $MITSCHNITT $WIRE] sein (war '$LAUFNAME')" >&2
+  echo "vergleichslauf-d: LAUF muss alle, live, aufnahme, mitschnitt, wire, bulk oder einer von [$ALLE $LIVE $MESSUNG $AUFNAHME $MITSCHNITT $WIRE $BULK] sein (war '$LAUFNAME')" >&2
   exit 2
 fi
 if [ -n "${CI:-}${GITHUB_ACTIONS:-}" ]; then
@@ -527,7 +537,7 @@ mitschnittlauf() {
 }
 
 # wirelauf <Name>: die Messreihe am Draht (SPEC-045). Die Referenzinstanz (Stufe) startet frisch; der Client-Container fuehrt die
-# Szenarien der Kategorie MessungWire (referenztest-dotnet/Vergleich/MessungWireTests.cs) ueber den TLS-beendenden Proxy aus und
+# Szenarien der Kategorie MessungWire oder MessungBulk (referenztest-dotnet/Vergleich/MessungWireTests.cs, MessungBulkTests.cs) ueber den TLS-beendenden Proxy aus und
 # legt die Messungen in /tmp/messung ab. Danach liegen die Dateien in $SCRATCH, werden auf das Kennwort der Instanz geprueft
 # (Klartextsuche; die Formen im Draht prueft der Test) und ersetzen referenztest-dotnet/Mitschnitt/messung/<Stufe>/ im Arbeitsbaum.
 # Anders als die Aufnahme enthalten sie PRELOGIN, LOGIN7 (redigiert) und die Antwort der Anmeldung; sie werden nicht abgespielt.
@@ -541,9 +551,9 @@ wirelauf() {
   image=$(grep -E "AS referenzinstanz-$STUFE\$" referenztest-dotnet/Dockerfile | sed -E 's/^FROM ([^ ]+) AS .*/\1/')
   schema="sha256:$(sha256sum referenztest-dotnet/Vergleich/testschema.sql | cut -d' ' -f1)"
   docker create --name "$CLIENT" --network "$NETZ" -e "TDSWIRE_ZIEL=referenz:1433" -e "TDSWIRE_REFERENZ_KENNWORT=$KENNWORT" \
-    -e SSL_CERT_FILE=/tmp/server.pem -e TDSWIRE_MESSUNG_AUSGABE=/tmp/messung -e "TDSWIRE_MESSUNG_NUR=${MESSUNG_NUR:-}" -e "TDSWIRE_HERKUNFT_INSTANZ=$instanz" \
+    -e SSL_CERT_FILE=/tmp/server.pem -e TDSWIRE_MESSUNG_AUSGABE=/tmp/messung -e "TDSWIRE_MESSUNG_NUR=${MESSUNG_NUR:-}" -e "TDSWIRE_MESSUNG_WIEDERHOLEN=${MESSUNG_WIEDERHOLEN:-}" -e "TDSWIRE_MESSUNG_DIREKT=${MESSUNG_DIREKT:-}" -e "TDSWIRE_HERKUNFT_INSTANZ=$instanz" \
     -e "TDSWIRE_HERKUNFT_IMAGE=$image" -e "TDSWIRE_HERKUNFT_SCHEMA=$schema" \
-    "$CLIENT_IMAGE" dotnet test --no-build --nologo --filter "Kategorie=MessungWire" --logger "console;verbosity=detailed" >/dev/null || return 1
+    "$CLIENT_IMAGE" dotnet test --no-build --nologo --filter "Kategorie=$KATEGORIE" --logger "console;verbosity=detailed" >/dev/null || return 1
   docker cp "$SCRATCH/server.pem" "$CLIENT:/tmp/server.pem" >/dev/null || return 1
   docker start -a "$CLIENT" >"$SCRATCH/client-$name" 2>&1
   ok=$?
@@ -556,11 +566,16 @@ wirelauf() {
   docker cp "$CLIENT:/tmp/messung/." "$SCRATCH/messung-$STUFE" >/dev/null 2>&1
   docker rm -f "$CLIENT" >/dev/null 2>&1
   CLIENT=""
-  pruefe "Messreihe $name: Test bestanden, Messungen vorhanden" sh -c "[ $ok -eq 0 ] && ls '$SCRATCH/messung-$STUFE'/*.messung >/dev/null 2>&1"
+  # Eine Wiederholung (MESSUNG_WIEDERHOLEN > 0) legt nichts ab: dort zaehlt der Test allein, sonst endete jeder gruene Lauf mit Exit 2.
+  case "${MESSUNG_WIEDERHOLEN:-0}" in
+    0|"") pruefe "Messreihe $name: Test bestanden, Messungen vorhanden" sh -c "[ $ok -eq 0 ] && ls '$SCRATCH/messung-$STUFE'/*.messung >/dev/null 2>&1" ;;
+    *) pruefe "Messreihe $name: Test bestanden (Wiederholung, keine Ablage)" sh -c "[ $ok -eq 0 ]" ;;
+  esac
   keine_kennwort_treffer() { ! grep -rqF -e "$KENNWORT" "$SCRATCH/messung-$STUFE"; }
   pruefe "Messreihe $name: Klartextsuche nach dem Kennwort in der Ablage ohne Treffer (Nutzlasten stehen als Hex; die tragende Prüfung ist MessDatei.Treffer im Test)" keine_kennwort_treffer
   [ "$FEHLER" -eq 0 ] || return 1
   ziel_verzeichnis="referenztest-dotnet/Mitschnitt/messung/$STUFE"
+  [ "$KATEGORIE" != MessungBulk ] || ziel_verzeichnis="referenztest-dotnet/Mitschnitt/messung/bulk-merge-katalog/$STUFE"
   # MESSUNG_NUR (Namen der Szenarien, durch Komma getrennt) ist die Teilmenge fuer die Fehlersuche: sie ersetzt die Ablage nicht.
   if [ -n "${MESSUNG_NUR:-}" ]; then
     echo "vergleichslauf-d: messung: Teilmenge $MESSUNG_NUR, die Ablage im Arbeitsbaum bleibt unveraendert"
@@ -584,7 +599,7 @@ for lauf in $LISTE; do
     live-*) livelauf "$lauf" || FEHLER=1 ;;
     aufnahme-*) aufnahmelauf "$lauf" || FEHLER=1 ;;
     mitschnitt-*) mitschnittlauf "$lauf" || FEHLER=1 ;;
-    wire-*) wirelauf "$lauf" || FEHLER=1 ;;
+    wire-* | bulk-*) wirelauf "$lauf" || FEHLER=1 ;;
     *) einzellauf "$lauf" || FEHLER=1 ;;
   esac
   [ "$FEHLER" -eq 0 ] || break

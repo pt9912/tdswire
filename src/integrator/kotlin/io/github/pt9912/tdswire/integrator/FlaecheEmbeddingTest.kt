@@ -156,7 +156,7 @@ class FlaecheEmbeddingTest {
      * Anfrage den aktuellen Stand, der Strukturänderungs-Callback legt die Tabelle an (`CREATE TABLE` als SQL-Text auf
      * den Rohbytes), die nächste Anfrage sieht sie, und ein zweites `CREATE TABLE` derselben Tabelle ruft den Callback
      * nicht. Der Callback bekommt die Spalten mit `SimColumn.maxLength`; die
-     * Tabelle trägt `SimTable.onInsertBatch` (die Bibliothek ruft ihn in diesem Stand nicht).
+     * Tabelle trägt `SimTable.onInsertBatch` (das Massenladen ruft ihn, siehe `MassenladenEmbeddingTest`).
      *
      * @spec SPEC-059
      * @spec SPEC-035

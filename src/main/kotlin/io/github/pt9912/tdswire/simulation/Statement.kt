@@ -86,8 +86,14 @@ internal sealed interface FixedForm {
 internal sealed interface Recognition {
     data class Recognized(val statement: Statement) : Recognition
 
-    /** Eine Katalogabfrage (`SPEC-036`, Form K); ihre Parameter stehen in der Anfrage, nicht im Text. */
-    data class Catalog(val form: CatalogForm) : Recognition
+    /**
+     * Eine Katalogabfrage (`SPEC-036`, Form K); ihre Parameter stehen in der Anfrage, nicht im Text. Nur wenn der Text
+     * das Argument als Literal trägt (`OBJECT_ID('…')`), steht es in [literal].
+     */
+    data class Catalog(val form: CatalogForm, val literal: String? = null) : Recognition
+
+    /** `INSERT BULK` (`SPEC-036`, Form B): das Ziel und die Spalten, wie der Text sie nennt. */
+    data class Bulk(val table: TableRef, val columns: List<String>) : Recognition
 
     data class Fixed(val form: FixedForm) : Recognition
 

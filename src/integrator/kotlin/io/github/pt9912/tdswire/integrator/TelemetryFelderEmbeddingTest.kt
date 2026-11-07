@@ -158,6 +158,40 @@ class TelemetryFelderEmbeddingTest {
     }
 
     /**
+     * Die Zustandsarten tragen ihre Felder von außen gelesen: `CONFIG_EFFECTIVE` die Einstellungen als Schlüssel und
+     * Wert (der Schlüsselspeicher als `UNSET`, kein Pfad), `SERVER_STARTED` Adresse und Port, `CONNECTION_OPENED` die
+     * Nummer der Verbindung ohne Sitzung, `CONNECTION_CLOSED` den Grund `SHUTDOWN` einer beim Beenden ruhenden
+     * Verbindung; `SERVER_STOPPING` steht vor dem Ende der Verbindung, `SERVER_STOPPED` danach.
+     *
+     * @spec SPEC-059
+     * @spec SPEC-005
+     * @spec SPEC-044
+     */
+    @Test
+    fun dieZustandsartenTragenIhreFelder() {
+        val server = assertIs<StartOutcome.Running>(start(unencrypted(), BackendSource.Custom(FailingBackend()))).server
+        val settings = assertNotNull(only(EventKind.CONFIG_EFFECTIVE).settings)
+        assertEquals("15", settings["LOGIN_TIMEOUT"])
+        assertEquals("TEST_UNENCRYPTED", settings["ENCRYPTION_POLICY"])
+        assertEquals("UNSET", settings["TLS_KEYSTORE_FILE"])
+        assertEquals("16777216", settings["MAX_MESSAGE_BYTES"])
+        val started = only(EventKind.SERVER_STARTED)
+        assertEquals(LOOPBACK, started.address)
+        assertEquals(server.port, started.port)
+        WireClient(server.port).use {
+            it.login()
+            val opened = awaitKind(EventKind.CONNECTION_OPENED)
+            assertEquals(1L, opened.connectionId)
+            assertNull(opened.sessionId)
+            runBlocking { server.stop() }
+        }
+        assertEquals("SHUTDOWN", only(EventKind.CONNECTION_CLOSED).reason)
+        val order = events.map { it.kind }
+        assertTrue(order.indexOf(EventKind.SERVER_STOPPING) < order.indexOf(EventKind.CONNECTION_CLOSED), "$order")
+        assertEquals(EventKind.SERVER_STOPPED, order.last())
+    }
+
+    /**
      * Mit `RequestSettings.metricsIntervalSeconds` von 1 liefert der Server nach einer Anmeldung und einer Anfrage
      * ein Ereignis `METRICS`, dessen Zugriff `metrics` die Zähler nennt (Anfragen, Anmeldungen, aktive Sitzungen) und
      * die Perzentile der Latenz, die erst mit der ersten beendeten Anfrage da sind; die Felder des Span-Endes

@@ -132,9 +132,15 @@ internal class GatedChannel(private val blocks: (String) -> Boolean = { true }) 
 internal object RealEvents {
     /**
      * Startet den Testserver im Prozess mit [environment], lässt [action] mit dem Port laufen und beendet ihn; die
-     * Ereignisse liegen im Rückgabewert, das Ende des Servers eingeschlossen.
+     * Ereignisse liegen im Rückgabewert, das Ende des Servers eingeschlossen. Der Server meldet ein Ereignis nach dem
+     * Senden der Antwort; wer es braucht, nennt die Arten in [settle], auf die der Aufruf vor dem Beenden wartet (sonst
+     * beendet der Wettlauf mit dem Schließen des Clients das Ereignis).
      */
-    fun collect(environment: Map<String, String>, action: (Int) -> Unit): EventRecorder {
+    fun collect(
+        environment: Map<String, String>,
+        settle: List<EventKind> = emptyList(),
+        action: (Int) -> Unit,
+    ): EventRecorder {
         val recorder = EventRecorder()
         val outcome = runBlocking {
             startTestserver(environment, { BackendSource.Simulation(it) }, {}, recorder)
@@ -142,6 +148,7 @@ internal object RealEvents {
         val running = outcome as? StartOutcome.Running ?: error("Start abgebrochen: $outcome")
         try {
             action(running.server.port)
+            settle.forEach { recorder.await(it) }
         } finally {
             runBlocking { running.server.stop() }
         }

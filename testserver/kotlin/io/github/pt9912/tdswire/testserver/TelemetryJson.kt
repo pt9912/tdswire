@@ -74,7 +74,7 @@ internal object TelemetryJson {
     )
 
     /** Die Namen der Zugriffe von `TelemetryEvent`, die die Zeile abdeckt: Kopf (`kind`, `at`, `level`) und Tabelle. */
-    val covered: Set<String> = setOf("kind", "at", "level") + PROPERTIES.map { it.property }
+    val covered: Set<String> = setOf("kind", "at", "level", SETTINGS) + PROPERTIES.map { it.property }
 
     /**
      * Der Wert des Feldes `event` je Art: der Name der Konstante in Kleinbuchstaben. Das `when` nennt jede Art und
@@ -98,19 +98,28 @@ internal object TelemetryJson {
         EventKind.TLS_FIRST_NOT_OFFERED,
         EventKind.TLS_HANDSHAKE_FAILED,
         EventKind.REQUEST_FAILED,
+        EventKind.CONFIG_EFFECTIVE,
+        EventKind.SERVER_STOPPING,
+        EventKind.CONNECTION_OPENED,
+        EventKind.CONNECTION_CLOSED,
         EventKind.METRICS,
         EventKind.SPAN_ENDED,
         -> kind.name.lowercase()
     }
 
-    /** Die Felder des Ereignisses ohne Kopf, die nicht `null` sind, in der Reihenfolge der Tabelle. */
+    /**
+     * Die Felder des Ereignisses ohne Kopf, die nicht `null` sind, in der Reihenfolge der Tabelle. Die Messwerte von
+     * `METRICS` stehen als Felder `metrics.<Schlüssel>`. Die Einstellungen von `CONFIG_EFFECTIVE` stehen danach je
+     * Schlüssel als ein Feld, dessen Name der Schlüssel in Kleinbuchstaben ist; ein Wert aus Ziffern steht als Zahl,
+     * jeder andere als Zeichenkette.
+     */
     fun fieldsOf(event: TelemetryEvent): List<JsonField> = PROPERTIES.flatMap { property ->
         when (val value = property.read(event)) {
             null -> emptyList()
             is Map<*, *> -> value.map { (key, number) -> JsonField("${property.json}.$key", number) }
             else -> listOf(JsonField(property.json, value))
         }
-    }
+    } + event.settings.orEmpty().map { (key, value) -> JsonField(key.lowercase(), value.toLongOrNull() ?: value) }
 
     /** Die Zeile zu [event]; [dropped] größer null steht als letztes Feld `dropped`. */
     fun line(event: TelemetryEvent, dropped: Long = 0): String {
@@ -146,6 +155,7 @@ internal object TelemetryJson {
         }
     }
 
+    private const val SETTINGS = "settings"
     private const val DROPPED = "dropped"
     private const val DROPPED_EVENT = "log_dropped"
     private const val LEVEL_WARN = "WARN"
