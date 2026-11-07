@@ -30,9 +30,15 @@ import java.time.LocalTime
  * unter den Zeilen der Nachricht und des Bestands eindeutig; sonst wirft er, und der Bestand bleibt unverändert (die
  * Bibliothek meldet das dem Client als `TDS_BACKEND_ERROR`). Setzung, am Server nicht gemessen: Textschlüssel
  * vergleicht der Bestand ohne Beachtung der Schreibweise (wie die Namen), Dezimalschlüssel mit `compareTo`. Der
- * Bestand wächst mit den Nachrichten ohne Grenze; der Heap des Prozesses begrenzt ihn.
+ * Bestand ist durch [cellLimit] begrenzt (Setzung, am echten Server nicht gemessen; Vorgabe [CELL_LIMIT]):
+ * die Zellen aller Tabellen (Zeilen mal Spalten) zusammen. Eine Nachricht, die die Grenze überschritte, wirft wie jede
+ * andere abgewiesene Nachricht und lässt den Bestand unverändert; der Client bekommt einen Fehler statt eines
+ * `OutOfMemoryError`, der den Prozess für alle Sitzungen beendet. Die Grenze rechnet in Zellen, nicht in Byte: sie
+ * deckt keinen Heap, der kleiner ist als die Zellen der Grenze brauchen (die Zeilen des Bestands haben die Form
+ * der Zeilen des Lesers, 4 bis 120 Byte je Zelle, Messprotokoll des Massenladens; der Bestand selbst ist nicht
+ * gemessen), und `ALTER TABLE … ADD` auf einer gefüllten Tabelle prüft sie nicht.
  */
-internal class TableStore(initial: List<SimTable>) {
+internal class TableStore(initial: List<SimTable>, private val cellLimit: Long = CELL_LIMIT) {
     private class Stored(
         val schema: String,
         val name: String,
@@ -43,6 +49,9 @@ internal class TableStore(initial: List<SimTable>) {
     )
 
     private val tables = LinkedHashMap<String, Stored>()
+
+    /** Die Zellen aller Zeilen im Bestand. */
+    private var cells = 0L
 
     init {
         initial.forEach { tables[key(it.schema, it.name)] = stored(it.schema, it.name, it.columns, it.primaryKey) }
@@ -64,6 +73,7 @@ internal class TableStore(initial: List<SimTable>) {
             next.rows.forEach { next.keys.add(keyOf(next, it)) }
         }
         tables[key(schema, name)] = next
+        cells = tables.values.sumOf { it.rows.size.toLong() * it.columns.size }
     }
 
     /**
@@ -73,6 +83,7 @@ internal class TableStore(initial: List<SimTable>) {
     @Synchronized
     fun insertBatch(schema: String, name: String, batch: List<Map<String, Any?>>): Long {
         val table = checkNotNull(tables[key(schema, name)]) { "Tabelle nicht im Bestand" }
+        require(cells + batch.size.toLong() * table.columns.size <= cellLimit) { "Bestand voll" }
         val staged = ArrayList<List<Any?>>(batch.size)
         val newKeys = HashSet<List<Any?>>()
         for (values in batch) {
@@ -84,6 +95,7 @@ internal class TableStore(initial: List<SimTable>) {
         }
         table.rows.addAll(staged)
         table.keys.addAll(newKeys)
+        cells += staged.size.toLong() * table.columns.size
         return staged.size.toLong()
     }
 
@@ -138,4 +150,9 @@ internal class TableStore(initial: List<SimTable>) {
     }
 
     private fun key(schema: String, name: String): String = NameFold.fold(schema) + "\u0000" + NameFold.fold(name)
+
+    internal companion object {
+        /** Die Obergrenze der Zellen im Bestand (Setzung), 2 097 152; der Heap bleibt Sache des Betreibers. */
+        const val CELL_LIMIT = 2_097_152L
+    }
 }

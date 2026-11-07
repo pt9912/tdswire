@@ -279,13 +279,13 @@ Cancel, damit der Client nicht auf sie wartet (Setzung; am echten Server ist nur
 gesendeter Antwort gemessen, im Leerlauf ohne laufende Anfrage nicht). Offen: die Antwort auf unzulässige
 Übergänge außerhalb des Handshakes und ATTENTION in jedem Anfragezustand über diese Bestätigung hinaus.
 
-RESETCONNECTION: Trägt das erste Paket einer Anfrage-Nachricht (SQL_BATCH, RPC, Transaction Manager) in `IDLE`
+RESETCONNECTION: Trägt das erste Paket einer Anfrage-Nachricht (SQL_BATCH, RPC, Transaction Manager, Massenladen `0x07`) in `IDLE`
 das Statusbit `RESETCONNECTION` (`0x08`), setzt der Sitzungsrahmen den Sitzungszustand zurück, mindestens die Handle-Tabelle
-(`SPEC-030`): im Übergang, der die Anfrage annimmt, unter der Sperre der Sitzung und vor der Verarbeitung dieser
+(`SPEC-030`) und das Ziel des Massenladens (unten): im Übergang, der die Anfrage annimmt, unter der Sperre der Sitzung und vor der Verarbeitung dieser
 Anfrage. Die Anfrage mit dem Bit wird danach wie jede andere beantwortet (ein Transaction Manager bleibt unbeantwortet
 und die Verbindung schließt wie ohne das Bit). Das Zurücksetzen ist eine Aktion am
-Übergang, kein Zustand der Aufzählung. Wer weiteren Sitzungszustand einführt (heute führt der Server nur die
-Handles), setzt ihn an dieser Stelle zurück. Das Bit in einem anderen Zustand als `IDLE` wertet der Server nicht
+Übergang, kein Zustand der Aufzählung. Wer weiteren Sitzungszustand einführt (heute führt der Server die
+Handles und das Ziel des Massenladens), setzt ihn an dieser Stelle zurück. Das Bit in einem anderen Zustand als `IDLE` wertet der Server nicht
 aus: eine Anfrage dort ist ein unzulässiger Übergang, an ATTENTION und an den Nachrichten des Handshakes bleibt
 das Bit ohne Wirkung; das Statusbit `0x10` (RESETCONNECTIONSKIPTRAN) wertet der Server nicht aus und es wirkt
 nicht wie `0x08`, weil der Server keine Transaktion führt (Festlegung, nicht gemessen). Gemessen am Referenzclient (`Microsoft.Data.SqlClient` 7.1.1,
@@ -311,16 +311,15 @@ Backend das Massenladen trägt (heute das Simulations-Backend); jede folgende Na
 Anfrage, die kein `INSERT BULK` ist (ein RPC, ein anderer Batch), löscht es. Das Ziel bleibt nach einer Nachricht stehen
 (der Treiber sendet nach der letzten Zeile eine weitere Nachricht mit COLMETADATA und ohne Zeile). Die Antwort auf
 `INSERT BULK` ist DONE mit dem Änderungszähler 0; die auf eine Nachricht `0x07` ist DONE mit der Zahl, die das Backend
-meldet. Die Nutzlast ist COLMETADATA, ROW je Zeile und DONE (`MS-TDS` 2.2.6.1); gelesen werden die Typen `INTN`, `BITN`,
-`DECIMALN`, `NUMERICN`, `NVARCHAR`, `NCHAR`, `BIGVARCHAR`, `BIGCHAR`, `DATEN`, `TIMEN` und `DATETIME2N`; jede andere
+meldet. Die Nutzlast ist COLMETADATA, ROW je Zeile und DONE (die Beschreibung des Pakets „Bulk Load“ in `MS-TDS`; Abschnittsnummern stehen hier nicht, das Dokument liegt nicht im Repo); gelesen werden die Typen `INTN`, `BITN`,
+`DECIMALN`, `NUMERICN`, `NVARCHAR`, `NCHAR`, `BIGVARCHAR`, `BIGCHAR`, `DATEN`, `TIMEN` und `DATETIME2N` (gedeckt durch einen Mitschnitt von d-migrate 1.12.0 mit mssql-jdbc 13.4.0 sind nur `INTN` mit 8 Byte, `NVARCHAR` und `BIGVARCHAR`; Datum, Zeit und Zeitpunkt sendet d-migrate als `VARCHAR`; `INTN` mit 1, 2 und 4 Byte, `BITN`, `DECIMALN`, `NUMERICN`, `NCHAR`, `BIGCHAR`, `DATEN`, `TIMEN` und `DATETIME2N` sind Handvektoren nach der Beschreibung von `MS-TDS` ohne Mitschnitt); jede andere
 Typkennung, ein PLP-Typ, NBCROW und eine abgeschnittene Nachricht (auch ohne DONE) ergeben den Fehler des Parsers
 (`TDS_PROTOCOL_ERROR` beziehungsweise `TDS_UNSUPPORTED_TYPE`, Class 20, die Verbindung schließt wie bei einem SQL_BATCH, den
-der Parser abweist), ohne dass das Backend gerufen wird. Höchstens 1024 Spalten und 262 144 Zeilen je Nachricht (Setzung).
+der Parser abweist), ohne dass das Backend gerufen wird. Höchstens 1024 Spalten und 262 144 Zellen (Spalten mal Zeilen) je Nachricht, eine größere Nachricht ist wie eine abgeschnittene ein Fehler des Parsers (Setzung; die Zellenzahl begrenzt die Werte, die Leser und Überführung anlegen, nicht die Größe der Nachricht). Gelesen werden `VARCHAR`-Werte als Windows-1252, gleich welche Kollation die Spalte trägt, und ein `DECIMALN`-Wert darf kürzer sein als die Typlänge (beides Setzung, toleranter als `MS-TDS`; die Länge von fünf Byte stammt aus dem RPC, nicht aus einem Massenladen).
 Das IGNORE-Bit einer Nachricht verwirft sie ohne Aufruf des Backends; die Antwort ist DONE mit dem Zähler 0. Eine Nachricht
 `0x07` ohne Ziel, oder an einem Backend ohne Massenladen, ist `TDS_UNSUPPORTED_SQL` bei offener Verbindung. Die Nachricht gilt
 als Ganzes: der Transport setzt sie bis zur Grenze von `SPEC-007` (16 MiB) im Speicher zusammen, eine größere schließt die
-Verbindung (gemessen, Messprotokoll des Spikes, b11), und der Speicherbedarf ist mindestens ihre Größe (b12: 15,9 MB endeten bei
-32 MiB Heap mit `OutOfMemoryError`). Der Gegendruck des Backends wirkt zwischen den Nachrichten, nicht innerhalb einer: die
+Verbindung (gemessen, Messprotokoll des Spikes, b11), und der Speicherbedarf ist ein Vielfaches ihrer Größe: gemessen ist, dass 15,9 MB Nutzlast mit 130-Byte-Zeilen bei 32 MiB Heap mit `OutOfMemoryError` endeten (b12), und dass eine gültige Nachricht von 15,7 MiB mit 16 000 Zeilen zu 1024 NULL-Spalten (ohne die Grenze der Zellen) bei 128 MiB Heap in der Überführung endete (Wegwerf-Probe, einmal gefahren); die Grenze der Zellen ist die Antwort darauf; gemessen ist, dass die Zeilen einer Nachricht an der Grenze 12 bis 64 MiB belegen (4 bis 120 Byte je Zelle im Leser, 48 bis 256 mit der Überführung, je nach Typ, Messprotokoll des Massenladens), ein Beleg für den Wert am Heap eines Prozesses ist das nicht. Der Gegendruck des Backends wirkt zwischen den Nachrichten, nicht innerhalb einer: die
 Schleife liest die nächste erst nach der Antwort (b13).
 
 Der Abschluss einer Anfrage wird genau einmal gesendet.
@@ -879,7 +878,14 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   verhält sich anders (Setzung dieses Stands): sie übergibt immer ein Backend über dem Bestand (`BackendSource.Custom`);
   ohne Datei der Beschreibung antwortet es auf eine Auswahl mit `TDS_SIM_UNKNOWN_OBJECT` („Tabelle nicht beschrieben“),
   nimmt `CREATE TABLE` an und schließt die Verbindung nicht (Test `TableStoreTest`, `make e2e` Stufe 1 meldet den Login
-  ohne Datei).
+  ohne Datei). Der Bestand des Testservers nimmt höchstens 2 097 152 Zellen (Zeilen mal Spalten, über alle
+  Tabellen) auf; eine Nachricht des Massenladens darüber weist der Bestand ab wie jede andere abgewiesene Nachricht
+  (`TDS_BACKEND_ERROR`, der Bestand bleibt unverändert), statt dass der Prozess mit `OutOfMemoryError` endet (Setzung,
+  nicht am Server gemessen; der Wert ist nicht am Heap gemessen, ein kleinerer Heap als die Zellen brauchen endet weiter
+  mit `OutOfMemoryError`; `ALTER TABLE … ADD` auf einer gefüllten Tabelle prüft die Grenze nicht; `TableStoreTest`).
+  `SimColumn.maxLength` wirkt nicht auf das Massenladen: ein Text über der Länge der Beschreibung wird angenommen, die
+  Länge begrenzt nur der Typ, den der Client in COLMETADATA nennt (Setzung; der echte Server weist ihn ab, nicht
+  gemessen).
 - **Weg `Custom`:** Wer ein Backend mit Katalog selbst baut (`SimulationBackend(SimCatalog(tables))`) und als
   `BackendSource.Custom` übergibt (etwa um es mit einem eigenen `QueryBackend` zu umhüllen), ist ein zweiter Weg
   neben `Simulation`, mit demselben Verhalten des Backends. Dieser Weg durchläuft die Namensprüfung des Einstiegs und

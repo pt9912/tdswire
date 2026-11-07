@@ -19,8 +19,11 @@ import io.github.pt9912.tdswire.testsupport.blocking
 import io.github.pt9912.tdswire.testsupport.hex
 import io.github.pt9912.tdswire.transport.framing.PacketType
 import io.github.pt9912.tdswire.transport.framing.TdsMessage
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -48,7 +51,7 @@ class BulkDispatchTest {
     /** Das Test-Backend: erkennt `INSERT BULK`, merkt die Aufrufe und antwortet mit [onLoad]. */
     private class Loading(
         private val target: BulkTargetResult = BulkTargetResult.Ready(BulkTarget("dbo", "t")),
-        private val onLoad: (BulkRows) -> QueryEvent = { QueryEvent.UpdateCount(it.rows.size.toLong()) },
+        private val onLoad: suspend (BulkRows) -> QueryEvent = { QueryEvent.UpdateCount(it.rows.size.toLong()) },
     ) : QueryBackend,
         BulkLoadingBackend {
         val asked = mutableListOf<String>()
@@ -221,6 +224,57 @@ class BulkDispatchTest {
         session.serve(backend)
         assertEquals(listOf(insertBulk), backend.requests.map { it.sql })
         assertEquals(unsupported, session.tokens(1).errorMessage())
+    }
+
+    /**
+     * `RESETCONNECTION` auf der Nachricht 0x07 leert das Ziel des Massenladens vor ihrer Verarbeitung (wie die
+     * Handles): die Nachricht lädt nicht, sondern ist `TDS_UNSUPPORTED_SQL` bei offener Verbindung. Setzung: die
+     * Antwort auf diese Reihenfolge ist nicht am echten Server gemessen.
+     * Wächter: ein Reset, der nur die Handles leert (die Nachricht lüde dann in das Ziel vor dem Reset).
+     *
+     * @spec SPEC-036
+     * @spec SPEC-001
+     */
+    @Test
+    fun `RESETCONNECTION leert das Ziel des Massenladens`() = blocking {
+        val backend = Loading()
+        val resetting = Inbound.Message(TdsMessage(PacketType.BULK_LOAD, hex(THREE_ROWS), resetConnection = true))
+        val session = Session.login(batch(insertBulk), resetting, batch("SELECT 1"), Inbound.EndOfStream)
+        session.serve(backend)
+        assertEquals(emptyList(), backend.loads)
+        assertEquals(unsupported, session.tokens(1).errorMessage())
+        assertEquals(listOf("SELECT 1"), backend.executed)
+    }
+
+    /**
+     * ATTENTION, während `load` läuft: der Lauf endet mit genau einem `DONE[ATTN]` (Handvektor) ohne ERROR, die
+     * Verbindung bleibt offen, und die folgende Anfrage bekommt ihre eigene Antwort. Nicht belegt: ein Stapel-Callback
+     * des Integrators, der mitten in der Weitergabe steht (das Backend hier hängt in `awaitCancellation`); die Antwort
+     * des echten Servers auf ATTENTION während des Massenladens ist nicht gemessen.
+     * Wächter: ein Massenladen, das ATTENTION nicht beachtet (die Schleife bliebe in `load`, der Test hinge) oder die
+     * Verbindung schließt.
+     *
+     * @spec SPEC-036
+     * @spec TDS-QA-07
+     */
+    @Test
+    fun `ATTENTION waehrend des Ladens ergibt DONE ATTN bei offener Verbindung`() = blocking {
+        val started = CompletableDeferred<Unit>()
+        val backend = Loading(onLoad = {
+            started.complete(Unit)
+            awaitCancellation()
+        })
+        val session = Session.login(batch(insertBulk), bulk())
+        val serving = launch { session.serve(backend) }
+        started.await()
+        session.channel.feed(BatchVectors.attention())
+        session.channel.feed(batch("SELECT 1"))
+        session.channel.feed(Inbound.EndOfStream)
+        serving.join()
+        assertEquals(3, session.replies.size)
+        assertEquals(BatchVectors.DONE_ATTN, session.hex(1))
+        assertEquals(1, backend.loads.size)
+        assertEquals(listOf("SELECT 1"), backend.executed)
     }
 
     private companion object {

@@ -13,23 +13,30 @@ import io.github.pt9912.tdswire.protocol.wire.guarded
 import io.github.pt9912.tdswire.protocol.wire.violation
 
 /**
- * Liest die Nutzlast einer Nachricht vom Typ BULK_LOAD (0x07, `MS-TDS` 2.2.6.1; `SPEC-036`, Pakettypen):
+ * Liest die Nutzlast einer Nachricht vom Typ BULK_LOAD (0x07, `MS-TDS`, Paket „Bulk Load“; `SPEC-036`, Pakettypen):
  * COLMETADATA, danach ROW je Zeile, danach DONE. Die Nachricht liegt als Ganzes im Speicher (`SPEC-007`); der Leser
  * liest sie einmal von vorn nach hinten, die Werte liest [BulkValueReader].
  *
- * Gedeckt ist, was d-migrate 1.12.0 mit mssql-jdbc 13.4.0 sendet (Messprotokoll des Spikes, Tabelle (iii)): die
- * Spaltentypen `INTN` (1, 2, 4, 8 Byte), `BITN`, `DECIMALN` und `NUMERICN`, `NVARCHAR`, `NCHAR`, `BIGVARCHAR`,
- * `BIGCHAR`, `DATEN`, `TIMEN`, `DATETIME2N`, abgebildet auf [SqlType] (`INTN` mit 8 Byte ist `Int64`, jede andere Größe
- * `Int32`). Jede andere Typkennung, ein PLP-Typ (MAX) und ein anderes Token als ROW und DONE (auch NBCROW) weist der
- * Leser mit einem [ProtocolFailure] ab, ebenso eine Nachricht ohne COLMETADATA, mit Zeilen, aber ohne DONE, und eine,
- * die hinter dem DONE weitergeht.
+ * Gedeckt durch einen Mitschnitt (d-migrate 1.12.0 mit mssql-jdbc 13.4.0, Messprotokoll des Massenladens) sind die
+ * Spaltentypen `INTN` mit 8 Byte, `NVARCHAR` und `BIGVARCHAR`; Datum, Zeit und Zeitpunkt sendet d-migrate als
+ * `VARCHAR`. `INTN` mit 1, 2 und 4 Byte, `BITN`, `DECIMALN`, `NUMERICN`, `NCHAR`, `BIGCHAR`, `DATEN`, `TIMEN` und
+ * `DATETIME2N` liest der Leser nach Handvektoren aus der Beschreibung von `MS-TDS`, ohne Mitschnitt eines Clients.
+ * Die Typen sind abgebildet auf [SqlType] (`INTN` mit 8 Byte ist `Int64`, jede andere Größe `Int32`). Jede andere
+ * Typkennung, ein PLP-Typ (MAX) und ein anderes Token als ROW und DONE (auch NBCROW) weist der Leser mit einem
+ * [ProtocolFailure] ab, ebenso eine Nachricht ohne COLMETADATA, mit Zeilen, aber ohne DONE, und eine, die hinter dem
+ * DONE weitergeht.
  *
- * Festlegung ohne Messung am Server: höchstens [MAX_COLUMNS] Spalten und [MAX_ROWS] Zeilen je Nachricht; die Grenze
- * der Zeilen schützt den Speicher vor einer Nachricht an der Grenze von 16 MiB mit Zeilen von zwei Byte.
+ * Festlegung ohne Messung am Server: höchstens [MAX_COLUMNS] Spalten und [MAX_CELLS] Zellen (Spalten mal Zeilen) je
+ * Nachricht. Die Zellenzahl begrenzt die Zahl der Werte, die der Leser und die Überführung anlegen, nicht die Größe der
+ * Nachricht: die ist durch `SPEC-007` auf 16 MiB begrenzt. Eine NULL-Zelle kostet auf der Leitung ein Byte oder
+ * keines, im Heap dagegen einen Verweis in der Zeile und die Abbildung der Überführung: gemessen an der Grenze (einmal,
+ * Messprotokoll des Massenladens, Abschnitt Heap je Zelle) 12 bis 64 MiB für 262 144 Zellen, 4 bis 120 Byte je Zelle
+ * im Leser und 48 bis 256 Byte mit der Überführung, je nach Typ; ohne die Grenze der Zellen endete eine gültige
+ * Nachricht von 15,7 MiB mit 1024 NULL-Spalten und 16 000 Zeilen bei 128 MiB Heap mit `OutOfMemoryError`.
  */
 internal object BulkLoadReader {
     const val MAX_COLUMNS = 1024
-    const val MAX_ROWS = 262_144
+    const val MAX_CELLS = 262_144
     private const val TOKEN_COLMETADATA = 0x81
     private const val TOKEN_ROW = 0xD1
     private const val TOKEN_DONE = 0xFD
@@ -87,7 +94,9 @@ internal object BulkLoadReader {
         while (true) {
             when (val token = reader.u8()) {
                 TOKEN_ROW -> {
-                    if (rows.size == MAX_ROWS) violation(ProtocolFailure.INVALID_LENGTH, "mehr als $MAX_ROWS Zeilen")
+                    if ((rows.size + 1L) * types.size > MAX_CELLS) {
+                        violation(ProtocolFailure.INVALID_LENGTH, "mehr als $MAX_CELLS Zellen")
+                    }
                     rows.add(types.map { BulkValueReader.read(reader, it) })
                 }
 

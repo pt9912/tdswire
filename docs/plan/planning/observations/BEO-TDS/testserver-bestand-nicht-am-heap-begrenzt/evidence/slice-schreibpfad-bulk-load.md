@@ -1,0 +1,2 @@
+**Vorgang:** [slice-schreibpfad-bulk-load](../../../../in-progress/slice-schreibpfad-bulk-load.md) (Review F-1 und F-11, 2026-11-07)
+**Fund:** Der Bestand wuchs mit den Nachrichten ohne Grenze (KDoc und Nutzer-Doku sagten es); eine gültige Nachricht von 15,7 MiB mit 1024 NULL-Spalten und 16 000 Zeilen endete bei 128 MiB Heap mit `OutOfMemoryError`, der Testserver beendet dabei den Prozess. Behoben mit der Grenze der Zellen je Nachricht im Leser und der Grenze im Bestand; die Werte sind Setzungen.

@@ -11,7 +11,7 @@ import io.github.pt9912.tdswire.protocol.wire.violation
 import java.nio.charset.Charset
 
 /**
- * Liest einen Wert eines ROW-Tokens der Nachricht BULK_LOAD (`MS-TDS` 2.2.5.5, Wertebytes mit Längenpräfix) nach der
+ * Liest einen Wert eines ROW-Tokens der Nachricht BULK_LOAD (`MS-TDS`, Wertebytes mit Längenpräfix) nach der
  * TYPE_INFO seiner Spalte; Aufrufer ist [BulkLoadReader]. Die Klassen der Werte sind die von `ValueMapping`: `Int`
  * und `Long` für `INTN` (8 Byte `Long`, sonst `Int`), `Boolean`, `String`, `BigDecimal`, `LocalDate`, `LocalTime`,
  * `LocalDateTime`; `null` ist NULL.
@@ -19,7 +19,8 @@ import java.nio.charset.Charset
  * Festlegungen ohne Messung am Server: Ein `BIGVARCHAR` und `BIGCHAR` wird als Windows-1252 gelesen, gleich welche
  * Kollation die Spalte trägt (für ASCII-Werte, die d-migrate so für Datum, Zeit und Zeitpunkt sendet, gleich jeder
  * Kollation). Ein Dezimalwert darf kürzer sein als die Typlänge (Vorzeichen und mindestens ein Byte Betrag): so
- * sendet der Treiber ihn im RPC (Messprotokoll des Spikes, a7). Ein Wert außerhalb seines Bereichs ist
+ * sendet der Treiber ihn im RPC (Messprotokoll des Spikes, a7); für das Massenladen ist die Länge nicht
+ * aufgezeichnet. Ein Wert außerhalb seines Bereichs ist
  * `VALUE_OUT_OF_RANGE`, eine Länge, die die TYPE_INFO nicht zulässt, `INVALID_LENGTH`.
  */
 internal object BulkValueReader {

@@ -15,7 +15,9 @@ import kotlinx.coroutines.runBlocking
 import java.math.BigDecimal
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.CyclicBarrier
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -279,5 +281,62 @@ class TableStoreTest {
         text.replace("dbo", "kunden", listOf(SimColumn("Id", SqlType.UnicodeText, nullable = false)), listOf("Id"))
         insert(text, mapOf("Id" to "Ada"))
         assertFailsWith<RuntimeException> { insert(text, mapOf("Id" to "ADA")) }
+    }
+
+    /**
+     * Zwei Sitzungen laden gleichzeitig dieselben Schlüssel in dieselbe Tabelle: je Runde sendet jede Sitzung eine
+     * Nachricht mit denselben zehn Schlüsseln, beide starten an einer Schranke. Genau eine Nachricht gelingt je Runde,
+     * die andere wirft („Schlüssel nicht eindeutig“); am Ende hat der Bestand jeden Schlüssel genau einmal. Wächter:
+     * `insertBatch` ohne Sperre (beide Prüfungen bestehen, die Zeilen stehen doppelt, oder die Liste der Zeilen wirft
+     * bei gleichzeitiger Änderung). Der Lauf ist zufallsabhängig: ein roter Lauf ist ein Befund, ein grüner beweist die
+     * Sperre nicht; der Mutationsnachweis steht im Messprotokoll des Massenladens.
+     * @spec SPEC-035
+     * @spec TDS-QA-02
+     */
+    @Test
+    fun `zwei Sitzungen mit denselben Schluesseln laden jeden Schluessel einmal`() {
+        val store = TableStore(listOf(kunden))
+        val rounds = 2_000
+        val perRound = 10
+        val barrier = CyclicBarrier(2)
+        val successes = AtomicInteger()
+        val unexpected = ConcurrentLinkedQueue<Throwable>()
+        val sessions = (0 until 2).map {
+            Thread {
+                for (round in 0 until rounds) {
+                    val batch = (0 until perRound).map { mapOf<String, Any?>("Id" to (round * perRound + it).toLong()) }
+                    barrier.await()
+                    val failure = runCatching { insert(store, *batch.toTypedArray()) }.exceptionOrNull()
+                    when {
+                        failure == null -> successes.incrementAndGet()
+                        failure.message != "Schlüssel nicht eindeutig" -> unexpected += failure
+                    }
+                }
+            }
+        }
+        sessions.forEach { it.start() }
+        sessions.forEach { it.join() }
+
+        assertEquals(emptyList(), unexpected.toList())
+        assertEquals(rounds, successes.get())
+        assertEquals((0L until rounds * perRound.toLong()).toList(), stored(store).map { it[0] as Long }.sorted())
+    }
+
+    /**
+     * Die Obergrenze des Bestands (Setzung): bei einer Grenze von 10 Zellen nimmt der Bestand fünf Zeilen zu zwei
+     * Spalten an, eine weitere Zeile wirft („Bestand voll“) und ändert nichts. Wächter: eine fehlende Prüfung (der
+     * Bestand wüchse über die Grenze, bis der Heap endet), eine Prüfung nach dem Einfügen (Teilbestand), eine Zählung
+     * nur in Zeilen.
+     * @spec SPEC-035
+     * @spec TDS-QA-02
+     */
+    @Test
+    fun `der Bestand weist eine Nachricht ueber der Grenze der Zellen ab`() {
+        val store = TableStore(listOf(kunden), cellLimit = 10)
+        val five = (1L..5L).map { mapOf<String, Any?>("Id" to it) }
+        assertEquals(5, insert(store, *five.toTypedArray()))
+        val failure = assertFailsWith<IllegalArgumentException> { insert(store, mapOf("Id" to 6L)) }
+        assertEquals("Bestand voll", failure.message)
+        assertEquals(listOf(1L, 2L, 3L, 4L, 5L), stored(store).map { it[0] })
     }
 }

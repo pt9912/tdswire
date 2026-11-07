@@ -20,8 +20,9 @@ import kotlin.test.assertIs
  * [MITSCHNITT_DREI_ZEILEN] und [MITSCHNITT_LEER]: Mitschnitt von mssql-jdbc 13.4.0 (d-migrate 1.12.0,
  * `data import --table kunden`, Tabelle `kunden` mit `Id` BIGINT, `Name` NVARCHAR(4000), `Eintritt` DATE als
  * `VARCHAR(10)`) am Testserver, Nutzlast je Nachricht 0x07 als Hex vor dem Leser ausgegeben
- * (`docs/messungen/bulk-load-2026-11-07.md`, Abschnitt Aufzeichnung). Die übrigen Vektoren sind von Hand nach `MS-TDS`
- * 2.2.5.5 (TYPE_INFO, Wertebytes), 2.2.7.4 (COLMETADATA), 2.2.7.17 (ROW) und 2.2.7.6 (DONE) gebaut; die Tage seit
+ * (`docs/messungen/bulk-load-2026-11-07.md`, Abschnitt Aufzeichnung). Die übrigen Vektoren sind von Hand nach der
+ * Beschreibung von `MS-TDS` (TYPE_INFO, Wertebytes, COLMETADATA, ROW, DONE) gebaut, ohne Mitschnitt eines Clients und
+ * ohne Abschnittsnummer, weil das Dokument nicht im Repo liegt; die Tage seit
  * 0001-01-01 und die Ticks sind gerechnet. Die Meldungen des Lesers nennen nie einen Wert.
  */
 class BulkLoadReaderTest {
@@ -91,7 +92,8 @@ class BulkLoadReaderTest {
 
     /**
      * Die Wertebytes der übrigen Spaltentypen des Solls, von Hand nach `MS-TDS`: `INTN` 4 (Int32) mit NULL, `BITN`,
-     * `DECIMALN(10,2)` mit dem Wert in 5 Byte (kürzer als die Typlänge 17, wie der Treiber ihn sendet), `DATEN`,
+     * `DECIMALN(10,2)` mit dem Wert in 5 Byte (kürzer als die Typlänge 17; so sendet der Treiber ihn im RPC, für das
+     * Massenladen ist die Länge nicht aufgezeichnet), `DATEN`,
      * `TIMEN(7)`, `DATETIME2N(7)`. Wächter: eine falsche Länge der Dezimalzahl, ein falsches Datum (Tage seit
      * 0001-01-01), eine falsche Zeitauflösung, Int32 statt Int64 oder umgekehrt.
      *
@@ -204,27 +206,40 @@ class BulkLoadReaderTest {
     }
 
     /**
-     * Die Grenze der Zeilenzahl schützt den Speicher: [BulkLoadReader.MAX_ROWS] Zeilen von zwei Byte sind gültig, eine
-     * mehr ist `INVALID_LENGTH`. Wächter: eine fehlende oder höhere Grenze.
+     * Die Grenze der Zellen schützt die Zahl der Werte, die der Leser anlegt: [BulkLoadReader.MAX_CELLS] Zeilen einer
+     * Spalte sind gültig, eine mehr ist `INVALID_LENGTH`; ebenso 1024 Spalten mit [BulkLoadReader.MAX_CELLS] / 1024
+     * Zeilen gültig und mit einer Zeile mehr nicht (das Produkt, nicht die Zeilenzahl allein, ist die Grenze; die
+     * Probe des Reviews mit 1024 NULL-Spalten und 16 000 Zeilen endete im Heap von 128 MiB mit `OutOfMemoryError`).
+     * Wächter: eine fehlende oder höhere Grenze, eine Grenze, die nur die Zeilen zählt.
      *
      * @spec SPEC-036
+     * @spec TDS-QA-02
      */
     @Test
-    fun `mehr Zeilen als die Grenze sind ein Fehler des Lesers`() {
-        val head = hex("81 01 00 ${column("26 08", "a", nullable = true)}")
-        val rowBytes = hex("D1 00")
-        val done = hex(DONE)
-        fun payload(count: Int): ByteArray {
+    fun `mehr Zellen als die Grenze sind ein Fehler des Lesers`() {
+        fun payload(columns: Int, count: Int): ByteArray {
+            val columnCount = String.format(Locale.ROOT, "%02X %02X", columns and 0xFF, columns shr 8)
+            val names = List(columns) { column("26 08", "a", nullable = true) }.joinToString("")
+            val head = hex("81 $columnCount $names")
+            val rowBytes = hex("D1 " + "00 ".repeat(columns))
+            val done = hex(DONE)
             val bytes = ByteArray(head.size + count * rowBytes.size + done.size)
             head.copyInto(bytes)
             for (index in 0 until count) rowBytes.copyInto(bytes, head.size + index * rowBytes.size)
             done.copyInto(bytes, head.size + count * rowBytes.size)
             return bytes
         }
-        val atLimit = assertIs<ProtocolResult.Ok<BulkRows>>(BulkLoadReader.read(payload(BulkLoadReader.MAX_ROWS)))
-        assertEquals(BulkLoadReader.MAX_ROWS, atLimit.value.rows.size)
-        val over = assertIs<ProtocolResult.Failed>(BulkLoadReader.read(payload(BulkLoadReader.MAX_ROWS + 1)))
+        val atLimit = assertIs<ProtocolResult.Ok<BulkRows>>(BulkLoadReader.read(payload(1, BulkLoadReader.MAX_CELLS)))
+        assertEquals(BulkLoadReader.MAX_CELLS, atLimit.value.rows.size)
+        val over = assertIs<ProtocolResult.Failed>(BulkLoadReader.read(payload(1, BulkLoadReader.MAX_CELLS + 1)))
         assertEquals(ProtocolFailure.INVALID_LENGTH, over.error.failure)
+
+        val wide = BulkLoadReader.MAX_COLUMNS
+        val wideRows = BulkLoadReader.MAX_CELLS / wide
+        val wideAtLimit = assertIs<ProtocolResult.Ok<BulkRows>>(BulkLoadReader.read(payload(wide, wideRows)))
+        assertEquals(wideRows, wideAtLimit.value.rows.size)
+        val wideOver = assertIs<ProtocolResult.Failed>(BulkLoadReader.read(payload(wide, wideRows + 1)))
+        assertEquals(ProtocolFailure.INVALID_LENGTH, wideOver.error.failure)
     }
 
     private companion object {

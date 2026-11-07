@@ -167,7 +167,10 @@ internal class RequestLoop(
     private var resetPending = false
 
     init {
-        ready.live.onSessionReset { handles.clear() }
+        ready.live.onSessionReset {
+            handles.clear()
+            bulk.clear()
+        }
         gate.onGraceExpired {
             val run = active
             if (run != null) run.abortForShutdown() else channel.close()
