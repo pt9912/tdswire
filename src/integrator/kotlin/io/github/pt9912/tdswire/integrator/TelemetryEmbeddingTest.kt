@@ -11,6 +11,7 @@ import io.github.pt9912.tdswire.domain.QueryRequest
 import io.github.pt9912.tdswire.domain.ResultColumn
 import io.github.pt9912.tdswire.domain.SqlType
 import io.github.pt9912.tdswire.domain.telemetry.EventKind
+import io.github.pt9912.tdswire.domain.telemetry.EventLevel.DEBUG
 import io.github.pt9912.tdswire.domain.telemetry.EventLevel.INFO
 import io.github.pt9912.tdswire.domain.telemetry.EventLevel.WARN
 import io.github.pt9912.tdswire.domain.telemetry.TelemetryEvent
@@ -30,6 +31,12 @@ import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+
+private const val WAIT_MILLIS = 5_000L
+private const val POLL_MILLIS = 20L
 
 /**
  * Die Senke des Integrators von außen (`SPEC-059`, `TDS-FA-09`): dieses Source-Set sieht nur die öffentliche Fläche.
@@ -69,22 +76,31 @@ class TelemetryEmbeddingTest {
         }
     }
 
-    private fun serve(telemetry: TelemetrySink): Pair<Int, Long> {
+    private fun serve(telemetry: TelemetrySink, afterClose: () -> Unit = {}): Pair<Int, Long> {
         val outcome = runBlocking { TdsServer.start(unencrypted(), BackendSource.Custom(OneRowBackend()), telemetry) }
         val server = assertIs<StartOutcome.Running>(outcome).server.also { running += it }
         val rows = WireClient(server.port).use { client ->
             client.login()
             client.batch("irgendein text").rowCount
         }
+        afterClose()
         runBlocking { server.stop() }
         return server.port to rows
     }
 
+    /** Wartet, bis das Ende des Spans [span] in [events] steht; sonst endet die Verbindung erst im Stop. */
+    private fun awaitEvent(events: List<TelemetryEvent>, span: String) {
+        val end = System.currentTimeMillis() + WAIT_MILLIS
+        while (events.none { it.span == span } && System.currentTimeMillis() < end) Thread.sleep(POLL_MILLIS)
+    }
+
     /**
      * Eine Senke des Integrators, über den Parameter von `start` übergeben, bekommt die Ereignisse eines Laufs aus
-     * Start (mit den Abschwächungen des Testmodus), Anmeldung und Stop in dieser Reihenfolge, mit der Kennung der
-     * Anmeldung im Feld `principal`; Standardausgabe und Fehlerkanal des Prozesses bleiben leer (im selben Prozess
-     * umgeleitet: schwächerer Beleg als ein Prozesstest).
+     * Start (mit den Abschwächungen des Testmodus), Anmeldung, dem Ende der Spans von Backend-Aufruf, Anfrage und
+     * Verbindung und Stop in dieser Reihenfolge, mit der Kennung der Anmeldung im Feld `principal`; Standardausgabe
+     * und Fehlerkanal des Prozesses bleiben leer (im selben Prozess umgeleitet: schwächerer Beleg als ein
+     * Prozesstest). Die Spans tragen ihre Felder über die öffentliche Fläche: Name, Ausgang, Dauer, Kennung der
+     * Anfrage, Art der Anfrage und Phase der Verbindung.
      *
      * @spec SPEC-059
      * @spec SPEC-012
@@ -92,7 +108,9 @@ class TelemetryEmbeddingTest {
     @Test
     fun eineSenkeEmpfaengtDieEreignisseUndDieStandardausgabeBleibtLeer() {
         val events = CopyOnWriteArrayList<TelemetryEvent>()
-        val (served, output) = captured { serve { events += it } }
+        val (served, output) = captured {
+            serve({ events += it }) { awaitEvent(events, "tds.connection") }
+        }
         assertEquals("", output)
         assertEquals(1L, served.second)
         assertEquals(
@@ -102,14 +120,27 @@ class TelemetryEmbeddingTest {
                 EventKind.SECURITY_WEAKENED,
                 EventKind.ENCRYPTION_NOT_OFFERED,
                 EventKind.LOGIN_ACCEPTED,
+                EventKind.SPAN_ENDED,
+                EventKind.SPAN_ENDED,
+                EventKind.SPAN_ENDED,
                 EventKind.SERVER_STOPPED,
             ),
             events.map { it.kind },
         )
         assertEquals(
-            listOf(INFO, WARN, WARN, WARN, INFO, INFO),
+            listOf(INFO, WARN, WARN, WARN, INFO, DEBUG, DEBUG, DEBUG, INFO),
             events.map { it.level },
         )
+        val spans = events.filter { it.kind == EventKind.SPAN_ENDED }
+        assertEquals(listOf("backend.execute", "tds.query", "tds.connection"), spans.map { it.span })
+        assertEquals(listOf("ok", "ok", "ok"), spans.map { it.outcome })
+        spans.forEach { assertTrue(checkNotNull(it.durationMs) >= 0, "Dauer: ${it.durationMs}") }
+        val (backend, query, connection) = spans
+        assertNotNull(query.requestId)
+        assertEquals(query.requestId, backend.requestId)
+        assertEquals("sql_batch", query.requestKind)
+        assertEquals("session", connection.phase)
+        assertNull(connection.requestId)
         assertEquals(
             listOf("ENCRYPTION_TEST_UNENCRYPTED", "PLAIN_TEST_MODE"),
             events.filter { it.kind == EventKind.SECURITY_WEAKENED }.map { it.reason },

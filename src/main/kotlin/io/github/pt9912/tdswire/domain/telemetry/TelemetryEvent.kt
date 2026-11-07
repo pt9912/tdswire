@@ -130,6 +130,19 @@ public enum class EventKind {
      * Text einer Ausnahme und nie ein Wert. Ebene `WARN`.
      */
     REQUEST_FAILED,
+
+    /**
+     * Der Schnappschuss der Metriken (`SPEC-017` bis `SPEC-019`); [TelemetryEvent.metrics] trägt die Messwerte. Er
+     * entsteht im Abstand der Konfiguration, nie bei Abstand 0. Ebene `INFO`.
+     */
+    METRICS,
+
+    /**
+     * Ein Span ist beendet; [TelemetryEvent.span] nennt ihn, [TelemetryEvent.outcome] sein Ende,
+     * [TelemetryEvent.durationMs] die Dauer. [TelemetryEvent.requestId] steht bei `tds.query` und `backend.execute`,
+     * [TelemetryEvent.phase] bei `tds.connection`, [TelemetryEvent.requestKind] bei `tds.query`. Ebene `DEBUG`.
+     */
+    SPAN_ENDED,
 }
 
 /** Warum ein Start vor dem Binden abbricht, ohne dass Konfiguration oder TLS-Material die Ursache nennen. */
@@ -184,8 +197,8 @@ internal enum class TlsFirstRefusal {
  * ist der Zähler des Listeners (ab 1 je Server) und fehlt bei Ereignissen ohne Verbindung. [sessionId] ist die
  * zufällige UUID der Sitzung und fehlt vor der Annahme der Anmeldung. [clientProfile] ist `unknown`,
  * `tds-8.0:strict` oder `tds-7.4:<mode>` mit `<mode>` aus `off`, `on`, `not_supported`, `required`; bei einer
- * Verbindung im Pfad TDS 7.4 vor der Annahme der Anmeldung ist es `unknown`. Eine Anfrage-Kennung trägt noch kein
- * Ereignis.
+ * Verbindung im Pfad TDS 7.4 vor der Annahme der Anmeldung ist es `unknown`. Eine Anfrage-Kennung trägt nur das Ende
+ * eines Spans ([requestId]), keine andere Art.
  *
  * Die Felder der Arten sind in dieser Klasse Zugriffe, die `null` liefern; die internen Unterklassen überschreiben
  * die Zugriffe ihrer Art.
@@ -238,6 +251,27 @@ public sealed class TelemetryEvent protected constructor(
 
     /** Typname oder feste Marke des Anlasses ([EventKind.REQUEST_FAILED]). */
     public open val cause: String? get() = null
+
+    /** Der Name des beendeten Spans: `tds.connection`, `tds.query` oder `backend.execute` ([EventKind.SPAN_ENDED]). */
+    public open val span: String? get() = null
+
+    /** Das Ende des Spans, eine feste Marke je Span ([EventKind.SPAN_ENDED]). */
+    public open val outcome: String? get() = null
+
+    /** Die Kennung der Anfrage ([EventKind.SPAN_ENDED] der Spans `tds.query` und `backend.execute`). */
+    public open val requestId: String? get() = null
+
+    /** Die Dauer des Spans in Millisekunden ([EventKind.SPAN_ENDED]). */
+    public open val durationMs: Long? get() = null
+
+    /** Wo die Verbindung endete: `handshake` oder `session` ([EventKind.SPAN_ENDED] des Spans `tds.connection`). */
+    public open val phase: String? get() = null
+
+    /** Die Art der Anfrage: `sql_batch` oder `rpc` ([EventKind.SPAN_ENDED] des Spans `tds.query`). */
+    public open val requestKind: String? get() = null
+
+    /** Die Messwerte des Schnappschusses nach Schlüssel ([EventKind.METRICS]). */
+    public open val metrics: Map<String, Long>? get() = null
 }
 
 internal class ServerStarted(at: Instant, override val port: Int) :

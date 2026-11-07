@@ -10,6 +10,7 @@ import io.github.pt9912.tdswire.config.auth.UserList
 import io.github.pt9912.tdswire.config.auth.UserListAuthAdapter
 import io.github.pt9912.tdswire.domain.telemetry.BindFailed
 import io.github.pt9912.tdswire.domain.telemetry.ConfigInvalid
+import io.github.pt9912.tdswire.domain.telemetry.Instruments
 import io.github.pt9912.tdswire.domain.telemetry.SecurityWeakened
 import io.github.pt9912.tdswire.domain.telemetry.ServerStarted
 import io.github.pt9912.tdswire.domain.telemetry.SimulationBackendReady
@@ -19,6 +20,7 @@ import io.github.pt9912.tdswire.domain.telemetry.TelemetryEvent
 import io.github.pt9912.tdswire.domain.telemetry.TelemetrySink
 import io.github.pt9912.tdswire.domain.telemetry.TlsStartRejected
 import io.github.pt9912.tdswire.domain.telemetry.WeakeningReason
+import io.github.pt9912.tdswire.observability.Observer
 import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.protocol.session.AuthPool
 import io.github.pt9912.tdswire.protocol.session.EncryptionPolicy
@@ -35,6 +37,12 @@ import io.github.pt9912.tdswire.transport.listener.TlsServerConfig
 import io.github.pt9912.tdswire.transport.tls.MaterialResult
 import io.github.pt9912.tdswire.transport.tls.TlsMaterial
 import io.github.pt9912.tdswire.transport.tls.TlsParameters
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.time.Instant
 import kotlin.time.Duration.Companion.seconds
 
@@ -49,7 +57,8 @@ internal class RequestSource(val backend: QueryBackend? = null, val simulationTa
  * Alles, was der Prozess außer der Konfiguration festlegt und ein Test ersetzt: die [telemetry]-Senke,
  * Ereignisempfänger, Zeitgeber der Fristen, der [authPool] (einer je Prozess), die Wahl des Adapters und die
  * [requests]-Quelle des Backends. Die Voreinstellung ist der Betrieb: keine Senke, die Benutzerliste als
- * [UserListAuthAdapter], kein Backend.
+ * [UserListAuthAdapter], kein Backend. Spans und Metriken (`SPEC-017` bis `SPEC-019`) beobachtet der Start nur, wenn
+ * eine Senke gesetzt ist; ohne Senke beobachtet der Server nichts.
  */
 internal class Wiring(
     val telemetry: TelemetrySink = TelemetrySink.NONE,
@@ -91,6 +100,9 @@ internal object Bootstrap {
 
     /** Ein Start: die Konfiguration, die Verdrahtung und der Weg der Ereignisse zur Senke. */
     private class Launch(val config: ServerConfig, val wiring: Wiring, val telemetry: Telemetry) {
+        /** Der Beobachter dieses Starts; `null` ohne Senke: dann entsteht kein Span und keine Metrik. */
+        val observer: Observer? = if (wiring.telemetry === TelemetrySink.NONE) null else Observer(telemetry::emit)
+
         suspend fun bindBackend(): StartOutcome = when (val simulation = backendOf()) {
             is SimulationResult.Failed -> abort(simulation.reason) { StartRefused(it, simulation.refusal) }
 
@@ -163,7 +175,10 @@ internal object Bootstrap {
             login = config.login,
             tls = material,
             telemetry = telemetry,
-        ).also { it.requests = config.requests }
+        ).also {
+            it.requests = config.requests
+            it.instruments = observer ?: Instruments.NONE
+        }
 
         private fun events(): ListenerEvents = ListenerEvents { event ->
             wiring.events.onEvent(event)
@@ -176,7 +191,23 @@ internal object Bootstrap {
                 telemetry.emit { SecurityWeakened(it, WeakeningReason.ENCRYPTION_TEST_UNENCRYPTED) }
             }
             if (config.auth.plainTestMode) telemetry.emit { SecurityWeakened(it, WeakeningReason.PLAIN_TEST_MODE) }
-            return StartOutcome.Running(TdsServer(listener, telemetry))
+            return StartOutcome.Running(TdsServer(listener, telemetry, snapshots()))
+        }
+
+        /**
+         * Die Aufgabe, die alle `metricsIntervalSeconds` den Schnappschuss der Metriken gibt; `null` bei Abstand 0 oder
+         * ohne Beobachter. Sie endet mit `TdsServer.stop`.
+         */
+        private fun snapshots(dispatcher: CoroutineDispatcher = Dispatchers.Default): Job? {
+            val source = observer
+            val interval = config.requests.metricsIntervalSeconds.seconds
+            if (source == null || config.requests.metricsIntervalSeconds == 0) return null
+            return CoroutineScope(dispatcher).launch {
+                while (true) {
+                    delay(interval)
+                    source.snapshot()
+                }
+            }
         }
 
         /**

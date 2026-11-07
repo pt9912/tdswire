@@ -2,6 +2,9 @@ package io.github.pt9912.tdswire.protocol.dispatch
 
 import io.github.pt9912.tdswire.domain.QueryParameter
 import io.github.pt9912.tdswire.domain.QueryRequest
+import io.github.pt9912.tdswire.domain.telemetry.RequestKind
+import io.github.pt9912.tdswire.domain.telemetry.SessionInstruments
+import io.github.pt9912.tdswire.domain.telemetry.SpanOutcome
 import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.protocol.error.ConnectionFate
 import io.github.pt9912.tdswire.protocol.error.ErrorCode
@@ -127,6 +130,11 @@ import kotlin.time.Duration.Companion.milliseconds
  * Verbindung schließt; die Frist wirkt nicht, solange ein Schreibvorgang am Rückstau hängt (er hält die Sperre,
  * die der Übergang braucht).
  *
+ * Beobachtung (`SPEC-018`, `SPEC-019`): Jede Anfrage bekommt in [answer] ihre Kennung und den Span `tds.query` der
+ * [SessionInstruments]; er endet dort genau einmal, mit dem `outcome` der Stelle, die die Antwort bestimmt (Ausgang des
+ * Laufs in [execute], sonst die abweisende Stelle). Der Backend-Aufruf läuft über `observed`. Die Schleife
+ * entscheidet nichts anhand der Beobachtung.
+ *
  * Kopplung: [hooks] sind die Einhängepunkte für Anfrage-Kennung, Senke und geordnetes Beenden und die Grenze der
  * Prepared-Handles ([RequestHooks]); [times] trägt die
  * Fristen und die Uhr ([RequestTimes]).
@@ -140,6 +148,7 @@ internal class RequestLoop(
     hooks: RequestHooks = RequestHooks(),
 ) {
     private val requestIds = hooks.requestIds
+    private val session = hooks.session
     private val sinkAround = hooks.sinkAround
     private val gate = hooks.gate
     private val handleLimit = hooks.handleLimit
@@ -164,6 +173,12 @@ internal class RequestLoop(
 
     /** Wahr, solange die Antwort auf eine Anfrage mit `RESETCONNECTION` ihr ENVCHANGE Typ 18 noch nicht trägt. */
     private var resetPending = false
+
+    /** Die Kennung der Anfrage, die gerade beantwortet wird. */
+    private var requestId = ""
+
+    /** Das `outcome` des Spans der Anfrage, sobald die bestimmende Stelle es kennt. */
+    private var queryOutcome: SpanOutcome? = null
 
     init {
         ready.live.onSessionReset { handles.clear() }
@@ -233,15 +248,28 @@ internal class RequestLoop(
     }
 
     /** Das Ereignis, das die Anfrage beendet; `null`, wenn die Sitzung beim Schreiben der Antwort geschlossen wurde. */
-    private suspend fun answer(message: TdsMessage): HandshakeEvent.RequestFinished? = when {
-        gate.begun -> refuse(ErrorCode.TDS_SHUTDOWN, "shutdown", formOf(message))
-        message.type == PacketType.RPC -> answerRpc(message)
-        else -> answerBatch(message)
+    private suspend fun answer(message: TdsMessage): HandshakeEvent.RequestFinished? {
+        requestId = requestIds()
+        queryOutcome = null
+        val kind = if (message.type == PacketType.RPC) RequestKind.RPC else RequestKind.SQL_BATCH
+        val span = session.request(requestId, kind)
+        try {
+            return when {
+                gate.begun -> refuse(ErrorCode.TDS_SHUTDOWN, "shutdown", formOf(message))
+                message.type == PacketType.RPC -> answerRpc(message)
+                else -> answerBatch(message)
+            }
+        } finally {
+            span.end(queryOutcome ?: SpanOutcome.CLOSED)
+        }
     }
 
     private suspend fun answerBatch(batch: TdsMessage): HandshakeEvent.RequestFinished? =
         when (val parsed = SqlBatchParser.parse(batch.payload)) {
-            is ProtocolResult.Failed -> errors.protocol(parsed.error).let { requestFinished(it.fate, it.message) }
+            is ProtocolResult.Failed -> {
+                queryOutcome = SpanOutcome.PROTOCOL_ERROR
+                errors.protocol(parsed.error).let { requestFinished(it.fate, it.message) }
+            }
 
             is ProtocolResult.Ok -> {
                 val text = parsed.value.text
@@ -249,6 +277,8 @@ internal class RequestLoop(
                 if (released == null) {
                     execute(text, emptyList(), layout = null)
                 } else {
+                    val allHeld = released.distinct().size == released.size && released.all { handles.sql(it) != null }
+                    queryOutcome = if (allHeld) SpanOutcome.OK else SpanOutcome.ERROR
                     UnprepareBatch.answer(released, handles, errors)
                 }
             }
@@ -257,6 +287,7 @@ internal class RequestLoop(
     private suspend fun answerRpc(rpc: TdsMessage): HandshakeEvent.RequestFinished? =
         when (val bound = RpcBinder.bind(rpc.payload)) {
             is RpcBinding.Rejected -> {
+                queryOutcome = if (bound.error != null) SpanOutcome.PROTOCOL_ERROR else SpanOutcome.ERROR
                 val response = bound.error?.let { errors.protocol(it) }
                     ?: errors.code(ErrorCode.TDS_UNSUPPORTED_RPC, cause = bound.reason.name, form = ResponseForm.RPC)
                 requestFinished(response.fate, response.message)
@@ -286,6 +317,7 @@ internal class RequestLoop(
 
     /** Die Antwort mit einem eigenen Fehlercode, ohne das Backend zu rufen; [cause] ist die feste Marke fürs Log. */
     private fun refuse(code: ErrorCode, cause: String, form: ResponseForm): HandshakeEvent.RequestFinished {
+        queryOutcome = if (code == ErrorCode.TDS_SHUTDOWN) SpanOutcome.SHUTDOWN else SpanOutcome.ERROR
         val response = errors.code(code, cause = cause, form = form)
         return requestFinished(response.fate, response.message)
     }
@@ -303,17 +335,20 @@ internal class RequestLoop(
         val reply = live.openReply(PacketType.TABULAR_RESULT)
         val response = StreamedResponse(reply) { live.dispatch(HandshakeEvent.StreamStarted) }
         val deadline = times.queryTimeout?.let { times.now() + it.inWholeMilliseconds }
-        val request = QueryRequest(ready.session.id, requestIds(), text, parameters, deadline)
+        val request = QueryRequest(ready.session.id, requestId, text, parameters, deadline)
         val remaining = deadline?.let { (it - times.now()).milliseconds }
         val run = AbortableRun(live, rig.tray, times, rig.detached)
         val sink = if (resetPending) LeadingToken(response, EnvChange.ResetConnection) else response
         resetPending = false
         active = run
         val end = try {
-            run.run(remaining) { sequencer.run(via, request, sinkAround(sink), form, layout ?: CallLayout.PROCEDURE) }
+            run.run(remaining) {
+                sequencer.run(via.observed(session), request, sinkAround(sink), form, layout ?: CallLayout.PROCEDURE)
+            }
         } finally {
             active = null
         }
+        queryOutcome = end.spanOutcome()
         return when (end) {
             is RunEnd.Finished -> {
                 onOutcome(end.outcome)
@@ -354,13 +389,15 @@ internal class RequestLoop(
  * Grenzen); der Einhängepunkt erlaubt es einem Test, eine Senke zu stellen, die ein Token nicht annimmt (Ausgang
  * `CLOSE_WITHOUT_COMPLETION`). [gate] verbindet die Schleife mit dem geordneten Beenden des Servers ([ShutdownGate]);
  * die Voreinstellung kennt keines. [handleLimit] ist die Grenze der gleichzeitig gehaltenen Prepared-Handles einer
- * Sitzung (`RequestSettings.maxPreparedHandles`, `SPEC-058`).
+ * Sitzung (`RequestSettings.maxPreparedHandles`, `SPEC-058`). [session] beobachtet die Anfragen und Backend-Aufrufe
+ * der Sitzung (`SPEC-018`, `SPEC-019`); die Voreinstellung beobachtet nichts.
  */
 internal class RequestHooks(
     val requestIds: () -> String = { UUID.randomUUID().toString() },
     val sinkAround: (TokenSink) -> TokenSink = { it },
     val gate: ShutdownGate = ShutdownGate.NONE,
     val handleLimit: Int = PreparedHandles.DEFAULT_MAX_HANDLES,
+    val session: SessionInstruments = SessionInstruments.NONE,
 )
 
 /**

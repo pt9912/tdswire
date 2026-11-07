@@ -11,6 +11,7 @@ import kotlin.test.assertTrue
 
 private const val LOOPBACK = "127.0.0.1"
 private const val MAX_TEXT = 256
+private const val SNAPSHOT_WAIT_MILLIS = 1_500L
 
 /** Anführungszeichen, Rückstrich, Schrägstrich, alle Steuerzeichen, DEL, BMP, ein Paar aus Ersatzzeichen, U+2028. */
 private val NASTY: String = buildString {
@@ -135,6 +136,41 @@ internal class TelemetryJsonTest : TempFilesTest() {
         assertEquals("INFO", parsed["level"])
         assertTrue(parsed["connection_id"] is Long && parsed["session_id"] is String, parsed.toString())
         assertFalse(parsed.containsKey("dropped"))
+    }
+
+    /**
+     * Das Ende eines Spans und der Schnappschuss der Metriken an einem Start im Prozess (`METRICS_INTERVAL_SECONDS` 1):
+     * `span_ended` trägt Name, Ausgang, Phase, Dauer und die Kennungen der Verbindung und Sitzung, `metrics` die
+     * Messwerte als flache Felder `metrics.<Schlüssel>` mit ganzen Zahlen; beide bleiben gültiges JSON aus druckbarem
+     * ASCII, und die Felder einer anderen Art stehen nicht da.
+     *
+     * @spec SPEC-052
+     * @spec SPEC-017
+     */
+    @Test
+    fun `Span-Ende und Schnappschuss stehen als flache Zeilen`() {
+        val recorder = RealEvents.collect(
+            environment("alice\t{plain}secret\n", EnvKeys.METRICS_INTERVAL_SECONDS to "1"),
+        ) { port ->
+            LoginProbe(port).use { assertTrue(it.login("alice", "secret")) }
+            Thread.sleep(SNAPSHOT_WAIT_MILLIS)
+        }
+        val span = assertWellFormed(TelemetryJson.line(recorder.ofKind(EventKind.SPAN_ENDED).single()))
+        assertEquals("span_ended", span["event"])
+        assertEquals("DEBUG", span["level"])
+        assertEquals("tds.connection", span["span"])
+        assertEquals("ok", span["outcome"])
+        assertEquals("session", span["phase"])
+        assertTrue(span["duration_ms"] is Long && span["connection_id"] is Long, span.toString())
+        assertTrue(span["session_id"] is String, span.toString())
+        assertFalse(span.containsKey("request_id") || span.containsKey("request_kind") || span.containsKey("metrics"))
+
+        val metrics = assertWellFormed(TelemetryJson.line(recorder.ofKind(EventKind.METRICS).first()))
+        assertEquals("metrics", metrics["event"])
+        assertEquals("INFO", metrics["level"])
+        assertEquals(1L, metrics["metrics.logins_succeeded_total"])
+        assertTrue(metrics["metrics.sessions_active"] is Long && metrics["metrics.spans_open"] is Long, "$metrics")
+        assertFalse(metrics.containsKey("metrics") || metrics.containsKey("span") || metrics.containsKey("outcome"))
     }
 
     /**

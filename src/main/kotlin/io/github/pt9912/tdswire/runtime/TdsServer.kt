@@ -7,6 +7,8 @@ import io.github.pt9912.tdswire.domain.telemetry.TelemetrySink
 import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.simulation.SimTable
 import io.github.pt9912.tdswire.transport.listener.TdsListener
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -69,9 +71,13 @@ public sealed interface StartOutcome {
  *
  * Der Einstieg verlangt keine JVM-Option und liest keine Systemeigenschaft (`SPEC-023`). Er schreibt nirgends
  * hin; Log und Telemetrie gehen an die Senke, die [start] übergeben bekommt, ein Abbruch steht in
- * [StartOutcome.Aborted].
+ * [StartOutcome.Aborted]. Der Schnappschuss der Metriken endet mit [stop]: nach der Rückkehr entsteht kein weiterer.
  */
-public class TdsServer internal constructor(private val listener: TdsListener, private val telemetry: Telemetry) {
+public class TdsServer internal constructor(
+    private val listener: TdsListener,
+    private val telemetry: Telemetry,
+    private val snapshots: Job? = null,
+) {
     private val stopped = AtomicBoolean(false)
 
     /** Der gebundene Port. */
@@ -79,6 +85,7 @@ public class TdsServer internal constructor(private val listener: TdsListener, p
 
     /** Beendet den Server; ein weiterer Aufruf hat keine Wirkung. */
     public suspend fun stop() {
+        snapshots?.cancelAndJoin()
         listener.shutdown()
         if (stopped.compareAndSet(false, true)) telemetry.emit { ServerStopped(it) }
     }

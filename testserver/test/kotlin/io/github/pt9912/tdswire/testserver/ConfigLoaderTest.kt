@@ -44,6 +44,7 @@ internal class ConfigLoaderTest : TempFilesTest() {
         assertEquals(1000, config.listen.maxConnections)
         assertEquals(10, config.requests.shutdownGraceSeconds)
         assertEquals(1000, config.requests.maxPreparedHandles)
+        assertEquals(60, config.requests.metricsIntervalSeconds)
     }
 
     /**
@@ -66,6 +67,7 @@ internal class ConfigLoaderTest : TempFilesTest() {
                 EnvKeys.MAX_CONNECTIONS to "17",
                 EnvKeys.SHUTDOWN_GRACE to "2",
                 EnvKeys.MAX_PREPARED_HANDLES to "250",
+                EnvKeys.METRICS_INTERVAL_SECONDS to "9",
             ),
         ).loaded()
         assertEquals("127.0.0.1", config.listen.host)
@@ -77,6 +79,7 @@ internal class ConfigLoaderTest : TempFilesTest() {
         assertEquals(17, config.listen.maxConnections)
         assertEquals(2, config.requests.shutdownGraceSeconds)
         assertEquals(250, config.requests.maxPreparedHandles)
+        assertEquals(9, config.requests.metricsIntervalSeconds)
         assertEquals(EncryptionSetting.TEST_UNENCRYPTED, config.encryption)
         assertTrue(config.auth.plainTestMode)
         assertNull(config.tls)
@@ -104,6 +107,7 @@ internal class ConfigLoaderTest : TempFilesTest() {
             Triple(EnvKeys.MAX_CONNECTIONS, 1, 100_000),
             Triple(EnvKeys.SHUTDOWN_GRACE, 0, 3600),
             Triple(EnvKeys.MAX_PREPARED_HANDLES, 1, 100_000),
+            Triple(EnvKeys.METRICS_INTERVAL_SECONDS, 0, 86_400),
         )
         for ((key, low, high) in bounds) {
             assertEquals(emptyList(), rangeIssues(base(key to low.toString())))
@@ -172,6 +176,24 @@ internal class ConfigLoaderTest : TempFilesTest() {
         listOf("-1", "abc", "", "1.5", " 5").forEach { value ->
             val issue = singleIssue(base(EnvKeys.MAX_PREPARED_HANDLES to value))
             assertEquals(ConfigIssue(EnvKeys.MAX_PREPARED_HANDLES, IssueKind.INVALID_VALUE), issue, "Wert '$value'")
+        }
+    }
+
+    /**
+     * `METRICS_INTERVAL_SECONDS` heißt so, 0 schaltet die Schnappschüsse aus und ist gültig; ein Wert, der nicht aus
+     * Ziffern besteht, ist `INVALID_VALUE` (Eingang des Testservers, nicht der Bibliothek).
+     *
+     * @spec SPEC-017
+     */
+    @Test
+    fun `METRICS_INTERVAL_SECONDS null ist gueltig, andere Formen nicht`() {
+        assertEquals("METRICS_INTERVAL_SECONDS", EnvKeys.METRICS_INTERVAL_SECONDS)
+        val off = ConfigLoader.load(base(EnvKeys.METRICS_INTERVAL_SECONDS to "0")).loaded()
+        assertEquals(0, off.requests.metricsIntervalSeconds)
+        assertEquals(emptyList(), rangeIssues(base(EnvKeys.METRICS_INTERVAL_SECONDS to "0")))
+        listOf("-1", "abc", "", "1.5", " 5").forEach { value ->
+            val issue = singleIssue(base(EnvKeys.METRICS_INTERVAL_SECONDS to value))
+            assertEquals(ConfigIssue(EnvKeys.METRICS_INTERVAL_SECONDS, IssueKind.INVALID_VALUE), issue, "Wert '$value'")
         }
     }
 
@@ -315,6 +337,7 @@ internal class ConfigLoaderTest : TempFilesTest() {
             EnvKeys.MAX_CONNECTIONS to "0",
             EnvKeys.SHUTDOWN_GRACE to "3601",
             EnvKeys.MAX_PREPARED_HANDLES to "0",
+            EnvKeys.METRICS_INTERVAL_SECONDS to "86401",
         )
         outside.forEach { (key, value) ->
             assertEquals(listOf(key), rangeIssues(base(key to value)).map { it.key }, key)

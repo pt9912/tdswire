@@ -41,7 +41,7 @@ class ConfigValidationTest {
         assertEquals(emptyList(), ConfigValidation.check(config))
         assertEquals(ListenSettings("0.0.0.0", 1433, 1000), config.listen)
         assertEquals(LoginSettings(15, 65536), config.login)
-        assertEquals(RequestSettings(30, 5, 10, 1000), config.requests)
+        assertEquals(RequestSettings(30, 5, 10, 1000, 60), config.requests)
         assertEquals(EncryptionSetting.REQUIRED, ServerConfig(auth = users()).encryption)
     }
 
@@ -54,6 +54,7 @@ class ConfigValidationTest {
      * @spec SPEC-046
      * @spec SPEC-009
      * @spec SPEC-033
+     * @spec SPEC-017
      */
     @Test
     fun `Bereichsgrenzen gelten auch ohne Lader`() {
@@ -72,6 +73,8 @@ class ConfigValidationTest {
                 { v: Int -> unencrypted(requests = RequestSettings(shutdownGraceSeconds = v)) },
             Triple(ConfigKeys.MAX_PREPARED_HANDLES, 1, 100_000) to
                 { v: Int -> unencrypted(requests = RequestSettings(maxPreparedHandles = v)) },
+            Triple(ConfigKeys.METRICS_INTERVAL_SECONDS, 0, 86_400) to
+                { v: Int -> unencrypted(requests = RequestSettings(metricsIntervalSeconds = v)) },
         )
         for ((bounds, build) in cases) {
             val (key, low, high) = bounds
