@@ -7,10 +7,8 @@ import io.github.pt9912.tdswire.protocol.response.ResponseForm
 import io.github.pt9912.tdswire.protocol.response.SequenceOutcome
 import io.github.pt9912.tdswire.protocol.response.errorAnswer
 import io.github.pt9912.tdswire.protocol.token.ServerMessage
-import io.github.pt9912.tdswire.protocol.token.TokenEncoder
 import io.github.pt9912.tdswire.protocol.wire.ProtocolError
 import io.github.pt9912.tdswire.protocol.wire.ProtocolErrorCategory
-import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
 import io.github.pt9912.tdswire.transport.framing.PacketType
 import io.github.pt9912.tdswire.transport.framing.TdsMessage
 
@@ -70,8 +68,9 @@ internal class ErrorMapper(private val log: ErrorLog = ErrorLog.NONE) {
     /**
      * Ein Fehler mit eigenem Code; [cause] ist eine feste Marke für das Log, nie ein Wert. Ein Code, dessen Text die
      * Nummer eines Handles nennt ([ErrorRule.namesHandle]), verlangt [handles], nicht leer: die Antwort trägt ein ERROR
-     * je Nummer in der Reihenfolge von [handles], danach ein DONE mit Fehlerstatus, und das Log einen Eintrag je ERROR.
-     * Für jeden anderen Code ist [handles] leer.
+     * je Nummer in der Reihenfolge von [handles], ohne Obergrenze, danach ein DONE mit Fehlerstatus. Die Antwort
+     * entsteht in einem Puffer genau ihrer Größe (kein ERROR-Token, keine Meldung und keine Liste je Nummer bleibt
+     * im Speicher); das Log trägt einen Eintrag je Antwort, nicht je ERROR. Für jeden anderen Code ist [handles] leer.
      */
     fun code(
         code: ErrorCode,
@@ -159,22 +158,18 @@ internal class ErrorMapper(private val log: ErrorLog = ErrorLog.NONE) {
         form: ResponseForm = ResponseForm.BATCH,
     ): ErrorResponse {
         val rule = code.rule
-        val messages = if (rule.namesHandle) handles.map { rule.message(it) } else listOf(rule.message())
-        require(messages.isNotEmpty() && (handles.isEmpty() || rule.namesHandle)) { "Nummern und Code passen nicht" }
-        repeat(messages.size) { log.record(ErrorLogEntry(code, cause)) }
+        require(if (rule.namesHandle) handles.isNotEmpty() else handles.isEmpty()) { "Nummern und Code passen nicht" }
+        log.record(ErrorLogEntry(code, cause))
         if (!streamSynchronous) {
             return ErrorResponse(code, null, ConnectionFate.CLOSE_WITHOUT_REPLY)
         }
-        return ErrorResponse(code, serialize(messages, form), code.rule.fate)
+        val message =
+            if (rule.namesHandle) handleAnswer(rule, handles, form) else serialize(listOf(rule.message()), form)
+        return ErrorResponse(code, message, code.rule.fate)
     }
 
-    private fun serialize(messages: List<ServerMessage>, form: ResponseForm): TdsMessage {
-        val encoder = TokenEncoder()
-        errorAnswer(form, messages).forEach {
-            check(encoder.write(it) is ProtocolResult.Ok) { "Fehlerantwort nicht schreibbar" }
-        }
-        return TdsMessage(PacketType.TABULAR_RESULT, encoder.toByteArray())
-    }
+    private fun serialize(messages: List<ServerMessage>, form: ResponseForm): TdsMessage =
+        TdsMessage(PacketType.TABULAR_RESULT, encodeTokens(errorAnswer(form, messages)))
 
     companion object {
         /**

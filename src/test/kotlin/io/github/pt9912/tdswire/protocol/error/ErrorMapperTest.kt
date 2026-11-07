@@ -157,9 +157,9 @@ class ErrorMapperTest {
      * `TDS_SIM_UNKNOWN_PREPARED_HANDLE` ist ERROR 8179, State 8, Class 16 mit dem Text „Could not find prepared
      * statement with handle <n>.“ und bleibt offen. Nummer, Class, State und Wortlaut für Handle 1 sind am
      * Referenzclient gegen den echten SQL Server gemessen (Zeile M-4); die Bytes sind Handvektor. Zwei Nummern
-     * ergeben zwei ERROR vor dem einen DONE mit Fehlerstatus, je ein Log-Eintrag mit der festen Marke. Wächter:
+     * ergeben zwei ERROR vor dem einen DONE mit Fehlerstatus, ein Log-Eintrag mit der festen Marke je Antwort. Wächter:
      * State 1 statt 8, eine andere Nummer, ein Text ohne Handle, ein ERROR nur für die erste Nummer, ein fehlender
-     * Log-Eintrag.
+     * Log-Eintrag, ein Log-Eintrag je Nummer.
      *
      * @spec SPEC-060
      */
@@ -200,7 +200,7 @@ class ErrorMapperTest {
         assertEquals(code, two.code)
         assertEquals(16, code.rule.severity)
         assertEquals(8, code.rule.state)
-        assertEquals(List(3) { ErrorLogEntry(code, "unknown-prepared-handle") }, entries)
+        assertEquals(List(2) { ErrorLogEntry(code, "unknown-prepared-handle") }, entries)
     }
 
     /**

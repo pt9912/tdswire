@@ -1,5 +1,6 @@
 package io.github.pt9912.tdswire.protocol.dispatch
 
+import io.github.pt9912.tdswire.config.ConfigDefaults
 import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.port.ScriptedBackend
 import io.github.pt9912.tdswire.protocol.dispatch.RpcWire.execute
@@ -13,6 +14,7 @@ import io.github.pt9912.tdswire.protocol.token.DoneStatus
 import io.github.pt9912.tdswire.protocol.token.ErrorToken
 import io.github.pt9912.tdswire.protocol.token.ServerMessage
 import io.github.pt9912.tdswire.testsupport.blocking
+import io.github.pt9912.tdswire.testsupport.toHex
 import io.github.pt9912.tdswire.transport.framing.PacketType
 import io.github.pt9912.tdswire.transport.framing.TdsMessage
 import kotlinx.coroutines.launch
@@ -22,6 +24,12 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 private const val NOT_FOUND = "Could not find prepared statement with handle"
+private const val BYTES_PER_STATEMENT = 40
+private const val DONE_BYTES = 13
+private const val TOKEN_HEADER_BYTES = 3
+private const val BYTE = 0xFF
+private const val BYTE_BITS = 8
+private const val ERROR_TOKEN = 0xAA.toByte()
 
 /**
  * Die Freigabe von Prepared-Handles als SQL-Batch `EXEC sp_unprepare <n>[;EXEC sp_unprepare <n>…]` (`TDS-FA-04`,
@@ -169,36 +177,83 @@ class UnprepareDispatchTest {
     }
 
     /**
-     * Die Antwort auf eine Freigabe mit sehr vielen unbekannten Nummern ist begrenzt (`SPEC-060`, Setzung nach
-     * `UnprepareBatch.MAX_REPORTED`): 50000 unbekannte Nummern vor einem gehaltenen Handle ergeben genau
-     * `MAX_REPORTED` ERROR (die ersten, in der Reihenfolge des Textes), ein DONE mit Fehlerstatus und ebenso viele
-     * Log-Einträge; das gehaltene Handle am Ende des Textes ist trotzdem frei. Wächter: eine Antwort mit einem ERROR je
-     * Nummer (50000 Token), ein Log mit einem Eintrag je Nummer, eine Begrenzung, die die Bearbeitung der übrigen
-     * Nummern abbricht (das Handle 1 bliebe gehalten).
+     * Jede unbekannte Nummer ergibt einen ERROR, ohne Obergrenze (`SPEC-060`; gemessen am echten Server: 100, 101 und
+     * 150 Nummern auf dem Draht, M-22 des Messprotokolls `docs/messungen/referenzabgleich.md`): Batches mit 99, 100,
+     * 101, 150 und 2000 unbekannten Nummern vor einem gehaltenen Handle ergeben je Nummer einen ERROR in der
+     * Reihenfolge des Textes und ein DONE mit Fehlerstatus; das gehaltene Handle am Ende des Textes ist frei. Das Log
+     * trägt je Batch einen Eintrag mit der festen Marke, nicht einen je Nummer. Wächter: eine Obergrenze der Meldungen
+     * (am Rand 100 oder 101 wird gekürzt), ein Abbruch der Bearbeitung nach den gemeldeten Nummern (das Handle 1
+     * bliebe gehalten), ein Log-Eintrag je Nummer.
      *
      * @spec SPEC-060
      * @spec SPEC-030
      */
     @Test
-    fun `Sehr viele unbekannte Nummern ergeben eine begrenzte Antwort und ein begrenztes Log`() = blocking {
+    fun `Jede unbekannte Nummer ergibt einen ERROR, das Log einen Eintrag je Batch`() = blocking {
         val backend = ScriptedBackend.ofList(*oneRow.toTypedArray())
-        val count = 50_000
-        val text = (1..count).joinToString(";") { "EXEC sp_unprepare ${it + 1}" } + ";EXEC sp_unprepare 1"
-        val session = Session.login(
-            rpc(prepExec(-1, "select 1", "")),
-            batch(text),
-            rpc(execute(1)),
-            Inbound.EndOfStream,
-        )
         val logged = mutableListOf<ErrorLogEntry>()
-        val loop = session.loop(backend, ErrorMapper(ErrorLog { logged += it }))
-        loop.run()
-        val limit = UnprepareBatch.MAX_REPORTED
-        assertEquals((2..limit + 1).map { notFound(it) }, session.errors(1))
-        assertEquals(limit + 1, session.tokens(1).size)
-        assertEquals(DoneStatus.ERROR, session.tokens(1).lastDone().status)
-        assertEquals(limit, logged.count { it.code == ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE })
-        assertEquals(unknownHandle, session.errors(2).single())
+        val counts = listOf(99, 100, 101, 150, 2000)
+        counts.forEach { count ->
+            val text = (1..count).joinToString(";") { "EXEC sp_unprepare ${it + 1}" } + ";EXEC sp_unprepare 1"
+            val session = Session.login(
+                rpc(prepExec(-1, "select 1", "")),
+                batch(text),
+                rpc(execute(1)),
+                Inbound.EndOfStream,
+            )
+            session.loop(backend, ErrorMapper(ErrorLog { logged += it })).run()
+            assertEquals((2..count + 1).map { notFound(it) }, session.errors(1), "$count Nummern")
+            assertEquals(count + 1, session.tokens(1).size, "$count Nummern")
+            assertEquals(DoneStatus.ERROR, session.tokens(1).lastDone().status, "$count Nummern")
+            assertEquals(unknownHandle, session.errors(2).single(), "$count Nummern: Handle 1 frei")
+        }
+        assertEquals(
+            List(counts.size) { ErrorLogEntry(ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE, "unknown-prepared-handle") },
+            logged.filter { it.code == ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE },
+        )
+    }
+
+    /**
+     * Ein Batch bis zur Grenze der Nachricht (`MAX_MESSAGE_BYTES`, Voreinstellung 16 MiB, `SPEC-007`) mit lauter
+     * unbekannten Nummern, kürzeste Schreibweise (`EXEC sp_unprepare 1;`, 40 Byte je Anweisung), endet im Heap der
+     * Test-JVM (128 MiB, `gradle/test-jvm.init.gradle.kts`): die Antwort trägt einen ERROR je Nummer und ein DONE mit
+     * Fehlerstatus, die Verbindung bleibt offen, die Folgeanfrage wird beantwortet. Wächter: eine Antwort, die erst als
+     * Liste von Meldungen und Tokens im Speicher steht (Heap-Überlauf), eine Obergrenze der Meldungen (zu wenige
+     * ERROR), eine Verbindung, die nach der Antwort endet. Die Aussage gilt für diese Nachrichtengröße und diesen
+     * Heap, nicht für größere Grenzen der Nachricht.
+     *
+     * @spec SPEC-060
+     * @spec SPEC-007
+     */
+    @Test
+    fun `Ein Batch bis zur Grenze der Nachricht mit unbekannten Nummern endet im Heap`() = blocking {
+        val statements = (ConfigDefaults.MAX_MESSAGE_BYTES - BatchVectors.payload("").size) / BYTES_PER_STATEMENT
+        val batch = batch("EXEC sp_unprepare 1;".repeat(statements - 1) + "EXEC sp_unprepare 1")
+        val session = Session.login(batch, rpc(execute(1)), Inbound.EndOfStream)
+        val backend = ScriptedBackend.ofList(*oneRow.toTypedArray())
+        try {
+            session.loop(backend).run()
+        } catch (error: OutOfMemoryError) {
+            throw AssertionError("Heap-Überlauf: die Antwort wurde im Speicher gesammelt", error)
+        }
+        val reply = session.replies[0].payload
+        assertEquals(statements, errorTokens(reply), "ERROR je Nummer")
+        assertEquals(BatchVectors.DONE_ERROR, reply.copyOfRange(reply.size - DONE_BYTES, reply.size).toHex())
+        assertEquals(unknownHandle, session.errors(1).single())
+        assertTrue(session.channel.exhausted)
+    }
+
+    /** Die Zahl der ERROR-Tokens (Typ `0xAA`, Länge in zwei Bytes) einer Antwort, ohne Objekte je Token. */
+    private fun errorTokens(payload: ByteArray): Int {
+        var at = 0
+        var count = 0
+        while (payload[at] == ERROR_TOKEN) {
+            val length = (payload[at + 1].toInt() and BYTE) or ((payload[at + 2].toInt() and BYTE) shl BYTE_BITS)
+            at += TOKEN_HEADER_BYTES + length
+            count++
+        }
+        assertEquals(payload.size - DONE_BYTES, at, "Rest der Antwort ist das DONE")
+        return count
     }
 
     /**
