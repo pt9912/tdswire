@@ -1,2 +1,2 @@
-**Vorgang:** [slice-qa-test-stage-run-kopplung](../../../../in-progress/slice-qa-test-stage-run-kopplung.md)
+**Vorgang:** [slice-qa-test-stage-run-kopplung](../../../../done/slice-qa-test-stage-run-kopplung.md)
 **Fund:** Der Selbsttest `tools/test-lauf-selbsttest.sh` ruft `test-lauf.sh` gegen einen `dotnet`-Stub, der den gesuchten Satz selbst ausgibt; er belegt die Logik des Skripts, nicht den Wortlaut des echten `dotnet` (Verifikation V-1: deutsche Meldung am echten `dotnet`, der Selbsttest sah sie nicht). Die feste Locale am echten `dotnet` ist nur durch eine Handmessung belegt.

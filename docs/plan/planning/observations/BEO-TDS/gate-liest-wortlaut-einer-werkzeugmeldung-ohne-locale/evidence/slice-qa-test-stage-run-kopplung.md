@@ -1,2 +1,2 @@
-**Vorgang:** [slice-qa-test-stage-run-kopplung](../../../../in-progress/slice-qa-test-stage-run-kopplung.md)
+**Vorgang:** [slice-qa-test-stage-run-kopplung](../../../../done/slice-qa-test-stage-run-kopplung.md)
 **Fund:** [Verifikation](../../../../../../reviews/2026-11-07-435c4831-verifikation-slice-qa-test-stage-run-kopplung.md) V-1 (MEDIUM): mit `ENV LANG=de_DE.UTF-8` oder `ENV LC_ALL=de_DE.UTF-8` im Dockerfile Meldung deutsch, Treffer-Prüfung greift nicht, Stage `test` grün ohne Test (`DOTNET_CLI_UICULTURE` ändert die Meldung nicht). Behoben mit `fc5cd675` (feste Locale im Skript, Selbsttest-Fall und Mutation); die Wirkung am echten `dotnet` ist eine Handmessung vom 2026-11-07.

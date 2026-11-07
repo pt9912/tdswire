@@ -25,7 +25,7 @@
 
 * kategorie: MEDIUM
 * quelle: `AGENTS.md` §3.8; [TDS-QA-05](../../spec/lastenheft.md#tds-qa-05--wartbarkeit)
-* pfad: `docs/plan/planning/in-progress/slice-qa-test-stage-run-kopplung.md` · „nicht mehr unbemerkt auseinanderläuft“ (§1 Ziel); `docs/plan/planning/in-progress/roadmap.md` · „an die Basis `test-quellen` gekoppelt“
+* pfad: `docs/plan/planning/done/slice-qa-test-stage-run-kopplung.md` · „nicht mehr unbemerkt auseinanderläuft“ (§1 Ziel); `docs/plan/planning/in-progress/roadmap.md` · „an die Basis `test-quellen` gekoppelt“
 * befund: Die Herkunft nennt Mutation 1 des Verifiers (ein `--filter` nur in der RUN-Zeile von `test`). Diese Form (`RUN … dotnet test $DOTNET_TEST_ARGS --filter X`, ohne `test-lauf.sh`) bleibt unbemerkt: Gate grün mit 0 Tests, Matrix zählt 126 weiter (M3); abgewiesen wird nur das zusätzliche Argument am Skriptaufruf (M1). Dockerfile, Kopf von `tools/spec-abdeckung.sh` und `docs/plan/spec-abdeckung.md` nennen das Restrisiko ehrlich („nicht gekoppelt“), Ziel und Roadmap-Zeile nicht.
 * verifizierbar: ja — Kopie des Dockerfiles mit M3 bauen
 * klasse: Kopplung durch Konvention statt Sensor, Zielsatz breiter als Beleg
@@ -52,7 +52,7 @@
 
 * kategorie: LOW
 * quelle: Maintainability (Plan-Kopf gegen Diff)
-* pfad: `docs/plan/planning/in-progress/slice-qa-test-stage-run-kopplung.md` · „**Berührte Spec-Stellen:** SPEC-045“
+* pfad: `docs/plan/planning/done/slice-qa-test-stage-run-kopplung.md` · „**Berührte Spec-Stellen:** SPEC-045“
 * befund: Der Diff berührt `spec/` nicht und `SPEC-045` enthält keine Aussage über die Stage `test-bericht`; berührt sind nur `docs/plan/spec-abdeckung.md` und der Erzeuger. Die Plan-Tabelle §3 deckt alle Dateien des Implementers (`Dockerfile`, `test-lauf.sh`, `tools/spec-abdeckung.sh`, `docs/plan/spec-abdeckung.md`; Stempel-Listen „prüfen“, ohne Änderung); nicht in der Tabelle stehen die Lifecycle-Dateien (Slice-Move, Roadmap, `state.md` der Beobachtung), die der Planner schrieb.
 * verifizierbar: ja — `git diff --stat 81800657..HEAD -- spec`
 * klasse: Plan-Kopf nennt Spec-Stelle ohne Berührung
