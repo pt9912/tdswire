@@ -11,6 +11,7 @@ import io.github.pt9912.tdswire.domain.QueryRequest
 import io.github.pt9912.tdswire.domain.ResultColumn
 import io.github.pt9912.tdswire.domain.SqlType
 import io.github.pt9912.tdswire.domain.telemetry.EventKind
+import io.github.pt9912.tdswire.domain.telemetry.EventLevel.DEBUG
 import io.github.pt9912.tdswire.domain.telemetry.EventLevel.INFO
 import io.github.pt9912.tdswire.domain.telemetry.EventLevel.WARN
 import io.github.pt9912.tdswire.domain.telemetry.TelemetryEvent
@@ -32,6 +33,8 @@ import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -93,9 +96,11 @@ class TelemetryEmbeddingTest {
 
     /**
      * Eine Senke des Integrators, über den Parameter von `start` übergeben, bekommt die Ereignisse eines Laufs aus
-     * Start (mit den Abschwächungen des Testmodus), Anmeldung und Stop in dieser Reihenfolge, mit der Kennung der
-     * Anmeldung im Feld `principal`; Standardausgabe und Fehlerkanal des Prozesses bleiben leer (im selben Prozess
-     * umgeleitet: schwächerer Beleg als ein Prozesstest).
+     * Start (mit den Abschwächungen des Testmodus), Anmeldung, dem Ende der Spans von Backend-Aufruf, Anfrage und
+     * Verbindung und Stop in dieser Reihenfolge, mit der Kennung der Anmeldung im Feld `principal`; Standardausgabe
+     * und Fehlerkanal des Prozesses bleiben leer (im selben Prozess umgeleitet: schwächerer Beleg als ein
+     * Prozesstest). Die Spans tragen ihre Felder über die öffentliche Fläche: Name, Ausgang, Dauer, Kennung der
+     * Anfrage, Art der Anfrage und Phase der Verbindung.
      *
      * @spec SPEC-059
      * @spec SPEC-012
@@ -120,6 +125,9 @@ class TelemetryEmbeddingTest {
                 EventKind.CONNECTION_OPENED,
                 EventKind.ENCRYPTION_NOT_OFFERED,
                 EventKind.LOGIN_ACCEPTED,
+                EventKind.SPAN_ENDED,
+                EventKind.SPAN_ENDED,
+                EventKind.SPAN_ENDED,
                 EventKind.CONNECTION_CLOSED,
                 EventKind.SERVER_STOPPING,
                 EventKind.SERVER_STOPPED,
@@ -127,9 +135,19 @@ class TelemetryEmbeddingTest {
             events.map { it.kind },
         )
         assertEquals(
-            listOf(INFO, INFO, WARN, WARN, INFO, WARN, INFO, INFO, INFO, INFO),
+            listOf(INFO, INFO, WARN, WARN, INFO, WARN, INFO, DEBUG, DEBUG, DEBUG, INFO, INFO, INFO),
             events.map { it.level },
         )
+        val spans = events.filter { it.kind == EventKind.SPAN_ENDED }
+        assertEquals(listOf("backend.execute", "tds.query", "tds.connection"), spans.map { it.span })
+        assertEquals(listOf("ok", "ok", "ok"), spans.map { it.outcome })
+        spans.forEach { assertTrue(checkNotNull(it.durationMs) >= 0, "Dauer: ${it.durationMs}") }
+        val (backend, query, connection) = spans
+        assertNotNull(query.requestId)
+        assertEquals(query.requestId, backend.requestId)
+        assertEquals("sql_batch", query.requestKind)
+        assertEquals("session", connection.phase)
+        assertNull(connection.requestId)
         assertEquals(
             listOf("ENCRYPTION_TEST_UNENCRYPTED", "PLAIN_TEST_MODE"),
             events.filter { it.kind == EventKind.SECURITY_WEAKENED }.map { it.reason },

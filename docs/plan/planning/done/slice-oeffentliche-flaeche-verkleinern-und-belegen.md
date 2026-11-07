@@ -43,7 +43,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Verhalten des Servers (Protokoll, Anmeldung, Abbruch) — der Slice ändert Sichtbarkeit und Zuschnitt von Namen, nicht, was der Server tut; jede Verhaltensänderung wäre ein anderer Vorgang mit eigenem Beleg.
 - JSON-Adapter, `LOG_LEVEL` und Inspektion des laufenden Prozesses — [slice-betrieb-log-adapter-testserver](../done/slice-betrieb-log-adapter-testserver.md); er formatiert die Arten, die dieser Slice festlegt, und fängt deshalb nach ihm an (siehe §4).
 - Verdrahtungstest für `AcceptFailed` und `ConnectionFailed`, Rot-Fälle der Ausgabe-Sperre, Lücke `Logger.log` — [slice-betrieb-telemetrie-verdrahtung-belegen](../done/slice-betrieb-telemetrie-verdrahtung-belegen.md); sein Belegobjekt ändert sich mit dem Schnitt, die Reihenfolge ist in §4 gesetzt.
-- Neue Ereignisarten, `request_id`, `duration_ms` — [slice-betrieb-zustandsereignisse](../done/slice-betrieb-zustandsereignisse.md) und [slice-betrieb-metriken-tracing](../open/slice-betrieb-metriken-tracing.md); hier wird nur zugeschnitten, was gebaut ist.
+- Neue Ereignisarten, `request_id`, `duration_ms` — [slice-betrieb-zustandsereignisse](../done/slice-betrieb-zustandsereignisse.md) und [slice-betrieb-metriken-tracing](../done/slice-betrieb-metriken-tracing.md); hier wird nur zugeschnitten, was gebaut ist.
 - Änderungen am Lastenheft — die Fläche ist Sache der Spezifikation (Rang 2) und einer möglichen ADR (§6); das Lastenheft nennt keine Namen.
 - Ein Folge-Slice zur `PRELOGIN`-Serverversion (Gedanke einer Folge für JDBC/`PRELOGIN`): in `open/` und in der Roadmap gibt es keinen solchen Slice; der Slice rührt das Protokoll nicht an, ein Verweis entfällt.
 

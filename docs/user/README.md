@@ -15,6 +15,7 @@ Die Anleitungen sind nach Aufgaben geordnet. Sie bilden den Ist-Zustand ab (`AGE
 | Benutzer einrichten und einen pbkdf2-Prüfwert erzeugen | [Einbettung, Abschnitt 7](einbettung-und-betrieb.md#7-benutzer-einrichten-und-einen-pbkdf2-prüfwert-erzeugen) |
 | die Verschlüsselung (TLS) einschalten | [Einbettung, Abschnitt 8](einbettung-und-betrieb.md#8-tls-einschalten) |
 | den Server begrenzen und geordnet beenden | [Einbettung, Abschnitt 9](einbettung-und-betrieb.md#9-den-server-begrenzen-betreiben-und-beenden) |
+| Metriken und Spans des Servers lesen | [Einbettung, Abschnitt 10](einbettung-und-betrieb.md#10-metriken-und-spans-lesen) |
 | den Testserver von Hand starten und stoppen | [Testserver, Aufgabe 1](testserver-manuell.md#1-den-testserver-starten-prüfen-und-stoppen) |
 | mich mit einem Client am Testserver anmelden | [Testserver, Aufgabe 2](testserver-manuell.md#2-mit-einem-client-anmelden) |
 | mit d-migrate gegen den Testserver prüfen | [Testserver, Aufgabe 3](testserver-manuell.md#3-mit-d-migrate-struktur-lesen-und-ändern) |

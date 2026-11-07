@@ -185,6 +185,15 @@ Hier endet die Implementation. Die übrigen Rollen laufen in **getrennten Kontex
     den Diff gegen **Plan + ADR + Hard Rules** (nicht die DoD). HIGH/MEDIUM auflösen; ein HIGH mit
     Rollen-Konflikt folgt Modul 8 §Konflikt-Pfad (Sequenz mit Übergabe-Artefakten, nie
     „herabstufen, weil der Implementer widerspricht").
+21a. **Nachbesserung nach dem Review: melden, ob sie Code enthält, und den Re-Review anfordern.**
+    Behebst du Befunde (und später Befunde der Verifikation) mit Commits, nennt der Bericht je Commit,
+    ob er Quelltext, Testcode, Skripte oder Make-/Build-/Konfigurationsdateien ändert (reine
+    Kommentar- oder Doku-Korrekturen zählen nicht); dasselbe gilt für einen Merge von `main` in den
+    Slice-Zweig, dessen Auflösungen Code berühren. Für jede solche Fläche forderst du einen zweiten
+    Review in frischem Kontext an (Diff gegen den Report-Stand, Folgelauf als neue Datei unter
+    `docs/reviews/`); unterbleibt er, steht die Fläche im Bericht als „Nachbesserung ohne zweiten
+    Review“, mit den Commits, damit der Planner den Vermerk in Schritt 24 schreiben kann
+    (seit slice-antwort-tokens-an-messung-angleichen).
 22. **→ Verifier (Modul 11):** in getrenntem Kontext die DoD-/Spec-Behauptung und den
     Plan-vs-Code-Diff **bestätigen**, dazu ADR-Konformität. Das fängt, was Tests übersehen und der
     Reviewer nicht sieht (DoD-Verletzung). **Weicht eine Nutzerentscheidung vom DoD-Wortlaut ab**
@@ -208,7 +217,14 @@ Hier endet die Implementation. Die übrigen Rollen laufen in **getrennten Kontex
     bekommt dabei genau einen von drei Ausgängen** (Modul 5): *eingetreten* → Carveout oder
     Folge-Slice mit ID · *entfallen* → gestrichen **mit Begründung** · *weiter offen* → wandert ins
     Beobachtungs-Register (Schritt 25). Ein Slice geht nicht nach `done/`, während ein Risiko ohne
-    Ausgang dasteht. **Hat der Slice Tests geändert, läuft `make spec-abdeckung` vor dem
+    Ausgang dasteht.
+    **Nachbesserung mit Code:** Für jede Fläche, die Schritt 21a nennt, liegt ein Re-Review vor, oder
+    §7 der Closure-Notiz trägt den Vermerk „Nachbesserung ohne zweiten Review“ mit den Commits, dem
+    Grund und dem, was stattdessen geprüft wurde (etwa Verifier-Lauf, Mutation, Selbsttest). Die
+    Review-Zeile der DoD bekommt ihren Haken nur mit einem von beiden; der Vermerk ist auch der Beleg
+    der Beobachtung `BEO-TDS/nachbesserung-ohne-zweiten-review`
+    (seit slice-antwort-tokens-an-messung-angleichen).
+    **Hat der Slice Tests geändert, läuft `make spec-abdeckung` vor dem
     Closure-Commit, und die erzeugte `docs/plan/spec-abdeckung.md` liegt im selben Commit**; die
     Matrix ist kein Gate und steht sonst hinter dem Bestand  (seit slice-rpc-executesql-parameter).
     **Entscheidungs-Slice (die ADR steht auf `Accepted` und führt offene Punkte) und jeder Slice,

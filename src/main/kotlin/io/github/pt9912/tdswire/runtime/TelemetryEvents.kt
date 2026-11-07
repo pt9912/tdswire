@@ -104,6 +104,7 @@ internal fun ServerConfig.effectiveSettings(): EffectiveSettings = EffectiveSett
     maxConnections = listen.maxConnections,
     maxPreparedHandles = requests.maxPreparedHandles,
     maxMessageBytes = requests.maxMessageBytes,
+    metricsIntervalSeconds = requests.metricsIntervalSeconds,
 )
 
 /**

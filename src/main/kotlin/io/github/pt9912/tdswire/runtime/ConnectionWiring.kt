@@ -3,8 +3,12 @@ package io.github.pt9912.tdswire.runtime
 import io.github.pt9912.tdswire.config.LoginSettings
 import io.github.pt9912.tdswire.config.RequestSettings
 import io.github.pt9912.tdswire.config.auth.AuthAdapter
+import io.github.pt9912.tdswire.domain.telemetry.ConnectionSpan
 import io.github.pt9912.tdswire.domain.telemetry.EventContext
+import io.github.pt9912.tdswire.domain.telemetry.Instruments
 import io.github.pt9912.tdswire.domain.telemetry.LoginAccepted
+import io.github.pt9912.tdswire.domain.telemetry.SessionInstruments
+import io.github.pt9912.tdswire.domain.telemetry.SpanOutcome
 import io.github.pt9912.tdswire.domain.telemetry.TlsFirstNotOffered
 import io.github.pt9912.tdswire.domain.telemetry.TlsFirstRefusal
 import io.github.pt9912.tdswire.domain.telemetry.TlsHandshakeFailed
@@ -15,6 +19,7 @@ import io.github.pt9912.tdswire.protocol.dispatch.RequestTimes
 import io.github.pt9912.tdswire.protocol.error.ErrorLog
 import io.github.pt9912.tdswire.protocol.error.ErrorMapper
 import io.github.pt9912.tdswire.protocol.session.AuthPool
+import io.github.pt9912.tdswire.protocol.session.CloseReason
 import io.github.pt9912.tdswire.protocol.session.EncryptionPolicy
 import io.github.pt9912.tdswire.protocol.session.HandshakeChannel
 import io.github.pt9912.tdswire.protocol.session.HandshakeConfig
@@ -37,6 +42,7 @@ import io.github.pt9912.tdswire.transport.tls.TlsParameters
 import io.github.pt9912.tdswire.transport.tls.TlsPath
 import io.github.pt9912.tdswire.transport.tls.TlsResult
 import kotlinx.coroutines.withTimeoutOrNull
+import java.util.concurrent.CancellationException
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -44,7 +50,8 @@ import kotlin.time.Duration.Companion.seconds
  * Verbindung baut ihren Treiber mit diesem einen Pool, sodass die Obergrenze der gleichzeitigen
  * Adapteraufrufe für alle Verbindungen gilt. Der Pool trägt die Drosselung wiederholter Anmeldeversuche
  * (`AuthPool.throttle`, `ADR-0016`): ihre Tabelle der Quelladressen gilt für alle Verbindungen. [tls]
- * ist gesetzt, wenn die Richtlinie TLS verlangt.
+ * ist gesetzt, wenn die Richtlinie TLS verlangt. [instruments] beobachtet Verbindungen, Anfragen und Backend-Aufrufe
+ * (`SPEC-017` bis `SPEC-019`).
  */
 internal class HandlerSetup(
     val handshake: HandshakeConfig,
@@ -56,6 +63,9 @@ internal class HandlerSetup(
 ) {
     /** Die Fristen einer Anfrage; die Voreinstellungen von `SPEC-009` und `SPEC-033`, bis der Prozess sie setzt. */
     var requests: RequestSettings = RequestSettings()
+
+    /** Beobachtet Verbindungen, Anfragen und Backend-Aufrufe; die Voreinstellung beobachtet nichts. */
+    var instruments: Instruments = Instruments.NONE
 }
 
 /**
@@ -88,14 +98,45 @@ internal class HandlerSetup(
 internal class HandshakeConnectionHandler(private val setup: HandlerSetup, private val backend: QueryBackend? = null) :
     ConnectionHandler {
     override suspend fun handle(connection: Connection) {
+        val span = setup.instruments.connection(connection.id)
+        var outcome = SpanOutcome.ERROR
+        try {
+            outcome = connect(connection, span)
+        } catch (cancelled: CancellationException) {
+            outcome = SpanOutcome.CANCELLED
+            throw cancelled
+        } finally {
+            span.end(outcome)
+        }
+    }
+
+    /** Kontext und Beobachtung einer Sitzung, deren Anmeldung angenommen ist. */
+    private class Admitted(val context: EventContext, val session: SessionInstruments)
+
+    /** Pfad, Kontext und Konfiguration einer Verbindung, die den Handschlag beginnen darf. */
+    private data class Entry(
+        val peeked: PeekedChannel,
+        val path: TlsPath,
+        val early: EventContext,
+        val config: HandshakeConfig,
+    )
+
+    /** Der Beginn einer Verbindung; `null`, wenn sie vor dem Handschlag endet (keine Bytes, Pfad nicht angeboten). */
+    private suspend fun entry(connection: Connection): Entry? {
         val peeked = withTimeoutOrNull(setup.login.timeoutSeconds.seconds) { PeekedChannel.peek(connection.channel) }
-            ?: return
+            ?: return null
         val path = when (peeked.firstByte) {
             TLS_HANDSHAKE_RECORD -> TlsPath.FROM_FIRST_BYTE
             else -> TlsPath.ENCAPSULATED_IN_TDS
         }
         val early = EventContext(connection.id, clientProfile = profileOf(path, null))
-        val config = handshakeConfig(path, early) ?: return
+        return handshakeConfig(path, early)?.let { Entry(peeked, path, early, it) }
+    }
+
+    /** Der Ablauf einer Verbindung; das Ergebnis ist das `outcome` ihres Spans `tds.connection` (`SPEC-017`). */
+    private suspend fun connect(connection: Connection, span: ConnectionSpan): SpanOutcome {
+        val begun = entry(connection) ?: return SpanOutcome.ABORTED
+        val (peeked, path, early) = begun
         val wire = SwitchableChannel(peeked)
         val reader = MessageReader(
             wire,
@@ -107,22 +148,32 @@ internal class HandshakeConnectionHandler(private val setup: HandlerSetup, priva
             upgrade(peeked, wire, path, early)
         }
         val driver = HandshakeDriver(
-            config,
+            begun.config,
             setup.adapter,
             HandshakeLog { entry -> setup.telemetry.emit { entry.toEvent(it, early) } },
             setup.login.timeoutSeconds.seconds,
             setup.authPool,
         )
-        val outcome = driver.run(channel, connection.remoteAddress)
-        if (outcome is HandshakeOutcome.Ready) {
-            connection.loginCompleted()
-            val context = EventContext(
-                connection.id,
-                outcome.session.id,
-                profileOf(path, outcome.live.context.encryption),
-            )
-            setup.telemetry.emit { LoginAccepted(it, context, outcome.session.principal.name) }
-            if (backend == null) channel.receive() else serve(connection, outcome, channel, backend, context)
+        return when (val outcome = driver.run(channel, connection.remoteAddress)) {
+            is HandshakeOutcome.Closed ->
+                if (outcome.reason == CloseReason.LOGIN_REJECTED) SpanOutcome.LOGIN_REJECTED else SpanOutcome.ABORTED
+
+            is HandshakeOutcome.Ready -> {
+                connection.loginCompleted()
+                val context = EventContext(
+                    connection.id,
+                    outcome.session.id,
+                    profileOf(path, outcome.live.context.encryption),
+                )
+                setup.telemetry.emit { LoginAccepted(it, context, outcome.session.principal.name) }
+                val session = span.loginAccepted(context)
+                if (backend == null) {
+                    channel.receive()
+                } else {
+                    serve(connection, outcome, channel, backend, Admitted(context, session))
+                }
+                SpanOutcome.OK
+            }
         }
     }
 
@@ -131,7 +182,7 @@ internal class HandshakeConnectionHandler(private val setup: HandlerSetup, priva
         outcome: HandshakeOutcome.Ready,
         channel: HandshakeChannel,
         backend: QueryBackend,
-        context: EventContext,
+        admitted: Admitted,
     ) {
         val times = RequestTimes(
             queryTimeout = setup.requests.queryTimeoutSeconds.seconds,
@@ -140,9 +191,10 @@ internal class HandshakeConnectionHandler(private val setup: HandlerSetup, priva
         val hooks = RequestHooks(
             gate = ConnectionShutdownGate(connection),
             handleLimit = setup.requests.maxPreparedHandles,
+            session = admitted.session,
         )
         val served = SimulationBulk.of(backend)
-        RequestLoop(outcome, channel, served, errorMapper(context), times = times, hooks = hooks).run()
+        RequestLoop(outcome, channel, served, errorMapper(admitted.context), times = times, hooks = hooks).run()
     }
 
     /** Die Konfiguration des Pfads; `null` (und ein Ereignis), wenn der Prozess den TDS-8.0-Pfad nicht anbietet. */
