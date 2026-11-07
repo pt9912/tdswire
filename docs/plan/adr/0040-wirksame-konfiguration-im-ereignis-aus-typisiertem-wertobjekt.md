@@ -1,10 +1,10 @@
 # ADR-0040: Wirksame Konfiguration im Ereignis CONFIG_EFFECTIVE entsteht aus einem typisierten Wertobjekt
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-11-07
 
-**Autor:** pt9912
+**Autor:** Architect (Entwurf); Entscheidung: pt9912 (Nutzer)
 
 **Bezug:** [TDS-FA-09](../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose), [TDS-QA-03](../../../spec/lastenheft.md#tds-qa-03--sicherheit), [TDS-QA-05](../../../spec/lastenheft.md#tds-qa-05--wartbarkeit), [ADR-0020](0020-logformat-und-observability-schnittstelle.md), [ADR-0021](0021-oeffentlicher-integrations-einstieg.md), [ADR-0033](0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md)
 
@@ -75,3 +75,4 @@ Ein Feld des Wertobjekts bräuchte einen Textwert, der nicht aus einer Aufzählu
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-11-07 | Proposed (Fund F-5 aus dem Review der Zustandsereignisse) | — |
+| 2026-11-07 | Accepted – Option D; Quelle: Nutzerentscheid | — |
