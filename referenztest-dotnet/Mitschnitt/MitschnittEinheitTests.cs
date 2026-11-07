@@ -531,4 +531,78 @@ public class MitschnittEinheitTests
         Assert.StartsWith("nicht abgespielt", ergebnisse[1].Problem);
         await server;
     }
+
+    private sealed class Schreibstrom : Stream
+    {
+        public List<byte[]> Schreibvorgaenge { get; } = new();
+
+        public override bool CanRead => false;
+
+        public override bool CanSeek => false;
+
+        public override bool CanWrite => true;
+
+        public override long Length => throw new NotSupportedException();
+
+        public override long Position
+        {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override void Write(byte[] buffer, int offset, int count) => Schreibvorgaenge.Add(buffer[offset..(offset + count)]);
+
+        public override void Flush()
+        {
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+    }
+
+    // @spec SPEC-045
+    [Fact]
+    public void Der_Proxy_schreibt_jedes_TDS_Paket_in_einem_eigenen_Schreibvorgang_gleich_wie_die_Lesevorgaenge_geschnitten_sind()
+    {
+        var p1 = Cat(Bytes(0x07, 0x04, 0x00, 0x0C, 0, 0, 1, 0), Bytes(1, 2, 3, 4));
+        var p2 = Cat(Bytes(0x07, 0x04, 0x00, 0x0C, 0, 0, 2, 0), Bytes(5, 6, 7, 8));
+        var p3 = Cat(Bytes(0x07, 0x01, 0x00, 0x0A, 0, 0, 3, 0), Bytes(9, 10));
+        var alles = Cat(p1, p2, p3);
+        foreach (var schnitt in new[] { new[] { alles.Length }, new[] { 12, 12 + 10 }, new[] { 3, 17, 18 }, new[] { 1, 2, 3, 4, 5 } })
+        {
+            var ziel = new Schreibstrom();
+            var rest = Array.Empty<byte>();
+            var von = 0;
+            foreach (var bis in schnitt.Append(alles.Length).Distinct().OrderBy(x => x))
+            {
+                var stueck = alles[von..bis];
+                TlsAufnahme.PaketweiseSchreiben(ziel, ref rest, stueck, stueck.Length);
+                von = bis;
+            }
+
+            Assert.Equal(new[] { p1, p2, p3 }, ziel.Schreibvorgaenge);
+            Assert.Empty(rest);
+        }
+    }
+
+    // @spec SPEC-045
+    [Fact]
+    public void Der_Proxy_haelt_ein_unvollstaendiges_Paket_zurueck_und_reicht_einen_Strom_ohne_TDS_Kopf_roh_weiter()
+    {
+        var ziel = new Schreibstrom();
+        var rest = Array.Empty<byte>();
+        var halb = Cat(Bytes(0x07, 0x01, 0x00, 0x0C, 0, 0, 1, 0), Bytes(1, 2));
+        TlsAufnahme.PaketweiseSchreiben(ziel, ref rest, halb, halb.Length);
+        Assert.Empty(ziel.Schreibvorgaenge);
+        Assert.Equal(halb, rest);
+
+        var kein = Bytes(0, 0, 0, 0, 0, 0, 0, 0, 9);
+        rest = Array.Empty<byte>();
+        TlsAufnahme.PaketweiseSchreiben(ziel, ref rest, kein, kein.Length);
+        Assert.Equal(new[] { kein }, ziel.Schreibvorgaenge);
+        Assert.Empty(rest);
+    }
 }

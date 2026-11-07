@@ -484,6 +484,68 @@ public class MessungBulkTests
         }
     }
 
+    private static SqlConnection Verbindung(TlsAufnahme aufnahme, string kennwort, string datenbank, string? direkt = null) =>
+        new(new SqlConnectionStringBuilder
+        {
+            DataSource = direkt ?? $"tcp:127.0.0.1,{aufnahme.Port}",
+            UserID = ReferenzZiel.Benutzer,
+            Password = kennwort,
+            Encrypt = SqlConnectionEncryptOption.Mandatory,
+            TrustServerCertificate = true,
+            Pooling = false,
+            ConnectRetryCount = 0,
+            ConnectTimeout = 30,
+            CommandTimeout = 120,
+            InitialCatalog = datenbank,
+        }.ConnectionString);
+
+    /// <summary>
+    /// Fehlersuche (`TDSWIRE_MESSUNG_WIEDERHOLEN=<N>`, nur mit `TDSWIRE_MESSUNG_NUR`): fährt jedes genannte Szenario N-mal über je einen frisch aufgebauten Bestand und einen
+    /// neuen Proxy (mit `TDSWIRE_MESSUNG_DIREKT=1` ohne Proxy, der Client verbindet sich selbst mit dem Server), legt nichts ab und gibt je rotem Lauf die Beobachtungen des Clients und das Ende der Pumpen des Proxys aus (Richtung,
+    /// Ursachenkette, Zeit, Bytes). Der Test ist rot, wenn ein Lauf rot war; die Zeile `wiederholung:` nennt die Rate.
+    /// </summary>
+    private void Wiederholen(int anzahl, string[] nur, string host, int port, string kennwort)
+    {
+        var rot = 0;
+        var gesamt = 0;
+        var direkt = Environment.GetEnvironmentVariable("TDSWIRE_MESSUNG_DIREKT") == "1";
+        _ausgabe.WriteLine($"wiederholung: {(direkt ? "direkt zum Server, ohne Proxy" : "ueber den Proxy")}");
+        foreach (var (name, datenbank, koerper) in Szenarien)
+        {
+            if (!nur.Contains(name)) continue;
+            for (var i = 1; i <= anzahl; i++)
+            {
+                gesamt++;
+                AufbauAusfuehren();
+                using var aufnahme = new TlsAufnahme(host, port, "localhost");
+                var beobachtungen = new List<string>();
+                var lauf = new Lauf(name, beobachtungen.Add);
+                using var verbindung = Verbindung(aufnahme, kennwort, datenbank, direkt ? $"tcp:{host},{port}" : null);
+                try
+                {
+                    verbindung.Open();
+                    koerper(lauf, verbindung);
+                    if (!direkt) Assert.Null(aufnahme.Problem);
+                    _ausgabe.WriteLine($"wiederholung: {name} Lauf {i} gruen, Stuecke {aufnahme.Stuecke}");
+                }
+                catch (Exception e)
+                {
+                    rot++;
+                    _ausgabe.WriteLine($"wiederholung: {name} Lauf {i} Stuecke {aufnahme.Stuecke}");
+                    foreach (var b in beobachtungen) _ausgabe.WriteLine("messung: client " + b);
+                    _ausgabe.WriteLine($"wiederholung: {name} Lauf {i} rot: {e.GetType().Name}: {e.Message.Split('\n')[0]}; Proxy: Problem {aufnahme.Problem ?? "-"}, erste Verbindung endete: {aufnahme.Ende ?? "laeuft"}, weitere Verbindungen {aufnahme.WeitereVerbindungen}");
+                }
+                finally
+                {
+                    SqlConnection.ClearAllPools();
+                }
+            }
+        }
+
+        _ausgabe.WriteLine($"wiederholung: {gesamt} Laeufe, {rot} rot");
+        Assert.Equal(0, rot);
+    }
+
     private static string Herkunft(string name) => Environment.GetEnvironmentVariable(name) ?? "nicht angegeben";
 
     private static string ServerName()
@@ -506,6 +568,13 @@ public class MessungBulkTests
         var rechner = Environment.MachineName;
         var kennungen = new HashSet<string>();
         var nur = (Environment.GetEnvironmentVariable("TDSWIRE_MESSUNG_NUR") ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries);
+        var wiederholen = int.TryParse(Environment.GetEnvironmentVariable("TDSWIRE_MESSUNG_WIEDERHOLEN"), out var w) ? w : 0;
+        if (wiederholen > 0 && nur.Length > 0)
+        {
+            Wiederholen(wiederholen, nur, host, port, kennwort);
+            return;
+        }
+
         if (nur.Length == 0 || nur.Contains("zusatz-unprepare-viele")) DirekteZaehlung();
 
         foreach (var (name, datenbank, koerper) in Szenarien)
@@ -516,19 +585,7 @@ public class MessungBulkTests
             var beobachtungen = new List<string>();
             var lauf = new Lauf(name, beobachtungen.Add);
             string packetSize;
-            using var verbindung = new SqlConnection(new SqlConnectionStringBuilder
-            {
-                DataSource = $"tcp:127.0.0.1,{aufnahme.Port}",
-                UserID = ReferenzZiel.Benutzer,
-                Password = kennwort,
-                Encrypt = SqlConnectionEncryptOption.Mandatory,
-                TrustServerCertificate = true,
-                Pooling = false,
-                ConnectRetryCount = 0,
-                ConnectTimeout = 30,
-                CommandTimeout = 120,
-                InitialCatalog = datenbank,
-            }.ConnectionString);
+            using var verbindung = Verbindung(aufnahme, kennwort, datenbank);
             try
             {
                 verbindung.Open();

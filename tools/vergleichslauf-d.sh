@@ -21,6 +21,8 @@
 #   bulk-2022 | bulk-2025 | bulk (beide): Messreihe zu Massenladen, MERGE, Katalog, Strukturaenderung und den Zusatzmessungen (Kategorie
 #   MessungBulk, referenztest-dotnet/Vergleich/MessungBulkTests.cs) mit derselben Methode wie `wire`; die Dateien ersetzen
 #   referenztest-dotnet/Mitschnitt/messung/bulk-merge-katalog/<stufe>/ im Arbeitsbaum (die Ablage von `wire` bleibt unberuehrt).
+#   MESSUNG_NUR=<Szenarien> waehlt eine Teilmenge ohne Ablage; mit MESSUNG_WIEDERHOLEN=<N> faehrt jedes gewaehlte Szenario N-mal ueber
+#   einen frisch aufgebauten Bestand und nennt die Rate roter Laeufe (MESSUNG_DIREKT=1: der Client verbindet sich ohne Proxy).
 # Je Lauf: Image der Referenzinstanz bauen (Dockerfile-Stufe `referenzinstanz-<jahr>` in referenztest-dotnet, Digest
 # dort gepinnt) und Client-Image (Stufe `vergleich`); zwei Container in einem eigenen internen Netzwerk (kein Zugang
 # nach aussen, kein veroeffentlichter Port, nichts wird gemountet; Namen mit PID). Zertifikat und Schluessel (CN und SAN
@@ -549,7 +551,7 @@ wirelauf() {
   image=$(grep -E "AS referenzinstanz-$STUFE\$" referenztest-dotnet/Dockerfile | sed -E 's/^FROM ([^ ]+) AS .*/\1/')
   schema="sha256:$(sha256sum referenztest-dotnet/Vergleich/testschema.sql | cut -d' ' -f1)"
   docker create --name "$CLIENT" --network "$NETZ" -e "TDSWIRE_ZIEL=referenz:1433" -e "TDSWIRE_REFERENZ_KENNWORT=$KENNWORT" \
-    -e SSL_CERT_FILE=/tmp/server.pem -e TDSWIRE_MESSUNG_AUSGABE=/tmp/messung -e "TDSWIRE_MESSUNG_NUR=${MESSUNG_NUR:-}" -e "TDSWIRE_HERKUNFT_INSTANZ=$instanz" \
+    -e SSL_CERT_FILE=/tmp/server.pem -e TDSWIRE_MESSUNG_AUSGABE=/tmp/messung -e "TDSWIRE_MESSUNG_NUR=${MESSUNG_NUR:-}" -e "TDSWIRE_MESSUNG_WIEDERHOLEN=${MESSUNG_WIEDERHOLEN:-}" -e "TDSWIRE_MESSUNG_DIREKT=${MESSUNG_DIREKT:-}" -e "TDSWIRE_HERKUNFT_INSTANZ=$instanz" \
     -e "TDSWIRE_HERKUNFT_IMAGE=$image" -e "TDSWIRE_HERKUNFT_SCHEMA=$schema" \
     "$CLIENT_IMAGE" dotnet test --no-build --nologo --filter "Kategorie=$KATEGORIE" --logger "console;verbosity=detailed" >/dev/null || return 1
   docker cp "$SCRATCH/server.pem" "$CLIENT:/tmp/server.pem" >/dev/null || return 1

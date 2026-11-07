@@ -8,9 +8,13 @@ namespace TdsWire.Referenztests.Mitschnitt;
 /// (slice-qa-vergleichslauf-d-messungen-bulk-merge, SPEC-045): die abgelegten Messungen unter
 /// <c>Mitschnitt/messung/bulk-merge-katalog/&lt;2022|2025&gt;</c> (aufgenommen mit <c>make vergleichslauf-d LAUF=bulk</c>, Einzelmessung je
 /// Szenario und Instanz, Erzeuger: <c>Vergleich/MessungBulkTests.cs</c>) gehen durch dieselbe Auswertung wie die Aufnahme
-/// (<see cref="MessAuswertung"/>); jede Aussage des Messprotokolls (<c>docs/messungen/referenzabgleich.md</c>, Abschnitt Messreihe zu
-/// Massenladen, MERGE und Katalog) hat hier eine Zeile. Die Tests laufen ohne Referenzinstanz in der Dockerfile-Stage `test`: sie
-/// belegen, dass die abgelegte Messung die Aussage trägt, nicht dass der Server sie in einem anderen Lauf wiederholt.
+/// (<see cref="MessAuswertung"/>); die Aussagen des Messprotokolls (<c>docs/messungen/referenzabgleich.md</c>, Abschnitt Messreihe zu
+/// Massenladen, MERGE und Katalog), die in der Ablage stehen, haben hier eine Zeile. Die Tests laufen ohne Referenzinstanz in der
+/// Dockerfile-Stage `test`: sie belegen, dass die abgelegte Messung die Aussage trägt, nicht dass der Server sie in einem anderen Lauf
+/// wiederholt. Grenze: was der Client sah und nicht auf den Draht kam, steht nur in der Ausgabe des Laufs (<c>messung: client …</c>,
+/// <c>unprepare-direkt</c>) und hat hier keine Zeile: die Meldungen des Clients bei Typ-, Längen- und NULL-Verstoß (M-11) und die
+/// Zählung der Fehler am Client für 1 bis 2000 Nummern (M-22). Ebenso nicht fixiert: die Maße der Typen außerhalb der Tabelle `katalog_typen`
+/// (M-17, Wiederholung an `produkte`).
 /// </summary>
 [Trait("Kategorie", "MitschnittEinheit")]
 public class MessungBulkBelegTests
@@ -263,6 +267,57 @@ public class MessungBulkBelegTests
         Assert.Contains("('Id','bigint',8,19,0,0,0,0,1,", F(stufe, "katalog-struktur/14/zeilen"), StringComparison.Ordinal);
         Assert.Contains("('Seit','datetime2',8,27,7,1,0,0,5,", F(stufe, "katalog-struktur/14/zeilen"), StringComparison.Ordinal);
         Assert.Contains("('Bezeichnung','nvarchar',400,0,0,0,0,0,2,", F(stufe, "katalog-struktur/14/zeilen"), StringComparison.Ordinal);
+    }
+
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void Die_Katalogspalten_der_Texte_haben_die_gemessenen_Typen_Laengen_und_Nullbarkeiten(string stufe)
+    {
+        var meta = F(stufe, "katalog-abfragen/03/colmetadata");
+        foreach (var erwartet in new[]
+        {
+            "column_name:nvarchar(laenge=256,genauigkeit=0,skala=0) nullbar=ja",
+            "is_computed:bitn(laenge=1,genauigkeit=0,skala=0) nullbar=ja",
+            "default_definition:nvarchar(laenge=65535,genauigkeit=0,skala=0) nullbar=ja",
+            "seed_value:sql_variant(laenge=8009,genauigkeit=0,skala=0) nullbar=ja",
+            "increment_value:sql_variant(laenge=8009,genauigkeit=0,skala=0) nullbar=ja",
+            "computed_definition:nvarchar(laenge=65535,genauigkeit=0,skala=0) nullbar=ja",
+            "computed_persisted:bitn(laenge=1,genauigkeit=0,skala=0) nullbar=ja",
+        })
+            Assert.Contains(erwartet, meta, StringComparison.Ordinal);
+        Assert.Equal("COLMETADATA ORDER NBCROW+ DONEINPROC RETURNSTATUS DONEPROC", F(stufe, "katalog-abfragen/03/tokenfolge"));
+    }
+
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void Typnamen_und_Masse_von_int_smallint_tinyint_float_varchar_char_uniqueidentifier_und_varbinary_in_sys_columns(string stufe)
+    {
+        var zeilen = F(stufe, "katalog-abfragen/03/zeilen");
+        foreach (var erwartet in new[]
+        {
+            "('Zahl','int',4,10,0,1,0,0,2,",
+            "('Klein','smallint',2,5,0,1,0,0,3,",
+            "('Winzig','tinyint',1,3,0,1,0,0,4,",
+            "('Gleit','float',8,53,0,1,0,0,12,",
+            "('Schmal','varchar',50,0,0,1,0,0,15,",
+            "('Zeichen','char',3,0,0,1,0,0,16,",
+            "('Kennung','uniqueidentifier',16,0,0,1,0,0,17,",
+            "('Binaer','varbinary',16,0,0,1,0,0,18,",
+        })
+            Assert.Contains(erwartet, zeilen, StringComparison.Ordinal);
+    }
+
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void Der_Eindeutigkeitsschluessel_erscheint_in_der_Indexabfrage_und_in_der_Eindeutigkeitsabfrage(string stufe)
+    {
+        // 18 bis 25: Tabelle katalog_kunde (20: Primärschlüssel, 22: Index, 24: Eindeutigkeit).
+        Assert.Equal("anzahl=1 [('Id')]", F(stufe, "katalog-abfragen/20/zeilen"));
+        Assert.Equal("anzahl=1 [('uq_katalog_kunde_email',1,0,NULL,2,'Email',1,0,0)]", F(stufe, "katalog-abfragen/22/zeilen"));
+        Assert.Equal("anzahl=1 [('uq_katalog_kunde_email','Email')]", F(stufe, "katalog-abfragen/24/zeilen"));
     }
 
     // @spec SPEC-045
