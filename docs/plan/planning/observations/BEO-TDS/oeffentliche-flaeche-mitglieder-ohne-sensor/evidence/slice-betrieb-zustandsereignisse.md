@@ -1,2 +1,2 @@
-**Vorgang:** [slice-betrieb-zustandsereignisse](../../../../in-progress/slice-betrieb-zustandsereignisse.md)
+**Vorgang:** [slice-betrieb-zustandsereignisse](../../../../done/slice-betrieb-zustandsereignisse.md)
 **Fund:** [Verifikation](../../../../../../reviews/2026-11-07-b0ac40c5-verifikation-slice-betrieb-zustandsereignisse.md), Abschnitt „Öffentliche Fläche“ (I-3 des Reviews): vereinbar mit den drei Quellen, Entscheidungsvorlage für den Architect; Übergabepunkt 1 des Merge-Abschnitts (benannte Argumente statt positionaler Aufrufe beim Zusammenführen mit dem Zweig der Metriken).

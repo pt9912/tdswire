@@ -140,7 +140,7 @@ Schwere wie im Reviewer-Skill: HIGH, MEDIUM, LOW, INFO.
 ### V-1 MEDIUM — Kopf „Berührte Spec-Stellen“ und Plan-Tabelle §3 weiter unvollständig
 
 * quelle: Reviewer-Skill „Plan-Tabelle nennt die berührten Dateien nicht“; F-7 des Reviews
-* pfad: `docs/plan/planning/in-progress/slice-betrieb-zustandsereignisse.md` · „**Berührte Spec-Stellen:** SPEC-005 · SPEC-006 · SPEC-007 · SPEC-009 …“
+* pfad: `docs/plan/planning/done/slice-betrieb-zustandsereignisse.md` · „**Berührte Spec-Stellen:** SPEC-005 · SPEC-006 · SPEC-007 · SPEC-009 …“
 * befund: Der Kopf fehlt `SPEC-008`, `SPEC-012`, `SPEC-048`, `SPEC-051` (alle als `@spec` in neuen oder geänderten Tests; `SPEC-012` auch in der DoD) und `ARC-001`, `ARC-003`; die Plan-Tabelle nennt `domain/telemetry/EffectiveSettings.kt` (neu) und `transport/framing/FramingLimits.kt` nicht. Der letzte Satz unter der Tabelle („Die Liste ist im Lauf des Implementers auf den Bau ausgeweitet; sie ist die Plan-Tabelle, die Zuordnung … stehen in der Closure-Notiz“) ist nicht lesbar.
 * verifizierbar: ja (Abgleich der `@spec`-Tags und Dateien im Diff mit Kopf und Tabelle)
 * klasse: Plan nennt die berührten Stellen nicht (zweiter Lauf in Folge)

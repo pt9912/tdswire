@@ -1,2 +1,2 @@
-**Vorgang:** [slice-betrieb-zustandsereignisse](../../../../in-progress/slice-betrieb-zustandsereignisse.md)
+**Vorgang:** [slice-betrieb-zustandsereignisse](../../../../done/slice-betrieb-zustandsereignisse.md)
 **Fund:** [Review](../../../../../../reviews/2026-11-07-b7bd620-review-slice-betrieb-zustandsereignisse.md) F-1 und I-1, [Verifikation](../../../../../../reviews/2026-11-07-b0ac40c5-verifikation-slice-betrieb-zustandsereignisse.md) (Eigene Läufe): `make gates FORCE=1` mit der Stage `test` aus dem Layer-Cache (`#22 CACHED`) und Stufe 1 von `make e2e` mit „2 s“ aus dem Cache sind kein Beleg für die Tests; Frischbelege: `make clean-build` (1107 Testfälle), `docker build --no-cache-filter smoke`, `make matrix-zitate` mit frischer Stage `test`.

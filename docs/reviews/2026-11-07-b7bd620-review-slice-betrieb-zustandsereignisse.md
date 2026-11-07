@@ -81,7 +81,7 @@ Kopie des Baums im Scratchpad, Stage `smoke` mit angepasstem Test-Filter, Gradle
 
 * kategorie: MEDIUM
 * quelle: Reviewer-Skill „Plan-Tabelle nennt die berührten Dateien nicht“
-* pfad: `docs/plan/planning/in-progress/slice-betrieb-zustandsereignisse.md` · „**Berührte Spec-Stellen:** SPEC-005 · SPEC-009 · SPEC-010 · SPEC-033 · SPEC-034 · SPEC-043 · SPEC-044 · SPEC-047“
+* pfad: `docs/plan/planning/done/slice-betrieb-zustandsereignisse.md` · „**Berührte Spec-Stellen:** SPEC-005 · SPEC-009 · SPEC-010 · SPEC-033 · SPEC-034 · SPEC-043 · SPEC-044 · SPEC-047“
 * befund: Der Diff ändert `SPEC-006`, `SPEC-007`, `SPEC-052` (Zeile des Testservers), `SPEC-059` (Prüfung der Konfiguration) und Abschnitt 4 (Ereignismodell, Redaktion); `SPEC-006`, `SPEC-007`, `SPEC-052` und `SPEC-059` stehen im Kopf nicht, `SPEC-046` und `SPEC-061` als Teil der Prüfzeile ebenso nicht. Die Plan-Tabelle in §3 ist gegen den Diff gelesen: alle berührten Dateien stehen dort, einzeln oder unter „Anpassungen bestehender Tests“ (`ConfigValidationTest`, `TelemetryEventTest`, `SecurityConfigNegativeTest`, `EnvironmentConfig.kt` nur dort); die Konfigurationstabelle und die Zuordnung *Test | Festlegung* stehen laut Slice in der Closure-Notiz, die §7 noch nicht trägt (Aufgabe des Planners).
 * verifizierbar: ja (Abgleich der `SPEC-`-IDs im Diff mit dem Kopf)
 * klasse: Plan nennt die berührten Stellen nicht
