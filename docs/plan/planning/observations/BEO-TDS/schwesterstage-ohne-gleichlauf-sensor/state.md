@@ -1,1 +1,1 @@
-**Stand:** offen — Vorschlag bestätigt (Nutzerentscheid 2026-11-06, „deine Empfehlungen“): Träger [slice-qa-test-stage-run-kopplung](../../../next/slice-qa-test-stage-run-kopplung.md); Eigene Zählung 1×.
+**Stand:** offen — Vorschlag bestätigt (Nutzerentscheid 2026-11-06, „deine Empfehlungen“): Träger [slice-qa-test-stage-run-kopplung](../../../in-progress/slice-qa-test-stage-run-kopplung.md); Eigene Zählung 1×.
