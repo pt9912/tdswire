@@ -141,5 +141,6 @@ internal class SecurityConfigNegativeTest : RuntimeTestBase() {
             sink.events.map { it.kind to it.reason },
         )
         assertEquals(server.port, sink.of<ServerStarted>().single().port)
+        assertSettingsAreShapedAsNames(sink.events)
     }
 }

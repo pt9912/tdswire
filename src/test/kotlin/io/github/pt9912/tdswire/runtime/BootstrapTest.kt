@@ -189,6 +189,7 @@ internal class BootstrapTest : RuntimeTestBase() {
         assertEquals(listOf(strong.port), sink.of<ServerStarted>().map { it.port })
         assertEquals(listOf(EventKind.CONFIG_EFFECTIVE, EventKind.SERVER_STARTED), sink.events.map { it.kind })
         val all = (weakEvents + sink.events).map { it.visibleText() }
+        assertSettingsAreShapedAsNames(weakEvents + sink.events)
         val words = listOf(WERTPROBE, "kennung", "passwort", "users", "tdswire-test", "gueltig.p12", "kennwort.txt")
         words.forEach { word ->
             assertTrue(all.none { it.contains(word) }, "Ereignis nennt $word: $all")

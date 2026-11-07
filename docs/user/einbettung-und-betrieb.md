@@ -61,7 +61,7 @@ Alle Bereiche und Voreinstellungen sind Festlegungen, nicht gemessen ([Abschnitt
 
 **Prepared-Handles.** Eine Sitzung hält höchstens `MAX_PREPARED_HANDLES` Handles zugleich (`SPEC-061`); das `sp_prepexec`, das ein Handle darüber vergäbe, endet mit `TDS_PREPARE_LIMIT` (`SPEC-058`), die Verbindung bleibt offen. Gezählt werden die gleichzeitig gehaltenen Handles: Ein Client, der geschlossene Anweisungen als SQL-Batch `EXEC sp_unprepare <n>` freigibt (mssql-jdbc 13.4.0 tut das, sobald die Antwort auf `sp_prepexec` ein RETURNSTATUS vor dem Handle trägt), macht Platz; der RPC `sp_unprepare` gibt nichts frei. Ein Handle, das die Sitzung nicht hält, ergibt bei der Freigabe den Fehler 8179 (Class 16) wie am echten SQL Server; der Server meldet höchstens die ersten 100 solcher Nummern eines Batches (der echte Server meldet nach der Messung jede Nummer, ob er begrenzt, ist nicht gemessen; `SPEC-060`). Der Speicher je Sitzung wächst mit Grenze mal Textgröße und ist nicht gemessen; wer die Grenze erhöht, trägt ihn.
 
-**Nicht einstellbar.** `MAX_TDS_PACKET_BYTES` und `MAX_MESSAGE_BYTES` sind Konstanten der Spezifikation und kein Feld der Konfiguration. Die Drosselung wiederholter Anmeldeversuche (`SPEC-053`) ist nicht konfigurierbar.
+**Nicht einstellbar.** `MAX_TDS_PACKET_BYTES` ist eine Konstante der Spezifikation und kein Feld der Konfiguration (`MAX_MESSAGE_BYTES` ist einstellbar, siehe Tabelle). Die Drosselung wiederholter Anmeldeversuche (`SPEC-053`) ist nicht konfigurierbar.
 
 ## Log und Startdiagnose
 

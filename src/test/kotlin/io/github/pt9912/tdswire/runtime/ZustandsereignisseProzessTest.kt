@@ -269,9 +269,10 @@ internal class ZustandsereignisseProzessTest : TempFilesTest() {
 
     /**
      * Ein Prozess, der nicht startet, hält keinen Listener: ein Start mit ungültiger Konfiguration auf einem freien
-     * Port lässt den Port frei, ein Verbindungsversuch scheitert, und `awaitExit` liefert den Exit-Code. Das Ende des
-     * Prozesses belegt, dass kein Thread des Servers weiterläuft (die Threads des Listeners sind Daemon-Threads, der
-     * Prozess endet über `exitProcess`).
+     * Port lässt den Port frei, ein Verbindungsversuch scheitert, und `awaitExit` liefert den Exit-Code 1. Belegt sind
+     * der freie Port und der Exit-Code; dass kein Thread des Servers weiterläuft, belegt dieser Test nicht (der Prozess
+     * endet über `exitProcess`, auch mit laufenden Threads): die Threads des Listeners halten die Tests des Listeners
+     * im Prozess des Tests.
      *
      * @spec SPEC-043
      */

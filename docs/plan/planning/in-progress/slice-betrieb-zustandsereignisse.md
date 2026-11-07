@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [TDS-FA-09](../../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose), [TDS-FA-07](../../../../spec/lastenheft.md#tds-fa-07--abbruch-und-ressourcenfreigabe), [TDS-QA-03](../../../../spec/lastenheft.md#tds-qa-03--sicherheit), [ADR-0002](../../adr/0002-tls-und-verschluesselung.md), [ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md) (`Accepted`: Ereignisarten als Entwurf, Startabbruch-Diagnose synchron, `stop()` kehrt nach dem Ereignis zum Ende zurück)
 
-**Berührte Spec-Stellen:** SPEC-005 · SPEC-009 · SPEC-010 · SPEC-033 · SPEC-034 · SPEC-043 · SPEC-044 · SPEC-047 · ARC-002 · ARC-008 · ARC-009 · [TDS-FA-09.a](../../../../spec/spezifikation.md#tds-fa-09a--konfiguration-und-diagnose)
+**Berührte Spec-Stellen:** SPEC-005 · SPEC-006 · SPEC-007 · SPEC-009 · SPEC-010 · SPEC-033 · SPEC-034 · SPEC-043 · SPEC-044 · SPEC-046 · SPEC-047 · SPEC-052 · SPEC-059 · SPEC-061 · ARC-002 · ARC-008 · ARC-009 · [TDS-FA-09.a](../../../../spec/spezifikation.md#tds-fa-09a--konfiguration-und-diagnose)
 
 **Verantwortlich:** Implementer-Agent, Auftrag des Nutzers 2026-11-07.
 

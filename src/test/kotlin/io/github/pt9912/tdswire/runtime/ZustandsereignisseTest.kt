@@ -23,11 +23,18 @@ import io.github.pt9912.tdswire.protocol.dispatch.resultStart
 import io.github.pt9912.tdswire.protocol.session.SessionVectors
 import io.github.pt9912.tdswire.testsupport.blocking
 import io.github.pt9912.tdswire.testsupport.handMessage
+import io.github.pt9912.tdswire.testsupport.handPacket
 import io.github.pt9912.tdswire.transport.listener.ConnectionEnd
 import io.github.pt9912.tdswire.transport.listener.ListenerEvent
 import io.github.pt9912.tdswire.transport.listener.eventually
 import java.time.Instant
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -37,6 +44,11 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 private const val TABULAR_TYPE = 4
+private const val GATE_SECONDS = 20L
+private const val SETTLE_MILLIS = 500L
+private const val PARTIAL_BYTES = 100
+private val STOP_KINDS =
+    setOf(EventKind.SERVER_STOPPING, EventKind.CONNECTION_CLOSED, EventKind.SERVER_STOPPED)
 private const val UNKNOWN_HANDLE_CODE = "TDS_SIM_UNKNOWN_PREPARED_HANDLE"
 
 /**
@@ -278,5 +290,70 @@ internal class ZustandsereignisseTest : RuntimeTestBase() {
         val accept = ListenerEvent.AcceptFailed("java.io.IOException")
         assertNull(accept.toStateEvent(at))
         assertEquals(EventKind.ACCEPT_FAILED, accept.toEvent(at)?.kind)
+    }
+
+    /**
+     * Zwei nebenläufige `stop` bei angehaltener Senke (sie hält den ersten Aufruf im Ereignis zum Beginn an, eine
+     * Verbindung ist offen): der zweite Aufruf kehrt nicht zurück, solange der erste nicht fertig ist, und beide kehren
+     * erst zurück, nachdem das Ereignis zum Ende abgegeben ist; die Folge ist Beginn, Ende der Verbindung, Ende, je
+     * einmal. Die Wartezeit von 500 ms gilt nur für den Fehlerfall: ein zweiter Aufruf, der nicht wartet, kehrt in
+     * ihr zurück.
+     *
+     * @spec SPEC-044
+     * @spec SPEC-059
+     */
+    @Test
+    fun `Zwei nebenlaeufige stop warten aufeinander und kehren nach dem Ende zurueck`() = blocking {
+        val entered = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val gate = TelemetrySink { event ->
+            sink.accept(event)
+            if (event.kind == EventKind.SERVER_STOPPING) {
+                entered.countDown()
+                release.await(GATE_SECONDS, TimeUnit.SECONDS)
+            }
+        }
+        val server = running(environment(), Wiring(telemetry = gate))
+        RawClient(server.port).use { client ->
+            login(client)
+            eventually("Anmeldung gemeldet") { sink.events.any { it.kind == EventKind.LOGIN_ACCEPTED } }
+            val first = launch(Dispatchers.Default) { server.stop() }
+            assertTrue(entered.await(GATE_SECONDS, TimeUnit.SECONDS), "Beginn nicht gemeldet")
+            val second = launch(Dispatchers.Default) { server.stop() }
+            delay(SETTLE_MILLIS)
+            assertTrue(second.isActive, "der zweite stop ist zurückgekehrt, bevor das Beenden fertig ist")
+            assertFalse(sink.events.any { it.kind == EventKind.SERVER_STOPPED })
+            release.countDown()
+            first.join()
+            second.join()
+        }
+        val order = kinds().filter { it in STOP_KINDS }
+        assertEquals(listOf(EventKind.SERVER_STOPPING, EventKind.CONNECTION_CLOSED, EventKind.SERVER_STOPPED), order)
+    }
+
+    /**
+     * Ein abgebrochener `stop` (eine Verbindung mit halber Nachricht hält das Beenden bis zum Ablauf von
+     * `SHUTDOWN_GRACE` an) gibt das Ereignis zum Ende nicht ab; der nächste `stop` gibt es ab, ohne ein zweites zum
+     * Beginn. Setzung des Verhaltens, beschrieben im KDoc von `stop`.
+     *
+     * @spec SPEC-044
+     * @spec SPEC-059
+     */
+    @Test
+    fun `Ein abgebrochener stop meldet das Ende erst mit dem naechsten Aufruf`() = blocking {
+        val server = running(environment())
+        RawClient(server.port).use { client ->
+            login(client)
+            client.send(handPacket(BATCH_TYPE, 0, ByteArray(PARTIAL_BYTES)))
+            delay(SETTLE_MILLIS)
+            val first = launch(Dispatchers.Default) { server.stop() }
+            eventually("Beginn gemeldet") { sink.events.any { it.kind == EventKind.SERVER_STOPPING } }
+            first.cancelAndJoin()
+            assertTrue(first.isCancelled, "der Aufruf war schon fertig, der Test belegt nichts")
+            assertFalse(sink.events.any { it.kind == EventKind.SERVER_STOPPED })
+            server.stop()
+            assertEquals(1, kinds().count { it == EventKind.SERVER_STOPPING })
+            assertEquals(1, kinds().count { it == EventKind.SERVER_STOPPED })
+        }
     }
 }

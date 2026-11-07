@@ -142,6 +142,22 @@ internal class TelemetryRedactionTest : RuntimeTestBase() {
     }
 
     /**
+     * Die Einstellungen im Ereignis der wirksamen Konfiguration sind nur Zahlen, Namen und Schalter, auch wenn Pfade,
+     * Benutzerliste und Namen Prüfwörter tragen; kein Wert nennt ein Prüfwort.
+     *
+     * @spec SPEC-048
+     */
+    @Test
+    fun `Die Einstellungen der wirksamen Konfiguration nennen weder Pfad noch Liste`() = blocking {
+        markers.forEach { marker ->
+            sink.events.clear()
+            running(loopbackEnvironment(file("users-$marker.txt", "alice-$marker\t{plain}pw-$marker\n")))
+            assertSettingsAreShapedAsNames(sink.events)
+            assertTrue(sink.events.none { it.visibleText().contains(marker) }, "Ereignis nennt $marker")
+        }
+    }
+
+    /**
      * Anfrage: SQL-Text, Parameterwert und der Text der Ausnahme oder des Backend-Fehlers tragen je Lauf eine andere
      * Marke; kein Ereignis nennt sie. Das Ereignis der Antwort nennt Code und Typname der Ausnahme.
      *

@@ -53,7 +53,10 @@ public enum class EventKind {
      */
     SERVER_STARTED,
 
-    /** Der Server ist beendet; genau ein Ereignis je Server, nach dem Ende jeder Verbindung. Ebene `INFO`. */
+    /**
+     * Der Server ist beendet; höchstens ein Ereignis je Server, nach dem Ende jeder Verbindung. Bricht der Aufruf von
+     * `TdsServer.stop` ab, bevor das Beenden fertig ist, kommt es erst mit dem nächsten Aufruf. Ebene `INFO`.
+     */
     SERVER_STOPPED,
 
     /**
@@ -136,7 +139,9 @@ public enum class EventKind {
 
     /**
      * Die Konfiguration, mit der der Server läuft; [TelemetryEvent.settings] nennt Schlüssel und Wert, nie Pfad,
-     * Prüfwert, Passwort oder Benutzerliste. Genau ein Ereignis je Start, vor [SERVER_STARTED]. Ebene `INFO`.
+     * Prüfwert, Passwort oder Benutzerliste. Genau ein Ereignis je Start, vor [SERVER_STARTED];
+     * beide kommen nach dem Binden, ein Client auf einem festen Port kann davor [CONNECTION_OPENED] auslösen
+     * (Reihenfolge dort nicht gemessen). Ebene `INFO`.
      */
     CONFIG_EFFECTIVE,
 

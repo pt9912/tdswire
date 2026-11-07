@@ -1203,10 +1203,11 @@ Der Server schreibt kein Log; er gibt Ereignisse an die Senke, die `TdsServer.st
 `SPEC-059`). Ohne Senke entsteht kein Ereignis. Die folgenden Festlegungen sind Setzungen, nicht gemessen,
 soweit nicht anders genannt; sie gelten für das Modell der Bibliothek und damit für jeden Adapter:
 
-- **Ereignismodell:** eine geschlossene Menge von Ereignisarten, kein Freitextfeld. Die einzige öffentliche
+- **Ereignismodell:** eine geschlossene Menge von Ereignisarten, kein Freitextfeld (das Feld `settings` ist eine Abbildung von
+  Schlüssel auf Wert, die die Bibliothek aus Zahlen, Namen von Aufzählungen und Schaltern baut, nie aus Eingabe). Die einzige öffentliche
   Ereignisklasse ist `TelemetryEvent`; die Art steht im Feld `kind` (Aufzählung `EventKind`, der Name ist eine
   Setzung). Die Felder einer Art sind Felder derselben Klasse und `null`, wo die Art sie nicht trägt; typisiert sind
-  sie nach dem Feld (`port`, `tables` als Zahl, die übrigen als Text), nicht je Art. Die Klassen je Art sind nicht
+  sie nach dem Feld (`port`, `tables` als Zahl, `settings` als Abbildung von Text auf Text, die übrigen als Text), nicht je Art. Die Klassen je Art sind nicht
   öffentlich; ein `when` über `kind` ist vollständig, solange die Menge dieselbe bleibt, und jede neue Art bricht es
   bei der Übersetzung (Preis dieses Zuschnitts, gegenüber je einer öffentlichen Klasse je Art). `level` (`ERROR`, `WARN`, `INFO`, `DEBUG`) ist je Ereignisart fest. `ts` ist der
   Zeitpunkt des Ereignisses in UTC aus dem Zeitgeber der Bibliothek; die Darstellung über UTC hinaus
@@ -1214,9 +1215,10 @@ soweit nicht anders genannt; sie gelten für das Modell der Bibliothek und damit
 - **Ereignisarten (gebaut; die Menge ist je Stand geschlossen; Konstanten von `EventKind`, Felder in Klammern):**
   wirksame Konfiguration (`CONFIG_EFFECTIVE`: `settings`, je Einstellung Schlüssel und Wert: Zahlen, Namen von
   Aufzählungen und Schalter, für den Schlüsselspeicher nur `SET` oder `UNSET`, nie Pfad, Inhalt, Passwort oder
-  Benutzerliste; genau ein Ereignis je Start, vor `SERVER_STARTED`); Start (`SERVER_STARTED`: `address`, die
+  Benutzerliste; genau ein Ereignis je Start, vor `SERVER_STARTED`; beide werden nach dem Binden abgegeben, ein Client mit festem Port kann davor `CONNECTION_OPENED` auslösen, gemessen ist die Reihenfolge dort nicht); Start (`SERVER_STARTED`: `address`, die
   konfigurierte Bind-Adresse, und `port`, der gebundene), Beginn (`SERVER_STOPPING`) und Ende (`SERVER_STOPPED`) des
-  Beendens, das Ende nach dem Ende jeder Verbindung; Verbindung angenommen (`CONNECTION_OPENED`, auch eine, die der
+  Beendens, das Ende nach dem Ende jeder Verbindung (höchstens ein Ereignis je Server; bricht der Aufruf von `stop` ab,
+  kommt es mit dem nächsten Aufruf, dann möglicherweise vor dem `CONNECTION_CLOSED` einer noch endenden Verbindung); Verbindung angenommen (`CONNECTION_OPENED`, auch eine, die der
   Listener sofort abweist) und beendet (`CONNECTION_CLOSED`: `reason` ist die Art des Endes `HANDLER_RETURNED`,
   `HANDLER_FAILED`, `LOGIN_TIMEOUT`, `SHUTDOWN`, `SHUTDOWN_GRACE_EXPIRED`, `REFUSED_AT_SHUTDOWN` oder
   `REFUSED_AT_LIMIT`; genau ein Ereignis je Verbindung, ohne `session_id` und mit dem Profil `unknown`, weil der
@@ -1266,7 +1268,7 @@ soweit nicht anders genannt; sie gelten für das Modell der Bibliothek und damit
   (Grenze, gebaut); wer eine Senke teilt, übergibt jedem Server eine Hülle, die den Server kennzeichnet.
 - **Redaktion durch Bauart:** Passwort, Prüfwert, Parameterwert, SQL-Text, Pfad und Ausnahmetext
   haben im Modell kein Feld; es gibt keinen Schalter, der Parameterwerte zuließe. Zeichenketten
-  stehen in `principal`, in der Adresse des Bindefehlers, im Typnamen einer Ausnahme oder der festen Marke des
+  stehen in `principal`, in der Adresse des Bindefehlers und in der Bind-Adresse von `SERVER_STARTED` (Konfigurationswert, Betriebsangabe), in Schlüsseln und Werten von `settings` (Zahlen, Namen von Aufzählungen, `true`/`false`, `SET`/`UNSET`), im Typnamen einer Ausnahme oder der festen Marke des
   Anlasses (`cause`), im Schlüsselnamen und der Art der Konfiguration, in Teil und Form der TLS-Diagnose und in der
   Art des Handschlag-Fehlers; die Wertemengen von `part`, `issueKind`, `failure` und `errorCode` sind die Namen interner
   Konstanten und nicht zugesagt; das ist keine geschlossene Menge (ob weitere Felder, etwa die Quelladresse der
@@ -1621,7 +1623,7 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | Teil | Inhalt |
 |---|---|
 | `TdsServer.start(config, source, telemetry)` | suspendierend, Package `runtime`; liefert `StartOutcome`: `Running(server)` oder `Aborted(reason, issues)`. Der Start wirft keine Ausnahme für Konfigurations-, Tabellen-, TLS- oder Bindefehler. `start` nimmt als dritten Parameter `telemetry: TelemetrySink` entgegen, Voreinstellung `TelemetrySink.NONE` (Abschnitt 5). |
-| `TdsServer` | `port` (der gebundene Port) und `suspend stop()`. `stop` beginnt das geordnete Beenden (`SPEC-044`) und kehrt zurück, wenn alle Verbindungen beendet sind. `stop` ist idempotent: der zweite Aufruf endet ohne Wirkung (Test: Einbettungstest, nacheinander aus einem Thread). Aufruf von mehreren Threads und `stop` während `start` sind nicht festgelegt. |
+| `TdsServer` | `port` (der gebundene Port) und `suspend stop()`. `stop` beginnt das geordnete Beenden (`SPEC-044`) und kehrt zurück, wenn alle Verbindungen beendet sind. `stop` ist idempotent: der zweite Aufruf endet ohne Wirkung (Test: Einbettungstest, nacheinander aus einem Thread). Nebenläufige Aufrufe sind gegeneinander gesperrt: der zweite wartet auf den ersten und kehrt nach dem Ereignis `SERVER_STOPPED` zurück (Test: `ZustandsereignisseTest`, zwei Aufrufe bei angehaltener Senke). Wird ein Aufruf abgebrochen, gibt der nächste das Ereignis zum Ende ab. `stop` während `start` ist nicht festgelegt. |
 | `BackendSource` | `Custom(backend)`: ein `QueryBackend`, auch ein selbst gebautes `SimulationBackend(SimCatalog(tables))` (`SPEC-035`); `Simulation(tables)`: `SimTable`-Werte mit Zeilenquelle und Callbacks (`SPEC-035`); `None`: wie `Simulation` mit leerer Liste. `Custom` mit Tabellen ist nicht darstellbar. Die Bibliothek kennt keine Datei der Tabellenbeschreibung; den Weg über die Datei geht der Testserver (`SPEC-035`). |
 | `StartOutcome.Aborted` | `reason` ist ein Text ohne Pfad, Ausnahmetext, Schlüsselmaterial und Kennwort; beim Bindefehler nennt er Adresse und Port; `issues` nennt bei ungültiger Konfiguration jeden Fehler mit Schlüssel und Art (`ConfigIssue`), sonst ist die Liste leer. Festlegung: `ConfigIssue` ist als Typ der Signatur Teil der Zusage und die Art (`IssueKind`) ebenso; der Wortlaut des Schlüssels (ein Text, der das Konfigurationsfeld nennt) ist keine Zusage, ein Einbettender verlässt sich nicht auf bestimmte Namen. Der gebaute Stand führt dafür die Namen der Umgebungsvariablen (`SPEC-005`, `SPEC-010`). Ein Abbruch bindet keinen Port und startet keinen Thread des Servers. |
 | Prüfung | Der Start prüft die Konfiguration, gleich auf welchem Weg sie entstand (die Prüfung ist nicht öffentlich; ihre Befunde sind `StartOutcome.Aborted.issues`): `REQUIRED` verlangt Schlüsselspeicher und Passwort, `TEST_UNENCRYPTED` lässt beide nicht zu (`SPEC-010`); Port 0 bis 65535 (`SPEC-005`), Anmeldefrist 1 bis 3600 s (`SPEC-008`), Frist einer Anfrage und Frist des Abbruchs je 1 bis 3600 s (`SPEC-009`, `SPEC-033`), Frist des geordneten Beendens 0 bis 3600 s (`SPEC-047`), Zahl der Verbindungen 1 bis 100000 (`SPEC-034`), Größe einer Nachricht nach dem Login 65535 bis 268435456 Byte (`SPEC-007`), Zahl der Prepared-Handles je Sitzung 1 bis 100000 (`SPEC-061`), Größe der PRELOGIN-Nachricht 512 bis 65536 Byte (`SPEC-046`), Bind-Adresse nicht leer. Die Voreinstellungen von `ListenSettings` (`MAX_CONNECTIONS` 1000), `LoginSettings`, `RequestSettings` (`ServerConfig.requests`: `QUERY_TIMEOUT` 30 s, `CANCEL_TIMEOUT` 5 s, `SHUTDOWN_GRACE` 10 s, `MAX_PREPARED_HANDLES` 1000, `MAX_MESSAGE_BYTES` 16 MiB) und der Verschlüsselung sind die der Spezifikation; ein Einbettender ohne Angabe bekommt also nach 30 s `TDS_TIMEOUT` für eine Anfrage. Umgebung und Dateien liest nicht die Bibliothek, sondern der Testserver; er baut eine `ServerConfig` und ruft `TdsServer.start` wie ein Einbettender (`SPEC-052`). |
