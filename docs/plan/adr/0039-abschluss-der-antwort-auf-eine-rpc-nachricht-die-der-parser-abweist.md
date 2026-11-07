@@ -1,14 +1,14 @@
 # ADR-0039: Abschluss der Antwort auf eine RPC-Nachricht, die der Parser abweist
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-11-06
 
-**Autor:** Architect (Entwurf; Entscheidung beim Nutzer)
+**Autor:** Architect (Entwurf); Entscheidung: pt9912 (Nutzer)
 
 **Bezug:** [TDS-FA-10](../../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte), [TDS-FA-06](../../../spec/lastenheft.md#tds-fa-06--fehler-und-abschlusszustände), [TDS-QA-01](../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [ADR-0007](0007-fehler-und-attention.md), [ADR-0038](0038-abschluss-einer-rpc-antwort-im-fehlerfall-folgt-dem-echten-server.md)
 
-**Schärft:** [ADR-0038](0038-abschluss-einer-rpc-antwort-im-fehlerfall-folgt-dem-echten-server.md) Entscheidung 1 und 5 (Abschluss der Antwort auf eine ungültig kodierte RPC-Nachricht); über sie [SPEC-030](../../../spec/spezifikation.md#spec-030--rpc-varianten-und-parameter-metadaten) (Abschluss der RPC-Antwort im Fehlerfall). `SPEC-011` und `SPEC-013` stehen als Zeilen in [§4 der Spezifikation](../../../spec/spezifikation.md#4-fehler-codes-und-logging-felder). Kein `Supersedes` im Entwurf; Option B würde [ADR-0038](0038-abschluss-einer-rpc-antwort-im-fehlerfall-folgt-dem-echten-server.md) Entscheidung 1 für einen Teilbereich ersetzen und trüge dann `Supersedes (teilweise)`, wie [ADR-0037](0037-sp-unprepare-unbekanntes-handle-ergibt-fehler-8179.md) es für [ADR-0036](0036-handle-freigabe-und-grenze-je-sitzung.md) tut.
+**Schärft:** [ADR-0038](0038-abschluss-einer-rpc-antwort-im-fehlerfall-folgt-dem-echten-server.md) Entscheidung 1 und 5 (Abschluss der Antwort auf eine ungültig kodierte RPC-Nachricht); über sie [SPEC-030](../../../spec/spezifikation.md#spec-030--rpc-varianten-und-parameter-metadaten) (Abschluss der RPC-Antwort im Fehlerfall). `SPEC-011` und `SPEC-013` stehen als Zeilen in [§4 der Spezifikation](../../../spec/spezifikation.md#4-fehler-codes-und-logging-felder). **Supersedes (teilweise), nur wörtlich benannt; die Datei des Vorgängers bleibt unverändert und `Accepted` ([AGENTS.md](../../../AGENTS.md) §3.5):** [ADR-0038](0038-abschluss-einer-rpc-antwort-im-fehlerfall-folgt-dem-echten-server.md) Entscheidung 1, **nur** für Fehler, die entstehen, bevor die Nachricht als RPC mit bekannter Prozedur gelesen ist (Struktur- und Kodierfehler, `SPEC-011`): für sie gilt nicht „Abschluss ist DONEPROC, nie DONE“, sondern ERROR und DONE wie beim SQL_BATCH. Es bleiben: DONEPROC für jeden Fehler nach dem Erkennen der Prozedur und alle übrigen Entscheidungen von ADR-0038 (wie [ADR-0037](0037-sp-unprepare-unbekanntes-handle-ergibt-fehler-8179.md) es für [ADR-0036](0036-handle-freigabe-und-grenze-je-sitzung.md) tut).
 
 ---
 
@@ -34,7 +34,13 @@
 
 ## Entscheidung
 
-**Entwurf, keine Entscheidung.** Der Nutzer wählt. Die Empfehlung steht unter den Alternativen. Nach der Wahl wird dieser Abschnitt auf die gewählte Option und ihre Folgepflicht verkürzt; bis dahin gilt [ADR-0038](0038-abschluss-einer-rpc-antwort-im-fehlerfall-folgt-dem-echten-server.md) im Wortlaut, und der Bau weicht davon im Fall des Parserfehlers ab (Befund F-1, merge-blockierend).
+Wir wählen **Option B** (Nutzerentscheid vom 2026-11-07, bestätigt die Empfehlung des Architects): Die Trennlinie wird festgeschrieben, als **Setzung, nicht als Messbefund** (P4: eine Antwort des echten Servers auf eine ungültig kodierte RPC-Nachricht ist nicht gemessen; `AGENTS.md` §3.8).
+
+1. **Struktur- und Kodierfehler** (Fehler, die entstehen, bevor die Nachricht als RPC mit bekannter Prozedur gelesen ist, `SPEC-011`) enden wie die Antwort auf einen SQL_BATCH: ERROR und DONE mit Fehlerstatus.
+2. **Fehler nach dem Erkennen der Prozedur** (`SPEC-013`, Fehler des Backends, interne Fehler) enden auf DONEPROC ([ADR-0038](0038-abschluss-einer-rpc-antwort-im-fehlerfall-folgt-dem-echten-server.md) Entscheidung 1 bis 4 unverändert).
+3. **Mehrfach-RPC** (mehrere RPCs in einer Nachricht) wird der Seite ERROR und DONE zugeordnet: der Server liest die Nachricht als Ganzes nicht (erste Prozedur erkannt, Rest nicht lesbar). Am echten Server ist der Mehrfach-RPC gültig (P3); die Ablehnung ist eine Fähigkeitsgrenze dieses Servers. Die Unterstützung mehrerer RPCs ist ein eigenes Planungsthema ([slice-mehrfach-rpc-unterstuetzen](../planning/open/slice-mehrfach-rpc-unterstuetzen.md)).
+4. **Kein Messauftrag.** Der optionale Messauftrag zu B entfällt (Nutzerentscheid 2026-11-07); die Linie bleibt Setzung, das Negativ ist akzeptiert, solange kein Verbraucher die Form braucht.
+5. **Kein Bau, kein Test:** der Code (`RequestLoop.answerRpc`) folgt der Linie schon; der Test `Mehrere_RPCs_in_einer_Nachricht_enden_mit_Protokollfehler_und_geschlossener_Verbindung` bleibt grün.
 
 ## Verglichene Alternativen
 
@@ -60,14 +66,14 @@ Gewichtet der Nutzer „eine Regel ohne Sonderfall“ höher als den Aufwand, is
 
 Gemeinsam, unabhängig von der Wahl:
 
-- Die Zeile der Spezifikation „endet dagegen in ERROR und DONE (nicht gemessen; Setzung)“ ist bis zur Annahme eine unentschiedene Abweichung (Reviewer-Befund F-1); nach `Accepted` verweist sie auf diese ADR oder wird zurückgebaut.
+- `SPEC-030` nennt die Linie als Festlegung (Setzung, nicht gemessen) und ordnet den Mehrfach-RPC der Seite ERROR und DONE zu; die Spezifikation trägt keinen Verweis auf diese ADR (Sicht- und Vertragsstraten nennen keine ADR, `AGENTS.md` §3.4 für die Sicht, die ADR deklariert ihr `Schärft`-Feld).
 - Die angenommene [ADR-0038](0038-abschluss-einer-rpc-antwort-im-fehlerfall-folgt-dem-echten-server.md) bleibt unverändert (AGENTS.md §3.5).
 - Betroffen sind nur Nachrichten, die der Parser abweist; `SPEC-013`, Backend-Fehler und interne Fehler bleiben DONEPROC (ADR-0038 Entscheidung 1).
 
 Je Option:
 
 - **A.** Bau: `answerRpc` mit `form = RPC` für Parserfehler; Fehlerweg so, dass der Client eine `SqlException` bekommt. **Prüfauftrag vor Annahme (Vorversuch, kein Bau):** `make kompatibilitaet KATEGORIE=Luecken` mit der Änderung, Meldungstext der `InvalidOperationException` lesen, Verbindungsschluss vor und nach dem Schreiben ausprobieren; Ergebnis als Messzeile in die ADR. Gelingt es nicht, fällt A weg oder verlangt eine ADR zur Test-Abschwächung. Spec: „endet dagegen in ERROR und DONE“ entfällt.
-- **B.** Die Annahme trägt `Supersedes (teilweise) ADR-0038 Entscheidung 1` für Struktur- und Kodierfehler. Spec: die Zeile erhält den Verweis auf diese ADR und die Zuordnung des Mehrfach-RPC. **Messauftrag (optional, nicht Voraussetzung der Annahme):** eine ungültig kodierte RPC-Nachricht (zum Beispiel Typkennung außerhalb der Typliste) per Rohbytes-Client gegen den echten SQL Server (2022, 2025) senden und die Antwort aufzeichnen; der Referenzclient kann das nicht, der Rohbytes-Weg des Smoke-Tests deckt PRELOGIN und LOGIN7 und müsste um eine RPC-Nachricht erweitert werden. Der Aufwand steht in keinem Verhältnis zum Nutzen (Parserfehler kommen von Clients, die ungültige Nachrichten senden, nicht von den Referenzclients); **akzeptiertes Negativ**, solange kein Verbraucher die Form braucht. Kein Bau, kein Test.
+- **B (gewählt).** Die Annahme trägt `Supersedes (teilweise) ADR-0038 Entscheidung 1` für Struktur- und Kodierfehler. Spec: die Zeile in `SPEC-030` nennt die Linie und die Zuordnung des Mehrfach-RPC. Ein Messauftrag entfällt (Nutzerentscheid 2026-11-07): eine ungültig kodierte RPC-Nachricht per Rohbytes-Client gegen den echten Server zu senden, stünde in keinem Verhältnis zum Nutzen (Parserfehler kommen von Clients, die ungültige Nachrichten senden, nicht von den Referenzclients); akzeptiertes Negativ, solange kein Verbraucher die Form braucht. Kein Bau, kein Test.
 - **C.** Wie A, plus: eine benannte Ausnahme im Code und in der Spezifikation für den Mehrfach-RPC, ein Träger für ihr Auslaufen, der Prüfauftrag aus A für den Rest.
 
 ## Fitness Function (falls maschinell prüfbar)
@@ -79,9 +85,7 @@ Je Option:
 
 ## Offen
 
-- Wahl der Option durch den Nutzer.
-- Soll der Mehrfach-RPC (am echten Server gültig) unterstützt werden? Das löst die Frage für diesen Fall auf; es ist ein Anforderungs- und Planungsthema, kein Gegenstand dieser ADR.
-- Messauftrag zu B: lohnt der Aufwand, oder bleibt die Linie als Setzung stehen (Vorschlag: Setzung, siehe Konsequenzen)?
+- Soll der Mehrfach-RPC (am echten Server gültig) unterstützt werden? Das löst die Frage für diesen Fall auf; Träger: [slice-mehrfach-rpc-unterstuetzen](../planning/open/slice-mehrfach-rpc-unterstuetzen.md) (`open/`, Eingang: am echten Server ist `UpdateBatchSize 2` gültig).
 - Nicht gemessen: jede Antwort des echten Servers auf eine ungültig kodierte RPC-Nachricht (P4); der Mechanismus hinter P1 (P5).
 
 ## Re-Evaluierungs-Trigger
@@ -93,6 +97,7 @@ Eine Messung einer ungültig kodierten RPC-Nachricht am echten SQL Server; die U
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-11-06 | Proposed – Entwurf zum Review-Befund F-1 des Bau-Slice zur Angleichung der Antwort-Tokens an die Messung; Wahl steht aus | [ADR-0038](0038-abschluss-einer-rpc-antwort-im-fehlerfall-folgt-dem-echten-server.md) |
+| 2026-11-07 | Accepted – Option B (Trennlinie als Setzung, Mehrfach-RPC auf der Seite ERROR und DONE, kein Messauftrag); Quelle: Nutzerentscheid | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit
