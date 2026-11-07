@@ -69,7 +69,7 @@ Stand: 45 von 58 Festlegungen mit mindestens einem bestandenen Test, 4 Gate-Fest
 | `SPEC-061` | `MAX_PREPARED_HANDLES` | 3 | 0 | 0 | 0 | HandleLimitEmbeddingTest, ConfigLoaderTest | mindestens ein bestandener getaggter Test |
 | `SPEC-053` | Drosselung wiederholter Anmeldeversuche | 23 | 0 | 0 | 0 | LoginThrottleDriverTest, LoginThrottleTest, LoginThrottleTimingTest, LoginThrottleWiringTest | mindestens ein bestandener getaggter Test |
 | `SPEC-011` | `TDS_PROTOCOL_ERROR` | 9 | 0 | 0 | 0 | DispatchFailureTest, RpcDispatchTest, ErrorMapperTest, PreloginCodecTest, TokenEncoderTest, MessageAssemblerTest, PacketHeaderTest | mindestens ein bestandener getaggter Test |
-| `SPEC-012` | `TDS_LOGIN_FAILED` | 35 | 0 | 0 | 1 | TelemetryEmbeddingTest, TelemetryFelderEmbeddingTest, UserListAuthAdapterTest, TelemetryEventTest, ErrorMapperTest, HandshakeDriverTest, HandshakeTransportTest, LoginAdmissionTest, LoginPathTextTest, LoginResponseTest, LoginThrottleDriverTest, LoginLogInspectionTest, LoginThrottleWiringTest, ServerSmokeTest, TelemetryRedactionTest, TestserverLogProcessTest, LogStartTest, TelemetryJsonTest | mindestens ein bestandener getaggter Test |
+| `SPEC-012` | `TDS_LOGIN_FAILED` | 36 | 0 | 0 | 0 | TelemetryEmbeddingTest, TelemetryFelderEmbeddingTest, UserListAuthAdapterTest, TelemetryEventTest, ErrorMapperTest, HandshakeDriverTest, HandshakeTransportTest, LoginAdmissionTest, LoginPathTextTest, LoginResponseTest, LoginThrottleDriverTest, LoginLogInspectionTest, LoginThrottleWiringTest, ServerSmokeTest, TelemetryRedactionTest, TestserverLogProcessTest, LogStartTest, TelemetryJsonTest | mindestens ein bestandener getaggter Test |
 | `SPEC-013` | `TDS_UNSUPPORTED_RPC` | 12 | 0 | 0 | 0 | PreparedHandlesDispatchTest, RequestSequenceTest, RpcBinderTest, RpcDispatchTest, UnprepareDispatchTest, ErrorMapperTest | mindestens ein bestandener getaggter Test |
 | `SPEC-014` | `TDS_UNSUPPORTED_TYPE` | 27 | 0 | 0 | 0 | AnswerFormsDispatchTest, DispatchFailureTest, ErrorMapperTest, ResponseErrorMapperTest, ResponseFailureTest, ResponseMappingTest, ColumnMappingTest, MappingFuzzTest, ValueMappingTest, DecimalValuesTest, TokenEncoderTest | mindestens ein bestandener getaggter Test |
 | `SPEC-015` | `TDS_BACKEND_ERROR` | 6 | 0 | 0 | 0 | ErrorMapperTest, ResponseErrorMapperTest | mindestens ein bestandener getaggter Test |
@@ -98,7 +98,7 @@ Stand: 45 von 58 Festlegungen mit mindestens einem bestandenen Test, 4 Gate-Fest
 | `SPEC-040` | Simulations-Tests (`make simulations-integration` im E2E-Durchgang) | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
 | `SPEC-041` | Static-Analysis-Gate (`make detekt`, `make detekt-selbsttest`) | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
 | `SPEC-042` | Build-Gate (`make build`) | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
-| `SPEC-052` | Bibliotheks-Artefakt und Lizenz (E2E-Durchgang: `make laufzeittest` mit dem Testserver; der Tag `@spec` nennt nur den Lizenztext) | 29 | 0 | 0 | 1 | LizenzTest, TestserverLogProcessTest, LogAdapterTest, LogLevelSettingTest, LogStartTest, TelemetryJsonTest, TestserverStartTest | mindestens ein bestandener getaggter Test |
+| `SPEC-052` | Bibliotheks-Artefakt und Lizenz (E2E-Durchgang: `make laufzeittest` mit dem Testserver; der Tag `@spec` nennt nur den Lizenztext) | 30 | 0 | 0 | 0 | LizenzTest, TestserverLogProcessTest, LogAdapterTest, LogLevelSettingTest, LogStartTest, TelemetryJsonTest, TestserverStartTest | mindestens ein bestandener getaggter Test |
 | `SPEC-050` | Referenzabgleich (vorläufig, E2E-Durchgang) | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-032` | Kompatibilitätstest (E2E-Durchgang) | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 
@@ -115,8 +115,6 @@ Stand: 45 von 58 Festlegungen mit mindestens einem bestandenen Test, 4 Gate-Fest
 | `SPEC-031` | `io.github.pt9912.tdswire.port..Generator laeuft waehrend der Wartezeit des Lesers nicht voraus` | nicht gelaufen (kein Ergebnis im Bericht) |
 | `SPEC-031` | `io.github.pt9912.tdswire.port..close beendet den laufenden Strom an der Zeilenquelle` | nicht gelaufen (kein Ergebnis im Bericht) |
 | `SPEC-031` | `io.github.pt9912.tdswire.port..cancel beendet den laufenden Strom an der Zeilenquelle` | nicht gelaufen (kein Ergebnis im Bericht) |
-| `SPEC-012` | `io.github.pt9912.tdswire.testserver.TelemetryJsonTest.Die Kennung der Annahme steht escaped im Feld principal` | rot |
-| `SPEC-052` | `io.github.pt9912.tdswire.testserver.TelemetryJsonTest.Die Kennung der Annahme steht escaped im Feld principal` | rot |
 | `SPEC-045` | `TdsWire.Referenztests.Mitschnitt.Schreibstrom.Der_Proxy_schreibt_jedes_TDS_Paket_in_einem_eigenen_Schreibvorgang_gleich_wie_die_Lesevorgaenge_geschnitten_sind` | nicht gelaufen (kein Ergebnis im Bericht) |
 | `SPEC-045` | `TdsWire.Referenztests.Mitschnitt.Schreibstrom.Der_Proxy_haelt_ein_unvollstaendiges_Paket_zurueck_und_reicht_einen_Strom_ohne_TDS_Kopf_roh_weiter` | nicht gelaufen (kein Ergebnis im Bericht) |
 | `SPEC-045` | `TdsWire.Referenztests.Vergleich.Lauf.Die_Messreihe_Bulk_Merge_Katalog_laeuft_ueber_den_TlsProxy_und_die_Ablage_ist_frei_von_Zugangsdaten` | nicht gelaufen (kein Ergebnis im Bericht) |

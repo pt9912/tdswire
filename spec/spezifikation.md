@@ -307,7 +307,13 @@ Text. Jeder andere Text geht an das Backend (`SPEC-002`).
 
 Massenladen (Pakettyp `BULK_LOAD`, `0x07`; die Antworten sind mit `SqlBulkCopy` am echten Server gemessen, Messprotokoll M-8 bis M-12
 des Referenzabgleichs, `Microsoft.Data.SqlClient` 7.1.1, Instanz 2022 und 2025, ein Fall je Zeile; was die Messung nicht
-stützt, ist Setzung und so benannt): eine Nachricht `0x07`
+stützt, ist Setzung und so benannt. **Grenze der Messung:** gemessen ist die Form der Antworten an `SqlBulkCopy`; die Nutzlast von
+`SqlBulkCopy` liest die Bibliothek heute nicht: der Referenzclient sendet nicht nullbare Spalten als feste Typen (die erste
+Spalte der Messreihe als BIGINT fest, Typkennung `0x7f`), der Leser kennt nur die nullbaren Formen, und alle 10 aufgezeichneten
+Nachrichten `0x07` des Referenzclients (Messreihe M-8 bis M-12) weist er mit dem Fehler des Parsers ab; auch den Katalog-Batch,
+mit dem `SqlBulkCopy` das Massenladen beginnt, beantwortet das Simulations-Backend nicht. Der Lader ist mit mssql-jdbc
+(d-migrate 1.12.0) belegt, nicht mit dem Referenzclient; die Annahme der Nutzlast von `SqlBulkCopy` ist eine bekannte Lücke gegen das
+Zielbild des echten Servers): eine Nachricht `0x07`
 ist eine Anfrage wie SQL_BATCH und RPC (`RUNNING`, Antwort mit `RequestFinished`). Der Sitzungsrahmen hält den Zustand
 „Massenladen erwartet“: ein SQL_BATCH, dessen Text ein `INSERT BULK` ist (`SPEC-036`, Form B), setzt das Ziel, wenn das
 Backend das Massenladen trägt (heute das Simulations-Backend); jede folgende Nachricht `0x07` lädt in dieses Ziel, und jede
@@ -898,7 +904,7 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   nimmt `CREATE TABLE` an und schließt die Verbindung nicht (Test `TableStoreTest`, `make e2e` Stufe 1 meldet den Login
   ohne Datei). Der Bestand des Testservers nimmt höchstens 2 097 152 Zellen (Zeilen mal Spalten, über alle
   Tabellen) auf; eine Nachricht des Massenladens darüber weist der Bestand ab wie jede andere abgewiesene Nachricht
-  (`TDS_BACKEND_ERROR`, der Bestand bleibt unverändert), statt dass der Prozess mit `OutOfMemoryError` endet (Setzung,
+  (wie jeden Fehler des Callbacks einer Nachricht `0x07` meldet die Bibliothek das als 2627, `SPEC-036`; der Bestand bleibt unverändert), statt dass der Prozess mit `OutOfMemoryError` endet (Setzung,
   nicht am Server gemessen; der Wert ist nicht am Heap gemessen, ein kleinerer Heap als die Zellen brauchen endet weiter
   mit `OutOfMemoryError`; `ALTER TABLE … ADD` auf einer gefüllten Tabelle prüft die Grenze nicht; `TableStoreTest`).
   `SimColumn.maxLength` wirkt nicht auf das Massenladen: ein Text über der Länge der Beschreibung wird angenommen, die

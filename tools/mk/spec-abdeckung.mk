@@ -10,7 +10,11 @@
 # `test-bericht-export` von referenztest-dotnet/Dockerfile mit `--no-cache-filter test-bericht`, die die C#-Tests der Stage
 # `test` bei jedem Aufruf neu ausfuehrt (der Restore bleibt im Cache) und den TRX-Bericht auch bei roten Tests herausgibt;
 # dann die Wurzel-Stage `spec-abdeckung-export` mit diesem Bericht als benanntem Build-Kontext `dotnet-bericht`. Der Gradle-Teil
-# haengt weiter am Layer-Cache seiner Quellen (`BEO-TDS/abdeckungsmatrix-veraltet-ohne-sensor`). Die Stage fuehrt die Tests aus
+# haengt am Layer-Cache seiner Quellen (`BEO-TDS/abdeckungsmatrix-veraltet-ohne-sensor`): bei unveraenderten Quellen kommt der
+# Testlauf der Gradle-Stage aus dem Cache, auch wenn er einen roten Test (Flake) enthielt, und `make spec-abdeckung` meldet dann
+# „unveraendert“, ohne ihn zu pruefen. Frischlauf der Gradle-Stage ohne Cache:
+# `docker build --target spec-abdeckung-export --no-cache-filter spec-abdeckung --build-context dotnet-bericht=<Ablage> ...`
+# (die Ablage mit dem TRX-Bericht entsteht im ersten Build des Rezepts unten). Die Stage fuehrt die Tests aus
 # und gibt Matrix und Waisenzahl per --output in ein
 # temporaeres Verzeichnis ausserhalb des Repos (`mktemp -d`, Modus 700); das Doku-Gate liest es nie, und
 # der trap raeumt es bei Erfolg, Fehler und Abbruch weg. Gemountet wird nichts. Die zwei Tests von `LAUF=mitschnitt`

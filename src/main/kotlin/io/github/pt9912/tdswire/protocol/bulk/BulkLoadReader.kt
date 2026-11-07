@@ -26,6 +26,11 @@ import io.github.pt9912.tdswire.protocol.wire.violation
  * [ProtocolFailure] ab, ebenso eine Nachricht ohne COLMETADATA, mit Zeilen, aber ohne DONE, und eine, die hinter dem
  * DONE weitergeht.
  *
+ * Grenze: die Nutzlast des Referenzclients (`SqlBulkCopy`) liest dieser Leser nicht. Der Referenzclient sendet nicht
+ * nullbare Spalten als feste Typen (die erste Spalte der Messreihe als BIGINT fest, Typkennung `0x7f`), die der Katalog
+ * nicht führt; alle 10 aufgezeichneten Nachrichten 0x07 (`referenztest-dotnet/Mitschnitt/messung/bulk-merge-katalog/`)
+ * enden in [ProtocolFailure]. Belegt sind die Typen, die mssql-jdbc sendet.
+ *
  * Festlegung ohne Messung am Server: höchstens [MAX_COLUMNS] Spalten und [MAX_CELLS] Zellen (Spalten mal Zeilen) je
  * Nachricht. Die Zellenzahl begrenzt die Zahl der Werte, die der Leser und die Überführung anlegen, nicht die Größe der
  * Nachricht: die ist durch `SPEC-007` auf 16 MiB begrenzt. Eine NULL-Zelle kostet auf der Leitung ein Byte oder
