@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** SPEC-060 (Fehlerzeile `TDS_SIM_UNKNOWN_PREPARED_HANDLE`: „höchstens für die ersten 100 Nummern“, Log „höchstens 100 Einträge je Batch“, Auflösungs-Trigger der Setzung) · SPEC-030 (Abschnitt Handle-Freigabe) · Abschnitt Grenzen und Stabilität der Spezifikation, soweit er den Schutz trägt. **Die Spezifikation ändert dieser Slice** (Teil des Auftrags: Spezifikation ist Zielbild).
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** Implementer-Agent, Auftrag des Nutzers 2026-11-07.
 
 **Autor:** pt9912 (Entwurf in der Planner-Rolle). **Datum:** 2026-11-07.
 
