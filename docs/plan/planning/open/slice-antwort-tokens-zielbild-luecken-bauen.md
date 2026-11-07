@@ -119,6 +119,7 @@ dasteht.
 
 - Die Anweisungsart im Port kann neue öffentliche Fläche bedeuten (`SPEC-059`, `make flaeche`); ohne den Port bleibt `curCmd` des Update-Zählers eine Lücke. — **Ausgang:** offen bis zur Closure.
 - Gemessen sind Einzelfälle je Instanz mit dem Referenzclient; `curCmd` von weiteren Anweisungsarten (MERGE `0x0117`, SELECT) ist nur dort gebaut, wo W-6 und M-13 messen. — **Ausgang:** offen bis zur Closure.
+- Aus [slice-schreibpfad-merge-output](../in-progress/slice-schreibpfad-merge-output.md): Länge der Spalte `$action` des `MERGE` (Server `nvarchar(10)`, Bibliothek 4000; ein Feld am öffentlichen `ResultColumn`, [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Nr. 4 braucht den Entscheid des Nutzers), Befehl `0x0117` des Abschlusses (MERGE, M-26) und die Fehlernummern 2628, 2627 und 208 der Fehlerfälle des `MERGE` (M-15; die Bibliothek sendet `TDS_BACKEND_ERROR`). Der Slice übernimmt sie, sobald der Entscheid vorliegt; ohne ihn bleiben sie hier als benannte Abweichung. — **Ausgang:** offen bis zur Closure.
 - Der gemeinsame Pfad mit [slice-sp-unprepare-ohne-obergrenze](slice-sp-unprepare-ohne-obergrenze.md) erzeugt bei gleichzeitigem Lauf Konflikte. — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
