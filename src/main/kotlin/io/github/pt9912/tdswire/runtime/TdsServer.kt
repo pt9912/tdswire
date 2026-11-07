@@ -113,7 +113,8 @@ public class TdsServer internal constructor(
                 stopEnded = true
                 telemetry.emit { ServerStopped(it) }
             }
-        }    }
+        }
+    }
 
     public companion object {
         /**

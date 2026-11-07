@@ -166,6 +166,7 @@ public enum class EventKind {
      * Listener kennt beides nicht. Ebene `INFO`.
      */
     CONNECTION_CLOSED,
+
     /**
      * Der Schnappschuss der Metriken (`SPEC-017` bis `SPEC-019`); [TelemetryEvent.metrics] trägt die Messwerte. Er
      * entsteht im Abstand der Konfiguration, nie bei Abstand 0. Ebene `INFO`.
@@ -316,6 +317,7 @@ public sealed class TelemetryEvent protected constructor(
      * von Aufzählungen, `true` oder `false`; für den Schlüsselspeicher steht nur `SET` oder `UNSET`, nie ein Pfad.
      */
     public open val settings: Map<String, String>? get() = null
+
     /** Der Name des beendeten Spans: `tds.connection`, `tds.query` oder `backend.execute` ([EventKind.SPAN_ENDED]). */
     public open val span: String? get() = null
 

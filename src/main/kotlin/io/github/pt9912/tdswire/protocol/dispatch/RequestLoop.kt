@@ -177,6 +177,7 @@ internal class RequestLoop(
     private var resetPending = false
 
     private val forms = AnswerForms()
+
     /** Die Kennung der Anfrage, die gerade beantwortet wird. */
     private var requestId = ""
 
