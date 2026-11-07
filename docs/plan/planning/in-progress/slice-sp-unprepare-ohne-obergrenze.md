@@ -78,12 +78,23 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `src/main/kotlin/io/github/pt9912/tdswire/` (Batch-Freigabe, Meldung unbekannter Nummern, Schutz der Nachricht) | update | Obergrenze entfällt, anderer Träger der Grenze |
-| `spec/spezifikation.md` (`SPEC-060`, `SPEC-030`, Abschnitt Grenzen) | update | Zielbild folgt dem Messwert |
-| `docs/user/`, Kompatibilitätsmatrix der Spezifikation | update | Aussage über die Obergrenze entfällt |
-| Tests (Kotlin) | neu / update | Ränder 99/100/101/150/2000, Last-Beleg des Schutzes |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/dispatch/UnprepareBatch.kt` | update | `MAX_REPORTED` entfällt, `answer` meldet jede unbekannte Nummer |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/error/ErrorMapper.kt`, `…/protocol/response/ResponseRun.kt` | update | Antwort mit ERROR je Nummer entsteht in einem Puffer genau ihrer Größe (zwei Durchläufe), `errorAnswerTail` abgespalten; ein Log-Eintrag je Antwort |
+| `spec/spezifikation.md` (`SPEC-060`, `SPEC-030`) | update | Zielbild folgt dem Messwert M-22; Schutz als Setzung mit Messvermerk. Der Abschnitt Grenzen nennt die Obergrenze nicht (geprüft per `grep`), `SPEC-007` bleibt unverändert |
+| `docs/user/referenz-konfiguration.md`, `docs/plan/kompatibilitaetsmatrix.md` | update | Aussage über die Obergrenze entfällt, Schutz genannt |
+| `docs/messungen/unprepare-antwort-speicher-2026-11-07.md` | neu | Messzeilen s1 bis s4 (Heap, Zeit) |
+| `UnprepareDispatchTest`, `ErrorMapperTest` (Kotlin) | update | Ränder 99/100/101/150/2000, Batch bis zur Grenze der Nachricht im Heap der Test-JVM, Log je Antwort |
 
-Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
+**Abgrenzung zu [slice-antwort-tokens-zielbild-luecken-bauen](../open/slice-antwort-tokens-zielbild-luecken-bauen.md):** dieser Slice liefert die Obergrenze und die Speichersicherheit; Tokenfolge je Nummer (`RETURNSTATUS`, `DONEPROC`, kein `DONE`) und `curCmd` `0x00e0` bleiben dort. Wer von beiden später startet, passt an `errorAnswerTail` (ResponseRun.kt) und `ErrorMapper.serializeHandles` an; die Größe je Nummer (112 Byte) wächst dann um RETURNSTATUS und DONEPROC, die Messzeilen s1 bis s4 sind neu zu messen.
+
+**Optionen für den Schutz nach [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität):**
+
+1. *Obergrenze der Meldungen beibehalten (Status quo)*: widerspricht M-22; verworfen (Nutzerentscheid 2026-11-07).
+2. *`MAX_MESSAGE_BYTES` trägt die Obergrenze der Zahl* (gewählt): die Nachricht der Anfrage ist schon begrenzt (419 429 Anweisungen der kürzesten Form bei 16 MiB); kein neuer Name, keine Konfiguration. Bedingung: die Antwort wächst nicht mit einem Vielfachen. Nach dem ersten Lauf (Messzeile s1) tat sie es: Listen von Meldungen, Tokens und ein Puffer mit Verdopplung laufen bei 16 MiB im Heap von 128 MiB über. Daher Option 3 dazu.
+3. *Antwort ohne Zwischenlisten in einem Puffer genau ihrer Größe* (gewählt, zusammen mit 2): Messzeilen s2 bis s4; Spitze der Antwort etwa das 2,7-Fache der Anfrage.
+4. *Antwort als Strom (gestapelt) auf den Kanal schreiben*: verworfen für diesen Slice, weil der Pfad der Fehlerantwort eine fertige `TdsMessage` liefert und der Strom den Zuschnitt von `ReplyStream` und RequestLoop berührt (Konflikt mit dem Token-Slice); Folge, falls ein größeres `MAX_MESSAGE_BYTES` gefordert wird.
+5. *Log begrenzen oder zusammenfassen*: zusammengefasst, ein Eintrag je Antwort (Setzung); ein Zähler im Ereignis wäre ein neues öffentliches Feld von `RequestFailed`/`TelemetryEvent` und gehört bei Bedarf in einen eigenen Schnitt.
+6. *Zeitbegrenzung*: nicht neu gebaut; gemessen sind 3,6 s für 419 429 Nummern unter Last (Messzeile s3, Einzelmessung); ob `QUERY_TIMEOUT` diesen Pfad begrenzt, ist nicht untersucht. Das ist eine Beobachtung, keine Zusage.
 
 ## 4. Trigger
 
