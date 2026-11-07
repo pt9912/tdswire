@@ -78,12 +78,16 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `src/main/kotlin/io/github/pt9912/tdswire/runtime/` und `config/` <!-- d-check:ignore (geplant: neue Datei) --> | update | Zustandsereignisse (Aufrufe der Senke) an den Stellen von Start, Bindung, Beenden; fehlende Konfigurationsschlüssel in `ServerConfig` und `ConfigValidation` |
-| `testserver/` | update | Lader liest fehlende Umgebungsnamen; Adapter serialisiert neue Ereignisarten (geschlossene Menge, ein `when` ohne `else` bricht die Übersetzung, wenn eine Art fehlt) |
-| `src/test/kotlin/io/github/pt9912/tdswire/runtime/` <!-- d-check:ignore (geplant: neue Datei) --> | neu | Ereignisfolge am Serverprozess mit Sammler; Konfigurationstests Happy/Boundary/Negative; `@spec`-Tag SPEC-005, SPEC-010, SPEC-043 |
-| `tools/mk/` | update | Make-Target des Prozesstests in Docker (Name legt der Implementer fest, Eintrag in `harness/README.md` §Sensors) |
+| `src/main/kotlin/io/github/pt9912/tdswire/domain/telemetry/TelemetryEvent.kt` | update | `EventKind` um `CONFIG_EFFECTIVE`, `SERVER_STOPPING`, `CONNECTION_OPENED`, `CONNECTION_CLOSED`; `SERVER_STARTED` trägt `address`; `TelemetryEvent.settings`; keine neuen öffentlichen Typen (`make flaeche`) |
+| `src/main/kotlin/io/github/pt9912/tdswire/runtime/` (`Bootstrap.kt`, `TdsServer.kt`, `TelemetryEvents.kt`, `ConnectionWiring.kt`) | update | Aufrufe der Senke an Start (wirksame Konfiguration ohne Geheimnisse), Annahme und Ende der Verbindung (aus den Ereignissen des Listeners, `ConnectionEnd` auf Marke abgebildet), Beginn und Ende von `stop`; `MAX_MESSAGE_BYTES` an die Grenze nach dem Login |
+| `src/main/kotlin/io/github/pt9912/tdswire/config/` (`ServerConfig.kt`, `ConfigValidation.kt`), `transport/messaging/TransportHandshakeChannel.kt` | update | Schlüssel `MAX_MESSAGE_BYTES` in `RequestSettings` mit Bereichsprüfung, ohne neues Verhalten (die Grenze von 16 MiB galt schon); `MAX_TDS_PACKET_BYTES` bleibt Protokollkonstante |
+| `testserver/kotlin/io/github/pt9912/tdswire/testserver/` (`TelemetryJson.kt`, `ConfigLoader.kt`, `EnvKeys.kt`) | update | Adapter schreibt die neuen Arten (das `when` ohne `else` bricht sonst die Übersetzung), `config_effective` als ein Feld je Einstellung; Lader liest `MAX_MESSAGE_BYTES` |
+| `src/test/kotlin/io/github/pt9912/tdswire/runtime/` (`ZustandsereignisseTest.kt`, `ZustandsereignisseProzessTest.kt`, `MessageLimitWiringTest.kt`) und Anpassungen bestehender Tests | neu und update | Ereignisfolge am Server mit Sammler und am Prozess; Startdiagnose (belegter Port, unbrauchbarer Speicher, unsichere Konfiguration); `@spec`-Tags SPEC-005, SPEC-007, SPEC-010, SPEC-043, SPEC-044, SPEC-052, SPEC-059 |
+| `src/integrator/` und `testserver/test/` | update | Felder der neuen Arten über die öffentliche Fläche (`TelemetryFelderEmbeddingTest`), Zeile des Adapters (`TelemetryJsonTest`), Lader (`ConfigLoaderTest`) |
+| `Dockerfile` (Stage `smoke`), `tools/e2e.sh`, `tools/mk/smoke.mk`, `harness/README.md` | update | Der Prozesstest läuft in Stufe 1 des E2E (`make smoke`) statt in einer neuen Stufe; Deklaration und Sensor-Zeile nachgezogen |
+| `spec/spezifikation.md`, `docs/user/einbettung-und-betrieb.md`, `docs/plan/e2e-abdeckung.md` | update | Ereignisarten, Schlüssel `MAX_MESSAGE_BYTES`, Nutzer-Doku; Abdeckungssicht aus `make e2e-abdeckung` |
 
-Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
+Die Liste ist im Lauf des Implementers auf den Bau ausgeweitet; sie ist die Plan-Tabelle, die Zuordnung *Test | Festlegung* je Aussage und die Konfigurationstabelle stehen in der Closure-Notiz.
 
 ## 4. Trigger
 
