@@ -14,7 +14,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 private const val LOOPBACK = "127.0.0.1"
-private val SECRET_WORDS = listOf("secret", "falsch", "geheim", "mallory", "4711")
+private val SECRET_WORDS = listOf("secret", "falsch", "geheim", "mallory", "wertprobe-xq9")
 
 /**
  * Der Start des Testservers im Prozess der Tests mit dem [LogAdapter]: was vor und nach dem Start in den Kanal
@@ -127,7 +127,7 @@ internal class LogStartTest : TempFilesTest() {
 
         adapter.startWriter()
         LoginProbe(running.server.port).use { assertTrue(it.login("alice", "secret")) }
-        LoginProbe(running.server.port).use { assertFalse(it.login("mallory", "falsch-4711")) }
+        LoginProbe(running.server.port).use { assertFalse(it.login("mallory", "falsch-wertprobe-xq9")) }
         channel.awaitLines(before.size + 2)
         runBlocking { running.server.stop() }
         adapter.close()
