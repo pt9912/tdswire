@@ -184,6 +184,7 @@ internal class ConfigLoaderTest : TempFilesTest() {
      * Ziffern besteht, ist `INVALID_VALUE` (Eingang des Testservers, nicht der Bibliothek).
      *
      * @spec SPEC-017
+     * @spec SPEC-062
      */
     @Test
     fun `METRICS_INTERVAL_SECONDS null ist gueltig, andere Formen nicht`() {
