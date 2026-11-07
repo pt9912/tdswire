@@ -105,7 +105,7 @@ internal enum class CancelCause {
     /** ATTENTION des Clients; die Antwort ist `DONE[ATTN]` ohne ERROR. */
     ATTENTION,
 
-    /** Ablauf der Frist der Anfrage; die Antwort ist ERROR `TDS_TIMEOUT` und DONE mit Fehlerstatus. */
+    /** Ablauf der Frist der Anfrage: ERROR `TDS_TIMEOUT` und DONE (im RPC DONEPROC) mit Fehlerstatus. */
     DEADLINE,
 
     /**

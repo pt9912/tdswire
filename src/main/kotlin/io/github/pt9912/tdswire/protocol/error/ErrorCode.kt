@@ -2,10 +2,10 @@ package io.github.pt9912.tdswire.protocol.error
 
 /** Was mit der Verbindung nach einem Fehler geschieht (`TDS-FA-06.a` Nr. 6, `ADR-0007`). */
 internal enum class ConnectionFate {
-    /** ERROR und DONE mit Fehlerstatus, die Verbindung bleibt offen. */
+    /** ERROR und DONE mit Fehlerstatus (in der Antwort auf einen RPC DONEPROC), die Verbindung bleibt offen. */
     OPEN,
 
-    /** ERROR und DONE mit Fehlerstatus, danach schließt der Server. */
+    /** ERROR und DONE mit Fehlerstatus (in der Antwort auf einen RPC DONEPROC), danach schließt der Server. */
     CLOSE_AFTER_REPLY,
 
     /** Der Server schließt ohne ERROR und DONE; gilt, wenn der Strom nicht mehr synchron ist (`SPEC-031`). */

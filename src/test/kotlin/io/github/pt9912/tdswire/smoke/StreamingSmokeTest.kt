@@ -123,7 +123,7 @@ class StreamingSmokeTest {
         assertEquals(total, wire.payloadBytes)
         assertEquals((total + 7991) / 7992, wire.packetCount.toLong())
         assertEquals(0x81, wire.headBytes[0].toInt() and 0xFF)
-        val doneTail = byteArrayOf(0xFD.toByte(), 0x10, 0, 0, 0) + longLe(rows.toLong())
+        val doneTail = byteArrayOf(0xFD.toByte(), 0x10, 0, 0xC1.toByte(), 0) + longLe(rows.toLong())
         assertContentEquals(doneTail, wire.tail.copyOfRange(wire.tail.size - doneTail.size, wire.tail.size))
         assertTrue(wire.tail[1].toInt() and 1 == 1)
         assertEquals(rows + 2, backend.delivered)

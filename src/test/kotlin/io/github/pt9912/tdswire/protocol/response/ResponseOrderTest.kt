@@ -25,7 +25,8 @@ import kotlin.test.assertIs
 /** Prüfung der Ereignisreihenfolge (Festlegung: Verstoß ist ein Fall von `SPEC-048`) und Zufallsfolgen. */
 class ResponseOrderTest {
     private val internalError = ErrorToken(INTERNAL_MESSAGE)
-    private val errorDone = done(DoneStatus.ERROR)
+    private val errorDone = doneBatch(DoneStatus.ERROR)
+    private val openErrorDone = doneSelect(DoneStatus.ERROR)
 
     private fun sequence(sink: RecordingSink, backend: ScriptedBackend): SequenceOutcome =
         runBlocking { ResponseSequencer(FIXED_MAPPING).run(backend, REQUEST, sink) }
@@ -47,11 +48,17 @@ class ResponseOrderTest {
             "Row nach ResultEnd" to listOf(start(), QueryEvent.ResultEnd(0), row(1)),
             "Strom endet im offenen Ergebnis" to listOf(start(), row(1)),
         )
+        val openAtViolation = setOf(
+            "ResultStart im offenen Ergebnis",
+            "UpdateCount im offenen Ergebnis",
+            "Strom endet im offenen Ergebnis",
+        )
         for ((name, events) in violations) {
             val backend = ScriptedBackend.ofList(*events.toTypedArray())
             val sink = RecordingSink()
             assertEquals(SequenceOutcome.FAILED_CLOSE_CONNECTION, sequence(sink, backend), name)
-            assertEquals(listOf<Token>(internalError, errorDone), sink.tokens.takeLast(2), name)
+            val expectedDone = if (name in openAtViolation) openErrorDone else errorDone
+            assertEquals(listOf<Token>(internalError, expectedDone), sink.tokens.takeLast(2), name)
             assertEquals(1, backend.closeCalls, name)
         }
     }
@@ -82,7 +89,7 @@ class ResponseOrderTest {
         val backend = ScriptedBackend.ofList(start(), QueryEvent.ResultEnd(0), row(1))
         val sink = RecordingSink()
         sequence(sink, backend)
-        assertEquals(listOf<Token>(done(COUNT_MORE, 0), internalError, errorDone), sink.tokens.drop(1))
+        assertEquals(listOf<Token>(doneSelect(COUNT_MORE, 0), internalError, errorDone), sink.tokens.drop(1))
     }
 
     private enum class Ending { END, THROW, HANG }

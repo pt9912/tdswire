@@ -8,10 +8,12 @@ import io.github.pt9912.tdswire.config.auth.UserList
 import io.github.pt9912.tdswire.config.auth.UserListError
 import io.github.pt9912.tdswire.config.auth.UserListErrorKind
 import io.github.pt9912.tdswire.config.auth.UserListResult
+import io.github.pt9912.tdswire.domain.FailureScope
 import io.github.pt9912.tdswire.domain.ParameterDirection
 import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.domain.QueryParameter
 import io.github.pt9912.tdswire.domain.QueryRequest
+import io.github.pt9912.tdswire.domain.ResultColumn
 import io.github.pt9912.tdswire.domain.SqlType
 import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.port.QueryExecution
@@ -94,6 +96,39 @@ class FlaecheEmbeddingTest {
     }
 
     /**
+     * Ein Backend des Integrators meldet einen statement-abbrechenden Fehler (`FailureScope.STATEMENT`) und danach ein
+     * Ergebnis: die Antwort auf den Rohbytes läuft weiter, das DONE des Fehlers trägt `MORE|ERROR` (`FD 03 00 FD 00`),
+     * dahinter stehen COLMETADATA und ROW der Folgeanweisung, und die Antwort endet mit einem DONE mit `COUNT`.
+     * Ohne Angabe der Klasse (`Failure` mit zwei Argumenten) endet die Antwort am Fehler.
+     *
+     * @spec SPEC-059
+     * @spec SPEC-031
+     */
+    @Test
+    fun einBackendMeldetEinenStatementAbbrechendenFehlerUndDieAntwortLaeuftWeiter() {
+        val next = listOf(
+            QueryEvent.ResultStart(listOf(ResultColumn("n", SqlType.Int32, nullable = false))),
+            QueryEvent.Row(listOf(NEXT_VALUE)),
+            QueryEvent.ResultEnd(1),
+        )
+        val statementFailure = QueryEvent.Failure("TDS_BACKEND_ERROR", "x", FailureScope.STATEMENT)
+        val batchFailure = QueryEvent.Failure("TDS_BACKEND_ERROR", "x")
+        val answers = listOf(statementFailure, batchFailure).map { failure ->
+            val server = start(BackendSource.Custom(FixedBackend(listOf(failure) + next)))
+            WireClient(server.port).use { client ->
+                client.login()
+                client.batch("q")
+            }
+        }
+        val statementDone = byteArrayOf(DONE_TOKEN, MORE_ERROR, 0, BATCH_COMMAND, 0)
+        assertTrue(answers[0].payload.contains(statementDone), "DONE MORE|ERROR fehlt")
+        assertEquals(DONE_COUNT_STATUS, answers[0].doneStatus)
+        assertEquals(1L, answers[0].rowCount)
+        assertTrue(!answers[1].payload.contains(statementDone), "ohne Klasse endet die Antwort am Fehler")
+        assertEquals(ERROR_STATUS, answers[1].doneStatus)
+    }
+
+    /**
      * Die Tabelle des Integrators bekommt die Bedingung einer `UPDATE`-Anweisung als `RowFilter` aus `FilterTerm.In`
      * und `FilterTerm.IsNull` im Callback `onUpdate`, und die Zeilenquelle einer Auswahl bekommt eine `SimQuery` mit
      * der Bedingung als Vorfilter und den Spalten (hier die der Auswahl und der Bedingung: `Id`, `Name`).
@@ -171,11 +206,28 @@ class FlaecheEmbeddingTest {
         (0..size - needle.size).any { start -> needle.indices.all { this[start + it] == needle[it] } }
 }
 
+private const val NEXT_VALUE = 5
+private const val DONE_TOKEN: Byte = 0xFD.toByte()
+private const val MORE_ERROR: Byte = 0x03
+private const val BATCH_COMMAND: Byte = 0xFD.toByte()
+private const val DONE_COUNT_STATUS = 0x10
+private const val ERROR_STATUS = 0x02
 private const val INPUT_VALUE = 42
 private const val OUTPUT_VALUE: Byte = 99
 private const val STATUS_VALUE: Byte = 7
 private const val RETURN_STATUS_TOKEN: Byte = 0x79
 private const val UPDATED_ROWS = 3L
+
+/** Ein Backend, das jede Anfrage mit denselben [events] beantwortet. */
+private class FixedBackend(private val events: List<QueryEvent>) : QueryBackend {
+    override suspend fun execute(request: QueryRequest): QueryExecution = object : QueryExecution {
+        override val events: Flow<QueryEvent> = this@FixedBackend.events.asFlow()
+
+        override suspend fun close() = Unit
+    }
+
+    override suspend fun cancel(sessionId: String, requestId: String) = Unit
+}
 
 /** Ein Backend, das die Parameter jeder Anfrage merkt und mit Zähler, Status und Ausgabeparameter antwortet. */
 private class ParameterBackend : QueryBackend {

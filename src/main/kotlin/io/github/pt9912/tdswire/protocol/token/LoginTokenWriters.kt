@@ -9,6 +9,7 @@ internal object LoginTokenWriters {
     private const val ENV_DATABASE = 1
     private const val ENV_PACKET_SIZE = 4
     private const val ENV_SQL_COLLATION = 7
+    private const val ENV_RESET_CONNECTION = 18
     private const val COLLATION_BYTES = 5
     private const val MAX_SHORT = 0xFFFF
 
@@ -26,6 +27,12 @@ internal object LoginTokenWriters {
     fun writeEnvChange(out: ByteWriter, token: EnvChange) {
         val body = ByteWriter()
         when (token) {
+            EnvChange.ResetConnection -> {
+                body.u8(ENV_RESET_CONNECTION)
+                body.bVarchar("", "Zurücksetzen")
+                body.bVarchar("", "Zurücksetzen")
+            }
+
             is EnvChange.Database -> {
                 body.u8(ENV_DATABASE)
                 body.bVarchar(token.newValue, "Datenbank")

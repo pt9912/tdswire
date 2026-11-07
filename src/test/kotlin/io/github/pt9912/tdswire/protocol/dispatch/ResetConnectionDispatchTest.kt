@@ -28,7 +28,8 @@ import kotlin.test.assertTrue
  * RESETCONNECTION (`TDS-FA-07`, `TDS-QA-02`, `TDS-FA-04`, `SPEC-001`, `SPEC-030`, `SPEC-057`): Das Bit `0x08` im
  * ersten Paket einer Anfrage in `READY` leert die Handle-Tabelle der Sitzung vor der Verarbeitung dieser Anfrage.
  * Gegenstelle ist ein Fake-Backend (`ScriptedBackend`) und ein Rohbytes-Client; Handle-Werte, Zähler, Grenze und
- * Antwort ohne ENVCHANGE sind Festlegungen und weder am Referenzclient noch an einem SQL Server gemessen. Die Tests
+ * Antwort mit ENVCHANGE Typ 18 als erstem Token im RPC sind Festlegungen, für den RPC weder am Referenzclient noch an
+ * einem SQL Server gemessen (am Batch ist das ENVCHANGE gemessen, W-7). Die Tests
  * belegen den Sitzungsrahmen, nicht den Pool des Clients.
  */
 class ResetConnectionDispatchTest {
@@ -110,7 +111,8 @@ class ResetConnectionDispatchTest {
             Inbound.EndOfStream,
         )
         session.serve(backend)
-        assertEquals(session.hex(0), session.hex(2), "Handle 1 vor und nach dem Zurücksetzen")
+        val afterReset = BatchVectors.ENVCHANGE_RESET + " " + session.hex(0)
+        assertEquals(afterReset, session.hex(2), "Handle 1 vor und nach dem Zurücksetzen")
         assertEquals(session.hex(1), session.hex(4), "Handle 2 vor und nach dem Zurücksetzen")
         assertEquals(
             listOf("select 1", "select 2", "select new", "select new", "select next", "select next"),
@@ -265,6 +267,42 @@ class ResetConnectionDispatchTest {
         assertEquals(1, session.replies.size, "der Transaction Manager bleibt unbeantwortet")
         assertTrue(session.channel.closed, "die Schleife schliesst den Kanal")
         assertEquals(1, backend.requests.size)
+    }
+
+    /**
+     * Die Antwort auf eine Anfrage mit dem Bit beginnt mit ENVCHANGE Typ 18, neuer und alter Wert leer
+     * (`E3 03 00 12 00 00`): Handvektor aus `referenztest-dotnet/Mitschnitt/messung/2022/reset-ohne-zustand.messung`
+     * (Szenario `reset-ohne-zustand`, Antwort 02, SQL Server 2022-latest 16.0.4305.5, Digest `sha256:cf8f0ab2…a291718`,
+     * Messprotokoll W-7; für den Batch gemessen, für RPC und Fehlerantworten Setzung nach
+     * derselben Regel). Das gilt für
+     * ein Ergebnis im Batch, im RPC, für den Fehler des Backends und für die Ablehnung vor dem Backend; die Anfrage
+     * ohne das Bit trägt kein ENVCHANGE. Wächter: ein ENVCHANGE auch ohne das Bit, ein ENVCHANGE hinter dem ersten
+     * Token, ein fehlendes bei einer Fehlerantwort.
+     *
+     * @spec SPEC-001
+     */
+    @Test
+    fun `Die Antwort auf eine Anfrage mit RESETCONNECTION beginnt mit ENVCHANGE Typ 18`() = blocking {
+        val failure = listOf<QueryEvent>(QueryEvent.Failure("TDS_UNSUPPORTED_SQL", "kein Text fuer den Client"))
+        val backend = ScriptedBackend.inSequence(oneRow, oneRow, oneRow, failure)
+        val session = Session.login(
+            resettingBatch("select 1"),
+            BatchVectors.message("select 2"),
+            resettingRpc(RpcWire.executeSql("select 3", "")),
+            resettingBatch("bad"),
+            resettingRpc(execute(7)),
+            Inbound.EndOfStream,
+        )
+        session.serve(backend)
+        assertEquals(5, session.replies.size)
+        val reset = BatchVectors.ENVCHANGE_RESET
+        assertTrue(session.hex(0).startsWith("$reset ${BatchVectors.COLMETADATA_N}"), session.hex(0))
+        assertTrue(session.hex(1).startsWith(BatchVectors.COLMETADATA_N), "ohne das Bit: ${session.hex(1)}")
+        assertTrue(session.hex(2).startsWith("$reset ${BatchVectors.COLMETADATA_N}"), session.hex(2))
+        assertTrue(session.hex(3).startsWith("$reset AA "), session.hex(3))
+        assertTrue(session.hex(4).startsWith("$reset AA "), session.hex(4))
+        val counts = session.replies.indices.map { Regex(reset).findAll(session.hex(it)).count() }
+        assertEquals(listOf(1, 0, 1, 1, 1), counts)
     }
 
     private companion object {

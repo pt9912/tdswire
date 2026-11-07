@@ -1,28 +1,52 @@
 package io.github.pt9912.tdswire.protocol.response
 
+import io.github.pt9912.tdswire.domain.FailureScope
 import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.protocol.result.ColumnMapping
 import io.github.pt9912.tdswire.protocol.result.ValueMapping
 import io.github.pt9912.tdswire.protocol.token.ColMetadataToken
 import io.github.pt9912.tdswire.protocol.token.ColumnDef
+import io.github.pt9912.tdswire.protocol.token.DoneCommand
 import io.github.pt9912.tdswire.protocol.token.DoneKind
 import io.github.pt9912.tdswire.protocol.token.DoneStatus
 import io.github.pt9912.tdswire.protocol.token.DoneToken
 import io.github.pt9912.tdswire.protocol.token.ErrorToken
+import io.github.pt9912.tdswire.protocol.token.ReturnStatusToken
 import io.github.pt9912.tdswire.protocol.token.RowToken
+import io.github.pt9912.tdswire.protocol.token.ServerMessage
 import io.github.pt9912.tdswire.protocol.token.Token
 import io.github.pt9912.tdswire.protocol.wire.ProtocolError
 import io.github.pt9912.tdswire.protocol.wire.ProtocolFailure
 import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
 
-private const val CUR_CMD_UNKNOWN = 0
+/** Die erste Fehlernummer, die der Server selbst vergibt: SQL Server nutzt Nummern ab 50000 für eigene Meldungen. */
+internal const val FIRST_OWN_ERROR_NUMBER = 50000
 
-/** Das DONE mit Fehlerstatus hinter jedem ERROR; die einzige Stelle, die es bildet (auch für den `ErrorMapper`). */
-internal fun failedDone(): DoneToken = DoneToken(DoneKind.DONE, DoneStatus.ERROR, CUR_CMD_UNKNOWN, 0)
+/**
+ * Das Abschluss-Token eines Fehlers ohne Fortsetzung; die einzige Stelle, die es bildet (auch für den `ErrorMapper`).
+ * Batch: DONE mit `ERROR`, Befehlskennung `0x00c1` bei offenem Ergebnis ([resultOpen]), sonst `0x00fd`. RPC: DONEPROC
+ * mit `ERROR` (Messprotokoll W-1, Fehler vor dem ersten Ergebnis).
+ */
+internal fun failedDone(form: ResponseForm = ResponseForm.BATCH, resultOpen: Boolean = false): DoneToken = when (form) {
+    ResponseForm.BATCH ->
+        DoneToken(DoneKind.DONE, DoneStatus.ERROR, if (resultOpen) DoneCommand.SELECT else DoneCommand.BATCH, 0)
+
+    ResponseForm.RPC -> DoneToken(DoneKind.DONE_PROC, DoneStatus.ERROR, DoneCommand.PROC, 0)
+}
+
+/**
+ * Die Tokens einer Antwort, die vor dem Backend oder außerhalb des Stroms endet: ein ERROR je Meldung und der Abschluss
+ * der Form. Im RPC steht vor dem DONEPROC der RETURNSTATUS mit der Nummer der letzten Meldung, wenn sie eine
+ * SQL-Server-Nummer ist (unter 50000); sonst keiner (Setzung der Entscheidung zum Abschluss im Fehlerfall).
+ */
+internal fun errorAnswer(form: ResponseForm, messages: List<ServerMessage>): List<Token> {
+    val status = messages.last().number.takeIf { form == ResponseForm.RPC && it < FIRST_OWN_ERROR_NUMBER }
+    return messages.map { ErrorToken(it) } + listOfNotNull(status?.let { ReturnStatusToken(it) }) + failedDone(form)
+}
 
 /**
  * Zustand eines Laufs des [ResponseSequencer]: die Spalten des offenen Ergebnisses (`null` ohne
- * offenes Ergebnis), der zurückgehaltene Abschluss, der Zählstand der RPC-Ausgabewerte und der
+ * offenes Ergebnis), der zurückgehaltene Abschluss, die gesammelten RPC-Ausgaben und der
  * Ausgang. Ein Lauf gehört einer Coroutine und ist nicht threadsicher. Die [form] bestimmt die Art der
  * Abschlüsse und ob `ReturnStatus` und `OutputParameter` abgebildet werden.
  */
@@ -30,11 +54,18 @@ internal class ResponseRun(
     private val errors: ErrorMapping,
     private val sink: TokenSink,
     private val form: ResponseForm = ResponseForm.BATCH,
+    private val outputs: RpcOutputs = RpcOutputs(CallLayout.PROCEDURE, emptyList()),
 ) {
     private var outcome: SequenceOutcome? = null
     private var columns: List<ColumnDef>? = null
     private var held: DoneToken? = null
-    private val outputs = RpcOutputs()
+    private val trailer = RpcTrailer(outputs) { write(it) }
+
+    /** Wahr, sobald ein Ergebnis begonnen oder eine Anweisung abgeschlossen ist (RPC: Fehlerbit am DONEINPROC). */
+    private var begun = false
+
+    /** Der Reihenfolgeverstoß des Backends als Fehler des Servers (`SPEC-048`). */
+    private val violation get() = errors.internal(null)
 
     val result: SequenceOutcome get() = outcome ?: SequenceOutcome.CLOSE_WITHOUT_COMPLETION
 
@@ -43,11 +74,18 @@ internal class ResponseRun(
         if (!flushHeld(more = true)) return true
         return when (event) {
             is QueryEvent.ResultStart -> start(event)
+
             is QueryEvent.Row -> row(event)
+
             is QueryEvent.ResultEnd -> finish(event.affectedRows, inResult = true)
+
             is QueryEvent.UpdateCount -> finish(event.affectedRows, inResult = false)
-            is QueryEvent.Failure -> report(errors.backend(event))
-            is QueryEvent.ReturnStatus -> rpcOutput("ReturnStatus") { outputs.status(event) }
+
+            is QueryEvent.Failure -> failure(event)
+
+            is QueryEvent.ReturnStatus ->
+                rpcOutput("ReturnStatus") { if (outputs.status(event)) ProtocolResult.Ok(Unit) else null }
+
             is QueryEvent.OutputParameter -> rpcOutput("OutputParameter") { outputs.value(event) }
         }
     }
@@ -69,34 +107,33 @@ internal class ResponseRun(
     /** Der Strom ist ohne Ausnahme zu Ende; schließt den Lauf ab, falls kein Ausgang feststeht. */
     suspend fun end() {
         if (outcome != null) return
-        val last = when {
-            columns != null -> {
-                violation()
-                null
-            }
-
-            form == ResponseForm.RPC ->
-                DoneToken(DoneKind.DONE_PROC, DoneStatus.FINAL, CUR_CMD_UNKNOWN, 0).takeIf { flushHeld(more = true) }
-
-            else -> (held ?: DoneToken(DoneKind.DONE, DoneStatus.FINAL, CUR_CMD_UNKNOWN, 0)).also { held = null }
+        if (columns != null) {
+            report(violation)
+            return
         }
-        if (last != null && write(last)) outcome = SequenceOutcome.COMPLETED
+        val written = when (form) {
+            ResponseForm.RPC -> flushHeld(more = true) && trailer.finish(errorBit = false)
+            ResponseForm.BATCH -> write(held ?: DoneToken(DoneKind.DONE, DoneStatus.FINAL, DoneCommand.BATCH, 0))
+        }
+        held = null
+        if (written) outcome = if (trailer.failed) SequenceOutcome.FAILED else SequenceOutcome.COMPLETED
     }
 
     private suspend fun start(event: QueryEvent.ResultStart): Boolean {
-        if (columns != null) return violation()
+        if (columns != null) return report(violation)
         return when (val mapped = ColumnMapping.map(event.columns)) {
             is ProtocolResult.Failed -> report(errors.typeMapping(mapped.error))
 
             is ProtocolResult.Ok -> {
                 columns = mapped.value
+                begun = true
                 !write(ColMetadataToken(mapped.value))
             }
         }
     }
 
     private suspend fun row(event: QueryEvent.Row): Boolean {
-        val defs = columns ?: return violation()
+        val defs = columns ?: return report(violation)
         return when (val mapped = ValueMapping.row(defs, event.values)) {
             is ProtocolResult.Failed -> report(errors.typeMapping(mapped.error))
             is ProtocolResult.Ok -> !write(RowToken(mapped.value))
@@ -104,35 +141,34 @@ internal class ResponseRun(
     }
 
     private suspend fun finish(affectedRows: Long?, inResult: Boolean): Boolean {
-        if ((columns != null) != inResult) return violation()
+        if ((columns != null) != inResult) return report(violation)
         columns = null
+        begun = true
         val status = if (affectedRows != null) DoneStatus.COUNT else DoneStatus.FINAL
         val kind = if (form == ResponseForm.RPC) DoneKind.DONE_IN_PROC else DoneKind.DONE
-        held = DoneToken(kind, status, CUR_CMD_UNKNOWN, affectedRows ?: 0)
+        held = DoneToken(kind, status, if (inResult) DoneCommand.SELECT else DoneCommand.NONE, affectedRows ?: 0)
         return false
     }
 
     /**
      * `ReturnStatus` oder `OutputParameter` (unter [name]): in der Form BATCH ein Fehler der Typabbildung,
-     * in der Form RPC ein Token, sofern die Reihenfolge stimmt (kein offenes Ergebnis, ein einziger
-     * `ReturnStatus`).
+     * in der Form RPC wird das Ereignis in den [outputs] gesammelt, sofern die Reihenfolge stimmt (kein offenes
+     * Ergebnis, ein einziger `ReturnStatus`). [collect] liefert `null` bei einem Reihenfolgeverstoß.
      */
-    private suspend fun rpcOutput(name: String, map: () -> ProtocolResult<Token>?): Boolean = when {
+    private suspend fun rpcOutput(name: String, collect: () -> ProtocolResult<Unit>?): Boolean = when {
         form != ResponseForm.RPC -> {
             val error = ProtocolError(ProtocolFailure.INVALID_TYPE, "Ereignis $name wird nicht abgebildet")
             report(errors.typeMapping(error))
         }
 
-        columns != null -> violation()
+        columns != null -> report(violation)
 
-        else -> when (val mapped = map()) {
-            null -> violation()
+        else -> when (val mapped = collect()) {
+            null -> report(violation)
             is ProtocolResult.Failed -> report(errors.typeMapping(mapped.error))
-            is ProtocolResult.Ok -> !write(mapped.value)
+            is ProtocolResult.Ok -> false
         }
     }
-
-    private suspend fun violation(): Boolean = report(errors.internal(null))
 
     private suspend fun flushHeld(more: Boolean): Boolean {
         val done = held ?: return true
@@ -140,9 +176,44 @@ internal class ResponseRun(
         return write(if (more) done.copy(status = done.status or DoneStatus.MORE) else done)
     }
 
-    /** Schreibt ERROR und DONE mit Fehlerstatus und beendet den Lauf. */
+    /**
+     * Ein [QueryEvent.Failure]. Statement-abbrechend (und ohne Verbindungsende): ERROR schreiben und den Abschluss der
+     * Anweisung mit `ERROR` zurückhalten; folgt ein Ereignis, bekommt er `MORE` (Messprotokoll W-2, `DONE` bzw.
+     * DONEINPROC `MORE|ERROR`), und der Lauf liest weiter. Sonst beendet [report] den Lauf.
+     */
+    private suspend fun failure(event: QueryEvent.Failure): Boolean {
+        val mapped = errors.backend(event)
+        if (event.scope != FailureScope.STATEMENT || mapped.closesConnection) return report(mapped)
+        val resultOpen = columns != null
+        columns = null
+        val written = write(ErrorToken(mapped.message))
+        if (written) {
+            trailer.record(mapped.message.number, continued = true)
+            begun = true
+            val rpc = form == ResponseForm.RPC
+            val command = when {
+                resultOpen -> DoneCommand.SELECT
+                rpc -> DoneCommand.NONE
+                else -> DoneCommand.BATCH
+            }
+            held = DoneToken(if (rpc) DoneKind.DONE_IN_PROC else DoneKind.DONE, DoneStatus.ERROR, command, 0)
+        }
+        return !written
+    }
+
+    /**
+     * Schreibt ERROR und den Abschluss des Fehlers und beendet den Lauf. Batch: DONE mit `ERROR`. RPC: vor dem ersten
+     * Ergebnis DONEPROC mit `ERROR`; danach DONEINPROC `MORE|ERROR` für die betroffene Anweisung und ein DONEPROC ohne
+     * Fehlerbit (Messprotokoll W-1 bis W-3).
+     */
     private suspend fun report(mapped: MappedError): Boolean {
-        val written = write(ErrorToken(mapped.message)) && write(failedDone())
+        val resultOpen = columns != null
+        columns = null
+        trailer.record(mapped.message.number, continued = false)
+        val written = write(ErrorToken(mapped.message)) && when (form) {
+            ResponseForm.BATCH -> write(failedDone(form, resultOpen))
+            ResponseForm.RPC -> if (begun) trailer.afterResult(resultOpen) else trailer.finish(errorBit = true)
+        }
         if (written) {
             outcome = if (mapped.closesConnection) SequenceOutcome.FAILED_CLOSE_CONNECTION else SequenceOutcome.FAILED
         }

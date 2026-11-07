@@ -48,8 +48,8 @@ class UnprepareDispatchTest {
 
     private val unknownHandle = ServerMessage(50009, 1, 16, "Unknown prepared handle.")
 
-    /** RETURNVALUE des Handles (Handvektor wie in `PreparedHandlesDispatchTest`): Ordinal 0, ohne Namen, `INTN` 4. */
-    private fun handleValue(handle: Int) = "AC 00 00 00 01 00 00 00 00 01 00 26 04 04 ${RpcWire.le(handle.toLong(), 4)}"
+    /** RETURNVALUE des Handles (Handvektor wie in `PreparedHandlesDispatchTest`): Ordinal 0, ohne Namen, Flag-Feld 0 */
+    private fun handleValue(handle: Int) = "AC 00 00 00 01 00 00 00 00 00 00 26 04 04 ${RpcWire.le(handle.toLong(), 4)}"
 
     /**
      * Der Batch mit gehaltenen Handles gibt sie frei, ohne das Backend zu rufen: Antwort DONE ohne Bits (Erfolg ohne
@@ -117,7 +117,8 @@ class UnprepareDispatchTest {
         assertEquals(notFound(1), session.errors(4).single())
         assertEquals(notFound(2), session.errors(5).single())
         listOf(2, 4, 5).forEach {
-            assertEquals(2, session.tokens(it).size, "$it")
+            // Die Antwort auf die Anfrage mit RESETCONNECTION (5) beginnt mit ENVCHANGE Typ 18.
+            assertEquals(if (it == 5) 3 else 2, session.tokens(it).size, "$it")
             assertEquals(DoneStatus.ERROR, session.tokens(it).lastDone().status, "$it")
         }
         assertEquals(unknownHandle, session.errors(6).single())
