@@ -6,9 +6,9 @@
 # (Testwerte, Setzung); `up` nennt das in seiner Ausgabe und warnt bei einem Host ausser Loopback.
 # Zusage: `up` startet den Container im Hintergrund, veroeffentlicht den TDS-Port auf TESTSERVER_HOST (Voreinstellung
 # Loopback) und kehrt zurueck, sobald das Log `tdswire: gestartet, Port 1433` zeigt; `down` entfernt den Container. Das Image ist
-# ein lokales Test-Image ohne Registry (ADR-0025 Entscheidung 4). Nicht belegt: Annahme durch einen Client ausser dem
-# Rohbytes-Client des Selbsttests, TLS im Handlauf (REQUIRED mit TESTSERVER_TLS_SPEICHER), die Dateirechte der
-# kopierten Dateien, die Fehlerpfade des `docker cp` und ein Abbruch von `up` durch SIGINT (der Container bleibt dann
+# ein lokales Test-Image ohne Registry (ADR-0025 Entscheidung 4). Belegt im Handlauf: Anmeldung mit d-migrate 1.12.0 (Klartext
+# und REQUIRED mit TESTSERVER_TLS_SPEICHER, docs/user/testserver-manuell.md). Nicht belegt: Annahme durch einen Client
+# ausser dem Rohbytes-Client des Selbsttests und d-migrate, die Dateirechte der kopierten Dateien, die Fehlerpfade des `docker cp` und ein Abbruch von `up` durch SIGINT (der Container bleibt dann
 # stehen, der naechste `up` meldet es).
 # Eingaenge (Umgebung): TESTSERVER_NAME, TESTSERVER_IMAGE, TESTSERVER_HOST, TESTSERVER_PORT, TESTSERVER_BAUEN (0 = Image
 # nicht bauen), TESTSERVER_VERSCHLUESSELUNG (TEST_UNENCRYPTED | REQUIRED), TESTSERVER_BENUTZER_DATEI,
