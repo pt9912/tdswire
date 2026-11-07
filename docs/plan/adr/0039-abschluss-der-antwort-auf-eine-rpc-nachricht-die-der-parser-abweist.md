@@ -38,7 +38,7 @@ Wir wählen **Option B** (Nutzerentscheid vom 2026-11-07, bestätigt die Empfehl
 
 1. **Struktur- und Kodierfehler** (Fehler, die entstehen, bevor die Nachricht als RPC mit bekannter Prozedur gelesen ist, `SPEC-011`) enden wie die Antwort auf einen SQL_BATCH: ERROR und DONE mit Fehlerstatus.
 2. **Fehler nach dem Erkennen der Prozedur** (`SPEC-013`, Fehler des Backends, interne Fehler) enden auf DONEPROC ([ADR-0038](0038-abschluss-einer-rpc-antwort-im-fehlerfall-folgt-dem-echten-server.md) Entscheidung 1 bis 4 unverändert).
-3. **Mehrfach-RPC** (mehrere RPCs in einer Nachricht) wird der Seite ERROR und DONE zugeordnet: der Server liest die Nachricht als Ganzes nicht (erste Prozedur erkannt, Rest nicht lesbar). Am echten Server ist der Mehrfach-RPC gültig (P3); die Ablehnung ist eine Fähigkeitsgrenze dieses Servers. Die Unterstützung mehrerer RPCs ist ein eigenes Planungsthema ([slice-mehrfach-rpc-unterstuetzen](../planning/open/slice-mehrfach-rpc-unterstuetzen.md)).
+3. **Mehrfach-RPC** (mehrere RPCs in einer Nachricht) wird der Seite ERROR und DONE zugeordnet: der Server liest die Nachricht als Ganzes nicht (erste Prozedur erkannt, Rest nicht lesbar). Am echten Server ist der Mehrfach-RPC gültig (P3); die Ablehnung ist eine Fähigkeitsgrenze dieses Servers. Die Unterstützung mehrerer RPCs ist ein eigenes Planungsthema (ein eigener Slice im Planning-Lifecycle, Nutzerentscheid 2026-11-07).
 4. **Kein Messauftrag.** Der optionale Messauftrag zu B entfällt (Nutzerentscheid 2026-11-07); die Linie bleibt Setzung, das Negativ ist akzeptiert, solange kein Verbraucher die Form braucht.
 5. **Kein Bau, kein Test:** der Code (`RequestLoop.answerRpc`) folgt der Linie schon; der Test `Mehrere_RPCs_in_einer_Nachricht_enden_mit_Protokollfehler_und_geschlossener_Verbindung` bleibt grün.
 
@@ -85,7 +85,7 @@ Je Option:
 
 ## Offen
 
-- Soll der Mehrfach-RPC (am echten Server gültig) unterstützt werden? Das löst die Frage für diesen Fall auf; Träger: [slice-mehrfach-rpc-unterstuetzen](../planning/open/slice-mehrfach-rpc-unterstuetzen.md) (`open/`, Eingang: am echten Server ist `UpdateBatchSize 2` gültig).
+- Soll der Mehrfach-RPC (am echten Server gültig) unterstützt werden? Das löst die Frage für diesen Fall auf; Träger: ein eigener Slice in `open/` (Eingang: am echten Server ist `UpdateBatchSize 2` gültig).
 - Nicht gemessen: jede Antwort des echten Servers auf eine ungültig kodierte RPC-Nachricht (P4); der Mechanismus hinter P1 (P5).
 
 ## Re-Evaluierungs-Trigger
