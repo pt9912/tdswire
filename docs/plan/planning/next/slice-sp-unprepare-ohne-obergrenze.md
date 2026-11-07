@@ -37,7 +37,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Die Tokenfolge und der `curCmd` der Antwort auf `EXEC sp_unprepare` (`RETURNSTATUS`, `DONEPROC`, Befehl `0x00e0`, kein `DONE`) — [slice-antwort-tokens-zielbild-luecken-bauen](slice-antwort-tokens-zielbild-luecken-bauen.md); beide Slices berühren denselben Pfad (Batch-Freigabe), wer später startet, zieht die Antwortform des anderen nach.
+- Die Tokenfolge und der `curCmd` der Antwort auf `EXEC sp_unprepare` (`RETURNSTATUS`, `DONEPROC`, Befehl `0x00e0`, kein `DONE`) — [slice-antwort-tokens-zielbild-luecken-bauen](../open/slice-antwort-tokens-zielbild-luecken-bauen.md); beide Slices berühren denselben Pfad (Batch-Freigabe), wer später startet, zieht die Antwortform des anderen nach.
 - Handles je Sitzung, Speicher je Handle und die Grenze der Handles ([ADR-0036](../../adr/0036-handle-freigabe-und-grenze-je-sitzung.md)) — geliefert in [slice-handle-freigabe-und-grenze-bauen](../done/slice-handle-freigabe-und-grenze-bauen.md); dieser Slice ändert nur die Meldung unbekannter Nummern.
 - Eine Messung über 2000 Nummern am Client hinaus oder auf dem Draht über 150 — nicht gemessen (Grenze der Messung M-22); der Schutz muss mit beliebig großen Nachrichten rechnen.
 
@@ -115,9 +115,9 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Der Server schreibt je Nummer einen ERROR, RETURNSTATUS und DONEPROC (nach [slice-antwort-tokens-zielbild-luecken-bauen](slice-antwort-tokens-zielbild-luecken-bauen.md)); die Antwort wächst mit der Zahl der Nummern, die Größe der Nachricht begrenzt sie. — **Ausgang:** offen bis zur Closure.
+- Der Server schreibt je Nummer einen ERROR, RETURNSTATUS und DONEPROC (nach [slice-antwort-tokens-zielbild-luecken-bauen](../open/slice-antwort-tokens-zielbild-luecken-bauen.md)); die Antwort wächst mit der Zahl der Nummern, die Größe der Nachricht begrenzt sie. — **Ausgang:** offen bis zur Closure.
 - Der Wert der echten Grenze (Nachrichtengröße des echten Servers) ist nicht gemessen; der Schutz des Servers dieses Repos ist eigene Setzung mit Messzeile. — **Ausgang:** offen bis zur Closure.
-- Der gemeinsame Pfad mit [slice-antwort-tokens-zielbild-luecken-bauen](slice-antwort-tokens-zielbild-luecken-bauen.md) erzeugt bei gleichzeitigem Lauf Konflikte (Reihenfolge nicht festgelegt). — **Ausgang:** offen bis zur Closure.
+- Der gemeinsame Pfad mit [slice-antwort-tokens-zielbild-luecken-bauen](../open/slice-antwort-tokens-zielbild-luecken-bauen.md) erzeugt bei gleichzeitigem Lauf Konflikte (Reihenfolge nicht festgelegt). — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 

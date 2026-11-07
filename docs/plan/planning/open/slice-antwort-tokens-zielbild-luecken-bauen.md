@@ -37,7 +37,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Die Menge der gemeldeten Nummern bei `sp_unprepare` — [slice-sp-unprepare-ohne-obergrenze](slice-sp-unprepare-ohne-obergrenze.md); beide Slices berühren die Batch-Freigabe (gleicher Pfad), wer später startet, zieht nach.
+- Die Menge der gemeldeten Nummern bei `sp_unprepare` — [slice-sp-unprepare-ohne-obergrenze](../next/slice-sp-unprepare-ohne-obergrenze.md); beide Slices berühren die Batch-Freigabe (gleicher Pfad), wer später startet, zieht nach.
 - SESSIONSTATE (Nr 8 des Vorgängers): „vorerst nicht senden“, Nutzerentscheid 2026-11-06, Re-Evaluierungs-Trigger dort; unberührt.
 - Die Ursache des SESSIONSTATE-Unterschieds nach dem Abbruch (nur Instanz 2022, Zustandskennung 254) und `COLMETADATA` hinter `RETURNVALUE` — Lücken ohne Träger (Nutzerentscheid 2026-11-06).
 - Der Abschluss von `CREATE TABLE` und `ALTER TABLE` (SQL_BATCH, `0x00c6`, `0x00d8`) — [slice-katalog-und-struktur-an-messung-angleichen](slice-katalog-und-struktur-an-messung-angleichen.md).
@@ -119,7 +119,7 @@ dasteht.
 
 - Die Anweisungsart im Port kann neue öffentliche Fläche bedeuten (`SPEC-059`, `make flaeche`); ohne den Port bleibt `curCmd` des Update-Zählers eine Lücke. — **Ausgang:** offen bis zur Closure.
 - Gemessen sind Einzelfälle je Instanz mit dem Referenzclient; `curCmd` von weiteren Anweisungsarten (MERGE `0x0117`, SELECT) ist nur dort gebaut, wo W-6 und M-13 messen. — **Ausgang:** offen bis zur Closure.
-- Der gemeinsame Pfad mit [slice-sp-unprepare-ohne-obergrenze](slice-sp-unprepare-ohne-obergrenze.md) erzeugt bei gleichzeitigem Lauf Konflikte. — **Ausgang:** offen bis zur Closure.
+- Der gemeinsame Pfad mit [slice-sp-unprepare-ohne-obergrenze](../next/slice-sp-unprepare-ohne-obergrenze.md) erzeugt bei gleichzeitigem Lauf Konflikte. — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 
