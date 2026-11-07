@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** SPEC-045 (Abdeckungsmatrix liest C#-Tests; Bericht aus der Stage `test-bericht`)
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** Implementer-Agent, Auftrag des Nutzers 2026-11-07.
 
 **Autor:** pt9912. **Datum:** 2026-11-06.
 
@@ -78,9 +78,10 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `referenztest-dotnet/Dockerfile` | update | gemeinsamer Aufruf in der Basis `test-quellen`, Stages `test` und `test-bericht` rufen ihn ([TDS-QA-05](../../../../spec/lastenheft.md#tds-qa-05--wartbarkeit)) |
-| `tools/spec-abdeckung.sh` | update | Kommentar im Kopf auf die Kopplung nachziehen; keine Änderung der Logik |
-| `docs/plan/spec-abdeckung.md` | update | nur falls `make spec-abdeckung` den Text des Erzeugers ändert (Matrix von Hand nachziehen, wenn der Erzeuger sie schreibt) |
-| `tools/stempel/*.eingaenge` | prüfen | Eingänge der Klasse `tests`; ein neues Skript im `COPY` braucht einen Eintrag (`make stempel-eingaenge-pruefung`) |
+| `referenztest-dotnet/test-lauf.sh` | neu | der eine Aufruf von `dotnet test` (Modi `test`, `bericht`; jedes andere Argument Exit 2); per `COPY` in der Basis `test-quellen`, im Stempel der Klasse `tests` durch `referenztest-dotnet` ganz gedeckt |
+| `tools/spec-abdeckung.sh` | update | Kommentar im Kopf und der gedruckte Satz der Matrix (Zeile `Der Bericht der C#-Tests …`) auf die Kopplung nachziehen; keine Änderung der Logik |
+| `docs/plan/spec-abdeckung.md` | update | `make spec-abdeckung` schreibt sie neu, weil der Erzeuger den Satz druckt |
+| `tools/stempel/*.eingaenge` | prüfen | Eingänge der Klasse `tests`; `referenztest-dotnet` ist ganz gelistet, kein Eintrag nötig (`make stempel-eingaenge-pruefung`, `make stempel-abbild` zeigen es) |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 
