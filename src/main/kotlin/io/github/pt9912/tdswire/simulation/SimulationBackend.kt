@@ -1,8 +1,13 @@
 package io.github.pt9912.tdswire.simulation
 
 import io.github.pt9912.tdswire.domain.QueryEvent
+import io.github.pt9912.tdswire.domain.QueryParameter
 import io.github.pt9912.tdswire.domain.QueryRequest
 import io.github.pt9912.tdswire.domain.ResultColumn
+import io.github.pt9912.tdswire.domain.SqlType
+import io.github.pt9912.tdswire.port.BulkRows
+import io.github.pt9912.tdswire.port.BulkTarget
+import io.github.pt9912.tdswire.port.BulkTargetResult
 import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.port.QueryExecution
 import kotlinx.coroutines.CancellationException
@@ -26,6 +31,10 @@ import java.util.concurrent.atomic.AtomicBoolean
  * Form C (`SPEC-036`) beantwortet das Backend ohne Tabelle: `SELECT 1` mit einer Spalte und einer Zeile, eine
  * `SET`-Anweisung und die Transaktionstexte mit dem Änderungszähler 0. Eine Auswahl mit einem Konstantenterm, der nie
  * gilt (`WHERE 1 = 0`), liefert Spaltenmetadaten und keine Zeile, ohne die Zeilenquelle zu öffnen.
+ *
+ * Form B (`SPEC-036`, Massenladen) erkennt das Backend als `INSERT BULK` und als die Proben davor (`SET FMTONLY ON …`,
+ * Kollation); die Nachrichten 0x07 lädt es über [BulkLoads] in `SimTable.onInsertBatch` oder `onInsert`, ohne etwas zu
+ * speichern (`runtime` schaltet das Laden für dieses Backend ein, ohne dass der Integrator etwas tut).
  *
  * Form K (`SPEC-036`) beantwortet die Katalogabfragen von d-migrate aus dem Katalog ([CatalogAnswers]); der Katalog
  * kommt bei jeder Anfrage frisch aus dem Anbieter des Konstruktors, das Backend hält keinen Stand. Form D
@@ -53,7 +62,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 public class SimulationBackend(
     /** Liefert bei jeder Anfrage die aktuelle Tabellenliste; wirft er, endet die Anfrage mit `TDS_BACKEND_ERROR`. */
-    catalog: () -> SimCatalog,
+    private val catalog: () -> SimCatalog,
     /**
      * Nimmt die Tabelle nach einer Strukturänderung entgegen: Schema, Name, Spalten in der Reihenfolge und Schlüssel;
      * ohne ihn ist jede Strukturänderung abgewiesen.
@@ -73,9 +82,42 @@ public class SimulationBackend(
             is PlanResult.Rejected -> failed(result.code, result.message)
             is PlanResult.Planned -> start(result.plan, request)
             is PlanResult.Fixed -> events(FixedAnswers.of(result.form))
-            is PlanResult.Catalog -> events(CatalogAnswers.of(result.form, result.catalog, request.parameters))
+            is PlanResult.Catalog -> events(CatalogAnswers.of(result.form, result.catalog, parameters(result, request)))
             is PlanResult.Structure -> structure(result.plan, request)
+            is PlanResult.Bulk -> events(bulkAnswer(result.result))
         }
+
+    /** Ein Katalogtext mit Literal statt Parameter (`SPEC-036`, Form K) trägt sein Argument als einzigen Parameter. */
+    private fun parameters(result: PlanResult.Catalog, request: QueryRequest): List<QueryParameter> =
+        result.literal?.let { listOf(QueryParameter("", SqlType.UnicodeText, it)) } ?: request.parameters
+
+    /** `INSERT BULK` als Text: die Anweisung selbst ruft keinen Callback und zählt 0 (Setzung, nicht gemessen). */
+    private fun bulkAnswer(result: BulkTargetResult): List<QueryEvent> = when (result) {
+        is BulkTargetResult.Ready -> listOf(QueryEvent.UpdateCount(0))
+        is BulkTargetResult.Rejected -> listOf(QueryEvent.Failure(result.code, result.message))
+    }
+
+    /**
+     * Erkennt `INSERT BULK` (Form B); die Fähigkeit `BulkLoadingBackend` stellt `runtime` darüber bereit. Nur ein Text
+     * dieser Form fragt den Katalog-Anbieter; jeder andere ergibt `null` und geht den üblichen Weg über [execute].
+     */
+    internal fun bulkTarget(sql: String): BulkTargetResult? {
+        if (StatementParser.recognize(sql) !is Recognition.Bulk) return null
+        return when (val result = guarded { planner.plan(sql) }.getOrNull()) {
+            is PlanResult.Bulk -> result.result
+            else -> BulkTargetResult.Rejected(SimCodes.BACKEND_ERROR, "Katalog nicht lieferbar")
+        }
+    }
+
+    /** Lädt die Zeilen einer Nachricht 0x07 ([BulkLoads]); wirft für keinen Fehler der Anfrage. */
+    internal suspend fun load(target: BulkTarget, rows: BulkRows): QueryEvent {
+        val table = guarded { catalog().find(target.schema, target.table) }
+        return when {
+            table.isFailure -> QueryEvent.Failure(SimCodes.BACKEND_ERROR, "Katalog nicht lieferbar")
+            table.getOrNull() == null -> QueryEvent.Failure(SimCodes.UNKNOWN_OBJECT, "Tabelle nicht beschrieben")
+            else -> BulkLoads.load(requireNotNull(table.getOrNull()), rows)
+        }
+    }
 
     override suspend fun cancel(sessionId: String, requestId: String) {
         running[sessionId to requestId]?.stop()

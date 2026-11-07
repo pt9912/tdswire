@@ -1,0 +1,2 @@
+**Vorgang:** [slice-schreibpfad-bulk-load](../../../../done/slice-schreibpfad-bulk-load.md)
+**Fund:** §6 von [slice-schreibpfad-bulk-load](../../../../done/slice-schreibpfad-bulk-load.md), Risiko „Der Client wählt den Typ seiner Parameter selbst“ und Risiko „Option zum Abschalten des Massenladens“: weiter offen; der Pfad des Massenladens trägt keine Parameter des Clients (die Werte stehen in der Nachricht 0x07), der Filter `Id = 7` des Exports ist nicht erneut gemessen.

@@ -44,6 +44,27 @@ class MessageAssemblerTest {
     }
 
     /**
+     * Gemessen mit `SqlBulkCopy` (Messprotokoll M-9): ein Batch des Massenladens aus mehreren Paketen trägt im ersten
+     * Paket das Statusbit `0x04`, im letzten `0x01`. Der Leser behält das unbekannte Bit und wertet es nicht aus: die
+     * Nachricht 0x07 entsteht mit den Nutzdaten beider Pakete, ohne Reset und ohne IGNORE. Wächter: ein Leser, der ein
+     * Status-Byte mit unbekanntem Bit abweist.
+     *
+     * @spec SPEC-028
+     * @spec SPEC-036
+     */
+    @Test
+    fun `Das Statusbit 0x04 im ersten Paket einer Nachricht 0x07 wird angenommen`() {
+        val wire = hex("07 04 00 0A 00 00 01 00 11 22 07 01 00 0A 00 00 02 00 33 44")
+        val step = MessageAssembler().feed(wire)
+        assertNull(step.error)
+        val message = step.messages.single()
+        assertEquals(PacketType.BULK_LOAD, message.type)
+        assertContentEquals(hex("11 22 33 44"), message.payload)
+        assertFalse(message.resetConnection)
+        assertFalse(message.ignore)
+    }
+
+    /**
      * Festlegung ohne Messung: Der Leser prüft die Packet-ID nicht; Pakete mit nicht fortlaufenden
      * IDs (7, dann 2, dann 255) ergeben dieselbe Nachricht wie fortlaufende.
      *

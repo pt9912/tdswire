@@ -355,7 +355,8 @@ internal sealed class HandschlagStrom : Stream
 /// Server nicht ENCRYPT_ON (1), endet die Aufnahme mit <see cref="Problem"/>. Danach führt er den TLS-Handschlag mit dem Client
 /// (eigenes, im Prozess erzeugtes Zertifikat, der Client muss ihm vertrauen) und, getrennt, mit dem Server (dessen Zertifikat
 /// prüft er gegen den Namen <c>zertifikatsName</c> und die Vertrauensanker des Systems); beide mit TLS 1.2 (Setzung). Ab dem
-/// Handschlag reicht er die entschlüsselten Pakete unverändert durch und schreibt sie mit (<see cref="Protokollierer"/>); der
+/// Handschlag reicht er die entschlüsselten Pakete unverändert durch, jedes Paket in einem eigenen Schreibvorgang (ein TLS-Record je Paket,
+/// <see cref="PaketweiseSchreiben"/>), und schreibt sie mit (<see cref="Protokollierer"/>); der
 /// Client sieht damit zwei Verschlüsselungen hintereinander, der Server eine. Weitere Verbindungen schließt er sofort und zählt sie (<see cref="WeitereVerbindungen"/>).
 /// Grenze: der Verkehr ist um einen Zwischenschritt je Richtung verschoben; ein Client, der das Zertifikat des Proxys prüft,
 /// verbindet nicht.
@@ -374,6 +375,13 @@ internal sealed class TlsAufnahme : IDisposable
     private volatile string? _problem;
     private volatile string? _ende;
     private int _weitere;
+    private long _bytesClient;
+    private long _bytesServer;
+    private System.Diagnostics.Stopwatch? _start;
+    private readonly object _endeSperre = new();
+    private readonly List<int> _stuecke = new();
+    private readonly Queue<string> _letzteClient = new();
+    private readonly Queue<string> _letzteServer = new();
 
     public TlsAufnahme(string host, int port, string zertifikatsName, RemoteCertificateValidationCallback? serverPruefung = null)
     {
@@ -394,6 +402,15 @@ internal sealed class TlsAufnahme : IDisposable
 
     /// <summary>Warum die Pumpe der ersten Verbindung endete (Ausnahme oder Ende des Stroms), oder null, solange sie läuft.</summary>
     public string? Ende => _ende;
+
+    /// <summary>Die Längen der Stücke, die der Proxy vom Client las und in dieser Aufteilung an den Server schrieb (Fehlersuche).</summary>
+    public string Stuecke
+    {
+        get
+        {
+            lock (_stuecke) return string.Join(",", _stuecke.Skip(3));
+        }
+    }
 
     public static X509Certificate2 EigenesZertifikat()
     {
@@ -495,8 +512,9 @@ internal sealed class TlsAufnahme : IDisposable
             });
             amServer.Roh();
 
-            Task.Run(() => Pumpe(sslClient, sslServer, _protokoll.VomClient));
-            Task.Run(() => Pumpe(sslServer, sslClient, _protokoll.VomServer));
+            _start = System.Diagnostics.Stopwatch.StartNew();
+            Task.Run(() => Pumpe("Client->Server", sslClient, sslServer, _protokoll.VomClient));
+            Task.Run(() => Pumpe("Server->Client", sslServer, sslClient, _protokoll.VomServer));
         }
         catch (Exception e) when (e is SocketException or ObjectDisposedException or IOException or InvalidOperationException
             or AuthenticationException or InvalidDataException)
@@ -522,30 +540,99 @@ internal sealed class TlsAufnahme : IDisposable
         }
     }
 
-    // Die Beobachtung geht der Weitergabe voran, wie in Aufnahme.
-    private void Pumpe(Stream von, Stream nach, Action<byte[], int> beobachter)
+    // Die Beobachtung geht der Weitergabe voran, wie in Aufnahme. `Ende` nennt die Pumpe, die als erste endete, mit Richtung, Art des
+    // Endes (Ausnahme samt Ursachenkette oder Ende des Stroms), Zeit seit dem Handschlag und Bytes je Richtung bis dahin.
+    private void Pumpe(string richtung, Stream von, Stream nach, Action<byte[], int> beobachter)
     {
         var puffer = new byte[16384];
+        var rest = Array.Empty<byte>();
+        var stelle = "Lesen";
         try
         {
             int n;
-            while ((n = von.Read(puffer, 0, puffer.Length)) > 0)
+            while (true)
             {
+                stelle = "Lesen";
+                if ((n = von.Read(puffer, 0, puffer.Length)) <= 0) break;
+                Interlocked.Add(ref richtung[0] == 'C' ? ref _bytesClient : ref _bytesServer, n);
+                Gelesen(richtung[0] == 'C' ? _letzteClient : _letzteServer, puffer, n);
+                if (richtung[0] == 'C') lock (_stuecke) _stuecke.Add(n);
+                stelle = "Beobachten";
                 beobachter(puffer, n);
-                nach.Write(puffer, 0, n);
-                nach.Flush();
+                stelle = "Schreiben";
+                PaketweiseSchreiben(nach, ref rest, puffer, n);
             }
 
-            _ende ??= "Ende des Stroms";
+            Vermerken(richtung, "Ende des Stroms (Lesen lieferte 0)", stelle);
         }
         catch (Exception e) when (e is IOException or ObjectDisposedException or SocketException or InvalidDataException or AuthenticationException)
         {
             // Ende der Verbindung: der Aufrufer sieht das Ergebnis über Anhalten.
-            _ende ??= e.GetType().Name;
+            Vermerken(richtung, Kette(e), stelle);
         }
         finally
         {
             Schliessen();
+        }
+    }
+
+    // Schreibt jedes vollständige TDS-Paket in einem eigenen Schreibvorgang, also in einem eigenen TLS-Record, wie ein Client sie
+    // schreibt: der Schnitt der Lesevorgänge (ein Record kann mehrere Pakete tragen oder ein Paket teilen) wird nicht
+    // weitergegeben. Ein unvollständiges Paket bleibt in `rest`; ein Kopf mit einer Länge unter dem Paketkopf (kein TDS) geht roh weiter.
+    internal static void PaketweiseSchreiben(Stream nach, ref byte[] rest, byte[] puffer, int n)
+    {
+        var alles = new byte[rest.Length + n];
+        Array.Copy(rest, alles, rest.Length);
+        Array.Copy(puffer, 0, alles, rest.Length, n);
+        var pos = 0;
+        while (alles.Length - pos >= TdsPaket.KopfLaenge)
+        {
+            var laenge = (alles[pos + 2] << 8) | alles[pos + 3];
+            if (laenge < TdsPaket.KopfLaenge)
+            {
+                nach.Write(alles, pos, alles.Length - pos);
+                nach.Flush();
+                pos = alles.Length;
+                break;
+            }
+
+            if (alles.Length - pos < laenge) break;
+            nach.Write(alles, pos, laenge);
+            nach.Flush();
+            pos += laenge;
+        }
+
+        rest = alles[pos..];
+    }
+
+    // Die letzten gelesenen Stücke je Richtung (Länge und die ersten 8 Bytes, bei TDS der Paketkopf), für das Ende der Pumpe.
+    private static void Gelesen(Queue<string> ring, byte[] puffer, int n)
+    {
+        lock (ring)
+        {
+
+            ring.Enqueue($"{n}:{Convert.ToHexString(puffer, 0, Math.Min(8, n))}");
+            while (ring.Count > 12) ring.Dequeue();
+        }
+    }
+
+    private static string Ring(Queue<string> ring)
+    {
+        lock (ring) return string.Join(" ", ring);
+    }
+
+    private static string Kette(Exception e)
+    {
+        var teile = new List<string>();
+        for (var x = e; x != null; x = x.InnerException) teile.Add(x.GetType().Name + (x is SocketException s ? $"[{s.SocketErrorCode}]" : string.Empty) + ": " + x.Message);
+        return string.Join(" <- ", teile);
+    }
+
+    private void Vermerken(string richtung, string art, string stelle)
+    {
+        lock (_endeSperre)
+        {
+            _ende ??= $"{richtung} beim {stelle}: {art}; nach {_start?.ElapsedMilliseconds} ms, Bytes Client->Server {Volatile.Read(ref _bytesClient)}, Server->Client {Volatile.Read(ref _bytesServer)}; letzte Stücke Client->Server [{Ring(_letzteClient)}], Server->Client [{Ring(_letzteServer)}]";
         }
     }
 

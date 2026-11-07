@@ -1,0 +1,2 @@
+**Vorgang:** [slice-qa-vergleichslauf-d-messungen-bulk-merge](../../../../done/slice-qa-vergleichslauf-d-messungen-bulk-merge.md)
+**Fund:** [Review](../../../../../../reviews/2026-11-07-2c6dd2d4-review-slice-qa-vergleichslauf-d-messungen-bulk-merge.md) F-8 (INFO): `TelemetryJsonTest > Die Kennung der Annahme steht escaped im Feld principal` in `make matrix-zitate` einmal rot (97 Tests, 1 rot), im zweiten Lauf grün (1088 bestandene Testfälle), in `make gates` grün; der Test liegt im Modul `testserver`, das der Diff nicht berührt.
