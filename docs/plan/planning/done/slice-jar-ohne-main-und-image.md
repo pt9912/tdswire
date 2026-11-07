@@ -116,7 +116,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **Start** (`next` → `in-progress`), alle Bedingungen beobachtbar:
 
 1. `slice-testserver-herausloesen` liegt in `done/` (Voraussetzung (b) setzt (a) voraus, [ADR-0025](../../adr/0025-produktschnitt-bibliothek-und-testserver.md) Folgepflicht 2).
-2. Der Start-Trigger von [welle-produktschnitt](../welle-produktschnitt.md) ist eingetreten.
+2. Der Start-Trigger von [welle-produktschnitt](welle-produktschnitt.md) ist eingetreten.
 3. Ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
