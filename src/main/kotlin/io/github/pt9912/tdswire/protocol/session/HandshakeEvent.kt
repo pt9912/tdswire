@@ -24,7 +24,7 @@ internal sealed interface HandshakeEvent {
     }
 
     /**
-     * Eine vollständige Nachricht. Festlegung ohne Messung: SQL_BATCH, RPC und Transaction Manager
+     * Eine vollständige Nachricht. Festlegung ohne Messung: SQL_BATCH, RPC, BULK_LOAD und Transaction Manager
      * sind Anfragen; ATTENTION ist eigene Art, auch während `RUNNING` und `STREAMING`; jeder andere Pakettyp
      * ist [EventKind.OTHER_MESSAGE].
      * Das Bit RESETCONNECTION einer Anfrage in `READY` wertet der Automat aus
@@ -35,9 +35,14 @@ internal sealed interface HandshakeEvent {
         override val kind: EventKind
             get() = when (message.type) {
                 PacketType.PRELOGIN -> EventKind.PRELOGIN_MESSAGE
+
                 PacketType.LOGIN7 -> EventKind.LOGIN7_MESSAGE
-                PacketType.SQL_BATCH, PacketType.RPC, PacketType.TRANSACTION_MANAGER -> EventKind.REQUEST_MESSAGE
+
+                PacketType.SQL_BATCH, PacketType.RPC, PacketType.BULK_LOAD, PacketType.TRANSACTION_MANAGER ->
+                    EventKind.REQUEST_MESSAGE
+
                 PacketType.ATTENTION -> EventKind.ATTENTION_MESSAGE
+
                 else -> EventKind.OTHER_MESSAGE
             }
 

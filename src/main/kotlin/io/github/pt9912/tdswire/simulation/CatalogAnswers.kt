@@ -20,6 +20,7 @@ internal data class CatalogType(val typeName: String, val maxLength: Int, val pr
  * `time` und `datetime2` sind Setzung nach dem Handbuch des Servers (Skala der Zeittypen 7, `SPEC-003` offen).
  */
 internal object CatalogAnswers {
+    private const val DEFAULT_COLLATION = "SQL_Latin1_General_CP1_CI_AS"
     private const val NVARCHAR_BYTES = 2
     private const val BIGINT_PRECISION = 19
     private const val INT_PRECISION = 10
@@ -59,6 +60,7 @@ internal object CatalogAnswers {
         CatalogSource.TABLES -> tables(catalog, arg)
         CatalogSource.COLUMNS -> columns(tableOf(catalog, arg))
         CatalogSource.PRIMARY_KEY -> tableOf(catalog, arg)?.primaryKey.orEmpty().map { listOf(it) }
+        CatalogSource.COLLATIONS -> tableOf(catalog, arg)?.columns.orEmpty().map { listOf(collationOf(it), false) }
     }
 
     private fun tables(catalog: SimCatalog, schema: String?): List<List<Any?>> {
@@ -93,6 +95,13 @@ internal object CatalogAnswers {
         SqlType.Time -> CatalogType("time", TIME_BYTES, TIME_PRECISION, TIME_SCALE)
         SqlType.DateTime -> CatalogType("datetime2", DATETIME2_BYTES, DATETIME2_PRECISION, TIME_SCALE)
     }
+
+    /**
+     * Die Kollation einer Textspalte; jede andere Spalte meldet NULL wie der Server. Der Name ist Setzung (die
+     * Kollation der Datenbank eines echten Servers ist nicht gemessen).
+     */
+    private fun collationOf(column: SimColumn): String? =
+        if (column.type == SqlType.UnicodeText) DEFAULT_COLLATION else null
 
     /** Länge eines `nvarchar` in Byte; `nvarchar(max)` meldet der Server als -1. */
     private fun textBytes(length: Int): Int = if (length == UNBOUNDED_TEXT) UNBOUNDED_TEXT else NVARCHAR_BYTES * length

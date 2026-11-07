@@ -1,5 +1,8 @@
 package io.github.pt9912.tdswire.simulation
 
+import io.github.pt9912.tdswire.port.BulkTarget
+import io.github.pt9912.tdswire.port.BulkTargetResult
+
 /**
  * Namen der Fehlercodes, die das Simulations-Backend meldet (`SPEC-037`, `SPEC-038`, `SPEC-039`). `simulation` darf
  * `protocol` nicht importieren; die Namen sind die von `ErrorCode`, und ein Test in `runtime` hält sie
@@ -39,8 +42,14 @@ internal data class StructurePlan(
 internal sealed interface PlanResult {
     data class Planned(val plan: Plan) : PlanResult
 
-    /** Eine Katalogabfrage; [catalog] ist der Stand, den der Anbieter bei der Planung lieferte. */
-    data class Catalog(val form: CatalogForm, val catalog: SimCatalog) : PlanResult
+    /**
+     * Eine Katalogabfrage; [catalog] ist der Stand, den der Anbieter bei der Planung lieferte, [literal] das Argument,
+     * das der Text selbst trägt (statt eines Parameters), sonst `null`.
+     */
+    data class Catalog(val form: CatalogForm, val catalog: SimCatalog, val literal: String?) : PlanResult
+
+    /** `INSERT BULK` (Form B): das Ziel oder die Ablehnung, wie [BulkLoadingBackend.bulkTarget] sie meldet. */
+    data class Bulk(val result: BulkTargetResult) : PlanResult
 
     /** Eine Strukturänderung; die Tabelle ist im Zustand nach der Anweisung beschrieben. */
     data class Structure(val plan: StructurePlan) : PlanResult
@@ -69,12 +78,33 @@ internal class StatementPlanner(private val catalogs: () -> SimCatalog) {
 
         is Recognition.Fixed -> PlanResult.Fixed(recognition.form)
 
-        is Recognition.Catalog -> PlanResult.Catalog(recognition.form, catalogs())
+        is Recognition.Catalog -> PlanResult.Catalog(recognition.form, catalogs(), recognition.literal)
+
+        is Recognition.Bulk -> PlanResult.Bulk(bulk(recognition, catalogs()))
 
         is Recognition.Recognized -> resolve(recognition.statement, catalogs())
     }
 
     private fun reject(code: String, message: String): PlanResult = PlanResult.Rejected(code, message)
+
+    /**
+     * `INSERT BULK`: die Tabelle und jede genannte Spalte sind beschrieben, und die Tabelle hat einen Callback für
+     * Zeilen (`onInsertBatch` oder `onInsert`); sonst ist die Anweisung abgewiesen, bevor eine Nachricht 0x07 folgt.
+     */
+    private fun bulk(recognition: Recognition.Bulk, catalog: SimCatalog): BulkTargetResult {
+        val table = catalog.find(recognition.table.schema, recognition.table.name)
+        return when {
+            table == null -> BulkTargetResult.Rejected(SimCodes.UNKNOWN_OBJECT, "Tabelle nicht beschrieben")
+
+            recognition.columns.any { table.column(it) == null } ->
+                BulkTargetResult.Rejected(SimCodes.UNKNOWN_OBJECT, "Spalte nicht beschrieben")
+
+            table.onInsertBatch == null && table.onInsert == null ->
+                BulkTargetResult.Rejected(SimCodes.UNSUPPORTED_SQL, "Einfügen für diese Tabelle nicht verfügbar")
+
+            else -> BulkTargetResult.Ready(BulkTarget(table.schema, table.name))
+        }
+    }
 
     private fun resolve(statement: Statement, catalog: SimCatalog): PlanResult = when (statement) {
         is Statement.CreateTable -> create(statement, catalog)

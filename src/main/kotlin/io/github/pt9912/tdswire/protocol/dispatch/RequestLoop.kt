@@ -140,6 +140,7 @@ internal class RequestLoop(
     private val mapping = errors.sequencerMapping()
     private val sequencer = ResponseSequencer(mapping)
     private val aborted = AbortedAnswer(errors, mapping)
+    private val bulk = BulkDispatch(backend)
 
     /** Der Eingang und der Bereich der Läufe; gesetzt, sobald [run] beginnt. */
     private class Rig(val tray: InboundTray, val detached: CoroutineScope)
@@ -223,7 +224,21 @@ internal class RequestLoop(
     /** Das Ereignis, das die Anfrage beendet; `null`, wenn die Sitzung beim Schreiben der Antwort geschlossen wurde. */
     private suspend fun answer(message: TdsMessage): HandshakeEvent.RequestFinished? = when {
         gate.begun -> refuse(ErrorCode.TDS_SHUTDOWN, "shutdown")
-        message.type == PacketType.RPC -> answerRpc(message)
+
+        message.type == PacketType.RPC -> {
+            bulk.clear()
+            answerRpc(message)
+        }
+
+        message.type == PacketType.BULK_LOAD -> when (val loaded = bulk.answer(message)) {
+            is BulkDispatch.Answer.Malformed -> {
+                val response = errors.protocol(loaded.error)
+                requestFinished(response.fate, response.message)
+            }
+
+            is BulkDispatch.Answer.Reply -> execute("", emptyList(), ResponseForm.BATCH, loaded.via)
+        }
+
         else -> answerBatch(message)
     }
 
@@ -235,8 +250,9 @@ internal class RequestLoop(
                 val text = parsed.value.text
                 val released = UnprepareBatch.parse(text)
                 if (released == null) {
-                    execute(text, emptyList(), ResponseForm.BATCH)
+                    execute(text, emptyList(), ResponseForm.BATCH, bulk.statement(text) ?: backend)
                 } else {
+                    bulk.clear()
                     UnprepareBatch.answer(released, handles, errors)
                 }
             }

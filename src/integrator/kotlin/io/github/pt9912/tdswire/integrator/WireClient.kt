@@ -18,6 +18,7 @@ private const val HEADER_BYTES = 8
 private const val BYTE_BITS = 8
 private const val TYPE_SQL_BATCH = 0x01
 private const val TYPE_RPC = 0x03
+private const val TYPE_BULK_LOAD = 0x07
 private const val TYPE_RESPONSE = 4
 private const val TYPE_LOGIN7 = 0x10
 private const val TYPE_PRELOGIN = 0x12
@@ -103,6 +104,12 @@ internal class WireClient(port: Int) : AutoCloseable {
     fun executeSql(statement: String, declarations: String, vararg params: ByteArray): ByteArray {
         send(TYPE_RPC, executeSqlPayload(statement, declarations, *params))
         return readMessage().second
+    }
+
+    /** Eine Nachricht vom Typ BULK_LOAD (0x07) mit der fertigen Nutzlast [payload] und die Antwort darauf. */
+    fun bulkLoad(payload: ByteArray): Answer {
+        send(TYPE_BULK_LOAD, payload)
+        return Answer(readMessage().second)
     }
 
     /** Ein RPC mit dem fertigen Rumpf [payload]; die Antwort sind die rohen Nutzdaten. */

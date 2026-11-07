@@ -104,7 +104,8 @@ class SimValuesTest {
 
     /**
      * Happy und Negative: Text, auch mit `N`, geht in eine Textspalte; Datum, Zeit und Zeitpunkt gelten nur im
-     * ISO-Format (der Zeitpunkt nur mit `T`), ein unmögliches Datum und andere Schreibweisen sind ungültig.
+     * ISO-Format (der Zeitpunkt mit `T` oder mit einem Leerzeichen an dessen Stelle, wie mssql-jdbc ihn im Massenladen
+     * sendet), ein unmögliches Datum und andere Schreibweisen sind ungültig.
      * @spec SPEC-035
      * @spec SPEC-039
      */
@@ -120,7 +121,14 @@ class SimValuesTest {
         assertInvalid(literal(txt("25:00:00"), SqlType.Time), "Stunde 25")
         val moment = LocalDateTime.of(2026, 10, 30, 12, 30)
         assertValue(moment, literal(txt("2026-10-30T12:30:00"), SqlType.DateTime), "Zeitpunkt")
-        assertInvalid(literal(txt("2026-10-30 12:30:00"), SqlType.DateTime), "Zeitpunkt mit Leerzeichen")
+        assertValue(moment, literal(txt("2026-10-30 12:30:00"), SqlType.DateTime), "Zeitpunkt mit Leerzeichen")
+        assertValue(
+            LocalDateTime.of(2026, 10, 30, 12, 30, 15),
+            literal(txt("2026-10-30 12:30:15.0"), SqlType.DateTime),
+            "Zeitpunkt mit Leerzeichen und Nachkommastelle",
+        )
+        assertInvalid(literal(txt("2026-10-30  12:30:00"), SqlType.DateTime), "zwei Leerzeichen")
+        assertInvalid(literal(txt(" 2026-10-30 12:30:00"), SqlType.DateTime), "Leerzeichen am Anfang")
         assertInvalid(literal(txt("2026-10-30"), SqlType.DateTime), "Datum in Zeitpunkt")
         assertInvalid(literal(txt("abc"), SqlType.Date), "Text kein Datum")
     }

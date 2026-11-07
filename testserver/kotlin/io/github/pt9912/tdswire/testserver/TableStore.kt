@@ -1,44 +1,141 @@
 package io.github.pt9912.tdswire.testserver
 
+import io.github.pt9912.tdswire.domain.SqlType
 import io.github.pt9912.tdswire.simulation.RowSource
 import io.github.pt9912.tdswire.simulation.SimCatalog
 import io.github.pt9912.tdswire.simulation.SimColumn
 import io.github.pt9912.tdswire.simulation.SimTable
 import io.github.pt9912.tdswire.simulation.SimulationBackend
+import java.math.BigDecimal
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
 
 /**
  * Der Bestand an Tabellen des Testservers im Arbeitsspeicher (`TDS-FA-12`): der Integrator der Bibliothek. Er hält die
  * Tabellen, die die Datei der Beschreibung nennt, und die, die ein Client mit `CREATE TABLE` anlegt oder mit
- * `ALTER TABLE … ADD` erweitert; die Bibliothek fragt [catalog] bei jeder Anfrage und meldet jede Strukturänderung an
- * [replace]. Der Testserver kennt keine Katalog- und keine Parserlogik, nur diesen Bestand. Gespeichert wird die
- * Struktur; eine Tabelle hat eine leere Zeilenquelle und keine Callbacks für Zeilen (Schreiben von Zeilen ist nicht
- * Teil dieses Stands). Ein Neustart des Prozesses leert den Bestand bis auf die Tabellen der Datei. [catalog] und
- * [replace] sind je Aufruf gegeneinander gesperrt; eine Strukturänderung ersetzt die Tabelle als Ganzes, ohne Rücknahme
- * über mehrere Anweisungen. Dass die Prüfung der Anweisung und das [replace] eine Einheit sind, trägt das Backend der
- * Bibliothek (es plant unter einer Sperre erneut, `SPEC-035`), nicht dieser Bestand: das Backend aus [backend] ist der
- * einzige Schreiber, den dies deckt.
+ * `ALTER TABLE … ADD` erweitert, samt ihren Zeilen; die Bibliothek fragt [catalog] bei jeder Anfrage, meldet jede
+ * Strukturänderung an [replace] und gibt die Zeilen eines Massenladens an [insertBatch]. Der Testserver kennt keine
+ * Katalog- und keine Parserlogik, nur diesen Bestand. Eine übergebene Tabelle behält Schema, Name, Spalten und
+ * Schlüssel; ihre Zeilenquelle und ihre Callbacks ersetzt der Bestand durch die eigenen. Ein Neustart des Prozesses
+ * leert den Bestand bis auf die Tabellen der Datei (ohne Zeilen). [catalog], [replace] und [insertBatch] sind je
+ * Aufruf gegeneinander gesperrt; eine Strukturänderung ersetzt die Tabelle als Ganzes, ohne Rücknahme über mehrere
+ * Anweisungen. Dass die Prüfung der Anweisung und das [replace] eine Einheit sind, trägt das Backend der Bibliothek (es
+ * plant unter einer Sperre erneut, `SPEC-035`), nicht dieser Bestand: das Backend aus [backend] ist der einzige
+ * Schreiber, den dies deckt.
+ *
+ * Massenladen ([insertBatch], `ADR-0033` Nr. 5): eine Nachricht ist eine Anweisung und gilt ganz oder gar nicht. Der
+ * Bestand prüft vor dem ersten Einfügen jede Zeile der Nachricht: jeder Wert hat die Klasse seiner Spalte
+ * (`ValueMapping`), eine nicht nullbare Spalte, auch jede Schlüsselspalte, trägt keinen NULL, und der Schlüssel ist
+ * unter den Zeilen der Nachricht und des Bestands eindeutig; sonst wirft er, und der Bestand bleibt unverändert (die
+ * Bibliothek meldet das dem Client als `TDS_BACKEND_ERROR`). Setzung, am Server nicht gemessen: Textschlüssel
+ * vergleicht der Bestand ohne Beachtung der Schreibweise (wie die Namen), Dezimalschlüssel mit `compareTo`. Der
+ * Bestand wächst mit den Nachrichten ohne Grenze; der Heap des Prozesses begrenzt ihn.
  */
 internal class TableStore(initial: List<SimTable>) {
-    private val tables = LinkedHashMap<String, SimTable>()
+    private class Stored(
+        val schema: String,
+        val name: String,
+        val columns: List<SimColumn>,
+        val primaryKey: List<String>,
+        val rows: MutableList<List<Any?>>,
+        val keys: MutableSet<List<Any?>>,
+    )
+
+    private val tables = LinkedHashMap<String, Stored>()
 
     init {
-        initial.forEach { tables[key(it.schema, it.name)] = it }
+        initial.forEach { tables[key(it.schema, it.name)] = stored(it.schema, it.name, it.columns, it.primaryKey) }
     }
 
     /** Der Stand der Tabellen jetzt; jeder Aufruf baut einen neuen Katalog. */
     @Synchronized
-    fun catalog(): SimCatalog = SimCatalog(tables.values.toList())
+    fun catalog(): SimCatalog = SimCatalog(tables.values.map(::described))
 
     /** Legt die Tabelle an oder ersetzt sie durch die Struktur nach der Anweisung (auch bei `ALTER TABLE … ADD`). */
     @Synchronized
     fun replace(schema: String, name: String, columns: List<SimColumn>, primaryKey: List<String>) {
-        tables[key(schema, name)] =
-            SimTable(schema, name, columns.toList(), primaryKey.toList(), rows = { RowSource { null } })
+        val old = tables[key(schema, name)]
+        val next = stored(schema, name, columns, primaryKey)
+        if (old != null) {
+            val index = old.columns.withIndex().associate { NameFold.fold(it.value.name) to it.index }
+            val positions = columns.map { index[NameFold.fold(it.name)] }
+            for (row in old.rows) next.rows.add(positions.map { at -> at?.let { row[it] } })
+            next.rows.forEach { next.keys.add(keyOf(next, it)) }
+        }
+        tables[key(schema, name)] = next
+    }
+
+    /**
+     * Fügt die Zeilen der Nachricht in die Tabelle [schema].[name] ein oder keine; liefert ihre Zahl. Jede Zeile ist
+     * eine Abbildung von Spaltennamen der Beschreibung auf Werte, eine fehlende Spalte ist NULL.
+     */
+    @Synchronized
+    fun insertBatch(schema: String, name: String, batch: List<Map<String, Any?>>): Long {
+        val table = checkNotNull(tables[key(schema, name)]) { "Tabelle nicht im Bestand" }
+        val staged = ArrayList<List<Any?>>(batch.size)
+        val newKeys = HashSet<List<Any?>>()
+        for (values in batch) {
+            val row = table.columns.map { values[it.name] }
+            row.forEachIndexed { index, value -> check(table.columns[index], value) }
+            val rowKey = keyOf(table, row)
+            require(rowKey !in table.keys && newKeys.add(rowKey)) { "Schlüssel nicht eindeutig" }
+            staged.add(row)
+        }
+        table.rows.addAll(staged)
+        table.keys.addAll(newKeys)
+        return staged.size.toLong()
     }
 
     /** Das Backend der Bibliothek über diesen Bestand: Anbieter und Strukturänderung zeigen auf ihn. */
     fun backend(): SimulationBackend =
         SimulationBackend(::catalog) { schema, name, columns, key -> replace(schema, name, columns, key) }
+
+    private fun stored(schema: String, name: String, columns: List<SimColumn>, primaryKey: List<String>) =
+        Stored(schema, name, columns.toList(), primaryKey.toList(), ArrayList(), HashSet())
+
+    private fun described(table: Stored): SimTable = SimTable(
+        schema = table.schema,
+        name = table.name,
+        columns = table.columns,
+        primaryKey = table.primaryKey,
+        rows = { rowsOf(table) },
+        onInsertBatch = { batch -> insertBatch(table.schema, table.name, batch) },
+    )
+
+    @Synchronized
+    private fun rowsOf(table: Stored): RowSource {
+        val snapshot = table.rows.toList().iterator()
+        return RowSource { if (snapshot.hasNext()) snapshot.next() else null }
+    }
+
+    private fun check(column: SimColumn, value: Any?) {
+        if (value == null) {
+            require(column.nullable) { "NULL in nicht nullbarer Spalte" }
+        } else {
+            require(hasClassOf(column.type, value)) { "Wert nicht vom Typ der Spalte" }
+        }
+    }
+
+    private fun hasClassOf(type: SqlType, value: Any): Boolean = when (type) {
+        SqlType.Int32 -> value is Int
+        SqlType.Int64 -> value is Long
+        SqlType.Bool -> value is Boolean
+        SqlType.UnicodeText -> value is String
+        is SqlType.Decimal -> value is BigDecimal
+        SqlType.Date -> value is LocalDate
+        SqlType.Time -> value is LocalTime
+        SqlType.DateTime -> value is LocalDateTime
+    }
+
+    private fun keyOf(table: Stored, row: List<Any?>): List<Any?> = table.primaryKey.map { name ->
+        val index = table.columns.indexOfFirst { NameFold.fold(it.name) == NameFold.fold(name) }
+        when (val value = row[index]) {
+            is String -> value.lowercase()
+            is BigDecimal -> value.stripTrailingZeros()
+            else -> value
+        }
+    }
 
     private fun key(schema: String, name: String): String = NameFold.fold(schema) + "\u0000" + NameFold.fold(name)
 }
