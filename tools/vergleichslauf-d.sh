@@ -21,6 +21,11 @@
 #   bulk-2022 | bulk-2025 | bulk (beide): Messreihe zu Massenladen, MERGE, Katalog, Strukturaenderung und den Zusatzmessungen (Kategorie
 #   MessungBulk, referenztest-dotnet/Vergleich/MessungBulkTests.cs) mit derselben Methode wie `wire`; die Dateien ersetzen
 #   referenztest-dotnet/Mitschnitt/messung/bulk-merge-katalog/<stufe>/ im Arbeitsbaum (die Ablage von `wire` bleibt unberuehrt).
+#   jdbc-2022 | jdbc-2025 | jdbc (beide): d-migrate 1.12.0 (mssql-jdbc 13.4.0, Image per Digest in JDBC_IMAGE) gegen die Referenzinstanz
+#   ueber den mitschneidenden Durchlauf tools/jdbc-messung/Aufnahme.java (Klartext nach der Anmeldung, `encrypt=false`): `data import`
+#   und `data transfer` mit --on-conflict skip und update, Standardpfad mit BIGINT- und INT-Spalte, `data export`; die Zeilen
+#   `aufnahme:` der Ausgabe sind die Messwerte, die das Messprotokoll zitiert; die Datei ersetzt
+#   referenztest-dotnet/Mitschnitt/messung/jdbc-d-migrate/<stufe>.aufnahme.txt im Arbeitsbaum (der Lauf schreibt dorthin, committet nichts).
 #   MESSUNG_NUR=<Szenarien> waehlt eine Teilmenge ohne Ablage; mit MESSUNG_WIEDERHOLEN=<N> (Exit 0 bei gruenem Test, ohne Ablage) faehrt jedes gewaehlte Szenario N-mal ueber
 #   einen frisch aufgebauten Bestand und nennt die Rate roter Laeufe (MESSUNG_DIREKT=1: der Client verbindet sich ohne Proxy).
 # Je Lauf: Image der Referenzinstanz bauen (Dockerfile-Stufe `referenzinstanz-<jahr>` in referenztest-dotnet, Digest
@@ -144,6 +149,7 @@ AUFNAHME="aufnahme-2022 aufnahme-2025"
 MITSCHNITT="mitschnitt-2022 mitschnitt-2025"
 WIRE="wire-2022 wire-2025"
 BULK="bulk-2022 bulk-2025"
+JDBC="jdbc-2022 jdbc-2025"
 
 # parameter <Lauf>: setzt STUFE, KATEGORIE, FORCESTRICT, ERWARTE_STRICT, ERWARTE_SONDE und ERWARTE_MANDATORY (gelingt|scheitert|-).
 parameter() {
@@ -165,6 +171,8 @@ parameter() {
     wire-2025) STUFE=2025 KATEGORIE=MessungWire FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
     bulk-2022) STUFE=2022 KATEGORIE=MessungBulk FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
     bulk-2025) STUFE=2025 KATEGORIE=MessungBulk FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
+    jdbc-2022) STUFE=2022 KATEGORIE=JdbcDMigrate FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
+    jdbc-2025) STUFE=2025 KATEGORIE=JdbcDMigrate FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
     *) return 1 ;;
   esac
 }
@@ -181,10 +189,12 @@ elif [ "$LAUFNAME" = wire ]; then
   LISTE="$WIRE"
 elif [ "$LAUFNAME" = bulk ]; then
   LISTE="$BULK"
+elif [ "$LAUFNAME" = jdbc ]; then
+  LISTE="$JDBC"
 elif parameter "$LAUFNAME"; then
   LISTE="$LAUFNAME"
 else
-  echo "vergleichslauf-d: LAUF muss alle, live, aufnahme, mitschnitt, wire, bulk oder einer von [$ALLE $LIVE $MESSUNG $AUFNAHME $MITSCHNITT $WIRE $BULK] sein (war '$LAUFNAME')" >&2
+  echo "vergleichslauf-d: LAUF muss alle, live, aufnahme, mitschnitt, wire, bulk, jdbc oder einer von [$ALLE $LIVE $MESSUNG $AUFNAHME $MITSCHNITT $WIRE $BULK $JDBC] sein (war '$LAUFNAME')" >&2
   exit 2
 fi
 if [ -n "${CI:-}${GITHUB_ACTIONS:-}" ]; then
@@ -590,6 +600,93 @@ wirelauf() {
   return 0
 }
 
+# jdbclauf <Name>: d-migrate 1.12.0 (mssql-jdbc 13.4.0) gegen die Referenzinstanz (Stufe), ADR-0033 Folgepflicht 2. Zwischen Client und Instanz liegt der mitschneidende Durchlauf (tools/jdbc-messung/Aufnahme.java,
+# uebersetzt mit dem JDK-Image, ausgefuehrt im Image von d-migrate); der Client verbindet sich mit `encrypt=false`, nach der
+# Anmeldung ist der Draht Klartext. Datenbanken, Tabellen und Eingabedateien legt der Lauf selbst an (sqlcmd in der Instanz).
+# Grenze: gemessen ist d-migrate 1.12.0 mit seinen Voreinstellungen an den hier angelegten Tabellen und Dateien, nicht der
+# Wortlaut anderer Versionen.
+JDBC_IMAGE="ghcr.io/pt9912/d-migrate@sha256:308f27753036c9cc423f716b9fc4c9e68016543a8003ecd2f8282e05a2ee6491"
+JDK_IMAGE="gradle:8.14-jdk21@sha256:b3453e88792ea90b526f5d04fa2961bba183ae57ded4ad3437a49fb4e8381c06"
+jdbclauf() {
+  local name="$1" proxy klassen work url url2 ziel gesehen=0 ziel_verzeichnis sqlcmd db
+  parameter "$name" || return 1
+  echo "vergleichslauf-d: --- Lauf $name (Stufe $STUFE, d-migrate ueber mssql-jdbc) ---"
+  referenz_hochfahren "$name" || return 1
+  proxy="$LAUF-$name-proxy"
+  CLIENT="$proxy"
+  klassen="$SCRATCH/klassen"
+  work="$SCRATCH/work"
+  mkdir -p "$klassen" "$work" && chmod 777 "$klassen" "$work" || return 1
+  docker run --rm -v "$PWD/tools/jdbc-messung:/messung:ro" -v "$klassen:/klassen" --entrypoint javac "$JDK_IMAGE" \
+    --release 21 -d /klassen /messung/Aufnahme.java || return 1
+  sqlcmd=/opt/mssql-tools18/bin/sqlcmd
+  docker exec "$SERVER" test -x "$sqlcmd" || sqlcmd=/opt/mssql-tools/bin/sqlcmd
+  sql() { docker exec "$SERVER" "$sqlcmd" -C -S localhost -U sa -P "$KENNWORT" -b -Q "$1" >/dev/null; }
+  sql "CREATE DATABASE messdb; CREATE DATABASE messdb2;" || { echo "vergleichslauf-d: FEHLER Datenbanken nicht angelegt"; return 1; }
+  for db in messdb messdb2; do
+    sql "USE $db; CREATE TABLE dbo.kunden (Id BIGINT NOT NULL PRIMARY KEY, Name NVARCHAR(4000) NULL, Eintritt DATE NULL); INSERT dbo.kunden VALUES (1, N'vorhanden', '2020-02-02');
+         CREATE TABLE dbo.kunden_neu (Id BIGINT NOT NULL PRIMARY KEY, Name NVARCHAR(4000) NULL, Eintritt DATE NULL);
+         CREATE TABLE dbo.kunden_int (Id INT NOT NULL PRIMARY KEY, Name NVARCHAR(4000) NULL, Eintritt DATE NULL); INSERT dbo.kunden_int VALUES (1, N'vorhanden', '2020-02-02');" || return 1
+  done
+  printf '%s\n' '[{"Id":1,"Name":"Ada Ünï","Eintritt":"2026-01-02"},{"Id":2,"Name":null,"Eintritt":null},{"Id":3,"Name":"Cäcilie","Eintritt":"2025-12-31"}]' >"$work/kunden.json"
+  chmod 666 "$work/kunden.json"
+  docker run -d --name "$proxy" --network "$NETZ" --network-alias proxy -v "$klassen:/klassen:ro" -e AUFNAHME_PAKETE="${AUFNAHME_PAKETE:-}" --entrypoint java "$JDBC_IMAGE" \
+    -cp /klassen Aufnahme 1433 referenz 1433 >/dev/null || return 1
+  for i in $(seq 1 30); do docker logs "$proxy" 2>&1 | grep -q 'aufnahme: bereit' && break; sleep 1; done
+  ziel=proxy
+  [ -z "${MESSUNG_DIREKT:-}" ] || ziel=referenz
+  url="mssql://sa:$KENNWORT@$ziel:1433/messdb?encrypt=false"
+  url2="mssql://sa:$KENNWORT@$ziel:1433/messdb2?encrypt=false"
+  : >"$SCRATCH/aufnahme.txt"
+  schritt() { # schritt <Kennung> <Befehl von d-migrate...>: Exit und neue Zeilen des Durchlaufs
+    local kennung="$1" ausgang zeilen
+    shift
+    if [ -n "${MESSUNG_NUR:-}" ] && ! printf ',%s,' "$MESSUNG_NUR" | grep -q ",$kennung,"; then return 0; fi
+    docker run --rm --network "$NETZ" --user 1000:1000 -v "$work:/work" "$JDBC_IMAGE" "$@" >"$SCRATCH/dm-$kennung.txt" 2>&1
+    ausgang=$?
+    sleep 1
+    zeilen=$(docker logs "$proxy" 2>&1 | wc -l)
+    {
+      echo "aufnahme: === $kennung | d-migrate $(printf '%s ' "$@" | sed "s/$KENNWORT/***/g") | Exit $ausgang"
+      sed "s/$KENNWORT/***/g" "$SCRATCH/dm-$kennung.txt" | tail -8 | sed 's/^/aufnahme: ausgabe: /'
+      docker logs "$proxy" 2>&1 | sed -n "$((gesehen + 1)),${zeilen}p"
+    } >>"$SCRATCH/aufnahme.txt"
+    gesehen=$zeilen
+  }
+  schritt merge-skip data import --target "$url" --source /work/kunden.json --table kunden --on-conflict skip
+  schritt export-nach-skip data export --source "$url" --format json --tables kunden -o /work/nach-skip.json
+  schritt merge-update data import --target "$url" --source /work/kunden.json --table kunden --on-conflict update
+  schritt export-nach-update data export --source "$url" --format json --tables kunden -o /work/nach-update.json
+  schritt bulk-bigint data import --target "$url" --source /work/kunden.json --table kunden_neu
+  schritt export-bulk-bigint data export --source "$url" --format json --tables kunden_neu -o /work/nach-bulk.json
+  schritt bulk-int data import --target "$url" --source /work/kunden.json --table kunden_int
+  schritt merge-int data import --target "$url" --source /work/kunden.json --table kunden_int --on-conflict skip
+  schritt export-int data export --source "$url" --format json --tables kunden_int -o /work/nach-int.json
+  schritt transfer-skip data transfer --source "$url" --target "$url2" --tables kunden --on-conflict skip
+  schritt transfer-update data transfer --source "$url" --target "$url2" --tables kunden --on-conflict update
+  schritt transfer-bulk data transfer --source "$url" --target "$url2" --tables kunden_neu
+  for f in nach-skip nach-update nach-bulk nach-int; do
+    [ -f "$work/$f.json" ] && sed "s/^/aufnahme: datei $f.json: /" "$work/$f.json" >>"$SCRATCH/aufnahme.txt"
+  done
+  if grep -qF -e "$KENNWORT" "$SCRATCH/aufnahme.txt"; then
+    echo "vergleichslauf-d: Aufnahme nennt das Kennwort der Instanz; sie wird nicht gedruckt"
+    FEHLER=1
+    return 1
+  fi
+  cat "$SCRATCH/aufnahme.txt"
+  docker logs "$SERVER" 2>&1 | grep -i -E 'error|tls|ssl|handshake|login|fatal' | tail -n 12 | sed 's/^/vergleichslauf-d: server-log: /'
+  if [ -z "${MESSUNG_NUR:-}" ]; then
+    ziel_verzeichnis="referenztest-dotnet/Mitschnitt/messung/jdbc-d-migrate"
+    mkdir -p "$ziel_verzeichnis" && cp "$SCRATCH/aufnahme.txt" "$ziel_verzeichnis/$STUFE.aufnahme.txt" || return 1
+    echo "vergleichslauf-d: messung: Aufnahme $name in $ziel_verzeichnis/$STUFE.aufnahme.txt"
+  fi
+  docker rm -f "$proxy" "$SERVER" >/dev/null 2>&1
+  docker network rm "$NETZ" >/dev/null 2>&1
+  docker rmi -f "$SERVER_IMAGE" >/dev/null 2>&1
+  CLIENT="" SERVER="" NETZ="" SERVER_IMAGE=""
+  return 0
+}
+
 gesamt=$SECONDS
 # shellcheck disable=SC2086
 docker build ${BUILDER_FLAGS:-} --load --target vergleich -t "$CLIENT_IMAGE" referenztest-dotnet || exit 1
@@ -600,6 +697,7 @@ for lauf in $LISTE; do
     aufnahme-*) aufnahmelauf "$lauf" || FEHLER=1 ;;
     mitschnitt-*) mitschnittlauf "$lauf" || FEHLER=1 ;;
     wire-* | bulk-*) wirelauf "$lauf" || FEHLER=1 ;;
+    jdbc-*) jdbclauf "$lauf" || FEHLER=1 ;;
     *) einzellauf "$lauf" || FEHLER=1 ;;
   esac
   [ "$FEHLER" -eq 0 ] || break
