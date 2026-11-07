@@ -195,6 +195,14 @@ class SimValuesTest {
         assertValue(Int.MIN_VALUE, via(par(SqlType.Int64, Int.MIN_VALUE.toLong()), SqlType.Int32), "Int32 Untergrenze")
         assertInvalid(via(par(SqlType.Int64, Int.MAX_VALUE + 1L), SqlType.Int32), "Int64 in Int32, Überlauf oben")
         assertInvalid(via(par(SqlType.Int64, Int.MIN_VALUE - 1L), SqlType.Int32), "Int64 in Int32, Überlauf unten")
+        assertValue(
+            LocalTime.of(13, 14, 15),
+            via(par(SqlType.DateTime, LocalDateTime.of(1970, 1, 1, 13, 14, 15)), SqlType.Time),
+            "Zeitpunkt in Zeit",
+        )
+        assertInvalid(via(par(SqlType.Time, LocalTime.NOON), SqlType.DateTime), "Zeit in Zeitpunkt")
+        val early = LocalDateTime.of(1970, 1, 1, 1, 0)
+        assertInvalid(via(par(SqlType.DateTime, early), SqlType.Date), "Zeitpunkt in Datum")
         assertInvalid(via(par(SqlType.Decimal(10, 2), BigDecimal("7.00")), SqlType.Int32), "Dezimal in Int32")
         assertInvalid(via(par(SqlType.Decimal(10, 2), BigDecimal("7.00")), SqlType.Int64), "Dezimal in Int64")
         assertInvalid(via(par(SqlType.Int32, 7), SqlType.UnicodeText), "Zahl in Text")

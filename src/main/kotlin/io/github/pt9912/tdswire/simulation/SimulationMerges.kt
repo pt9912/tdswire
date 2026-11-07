@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.atomic.AtomicBoolean
 
 /** Der Callback, der eine Zeile einfügt: `onInsert`, ersatzweise `onInsertBatch` mit einer Zeile in der Liste. */
@@ -52,8 +54,10 @@ internal sealed interface PreparedMerge {
  * `where`, die Antwort ist die Zeile `UPDATE`; ohne den Zweig ruft sie nichts, die Antwort hat keine Zeile. Nicht
  * gleich: sie ruft `onInsert` (hat die Tabelle nur `onInsertBatch`, mit einer Liste aus einer Zeile), die Antwort ist
  * die Zeile `INSERT`. Ein Wert `NULL` im Vergleich trifft nie. Eine Quellzeile ergibt höchstens eine Ausgabezeile;
- * meldet ein Callback 0, bleibt die Antwort ohne Zeile. Prüfen und Ändern sind nicht atomar: zwei gleichzeitige `MERGE`
- * mit demselben neuen Schlüssel können beide `INSERT` melden, wenn der Integrator den Schlüssel nicht selbst prüft.
+ * meldet ein Callback 0, bleibt die Antwort ohne Zeile. Prüfen und Ändern laufen unter einer Sperre je Backend: zwei
+ * gleichzeitige `MERGE` desselben Backends laufen nacheinander, das zweite sieht die Änderung des ersten. Die Sperre
+ * ist nicht reentrant; ein Callback, der dasselbe Backend aufruft und abwartet, hängt, und ein hängender Callback
+ * hält die Sperre für alle weiteren `MERGE` dieses Backends. Sie gilt nicht für Schreiber ausserhalb dieses Backends.
  */
 internal object SimulationMerges {
     private const val NO_CALLBACK = "Änderung für diese Tabelle nicht verfügbar"
@@ -146,6 +150,7 @@ private const val ACTION_UPDATE = "UPDATE"
  */
 internal class MergeExecution(
     private val prepared: PreparedMerge.Ready,
+    private val lock: Mutex,
     private val whenEnded: (MergeExecution) -> Unit,
 ) : QueryExecution,
     Stoppable {
@@ -165,21 +170,24 @@ internal class MergeExecution(
 
     private suspend fun FlowCollector<QueryEvent>.run() {
         emit(QueryEvent.ResultStart(listOf(ACTION_COLUMN)))
+        settle().forEach { emit(it) }
+    }
+
+    /**
+     * Prüfen und Ändern unter der Sperre des Backends (wie die Strukturänderung). Die Ereignisse werden erst nach der
+     * Sperre gesendet, damit ein langsamer Abnehmer sie nicht hält. Ein [stop] ist auch nach dem Warten auf die Sperre
+     * vor dem Callback wirksam.
+     */
+    private suspend fun settle(): List<QueryEvent> = lock.withLock {
         val found = guarded { exists() }.getOrElse {
-            emit(QueryEvent.Failure(SimCodes.BACKEND_ERROR, "Zeilenquelle fehlgeschlagen"))
-            return
+            return@withLock listOf(QueryEvent.Failure(SimCodes.BACKEND_ERROR, "Zeilenquelle fehlgeschlagen"))
         }
         val action = if (found) ACTION_UPDATE.takeIf { prepared.update != null } else ACTION_INSERT
         val count = if (action == null || stopped.get()) 0L else guarded { change(action) }.getOrElse { -1L }
         when {
-            count < 0 -> emit(QueryEvent.Failure(SimCodes.BACKEND_ERROR, "Änderung fehlgeschlagen"))
-
-            action != null && count > 0 -> {
-                emit(QueryEvent.Row(listOf(action)))
-                emit(QueryEvent.ResultEnd(1))
-            }
-
-            else -> emit(QueryEvent.ResultEnd(0))
+            count < 0 -> listOf(QueryEvent.Failure(SimCodes.BACKEND_ERROR, "Änderung fehlgeschlagen"))
+            action != null && count > 0 -> listOf(QueryEvent.Row(listOf(action)), QueryEvent.ResultEnd(1))
+            else -> listOf(QueryEvent.ResultEnd(0))
         }
     }
 

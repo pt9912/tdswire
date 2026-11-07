@@ -78,6 +78,7 @@ public class SimulationBackend(
     private val planner = StatementPlanner(catalog)
     private val running = ConcurrentHashMap<Pair<String, String>, Stoppable>()
     private val structureLock = Mutex()
+    private val mergeLock = Mutex()
 
     override suspend fun execute(request: QueryRequest): QueryExecution =
         when (val result = guarded { planner.plan(request.sql) }.getOrNull()) {
@@ -139,7 +140,7 @@ public class SimulationBackend(
 
             is Statement.Merge -> when (val prepared = SimulationMerges.prepare(plan, request.parameters)) {
                 is PreparedMerge.Rejected -> failed(prepared.code, prepared.message)
-                is PreparedMerge.Ready -> register(key, MergeExecution(prepared) { running.remove(key, it) })
+                is PreparedMerge.Ready -> register(key, MergeExecution(prepared, mergeLock) { running.remove(key, it) })
             }
 
             else -> when (val change = SimulationChanges.prepare(plan, request.parameters)) {

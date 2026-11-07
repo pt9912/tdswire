@@ -419,4 +419,26 @@ class TableStoreTest {
         assertEquals(listOf<Any?>("INSERT"), merge(update = true, id = 2, name = "Bob"))
         assertEquals(listOf(listOf<Any?>(1L, "Ada L."), listOf<Any?>(2L, "Bob")), names())
     }
+
+    /**
+     * Happy: ein `UPDATE` als SQL-Text ändert die Zeile im Bestand und meldet den Zähler 1; ein Schlüssel ohne Treffer
+     * meldet 0. Wächter: ein Bestand ohne `onUpdate` (`TDS_UNSUPPORTED_SQL`).
+     * @spec SPEC-035
+     */
+    @Test
+    fun `ein UPDATE als SQL-Text aendert die Zeile des Bestands`() {
+        val store = TableStore(listOf(kunden))
+        insert(store, mapOf("Id" to 1L, "Name" to "Ada"))
+        val backend = store.backend()
+
+        assertEquals(
+            listOf<QueryEvent>(QueryEvent.UpdateCount(1)),
+            ask(backend, "UPDATE kunden SET Name = N'Ada L.' WHERE Id = 1"),
+        )
+        assertEquals(
+            listOf<QueryEvent>(QueryEvent.UpdateCount(0)),
+            ask(backend, "UPDATE kunden SET Name = N'x' WHERE Id = 9"),
+        )
+        assertEquals(listOf(listOf<Any?>(1L, "Ada L.")), stored(store))
+    }
 }

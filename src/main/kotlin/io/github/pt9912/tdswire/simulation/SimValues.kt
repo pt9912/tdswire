@@ -28,7 +28,9 @@ internal sealed interface Converted {
  * gilt für jeden Spaltentyp; ein Parameter, den die Anfrage nicht trägt, ist ungültig; die Richtung eines
  * Parameters bleibt unbeachtet. Ein `Int64`-Parameter gilt in einer `Int32`-Spalte im Wertebereich von `Int32`
  * (d-migrate 1.12.0 sendet jede Ganzzahl als `bigint`; der echte SQL Server nimmt `MERGE` mit einem `bigint`-Parameter
- * in einer `int`-Spalte an, Messprotokoll der Referenzabgleiche M-29), darüber ist er ungültig.
+ * in einer `int`-Spalte an, Messprotokoll der Referenzabgleiche M-29), darüber ist er ungültig. Ein
+ * `DateTime`-Parameter gilt in einer `Time`-Spalte mit seiner Uhrzeit (mssql-jdbc sendet die Zeit einer `time`-Spalte
+ * als `datetime` mit dem Datum 1970-01-01, M-31).
  */
 internal object SimValues {
     private const val INVALID = "Wert nicht in den Spaltentyp überführbar"
@@ -118,6 +120,7 @@ internal object SimValues {
             parameter.type == target -> Converted.Value(value)
             target == SqlType.Int64 && value is Int -> Converted.Value(value.toLong())
             target == SqlType.Int32 && value is Long && value in INT_RANGE -> Converted.Value(value.toInt())
+            target == SqlType.Time && value is LocalDateTime -> Converted.Value(value.toLocalTime())
             else -> invalid()
         }
     }

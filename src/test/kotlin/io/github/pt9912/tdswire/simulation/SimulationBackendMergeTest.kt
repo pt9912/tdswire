@@ -7,6 +7,10 @@ import io.github.pt9912.tdswire.domain.SqlType
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import java.time.LocalDate
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.concurrent.thread
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -434,5 +438,145 @@ class SimulationBackendMergeTest {
         assertEquals(QueryEvent.Row(listOf("INSERT")), events[1])
         assertEquals(mapOf("Name" to "Ada", "Id" to 1L, "Eintritt" to LocalDate.of(2026, 1, 2)), table.inserted)
         assertTrue(events.last() is QueryEvent.ResultEnd)
+    }
+
+    /**
+     * Negative: ein Abbruch (`cancel`), der zwischen dem Ende des Lesens und dem Aufruf des Callbacks eintrifft, lässt
+     * den Callback ungerufen; die Antwort hat keine Zeile. Wächter: eine Prüfung von `stopped` nur am Anfang des
+     * Flusses.
+     * @spec SPEC-036
+     */
+    @Test
+    fun `ein Abbruch zwischen Lesen und Callback schreibt nichts`() {
+        var inserts = 0
+        lateinit var backend: SimulationBackend
+        val simTable = SimTable(
+            name = "kunden",
+            columns = columns,
+            primaryKey = listOf("Id"),
+            rows = {
+                RowSource {
+                    backend.cancel("s1", "r1")
+                    null
+                }
+            },
+            onInsert = {
+                inserts++
+                1L
+            },
+        )
+        backend = SimulationBackend(SimCatalog(listOf(simTable)))
+
+        val events = collectEvents(backend, skip, parameters())
+
+        assertEquals(listOf(actionStart, QueryEvent.ResultEnd(0)), events)
+        assertEquals(0, inserts)
+    }
+
+    /**
+     * Boundary: ein Schlüssel aus zwei Spalten wird in beliebiger Reihenfolge verglichen und gilt nur, wenn beide
+     * Spalten
+     * gleich sind; ein Vergleich über nur eine der beiden Schlüsselspalten ist `TDS_UNSUPPORTED_SQL`.
+     * @spec SPEC-036
+     */
+    @Test
+    fun `ein Schluessel aus zwei Spalten gilt nur mit beiden Spalten`() {
+        val paarColumns = listOf(
+            SimColumn("A", SqlType.Int64, nullable = false),
+            SimColumn("B", SqlType.Int64, nullable = false),
+            SimColumn("Name", SqlType.UnicodeText),
+        )
+        val inserted = mutableListOf<Map<String, Any?>>()
+        val simTable = SimTable(
+            name = "paar",
+            columns = paarColumns,
+            primaryKey = listOf("A", "B"),
+            rows = {
+                val rows = listOf(listOf<Any?>(1L, 2L, "x")).iterator()
+                RowSource { if (rows.hasNext()) rows.next() else null }
+            },
+            onInsert = { values ->
+                inserted += values
+                1L
+            },
+        )
+        val backend = SimulationBackend(SimCatalog(listOf(simTable)))
+        val head = "MERGE INTO [dbo].[paar] AS tgt USING (VALUES ( @P0 ,  @P1 ,  @P2 )) AS src ([A], [B], [Name]) "
+        val tail = "WHEN NOT MATCHED THEN INSERT ([A], [B], [Name]) VALUES (src.[A], src.[B], src.[Name]) " +
+            "OUTPUT \$action;"
+        val both = head + "ON tgt.[B] = src.[B] AND tgt.[A] = src.[A] " + tail
+        fun pair(a: Long, b: Long) = listOf(
+            QueryParameter("@P0", SqlType.Int64, a),
+            QueryParameter("@P1", SqlType.Int64, b),
+            QueryParameter("@P2", SqlType.UnicodeText, "n"),
+        )
+
+        assertEquals(listOf(actionStart, QueryEvent.ResultEnd(0)), collectEvents(backend, both, pair(1, 2)))
+        assertEquals(QueryEvent.Row(listOf("INSERT")), collectEvents(backend, both, pair(1, 3))[1])
+        assertEquals(QueryEvent.Row(listOf("INSERT")), collectEvents(backend, both, pair(2, 2))[1])
+        assertEquals(listOf(1L to 3L, 2L to 2L), inserted.map { it["A"] as Long to it["B"] as Long })
+        val onlyOne = collectEvents(backend, head + "ON tgt.[A] = src.[A] " + tail, pair(1, 2))
+        assertEquals("TDS_UNSUPPORTED_SQL", assertIs<QueryEvent.Failure>(onlyOne.single()).code)
+    }
+
+    /**
+     * Boundary: zwei gleichzeitige `MERGE` desselben Backends mit demselben neuen Schlüssel laufen nacheinander:
+     * solange der erste im Callback steht, öffnet der zweite die Zeilenquelle nicht; nach dessen Ende sieht er die
+     * Zeile, der erste antwortet `INSERT`, der zweite ohne Zeile. Wächter: Prüfen und Ändern ohne gemeinsame Sperre
+     * (beide läsen die leere Quelle und meldeten `INSERT`).
+     * @spec SPEC-036
+     */
+    @Test
+    fun `zwei gleichzeitige MERGE desselben Schluessels laufen nacheinander`() {
+        val stored = CopyOnWriteArrayList<List<Any?>>()
+        val opens = AtomicInteger()
+        val entered = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val simTable = SimTable(
+            name = "kunden",
+            columns = columns,
+            primaryKey = listOf("Id"),
+            rows = {
+                opens.incrementAndGet()
+                val rows = stored.toList().iterator()
+                RowSource { if (rows.hasNext()) rows.next() else null }
+            },
+            onInsert = { values ->
+                entered.countDown()
+                release.await()
+                stored += listOf(values["Id"], values["Name"], values["Eintritt"])
+                1L
+            },
+        )
+        val backend = SimulationBackend(SimCatalog(listOf(simTable)))
+
+        var first: List<QueryEvent> = emptyList()
+        var second: List<QueryEvent> = emptyList()
+        val a = thread { first = runBlocking { collectOne(backend, "r1") } }
+        entered.await()
+        val b = thread { second = runBlocking { collectOne(backend, "r2") } }
+        Thread.sleep(WAIT_FOR_SECOND_MILLIS)
+        val openedMeanwhile = opens.get()
+        release.countDown()
+        a.join()
+        b.join()
+
+        assertEquals(1, openedMeanwhile)
+        assertEquals(listOf(actionStart, QueryEvent.Row(listOf("INSERT")), QueryEvent.ResultEnd(1)), first)
+        assertEquals(listOf(actionStart, QueryEvent.ResultEnd(0)), second)
+        assertEquals(1, stored.size)
+    }
+
+    private suspend fun collectOne(backend: SimulationBackend, requestId: String): List<QueryEvent> {
+        val execution = backend.execute(queryRequest(skip, parameters(), requestId))
+        return try {
+            execution.events.toList()
+        } finally {
+            execution.close()
+        }
+    }
+
+    private companion object {
+        const val WAIT_FOR_SECOND_MILLIS = 1000L
     }
 }

@@ -469,6 +469,17 @@ mit Collation (`maxlen` = 2 × Zeichenzahl der Deklaration); `binary`/`varbinary
 hat Länge 0 und ist nicht NULL. Nicht gemessen: `text`, `ntext`, `image`, `sql_variant`, UDT, `json`,
 Table-Valued-Parameter und OUTPUT für `varchar(max)`, `xml` und Datumstypen.
 
+**RPC-Parametertypen von mssql-jdbc 13.4.0 (d-migrate 1.12.0, am echten SQL Server 2022 und 2025 aufgezeichnet,
+Messprotokoll der Referenzabgleiche M-31):** `decimal` als `DECIMALN` (nicht `NUMERICN`) mit Größe 17, Precision 38 und der
+Scale des Wertes; der Wert ist Vorzeichenbyte und **nur die nötigen Byte** Betrag (gemessen 2 bis 6 Byte: 12,50 = `01 E2 04`,
+-0,05 = `00 05`), NULL die Länge 0. Der Parser nimmt für `DECIMALN` und `NUMERICN` jede Länge von 2 Byte bis zur Größe der
+TYPE_INFO (toleranter als `MS-TDS`, das 5, 9, 13 und 17 nennt; Setzung); eine andere Länge ist `INVALID_LENGTH`. Ganzzahlig
+geschriebene Werte einer `decimal`-Spalte sendet d-migrate als `bigint`. `datetime` als `DATETIMN` mit 8 Byte (Tage seit
+1900-01-01 als `Int32`, Ticks zu 1/300 Sekunde), auch für die Zeit einer `time`-Spalte (Datum 1970-01-01, 13:14:15 = Tage
+25567, Ticks 14296500); NULL ist die Länge 0 (`6F 08 00`). Der Parser bildet `DATETIMN` mit 8 Byte als `DateTime` ab; Ticks
+ab 24 Uhr und Tage außerhalb 0001-01-01 bis 9999-12-31 sind `VALUE` (Setzung); `DATETIMN` mit 4 Byte (`smalldatetime`) bleibt
+abgelehnt. `datetime2` als `DATETIME2N` mit Scale 7, `bit` als `BITN`, `date` als `DATEN` wie oben.
+
 ### SPEC-004 — Testprofil
 Ein versioniertes `client-profile` dokumentiert: .NET-Laufzeit, NuGet-Paket und Version, Connection
 String (ohne Secrets), Encrypt/TrustServerCertificate, Authentifizierung, verwendete
@@ -806,9 +817,11 @@ festgelegt sind; die Überführung der Werte, das Lesen der Zeilenquelle und die
 - **Überführung eines Werts in den Spaltentyp** (`TDS-FA-11.a` Schritt 4; Literal und Parameter;
   Setzung, nicht am Server gemessen): streng und verlustfrei. Gleiche Typfamilie; Datum, Zeit und
   Zeitpunkt nur im ISO-Format (Zeitpunkt mit `T` oder, wie mssql-jdbc ihn im Massenladen sendet, mit einem Leerzeichen an dessen Stelle); keine Rundung und keine Überführung zwischen
-  Zahl und Text; ein Parameter wird verlustfrei erweitert (Int32 zu Int64 zu Decimal); einzige Verengung ist ein `Int64`-Parameter
+  Zahl und Text; ein Parameter wird verlustfrei erweitert (Int32 zu Int64 zu Decimal); zwei Verengungen gelten: ein `Int64`-Parameter
   in einer `Int32`-Spalte im Wertebereich (d-migrate sendet jede Ganzzahl als `bigint`; der echte Server nimmt `MERGE` mit einem
-  `bigint`-Parameter in einer `int`-Spalte an, Messprotokoll der Referenzabgleiche M-29). Überlauf
+  `bigint`-Parameter in einer `int`-Spalte an, Messprotokoll der Referenzabgleiche M-29) und ein `DateTime`-Parameter in einer
+  `Time`-Spalte mit seiner Uhrzeit (mssql-jdbc sendet die Zeit einer `time`-Spalte als `datetime` mit dem Datum 1970-01-01, M-31).
+  Überlauf
   (Int32, Int64, Stellen der Dezimalzahl) ist immer `TDS_SIM_INVALID_VALUE`. Dezimalwerte werden mit
   `compareTo` verglichen (1.0 gleich 1.00), Textwerte ohne Beachtung der Groß-/Kleinschreibung
   (Setzung, wie die Bezeichner). Texte begrenzt das Backend selbst nicht; ein Text von mehr als 4000
@@ -1005,7 +1018,7 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   schließt das Lastenheft wörtlich aus; für die übrigen Fälle gilt die Setzung, dass die Liste der Formen
   abschließend ist, eine Lesart des Lastenhefts, vom Nutzer nicht bestätigt):
   `JOIN` und weitere Relationen, Unterabfragen, `WITH`,
-  Aggregate und `GROUP BY`, `DISTINCT`, `TOP`, `ORDER BY`, `OFFSET`/`FETCH`, Aliase für Tabellen und
+  Aggregate und `GROUP BY`, `DISTINCT`, `TOP`, `ORDER BY`, `OFFSET`/`FETCH`, Aliase für Tabellen (außer `AS <Alias>` der Form M) und
   Spalten, Ausdrücke und Funktionen in Listen und Bedingungen, `OR`, `NOT`, `<`, `>`, `LIKE`, `BETWEEN`,
   `OUTPUT`-Klauseln (außer `OUTPUT $action` der Form M), mehrere Anweisungen in einem Text (außer Form C) und alles, was keine Form
   der Tabelle ist.
@@ -1089,10 +1102,16 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   Zweig), endet die Anweisung vor dem Lesen mit `TDS_UNSUPPORTED_SQL` (Setzung). Ein ungültiger Wert endet vor dem Lesen mit
   `TDS_SIM_INVALID_VALUE`; ein Fehler der Zeilenquelle oder des Callbacks steht hinter dem Beginn des Ergebnisses als
   `TDS_BACKEND_ERROR` mit fester Meldung (der echte Server sendet bei einem Fehler im `MERGE` zuerst `COLMETADATA`, M-15).
-  Prüfen und Ändern sind nicht atomar (keine Transaktion über mehrere Callbacks): zwei gleichzeitige `MERGE` mit demselben neuen
-  Schlüssel können beide `INSERT` melden, wenn der Integrator den Schlüssel nicht selbst prüft; der Bestand des Testservers
-  tut das. Nicht gemessen: Fehlernummern des echten Servers bei Typüberlauf und doppeltem Schlüssel mit mssql-jdbc (mit dem
-  Referenzclient M-15), Spalten mit `DECIMAL`, `TIME`, `DATETIME2` und `BIT` im `MERGE` von d-migrate.
+  Prüfen und Ändern laufen unter einer Sperre je Backend: zwei gleichzeitige `MERGE` desselben Backends laufen nacheinander,
+  das zweite sieht die Änderung des ersten (Setzung; der echte Server serialisiert nicht so, die Folge einer verlorenen
+  Einfügung wäre dort ein Schlüsselfehler, nicht gemessen). Die Sperre ist nicht reentrant, ein Callback, der dasselbe Backend
+  aufruft und abwartet, hängt, und ein hängender Callback hält sie für alle weiteren `MERGE` dieses Backends; sie gilt nicht
+  für Schreiber außerhalb dieses Backends, dort bleibt es bei der Prüfung des Integrators. Keine Transaktion über mehrere
+  Callbacks. **Parametertypen** (gemessen mit d-migrate 1.12.0, M-31): `bigint`, `nvarchar`, `date` und `bit` wie oben;
+  `decimal(38,s)` als `DECIMALN` mit dem Wert in nur den nötigen Byte (`SPEC-030`); `datetime` als `DATETIMN` mit 8 Byte,
+  auch für eine Spalte `TIME` (Datum 1970-01-01, die Bibliothek nimmt in einer `Time`-Spalte die Uhrzeit, `SPEC-035`);
+  `datetime2` als `DATETIME2N` (Scale 7). Nicht gemessen: Fehlernummern des echten Servers bei Typüberlauf und doppeltem
+  Schlüssel mit mssql-jdbc (mit dem Referenzclient M-15); `smalldatetime` (`DATETIMN` mit 4 Byte, abgelehnt), `datetimeoffset`.
 - **Form D, Strukturänderung** (gemessen: der Wortlaut von `schema migrate --execute`, 2026-11-06): eine Spalte ist `<Name> <Typ>
   [NOT NULL | NULL]` mit `INT`, `BIGINT`, `BIT`, `DATE`, `TIME`, `DATETIME2`, `NVARCHAR(<n>)` (`n` von 1 bis 4000) oder
   `NVARCHAR(MAX)` (`maxLength` -1) und `DECIMAL(<p>, <s>)` (Precision bis 38); der Schlüssel heißt im gesendeten Text
