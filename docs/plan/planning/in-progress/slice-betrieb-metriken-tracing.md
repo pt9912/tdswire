@@ -11,9 +11,9 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-betrieb-diagnose
 
-**Bezug:** [TDS-FA-09](../../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose), [TDS-FA-08](../../../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-QA-04](../../../../spec/lastenheft.md#tds-qa-04--performance), [ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md) (`Accepted`, Fragen 2 und 6: Schnittstelle in `domain`, Aggregation in `observability`, Schnappschuss und Span-Ende als Ereignisse an die Senke)
+**Bezug:** [TDS-FA-09](../../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose), [TDS-FA-08](../../../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [TDS-QA-04](../../../../spec/lastenheft.md#tds-qa-04--performance), [ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md) (`Accepted`, Fragen 2 und 6: Schnittstelle in `domain`, Aggregation in `observability`, Schnappschuss und Span-Ende als Ereignisse an die Senke), [ADR-0040](../../adr/0040-wirksame-konfiguration-im-ereignis-aus-typisiertem-wertobjekt.md) (`EffectiveSettings` führt das Intervall, Merge-Stand)
 
-**Berührte Spec-Stellen:** SPEC-017 · SPEC-018 · SPEC-019 · SPEC-062 · SPEC-052 · SPEC-059 · SPEC-044 · SPEC-048 · SPEC-009 · SPEC-011 · SPEC-030 · ARC-009 · [TDS-FA-09.a](../../../../spec/spezifikation.md#tds-fa-09a--konfiguration-und-diagnose)
+**Berührte Spec-Stellen:** SPEC-017 · SPEC-018 · SPEC-019 · SPEC-062 · SPEC-052 · SPEC-059 · SPEC-044 · SPEC-048 · SPEC-009 · SPEC-011 · SPEC-030 · SPEC-031 · SPEC-033 · SPEC-036 · SPEC-007 · ARC-009 · [TDS-FA-09.a](../../../../spec/spezifikation.md#tds-fa-09a--konfiguration-und-diagnose)
 
 **Verantwortlich:** Implementer-Agent, Auftrag des Nutzers 2026-11-07.
 
@@ -92,6 +92,8 @@ Aussagen-Berührung steht hier gar nicht.
 | `src/integrator/kotlin/io/github/pt9912/tdswire/integrator/` (`TelemetryEmbeddingTest`, `TelemetryFelderEmbeddingTest`) | update | Ereignisliste mit den Enden der Spans, Felder und Schnappschuss über die öffentliche Fläche |
 | `src/test/kotlin/` (`ConfigValidationTest`, `EnvironmentConfig`, `TelemetryEventTest`, `TelemetryRedactionTest`, `TestserverLogProcessTest`) | update | Bereich und Voreinstellung des Abstands, Ereignisse der neuen Arten, Typliste der Redaktion (`Map` nur für `metrics`), Zeilen am Prozess |
 | `docs/plan/spec-abdeckung.md` | update | mit `make spec-abdeckung` erzeugt, `SPEC-017` bis `SPEC-019` mit bestandenen Tests |
+| `src/main/kotlin/io/github/pt9912/tdswire/domain/telemetry/EffectiveSettings.kt`, `src/main/kotlin/io/github/pt9912/tdswire/runtime/TelemetryEvents.kt` | update | `METRICS_INTERVAL_SECONDS` in der wirksamen Konfiguration (Merge mit den Zustandsereignissen, [ADR-0040](../../adr/0040-wirksame-konfiguration-im-ereignis-aus-typisiertem-wertobjekt.md)) |
+| `src/test/kotlin/io/github/pt9912/tdswire/runtime/ZustandsereignisseTest.kt`, `src/test/kotlin/io/github/pt9912/tdswire/protocol/dispatch/SpanOutcomesBulkTest.kt` | update, neu | Ereignisfolgen mit Span-Enden; Spans auf dem Weg des Massenladens (`RequestLoop.answer`, Bulk-Zweig des Schreibpfads) |
 | `spec/spezifikation.md` (Abschnitt 5, Abschnitt 4, Tabelle der Eingänge des Testservers), `docs/user/einbettung-und-betrieb.md` | update | Zielzustand wird gebaut: Stand der Zusage, Werte von `outcome`, Schlüssel von `metrics`, `METRICS_INTERVAL_SECONDS`; Konfliktfläche mit dem Zweig der Zustandsereignisse |
 
 **Zuschnitt der Fläche (vorab).** Neue öffentliche Typnamen entstehen nicht: Das Ereignis `metrics` und das Span-Ende sind zwei Arten und sieben Zugriffe an `EventKind` und `TelemetryEvent`, ein Konstruktorparameter an `ServerConfig`. Die Ereignisklassen, die Schnittstelle der Spans und der `Observer` sind `internal`.

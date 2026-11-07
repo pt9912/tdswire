@@ -74,7 +74,8 @@ public sealed interface StartOutcome {
  *
  * Der Einstieg verlangt keine JVM-Option und liest keine Systemeigenschaft (`SPEC-023`). Er schreibt nirgends
  * hin; Log und Telemetrie gehen an die Senke, die [start] übergeben bekommt, ein Abbruch steht in
- * [StartOutcome.Aborted]. Der Schnappschuss der Metriken endet mit [stop]: nach der Rückkehr entsteht kein weiterer.
+ * [StartOutcome.Aborted]. Der Schnappschuss der Metriken endet mit [stop]: nach der Rückkehr entsteht kein weiterer. [stop] wartet auf einen
+ * laufenden Schnappschuss; blockiert die Senke dort, kehrt [stop] erst nach ihr zurück (Grenze wie für den Anfragepfad).
  */
 public class TdsServer internal constructor(
     private val listener: TdsListener,

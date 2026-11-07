@@ -1336,8 +1336,9 @@ soweit nicht anders genannt; sie gelten für das Modell der Bibliothek und damit
   `reason` bei `CONNECTION_CLOSED` (`SHUTDOWN`; `TelemetryFelderEmbeddingTest`); am Server die Folge der Ereignisse und die
   Marken `HANDLER_RETURNED`, `SHUTDOWN` und `REFUSED_AT_LIMIT` (`ZustandsereignisseTest`), am Prozess die Zeilen
   (`ZustandsereignisseProzessTest`); die Zuordnung jedes Endes der Verbindung zu einer Marke gleichen Namens hält
-  ein Test an der Abbildung. **Zielzustand, nicht gebaut:** Anfrage beendet (mit Art, Dauer und Ergebnis), Abbruch durch
-  ATTENTION, Schnappschuss der Metriken und Ende eines Spans (Abschnitt 5).
+  ein Test an der Abbildung. Schnappschuss der Metriken und Ende eines Spans sind gebaut (Abschnitt 5). **Zielzustand,
+  nicht gebaut:** ein Ereignis „Anfrage beendet“ (mit Art, Dauer und Ergebnis) und ein eigenes Ereignis zum Abbruch durch
+  ATTENTION; Art, Dauer und Ergebnis der Anfrage tragen heute nur die Enden der Spans.
 - **`error_code`** ist ein `TDS_*`-Code aus diesem Abschnitt (gebaut in der Art `REQUEST_FAILED`, Feld `errorCode`,
   dazu `cause` als Typname der Ausnahme oder feste Marke des Anlasses). Eine Ausnahme erscheint nur als
   Typname, nie mit Text und nie mit Stapelspur.
@@ -1429,8 +1430,9 @@ und das Ende der Spans):**
     wurde abgebrochen, etwa durch das Beenden oder `LOGIN_TIMEOUT`).
   - `tds.query` (`SPEC-018`) beginnt, wenn die Nachricht einer angemeldeten Sitzung angenommen ist, und endet, wenn
     ihre Antwort beendet oder dem Sitzungsrahmen übergeben ist. `requestId` ist die UUID der Anfrage, `tds.request_kind`
-    (`requestKind`) ist `sql_batch` oder `rpc`; das Paket Bulk-Load (Typ 0x07) zählt als `sql_batch` (Festlegung: der
-    Wert kennt zwei Ausprägungen, ein dritter wäre eine Erweiterung der öffentlichen Marken). `outcome`: `ok`, `error` (Antwort mit einem Fehler des Backends, ein
+    (`requestKind`) ist `sql_batch` oder `rpc`; das Paket Bulk-Load (Typ 0x07) zählt als `sql_batch` (Setzung der
+    kleinsten Menge von Werten, nicht gemessen und nicht abgestimmt; ein dritter Wert änderte keinen Typnamen, wäre aber
+    eine Entscheidung über die Menge der öffentlichen Marken). `outcome`: `ok`, `error` (Antwort mit einem Fehler des Backends, ein
     abgelehnter RPC, ein unbekanntes Handle), `protocol_error` (die Eingabe hat der Codec abgewiesen), `cancelled`
     (ATTENTION), `timeout` (`QUERY_TIMEOUT`), `shutdown` (im Beenden abgewiesen oder abgebrochen), `disconnected`
     (die Gegenstelle ging während der Anfrage), `abandoned` (das Backend beendete den Abbruch nicht innerhalb von
@@ -1463,7 +1465,8 @@ und das Ende der Spans):**
   in `ServerConfig.requests`; Voreinstellung 60, 0 schaltet ihn aus; Setzung, nicht gemessen) und wird in `config`
   geprüft: ganze Sekunden von 0 bis 86400 (Festlegung, nicht gemessen). Das erste Ereignis `METRICS` folgt einen
   Abstand nach dem Start; ohne Senke oder bei Abstand 0 entsteht keines; `TdsServer.stop` beendet den Zeitgeber
-  (Test: `MetricsTracingWiringTest`). Wirft die Senke beim Schnappschuss einen `Error` oder eine
+  (Test: `MetricsTracingWiringTest`). `stop` wartet auf einen laufenden Schnappschuss: blockiert die Senke dort, kehrt
+  `stop` erst nach ihr zurück (Grenze, Test: `MetricsTracingWiringTest`). Wirft die Senke beim Schnappschuss einen `Error` oder eine
   `CancellationException`, läuft die Ausnahme aus dem Zeitgeber heraus und beendet ihn: danach entsteht bis `stop` kein
   `METRICS` mehr, Anfragen und Verbindungen laufen weiter (Grenze, gleiche Festlegung wie für den Anfragepfad; Test:
   `MetricsTracingWiringTest`). Der Testserver liest den Abstand aus `METRICS_INTERVAL_SECONDS` (Ziffern; ein

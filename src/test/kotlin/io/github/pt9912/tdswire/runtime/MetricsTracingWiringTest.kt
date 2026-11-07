@@ -20,7 +20,11 @@ import io.github.pt9912.tdswire.transport.framing.PacketType
 import io.github.pt9912.tdswire.transport.listener.eventually
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -46,6 +50,19 @@ internal class ErrorOnMetrics(private val inner: CapturedEvents) : TelemetrySink
     override fun accept(event: TelemetryEvent) {
         inner.accept(event)
         if (event.kind == EventKind.METRICS) throw AssertionError("senke gebrochen $WERTPROBE")
+    }
+}
+
+/** Eine Senke, die den ersten Schnappschuss aufnimmt und dann blockiert, bis [release] gesetzt ist. */
+internal class BlocksOnMetrics(private val inner: CapturedEvents, val release: CountDownLatch) : TelemetrySink {
+    val entered = CountDownLatch(1)
+
+    override fun accept(event: TelemetryEvent) {
+        inner.accept(event)
+        if (event.kind == EventKind.METRICS) {
+            entered.countDown()
+            release.await()
+        }
     }
 }
 
@@ -498,7 +515,29 @@ internal class MetricsTracingWiringTest : RuntimeTestBase() {
         assertEquals(1, sink.events.count { it.kind == EventKind.METRICS })
     }
 
+    /**
+     * Blockiert die Senke im Schnappschuss, kehrt `stop` nicht zurück, bis sie zurückkehrt (Grenze: `stop` wartet auf
+     * den laufenden Schnappschuss); danach endet `stop` und meldet das Ende des Servers.
+     *
+     * @spec SPEC-017
+     * @spec TDS-FA-09
+     */
+    @Test
+    fun `stop wartet auf einen Schnappschuss, den die Senke blockiert`() = blocking {
+        val blocking = BlocksOnMetrics(sink, CountDownLatch(1))
+        val server = running(environment(), Wiring(telemetry = blocking))
+        assertTrue(blocking.entered.await(STOP_MILLIS, TimeUnit.MILLISECONDS), "kein Schnappschuss")
+        val stopping = thread(name = "tdswire-test-stop") { runBlocking { server.stop() } }
+        stopping.join(HOLD_MILLIS)
+        assertTrue(stopping.isAlive, "stop kehrt zurück, obwohl die Senke blockiert")
+        blocking.release.countDown()
+        stopping.join(STOP_MILLIS)
+        assertTrue(!stopping.isAlive, "stop kehrt nach der Senke nicht zurück")
+        assertEquals(EventKind.SERVER_STOPPED, sink.events.last().kind)
+    }
+
     private companion object {
+        const val HOLD_MILLIS = 1_500L
         const val MANY = 200
         const val STOP_MILLIS = 15_000L
     }

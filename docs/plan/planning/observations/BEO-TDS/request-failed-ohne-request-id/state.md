@@ -1,0 +1,1 @@
+**Stand:** offen — 1×; Entscheidung des Nutzers ausstehend. Empfehlung: (b), weil es den Fehler der Anfrage zuordnet und nur einen Zugriff ergänzt; (c) bleibt Zielzustand der [Spezifikation](../../../../../../spec/spezifikation.md#4-fehler-codes-und-logging-felder).

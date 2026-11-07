@@ -4,7 +4,8 @@ import java.time.Instant
 
 /**
  * Der Schnappschuss der Metriken (`SPEC-017` bis `SPEC-019`, Abschnitt 5 der Spezifikation): [metrics] ist eine
- * unveränderliche Kopie der Messwerte; Schlüssel und Bedeutung stehen in der Spezifikation.
+ * Kopie der Messwerte (spätere Änderungen der Quelle erreichen sie nicht; die Zusage gilt für die Quelle, nicht gegen
+ * ein Verändern durch den Leser); Schlüssel und Bedeutung stehen in der Spezifikation.
  */
 internal class MetricsSnapshot(at: Instant, metrics: Map<String, Long>) :
     TelemetryEvent(EventKind.METRICS, at, EventLevel.INFO) {

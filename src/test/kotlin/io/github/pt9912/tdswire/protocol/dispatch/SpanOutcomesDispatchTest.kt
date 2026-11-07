@@ -32,7 +32,7 @@ import kotlin.test.assertSame
 import kotlin.time.Duration.Companion.seconds
 
 /** Ein Span, der jedes Ende mitschreibt; mehr als ein Eintrag heißt: das Ende kam mehrfach an. */
-private class RecordedSpan(val requestId: String, val kind: RequestKind?) : Span {
+internal class RecordedSpan(val requestId: String, val kind: RequestKind?) : Span {
     val outcomes = CopyOnWriteArrayList<SpanOutcome>()
 
     override fun end(outcome: SpanOutcome) {
@@ -41,7 +41,7 @@ private class RecordedSpan(val requestId: String, val kind: RequestKind?) : Span
 }
 
 /** Beobachtung einer Sitzung, die die Spans von Anfrage und Backend-Aufruf aufbewahrt. */
-private class RecordingSession : SessionInstruments {
+internal class RecordingSession : SessionInstruments {
     val requests = CopyOnWriteArrayList<RecordedSpan>()
     val backends = CopyOnWriteArrayList<RecordedSpan>()
 
