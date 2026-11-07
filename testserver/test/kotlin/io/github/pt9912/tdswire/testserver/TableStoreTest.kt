@@ -6,6 +6,8 @@ import io.github.pt9912.tdswire.domain.QueryRequest
 import io.github.pt9912.tdswire.domain.SqlType
 import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.runtime.BackendSource
+import io.github.pt9912.tdswire.simulation.FilterTerm
+import io.github.pt9912.tdswire.simulation.RowFilter
 import io.github.pt9912.tdswire.simulation.RowSource
 import io.github.pt9912.tdswire.simulation.SimColumn
 import io.github.pt9912.tdswire.simulation.SimQuery
@@ -338,5 +340,83 @@ class TableStoreTest {
         val failure = assertFailsWith<IllegalArgumentException> { insert(store, mapOf("Id" to 6L)) }
         assertEquals("Bestand voll", failure.message)
         assertEquals(listOf(1L, 2L, 3L, 4L, 5L), stored(store).map { it[0] })
+    }
+
+    private fun change(store: TableStore, set: Map<String, Any?>, where: RowFilter?): Long =
+        runBlocking { requireNotNull(tableOf(store).onUpdate)(set, where) }
+
+    private fun key(value: Any?) = RowFilter(listOf(FilterTerm.In("Id", listOf(value))))
+
+    /**
+     * Happy: `onUpdate` der Tabelle des Bestands ändert genau die Zeilen, auf die der Filter zutrifft, und liefert ihre
+     * Zahl; eine nicht genannte Spalte bleibt, ein Schlüssel ohne Treffer ändert nichts (Zahl 0), ohne Filter
+     * treffen alle.
+     * Wächter: ein `onUpdate`, das alle Zeilen ändert, den Filter nicht liest oder eine andere Zeile trifft.
+     * @spec SPEC-035
+     */
+    @Test
+    fun `onUpdate aendert die Zeilen des Filters und zaehlt sie`() {
+        val store = TableStore(listOf(kunden))
+        insert(store, mapOf("Id" to 1L, "Name" to "Ada"), mapOf("Id" to 2L, "Name" to "Bob"))
+
+        assertEquals(1, change(store, mapOf("Name" to "Ada L."), key(1L)))
+        assertEquals(0, change(store, mapOf("Name" to "x"), key(9L)))
+        assertEquals(listOf(listOf<Any?>(1L, "Ada L."), listOf<Any?>(2L, "Bob")), stored(store))
+
+        assertEquals(2, change(store, mapOf("Name" to null), null))
+        assertEquals(listOf(listOf<Any?>(1L, null), listOf<Any?>(2L, null)), stored(store))
+    }
+
+    /**
+     * Negative: ein Wert falscher Klasse, NULL in einer nicht nullbaren Spalte, eine unbekannte Spalte und eine
+     * Änderung,
+     * die den Schlüssel doppelt machte, werfen und lassen den Bestand unverändert (auch die Zeilen vor dem Fehler).
+     * Wächter: ein `onUpdate`, das vor der Prüfung schreibt.
+     * @spec SPEC-035
+     */
+    @Test
+    fun `onUpdate weist ungueltige Aenderungen ab und laesst den Bestand`() {
+        val store = TableStore(listOf(kunden))
+        insert(store, mapOf("Id" to 1L, "Name" to "Ada"), mapOf("Id" to 2L, "Name" to "Bob"))
+        val before = stored(store)
+
+        assertFailsWith<IllegalArgumentException> { change(store, mapOf("Name" to 5), key(1L)) }
+        assertFailsWith<IllegalArgumentException> { change(store, mapOf("Id" to null), key(1L)) }
+        assertFailsWith<IllegalArgumentException> { change(store, mapOf("Fehlt" to "x"), key(1L)) }
+        assertFailsWith<IllegalArgumentException> { change(store, mapOf("Id" to 7L), null) }
+        assertEquals(before, stored(store))
+        assertEquals(1, change(store, mapOf("Id" to 3L), key(2L)))
+        assertEquals(1, insert(store, mapOf("Id" to 2L)))
+    }
+
+    /**
+     * Happy (Zusammenspiel): ein `MERGE` von d-migrate über das Backend des Bestands fügt bei fehlendem Schlüssel ein
+     * (`INSERT`), lässt bei `skip` den vorhandenen unverändert und ändert bei `update` (`UPDATE`); die Auswahl danach
+     * zeigt die Zeilen. Der Text ist der gemessene Wortlaut (2026-11-07).
+     * Wächter: ein Bestand ohne `onInsert`/`onUpdate` (das `MERGE` wäre `TDS_UNSUPPORTED_SQL`), ein Einfügen ohne
+     * Schlüsselprüfung.
+     * @spec SPEC-036
+     */
+    @Test
+    fun `ein MERGE fuegt ein, laesst bei skip und aendert bei update`() {
+        val backend = TableStore(listOf(kunden)).backend()
+        val head = "MERGE INTO [dbo].[kunden] AS tgt USING (VALUES ( @P0 ,  @P1 )) AS src ([Id], [Name]) " +
+            "ON tgt.[Id] = src.[Id] "
+        val matched = "WHEN MATCHED THEN UPDATE SET tgt.[Name] = src.[Name] "
+        val tail = "WHEN NOT MATCHED THEN INSERT ([Id], [Name]) VALUES (src.[Id], src.[Name]) OUTPUT \$action;"
+        fun merge(update: Boolean, id: Long, name: String) = ask(
+            backend,
+            head + (if (update) matched else "") + tail,
+            QueryParameter("@P0", SqlType.Int64, id),
+            QueryParameter("@P1", SqlType.UnicodeText, name),
+        ).filterIsInstance<QueryEvent.Row>().map { it.values.single() }
+        fun names() = ask(backend, "SELECT Id, Name FROM kunden").filterIsInstance<QueryEvent.Row>().map { it.values }
+
+        assertEquals(listOf<Any?>("INSERT"), merge(update = false, id = 1, name = "Ada"))
+        assertEquals(emptyList(), merge(update = false, id = 1, name = "anders"))
+        assertEquals(listOf(listOf<Any?>(1L, "Ada")), names())
+        assertEquals(listOf<Any?>("UPDATE"), merge(update = true, id = 1, name = "Ada L."))
+        assertEquals(listOf<Any?>("INSERT"), merge(update = true, id = 2, name = "Bob"))
+        assertEquals(listOf(listOf<Any?>(1L, "Ada L."), listOf<Any?>(2L, "Bob")), names())
     }
 }
