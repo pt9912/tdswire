@@ -20,6 +20,7 @@ internal object ConfigKeys {
     const val SHUTDOWN_GRACE = "SHUTDOWN_GRACE"
     const val MAX_PREPARED_HANDLES = "MAX_PREPARED_HANDLES"
     const val MAX_MESSAGE_BYTES = "MAX_MESSAGE_BYTES"
+    const val METRICS_INTERVAL_SECONDS = "METRICS_INTERVAL_SECONDS"
 }
 
 /**
@@ -30,7 +31,7 @@ public enum class EncryptionSetting { REQUIRED, TEST_UNENCRYPTED }
 
 /**
  * Die Voreinstellungen der Konfiguration (`SPEC-005`, `SPEC-008`, `SPEC-010`, `SPEC-034`, `SPEC-046`,
- * `SPEC-047`, `SPEC-058`, `SPEC-007`): Die Konstruktoren der
+ * `SPEC-047`, `SPEC-058`, `SPEC-007`, `SPEC-017` bis `SPEC-019`): Die Konstruktoren der
  * Einstellungen nutzen dieselben Werte.
  */
 internal object ConfigDefaults {
@@ -44,6 +45,7 @@ internal object ConfigDefaults {
     const val SHUTDOWN_GRACE_SECONDS = 10
     const val MAX_PREPARED_HANDLES = 1000
     const val MAX_MESSAGE_BYTES = 16 * 1024 * 1024
+    const val METRICS_INTERVAL_SECONDS = 60
     val ENCRYPTION = EncryptionSetting.REQUIRED
 }
 
@@ -72,7 +74,9 @@ public data class LoginSettings(
  * Frist, die eine laufende Anfrage beim geordneten Beenden hat (0 = sofort); [maxPreparedHandles] ist
  * `MAX_PREPARED_HANDLES`, die Zahl der Prepared-Handles, die eine Sitzung gleichzeitig hält; [maxMessageBytes] ist
  * `MAX_MESSAGE_BYTES`, die Summe der Paketlängen einer Nachricht des Clients samt Headern nach dem Login (vor dem
- * Login gilt `MAX_PRELOGIN_MESSAGE_BYTES`).
+ * Login gilt `MAX_PRELOGIN_MESSAGE_BYTES`); [metricsIntervalSeconds] ist `METRICS_INTERVAL_SECONDS`, der Abstand der
+ * Schnappschüsse der Metriken über diese Anfragen (Ereignis `metrics`, Abschnitt 5 der Spezifikation; 0 schaltet sie
+ * aus, ohne Senke bei `TdsServer.start` entstehen sie nicht).
  */
 public data class RequestSettings(
     val queryTimeoutSeconds: Int = ConfigDefaults.QUERY_TIMEOUT_SECONDS,
@@ -80,6 +84,7 @@ public data class RequestSettings(
     val shutdownGraceSeconds: Int = ConfigDefaults.SHUTDOWN_GRACE_SECONDS,
     val maxPreparedHandles: Int = ConfigDefaults.MAX_PREPARED_HANDLES,
     val maxMessageBytes: Int = ConfigDefaults.MAX_MESSAGE_BYTES,
+    val metricsIntervalSeconds: Int = ConfigDefaults.METRICS_INTERVAL_SECONDS,
 )
 
 /** Die validierte Benutzerliste und der Schalter für das Verfahren `plain` (`ADR-0011`). */

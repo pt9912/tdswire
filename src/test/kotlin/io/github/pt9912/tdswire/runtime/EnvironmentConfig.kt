@@ -64,5 +64,7 @@ private fun requestsOf(environment: Map<String, String>): RequestSettings {
         shutdownGraceSeconds = environment[ConfigKeys.SHUTDOWN_GRACE]?.toInt() ?: defaults.shutdownGraceSeconds,
         maxPreparedHandles = environment[ConfigKeys.MAX_PREPARED_HANDLES]?.toInt() ?: defaults.maxPreparedHandles,
         maxMessageBytes = environment[ConfigKeys.MAX_MESSAGE_BYTES]?.toInt() ?: defaults.maxMessageBytes,
+        metricsIntervalSeconds = environment[ConfigKeys.METRICS_INTERVAL_SECONDS]?.toInt()
+            ?: defaults.metricsIntervalSeconds,
     )
 }

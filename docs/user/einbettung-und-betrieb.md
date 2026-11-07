@@ -19,6 +19,7 @@ Die Kotlin-Blöcke, die eine Funktion oder Klasse mit dem Namen `anleitung…` o
 | Benutzer einrichten und einen `pbkdf2`-Prüfwert erzeugen | [7](#7-benutzer-einrichten-und-einen-pbkdf2-prüfwert-erzeugen) |
 | die Verschlüsselung (TLS) einschalten | [8](#8-tls-einschalten) |
 | den Server begrenzen, betreiben und geordnet beenden | [9](#9-den-server-begrenzen-betreiben-und-beenden) |
+| Metriken und Spans des Servers lesen | [10](#10-metriken-und-spans-lesen) |
 
 ## 1. Den Server in die Anwendung einbinden
 
@@ -351,6 +352,7 @@ Ein Start, der gelingt, meldet vor `SERVER_STARTED` genau ein Ereignis `CONFIG_E
 - `accept` blockiert nicht und wirft nicht. Eine blockierende Senke hält den Anfragepfad an und belegt Threads von `Dispatchers.Default`, die andere Coroutinen des Prozesses mitnutzen; davor schützt die Bibliothek nicht.
 - `accept` ruft `TdsServer.stop` nicht: bei `SERVER_STOPPING` und `SERVER_STOPPED` kehrt ein solcher Aufruf nicht zurück (die Sperre von `stop` ist nicht wiedereintrittsfähig; gemessen mit einer Zeitgrenze von 3 s, kein Test im Repo).
 - Wirft `accept` eine `Exception`, fängt die Bibliothek sie ab und verwirft sie. Eine `CancellationException` wird nicht gefangen; dass auch ein `Error` nicht gefangen wird, ist eine Festlegung.
+- Das Ende eines Spans läuft auf dem Anfragepfad, der Schnappschuss der Metriken in einer eigenen Aufgabe; blockiert die Senke dort, hält das den Anfragepfad an, und `stop` wartet auf einen laufenden Schnappschuss ([Aufgabe 10](#10-metriken-und-spans-lesen)).
 - Teilen mehrere Server in einer JVM eine Senke, unterscheidet das Ereignis sie nicht: `connection_id` zählt je Server.
 - Passwort, Prüfwert, Parameterwert, SQL-Text, Pfad und Ausnahmetext haben im Modell kein Feld; eine Ausnahme erscheint nur als Typname, jede Zeichenkette ist auf 256 UTF-16-Einheiten gekürzt (Tests `TelemetryEventTest`, `TelemetryRedactionTest`).
 
@@ -558,6 +560,45 @@ Dateirechte und Besitzer der Benutzerliste setzt die Bibliothek nicht; sie liest
 | Verbindung wird sofort geschlossen | `maxConnections` erreicht | Grenze prüfen oder Last verteilen |
 | `TDS_PREPARE_LIMIT` | die Sitzung hält `maxPreparedHandles` Handles | Handles freigeben ([Referenz](referenz-konfiguration.md#prepared-handles)) oder Grenze erhöhen |
 | Anfrage endet nach 30 s mit `TDS_TIMEOUT` | Voreinstellung von `queryTimeoutSeconds` | Wert erhöhen |
+
+## 10. Metriken und Spans lesen
+
+**Ziel.** Der Server liefert Zähler und Latenz-Perzentile im festen Abstand und das Ende jedes Spans (`tds.connection`, `tds.query`, `backend.execute`) an die Senke. Es gibt weder einen Endpunkt noch JMX noch eine Telemetrie-Bibliothek: der Zugang ist die Senke.
+
+**Voraussetzungen.** Ein Server mit Senke nach [Aufgabe 5](#5-ereignisse-lesen-senke). Ohne Senke entsteht nichts.
+
+**Schritte.**
+
+1. Den Abstand der Schnappschüsse in `ServerConfig.requests` setzen (Voreinstellung 60 s, 0 schaltet die Schnappschüsse aus, Bereich 0 bis 86400). `RequestSettings` hat mehrere Ganzzahl-Felder; die Felder benennen, nicht nach Position übergeben:
+
+   ```kotlin
+   requests = RequestSettings(metricsIntervalSeconds = 10)
+   ```
+
+2. In der Senke nach der Art unterscheiden: `EventKind.METRICS` trägt `metrics` (ganze Zahlen nach Schlüssel), `EventKind.SPAN_ENDED` trägt `span`, `outcome`, `durationMs`, `requestId`, `requestKind` und `phase`. Das Ende eines Spans hat die Ebene `DEBUG`, der Schnappschuss `INFO`.
+3. Raten (Anfragen je Sekunde, Quote der Anmeldungen) aus zwei Schnappschüssen bilden: die Zähler `*_total` wachsen seit dem Start.
+
+**Erwartetes Ergebnis** (Handlauf des Testservers mit `LOG_LEVEL=DEBUG`, Rohbytes-Client, 2026-11-07; der Client stellte keine Anfrage, deshalb fehlen Spans `tds.query`; siehe die Zeilen in der [Referenz](referenz-ereignisse.md#log-des-testservers)): nach der Anmeldung ein `span_ended` mit `span` = `tds.connection`, `outcome` = `ok`, `phase` = `session`, danach ein `metrics` mit `metrics.logins_succeeded_total` = 1 und `metrics.spans_open` = 0. `tds.query` und `backend.execute` tragen dieselbe `requestId` wie die `QueryRequest` des Backends (Test `MetricsTracingWiringTest`).
+
+**Was die Werte bedeuten.**
+
+- Die Schlüssel, die Werte von `outcome` und die Klassengrenzen der Perzentile stehen in der [Referenz](referenz-ereignisse.md#ereignisarten) und in [Abschnitt 5 der Spezifikation](../../spec/spezifikation.md#5-metriken-und-tracing-felder); sie sind Festlegungen, nicht gemessen.
+- Ein Perzentil ist die Obergrenze der Klasse, in der sein Rang liegt, nicht die gemessene Dauer; es fehlt, bis die erste Anfrage endet.
+- Kein Span und keine Metrik trägt SQL-Text, Anmeldekennung oder Parameterwert; die Schlüssel hängen nicht von den Anfragen ab (Test mit 200 verschiedenen Texten).
+
+**Grenzen.**
+
+- Eine Senke, die blockiert, hält den Anfragepfad an, auch am Ende eines Spans; `stop` wartet auf einen laufenden Schnappschuss und kehrt erst nach der Senke zurück.
+- Wirft die Senke beim Schnappschuss einen `Error` oder eine `CancellationException`, endet der Zeitgeber, und es folgt bis zum nächsten Start kein `METRICS` mehr; Anfragen laufen weiter.
+- Overhead und Kosten der Aggregation unter Last sind nicht gemessen. Ein Bulk-Load-Paket erscheint als `sql_batch` (Setzung); die Kennung der Anfrage trägt nur das Ende der Spans, nicht `REQUEST_FAILED`.
+
+**Typische Fehler.**
+
+| Beobachtung | Ursache | Abhilfe |
+|---|---|---|
+| kein `METRICS` | keine Senke, Abstand 0, oder die Senke warf einen `Error` | Senke übergeben, `metricsIntervalSeconds` prüfen |
+| kein `SPAN_ENDED` im Log | Ebene unter `DEBUG` im Adapter | im Adapter `DEBUG` zulassen (Testserver: `LOG_LEVEL=DEBUG`) |
+| `RequestSettings` startet mit falschem Wert | Ganzzahlen nach Position übergeben | benannte Argumente verwenden |
 
 ## Weiterführend
 

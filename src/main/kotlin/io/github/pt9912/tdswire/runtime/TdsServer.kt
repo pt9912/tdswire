@@ -8,6 +8,8 @@ import io.github.pt9912.tdswire.domain.telemetry.TelemetrySink
 import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.simulation.SimTable
 import io.github.pt9912.tdswire.transport.listener.TdsListener
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -72,9 +74,15 @@ public sealed interface StartOutcome {
  *
  * Der Einstieg verlangt keine JVM-Option und liest keine Systemeigenschaft (`SPEC-023`). Er schreibt nirgends
  * hin; Log und Telemetrie gehen an die Senke, die [start] übergeben bekommt, ein Abbruch steht in
- * [StartOutcome.Aborted].
+ * [StartOutcome.Aborted]. Der Schnappschuss der Metriken endet mit [stop]: nach der Rückkehr entsteht kein weiterer.
+ * [stop] wartet auf einen laufenden Schnappschuss; blockiert die Senke dort, kehrt [stop] erst nach ihr zurück (Grenze
+ * wie für den Anfragepfad).
  */
-public class TdsServer internal constructor(private val listener: TdsListener, private val telemetry: Telemetry) {
+public class TdsServer internal constructor(
+    private val listener: TdsListener,
+    private val telemetry: Telemetry,
+    private val snapshots: Job? = null,
+) {
     private val stopLock = Mutex()
     private var stopBegun = false
     private var stopEnded = false
@@ -101,6 +109,7 @@ public class TdsServer internal constructor(private val listener: TdsListener, p
                 stopBegun = true
                 telemetry.emit { ServerStopping(it) }
             }
+            snapshots?.cancelAndJoin()
             listener.shutdown()
             if (!stopEnded) {
                 stopEnded = true

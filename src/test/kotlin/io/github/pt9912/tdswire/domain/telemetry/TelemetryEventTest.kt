@@ -19,7 +19,7 @@ internal class TelemetryEventTest {
     private val context = EventContext(7L, "sitzung-1", ClientProfile.tds74("on"))
 
     private val settings = EffectiveSettings(
-        15, 65536, EncryptionMode.REQUIRED, KeystoreState.SET, false, 30, 5, 10, 1000, 1000, 16_777_216,
+        15, 65536, EncryptionMode.REQUIRED, KeystoreState.SET, false, 30, 5, 10, 1000, 1000, 16_777_216, 60,
     )
 
     private class Sample(val event: TelemetryEvent, val level: EventLevel, val scoped: Boolean)
@@ -47,6 +47,12 @@ internal class TelemetryEventTest {
         Sample(TlsFirstNotOffered(at, context, TlsFirstRefusal.NO_TLS_MATERIAL), EventLevel.WARN, true),
         Sample(TlsHandshakeFailed(at, context, "HANDSHAKE_FAILED"), EventLevel.WARN, true),
         Sample(RequestFailed(at, context, "TDS_INTERNAL_ERROR", null), EventLevel.WARN, true),
+        Sample(MetricsSnapshot(at, mapOf("requests_total" to 3L)), EventLevel.INFO, false),
+        Sample(
+            SpanEnded(at, context, SpanFacts(SpanKind.QUERY, SpanOutcome.OK, 5, "r1", null, RequestKind.RPC)),
+            EventLevel.DEBUG,
+            true,
+        ),
     )
 
     /**
@@ -148,5 +154,51 @@ internal class TelemetryEventTest {
         assertTrue(principal.none { it.isSurrogate() })
         val whole = "p".repeat(LIMIT - 2) + pair
         assertEquals(whole, LoginAccepted(at, context, whole).principal)
+    }
+
+    /**
+     * Das Ende eines Spans trägt Name, Ausgang und Dauer; die Kennung der Anfrage, die Phase und die Art stehen nur
+     * dort, wo der Span sie hat. Der Schnappschuss ist eine Kopie: eine spätere Änderung der Quelle ändert ihn
+     * nicht. Die Kennung ist auf 256 Einheiten gekürzt.
+     *
+     * @spec SPEC-017
+     * @spec SPEC-018
+     * @spec SPEC-019
+     */
+    @Test
+    fun `Span-Ende und Schnappschuss tragen ihre Felder`() {
+        fun ended(kind: SpanKind, outcome: SpanOutcome, facts: (SpanFacts) -> SpanFacts = { it }) =
+            SpanEnded(at, context, facts(SpanFacts(kind, outcome, 0)))
+        val query = SpanEnded(
+            at,
+            context,
+            SpanFacts(SpanKind.QUERY, SpanOutcome.PROTOCOL_ERROR, 12, "r1", null, RequestKind.SQL_BATCH),
+        )
+        assertEquals(EventKind.SPAN_ENDED, query.kind)
+        assertEquals("tds.query", query.span)
+        assertEquals("protocol_error", query.outcome)
+        assertEquals(12L, query.durationMs)
+        assertEquals("r1", query.requestId)
+        assertEquals("sql_batch", query.requestKind)
+        assertNull(query.phase)
+        val connection = SpanEnded(
+            at,
+            context,
+            SpanFacts(SpanKind.CONNECTION, SpanOutcome.OK, 1, phase = ConnectionPhase.SESSION),
+        )
+        assertEquals("session", connection.phase)
+        assertNull(connection.requestId)
+        assertNull(connection.requestKind)
+        assertEquals("backend.execute", ended(SpanKind.BACKEND, SpanOutcome.OK).span)
+        val long = SpanFacts(SpanKind.BACKEND, SpanOutcome.OK, 0, "x".repeat(LONG))
+        assertEquals("x".repeat(LIMIT), SpanEnded(at, context, long).requestId)
+
+        val source = mutableMapOf("a" to 1L)
+        val snapshot = MetricsSnapshot(at, source)
+        source["a"] = 2L
+        source["b"] = 3L
+        assertEquals(mapOf("a" to 1L), snapshot.metrics)
+        assertNull(snapshot.span)
+        assertNull(snapshot.outcome)
     }
 }

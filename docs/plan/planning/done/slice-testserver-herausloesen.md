@@ -156,7 +156,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 1. `slice-spec-nachzug-produktschnitt` liegt in `done/` (die Spezifikation sagt, was der Slice umsetzt).
 2. **Vorbedingung „Folge-ADR angenommen“ (erfüllt):** [ADR-0026](../../adr/0026-oeffentlichkeit-simulations-backend-und-katalog.md) steht im ADR-Index auf `Accepted` (2026-11-01, Variante (i)).
-3. Der Start-Trigger von [welle-produktschnitt](../welle-produktschnitt.md) ist eingetreten ([ADR-0025](../../adr/0025-produktschnitt-bibliothek-und-testserver.md) `Accepted` und Nennung des Starts durch den Nutzer), und `slice-e2e-geruest` liegt in `done/`.
+3. Der Start-Trigger von [welle-produktschnitt](welle-produktschnitt.md) ist eingetreten ([ADR-0025](../../adr/0025-produktschnitt-bibliothek-und-testserver.md) `Accepted` und Nennung des Starts durch den Nutzer), und `slice-e2e-geruest` liegt in `done/`.
 4. Ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**

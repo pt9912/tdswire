@@ -5,7 +5,7 @@
 # eine Quelltext-Aenderung loest sie nicht aus, eine Aenderung an diesen Dateien schon; ein Lauf kostet Sekunden.
 .PHONY: skript-selbsttest
 
-skript-selbsttest: ## Abbruch von tools/e2e.sh, Fehlerfaelle von tools/manifest-pruefung.sh gegen synthetische Jars und Log-Muster der Laufskripte pruefen (Stage `skript-selbsttest`)
+skript-selbsttest: ## Abbruch von tools/e2e.sh, Argumente und Modi von test-lauf.sh (dotnet-Stub), Fehlerfaelle von tools/manifest-pruefung.sh gegen synthetische Jars und Log-Muster der Laufskripte pruefen (Stage `skript-selbsttest`)
 	docker build $(BUILDER_FLAGS) --target skript-selbsttest --progress=plain .
 
 GATE_CHECKS += skript-selbsttest

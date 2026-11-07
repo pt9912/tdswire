@@ -3,6 +3,7 @@ package io.github.pt9912.tdswire.runtime
 import io.github.pt9912.tdswire.config.ConfigKeys
 import io.github.pt9912.tdswire.config.TempFilesTest
 import io.github.pt9912.tdswire.config.auth.pbkdf2Value
+import io.github.pt9912.tdswire.protocol.dispatch.BatchVectors
 import io.github.pt9912.tdswire.protocol.session.SessionVectors
 import io.github.pt9912.tdswire.testsupport.handMessage
 import io.github.pt9912.tdswire.transport.listener.LOOPBACK
@@ -161,8 +162,8 @@ internal class TestserverLogProcessTest : TempFilesTest() {
      * Anmeldung ohne angebotene Verschlüsselung `encryption_not_offered` und die Ablehnung, bei `DEBUG` jedes Ereignis
      * des Laufs, darunter die der Ebene `INFO` (wirksame Konfiguration, Verbindungen, Beginn des Beendens). Das
      * Backend des Prozesses ist eine eigene Quelle über dem `TableStore`: die Bibliothek meldet für sie
-     * kein `simulation_backend_ready` (die Art entsteht nur bei `BackendSource.Simulation`), also steht in diesem Lauf
-     * kein Ereignis der Ebene `DEBUG`; die Ebene `DEBUG` mit einem Ereignis hält `LogAdapterTest`.
+     * kein `simulation_backend_ready` (die Art entsteht nur bei `BackendSource.Simulation`); die Ebene `DEBUG` zeigt
+     * hier das Ende der Spans der zwei Verbindungen (`span_ended`), die Ebene `INFO` zeigt es nicht.
      *
      * @spec SPEC-052
      */
@@ -184,6 +185,8 @@ internal class TestserverLogProcessTest : TempFilesTest() {
                     "login_accepted",
                     "login_rejected",
                     "server_stopping",
+                    "span_ended",
+                    "span_ended",
                     "server_stopped",
                 )
                 ).sorted(),
@@ -200,6 +203,76 @@ internal class TestserverLogProcessTest : TempFilesTest() {
             }
         }
     }
+
+    /** PRELOGIN, LOGIN7, dann ein SQL_BATCH mit [text]; `true`, wenn die Antwort auf den Batch eintrifft. */
+    private fun query(port: Int, text: String): Boolean = RawClient(port).use { client ->
+        client.send(preloginWire(SessionVectors.ENCRYPT_OFF))
+        assertNotNull(client.readMessage())
+        val payload = SessionVectors.login7Payload {
+            userName = "alice"
+            password = "secret".toCharArray()
+        }
+        client.send(handMessage(LOGIN7_TYPE, payload, LOGIN_MILLIS))
+        assertNotNull(client.readMessage())
+        client.send(handMessage(BATCH_TYPE, BatchVectors.payload(text), LOGIN_MILLIS))
+        client.readMessage() != null
+    }
+
+    /**
+     * Ein Rohbytes-Lauf gegen den Prozess mit `LOG_LEVEL=DEBUG` und `METRICS_INTERVAL_SECONDS=1`: Anmeldung und eine
+     * Anfrage, die das Backend des Prozesses ablehnt. Die Standardausgabe zeigt das Ende der drei Spans als Zeilen
+     * `span_ended` in der Reihenfolge Backend-Aufruf, Anfrage, Verbindung, und danach eine Zeile `metrics` mit einer
+     * Anfrage, einer Anmeldung und keinem offenen Span. Der SQL-Text steht in keiner Zeile. Mit `LOG_LEVEL=INFO` steht
+     * die Zeile `metrics`, die Zeilen `span_ended` stehen nicht da (Ebene `DEBUG`).
+     *
+     * @spec SPEC-017
+     * @spec SPEC-018
+     * @spec SPEC-019
+     * @spec SPEC-052
+     */
+    @Test
+    fun `Metriken und Span-Enden stehen als Zeilen`() {
+        for (level in listOf("DEBUG", "INFO")) {
+            val env = environment(LOG_LEVEL to level, ConfigKeys.METRICS_INTERVAL_SECONDS to "1")
+            ServerProcess(env).use { server ->
+                val port = server.port()
+                assertTrue(query(port, "select $WERTPROBE_SQL from t"), "Antwort auf den Batch")
+                awaitQuietMetrics(server)
+                assertNotNull(server.terminate(), "der Prozess endet nach SIGTERM")
+                val metrics = metricsLines(server).last { it["metrics.requests_total"] == 1L }
+                assertEquals("INFO", metrics["level"])
+                assertEquals(1L, metrics["metrics.logins_succeeded_total"])
+                assertEquals(0L, metrics["metrics.spans_open"], metrics.toString())
+                assertEquals(0L, metrics["metrics.backend_active"])
+                val spans = jsonLines(server).filter { it["event"] == "span_ended" }
+                if (level == "INFO") {
+                    assertTrue(spans.isEmpty(), spans.toString())
+                } else {
+                    assertEquals(
+                        listOf("backend.execute", "tds.query", "tds.connection"),
+                        spans.map { it["span"] },
+                        server.output.toString(),
+                    )
+                    assertEquals(spans[0]["request_id"], spans[1]["request_id"])
+                    assertEquals("sql_batch", spans[1]["request_kind"])
+                    assertEquals("session", spans[2]["phase"])
+                    assertTrue(spans.all { it["duration_ms"] is Long && it["level"] == "DEBUG" }, spans.toString())
+                    assertTrue(spans[1]["outcome"] != "ok", "das Backend des Prozesses lehnt den Text ab: $spans")
+                }
+                assertFalse(server.output.joinToString("\n").contains(WERTPROBE_SQL), "SQL-Text in der Ausgabe")
+            }
+        }
+    }
+
+    /** Wartet auf einen Schnappschuss mit einer Anfrage und ohne offenen Span. */
+    private fun awaitQuietMetrics(server: ServerProcess) {
+        val deadline = System.nanoTime() + METRICS_WAIT_NANOS
+        fun quiet() = metricsLines(server).any { it["metrics.requests_total"] == 1L && it["metrics.spans_open"] == 0L }
+        while (!quiet() && System.nanoTime() < deadline) Thread.sleep(STUCK_POLL_MILLIS)
+    }
+
+    private fun metricsLines(server: ServerProcess): List<Map<String, Any>> =
+        jsonLines(server).filter { it["event"] == "metrics" }
 
     /**
      * Niemand liest die Standardausgabe: der Kanal des Kindes füllt sich, der Schreiber hängt, die Warteschlange läuft
@@ -279,6 +352,8 @@ internal class TestserverLogProcessTest : TempFilesTest() {
                 primary_key: [id]
         """.trimIndent() + "\n"
         const val BYTE_MASK = 0xFF
+        const val WERTPROBE_SQL = "wertprobe-sql-k3"
+        const val METRICS_WAIT_NANOS = 20_000_000_000L
         const val LOGINACK = 0xAD
         const val NANOS_PER_MILLI = 1_000_000L
     }

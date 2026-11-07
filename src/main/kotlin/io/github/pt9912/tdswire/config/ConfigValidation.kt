@@ -16,6 +16,8 @@ package io.github.pt9912.tdswire.config
  *   bis 3600, 0 = sofort (`SPEC-047`, vorläufig).
  * - `MAX_PREPARED_HANDLES` ganze Zahl von 1 bis 100000 (`SPEC-058`, Festlegung); null und negative Werte sind
  *   `OUT_OF_RANGE`.
+ * - `METRICS_INTERVAL_SECONDS` ganze Sekunden von 0 bis 86400, 0 schaltet die Schnappschüsse aus (Festlegung, der
+ *   Wertebereich ist in der Spezifikation nicht festgelegt).
  *
  * Eine [ServerConfig] kann ungeprüft existieren; erst [check] und der Start weisen sie ab.
  */
@@ -28,6 +30,7 @@ internal object ConfigValidation {
     private const val MAX_PREPARED_HANDLE_LIMIT = 100_000
     private const val MIN_MESSAGE_BYTES = 65535
     private const val MAX_MESSAGE_LIMIT = 256 * 1024 * 1024
+    private const val MAX_METRICS_INTERVAL = 86_400
     private const val MIN_PRELOGIN_BYTES = 512
     private const val MAX_PRELOGIN_BYTES = 65536
 
@@ -45,6 +48,7 @@ internal object ConfigValidation {
             shutdownGrace(config.requests.shutdownGraceSeconds),
             range(ConfigKeys.MAX_PREPARED_HANDLES, config.requests.maxPreparedHandles, 1..MAX_PREPARED_HANDLE_LIMIT),
             range(ConfigKeys.MAX_MESSAGE_BYTES, config.requests.maxMessageBytes, MIN_MESSAGE_BYTES..MAX_MESSAGE_LIMIT),
+            range(ConfigKeys.METRICS_INTERVAL_SECONDS, config.requests.metricsIntervalSeconds, 0..MAX_METRICS_INTERVAL),
         ) + pairing(config.encryption, hasKeystore = keyMaterial, hasPassword = keyMaterial)
     }
 

@@ -32,7 +32,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Der Compiler-Schalter `explicitApi` (Modus `strict`) ist eingeschaltet, und öffentlich ist nur die Fläche, die [ADR-0021](../../adr/0021-oeffentlicher-integrations-einstieg.md) Entscheidung 3 in der Fassung von [ADR-0026](../../adr/0026-oeffentlichkeit-simulations-backend-und-katalog.md) nennt (mit `SimulationBackend` und `SimCatalog`, ohne `ConfigKeys`); alles andere ist `internal`, soweit Aufrufer im Hauptmodul es zulassen. Die Source-Sets `integrator` und `testserver` übersetzen danach gegen diese Fläche; ihre Tests, die `ConfigKeys`, `SimTable.column` oder die Typen des Authentifizierungsadapters nannten, ändern sich (§3), ihr Produktionscode nicht.
 
-**Zuordnung zur Welle und Reihenfolge (Nutzerentscheidung 2026-11-01):** Der Slice gehört zu [welle-produktschnitt](../welle-produktschnitt.md) und startet erst, wenn `slice-testserver-herausloesen` in `done/` liegt. Der Grund ist der Umfang: Lader, YAML-Leser, Beschreibungs-Leser und Jackson liegen danach nicht mehr in `src/main`, die Menge der zu schließenden Deklarationen ist eine andere, und der Umbau würde sonst Dateien schließen, die der Testserver-Umbau verschiebt.
+**Zuordnung zur Welle und Reihenfolge (Nutzerentscheidung 2026-11-01):** Der Slice gehört zu [welle-produktschnitt](welle-produktschnitt.md) und startet erst, wenn `slice-testserver-herausloesen` in `done/` liegt. Der Grund ist der Umfang: Lader, YAML-Leser, Beschreibungs-Leser und Jackson liegen danach nicht mehr in `src/main`, die Menge der zu schließenden Deklarationen ist eine andere, und der Umbau würde sonst Dateien schließen, die der Testserver-Umbau verschiebt.
 
 **Befund, der den Slice begründet:** Die ADR misst im Review (Kopie des Baums, `explicitApi()` strict, Stage `compile`) 738 Diagnosen (645 „Visibility must be specified“, 93 „Return type must be specified“) in 76 von 136 Dateien unter `src/main` und nennt den Umbau zu groß für einen Arbeitsschritt neben Fassade, Source-Set und `main()`. `slice-integrations-einstieg` liefert deshalb den Einstieg und seinen Nachweis ohne diesen Umbau.
 
@@ -97,7 +97,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 1. `slice-integrations-einstieg` liegt in `done/` (erfüllt: das Source-Set `integrator` belegt, dass die verkleinerte Fläche reicht).
 2. `slice-testserver-herausloesen` liegt in `done/` (Nutzerentscheidung 2026-11-01; Grund in §1: kein doppelter Umbau).
-3. Der Start-Trigger von [welle-produktschnitt](../welle-produktschnitt.md) ist eingetreten.
+3. Der Start-Trigger von [welle-produktschnitt](welle-produktschnitt.md) ist eingetreten.
 4. Ein Verantwortlicher ist im Kopf eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**

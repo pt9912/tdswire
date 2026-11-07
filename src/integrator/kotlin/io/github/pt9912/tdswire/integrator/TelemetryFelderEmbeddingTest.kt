@@ -3,6 +3,7 @@ package io.github.pt9912.tdswire.integrator
 import io.github.pt9912.tdswire.config.AuthSettings
 import io.github.pt9912.tdswire.config.EncryptionSetting
 import io.github.pt9912.tdswire.config.ListenSettings
+import io.github.pt9912.tdswire.config.RequestSettings
 import io.github.pt9912.tdswire.config.ServerConfig
 import io.github.pt9912.tdswire.config.TlsKeyMaterial
 import io.github.pt9912.tdswire.config.auth.PasswordChars
@@ -188,6 +189,41 @@ class TelemetryFelderEmbeddingTest {
         val order = events.map { it.kind }
         assertTrue(order.indexOf(EventKind.SERVER_STOPPING) < order.indexOf(EventKind.CONNECTION_CLOSED), "$order")
         assertEquals(EventKind.SERVER_STOPPED, order.last())
+    }
+
+    /**
+     * Mit `RequestSettings.metricsIntervalSeconds` von 1 liefert der Server nach einer Anmeldung und einer Anfrage
+     * ein Ereignis `METRICS`, dessen Zugriff `metrics` die Zähler nennt (Anfragen, Anmeldungen, aktive Sitzungen) und
+     * die Perzentile der Latenz, die erst mit der ersten beendeten Anfrage da sind; die Felder des Span-Endes
+     * (`span`, `outcome`, `durationMs`, `requestId`, `requestKind`, `phase`) stehen nur an `SPAN_ENDED`, `metrics`
+     * nur an `METRICS`.
+     *
+     * @spec SPEC-059
+     * @spec SPEC-017
+     */
+    @Test
+    fun dieMessungenTragenIhreFelder() {
+        val config = ServerConfig(
+            ListenSettings(LOOPBACK, 0),
+            encryption = EncryptionSetting.TEST_UNENCRYPTED,
+            auth = users(),
+            requests = RequestSettings(metricsIntervalSeconds = 1),
+        )
+        val running = assertIs<StartOutcome.Running>(start(config, BackendSource.Custom(FailingBackend())))
+        WireClient(running.server.port).use {
+            it.login()
+            it.batch("irgendein text")
+        }
+        val snapshot = checkNotNull(awaitKind(EventKind.METRICS).metrics)
+        assertEquals(1L, snapshot["requests_total"])
+        assertEquals(1L, snapshot["logins_succeeded_total"])
+        assertNotNull(snapshot["request_latency_p50_ms"])
+        assertTrue(snapshot.keys.none { "irgendein" in it })
+        val ended = events.filter { it.kind == EventKind.SPAN_ENDED }
+        assertEquals(listOf("backend.execute", "tds.query"), ended.map { it.span }.take(2))
+        assertEquals(listOf("error", "error"), ended.map { it.outcome }.take(2))
+        events.filter { it.kind != EventKind.SPAN_ENDED }.forEach { assertNull(it.span, "$it") }
+        events.filter { it.kind != EventKind.METRICS }.forEach { assertNull(it.metrics, "$it") }
     }
 }
 

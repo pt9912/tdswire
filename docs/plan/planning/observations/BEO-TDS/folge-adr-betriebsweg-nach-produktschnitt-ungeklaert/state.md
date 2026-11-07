@@ -1,1 +1,1 @@
-**Stand:** offen — 1×; unter der Schwelle, Entscheidung beim Nutzer. Kein Träger-Slice; die Frage geht mit dem Closure-Bericht an den Nutzer, die Welle-Closure von welle-produktschnitt sichtet sie erneut.
+**Stand:** offen — 1×; unter der Schwelle, Entscheidung beim Nutzer. Kein Träger-Slice; erneut gesichtet bei der Closure von welle-produktschnitt (2026-11-07), Empfehlung dort: keine Folge-ADR (Frage 2 in `welle-produktschnitt-results.md`).
