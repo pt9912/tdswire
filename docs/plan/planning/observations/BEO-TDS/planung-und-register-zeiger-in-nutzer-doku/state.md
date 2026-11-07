@@ -1,1 +1,1 @@
-**Stand:** offen — 1×, unter der Schwelle.
+**Stand:** gezählt unter [fortschreibung-laesst-zweite-fundstelle-stehen](../fortschreibung-laesst-zweite-fundstelle-stehen/state.md) — dort ist der Prüfpunkt „Nutzer-Doku nicht komplett gegen den Slice gelesen“ verkörpert (`liegt in`-Zeilen je Zielort); diese Beobachtung führt zwei Belege (`evidence/slice-release-doku-prozess.md`, `evidence/planner-nutzerdoku-aufgabenbezogen.md`) und kein eigenes `liegt in`.
