@@ -32,6 +32,9 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
+private const val ANLEGEN =
+    "CREATE TABLE dbo.neu (Id BIGINT NOT NULL, Name NVARCHAR(50) NULL, CONSTRAINT [pk_neu] PRIMARY KEY ([Id]))"
+
 /**
  * Die Codebeispiele von `docs/user/einbettung-und-betrieb.md`: jede Funktion mit dem Präfix `anleitung` steht dort
  * wörtlich. Der Test übersetzt sie gegen die öffentliche Fläche und fährt sie gegen den Rohbytes-Client (kein
@@ -55,7 +58,8 @@ class AnleitungTest {
             runBlocking { server.stop() }
         }
         val arten = ereignisse.map { it.kind }
-        assertTrue(EventKind.SERVER_STARTED in arten && EventKind.LOGIN_ACCEPTED in arten && EventKind.SERVER_STOPPED in arten)
+        val erwartet = listOf(EventKind.SERVER_STARTED, EventKind.LOGIN_ACCEPTED, EventKind.SERVER_STOPPED)
+        assertTrue(arten.containsAll(erwartet))
     }
 
     @Test
@@ -90,7 +94,7 @@ class AnleitungTest {
         try {
             WireClient(server.port).use { client ->
                 client.login()
-                client.batch("CREATE TABLE dbo.neu (Id BIGINT NOT NULL, Name NVARCHAR(50) NULL, CONSTRAINT [pk_neu] PRIMARY KEY ([Id]))")
+                client.batch(ANLEGEN)
                 assertEquals(0L, client.batch("SELECT Id, Name FROM neu").rowCount)
             }
         } finally {
@@ -159,7 +163,7 @@ internal class AnleitungBackend : QueryBackend {
     override suspend fun cancel(sessionId: String, requestId: String) = Unit
 }
 
-// --- Beispiel: Simulations-Backend mit veränderlichem Bestand ---------------------------------------------------------
+// --- Beispiel: Simulations-Backend mit veränderlichem Bestand -------------------------------------------------------
 
 /** Das Backend liest den Bestand bei jeder Anfrage aus `bestand`; `CREATE TABLE` trägt die neue Tabelle ein. */
 internal fun anleitungVeraenderlich(): SimulationBackend {
