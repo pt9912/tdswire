@@ -31,7 +31,7 @@ Alle Befehle mit `<A>` oder `<B>` als URL des jeweiligen Testservers, in dieser 
 | S7 | `data import … --source aenderung.json --table kunden_int --on-conflict update` | 0 | „3 rows processed, 1 inserted, 2 updated“; Export: Zeilen 1 und 3 geändert, Zeile 4 neu |
 | S8 | `data import … --source kunden.json --table kunden_int` (Standardpfad, Massenladen) | 5 | „Import failed: An error occurred while converting the Long value to JDBC data type INTEGER.“ (im Treiber, wie am echten Server, `M-28`) |
 | S9 | `data import --target <A> --source bestellungen.json --table bestellungen --on-conflict skip`, danach `update` (`Betrag` `DECIMAL(10,2)`) | 0 und 0 | „5 rows processed, 5 inserted“, „5 updated“; Export: `"12.50"`, NULL, `"-0.05"`, `"99999999.99"`, `"0.00"` (wie am echten Server, `M-32`) |
-| S10 | `data import … --source zeiten.json --table zeiten --on-conflict skip`, danach `update` (`TIME`, `DATETIME2`, `BIT`, `DATE`) | 0 und 0 | „3 inserted“, „3 updated“; Export: die drei Zeilen der Eingabe einschließlich `"00:00:00"`, `"2026-01-02T23:59:59.123"`, `false` und `"0001-01-01"` (wie am echten Server, `M-32`) |
+| S10 | `data import … --source zeiten.json --table zeiten --on-conflict skip`, danach `update` (`TIME`, `DATETIME2`, `BIT`, `DATE`) | 0 und 0 | „4 inserted“, „4 updated“; Export: die vier Zeilen der Eingabe einschließlich `"00:00:00"`, `"2026-01-02T23:59:59.123"`, `false`, `"0001-01-01"` und in Zeile 4 `"23:59:59"` für die Eingabe `23:59:59.997` (wie am echten Server, `M-32`; Grenze der Zusage, nicht gemessen, was die Spalte speichert) |
 | S11 | `data transfer --source <A> --target <B> --tables bestellungen,zeiten --on-conflict skip` (B leer) | 0 | „Transferred: bestellungen“, „Transferred: zeiten“; Exporte von B gleich den Exporten von A |
 | S12 | dasselbe Kommando mit `--on-conflict update` | 0 | „Transferred“ für beide Tabellen |
 | S13 | `data transfer --source <A> --target <B> --tables bestellungen` (Standardpfad, B enthält die Zeilen schon) | 5 | „Violation of PRIMARY KEY constraint. Cannot insert duplicate key.“ (erwartet: doppelter Schlüssel im Massenladen; die Spalte `DECIMAL` selbst wird im Standardpfad angenommen) |
@@ -60,7 +60,6 @@ Wegwerf-Kopie des Arbeitsbaums (Skript und Kopie nicht im Repo), 14 Mutationen a
 | N12 | `onUpdate` des Bestands lässt keinen doppelten Schlüssel zu | die Eindeutigkeit wird nicht geprüft | `TableStoreTest`: „onUpdate weist ungueltige Aenderungen ab und laesst den Bestand“ |
 | N13 | `onUpdate` ändert nur die Zeilen des Filters | der Filter trifft jede Zeile | `TableStoreTest`: „onUpdate aendert die Zeilen des Filters und zaehlt sie“, „ein MERGE fuegt ein, laesst bei skip und aendert bei update“ |
 | N14 | `onUpdate` prüft die Werte vor dem Schreiben | die Prüfung entfällt | „onUpdate weist ungueltige Aenderungen ab und laesst den Bestand“ |
-
 | N15 | `DECIMALN` darf kürzer sein als die Größe (2 Byte bis zur Größe) | nur die volle Größe wird angenommen | `RpcTypesTest`: „Dezimalwerte von mssql-jdbc tragen nur die noetigen Byte“; `RpcBinderTest`: „Dezimalwerte kurzer Laenge und datetime sind gemessene Vektoren“; `MergeEmbeddingTest`: „parameterVonDMigrate…“ |
 | N16 | `datetime` mit Ticks ab 24 Uhr ist abgelehnt | die Prüfung entfällt | `RpcBinderTest`: „datetime und kurzer Dezimalwert ausserhalb des Bereichs sind abgelehnt“ (gemeinsam mit N22) |
 | N17 | `DATETIMN` mit 4 Byte bleibt abgelehnt | jede Größe wird als Zeitpunkt gelesen | `RpcBinderTest`: „Typen ausserhalb des Mindestkatalogs sind abgelehnt“ |
@@ -69,6 +68,10 @@ Wegwerf-Kopie des Arbeitsbaums (Skript und Kopie nicht im Repo), 14 Mutationen a
 | N20 | ein Abbruch zwischen Lesen und Callback verhindert den Callback | die Prüfung von `stopped` vor dem Callback entfällt | `SimulationBackendMergeTest`: „ein Abbruch zwischen Lesen und Callback schreibt nichts“ |
 | N21 | ein Dezimalwert hat mindestens 2 Byte | die Untergrenze ist 1 | `RpcFailureTest`: „Dezimalwert ausserhalb von 2 Byte bis zur Groesse ist ein Ergebniswert“ |
 | N22 | `datetime` mit Tag außerhalb 0001 bis 9999 ist abgelehnt | die Prüfung entfällt | `RpcBinderTest`: „datetime und kurzer Dezimalwert ausserhalb des Bereichs sind abgelehnt“ (gemeinsam mit N16) |
+| N23 | ein Abbruch endet das Lesen vor der nächsten Zeile und vor dem Öffnen | beide `stopped`-Prüfungen in `exists()` entfallen | `SimulationBackendMergeTest`: „ein Abbruch beendet das Lesen vor der naechsten Zeile und vor dem Oeffnen“ (gemeinsam mit N24 angewandt) |
+| N24 | `MERGE` laufen unter einer Sperre je Backend nacheinander | die Sperre wird nicht gehalten | `SimulationBackendMergeTest`: „zwei gleichzeitige MERGE desselben Schluessels laufen nacheinander“, „ein haengender Callback haelt die Sperre fuer weitere MERGE“, „ein Callback, der dasselbe Backend aufruft und abwartet, kommt nicht zurueck“ |
+
+N23 und N24 (nach dem Re-Review, R-7) gemeinsam in einem Lauf: 1051 Tests, 4 rot (die vier genannten); welcher der vier Tests N23 und welcher N24 zeigt, ist nicht einzeln getrennt gefahren (der Abbruchtest ist der einzige Kandidat für N23). Nicht im Test, nur in Spezifikation und Nutzer-Doku benannt: Abbruch (`ATTENTION`) eines MERGE, das noch auf die Sperre wartet, am Draht.
 
 Nicht durch eine Mutation gezeigt: die Form der Spalte `$action` als Text und nicht nullbar (der Test vergleicht das Ereignis `ResultStart`, die Mutation wurde nicht gefahren); die Antwort über den Draht in `MergeEmbeddingTest` (rot nur zusammen mit N1 und N3, nicht einzeln).
 

@@ -498,9 +498,9 @@ Die Beschreibung `testserver/resources/manuell/sim.yaml` gilt, solange `TESTSERV
 | | `KundenId` | `biginteger` (Int64), `required` | nein |
 | | `Betrag` | `decimal`, Precision 10, Skala 2 | ja |
 
-Beide Tabellen haben beim Start keine Zeilen. Zeilen kommen über das Massenladen in den Arbeitsspeicher ([Aufgabe 6](#6-daten-laden-massenladen), auch für Tabellen, die ein Client mit `CREATE TABLE` angelegt hat); `INSERT` und `DELETE` als SQL-Text enden mit `TDS_UNSUPPORTED_SQL`, `UPDATE` ändert vorhandene Zeilen. Ein Neustart des Containers leert die Zeilen. Eine Zeilenquelle mit eigenen Daten und Callbacks braucht ein Einbettender im Code ([Anleitung](einbettung-und-betrieb.md#3-tabellen-vorgeben-simulations-backend)).
+Beide Tabellen haben beim Start keine Zeilen. Zeilen kommen über das Massenladen und über `MERGE` (`--on-conflict`) in den Arbeitsspeicher ([Aufgabe 6](#6-daten-laden-massenladen), auch für Tabellen, die ein Client mit `CREATE TABLE` angelegt hat); `INSERT` und `DELETE` als SQL-Text enden mit `TDS_UNSUPPORTED_SQL`, `UPDATE` ändert vorhandene Zeilen. Ein Neustart des Containers leert die Zeilen. Eine Zeilenquelle mit eigenen Daten und Callbacks braucht ein Einbettender im Code ([Anleitung](einbettung-und-betrieb.md#3-tabellen-vorgeben-simulations-backend)).
 
-Erkannt werden nach [SPEC-036](../../spec/spezifikation.md#spec-036--erkannte-anweisungsformen-des-simulations-backends-vorläufig) `SELECT <Spalten | *> FROM <Tabelle> [WHERE …]`, `INSERT`, `UPDATE`, `DELETE` einfacher Form, `SELECT 1`, `SET`-Anweisungen aus der Liste, die Transaktionstexte von d-migrate, die Katalogabfragen von d-migrate, `CREATE TABLE`/`ALTER TABLE … ADD` und `INSERT BULK` samt Nachricht `0x07` (Form B). Verbund, Aggregat, `ORDER BY`, `TOP`, `OR`, `LIKE`, Unterabfragen und mehrere Anweisungen in einem Text enden mit `TDS_UNSUPPORTED_SQL`; dass die Liste abschließend ist, ist eine Setzung der Spezifikation (Lesart des Lastenhefts, vom Nutzer nicht bestätigt), nicht am Server gemessen. Für die Beispiel-Tabellen gilt nach der Spezifikation:
+Erkannt werden nach [SPEC-036](../../spec/spezifikation.md#spec-036--erkannte-anweisungsformen-des-simulations-backends-vorläufig) `SELECT <Spalten | *> FROM <Tabelle> [WHERE …]`, `INSERT`, `UPDATE`, `DELETE` einfacher Form, `SELECT 1`, `SET`-Anweisungen aus der Liste, die Transaktionstexte von d-migrate, die Katalogabfragen von d-migrate, `CREATE TABLE`/`ALTER TABLE … ADD`, `INSERT BULK` samt Nachricht `0x07` (Form B) und `MERGE … OUTPUT $action` in der Gestalt von d-migrate (Form M; Einfügen oder Ändern genau einer Zeile mit dem Schlüssel der Tabelle). Verbund, Aggregat, `ORDER BY`, `TOP`, `OR`, `LIKE`, Unterabfragen und mehrere Anweisungen in einem Text enden mit `TDS_UNSUPPORTED_SQL`; dass die Liste abschließend ist, ist eine Setzung der Spezifikation (Lesart des Lastenhefts, vom Nutzer nicht bestätigt), nicht am Server gemessen. Für die Beispiel-Tabellen gilt nach der Spezifikation:
 
 ```sql
 SELECT Id, Name FROM kunden                     -- zwei Spalten, keine Zeile
@@ -513,7 +513,7 @@ Belegt ist das so weit: der Test `Leeres_Ergebnis_hat_Metadaten_und_keine_Zeile`
 ## Referenz: Grenzen
 
 - Kein Produkt: kein Betrieb, keine Registry, keine Zusage für andere Rechner oder Netze ([ADR-0025](../plan/adr/0025-produktschnitt-bibliothek-und-testserver.md)).
-- Daten nur über das Massenladen ([Aufgabe 6](#6-daten-laden-massenladen)): `INSERT` und `DELETE` als SQL-Text werden abgewiesen, `UPDATE` ändert vorhandene Zeilen, ein Neustart leert den Bestand.
+- Daten nur über das Massenladen und `MERGE` ([Aufgabe 6](#6-daten-laden-massenladen)): `INSERT` und `DELETE` als SQL-Text werden abgewiesen, `UPDATE` ändert vorhandene Zeilen, ein Neustart leert den Bestand.
 - Keine Windows-Authentifizierung, kein Kerberos, kein Entra ID ([Lastenheft](../../spec/lastenheft.md)); angemeldet wird mit Benutzer und Kennwort aus der Liste.
 - Keine Lastaussage: unter Last, mit vielen Verbindungen oder langer Laufzeit ist der Container nicht gemessen.
 - Die Testwerte (`alice`/`secret`, Klartext) gehören nicht zu Daten, die Schutz brauchen; ein Host außer Loopback macht den Server im Netz erreichbar.

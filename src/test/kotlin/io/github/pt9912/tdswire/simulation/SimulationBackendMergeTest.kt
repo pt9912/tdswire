@@ -6,9 +6,11 @@ import io.github.pt9912.tdswire.domain.ResultColumn
 import io.github.pt9912.tdswire.domain.SqlType
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import java.time.LocalDate
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.concurrent.thread
 import kotlin.test.Test
@@ -385,30 +387,34 @@ class SimulationBackendMergeTest {
     /**
      * Negative (Erkennung): was nicht genau die gemessene Gestalt hat, ist `TDS_UNSUPPORTED_SQL`, bevor etwas gelesen
      * wird: ein Vergleich über eine Nicht-Schlüsselspalte, ein `SET` auf die Schlüsselspalte, zwei `VALUES`-Zeilen,
-     * ein anderes `OUTPUT`, ein Zweig `DELETE`, ein falscher Alias. Eine unbekannte Spalte ist
-     * `TDS_SIM_UNKNOWN_OBJECT`, eine unbekannte Tabelle ebenso.
+     * ein anderes `OUTPUT`, ein Zweig `DELETE`, ein falscher Alias; die Meldung nennt den Grund. Eine unbekannte
+     * Spalte ist `TDS_SIM_UNKNOWN_OBJECT`, eine unbekannte Tabelle ebenso.
      * @spec SPEC-036
      * @spec SPEC-037
      */
     @Test
     fun `nicht erkannte Gestalten enden vor dem Lesen`() {
         val table = Fixture()
+        val key = "MERGE vergleicht nicht genau den Schlüssel"
+        val token = "UNEXPECTED_TOKEN"
         val unsupported = listOf(
-            skip.replace("ON tgt.[Id] = src.[Id]", "ON tgt.[Name] = src.[Name]"),
-            update.replace("UPDATE SET tgt.[Name] = src.[Name], ", "UPDATE SET tgt.[Id] = src.[Id], "),
-            skip.replace("( @P0 ,  @P1 ,  @P2 )", "( @P0 ,  @P1 ,  @P2 ), ( @P0 ,  @P1 ,  @P2 )"),
-            skip.replace("OUTPUT \$action", "OUTPUT inserted.[Id]"),
-            skip.replace("OUTPUT \$action;", ""),
-            skip.replace("WHEN NOT MATCHED THEN INSERT", "WHEN NOT MATCHED THEN DELETE; INSERT"),
-            skip.replace("tgt.[Id] = src.[Id]", "x.[Id] = src.[Id]"),
-            skip.replace("ON tgt.[Id] = src.[Id]", "ON tgt.[Id] = src.[Id] OR tgt.[Id] = src.[Id]"),
-            skip.replace("([Id], [Name], [Eintritt]) ON", "([Id], [Name]) ON"),
+            skip.replace("ON tgt.[Id] = src.[Id]", "ON tgt.[Name] = src.[Name]") to key,
+            update.replace("UPDATE SET tgt.[Name] = src.[Name], ", "UPDATE SET tgt.[Id] = src.[Id], ") to key,
+            skip.replace("( @P0 ,  @P1 ,  @P2 )", "( @P0 ,  @P1 ,  @P2 ), ( @P0 ,  @P1 ,  @P2 )") to token,
+            skip.replace("OUTPUT \$action", "OUTPUT inserted.[Id]") to token,
+            skip.replace("OUTPUT \$action;", "") to "UNEXPECTED_END",
+            skip.replace("WHEN NOT MATCHED THEN INSERT", "WHEN NOT MATCHED THEN DELETE; INSERT") to token,
+            skip.replace("tgt.[Id] = src.[Id]", "x.[Id] = src.[Id]") to token,
+            skip.replace("ON tgt.[Id] = src.[Id]", "ON tgt.[Id] = src.[Id] OR tgt.[Id] = src.[Id]") to token,
+            skip.replace("([Id], [Name], [Eintritt]) ON", "([Id], [Name]) ON") to "COUNT_MISMATCH",
         )
-        for (sql in unsupported) {
+        for ((sql, reason) in unsupported) {
             assertTrue(sql != skip && sql != update, "die Abwandlung ändert den Text: $sql")
             val events = run(table, sql)
 
-            assertEquals("TDS_UNSUPPORTED_SQL", assertIs<QueryEvent.Failure>(events.single(), sql).code, sql)
+            val failure = assertIs<QueryEvent.Failure>(events.single(), sql)
+            assertEquals("TDS_UNSUPPORTED_SQL", failure.code, sql)
+            assertTrue(failure.message.contains(reason), "$reason in ${failure.message}: $sql")
         }
         val unknownColumn = run(
             table,
@@ -567,8 +573,143 @@ class SimulationBackendMergeTest {
         assertEquals(1, stored.size)
     }
 
-    private suspend fun collectOne(backend: SimulationBackend, requestId: String): List<QueryEvent> {
-        val execution = backend.execute(queryRequest(skip, parameters(), requestId))
+    /**
+     * Boundary: ein Abbruch beendet das Lesen vor der nächsten Zeile (die Quelle liefert den passenden Schlüssel
+     * erst in
+     * der zweiten Zeile, der Abbruch trifft in der ersten ein: es wird nur einmal `next()` gerufen) und vor dem
+     * Öffnen der
+     * Quelle (der Abbruch trifft nach dem Beginn des Ergebnisses ein: die Quelle wird nicht geöffnet); in beiden Fällen
+     * bleibt der Callback ungerufen. Wächter: die Prüfungen von `stopped` im Lesen.
+     * @spec SPEC-036
+     */
+    @Test
+    fun `ein Abbruch beendet das Lesen vor der naechsten Zeile und vor dem Oeffnen`() {
+        val nexts = AtomicInteger()
+        val opens = AtomicInteger()
+        var inserts = 0
+        lateinit var backend: SimulationBackend
+        val simTable = SimTable(
+            name = "kunden",
+            columns = columns,
+            primaryKey = listOf("Id"),
+            rows = {
+                opens.incrementAndGet()
+                val rows = listOf(listOf<Any?>(2L, "x", null), existingRow(1)).iterator()
+                RowSource {
+                    nexts.incrementAndGet()
+                    backend.cancel("s1", "r1")
+                    if (rows.hasNext()) rows.next() else null
+                }
+            },
+            onInsert = {
+                inserts++
+                1L
+            },
+        )
+        backend = SimulationBackend(SimCatalog(listOf(simTable)))
+
+        val reading = collectEvents(backend, skip, parameters())
+
+        assertEquals(listOf(actionStart, QueryEvent.ResultEnd(0)), reading)
+        assertEquals(1, nexts.get())
+        opens.set(0)
+        val opening = runBlocking {
+            val execution = backend.execute(queryRequest(skip, parameters(), "r2"))
+            try {
+                buildList {
+                    execution.events.collect {
+                        add(it)
+                        if (it is QueryEvent.ResultStart) backend.cancel("s1", "r2")
+                    }
+                }
+            } finally {
+                execution.close()
+            }
+        }
+        assertEquals(listOf(actionStart, QueryEvent.ResultEnd(0)), opening)
+        assertEquals(0, opens.get())
+        assertEquals(0, inserts)
+    }
+
+    /**
+     * Boundary: ein Callback, der im `MERGE` hängt, hält die Sperre des Backends: ein zweites `MERGE` mit anderem
+     * Schlüssel endet erst nach der Freigabe. Wächter: ein `MERGE` ohne gemeinsame Sperre (das zweite endete sofort).
+     * @spec SPEC-036
+     */
+    @Test
+    fun `ein haengender Callback haelt die Sperre fuer weitere MERGE`() {
+        val entered = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val simTable = SimTable(
+            name = "kunden",
+            columns = columns,
+            primaryKey = listOf("Id"),
+            rows = { RowSource { null } },
+            onInsert = { values ->
+                if (values["Id"] == 1L) {
+                    entered.countDown()
+                    release.await()
+                }
+                1L
+            },
+        )
+        val backend = SimulationBackend(SimCatalog(listOf(simTable)))
+        val secondDone = AtomicBoolean(false)
+
+        val a = thread { runBlocking { collectOne(backend, "r1") } }
+        entered.await()
+        val b = thread {
+            runBlocking { collectOne(backend, "r2", parameters(id = 2)) }
+            secondDone.set(true)
+        }
+        Thread.sleep(WAIT_FOR_SECOND_MILLIS)
+        val doneWhileBlocked = secondDone.get()
+        release.countDown()
+        a.join()
+        b.join()
+
+        assertFalse(doneWhileBlocked)
+        assertTrue(secondDone.get())
+    }
+
+    /**
+     * Boundary: die Sperre ist nicht reentrant: ein Callback, der dasselbe Backend mit einem `MERGE` ruft und die
+     * Antwort
+     * abwartet, kommt nicht zurück (hier nach 300 ms abgebrochen); der äußere `MERGE` endet danach regulär. Wächter:
+     * eine
+     * Sperre, die denselben Aufrufer zulässt, oder keine Sperre.
+     * @spec SPEC-036
+     */
+    @Test
+    fun `ein Callback, der dasselbe Backend aufruft und abwartet, kommt nicht zurueck`() {
+        var nested: List<QueryEvent>? = emptyList()
+        lateinit var backend: SimulationBackend
+        val simTable = SimTable(
+            name = "kunden",
+            columns = columns,
+            primaryKey = listOf("Id"),
+            rows = { RowSource { null } },
+            onInsert = { values ->
+                if (values["Id"] == 1L) {
+                    nested = withTimeoutOrNull(NESTED_TIMEOUT_MILLIS) { collectOne(backend, "r9", parameters(id = 2)) }
+                }
+                1L
+            },
+        )
+        backend = SimulationBackend(SimCatalog(listOf(simTable)))
+
+        val outer = collectEvents(backend, skip, parameters())
+
+        assertEquals(null, nested)
+        assertEquals(listOf(actionStart, QueryEvent.Row(listOf("INSERT")), QueryEvent.ResultEnd(1)), outer)
+    }
+
+    private suspend fun collectOne(
+        backend: SimulationBackend,
+        requestId: String,
+        params: List<QueryParameter> = parameters(),
+    ): List<QueryEvent> {
+        val execution = backend.execute(queryRequest(skip, params, requestId))
         return try {
             execution.events.toList()
         } finally {
@@ -578,5 +719,6 @@ class SimulationBackendMergeTest {
 
     private companion object {
         const val WAIT_FOR_SECOND_MILLIS = 1000L
+        const val NESTED_TIMEOUT_MILLIS = 300L
     }
 }

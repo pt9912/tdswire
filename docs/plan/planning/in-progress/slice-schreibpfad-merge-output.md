@@ -68,7 +68,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `tools/jdbc-messung/Aufnahme.java`, `tools/vergleichslauf-d.sh` (Lauf `jdbc-*`), `tools/mk/vergleichslauf-d.mk` | neu, update | Liefer-Punkt 1, Messung: d-migrate 1.12.0 (mssql-jdbc 13.4.0) gegen die Referenzinstanz über einen mitschneidenden Durchlauf; Erzeuger im Repo |
-| `referenztest-dotnet/Mitschnitt/messung/jdbc-d-migrate/`, `docs/messungen/referenzabgleich.md` (M-25 bis M-30) | neu, update | Liefer-Punkt 1: Ablage der Auswertung beider Instanzen, Zeilen getrennt von denen des Referenzclients |
+| `referenztest-dotnet/Mitschnitt/messung/jdbc-d-migrate/`, `docs/messungen/referenzabgleich.md` (M-25 bis M-32) | neu, update | Liefer-Punkt 1: Ablage der Auswertung beider Instanzen, Zeilen getrennt von denen des Referenzclients |
 | `src/main/kotlin/io/github/pt9912/tdswire/simulation/` (`MergeParts`, `SimulationMerges`, `Statement`, `StatementParser`, `StatementPlanner`, `SimulationBackend`, `SimulationChanges`, `SimValues`) | neu, update | Liefer-Punkt 1, Bibliothek: Form M erkennen, Werte überführen (Narrowing `Int64` in `Int32`), Zerlegung in Lesen und einen Callback, Antwort `$action`; kein neuer öffentlicher Name |
 | `testserver/kotlin/io/github/pt9912/tdswire/testserver/TableStore.kt` | update | Liefer-Punkt 2, Testserver: `onUpdate` im Bestand (Schlüssel als Filter, Prüfung wie beim Einfügen); das Einfügen läuft über `onInsertBatch` |
 | `spec/spezifikation.md` (`SPEC-036` Form M, `SPEC-035`, `SPEC-040`, Änderungsprotokoll) | update | Form M, Setzungen gekennzeichnet; offene Punkte (Länge von `$action`, Befehl `0x0117`) benannt |
@@ -77,6 +77,9 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 | `testserver/kotlin/io/github/pt9912/tdswire/testserver/RowRules.kt` | neu | Prüfregeln des Bestands, aus `TableStore` herausgelöst (detekt: Funktionszahl) |
 | `src/integrator/kotlin/io/github/pt9912/tdswire/integrator/RpcWire.kt`, `MergeEmbeddingTest.kt` | update, neu | Draht-Helfer für `bigint`, Text, Datum, rohe Parameter, `sp_prepexec` mit Werten und `sp_execute`; Einbettungstests |
 | `src/test/kotlin/io/github/pt9912/tdswire/simulation/SimulationBackendSelectTest.kt`, `SimValuesTest.kt` | update | ein Testwert (`Int64` über dem Bereich von `Int32`) und die neuen Verengungen |
+| `src/test/kotlin/io/github/pt9912/tdswire/protocol/dispatch/RpcBinderTest.kt`, `protocol/rpc/RpcTypesTest.kt`, `protocol/rpc/RpcFailureTest.kt`, `src/integrator/kotlin/io/github/pt9912/tdswire/integrator/RpcParams.kt` | update, neu | Tests der neuen Parametertypen (gemessene und nach MS-TDS gesetzte Vektoren getrennt) und der abgelehnten Längen; Hilfsfunktionen für Parameter in der Einbettung |
+| `referenztest-dotnet/Kompatibilitaet/AnmeldungTests.cs`, `docs/plan/kompatibilitaetsmatrix.md`, `tools/e2e.sh`, `docs/plan/e2e-abdeckung.md` (erzeugt) | update | `DATETIMN` mit 8 Byte wird gelesen und beantwortet, mit 4 Byte abgelehnt: Referenztest, Matrixzeilen und Wortlaut der Stufe nachgezogen |
+| `docs/user/einbettung-und-betrieb.md`, `docs/plan/planning/open/slice-antwort-tokens-zielbild-luecken-bauen.md` | update | Nutzer-Doku zu `MERGE` (Sperre, Nicht-Reentranz, Callback, `primaryKey`); Träger der offenen Messpunkte |
 | `harness/README.md` (Zelle `make vergleichslauf-d`), `docs/plan/spec-abdeckung.md` (erzeugt) | update | Gate-Index und Abdeckungsmatrix |
 | `docs/messungen/merge-output-2026-11-07.md`, `docs/user/testserver-manuell.md` | neu, update | Liefer-Punkt 3: Läufe von d-migrate gegen den Testserver mit Rechner, Last und Image-Digest; knappe Nutzer-Doku |
 

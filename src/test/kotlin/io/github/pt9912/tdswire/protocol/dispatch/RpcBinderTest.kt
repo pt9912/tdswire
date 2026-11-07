@@ -185,12 +185,13 @@ class RpcBinderTest {
     }
 
     /**
-     * Gemessene Vektoren von mssql-jdbc 13.4.0 (Messprotokoll der Referenzabgleiche M-31): `DECIMALN(38,2)` mit
-     * Größe 17
-     * und kurzem Wert (12,50 in 3 Byte, -0,05 in 2 Byte, 99999999,99 in 6 Byte) ist `Decimal(38, 2)` mit dem Wert; NULL
-     * bleibt NULL. `datetime` (`DATETIMN` 8 Byte) 1970-01-01 13:14:15 = Tage 25567 (`DF 63 00 00`), Ticks 14296500
-     * (`B4 25 DA 00`); der letzte Tick des Tages (25 919 999) ist 23:59:59,997 (auf Millisekunden gerundet); Tage vor
-     * 1900 (negativ) gelten bis 0001-01-01.
+     * Gemessene Vektoren von mssql-jdbc 13.4.0 (Messprotokoll der Referenzabgleiche M-31, Aufnahme am echten SQL
+     * Server):
+     * `DECIMALN(38,2)` mit Größe 17 und kurzem Wert (12,50 in 3 Byte, -0,05 in 2 Byte, 99999999,99 in 6 Byte) ist
+     * `Decimal(38, 2)` mit dem Wert; NULL bleibt NULL. `datetime` (`DATETIMN` 8 Byte): 1970-01-01 13:14:15 = Tage 25567
+     * (`DF 63 00 00`), Ticks 14296500 (`B4 25 DA 00`); 1970-01-01 00:00:00 mit Ticks 0; 23:59:59,997 mit dem letzten
+     * Tick
+     * des Tages 25919999 (`FF 81 8B 01`, aus der Zeile `23:59:59.997` der Aufnahme); NULL ist `6F 08 00`.
      *
      * @spec SPEC-030
      */
@@ -202,14 +203,31 @@ class RpcBinderTest {
         assertEquals(SqlType.Decimal(38, 2), single("6A 11 26 02 03 01 E2 04").type)
         assertEquals(null, valueOf("6A 11 26 02 00"))
         assertEquals(LocalDateTime.of(1970, 1, 1, 13, 14, 15), valueOf("6F 08 08 DF 63 00 00 B4 25 DA 00"))
+        assertEquals(LocalDateTime.of(1970, 1, 1, 0, 0), valueOf("6F 08 08 DF 63 00 00 00 00 00 00"))
+        assertEquals(
+            LocalDateTime.of(1970, 1, 1, 23, 59, 59, 997_000_000),
+            valueOf("6F 08 08 DF 63 00 00 FF 81 8B 01"),
+        )
+        assertEquals(SqlType.DateTime, single("6F 08 08 DF 63 00 00 00 00 00 00").type)
+        assertEquals(null, valueOf("6F 08 00"))
+    }
+
+    /**
+     * Grenzwerte von `datetime` nach der Lesart von MS-TDS, **nicht am echten Server aufgenommen** (die Aufnahme
+     * enthält
+     * nur Werte am 1970-01-01): Tag 0 ist 1900-01-01, der letzte Tick am Tag 0, der kleinste Tag (-693595) ist
+     * 0001-01-01. Setzungen, kein Beleg am Server.
+     *
+     * @spec SPEC-030
+     */
+    @Test
+    fun `datetime-Grenzwerte nach der Lesart von MS-TDS, nicht am echten Server aufgenommen`() {
         assertEquals(LocalDateTime.of(1900, 1, 1, 0, 0), valueOf("6F 08 08 00 00 00 00 00 00 00 00"))
         assertEquals(
             LocalDateTime.of(1900, 1, 1, 23, 59, 59, 997_000_000),
             valueOf("6F 08 08 00 00 00 00 FF 81 8B 01"),
         )
         assertEquals(LocalDateTime.of(1, 1, 1, 0, 0), valueOf("6F 08 08 A5 6A F5 FF 00 00 00 00"))
-        assertEquals(SqlType.DateTime, single("6F 08 08 00 00 00 00 00 00 00 00").type)
-        assertEquals(null, valueOf("6F 08 00"))
     }
 
     /**

@@ -633,7 +633,7 @@ jdbclauf() {
   done
   printf '%s\n' '[{"Id":1,"Name":"Ada Ünï","Eintritt":"2026-01-02"},{"Id":2,"Name":null,"Eintritt":null},{"Id":3,"Name":"Cäcilie","Eintritt":"2025-12-31"}]' >"$work/kunden.json"
   printf '%s\n' '[{"Id":1,"KundenId":7,"Betrag":12.50},{"Id":2,"KundenId":7,"Betrag":null},{"Id":3,"KundenId":8,"Betrag":-0.05},{"Id":4,"KundenId":8,"Betrag":99999999.99},{"Id":5,"KundenId":9,"Betrag":0}]' >"$work/bestellungen.json"
-  printf '%s\n' '[{"Id":1,"Uhr":"13:14:15","Zeitpunkt":"2026-01-02T13:14:15","Flag":true,"Datum":"2026-01-02"},{"Id":2,"Uhr":null,"Zeitpunkt":null,"Flag":null,"Datum":null},{"Id":3,"Uhr":"00:00:00","Zeitpunkt":"2026-01-02T23:59:59.123","Flag":false,"Datum":"0001-01-01"}]' >"$work/zeiten.json"
+  printf '%s\n' '[{"Id":1,"Uhr":"13:14:15","Zeitpunkt":"2026-01-02T13:14:15","Flag":true,"Datum":"2026-01-02"},{"Id":2,"Uhr":null,"Zeitpunkt":null,"Flag":null,"Datum":null},{"Id":3,"Uhr":"00:00:00","Zeitpunkt":"2026-01-02T23:59:59.123","Flag":false,"Datum":"0001-01-01"},{"Id":4,"Uhr":"23:59:59.997","Zeitpunkt":"2026-01-02T00:00:00","Flag":true,"Datum":"2026-01-02"}]' >"$work/zeiten.json"
   chmod 666 "$work"/*.json
   docker run -d --name "$proxy" --network "$NETZ" --network-alias proxy -v "$klassen:/klassen:ro" -e AUFNAHME_PAKETE="${AUFNAHME_PAKETE:-}" --entrypoint java "$JDBC_IMAGE" \
     -cp /klassen Aufnahme 1433 referenz 1433 >/dev/null || return 1
