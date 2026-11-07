@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** Protokollteil Pakettypen und Dispatch (Katalog der Pakete) · SPEC-036 (`INSERT BULK`, `SET FMTONLY`) · SPEC-035 (Callbacks) · SPEC-059 (falls der Vertrag oder die Callbacks wachsen) · SPEC-040
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** Implementer-Agent, Auftrag des Nutzers 2026-11-07.
 
 **Autor:** pt9912 (Entwurf in der Planner-Rolle). **Datum:** 2026-11-05.
 
