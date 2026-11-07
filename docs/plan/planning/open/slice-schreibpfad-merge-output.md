@@ -44,7 +44,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 Liefer-Punkte (3):
 
-- [ ] **Bibliothek, Form und Weitergabe:** SPEC-036 legt die Form des MERGE fest, das d-migrate sendet (Erkennung am Text, Zuordnung der Parameter); die Weitergabe an den Integrator, die Ergebnismenge `$action` und der Änderungszähler sind festgelegt (Setzung, nicht am echten SQL Server gemessen; Träger der Messung: [slice-qa-vergleichslauf-d-messungen-bulk-merge](../next/slice-qa-vergleichslauf-d-messungen-bulk-merge.md), Zeiger statt eigener Messung); Tests je Zweig und für NULL-Parameter und Typgrenzen ([TDS-FA-04](../../../../spec/lastenheft.md#tds-fa-04--parametrisierte-abfragen-über-rpc) Boundary).
+- [ ] **Bibliothek, Form und Weitergabe:** SPEC-036 legt die Form des MERGE fest, das d-migrate sendet (Erkennung am Text, Zuordnung der Parameter); die Weitergabe an den Integrator, die Ergebnismenge `$action` und der Änderungszähler sind festgelegt (Setzung, nicht am echten SQL Server gemessen; Träger der Messung: [slice-qa-vergleichslauf-d-messungen-bulk-merge](../in-progress/slice-qa-vergleichslauf-d-messungen-bulk-merge.md), Zeiger statt eigener Messung); Tests je Zweig und für NULL-Parameter und Typgrenzen ([TDS-FA-04](../../../../spec/lastenheft.md#tds-fa-04--parametrisierte-abfragen-über-rpc) Boundary).
 - [ ] **Testserver:** Der Testserver führt Einfügen, wenn der Schlüssel fehlt, bei `skip` unverändert, bei `update` ändern, gegen seinen Bestand aus und meldet die Aktion zurück.
 - [ ] **Beleg am fremden Client:** `data import` und `data transfer` mit `--on-conflict skip` und `--on-conflict update` gegen den Testserver enden mit Exit 0; ein `data export` danach zeigt die erwarteten Zeilen; Ausgabe mit Rechner, Last und Image-Digest.
 
