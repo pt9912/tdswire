@@ -50,6 +50,7 @@ internal class ConfigLoaderTest : TempFilesTest() {
      * Gesetzte Werte kommen an; die Einzelwerte unterscheiden sich, damit eine Vertauschung auffällt.
      *
      * @spec SPEC-005
+     * @spec SPEC-007
      * @spec SPEC-008
      * @spec SPEC-046
      */
@@ -66,6 +67,7 @@ internal class ConfigLoaderTest : TempFilesTest() {
                 EnvKeys.MAX_CONNECTIONS to "17",
                 EnvKeys.SHUTDOWN_GRACE to "2",
                 EnvKeys.MAX_PREPARED_HANDLES to "250",
+                EnvKeys.MAX_MESSAGE_BYTES to "70000",
             ),
         ).loaded()
         assertEquals("127.0.0.1", config.listen.host)
@@ -77,6 +79,7 @@ internal class ConfigLoaderTest : TempFilesTest() {
         assertEquals(17, config.listen.maxConnections)
         assertEquals(2, config.requests.shutdownGraceSeconds)
         assertEquals(250, config.requests.maxPreparedHandles)
+        assertEquals(70000, config.requests.maxMessageBytes)
         assertEquals(EncryptionSetting.TEST_UNENCRYPTED, config.encryption)
         assertTrue(config.auth.plainTestMode)
         assertNull(config.tls)
@@ -88,6 +91,7 @@ internal class ConfigLoaderTest : TempFilesTest() {
      * Bereichs.
      *
      * @spec SPEC-005
+     * @spec SPEC-007
      * @spec SPEC-008
      * @spec SPEC-046
      * @spec SPEC-009
@@ -104,6 +108,7 @@ internal class ConfigLoaderTest : TempFilesTest() {
             Triple(EnvKeys.MAX_CONNECTIONS, 1, 100_000),
             Triple(EnvKeys.SHUTDOWN_GRACE, 0, 3600),
             Triple(EnvKeys.MAX_PREPARED_HANDLES, 1, 100_000),
+            Triple(EnvKeys.MAX_MESSAGE_BYTES, 65535, 268_435_456),
         )
         for ((key, low, high) in bounds) {
             assertEquals(emptyList(), rangeIssues(base(key to low.toString())))
@@ -315,6 +320,7 @@ internal class ConfigLoaderTest : TempFilesTest() {
             EnvKeys.MAX_CONNECTIONS to "0",
             EnvKeys.SHUTDOWN_GRACE to "3601",
             EnvKeys.MAX_PREPARED_HANDLES to "0",
+            EnvKeys.MAX_MESSAGE_BYTES to "65534",
         )
         outside.forEach { (key, value) ->
             assertEquals(listOf(key), rangeIssues(base(key to value)).map { it.key }, key)

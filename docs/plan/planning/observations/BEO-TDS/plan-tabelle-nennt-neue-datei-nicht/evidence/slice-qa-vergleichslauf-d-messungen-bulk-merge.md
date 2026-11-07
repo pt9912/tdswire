@@ -1,0 +1,2 @@
+**Vorgang:** [slice-qa-vergleichslauf-d-messungen-bulk-merge](../../../../done/slice-qa-vergleichslauf-d-messungen-bulk-merge.md)
+**Fund:** Verifikation V-6 ([Verifikationsbericht](../../../../../../reviews/2026-11-07-4d73a9d2-verifikation-slice-qa-vergleichslauf-d-messungen-bulk-merge.md)): Plan §3 nannte nach den Behebungscommits `bd508880` und `4d73a9d2` weder `Messung.cs` (Proxy-Fix) noch die zwei neuen Register-Einträge noch die Nachzüge in zwei Bau-Slices; in der Closure nachgeführt.

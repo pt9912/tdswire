@@ -42,6 +42,8 @@ private const val N_HANDLE = 50009
 private const val N_HANDLE_LIMIT = 50010
 private const val N_PREPARED_HANDLE = 8179
 private const val STATE_PREPARED_HANDLE = 8
+private const val N_KEY_VIOLATION = 2627
+private const val CLASS_KEY_VIOLATION = 14
 private const val N_LOGIN = 18456
 private const val N_OBJECT = 208
 private const val N_VALUE = 245
@@ -120,6 +122,22 @@ internal enum class ErrorCode(val rule: ErrorRule) {
     /** `sp_prepexec` bei erreichter Handle-Grenze der Sitzung; Anfragefehler-Gruppe, Nummer: Festlegung. */
     TDS_PREPARE_LIMIT(
         ErrorRule(N_HANDLE_LIMIT, REQUEST, STATE, "Prepared handle limit reached.", ConnectionFate.OPEN),
+    ),
+
+    /**
+     * Ein Fehler des Einfüge-Callbacks beim Massenladen (Nachricht 0x07, `SPEC-036`). Nummer 2627, Class 14, State 1
+     * sind gemessen am Referenzclient (`SqlBulkCopy`, Schlüsselverstoß, Messprotokoll M-12, Instanz 2022 und 2025);
+     * der Text ist gekürzt (Setzung: der echte Server nennt Namen und Wert). Setzung: jeder Fehler des Callbacks einer
+     * Nachricht 0x07 meldet die Bibliothek so, weil sie die Ursache nicht unterscheiden kann.
+     */
+    TDS_SIM_KEY_VIOLATION(
+        ErrorRule(
+            N_KEY_VIOLATION,
+            CLASS_KEY_VIOLATION,
+            STATE,
+            "Violation of PRIMARY KEY constraint. Cannot insert duplicate key.",
+            ConnectionFate.OPEN,
+        ),
     ),
 
     /**

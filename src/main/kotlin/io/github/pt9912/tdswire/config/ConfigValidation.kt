@@ -26,6 +26,8 @@ internal object ConfigValidation {
     private const val MAX_CONNECTION_LIMIT = 100_000
     private const val MAX_SHUTDOWN_GRACE = 3600
     private const val MAX_PREPARED_HANDLE_LIMIT = 100_000
+    private const val MIN_MESSAGE_BYTES = 65535
+    private const val MAX_MESSAGE_LIMIT = 256 * 1024 * 1024
     private const val MIN_PRELOGIN_BYTES = 512
     private const val MAX_PRELOGIN_BYTES = 65536
 
@@ -42,6 +44,7 @@ internal object ConfigValidation {
             maxConnections(config.listen.maxConnections),
             shutdownGrace(config.requests.shutdownGraceSeconds),
             range(ConfigKeys.MAX_PREPARED_HANDLES, config.requests.maxPreparedHandles, 1..MAX_PREPARED_HANDLE_LIMIT),
+            range(ConfigKeys.MAX_MESSAGE_BYTES, config.requests.maxMessageBytes, MIN_MESSAGE_BYTES..MAX_MESSAGE_LIMIT),
         ) + pairing(config.encryption, hasKeystore = keyMaterial, hasPassword = keyMaterial)
     }
 

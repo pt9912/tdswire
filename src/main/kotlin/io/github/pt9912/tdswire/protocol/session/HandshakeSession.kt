@@ -1,6 +1,7 @@
 package io.github.pt9912.tdswire.protocol.session
 
 import io.github.pt9912.tdswire.transport.framing.PacketType
+import io.github.pt9912.tdswire.transport.framing.TdsMessage
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -18,6 +19,7 @@ internal class HandshakeSession(
 ) {
     private val lock = Mutex()
     private var sessionReset: suspend () -> Unit = {}
+    private var idleAttention: () -> TdsMessage = { AttentionAck.message }
 
     var context = HandshakeContext()
         private set
@@ -32,6 +34,14 @@ internal class HandshakeSession(
      */
     fun onSessionReset(reset: suspend () -> Unit) {
         sessionReset = reset
+    }
+
+    /**
+     * Legt fest, womit ein ATTENTION ohne laufende Anfrage (Zustand `READY`) bestätigt wird; ohne Aufruf ist es
+     * [AttentionAck.message]. [reply] läuft unter der Sperre dieser Sitzung.
+     */
+    fun onAttentionWhenIdle(reply: () -> TdsMessage) {
+        idleAttention = reply
     }
 
     suspend fun dispatch(event: HandshakeEvent): HandshakeAction? = lock.withLock {
@@ -123,11 +133,15 @@ internal class HandshakeSession(
         }
     }
 
+    /** Die Bestätigung eines ATTENTION in `READY` ersetzt [idleAttention]; jede andere Nachricht geht unverändert. */
+    private fun sent(message: TdsMessage): TdsMessage =
+        if (message === AttentionAck.message) idleAttention() else message
+
     private suspend fun execute(actions: List<HandshakeAction>): HandshakeAction? {
         var awaited: HandshakeAction? = null
         for (action in actions) {
             when (action) {
-                is HandshakeAction.Send -> if (!channel.send(action.message)) {
+                is HandshakeAction.Send -> if (!channel.send(sent(action.message))) {
                     abortWrite()
                     return null
                 }

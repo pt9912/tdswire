@@ -1,5 +1,6 @@
 package io.github.pt9912.tdswire.runtime
 
+import io.github.pt9912.tdswire.domain.telemetry.ServerStarted
 import io.github.pt9912.tdswire.protocol.session.AuthPool
 import io.github.pt9912.tdswire.protocol.session.LoginResponses
 import io.github.pt9912.tdswire.protocol.session.LoginThrottle
@@ -50,7 +51,8 @@ internal class LoginThrottleWiringTest : RuntimeTestBase() {
      * angenommen (die Wartezeit hängt nicht vom Ergebnis ab, die Anmeldung wird nicht gesperrt). Der Schlüssel kommt
      * aus dem Listener: die Wartezeit entsteht nur mit der Adresse der Gegenstelle (Gegenprobe: ein Treiber ohne
      * Adresse wartet nie, `LoginThrottleDriverTest`). Die Drosselung schreibt heute nichts ins Log; der Test hält fest,
-     * dass keine Adresse in den Zeilen steht, und ist anzupassen, sobald eine Entscheidung Adressen im Log vorsieht.
+     * dass keine Adresse der Gegenstelle in den Zeilen steht (die Bind-Adresse in `SERVER_STARTED` ist keine), und ist
+     * anzupassen, sobald eine Entscheidung Adressen im Log vorsieht.
      *
      * @spec SPEC-053
      * @spec SPEC-012
@@ -66,7 +68,8 @@ internal class LoginThrottleWiringTest : RuntimeTestBase() {
         assertEquals(listOf(250.milliseconds, 500.milliseconds), pauses)
         assertFalse(accepted.payload.contentEquals(LoginResponses.rejection.payload), "Annahme trotz Wartezeit")
         assertTrue(sink.events.isNotEmpty(), "keine Ereignisse, die Prüfung bewiese nichts")
-        assertTrue(sink.events.none { it.visibleText().contains(LOOPBACK) }, "Adresse im Ereignis: ${sink.events}")
+        val peerEvents = sink.events.filterNot { it is ServerStarted }
+        assertTrue(peerEvents.none { it.visibleText().contains(LOOPBACK) }, "Adresse im Ereignis: ${sink.events}")
     }
 
     /**

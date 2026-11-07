@@ -162,9 +162,10 @@ internal class BootstrapTest : RuntimeTestBase() {
     }
 
     /**
-     * Der Start nennt Port und jede Abschwächung: bei `TEST_UNENCRYPTED` und `AUTH_PLAIN_TESTMODE=true` je ein
-     * Ereignis der Abschwächung, bei `REQUIRED` mit `pbkdf2` keines. Kein Ereignis nennt Benutzername, Prüfwert, Pfad
-     * oder die Bind-Adresse (`SPEC-010`, `TDS-QA-03`).
+     * Der Start nennt die wirksame Konfiguration, Adresse, Port und jede Abschwächung: bei `TEST_UNENCRYPTED` und
+     * `AUTH_PLAIN_TESTMODE=true` je ein Ereignis der Abschwächung, bei `REQUIRED` mit `pbkdf2` keines. Kein Ereignis
+     * nennt Benutzername, Prüfwert, Pfad, Passwort oder Schlüsselinhalt (`SPEC-010`, `TDS-QA-03`); die Bind-Adresse
+     * steht im Ereignis „gestartet“ (Betriebsangabe, kein Geheimnis).
      *
      * @spec SPEC-010
      */
@@ -174,19 +175,23 @@ internal class BootstrapTest : RuntimeTestBase() {
         val weakEvents = sink.events.toList()
         assertEquals(
             listOf(
+                EventKind.CONFIG_EFFECTIVE to null,
                 EventKind.SERVER_STARTED to null,
                 EventKind.SECURITY_WEAKENED to "ENCRYPTION_TEST_UNENCRYPTED",
                 EventKind.SECURITY_WEAKENED to "PLAIN_TEST_MODE",
             ),
             weakEvents.map { it.kind to it.reason },
         )
-        assertEquals(weak.port, (weakEvents.first() as ServerStarted).port)
+        assertEquals(weak.port, sink.of<ServerStarted>().single().port)
+        assertEquals(LOOPBACK, sink.of<ServerStarted>().single().address)
         sink.events.clear()
         val strong = running(tlsEnvironment("gueltig.p12", 0))
         assertEquals(listOf(strong.port), sink.of<ServerStarted>().map { it.port })
-        assertEquals(1, sink.events.size)
+        assertEquals(listOf(EventKind.CONFIG_EFFECTIVE, EventKind.SERVER_STARTED), sink.events.map { it.kind })
         val all = (weakEvents + sink.events).map { it.visibleText() }
-        listOf(WERTPROBE, "kennung", "passwort", "users", LOOPBACK, "tdswire-test").forEach { word ->
+        assertSettingsAreShapedAsNames(weakEvents + sink.events)
+        val words = listOf(WERTPROBE, "kennung", "passwort", "users", "tdswire-test", "gueltig.p12", "kennwort.txt")
+        words.forEach { word ->
             assertTrue(all.none { it.contains(word) }, "Ereignis nennt $word: $all")
         }
     }

@@ -9,7 +9,7 @@ aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
 Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (§Ein Slice, dessen Gegenstand ein anderer übernimmt).
 
-**Welle:** [welle-anfrageverarbeitung](../welle-anfrageverarbeitung.md) — Folge-Slice von `welle-protokollcodec`, auf Entscheidung des Nutzers der Welle zugeordnet, ohne dass die Welle auf ihn wartet: Er ist Vorrat und kein Closure-Kriterium der Welle; ob und wann er nötig wird, entscheidet die Messung des Referenzclients (Risiko in §6).
+**Welle:** keine (Vorrat; war `welle-anfrageverarbeitung` zugeordnet (Entscheidung des Nutzers 2026-10-31, Folge-Slice von `welle-protokollcodec`), seit deren Closure 2026-11-07 ohne Welle; Start-Trigger unverändert; ob und wann er nötig wird, entscheidet die Messung des Referenzclients (Risiko in §6).)
 
 **Bezug:** [TDS-FA-05](../../../../spec/lastenheft.md#tds-fa-05--resultsets-und-datentypen), [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität), [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md)
 

@@ -1,0 +1,1 @@
+**Stand:** offen — 1×, unter der Schwelle (ein Vorgang, drei Stellen: `TelemetryEmbeddingTest`, `LogStartTest`/`TelemetryJsonTest`/`LogAdapterTest`, `TestserverLogProcessTest`); keine Regel. Die ersten beiden Stellen sind behoben und mit Schleifen belegt (130 von 130, 40 von 40; die alte Fassung rot in Lauf 6), die dritte ist als Fenster benannt und nicht abgesichert.

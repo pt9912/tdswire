@@ -64,13 +64,16 @@ internal object DoneStatus {
  * Befehlskennungen (`curCmd`) der DONE-Familie, am echten SQL Server gemessen (Messprotokoll W-6, Einzelmessung je
  * Instanz 2022 und 2025): [SELECT] für den Abschluss eines Ergebnisses, [BATCH] für einen Batch ohne Ergebnis, einen
  * Fehler ohne offenes Ergebnis und ATTENTION, [PROC] für DONEPROC. [NONE] sagt „keine Aussage“: der Wert hängt an der
- * Form des Ereignisses nicht (etwa INSERT, UPDATE, DELETE).
+ * Form des Ereignisses nicht (etwa INSERT, UPDATE, DELETE). [INSERT_BULK] ist der Befehl der Antwort auf eine Nachricht
+ * des Massenladens, gemessen mit `SqlBulkCopy` (Messprotokoll M-8 und M-12, Instanz 2022 und 2025), mit Zähler bei
+ * Erfolg und mit `ERROR` bei einem Schlüsselverstoß.
  */
 internal object DoneCommand {
     const val NONE = 0x0000
     const val SELECT = 0x00C1
     const val BATCH = 0x00FD
     const val PROC = 0x00E0
+    const val INSERT_BULK = 0x00F0
 }
 
 /** Die drei Formen des Abschlusstokens. */

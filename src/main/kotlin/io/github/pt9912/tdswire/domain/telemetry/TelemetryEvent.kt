@@ -1,6 +1,7 @@
 package io.github.pt9912.tdswire.domain.telemetry
 
 import java.time.Instant
+import java.util.Collections
 
 /** Obergrenze jedes Zeichenketten-Feldes eines Ereignisses in UTF-16-Einheiten (Setzung, nicht gemessen). */
 internal const val MAX_TEXT_LENGTH = 256
@@ -47,10 +48,16 @@ internal data class EventContext(
  * Einbettenden bei der Übersetzung.
  */
 public enum class EventKind {
-    /** Der Server läuft; [TelemetryEvent.port] ist der gebundene Port. Ebene `INFO`. */
+    /**
+     * Der Server läuft; [TelemetryEvent.address] ist die konfigurierte Bind-Adresse, [TelemetryEvent.port] der
+     * gebundene Port. Ebene `INFO`.
+     */
     SERVER_STARTED,
 
-    /** Der Server ist beendet; genau ein Ereignis je Server. Ebene `INFO`. */
+    /**
+     * Der Server ist beendet; höchstens ein Ereignis je Server, nach dem Ende jeder Verbindung. Bricht der Aufruf von
+     * `TdsServer.stop` ab, bevor das Beenden fertig ist, kommt es erst mit dem nächsten Aufruf. Ebene `INFO`.
+     */
     SERVER_STOPPED,
 
     /**
@@ -130,6 +137,35 @@ public enum class EventKind {
      * Text einer Ausnahme und nie ein Wert. Ebene `WARN`.
      */
     REQUEST_FAILED,
+
+    /**
+     * Die Konfiguration, mit der der Server läuft; [TelemetryEvent.settings] nennt Schlüssel und Wert, nie Pfad,
+     * Prüfwert, Passwort oder Benutzerliste. Genau ein Ereignis je Start, vor [SERVER_STARTED];
+     * beide kommen nach dem Binden, ein Client auf einem festen Port kann davor [CONNECTION_OPENED] auslösen
+     * (Reihenfolge dort nicht gemessen). Ebene `INFO`.
+     */
+    CONFIG_EFFECTIVE,
+
+    /**
+     * Das geordnete Beenden beginnt (`TdsServer.stop`); wird `stop` gerufen, genau ein Ereignis je Server, vor dem Ende
+     * jeder Verbindung; ein nie beendeter Server meldet keines.
+     * Ebene `INFO`.
+     */
+    SERVER_STOPPING,
+
+    /**
+     * Der Listener hat eine Verbindung angenommen; auch eine, die er sofort abweist ([EventKind.CONNECTION_CLOSED]
+     * mit `REFUSED_AT_LIMIT` oder `REFUSED_AT_SHUTDOWN`). [TelemetryEvent.connectionId] zählt je Server. Ebene `INFO`.
+     */
+    CONNECTION_OPENED,
+
+    /**
+     * Eine Verbindung ist beendet, genau ein Ereignis je Verbindung; [TelemetryEvent.reason] ist die Art des Endes
+     * (`HANDLER_RETURNED`, `HANDLER_FAILED`, `LOGIN_TIMEOUT`, `SHUTDOWN`, `SHUTDOWN_GRACE_EXPIRED`,
+     * `REFUSED_AT_SHUTDOWN`, `REFUSED_AT_LIMIT`). Das Ereignis trägt keine Sitzung und das Profil `unknown`: der
+     * Listener kennt beides nicht. Ebene `INFO`.
+     */
+    CONNECTION_CLOSED,
 }
 
 /** Warum ein Start vor dem Binden abbricht, ohne dass Konfiguration oder TLS-Material die Ursache nennen. */
@@ -139,6 +175,30 @@ internal enum class StartRefusal {
 
     /** Ein Tabellenname kommt doppelt vor. */
     TABLE_NAME_DUPLICATE,
+}
+
+/** Wie eine Verbindung endete; die Namen sind die Marken in [TelemetryEvent.reason] von `CONNECTION_CLOSED`. */
+internal enum class ConnectionCloseReason {
+    /** Der Handler ist zurückgekehrt, auch nach dem Trennen durch die Gegenstelle. */
+    HANDLER_RETURNED,
+
+    /** Der Handler hat eine Ausnahme geworfen (die Art steht in `CONNECTION_FAILED`). */
+    HANDLER_FAILED,
+
+    /** `LOGIN_TIMEOUT` ist abgelaufen, bevor die Anmeldung abgeschlossen war. */
+    LOGIN_TIMEOUT,
+
+    /** Das geordnete Beenden hat die Verbindung beendet. */
+    SHUTDOWN,
+
+    /** `SHUTDOWN_GRACE` ist abgelaufen und die Verbindung wurde getrennt. */
+    SHUTDOWN_GRACE_EXPIRED,
+
+    /** Die Verbindung wurde im Moment des Beginns des Beendens angenommen und sofort geschlossen. */
+    REFUSED_AT_SHUTDOWN,
+
+    /** Die Verbindung wurde über `MAX_CONNECTIONS` hinaus angenommen und sofort geschlossen. */
+    REFUSED_AT_LIMIT,
 }
 
 /** Welche Abschwächung der Sicherheit aktiv ist. */
@@ -238,12 +298,35 @@ public sealed class TelemetryEvent protected constructor(
 
     /** Typname oder feste Marke des Anlasses ([EventKind.REQUEST_FAILED]). */
     public open val cause: String? get() = null
+
+    /**
+     * Die wirksamen Einstellungen als Schlüssel und Wert ([EventKind.CONFIG_EFFECTIVE]). Die Werte sind Zahlen, Namen
+     * von Aufzählungen, `true` oder `false`; für den Schlüsselspeicher steht nur `SET` oder `UNSET`, nie ein Pfad.
+     */
+    public open val settings: Map<String, String>? get() = null
 }
 
-internal class ServerStarted(at: Instant, override val port: Int) :
-    TelemetryEvent(EventKind.SERVER_STARTED, at, EventLevel.INFO)
+internal class ServerStarted(at: Instant, address: String, override val port: Int) :
+    TelemetryEvent(EventKind.SERVER_STARTED, at, EventLevel.INFO) {
+    override val address: String = bounded(address)
+}
 
 internal class ServerStopped(at: Instant) : TelemetryEvent(EventKind.SERVER_STOPPED, at, EventLevel.INFO)
+
+internal class ServerStopping(at: Instant) : TelemetryEvent(EventKind.SERVER_STOPPING, at, EventLevel.INFO)
+
+internal class ConfigEffective(at: Instant, settings: EffectiveSettings) :
+    TelemetryEvent(EventKind.CONFIG_EFFECTIVE, at, EventLevel.INFO) {
+    override val settings: Map<String, String> = Collections.unmodifiableMap(settings.asMap())
+}
+
+internal class ConnectionOpened(at: Instant, context: EventContext) :
+    TelemetryEvent(EventKind.CONNECTION_OPENED, at, EventLevel.INFO, context)
+
+internal class ConnectionClosed(at: Instant, context: EventContext, close: ConnectionCloseReason) :
+    TelemetryEvent(EventKind.CONNECTION_CLOSED, at, EventLevel.INFO, context) {
+    override val reason: String = close.name
+}
 
 internal class StartRefused(at: Instant, refusal: StartRefusal) :
     TelemetryEvent(EventKind.START_REFUSED, at, EventLevel.ERROR) {

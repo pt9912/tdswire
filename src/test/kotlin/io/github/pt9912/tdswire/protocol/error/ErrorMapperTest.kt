@@ -9,6 +9,7 @@ import io.github.pt9912.tdswire.protocol.token.DoneKind
 import io.github.pt9912.tdswire.protocol.token.DoneStatus
 import io.github.pt9912.tdswire.protocol.token.DoneToken
 import io.github.pt9912.tdswire.protocol.token.ErrorToken
+import io.github.pt9912.tdswire.protocol.token.InfoToken
 import io.github.pt9912.tdswire.protocol.token.ReturnStatusToken
 import io.github.pt9912.tdswire.protocol.wire.ProtocolError
 import io.github.pt9912.tdswire.protocol.wire.ProtocolFailure
@@ -21,6 +22,7 @@ import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -123,6 +125,33 @@ class ErrorMapperTest {
         16,
         ConnectionFate.OPEN,
     )
+
+    /**
+     * `TDS_SIM_KEY_VIOLATION` ist in der Form des Massenladens ERROR 2627 (Class 14, State 1), danach INFO 3621
+     * „The statement has been terminated.“ (State 0, Class 0) und DONE mit `ERROR`, Befehl `0x00f0`, ohne Zähler; die
+     * Verbindung bleibt offen. Nummer, Class, State, Reihenfolge der Tokens und der Abschluss sind am Referenzclient
+     * gegen den echten SQL Server gemessen (Zeile M-12), der Text des ERROR ist gekürzt (Setzung); die Bytes des INFO
+     * und des DONE sind Handvektor. Wächter: ein Abschluss mit Befehl `0x00fd`, ein fehlendes INFO, Class 16.
+     *
+     * @spec SPEC-060
+     * @spec TDS-QA-01
+     */
+    @Test
+    fun `TDS_SIM_KEY_VIOLATION ist in der Form des Massenladens ERROR 2627 INFO 3621 und DONE 0xf0`() {
+        val response = mapper.code(ErrorCode.TDS_SIM_KEY_VIOLATION, form = ResponseForm.BULK)
+        val message = assertNotNull(response.message)
+        assertEquals(ConnectionFate.OPEN, response.fate)
+        val tokens = TokenDecoder(message.payload).decodeAll()
+        assertEquals(3, tokens.size)
+        val error = assertIs<ErrorToken>(tokens[0]).message
+        assertEquals(listOf(2627, 1, 14), listOf(error.number, error.state, error.severity))
+        val info = assertIs<InfoToken>(tokens[1]).message
+        assertEquals(listOf(3621, 0, 0), listOf(info.number, info.state, info.severity))
+        assertEquals("The statement has been terminated.", info.text)
+        assertEquals(DoneToken(DoneKind.DONE, DoneStatus.ERROR, DoneCommand.INSERT_BULK, 0), tokens[2])
+        val tail = hex("00  00  00 00 00 00  FD 02 00 F0 00 00 00 00 00 00 00 00 00").toHex()
+        assertTrue(message.payload.toHex().endsWith(tail))
+    }
 
     /**
      * `TDS_SIM_UNKNOWN_PREPARED_HANDLE` ist ERROR 8179, State 8, Class 16 mit dem Text „Could not find prepared
@@ -282,7 +311,7 @@ class ErrorMapperTest {
             "TDS_PROTOCOL_ERROR", "TDS_LOGIN_FAILED", "TDS_UNSUPPORTED_RPC", "TDS_UNSUPPORTED_TYPE",
             "TDS_BACKEND_ERROR", "TDS_TIMEOUT", "TDS_UNSUPPORTED_SQL", "TDS_SIM_UNKNOWN_OBJECT",
             "TDS_SIM_INVALID_VALUE", "TDS_INTERNAL_ERROR", "TDS_SHUTDOWN", "TDS_UNKNOWN_HANDLE", "TDS_PREPARE_LIMIT",
-            "TDS_SIM_UNKNOWN_PREPARED_HANDLE",
+            "TDS_SIM_UNKNOWN_PREPARED_HANDLE", "TDS_SIM_KEY_VIOLATION",
         )
         assertEquals(expected, ErrorCode.entries.map { it.name }.toSet())
         assertEquals(expected.size, ErrorCode.entries.map { it.rule.number }.toSet().size)
@@ -305,7 +334,8 @@ class ErrorMapperTest {
     /**
      * Die Gruppen der `ADR-0007`: Anfragefehler Class 16 offen, `TDS_PROTOCOL_ERROR` und
      * `TDS_INTERNAL_ERROR` Class 20 schließen, `TDS_UNSUPPORTED_RPC` und `TDS_SIM_INVALID_VALUE`
-     * nach Voreinstellung bei den Anfragefehlern, `TDS_TIMEOUT` nach Setzung des Nutzers vom 2026-11-01; Codes ohne
+     * nach Voreinstellung bei den Anfragefehlern, `TDS_TIMEOUT` nach Setzung des Nutzers vom 2026-11-01,
+     * `TDS_SIM_KEY_VIOLATION` bleibt offen mit der gemessenen Class 14; Codes ohne
      * Gruppe schließen (Grundregel).
      *
      * @spec SPEC-013 SPEC-015 SPEC-037 SPEC-039 SPEC-048 SPEC-057 SPEC-058
@@ -320,13 +350,15 @@ class ErrorMapperTest {
             ErrorCode.TDS_UNKNOWN_HANDLE,
             ErrorCode.TDS_PREPARE_LIMIT,
             ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE,
+            ErrorCode.TDS_SIM_KEY_VIOLATION,
             ErrorCode.TDS_TIMEOUT,
         )
         ErrorCode.entries.forEach {
             val expectedFate = if (it in open) ConnectionFate.OPEN else ConnectionFate.CLOSE_AFTER_REPLY
             assertEquals(expectedFate, it.rule.fate, it.name)
         }
-        open.forEach { assertEquals(16, it.rule.severity, it.name) }
+        (open - ErrorCode.TDS_SIM_KEY_VIOLATION).forEach { assertEquals(16, it.rule.severity, it.name) }
+        assertEquals(14, ErrorCode.TDS_SIM_KEY_VIOLATION.rule.severity)
         assertEquals(20, ErrorCode.TDS_PROTOCOL_ERROR.rule.severity)
         assertEquals(20, ErrorCode.TDS_INTERNAL_ERROR.rule.severity)
     }
