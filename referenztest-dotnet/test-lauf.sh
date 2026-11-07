@@ -9,8 +9,12 @@
 #            und der Export `test-bericht-export` bricht.
 # Jedes andere Argument bricht mit Exit 2 ab: ein Flag (etwa --filter) am Skriptaufruf, das nur eine Stage verengt, ist hier
 # nicht moeglich. Grenze: eine RUN-Zeile, die dieses Skript nicht ruft, sieht es nicht. Die Abweisung und die Modi belegt
-# tools/test-lauf-selbsttest.sh (Stage `skript-selbsttest`); Grenze dort: die Meldung der Fundstelle ist die englische Ausgabe von `dotnet test`.
+# tools/test-lauf-selbsttest.sh (Stage `skript-selbsttest`); Grenze dort: der Stub belegt die feste Locale, nicht den Wortlaut des echten `dotnet`.
 set -u
+# Die Locale ist fest: die Meldungen von `dotnet test`, die der Modus `test` liest, sind die englischen (mit LANG oder LC_ALL
+# auf de_DE.UTF-8 schreibt dotnet "Kein Test entspricht ...", gemessen 2026-11-07).
+LC_ALL=C.UTF-8 LANG=C.UTF-8 LANGUAGE=en
+export LC_ALL LANG LANGUAGE
 if [ "$#" -ne 1 ]; then
   echo "test-lauf.sh: genau ein Argument: test | bericht" >&2
   exit 2

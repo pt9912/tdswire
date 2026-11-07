@@ -49,7 +49,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-Liefer-Punkte (zwei):
+Liefer-Punkte (zwei; Abweichung vom Plan-Wortlaut: Selbsttest von `test-lauf.sh` und Exit 3 ohne ausgeführten Test gehören dazu, siehe §6):
 
 - [ ] **Kopplung in der Bauart** ([TDS-QA-05](../../../../spec/lastenheft.md#tds-qa-05--wartbarkeit), [TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit)): Der Aufruf `dotnet test` samt `$DOTNET_TEST_ARGS` steht an einer Stelle der Basis `test-quellen` (Variable oder Skript), `test` ruft ihn unverändert, `test-bericht` fügt nur den TRX-Logger und das Ergebnisverzeichnis hinzu; rote Tests brechen `test` weiter und lassen `test-bericht` den Bericht behalten. Beleg: `make test`, `make spec-abdeckung`, `make gates`.
 - [ ] **Mutationsbeleg und Kommentare** ([TDS-QA-05](../../../../spec/lastenheft.md#tds-qa-05--wartbarkeit)): Zwei Mutationen laufen und stehen im Report: ein Flag (`--filter`) an der gemeinsamen Stelle wirkt auf beide Stages (die Matrix folgt dem Gate), und ein Flag, das nur `test` verengen soll, ist am gemeinsamen Aufruf nicht mehr möglich; der Kommentar im `Dockerfile` und der Satz im Kopf von `tools/spec-abdeckung.sh` („nicht gekoppelt“) sind auf den neuen Stand nachgezogen (`AGENTS.md` §3.7, §3.8).
@@ -82,7 +82,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `tools/spec-abdeckung.sh` | update | Kommentar im Kopf und der gedruckte Satz der Matrix (Zeile `Der Bericht der C#-Tests …`) auf die Kopplung nachziehen; keine Änderung der Logik |
 | `docs/plan/spec-abdeckung.md` | update | `make spec-abdeckung` schreibt sie neu, weil der Erzeuger den Satz druckt |
 | `tools/stempel/*.eingaenge` | update | Klasse `tests`: `referenztest-dotnet` ist ganz gelistet, kein Eintrag nötig; Klasse `werkzeug`: Eintrag `referenztest-dotnet/test-lauf.sh` für die Stage `skript-selbsttest` (`make stempel-eingaenge-pruefung`, `make stempel-abbild`) |
-| `tools/test-lauf-selbsttest.sh` | neu | Selbsttest von `test-lauf.sh` gegen einen `dotnet`-Stub, 8 Mutationen; Abweichung vom Plan-Wortlaut, siehe §6 |
+| `tools/test-lauf-selbsttest.sh` | neu | Selbsttest von `test-lauf.sh` gegen einen `dotnet`-Stub (inklusive fester Locale), 9 Mutationen; Abweichung vom Plan-Wortlaut, siehe §6 |
 | `Dockerfile` (Stage `skript-selbsttest`), `tools/mk/skript-selbsttest.mk`, `harness/README.md` | update | Selbsttest eingehängt; Hilfetext und Zeile der Sensors-Tabelle nachgezogen |
 | `docs/plan/planning/in-progress/roadmap.md`, `docs/plan/planning/observations/BEO-TDS/schwesterstage-ohne-gleichlauf-sensor/state.md`, die Slice-Datei | update | Lifecycle-Dateien: Slice-Move (`slice-mv`), Roadmap-Zeile, Verweis im Register |
 
@@ -119,7 +119,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 - **Der Bericht verträgt keine rote Gate-Logik.** `test-bericht` behält den Bericht bei roten Tests (`|| echo`), `test` bricht ab; die gemeinsame Zeile darf diesen Unterschied nicht verwischen. — **Ausgang:** offen bis zur Closure.
-- **Abweichung vom Plan-Wortlaut (Review F-2, F-3).** Die Abweisung in `test-lauf.sh` bekam einen Selbsttest (`tools/test-lauf-selbsttest.sh`, Stage `skript-selbsttest`, Klasse `werkzeug`); der Plan nannte nur Hand-Mutationen. Der Modus `test` bricht zudem mit Exit 3, wenn `dotnet test` keinen Test ausführt (Filter ohne Treffer); das verschärft das Gate (`AGENTS.md` §3.6 erlaubt es). Beides ist kein Gleichlauf-Sensor. — **Ausgang:** offen bis zur Closure.
+- **Abweichung vom Plan-Wortlaut (Review F-2, F-3).** Die Abweisung in `test-lauf.sh` bekam einen Selbsttest (`tools/test-lauf-selbsttest.sh`, Stage `skript-selbsttest`, Klasse `werkzeug`); der Plan nannte nur Hand-Mutationen. Der Modus `test` bricht zudem mit Exit 3, wenn `dotnet test` keinen Test ausführt (Filter ohne Treffer); das verschärft das Gate (`AGENTS.md` §3.6 erlaubt es). Beides ist kein Gleichlauf-Sensor. Die Treffer-Prüfung liest die englische Meldung; `test-lauf.sh` setzt deshalb `LC_ALL=C.UTF-8`, `LANG=C.UTF-8`, `LANGUAGE=en` selbst (Handmessung 2026-11-07 mit `ENV LC_ALL=de_DE.UTF-8` im Dockerfile und Filter ohne Treffer: Exit 3; ohne die feste Locale im Skript meldet `dotnet` „Kein Test entspricht …“ und die Stage endet mit Exit 0). — **Ausgang:** offen bis zur Closure.
 - **Ungekoppelte RUN-Zeile.** Eine RUN-Zeile von `test` ganz ohne `test-lauf.sh` (Review M3) wird von keinem Gate bemerkt; sie bleibt benanntes Restrisiko, ein Sensor wäre eine eigene Entscheidung. — **Ausgang:** offen bis zur Closure.
 - **Stempel-Eingänge.** Ein neues Skript oder eine geänderte `COPY`-Zeile wirkt auf den Hash der Klasse `tests`. — **Ausgang:** offen bis zur Closure.
 

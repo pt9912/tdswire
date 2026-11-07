@@ -15,6 +15,7 @@ mkdir "$tmp/bin"
 cat > "$tmp/bin/dotnet" <<'STUB'
 #!/bin/sh
 printf '%s\n' "$*" >> "$STUB_LOG"
+printf '%s\n' "$LC_ALL $LANG $LANGUAGE" > "$STUB_LOG.locale"
 [ -n "${STUB_AUSGABE:-}" ] && printf '%s\n' "$STUB_AUSGABE"
 exit "${STUB_RC:-0}"
 STUB
@@ -46,6 +47,8 @@ alle_faelle() {
   erwartet "Modus test ohne Treffer ist rot, Exit 3 (war $ist)" $((ist == 3 ? 0 : 1))
   ist=0; STUB_AUSGABE="No test is available in x.dll" lauf "$s" test || ist=$?
   erwartet "Modus test ohne verfuegbaren Test ist rot, Exit 3 (war $ist)" $((ist == 3 ? 0 : 1))
+  ist=0; LC_ALL=de_DE.UTF-8 LANG=de_DE.UTF-8 LANGUAGE=de lauf "$s" test || ist=$?
+  erwartet "dotnet laeuft mit fester Locale trotz de_DE in der Umgebung" $([ "$(cat "$tmp/log.locale")" = "C.UTF-8 C.UTF-8 en" ]; echo $?)
   ist=0; STUB_AUSGABE="No test matches the given testcase filter" lauf "$s" bericht || ist=$?
   erwartet "Modus bericht bricht ohne Treffer nicht ab (war $ist)" $((ist == 0 ? 0 : 1))
   ist=0; STUB_RC=1 lauf "$s" bericht || ist=$?
@@ -77,6 +80,7 @@ mutation "Exit des Modus test verschluckt" 's/^    exit "\$rc"$/    exit 0/'
 mutation "Logger im Modus test" 's/dotnet test \$DOTNET_TEST_ARGS > /dotnet test $DOTNET_TEST_ARGS --logger x > /'
 mutation "Modus bericht bricht bei Rot ab" 's/ || echo "test-bericht: [^"]*"//'
 mutation "Ergebnisverzeichnis gestrichen" 's| --results-directory /bericht||'
+mutation "feste Locale gestrichen" 's/^LC_ALL=C.UTF-8 .*$/:/'
 mutation "Argumente der Variable gestrichen" 's/dotnet test \$DOTNET_TEST_ARGS > /dotnet test > /'
 [ "$fehler" -eq 0 ] || exit 1
-echo "test-lauf-selbsttest: ok - Faelle und 8 Mutationen wie erwartet"
+echo "test-lauf-selbsttest: ok - Faelle und 9 Mutationen wie erwartet"
