@@ -125,7 +125,8 @@ internal class TelemetryJsonTest : TempFilesTest() {
     @Test
     fun `Die Kennung der Annahme steht escaped im Feld principal`() {
         val name = "a\"b\\c\u0001\u001F/ü€😀"
-        val recorder = RealEvents.collect(environment("$name\t{plain}secret\n")) { port ->
+        val users = environment("$name\t{plain}secret\n")
+        val recorder = RealEvents.collect(users, listOf(EventKind.LOGIN_ACCEPTED)) { port ->
             LoginProbe(port).use { assertTrue(it.login(name, "secret")) }
         }
         val accepted = recorder.await(EventKind.LOGIN_ACCEPTED)
