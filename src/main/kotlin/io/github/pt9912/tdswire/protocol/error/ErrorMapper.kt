@@ -15,8 +15,8 @@ import io.github.pt9912.tdswire.transport.framing.PacketType
 import io.github.pt9912.tdswire.transport.framing.TdsMessage
 
 /**
- * Antwort auf einen Fehler: [message] ist ERROR gefolgt von DONE mit Fehlerstatus, `null` genau bei
- * [ConnectionFate.CLOSE_WITHOUT_REPLY].
+ * Antwort auf einen Fehler: [message] ist ERROR gefolgt von DONE mit Fehlerstatus, in der Antwort auf einen RPC
+ * von DONEPROC mit `ERROR` (siehe [ResponseForm]), `null` genau bei [ConnectionFate.CLOSE_WITHOUT_REPLY].
  */
 internal class ErrorResponse(val code: ErrorCode, val message: TdsMessage?, val fate: ConnectionFate) {
     init {
