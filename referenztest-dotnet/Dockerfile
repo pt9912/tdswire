@@ -23,7 +23,7 @@ RUN dotnet restore
 
 # --- Test: Build und Tests ohne Netz. Ein roter Test bricht den Build. `test-quellen` ist die gemeinsame Basis von `test`
 # und `test-bericht`: Quellen (COPY), Argumente (DOTNET_TEST_ARGS) und der Aufruf von `dotnet test` (test-lauf.sh) stehen nur hier.
-# Beide Stages rufen `sh test-lauf.sh <Modus>`; ein weiteres Flag in ihrer RUN-Zeile weist das Skript ab. ----------------
+# Beide Stages rufen `sh test-lauf.sh <Modus>`; ein weiteres Flag am Skriptaufruf weist es ab. Eine RUN-Zeile ohne `test-lauf.sh` bleibt ungekoppelt (kein Sensor). ----------------
 FROM restore AS test-quellen
 COPY Smoke Smoke
 COPY Mitschnitt Mitschnitt

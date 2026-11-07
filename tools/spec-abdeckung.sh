@@ -31,8 +31,9 @@
 # steht als „nicht gelaufen“; so stehen die zwei Tests des Abspielens (`LAUF=mitschnitt`, nur in `make vergleichslauf-d`), weil der Bericht
 # nur die Stage `test-bericht` des .NET-Geruests kennt. Diese Stage teilt die COPY-Zeilen, die Variable DOTNET_TEST_ARGS und den Aufruf von
 # `dotnet test` (referenztest-dotnet/test-lauf.sh) mit der Stage `test` (Basis `test-quellen` in referenztest-dotnet/Dockerfile) und fuegt nur
-# den TRX-Logger hinzu. Ein Flag (etwa ein --filter) in der RUN-Zeile einer der beiden Stages weist test-lauf.sh ab; ungekoppelt bleibt eine
-# RUN-Zeile von `test`, die test-lauf.sh nicht mehr ruft: der Erzeuger sieht sie nicht, die Matrix zaehlt dann weiter, was das Gate nicht ausfuehrt.
+# den TRX-Logger hinzu. Ein Flag (etwa ein --filter) am Aufruf von test-lauf.sh in einer der beiden Stages weist das Skript ab; ein Filter in DOTNET_TEST_ARGS trifft beide.
+# Ungekoppelt bleibt eine RUN-Zeile von `test`, die test-lauf.sh nicht ruft (benanntes Restrisiko, kein Sensor): der Erzeuger sieht sie nicht,
+# die Matrix zaehlt dann weiter, was das Gate nicht ausfuehrt.
 # Grenze: der C#-Tag haftet an der naechsten Methodenzeile, ob sie die gemeinte Testmethode ist, sieht der Erzeuger nicht; ein Tag ueber
 # einer anderen vorhandenen und bestandenen Methode zaehlt fuer diese. Nur ein fehlender Name faellt als „nicht gelaufen“ auf.
 # Die Art eines C#-Tests ist Smoke-Test unter `/Smoke/`, sonst Modul-Test.
@@ -273,7 +274,7 @@ cat "$tmp/s.tsv" "$tmp/t.tsv" "$tmp/r.tsv" | awk -F '\t' -v spec="$spec" '
     print ""
     print "**Konvention des C#-Tags:** eine Kommentarzeile `// @spec SPEC-<NNN> [SPEC-<NNN> ...]` über der Testmethode; Attributzeilen"
     print "(`[Fact]`, `[Theory]`, `[InlineData(...)]`), Leer- und Kommentarzeilen dazwischen halten ihn, jede andere Zeile verwirft ihn."
-    print "Der Bericht der C#-Tests ist der der Stage `test-bericht` des .NET-Gerüsts (COPY-Quellen, DOTNET_TEST_ARGS und Aufruf über `test-lauf.sh` wie die Stage `test`; eine RUN-Zeile von `test` ohne `test-lauf.sh` ist nicht gekoppelt); ein getaggter C#-Test, den sie nicht"
+    print "Der Bericht der C#-Tests ist der der Stage `test-bericht` des .NET-Gerüsts (COPY-Quellen, DOTNET_TEST_ARGS und Aufruf über `test-lauf.sh` wie die Stage `test`; eine RUN-Zeile von `test` ohne `test-lauf.sh` ist nicht gekoppelt, ein Restrisiko ohne Sensor); ein getaggter C#-Test, den sie nicht"
     print "ausführt (die zwei Tests des Abspielens, die nur in `make vergleichslauf-d` laufen), steht als „nicht gelaufen“."
     print ""
     print "Ein **Nachweis** ist ein Test, dessen Tag die Kennung nennt und der im Bericht desselben Laufs"
