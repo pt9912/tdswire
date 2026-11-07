@@ -113,6 +113,19 @@ bewusst kurz (Ergänzungs-Kanal, nicht Hauptkanal).
   („Behauptung des Implementers, Bestätigung beim Verifier“). Prüfung: die Haken im Diff gegen den
   Stand von Review und Verifikation lesen; der Implementer behauptet im Bericht, den Haken setzt
   der Planner nach der Verifikation  (seit slice-qa-vergleichslauf-d-messungen)
+- **Nachbesserung mit Code ohne zweiten Review** — nach dem Review-Report des Slice (oder nach der
+  Verifikation) kamen Commits, die Quelltext, Testcode, Skripte, Make-/Build-/Konfigurationsdateien
+  ändern (keine reine Kommentar- oder Doku-Korrektur), oder ein Merge von `main` in den Slice-Zweig
+  trug Auflösungen in solchen Dateien. Der Verifier las und fuhr sie, ein Reviewer mit diesem Skill
+  hat sie nicht gesehen. Prüfung: die Commits nach dem Report-Stand der Reihe nach auflisten und je
+  Commit entscheiden, ob er Code ändert; für jede solche Fläche liegt ein Re-Review in frischem
+  Kontext vor (Report unter `docs/reviews/`, Folgelauf als neue Datei) oder die Closure-Notiz §7
+  trägt den Vermerk „Nachbesserung ohne zweiten Review“ mit Commits, Grund und dem, was stattdessen
+  geprüft wurde. Die Bewertung durch den Verifier „wie ein Review“ ersetzt den Re-Review nicht, sie
+  gehört in den Vermerk. Ein Reviewer, der einen Re-Review fährt, liest nur diese Commits (Diff
+  gegen den Report-Stand), nicht den ganzen Slice noch einmal. Kein Gate fängt das: ein mechanischer
+  Abgleich scheitert daran, dass „ändert Code“ und „reine Doku-Korrektur“ nicht aus dem Pfad
+  folgen  (seit slice-antwort-tokens-an-messung-angleichen)
 - **Messzahl aus einem Erzeuger, der nicht im Repo liegt** — ein Messprotokoll, eine Spec-Stelle,
   eine ADR oder ein Slice nennt Zahlen (Anfragezahlen, Zeiten, Größen), die ein Wegwerf-Erzeuger oder
   ein nicht committeter Stand (Prototyp, Wrapper im Scratchpad) lieferte, und führt sie präziser als

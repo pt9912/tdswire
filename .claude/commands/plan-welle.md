@@ -98,6 +98,14 @@ die Antwort und wird notiert.
    Referenzseiten, Beispielcode im Einbettungstest). Die Tabelle in §3 führt jede berührte Datei
    (Auftrag des Nutzers 2026-11-07; Beobachtung `planung-und-register-zeiger-in-nutzer-doku`, 2×, ohne Anker).
 
+6f. **Der Ablauf eines Slice sieht für die Nachbesserung nach dem Review einen zweiten Review vor.**
+   Der Slice-Plan nennt im Ablauf: Enthält die Behebung der Review- oder Verifikationsbefunde Code
+   (Quelltext, Testcode, Skripte, Make-/Build-/Konfigurationsdateien) oder löst ein Merge von `main`
+   Konflikte im Code auf, folgt ein Re-Review in frischem Kontext; reine Kommentar- und
+   Doku-Korrekturen brauchen ihn nicht. Unterbleibt er, führst du bei der Closure den Vermerk
+   „Nachbesserung ohne zweiten Review“ in §7 (Commits, Grund, was stattdessen geprüft wurde) und
+   setzt die Review-Zeile der DoD nur mit ihm (seit slice-antwort-tokens-an-messung-angleichen).
+
 6a. **Wechselt eine ADR auf `Accepted` (Slice-Closure oder Bau-Slice-Anlage), ziehst du die
    Zustandsfelder der Nachbar-Slices im selben Zug nach.** Grep über das **ganze Repo** (`docs/`,
    `spec/`, `.claude/`, `harness/`) nach der alten Lesart: `Proposed`, `Entwurf`, „gilt erst mit
