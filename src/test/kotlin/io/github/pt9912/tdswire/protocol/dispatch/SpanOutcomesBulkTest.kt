@@ -24,8 +24,8 @@ import kotlin.test.assertEquals
 
 /**
  * Die Spans `tds.query` und `backend.execute` auf dem Weg des Massenladens (Pakettyp 0x07, `SPEC-036`): jede Anfrage
- * endet genau einmal, das Paket zählt als `sql_batch` (Festlegung), und das `outcome` folgt der Antwort. Gegenstelle ohne
- * Netz, wie `BulkDispatchTest`.
+ * endet genau einmal, das Paket zählt als `sql_batch` (Setzung), und das `outcome` folgt der Antwort. Gegenstelle
+ * ohne Netz, wie `BulkDispatchTest`.
  */
 class SpanOutcomesBulkTest {
     private val insertBulk = "INSERT BULK [dbo].[t] ([Id] BIGINT , [Name] NVARCHAR(4000) ) with (CHECK_CONSTRAINTS)"
@@ -61,8 +61,8 @@ class SpanOutcomesBulkTest {
     private fun RecordingSession.queryOutcomes() = requests.map { it.outcomes.toList() }
 
     /**
-     * `INSERT BULK` und die Nachricht 0x07 enden je mit `ok`, beide als `sql_batch`; jede Anfrage hat genau ein Ende, und
-     * zu jeder gehört ein Backend-Aufruf, der ebenfalls genau einmal endet.
+     * `INSERT BULK` und die Nachricht 0x07 enden je mit `ok`, beide als `sql_batch`; jede Anfrage hat genau ein Ende,
+     * und zu jeder gehört ein Backend-Aufruf, der ebenfalls genau einmal endet.
      *
      * @spec SPEC-018
      * @spec SPEC-036
