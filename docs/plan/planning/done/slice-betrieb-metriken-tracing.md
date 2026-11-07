@@ -57,7 +57,7 @@ Nachweis-Pflichten für alle drei Punkte:
 
 - [x] Jeder Test trägt im KDoc über der Testfunktion den Block-Tag `@spec SPEC-<NNN>` (Konvention nach [slice-qa-spec-abdeckung](../done/slice-qa-spec-abdeckung.md)); die Tests laufen in `make test` und sind grün.
 - [x] Jede Aussage steht an einem Test oder ist als Festlegung gekennzeichnet; die Zuordnung *Test | Festlegung* je Aussage steht in der Closure-Notiz (`BEO-TDS/aussagen-ueber-messung-hinaus`, siehe §8).
-- [ ] `make gates` grün.
+- [x] `make gates` grün.
 - [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor — **Nachbesserung ohne zweiten Review** (`220e5c32`, `d6c4913b`, `ee78d515`; die Nachbesserung bis `85a7c00b` und die Merge-Auflösung hat die Verifikation wie einen Review bewertet, kein Re-Review in eigenem Kontext).
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
@@ -65,7 +65,7 @@ Nachweis-Pflichten für alle drei Punkte:
 - [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
 - [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
 - [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -234,7 +234,7 @@ Closure am 2026-11-07 (Planner). Zuerst die Belege der Rollen, danach die Entsch
 - **Beobachtungs-Register (`../observations/`):** neu angelegt `BEO-TDS/merge-bringt-verschobene-datei-zurueck`, `BEO-TDS/atomizitaet-nur-probabilistisch-getestet`, `BEO-TDS/nutzerdoku-uebertrag-nach-neustrukturierung` (je 1×), und die drei Einträge der Verifikation (`BEO-TDS/sechster-requestsettings-parameter-ohne-entscheidung`, `BEO-TDS/request-failed-ohne-request-id`, `BEO-TDS/bulk-load-als-sql-batch-beobachtet`, jetzt entschieden). `evidence/slice-betrieb-metriken-tracing.md` ergänzt in `BEO-TDS/nachbesserung-ohne-zweiten-review` (7×), `BEO-TDS/fortschreibung-laesst-zweite-fundstelle-stehen`, `BEO-TDS/plan-tabelle-nennt-neue-datei-nicht`, `BEO-TDS/zeile-oder-zweig-ohne-unterscheidenden-test`, `BEO-TDS/aussagen-ueber-messung-hinaus`, `BEO-TDS/zielbild-aussage-durch-merge-ueberholt` (2×), `BEO-TDS/test-stage-cache-verdeckt-wiederholung`, `BEO-TDS/oeffentliche-flaeche-mitglieder-ohne-sensor` (2×), `BEO-TDS/rueckstau-im-produktivbetrieb-nicht-gemessen`.
 - **Folge-Slices:** [slice-request-failed-mit-request-id](../open/slice-request-failed-mit-request-id.md), [slice-einstellungen-in-typen-buendeln](../open/slice-einstellungen-in-typen-buendeln.md), [slice-qa-performance](../open/slice-qa-performance.md) (Start-Trigger: Telemetrie liefert Dauer je Schicht, jetzt erfüllt).
 - **Risiken aus §6:** alle sieben und die vier neuen tragen einen Ausgang (§6).
-- **Gates:** siehe unten (Läufe der Closure).
+- **Gates:** `make gates FORCE=1` Exit 0 nach dem Move (Layer-Cache der Stages, also **kein** Beleg für die Tests allein); frischer Beleg der Tests: der ungecachte Gradle-Lauf der Stage `spec-abdeckung` (`test integratorTest`, Rezeptur von `make spec-abdeckung` mit `--no-cache-filter spec-abdeckung`), Matrix byte-gleich zu `docs/plan/spec-abdeckung.md`, 6 Festlegungen ohne Nachweis (`SPEC-004`, `021`, `024`, `025`, `032`, `050`, keine aus diesem Slice); `make e2e-abdeckung` unverändert; `make docs-check` 0 Befunde. Die drei Paarungen: Anker (kein Feld `liegt in` gesetzt, nichts zu paaren), Folge-Slices (drei Dateien in `open/`), Register (jede genannte Kennung ist ein Verzeichnis mit nicht leerem `evidence/`) geprüft.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
