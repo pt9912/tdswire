@@ -21,7 +21,6 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 - [welle-qualitaet-grundlage](../welle-qualitaet-grundlage.md)
 - [welle-betrieb-diagnose](../welle-betrieb-diagnose.md)
 - [welle-referenzabgleich-release](../welle-referenzabgleich-release.md)
-- [welle-produktschnitt](../welle-produktschnitt.md)
 - [welle-testserver-manuell](../welle-testserver-manuell.md)
 
 In Arbeit (Welle welle-qualitaet-grundlage):
@@ -39,10 +38,6 @@ In Arbeit (Welle welle-betrieb-diagnose):
 In Arbeit (ohne Welle):
 
 - keiner; zuletzt geschlossen: [slice-stempel-migration](../done/slice-stempel-migration.md) (Closure-Notiz in §7 des Slice; offene Nutzerpunkte: Pflichtmenge der Klasse `immer` ([ADR-0031](../../adr/0031-gates-ohne-stempel-klasse-immer.md) Frage (b)), Grenze `assume-unchanged`, Host-Gates ohne Stage-Paar, CI-Seite)
-
-In Arbeit (Welle welle-produktschnitt):
-
-- keiner; zuletzt geschlossen: [slice-jar-ohne-main-und-image](../done/slice-jar-ohne-main-und-image.md) (Closure-Notiz in §7 des Slice; offene Nutzerpunkte: Zelle `make e2e` in `harness/README.md`, Name `make laufzeittest`; Folge: [slice-betrieb-log-adapter-testserver](../done/slice-betrieb-log-adapter-testserver.md), [slice-release-doku-prozess](../done/slice-release-doku-prozess.md))
 
 In Arbeit (Welle welle-referenzabgleich-release):
 
@@ -107,6 +102,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 | welle-simulations-backend | 2026-10-31 | [welle-simulations-backend-results](../done/welle-simulations-backend-results.md) |
 | welle-fehler-abbruch | 2026-11-06 | [welle-fehler-abbruch-results](../done/welle-fehler-abbruch-results.md) |
 | welle-anfrageverarbeitung | 2026-11-07 | [welle-anfrageverarbeitung-results](../done/welle-anfrageverarbeitung-results.md) |
+| welle-produktschnitt | 2026-11-07 | [welle-produktschnitt-results](../done/welle-produktschnitt-results.md) |
 
 ## Historische Trigger-Verschiebungen
 
