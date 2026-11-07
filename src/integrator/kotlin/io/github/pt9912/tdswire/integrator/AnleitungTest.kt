@@ -3,7 +3,11 @@ package io.github.pt9912.tdswire.integrator
 import io.github.pt9912.tdswire.config.AuthSettings
 import io.github.pt9912.tdswire.config.EncryptionSetting
 import io.github.pt9912.tdswire.config.ListenSettings
+import io.github.pt9912.tdswire.config.LoginSettings
+import io.github.pt9912.tdswire.config.RequestSettings
 import io.github.pt9912.tdswire.config.ServerConfig
+import io.github.pt9912.tdswire.config.TlsKeyMaterial
+import io.github.pt9912.tdswire.config.auth.PasswordChars
 import io.github.pt9912.tdswire.config.auth.UserList
 import io.github.pt9912.tdswire.config.auth.UserListResult
 import io.github.pt9912.tdswire.domain.QueryEvent
@@ -26,9 +30,21 @@ import io.github.pt9912.tdswire.simulation.SimulationBackend
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.runBlocking
+import java.io.IOException
+import java.net.InetSocketAddress
+import java.net.Socket
+import java.nio.file.Files
+import java.nio.file.Path
+import java.security.SecureRandom
+import java.util.Base64
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.LinkedBlockingQueue
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.PBEKeySpec
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -36,9 +52,11 @@ private const val ANLEGEN =
     "CREATE TABLE dbo.neu (Id BIGINT NOT NULL, Name NVARCHAR(50) NULL, CONSTRAINT [pk_neu] PRIMARY KEY ([Id]))"
 
 /**
- * Die Codebeispiele von `docs/user/einbettung-und-betrieb.md`: jede Funktion mit dem Präfix `anleitung` steht dort
- * wörtlich. Der Test übersetzt sie gegen die öffentliche Fläche und fährt sie gegen den Rohbytes-Client (kein
- * Referenzclient): belegt ist, dass die Beispiele übersetzen und die beschriebene Antwort liefern.
+ * Die Codebeispiele von `docs/user/einbettung-und-betrieb.md`: die Funktionen und Klassen mit dem Präfix `anleitung`
+ * stehen dort als Codeblöcke, die Einrückung ausgenommen, wörtlich; kein Sensor hält Test und Doku gleich, die
+ * Gleichheit gilt nur, soweit beide gelesen werden. Der Test übersetzt sie gegen die öffentliche Fläche und fährt sie
+ * gegen den Rohbytes-Client (kein Referenzclient): belegt ist, dass die Beispiele übersetzen und die beschriebene
+ * Antwort liefern.
  *
  * @spec SPEC-059
  */
@@ -100,6 +118,70 @@ class AnleitungTest {
         } finally {
             runBlocking { server.stop() }
         }
+    }
+
+    @Test
+    fun dieGrenzenGeltenUndNachStopNimmtDerPortNichtsMehrAn() {
+        val server = startOhneTabellen(anleitungGrenzen(anleitungBenutzer("alice\t{plain}secret\n", true)))
+        val port = server.port
+        WireClient(port).use { it.login() }
+        runBlocking { server.stop() }
+        assertFailsWith<IOException> { Socket().use { it.connect(InetSocketAddress(LOOPBACK, port), 1000) } }
+    }
+
+    @Test
+    fun eineAbgelehnteAnmeldungErscheintMitGrundInDerZeile() {
+        val zeilen = LinkedBlockingQueue<String>()
+        val config = anleitungKonfiguration(port = 0, benutzerliste = "alice\t{plain}secret\n")
+        val sink = TelemetrySink { zeilen.offer(anleitungZeile(it)) }
+        val outcome = runBlocking { TdsServer.start(config, BackendSource.None, sink) }
+        val server = assertIs<StartOutcome.Running>(outcome).server
+        try {
+            WireClient(server.port).use { assertFalse(it.tryLogin("alice", "falsch")) }
+        } finally {
+            runBlocking { server.stop() }
+        }
+        val abgelehnt = zeilen.single { "LOGIN_REJECTED" in it }
+        assertTrue("reason=WRONG_PASSWORD" in abgelehnt && "connection_id=1" in abgelehnt, abgelehnt)
+    }
+
+    @Test
+    fun einPruefwertMitPbkdf2MeldetDenBenutzerAn() {
+        val wert = anleitungPruefwert("geheim")
+        val config = ServerConfig(
+            listen = ListenSettings(LOOPBACK, 0),
+            encryption = EncryptionSetting.TEST_UNENCRYPTED,
+            auth = anleitungBenutzer("bob\t$wert\n", false),
+        )
+        val server = startOhneTabellen(config)
+        try {
+            WireClient(server.port).use { assertTrue(it.tryLogin("bob", "geheim")) }
+            WireClient(server.port).use { assertFalse(it.tryLogin("bob", "falsch")) }
+        } finally {
+            runBlocking { server.stop() }
+        }
+    }
+
+    @Test
+    fun tlsMitEinemPkcs12SpeicherStartetMitRequired() {
+        val verzeichnis = Files.createTempDirectory("anleitung-tls")
+        val speicher = verzeichnis.resolve("server.p12")
+        val keytool = Path.of(System.getProperty("java.home"), "bin", "keytool").toString()
+        val rc = ProcessBuilder(
+            keytool, "-genkeypair", "-alias", "server", "-keyalg", "RSA", "-keysize", "2048", "-validity", "365",
+            "-storetype", "PKCS12", "-keystore", speicher.toString(), "-storepass", "speicher-geheim",
+            "-dname", "CN=localhost", "-ext", "san=dns:localhost,ip:127.0.0.1",
+        ).redirectErrorStream(true).start().also { it.inputStream.readAllBytes() }.waitFor()
+        assertEquals(0, rc)
+        val auth = anleitungBenutzer("bob\t${anleitungPruefwert("geheim")}\n", false)
+        val server = startOhneTabellen(anleitungTls(speicher, "speicher-geheim", auth, port = 0))
+        runBlocking { server.stop() }
+        verzeichnis.toFile().deleteRecursively()
+    }
+
+    private fun startOhneTabellen(config: ServerConfig): TdsServer {
+        val outcome = runBlocking { TdsServer.start(config, BackendSource.None) }
+        return assertIs<StartOutcome.Running>(outcome).server
     }
 }
 
@@ -181,4 +263,66 @@ internal fun anleitungVeraenderlich(): SimulationBackend {
             )
         },
     )
+}
+
+// --- Beispiel: Grenzen setzen ---------------------------------------------------------------------------------------
+
+/** Höchstens 50 Verbindungen, Anmeldefrist 5 s, Anfragefrist 10 s, 200 Handles je Sitzung, geordnetes Beenden 3 s. */
+internal fun anleitungGrenzen(auth: AuthSettings): ServerConfig = ServerConfig(
+    listen = ListenSettings("127.0.0.1", 0, maxConnections = 50),
+    login = LoginSettings(timeoutSeconds = 5),
+    encryption = EncryptionSetting.TEST_UNENCRYPTED,
+    auth = auth,
+    requests = RequestSettings(
+        queryTimeoutSeconds = 10,
+        cancelTimeoutSeconds = 2,
+        shutdownGraceSeconds = 3,
+        maxPreparedHandles = 200,
+    ),
+)
+
+/** Die Benutzerliste aus dem Text einer Datei; [plain] gilt nur im Testmodus. */
+internal fun anleitungBenutzer(text: String, plain: Boolean): AuthSettings {
+    val parsed = UserList.parse(text, plainTestMode = plain)
+    return AuthSettings(assertIs<UserListResult.Valid>(parsed).list, plainTestMode = plain)
+}
+
+// --- Beispiel: Ereignisse als Zeilen ---------------------------------------------------------------------------------
+
+/** Eine Zeile je Ereignis; Felder, die die Art nicht trägt, entfallen. */
+internal fun anleitungZeile(event: TelemetryEvent): String = listOfNotNull(
+    event.at.toString(),
+    event.level.name,
+    event.kind.name,
+    event.connectionId?.let { "connection_id=$it" },
+    event.reason?.let { "reason=$it" },
+    event.errorCode?.let { "error_code=$it" },
+    event.principal?.let { "principal=$it" },
+).joinToString(" ")
+
+// --- Beispiel: TLS und Prüfwert ------------------------------------------------------------------------------
+
+/** `REQUIRED` mit dem PKCS#12-Speicher aus [speicher] und seinem Kennwort. */
+internal fun anleitungTls(speicher: Path, kennwort: String, auth: AuthSettings, port: Int): ServerConfig =
+    ServerConfig(
+        listen = ListenSettings("127.0.0.1", port),
+        encryption = EncryptionSetting.REQUIRED,
+        tls = TlsKeyMaterial(Files.readAllBytes(speicher), PasswordChars(kennwort.toCharArray())),
+        auth = auth,
+    )
+
+private const val SALT_BYTES = 16
+private const val HASH_BYTES = 32
+private const val BITS_PER_BYTE = 8
+private const val ITERATIONEN = 600_000
+
+/** Der Prüfwert `{pbkdf2-sha256}Salz$Iterationen$Hash` für [kennwort]; Salz und Hash sind Standard-Base64. */
+internal fun anleitungPruefwert(kennwort: String): String {
+    val salz = ByteArray(SALT_BYTES).also { SecureRandom().nextBytes(it) }
+    val spec = PBEKeySpec(kennwort.toCharArray(), salz, ITERATIONEN, HASH_BYTES * BITS_PER_BYTE)
+    val hash = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).encoded
+    spec.clearPassword()
+    val base64 = Base64.getEncoder()
+    val felder = listOf(base64.encodeToString(salz), ITERATIONEN.toString(), base64.encodeToString(hash))
+    return "{pbkdf2-sha256}" + felder.joinToString("$")
 }
