@@ -33,7 +33,7 @@ internal sealed interface ConfigResult {
  * `TdsServer.start`). Ein Wert mit falscher Form steht als `INVALID_VALUE` im Ergebnis und wird durch die
  * Voreinstellung ersetzt, damit er nicht doppelt gemeldet wird. Formen (Festlegungen, nicht gemessen):
  * - `LISTEN_PORT`, `LOGIN_TIMEOUT`, `QUERY_TIMEOUT`, `CANCEL_TIMEOUT`, `MAX_CONNECTIONS`, `SHUTDOWN_GRACE`,
- *   `MAX_PREPARED_HANDLES` und `MAX_PRELOGIN_MESSAGE_BYTES` bestehen aus ASCII-Ziffern.
+ *   `MAX_PREPARED_HANDLES`, `MAX_MESSAGE_BYTES` und `MAX_PRELOGIN_MESSAGE_BYTES` bestehen aus ASCII-Ziffern.
  * - `LISTEN_HOST` Voreinstellung `0.0.0.0`.
  * - `ENCRYPTION_POLICY` genau `REQUIRED` oder `TEST_UNENCRYPTED`, Voreinstellung `REQUIRED`. `REQUIRED` verlangt
  *   `TLS_KEYSTORE_FILE` (PKCS#12) und `TLS_KEYSTORE_PASSWORD_FILE` (ein Zeilenende am Ende wird entfernt);
@@ -71,6 +71,7 @@ internal object ConfigLoader {
         val maxConnections = number(environment, EnvKeys.MAX_CONNECTIONS, DEFAULT_LISTEN.maxConnections, issues)
         val grace = number(environment, EnvKeys.SHUTDOWN_GRACE, DEFAULT_REQUESTS.shutdownGraceSeconds, issues)
         val handles = number(environment, EnvKeys.MAX_PREPARED_HANDLES, DEFAULT_REQUESTS.maxPreparedHandles, issues)
+        val messageBytes = number(environment, EnvKeys.MAX_MESSAGE_BYTES, DEFAULT_REQUESTS.maxMessageBytes, issues)
         val encryption = encryption(environment, issues)
         val tls = tls(environment, encryption, issues)
         val plain = plainTestMode(environment, issues)
@@ -86,7 +87,7 @@ internal object ConfigLoader {
                 checkNotNull(encryption),
                 tls,
                 auth,
-                RequestSettings(queryTimeout, cancelTimeout, grace, handles),
+                RequestSettings(queryTimeout, cancelTimeout, grace, handles, messageBytes),
             )
             ConfigResult.Loaded(config, simulation)
         }

@@ -26,10 +26,13 @@ import kotlinx.coroutines.runBlocking
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 /**
  * Die Senke des Integrators von außen (`SPEC-059`, `TDS-FA-09`): dieses Source-Set sieht nur die öffentliche Fläche.
@@ -69,12 +72,20 @@ class TelemetryEmbeddingTest {
         }
     }
 
-    private fun serve(telemetry: TelemetrySink): Pair<Int, Long> {
+    /**
+     * Startet, bedient eine Verbindung und beendet den Server. Mit [closed] wartet der Aufruf nach dem Schließen des
+     * Clients, bis der Server das Ende der Verbindung gemeldet hat; ohne das Warten wäre die Reihenfolge von Ende der
+     * Verbindung und Beginn des Beendens ein Wettlauf.
+     */
+    private fun serve(telemetry: TelemetrySink, closed: CountDownLatch? = null): Pair<Int, Long> {
         val outcome = runBlocking { TdsServer.start(unencrypted(), BackendSource.Custom(OneRowBackend()), telemetry) }
         val server = assertIs<StartOutcome.Running>(outcome).server.also { running += it }
         val rows = WireClient(server.port).use { client ->
             client.login()
             client.batch("irgendein text").rowCount
+        }
+        if (closed != null) {
+            assertTrue(closed.await(CLOSE_WAIT_SECONDS, TimeUnit.SECONDS), "Ende der Verbindung nicht gemeldet")
         }
         runBlocking { server.stop() }
         return server.port to rows
@@ -92,22 +103,31 @@ class TelemetryEmbeddingTest {
     @Test
     fun eineSenkeEmpfaengtDieEreignisseUndDieStandardausgabeBleibtLeer() {
         val events = CopyOnWriteArrayList<TelemetryEvent>()
-        val (served, output) = captured { serve { events += it } }
+        val closed = CountDownLatch(1)
+        val sink = TelemetrySink {
+            events += it
+            if (it.kind == EventKind.CONNECTION_CLOSED) closed.countDown()
+        }
+        val (served, output) = captured { serve(sink, closed) }
         assertEquals("", output)
         assertEquals(1L, served.second)
         assertEquals(
             listOf(
+                EventKind.CONFIG_EFFECTIVE,
                 EventKind.SERVER_STARTED,
                 EventKind.SECURITY_WEAKENED,
                 EventKind.SECURITY_WEAKENED,
+                EventKind.CONNECTION_OPENED,
                 EventKind.ENCRYPTION_NOT_OFFERED,
                 EventKind.LOGIN_ACCEPTED,
+                EventKind.CONNECTION_CLOSED,
+                EventKind.SERVER_STOPPING,
                 EventKind.SERVER_STOPPED,
             ),
             events.map { it.kind },
         )
         assertEquals(
-            listOf(INFO, WARN, WARN, WARN, INFO, INFO),
+            listOf(INFO, INFO, WARN, WARN, INFO, WARN, INFO, INFO, INFO, INFO),
             events.map { it.level },
         )
         assertEquals(
@@ -156,6 +176,8 @@ class TelemetryEmbeddingTest {
         assertEquals("", output)
     }
 }
+
+private const val CLOSE_WAIT_SECONDS = 20L
 
 /** Ein Backend, das jede Anfrage mit einer Zeile beantwortet. */
 private class OneRowBackend : QueryBackend {

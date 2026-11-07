@@ -133,9 +133,14 @@ internal class SecurityConfigNegativeTest : RuntimeTestBase() {
         val plainOn = withPlain + (ConfigKeys.AUTH_PLAIN_TESTMODE to "true")
         val server = assertIs<StartOutcome.Running>(start(plainOn)).server
         assertEquals(
-            listOf(EventKind.SERVER_STARTED to null, EventKind.SECURITY_WEAKENED to "PLAIN_TEST_MODE"),
+            listOf(
+                EventKind.CONFIG_EFFECTIVE to null,
+                EventKind.SERVER_STARTED to null,
+                EventKind.SECURITY_WEAKENED to "PLAIN_TEST_MODE",
+            ),
             sink.events.map { it.kind to it.reason },
         )
-        assertEquals(server.port, (sink.events.first() as ServerStarted).port)
+        assertEquals(server.port, sink.of<ServerStarted>().single().port)
+        assertSettingsAreShapedAsNames(sink.events)
     }
 }

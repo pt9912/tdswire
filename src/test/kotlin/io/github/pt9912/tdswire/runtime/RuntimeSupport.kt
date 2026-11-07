@@ -1,6 +1,7 @@
 package io.github.pt9912.tdswire.runtime
 
 import io.github.pt9912.tdswire.config.TempFilesTest
+import io.github.pt9912.tdswire.domain.telemetry.EventKind
 import io.github.pt9912.tdswire.domain.telemetry.TelemetryEvent
 import io.github.pt9912.tdswire.domain.telemetry.TelemetrySink
 import io.github.pt9912.tdswire.protocol.session.SessionVectors
@@ -19,6 +20,8 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.test.AfterTest
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 private const val CONNECT_MILLIS = 5_000
 private const val READ_MILLIS = 20_000
@@ -60,6 +63,25 @@ internal fun TelemetryEvent.visibleText(): String = (
             .filter { it.parameterCount == 0 && it.name.startsWith("get") && it.name != "getClass" }
             .map { "${it.name.removePrefix("get")}=${it.invoke(this)}" }
     ).joinToString(" ")
+
+private val SETTING_SHAPE = Regex("[A-Za-z0-9_]{1,40}")
+
+/**
+ * Jede Einstellung eines Ereignisses `CONFIG_EFFECTIVE` in [events] hat Schlüssel und Wert von der Form einer Zahl,
+ * eines Namens oder eines Schalters (Buchstaben, Ziffern, Unterstrich, höchstens 40 Zeichen): ein Pfad, der Inhalt
+ * eines Schlüsselspeichers, ein Passwort oder ein Eintrag der Benutzerliste hat diese Form nicht. Mindestens ein
+ * solches Ereignis muss da sein, sonst bewiese die Prüfung nichts.
+ */
+internal fun assertSettingsAreShapedAsNames(events: Iterable<TelemetryEvent>) {
+    val all = events.filter { it.kind == EventKind.CONFIG_EFFECTIVE }.map { assertNotNull(it.settings) }
+    assertTrue(all.isNotEmpty(), "kein CONFIG_EFFECTIVE, die Prüfung bewiese nichts")
+    all.forEach { settings ->
+        settings.forEach { (key, value) ->
+            val shaped = SETTING_SHAPE.matches(key) && SETTING_SHAPE.matches(value)
+            assertTrue(shaped, "Einstellung $key hat den Wert '$value'")
+        }
+    }
+}
 
 /** Eine vollständige Nachricht des Servers: Pakettyp, Nutzdaten und alle Bytes samt Paketköpfen. */
 internal class RawMessage(val type: Int, val payload: ByteArray, val bytes: ByteArray)

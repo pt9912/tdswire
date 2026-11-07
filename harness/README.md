@@ -25,7 +25,7 @@ Diese Datei dupliziert sie nicht.
 | 3 | [`spec/architecture.md`](../spec/architecture.md) | Komponenten/Sequenzen, meilensteinfrei |
 | 4 | [`docs/plan/adr/`](../docs/plan/adr/) | Architekturentscheidungen |
 | 5 | [`docs/plan/planning/in-progress/roadmap.md`](../docs/plan/planning/in-progress/roadmap.md) | Wellen-Sequenz |
-| 6 | [`docs/user/`](../docs/user/einbettung-und-betrieb.md), [`docs/maintainer/`](../docs/maintainer/releasing.md) | Nutzer-Doku (Betrieb, Qualität); Maintainer-Doku (`releasing.md`) |
+| 6 | [`docs/user/`](../docs/user/README.md), [`docs/maintainer/`](../docs/maintainer/releasing.md) | Nutzer-Doku (Betrieb, Qualität); Maintainer-Doku (`releasing.md`) |
 | 7 | [`README.md`](../README.md) | Projekt-Überblick |
 | 8 | [`AGENTS.md`](../AGENTS.md) | Agent-Briefing |
 | 9 | diese Datei | Harness-Einstieg |
@@ -68,7 +68,7 @@ Diese Datei dupliziert sie nicht.
 | `make flaeche` | Typnamen der Liste in `SPEC-059` gegen die öffentlichen Typdeklarationen und ihre Verwendung in `src/integrator` und `testserver/kotlin`; vergleicht keine Mitglieder; Selbsttest mit 14 Fällen | Klasse `immer`, [ADR-0024](../docs/plan/adr/0024-lokale-stempel-zwei-klassen.md), [TDS-QA-05](../spec/lastenheft.md#tds-qa-05--wartbarkeit) |
 | `make test` | Unit-Tests in Docker, Stage `test`; Einbettungstest `integrator` (nur öffentliche Fläche, ohne Jackson) und die Tests des Moduls `testserver`; ein roter Test macht `make gates` rot | Klasse `tests`, [ADR-0024](../docs/plan/adr/0024-lokale-stempel-zwei-klassen.md), [ADR-0021](../docs/plan/adr/0021-oeffentlicher-integrations-einstieg.md) |
 | `make build` | Bibliotheks-Jar ohne `Main-Class` in Docker (Stage `build-jar`), ohne Tests und Image; Lizenz und Manifest (keine `Main-Class`, `Class-Path` gegen `lib/`, kein Jackson) im Bau geprüft | Klasse `tests`, [ADR-0024](../docs/plan/adr/0024-lokale-stempel-zwei-klassen.md), [ADR-0022](../docs/plan/adr/0022-e2e-laeufe-nicht-in-den-gates.md) |
-| `make smoke` | Rohbytes-Smoke in Docker (Stage `smoke`): Kind-JVM startet das `main` des Testservers, Rohbytes-Client spricht PRELOGIN und LOGIN7; Start mit TLS ohne JVM-Option gelingt; läuft auch in `make test` | — |
+| `make smoke` | Prozesstests in Docker (Stage `smoke`): Kind-JVM mit `main` des Testservers, Rohbytes-Client (PRELOGIN, LOGIN7), TLS-Start ohne JVM-Option, Startdiagnose, Zustandsereignisse; läuft auch in `make test` | — |
 | `make referenztest-dotnet` | .NET-Referenztests in Docker, Stage `test`, auch Mitschnitt; in `make gates` übersprungen bei passendem Stempel (`make gates FORCE=1` erzwingt); roter Test macht `make gates` rot; Restore: Signaturen | Klasse `tests`, [ADR-0024](../docs/plan/adr/0024-lokale-stempel-zwei-klassen.md), [ADR-0008](../docs/plan/adr/0008-dotnet-kompatibilitaetstests.md), [ADR-0035](../docs/plan/adr/0035-dotnet-restore-signaturliste-und-audit-verzicht.md) |
 | `<make-target>` | <…> | ADR-<NNNN> |
 | `<make-target>` | <…>, bootstrap-aware | Schwelle X %, M<n> → Y % |

@@ -4,7 +4,7 @@
 # Muster gruen und rot (Stage `skript-selbsttest`). Jede Funktion liest das Log auf der Standardeingabe und endet mit 0,
 # wenn die Aussage gilt. Das Format einer Zeile (Feldnamen `event`, `error_code`, `cause`, `reason`, `principal`, `tables`
 # mit Unterstrich, kein Leerzeichen nach `:`) ist Setzung des Adapters (testserver/kotlin/.../TelemetryJson.kt) und steht in
-# docs/user/einbettung-und-betrieb.md; die Muster lesen es literal.
+# docs/user/referenz-ereignisse.md (Abschnitt "Log des Testservers"); die Muster lesen es literal.
 
 # log_nennt_ereignis <event> [<Fragment>]: mindestens eine Zeile des Ereignisses, mit <Fragment> (literal, etwa `"tables":5`).
 log_nennt_ereignis() {

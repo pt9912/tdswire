@@ -30,6 +30,7 @@ class ConfigValidationTest {
      * die der Spezifikation.
      *
      * @spec SPEC-005
+     * @spec SPEC-007
      * @spec SPEC-008
      * @spec SPEC-046
      * @spec SPEC-009
@@ -41,7 +42,7 @@ class ConfigValidationTest {
         assertEquals(emptyList(), ConfigValidation.check(config))
         assertEquals(ListenSettings("0.0.0.0", 1433, 1000), config.listen)
         assertEquals(LoginSettings(15, 65536), config.login)
-        assertEquals(RequestSettings(30, 5, 10, 1000), config.requests)
+        assertEquals(RequestSettings(30, 5, 10, 1000, 16_777_216), config.requests)
         assertEquals(EncryptionSetting.REQUIRED, ServerConfig(auth = users()).encryption)
     }
 
@@ -50,6 +51,7 @@ class ConfigValidationTest {
      * der Wert davor und danach `OUT_OF_RANGE` unter dem Schlüssel des Laders.
      *
      * @spec SPEC-005
+     * @spec SPEC-007
      * @spec SPEC-008
      * @spec SPEC-046
      * @spec SPEC-009
@@ -72,6 +74,8 @@ class ConfigValidationTest {
                 { v: Int -> unencrypted(requests = RequestSettings(shutdownGraceSeconds = v)) },
             Triple(ConfigKeys.MAX_PREPARED_HANDLES, 1, 100_000) to
                 { v: Int -> unencrypted(requests = RequestSettings(maxPreparedHandles = v)) },
+            Triple(ConfigKeys.MAX_MESSAGE_BYTES, 65535, 268_435_456) to
+                { v: Int -> unencrypted(requests = RequestSettings(maxMessageBytes = v)) },
         )
         for ((bounds, build) in cases) {
             val (key, low, high) = bounds

@@ -1,0 +1,1 @@
+**Stand:** offen — 1×, unter der Schwelle; Träger: Architect, kein Slice. Hingenommen für diesen Vorgang (V-4 und V-6 des Verifiers, LOW, nicht Bedingung der Closure). Weiter offen, bis die Sicht oder die Schlüsselliste entschieden ist; die Metriken-Zweig-Zusammenführung erweitert die Schlüsselliste um `METRICS_INTERVAL_SECONDS` (Übergabepunkt 2 des Verifikationsberichts).

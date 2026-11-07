@@ -32,6 +32,8 @@ public enum class EventLevel {
  *   Anfragepfad nur für die `CancellationException` abgeleitet. Belegt ist es an der Grenze der Meldestelle
  *   (`Telemetry.emit`); für Meldestellen in der Infrastruktur des Listeners (`AcceptFailed`, `ConnectionFailed`) ist
  *   es weder gemessen noch zugesagt.
+ * - [accept] ruft nicht `TdsServer.stop`: bei `SERVER_STOPPING` und `SERVER_STOPPED` kehrt ein solcher Aufruf nicht
+ *   zurück (die Sperre von `stop` ist nicht wiedereintrittsfähig; gemessen mit einer Zeitgrenze von 3 s).
  * - Wer die Senke übergibt, besitzt sie und schließt sie; die Bibliothek schließt sie nicht.
  * - Mehrere Server in einer JVM unterscheidet das Ereignis nicht: [TelemetryEvent.connectionId] zählt je Server.
  *   Wer eine Senke für mehrere Server teilt, übergibt jedem Server eine Hülle, die den Server kennzeichnet.

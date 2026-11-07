@@ -1,5 +1,7 @@
 package io.github.pt9912.tdswire.transport.framing
 
+import io.github.pt9912.tdswire.config.ConfigDefaults
+
 /**
  * Grenzen des Paket-Codecs.
  *
@@ -20,7 +22,7 @@ internal data class FramingLimits(
 
     companion object {
         const val MAX_TDS_PACKET_BYTES = 65535
-        const val MAX_MESSAGE_BYTES = 16 * 1024 * 1024
+        const val MAX_MESSAGE_BYTES = ConfigDefaults.MAX_MESSAGE_BYTES
         const val MAX_PRELOGIN_MESSAGE_BYTES = 65536
 
         /** Grenzen vor abgeschlossenem Login (`SPEC-046`). */

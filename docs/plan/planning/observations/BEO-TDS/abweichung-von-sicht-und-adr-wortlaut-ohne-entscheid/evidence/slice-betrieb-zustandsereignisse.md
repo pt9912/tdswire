@@ -1,0 +1,2 @@
+**Vorgang:** [slice-betrieb-zustandsereignisse](../../../../done/slice-betrieb-zustandsereignisse.md)
+**Fund:** [Verifikation](../../../../../../reviews/2026-11-07-b0ac40c5-verifikation-slice-betrieb-zustandsereignisse.md) V-4 (Schichtkante) und V-6 (Abweichung vom Wortlaut der ADR nicht geführt). Beide mit Träger „Architect“ geführt; V-6 zusätzlich als Evidence von `BEO-TDS/umsetzung-weicht-von-adr-entscheidung-ab`.

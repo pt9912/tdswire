@@ -1,0 +1,2 @@
+**Vorgang:** [slice-betrieb-zustandsereignisse](../../../../done/slice-betrieb-zustandsereignisse.md)
+**Fund:** [Verifikation](../../../../../../reviews/2026-11-07-b0ac40c5-verifikation-slice-betrieb-zustandsereignisse.md) V-5: der Tag `@spec SPEC-051` (Authentifizierungsadapter) am Test der Schlüsselnamen der wirksamen Konfiguration; die Matrix zählte einen Test für `SPEC-051`, der ihn nicht belegt. Geändert in der Closure auf `SPEC-059`.
