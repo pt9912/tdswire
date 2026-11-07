@@ -1392,7 +1392,7 @@ Schnappschuss und Span-Ende):**
   gebaute Ereignisart ist ein Schnappschuss oder ein Span-Ende. Gebaut: die Senke ist der Parameter `telemetry` von
   `TdsServer.start` (Typ `TelemetrySink`, `SPEC-059`); ohne Senke (Voreinstellung `TelemetrySink.NONE`) erzeugt
   und schreibt die Bibliothek nichts (Tests: `TelemetryTest`, `EmbeddingTest`, `TelemetryEmbeddingTest`).
-- Vertrag der Senke (gebaut, KDoc von `TelemetrySink`): Sie blockiert nicht und wirft nicht; die Bibliothek fängt
+- Vertrag der Senke (gebaut, KDoc von `TelemetrySink`): Sie blockiert nicht und wirft nicht; sie ruft `TdsServer.stop` nicht (ein Aufruf bei `SERVER_STOPPING` oder `SERVER_STOPPED` kehrt nicht zurück, die Sperre von `stop` ist nicht wiedereintrittsfähig; gemessen mit einer Zeitgrenze von 3 s, kein Test im Repo); die Bibliothek fängt
   eine `Exception` der Senke ab und verwirft sie (Test: `TelemetryTest`); bei einer `InterruptedException` bleibt das
   Flag der Unterbrechung gesetzt (Test: `TelemetryTest`). Eine `CancellationException` wird nicht gefangen. Dass
   auch jeder `Error` der Senke nicht gefangen wird, ist eine Festlegung dieses Stands, aus der Behandlung der

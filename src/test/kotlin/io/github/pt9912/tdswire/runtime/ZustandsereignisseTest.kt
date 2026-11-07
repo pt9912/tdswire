@@ -221,7 +221,7 @@ internal class ZustandsereignisseTest : RuntimeTestBase() {
      * Die Schlüssel der Abbildung, die `EffectiveSettings` ableitet, sind die Namen der Konfiguration (`ConfigKeys`):
      * der Typ der Bibliothek im Package `domain` kennt `ConfigKeys` nicht und führt die Namen selbst.
      *
-     * @spec SPEC-051
+     * @spec SPEC-059
      */
     @Test
     fun `Die Schluessel der wirksamen Konfiguration sind die Namen der Konfiguration`() {
@@ -333,7 +333,7 @@ internal class ZustandsereignisseTest : RuntimeTestBase() {
      * Verbindung ist offen): der zweite Aufruf kehrt nicht zurück, solange der erste nicht fertig ist, und beide kehren
      * erst zurück, nachdem das Ereignis zum Ende abgegeben ist; die Folge ist Beginn, Ende der Verbindung, Ende, je
      * einmal. Die Wartezeit von 500 ms gilt nur für den Fehlerfall: ein zweiter Aufruf, der nicht wartet, kehrt in
-     * ihr zurück.
+     * ihr zurück (Sensor seit slice-betrieb-zustandsereignisse; ohne die Sperre rot).
      *
      * @spec SPEC-044
      * @spec SPEC-059

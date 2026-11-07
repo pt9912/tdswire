@@ -90,6 +90,10 @@ public class TdsServer internal constructor(private val listener: TdsListener, p
      * abgebrochen, bevor das Beenden fertig ist, entfällt das Ereignis zum Ende in diesem Aufruf; der Listener räumt
      * trotzdem auf, und der nächste Aufruf gibt das Ereignis zum Ende ab (ohne ein zweites zum Beginn). Dann kann das
      * Ereignis zum Ende vor dem `CONNECTION_CLOSED` einer noch endenden Verbindung stehen.
+     *
+     * `stop` aus der Senke heraus, bei `SERVER_STOPPING` oder `SERVER_STOPPED`, kehrt nicht zurück: die Sperre ist
+     * nicht wiedereintrittsfähig und wird während der Abgabe der Ereignisse gehalten (gemessen mit einer Zeitgrenze von
+     * 3 s, beide Arten); eine Senke blockiert ohnehin nicht (Vertrag von `TelemetrySink`).
      */
     public suspend fun stop() {
         stopLock.withLock {

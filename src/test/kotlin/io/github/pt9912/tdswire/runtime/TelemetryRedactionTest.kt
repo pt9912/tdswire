@@ -146,7 +146,7 @@ internal class TelemetryRedactionTest : RuntimeTestBase() {
     /**
      * Bauart der wirksamen Konfiguration (`ADR-0040`): die Felder von `EffectiveSettings` sind nur Zahlentypen,
      * Aufzählungen und `Boolean`, und der Konstruktor von `ConfigEffective` nimmt keinen Parameter vom Typ Text oder
-     * Abbildung. Ein Feld mit Text oder Bytes macht den Test rot.
+     * Abbildung. Ein Feld mit Text oder Bytes macht den Test rot (Sensor seit slice-betrieb-zustandsereignisse).
      *
      * @spec SPEC-048
      */

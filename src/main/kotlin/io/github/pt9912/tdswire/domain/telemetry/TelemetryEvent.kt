@@ -147,7 +147,8 @@ public enum class EventKind {
     CONFIG_EFFECTIVE,
 
     /**
-     * Das geordnete Beenden beginnt (`TdsServer.stop`); genau ein Ereignis je Server, vor dem Ende jeder Verbindung.
+     * Das geordnete Beenden beginnt (`TdsServer.stop`); wird `stop` gerufen, genau ein Ereignis je Server, vor dem Ende
+     * jeder Verbindung; ein nie beendeter Server meldet keines.
      * Ebene `INFO`.
      */
     SERVER_STOPPING,
