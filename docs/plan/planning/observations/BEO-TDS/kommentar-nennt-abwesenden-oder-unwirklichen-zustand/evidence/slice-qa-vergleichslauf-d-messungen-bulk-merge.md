@@ -1,0 +1,2 @@
+**Vorgang:** [slice-qa-vergleichslauf-d-messungen-bulk-merge](../../../../in-progress/slice-qa-vergleichslauf-d-messungen-bulk-merge.md)
+**Fund:** Review F-1 ([Review-Report](../../../../../../reviews/2026-11-07-2c6dd2d4-review-slice-qa-vergleichslauf-d-messungen-bulk-merge.md)): drei `Stand`-Zellen des Registers erzählten die Entstehung („Bisheriger Wortlaut:“, „davor gemessen ist …“, Ablauftext) statt den Zustand zu nennen; behoben in `4d73a9d2`, zwei Zellen widersprachen sich vorher nebeneinander.
