@@ -225,7 +225,7 @@ internal class ZustandsereignisseTest : RuntimeTestBase() {
      */
     @Test
     fun `Die Schluessel der wirksamen Konfiguration sind die Namen der Konfiguration`() {
-        val users = assertIs<UserListResult.Valid>(UserList.parse("", true)).list
+        val users = assertIs<UserListResult.Valid>(UserList.parse("alice\t{plain}pw\n", true)).list
         val config = ServerConfig(auth = AuthSettings(users, true))
         assertEquals(
             listOf(
