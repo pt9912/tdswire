@@ -1,2 +1,2 @@
-**Vorgang:** [slice-qa-vergleichslauf-d-messungen-bulk-merge](../../../../in-progress/slice-qa-vergleichslauf-d-messungen-bulk-merge.md)
+**Vorgang:** [slice-qa-vergleichslauf-d-messungen-bulk-merge](../../../../done/slice-qa-vergleichslauf-d-messungen-bulk-merge.md)
 **Fund:** Verifikation V-5 ([Verifikationsbericht](../../../../../../reviews/2026-11-07-4d73a9d2-verifikation-slice-qa-vergleichslauf-d-messungen-bulk-merge.md)): `referenztest-dotnet/Vergleich/DMigrateTexte.cs` wiederholt den Wortlaut von `src/test/kotlin/.../simulation/DMigrateWire.kt`; kein Sensor prüft die Gleichheit (Review: maschinell gleich, 24 Texte), die Messreihe läuft nur lokal und ist kein Gate. Dritte Kopplung: über der Schwelle, der Lese-Schritt gehört in die Closure der Welle.
