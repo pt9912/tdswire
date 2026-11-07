@@ -2,3 +2,5 @@
 
 
 **Lese-Schritt welle-fehler-abbruch (2026-11-06):** 6× gelesen, über der Schwelle, nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung), siehe `welle-fehler-abbruch-results.md` §Steering-Loop-Einträge und §Offene Fragen. Die Closure ändert weder Regel noch Gate. Der Stand `offen` bleibt. Der Stand-Text oben weist den Lese-Schritt `welle-testserver-manuell` zu und zählt 5×; die Dateien zählen 6. `welle-fehler-abbruch` schließt zuerst und hat gelesen; die Entscheidung über einen Reviewer-Punkt bleibt bei der Closure von `welle-testserver-manuell`.
+
+**Lese-Schritt welle-anfrageverarbeitung (2026-11-07):** 7× gelesen (Beleg dieser Welle: `slice-integrations-einstieg`), über der Schwelle, nicht verkörpert; Entscheidung weiter bei der Closure von `welle-testserver-manuell` (Frage 2 in `welle-anfrageverarbeitung-results.md`). Die Closure ändert weder Regel noch Gate. Der Stand `offen` bleibt.
