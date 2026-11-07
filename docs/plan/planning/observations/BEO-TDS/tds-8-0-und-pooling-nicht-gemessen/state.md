@@ -2,3 +2,5 @@
 
 
 **Lese-Schritt welle-fehler-abbruch (2026-11-06):** 20× gelesen, über der Schwelle, nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung), siehe `welle-fehler-abbruch-results.md` §Steering-Loop-Einträge und §Offene Fragen. Die Closure ändert weder Regel noch Gate. Der Stand `offen` bleibt.
+
+**Lese-Schritt welle-anfrageverarbeitung (2026-11-07):** 20× gelesen (Belege dieser Welle: `slice-rpc-executesql-parameter`, `slice-rpc-prepared-handles`), über der Schwelle, nicht verkörpert; Entscheidung beim Nutzer (Frage 3 in `welle-anfrageverarbeitung-results.md`). Die Closure ändert weder Regel noch Gate. Der Stand `offen` bleibt.
