@@ -32,7 +32,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Der Standardpfad mit Paket 0x07 — [slice-schreibpfad-bulk-load](slice-schreibpfad-bulk-load.md).
+- Der Standardpfad mit Paket 0x07 — [slice-schreibpfad-bulk-load](../next/slice-schreibpfad-bulk-load.md).
 - Allgemeines `MERGE` (mehrere Quellen, mehrere WHEN-Zweige, `DELETE`-Zweig, beliebige `OUTPUT`-Spalten): erkannt wird nur die Gestalt, die d-migrate sendet; alles andere bleibt `TDS_UNSUPPORTED_SQL`.
 - Katalog und DDL — [slice-katalog-und-ddl-zustand](../done/slice-katalog-und-ddl-zustand.md).
 - Konfliktsemantik jenseits von Schlüsselvergleich (Bedingungen, Trigger); die Bibliothek speichert und vergleicht nichts selbst ([TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend)).
