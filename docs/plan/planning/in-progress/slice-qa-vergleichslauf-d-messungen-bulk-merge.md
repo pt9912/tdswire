@@ -89,7 +89,19 @@ Aussagen-Berührung steht hier gar nicht.
 | `docs/messungen/referenzabgleich.md` | update | Messzeilen, Zuordnung zu Setzung oder Konflikt ([TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität)) |
 | `docs/plan/planning/observations/BEO-TDS/messung-am-echten-sql-server-fehlt/` | update | Stand und Evidence |
 
-Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
+Ergänzt im ersten Lauf (Implementer-Agent, 2026-11-07; Abgleich des Ist-Zustands gegen den Plan vor dem Editieren: `MessungWireTests.cs` zählt 22 Szenarien und `MessungBelegTests` prüft genau 22 Dateien je Stufe, deshalb eine eigene Kategorie und eine eigene Ablage statt Szenarien in der vorhandenen Klasse):
+
+| Datei / Komponente | Änderungs-Art | Begründung |
+|---|---|---|
+| `referenztest-dotnet/Vergleich/MessungBulkTests.cs` (Kategorie `MessungBulk`, 16 Szenarien) | neu | Erzeuger der Messreihe in allen drei Liefer-Punkten; Muster `MessungWireTests.cs`, gleiche Bausteine (`TlsAufnahme`, `MessDatei`) |
+| `referenztest-dotnet/Vergleich/DMigrateTexte.cs` | neu | Wortlaut der Texte aus `DMigrateWire.kt` für den Referenzclient (die Stage `vergleich` kopiert nur `Mitschnitt` und `Vergleich`) |
+| `referenztest-dotnet/Mitschnitt/messung/bulk-merge-katalog/{2022,2025}/` | neu | 16 redigierte Messdateien je Instanz, getrennt von der Ablage der Messreihe am Draht |
+| `referenztest-dotnet/Mitschnitt/MessungBulkBelegTests.cs` | neu | Belege der Messprotokollzeilen M-8 bis M-24 ohne Referenzinstanz (`make referenztest-dotnet`) |
+| `referenztest-dotnet/Mitschnitt/TokenLeser.cs`, `MitschnittEinheitTests.cs` | update, neu | Flag-Feld der RETURNVALUE in den Einzelheiten der Messung (nicht im Vergleich), Einheitstest dazu |
+| `tools/vergleichslauf-d.sh`, `tools/mk/vergleichslauf-d.mk` | update | Läufe `bulk`, `bulk-2022`, `bulk-2025` (Kategorie `MessungBulk`, Ablage `messung/bulk-merge-katalog/<Stufe>/`) |
+| `spec/spezifikation.md` (`SPEC-030`, `SPEC-035`, `SPEC-036`, `SPEC-060`) | update | Messvermerke; Setzungen bleiben, Konflikte stehen im Messprotokoll als Entscheidungsvorlage |
+| `docs/plan/planning/observations/BEO-TDS/{messung-am-echten-sql-server-fehlt,obergrenze-gemeldete-nummern-je-batch-weicht-vom-echten-server-ab,zielbild-luecken-der-antwort-tokens}/state.md` | update | Stand der drei Einträge |
+| `docs/plan/spec-abdeckung.md` | update (erzeugt) | Tests geändert, `make spec-abdeckung` |
 
 ## 4. Trigger
 
