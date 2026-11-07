@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** SPEC-036 (neue Form für `MERGE` mit VALUES-Zeile, Alias und `OUTPUT $action`; bisher „OUTPUT-Klauseln nicht erkannt“) · SPEC-030 (Parametertypen) · SPEC-035 (Callbacks) · SPEC-040
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** Implementer-Agent, Auftrag des Nutzers 2026-11-07.
 
 **Autor:** pt9912 (Entwurf in der Planner-Rolle). **Datum:** 2026-11-05.
 
