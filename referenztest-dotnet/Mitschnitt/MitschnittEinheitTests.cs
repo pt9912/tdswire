@@ -296,6 +296,19 @@ public class MitschnittEinheitTests
         Assert.Equal("RETURNVALUE Ordinal 2, Name '@id', Status 1, Typ intn, Wert 7", TokenLeser.Lesen(benannt).Rueckgabe.Single());
     }
 
+    // @spec SPEC-045
+    [Fact]
+    public void Der_Leser_legt_das_Flag_Feld_der_RETURNVALUE_in_die_Einzelheiten_und_nicht_in_den_Vergleich()
+    {
+        var nullbar = Cat(Bytes(0xAC), U16(2), BVarchar("@o"), Bytes(1), U32(0), U16(1), Bytes(0x26, 4), Bytes(0));
+        var nichtNullbar = Cat(Bytes(0xAC), U16(3), BVarchar("@p"), Bytes(1), U32(0), U16(0), Bytes(0x26, 4), Bytes(4), U32(5));
+        var a = TokenLeser.Lesen(Cat(nullbar, nichtNullbar, Done(0x00, 0, 0xE0, 0xFE)));
+
+        Assert.Null(a.Problem);
+        Assert.Equal(new[] { "RETURNVALUE Ordinal 2 Flags 0x0001", "RETURNVALUE Ordinal 3 Flags 0x0000" }, a.Einzelheiten);
+        Assert.DoesNotContain(a.Rueckgabe, r => r.Contains("Flags", StringComparison.Ordinal));
+    }
+
     // ---- Abbildung auf die Felder -----------------------------------------------------------------------------------
 
     private static byte[] Grundantwort(int wert = 1, int status = 0x10, int skala = 2, int befehl = 0xC1) =>

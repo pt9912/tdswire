@@ -25,7 +25,7 @@ internal sealed class Antwort
 
     public List<string> Rueckgabe { get; } = new();
 
-    /// <summary>Werte, die der Vergleich nicht führt (LOGINACK, ENVCHANGE mit Werten, SESSIONSTATE, FEATUREEXTACK); Ablage der Messung.</summary>
+    /// <summary>Werte, die der Vergleich nicht führt (LOGINACK, ENVCHANGE mit Werten, SESSIONSTATE, FEATUREEXTACK, Flag-Feld der RETURNVALUE); Ablage der Messung.</summary>
     public List<string> Einzelheiten { get; } = new();
 
     public bool AttnQuittung { get; set; }
@@ -537,5 +537,6 @@ internal sealed class TokenLeser
         var wert = Wert(info);
         if (name.Length == 0 || string.Equals(name, "@handle", StringComparison.OrdinalIgnoreCase)) wert = wert == "NULL" ? "NULL" : "<vorhanden>";
         a.Rueckgabe.Add($"RETURNVALUE Ordinal {ordinal}, Name '{name}', Status {status}, Typ {Typnamen.GetValueOrDefault(info.Typ, "?")}, Wert {wert}");
+        a.Einzelheiten.Add($"RETURNVALUE Ordinal {ordinal} Flags 0x{flags:x4}");
     }
 }

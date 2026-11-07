@@ -33,5 +33,5 @@
 VERGLEICH_ACCEPT_EULA = Y
 LAUF ?= alle
 
-vergleichslauf-d: ## Vergleichslauf D: Referenzclient gegen echten SQL Server (Developer-Image, EULA-Entscheidung des Nutzers), LAUF=alle|live|aufnahme|mitschnitt|wire|wire-2022|wire-2025|aufnahme-2022|aufnahme-2025|mitschnitt-2022|mitschnitt-2025|messung-2022|messung-2025|live-2022|live-2025|2022-anmeldung|2022-tds8|2025-anmeldung|2025-tds8|2025-tds8-forcestrict — KEIN Gate, nur lokal
+vergleichslauf-d: ## Vergleichslauf D: Referenzclient gegen echten SQL Server (Developer-Image, EULA-Entscheidung des Nutzers), LAUF=alle|live|aufnahme|mitschnitt|wire|wire-2022|wire-2025|bulk|bulk-2022|bulk-2025|aufnahme-2022|aufnahme-2025|mitschnitt-2022|mitschnitt-2025|messung-2022|messung-2025|live-2022|live-2025|2022-anmeldung|2022-tds8|2025-anmeldung|2025-tds8|2025-tds8-forcestrict — KEIN Gate, nur lokal
 	VERGLEICH_ACCEPT_EULA="$(VERGLEICH_ACCEPT_EULA)" BUILDER_FLAGS="$(BUILDER_FLAGS)" bash tools/vergleichslauf-d.sh "$(LAUF)"
