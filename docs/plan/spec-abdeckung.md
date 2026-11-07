@@ -18,7 +18,7 @@ KDoc-Block oder eine Klasse verwirft einen offenen Tag.
 
 **Konvention des C#-Tags:** eine Kommentarzeile `// @spec SPEC-<NNN> [SPEC-<NNN> ...]` über der Testmethode; Attributzeilen
 (`[Fact]`, `[Theory]`, `[InlineData(...)]`), Leer- und Kommentarzeilen dazwischen halten ihn, jede andere Zeile verwirft ihn.
-Der Bericht der C#-Tests ist der der Stage `test-bericht` des .NET-Gerüsts (COPY-Quellen und DOTNET_TEST_ARGS wie die Stage `test`; weitere Flags in deren RUN-Zeile sind nicht gekoppelt); ein getaggter C#-Test, den sie nicht
+Der Bericht der C#-Tests ist der der Stage `test-bericht` des .NET-Gerüsts (COPY-Quellen, DOTNET_TEST_ARGS und Aufruf über `test-lauf.sh` wie die Stage `test`; eine RUN-Zeile von `test` ohne `test-lauf.sh` ist nicht gekoppelt, ein Restrisiko ohne Sensor); ein getaggter C#-Test, den sie nicht
 ausführt (die zwei Tests des Abspielens, die nur in `make vergleichslauf-d` laufen), steht als „nicht gelaufen“.
 
 Ein **Nachweis** ist ein Test, dessen Tag die Kennung nennt und der im Bericht desselben Laufs

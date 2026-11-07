@@ -22,22 +22,23 @@ COPY nuget.config TdsWire.Referenztests.csproj packages.lock.json ./
 RUN dotnet restore
 
 # --- Test: Build und Tests ohne Netz. Ein roter Test bricht den Build. `test-quellen` ist die gemeinsame Basis von `test`
-# und `test-bericht`: Quellen (COPY) und Argumente von `dotnet test` (DOTNET_TEST_ARGS) stehen nur hier. ----------------
+# und `test-bericht`: Quellen (COPY), Argumente (DOTNET_TEST_ARGS) und der Aufruf von `dotnet test` (test-lauf.sh) stehen nur hier.
+# Beide Stages rufen `sh test-lauf.sh <Modus>`; ein weiteres Flag am Skriptaufruf weist es ab. Eine RUN-Zeile ohne `test-lauf.sh` bleibt ungekoppelt (kein Sensor). ----------------
 FROM restore AS test-quellen
 COPY Smoke Smoke
 COPY Mitschnitt Mitschnitt
+COPY test-lauf.sh ./
 ENV DOTNET_TEST_ARGS="--no-restore --nologo"
 
 FROM test-quellen AS test
-RUN --network=none dotnet test $DOTNET_TEST_ARGS
+RUN --network=none sh test-lauf.sh test
 
-# --- Test-Bericht: dieselbe Basis und dieselben Argumente wie `test`, zusaetzlich der TRX-Logger (eingebaut, kein Paket);
-# der Bericht bleibt auch bei roten Tests erhalten (`make spec-abdeckung`, kein Gate). Scheitert der Bau, entsteht
+# --- Test-Bericht: dieselbe Basis und derselbe Aufruf wie `test` (Modus `bericht`), zusaetzlich der TRX-Logger (eingebaut,
+# kein Paket); der Bericht bleibt auch bei roten Tests erhalten (`make spec-abdeckung`, kein Gate). Scheitert der Bau, entsteht
 # `/bericht` nicht und der Build von `test-bericht-export` bricht ab (`"/bericht": not found`). `test-bericht-export`
 # gibt den Bericht per --output heraus. ---
 FROM test-quellen AS test-bericht
-RUN --network=none dotnet test $DOTNET_TEST_ARGS --logger "trx;LogFileName=bericht.trx" --results-directory /bericht \
- || echo "test-bericht: der Testlauf ist rot; rote Tests zaehlen nicht als Nachweis"
+RUN --network=none sh test-lauf.sh bericht
 
 FROM scratch AS test-bericht-export
 COPY --from=test-bericht /bericht/ /
