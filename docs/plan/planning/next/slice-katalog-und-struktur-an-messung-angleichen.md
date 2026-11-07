@@ -37,9 +37,9 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Die Sichten für Indizes, Standardwerte, Prüfbedingungen und Fremdschlüssel — [slice-katalog-indizes-defaults-fremdschluessel](slice-katalog-indizes-defaults-fremdschluessel.md); sie bauen auf den Typen dieses Slice auf, haben aber ihre eigene Messung (M-21).
-- Die Fehlerabbildung von `sp_executesql` und der Abschluss im RPC — [slice-antwort-tokens-zielbild-luecken-bauen](slice-antwort-tokens-zielbild-luecken-bauen.md); dieser Slice berührt den Abschluss von SQL_BATCH-Strukturänderungen (M-20), nicht den der RPC-Antwort (`DONEPROC`).
-- Weitere DDL-Formen (Fremdschlüssel, Indizes, Standardwerte in `CREATE TABLE`) — Folge-Slice [slice-katalog-indizes-defaults-fremdschluessel](slice-katalog-indizes-defaults-fremdschluessel.md); gemessen ist nur, was die Messreihe trägt.
+- Die Sichten für Indizes, Standardwerte, Prüfbedingungen und Fremdschlüssel — [slice-katalog-indizes-defaults-fremdschluessel](../open/slice-katalog-indizes-defaults-fremdschluessel.md); sie bauen auf den Typen dieses Slice auf, haben aber ihre eigene Messung (M-21).
+- Die Fehlerabbildung von `sp_executesql` und der Abschluss im RPC — [slice-antwort-tokens-zielbild-luecken-bauen](../open/slice-antwort-tokens-zielbild-luecken-bauen.md); dieser Slice berührt den Abschluss von SQL_BATCH-Strukturänderungen (M-20), nicht den der RPC-Antwort (`DONEPROC`).
+- Weitere DDL-Formen (Fremdschlüssel, Indizes, Standardwerte in `CREATE TABLE`) — Folge-Slice [slice-katalog-indizes-defaults-fremdschluessel](../open/slice-katalog-indizes-defaults-fremdschluessel.md); gemessen ist nur, was die Messreihe trägt.
 - Eine Aussage über andere Clients als den Referenzclient: Die Texte sind der Wortlaut von d-migrate (`DMigrateTexte.cs`), gemessen ist die Antwort des Servers auf den Text, nicht das Verhalten von d-migrate oder mssql-jdbc (`AGENTS.md` §3.8).
 
 ## 2. Definition of Done
@@ -93,7 +93,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-qa-vergleichslauf-d-messungen-bulk-merge](../done/slice-qa-vergleichslauf-d-messungen-bulk-merge.md) liegt in `done/` (erfüllt mit der Closure dieses Slice) und [slice-katalog-und-ddl-zustand](../done/slice-katalog-und-ddl-zustand.md) liegt in `done/` (erfüllt). Beide Slices berühren die Katalogdateien; [slice-katalog-indizes-defaults-fremdschluessel](slice-katalog-indizes-defaults-fremdschluessel.md) startet nach diesem Slice (Setzung des Planners: die Typen der Spalten wirken in jede Sichtantwort); ein gleichzeitiger Lauf beider erzeugt Konflikte am Katalog.
+**Start** (`next` → `in-progress`): [slice-qa-vergleichslauf-d-messungen-bulk-merge](../done/slice-qa-vergleichslauf-d-messungen-bulk-merge.md) liegt in `done/` (erfüllt mit der Closure dieses Slice) und [slice-katalog-und-ddl-zustand](../done/slice-katalog-und-ddl-zustand.md) liegt in `done/` (erfüllt). Beide Slices berühren die Katalogdateien; [slice-katalog-indizes-defaults-fremdschluessel](../open/slice-katalog-indizes-defaults-fremdschluessel.md) startet nach diesem Slice (Setzung des Planners: die Typen der Spalten wirken in jede Sichtantwort); ein gleichzeitiger Lauf beider erzeugt Konflikte am Katalog.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -117,8 +117,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- **Auswirkung auf den Beleg am fremden Client.** d-migrate liest `max_length` und `precision` über JDBC; ob `smallint` und `tinyint` statt `int` etwas ändert, ist nicht gemessen. Die Abnahme ([slice-abnahme-d-migrate](slice-abnahme-d-migrate.md)) prüft es am Ende (Grenze, kein Soll der Sonde). — **Ausgang:** offen bis zur Closure.
-- Die Reihenfolge zu [slice-katalog-indizes-defaults-fremdschluessel](slice-katalog-indizes-defaults-fremdschluessel.md) ist eine Setzung des Planners. — **Ausgang:** offen bis zur Closure.
+- **Auswirkung auf den Beleg am fremden Client.** d-migrate liest `max_length` und `precision` über JDBC; ob `smallint` und `tinyint` statt `int` etwas ändert, ist nicht gemessen. Die Abnahme ([slice-abnahme-d-migrate](../open/slice-abnahme-d-migrate.md)) prüft es am Ende (Grenze, kein Soll der Sonde). — **Ausgang:** offen bis zur Closure.
+- Die Reihenfolge zu [slice-katalog-indizes-defaults-fremdschluessel](../open/slice-katalog-indizes-defaults-fremdschluessel.md) ist eine Setzung des Planners. — **Ausgang:** offen bis zur Closure.
 - Die Messung trägt den Referenzclient, nicht mssql-jdbc; die Antworten auf die Texte von d-migrate sind gemessen, ihre Wirkung im Treiber nicht (`AGENTS.md` §3.8). — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz

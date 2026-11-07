@@ -40,7 +40,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Die Menge der gemeldeten Nummern bei `sp_unprepare` — [slice-sp-unprepare-ohne-obergrenze](slice-sp-unprepare-ohne-obergrenze.md); beide Slices berühren die Batch-Freigabe (gleicher Pfad), wer später startet, zieht nach.
 - SESSIONSTATE (Nr 8 des Vorgängers): „vorerst nicht senden“, Nutzerentscheid 2026-11-06, Re-Evaluierungs-Trigger dort; unberührt.
 - Die Ursache des SESSIONSTATE-Unterschieds nach dem Abbruch (nur Instanz 2022, Zustandskennung 254) und `COLMETADATA` hinter `RETURNVALUE` — Lücken ohne Träger (Nutzerentscheid 2026-11-06).
-- Der Abschluss von `CREATE TABLE` und `ALTER TABLE` (SQL_BATCH, `0x00c6`, `0x00d8`) — [slice-katalog-und-struktur-an-messung-angleichen](slice-katalog-und-struktur-an-messung-angleichen.md).
+- Der Abschluss von `CREATE TABLE` und `ALTER TABLE` (SQL_BATCH, `0x00c6`, `0x00d8`) — [slice-katalog-und-struktur-an-messung-angleichen](../next/slice-katalog-und-struktur-an-messung-angleichen.md).
 
 ## 2. Definition of Done
 
