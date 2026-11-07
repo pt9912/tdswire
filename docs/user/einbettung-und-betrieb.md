@@ -461,13 +461,12 @@ Dateirechte und Besitzer der Benutzerliste setzt die Bibliothek nicht; sie liest
    import java.nio.file.Path
 
    /** `REQUIRED` mit dem PKCS#12-Speicher aus [speicher] und seinem Kennwort. */
-   internal fun anleitungTls(speicher: Path, kennwort: String, auth: AuthSettings, port: Int): ServerConfig =
-       ServerConfig(
-           listen = ListenSettings("127.0.0.1", port),
-           encryption = EncryptionSetting.REQUIRED,
-           tls = TlsKeyMaterial(Files.readAllBytes(speicher), PasswordChars(kennwort.toCharArray())),
-           auth = auth,
-       )
+   internal fun anleitungTls(speicher: Path, kennwort: String, auth: AuthSettings, port: Int): ServerConfig = ServerConfig(
+       listen = ListenSettings("127.0.0.1", port),
+       encryption = EncryptionSetting.REQUIRED,
+       tls = TlsKeyMaterial(Files.readAllBytes(speicher), PasswordChars(kennwort.toCharArray())),
+       auth = auth,
+   )
    ```
 
 3. Starten wie in [Aufgabe 1](#1-den-server-in-die-anwendung-einbinden). Der Start führt vor dem Binden einen vollständigen TLS-Handschlag im Speicher aus (`SPEC-043`).

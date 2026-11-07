@@ -48,6 +48,8 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
+private const val CONNECT_FRIST_MILLIS = 1_000
+
 private const val ANLEGEN =
     "CREATE TABLE dbo.neu (Id BIGINT NOT NULL, Name NVARCHAR(50) NULL, CONSTRAINT [pk_neu] PRIMARY KEY ([Id]))"
 
@@ -126,7 +128,8 @@ class AnleitungTest {
         val port = server.port
         WireClient(port).use { it.login() }
         runBlocking { server.stop() }
-        assertFailsWith<IOException> { Socket().use { it.connect(InetSocketAddress(LOOPBACK, port), 1000) } }
+        val ziel = InetSocketAddress(LOOPBACK, port)
+        assertFailsWith<IOException> { Socket().use { it.connect(ziel, CONNECT_FRIST_MILLIS) } }
     }
 
     @Test
@@ -303,13 +306,12 @@ internal fun anleitungZeile(event: TelemetryEvent): String = listOfNotNull(
 // --- Beispiel: TLS und Prüfwert ------------------------------------------------------------------------------
 
 /** `REQUIRED` mit dem PKCS#12-Speicher aus [speicher] und seinem Kennwort. */
-internal fun anleitungTls(speicher: Path, kennwort: String, auth: AuthSettings, port: Int): ServerConfig =
-    ServerConfig(
-        listen = ListenSettings("127.0.0.1", port),
-        encryption = EncryptionSetting.REQUIRED,
-        tls = TlsKeyMaterial(Files.readAllBytes(speicher), PasswordChars(kennwort.toCharArray())),
-        auth = auth,
-    )
+internal fun anleitungTls(speicher: Path, kennwort: String, auth: AuthSettings, port: Int): ServerConfig = ServerConfig(
+    listen = ListenSettings("127.0.0.1", port),
+    encryption = EncryptionSetting.REQUIRED,
+    tls = TlsKeyMaterial(Files.readAllBytes(speicher), PasswordChars(kennwort.toCharArray())),
+    auth = auth,
+)
 
 private const val SALT_BYTES = 16
 private const val HASH_BYTES = 32
