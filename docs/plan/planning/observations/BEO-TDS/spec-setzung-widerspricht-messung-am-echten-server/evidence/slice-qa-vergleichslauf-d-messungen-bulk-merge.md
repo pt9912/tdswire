@@ -1,0 +1,2 @@
+**Vorgang:** [slice-qa-vergleichslauf-d-messungen-bulk-merge](../../../../done/slice-qa-vergleichslauf-d-messungen-bulk-merge.md)
+**Fund:** Messreihe M-8 bis M-24 ([Verifikationsbericht](../../../../../../reviews/2026-11-07-4d73a9d2-verifikation-slice-qa-vergleichslauf-d-messungen-bulk-merge.md), Konfliktliste): sechs weitere Setzungen und ein ADR-Wortlaut widersprechen der Messung (Typen der Katalogspalten, Strukturabweisung, Änderungszähler, Obergrenze, Tokenfolge von `sp_unprepare`, Flag-Feld, Atomarität); Träger durch Nutzerentscheid 2026-11-07: vier Slices in `open/`.
