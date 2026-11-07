@@ -100,7 +100,7 @@ class SqlBatchDispatchTest {
     fun `Ein leeres Ergebnis hat Metadaten und einen Abschluss ohne ROW`() = blocking {
         val variants = mapOf(
             QueryEvent.ResultEnd(0) to BatchVectors.DONE_COUNT_0,
-            QueryEvent.ResultEnd(null) to BatchVectors.DONE_FINAL,
+            QueryEvent.ResultEnd(null) to BatchVectors.DONE_SELECT_FINAL,
         )
         variants.forEach { (end, done) ->
             val backend = ScriptedBackend.ofList(resultStart(), end)

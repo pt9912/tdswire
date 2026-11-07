@@ -69,7 +69,7 @@ class ResponseMappingTest {
     /**
      * Handvektor, von Hand nach dem Tokenlayout des Codecs abgeleitet (nicht gemessen):
      * COLMETADATA mit einer Spalte `n` (INT4, nicht nullbar), eine ROW mit dem Wert 1, ein DONE mit
-     * `DONE_COUNT` und Zeilenzahl 1, `curCmd` 0.
+     * `DONE_COUNT` und Zeilenzahl 1, `curCmd` `0x00c1`.
      *
      * @spec SPEC-031 SPEC-002
      */
@@ -79,7 +79,7 @@ class ResponseMappingTest {
         assertEquals(
             "81 01 00 00 00 00 00 00 00 38 01 6E 00 " +
                 "D1 01 00 00 00 " +
-                "FD 10 00 00 00 01 00 00 00 00 00 00 00",
+                "FD 10 00 C1 00 01 00 00 00 00 00 00 00",
             bytes(tokens),
         )
     }
@@ -108,7 +108,7 @@ class ResponseMappingTest {
     fun `leeres Ergebnis mit Metadaten`() {
         val (outcome, tokens, _) = sequence(start(), QueryEvent.ResultEnd(0))
         assertEquals(SequenceOutcome.COMPLETED, outcome)
-        assertEquals(listOf<Token>(tokens[0], done(DoneStatus.COUNT, 0)), tokens)
+        assertEquals(listOf<Token>(tokens[0], doneSelect(DoneStatus.COUNT, 0)), tokens)
         assertIs<ColMetadataToken>(tokens[0])
     }
 
@@ -120,7 +120,7 @@ class ResponseMappingTest {
     @Test
     fun `ResultEnd ohne Zahl setzt kein COUNT`() {
         val (_, tokens, _) = sequence(start(), QueryEvent.ResultEnd(null))
-        assertEquals(done(DoneStatus.FINAL, 0), tokens.last())
+        assertEquals(doneSelect(DoneStatus.FINAL, 0), tokens.last())
     }
 
     /**
@@ -132,7 +132,7 @@ class ResponseMappingTest {
     fun `leerer Strom endet in einem DONE ohne Bits`() {
         val (outcome, tokens, backend) = sequence()
         assertEquals(SequenceOutcome.COMPLETED, outcome)
-        assertEquals(listOf<Token>(done(DoneStatus.FINAL)), tokens)
+        assertEquals(listOf<Token>(doneBatch(DoneStatus.FINAL)), tokens)
         assertEquals(1, backend.closeCalls)
     }
 
@@ -151,7 +151,7 @@ class ResponseMappingTest {
         assertEquals(
             listOf<Token>(
                 ErrorToken(TYPE_MESSAGE),
-                done(DoneStatus.ERROR),
+                doneBatch(DoneStatus.ERROR),
             ),
             tokens,
         )
@@ -173,7 +173,7 @@ class ResponseMappingTest {
         assertEquals(
             listOf<Token>(
                 ErrorToken(TYPE_MESSAGE),
-                done(DoneStatus.ERROR),
+                doneSelect(DoneStatus.ERROR),
             ),
             tokens.takeLast(2),
         )
@@ -206,7 +206,7 @@ class ResponseMappingTest {
         assertIs<ColMetadataToken>(sink.tokens.single())
         gate.complete(Unit)
         job.join()
-        assertEquals(done(COUNT_MORE, 0), sink.tokens[1])
+        assertEquals(doneSelect(COUNT_MORE, 0), sink.tokens[1])
         assertEquals(done(DoneStatus.COUNT, 1), sink.tokens[2])
     }
 

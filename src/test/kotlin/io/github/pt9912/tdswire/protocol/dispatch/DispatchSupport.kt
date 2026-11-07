@@ -44,20 +44,32 @@ internal object BatchVectors {
     /** COLMETADATA einer Spalte `n`, Int4, nicht nullbar (Handvektor wie in der Token-Tabelle der Codec-Tests). */
     const val COLMETADATA_N = "81 01 00 00 00 00 00 00 00 38 01 6E 00"
 
-    /** DONE, Status COUNT (`0x0010`), curCmd 0, Zeilenzahl 1. */
-    const val DONE_COUNT_1 = "FD 10 00 00 00 01 00 00 00 00 00 00 00"
+    /** DONE, Status COUNT (`0x0010`), curCmd `0x00c1` (Ergebnis), Zeilenzahl 1. */
+    const val DONE_COUNT_1 = "FD 10 00 C1 00 01 00 00 00 00 00 00 00"
 
-    /** DONE, Status COUNT, Zeilenzahl 0. */
-    const val DONE_COUNT_0 = "FD 10 00 00 00 00 00 00 00 00 00 00 00"
+    /** DONE, Status COUNT, curCmd `0x00c1`, Zeilenzahl 0. */
+    const val DONE_COUNT_0 = "FD 10 00 C1 00 00 00 00 00 00 00 00 00"
 
-    /** DONE ohne Bits, ohne Zeilenzahl. */
+    /** DONE ohne Bits, curCmd 0 (keine Aussage), ohne Zeilenzahl. */
     const val DONE_FINAL = "FD 00 00 00 00 00 00 00 00 00 00 00 00"
 
-    /** DONE mit Fehlerstatus (`0x0002`), curCmd 0, Zeilenzahl 0. */
-    const val DONE_ERROR = "FD 02 00 00 00 00 00 00 00 00 00 00 00"
+    /** DONE mit Fehlerstatus (`0x0002`), curCmd `0x00fd` (Fehler ohne offenes Ergebnis), Zeilenzahl 0. */
+    const val DONE_ERROR = "FD 02 00 FD 00 00 00 00 00 00 00 00 00"
 
-    /** DONE mit dem Statusbit ATTENTION (`0x0020`), curCmd 0, Zeilenzahl 0: die Bestätigung eines Cancel. */
-    const val DONE_ATTN = "FD 20 00 00 00 00 00 00 00 00 00 00 00"
+    /** DONE mit Fehlerstatus bei offenem Ergebnis, curCmd `0x00c1`. */
+    const val DONE_ERROR_OPEN = "FD 02 00 C1 00 00 00 00 00 00 00 00 00"
+
+    /** DONEPROC mit Fehlerstatus, curCmd `0x00e0`: der Abschluss einer abgelehnten RPC-Antwort. */
+    const val DONEPROC_ERROR = "FE 02 00 E0 00 00 00 00 00 00 00 00 00"
+
+    /** DONE, Status FINAL, curCmd `0x00c1`, Zeilenzahl 0: ein Ergebnis ohne gemeldete Zahl. */
+    const val DONE_SELECT_FINAL = "FD 00 00 C1 00 00 00 00 00 00 00 00 00"
+
+    /** ENVCHANGE Typ 18, neuer und alter Wert leer: erstes Token der Antwort auf `RESETCONNECTION` (W-7). */
+    const val ENVCHANGE_RESET = "E3 03 00 12 00 00"
+
+    /** DONE mit dem Statusbit ATTENTION (`0x0020`), curCmd `0x00fd`, Zeilenzahl 0: die Bestätigung eines Cancel. */
+    const val DONE_ATTN = "FD 20 00 FD 00 00 00 00 00 00 00 00 00"
 
     /** Ein ATTENTION-Paket: leere Nutzlast. */
     fun attention(): Inbound = raw(PacketType.ATTENTION, ByteArray(0))

@@ -1,12 +1,15 @@
 package io.github.pt9912.tdswire.protocol.error
 
 import io.github.pt9912.tdswire.domain.QueryEvent
+import io.github.pt9912.tdswire.protocol.response.ResponseForm
 import io.github.pt9912.tdswire.protocol.response.SequenceOutcome
 import io.github.pt9912.tdswire.protocol.session.LoginResponses
+import io.github.pt9912.tdswire.protocol.token.DoneCommand
 import io.github.pt9912.tdswire.protocol.token.DoneKind
 import io.github.pt9912.tdswire.protocol.token.DoneStatus
 import io.github.pt9912.tdswire.protocol.token.DoneToken
 import io.github.pt9912.tdswire.protocol.token.ErrorToken
+import io.github.pt9912.tdswire.protocol.token.ReturnStatusToken
 import io.github.pt9912.tdswire.protocol.wire.ProtocolError
 import io.github.pt9912.tdswire.protocol.wire.ProtocolFailure
 import io.github.pt9912.tdswire.testsupport.TokenDecoder
@@ -22,15 +25,19 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+/** Abstand des niederwertigen Bytes der Befehlskennung vom Ende des DONE-Tokens (Zeilenzahl 8 Byte, Kennung 2 Byte). */
+private const val DONE_COMMAND_LOW_FROM_END = 10
+
 /**
  * Die Handvektoren sind von Hand nach dem Tokenlayout des Codecs zusammengesetzt: AA, Länge,
  * Nummer (4 Byte), State, Class, Textlänge in Zeichen, Text UTF-16LE, leerer Servername, leere
  * Prozedur, Zeilennummer 0; dann DONE mit Statusbit ERROR. Nummern, States, Texte und Classes sind
  * Festlegung (nicht gemessen, Nummern 208 und 245 sind Vorschlag der Spezifikation); gemessen ist
- * nur, dass die Login-Ablehnung aus genau einem ERROR vor DONE besteht.
+ * nur, dass die Login-Ablehnung aus genau einem ERROR vor DONE besteht. Das DONE trägt die Befehlskennung `0x00fd`
+ * (Fehler ohne offenes Ergebnis, am echten SQL Server gemessen).
  */
 class ErrorMapperTest {
-    private val done = "FD 02 00 00 00 00 00 00 00 00 00 00 00"
+    private val done = "FD 02 00 FD 00 00 00 00 00 00 00 00 00"
     private val mapper = ErrorMapper()
 
     private fun assertBytes(code: ErrorCode, errorToken: String, severity: Int, fate: ConnectionFate) {
@@ -40,6 +47,29 @@ class ErrorMapperTest {
         assertEquals(hex("$errorToken  $done").toHex(), message.payload.toHex())
         assertEquals(severity, code.rule.severity)
         assertEquals(fate, response.fate)
+    }
+
+    /**
+     * Die Antwort auf einen RPC endet nie in einem DONE (Messprotokoll W-1): ERROR und DONEPROC mit `ERROR` und der
+     * Befehlskennung `0x00e0`. Eine Nummer des echten Servers (208) bekommt ihren RETURNSTATUS vor dem DONEPROC, eine
+     * eigene Nummer (50010) keinen (Setzung des Nutzers vom 2026-11-06). Wächter: ein DONE am Ende, ein RETURNSTATUS
+     * mit einer eigenen Nummer, ein fehlender RETURNSTATUS bei Nummer 208.
+     *
+     * @spec SPEC-013
+     * @spec SPEC-030
+     */
+    @Test
+    fun `Die Antwort auf einen RPC endet in DONEPROC mit ERROR, RETURNSTATUS nur bei SQL-Server-Nummern`() {
+        val doneProc = "FE 02 00 E0 00 00 00 00 00 00 00 00 00"
+        val own = assertNotNull(mapper.code(ErrorCode.TDS_PREPARE_LIMIT, form = ResponseForm.RPC).message)
+        assertEquals(PacketType.TABULAR_RESULT, own.type)
+        val ownBytes = own.payload.toHex()
+        assertTrue(ownBytes.endsWith(doneProc), ownBytes)
+        assertFalse(ownBytes.contains("79 "), "kein RETURNSTATUS bei eigener Nummer")
+        val real = assertNotNull(mapper.code(ErrorCode.TDS_SIM_UNKNOWN_OBJECT, form = ResponseForm.RPC).message)
+        assertTrue(real.payload.toHex().endsWith("79 D0 00 00 00 $doneProc"), real.payload.toHex())
+        val tokens = TokenDecoder(real.payload).decodeAll()
+        assertEquals(listOf(ReturnStatusToken(208)), tokens.filterIsInstance<ReturnStatusToken>())
     }
 
     /** @spec SPEC-011 */
@@ -302,14 +332,18 @@ class ErrorMapperTest {
     }
 
     /**
-     * Beide Stellen, die ERROR 18456 serialisieren, liefern dieselben Bytes (Risiko des Slice).
+     * Beide Stellen, die ERROR 18456 serialisieren, liefern dieselben Bytes bis auf die Befehlskennung des DONE:
+     * der Mapper schreibt `0x00fd` (Fehler ohne offenes Ergebnis, gemessen), die Ablehnung des Logins 0 (für die
+     * Ablehnung gibt es keine Messung).
      *
      * @spec SPEC-012
      */
     @Test
     fun `Die Login-Ablehnung des Mappings gleicht den Bytes des Handshakes`() {
         val message = assertNotNull(mapper.code(ErrorCode.TDS_LOGIN_FAILED).message)
-        assertContentEquals(LoginResponses.rejection.payload, message.payload)
+        val mapped = message.payload.copyOf()
+        mapped[mapped.size - DONE_COMMAND_LOW_FROM_END] = 0
+        assertContentEquals(LoginResponses.rejection.payload, mapped)
     }
 
     /**
@@ -325,7 +359,7 @@ class ErrorMapperTest {
         val error = (tokens[0] as ErrorToken).message
         assertEquals(50004, error.number)
         assertEquals(16, error.severity)
-        assertEquals(DoneToken(DoneKind.DONE, DoneStatus.ERROR, 0, 0), tokens[1])
+        assertEquals(DoneToken(DoneKind.DONE, DoneStatus.ERROR, DoneCommand.BATCH, 0), tokens[1])
     }
 
     /**

@@ -3,6 +3,7 @@
 # Der Lauf baut die Stage `test` ohne Cache-Treffer (--no-cache-filter test), haelt den Bericht in einer Datei
 # ausserhalb des Repos (mktemp, trap raeumt) und liest mit tools/matrix-zitate.sh jedes `Klasse > Testfall` der
 # Matrix gegen die PASSED-Zeilen. MATRIX_ZITATE_BERICHT=<Datei> nimmt einen vorhandenen Bericht statt des Builds.
+# Ist der Bau rot, nennt tools/matrix-zitate-rot.sh die roten Testfaelle (sonst die letzten 40 Zeilen).
 .PHONY: matrix-zitate
 
 MATRIX_ZITATE_DATEI ?= docs/plan/kompatibilitaetsmatrix.md
@@ -16,6 +17,6 @@ matrix-zitate: ## jedes Zitat `Klasse > Testfall` der Kompatibilitaetsmatrix geg
 	if [ -z "$$bericht" ]; then \
 	  bericht="$$tmp/test.log"; \
 	  docker build $(BUILDER_FLAGS) --target test --no-cache-filter test --progress=plain . > "$$bericht" 2>&1 \
-	    || { tail -n 40 "$$bericht" >&2; echo "matrix-zitate: Stage test rot" >&2; exit 1; }; \
+	    || { sh tools/matrix-zitate-rot.sh "$$bericht"; echo "matrix-zitate: Stage test rot" >&2; exit 1; }; \
 	fi; \
 	sh tools/matrix-zitate.sh "$(MATRIX_ZITATE_DATEI)" "$$bericht"

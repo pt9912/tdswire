@@ -13,8 +13,8 @@ internal enum class ResponseForm {
 
     /**
      * Antwort auf einen RPC: der Abschluss eines Ergebnisses oder Update-Zählers ist ein DONEINPROC, der
-     * letzte Token der Antwort ein DONEPROC. `ReturnStatus` wird zu RETURNSTATUS, je `OutputParameter` entsteht
-     * ein RETURNVALUE. Festlegung ohne Messung am echten Server: die Tokens stehen in der Reihenfolge des Stroms.
+     * letzte Token der Antwort ein DONEPROC, davor stehen RETURNSTATUS und je `OutputParameter` ein RETURNVALUE
+     * (Messprotokoll W-1 bis W-6 für `sp_executesql` und `sp_prepexec`, ein Fall je Instanz).
      */
     RPC,
 }

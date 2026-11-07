@@ -149,7 +149,7 @@ class DispatchFailureTest {
         val session = Session.login(BatchVectors.message("q"), Inbound.EndOfStream)
         session.serve(backend)
         val hex = session.hex(0)
-        val prefix = listOf(BatchVectors.COLMETADATA_N, BatchVectors.row(7), "FD 11 00 00 00 01 00 00 00 00 00 00 00")
+        val prefix = listOf(BatchVectors.COLMETADATA_N, BatchVectors.row(7), "FD 11 00 C1 00 01 00 00 00 00 00 00 00")
         assertTrue(hex.startsWith(prefix.joinToString(" ")), hex)
         assertTrue(hex.endsWith(BatchVectors.DONE_ERROR), hex)
         assertEquals(ServerMessage(50004, 1, 16, "Backend error."), session.tokens(0).errorMessage())

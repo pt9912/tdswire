@@ -22,7 +22,8 @@ import kotlin.test.assertIs
 class ResponseFailureTest {
     private val backendError = ErrorToken(BACKEND_MESSAGE)
     private val internalError = ErrorToken(INTERNAL_MESSAGE)
-    private val errorDone = done(DoneStatus.ERROR)
+    private val errorDone = doneBatch(DoneStatus.ERROR)
+    private val openErrorDone = doneSelect(DoneStatus.ERROR)
 
     private fun run(
         backend: QueryBackend,
@@ -61,7 +62,7 @@ class ResponseFailureTest {
             listOf(ColMetadataToken::class, RowToken::class, RowToken::class, ErrorToken::class),
             sink.tokens.dropLast(1).map { it::class },
         )
-        assertEquals(errorDone, sink.tokens.last())
+        assertEquals(openErrorDone, sink.tokens.last())
         assertEquals(1, backend.closeCalls)
     }
 
@@ -76,7 +77,7 @@ class ResponseFailureTest {
         val backend = ScriptedBackend.ofList(start(), row(1), QueryEvent.ResultEnd(1), QueryEvent.Failure("x", "m"))
         val sink = RecordingSink()
         assertEquals(SequenceOutcome.FAILED, run(backend, sink))
-        assertEquals(listOf<Token>(done(COUNT_MORE, 1), backendError, errorDone), sink.tokens.takeLast(3))
+        assertEquals(listOf<Token>(doneSelect(COUNT_MORE, 1), backendError, errorDone), sink.tokens.takeLast(3))
     }
 
     /**
@@ -111,7 +112,7 @@ class ResponseFailureTest {
         }
         val sink = RecordingSink()
         assertEquals(SequenceOutcome.FAILED_CLOSE_CONNECTION, run(backend, sink))
-        assertEquals(listOf<Token>(internalError, errorDone), sink.tokens.takeLast(2))
+        assertEquals(listOf<Token>(internalError, openErrorDone), sink.tokens.takeLast(2))
         assertIs<RowToken>(sink.tokens[1])
         assertFalse(sink.tokens.toString().contains("geheim"))
         assertEquals(1, backend.closeCalls)

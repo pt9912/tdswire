@@ -1,0 +1,5 @@
+# Der Parserfehler einer RPC-Nachricht endet in ERROR und DONE, die angenommene ADR verlangt DONEPROC
+
+**Sub-Area:** `*` (Dispatch, Tokenstrom)
+
+Die Antwort auf eine RPC-Nachricht, die der Parser abweist (`SPEC-011`), endet in ERROR und DONE; [ADR-0038](../../../../adr/0038-abschluss-einer-rpc-antwort-im-fehlerfall-folgt-dem-echten-server.md) (`Accepted`) legt den Abschluss jeder RPC-Antwort auf DONEPROC fest und nennt für die ungültig kodierte RPC-Nachricht nur die Trennlinie als unverändert (Entscheidung 5). Der Grund ist ein einziger Fall: der Referenzclient meldet bei DONEPROC den Fehler einer Nachricht mit mehreren RPCs (`SqlDataAdapter`, `UpdateBatchSize 2`) nicht (`make e2e` Stufe 6). Die Gegenprobe des Reviews zeigt: DONEPROC bricht nur diesen Fall, nicht den Einzel-RPC (`xml`-Parameter). Am echten Server tritt der Mehrfach-RPC nicht als Parserfehler auf; der Test pinnt das Verhalten dieses Servers, es ist kein Messbefund ([TDS-QA-01](../../../../../../spec/lastenheft.md#tds-qa-01--kompatibilität)).

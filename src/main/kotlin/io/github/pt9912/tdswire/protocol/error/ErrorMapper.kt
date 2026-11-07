@@ -3,9 +3,9 @@ package io.github.pt9912.tdswire.protocol.error
 import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.protocol.response.ErrorMapping
 import io.github.pt9912.tdswire.protocol.response.MappedError
+import io.github.pt9912.tdswire.protocol.response.ResponseForm
 import io.github.pt9912.tdswire.protocol.response.SequenceOutcome
-import io.github.pt9912.tdswire.protocol.response.failedDone
-import io.github.pt9912.tdswire.protocol.token.ErrorToken
+import io.github.pt9912.tdswire.protocol.response.errorAnswer
 import io.github.pt9912.tdswire.protocol.token.ServerMessage
 import io.github.pt9912.tdswire.protocol.token.TokenEncoder
 import io.github.pt9912.tdswire.protocol.wire.ProtocolError
@@ -15,8 +15,8 @@ import io.github.pt9912.tdswire.transport.framing.PacketType
 import io.github.pt9912.tdswire.transport.framing.TdsMessage
 
 /**
- * Antwort auf einen Fehler: [message] ist ERROR gefolgt von DONE mit Fehlerstatus, `null` genau bei
- * [ConnectionFate.CLOSE_WITHOUT_REPLY].
+ * Antwort auf einen Fehler: [message] ist ERROR gefolgt von DONE mit Fehlerstatus, in der Antwort auf einen RPC
+ * von DONEPROC mit `ERROR` (siehe [ResponseForm]), `null` genau bei [ConnectionFate.CLOSE_WITHOUT_REPLY].
  */
 internal class ErrorResponse(val code: ErrorCode, val message: TdsMessage?, val fate: ConnectionFate) {
     init {
@@ -59,9 +59,11 @@ internal fun ErrorRule.message(handle: Int? = null): ServerMessage {
  * Ausgangs des Sequenzierers liefert [fateOf].
  *
  * Festlegung (nicht gemessen): Der Text jeder Antwort ist der feste Text der Regel; der Text einer
- * [QueryEvent.Failure] und der einer Ausnahme erreichen den Client nie. Das DONE ist `DONE` mit
- * Statusbit `ERROR`, Befehlskennung 0 und Zeilenzahl 0 (Bytes nur als Handvektor belegt, nicht am
- * Referenzclient gemessen). Ist der Strom nicht synchron, entfällt die Antwort (`SPEC-031`); der Sequenzierer
+ * [QueryEvent.Failure] und der einer Ausnahme erreichen den Client nie. Der Abschluss der Antwort auf einen
+ * SQL_BATCH ist `DONE` mit Statusbit `ERROR`, Befehlskennung `0x00fd` und Zeilenzahl 0 (gemessen: Fehler ohne offenes
+ * Ergebnis, Messprotokoll W-6); der der Antwort auf einen RPC ist DONEPROC mit `ERROR` (W-1), davor steht der
+ * RETURNSTATUS mit der Nummer des Fehlers, wenn sie eine SQL-Server-Nummer ist ([errorAnswer]). Ist der Strom nicht
+ * synchron, entfällt die Antwort (`SPEC-031`); der Sequenzierer
  * meldet denselben Fall als `CLOSE_WITHOUT_COMPLETION`, und [fateOf] bildet ihn auf `CLOSE_WITHOUT_REPLY` ab.
  */
 internal class ErrorMapper(private val log: ErrorLog = ErrorLog.NONE) {
@@ -76,7 +78,8 @@ internal class ErrorMapper(private val log: ErrorLog = ErrorLog.NONE) {
         streamSynchronous: Boolean = true,
         cause: String? = null,
         handles: List<Int> = emptyList(),
-    ): ErrorResponse = response(code, streamSynchronous, cause, handles)
+        form: ResponseForm = ResponseForm.BATCH,
+    ): ErrorResponse = response(code, streamSynchronous, cause, handles, form)
 
     /**
      * Ein erwarteter Fehler des Backends. Nur ein Code aus [BACKEND_CODES] ist eine erwartete
@@ -90,8 +93,11 @@ internal class ErrorMapper(private val log: ErrorLog = ErrorLog.NONE) {
     }
 
     /** Eine Eingabe, die der Nachrichten-Codec abweist (`SPEC-011`, `SPEC-014`). */
-    fun protocol(error: ProtocolError, streamSynchronous: Boolean = true): ErrorResponse =
-        response(protocolCode(error), streamSynchronous, null)
+    fun protocol(
+        error: ProtocolError,
+        streamSynchronous: Boolean = true,
+        form: ResponseForm = ResponseForm.BATCH,
+    ): ErrorResponse = response(protocolCode(error), streamSynchronous, null, form = form)
 
     /** Eine unerwartete Ausnahme: immer [ErrorCode.TDS_INTERNAL_ERROR], im Log nur ihr Typname. */
     fun unexpected(exception: Throwable, streamSynchronous: Boolean = true): ErrorResponse =
@@ -150,6 +156,7 @@ internal class ErrorMapper(private val log: ErrorLog = ErrorLog.NONE) {
         streamSynchronous: Boolean,
         cause: String?,
         handles: List<Int> = emptyList(),
+        form: ResponseForm = ResponseForm.BATCH,
     ): ErrorResponse {
         val rule = code.rule
         val messages = if (rule.namesHandle) handles.map { rule.message(it) } else listOf(rule.message())
@@ -158,12 +165,12 @@ internal class ErrorMapper(private val log: ErrorLog = ErrorLog.NONE) {
         if (!streamSynchronous) {
             return ErrorResponse(code, null, ConnectionFate.CLOSE_WITHOUT_REPLY)
         }
-        return ErrorResponse(code, serialize(messages), code.rule.fate)
+        return ErrorResponse(code, serialize(messages, form), code.rule.fate)
     }
 
-    private fun serialize(messages: List<ServerMessage>): TdsMessage {
+    private fun serialize(messages: List<ServerMessage>, form: ResponseForm): TdsMessage {
         val encoder = TokenEncoder()
-        (messages.map { ErrorToken(it) } + failedDone()).forEach {
+        errorAnswer(form, messages).forEach {
             check(encoder.write(it) is ProtocolResult.Ok) { "Fehlerantwort nicht schreibbar" }
         }
         return TdsMessage(PacketType.TABULAR_RESULT, encoder.toByteArray())

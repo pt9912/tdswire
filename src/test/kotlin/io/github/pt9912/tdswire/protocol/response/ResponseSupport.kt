@@ -6,6 +6,7 @@ import io.github.pt9912.tdswire.domain.ResultColumn
 import io.github.pt9912.tdswire.domain.SqlType
 import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.port.QueryExecution
+import io.github.pt9912.tdswire.protocol.token.DoneCommand
 import io.github.pt9912.tdswire.protocol.token.DoneKind
 import io.github.pt9912.tdswire.protocol.token.DoneStatus
 import io.github.pt9912.tdswire.protocol.token.DoneToken
@@ -45,7 +46,14 @@ internal fun start() = QueryEvent.ResultStart(listOf(INT_COLUMN))
 
 internal fun row(value: Int) = QueryEvent.Row(listOf(value))
 
-internal fun done(status: Int, rows: Long = 0) = DoneToken(DoneKind.DONE, status, 0, rows)
+internal fun done(status: Int, rows: Long = 0, cmd: Int = DoneCommand.NONE) =
+    DoneToken(DoneKind.DONE, status, cmd, rows)
+
+/** DONE mit der Befehlskennung eines Ergebnisses (`0x00c1`). */
+internal fun doneSelect(status: Int, rows: Long = 0) = done(status, rows, DoneCommand.SELECT)
+
+/** DONE mit der Befehlskennung eines Batches ohne offenes Ergebnis (`0x00fd`). */
+internal fun doneBatch(status: Int, rows: Long = 0) = done(status, rows, DoneCommand.BATCH)
 
 /** Eine Senke, die Tokens aufzeichnet und das [rejectAt]-te Token (ab 1) nicht annimmt. */
 internal class RecordingSink(private val rejectAt: Int? = null) : TokenSink {

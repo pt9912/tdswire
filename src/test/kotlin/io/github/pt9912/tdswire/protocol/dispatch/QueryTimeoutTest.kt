@@ -10,6 +10,7 @@ import io.github.pt9912.tdswire.protocol.token.ErrorToken
 import io.github.pt9912.tdswire.protocol.token.RowToken
 import io.github.pt9912.tdswire.protocol.token.ServerMessage
 import io.github.pt9912.tdswire.testsupport.blocking
+import io.github.pt9912.tdswire.transport.framing.PacketType
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -65,6 +66,31 @@ class QueryTimeoutTest {
         assertEquals(oneRowReply, session.hex(1))
         assertEquals(listOf("s1" to "r1"), backend.cancelled)
         assertEquals(2, backend.closeCalls)
+    }
+
+    /**
+     * Läuft die Frist bei einem RPC ab, endet die Antwort nicht in einem DONE: ERROR 50005 und DONEPROC mit `ERROR`
+     * (Befehlskennung `0x00e0`), ohne RETURNSTATUS, weil die Nummer eine eigene ist. Die Verbindung bleibt offen
+     * (Setzung nach der Messung W-1 für Fehler im RPC). Wächter: ein DONE am Ende der RPC-Antwort.
+     *
+     * @spec SPEC-016
+     * @spec SPEC-030
+     */
+    @Test
+    fun `Der Ablauf der Frist bei einem RPC endet in ERROR und DONEPROC mit ERROR`() = blocking {
+        val pause = SteeredPause()
+        val backend = FlowBackend(suspendedAfter(CompletableDeferred()), delivering(*oneRow))
+        val session = Session.login(BatchVectors.raw(PacketType.RPC, RpcWire.executeSql("slow", "")))
+        val serving = launch { session.serve(backend, times = timesOf(pause)) }
+        backend.collecting.await()
+        pause.awaitWaiting(30.seconds)
+        pause.fire(30.seconds)
+        session.channel.feed(Inbound.EndOfStream)
+        serving.join()
+        assertEquals(1, session.replies.size)
+        assertEquals(timeoutMessage, session.tokens(0).errorMessage())
+        assertEquals(2, session.tokens(0).size)
+        assertTrue(session.hex(0).endsWith(BatchVectors.DONEPROC_ERROR), session.hex(0))
     }
 
     /**
