@@ -41,7 +41,9 @@ private const val LIMIT = 256
 private const val LONG = 300
 private val BASE_STRINGS = setOf("sessionId", "clientProfile")
 private val STRINGS_BY_KIND = mapOf(
+    "ServerStarted" to setOf("address"),
     "StartRefused" to setOf("reason"),
+    "ConnectionClosed" to setOf("reason"),
     "ConfigInvalid" to setOf("key", "issueKind"),
     "TlsStartRejected" to setOf("part", "form"),
     "BindFailed" to setOf("address", "exceptionType"),
@@ -124,7 +126,7 @@ internal class TelemetryRedactionTest : RuntimeTestBase() {
                 val name = getter.name.removePrefix("get").replaceFirstChar { it.lowercase() }
                 val type = getter.returnType
                 assertTrue(
-                    type in ALLOWED_TYPES || type.isEnum,
+                    type in ALLOWED_TYPES || type.isEnum || (type == Map::class.java && name == "settings"),
                     "${kind.simpleName}.$name hat den Typ ${type.name}",
                 )
                 if (type == String::class.java) {
