@@ -1,2 +1,2 @@
-**Vorgang:** [slice-schreibpfad-bulk-load](../../../../in-progress/slice-schreibpfad-bulk-load.md)
+**Vorgang:** [slice-schreibpfad-bulk-load](../../../../done/slice-schreibpfad-bulk-load.md)
 **Fund:** [Verifikation](../../../../../../reviews/2026-11-07-631d273d-verifikation-slice-schreibpfad-bulk-load.md) V-4 (MEDIUM): `BulkLoads.call` meldet jede Ausnahme des Callbacks als 2627 (Typfehler, NULL, volle Zellgrenze erscheinen als „Violation of PRIMARY KEY“); der Träger ist bis zur Closure nur der Slice. Aufgenommen in den Umfang von [slice-adr-massenladen-atomar-an-messung](../../../../open/slice-adr-massenladen-atomar-an-messung.md): Zuordnung der Codes je Fehlerursache.

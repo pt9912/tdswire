@@ -30,9 +30,9 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Der Testserver nimmt das Massenladen von `SqlBulkCopy` (`Microsoft.Data.SqlClient`, der Referenzclient) an, wie es der echte SQL Server tut (Zielbild: der Server ist die Referenz). Heute ist es nicht so: [slice-schreibpfad-bulk-load](../in-progress/slice-schreibpfad-bulk-load.md) bildet die **Antworten** nach der Messung M-8 bis M-12 ab, liest aber die **Anfrage** des Referenzclients nicht (Verifikation V-1).
+**Ziel:** Der Testserver nimmt das Massenladen von `SqlBulkCopy` (`Microsoft.Data.SqlClient`, der Referenzclient) an, wie es der echte SQL Server tut (Zielbild: der Server ist die Referenz). Heute ist es nicht so: [slice-schreibpfad-bulk-load](../done/slice-schreibpfad-bulk-load.md) bildet die **Antworten** nach der Messung M-8 bis M-12 ab, liest aber die **Anfrage** des Referenzclients nicht (Verifikation V-1).
 
-**Herkunft.** Die Verifikation von [slice-schreibpfad-bulk-load](../in-progress/slice-schreibpfad-bulk-load.md) (V-1) stellte fest: (1) alle 10 aufgezeichneten Nachrichten 0x07 von `SqlBulkCopy` (Messreihe M-8 bis M-12, `referenztest-dotnet/Mitschnitt/messung/bulk-merge-katalog/{2022,2025}/`: `bulk-typen-null`, 3 × `bulk-mehrere-nachrichten`, `bulk-verstoss-schluessel`, je Instanz) weist der Leser mit `INVALID_TYPE` ab, weil der Referenzclient nicht nullbare Spalten als feste Typen sendet (die erste Spalte `Id` als BIGINT fest, Typkennung `0x7f`, Flags `0x0008`); der Leser kennt nur die nullbaren Formen (`INTN`, `BITN` …), die mssql-jdbc sendet; (2) `SqlBulkCopy` fragt zuerst mit einem Katalog-Batch (`SELECT @@TRANCOUNT; DECLARE @Object_ID INT = OBJECT_ID('[<Tabelle>]'); …`), den der Testserver nicht kennt: der Referenzclient erreicht das Massenladen am Testserver nicht. Mehr gemessen ist nicht: welche weiteren festen Typen der Referenzclient für andere Spaltentypen sendet, ist außer `0x7f` nicht aufgezeichnet.
+**Herkunft.** Die Verifikation von [slice-schreibpfad-bulk-load](../done/slice-schreibpfad-bulk-load.md) (V-1) stellte fest: (1) alle 10 aufgezeichneten Nachrichten 0x07 von `SqlBulkCopy` (Messreihe M-8 bis M-12, `referenztest-dotnet/Mitschnitt/messung/bulk-merge-katalog/{2022,2025}/`: `bulk-typen-null`, 3 × `bulk-mehrere-nachrichten`, `bulk-verstoss-schluessel`, je Instanz) weist der Leser mit `INVALID_TYPE` ab, weil der Referenzclient nicht nullbare Spalten als feste Typen sendet (die erste Spalte `Id` als BIGINT fest, Typkennung `0x7f`, Flags `0x0008`); der Leser kennt nur die nullbaren Formen (`INTN`, `BITN` …), die mssql-jdbc sendet; (2) `SqlBulkCopy` fragt zuerst mit einem Katalog-Batch (`SELECT @@TRANCOUNT; DECLARE @Object_ID INT = OBJECT_ID('[<Tabelle>]'); …`), den der Testserver nicht kennt: der Referenzclient erreicht das Massenladen am Testserver nicht. Mehr gemessen ist nicht: welche weiteren festen Typen der Referenzclient für andere Spaltentypen sendet, ist außer `0x7f` nicht aufgezeichnet.
 
 **Liefern:**
 
@@ -98,7 +98,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-schreibpfad-bulk-load](../in-progress/slice-schreibpfad-bulk-load.md) liegt in `done/` (erfüllt mit der Closure dieses Vorgängers) und ein Verantwortlicher ist eingetragen.
+**Start** (`next` → `in-progress`): [slice-schreibpfad-bulk-load](../done/slice-schreibpfad-bulk-load.md) liegt in `done/` (erfüllt mit der Closure dieses Vorgängers) und ein Verantwortlicher ist eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

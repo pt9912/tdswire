@@ -1,2 +1,2 @@
-**Vorgang:** [slice-schreibpfad-bulk-load](../../../../in-progress/slice-schreibpfad-bulk-load.md)
+**Vorgang:** [slice-schreibpfad-bulk-load](../../../../done/slice-schreibpfad-bulk-load.md)
 **Fund:** [Verifikation](../../../../../../reviews/2026-11-07-631d273d-verifikation-slice-schreibpfad-bulk-load.md) Bedingung 4: der zweite Durchgang `631d273d` (Angleichung an M-8 bis M-12, 2627, ATTENTION, DONE-Befehle) hat keinen Re-Review; der Verifier hat ihn wie ein Reviewer bewertet (Abschnitt „Review des zweiten Durchgangs“) und die Befunde V-3 bis V-7 gefunden. Behebungen der Verifikation (Grenzsätze, Nachzug der Stellen, Matrix) ebenfalls ohne zweiten Review.

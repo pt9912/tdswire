@@ -1,2 +1,2 @@
-**Vorgang:** [slice-schreibpfad-bulk-load](../../../../in-progress/slice-schreibpfad-bulk-load.md)
+**Vorgang:** [slice-schreibpfad-bulk-load](../../../../done/slice-schreibpfad-bulk-load.md)
 **Fund:** [Verifikation](../../../../../../reviews/2026-11-07-631d273d-verifikation-slice-schreibpfad-bulk-load.md) V-1 (MEDIUM): Zielbild-Lücke ohne Träger: der Referenzclient erreicht das Massenladen am Testserver nicht (Katalog-Batch unbekannt, feste Typen der Nutzlast nicht gelesen). Träger seit der Closure: [slice-bulk-load-feste-typen-und-referenzclient](../../../../open/slice-bulk-load-feste-typen-und-referenzclient.md).

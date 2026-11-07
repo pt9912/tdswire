@@ -82,7 +82,7 @@ Der Lauf D (Sonde, nicht im Repo) ist in F-1 beschrieben.
 
 * kategorie: MEDIUM
 * quelle: Reviewer-Skill „Plan-Tabelle nennt die berührten Dateien nicht“
-* pfad: `docs/plan/planning/in-progress/slice-schreibpfad-bulk-load.md` · „**Berührte Spec-Stellen:** Protokollteil Pakettypen und Dispatch (Katalog der Pakete) · SPEC-036 (`INSERT BULK`, `SET FMTONLY`) · SPEC-035 (Callbacks) · SPEC-059 (falls der Vertrag oder die Callbacks wachsen) · SPEC-040“
+* pfad: `docs/plan/planning/done/slice-schreibpfad-bulk-load.md` · „**Berührte Spec-Stellen:** Protokollteil Pakettypen und Dispatch (Katalog der Pakete) · SPEC-036 (`INSERT BULK`, `SET FMTONLY`) · SPEC-035 (Callbacks) · SPEC-059 (falls der Vertrag oder die Callbacks wachsen) · SPEC-040“
 * befund: Im Diff stehen, aber nicht in der Tabelle: `src/integrator/…/MassenladenEmbeddingTest.kt` (neu, 156 Zeilen), `WireClient.kt` und `FlaecheEmbeddingTest.kt` (beide `src/integrator`), das Messprotokoll der Sonde und die Verweise in sieben `done/`- und `open/`-Slices, im Register und in der Welle (nur die Pfade der Lifecycle-Verschiebung). Der Kopf nennt `SPEC-001` (Zustand, Pakettyp) und `TDS-FA-11.a` (Schritt 10) nicht, die der Diff ändert.
 * verifizierbar: ja (Abgleich `git diff --stat ed90c3ba..HEAD` gegen §3)
 * klasse: Plan-Tabelle nennt die berührten Dateien nicht
