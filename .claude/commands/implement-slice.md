@@ -257,3 +257,5 @@ Hier endet die Implementation. Die übrigen Rollen laufen in **getrennten Kontex
     Herkunfts-Anker lautet dann `seit slice-<Kennung>` statt `seit welle-<Kennung>`.
 
 Gates nicht überspringen. Keine Erfolgsmeldung ohne Command-Ausgabe.
+
+Welche Sensoren außer `make gates` für die Änderungsart Pflicht sind, steht in der Tabelle in `harness/README.md` §Minimal agent workflow; dieser Command fährt nicht mehr.

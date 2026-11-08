@@ -31,6 +31,8 @@ das Rollen-Feld **leer** — und leer heißt *unbekannt*, nie *rollenlos*. Über
 Agenten-Werkzeugs führt dieses Repo **keinen Wächter**; die Rollen-Achse ruht hier auf deiner
 Disziplin.
 
+**Sensoren je Änderungsart:** ein Slice-Plan nennt nicht mehr Sensoren, als die Tabelle in `harness/README.md` §Minimal agent workflow für die Änderungsart vorsieht.
+
 <!-- ANPASSEN: Dieser Typ beschreibt einen Kontext-Zuschnitt, keinen Repo-Inhalt. Trage hier die
      Quellen ein, die DEIN Repo für diese Rolle führt (Anforderungs-Datei, Roadmap, Adaptions-
      Block). Der Name im Kopf bleibt, damit die Rollen-Achse der Erfassung besetzt bleibt. -->
