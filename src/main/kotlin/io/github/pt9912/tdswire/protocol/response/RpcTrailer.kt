@@ -26,9 +26,12 @@ internal class RpcTrailer(private val outputs: RpcOutputs, private val sink: sus
         lastError = number to continued
     }
 
-    /** DONEINPROC `MORE|ERROR` für die Anweisung, in der der Fehler auftrat, danach das Ende der Antwort. */
-    suspend fun afterResult(resultOpen: Boolean): Boolean {
-        val command = if (resultOpen) DoneCommand.SELECT else DoneCommand.NONE
+    /**
+     * DONEINPROC `MORE|ERROR` für die Anweisung, in der der Fehler auftrat, danach das Ende der Antwort. Bei offenem
+     * Ergebnis trägt es die Kennung [resultCommand] ([DoneCommand.forResult]), sonst keine.
+     */
+    suspend fun afterResult(resultOpen: Boolean, resultCommand: Int = DoneCommand.SELECT): Boolean {
+        val command = if (resultOpen) resultCommand else DoneCommand.NONE
         val statementDone = DoneToken(DoneKind.DONE_IN_PROC, DoneStatus.MORE or DoneStatus.ERROR, command, 0)
         return sink(statementDone) && finish(errorBit = false)
     }

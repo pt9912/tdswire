@@ -4,6 +4,7 @@ import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.domain.QueryParameter
 import io.github.pt9912.tdswire.domain.ResultColumn
 import io.github.pt9912.tdswire.domain.SqlType
+import io.github.pt9912.tdswire.domain.StatementKind
 import io.github.pt9912.tdswire.port.QueryExecution
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
@@ -136,17 +137,24 @@ internal object SimulationMerges {
     }
 }
 
-/** Die Spalte der Antwort: `$action`, Text, nicht nullbar (Messprotokoll M-13). */
-private val ACTION_COLUMN = ResultColumn("\$action", SqlType.UnicodeText, nullable = false)
+/** Die Länge von `$action` in Zeichen: `nvarchar(10)` (Messprotokoll M-26). */
+private const val ACTION_LENGTH = 10
 
+/** Die Spalte der Antwort: `$action`, `nvarchar(10)`, nicht nullbar (Messprotokoll M-13 und M-26). */
+private val ACTION_COLUMN = ResultColumn("\$action", SqlType.UnicodeText, nullable = false, maxLength = ACTION_LENGTH)
+
+private const val FAILED = "Änderung fehlgeschlagen"
 private const val ACTION_INSERT = "INSERT"
 private const val ACTION_UPDATE = "UPDATE"
 
 /**
- * Ein `MERGE`: der Strom beginnt mit dem Ergebnis `$action`, liest dann die Zeilenquelle, ruft höchstens einen Callback
- * und liefert die Ausgabezeile. Ein Fehler der Quelle oder des Callbacks steht als [QueryEvent.Failure] hinter dem
- * Beginn des Ergebnisses (Messprotokoll M-15: `COLMETADATA` vor dem `ERROR`); ein Callback, den [stop] vor dem Sammeln
- * verhindert hat, bleibt ungerufen.
+ * Ein `MERGE`: der Strom beginnt mit dem Ergebnis `$action` der Art [StatementKind.MERGE], liest dann die
+ * Zeilenquelle, ruft höchstens einen Callback und liefert die Ausgabezeile. Ein Fehler steht als [QueryEvent.Failure]
+ * hinter dem Beginn des Ergebnisses (Messprotokoll M-15: `COLMETADATA` vor dem `ERROR`): ein Text über der Länge seiner
+ * Spalte in der Aktion, die ausgeführt würde, ist `TDS_SIM_STRING_TRUNCATED` (2628) und ruft keinen Callback; ein Fehler
+ * von `onInsert` ist `TDS_SIM_KEY_VIOLATION` (2627, Sammelcode wie beim Massenladen: die Bibliothek unterscheidet die
+ * Ursache nicht); ein Fehler der Quelle oder von `onUpdate` ist `TDS_BACKEND_ERROR`. Ein Callback, den [stop] vor dem
+ * Sammeln verhindert hat, bleibt ungerufen.
  */
 internal class MergeExecution(
     private val prepared: PreparedMerge.Ready,
@@ -169,7 +177,7 @@ internal class MergeExecution(
     }
 
     private suspend fun FlowCollector<QueryEvent>.run() {
-        emit(QueryEvent.ResultStart(listOf(ACTION_COLUMN)))
+        emit(QueryEvent.ResultStart(listOf(ACTION_COLUMN), StatementKind.MERGE))
         settle().forEach { emit(it) }
     }
 
@@ -183,11 +191,34 @@ internal class MergeExecution(
             return@withLock listOf(QueryEvent.Failure(SimCodes.BACKEND_ERROR, "Zeilenquelle fehlgeschlagen"))
         }
         val action = if (found) ACTION_UPDATE.takeIf { prepared.update != null } else ACTION_INSERT
-        val count = if (action == null || stopped.get()) 0L else guarded { change(action) }.getOrElse { -1L }
         when {
-            count < 0 -> listOf(QueryEvent.Failure(SimCodes.BACKEND_ERROR, "Änderung fehlgeschlagen"))
-            action != null && count > 0 -> listOf(QueryEvent.Row(listOf(action)), QueryEvent.ResultEnd(1))
+            action == null || stopped.get() -> listOf(QueryEvent.ResultEnd(0))
+
+            truncates(action) -> listOf(QueryEvent.Failure(SimCodes.STRING_TRUNCATED, "Text länger als die Spalte"))
+
+            else -> changed(action, guarded { change(action) })
+        }
+    }
+
+    private fun changed(action: String, result: Result<Long>): List<QueryEvent> {
+        val count = result.getOrElse {
+            val code = if (action == ACTION_INSERT) SimCodes.KEY_VIOLATION else SimCodes.BACKEND_ERROR
+            return listOf(QueryEvent.Failure(code, FAILED))
+        }
+        return when {
+            count < 0 -> listOf(QueryEvent.Failure(SimCodes.BACKEND_ERROR, FAILED))
+            count > 0 -> listOf(QueryEvent.Row(listOf(action)), QueryEvent.ResultEnd(1))
             else -> listOf(QueryEvent.ResultEnd(0))
+        }
+    }
+
+    /** Wahr, wenn ein Text der Werte von [action] länger ist als seine Spalte (`nvarchar(max)` hat keine Grenze). */
+    private fun truncates(action: String): Boolean {
+        val values = if (action == ACTION_UPDATE) requireNotNull(prepared.update) else prepared.insert
+        return values.any { (name, value) ->
+            val column = requireNotNull(prepared.table.column(name))
+            column.type == SqlType.UnicodeText && column.maxLength != UNBOUNDED_TEXT &&
+                value is String && value.length > column.maxLength
         }
     }
 

@@ -27,20 +27,26 @@ internal const val FIRST_OWN_ERROR_NUMBER = 50000
 private const val STATEMENT_TERMINATED = 3621
 
 /**
- * Das INFO, das auf den ERROR einer Nachricht des Massenladens folgt (Messprotokoll M-12: Nummer 3621, State 0,
- * Class 0, „The statement has been terminated.“); gemessen für den Schlüsselverstoß, für andere Fehler gesetzt.
+ * Das INFO, das auf den ERROR einer Nachricht des Massenladens und eines Fehlers im Ergebnis eines `MERGE` folgt
+ * (Messprotokoll M-12 und M-15: Nummer 3621, State 0, Class 0, „The statement has been terminated.“); gemessen für den
+ * Schlüsselverstoß beider und für 2628 des `MERGE`, für andere Fehler gesetzt.
  */
 internal val BULK_TERMINATED =
     InfoToken(ServerMessage(STATEMENT_TERMINATED, 0, 0, "The statement has been terminated."))
 
 /**
  * Das Abschluss-Token eines Fehlers ohne Fortsetzung; die einzige Stelle, die es bildet (auch für den `ErrorMapper`).
- * Batch: DONE mit `ERROR`, Befehlskennung `0x00c1` bei offenem Ergebnis ([resultOpen]), sonst `0x00fd`. RPC: DONEPROC
+ * Batch: DONE mit `ERROR`, Befehlskennung [resultCommand] (`0x00c1`, bei einem `MERGE` `0x0117`) bei offenem Ergebnis
+ * ([resultOpen]), sonst `0x00fd`. RPC: DONEPROC
  * mit `ERROR` (Messprotokoll W-1, Fehler vor dem ersten Ergebnis).
  */
-internal fun failedDone(form: ResponseForm = ResponseForm.BATCH, resultOpen: Boolean = false): DoneToken = when (form) {
+internal fun failedDone(
+    form: ResponseForm = ResponseForm.BATCH,
+    resultOpen: Boolean = false,
+    resultCommand: Int = DoneCommand.SELECT,
+): DoneToken = when (form) {
     ResponseForm.BATCH ->
-        DoneToken(DoneKind.DONE, DoneStatus.ERROR, if (resultOpen) DoneCommand.SELECT else DoneCommand.BATCH, 0)
+        DoneToken(DoneKind.DONE, DoneStatus.ERROR, if (resultOpen) resultCommand else DoneCommand.BATCH, 0)
 
     ResponseForm.BULK -> DoneToken(DoneKind.DONE, DoneStatus.ERROR, DoneCommand.INSERT_BULK, 0)
 
@@ -82,6 +88,9 @@ internal class ResponseRun(
 ) {
     private var outcome: SequenceOutcome? = null
     private var columns: List<ColumnDef>? = null
+
+    /** Die Art des offenen Ergebnisses; bestimmt die Kennung seines Abschlusses und eines Fehlers in ihm. */
+    private var resultKind = StatementKind.UNKNOWN
     private var held: DoneToken? = null
     private val trailer = RpcTrailer(outputs) { write(it) }
 
@@ -101,7 +110,7 @@ internal class ResponseRun(
 
             is QueryEvent.Row -> row(event)
 
-            is QueryEvent.ResultEnd -> finish(event.affectedRows, inResult = true)
+            is QueryEvent.ResultEnd -> finish(event.affectedRows, inResult = true, resultKind)
 
             is QueryEvent.UpdateCount -> finish(event.affectedRows, inResult = false, event.kind)
 
@@ -154,6 +163,7 @@ internal class ResponseRun(
 
             is ProtocolResult.Ok -> {
                 columns = mapped.value
+                resultKind = event.kind
                 begun = true
                 !write(ColMetadataToken(mapped.value))
             }
@@ -175,6 +185,7 @@ internal class ResponseRun(
     ): Boolean {
         if ((columns != null) != inResult) return report(violation)
         columns = null
+        resultKind = StatementKind.UNKNOWN
         begun = true
         val completion = Completion.of(form, inResult, kind, affectedRows, transaction)
         val written = completion.before.all { write(it) }
@@ -217,14 +228,16 @@ internal class ResponseRun(
         val mapped = errors.backend(event)
         if (event.scope != FailureScope.STATEMENT || mapped.closesConnection) return report(mapped)
         val resultOpen = columns != null
+        val resultCommand = DoneCommand.forResult(resultKind)
         columns = null
+        resultKind = StatementKind.UNKNOWN
         val written = write(ErrorToken(mapped.message))
         if (written) {
             trailer.record(mapped.message.number, continued = true)
             begun = true
             val rpc = form == ResponseForm.RPC
             val command = when {
-                resultOpen -> DoneCommand.SELECT
+                resultOpen -> resultCommand
                 rpc -> DoneCommand.NONE
                 else -> DoneCommand.BATCH
             }
@@ -240,12 +253,18 @@ internal class ResponseRun(
      */
     private suspend fun report(mapped: MappedError): Boolean {
         val resultOpen = columns != null
+        val resultCommand = DoneCommand.forResult(resultKind)
+        val terminated = resultOpen && resultKind == StatementKind.MERGE
         columns = null
+        resultKind = StatementKind.UNKNOWN
         trailer.record(mapped.message.number, continued = false)
-        val written = write(ErrorToken(mapped.message)) && when (form) {
-            ResponseForm.BATCH -> write(failedDone(form, resultOpen))
+        val written = write(ErrorToken(mapped.message)) && (!terminated || write(BULK_TERMINATED)) && when (form) {
+            ResponseForm.BATCH -> write(failedDone(form, resultOpen, resultCommand))
+
             ResponseForm.BULK -> write(BULK_TERMINATED) && write(failedDone(form, resultOpen))
-            ResponseForm.RPC -> if (begun) trailer.afterResult(resultOpen) else trailer.finish(errorBit = true)
+
+            ResponseForm.RPC ->
+                if (begun) trailer.afterResult(resultOpen, resultCommand) else trailer.finish(errorBit = true)
         }
         if (written) {
             outcome = if (mapped.closesConnection) SequenceOutcome.FAILED_CLOSE_CONNECTION else SequenceOutcome.FAILED

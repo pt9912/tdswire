@@ -15,10 +15,10 @@ import io.github.pt9912.tdswire.protocol.token.Token
 internal class Completion(val before: List<Token>, val done: DoneToken) {
     companion object {
         /**
-         * Der Abschluss eines Ergebnisses ([resultEnd]) oder eines Änderungszählers der Art [kind] mit der Zahl
-         * [affectedRows] in der Antwortform [form] (`SPEC-031`, Messprotokoll W-6 und M-20): das Bit `COUNT` und die
-         * Kennung folgen der Art; die Arten ohne Zeilenzahl gelten nur im SQL_BATCH, in den Formen RPC und BULK gilt
-         * die Art wie `UNKNOWN`. Im SQL_BATCH führt [transaction] den Zustand der Verbindung nach und bestimmt, ob
+         * Der Abschluss eines Ergebnisses der Art [kind] ([resultEnd]; die Kennung folgt [DoneCommand.forResult]) oder
+         * eines Änderungszählers der Art [kind] mit der Zahl [affectedRows] in der Antwortform [form] (`SPEC-031`,
+         * Messprotokoll W-6, M-20 und M-26): das Bit `COUNT` und die Kennung folgen der Art; die Arten ohne
+         * Zeilenzahl gelten nur im SQL_BATCH, in den Formen RPC und BULK gilt die Art wie `UNKNOWN`. Im SQL_BATCH führt [transaction] den Zustand der Verbindung nach und bestimmt, ob
          * ENVCHANGE Typ 8 oder Typ 9 zum Abschluss gehört.
          */
         fun of(
@@ -30,7 +30,8 @@ internal class Completion(val before: List<Token>, val done: DoneToken) {
         ): Completion {
             val doneKind = if (form == ResponseForm.RPC) DoneKind.DONE_IN_PROC else DoneKind.DONE
             if (resultEnd) {
-                return Completion(emptyList(), done(doneKind, DoneCommand.SELECT, affectedRows, counted = true))
+                val command = DoneCommand.forResult(kind)
+                return Completion(emptyList(), done(doneKind, command, affectedRows, counted = true))
             }
             val effective = effectiveKind(form, kind)
             val transition = if (form == ResponseForm.BATCH) transaction.apply(effective) else null

@@ -79,15 +79,21 @@ nicht die Antwort.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `src/main/kotlin/io/github/pt9912/tdswire/domain/` (`StatementKind`, `ResultColumn`) | update | Mitglied `MERGE`; optionales Längenfeld (nach dem Entscheid) |
-| `src/main/kotlin/io/github/pt9912/tdswire/` (Typabbildung der Spalten, Abschluss der Antwort) | update | Länge der Spalte aus dem Feld, Befehl `0x0117` |
-| `src/main/kotlin/io/github/pt9912/tdswire/simulation/` (`SimulationMerges`, Fehlerabbildung) | update | `StatementKind.MERGE`, Länge 10, Nummern je Ursache |
-| `src/integrator/` (Einbettungstest) | update | Beleg des Feldes, erschöpfende Auswertung von `StatementKind` |
-| `spec/spezifikation.md` (`SPEC-031`, `SPEC-036`, `SPEC-059`, Änderungsprotokoll) | update | Zielbild, Fläche |
-| `docs/messungen/referenzabgleich.md` | update | Zeilen M-15 und M-26 der Zuordnung auf „angeglichen“ |
-| Tests (`src/test`, `testserver`) | neu / update | COLMETADATA, Abschluss, Fehlernummern (Happy / Boundary / Negative) |
+| `src/main/kotlin/io/github/pt9912/tdswire/domain/QueryEvent.kt` (`ResultColumn.maxLength`, `ResultStart.kind`) | update | optionales Längenfeld (Entscheid des Nutzers 2026-11-08) und die Art am Beginn des Ergebnisses: der Fehler im offenen Ergebnis kennt die Art nur dort, `UpdateCount.kind` (ADR-0042) reicht für ein Ergebnis nicht; **zweite Erweiterung der Fläche, vom Nutzer nicht ausdrücklich entschieden (Bericht)** |
+| `src/main/kotlin/io/github/pt9912/tdswire/domain/StatementKind.kt` | update | Mitglied `MERGE` |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/token/Token.kt` (`DoneCommand`) | update | `0x0117`, `forResult`, `countsRows` |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/response/` (`Completion.kt`, `ResponseRun.kt`, `RpcTrailer.kt`) | update | Kennung des Abschlusses und des Fehlers im Ergebnis nach der Art, INFO 3621 nach dem Fehler im Ergebnis eines `MERGE` |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/result/ColumnMapping.kt` | update | `NVARCHAR(maxLength)` statt fest 4000 |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/error/` (`ErrorCode.kt`, `ErrorMapper.kt`) | update | neuer Code `TDS_SIM_STRING_TRUNCATED` (2628) und seine Aufnahme in die Positivliste |
+| `src/main/kotlin/io/github/pt9912/tdswire/simulation/` (`SimulationMerges.kt`, `StatementPlanner.kt`) | update | `$action` mit Länge 10 und Art `MERGE`; Prüfung der Textlänge je Aktion (2628); Fehler von `onInsert` als 2627 |
+| `src/integrator/` (`MergeEmbeddingTest.kt`, `StatementKindEmbeddingTest.kt`) | update | Beleg der Felder, Bytes der Spalte und des Abschlusses, Fehler 2628, 2627, 208 |
+| `src/test/` (`ResponseMergeTest.kt` neu, `SimulationBackendMergeTest.kt`, `ErrorMapperTest.kt`) | neu / update | Tokenfolge gegen die Bytes der Messung, Zuordnung der Fehler, Codeliste |
+| `spec/spezifikation.md` (`SPEC-003`, `SPEC-022`, `SPEC-031`, `SPEC-035`, `SPEC-036`, Abschnitt 4, `SPEC-059`, Änderungsprotokoll) | update | Zielbild, Fläche, Fehlertabelle |
+| `docs/messungen/referenzabgleich.md` | update | Zeilen M-15 und M-26 der Zuordnung auf „angeglichen“ mit den Grenzen |
+| `docs/plan/kompatibilitaetsmatrix.md` | update | Zeilen Befehlskennung, `UnicodeText`, Fehlerantwort; neue Zitate von `ResponseMergeTest` |
+| `docs/user/` (`einbettung-und-betrieb.md`, `referenz-konfiguration.md`, `testserver-manuell.md`) | update | Felder, Antwortform, Fehler; `README.md` und `referenz-ereignisse.md` gelesen, unverändert |
 
-Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
+Die Liste ist im Lauf des Implementers gegen den Diff vervollständigt.
 
 ## 4. Trigger
 
