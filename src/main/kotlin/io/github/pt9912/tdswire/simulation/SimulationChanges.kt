@@ -50,6 +50,8 @@ internal object SimulationChanges {
 
             is Statement.Select -> error("eine Auswahl ist keine Änderung")
 
+            is Statement.Merge -> error("MERGE bereitet SimulationMerges vor")
+
             is Statement.CreateTable, is Statement.AddColumns -> error("eine Strukturänderung hat keinen Callback")
         }
     }

@@ -176,19 +176,33 @@ class SimValuesTest {
         SimValues.convert(param(reference), column(target), listOf(parameter))
 
     /**
-     * Happy und Negative: ein Parameter geht in dieselbe Familie und wird nur verlustfrei erweitert (Int32 zu
-     * Int64 zu Dezimal); die Verengung ist ungültig, auch wenn der Wert passt.
+     * Happy und Negative: ein Parameter geht in dieselbe Familie und wird verlustfrei erweitert (Int32 zu Int64 zu
+     * Dezimal); einzige Verengung ist `Int64` in eine `Int32`-Spalte im Wertebereich (d-migrate sendet jede Ganzzahl
+     * als
+     * `bigint`); darüber und jede andere Verengung ist ungültig.
      * @spec SPEC-035
      * @spec SPEC-039
      */
     @Test
-    fun `Parameter werden nur erweitert`() {
+    fun `Parameter werden erweitert und im Wertebereich auf Int32 verengt`() {
         assertValue(7, via(par(SqlType.Int32, 7), SqlType.Int32), "Int32 in Int32")
         assertValue(7L, via(par(SqlType.Int32, 7), SqlType.Int64), "Int32 in Int64")
         assertValue(7L, via(par(SqlType.Int64, 7L), SqlType.Int64), "Int64 in Int64")
         assertValue(BigDecimal(7), via(par(SqlType.Int32, 7), SqlType.Decimal(10, 2)), "Int32 in Dezimal")
         assertValue(BigDecimal(7), via(par(SqlType.Int64, 7L), SqlType.Decimal(10, 2)), "Int64 in Dezimal")
-        assertInvalid(via(par(SqlType.Int64, 7L), SqlType.Int32), "Int64 in Int32, Wert passt")
+        assertValue(7, via(par(SqlType.Int64, 7L), SqlType.Int32), "Int64 in Int32, Wert passt")
+        assertValue(Int.MAX_VALUE, via(par(SqlType.Int64, Int.MAX_VALUE.toLong()), SqlType.Int32), "Int32 Obergrenze")
+        assertValue(Int.MIN_VALUE, via(par(SqlType.Int64, Int.MIN_VALUE.toLong()), SqlType.Int32), "Int32 Untergrenze")
+        assertInvalid(via(par(SqlType.Int64, Int.MAX_VALUE + 1L), SqlType.Int32), "Int64 in Int32, Überlauf oben")
+        assertInvalid(via(par(SqlType.Int64, Int.MIN_VALUE - 1L), SqlType.Int32), "Int64 in Int32, Überlauf unten")
+        assertValue(
+            LocalTime.of(13, 14, 15),
+            via(par(SqlType.DateTime, LocalDateTime.of(1970, 1, 1, 13, 14, 15)), SqlType.Time),
+            "Zeitpunkt in Zeit",
+        )
+        assertInvalid(via(par(SqlType.Time, LocalTime.NOON), SqlType.DateTime), "Zeit in Zeitpunkt")
+        val early = LocalDateTime.of(1970, 1, 1, 1, 0)
+        assertInvalid(via(par(SqlType.DateTime, early), SqlType.Date), "Zeitpunkt in Datum")
         assertInvalid(via(par(SqlType.Decimal(10, 2), BigDecimal("7.00")), SqlType.Int32), "Dezimal in Int32")
         assertInvalid(via(par(SqlType.Decimal(10, 2), BigDecimal("7.00")), SqlType.Int64), "Dezimal in Int64")
         assertInvalid(via(par(SqlType.Int32, 7), SqlType.UnicodeText), "Zahl in Text")

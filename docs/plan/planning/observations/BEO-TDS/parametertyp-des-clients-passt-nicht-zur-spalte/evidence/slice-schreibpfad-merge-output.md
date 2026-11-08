@@ -1,0 +1,2 @@
+**Vorgang:** [slice-schreibpfad-merge-output](../../../../done/slice-schreibpfad-merge-output.md)
+**Fund:** das Risiko ist eingetreten und behoben: d-migrate 1.12.0 sendet `bigint` für `Int32`-Schlüssel (M-29, `MERGE` in `kunden_int` Exit 0 am echten Server und am Testserver), `DECIMALN` mit 2 bis 17 Byte Wert und `DATETIMN` mit 8 Byte für Zeiten (M-31). Die strenge Überführung verengt `Int64` im Wertebereich nach `Int32`; Verifikation: S6 bis S10 Exit 0.

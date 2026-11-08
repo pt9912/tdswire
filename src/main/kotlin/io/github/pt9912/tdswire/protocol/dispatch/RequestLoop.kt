@@ -304,7 +304,15 @@ internal class RequestLoop(
                 val text = parsed.value.text
                 val released = UnprepareBatch.parse(text)
                 if (released == null) {
-                    execute(text, emptyList(), layout = null, via = bulk.statement(text) ?: backend)
+                    val probe = bulk.probe(text)
+                    if (probe is BulkDispatch.Probe.Columns) {
+                        val (outcome, finished) = BulkCopyProbe.finished(probe.columns, errors)
+                        queryOutcome = outcome
+                        finished
+                    } else {
+                        val via = (probe as? BulkDispatch.Probe.Rejected)?.via ?: bulk.statement(text) ?: backend
+                        execute(text, emptyList(), layout = null, via = via)
+                    }
                 } else {
                     bulk.clear()
                     val allHeld = released.distinct().size == released.size && released.all { handles.sql(it) != null }

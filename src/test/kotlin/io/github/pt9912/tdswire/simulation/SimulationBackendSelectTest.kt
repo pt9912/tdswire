@@ -204,7 +204,8 @@ class SimulationBackendSelectTest {
             "SELECT id FROM person WHERE id = 1 AND name = 7" to emptyList(),
             "SELECT id FROM person WHERE age IN (1, 2, 'x')" to emptyList(),
             "SELECT id FROM person WHERE age = @missing" to emptyList(),
-            "SELECT id FROM person WHERE age = @wide" to listOf(QueryParameter("@wide", SqlType.Int64, 1L)),
+            "SELECT id FROM person WHERE age = @wide" to
+                listOf(QueryParameter("@wide", SqlType.Int64, Int.MAX_VALUE + 1L)),
             "SELECT id FROM person WHERE name = @num" to listOf(QueryParameter("@num", SqlType.Int32, 1)),
         )
         for ((sql, parameters) in cases) {

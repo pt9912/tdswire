@@ -32,6 +32,13 @@ internal object RpcWireValues {
     private const val SIGN_NEGATIVE = 0
     private const val SIGN_POSITIVE = 1
     private val dayZero = LocalDate.of(1, 1, 1)
+    private val dayZero1900 = LocalDate.of(1900, 1, 1)
+    private const val DATETIME_PART_BYTES = 4
+    private const val TICKS_PER_DAY = 25_920_000L
+    private const val MILLIS_PER_TICK_NUMERATOR = 10L
+    private const val MILLIS_PER_TICK_DENOMINATOR = 3L
+    private const val NANOS_PER_MILLI = 1_000_000L
+    private const val MAX_YEAR = 9999
 
     /** Der JVM-Wert zu den Wertbytes eines Typs aus der Menge der Rohwerte des Parsers. */
     fun decode(type: RpcType, bytes: ByteArray): Any = when (type.kind) {
@@ -46,7 +53,26 @@ internal object RpcWireValues {
             LocalDateTime.of(date(bytes, timeLength), time(type.scale, bytes, 0))
         }
 
+        RpcTypeKind.DATETIMN -> datetime(bytes)
+
         else -> rejectValue()
+    }
+
+    /**
+     * `datetime` (8 Byte): Tage seit 1900-01-01 als `Int32` mit Vorzeichen und danach die Ticks seit Mitternacht zu
+     * 1/300
+     * Sekunde als `UInt32`. Ein Tick ist 3,33 ms; die Millisekunden werden gerundet. Ticks ab 24 Uhr und Tage
+     * außerhalb des
+     * Bereichs von 0001-01-01 bis 9999-12-31 sind [RpcRejection.VALUE] (Festlegung ohne Messung).
+     */
+    private fun datetime(bytes: ByteArray): LocalDateTime {
+        val days = littleEndian(bytes, 0, DATETIME_PART_BYTES).toInt().toLong()
+        val ticks = littleEndian(bytes, DATETIME_PART_BYTES, DATETIME_PART_BYTES)
+        if (ticks >= TICKS_PER_DAY) rejectValue()
+        val date = dayZero1900.plusDays(days)
+        if (date.year !in 1..MAX_YEAR) rejectValue()
+        val millis = (ticks * MILLIS_PER_TICK_NUMERATOR + 1) / MILLIS_PER_TICK_DENOMINATOR
+        return LocalDateTime.of(date, LocalTime.ofNanoOfDay(millis * NANOS_PER_MILLI))
     }
 
     private fun decimal(type: RpcType, bytes: ByteArray): BigDecimal {

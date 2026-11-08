@@ -1,15 +1,12 @@
 package io.github.pt9912.tdswire.testserver
 
-import io.github.pt9912.tdswire.domain.SqlType
+import io.github.pt9912.tdswire.simulation.RowFilter
 import io.github.pt9912.tdswire.simulation.RowSource
 import io.github.pt9912.tdswire.simulation.SimCatalog
 import io.github.pt9912.tdswire.simulation.SimColumn
 import io.github.pt9912.tdswire.simulation.SimTable
 import io.github.pt9912.tdswire.simulation.SimulationBackend
 import java.math.BigDecimal
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
 
 /**
  * Der Bestand an Tabellen des Testservers im Arbeitsspeicher (`TDS-FA-12`): der Integrator der Bibliothek. Er hält die
@@ -27,7 +24,8 @@ import java.time.LocalTime
  * Massenladen ([insertBatch], `ADR-0033` Nr. 5): eine Nachricht ist eine Anweisung und gilt ganz oder gar nicht. Der
  * Bestand prüft vor dem ersten Einfügen jede Zeile der Nachricht: jeder Wert hat die Klasse seiner Spalte
  * (`ValueMapping`), eine nicht nullbare Spalte, auch jede Schlüsselspalte, trägt keinen NULL, und der Schlüssel ist
- * unter den Zeilen der Nachricht und des Bestands eindeutig; sonst wirft er, und der Bestand bleibt unverändert (die
+ * unter den Zeilen der Nachricht und des Bestands eindeutig (eine Tabelle ohne Schlüssel nimmt gleiche Zeilen an,
+ * `CREATE TABLE` ohne Schlüssel gelingt am Server, M-19); sonst wirft er, und der Bestand bleibt unverändert (die
  * Bibliothek meldet jeden Fehler des Callbacks einer Nachricht 0x07 dem Client als 2627,
  * `TDS_SIM_KEY_VIOLATION`). Setzung, am Server nicht gemessen: Textschlüssel
  * vergleicht der Bestand ohne Beachtung der Schreibweise (wie die Namen), Dezimalschlüssel mit `compareTo`. Der
@@ -89,15 +87,48 @@ internal class TableStore(initial: List<SimTable>, private val cellLimit: Long =
         val newKeys = HashSet<List<Any?>>()
         for (values in batch) {
             val row = table.columns.map { values[it.name] }
-            row.forEachIndexed { index, value -> check(table.columns[index], value) }
+            row.forEachIndexed { index, value -> RowRules.check(table.columns[index], value) }
             val rowKey = keyOf(table, row)
-            require(rowKey !in table.keys && newKeys.add(rowKey)) { "Schlüssel nicht eindeutig" }
+            require(table.primaryKey.isEmpty() || (rowKey !in table.keys && newKeys.add(rowKey))) {
+                "Schlüssel nicht eindeutig"
+            }
             staged.add(row)
         }
         table.rows.addAll(staged)
         table.keys.addAll(newKeys)
         cells += staged.size.toLong() * table.columns.size
         return staged.size.toLong()
+    }
+
+    /**
+     * Ändert die Zeilen der Tabelle [schema].[name], auf die der Filter [where] zutrifft (ohne Filter alle), und
+     * liefert ihre Zahl. [set] nennt Spalten der Beschreibung mit ihren Werten. Der Bestand prüft jeden neuen Wert
+     * wie beim Einfügen (Klasse der Spalte, NULL nur in nullbaren Spalten, [RowRules]) und lässt keine Änderung zu,
+     * die den Schlüssel doppelt machte (eine Tabelle ohne Schlüssel prüft keine Eindeutigkeit und ändert beliebig viele
+     * Zeilen, Setzung nach der Semantik von `UPDATE`, am Server nicht gemessen); sonst wirft er, und der Bestand
+     * bleibt unverändert (die Bibliothek meldet das als `TDS_BACKEND_ERROR`). Der Filter gilt wie der Vorfilter der
+     * Zeilenquelle (Setzung, am Server nicht gemessen).
+     */
+    @Synchronized
+    fun update(schema: String, name: String, set: Map<String, Any?>, where: RowFilter?): Long {
+        val table = checkNotNull(tables[key(schema, name)]) { "Tabelle nicht im Bestand" }
+        val positions = set.keys.map { column -> table.columns.indexOfFirst { it.name == column } }
+        require(positions.all { it >= 0 }) { "Spalte nicht im Bestand" }
+        set.entries.forEachIndexed { at, (_, value) -> RowRules.check(table.columns[positions[at]], value) }
+        val hit = table.rows.withIndex().filter { (_, row) -> RowRules.matches(table.columns, row, where) }
+        val values = set.values.toList()
+        val changed = hit.map { (_, row) ->
+            row.toMutableList().also { copy -> positions.forEachIndexed { at, p -> copy[p] = values[at] } }
+        }
+        val keys = HashSet(table.keys)
+        hit.forEach { (_, row) -> keys.remove(keyOf(table, row)) }
+        if (table.primaryKey.isNotEmpty()) {
+            for (row in changed) require(keys.add(keyOf(table, row))) { "Schlüssel nicht eindeutig" }
+        }
+        hit.forEachIndexed { at, (index, _) -> table.rows[index] = changed[at] }
+        table.keys.clear()
+        table.keys.addAll(keys)
+        return hit.size.toLong()
     }
 
     /** Das Backend der Bibliothek über diesen Bestand: Anbieter und Strukturänderung zeigen auf ihn. */
@@ -114,31 +145,13 @@ internal class TableStore(initial: List<SimTable>, private val cellLimit: Long =
         primaryKey = table.primaryKey,
         rows = { rowsOf(table) },
         onInsertBatch = { batch -> insertBatch(table.schema, table.name, batch) },
+        onUpdate = { set, where -> update(table.schema, table.name, set, where) },
     )
 
     @Synchronized
     private fun rowsOf(table: Stored): RowSource {
         val snapshot = table.rows.toList().iterator()
         return RowSource { if (snapshot.hasNext()) snapshot.next() else null }
-    }
-
-    private fun check(column: SimColumn, value: Any?) {
-        if (value == null) {
-            require(column.nullable) { "NULL in nicht nullbarer Spalte" }
-        } else {
-            require(hasClassOf(column.type, value)) { "Wert nicht vom Typ der Spalte" }
-        }
-    }
-
-    private fun hasClassOf(type: SqlType, value: Any): Boolean = when (type) {
-        SqlType.Int32 -> value is Int
-        SqlType.Int64 -> value is Long
-        SqlType.Bool -> value is Boolean
-        SqlType.UnicodeText -> value is String
-        is SqlType.Decimal -> value is BigDecimal
-        SqlType.Date -> value is LocalDate
-        SqlType.Time -> value is LocalTime
-        SqlType.DateTime -> value is LocalDateTime
     }
 
     private fun keyOf(table: Stored, row: List<Any?>): List<Any?> = table.primaryKey.map { name ->

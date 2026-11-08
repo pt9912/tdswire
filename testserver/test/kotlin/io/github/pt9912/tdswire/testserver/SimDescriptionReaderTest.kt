@@ -275,8 +275,6 @@ class SimDescriptionReaderTest {
         }
         val noColumns = b.table(null, b.keys("c"))
         assertEquals("Pflichtfeld columns fehlt", failure(b.doc(b.m("t" to noColumns))).reason)
-        val noKey = b.table(b.m("c" to b.col("integer")), null)
-        assertEquals("Pflichtfeld primary_key fehlt", failure(b.doc(b.m("t" to noKey))).reason)
         val noType = b.m()
         val error = failure(b.doc(b.m("t" to b.table(b.m("c" to noType), b.keys("c")))))
         assertEquals("Pflichtfeld type fehlt", error.reason)
@@ -518,9 +516,11 @@ class SimDescriptionReaderTest {
         val twiceError = failure(b.doc(b.m("t" to b.table(b.m("c" to b.col("integer")), b.l(b.s("c"), twice)))))
         assertEquals("Schlüsselspalte doppelt", twiceError.reason)
         assertEquals(twice.position, twiceError.position)
-        val empty = b.l()
-        val emptyError = failure(b.doc(b.m("t" to b.table(b.m("c" to b.col("integer")), empty))))
-        assertEquals(empty.position, emptyError.position)
+        val columns = b.m("c" to b.col("integer"), "d" to b.col("integer", "required" to b.s("true")))
+        val noKey = load(b.doc(b.m("t" to b.table(columns, null)))).single()
+        val emptyKey = load(b.doc(b.m("t" to b.table(columns, b.l())))).single()
+        assertEquals(listOf(emptyList(), emptyList()), listOf(noKey.primaryKey, emptyKey.primaryKey))
+        assertEquals(listOf(false, true), noKey.columns.map { !it.nullable })
         val nested = b.l()
         assertEquals("Skalar erwartet", failure(tableDoc(b.m("c" to b.col("integer")), b.l(nested))).reason)
     }

@@ -11,10 +11,10 @@ import io.github.pt9912.tdswire.protocol.wire.violation
 import java.nio.charset.Charset
 
 /**
- * Liest einen Wert eines ROW-Tokens der Nachricht BULK_LOAD (`MS-TDS`, Wertebytes mit Längenpräfix) nach der
- * TYPE_INFO seiner Spalte; Aufrufer ist [BulkLoadReader]. Die Klassen der Werte sind die von `ValueMapping`: `Int`
- * und `Long` für `INTN` (8 Byte `Long`, sonst `Int`), `Boolean`, `String`, `BigDecimal`, `LocalDate`, `LocalTime`,
- * `LocalDateTime`; `null` ist NULL.
+ * Liest einen Wert eines ROW-Tokens der Nachricht BULK_LOAD (`MS-TDS`, Wertebytes mit Längenpräfix oder, bei einem
+ * festen Typ, ohne) nach dem Typ seiner Spalte; Aufrufer ist [BulkLoadReader]. Die Klassen der Werte sind die von
+ * `ValueMapping`: `Int` und `Long` für `INTN` und die festen Ganzzahlen (8 Byte `Long`, sonst `Int`), `Boolean`,
+ * `String`, `BigDecimal`, `LocalDate`, `LocalTime`, `LocalDateTime`; `null` ist NULL.
  *
  * Festlegungen ohne Messung am Server: Ein `BIGVARCHAR` und `BIGCHAR` wird als Windows-1252 gelesen, gleich welche
  * Kollation die Spalte trägt (für ASCII-Werte, die d-migrate so für Datum, Zeit und Zeitpunkt sendet, gleich jeder
@@ -33,7 +33,16 @@ internal object BulkValueReader {
     private const val BYTE_MASK = 0xFFL
     private val windows1252: Charset = Charset.forName("windows-1252")
 
-    fun read(reader: ByteReader, type: RpcType): Any? = when (type.kind) {
+    fun read(reader: ByteReader, type: BulkColumnType): Any? = when (type) {
+        is BulkColumnType.Fixed -> fixed(reader, type.kind)
+        is BulkColumnType.Sized -> sized(reader, type.type)
+    }
+
+    /** Ein Wert fester Länge: `Long` für 8 Byte, `Boolean` für das Bit, sonst `Int`; es gibt kein NULL. */
+    private fun fixed(reader: ByteReader, kind: BulkFixedType): Any =
+        if (kind == BulkFixedType.BIT) reader.u8() != 0 else integer(reader.bytes(kind.size), kind.size)
+
+    private fun sized(reader: ByteReader, type: RpcType): Any? = when (type.kind) {
         RpcTypeKind.NVARCHAR, RpcTypeKind.NCHAR -> counted(reader, type)?.let { text(reader, it, Charsets.UTF_16LE) }
         RpcTypeKind.BIGVARCHAR, RpcTypeKind.BIGCHAR -> counted(reader, type)?.let { text(reader, it, windows1252) }
         else -> prefixed(reader, type)

@@ -2,7 +2,11 @@ package io.github.pt9912.tdswire.protocol.dispatch
 
 import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.domain.QueryRequest
+import io.github.pt9912.tdswire.domain.ResultColumn
+import io.github.pt9912.tdswire.domain.SqlType
 import io.github.pt9912.tdswire.port.BulkLoadingBackend
+import io.github.pt9912.tdswire.port.BulkProbeColumn
+import io.github.pt9912.tdswire.port.BulkProbeResult
 import io.github.pt9912.tdswire.port.BulkRows
 import io.github.pt9912.tdswire.port.BulkTarget
 import io.github.pt9912.tdswire.port.BulkTargetResult
@@ -10,6 +14,7 @@ import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.port.QueryExecution
 import io.github.pt9912.tdswire.port.ScriptedBackend
 import io.github.pt9912.tdswire.protocol.dispatch.RpcWire.prepExec
+import io.github.pt9912.tdswire.protocol.error.ErrorCode
 import io.github.pt9912.tdswire.protocol.session.Inbound
 import io.github.pt9912.tdswire.protocol.token.DoneCommand
 import io.github.pt9912.tdswire.protocol.token.DoneKind
@@ -18,6 +23,7 @@ import io.github.pt9912.tdswire.protocol.token.DoneToken
 import io.github.pt9912.tdswire.protocol.token.ErrorToken
 import io.github.pt9912.tdswire.protocol.token.InfoToken
 import io.github.pt9912.tdswire.protocol.token.ServerMessage
+import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
 import io.github.pt9912.tdswire.testsupport.blocking
 import io.github.pt9912.tdswire.testsupport.hex
 import io.github.pt9912.tdswire.transport.framing.PacketType
@@ -28,6 +34,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -58,12 +65,19 @@ class BulkDispatchTest {
     ) : QueryBackend,
         BulkLoadingBackend {
         val asked = mutableListOf<String>()
+        val probed = mutableListOf<String>()
+        var probe: BulkProbeResult? = null
         val executed = mutableListOf<String>()
         val loads = mutableListOf<Pair<BulkTarget, BulkRows>>()
 
         override fun bulkTarget(sql: String): BulkTargetResult? {
             asked += sql
             return target.takeIf { sql.startsWith("INSERT BULK") }
+        }
+
+        override fun bulkProbe(sql: String): BulkProbeResult? {
+            probed += sql
+            return probe.takeIf { sql.startsWith(PROBE) }
         }
 
         override suspend fun load(target: BulkTarget, rows: BulkRows): QueryEvent {
@@ -151,6 +165,75 @@ class BulkDispatchTest {
         assertEquals(emptyList(), backend.loads)
         assertEquals(DoneToken(DoneKind.DONE, DoneStatus.COUNT, DoneCommand.INSERT_BULK, 0), session.done(1))
         assertEquals(listOf("SELECT 1"), backend.executed)
+    }
+
+    /**
+     * V-6: Nach einer verworfenen Nachricht (IGNORE-Bit) erwartet das Massenladen keine weitere; ein folgendes
+     * ATTENTION
+     * in `READY` ist die gewöhnliche Bestätigung (nur `ATTENTION`, wie nach einer geladenen Nachricht, Messprotokoll
+     * M-12), nicht der Abbruch mit `ERROR` und `ATTENTION`. Wächter: ein Zustand `awaiting`, den das IGNORE-Bit stehen
+     * lässt (die Bestätigung trüge dann `ERROR`).
+     *
+     * @spec SPEC-036
+     */
+    @Test
+    fun `IGNORE, dann ATTENTION in READY ist die gewoehnliche Bestaetigung`() = blocking {
+        val backend = Loading()
+        val session = Session.login(
+            batch(insertBulk),
+            bulk(ignore = true),
+            BatchVectors.attention(),
+            batch("SELECT 1"),
+            Inbound.EndOfStream,
+        )
+        session.serve(backend)
+        assertEquals(DoneToken(DoneKind.DONE, DoneStatus.COUNT, DoneCommand.INSERT_BULK, 0), session.done(1))
+        assertEquals(DoneToken(DoneKind.DONE, DoneStatus.ATTENTION, DoneCommand.BATCH, 0), session.done(2))
+        assertEquals(listOf("SELECT 1"), backend.executed)
+        assertEquals(emptyList(), backend.loads)
+    }
+
+    private val tableColumns = listOf(
+        BulkProbeColumn(ResultColumn("Id", SqlType.Int64, false), 4000),
+        BulkProbeColumn(ResultColumn("Text", SqlType.UnicodeText, true), 10),
+    )
+
+    /**
+     * Die Probe der Zieltabelle von `SqlBulkCopy` ([BulkCopyProbe]) wird ohne `execute` beantwortet, mit den Bytes von
+     * `BulkCopyProbe.answer`, und löscht das Ziel nicht für den folgenden `INSERT BULK`: der Ablauf des Referenzclients
+     * (Probe, `INSERT BULK`, Nachricht 0x07) lädt die drei Zeilen. Wächter: eine Probe, die das Backend als Batch
+     * erreicht; eine Probe, die den folgenden `INSERT BULK` nicht zum Ziel führen lässt.
+     *
+     * @spec SPEC-036
+     */
+    @Test
+    fun `die Probe der Zieltabelle wird beantwortet und der folgende INSERT BULK laedt`() = blocking {
+        val backend = Loading().also { it.probe = BulkProbeResult.Ready(tableColumns) }
+        val session = Session.login(batch("$PROBE; …"), batch(insertBulk), bulk(), Inbound.EndOfStream)
+        session.serve(backend)
+        val expected = (BulkCopyProbe.answer(tableColumns) as ProtocolResult.Ok).value
+        assertContentEquals(expected, session.replies[0].payload)
+        assertEquals(emptyList(), backend.executed)
+        assertEquals(3, backend.loads.single().second.rows.size)
+        assertEquals(DoneToken(DoneKind.DONE, DoneStatus.COUNT, DoneCommand.INSERT_BULK, 3), session.done(2))
+    }
+
+    /**
+     * Eine Probe, die das Backend ablehnt, endet mit dem Fehler des Backends bei offener Verbindung; die Folgeabfrage
+     * wird beantwortet. Wächter: eine Probe, die trotz Ablehnung antwortet; eine geschlossene Verbindung.
+     *
+     * @spec SPEC-036
+     */
+    @Test
+    fun `eine abgelehnte Probe endet mit dem Fehler des Backends`() = blocking {
+        val backend = Loading().also {
+            it.probe = BulkProbeResult.Rejected(ErrorCode.TDS_UNSUPPORTED_SQL.name, "Tabelle nicht beschrieben")
+        }
+        val session = Session.login(batch("$PROBE; …"), batch("SELECT 1"), Inbound.EndOfStream)
+        session.serve(backend)
+        assertEquals(unsupported.number, session.tokens(0).errorMessage().number)
+        assertEquals(listOf("SELECT 1"), backend.executed)
+        assertTrue(session.channel.exhausted)
     }
 
     /**
@@ -348,6 +431,9 @@ class BulkDispatchTest {
     }
 
     private companion object {
+        /** Der Anfang des Texts der Probe von `SqlBulkCopy`; das Test-Backend erkennt sie daran. */
+        const val PROBE = "SELECT @@TRANCOUNT"
+
         /** Mitschnitt von mssql-jdbc, siehe `BulkLoadReaderTest`. */
         const val THREE_ROWS =
             "81030000000000000026080249006400000000000100e7401f0904d00034044e0061006d006500000000000100" +
