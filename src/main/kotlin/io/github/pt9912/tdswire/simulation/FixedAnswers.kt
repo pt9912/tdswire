@@ -10,8 +10,10 @@ import io.github.pt9912.tdswire.domain.StatementKind
  * eine Spalte ohne Namen vom Typ `Int32`, nicht NULL-fähig, mit der Zeile `1`; eine `SET`-Anweisung ist der
  * Änderungszähler 0, mit zwei Ausnahmen: der Text `set implicit_transactions on|off` allein meldet die Art
  * `IMPLICIT_TRANSACTIONS_ON` bzw. `IMPLICIT_TRANSACTIONS_OFF` (M-20; `off` allein ist Setzung nach dem Teil der
- * Kombination), und `set implicit_transactions off IF @@TRANCOUNT > 0 COMMIT TRAN` meldet diese Art und dann
- * `COMMIT_IF_OPEN`. Jede andere Transaktionssteuerung ist der Änderungszähler 0 ohne Art. Ein Ergebnisende ohne Anfang ist kein Zähler: der Backend-Vertrag lässt eine Anweisung ohne
+ * Kombination), `set implicit_transactions off IF @@TRANCOUNT > 0 COMMIT TRAN` meldet diese Art und dann
+ * `COMMIT_IF_OPEN`, und `IF @@TRANCOUNT > 0 COMMIT TRAN` allein meldet `COMMIT_IF_OPEN`. Jede andere
+ * Transaktionssteuerung (`ROLLBACK`, `set implicit_transactions on` mit der Bedingung) ist der Änderungszähler 0 ohne
+ * Art. Ein Ergebnisende ohne Anfang ist kein Zähler: der Backend-Vertrag lässt eine Anweisung ohne
  * Ergebnis nur als Änderungszähler zu, `ResultEnd` ohne `ResultStart` beantwortet die Sitzung mit Fehler 50007 und
  * schließt.
  */
@@ -25,14 +27,18 @@ internal object FixedAnswers {
 
         is FixedForm.Settings -> listOf(QueryEvent.UpdateCount(0, implicitTransactions(form)))
 
-        is FixedForm.Transaction -> if (form.implicit == false && form.commit) {
-            listOf(
-                QueryEvent.UpdateCount(0, StatementKind.IMPLICIT_TRANSACTIONS_OFF),
-                QueryEvent.UpdateCount(0, StatementKind.COMMIT_IF_OPEN),
-            )
-        } else {
-            listOf(QueryEvent.UpdateCount(0))
-        }
+        is FixedForm.Transaction -> transaction(form)
+    }
+
+    private fun transaction(form: FixedForm.Transaction): List<QueryEvent> = when {
+        form.commit && form.implicit == null -> listOf(QueryEvent.UpdateCount(0, StatementKind.COMMIT_IF_OPEN))
+
+        form.commit && form.implicit == false -> listOf(
+            QueryEvent.UpdateCount(0, StatementKind.IMPLICIT_TRANSACTIONS_OFF),
+            QueryEvent.UpdateCount(0, StatementKind.COMMIT_IF_OPEN),
+        )
+
+        else -> listOf(QueryEvent.UpdateCount(0))
     }
 
     private fun implicitTransactions(form: FixedForm.Settings): StatementKind {

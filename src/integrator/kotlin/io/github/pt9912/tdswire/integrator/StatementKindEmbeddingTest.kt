@@ -37,6 +37,11 @@ private const val CREATE_TABLE_COMMAND = 0x00C6
 private const val ALTER_TABLE_COMMAND = 0x00D8
 private const val IMPLICIT_ON_COMMAND = 0x00B9
 private const val COMMIT_IF_OPEN_COMMAND = 0x00C0
+private const val ENVCHANGE_TOKEN: Byte = 0xE3.toByte()
+private const val BEGIN_TYPE: Byte = 8
+private const val ENVCHANGE_TYPE_OFFSET = 3
+private const val DESCRIPTOR_OFFSET = 5
+private const val DESCRIPTOR_BYTES = 8
 private const val ROWS = 3L
 
 /**
@@ -175,6 +180,51 @@ class StatementKindEmbeddingTest {
     }
 
     /**
+     * Die Folge von `schema migrate` auf den Rohbytes (Messprotokoll M-20, Szenario `katalog-struktur`) gegen das
+     * Simulations-Backend und gegen ein eigenes Backend, das dieselben Arten meldet: `set implicit_transactions on`,
+     * `CREATE TABLE` (ENVCHANGE Typ 8 mit dem Deskriptor), `ALTER TABLE … ADD` und der bedingte `COMMIT` (mit Typ 9), beide
+     * mit dem Deskriptor des Servers im Kopf der Anfrage wie beim Referenzclient, dann `set implicit_transactions off IF …`
+     * und ein `CREATE TABLE` ohne ENVCHANGE. Jede Antwort hat die gemessenen Bytes; der zurückgesendete Deskriptor wird
+     * bedient und ändert die Antwort nicht. Wächter: ein Typ 8 ohne die Option oder ein zweiter, ein Typ 9 mit anderem
+     * Deskriptor als dem von Typ 8, ein Kopf mit Deskriptor, auf den die Schleife anders antwortet.
+     *
+     * @spec SPEC-059
+     * @spec SPEC-031
+     * @spec SPEC-035
+     * @spec TDS-QA-07
+     */
+    @Test
+    fun dieFolgeVonSchemaMigrateTraegtEnvchangeTypAchtUndNeunUndBedientDenDeskriptor() {
+        val zero = "00 00 00 00 00 00 00 00"
+        val descriptor = "01 00 00 00 35 00 00 00"
+        val steps = listOf(
+            "set implicit_transactions on " to "FD 00 00 B9 00 $zero",
+            "CREATE TABLE produkte (Id BIGINT NOT NULL, PRIMARY KEY (Id))" to
+                "E3 0B 00 08 08 $descriptor 00  FD 00 00 C6 00 $zero",
+            "ALTER TABLE produkte ADD Email NVARCHAR(200)" to "FD 00 00 D8 00 $zero",
+            "IF @@TRANCOUNT > 0 COMMIT TRAN" to
+                "FD 01 00 C0 00 $zero  E3 0B 00 09 00 08 $descriptor  FD 00 00 D5 00 $zero",
+            "set implicit_transactions off IF @@TRANCOUNT > 0 COMMIT TRAN " to
+                "FD 01 00 BA 00 $zero  FD 00 00 C0 00 $zero",
+            "CREATE TABLE kunden (Id BIGINT NOT NULL, PRIMARY KEY (Id))" to "FD 00 00 C6 00 $zero",
+        )
+        val servers = listOf(structureBackend(), StepBackend()).map { start(BackendSource.Custom(it)) }
+        for (server in servers) {
+            WireClient(server.port).use { client ->
+                client.login()
+                var returned = ByteArray(DESCRIPTOR_BYTES)
+                for ((sql, expected) in steps) {
+                    val answer = client.batch(sql, returned)
+                    assertEquals(hex(expected).toList(), answer.payload.toList(), sql)
+                    if (answer.payload[0] == ENVCHANGE_TOKEN && answer.payload[ENVCHANGE_TYPE_OFFSET] == BEGIN_TYPE) {
+                        returned = answer.payload.copyOfRange(DESCRIPTOR_OFFSET, DESCRIPTOR_OFFSET + DESCRIPTOR_BYTES)
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * Ein Backend, das die Art nicht meldet (`UpdateCount(n)` wie vor der Fläche `kind`), bekommt DONE mit `COUNT`,
      * der Zeilenzahl und der Befehlskennung 0, ebenso ein Backend mit `StatementKind.UNKNOWN`. Wächter: eine Kennung
      * ungleich 0 bei fehlender Art (ein Standardwert im Konstruktor), ein Verlust des Zählers.
@@ -248,6 +298,31 @@ private class TransactionBackend : QueryBackend {
             QueryEvent.UpdateCount(0, StatementKind.IMPLICIT_TRANSACTIONS_OFF),
             QueryEvent.UpdateCount(0, StatementKind.COMMIT_IF_OPEN),
         )
+    }
+
+    override suspend fun cancel(sessionId: String, requestId: String) = Unit
+}
+
+/** Ein Backend, das zu den Texten der Folge `schema migrate` die Art meldet, die das Simulations-Backend meldet. */
+private class StepBackend : QueryBackend {
+    override suspend fun execute(request: QueryRequest): QueryExecution {
+        val sql = request.sql
+        val events = when {
+            sql.startsWith("set implicit_transactions on") ->
+                listOf(QueryEvent.UpdateCount(0, StatementKind.IMPLICIT_TRANSACTIONS_ON))
+
+            sql.startsWith("set implicit_transactions off") -> listOf(
+                QueryEvent.UpdateCount(0, StatementKind.IMPLICIT_TRANSACTIONS_OFF),
+                QueryEvent.UpdateCount(0, StatementKind.COMMIT_IF_OPEN),
+            )
+
+            sql.startsWith("IF @@TRANCOUNT") -> listOf(QueryEvent.UpdateCount(0, StatementKind.COMMIT_IF_OPEN))
+
+            sql.startsWith("CREATE") -> listOf(QueryEvent.UpdateCount(0, StatementKind.CREATE_TABLE))
+
+            else -> listOf(QueryEvent.UpdateCount(0, StatementKind.ALTER_TABLE))
+        }
+        return FixedExecution(*events.toTypedArray())
     }
 
     override suspend fun cancel(sessionId: String, requestId: String) = Unit

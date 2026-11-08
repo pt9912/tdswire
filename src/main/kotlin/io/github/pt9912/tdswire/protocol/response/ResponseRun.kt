@@ -11,6 +11,7 @@ import io.github.pt9912.tdswire.protocol.token.DoneCommand
 import io.github.pt9912.tdswire.protocol.token.DoneKind
 import io.github.pt9912.tdswire.protocol.token.DoneStatus
 import io.github.pt9912.tdswire.protocol.token.DoneToken
+import io.github.pt9912.tdswire.protocol.token.EnvChange
 import io.github.pt9912.tdswire.protocol.token.ErrorToken
 import io.github.pt9912.tdswire.protocol.token.InfoToken
 import io.github.pt9912.tdswire.protocol.token.ReturnStatusToken
@@ -78,6 +79,7 @@ internal class ResponseRun(
     private val sink: TokenSink,
     private val form: ResponseForm = ResponseForm.BATCH,
     private val outputs: RpcOutputs = RpcOutputs(CallLayout.PROCEDURE, emptyList()),
+    private val transaction: SessionTransaction = SessionTransaction(),
 ) {
     private var outcome: SequenceOutcome? = null
     private var columns: List<ColumnDef>? = null
@@ -176,16 +178,38 @@ internal class ResponseRun(
         columns = null
         begun = true
         val effective = effectiveKind(kind)
+        val transition = if (inResult || form != ResponseForm.BATCH) {
+            SessionTransaction.Transition.NONE
+        } else {
+            transaction.apply(effective)
+        }
+        if (!writeTransition(transition)) return true
         val doneKind = if (form == ResponseForm.RPC) DoneKind.DONE_IN_PROC else DoneKind.DONE
         val command = when {
             inResult -> DoneCommand.SELECT
             form == ResponseForm.BULK -> DoneCommand.INSERT_BULK
+            transition == SessionTransaction.Transition.COMMITTED -> DoneCommand.COMMIT_TRAN
             else -> DoneCommand.forKind(effective)
         }
         val counted = affectedRows != null && (inResult || DoneCommand.countsRows(effective))
         val status = if (counted) DoneStatus.COUNT else DoneStatus.FINAL
         held = DoneToken(doneKind, status, command, if (counted) affectedRows ?: 0 else 0)
         return false
+    }
+
+    /**
+     * Schreibt, was dem Abschluss einer Transaktionsart vorausgeht (Messprotokoll M-20): bei Beginn das ENVCHANGE Typ 8,
+     * beim bedingten `COMMIT` einer offenen Transaktion der Abschluss der Bedingung mit `MORE` und das ENVCHANGE Typ 9;
+     * das DONE des `COMMIT` folgt als zurückgehaltener Abschluss. `false`, wenn die Senke ein Token nicht annahm.
+     */
+    private suspend fun writeTransition(transition: SessionTransaction.Transition): Boolean = when (transition) {
+        SessionTransaction.Transition.NONE -> true
+
+        SessionTransaction.Transition.BEGUN -> write(EnvChange.BeginTransaction(SessionTransaction.DESCRIPTOR))
+
+        SessionTransaction.Transition.COMMITTED ->
+            write(DoneToken(DoneKind.DONE, DoneStatus.MORE, DoneCommand.forKind(StatementKind.COMMIT_IF_OPEN), 0)) &&
+                write(EnvChange.CommitTransaction(SessionTransaction.DESCRIPTOR))
     }
 
     /**

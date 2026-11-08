@@ -141,7 +141,8 @@ internal enum class SequenceOutcome {
 internal class ResponseSequencer(private val errors: ErrorMapping) {
     /**
      * Führt [request] auf [backend] aus und schreibt die Tokens der Antwortform [form] in [sink]; [layout] sagt, wo
-     * die Parameter der Anfrage in der Aufrufliste des RPC stehen (Ordinal der RETURNVALUE). `close()`
+     * die Parameter der Anfrage in der Aufrufliste des RPC stehen (Ordinal der RETURNVALUE); [transaction] ist der Zustand
+     * der Verbindung, den die Arten der Transaktion nachführen (nur in der Form BATCH). `close()`
      * der Ausführung läuft in jedem Ausgang, auch beim Abbruch der Coroutine. Endet das Lesen durch den Abbruch der
      * Coroutine, durch eine Senke, die ein Token nicht annimmt, oder durch eine Ausnahme der Senke,
      * ruft der Lauf zuvor genau einmal `cancel()` des Backends; kein weiteres Ereignis wird danach
@@ -153,8 +154,9 @@ internal class ResponseSequencer(private val errors: ErrorMapping) {
         sink: TokenSink,
         form: ResponseForm = ResponseForm.BATCH,
         layout: CallLayout = CallLayout.PROCEDURE,
+        transaction: SessionTransaction = SessionTransaction(),
     ): SequenceOutcome {
-        val run = ResponseRun(errors, sink, form, RpcOutputs(layout, request.parameters))
+        val run = ResponseRun(errors, sink, form, RpcOutputs(layout, request.parameters), transaction)
         val started = runCatching { backend.execute(request) }
         val cause = started.exceptionOrNull()
         if (cause != null) {

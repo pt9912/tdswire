@@ -15,7 +15,7 @@ internal sealed interface Token
 internal data class LoginAck(val interfaceType: Int, val tdsVersion: Int, val progName: String, val progVersion: Int) :
     Token
 
-/** ENVCHANGE (`0xE3`) mit der Art der Änderung. Festlegung: Der Katalog umfasst Typ 1, 4, 7 und 18. */
+/** ENVCHANGE (`0xE3`) mit der Art der Änderung. Festlegung: Der Katalog umfasst Typ 1, 4, 7, 8, 9 und 18. */
 internal sealed interface EnvChange : Token {
     /**
      * Typ 18: Rücksetzen der Verbindung, neuer und alter Wert leer. Erstes Token der Antwort auf eine Anfrage mit dem
@@ -31,6 +31,18 @@ internal sealed interface EnvChange : Token {
 
     /** Typ 7: SQL-Kollation; `oldValue` ist `null`, wenn es keine vorige gab. */
     data class SqlCollation(val newValue: Collation, val oldValue: Collation?) : EnvChange
+
+    /**
+     * Typ 8: Beginn einer Transaktion, der neue Wert ist der Deskriptor (8 Byte), der alte Wert ist leer. Am echten
+     * SQL Server nach `CREATE TABLE` bei `set implicit_transactions on` gemessen (Messprotokoll M-20, 2022 und 2025).
+     */
+    data class BeginTransaction(val descriptor: Long) : EnvChange
+
+    /**
+     * Typ 9: Ende einer Transaktion durch `COMMIT`, der neue Wert ist leer, der alte Wert ist der Deskriptor (8 Byte).
+     * Am echten SQL Server gemessen (Messprotokoll M-20, 2022 und 2025).
+     */
+    data class CommitTransaction(val descriptor: Long) : EnvChange
 }
 
 /** Nummer, Zustand, Schweregrad, Text und Herkunft einer INFO- oder ERROR-Meldung. */
@@ -84,6 +96,9 @@ internal object DoneCommand {
     private const val IMPLICIT_TRANSACTIONS_ON = 0x00B9
     private const val IMPLICIT_TRANSACTIONS_OFF = 0x00BA
     private const val COMMIT_IF_OPEN = 0x00C0
+
+    /** Der Abschluss des `COMMIT` hinter einer offenen Transaktion (Messprotokoll M-20). */
+    const val COMMIT_TRAN = 0x00D5
 
     /**
      * Die Kennung des Abschlusses der Art [kind] (Messprotokoll W-6 und M-20); [NONE] für `UNKNOWN`. Die Arten aus M-20

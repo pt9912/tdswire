@@ -265,7 +265,7 @@ class SimulationBackendStructureTest {
      * Transaktion (`ADR-0033` Nr. 6, gemessen im Spike: der Bestand bleibt halb geändert). `set implicit_transactions
      * on` meldet die Art `IMPLICIT_TRANSACTIONS_ON`; `set implicit_transactions off IF @@TRANCOUNT > 0 COMMIT TRAN`
      * meldet `IMPLICIT_TRANSACTIONS_OFF` und dann `COMMIT_IF_OPEN` (beide gemessen, M-20); `IF @@TRANCOUNT > 0 COMMIT
-     * TRAN` allein und `ROLLBACK TRAN` bleiben der Zähler 0 ohne Art.
+     * TRAN` allein meldet `COMMIT_IF_OPEN`, `ROLLBACK TRAN` bleibt der Zähler 0 ohne Art.
      * Wächter: ein `ROLLBACK`, das etwas zurücknimmt, ein Ergebnis ohne Anfang (die Sitzung schließt), eine Art für
      * ein ungemessenes `ROLLBACK`.
      * @spec SPEC-036
@@ -275,7 +275,7 @@ class SimulationBackendStructureTest {
         val store = Store(listOf(kunden))
         val plain = "IF @@TRANCOUNT > 0 COMMIT TRAN"
         val combined = "set implicit_transactions off IF @@TRANCOUNT > 0 COMMIT TRAN "
-        assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(0)), run(store, plain))
+        assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(0, StatementKind.COMMIT_IF_OPEN)), run(store, plain))
         assertEquals(
             listOf<QueryEvent>(
                 QueryEvent.UpdateCount(0, StatementKind.IMPLICIT_TRANSACTIONS_OFF),

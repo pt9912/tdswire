@@ -13,6 +13,7 @@ import io.github.pt9912.tdswire.protocol.response.CallLayout
 import io.github.pt9912.tdswire.protocol.response.ResponseForm
 import io.github.pt9912.tdswire.protocol.response.ResponseSequencer
 import io.github.pt9912.tdswire.protocol.response.SequenceOutcome
+import io.github.pt9912.tdswire.protocol.response.SessionTransaction
 import io.github.pt9912.tdswire.protocol.response.TokenSink
 import io.github.pt9912.tdswire.protocol.session.AttentionAck
 import io.github.pt9912.tdswire.protocol.session.ConnectionState
@@ -88,7 +89,10 @@ import kotlin.time.Duration.Companion.milliseconds
  * Wert (am echten Server gemessen, Messprotokoll W-7, Batch; für den RPC Setzung nach derselben Regel). Das Bit an
  * einer Nachricht außerhalb von `READY` wirkt nicht: dort ist eine Anfrage unzulässig und die Verbindung schließt
  * (Festlegung; `ADR-0027` entscheidet es nicht).
- * Weiteren Sitzungszustand als die Handles führt die Schleife nicht.
+ * Der Zustand der Transaktion ([SessionTransaction]: `implicit_transactions` an oder aus, Transaktion offen) liegt wie
+ * die Handles bei der Schleife und endet mit ihr; die Arten, die das Backend meldet, führen ihn nach, und der
+ * Sequenzierer schreibt daraus ENVCHANGE Typ 8 und 9 (`SPEC-031`). Das Bit RESETCONNECTION setzt ihn zurück. Weiteren
+ * Sitzungszustand führt die Schleife nicht.
  *
  * Abbruch (`SPEC-029`, `ADR-0027`): Während einer Anfrage liest die Schleife mit ([AbortableRun]). Ein ATTENTION in
  * `RUNNING` oder `STREAMING` und der Ablauf der Frist gehen denselben Weg: der erste Übergang nach `CANCELLING`
@@ -167,6 +171,9 @@ internal class RequestLoop(
     /** Die Prepared-Handles dieser Sitzung; eine Schleife bedient genau eine Sitzung. */
     internal val handles = PreparedHandles(handleLimit)
 
+    /** Der Transaktionszustand dieser Sitzung (`implicit_transactions`, offene Transaktion); er endet mit der Schleife. */
+    private val transaction = SessionTransaction()
+
     /** Der Lauf der Anfrage, die gerade ausgeführt wird; `null` zwischen den Anfragen. */
     @Volatile
     private var active: AbortableRun? = null
@@ -189,6 +196,7 @@ internal class RequestLoop(
         ready.live.onSessionReset {
             handles.clear()
             bulk.clear()
+            transaction.reset()
         }
         ready.live.onAttentionWhenIdle { if (bulk.abandon()) AttentionAck.bulkAborted else AttentionAck.message }
         gate.onGraceExpired {
@@ -406,7 +414,14 @@ internal class RequestLoop(
         active = run
         val end = try {
             run.run(remaining) {
-                sequencer.run(via.observed(session), request, sinkAround(sink), form, layout ?: CallLayout.PROCEDURE)
+                sequencer.run(
+                    via.observed(session),
+                    request,
+                    sinkAround(sink),
+                    form,
+                    layout ?: CallLayout.PROCEDURE,
+                    transaction,
+                )
             }
         } finally {
             active = null

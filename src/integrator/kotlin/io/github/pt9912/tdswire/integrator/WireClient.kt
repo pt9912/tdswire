@@ -98,9 +98,9 @@ internal class WireClient(port: Int) : AutoCloseable {
         return readMessage().second.any { it.toInt() and BYTE_MASK == LOGINACK_TOKEN }
     }
 
-    /** Ein SQL_BATCH mit [sql] und die Antwort darauf. */
-    fun batch(sql: String): Answer {
-        send(TYPE_SQL_BATCH, allHeaders() + utf16(sql))
+    /** Ein SQL_BATCH mit [sql] und die Antwort darauf; [descriptor] ist der Deskriptor der Transaktion im Kopf. */
+    fun batch(sql: String, descriptor: ByteArray = ByteArray(LONG_BYTES)): Answer {
+        send(TYPE_SQL_BATCH, allHeaders(descriptor) + utf16(sql))
         return Answer(readMessage().second)
     }
 
@@ -170,9 +170,10 @@ internal class WireClient(port: Int) : AutoCloseable {
 private fun preloginPayload(): ByteArray = hex("00 00 0B 00 06  01 00 11 00 01  FF  00 00 00 00 00 00  00")
 
 /** ALL_HEADERS mit dem Header der Transaktionsbeschreibung (MS-TDS 2.2.5.3). */
-internal fun allHeaders(): ByteArray = le(ALL_HEADERS_BYTES.toLong(), INT_BYTES) +
-    le(ALL_HEADERS_INNER_BYTES.toLong(), INT_BYTES) + le(TRANSACTION_DESCRIPTOR.toLong(), SHORT_BYTES) +
-    ByteArray(LONG_BYTES) + le(1, INT_BYTES)
+internal fun allHeaders(descriptor: ByteArray = ByteArray(LONG_BYTES)): ByteArray =
+    le(ALL_HEADERS_BYTES.toLong(), INT_BYTES) +
+        le(ALL_HEADERS_INNER_BYTES.toLong(), INT_BYTES) + le(TRANSACTION_DESCRIPTOR.toLong(), SHORT_BYTES) +
+        descriptor + le(1, INT_BYTES)
 
 /** LOGIN7 nach MS-TDS 2.2.6.4: feste Länge, Offsettabelle, dann die Zeichenfolgen; das Passwort ist verschleiert. */
 private fun login7Payload(user: String, password: String): ByteArray {
