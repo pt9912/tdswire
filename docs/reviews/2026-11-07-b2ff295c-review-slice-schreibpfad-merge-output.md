@@ -70,7 +70,7 @@
 
 * kategorie: MEDIUM
 * quelle: Reviewer-Skill „Plan-Tabelle nennt die berührten Dateien nicht“
-* pfad: `docs/plan/planning/in-progress/slice-schreibpfad-merge-output.md` · „| `testserver/kotlin/io/github/pt9912/tdswire/testserver/TableStore.kt` | update |“
+* pfad: `docs/plan/planning/done/slice-schreibpfad-merge-output.md` · „| `testserver/kotlin/io/github/pt9912/tdswire/testserver/TableStore.kt` | update |“
 * befund: Im Diff berührt, in der Tabelle ohne Zeile: `testserver/kotlin/.../RowRules.kt` (neu), `src/integrator/kotlin/.../RpcWire.kt` (drei Helfer), `src/test/.../SimulationBackendSelectTest.kt` (Testwert geändert), `harness/README.md` (Zelle `make vergleichslauf-d`), `docs/plan/spec-abdeckung.md`. Der Kopf „Berührte Spec-Stellen“ nennt `SPEC-030`, die im Diff unberührt ist (F-1),. Der Negativbefund „keine Datei darüber hinaus“ gilt damit nicht.
 * verifizierbar: ja (Abgleich Diff gegen Tabelle)
 * klasse: Plan-Tabelle ohne berührte Datei
@@ -79,7 +79,7 @@
 
 * kategorie: LOW
 * quelle: `AGENTS.md` §3.8; Slice-Hülle („der Implementer erweitert §3 im ersten Lauf“)
-* pfad: `docs/plan/planning/in-progress/slice-schreibpfad-merge-output.md` · „**Ist-Zustand vor dem Bau gemessen:**“
+* pfad: `docs/plan/planning/done/slice-schreibpfad-merge-output.md` · „**Ist-Zustand vor dem Bau gemessen:**“
 * befund: Die Tabelle und der Absatz „Zerlegung und Reihenfolge (Plan vor Code)“ stehen erst in Commit `23242f68` (nach `8fc2fea6` Messung, `30eae2d9` Bibliothek, `fd7ffe73` Testserver); `22012212` ändert nur den Verantwortlichen. Dass der Ist-Zustand „vor dem Bau“ gemessen wurde, ist aus der Historie nicht belegt.
 * verifizierbar: ja (`git log -p` der Datei)
 * klasse: Plan nach dem Code geschrieben

@@ -1,2 +1,2 @@
-**Vorgang:** [slice-schreibpfad-merge-output](../../../../in-progress/slice-schreibpfad-merge-output.md)
+**Vorgang:** [slice-schreibpfad-merge-output](../../../../done/slice-schreibpfad-merge-output.md)
 **Fund:** Review F-1, F-2 und Re-Review R-1, R-2, R-3, R-5 ([Re-Review](../../../../../../reviews/2026-11-07-f7f9ff33-re-review-slice-schreibpfad-merge-output.md)); Verifikation V-8 (kein Vektor für `0,00`): die Fundstellen des Typs wurden in zwei Runden nachgezogen, die Verifikation fand sie behoben.

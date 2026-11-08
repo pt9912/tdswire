@@ -1,2 +1,2 @@
-**Vorgang:** [slice-schreibpfad-merge-output](../../../../in-progress/slice-schreibpfad-merge-output.md)
+**Vorgang:** [slice-schreibpfad-merge-output](../../../../done/slice-schreibpfad-merge-output.md)
 **Fund:** Verifikation Bedingung 4 ([Verifikationsbericht](../../../../../../reviews/2026-11-08-6d07620b-verifikation-slice-schreibpfad-merge-output.md)): die Commits `963a0474` (Nachbesserung zum Re-Review, Code und Tests), `6aa9410e` (Merge von `main`), `0f5031ba` (Messreihe zu R-6) und `6d07620b` haben keinen zweiten Review. Der Verifier hat sie wie ein Reviewer bewertet (`f7f9ff33..6d07620b`), sieben Mutationen selbst gefahren und 0 HIGH gefunden; Vermerk steht in §7 der Closure-Notiz.

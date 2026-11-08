@@ -17,7 +17,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Verantwortlich:** — bis zur Priorisierung.
 
-**Autor:** pt9912 (Entwurf in der Planner-Rolle, aus der Verifikation V-1 von [slice-schreibpfad-merge-output](../in-progress/slice-schreibpfad-merge-output.md)). **Datum:** 2026-11-08.
+**Autor:** pt9912 (Entwurf in der Planner-Rolle, aus der Verifikation V-1 von [slice-schreibpfad-merge-output](../done/slice-schreibpfad-merge-output.md)). **Datum:** 2026-11-08.
 
 ---
 
@@ -30,9 +30,9 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Die Antwort des Servers auf das `MERGE … OUTPUT $action` von d-migrate 1.12.0 stimmt in den drei Punkten mit dem echten SQL Server (2022 und 2025) überein, in denen der Slice [slice-schreibpfad-merge-output](../in-progress/slice-schreibpfad-merge-output.md) bewusst von der Messung abweicht: die Spalte `$action` ist `nvarchar(10)` (M-26), der Abschluss trägt den Befehl `0x0117` (M-26), und die Fehlerfälle tragen die Nummern 2628, 2627 und 208 (M-15). Die Messung steht im [Messprotokoll](../../../messungen/referenzabgleich.md#messreihe-zu-massenladen-merge-katalog-und-strukturänderung-messungen-vom-2026-11-07); die Spezifikation ist Zielbild, der echte SQL Server die Referenz.
+**Ziel:** Die Antwort des Servers auf das `MERGE … OUTPUT $action` von d-migrate 1.12.0 stimmt in den drei Punkten mit dem echten SQL Server (2022 und 2025) überein, in denen der Slice [slice-schreibpfad-merge-output](../done/slice-schreibpfad-merge-output.md) bewusst von der Messung abweicht: die Spalte `$action` ist `nvarchar(10)` (M-26), der Abschluss trägt den Befehl `0x0117` (M-26), und die Fehlerfälle tragen die Nummern 2628, 2627 und 208 (M-15). Die Messung steht im [Messprotokoll](../../../messungen/referenzabgleich.md#messreihe-zu-massenladen-merge-katalog-und-strukturänderung-messungen-vom-2026-11-07); die Spezifikation ist Zielbild, der echte SQL Server die Referenz.
 
-**Herkunft.** Verifikation V-1 von [slice-schreibpfad-merge-output](../in-progress/slice-schreibpfad-merge-output.md): drei gemessene Abweichungen ohne Lieferpunkt in einem Slice von `main`. Register [`BEO-TDS/zielbild-luecken-der-antwort-tokens`](../observations/BEO-TDS/zielbild-luecken-der-antwort-tokens/state.md). Nutzerentscheid 2026-11-07 (Spezifikation ist Zielbild) und 2026-11-08 (Option A von [ADR-0041](../../adr/0041-spaltentypen-der-katalogantworten-ueber-internen-weg.md) und [ADR-0042](../../adr/0042-anweisungsart-und-zustandswechsel-nur-durch-die-bibliothek.md): die öffentliche Fläche wächst bewusst).
+**Herkunft.** Verifikation V-1 von [slice-schreibpfad-merge-output](../done/slice-schreibpfad-merge-output.md): drei gemessene Abweichungen ohne Lieferpunkt in einem Slice von `main`. Register [`BEO-TDS/zielbild-luecken-der-antwort-tokens`](../observations/BEO-TDS/zielbild-luecken-der-antwort-tokens/state.md). Nutzerentscheid 2026-11-07 (Spezifikation ist Zielbild) und 2026-11-08 (Option A von [ADR-0041](../../adr/0041-spaltentypen-der-katalogantworten-ueber-internen-weg.md) und [ADR-0042](../../adr/0042-anweisungsart-und-zustandswechsel-nur-durch-die-bibliothek.md): die öffentliche Fläche wächst bewusst).
 
 **Reihenfolge.** Dieser Slice folgt [slice-antwort-tokens-zielbild-luecken-bauen](slice-antwort-tokens-zielbild-luecken-bauen.md), das `StatementKind` anlegt ([ADR-0042](../../adr/0042-anweisungsart-und-zustandswechsel-nur-durch-die-bibliothek.md)); dieser Slice fügt das Mitglied `MERGE` hinzu und setzt es im Pfad der Form M.
 

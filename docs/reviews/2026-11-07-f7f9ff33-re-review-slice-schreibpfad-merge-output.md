@@ -76,7 +76,7 @@
 
 * kategorie: MEDIUM
 * quelle: Reviewer-Skill „Plan-Tabelle nennt die berührten Dateien nicht“
-* pfad: `docs/plan/planning/in-progress/slice-schreibpfad-merge-output.md` · „| `src/integrator/kotlin/io/github/pt9912/tdswire/integrator/RpcWire.kt`, `MergeEmbeddingTest.kt` | update, neu |“
+* pfad: `docs/plan/planning/done/slice-schreibpfad-merge-output.md` · „| `src/integrator/kotlin/io/github/pt9912/tdswire/integrator/RpcWire.kt`, `MergeEmbeddingTest.kt` | update, neu |“
 * befund: Abgleich der Tabelle mit dem Diff der Nachbesserung. Berührt, ohne Zeile: `referenztest-dotnet/Kompatibilitaet/AnmeldungTests.cs` (Theorie geändert, neuer Test), `docs/plan/kompatibilitaetsmatrix.md` (drei Zeilen), `src/integrator/.../RpcParams.kt` (neu), `src/test/.../RpcBinderTest.kt`, `RpcTypesTest.kt`, `RpcFailureTest.kt` (die Zeile „Tests“ nennt nur vier andere Klassen), `tools/jdbc-messung/Aufnahme.java` (Ausgabe `[hex=…]`; die Zeile nennt die Datei, aber nicht diese Änderung). Die Zeile zur Ablage und zu `referenzabgleich.md` nennt „M-25 bis M-30“, die Nachbesserung fügt `M-31` und `M-32` hinzu. Der Negativbefund „keine Datei darüber hinaus“ gilt damit nicht. Dasselbe Muster war im ersten Review MEDIUM (F-5).
 * verifizierbar: ja (Abgleich Diff gegen Tabelle)
 * klasse: Plan-Tabelle ohne berührte Datei

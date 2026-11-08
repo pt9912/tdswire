@@ -46,7 +46,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Die Atomarität und der Code je Fehlerursache — [slice-adr-massenladen-atomar-an-messung](slice-adr-massenladen-atomar-an-messung.md) (Entscheidung durch den Nutzer; dieser Slice übernimmt, was sie entscheidet, nicht mehr).
-- Messungen mit mssql-jdbc — Folgepflicht 2 von [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md), Träger [slice-schreibpfad-merge-output](../in-progress/slice-schreibpfad-merge-output.md).
+- Messungen mit mssql-jdbc — Folgepflicht 2 von [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md), Träger [slice-schreibpfad-merge-output](../done/slice-schreibpfad-merge-output.md).
 - PLP-Typen (MAX) und NBCROW — kein Lauf des Referenzclients im Messbestand sendet sie; erst mit einer Messnachricht.
 - Neue öffentliche Namen — die Fläche ist [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Nr. 4 festgelegt; würde der Slice einen brauchen, geht er zurück zur Zerlegung (§4).
 
