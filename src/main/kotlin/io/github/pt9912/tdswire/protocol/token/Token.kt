@@ -79,14 +79,25 @@ internal object DoneCommand {
     private const val INSERT = 0x00C3
     private const val DELETE = 0x00C4
     private const val UPDATE = 0x00C5
+    private const val CREATE_TABLE = 0x00C6
+    private const val ALTER_TABLE = 0x00D8
 
-    /** Die Kennung des Abschlusses eines Änderungszählers der Art [kind] (Messprotokoll W-6); [NONE] für `UNKNOWN`. */
+    /**
+     * Die Kennung des Abschlusses der Art [kind] (Messprotokoll W-6 und M-20); [NONE] für `UNKNOWN`. Im SQL_BATCH
+     * gemessen; die Form RPC wendet die Kennung der Strukturänderungen nicht an (`ResponseRun`).
+     */
     fun forKind(kind: StatementKind): Int = when (kind) {
         StatementKind.UNKNOWN -> NONE
         StatementKind.INSERT -> INSERT
         StatementKind.DELETE -> DELETE
         StatementKind.UPDATE -> UPDATE
+        StatementKind.CREATE_TABLE -> CREATE_TABLE
+        StatementKind.ALTER_TABLE -> ALTER_TABLE
     }
+
+    /** Wahr, wenn der Abschluss der Art [kind] im SQL_BATCH eine Zeilenzahl trägt (Bit `COUNT`); M-20: nicht bei DDL. */
+    fun countsRows(kind: StatementKind): Boolean =
+        kind != StatementKind.CREATE_TABLE && kind != StatementKind.ALTER_TABLE
 }
 
 /** Die drei Formen des Abschlusstokens. */

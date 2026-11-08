@@ -3,6 +3,7 @@ package io.github.pt9912.tdswire.simulation
 import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.domain.QueryParameter
 import io.github.pt9912.tdswire.domain.SqlType
+import io.github.pt9912.tdswire.domain.StatementKind
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
@@ -60,15 +61,15 @@ class SimulationBackendStructureTest {
     /**
      * Happy: der gesendete `CREATE TABLE` legt `produkte` im Schema `dbo` an; der Callback bekommt genau einmal sieben
      * Spalten in der Reihenfolge des Textes (Typ, Nullbarkeit, Länge 200 des Texts, Dezimal 10,2) und den Schlüssel
-     * `Id`, die Antwort ist der Änderungszähler 0, und die nächste Anfrage sieht die Tabelle im Katalog.
-     * Wächter: ein Callback, der vor der Typabbildung gerufen wird, ein Zähler ungleich 0 oder ein Backend, das den
+     * `Id`, die Antwort ist die Art `CREATE_TABLE`, und die nächste Anfrage sieht die Tabelle im Katalog.
+     * Wächter: ein Callback, der vor der Typabbildung gerufen wird, eine andere Art (etwa `UNKNOWN`) oder ein Backend, das den
      * Anbieter nur beim Bau liest (die nächste Anfrage sähe die Tabelle nicht).
      * @spec SPEC-036
      */
     @Test
     fun `CREATE TABLE ruft den Callback und aendert den Katalog`() {
         val store = Store(listOf(kunden))
-        assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(0)), run(store, createText))
+        assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(0, StatementKind.CREATE_TABLE)), run(store, createText))
 
         val expected = listOf(
             SimColumn("Id", SqlType.Int64, nullable = false),
@@ -97,9 +98,9 @@ class SimulationBackendStructureTest {
     @Test
     fun `ALTER TABLE ADD meldet die Tabelle nach der Anweisung`() {
         val store = Store(listOf(kunden))
-        assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(0)), run(store, alterText))
+        assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(0, StatementKind.ALTER_TABLE)), run(store, alterText))
         val second = run(store, "alter table KUNDEN add [Aktiv] bit not null")
-        assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(0)), second)
+        assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(0, StatementKind.ALTER_TABLE)), second)
 
         val email = SimColumn("Email", SqlType.UnicodeText, maxLength = 200)
         val aktiv = SimColumn("Aktiv", SqlType.Bool, nullable = false)
@@ -231,7 +232,7 @@ class SimulationBackendStructureTest {
     fun `CREATE TABLE ohne Schluessel gelingt mit leerem Schluessel`() {
         val store = Store(emptyList())
         assertEquals(
-            listOf<QueryEvent>(QueryEvent.UpdateCount(0)),
+            listOf<QueryEvent>(QueryEvent.UpdateCount(0, StatementKind.CREATE_TABLE)),
             run(store, "CREATE TABLE [ohneschluessel] ([Id] INT NOT NULL, [Text] NVARCHAR(10));"),
         )
         val call = store.calls.single()
@@ -315,7 +316,7 @@ class SimulationBackendStructureTest {
     fun `zwei gleichzeitige CREATE TABLE derselben Tabelle - genau eine gewinnt`() {
         val store = SlowStore()
         val results = runAll(store.backend, createText, createText)
-        assertEquals(1, results.count { it == listOf<QueryEvent>(QueryEvent.UpdateCount(0)) })
+        assertEquals(1, results.count { it == listOf<QueryEvent>(QueryEvent.UpdateCount(0, StatementKind.CREATE_TABLE)) })
         val failed = results.single { it.single() is QueryEvent.Failure }
         val rejected = assertIs<QueryEvent.Failure>(failed.single())
         assertEquals(SimCodes.OBJECT_EXISTS, rejected.code)

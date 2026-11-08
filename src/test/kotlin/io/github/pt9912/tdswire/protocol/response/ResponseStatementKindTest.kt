@@ -150,4 +150,49 @@ class ResponseStatementKindTest {
         val answer = answer(ResponseForm.BULK, CallLayout.PROCEDURE, QueryEvent.UpdateCount(3, StatementKind.INSERT))
         assertEquals(hexOf("FD 10 00 F0 00 03 00 00 00 00 00 00 00"), answer)
     }
+
+    /**
+     * Im SQL_BATCH schließen `CREATE TABLE` und `ALTER TABLE … ADD` mit einem DONE ohne `COUNT`: Status 0, Kennung
+     * `0x00c6` bzw. `0x00d8`, Zeilenzahl 0 (Handvektoren `katalog-struktur`, Messprotokoll M-20; Dateien
+     * `referenztest-dotnet/Mitschnitt/messung/bulk-merge-katalog/2022/katalog-struktur.messung`, Antworten auf
+     * `CREATE TABLE [produkte] …` und `ALTER TABLE [kunden] ADD [Email] …` bei `implicit_transactions off`; 2025 zeigt
+     * dieselben Bytes). Das Backend meldet die Zahl 0 oder eine andere: die Bibliothek ignoriert sie. Wächter: das Bit
+     * `COUNT` bei einer Strukturänderung, vertauschte Kennungen, eine Zeilenzahl ungleich 0 im Abschluss.
+     *
+     * @spec SPEC-031
+     * @spec SPEC-035
+     * @spec TDS-QA-01
+     */
+    @Test
+    fun `Im Batch schliessen CREATE TABLE und ALTER TABLE ohne COUNT`() {
+        val create = hexOf("FD 00 00 C6 00 00 00 00 00 00 00 00 00")
+        val alter = hexOf("FD 00 00 D8 00 00 00 00 00 00 00 00 00")
+        assertEquals(create, batch(QueryEvent.UpdateCount(0, StatementKind.CREATE_TABLE)))
+        assertEquals(alter, batch(QueryEvent.UpdateCount(0, StatementKind.ALTER_TABLE)))
+        assertEquals(create, batch(QueryEvent.UpdateCount(7, StatementKind.CREATE_TABLE)))
+        assertEquals(alter, batch(QueryEvent.UpdateCount(7, StatementKind.ALTER_TABLE)))
+    }
+
+    /**
+     * Die Strukturänderungen sind nur im SQL_BATCH gemessen. Im RPC und in der Form des Massenladens schreibt die
+     * Bibliothek sie wie `UNKNOWN` beziehungsweise mit `0x00f0`: Kennung 0 mit `COUNT` und der Zahl des Ereignisses
+     * (Grenze, `SPEC-031`). Wächter: die Kennung `0x00c6` im DONEINPROC, das fehlende `COUNT` im RPC.
+     *
+     * @spec SPEC-030
+     * @spec SPEC-031
+     */
+    @Test
+    fun `Im RPC und im Massenladen gilt die Kennung der Strukturaenderung nicht`() {
+        assertEquals(
+            hexOf("FF 11 00 00 00 00 00 00 00 00 00 00 00  $DONEPROC"),
+            rpc(QueryEvent.UpdateCount(0, StatementKind.CREATE_TABLE)),
+        )
+        assertEquals(
+            hexOf("FF 11 00 00 00 00 00 00 00 00 00 00 00  $DONEPROC"),
+            rpc(QueryEvent.UpdateCount(0, StatementKind.ALTER_TABLE)),
+        )
+        val created = QueryEvent.UpdateCount(0, StatementKind.CREATE_TABLE)
+        val bulk = answer(ResponseForm.BULK, CallLayout.PROCEDURE, created)
+        assertEquals(hexOf("FD 10 00 F0 00 00 00 00 00 00 00 00 00"), bulk)
+    }
 }

@@ -175,16 +175,25 @@ internal class ResponseRun(
         if ((columns != null) != inResult) return report(violation)
         columns = null
         begun = true
-        val status = if (affectedRows != null) DoneStatus.COUNT else DoneStatus.FINAL
+        val effective = effectiveKind(kind)
         val doneKind = if (form == ResponseForm.RPC) DoneKind.DONE_IN_PROC else DoneKind.DONE
         val command = when {
             inResult -> DoneCommand.SELECT
             form == ResponseForm.BULK -> DoneCommand.INSERT_BULK
-            else -> DoneCommand.forKind(kind)
+            else -> DoneCommand.forKind(effective)
         }
-        held = DoneToken(doneKind, status, command, affectedRows ?: 0)
+        val counted = affectedRows != null && (inResult || DoneCommand.countsRows(effective))
+        val status = if (counted) DoneStatus.COUNT else DoneStatus.FINAL
+        held = DoneToken(doneKind, status, command, if (counted) affectedRows ?: 0 else 0)
         return false
     }
+
+    /**
+     * Die Art, nach der der Abschluss geschrieben wird. Gemessen sind `CREATE TABLE` und `ALTER TABLE … ADD` im
+     * SQL_BATCH (Messprotokoll M-20); im RPC schreibt die Bibliothek sie wie `UNKNOWN`: Kennung 0 mit Zeilenzahl.
+     */
+    private fun effectiveKind(kind: StatementKind): StatementKind =
+        if (form == ResponseForm.BATCH || DoneCommand.countsRows(kind)) kind else StatementKind.UNKNOWN
 
     /**
      * `ReturnStatus` oder `OutputParameter` (unter [name]): in der Form BATCH ein Fehler der Typabbildung,

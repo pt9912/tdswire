@@ -40,7 +40,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * Form K (`SPEC-036`) beantwortet die Katalogabfragen von d-migrate aus dem Katalog ([CatalogAnswers]); der Katalog
  * kommt bei jeder Anfrage frisch aus dem Anbieter des Konstruktors, das Backend hält keinen Stand. Form D
  * (`CREATE TABLE`, `ALTER TABLE … ADD`) ruft den Strukturänderungs-Callback mit der Tabelle nach der Anweisung und
- * antwortet mit dem Änderungszähler 0; das Backend nimmt nichts zurück, mehrere Callbacks sind keine Transaktion
+ * meldet die Art `CREATE_TABLE` oder `ALTER_TABLE`; das Backend nimmt nichts zurück, mehrere Callbacks sind keine Transaktion
  * (`ADR-0033`). Der Konstruktor mit festem Katalog hat keinen Callback: Form D ist dort abgewiesen
  * (`TDS_UNSUPPORTED_SQL`), ebenso mit dem Anbieter und ohne Callback.
  *
@@ -168,7 +168,8 @@ public class SimulationBackend(
 
     /**
      * Form D (`SPEC-036`): ruft den Strukturänderungs-Callback genau einmal beim Sammeln und antwortet mit dem
-     * Änderungszähler 0. Ohne Callback ist die Anweisung abgewiesen. Prüfen und Ändern sind je Backend atomar: beim
+     * Abschluss der Art `CREATE_TABLE` oder `ALTER_TABLE` (die Bibliothek schreibt ihn ohne Zeilenzahl, SQL_BATCH).
+     * Ohne Callback ist die Anweisung abgewiesen. Prüfen und Ändern sind je Backend atomar: beim
      * Sammeln plant das Backend den Text unter einer Sperre gegen den dann aktuellen Katalog erneut und ruft den
      * Callback mit diesem Stand; zwei gleichzeitige Strukturänderungen laufen nacheinander, die zweite sieht die
      * erste (`CREATE TABLE` derselben Tabelle ist dann abgewiesen wie bei einer schon beschriebenen Tabelle). Die
@@ -181,7 +182,7 @@ public class SimulationBackend(
     private fun structure(plan: StructurePlan, request: QueryRequest): QueryExecution {
         val callback = onStructure ?: return failed(SimCodes.UNSUPPORTED_SQL, "Strukturänderung nicht verfügbar")
         val key = request.sessionId to request.requestId
-        val call = PreparedChange.Ready(StatementKind.UNKNOWN) {
+        val call = PreparedChange.Ready(plan.kind) {
             structureLock.withLock {
                 when (val again = planner.plan(request.sql)) {
                     is PlanResult.Structure -> {

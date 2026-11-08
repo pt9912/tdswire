@@ -16,8 +16,10 @@ import io.github.pt9912.tdswire.runtime.BackendSource
 import io.github.pt9912.tdswire.runtime.StartOutcome
 import io.github.pt9912.tdswire.runtime.TdsServer
 import io.github.pt9912.tdswire.simulation.RowSource
+import io.github.pt9912.tdswire.simulation.SimCatalog
 import io.github.pt9912.tdswire.simulation.SimColumn
 import io.github.pt9912.tdswire.simulation.SimTable
+import io.github.pt9912.tdswire.simulation.SimulationBackend
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
@@ -31,6 +33,8 @@ private const val DONE_COUNT = 0x10
 private const val INSERT_COMMAND = 0x00C3
 private const val DELETE_COMMAND = 0x00C4
 private const val UPDATE_COMMAND = 0x00C5
+private const val CREATE_TABLE_COMMAND = 0x00C6
+private const val ALTER_TABLE_COMMAND = 0x00D8
 private const val ROWS = 3L
 
 /**
@@ -75,6 +79,15 @@ class StatementKindEmbeddingTest {
         onDelete = { ROWS },
     )
 
+    /** Das Simulations-Backend mit Katalog und Strukturänderungs-Callback, der die Tabelle einträgt. */
+    private fun structureBackend(): SimulationBackend {
+        val tables = CopyOnWriteArrayList<SimTable>()
+        return SimulationBackend({ SimCatalog(tables.toList()) }) { schema, name, columns, key ->
+            tables.removeAll { it.schema == schema && it.name == name }
+            tables += SimTable(schema, name, columns, key, rows = { RowSource { null } })
+        }
+    }
+
     private val statements = mapOf(
         "INSERT INTO person (Id) VALUES (1)" to INSERT_COMMAND,
         "UPDATE person SET Id = 2 WHERE Id = 1" to UPDATE_COMMAND,
@@ -102,6 +115,36 @@ class StatementKindEmbeddingTest {
     }
 
     /**
+     * `CREATE TABLE` und `ALTER TABLE … ADD` schließen mit DONE ohne `COUNT`, der Zeilenzahl 0 und der Befehlskennung
+     * `0x00c6` bzw. `0x00d8` (Messprotokoll M-20), beim Simulations-Backend und bei einem eigenen Backend, das die Art
+     * meldet (auch mit einer Zahl ungleich 0: die Bibliothek ignoriert sie). Wächter: das Bit `COUNT`, eine Kennung 0,
+     * eine durchgereichte Zahl.
+     *
+     * @spec SPEC-059
+     * @spec SPEC-031
+     * @spec SPEC-035
+     */
+    @Test
+    fun strukturaenderungenSchliessenOhneCountMitDerKennungDerArt() {
+        val simulation = start(BackendSource.Custom(structureBackend()))
+        val custom = start(BackendSource.Custom(KindBackend()))
+        val create = "CREATE TABLE geraete (Seriennummer BIGINT NOT NULL, PRIMARY KEY (Seriennummer))"
+        val alter = "ALTER TABLE geraete ADD Name NVARCHAR(40)"
+        assertEquals(Triple(0, CREATE_TABLE_COMMAND, 0L), doneOf(simulation, create))
+        assertEquals(Triple(0, CREATE_TABLE_COMMAND, 0L), doneOf(custom, create))
+        WireClient(simulation.port).use { client ->
+            client.login()
+            client.batch(create.replace("geraete", "teile"))
+            val answer = client.batch(alter.replace("geraete", "teile"))
+            assertEquals(
+                Triple(0, ALTER_TABLE_COMMAND, 0L),
+                Triple(answer.doneStatus, answer.command, answer.rowCount),
+            )
+        }
+        assertEquals(Triple(0, ALTER_TABLE_COMMAND, 0L), doneOf(custom, alter))
+    }
+
+    /**
      * Ein Backend, das die Art nicht meldet (`UpdateCount(n)` wie vor der Fläche `kind`), bekommt DONE mit `COUNT`,
      * der Zeilenzahl und der Befehlskennung 0, ebenso ein Backend mit `StatementKind.UNKNOWN`. Wächter: eine Kennung
      * ungleich 0 bei fehlender Art (ein Standardwert im Konstruktor), ein Verlust des Zählers.
@@ -119,7 +162,7 @@ class StatementKindEmbeddingTest {
     }
 
     /**
-     * Die Fläche: die vier Konstanten von `StatementKind`, das Feld `kind` mit dem Standardwert `UNKNOWN`, und für Java
+     * Die Fläche: die sechs Konstanten von `StatementKind`, das Feld `kind` mit dem Standardwert `UNKNOWN`, und für Java
      * der Konstruktor mit einem Argument (`@JvmOverloads`: `new UpdateCount(n)`). Wächter: ein fehlendes Mitglied, ein
      * anderer Standardwert, ein Konstruktor ohne Überladung für Java.
      *
@@ -128,7 +171,7 @@ class StatementKindEmbeddingTest {
     @Test
     fun dieFlaecheNenntDieKonstantenDasFeldUndDenKonstruktorFuerJava() {
         assertEquals(
-            listOf("UNKNOWN", "INSERT", "DELETE", "UPDATE"),
+            listOf("UNKNOWN", "INSERT", "DELETE", "UPDATE", "CREATE_TABLE", "ALTER_TABLE"),
             StatementKind.entries.map { it.name },
         )
         assertEquals(StatementKind.UNKNOWN, QueryEvent.UpdateCount(1).kind)
@@ -138,13 +181,15 @@ class StatementKindEmbeddingTest {
     }
 }
 
-/** Ein Backend, das zu `INSERT`, `UPDATE` und `DELETE` im Text den Änderungszähler mit der Art meldet. */
+/** Ein Backend, das zu `INSERT`, `UPDATE`, `DELETE`, `CREATE` und `ALTER` im Text [ROWS] mit der Art meldet. */
 private class KindBackend : QueryBackend {
     override suspend fun execute(request: QueryRequest): QueryExecution {
         val kind = when (request.sql.substringBefore(' ')) {
             "INSERT" -> StatementKind.INSERT
             "UPDATE" -> StatementKind.UPDATE
             "DELETE" -> StatementKind.DELETE
+            "CREATE" -> StatementKind.CREATE_TABLE
+            "ALTER" -> StatementKind.ALTER_TABLE
             else -> StatementKind.UNKNOWN
         }
         return FixedExecution(QueryEvent.UpdateCount(ROWS, kind))

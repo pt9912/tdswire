@@ -3,8 +3,9 @@ package io.github.pt9912.tdswire.domain
 /**
  * Die Art einer Anweisung ohne Ergebnis, die ein Backend im [QueryEvent.UpdateCount] meldet (`SPEC-031`, `SPEC-059`).
  * Die Bibliothek leitet daraus die Befehlskennung (`curCmd`) des Abschlusses ab; die Kennungen sind am echten SQL
- * Server gemessen (Messprotokoll W-6, Instanz 2022 und 2025, je ein Fall). Das Mitglied [UNKNOWN] ist der Wert eines
- * Backends, das keine Art meldet: Kennung 0 mit Zeilenzahl.
+ * Server gemessen (Messprotokoll W-6 und M-20, Instanz 2022 und 2025, je ein Fall). Das Mitglied [UNKNOWN] ist der
+ * Wert eines Backends, das keine Art meldet: Kennung 0 mit Zeilenzahl. Bei [CREATE_TABLE] und [ALTER_TABLE] schließt
+ * der Server ohne Zeilenzahl ab; die Bibliothek ignoriert dort die Zahl des Ereignisses.
  */
 public enum class StatementKind {
     /** Keine Aussage über die Art: der Abschluss trägt die Kennung 0. */
@@ -18,4 +19,10 @@ public enum class StatementKind {
 
     /** `UPDATE`: Kennung `0x00c5`. */
     UPDATE,
+
+    /** `CREATE TABLE`: Kennung `0x00c6`, ohne Zeilenzahl (Messprotokoll M-20). */
+    CREATE_TABLE,
+
+    /** `ALTER TABLE … ADD`: Kennung `0x00d8`, ohne Zeilenzahl (Messprotokoll M-20). */
+    ALTER_TABLE,
 }
