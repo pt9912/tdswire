@@ -79,7 +79,7 @@ nicht die Antwort.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `src/main/kotlin/io/github/pt9912/tdswire/domain/QueryEvent.kt` (`ResultColumn.maxLength`, `ResultStart.kind`) | update | optionales Längenfeld (Entscheid des Nutzers 2026-11-08) und die Art am Beginn des Ergebnisses: der Fehler im offenen Ergebnis kennt die Art nur dort, `UpdateCount.kind` (ADR-0042) reicht für ein Ergebnis nicht; **zweite Erweiterung der Fläche, vom Nutzer nicht ausdrücklich entschieden (Bericht)** |
+| `src/main/kotlin/io/github/pt9912/tdswire/domain/QueryEvent.kt` (`ResultColumn.maxLength`, `ResultStart.kind`) | update | optionales Längenfeld (Entscheid des Nutzers 2026-11-08) und die Art am Beginn des Ergebnisses: der Fehler im offenen Ergebnis kennt die Art nur dort, `UpdateCount.kind` ([ADR-0042](../../adr/0042-anweisungsart-und-zustandswechsel-nur-durch-die-bibliothek.md)) reicht für ein Ergebnis nicht; **zweite Erweiterung der Fläche, vom Nutzer nicht ausdrücklich entschieden (Bericht)** |
 | `src/main/kotlin/io/github/pt9912/tdswire/domain/StatementKind.kt` | update | Mitglied `MERGE` |
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/token/Token.kt` (`DoneCommand`) | update | `0x0117`, `forResult`, `countsRows` |
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/response/` (`Completion.kt`, `ResponseRun.kt`, `RpcTrailer.kt`) | update | Kennung des Abschlusses und des Fehlers im Ergebnis nach der Art, INFO 3621 nach dem Fehler im Ergebnis eines `MERGE` |
