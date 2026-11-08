@@ -115,17 +115,6 @@ class ErrorMapperTest {
         ConnectionFate.OPEN,
     )
 
-    /** @spec SPEC-057 */
-    @Test
-    fun `TDS_UNKNOWN_HANDLE ist ERROR 50009 Class 16 und bleibt offen`() = assertBytes(
-        ErrorCode.TDS_UNKNOWN_HANDLE,
-        "AA 3E 00  59 C3 00 00  01  10  18 00  55 00 6E 00 6B 00 6E 00 6F 00 77 00 6E 00 20 00 70 00 72 00" +
-            " 65 00 70 00 61 00 72 00 65 00 64 00 20 00 68 00 61 00 6E 00 64 00 6C 00 65 00 2E 00" +
-            "  00  00  00 00 00 00",
-        16,
-        ConnectionFate.OPEN,
-    )
-
     /** @spec SPEC-058 */
     @Test
     fun `TDS_PREPARE_LIMIT ist ERROR 50010 Class 16 und bleibt offen`() = assertBytes(
@@ -258,6 +247,38 @@ class ErrorMapperTest {
     }
 
     /**
+     * `sp_execute` mit unbekanntem Handle ist dieselbe Nummer 8179 mit State 4 (Class 16, Text mit der Nummer des
+     * Handles) in der Form RPC: ERROR, RETURNSTATUS 8179 und DONEPROC mit `ERROR` (Befehl `0x00e0`), ohne DONE; die
+     * Verbindung bleibt offen, das Log trägt die übergebene Marke. Nummer, Class, State und Text (Handle 999999) sind
+     * am Referenzclient gemessen (M-6); RETURNSTATUS und die leeren Felder des ERROR sind Setzung (Bytes sind
+     * Handvektor, der Rest der Antwort wie `unknownLast`). Die Regel selbst behält State 8 der Batch-Freigabe.
+     * Wächter: State 8 oder 1 statt 4, die Nummer 50009, ein Text ohne Handle, die Form BATCH (DONE), ein fehlender
+     * Log-Eintrag.
+     *
+     * @spec SPEC-057
+     * @spec SPEC-060
+     */
+    @Test
+    fun `sp_execute mit unbekanntem Handle ist ERROR 8179 State 4 in der Form RPC`() {
+        val entries = mutableListOf<ErrorLogEntry>()
+        val response = ErrorMapper { entries += it }.executeUnknownHandle(1, "unknown-handle")
+        assertEquals(ConnectionFate.OPEN, response.fate)
+        assertEquals(ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE, response.code)
+        assertEquals(
+            hex(
+                "AA 6E 00 F3 1F 00 00 04 10 30 00 43 00 6F 00 75 00 6C 00 64 00 20 00 6E" +
+                    " 00 6F 00 74 00 20 00 66 00 69 00 6E 00 64 00 20 00 70 00 72 00 65 00 70" +
+                    " 00 61 00 72 00 65 00 64 00 20 00 73 00 74 00 61 00 74 00 65 00 6D 00 65" +
+                    " 00 6E 00 74 00 20 00 77 00 69 00 74 00 68 00 20 00 68 00 61 00 6E 00 64" +
+                    " 00 6C 00 65 00 20 00 31 00 2E 00 00 00 00 00 00 00  $unknownLast",
+            ).toHex(),
+            assertNotNull(response.message).payload.toHex(),
+        )
+        assertEquals(8, ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE.rule.state)
+        assertEquals(listOf(ErrorLogEntry(ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE, "unknown-handle")), entries)
+    }
+
+    /**
      * Die Regel mit Nummer im Text verlangt die Nummer, und eine Regel ohne verbietet sie: `message` für die falsche
      * Seite wirft, statt einen Text ohne Nummer oder mit einer fremden zu senden; die Antwort auf null Nummern gibt es
      * nicht. Wächter: ein `message()` ohne Prüfung.
@@ -267,7 +288,7 @@ class ErrorMapperTest {
     @Test
     fun `Eine Regel mit Handle im Text verlangt die Nummer und die anderen verbieten sie`() {
         assertFailsWith<IllegalArgumentException> { ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE.rule.message() }
-        assertFailsWith<IllegalArgumentException> { ErrorCode.TDS_UNKNOWN_HANDLE.rule.message(1) }
+        assertFailsWith<IllegalArgumentException> { ErrorCode.TDS_PREPARE_LIMIT.rule.message(1) }
         assertFailsWith<IllegalArgumentException> { mapper.code(ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE) }
     }
 
@@ -363,7 +384,7 @@ class ErrorMapperTest {
         val expected = setOf(
             "TDS_PROTOCOL_ERROR", "TDS_LOGIN_FAILED", "TDS_UNSUPPORTED_RPC", "TDS_UNSUPPORTED_TYPE",
             "TDS_BACKEND_ERROR", "TDS_TIMEOUT", "TDS_UNSUPPORTED_SQL", "TDS_SIM_UNKNOWN_OBJECT",
-            "TDS_SIM_INVALID_VALUE", "TDS_INTERNAL_ERROR", "TDS_SHUTDOWN", "TDS_UNKNOWN_HANDLE", "TDS_PREPARE_LIMIT",
+            "TDS_SIM_INVALID_VALUE", "TDS_INTERNAL_ERROR", "TDS_SHUTDOWN", "TDS_PREPARE_LIMIT",
             "TDS_SIM_UNKNOWN_PREPARED_HANDLE", "TDS_SIM_KEY_VIOLATION",
             "TDS_SIM_OBJECT_EXISTS", "TDS_SIM_COLUMN_EXISTS", "TDS_SIM_OBJECT_NOT_FOUND",
         )
@@ -401,7 +422,6 @@ class ErrorMapperTest {
             ErrorCode.TDS_BACKEND_ERROR,
             ErrorCode.TDS_UNSUPPORTED_RPC,
             ErrorCode.TDS_SIM_INVALID_VALUE,
-            ErrorCode.TDS_UNKNOWN_HANDLE,
             ErrorCode.TDS_PREPARE_LIMIT,
             ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE,
             ErrorCode.TDS_SIM_KEY_VIOLATION,
@@ -569,7 +589,6 @@ class ErrorMapperTest {
                 ErrorCode.TDS_PROTOCOL_ERROR,
                 ErrorCode.TDS_UNSUPPORTED_RPC,
                 ErrorCode.TDS_INTERNAL_ERROR,
-                ErrorCode.TDS_UNKNOWN_HANDLE,
                 ErrorCode.TDS_PREPARE_LIMIT,
                 ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE,
             ),

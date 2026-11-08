@@ -38,10 +38,13 @@ private const val N_TIMEOUT = 50005
 private const val N_PROTOCOL = 50006
 private const val N_INTERNAL = 50007
 private const val N_SHUTDOWN = 50008
-private const val N_HANDLE = 50009
 private const val N_HANDLE_LIMIT = 50010
 private const val N_PREPARED_HANDLE = 8179
 private const val STATE_PREPARED_HANDLE = 8
+
+/** Der State von 8179 bei `sp_execute` mit unbekanntem Handle (M-6); die Batch-Freigabe trägt 8. */
+internal const val STATE_EXECUTE_UNKNOWN_HANDLE = 4
+
 private const val N_KEY_VIOLATION = 2627
 private const val CLASS_KEY_VIOLATION = 14
 private const val N_LOGIN = 18456
@@ -71,11 +74,12 @@ private const val N_OBJECT_NOT_FOUND = 4902
  *   keinen Code. Die Nummer 50005 ist Festlegung.
  * - Voreinstellung: `TDS_UNSUPPORTED_RPC` und `TDS_SIM_INVALID_VALUE` bei den Anfragefehlern
  *   (Class 16, offen), nicht entschieden.
- * - Setzung (Voreinstellung, nicht gemessen): `TDS_UNKNOWN_HANDLE` und `TDS_PREPARE_LIMIT` in der
- *   Anfragefehler-Gruppe (Class 16, offen); die Nummern 50009 und 50010 sind Festlegung.
- * - Gemessen am Referenzclient gegen einen echten SQL Server (Zeile M-4 des Messprotokolls
- *   `docs/messungen/referenzabgleich.md`, 2022 und 2025): Nummer 8179, Class 16, State 8 und der Text von
- *   `TDS_SIM_UNKNOWN_PREPARED_HANDLE`; der Wortlaut für andere Handle-Nummern als 1 ist als gleich gesetzt.
+ * - Setzung (Voreinstellung, nicht gemessen): `TDS_PREPARE_LIMIT` in der Anfragefehler-Gruppe (Class 16, offen);
+ *   die Nummer 50010 ist Festlegung.
+ * - Gemessen am Referenzclient gegen einen echten SQL Server (Zeilen M-4, M-6 und M-7 des Messprotokolls
+ *   `docs/messungen/referenzabgleich.md`, 2022 und 2025): Nummer 8179, Class 16, State 8 bei der Batch-Freigabe und
+ *   State 4 bei `sp_execute` ([STATE_EXECUTE_UNKNOWN_HANDLE]) und der Text von `TDS_SIM_UNKNOWN_PREPARED_HANDLE`; der
+ *   Wortlaut für andere Handle-Nummern als 1 (Batch-Freigabe) und 999999 (`sp_execute`) ist als gleich gesetzt.
  * - Gemessen am Referenzclient gegen einen echten SQL Server (Zeile M-19 des Messprotokolls, 2022 und 2025): Nummer,
  *   Class 16 und State von `TDS_SIM_OBJECT_EXISTS` (2714, State 6), `TDS_SIM_COLUMN_EXISTS` (2705, State 4) und
  *   `TDS_SIM_OBJECT_NOT_FOUND` (4902, State 1) sowie die offene Verbindung; der Text ist ein Auszug des gemessenen
@@ -125,9 +129,6 @@ internal enum class ErrorCode(val rule: ErrorRule) {
     /** `SPEC-049`: danach Verbindungsende (Setzung des Nutzers); Class 20 und Nummer sind Festlegung. */
     TDS_SHUTDOWN(ErrorRule(N_SHUTDOWN, FATAL, STATE, "Server is shutting down.", ConnectionFate.CLOSE_AFTER_REPLY)),
 
-    /** `sp_execute` auf ein Handle, das die Sitzung nicht hält; Anfragefehler-Gruppe, Nummer: Festlegung. */
-    TDS_UNKNOWN_HANDLE(ErrorRule(N_HANDLE, REQUEST, STATE, "Unknown prepared handle.", ConnectionFate.OPEN)),
-
     /** `sp_prepexec` bei erreichter Handle-Grenze der Sitzung; Anfragefehler-Gruppe, Nummer: Festlegung. */
     TDS_PREPARE_LIMIT(
         ErrorRule(N_HANDLE_LIMIT, REQUEST, STATE, "Prepared handle limit reached.", ConnectionFate.OPEN),
@@ -150,8 +151,9 @@ internal enum class ErrorCode(val rule: ErrorRule) {
     ),
 
     /**
-     * Die Batch-Freigabe `EXEC sp_unprepare <n>` mit einem Handle, das die Sitzung nicht hält; Anfragefehler-Gruppe.
-     * Nummer, Class und State sind gemessen (M-4); der Text endet mit der Nummer des Handles
+     * Die Batch-Freigabe `EXEC sp_unprepare <n>` und `sp_execute` mit einem Handle, das die Sitzung nicht hält;
+     * Anfragefehler-Gruppe. Nummer und Class sind gemessen, der State dieser Regel gilt für die Batch-Freigabe (M-4);
+     * `sp_execute` trägt [STATE_EXECUTE_UNKNOWN_HANDLE] (M-6). Der Text endet mit der Nummer des Handles
      * ([ErrorRule.namesHandle], gebildet von [ErrorRule.message]).
      */
     TDS_SIM_UNKNOWN_PREPARED_HANDLE(

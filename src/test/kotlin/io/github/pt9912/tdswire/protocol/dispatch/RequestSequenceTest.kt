@@ -40,7 +40,8 @@ import kotlin.test.assertTrue
  * Bytes der Erfolgsfälle als Handvektoren, deren Quellen die Tests `SqlBatchDispatchTest`,
  * `AnswerFormsDispatchTest` und `PreparedHandlesDispatchTest` tragen; Zahl, Text und Parameter der
  * Backend-Aufrufe; die Fehlermeldungen. Festlegung (weder am Referenzclient noch an einem SQL Server
- * gemessen): Tokenfolge der RPC-Antworten, Fehlercodes 50002 und 50009, Handle-Wert 1 und das Ende der Folge.
+ * gemessen): Tokenfolge der RPC-Antworten, Fehlercode 50002, die Tokenfolge von 8179 bei `sp_execute` (RETURNSTATUS,
+ * Felder), Handle-Wert 1 und das Ende der Folge.
  */
 class RequestSequenceTest {
     private val oneRow = listOf(resultStart(), QueryEvent.Row(listOf(7)), QueryEvent.ResultEnd(1))
@@ -95,7 +96,8 @@ class RequestSequenceTest {
     ).joinToString(" ")
 
     private val unsupportedRpc = ServerMessage(50002, 1, 16, "Unsupported RPC.")
-    private val unknownHandle = ServerMessage(50009, 1, 16, "Unknown prepared handle.")
+    private val unknownHandle =
+        ServerMessage(8179, 4, 16, "Could not find prepared statement with handle $UNKNOWN_HANDLE.")
 
     private fun rpc(payload: ByteArray) = BatchVectors.raw(PacketType.RPC, payload)
 
@@ -202,7 +204,10 @@ class RequestSequenceTest {
         assertTrue(session.channel.exhausted)
         assertEquals(ConnectionState.CLOSED, session.ready.live.context.state)
         assertReplies(session)
-        assertEquals(listOf(ErrorCode.TDS_UNSUPPORTED_RPC, ErrorCode.TDS_UNKNOWN_HANDLE), logged.map { it.code })
+        assertEquals(
+            listOf(ErrorCode.TDS_UNSUPPORTED_RPC, ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE),
+            logged.map { it.code },
+        )
     }
 
     private fun assertReplies(session: Session) {
@@ -219,8 +224,9 @@ class RequestSequenceTest {
         assertEquals(unknownHandle, session.tokens(UNKNOWN_HANDLE_REPLY).errorMessage())
         listOf(UNKNOWN_RPC_REPLY, UNKNOWN_HANDLE_REPLY).forEach {
             assertEquals(DoneStatus.ERROR, session.tokens(it).lastDone().status, "Antwort ${it + 1}")
-            assertEquals(2, session.tokens(it).size, "Antwort ${it + 1}")
         }
+        assertEquals(2, session.tokens(UNKNOWN_RPC_REPLY).size, "ERROR und DONEPROC")
+        assertEquals(3, session.tokens(UNKNOWN_HANDLE_REPLY).size, "ERROR, RETURNSTATUS 8179 und DONEPROC")
         assertEquals(batchReply, session.hex(AFTER_ERRORS_BATCH_REPLY))
         assertEquals(rpcReply, session.hex(AFTER_ERRORS_BATCH_REPLY + 1))
         assertEquals(rpcReply, session.hex(AFTER_ERRORS_BATCH_REPLY + 2))

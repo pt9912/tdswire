@@ -42,9 +42,10 @@ internal fun interface ErrorLog {
 
 /**
  * Die ERROR-Meldung der Regel: Nummer, State, Class und fester Text; die einzige Stelle, die sie bildet. Eine Regel mit
- * [ErrorRule.namesHandle] verlangt [handle] und hängt ` <handle>.` an den Text.
+ * [ErrorRule.namesHandle] verlangt [handle] und hängt ` <handle>.` an den Text; [state] ersetzt den State der Regel
+ * für die Aufrufform, die einen anderen trägt.
  */
-internal fun ErrorRule.message(handle: Int? = null): ServerMessage {
+internal fun ErrorRule.message(handle: Int? = null, state: Int = this.state): ServerMessage {
     require((handle != null) == namesHandle) { "Handle und Regel passen nicht zusammen" }
     return ServerMessage(number, state, severity, if (handle == null) text else "$text $handle.")
 }
@@ -67,7 +68,8 @@ internal fun ErrorRule.message(handle: Int? = null): ServerMessage {
 internal class ErrorMapper(internal val log: ErrorLog = ErrorLog.NONE) {
     /**
      * Ein Fehler mit eigenem Code; [cause] ist eine feste Marke für das Log, nie ein Wert. Ein Code, dessen Text die
-     * Nummer eines Handles nennt ([ErrorRule.namesHandle]), hat eine eigene Antwort ([releaseAnswer]).
+     * Nummer eines Handles nennt ([ErrorRule.namesHandle]), hat eigene Antworten ([releaseAnswer] für die
+     * Batch-Freigabe, [executeUnknownHandle] für `sp_execute`).
      */
     fun code(
         code: ErrorCode,
