@@ -30,17 +30,28 @@ import kotlin.test.AfterTest
 import kotlin.time.Duration
 
 private const val POLL_MILLIS = 5L
-private const val HANG_GUARD_NANOS = 60_000_000_000L
+private const val POLL_ROUNDS = 1000
+private const val NANOS_PER_MILLI = 1_000_000L
 private const val PACKET_SIZE = 4096
 private const val READ_SIZE = 256
 
-/**
- * Wartet [condition] ab; sonst schlägt der Test nach der Schutzgrenze von einer Minute Wanduhr fehl. Die Grenze
- * schützt vor einem hängenden Test und sagt nichts über die Dauer des Wartens; sie zählt die Uhr, nicht die
- * Abfragen (eine Abfrage dauert unter Last länger als [POLL_MILLIS]).
- */
+/** Wartet [condition] ab, höchstens fünf Sekunden; sonst schlägt der Test fehl. */
 internal suspend fun eventually(what: String, condition: () -> Boolean) {
-    val deadline = System.nanoTime() + HANG_GUARD_NANOS
+    repeat(POLL_ROUNDS) {
+        if (condition()) return
+        delay(POLL_MILLIS)
+    }
+    throw AssertionError("nicht eingetreten: $what")
+}
+
+/**
+ * Wartet [condition] ab; sonst schlägt der Test nach der Schutzgrenze [hangGuardMillis] in Wanduhr fehl. Die Grenze
+ * schützt vor einem hängenden Test und sagt nichts über die Dauer des Wartens; sie zählt die Uhr, nicht die Abfragen
+ * (eine Abfrage dauert unter Last länger als [POLL_MILLIS]). Anders als [eventually], dessen Grenze von rund fünf
+ * Sekunden Tests als Beleg für eine kurze Frist nutzen.
+ */
+internal suspend fun eventuallyGuarded(what: String, hangGuardMillis: Long, condition: () -> Boolean) {
+    val deadline = System.nanoTime() + hangGuardMillis * NANOS_PER_MILLI
     while (!condition()) {
         if (System.nanoTime() > deadline) throw AssertionError("nicht eingetreten: $what")
         delay(POLL_MILLIS)

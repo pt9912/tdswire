@@ -30,7 +30,7 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** `TableStoreTest > gleichzeitiger Zugriff verliert nichts` und `ListenerAbortTest > der Listener ruft den Abbruch nach der Frist und wartet CANCEL_TIMEOUT ab` messen ihre Zusage ohne Abhängigkeit von der Last des Hosts: der erste mit begrenzter, an die Schritte der Schreiber gebundener Last der Leser, der zweite mit einem Warten auf das Ereignis statt auf eine Wanduhr-Zahl von Abfragen; beide tragen ihre Zusage weiter, und die Mutation je Zusage färbt sie rot.
+**Ziel:** `TableStoreTest > gleichzeitiger Zugriff verliert nichts` und `ListenerAbortTest > der Listener ruft den Abbruch nach der Frist und wartet CANCEL_TIMEOUT ab` messen ihre Zusage ohne Abhängigkeit von der Last des Hosts (begründet, nicht gemessen; die Schutzgrenze von 60 s reißt unter ausreichend hoher Last auch): der erste mit begrenzter, an die Anweisungen der Schreiber gebundener Last der Leser, der zweite mit einem Warten auf das Ereignis statt auf eine Wanduhr-Zahl von Abfragen; beide tragen ihre Zusage weiter, und die Mutation je Zusage färbt sie rot.
 
 **Ist-Zustand (Handmessung im Docker-Rig, Gradle im Image der Stage `deps` mit gemounteten Quellen; der Erzeuger liegt nicht im Repo, die Zahlen gelten als Größenordnung):**
 
@@ -41,7 +41,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 - Eine Änderung an `TableStore`, `SimulationBackend` oder `TdsListener` — die Zusagen der Sperren und des Beendens bleiben; nur die Messung der Tests ändert sich. Fairness der Sperre wäre eine Änderung des Produkts ohne Anforderung.
 - Die übrigen Wanduhr-Tests der Beobachtung (`TelemetryJsonTest … principal`, `AuthTimingTest`, `TelemetryEmbeddingTest`) — sie sind Kandidaten, kein Beleg (Stand der Beobachtung), und haben einen anderen Mechanismus (Reihenfolge von Antwort und Ereignis); `BEO-TDS/test-erwartet-reihenfolge-eines-wettlaufs` führt sie.
-- Die Schutzgrenze anderer Listener-Testklassen (`shortTimeout` in `ListenerShutdownTest`, `ListenerLifecycleTest`, `ListenerPartialMessageTest`) — kein roter Lauf dieser Klassen im Register; `eventually` (gemeinsam) bekommt die Schutzgrenze nach Uhr statt nach Abfragen, die Zahlen jener Klassen bleiben.
+- Die Schutzgrenze anderer Listener-Testklassen (`shortTimeout` in `ListenerShutdownTest`, `ListenerLifecycleTest`, `ListenerPartialMessageTest`) — kein roter Lauf dieser Klassen im Register; `eventually` (gemeinsam) bleibt unverändert (rund fünf Sekunden; `HandshakeWiringTest` nutzt die Grenze als Beleg für `LOGIN_TIMEOUT=1`), die Schutzgrenze nach Uhr gibt es nur als eigene Variante `eventuallyGuarded` für `ListenerAbortTest`; die Zahlen jener Klassen bleiben.
 - Der Ausgang der Beobachtung (Verkörperung, Zähler) — der Planner schreibt das Register nach der Verifikation.
 
 ## 2. Definition of Done
@@ -53,8 +53,8 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 Liefer-Punkte (zwei):
 
-- [ ] **`TableStoreTest`** ([TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität)): die Last der Leser ist begrenzt (jeder Leser ruft `catalog()` höchstens einmal je Schritt der Schreiber, kein Leerlauf-Drehen), der Test endet in der Größenordnung einer Sekunde statt in Minuten (Rig, drei Läufe unter Last, vorher/nachher gemessen); die Mutation „`catalog()` und `replace` ohne Sperre“ und die Mutation „Strukturänderung ohne `structureLock`“ färben ihn rot (je drei Läufe).
-- [ ] **`ListenerAbortTest` und `ListenerSupport`** ([TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität)): das Warten auf eine Frist des Listeners hängt am Ereignis (`ManualDelayer.awaitPending`), die Schutzgrenzen gegen einen hängenden Test sind Uhr-Grenzen von 60 s und keine Aussage über die Dauer; die Mutationen „der Abbruch wird nicht gerufen“ und „keine Wartezeit `CANCEL_TIMEOUT`“ färben die Klasse rot.
+- [ ] **`TableStoreTest`** ([TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität)): die Last der Leser ist begrenzt (je Anweisung eines Schreibers werden `READERS` Lesevorgänge freigegeben; welcher Leser sie nimmt, bestimmt die Planung; kein Leerlauf-Drehen; jeder gelesene Katalog wird auf Stimmigkeit geprüft), der Test endet in der Größenordnung einer Sekunde statt in Minuten (Rig, drei Läufe unter Last, vorher/nachher gemessen); die Mutation „`catalog()` und `replace` ohne Sperre“ und die Mutation „Strukturänderung ohne `structureLock`“ färben ihn rot (je drei Läufe).
+- [ ] **`ListenerAbortTest` und `ListenerSupport`** ([TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität)): das Warten auf eine Frist des Listeners hängt am Ereignis (`ManualDelayer.awaitPending`), die Schutzgrenzen gegen einen hängenden Test sind Uhr-Grenzen von 60 s (`eventuallyGuarded`, `hangGuard`) und keine Aussage über die Dauer; `eventually` und damit die übrigen rund 90 Aufrufe (u. a. `HandshakeWiringTest`) bleiben unverändert; die Mutationen „der Abbruch wird nicht gerufen“ und „keine Wartezeit `CANCEL_TIMEOUT`“ färben die Klasse rot.
 
 Nachweis-Pflichten für alle Punkte:
 
@@ -79,10 +79,10 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `testserver/test/kotlin/io/github/pt9912/tdswire/testserver/TableStoreTest.kt` | update | zwei Leser, die je Schritt eines Schreibers genau einen Aufruf von `catalog()` machen (Semaphore, vom Schreiber nach jeder Anweisung freigegeben); Ende der Leser über eine letzte Marke; Vierer-Schreiber mit je 150 Anfragen und die Endprüfung bleiben; KDoc nennt Last und Wächter — nach [TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) (Laufzeit) und [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität) (parallele Zugriffe) |
-| `src/test/kotlin/io/github/pt9912/tdswire/transport/listener/ListenerSupport.kt` | update | `ManualDelayer.awaitPending` wartet auf eine Änderung der wartenden Fristen; `eventually` zählt eine Uhr-Grenze von 60 s statt 1000 Abfragen (Schutz gegen Hängen) — nach [TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
-| `src/test/kotlin/io/github/pt9912/tdswire/transport/listener/ListenerAbortTest.kt` | update | `awaitWaiting` über `awaitPending`; `shortTimeout` (3 s) wird zur Schutzgrenze `hangGuard` (60 s); Zusagen und Erwartungen der Tests bleiben — nach [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität) (geordnetes Beenden, `SPEC-044`, `SPEC-033`) |
-| `docs/plan/spec-abdeckung.md` | erzeugt | `make spec-abdeckung`, einmal (Tests geändert) |
+| `testserver/test/kotlin/io/github/pt9912/tdswire/testserver/TableStoreTest.kt` | update | zwei Leser, die `catalog()` je Marke eines gemeinsamen Semaphors rufen (je Anweisung eines Schreibers werden `READERS` Marken freigegeben, die Verteilung auf die Leser bestimmt die Planung); jeder Leser prüft den gelesenen Katalog (`kunden` vorhanden, Namen eindeutig); Ende der Leser über eine letzte Marke; Vierer-Schreiber mit je 150 Anfragen und die Endprüfung bleiben; KDoc nennt Last und Wächter — nach [TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) (Laufzeit) und [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität) (parallele Zugriffe) |
+| `src/test/kotlin/io/github/pt9912/tdswire/transport/listener/ListenerSupport.kt` | update | `ManualDelayer.awaitPending` wartet auf eine Änderung der wartenden Fristen; neue Variante `eventuallyGuarded` mit Uhr-Grenze nach Wahl des Aufrufers (Schutz gegen Hängen); `eventually` bleibt unverändert — nach [TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
+| `src/test/kotlin/io/github/pt9912/tdswire/transport/listener/ListenerAbortTest.kt` | update | `awaitWaiting` über `awaitPending`, `eventually` wird `eventuallyGuarded(…, hangGuard)`; `shortTimeout` (3 s) wird zur Schutzgrenze `hangGuard` (60 s); Zusagen und Erwartungen der Tests bleiben — nach [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität) (geordnetes Beenden, `SPEC-044`, `SPEC-033`) |
+| `docs/plan/spec-abdeckung.md` | unverändert | `make spec-abdeckung` läuft einmal (Tests geändert); die Datei ändert sich nur, wenn der Lauf eine andere Abdeckung ergibt (Lauf des Implementers: unverändert) |
 
 ## 4. Trigger
 

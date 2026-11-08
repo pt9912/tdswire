@@ -87,7 +87,7 @@ internal class ListenerAbortTest : ListenerTestBase() {
         val delayer = ManualDelayer()
         val listener = start(handler, events, delayer)
         val client = connectTo(listener.port)
-        eventually("Handler läuft") { handler.connections.size == 1 }
+        eventuallyGuarded("Handler läuft", hangGuard) { handler.connections.size == 1 }
         val shutdown = async { listener.shutdown() }
         awaitWaiting(delayer, grace)
         assertEquals(0, handler.aborts.get(), "vor Ablauf der Frist kein Abbruch")
@@ -113,7 +113,7 @@ internal class ListenerAbortTest : ListenerTestBase() {
         val delayer = ManualDelayer()
         val listener = start(handler, events, delayer)
         val client = connectTo(listener.port)
-        eventually("Handler läuft") { handler.connections.size == 1 }
+        eventuallyGuarded("Handler läuft", hangGuard) { handler.connections.size == 1 }
         val shutdown = async { listener.shutdown() }
         awaitWaiting(delayer, grace)
         delayer.releaseAll()
@@ -144,7 +144,7 @@ internal class ListenerAbortTest : ListenerTestBase() {
         val delayer = ManualDelayer()
         val listener = start(handler, events, delayer)
         val client = connectTo(listener.port)
-        eventually("Handler läuft") { handler.connections.size == 1 }
+        eventuallyGuarded("Handler läuft", hangGuard) { handler.connections.size == 1 }
         try {
             val shutdown = async { listener.shutdown() }
             awaitWaiting(delayer, grace)
@@ -175,7 +175,7 @@ internal class ListenerAbortTest : ListenerTestBase() {
         val delayer = ManualDelayer()
         val listener = start(handler, events, delayer)
         connectTo(listener.port)
-        eventually("Handler läuft") { handler.connections.size == 1 }
+        eventuallyGuarded("Handler läuft", hangGuard) { handler.connections.size == 1 }
         handler.connections[0].requestRunning(true)
         val shutdown = async { listener.shutdown() }
         awaitWaiting(delayer, grace)
@@ -196,7 +196,7 @@ internal class ListenerAbortTest : ListenerTestBase() {
         val delayer = ManualDelayer()
         val listener = start(handler, RecordingEvents(), delayer)
         connectTo(listener.port)
-        eventually("Handler läuft") { handler.connections.size == 1 }
+        eventuallyGuarded("Handler läuft", hangGuard) { handler.connections.size == 1 }
         assertFalse(handler.connections[0].shutdownBegun)
         val shutdown = async { listener.shutdown() }
         awaitWaiting(delayer, grace)

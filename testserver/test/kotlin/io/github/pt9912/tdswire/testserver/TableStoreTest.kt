@@ -9,6 +9,7 @@ import io.github.pt9912.tdswire.runtime.BackendSource
 import io.github.pt9912.tdswire.simulation.FilterTerm
 import io.github.pt9912.tdswire.simulation.RowFilter
 import io.github.pt9912.tdswire.simulation.RowSource
+import io.github.pt9912.tdswire.simulation.SimCatalog
 import io.github.pt9912.tdswire.simulation.SimColumn
 import io.github.pt9912.tdswire.simulation.SimQuery
 import io.github.pt9912.tdswire.simulation.SimTable
@@ -125,8 +126,10 @@ class TableStoreTest {
      * Happy: zwei Leser, die `catalog()` rufen, und mehrere Schreiber, die Tabellen anlegen und erweitern, laufen
      * gleichzeitig; kein Aufruf wirft, und am Ende stehen alle angelegten Tabellen und alle angefügten Spalten im
      * Bestand (keine Strukturänderung geht verloren). Die Last ist begrenzt und hängt nicht von der Geschwindigkeit
-     * des Hosts ab: jeder Leser ruft `catalog()` genau einmal je Schritt der Schreiber (ein Schreiber gibt nach jeder
-     * Anweisung eine Marke frei), ein Leser dreht nie leer. Belegt ist der einzelne Aufruf von `catalog()` und
+     * des Hosts ab: je Anweisung eines Schreibers werden `READERS` Lesevorgänge freigegeben (Marken eines gemeinsamen
+     * Semaphors); welcher Leser sie nimmt, bestimmt die Planung. Ein Leser dreht nie leer. Jeder gelesene Katalog
+     * wird geprüft: `kunden` steht darin mit mindestens den zwei Spalten des Anfangs, und kein Tabellenname kommt
+     * doppelt vor. Belegt ist der einzelne Aufruf von `catalog()` und
      * `replace` sowie die Folge „Planung, Callback“ über das Backend; ein Zugriff über mehrere Backends auf einen
      * Bestand ist nicht belegt.
      * Wächter: `catalog()` und `replace` ohne Sperre (ein Leser läuft in die gleichzeitige Änderung der Tabellenliste
@@ -198,10 +201,21 @@ class TableStoreTest {
             while (true) {
                 steps.acquire()
                 if (done.get()) break
-                store.catalog().tables.size
+                failures += checkCatalog(store.catalog()).orEmpty()
             }
         } catch (e: ConcurrentModificationException) {
             failures += e
+        }
+    }
+
+    /** Der gelesene Katalog ist in sich stimmig; die Fehlermeldung, sonst `null`. */
+    private fun checkCatalog(catalog: SimCatalog): List<Throwable>? {
+        val names = catalog.tables.map { it.name }
+        val kunden = catalog.tables.singleOrNull { it.name == "kunden" }
+        return when {
+            names.size != names.toSet().size -> listOf(AssertionError("Tabellenname doppelt: $names"))
+            kunden == null || kunden.columns.size < 2 -> listOf(AssertionError("kunden fehlt oder verkuerzt"))
+            else -> null
         }
     }
 
