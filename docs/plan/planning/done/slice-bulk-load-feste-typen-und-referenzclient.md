@@ -45,7 +45,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Die Atomarität und der Code je Fehlerursache — [slice-adr-massenladen-atomar-an-messung](../open/slice-adr-massenladen-atomar-an-messung.md) (Entscheidung durch den Nutzer; dieser Slice übernimmt, was sie entscheidet, nicht mehr).
+- Die Atomarität und der Code je Fehlerursache — [slice-adr-massenladen-atomar-an-messung](../done/slice-adr-massenladen-atomar-an-messung.md) (Entscheidung durch den Nutzer; dieser Slice übernimmt, was sie entscheidet, nicht mehr).
 - Messungen mit mssql-jdbc — Folgepflicht 2 von [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md), Träger [slice-schreibpfad-merge-output](../done/slice-schreibpfad-merge-output.md).
 - PLP-Typen (MAX) und NBCROW — kein Lauf des Referenzclients im Messbestand sendet sie; erst mit einer Messnachricht.
 - Neue öffentliche Namen — die Fläche ist [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Nr. 4 festgelegt; würde der Slice einen brauchen, geht er zurück zur Zerlegung (§4).
@@ -107,7 +107,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): **neue öffentliche Fläche** wird nötig (ein Typ, ein Parameter), oder mehr als drei Liefer-Punkte; Schnittvorschlag: Leser | Katalog-Batch | Referenztest.
-- `in-progress` → `open` (blockiert): die Entscheidung zu [slice-adr-massenladen-atomar-an-messung](../open/slice-adr-massenladen-atomar-an-messung.md) ändert die Form der Fehlerantwort, die der Referenztest belegt.
+- `in-progress` → `open` (blockiert): die Entscheidung zu [slice-adr-massenladen-atomar-an-messung](../done/slice-adr-massenladen-atomar-an-messung.md) ändert die Form der Fehlerantwort, die der Referenztest belegt.
 
 ## 5. Closure-Trigger
 

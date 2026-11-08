@@ -1,5 +1,7 @@
 package io.github.pt9912.tdswire.protocol.token
 
+import io.github.pt9912.tdswire.domain.StatementKind
+
 /** Ein Token der Antwortseite (MS-TDS 2.2.7); [TokenEncoder] schreibt es in den Tokenstrom. */
 internal sealed interface Token
 
@@ -64,9 +66,9 @@ internal object DoneStatus {
  * Befehlskennungen (`curCmd`) der DONE-Familie, am echten SQL Server gemessen (Messprotokoll W-6, Einzelmessung je
  * Instanz 2022 und 2025): [SELECT] für den Abschluss eines Ergebnisses, [BATCH] für einen Batch ohne Ergebnis, einen
  * Fehler ohne offenes Ergebnis und ATTENTION, [PROC] für DONEPROC. [NONE] sagt „keine Aussage“: der Wert hängt an der
- * Form des Ereignisses nicht (etwa INSERT, UPDATE, DELETE). [INSERT_BULK] ist der Befehl der Antwort auf eine Nachricht
- * des Massenladens, gemessen mit `SqlBulkCopy` (Messprotokoll M-8 und M-12, Instanz 2022 und 2025), mit Zähler bei
- * Erfolg und mit `ERROR` bei einem Schlüsselverstoß.
+ * Form des Ereignisses nicht ([forKind] bildet die Art eines Änderungszählers ab). [INSERT_BULK] ist der Befehl der
+ * Antwort auf eine Nachricht des Massenladens, gemessen mit `SqlBulkCopy` (Messprotokoll M-8 und M-12, Instanz 2022
+ * und 2025), mit Zähler bei Erfolg und mit `ERROR` bei einem Schlüsselverstoß.
  */
 internal object DoneCommand {
     const val NONE = 0x0000
@@ -74,6 +76,17 @@ internal object DoneCommand {
     const val BATCH = 0x00FD
     const val PROC = 0x00E0
     const val INSERT_BULK = 0x00F0
+    private const val INSERT = 0x00C3
+    private const val DELETE = 0x00C4
+    private const val UPDATE = 0x00C5
+
+    /** Die Kennung des Abschlusses eines Änderungszählers der Art [kind] (Messprotokoll W-6); [NONE] für `UNKNOWN`. */
+    fun forKind(kind: StatementKind): Int = when (kind) {
+        StatementKind.UNKNOWN -> NONE
+        StatementKind.INSERT -> INSERT
+        StatementKind.DELETE -> DELETE
+        StatementKind.UPDATE -> UPDATE
+    }
 }
 
 /** Die drei Formen des Abschlusstokens. */

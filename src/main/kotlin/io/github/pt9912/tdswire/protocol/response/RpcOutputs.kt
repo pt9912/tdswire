@@ -38,9 +38,9 @@ internal class CallLayout(val firstValuePosition: Int, val hasHandle: Boolean = 
  * Sammelt `ReturnStatus` und `OutputParameter` einer RPC-Antwort, bis die Antwort endet: höchstens ein RETURNSTATUS,
  * und die RETURNVALUE tragen als Ordinal die Position ihres Parameters in der Aufrufliste und stehen in dieser
  * Reihenfolge (gemessen, W-5). Der Name des Ereignisses findet den Parameter in [parameters] (ohne Beachtung der
- * Schreibweise); ein Name außerhalb der Liste bekommt die Position hinter dem letzten Parameter (Setzung ohne Messung).
- * Das Handle von `sp_prepexec` hat Position 0 und das Flag-Feld `0x0000` (nicht nullbar, Messprotokoll A-19). Ein Lauf
- * des [ResponseSequencer] hält eine Instanz; sie ist nicht threadsicher.
+ * Schreibweise); ein Name außerhalb der Liste bekommt die Position hinter dem letzten Parameter (Setzung ohne
+ * Messung). Das Handle von `sp_prepexec` hat Position 0 (Messprotokoll A-19); das Flag-Feld jedes RETURNVALUE ist
+ * `0x0000` (`TokenWriters`). Ein Lauf des [ResponseSequencer] hält eine Instanz; sie ist nicht threadsicher.
  */
 internal class RpcOutputs(private val layout: CallLayout, private val parameters: List<QueryParameter>) {
     private class Placed(val position: Int, val token: ReturnValueToken)

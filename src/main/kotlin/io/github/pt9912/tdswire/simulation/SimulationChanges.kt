@@ -2,6 +2,7 @@ package io.github.pt9912.tdswire.simulation
 
 import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.domain.QueryParameter
+import io.github.pt9912.tdswire.domain.StatementKind
 import io.github.pt9912.tdswire.port.QueryExecution
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -10,8 +11,11 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 /** Das Ergebnis der Vorbereitung einer Änderung (`TDS-FA-11.a` Schritt 6): ein Callback-Aufruf oder eine Ablehnung. */
 internal sealed interface PreparedChange {
-    /** [call] ruft den Callback der Tabelle mit den überführten Werten und liefert dessen Zahl. */
-    class Ready(val call: suspend () -> Long) : PreparedChange
+    /**
+     * [call] ruft den Callback der Tabelle mit den überführten Werten und liefert dessen Zahl; [kind] ist die Art der
+     * Anweisung, die der Abschluss meldet.
+     */
+    class Ready(val kind: StatementKind, val call: suspend () -> Long) : PreparedChange
 
     /** Die Anfrage endet mit dem Fehler [code] (ein Wert von [SimCodes]), bevor ein Callback gerufen wird. */
     data class Rejected(val code: String, val message: String) : PreparedChange
@@ -35,17 +39,19 @@ internal object SimulationChanges {
         val table = plan.table
         return when (val statement = plan.statement) {
             is Statement.Insert -> assigned(table, statement.columns.zip(statement.values), parameters) { values ->
-                table.onInsert?.let { callback -> PreparedChange.Ready { callback(values) } }
+                table.onInsert?.let { callback -> PreparedChange.Ready(StatementKind.INSERT) { callback(values) } }
             }
 
             is Statement.Update -> assigned(table, statement.set.map { it.column to it.value }, parameters) { set ->
                 filtered(statement.where, table, parameters) { where ->
-                    table.onUpdate?.let { callback -> PreparedChange.Ready { callback(set, where) } }
+                    table.onUpdate?.let { callback ->
+                        PreparedChange.Ready(StatementKind.UPDATE) { callback(set, where) }
+                    }
                 }
             }
 
             is Statement.Delete -> filtered(statement.where, table, parameters) { where ->
-                table.onDelete?.let { callback -> PreparedChange.Ready { callback(where) } }
+                table.onDelete?.let { callback -> PreparedChange.Ready(StatementKind.DELETE) { callback(where) } }
             }
 
             is Statement.Select -> error("eine Auswahl ist keine Änderung")
@@ -96,7 +102,8 @@ internal interface Stoppable {
 }
 
 /**
- * Eine Änderung: ruft den Callback beim Sammeln genau einmal und sendet dessen Zahl als [QueryEvent.UpdateCount].
+ * Eine Änderung: ruft den Callback beim Sammeln genau einmal und sendet dessen Zahl mit der Art der Anweisung als
+ * [QueryEvent.UpdateCount].
  * Ein Fehler des Callbacks und eine negative Zahl sind ein [QueryEvent.Failure] mit `TDS_BACKEND_ERROR` und fester
  * Meldung, nie dem Text der Ausnahme (Festlegung, nicht am Server gemessen). Eine [ChangeRejected] beim erneuten
  * Planen unter der Sperre einer Strukturänderung ist ein [QueryEvent.Failure] mit dem Code und der Meldung der
@@ -124,7 +131,7 @@ internal class ChangeExecution(
     }
 
     private suspend fun run(): QueryEvent = guarded { change.call() }.fold(
-        onSuccess = { count -> if (count >= 0) QueryEvent.UpdateCount(count) else failure() },
+        onSuccess = { count -> if (count >= 0) QueryEvent.UpdateCount(count, change.kind) else failure() },
         onFailure = { error ->
             (error as? ChangeRejected)?.let { QueryEvent.Failure(it.code, it.reason) } ?: failure()
         },

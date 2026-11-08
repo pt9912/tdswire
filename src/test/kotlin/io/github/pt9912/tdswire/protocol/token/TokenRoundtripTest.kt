@@ -100,7 +100,7 @@ class TokenRoundtripTest {
             TdsValue.TimeValue(LocalTime.of(23, 59, 59, 999_999_900)),
             TdsValue.DateTime2Value(LocalDateTime.of(1, 1, 1, 0, 0, 0, 1_000_000)),
         )
-        val output = ColumnDef("", TdsType.IntNType(4), nullable = true)
+        val output = ColumnDef("", TdsType.IntNType(4), nullable = false)
         roundtrip(
             listOf(
                 ColMetadataToken(columns),

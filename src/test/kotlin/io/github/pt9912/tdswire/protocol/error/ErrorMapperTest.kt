@@ -21,6 +21,7 @@ import io.github.pt9912.tdswire.testsupport.hex
 import io.github.pt9912.tdswire.testsupport.toHex
 import io.github.pt9912.tdswire.transport.framing.PacketType
 import kotlinx.coroutines.runBlocking
+import java.util.BitSet
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -44,6 +45,12 @@ private const val DONE_COMMAND_LOW_FROM_END = 10
  */
 class ErrorMapperTest {
     private val done = "FD 02 00 FD 00 00 00 00 00 00 00 00 00"
+
+    /** RETURNSTATUS 8179 und DONEPROC `ERROR` der letzten Nummer, Befehl `0x00e0` (Messung M-23, Handvektor). */
+    private val unknownLast = "79 F3 1F 00 00  FE 02 00 E0 00 00 00 00 00 00 00 00 00"
+
+    /** RETURNSTATUS 8179 und DONEPROC `MORE|ERROR` einer Nummer vor weiteren (Messung M-22, Handvektor). */
+    private val unknownMore = "79 F3 1F 00 00  FE 03 00 E0 00 00 00 00 00 00 00 00 00"
     private val mapper = ErrorMapper()
 
     private fun assertBytes(code: ErrorCode, errorToken: String, severity: Int, fate: ConnectionFate) {
@@ -157,11 +164,12 @@ class ErrorMapperTest {
         assertTrue(message.payload.toHex().endsWith(tail))
     }
 
-    /** Die Bytes der Antwort von [ErrorMapper.unknownHandles], von einer Senke gesammelt. */
+    /** Die Bytes der Antwort von [ErrorMapper.releaseAnswer] auf lauter nicht gehaltene [handles]. */
     private fun unknownHandlesAnswer(errors: ErrorMapper, handles: List<Int>): ByteArray {
         val encoder = TokenEncoder()
         val sink = TokenSink { token -> encoder.write(token) is ProtocolResult.Ok }
-        assertTrue(runBlocking { errors.unknownHandles(handles, "unknown-prepared-handle", sink) })
+        val unknown = BitSet().apply { set(0, handles.size) }
+        assertTrue(runBlocking { errors.releaseAnswer(handles, unknown, "unknown-prepared-handle", sink) })
         return encoder.toByteArray()
     }
 
@@ -205,9 +213,10 @@ class ErrorMapperTest {
      * `TDS_SIM_UNKNOWN_PREPARED_HANDLE` ist ERROR 8179, State 8, Class 16 mit dem Text „Could not find prepared
      * statement with handle <n>.“ und bleibt offen. Nummer, Class, State und Wortlaut für Handle 1 sind am
      * Referenzclient gegen den echten SQL Server gemessen (Zeile M-4); die Bytes sind Handvektor. Zwei Nummern
-     * ergeben zwei ERROR vor dem einen DONE mit Fehlerstatus, ein Log-Eintrag mit der festen Marke je Antwort. Wächter:
-     * State 1 statt 8, eine andere Nummer, ein Text ohne Handle, ein ERROR nur für die erste Nummer, ein fehlender
-     * Log-Eintrag, ein Log-Eintrag je Nummer.
+     * ergeben zwei ERROR, je gefolgt von RETURNSTATUS 8179 und DONEPROC (`MORE|ERROR` in der Mitte, `ERROR` am Ende,
+     * Befehl `0x00e0`, Handvektor der Messung M-22 und M-23), ein Log-Eintrag mit der festen Marke je Antwort.
+     * Wächter: State 1 statt 8, eine andere Nummer, ein Text ohne Handle, ein ERROR nur für die erste Nummer, ein
+     * fehlender Log-Eintrag, ein Log-Eintrag je Nummer.
      *
      * @spec SPEC-060
      */
@@ -223,7 +232,7 @@ class ErrorMapperTest {
                     " 00 6F 00 74 00 20 00 66 00 69 00 6E 00 64 00 20 00 70 00 72 00 65 00 70" +
                     " 00 61 00 72 00 65 00 64 00 20 00 73 00 74 00 61 00 74 00 65 00 6D 00 65" +
                     " 00 6E 00 74 00 20 00 77 00 69 00 74 00 68 00 20 00 68 00 61 00 6E 00 64" +
-                    " 00 6C 00 65 00 20 00 31 00 2E 00 00 00 00 00 00 00  $done",
+                    " 00 6C 00 65 00 20 00 31 00 2E 00 00 00 00 00 00 00  $unknownLast",
             ).toHex(),
             one.toHex(),
         )
@@ -234,12 +243,12 @@ class ErrorMapperTest {
                     " 00 6F 00 74 00 20 00 66 00 69 00 6E 00 64 00 20 00 70 00 72 00 65 00 70" +
                     " 00 61 00 72 00 65 00 64 00 20 00 73 00 74 00 61 00 74 00 65 00 6D 00 65" +
                     " 00 6E 00 74 00 20 00 77 00 69 00 74 00 68 00 20 00 68 00 61 00 6E 00 64" +
-                    " 00 6C 00 65 00 20 00 31 00 2E 00 00 00 00 00 00 00  " +
+                    " 00 6C 00 65 00 20 00 31 00 2E 00 00 00 00 00 00 00  $unknownMore  " +
                     "AA 70 00 F3 1F 00 00 08 10 31 00 43 00 6F 00 75 00 6C 00 64 00 20 00 6E" +
                     " 00 6F 00 74 00 20 00 66 00 69 00 6E 00 64 00 20 00 70 00 72 00 65 00 70" +
                     " 00 61 00 72 00 65 00 64 00 20 00 73 00 74 00 61 00 74 00 65 00 6D 00 65" +
                     " 00 6E 00 74 00 20 00 77 00 69 00 74 00 68 00 20 00 68 00 61 00 6E 00 64" +
-                    " 00 6C 00 65 00 20 00 31 00 32 00 2E 00 00 00 00 00 00 00  $done",
+                    " 00 6C 00 65 00 20 00 31 00 32 00 2E 00 00 00 00 00 00 00  $unknownLast",
             ).toHex(),
             two.toHex(),
         )

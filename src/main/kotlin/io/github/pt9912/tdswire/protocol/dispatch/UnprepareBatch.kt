@@ -1,18 +1,10 @@
 package io.github.pt9912.tdswire.protocol.dispatch
 
-import io.github.pt9912.tdswire.protocol.error.ConnectionFate
 import io.github.pt9912.tdswire.protocol.error.ErrorMapper
-import io.github.pt9912.tdswire.protocol.error.unknownHandles
+import io.github.pt9912.tdswire.protocol.error.releaseAnswer
 import io.github.pt9912.tdswire.protocol.response.SequenceOutcome
 import io.github.pt9912.tdswire.protocol.response.TokenSink
-import io.github.pt9912.tdswire.protocol.session.HandshakeEvent
-import io.github.pt9912.tdswire.protocol.token.DoneKind
-import io.github.pt9912.tdswire.protocol.token.DoneStatus
-import io.github.pt9912.tdswire.protocol.token.DoneToken
-import io.github.pt9912.tdswire.protocol.token.TokenEncoder
-import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
-import io.github.pt9912.tdswire.transport.framing.PacketType
-import io.github.pt9912.tdswire.transport.framing.TdsMessage
+import java.util.BitSet
 
 /**
  * Die Batch-Form der Freigabe von Prepared-Handles (`SPEC-030`, `SPEC-001`): `EXEC sp_unprepare <n>`, weitere
@@ -69,33 +61,26 @@ internal object UnprepareBatch {
         return if (wellFormed) text.substring(from, to).toLong().takeIf { it <= Int.MAX_VALUE }?.toInt() else null
     }
 
-    /** Gibt die [numbers] der Reihe nach in [handles] frei; geliefert werden die nicht gehaltenen, der Reihe nach. */
-    suspend fun release(numbers: List<Int>, handles: PreparedHandles): List<Int> =
-        numbers.filterNot { handles.release(it) }
-
-    /**
-     * Schreibt die Antwort auf die Freigabe, deren nicht gehaltene Nummern [unknown] sind (nicht leer): ein ERROR je
-     * Nummer ohne Obergrenze (`SPEC-060`, gemessen: M-22) und der Abschluss, Token für Token in die [sink]. Die Antwort
-     * steht nie als Liste oder Puffer im Speicher. Der Ausgang ist [SequenceOutcome.FAILED], wenn die Antwort
-     * vollständig geschrieben ist, und [SequenceOutcome.CLOSE_WITHOUT_COMPLETION], wenn die [sink] ein Token nicht
-     * annimmt; die Verbindung endet dann ohne weitere Antwort.
-     */
-    suspend fun answer(unknown: List<Int>, sink: TokenSink, errors: ErrorMapper): SequenceOutcome =
-        if (errors.unknownHandles(unknown, UNKNOWN_CAUSE, sink)) {
-            SequenceOutcome.FAILED
-        } else {
-            SequenceOutcome.CLOSE_WITHOUT_COMPLETION
-        }
-
-    /**
-     * Die Antwort, wenn die Sitzung jede Nummer hielt: ein DONE ohne Bits und ohne Zeilenzahl (Festlegung, die
-     * Tokenfolge eines echten Servers ist nicht gemessen).
-     */
-    fun completed(): HandshakeEvent.RequestFinished {
-        val encoder = TokenEncoder()
-        check(encoder.write(DoneToken(DoneKind.DONE, DoneStatus.FINAL, 0, 0)) is ProtocolResult.Ok) {
-            "Antwort nicht schreibbar"
-        }
-        return requestFinished(ConnectionFate.OPEN, TdsMessage(PacketType.TABULAR_RESULT, encoder.toByteArray()))
+    /** Gibt die [numbers] der Reihe nach in [handles] frei; geliefert werden die Stellen der nicht gehaltenen. */
+    suspend fun release(numbers: List<Int>, handles: PreparedHandles): BitSet {
+        val unknown = BitSet(numbers.size)
+        numbers.forEachIndexed { at, number -> if (!handles.release(number)) unknown.set(at) }
+        return unknown
     }
+
+    /**
+     * Schreibt die Antwort auf die Freigabe von [numbers], deren nicht gehaltene Stellen [unknown] nennt: je Nummer
+     * RETURNSTATUS und DONEPROC mit der Befehlskennung `0x00e0`, bei einer nicht gehaltenen Nummer davor ein ERROR,
+     * ohne Obergrenze und ohne DONE (`SPEC-030`, `SPEC-060`, gemessen: M-22, M-23), Token für Token in die [sink]. Die
+     * Antwort steht nie als Liste oder Puffer im Speicher. Der Ausgang ist [SequenceOutcome.COMPLETED], wenn die
+     * Sitzung jede Nummer hielt, [SequenceOutcome.FAILED], wenn sie eine nicht hielt, und
+     * [SequenceOutcome.CLOSE_WITHOUT_COMPLETION], wenn die [sink] ein Token nicht annimmt; die Verbindung endet dann
+     * ohne weitere Antwort.
+     */
+    suspend fun answer(numbers: List<Int>, unknown: BitSet, sink: TokenSink, errors: ErrorMapper): SequenceOutcome =
+        when {
+            !errors.releaseAnswer(numbers, unknown, UNKNOWN_CAUSE, sink) -> SequenceOutcome.CLOSE_WITHOUT_COMPLETION
+            unknown.isEmpty -> SequenceOutcome.COMPLETED
+            else -> SequenceOutcome.FAILED
+        }
 }
