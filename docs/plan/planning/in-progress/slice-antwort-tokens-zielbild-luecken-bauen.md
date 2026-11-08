@@ -83,14 +83,18 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `src/main/kotlin/io/github/pt9912/tdswire/domain/` (`StatementKind`, `QueryEvent.UpdateCount`) | neu / update | öffentliche Fläche nach [ADR-0042](../../adr/0042-anweisungsart-und-zustandswechsel-nur-durch-die-bibliothek.md): Aufzählung und Feld `kind` |
-| `src/main/kotlin/io/github/pt9912/tdswire/protocol/` (Antwortbildung, Sequenzierer, Abbildung Art → Kennung/`COUNT`, `UnprepareBatch`) | update | Flag-Feld, `curCmd`, Tokenfolge |
-| `src/main/kotlin/io/github/pt9912/tdswire/simulation/` (Planer, Formen W1 bis W3) | update | Backend meldet die Art bei INSERT, UPDATE, DELETE |
-| `testserver/kotlin/` (Integrator, falls er `UpdateCount` baut) | update (falls betroffen) | Anteil des Integrators |
-| `src/integrator/` (Einbettungstest) | update | Beleg von `StatementKind`, Backend mit und ohne Art |
-| `spec/spezifikation.md` (`SPEC-030`, `SPEC-031`, `SPEC-059`, `SPEC-060`) | update | Zielbild, Liste der Fläche, Änderungsprotokoll |
-| Kompatibilitätsmatrix der Spezifikation, `docs/messungen/` (Ausnahmeliste A-20) | update | Stand des Servers gegen den echten |
-| Tests (Kotlin; Referenztest .NET nur lesend) | neu / update | Happy/Boundary/Negative nach [TDS-FA-10](../../../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte) |
+| `src/main/kotlin/io/github/pt9912/tdswire/domain/` (`StatementKind.kt` neu, `QueryEvent.kt`: `UpdateCount.kind`) | neu / update | öffentliche Fläche nach [ADR-0042](../../adr/0042-anweisungsart-und-zustandswechsel-nur-durch-die-bibliothek.md): Aufzählung und Feld `kind` mit `@JvmOverloads` |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/token/` (`Token.kt`: Abbildung Art → Kennung; `TokenWriters.kt`: Flag-Feld `0x0000`) | update | Flag-Feld, `curCmd` nach Art |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/response/` (`ResponseRun.kt`, `ResponseSequencer.kt`, `RpcOutputs.kt`) | update | Kennung des Änderungszählers, Fristablauf bei offenem Ergebnis (`errorAnswer`, `errorAnswerTail`), Kommentare |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/dispatch/` (`OpenResultTracker.kt` neu, `RequestLoop.kt`, `RunConclusion.kt`, `AbortedAnswer.kt`, `UnprepareBatch.kt`) | neu / update | offenes Ergebnis auf dem Draht merken, `0x00c1` nach Fristablauf, Antwort der Freigabe je Nummer |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/error/ErrorAnswers.kt` | update | `releaseAnswer`: RETURNSTATUS und DONEPROC `0x00e0` je Nummer, ERROR bei nicht gehaltener Nummer |
+| `src/main/kotlin/io/github/pt9912/tdswire/simulation/` (`SimulationChanges.kt`, `SimulationBackend.kt`) | update | Backend meldet die Art bei INSERT, UPDATE, DELETE (Strukturänderung bleibt `UNKNOWN`) |
+| `testserver/kotlin/` | nicht betroffen | der Testserver baut keinen `UpdateCount`; die Übersetzung des Moduls läuft in `make test` |
+| `src/integrator/` (`StatementKindEmbeddingTest.kt` neu, `HandleLimitEmbeddingTest.kt`, `WireClient.kt`) | neu / update | Beleg von `StatementKind`, Backend mit und ohne Art; DONEPROC als Ende der Antwort |
+| `spec/spezifikation.md` (`SPEC-022` Vertrag, `SPEC-030`, `SPEC-031`, `SPEC-059`, `SPEC-060`, Änderungsprotokoll) | update | Zielbild, Liste der Fläche, Änderungsprotokoll |
+| `docs/plan/kompatibilitaetsmatrix.md`, `docs/messungen/referenzabgleich.md` (A-20, M-23, M-24, Zuordnung), `docs/messungen/unprepare-antwort-speicher-2026-11-07.md` (Reihe b9 bis b11) | update | Stand des Servers gegen den echten, Messreihe b nach der Änderung der Antwortgröße |
+| `docs/user/einbettung-und-betrieb.md`, `docs/user/referenz-konfiguration.md`, Register `BEO-TDS/zielbild-luecken-der-antwort-tokens/state.md` | update | Ist-Zustand der Nutzer-Doku, Stand des Registers |
+| Tests Kotlin (`ReturnValueFlagsTest`, `ResponseStatementKindTest` neu; `UnprepareDispatchTest`, `ErrorMapperTest`, `QueryTimeoutTest`, `SimulationBackendChangeTest`, `UnprepareLastProcessTest`, `TokenEncoderTest`, `AnswerFormsDispatchTest`, `PreparedHandlesDispatchTest`, `RequestSequenceTest` angepasst), Referenztest .NET (`MessungBulkBelegTests.cs`: Tokenfolge der Ablage) | neu / update | Happy/Boundary/Negative nach [TDS-FA-10](../../../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte) |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 
