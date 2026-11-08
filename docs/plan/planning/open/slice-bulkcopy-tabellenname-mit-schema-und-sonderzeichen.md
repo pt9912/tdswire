@@ -25,7 +25,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Ziel:** `SqlBulkCopy` lädt auch in Tabellen mit Schema (`DestinationTableName = "dbo.t"`) und in Tabellen, deren Name `]` oder `'` enthält, wie es der echte SQL Server annimmt (Zielbild: der Server ist die Referenz). Heute erkennt [BulkCopyForms](../../../../src/main/kotlin/io/github/pt9912/tdswire/simulation/BulkCopyForms.kt) nur den aufgezeichneten Wortlaut: sechs Tabellen ohne Schema, Name ohne `]` und `'`; jeder andere Text endet mit `TDS_UNSUPPORTED_SQL`.
 
-**Herkunft.** F-11 des Reviews von [slice-bulk-load-feste-typen-und-referenzclient](../in-progress/slice-bulk-load-feste-typen-und-referenzclient.md): eine Zielbild-Lücke ohne Träger. Aufgezeichnet ist die Form der Probe nur für Namen ohne Schema; wie der Referenzclient den Text bei `dbo.t`, `[dbo].[t]` oder `]]` im Namen ändert, ist nicht gemessen.
+**Herkunft.** F-11 des Reviews von [slice-bulk-load-feste-typen-und-referenzclient](../done/slice-bulk-load-feste-typen-und-referenzclient.md): eine Zielbild-Lücke ohne Träger. Aufgezeichnet ist die Form der Probe nur für Namen ohne Schema; wie der Referenzclient den Text bei `dbo.t`, `[dbo].[t]` oder `]]` im Namen ändert, ist nicht gemessen.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -36,7 +36,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 Liefer-Punkte (drei):
 
-- [ ] **Messung** ([TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität)): Der Wortlaut der Probe für `dbo.t`, `[dbo].[t]` und einen Namen mit `]` liegt als Messreihe am echten Server (2022 und 2025) im Messprotokoll; die Messreihe führt zusätzlich eine Tabelle mit nicht nullbaren Spalten INT, SMALLINT, TINYINT und BIT, deren Nachricht 0x07 die festen Typen zeigt (Risiko „weitere feste Typen“ aus §6 von [slice-bulk-load-feste-typen-und-referenzclient](../in-progress/slice-bulk-load-feste-typen-und-referenzclient.md)).
+- [ ] **Messung** ([TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität)): Der Wortlaut der Probe für `dbo.t`, `[dbo].[t]` und einen Namen mit `]` liegt als Messreihe am echten Server (2022 und 2025) im Messprotokoll; die Messreihe führt zusätzlich eine Tabelle mit nicht nullbaren Spalten INT, SMALLINT, TINYINT und BIT, deren Nachricht 0x07 die festen Typen zeigt (Risiko „weitere feste Typen“ aus §6 von [slice-bulk-load-feste-typen-und-referenzclient](../done/slice-bulk-load-feste-typen-und-referenzclient.md)).
 - [ ] **Erkennung und Antwort** ([TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate)): `BulkCopyForms` erkennt die gemessenen Formen; Test mit dem aufgezeichneten Text; ein `SqlBulkCopy`-Szenario mit Schema im Integrationslauf.
 - [ ] **Nachzug** ([TDS-QA-05](../../../../spec/lastenheft.md#tds-qa-05--wartbarkeit)): `SPEC-036` und die Nutzer-Doku nennen die Grenze nicht mehr.
 
@@ -63,7 +63,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 
 ## 4. Trigger
 
-**Start** (`next` → `in-progress`): [slice-bulk-load-feste-typen-und-referenzclient](../in-progress/slice-bulk-load-feste-typen-und-referenzclient.md) liegt in `done/` (erfüllt mit dessen Closure), der Nutzer hat die Messung am echten Server freigegeben, und ein Verantwortlicher ist eingetragen.
+**Start** (`next` → `in-progress`): [slice-bulk-load-feste-typen-und-referenzclient](../done/slice-bulk-load-feste-typen-und-referenzclient.md) liegt in `done/` (erfüllt mit dessen Closure), der Nutzer hat die Messung am echten Server freigegeben, und ein Verantwortlicher ist eingetragen.
 
 **Rückführungen — vorab benennen:**
 

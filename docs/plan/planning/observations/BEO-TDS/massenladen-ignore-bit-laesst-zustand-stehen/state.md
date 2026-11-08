@@ -1,1 +1,1 @@
-**Stand:** behoben — `BulkDispatch.answer` setzt den Zustand „Massenladen erwartet“ nach einer Nachricht mit IGNORE-Bit zurück; Beleg: [slice-bulk-load-feste-typen-und-referenzclient](../../../in-progress/slice-bulk-load-feste-typen-und-referenzclient.md) (`SPEC-001`, `BulkDispatchTest`).
+**Stand:** behoben — `BulkDispatch.answer` setzt den Zustand „Massenladen erwartet“ nach einer Nachricht mit IGNORE-Bit zurück; Beleg: [slice-bulk-load-feste-typen-und-referenzclient](../../../done/slice-bulk-load-feste-typen-und-referenzclient.md) (`SPEC-001`, `BulkDispatchTest`).

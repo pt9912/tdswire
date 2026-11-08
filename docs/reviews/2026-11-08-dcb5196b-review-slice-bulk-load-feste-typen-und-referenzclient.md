@@ -63,7 +63,7 @@
 
 * kategorie: MEDIUM
 * quelle: Reviewer-Skill „Plan-Tabelle nennt die berührten Dateien nicht“; Slice §3 („Der Implementer-Agent erweitert die Liste in seinem ersten Lauf“)
-* pfad: `docs/plan/planning/in-progress/slice-bulk-load-feste-typen-und-referenzclient.md` · „`testserver/resources/integration/sim.yaml`, `tools/simulationstest.sh`“
+* pfad: `docs/plan/planning/done/slice-bulk-load-feste-typen-und-referenzclient.md` · „`testserver/resources/integration/sim.yaml`, `tools/simulationstest.sh`“
 * befund: Die Tabelle ist seit dem Move unverändert. Sie nennt `sim.yaml`, geändert ist `testserver/kotlin/…/IntegrationServer.kt` (Tabelle `bulk_ziel`); es fehlen `tools/mk/simulationstest.mk`, `protocol/dispatch/BulkCopyProbeSets.kt`, `protocol/token/TdsType.kt` und `TypeInfoWriter.kt` (Dezimalgröße), `harness/README.md` und `docs/plan/spec-abdeckung.md`. Im Kopf „Berührte Spec-Stellen“ fehlt `SPEC-001` (dort stehen `SPEC-036`, `SPEC-035`, `SPEC-040`, `SPEC-059`).
 * verifizierbar: nein
 * klasse: Plan-Tabelle nennt berührte Dateien nicht
