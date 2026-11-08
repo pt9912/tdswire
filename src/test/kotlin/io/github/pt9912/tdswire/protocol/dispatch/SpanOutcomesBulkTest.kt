@@ -5,6 +5,7 @@ import io.github.pt9912.tdswire.domain.QueryRequest
 import io.github.pt9912.tdswire.domain.telemetry.RequestKind
 import io.github.pt9912.tdswire.domain.telemetry.SpanOutcome
 import io.github.pt9912.tdswire.port.BulkLoadingBackend
+import io.github.pt9912.tdswire.port.BulkProbeResult
 import io.github.pt9912.tdswire.port.BulkRows
 import io.github.pt9912.tdswire.port.BulkTarget
 import io.github.pt9912.tdswire.port.BulkTargetResult
@@ -38,6 +39,8 @@ class SpanOutcomesBulkTest {
         BulkLoadingBackend {
         override fun bulkTarget(sql: String): BulkTargetResult? =
             BulkTargetResult.Ready(BulkTarget("dbo", "t")).takeIf { sql.startsWith("INSERT BULK") }
+
+        override fun bulkProbe(sql: String): BulkProbeResult? = null
 
         override suspend fun load(target: BulkTarget, rows: BulkRows): QueryEvent = onLoad(rows)
 

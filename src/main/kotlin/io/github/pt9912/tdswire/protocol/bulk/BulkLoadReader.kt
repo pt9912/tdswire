@@ -17,19 +17,17 @@ import io.github.pt9912.tdswire.protocol.wire.violation
  * COLMETADATA, danach ROW je Zeile, danach DONE. Die Nachricht liegt als Ganzes im Speicher (`SPEC-007`); der Leser
  * liest sie einmal von vorn nach hinten, die Werte liest [BulkValueReader].
  *
- * Gedeckt durch einen Mitschnitt (d-migrate 1.12.0 mit mssql-jdbc 13.4.0, Messprotokoll des Massenladens) sind die
- * Spaltentypen `INTN` mit 8 Byte, `NVARCHAR` und `BIGVARCHAR`; Datum, Zeit und Zeitpunkt sendet d-migrate als
- * `VARCHAR`. `INTN` mit 1, 2 und 4 Byte, `BITN`, `DECIMALN`, `NUMERICN`, `NCHAR`, `BIGCHAR`, `DATEN`, `TIMEN` und
- * `DATETIME2N` liest der Leser nach Handvektoren aus der Beschreibung von `MS-TDS`, ohne Mitschnitt eines Clients.
- * Die Typen sind abgebildet auf [SqlType] (`INTN` mit 8 Byte ist `Int64`, jede andere Größe `Int32`). Jede andere
- * Typkennung, ein PLP-Typ (MAX) und ein anderes Token als ROW und DONE (auch NBCROW) weist der Leser mit einem
- * [ProtocolFailure] ab, ebenso eine Nachricht ohne COLMETADATA, mit Zeilen, aber ohne DONE, und eine, die hinter dem
- * DONE weitergeht.
- *
- * Grenze: die Nutzlast des Referenzclients (`SqlBulkCopy`) liest dieser Leser nicht. Der Referenzclient sendet nicht
- * nullbare Spalten als feste Typen (die erste Spalte der Messreihe als BIGINT fest, Typkennung `0x7f`), die der Katalog
- * nicht führt; alle 10 aufgezeichneten Nachrichten 0x07 (`referenztest-dotnet/Mitschnitt/messung/bulk-merge-katalog/`)
- * enden in [ProtocolFailure]. Belegt sind die Typen, die mssql-jdbc sendet.
+ * Gedeckt durch einen Mitschnitt sind die Spaltentypen `INTN` mit 8 Byte, `NVARCHAR` und `BIGVARCHAR` (d-migrate
+ * 1.12.0 mit mssql-jdbc 13.4.0, Messprotokoll des Massenladens; Datum, Zeit und Zeitpunkt sendet d-migrate als
+ * `VARCHAR`) und, mit dem Referenzclient `SqlBulkCopy` (Messreihe M-8 bis M-12, 10 Nachrichten in
+ * `referenztest-dotnet/Mitschnitt/messung/bulk-merge-katalog/`), der feste Typ BIGINT (`0x7f`) sowie `NVARCHAR`,
+ * `INTN` mit 2 und 4 Byte, `BITN`, `NUMERICN`, `DATEN`, `TIMEN` und `DATETIME2N`. `INTN` mit 1 Byte, `DECIMALN`,
+ * `NCHAR`, `BIGCHAR` und die festen Typen INT, SMALLINT, TINYINT und BIT ([BulkFixedType]) liest der Leser nach
+ * Handvektoren aus der Beschreibung von `MS-TDS`, ohne Mitschnitt eines Clients. Die Typen sind abgebildet auf
+ * [SqlType] (`INTN` mit 8 Byte und BIGINT sind `Int64`, jede andere Ganzzahl `Int32`). Jede andere Typkennung (auch
+ * die festen Typen für Gleitkomma, Geld und Datum-Zeit alter Form), ein PLP-Typ (MAX) und ein anderes Token als ROW und
+ * DONE (auch NBCROW) weist der Leser mit einem [ProtocolFailure] ab, ebenso eine Nachricht ohne COLMETADATA, mit
+ * Zeilen, aber ohne DONE, und eine, die hinter dem DONE weitergeht.
  *
  * Festlegung ohne Messung am Server: höchstens [MAX_COLUMNS] Spalten und [MAX_CELLS] Zellen (Spalten mal Zeilen) je
  * Nachricht. Die Zellenzahl begrenzt die Zahl der Werte, die der Leser und die Überführung anlegen, nicht die Größe der
@@ -47,10 +45,11 @@ internal object BulkLoadReader {
     private const val TOKEN_DONE = 0xFD
     private const val NO_METADATA = 0xFFFF
     private const val FLAG_NULLABLE = 0x0001
-    private const val DONE_BYTES = 12
     private const val LONG_SIZE = 8
+    private const val DONE_SHORT = 8
+    private const val DONE_LONG = 12
 
-    private class Column(val name: String, val type: RpcType, val nullable: Boolean)
+    private class Column(val name: String, val type: BulkColumnType, val nullable: Boolean)
 
     private val supported = setOf(
         RpcTypeKind.INTN,
@@ -66,14 +65,27 @@ internal object BulkLoadReader {
         RpcTypeKind.DATETIME2N,
     )
 
-    fun read(payload: ByteArray): ProtocolResult<BulkRows> = guarded {
+    /**
+     * Liest die Nachricht ohne und, wenn das scheitert, mit zwei Nullbyte zwischen Spaltenzahl und erster Spalte;
+     * gelingt keine Form, ist der Fehler der ersten der Fehler der Nachricht. Die Nullbyte stehen in den
+     * Aufzeichnungen des Referenzclients am echten Server (Messreihe M-8 bis M-12), nicht in denen von mssql-jdbc und
+     * nicht in der Nachricht des Referenzclients an den Testserver.
+     */
+    fun read(payload: ByteArray): ProtocolResult<BulkRows> {
+        val plain = parse(payload, gap = false)
+        if (plain is ProtocolResult.Ok) return plain
+        val withGap = parse(payload, gap = true)
+        return if (withGap is ProtocolResult.Ok) withGap else plain
+    }
+
+    private fun parse(payload: ByteArray, gap: Boolean): ProtocolResult<BulkRows> = guarded {
         val reader = ByteReader(payload)
-        val columns = metadata(reader)
+        val columns = metadata(reader, gap)
         val rows = rows(reader, columns.map { it.type })
         BulkRows(columns.map { ResultColumn(it.name, sqlType(it.type), it.nullable) }, rows)
     }
 
-    private fun metadata(reader: ByteReader): List<Column> {
+    private fun metadata(reader: ByteReader, gap: Boolean): List<Column> {
         val token = reader.u8()
         if (token != TOKEN_COLMETADATA) {
             violation(ProtocolFailure.NO_COLUMN_METADATA, "Nachricht beginnt mit Token 0x${Integer.toHexString(token)}")
@@ -81,20 +93,33 @@ internal object BulkLoadReader {
         val count = reader.u16Le()
         if (count == NO_METADATA || count == 0) violation(ProtocolFailure.NO_COLUMN_METADATA, "keine Spalten")
         if (count > MAX_COLUMNS) violation(ProtocolFailure.INVALID_LENGTH, "mehr als $MAX_COLUMNS Spalten")
+        if (gap && reader.u16Le() != 0) {
+            violation(ProtocolFailure.INVALID_LENGTH, "Bytes nach der Spaltenzahl")
+        }
         return List(count) { column(reader) }
     }
 
     private fun column(reader: ByteReader): Column {
         reader.skip(Int.SIZE_BYTES)
         val nullable = reader.u16Le() and FLAG_NULLABLE != 0
+        val type = columnType(reader)
+        return Column(String(reader.utf16(reader.u8())), type, nullable)
+    }
+
+    /** Ein fester Typ nach seiner Typkennung, sonst die TYPE_INFO des RPC-Parsers (ab der Typkennung). */
+    private fun columnType(reader: ByteReader): BulkColumnType {
+        val start = reader.position
+        val fixed = BulkFixedType.of(reader.u8())
+        if (fixed != null) return BulkColumnType.Fixed(fixed)
+        reader.seek(start)
         val type = RpcTypeInfoReader.read(reader)
         if (type.kind !in supported) {
             violation(ProtocolFailure.INVALID_TYPE, "Typ ${type.kind.name} nicht im Katalog des Massenladens")
         }
-        return Column(String(reader.utf16(reader.u8())), type, nullable)
+        return BulkColumnType.Sized(type)
     }
 
-    private fun rows(reader: ByteReader, types: List<RpcType>): List<List<Any?>> {
+    private fun rows(reader: ByteReader, types: List<BulkColumnType>): List<List<Any?>> {
         val rows = ArrayList<List<Any?>>()
         while (true) {
             when (val token = reader.u8()) {
@@ -106,10 +131,7 @@ internal object BulkLoadReader {
                 }
 
                 TOKEN_DONE -> {
-                    reader.skip(DONE_BYTES)
-                    if (reader.remaining != 0) {
-                        violation(ProtocolFailure.INVALID_LENGTH, "${reader.remaining} Byte hinter DONE")
-                    }
+                    done(reader)
                     return rows
                 }
 
@@ -121,7 +143,30 @@ internal object BulkLoadReader {
         }
     }
 
-    private fun sqlType(type: RpcType): SqlType = when (type.kind) {
+    /**
+     * DONE trägt 12 Byte (Status, Befehl, 8 Byte Zeilenzahl; mssql-jdbc) oder 8 (Status, Befehl, 4 Byte Zeilenzahl;
+     * Referenzclient); mehr Byte hinter dem Token sind `INVALID_LENGTH`, weniger als 8 oder 9 bis 11 `TRUNCATED`. Eine
+     * mssql-jdbc-Nachricht, die nach dem DONE-Token um vier Byte gekürzt ist, gleicht der Form des Referenzclients und
+     * ist angenommen.
+     */
+    private fun done(reader: ByteReader) {
+        val remaining = reader.remaining
+        when {
+            remaining == DONE_SHORT || remaining == DONE_LONG -> reader.skip(remaining)
+
+            remaining > DONE_LONG ->
+                violation(ProtocolFailure.INVALID_LENGTH, "${remaining - DONE_LONG} Byte hinter DONE")
+
+            else -> reader.skip(DONE_LONG)
+        }
+    }
+
+    private fun sqlType(column: BulkColumnType): SqlType = when (column) {
+        is BulkColumnType.Fixed -> column.kind.sqlType
+        is BulkColumnType.Sized -> sizedType(column.type)
+    }
+
+    private fun sizedType(type: RpcType): SqlType = when (type.kind) {
         RpcTypeKind.INTN -> if (type.length == LONG_SIZE) SqlType.Int64 else SqlType.Int32
         RpcTypeKind.BITN -> SqlType.Bool
         RpcTypeKind.DECIMALN, RpcTypeKind.NUMERICN -> SqlType.Decimal(type.precision, type.scale)
