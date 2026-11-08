@@ -40,7 +40,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Die Zuordnung der Fehlercodes je Fehlerursache **des Massenladens** (Schlüsselverstoß, Typfehler, NULL) — [slice-adr-massenladen-atomar-an-messung](slice-adr-massenladen-atomar-an-messung.md). Ein Punkt gehört genau einem Slice: die Codes 2628, 2627, 208 **des `MERGE`** gehören diesem Slice, die des Massenladens (M-11, M-12) jenem.
+- Die Zuordnung der Fehlercodes je Fehlerursache **des Massenladens** (Schlüsselverstoß, Typfehler, NULL) — [slice-adr-massenladen-atomar-an-messung](../done/slice-adr-massenladen-atomar-an-messung.md). Ein Punkt gehört genau einem Slice: die Codes 2628, 2627, 208 **des `MERGE`** gehören diesem Slice, die des Massenladens (M-11, M-12) jenem.
 - Die Anweisungsart der übrigen Anweisungen (`INSERT`, `DELETE`, `UPDATE`, `UNKNOWN`) und das Anlegen von `StatementKind` — [slice-antwort-tokens-zielbild-luecken-bauen](../done/slice-antwort-tokens-zielbild-luecken-bauen.md).
 - Ein `MERGE` gegen eine Tabelle ohne Schlüssel: bleibt `TDS_UNSUPPORTED_SQL` (siehe §6); der Fall braucht zuerst `CREATE TABLE` ohne Schlüssel aus [slice-katalog-und-struktur-an-messung-angleichen](../done/slice-katalog-und-struktur-an-messung-angleichen.md).
 - Eine Aussage über andere Clients als den Referenzclient und mssql-jdbc 13.4.0 (`AGENTS.md` §3.8).
