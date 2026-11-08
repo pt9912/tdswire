@@ -1090,8 +1090,8 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   weil sie eine binäre Spalte (`tds_collation`, `BINARY(5)`) trägt, die das Typmodell des Backends nicht kennt; das Backend liefert nur die Spalten
   der Tabelle (`TDS_SIM_UNKNOWN_OBJECT`, wenn sie nicht beschrieben ist; Setzung, die Antwort des Servers auf eine unbekannte Tabelle ist nicht
   aufgezeichnet). Die Antwort hat vier Ergebnisse in der Folge der Aufzeichnung: `@@TRANCOUNT` (INT, Wert 0); die Spalten der Tabelle ohne Zeile
-  (Flags `0x0008`, nullbar `0x0009`; Text mit der Länge der Beschreibung; Dezimalzahlen mit Größe 17 für jede Precision, so die Aufzeichnung, und
-  weil der Referenzclient die Werte immer mit 17 Byte schreibt); je Spalte `colid`, `name`, `tds_collation` und `collation` (für Text die fünf Bytes
+  (Flags `0x0008`, nullbar `0x0009`; Text mit der Länge der Beschreibung; Dezimalzahlen mit Größe 17; aufgezeichnet ist nur `DECIMALN(10,2)`, die Größe 17 für andere Precisionen ist Setzung, gestützt darauf,
+  dass der Referenzclient die Werte immer mit 17 Byte schreibt); je Spalte `colid`, `name`, `tds_collation` und `collation` (für Text die fünf Bytes
   der Kollation und ihr Name, Setzung `SQL_Latin1_General_CP1_CI_AS`, sonst NULL als NBCROW) mit ORDER auf `colid`; die leere Tabelle
   `Canonical_Column_Name`, `Aliased_Column_Name`. Dazwischen stehen DONE, DONEINPROC, RETURNSTATUS und DONEPROC mit den Status und Befehlen der
   Aufzeichnung; die Zeilenzahl der beiden DONEINPROC nach den Spaltennamen und den Kollationen ist die Zahl der Spalten. Für die Tabelle

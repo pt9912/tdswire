@@ -43,7 +43,7 @@ internal sealed interface TdsType {
     /**
      * Dezimalzahl (DECIMALN `0x6A`, mit `numeric` NUMERICN `0x6C`), Precision 1 bis 38, Scale bis Precision. [bytes]
      * ist die Größe der Wertebytes in der TYPE_INFO; ohne Angabe (0) folgt sie aus der Precision (5, 9, 13 oder 17),
-     * mit Angabe gilt sie unverändert (die Probe der Zieltabelle von `SqlBulkCopy` sendet 17 für jede Precision).
+     * mit Angabe gilt sie unverändert (die Probe der Zieltabelle von `SqlBulkCopy` sendet 17; aufgezeichnet ist nur `DECIMALN(10,2)`).
      */
     data class DecimalType(val precision: Int, val scale: Int, val numeric: Boolean = false, val bytes: Int = 0) :
         TdsType

@@ -33,9 +33,9 @@ import io.github.pt9912.tdswire.transport.framing.TdsMessage
  * Aufzeichnung. Die Zeilenzahl von DONEINPROC nach der Abfrage der Spaltennamen und nach den Kollationen ist die Zahl
  * der Spalten.
  *
- * Eine Dezimalspalte meldet in (2) die Größe 17 für jede Precision (Aufzeichnung: `DECIMALN(10,2)` mit `0x11`; Test
- * `BulkCopyProbeTest`); die Nachricht `0x07` der Aufzeichnung trägt Dezimalwerte mit Längenbyte 17 und 17 Byte. Text
- * hat
+ * Eine Dezimalspalte meldet in (2) die Größe 17. Aufgezeichnet ist nur `DECIMALN(10,2)` mit `0x11` (Test
+ * `BulkCopyProbeTest`); die Größe 17 für andere Precisionen ist Setzung. Die
+ * Nachricht `0x07` der Aufzeichnung trägt Dezimalwerte mit Längenbyte 17 und 17 Byte. Text hat
  * in (2) die Länge der Beschreibung (`maxChars`).
  *
  * Abweichung von der Aufzeichnung: dem COLMETADATA folgen keine zwei Nullbyte hinter der Spaltenzahl. Die Aufzeichnung
