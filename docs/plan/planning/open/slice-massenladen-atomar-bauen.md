@@ -90,7 +90,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-ddl-abschluss-und-transaktionszustand-angleichen](slice-ddl-abschluss-und-transaktionszustand-angleichen.md) liegt in `done/` (gleiche Dateien in `StatementPlanner`, `TableStore` und `spec/spezifikation.md` — `SPEC-035`, `SPEC-036`; Setzung des Planners wegen gemeinsamer Dateien, kein inhaltlicher Zwang), [ADR-0044](../../adr/0044-massenladen-nachricht-ist-atomar-wie-am-echten-server.md) ist `Accepted` (2026-11-08), und ein Verantwortlicher ist eingetragen. [slice-sp-execute-unbekanntes-handle-bauen](slice-sp-execute-unbekanntes-handle-bauen.md) ist unabhängig (andere Spec-Stellen, anderer Pfad); beide ändern die Fehlertabelle in §4 an verschiedenen Zeilen.
+**Start** (`next` → `in-progress`): [slice-ddl-abschluss-und-transaktionszustand-angleichen](slice-ddl-abschluss-und-transaktionszustand-angleichen.md) liegt in `done/` (gleiche Dateien in `StatementPlanner`, `TableStore` und `spec/spezifikation.md` — `SPEC-035`, `SPEC-036`; Setzung des Planners wegen gemeinsamer Dateien, kein inhaltlicher Zwang), [ADR-0044](../../adr/0044-massenladen-nachricht-ist-atomar-wie-am-echten-server.md) ist `Accepted` (2026-11-08), und ein Verantwortlicher ist eingetragen. [slice-sp-execute-unbekanntes-handle-bauen](../in-progress/slice-sp-execute-unbekanntes-handle-bauen.md) ist unabhängig (andere Spec-Stellen, anderer Pfad); beide ändern die Fehlertabelle in §4 an verschiedenen Zeilen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

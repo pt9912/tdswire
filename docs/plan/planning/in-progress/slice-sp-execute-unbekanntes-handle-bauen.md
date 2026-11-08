@@ -88,7 +88,7 @@ Reihenfolge innerhalb des Slice: Spezifikation zuerst (Zielbild), dann Test, dan
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): keine Start-Bedingung außer einem eingetragenen Verantwortlichen; [ADR-0045](../../adr/0045-sp-execute-unbekanntes-handle-ergibt-fehler-8179-state-4.md) ist `Accepted` (2026-11-08). `SPEC-030` teilt der Slice mit keinem offenen Slice ([slice-handle-freigabe-und-grenze-bauen](../done/slice-handle-freigabe-und-grenze-bauen.md) liegt in `done/`). [slice-massenladen-atomar-bauen](slice-massenladen-atomar-bauen.md) berührt dieselbe Fehlertabelle in §4 an anderen Zeilen (Merge-Konflikt möglich, kein inhaltlicher).
+**Start** (`next` → `in-progress`): keine Start-Bedingung außer einem eingetragenen Verantwortlichen; [ADR-0045](../../adr/0045-sp-execute-unbekanntes-handle-ergibt-fehler-8179-state-4.md) ist `Accepted` (2026-11-08). `SPEC-030` teilt der Slice mit keinem offenen Slice ([slice-handle-freigabe-und-grenze-bauen](../done/slice-handle-freigabe-und-grenze-bauen.md) liegt in `done/`). [slice-massenladen-atomar-bauen](../open/slice-massenladen-atomar-bauen.md) berührt dieselbe Fehlertabelle in §4 an anderen Zeilen (Merge-Konflikt möglich, kein inhaltlicher).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
