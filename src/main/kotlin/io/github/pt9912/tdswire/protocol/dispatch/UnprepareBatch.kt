@@ -3,12 +3,12 @@ package io.github.pt9912.tdswire.protocol.dispatch
 import io.github.pt9912.tdswire.protocol.error.ConnectionFate
 import io.github.pt9912.tdswire.protocol.error.ErrorMapper
 import io.github.pt9912.tdswire.protocol.error.unknownHandles
+import io.github.pt9912.tdswire.protocol.response.SequenceOutcome
+import io.github.pt9912.tdswire.protocol.response.TokenSink
 import io.github.pt9912.tdswire.protocol.session.HandshakeEvent
-import io.github.pt9912.tdswire.protocol.session.ReplyStream
 import io.github.pt9912.tdswire.protocol.token.DoneKind
 import io.github.pt9912.tdswire.protocol.token.DoneStatus
 import io.github.pt9912.tdswire.protocol.token.DoneToken
-import io.github.pt9912.tdswire.protocol.token.Token
 import io.github.pt9912.tdswire.protocol.token.TokenEncoder
 import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
 import io.github.pt9912.tdswire.transport.framing.PacketType
@@ -74,31 +74,24 @@ internal object UnprepareBatch {
         numbers.filterNot { handles.release(it) }
 
     /**
-     * Die Antwort auf die Freigabe, deren nicht gehaltene Nummern [unknown] sind: ein DONE ohne Bits und ohne
-     * Zeilenzahl, wenn die Sitzung jede Nummer hielt (Festlegung, die Tokenfolge eines echten Servers ist nicht
-     * gemessen); sonst ein ERROR je Nummer ohne Obergrenze (`SPEC-060`, gemessen: M-22), Token für Token in den Strom
-     * aus [open] geschrieben, nach dem Token [lead], wenn es eines gibt. Die Antwort steht nie als Liste oder Puffer
-     * im Speicher. Scheitert das Schreiben, endet die Verbindung ohne weitere Antwort; sonst bleibt sie offen.
+     * Schreibt die Antwort auf die Freigabe, deren nicht gehaltene Nummern [unknown] sind (nicht leer): ein ERROR je
+     * Nummer ohne Obergrenze (`SPEC-060`, gemessen: M-22) und der Abschluss, Token für Token in die [sink]. Die Antwort
+     * steht nie als Liste oder Puffer im Speicher. Der Ausgang ist [SequenceOutcome.FAILED], wenn die Antwort
+     * vollständig geschrieben ist, und [SequenceOutcome.CLOSE_WITHOUT_COMPLETION], wenn die [sink] ein Token nicht
+     * annimmt; die Verbindung endet dann ohne weitere Antwort.
      */
-    suspend fun answer(
-        unknown: List<Int>,
-        open: () -> ReplyStream,
-        lead: Token?,
-        errors: ErrorMapper,
-    ): HandshakeEvent.RequestFinished {
-        if (unknown.isEmpty()) return completed()
-        val reply = open()
-        val response = StreamedResponse(reply) { }
-        val sink = if (lead != null) LeadingToken(response, lead) else response
-        val written = errors.unknownHandles(unknown, UNKNOWN_CAUSE, sink)
-        return if (written && reply.finish()) {
-            HandshakeEvent.RequestFinished(null, connectionOpen = true, replyWritten = true)
+    suspend fun answer(unknown: List<Int>, sink: TokenSink, errors: ErrorMapper): SequenceOutcome =
+        if (errors.unknownHandles(unknown, UNKNOWN_CAUSE, sink)) {
+            SequenceOutcome.FAILED
         } else {
-            HandshakeEvent.RequestFinished(null, connectionOpen = false)
+            SequenceOutcome.CLOSE_WITHOUT_COMPLETION
         }
-    }
 
-    private fun completed(): HandshakeEvent.RequestFinished {
+    /**
+     * Die Antwort, wenn die Sitzung jede Nummer hielt: ein DONE ohne Bits und ohne Zeilenzahl (Festlegung, die
+     * Tokenfolge eines echten Servers ist nicht gemessen).
+     */
+    fun completed(): HandshakeEvent.RequestFinished {
         val encoder = TokenEncoder()
         check(encoder.write(DoneToken(DoneKind.DONE, DoneStatus.FINAL, 0, 0)) is ProtocolResult.Ok) {
             "Antwort nicht schreibbar"

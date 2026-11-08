@@ -8,10 +8,14 @@ import io.github.pt9912.tdswire.protocol.error.ErrorCode
 import io.github.pt9912.tdswire.protocol.error.ErrorLog
 import io.github.pt9912.tdswire.protocol.error.ErrorLogEntry
 import io.github.pt9912.tdswire.protocol.error.ErrorMapper
+import io.github.pt9912.tdswire.protocol.response.TokenSink
+import io.github.pt9912.tdswire.protocol.session.ConnectionState
 import io.github.pt9912.tdswire.protocol.session.Inbound
 import io.github.pt9912.tdswire.protocol.token.DoneStatus
+import io.github.pt9912.tdswire.protocol.token.DoneToken
 import io.github.pt9912.tdswire.protocol.token.ErrorToken
 import io.github.pt9912.tdswire.protocol.token.ServerMessage
+import io.github.pt9912.tdswire.protocol.token.Token
 import io.github.pt9912.tdswire.testsupport.blocking
 import io.github.pt9912.tdswire.transport.framing.PacketType
 import io.github.pt9912.tdswire.transport.framing.TdsMessage
@@ -117,10 +121,16 @@ class UnprepareDispatchTest {
         assertEquals(notFound(1), session.errors(4).single())
         assertEquals(notFound(2), session.errors(5).single())
         listOf(2, 4, 5).forEach {
-            // Die Antwort auf die Anfrage mit RESETCONNECTION (5) beginnt mit ENVCHANGE Typ 18.
             assertEquals(if (it == 5) 3 else 2, session.tokens(it).size, "$it")
             assertEquals(DoneStatus.ERROR, session.tokens(it).lastDone().status, "$it")
         }
+        // Die Antwort auf die Anfrage mit RESETCONNECTION (5) beginnt mit ENVCHANGE Typ 18, dann ERROR, dann DONE.
+        assertTrue(session.hex(5).startsWith(BatchVectors.ENVCHANGE_RESET), session.hex(5))
+        assertEquals(
+            listOf("ResetConnection", "ErrorToken", "DoneToken"),
+            session.tokens(5).map { it::class.simpleName },
+        )
+        assertTrue(session.hex(5).endsWith(BatchVectors.DONE_ERROR), session.hex(5))
         assertEquals(unknownHandle, session.errors(6).single())
         assertEquals(listOf("select 1", "select 2"), backend.requests.map { it.sql })
         assertEquals(
@@ -355,5 +365,85 @@ class UnprepareDispatchTest {
         assertEquals(limit + 2, session.replies.size)
         assertEquals(BatchVectors.DONE_FINAL, session.hex(limit))
         assertTrue(session.errors(limit + 1).isEmpty())
+    }
+
+    /** Nimmt jedes Token der [inner] an; [during] läuft nach dem [at]-ten Token, [refuseAt] weist genau dieses ab. */
+    private class ProbeSink(
+        private val inner: TokenSink,
+        private val at: Int,
+        private val refuseAt: Boolean = false,
+        private val during: suspend () -> Unit = {},
+    ) : TokenSink {
+        private var seen = 0
+
+        override suspend fun accept(token: Token): Boolean {
+            val taken = inner.accept(token)
+            if (++seen != at) return taken
+            during()
+            return taken && !refuseAt
+        }
+    }
+
+    /**
+     * Nimmt die Senke ein Token der Antwort nicht an (Client schließt, Kanal bricht), endet die Verbindung ohne
+     * weitere Antwort: Sitzung `CLOSED`, die folgende Nachricht bleibt unbeantwortet, und von der abgebrochenen
+     * Antwort geht keine Nachricht hinaus. Gefahren wird jede Stelle einzeln (ein ERROR in der Mitte, das letzte
+     * ERROR, das abschließende DONE); die Senke weist nur dieses eine Token ab und nimmt danach wieder an, damit jede
+     * Stelle für sich geprüft ist. Wächter: eine Verbindung, die nach dem Schreibfehler offen bleibt, ein ignoriertes
+     * Ergebnis des Schreibens eines ERROR oder des Abschlusses, eine Antwort, die dennoch beendet wird.
+     *
+     * @spec SPEC-060
+     * @spec TDS-QA-07
+     */
+    @Test
+    fun `Ein abgewiesenes Token mitten in der Antwort beendet die Verbindung ohne weitere Antwort`() = blocking {
+        val backend = ScriptedBackend.ofList(*oneRow.toTypedArray())
+        listOf(2, 3, 4).forEach { refused ->
+            val session = Session.login(
+                batch("EXEC sp_unprepare 91;EXEC sp_unprepare 92;EXEC sp_unprepare 93"),
+                batch("EXEC sp_unprepare 94"),
+                Inbound.EndOfStream,
+            )
+            session.serve(backend, sinkAround = { ProbeSink(it, refused, refuseAt = true) })
+            assertEquals(ConnectionState.CLOSED, session.ready.live.context.state, "Token $refused")
+            assertTrue(session.replies.isEmpty(), "Token $refused: ${session.replies.size} Antworten")
+        }
+    }
+
+    /**
+     * ATTENTION während der Antwort auf die Freigabe (`TDS-FA-07`, `SPEC-029`, Anfragezustand `RUNNING`): nach dem
+     * dritten ERROR trifft ATTENTION ein, die Antwort endet dort mit genau einem `DONE[ATTN]` (Handvektor) ohne
+     * weiteres ERROR und ohne das abschließende DONE mit Fehlerstatus; die Verbindung bleibt offen, die nächste
+     * Anfrage erhält nur ihre Antwort. Wächter: eine Antwort, die ohne `AbortableRun` ganz geschrieben wird.
+     *
+     * @spec SPEC-029
+     * @spec SPEC-060
+     * @spec TDS-FA-07
+     */
+    @Test
+    fun `ATTENTION waehrend der Antwort der Freigabe bricht sie mit einem DONE ATTN ab`() = blocking {
+        val backend = ScriptedBackend.ofList(*oneRow.toTypedArray())
+        val text = (1..10).joinToString(";") { "EXEC sp_unprepare ${it + 90}" }
+        val session = Session.login(batch(text))
+        val serving = launch {
+            session.serve(
+                backend,
+                sinkAround = {
+                    ProbeSink(it, at = 3) {
+                        session.channel.feed(BatchVectors.attention())
+                        session.channel.feed(batch("EXEC sp_unprepare 99"))
+                        session.channel.feed(Inbound.EndOfStream)
+                        repeat(1000) { yield() }
+                    }
+                },
+            )
+        }
+        serving.join()
+        assertEquals(2, session.replies.size)
+        assertEquals(listOf(notFound(91), notFound(92), notFound(93)), session.errors(0))
+        assertTrue(session.hex(0).endsWith(BatchVectors.DONE_ATTN), session.hex(0))
+        assertEquals(1, session.tokens(0).count { it is DoneToken })
+        assertEquals(listOf(notFound(99)), session.errors(1))
+        assertEquals(ConnectionState.CLOSED, session.ready.live.context.state)
     }
 }
