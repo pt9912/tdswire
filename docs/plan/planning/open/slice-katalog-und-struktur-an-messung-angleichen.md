@@ -137,6 +137,7 @@ dasteht.
 - **Nicht gefahren im Bau:** `make clean-build` und die Läufe mit d-migrate; die grünen Gates des Zweigs ersetzen sie nicht. — **Ausgang:** offen bis zur Closure.
 - **Dateikonflikte mit den parallelen Zweigen** (Massenladen mit festen Typen, MERGE, `sp_unprepare`; gemeinsame Dateien in `simulation/` und `testserver/`). — **Ausgang:** offen bis zur Closure.
 - Die Messung trägt den Referenzclient, nicht mssql-jdbc; die Antworten auf die Texte von d-migrate sind gemessen, ihre Wirkung im Treiber nicht (`AGENTS.md` §3.8). — **Ausgang:** offen bis zur Closure.
+- **`CREATE TABLE` ohne Schlüssel und `MERGE`** (Verifikation V-9 von [slice-schreibpfad-merge-output](../in-progress/slice-schreibpfad-merge-output.md)): nach diesem Slice gelingt `CREATE TABLE` ohne Schlüssel; ein `MERGE` gegen eine solche Tabelle endet im Testserver mit `TDS_UNSUPPORTED_SQL` (`comparesKey` verlangt den Schlüssel), am echten Server ist es möglich. Der Slice benennt den Fall (Test oder Grenze in `SPEC-036`) und entscheidet, ob die Abweisung Setzung bleibt oder angeglichen wird; Register [`BEO-TDS/katalog-strukturabweisung-und-aenderungszaehler-weichen-vom-echten-server-ab`](../observations/BEO-TDS/katalog-strukturabweisung-und-aenderungszaehler-weichen-vom-echten-server-ab/state.md). — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 

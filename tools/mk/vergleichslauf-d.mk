@@ -28,8 +28,8 @@
 # `MESSUNG_NUR=<Szenarien>` fuer eine Teilmenge ohne Ablage; mit `MESSUNG_WIEDERHOLEN=<N>` faehrt jedes genannte Szenario N-mal ueber einen frischen Bestand und gibt die Rate
 # roter Laeufe aus (`MESSUNG_DIREKT=1`: der Client verbindet sich ohne Proxy).
 # d-migrate gegen die Referenzinstanz (`LAUF=jdbc`, `jdbc-2022`, `jdbc-2025`; `tools/jdbc-messung/Aufnahme.java`, Funktion `jdbclauf` in `tools/vergleichslauf-d.sh`):
-# zwoelf Befehle (`data import` und `data transfer` mit und ohne `--on-conflict`, `data export`) ueber den mitschneidenden Durchlauf; Einzelmessung am 2026-11-07:
-# beide Instanzen zusammen 188 s einschliesslich Bau und Start (Lastmittel 17); Ablage in referenztest-dotnet/Mitschnitt/messung/jdbc-d-migrate/ (`<stufe>.aufnahme.txt`);
+# 19 Befehle (`data import` und `data transfer` mit und ohne `--on-conflict`, `data export`; Funktion `jdbclauf`) ueber den mitschneidenden Durchlauf; Einzelmessungen am 2026-11-08:
+# 120 s (Instanz 2022) und 148 s (Instanz 2025) einschliesslich Bau, Lastmittel 20 bis 50; Ablage in referenztest-dotnet/Mitschnitt/messung/jdbc-d-migrate/ (`<stufe>.aufnahme.txt`);
 # `MESSUNG_NUR=<Schritte>` fuer eine Teilmenge ohne Ablage, `MESSUNG_DIREKT=1` ohne Durchlauf, `AUFNAHME_PAKETE=1` mit den Paketen des Durchlaufs.
 # Live-Lauf (`LAUF=live-2022`, `live-2025`, `live` fuer beide) und Gegenmessungen (`LAUF=messung-2022`, `messung-2025`) laufen
 # mit derselben EULA-Entscheidung und denselben Images (gepinnte Digests); der Live-Lauf baut zusaetzlich die Dockerfile-Stage
