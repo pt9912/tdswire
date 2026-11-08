@@ -16,11 +16,11 @@
 
 ## Kontext
 
-**Befund (gemessen, eine Umgebung).** Slice [slice-listener-annahmeschleife-bei-erschoepften-dateien](../planning/open/slice-listener-annahmeschleife-bei-erschoepften-dateien.md), Herkunft Review F-2 von slice-betrieb-telemetrie-verdrahtung-belegen: In einer Kind-JVM mit `ulimit -n` von 128 bis 160 endet der `failed`-Callback von `TdsListener.acceptOne` ohne vorgeladene Klassen mit einem `NoClassDefFoundError` (Thread `tdswire-listener-io-1`), weil `Accept.Failed` nicht mehr geladen werden kann. Die Continuation wird nicht fortgesetzt; die Schleife steht, es kommt weder `ACCEPT_FAILED` noch ein Wiederannehmen. **Mit vorgeladenen Klassen** entsteht das Ereignis, und der Server nimmt nach dem Schließen der Verbindungen wieder an. Andere Umgebungen, ein Betrieb aus einem Jar statt aus Klassenverzeichnissen und andere Callbacks der NIO-Gruppe sind **nicht gemessen** (`AGENTS.md` §3.8).
+**Befund (gemessen, eine Umgebung).** Herkunft: Review F-2 zur Belegung der Telemetrie-Verdrahtung: In einer Kind-JVM mit `ulimit -n` von 128 bis 160 endet der `failed`-Callback von `TdsListener.acceptOne` ohne vorgeladene Klassen mit einem `NoClassDefFoundError` (Thread `tdswire-listener-io-1`), weil `Accept.Failed` nicht mehr geladen werden kann. Die Continuation wird nicht fortgesetzt; die Schleife steht, es kommt weder `ACCEPT_FAILED` noch ein Wiederannehmen. **Mit vorgeladenen Klassen** entsteht das Ereignis, und der Server nimmt nach dem Schließen der Verbindungen wieder an. Andere Umgebungen, ein Betrieb aus einem Jar statt aus Klassenverzeichnissen und andere Callbacks der NIO-Gruppe sind **nicht gemessen** (`AGENTS.md` §3.8).
 
 **Ist.** `acceptOne` setzt im `failed`-Callback `Accept.Failed(exc.javaClass.name)` zusammen und setzt die Continuation fort; `acceptConnections` meldet `ListenerEvent.AcceptFailed`, wartet `ACCEPT_RETRY` und nimmt wieder an. Der Ablauf ist richtig, solange der Callback Klassen laden kann.
 
-**Was die Entscheidung bestimmt.** Es gibt keine öffentliche Fläche und keine Anfrage, an der ein Client den Mangel sieht; betroffen ist die Verfügbarkeit nach einem Ressourcenmangel ([TDS-QA-02](../../../spec/lastenheft.md#tds-qa-02--stabilität): Stabilität; der Prozess stürzt nicht ab, nimmt aber nicht mehr an). Die Wahl ändert daher weder die öffentliche Fläche noch eine Zusage über die Annahme hinaus (Grenze offener Dateien je Prozess, Betriebsanleitung: ausdrücklich nicht Gegenstand, siehe Slice §1).
+**Was die Entscheidung bestimmt.** Es gibt keine öffentliche Fläche und keine Anfrage, an der ein Client den Mangel sieht; betroffen ist die Verfügbarkeit nach einem Ressourcenmangel ([TDS-QA-02](../../../spec/lastenheft.md#tds-qa-02--stabilität): Stabilität; der Prozess stürzt nicht ab, nimmt aber nicht mehr an). Die Wahl ändert daher weder die öffentliche Fläche noch eine Zusage über die Annahme hinaus (Grenze offener Dateien je Prozess, Betriebsanleitung: ausdrücklich nicht Gegenstand).
 
 ## Entscheidung
 
@@ -35,17 +35,17 @@ Begründung in einem Satz: Der einzige Weg, der gemessen trägt, ist „Klassen 
 | Option | Pro | Contra |
 |---|---|---|
 | **A — Fehlerpfad beim Start vorbereiten** (gewählt als Vorschlag) | Kleinster Eingriff in `TdsListener`; entspricht dem gemessenen Gutfall (Klassen vorgeladen); keine Fläche; der Test ohne Vorladen belegt, die Mutation (Vorbereitung entfernen) macht ihn rot | Welche Klassen genügen, ist nur durch Messung bekannt; bei einer Änderung am Fehlerpfad kann eine Klasse hinzukommen (der Test zeigt es dann rot); Jar-Betrieb nicht gemessen |
-| B — den `LinkageError` im Callback fangen, vorgebaute Instanz (`Accept.Failed` ohne Typname) fortsetzen, weiter annehmen | Trägt auch, wenn eine Klasse fehlt; die Schleife steht sicher nicht | Der Typname geht verloren, das Ereignis bleibt aus oder ist leer; der Catch-Block und das Fortsetzen brauchen selbst Klassen (nicht gemessen); verdeckt andere `Error` im Callback (Slice §1 schließt andere Callbacks aus) |
+| B — den `LinkageError` im Callback fangen, vorgebaute Instanz (`Accept.Failed` ohne Typname) fortsetzen, weiter annehmen | Trägt auch, wenn eine Klasse fehlt; die Schleife steht sicher nicht | Der Typname geht verloren, das Ereignis bleibt aus oder ist leer; der Catch-Block und das Fortsetzen brauchen selbst Klassen (nicht gemessen); verdeckt andere `Error` im Callback (andere Callbacks sind nicht Gegenstand) |
 | C — bei erschöpftem Limit den Listener mit Meldung beenden | Kein stilles Hängen | Die Meldung braucht dieselben Klassen; ein Embedder verliert die Annahme dauerhaft, obwohl das Limit wieder frei wird; widerspricht dem gemessenen Wiederannehmen |
-| D — nichts tun, Spezifikation nennt die gemessene Bedingung als Grenze | Kein Produktcode; ehrlich nach §3.8 | Die Annahme bleibt in dieser Lage stehen; TDS-QA-02 (Stabilität) bleibt an der Stelle ungedeckt; Ziel des Slice nicht erreicht |
+| D — nichts tun, Spezifikation nennt die gemessene Bedingung als Grenze | Kein Produktcode; ehrlich nach §3.8 | Die Annahme bleibt in dieser Lage stehen; [TDS-QA-02](../../../spec/lastenheft.md#tds-qa-02--stabilität) bleibt an der Stelle ungedeckt |
 
 ## Konsequenzen
 
 - Positiv: Nach Erschöpfung und Freiwerden nimmt der Server wieder an, ohne Eingriff; `ACCEPT_FAILED` entsteht auch ohne Vorladen im Test; `AcceptChild` kann das Vorladen verlieren und belegt dann den Produktcode.
 - Negativ: Ein Stück Vorbereitung im Start, das nur ein Test begründet; Grenze beim Embedder (oben); gemessen bleibt eine Umgebung.
-- Folgepflicht: im Slice (kein eigener Folge-Eintrag): Satz zu `ACCEPT_FAILED` in Abschnitt 4 nennt die gemessene Bedingung; Rückfall auf B, wenn der Test mit A rot bleibt (dann mit Grund in der Closure-Notiz). Unabhängig davon ist der Befund Register-Eintrag (`BEO-TDS/listener-annahmeschleife-steht-bei-erschoepftem-dateilimit-still`); kein neuer Eintrag nötig.
+- Folgepflicht: im Bau (kein eigener Folge-Eintrag): Satz zu `ACCEPT_FAILED` in Abschnitt 4 nennt die gemessene Bedingung; Rückfall auf B, wenn der Test mit A rot bleibt (dann mit Grund in der Closure-Notiz). Unabhängig davon ist der Befund Register-Eintrag (`BEO-TDS/listener-annahmeschleife-steht-bei-erschoepftem-dateilimit-still`); kein neuer Eintrag nötig.
 
-**Akzeptiertes Negativ:** Die Wirkung in anderen Umgebungen und für andere Callbacks der NIO-Gruppe bleibt ungemessen; sie hat keinen eigenen Träger, weil der Befund im Register steht und der Slice sie ausdrücklich ausschließt.
+**Akzeptiertes Negativ:** Die Wirkung in anderen Umgebungen und für andere Callbacks der NIO-Gruppe bleibt ungemessen; sie hat keinen eigenen Träger, weil der Befund im Register steht und diese Entscheidung sie ausdrücklich ausschließt.
 
 ## Fitness Function (falls maschinell prüfbar)
 
@@ -61,7 +61,7 @@ Der Test wird in der Umgebung der Gates rot, obwohl A umgesetzt ist (dann B), od
 
 | Datum | Ereignis | Verweis |
 |---|---|---|
-| 2026-11-08 | Proposed | [slice-listener-annahmeschleife-bei-erschoepften-dateien](../planning/open/slice-listener-annahmeschleife-bei-erschoepften-dateien.md) |
+| 2026-11-08 | Proposed | Entwurf des Architect |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit
