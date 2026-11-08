@@ -18,8 +18,9 @@ internal class Completion(val before: List<Token>, val done: DoneToken) {
          * Der Abschluss eines Ergebnisses der Art [kind] ([resultEnd]; die Kennung folgt [DoneCommand.forResult]) oder
          * eines Änderungszählers der Art [kind] mit der Zahl [affectedRows] in der Antwortform [form] (`SPEC-031`,
          * Messprotokoll W-6, M-20 und M-26): das Bit `COUNT` und die Kennung folgen der Art; die Arten ohne
-         * Zeilenzahl gelten nur im SQL_BATCH, in den Formen RPC und BULK gilt die Art wie `UNKNOWN`. Im SQL_BATCH führt [transaction] den Zustand der Verbindung nach und bestimmt, ob
-         * ENVCHANGE Typ 8 oder Typ 9 zum Abschluss gehört.
+         * Zeilenzahl gelten nur im SQL_BATCH, in den Formen RPC und BULK gilt die Art wie `UNKNOWN`. Im SQL_BATCH führt
+         * [transaction] den Zustand der Verbindung nach und bestimmt, ob ENVCHANGE Typ 8 oder Typ 9 zum Abschluss
+         * gehört.
          */
         fun of(
             form: ResponseForm,

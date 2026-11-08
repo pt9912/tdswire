@@ -86,7 +86,7 @@ nicht die Antwort.
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/result/ColumnMapping.kt` | update | `NVARCHAR(maxLength)` statt fest 4000 |
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/error/` (`ErrorCode.kt`, `ErrorMapper.kt`) | update | neuer Code `TDS_SIM_STRING_TRUNCATED` (2628) und seine Aufnahme in die Positivliste |
 | `src/main/kotlin/io/github/pt9912/tdswire/simulation/` (`SimulationMerges.kt`, `StatementPlanner.kt`) | update | `$action` mit Länge 10 und Art `MERGE`; Prüfung der Textlänge je Aktion (2628); Fehler von `onInsert` als 2627 |
-| `src/integrator/` (`MergeEmbeddingTest.kt`, `StatementKindEmbeddingTest.kt`) | update | Beleg der Felder, Bytes der Spalte und des Abschlusses, Fehler 2628, 2627, 208 |
+| `src/integrator/` (`MergeEmbeddingTest.kt`, `StatementKindEmbeddingTest.kt`, `RpcParams.kt`; `MergeFehlerEmbeddingTest.kt` neu) | update / neu | Beleg der Felder, Bytes der Spalte und des Abschlusses, Fehler 2628, 2627, 208 |
 | `src/test/` (`ResponseMergeTest.kt` neu, `SimulationBackendMergeTest.kt`, `ErrorMapperTest.kt`) | neu / update | Tokenfolge gegen die Bytes der Messung, Zuordnung der Fehler, Codeliste |
 | `spec/spezifikation.md` (`SPEC-003`, `SPEC-022`, `SPEC-031`, `SPEC-035`, `SPEC-036`, Abschnitt 4, `SPEC-059`, Änderungsprotokoll) | update | Zielbild, Fläche, Fehlertabelle |
 | `docs/messungen/referenzabgleich.md` | update | Zeilen M-15 und M-26 der Zuordnung auf „angeglichen“ mit den Grenzen |

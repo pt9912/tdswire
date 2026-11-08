@@ -151,10 +151,10 @@ private const val ACTION_UPDATE = "UPDATE"
  * Ein `MERGE`: der Strom beginnt mit dem Ergebnis `$action` der Art [StatementKind.MERGE], liest dann die
  * Zeilenquelle, ruft höchstens einen Callback und liefert die Ausgabezeile. Ein Fehler steht als [QueryEvent.Failure]
  * hinter dem Beginn des Ergebnisses (Messprotokoll M-15: `COLMETADATA` vor dem `ERROR`): ein Text über der Länge seiner
- * Spalte in der Aktion, die ausgeführt würde, ist `TDS_SIM_STRING_TRUNCATED` (2628) und ruft keinen Callback; ein Fehler
- * von `onInsert` ist `TDS_SIM_KEY_VIOLATION` (2627, Sammelcode wie beim Massenladen: die Bibliothek unterscheidet die
- * Ursache nicht); ein Fehler der Quelle oder von `onUpdate` ist `TDS_BACKEND_ERROR`. Ein Callback, den [stop] vor dem
- * Sammeln verhindert hat, bleibt ungerufen.
+ * Spalte in der Aktion, die ausgeführt würde, ist `TDS_SIM_STRING_TRUNCATED` (2628) und ruft keinen Callback;
+ * ein Fehler von `onInsert` ist `TDS_SIM_KEY_VIOLATION` (2627, Sammelcode wie beim Massenladen: die Bibliothek
+ * unterscheidet die Ursache nicht); ein Fehler der Quelle oder von `onUpdate` ist `TDS_BACKEND_ERROR`. Ein Callback,
+ * den [stop] vor dem Sammeln verhindert hat, bleibt ungerufen.
  */
 internal class MergeExecution(
     private val prepared: PreparedMerge.Ready,
@@ -193,9 +193,7 @@ internal class MergeExecution(
         val action = if (found) ACTION_UPDATE.takeIf { prepared.update != null } else ACTION_INSERT
         when {
             action == null || stopped.get() -> listOf(QueryEvent.ResultEnd(0))
-
             truncates(action) -> listOf(QueryEvent.Failure(SimCodes.STRING_TRUNCATED, "Text länger als die Spalte"))
-
             else -> changed(action, guarded { change(action) })
         }
     }

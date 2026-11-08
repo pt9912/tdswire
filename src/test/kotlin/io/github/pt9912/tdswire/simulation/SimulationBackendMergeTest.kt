@@ -50,8 +50,10 @@ class SimulationBackendMergeTest {
         val failure: Failing = Failing.NOTHING,
         val result: Long = 1,
         val keyType: SqlType = SqlType.Int64,
-        val nameLength: Int = MAX_TEXT_LENGTH,
     ) {
+        /** Die Länge der Spalte `Name` in Zeichen für die Tabelle, die [simTable] beim nächsten Zugriff baut. */
+        var nameLength: Int = MAX_TEXT_LENGTH
+
         var opens = 0
         var closes = 0
         var inserts = 0
@@ -66,7 +68,7 @@ class SimulationBackendMergeTest {
             return result
         }
 
-        val simTable = SimTable(
+        val simTable get() = SimTable(
             name = "kunden",
             columns = listOf(SimColumn("Id", keyType, nullable = false)) + columns.drop(1).map {
                 if (it.name == "Name") it.copy(maxLength = nameLength) else it
@@ -384,10 +386,10 @@ class SimulationBackendMergeTest {
     }
 
     /**
-     * Negative (Messprotokoll M-15, 2628): ein Text über der Länge seiner Spalte endet hinter dem Beginn des Ergebnisses
-     * mit `TDS_SIM_STRING_TRUNCATED`, ohne Callback, beim Einfügen wie beim Ändern; die Zeilenquelle wurde gelesen.
-     * Boundary: ein Text genau in der Länge der Spalte geht an den Callback; eine Spalte mit `maxLength` -1 hat keine
-     * Grenze. Der Wert zählt nur in der Aktion, die ausgeführt wird: bei vorhandenem Schlüssel ohne Zweig
+     * Negative (Messprotokoll M-15, 2628): ein Text über der Länge seiner Spalte endet hinter dem Beginn des
+     * Ergebnisses mit `TDS_SIM_STRING_TRUNCATED`, ohne Callback, beim Einfügen wie beim Ändern; die Zeilenquelle wurde
+     * gelesen. Boundary: ein Text genau in der Länge der Spalte geht an den Callback; eine Spalte mit `maxLength` -1
+     * hat keine Grenze. Der Wert zählt nur in der Aktion, die ausgeführt wird: bei vorhandenem Schlüssel ohne Zweig
      * `WHEN MATCHED` bleibt ein zu langer Text ohne Fehler. Wächter: eine Prüfung vor dem Beginn des Ergebnisses, eine
      * Prüfung für die nicht ausgeführte Aktion, ein Callback trotz Fehler, eine Grenze von 4000 statt der Spalte.
      * @spec SPEC-036
@@ -397,15 +399,15 @@ class SimulationBackendMergeTest {
     fun `ein Text ueber der Laenge der Spalte endet mit 2628 ohne Callback`() {
         val tooLong = parameters(name = "x".repeat(6))
         val exact = parameters(name = "x".repeat(5))
-        val inserting = Fixture(nameLength = 5)
-        val updating = Fixture(existing = listOf(existingRow(1)), nameLength = 5)
-        val skipping = Fixture(existing = listOf(existingRow(1)), nameLength = 5)
-        val unbounded = Fixture(nameLength = UNBOUNDED_TEXT)
+        val inserting = Fixture().apply { nameLength = 5 }
+        val updating = Fixture(existing = listOf(existingRow(1))).apply { nameLength = 5 }
+        val skipping = Fixture(existing = listOf(existingRow(1))).apply { nameLength = 5 }
+        val unbounded = Fixture().apply { nameLength = UNBOUNDED_TEXT }
 
         val inserted = run(inserting, skip, tooLong)
         val changed = run(updating, update, tooLong)
         val skipped = run(skipping, skip, tooLong)
-        val fits = run(Fixture(nameLength = 5), skip, exact)
+        val fits = run(Fixture().apply { nameLength = 5 }, skip, exact)
         val free = run(unbounded, skip, parameters(name = "x".repeat(MAX_TEXT_LENGTH)))
 
         for (events in listOf(inserted, changed)) {

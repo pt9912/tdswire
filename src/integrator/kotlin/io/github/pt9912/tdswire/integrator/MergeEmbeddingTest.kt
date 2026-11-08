@@ -266,7 +266,8 @@ class MergeEmbeddingTest {
     }
 
     /**
-     * Ein Fehler von `onInsert` steht hinter dem Ergebnis `$action` (COLMETADATA, dann ERROR 2627, INFO 3621, DONEINPROC
+     * Ein Fehler von `onInsert` steht hinter dem Ergebnis `$action` (COLMETADATA, dann ERROR 2627, INFO 3621,
+     * DONEINPROC
      * `MORE|ERROR` mit der Kennung `0x0117`, RETURNSTATUS 2627, DONEPROC; Messprotokoll M-15), ohne den Text der
      * Ausnahme; die Verbindung bleibt offen und beantwortet die nächste Anfrage ohne Fehler. Wächter: ein Fehler vor
      * dem Beginn des Ergebnisses, eine geschlossene Verbindung nach dem Fehler, `TDS_BACKEND_ERROR` (50004) statt 2627.
@@ -297,104 +298,15 @@ class MergeEmbeddingTest {
             assertTrue(failed.containsBytes("AA"), "ERROR")
             assertTrue(failed.containsBytes("43 0A 00 00 01 0E"), "Nummer 2627, State 1, Class 14")
             assertFalse(failed.containsUtf16("Geheimnis"), "kein Text der Ausnahme")
-            assertTrue(failed.containsBytes(TERMINATED_INFO), "INFO 3621")
-            assertTrue(failed.endsWithBytes("FF 03 00 17 01 00 00 00 00 00 00 00 00  79 43 0A 00 00  $DONEPROC"))
+            assertTrue(failed.containsBytes(INFO_TERMINATED), "INFO 3621")
+            assertTrue(failed.endsWithBytes("FF 03 00 17 01 00 00 00 00 00 00 00 00  79 43 0A 00 00  $DONEPROC_OK"))
             assertEquals(0, client.batch("SELECT Id FROM kunden WHERE 1 = 0").doneStatus and DONE_ERROR)
         }
-    }
-
-    /**
-     * Ein Text über der Länge seiner Spalte (`nvarchar(5)`) endet mit ERROR 2628 (State 1, Class 16) hinter dem
-     * Ergebnis, INFO 3621 und dem Abschluss `0x0117` ohne `COUNT`, RETURNSTATUS 2628; kein Callback läuft, die
-     * Verbindung bleibt offen (Messprotokoll M-15). Ein Text in der Länge der Spalte geht an den Callback. Wächter: die
-     * Antwort `TDS_SIM_INVALID_VALUE` (245), ein Callback trotz Fehler, eine Grenze von 4000.
-     *
-     * @spec SPEC-036
-     * @spec SPEC-035
-     */
-    @Test
-    fun einTextUeberDerLaengeDerSpalteEndetMit2628UndRuftNichts() {
-        val inserted = CopyOnWriteArrayList<Map<String, Any?>>()
-        val short = columns.map { if (it.name == "Name") it.copy(maxLength = FIVE.toInt()) else it }
-        val table = SimTable(
-            name = "kunden",
-            columns = short,
-            primaryKey = listOf("Id"),
-            rows = { RowSource { null } },
-            onInsert = { values ->
-                inserted += values
-                1L
-            },
-        )
-        val server = start(BackendSource.Simulation(listOf(table)))
-        WireClient(server.port).use { client ->
-            client.login()
-            val failed = client.executeSql(
-                merge(withUpdate = false),
-                declarations,
-                inputBigint("", 1),
-                inputText("", "123456"),
-                inputDate("", null),
-            )
-            assertTrue(failed.containsBytes("44 0A 00 00 01 10"), "Nummer 2628, State 1, Class 16")
-            assertTrue(failed.containsBytes(TERMINATED_INFO), "INFO 3621")
-            assertTrue(failed.endsWithBytes("FF 03 00 17 01 00 00 00 00 00 00 00 00  79 44 0A 00 00  $DONEPROC"))
-            assertTrue(inserted.isEmpty(), "kein Callback")
-            val fits = client.executeSql(
-                merge(withUpdate = false),
-                declarations,
-                inputBigint("", 1),
-                inputText("", "12345"),
-                inputDate("", null),
-            )
-            assertTrue(fits.containsUtf16("INSERT"))
-            assertEquals(1, inserted.size)
-        }
-    }
-
-    /**
-     * Eine unbekannte Tabelle endet vor dem Ergebnis mit ERROR 208, RETURNSTATUS 208 und DONEPROC `ERROR` (Messprotokoll
-     * M-15: `ERROR RETURNSTATUS DONEPROC`, ohne COLMETADATA, INFO und DONEINPROC). Class und Folge weichen vom echten
-     * Server ab (dort Class 16 und offene Verbindung; hier die Zuordnung `TDS_SIM_UNKNOWN_OBJECT`: Class 20, die
-     * Verbindung schließt). Wächter: ein COLMETADATA oder INFO vor dem Fehler, eine andere Nummer.
-     *
-     * @spec SPEC-036
-     * @spec SPEC-038
-     */
-    @Test
-    fun eineUnbekannteTabelleEndetMit208OhneErgebnis() {
-        val server = start(BackendSource.Simulation(listOf(table(setOf(), mutableListOf(), mutableListOf()))))
-        WireClient(server.port).use { client ->
-            client.login()
-            val failed = client.executeSql(
-                merge(withUpdate = false).replace("[kunden]", "[gibtesnicht]"),
-                declarations,
-                inputBigint("", 1),
-                inputText("", "x"),
-                inputDate("", null),
-            )
-            assertTrue(failed.containsBytes("D0 00 00 00 01 14"), "Nummer 208, State 1, Class 20 (Zuordnung)")
-            assertFalse(failed.containsUtf16("\$action"), "kein Ergebnis")
-            assertFalse(failed.containsBytes(TERMINATED_INFO), "kein INFO")
-            assertTrue(failed.endsWithBytes("79 D0 00 00 00  FE 02 00 E0 00 00 00 00 00 00 00 00 00"))
-        }
-    }
-
-    private fun ByteArray.containsBytes(text: String): Boolean {
-        val needle = hex(text)
-        return (0..size - needle.size).any { at -> needle.indices.all { this[at + it] == needle[it] } }
-    }
-
-    private fun ByteArray.endsWithBytes(text: String): Boolean {
-        val tail = hex(text)
-        return size >= tail.size && copyOfRange(size - tail.size, size).contentEquals(tail)
     }
 
     private companion object {
         /** Die Spalte `$action`: `nvarchar(10)` (Länge 20 Byte), Kollation, Flags 0 (Messprotokoll M-26). */
         const val ACTION_COLUMN = "00 00 E7 14 00 09 04 D0 00 34 07 24 00 61 00 63 00 74 00 69 00 6F 00 6E 00"
-        const val TERMINATED_INFO = "25 0E 00 00 00 00 22 00 54 00 68 00 65 00"
-        const val DONEPROC = "FE 00 00 E0 00 00 00 00 00 00 00 00 00"
         const val FIVE = 5L
         val CLOCK: LocalTime = LocalTime.of(13, 14, 15)
         val DAY: LocalDate = LocalDate.of(2026, 1, 2)

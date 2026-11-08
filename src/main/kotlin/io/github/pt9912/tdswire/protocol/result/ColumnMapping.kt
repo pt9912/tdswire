@@ -69,8 +69,11 @@ internal object ColumnMapping {
         SqlType.UnicodeText -> ProtocolResult.Ok(TdsType.NVarcharType(column.maxLength, COLLATION))
 
         is SqlType.Decimal -> decimal(index, type)
+
         SqlType.Date -> ProtocolResult.Ok(TdsType.DateType)
+
         SqlType.Time -> ProtocolResult.Ok(TdsType.TimeType(TIME_SCALE))
+
         SqlType.DateTime -> ProtocolResult.Ok(TdsType.DateTime2Type(TIME_SCALE))
     }
 
