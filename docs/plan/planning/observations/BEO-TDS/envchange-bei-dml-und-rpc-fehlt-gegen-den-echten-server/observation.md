@@ -1,0 +1,5 @@
+# Der Testserver schreibt ENVCHANGE Typ 8 und 9 nur für `CREATE TABLE` im Batch, der echte SQL Server für jede Anweisung, die eine Transaktion beginnt
+
+**Sub-Area:** `*` (Antwort-Sequenzierer, Transaktionszustand je Verbindung)
+
+Die Aufnahme von mssql-jdbc 13.4.0 mit d-migrate 1.12.0 am echten SQL Server (`referenztest-dotnet/Mitschnitt/messung/jdbc-d-migrate/2022.aufnahme.txt` und `2025.aufnahme.txt`, je Instanz 27 Typ 8 und 26 Typ 9) zeigt: nach `set implicit_transactions on` trägt die erste Antwort auf jede Anweisung, die eine Transaktion beginnt, ENVCHANGE Typ 8 als erstes Token, auch die auf einen RPC (`sp_executesql` mit `MERGE … OUTPUT $action`, Nachricht `#14`; die Katalogabfrage `SELECT TOP 1 c.name …`, Nachricht `#19`), der spätere bedingte `COMMIT` dann Typ 9. Der Testserver beginnt eine Transaktion nur bei `CREATE TABLE` im Batch (`SPEC-031`): ein `data import` von d-migrate bekommt keinen Typ 8 und am `COMMIT` nur `DONE` `0x00c0`. Am Zielbild gemessen ist das eine Abweichung des Servers; ob sie einen Client stört, ist nicht gemessen (d-migrate-Läufe mit `data import` stehen aus).

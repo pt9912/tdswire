@@ -146,12 +146,13 @@ internal object StatementParser {
     fun recognize(sql: String): Recognition {
         val catalog = CatalogForms.recognize(sql)
         val literal = if (catalog == null) CatalogForms.recognizeLiteral(sql) else null
+        val transaction = if (catalog == null && literal == null) TransactionForms.recognize(sql) else null
         return when {
             catalog != null -> Recognition.Catalog(catalog)
 
             literal != null -> Recognition.Catalog(literal.first, literal.second)
 
-            TransactionForms.matches(sql) -> Recognition.Fixed(FixedForm.Transaction)
+            transaction != null -> Recognition.Fixed(transaction)
 
             else -> when (val scanned = SqlScanner(sql).scan()) {
                 is ScanResult.Failed -> Recognition.NotRecognized(scanned.reason)

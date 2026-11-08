@@ -80,7 +80,7 @@ class TableStoreTest {
         val ddl = "CREATE TABLE [produkte] (\n    [Id] BIGINT NOT NULL,\n    [Preis] DECIMAL(10,2),\n" +
             "    CONSTRAINT [pk_produkte] PRIMARY KEY ([Id])\n);"
         val created = ask(backend, ddl)
-        assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(0)), created)
+        assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(0, StatementKind.CREATE_TABLE)), created)
         assertEquals(listOf("kunden", "produkte"), listed(backend))
 
         ask(backend, "ALTER TABLE [produkte] ADD [Name] NVARCHAR(50);")
@@ -185,7 +185,7 @@ class TableStoreTest {
         assertEquals("TDS_SIM_UNKNOWN_OBJECT", failure.code)
         assertEquals("Tabelle nicht beschrieben", failure.message)
         assertEquals(
-            listOf<QueryEvent>(QueryEvent.UpdateCount(0)),
+            listOf<QueryEvent>(QueryEvent.UpdateCount(0, StatementKind.CREATE_TABLE)),
             ask(backend, "CREATE TABLE t (a INT NOT NULL, PRIMARY KEY (a))"),
         )
         assertEquals(listOf("t"), listed(backend))
@@ -229,7 +229,8 @@ class TableStoreTest {
         failures: ConcurrentLinkedQueue<Throwable>,
     ) {
         val events = ask(backend, "CREATE TABLE [t_${writer}_$n] (a INT NOT NULL, PRIMARY KEY (a))")
-        if (events != listOf<QueryEvent>(QueryEvent.UpdateCount(0))) failures += AssertionError("$events")
+        val created = listOf<QueryEvent>(QueryEvent.UpdateCount(0, StatementKind.CREATE_TABLE))
+        if (events != created) failures += AssertionError("$events")
         steps.release(READERS)
         ask(backend, "ALTER TABLE [kunden] ADD [c_${writer}_$n] INT")
         steps.release(READERS)
@@ -351,7 +352,7 @@ class TableStoreTest {
     fun `eine Tabelle ohne Schluessel nimmt gleiche Zeilen an`() {
         val store = TableStore(emptyList())
         assertEquals(
-            listOf<QueryEvent>(QueryEvent.UpdateCount(0)),
+            listOf<QueryEvent>(QueryEvent.UpdateCount(0, StatementKind.CREATE_TABLE)),
             ask(store.backend(), "CREATE TABLE [ohneschluessel] ([Id] INT NOT NULL, [Text] NVARCHAR(10));"),
         )
         val table = store.catalog().tables.single()
