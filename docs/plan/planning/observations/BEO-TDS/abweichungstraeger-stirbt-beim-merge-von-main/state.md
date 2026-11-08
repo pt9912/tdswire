@@ -1,0 +1,1 @@
+**Stand:** offen — 1×, unter der Schwelle, keine Regel. Verwandt: `BEO-TDS/zielbild-aussage-durch-merge-ueberholt` (eine Aussage statt eines Trägers) und `BEO-TDS/offene-punkte-ohne-traeger`. Prüfpunkt für den Merge von `main` in einen laufenden Zweig: die Träger der Abweichungen des Slice in der Fassung von `main` lesen.
