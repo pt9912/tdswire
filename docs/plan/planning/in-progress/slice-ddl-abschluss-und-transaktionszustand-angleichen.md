@@ -90,7 +90,28 @@ Aussagen-Berührung steht hier gar nicht.
 | `docs/messungen/referenzabgleich.md`, `docs/user/` | update | Zeile M-20 auf „angeglichen“ oder Grenze; Nutzer-Doku |
 | Tests (Kotlin, `src/test`; Referenzclient gegen den Serverprozess: `make kompatibilitaet`, kein Gate) | neu / update | je Art und Text; Deskriptor |
 
-Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
+Erweiterung des Implementers (Stand nach dem Bau; die Liste oben bleibt, diese Zeilen kommen dazu):
+
+| Datei / Komponente | Änderungs-Art | Begründung |
+|---|---|---|
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/response/SessionTransaction.kt` | neu | Zustand der Transaktion je Verbindung (`implicit_transactions`, offene Transaktion), Übergänge nach den gemeldeten Arten, Deskriptor |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/response/ResponseRun.kt`, `ResponseSequencer.kt` | update | Abschluss ohne `COUNT` nach Art und Form, `ENVCHANGE` Typ 8 und 9, Gültigkeit der Arten nur im Batch |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/token/Token.kt`, `LoginTokenWriters.kt` | update | Kennungen `0x00c6`, `0x00d8`, `0x00b9`, `0x00ba`, `0x00c0`, `0x00d5`; `EnvChange.BeginTransaction`, `CommitTransaction` |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/dispatch/RequestLoop.kt` | update | hält den Zustand der Transaktion je Sitzung, `RESETCONNECTION` setzt ihn zurück |
+| `src/main/kotlin/io/github/pt9912/tdswire/simulation/` (`StatementPlanner.kt`, `Statement.kt`, `TransactionForms.kt`, `StatementParser.kt`, `FixedAnswers.kt`, `SimulationBackend.kt`) | update | Art je Strukturänderung; Form C meldet die Arten der Transaktionstexte |
+| `src/test/kotlin/io/github/pt9912/tdswire/protocol/response/ResponseTransactionTest.kt`, `src/test/kotlin/io/github/pt9912/tdswire/protocol/dispatch/TransactionDispatchTest.kt` | neu | Folge der gemessenen Bytes, Zustand über Anfragen, `RESETCONNECTION`, Anfrage mit zurückgesendetem Deskriptor |
+| `src/test/kotlin/` (`ResponseStatementKindTest`, `SimulationBackendStructureTest`, `SimulationBackendFixedTest`, `CatalogFormsTest`), `src/integrator/kotlin/` (`StatementKindEmbeddingTest`, `WireClient`), `testserver/test/kotlin/` (`TableStoreTest`) | update | Abschluss ohne `COUNT`, Arten, Folge von `schema migrate` auf den Rohbytes |
+| `docs/messungen/ddl-abschluss-und-transaktionszustand-d-migrate-2026-11-08.md` | neu | Läufe mit d-migrate vor und nach `ENVCHANGE`, Mitschnitt der Antwort |
+| `docs/plan/spec-abdeckung.md` | update | `make spec-abdeckung` nach geänderten Tests |
+
+**Abweichungen vom Plan oben (Implementer, zur Prüfung durch Review und Verifikation):**
+
+- Der bedingte `COMMIT` gehört in zwei Teilen zu Punkt 2 und Punkt 3: der Text `set implicit_transactions off IF @@TRANCOUNT > 0 COMMIT TRAN` ist an der Ablage der Messung (`katalog-struktur`) **ohne** offene Transaktion und damit ohne `ENVCHANGE` gemessen (`DONE MORE` `0x00ba`, `DONE` `0x00c0`) und ist deshalb Punkt 2 mit der Art `COMMIT_IF_OPEN` als zweitem Abschluss; der Text `IF @@TRANCOUNT > 0 COMMIT TRAN` allein ist nur **mit** `ENVCHANGE` 9 gemessen und kam mit Punkt 3.
+- Namen der Mitglieder (Setzung): `IMPLICIT_TRANSACTIONS_ON`, `IMPLICIT_TRANSACTIONS_OFF`, `COMMIT_IF_OPEN`. `set implicit_transactions off` allein meldet `IMPLICIT_TRANSACTIONS_OFF` (Setzung nach dem ersten Abschluss der Kombination; allein nicht gemessen).
+- In der Messdatei steht außerdem `SET LOCK_TIMEOUT` mit `0x00f9` und `IF @@TRANCOUNT > 0 ROLLBACK TRAN` (ohne offene Transaktion) mit `0x00c0`. Beide sind kein Teil der drei Liefer-Punkte und bekamen kein Mitglied; die Zeile M-20 im Messprotokoll nennt sie als Grenze.
+- Im RPC und in der Form des Massenladens gelten die neuen Kennungen nicht (ungemessen): dort schreibt die Bibliothek wie für `UNKNOWN`.
+
+**Lauf mit d-migrate vor und nach Punkt 3** (Einzelmessung 2026-11-08, [Messprotokoll](../../../messungen/ddl-abschluss-und-transaktionszustand-d-migrate-2026-11-08.md)): Lauf A am Commit `7b478a2e` (nach Punkt 2, vor `ENVCHANGE`) und Lauf B am Commit `279289f7` (mit `ENVCHANGE`) haben je Befehl denselben Exit-Code (alle 0) und eine gleiche Ausgabe (`schema reverse`, `schema compare` mit `IDENTICAL`, `schema migrate --execute` mit `status: ok`, `no_op` beim zweiten Lauf; 14 verglichene Dateien gleich). Ein Mitschnitt der Antworten von `schema migrate` zeigt in B je einmal `ENVCHANGE` Typ 8 und 9 und `DONE` `0x00d5`, in A keines. **Folge nach [ADR-0042](../../adr/0042-anweisungsart-und-zustandswechsel-nur-durch-die-bibliothek.md) Entscheidung 8: `ENVCHANGE` bleibt gebaut.** Grenze: der Fehlerpfad mit `ROLLBACK` bei offener Transaktion ist nicht gelaufen.
 
 ## 4. Trigger
 
