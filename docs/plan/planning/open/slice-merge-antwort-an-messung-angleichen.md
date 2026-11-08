@@ -34,14 +34,14 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Herkunft.** Verifikation V-1 von [slice-schreibpfad-merge-output](../done/slice-schreibpfad-merge-output.md): drei gemessene Abweichungen ohne Lieferpunkt in einem Slice von `main`. Register [`BEO-TDS/zielbild-luecken-der-antwort-tokens`](../observations/BEO-TDS/zielbild-luecken-der-antwort-tokens/state.md). Nutzerentscheid 2026-11-07 (Spezifikation ist Zielbild) und 2026-11-08 (Option A von [ADR-0041](../../adr/0041-spaltentypen-der-katalogantworten-ueber-internen-weg.md) und [ADR-0042](../../adr/0042-anweisungsart-und-zustandswechsel-nur-durch-die-bibliothek.md): die öffentliche Fläche wächst bewusst).
 
-**Reihenfolge.** Dieser Slice folgt [slice-antwort-tokens-zielbild-luecken-bauen](slice-antwort-tokens-zielbild-luecken-bauen.md), das `StatementKind` anlegt ([ADR-0042](../../adr/0042-anweisungsart-und-zustandswechsel-nur-durch-die-bibliothek.md)); dieser Slice fügt das Mitglied `MERGE` hinzu und setzt es im Pfad der Form M.
+**Reihenfolge.** Dieser Slice folgt [slice-antwort-tokens-zielbild-luecken-bauen](../next/slice-antwort-tokens-zielbild-luecken-bauen.md), das `StatementKind` anlegt ([ADR-0042](../../adr/0042-anweisungsart-und-zustandswechsel-nur-durch-die-bibliothek.md)); dieser Slice fügt das Mitglied `MERGE` hinzu und setzt es im Pfad der Form M.
 
 **Entscheid vorab (Rückführung an Architect und Nutzer).** Liefer-Punkt (b) ist ein neues Feld an einem öffentlichen Typ (`ResultColumn`, [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Nr. 4) und folgt der Linie von [ADR-0041](../../adr/0041-spaltentypen-der-katalogantworten-ueber-internen-weg.md) („Fläche wächst bewusst“). Empfehlung des Planners: **ja**, als optionales Längenfeld mit Vorgabewert (kein Bruch für bestehenden Quelltext). Der Slice startet erst, wenn der Nutzer entschieden hat; bei „nein“ bleibt (b) eine benannte Grenze in `SPEC-036` und der Slice schrumpft auf (a) und (c).
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Die Zuordnung der Fehlercodes je Fehlerursache **des Massenladens** (Schlüsselverstoß, Typfehler, NULL) — [slice-adr-massenladen-atomar-an-messung](slice-adr-massenladen-atomar-an-messung.md). Ein Punkt gehört genau einem Slice: die Codes 2628, 2627, 208 **des `MERGE`** gehören diesem Slice, die des Massenladens (M-11, M-12) jenem.
-- Die Anweisungsart der übrigen Anweisungen (`INSERT`, `DELETE`, `UPDATE`, `UNKNOWN`) und das Anlegen von `StatementKind` — [slice-antwort-tokens-zielbild-luecken-bauen](slice-antwort-tokens-zielbild-luecken-bauen.md).
+- Die Anweisungsart der übrigen Anweisungen (`INSERT`, `DELETE`, `UPDATE`, `UNKNOWN`) und das Anlegen von `StatementKind` — [slice-antwort-tokens-zielbild-luecken-bauen](../next/slice-antwort-tokens-zielbild-luecken-bauen.md).
 - Ein `MERGE` gegen eine Tabelle ohne Schlüssel: bleibt `TDS_UNSUPPORTED_SQL` (siehe §6); der Fall braucht zuerst `CREATE TABLE` ohne Schlüssel aus [slice-katalog-und-struktur-an-messung-angleichen](../done/slice-katalog-und-struktur-an-messung-angleichen.md).
 - Eine Aussage über andere Clients als den Referenzclient und mssql-jdbc 13.4.0 (`AGENTS.md` §3.8).
 
@@ -94,7 +94,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-schreibpfad-merge-output](../done/slice-schreibpfad-merge-output.md) in `done/` (Form M besteht); [slice-antwort-tokens-zielbild-luecken-bauen](slice-antwort-tokens-zielbild-luecken-bauen.md) in `done/` (legt `StatementKind` an, [ADR-0042](../../adr/0042-anweisungsart-und-zustandswechsel-nur-durch-die-bibliothek.md)); [ADR-0042](../../adr/0042-anweisungsart-und-zustandswechsel-nur-durch-die-bibliothek.md) `Accepted` (erfüllt, 2026-11-08); der Nutzer hat über das Längenfeld an `ResultColumn` entschieden (Liefer-Punkt b); kein anderer Bau-Slice in `in-progress/` (WIP 1).
+**Start** (`next` → `in-progress`): [slice-schreibpfad-merge-output](../done/slice-schreibpfad-merge-output.md) in `done/` (Form M besteht); [slice-antwort-tokens-zielbild-luecken-bauen](../next/slice-antwort-tokens-zielbild-luecken-bauen.md) in `done/` (legt `StatementKind` an, [ADR-0042](../../adr/0042-anweisungsart-und-zustandswechsel-nur-durch-die-bibliothek.md)); [ADR-0042](../../adr/0042-anweisungsart-und-zustandswechsel-nur-durch-die-bibliothek.md) `Accepted` (erfüllt, 2026-11-08); der Nutzer hat über das Längenfeld an `ResultColumn` entschieden (Liefer-Punkt b); kein anderer Bau-Slice in `in-progress/` (WIP 1).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
