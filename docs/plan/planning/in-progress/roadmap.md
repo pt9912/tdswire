@@ -10,7 +10,7 @@ gezeigt, nicht als Treiber.
 
 ## Offene Wellen
 
-Nichts in Arbeit.
+In Arbeit (ohne Welle): [slice-wanduhr-tests-lastunabhaengig](slice-wanduhr-tests-lastunabhaengig.md).
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte — *Offene Wellen* ist **derivativ**: Der

@@ -79,9 +79,9 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `testserver/test/kotlin/io/github/pt9912/tdswire/testserver/TableStoreTest.kt` | update | zwei Leser, die je Schritt eines Schreibers genau einen Aufruf von `catalog()` machen (Semaphore, vom Schreiber nach jeder Anweisung freigegeben); Ende der Leser über eine letzte Marke; Vierer-Schreiber mit je 150 Anfragen und die Endprüfung bleiben; KDoc nennt Last und Wächter — nach TDS-QA-06 (Laufzeit) und TDS-QA-02 (parallele Zugriffe) |
-| `src/test/kotlin/io/github/pt9912/tdswire/transport/listener/ListenerSupport.kt` | update | `ManualDelayer.awaitPending` wartet auf eine Änderung der wartenden Fristen; `eventually` zählt eine Uhr-Grenze von 60 s statt 1000 Abfragen (Schutz gegen Hängen) — nach TDS-QA-06 |
-| `src/test/kotlin/io/github/pt9912/tdswire/transport/listener/ListenerAbortTest.kt` | update | `awaitWaiting` über `awaitPending`; `shortTimeout` (3 s) wird zur Schutzgrenze `hangGuard` (60 s); Zusagen und Erwartungen der Tests bleiben — nach TDS-QA-02 (geordnetes Beenden, `SPEC-044`, `SPEC-033`) |
+| `testserver/test/kotlin/io/github/pt9912/tdswire/testserver/TableStoreTest.kt` | update | zwei Leser, die je Schritt eines Schreibers genau einen Aufruf von `catalog()` machen (Semaphore, vom Schreiber nach jeder Anweisung freigegeben); Ende der Leser über eine letzte Marke; Vierer-Schreiber mit je 150 Anfragen und die Endprüfung bleiben; KDoc nennt Last und Wächter — nach [TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) (Laufzeit) und [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität) (parallele Zugriffe) |
+| `src/test/kotlin/io/github/pt9912/tdswire/transport/listener/ListenerSupport.kt` | update | `ManualDelayer.awaitPending` wartet auf eine Änderung der wartenden Fristen; `eventually` zählt eine Uhr-Grenze von 60 s statt 1000 Abfragen (Schutz gegen Hängen) — nach [TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
+| `src/test/kotlin/io/github/pt9912/tdswire/transport/listener/ListenerAbortTest.kt` | update | `awaitWaiting` über `awaitPending`; `shortTimeout` (3 s) wird zur Schutzgrenze `hangGuard` (60 s); Zusagen und Erwartungen der Tests bleiben — nach [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität) (geordnetes Beenden, `SPEC-044`, `SPEC-033`) |
 | `docs/plan/spec-abdeckung.md` | erzeugt | `make spec-abdeckung`, einmal (Tests geändert) |
 
 ## 4. Trigger
