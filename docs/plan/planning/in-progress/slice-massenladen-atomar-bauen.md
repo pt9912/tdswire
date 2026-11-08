@@ -92,7 +92,7 @@ Ergänzt im Lauf des Implementers (gegen `git diff --name-only main...HEAD`):
 | `docs/messungen/bulk-load-2026-11-07.md` | update | Mutationstabelle und Stand der Zusage |
 | `docs/plan/spec-abdeckung.md` | update (erzeugt) | `make spec-abdeckung` nach den Testtags |
 | `docs/plan/planning/in-progress/roadmap.md`, `docs/plan/planning/welle-testserver-manuell.md` | update | Stand der Wellenzeile |
-| `docs/plan/planning/done/slice-adr-massenladen-atomar-an-messung.md`, `docs/plan/planning/done/slice-ddl-abschluss-und-transaktionszustand-angleichen.md`, `docs/plan/planning/open/slice-sp-execute-unbekanntes-handle-bauen.md` | update | Verweise auf den Slice nachgezogen |
+| `docs/plan/planning/done/slice-adr-massenladen-atomar-an-messung.md`, `docs/plan/planning/done/slice-ddl-abschluss-und-transaktionszustand-angleichen.md`, `docs/plan/planning/done/slice-sp-execute-unbekanntes-handle-bauen.md` | update | Verweise auf den Slice nachgezogen |
 
 ## 4. Trigger
 

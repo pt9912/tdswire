@@ -84,7 +84,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 | `docs/plan/spec-abdeckung.md` | update (erzeugt) | `make spec-abdeckung`; Matrix steht sonst hinter dem Bestand |
 | `docs/plan/planning/welle-testserver-manuell.md`, `docs/plan/planning/in-progress/roadmap.md` | update | Verweise auf den Slice nach `in-progress/`, Stand der Wellenzeile |
 | `docs/plan/planning/observations/BEO-TDS/sp-execute-unbekanntes-handle-spec-057-widerspricht-messung/state.md` | update | Register-Zustand der Beobachtung |
-| `docs/plan/planning/done/slice-adr-sp-execute-unbekanntes-handle.md`, `docs/plan/planning/open/slice-massenladen-atomar-bauen.md` | update | Verweis-Nachzug auf den Slice in `in-progress/` |
+| `docs/plan/planning/done/slice-adr-sp-execute-unbekanntes-handle.md`, `docs/plan/planning/in-progress/slice-massenladen-atomar-bauen.md` | update | Verweis-Nachzug auf den Slice in `in-progress/` |
 | `docs/messungen/referenzabgleich.md` (Zeile M-6) | update | Hinweis eingelöst |
 | `src/test/kotlin/io/github/pt9912/tdswire/protocol/dispatch/UnprepareDispatchTest.kt` (Filter der Log-Einträge nach Marke statt nach Code) | update | `sp_execute` und Batch-Freigabe teilen den Code `TDS_SIM_UNKNOWN_PREPARED_HANDLE`; die Marken `unknown-handle` und `unknown-prepared-handle` unterscheiden sie |
 
