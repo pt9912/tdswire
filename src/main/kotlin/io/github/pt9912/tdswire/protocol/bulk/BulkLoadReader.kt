@@ -145,9 +145,7 @@ internal object BulkLoadReader {
 
     /**
      * DONE trägt 12 Byte (Status, Befehl, 8 Byte Zeilenzahl; mssql-jdbc) oder 8 (Status, Befehl, 4 Byte Zeilenzahl;
-     * Referenzclient, Aufzeichnung und Lauf am Testserver); mehr Byte hinter dem Token sind `INVALID_LENGTH`, weniger
-     * als
-     * 8 oder 9 bis 11 `TRUNCATED`. Eine mssql-jdbc-Nachricht, die nach dem DONE-Token um vier Byte gekürzt ist, gleicht
+     * Referenzclient); mehr Byte hinter dem Token sind `INVALID_LENGTH`, weniger als 8 oder 9 bis 11 `TRUNCATED`. Eine mssql-jdbc-Nachricht, die nach dem DONE-Token um vier Byte gekürzt ist, gleicht
      * der Form des Referenzclients und ist angenommen.
      */
     private fun done(reader: ByteReader) {

@@ -311,14 +311,8 @@ Text. Jeder andere Text geht an das Backend (`SPEC-002`).
 
 Massenladen (Pakettyp `BULK_LOAD`, `0x07`; die Antworten und die Nachrichten des Referenzclients sind mit `SqlBulkCopy` am echten Server
 gemessen, Messprotokoll M-8 bis M-12 des Referenzabgleichs, `Microsoft.Data.SqlClient` 7.1.1, Instanz 2022 und 2025, ein Fall je Zeile;
-was die Messung nicht stützt, ist Setzung und so benannt. **Nutzlast des Referenzclients:** der Leser (`SPEC-036`, Form B) nimmt alle 10
-aufgezeichneten Nachrichten `0x07` an (5 verschiedene, je Instanz byte-gleich): nicht nullbare Spalten als feste Typen (die erste Spalte der
-Messreihe als BIGINT fest, Typkennung `0x7f`), zwei Nullbyte hinter der Spaltenzahl von COLMETADATA und ein DONE von 8 Byte; er nimmt auch die
-Form ohne die Nullbyte an (die Nachricht des Referenzclients an den Testserver trägt keine), mit DONE von 8 oder
-12 Byte (mssql-jdbc: 12). Die festen Typen INT, SMALLINT, TINYINT und BIT liest er nach der Beschreibung von `MS-TDS`, ohne Mitschnitt eines
-Clients (Handvektoren); jeder andere feste Typ ist `TDS_UNSUPPORTED_TYPE`. Mit `SqlBulkCopy` gegen das Simulations-Backend belegt ist das
-Massenladen im Integrationslauf (`SPEC-040`): Zeilen, Zähler, mehrere Nachrichten und Schlüsselverstoß. Den Katalog-Batch, mit dem `SqlBulkCopy`
-das Massenladen beginnt, beantwortet der Sitzungsrahmen aus den Spalten der Tabelle (`SPEC-036`, Form B)): eine Nachricht `0x07`
+was die Messung nicht stützt, ist Setzung und so benannt. Nutzlast und Probe der Zieltabelle von `SqlBulkCopy` sind angenommen (die Nutzlast im Absatz unten, die Probe in `SPEC-036`, Form B;
+belegt im Integrationslauf, `SPEC-040`)): eine Nachricht `0x07`
 ist eine Anfrage wie SQL_BATCH und RPC (`RUNNING`, Antwort mit `RequestFinished`). Der Sitzungsrahmen hält den Zustand
 „Massenladen erwartet“: ein SQL_BATCH, dessen Text ein `INSERT BULK` ist (`SPEC-036`, Form B), setzt das Ziel, wenn das
 Backend das Massenladen trägt (heute das Simulations-Backend); jede folgende Nachricht `0x07` lädt in dieses Ziel, und jede
@@ -337,12 +331,19 @@ State 1; der Text ist gekürzt, Setzung), INFO 3621 „The statement has been te
 Verbindung bleibt offen. Setzung: jeder Fehler des Callbacks einer Nachricht `0x07` erhält diese Antwort, weil die Bibliothek die Ursache nicht
 unterscheidet; ob eine Nachricht ganz oder gar nicht gilt, entscheidet der Integrator (der echte Server nimmt in dem gemessenen Fall keine Zeile der
 Nachricht auf; die Allaussage ist nicht belegt). Das weicht vom Wortlaut der angenommenen Entscheidung zum Massenladen ab (Fehler des Callbacks als
-`TDS_BACKEND_ERROR`, Teilbestand beim Integrator); die Antwort folgt der Messung bis zur Folge-Entscheidung. Die Nutzlast ist COLMETADATA, ROW je Zeile und DONE (die Beschreibung des Pakets „Bulk Load“ in `MS-TDS`; Abschnittsnummern stehen hier nicht, das Dokument liegt nicht im Repo); gelesen werden die Typen `INTN`, `BITN`,
-`DECIMALN`, `NUMERICN`, `NVARCHAR`, `NCHAR`, `BIGVARCHAR`, `BIGCHAR`, `DATEN`, `TIMEN` und `DATETIME2N` (gedeckt durch einen Mitschnitt von d-migrate 1.12.0 mit mssql-jdbc 13.4.0 sind nur `INTN` mit 8 Byte, `NVARCHAR` und `BIGVARCHAR`; Datum, Zeit und Zeitpunkt sendet d-migrate als `VARCHAR`; `INTN` mit 1, 2 und 4 Byte, `BITN`, `DECIMALN`, `NUMERICN`, `NCHAR`, `BIGCHAR`, `DATEN`, `TIMEN` und `DATETIME2N` sind Handvektoren nach der Beschreibung von `MS-TDS` ohne Mitschnitt); jede andere
-Typkennung, ein PLP-Typ, NBCROW und eine abgeschnittene Nachricht (auch ohne DONE) ergeben den Fehler des Parsers
+`TDS_BACKEND_ERROR`, Teilbestand beim Integrator); die Antwort folgt der Messung bis zur Folge-Entscheidung. Die Nutzlast ist COLMETADATA, ROW je Zeile und DONE (die Beschreibung des Pakets „Bulk Load“ in `MS-TDS`; Abschnittsnummern stehen hier nicht, das Dokument liegt nicht im Repo); gelesen werden die Typen `INTN`, `BITN`, `DECIMALN`, `NUMERICN`, `NVARCHAR`, `NCHAR`, `BIGVARCHAR`, `BIGCHAR`, `DATEN`, `TIMEN`,
+`DATETIME2N` und die festen Typen BIGINT, INT, SMALLINT, TINYINT und BIT. Gedeckt durch einen Mitschnitt von d-migrate 1.12.0 mit mssql-jdbc 13.4.0 sind
+`INTN` mit 8 Byte, `NVARCHAR` und `BIGVARCHAR` (Datum, Zeit und Zeitpunkt sendet d-migrate als `VARCHAR`); gedeckt durch die 10 Nachrichten von
+`SqlBulkCopy` (`Microsoft.Data.SqlClient` 7.1.1, Messreihe M-8 bis M-12, 5 verschiedene, je Instanz byte-gleich) sind BIGINT fest (`0x7f`), `INTN`
+mit 2 und 4 Byte, `BITN`, `NUMERICN`, `NVARCHAR`, `DATEN`, `TIMEN` und `DATETIME2N`; `INTN` mit 1 Byte, `DECIMALN`, `NCHAR`, `BIGCHAR` und die festen Typen
+INT (`0x38`), SMALLINT (`0x34`), TINYINT (`0x30`) und BIT (`0x32`) sind Handvektoren nach der Beschreibung von `MS-TDS` ohne Mitschnitt. Die Aufzeichnung
+des Referenzclients am echten Server trägt zwei Nullbyte hinter der Spaltenzahl von COLMETADATA (die Deutung ist nicht belegt), die Nachricht an den
+Testserver trägt sie nicht; DONE trägt in beiden 8 Byte (mssql-jdbc: 12). Der Leser nimmt beide Formen an, verlangt in der Form mit den Nullbyte, dass
+beide 0 sind, und nimmt DONE mit 8 oder 12 Byte an; eine um vier Byte gekürzte Nachricht mit DONE von 12 Byte gleicht damit einer vollständigen mit DONE
+von 8 Byte und ist angenommen; jede andere Typkennung, ein PLP-Typ, NBCROW und jede andere abgeschnittene Nachricht (auch ohne DONE) ergeben den Fehler des Parsers
 (`TDS_PROTOCOL_ERROR` beziehungsweise `TDS_UNSUPPORTED_TYPE`, Class 20, die Verbindung schließt wie bei einem SQL_BATCH, den
 der Parser abweist), ohne dass das Backend gerufen wird. Höchstens 1024 Spalten und 262 144 Zellen (Spalten mal Zeilen) je Nachricht, eine größere Nachricht ist wie eine abgeschnittene ein Fehler des Parsers (Setzung; die Zellenzahl begrenzt die Werte, die Leser und Überführung anlegen, nicht die Größe der Nachricht). Gelesen werden `VARCHAR`-Werte als Windows-1252, gleich welche Kollation die Spalte trägt, und ein `DECIMALN`-Wert darf kürzer sein als die Typlänge (beides Setzung, toleranter als `MS-TDS`; die Länge von fünf Byte stammt aus dem RPC, nicht aus einem Massenladen).
-Das IGNORE-Bit einer Nachricht verwirft sie ohne Aufruf des Backends; die Antwort ist DONE mit `COUNT`, Zähler 0 und Befehl `0x00f0` (Setzung, nicht gemessen). Eine Nachricht
+Das IGNORE-Bit einer Nachricht verwirft sie ohne Aufruf des Backends; die Antwort ist DONE mit `COUNT`, Zähler 0 und Befehl `0x00f0` (Setzung, nicht gemessen). Die verworfene Nachricht gilt als eingetroffen: der Zustand „Massenladen erwartet“ endet, das Ziel bleibt, und ein folgendes ATTENTION in `READY` ist die gewöhnliche Bestätigung (nur `ATTENTION`, wie nach einer geladenen Nachricht; Setzung). Eine Nachricht
 `0x07` ohne Ziel, oder an einem Backend ohne Massenladen, ist `TDS_UNSUPPORTED_SQL` bei offener Verbindung. Die Nachricht gilt
 als Ganzes: der Transport setzt sie bis zur Grenze von `SPEC-007` (16 MiB) im Speicher zusammen, eine größere schließt die
 Verbindung (gemessen, Messprotokoll des Spikes, b11), und der Speicherbedarf ist ein Vielfaches ihrer Größe: gemessen ist, dass 15,9 MB Nutzlast mit 130-Byte-Zeilen bei 32 MiB Heap mit `OutOfMemoryError` endeten (b12), und dass eine gültige Nachricht von 15,7 MiB mit 16 000 Zeilen zu 1024 NULL-Spalten (ohne die Grenze der Zellen) bei 128 MiB Heap in der Überführung endete (Wegwerf-Probe, einmal gefahren); die Grenze der Zellen ist die Antwort darauf; gemessen ist, dass die Zeilen einer Nachricht an der Grenze 12 bis 64 MiB belegen (4 bis 120 Byte je Zelle im Leser, 48 bis 256 mit der Überführung, je nach Typ, Messprotokoll des Massenladens), ein Beleg für den Wert am Heap eines Prozesses ist das nicht. Der Gegendruck des Backends wirkt zwischen den Nachrichten, nicht innerhalb einer: die
@@ -1081,7 +1082,7 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   Probe der Kollation mit; der Import fragt außerdem `SELECT SCHEMA_NAME()` und `sys.identity_columns`/`sys.computed_columns`
   (Form K).
   **Probe der Zieltabelle von `SqlBulkCopy`** (gemessen: `Microsoft.Data.SqlClient` 7.1.1, Instanz 2022 und 2025, Messreihe M-8 bis M-12,
-  zwei Tabellen ohne Schema; der Wortlaut war bis auf den Namen in allen Aufzeichnungen gleich, und gleich im Lauf am Testserver mit der Tabelle
+  sechs Tabellen ohne Schema; der Wortlaut war bis auf den Namen in allen Aufzeichnungen gleich, und gleich im Lauf am Testserver mit der Tabelle
   `bulk_ziel`): ein SQL_BATCH von rund 2 KB, der mit `SELECT @@TRANCOUNT;` beginnt, den Namen der Tabelle in `OBJECT_ID('[<Name>]')`,
   `FROM [<Name>]` und `sp_tablecollations_100 N'.[<Name>]'` trägt und mit `DROP TABLE #Column_Aliases` endet. Erkannt ist der Text, wenn er nach
   dem Zusammenfassen des Leerraums dem aufgezeichneten Wortlaut gleicht und der Name an den drei Stellen derselbe ist; ein Name mit `]` oder `'` und
@@ -1099,7 +1100,7 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   Referenzclient und in seiner Nachricht `0x07`; der Server dieses Repos sendet sie nirgends, und die Nachricht des Referenzclients an ihn trägt sie
   nicht (die Deutung der Bytes ist nicht belegt). Die Nachricht `0x07` des Referenzclients endet mit einem DONE von 8 Byte (Aufzeichnung und Lauf am
   Testserver); der Leser nimmt jede Nachricht mit 8 oder 12 Byte hinter dem Token an, mit und ohne die zwei Nullbyte. Gemessen ist die Form mit
-  zwei Tabellen; ob der Referenzclient den Text bei anderen Spaltentypen oder Tabellen ändert, ist nicht aufgezeichnet.
+  sechs Tabellen ohne Schema; ob der Referenzclient den Text bei anderen Spaltentypen oder Tabellen ändert, ist nicht aufgezeichnet.
 - **Form M, `MERGE … OUTPUT $action`** (Wortlaut gemessen mit d-migrate 1.12.0, mssql-jdbc 13.4.0, am echten SQL Server 2022 und
   2025 am 2026-11-07, Messprotokoll der Referenzabgleiche, M-25 bis M-27; alles Weitere ist Setzung): erkannt ist der gesendete
   Text mit den Aliasen `tgt` und `src` (andere Aliase gelten, wenn sie durchgängig stehen; Setzung), mit und ohne den Zweig

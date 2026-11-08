@@ -9,8 +9,9 @@ namespace TdsWire.Referenztests.Integration;
 /// Massenladen des Referenzclients (`SqlBulkCopy`, Microsoft.Data.SqlClient 7.1.1) gegen den Serverprozess mit
 /// Simulations-Backend nach SPEC-036 (Form B) und SPEC-040 (Dockerfile-Stage `integrationsserver`,
 /// `make simulations-integration`, Stufe 3 von `make e2e`). Das Ziel steht in TDSWIRE_ZIEL (host:port); die Tabelle
-/// `bulk_ziel` steht in `testserver/resources/integration/sim.yaml` und füllt der Bestand des Testservers (Id BIGINT
-/// nicht nullbar als Schlüssel, Text NVARCHAR(10), Zahl INT, Preis DECIMAL(10,2)). Belegt ist das Verhalten des
+/// `bulk_ziel` steht in `IntegrationTables.bulkTarget()` (`testserver/kotlin/.../IntegrationServer.kt`) mit einem
+/// Stapel-Callback im Arbeitsspeicher (Id BIGINT nicht nullbar als Schlüssel, Text NVARCHAR(10), Zahl INT, Preis
+/// DECIMAL(10,2)). Belegt ist das Verhalten des
 /// Referenzclients gegen den Server dieses Repos in TDS 7.4 ohne Verschlüsselung und ohne Pool, nicht gegen einen
 /// echten SQL Server (dort: Messreihe M-8 bis M-12, `make vergleichslauf-d`) und nicht TDS 8.0.
 /// </summary>

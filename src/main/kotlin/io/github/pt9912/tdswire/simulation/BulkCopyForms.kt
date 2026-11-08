@@ -8,7 +8,7 @@ import io.github.pt9912.tdswire.port.BulkProbeResult
  * Die Probe der Zieltabelle, die `SqlBulkCopy` (`Microsoft.Data.SqlClient` 7.1.1, der Referenzclient) vor `INSERT BULK`
  * als SQL_BATCH stellt (`SPEC-036`, Form B): ein Text von rund 2 KB, der `@@TRANCOUNT`, den Namen der Tabelle in
  * `OBJECT_ID('[<Name>]')`, `FROM [<Name>]` und `sp_tablecollations_100 N'.[<Name>]'` und sonst feste Anweisungen trägt.
- * Gemessen an zwei Instanzen (SQL Server 2022 und 2025, Messreihe M-8 bis M-12, `bulk-merge-katalog`) für zwei Tabellen
+ * Gemessen an zwei Instanzen (SQL Server 2022 und 2025, Messreihe M-8 bis M-12, `bulk-merge-katalog`) für sechs Tabellen
  * ohne Schema; der Wortlaut war in allen Aufzeichnungen bis auf den Namen gleich. Erkannt ist der Text, wenn er nach
  * [CatalogForms.normalize] dem Wortlaut gleicht und der Name an allen drei Stellen derselbe ist; ein Name mit `]`
  * oder `'` und ein Name mit Schema sind nicht aufgezeichnet und nicht erkannt (der Text geht dann den üblichen Weg und

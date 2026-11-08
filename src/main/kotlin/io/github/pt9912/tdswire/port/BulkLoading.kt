@@ -16,14 +16,15 @@ import io.github.pt9912.tdswire.domain.ResultColumn
 internal interface BulkLoadingBackend {
     /**
      * Erkennt `INSERT BULK`: `null`, wenn der Text keines ist (er geht den üblichen Weg über
-     * [QueryBackend.execute]); sonst das Ziel oder die Ablehnung. Die Funktion ruft keinen Callback des Integrators.
+     * [QueryBackend.execute]); sonst das Ziel oder die Ablehnung. Die Funktion fragt höchstens den Katalog-Anbieter und
+     * ruft keinen Callback für Zeilen.
      */
     fun bulkTarget(sql: String): BulkTargetResult?
 
     /**
      * Erkennt die Probe der Zieltabelle, die `SqlBulkCopy` (Referenzclient) vor `INSERT BULK` stellt (`SPEC-036`,
      * Form B): `null`, wenn der Text keine ist; sonst die Spalten der Tabelle, aus denen der Protokollkern die Antwort
-     * baut, oder die Ablehnung. Die Funktion ruft keinen Callback des Integrators.
+     * baut, oder die Ablehnung. Die Funktion fragt höchstens den Katalog-Anbieter und ruft keinen Callback für Zeilen.
      */
     fun bulkProbe(sql: String): BulkProbeResult?
 

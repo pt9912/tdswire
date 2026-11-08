@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [TDS-RB-03](../../../../spec/lastenheft.md#tds-rb-03--protokollstandard), [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md), [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md)
 
-**Berührte Spec-Stellen:** SPEC-036 (Pakettypen: gelesene Typen der Nutzlast des Massenladens, Form der Anfragen des Katalogs) · SPEC-035 (Überführung der Werte fester Typen) · SPEC-040 (Referenztest mit `SqlBulkCopy`) · SPEC-059 (`make flaeche` bleibt grün; der Slice fügt keinen öffentlichen Namen hinzu, sonst Rückführung).
+**Berührte Spec-Stellen:** SPEC-001 (Absatz Massenladen: gelesene Typen der Nutzlast, Formen der Nachricht, IGNORE-Bit) · SPEC-036 (Pakettypen: gelesene Typen der Nutzlast des Massenladens, Form B: Probe der Zieltabelle von `SqlBulkCopy`) · SPEC-035 (Überführung der Werte fester Typen) · SPEC-040 (Referenztest mit `SqlBulkCopy`) · SPEC-059 (`make flaeche` bleibt grün; der Slice fügt keinen öffentlichen Namen hinzu, sonst Rückführung).
 
 **Verantwortlich:** Implementer-Agent, Auftrag des Nutzers 2026-11-07.
 
@@ -46,7 +46,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Die Atomarität und der Code je Fehlerursache — [slice-adr-massenladen-atomar-an-messung](../open/slice-adr-massenladen-atomar-an-messung.md) (Entscheidung durch den Nutzer; dieser Slice übernimmt, was sie entscheidet, nicht mehr).
-- Messungen mit mssql-jdbc — Folgepflicht 2 von [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md), Träger [slice-schreibpfad-merge-output](../open/slice-schreibpfad-merge-output.md).
+- Messungen mit mssql-jdbc — Folgepflicht 2 von [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md), Träger [slice-schreibpfad-merge-output](../done/slice-schreibpfad-merge-output.md).
 - PLP-Typen (MAX) und NBCROW — kein Lauf des Referenzclients im Messbestand sendet sie; erst mit einer Messnachricht.
 - Neue öffentliche Namen — die Fläche ist [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Nr. 4 festgelegt; würde der Slice einen brauchen, geht er zurück zur Zerlegung (§4).
 
@@ -85,14 +85,15 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `src/main/kotlin/io/github/pt9912/tdswire/protocol/bulk/BulkLoadReader.kt`, `BulkValueReader.kt`, `BulkColumnType.kt` (neu) | update | feste Typen der Nachricht 0x07 (BIGINT gemessen; INT, SMALLINT, TINYINT, BIT als Handvektor); beide Formen von COLMETADATA (mit und ohne zwei Nullbyte hinter der Spaltenzahl) |
-| `src/main/kotlin/io/github/pt9912/tdswire/protocol/dispatch/BulkDispatch.kt` | update | V-6: Zustand `awaiting` nach IGNORE zurücksetzen; Erkennung der Probe der Zieltabelle |
-| `src/main/kotlin/io/github/pt9912/tdswire/port/BulkLoading.kt`, `runtime/SimulationBulk.kt` | update | interne Fähigkeit `bulkProbe` (keine öffentliche Fläche) |
-| `src/main/kotlin/io/github/pt9912/tdswire/simulation/BulkCopyForms.kt` (neu), `SimulationBackend.kt` | update | Wortlaut des Katalog-Batchs von `SqlBulkCopy` erkennen, Spalten der Tabelle liefern |
-| `src/main/kotlin/io/github/pt9912/tdswire/protocol/dispatch/BulkCopyProbe.kt` (neu), `RequestLoop.kt` | update | Antwort aus vier Ergebnissen (binäre Spalte `tds_collation`, im Typmodell der Bibliothek nicht ausdrückbar, daher im Protokollkern) |
-| `src/test/kotlin/io/github/pt9912/tdswire/protocol/bulk/`, `protocol/dispatch/`, `simulation/`, `src/test/resources/messung/` (neu) | update | Messnachrichten byte-genau als Vektor; Probe gegen die gemessene Antwort; V-6 |
-| `referenztest-dotnet/Integration/`, `testserver/resources/integration/sim.yaml`, `tools/simulationstest.sh` | update | `SqlBulkCopy`-Szenario gegen den Testserver (Tabelle mit BIGINT-Schlüssel) |
-| `spec/spezifikation.md` (`SPEC-036`), `docs/plan/kompatibilitaetsmatrix.md`, `docs/user/*` | update | die Grenze „Nutzlast des Referenzclients wird nicht gelesen“ entfällt |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/bulk/BulkLoadReader.kt`, `BulkValueReader.kt`, `BulkColumnType.kt` (neu) | update | feste Typen der Nachricht 0x07 (BIGINT gemessen; INT, SMALLINT, TINYINT, BIT als Handvektor); beide Formen von COLMETADATA (mit und ohne zwei Nullbyte), DONE mit 8 oder 12 Byte |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/dispatch/BulkDispatch.kt`, `RequestLoop.kt` | update | V-6: Zustand `awaiting` nach IGNORE zurücksetzen; Erkennung der Probe der Zieltabelle vor `INSERT BULK` |
+| `src/main/kotlin/io/github/pt9912/tdswire/port/BulkLoading.kt`, `runtime/SimulationBulk.kt`, `simulation/SimulationBackend.kt` | update | interne Fähigkeit `bulkProbe` (keine öffentliche Fläche); `catalog` des Konstruktors `internal val` |
+| `src/main/kotlin/io/github/pt9912/tdswire/simulation/BulkCopyForms.kt` (neu) | neu | Wortlaut der Probe von `SqlBulkCopy` erkennen, Spalten der Tabelle liefern |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/dispatch/BulkCopyProbe.kt`, `BulkCopyProbeSets.kt` (neu) | neu | Antwort aus vier Ergebnissen (binäre Spalte `tds_collation`, im Typmodell der Bibliothek nicht ausdrückbar, daher im Protokollkern) |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/token/TdsType.kt`, `TypeInfoWriter.kt` | update | `DecimalType.bytes`: Größe 17 der Dezimalspalte in der Beschreibung der Tabelle |
+| `src/test/kotlin/io/github/pt9912/tdswire/` (`protocol/bulk`, `protocol/dispatch`, `simulation`, `stability`), `src/test/resources/messung/bulk-referenzclient/` (neu) | update / neu | Messnachrichten byte-genau als Vektor; Antwort der Probe gegen die Aufzeichnung; V-6; Fuzz |
+| `referenztest-dotnet/Integration/SqlBulkCopyTests.cs` (neu), `testserver/kotlin/io/github/pt9912/tdswire/testserver/IntegrationServer.kt`, `tools/simulationstest.sh`, `tools/mk/simulationstest.mk` | neu / update | `SqlBulkCopy`-Szenario gegen den Testserver (Tabelle `bulk_ziel` mit BIGINT-Schlüssel und Stapel-Callback); Tabellen- und Testzahl des Laufs |
+| `spec/spezifikation.md` (`SPEC-001`, `SPEC-036`, `SPEC-040`), `docs/plan/kompatibilitaetsmatrix.md`, `docs/plan/spec-abdeckung.md` (erzeugt), `docs/user/*`, `harness/README.md` | update | die Grenze „Nutzlast des Referenzclients wird nicht gelesen“ entfällt; Zeile `make simulations-integration` |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 
@@ -124,7 +125,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 - Der Referenzclient sendet für andere Spaltentypen weitere feste Typen, die in den Messnachrichten fehlen; sie sind dann ohne Messung zu lesen (Handvektor). — **Ausgang:** offen bis zur Closure.
-- Der Katalog-Batch ist lang und kommt in Teilen (Variablen, dynamischer Text); eine Form, die nur die gemessene Frage trägt, kann bei anderen Tabellen brechen. — **Ausgang:** offen bis zur Closure.
+- Der Katalog-Batch ist lang und kommt in Teilen (Variablen, dynamischer Text); eine Form, die nur die gemessene Frage trägt, kann bei anderen Tabellen brechen. — **Ausgang:** weiter offen für Namen mit Schema und Namen mit `]` oder `'` (nicht aufgezeichnet, Antwort `TDS_UNSUPPORTED_SQL`): Träger [slice-bulkcopy-tabellenname-mit-schema-und-sonderzeichen](../open/slice-bulkcopy-tabellenname-mit-schema-und-sonderzeichen.md); für die sechs aufgezeichneten Tabellen entfallen.
 
 ## 7. Closure-Notiz
 

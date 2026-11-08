@@ -121,11 +121,11 @@ class BulkLoadReaderReferenceClientTest {
     }
 
     /**
-     * Die Nutzlast, die `SqlBulkCopy` an den Testserver sendet (Lauf vom 2026-11-07, vom Server ausgegeben; Tabelle
-     * `bulk_ziel` mit `Id` BIGINT, `Text` NVARCHAR(10), `Zahl` INT, `Preis` DECIMAL(10,2), zwei Zeilen): kein Nullbyte
-     * hinter der Spaltenzahl, `NUMERICN` mit Größe 17 und 17 Wertebytes, DONE mit 8 Byte. Wächter: ein Leser, der nur
-     * die
-     * Form mit den zwei Nullbyte oder nur DONE mit 12 Byte annimmt.
+     * Eine Nutzlast, die `SqlBulkCopy` an den Testserver sendet (ausgegeben vom Server in einem Lauf von `make
+     * simulations-integration`, den `SqlBulkCopyTests` belegen; Tabelle `bulk_ziel` mit `Id` BIGINT, `Text`
+     * NVARCHAR(10), `Zahl` INT, `Preis` DECIMAL(10,2), zwei Zeilen): kein Nullbyte hinter der Spaltenzahl, `NUMERICN`
+     * mit Größe 17 und 17 Wertebytes, DONE mit 8 Byte. Wächter: ein Leser, der nur die Form mit den zwei Nullbyte oder
+     * nur DONE mit 12 Byte annimmt.
      *
      * @spec SPEC-036
      * @spec TDS-QA-01
@@ -210,5 +210,22 @@ class BulkLoadReaderReferenceClientTest {
             ProtocolFailure.TRUNCATED,
             failure(hex("81 0100 " + fixedColumn("38", "a1") + "d1 000000")),
         )
+    }
+
+    /**
+     * In der Form mit den zwei Nullbyte hinter der Spaltenzahl müssen beide Bytes 0 sein: dieselbe Aufzeichnung
+     * (`bulk-verstoss-schluessel`) mit einem Byte ungleich 0 an dieser Stelle ist ein Fehler des Lesers, in der Form
+     * ohne
+     * Nullbyte liest sich dieselbe Stelle als Benutzertyp und Flags und führt zu einer ungültigen Typkennung. Wächter:
+     * eine Form, die die zwei Bytes nicht prüft und die Nachricht danach liest.
+     *
+     * @spec SPEC-036
+     */
+    @Test
+    fun `zwei Bytes ungleich 0 hinter der Spaltenzahl sind ein Fehler des Lesers`() {
+        for (offset in 3..4) {
+            val damaged = message("verstoss-schluessel").also { it[offset] = 1 }
+            assertEquals(ProtocolFailure.INVALID_TYPE, failure(damaged), "Offset $offset")
+        }
     }
 }

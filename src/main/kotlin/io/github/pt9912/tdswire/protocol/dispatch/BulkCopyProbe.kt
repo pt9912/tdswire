@@ -33,14 +33,14 @@ import io.github.pt9912.tdswire.transport.framing.TdsMessage
  * Aufzeichnung. Die Zeilenzahl von DONEINPROC nach der Abfrage der Spaltennamen und nach den Kollationen ist die Zahl
  * der Spalten.
  *
- * Eine Dezimalspalte meldet in (2) 17 Byte für jede Precision (Aufzeichnung: `DECIMALN(10,2)` mit Größe `0x11`); der
- * Referenzclient schreibt den Wert der Nachricht `0x07` immer mit 17 Byte; bei der Größe 9 sendete er im Lauf am
- * Testserver ein Längenbyte 9 vor diesen 17 Byte, mit 17 (Aufzeichnung) sind beide 17. Text hat in (2) die Länge der
- * Beschreibung (`maxChars`).
+ * Eine Dezimalspalte meldet in (2) die Größe 17 für jede Precision (Aufzeichnung: `DECIMALN(10,2)` mit `0x11`; Test
+ * `BulkCopyProbeTest`); die Nachricht `0x07` der Aufzeichnung trägt Dezimalwerte mit Längenbyte 17 und 17 Byte. Text
+ * hat
+ * in (2) die Länge der Beschreibung (`maxChars`).
  *
- * Abweichung von der Aufzeichnung: dem COLMETADATA folgen keine zwei Nullbyte hinter der Spaltenzahl (die Aufzeichnung
- * zeigt sie in jedem COLMETADATA des echten Servers an diesen Client; der Server dieses Repos handelt das Merkmal nicht
- * aus, und sein COLMETADATA trägt sie nirgends).
+ * Abweichung von der Aufzeichnung: dem COLMETADATA folgen keine zwei Nullbyte hinter der Spaltenzahl. Die Aufzeichnung
+ * zeigt sie in jedem COLMETADATA des echten Servers an diesen Client; das COLMETADATA dieses Servers trägt sie
+ * nirgends.
  */
 internal object BulkCopyProbe {
     private const val FLAGS_COMPUTED = 0x0020
