@@ -2,6 +2,7 @@ package io.github.pt9912.tdswire.protocol.response
 
 import io.github.pt9912.tdswire.domain.FailureScope
 import io.github.pt9912.tdswire.domain.QueryEvent
+import io.github.pt9912.tdswire.domain.StatementKind
 import io.github.pt9912.tdswire.protocol.result.ColumnMapping
 import io.github.pt9912.tdswire.protocol.result.ValueMapping
 import io.github.pt9912.tdswire.protocol.token.ColMetadataToken
@@ -51,18 +52,19 @@ internal fun failedDone(form: ResponseForm = ResponseForm.BATCH, resultOpen: Boo
  * der Form. Im RPC steht vor dem DONEPROC der RETURNSTATUS mit der Nummer der letzten Meldung, wenn sie eine
  * SQL-Server-Nummer ist (unter 50000); sonst keiner (Setzung der Entscheidung zum Abschluss im Fehlerfall).
  */
-internal fun errorAnswer(form: ResponseForm, messages: List<ServerMessage>): List<Token> =
-    messages.map { ErrorToken(it) } + errorAnswerTail(form, messages.last())
+internal fun errorAnswer(form: ResponseForm, messages: List<ServerMessage>, resultOpen: Boolean = false): List<Token> =
+    messages.map { ErrorToken(it) } + errorAnswerTail(form, messages.last(), resultOpen)
 
 /**
  * Die Tokens einer Fehlerantwort nach ihren ERROR: die Meldung [last] ist die letzte der Antwort und bestimmt den
- * RETURNSTATUS der Form RPC; danach der Abschluss der Form.
+ * RETURNSTATUS der Form RPC; danach der Abschluss der Form. [resultOpen] sagt, dass ein Ergebnis begonnen und nicht
+ * abgeschlossen ist (nur der Abschluss der Form BATCH trägt es, [failedDone]).
  */
-internal fun errorAnswerTail(form: ResponseForm, last: ServerMessage): List<Token> {
+internal fun errorAnswerTail(form: ResponseForm, last: ServerMessage, resultOpen: Boolean = false): List<Token> {
     val status = last.number.takeIf { form == ResponseForm.RPC && it < FIRST_OWN_ERROR_NUMBER }
     val info = listOfNotNull(BULK_TERMINATED.takeIf { form == ResponseForm.BULK })
     val returned = listOfNotNull(status?.let { ReturnStatusToken(it) })
-    return info + returned + failedDone(form)
+    return info + returned + failedDone(form, resultOpen)
 }
 
 /**
@@ -100,7 +102,7 @@ internal class ResponseRun(
 
             is QueryEvent.ResultEnd -> finish(event.affectedRows, inResult = true)
 
-            is QueryEvent.UpdateCount -> finish(event.affectedRows, inResult = false)
+            is QueryEvent.UpdateCount -> finish(event.affectedRows, inResult = false, event.kind)
 
             is QueryEvent.Failure -> failure(event)
 
@@ -165,18 +167,22 @@ internal class ResponseRun(
         }
     }
 
-    private suspend fun finish(affectedRows: Long?, inResult: Boolean): Boolean {
+    private suspend fun finish(
+        affectedRows: Long?,
+        inResult: Boolean,
+        kind: StatementKind = StatementKind.UNKNOWN,
+    ): Boolean {
         if ((columns != null) != inResult) return report(violation)
         columns = null
         begun = true
         val status = if (affectedRows != null) DoneStatus.COUNT else DoneStatus.FINAL
-        val kind = if (form == ResponseForm.RPC) DoneKind.DONE_IN_PROC else DoneKind.DONE
+        val doneKind = if (form == ResponseForm.RPC) DoneKind.DONE_IN_PROC else DoneKind.DONE
         val command = when {
             inResult -> DoneCommand.SELECT
             form == ResponseForm.BULK -> DoneCommand.INSERT_BULK
-            else -> DoneCommand.NONE
+            else -> DoneCommand.forKind(kind)
         }
-        held = DoneToken(kind, status, command, affectedRows ?: 0)
+        held = DoneToken(doneKind, status, command, affectedRows ?: 0)
         return false
     }
 

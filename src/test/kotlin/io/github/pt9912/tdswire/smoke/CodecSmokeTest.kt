@@ -160,7 +160,7 @@ class CodecSmokeTest {
         val name = ColumnDef("name", TdsType.NVarcharType(20, latin), nullable = true)
         val columns = listOf(ColumnDef("id", TdsType.Int4Type), name)
         val rows = List(ROWS) { RowToken(listOf(TdsValue.IntegerValue(it.toLong()), TdsValue.TextValue("zeile $it"))) }
-        val output = ColumnDef("", TdsType.IntNType(4), nullable = true)
+        val output = ColumnDef("", TdsType.IntNType(4), nullable = false)
         val response = listOf(ColMetadataToken(columns)) + rows + listOf(
             DoneToken(DoneKind.DONE_IN_PROC, DoneStatus.MORE or DoneStatus.COUNT, 193, ROWS.toLong()),
             ReturnValueToken(0, "@o", 1, output, TdsValue.IntegerValue(7)),

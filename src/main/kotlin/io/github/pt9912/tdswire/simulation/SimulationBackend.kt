@@ -5,6 +5,7 @@ import io.github.pt9912.tdswire.domain.QueryParameter
 import io.github.pt9912.tdswire.domain.QueryRequest
 import io.github.pt9912.tdswire.domain.ResultColumn
 import io.github.pt9912.tdswire.domain.SqlType
+import io.github.pt9912.tdswire.domain.StatementKind
 import io.github.pt9912.tdswire.port.BulkRows
 import io.github.pt9912.tdswire.port.BulkTarget
 import io.github.pt9912.tdswire.port.BulkTargetResult
@@ -180,7 +181,7 @@ public class SimulationBackend(
     private fun structure(plan: StructurePlan, request: QueryRequest): QueryExecution {
         val callback = onStructure ?: return failed(SimCodes.UNSUPPORTED_SQL, "Strukturänderung nicht verfügbar")
         val key = request.sessionId to request.requestId
-        val call = PreparedChange.Ready {
+        val call = PreparedChange.Ready(StatementKind.UNKNOWN) {
             structureLock.withLock {
                 when (val again = planner.plan(request.sql)) {
                     is PlanResult.Structure -> {

@@ -72,7 +72,8 @@ import kotlin.time.Duration.Companion.milliseconds
  * nichts frei. Die Freigabe läuft als SQL_BATCH `EXEC sp_unprepare <n>` ([UnprepareBatch]): die Schleife beantwortet
  * ihn ohne das Backend, gibt jedes gehaltene Handle der Reihe nach frei, und jede Nummer, die die Sitzung nicht hält
  * (nie vergeben, schon freigegeben, vor RESETCONNECTION), ergibt einen ERROR `TDS_SIM_UNKNOWN_PREPARED_HANDLE` in
- * derselben Antwort, die dann mit einem DONE mit Fehlerstatus endet; die Verbindung bleibt offen. Die Antwort läuft
+ * derselben Antwort; je Nummer folgen RETURNSTATUS und DONEPROC (Befehl `0x00e0`), ein DONE gibt es nicht; die
+ * Verbindung bleibt offen. Die Antwort läuft
  * unter [AbortableRun] (ATTENTION unterbricht sie mit genau einem `DONE[ATTN]`, `SPEC-029`). Ein Text, der nicht
  * ganz diese Form hat, geht wie jeder Batch an das Backend. Die Handles enden mit der Schleife und mit dem Bit
  * RESETCONNECTION (nächster Absatz).
@@ -315,19 +316,19 @@ internal class RequestLoop(
                     }
                 } else {
                     bulk.clear()
-                    val unknown = UnprepareBatch.release(released, handles)
-                    queryOutcome = SpanOutcome.OK.takeIf { unknown.isEmpty() } ?: SpanOutcome.ERROR
-                    if (unknown.isEmpty()) UnprepareBatch.completed() else reportUnknown(unknown)
+                    answerRelease(released)
                 }
             }
         }
 
     /**
-     * Die Antwort auf die Freigabe mit nicht gehaltenen Nummern: ein ERROR je Nummer, Token für Token in den Strom der
-     * Antwort geschrieben, unter [AbortableRun] wie jede Anfrage (ATTENTION in `RUNNING` und die Frist brechen die
-     * Antwort ab, `SPEC-029`). Der Zustand bleibt `RUNNING`: kein COLMETADATA, kein `STREAMING`.
+     * Gibt die [numbers] frei und schreibt die Antwort Token für Token in den Strom der Antwort, unter [AbortableRun]
+     * wie jede Anfrage (ATTENTION in `RUNNING` und die Frist brechen die Antwort ab, `SPEC-029`). Der Zustand bleibt
+     * `RUNNING`: kein COLMETADATA, kein `STREAMING`.
      */
-    private suspend fun reportUnknown(unknown: List<Int>): HandshakeEvent.RequestFinished? {
+    private suspend fun answerRelease(numbers: List<Int>): HandshakeEvent.RequestFinished? {
+        val unknown = UnprepareBatch.release(numbers, handles)
+        queryOutcome = if (unknown.isEmpty) SpanOutcome.OK else SpanOutcome.ERROR
         val live = ready.live
         val reply = live.openReply(PacketType.TABULAR_RESULT)
         val deadline = times.queryTimeout?.let { times.now() + it.inWholeMilliseconds }
@@ -338,7 +339,7 @@ internal class RequestLoop(
         resetPending = false
         active = run
         val end = try {
-            run.run(remaining) { UnprepareBatch.answer(unknown, sink, errors) }
+            run.run(remaining) { UnprepareBatch.answer(numbers, unknown, sink, errors) }
         } finally {
             active = null
         }
@@ -400,7 +401,7 @@ internal class RequestLoop(
         val request = QueryRequest(ready.session.id, requestId, text, parameters, deadline)
         val remaining = deadline?.let { (it - times.now()).milliseconds }
         val run = AbortableRun(live, rig.tray, times, rig.detached)
-        val sink = LeadingToken(response, EnvChange.ResetConnection.takeIf { resetPending })
+        val sink = OpenResultTracker(LeadingToken(response, EnvChange.ResetConnection.takeIf { resetPending }))
         resetPending = false
         active = run
         val end = try {
@@ -411,7 +412,7 @@ internal class RequestLoop(
             active = null
         }
         queryOutcome = end.spanOutcome()
-        return conclusion.conclude(end, reply, form, onOutcome)
+        return conclusion.conclude(end, reply, form, sink.open, onOutcome)
     }
 }
 

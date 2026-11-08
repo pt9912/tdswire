@@ -94,10 +94,11 @@ internal class RequestWiringTest : RuntimeTestBase() {
     }
 
     /**
-     * Die Batch-Freigabe mit einem Handle, das die Sitzung nicht hält, ergibt am Socket ERROR 8179 (Class 16, State 8)
-     * und DONE mit Fehlerstatus, ohne das Backend zu rufen, und genau ein Ereignis `REQUEST_FAILED` mit dem Code
-     * `TDS_SIM_UNKNOWN_PREPARED_HANDLE`; die Verbindung bleibt offen und beantwortet die nächste Anfrage. Wächter: eine
-     * Nummer außerhalb der Ereignisabbildung, ein Backend-Aufruf, ein Verbindungsende.
+     * Die Batch-Freigabe mit einem Handle, das die Sitzung nicht hält, ergibt am Socket ERROR 8179 (Class 16, State
+     * 8), RETURNSTATUS 8179 und DONEPROC mit Fehlerstatus (Befehl `0x00e0`), ohne das Backend zu rufen, und genau ein
+     * Ereignis `REQUEST_FAILED` mit dem Code `TDS_SIM_UNKNOWN_PREPARED_HANDLE`; die Verbindung bleibt offen und
+     * beantwortet die nächste Anfrage. Wächter: eine Nummer außerhalb der Ereignisabbildung, ein Backend-Aufruf, ein
+     * Verbindungsende.
      *
      * @spec SPEC-060
      * @spec SPEC-059
@@ -116,7 +117,7 @@ internal class RequestWiringTest : RuntimeTestBase() {
                 ServerMessage(8179, 8, 16, "Could not find prepared statement with handle 99."),
                 tokens.filterIsInstance<ErrorToken>().single().message,
             )
-            assertTrue(reply.payload.toHex().endsWith(BatchVectors.DONE_ERROR))
+            assertTrue(reply.payload.toHex().endsWith("79 F3 1F 00 00 FE 02 00 E0 00 00 00 00 00 00 00 00 00"))
             client.send(batch("select 1"))
             assertTrue(assertNotNull(client.readMessage()).payload.toHex().endsWith(BatchVectors.DONE_COUNT_1))
         }

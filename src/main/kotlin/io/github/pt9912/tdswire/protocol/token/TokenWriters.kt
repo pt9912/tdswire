@@ -21,6 +21,12 @@ internal object TokenWriters {
     private const val MAX_SHORT = 0xFFFF
     private const val MAX_COLUMNS = 0xFFFE
 
+    /**
+     * Das Flag-Feld jedes RETURNVALUE ist `0x0000`, auch für den NULL-fähigen Typ eines Ausgabewerts des Backends
+     * (Messprotokoll A-20 und M-24: zehn Typen, mit Wert, NULL und ohne Zuweisung, je Instanz 2022 und 2025).
+     */
+    private const val RETURN_VALUE_FLAGS = 0x0000
+
     fun write(out: ByteWriter, token: Token, columns: List<ColumnDef>?) {
         when (token) {
             is LoginAck -> LoginTokenWriters.writeLoginAck(out, token)
@@ -85,7 +91,7 @@ internal object TokenWriters {
         out.bVarchar(token.name, "Parametername")
         out.u8(token.status)
         out.i32Le(token.column.userType)
-        out.u16Le(TypeInfoWriter.flags(token.column))
+        out.u16Le(RETURN_VALUE_FLAGS)
         TypeInfoWriter.writeTypeInfo(out, token.column)
         ValueWriter.write(out, token.column, token.value)
     }

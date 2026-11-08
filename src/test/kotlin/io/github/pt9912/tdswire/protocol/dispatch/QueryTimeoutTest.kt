@@ -95,8 +95,9 @@ class QueryTimeoutTest {
 
     /**
      * Läuft die Frist ab, nachdem das Ergebnis begonnen hat, hängen ERROR und DONE mit Fehlerstatus an die schon
-     * gesendeten Tokens: COLMETADATA, ROW, ERROR, DONE. Ein zurückgehaltener Abschluss entfällt, und es gibt kein
-     * `DONE[ATTN]`.
+     * gesendeten Tokens: COLMETADATA, ROW, ERROR, DONE. Das DONE trägt die Befehlskennung `0x00c1` (offenes Ergebnis,
+     * Messprotokoll W-6); ein zurückgehaltener Abschluss entfällt, und es gibt kein `DONE[ATTN]`. Wächter: die Kennung
+     * `0x00fd` des Fehlers ohne offenes Ergebnis.
      *
      * @spec SPEC-016
      * @spec SPEC-031
@@ -119,7 +120,40 @@ class QueryTimeoutTest {
         )
         assertEquals(timeoutMessage, tokens.errorMessage())
         assertEquals(DoneStatus.ERROR, tokens.lastDone().status)
+        assertTrue(session.hex(0).endsWith(BatchVectors.DONE_ERROR_OPEN), session.hex(0))
         assertEquals(1, backend.cancelled.size)
+    }
+
+    /**
+     * Läuft die Frist ab, nachdem ein Ergebnis abgeschlossen ist (sein DONE ist geschrieben, weil die nächste Anweisung
+     * begonnen hat), trägt das DONE des Fehlers die Befehlskennung `0x00fd` des Fehlers ohne offenes Ergebnis. Wächter:
+     * eine Kennung `0x00c1`, die nur davon abhängt, dass irgendwann ein COLMETADATA geschrieben wurde.
+     *
+     * @spec SPEC-016
+     * @spec SPEC-031
+     */
+    @Test
+    fun `Die Frist nach einem abgeschlossenen Ergebnis traegt die Kennung ohne offenes Ergebnis`() = blocking {
+        val pause = SteeredPause()
+        val backend = FlowBackend(
+            suspendedAfter(
+                CompletableDeferred(),
+                resultStart(),
+                QueryEvent.Row(listOf(7)),
+                QueryEvent.ResultEnd(1),
+                QueryEvent.UpdateCount(2),
+            ),
+        )
+        val session = Session.login(BatchVectors.message("slow"))
+        val serving = launch { session.serve(backend, times = timesOf(pause)) }
+        backend.collecting.await()
+        pause.awaitWaiting(30.seconds)
+        pause.fire(30.seconds)
+        session.channel.feed(Inbound.EndOfStream)
+        serving.join()
+        assertEquals(timeoutMessage, session.tokens(0).errorMessage())
+        assertTrue(session.hex(0).endsWith(BatchVectors.DONE_ERROR), session.hex(0))
+        assertTrue(session.hex(0).contains(BatchVectors.row(7) + " FD 11 00 C1 00 01 00"), session.hex(0))
     }
 
     /**

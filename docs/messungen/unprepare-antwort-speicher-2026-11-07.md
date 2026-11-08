@@ -39,3 +39,15 @@ Dieser Stand liegt nicht mehr im Repo (die Antwort wird gestreamt, Reihe b). Die
 | b8 | wie b7, lauter `1`, ohne die Option | 4 | drei erhalten die vollständige Antwort, eine endet mit `OutOfMemoryError` (`HANDLER_FAILED`, ohne Fehlerantwort), der Prozess lebt (ein Lauf) |
 
 Die Aussage reicht so weit: mit gestreamter Antwort besteht der Fall mit zwei gleichzeitigen Nachrichten von 16 MiB bei 256 MiB Heap (b1, b2); die Antwort ist nicht mehr der Engpass, die Grenze liegt bei den gleichzeitigen Anfragen dieser Größe (b4 bis b8: ein Batch aus Leerraum scheitert ebenso; mit der Option `-XX:+ExitOnOutOfMemoryError` des Image des Testservers endet bei vier Nachrichten in den Läufen von b7 der Prozess, nicht nur die Verbindungen; b4 bis b6 stammen aus der Messfassung außerhalb des Repos, b7 und b8 aus Proben ohne Test im Repo). Nicht gemessen: andere Heapgrößen, Verbindungszahlen zwischen den Reihen, `MAX_MESSAGE_BYTES` über 16 MiB, Last durch Anfragen anderer Art. Wer mehr gleichzeitige Verbindungen oder ein größeres `MAX_MESSAGE_BYTES` zulässt, bemisst den Heap für die Anfragen; die Antwort wächst mit der Zahl der Nummern, wird aber nicht gehalten.
+
+## Reihe b, Antwort mit RETURNSTATUS und DONEPROC je Nummer (Stand 2026-11-08)
+
+Die Antwort je Nummer wächst von 113 Byte (ERROR) auf 131 Byte (ERROR 113, RETURNSTATUS 5, DONEPROC 13), die Antwort auf 419 309 Nummern von 47 381 930 auf 54 929 479 Byte. Die Reihe wiederholt b2 bis b4 mit diesem Stand. Erzeuger: der Test `UnprepareLastProcessTest` im Repo für b9; b10 und b11 sind derselbe Test mit der Konstante `CONNECTIONS` gleich 3 und 4, diese Fassung liegt nicht im Repo (Größenordnung). Lauf: Gradle in Docker (Image der Stage `deps`, Init-Skript der Stage `test`), nicht `make test`; Serverprozess wie oben (Kind-JVM mit `-Xmx256m` und `-XX:+ExitOnOutOfMemoryError`); Load Average (1 Minute) 13, Einzelmessungen, ein Lauf je Zeile.
+
+| Nr. | Stand | Verbindungen | Ergebnis |
+|---|---|---|---|
+| b9 | Antwort gestreamt, 131 Byte je Nummer | 2, danach eine neue Verbindung | im Repo als Test: vollständige Antwort je Verbindung (54 929 479 Byte), Prozess lebt, die neue Verbindung wird beantwortet |
+| b10 | wie b9 | 3 | alle drei erhalten die vollständige Antwort, der Prozess lebt, die neue Verbindung wird beantwortet |
+| b11 | wie b9 | 4 | die Verbindung 0 ohne Antwort geschlossen, der Prozess endet mit `OutOfMemoryError` (`Terminating due to java.lang.OutOfMemoryError: Java heap space`) |
+
+Die Aussage der Reihe: mit der längeren Antwort besteht der Fall mit zwei gleichzeitigen Nachrichten von 16 MiB bei 256 MiB Heap (b9) und, in einem Lauf, der mit drei (b10); bei vier endete der Prozess in einem Lauf (b11). Das ist dasselbe Bild wie in b2 bis b4; ob die längere Antwort die Grenze verschiebt, zeigt ein Lauf je Zeile nicht. Nicht gemessen: Wiederholungen der Zeilen b10 und b11, andere Heapgrößen und die Zeit der Antwort.

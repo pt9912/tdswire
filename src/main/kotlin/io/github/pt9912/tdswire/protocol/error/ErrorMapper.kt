@@ -67,7 +67,7 @@ internal fun ErrorRule.message(handle: Int? = null): ServerMessage {
 internal class ErrorMapper(internal val log: ErrorLog = ErrorLog.NONE) {
     /**
      * Ein Fehler mit eigenem Code; [cause] ist eine feste Marke für das Log, nie ein Wert. Ein Code, dessen Text die
-     * Nummer eines Handles nennt ([ErrorRule.namesHandle]), hat eine eigene Antwort ([unknownHandles]).
+     * Nummer eines Handles nennt ([ErrorRule.namesHandle]), hat eine eigene Antwort ([releaseAnswer]).
      */
     fun code(
         code: ErrorCode,

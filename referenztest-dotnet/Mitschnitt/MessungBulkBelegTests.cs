@@ -395,6 +395,8 @@ public class MessungBulkBelegTests
         Assert.Equal("DONEPROC Status -, Befehl 0x00e0, Zeilen -", F(stufe, "zusatz-unprepare-curcmd/04/done"));
         Assert.Equal("DONEPROC Status ERROR, Befehl 0x00e0, Zeilen -", F(stufe, "zusatz-unprepare-curcmd/05/done"));
         Assert.Equal("RETURNSTATUS 8179", F(stufe, "zusatz-unprepare-curcmd/05/rueckgabe"));
+        Assert.Equal("ERROR RETURNSTATUS DONEPROC", F(stufe, "zusatz-unprepare-curcmd/05/tokenfolge"));
+        Assert.Equal("RETURNSTATUS DONEPROC RETURNSTATUS DONEPROC", F(stufe, "zusatz-unprepare-curcmd/08/tokenfolge"));
         Assert.Equal("DONEPROC Status MORE, Befehl 0x00e0, Zeilen - ; DONEPROC Status -, Befehl 0x00e0, Zeilen -", F(stufe, "zusatz-unprepare-curcmd/08/done"));
     }
 

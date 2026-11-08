@@ -2,6 +2,7 @@ package io.github.pt9912.tdswire.protocol.response
 
 import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.domain.QueryRequest
+import io.github.pt9912.tdswire.domain.StatementKind
 import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.protocol.token.DoneCommand
 import io.github.pt9912.tdswire.protocol.token.ServerMessage
@@ -120,11 +121,11 @@ internal enum class SequenceOutcome {
  *   (Festlegung des Implementers).
  * - Ein batch-abbrechendes [QueryEvent.Failure] beendet den Lauf; weitere Ereignisse werden nicht gelesen
  *   (Festlegung des Implementers). Ein Strom ohne Ereignis endet im Batch in einem DONE ohne Bits.
- * - `curCmd` folgt der Form des Ereignisses ([DoneCommand], Messprotokoll W-6): `ResultEnd` und ein Fehler bei
- *   offenem Ergebnis `0x00c1`, ein Fehler ohne offenes Ergebnis und ein Strom ohne Ereignis `0x00fd`, DONEPROC
- *   `0x00e0`. Wo die Form den Wert nicht festlegt (`UpdateCount`: INSERT, UPDATE und DELETE), steht 0, weil der Port
- *   die Art der Anweisung nicht trägt. Die Zeilenzahl steht mit dem Bit `COUNT`, wenn das Ereignis eine Zahl trägt,
- *   sonst steht 0 ohne das Bit (Festlegung des Implementers).
+ * - `curCmd` folgt der Form des Ereignisses und der Art des Änderungszählers ([DoneCommand], Messprotokoll W-6):
+ *   `ResultEnd` und ein Fehler bei offenem Ergebnis `0x00c1`, ein Fehler ohne offenes Ergebnis und ein Strom ohne
+ *   Ereignis `0x00fd`, DONEPROC `0x00e0`; `UpdateCount` trägt die Kennung seiner [StatementKind] (INSERT `0x00c3`,
+ *   DELETE `0x00c4`, UPDATE `0x00c5`) und bei `UNKNOWN` die Kennung 0. Die Zeilenzahl steht mit dem Bit `COUNT`, wenn
+ *   das Ereignis eine Zahl trägt, sonst steht 0 ohne das Bit (Festlegung des Implementers).
  * - „Ausnahme“ heißt jedes `Throwable` außer einer [CancellationException]; die Ausnahme geht an
  *   [ErrorMapping.internal]. Eine [CancellationException] läuft aus `execute()` wie aus dem Strom
  *   nach außen, auch wenn die Coroutine nicht abgebrochen ist (etwa ein Zeitlimit im Backend).

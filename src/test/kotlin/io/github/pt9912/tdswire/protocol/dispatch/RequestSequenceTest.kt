@@ -80,7 +80,7 @@ class RequestSequenceTest {
      */
     private val outputReply = listOf(
         "79 00 00 00 00",
-        "AC 03 00 02 40 00 6F 00 01 00 00 00 00 01 00 26 04 04 2A 00 00 00",
+        "AC 03 00 02 40 00 6F 00 01 00 00 00 00 00 00 26 04 04 2A 00 00 00",
         doneProcFinal,
     ).joinToString(" ")
 
