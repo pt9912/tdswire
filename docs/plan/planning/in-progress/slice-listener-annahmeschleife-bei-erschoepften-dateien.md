@@ -87,7 +87,8 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `src/main/kotlin/io/github/pt9912/tdswire/transport/listener/TdsListener.kt` | update | `acceptOne` und der `failed`-Callback: Annahmeschleife übersteht erschöpftes Limit (Weg: Architect) |
+| `src/main/kotlin/io/github/pt9912/tdswire/transport/listener/TdsListener.kt` | update | `acceptOne` und der `failed`-Callback: Annahmeschleife übersteht erschöpftes Limit: `prepareExhaustion` baut Werte der Klassen des `failed`-Pfads und des Lesepfads (`ChannelResult`) vor dem ersten Annehmen |
+| `src/main/kotlin/io/github/pt9912/tdswire/runtime/TelemetryEvents.kt` · `src/main/kotlin/io/github/pt9912/tdswire/runtime/Bootstrap.kt` | update | Weg A nach [ADR-0043](../../adr/0043-annahmeschleife-bei-erschoepftem-dateilimit.md): `prepareAcceptFailure` baut die Ereignisse des Annahmefehlers einmal (Klassen des Weges bis zum Ereignis), `Bootstrap` ruft es vor dem Start des Listeners |
 | `src/test/kotlin/io/github/pt9912/tdswire/runtime/AcceptChild.kt` | update | Kind-JVM ohne Vorladen oder mit begründetem Vorladen, nach [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität) (Negative: Limit erschöpft) |
 | `src/test/kotlin/io/github/pt9912/tdswire/runtime/TelemetryWiringTest.kt` | update | Test des Wiederannehmens ohne Vorladen |
 | `spec/spezifikation.md` Abschnitt 4 | update | Satz zu `ACCEPT_FAILED` mit gemessener Bedingung |

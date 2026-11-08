@@ -25,6 +25,7 @@ import io.github.pt9912.tdswire.protocol.session.LoginRejection
 import io.github.pt9912.tdswire.transport.listener.ConnectionEnd
 import io.github.pt9912.tdswire.transport.listener.ListenerEvent
 import io.github.pt9912.tdswire.transport.tls.TlsPath
+import java.io.IOException
 import java.time.Instant
 
 /**
@@ -62,6 +63,17 @@ internal fun ListenerEvent.toEvent(at: Instant): TelemetryEvent? = when (this) {
     is ListenerEvent.AcceptFailed -> AcceptFailed(at, failure)
 
     is ListenerEvent.Accepted -> null
+}
+
+/**
+ * Bereitet den Weg des Annahmefehlers von [ListenerEvent.AcceptFailed] bis zum Ereignis vor (`ADR-0043`): ist das
+ * Limit offener Dateien erschöpft, kann die JVM keine Klassendatei mehr öffnen, und eine beim Fehler erstmals
+ * benötigte Klasse endet mit `NoClassDefFoundError`. Der Aufruf baut die Ereignisse einmal und lädt ihre Klassen;
+ * nichts davon erreicht die Senke.
+ */
+internal fun prepareAcceptFailure() {
+    val event = ListenerEvent.AcceptFailed(IOException::class.java.name)
+    check(event.toEvent(Instant.EPOCH) != null && event.toStateEvent(Instant.EPOCH) == null)
 }
 
 /**

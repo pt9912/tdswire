@@ -1,5 +1,8 @@
 package io.github.pt9912.tdswire.transport.listener
 
+import io.github.pt9912.tdswire.transport.channel.ChannelError
+import io.github.pt9912.tdswire.transport.channel.ChannelFailure
+import io.github.pt9912.tdswire.transport.channel.ChannelResult
 import io.github.pt9912.tdswire.transport.channel.SocketChannelAdapter
 import io.github.pt9912.tdswire.transport.tls.ProbeResult
 import io.github.pt9912.tdswire.transport.tls.TlsStartProbe
@@ -196,6 +199,7 @@ internal class TdsListener private constructor(
         ): StartResult {
             var ready = false
             try {
+                prepareExhaustion()
                 val listener = TdsListener(server, io, setup)
                 listener.launchAcceptLoop()
                 ready = true
@@ -206,6 +210,21 @@ internal class TdsListener private constructor(
                     io.stop()
                 }
             }
+        }
+
+        /**
+         * Bereitet die Pfade vor, die unter erschöpftem Limit offener Dateien laufen (`ADR-0043`): die JVM kann dann
+         * keine Klassendatei mehr öffnen, und eine dort erstmals benötigte Klasse endet mit `NoClassDefFoundError`.
+         * Das trifft den `failed`-Callback von [acceptOne] (die Annahmeschleife stünde) und das Ende einer Verbindung
+         * im Lesepfad ([ChannelResult]; sie gäbe ihre Datei nicht frei, und die Annahme bliebe erschöpft). Der Aufruf
+         * baut je einen Wert dieser Klassen und lädt sie damit. Die Klassen des Embedders (die Senke) liegen
+         * außerhalb.
+         */
+        private fun prepareExhaustion() {
+            val name = IOException::class.java.name
+            val failed = ChannelResult.Failed(ChannelError(ChannelFailure.IO_FAILURE, name))
+            check(Accept.Failed(name).failure == name && ListenerEvent.AcceptFailed(name).failure == name)
+            check(ChannelResult.Ok(0).value == 0 && failed.error.detail == name)
         }
 
         private fun open(config: ListenerConfig, group: AsynchronousChannelGroup): Bound = try {
