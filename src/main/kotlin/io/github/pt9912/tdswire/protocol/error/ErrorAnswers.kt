@@ -1,6 +1,8 @@
 package io.github.pt9912.tdswire.protocol.error
 
+import io.github.pt9912.tdswire.protocol.response.ResponseForm
 import io.github.pt9912.tdswire.protocol.response.TokenSink
+import io.github.pt9912.tdswire.protocol.response.errorAnswer
 import io.github.pt9912.tdswire.protocol.token.DoneCommand
 import io.github.pt9912.tdswire.protocol.token.DoneKind
 import io.github.pt9912.tdswire.protocol.token.DoneStatus
@@ -10,6 +12,8 @@ import io.github.pt9912.tdswire.protocol.token.ReturnStatusToken
 import io.github.pt9912.tdswire.protocol.token.Token
 import io.github.pt9912.tdswire.protocol.token.TokenEncoder
 import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
+import io.github.pt9912.tdswire.transport.framing.PacketType
+import io.github.pt9912.tdswire.transport.framing.TdsMessage
 import java.util.BitSet
 
 /** Die Bytes von [tokens] als Tokenstrom. */
@@ -17,6 +21,19 @@ internal fun encodeTokens(tokens: List<Token>): ByteArray {
     val encoder = TokenEncoder()
     tokens.forEach { check(encoder.write(it) is ProtocolResult.Ok) { "Fehlerantwort nicht schreibbar" } }
     return encoder.toByteArray()
+}
+
+/**
+ * `sp_execute` mit einem Handle, das die Sitzung nicht hält (`SPEC-057`): ERROR 8179 mit State
+ * [STATE_EXECUTE_UNKNOWN_HANDLE] und der Nummer des Handles im Text, in der Form RPC; [cause] ist die feste Marke für
+ * das Log. Die Verbindung bleibt offen.
+ */
+internal fun ErrorMapper.executeUnknownHandle(handle: Int, cause: String): ErrorResponse {
+    val code = ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE
+    log.record(ErrorLogEntry(code, cause))
+    val message = code.rule.message(handle, STATE_EXECUTE_UNKNOWN_HANDLE)
+    val answer = TdsMessage(PacketType.TABULAR_RESULT, encodeTokens(errorAnswer(ResponseForm.RPC, listOf(message))))
+    return ErrorResponse(code, answer, code.rule.fate)
 }
 
 /**

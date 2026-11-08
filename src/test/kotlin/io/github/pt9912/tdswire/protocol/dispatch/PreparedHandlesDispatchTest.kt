@@ -17,6 +17,7 @@ import io.github.pt9912.tdswire.protocol.error.ErrorLogEntry
 import io.github.pt9912.tdswire.protocol.error.ErrorMapper
 import io.github.pt9912.tdswire.protocol.session.Inbound
 import io.github.pt9912.tdswire.protocol.token.DoneStatus
+import io.github.pt9912.tdswire.protocol.token.ReturnStatusToken
 import io.github.pt9912.tdswire.protocol.token.ReturnValueToken
 import io.github.pt9912.tdswire.protocol.token.ServerMessage
 import io.github.pt9912.tdswire.testsupport.blocking
@@ -72,7 +73,9 @@ class PreparedHandlesDispatchTest {
 
     private fun rpc(payload: ByteArray) = BatchVectors.raw(PacketType.RPC, payload)
 
-    private val unknownHandle = ServerMessage(50009, 1, 16, "Unknown prepared handle.")
+    /** Die Meldung für `sp_execute` mit unbekanntem Handle (gemessen: M-6, State 4). */
+    private fun unknownHandle(handle: Int) =
+        ServerMessage(8179, 4, 16, "Could not find prepared statement with handle $handle.")
     private val limitReached = ServerMessage(50010, 1, 16, "Prepared handle limit reached.")
     private val unsupportedRpc = ServerMessage(50002, 1, 16, "Unsupported RPC.")
 
@@ -228,11 +231,12 @@ class PreparedHandlesDispatchTest {
     }
 
     /**
-     * Ein Handle, das die Sitzung nicht hält (nie vergeben, −1, 0, über der Zählung), ergibt ERROR
-     * `TDS_UNKNOWN_HANDLE` (50009, Class 16) und DONE mit Fehlerstatus, ohne das Backend zu rufen; die
+     * Ein Handle, das die Sitzung nicht hält (nie vergeben, −1, 0, über der Zählung), ergibt ERROR 8179 (Class 16,
+     * State 4, Text mit der Nummer), RETURNSTATUS 8179 und DONEPROC mit Fehlerstatus, ohne das Backend zu rufen; die
      * Verbindung bleibt offen, ein gehaltenes Handle und der Folge-RPC werden beantwortet. Das Log nennt die
-     * feste Marke `unknown-handle`. Wächter: ein Backend-Aufruf, ein Verbindungsende, ein Handle, das nach dem
-     * Fehler verloren ist.
+     * feste Marke `unknown-handle`. Nummer, Class, State und Text sind gemessen (M-6, Handle 999999); RETURNSTATUS
+     * und die leeren Felder des ERROR sind Setzung. Wächter: ein Backend-Aufruf, ein Verbindungsende, ein Handle,
+     * das nach dem Fehler verloren ist, 50009 oder State 1 oder 8 statt State 4, ein Text ohne die Nummer.
      *
      * @spec SPEC-057
      * @spec SPEC-030
@@ -252,14 +256,16 @@ class PreparedHandlesDispatchTest {
         val logged = mutableListOf<ErrorLogEntry>()
         session.serve(backend, ErrorMapper(ErrorLog { logged += it }))
         assertEquals(5, session.replies.size)
+        val unknownNumbers = listOf(2, -1, 0)
         (1..3).forEach {
-            assertEquals(unknownHandle, session.tokens(it).errorMessage(), "$it")
+            assertEquals(unknownHandle(unknownNumbers[it - 1]), session.tokens(it).errorMessage(), "$it")
             assertEquals(DoneStatus.ERROR, session.tokens(it).lastDone().status, "$it")
-            assertEquals(2, session.tokens(it).size, "$it")
+            assertEquals(3, session.tokens(it).size, "$it")
+            assertEquals(ReturnStatusToken(8179), session.tokens(it)[1], "$it")
         }
         assertEquals(oneRowReply, session.hex(4))
         assertEquals(2, backend.requests.size)
-        assertEquals(List(3) { ErrorLogEntry(ErrorCode.TDS_UNKNOWN_HANDLE, "unknown-handle") }, logged)
+        assertEquals(List(3) { ErrorLogEntry(ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE, "unknown-handle") }, logged)
         assertTrue(session.channel.exhausted)
     }
 
@@ -291,7 +297,7 @@ class PreparedHandlesDispatchTest {
 
     /**
      * Endet die Antwort eines `sp_prepexec` nicht vollständig (Fehler des Backends), erreicht den Client kein
-     * Handle: die Sitzung hält es nicht (`sp_execute` ergibt `TDS_UNKNOWN_HANDLE`), und das nächste
+     * Handle: die Sitzung hält es nicht (`sp_execute` ergibt 8179 mit State 4), und das nächste
      * `sp_prepexec` bekommt den nächsten Wert. Eine Nachricht, die schon das Binden ablehnt (Parametertyp
      * außerhalb des Katalogs), vergibt keinen Wert. Wächter: ein Handle, das nach dem Fehler gehalten bleibt;
      * ein Handle vor dem Binden.
@@ -315,7 +321,7 @@ class PreparedHandlesDispatchTest {
         session.serve(backend)
         assertEquals(4, session.replies.size)
         assertEquals(ServerMessage(50004, 1, 16, "Backend error."), session.tokens(0).errorMessage())
-        assertEquals(unknownHandle, session.tokens(1).errorMessage())
+        assertEquals(unknownHandle(1), session.tokens(1).errorMessage())
         assertEquals(unsupportedRpc, session.tokens(2).errorMessage())
         assertEquals(prepReply(2), session.hex(3))
         assertEquals(listOf("select boom", "select 2"), backend.requests.map { it.sql })
@@ -391,7 +397,7 @@ class PreparedHandlesDispatchTest {
         assertEquals(0, loop.handles.size())
         val second = Session.login(rpc(execute(1)), Inbound.EndOfStream)
         second.serve(backend)
-        assertEquals(unknownHandle, second.tokens(0).errorMessage())
+        assertEquals(unknownHandle(1), second.tokens(0).errorMessage())
         assertEquals(2, backend.requests.size)
     }
 
@@ -420,7 +426,7 @@ class PreparedHandlesDispatchTest {
             Inbound.EndOfStream,
         )
         sessionB.serve(backendB)
-        assertEquals(unknownHandle, sessionB.tokens(0).errorMessage())
+        assertEquals(unknownHandle(1), sessionB.tokens(0).errorMessage())
         assertEquals(prepReply(1), sessionB.hex(1))
         assertEquals(listOf("select b", "select b"), backendB.requests.map { it.sql })
         assertEquals(1, loopA.handles.size())
@@ -446,6 +452,6 @@ class PreparedHandlesDispatchTest {
         )
         session.serve(backend)
         assertEquals(oneRowReply, session.hex(0))
-        assertEquals(unknownHandle, session.tokens(1).errorMessage())
+        assertEquals(unknownHandle(1), session.tokens(1).errorMessage())
     }
 }

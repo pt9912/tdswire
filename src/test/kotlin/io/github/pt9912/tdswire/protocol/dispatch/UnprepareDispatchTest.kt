@@ -30,6 +30,9 @@ import kotlin.time.Duration.Companion.seconds
 
 private const val NOT_FOUND = "Could not find prepared statement with handle"
 
+/** Die Marke des Log-Eintrags der Batch-Freigabe; `sp_execute` mit unbekanntem Handle trägt `unknown-handle`. */
+private const val RELEASE_CAUSE = "unknown-prepared-handle"
+
 private const val PROC_TAIL = "00 00 00 00 00 00 00 00 00"
 
 /** Eine gehaltene Nummer als letzte Anweisung: RETURNSTATUS 0, DONEPROC ohne Bits, Befehl `0x00e0` (M-23). */
@@ -67,7 +70,9 @@ class UnprepareDispatchTest {
 
     private fun Session.errors(index: Int) = tokens(index).filterIsInstance<ErrorToken>().map { it.message }
 
-    private val unknownHandle = ServerMessage(50009, 1, 16, "Unknown prepared handle.")
+    /** Die Meldung für `sp_execute` mit unbekanntem Handle (gemessen: M-6, State 4). */
+    private fun unknownHandle(handle: Int) =
+        ServerMessage(8179, 4, 16, "Could not find prepared statement with handle $handle.")
 
     /** RETURNVALUE des Handles (Handvektor wie in `PreparedHandlesDispatchTest`): Ordinal 0, ohne Namen, Flag-Feld 0 */
     private fun handleValue(handle: Int) = "AC 00 00 00 01 00 00 00 00 00 00 26 04 04 ${RpcWire.le(handle.toLong(), 4)}"
@@ -100,9 +105,9 @@ class UnprepareDispatchTest {
         loop.run()
         assertEquals(6, session.replies.size)
         assertEquals(hexOf("$HELD_MORE  $HELD_LAST"), session.hex(2))
-        assertTrue(logged.none { it.code == ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE }, "Eintrag ohne unbekannte")
-        assertEquals(unknownHandle, session.errors(3).single())
-        assertEquals(unknownHandle, session.errors(4).single())
+        assertTrue(logged.none { it.cause == RELEASE_CAUSE }, "Eintrag ohne unbekannte")
+        assertEquals(unknownHandle(1), session.errors(3).single())
+        assertEquals(unknownHandle(2), session.errors(4).single())
         assertEquals(listOf("select 1", "select 2", "select 3"), backend.requests.map { it.sql })
         assertTrue(session.hex(5).contains(handleValue(3)), "Handle 3 vergeben, nicht ein freigegebener Wert")
         assertTrue(session.channel.exhausted)
@@ -154,11 +159,11 @@ class UnprepareDispatchTest {
             listOf("ResetConnection", "ErrorToken", "ReturnStatusToken", "DoneToken"),
             session.tokens(5).map { it::class.simpleName },
         )
-        assertEquals(unknownHandle, session.errors(6).single())
+        assertEquals(unknownHandle(2), session.errors(6).single())
         assertEquals(listOf("select 1", "select 2"), backend.requests.map { it.sql })
         assertEquals(
-            List(3) { ErrorLogEntry(ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE, "unknown-prepared-handle") },
-            logged.filter { it.code == ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE },
+            List(3) { ErrorLogEntry(ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE, RELEASE_CAUSE) },
+            logged.filter { it.cause == RELEASE_CAUSE },
         )
         assertTrue(session.channel.exhausted)
     }
@@ -197,13 +202,13 @@ class UnprepareDispatchTest {
         assertTrue(session.hex(3).startsWith(hexOf(HELD_MORE)), session.hex(3))
         assertTrue(session.hex(3).endsWith(hexOf(HELD_LAST)), session.hex(3))
         assertTrue(session.hex(3).contains(hexOf("79 F3 1F 00 00  FE 03 00 E0 $PROC_TAIL")), session.hex(3))
-        assertEquals(unknownHandle, session.errors(4).single())
-        assertEquals(unknownHandle, session.errors(5).single())
+        assertEquals(unknownHandle(1), session.errors(4).single())
+        assertEquals(unknownHandle(2), session.errors(5).single())
         assertTrue(session.errors(6).isEmpty())
         assertEquals(listOf(notFound(98), notFound(97)), session.errors(7))
         assertEquals(8, session.tokens(7).size)
         assertTrue(session.hex(7).endsWith(hexOf(UNKNOWN_LAST)), session.hex(7))
-        assertEquals(unknownHandle, session.errors(8).single())
+        assertEquals(unknownHandle(3), session.errors(8).single())
         assertEquals(4, backend.requests.size)
     }
 
@@ -231,7 +236,7 @@ class UnprepareDispatchTest {
         assertEquals(5, session.tokens(1).size)
         assertTrue(session.hex(1).startsWith(hexOf(HELD_MORE)), session.hex(1))
         assertTrue(session.hex(1).endsWith(hexOf(UNKNOWN_LAST)), session.hex(1))
-        assertEquals(unknownHandle, session.errors(2).single())
+        assertEquals(unknownHandle(1), session.errors(2).single())
         assertEquals(1, backend.requests.size)
     }
 
@@ -269,11 +274,11 @@ class UnprepareDispatchTest {
             assertTrue(dones.take(count).all { it.status == DoneStatus.MORE or DoneStatus.ERROR }, "$count Nummern")
             assertEquals(DoneStatus.FINAL, dones.last().status, "$count Nummern")
             assertTrue(session.hex(1).endsWith(hexOf(HELD_LAST)), "$count Nummern")
-            assertEquals(unknownHandle, session.errors(2).single(), "$count Nummern: Handle 1 frei")
+            assertEquals(unknownHandle(1), session.errors(2).single(), "$count Nummern: Handle 1 frei")
         }
         assertEquals(
-            List(counts.size) { ErrorLogEntry(ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE, "unknown-prepared-handle") },
-            logged.filter { it.code == ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE },
+            List(counts.size) { ErrorLogEntry(ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE, RELEASE_CAUSE) },
+            logged.filter { it.cause == RELEASE_CAUSE },
         )
     }
 
@@ -335,7 +340,7 @@ class UnprepareDispatchTest {
         assertEquals(ServerMessage(50002, 1, 16, "Unsupported RPC."), session.errors(1).single())
         assertTrue(session.errors(2).isEmpty())
         assertEquals(hexOf(HELD_LAST), session.hex(3))
-        assertEquals(unknownHandle, session.errors(4).single())
+        assertEquals(unknownHandle(1), session.errors(4).single())
     }
 
     /**
