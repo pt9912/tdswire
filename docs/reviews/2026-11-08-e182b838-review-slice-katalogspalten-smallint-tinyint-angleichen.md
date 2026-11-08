@@ -64,7 +64,7 @@ Nicht gefahren (Laufzeit, Last; meine eigenen Mutationen `TypeCode.INT2` auf `0x
 
 * kategorie: MEDIUM
 * quelle: [ADR-0041](../plan/adr/0041-spaltentypen-der-katalogantworten-ueber-internen-weg.md) Nr. 1; `AGENTS.md` §3.5; Reviewer-Skill „Fortschreibung lässt die zweite Fundstelle stehen“
-* pfad: `docs/plan/adr/0041-spaltentypen-der-katalogantworten-ueber-internen-weg.md` · „(Ganzzahl mit 16 Bit, Draht: `INTN` mit 2 Byte)“; `docs/plan/planning/in-progress/slice-katalogspalten-smallint-tinyint-angleichen.md` · „`SqlType.Int16` (Draht: `INTN` mit 2 Byte)“
+* pfad: `docs/plan/adr/0041-spaltentypen-der-katalogantworten-ueber-internen-weg.md` · „(Ganzzahl mit 16 Bit, Draht: `INTN` mit 2 Byte)“; `docs/plan/planning/done/slice-katalogspalten-smallint-tinyint-angleichen.md` · „`SqlType.Int16` (Draht: `INTN` mit 2 Byte)“
 * befund: Die ADR (Accepted) sagt für beide Mitglieder „Draht: `INTN`“; gebaut sind nicht nullbare Spalten als feste Typen INT2 (`0x34`) und INT1 (`0x30`), nullbare als `INTN` mit 2 und 1 Byte, weil die Aufnahme M-16 für `max_length`, `precision` und `scale` die festen Typen zeigt (selbst nachgelesen, beide Instanzen). Der Bau ist damit richtig gegenüber Messung und Zielbild und deckt sich mit der zweiten Klausel der Nr. 1 („Nullbarkeit wie bei `Int32`“, das ebenso fest/`INTN` führt); die Spezifikation (Rang 2, `SPEC-003`) trägt die Form ausdrücklich und nennt die nullbare Form „nicht gemessen“. Offen bleibt: die ADR bleibt wörtlich falsch (nicht umgeschrieben, `AGENTS.md` §3.5), kein Vermerk in der ADR-Kette, und im Slice stehen §1 Ziel und DoD-Punkt 1 weiter mit „Draht: `INTN`“; nur §3 trägt die Abweichung. Urteil zur Frage des Auftrags: inhaltlich genügt die Spezifikation als Zielbild; ob die Schärfung eine Folge-ADR ist oder ein Vermerk genügt, entscheidet der Architect.
 * verifizierbar: ja (Grep `INTN` in [ADR-0041](../plan/adr/0041-spaltentypen-der-katalogantworten-ueber-internen-weg.md) und im Slice gegen `TypeCode.INT1`/`INT2`)
 * klasse: Bau weicht vom Wortlaut einer Accepted-ADR ab
@@ -100,7 +100,7 @@ Nicht gefahren (Laufzeit, Last; meine eigenen Mutationen `TypeCode.INT2` auf `0x
 
 * kategorie: MEDIUM
 * quelle: Reviewer-Skill „Plan-Tabelle nennt die berührten Dateien nicht“
-* pfad: `docs/plan/planning/in-progress/slice-katalogspalten-smallint-tinyint-angleichen.md` · „**Berührte Spec-Stellen:** SPEC-003 (Mindestkatalog von `SqlType` wächst um `Int16` und `UInt8`)“; Tabelle „| Datei / Komponente | Änderungs-Art | Begründung |“
+* pfad: `docs/plan/planning/done/slice-katalogspalten-smallint-tinyint-angleichen.md` · „**Berührte Spec-Stellen:** SPEC-003 (Mindestkatalog von `SqlType` wächst um `Int16` und `UInt8`)“; Tabelle „| Datei / Komponente | Änderungs-Art | Begründung |“
 * befund: Abgleich gegen den Diff. Berührte Spec-Stelle ohne Eintrag im Kopf: `SPEC-002` (Absatz zu `SqlType` und JVM-Klassen; das Änderungsprotokoll der Spezifikation nennt sie). Berührte Dateien ohne Zeile: `docs/plan/planning/in-progress/roadmap.md` (Ruhe-Marker, Slice unter „In Arbeit“, Drift-Log-Link), die Links der `slice-mv` in vier `open/`-Slices, `welle-testserver-manuell.md`, dem Register-`state.md` und dem `done/`-Slice (reine Link-Nachzüge). Die Zeile mit `RpcOutputs` nennt eine Datei, die der Diff nicht berührt. Der Negativbefund „keine Datei darüber hinaus“ gilt erst nach diesem Abgleich.
 * verifizierbar: ja (`git diff --stat 6d75692a..HEAD` gegen die Tabelle)
 * klasse: Plan-Tabelle ohne berührte Datei
@@ -118,7 +118,7 @@ Nicht gefahren (Laufzeit, Last; meine eigenen Mutationen `TypeCode.INT2` auf `0x
 
 * kategorie: INFO
 * quelle: Reviewer-Skill „Haken vor der Verifikation gesetzt“
-* pfad: `docs/plan/planning/in-progress/slice-katalogspalten-smallint-tinyint-angleichen.md` · „**Der Nutzer entscheidet vor dem Bau:** (a) Nachmessung“
+* pfad: `docs/plan/planning/done/slice-katalogspalten-smallint-tinyint-angleichen.md` · „**Der Nutzer entscheidet vor dem Bau:** (a) Nachmessung“
 * befund: Haken: keiner gesetzt (`- [x]` zählt 0), also kein Verstoß. Der Wortlaut des dritten Liefer-Punkts („nicht gemessen, Nutzer entscheidet“, [ADR-0041](../plan/adr/0041-spaltentypen-der-katalogantworten-ueber-internen-weg.md) Nr. 2 ebenso) ist überholt: M-17 belegt `smallint` 2/5/0 und `tinyint` 1/3/0 (Theorie über beide Instanzen in `MessungBulkBelegTests`, vor diesem Slice vorhanden), `CatalogAnswers` nennt sie gemessen. Der Planner passt den Punkt an; die Messung braucht keine Nachmessung, `referenztest-dotnet` ist im Diff unberührt.
 * verifizierbar: nein
 * klasse: Plan-Wortlaut hinter der Messung
@@ -146,7 +146,7 @@ Nicht gefahren (Laufzeit, Last; meine eigenen Mutationen `TypeCode.INT2` auf `0x
 * kategorie: INFO
 * quelle: Maintainability
 * pfad: `git merge-tree --write-tree HEAD main` (Stand `66fee6c1`)
-* befund: Inhaltskonflikte in elf Dateien, keiner im Quelltext: `docs/messungen/referenzabgleich.md`, `docs/plan/planning/done/slice-katalog-und-struktur-an-messung-angleichen.md`, `docs/plan/planning/in-progress/roadmap.md`, `docs/plan/planning/in-progress/slice-katalogspalten-smallint-tinyint-angleichen.md`, das Register `…/katalog-strukturabweisung-und-aenderungszaehler-weichen-vom-echten-server-ab/state.md`, `open/slice-abnahme-d-migrate.md`, `open/slice-antwort-tokens-zielbild-luecken-bauen.md`, `open/slice-ddl-abschluss-und-transaktionszustand-angleichen.md`, `open/slice-katalog-indizes-defaults-fremdschluessel.md`, `welle-testserver-manuell.md`, `spec/spezifikation.md`. Der Quelltext von `main` ändert `TdsType.kt` und `TypeInfoWriter.kt` (Dezimalzahl mit Byteangabe) ohne Textkonflikt; ein Übersetzungs- und Testlauf der gemergten Fassung wurde nicht gefahren, die einzige neue Auswertung von `SqlType` auf `main` ist `BulkFixedType` (Erzeuger, `Int32`/`Int64`). Das Roadmap-Ruhezeichen „Nichts in Arbeit.“ steht auf `main` weiter und ist im Konflikt zu streichen, wie `main` es selbst vermerkt.
+* befund: Inhaltskonflikte in elf Dateien, keiner im Quelltext: `docs/messungen/referenzabgleich.md`, `docs/plan/planning/done/slice-katalog-und-struktur-an-messung-angleichen.md`, `docs/plan/planning/in-progress/roadmap.md`, `docs/plan/planning/done/slice-katalogspalten-smallint-tinyint-angleichen.md`, das Register `…/katalog-strukturabweisung-und-aenderungszaehler-weichen-vom-echten-server-ab/state.md`, `open/slice-abnahme-d-migrate.md`, `open/slice-antwort-tokens-zielbild-luecken-bauen.md`, `open/slice-ddl-abschluss-und-transaktionszustand-angleichen.md`, `open/slice-katalog-indizes-defaults-fremdschluessel.md`, `welle-testserver-manuell.md`, `spec/spezifikation.md`. Der Quelltext von `main` ändert `TdsType.kt` und `TypeInfoWriter.kt` (Dezimalzahl mit Byteangabe) ohne Textkonflikt; ein Übersetzungs- und Testlauf der gemergten Fassung wurde nicht gefahren, die einzige neue Auswertung von `SqlType` auf `main` ist `BulkFixedType` (Erzeuger, `Int32`/`Int64`). Das Roadmap-Ruhezeichen „Nichts in Arbeit.“ steht auf `main` weiter und ist im Konflikt zu streichen, wie `main` es selbst vermerkt.
 * verifizierbar: ja (`git merge-tree`)
 * klasse: Merge-Konflikte vor Übernahme
 

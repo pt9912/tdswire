@@ -139,7 +139,7 @@ Der Lauf ist gegen체ber dem Lauf unmittelbar davor **unver채ndert**; die R체ckf�
 `git merge-tree --write-tree --name-only HEAD main` mit `main` = `95e89d05` (zum Zeitpunkt der Probe; enth채lt den Merge von `slice-sp-unprepare-ohne-obergrenze`): **f체nf Inhaltskonflikte, alle in Dokumenten, keiner in Quelltext oder Spezifikation:**
 
 1. `docs/plan/planning/in-progress/roadmap.md`
-2. `docs/plan/planning/in-progress/slice-katalogspalten-smallint-tinyint-angleichen.md`
+2. `docs/plan/planning/done/slice-katalogspalten-smallint-tinyint-angleichen.md`
 3. `docs/plan/planning/open/slice-abnahme-d-migrate.md`
 4. `docs/plan/planning/open/slice-antwort-tokens-zielbild-luecken-bauen.md`
 5. `docs/plan/planning/welle-testserver-manuell.md`
