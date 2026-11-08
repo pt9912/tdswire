@@ -17,9 +17,8 @@ internal data class CatalogType(val typeName: String, val maxLength: Int, val pr
  *
  * Der Server meldet `max_length` in Byte: ein `nvarchar(n)` hat `2 * n` (Setzung, am Server nicht gemessen; gemessen
  * ist der Lauf mit d-migrate, der 4000 Zeichen als `max_length: 4000` liest). Die Typen und Maße von `bigint`, `bit`,
- * `time` und `datetime2` sind Setzung nach dem Handbuch des Servers (Skala der Zeittypen 7, `SPEC-003` offen). Die Maße
- * von `smallint` (2 Byte, Precision 5, Skala 0) und `tinyint` (1, 3, 0) sind am Referenzclient gemessen (M-17 des
- * Referenzabgleichs, beide Instanzen).
+ * `time` und `datetime2` (Skala der Zeittypen 7) sowie die Maße von `smallint` (2 Byte, Precision 5, Skala 0) und
+ * `tinyint` (1, 3, 0) sind am Referenzclient gemessen (M-17 des Referenzabgleichs, beide Instanzen).
  */
 internal object CatalogAnswers {
     private const val DEFAULT_COLLATION = "SQL_Latin1_General_CP1_CI_AS"

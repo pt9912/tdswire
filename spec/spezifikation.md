@@ -451,7 +451,10 @@ verifizieren.
 - `UInt8` und `Int16` sind `tinyint` (INT1, `0x30`) und `smallint` (INT2, `0x34`) in der festen Form; eine nullbare
   Spalte trägt INTN mit 1 und 2 Byte, wie `Int32` und `Int64` (Setzung nach der Form der Antwortspalten des Katalogs,
   gemessen in M-16: `max_length` ist `smallint` und nicht nullbar, `precision` und `scale` sind `tinyint`; die
-  nullbare Form von `smallint` und `tinyint` ist nicht gemessen).
+  nullbare Form von `smallint` und `tinyint` ist nicht gemessen). Die Entscheidung zu den Mitgliedern von `SqlType` (Titel
+  „Spaltentypen der Katalogantworten über den internen Weg“) nennt als Draht beider Mitglieder `INTN`; diese Spezifikation
+  schärft das auf die gemessene Form (fester Typ für die nicht nullbare Spalte, `INTN` für die nullbare), und sie gilt als
+  Zielbild vor dem Wortlaut jener Entscheidung.
 - Datum und Zeit sind ohne Zone: `LocalDate`, `LocalTime` und `LocalDateTime` werden wie geliefert
   abgebildet, ohne Zeitzonenumrechnung; Werte mit Zone (`Instant`, `OffsetDateTime`, `ZonedDateTime`)
   sind nicht im Mindestkatalog und enden in `TDS_UNSUPPORTED_TYPE`. `Time` und `DateTime` haben Scale 7
@@ -832,6 +835,13 @@ festgelegt sind; die Überführung der Werte, das Lesen der Zeilenquelle und die
   in einer `Int32`-Spalte im Wertebereich (d-migrate sendet jede Ganzzahl als `bigint`; der echte Server nimmt `MERGE` mit einem
   `bigint`-Parameter in einer `int`-Spalte an, Messprotokoll der Referenzabgleiche M-29) und ein `DateTime`-Parameter in einer
   `Time`-Spalte mit seiner Uhrzeit (mssql-jdbc sendet die Zeit einer `time`-Spalte als `datetime` mit dem Datum 1970-01-01, M-31).
+  Für `Int16` (−32768 bis 32767) und `UInt8` (0 bis 255) gilt: ein Zahlenliteral im Wertebereich gilt, darüber und darunter
+  ist es ungültig (kein Abschneiden); ein Parameter gilt nur gleichen Typs und im Wertebereich. Ein Client kann keinen
+  Parameter mit 1 oder 2 Byte schicken (er ist `TDS_UNSUPPORTED_RPC`), und ein `Int32`- oder `Int64`-Parameter ist für
+  eine `Int16`- oder `UInt8`-Spalte ungültig (Wächtertest „Int32 in Int16“ in `SimValuesTest`). Eine solche Spalte gibt es
+  nur über eine programmatische `SimTable` und nimmt über `INSERT`, `UPDATE` und `WHERE` mit Parameter keinen Wert an.
+  Abweichung vom Zielbild: der echte Server konvertiert einen `int`-Parameter in eine `smallint`-Spalte mit Bereichsprüfung
+  (nicht in diesem Repo gemessen, Aussage nur nach dem Handbuch des Servers); dieses Backend tut es nicht.
   Überlauf
   (Int32, Int64, Stellen der Dezimalzahl) ist immer `TDS_SIM_INVALID_VALUE`. Dezimalwerte werden mit
   `compareTo` verglichen (1.0 gleich 1.00), Textwerte ohne Beachtung der Groß-/Kleinschreibung
@@ -851,7 +861,7 @@ festgelegt sind; die Überführung der Werte, das Lesen der Zeilenquelle und die
   Spikes, Tabelle (iii) und Messprotokoll des Massenladens): der Wert aus `0x07` hat die JVM-Klasse des Typs, den der
   Client in COLMETADATA nennt. `Int` und `Long` gelten in einer `Int32`-Spalte, wenn sie in deren Wertebereich passen (der
   Treiber sendet auch `INT`-Werte mit 8 Byte; die Verengung ist die einzige Abweichung von „verlustfrei erweitern“), in
-  `Int64` immer; `Boolean` in `Bool`, die Zahlen `0` und `1` ebenso; `BigDecimal`, `Int` und `Long` in `Decimal`, wenn sie ohne
+  `Int64` immer, in `Int16` und `UInt8` wie in `Int32` nur im jeweiligen Wertebereich (Setzung); `Boolean` in `Bool`, die Zahlen `0` und `1` ebenso; `BigDecimal`, `Int` und `Long` in `Decimal`, wenn sie ohne
   Rundung und Überlauf in Precision und Skala passen; ein Text in `UnicodeText` und, im ISO-Format (der Zeitpunkt auch mit
   Leerzeichen), in `Date`, `Time` und `DateTime` (so sendet der Treiber sie, als `VARCHAR`); ein Datum, eine Zeit und ein
   Zeitpunkt in die Spalte ihres Typs. Jede andere Paarung und jeder Wert, der nicht passt, ist `TDS_SIM_INVALID_VALUE`, bevor
@@ -1929,4 +1939,4 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | 2026-11-07 | Abschluss der Antwort auf eine RPC-Nachricht, die der Parser abweist: Trennlinie als Festlegung geführt (Struktur- und Kodierfehler enden auf ERROR und DONE, Fehler nach dem Erkennen der Prozedur auf DONEPROC; Mehrfach-RPC auf der Seite ERROR und DONE; Setzung des Nutzers, nicht gemessen; `SPEC-030`) |
 | 2026-11-07 | `MERGE … OUTPUT $action` des Simulations-Backends (`TDS-FA-11`, `TDS-FA-12`): Form M in `SPEC-036` (Wortlaut von d-migrate 1.12.0 am echten SQL Server gemessen, Messprotokoll der Referenzabgleiche M-25 bis M-32), `OUTPUT $action` verlässt die Liste „Nicht erkannt“, Zerlegung in Lesen und einen Callback (`SPEC-035`), ein `Int64`-Parameter gilt in einer `Int32`-Spalte im Wertebereich (`SPEC-035`), `onUpdate` im Bestand des Testservers; `SPEC-030`: `DECIMALN` mit kurzem Wert (2 bis 17 Byte) und `DATETIMN` mit 8 Byte als Zeitpunkt werden gelesen (M-31, M-32), `DATETIMN` mit 4 Byte bleibt abgewiesen; `SPEC-036`: eine Sperre je Backend (Nicht-Reentranz, hängender Callback) und die Parametertypen der Form M; kein neuer öffentlicher Name (`SPEC-059`); nicht gebaut (Abweichung vom Messbefund): Länge 10 von `$action` (M-26), Befehl `0x0117` des Abschlusses (M-26) und die Fehlernummern 2628, 2627 und 208 (M-15); Grenze: Bruchteile einer Sekunde in einer `time`-Spalte (`SPEC-036`) |
 | 2026-11-07 | Zustandsereignisse gebaut (`TDS-FA-09`): `EventKind` um `CONFIG_EFFECTIVE`, `SERVER_STOPPING`, `CONNECTION_OPENED` und `CONNECTION_CLOSED` erweitert, `SERVER_STARTED` trägt die Bind-Adresse, `TelemetryEvent` das Feld `settings` (öffentliche Mitglieder, keine neuen Typen); `MAX_MESSAGE_BYTES` ist ein Schlüssel von `RequestSettings` und wirkt nach dem Login (`SPEC-007`), `MAX_TDS_PACKET_BYTES` bleibt Protokollkonstante ohne Schlüssel (`SPEC-006`) |
-| 2026-11-08 | Katalogspalten an die Messung angeglichen (`TDS-FA-11`, `TDS-FA-12`, `TDS-QA-01`, `SPEC-035` „Katalog der Spalten“, `SPEC-003`, `SPEC-002`): `SqlType` um die Mitglieder `Int16` (`smallint`) und `UInt8` (`tinyint`) erweitert, JVM-Klasse `Int` mit geprüftem Wertebereich; die Antwortspalten `max_length` (`smallint`), `precision` und `scale` (`tinyint`), `is_nullable` und `is_computed` (`BITN`) der Spaltenabfrage tragen die gemessenen Typen (M-16); die Liste der Namen in `SPEC-059` nennt beide. **Inkompatibel** für ein Kotlin-`when` ohne `else` über `SqlType` in fremdem Code: es übersetzt nicht mehr, bis es beide Mitglieder nennt (vor der ersten Veröffentlichung, Setzung) |
+| 2026-11-08 | Katalogspalten an die Messung angeglichen (`TDS-FA-11`, `TDS-FA-12`, `TDS-QA-01`, `SPEC-035` „Katalog der Spalten“, `SPEC-003`, `SPEC-002`): `SqlType` um die Mitglieder `Int16` (`smallint`) und `UInt8` (`tinyint`) erweitert, JVM-Klasse `Int` mit geprüftem Wertebereich; die Antwortspalten `max_length` (`smallint`), `precision` und `scale` (`tinyint`), `is_nullable` und `is_computed` (`BITN`) der Spaltenabfrage tragen die gemessenen Typen (M-16); die Liste der Namen in `SPEC-059` nennt beide. **Inkompatibel** für ein Kotlin-`when` ohne `else` über `SqlType` in fremdem Code: es übersetzt nicht mehr, bis es beide Mitglieder nennt (vor der ersten Veröffentlichung, Setzung). Klarstellung: Draht von `Int16` und `UInt8` ist der feste Typ (nicht nullbar, gemessen) und `INTN` (nullbar, nicht gemessen); Überführungsregeln für Zahlenliteral, Parameter und Massenladen in `SPEC-035` |
