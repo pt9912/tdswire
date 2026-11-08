@@ -36,7 +36,7 @@ Host: Lastmittel 14 bis 28 durch fremde Läufe (kein ruhiger Host), Einzelmessun
 
 **Liefer-Punkt 3, Doku: erfüllt mit einer Auslegungsfrage (Punkt 3 unten).**
 * Matrixzeile `sp_execute`: 8179/State 4, RETURNSTATUS, DONEPROC; Herkunftsspalte trennt gemessen (Nummer, Class, State, Text für 999999, offene Verbindung, M-7 freigegeben) von Setzung (RETURNSTATUS 8179, leere Felder, Text für andere Nummern, `RESETCONNECTION`).
-* `docs/messungen/referenzabgleich.md` M-6: der Hinweis „bleiben bis dahin unverändert“ ist durch die Einlösung über ADR-0045 ersetzt. Register-Stand fortgeschrieben (`state.md`), Roadmap und Wellendatei zeigen auf `in-progress/`.
+* `docs/messungen/referenzabgleich.md` M-6: der Hinweis „bleiben bis dahin unverändert“ ist durch die Einlösung über [ADR-0045](../plan/adr/0045-sp-execute-unbekanntes-handle-ergibt-fehler-8179-state-4.md) ersetzt. Register-Stand fortgeschrieben (`state.md`), Roadmap und Wellendatei zeigen auf `in-progress/`.
 
 **Nachweis-Pflichten.** `make gates` grün (FORCE=1, Exit 0). Review-Report liegt vor. Haken: keine gesetzt, richtig. Doku-Update öffentlicher Vertrag: Nutzer-Doku ja; `SPEC-059`: `make flaeche` Exit 0, kein öffentlicher Typ betroffen. Closure-Notiz, Register-Schluss, Risiko-Ausgänge §6 und Paarungen: noch nicht geschrieben, Sache des Planners (§7 steht auf „Wird bei der Closure gefüllt“).
 
@@ -50,7 +50,7 @@ Host: Lastmittel 14 bis 28 durch fremde Läufe (kein ruhiger Host), Einzelmessun
   * Code-KDoc (`ErrorCode.kt`): „Wortlaut für andere Handle-Nummern … als gleich gesetzt“; der Handvektor im `ErrorMapperTest` ist als Setzung dokumentiert. AGENTS.md §3.8 gehalten.
 * Eine kleine Unschärfe, nicht meldepflichtig: `SPEC-057` zitiert bei RETURNSTATUS die „Regel für SQL-Server-Nummern in `SPEC-030`“; sie steht in `SPEC-030`/„Fehler in der Antwort auf einen RPC“ und ist bestehend (Reviewer F, Punkt b).
 
-**(2) `TDS_UNKNOWN_HANDLE`/50009 nirgends mehr gesendet: bestätigt.** Grep `50009|TDS_UNKNOWN_HANDLE` über `src` (main, test, integrator), `testserver`, `referenztest-dotnet`, `tools`, `docs`, `spec`, `harness`, `config`, `README.md`, `AGENTS.md`: In Produktcode keine Fundstelle (nur `STATE_EXECUTE_UNKNOWN_HANDLE`, ein Namenstreffer). Verbleibend: zwei Wächter-Kommentare in Tests (nennen 50009 als Fehlerbild), `SPEC-057`-Schlusssatz und Änderungsprotokoll (Zusage „gibt es nicht mehr“), Messprotokoll, Slice-/Register-Texte, ADRs und Zeitdokumente in `done/` (nach AGENTS.md §3.5 und Zeitcharakter unberührt, auch ADR-0027 Zeile 39). `referenztest-dotnet/`, `testserver/`, `tools/`: keine Fundstelle; Risiko 4 des Slice damit „entfallen“. Die übrigen Treffer sind Hex-Zufallstreffer in Bulk-Mitschnitten.
+**(2) `TDS_UNKNOWN_HANDLE`/50009 nirgends mehr gesendet: bestätigt.** Grep `50009|TDS_UNKNOWN_HANDLE` über `src` (main, test, integrator), `testserver`, `referenztest-dotnet`, `tools`, `docs`, `spec`, `harness`, `config`, `README.md`, `AGENTS.md`: In Produktcode keine Fundstelle (nur `STATE_EXECUTE_UNKNOWN_HANDLE`, ein Namenstreffer). Verbleibend: zwei Wächter-Kommentare in Tests (nennen 50009 als Fehlerbild), `SPEC-057`-Schlusssatz und Änderungsprotokoll (Zusage „gibt es nicht mehr“), Messprotokoll, Slice-/Register-Texte, ADRs und Zeitdokumente in `done/` (nach AGENTS.md §3.5 und Zeitcharakter unberührt, auch [ADR-0027](../plan/adr/0027-abbruch-und-zuruecksetzen.md) Zeile 39). `referenztest-dotnet/`, `testserver/`, `tools/`: keine Fundstelle; Risiko 4 des Slice damit „entfallen“. Die übrigen Treffer sind Hex-Zufallstreffer in Bulk-Mitschnitten.
 
 **(3) Matrixzeile „Handle-Verwaltung je Sitzung“: nicht geändert, Auslegungsfrage für den Planner.** Die Zeile (Matrix Z. 101) trägt im Titel „unbekanntes Handle“, ihr Inhalt nennt aber weder Fehlernummer noch State noch ein Verhalten bei unbekanntem Handle (Grenze, Freigabe, Sitzungsende, Trennung der Sitzungen, abgelehnter RPC). Es gibt nichts, was falsch wäre; die Aussage steht in der Zeile `sp_execute`. Wörtlich erfüllt ist der DoD-Satz und die Zeile der ADR-Liste („Zeilen `sp_execute` und ‚Handle-Verwaltung je Sitzung‘ … führen 8179/State 4“) damit nicht; sachlich ist nichts offen. Der Implementer hat das in der Plan-Tabelle (§3) begründet (Reviewer F-1/F-5, behoben in `65d80508`). Mein Urteil: nicht ändern müssen; der Planner richtet bei der Closure entweder den DoD-Wortlaut auf „Zeile `sp_execute`“ aus oder erlaubt ausdrücklich den Verzicht (INFO). Der Planner entscheidet, ich setze nichts.
 
@@ -81,11 +81,11 @@ Keine Mutation blieb grün. Die Mutationen des Reviewers (M3, M7, M8, E1, E2) ha
 2. Tokenfolge und Felder sind Setzung: weiter offen als akzeptiertes Negativ der ADR (Offen 1), in Spec, Matrix, Nutzer-Doku, KDoc und Test gekennzeichnet.
 3. Wanduhr-Tests: in meinem `clean-build` und in `make e2e` kein Flake aufgetreten, auch `ListenerAbortTest` PASSED; kein Befund dieses Slice (Ausgang: nicht eingetreten).
 4. Client erwartet 50009: entfallen (keine Fundstelle).
-`RESETCONNECTION` am echten Server: weiter offen (ADR-0045 Offen 2), Setzung gekennzeichnet.
+`RESETCONNECTION` am echten Server: weiter offen ([ADR-0045](../plan/adr/0045-sp-execute-unbekanntes-handle-ergibt-fehler-8179-state-4.md) Offen 2), Setzung gekennzeichnet.
 
 ## Gesamturteil
 
-**Konform.** Alle drei Liefer-Punkte sind nach Beleg erfüllt; die Entscheidung (ADR-0045 Entscheidungen 1 bis 5) ist im Code, in der Spec, der Matrix und der Nutzer-Doku getragen; Messung und Setzung sind getrennt. Keine DoD-Verletzung, kein Plan-Abweichungs-Befund. Offen sind nur Planner-Aufgaben (Haken, Closure-Notiz, Auslegung Matrixzeile „Handle-Verwaltung“, Risiko-Ausgänge).
+**Konform.** Alle drei Liefer-Punkte sind nach Beleg erfüllt; die Entscheidung ([ADR-0045](../plan/adr/0045-sp-execute-unbekanntes-handle-ergibt-fehler-8179-state-4.md) Entscheidungen 1 bis 5) ist im Code, in der Spec, der Matrix und der Nutzer-Doku getragen; Messung und Setzung sind getrennt. Keine DoD-Verletzung, kein Plan-Abweichungs-Befund. Offen sind nur Planner-Aufgaben (Haken, Closure-Notiz, Auslegung Matrixzeile „Handle-Verwaltung“, Risiko-Ausgänge).
 
 ## Bedingungen für die Planner-Closure
 
