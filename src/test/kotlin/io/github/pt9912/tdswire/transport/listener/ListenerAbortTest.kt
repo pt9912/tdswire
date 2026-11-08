@@ -40,6 +40,9 @@ internal class ListenerAbortTest : ListenerTestBase() {
         val release = CompletableDeferred<Unit>()
         private val aborted = CompletableDeferred<Unit>()
 
+        /** Kehrt zurück, sobald der angemeldete Abbruch gelaufen ist und [aborts] ihn zählt. */
+        suspend fun awaitAborted() = aborted.await()
+
         override suspend fun handle(connection: Connection) {
             connections += connection
             connection.loginCompleted()
@@ -64,6 +67,19 @@ internal class ListenerAbortTest : ListenerTestBase() {
     ): TdsListener {
         val times = ListenerTimes(shutdownGrace = shutdownGrace, delayer = delayer, cancelTimeout = cancelTimeout)
         return startOnLoopback(handler, events, times)
+    }
+
+    /**
+     * Kehrt zurück, sobald der Handler den Abbruch gezählt hat. Der Listener startet den Abbruch in einer eigenen
+     * Coroutine (`ManagedConnection.expireGrace`); ohne diesen Wartepunkt ist [AbortingHandler.aborts] nach
+     * `awaitWaiting` ein Wettlauf. Das Warten hängt am Ereignis; die Schutzgrenze nur gegen einen nie gestarteten
+     * Abbruch. Dass die Ordnungswette die Ursache der roten Läufe unter Last war, ist aus dem Code gelesen, nicht
+     * gemessen; belegt ist nur, dass ein verzögert gestarteter Abbruch den Test ohne diesen Wartepunkt rot, mit ihm
+     * grün lässt.
+     */
+    private suspend fun awaitAbortRan(handler: AbortingHandler) {
+        withTimeoutOrNull(hangGuard) { handler.awaitAborted() }
+            ?: throw AssertionError("nicht eingetreten: der Abbruch lief")
     }
 
     /** Kehrt zurück, sobald der Listener allein auf [frist] wartet; das Warten hängt am Ereignis. */
@@ -118,6 +134,7 @@ internal class ListenerAbortTest : ListenerTestBase() {
         awaitWaiting(delayer, grace)
         delayer.releaseAll()
         awaitWaiting(delayer, cancelTimeout)
+        awaitAbortRan(handler)
         assertEquals(1, handler.aborts.get())
         assertTrue(shutdown.isActive, "vor CANCEL_TIMEOUT kehrt das Beenden nicht zurück")
         assertEquals(1, listener.activeConnections)

@@ -75,11 +75,11 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `src/test/kotlin/io/github/pt9912/tdswire/transport/listener/ListenerAbortTest.kt` | update | Methode `… trennt nach CANCEL_TIMEOUT, wenn der Abbruch die Verbindung nicht beendet`: Wartepunkt auf den Beginn des Abbruchs vor `assertEquals(1, handler.aborts.get())`; Zusagen und Erwartungen sonst unverändert — nach [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität) (`SPEC-044`, `SPEC-033`) |
-| `src/test/kotlin/io/github/pt9912/tdswire/transport/listener/ListenerSupport.kt` | update, falls der Wartepunkt dort liegt | Hilfsfunktion oder Signal des `AbortingHandler`, falls der Wartepunkt ein Ereignis des Handlers ist; `eventually` und die übrigen Aufrufe bleiben unverändert — nach [TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
+| `src/test/kotlin/io/github/pt9912/tdswire/transport/listener/ListenerAbortTest.kt` | update | Methode `… trennt nach CANCEL_TIMEOUT, wenn der Abbruch die Verbindung nicht beendet`: Wartepunkt `awaitAbortRan` (Ereignis des Handlers, Schutzgrenze nur dort) vor `assertEquals(1, handler.aborts.get())`; die übrigen Methoden lesen den Zähler erst nach `shutdown.await()` oder gar nicht und bleiben; Zusagen und Erwartungen sonst unverändert — nach [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität) (`SPEC-044`, `SPEC-033`) |
+| `src/test/kotlin/io/github/pt9912/tdswire/transport/listener/ListenerSupport.kt` | unverändert | Der Wartepunkt liegt im `AbortingHandler` der Testklasse (`awaitAborted`, Ereignis statt Abfrage); `eventually` und `eventuallyGuarded` bleiben unberührt — nach [TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
 | `docs/plan/spec-abdeckung.md` | update (erzeugt) | `make spec-abdeckung` einmal (Test geändert); die Datei ändert sich nur, wenn der Lauf eine andere Abdeckung ergibt |
-| `docs/plan/planning/observations/BEO-TDS/wanduhr-tests-flackern-unter-last/` | update | Evidence-Datei dieses Vorgangs, Nachtrag im Stand |
-| `docs/plan/planning/welle-qualitaet-grundlage.md`, `docs/plan/planning/in-progress/roadmap.md` | update | Zeile der Slice-Tabelle und Stand der Wellenzeile |
+| `docs/plan/planning/observations/BEO-TDS/wanduhr-tests-flackern-unter-last/` | bei der Closure (Planner) | Evidence-Datei und Nachtrag schreibt der Planner mit der Closure-Notiz, nicht der Implementer |
+| `docs/plan/planning/in-progress/roadmap.md` | update | Zustandsfeld: der Slice steht in `in-progress/`; `welle-qualitaet-grundlage.md` bleibt (die Zeile der Slice-Tabelle trägt keinen Zustand). |
 
 ## 4. Trigger
 
