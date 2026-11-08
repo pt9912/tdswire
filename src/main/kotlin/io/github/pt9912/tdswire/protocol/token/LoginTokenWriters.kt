@@ -9,7 +9,10 @@ internal object LoginTokenWriters {
     private const val ENV_DATABASE = 1
     private const val ENV_PACKET_SIZE = 4
     private const val ENV_SQL_COLLATION = 7
+    private const val ENV_BEGIN_TRANSACTION = 8
+    private const val ENV_COMMIT_TRANSACTION = 9
     private const val ENV_RESET_CONNECTION = 18
+    private const val DESCRIPTOR_BYTES = 8
     private const val COLLATION_BYTES = 5
     private const val MAX_SHORT = 0xFFFF
 
@@ -45,6 +48,20 @@ internal object LoginTokenWriters {
                 body.u8(ENV_PACKET_SIZE)
                 body.bVarchar(token.newValue.toString(), "Packet Size")
                 body.bVarchar(token.oldValue.toString(), "Packet Size")
+            }
+
+            is EnvChange.BeginTransaction -> {
+                body.u8(ENV_BEGIN_TRANSACTION)
+                body.u8(DESCRIPTOR_BYTES)
+                body.i64Le(token.descriptor)
+                body.u8(0)
+            }
+
+            is EnvChange.CommitTransaction -> {
+                body.u8(ENV_COMMIT_TRANSACTION)
+                body.u8(0)
+                body.u8(DESCRIPTOR_BYTES)
+                body.i64Le(token.descriptor)
             }
 
             is EnvChange.SqlCollation -> {

@@ -15,7 +15,7 @@ internal sealed interface Token
 internal data class LoginAck(val interfaceType: Int, val tdsVersion: Int, val progName: String, val progVersion: Int) :
     Token
 
-/** ENVCHANGE (`0xE3`) mit der Art der Änderung. Festlegung: Der Katalog umfasst Typ 1, 4, 7 und 18. */
+/** ENVCHANGE (`0xE3`) mit der Art der Änderung. Festlegung: Der Katalog umfasst Typ 1, 4, 7, 8, 9 und 18. */
 internal sealed interface EnvChange : Token {
     /**
      * Typ 18: Rücksetzen der Verbindung, neuer und alter Wert leer. Erstes Token der Antwort auf eine Anfrage mit dem
@@ -31,6 +31,18 @@ internal sealed interface EnvChange : Token {
 
     /** Typ 7: SQL-Kollation; `oldValue` ist `null`, wenn es keine vorige gab. */
     data class SqlCollation(val newValue: Collation, val oldValue: Collation?) : EnvChange
+
+    /**
+     * Typ 8: Beginn einer Transaktion, der neue Wert ist der Deskriptor (8 Byte), der alte Wert ist leer. Am echten
+     * SQL Server nach `CREATE TABLE` bei `set implicit_transactions on` gemessen (Messprotokoll M-20, 2022 und 2025).
+     */
+    data class BeginTransaction(val descriptor: Long) : EnvChange
+
+    /**
+     * Typ 9: Ende einer Transaktion durch `COMMIT`, der neue Wert ist leer, der alte Wert ist der Deskriptor (8 Byte).
+     * Am echten SQL Server gemessen (Messprotokoll M-20, 2022 und 2025).
+     */
+    data class CommitTransaction(val descriptor: Long) : EnvChange
 }
 
 /** Nummer, Zustand, Schweregrad, Text und Herkunft einer INFO- oder ERROR-Meldung. */
@@ -79,13 +91,44 @@ internal object DoneCommand {
     private const val INSERT = 0x00C3
     private const val DELETE = 0x00C4
     private const val UPDATE = 0x00C5
+    private const val CREATE_TABLE = 0x00C6
+    private const val ALTER_TABLE = 0x00D8
+    private const val IMPLICIT_TRANSACTIONS_ON = 0x00B9
+    private const val IMPLICIT_TRANSACTIONS_OFF = 0x00BA
+    private const val COMMIT_IF_OPEN = 0x00C0
 
-    /** Die Kennung des Abschlusses eines Änderungszählers der Art [kind] (Messprotokoll W-6); [NONE] für `UNKNOWN`. */
+    /** Der Abschluss des `COMMIT` hinter einer offenen Transaktion (Messprotokoll M-20). */
+    const val COMMIT_TRAN = 0x00D5
+
+    /**
+     * Die Kennung des Abschlusses der Art [kind] (Messprotokoll W-6 und M-20); [NONE] für `UNKNOWN`. Die Arten aus M-20
+     * sind im SQL_BATCH gemessen; die Form RPC wendet ihre Kennung nicht an (`ResponseRun`).
+     */
     fun forKind(kind: StatementKind): Int = when (kind) {
         StatementKind.UNKNOWN -> NONE
         StatementKind.INSERT -> INSERT
         StatementKind.DELETE -> DELETE
         StatementKind.UPDATE -> UPDATE
+        StatementKind.CREATE_TABLE -> CREATE_TABLE
+        StatementKind.ALTER_TABLE -> ALTER_TABLE
+        StatementKind.IMPLICIT_TRANSACTIONS_ON -> IMPLICIT_TRANSACTIONS_ON
+        StatementKind.IMPLICIT_TRANSACTIONS_OFF -> IMPLICIT_TRANSACTIONS_OFF
+        StatementKind.COMMIT_IF_OPEN -> COMMIT_IF_OPEN
+    }
+
+    /**
+     * Wahr, wenn der Abschluss der Art [kind] im SQL_BATCH eine Zeilenzahl trägt (Bit `COUNT`): `UNKNOWN` und die
+     * Änderungen (W-6); die Arten aus M-20 schließen ohne.
+     */
+    fun countsRows(kind: StatementKind): Boolean = when (kind) {
+        StatementKind.UNKNOWN, StatementKind.INSERT, StatementKind.DELETE, StatementKind.UPDATE -> true
+
+        StatementKind.CREATE_TABLE,
+        StatementKind.ALTER_TABLE,
+        StatementKind.IMPLICIT_TRANSACTIONS_ON,
+        StatementKind.IMPLICIT_TRANSACTIONS_OFF,
+        StatementKind.COMMIT_IF_OPEN,
+        -> false
     }
 }
 

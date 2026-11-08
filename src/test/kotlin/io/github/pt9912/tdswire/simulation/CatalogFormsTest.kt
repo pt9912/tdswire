@@ -97,9 +97,9 @@ class CatalogFormsTest {
 
     /**
      * Happy: der Mitschnitt von `schema migrate --execute` enthält die Transaktionstexte (`IF @@TRANCOUNT > 0 COMMIT
-     * TRAN`, `set implicit_transactions off IF @@TRANCOUNT > 0 COMMIT TRAN `), und beide gelten als Form C mit
-     * Änderungszähler 0; `ROLLBACK TRAN` und `set implicit_transactions on|off` davor ebenso (Setzung für die
-     * ungesendeten Kombinationen).
+     * TRAN`, `set implicit_transactions off IF @@TRANCOUNT > 0 COMMIT TRAN `), und beide gelten als Form C (Antwort
+     * mit der gemessenen Art, `FixedAnswers`); `ROLLBACK TRAN` und `set implicit_transactions on|off` davor ebenso
+     * (Setzung für die ungesendeten Kombinationen).
      * Negativ: `TRANSACTION`, ein anderer Vergleich, eine andere Option und ein Zusatztext sind nicht erkannt (alles
      * oder nichts).
      * Wächter: ein Regex ohne Anker (`matches` statt `containsMatchIn`) oder mit offener Option.
@@ -113,8 +113,14 @@ class CatalogFormsTest {
             "IF @@TRANCOUNT > 0 ROLLBACK TRAN",
             "set implicit_transactions on IF @@TRANCOUNT > 0 COMMIT TRAN",
         )
-        for (text in sent + unsent) {
-            assertEquals(Recognition.Fixed(FixedForm.Transaction), StatementParser.recognize(text), text)
+        val expected = listOf(
+            FixedForm.Transaction(implicit = null, commit = true),
+            FixedForm.Transaction(implicit = false, commit = true),
+            FixedForm.Transaction(implicit = null, commit = false),
+            FixedForm.Transaction(implicit = true, commit = true),
+        )
+        for ((text, form) in (sent + unsent).zip(expected)) {
+            assertEquals(Recognition.Fixed(form), StatementParser.recognize(text), text)
         }
         val others = listOf(
             "IF @@TRANCOUNT > 0 COMMIT TRANSACTION",

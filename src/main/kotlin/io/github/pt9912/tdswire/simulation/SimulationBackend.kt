@@ -5,7 +5,6 @@ import io.github.pt9912.tdswire.domain.QueryParameter
 import io.github.pt9912.tdswire.domain.QueryRequest
 import io.github.pt9912.tdswire.domain.ResultColumn
 import io.github.pt9912.tdswire.domain.SqlType
-import io.github.pt9912.tdswire.domain.StatementKind
 import io.github.pt9912.tdswire.port.BulkRows
 import io.github.pt9912.tdswire.port.BulkTarget
 import io.github.pt9912.tdswire.port.BulkTargetResult
@@ -30,17 +29,19 @@ import java.util.concurrent.atomic.AtomicBoolean
  * Anweisung antwortet mit `TDS_UNSUPPORTED_SQL`.
  *
  * Form C (`SPEC-036`) beantwortet das Backend ohne Tabelle: `SELECT 1` mit einer Spalte und einer Zeile, eine
- * `SET`-Anweisung und die Transaktionstexte mit dem Änderungszähler 0. Eine Auswahl mit einem Konstantenterm, der nie
- * gilt (`WHERE 1 = 0`), liefert Spaltenmetadaten und keine Zeile, ohne die Zeilenquelle zu öffnen.
+ * `SET`-Anweisung und die Transaktionstexte mit dem Änderungszähler 0 und, wo gemessen, der Art des Textes
+ * (`IMPLICIT_TRANSACTIONS_ON`, `IMPLICIT_TRANSACTIONS_OFF`, `COMMIT_IF_OPEN`, siehe [FixedAnswers]). Eine Auswahl mit
+ * einem Konstantenterm, der nie gilt (`WHERE 1 = 0`), liefert Spaltenmetadaten und keine Zeile, ohne die Zeilenquelle
+ * zu öffnen.
  *
  * Form B (`SPEC-036`, Massenladen) erkennt das Backend als `INSERT BULK` und als die Proben davor (`SET FMTONLY ON …`,
  * Kollation); die Nachrichten 0x07 lädt es über [BulkLoads] in `SimTable.onInsertBatch` oder `onInsert`, ohne etwas zu
  * speichern (`runtime` schaltet das Laden für dieses Backend ein, ohne dass der Integrator etwas tut).
  *
  * Form K (`SPEC-036`) beantwortet die Katalogabfragen von d-migrate aus dem Katalog ([CatalogAnswers]); der Katalog
- * kommt bei jeder Anfrage frisch aus dem Anbieter des Konstruktors, das Backend hält keinen Stand. Form D
- * (`CREATE TABLE`, `ALTER TABLE … ADD`) ruft den Strukturänderungs-Callback mit der Tabelle nach der Anweisung und
- * antwortet mit dem Änderungszähler 0; das Backend nimmt nichts zurück, mehrere Callbacks sind keine Transaktion
+ * kommt bei jeder Anfrage frisch aus dem Anbieter des Konstruktors, das Backend hält keinen Stand. Form D (`CREATE
+ * TABLE`, `ALTER TABLE … ADD`) ruft den Strukturänderungs-Callback mit der Tabelle nach der Anweisung und meldet die
+ * Art `CREATE_TABLE` oder `ALTER_TABLE`; das Backend nimmt nichts zurück, mehrere Callbacks sind keine Transaktion
  * (`ADR-0033`). Der Konstruktor mit festem Katalog hat keinen Callback: Form D ist dort abgewiesen
  * (`TDS_UNSUPPORTED_SQL`), ebenso mit dem Anbieter und ohne Callback.
  *
@@ -168,7 +169,8 @@ public class SimulationBackend(
 
     /**
      * Form D (`SPEC-036`): ruft den Strukturänderungs-Callback genau einmal beim Sammeln und antwortet mit dem
-     * Änderungszähler 0. Ohne Callback ist die Anweisung abgewiesen. Prüfen und Ändern sind je Backend atomar: beim
+     * Abschluss der Art `CREATE_TABLE` oder `ALTER_TABLE` (die Bibliothek schreibt ihn ohne Zeilenzahl, SQL_BATCH).
+     * Ohne Callback ist die Anweisung abgewiesen. Prüfen und Ändern sind je Backend atomar: beim
      * Sammeln plant das Backend den Text unter einer Sperre gegen den dann aktuellen Katalog erneut und ruft den
      * Callback mit diesem Stand; zwei gleichzeitige Strukturänderungen laufen nacheinander, die zweite sieht die
      * erste (`CREATE TABLE` derselben Tabelle ist dann abgewiesen wie bei einer schon beschriebenen Tabelle). Die
@@ -181,7 +183,7 @@ public class SimulationBackend(
     private fun structure(plan: StructurePlan, request: QueryRequest): QueryExecution {
         val callback = onStructure ?: return failed(SimCodes.UNSUPPORTED_SQL, "Strukturänderung nicht verfügbar")
         val key = request.sessionId to request.requestId
-        val call = PreparedChange.Ready(StatementKind.UNKNOWN) {
+        val call = PreparedChange.Ready(plan.kind) {
             structureLock.withLock {
                 when (val again = planner.plan(request.sql)) {
                     is PlanResult.Structure -> {

@@ -1,5 +1,6 @@
 package io.github.pt9912.tdswire.simulation
 
+import io.github.pt9912.tdswire.domain.StatementKind
 import io.github.pt9912.tdswire.port.BulkTarget
 import io.github.pt9912.tdswire.port.BulkTargetResult
 
@@ -48,6 +49,8 @@ internal data class StructurePlan(
     val name: String,
     val columns: List<SimColumn>,
     val primaryKey: List<String>,
+    /** [StatementKind.CREATE_TABLE] oder [StatementKind.ALTER_TABLE]: die Art, die der Abschluss meldet. */
+    val kind: StatementKind,
 )
 
 /** Das Ergebnis der Planung. */
@@ -161,7 +164,8 @@ internal class StatementPlanner(private val catalogs: () -> SimCatalog) {
                     if (SimNames.fold(it.name) in keyed) it.copy(nullable = false) else it
                 }
                 val names = key.orEmpty().map { known.getValue(SimNames.fold(it)).name }
-                PlanResult.Structure(StructurePlan(schema, statement.table.name, columns, names))
+                val plan = StructurePlan(schema, statement.table.name, columns, names, StatementKind.CREATE_TABLE)
+                PlanResult.Structure(plan)
             }
         }
     }
@@ -177,7 +181,13 @@ internal class StatementPlanner(private val catalogs: () -> SimCatalog) {
             reject(SimCodes.COLUMN_EXISTS, "Spalte ist schon beschrieben")
         } else {
             PlanResult.Structure(
-                StructurePlan(table.schema, table.name, table.columns + statement.columns, table.primaryKey),
+                StructurePlan(
+                    table.schema,
+                    table.name,
+                    table.columns + statement.columns,
+                    table.primaryKey,
+                    StatementKind.ALTER_TABLE,
+                ),
             )
         }
     }

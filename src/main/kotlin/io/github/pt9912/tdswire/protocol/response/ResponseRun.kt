@@ -78,6 +78,7 @@ internal class ResponseRun(
     private val sink: TokenSink,
     private val form: ResponseForm = ResponseForm.BATCH,
     private val outputs: RpcOutputs = RpcOutputs(CallLayout.PROCEDURE, emptyList()),
+    private val transaction: SessionTransaction = SessionTransaction(),
 ) {
     private var outcome: SequenceOutcome? = null
     private var columns: List<ColumnDef>? = null
@@ -175,15 +176,10 @@ internal class ResponseRun(
         if ((columns != null) != inResult) return report(violation)
         columns = null
         begun = true
-        val status = if (affectedRows != null) DoneStatus.COUNT else DoneStatus.FINAL
-        val doneKind = if (form == ResponseForm.RPC) DoneKind.DONE_IN_PROC else DoneKind.DONE
-        val command = when {
-            inResult -> DoneCommand.SELECT
-            form == ResponseForm.BULK -> DoneCommand.INSERT_BULK
-            else -> DoneCommand.forKind(kind)
-        }
-        held = DoneToken(doneKind, status, command, affectedRows ?: 0)
-        return false
+        val completion = Completion.of(form, inResult, kind, affectedRows, transaction)
+        val written = completion.before.all { write(it) }
+        if (written) held = completion.done
+        return !written
     }
 
     /**
