@@ -36,7 +36,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 Liefer-Punkte (drei):
 
-- [ ] **Messung** ([TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität)): Der Wortlaut der Probe für `dbo.t`, `[dbo].[t]` und einen Namen mit `]` liegt als Messreihe am echten Server (2022 und 2025) im Messprotokoll.
+- [ ] **Messung** ([TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität)): Der Wortlaut der Probe für `dbo.t`, `[dbo].[t]` und einen Namen mit `]` liegt als Messreihe am echten Server (2022 und 2025) im Messprotokoll; die Messreihe führt zusätzlich eine Tabelle mit nicht nullbaren Spalten INT, SMALLINT, TINYINT und BIT, deren Nachricht 0x07 die festen Typen zeigt (Risiko „weitere feste Typen“ aus §6 von [slice-bulk-load-feste-typen-und-referenzclient](../in-progress/slice-bulk-load-feste-typen-und-referenzclient.md)).
 - [ ] **Erkennung und Antwort** ([TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate)): `BulkCopyForms` erkennt die gemessenen Formen; Test mit dem aufgezeichneten Text; ein `SqlBulkCopy`-Szenario mit Schema im Integrationslauf.
 - [ ] **Nachzug** ([TDS-QA-05](../../../../spec/lastenheft.md#tds-qa-05--wartbarkeit)): `SPEC-036` und die Nutzer-Doku nennen die Grenze nicht mehr.
 
