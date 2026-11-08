@@ -21,7 +21,7 @@ import kotlin.test.assertNull
 /**
  * Das Massenladen im Simulations-Backend (`SPEC-036` Form B, `SPEC-035` Weitergabe, `ADR-0033` Nr. 5): Erkennung von
  * `INSERT BULK`, die Probe der Zieltabelle (`SET FMTONLY`), die Probe der Kollation, Zuordnung und Überführung der
- * Werte einer Nachricht, Weitergabe an `onInsertBatch` oder `onInsert`. Die Texte sind die, die d-migrate 1.12.0 mit
+ * Werte einer Nachricht, Weitergabe an `onInsertBatch`. Die Texte sind die, die d-migrate 1.12.0 mit
  * mssql-jdbc 13.4.0 sendet (`docs/messungen/bulk-load-2026-11-07.md`); die Erwartungen sind von Hand geschrieben. Die
  * Überführung der Werte der Nachricht ist Setzung, nicht am Server gemessen.
  */
@@ -44,6 +44,7 @@ class SimulationBackendBulkTest {
         var failAt: Int? = null
         var result: Long? = null
         var opens = 0
+        var calls = 0
     }
 
     private fun backend(sink: Sink): SimulationBackend = SimulationBackend(
@@ -68,6 +69,7 @@ class SimulationBackendBulkTest {
                     },
                     onInsertBatch = if (sink.batch) {
                         { rows ->
+                            sink.calls++
                             if (sink.failAt != null) error("Callback")
                             sink.batches += rows
                             sink.result ?: rows.size.toLong()
@@ -139,7 +141,7 @@ class SimulationBackendBulkTest {
         assertEquals(unknown, backend.bulkTarget("INSERT BULK [dbo].[nirgends] ([Id] BIGINT)"))
         val column = BulkTargetResult.Rejected("TDS_SIM_UNKNOWN_OBJECT", "Spalte nicht beschrieben")
         assertEquals(column, backend.bulkTarget("INSERT BULK [dbo].[kunden] ([Fehlt] BIGINT)"))
-        val none = backend(Sink(batch = false))
+        val none = backend(Sink(batch = false, single = true))
         assertEquals(
             BulkTargetResult.Rejected("TDS_UNSUPPORTED_SQL", "Einfügen für diese Tabelle nicht verfügbar"),
             none.bulkTarget(insertBulk),
@@ -375,18 +377,26 @@ class SimulationBackendBulkTest {
 
     /**
      * Ein Fehler des Callbacks endet mit `TDS_SIM_KEY_VIOLATION` (2627, Class 14: so antwortet der echte Server
-     * auf den Schlüsselverstoß einer Nachricht, Messprotokoll M-12; Abweichung vom Wortlaut von `ADR-0033` Nr. 5
-     * (iii), Folge-ADR offen), eine negative Zahl mit `TDS_BACKEND_ERROR`; beide mit der festen Meldung, die den
-     * Text der Ausnahme nie nennt (Setzung nach `ADR-0033` Nr. 7). Wächter: der Text der Ausnahme in der Meldung,
-     * ein durchgereichter Fehler, `TDS_BACKEND_ERROR` für den Fehler des Callbacks.
+     * auf den Schlüsselverstoß einer Nachricht, Messprotokoll M-12; für andere Ursachen der Sammelcode, Setzung), eine
+     * negative Zahl mit `TDS_BACKEND_ERROR`; beide mit der festen Meldung, die den Text der Ausnahme nie nennt
+     * (Setzung nach `ADR-0033` Nr. 7). Der Callback bekommt alle drei Zeilen in einem Aufruf und übernimmt bei Fehler
+     * keine (Zusage `ADR-0044`); die Bibliothek ruft nach dem Fehler nichts weiter, auch nicht `onInsert` je Zeile.
+     * Wächter:
+     * der Text der Ausnahme in der Meldung, ein durchgereichter Fehler, `TDS_BACKEND_ERROR` für den Fehler des
+     * Callbacks, ein zweiter Aufruf je Zeile nach dem Fehler.
      *
      * @spec SPEC-035
+     * @spec SPEC-036
      */
     @Test
     fun `ein Fehler des Callbacks ergibt TDS_SIM_KEY_VIOLATION, eine negative Zahl TDS_BACKEND_ERROR`() {
         val failing = Sink().also { it.failAt = 0 }
-        val event = load(backend(failing), message(col("Id", SqlType.Int64) to listOf(1L)))
+        val middle = message(col("Id", SqlType.Int64) to listOf(1L, 2L, 3L))
+        val event = load(backend(failing), middle)
         assertEquals(QueryEvent.Failure("TDS_SIM_KEY_VIOLATION", "Änderung fehlgeschlagen"), event)
+        assertEquals(1, failing.calls)
+        assertEquals(emptyList(), failing.batches)
+        assertEquals(emptyList(), failing.singles)
         val negative = Sink().also { it.result = -1 }
         assertEquals(
             QueryEvent.Failure("TDS_BACKEND_ERROR", "Änderung fehlgeschlagen"),
@@ -395,23 +405,22 @@ class SimulationBackendBulkTest {
     }
 
     /**
-     * Hat die Tabelle nur `onInsert`, geht jede Zeile in der Reihenfolge der Nachricht an ihn, und die Antwort ist die
-     * Summe; wirft er bei der dritten Zeile, bleiben die ersten beiden beim Integrator (keine Transaktion) und die
-     * Antwort ist `TDS_BACKEND_ERROR`. Wächter: eine umgekehrte Reihenfolge, ein Rückbau, eine Antwort mit der
-     * Zahl der Nachricht trotz Fehler.
+     * Negativ: eine Tabelle nur mit `onInsert` lehnt `INSERT BULK` ab (`TDS_UNSUPPORTED_SQL`), und eine Nachricht,
+     * die ihr trotzdem zugewiesen wird, lädt nichts und ruft `onInsert` nie; der Callback je Zeile ist kein
+     * Rückfall. Wächter: ein Rückfall auf `onInsert` je Zeile (Teilbestand bei Fehler in der Mitte), ein Ziel für eine
+     * Tabelle ohne `onInsertBatch`.
      *
      * @spec SPEC-035
      * @spec SPEC-036
      */
     @Test
-    fun `ohne Stapel-Callback geht jede Zeile an onInsert, ein Fehler hinterlaesst den Teilbestand`() {
+    fun `eine Tabelle nur mit onInsert lehnt INSERT BULK ab und laedt keine Zeile`() {
         val sink = Sink(batch = false, single = true)
-        val rows = message(col("Id", SqlType.Int64) to listOf(1L, 2L, 3L))
-        assertEquals(QueryEvent.UpdateCount(3), load(backend(sink), rows))
-        assertEquals(listOf(1L, 2L, 3L), sink.singles.map { it["Id"] })
-        val failing = Sink(batch = false, single = true).also { it.failAt = 2 }
-        val event = load(backend(failing), rows)
-        assertEquals("TDS_SIM_KEY_VIOLATION", assertIs<QueryEvent.Failure>(event).code)
-        assertEquals(listOf(1L, 2L), failing.singles.map { it["Id"] })
+        val backend = backend(sink)
+        val rejected = BulkTargetResult.Rejected("TDS_UNSUPPORTED_SQL", "Einfügen für diese Tabelle nicht verfügbar")
+        assertEquals(rejected, backend.bulkTarget(insertBulk))
+        val event = load(backend, message(col("Id", SqlType.Int64) to listOf(1L, 2L, 3L)))
+        assertEquals(QueryEvent.Failure("TDS_UNSUPPORTED_SQL", "Einfügen für diese Tabelle nicht verfügbar"), event)
+        assertEquals(emptyList(), sink.singles)
     }
 }

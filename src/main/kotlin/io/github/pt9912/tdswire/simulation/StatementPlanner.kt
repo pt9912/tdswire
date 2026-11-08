@@ -107,7 +107,8 @@ internal class StatementPlanner(private val catalogs: () -> SimCatalog) {
 
     /**
      * `INSERT BULK`: die Tabelle und jede genannte Spalte sind beschrieben, und die Tabelle hat einen Callback für
-     * Zeilen (`onInsertBatch` oder `onInsert`); sonst ist die Anweisung abgewiesen, bevor eine Nachricht 0x07 folgt.
+     * Zeilen (`onInsertBatch`, `onInsert` genügt nicht); sonst ist die Anweisung abgewiesen, bevor eine Nachricht 0x07
+     * folgt.
      */
     private fun bulk(recognition: Recognition.Bulk, catalog: SimCatalog): BulkTargetResult {
         val table = catalog.find(recognition.table.schema, recognition.table.name)
@@ -117,7 +118,7 @@ internal class StatementPlanner(private val catalogs: () -> SimCatalog) {
             recognition.columns.any { table.column(it) == null } ->
                 BulkTargetResult.Rejected(SimCodes.UNKNOWN_OBJECT, "Spalte nicht beschrieben")
 
-            table.onInsertBatch == null && table.onInsert == null ->
+            table.onInsertBatch == null ->
                 BulkTargetResult.Rejected(SimCodes.UNSUPPORTED_SQL, "Einfügen für diese Tabelle nicht verfügbar")
 
             else -> BulkTargetResult.Ready(BulkTarget(table.schema, table.name))
