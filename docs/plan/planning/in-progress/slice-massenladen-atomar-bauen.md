@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [ADR-0044](../../adr/0044-massenladen-nachricht-ist-atomar-wie-am-echten-server.md), [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) (soweit von [ADR-0044](../../adr/0044-massenladen-nachricht-ist-atomar-wie-am-echten-server.md) nicht ersetzt), [ADR-0021](../../adr/0021-oeffentlicher-integrations-einstieg.md)
 
-**Berührte Spec-Stellen:** SPEC-035 (`onInsertBatch`, Rückfall auf `onInsert`, Zusage „keine Transaktion“) · SPEC-036 (Form B, Fehler des Callbacks, Satz zum Teilbestand) · SPEC-001 (Antwort bei Fehler des Callbacks) · §4 Fehlertabelle, Zeile `TDS_SIM_KEY_VIOLATION` · SPEC-059 (öffentliche Fläche: das KDoc der Zusage von `onInsertBatch` gehört zur Fläche, die Namen ändern sich nicht).
+**Berührte Spec-Stellen:** SPEC-035 (`onInsertBatch`, Rückfall auf `onInsert`, Zusage „keine Transaktion“) · SPEC-036 (Form B, Fehler des Callbacks, Satz zum Teilbestand) · SPEC-001 (Antwort bei Fehler des Callbacks) · §4 Fehlertabelle, Zeile `TDS_SIM_KEY_VIOLATION` · Schritt 10 von [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) `.a` (Massenladen) · SPEC-059 (öffentliche Fläche: das KDoc der Zusage von `onInsertBatch` gehört zur Fläche, die Namen ändern sich nicht).
 
 **Verantwortlich:** — bis zur Priorisierung.
 
@@ -77,13 +77,22 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 | `src/main/kotlin/io/github/pt9912/tdswire/simulation/StatementPlanner.kt` (Zeilen ~104 bis ~114) | update | `INSERT BULK` verlangt `onInsertBatch`; `TDS_UNSUPPORTED_SQL` sonst |
 | `src/main/kotlin/io/github/pt9912/tdswire/simulation/SimModel.kt` (KDoc `onInsertBatch`, Zeilen ~15 bis ~17) | update | Zusage „ganz oder gar nicht“, kein Rückfall; Name und Signatur unverändert |
 | `src/main/kotlin/io/github/pt9912/tdswire/simulation/SimulationBackend.kt` (KDoc Zeile ~37) | update | nennt „`onInsertBatch` oder `onInsert`“ |
-| `testserver/kotlin/io/github/pt9912/tdswire/testserver/{TableStore,KompatibilitaetsServer}.kt` | prüfen | der Bestand übernimmt den Stapel atomar ([ADR-0044](../../adr/0044-massenladen-nachricht-ist-atomar-wie-am-echten-server.md) Kontext); Prüfung, dass der Testserver `onInsertBatch` für jede Tabelle setzt |
-| `src/test/kotlin/io/github/pt9912/tdswire/simulation/{SimulationBackendBulkTest,StatementPlannerTest}.kt`, `testserver/test/kotlin/io/github/pt9912/tdswire/testserver/TableStoreTest.kt` | update | Rückfall-Tests ersetzen; neu: Tabelle nur mit `onInsert` lehnt `INSERT BULK` ab (Negative), Fehler in der Mitte lässt den Bestand unverändert (Happy/Boundary), Fehler des Callbacks bleibt 2627 mit `INFO` 3621 ([TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität)) |
+| `testserver/kotlin/io/github/pt9912/tdswire/testserver/{TableStore,KompatibilitaetsServer}.kt` | prüfen (geprüft, nichts zu ändern: beide Dateien liegen nicht im Diff; `TableStore`-Tabellen setzen `onInsertBatch`, `person` in `KompatibilitaetsServer` ist kein Ziel des Massenladens) | der Bestand übernimmt den Stapel atomar ([ADR-0044](../../adr/0044-massenladen-nachricht-ist-atomar-wie-am-echten-server.md) Kontext); Prüfung, dass der Testserver `onInsertBatch` für jede Tabelle setzt |
+| `src/test/kotlin/io/github/pt9912/tdswire/simulation/{SimulationBackendBulkTest,StatementPlannerTest}.kt`, `testserver/test/kotlin/io/github/pt9912/tdswire/testserver/TableStoreTest.kt` | update (geändert: `SimulationBackendBulkTest`; `StatementPlannerTest` und `TableStoreTest` geprüft, nichts zu ändern, beide nicht im Diff) | Rückfall-Tests ersetzen; neu: Tabelle nur mit `onInsert` lehnt `INSERT BULK` ab (Negative), Fehler in der Mitte lässt den Bestand unverändert (Happy/Boundary), Fehler des Callbacks bleibt 2627 mit `INFO` 3621 ([TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität)) |
 | `docs/user/einbettung-und-betrieb.md` | update | Ist-Zustand: Zusage des Stapel-Callbacks, Fehlerzeile |
 | `docs/messungen/referenzabgleich.md` (M-12, Zeile „widerspricht“) | update | Verweis auf [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Nr. 5 (iii) und Nr. 6 nachziehen, Grenze „ein Fall“ |
 | `docs/plan/planning/observations/BEO-TDS/folge-adr-zu-adr-0033-massenladen-verstoss-und-teilbestand/state.md` | update | Stand nach dem Bau |
 
-Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
+Ergänzt im Lauf des Implementers (gegen `git diff --name-only main...HEAD`):
+
+| Datei / Komponente | Änderungs-Art | Begründung |
+|---|---|---|
+| `src/integrator/kotlin/io/github/pt9912/tdswire/integrator/MassenladenEmbeddingTest.kt` | update | Einbettungstest: Nachricht mit Verstoß in der Mitte, nur öffentliche Fläche |
+| `docs/plan/kompatibilitaetsmatrix.md` | update | Zeile `BULK_LOAD`: gemessen (ein Fall) getrennt von Festlegung |
+| `docs/messungen/bulk-load-2026-11-07.md` | update | Mutationstabelle und Stand der Zusage |
+| `docs/plan/spec-abdeckung.md` | update (erzeugt) | `make spec-abdeckung` nach den Testtags |
+| `docs/plan/planning/in-progress/roadmap.md`, `docs/plan/planning/welle-testserver-manuell.md` | update | Stand der Wellenzeile |
+| `docs/plan/planning/done/slice-adr-massenladen-atomar-an-messung.md`, `docs/plan/planning/done/slice-ddl-abschluss-und-transaktionszustand-angleichen.md`, `docs/plan/planning/open/slice-sp-execute-unbekanntes-handle-bauen.md` | update | Verweise auf den Slice nachgezogen |
 
 ## 4. Trigger
 

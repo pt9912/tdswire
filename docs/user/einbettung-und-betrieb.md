@@ -238,7 +238,7 @@ Ein Start, der gelingt, meldet vor `SERVER_STARTED` genau ein Ereignis `CONFIG_E
 
 - `primaryKey` darf leer sein (so legt `CREATE TABLE` ohne Schlüssel eine Tabelle an). Er wirkt nicht auf das Resultset einer Auswahl und prüft keine Eindeutigkeit; nur das `MERGE` liest ihn: der Vergleich des `MERGE` muss genau den Schlüssel nennen, und gegen eine Tabelle mit leerem Schlüssel endet jedes `MERGE` mit `TDS_UNSUPPORTED_SQL` (der echte SQL Server nimmt es an). Das Backend speichert nichts.
 - Namen sind ohne Beachtung der Groß-/Kleinschreibung eindeutig; jede Tabelle hat mindestens eine Spalte, eine Dezimalspalte höchstens Precision 38; der Schlüssel darf leer sein. Ein Verstoß ist beim Bau der `SimTable` eine `IllegalArgumentException`.
-- Ohne Callback endet Einfügen, Ändern und Löschen mit `TDS_UNSUPPORTED_SQL`.
+- Ohne Callback endet Einfügen, Ändern und Löschen mit `TDS_UNSUPPORTED_SQL`; für das Massenladen (`INSERT BULK`) ist der Callback `onInsertBatch`, `onInsert` genügt dort nicht.
 - Eine Spalte vom Typ `Int16` oder `UInt8` nimmt ein Zahlenliteral und einen Wert des Massenladens (`Int`, `Long`) nur im Wertebereich an (`Int16` -32768 bis 32767, `UInt8` 0 bis 255); ein Wert außerhalb ist `TDS_SIM_INVALID_VALUE`. Ein Parameter mit `INSERT`, `UPDATE` oder `WHERE` nimmt in einer solchen Spalte keinen Wert an: ein Client kann keinen Parameter mit 1 oder 2 Byte schicken, und ein `int`- oder `bigint`-Parameter ist für sie ungültig. Der echte SQL Server konvertiert einen `int`-Parameter in eine `smallint`-Spalte; dieses Backend tut es nicht (nach dem Handbuch des Servers, in diesem Repo nicht gemessen). Wer das braucht, nimmt `Int32` für die Spalte oder schreibt die Werte als Literal.
 - Ein Fehler beim Öffnen oder Lesen der Quelle ist `TDS_BACKEND_ERROR` mit fester Meldung, die den Text der Ausnahme nie nennt.
 - Die Beschreibung der Tabellen als Datei (YAML im Schema-Modell von d-migrate) liest nur der Testserver; die Bibliothek nimmt `SimTable`-Werte. Wer Tabellen aus einer Datei bauen will, liest sie selbst.
@@ -247,7 +247,8 @@ Ein Start, der gelingt, meldet vor `SERVER_STARTED` genau ein Ereignis `CONFIG_E
 
 | Beobachtung | Ursache | Abhilfe |
 |---|---|---|
-| `TDS_UNSUPPORTED_SQL` bei `INSERT` | die Tabelle hat keinen `onInsert` | Callback setzen |
+| `TDS_UNSUPPORTED_SQL` bei `INSERT` als SQL-Text | die Tabelle hat keinen `onInsert` | `onInsert` setzen |
+| `TDS_UNSUPPORTED_SQL` bei `INSERT BULK` (Massenladen, etwa `data import`), auch mit `onInsert` | die Tabelle hat keinen `onInsertBatch`; die Bibliothek ruft `onInsert` für das Massenladen nie, die Meldung „Einfügen für diese Tabelle nicht verfügbar“ nennt die Ursache nicht | `onInsertBatch` setzen |
 | `TDS_UNSUPPORTED_SQL` bei `ORDER BY`, `JOIN`, `OR`, Aggregat | außerhalb der erkannten Formen | die Anweisung vereinfachen oder ein eigenes Backend ([Aufgabe 2](#2-ein-eigenes-backend-anschließen)) |
 | `TDS_SIM_INVALID_VALUE` | ein Wert passt nicht verlustfrei in den Spaltentyp | Wert oder Typ ändern |
 | `TDS_SIM_UNKNOWN_OBJECT`, die Verbindung schließt | Tabelle oder Spalte ist nicht beschrieben | Beschreibung prüfen |

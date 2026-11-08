@@ -16,7 +16,9 @@ internal const val DEFAULT_SCHEMA = "dbo"
  * Bibliothek ruft ihn einmal je Nachricht mit allen Zeilen. Zusage an den Integrator: der Aufruf gilt ganz oder gar
  * nicht; bei Erfolg liefert er die Zahl der übernommenen Zeilen, bei einem Fehler wirft er, ohne eine Zeile der
  * Nachricht übernommen zu haben (die Bibliothek nimmt nichts zurück, `ADR-0044`). Hat die Tabelle ihn nicht, ist
- * `INSERT BULK` für sie abgewiesen (`TDS_UNSUPPORTED_SQL`), [onInsert] wird dafür nicht gerufen.
+ * `INSERT BULK` für sie abgewiesen (`TDS_UNSUPPORTED_SQL`), [onInsert] wird dafür nicht gerufen. Die Grenze der Zusage:
+ * gemessen am echten Server ist ein Fall (Schlüsselverstoß, drei Zeilen, ein Paket), darüber hinaus ist sie eine
+ * Setzung; die Fehlernummer 2627 ist für den Schlüsselverstoß gemessen und für jede andere Ursache ein Sammelcode.
  *
  * `columns` und `primaryKey` werden nicht kopiert: ein Konstruktor mit neun Parametern erlaubt die Regel
  * `LongParameterList` nur an einer `data class`, und deren Konstruktor kann die Listen nicht ersetzen. Der Aufrufer

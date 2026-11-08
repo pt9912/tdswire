@@ -141,7 +141,7 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 - **Gegenstand:** teilweise: die erweiterte Messung entfällt als Bedingung und bleibt als offener Punkt im Register (Trigger 1 der ADR), der Nachzug geht an [slice-massenladen-atomar-bauen](../in-progress/slice-massenladen-atomar-bauen.md).
 - **Steering-Loop-Eintrag:** Nichts verkörpert; kein `liegt in`, gezählt wird. Benannt: Ein ADR-Slice mit einem Messpunkt in der DoD, den der Nutzerentscheid überholt, braucht beim Schließen den angepassten Wortlaut mit Beleg des Entscheids statt eines stillen Hakens; der Fall ist hier einmal aufgetreten, eine Regel entsteht daraus nicht.
 - **Beobachtungs-Register (`../observations/`):** `state.md` von `BEO-TDS/folge-adr-zu-adr-0033-massenladen-verstoss-und-teilbestand` fortgeschrieben (ADR `Accepted`, Bau-Slice, Messung offen mit Trigger 1); keine neue Beobachtung angefallen.
-- **Folge-Slices:** [slice-massenladen-atomar-bauen](../in-progress/slice-massenladen-atomar-bauen.md) (Zusage am Stapel-Callback, Spezifikation, Tests, Doku) — ist eine Datei in `open/`.
+- **Folge-Slices:** [slice-massenladen-atomar-bauen](../in-progress/slice-massenladen-atomar-bauen.md) (Zusage am Stapel-Callback, Spezifikation, Tests, Doku) — liegt in `in-progress/`.
 - **Risiken aus §6:** zwei weiter offen mit Träger im Register beziehungsweise in [slice-abnahme-d-migrate](../open/slice-abnahme-d-migrate.md), eines entfallen; Ausgänge in §6.
 - **Drei Paarungen:** Anker: kein `liegt in` in diesem Slice, nichts zu paaren; Folge-Slice: Datei in `open/` vorhanden; Register: Stand fortgeschrieben. Prüfung der Welle-Closure vorbehalten.
 
