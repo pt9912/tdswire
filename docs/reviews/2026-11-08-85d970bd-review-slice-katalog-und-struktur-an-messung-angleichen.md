@@ -90,7 +90,7 @@
 
 * kategorie: LOW
 * quelle: Reviewer-Skill „Plan-Tabelle nennt die berührten Dateien nicht“
-* pfad: `docs/plan/planning/next/slice-katalog-und-struktur-an-messung-angleichen.md` · „Tests (Kotlin, `src/test`, `testserver/kotlin`)“
+* pfad: `docs/plan/planning/done/slice-katalog-und-struktur-an-messung-angleichen.md` · „Tests (Kotlin, `src/test`, `testserver/kotlin`)“
 * befund: Der Diff berührt `docs/plan/spec-abdeckung.md` (erzeugte Matrix, Zähler und ein Zitat), die Tabelle nennt sie nicht; der Test des Testservers liegt unter `testserver/test/kotlin`, nicht `testserver/kotlin`. Die Lifecycle-Dateien (Roadmap, Welle, Register, Link-Nachzug in `open/`) sind Folge von `slice-mv`, nicht des Baus.
 * verifizierbar: ja (Diff gegen Tabelle)
 * klasse: Plan-Tabelle nennt die berührten Dateien nicht
@@ -119,7 +119,7 @@ Die Zuordnung der Zeilen M-19 nennt Tests als Beleg („angeglichen … belegt d
 
 ## Merge-Probe gegen `main` `0b3e990c` (`git merge-tree`)
 
-Textkonflikte nur in Dokumenten: `docs/plan/planning/next/slice-katalog-und-struktur-an-messung-angleichen.md` (Rename/Modify gegen `open/` auf `main`; Auflösung nach §4: Inhalt von `main`, Position folgt dem Lifecycle), `roadmap.md`, `welle-testserver-manuell.md`, die zwei Register-`state.md`, `open/slice-abnahme-d-migrate.md`, `open/slice-antwort-tokens-zielbild-luecken-bauen.md`, `open/slice-katalog-indizes-defaults-fremdschluessel.md`, `done/slice-qa-vergleichslauf-d-messungen-bulk-merge.md`, `docs/plan/spec-abdeckung.md` (erzeugt, neu zu erzeugen) und `docs/user/einbettung-und-betrieb.md`. Automatisch zusammengeführt: `spec/spezifikation.md`, `docs/messungen/referenzabgleich.md`, `StatementPlanner.kt`, `TableStore.kt`, `TableStoreTest.kt`. Keine Code-Textkonflikte mit dem MERGE-Zweig; der semantische Konflikt steht in F-5 und F-6. Die Zweige zu `sp_unprepare` und Massenladen mit festen Typen liegen nicht auf `main` und wurden nicht geprüft.
+Textkonflikte nur in Dokumenten: `docs/plan/planning/done/slice-katalog-und-struktur-an-messung-angleichen.md` (Rename/Modify gegen `open/` auf `main`; Auflösung nach §4: Inhalt von `main`, Position folgt dem Lifecycle), `roadmap.md`, `welle-testserver-manuell.md`, die zwei Register-`state.md`, `open/slice-abnahme-d-migrate.md`, `open/slice-antwort-tokens-zielbild-luecken-bauen.md`, `open/slice-katalog-indizes-defaults-fremdschluessel.md`, `done/slice-qa-vergleichslauf-d-messungen-bulk-merge.md`, `docs/plan/spec-abdeckung.md` (erzeugt, neu zu erzeugen) und `docs/user/einbettung-und-betrieb.md`. Automatisch zusammengeführt: `spec/spezifikation.md`, `docs/messungen/referenzabgleich.md`, `StatementPlanner.kt`, `TableStore.kt`, `TableStoreTest.kt`. Keine Code-Textkonflikte mit dem MERGE-Zweig; der semantische Konflikt steht in F-5 und F-6. Die Zweige zu `sp_unprepare` und Massenladen mit festen Typen liegen nicht auf `main` und wurden nicht geprüft.
 
 ## Läufe mit d-migrate (Digest `sha256:308f2775…`, gegen den Testserver dieses Zweigs)
 
