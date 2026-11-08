@@ -43,7 +43,7 @@ Eine Sitzung hält höchstens `MAX_PREPARED_HANDLES` Handles zugleich (`SPEC-061
 
 ## Fehlercodes und Antwortformen
 
-Jeder Fehler des Servers erreicht den Client als ERROR (feste englische Meldung; State 1, außer bei Nummern mit dem State des echten SQL Servers, zum Beispiel 8179: State 8 bei der Freigabe, State 4 bei `sp_execute`) und einen Abschluss mit Fehlerstatus; der Text einer Backend-Meldung oder Ausnahme erreicht den Client nie. Zuordnung nach [Abschnitt 4 der Spezifikation](../../spec/spezifikation.md#4-fehler-codes-und-logging-felder); die Nummern sind Festlegungen, nur 18456 und 8179 sind am echten SQL Server beobachtet:
+Jeder Fehler des Servers erreicht den Client als ERROR (feste englische Meldung; State 1, außer bei Nummern mit dem State des echten SQL Servers, zum Beispiel 8179: State 8 bei der Freigabe, State 4 bei `sp_execute`) und einen Abschluss mit Fehlerstatus; der Text einer Backend-Meldung oder Ausnahme erreicht den Client nie. Zuordnung nach [Abschnitt 4 der Spezifikation](../../spec/spezifikation.md#4-fehler-codes-und-logging-felder); am echten SQL Server beobachtet sind die Nummern 18456, 8179, 2627, 2714, 2705, 4902 und 208 (dieses mit Class 16), die übrigen Nummern sind Festlegungen:
 
 | Code | Nummer | Class | Folge |
 |---|---|---|---|

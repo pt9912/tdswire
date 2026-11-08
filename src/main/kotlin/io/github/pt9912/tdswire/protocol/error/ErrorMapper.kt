@@ -68,7 +68,8 @@ internal fun ErrorRule.message(handle: Int? = null, state: Int = this.state): Se
 internal class ErrorMapper(internal val log: ErrorLog = ErrorLog.NONE) {
     /**
      * Ein Fehler mit eigenem Code; [cause] ist eine feste Marke für das Log, nie ein Wert. Ein Code, dessen Text die
-     * Nummer eines Handles nennt ([ErrorRule.namesHandle]), hat eine eigene Antwort ([releaseAnswer]).
+     * Nummer eines Handles nennt ([ErrorRule.namesHandle]), hat eigene Antworten ([releaseAnswer] für die
+     * Batch-Freigabe, [executeUnknownHandle] für `sp_execute`).
      */
     fun code(
         code: ErrorCode,

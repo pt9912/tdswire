@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [TDS-FA-04](../../../../spec/lastenheft.md#tds-fa-04--parametrisierte-abfragen-über-rpc), [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [ADR-0045](../../adr/0045-sp-execute-unbekanntes-handle-ergibt-fehler-8179-state-4.md), [ADR-0037](../../adr/0037-sp-unprepare-unbekanntes-handle-ergibt-fehler-8179.md), [ADR-0036](../../adr/0036-handle-freigabe-und-grenze-je-sitzung.md)
 
-**Berührte Spec-Stellen:** SPEC-057 · SPEC-030 (Absätze `sp_execute` und `RESETCONNECTION`) · SPEC-060 · §4 „Fehler, Codes und Logging-Felder“ (Zeilen `TDS_UNKNOWN_HANDLE`, `TDS_SIM_UNKNOWN_PREPARED_HANDLE`, Satz zu den State-Ausnahmen). Die Liste der Änderungen steht in [ADR-0045](../../adr/0045-sp-execute-unbekanntes-handle-ergibt-fehler-8179-state-4.md), Abschnitt „Liste der Spec-Änderungen“.
+**Berührte Spec-Stellen:** SPEC-057 · SPEC-030 (RPC-Tabelle Zeile `sp_execute`, Satz zum Fehlerfall unter der Tabelle, Absätze `sp_execute` und `RESETCONNECTION`) · SPEC-022 (Query-Backend-Vertrag, Absatz „RPC im Backend-Vertrag“, Satz zu Ablehnungen vor dem Backend) · SPEC-060 · §4 „Fehler, Codes und Logging-Felder“ (Zeilen `TDS_UNKNOWN_HANDLE`, `TDS_SIM_UNKNOWN_PREPARED_HANDLE`, Satz zu den State-Ausnahmen). Die Liste der Änderungen steht in [ADR-0045](../../adr/0045-sp-execute-unbekanntes-handle-ergibt-fehler-8179-state-4.md), Abschnitt „Liste der Spec-Änderungen“.
 
 **Verantwortlich:** — bis zur Priorisierung.
 
@@ -79,7 +79,12 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/error/ErrorAnswers.kt` | update | neu `ErrorMapper.executeUnknownHandle` (ERROR 8179, State 4, Form RPC, Log-Marke als Argument), neben `releaseAnswer` der Batch-Freigabe (State 8); die Suche fand dort keinen Bezug zu 50009 |
 | `src/test/kotlin/io/github/pt9912/tdswire/protocol/dispatch/{PreparedHandlesDispatchTest,ResetConnectionDispatchTest,RequestSequenceTest,UnprepareDispatchTest}.kt`, `src/test/kotlin/io/github/pt9912/tdswire/protocol/error/ErrorMapperTest.kt` | update | behaupten 50009 und `TDS_UNKNOWN_HANDLE` ([TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität)) |
 | Handvektor 8179/State 4 (Testdatei im Paket `protocol/dispatch` oder `protocol/error`) | neu | Happy: nie vergeben, −1, 0, freigegeben, nach `RESETCONNECTION`; Negative: kein Backend-Aufruf, Zähler unverändert, Verbindung offen; Gegenprobe State 8 der Batch-Freigabe |
-| `docs/plan/kompatibilitaetsmatrix.md` (Zeilen `sp_execute`, „Handle-Verwaltung je Sitzung“) | update | [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität); Zitate prüft `make matrix-zitate` |
+| `docs/plan/kompatibilitaetsmatrix.md` (Zeile `sp_execute`; die Zeile „Handle-Verwaltung je Sitzung“ nennt keine Fehlernummer und bleibt unverändert) | update | [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität); Zitate prüft `make matrix-zitate` |
+| `spec/spezifikation.md` (`SPEC-022`, Absatz „RPC im Backend-Vertrag“; `SPEC-030`, Zeile `sp_execute` der RPC-Tabelle und Satz zum Fehlerfall) | update | Ablehnung vor dem Backend nennt 8179/State 4; die Zeile und der Satz zum Fehlerfall folgen der Liste der Spec-Änderungen |
+| `docs/plan/spec-abdeckung.md` | update (erzeugt) | `make spec-abdeckung`; Matrix steht sonst hinter dem Bestand |
+| `docs/plan/planning/welle-testserver-manuell.md`, `docs/plan/planning/in-progress/roadmap.md` | update | Verweise auf den Slice nach `in-progress/`, Stand der Wellenzeile |
+| `docs/plan/planning/observations/BEO-TDS/sp-execute-unbekanntes-handle-spec-057-widerspricht-messung/state.md` | update | Register-Zustand der Beobachtung |
+| `docs/plan/planning/done/slice-adr-sp-execute-unbekanntes-handle.md`, `docs/plan/planning/open/slice-massenladen-atomar-bauen.md` | update | Verweis-Nachzug auf den Slice in `in-progress/` |
 | `docs/messungen/referenzabgleich.md` (Zeile M-6) | update | Hinweis eingelöst |
 | `src/test/kotlin/io/github/pt9912/tdswire/protocol/dispatch/UnprepareDispatchTest.kt` (Filter der Log-Einträge nach Marke statt nach Code) | update | `sp_execute` und Batch-Freigabe teilen den Code `TDS_SIM_UNKNOWN_PREPARED_HANDLE`; die Marken `unknown-handle` und `unknown-prepared-handle` unterscheiden sie |
 
