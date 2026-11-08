@@ -68,10 +68,11 @@ class HandleLimitEmbeddingTest {
 
     /**
      * Mit `maxPreparedHandles = 2` nimmt die Sitzung zwei `sp_prepexec` an, das dritte ergibt `TDS_PREPARE_LIMIT`; die
-     * Batch-Freigabe eines Handles schafft Platz für genau ein weiteres, ein unbekanntes Handle ergibt 8179 und
-     * DONE mit Fehlerstatus, ohne dass die Verbindung endet. Die Antwort auf `sp_prepexec` trägt RETURNSTATUS 0 vor dem
-     * RETURNVALUE. Wächter: eine Grenze, die der öffentliche Eingang nicht erreicht (Voreinstellung 1000 bleibt), eine
-     * Freigabe, die die Zählung nicht senkt, ein Handle-Fehler, der die Verbindung schließt.
+     * Batch-Freigabe eines Handles schafft Platz für genau ein weiteres, ein unbekanntes Handle ergibt 8179,
+     * RETURNSTATUS 8179 und DONEPROC mit Fehlerstatus, ohne dass die Verbindung endet. Die Antwort auf `sp_prepexec`
+     * trägt RETURNSTATUS 0 vor dem RETURNVALUE. Wächter: eine Grenze, die der öffentliche Eingang nicht erreicht
+     * (Voreinstellung 1000 bleibt), eine Freigabe, die die Zählung nicht senkt, ein Handle-Fehler, der die Verbindung
+     * schließt.
      *
      * @spec SPEC-058
      * @spec SPEC-059
@@ -91,11 +92,15 @@ class HandleLimitEmbeddingTest {
 
             val released = client.batch("EXEC sp_unprepare 1")
             assertEquals(0, released.doneStatus, "Erfolg ohne Fehlerbit")
+            assertEquals(PROC_COMMAND, released.command, "DONEPROC mit der Befehlskennung 0x00e0")
+            assertTrue(released.payload.hasBytes(RETURN_STATUS, 0, 0, 0, 0), "RETURNSTATUS 0 vor dem DONEPROC")
             assertFalse(client.rpc(prepExecPayload("select 3")).hasText(LIMIT_TEXT), "Platz durch die Freigabe")
             assertTrue(client.rpc(prepExecPayload("select 4")).hasText(LIMIT_TEXT), "nur ein Platz")
 
             val unknown = client.batch("EXEC sp_unprepare 99")
-            assertTrue(unknown.doneStatus and DONE_ERROR != 0, "DONE mit Fehlerstatus")
+            assertTrue(unknown.doneStatus and DONE_ERROR != 0, "DONEPROC mit Fehlerstatus")
+            assertEquals(PROC_COMMAND, unknown.command, "DONEPROC mit der Befehlskennung 0x00e0")
+            assertTrue(unknown.payload.hasBytes(RETURN_STATUS, UNKNOWN_STATUS, 0x1F, 0, 0), "RETURNSTATUS 8179")
             assertTrue(unknown.contains("Could not find prepared statement with handle 99."))
             val again = client.batch("EXEC sp_unprepare 1")
             assertTrue(again.contains("Could not find prepared statement with handle 1."), "doppelt freigegeben")
@@ -127,6 +132,8 @@ class HandleLimitEmbeddingTest {
 
 private const val DEFAULT_LIMIT = 1000
 private const val RETURN_STATUS = 0x79
+private const val UNKNOWN_STATUS = 0xF3
+private const val PROC_COMMAND = 0x00E0
 private const val RETURN_VALUE = 0xAC
 private const val LIMIT_TEXT = "Prepared handle limit reached."
 

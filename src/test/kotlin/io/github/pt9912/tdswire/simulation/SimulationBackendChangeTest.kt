@@ -3,6 +3,7 @@ package io.github.pt9912.tdswire.simulation
 import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.domain.QueryParameter
 import io.github.pt9912.tdswire.domain.SqlType
+import io.github.pt9912.tdswire.domain.StatementKind
 import io.github.pt9912.tdswire.port.QueryExecution
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
@@ -82,6 +83,14 @@ class SimulationBackendChangeTest {
         val backend get() = SimulationBackend(SimCatalog(listOf(table)))
     }
 
+    /** Die Art, die das Backend zur Anweisung [sql] meldet: nach dem ersten Wort. */
+    private fun kindOf(sql: String) = when (sql.substringBefore(' ')) {
+        "INSERT" -> StatementKind.INSERT
+        "UPDATE" -> StatementKind.UPDATE
+        "DELETE" -> StatementKind.DELETE
+        else -> error(sql)
+    }
+
     private fun run(callbacks: Callbacks, sql: String, parameters: List<QueryParameter> = emptyList()) =
         collectEvents(callbacks.backend, sql, parameters)
 
@@ -97,12 +106,38 @@ class SimulationBackendChangeTest {
 
         val events = run(callbacks, "INSERT INTO PERSON (name, ID, Age) VALUES ('Ada', 1, NULL)")
 
-        assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(1)), events)
+        assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(1, StatementKind.INSERT)), events)
         assertEquals(1, callbacks.inserts)
         assertEquals(1, callbacks.total)
         assertEquals(listOf("Name", "Id", "Age"), callbacks.values?.keys?.toList())
         assertEquals(mapOf("Name" to "Ada", "Id" to 1, "Age" to null), callbacks.values)
         assertEquals(0, callbacks.opens)
+    }
+
+    /**
+     * Happy: der Änderungszähler trägt die Art der Anweisung, die das Backend erkannt hat (`SPEC-031`, `SPEC-059`):
+     * `INSERT`, `UPDATE` und `DELETE` je in der Schreibweise mit Parameter, ohne `WHERE` und mit `WHERE`. Wächter: eine
+     * Art, die nicht aus der Form folgt (alle `UNKNOWN`, vertauschte Mitglieder), eine Art, die nur beim ersten Aufruf
+     * oder nur mit `WHERE` gesetzt wird.
+     * @spec SPEC-031
+     * @spec SPEC-059
+     */
+    @Test
+    fun `jeder Aenderungszaehler meldet die Art seiner Anweisung`() {
+        val expected = mapOf(
+            "INSERT INTO person (id) VALUES (1)" to StatementKind.INSERT,
+            "INSERT INTO person (id, name) VALUES (@p, 'x')" to StatementKind.INSERT,
+            "UPDATE person SET age = 1" to StatementKind.UPDATE,
+            "UPDATE person SET age = 1 WHERE id = 5" to StatementKind.UPDATE,
+            "DELETE FROM person" to StatementKind.DELETE,
+            "DELETE FROM person WHERE id = 1" to StatementKind.DELETE,
+        )
+        val parameters = listOf(QueryParameter("@p", SqlType.Int32, 5))
+        for ((sql, kind) in expected) {
+            val events = run(Callbacks(result = 4), sql, parameters.takeIf { "@p" in sql }.orEmpty())
+
+            assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(4, kind)), events, sql)
+        }
     }
 
     /**
@@ -117,7 +152,7 @@ class SimulationBackendChangeTest {
 
         val events = run(callbacks, "INSERT INTO person (id, name) VALUES (@P, @n)", parameters)
 
-        assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(0)), events)
+        assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(0, StatementKind.INSERT)), events)
         assertEquals(mapOf("Id" to 5, "Name" to "Bo"), callbacks.values)
     }
 
@@ -132,14 +167,14 @@ class SimulationBackendChangeTest {
 
         val filtered = run(callbacks, "UPDATE person SET age = 40, NAME = 'X' WHERE id IN (1, 2) AND born IS NULL")
 
-        assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(3)), filtered)
+        assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(3, StatementKind.UPDATE)), filtered)
         assertEquals(mapOf("Age" to 40, "Name" to "X"), callbacks.set)
         val terms = listOf(FilterTerm.In("Id", listOf(1, 2)), FilterTerm.IsNull("Born", negated = false))
         assertEquals(RowFilter(terms), callbacks.filter)
 
         val all = run(callbacks, "UPDATE person SET age = 41")
 
-        assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(3)), all)
+        assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(3, StatementKind.UPDATE)), all)
         assertEquals(mapOf("Age" to 41), callbacks.set)
         assertNull(callbacks.filter)
         assertEquals(2, callbacks.updates)
@@ -156,7 +191,7 @@ class SimulationBackendChangeTest {
 
         val filtered = run(callbacks, "DELETE FROM person WHERE name IS NOT NULL AND age = 36")
 
-        assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(2)), filtered)
+        assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(2, StatementKind.DELETE)), filtered)
         val terms = listOf(FilterTerm.IsNull("Name", negated = true), FilterTerm.In("Age", listOf(36)))
         assertEquals(RowFilter(terms), callbacks.filter)
 
@@ -190,7 +225,7 @@ class SimulationBackendChangeTest {
             assertEquals(0, withoutAny.opens, sql)
 
             val control = Callbacks(result = 9)
-            assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(9)), run(control, sql), sql)
+            assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(9, kindOf(sql))), run(control, sql), sql)
             assertEquals(1, control.total, sql)
         }
 
@@ -236,7 +271,7 @@ class SimulationBackendChangeTest {
             assertEquals("TDS_SIM_INVALID_VALUE", assertIs<QueryEvent.Failure>(run(bare, sql).single(), sql).code, sql)
         }
         for (sql in valid) {
-            assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(7)), run(callbacks, sql), sql)
+            assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(7, kindOf(sql))), run(callbacks, sql), sql)
         }
         assertEquals(valid.size, callbacks.total)
     }
@@ -297,7 +332,7 @@ class SimulationBackendChangeTest {
         assertEquals(emptyList(), collect(closed))
         assertEquals(emptyList(), collect(cancelled))
         assertEquals(0, callbacks.total)
-        assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(7)), collect(ran))
+        assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(7, StatementKind.DELETE)), collect(ran))
         assertEquals(1, callbacks.deletes)
     }
 
@@ -311,9 +346,9 @@ class SimulationBackendChangeTest {
         val callbacks = Callbacks()
         val execution = callbacks.backend.execute(queryRequest("DELETE FROM person"))
 
-        assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(7)), collect(execution))
+        assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(7, StatementKind.DELETE)), collect(execution))
         assertEquals(1, callbacks.deletes)
-        assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(7)), collect(execution))
+        assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(7, StatementKind.DELETE)), collect(execution))
         assertEquals(2, callbacks.deletes)
     }
 }

@@ -393,7 +393,7 @@ class TokenEncoderTest {
 
     /**
      * Orakel: RETURNVALUE (`AC`) ohne Längenfeld: Ordinal (2), Name "@p" als B_VARCHAR, Status 1
-     * (OUTPUT), UserType (4), Flags (`fNullable`), TYPE_INFO `26 04`, Wert `04 07 00 00 00`.
+     * (OUTPUT), UserType (4), Flags (immer `0x0000`, M-24), TYPE_INFO `26 04`, Wert `04 07 00 00 00`.
      *
      * @spec SPEC-030
      */
@@ -401,7 +401,7 @@ class TokenEncoderTest {
     fun `RETURNVALUE`() {
         val column = ColumnDef("", TdsType.IntNType(4), nullable = true)
         assertEquals(
-            "AC 00 00 02 40 00 70 00 01 00 00 00 00 01 00 26 04 04 07 00 00 00",
+            "AC 00 00 02 40 00 70 00 01 00 00 00 00 00 00 26 04 04 07 00 00 00",
             encoded(ReturnValueToken(0, "@p", 1, column, TdsValue.IntegerValue(7))),
         )
     }

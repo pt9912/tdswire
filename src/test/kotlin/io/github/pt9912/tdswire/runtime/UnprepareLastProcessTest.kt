@@ -22,7 +22,12 @@ private const val HEADER_BYTES = 8
 private const val BYTES_PER_STATEMENT = 40
 private const val CONNECTIONS = 2
 private const val ERROR_BYTES = 113
+private const val STATUS_BYTES = 5
 private const val DONE_BYTES = 13
+private const val ANSWER_BYTES = ERROR_BYTES + STATUS_BYTES + DONE_BYTES
+
+/** RETURNSTATUS 8179 und DONEPROC `ERROR` mit Befehl `0x00e0`: das Ende der Antwort für eine nicht gehaltene Nummer. */
+private const val UNKNOWN_LAST = "79F31F0000FE0200E0000000000000000000"
 
 /**
  * Der Serverprozess (Kind-JVM mit `-Xmx256m`, `-XX:+ExitOnOutOfMemoryError` wie im Image des Testservers) unter
@@ -79,11 +84,12 @@ internal class UnprepareLastProcessTest : TempFilesTest() {
     /**
      * Zwei Verbindungen senden gleichzeitig je einen Batch bis zur Grenze der Nachricht (`MAX_MESSAGE_BYTES`, 16 MiB)
      * aus lauter unbekannten Nummern an den Serverprozess mit 256 MiB Heap: jede erhält die vollständige Antwort (ein
-     * ERROR je Nummer von 113 Byte, danach das DONE von 13 Byte), der Prozess läuft weiter und beantwortet danach eine
-     * neue Verbindung. Wächter: eine Antwort, die als Puffer oder Liste im Speicher steht (der Prozess endet mit
-     * `OutOfMemoryError`, gemessen), eine Obergrenze der Meldungen (zu kurze Antwort). Die Aussage gilt für zwei, nicht
-     * für beliebig viele Verbindungen: vier gleichzeitige Nachrichten dieser Größe überlasten den Heap auch ohne die
-     * Antwort (Messprotokoll `docs/messungen/unprepare-antwort-speicher-2026-11-07.md`).
+     * ERROR von 113 Byte, ein RETURNSTATUS von 5 Byte und ein DONEPROC von 13 Byte je Nummer, 131 Byte), der Prozess
+     * läuft weiter und beantwortet danach eine neue Verbindung. Wächter: eine Antwort, die als Puffer oder Liste im
+     * Speicher steht (der Prozess endet mit `OutOfMemoryError`, gemessen), eine Obergrenze der Meldungen (zu kurze
+     * Antwort). Die Aussage gilt für zwei, nicht für beliebig viele Verbindungen: vier gleichzeitige Nachrichten
+     * dieser Größe überlasten den Heap auch ohne die Antwort (Messprotokoll
+     * `docs/messungen/unprepare-antwort-speicher-2026-11-07.md`).
      *
      * @spec SPEC-060
      * @spec SPEC-007
@@ -102,15 +108,15 @@ internal class UnprepareLastProcessTest : TempFilesTest() {
             results.forEachIndexed { index, reply ->
                 val message = assertNotNull(reply, "Verbindung $index ohne Antwort; ${server.output.takeLast(3)}")
                 assertEquals(TABULAR_TYPE, message.type)
-                assertEquals(statements.toLong() * ERROR_BYTES + DONE_BYTES, message.payloadBytes, "Verbindung $index")
-                assertEquals(BatchVectors.DONE_ERROR.replace(" ", ""), message.tail.takeLast(DONE_BYTES).toHexCompact())
+                assertEquals(statements.toLong() * ANSWER_BYTES, message.payloadBytes, "Verbindung $index")
+                assertEquals(UNKNOWN_LAST, message.tail.takeLast(STATUS_BYTES + DONE_BYTES).toHexCompact())
             }
             assertTrue(server.alive(), "der Prozess endete: ${server.output.takeLast(3)}")
             RawClient(port).use { client ->
                 login(client)
                 client.send(handMessage(BATCH_TYPE, BatchVectors.payload("EXEC sp_unprepare 1"), PACKET_PAYLOAD))
                 val small = assertNotNull(client.drainMessage())
-                assertEquals(ERROR_BYTES.toLong() + DONE_BYTES, small.payloadBytes)
+                assertEquals(ANSWER_BYTES.toLong(), small.payloadBytes)
             }
         }
     }

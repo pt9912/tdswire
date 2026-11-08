@@ -25,7 +25,9 @@ private const val TYPE_PRELOGIN = 0x12
 private const val STATUS_EOM = 1
 private const val LOGINACK_TOKEN = 0xAD
 private const val DONE_TOKEN = 0xFD
+private const val DONE_PROC_TOKEN = 0xFE
 private const val DONE_BYTES = 13
+private const val DONE_COMMAND_OFFSET = 3
 private const val DONE_COUNT_OFFSET = 5
 private const val LONG_BYTES = 8
 private const val FIXED_LOGIN_BYTES = 94
@@ -40,15 +42,20 @@ internal const val SHORT_BYTES = 2
 private const val CLIENT_ID_BYTES = 6
 private const val HEX_RADIX = 16
 
-/** Die Antwort auf eine Anfrage: Nutzdaten aller Pakete; das letzte Token ist DONE. */
+/** Die Antwort auf eine Anfrage: Nutzdaten aller Pakete; das letzte Token ist DONE oder DONEPROC. */
 internal class Answer(val payload: ByteArray) {
     private val done = payload.copyOfRange(payload.size - DONE_BYTES, payload.size)
 
     init {
-        assertEquals(DONE_TOKEN, done[0].toInt() and BYTE_MASK, "die Antwort endet mit DONE")
+        val token = done[0].toInt() and BYTE_MASK
+        assertTrue(token == DONE_TOKEN || token == DONE_PROC_TOKEN, "die Antwort endet mit DONE oder DONEPROC")
     }
 
     val doneStatus: Int get() = (done[1].toInt() and BYTE_MASK) or ((done[2].toInt() and BYTE_MASK) shl BYTE_BITS)
+
+    /** Die Befehlskennung (`curCmd`) des abschließenden DONE. */
+    val command: Int get() = (done[DONE_COMMAND_OFFSET].toInt() and BYTE_MASK) or
+        ((done[DONE_COMMAND_OFFSET + 1].toInt() and BYTE_MASK) shl BYTE_BITS)
 
     val rowCount: Long
         get() = (0 until LONG_BYTES).fold(0L) { sum, index ->

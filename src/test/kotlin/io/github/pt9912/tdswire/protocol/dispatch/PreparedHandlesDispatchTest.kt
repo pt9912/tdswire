@@ -163,7 +163,7 @@ class PreparedHandlesDispatchTest {
             Inbound.EndOfStream,
         )
         session.serve(backend)
-        fun output(ordinal: String) = "AC $ordinal 02 40 00 6F 00 01 00 00 00 00 01 00 26 04 04 2A 00 00 00"
+        fun output(ordinal: String) = "AC $ordinal 02 40 00 6F 00 01 00 00 00 00 00 00 26 04 04 2A 00 00 00"
         val status = "79 00 00 00 00"
         assertEquals(
             listOf(status, handleValue(0, 1), output("04 00"), doneProcFinal).joinToString(" "),

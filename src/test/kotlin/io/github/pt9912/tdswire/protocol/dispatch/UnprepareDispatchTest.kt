@@ -17,6 +17,8 @@ import io.github.pt9912.tdswire.protocol.token.ErrorToken
 import io.github.pt9912.tdswire.protocol.token.ServerMessage
 import io.github.pt9912.tdswire.protocol.token.Token
 import io.github.pt9912.tdswire.testsupport.blocking
+import io.github.pt9912.tdswire.testsupport.hex
+import io.github.pt9912.tdswire.testsupport.toHex
 import io.github.pt9912.tdswire.transport.framing.PacketType
 import io.github.pt9912.tdswire.transport.framing.TdsMessage
 import kotlinx.coroutines.launch
@@ -28,13 +30,25 @@ import kotlin.time.Duration.Companion.seconds
 
 private const val NOT_FOUND = "Could not find prepared statement with handle"
 
+private const val PROC_TAIL = "00 00 00 00 00 00 00 00 00"
+
+/** Eine gehaltene Nummer als letzte Anweisung: RETURNSTATUS 0, DONEPROC ohne Bits, Befehl `0x00e0` (M-23). */
+private const val HELD_LAST = "79 00 00 00 00  FE 00 00 E0 $PROC_TAIL"
+
+/** Eine gehaltene Nummer vor weiteren Anweisungen: RETURNSTATUS 0, DONEPROC `MORE`, Befehl `0x00e0` (M-23). */
+private const val HELD_MORE = "79 00 00 00 00  FE 01 00 E0 $PROC_TAIL"
+
+/** Das Ende der Antwort für eine nicht gehaltene letzte Nummer: RETURNSTATUS 8179, DONEPROC `ERROR` (M-23). */
+private const val UNKNOWN_LAST = "79 F3 1F 00 00  FE 02 00 E0 $PROC_TAIL"
+
 /**
  * Die Freigabe von Prepared-Handles als SQL-Batch `EXEC sp_unprepare <n>[;EXEC sp_unprepare <n>…]` (`TDS-FA-04`,
  * `SPEC-030`, `SPEC-060`, `SPEC-058`, `SPEC-001`) gegen das Test-Backend [ScriptedBackend]. Die Antwort-Bytes sind
  * Handvektoren. Gemessen sind Nummer 8179, Class 16, State 8, Text und die offene Verbindung für ein Handle, das die
  * Sitzung nicht hält (Zeile M-4 des Messprotokolls `docs/messungen/referenzabgleich.md`, am Client, 2022 und 2025),
- * und der Ablauf des gemischten Batches (M-7, am Client); Tokenfolge und DONE auf dem Draht, die Erfolgsantwort,
- * die Schreibweise der Form und das Verhalten nach RESETCONNECTION sind Festlegungen und nicht gemessen.
+ * und der Ablauf des gemischten Batches (M-7, am Client); die Tokenfolge auf dem Draht ist für eine Nummer (gehalten
+ * und nicht gehalten) und für zwei gehaltene Nummern gemessen (M-22, M-23); die Folge bei gemischten Nummern, die
+ * Schreibweise der Form und das Verhalten nach RESETCONNECTION sind Festlegungen und nicht gemessen.
  */
 class UnprepareDispatchTest {
     private val oneRow = listOf(resultStart(), QueryEvent.Row(listOf(7)), QueryEvent.ResultEnd(1))
@@ -49,6 +63,8 @@ class UnprepareDispatchTest {
     /** Die Meldung des Servers für ein Handle, das die Sitzung nicht hält (gemessen: M-4). */
     private fun notFound(handle: Int) = ServerMessage(8179, 8, 16, "$NOT_FOUND $handle.")
 
+    private fun hexOf(text: String) = hex(text).toHex()
+
     private fun Session.errors(index: Int) = tokens(index).filterIsInstance<ErrorToken>().map { it.message }
 
     private val unknownHandle = ServerMessage(50009, 1, 16, "Unknown prepared handle.")
@@ -57,10 +73,12 @@ class UnprepareDispatchTest {
     private fun handleValue(handle: Int) = "AC 00 00 00 01 00 00 00 00 00 00 26 04 04 ${RpcWire.le(handle.toLong(), 4)}"
 
     /**
-     * Der Batch mit gehaltenen Handles gibt sie frei, ohne das Backend zu rufen: Antwort DONE ohne Bits (Erfolg ohne
-     * Zeilen), danach sind beide Handles für `sp_execute` unbekannt; die Zählung steht bei null, und das nächste
-     * `sp_prepexec` bekommt den nächsten Wert, nicht den freigegebenen. Wächter: ein Backend-Aufruf, ein Handle, das
-     * gehalten bleibt, ein wiederverwendeter Wert, eine Fehlerantwort.
+     * Der Batch mit gehaltenen Handles gibt sie frei, ohne das Backend zu rufen: Antwort RETURNSTATUS 0 und DONEPROC
+     * (`MORE` an der ersten, Befehl `0x00e0`, kein DONE; Handvektor der Messung M-23, zwei Anweisungen), danach sind
+     * beide Handles für `sp_execute` unbekannt; die Zählung steht bei null, und das nächste `sp_prepexec` bekommt den
+     * nächsten Wert, nicht den freigegebenen. Wächter: ein Backend-Aufruf, ein Handle, das gehalten bleibt, ein
+     * wiederverwendeter Wert, eine Fehlerantwort, ein DONE statt RETURNSTATUS und DONEPROC, ein DONEPROC ohne `MORE`
+     * an der ersten oder mit `MORE` an der letzten Anweisung, eine andere Befehlskennung.
      *
      * @spec SPEC-030
      * @spec SPEC-001
@@ -77,10 +95,12 @@ class UnprepareDispatchTest {
             rpc(prepExec(-1, "select 3", "")),
             Inbound.EndOfStream,
         )
-        val loop = session.loop(backend)
+        val logged = mutableListOf<ErrorLogEntry>()
+        val loop = session.loop(backend, ErrorMapper(ErrorLog { logged += it }))
         loop.run()
         assertEquals(6, session.replies.size)
-        assertEquals(BatchVectors.DONE_FINAL, session.hex(2))
+        assertEquals(hexOf("$HELD_MORE  $HELD_LAST"), session.hex(2))
+        assertTrue(logged.none { it.code == ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE }, "Eintrag ohne unbekannte")
         assertEquals(unknownHandle, session.errors(3).single())
         assertEquals(unknownHandle, session.errors(4).single())
         assertEquals(listOf("select 1", "select 2", "select 3"), backend.requests.map { it.sql })
@@ -89,12 +109,13 @@ class UnprepareDispatchTest {
     }
 
     /**
-     * Ein Handle, das die Sitzung nicht hält, ergibt ERROR 8179 (Class 16, State 8, Text mit der Nummer) und DONE mit
-     * Fehlerstatus, ohne das Backend zu rufen; die Verbindung bleibt offen, der Folge-RPC wird beantwortet, die
-     * Zählung ändert sich nicht. Drei Fälle: nie vergeben (99), bereits freigegeben (1 ein zweites Mal), nach
-     * RESETCONNECTION (das Handle 2 aus der Zeit davor). Das Log nennt je Fall die feste Marke
-     * `unknown-prepared-handle`. Wächter: Erfolg statt Fehler, ein anderer State oder eine andere Nummer, ein
-     * Text ohne die Nummer, ein Backend-Aufruf, ein Verbindungsende, ein Handle, das nach dem Fehler fehlt.
+     * Ein Handle, das die Sitzung nicht hält, ergibt ERROR 8179 (Class 16, State 8, Text mit der Nummer),
+     * RETURNSTATUS 8179 und DONEPROC mit Fehlerstatus (Befehl `0x00e0`, kein DONE), ohne das Backend zu rufen; die
+     * Verbindung bleibt offen, der Folge-RPC wird beantwortet, die Zählung ändert sich nicht. Drei Fälle: nie
+     * vergeben (99), bereits freigegeben (1 ein zweites Mal), nach RESETCONNECTION (das Handle 2 aus der Zeit davor).
+     * Das Log nennt je Fall die feste Marke `unknown-prepared-handle`. Wächter: Erfolg statt Fehler, ein anderer
+     * State oder eine andere Nummer, ein Text ohne die Nummer, ein Backend-Aufruf, ein Verbindungsende, ein Handle,
+     * das nach dem Fehler fehlt.
      *
      * @spec SPEC-060
      * @spec SPEC-030
@@ -118,20 +139,21 @@ class UnprepareDispatchTest {
         loop.run()
         assertEquals(7, session.replies.size)
         assertEquals(notFound(99), session.errors(2).single())
-        assertEquals(BatchVectors.DONE_FINAL, session.hex(3))
+        assertEquals(hexOf(HELD_LAST), session.hex(3))
         assertEquals(notFound(1), session.errors(4).single())
         assertEquals(notFound(2), session.errors(5).single())
         listOf(2, 4, 5).forEach {
-            assertEquals(if (it == 5) 3 else 2, session.tokens(it).size, "$it")
+            assertEquals(if (it == 5) 4 else 3, session.tokens(it).size, "$it")
             assertEquals(DoneStatus.ERROR, session.tokens(it).lastDone().status, "$it")
+            assertTrue(session.hex(it).endsWith(hexOf(UNKNOWN_LAST)), "$it")
         }
-        // Die Antwort auf die Anfrage mit RESETCONNECTION (5) beginnt mit ENVCHANGE Typ 18, dann ERROR, dann DONE.
+        // Die Antwort auf die Anfrage mit RESETCONNECTION (5) beginnt mit ENVCHANGE Typ 18, danach ERROR, RETURNSTATUS
+        // und DONEPROC.
         assertTrue(session.hex(5).startsWith(BatchVectors.ENVCHANGE_RESET), session.hex(5))
         assertEquals(
-            listOf("ResetConnection", "ErrorToken", "DoneToken"),
+            listOf("ResetConnection", "ErrorToken", "ReturnStatusToken", "DoneToken"),
             session.tokens(5).map { it::class.simpleName },
         )
-        assertTrue(session.hex(5).endsWith(BatchVectors.DONE_ERROR), session.hex(5))
         assertEquals(unknownHandle, session.errors(6).single())
         assertEquals(listOf("select 1", "select 2"), backend.requests.map { it.sql })
         assertEquals(
@@ -143,10 +165,12 @@ class UnprepareDispatchTest {
 
     /**
      * Der Batch gehalten/unbekannt/gehalten (Setzung nach `ADR-0037` Entscheidung 3, am Client an der Referenzinstanz
-     * bestätigt: M-7): beide gehaltenen Handles sind danach frei, genau ein ERROR 8179 für das unbekannte, ein DONE
-     * mit Fehlerstatus; zwei unbekannte Nummern ergeben zwei ERROR in der Reihenfolge des Textes. Wächter: ein Abbruch
-     * des Batches am ersten Fehler (das dritte Handle bleibt gehalten), ein Fehler je Anweisung statt je
-     * unbekannter Nummer, eine andere Reihenfolge.
+     * bestätigt: M-7): beide gehaltenen Handles sind danach frei, genau ein ERROR 8179 für das unbekannte; jede
+     * Anweisung trägt ihr eigenes DONEPROC (`MORE` außer an der letzten, `ERROR` an der unbekannten; die Folge bei
+     * gemischten Nummern ist Setzung, gemessen sind nur die einheitlichen Batches, M-22 und M-23); zwei unbekannte
+     * Nummern ergeben zwei ERROR in der Reihenfolge des Textes. Wächter: ein Abbruch des Batches am ersten Fehler
+     * (das dritte Handle bleibt gehalten), ein Fehler je Anweisung statt je unbekannter Nummer, eine andere
+     * Reihenfolge, ein `ERROR`-Bit an den DONEPROC der gehaltenen Nummern, ein `MORE`-Bit an der letzten Anweisung.
      *
      * @spec SPEC-060
      * @spec SPEC-030
@@ -169,21 +193,26 @@ class UnprepareDispatchTest {
         val loop = session.loop(backend)
         loop.run()
         assertEquals(listOf(notFound(99)), session.errors(3))
-        assertEquals(2, session.tokens(3).size)
+        assertEquals(7, session.tokens(3).size)
+        assertTrue(session.hex(3).startsWith(hexOf(HELD_MORE)), session.hex(3))
+        assertTrue(session.hex(3).endsWith(hexOf(HELD_LAST)), session.hex(3))
+        assertTrue(session.hex(3).contains(hexOf("79 F3 1F 00 00  FE 03 00 E0 $PROC_TAIL")), session.hex(3))
         assertEquals(unknownHandle, session.errors(4).single())
         assertEquals(unknownHandle, session.errors(5).single())
         assertTrue(session.errors(6).isEmpty())
         assertEquals(listOf(notFound(98), notFound(97)), session.errors(7))
-        assertEquals(3, session.tokens(7).size)
+        assertEquals(8, session.tokens(7).size)
+        assertTrue(session.hex(7).endsWith(hexOf(UNKNOWN_LAST)), session.hex(7))
         assertEquals(unknownHandle, session.errors(8).single())
         assertEquals(4, backend.requests.size)
     }
 
     /**
-     * Jede unbekannte Nummer ergibt einen ERROR, ohne Obergrenze (`SPEC-060`; gemessen am echten Server: 100, 101 und
-     * 150 Nummern auf dem Draht, M-22 des Messprotokolls `docs/messungen/referenzabgleich.md`): Batches mit 99, 100,
-     * 101, 150 und 2000 unbekannten Nummern vor einem gehaltenen Handle ergeben je Nummer einen ERROR in der
-     * Reihenfolge des Textes und ein DONE mit Fehlerstatus; das gehaltene Handle am Ende des Textes ist frei. Das Log
+     * Jede unbekannte Nummer ergibt einen ERROR mit RETURNSTATUS 8179 und DONEPROC `MORE|ERROR`, ohne Obergrenze
+     * (`SPEC-060`; gemessen am echten Server: 100, 101 und 150 Nummern auf dem Draht, M-22 des Messprotokolls
+     * `docs/messungen/referenzabgleich.md`): Batches mit 99, 100, 101, 150 und 2000 unbekannten Nummern vor einem
+     * gehaltenen Handle ergeben je Nummer diese drei Tokens in der Reihenfolge des Textes und zuletzt RETURNSTATUS 0
+     * und DONEPROC ohne Bits für das gehaltene Handle; das gehaltene Handle am Ende des Textes ist frei. Das Log
      * trägt je Batch einen Eintrag mit der festen Marke, nicht einen je Nummer. Wächter: eine Obergrenze der Meldungen
      * (am Rand 100 oder 101 wird gekürzt), ein Abbruch der Bearbeitung nach den gemeldeten Nummern (das Handle 1
      * bliebe gehalten), ein Log-Eintrag je Nummer.
@@ -206,8 +235,12 @@ class UnprepareDispatchTest {
             )
             session.loop(backend, ErrorMapper(ErrorLog { logged += it })).run()
             assertEquals((2..count + 1).map { notFound(it) }, session.errors(1), "$count Nummern")
-            assertEquals(count + 1, session.tokens(1).size, "$count Nummern")
-            assertEquals(DoneStatus.ERROR, session.tokens(1).lastDone().status, "$count Nummern")
+            assertEquals(3 * count + 2, session.tokens(1).size, "$count Nummern")
+            val dones = session.tokens(1).filterIsInstance<DoneToken>()
+            assertEquals(count + 1, dones.size, "$count Nummern")
+            assertTrue(dones.take(count).all { it.status == DoneStatus.MORE or DoneStatus.ERROR }, "$count Nummern")
+            assertEquals(DoneStatus.FINAL, dones.last().status, "$count Nummern")
+            assertTrue(session.hex(1).endsWith(hexOf(HELD_LAST)), "$count Nummern")
             assertEquals(unknownHandle, session.errors(2).single(), "$count Nummern: Handle 1 frei")
         }
         assertEquals(
@@ -273,7 +306,7 @@ class UnprepareDispatchTest {
         session.serve(backend)
         assertEquals(ServerMessage(50002, 1, 16, "Unsupported RPC."), session.errors(1).single())
         assertTrue(session.errors(2).isEmpty())
-        assertEquals(BatchVectors.DONE_FINAL, session.hex(3))
+        assertEquals(hexOf(HELD_LAST), session.hex(3))
         assertEquals(unknownHandle, session.errors(4).single())
     }
 
@@ -309,7 +342,7 @@ class UnprepareDispatchTest {
         assertEquals(limitReached, session.errors(3).single())
         assertEquals(notFound(99), session.errors(4).single())
         assertEquals(limitReached, session.errors(5).single())
-        assertEquals(BatchVectors.DONE_FINAL, session.hex(6))
+        assertEquals(hexOf(HELD_LAST), session.hex(6))
         assertTrue(session.errors(7).isEmpty())
         assertEquals(limitReached, session.errors(8).single())
         assertEquals(listOf("select 1", "select 2", "select 3", "select 5"), backend.requests.map { it.sql })
@@ -345,8 +378,9 @@ class UnprepareDispatchTest {
 
     /**
      * Die Freigabe von 1000 Handles in einem Batch (so viele, wie die Voreinstellung hält) gelingt in einer Antwort
-     * ohne Fehler und leert die Tabelle; danach nimmt die Sitzung wieder 1000 Handles. Wächter: eine Obergrenze der
-     * Anweisungen je Batch, eine Freigabe, die nur einen Teil erfasst.
+     * ohne Fehler (999 Mal RETURNSTATUS 0 und DONEPROC `MORE`, zuletzt ohne `MORE`) und leert die Tabelle; danach
+     * nimmt die Sitzung wieder 1000 Handles. Wächter: eine Obergrenze der Anweisungen je Batch, eine Freigabe, die
+     * nur einen Teil erfasst.
      *
      * @spec SPEC-030
      * @spec SPEC-058
@@ -364,7 +398,7 @@ class UnprepareDispatchTest {
         val loop = session.loop(backend)
         loop.run()
         assertEquals(limit + 2, session.replies.size)
-        assertEquals(BatchVectors.DONE_FINAL, session.hex(limit))
+        assertEquals(hexOf(List(limit - 1) { HELD_MORE }.joinToString("  ") + "  $HELD_LAST"), session.hex(limit))
         assertTrue(session.errors(limit + 1).isEmpty())
     }
 
@@ -388,10 +422,11 @@ class UnprepareDispatchTest {
     /**
      * Nimmt die Senke ein Token der Antwort nicht an (Client schließt, Kanal bricht), endet die Verbindung ohne
      * weitere Antwort: Sitzung `CLOSED`, die folgende Nachricht bleibt unbeantwortet, und von der abgebrochenen
-     * Antwort geht keine Nachricht hinaus. Gefahren wird jede Stelle einzeln (ein ERROR in der Mitte, das letzte
-     * ERROR, das abschließende DONE); die Senke weist nur dieses eine Token ab und nimmt danach wieder an, damit jede
-     * Stelle für sich geprüft ist. Wächter: eine Verbindung, die nach dem Schreibfehler offen bleibt, ein ignoriertes
-     * Ergebnis des Schreibens eines ERROR oder des Abschlusses, eine Antwort, die dennoch beendet wird.
+     * Antwort geht keine Nachricht hinaus. Gefahren wird jede Stelle einzeln (das zweite Token, RETURNSTATUS der
+     * ersten Nummer, das DONEPROC und das ERROR der zweiten Nummer); die Senke weist nur dieses eine Token ab und
+     * nimmt danach wieder an, damit jede Stelle für sich geprüft ist. Wächter: eine Verbindung, die nach dem
+     * Schreibfehler offen bleibt, ein ignoriertes Ergebnis des Schreibens eines ERROR oder des Abschlusses, eine
+     * Antwort, die dennoch beendet wird.
      *
      * @spec SPEC-060
      * @spec TDS-QA-07
@@ -412,10 +447,11 @@ class UnprepareDispatchTest {
     }
 
     /**
-     * ATTENTION während der Antwort auf die Freigabe (`TDS-FA-07`, `SPEC-029`, Anfragezustand `RUNNING`): nach dem
-     * dritten ERROR trifft ATTENTION ein, die Antwort endet dort mit genau einem `DONE[ATTN]` (Handvektor) ohne
-     * weiteres ERROR und ohne das abschließende DONE mit Fehlerstatus; die Verbindung bleibt offen, die nächste
-     * Anfrage erhält nur ihre Antwort. Wächter: eine Antwort, die ohne `AbortableRun` ganz geschrieben wird.
+     * ATTENTION während der Antwort auf die Freigabe (`TDS-FA-07`, `SPEC-029`, Anfragezustand `RUNNING`): nach den
+     * Tokens der dritten Nummer (das neunte Token) trifft ATTENTION ein, die Antwort endet dort mit genau einem
+     * `DONE[ATTN]` (Handvektor) ohne weitere Nummer und ohne das DONEPROC der letzten; die Verbindung bleibt offen,
+     * die nächste Anfrage erhält nur ihre Antwort. Wächter: eine Antwort, die ohne `AbortableRun` ganz geschrieben
+     * wird.
      *
      * @spec SPEC-029
      * @spec SPEC-060
@@ -430,7 +466,7 @@ class UnprepareDispatchTest {
             session.serve(
                 backend,
                 sinkAround = {
-                    ProbeSink(it, at = 3) {
+                    ProbeSink(it, at = 9) {
                         session.channel.feed(BatchVectors.attention())
                         session.channel.feed(batch("EXEC sp_unprepare 99"))
                         session.channel.feed(Inbound.EndOfStream)
@@ -443,7 +479,7 @@ class UnprepareDispatchTest {
         assertEquals(2, session.replies.size)
         assertEquals(listOf(notFound(91), notFound(92), notFound(93)), session.errors(0))
         assertTrue(session.hex(0).endsWith(BatchVectors.DONE_ATTN), session.hex(0))
-        assertEquals(1, session.tokens(0).count { it is DoneToken })
+        assertEquals(4, session.tokens(0).count { it is DoneToken })
         assertEquals(listOf(notFound(99)), session.errors(1))
         assertEquals(ConnectionState.CLOSED, session.ready.live.context.state)
     }
@@ -453,9 +489,10 @@ class UnprepareDispatchTest {
 
     /**
      * Läuft `QUERY_TIMEOUT` während der Antwort auf die Freigabe ab (`SPEC-009`, `SPEC-029`; die Zeit steuert der
-     * Test), bricht die Antwort nach dem dritten ERROR ab: ERROR 50005 und DONE mit Fehlerstatus hängen an die drei
-     * geschriebenen Meldungen, die übrigen Nummern werden nicht gemeldet, die Verbindung bleibt offen, die nächste
-     * Anfrage erhält nur ihre Antwort. Wächter: eine Antwort der Freigabe ohne Frist (`remaining` leer).
+     * Test), bricht die Antwort nach den Tokens der dritten Nummer ab: ERROR 50005 und DONE mit Fehlerstatus hängen
+     * an die drei geschriebenen Meldungen (nicht geöffnetes Ergebnis: Befehl `0x00fd`), die übrigen Nummern werden
+     * nicht gemeldet, die Verbindung bleibt offen, die nächste Anfrage erhält nur ihre Antwort. Wächter: eine Antwort
+     * der Freigabe ohne Frist (`remaining` leer).
      *
      * @spec SPEC-009
      * @spec SPEC-060
@@ -471,7 +508,7 @@ class UnprepareDispatchTest {
                 backend,
                 times = timesOf(pause),
                 sinkAround = {
-                    ProbeSink(it, at = 3) {
+                    ProbeSink(it, at = 9) {
                         pause.awaitWaiting(30.seconds)
                         pause.fire(30.seconds)
                         session.ready.awaitState(ConnectionState.CANCELLING)
@@ -494,7 +531,7 @@ class UnprepareDispatchTest {
 
     /**
      * Gewinnt ATTENTION erst, nachdem die Antwort der Freigabe vollständig geschrieben ist (es trifft nach dem
-     * abschließenden DONE ein), bleibt die Antwort vollständig, und die Bestätigung `DONE[ATTN]` ist eine eigene
+     * abschließenden DONEPROC ein), bleibt die Antwort vollständig, und die Bestätigung `DONE[ATTN]` ist eine eigene
      * Nachricht. Sie beginnt nicht mit einem zweiten ENVCHANGE Typ 18, obwohl die Anfrage `RESETCONNECTION` trug: das
      * ENVCHANGE steht genau einmal, als erstes Token der Antwort (Messreihe W-7). Wächter: ein `resetPending`, das
      * nach der Antwort der Freigabe gesetzt bleibt.
@@ -510,7 +547,7 @@ class UnprepareDispatchTest {
             session.serve(
                 backend,
                 sinkAround = {
-                    ProbeSink(it, at = 3) {
+                    ProbeSink(it, at = 6) {
                         session.channel.feed(BatchVectors.attention())
                         session.channel.feed(Inbound.EndOfStream)
                         session.ready.awaitState(ConnectionState.CANCELLING)
@@ -521,7 +558,15 @@ class UnprepareDispatchTest {
         serving.join()
         assertEquals(2, session.replies.size)
         assertEquals(
-            listOf("ResetConnection", "ErrorToken", "ErrorToken", "DoneToken"),
+            listOf(
+                "ResetConnection",
+                "ErrorToken",
+                "ReturnStatusToken",
+                "DoneToken",
+                "ErrorToken",
+                "ReturnStatusToken",
+                "DoneToken",
+            ),
             session.tokens(0).map { it::class.simpleName },
         )
         assertEquals(BatchVectors.DONE_ATTN, session.hex(1))

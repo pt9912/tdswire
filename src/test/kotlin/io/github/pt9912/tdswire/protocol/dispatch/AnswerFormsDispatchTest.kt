@@ -42,7 +42,7 @@ class AnswerFormsDispatchTest {
     private val returnStatus0 = "79 00 00 00 00"
 
     private fun returnValueInt(ordinal: Int, nameHex: String, valueHex: String) =
-        "AC ${RpcWire.le(ordinal.toLong(), 2)} 02 $nameHex 01 00 00 00 00 01 00 26 04 $valueHex"
+        "AC ${RpcWire.le(ordinal.toLong(), 2)} 02 $nameHex 01 00 00 00 00 00 00 26 04 $valueHex"
 
     private val nameO = "40 00 6F 00"
 

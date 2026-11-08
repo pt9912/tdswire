@@ -20,11 +20,15 @@ internal class RunConclusion(
     private val errors: ErrorMapper,
     private val aborted: AbortedAnswer,
 ) {
-    /** Das Ereignis, das die Anfrage nach dem Lauf [end] beendet; [onOutcome] sieht den Ausgang, wenn es einen gibt. */
+    /**
+     * Das Ereignis, das die Anfrage nach dem Lauf [end] beendet; [resultOpen] sagt, dass der Client ein Ergebnis ohne
+     * Abschluss hat, und [onOutcome] sieht den Ausgang, wenn es einen gibt.
+     */
     suspend fun conclude(
         end: RunEnd,
         reply: GuardedReply,
         form: ResponseForm,
+        resultOpen: Boolean = false,
         onOutcome: suspend (SequenceOutcome) -> Unit = {},
     ): HandshakeEvent.RequestFinished? = when (end) {
         is RunEnd.Finished -> {
@@ -35,7 +39,7 @@ internal class RunConclusion(
 
         is RunEnd.Cut -> {
             onOutcome(end.outcome ?: SequenceOutcome.CLOSE_WITHOUT_COMPLETION)
-            if (live.context.state == ConnectionState.CLOSED) null else aborted.conclude(end, reply, form)
+            if (live.context.state == ConnectionState.CLOSED) null else aborted.conclude(end, reply, form, resultOpen)
         }
 
         RunEnd.Abandoned -> {

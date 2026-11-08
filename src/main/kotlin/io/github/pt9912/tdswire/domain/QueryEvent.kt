@@ -26,8 +26,15 @@ public sealed interface QueryEvent {
      */
     public data class ResultEnd(val affectedRows: Long?) : QueryEvent
 
-    /** Zahl der betroffenen Zeilen einer Anweisung ohne Ergebnis. */
-    public data class UpdateCount(val affectedRows: Long) : QueryEvent
+    /**
+     * Zahl der betroffenen Zeilen einer Anweisung ohne Ergebnis. [kind] ist die Art der Anweisung; die Bibliothek
+     * schreibt daraus die Befehlskennung des Abschlusses (`SPEC-031`). Die Art ist eine Zusage des Backends: eine
+     * falsche Art liefert die falsche Kennung an den Client. Ohne Angabe ist sie [StatementKind.UNKNOWN].
+     */
+    public data class UpdateCount @JvmOverloads constructor(
+        val affectedRows: Long,
+        val kind: StatementKind = StatementKind.UNKNOWN,
+    ) : QueryEvent
 
     /** Rückgabewert (Return Status) einer Prozedur. */
     public data class ReturnStatus(val value: Int) : QueryEvent

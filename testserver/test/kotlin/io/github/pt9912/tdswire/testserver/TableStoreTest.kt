@@ -4,6 +4,7 @@ import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.domain.QueryParameter
 import io.github.pt9912.tdswire.domain.QueryRequest
 import io.github.pt9912.tdswire.domain.SqlType
+import io.github.pt9912.tdswire.domain.StatementKind
 import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.runtime.BackendSource
 import io.github.pt9912.tdswire.simulation.FilterTerm
@@ -509,11 +510,11 @@ class TableStoreTest {
         val backend = store.backend()
 
         assertEquals(
-            listOf<QueryEvent>(QueryEvent.UpdateCount(1)),
+            listOf<QueryEvent>(QueryEvent.UpdateCount(1, StatementKind.UPDATE)),
             ask(backend, "UPDATE kunden SET Name = N'Ada L.' WHERE Id = 1"),
         )
         assertEquals(
-            listOf<QueryEvent>(QueryEvent.UpdateCount(0)),
+            listOf<QueryEvent>(QueryEvent.UpdateCount(0, StatementKind.UPDATE)),
             ask(backend, "UPDATE kunden SET Name = N'x' WHERE Id = 9"),
         )
         assertEquals(listOf(listOf<Any?>(1L, "Ada L.")), stored(store))
