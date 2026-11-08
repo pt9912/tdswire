@@ -127,10 +127,14 @@ internal class StatementPlanner(private val catalogs: () -> SimCatalog) {
     private fun resolveTable(statement: Statement, catalog: SimCatalog): PlanResult {
         val table = catalog.find(statement.table.schema, statement.table.name)
             ?: return reject(SimCodes.UNKNOWN_OBJECT, "Tabelle nicht beschrieben")
-        return if (namedColumns(statement).any { table.column(it) == null }) {
-            reject(SimCodes.UNKNOWN_OBJECT, "Spalte nicht beschrieben")
-        } else {
-            PlanResult.Planned(Plan(statement, table, resultColumns(statement, table)))
+        return when {
+            namedColumns(statement).any { table.column(it) == null } ->
+                reject(SimCodes.UNKNOWN_OBJECT, "Spalte nicht beschrieben")
+
+            statement is Statement.Merge && !SimulationMerges.comparesKey(statement, table) ->
+                reject(SimCodes.UNSUPPORTED_SQL, "MERGE vergleicht nicht genau den Schlüssel oder ändert ihn")
+
+            else -> PlanResult.Planned(Plan(statement, table, resultColumns(statement, table)))
         }
     }
 
@@ -181,9 +185,17 @@ internal class StatementPlanner(private val catalogs: () -> SimCatalog) {
     /** Alle Spaltennamen des Textes: Auswahlliste, Spalten von `INSERT` und `SET` zuerst, dann die Bedingung. */
     private fun namedColumns(statement: Statement): List<String> = when (statement) {
         is Statement.Select -> statement.columns.orEmpty() + whereColumns(statement.where)
+
         is Statement.Insert -> statement.columns
+
         is Statement.Update -> statement.set.map { it.column } + whereColumns(statement.where)
+
         is Statement.Delete -> whereColumns(statement.where)
+
+        is Statement.Merge ->
+            statement.on.map { it.target } + statement.update.orEmpty().map { it.target } +
+                statement.insert.map { it.target }
+
         is Statement.CreateTable, is Statement.AddColumns -> emptyList()
     }
 

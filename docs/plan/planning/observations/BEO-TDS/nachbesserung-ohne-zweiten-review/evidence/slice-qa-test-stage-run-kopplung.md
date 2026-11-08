@@ -1,0 +1,2 @@
+**Vorgang:** [slice-qa-test-stage-run-kopplung](../../../../done/slice-qa-test-stage-run-kopplung.md)
+**Fund:** Die Nachbesserung `435c4831` (Selbsttest, Exit 3) hatte keinen zweiten Review; der Verifier hat sie wie einen Reviewer bewertet. `fc5cd675` (feste Locale) kam nach der Verifikation und ist nur durch eine Handmessung mit echtem `dotnet` und den Selbsttest geprüft. Vermerk in §7 des Slice, nach der seit `0bc03b4d` verkörperten Regel.

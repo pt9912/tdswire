@@ -1,0 +1,2 @@
+**Vorgang:** [slice-qa-test-stage-run-kopplung](../../../../done/slice-qa-test-stage-run-kopplung.md)
+**Fund:** Review M3 und F-1 (MEDIUM): eine RUN-Zeile von `test` ganz ohne `test-lauf.sh` (`dotnet test … --filter "FullyQualifiedName~ZZZKeinTreffer"`) lässt die Stage grün mit 0 Tests, `test-bericht` führt weiter alle 126 Tests aus; kein Sensor wird rot. Die Kopplung gilt nur für eine Änderung über das Skript oder `DOTNET_TEST_ARGS` (Mutation M1 rot, M2a folgt beiden Stages); die ungekoppelte Form bleibt benanntes Restrisiko.

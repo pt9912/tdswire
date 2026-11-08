@@ -1,4 +1,4 @@
-# Slice slice-katalog-und-struktur-an-messung-angleichen: Katalogspalten, Strukturabweisung und Änderungszähler der Strukturänderung an die Messung am echten SQL Server angleichen (M-16, M-19, M-20)
+# Slice slice-katalog-und-struktur-an-messung-angleichen: Strukturabweisung (2714, 2705, 4902) und `CREATE TABLE` ohne Schlüssel an die Messung am echten SQL Server angleichen (M-19)
 
 **Lifecycle:** Der Zustand dieses Slice ist das Verzeichnis, in dem diese
 Datei liegt — eines von `open/`, `next/`, `in-progress/`, `done/`. Er
@@ -13,11 +13,11 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md), [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md)
 
-**Berührte Spec-Stellen:** SPEC-035 (Katalog der Spalten: Typen von `max_length`, `precision`, `scale`, `is_nullable`; Strukturabweisung mit Fehlernummern; Änderungszähler 0, Setzung) · SPEC-036 (Form D: `CREATE TABLE` ohne Schlüssel abgewiesen) · Abschnitt Fehlercodes (`TDS_UNSUPPORTED_SQL`, `TDS_SIM_UNKNOWN_OBJECT` bei der Strukturabweisung). **Die Spezifikation ändert dieser Slice** (Spezifikation ist Zielbild: der Wortlaut folgt dem Messwert, die „bekannte Abweichung“ und die Messvermerke entfallen oder werden zur Zusage).
+**Berührte Spec-Stellen:** SPEC-035 (Strukturabweisung mit Fehlernummern; Validierung der Tabellenbeschreibung ohne Schlüssel) · SPEC-036 (Form D: `CREATE TABLE` ohne Schlüssel nicht mehr abgewiesen) · Abschnitt Fehlercodes (drei Codes der Strukturabweisung). **Die Spezifikation ändert dieser Slice** (Spezifikation ist Zielbild: der Wortlaut folgt dem Messwert, die „bekannte Abweichung“ und die Messvermerke zu M-19 entfallen oder werden zur Zusage). Keine Änderung an `SPEC-059`, `SPEC-003`, `SPEC-031`.
 
-**Verantwortlich:** Implementer-Agent, Auftrag des Nutzers 2026-11-07.
+**Verantwortlich:** Implementer-Agent (Auftrag des Nutzers 2026-11-07); Bau liegt im Zweig `worktree-agent-a95b80c5a5d35df3e` (HEAD `85d970bd`).
 
-**Autor:** pt9912 (Entwurf in der Planner-Rolle). **Datum:** 2026-11-07.
+**Autor:** pt9912 (Entwurf in der Planner-Rolle). **Datum:** 2026-11-07 (Zuschnitt 2026-11-08)
 
 ---
 
@@ -31,15 +31,20 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Der Server dieses Repos antwortet auf die Katalogabfragen von d-migrate und auf `CREATE TABLE` und `ALTER TABLE … ADD` so, wie der echte SQL Server (2022 und 2025) es nach den Zeilen M-16, M-19 und M-20 des [Messprotokoll](../../../messungen/referenzabgleich.md#messreihe-zu-massenladen-merge-katalog-und-strukturänderung-messungen-vom-2026-11-07) tut: Katalogspalten `max_length` als `smallint`, `precision` und `scale` als `tinyint`, `is_nullable` als `bit` nullbar; Strukturabweisung mit den Fehlernummern 2714 (`CREATE TABLE` einer vorhandenen Tabelle, State 6), 2705 (`ADD` einer vorhandenen Spalte, State 4) und 4902 (`ALTER TABLE` einer unbekannten Tabelle), Class 16; `CREATE TABLE` ohne Schlüssel erlaubt; Abschluss von `CREATE TABLE` und `ALTER TABLE … ADD` als `DONE` ohne `COUNT`, Befehl `0x00c6` bzw. `0x00d8`, `set implicit_transactions on` mit `ENVCHANGE` Typ 8 und das `COMMIT` mit Typ 9.
+**Zuschnitt vom 2026-11-08 (Planner, nach der Annahme von [ADR-0041](../../adr/0041-spaltentypen-der-katalogantworten-ueber-internen-weg.md) und [ADR-0042](../../adr/0042-anweisungsart-und-zustandswechsel-nur-durch-die-bibliothek.md)).** Der Slice war mit drei Liefer-Punkten angelegt (Katalogspalten, Strukturabweisung, Änderungszähler) und ist nach den beiden Entscheidungen in drei Slices zerlegt, jeder mit höchstens drei Liefer-Punkten: [slice-katalog-und-struktur-an-messung-angleichen](slice-katalog-und-struktur-an-messung-angleichen.md) (Strukturabweisung, `CREATE TABLE` ohne Schlüssel), [slice-katalogspalten-smallint-tinyint-angleichen](../open/slice-katalogspalten-smallint-tinyint-angleichen.md) (Katalogspalten, [ADR-0041](../../adr/0041-spaltentypen-der-katalogantworten-ueber-internen-weg.md)) und [slice-ddl-abschluss-und-transaktionszustand-angleichen](../open/slice-ddl-abschluss-und-transaktionszustand-angleichen.md) (Abschluss der Strukturänderung, Transaktionstexte, `ENVCHANGE`, [ADR-0042](../../adr/0042-anweisungsart-und-zustandswechsel-nur-durch-die-bibliothek.md)). Ein Punkt gehört genau einem Slice; die Anweisungsart am Port und die Kennungen für INSERT, UPDATE und DELETE gehören [slice-antwort-tokens-zielbild-luecken-bauen](../open/slice-antwort-tokens-zielbild-luecken-bauen.md) (dieser Slice legt `StatementKind` und das Feld `kind` an).
 
-**Herkunft.** Aus der Zuordnung der Befunde im [Messprotokoll](../../../messungen/referenzabgleich.md#messreihe-zu-massenladen-merge-katalog-und-strukturänderung-messungen-vom-2026-11-07) (M-16, M-19, M-20 widersprechen der Setzung der Spezifikation und dem Bau von [slice-katalog-und-ddl-zustand](../done/slice-katalog-und-ddl-zustand.md); Verifikation V-1 dieses Slice). Träger-Register: [`BEO-TDS/katalog-strukturabweisung-und-aenderungszaehler-weichen-vom-echten-server-ab`](../observations/BEO-TDS/katalog-strukturabweisung-und-aenderungszaehler-weichen-vom-echten-server-ab/state.md). Nutzerentscheid 2026-11-07 (per Rückfrage an den Nutzer, Beleg im Register-Eintrag dort). Nutzerentscheid: Bau-Slice anlegen; Katalogspalten `max_length` smallint, `precision` und `scale` tinyint, `is_nullable` bit nullbar; Strukturabweisung mit 2714, 2705, 4902; `CREATE TABLE` ohne Schlüssel erlaubt; Änderungszähler: DONE ohne COUNT, `implicit_transactions` mit ENVCHANGE Typ 8 und 9. Die Spezifikation ist Zielbild, der echte SQL Server die Referenz (Nutzergrundsatz 2026-11-06). Die Messung [slice-qa-vergleichslauf-d-messungen-bulk-merge](../done/slice-qa-vergleichslauf-d-messungen-bulk-merge.md) liegt vor (Einzelmessungen je Instanz 2022 und 2025, Referenzclient `Microsoft.Data.SqlClient`, nicht mssql-jdbc von d-migrate).
+**Ziel:** Der Server dieses Repos weist `CREATE TABLE` einer vorhandenen Tabelle, `ALTER TABLE … ADD` einer vorhandenen Spalte und `ALTER TABLE` einer unbekannten Tabelle so ab, wie der echte SQL Server (2022 und 2025) es nach der Zeile M-19 des [Messprotokoll](../../../messungen/referenzabgleich.md#messreihe-zu-massenladen-merge-katalog-und-strukturänderung-messungen-vom-2026-11-07) tut: Fehlernummern 2714 (State 6), 2705 (State 4) und 4902 (State 1), Class 16, die Verbindung bleibt offen; `CREATE TABLE` ohne Schlüssel gelingt.
+
+**Herkunft.** Aus der Zuordnung der Befunde im [Messprotokoll](../../../messungen/referenzabgleich.md#messreihe-zu-massenladen-merge-katalog-und-strukturänderung-messungen-vom-2026-11-07) (M-19 widerspricht der Setzung der Spezifikation und dem Bau von [slice-katalog-und-ddl-zustand](../done/slice-katalog-und-ddl-zustand.md); Verifikation V-1 dieses Slice). Träger-Register: [`BEO-TDS/katalog-strukturabweisung-und-aenderungszaehler-weichen-vom-echten-server-ab`](../observations/BEO-TDS/katalog-strukturabweisung-und-aenderungszaehler-weichen-vom-echten-server-ab/state.md). Nutzerentscheid 2026-11-07 (per Rückfrage an den Nutzer, Beleg im Register-Eintrag dort): Strukturabweisung mit 2714, 2705, 4902; `CREATE TABLE` ohne Schlüssel erlaubt. Die Spezifikation ist Zielbild, der echte SQL Server die Referenz (Nutzergrundsatz 2026-11-06). Die Messung [slice-qa-vergleichslauf-d-messungen-bulk-merge](../done/slice-qa-vergleichslauf-d-messungen-bulk-merge.md) liegt vor (Einzelmessungen je Instanz 2022 und 2025, Referenzclient `Microsoft.Data.SqlClient`, nicht mssql-jdbc von d-migrate).
+
+**Stand der Arbeit (2026-11-08).** Beide Liefer-Punkte sind im Zweig `worktree-agent-a95b80c5a5d35df3e` (Worktree `.claude/worktrees/agent-a95b80c5a5d35df3e`, HEAD `85d970bd`) gebaut: die drei Codes `TDS_SIM_OBJECT_EXISTS` (2714, State 6), `TDS_SIM_COLUMN_EXISTS` (2705, State 4) und `TDS_SIM_OBJECT_NOT_FOUND` (4902, State 1) mit Class 16 und offener Verbindung, fester Text ohne Objektnamen; `SimTable` verlangt keinen Schlüssel mehr; Spezifikation, Nutzer-Doku und Tests nachgezogen; `make gates` grün. **Nicht gefahren:** `make clean-build` und die Läufe mit d-migrate; Review und Verifikation stehen aus. Der Weg auf `main` steht in §4.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Die Sichten für Indizes, Standardwerte, Prüfbedingungen und Fremdschlüssel — [slice-katalog-indizes-defaults-fremdschluessel](../open/slice-katalog-indizes-defaults-fremdschluessel.md); sie bauen auf den Typen dieses Slice auf, haben aber ihre eigene Messung (M-21).
-- Die Fehlerabbildung von `sp_executesql` und der Abschluss im RPC — [slice-antwort-tokens-zielbild-luecken-bauen](../open/slice-antwort-tokens-zielbild-luecken-bauen.md); dieser Slice berührt den Abschluss von SQL_BATCH-Strukturänderungen (M-20), nicht den der RPC-Antwort (`DONEPROC`).
-- Weitere DDL-Formen (Fremdschlüssel, Indizes, Standardwerte in `CREATE TABLE`) — Folge-Slice [slice-katalog-indizes-defaults-fremdschluessel](../open/slice-katalog-indizes-defaults-fremdschluessel.md); gemessen ist nur, was die Messreihe trägt.
+- Die Katalogspalten `max_length` (`smallint`), `precision` und `scale` (`tinyint`), `is_nullable` (`BITN`) — [slice-katalogspalten-smallint-tinyint-angleichen](../open/slice-katalogspalten-smallint-tinyint-angleichen.md): braucht die öffentlichen Mitglieder `SqlType.Int16` und `SqlType.UInt8` ([ADR-0041](../../adr/0041-spaltentypen-der-katalogantworten-ueber-internen-weg.md)), eine breite Änderung der Auswerter von `SqlType`; hier würde sie den bereits gebauten und vor dem Review stehenden Teil aufhalten.
+- Der Abschluss von `CREATE TABLE` und `ALTER TABLE … ADD` als `DONE` ohne `COUNT` mit Befehl `0x00c6` bzw. `0x00d8`, die Transaktionstexte der Form C und `ENVCHANGE` Typ 8 und 9 — [slice-ddl-abschluss-und-transaktionszustand-angleichen](../open/slice-ddl-abschluss-und-transaktionszustand-angleichen.md): braucht `StatementKind` am Port ([ADR-0042](../../adr/0042-anweisungsart-und-zustandswechsel-nur-durch-die-bibliothek.md)), den [slice-antwort-tokens-zielbild-luecken-bauen](../open/slice-antwort-tokens-zielbild-luecken-bauen.md) anlegt.
+- `curCmd` von INSERT, DELETE und UPDATE, die Fehlerabbildung von `sp_executesql` und der Abschluss im RPC — [slice-antwort-tokens-zielbild-luecken-bauen](../open/slice-antwort-tokens-zielbild-luecken-bauen.md).
+- Die Sichten für Indizes, Standardwerte, Prüfbedingungen und Fremdschlüssel sowie weitere DDL-Formen — [slice-katalog-indizes-defaults-fremdschluessel](../open/slice-katalog-indizes-defaults-fremdschluessel.md); gemessen ist nur, was die Messreihe trägt.
 - Eine Aussage über andere Clients als den Referenzclient: Die Texte sind der Wortlaut von d-migrate (`DMigrateTexte.cs`), gemessen ist die Antwort des Servers auf den Text, nicht das Verhalten von d-migrate oder mssql-jdbc (`AGENTS.md` §3.8).
 
 ## 2. Definition of Done
@@ -50,11 +55,12 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-Liefer-Punkte (drei):
+Liefer-Punkte (zwei; gebaut im Zweig, Haken setzt der Planner nach der Verifikation):
 
-- [ ] **Katalogspalten** ([TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität)): In der Antwort der Katalogabfragen von d-migrate 1.12.0 sind `max_length` `smallint`, `precision` und `scale` `tinyint` und `is_nullable` `bit` nullbar (`BITN`) (M-16); `SPEC-035` nennt den Typ der Spalte statt der „bekannten Abweichung `Int32`“; je Spalte ein Test gegen das COLMETADATA (Typ, Länge, Nullbarkeit), Maße von `bigint`, `bit`, `time`, `datetime2` und Sonderwert -1 (M-17, M-18) bleiben unverändert (Messung stützt sie).
-- [ ] **Strukturabweisung** ([TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität)): `CREATE TABLE` einer vorhandenen Tabelle ergibt 2714 (Class 16, State 6), `ADD` einer vorhandenen Spalte 2705 (State 4), `ALTER TABLE` einer unbekannten Tabelle 4902 (State 1); `CREATE TABLE` ohne Schlüssel ist erlaubt (die Abweisung nach Form D entfällt); `SPEC-035`, `SPEC-036` und die Fehlertabelle sind angeglichen, die Verbindung bleibt nach dem Fehler offen (M-19); Tests je Fall.
-- [ ] **Änderungszähler und Transaktionstexte** ([TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität)): `CREATE TABLE` schließt mit `DONE` ohne `COUNT`, Befehl `0x00c6`, `ALTER TABLE … ADD` mit Befehl `0x00d8` (M-20); `set implicit_transactions on` antwortet mit Befehl `0x00b9` und, im Zusammenhang mit `CREATE TABLE`, `ENVCHANGE` Typ 8, das `COMMIT` mit `ENVCHANGE` Typ 9 und den Befehlen der Zeile M-20; Tests je Text. **Prüfung der Fläche:** Braucht eine der drei Änderungen einen neuen öffentlichen Namen (Fehlerkennung, Callback-Rückgabe), ist die Rückführung `in-progress` → `next` benannt (Entscheidung über die Fläche nach `SPEC-059` und [ADR-0021](../../adr/0021-oeffentlicher-integrations-einstieg.md), `make flaeche`).
+- [ ] **Strukturabweisung** ([TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität)): `CREATE TABLE` einer vorhandenen Tabelle ergibt 2714 (Class 16, State 6), `ADD` einer vorhandenen Spalte 2705 (State 4), `ALTER TABLE` einer unbekannten Tabelle 4902 (State 1); die Verbindung bleibt nach dem Fehler offen (M-19); `SPEC-035`, `SPEC-036` und die Fehlertabelle sind angeglichen; Tests je Fall; `ADD` mehrerer Spalten bleibt unverändert (M-19 stützt es).
+- [ ] **`CREATE TABLE` ohne Schlüssel** ([TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität)): `CREATE TABLE` ohne Schlüssel gelingt (die Abweisung nach Form D entfällt, `SimTable` und `TableStore` verlangen und prüfen keinen Schlüssel mehr, eine Tabelle ohne Schlüssel prüft keine Eindeutigkeit); `SPEC-035` (Validierung) und `SPEC-036` (Form D) sind angeglichen; Test je Form (Anlegen, Einfügen, Katalogabfrage der Tabelle ohne Schlüssel).
+
+**Fläche:** keine neue öffentliche Fläche (die drei Codes sind intern, `make flaeche` unverändert); die Rückführung „Fläche wächst“ des früheren Plans entfällt für diesen Zuschnitt.
 
 Nachweis-Pflichten für alle Punkte:
 
@@ -79,22 +85,14 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `src/main/kotlin/io/github/pt9912/tdswire/simulation/` (Katalog der Spalten, Strukturformen, Abschluss der Strukturänderung) | update | Typen der Katalogspalten, Fehlernummern, Befehlskennungen |
-| `testserver/kotlin/` (Strukturänderung über den Integrator, Fehlerabbildung) | update (falls betroffen) | Integrator-Anteil der Strukturabweisung |
-| `spec/spezifikation.md` (`SPEC-035`, `SPEC-036`, Fehlertabelle) | update | Zielbild: Wortlaut folgt dem Messwert; Messvermerke werden Zusage |
-| `docs/messungen/katalog-und-ddl-zustand-2026-11-06.md`, `docs/user/` (Grenzen) | update | Nachziehen der Aussagen über Typen und Fehler des Katalogs |
-| Tests (Kotlin, `src/test`) | neu / update | Happy/Boundary/Negative nach [TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate) |
-
-Erweiterung im ersten Lauf (Implementer-Agent, Auftrag des Nutzers 2026-11-07):
-
-| Datei / Komponente | Änderungs-Art | Begründung |
-|---|---|---|
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/error/ErrorCode.kt`, `ErrorMapper.kt` | update | drei Codes für 2714, 2705, 4902 (intern, `BACKEND_CODES`) |
 | `src/main/kotlin/io/github/pt9912/tdswire/simulation/StatementPlanner.kt`, `SimModel.kt` | update | Codes der Abweisung; `CREATE TABLE` ohne Schlüssel, `SimTable` mit leerem Schlüssel (kein neuer Name, gelockerte Prüfung) |
 | `testserver/kotlin/io/github/pt9912/tdswire/testserver/TableStore.kt` | update | Tabelle ohne Schlüssel prüft keine Eindeutigkeit |
-| `docs/user/einbettung-und-betrieb.md`, `docs/user/referenz-konfiguration.md`, `docs/messungen/referenzabgleich.md` | update | Fehlercodes, Schlüssel, Zuordnung M-19 |
+| `spec/spezifikation.md` (`SPEC-035`, `SPEC-036`, Fehlertabelle) | update | Zielbild: Wortlaut folgt dem Messwert |
+| `docs/user/einbettung-und-betrieb.md`, `docs/user/referenz-konfiguration.md`, `docs/messungen/referenzabgleich.md` | update | Fehlercodes, Schlüssel, Zuordnung M-19 auf „angeglichen“ (M-16 und M-20 bleiben bei ihren Slices) |
+| Tests (Kotlin, `src/test`, `testserver/kotlin`) | neu / update | Happy/Boundary/Negative nach [TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate) |
 
-**Befund des ersten Laufs (Prüfung der Fläche, Liefer-Punkte 1 und 3).** Liefer-Punkt 2 braucht keinen neuen öffentlichen Namen und ist gebaut. Liefer-Punkt 1 braucht ihn: die Katalogspalten `smallint` und `tinyint` sind mit `SqlType` nicht auszudrücken (`Int32`, `Int64`, `Bool`, `UnicodeText`, `Decimal`, `Date`, `Time`, `DateTime`; `ResultColumn.type` ist `SqlType`), also neue Mitglieder von `SqlType` (öffentliche Fläche, [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Nr. 4 und 9). Liefer-Punkt 3 braucht ihn ebenfalls oder eine Entscheidung über den Ort: `QueryEvent.UpdateCount` schließt immer mit `COUNT`, und der Port trägt weder die Anweisungsart noch einen Zustandswechsel; die Tokens `ENVCHANGE` Typ 8 und 9 hängen an Sitzungszustand (`implicit_transactions`, Transaktionsbeschreiber), den die Schleife heute nicht führt. Rückführung `in-progress` → `next` nach §4 (die Fläche wächst); Schnitt wie in §4 vorgeschlagen.
+Die Liste ist der Stand des Zweigs; ein Reviewer liest sie gegen den Diff.
 
 ## 4. Trigger
 
@@ -102,12 +100,21 @@ Erweiterung im ersten Lauf (Implementer-Agent, Auftrag des Nutzers 2026-11-07):
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-qa-vergleichslauf-d-messungen-bulk-merge](../done/slice-qa-vergleichslauf-d-messungen-bulk-merge.md) liegt in `done/` (erfüllt mit der Closure dieses Slice) und [slice-katalog-und-ddl-zustand](../done/slice-katalog-und-ddl-zustand.md) liegt in `done/` (erfüllt). Beide Slices berühren die Katalogdateien; [slice-katalog-indizes-defaults-fremdschluessel](../open/slice-katalog-indizes-defaults-fremdschluessel.md) startet nach diesem Slice (Setzung des Planners: die Typen der Spalten wirken in jede Sichtantwort); ein gleichzeitiger Lauf beider erzeugt Konflikte am Katalog.
+**Start** (`next` → `in-progress`): erfüllt und verbraucht — der Bau lief (Zweig `worktree-agent-a95b80c5a5d35df3e`); [slice-qa-vergleichslauf-d-messungen-bulk-merge](../done/slice-qa-vergleichslauf-d-messungen-bulk-merge.md) und [slice-katalog-und-ddl-zustand](../done/slice-katalog-und-ddl-zustand.md) liegen in `done/`. Die Zeile bleibt als Beleg, kein offener Trigger.
+
+**Weg auf `main` (Setzung des Planners, 2026-11-08).** Der Zweig trägt den gebauten Teil und bleibt bestehen (nicht gelöscht, nicht neu aufgesetzt). In dieser Reihenfolge, jede Rolle in frischem Kontext:
+
+1. **Reviewer** (`.harness/skills/reviewer.md`) prüft den Diff des Zweigs gegen diesen verkleinerten Plan (zwei Liefer-Punkte), schreibt den Report unter `docs/reviews/` (im Zweig).
+2. **Verifier** prüft gegen DoD und Spec und fährt, was bisher nicht lief: `make clean-build` und die Läufe mit d-migrate (`schema migrate --execute` mit einem Soll mit und ohne Schlüssel, `compare`) nach der Anleitung im [Messprotokoll Katalog und DDL-Zustand](../../../messungen/katalog-und-ddl-zustand-2026-11-06.md); ein nicht gefahrener Lauf ist eine benannte Grenze, kein stilles Grün.
+3. **Planner-Closure** im Zweig, nachdem der Planner `main` in den Zweig geführt hat (`git merge main` dort; erwartete Konflikte: diese Datei — der Zweig trägt sie in `next/` bzw. `in-progress/` mit dem alten Text, `main` in `open/` mit dem verkleinerten —, das Register, die Welle-Datei und die Roadmap; **bei der Slice-Datei gilt der Inhalt von `main`** samt dem Abschnitt „Stand der Arbeit“, die Position folgt dem Lifecycle-Stand, ein Move ist ein eigener Commit). Dann: Haken nach Deckung, §7 mit Steering-Loop-Lerneintrag, Register, Zuordnungszeile M-19; erst der Inhalt, dann der reine `git mv` nach `done/` (`AGENTS.md` §3.3).
+4. **Zusammenführung nach `main`** durch den Auftraggeber; dieser Plan und diese Closure führen sie nicht aus. Danach liegt der Slice in `done/` und die drei Folge-Slices ([slice-katalogspalten-smallint-tinyint-angleichen](../open/slice-katalogspalten-smallint-tinyint-angleichen.md), [slice-ddl-abschluss-und-transaktionszustand-angleichen](../open/slice-ddl-abschluss-und-transaktionszustand-angleichen.md), [slice-antwort-tokens-zielbild-luecken-bauen](../open/slice-antwort-tokens-zielbild-luecken-bauen.md)) sehen `CREATE TABLE` ohne Schlüssel und die Codes im Bestand.
+
+**Konflikte mit anderen Zweigen.** Der Zweig ändert `StatementPlanner.kt`, `SimModel.kt`, `ErrorCode.kt`, `ErrorMapper.kt` und `TableStore.kt`; die parallelen Zweige zu [slice-bulk-load-feste-typen-und-referenzclient](../open/slice-bulk-load-feste-typen-und-referenzclient.md), [slice-schreibpfad-merge-output](../done/slice-schreibpfad-merge-output.md) und [slice-sp-unprepare-ohne-obergrenze](../open/slice-sp-unprepare-ohne-obergrenze.md) berühren Teile davon. Wer nach `main` kommt, wird zuerst zusammengeführt; wer zweiter ist, löst die Konflikte (Setzung: die Reihenfolge entscheidet der Auftraggeber beim Zusammenführen, der Zweig dieses Slice ist der kleinste Diff der vier).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next` (zu groß, zurück zur Zerlegung): mehr als drei Liefer-Punkte oder die Fläche wächst; Schnittvorschlag: Katalogspalten | Strukturabweisung | Änderungszähler.
-- `in-progress` → `open` (blockiert): die Änderung des Spaltentyps bricht einen Beleg am fremden Client (d-migrate liest `max_length` über JDBC); der Nutzer entscheidet dann über den Weg.
+- `in-progress` → `open` (blockiert): die Läufe mit d-migrate zeigen eine Änderung durch die schlüssellose Tabelle oder die neuen Fehlernummern (ob d-migrate Fehlernummern auswertet, ist nicht gemessen); der Nutzer entscheidet dann über den Weg.
+- Zu groß entfällt: zwei Liefer-Punkte, keine Fläche.
 
 ## 5. Closure-Trigger
 
@@ -116,7 +123,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Closure- und Lerneintrag-Regeln — zwei beobachtbare Kriterien **und** ein
 Lerneintrag; ohne ihn ist der Slice nur abgelegt.
 
-Alle drei Liefer-Punkte der DoD erledigt, `make gates` grün, der Review-Report liegt vor, die Zeilen M-16, M-19, M-20 sind in der Zuordnung des [Messprotokoll](../../../messungen/referenzabgleich.md#messreihe-zu-massenladen-merge-katalog-und-strukturänderung-messungen-vom-2026-11-07) von „widerspricht“ auf „angeglichen“ gezogen, die Closure-Notiz trägt den Steering-Loop-Lerneintrag.
+Beide Liefer-Punkte der DoD erledigt, `make gates` und `make clean-build` grün, der Review-Report liegt vor, der Verifier-Bericht liegt vor und nennt die Läufe mit d-migrate (gefahren, Ergebnis unverändert gegenüber dem Lauf davor; oder als Grenze benannt), die Zeilen M-19 sind in der Zuordnung des [Messprotokoll](../../../messungen/referenzabgleich.md#messreihe-zu-massenladen-merge-katalog-und-strukturänderung-messungen-vom-2026-11-07) von „widerspricht“ auf „angeglichen“ gezogen (die Zeilen M-16 und M-20 bleiben, sie gehören [slice-katalogspalten-smallint-tinyint-angleichen](../open/slice-katalogspalten-smallint-tinyint-angleichen.md) und [slice-ddl-abschluss-und-transaktionszustand-angleichen](../open/slice-ddl-abschluss-und-transaktionszustand-angleichen.md)), die Closure-Notiz trägt den Steering-Loop-Lerneintrag.
 
 ## 6. Risiken und offene Punkte
 
@@ -126,9 +133,11 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- **Auswirkung auf den Beleg am fremden Client.** d-migrate liest `max_length` und `precision` über JDBC; ob `smallint` und `tinyint` statt `int` etwas ändert, ist nicht gemessen. Die Abnahme ([slice-abnahme-d-migrate](../open/slice-abnahme-d-migrate.md)) prüft es am Ende (Grenze, kein Soll der Sonde). — **Ausgang:** offen bis zur Closure.
-- Die Reihenfolge zu [slice-katalog-indizes-defaults-fremdschluessel](../open/slice-katalog-indizes-defaults-fremdschluessel.md) ist eine Setzung des Planners. — **Ausgang:** offen bis zur Closure.
+- **Auswirkung auf den Beleg am fremden Client.** ob die neuen Nummern 2714, 2705, 4902 und schlüssellose Tabellen etwas ändern, ist nicht gemessen (nur Läufe mit den alten Antworten sind belegt). Die Verifikation fährt den Lauf (§4 Schritt 2); [slice-abnahme-d-migrate](../open/slice-abnahme-d-migrate.md) prüft es am Ende erneut. — **Ausgang:** offen bis zur Closure.
+- **Nicht gefahren im Bau:** `make clean-build` und die Läufe mit d-migrate; die grünen Gates des Zweigs ersetzen sie nicht. — **Ausgang:** offen bis zur Closure.
+- **Dateikonflikte mit den parallelen Zweigen** (Massenladen mit festen Typen, MERGE, `sp_unprepare`; gemeinsame Dateien in `simulation/` und `testserver/`). — **Ausgang:** offen bis zur Closure.
 - Die Messung trägt den Referenzclient, nicht mssql-jdbc; die Antworten auf die Texte von d-migrate sind gemessen, ihre Wirkung im Treiber nicht (`AGENTS.md` §3.8). — **Ausgang:** offen bis zur Closure.
+- **`CREATE TABLE` ohne Schlüssel und `MERGE`** (Verifikation V-9 von [slice-schreibpfad-merge-output](../done/slice-schreibpfad-merge-output.md)): nach diesem Slice gelingt `CREATE TABLE` ohne Schlüssel; ein `MERGE` gegen eine solche Tabelle endet im Testserver mit `TDS_UNSUPPORTED_SQL` (`comparesKey` verlangt den Schlüssel), am echten Server ist es möglich. Der Slice benennt den Fall (Test oder Grenze in `SPEC-036`) und entscheidet, ob die Abweisung Setzung bleibt oder angeglichen wird; Register [`BEO-TDS/katalog-strukturabweisung-und-aenderungszaehler-weichen-vom-echten-server-ab`](../observations/BEO-TDS/katalog-strukturabweisung-und-aenderungszaehler-weichen-vom-echten-server-ab/state.md). — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 
@@ -163,6 +172,6 @@ Hälften.
 
 **Vorgelagert — Sub-Area-Wahl prüfen:** `harness/conventions.md` kennt nur `*` (Greenfield, Kürzel `TDS`); eine eigene Sub-Area besteht nicht.
 
-**Vorgelagert — offene Beobachtungen sichten:** [`BEO-TDS/katalog-strukturabweisung-und-aenderungszaehler-weichen-vom-echten-server-ab`](../observations/BEO-TDS/katalog-strukturabweisung-und-aenderungszaehler-weichen-vom-echten-server-ab/state.md) (Gegenstand dieses Slice), [`BEO-TDS/spec-setzung-widerspricht-messung-am-echten-server`](../observations/BEO-TDS/spec-setzung-widerspricht-messung-am-echten-server/state.md), [`BEO-TDS/messung-am-echten-sql-server-fehlt`](../observations/BEO-TDS/messung-am-echten-sql-server-fehlt/state.md).
+**Vorgelagert — offene Beobachtungen sichten:** [`BEO-TDS/katalog-strukturabweisung-und-aenderungszaehler-weichen-vom-echten-server-ab`](../observations/BEO-TDS/katalog-strukturabweisung-und-aenderungszaehler-weichen-vom-echten-server-ab/state.md), [`BEO-TDS/spec-setzung-widerspricht-messung-am-echten-server`](../observations/BEO-TDS/spec-setzung-widerspricht-messung-am-echten-server/state.md), [`BEO-TDS/messung-am-echten-sql-server-fehlt`](../observations/BEO-TDS/messung-am-echten-sql-server-fehlt/state.md).
 
 **Modus-Begründungsblock — Umfang.** Alle berührten Sub-Areas GF.

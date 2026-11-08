@@ -185,6 +185,70 @@ class RpcBinderTest {
     }
 
     /**
+     * Gemessene Vektoren von mssql-jdbc 13.4.0 (Messprotokoll der Referenzabgleiche M-31, Aufnahme am echten SQL
+     * Server):
+     * `DECIMALN(38,2)` mit Größe 17 und kurzem Wert (12,50 in 3 Byte, -0,05 in 2 Byte, 99999999,99 in 6 Byte) ist
+     * `Decimal(38, 2)` mit dem Wert; NULL bleibt NULL. `datetime` (`DATETIMN` 8 Byte): 1970-01-01 13:14:15 = Tage 25567
+     * (`DF 63 00 00`), Ticks 14296500 (`B4 25 DA 00`); 1970-01-01 00:00:00 mit Ticks 0; 23:59:59,997 mit dem letzten
+     * Tick
+     * des Tages 25919999 (`FF 81 8B 01`, aus der Zeile `23:59:59.997` der Aufnahme); NULL ist `6F 08 00`.
+     *
+     * @spec SPEC-030
+     */
+    @Test
+    fun `Dezimalwerte kurzer Laenge und datetime sind gemessene Vektoren`() {
+        assertEquals(BigDecimal("12.50"), valueOf("6A 11 26 02 03 01 E2 04"))
+        assertEquals(BigDecimal("-0.05"), valueOf("6A 11 26 02 02 00 05"))
+        assertEquals(BigDecimal("99999999.99"), valueOf("6A 11 26 02 06 01 FF E3 0B 54 02"))
+        assertEquals(SqlType.Decimal(38, 2), single("6A 11 26 02 03 01 E2 04").type)
+        assertEquals(null, valueOf("6A 11 26 02 00"))
+        assertEquals(LocalDateTime.of(1970, 1, 1, 13, 14, 15), valueOf("6F 08 08 DF 63 00 00 B4 25 DA 00"))
+        assertEquals(LocalDateTime.of(1970, 1, 1, 0, 0), valueOf("6F 08 08 DF 63 00 00 00 00 00 00"))
+        assertEquals(
+            LocalDateTime.of(1970, 1, 1, 23, 59, 59, 997_000_000),
+            valueOf("6F 08 08 DF 63 00 00 FF 81 8B 01"),
+        )
+        assertEquals(SqlType.DateTime, single("6F 08 08 DF 63 00 00 00 00 00 00").type)
+        assertEquals(null, valueOf("6F 08 00"))
+    }
+
+    /**
+     * Grenzwerte von `datetime` nach der Lesart von MS-TDS, **nicht am echten Server aufgenommen** (die Aufnahme
+     * enthält
+     * nur Werte am 1970-01-01): Tag 0 ist 1900-01-01, der letzte Tick am Tag 0, der kleinste Tag (-693595) ist
+     * 0001-01-01. Setzungen, kein Beleg am Server.
+     *
+     * @spec SPEC-030
+     */
+    @Test
+    fun `datetime-Grenzwerte nach der Lesart von MS-TDS, nicht am echten Server aufgenommen`() {
+        assertEquals(LocalDateTime.of(1900, 1, 1, 0, 0), valueOf("6F 08 08 00 00 00 00 00 00 00 00"))
+        assertEquals(
+            LocalDateTime.of(1900, 1, 1, 23, 59, 59, 997_000_000),
+            valueOf("6F 08 08 00 00 00 00 FF 81 8B 01"),
+        )
+        assertEquals(LocalDateTime.of(1, 1, 1, 0, 0), valueOf("6F 08 08 A5 6A F5 FF 00 00 00 00"))
+    }
+
+    /**
+     * Ein `datetime` mit Ticks ab 24 Uhr (25 920 000), ein Tag vor 0001-01-01 und ein Tag nach 9999-12-31 sind
+     * abgelehnt; ebenso ein kurzer Dezimalwert, dessen Betrag mehr Stellen hat als die Precision (100000 bei 5).
+     *
+     * @spec SPEC-030
+     */
+    @Test
+    fun `datetime und kurzer Dezimalwert ausserhalb des Bereichs sind abgelehnt`() {
+        listOf(
+            "6F 08 08 00 00 00 00 00 82 8B 01",
+            "6F 08 08 A4 6A F5 FF 00 00 00 00",
+            "6F 08 08 80 24 2D 00 00 00 00 00",
+            "6C 05 05 00 04 01 A0 86 01",
+        ).forEach { typeAndValue ->
+            assertEquals(RpcRejection.VALUE, rejection(executeSql("s", "d", param("@v", typeAndValue))), typeAndValue)
+        }
+    }
+
+    /**
      * Ein Dezimalwert außerhalb seines Bereichs ist abgelehnt: Betrag mit mehr Stellen als die Precision
      * (genau 10^38 bei Precision 38, 100000 bei Precision 5) und ein Vorzeichenbyte außer 0 und 1.
      *
@@ -281,7 +345,7 @@ class RpcBinderTest {
 
     /**
      * Typen ohne Entsprechung in `SqlType` sind abgelehnt, mit Wert und als NULL: `INTN` mit 1 und 2 Byte,
-     * Gleitkomma, Geld, GUID, Binär, `varchar`, `DATETIMN`, `DATETIMEOFFSETN`.
+     * Gleitkomma, Geld, GUID, Binär, `varchar`, `DATETIMN` mit 4 Byte, `DATETIMEOFFSETN`.
      *
      * @spec SPEC-003
      */
@@ -290,7 +354,7 @@ class RpcBinderTest {
         val cases = listOf(
             "26 01 01 07", "26 02 02 07 00", "26 01 00", "6D 08 00", "6D 04 04 00 00 00 00", "6E 08 00",
             "24 10 00", "A5 10 00 FF FF", "AD 04 00 00 00", "A7 10 00 ${RpcVectors.COLLATION} FF FF",
-            "AF 04 00 ${RpcVectors.COLLATION} FF FF", "6F 08 00", "2B 07 00",
+            "AF 04 00 ${RpcVectors.COLLATION} FF FF", "6F 04 00", "6F 04 04 00 00 00 00", "2B 07 00",
         )
         cases.forEach { typeAndValue ->
             assertEquals(RpcRejection.TYPE, rejection(executeSql("s", "d", param("@v", typeAndValue))), typeAndValue)

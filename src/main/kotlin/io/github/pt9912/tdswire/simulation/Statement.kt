@@ -65,7 +65,24 @@ internal sealed interface Statement {
 
     /** D2: `ALTER TABLE … ADD` mit den neuen Spalten. */
     data class AddColumns(override val table: TableRef, val columns: List<SimColumn>) : Statement
+
+    /**
+     * M: `MERGE … OUTPUT $action` (`SPEC-036` Form M). [sourceColumns] benennt die Werte der einen `VALUES`-Zeile
+     * [values]; [on] vergleicht Spalten der Tabelle mit Quellspalten, [update] ist `null` ohne Zweig `WHEN MATCHED`,
+     * [insert] bildet die Spalten der Tabelle aus Quellspalten.
+     */
+    data class Merge(
+        override val table: TableRef,
+        val sourceColumns: List<String>,
+        val values: List<SimValue>,
+        val on: List<MergeLink>,
+        val update: List<MergeLink>?,
+        val insert: List<MergeLink>,
+    ) : Statement
 }
+
+/** Eine Zuordnung `<Alias der Tabelle>.<Spalte> = <Alias der Quelle>.<Spalte>` oder die Paarung von `INSERT`. */
+internal data class MergeLink(val target: String, val source: String)
 
 /** Eine `SET`-Anweisung der Form C: Option in ASCII-Großschreibung und ihr Argument (`ON`, `OFF` oder die Zahl). */
 internal data class SetOption(val option: String, val argument: String)

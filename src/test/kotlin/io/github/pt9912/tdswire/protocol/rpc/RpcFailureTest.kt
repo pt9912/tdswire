@@ -161,6 +161,23 @@ class RpcFailureTest {
     }
 
     /**
+     * Negativfall: ein Dezimalwert ist Vorzeichenbyte und 1 bis 16 Byte Betrag, höchstens so lang wie die Größe der
+     * TYPE_INFO. Ein Wert mit 1 Byte (nur das Vorzeichen), mit 18 Byte oder länger als die Größe 5 ist
+     * `INVALID_LENGTH`. Kontrollfälle: dieselben TYPE_INFO mit 2 Byte und mit der vollen Größe sind gültig, damit die
+     * Fälle die Länge prüfen und nicht die TYPE_INFO.
+     *
+     * @spec SPEC-030
+     */
+    @Test
+    fun `Dezimalwert ausserhalb von 2 Byte bis zur Groesse ist ein Ergebniswert`() {
+        val sixteen = List(16) { "01" }.joinToString(" ")
+        listOf("6A 11 26 02 01 01", "6A 11 26 02 12 $sixteen 01 01", "6A 05 09 02 06 01 D2 04 00 00 00")
+            .forEach { assertEquals(ProtocolFailure.INVALID_LENGTH, byName(it), it) }
+        listOf("6A 11 26 02 02 01 05", "6A 05 09 02 05 01 D2 04 00 00", "6A 11 26 02 11 01 $sixteen")
+            .forEach { assertIs<ProtocolResult.Ok<RpcRequest>>(RpcParser.parse(RpcVectors.byName(it)), it) }
+    }
+
+    /**
      * Festlegung: Die Katalogform wird nach Position geprüft. `sp_executesql` braucht einen
      * Textparameter ohne NULL (die Deklaration ist optional, `RpcPositionalNamesTest`), `sp_prepexec` ein
      * OUTPUT-Handle `INTN` 4 und zwei Textparameter, `sp_execute` ein Handle `INTN` 4 ohne NULL; sonst
