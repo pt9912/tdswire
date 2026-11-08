@@ -10,6 +10,7 @@ import io.github.pt9912.tdswire.runtime.BackendSource
 import io.github.pt9912.tdswire.simulation.FilterTerm
 import io.github.pt9912.tdswire.simulation.RowFilter
 import io.github.pt9912.tdswire.simulation.RowSource
+import io.github.pt9912.tdswire.simulation.SimCatalog
 import io.github.pt9912.tdswire.simulation.SimColumn
 import io.github.pt9912.tdswire.simulation.SimQuery
 import io.github.pt9912.tdswire.simulation.SimTable
@@ -19,12 +20,15 @@ import java.math.BigDecimal
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.CyclicBarrier
+import java.util.concurrent.Semaphore
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
+
+private const val READERS = 2
 
 /**
  * Der Bestand des Testservers (`TDS-FA-12`, `SPEC-035` „Katalog-Anbieter“): der Integrator hält die Tabellen, die
@@ -120,13 +124,16 @@ class TableStoreTest {
     }
 
     /**
-     * Happy: ein Leser, der `catalog()` in Schleife ruft, und mehrere Schreiber, die Tabellen anlegen und erweitern,
-     * laufen gleichzeitig; kein Aufruf wirft, und am Ende stehen alle angelegten Tabellen und alle angefügten
-     * Spalten im
-     * Bestand (keine Strukturänderung geht verloren). Belegt ist der einzelne Aufruf von `catalog()` und `replace`
-     * sowie die Folge „Planung, Callback“ über das Backend; ein Zugriff über mehrere Backends auf einen Bestand ist
-     * nicht belegt.
-     * Wächter: `catalog()` und `replace` ohne Sperre (der Leser läuft in die gleichzeitige Änderung der Tabellenliste
+     * Happy: zwei Leser, die `catalog()` rufen, und mehrere Schreiber, die Tabellen anlegen und erweitern, laufen
+     * gleichzeitig; kein Aufruf wirft, und am Ende stehen alle angelegten Tabellen und alle angefügten Spalten im
+     * Bestand (keine Strukturänderung geht verloren). Die Last ist begrenzt und hängt nicht von der Geschwindigkeit
+     * des Hosts ab: je Anweisung eines Schreibers werden `READERS` Lesevorgänge freigegeben (Marken eines gemeinsamen
+     * Semaphors); welcher Leser sie nimmt, bestimmt die Planung. Ein Leser dreht nie leer. Jeder gelesene Katalog
+     * wird geprüft: `kunden` steht darin mit mindestens den zwei Spalten des Anfangs, und kein Tabellenname kommt
+     * doppelt vor. Belegt ist der einzelne Aufruf von `catalog()` und
+     * `replace` sowie die Folge „Planung, Callback“ über das Backend; ein Zugriff über mehrere Backends auf einen
+     * Bestand ist nicht belegt.
+     * Wächter: `catalog()` und `replace` ohne Sperre (ein Leser läuft in die gleichzeitige Änderung der Tabellenliste
      * und wirft), ein Backend ohne Sperre um Planung und Callback (eine Spalte geht verloren).
      * @spec SPEC-035
      */
@@ -138,30 +145,22 @@ class TableStoreTest {
         val perWriter = 150
         val failures = ConcurrentLinkedQueue<Throwable>()
         val done = AtomicBoolean(false)
-        val reader = Thread {
-            try {
-                while (!done.get()) store.catalog().tables.size
-            } catch (e: ConcurrentModificationException) {
-                failures += e
-            }
-        }
-        reader.start()
+        val steps = Semaphore(0)
+        val readers = (0 until READERS).map { Thread { readCatalog(store, steps, done, failures) } }
+        readers.forEach { it.start() }
         val start = CountDownLatch(1)
         val threads = (0 until writers).map { w ->
             Thread {
                 start.await()
-                for (n in 0 until perWriter) {
-                    val events = ask(backend, "CREATE TABLE [t_${w}_$n] (a INT NOT NULL, PRIMARY KEY (a))")
-                    if (events != listOf<QueryEvent>(QueryEvent.UpdateCount(0))) failures += AssertionError("$events")
-                    ask(backend, "ALTER TABLE [kunden] ADD [c_${w}_$n] INT")
-                }
+                for (n in 0 until perWriter) writeStep(backend, w, n, steps, failures)
             }
         }
         threads.forEach { it.start() }
         start.countDown()
         threads.forEach { it.join() }
         done.set(true)
-        reader.join()
+        steps.release(READERS)
+        readers.forEach { it.join() }
 
         assertEquals(emptyList(), failures.toList())
         val catalog = store.catalog()
@@ -190,6 +189,50 @@ class TableStoreTest {
             ask(backend, "CREATE TABLE t (a INT NOT NULL, PRIMARY KEY (a))"),
         )
         assertEquals(listOf("t"), listed(backend))
+    }
+
+    /** Ein Leser: ruft `catalog()` einmal je Marke, bis [done] gesetzt ist; eine Änderung der Liste ist ein Fehler. */
+    private fun readCatalog(
+        store: TableStore,
+        steps: Semaphore,
+        done: AtomicBoolean,
+        failures: ConcurrentLinkedQueue<Throwable>,
+    ) {
+        try {
+            while (true) {
+                steps.acquire()
+                if (done.get()) break
+                failures += checkCatalog(store.catalog()).orEmpty()
+            }
+        } catch (e: ConcurrentModificationException) {
+            failures += e
+        }
+    }
+
+    /** Der gelesene Katalog ist in sich stimmig; die Fehlermeldung, sonst `null`. */
+    private fun checkCatalog(catalog: SimCatalog): List<Throwable>? {
+        val names = catalog.tables.map { it.name }
+        val kunden = catalog.tables.singleOrNull { it.name == "kunden" }
+        return when {
+            names.size != names.toSet().size -> listOf(AssertionError("Tabellenname doppelt: $names"))
+            kunden == null || kunden.columns.size < 2 -> listOf(AssertionError("kunden fehlt oder verkuerzt"))
+            else -> null
+        }
+    }
+
+    /** Ein Schritt eines Schreibers: legt eine Tabelle an, erweitert `kunden`, gibt je Anweisung Marken frei. */
+    private fun writeStep(
+        backend: QueryBackend,
+        writer: Int,
+        n: Int,
+        steps: Semaphore,
+        failures: ConcurrentLinkedQueue<Throwable>,
+    ) {
+        val events = ask(backend, "CREATE TABLE [t_${writer}_$n] (a INT NOT NULL, PRIMARY KEY (a))")
+        if (events != listOf<QueryEvent>(QueryEvent.UpdateCount(0))) failures += AssertionError("$events")
+        steps.release(READERS)
+        ask(backend, "ALTER TABLE [kunden] ADD [c_${writer}_$n] INT")
+        steps.release(READERS)
     }
 
     private fun tableOf(store: TableStore): SimTable = store.catalog().tables.single { it.name == "kunden" }

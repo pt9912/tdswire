@@ -13,6 +13,9 @@ import io.github.pt9912.tdswire.transport.tls.TlsResult
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -28,6 +31,7 @@ import kotlin.time.Duration
 
 private const val POLL_MILLIS = 5L
 private const val POLL_ROUNDS = 1000
+private const val NANOS_PER_MILLI = 1_000_000L
 private const val PACKET_SIZE = 4096
 private const val READ_SIZE = 256
 
@@ -41,6 +45,20 @@ internal suspend fun eventually(what: String, condition: () -> Boolean) {
 }
 
 /**
+ * Wartet [condition] ab; sonst schlägt der Test nach der Schutzgrenze [hangGuardMillis] in Wanduhr fehl. Die Grenze
+ * schützt vor einem hängenden Test und sagt nichts über die Dauer des Wartens; sie zählt die Uhr, nicht die Abfragen
+ * (eine Abfrage dauert unter Last länger als [POLL_MILLIS]). Anders als [eventually], dessen Grenze von rund fünf
+ * Sekunden Tests als Beleg für eine kurze Frist nutzen.
+ */
+internal suspend fun eventuallyGuarded(what: String, hangGuardMillis: Long, condition: () -> Boolean) {
+    val deadline = System.nanoTime() + hangGuardMillis * NANOS_PER_MILLI
+    while (!condition()) {
+        if (System.nanoTime() > deadline) throw AssertionError("nicht eingetreten: $what")
+        delay(POLL_MILLIS)
+    }
+}
+
+/**
  * Steuerbare Zeit: jedes [delay] wartet, bis der Test [releaseAll] ruft. [pending] nennt die Fristen,
  * auf die der Listener gerade wartet.
  */
@@ -49,15 +67,24 @@ internal class ManualDelayer : Delayer {
 
     private val waiting = CopyOnWriteArrayList<Waiting>()
 
+    private val changes = MutableStateFlow(0)
+
     val pending: List<Duration> get() = waiting.filter { it.release.isActive }.map { it.duration }
+
+    /** Kehrt zurück, sobald [pending] genau [duration] nennt; wartet auf die Änderung, nicht auf die Uhr. */
+    suspend fun awaitPending(duration: Duration) {
+        changes.first { pending == listOf(duration) }
+    }
 
     override suspend fun delay(duration: Duration) {
         val entry = Waiting(duration, CompletableDeferred())
         waiting += entry
+        changes.update { it + 1 }
         try {
             entry.release.await()
         } finally {
             entry.release.cancel()
+            changes.update { it + 1 }
         }
     }
 
