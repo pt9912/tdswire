@@ -17,7 +17,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Verantwortlich:** — bis zur Priorisierung.
 
-**Autor:** pt9912 (Entwurf durch den Implementer-Agenten nach F-11 des Reviews, zur Prüfung durch die Planner-Rolle). **Datum:** 2026-11-08.
+**Autor:** pt9912 (Entwurf durch den Implementer-Agenten nach F-11 des Reviews, von der Planner-Rolle geprüft und bestätigt). **Datum:** 2026-11-08.
 
 ---
 
@@ -63,7 +63,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 
 ## 4. Trigger
 
-**Start** (`next` → `in-progress`): [slice-bulk-load-feste-typen-und-referenzclient](../in-progress/slice-bulk-load-feste-typen-und-referenzclient.md) liegt in `done/`, der Nutzer hat die Messung am echten Server freigegeben, und ein Verantwortlicher ist eingetragen.
+**Start** (`next` → `in-progress`): [slice-bulk-load-feste-typen-und-referenzclient](../in-progress/slice-bulk-load-feste-typen-und-referenzclient.md) liegt in `done/` (erfüllt mit dessen Closure), der Nutzer hat die Messung am echten Server freigegeben, und ein Verantwortlicher ist eingetragen.
 
 **Rückführungen — vorab benennen:**
 
