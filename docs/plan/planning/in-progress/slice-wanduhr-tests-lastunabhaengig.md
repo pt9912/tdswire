@@ -9,7 +9,7 @@ aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
 Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (§Ein Slice, dessen Gegenstand ein anderer übernimmt).
 
-**Welle:** ohne Welle
+**Welle:** welle-qualitaet-grundlage
 
 **Bezug:** [TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) (Tests in Docker reproduzierbar, auch unter Last des Hosts), [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität) (die Tests belegen parallele Zugriffe und das geordnete Beenden). Kein ADR.
 
@@ -53,22 +53,22 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 Liefer-Punkte (zwei):
 
-- [ ] **`TableStoreTest`** ([TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität)): die Last der Leser ist begrenzt (je Anweisung eines Schreibers werden `READERS` Lesevorgänge freigegeben; welcher Leser sie nimmt, bestimmt die Planung; kein Leerlauf-Drehen; jeder gelesene Katalog wird auf Stimmigkeit geprüft), der Test endet in der Größenordnung einer Sekunde statt in Minuten (Rig, drei Läufe unter Last, vorher/nachher gemessen); die Mutation „`catalog()` und `replace` ohne Sperre“ und die Mutation „Strukturänderung ohne `structureLock`“ färben ihn rot (je drei Läufe).
-- [ ] **`ListenerAbortTest` und `ListenerSupport`** ([TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität)): das Warten auf eine Frist des Listeners hängt am Ereignis (`ManualDelayer.awaitPending`), die Schutzgrenzen gegen einen hängenden Test sind Uhr-Grenzen von 60 s (`eventuallyGuarded`, `hangGuard`) und keine Aussage über die Dauer; `eventually` und damit die übrigen rund 90 Aufrufe (u. a. `HandshakeWiringTest`) bleiben unverändert; die Mutationen „der Abbruch wird nicht gerufen“ und „keine Wartezeit `CANCEL_TIMEOUT`“ färben die Klasse rot.
+- [x] **`TableStoreTest`** ([TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität)): die Last der Leser ist begrenzt (je Anweisung eines Schreibers werden `READERS` Lesevorgänge freigegeben; welcher Leser sie nimmt, bestimmt die Planung; kein Leerlauf-Drehen; jeder gelesene Katalog wird auf Stimmigkeit geprüft), der Test endet in der Größenordnung einer Sekunde statt in Minuten (Rig, drei Läufe unter Last, vorher/nachher gemessen); die Mutation „`catalog()` und `replace` ohne Sperre“ und die Mutation „Strukturänderung ohne `structureLock`“ färben ihn rot (je drei Läufe).
+- [x] **`ListenerAbortTest` und `ListenerSupport`** ([TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität)): das Warten auf eine Frist des Listeners hängt am Ereignis (`ManualDelayer.awaitPending`), die Schutzgrenzen gegen einen hängenden Test sind Uhr-Grenzen von 60 s (`eventuallyGuarded`, `hangGuard`) und keine Aussage über die Dauer; `eventually` und damit die übrigen rund 90 Aufrufe (u. a. `HandshakeWiringTest`) bleiben unverändert; die Mutationen „der Abbruch wird nicht gerufen“ und „keine Wartezeit `CANCEL_TIMEOUT`“ färben die Klasse rot.
 
 Nachweis-Pflichten für alle Punkte:
 
-- [ ] `make gates` grün.
+- [x] `make gates` grün.
 - [ ] `make flaeche`, `make docs-check`, `make spec-abdeckung` einmal (Tests geändert) gelaufen.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Haken der Liefer-Punkte setzt der Planner nach der Verifikation, nicht der Implementer (`BEO-TDS/haken-vor-verifikation-gesetzt`).
-- [ ] Doku-Update, falls ein öffentlicher Vertrag berührt ist — keiner berührt; `docs/user/` bleibt unverändert.
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben (Auftrag des Planners; Evidence nicht vom Implementer).
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Haken der Liefer-Punkte setzt der Planner nach der Verifikation, nicht der Implementer (`BEO-TDS/haken-vor-verifikation-gesetzt`).
+- [x] Doku-Update, falls ein öffentlicher Vertrag berührt ist — keiner berührt; `docs/user/` bleibt unverändert.
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben (Auftrag des Planners; Evidence nicht vom Implementer).
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -111,9 +111,9 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Die Leser rufen `catalog()` seltener als vorher; die Mutation ohne Sperre könnte unentdeckt bleiben, weil der Wettlauf zufallsabhängig ist (ein grüner Lauf beweist die Sperre nicht). — **Ausgang:** offen bis zur Messung; Ziel ist je Mutation rot in jedem von drei Läufen (Bericht des Implementers).
-- Der Flake von `ListenerAbortTest` wurde im Rig nicht reproduziert (drei grüne Läufe unter Last 15 bis 19 vor der Änderung); die Wirkung der Änderung ist damit begründet, nicht gemessen. — **Ausgang:** weiter offen: → `BEO-TDS/wanduhr-tests-flackern-unter-last` im Register (Zähler und Ausgang beim Planner und beim Nutzer).
-- Die Schutzgrenze von 60 s verlängert die Zeit bis zum Rot, wenn ein Test hängt (statt 3 bis 5 s). — **Ausgang:** offen bis zur Messung (Mutation „keine Wartezeit“ nennt die Zeit bis zum Rot im Bericht).
+- Die Leser rufen `catalog()` seltener als vorher; die Mutation ohne Sperre könnte unentdeckt bleiben, weil der Wettlauf zufallsabhängig ist (ein grüner Lauf beweist die Sperre nicht). — **Ausgang:** entfallen, gemessen: die Mutationen „`catalog()` ohne Sperre“ (M1b), „`replace` ohne Sperre“ (M1c), beide ohne Sperre (M1) und „`structureLock` entfernt“ (M2) färben den Test je 3 von 3 rot (Review, Rig); M1 vom Verifier am End-Stand erneut 3 von 3 rot. Grenze: ein grüner Lauf beweist die Sperre weiter nicht, der Wettlauf bleibt zufallsabhängig; gemessen bei Lastmittel 3 bis 12, nicht unter hoher Last.
+- Der Flake von `ListenerAbortTest` wurde im Rig nicht reproduziert (drei grüne Läufe unter Last 15 bis 19 vor der Änderung); die Wirkung der Änderung ist damit begründet, nicht gemessen. — **Ausgang:** weiter offen: → [`BEO-TDS/wanduhr-tests-flackern-unter-last`](../observations/BEO-TDS/wanduhr-tests-flackern-unter-last/state.md) im Register; Review und Verifikation sahen den Flake nicht (5 von 5 `ListenerAbortTest` grün im frischen Bau), was ohne Reproduktion nichts belegt; der Ausgang „behoben“ ist nicht gesetzt und bleibt beim Nutzer.
+- Die Schutzgrenze von 60 s verlängert die Zeit bis zum Rot, wenn ein Test hängt (statt 3 bis 5 s). — **Ausgang:** eingetreten und gemessen: bei „`expireGrace()` entfernt“ 67 s je Klassenlauf (vier rote Tests; Review 66 bis 68 s), bei „`delay(cancelTimeout)` entfernt“ 47 s, bei `catalog()` ohne Sperre 7 s; die 60 s bleiben eine Wanduhr-Zahl (Review F-6). Hingenommen: ein hängender Test kostet bis zu 60 s statt 3 bis 5 s.
 
 ## 7. Closure-Notiz
 
@@ -122,7 +122,18 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 formulieren — sonst zählt das Register zwei Namen getrennt) ·
 `grundlagen-traceability.md` §Herkunfts-Anker für Steering-Loop-Regeln.
 
-*Wird vom Planner nach der Verifikation geschrieben.*
+- **Gegenstand:** `TableStoreTest > gleichzeitiger Zugriff verliert nichts` begrenzt die Last der Leser (je Anweisung eines Schreibers werden `READERS` Lesevorgänge freigegeben, jeder gelesene Katalog wird geprüft); `ListenerAbortTest` wartet am Ereignis (`ManualDelayer.awaitPending`) und trägt die Schutzgrenze `hangGuard` von 60 s über die neue Variante `eventuallyGuarded`; `eventually` ist wortgleich der Basis. Kein Produktcode, keine Spec, keine ADR berührt.
+- **Review und Verifikation:** Review `0624d431` ([Report](../../../reviews/2026-11-08-0624d431-review-slice-wanduhr-tests-lastunabhaengig.md); 0 HIGH, 3 MEDIUM, 1 LOW, 3 INFO): F-1 bis F-4 behoben in `eec118d3`, F-5 hier entschieden. Verifikation `eec118d3` ([Bericht](../../../reviews/2026-11-08-eec118d3-verifikation-slice-wanduhr-tests-lastunabhaengig.md)): closure-fähig unter B1 bis B4, in dieser Closure erfüllt.
+- **Nachbesserung ohne zweiten Review (Grenze):** `eec118d3` hatte keinen eigenen Review; der Verifier prüfte sie einzeln gegen F-1 bis F-5.
+- **Gemessen** (Einzelmessungen 2026-11-08, Last durch fremde Läufe, keine künstliche): `make clean-build` Exit 0, 588 s statt 27 bis 34 min, 1269 Testfälle `PASSED`; `TableStoreTest > gleichzeitiger Zugriff verliert nichts` höchstens 1,6 s im frischen Bau (Rig 1,06 s) statt bis zu 24 min; vier Mutationen des Verifiers rot 3/3 (M1, H1, H2, A1), des Reviews M1b, M1c, M2, A1, A2 rot 3/3. Lastmittel 3 bis 11; eine Wiederholung unter hoher Last (15 bis 25) liegt nicht vor.
+- **Was hat funktioniert:** (1) Der Review fuhr Mutationen auch an Tests, die der Slice nicht berührte, und fand so, dass `eventually` zwei Wächter in `HandshakeWiringTest` stilllegte (H1, H2 überlebten). (2) Die Mutationen färbten genau die Zusage-Tests; der Verifier wiederholte sie am End-Stand. (3) `eventually` blieb nach der Nachbesserung Zeichen für Zeichen die Basis (`git diff` ohne gelöschte Zeile).
+- **Was ging anders als geplant:** (1) Der Plan verlängerte `eventually` selbst auf 60 s; erst der Review (F-1) zeigte, dass rund 90 Aufrufe die alte Grenze als Teil ihrer Aussage trugen. Die Nachbesserung teilte die Variante `eventuallyGuarded` ab. (2) Die Zusage „jeder Leser genau einmal“ war breiter als der Bau (F-3). (3) Ziel ohne Bedingung im selben Satz (F-4).
+- **Entscheid zu F-5 / `make spec-abdeckung`:** die Zeile der DoD gilt erst mit dem Lauf der Closure auf dem gemergten Stand als erfüllt; Ergebnis steht in der letzten Zeile dieser Sektion.
+- **Beobachtungs-Register (`../observations/`):** fortgeschrieben: [BEO-TDS/wanduhr-tests-flackern-unter-last](../observations/BEO-TDS/wanduhr-tests-flackern-unter-last/state.md) (Stand 7× unverändert, kein neues Auftreten; Evidence dieses Vorgangs: Laufzeit des `TableStoreTest` und Lage von `ListenerAbortTest`; Ausgang „behoben“ nicht gesetzt). Neu: [BEO-TDS/gemeinsamer-helfer-verlaengert-zeitaussage-anderer-tests](../observations/BEO-TDS/gemeinsamer-helfer-verlaengert-zeitaussage-anderer-tests/state.md) (1×).
+- **Steering-Loop-Eintrag:** Kein Eintrag verkörpert, daher kein `liegt in`; der Eintrag ist gezählt, nicht verkörpert. Gelernt: *Ein gemeinsamer Test-Helfer, dessen Zeitgrenze für einen Test verlängert wird, verlängert sie still für jeden anderen Aufrufer*: `eventually` wurde auf 60 s gestellt und hätte bei rund 90 Aufrufen zwei Wächter in `HandshakeWiringTest` (Frist von `LOGIN_TIMEOUT=1` als Beleg gegen den Standard 15 s) stillgelegt; der Review fing es mit den Mutationen H1 und H2, nicht der Autor. Prüfpunkt bei jeder Änderung eines gemeinsamen Helfers: Aufrufer des Helfers greppen und fragen, ob einer die alte Grenze als Teil seiner Aussage nutzt; eine neue Variante statt Änderung des Bestehenden (1×, unter der Schwelle von 3×). Benannte Spec-Lücke: keine.
+- **Folge-Slices:** keine; der Rest (Wanduhr-Kandidaten `TelemetryJsonTest … principal`, `AuthTimingTest`, `TelemetryEmbeddingTest`) ist als Kandidat im Register geführt, kein Slice angelegt.
+- **Risiken aus §6:** alle 3 mit Ausgang eingetragen, gezählt in der Reihenfolge von §6 (entfallen, gemessen: 1; weiter offen mit Träger im Register: 2; eingetreten, gemessen und hingenommen: 3).
+- **Drei Paarungen:** Das Repo führt Wellen; die Paarungen prüft die Closure von [welle-qualitaet-grundlage](../welle-qualitaet-grundlage.md). Hier geprüft: *Anker*: kein Anker gesetzt (kein `liegt in`). *Folge-Slice*: keiner genannt. *Register*: beide genannten Kennungen bestehen als Verzeichnis mit nicht leerem `evidence/`.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
