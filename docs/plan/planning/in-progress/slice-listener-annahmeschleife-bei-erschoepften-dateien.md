@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** SPEC-048 · [TDS-FA-09.a](../../../../spec/spezifikation.md#tds-fa-09a--konfiguration-und-diagnose) (Abschnitt 4: der Satz zu `ACCEPT_FAILED`) · SPEC-044 (nur gelesen: die Annahmeschleife endet mit dem geordneten Beenden)
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** Implementer-Agent, Auftrag des Nutzers 2026-11-08.
 
 **Autor:** pt9912. **Datum:** 2026-11-06.
 
@@ -62,20 +62,20 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 Liefer-Punkte (zwei):
 
-- [ ] **Annahmeschleife bei erschöpftem Limit** ([TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität), [TDS-FA-09](../../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose)): der Test der Kind-JVM läuft **ohne** das Vorladen der Klassen und liest `ACCEPT_FAILED` im Sammler; nach dem Schließen der Verbindungen nimmt der Server wieder an. **Beleg:** die Rücknahme der Änderung am Produktcode macht den Test rot (Mutation: der `failed`-Callback behandelt den `NoClassDefFoundError` wie vorher). Der Weg (Klassen vor dem ersten Annehmen laden, den Callback ohne neue Klassen abschließen, den `Error` fangen oder Beenden mit Meldung) bleibt dem Architect; welcher gewählt wird, steht mit Grund in der Closure-Notiz.
-- [ ] **Spezifikation und Test-Naht** ([TDS-FA-09](../../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose)): der Satz zu `ACCEPT_FAILED` in Abschnitt 4 der Spezifikation nennt die gemessene Bedingung (Kind-JVM, Limit, ohne Vorladen); trägt `AcceptChild` das Vorladen weiter, steht im KDoc, warum und was der Test dann nicht belegt.
+- [x] **Annahmeschleife bei erschöpftem Limit** ([TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität), [TDS-FA-09](../../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose)): der Test der Kind-JVM läuft **ohne** das Vorladen der Klassen und liest `ACCEPT_FAILED` im Sammler; nach dem Schließen der Verbindungen nimmt der Server wieder an. **Beleg:** die Rücknahme der Änderung am Produktcode macht den Test rot (Mutation: der `failed`-Callback behandelt den `NoClassDefFoundError` wie vorher). Der Weg (Klassen vor dem ersten Annehmen laden, den Callback ohne neue Klassen abschließen, den `Error` fangen oder Beenden mit Meldung) bleibt dem Architect; welcher gewählt wird, steht mit Grund in der Closure-Notiz.
+- [x] **Spezifikation und Test-Naht** ([TDS-FA-09](../../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose)): der Satz zu `ACCEPT_FAILED` in Abschnitt 4 der Spezifikation nennt die gemessene Bedingung (Kind-JVM, Limit, ohne Vorladen); trägt `AcceptChild` das Vorladen weiter, steht im KDoc, warum und was der Test dann nicht belegt.
 
 Nachweis-Pflichten für beide Punkte:
 
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Doku-Update, falls ein öffentlicher Vertrag berührt ist (Abschnitt 4 der Spezifikation, siehe Liefer-Punkt 2).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Doku-Update, falls ein öffentlicher Vertrag berührt ist (Abschnitt 4 der Spezifikation, siehe Liefer-Punkt 2).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -93,7 +93,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `src/test/kotlin/io/github/pt9912/tdswire/runtime/TelemetryWiringTest.kt` | update | Test des Wiederannehmens ohne Vorladen |
 | `spec/spezifikation.md` Abschnitt 4 | update | Satz zu `ACCEPT_FAILED` mit gemessener Bedingung |
 
-Die Dateien `AcceptChild.kt` und `TelemetryWiringTest.kt` entstehen mit dem Zweig `worktree-agent-a735f10cebdeaf861` und liegen erst nach dessen Merge auf `main`; die Tabelle gilt für den Stand nach dem Merge.
+`AcceptChild.kt` und `TelemetryWiringTest.kt` liegen auf `main` (aus [slice-betrieb-telemetrie-verdrahtung-belegen](../done/slice-betrieb-telemetrie-verdrahtung-belegen.md)).
 
 ## 4. Trigger
 
@@ -125,8 +125,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Der Test hängt an `sh`, `ulimit -n` und Zeitschranken von 40 s und 60 s; unter Last ist er nicht gemessen (Review F-9). — **Ausgang:** offen bis zur Closure.
-- Der Weg, der die Klasse ohne Dateizugriff bereitstellt, kann eine Naht im Produktcode verlangen (`BEO-TDS/test-naht-im-produktivcode`). — **Ausgang:** offen bis zur Closure.
+- Der Test hängt an `sh`, `ulimit -n` und Zeitschranken von 40 s und 60 s; unter Last ist er nicht gemessen (Review F-9). — **Ausgang:** weiter offen: am Kind-JVM-Test nicht eingetreten (Verifikation: grün bei Lastmittel 8 bis 277, Frischlauf, drei Mutationsbauten mit Baseline); rot wurden zwei andere Wanduhr-Tests, beide in `BEO-TDS/wanduhr-tests-flackern-unter-last` geführt. Die Beobachtung bleibt offen.
+- Der Weg, der die Klasse ohne Dateizugriff bereitstellt, kann eine Naht im Produktcode verlangen (`BEO-TDS/test-naht-im-produktivcode`). — **Ausgang:** eingetreten: `prepareExhaustion` (`TdsListener`) und `prepareAcceptFailure` (`TelemetryEvents`, Aufruf in `Bootstrap`) stehen im Produktcode; [ADR-0043](../../adr/0043-annahmeschleife-bei-erschoepftem-dateilimit.md) benennt das als akzeptiertes Negativ; Produktnutzen ist die Verfügbarkeit nach Ressourcenmangel, die Fläche wächst nicht (beide Funktionen `internal`, `make flaeche` grün).
 
 ## 7. Closure-Notiz
 
@@ -143,7 +143,17 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-Wird bei der Closure gefüllt.
+- **Zuordnung Test | Festlegung:** *Test* (`TelemetryWiringTest` „Ein gescheitertes Annehmen ergibt ACCEPT_FAILED und der Server nimmt danach wieder an“; `TelemetryRedactionTest` „Der Text der Ausnahme des Betriebssystems erreicht ACCEPT_FAILED nicht“, Limit 128 und 160): Kind-JVM `AcceptChild` aus Klassenverzeichnissen **ohne** Vorladen; das Ereignis `ACCEPT_FAILED` mit `exceptionType` `java.io.IOException` kommt an, nach dem Schließen der gehaltenen Verbindungen nimmt der Server an (128 Dateien; bei 160 nur das Ereignis). Rotbelege der Verifikation: M1 (Aufruf `prepareAcceptFailure()` in `Bootstrap.events()` entfernt) und M2 (Prüfung der `failed`-Klassen aus `prepareExhaustion` entfernt) röten beide Klassen mit `kein ACCEPT_FAILED`, M3 (`ChannelResult`/`ChannelError` entfernt) röten nur den Test des Wiederannehmens; Review M4a (nur `ChannelResult.Ok`) und M4b (nur `Accept.Failed`) rot. *Festlegung* (nur Text, kein Test): die Auswahl der Klassen als Bestimmung durch den Test („Welche Klassen genügen, bestimmt der Test“); die Aussage zu `ChannelFailure` (nur im Verbund mit `ChannelResult` belegt, V-2); die Grenzen im Satz zu `ACCEPT_FAILED` in Abschnitt 4 der Spezifikation (andere Umgebungen, Jar, andere Callbacks der NIO-Gruppe, Senke des Embedders nicht gemessen).
+- **Weg nach [ADR-0043](../../adr/0043-annahmeschleife-bei-erschoepftem-dateilimit.md):** Weg A (Vorbereitung des Fehlerpfads beim Start), kein Rückfall auf B. Grund: der einzige Weg, der gemessen trägt, ist „Klassen vorhanden“; A stellt das im Produktcode her, mit dem kleinsten Eingriff, ohne neue Fläche und ohne neues Verhalten bei Erfolg. Die Vorbereitung ging über den Wortlaut der ADR hinaus: das Domänenereignis `AcceptFailed` im Mapping der Runtime (`prepareAcceptFailure`) und `ChannelResult$Ok` im Lesepfad gehaltener Verbindungen (`prepareExhaustion`). Das deckt die ADR mit „welche Klassen genügen, bestimmt der Test der Kind-JVM“ (Review F-4); eine Schärfung oder Folge-ADR ist nicht nötig. Zu eng ist der Beleg, nicht der Umfang: er trägt gehaltene, idle Verbindungen, keine Anfrage, kein Schreiben und kein Framing unter erschöpftem Limit.
+- **Was hat funktioniert:** (1) Die Mutation je Teil der Vorbereitung (Review M4a bis M4c, Verifikation M1 bis M3) ordnet jedem Teil einen Träger zu oder findet den Teil ohne Träger (F-2: doppelt gebautes `ListenerEvent.AcceptFailed`, behoben). (2) Das Entfernen der Test-Hilfe `preloadClasses` machte den Produktfehler sichtbar, den das Vorladen im Test verdeckt hatte. (3) Die Meldung `fehlt: [...]` mit der fehlenden Klasse im Kopf der Assertion (Nachzug F-1, F-2) macht den Rotfall lesbar.
+- **Was ging anders als geplant:** (1) Der Plan sah `TdsListener.kt` und den Test vor; der Weg verlangte zusätzlich `TelemetryEvents.kt` und `Bootstrap.kt` (Plan-Tabelle vom Implementer ergänzt). (2) Die erste Fassung des Satzes in Abschnitt 4 war breiter als die vorbereiteten Klassen („den Lesepfad der Verbindungen“, F-1) und ist auf die Ergebniswerte des Lesens eingeschränkt. (3) Der Verifier sah in Stufe 7 von `make e2e` einmal rot (Last 182), nicht im Diff.
+- **Review und Verifikation:** Review `5400b4e3` (0 HIGH/MEDIUM, F-1 und F-2 LOW, F-3 bis F-7 INFO): F-1 und F-2 behoben in `07cf015b` ohne zweiten Review (der Verifier las und mutierte sie), F-3 und F-4 in dieser Closure, F-5 und F-6 als Grenzen, F-7 (Schlusssatz §3) in dieser Closure. Verifikation `07cf015b` (0 HIGH/MEDIUM/LOW; V-1 bis V-4 INFO): V-3 (Verantwortlicher) in dieser Closure, V-4 (ADR im Zweig `Proposed`) erledigt mit dem Merge von `main`. Grenzen, nicht behoben: **V-1** — die Meldung „der Server nimmt nach dem Schließen nicht mehr an“ hängt `child.output` ungekürzt an (im roten Lauf M3 rund 400 KB in einer Zeile), anders als die erste Meldung, die auf `DIAGNOSTIC_CHARS` kürzt; die fehlende Klasse steht dort nur durch Suchen. **V-2** — `ChannelFailure` ist nur im Verbund mit `ChannelResult.Failed` und `ChannelError` mutiert; die Aussage der Spezifikation trägt als Gruppe („Ergebniswerte des Lesens“), nicht als Einzelname. Die Nachzüge hatten keinen Re-Review.
+- **Gemessen** (Einzelmessungen 2026-11-08, ein Host mit Lastmittel 8 bis 277 durch fremde Läufe, kein ruhiger Host; Quelle: Verifikationsbericht): `make clean-build` Exit 0 in 13 min 57 s, 1230 Testfälle `PASSED`, 0 `FAILED`; `make matrix-zitate` Exit 0, 309 Zitate; `make gates FORCE=1` Exit 0 aus dem Layer-Cache (kein Frischbeleg der Tests); `make e2e` Lauf 1 Stufe 7 rot, Lauf 2 grün; drei Mutationen rot.
+- **Beobachtungs-Register (`../observations/`):** `evidence/slice-listener-annahmeschleife-bei-erschoepften-dateien.md` ergänzt in [BEO-TDS/test-naht-im-produktivcode](../observations/BEO-TDS/test-naht-im-produktivcode/observation.md) (F-3; **3 Dateien, Schwelle erreicht**; der Lese-Schritt gehört in die Closure von [welle-betrieb-diagnose](../welle-betrieb-diagnose.md), hier nicht entschieden) und [BEO-TDS/wanduhr-tests-flackern-unter-last](../observations/BEO-TDS/wanduhr-tests-flackern-unter-last/observation.md) (`ListenerAbortTest` mit `CANCEL_TIMEOUT` unter Last 19 bis 24 rot beim Implementer, `SynchronitaetTests.Cancel_und_Command_Timeout_kurz_hintereinander…` in Stufe 7 bei Last 182 rot beim Verifier, Wiederholung grün); fortgeschrieben [BEO-TDS/listener-annahmeschleife-steht-bei-erschoepftem-dateilimit-still](../observations/BEO-TDS/listener-annahmeschleife-steht-bei-erschoepftem-dateilimit-still/observation.md) (Stand: Folge-Slice geschlossen).
+- **Steering-Loop-Eintrag:** Kein Eintrag in dieser Closure verkörpert, daher kein `liegt in`. Gelernt: (1) *Eine Test-Hilfe, die eine Vorbedingung des Betriebs herstellt, kann einen Produktfehler verdecken*: das Vorladen in `AcceptChild` machte den Test grün, während die Annahmeschleife im Betrieb stillstand; die Mutation „Hilfe entfernen“ fand es im Review von [slice-betrieb-telemetrie-verdrahtung-belegen](../done/slice-betrieb-telemetrie-verdrahtung-belegen.md). Der Fall ist mit der Beobachtung `BEO-TDS/test-naht-im-produktivcode` verwandt, aber nicht gleich (hier steht Produktcode, den heute nur der Test begründet, und er hat Produktnutzen; Verifikation); er wird dort als dritte Evidence geführt, die Zuordnung ist eine Setzung, und ob eine Regel daraus wird, entscheidet die Welle-Closure. (2) *Eine Vorbereitung im Produktcode hat nur so viele Teile, wie Tests sie halten*: die Mutation je Teil fand einen Teil ohne Träger (F-2). Gezählt, nicht verkörpert. **Benannte Spec-Lücke:** keine; die Lücke der Spezifikation (Bedingung des Satzes zu `ACCEPT_FAILED`) ist mit diesem Slice in Abschnitt 4 geschlossen.
+- **Risiken aus §6:** beide mit Ausgang eingetragen (Last-Flake weiter offen, am Kind-JVM-Test nicht eingetreten; Naht im Produktcode eingetreten und in [ADR-0043](../../adr/0043-annahmeschleife-bei-erschoepftem-dateilimit.md) als akzeptiertes Negativ benannt).
+- **Folge-Slices:** keiner. Offene Grenzen ohne Slice: andere Callbacks der NIO-Gruppe unter erschöpftem Limit (Schreiben, Framing, Anfrage), der Betrieb aus einem Jar und andere Umgebungen — nicht gemessen, laut Abschnitt 4 der Spezifikation benannt; ein Befund dazu bekäme einen Eintrag im Register.
+- **Drei Paarungen:** Das Repo führt Wellen; die Paarungen prüft die Closure von [welle-betrieb-diagnose](../welle-betrieb-diagnose.md). Anker ↔ Folge-Slice: kein Anker gesetzt. Register ↔ Closure-Notiz: alle genannten Kennungen existieren als Verzeichnis mit nicht leerem `evidence/` (am Dateisystem geprüft). Folge-Slices: keine genannt.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
@@ -161,7 +171,7 @@ Hälften.
 
 **Vorgelagert — Sub-Area-Wahl prüfen:** `harness/conventions.md` kennt nur `*` (Greenfield, Kürzel `TDS`); der Slice berührt Listener, Tests und Spezifikation, eine eigene Sub-Area besteht nicht.
 
-**Vorgelagert — offene Beobachtungen sichten:** `BEO-TDS/test-naht-im-produktivcode` (offen, 2×), `BEO-TDS/lebenszyklus-im-fremden-prozess-nicht-gemessen` (offen, 1×), `BEO-TDS/beenden-unter-last-nicht-gemessen`, `BEO-TDS/aussagen-ueber-messung-hinaus` (verkörpert: der Befund gilt nur in der gemessenen Umgebung). Der Befund selbst hat noch keinen Eintrag im Register; die Closure legt ihn an.
+**Vorgelagert — offene Beobachtungen sichten:** `BEO-TDS/test-naht-im-produktivcode` (offen, 2×), `BEO-TDS/lebenszyklus-im-fremden-prozess-nicht-gemessen` (offen, 1×), `BEO-TDS/beenden-unter-last-nicht-gemessen`, `BEO-TDS/aussagen-ueber-messung-hinaus` (verkörpert: der Befund gilt nur in der gemessenen Umgebung). Der Befund steht als `BEO-TDS/listener-annahmeschleife-steht-bei-erschoepftem-dateilimit-still` im Register.
 
 **Modus-Begründungsblock — Umfang.** Pflicht, sobald mindestens eine berührte
 Sub-Area BF oder Hybrid ist — einer pro Sub-Area. Bei reinem GF genügt der
