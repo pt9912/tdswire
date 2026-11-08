@@ -1,0 +1,3 @@
+**Vorgang:** [slice-massenladen-atomar-bauen](../../../../done/slice-massenladen-atomar-bauen.md)
+**Fund:** [Review](../../../../../../reviews/2026-11-08-9e144097-review-slice-massenladen-atomar-bauen.md) F-2 (MEDIUM: Fehlertabelle der Nutzer-Doku ohne Zeile für `INSERT BULK`), F-6 (INFO: Verweisziel nachgezogen, der Satz davor sagt weiter "in `open/`") und [Verifikation](../../../../../../reviews/2026-11-08-128378b8-verifikation-slice-massenladen-atomar-bauen.md) V-2 (die Zeile "Zusage" der Tabelle `SPEC-059` sagte zu `onInsertBatch` "dieser Stand ruft ihn nicht", seit dem Schreibpfad des Massenladens falsch, vom Grep des Slice nicht genannt; vom Verifier gefunden, in der Closure behoben).
+**Stand:** weiteres Auftreten; Zähler folgt aus den Dateien.
