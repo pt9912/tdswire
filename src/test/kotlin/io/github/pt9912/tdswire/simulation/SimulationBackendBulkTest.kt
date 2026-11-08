@@ -271,6 +271,61 @@ class SimulationBackendBulkTest {
     }
 
     /**
+     * Happy und Negativ: `Int` und `Long` der Nachricht gelten in einer `Int16`-Spalte von −32768 bis 32767 und in
+     * einer `UInt8`-Spalte von 0 bis 255 und kommen als `Int` beim Callback an; jeder Wert um eins daneben endet mit
+     * `TDS_SIM_INVALID_VALUE`, ohne dass der Callback gerufen wird.
+     * Wächter: eine Überführung ohne Bereichsprüfung (der Callback bekäme 256 in einer `UInt8`-Spalte).
+     *
+     * @spec SPEC-035
+     * @spec SPEC-036
+     */
+    @Test
+    fun `Int16 und UInt8 nehmen Zahlen der Nachricht nur im Bereich an`() {
+        val seen = mutableListOf<Map<String, Any?>>()
+        val backend = SimulationBackend(
+            SimCatalog(
+                listOf(
+                    SimTable(
+                        name = "zahlen",
+                        columns = listOf(
+                            SimColumn("Id", SqlType.Int64, nullable = false),
+                            SimColumn("Klein", SqlType.Int16),
+                            SimColumn("Winzig", SqlType.UInt8),
+                        ),
+                        primaryKey = listOf("Id"),
+                        rows = { RowSource { null } },
+                        onInsertBatch = { rows ->
+                            seen += rows
+                            rows.size.toLong()
+                        },
+                    ),
+                ),
+            ),
+        )
+        fun send(klein: Any?, winzig: Any?) = runBlocking {
+            backend.load(
+                BulkTarget("dbo", "zahlen"),
+                message(
+                    col("Id", SqlType.Int64) to listOf(1L),
+                    col("Klein", SqlType.Int64) to listOf(klein),
+                    col("Winzig", SqlType.Int64) to listOf(winzig),
+                ),
+            )
+        }
+
+        assertEquals(QueryEvent.UpdateCount(1), send(-32768L, 0))
+        assertEquals(QueryEvent.UpdateCount(1), send(32767, 255L))
+        val first = mapOf<String, Any?>("Id" to 1L, "Klein" to -32768, "Winzig" to 0)
+        val second = mapOf<String, Any?>("Id" to 1L, "Klein" to 32767, "Winzig" to 255)
+        assertEquals(listOf(first, second), seen)
+        for ((klein, winzig) in listOf(-32769 to 0, 32768 to 0, 0 to -1, 0 to 256)) {
+            val failure = assertIs<QueryEvent.Failure>(send(klein, winzig), "$klein $winzig")
+            assertEquals("TDS_SIM_INVALID_VALUE", failure.code, "$klein $winzig")
+        }
+        assertEquals(2, seen.size)
+    }
+
+    /**
      * Negativ: ein Wert, der nicht in die Spalte passt, endet mit `TDS_SIM_INVALID_VALUE`, bevor der Callback eine
      * Zeile
      * sieht, auch wenn er in der letzten Zeile steht: `Long` außerhalb von `Int32`, Text für eine Ganzzahl, ein

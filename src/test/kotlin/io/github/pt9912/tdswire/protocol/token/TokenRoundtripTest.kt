@@ -67,6 +67,8 @@ class TokenRoundtripTest {
             ColumnDef("i4", TdsType.Int4Type),
             ColumnDef("i8", TdsType.Int8Type),
             ColumnDef("b", TdsType.BitType),
+            ColumnDef("i1", TdsType.Int1Type),
+            ColumnDef("i2", TdsType.Int2Type),
             ColumnDef("n1", TdsType.IntNType(1), nullable = true),
             ColumnDef("n2", TdsType.IntNType(2), nullable = true),
             ColumnDef("n4", TdsType.IntNType(4), nullable = true),
@@ -83,6 +85,8 @@ class TokenRoundtripTest {
             TdsValue.IntegerValue(Int.MIN_VALUE.toLong()),
             TdsValue.IntegerValue(Long.MAX_VALUE),
             TdsValue.BitValue(true),
+            TdsValue.IntegerValue(255),
+            TdsValue.IntegerValue(Short.MIN_VALUE.toLong()),
         )
         val full = fixed + listOf(
             TdsValue.IntegerValue(255),
@@ -145,7 +149,9 @@ class TokenRoundtripTest {
         return ColumnDef("c${random.nextInt(0, 9)}", type, nullable = random.nextInt(4) != 0)
     }
 
-    private fun randomType(random: Random): TdsType = when (random.nextInt(0, 10)) {
+    private fun randomType(random: Random): TdsType = when (random.nextInt(0, 12)) {
+        10 -> TdsType.Int1Type
+        11 -> TdsType.Int2Type
         0 -> TdsType.Int4Type
         1 -> TdsType.Int8Type
         2 -> TdsType.BitType
@@ -170,13 +176,22 @@ class TokenRoundtripTest {
     }
 
     private fun matchingValue(random: Random, type: TdsType?): TdsValue = when (type) {
-        TdsType.Int4Type, TdsType.Int8Type, is TdsType.IntNType -> TdsValue.IntegerValue(randomInteger(random))
+        TdsType.Int1Type, TdsType.Int2Type, TdsType.Int4Type, TdsType.Int8Type, is TdsType.IntNType ->
+            TdsValue.IntegerValue(randomInteger(random))
+
         TdsType.BitType, TdsType.BitNType -> TdsValue.BitValue(random.nextBoolean())
+
         is TdsType.NVarcharType -> TdsValue.TextValue(randomText(random, type.maxChars))
+
         is TdsType.DecimalType -> TdsValue.DecimalValue(randomDecimal(random, type))
+
         TdsType.DateType -> TdsValue.DateValue(randomDate(random))
+
         is TdsType.TimeType -> TdsValue.TimeValue(randomTime(random))
-        is TdsType.DateTime2Type -> TdsValue.DateTime2Value(LocalDateTime.of(randomDate(random), randomTime(random)))
+
+        is TdsType.DateTime2Type ->
+            TdsValue.DateTime2Value(LocalDateTime.of(randomDate(random), randomTime(random)))
+
         null -> TdsValue.NullValue
     }
 
@@ -209,6 +224,6 @@ class TokenRoundtripTest {
         const val ROW_ONE_IN = 8
         const val WRONG_ONE_IN = 12
         const val MIN_ROWS = 500
-        const val FIXED_COLUMNS = 3
+        const val FIXED_COLUMNS = 5
     }
 }

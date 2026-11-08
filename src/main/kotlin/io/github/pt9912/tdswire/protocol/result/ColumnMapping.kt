@@ -17,7 +17,8 @@ import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
  *
  * Festlegungen ohne Messung am Referenzclient oder echten SQL Server: Unicode-Text ist
  * `NVARCHAR(4000)` mit der Kollation [COLLATION], weil [SqlType.UnicodeText] kein Längenlimit trägt;
- * [SqlType.Time] und [SqlType.DateTime] haben Scale 7, weil das Modell keinen Scale trägt;
+ * [SqlType.UInt8] und [SqlType.Int16] sind `tinyint` und `smallint` (fest, nullbar als `INTN` mit 1 und 2 Byte, wie
+ * [SqlType.Int32]); [SqlType.Time] und [SqlType.DateTime] haben Scale 7, weil das Modell keinen Scale trägt;
  * [SqlType.Decimal] wird DECIMALN, nicht NUMERICN; doppelte und leere Spaltennamen sind gültig. Eine
  * Precision über 38 ist im Modell darstellbar und wird hier mit `TDS_UNSUPPORTED_TYPE` abgewiesen.
  */
@@ -28,6 +29,8 @@ internal object ColumnMapping {
     const val TIME_SCALE = TypeInfoWriter.MAX_SCALE
     const val MAX_PRECISION = TypeInfoWriter.MAX_PRECISION
     val COLLATION: Collation = Collation.LATIN1_GENERAL_CI_AS
+    private const val BYTE_BYTES = 1
+    private const val SHORT_BYTES = 2
     private const val INT_BYTES = 4
     private const val LONG_BYTES = 8
 
@@ -57,14 +60,21 @@ internal object ColumnMapping {
     }
 
     private fun tdsType(index: Int, type: SqlType, nullable: Boolean): ProtocolResult<TdsType> = when (type) {
-        SqlType.Int32 -> ProtocolResult.Ok(if (nullable) TdsType.IntNType(INT_BYTES) else TdsType.Int4Type)
-        SqlType.Int64 -> ProtocolResult.Ok(if (nullable) TdsType.IntNType(LONG_BYTES) else TdsType.Int8Type)
+        SqlType.UInt8, SqlType.Int16, SqlType.Int32, SqlType.Int64 -> ProtocolResult.Ok(integer(type, nullable))
         SqlType.Bool -> ProtocolResult.Ok(if (nullable) TdsType.BitNType else TdsType.BitType)
         SqlType.UnicodeText -> ProtocolResult.Ok(TdsType.NVarcharType(TEXT_CHARS, COLLATION))
         is SqlType.Decimal -> decimal(index, type)
         SqlType.Date -> ProtocolResult.Ok(TdsType.DateType)
         SqlType.Time -> ProtocolResult.Ok(TdsType.TimeType(TIME_SCALE))
         SqlType.DateTime -> ProtocolResult.Ok(TdsType.DateTime2Type(TIME_SCALE))
+    }
+
+    /** Ganzzahl in der festen Form, nullbar als `INTN` mit der Länge des Typs. */
+    private fun integer(type: SqlType, nullable: Boolean): TdsType = when (type) {
+        SqlType.UInt8 -> if (nullable) TdsType.IntNType(BYTE_BYTES) else TdsType.Int1Type
+        SqlType.Int16 -> if (nullable) TdsType.IntNType(SHORT_BYTES) else TdsType.Int2Type
+        SqlType.Int32 -> if (nullable) TdsType.IntNType(INT_BYTES) else TdsType.Int4Type
+        else -> if (nullable) TdsType.IntNType(LONG_BYTES) else TdsType.Int8Type
     }
 
     private fun decimal(index: Int, type: SqlType.Decimal): ProtocolResult<TdsType> {

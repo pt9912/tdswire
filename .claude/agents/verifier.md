@@ -34,6 +34,8 @@ das Rollen-Feld **leer** — und leer heißt *unbekannt*, nie *rollenlos*. Über
 Agenten-Werkzeugs führt dieses Repo **keinen Wächter**; die Rollen-Achse ruht hier auf deiner
 Disziplin.
 
+**Sensoren je Änderungsart:** du fährst nicht mehr als die Tabelle in `harness/README.md` §Minimal agent workflow für die Änderungsart vorsieht; `make clean-build` und `make e2e` je einmal auf dem End-Stand, nur bei Änderungen an `src/` oder `testserver/`.
+
 <!-- ANPASSEN: Dieser Typ beschreibt einen Kontext-Zuschnitt, keinen Repo-Inhalt. Trage hier die
      Sensoren ein, deren Beleg DEIN Repo verlangt, und den Ort, an dem der Bericht liegt. Der Name
      im Kopf bleibt, damit die Rollen-Achse der Erfassung besetzt bleibt. -->

@@ -40,6 +40,8 @@ class SimulationBackendCatalogTest {
             SimColumn("f", SqlType.Date),
             SimColumn("g", SqlType.Time),
             SimColumn("h", SqlType.DateTime),
+            SimColumn("i", SqlType.Int16),
+            SimColumn("j", SqlType.UInt8, nullable = false),
         ),
         primaryKey = listOf("b", "a"),
         rows = rowless,
@@ -100,9 +102,10 @@ class SimulationBackendCatalogTest {
     }
 
     /**
-     * Happy: alle acht Typen von `SqlType` mit Typname und Maßen (Setzung nach dem Handbuch des Servers; gemessen ist
-     * nur, dass d-migrate die Namen als `integer`, `biginteger`, `boolean`, `text`, `decimal`, `date`, `time` und
-     * `datetime` liest). Das Schema `app` steht in der Anfrage als `app.typen`.
+     * Happy: alle zehn Typen von `SqlType` mit Typname und Maßen (`smallint` 2/5/0 und `tinyint` 1/3/0 sind gemessen,
+     * M-17; die übrigen sind Setzung nach dem Handbuch des Servers, gemessen ist nur, dass d-migrate die Namen als
+     * `integer`, `biginteger`, `boolean`, `text`, `decimal`, `date`, `time` und `datetime` liest). Das Schema `app`
+     * steht in der Anfrage als `app.typen`.
      * Wächter: eine Zuordnung, die zwei Typen auf denselben Namen legt.
      * @spec SPEC-036
      */
@@ -120,6 +123,8 @@ class SimulationBackendCatalogTest {
                 listOf("f", "date", 3, 10, 0, true),
                 listOf("g", "time", 5, 16, 7, true),
                 listOf("h", "datetime2", 8, 27, 7, true),
+                listOf("i", "smallint", 2, 5, 0, true),
+                listOf("j", "tinyint", 1, 3, 0, false),
             ),
             found,
         )

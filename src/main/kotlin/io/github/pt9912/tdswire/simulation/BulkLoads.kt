@@ -25,12 +25,12 @@ import java.time.LocalTime
  *
  * Überführung der Werte der Nachricht (Setzung, nicht am Server gemessen): `Int` und `Long` gelten in einer
  * `Int32`-Spalte, wenn sie in deren Wertebereich passen (der Treiber sendet auch Werte einer `INT`-Spalte als 8 Byte),
- * in `Int64` immer; `Boolean` in `Bool`, `0` und `1` ebenso; `BigDecimal`, `Int` und `Long` in `Decimal`, wenn die
- * Zahl ohne Rundung und Überlauf in Precision und Skala passt; ein Text in `UnicodeText`, und, im ISO-Format
- * ([SimValues.dateTime] für den Zeitpunkt), in `Date`, `Time` und `DateTime` (so sendet der Treiber sie als
- * `VARCHAR`); ein Datum, eine Zeit und ein Zeitpunkt in der Spalte ihres Typs. Jede andere Paarung ist ungültig. NULL
- * gilt für jede Spalte (wie in `SimValues`: der Schlüssel und die Nullbarkeit wirken nicht auf Callbacks). Die
- * Meldungen nennen nie einen Wert.
+ * ebenso in `Int16` (−32768 bis 32767) und `UInt8` (0 bis 255), in `Int64` immer; `Boolean` in `Bool`, `0` und `1`
+ * ebenso; `BigDecimal`, `Int` und `Long` in `Decimal`, wenn die Zahl ohne Rundung und Überlauf in Precision und
+ * Skala passt; ein Text in `UnicodeText`, und, im ISO-Format ([SimValues.dateTime] für den Zeitpunkt), in `Date`,
+ * `Time` und `DateTime` (so sendet der Treiber sie als `VARCHAR`); ein Datum, eine Zeit und ein Zeitpunkt in der
+ * Spalte ihres Typs. Jede andere Paarung ist ungültig. NULL gilt für jede Spalte (wie in `SimValues`: der Schlüssel
+ * und die Nullbarkeit wirken nicht auf Callbacks). Die Meldungen nennen nie einen Wert.
  */
 internal object BulkLoads {
     private const val INVALID = "Wert nicht in den Spaltentyp überführbar"
@@ -96,9 +96,7 @@ internal object BulkLoads {
         if (value == null) Converted.Value(null) else converted(value, target) ?: Converted.Invalid(INVALID)
 
     private fun converted(value: Any, target: SqlType): Converted? = when (target) {
-        SqlType.Int32 -> integer(value, Int.SIZE_BITS)
-
-        SqlType.Int64 -> integer(value, Long.SIZE_BITS)
+        SqlType.UInt8, SqlType.Int16, SqlType.Int32, SqlType.Int64 -> SimIntegers.load(value, target)
 
         SqlType.Bool -> bool(value)
 
@@ -113,16 +111,6 @@ internal object BulkLoads {
         SqlType.Time -> temporal(value, LocalTime::class.java) { LocalTime.parse(it) }
 
         SqlType.DateTime -> temporal(value, LocalDateTime::class.java) { SimTemporal.dateTime(it) }
-    }
-
-    private fun integer(value: Any, bits: Int): Converted? {
-        val number = when (value) {
-            is Int -> value.toLong()
-            is Long -> value
-            else -> null
-        }
-        val fits = number != null && (bits == Long.SIZE_BITS || number in Int.MIN_VALUE..Int.MAX_VALUE)
-        return number?.takeIf { fits }?.let { Converted.Value(if (bits == Long.SIZE_BITS) it else it.toInt()) }
     }
 
     private fun bool(value: Any): Converted? = when {

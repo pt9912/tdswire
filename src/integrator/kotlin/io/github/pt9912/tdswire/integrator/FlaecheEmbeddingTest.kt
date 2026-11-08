@@ -96,6 +96,42 @@ class FlaecheEmbeddingTest {
     }
 
     /**
+     * Ein Backend des Integrators meldet Spalten der Typen `SqlType.Int16` und `SqlType.UInt8`, nicht nullbar und
+     * nullbar, mit Randwerten: die Antwort auf den Rohbytes trägt in COLMETADATA die festen Typen `smallint` (`34`) und
+     * `tinyint` (`30`), nullbar `INTN` mit 2 und 1 Byte, und die Zeile die Werte (`smallint` −32768 als `00 80`,
+     * `tinyint` 255 als `FF`, nullbar mit Längenbyte, NULL als Längenbyte 0). Ein `when` über `SqlType` ohne `else`
+     * übersetzt nur, wenn es beide Fälle kennt.
+     *
+     * @spec SPEC-059
+     * @spec SPEC-003
+     */
+    @Test
+    fun einBackendMeldetSpaltenVonInt16UndUInt8() {
+        assertEquals(listOf("smallint", "tinyint"), listOf(SqlType.Int16, SqlType.UInt8).map(::sqlName))
+        val columns = listOf(
+            ResultColumn("s", SqlType.Int16, nullable = false),
+            ResultColumn("u", SqlType.UInt8, nullable = false),
+            ResultColumn("sn", SqlType.Int16, nullable = true),
+            ResultColumn("un", SqlType.UInt8, nullable = true),
+        )
+        val events = listOf(
+            QueryEvent.ResultStart(columns),
+            QueryEvent.Row(listOf(Short.MIN_VALUE.toInt(), UINT8_MAX, Short.MAX_VALUE.toInt(), null)),
+            QueryEvent.ResultEnd(1),
+        )
+        val server = start(BackendSource.Custom(FixedBackend(events)))
+        val answer = WireClient(server.port).use { client ->
+            client.login()
+            client.batch("q")
+        }
+        val head = listOf("34 01 73 00", "30 01 75 00", "26 02 02 73 00 6E 00", "26 01 02 75 00 6E 00")
+        for (part in head) {
+            assertTrue(answer.payload.contains(hexBytes(part)), "COLMETADATA ohne $part")
+        }
+        assertTrue(answer.payload.contains(hexBytes("D1 00 80 FF 02 FF 7F 00")), "ROW ohne die Werte der Ränder")
+    }
+
+    /**
      * Ein Backend des Integrators meldet einen statement-abbrechenden Fehler (`FailureScope.STATEMENT`) und danach ein
      * Ergebnis: die Antwort auf den Rohbytes läuft weiter, das DONE des Fehlers trägt `MORE|ERROR` (`FD 03 00 FD 00`),
      * dahinter stehen COLMETADATA und ROW der Folgeanweisung, und die Antwort endet mit einem DONE mit `COUNT`.
@@ -202,11 +238,29 @@ class FlaecheEmbeddingTest {
         )
     }
 
+    private fun hexBytes(text: String): ByteArray = text.split(' ').map { it.toInt(HEX_RADIX).toByte() }.toByteArray()
+
     private fun ByteArray.contains(needle: ByteArray): Boolean =
         (0..size - needle.size).any { start -> needle.indices.all { this[start + it] == needle[it] } }
 }
 
 private const val NEXT_VALUE = 5
+private const val UINT8_MAX = 255
+private const val HEX_RADIX = 16
+
+/** Ein `when` über alle Fälle von `SqlType` ohne `else`: es übersetzt nur, wenn es jedes Mitglied kennt. */
+private fun sqlName(type: SqlType): String = when (type) {
+    SqlType.Int16 -> "smallint"
+    SqlType.UInt8 -> "tinyint"
+    SqlType.Int32 -> "int"
+    SqlType.Int64 -> "bigint"
+    SqlType.Bool -> "bit"
+    SqlType.UnicodeText -> "nvarchar"
+    is SqlType.Decimal -> "decimal"
+    SqlType.Date -> "date"
+    SqlType.Time -> "time"
+    SqlType.DateTime -> "datetime2"
+}
 private const val DONE_TOKEN: Byte = 0xFD.toByte()
 private const val MORE_ERROR: Byte = 0x03
 private const val BATCH_COMMAND: Byte = 0xFD.toByte()

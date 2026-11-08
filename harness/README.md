@@ -149,6 +149,18 @@ Diese Datei dupliziert sie nicht.
 7. Doku/Indizes aktualisieren, falls ein öffentlicher Vertrag berührt.
 8. Ausgeführte Sensors und verbleibende Risiken berichten.
 
+**Pflicht-Sensoren je Art der Änderung** (Schritte 5 und 6). `make gates` bleibt für jede Art unverändert; die Tabelle legt nur fest, welche Werkzeuge außer `make gates` laufen und welche nicht.
+
+| Art der Änderung | Pflicht außer `make gates` | Nicht erforderlich |
+|---|---|---|
+| Doku oder Spec (`docs/`, `spec/`, `harness/`, `AGENTS.md`, `.claude/`) | `make docs-check`, `make flaeche`, `make kopplung-zahlen` | `make spec-abdeckung` (außer bei neuer oder entfernter `SPEC-*`-Kennung), `make matrix-zitate`, `make clean-build`, `make e2e` |
+| Tests oder `@spec`-Tags | `make spec-abdeckung` einmal | `make clean-build`, `make e2e` |
+| Zitate der Kompatibilitätsmatrix (`docs/plan/kompatibilitaetsmatrix.md`) | `make matrix-zitate` | `make e2e` |
+| `src/` oder `testserver/` | ein `make gates`, engste Testklasse, Mutation je Zusage über enge Testklassen; Verifier: `make clean-build` und `make e2e` je einmal auf dem End-Stand | `make clean-build` und `make e2e` durch Implementer und Reviewer |
+| Konflikt in `docs/plan/spec-abdeckung.md` | Fassung von `main` übernehmen; neu erzeugen nur, wenn der Slice Tests oder Tags geändert hat | `make spec-abdeckung` sonst |
+
+Belege: `make flaeche` liegt in der Klasse `immer` und liest `spec/spezifikation.md` und `src/`; `spec/spezifikation.md` ist Eingang der Klasse `werkzeug` über `kopplung-zahlen` (`tools/stempel/werkzeug.eingaenge`). Die Stage `test` des `Dockerfile` kopiert `src`, `testserver` und `LICENSE`, weder `spec/` noch `docs/`; eine Doku- oder Spec-Änderung ändert ihr Ergebnis nicht.
+
 Dieser Workflow deckt ausschließlich die Implementer-Rolle ab. Schritt 8
 ist der Rollenwechsel, kein Abschluss: Bericht → Handoff an Reviewer
 (`.harness/skills/reviewer.md`, siehe §Guides) → Verifier. Kein

@@ -37,6 +37,8 @@ internal object ValueWriter {
 
     private fun writeNonNull(out: ByteWriter, type: TdsType, value: TdsValue) {
         when (type) {
+            TdsType.Int1Type -> out.u8(ValueSupport.integer(value, ValueSupport.rangeOfSize(1)).toInt())
+            TdsType.Int2Type -> out.u16Le(ValueSupport.integer(value, ValueSupport.rangeOfSize(2)).toInt())
             TdsType.Int4Type -> out.i32Le(ValueSupport.integer(value, ValueSupport.INT_RANGE).toInt())
             TdsType.Int8Type -> out.i64Le(ValueSupport.integer(value, ValueSupport.LONG_RANGE))
             TdsType.BitType -> out.u8(bit(value))
