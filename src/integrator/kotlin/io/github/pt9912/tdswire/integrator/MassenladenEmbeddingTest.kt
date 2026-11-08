@@ -107,6 +107,76 @@ class MassenladenEmbeddingTest {
         )
     }
 
+    private val insertText =
+        "INSERT BULK [dbo].[kunden] ([Id] BIGINT , [Name] NVARCHAR(4000) , [Eintritt] VARCHAR(10) )  " +
+            "with (CHECK_CONSTRAINTS, FIRE_TRIGGERS, ROWS_PER_BATCH = 3)"
+
+    /**
+     * Ein Integrator, dessen `onInsertBatch` die Zusage „ganz oder gar nicht“ hält (`ADR-0044`): der Bestand hat die
+     * Zeile mit `Id` 2, die Nachricht mit den Zeilen 1, 2, 3 verstößt in der Mitte gegen den Schlüssel, der Callback
+     * wirft vor dem Übernehmen, die Antwort ist DONE mit Fehler, der Bestand behält genau die Zeile davor, die
+     * Verbindung bleibt offen. Wächter: ein Einfügen der Zeile 1 vor dem Fehler (Teilbestand durch einen Rückfall
+     * oder einen Aufruf je Zeile), eine Antwort ohne Fehler.
+     *
+     * @spec SPEC-035
+     * @spec SPEC-036
+     * @spec SPEC-059
+     */
+    @Test
+    fun eineNachrichtMitVerstossInDerMitteLaesstDenBestandUnveraendert() {
+        val stored = CopyOnWriteArrayList<Long>().also { it += 2L }
+        val table = SimTable(
+            name = "kunden",
+            columns = columns,
+            primaryKey = listOf("Id"),
+            rows = { RowSource { null } },
+            onInsertBatch = { rows ->
+                val ids = rows.map { it.getValue("Id") as Long }
+                check(ids.distinct().size == ids.size && ids.none { it in stored }) { "Schluessel doppelt" }
+                stored += ids
+                ids.size.toLong()
+            },
+        )
+        val server = start(BackendSource.Simulation(listOf(table)))
+        WireClient(server.port).use { client ->
+            client.login()
+            assertEquals(0, client.batch(insertText).doneStatus and DONE_ERROR)
+            assertTrue(client.bulkLoad(bytes(THREE_ROWS)).doneStatus and DONE_ERROR != 0)
+            assertEquals(0, client.batch("SELECT Id FROM kunden WHERE 1 = 0").doneStatus and DONE_ERROR)
+        }
+        assertEquals(listOf(2L), stored.toList())
+    }
+
+    /**
+     * Eine Tabelle nur mit `onInsert` lehnt `INSERT BULK` ab: DONE mit Fehler schon auf die Anweisung, `onInsert`
+     * wird nie gerufen, die Verbindung bleibt offen. Wächter: ein Rückfall auf `onInsert` je Zeile, ein Ziel für eine
+     * Tabelle ohne `onInsertBatch`.
+     *
+     * @spec SPEC-036
+     * @spec SPEC-059
+     */
+    @Test
+    fun eineTabelleNurMitOnInsertLehntInsertBulkAb() {
+        val calls = CopyOnWriteArrayList<Map<String, Any?>>()
+        val table = SimTable(
+            name = "kunden",
+            columns = columns,
+            primaryKey = listOf("Id"),
+            rows = { RowSource { null } },
+            onInsert = { values ->
+                calls += values
+                1L
+            },
+        )
+        val server = start(BackendSource.Simulation(listOf(table)))
+        WireClient(server.port).use { client ->
+            client.login()
+            assertTrue(client.batch(insertText).doneStatus and DONE_ERROR != 0)
+            assertEquals(0, client.batch("SELECT Id FROM kunden WHERE 1 = 0").doneStatus and DONE_ERROR)
+        }
+        assertEquals(emptyList(), calls.toList())
+    }
+
     /**
      * Ohne vorangehendes `INSERT BULK` ist die Nachricht 0x07 ein Fehler (DONE mit Fehlerstatus), die Verbindung bleibt
      * offen und beantwortet den nächsten Batch; ein Callback wird nicht gerufen. Wächter: ein Ziel ohne Anweisung, eine

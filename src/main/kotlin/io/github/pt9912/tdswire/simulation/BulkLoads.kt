@@ -10,18 +10,22 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 
 /**
- * Das Laden einer Nachricht 0x07 in eine Tabelle (`ADR-0033` Nr. 5, `SPEC-035`): ordnet die Spalten der Nachricht den
+ * Das Laden einer Nachricht 0x07 in eine Tabelle (`SPEC-035`, `ADR-0044`): ordnet die Spalten der Nachricht den
  * Spalten der Beschreibung zu (ohne Beachtung der Schreibweise), überführt jeden Wert in den Typ seiner Spalte und
- * gibt alle Zeilen der Nachricht in einem Aufruf an `onInsertBatch`; hat die Tabelle nur `onInsert`, ruft sie ihn je
- * Zeile in der Reihenfolge der Nachricht (Setzung: dann ist ein Fehler in der Mitte ein Teilbestand, keine
- * Transaktion). Es wird erst überführt, dann gerufen: ein Wert, der nicht passt, endet mit `TDS_SIM_INVALID_VALUE`,
- * bevor eine Zeile den Integrator erreicht. Eine Nachricht ohne Zeile ruft keinen Callback und zählt 0.
+ * gibt alle Zeilen der Nachricht in einem Aufruf an `onInsertBatch`. Es wird erst überführt, dann gerufen: ein Wert,
+ * der nicht passt, endet mit `TDS_SIM_INVALID_VALUE`, bevor eine Zeile den Integrator erreicht. Eine Nachricht ohne
+ * Zeile ruft keinen Callback und zählt 0. Eine Tabelle ohne `onInsertBatch` lädt nichts: `INSERT BULK` ist für sie
+ * schon vor der Nachricht abgewiesen, `load` antwortet dort ebenfalls `TDS_UNSUPPORTED_SQL`; `onInsert` wird nie
+ * gerufen.
  *
- * Ein Fehler des Callbacks meldet die Bibliothek als `TDS_SIM_KEY_VIOLATION` (2627, Class 14): so antwortet der echte
- * Server auf den Schlüsselverstoß einer Nachricht, und keine Zeile der Nachricht bleibt (Messprotokoll M-12, ein Fall,
- * `SqlBulkCopy`). Das weicht vom Wortlaut von `ADR-0033` Nr. 5 (iii) („Fehler des Callbacks“, `TDS_BACKEND_ERROR`) und
- * Nr. 6 („Teilbestand“) ab; die Folge-ADR ist Slice `slice-adr-massenladen-atomar-an-messung`, bis dahin folgt der
- * Code der Messung. Ob der Callback atomar arbeitet, entscheidet der Integrator; die Bibliothek nimmt nichts zurück.
+ * Zusage an den Integrator: `onInsertBatch` gilt ganz oder gar nicht. Bei Erfolg liefert er die Zahl der übernommenen
+ * Zeilen, bei einem Fehler wirft er, ohne eine Zeile der Nachricht übernommen zu haben; die Bibliothek nimmt nichts
+ * zurück und kann die Zusage nicht prüfen. Gemessen am echten Server ist ein Fall (Schlüsselverstoß, drei Zeilen, ein
+ * Paket, Messprotokoll M-12): keine Zeile der Nachricht bleibt; darüber hinaus ist die Zusage eine Setzung.
+ *
+ * Jeder Fehler des Callbacks meldet die Bibliothek als `TDS_SIM_KEY_VIOLATION` (2627, Class 14), weil sie die Ursache
+ * nicht unterscheidet; gemessen ist die Nummer nur für den Schlüsselverstoß, für andere Ursachen ist sie der Sammelcode
+ * (Setzung).
  *
  * Überführung der Werte der Nachricht (Setzung, nicht am Server gemessen): `Int` und `Long` gelten in einer
  * `Int32`-Spalte, wenn sie in deren Wertebereich passen (der Treiber sendet auch Werte einer `INT`-Spalte als 8 Byte),
@@ -76,14 +80,8 @@ internal object BulkLoads {
     }
 
     private suspend fun call(table: SimTable, rows: List<Map<String, Any?>>): QueryEvent {
-        val batch = table.onInsertBatch
-        val single = table.onInsert
-        val result = when {
-            rows.isEmpty() -> Result.success(0L)
-            batch != null -> guarded { batch(rows) }
-            single != null -> guarded { rows.sumOf { single(it) } }
-            else -> null
-        } ?: return QueryEvent.Failure(SimCodes.UNSUPPORTED_SQL, NO_CALLBACK)
+        val batch = table.onInsertBatch ?: return QueryEvent.Failure(SimCodes.UNSUPPORTED_SQL, NO_CALLBACK)
+        val result = if (rows.isEmpty()) Result.success(0L) else guarded { batch(rows) }
         return result.fold(
             onSuccess = { count ->
                 if (count >= 0) QueryEvent.UpdateCount(count) else QueryEvent.Failure(SimCodes.BACKEND_ERROR, FAILED)
