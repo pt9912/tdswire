@@ -5,5 +5,5 @@
 # Tests 18 s); ein spaeterer Warmlauf am selben Tag brauchte 19 s (Bau 3 s, Tests 15 s). Einzelmessungen, keine Streuung.
 .PHONY: simulations-integration
 
-simulations-integration: ## Referenzclient gegen den Serverprozess mit Simulations-Backend: Auswahl, leeres Ergebnis, Zeilenquelle ueber dem Heap, Fehler der Zeilenquelle (Dockerfile-Stage `integrationsserver`, referenztest-dotnet-Stage `integration`)
+simulations-integration: ## Referenzclient gegen den Serverprozess mit Simulations-Backend: Auswahl, leeres Ergebnis, Zeilenquelle ueber dem Heap, Fehler der Zeilenquelle, Cancel, Massenladen mit `SqlBulkCopy` (Dockerfile-Stage `integrationsserver`, referenztest-dotnet-Stage `integration`)
 	BUILDER_FLAGS="$(BUILDER_FLAGS)" bash tools/simulationstest.sh

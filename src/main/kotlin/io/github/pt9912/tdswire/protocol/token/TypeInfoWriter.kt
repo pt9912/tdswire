@@ -105,8 +105,12 @@ internal object TypeInfoWriter {
         if (type.precision !in 1..MAX_PRECISION || type.scale !in 0..type.precision) {
             violation(ProtocolFailure.INVALID_TYPE, "DECIMAL(${type.precision}, ${type.scale})")
         }
+        val bytes = if (type.bytes == 0) decimalBytes(type.precision) else type.bytes
+        if (bytes < decimalBytes(type.precision) || bytes > LENGTH_17) {
+            violation(ProtocolFailure.INVALID_TYPE, "DECIMAL(${type.precision}, ${type.scale}) mit $bytes Byte")
+        }
         out.u8(if (type.numeric) TypeCode.NUMERICN else TypeCode.DECIMALN)
-        out.u8(decimalBytes(type.precision))
+        out.u8(bytes)
         out.u8(type.precision)
         out.u8(type.scale)
     }

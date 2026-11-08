@@ -16,8 +16,8 @@ import kotlin.test.assertTrue
 /**
  * Die Strukturänderung (`SPEC-036`, Form D; `ADR-0033` Nr. 3) am Backend: `CREATE TABLE` und `ALTER TABLE … ADD` in dem
  * Wortlaut, den d-migrate 1.12.0 bei `schema migrate --execute` sendet ([dMigrateStructureTexts]), rufen den Callback
- * mit der Tabelle nach der Anweisung. Die Fehlerfälle (Tabelle schon da, Typ ohne Entsprechung) sind Setzung; der
- * Server antwortet dort mit eigenen Nummern, die die Bibliothek nicht sendet.
+ * mit der Tabelle nach der Anweisung. Die Abweisung gegen den Katalog (Tabelle schon da, Spalte schon da, Tabelle
+ * unbekannt) trägt die Codes für 2714, 2705 und 4902 (gemessen, M-19); ein Typ ohne Entsprechung ist Setzung.
  */
 class SimulationBackendStructureTest {
     private data class Call(
@@ -168,20 +168,16 @@ class SimulationBackendStructureTest {
     }
 
     /**
-     * Negativ: der Katalog lässt die Anweisung nicht zu (Tabelle schon da, Spalte schon da, kein Schlüssel,
-     * Schlüsselspalte fehlt, unbekannte Tabelle), oder der Text ist keine Form (Typ ohne Entsprechung, weitere
-     * Klauseln, Länge außerhalb, doppelte Spalte, Schlüssel doppelt): jeder Fall ist ein einziger Fehler, und der
-     * Callback bleibt ungerufen.
-     * Wächter: ein Weglassen der Prüfung gegen den Katalog (der Integrator bekäme eine doppelte Tabelle) oder ein Typ,
-     * der still zu `INT` wird.
+     * Negativ: der Text ist keine Form (Typ ohne Entsprechung, weitere Klauseln, Länge außerhalb, doppelte Spalte,
+     * Schlüssel doppelt) oder die Schlüsselspalte fehlt: jeder Fall ist ein einziger Fehler, und der Callback bleibt
+     * ungerufen.
+     * Wächter: ein Typ, der still zu `INT` wird, oder eine Schlüsselspalte, die es nicht gibt, ohne Fehler.
      * @spec SPEC-036
      */
     @Test
     fun `unzulaessige Strukturaenderungen rufen keinen Callback`() {
         val store = Store(listOf(kunden))
         val unsupported = listOf(
-            "CREATE TABLE kunden (a INT, PRIMARY KEY (a))",
-            "CREATE TABLE t (a INT)",
             "CREATE TABLE t (a FLOAT, PRIMARY KEY (a))",
             "CREATE TABLE t (a SMALLINT, PRIMARY KEY (a))",
             "CREATE TABLE t (a INT IDENTITY(1,1), PRIMARY KEY (a))",
@@ -196,7 +192,6 @@ class SimulationBackendStructureTest {
             "CREATE TABLE t (PRIMARY KEY (a))",
             "CREATE TABLE t (a INT, PRIMARY KEY (a)) WITH (DATA_COMPRESSION = PAGE)",
             "CREATE INDEX i ON kunden (Name)",
-            "ALTER TABLE kunden ADD Name INT",
             "ALTER TABLE kunden ADD x INT, X BIT",
             "ALTER TABLE kunden DROP COLUMN Name",
             "ALTER TABLE kunden ADD",
@@ -204,8 +199,44 @@ class SimulationBackendStructureTest {
         )
         for (sql in unsupported) assertEquals(SimCodes.UNSUPPORTED_SQL, failureCode(store, sql), sql)
         assertEquals(SimCodes.UNKNOWN_OBJECT, failureCode(store, "CREATE TABLE t (a INT, PRIMARY KEY (b))"))
-        assertEquals(SimCodes.UNKNOWN_OBJECT, failureCode(store, "ALTER TABLE fremd ADD x INT"))
         assertEquals(emptyList(), store.calls)
+    }
+
+    /**
+     * Negativ (gemessen, M-19): `CREATE TABLE` einer vorhandenen Tabelle ist `TDS_SIM_OBJECT_EXISTS` (2714), `ADD`
+     * einer vorhandenen Spalte `TDS_SIM_COLUMN_EXISTS` (2705, auch bei anderer Schreibweise), `ALTER TABLE` einer
+     * unbekannten Tabelle `TDS_SIM_OBJECT_NOT_FOUND` (4902); der Callback bleibt in jedem Fall ungerufen.
+     * Wächter: ein Zusammenfallen der drei Fälle auf `TDS_UNSUPPORTED_SQL` oder `TDS_SIM_UNKNOWN_OBJECT` (die
+     * Verbindung schlösse bei der unbekannten Tabelle).
+     * @spec SPEC-036
+     */
+    @Test
+    fun `Abweisung gegen den Katalog traegt die Codes der gemessenen Fehler`() {
+        val store = Store(listOf(kunden))
+        assertEquals(SimCodes.OBJECT_EXISTS, failureCode(store, "CREATE TABLE kunden (a INT, PRIMARY KEY (a))"))
+        assertEquals(SimCodes.OBJECT_EXISTS, failureCode(store, "create table [DBO].[KUNDEN] (a INT)"))
+        assertEquals(SimCodes.COLUMN_EXISTS, failureCode(store, "ALTER TABLE kunden ADD Name INT"))
+        assertEquals(SimCodes.COLUMN_EXISTS, failureCode(store, "ALTER TABLE kunden ADD x INT, NAME BIT"))
+        assertEquals(SimCodes.OBJECT_NOT_FOUND, failureCode(store, "ALTER TABLE fremd ADD x INT"))
+        assertEquals(emptyList(), store.calls)
+    }
+
+    /**
+     * Happy (gemessen, M-19): `CREATE TABLE` ohne Schlüssel gelingt; der Callback bekommt einen leeren Schlüssel, und
+     * die Spalten bleiben nullbar, wie der Text sie nennt.
+     * Wächter: die Abweisung ohne Schlüssel (`TDS_UNSUPPORTED_SQL`) oder eine still ergänzte Schlüsselspalte.
+     * @spec SPEC-036
+     */
+    @Test
+    fun `CREATE TABLE ohne Schluessel gelingt mit leerem Schluessel`() {
+        val store = Store(emptyList())
+        assertEquals(
+            listOf<QueryEvent>(QueryEvent.UpdateCount(0)),
+            run(store, "CREATE TABLE [ohneschluessel] ([Id] INT NOT NULL, [Text] NVARCHAR(10));"),
+        )
+        val call = store.calls.single()
+        assertEquals(emptyList(), call.primaryKey)
+        assertEquals(listOf(false, true), call.columns.map { it.nullable })
     }
 
     /**
@@ -274,7 +305,7 @@ class SimulationBackendStructureTest {
     /**
      * Negativ: zwei gleichzeitige `CREATE TABLE` derselben neuen Tabelle laufen nacheinander; die erste legt sie an,
      * die
-     * zweite sieht sie beim Sammeln und ist abgewiesen wie eine schon beschriebene Tabelle (`TDS_UNSUPPORTED_SQL`),
+     * zweite sieht sie beim Sammeln und ist abgewiesen wie eine schon beschriebene Tabelle (`TDS_SIM_OBJECT_EXISTS`),
      * der Callback läuft einmal (`ADR-0033` Nr. 3, Prüfen und Ändern atomar je Backend).
      * Wächter: ein Backend ohne Sperre um Planung und Callback; beide Anfragen riefen den Callback, und die zweite
      * Tabelle ersetzte die erste still.
@@ -287,7 +318,7 @@ class SimulationBackendStructureTest {
         assertEquals(1, results.count { it == listOf<QueryEvent>(QueryEvent.UpdateCount(0)) })
         val failed = results.single { it.single() is QueryEvent.Failure }
         val rejected = assertIs<QueryEvent.Failure>(failed.single())
-        assertEquals(SimCodes.UNSUPPORTED_SQL, rejected.code)
+        assertEquals(SimCodes.OBJECT_EXISTS, rejected.code)
         assertEquals(1, store.calls)
     }
 
@@ -308,7 +339,7 @@ class SimulationBackendStructureTest {
         val same = runAll(store.backend, "ALTER TABLE [kunden] ADD [C] INT;", "ALTER TABLE [kunden] ADD [C] INT;")
         assertEquals(1, same.count { it.single() is QueryEvent.Failure })
         val lost = assertIs<QueryEvent.Failure>(same.single { it.single() is QueryEvent.Failure }.single())
-        assertEquals(SimCodes.UNSUPPORTED_SQL, lost.code)
+        assertEquals(SimCodes.COLUMN_EXISTS, lost.code)
         assertEquals(listOf("Id", "Name", "A", "B", "C"), store.tables.single().columns.map { it.name })
     }
 }

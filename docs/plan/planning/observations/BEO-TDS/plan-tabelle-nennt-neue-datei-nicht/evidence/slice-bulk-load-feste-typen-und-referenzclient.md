@@ -1,0 +1,2 @@
+**Vorgang:** [slice-bulk-load-feste-typen-und-referenzclient](../../../../done/slice-bulk-load-feste-typen-und-referenzclient.md)
+**Fund:** [Review](../../../../../../reviews/2026-11-08-dcb5196b-review-slice-bulk-load-feste-typen-und-referenzclient.md): F-3 (MEDIUM): die Plan-Tabelle §3 und der Kopf des Slice nannten mehrere berührte Dateien nicht (`IntegrationServer.kt`, `simulationstest.mk`, `BulkCopyProbeSets.kt`, `TdsType.kt`, `harness/README.md`). Behoben im Plan; die Verifikation glich `git diff --stat` gegen §3 ab.

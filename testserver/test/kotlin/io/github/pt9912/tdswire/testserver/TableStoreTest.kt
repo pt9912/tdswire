@@ -97,7 +97,7 @@ class TableStoreTest {
         val failure = assertIs<QueryEvent.Failure>(
             ask(backend, "CREATE TABLE KUNDEN (a INT, PRIMARY KEY (a))").single(),
         )
-        assertEquals("TDS_UNSUPPORTED_SQL", failure.code)
+        assertEquals("TDS_SIM_OBJECT_EXISTS", failure.code)
         assertEquals(listOf("kunden"), listed(backend))
         val rows = ask(backend, "SELECT Id, Name FROM kunden")
         assertEquals(listOf(QueryEvent.ResultEnd(0)), rows.drop(1))
@@ -298,6 +298,26 @@ class TableStoreTest {
     }
 
     /**
+     * Happy (gemessen, M-19): `CREATE TABLE` ohne Schlüssel legt die Tabelle an; sie hat einen leeren Schlüssel im
+     * Katalog und nimmt gleiche Zeilen mehrfach an (kein Schlüssel, keine Eindeutigkeit).
+     * Wächter: eine Eindeutigkeitsprüfung über den leeren Schlüssel (der Bestand wiese die zweite Zeile ab).
+     * @spec SPEC-035
+     */
+    @Test
+    fun `eine Tabelle ohne Schluessel nimmt gleiche Zeilen an`() {
+        val store = TableStore(emptyList())
+        assertEquals(
+            listOf<QueryEvent>(QueryEvent.UpdateCount(0)),
+            ask(store.backend(), "CREATE TABLE [ohneschluessel] ([Id] INT NOT NULL, [Text] NVARCHAR(10));"),
+        )
+        val table = store.catalog().tables.single()
+        assertEquals(emptyList(), table.primaryKey)
+        val same = mapOf("Id" to 1, "Text" to "a")
+        assertEquals(2, runBlocking { requireNotNull(table.onInsertBatch)(listOf(same, same)) })
+        assertEquals(1, runBlocking { requireNotNull(table.onInsertBatch)(listOf(same)) })
+    }
+
+    /**
      * Happy: ein Dezimalschlüssel gilt nach `compareTo` (1.0 gleich 1.00), ein Textschlüssel ohne Beachtung der
      * Schreibweise; beides ist Setzung, nicht am Server gemessen.
      * @spec SPEC-035
@@ -452,6 +472,63 @@ class TableStoreTest {
         assertEquals(listOf<Any?>("UPDATE"), merge(update = true, id = 1, name = "Ada L."))
         assertEquals(listOf<Any?>("INSERT"), merge(update = true, id = 2, name = "Bob"))
         assertEquals(listOf(listOf<Any?>(1L, "Ada L."), listOf<Any?>(2L, "Bob")), names())
+    }
+
+    /** Ein Bestand mit der Tabelle `notizen` ohne Schlüssel und zwei gleichen Zeilen und einer dritten. */
+    private fun keyless(): TableStore {
+        val store = TableStore(emptyList())
+        ask(store.backend(), "CREATE TABLE [notizen] ([Id] INT NOT NULL, [Text] NVARCHAR(10));")
+        val table = store.catalog().tables.single()
+        val same = mapOf("Id" to 1, "Text" to "a")
+        runBlocking { requireNotNull(table.onInsertBatch)(listOf(same, same, mapOf("Id" to 2, "Text" to "b"))) }
+        return store
+    }
+
+    private fun notizen(store: TableStore) = store.catalog().tables.single()
+
+    /**
+     * Happy (Setzung nach der Semantik von `UPDATE`, am Server nicht gemessen): `onUpdate` auf einer Tabelle ohne
+     * Schlüssel ändert beliebig viele Zeilen, auch alle ohne Filter, und macht Zeilen gleich, ohne Eindeutigkeit zu
+     * prüfen; der Zähler ist die Zahl der getroffenen Zeilen. Gegenprobe: dieselbe Änderung auf einer Tabelle mit
+     * Schlüssel wirft weiter (`onUpdate weist ungueltige Aenderungen ab und laesst den Bestand`).
+     * Wächter: eine Eindeutigkeitsprüfung über den leeren Schlüssel in `update` (jede Änderung von mehr als einer
+     * Zeile wiese ab, `Schlüssel nicht eindeutig`).
+     * @spec SPEC-035
+     */
+    @Test
+    fun `onUpdate aendert auf einer Tabelle ohne Schluessel mehrere Zeilen`() {
+        val store = keyless()
+        val table = notizen(store)
+        val where = RowFilter(listOf(FilterTerm.In("Id", listOf(1))))
+        assertEquals(2, runBlocking { requireNotNull(table.onUpdate)(mapOf("Text" to "x"), where) })
+        assertEquals(3, runBlocking { requireNotNull(table.onUpdate)(mapOf("Text" to "y"), null) })
+        val rows = ask(store.backend(), "SELECT Id, Text FROM notizen").filterIsInstance<QueryEvent.Row>()
+        assertEquals(listOf(listOf<Any?>(1, "y"), listOf<Any?>(1, "y"), listOf<Any?>(2, "y")), rows.map { it.values })
+    }
+
+    /**
+     * Grenze (Setzung, am Server nicht gemessen; der echte Server nimmt ein `MERGE` gegen eine Tabelle ohne Schlüssel
+     * an): ein `MERGE` gegen eine Tabelle mit leerem Schlüssel endet mit `TDS_UNSUPPORTED_SQL`, weil der Vergleich
+     * genau den Schlüssel nennen muss; der Bestand bleibt unverändert. Benannt in `SPEC-036` (Form M).
+     * Wächter: ein `MERGE`, das gegen den leeren Schlüssel einfügte oder änderte (der Bestand änderte sich).
+     * @spec SPEC-036
+     */
+    @Test
+    fun `ein MERGE gegen eine Tabelle ohne Schluessel ist abgewiesen`() {
+        val store = keyless()
+        val sql = "MERGE INTO [dbo].[notizen] AS tgt USING (VALUES ( @P0 ,  @P1 )) AS src ([Id], [Text]) " +
+            "ON tgt.[Id] = src.[Id] WHEN MATCHED THEN UPDATE SET tgt.[Text] = src.[Text] " +
+            "WHEN NOT MATCHED THEN INSERT ([Id], [Text]) VALUES (src.[Id], src.[Text]) OUTPUT \$action;"
+        val events = ask(
+            store.backend(),
+            sql,
+            QueryParameter("@P0", SqlType.Int32, 3),
+            QueryParameter("@P1", SqlType.UnicodeText, "c"),
+        )
+        assertEquals("TDS_UNSUPPORTED_SQL", assertIs<QueryEvent.Failure>(events.single()).code)
+        val rows = ask(store.backend(), "SELECT Id, Text FROM notizen").filterIsInstance<QueryEvent.Row>()
+        assertEquals(3, rows.size)
+        assertEquals(listOf(listOf<Any?>(1, "a"), listOf<Any?>(1, "a"), listOf<Any?>(2, "b")), rows.map { it.values })
     }
 
     /**

@@ -24,7 +24,8 @@ import java.math.BigDecimal
  * Massenladen ([insertBatch], `ADR-0033` Nr. 5): eine Nachricht ist eine Anweisung und gilt ganz oder gar nicht. Der
  * Bestand prüft vor dem ersten Einfügen jede Zeile der Nachricht: jeder Wert hat die Klasse seiner Spalte
  * (`ValueMapping`), eine nicht nullbare Spalte, auch jede Schlüsselspalte, trägt keinen NULL, und der Schlüssel ist
- * unter den Zeilen der Nachricht und des Bestands eindeutig; sonst wirft er, und der Bestand bleibt unverändert (die
+ * unter den Zeilen der Nachricht und des Bestands eindeutig (eine Tabelle ohne Schlüssel nimmt gleiche Zeilen an,
+ * `CREATE TABLE` ohne Schlüssel gelingt am Server, M-19); sonst wirft er, und der Bestand bleibt unverändert (die
  * Bibliothek meldet jeden Fehler des Callbacks einer Nachricht 0x07 dem Client als 2627,
  * `TDS_SIM_KEY_VIOLATION`). Setzung, am Server nicht gemessen: Textschlüssel
  * vergleicht der Bestand ohne Beachtung der Schreibweise (wie die Namen), Dezimalschlüssel mit `compareTo`. Der
@@ -88,7 +89,9 @@ internal class TableStore(initial: List<SimTable>, private val cellLimit: Long =
             val row = table.columns.map { values[it.name] }
             row.forEachIndexed { index, value -> RowRules.check(table.columns[index], value) }
             val rowKey = keyOf(table, row)
-            require(rowKey !in table.keys && newKeys.add(rowKey)) { "Schlüssel nicht eindeutig" }
+            require(table.primaryKey.isEmpty() || (rowKey !in table.keys && newKeys.add(rowKey))) {
+                "Schlüssel nicht eindeutig"
+            }
             staged.add(row)
         }
         table.rows.addAll(staged)
@@ -101,8 +104,10 @@ internal class TableStore(initial: List<SimTable>, private val cellLimit: Long =
      * Ändert die Zeilen der Tabelle [schema].[name], auf die der Filter [where] zutrifft (ohne Filter alle), und
      * liefert ihre Zahl. [set] nennt Spalten der Beschreibung mit ihren Werten. Der Bestand prüft jeden neuen Wert
      * wie beim Einfügen (Klasse der Spalte, NULL nur in nullbaren Spalten, [RowRules]) und lässt keine Änderung zu,
-     * die den Schlüssel doppelt machte; sonst wirft er, und der Bestand bleibt unverändert (die Bibliothek meldet das
-     * als `TDS_BACKEND_ERROR`). Der Filter gilt wie der Vorfilter der Zeilenquelle (Setzung, am Server nicht gemessen).
+     * die den Schlüssel doppelt machte (eine Tabelle ohne Schlüssel prüft keine Eindeutigkeit und ändert beliebig viele
+     * Zeilen, Setzung nach der Semantik von `UPDATE`, am Server nicht gemessen); sonst wirft er, und der Bestand
+     * bleibt unverändert (die Bibliothek meldet das als `TDS_BACKEND_ERROR`). Der Filter gilt wie der Vorfilter der
+     * Zeilenquelle (Setzung, am Server nicht gemessen).
      */
     @Synchronized
     fun update(schema: String, name: String, set: Map<String, Any?>, where: RowFilter?): Long {
@@ -117,7 +122,9 @@ internal class TableStore(initial: List<SimTable>, private val cellLimit: Long =
         }
         val keys = HashSet(table.keys)
         hit.forEach { (_, row) -> keys.remove(keyOf(table, row)) }
-        for (row in changed) require(keys.add(keyOf(table, row))) { "Schlüssel nicht eindeutig" }
+        if (table.primaryKey.isNotEmpty()) {
+            for (row in changed) require(keys.add(keyOf(table, row))) { "Schlüssel nicht eindeutig" }
+        }
         hit.forEachIndexed { at, (index, _) -> table.rows[index] = changed[at] }
         table.keys.clear()
         table.keys.addAll(keys)

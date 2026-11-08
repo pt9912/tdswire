@@ -1,0 +1,2 @@
+**Vorgang:** slice-katalog-und-struktur-an-messung-angleichen
+**Fund:** Review F-5 auf `85d970bd` ([Report](../../../../../../reviews/2026-11-08-85d970bd-review-slice-katalog-und-struktur-an-messung-angleichen.md)): `main` brachte `TableStore.update` mit der Schlüsselprüfung, der Zweig lockerte sie nur in `insertBatch`; textlich sauber, semantisch gebrochen. Behoben in `7a136b49`, belegt von der Verifikation (Mutation m3 rot).

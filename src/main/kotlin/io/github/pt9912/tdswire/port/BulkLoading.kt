@@ -16,9 +16,17 @@ import io.github.pt9912.tdswire.domain.ResultColumn
 internal interface BulkLoadingBackend {
     /**
      * Erkennt `INSERT BULK`: `null`, wenn der Text keines ist (er geht den üblichen Weg über
-     * [QueryBackend.execute]); sonst das Ziel oder die Ablehnung. Die Funktion ruft keinen Callback des Integrators.
+     * [QueryBackend.execute]); sonst das Ziel oder die Ablehnung. Die Funktion fragt höchstens den Katalog-Anbieter und
+     * ruft keinen Callback für Zeilen.
      */
     fun bulkTarget(sql: String): BulkTargetResult?
+
+    /**
+     * Erkennt die Probe der Zieltabelle, die `SqlBulkCopy` (Referenzclient) vor `INSERT BULK` stellt (`SPEC-036`,
+     * Form B): `null`, wenn der Text keine ist; sonst die Spalten der Tabelle, aus denen der Protokollkern die Antwort
+     * baut, oder die Ablehnung. Die Funktion fragt höchstens den Katalog-Anbieter und ruft keinen Callback für Zeilen.
+     */
+    fun bulkProbe(sql: String): BulkProbeResult?
 
     /**
      * Gibt die Zeilen einer Nachricht an das Ziel weiter und liefert das Ereignis, mit dem die Antwort endet:
@@ -38,6 +46,18 @@ internal sealed interface BulkTargetResult {
 
     /** Die Anweisung endet mit dem Fehler [code] (ein Name aus `ErrorCode`), ohne ein Ziel zu setzen. */
     data class Rejected(val code: String, val message: String) : BulkTargetResult
+}
+
+/** Eine Spalte der Zieltabelle für die Probe: ihr Ergebnistyp und, für Text, die Länge in Zeichen (1 bis 4000). */
+internal data class BulkProbeColumn(val column: ResultColumn, val maxChars: Int)
+
+/** Der Ausgang der Erkennung der Probe der Zieltabelle. */
+internal sealed interface BulkProbeResult {
+    /** Die Tabelle ist beschrieben; die Antwort der Probe trägt ihre [columns] in der Reihenfolge der Beschreibung. */
+    data class Ready(val columns: List<BulkProbeColumn>) : BulkProbeResult
+
+    /** Die Anweisung endet mit dem Fehler [code] (ein Name aus `ErrorCode`). */
+    data class Rejected(val code: String, val message: String) : BulkProbeResult
 }
 
 /**
