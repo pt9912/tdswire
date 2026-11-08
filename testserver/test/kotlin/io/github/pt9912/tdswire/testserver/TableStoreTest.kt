@@ -187,7 +187,7 @@ class TableStoreTest {
         assertEquals(listOf("t"), listed(backend))
     }
 
-    /** Ein Leser: ruft `catalog()` einmal je Marke, bis [done] gesetzt ist; eine Änderung der Liste zählt als Fehler. */
+    /** Ein Leser: ruft `catalog()` einmal je Marke, bis [done] gesetzt ist; eine Änderung der Liste ist ein Fehler. */
     private fun readCatalog(
         store: TableStore,
         steps: Semaphore,
@@ -205,7 +205,7 @@ class TableStoreTest {
         }
     }
 
-    /** Ein Schritt eines Schreibers: legt eine Tabelle an, erweitert `kunden`, gibt je Anweisung eine Marke je Leser. */
+    /** Ein Schritt eines Schreibers: legt eine Tabelle an, erweitert `kunden`, gibt je Anweisung Marken frei. */
     private fun writeStep(
         backend: QueryBackend,
         writer: Int,
