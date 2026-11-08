@@ -1,6 +1,6 @@
 # Verifikationsbericht: slice-listener-abort-test-ordnungswette (HEAD bbaa7dd1)
 
-* Rolle: Verifier (Modul 11), frischer Kontext. Gegenstand: Slice [slice-listener-abort-test-ordnungswette](../plan/planning/in-progress/slice-listener-abort-test-ordnungswette.md) (`in-progress/`, Zweig `worktree-agent-af57b948a5ce60873`, HEAD `bbaa7dd1`, Commits `51d4aa93`/`fd8ef4b9` Move, `6d8a2a64` Test und Plan, `bbaa7dd1` Roadmap). Frage: Bauen wir es richtig, gegen Plan und DoD.
+* Rolle: Verifier (Modul 11), frischer Kontext. Gegenstand: Slice [slice-listener-abort-test-ordnungswette](../plan/planning/done/slice-listener-abort-test-ordnungswette.md) (`in-progress/`, Zweig `worktree-agent-af57b948a5ce60873`, HEAD `bbaa7dd1`, Commits `51d4aa93`/`fd8ef4b9` Move, `6d8a2a64` Test und Plan, `bbaa7dd1` Roadmap). Frage: Bauen wir es richtig, gegen Plan und DoD.
 * Maßstab: Slice §2 (DoD), §3 (Plan), §6 (Risiken); [TDS-QA-06](../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [TDS-QA-02](../../spec/lastenheft.md#tds-qa-02--stabilität); `AGENTS.md` §3.1 bis §3.8. Kein ADR, keine Spec-Änderung zugesagt.
 * Eingang: DoD-Bestätigung des Implementers samt Belegen. Ein eigener Review fand nicht statt (Entscheid des Orchestrators: Slice unter 100 Zeilen, nur Testcode); ich habe den Diff deshalb zusätzlich kritisch wie ein Reviewer gelesen (Findings unten, Schema HIGH/MEDIUM/LOW/INFO). Das ersetzt den Review-Report der DoD-Pflicht nicht: der Planner entscheidet, ob der Entscheid des Orchestrators diese Pflichtzeile ersetzt.
 * Am Code nichts geändert, keine Haken gesetzt.
