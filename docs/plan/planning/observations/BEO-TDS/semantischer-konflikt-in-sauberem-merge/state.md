@@ -1,0 +1,1 @@
+**Stand:** offen — 1×, unter der Schwelle, keine Regel. Behoben im Zweig (`TableStore.update` prüft bei leerem Schlüssel nicht, Test `onUpdate aendert auf einer Tabelle ohne Schluessel mehrere Zeilen`, Mutation rot).

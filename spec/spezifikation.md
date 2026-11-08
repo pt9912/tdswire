@@ -808,13 +808,13 @@ festgelegt sind; die Überführung der Werte, das Lesen der Zeilenquelle und die
   gilt: atomar ist nur, was der Integrator im Stapel-Callback atomar macht. Der Heap-Bedarf einer Nachricht
   ist mindestens ihre Größe (bis 16 MiB, `SPEC-001`). Eine Tabelle ohne beide Callbacks lehnt `INSERT BULK` mit
   `TDS_UNSUPPORTED_SQL` ab.
-- `primaryKey` nennt eine oder mehrere Spalten der Tabelle; sie müssen vorhanden und nicht nullbar
-  sein. Der Schlüssel ist nur Teil der Beschreibung: er wirkt weder auf das Resultset noch auf
+- `primaryKey` nennt keine, eine oder mehrere Spalten der Tabelle (die Liste darf leer sein: `CREATE TABLE` ohne Schlüssel gelingt am Server, gemessen M-19); jede genannte
+  Spalte muss vorhanden und nicht nullbar sein. Der Schlüssel ist nur Teil der Beschreibung: er wirkt weder auf das Resultset noch auf
   Callbacks, das Backend speichert nichts und prüft keine Eindeutigkeit. Als Metadatum zum Client wird
   er nicht gesendet (Setzung, nicht am Server gemessen).
 - **Validierung** (gilt für die Kotlin-Schnittstelle und die Datei): Tabellen- und Spaltennamen sind
-  ohne Beachtung der Groß-/Kleinschreibung eindeutig; jede Tabelle hat mindestens eine Spalte und
-  einen Schlüssel; eine Dezimalspalte hat höchstens Precision 38; der Katalog kopiert die übergebene
+  ohne Beachtung der Groß-/Kleinschreibung eindeutig; jede Tabelle hat mindestens eine Spalte
+  (der Schlüssel darf leer sein, in der Schnittstelle wie in der Datei; `CREATE TABLE` ohne Schlüssel gelingt am Server); eine Dezimalspalte hat höchstens Precision 38; der Katalog kopiert die übergebene
   Tabellenliste, eine Tabelle behält ihre Listen unkopiert und der Aufrufer ändert sie nach der Übergabe
   nicht (Setzung, nicht am Server gemessen). Der Vergleich der Namen ist der von `SPEC-036`.
 - **Überführung eines Werts in den Spaltentyp** (`TDS-FA-11.a` Schritt 4; Literal und Parameter;
@@ -869,7 +869,8 @@ ist die formale Beschreibung
 fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, ist der Belegstand zu erneuern.
 
 - **Gelesen:** `schema_format` (muss `1.0` sein), `name` und `version` (Pflicht, nicht ausgewertet),
-  `tables`; je Tabelle `columns` und `primary_key` (beide Pflicht, jeder Eintrag des Schlüssels eine
+  `tables`; je Tabelle `columns` (Pflicht) und `primary_key` (optional, auch als leere Liste: die Tabelle hat dann einen leeren
+  Schlüssel, wie `schema reverse` von d-migrate eine Tabelle ohne Schlüssel schreibt; jeder Eintrag des Schlüssels eine
   vorhandene Spalte); je Spalte `type` (Pflicht), `required`, `max_length`, `precision`, `scale`,
   `timezone`, `ordinal`. `tables` ist Pflicht, strenger als das Schema, das nur `schema_format`, `name`
   und `version` verlangt (Setzung, nicht gemessen). Sind alle Spalten einer Tabelle mit `ordinal` versehen, gilt diese Reihenfolge,
@@ -952,11 +953,13 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   (Exit 5, Einzelmessung 2026-11-05). Der Callback `onStructure` bekommt für `CREATE TABLE` und `ALTER TABLE … ADD` die
   Tabelle im Zustand **nach** der Anweisung (Schema, Name wie im Katalog, alle Spalten in der Reihenfolge, Schlüssel); er
   wird beim Sammeln der Ausführung genau einmal gerufen, und die Antwort ist der Änderungszähler 0 (Setzung; gemessen ist der
-  Zähler 0 nur für `ROLLBACK TRAN`; Messvermerk 2026-11-07, M-20: der Server antwortet auf `CREATE TABLE` und `ALTER TABLE … ADD` mit einem `DONE` ohne `COUNT`, Befehl `0x00c6` bzw. `0x00d8`). Die Prüfung gegen den Katalog (`CREATE TABLE` einer vorhandenen Tabelle, `ADD` einer
-  vorhandenen Spalte, `CREATE TABLE` ohne Schlüssel, eine Schlüsselspalte, die es nicht gibt) endet vor dem Callback mit
-  `TDS_UNSUPPORTED_SQL` beziehungsweise `TDS_SIM_UNKNOWN_OBJECT` (Setzung; der echte Server antwortet mit eigenen Nummern,
-  die die Bibliothek nicht sendet; Messvermerk 2026-11-07, M-19: `CREATE TABLE` einer vorhandenen Tabelle 2714 (State 6), `ADD` einer
-  vorhandenen Spalte 2705 (State 4), `ALTER TABLE` einer unbekannten Tabelle 4902, jeweils Class 16; `CREATE TABLE` ohne Schlüssel gelingt am Server). Eine Schlüsselspalte ist nach der Anweisung nicht nullbar, auch wenn der Text es nicht
+  Zähler 0 nur für `ROLLBACK TRAN`; Messvermerk 2026-11-07, M-20: der Server antwortet auf `CREATE TABLE` und `ALTER TABLE … ADD` mit einem `DONE` ohne `COUNT`, Befehl `0x00c6` bzw. `0x00d8`). Die Prüfung gegen den Katalog endet vor dem Callback und antwortet wie der echte Server
+  (gemessen, M-19, 2022 und 2025, je ein Fall; ERROR und DONE mit `ERROR`, die Verbindung bleibt offen): `CREATE TABLE` einer
+  vorhandenen Tabelle mit `TDS_SIM_OBJECT_EXISTS` (2714, State 6), `ADD` einer vorhandenen Spalte mit `TDS_SIM_COLUMN_EXISTS` (2705,
+  State 4) und `ALTER TABLE` einer unbekannten Tabelle mit `TDS_SIM_OBJECT_NOT_FOUND` (4902, State 1), jeweils Class 16. Der Text ist
+  ein Auszug des gemessenen Textes ohne die Namen (2714: „There is already an object named in the database.“; Setzung: der Text eines Backends erreicht den Client nie).
+  `CREATE TABLE` ohne Schlüssel gelingt: der Callback bekommt einen leeren Schlüssel (gemessen, M-19). Eine Schlüsselspalte, die es nicht
+  gibt, endet mit `TDS_SIM_UNKNOWN_OBJECT` (Setzung, nicht gemessen). Eine Schlüsselspalte ist nach der Anweisung nicht nullbar, auch wenn der Text es nicht
   sagt (Setzung nach dem Server). Ohne Callback endet die Anweisung mit `TDS_UNSUPPORTED_SQL`; ein Fehler des Callbacks ist
   `TDS_BACKEND_ERROR` mit fester Meldung. **Keine Transaktion (Zusage):** mehrere Callbacks einer Anweisung oder mehrerer
   Anweisungen sind keine Transaktion; die Bibliothek nimmt nichts zurück, ein Fehler hinterlässt den Zustand beim
@@ -1109,7 +1112,8 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   die Schlüsselspalten der Tabelle (jede Spalte des Schlüssels mit `AND`, in beliebiger Reihenfolge), `SET` ändert keine von
   ihnen; jede Quellspalte der Zuordnungen steht in der Spaltenliste der Quelle. Andere Formen (mehrere Quellen oder
   `VALUES`-Zeilen, mehrere `WHEN`-Zweige, ein Zweig `DELETE`, ein Vergleich über andere Spalten, ein anderes `OUTPUT`) sind
-  `TDS_UNSUPPORTED_SQL`; eine unbekannte Tabelle oder Spalte `TDS_SIM_UNKNOWN_OBJECT`. **Antwort** (gemessen, M-26): ein
+  `TDS_UNSUPPORTED_SQL`; eine unbekannte Tabelle oder Spalte `TDS_SIM_UNKNOWN_OBJECT`. Gegen eine Tabelle mit leerem Schlüssel ist jedes `MERGE` `TDS_UNSUPPORTED_SQL`
+  (Grenze: der Vergleich nennt genau die Schlüsselspalten, und es gibt keine; der echte Server nimmt dieses `MERGE` an, nicht gemessen). **Antwort** (gemessen, M-26): ein
   Resultset mit der Spalte `$action` (Text, nicht NULL), je Aktion eine Zeile `INSERT` oder `UPDATE`; ohne Aktion
   (Schlüssel vorhanden, kein Zweig `WHEN MATCHED`) ein Resultset ohne Zeile, Zähler 0. Die Bibliothek liefert die Spalte
   `$action` mit dem Typ `UnicodeText`, also in der Länge von `SPEC-003`, und den Befehl `0x00c1` des Abschlusses; der Server
@@ -1139,7 +1143,7 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
 - **Form D, Strukturänderung** (gemessen: der Wortlaut von `schema migrate --execute`, 2026-11-06): eine Spalte ist `<Name> <Typ>
   [NOT NULL | NULL]` mit `INT`, `BIGINT`, `BIT`, `DATE`, `TIME`, `DATETIME2`, `NVARCHAR(<n>)` (`n` von 1 bis 4000) oder
   `NVARCHAR(MAX)` (`maxLength` -1) und `DECIMAL(<p>, <s>)` (Precision bis 38); der Schlüssel heißt im gesendeten Text
-  `CONSTRAINT [pk_<Tabelle>] PRIMARY KEY ([Id])`. Mehrere Spalten in `ADD` sind Setzung (Messvermerk 2026-11-07, M-19: `ADD [A] INT, [B] NVARCHAR(10)` gelingt am Server). Ein anderer Typ (`SMALLINT`, `FLOAT`, …) oder
+  `CONSTRAINT [pk_<Tabelle>] PRIMARY KEY ([Id])` und ist optional (gemessen, M-19: `CREATE TABLE` ohne Schlüssel gelingt; Nr. 3 der Entscheidung „Callback-Lösung für Schreiben, Struktur und Massenladen“ (Verzeichnis der Entscheidungen, Dateiname `0033-callback-loesung-fuer-schreiben-struktur-und-massenladen`) nennt `CREATE TABLE` „mit Schlüssel“; das ist der damalige Umfang der Setzung, die Zusage der Entscheidung ist der Callback, und das Zielbild folgt der Messung; Träger der Klärung: `BEO-TDS/katalog-strukturabweisung-und-aenderungszaehler-weichen-vom-echten-server-ab`). Mehrere Spalten in `ADD` sind Setzung (Messvermerk 2026-11-07, M-19: `ADD [A] INT, [B] NVARCHAR(10)` gelingt am Server). Dieselbe Spalte zweimal in einem `ADD` (`ADD x INT, X BIT`) ist `TDS_UNSUPPORTED_SQL` (Grenze: der Server meldet dort vermutlich 2705, nicht gemessen). Ein anderer Typ (`SMALLINT`, `FLOAT`, …) oder
   eine weitere Klausel (`DEFAULT`, `IDENTITY`, `UNIQUE`, `WITH`) macht den Text nicht erkannt. Ein abschließendes `;` ist erlaubt.
   Die Prüfung gegen den Katalog und die Antwort stehen in `SPEC-035`.
 - **Scanner** (Setzungen, nicht am Server gemessen): Leerraum sind Leerzeichen, Tab, CR und LF.
@@ -1314,7 +1318,7 @@ echten SQL Server einmal beobachtet (`SPEC-012`); der Text dort nennt den Benutz
 dieser Tabelle nicht. Die Spalte *Herkunft* trennt: *Vorschlag* (Nummer aus der Aktionsspalte oben,
 „an der Referenzinstanz zu messen“), *Setzung des Nutzers* (Gruppe und Class, 2026-10-30; `TDS_TIMEOUT` 2026-11-01),
 *Voreinstellung* (Gruppe nach der Voreinstellung vom 2026-10-30, nicht entschieden), *Festlegung* (vom Mapping gewählt, nicht
-gemessen), *Grundregel* (nur die Folge: kein Gruppenmitglied, im Zweifel schließen; die Class 20 dieser Codes ist Festlegung). State ist für jeden Code 1 (Ausnahme `TDS_SIM_UNKNOWN_PREPARED_HANDLE`: State 8, gemessen), der
+gemessen), *Grundregel* (nur die Folge: kein Gruppenmitglied, im Zweifel schließen; die Class 20 dieser Codes ist Festlegung). State ist für jeden Code 1 (Ausnahmen, gemessen: `TDS_SIM_UNKNOWN_PREPARED_HANDLE` State 8, `TDS_SIM_OBJECT_EXISTS` State 6, `TDS_SIM_COLUMN_EXISTS` State 4), der
 Text fest und englisch (bei `TDS_SIM_UNKNOWN_PREPARED_HANDLE` endet er mit der Nummer des Handles); der Text einer Backend-Meldung oder Ausnahme erreicht den Client nie.
 
 | Code | Nummer | Class | Folge nach ERROR und DONE | Herkunft |
@@ -1333,6 +1337,9 @@ Text fest und englisch (bei `TDS_SIM_UNKNOWN_PREPARED_HANDLE` endet er mit der N
 | `TDS_UNKNOWN_HANDLE` | 50009 | 16 | offen | Gruppe: Setzung (Voreinstellung, nicht gemessen); Nummer: Festlegung |
 | `TDS_PREPARE_LIMIT` | 50010 | 16 | offen | Gruppe: Setzung (Voreinstellung, nicht gemessen); Nummer: Festlegung |
 | `TDS_SIM_KEY_VIOLATION` | 2627 | 14 | offen | Nummer, Class und State 1: gemessen am echten SQL Server (2022 und 2025, `SqlBulkCopy`, Schlüsselverstoß, M-12); der Text ist gekürzt (Setzung); Form des Massenladens mit INFO 3621 und DONE `0x00f0` (`SPEC-001`) |
+| `TDS_SIM_OBJECT_EXISTS` | 2714 | 16 | offen | Nummer, Class, State 6 und die offene Verbindung: gemessen am echten SQL Server (2022 und 2025, `CREATE TABLE` einer vorhandenen Tabelle, M-19); der Text ist ein Auszug des gemessenen Textes „There is already an object named '<Name>' in the database.“ ohne den Namen (Setzung) |
+| `TDS_SIM_COLUMN_EXISTS` | 2705 | 16 | offen | Nummer, Class, State 4 und die offene Verbindung: gemessen am echten SQL Server (2022 und 2025, `ADD` einer vorhandenen Spalte, M-19); der Text ist der erste Satz des gemessenen Textes, ohne den zweiten Satz mit den Namen von Tabelle und Spalte (Setzung) |
+| `TDS_SIM_OBJECT_NOT_FOUND` | 4902 | 16 | offen | Nummer, Class, State 1 und die offene Verbindung: gemessen am echten SQL Server (2022 und 2025, `ALTER TABLE` einer unbekannten Tabelle, M-19); der Text ist ein Auszug des gemessenen Textes ohne den Namen in den Anführungszeichen (Setzung) |
 | `TDS_SIM_UNKNOWN_PREPARED_HANDLE` | 8179 | 16 | offen | Nummer, Class, State 8 und Text für Handle 1: gemessen am echten SQL Server (2022 und 2025), die Verbindung bleibt offen; der Text für andere Nummern: Setzung |
 
 Der Abschluss (DONE; in der Antwort auf einen RPC DONEPROC, `SPEC-031`) trägt für jeden Code das Statusbit `ERROR`, die
@@ -1342,7 +1349,7 @@ Referenzclient es so annimmt, ist nicht am Produkt gemessen. Die Antwort an die 
 Class 20 und 25 zusätzlich das Statusbit `SRVERR` und es folgen weitere ERROR-Token (Messung R10); das
 Mapping sendet für jeden Code nur ERROR und DONE mit `ERROR`, diese Abweichung ist nicht am Produkt
 gemessen. Ein Backend meldet als `Failure` nur `TDS_BACKEND_ERROR`, `TDS_UNSUPPORTED_SQL`,
-`TDS_UNSUPPORTED_TYPE`, `TDS_SIM_UNKNOWN_OBJECT`, `TDS_SIM_INVALID_VALUE`, `TDS_SIM_KEY_VIOLATION` und `TDS_TIMEOUT`
+`TDS_UNSUPPORTED_TYPE`, `TDS_SIM_UNKNOWN_OBJECT`, `TDS_SIM_INVALID_VALUE`, `TDS_SIM_KEY_VIOLATION`, `TDS_SIM_OBJECT_EXISTS`, `TDS_SIM_COLUMN_EXISTS`, `TDS_SIM_OBJECT_NOT_FOUND` und `TDS_TIMEOUT`
 (Festlegung); jeder andere Code, auch ein anderer eigener wie `TDS_LOGIN_FAILED` oder `TDS_SHUTDOWN`,
 erreicht den Client als `TDS_INTERNAL_ERROR`. Ist der Strom nicht synchron, entfällt die
 Antwort und die Verbindung schließt (`SPEC-031`). Der Log-Eintrag einer unerwarteten Ausnahme trägt den

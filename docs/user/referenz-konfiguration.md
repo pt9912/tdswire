@@ -60,6 +60,9 @@ Jeder Fehler des Servers erreicht den Client als ERROR (feste englische Meldung,
 | `TDS_SIM_UNKNOWN_OBJECT` | 208 | 20 | schließt |
 | `TDS_SIM_INVALID_VALUE` | 245 | 16 | offen |
 | `TDS_SIM_KEY_VIOLATION` | 2627 | 14 | offen |
+| `TDS_SIM_OBJECT_EXISTS` | 2714 | 16 | offen |
+| `TDS_SIM_COLUMN_EXISTS` | 2705 | 16 | offen |
+| `TDS_SIM_OBJECT_NOT_FOUND` | 4902 | 16 | offen |
 | `TDS_SIM_UNKNOWN_PREPARED_HANDLE` | 8179 | 16 | offen |
 | `TDS_LOGIN_FAILED` | 18456 | 14 | schließt |
 

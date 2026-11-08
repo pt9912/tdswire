@@ -174,6 +174,36 @@ class SimulationBackendCatalogTest {
     }
 
     /**
+     * Happy (gemessen, M-19: `CREATE TABLE` ohne Schlüssel gelingt): eine Tabelle mit leerem Schlüssel steht in der
+     * Tabellenliste, ihre Spalten kommen mit ihrer Nullbarkeit, und die Abfrage des Primärschlüssels antwortet mit
+     * ihrer Spalte und ohne Zeile (so liest `schema reverse` von d-migrate sie ohne `primary_key` zurück).
+     * Wächter: eine Antwort des Schlüssels, die für eine Tabelle ohne Schlüssel `ResultEnd(0)` ohne Kopf sendet (die
+     * Sitzung schlösse), oder eine Tabellenliste, die Tabellen ohne Schlüssel weglässt.
+     * @spec SPEC-036
+     */
+    @Test
+    fun `eine Tabelle ohne Schluessel steht im Katalog mit leerem Schluessel`() {
+        val notizen = SimTable(
+            name = "notizen",
+            columns = listOf(SimColumn("Id", SqlType.Int32, nullable = false), SimColumn("Text", SqlType.UnicodeText)),
+            primaryKey = emptyList(),
+            rows = rowless,
+        )
+        assertEquals(listOf(listOf("notizen", "dbo")), rows(ask(CatalogForm.TABLES, text("dbo"), notizen)))
+        assertEquals(
+            listOf(
+                listOf("Id", "int", 4, 10, 0, false, false, false, 1, null, null, null, null, null),
+                listOf("Text", "nvarchar", 8000, 0, 0, true, false, false, 2, null, null, null, null, null),
+            ),
+            rows(ask(CatalogForm.COLUMNS, text("[dbo].[notizen]"), notizen)),
+        )
+        val key = ask(CatalogForm.PRIMARY_KEY, text("[dbo].[notizen]"), notizen)
+        assertEquals(CatalogForm.PRIMARY_KEY.columns, assertIs<QueryEvent.ResultStart>(key.first()).columns)
+        assertEquals(emptyList(), rows(key))
+        assertEquals(QueryEvent.ResultEnd(0), key.last())
+    }
+
+    /**
      * Happy: alle Formen ohne Quelle im Katalog (Eindeutigkeiten, Fremdschlüssel, Indizes, Volltext, Partitionen,
      * Prüfbedingungen, Sequenzen, Sichten, Identität, Berechnung, Routinen) antworten mit ihren Spalten und ohne Zeile,
      * auch für eine Tabelle, die es gibt; `SELECT SCHEMA_NAME()` ist eine Zeile `dbo`.

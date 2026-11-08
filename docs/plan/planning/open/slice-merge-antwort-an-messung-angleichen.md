@@ -42,7 +42,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 - Die Zuordnung der Fehlercodes je Fehlerursache **des Massenladens** (Schlüsselverstoß, Typfehler, NULL) — [slice-adr-massenladen-atomar-an-messung](slice-adr-massenladen-atomar-an-messung.md). Ein Punkt gehört genau einem Slice: die Codes 2628, 2627, 208 **des `MERGE`** gehören diesem Slice, die des Massenladens (M-11, M-12) jenem.
 - Die Anweisungsart der übrigen Anweisungen (`INSERT`, `DELETE`, `UPDATE`, `UNKNOWN`) und das Anlegen von `StatementKind` — [slice-antwort-tokens-zielbild-luecken-bauen](slice-antwort-tokens-zielbild-luecken-bauen.md).
-- Ein `MERGE` gegen eine Tabelle ohne Schlüssel: bleibt `TDS_UNSUPPORTED_SQL` (siehe §6); der Fall braucht zuerst `CREATE TABLE` ohne Schlüssel aus [slice-katalog-und-struktur-an-messung-angleichen](slice-katalog-und-struktur-an-messung-angleichen.md).
+- Ein `MERGE` gegen eine Tabelle ohne Schlüssel: bleibt `TDS_UNSUPPORTED_SQL` (siehe §6); der Fall braucht zuerst `CREATE TABLE` ohne Schlüssel aus [slice-katalog-und-struktur-an-messung-angleichen](../done/slice-katalog-und-struktur-an-messung-angleichen.md).
 - Eine Aussage über andere Clients als den Referenzclient und mssql-jdbc 13.4.0 (`AGENTS.md` §3.8).
 
 ## 2. Definition of Done
@@ -115,7 +115,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang.
 
 - **Entscheid zu `ResultColumn` steht aus** (öffentliche Fläche, Empfehlung ja). — **Ausgang:** offen bis zur Closure.
-- **`MERGE` auf eine Tabelle ohne Schlüssel** endet mit `TDS_UNSUPPORTED_SQL` (`comparesKey` verlangt den Schlüssel), am echten Server ist das `MERGE` möglich; `CREATE TABLE` ohne Schlüssel gelingt nach [slice-katalog-und-struktur-an-messung-angleichen](slice-katalog-und-struktur-an-messung-angleichen.md) (M-19). — **Ausgang:** offen bis zur Closure.
+- **`MERGE` auf eine Tabelle ohne Schlüssel** endet mit `TDS_UNSUPPORTED_SQL` (`comparesKey` verlangt den Schlüssel), am echten Server ist das `MERGE` möglich; `CREATE TABLE` ohne Schlüssel gelingt nach [slice-katalog-und-struktur-an-messung-angleichen](../done/slice-katalog-und-struktur-an-messung-angleichen.md) (M-19). — **Ausgang:** offen bis zur Closure.
 - **Reihenfolge der Antwort im Fehlerfall** (Zeile vor dem Fehler, M-15) hängt am Zerlegen in Lesen und einen Callback; ob sie ohne Umbau der Form M zu erreichen ist, ist nicht gemessen. — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz

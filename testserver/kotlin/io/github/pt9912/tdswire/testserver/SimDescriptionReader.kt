@@ -81,8 +81,9 @@ object SimDescriptionReader {
         val columnsMap = asMap(columnsEntry.value, columnsPath)
         if (columnsMap.entries.isEmpty()) fail(columnsPath, columnsMap.position, "mindestens eine Spalte erforderlich")
         val raw = readColumns(columnsMap, columnsPath)
-        val keyEntry = required(f, "primary_key", map, path)
-        val key = readKey(asList(keyEntry.value, child(path, "primary_key")), child(path, "primary_key"), raw)
+        val key = f["primary_key"]
+            ?.let { readKey(asList(it.value, child(path, "primary_key")), child(path, "primary_key"), raw) }
+            .orEmpty()
         val keySet = key.map { NameFold.fold(it) }.toSet()
         val columns = raw.map {
             SimColumn(it.name, it.type, nullable = !(it.notNull || NameFold.fold(it.name) in keySet), it.maxLength)
@@ -134,7 +135,6 @@ object SimDescriptionReader {
         f[key]?.let { SimTreeAccess.integer(it.value, child(path, key), min) to it.value.position }
 
     private fun readKey(list: SimList, path: String, columns: List<RawColumn>): List<String> {
-        if (list.items.isEmpty()) fail(path, list.position, "mindestens ein Schlüsseleintrag erforderlich")
         val byName = columns.associateBy { NameFold.fold(it.name) }
         val resolved = ArrayList<String>(list.items.size)
         for ((index, node) in list.items.withIndex()) {
