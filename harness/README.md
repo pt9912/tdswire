@@ -153,7 +153,7 @@ Diese Datei dupliziert sie nicht.
 
 | Art der Änderung | Pflicht außer `make gates` | Nicht erforderlich |
 |---|---|---|
-| Doku oder Spec (`docs/`, `spec/`, `harness/`, `AGENTS.md`, `.claude/`) | `make docs-check`, `make flaeche`, `make kopplung-zahlen` | `make spec-abdeckung`, `make matrix-zitate`, `make clean-build`, `make e2e` |
+| Doku oder Spec (`docs/`, `spec/`, `harness/`, `AGENTS.md`, `.claude/`) | `make docs-check`, `make flaeche`, `make kopplung-zahlen` | `make spec-abdeckung` (außer bei neuer oder entfernter `SPEC-*`-Kennung), `make matrix-zitate`, `make clean-build`, `make e2e` |
 | Tests oder `@spec`-Tags | `make spec-abdeckung` einmal | `make clean-build`, `make e2e` |
 | Zitate der Kompatibilitätsmatrix (`docs/plan/kompatibilitaetsmatrix.md`) | `make matrix-zitate` | `make e2e` |
 | `src/` oder `testserver/` | ein `make gates`, engste Testklasse, Mutation je Zusage über enge Testklassen; Verifier: `make clean-build` und `make e2e` je einmal auf dem End-Stand | `make clean-build` und `make e2e` durch Implementer und Reviewer |
