@@ -180,7 +180,7 @@ Closure am 2026-11-08 (Planner). Zuerst die Belege der Rollen, dann die Entschei
 
 **Gate-Läufe und Belege.** Verifier auf `55dd6e4f`: `make clean-build`, `make gates FORCE=1`, `make flaeche`, `make docs-check`, `make matrix-zitate`, `make e2e` grün (Last 8 bis 160). Planner nach den Änderungen dieser Closure und dem Merge von `main`: siehe Bericht an den Auftraggeber (`make gates`, `make docs-check`, `make spec-abdeckung`); `make clean-build`, `make e2e` und `make matrix-zitate` nicht erneut gefahren (die Änderungen der Closure sind Dokument-Zeilen; Zitate der Matrix unverändert).
 
-**Merge-Hinweis.** `main` ist in den Zweig gemergt; die zehn Konflikte lagen in Dokumenten (Lifecycle- und Link-Nachzug, Roadmap, Welle-Datei, `spec-abdeckung.md`).
+**Merge-Hinweis.** `main` ist in den Zweig gemergt; die zehn Konflikte lagen in Dokumenten (Lifecycle- und Link-Nachzug, Roadmap, Welle-Datei, `spec-abdeckung.md`). Der Merge ergab in `RequestLoop.answerBatch` (Katalog-Pfad von `main` zusammen mit der Freigabe-Antwort) die Cognitive Complexity 17 (Grenze 15, `make detekt` rot); die Vorabprüfung des Ausgangs der Freigabe entfällt, der Ausgang folgt aus der Liste der nicht gehaltenen Nummern (verhaltensgleich, Commit `f00cefce`, vom Planner im Zuge des Merge, ohne Review). `make gates` war in drei Läufen unter Lastmittel 75 bis 200 je an einem anderen Wanduhr-Test rot und im vierten Lauf bei Last 10 bis 16 grün (Register `BEO-TDS/wanduhr-tests-flackern-unter-last`).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
