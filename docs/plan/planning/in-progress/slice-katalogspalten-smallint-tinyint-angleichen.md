@@ -90,8 +90,15 @@ Aussagen-Berührung steht hier gar nicht.
 | `spec/spezifikation.md` (`SPEC-003`, `SPEC-035`, `SPEC-059`) | update | Zielbild, Liste der Fläche, Änderungsprotokoll |
 | `referenztest-dotnet/` und `docs/messungen/referenzabgleich.md` | update (falls Nachmessung) | Maße von `smallint`/`tinyint` |
 | Tests (Kotlin, `src/test`) | neu / update | Grenzwerte, COLMETADATA je Spalte |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/token/` (`TdsType` mit `Int1Type` und `Int2Type`, `TypeCode`, `TypeInfoWriter`, `ValueWriter`) | update | feste Typen `tinyint` (`0x30`) und `smallint` (`0x34`) für nicht nullbare Spalten, nullbar `INTN` mit 1 und 2 Byte (M-16: `max_length` ist am Draht der feste Typ `smallint`) |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/result/ValueMapping.kt` | update | Klasse `Int` und Bereichsprüfung für die Größen 1 und 2 |
+| `src/main/kotlin/io/github/pt9912/tdswire/simulation/SimIntegers.kt` | neu | die vier Ganzzahltypen (Wertebereich, Zahl, Parameter, Massenladen) an einer Stelle statt je Auswerter; hält `SimValues` und `BulkLoads` unter den Grenzen von detekt |
+| `testserver/kotlin/io/github/pt9912/tdswire/testserver/RowRules.kt` | update | der Auswerter im Bestand (`TableStore` ruft ihn) |
+| `docs/user/einbettung-und-betrieb.md` | update | Ist-Zustand: neue Mitglieder, Wertebereich, Typen der Katalogantwort |
+| `docs/messungen/referenzabgleich.md` | update | Zeile M-16 der Zuordnung auf „angeglichen“; M-17 nennt `smallint` und `tinyint` |
+| Tests (Kotlin): `ColumnMappingTest`, `ValueMappingTest`, `MappingFuzzTest`, `TokenRoundtripTest`, `TokenDecoder` (Testhilfe), `SimValuesTest`, `SimulationBackendBulkTest`, `SimulationBackendCatalogTest`, `KatalogSpaltenWireTest` (neu, Package `runtime`), `TableStoreTest`, `FlaecheEmbeddingTest` | update / neu | Grenzwerte, Drahttypen je Antwortspalte, Auswerter, Beleg der Namen |
 
-Der Implementer-Agent erweitert die Liste in seinem ersten Lauf (die Suche nach Auswertern gehört dazu).
+Stand der Suche nach Auswertern (Lauf des Implementers): Der Übersetzer fand jedes `when` als Ausdruck (`ColumnMapping.tdsType`, `SimValues.number`, `SimValues.text`, `SimValues.hasClassOf`, `CatalogAnswers.typeOf`, `BulkLoads.converted`, `RowRules.hasClassOf`, dazu `ValueMapping.nonNull` und `TypeInfoWriter`/`ValueWriter` für die neuen `TdsType`). Die Suche mit `grep` nach `== SqlType.` und `.type ==` fand die Auswerter, die der Übersetzer nicht fängt: `SimValues.parameter` (Gleichheit des Parametertyps, Verengung `Int64` zu `Int32`) und `CatalogAnswers.collationOf` (nur `UnicodeText`, unberührt). Unberührt bleiben nach Setzung `RpcParameters` und `BulkLoadReader` (Erzeuger aus dem Draht) und `SimColumnTypes`/`StructureParts` (Typnamen `smallint`/`tinyint` nicht aufgenommen).
 
 ## 4. Trigger
 
