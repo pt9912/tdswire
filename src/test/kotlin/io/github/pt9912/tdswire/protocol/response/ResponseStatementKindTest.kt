@@ -195,4 +195,29 @@ class ResponseStatementKindTest {
         val bulk = answer(ResponseForm.BULK, CallLayout.PROCEDURE, created)
         assertEquals(hexOf("FD 10 00 F0 00 00 00 00 00 00 00 00 00"), bulk)
     }
+
+    /**
+     * Die Transaktionstexte der Form C schließen im SQL_BATCH ohne `COUNT`: `set implicit_transactions on` mit
+     * `0x00b9`; `set implicit_transactions off IF @@TRANCOUNT > 0 COMMIT TRAN` als `DONE MORE` `0x00ba` und `DONE`
+     * `0x00c0` (Handvektoren `katalog-struktur`, Messprotokoll M-20, 2022 und 2025 gleich; zweiter Abschluss ohne
+     * offene Transaktion). Wächter: vertauschte Kennungen, `MORE` am letzten Abschluss, `COUNT`.
+     *
+     * @spec SPEC-031
+     * @spec SPEC-036
+     * @spec TDS-QA-01
+     */
+    @Test
+    fun `Die Transaktionstexte schliessen ohne COUNT mit ihren Kennungen`() {
+        assertEquals(
+            hexOf("FD 00 00 B9 00 00 00 00 00 00 00 00 00"),
+            batch(QueryEvent.UpdateCount(0, StatementKind.IMPLICIT_TRANSACTIONS_ON)),
+        )
+        assertEquals(
+            hexOf("FD 01 00 BA 00 00 00 00 00 00 00 00 00  FD 00 00 C0 00 00 00 00 00 00 00 00 00"),
+            batch(
+                QueryEvent.UpdateCount(0, StatementKind.IMPLICIT_TRANSACTIONS_OFF),
+                QueryEvent.UpdateCount(0, StatementKind.COMMIT_IF_OPEN),
+            ),
+        )
+    }
 }

@@ -113,8 +113,14 @@ class CatalogFormsTest {
             "IF @@TRANCOUNT > 0 ROLLBACK TRAN",
             "set implicit_transactions on IF @@TRANCOUNT > 0 COMMIT TRAN",
         )
-        for (text in sent + unsent) {
-            assertEquals(Recognition.Fixed(FixedForm.Transaction), StatementParser.recognize(text), text)
+        val expected = listOf(
+            FixedForm.Transaction(implicit = null, commit = true),
+            FixedForm.Transaction(implicit = false, commit = true),
+            FixedForm.Transaction(implicit = null, commit = false),
+            FixedForm.Transaction(implicit = true, commit = true),
+        )
+        for ((text, form) in (sent + unsent).zip(expected)) {
+            assertEquals(Recognition.Fixed(form), StatementParser.recognize(text), text)
         }
         val others = listOf(
             "IF @@TRANCOUNT > 0 COMMIT TRANSACTION",

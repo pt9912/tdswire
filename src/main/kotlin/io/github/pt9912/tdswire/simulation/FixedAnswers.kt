@@ -3,11 +3,15 @@ package io.github.pt9912.tdswire.simulation
 import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.domain.ResultColumn
 import io.github.pt9912.tdswire.domain.SqlType
+import io.github.pt9912.tdswire.domain.StatementKind
 
 /**
  * Die festen Antworten der Form C (`SPEC-036`, Setzung nach der Aufzeichnung mit d-migrate 1.12.0): `SELECT 1` ist
  * eine Spalte ohne Namen vom Typ `Int32`, nicht NULL-fähig, mit der Zeile `1`; eine `SET`-Anweisung ist der
- * Änderungszähler 0. Ein Ergebnisende ohne Anfang ist kein Zähler: der Backend-Vertrag lässt eine Anweisung ohne
+ * Änderungszähler 0, mit zwei Ausnahmen: der Text `set implicit_transactions on|off` allein meldet die Art
+ * `IMPLICIT_TRANSACTIONS_ON` bzw. `IMPLICIT_TRANSACTIONS_OFF` (M-20; `off` allein ist Setzung nach dem Teil der
+ * Kombination), und `set implicit_transactions off IF @@TRANCOUNT > 0 COMMIT TRAN` meldet diese Art und dann
+ * `COMMIT_IF_OPEN`. Jede andere Transaktionssteuerung ist der Änderungszähler 0 ohne Art. Ein Ergebnisende ohne Anfang ist kein Zähler: der Backend-Vertrag lässt eine Anweisung ohne
  * Ergebnis nur als Änderungszähler zu, `ResultEnd` ohne `ResultStart` beantwortet die Sitzung mit Fehler 50007 und
  * schließt.
  */
@@ -19,6 +23,24 @@ internal object FixedAnswers {
             QueryEvent.ResultEnd(1),
         )
 
-        is FixedForm.Settings, FixedForm.Transaction -> listOf(QueryEvent.UpdateCount(0))
+        is FixedForm.Settings -> listOf(QueryEvent.UpdateCount(0, implicitTransactions(form)))
+
+        is FixedForm.Transaction -> if (form.implicit == false && form.commit) {
+            listOf(
+                QueryEvent.UpdateCount(0, StatementKind.IMPLICIT_TRANSACTIONS_OFF),
+                QueryEvent.UpdateCount(0, StatementKind.COMMIT_IF_OPEN),
+            )
+        } else {
+            listOf(QueryEvent.UpdateCount(0))
+        }
+    }
+
+    private fun implicitTransactions(form: FixedForm.Settings): StatementKind {
+        val only = form.options.singleOrNull()
+        return when {
+            only == null || only.option != "IMPLICIT_TRANSACTIONS" -> StatementKind.UNKNOWN
+            only.argument == "ON" -> StatementKind.IMPLICIT_TRANSACTIONS_ON
+            else -> StatementKind.IMPLICIT_TRANSACTIONS_OFF
+        }
     }
 }

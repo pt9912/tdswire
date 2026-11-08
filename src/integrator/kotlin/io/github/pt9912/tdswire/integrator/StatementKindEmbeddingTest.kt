@@ -35,6 +35,8 @@ private const val DELETE_COMMAND = 0x00C4
 private const val UPDATE_COMMAND = 0x00C5
 private const val CREATE_TABLE_COMMAND = 0x00C6
 private const val ALTER_TABLE_COMMAND = 0x00D8
+private const val IMPLICIT_ON_COMMAND = 0x00B9
+private const val COMMIT_IF_OPEN_COMMAND = 0x00C0
 private const val ROWS = 3L
 
 /**
@@ -145,6 +147,34 @@ class StatementKindEmbeddingTest {
     }
 
     /**
+     * Die Transaktionstexte der Form C auf den Rohbytes (Messprotokoll M-20): `set implicit_transactions on` schließt
+     * mit `0x00b9`, `set implicit_transactions off IF @@TRANCOUNT > 0 COMMIT TRAN` mit `DONE MORE` `0x00ba` und `DONE`
+     * `0x00c0`, alle ohne `COUNT`; ein eigenes Backend, das dieselben Arten meldet, bekommt dieselben Bytes. Wächter:
+     * eine Kennung 0, `COUNT`, ein fehlendes `MORE`.
+     *
+     * @spec SPEC-059
+     * @spec SPEC-031
+     * @spec SPEC-036
+     */
+    @Test
+    fun dieTransaktionstexteSchliessenOhneCountMitDenKennungenDerArten() {
+        val on = "set implicit_transactions on "
+        val off = "set implicit_transactions off IF @@TRANCOUNT > 0 COMMIT TRAN "
+        val onBytes = "FD 00 00 B9 00 00 00 00 00 00 00 00 00"
+        val offBytes = "FD 01 00 BA 00 00 00 00 00 00 00 00 00  FD 00 00 C0 00 00 00 00 00 00 00 00 00"
+        val custom = start(BackendSource.Custom(TransactionBackend()))
+        for (server in listOf(start(BackendSource.Simulation(listOf(person()))), custom)) {
+            WireClient(server.port).use { client ->
+                client.login()
+                assertEquals(hex(onBytes).toList(), client.batch(on).payload.toList())
+                assertEquals(hex(offBytes).toList(), client.batch(off).payload.toList())
+            }
+        }
+        assertEquals(Triple(0, IMPLICIT_ON_COMMAND, 0L), doneOf(custom, on))
+        assertEquals(Triple(0, COMMIT_IF_OPEN_COMMAND, 0L), doneOf(custom, off))
+    }
+
+    /**
      * Ein Backend, das die Art nicht meldet (`UpdateCount(n)` wie vor der Fläche `kind`), bekommt DONE mit `COUNT`,
      * der Zeilenzahl und der Befehlskennung 0, ebenso ein Backend mit `StatementKind.UNKNOWN`. Wächter: eine Kennung
      * ungleich 0 bei fehlender Art (ein Standardwert im Konstruktor), ein Verlust des Zählers.
@@ -162,7 +192,7 @@ class StatementKindEmbeddingTest {
     }
 
     /**
-     * Die Fläche: die sechs Konstanten von `StatementKind`, das Feld `kind` mit dem Standardwert `UNKNOWN`, und für Java
+     * Die Fläche: die neun Konstanten von `StatementKind`, das Feld `kind` mit dem Standardwert `UNKNOWN`, und für Java
      * der Konstruktor mit einem Argument (`@JvmOverloads`: `new UpdateCount(n)`). Wächter: ein fehlendes Mitglied, ein
      * anderer Standardwert, ein Konstruktor ohne Überladung für Java.
      *
@@ -171,7 +201,17 @@ class StatementKindEmbeddingTest {
     @Test
     fun dieFlaecheNenntDieKonstantenDasFeldUndDenKonstruktorFuerJava() {
         assertEquals(
-            listOf("UNKNOWN", "INSERT", "DELETE", "UPDATE", "CREATE_TABLE", "ALTER_TABLE"),
+            listOf(
+                "UNKNOWN",
+                "INSERT",
+                "DELETE",
+                "UPDATE",
+                "CREATE_TABLE",
+                "ALTER_TABLE",
+                "IMPLICIT_TRANSACTIONS_ON",
+                "IMPLICIT_TRANSACTIONS_OFF",
+                "COMMIT_IF_OPEN",
+            ),
             StatementKind.entries.map { it.name },
         )
         assertEquals(StatementKind.UNKNOWN, QueryEvent.UpdateCount(1).kind)
@@ -198,6 +238,21 @@ private class KindBackend : QueryBackend {
     override suspend fun cancel(sessionId: String, requestId: String) = Unit
 }
 
+/** Ein Backend, das zu den Transaktionstexten ihre Arten meldet (Zähler 0, das `off`-Paar als zwei Ereignisse). */
+private class TransactionBackend : QueryBackend {
+    override suspend fun execute(request: QueryRequest): QueryExecution = when {
+        request.sql.startsWith("set implicit_transactions on") ->
+            FixedExecution(QueryEvent.UpdateCount(0, StatementKind.IMPLICIT_TRANSACTIONS_ON))
+
+        else -> FixedExecution(
+            QueryEvent.UpdateCount(0, StatementKind.IMPLICIT_TRANSACTIONS_OFF),
+            QueryEvent.UpdateCount(0, StatementKind.COMMIT_IF_OPEN),
+        )
+    }
+
+    override suspend fun cancel(sessionId: String, requestId: String) = Unit
+}
+
 /** Ein Backend, das jede Anfrage mit demselben [event] beantwortet. */
 private class FixedCountBackend(private val event: QueryEvent) : QueryBackend {
     override suspend fun execute(request: QueryRequest): QueryExecution = FixedExecution(event)
@@ -205,8 +260,8 @@ private class FixedCountBackend(private val event: QueryEvent) : QueryBackend {
     override suspend fun cancel(sessionId: String, requestId: String) = Unit
 }
 
-private class FixedExecution(event: QueryEvent) : QueryExecution {
-    override val events: Flow<QueryEvent> = flowOf(event)
+private class FixedExecution(vararg events: QueryEvent) : QueryExecution {
+    override val events: Flow<QueryEvent> = flowOf(*events)
 
     override suspend fun close() = Unit
 }

@@ -62,8 +62,8 @@ class SimulationBackendStructureTest {
      * Happy: der gesendete `CREATE TABLE` legt `produkte` im Schema `dbo` an; der Callback bekommt genau einmal sieben
      * Spalten in der Reihenfolge des Textes (Typ, Nullbarkeit, Länge 200 des Texts, Dezimal 10,2) und den Schlüssel
      * `Id`, die Antwort ist die Art `CREATE_TABLE`, und die nächste Anfrage sieht die Tabelle im Katalog.
-     * Wächter: ein Callback, der vor der Typabbildung gerufen wird, eine andere Art (etwa `UNKNOWN`) oder ein Backend, das den
-     * Anbieter nur beim Bau liest (die nächste Anfrage sähe die Tabelle nicht).
+     * Wächter: ein Callback, der vor der Typabbildung gerufen wird, eine andere Art (etwa `UNKNOWN`) oder ein Backend,
+     * das den Anbieter nur beim Bau liest (die nächste Anfrage sähe die Tabelle nicht).
      * @spec SPEC-036
      */
     @Test
@@ -261,20 +261,59 @@ class SimulationBackendStructureTest {
     }
 
     /**
-     * Happy: die Transaktionstexte von `schema migrate --execute` (`IF @@TRANCOUNT > 0 COMMIT TRAN`, auch mit
-     * `set implicit_transactions off` davor) und `ROLLBACK TRAN` sind der Änderungszähler 0 und rufen keinen Callback:
-     * die Bibliothek hat keine Transaktion (`ADR-0033` Nr. 6, gemessen im Spike: der Bestand bleibt halb geändert).
-     * Wächter: ein `ROLLBACK`, das etwas zurücknimmt, oder ein Ergebnis ohne Anfang (die Sitzung schließt).
+     * Happy: die Transaktionstexte von `schema migrate --execute` rufen keinen Callback: die Bibliothek hat keine
+     * Transaktion (`ADR-0033` Nr. 6, gemessen im Spike: der Bestand bleibt halb geändert). `set implicit_transactions
+     * on` meldet die Art `IMPLICIT_TRANSACTIONS_ON`; `set implicit_transactions off IF @@TRANCOUNT > 0 COMMIT TRAN`
+     * meldet `IMPLICIT_TRANSACTIONS_OFF` und dann `COMMIT_IF_OPEN` (beide gemessen, M-20); `IF @@TRANCOUNT > 0 COMMIT
+     * TRAN` allein und `ROLLBACK TRAN` bleiben der Zähler 0 ohne Art.
+     * Wächter: ein `ROLLBACK`, das etwas zurücknimmt, ein Ergebnis ohne Anfang (die Sitzung schließt), eine Art für
+     * ein ungemessenes `ROLLBACK`.
      * @spec SPEC-036
      */
     @Test
-    fun `Transaktionstexte sind der Zaehler 0 und aendern nichts`() {
+    fun `Transaktionstexte melden ihre Art und aendern nichts`() {
         val store = Store(listOf(kunden))
-        val texts = dMigrateStructureTexts.filter { it.contains("@@TRANCOUNT") } + "IF @@TRANCOUNT > 0 ROLLBACK TRAN"
-        for (sql in texts) assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(0)), run(store, sql), sql)
-        run(store, "set implicit_transactions on ")
+        val plain = "IF @@TRANCOUNT > 0 COMMIT TRAN"
+        val combined = "set implicit_transactions off IF @@TRANCOUNT > 0 COMMIT TRAN "
+        assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(0)), run(store, plain))
+        assertEquals(
+            listOf<QueryEvent>(
+                QueryEvent.UpdateCount(0, StatementKind.IMPLICIT_TRANSACTIONS_OFF),
+                QueryEvent.UpdateCount(0, StatementKind.COMMIT_IF_OPEN),
+            ),
+            run(store, combined),
+        )
+        assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(0)), run(store, "IF @@TRANCOUNT > 0 ROLLBACK TRAN"))
+        assertEquals(
+            listOf<QueryEvent>(QueryEvent.UpdateCount(0, StatementKind.IMPLICIT_TRANSACTIONS_ON)),
+            run(store, "set implicit_transactions on "),
+        )
         assertEquals(emptyList(), store.calls)
         assertEquals(listOf(kunden), store.tables)
+    }
+
+    /**
+     * Die Art des Textes `set implicit_transactions on|off` hängt am einzigen Setting: `off` allein ist Setzung nach
+     * dem ersten Abschluss der Kombination (M-20), jede Folge mit weiteren `SET`-Anweisungen und jedes andere Setting
+     * (`LOCK_TIMEOUT` ist ebenfalls gemessen, `0x00f9`, aber hier nicht gebaut) bleibt der Zähler 0 ohne Art, ebenso
+     * eine Kombination aus `on` und der Bedingung.
+     * Wächter: eine Art für `set ansi_nulls on` oder für eine Folge mit `implicit_transactions` in der Mitte, die
+     * Vertauschung von `on` und `off`.
+     * @spec SPEC-036
+     */
+    @Test
+    fun `Nur das einzelne Setting implicit_transactions meldet eine Art`() {
+        val store = Store(emptyList())
+        fun kindOf(sql: String) = (run(store, sql).single() as QueryEvent.UpdateCount).kind
+        assertEquals(StatementKind.IMPLICIT_TRANSACTIONS_ON, kindOf("set implicit_transactions on"))
+        assertEquals(StatementKind.IMPLICIT_TRANSACTIONS_OFF, kindOf("SET IMPLICIT_TRANSACTIONS OFF;"))
+        assertEquals(StatementKind.UNKNOWN, kindOf("set ansi_nulls on"))
+        assertEquals(StatementKind.UNKNOWN, kindOf("SET LOCK_TIMEOUT 30000"))
+        assertEquals(StatementKind.UNKNOWN, kindOf("set ansi_nulls on; set implicit_transactions on"))
+        assertEquals(
+            StatementKind.UNKNOWN,
+            kindOf("set implicit_transactions on IF @@TRANCOUNT > 0 COMMIT TRAN"),
+        )
     }
 
     /** Ein Integrator, dessen Callback unterbricht, bevor er die Tabelle ersetzt: zwei Anfragen überlappen sich. */
@@ -316,7 +355,8 @@ class SimulationBackendStructureTest {
     fun `zwei gleichzeitige CREATE TABLE derselben Tabelle - genau eine gewinnt`() {
         val store = SlowStore()
         val results = runAll(store.backend, createText, createText)
-        assertEquals(1, results.count { it == listOf<QueryEvent>(QueryEvent.UpdateCount(0, StatementKind.CREATE_TABLE)) })
+        val created = listOf<QueryEvent>(QueryEvent.UpdateCount(0, StatementKind.CREATE_TABLE))
+        assertEquals(1, results.count { it == created })
         val failed = results.single { it.single() is QueryEvent.Failure }
         val rejected = assertIs<QueryEvent.Failure>(failed.single())
         assertEquals(SimCodes.OBJECT_EXISTS, rejected.code)

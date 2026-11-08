@@ -95,8 +95,12 @@ internal sealed interface FixedForm {
     /** Eine oder mehrere `SET`-Anweisungen, durch `;` getrennt. */
     data class Settings(val options: List<SetOption>) : FixedForm
 
-    /** Ein Text der Transaktionssteuerung nach [TransactionForms]: `IF @@TRANCOUNT > 0 COMMIT|ROLLBACK TRAN`. */
-    data object Transaction : FixedForm
+    /**
+     * Ein Text der Transaktionssteuerung nach [TransactionForms]: `IF @@TRANCOUNT > 0 COMMIT|ROLLBACK TRAN`, davor
+     * optional `set implicit_transactions on|off`. [implicit] ist `null` ohne `set`-Teil, sonst der Wert (`true` für
+     * `on`); [commit] ist wahr für `COMMIT`, falsch für `ROLLBACK`.
+     */
+    data class Transaction(val implicit: Boolean?, val commit: Boolean) : FixedForm
 }
 
 /** Das Ergebnis der Erkennung. */

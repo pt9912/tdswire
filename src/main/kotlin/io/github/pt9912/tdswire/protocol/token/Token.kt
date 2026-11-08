@@ -81,10 +81,13 @@ internal object DoneCommand {
     private const val UPDATE = 0x00C5
     private const val CREATE_TABLE = 0x00C6
     private const val ALTER_TABLE = 0x00D8
+    private const val IMPLICIT_TRANSACTIONS_ON = 0x00B9
+    private const val IMPLICIT_TRANSACTIONS_OFF = 0x00BA
+    private const val COMMIT_IF_OPEN = 0x00C0
 
     /**
-     * Die Kennung des Abschlusses der Art [kind] (Messprotokoll W-6 und M-20); [NONE] für `UNKNOWN`. Im SQL_BATCH
-     * gemessen; die Form RPC wendet die Kennung der Strukturänderungen nicht an (`ResponseRun`).
+     * Die Kennung des Abschlusses der Art [kind] (Messprotokoll W-6 und M-20); [NONE] für `UNKNOWN`. Die Arten aus M-20
+     * sind im SQL_BATCH gemessen; die Form RPC wendet ihre Kennung nicht an (`ResponseRun`).
      */
     fun forKind(kind: StatementKind): Int = when (kind) {
         StatementKind.UNKNOWN -> NONE
@@ -93,11 +96,25 @@ internal object DoneCommand {
         StatementKind.UPDATE -> UPDATE
         StatementKind.CREATE_TABLE -> CREATE_TABLE
         StatementKind.ALTER_TABLE -> ALTER_TABLE
+        StatementKind.IMPLICIT_TRANSACTIONS_ON -> IMPLICIT_TRANSACTIONS_ON
+        StatementKind.IMPLICIT_TRANSACTIONS_OFF -> IMPLICIT_TRANSACTIONS_OFF
+        StatementKind.COMMIT_IF_OPEN -> COMMIT_IF_OPEN
     }
 
-    /** Wahr, wenn der Abschluss der Art [kind] im SQL_BATCH eine Zeilenzahl trägt (Bit `COUNT`); M-20: nicht bei DDL. */
-    fun countsRows(kind: StatementKind): Boolean =
-        kind != StatementKind.CREATE_TABLE && kind != StatementKind.ALTER_TABLE
+    /**
+     * Wahr, wenn der Abschluss der Art [kind] im SQL_BATCH eine Zeilenzahl trägt (Bit `COUNT`): `UNKNOWN` und die
+     * Änderungen (W-6); die Arten aus M-20 schließen ohne.
+     */
+    fun countsRows(kind: StatementKind): Boolean = when (kind) {
+        StatementKind.UNKNOWN, StatementKind.INSERT, StatementKind.DELETE, StatementKind.UPDATE -> true
+
+        StatementKind.CREATE_TABLE,
+        StatementKind.ALTER_TABLE,
+        StatementKind.IMPLICIT_TRANSACTIONS_ON,
+        StatementKind.IMPLICIT_TRANSACTIONS_OFF,
+        StatementKind.COMMIT_IF_OPEN,
+        -> false
+    }
 }
 
 /** Die drei Formen des Abschlusstokens. */

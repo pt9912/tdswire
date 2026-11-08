@@ -3,6 +3,7 @@ package io.github.pt9912.tdswire.simulation
 import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.domain.ResultColumn
 import io.github.pt9912.tdswire.domain.SqlType
+import io.github.pt9912.tdswire.domain.StatementKind
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -39,7 +40,8 @@ class SimulationBackendFixedTest {
 
     /**
      * Happy: jede `SET`-Anweisung, auch der Text mit sieben, endet als Änderungszähler 0 und nicht als Ergebnis
-     * ohne Anfang; die Zeilenquelle bleibt ungeöffnet.
+     * ohne Anfang; die Zeilenquelle bleibt ungeöffnet. `set implicit_transactions off` allein meldet die Art
+     * `IMPLICIT_TRANSACTIONS_OFF`, die anderen Texte keine.
      * Wächter: ein `ResultEnd(0)` statt `UpdateCount(0)`, oder ein Zähler ungleich 0.
      * @spec SPEC-036
      */
@@ -47,7 +49,10 @@ class SimulationBackendFixedTest {
     fun `SET endet als Aenderungszaehler 0`() {
         val probe = Probe(rows)
         assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(0)), run("SET LOCK_TIMEOUT 30000", probe))
-        assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(0)), run("set implicit_transactions off", probe))
+        assertEquals(
+            listOf<QueryEvent>(QueryEvent.UpdateCount(0, StatementKind.IMPLICIT_TRANSACTIONS_OFF)),
+            run("set implicit_transactions off", probe),
+        )
         val seven = "SET ANSI_NULLS ON;\nSET ANSI_PADDING ON;\nSET ANSI_WARNINGS ON;\nSET ARITHABORT ON;\n" +
             "SET CONCAT_NULL_YIELDS_NULL ON;\nSET NUMERIC_ROUNDABORT OFF;\nSET QUOTED_IDENTIFIER ON"
         assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(0)), run(seven, probe))

@@ -25,4 +25,19 @@ public enum class StatementKind {
 
     /** `ALTER TABLE … ADD`: Kennung `0x00d8`, ohne Zeilenzahl (Messprotokoll M-20). */
     ALTER_TABLE,
+
+    /** `set implicit_transactions on`: Kennung `0x00b9`, ohne Zeilenzahl (Messprotokoll M-20). */
+    IMPLICIT_TRANSACTIONS_ON,
+
+    /**
+     * `set implicit_transactions off`: Kennung `0x00ba`, ohne Zeilenzahl. Gemessen ist die Kennung als erster Abschluss
+     * des Textes `set implicit_transactions off IF @@TRANCOUNT > 0 COMMIT TRAN` (Messprotokoll M-20).
+     */
+    IMPLICIT_TRANSACTIONS_OFF,
+
+    /**
+     * `IF @@TRANCOUNT > 0 COMMIT TRAN`: Kennung `0x00c0`, ohne Zeilenzahl (Messprotokoll M-20); der Abschluss der
+     * Bedingung, nicht des `COMMIT`.
+     */
+    COMMIT_IF_OPEN,
 }
