@@ -24,6 +24,7 @@ import kotlinx.coroutines.yield
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
 
 private const val NOT_FOUND = "Could not find prepared statement with handle"
 
@@ -445,5 +446,84 @@ class UnprepareDispatchTest {
         assertEquals(1, session.tokens(0).count { it is DoneToken })
         assertEquals(listOf(notFound(99)), session.errors(1))
         assertEquals(ConnectionState.CLOSED, session.ready.live.context.state)
+    }
+
+    private fun timesOf(pause: SteeredPause) =
+        RequestTimes(30.seconds, 5.seconds, now = { FIXED_NOW }, pause = pause::pause)
+
+    /**
+     * Läuft `QUERY_TIMEOUT` während der Antwort auf die Freigabe ab (`SPEC-009`, `SPEC-029`; die Zeit steuert der
+     * Test), bricht die Antwort nach dem dritten ERROR ab: ERROR 50005 und DONE mit Fehlerstatus hängen an die drei
+     * geschriebenen Meldungen, die übrigen Nummern werden nicht gemeldet, die Verbindung bleibt offen, die nächste
+     * Anfrage erhält nur ihre Antwort. Wächter: eine Antwort der Freigabe ohne Frist (`remaining` leer).
+     *
+     * @spec SPEC-009
+     * @spec SPEC-060
+     */
+    @Test
+    fun `Der Ablauf der Frist waehrend der Antwort der Freigabe bricht sie mit TDS_TIMEOUT ab`() = blocking {
+        val backend = ScriptedBackend.ofList(*oneRow.toTypedArray())
+        val pause = SteeredPause()
+        val text = (1..10).joinToString(";") { "EXEC sp_unprepare ${it + 90}" }
+        val session = Session.login(batch(text))
+        val serving = launch {
+            session.serve(
+                backend,
+                times = timesOf(pause),
+                sinkAround = {
+                    ProbeSink(it, at = 3) {
+                        pause.awaitWaiting(30.seconds)
+                        pause.fire(30.seconds)
+                        session.ready.awaitState(ConnectionState.CANCELLING)
+                        session.channel.feed(batch("EXEC sp_unprepare 99"))
+                        session.channel.feed(Inbound.EndOfStream)
+                        repeat(1000) { yield() }
+                    }
+                },
+            )
+        }
+        serving.join()
+        assertEquals(2, session.replies.size)
+        assertEquals(
+            listOf(notFound(91), notFound(92), notFound(93), ServerMessage(50005, 1, 16, "Timeout.")),
+            session.errors(0),
+        )
+        assertTrue(session.hex(0).endsWith(BatchVectors.DONE_ERROR), session.hex(0))
+        assertEquals(listOf(notFound(99)), session.errors(1))
+    }
+
+    /**
+     * Gewinnt ATTENTION erst, nachdem die Antwort der Freigabe vollständig geschrieben ist (es trifft nach dem
+     * abschließenden DONE ein), bleibt die Antwort vollständig, und die Bestätigung `DONE[ATTN]` ist eine eigene
+     * Nachricht. Sie beginnt nicht mit einem zweiten ENVCHANGE Typ 18, obwohl die Anfrage `RESETCONNECTION` trug: das
+     * ENVCHANGE steht genau einmal, als erstes Token der Antwort (Messreihe W-7). Wächter: ein `resetPending`, das
+     * nach der Antwort der Freigabe gesetzt bleibt.
+     *
+     * @spec SPEC-060
+     * @spec TDS-QA-07
+     */
+    @Test
+    fun `ATTENTION nach der vollstaendigen Antwort der Freigabe wiederholt das ENVCHANGE nicht`() = blocking {
+        val backend = ScriptedBackend.ofList(*oneRow.toTypedArray())
+        val session = Session.login(resettingBatch("EXEC sp_unprepare 91;EXEC sp_unprepare 92"))
+        val serving = launch {
+            session.serve(
+                backend,
+                sinkAround = {
+                    ProbeSink(it, at = 3) {
+                        session.channel.feed(BatchVectors.attention())
+                        session.channel.feed(Inbound.EndOfStream)
+                        session.ready.awaitState(ConnectionState.CANCELLING)
+                    }
+                },
+            )
+        }
+        serving.join()
+        assertEquals(2, session.replies.size)
+        assertEquals(
+            listOf("ResetConnection", "ErrorToken", "ErrorToken", "DoneToken"),
+            session.tokens(0).map { it::class.simpleName },
+        )
+        assertEquals(BatchVectors.DONE_ATTN, session.hex(1))
     }
 }

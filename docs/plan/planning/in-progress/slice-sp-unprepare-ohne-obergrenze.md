@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [TDS-FA-04](../../../../spec/lastenheft.md#tds-fa-04--parametrisierte-abfragen-über-rpc), [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität), [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [ADR-0036](../../adr/0036-handle-freigabe-und-grenze-je-sitzung.md), [ADR-0037](../../adr/0037-sp-unprepare-unbekanntes-handle-ergibt-fehler-8179.md)
 
-**Berührte Spec-Stellen:** SPEC-060 (Fehlerzeile `TDS_SIM_UNKNOWN_PREPARED_HANDLE`: „höchstens für die ersten 100 Nummern“, Log „höchstens 100 Einträge je Batch“, Auflösungs-Trigger der Setzung) · SPEC-030 (Abschnitt Handle-Freigabe) · Abschnitt Grenzen und Stabilität der Spezifikation, soweit er den Schutz trägt. **Die Spezifikation ändert dieser Slice** (Teil des Auftrags: Spezifikation ist Zielbild).
+**Berührte Spec-Stellen:** SPEC-060 (Fehlerzeile `TDS_SIM_UNKNOWN_PREPARED_HANDLE`: „höchstens für die ersten 100 Nummern“, Log „höchstens 100 Einträge je Batch“, Auflösungs-Trigger der Setzung) · SPEC-030 (Abschnitt Handle-Freigabe) · SPEC-029 (Abbruch der Freigabe-Antwort) · SPEC-009 (Frist der Freigabe-Antwort) · Abschnitt Grenzen und Stabilität der Spezifikation, soweit er den Schutz trägt. **Die Spezifikation ändert dieser Slice** (Teil des Auftrags: Spezifikation ist Zielbild).
 
 **Verantwortlich:** Implementer-Agent, Auftrag des Nutzers 2026-11-07.
 
@@ -79,7 +79,8 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/dispatch/UnprepareBatch.kt` | update | `MAX_REPORTED` entfällt; `release` liefert die nicht gehaltenen Nummern, `answer` schreibt ein ERROR je Nummer in die Senke und liefert den Ausgang des Laufs (`FAILED`, `CLOSE_WITHOUT_COMPLETION`) |
-| `src/main/kotlin/io/github/pt9912/tdswire/protocol/dispatch/RequestLoop.kt` | update | der Zweig der Freigabe ruft `release` und `answer` unter `AbortableRun` (ATTENTION und Frist brechen die Antwort ab, Anfragezustand bleibt `RUNNING`); `conclude` (aus `execute` herausgelöst) und `leading` tragen beide Zweige; ENVCHANGE nach `RESETCONNECTION` als führendes Token |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/dispatch/RequestLoop.kt` | update | der Zweig der Freigabe ruft `release` und `answer` unter `AbortableRun` (ATTENTION und Frist brechen die Antwort ab, Anfragezustand bleibt `RUNNING`); `RunConclusion` (aus `execute` herausgelöst, `conclude`) trägt beide Zweige, `LeadingToken` bleibt unverändert; ENVCHANGE nach `RESETCONNECTION` als führendes Token |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/dispatch/RunConclusion.kt` | neu | das Ende einer Anfrage nach dem Lauf unter `AbortableRun` (`Finished`, `Cut`, `Abandoned`, `Disconnected`), aus `RequestLoop.execute` herausgelöst; `execute` und die Freigabe-Antwort rufen dieselbe Klasse |
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/error/ErrorAnswers.kt` | neu | `unknownHandles` (ein Log-Eintrag je Antwort, ein ERROR je Nummer in eine `TokenSink`), `encodeTokens` |
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/error/ErrorMapper.kt`, `…/protocol/response/ResponseRun.kt` | update | `code` ohne `handles`-Parameter, `log` für die Erweiterung lesbar; `errorAnswerTail` aus `errorAnswer` abgespalten |
 | `spec/spezifikation.md` (`SPEC-060`, `SPEC-030`) | update | Zielbild folgt dem Messwert M-22; Schutz als Setzung mit Messvermerk. Der Abschnitt Grenzen nennt die Obergrenze nicht (geprüft per `grep`), `SPEC-007` bleibt unverändert |
