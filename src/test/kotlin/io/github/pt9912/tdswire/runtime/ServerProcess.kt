@@ -13,10 +13,14 @@ private const val MEMORY_LIMIT = "-Xmx256m"
  * Der Testserver als Kind-JVM mit `main` aus dem Klassenpfad des Gradle-Moduls `testserver` (Systemeigenschaft
  * `tdswire.testserverclasspath`). Die Umgebung des Kindes besteht nur aus [environment]; Standardausgabe und
  * Fehlerausgabe werden zeilenweise in [output] gesammelt; mit `drain = false` liest der Test die Ausgabe nicht, und
- * der Kanal des Kindes füllt sich. Der Start der Kind-JVM setzt keine JVM-Option außer dem Heap.
+ * der Kanal des Kindes füllt sich. Der Start der Kind-JVM setzt keine JVM-Option außer dem Heap und den [jvmOptions].
  */
-internal class ServerProcess(environment: Map<String, String>, mainClass: String = MAIN_CLASS, drain: Boolean = true) :
-    AutoCloseable {
+internal class ServerProcess(
+    environment: Map<String, String>,
+    mainClass: String = MAIN_CLASS,
+    drain: Boolean = true,
+    jvmOptions: List<String> = emptyList(),
+) : AutoCloseable {
     val output = CopyOnWriteArrayList<String>()
     private val process: Process
     private var reader: Thread
@@ -24,7 +28,7 @@ internal class ServerProcess(environment: Map<String, String>, mainClass: String
     init {
         val java = File(System.getProperty("java.home"), "bin/java").path
         val classpath = checkNotNull(System.getProperty("tdswire.testserverclasspath"))
-        val command = listOf(java, MEMORY_LIMIT, "-cp", classpath, mainClass)
+        val command = listOf(java, MEMORY_LIMIT) + jvmOptions + listOf("-cp", classpath, mainClass)
         val builder = ProcessBuilder(command).redirectErrorStream(true)
         builder.environment().clear()
         builder.environment().putAll(environment)

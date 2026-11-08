@@ -64,21 +64,17 @@ internal fun ErrorRule.message(handle: Int? = null): ServerMessage {
  * synchron, entfällt die Antwort (`SPEC-031`); der Sequenzierer
  * meldet denselben Fall als `CLOSE_WITHOUT_COMPLETION`, und [fateOf] bildet ihn auf `CLOSE_WITHOUT_REPLY` ab.
  */
-internal class ErrorMapper(private val log: ErrorLog = ErrorLog.NONE) {
+internal class ErrorMapper(internal val log: ErrorLog = ErrorLog.NONE) {
     /**
      * Ein Fehler mit eigenem Code; [cause] ist eine feste Marke für das Log, nie ein Wert. Ein Code, dessen Text die
-     * Nummer eines Handles nennt ([ErrorRule.namesHandle]), verlangt [handles], nicht leer: die Antwort trägt ein ERROR
-     * je Nummer in der Reihenfolge von [handles], ohne Obergrenze, danach ein DONE mit Fehlerstatus. Die Antwort
-     * entsteht in einem Puffer genau ihrer Größe (kein ERROR-Token, keine Meldung und keine Liste je Nummer bleibt
-     * im Speicher); das Log trägt einen Eintrag je Antwort, nicht je ERROR. Für jeden anderen Code ist [handles] leer.
+     * Nummer eines Handles nennt ([ErrorRule.namesHandle]), hat eine eigene Antwort ([unknownHandles]).
      */
     fun code(
         code: ErrorCode,
         streamSynchronous: Boolean = true,
         cause: String? = null,
-        handles: List<Int> = emptyList(),
         form: ResponseForm = ResponseForm.BATCH,
-    ): ErrorResponse = response(code, streamSynchronous, cause, handles, form)
+    ): ErrorResponse = response(code, streamSynchronous, cause, form)
 
     /**
      * Ein erwarteter Fehler des Backends. Nur ein Code aus [BACKEND_CODES] ist eine erwartete
@@ -154,18 +150,15 @@ internal class ErrorMapper(private val log: ErrorLog = ErrorLog.NONE) {
         code: ErrorCode,
         streamSynchronous: Boolean,
         cause: String?,
-        handles: List<Int> = emptyList(),
         form: ResponseForm = ResponseForm.BATCH,
     ): ErrorResponse {
         val rule = code.rule
-        require(if (rule.namesHandle) handles.isNotEmpty() else handles.isEmpty()) { "Nummern und Code passen nicht" }
+        require(!rule.namesHandle) { "Nummern und Code passen nicht" }
         log.record(ErrorLogEntry(code, cause))
         if (!streamSynchronous) {
             return ErrorResponse(code, null, ConnectionFate.CLOSE_WITHOUT_REPLY)
         }
-        val message =
-            if (rule.namesHandle) handleAnswer(rule, handles, form) else serialize(listOf(rule.message()), form)
-        return ErrorResponse(code, message, code.rule.fate)
+        return ErrorResponse(code, serialize(listOf(rule.message()), form), code.rule.fate)
     }
 
     private fun serialize(messages: List<ServerMessage>, form: ResponseForm): TdsMessage =

@@ -1,12 +1,14 @@
 package io.github.pt9912.tdswire.protocol.dispatch
 
 import io.github.pt9912.tdswire.protocol.error.ConnectionFate
-import io.github.pt9912.tdswire.protocol.error.ErrorCode
 import io.github.pt9912.tdswire.protocol.error.ErrorMapper
+import io.github.pt9912.tdswire.protocol.error.unknownHandles
 import io.github.pt9912.tdswire.protocol.session.HandshakeEvent
+import io.github.pt9912.tdswire.protocol.session.ReplyStream
 import io.github.pt9912.tdswire.protocol.token.DoneKind
 import io.github.pt9912.tdswire.protocol.token.DoneStatus
 import io.github.pt9912.tdswire.protocol.token.DoneToken
+import io.github.pt9912.tdswire.protocol.token.Token
 import io.github.pt9912.tdswire.protocol.token.TokenEncoder
 import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
 import io.github.pt9912.tdswire.transport.framing.PacketType
@@ -67,25 +69,36 @@ internal object UnprepareBatch {
         return if (wellFormed) text.substring(from, to).toLong().takeIf { it <= Int.MAX_VALUE }?.toInt() else null
     }
 
+    /** Gibt die [numbers] der Reihe nach in [handles] frei; geliefert werden die nicht gehaltenen, der Reihe nach. */
+    suspend fun release(numbers: List<Int>, handles: PreparedHandles): List<Int> =
+        numbers.filterNot { handles.release(it) }
+
     /**
-     * Gibt jede der [numbers] der Reihe nach in [handles] frei und beantwortet den Batch, ohne ein Backend zu rufen:
-     * hielt die Sitzung jedes Handle, ein DONE ohne Bits und ohne Zeilenzahl, wie die Antwort eines Batches ohne
-     * Ergebnis (Festlegung, die Tokenfolge eines echten Servers ist nicht gemessen); sonst die Antwort des [errors]
-     * mit einem ERROR je Nummer, die die Sitzung nicht hielt, ohne Obergrenze (`SPEC-060`, gemessen: M-22); das Log
-     * trägt einen Eintrag je Antwort. Die Zahl der Nummern begrenzt die Nachricht (`MAX_MESSAGE_BYTES`), die Antwort
-     * ist eine Nachricht in einem Puffer ([ErrorMapper.code]). Die Verbindung bleibt in beiden Fällen offen.
+     * Die Antwort auf die Freigabe, deren nicht gehaltene Nummern [unknown] sind: ein DONE ohne Bits und ohne
+     * Zeilenzahl, wenn die Sitzung jede Nummer hielt (Festlegung, die Tokenfolge eines echten Servers ist nicht
+     * gemessen); sonst ein ERROR je Nummer ohne Obergrenze (`SPEC-060`, gemessen: M-22), Token für Token in den Strom
+     * aus [open] geschrieben, nach dem Token [lead], wenn es eines gibt. Die Antwort steht nie als Liste oder Puffer
+     * im Speicher. Scheitert das Schreiben, endet die Verbindung ohne weitere Antwort; sonst bleibt sie offen.
      */
     suspend fun answer(
-        numbers: List<Int>,
-        handles: PreparedHandles,
+        unknown: List<Int>,
+        open: () -> ReplyStream,
+        lead: Token?,
         errors: ErrorMapper,
     ): HandshakeEvent.RequestFinished {
-        val unknown = numbers.filterNot { handles.release(it) }
-        if (unknown.isNotEmpty()) {
-            val code = ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE
-            val response = errors.code(code, cause = UNKNOWN_CAUSE, handles = unknown)
-            return requestFinished(response.fate, response.message)
+        if (unknown.isEmpty()) return completed()
+        val reply = open()
+        val response = StreamedResponse(reply) { }
+        val sink = if (lead != null) LeadingToken(response, lead) else response
+        val written = errors.unknownHandles(unknown, UNKNOWN_CAUSE, sink)
+        return if (written && reply.finish()) {
+            HandshakeEvent.RequestFinished(null, connectionOpen = true, replyWritten = true)
+        } else {
+            HandshakeEvent.RequestFinished(null, connectionOpen = false)
         }
+    }
+
+    private fun completed(): HandshakeEvent.RequestFinished {
         val encoder = TokenEncoder()
         check(encoder.write(DoneToken(DoneKind.DONE, DoneStatus.FINAL, 0, 0)) is ProtocolResult.Ok) {
             "Antwort nicht schreibbar"

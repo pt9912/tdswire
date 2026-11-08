@@ -309,7 +309,10 @@ internal class RequestLoop(
                     bulk.clear()
                     val allHeld = released.distinct().size == released.size && released.all { handles.sql(it) != null }
                     queryOutcome = if (allHeld) SpanOutcome.OK else SpanOutcome.ERROR
-                    UnprepareBatch.answer(released, handles, errors)
+                    val unknown = UnprepareBatch.release(released, handles)
+                    val lead = EnvChange.ResetConnection.takeIf { resetPending && unknown.isNotEmpty() }
+                    if (lead != null) resetPending = false
+                    UnprepareBatch.answer(unknown, { ready.live.openReply(PacketType.TABULAR_RESULT) }, lead, errors)
                 }
             }
         }
