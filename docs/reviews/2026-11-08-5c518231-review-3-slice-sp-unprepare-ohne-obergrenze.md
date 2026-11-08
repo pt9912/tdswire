@@ -107,7 +107,7 @@
 * kategorie: INFO
 * quelle: Slice §6 (Konflikte beim gleichzeitigen Lauf)
 * pfad: `git merge-tree --write-tree --name-only main HEAD`
-* befund: Quelltext, Tests, `spec/`, Nutzer-Doku und Matrix mergen ohne Konflikt. Inhaltskonflikte nur in acht Planungs- und Messdokumenten: `docs/messungen/referenzabgleich.md`, `done/slice-qa-vergleichslauf-d-messungen-bulk-merge.md`, `in-progress/roadmap.md`, Register `messung-am-echten-sql-server-fehlt/state.md`, `next/slice-antwort-tokens-zielbild-luecken-bauen.md`, `open/slice-katalog-und-struktur-an-messung-angleichen.md`, `open/slice-katalogspalten-smallint-tinyint-angleichen.md`, `welle-testserver-manuell.md`. `docs/plan/spec-abdeckung.md` mergt textlich sauber, ist aber ein erzeugtes Dokument: nach dem Merge ist es mit `make spec-abdeckung` neu zu erzeugen (der rote Eintrag aus F-5 und die Zählungen kommen sonst unverändert mit).
+* befund: Quelltext, Tests, `spec/`, Nutzer-Doku und Matrix mergen ohne Konflikt. Inhaltskonflikte nur in acht Planungs- und Messdokumenten: `docs/messungen/referenzabgleich.md`, `done/slice-qa-vergleichslauf-d-messungen-bulk-merge.md`, `in-progress/roadmap.md`, Register `messung-am-echten-sql-server-fehlt/state.md`, `in-progress/slice-antwort-tokens-zielbild-luecken-bauen.md`, `open/slice-katalog-und-struktur-an-messung-angleichen.md`, `open/slice-katalogspalten-smallint-tinyint-angleichen.md`, `welle-testserver-manuell.md`. `docs/plan/spec-abdeckung.md` mergt textlich sauber, ist aber ein erzeugtes Dokument: nach dem Merge ist es mit `make spec-abdeckung` neu zu erzeugen (der rote Eintrag aus F-5 und die Zählungen kommen sonst unverändert mit).
 * verifizierbar: ja
 * klasse: Konflikt nur in Doku
 
