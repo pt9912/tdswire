@@ -142,31 +142,13 @@ class TableStoreTest {
         val failures = ConcurrentLinkedQueue<Throwable>()
         val done = AtomicBoolean(false)
         val steps = Semaphore(0)
-        val readers = (0 until READERS).map {
-            Thread {
-                try {
-                    while (true) {
-                        steps.acquire()
-                        if (done.get()) break
-                        store.catalog().tables.size
-                    }
-                } catch (e: ConcurrentModificationException) {
-                    failures += e
-                }
-            }
-        }
+        val readers = (0 until READERS).map { Thread { readCatalog(store, steps, done, failures) } }
         readers.forEach { it.start() }
         val start = CountDownLatch(1)
         val threads = (0 until writers).map { w ->
             Thread {
                 start.await()
-                for (n in 0 until perWriter) {
-                    val events = ask(backend, "CREATE TABLE [t_${w}_$n] (a INT NOT NULL, PRIMARY KEY (a))")
-                    if (events != listOf<QueryEvent>(QueryEvent.UpdateCount(0))) failures += AssertionError("$events")
-                    steps.release(READERS)
-                    ask(backend, "ALTER TABLE [kunden] ADD [c_${w}_$n] INT")
-                    steps.release(READERS)
-                }
+                for (n in 0 until perWriter) writeStep(backend, w, n, steps, failures)
             }
         }
         threads.forEach { it.start() }
@@ -203,6 +185,39 @@ class TableStoreTest {
             ask(backend, "CREATE TABLE t (a INT NOT NULL, PRIMARY KEY (a))"),
         )
         assertEquals(listOf("t"), listed(backend))
+    }
+
+    /** Ein Leser: ruft `catalog()` einmal je Marke, bis [done] gesetzt ist; eine Änderung der Liste zählt als Fehler. */
+    private fun readCatalog(
+        store: TableStore,
+        steps: Semaphore,
+        done: AtomicBoolean,
+        failures: ConcurrentLinkedQueue<Throwable>,
+    ) {
+        try {
+            while (true) {
+                steps.acquire()
+                if (done.get()) break
+                store.catalog().tables.size
+            }
+        } catch (e: ConcurrentModificationException) {
+            failures += e
+        }
+    }
+
+    /** Ein Schritt eines Schreibers: legt eine Tabelle an, erweitert `kunden`, gibt je Anweisung eine Marke je Leser. */
+    private fun writeStep(
+        backend: QueryBackend,
+        writer: Int,
+        n: Int,
+        steps: Semaphore,
+        failures: ConcurrentLinkedQueue<Throwable>,
+    ) {
+        val events = ask(backend, "CREATE TABLE [t_${writer}_$n] (a INT NOT NULL, PRIMARY KEY (a))")
+        if (events != listOf<QueryEvent>(QueryEvent.UpdateCount(0))) failures += AssertionError("$events")
+        steps.release(READERS)
+        ask(backend, "ALTER TABLE [kunden] ADD [c_${writer}_$n] INT")
+        steps.release(READERS)
     }
 
     private fun tableOf(store: TableStore): SimTable = store.catalog().tables.single { it.name == "kunden" }
