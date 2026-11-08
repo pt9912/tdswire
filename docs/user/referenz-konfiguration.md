@@ -39,7 +39,7 @@ Der Listener nimmt höchstens `MAX_CONNECTIONS` Verbindungen zugleich auf; eine 
 
 ## Prepared-Handles
 
-Eine Sitzung hält höchstens `MAX_PREPARED_HANDLES` Handles zugleich (`SPEC-061`). Das `sp_prepexec`, das ein Handle darüber vergäbe, endet mit `TDS_PREPARE_LIMIT` (`SPEC-058`); die Verbindung bleibt offen, die vorhandenen Handles bleiben gültig. Gezählt werden die gleichzeitig gehaltenen Handles. Freigegeben wird durch den SQL-Batch `EXEC sp_unprepare <n>`; mssql-jdbc 13.4.0 sendet ihn, sobald die Antwort auf `sp_prepexec` ein RETURNSTATUS vor dem Handle trägt. Der RPC `sp_unprepare` gibt nichts frei und endet mit `TDS_UNSUPPORTED_RPC`. Ein Handle, das die Sitzung nicht hält, ergibt bei der Freigabe den Fehler 8179 (Class 16, State 8, Text „Could not find prepared statement with handle <n>.“) wie am echten SQL Server (gemessen am Referenzclient, 2022 und 2025, [Messprotokoll](../messungen/referenzabgleich.md), M-4); der Server meldet höchstens die ersten 100 solcher Nummern eines Batches (der echte Server meldet nach der Messung jede Nummer, ob er begrenzt, ist nicht gemessen; `SPEC-060`). `RESETCONNECTION` leert die Tabelle der Handles. Der Speicher je Sitzung wächst mit Grenze mal Textgröße und ist nicht gemessen; wer die Grenze erhöht, trägt ihn.
+Eine Sitzung hält höchstens `MAX_PREPARED_HANDLES` Handles zugleich (`SPEC-061`). Das `sp_prepexec`, das ein Handle darüber vergäbe, endet mit `TDS_PREPARE_LIMIT` (`SPEC-058`); die Verbindung bleibt offen, die vorhandenen Handles bleiben gültig. Gezählt werden die gleichzeitig gehaltenen Handles. Freigegeben wird durch den SQL-Batch `EXEC sp_unprepare <n>`; mssql-jdbc 13.4.0 sendet ihn, sobald die Antwort auf `sp_prepexec` ein RETURNSTATUS vor dem Handle trägt. Der RPC `sp_unprepare` gibt nichts frei und endet mit `TDS_UNSUPPORTED_RPC`. Ein Handle, das die Sitzung nicht hält, ergibt bei der Freigabe den Fehler 8179 (Class 16, State 8, Text „Could not find prepared statement with handle <n>.“) wie am echten SQL Server (gemessen am Referenzclient, 2022 und 2025, [Messprotokoll](../messungen/referenzabgleich.md), M-4); der Server meldet jede solche Nummer eines Batches mit einem Fehler, ohne Obergrenze, wie der echte Server (Messprotokoll, M-22; `SPEC-060`). Die Zahl der Nummern begrenzt `MAX_MESSAGE_BYTES`; die Antwort (113 Byte für eine einstellige Nummer, bei siebenstelligen rund 125 Byte) geht Token für Token auf den Draht und steht nicht im Speicher, und das Log trägt einen Eintrag je Antwort. Gemessen (Einzelmessung, Serverprozess mit 256 MiB Heap, [Messprotokoll](../messungen/unprepare-antwort-speicher-2026-11-07.md)): zwei gleichzeitige Nachrichten von 16 MiB mit lauter unbekannten Nummern erhalten die vollständige Antwort. Bei vier gleichzeitigen Nachrichten dieser Größe endete in Einzelmessungen (zum Teil einer Messfassung außerhalb des Repos, zum Teil Proben ohne Test im Repo) der Prozess mit `-XX:+ExitOnOutOfMemoryError`, der Option des Image des Testservers, und alle Sitzungen gingen verloren; ohne die Option schloss eine von vier Verbindungen ohne Antwort. Ein Batch aus Leerraum gleicher Größe scheiterte ebenso (die Anfragen belegen den Heap). `RESETCONNECTION` leert die Tabelle der Handles. Der Speicher je Sitzung wächst mit Grenze mal Textgröße und ist nicht gemessen; wer die Grenze erhöht, trägt ihn.
 
 ## Fehlercodes und Antwortformen
 
@@ -60,10 +60,13 @@ Jeder Fehler des Servers erreicht den Client als ERROR (feste englische Meldung,
 | `TDS_SIM_UNKNOWN_OBJECT` | 208 | 20 | schließt |
 | `TDS_SIM_INVALID_VALUE` | 245 | 16 | offen |
 | `TDS_SIM_KEY_VIOLATION` | 2627 | 14 | offen |
+| `TDS_SIM_OBJECT_EXISTS` | 2714 | 16 | offen |
+| `TDS_SIM_COLUMN_EXISTS` | 2705 | 16 | offen |
+| `TDS_SIM_OBJECT_NOT_FOUND` | 4902 | 16 | offen |
 | `TDS_SIM_UNKNOWN_PREPARED_HANDLE` | 8179 | 16 | offen |
 | `TDS_LOGIN_FAILED` | 18456 | 14 | schließt |
 
-Die Antworten auf das Massenladen sind an `SqlBulkCopy` am echten SQL Server 2022 und 2025 gemessen (Form von `INSERT BULK` und der Nachricht, Schlüsselverstoß; [Messprotokoll](../messungen/referenzabgleich.md), M-8 bis M-12); gemessen ist nur der Schlüsselverstoß, die Zuordnung jedes Fehlers des Einfügens zu 2627 ist Setzung.
+Die Antworten auf das Massenladen und die Nachrichten des Referenzclients sind an `SqlBulkCopy` am echten SQL Server 2022 und 2025 gemessen (Katalog-Batch, Form von `INSERT BULK` und der Nachricht, Schlüsselverstoß; [Messprotokoll](../messungen/referenzabgleich.md), M-8 bis M-12); gemessen ist nur der Schlüsselverstoß, die Zuordnung jedes Fehlers des Einfügens zu 2627 ist Setzung.
 
 Die Anmeldung mit falschem Kennwort und mit unbekanntem Benutzer ergibt dieselbe Antwort (Nummer 18456, Class 14, State 1, Text `Login failed.` ohne Kennung). Am echten SQL Server (2022 und 2025) nennt der Text den Benutzernamen; diese Abweichung ist gewollt ([Messprotokoll](../messungen/referenzabgleich.md), A-1). `TDS_SIM_UNKNOWN_OBJECT` sendet Class 20 und schließt die Verbindung, der echte Server sendet Class 16 und lässt sie offen (A-3).
 
@@ -78,6 +81,7 @@ Die Anmeldung mit falschem Kennwort und mit unbekanntem Benutzer ergibt dieselbe
 | Fehler in der Anfrage | `ERROR` und `DONE` mit Fehlerstatus (im RPC `DONEPROC`); der Abschluss nach einem Fehler trägt die Befehlskennung nach der Form des Abschlusses (`SPEC-031`) |
 | erste Anfrage nach `RESETCONNECTION` | beginnt mit `ENVCHANGE` Typ 18 (leerer neuer und alter Wert), gleich welche Antwort folgt (`SPEC-001`) |
 | `INSERT BULK` (Massenladen, Form B) | `DONE` mit Befehl `0x00fd`, ohne Zähler und ohne Statusbits; danach erwartet die Sitzung die Nachricht `0x07` |
+| Probe der Zieltabelle von `SqlBulkCopy` (vor `INSERT BULK`) | vier Ergebnisse wie am echten Server: `@@TRANCOUNT`, die Spalten der Tabelle ohne Zeile, je Spalte die Kollation, die leere Alias-Tabelle; dazwischen `DONE`, `DONEINPROC` und `DONEPROC` der Anweisungen des Batches (`SPEC-036`) |
 | Nachricht `0x07` mit den Zeilen | `DONE` mit `COUNT` (Zahl der geladenen Zeilen) und Befehl `0x00f0` |
 | Fehler beim Laden (Schlüsselverstoß) | `ERROR` 2627 (Class 14, State 1, gekürzter Text), `INFO` 3621 „The statement has been terminated.“ und `DONE` mit `ERROR`, Befehl `0x00f0`, ohne Zähler; die ganze Nachricht ist abgewiesen |
 | Abbruch (ATTENTION) | `DONE` mit `ATTN`; der Server antwortet mit einer Nachricht, der echte Server im Stream mit zwei |

@@ -47,6 +47,11 @@ private const val CLASS_KEY_VIOLATION = 14
 private const val N_LOGIN = 18456
 private const val N_OBJECT = 208
 private const val N_VALUE = 245
+private const val N_OBJECT_EXISTS = 2714
+private const val STATE_OBJECT_EXISTS = 6
+private const val N_COLUMN_EXISTS = 2705
+private const val STATE_COLUMN_EXISTS = 4
+private const val N_OBJECT_NOT_FOUND = 4902
 
 /**
  * Die eigenen Fehlercodes (`SPEC-011` bis `SPEC-016`, `SPEC-037` bis `SPEC-039`, `SPEC-048`,
@@ -71,6 +76,10 @@ private const val N_VALUE = 245
  * - Gemessen am Referenzclient gegen einen echten SQL Server (Zeile M-4 des Messprotokolls
  *   `docs/messungen/referenzabgleich.md`, 2022 und 2025): Nummer 8179, Class 16, State 8 und der Text von
  *   `TDS_SIM_UNKNOWN_PREPARED_HANDLE`; der Wortlaut für andere Handle-Nummern als 1 ist als gleich gesetzt.
+ * - Gemessen am Referenzclient gegen einen echten SQL Server (Zeile M-19 des Messprotokolls, 2022 und 2025): Nummer,
+ *   Class 16 und State von `TDS_SIM_OBJECT_EXISTS` (2714, State 6), `TDS_SIM_COLUMN_EXISTS` (2705, State 4) und
+ *   `TDS_SIM_OBJECT_NOT_FOUND` (4902, State 1) sowie die offene Verbindung; der Text ist ein Auszug des gemessenen
+ *   Textes ohne die Namen (Setzung: der Text eines Backends erreicht den Client nie).
  * - Grundregel (im Zweifel schließen): nur die Folge der Codes ohne Gruppe. Die Class 20 dieser
  *   Codes ist Festlegung, nicht Grundregel.
  * - Festlegung (nicht gemessen): alle übrigen Werte, nämlich die Nummern ohne Vorschlag, jeder State
@@ -153,6 +162,48 @@ internal enum class ErrorCode(val rule: ErrorRule) {
             "Could not find prepared statement with handle",
             ConnectionFate.OPEN,
             namesHandle = true,
+        ),
+    ),
+
+    /**
+     * `CREATE TABLE` einer Tabelle, die der Katalog schon führt. Nummer, Class 16, State 6 und die offene Verbindung
+     * sind gemessen (M-19); der Text lässt den Namen aus.
+     */
+    TDS_SIM_OBJECT_EXISTS(
+        ErrorRule(
+            N_OBJECT_EXISTS,
+            REQUEST,
+            STATE_OBJECT_EXISTS,
+            "There is already an object named in the database.",
+            ConnectionFate.OPEN,
+        ),
+    ),
+
+    /**
+     * `ALTER TABLE … ADD` einer Spalte, die die Tabelle schon führt. Nummer, Class 16, State 4 und die offene
+     * Verbindung sind gemessen (M-19); der Text lässt die Namen aus.
+     */
+    TDS_SIM_COLUMN_EXISTS(
+        ErrorRule(
+            N_COLUMN_EXISTS,
+            REQUEST,
+            STATE_COLUMN_EXISTS,
+            "Column names in each table must be unique.",
+            ConnectionFate.OPEN,
+        ),
+    ),
+
+    /**
+     * `ALTER TABLE` einer Tabelle, die der Katalog nicht führt. Nummer, Class 16, State 1 und die offene Verbindung
+     * sind gemessen (M-19); der Text lässt den Namen aus.
+     */
+    TDS_SIM_OBJECT_NOT_FOUND(
+        ErrorRule(
+            N_OBJECT_NOT_FOUND,
+            REQUEST,
+            STATE,
+            "Cannot find the object because it does not exist or you do not have permissions.",
+            ConnectionFate.OPEN,
         ),
     ),
 }

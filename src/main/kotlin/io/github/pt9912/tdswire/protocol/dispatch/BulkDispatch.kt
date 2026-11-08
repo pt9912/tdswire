@@ -3,6 +3,8 @@ package io.github.pt9912.tdswire.protocol.dispatch
 import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.domain.QueryRequest
 import io.github.pt9912.tdswire.port.BulkLoadingBackend
+import io.github.pt9912.tdswire.port.BulkProbeColumn
+import io.github.pt9912.tdswire.port.BulkProbeResult
 import io.github.pt9912.tdswire.port.BulkTarget
 import io.github.pt9912.tdswire.port.BulkTargetResult
 import io.github.pt9912.tdswire.port.QueryBackend
@@ -32,9 +34,11 @@ import kotlinx.coroutines.flow.flow
  * Trägt das [backend] die Fähigkeit [BulkLoadingBackend] nicht, ist ein `INSERT BULK` ein gewöhnlicher Text für das
  * Backend, und eine Nachricht 0x07 ergibt `TDS_UNSUPPORTED_SQL`. Das IGNORE-Bit einer Nachricht verwirft sie ohne
  * Aufruf des Backends und wird mit dem Änderungszähler 0 beantwortet (Setzung: die Antwort auf eine verworfene
- * Nachricht ist nicht gemessen). Eine Nachricht, die der Leser abweist ([BulkLoadReader]), ruft das Backend nicht;
- * der Fehler ist der des Parsers, wie beim SQL_BATCH. Die Nachricht gilt als Ganzes: der Gegendruck des Backends
- * wirkt zwischen den Nachrichten, weil die Schleife die nächste erst nach der Antwort liest.
+ * Nachricht ist nicht gemessen); die Nachricht gilt als eingetroffen, das Massenladen erwartet keine weitere, ein
+ * folgendes ATTENTION in `READY` ist also die gewöhnliche Bestätigung. Eine Nachricht, die der Leser abweist
+ * ([BulkLoadReader]), ruft das Backend nicht; der Fehler ist der des Parsers, wie beim SQL_BATCH. Die Nachricht gilt
+ * als Ganzes: der Gegendruck des Backends wirkt zwischen den Nachrichten, weil die Schleife die nächste erst nach der
+ * Antwort liest.
  */
 internal class BulkDispatch(backend: QueryBackend) {
     private val loading = backend as? BulkLoadingBackend
@@ -74,6 +78,26 @@ internal class BulkDispatch(backend: QueryBackend) {
         }
     }
 
+    /** Der Ausgang von [probe]: die Spalten der Zieltabelle, aus denen die Antwort entsteht, oder die Ablehnung. */
+    sealed interface Probe {
+        class Columns(val columns: List<BulkProbeColumn>) : Probe
+
+        class Rejected(val via: QueryBackend) : Probe
+    }
+
+    /**
+     * Prüft einen SQL-Text auf die Probe der Zieltabelle von `SqlBulkCopy` (`SPEC-036`, Form B): ist er eine, entfällt
+     * das Ziel (die Probe ist kein `INSERT BULK`) und der Ausgang sagt, wie sie beantwortet wird; sonst `null`.
+     */
+    fun probe(text: String): Probe? {
+        val result = loading?.bulkProbe(text) ?: return null
+        clear()
+        return when (result) {
+            is BulkProbeResult.Ready -> Probe.Columns(result.columns)
+            is BulkProbeResult.Rejected -> Probe.Rejected(Fixed(QueryEvent.Failure(result.code, result.message)))
+        }
+    }
+
     /** Ein RPC oder eine andere Anfrage beendet das Massenladen. */
     fun clear() {
         target = null
@@ -97,7 +121,10 @@ internal class BulkDispatch(backend: QueryBackend) {
         return when {
             loader == null || current == null -> Answer.Reply(Fixed(NOT_EXPECTED), ResponseForm.BATCH)
 
-            message.ignore -> Answer.Reply(Fixed(QueryEvent.UpdateCount(0)))
+            message.ignore -> {
+                awaiting = false
+                Answer.Reply(Fixed(QueryEvent.UpdateCount(0)))
+            }
 
             else -> when (val read = BulkLoadReader.read(message.payload)) {
                 is ProtocolResult.Failed -> Answer.Malformed(read.error)

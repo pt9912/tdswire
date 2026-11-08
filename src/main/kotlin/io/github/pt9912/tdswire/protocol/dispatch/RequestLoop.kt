@@ -15,13 +15,11 @@ import io.github.pt9912.tdswire.protocol.response.ResponseSequencer
 import io.github.pt9912.tdswire.protocol.response.SequenceOutcome
 import io.github.pt9912.tdswire.protocol.response.TokenSink
 import io.github.pt9912.tdswire.protocol.session.AttentionAck
-import io.github.pt9912.tdswire.protocol.session.CloseReason
 import io.github.pt9912.tdswire.protocol.session.ConnectionState
 import io.github.pt9912.tdswire.protocol.session.HandshakeChannel
 import io.github.pt9912.tdswire.protocol.session.HandshakeEvent
 import io.github.pt9912.tdswire.protocol.session.HandshakeOutcome
 import io.github.pt9912.tdswire.protocol.session.Inbound
-import io.github.pt9912.tdswire.protocol.session.ReplyStream
 import io.github.pt9912.tdswire.protocol.sqlbatch.SqlBatchParser
 import io.github.pt9912.tdswire.protocol.token.EnvChange
 import io.github.pt9912.tdswire.protocol.token.TokenEncoder
@@ -74,7 +72,8 @@ import kotlin.time.Duration.Companion.milliseconds
  * nichts frei. Die Freigabe läuft als SQL_BATCH `EXEC sp_unprepare <n>` ([UnprepareBatch]): die Schleife beantwortet
  * ihn ohne das Backend, gibt jedes gehaltene Handle der Reihe nach frei, und jede Nummer, die die Sitzung nicht hält
  * (nie vergeben, schon freigegeben, vor RESETCONNECTION), ergibt einen ERROR `TDS_SIM_UNKNOWN_PREPARED_HANDLE` in
- * derselben Antwort, die dann mit einem DONE mit Fehlerstatus endet; die Verbindung bleibt offen. Ein Text, der nicht
+ * derselben Antwort, die dann mit einem DONE mit Fehlerstatus endet; die Verbindung bleibt offen. Die Antwort läuft
+ * unter [AbortableRun] (ATTENTION unterbricht sie mit genau einem `DONE[ATTN]`, `SPEC-029`). Ein Text, der nicht
  * ganz diese Form hat, geht wie jeder Batch an das Backend. Die Handles enden mit der Schleife und mit dem Bit
  * RESETCONNECTION (nächster Absatz).
  *
@@ -156,6 +155,7 @@ internal class RequestLoop(
     private val mapping = errors.sequencerMapping()
     private val sequencer = ResponseSequencer(mapping)
     private val aborted = AbortedAnswer(errors, mapping)
+    private val conclusion = RunConclusion(ready.live, errors, aborted)
     private val bulk = BulkDispatch(backend)
 
     /** Der Eingang und der Bereich der Läufe; gesetzt, sobald [run] beginnt. */
@@ -304,15 +304,47 @@ internal class RequestLoop(
                 val text = parsed.value.text
                 val released = UnprepareBatch.parse(text)
                 if (released == null) {
-                    execute(text, emptyList(), layout = null, via = bulk.statement(text) ?: backend)
+                    val probe = bulk.probe(text)
+                    if (probe is BulkDispatch.Probe.Columns) {
+                        val (outcome, finished) = BulkCopyProbe.finished(probe.columns, errors)
+                        queryOutcome = outcome
+                        finished
+                    } else {
+                        val via = (probe as? BulkDispatch.Probe.Rejected)?.via ?: bulk.statement(text) ?: backend
+                        execute(text, emptyList(), layout = null, via = via)
+                    }
                 } else {
                     bulk.clear()
-                    val allHeld = released.distinct().size == released.size && released.all { handles.sql(it) != null }
-                    queryOutcome = if (allHeld) SpanOutcome.OK else SpanOutcome.ERROR
-                    UnprepareBatch.answer(released, handles, errors)
+                    val unknown = UnprepareBatch.release(released, handles)
+                    queryOutcome = SpanOutcome.OK.takeIf { unknown.isEmpty() } ?: SpanOutcome.ERROR
+                    if (unknown.isEmpty()) UnprepareBatch.completed() else reportUnknown(unknown)
                 }
             }
         }
+
+    /**
+     * Die Antwort auf die Freigabe mit nicht gehaltenen Nummern: ein ERROR je Nummer, Token für Token in den Strom der
+     * Antwort geschrieben, unter [AbortableRun] wie jede Anfrage (ATTENTION in `RUNNING` und die Frist brechen die
+     * Antwort ab, `SPEC-029`). Der Zustand bleibt `RUNNING`: kein COLMETADATA, kein `STREAMING`.
+     */
+    private suspend fun reportUnknown(unknown: List<Int>): HandshakeEvent.RequestFinished? {
+        val live = ready.live
+        val reply = live.openReply(PacketType.TABULAR_RESULT)
+        val deadline = times.queryTimeout?.let { times.now() + it.inWholeMilliseconds }
+        val remaining = deadline?.let { (it - times.now()).milliseconds }
+        val run = AbortableRun(live, rig.tray, times, rig.detached)
+        val lead = EnvChange.ResetConnection.takeIf { resetPending }
+        val sink = sinkAround(LeadingToken(StreamedResponse(reply) { }, lead))
+        resetPending = false
+        active = run
+        val end = try {
+            run.run(remaining) { UnprepareBatch.answer(unknown, sink, errors) }
+        } finally {
+            active = null
+        }
+        if (end !is RunEnd.Finished) queryOutcome = end.spanOutcome()
+        return conclusion.conclude(end, reply, ResponseForm.BATCH)
+    }
 
     private suspend fun answerRpc(rpc: TdsMessage): HandshakeEvent.RequestFinished? =
         when (val bound = RpcBinder.bind(rpc.payload)) {
@@ -368,7 +400,7 @@ internal class RequestLoop(
         val request = QueryRequest(ready.session.id, requestId, text, parameters, deadline)
         val remaining = deadline?.let { (it - times.now()).milliseconds }
         val run = AbortableRun(live, rig.tray, times, rig.detached)
-        val sink = if (resetPending) LeadingToken(response, EnvChange.ResetConnection) else response
+        val sink = LeadingToken(response, EnvChange.ResetConnection.takeIf { resetPending })
         resetPending = false
         active = run
         val end = try {
@@ -379,36 +411,7 @@ internal class RequestLoop(
             active = null
         }
         queryOutcome = end.spanOutcome()
-        return when (end) {
-            is RunEnd.Finished -> {
-                onOutcome(end.outcome)
-                val fate = errors.fateOf(end.outcome)
-                if (live.context.state == ConnectionState.CLOSED) null else finished(fate, reply)
-            }
-
-            is RunEnd.Cut -> {
-                onOutcome(end.outcome ?: SequenceOutcome.CLOSE_WITHOUT_COMPLETION)
-                if (live.context.state == ConnectionState.CLOSED) null else aborted.conclude(end, reply, form)
-            }
-
-            RunEnd.Abandoned -> {
-                live.abandon(CloseReason.CANCEL_TIMEOUT)
-                null
-            }
-
-            RunEnd.Disconnected -> {
-                onOutcome(SequenceOutcome.CLOSE_WITHOUT_COMPLETION)
-                null
-            }
-        }
-    }
-
-    /** Schließt die Antwort mit dem EOM-Paket ab; scheitert das, schließt die Verbindung ohne weitere Antwort. */
-    private suspend fun finished(fate: ConnectionFate, reply: ReplyStream): HandshakeEvent.RequestFinished {
-        if (fate == ConnectionFate.CLOSE_WITHOUT_REPLY || !reply.finish()) {
-            return HandshakeEvent.RequestFinished(null, connectionOpen = false)
-        }
-        return HandshakeEvent.RequestFinished(null, connectionOpen = fate == ConnectionFate.OPEN, replyWritten = true)
+        return conclusion.conclude(end, reply, form, onOutcome)
     }
 }
 

@@ -8,10 +8,14 @@ import io.github.pt9912.tdswire.protocol.error.ErrorCode
 import io.github.pt9912.tdswire.protocol.error.ErrorLog
 import io.github.pt9912.tdswire.protocol.error.ErrorLogEntry
 import io.github.pt9912.tdswire.protocol.error.ErrorMapper
+import io.github.pt9912.tdswire.protocol.response.TokenSink
+import io.github.pt9912.tdswire.protocol.session.ConnectionState
 import io.github.pt9912.tdswire.protocol.session.Inbound
 import io.github.pt9912.tdswire.protocol.token.DoneStatus
+import io.github.pt9912.tdswire.protocol.token.DoneToken
 import io.github.pt9912.tdswire.protocol.token.ErrorToken
 import io.github.pt9912.tdswire.protocol.token.ServerMessage
+import io.github.pt9912.tdswire.protocol.token.Token
 import io.github.pt9912.tdswire.testsupport.blocking
 import io.github.pt9912.tdswire.transport.framing.PacketType
 import io.github.pt9912.tdswire.transport.framing.TdsMessage
@@ -20,6 +24,7 @@ import kotlinx.coroutines.yield
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
 
 private const val NOT_FOUND = "Could not find prepared statement with handle"
 
@@ -117,10 +122,16 @@ class UnprepareDispatchTest {
         assertEquals(notFound(1), session.errors(4).single())
         assertEquals(notFound(2), session.errors(5).single())
         listOf(2, 4, 5).forEach {
-            // Die Antwort auf die Anfrage mit RESETCONNECTION (5) beginnt mit ENVCHANGE Typ 18.
             assertEquals(if (it == 5) 3 else 2, session.tokens(it).size, "$it")
             assertEquals(DoneStatus.ERROR, session.tokens(it).lastDone().status, "$it")
         }
+        // Die Antwort auf die Anfrage mit RESETCONNECTION (5) beginnt mit ENVCHANGE Typ 18, dann ERROR, dann DONE.
+        assertTrue(session.hex(5).startsWith(BatchVectors.ENVCHANGE_RESET), session.hex(5))
+        assertEquals(
+            listOf("ResetConnection", "ErrorToken", "DoneToken"),
+            session.tokens(5).map { it::class.simpleName },
+        )
+        assertTrue(session.hex(5).endsWith(BatchVectors.DONE_ERROR), session.hex(5))
         assertEquals(unknownHandle, session.errors(6).single())
         assertEquals(listOf("select 1", "select 2"), backend.requests.map { it.sql })
         assertEquals(
@@ -169,36 +180,40 @@ class UnprepareDispatchTest {
     }
 
     /**
-     * Die Antwort auf eine Freigabe mit sehr vielen unbekannten Nummern ist begrenzt (`SPEC-060`, Setzung nach
-     * `UnprepareBatch.MAX_REPORTED`): 50000 unbekannte Nummern vor einem gehaltenen Handle ergeben genau
-     * `MAX_REPORTED` ERROR (die ersten, in der Reihenfolge des Textes), ein DONE mit Fehlerstatus und ebenso viele
-     * Log-Einträge; das gehaltene Handle am Ende des Textes ist trotzdem frei. Wächter: eine Antwort mit einem ERROR je
-     * Nummer (50000 Token), ein Log mit einem Eintrag je Nummer, eine Begrenzung, die die Bearbeitung der übrigen
-     * Nummern abbricht (das Handle 1 bliebe gehalten).
+     * Jede unbekannte Nummer ergibt einen ERROR, ohne Obergrenze (`SPEC-060`; gemessen am echten Server: 100, 101 und
+     * 150 Nummern auf dem Draht, M-22 des Messprotokolls `docs/messungen/referenzabgleich.md`): Batches mit 99, 100,
+     * 101, 150 und 2000 unbekannten Nummern vor einem gehaltenen Handle ergeben je Nummer einen ERROR in der
+     * Reihenfolge des Textes und ein DONE mit Fehlerstatus; das gehaltene Handle am Ende des Textes ist frei. Das Log
+     * trägt je Batch einen Eintrag mit der festen Marke, nicht einen je Nummer. Wächter: eine Obergrenze der Meldungen
+     * (am Rand 100 oder 101 wird gekürzt), ein Abbruch der Bearbeitung nach den gemeldeten Nummern (das Handle 1
+     * bliebe gehalten), ein Log-Eintrag je Nummer.
      *
      * @spec SPEC-060
      * @spec SPEC-030
      */
     @Test
-    fun `Sehr viele unbekannte Nummern ergeben eine begrenzte Antwort und ein begrenztes Log`() = blocking {
+    fun `Jede unbekannte Nummer ergibt einen ERROR, das Log einen Eintrag je Batch`() = blocking {
         val backend = ScriptedBackend.ofList(*oneRow.toTypedArray())
-        val count = 50_000
-        val text = (1..count).joinToString(";") { "EXEC sp_unprepare ${it + 1}" } + ";EXEC sp_unprepare 1"
-        val session = Session.login(
-            rpc(prepExec(-1, "select 1", "")),
-            batch(text),
-            rpc(execute(1)),
-            Inbound.EndOfStream,
-        )
         val logged = mutableListOf<ErrorLogEntry>()
-        val loop = session.loop(backend, ErrorMapper(ErrorLog { logged += it }))
-        loop.run()
-        val limit = UnprepareBatch.MAX_REPORTED
-        assertEquals((2..limit + 1).map { notFound(it) }, session.errors(1))
-        assertEquals(limit + 1, session.tokens(1).size)
-        assertEquals(DoneStatus.ERROR, session.tokens(1).lastDone().status)
-        assertEquals(limit, logged.count { it.code == ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE })
-        assertEquals(unknownHandle, session.errors(2).single())
+        val counts = listOf(99, 100, 101, 150, 2000)
+        counts.forEach { count ->
+            val text = (1..count).joinToString(";") { "EXEC sp_unprepare ${it + 1}" } + ";EXEC sp_unprepare 1"
+            val session = Session.login(
+                rpc(prepExec(-1, "select 1", "")),
+                batch(text),
+                rpc(execute(1)),
+                Inbound.EndOfStream,
+            )
+            session.loop(backend, ErrorMapper(ErrorLog { logged += it })).run()
+            assertEquals((2..count + 1).map { notFound(it) }, session.errors(1), "$count Nummern")
+            assertEquals(count + 1, session.tokens(1).size, "$count Nummern")
+            assertEquals(DoneStatus.ERROR, session.tokens(1).lastDone().status, "$count Nummern")
+            assertEquals(unknownHandle, session.errors(2).single(), "$count Nummern: Handle 1 frei")
+        }
+        assertEquals(
+            List(counts.size) { ErrorLogEntry(ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE, "unknown-prepared-handle") },
+            logged.filter { it.code == ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE },
+        )
     }
 
     /**
@@ -351,5 +366,164 @@ class UnprepareDispatchTest {
         assertEquals(limit + 2, session.replies.size)
         assertEquals(BatchVectors.DONE_FINAL, session.hex(limit))
         assertTrue(session.errors(limit + 1).isEmpty())
+    }
+
+    /** Nimmt jedes Token der [inner] an; [during] läuft nach dem [at]-ten Token, [refuseAt] weist genau dieses ab. */
+    private class ProbeSink(
+        private val inner: TokenSink,
+        private val at: Int,
+        private val refuseAt: Boolean = false,
+        private val during: suspend () -> Unit = {},
+    ) : TokenSink {
+        private var seen = 0
+
+        override suspend fun accept(token: Token): Boolean {
+            val taken = inner.accept(token)
+            if (++seen != at) return taken
+            during()
+            return taken && !refuseAt
+        }
+    }
+
+    /**
+     * Nimmt die Senke ein Token der Antwort nicht an (Client schließt, Kanal bricht), endet die Verbindung ohne
+     * weitere Antwort: Sitzung `CLOSED`, die folgende Nachricht bleibt unbeantwortet, und von der abgebrochenen
+     * Antwort geht keine Nachricht hinaus. Gefahren wird jede Stelle einzeln (ein ERROR in der Mitte, das letzte
+     * ERROR, das abschließende DONE); die Senke weist nur dieses eine Token ab und nimmt danach wieder an, damit jede
+     * Stelle für sich geprüft ist. Wächter: eine Verbindung, die nach dem Schreibfehler offen bleibt, ein ignoriertes
+     * Ergebnis des Schreibens eines ERROR oder des Abschlusses, eine Antwort, die dennoch beendet wird.
+     *
+     * @spec SPEC-060
+     * @spec TDS-QA-07
+     */
+    @Test
+    fun `Ein abgewiesenes Token mitten in der Antwort beendet die Verbindung ohne weitere Antwort`() = blocking {
+        val backend = ScriptedBackend.ofList(*oneRow.toTypedArray())
+        listOf(2, 3, 4).forEach { refused ->
+            val session = Session.login(
+                batch("EXEC sp_unprepare 91;EXEC sp_unprepare 92;EXEC sp_unprepare 93"),
+                batch("EXEC sp_unprepare 94"),
+                Inbound.EndOfStream,
+            )
+            session.serve(backend, sinkAround = { ProbeSink(it, refused, refuseAt = true) })
+            assertEquals(ConnectionState.CLOSED, session.ready.live.context.state, "Token $refused")
+            assertTrue(session.replies.isEmpty(), "Token $refused: ${session.replies.size} Antworten")
+        }
+    }
+
+    /**
+     * ATTENTION während der Antwort auf die Freigabe (`TDS-FA-07`, `SPEC-029`, Anfragezustand `RUNNING`): nach dem
+     * dritten ERROR trifft ATTENTION ein, die Antwort endet dort mit genau einem `DONE[ATTN]` (Handvektor) ohne
+     * weiteres ERROR und ohne das abschließende DONE mit Fehlerstatus; die Verbindung bleibt offen, die nächste
+     * Anfrage erhält nur ihre Antwort. Wächter: eine Antwort, die ohne `AbortableRun` ganz geschrieben wird.
+     *
+     * @spec SPEC-029
+     * @spec SPEC-060
+     * @spec TDS-FA-07
+     */
+    @Test
+    fun `ATTENTION waehrend der Antwort der Freigabe bricht sie mit einem DONE ATTN ab`() = blocking {
+        val backend = ScriptedBackend.ofList(*oneRow.toTypedArray())
+        val text = (1..10).joinToString(";") { "EXEC sp_unprepare ${it + 90}" }
+        val session = Session.login(batch(text))
+        val serving = launch {
+            session.serve(
+                backend,
+                sinkAround = {
+                    ProbeSink(it, at = 3) {
+                        session.channel.feed(BatchVectors.attention())
+                        session.channel.feed(batch("EXEC sp_unprepare 99"))
+                        session.channel.feed(Inbound.EndOfStream)
+                        repeat(1000) { yield() }
+                    }
+                },
+            )
+        }
+        serving.join()
+        assertEquals(2, session.replies.size)
+        assertEquals(listOf(notFound(91), notFound(92), notFound(93)), session.errors(0))
+        assertTrue(session.hex(0).endsWith(BatchVectors.DONE_ATTN), session.hex(0))
+        assertEquals(1, session.tokens(0).count { it is DoneToken })
+        assertEquals(listOf(notFound(99)), session.errors(1))
+        assertEquals(ConnectionState.CLOSED, session.ready.live.context.state)
+    }
+
+    private fun timesOf(pause: SteeredPause) =
+        RequestTimes(30.seconds, 5.seconds, now = { FIXED_NOW }, pause = pause::pause)
+
+    /**
+     * Läuft `QUERY_TIMEOUT` während der Antwort auf die Freigabe ab (`SPEC-009`, `SPEC-029`; die Zeit steuert der
+     * Test), bricht die Antwort nach dem dritten ERROR ab: ERROR 50005 und DONE mit Fehlerstatus hängen an die drei
+     * geschriebenen Meldungen, die übrigen Nummern werden nicht gemeldet, die Verbindung bleibt offen, die nächste
+     * Anfrage erhält nur ihre Antwort. Wächter: eine Antwort der Freigabe ohne Frist (`remaining` leer).
+     *
+     * @spec SPEC-009
+     * @spec SPEC-060
+     */
+    @Test
+    fun `Der Ablauf der Frist waehrend der Antwort der Freigabe bricht sie mit TDS_TIMEOUT ab`() = blocking {
+        val backend = ScriptedBackend.ofList(*oneRow.toTypedArray())
+        val pause = SteeredPause()
+        val text = (1..10).joinToString(";") { "EXEC sp_unprepare ${it + 90}" }
+        val session = Session.login(batch(text))
+        val serving = launch {
+            session.serve(
+                backend,
+                times = timesOf(pause),
+                sinkAround = {
+                    ProbeSink(it, at = 3) {
+                        pause.awaitWaiting(30.seconds)
+                        pause.fire(30.seconds)
+                        session.ready.awaitState(ConnectionState.CANCELLING)
+                        session.channel.feed(batch("EXEC sp_unprepare 99"))
+                        session.channel.feed(Inbound.EndOfStream)
+                        repeat(1000) { yield() }
+                    }
+                },
+            )
+        }
+        serving.join()
+        assertEquals(2, session.replies.size)
+        assertEquals(
+            listOf(notFound(91), notFound(92), notFound(93), ServerMessage(50005, 1, 16, "Timeout.")),
+            session.errors(0),
+        )
+        assertTrue(session.hex(0).endsWith(BatchVectors.DONE_ERROR), session.hex(0))
+        assertEquals(listOf(notFound(99)), session.errors(1))
+    }
+
+    /**
+     * Gewinnt ATTENTION erst, nachdem die Antwort der Freigabe vollständig geschrieben ist (es trifft nach dem
+     * abschließenden DONE ein), bleibt die Antwort vollständig, und die Bestätigung `DONE[ATTN]` ist eine eigene
+     * Nachricht. Sie beginnt nicht mit einem zweiten ENVCHANGE Typ 18, obwohl die Anfrage `RESETCONNECTION` trug: das
+     * ENVCHANGE steht genau einmal, als erstes Token der Antwort (Messreihe W-7). Wächter: ein `resetPending`, das
+     * nach der Antwort der Freigabe gesetzt bleibt.
+     *
+     * @spec SPEC-060
+     * @spec TDS-QA-07
+     */
+    @Test
+    fun `ATTENTION nach der vollstaendigen Antwort der Freigabe wiederholt das ENVCHANGE nicht`() = blocking {
+        val backend = ScriptedBackend.ofList(*oneRow.toTypedArray())
+        val session = Session.login(resettingBatch("EXEC sp_unprepare 91;EXEC sp_unprepare 92"))
+        val serving = launch {
+            session.serve(
+                backend,
+                sinkAround = {
+                    ProbeSink(it, at = 3) {
+                        session.channel.feed(BatchVectors.attention())
+                        session.channel.feed(Inbound.EndOfStream)
+                        session.ready.awaitState(ConnectionState.CANCELLING)
+                    }
+                },
+            )
+        }
+        serving.join()
+        assertEquals(2, session.replies.size)
+        assertEquals(
+            listOf("ResetConnection", "ErrorToken", "ErrorToken", "DoneToken"),
+            session.tokens(0).map { it::class.simpleName },
+        )
+        assertEquals(BatchVectors.DONE_ATTN, session.hex(1))
     }
 }

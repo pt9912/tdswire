@@ -13,10 +13,12 @@ import kotlin.test.assertTrue
  * [ProtocolResult.Failed]), nie mit einer Ausnahme, und die Zellenzahl eines Ergebnisses überschreitet die Grenze
  * nicht. Nicht belegt ist, dass eine einzelne Prüfung des Lesers greift: in einem Mutationslauf, der die
  * Längenprüfungen entfernte, blieb dieser Test grün, weil `ByteReader` die Grenzen hält; die Prüfungen tragen die
- * Handvektoren in `BulkLoadReaderTest`. Die Ausgangsnutzlasten sind zwei: der Mitschnitt von mssql-jdbc aus
- * `BulkLoadReaderTest` (`INTN` 8, `NVARCHAR`, `BIGVARCHAR`) und eine von Hand gebaute mit `INTN` 4, `BITN`,
- * `DECIMALN`, `DATEN`, `TIMEN` und `DATETIME2N` (ohne Mitschnitt, die Typpfade des Wertlesers). Die Veränderungen
- * sind überschriebene Bytes, eingefügte Bytes, herausgeschnittene Bytes, eine veränderte Längenangabe, ein
+ * Handvektoren in `BulkLoadReaderTest`. Die Ausgangsnutzlasten sind fünf: der Mitschnitt von mssql-jdbc aus
+ * `BulkLoadReaderTest` (`INTN` 8, `NVARCHAR`, `BIGVARCHAR`), eine von Hand gebaute mit `INTN` 4, `BITN`,
+ * `DECIMALN`, `DATEN`, `TIMEN` und `DATETIME2N` (ohne Mitschnitt, die Typpfade des Wertlesers), eine von Hand gebaute
+ * mit den festen Typen und die beiden Nachrichten `typen-null` und `verstoss-schluessel` des Referenzclients. Die
+ * Veränderungen sind überschriebene Bytes, eingefügte Bytes, herausgeschnittene Bytes, eine veränderte Längenangabe,
+ * ein
  * abgeschnittenes Ende und Zufallsbytes. Der Zufall ist fest gesät, der Lauf wiederholbar. PLP und NBCROW weist
  * der Leser ab; ihre Pfade werden nicht verändert, weil der Leser sie nicht liest.
  */
@@ -39,7 +41,21 @@ class BulkLoadFuzzTest {
             "FD 00 00 00 00 00 00 00 00 00 00 00 00",
     )
 
-    private val bases = listOf(mitschnitt, typen)
+    /** Feste Typen BIGINT, INT, SMALLINT, TINYINT und BIT in der Form von mssql-jdbc, DONE mit 12 Byte (Handvektor). */
+    private val festeTypen = hex(
+        "81 05 00 " +
+            "00 00 00 00 00 00 30 01 61 00 00 00 00 00 00 00 32 01 62 00 00 00 00 00 00 00 34 01 63 00 " +
+            "00 00 00 00 00 00 38 01 64 00 00 00 00 00 00 00 7F 01 65 00 " +
+            "D1 FF 01 FE FF 00 00 00 80 00 00 00 00 00 00 00 80 " +
+            "FD 00 00 00 00 00 00 00 00 00 00 00 00",
+    )
+
+    /** Nachrichten des Referenzclients (`SqlBulkCopy`, M-8 bis M-12): Nullbyte nach der Spaltenzahl, DONE 8 Byte. */
+    private val referenzclient = listOf("typen-null", "verstoss-schluessel").map {
+        hex(requireNotNull(javaClass.getResource("/messung/bulk-referenzclient/$it.hex")).readText())
+    }
+
+    private val bases = listOf(mitschnitt, typen, festeTypen) + referenzclient
 
     private fun overwritten(valid: ByteArray, random: Random): ByteArray = valid.copyOf().also {
         repeat(random.nextInt(1, MAX_BYTES)) { _ -> it[random.nextInt(it.size)] = random.nextInt().toByte() }

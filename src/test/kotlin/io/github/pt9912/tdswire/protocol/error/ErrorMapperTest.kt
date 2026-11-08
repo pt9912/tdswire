@@ -3,6 +3,7 @@ package io.github.pt9912.tdswire.protocol.error
 import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.protocol.response.ResponseForm
 import io.github.pt9912.tdswire.protocol.response.SequenceOutcome
+import io.github.pt9912.tdswire.protocol.response.TokenSink
 import io.github.pt9912.tdswire.protocol.session.LoginResponses
 import io.github.pt9912.tdswire.protocol.token.DoneCommand
 import io.github.pt9912.tdswire.protocol.token.DoneKind
@@ -11,12 +12,15 @@ import io.github.pt9912.tdswire.protocol.token.DoneToken
 import io.github.pt9912.tdswire.protocol.token.ErrorToken
 import io.github.pt9912.tdswire.protocol.token.InfoToken
 import io.github.pt9912.tdswire.protocol.token.ReturnStatusToken
+import io.github.pt9912.tdswire.protocol.token.TokenEncoder
 import io.github.pt9912.tdswire.protocol.wire.ProtocolError
 import io.github.pt9912.tdswire.protocol.wire.ProtocolFailure
+import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
 import io.github.pt9912.tdswire.testsupport.TokenDecoder
 import io.github.pt9912.tdswire.testsupport.hex
 import io.github.pt9912.tdswire.testsupport.toHex
 import io.github.pt9912.tdswire.transport.framing.PacketType
+import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -153,13 +157,57 @@ class ErrorMapperTest {
         assertTrue(message.payload.toHex().endsWith(tail))
     }
 
+    /** Die Bytes der Antwort von [ErrorMapper.unknownHandles], von einer Senke gesammelt. */
+    private fun unknownHandlesAnswer(errors: ErrorMapper, handles: List<Int>): ByteArray {
+        val encoder = TokenEncoder()
+        val sink = TokenSink { token -> encoder.write(token) is ProtocolResult.Ok }
+        assertTrue(runBlocking { errors.unknownHandles(handles, "unknown-prepared-handle", sink) })
+        return encoder.toByteArray()
+    }
+
+    /**
+     * Die Strukturabweisung ist ERROR 2714 (State 6), 2705 (State 4) und 4902 (State 1), je Class 16, danach DONE mit
+     * `ERROR`, Befehl `0x00fd`, ohne Zähler; die Verbindung bleibt offen. Nummer, Class, State, die offene Verbindung
+     * und der Abschluss sind am Referenzclient gegen den echten SQL Server gemessen (Zeile M-19, 2022 und 2025), der
+     * Text ist ein Auszug des gemessenen Textes ohne die Namen (Setzung). Wächter: Class 20 mit schließender
+     * Verbindung (der Code `TDS_SIM_UNKNOWN_OBJECT`), State 1 für alle drei, eine andere Nummer, ein anderer Text.
+     *
+     * @spec SPEC-036
+     * @spec TDS-QA-01
+     */
+    @Test
+    fun `Strukturabweisung ist ERROR 2714 State 6, 2705 State 4 und 4902 State 1 mit offener Verbindung`() {
+        val expected = mapOf(
+            ErrorCode.TDS_SIM_OBJECT_EXISTS to listOf(2714, 6, 16),
+            ErrorCode.TDS_SIM_COLUMN_EXISTS to listOf(2705, 4, 16),
+            ErrorCode.TDS_SIM_OBJECT_NOT_FOUND to listOf(4902, 1, 16),
+        )
+        val texts = mapOf(
+            ErrorCode.TDS_SIM_OBJECT_EXISTS to "There is already an object named in the database.",
+            ErrorCode.TDS_SIM_COLUMN_EXISTS to "Column names in each table must be unique.",
+            ErrorCode.TDS_SIM_OBJECT_NOT_FOUND to
+                "Cannot find the object because it does not exist or you do not have permissions.",
+        )
+        for ((code, numbers) in expected) {
+            val response = mapper.code(code)
+            assertEquals(ConnectionFate.OPEN, response.fate, code.name)
+            val tokens = TokenDecoder(assertNotNull(response.message).payload).decodeAll()
+            assertEquals(2, tokens.size, code.name)
+            val error = assertIs<ErrorToken>(tokens[0]).message
+            assertEquals(numbers, listOf(error.number, error.state, error.severity), code.name)
+            assertEquals(texts.getValue(code), error.text, code.name)
+            assertEquals(DoneToken(DoneKind.DONE, DoneStatus.ERROR, DoneCommand.BATCH, 0), tokens[1], code.name)
+            assertTrue(code in ErrorMapper.BACKEND_CODES, code.name)
+        }
+    }
+
     /**
      * `TDS_SIM_UNKNOWN_PREPARED_HANDLE` ist ERROR 8179, State 8, Class 16 mit dem Text „Could not find prepared
      * statement with handle <n>.“ und bleibt offen. Nummer, Class, State und Wortlaut für Handle 1 sind am
      * Referenzclient gegen den echten SQL Server gemessen (Zeile M-4); die Bytes sind Handvektor. Zwei Nummern
-     * ergeben zwei ERROR vor dem einen DONE mit Fehlerstatus, je ein Log-Eintrag mit der festen Marke. Wächter:
+     * ergeben zwei ERROR vor dem einen DONE mit Fehlerstatus, ein Log-Eintrag mit der festen Marke je Antwort. Wächter:
      * State 1 statt 8, eine andere Nummer, ein Text ohne Handle, ein ERROR nur für die erste Nummer, ein fehlender
-     * Log-Eintrag.
+     * Log-Eintrag, ein Log-Eintrag je Nummer.
      *
      * @spec SPEC-060
      */
@@ -168,8 +216,7 @@ class ErrorMapperTest {
         val entries = mutableListOf<ErrorLogEntry>()
         val logging = ErrorMapper { entries += it }
         val code = ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE
-        val one = assertNotNull(logging.code(code, cause = "unknown-prepared-handle", handles = listOf(1)).message)
-        assertEquals(PacketType.TABULAR_RESULT, one.type)
+        val one = unknownHandlesAnswer(logging, listOf(1))
         assertEquals(
             hex(
                 "AA 6E 00 F3 1F 00 00 08 10 30 00 43 00 6F 00 75 00 6C 00 64 00 20 00 6E" +
@@ -178,9 +225,9 @@ class ErrorMapperTest {
                     " 00 6E 00 74 00 20 00 77 00 69 00 74 00 68 00 20 00 68 00 61 00 6E 00 64" +
                     " 00 6C 00 65 00 20 00 31 00 2E 00 00 00 00 00 00 00  $done",
             ).toHex(),
-            one.payload.toHex(),
+            one.toHex(),
         )
-        val two = logging.code(code, cause = "unknown-prepared-handle", handles = listOf(1, 12))
+        val two = unknownHandlesAnswer(logging, listOf(1, 12))
         assertEquals(
             hex(
                 "AA 6E 00 F3 1F 00 00 08 10 30 00 43 00 6F 00 75 00 6C 00 64 00 20 00 6E" +
@@ -194,13 +241,11 @@ class ErrorMapperTest {
                     " 00 6E 00 74 00 20 00 77 00 69 00 74 00 68 00 20 00 68 00 61 00 6E 00 64" +
                     " 00 6C 00 65 00 20 00 31 00 32 00 2E 00 00 00 00 00 00 00  $done",
             ).toHex(),
-            assertNotNull(two.message).payload.toHex(),
+            two.toHex(),
         )
-        assertEquals(ConnectionFate.OPEN, two.fate)
-        assertEquals(code, two.code)
         assertEquals(16, code.rule.severity)
         assertEquals(8, code.rule.state)
-        assertEquals(List(3) { ErrorLogEntry(code, "unknown-prepared-handle") }, entries)
+        assertEquals(List(2) { ErrorLogEntry(code, "unknown-prepared-handle") }, entries)
     }
 
     /**
@@ -215,7 +260,6 @@ class ErrorMapperTest {
         assertFailsWith<IllegalArgumentException> { ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE.rule.message() }
         assertFailsWith<IllegalArgumentException> { ErrorCode.TDS_UNKNOWN_HANDLE.rule.message(1) }
         assertFailsWith<IllegalArgumentException> { mapper.code(ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE) }
-        assertFailsWith<IllegalArgumentException> { mapper.code(ErrorCode.TDS_UNKNOWN_HANDLE, handles = listOf(1)) }
     }
 
     /** @spec SPEC-014 */
@@ -312,6 +356,7 @@ class ErrorMapperTest {
             "TDS_BACKEND_ERROR", "TDS_TIMEOUT", "TDS_UNSUPPORTED_SQL", "TDS_SIM_UNKNOWN_OBJECT",
             "TDS_SIM_INVALID_VALUE", "TDS_INTERNAL_ERROR", "TDS_SHUTDOWN", "TDS_UNKNOWN_HANDLE", "TDS_PREPARE_LIMIT",
             "TDS_SIM_UNKNOWN_PREPARED_HANDLE", "TDS_SIM_KEY_VIOLATION",
+            "TDS_SIM_OBJECT_EXISTS", "TDS_SIM_COLUMN_EXISTS", "TDS_SIM_OBJECT_NOT_FOUND",
         )
         assertEquals(expected, ErrorCode.entries.map { it.name }.toSet())
         assertEquals(expected.size, ErrorCode.entries.map { it.rule.number }.toSet().size)
@@ -351,6 +396,9 @@ class ErrorMapperTest {
             ErrorCode.TDS_PREPARE_LIMIT,
             ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE,
             ErrorCode.TDS_SIM_KEY_VIOLATION,
+            ErrorCode.TDS_SIM_OBJECT_EXISTS,
+            ErrorCode.TDS_SIM_COLUMN_EXISTS,
+            ErrorCode.TDS_SIM_OBJECT_NOT_FOUND,
             ErrorCode.TDS_TIMEOUT,
         )
         ErrorCode.entries.forEach {

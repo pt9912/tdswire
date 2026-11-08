@@ -1,0 +1,2 @@
+**Vorgang:** [slice-bulk-load-feste-typen-und-referenzclient](../../../../done/slice-bulk-load-feste-typen-und-referenzclient.md)
+**Fund:** [Review](../../../../../../reviews/2026-11-08-dcb5196b-review-slice-bulk-load-feste-typen-und-referenzclient.md): F-1 (HIGH): ein Kommentar in `BulkCopyProbe` beschrieb die verworfene Alternative und einen nicht belegten Lauf. Behoben: das KDoc nennt die Aufzeichnung und den Test.

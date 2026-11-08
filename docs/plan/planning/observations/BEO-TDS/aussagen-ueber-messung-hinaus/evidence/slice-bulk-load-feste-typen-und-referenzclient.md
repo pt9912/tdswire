@@ -1,0 +1,2 @@
+**Vorgang:** [slice-bulk-load-feste-typen-und-referenzclient](../../../../done/slice-bulk-load-feste-typen-und-referenzclient.md)
+**Fund:** [Verifikation](../../../../../../reviews/2026-11-08-6c0f7f62-verifikation-slice-bulk-load-feste-typen-und-referenzclient.md): V-1 (LOW) und F-8 (LOW): „Größe 17 für jede Precision, so die Aufzeichnung“ nannte eine Messung für mehr, als sie zeigt (aufgezeichnet ist nur `DECIMALN(10,2)`); „zwei Tabellen“ in KDoc und Spezifikation, wo sechs aufgezeichnet sind. Behoben durch Einschränken und Kennzeichnen als Setzung.
