@@ -115,7 +115,8 @@ internal class TelemetryWiringTest : RuntimeTestBase() {
      * Servers vorbereitet (`ADR-0043`). Gemessen ist das in einer Kind-JVM aus Klassenverzeichnissen (nicht aus einem
      * Jar): 128 Dateien für `ACCEPT_FAILED` und das Wiederannehmen, 160 für `ACCEPT_FAILED`
      * (`TelemetryRedactionTest`). Rot wird der Test, wenn die Vorbereitung der Listener-Klassen, die des Weges bis
-     * zum Ereignis oder die der Klassen des Lesepfads entfällt (je einzeln gesehen). Die Grenze von 128 Dateien ist
+     * zum Ereignis oder die der Ergebniswerte des Lesens entfällt (je einzeln gesehen; der Lesepfad ist nur
+     * für das Ende gehaltener, vom Client geschlossener Verbindungen belegt). Die Grenze von 128 Dateien ist
      * eine Setzung des Tests.
      *
      * @spec SPEC-048
@@ -128,7 +129,8 @@ internal class TelemetryWiringTest : RuntimeTestBase() {
             val port = child.port()
             val lines = child.provokeAcceptFailure(port)
             val failed = lines.filter { "Kind=ACCEPT_FAILED" in it }
-            assertTrue(failed.isNotEmpty(), "kein ACCEPT_FAILED: ${child.output.map { it.take(DIAGNOSTIC_CHARS) }}")
+            val shown = child.output.map { it.take(DIAGNOSTIC_CHARS) }
+            assertTrue(failed.isNotEmpty(), "kein ACCEPT_FAILED, fehlt: ${missingClasses(child.output)}; $shown")
             failed.forEach { line ->
                 val fields = line.removePrefix(EVENT_PREFIX).split(" ")
                 assertEquals("AcceptFailed", fields.first(), line)
@@ -141,6 +143,9 @@ internal class TelemetryWiringTest : RuntimeTestBase() {
             assertTrue(serves(port), "der Server nimmt nach dem Schließen nicht mehr an: ${child.output}")
         }
     }
+
+    /** Die Zeilen der Kind-JVM mit `NoClassDefFoundError` (eine nicht ladbare Klasse); leer, wenn keine fehlt. */
+    private fun missingClasses(output: List<String>): List<String> = output.filter { "NoClassDefFoundError" in it }
 
     /** `true`, sobald der Server auf ein PRELOGIN antwortet; wartet bis zu zehn Sekunden auf freigegebene Dateien. */
     private fun serves(port: Int): Boolean {

@@ -217,13 +217,15 @@ internal class TdsListener private constructor(
          * keine Klassendatei mehr öffnen, und eine dort erstmals benötigte Klasse endet mit `NoClassDefFoundError`.
          * Das trifft den `failed`-Callback von [acceptOne] (die Annahmeschleife stünde) und das Ende einer Verbindung
          * im Lesepfad ([ChannelResult]; sie gäbe ihre Datei nicht frei, und die Annahme bliebe erschöpft). Der Aufruf
-         * baut je einen Wert dieser Klassen und lädt sie damit. Die Klassen des Embedders (die Senke) liegen
+         * baut je einen Wert dieser Klassen und lädt sie damit. Die Klassen von [ListenerEvent.AcceptFailed] und des
+         * Weges bis zum Ereignis lädt `prepareAcceptFailure` der Startschicht. Belegt ist der Lesepfad nur für das
+         * Ende gehaltener, vom Client geschlossener Verbindungen. Die Klassen des Embedders (die Senke) liegen
          * außerhalb.
          */
         private fun prepareExhaustion() {
             val name = IOException::class.java.name
             val failed = ChannelResult.Failed(ChannelError(ChannelFailure.IO_FAILURE, name))
-            check(Accept.Failed(name).failure == name && ListenerEvent.AcceptFailed(name).failure == name)
+            check(Accept.Failed(name).failure == name)
             check(ChannelResult.Ok(0).value == 0 && failed.error.detail == name)
         }
 
