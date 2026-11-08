@@ -105,8 +105,9 @@ internal class TableStore(initial: List<SimTable>, private val cellLimit: Long =
      * liefert ihre Zahl. [set] nennt Spalten der Beschreibung mit ihren Werten. Der Bestand prüft jeden neuen Wert
      * wie beim Einfügen (Klasse der Spalte, NULL nur in nullbaren Spalten, [RowRules]) und lässt keine Änderung zu,
      * die den Schlüssel doppelt machte (eine Tabelle ohne Schlüssel prüft keine Eindeutigkeit und ändert beliebig viele
-     * Zeilen, Setzung nach der Semantik von `UPDATE`, am Server nicht gemessen); sonst wirft er, und der Bestand bleibt unverändert (die Bibliothek meldet das
-     * als `TDS_BACKEND_ERROR`). Der Filter gilt wie der Vorfilter der Zeilenquelle (Setzung, am Server nicht gemessen).
+     * Zeilen, Setzung nach der Semantik von `UPDATE`, am Server nicht gemessen); sonst wirft er, und der Bestand
+     * bleibt unverändert (die Bibliothek meldet das als `TDS_BACKEND_ERROR`). Der Filter gilt wie der Vorfilter der
+     * Zeilenquelle (Setzung, am Server nicht gemessen).
      */
     @Synchronized
     fun update(schema: String, name: String, set: Map<String, Any?>, where: RowFilter?): Long {
