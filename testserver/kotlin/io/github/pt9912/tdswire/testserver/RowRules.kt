@@ -16,7 +16,12 @@ import java.time.LocalTime
  * am echten Server nicht gemessen).
  */
 internal object RowRules {
-    /** Wirft, wenn [value] nicht in [column] steht: NULL nur in nullbaren Spalten, sonst die Klasse der Spaltenart. */
+    private const val UBYTE_MAX = 255
+
+    /**
+     * Wirft, wenn [value] nicht in [column] steht: NULL nur in nullbaren Spalten, sonst die Klasse der Spaltenart
+     * (`Int16` und `UInt8`: ein `Int` im Wertebereich).
+     */
     fun check(column: SimColumn, value: Any?) {
         if (value == null) {
             require(column.nullable) { "NULL in nicht nullbarer Spalte" }
@@ -48,6 +53,8 @@ internal object RowRules {
     }
 
     private fun hasClassOf(type: SqlType, value: Any): Boolean = when (type) {
+        SqlType.UInt8 -> value is Int && value in 0..UBYTE_MAX
+        SqlType.Int16 -> value is Int && value in Short.MIN_VALUE..Short.MAX_VALUE
         SqlType.Int32 -> value is Int
         SqlType.Int64 -> value is Long
         SqlType.Bool -> value is Boolean

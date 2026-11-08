@@ -35,6 +35,10 @@ class ColumnMappingTest {
     @Test
     fun `Mindestkatalog wird in fester und N-Form abgebildet`() {
         val cases = listOf(
+            Triple(SqlType.UInt8, false, "00" to "30"),
+            Triple(SqlType.UInt8, true, "01" to "26 01"),
+            Triple(SqlType.Int16, false, "00" to "34"),
+            Triple(SqlType.Int16, true, "01" to "26 02"),
             Triple(SqlType.Int32, false, "00" to "38"),
             Triple(SqlType.Int32, true, "01" to "26 04"),
             Triple(SqlType.Int64, false, "00" to "7F"),
@@ -68,6 +72,8 @@ class ColumnMappingTest {
         val defs = MappingSupport.defs(
             column(SqlType.Int32, false, "i"),
             column(SqlType.Int32, true, "j"),
+            column(SqlType.Int16, false, "s"),
+            column(SqlType.UInt8, true, "u"),
             column(SqlType.Time, false, "t"),
             column(SqlType.DateTime, true, "d"),
         )
@@ -75,6 +81,8 @@ class ColumnMappingTest {
             listOf(
                 ColumnDef("i", TdsType.Int4Type, nullable = false),
                 ColumnDef("j", TdsType.IntNType(4), nullable = true),
+                ColumnDef("s", TdsType.Int2Type, nullable = false),
+                ColumnDef("u", TdsType.IntNType(1), nullable = true),
                 ColumnDef("t", TdsType.TimeType(7), nullable = false),
                 ColumnDef("d", TdsType.DateTime2Type(7), nullable = true),
             ),

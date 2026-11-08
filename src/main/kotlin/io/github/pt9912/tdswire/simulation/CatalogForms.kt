@@ -7,6 +7,10 @@ private fun text(name: String, nullable: Boolean = false) = ResultColumn(name, S
 
 private fun int(name: String, nullable: Boolean = false) = ResultColumn(name, SqlType.Int32, nullable)
 
+private fun short(name: String, nullable: Boolean = false) = ResultColumn(name, SqlType.Int16, nullable)
+
+private fun byte(name: String, nullable: Boolean = false) = ResultColumn(name, SqlType.UInt8, nullable)
+
 private fun long(name: String, nullable: Boolean = false) = ResultColumn(name, SqlType.Int64, nullable)
 
 private fun bool(name: String, nullable: Boolean = false) = ResultColumn(name, SqlType.Bool, nullable)
@@ -21,8 +25,10 @@ internal enum class CatalogSource { TABLES, COLUMNS, PRIMARY_KEY, SCHEMA_NAME, C
  * Bytecode (`javap`), mit `?` für einen Parameter; [CatalogForms] vergleicht den Text einer Anfrage nach
  * [CatalogForms.normalize] mit ihm. [columns] sind die Spalten der Antwort in der Reihenfolge der Abfrage, [source]
  * sagt, woher die Zeilen kommen.
- * Die Typen der Spalten sind die nächsten von [SqlType] (`smallint`, `tinyint` und `char` des Servers heißen hier
- * `Int32` und `UnicodeText`, Setzung).
+ * Die Antwortspalten von [COLUMNS] tragen die gemessenen Typen des Servers (M-16: `max_length` `Int16`, `precision`
+ * und `scale` `UInt8`, `is_nullable` und `is_computed` nullbar). Die übrigen Formen sind nicht gemessen; ihre Typen
+ * sind die nächsten von [SqlType] (`smallint`, `tinyint` und `char` des Servers heißen dort `Int32` und
+ * `UnicodeText`, Setzung).
  */
 internal enum class CatalogForm(val template: String, val source: CatalogSource, val columns: List<ResultColumn>) {
     COLLATIONS(
@@ -65,8 +71,9 @@ internal enum class CatalogForm(val template: String, val source: CatalogSource,
         """,
         CatalogSource.COLUMNS,
         listOf(
-            text("column_name"), text("type_name"), int("max_length"), int("precision"), int("scale"),
-            bool("is_nullable"), bool("is_identity"), bool("is_computed"), int("column_id"),
+            text("column_name"), text("type_name"), short("max_length"), byte("precision"), byte("scale"),
+            bool("is_nullable", nullable = true), bool("is_identity"), bool("is_computed", nullable = true),
+            int("column_id"),
             text("default_definition", nullable = true), long("seed_value", nullable = true),
             long("increment_value", nullable = true), text("computed_definition", nullable = true),
             bool("computed_persisted", nullable = true),

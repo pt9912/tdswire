@@ -17,7 +17,8 @@ internal data class CatalogType(val typeName: String, val maxLength: Int, val pr
  *
  * Der Server meldet `max_length` in Byte: ein `nvarchar(n)` hat `2 * n` (Setzung, am Server nicht gemessen; gemessen
  * ist der Lauf mit d-migrate, der 4000 Zeichen als `max_length: 4000` liest). Die Typen und Maße von `bigint`, `bit`,
- * `time` und `datetime2` sind Setzung nach dem Handbuch des Servers (Skala der Zeittypen 7, `SPEC-003` offen).
+ * `time` und `datetime2` (Skala der Zeittypen 7) sowie die Maße von `smallint` (2 Byte, Precision 5, Skala 0) und
+ * `tinyint` (1, 3, 0) sind am Referenzclient gemessen (M-17 des Referenzabgleichs, beide Instanzen).
  */
 internal object CatalogAnswers {
     private const val DEFAULT_COLLATION = "SQL_Latin1_General_CP1_CI_AS"
@@ -33,6 +34,10 @@ internal object CatalogAnswers {
     private const val DATE_BYTES = 3
     private const val BIGINT_BYTES = 8
     private const val INT_BYTES = 4
+    private const val SMALLINT_BYTES = 2
+    private const val SMALLINT_PRECISION = 5
+    private const val TINYINT_BYTES = 1
+    private const val TINYINT_PRECISION = 3
     private const val MAX_DIGITS_5_BYTES = 9
     private const val MAX_DIGITS_9_BYTES = 19
     private const val MAX_DIGITS_13_BYTES = 28
@@ -86,6 +91,8 @@ internal object CatalogAnswers {
 
     /** Typname und Maße einer Spalte; Zuordnung und Quelle der Werte: Kopf des Objekts. */
     fun typeOf(column: SimColumn): CatalogType = when (val type = column.type) {
+        SqlType.UInt8 -> CatalogType("tinyint", TINYINT_BYTES, TINYINT_PRECISION, 0)
+        SqlType.Int16 -> CatalogType("smallint", SMALLINT_BYTES, SMALLINT_PRECISION, 0)
         SqlType.Int32 -> CatalogType("int", INT_BYTES, INT_PRECISION, 0)
         SqlType.Int64 -> CatalogType("bigint", BIGINT_BYTES, BIGINT_PRECISION, 0)
         SqlType.Bool -> CatalogType("bit", 1, 1, 0)

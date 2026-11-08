@@ -3,7 +3,6 @@ package io.github.pt9912.tdswire.simulation
 import io.github.pt9912.tdswire.domain.QueryParameter
 import io.github.pt9912.tdswire.domain.SqlType
 import java.math.BigDecimal
-import java.math.BigInteger
 import java.time.DateTimeException
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -35,9 +34,6 @@ internal sealed interface Converted {
 internal object SimValues {
     private const val INVALID = "Wert nicht in den Spaltentyp überführbar"
     private const val MISSING = "Parameter nicht übergeben"
-    private const val INT_BITS = Int.SIZE_BITS - 1
-    private const val LONG_BITS = Long.SIZE_BITS - 1
-    private val INT_RANGE = Int.MIN_VALUE..Int.MAX_VALUE
 
     /** [value] in den Typ von [column]; [parameters] sind die der Anfrage. */
     fun convert(value: SimValue, column: SimColumn, parameters: List<QueryParameter>): Converted = when (value) {
@@ -70,8 +66,7 @@ internal object SimValues {
     private fun number(text: String, type: SqlType): Converted {
         val number = BigDecimal(text)
         return when (type) {
-            SqlType.Int32 -> integral(number, INT_BITS)?.let { Converted.Value(it.toInt()) } ?: invalid()
-            SqlType.Int64 -> integral(number, LONG_BITS)?.let { Converted.Value(it.toLong()) } ?: invalid()
+            SqlType.UInt8, SqlType.Int16, SqlType.Int32, SqlType.Int64 -> SimIntegers.number(number, type) ?: invalid()
             SqlType.Bool -> bit(number)
             is SqlType.Decimal -> if (fits(number, type)) Converted.Value(number) else invalid()
             SqlType.UnicodeText, SqlType.Date, SqlType.Time, SqlType.DateTime -> invalid()
@@ -82,12 +77,6 @@ internal object SimValues {
         number.compareTo(BigDecimal.ZERO) == 0 -> Converted.Value(false)
         number.compareTo(BigDecimal.ONE) == 0 -> Converted.Value(true)
         else -> invalid()
-    }
-
-    /** Die ganze Zahl, wenn [number] ohne Rest eine ist und mit höchstens [bits] Bit plus Vorzeichen passt. */
-    private fun integral(number: BigDecimal, bits: Int): BigInteger? {
-        val whole = number.stripTrailingZeros()
-        return if (whole.scale() > 0) null else whole.toBigIntegerExact().takeIf { it.bitLength() <= bits }
     }
 
     /** Wahr, wenn [number] ohne Rundung und ohne Überlauf in [type] steht; Nullen am Ende der Skala zählen nicht. */
@@ -105,7 +94,7 @@ internal object SimValues {
             SqlType.Date -> Converted.Value(LocalDate.parse(value))
             SqlType.Time -> Converted.Value(LocalTime.parse(value))
             SqlType.DateTime -> Converted.Value(SimTemporal.dateTime(value))
-            SqlType.Int32, SqlType.Int64, SqlType.Bool, is SqlType.Decimal -> invalid()
+            SqlType.UInt8, SqlType.Int16, SqlType.Int32, SqlType.Int64, SqlType.Bool, is SqlType.Decimal -> invalid()
         }
     } catch (ignored: DateTimeException) {
         invalid()
@@ -117,9 +106,8 @@ internal object SimValues {
             value == null -> Converted.Value(null)
             !hasClassOf(parameter.type, value) -> invalid()
             target is SqlType.Decimal -> widenToDecimal(value, target)
+            SimIntegers.isInteger(target) -> SimIntegers.parameter(parameter.type, target, value) ?: invalid()
             parameter.type == target -> Converted.Value(value)
-            target == SqlType.Int64 && value is Int -> Converted.Value(value.toLong())
-            target == SqlType.Int32 && value is Long && value in INT_RANGE -> Converted.Value(value.toInt())
             target == SqlType.Time && value is LocalDateTime -> Converted.Value(value.toLocalTime())
             else -> invalid()
         }
@@ -137,7 +125,7 @@ internal object SimValues {
 
     /** Wahr, wenn [value] die JVM-Klasse hat, die `ValueMapping` für [type] festlegt. */
     private fun hasClassOf(type: SqlType, value: Any): Boolean = when (type) {
-        SqlType.Int32 -> value is Int
+        SqlType.UInt8, SqlType.Int16, SqlType.Int32 -> value is Int
         SqlType.Int64 -> value is Long
         SqlType.Bool -> value is Boolean
         SqlType.UnicodeText -> value is String

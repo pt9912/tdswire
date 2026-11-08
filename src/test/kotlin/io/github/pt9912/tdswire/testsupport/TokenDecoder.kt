@@ -135,10 +135,18 @@ internal class TokenDecoder(private val bytes: ByteArray) {
         return ColumnDef(name, type, flags and 1 != 0, userType, flags and 1.inv())
     }
 
-    private fun typeInfo(): TdsType = when (val code = u8()) {
+    private fun fixedType(code: Int): TdsType? = when (code) {
+        0x30 -> TdsType.Int1Type
+        0x34 -> TdsType.Int2Type
         0x38 -> TdsType.Int4Type
         0x7F -> TdsType.Int8Type
         0x32 -> TdsType.BitType
+        else -> null
+    }
+
+    private fun typeInfo(): TdsType = u8().let { code -> fixedType(code) ?: variableType(code) }
+
+    private fun variableType(code: Int): TdsType = when (code) {
         0x26 -> TdsType.IntNType(u8())
         0x68 -> TdsType.BitNType.also { check(u8() == 1) }
         0xE7 -> TdsType.NVarcharType(u16() / 2, collation())
@@ -158,6 +166,8 @@ internal class TokenDecoder(private val bytes: ByteArray) {
     }
 
     private fun value(column: ColumnDef): TdsValue = when (val type = column.type) {
+        TdsType.Int1Type -> TdsValue.IntegerValue(u8().toLong())
+        TdsType.Int2Type -> TdsValue.IntegerValue(signed(2, unsigned = false))
         TdsType.Int4Type -> TdsValue.IntegerValue(i32().toLong())
         TdsType.Int8Type -> TdsValue.IntegerValue(i64())
         TdsType.BitType -> TdsValue.BitValue(u8() != 0)

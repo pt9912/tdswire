@@ -435,7 +435,48 @@ class ValueMappingTest {
      */
     @Test
     fun `Ganzzahl ausserhalb des Mindestkatalogs ist nicht abbildbar`() {
-        val tinyint = ColumnDef("t", TdsType.IntNType(1), nullable = true)
-        assertEquals(ProtocolFailure.INVALID_TYPE, MappingSupport.error(ValueMapping.value(tinyint, 1)).failure)
+        val threeBytes = ColumnDef("t", TdsType.IntNType(3), nullable = true)
+        assertEquals(ProtocolFailure.INVALID_TYPE, MappingSupport.error(ValueMapping.value(threeBytes, 1)).failure)
+    }
+
+    /**
+     * Handvektoren für `smallint` und `tinyint` (Little-Endian; feste Form ohne Längenbyte, N-Form mit Längenbyte 2
+     * und 1): die Ränder `Int16` −32768 und 32767, `UInt8` 0 und 255.
+     *
+     * @spec SPEC-003
+     */
+    @Test
+    fun `Int16 und UInt8, Raender in fester und N-Form`() {
+        assertEquals("D1 00 80", encoded(SqlType.Int16, -32768, nullable = false))
+        assertEquals("D1 FF 7F", encoded(SqlType.Int16, 32767, nullable = false))
+        assertEquals("D1 02 00 80", encoded(SqlType.Int16, -32768))
+        assertEquals("D1 02 FF 7F", encoded(SqlType.Int16, 32767))
+        assertEquals("D1 00", encoded(SqlType.UInt8, 0, nullable = false))
+        assertEquals("D1 FF", encoded(SqlType.UInt8, 255, nullable = false))
+        assertEquals("D1 01 00", encoded(SqlType.UInt8, 0))
+        assertEquals("D1 01 FF", encoded(SqlType.UInt8, 255))
+        assertEquals("D1 00", encoded(SqlType.Int16, null))
+        assertEquals("D1 00", encoded(SqlType.UInt8, null))
+    }
+
+    /**
+     * Ein Wert außerhalb des Bereichs ist `VALUE_OUT_OF_RANGE` (kein Abschneiden), ein `Long` oder `Short` in einer
+     * Spalte dieser Typen ist ein Typkonflikt: `Int16` −32769 und 32768, `UInt8` −1 und 256.
+     *
+     * @spec SPEC-003
+     * @spec SPEC-014
+     */
+    @Test
+    fun `Int16 und UInt8 weisen Werte ausserhalb des Bereichs und falsche Klassen ab`() {
+        for (nullable in listOf(true, false)) {
+            assertEquals(ProtocolFailure.VALUE_OUT_OF_RANGE, failureOf(SqlType.Int16, -32769, nullable))
+            assertEquals(ProtocolFailure.VALUE_OUT_OF_RANGE, failureOf(SqlType.Int16, 32768, nullable))
+            assertEquals(ProtocolFailure.VALUE_OUT_OF_RANGE, failureOf(SqlType.UInt8, -1, nullable))
+            assertEquals(ProtocolFailure.VALUE_OUT_OF_RANGE, failureOf(SqlType.UInt8, 256, nullable))
+            assertEquals(ProtocolFailure.TYPE_MISMATCH, failureOf(SqlType.Int16, 1L, nullable))
+            assertEquals(ProtocolFailure.TYPE_MISMATCH, failureOf(SqlType.UInt8, 1.toShort(), nullable))
+            assertEquals(ProtocolFailure.TYPE_MISMATCH, failureOf(SqlType.UInt8, 1.toByte(), nullable))
+        }
+        assertEquals(ProtocolFailure.TYPE_MISMATCH, failureOf(SqlType.Int16, null, nullable = false))
     }
 }

@@ -35,7 +35,9 @@ class MappingFuzzTest {
     private val cleanPool = listOf("a", "\u00E9", "\uD83D\uDE00", " ")
     private val dirtyPool = cleanPool + listOf("\u0000", "\uD83D", "\uDE00")
 
-    private fun randomType(): SqlType = when (random.nextInt(8)) {
+    private fun randomType(): SqlType = when (random.nextInt(10)) {
+        8 -> SqlType.Int16
+        9 -> SqlType.UInt8
         0 -> SqlType.Int32
         1 -> SqlType.Int64
         2 -> SqlType.Bool
@@ -63,7 +65,7 @@ class MappingFuzzTest {
     private fun randomTime(): LocalTime =
         LocalTime.ofNanoOfDay(random.nextLong(86_400_000_000_000L) / random.nextInt(1, 3) / 50 * 50)
 
-    private fun randomValue(): Any? = when (random.nextInt(14)) {
+    private fun randomValue(): Any? = when (random.nextInt(15)) {
         0 -> null
         1 -> random.nextInt()
         2 -> random.nextLong()
@@ -75,6 +77,7 @@ class MappingFuzzTest {
         10 -> LocalDateTime.of(randomDate(), randomTime())
         11 -> listOf(Int.MIN_VALUE, Int.MAX_VALUE, 0).random(random)
         12 -> listOf(Long.MIN_VALUE, Long.MAX_VALUE, 0L).random(random)
+        13 -> listOf(-32769, -32768, -1, 0, 255, 256, 32767, 32768).random(random)
         else -> Any()
     }
 
@@ -87,6 +90,8 @@ class MappingFuzzTest {
         if (value == null) column.nullable else acceptsValue(column.type, value)
 
     private fun acceptsValue(type: SqlType, value: Any): Boolean = when (type) {
+        SqlType.UInt8 -> value is Int && value in 0..255
+        SqlType.Int16 -> value is Int && value in Short.MIN_VALUE..Short.MAX_VALUE
         SqlType.Int32 -> value is Int
         SqlType.Int64 -> value is Long
         SqlType.Bool -> value is Boolean

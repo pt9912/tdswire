@@ -52,7 +52,9 @@ internal class RpcRejected(val reason: RpcRejection) : RuntimeException(reason.n
  * `LocalDateTime`); `DATETIMN` mit 8 Byte ist `DateTime` (`datetime`: Tage seit 1900-01-01 und Ticks zu 1/300 s;
  * mssql-jdbc sendet so die Zeit einer `time`-Spalte mit dem Datum 1970-01-01, gemessen am echten SQL Server). Jeder
  * andere Typ (`INTN` mit 1 und 2 Byte, Gleitkomma, Geld, GUID, Binär, `varchar`, `DATETIMN` mit 4 Byte,
- * `DATETIMEOFFSETN`) ist [RpcRejection.TYPE]: `SqlType` führt ihn nicht, und es entsteht hier kein zweiter Katalog.
+ * `DATETIMEOFFSETN`) ist [RpcRejection.TYPE]. `INTN` mit 1 und 2 Byte entspricht `Int16` und `UInt8`, die `SqlType` als
+ * Spaltentypen der Antworten führt; als Parameter bleibt er abgewiesen (Setzung), und für die übrigen Typen entsteht
+ * hier kein zweiter Katalog.
  *
  * Richtung (Festlegung): Bit 0 des Statusbytes ist auf dem Draht OUTPUT und InputOutput zugleich. Ein
  * gesetztes Bit mit NULL-Wert ist `OUTPUT`, mit Wert `INPUT_OUTPUT`; ohne Bit ist es `INPUT`. Ein

@@ -3,6 +3,7 @@ package io.github.pt9912.tdswire.protocol.result
 import io.github.pt9912.tdswire.protocol.token.ColumnDef
 import io.github.pt9912.tdswire.protocol.token.TdsType
 import io.github.pt9912.tdswire.protocol.token.TdsValue
+import io.github.pt9912.tdswire.protocol.token.ValueSupport
 import io.github.pt9912.tdswire.protocol.wire.ProtocolFailure
 import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
 
@@ -14,11 +15,15 @@ import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
  * wirft für einen Wert eine Ausnahme.
  *
  * Festgeschrieben (ADR-0013, Zeilendarstellung): die JVM-Klassen je Spaltenart
- * sind `Int` (32 Bit), `Long` (64 Bit), `Boolean`, `String`, `java.math.BigDecimal`, `LocalDate`,
- * `LocalTime` und `LocalDateTime`; jede andere Klasse, auch ein `Long` in einer 32-Bit-Spalte, ist ein
- * Typkonflikt. `null` ist NULL und gilt nur in einer nullbaren Spalte.
+ * sind `Int` (16 Bit, 8 Bit ohne Vorzeichen und 32 Bit), `Long` (64 Bit), `Boolean`, `String`,
+ * `java.math.BigDecimal`, `LocalDate`, `LocalTime` und `LocalDateTime`; jede andere Klasse, auch ein `Long` in einer
+ * 32-Bit-Spalte, ist ein Typkonflikt. Ein `Int` außerhalb von −32768 bis 32767 in einer 16-Bit-Spalte und außerhalb
+ * von 0 bis 255 in einer 8-Bit-Spalte ist `VALUE_OUT_OF_RANGE`, kein Abschneiden. `null` ist NULL und gilt nur in einer
+ * nullbaren Spalte.
  */
 internal object ValueMapping {
+    private const val BYTE_BYTES = 1
+    private const val SHORT_BYTES = 2
     private const val INT_BYTES = 4
     private const val LONG_BYTES = 8
 
@@ -47,6 +52,8 @@ internal object ValueMapping {
     }
 
     private fun nonNull(type: TdsType, raw: Any): ProtocolResult<TdsValue> = when (type) {
+        TdsType.Int1Type -> narrow(raw, BYTE_BYTES)
+        TdsType.Int2Type -> narrow(raw, SHORT_BYTES)
         TdsType.Int4Type -> integer32(raw)
         TdsType.Int8Type -> integer64(raw)
         is TdsType.IntNType -> intN(type, raw)
@@ -59,6 +66,7 @@ internal object ValueMapping {
     }
 
     private fun intN(type: TdsType.IntNType, raw: Any): ProtocolResult<TdsValue> = when (type.size) {
+        BYTE_BYTES, SHORT_BYTES -> narrow(raw, type.size)
         INT_BYTES -> integer32(raw)
         LONG_BYTES -> integer64(raw)
         else -> failed(ProtocolFailure.INVALID_TYPE, "Ganzzahl der Groesse ${type.size} nicht im Mindestkatalog")
@@ -66,6 +74,18 @@ internal object ValueMapping {
 
     private fun integer32(raw: Any): ProtocolResult<TdsValue> =
         if (raw is Int) ProtocolResult.Ok(TdsValue.IntegerValue(raw.toLong())) else mismatch("Int", raw)
+
+    private fun narrow(raw: Any, size: Int): ProtocolResult<TdsValue> {
+        val range = ValueSupport.rangeOfSize(size)
+        return when {
+            raw !is Int -> mismatch("Int", raw)
+
+            raw.toLong() !in range ->
+                failed(ProtocolFailure.VALUE_OUT_OF_RANGE, "Ganzzahl ausserhalb ${range.first}..${range.last}")
+
+            else -> ProtocolResult.Ok(TdsValue.IntegerValue(raw.toLong()))
+        }
+    }
 
     private fun integer64(raw: Any): ProtocolResult<TdsValue> =
         if (raw is Long) ProtocolResult.Ok(TdsValue.IntegerValue(raw)) else mismatch("Long", raw)
