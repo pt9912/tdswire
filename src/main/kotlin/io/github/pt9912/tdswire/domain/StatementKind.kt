@@ -30,8 +30,9 @@ public enum class StatementKind {
     IMPLICIT_TRANSACTIONS_ON,
 
     /**
-     * `set implicit_transactions off`: Kennung `0x00ba`, ohne Zeilenzahl. Gemessen ist die Kennung als erster Abschluss
-     * des Textes `set implicit_transactions off IF @@TRANCOUNT > 0 COMMIT TRAN` (Messprotokoll M-20).
+     * Erster Abschluss des Textes `set implicit_transactions off IF @@TRANCOUNT > 0 COMMIT TRAN`: Kennung `0x00ba`,
+     * ohne Zeilenzahl (Messprotokoll M-20). Der Text `set implicit_transactions off` allein ist nicht gemessen; dafür
+     * gibt es keine Art, und ein Backend meldet [UNKNOWN].
      */
     IMPLICIT_TRANSACTIONS_OFF,
 

@@ -29,8 +29,10 @@ import java.util.concurrent.atomic.AtomicBoolean
  * Anweisung antwortet mit `TDS_UNSUPPORTED_SQL`.
  *
  * Form C (`SPEC-036`) beantwortet das Backend ohne Tabelle: `SELECT 1` mit einer Spalte und einer Zeile, eine
- * `SET`-Anweisung und die Transaktionstexte mit dem Änderungszähler 0. Eine Auswahl mit einem Konstantenterm, der nie
- * gilt (`WHERE 1 = 0`), liefert Spaltenmetadaten und keine Zeile, ohne die Zeilenquelle zu öffnen.
+ * `SET`-Anweisung und die Transaktionstexte mit dem Änderungszähler 0 und, wo gemessen, der Art des Textes
+ * (`IMPLICIT_TRANSACTIONS_ON`, `IMPLICIT_TRANSACTIONS_OFF`, `COMMIT_IF_OPEN`, siehe [FixedAnswers]). Eine Auswahl mit
+ * einem Konstantenterm, der nie gilt (`WHERE 1 = 0`), liefert Spaltenmetadaten und keine Zeile, ohne die Zeilenquelle
+ * zu öffnen.
  *
  * Form B (`SPEC-036`, Massenladen) erkennt das Backend als `INSERT BULK` und als die Proben davor (`SET FMTONLY ON …`,
  * Kollation); die Nachrichten 0x07 lädt es über [BulkLoads] in `SimTable.onInsertBatch` oder `onInsert`, ohne etwas zu

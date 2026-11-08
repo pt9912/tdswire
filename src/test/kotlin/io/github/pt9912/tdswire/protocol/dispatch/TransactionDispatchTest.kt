@@ -111,4 +111,34 @@ class TransactionDispatchTest {
         assertEquals(hexOf("${BatchVectors.ENVCHANGE_RESET}  FD 00 00 C6 00 $ZERO"), session.hex(2))
         assertEquals(hexOf("FD 00 00 C0 00 $ZERO"), session.hex(3))
     }
+
+    /**
+     * Der Zustand liegt je Verbindung (`SPEC-031`, ADR-0042 Entscheidung 5): die erste Verbindung schaltet
+     * `implicit_transactions` ein und beginnt mit `CREATE TABLE` eine Transaktion (Typ 8); die zweite, danach
+     * geöffnete Verbindung hat weder die Option noch eine offene Transaktion, ihr `CREATE TABLE` trägt kein Typ 8 und
+     * ihr bedingter `COMMIT` kein Typ 9. Wächter: ein Zustand, den alle Verbindungen teilen (statisch, ein Objekt
+     * außerhalb der Schleife): die zweite Antwort trüge Typ 9 mit dem Deskriptor der ersten Verbindung.
+     *
+     * @spec SPEC-031
+     * @spec TDS-QA-07
+     */
+    @Test
+    fun `Eine zweite Verbindung sieht die offene Transaktion der ersten nicht`() = blocking {
+        val first = Session.login(
+            BatchVectors.message("set implicit_transactions on "),
+            BatchVectors.message("CREATE TABLE t (a INT)"),
+            Inbound.EndOfStream,
+        )
+        first.serve(ScriptedBackend.inSequence(kinds(StatementKind.IMPLICIT_TRANSACTIONS_ON), create()))
+        assertEquals(hexOf("E3 0B 00 08 08 $DESCRIPTOR 00  FD 00 00 C6 00 $ZERO"), first.hex(1))
+
+        val second = Session.login(
+            BatchVectors.message("CREATE TABLE u (a INT)"),
+            BatchVectors.message("IF @@TRANCOUNT > 0 COMMIT TRAN"),
+            Inbound.EndOfStream,
+        )
+        second.serve(ScriptedBackend.inSequence(create(), kinds(StatementKind.COMMIT_IF_OPEN)))
+        assertEquals(hexOf("FD 00 00 C6 00 $ZERO"), second.hex(0))
+        assertEquals(hexOf("FD 00 00 C0 00 $ZERO"), second.hex(1))
+    }
 }

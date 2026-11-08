@@ -293,8 +293,9 @@ class SimulationBackendStructureTest {
     }
 
     /**
-     * Die Art des Textes `set implicit_transactions on|off` hängt am einzigen Setting: `off` allein ist Setzung nach
-     * dem ersten Abschluss der Kombination (M-20), jede Folge mit weiteren `SET`-Anweisungen und jedes andere Setting
+     * Die Art des Textes `set implicit_transactions on|off` hängt am einzigen Setting: `off` allein ist nicht gemessen
+     * und bleibt `UNKNOWN` (nur die Kombination mit dem bedingten `COMMIT` meldet `IMPLICIT_TRANSACTIONS_OFF`), jede
+     * Folge mit weiteren `SET`-Anweisungen und jedes andere Setting
      * (`LOCK_TIMEOUT` ist ebenfalls gemessen, `0x00f9`, aber hier nicht gebaut) bleibt der Zähler 0 ohne Art, ebenso
      * eine Kombination aus `on` und der Bedingung.
      * Wächter: eine Art für `set ansi_nulls on` oder für eine Folge mit `implicit_transactions` in der Mitte, die
@@ -306,7 +307,7 @@ class SimulationBackendStructureTest {
         val store = Store(emptyList())
         fun kindOf(sql: String) = (run(store, sql).single() as QueryEvent.UpdateCount).kind
         assertEquals(StatementKind.IMPLICIT_TRANSACTIONS_ON, kindOf("set implicit_transactions on"))
-        assertEquals(StatementKind.IMPLICIT_TRANSACTIONS_OFF, kindOf("SET IMPLICIT_TRANSACTIONS OFF;"))
+        assertEquals(StatementKind.UNKNOWN, kindOf("SET IMPLICIT_TRANSACTIONS OFF;"))
         assertEquals(StatementKind.UNKNOWN, kindOf("set ansi_nulls on"))
         assertEquals(StatementKind.UNKNOWN, kindOf("SET LOCK_TIMEOUT 30000"))
         assertEquals(StatementKind.UNKNOWN, kindOf("set ansi_nulls on; set implicit_transactions on"))

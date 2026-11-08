@@ -40,9 +40,9 @@ class SimulationBackendFixedTest {
 
     /**
      * Happy: jede `SET`-Anweisung, auch der Text mit sieben, endet als Änderungszähler 0 und nicht als Ergebnis
-     * ohne Anfang; die Zeilenquelle bleibt ungeöffnet. `set implicit_transactions off` allein meldet die Art
-     * `IMPLICIT_TRANSACTIONS_OFF`, die anderen Texte keine.
-     * Wächter: ein `ResultEnd(0)` statt `UpdateCount(0)`, oder ein Zähler ungleich 0.
+     * ohne Anfang; die Zeilenquelle bleibt ungeöffnet. Keiner der Texte meldet eine Art; `set implicit_transactions
+     * off` allein ist nicht gemessen und bleibt `UNKNOWN` (ADR-0042 Entscheidung 2).
+     * Wächter: ein `ResultEnd(0)` statt `UpdateCount(0)`, oder ein Zähler ungleich 0, oder eine Art für `off` allein.
      * @spec SPEC-036
      */
     @Test
@@ -50,7 +50,7 @@ class SimulationBackendFixedTest {
         val probe = Probe(rows)
         assertEquals(listOf<QueryEvent>(QueryEvent.UpdateCount(0)), run("SET LOCK_TIMEOUT 30000", probe))
         assertEquals(
-            listOf<QueryEvent>(QueryEvent.UpdateCount(0, StatementKind.IMPLICIT_TRANSACTIONS_OFF)),
+            listOf<QueryEvent>(QueryEvent.UpdateCount(0, StatementKind.UNKNOWN)),
             run("set implicit_transactions off", probe),
         )
         val seven = "SET ANSI_NULLS ON;\nSET ANSI_PADDING ON;\nSET ANSI_WARNINGS ON;\nSET ARITHABORT ON;\n" +

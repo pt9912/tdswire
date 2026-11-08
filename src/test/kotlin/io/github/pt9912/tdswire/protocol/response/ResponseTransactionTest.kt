@@ -118,7 +118,7 @@ class ResponseTransactionTest {
     }
 
     /**
-     * `set implicit_transactions off` allein schaltet die Option aus: das folgende `CREATE TABLE` beginnt keine
+     * Die gemeldete Art `IMPLICIT_TRANSACTIONS_OFF` schaltet die Option aus: das folgende `CREATE TABLE` beginnt keine
      * Transaktion. Wächter: eine Option, die nur ein- und nie ausgeschaltet wird.
      *
      * @spec SPEC-031

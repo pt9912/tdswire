@@ -97,9 +97,9 @@ class CatalogFormsTest {
 
     /**
      * Happy: der Mitschnitt von `schema migrate --execute` enthält die Transaktionstexte (`IF @@TRANCOUNT > 0 COMMIT
-     * TRAN`, `set implicit_transactions off IF @@TRANCOUNT > 0 COMMIT TRAN `), und beide gelten als Form C mit
-     * Änderungszähler 0; `ROLLBACK TRAN` und `set implicit_transactions on|off` davor ebenso (Setzung für die
-     * ungesendeten Kombinationen).
+     * TRAN`, `set implicit_transactions off IF @@TRANCOUNT > 0 COMMIT TRAN `), und beide gelten als Form C (Antwort
+     * mit der gemessenen Art, `FixedAnswers`); `ROLLBACK TRAN` und `set implicit_transactions on|off` davor ebenso
+     * (Setzung für die ungesendeten Kombinationen).
      * Negativ: `TRANSACTION`, ein anderer Vergleich, eine andere Option und ein Zusatztext sind nicht erkannt (alles
      * oder nichts).
      * Wächter: ein Regex ohne Anker (`matches` statt `containsMatchIn`) oder mit offener Option.

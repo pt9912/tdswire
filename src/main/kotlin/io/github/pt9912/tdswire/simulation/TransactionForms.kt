@@ -6,7 +6,8 @@ package io.github.pt9912.tdswire.simulation
  * `set implicit_transactions on|off` im selben Text ohne `;` (gemessen: `set implicit_transactions off IF
  * @@TRANCOUNT > 0 COMMIT TRAN` und `IF @@TRANCOUNT > 0 ROLLBACK TRAN`; die übrigen Kombinationen sind Setzung).
  * Erkannt wird der Wortlaut nach [CatalogForms.normalize], ohne Beachtung der ASCII-Großschreibung; die Antwort ist
- * der Änderungszähler 0. Die Bibliothek hat keine Transaktion: `ROLLBACK TRAN` nimmt nichts zurück (`ADR-0033` Nr. 6).
+ * der Änderungszähler 0, bei den gemessenen Texten mit der Art, die [FixedAnswers] meldet. Die Bibliothek hat keine
+ * Transaktion: `ROLLBACK TRAN` nimmt nichts zurück (`ADR-0033` Nr. 6).
  */
 internal object TransactionForms {
     private val FORM = Regex(

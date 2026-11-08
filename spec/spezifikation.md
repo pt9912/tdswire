@@ -749,7 +749,7 @@ trägt die Kennung der Art, die das Backend im Feld `kind` meldet (`StatementKin
 (die Voreinstellung, ein Backend ohne Angabe der Art) trägt die Kennung 0 mit `COUNT` (keine Aussage). Fünf Arten
 schließen im SQL_BATCH ohne `COUNT` (Status 0, Zeilenzahl 0; eine Zahl, die das Backend im Ereignis meldet, ignoriert
 die Bibliothek): `CREATE_TABLE` `0x00c6`, `ALTER_TABLE` `0x00d8` (`CREATE TABLE`, `ALTER TABLE … ADD`),
-`IMPLICIT_TRANSACTIONS_ON` `0x00b9` (`set implicit_transactions on`), `IMPLICIT_TRANSACTIONS_OFF` `0x00ba` und
+`IMPLICIT_TRANSACTIONS_ON` `0x00b9` (`set implicit_transactions on`), `IMPLICIT_TRANSACTIONS_OFF` `0x00ba` (erster Abschluss von `set implicit_transactions off IF … COMMIT TRAN`) und
 `COMMIT_IF_OPEN` `0x00c0` (der Abschluss der Bedingung `IF @@TRANCOUNT > 0 COMMIT TRAN`); alle gemessen (Messprotokoll,
 Messreihe zu Massenladen, `MERGE`, Katalog und Strukturänderung, M-20, je ein Fall je Instanz 2022 und 2025). Im
 RPC und in der Antwort auf eine Nachricht des Massenladens gilt die Kennung dieser Arten nicht: dort schreibt die
@@ -772,7 +772,7 @@ Bedeutung darüber hinaus ist nicht festgestellt.
 Transaktionszustand und ENVCHANGE Typ 8 und 9 (nur SQL_BATCH): Die Verbindung führt je Sitzung, ob
 `implicit_transactions` an ist und ob eine Transaktion offen ist (wie die Prepared-Handles, `SPEC-061`); der Zustand
 endet mit der Verbindung, das Bit RESETCONNECTION setzt ihn zurück (Setzung, nicht gemessen). Ihn führen allein die Arten
-nach, die das Backend meldet: `IMPLICIT_TRANSACTIONS_ON` und `IMPLICIT_TRANSACTIONS_OFF` schalten die Option,
+nach, die das Backend meldet: `IMPLICIT_TRANSACTIONS_ON` und `IMPLICIT_TRANSACTIONS_OFF` (die Art des gemessenen Textes mit dem bedingten `COMMIT`) schalten die Option,
 `CREATE_TABLE` beginnt bei eingeschalteter Option ohne offene Transaktion eine Transaktion, `COMMIT_IF_OPEN` beendet eine
 offene. Dazu schreibt die Bibliothek (Handvektoren des Szenarios `katalog-struktur`, M-20): vor dem DONE `0x00c6` des
 beginnenden `CREATE TABLE` ein ENVCHANGE Typ 8 (neuer Wert: der Deskriptor, 8 Byte; alter Wert: leer); für
@@ -783,10 +783,15 @@ Instanz 2022 (2025: `33` im fünften Byte); der Server wählt ihn je Transaktion
 folgenden Anfragen zurück (gemessen), die Bibliothek liest ihn dort nicht und prüft ihn nicht: der Wert ist Setzung. Eine
 Anfrage mit dem Deskriptor im Kopf wird wie jede andere beantwortet (Test: `TransactionDispatchTest`,
 `StatementKindEmbeddingTest`). **Keine Transaktion (Zusage, `SPEC-035`):** ENVCHANGE Typ 8 meldet dem Client einen
-Zustand, den die Bibliothek nicht zurücknimmt. Nicht gemessen und deshalb nicht gebaut: ENVCHANGE bei `ALTER TABLE`, bei
-`INSERT`, `UPDATE`, `DELETE` ohne offene Transaktion, `ROLLBACK` (der Zustand bleibt offen, kein Typ 10), das Ende der
-Sitzung mit offener Transaktion, `implicit_transactions off` ohne den gemessenen Text als eigener Abschluss (Setzung nach
-dem Teil der Kombination). d-migrate (`schema migrate --execute`, `compare`, `reverse`) verhält sich mit ENVCHANGE gegen
+Zustand, den die Bibliothek nicht zurücknimmt. **Grenze, gemessen und nicht gebaut:** am echten Server trägt nach
+`set implicit_transactions on` die erste Antwort auf jede Anweisung, die eine Transaktion beginnt, ENVCHANGE Typ 8 als
+erstes Token, auch die auf einen RPC (`sp_executesql` mit `MERGE … OUTPUT $action`, Katalogabfrage `SELECT TOP 1
+c.name …`), und der spätere bedingte `COMMIT` dann Typ 9 (Aufnahme `jdbc-d-migrate/{2022,2025}.aufnahme.txt` von
+mssql-jdbc 13.4.0 mit d-migrate 1.12.0: je Instanz 27 Typ 8 und 26 Typ 9, davon Typ 8 als `#14` des `MERGE` und `#19` der
+Katalogabfrage). Die Bibliothek beginnt eine Transaktion nur bei `CREATE_TABLE` im Batch: ein `data import` von d-migrate
+bekommt keinen Typ 8, und der bedingte `COMMIT` schließt dort nur mit `DONE` `0x00c0`. Nicht gemessen und deshalb nicht
+gebaut: ENVCHANGE bei `ALTER TABLE` ohne offene Transaktion, `ROLLBACK` (der Zustand bleibt offen, kein Typ 10), das Ende der
+Sitzung mit offener Transaktion, `set implicit_transactions off` allein (die Art `UNKNOWN`, der Zustand bleibt). d-migrate (`schema migrate --execute`, `compare`, `reverse`) verhält sich mit ENVCHANGE gegen
 den Testserver wie ohne (Messprotokoll `ddl-abschluss-und-transaktionszustand-d-migrate-2026-11-08.md`, Einzelmessung,
 d-migrate 1.12.0, mssql-jdbc 13.4.0).
 
@@ -1109,8 +1114,9 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   (alles oder nichts). Die Antwort auf `SET` ist der Änderungszähler 0, nicht das Ende eines Ergebnisses ohne Anfang
   (`ResultEnd` ohne `ResultStart` beantwortet die Sitzung mit Fehler 50007, Class 20, und schließt die Verbindung;
   gemessen mit mssql-jdbc 13.4.0 am 2026-11-05). Der Text `set implicit_transactions on` allein meldet die Art
-  `IMPLICIT_TRANSACTIONS_ON` (`0x00b9`, gemessen, M-20), `set implicit_transactions off` allein die Art
-  `IMPLICIT_TRANSACTIONS_OFF` (`0x00ba`; gemessen als erster Abschluss der Kombination unten, allein Setzung); jede Folge
+  `IMPLICIT_TRANSACTIONS_ON` (`0x00b9`, gemessen, M-20); `set implicit_transactions off` allein ist nicht gemessen und
+  bleibt der Änderungszähler 0 ohne Art (`UNKNOWN`; `IMPLICIT_TRANSACTIONS_OFF` `0x00ba` ist nur als erster Abschluss der
+  Kombination unten gemessen); jede Folge
   mit weiteren `SET`-Anweisungen, `SET LOCK_TIMEOUT` (am Server `0x00f9`, hier nicht gebaut) und die übrigen Optionen sind der
   Änderungszähler 0 ohne Art und ändern den Zustand der Sitzung nicht. Die Wirkung der Optionen auf spätere Anweisungen ist nicht modelliert: `SET` ändert keinen Zustand der
   Sitzung. Form C nennt keine Tabelle; das Backend ruft weder Zeilenquelle noch Callback.
@@ -1128,7 +1134,9 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   ohne offene Transaktion). `ROLLBACK TRAN`, auch mit `set implicit_transactions …` davor, und `set implicit_transactions
   on IF …` melden keine Art (Setzung; `IF @@TRANCOUNT > 0 ROLLBACK TRAN` ist am Server ohne offene Transaktion als
   `DONE` `0x00c0` gemessen, hier nicht gebaut). Die Bibliothek hat keine Transaktion und nimmt nichts zurück; die
-  ENVCHANGE zu Beginn und Ende stehen in `SPEC-031`.
+  ENVCHANGE zu Beginn und Ende stehen in `SPEC-031`, dort auch die gemessene Grenze: die Bibliothek beginnt eine
+  Transaktion nur bei `CREATE TABLE`, der echte Server bei jeder Anweisung (auch im RPC), und `set implicit_transactions
+  off` allein ist nicht gemessen und endet als `UNKNOWN`.
 - **Form K, Katalogabfragen** (Wortlaut aus `MssqlMetadataQueries` und `MssqlRoutineQueries` des Treibers
   `driver-mssql-1.12.0`, gelesen aus dem Bytecode, und der Mitschnitt der Läufe `schema reverse`, `schema reverse
   --include-all`, `schema compare` und `schema migrate --execute` vom 2026-11-06; 21 Formen, die 21. ist die Probe der Kollation unter Form B): `SELECT SCHEMA_NAME() AS
@@ -2027,4 +2035,4 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | 2026-11-07 | Massenladen des Referenzclients (`SqlBulkCopy`) angenommen (`TDS-FA-11`, `TDS-FA-12`, `TDS-QA-01`): der Leser der Nachricht `0x07` nimmt die festen Typen (BIGINT gemessen; INT, SMALLINT, TINYINT, BIT nach `MS-TDS`), beide Formen von COLMETADATA (mit und ohne zwei Nullbyte) und DONE mit 8 oder 12 Byte an, der Sitzungsrahmen beantwortet die Probe der Zieltabelle von `SqlBulkCopy` mit vier Ergebnissen nach der Aufzeichnung (`SPEC-036`, `SPEC-001`), die Grenze „Nutzlast des Referenzclients wird nicht gelesen“ entfällt, das Szenario `SqlBulkCopy` gehört zum Integrationslauf (`SPEC-040`); IGNORE-Bit setzt den Zustand „Massenladen erwartet“ zurück; kein neuer öffentlicher Name (`SPEC-059`) |
 | 2026-11-08 | Katalogspalten an die Messung angeglichen (`TDS-FA-11`, `TDS-FA-12`, `TDS-QA-01`, `SPEC-035` „Katalog der Spalten“, `SPEC-003`, `SPEC-002`): `SqlType` um die Mitglieder `Int16` (`smallint`) und `UInt8` (`tinyint`) erweitert, JVM-Klasse `Int` mit geprüftem Wertebereich; die Antwortspalten `max_length` (`smallint`), `precision` und `scale` (`tinyint`), `is_nullable` und `is_computed` (`BITN`) der Spaltenabfrage tragen die gemessenen Typen (M-16); die Liste der Namen in `SPEC-059` nennt beide. **Inkompatibel** für ein Kotlin-`when` ohne `else` über `SqlType` in fremdem Code: es übersetzt nicht mehr, bis es beide Mitglieder nennt (vor der ersten Veröffentlichung, Setzung). Klarstellung: Draht von `Int16` und `UInt8` ist der feste Typ (nicht nullbar, gemessen) und `INTN` (nullbar, nicht gemessen); Überführungsregeln für Zahlenliteral, Parameter und Massenladen in `SPEC-035` |
 | 2026-11-08 | Zielbild-Lücken der Antwort-Tokens gebaut (`TDS-FA-04`, `TDS-FA-10`, `TDS-QA-01`, `TDS-QA-07`): öffentliche Fläche um `StatementKind` (`UNKNOWN`, `INSERT`, `DELETE`, `UPDATE`) und das Feld `UpdateCount.kind` erweitert (Standardwert `UNKNOWN`, für Java der Konstruktor mit einem Argument bleibt; `copy`, `componentN` und `equals` von `UpdateCount` ändern sich), die Liste der Namen in `SPEC-059` nennt `StatementKind`; `curCmd` des Änderungszählers `0x00c3`, `0x00c4`, `0x00c5` nach der gemeldeten Art und `0x00c1` im Batch nach Fristablauf bei offenem Ergebnis (`SPEC-031`); Flag-Feld jedes RETURNVALUE `0x0000` (`SPEC-030`); Antwort der Batch-Freigabe `EXEC sp_unprepare` je Nummer mit RETURNSTATUS und DONEPROC `0x00e0` statt DONE, die bekannten Abweichungen zu Flag-Feld, `curCmd` von `UpdateCount` und `sp_unprepare` entfallen (`SPEC-030`, `SPEC-031`, `SPEC-060`) |
-| 2026-11-08 | Abschluss von `CREATE TABLE` und `ALTER TABLE … ADD` und die Transaktionstexte der Form C an die Messung angeglichen (`TDS-FA-12`, `TDS-QA-01`, `TDS-QA-07`, M-20): öffentliche Fläche um die Konstanten `CREATE_TABLE`, `ALTER_TABLE`, `IMPLICIT_TRANSACTIONS_ON`, `IMPLICIT_TRANSACTIONS_OFF` und `COMMIT_IF_OPEN` von `StatementKind` erweitert (`SPEC-059`; `UpdateCount` unverändert); die Setzung „Änderungszähler 0“ für `CREATE TABLE` und `ALTER TABLE … ADD` entfällt, beide schließen im Batch mit `DONE` ohne `COUNT` und den Kennungen `0x00c6` und `0x00d8` (`SPEC-031`, `SPEC-035`, `SPEC-036`); die Transaktionstexte schließen mit `0x00b9`, `0x00ba`, `0x00c0`; die Verbindung führt den Transaktionszustand und schreibt ENVCHANGE Typ 8 und 9 (`SPEC-031`) |
+| 2026-11-08 | Abschluss von `CREATE TABLE` und `ALTER TABLE … ADD` und die Transaktionstexte der Form C an die Messung angeglichen (`TDS-FA-12`, `TDS-QA-01`, `TDS-QA-07`, M-20): öffentliche Fläche um die Konstanten `CREATE_TABLE`, `ALTER_TABLE`, `IMPLICIT_TRANSACTIONS_ON`, `IMPLICIT_TRANSACTIONS_OFF` und `COMMIT_IF_OPEN` von `StatementKind` erweitert (`SPEC-059`; `UpdateCount` unverändert); die Setzung „Änderungszähler 0“ für `CREATE TABLE` und `ALTER TABLE … ADD` entfällt, beide schließen im Batch mit `DONE` ohne `COUNT` und den Kennungen `0x00c6` und `0x00d8` (`SPEC-031`, `SPEC-035`, `SPEC-036`); die Transaktionstexte schließen mit `0x00b9`, `0x00ba`, `0x00c0`; die Verbindung führt den Transaktionszustand und schreibt ENVCHANGE Typ 8 und 9 (`SPEC-031`); `set implicit_transactions off` allein ist nicht gemessen und endet als `UNKNOWN`; **Inkompatibel** für ein Kotlin-`when` ohne `else` über `StatementKind` in fremdem Code: es übersetzt nicht mehr, bis es die fünf neuen Mitglieder nennt (vor der ersten Veröffentlichung, Setzung) |
