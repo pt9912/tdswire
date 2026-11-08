@@ -50,7 +50,7 @@ Liefer-Punkte (3):
 
 Nachweis-Pflichten für alle Punkte:
 
-- [ ] `make gates` grün.
+- [x] `make gates` grün.
 - [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
@@ -58,7 +58,7 @@ Nachweis-Pflichten für alle Punkte:
 - [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
 - [x] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen“ in §7 notiert.
 - [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
 
 ## 3. Plan (vor Code)
 
@@ -150,7 +150,7 @@ Belege: Review [F-1 bis F-14](../../../reviews/2026-11-07-b2ff295c-review-slice-
 - **Beobachtungs-Register (`../observations/`):** `evidence/slice-schreibpfad-merge-output.md` ergänzt in `BEO-TDS/zielbild-luecken-der-antwort-tokens`, `BEO-TDS/katalog-strukturabweisung-und-aenderungszaehler-weichen-vom-echten-server-ab`, `BEO-TDS/wanduhr-tests-flackern-unter-last` (4×, Ausgang beim Nutzer, keine Zuordnung zu diesem Slice behauptet), `BEO-TDS/plan-tabelle-nennt-neue-datei-nicht`, `BEO-TDS/nachbesserung-ohne-zweiten-review`, `BEO-TDS/spec-setzung-widerspricht-messung-am-echten-server` und `BEO-TDS/parametertyp-des-clients-passt-nicht-zur-spalte`; neu angelegt `BEO-TDS/auswerter-ohne-neuen-typ-nachgezogen` und `BEO-TDS/abweichungstraeger-stirbt-beim-merge-von-main` (je 1×); `BEO-TDS/messung-am-echten-sql-server-fehlt` fortgeschrieben (M-25 bis M-32, Folgepflicht 2 von [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) erfüllt).
 - **Folge-Slices:** [slice-merge-antwort-an-messung-angleichen](../open/slice-merge-antwort-an-messung-angleichen.md) (Träger der drei Abweichungen aus V-1); [slice-katalog-und-struktur-an-messung-angleichen](../open/slice-katalog-und-struktur-an-messung-angleichen.md) (nimmt den Fall `MERGE` ohne Schlüssel in §6 auf, V-9); [slice-antwort-tokens-zielbild-luecken-bauen](../open/slice-antwort-tokens-zielbild-luecken-bauen.md) (legt `StatementKind` an, Vorgänger des Folge-Slice); [slice-abnahme-d-migrate](../open/slice-abnahme-d-migrate.md) (Abnahme mit d-migrate).
 - **Risiken aus §6:** jedes mit genau einem Ausgang, siehe §6 — entfallen: Messauftrag, Konfliktsemantik, Anweisungsobjekte; eingetreten: Abweichungen der Antwort (Träger [slice-merge-antwort-an-messung-angleichen](../open/slice-merge-antwort-an-messung-angleichen.md)), Parametertyp (behoben); weiter offen: Setzung der Liste „abschließend“, Gestalt an d-migrate 1.12.0, Stufe 7 (Register).
-- **Drei Paarungen:** Anker — kein Lerneintrag trägt `liegt in`, nichts zu paaren; Folge-Slice — die vier genannten Dateien existieren; Register — jede genannte `BEO-TDS/…` ist ein Verzeichnis mit nicht leerem `evidence/`. Ergebnis im letzten Haken von §2 nach dem Move.
+- **Drei Paarungen:** Anker — kein Lerneintrag trägt `liegt in`, nichts zu paaren; Folge-Slice — die vier genannten Dateien existieren; Register — jede genannte Beobachtungskennung ist ein Verzeichnis mit nicht leerem `evidence/`. Ergebnis im letzten Haken von §2 nach dem Move.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
