@@ -173,7 +173,7 @@ Ein Start, der gelingt, meldet vor `SERVER_STARTED` genau ein Ereignis `CONFIG_E
 
 | Beobachtung | Ursache | Abhilfe |
 |---|---|---|
-| der Client sieht `TDS_INTERNAL_ERROR`, die Verbindung schließt | das Backend warf eine Ausnahme, verletzte die Ereignisreihenfolge (Zeile ohne `ResultStart`, Strom endet im offenen Ergebnis) oder meldete einen Code außerhalb der erlaubten Menge | Ausnahmen als `Failure` melden; erlaubt sind `TDS_BACKEND_ERROR`, `TDS_UNSUPPORTED_SQL`, `TDS_UNSUPPORTED_TYPE`, `TDS_SIM_UNKNOWN_OBJECT`, `TDS_SIM_INVALID_VALUE`, `TDS_SIM_KEY_VIOLATION`, `TDS_TIMEOUT` ([Fehlercodes](referenz-konfiguration.md#fehlercodes-und-antwortformen)) |
+| der Client sieht `TDS_INTERNAL_ERROR`, die Verbindung schließt | das Backend warf eine Ausnahme, verletzte die Ereignisreihenfolge (Zeile ohne `ResultStart`, Strom endet im offenen Ergebnis) oder meldete einen Code außerhalb der erlaubten Menge | Ausnahmen als `Failure` melden; erlaubt sind `TDS_BACKEND_ERROR`, `TDS_UNSUPPORTED_SQL`, `TDS_UNSUPPORTED_TYPE`, `TDS_SIM_UNKNOWN_OBJECT`, `TDS_SIM_INVALID_VALUE`, `TDS_SIM_KEY_VIOLATION`, `TDS_SIM_OBJECT_EXISTS`, `TDS_SIM_COLUMN_EXISTS`, `TDS_SIM_OBJECT_NOT_FOUND`, `TDS_TIMEOUT` ([Fehlercodes](referenz-konfiguration.md#fehlercodes-und-antwortformen)) |
 | der Client sieht `TDS_SIM_UNKNOWN_OBJECT` und die Verbindung schließt | der Code gehört zur Class 20 (schließt die Verbindung); der echte SQL Server lässt sie offen | die Tabelle der Fehlercodes in der Referenz lesen |
 | die Sitzung schließt nach einem Abbruch | das Backend beachtet den Abbruch seiner Coroutine nicht und beendet ihn nicht innerhalb von `CANCEL_TIMEOUT`; sein Aufruf bleibt bis zur Rückkehr belegt | suspendierend und unterbrechbar arbeiten |
 
@@ -233,7 +233,7 @@ Ein Start, der gelingt, meldet vor `SERVER_STARTED` genau ein Ereignis `CONFIG_E
 
 **Eigenschaften.**
 
-- `primaryKey` wirkt nicht auf das Resultset einer Auswahl und prüft keine Eindeutigkeit; nur das `MERGE` liest ihn: der Vergleich des `MERGE` muss genau den Schlüssel nennen. Das Backend speichert nichts.
+- `primaryKey` darf leer sein (so legt `CREATE TABLE` ohne Schlüssel eine Tabelle an). Er wirkt nicht auf das Resultset einer Auswahl und prüft keine Eindeutigkeit; nur das `MERGE` liest ihn: der Vergleich des `MERGE` muss genau den Schlüssel nennen, und gegen eine Tabelle mit leerem Schlüssel endet jedes `MERGE` mit `TDS_UNSUPPORTED_SQL` (der echte SQL Server nimmt es an). Das Backend speichert nichts.
 - Namen sind ohne Beachtung der Groß-/Kleinschreibung eindeutig; jede Tabelle hat mindestens eine Spalte, eine Dezimalspalte höchstens Precision 38; der Schlüssel darf leer sein. Ein Verstoß ist beim Bau der `SimTable` eine `IllegalArgumentException`.
 - Ohne Callback endet Einfügen, Ändern und Löschen mit `TDS_UNSUPPORTED_SQL`.
 - Ein Fehler beim Öffnen oder Lesen der Quelle ist `TDS_BACKEND_ERROR` mit fester Meldung, die den Text der Ausnahme nie nennt.

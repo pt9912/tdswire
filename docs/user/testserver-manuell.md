@@ -340,6 +340,8 @@ Die folgenden Abschnitte fahren je eine Einstellung durch (Läufe vom 2026-11-07
        primary_key: [Nr]
    ```
 
+   `primary_key` ist optional. Eine Tabelle ohne das Feld oder mit leerer Liste hat einen leeren Schlüssel, so wie `CREATE TABLE` ohne Schlüssel sie anlegt und `schema reverse` sie zurückschreibt. Sie nimmt gleiche Zeilen mehrfach an, ein `UPDATE` ändert alle getroffenen Zeilen, und ein `MERGE` gegen sie endet mit `TDS_UNSUPPORTED_SQL` (der echte SQL Server nimmt es an).
+
 2. Starten: `TESTSERVER_BESCHREIBUNG=probe/tabellen.yaml make testserver-up`. Der Katalog führt danach `artikel` statt `kunden` und `bestellungen` (`schema reverse` wie in [Aufgabe 3](#3-mit-d-migrate-struktur-lesen-und-ändern)).
 3. Ist die Beschreibung ungültig, bricht der Start ab, bevor ein Port gebunden wird. Ersetzt man in `probe/tabellen.yaml` `type: biginteger` durch `type: uuid`, ergibt das, gefahren:
 

@@ -104,7 +104,8 @@ internal class TableStore(initial: List<SimTable>, private val cellLimit: Long =
      * Ändert die Zeilen der Tabelle [schema].[name], auf die der Filter [where] zutrifft (ohne Filter alle), und
      * liefert ihre Zahl. [set] nennt Spalten der Beschreibung mit ihren Werten. Der Bestand prüft jeden neuen Wert
      * wie beim Einfügen (Klasse der Spalte, NULL nur in nullbaren Spalten, [RowRules]) und lässt keine Änderung zu,
-     * die den Schlüssel doppelt machte; sonst wirft er, und der Bestand bleibt unverändert (die Bibliothek meldet das
+     * die den Schlüssel doppelt machte (eine Tabelle ohne Schlüssel prüft keine Eindeutigkeit und ändert beliebig viele
+     * Zeilen, Setzung nach der Semantik von `UPDATE`, am Server nicht gemessen); sonst wirft er, und der Bestand bleibt unverändert (die Bibliothek meldet das
      * als `TDS_BACKEND_ERROR`). Der Filter gilt wie der Vorfilter der Zeilenquelle (Setzung, am Server nicht gemessen).
      */
     @Synchronized
@@ -120,7 +121,9 @@ internal class TableStore(initial: List<SimTable>, private val cellLimit: Long =
         }
         val keys = HashSet(table.keys)
         hit.forEach { (_, row) -> keys.remove(keyOf(table, row)) }
-        for (row in changed) require(keys.add(keyOf(table, row))) { "Schlüssel nicht eindeutig" }
+        if (table.primaryKey.isNotEmpty()) {
+            for (row in changed) require(keys.add(keyOf(table, row))) { "Schlüssel nicht eindeutig" }
+        }
         hit.forEachIndexed { at, (index, _) -> table.rows[index] = changed[at] }
         table.keys.clear()
         table.keys.addAll(keys)

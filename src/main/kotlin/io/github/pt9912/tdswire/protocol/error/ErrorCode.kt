@@ -78,8 +78,8 @@ private const val N_OBJECT_NOT_FOUND = 4902
  *   `TDS_SIM_UNKNOWN_PREPARED_HANDLE`; der Wortlaut für andere Handle-Nummern als 1 ist als gleich gesetzt.
  * - Gemessen am Referenzclient gegen einen echten SQL Server (Zeile M-19 des Messprotokolls, 2022 und 2025): Nummer,
  *   Class 16 und State von `TDS_SIM_OBJECT_EXISTS` (2714, State 6), `TDS_SIM_COLUMN_EXISTS` (2705, State 4) und
- *   `TDS_SIM_OBJECT_NOT_FOUND` (4902, State 1) sowie die offene Verbindung; der Text ist ohne den Namen des Objekts
- *   (Setzung: der Text eines Backends erreicht den Client nie).
+ *   `TDS_SIM_OBJECT_NOT_FOUND` (4902, State 1) sowie die offene Verbindung; der Text ist ein Auszug des gemessenen
+ *   Textes ohne die Namen (Setzung: der Text eines Backends erreicht den Client nie).
  * - Grundregel (im Zweifel schließen): nur die Folge der Codes ohne Gruppe. Die Class 20 dieser
  *   Codes ist Festlegung, nicht Grundregel.
  * - Festlegung (nicht gemessen): alle übrigen Werte, nämlich die Nummern ohne Vorschlag, jeder State
@@ -174,7 +174,7 @@ internal enum class ErrorCode(val rule: ErrorRule) {
             N_OBJECT_EXISTS,
             REQUEST,
             STATE_OBJECT_EXISTS,
-            "There is already an object with this name in the database.",
+            "There is already an object named in the database.",
             ConnectionFate.OPEN,
         ),
     ),

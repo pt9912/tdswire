@@ -191,6 +191,28 @@ internal class TestserverStartTest : TempFilesTest() {
     }
 
     /**
+     * Eine Tabelle ohne `primary_key` (so schreibt `schema reverse` von d-migrate eine Tabelle ohne Schlüssel zurück,
+     * die `CREATE TABLE` am Server anlegt) und eine mit leerer Liste starten den Testserver; die Tabellen tragen einen
+     * leeren Schlüssel. Wächter: verlangte der Leser den Schlüssel wieder, brächen beide Starts ab.
+     *
+     * @spec SPEC-035
+     */
+    @Test
+    fun `eine Datei mit Tabellen ohne Schluessel startet den Testserver`() {
+        val withoutKey = PERSON_FILE.replace("    primary_key: [id]\n", "")
+        assertTrue("primary_key" !in withoutKey)
+        for ((label, text) in mapOf("ohne Feld" to withoutKey, "leere Liste" to PERSON_FILE.replace("[id]", "[]"))) {
+            val keys = ArrayList<List<List<String>>>()
+            val outcome = start(environment(EnvKeys.SIMULATION_DESCRIPTION_FILE to file("$label.yaml", text))) {
+                keys += it.map { table -> table.primaryKey }
+                BackendSource.Simulation(it)
+            }
+            assertIs<StartOutcome.Running>(outcome, "$label: $lines")
+            assertEquals(listOf(listOf(emptyList<String>())), keys, label)
+        }
+    }
+
+    /**
      * Ein Name, der in der Datei und in den Tabellen des Testservers vorkommt (auch in anderer Schreibweise), bricht
      * den Start der Bibliothek ab; eine Quelle, die `null` liefert (ein fertiges Backend neben der Datei), bricht den
      * Start des Testservers ab. Beide Male bleibt der Port frei.

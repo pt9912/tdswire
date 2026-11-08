@@ -157,8 +157,8 @@ class ErrorMapperTest {
      * Die Strukturabweisung ist ERROR 2714 (State 6), 2705 (State 4) und 4902 (State 1), je Class 16, danach DONE mit
      * `ERROR`, Befehl `0x00fd`, ohne Zähler; die Verbindung bleibt offen. Nummer, Class, State, die offene Verbindung
      * und der Abschluss sind am Referenzclient gegen den echten SQL Server gemessen (Zeile M-19, 2022 und 2025), der
-     * Text ist ohne den Namen des Objekts (Setzung). Wächter: Class 20 mit schließender Verbindung (der Code
-     * `TDS_SIM_UNKNOWN_OBJECT`), State 1 für alle drei, eine andere Nummer.
+     * Text ist ein Auszug des gemessenen Textes ohne die Namen (Setzung). Wächter: Class 20 mit schließender
+     * Verbindung (der Code `TDS_SIM_UNKNOWN_OBJECT`), State 1 für alle drei, eine andere Nummer, ein anderer Text.
      *
      * @spec SPEC-036
      * @spec TDS-QA-01
@@ -170,6 +170,12 @@ class ErrorMapperTest {
             ErrorCode.TDS_SIM_COLUMN_EXISTS to listOf(2705, 4, 16),
             ErrorCode.TDS_SIM_OBJECT_NOT_FOUND to listOf(4902, 1, 16),
         )
+        val texts = mapOf(
+            ErrorCode.TDS_SIM_OBJECT_EXISTS to "There is already an object named in the database.",
+            ErrorCode.TDS_SIM_COLUMN_EXISTS to "Column names in each table must be unique.",
+            ErrorCode.TDS_SIM_OBJECT_NOT_FOUND to
+                "Cannot find the object because it does not exist or you do not have permissions.",
+        )
         for ((code, numbers) in expected) {
             val response = mapper.code(code)
             assertEquals(ConnectionFate.OPEN, response.fate, code.name)
@@ -177,6 +183,7 @@ class ErrorMapperTest {
             assertEquals(2, tokens.size, code.name)
             val error = assertIs<ErrorToken>(tokens[0]).message
             assertEquals(numbers, listOf(error.number, error.state, error.severity), code.name)
+            assertEquals(texts.getValue(code), error.text, code.name)
             assertEquals(DoneToken(DoneKind.DONE, DoneStatus.ERROR, DoneCommand.BATCH, 0), tokens[1], code.name)
             assertTrue(code in ErrorMapper.BACKEND_CODES, code.name)
         }
