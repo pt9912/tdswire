@@ -281,11 +281,25 @@ public class AnmeldungTests
         new object[] { SqlDbType.Real, 1.5f, "FLTN 4" },
         new object[] { SqlDbType.Money, 1.25m, "MONEYN 8" },
         new object[] { SqlDbType.SmallMoney, 1.25m, "MONEYN 4" },
-        new object[] { SqlDbType.DateTime, new DateTime(2026, 10, 31, 13, 45, 59), "DATETIMN 8" },
         new object[] { SqlDbType.SmallDateTime, new DateTime(2026, 10, 31, 13, 45, 0), "DATETIMN 4" },
         new object[] { SqlDbType.UniqueIdentifier, Guid.Parse("00112233-4455-6677-8899-aabbccddeeff"), "GUID 16" },
         new object[] { SqlDbType.DateTimeOffset, new DateTimeOffset(2026, 10, 31, 13, 45, 59, TimeSpan.FromHours(2)), "DATETIMEOFFSETN" },
     };
+
+    [Fact]
+    public void Parameter_DATETIMN_8_wird_gelesen_und_beantwortet()
+    {
+        using var verbindung = Ziel.Oeffnen();
+        using var befehl = new SqlCommand("SELECT Id FROM person WHERE Id = @id", verbindung);
+        befehl.Parameters.Add("@x", SqlDbType.DateTime).Value = new DateTime(2026, 10, 31, 13, 45, 59);
+        befehl.Parameters.Add("@id", SqlDbType.Int).Value = 1;
+
+        var ergebnis = befehl.ExecuteScalar();
+
+        Ziel.Messung(_ausgabe, "Parameter DateTime (DATETIMN 8) vor einem Int-Parameter: Ergebnis " + ergebnis + $"; Verbindung danach {verbindung.State}");
+        Assert.Equal(1, ergebnis);
+        Assert.Equal(ConnectionState.Open, verbindung.State);
+    }
 
     [Theory]
     [MemberData(nameof(Parametertypen))]

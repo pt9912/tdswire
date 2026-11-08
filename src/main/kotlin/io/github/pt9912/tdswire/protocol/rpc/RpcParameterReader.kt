@@ -28,6 +28,7 @@ internal object RpcParameterReader {
     private const val BYTE_MASK = 0xFFL
     private const val BYTE_BITS = 8
     private const val DATE_BYTES = 3
+    private const val MIN_DECIMAL_BYTES = 2
     private const val OFFSET_BYTES = 2
     private const val BYTES_PER_CHAR = 2
     private val bytesKinds = setOf(
@@ -88,9 +89,8 @@ internal object RpcParameterReader {
         if (length == NULL_PREFIXED) {
             return RpcValue.NullValue
         }
-        val expected = valueBytes(type)
-        if (length != expected) {
-            violation(ProtocolFailure.INVALID_LENGTH, "${type.kind.name}: Wert mit $length Byte, erwartet $expected")
+        if (!lengthFits(type, length)) {
+            violation(ProtocolFailure.INVALID_LENGTH, "${type.kind.name}: Wert mit $length Byte")
         }
         val bytes = reader.bytes(length)
         return when (type.kind) {
@@ -98,6 +98,17 @@ internal object RpcParameterReader {
             RpcTypeKind.BITN -> RpcValue.BitValue(bytes[0].toInt() != 0)
             else -> RpcValue.RawValue(bytes)
         }
+    }
+
+    /**
+     * `DECIMALN` und `NUMERICN`: Vorzeichenbyte und 1 bis 16 Byte Betrag, höchstens so lang wie die TYPE_INFO
+     * (mssql-jdbc
+     * 13.4.0 sendet nur die nötigen Byte, gemessen 2 bis 6 von 17; MS-TDS nennt 5, 9, 13 und 17); jeder andere Typ hat
+     * genau die Länge der TYPE_INFO.
+     */
+    private fun lengthFits(type: RpcType, length: Int): Boolean = when (type.kind) {
+        RpcTypeKind.DECIMALN, RpcTypeKind.NUMERICN -> length in MIN_DECIMAL_BYTES..type.length
+        else -> length == valueBytes(type)
     }
 
     /** Länge des Werts in Byte, die die TYPE_INFO vorgibt. */

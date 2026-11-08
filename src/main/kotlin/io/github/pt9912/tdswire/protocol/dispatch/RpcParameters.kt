@@ -49,9 +49,10 @@ internal class RpcRejected(val reason: RpcRejection) : RuntimeException(reason.n
  * (`Long`); `BITN` ist `Bool`; `NVARCHAR` und `NCHAR` sind `UnicodeText` (`String`, UTF-16-Einheiten
  * unverändert); `DECIMALN` und `NUMERICN` sind `Decimal(precision, scale)` (`BigDecimal`); `DATEN`,
  * `TIMEN` und `DATETIME2N` sind `Date`, `Time` und `DateTime` (`LocalDate`, `LocalTime`,
- * `LocalDateTime`). Jeder andere Typ (`INTN` mit 1 und 2 Byte, Gleitkomma, Geld, GUID, Binär,
- * `varchar`, `DATETIMN`, `DATETIMEOFFSETN`) ist [RpcRejection.TYPE]: `SqlType` führt ihn nicht, und es
- * entsteht hier kein zweiter Katalog.
+ * `LocalDateTime`); `DATETIMN` mit 8 Byte ist `DateTime` (`datetime`: Tage seit 1900-01-01 und Ticks zu 1/300 s;
+ * mssql-jdbc sendet so die Zeit einer `time`-Spalte mit dem Datum 1970-01-01, gemessen am echten SQL Server). Jeder
+ * andere Typ (`INTN` mit 1 und 2 Byte, Gleitkomma, Geld, GUID, Binär, `varchar`, `DATETIMN` mit 4 Byte,
+ * `DATETIMEOFFSETN`) ist [RpcRejection.TYPE]: `SqlType` führt ihn nicht, und es entsteht hier kein zweiter Katalog.
  *
  * Richtung (Festlegung): Bit 0 des Statusbytes ist auf dem Draht OUTPUT und InputOutput zugleich. Ein
  * gesetztes Bit mit NULL-Wert ist `OUTPUT`, mit Wert `INPUT_OUTPUT`; ohne Bit ist es `INPUT`. Ein
@@ -75,6 +76,7 @@ internal object RpcParameters {
     private const val POSITIONAL_PREFIX = "@P"
     private const val INT32_BYTES = 4
     private const val INT64_BYTES = 8
+    private const val DATETIME_BYTES = 8
 
     /**
      * Die Parameter in der Reihenfolge der Nachricht. [nameInText] ist wahr, wenn die Namen im Aufruftext
@@ -120,8 +122,12 @@ internal object RpcParameters {
         RpcTypeKind.DATEN -> SqlType.Date
         RpcTypeKind.TIMEN -> SqlType.Time
         RpcTypeKind.DATETIME2N -> SqlType.DateTime
+        RpcTypeKind.DATETIMN -> datetimeType(type)
         else -> throw RpcRejected(RpcRejection.TYPE)
     }
+
+    private fun datetimeType(type: RpcType): SqlType =
+        if (type.length == DATETIME_BYTES) SqlType.DateTime else throw RpcRejected(RpcRejection.TYPE)
 
     private fun integerType(length: Int): SqlType = when (length) {
         INT32_BYTES -> SqlType.Int32

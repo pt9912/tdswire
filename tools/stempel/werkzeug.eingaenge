@@ -5,7 +5,7 @@
 # Herleitung: baseline-verify liest .harness/baseline (tools/harness/baseline-verify.sh) und laeuft ueber harness/mk/baseline.mk;
 # die drei Docker-Gates lesen die COPY-Quellen ihrer Stages (detekt-selbsttest: Gradle-Dateien, Lockfiles, config, src/main (Stage quellpakete);
 # skript-selbsttest: Skripte unter tools, Dockerfile, tools/mk, harness/mk, Makefile, repo.mk, .github/workflows;
-# kopplung-zahlen: testserver/build.gradle.kts (Heap), die Quelle des Integrationsservers, der .NET-Test, spec/spezifikation.md,
+# skript-selbsttest zusaetzlich referenztest-dotnet/test-lauf.sh; kopplung-zahlen: testserver/build.gradle.kts (Heap), die Quelle des Integrationsservers, der .NET-Test, spec/spezifikation.md,
 # harness/README.md). Geprueft gegen die COPY-Quellen der Stages: tools/stempel-eingaenge-pruefung.sh. Das Skript, seine Lib und
 # alle drei Listen stehen auch in tests.eingaenge und stempel.eingaenge.
 # Grenze: Eingaenge, die weder ein COPY noch ein Make-Fragment noch eine feste Angabe der Pruefung sind, sieht die Pruefung nicht.
@@ -31,4 +31,5 @@ config
 src/main
 testserver/kotlin/io/github/pt9912/tdswire/testserver/IntegrationServer.kt
 referenztest-dotnet/Integration/SimulationBackendTests.cs
+referenztest-dotnet/test-lauf.sh
 .github/workflows

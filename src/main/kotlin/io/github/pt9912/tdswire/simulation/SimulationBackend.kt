@@ -43,6 +43,9 @@ import java.util.concurrent.atomic.AtomicBoolean
  * (`ADR-0033`). Der Konstruktor mit festem Katalog hat keinen Callback: Form D ist dort abgewiesen
  * (`TDS_UNSUPPORTED_SQL`), ebenso mit dem Anbieter und ohne Callback.
  *
+ * Form M (`SPEC-036`, `MERGE … OUTPUT $action`) zerlegt das Backend in ein Lesen über die Zeilenquelle und höchstens
+ * einen Callback ([SimulationMerges]); die Antwort ist das Ergebnis `$action` mit der Zeile `INSERT` oder `UPDATE`.
+ *
  * Zusagen für die Auswahl (Festlegung, nicht am Server gemessen): `execute` wirft für keinen Fehler der
  * Anfrage, jeder erscheint als einziges [QueryEvent.Failure] im Strom, bevor eine Zeilenquelle gelesen wird.
  * Der Strom beginnt mit [QueryEvent.ResultStart] (auch ohne Treffer), liefert die passenden Zeilen und endet
@@ -75,6 +78,7 @@ public class SimulationBackend(
     private val planner = StatementPlanner(catalog)
     private val running = ConcurrentHashMap<Pair<String, String>, Stoppable>()
     private val structureLock = Mutex()
+    private val mergeLock = Mutex()
 
     override suspend fun execute(request: QueryRequest): QueryExecution =
         when (val result = guarded { planner.plan(request.sql) }.getOrNull()) {
@@ -125,16 +129,23 @@ public class SimulationBackend(
 
     private fun start(plan: Plan, request: QueryRequest): QueryExecution {
         val key = request.sessionId to request.requestId
-        val select = plan.statement as? Statement.Select
-        return if (select == null) {
-            when (val change = SimulationChanges.prepare(plan, request.parameters)) {
+        return when (val statement = plan.statement) {
+            is Statement.Select ->
+                when (val prepared = RowConditions.prepare(statement.where, plan.table, request.parameters)) {
+                    is PreparedCondition.Invalid -> failed(SimCodes.INVALID_VALUE, prepared.reason)
+
+                    is PreparedCondition.Ready ->
+                        register(key, SelectExecution(plan, prepared) { running.remove(key, it) })
+                }
+
+            is Statement.Merge -> when (val prepared = SimulationMerges.prepare(plan, request.parameters)) {
+                is PreparedMerge.Rejected -> failed(prepared.code, prepared.message)
+                is PreparedMerge.Ready -> register(key, MergeExecution(prepared, mergeLock) { running.remove(key, it) })
+            }
+
+            else -> when (val change = SimulationChanges.prepare(plan, request.parameters)) {
                 is PreparedChange.Rejected -> failed(change.code, change.message)
                 is PreparedChange.Ready -> register(key, ChangeExecution(change) { running.remove(key, it) })
-            }
-        } else {
-            when (val prepared = RowConditions.prepare(select.where, plan.table, request.parameters)) {
-                is PreparedCondition.Invalid -> failed(SimCodes.INVALID_VALUE, prepared.reason)
-                is PreparedCondition.Ready -> register(key, SelectExecution(plan, prepared) { running.remove(key, it) })
             }
         }
     }

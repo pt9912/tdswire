@@ -75,6 +75,7 @@ class RpcTypesTest {
         assertContentEquals(hex("00 00 00 00 00 00 F8 3F"), raw("6D 08 08 00 00 00 00 00 00 F8 3F"))
         assertContentEquals(hex("10 27 00 00"), raw("6E 04 04 10 27 00 00"))
         assertContentEquals(hex("01 00 00 00 02 00 00 00"), raw("6F 08 08 01 00 00 00 02 00 00 00"))
+        assertContentEquals(hex("DF 63 00 00 B4 25 DA 00"), raw("6F 08 08 DF 63 00 00 B4 25 DA 00"))
         val guid = "01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F 10"
         assertContentEquals(hex(guid), raw("24 10 10 $guid"))
         assertEquals(RpcType(RpcTypeKind.FLTN, length = 8), parameter("6D 08 08 00 00 00 00 00 00 F8 3F").type)
@@ -96,6 +97,30 @@ class RpcTypesTest {
         val decimal = parameter("6A 05 09 00  05 01 07 00 00 00")
         assertEquals(RpcType(RpcTypeKind.DECIMALN, length = 5, precision = 9, scale = 0), decimal.type)
         assertContentEquals(hex("01 07 00 00 00"), assertIs<RpcValue.RawValue>(decimal.value).bytes)
+    }
+
+    /**
+     * Gemessen (mssql-jdbc 13.4.0 über d-migrate 1.12.0 am echten SQL Server, Messprotokoll der Referenzabgleiche
+     * M-31):
+     * `DECIMALN(38,2)` mit Größe 17 und einem Wert von nur den nötigen Byte: 12,50 = `01 E2 04` (3 Byte), -0,05 =
+     * `00 05` (2 Byte), 99999999,99 in 6 Byte; NULL ist die Länge 0.
+     *
+     * @spec SPEC-030
+     */
+    @Test
+    fun `Dezimalwerte von mssql-jdbc tragen nur die noetigen Byte`() {
+        val type = RpcType(RpcTypeKind.DECIMALN, length = 17, precision = 38, scale = 2)
+        val vectors = mapOf(
+            "6A 11 26 02 03 01 E2 04" to "01 E2 04",
+            "6A 11 26 02 02 00 05" to "00 05",
+            "6A 11 26 02 06 01 FF E3 0B 54 02" to "01 FF E3 0B 54 02",
+        )
+        vectors.forEach { (vector, bytes) ->
+            val parameter = parameter(vector)
+            assertEquals(type, parameter.type, vector)
+            assertContentEquals(hex(bytes), assertIs<RpcValue.RawValue>(parameter.value).bytes, vector)
+        }
+        assertEquals(RpcValue.NullValue, parameter("6A 11 26 02 00").value)
     }
 
     /**
