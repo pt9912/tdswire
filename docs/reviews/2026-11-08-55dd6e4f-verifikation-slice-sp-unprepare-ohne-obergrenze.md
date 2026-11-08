@@ -1,6 +1,6 @@
 # Verifikationsbericht: slice-sp-unprepare-ohne-obergrenze (HEAD 55dd6e4f)
 
-Rolle Verifier (Modul 11): DoD- und Entscheidungs-Konformität, Plan-vs-Code-Diff. Zweig `worktree-agent-a7bc3c771ae8ca3bb`, Basis `d18a8541`, `main` bei `66fee6c1`. Bezug: [TDS-FA-04](../../spec/lastenheft.md#tds-fa-04--parametrisierte-abfragen-über-rpc), [TDS-QA-02](../../spec/lastenheft.md#tds-qa-02--stabilität), [ADR-0036](../plan/adr/0036-handle-freigabe-und-grenze-je-sitzung.md), [ADR-0037](../plan/adr/0037-sp-unprepare-unbekanntes-handle-ergibt-fehler-8179.md). Slice: `docs/plan/planning/in-progress/slice-sp-unprepare-ohne-obergrenze.md`. Reviews: `1645b7c2`, `ebd197da`, `5c518231` (alle unter `docs/reviews/`). Der Verifier ändert keinen Produktivcode und setzt keine Haken.
+Rolle Verifier (Modul 11): DoD- und Entscheidungs-Konformität, Plan-vs-Code-Diff. Zweig `worktree-agent-a7bc3c771ae8ca3bb`, Basis `d18a8541`, `main` bei `66fee6c1`. Bezug: [TDS-FA-04](../../spec/lastenheft.md#tds-fa-04--parametrisierte-abfragen-über-rpc), [TDS-QA-02](../../spec/lastenheft.md#tds-qa-02--stabilität), [ADR-0036](../plan/adr/0036-handle-freigabe-und-grenze-je-sitzung.md), [ADR-0037](../plan/adr/0037-sp-unprepare-unbekanntes-handle-ergibt-fehler-8179.md). Slice: `docs/plan/planning/done/slice-sp-unprepare-ohne-obergrenze.md`. Reviews: `1645b7c2`, `ebd197da`, `5c518231` (alle unter `docs/reviews/`). Der Verifier ändert keinen Produktivcode und setzt keine Haken.
 
 ## Gesamturteil
 
@@ -80,7 +80,7 @@ Plan §3 gegen `git diff main...HEAD --stat` (31 Dateien): `UnprepareBatch.kt`, 
 ### V-1 MEDIUM — DoD Liefer-Punkt 2 verlangt eine Zeitzahl; für den Strom-Stand gibt es keine
 
 * quelle: Slice §2 LP2 („endet in begrenzter Zeit … Messung mit Zahlen (Zeit, Heap), kein Satz ohne Messzeile“), `AGENTS.md` §3.8, Frage des Verifiers aus Review 2 I-3
-* pfad: `docs/messungen/unprepare-antwort-speicher-2026-11-07.md` (Reihen a und b ohne Zeitspalte); `docs/plan/planning/in-progress/slice-sp-unprepare-ohne-obergrenze.md` §3 Option 6
+* pfad: `docs/messungen/unprepare-antwort-speicher-2026-11-07.md` (Reihen a und b ohne Zeitspalte); `docs/plan/planning/done/slice-sp-unprepare-ohne-obergrenze.md` §3 Option 6
 * befund: Das Messprotokoll trägt für Reihe a und b keine Zeit. Option 6 im Plan nennt „3,6 s für 419 429 Nummern (Reihe a …)“; diese Zahl steht in Reihe a nicht, und sie gehört dem Puffer-Stand, der nicht im Repo liegt. Derselbe Absatz sagt, ob `QUERY_TIMEOUT` den Pfad begrenzt, sei „nicht untersucht“: das ist seit `ba1fdf3b` überholt (Freigabe-Antwort unter `AbortableRun`, Test mit gesteuerter Zeit rot unter m1 R3). `SPEC-060` und Nutzer-Doku sagen nichts über die Zeit und sind insoweit nicht überzogen; die DoD-Zeile ist nicht erfüllt. Eigene Zeit gemessen habe ich nicht (die Gate-Läufe liefen bei Load 8 bis 160, eine Zahl daraus wäre keine Messzeile).
 * Ausgang für den Planner (eine von zwei): (a) eine Zeitzahl des Strom-Standes im Messprotokoll nachtragen (Test `UnprepareLastProcessTest`, Zeit je Verbindung, Last des Hosts nennen), Option 6 im Plan auf den Stand bringen; oder (b) die DoD-Zeile ausdrücklich auf „Heap und Abbruch durch Frist und ATTENTION, Zeit nicht gemessen“ zurücknehmen und die Grenze in §7 nennen.
 

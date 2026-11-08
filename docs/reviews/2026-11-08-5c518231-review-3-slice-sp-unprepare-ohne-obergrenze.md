@@ -52,7 +52,7 @@
 
 * kategorie: MEDIUM
 * quelle: Reviewer-Skill „Plan-Tabelle nennt die berührten Dateien nicht“
-* pfad: `docs/plan/planning/in-progress/slice-sp-unprepare-ohne-obergrenze.md` · „`conclude` (aus `execute` herausgelöst) und `leading` tragen beide Zweige“
+* pfad: `docs/plan/planning/done/slice-sp-unprepare-ohne-obergrenze.md` · „`conclude` (aus `execute` herausgelöst) und `leading` tragen beide Zweige“
 * befund: (a) Die neue Datei `src/main/kotlin/io/github/pt9912/tdswire/protocol/dispatch/RunConclusion.kt` steht nicht in der Tabelle in §3; die Zeile zu `RequestLoop.kt` nennt `conclude` und `leading`, einen Namen `leading` gibt es im Diff nicht (die Klasse heißt `LeadingToken` und ist unverändert; die herausgelöste Funktion liegt in `RunConclusion`). (b) Der Kopf „Berührte Spec-Stellen“ nennt `SPEC-030` und `SPEC-060`; berührt sind auch `SPEC-029` (die Zeile `SPEC-060` stützt sich jetzt auf den Abbruch; der neue Test trägt den Tag, die Abdeckungsmatrix zählt dort einen Test mehr) und `SPEC-009` (Frist, im Text von `SPEC-060`). Der Negativbefund „keine Datei darüber hinaus“ gilt damit nicht.
 * verifizierbar: ja (Abgleich Tabelle gegen `git diff --stat`)
 * klasse: Plan-Tabelle nennt die berührten Dateien nicht

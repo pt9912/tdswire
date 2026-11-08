@@ -36,7 +36,7 @@ Kopie des Baums bei HEAD (`git archive`), je eine Mutation, `docker build --targ
 
 * kategorie: MEDIUM
 * quelle: Reviewer-Skill „Plan-Tabelle nennt die berührten Dateien nicht“; `AGENTS.md` §3.7
-* pfad: `docs/plan/planning/in-progress/slice-sp-unprepare-ohne-obergrenze.md` · „passt an `errorAnswerTail` (ResponseRun.kt) und `ErrorMapper.serializeHandles` an“
+* pfad: `docs/plan/planning/done/slice-sp-unprepare-ohne-obergrenze.md` · „passt an `errorAnswerTail` (ResponseRun.kt) und `ErrorMapper.serializeHandles` an“
 * befund: Die Tabelle in §3 nennt `ErrorMapper.kt` und `ResponseRun.kt`, nicht aber die beim Bau neu entstandene `protocol/error/ErrorAnswers.kt` (`encodeTokens`, `handleAnswer`); ebenso fehlen `docs/messungen/referenzabgleich.md` (M-22, Link), `docs/plan/spec-abdeckung.md` (erzeugt) und die Link-Nachzüge in `welle-testserver-manuell.md`, `roadmap.md`, `slice-abnahme-d-migrate.md`, `slice-antwort-tokens-zielbild-luecken-bauen.md`, `slice-qa-vergleichslauf-d-messungen-bulk-merge.md` und dem Register `messung-am-echten-sql-server-fehlt`. `ErrorMapper.serializeHandles` gibt es nicht (Grep über `src`: kein Treffer; die Stelle ist `handleAnswer` in `ErrorAnswers.kt`); wer den Token-Slice baut, sucht die falsche Stelle.
 * verifizierbar: ja (`git diff --name-only 0bc03b4d..HEAD` gegen die Tabelle; `grep -rn serializeHandles src`)
 * klasse: Plan-Tabelle nennt die berührten Dateien nicht
@@ -72,7 +72,7 @@ Kopie des Baums bei HEAD (`git archive`), je eine Mutation, `docker build --targ
 
 * kategorie: INFO
 * quelle: Slice DoD Liefer-Punkt 2; Zuständigkeit Verifier
-* pfad: `docs/plan/planning/in-progress/slice-sp-unprepare-ohne-obergrenze.md` · „ob `QUERY_TIMEOUT` diesen Pfad begrenzt, ist nicht untersucht“
+* pfad: `docs/plan/planning/done/slice-sp-unprepare-ohne-obergrenze.md` · „ob `QUERY_TIMEOUT` diesen Pfad begrenzt, ist nicht untersucht“
 * befund: Der Slice benennt die Lücke selbst; gemessen ist 3,6 s für 419 429 Nummern in einer Einzelmessung unter Last. Ob „begrenzte Zeit“ des DoD-Wortlauts damit erfüllt ist, entscheidet nicht dieser Review.
 * verifizierbar: nein
 * klasse: Hinweis an Verifier
