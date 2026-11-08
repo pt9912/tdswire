@@ -203,6 +203,40 @@ class TableStoreTest {
     }
 
     /**
+     * Boundary: eine Spalte `Int16` nimmt einen `Int` von −32768 bis 32767 auf und eine Spalte `UInt8` von 0 bis 255;
+     * ein Wert um eins daneben, ein `Long` und ein `Short` werfen und lassen den Bestand unverändert.
+     * Wächter: eine Zeilenprüfung, die nur die Klasse `Int` prüft (der Bestand hielte 256 in einer `UInt8`-Spalte).
+     * @spec SPEC-035
+     */
+    @Test
+    fun `der Bestand haelt Int16 und UInt8 im Wertebereich`() {
+        val narrow = kunden.copy(
+            columns = listOf(
+                SimColumn("Id", SqlType.Int64, nullable = false),
+                SimColumn("Klein", SqlType.Int16),
+                SimColumn("Winzig", SqlType.UInt8),
+            ),
+        )
+        val store = TableStore(listOf(narrow))
+        val low = mapOf<String, Any?>("Id" to 1L, "Klein" to -32768, "Winzig" to 0)
+        val high = mapOf<String, Any?>("Id" to 2L, "Klein" to 32767, "Winzig" to 255)
+        assertEquals(2, insert(store, low, high))
+        val before = stored(store)
+        val bad = listOf<Map<String, Any?>>(
+            mapOf("Klein" to -32769),
+            mapOf("Klein" to 32768),
+            mapOf("Winzig" to -1),
+            mapOf("Winzig" to 256),
+            mapOf("Klein" to 1L),
+            mapOf("Winzig" to 1.toShort()),
+        )
+        for ((at, values) in bad.withIndex()) {
+            assertFailsWith<IllegalArgumentException>("$values") { insert(store, mapOf("Id" to 10L + at) + values) }
+        }
+        assertEquals(before, stored(store))
+    }
+
+    /**
      * Happy: der Stapel-Callback der Tabelle des Bestands nimmt die Zeilen einer Nachricht auf und liefert ihre Zahl;
      * die Zeilenquelle liefert sie in der Reihenfolge der Spalten (eine fehlende Spalte als NULL), auch aus einem
      * später

@@ -18,10 +18,16 @@ internal data class Collation(val info: Int, val sortId: Int) {
 
 /**
  * Datentypen des Mindestkatalogs (`SPEC-003`) mit ihrer TYPE_INFO. Festlegung: Nullbare Spalten
- * tragen die N-Form des Typs (`IntNType`, `BitNType`); die festen Typen (`Int4Type`, `Int8Type`,
- * `BitType`) tragen kein NULL. PLP-Typen (MAX) gehören nicht zum Katalog.
+ * tragen die N-Form des Typs (`IntNType`, `BitNType`); die festen Typen (`Int1Type`, `Int2Type`,
+ * `Int4Type`, `Int8Type`, `BitType`) tragen kein NULL. PLP-Typen (MAX) gehören nicht zum Katalog.
  */
 internal sealed interface TdsType {
+    /** Ganzzahl fester Länge ohne Vorzeichen, 1 Byte (INT1, `0x30`). */
+    data object Int1Type : TdsType
+
+    /** Ganzzahl fester Länge, 2 Byte (INT2, `0x34`). */
+    data object Int2Type : TdsType
+
     /** Ganzzahl fester Länge, 4 Byte (INT4, `0x38`). */
     data object Int4Type : TdsType
 

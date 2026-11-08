@@ -6,6 +6,8 @@ import io.github.pt9912.tdswire.protocol.wire.violation
 
 /** Typkennungen der TYPE_INFO (Layout nach MS-TDS). */
 internal object TypeCode {
+    const val INT1 = 0x30
+    const val INT2 = 0x34
     const val INT4 = 0x38
     const val INT8 = 0x7F
     const val BIT = 0x32
@@ -30,13 +32,16 @@ internal object TypeInfoWriter {
 
     fun writeTypeInfo(out: ByteWriter, column: ColumnDef) {
         val type = column.type
-        if (column.nullable && isFixed(type)) {
-            violation(ProtocolFailure.INVALID_TYPE, "Spalte ${column.name}: fester Typ ohne NULL, aber nullable")
+        val fixed = fixedCode(type)
+        if (fixed != null) {
+            if (column.nullable) {
+                violation(ProtocolFailure.INVALID_TYPE, "Spalte ${column.name}: fester Typ ohne NULL, aber nullable")
+            }
+            out.u8(fixed)
+            return
         }
         when (type) {
-            TdsType.Int4Type -> out.u8(TypeCode.INT4)
-            TdsType.Int8Type -> out.u8(TypeCode.INT8)
-            TdsType.BitType -> out.u8(TypeCode.BIT)
+            TdsType.Int1Type, TdsType.Int2Type, TdsType.Int4Type, TdsType.Int8Type, TdsType.BitType -> Unit
             is TdsType.IntNType -> writeIntN(out, type)
             TdsType.BitNType -> writeFixedSize(out, TypeCode.BITN, 1)
             is TdsType.NVarcharType -> writeNVarchar(out, type)
@@ -47,8 +52,15 @@ internal object TypeInfoWriter {
         }
     }
 
-    private fun isFixed(type: TdsType): Boolean =
-        type is TdsType.Int4Type || type is TdsType.Int8Type || type is TdsType.BitType
+    /** Die Typkennung der festen Typen (ohne NULL), sonst `null`. */
+    private fun fixedCode(type: TdsType): Int? = when (type) {
+        TdsType.Int1Type -> TypeCode.INT1
+        TdsType.Int2Type -> TypeCode.INT2
+        TdsType.Int4Type -> TypeCode.INT4
+        TdsType.Int8Type -> TypeCode.INT8
+        TdsType.BitType -> TypeCode.BIT
+        else -> null
+    }
 
     /** Die Spaltenflags: `fNullable` und die Bits, die der Aufrufer in `extraFlags` mitgibt. */
     fun flags(column: ColumnDef): Int = column.extraFlags or (if (column.nullable) FLAG_NULLABLE else 0)

@@ -2,15 +2,21 @@ package io.github.pt9912.tdswire.domain
 
 /**
  * Das Typmodell des Backends (`SPEC-002`): die Typen, in denen ein Backend Spalten, Parameter und
- * Ausgabewerte beschreibt. Der Umfang ist der Mindestkatalog von `SPEC-003`; Breiten unter 32 Bit,
- * Gleitkomma, Geld, GUID und Binärtypen gehören nicht dazu. Die Abbildung auf TDS-Typen ist nicht
- * Teil dieses Modells.
+ * Ausgabewerte beschreibt. Der Umfang ist der Mindestkatalog von `SPEC-003`; von den Breiten unter 32 Bit
+ * gehören nur [Int16] und [UInt8] dazu, Gleitkomma, Geld, GUID und Binärtypen nicht. Die Abbildung auf
+ * TDS-Typen ist nicht Teil dieses Modells.
  *
  * Festlegung ohne Messung: `SPEC-002` definiert `SqlType` nicht; Umfang und Namen setzt dieser Quelltext.
  * Längenlimit von [UnicodeText], Scale der Zeittypen, Zeitzonenannahme, Precision-Obergrenze und die
  * JVM-Typen der Werte je [SqlType] legt die Typabbildung fest (`SPEC-003`, `ValueMapping`).
  */
 public sealed interface SqlType {
+    /** Ganzzahl mit 16 Bit (`smallint`, −32768 bis 32767); die JVM-Klasse der Werte ist `Int`. */
+    public data object Int16 : SqlType
+
+    /** Ganzzahl mit 8 Bit ohne Vorzeichen (`tinyint`, 0 bis 255); die JVM-Klasse der Werte ist `Int`. */
+    public data object UInt8 : SqlType
+
     /** Ganzzahl mit 32 Bit. */
     public data object Int32 : SqlType
 

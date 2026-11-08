@@ -57,6 +57,46 @@ class SimValuesTest {
     }
 
     /**
+     * Boundary: eine ganze Zahl passt in `Int16` von −32768 bis 32767 und in `UInt8` von 0 bis 255, als `Int`; ein Wert
+     * um eins darüber oder darunter ist ungültig, auch −1 in `UInt8`; Text und Zahl mit Rest gehen nicht hinein.
+     * Wächter: eine Bereichsgrenze um eins daneben, ein Vorzeichen in `UInt8`.
+     * @spec SPEC-035
+     */
+    @Test
+    fun `Int16 und UInt8 nehmen ganze Zahlen genau in ihrem Bereich an`() {
+        assertValue(-32768, literal(num("-32768"), SqlType.Int16), "Int16 Untergrenze")
+        assertValue(32767, literal(num("32767"), SqlType.Int16), "Int16 Obergrenze")
+        assertInvalid(literal(num("-32769"), SqlType.Int16), "Int16 Überlauf unten")
+        assertInvalid(literal(num("32768"), SqlType.Int16), "Int16 Überlauf oben")
+        assertValue(0, literal(num("0"), SqlType.UInt8), "UInt8 Untergrenze")
+        assertValue(255, literal(num("255"), SqlType.UInt8), "UInt8 Obergrenze")
+        assertInvalid(literal(num("-1"), SqlType.UInt8), "UInt8 negativ")
+        assertInvalid(literal(num("256"), SqlType.UInt8), "UInt8 Überlauf oben")
+        assertInvalid(literal(num("1.5"), SqlType.Int16), "Int16 mit Rest")
+        assertInvalid(literal(txt("1"), SqlType.UInt8), "Text in UInt8")
+        assertInvalid(literal(txt("1"), SqlType.Int16), "Text in Int16")
+    }
+
+    /**
+     * Boundary: ein Parameter gleichen Typs gilt in einer `Int16`- oder `UInt8`-Spalte im Bereich der Spalte, sonst
+     * nicht; ein Parameter anderer Ganzzahlbreite wird nicht verengt.
+     * @spec SPEC-035
+     */
+    @Test
+    fun `Parameter gleichen Typs gelten in Int16 und UInt8 nur im Bereich`() {
+        assertValue(32767, via(par(SqlType.Int16, 32767), SqlType.Int16), "Int16 in Int16")
+        assertValue(255, via(par(SqlType.UInt8, 255), SqlType.UInt8), "UInt8 in UInt8")
+        assertInvalid(via(par(SqlType.Int16, 32768), SqlType.Int16), "Int16 über dem Bereich")
+        assertInvalid(via(par(SqlType.UInt8, 256), SqlType.UInt8), "UInt8 über dem Bereich")
+        assertInvalid(via(par(SqlType.UInt8, -1), SqlType.UInt8), "UInt8 negativ")
+        assertInvalid(via(par(SqlType.Int32, 7), SqlType.Int16), "Int32 in Int16")
+        assertInvalid(via(par(SqlType.Int64, 7L), SqlType.UInt8), "Int64 in UInt8")
+        assertInvalid(via(par(SqlType.Int16, 7), SqlType.Int32), "Int16 in Int32")
+        assertInvalid(via(par(SqlType.Int16, 7L), SqlType.Int16), "Long unter Typ Int16")
+        assertValue(null, via(par(SqlType.Int16, null), SqlType.UInt8), "NULL")
+    }
+
+    /**
      * Boundary: eine Dezimalzahl hat höchstens so viele Nachkommastellen wie die Skala und höchstens
      * Precision minus Skala Stellen vor dem Komma; Nullen am Ende der Skala zählen nicht, Rundung gibt es nicht.
      * @spec SPEC-035
