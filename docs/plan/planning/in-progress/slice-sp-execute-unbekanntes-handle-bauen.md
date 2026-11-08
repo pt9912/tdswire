@@ -74,12 +74,14 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 | `spec/spezifikation.md` (`SPEC-057`, `SPEC-030`, `SPEC-060`, §4 Fehlertabelle und State-Satz, Änderungsprotokoll) | update | Liste der Spec-Änderungen von [ADR-0045](../../adr/0045-sp-execute-unbekanntes-handle-ergibt-fehler-8179-state-4.md) ([TDS-FA-04](../../../../spec/lastenheft.md#tds-fa-04--parametrisierte-abfragen-über-rpc)) |
 | `docs/user/referenz-konfiguration.md` | update | Fehlertabelle führt `TDS_UNKNOWN_HANDLE` (50009) heute als gesendet; Ist-Zustand nachziehen |
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/dispatch/RequestLoop.kt` (Zeile ~377, KDoc Zeilen ~70 und ~85) | update | Zweig `sp_execute` mit nicht gehaltenem Handle; KDoc nennt `TDS_UNKNOWN_HANDLE` |
-| `src/main/kotlin/io/github/pt9912/tdswire/protocol/error/ErrorCode.kt`, `ErrorMapper` | update | State je Aufrufform (8 und 4); `N_HANDLE` (50009) entfällt oder bleibt ungesendet |
-| `src/main/kotlin/io/github/pt9912/tdswire/protocol/error/ErrorAnswers.kt` | update | nennt `TDS_UNKNOWN_HANDLE` (Fundstelle der Suche; Rolle beim Bau prüfen) |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/error/ErrorCode.kt` | update | `TDS_UNKNOWN_HANDLE` und `N_HANDLE` (50009) entfernt; Konstante `STATE_EXECUTE_UNKNOWN_HANDLE` (4) neben dem State 8 der Regel von `TDS_SIM_UNKNOWN_PREPARED_HANDLE` |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/error/ErrorMapper.kt` | update | `ErrorRule.message` nimmt den State der Aufrufform; neu `ErrorMapper.executeUnknownHandle` (ERROR 8179, State 4, Form RPC, Log-Marke als Argument) |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/error/ErrorAnswers.kt` | keine Änderung | nennt nur `TDS_SIM_UNKNOWN_PREPARED_HANDLE` der Batch-Freigabe (State 8); die Suche fand dort keinen Bezug zu 50009 |
 | `src/test/kotlin/io/github/pt9912/tdswire/protocol/dispatch/{PreparedHandlesDispatchTest,ResetConnectionDispatchTest,RequestSequenceTest,UnprepareDispatchTest}.kt`, `src/test/kotlin/io/github/pt9912/tdswire/protocol/error/ErrorMapperTest.kt` | update | behaupten 50009 und `TDS_UNKNOWN_HANDLE` ([TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität)) |
 | Handvektor 8179/State 4 (Testdatei im Paket `protocol/dispatch` oder `protocol/error`) | neu | Happy: nie vergeben, −1, 0, freigegeben, nach `RESETCONNECTION`; Negative: kein Backend-Aufruf, Zähler unverändert, Verbindung offen; Gegenprobe State 8 der Batch-Freigabe |
 | `docs/plan/kompatibilitaetsmatrix.md` (Zeilen `sp_execute`, „Handle-Verwaltung je Sitzung“) | update | [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität); Zitate prüft `make matrix-zitate` |
 | `docs/messungen/referenzabgleich.md` (Zeile M-6) | update | Hinweis eingelöst |
+| `src/test/kotlin/io/github/pt9912/tdswire/protocol/dispatch/UnprepareDispatchTest.kt` (Filter der Log-Einträge nach Marke statt nach Code) | update | `sp_execute` und Batch-Freigabe teilen den Code `TDS_SIM_UNKNOWN_PREPARED_HANDLE`; die Marken `unknown-handle` und `unknown-prepared-handle` unterscheiden sie |
 
 Reihenfolge innerhalb des Slice: Spezifikation zuerst (Zielbild), dann Test, dann Quelltext. Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 

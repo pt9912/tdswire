@@ -67,9 +67,10 @@ import kotlin.time.Duration.Companion.milliseconds
  * gültig. Hält die Sitzung schon
  * [handleLimit] Handles, ergibt `sp_prepexec` `TDS_PREPARE_LIMIT`, ohne das Backend zu rufen;
  * die Handles bleiben gültig. `sp_execute` führt den gemerkten Text mit den neuen Parametern aus; ein Handle,
- * das die Sitzung nicht hält, ergibt `TDS_UNKNOWN_HANDLE` ohne Backend-Aufruf. Beide Fehler lassen die Verbindung
- * offen (Class 16). Der RPC `sp_unprepare` und `sp_prepare` sind nicht im Katalog (`TDS_UNSUPPORTED_RPC`) und geben
- * nichts frei. Die Freigabe läuft als SQL_BATCH `EXEC sp_unprepare <n>` ([UnprepareBatch]): die Schleife beantwortet
+ * das die Sitzung nicht hält, ergibt `TDS_SIM_UNKNOWN_PREPARED_HANDLE` mit State 4 ohne Backend-Aufruf. Beide Fehler
+ * lassen die Verbindung offen (Class 16). Der RPC `sp_unprepare` und `sp_prepare` sind nicht im Katalog
+ * (`TDS_UNSUPPORTED_RPC`) und geben nichts frei. Die Freigabe läuft als SQL_BATCH `EXEC sp_unprepare <n>`
+ * ([UnprepareBatch]): die Schleife beantwortet
  * ihn ohne das Backend, gibt jedes gehaltene Handle der Reihe nach frei, und jede Nummer, die die Sitzung nicht hält
  * (nie vergeben, schon freigegeben, vor RESETCONNECTION), ergibt einen ERROR `TDS_SIM_UNKNOWN_PREPARED_HANDLE` in
  * derselben Antwort; je Nummer folgen RETURNSTATUS und DONEPROC (Befehl `0x00e0`), ein DONE gibt es nicht; die
@@ -82,9 +83,10 @@ import kotlin.time.Duration.Companion.milliseconds
  * Nachricht. `MessageAssembler` liest es in `TdsMessage.resetConnection`, `TransportHandshakeChannel` gibt die
  * Nachricht unverändert weiter, und der Automat des Sitzungsrahmens setzt an der Anfrage in `READY`, die es trägt, die
  * Aktion `ResetSession`; der Rahmen führt sie unter seiner Sperre aus, vor der Verarbeitung dieser Anfrage. Die
- * Schleife hängt dafür [PreparedHandles.clear] ein: alle Handles sind danach unbekannt (`TDS_UNKNOWN_HANDLE`), die
- * Vergabe beginnt wieder bei 1, die Grenze von [handleLimit] gilt neu. Die Anfrage mit dem Bit wird
- * danach wie jede andere beantwortet; erstes Token jeder Antwort ist ENVCHANGE Typ 18 mit leerem neuem und leerem altem
+ * Schleife hängt dafür [PreparedHandles.clear] ein: alle Handles sind danach unbekannt (`sp_execute` ergibt
+ * `TDS_SIM_UNKNOWN_PREPARED_HANDLE` mit State 4), die Vergabe beginnt wieder bei 1, die Grenze von [handleLimit]
+ * gilt neu. Die Anfrage mit dem Bit wird danach wie jede andere beantwortet; erstes Token jeder Antwort ist
+ * ENVCHANGE Typ 18 mit leerem neuem und leerem altem
  * Wert (am echten Server gemessen, Messprotokoll W-7, Batch; für den RPC Setzung nach derselben Regel). Das Bit an
  * einer Nachricht außerhalb von `READY` wirkt nicht: dort ist eine Anfrage unzulässig und die Verbindung schließt
  * (Festlegung; `ADR-0027` entscheidet es nicht).
@@ -373,9 +375,15 @@ internal class RequestLoop(
     }
 
     private suspend fun executePrepared(bound: RpcBinding.ExecutePrepared): HandshakeEvent.RequestFinished? {
-        val sql = handles.sql(bound.handle)
-            ?: return refuse(ErrorCode.TDS_UNKNOWN_HANDLE, "unknown-handle", ResponseForm.RPC)
+        val sql = handles.sql(bound.handle) ?: return refuseUnknownHandle(bound.handle)
         return execute(sql, bound.parameters, CallLayout.EXECUTE_PREPARED)
+    }
+
+    /** Die Antwort auf `sp_execute` mit einem Handle, das die Sitzung nicht hält, ohne das Backend zu rufen. */
+    private fun refuseUnknownHandle(handle: Int): HandshakeEvent.RequestFinished {
+        queryOutcome = SpanOutcome.ERROR
+        val response = errors.executeUnknownHandle(handle, "unknown-handle")
+        return requestFinished(response.fate, response.message)
     }
 
     /** Die Antwort mit einem eigenen Fehlercode, ohne das Backend zu rufen; [cause] ist die feste Marke fürs Log. */

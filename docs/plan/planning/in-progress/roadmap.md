@@ -10,7 +10,7 @@ gezeigt, nicht als Treiber.
 
 ## Offene Wellen
 
-Nichts in Arbeit.
+In Arbeit: [welle-testserver-manuell](../welle-testserver-manuell.md) mit [slice-sp-execute-unbekanntes-handle-bauen](slice-sp-execute-unbekanntes-handle-bauen.md).
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte — *Offene Wellen* ist **derivativ**: Der

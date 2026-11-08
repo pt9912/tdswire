@@ -35,7 +35,9 @@ import kotlin.test.assertTrue
 class ResetConnectionDispatchTest {
     private val oneRow = listOf(resultStart(), QueryEvent.Row(listOf(7)), QueryEvent.ResultEnd(1))
 
-    private val unknownHandle = ServerMessage(50009, 1, 16, "Unknown prepared handle.")
+    /** Die Meldung für `sp_execute` mit unbekanntem Handle (M-6 gemessen; nach `RESETCONNECTION` Setzung). */
+    private fun unknownHandle(handle: Int) =
+        ServerMessage(8179, 4, 16, "Could not find prepared statement with handle $handle.")
     private val limitReached = ServerMessage(50010, 1, 16, "Prepared handle limit reached.")
 
     private fun rpc(payload: ByteArray) = BatchVectors.raw(PacketType.RPC, payload)
@@ -48,13 +50,13 @@ class ResetConnectionDispatchTest {
     private fun resettingRpc(payload: ByteArray) = resetting(PacketType.RPC, payload)
 
     private fun isUnknown(session: Session, index: Int) = session.tokens(index).filterIsInstance<ErrorToken>()
-        .singleOrNull()?.message == unknownHandle
+        .singleOrNull()?.message?.let { it.number == 8179 && it.state == 4 } == true
 
     /**
      * Drei Handles sind vergeben; ein SQL_BATCH mit dem Bit wird wie jeder andere beantwortet (kein Fehler), und danach
-     * ist jedes der drei Handles unbekannt: ERROR 50009 und DONE mit Fehlerstatus bei offener Verbindung, ohne das
-     * Backend zu rufen. Der Folge-RPC wird beantwortet. Wächter: das Leeren entfernt, nach der Anfrage statt davor
-     * ausgeführt oder auf einen Teil der Tabelle beschränkt.
+     * ist jedes der drei Handles unbekannt: ERROR 8179 (State 4) und DONEPROC mit Fehlerstatus bei offener Verbindung,
+     * ohne das Backend zu rufen. Der Folge-RPC wird beantwortet. Wächter: das Leeren entfernt, nach der Anfrage statt
+     * davor ausgeführt oder auf einen Teil der Tabelle beschränkt.
      *
      * @spec SPEC-001
      * @spec SPEC-030
@@ -80,6 +82,11 @@ class ResetConnectionDispatchTest {
             assertTrue(session.tokens(3).none { it is ErrorToken }, "die Anfrage mit dem Bit bekommt ihre Antwort")
             (4..6).forEach {
                 assertTrue(isUnknown(session, it), "Antwort $it")
+                assertEquals(
+                    unknownHandle(it - 3),
+                    session.tokens(it).filterIsInstance<ErrorToken>().single().message,
+                    "Antwort $it",
+                )
                 assertEquals(DoneStatus.ERROR, session.tokens(it).lastDone().status)
             }
             assertTrue(session.tokens(7).none { it is ErrorToken })
@@ -180,7 +187,7 @@ class ResetConnectionDispatchTest {
     /**
      * Das Bit kommt über den echten Transport an: ein Rohbytes-Client sendet `sp_prepexec` (Status `0x01`) und dann
      * `sp_execute` für Handle 1 im Status `0x09` (EOM und RESETCONNECTION); die zweite Anfrage trifft eine leere
-     * Tabelle (ERROR 50009). Wächter: der Paket-Codec oder der Kanal gibt das Bit nicht weiter.
+     * Tabelle (ERROR 8179, State 4). Wächter: der Paket-Codec oder der Kanal gibt das Bit nicht weiter.
      *
      * @spec SPEC-001
      * @spec TDS-FA-07
@@ -194,7 +201,7 @@ class ResetConnectionDispatchTest {
         session.wire.endInput()
         serving.join()
         val errors = TokenDecoder(session.wire.payload()).decodeAll().filterIsInstance<ErrorToken>()
-        assertEquals(listOf(unknownHandle), errors.map { it.message })
+        assertEquals(listOf(unknownHandle(1)), errors.map { it.message })
     }
 
     /**

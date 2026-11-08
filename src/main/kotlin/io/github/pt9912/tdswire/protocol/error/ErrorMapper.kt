@@ -42,9 +42,10 @@ internal fun interface ErrorLog {
 
 /**
  * Die ERROR-Meldung der Regel: Nummer, State, Class und fester Text; die einzige Stelle, die sie bildet. Eine Regel mit
- * [ErrorRule.namesHandle] verlangt [handle] und hängt ` <handle>.` an den Text.
+ * [ErrorRule.namesHandle] verlangt [handle] und hängt ` <handle>.` an den Text; [state] ersetzt den State der Regel
+ * für die Aufrufform, die einen anderen trägt.
  */
-internal fun ErrorRule.message(handle: Int? = null): ServerMessage {
+internal fun ErrorRule.message(handle: Int? = null, state: Int = this.state): ServerMessage {
     require((handle != null) == namesHandle) { "Handle und Regel passen nicht zusammen" }
     return ServerMessage(number, state, severity, if (handle == null) text else "$text $handle.")
 }
@@ -75,6 +76,18 @@ internal class ErrorMapper(internal val log: ErrorLog = ErrorLog.NONE) {
         cause: String? = null,
         form: ResponseForm = ResponseForm.BATCH,
     ): ErrorResponse = response(code, streamSynchronous, cause, form)
+
+    /**
+     * `sp_execute` mit einem Handle, das die Sitzung nicht hält: ERROR 8179 mit State [STATE_EXECUTE_UNKNOWN_HANDLE]
+     * und der Nummer des Handles im Text, in der Form RPC; [cause] ist die feste Marke für das Log. Der Strom ist
+     * synchron.
+     */
+    fun executeUnknownHandle(handle: Int, cause: String): ErrorResponse {
+        val code = ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE
+        log.record(ErrorLogEntry(code, cause))
+        val message = code.rule.message(handle, STATE_EXECUTE_UNKNOWN_HANDLE)
+        return ErrorResponse(code, serialize(listOf(message), ResponseForm.RPC), code.rule.fate)
+    }
 
     /**
      * Ein erwarteter Fehler des Backends. Nur ein Code aus [BACKEND_CODES] ist eine erwartete
