@@ -25,8 +25,9 @@ import kotlin.test.assertIs
  * Referenzclient `Microsoft.Data.SqlClient`): `int`, `smallint`, `bigint`, `bit`, `decimal(10,2)`, `float`,
  * `nvarchar(50)`, `date`, `time` und `datetime2`, jeweils mit Wert und mit NULL, dazu ein nicht zugewiesener
  * Ausgabewert; NULL ändert das Feld nicht. Die Typen, die das Backend über [SqlType] liefern kann, laufen hier durch
- * den Sequenzierer; `smallint` (`INTN` 2) ist über das Token selbst belegt. Für `float` gibt es weder einen [SqlType]
- * noch einen Typ der Tokens: der Fall ist nicht gebaut und hat keinen Test.
+ * den Sequenzierer: neun der zehn gemessenen (`smallint` über [SqlType.Int16]); `tinyint` ([SqlType.UInt8]) läuft
+ * mit, ist aber nicht gemessen (M-24 nennt es nicht). Für `float` gibt es weder einen [SqlType] noch einen Typ der
+ * Tokens: der Fall ist nicht gebaut und hat keinen Test.
  */
 class ReturnValueFlagsTest {
     private val request = QueryRequest("s", "r", "SELECT 1", emptyList(), null)
@@ -68,8 +69,8 @@ class ReturnValueFlagsTest {
 
     /**
      * Je Typ, den das Backend liefern kann, mit Wert und mit NULL: Flag-Feld `0x0000` (M-24, zehn Typen am echten
-     * Server, hier die acht über [SqlType] erreichbaren). Wächter: das Flag-Feld aus der Nullbarkeit der Spalte
-     * (`0x0001` bei jedem Ausgabewert des Backends, der Stand vor der Messung).
+     * Server, hier die neun gemessenen über [SqlType] erreichbaren und `tinyint` ohne Messung). Wächter: das Flag-Feld
+     * aus der Nullbarkeit der Spalte (`ColumnDef.nullable`), das bei jedem Ausgabewert des Backends `0x0001` ergäbe.
      *
      * @spec SPEC-030
      * @spec TDS-FA-10
@@ -78,6 +79,8 @@ class ReturnValueFlagsTest {
     fun `Das Flag-Feld des RETURNVALUE ist 0x0000 fuer jeden Typ, mit Wert und mit NULL`() {
         val values = listOf<Triple<String, SqlType, Any>>(
             Triple("int", SqlType.Int32, 4),
+            Triple("smallint", SqlType.Int16, 4),
+            Triple("tinyint (nicht gemessen)", SqlType.UInt8, 4),
             Triple("bigint", SqlType.Int64, 4L),
             Triple("bit", SqlType.Bool, true),
             Triple("decimal", SqlType.Decimal(10, 2), BigDecimal("12.34")),
@@ -93,9 +96,8 @@ class ReturnValueFlagsTest {
     }
 
     /**
-     * `smallint` (`INTN` 2, M-24) kennt der Backend-Weg nicht ([SqlType] hat keinen Typ dafür); der Schreiber des
-     * RETURNVALUE schreibt auch für einen nullbaren `INTN` 2 und 8 das Feld `0x0000`. Wächter: ein Schreiber, der das
-     * Feld aus `ColumnDef.nullable` bildet.
+     * Der Schreiber des RETURNVALUE schreibt auch für einen nullbaren `INTN` 2 und 8 das Feld `0x0000`, unabhängig vom
+     * Backend-Weg (M-24: `INTN` 2 und 8 Byte). Wächter: ein Schreiber, der das Feld aus `ColumnDef.nullable` bildet.
      *
      * @spec SPEC-030
      * @spec TDS-FA-10

@@ -208,6 +208,34 @@ class UnprepareDispatchTest {
     }
 
     /**
+     * Dieselbe Nummer zweimal in einem Batch: die erste Stelle gibt das gehaltene Handle frei, die zweite trifft ein
+     * Handle, das die Sitzung nicht mehr hält, und ergibt genau einen ERROR 8179 (Setzung: gemessen ist die doppelte
+     * Freigabe in getrennten Anweisungen, M-4). Wächter: ein Fehler an der ersten Stelle oder an beiden, eine
+     * Freigabe, die die zweite Stelle als gehalten zählt.
+     *
+     * @spec SPEC-060
+     * @spec SPEC-030
+     */
+    @Test
+    fun `Dieselbe Nummer zweimal in einem Batch ergibt genau einen ERROR an der zweiten Stelle`() = blocking {
+        val backend = ScriptedBackend.ofList(*oneRow.toTypedArray())
+        val session = Session.login(
+            rpc(prepExec(-1, "select 1", "")),
+            batch("EXEC sp_unprepare 1;EXEC sp_unprepare 1"),
+            rpc(execute(1)),
+            Inbound.EndOfStream,
+        )
+        val loop = session.loop(backend)
+        loop.run()
+        assertEquals(listOf(notFound(1)), session.errors(1))
+        assertEquals(5, session.tokens(1).size)
+        assertTrue(session.hex(1).startsWith(hexOf(HELD_MORE)), session.hex(1))
+        assertTrue(session.hex(1).endsWith(hexOf(UNKNOWN_LAST)), session.hex(1))
+        assertEquals(unknownHandle, session.errors(2).single())
+        assertEquals(1, backend.requests.size)
+    }
+
+    /**
      * Jede unbekannte Nummer ergibt einen ERROR mit RETURNSTATUS 8179 und DONEPROC `MORE|ERROR`, ohne Obergrenze
      * (`SPEC-060`; gemessen am echten Server: 100, 101 und 150 Nummern auf dem Draht, M-22 des Messprotokolls
      * `docs/messungen/referenzabgleich.md`): Batches mit 99, 100, 101, 150 und 2000 unbekannten Nummern vor einem

@@ -649,7 +649,7 @@ die Position in der Aufrufliste):
   `@a` an Position 4 hinter `@w`, W-5), und die RETURNVALUE stehen in der Reihenfolge der Aufrufliste, das Handle
   zuerst. Das Flag-Feld des Handle-RETURNVALUE ist 0x0000 (nicht nullbar), wie in den Mitschnitten `prepare` (2022 und
   2025, ein Fall je Instanz); der Mitschnitt-Lauf liest das Feld nicht (Ausnahme A-19 des Referenzabgleichs, Beleg ist
-  ein Test mit Handvektor). Das Flag-Feld jedes RETURNVALUE ist 0x0000, auch das eines Ausgabewerts des Backends, mit Wert, mit NULL und ohne Zuweisung. Am echten Server gemessen (A-20 des Referenzabgleichs, 22 von 22 Treffern je Instanz mit `INTN` 4 mit Wert; Messvermerk 2026-11-07, M-24: ebenso 24 von 24 je Instanz für `INTN` 2 und 8 Byte, `BITN`, `NUMERICN`, `FLOATN`, `nvarchar`, `date`, `time`, `datetime2`, mit Wert, mit NULL und ohne Zuweisung). Belegt sind acht Typen, die ein Backend über `SqlType` liefern kann (`int`, `bigint`, `bit`, `decimal`, `nvarchar`, `date`, `time`, `datetime2`, je mit Wert und mit NULL) durch einen Test am Sequenzierer, `smallint` (`INTN` 2) durch einen Test am Token; für `float` hat die Bibliothek weder einen `SqlType` noch einen Typ der Tokens, der Fall ist nicht gebaut. Endet die Antwort
+  ein Test mit Handvektor). Das Flag-Feld jedes RETURNVALUE ist 0x0000, auch das eines Ausgabewerts des Backends, mit Wert, mit NULL und ohne Zuweisung. Am echten Server gemessen (A-20 des Referenzabgleichs, 22 von 22 Treffern je Instanz mit `INTN` 4 mit Wert; Messvermerk 2026-11-07, M-24: ebenso 24 von 24 je Instanz für `INTN` 2 und 8 Byte, `BITN`, `NUMERICN`, `FLOATN`, `nvarchar`, `date`, `time`, `datetime2`, mit Wert, mit NULL und ohne Zuweisung). Belegt sind neun der zehn gemessenen Typen, die ein Backend über `SqlType` liefern kann (`int`, `smallint` als `SqlType.Int16`, `bigint`, `bit`, `decimal`, `nvarchar`, `date`, `time`, `datetime2`, je mit Wert und mit NULL), durch einen Test am Sequenzierer; `tinyint` (`SqlType.UInt8`) läuft im selben Test, ist aber am echten Server nicht gemessen; `INTN` 2 und 8 Byte nullbar sind durch einen Test am Token belegt. Grenze: für `float` hat die Bibliothek weder einen `SqlType` noch einen Typ der Tokens, der Fall ist nicht gebaut und nicht belegt (Träger: Register `BEO-TDS/zielbild-luecken-der-antwort-tokens`). Endet die Antwort
   mit einem Fehler, bevor das Handle im Strom steht (Fehler vor dem ersten Ausgabewert), entsteht kein Handle
   und der Wert wird nicht wieder vergeben; steht das Handle schon im Strom (Fehler nach einem Ausgabewert),
   bleibt es gültig.
@@ -671,7 +671,8 @@ die Position in der Aufrufliste):
   letzten trägt `MORE` (Messvermerk 2026-11-07, M-23 des Referenzabgleichs, beide Instanzen, ein Fall je Instanz: ein
   Handle ergibt `RETURNSTATUS DONEPROC`, zwei Anweisungen in einem Batch `DONEPROC` mit `MORE` und `DONEPROC`, beide
   `0x00e0`). Eine Nummer, die die Sitzung nicht hält (nie vergeben, schon freigegeben, aus der
-  Zeit vor `RESETCONNECTION`), ergibt `SPEC-060`: ein ERROR je solcher Nummer, danach ein DONE mit Fehlerstatus; die
+  Zeit vor `RESETCONNECTION`), ergibt `SPEC-060`: je solcher Nummer ein ERROR, ein RETURNSTATUS 8179 und ein DONEPROC mit
+  `ERROR` (Befehl `0x00e0`, kein DONE); die
   Verbindung bleibt offen, das Backend wird nicht gerufen, die Zählung ändert sich durch diese Nummer nicht. Die Antwort nennt
   jede solche Nummer, ohne Obergrenze (`SPEC-060`); alle Nummern des Batches werden bearbeitet. Gemessen
   (am Referenzclient gegen den echten SQL Server, 2022 und 2025): ein Handle freigeben gelingt, dasselbe ein zweites Mal
@@ -749,7 +750,8 @@ Anweisung nicht, um die Art zu prüfen oder abzuleiten. Gebaut sind nur die Arte
 schreibt (bekannte Abweichung vom Zielbild, im Beobachtungs-Register geführt:
 `BEO-TDS/zielbild-luecken-der-antwort-tokens`). Der Fehlerabschluss nach einem Abbruch durch die Frist trägt im
 Batch `0x00c1` (DONE), wenn der Client ein Ergebnis ohne Abschluss hat (COLMETADATA geschrieben, kein DONE danach;
-gemessen: die Referenz schreibt bei einem Fehler im Ergebnis `0x00c1`, W-6), sonst `0x00fd`; in der Form RPC
+aus dem Fehler im Ergebnis übertragen, die Frist ist nicht gemessen: die Referenz schreibt bei einem Fehler im
+Ergebnis `0x00c1`, W-6), sonst `0x00fd`; in der Form RPC
 schließt der Fristablauf mit ERROR und DONEPROC `ERROR` `0x00e0`, auch bei offenem Ergebnis (die Referenz schreibt
 bei einem Fehler der Ausführung im Ergebnis zuvor ein DONEINPROC `MORE|ERROR` `0x00c1`, W-1 bis W-3; für den
 Fristablauf im RPC nicht gemessen und nicht gebaut). Die Werte sind je Instanz an einem Fall gemessen; die
