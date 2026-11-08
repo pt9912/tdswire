@@ -315,9 +315,8 @@ internal class RequestLoop(
                     }
                 } else {
                     bulk.clear()
-                    val allHeld = released.distinct().size == released.size && released.all { handles.sql(it) != null }
-                    queryOutcome = if (allHeld) SpanOutcome.OK else SpanOutcome.ERROR
                     val unknown = UnprepareBatch.release(released, handles)
+                    queryOutcome = SpanOutcome.OK.takeIf { unknown.isEmpty() } ?: SpanOutcome.ERROR
                     if (unknown.isEmpty()) UnprepareBatch.completed() else reportUnknown(unknown)
                 }
             }
