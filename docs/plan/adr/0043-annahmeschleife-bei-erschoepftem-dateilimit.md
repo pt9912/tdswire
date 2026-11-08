@@ -1,10 +1,10 @@
 # ADR-0043: Die Annahmeschleife des Listeners übersteht ein erschöpftes Limit offener Dateien, indem der Fehlerpfad der Annahme beim Start vorbereitet wird (Klassen berührt, Instanzen vorgebaut)
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-11-08
 
-**Autor:** Architect (Entwurf); Annahme: ausstehend (pt9912)
+**Autor:** Architect (Entwurf); Annahme: pt9912 (Nutzer), 2026-11-08
 
 **Bezug:** [TDS-FA-09](../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose), [TDS-QA-02](../../../spec/lastenheft.md#tds-qa-02--stabilität), [ADR-0003](0003-transportframework.md), [ADR-0020](0020-logformat-und-observability-schnittstelle.md)
 
@@ -62,6 +62,7 @@ Der Test wird in der Umgebung der Gates rot, obwohl A umgesetzt ist (dann B), od
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-11-08 | Proposed | Entwurf des Architect |
+| 2026-11-08 | Accepted (Entscheidung des Nutzers: Option A) | Nutzerentscheid vom 2026-11-08 |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit
