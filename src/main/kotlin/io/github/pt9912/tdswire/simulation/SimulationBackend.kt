@@ -5,7 +5,6 @@ import io.github.pt9912.tdswire.domain.QueryParameter
 import io.github.pt9912.tdswire.domain.QueryRequest
 import io.github.pt9912.tdswire.domain.ResultColumn
 import io.github.pt9912.tdswire.domain.SqlType
-import io.github.pt9912.tdswire.domain.StatementKind
 import io.github.pt9912.tdswire.port.BulkRows
 import io.github.pt9912.tdswire.port.BulkTarget
 import io.github.pt9912.tdswire.port.BulkTargetResult
@@ -38,9 +37,9 @@ import java.util.concurrent.atomic.AtomicBoolean
  * speichern (`runtime` schaltet das Laden für dieses Backend ein, ohne dass der Integrator etwas tut).
  *
  * Form K (`SPEC-036`) beantwortet die Katalogabfragen von d-migrate aus dem Katalog ([CatalogAnswers]); der Katalog
- * kommt bei jeder Anfrage frisch aus dem Anbieter des Konstruktors, das Backend hält keinen Stand. Form D
- * (`CREATE TABLE`, `ALTER TABLE … ADD`) ruft den Strukturänderungs-Callback mit der Tabelle nach der Anweisung und
- * meldet die Art `CREATE_TABLE` oder `ALTER_TABLE`; das Backend nimmt nichts zurück, mehrere Callbacks sind keine Transaktion
+ * kommt bei jeder Anfrage frisch aus dem Anbieter des Konstruktors, das Backend hält keinen Stand. Form D (`CREATE
+ * TABLE`, `ALTER TABLE … ADD`) ruft den Strukturänderungs-Callback mit der Tabelle nach der Anweisung und meldet die
+ * Art `CREATE_TABLE` oder `ALTER_TABLE`; das Backend nimmt nichts zurück, mehrere Callbacks sind keine Transaktion
  * (`ADR-0033`). Der Konstruktor mit festem Katalog hat keinen Callback: Form D ist dort abgewiesen
  * (`TDS_UNSUPPORTED_SQL`), ebenso mit dem Anbieter und ohne Callback.
  *

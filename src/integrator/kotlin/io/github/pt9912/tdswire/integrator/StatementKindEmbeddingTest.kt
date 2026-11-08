@@ -21,7 +21,7 @@ import io.github.pt9912.tdswire.simulation.SimColumn
 import io.github.pt9912.tdswire.simulation.SimTable
 import io.github.pt9912.tdswire.simulation.SimulationBackend
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.runBlocking
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.test.AfterTest
@@ -182,11 +182,11 @@ class StatementKindEmbeddingTest {
     /**
      * Die Folge von `schema migrate` auf den Rohbytes (Messprotokoll M-20, Szenario `katalog-struktur`) gegen das
      * Simulations-Backend und gegen ein eigenes Backend, das dieselben Arten meldet: `set implicit_transactions on`,
-     * `CREATE TABLE` (ENVCHANGE Typ 8 mit dem Deskriptor), `ALTER TABLE … ADD` und der bedingte `COMMIT` (mit Typ 9), beide
-     * mit dem Deskriptor des Servers im Kopf der Anfrage wie beim Referenzclient, dann `set implicit_transactions off IF …`
-     * und ein `CREATE TABLE` ohne ENVCHANGE. Jede Antwort hat die gemessenen Bytes; der zurückgesendete Deskriptor wird
-     * bedient und ändert die Antwort nicht. Wächter: ein Typ 8 ohne die Option oder ein zweiter, ein Typ 9 mit anderem
-     * Deskriptor als dem von Typ 8, ein Kopf mit Deskriptor, auf den die Schleife anders antwortet.
+     * `CREATE TABLE` (ENVCHANGE Typ 8 mit dem Deskriptor), `ALTER TABLE … ADD` und der bedingte `COMMIT` (mit Typ 9),
+     * beide mit dem Deskriptor des Servers im Kopf der Anfrage wie beim Referenzclient, dann `set implicit_transactions
+     * off IF …` und ein `CREATE TABLE` ohne ENVCHANGE. Jede Antwort hat die gemessenen Bytes; der zurückgesendete
+     * Deskriptor wird bedient und ändert die Antwort nicht. Wächter: ein Typ 8 ohne die Option oder ein zweiter, ein
+     * Typ 9 mit anderem Deskriptor als dem von Typ 8, ein Kopf mit Deskriptor, auf den die Schleife anders antwortet.
      *
      * @spec SPEC-059
      * @spec SPEC-031
@@ -282,7 +282,7 @@ private class KindBackend : QueryBackend {
             "ALTER" -> StatementKind.ALTER_TABLE
             else -> StatementKind.UNKNOWN
         }
-        return FixedExecution(QueryEvent.UpdateCount(ROWS, kind))
+        return FixedExecution(listOf(QueryEvent.UpdateCount(ROWS, kind)))
     }
 
     override suspend fun cancel(sessionId: String, requestId: String) = Unit
@@ -292,11 +292,13 @@ private class KindBackend : QueryBackend {
 private class TransactionBackend : QueryBackend {
     override suspend fun execute(request: QueryRequest): QueryExecution = when {
         request.sql.startsWith("set implicit_transactions on") ->
-            FixedExecution(QueryEvent.UpdateCount(0, StatementKind.IMPLICIT_TRANSACTIONS_ON))
+            FixedExecution(listOf(QueryEvent.UpdateCount(0, StatementKind.IMPLICIT_TRANSACTIONS_ON)))
 
         else -> FixedExecution(
-            QueryEvent.UpdateCount(0, StatementKind.IMPLICIT_TRANSACTIONS_OFF),
-            QueryEvent.UpdateCount(0, StatementKind.COMMIT_IF_OPEN),
+            listOf(
+                QueryEvent.UpdateCount(0, StatementKind.IMPLICIT_TRANSACTIONS_OFF),
+                QueryEvent.UpdateCount(0, StatementKind.COMMIT_IF_OPEN),
+            ),
         )
     }
 
@@ -322,7 +324,7 @@ private class StepBackend : QueryBackend {
 
             else -> listOf(QueryEvent.UpdateCount(0, StatementKind.ALTER_TABLE))
         }
-        return FixedExecution(*events.toTypedArray())
+        return FixedExecution(events)
     }
 
     override suspend fun cancel(sessionId: String, requestId: String) = Unit
@@ -330,13 +332,13 @@ private class StepBackend : QueryBackend {
 
 /** Ein Backend, das jede Anfrage mit demselben [event] beantwortet. */
 private class FixedCountBackend(private val event: QueryEvent) : QueryBackend {
-    override suspend fun execute(request: QueryRequest): QueryExecution = FixedExecution(event)
+    override suspend fun execute(request: QueryRequest): QueryExecution = FixedExecution(listOf(event))
 
     override suspend fun cancel(sessionId: String, requestId: String) = Unit
 }
 
-private class FixedExecution(vararg events: QueryEvent) : QueryExecution {
-    override val events: Flow<QueryEvent> = flowOf(*events)
+private class FixedExecution(events: List<QueryEvent>) : QueryExecution {
+    override val events: Flow<QueryEvent> = events.asFlow()
 
     override suspend fun close() = Unit
 }

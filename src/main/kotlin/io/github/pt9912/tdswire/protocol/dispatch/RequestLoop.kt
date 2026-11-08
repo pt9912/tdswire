@@ -158,7 +158,6 @@ internal class RequestLoop(
     private val gate = hooks.gate
     private val handleLimit = hooks.handleLimit
     private val mapping = errors.sequencerMapping()
-    private val sequencer = ResponseSequencer(mapping)
     private val aborted = AbortedAnswer(errors, mapping)
     private val conclusion = RunConclusion(ready.live, errors, aborted)
     private val bulk = BulkDispatch(backend)
@@ -171,8 +170,10 @@ internal class RequestLoop(
     /** Die Prepared-Handles dieser Sitzung; eine Schleife bedient genau eine Sitzung. */
     internal val handles = PreparedHandles(handleLimit)
 
-    /** Der Transaktionszustand dieser Sitzung (`implicit_transactions`, offene Transaktion); er endet mit der Schleife. */
+    /** Der Transaktionszustand dieser Sitzung (`implicit_transactions`, offene Transaktion); er endet mit ihr. */
     private val transaction = SessionTransaction()
+
+    private val sequencer = ResponseSequencer(mapping, transaction)
 
     /** Der Lauf der Anfrage, die gerade ausgeführt wird; `null` zwischen den Anfragen. */
     @Volatile
@@ -414,14 +415,7 @@ internal class RequestLoop(
         active = run
         val end = try {
             run.run(remaining) {
-                sequencer.run(
-                    via.observed(session),
-                    request,
-                    sinkAround(sink),
-                    form,
-                    layout ?: CallLayout.PROCEDURE,
-                    transaction,
-                )
+                sequencer.run(via.observed(session), request, sinkAround(sink), form, layout ?: CallLayout.PROCEDURE)
             }
         } finally {
             active = null

@@ -64,8 +64,8 @@ internal class SessionTransaction {
     internal companion object {
         /**
          * Der Deskriptor in ENVCHANGE Typ 8 und 9: die Bytes `01 00 00 00 35 00 00 00` der Instanz 2022 (Messprotokoll
-         * M-20; die Instanz 2025 sendet `... 33 ...`). Der Server wählt den Wert je Transaktion, der Client sendet ihn im
-         * Kopf der folgenden Anfragen zurück; die Bibliothek liest ihn dort nicht. Der Wert ist Setzung.
+         * M-20; die Instanz 2025 sendet `... 33 ...`). Der Server wählt den Wert je Transaktion, der Client sendet ihn
+         * im Kopf der folgenden Anfragen zurück; die Bibliothek liest ihn dort nicht. Der Wert ist Setzung.
          */
         const val DESCRIPTOR = 0x0000_0035_0000_0001L
     }

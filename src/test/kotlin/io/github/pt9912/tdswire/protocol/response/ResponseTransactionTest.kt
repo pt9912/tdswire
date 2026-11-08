@@ -32,7 +32,9 @@ private const val COMMIT_OPEN = "FD 01 00 C0 00 $DONE_ZERO  E3 0B 00 09 00 08 $D
 /** `IF @@TRANCOUNT > 0 COMMIT TRAN` ohne offene Transaktion: DONE `0x00c0`. */
 private const val COMMIT_CLOSED = "FD 00 00 C0 00 $DONE_ZERO"
 
-/** `set implicit_transactions off IF @@TRANCOUNT > 0 COMMIT TRAN` ohne offene Transaktion: `0x00ba` `MORE`, `0x00c0`. */
+/**
+ * `set implicit_transactions off IF @@TRANCOUNT > 0 COMMIT TRAN` ohne offene Transaktion: `0x00ba` `MORE`, `0x00c0`.
+ */
 private const val OFF_COMMIT_CLOSED = "FD 01 00 BA 00 $DONE_ZERO  FD 00 00 C0 00 $DONE_ZERO"
 
 /**
@@ -56,7 +58,7 @@ class ResponseTransactionTest {
         val sink = RecordingSink()
         val events = kinds.map { QueryEvent.UpdateCount(0, it) }.toTypedArray()
         val outcome = runBlocking {
-            ResponseSequencer(FIXED_MAPPING).run(ScriptedBackend.ofList(*events), request, sink, form, layout, state)
+            ResponseSequencer(FIXED_MAPPING, state).run(ScriptedBackend.ofList(*events), request, sink, form, layout)
         }
         assertEquals(SequenceOutcome.COMPLETED, outcome)
         val encoder = TokenEncoder()
@@ -71,8 +73,8 @@ class ResponseTransactionTest {
 
     /**
      * Die gemessene Folge von `schema migrate`: `set implicit_transactions on`; `CREATE TABLE` (ENVCHANGE Typ 8);
-     * `ALTER TABLE … ADD` in der Transaktion (kein ENVCHANGE); der bedingte `COMMIT` (DONE `MORE`, ENVCHANGE Typ 9, DONE
-     * `0x00d5`); `set implicit_transactions off IF @@TRANCOUNT > 0 COMMIT TRAN` ohne offene Transaktion; ein
+     * `ALTER TABLE … ADD` in der Transaktion (kein ENVCHANGE); der bedingte `COMMIT` (DONE `MORE`, ENVCHANGE Typ 9,
+     * DONE `0x00d5`); `set implicit_transactions off IF @@TRANCOUNT > 0 COMMIT TRAN` ohne offene Transaktion; ein
      * `CREATE TABLE` bei `off` ohne ENVCHANGE. Wächter: ein fehlender oder ein zweiter Typ 8, ein Typ 9 ohne die
      * Bedingung vorher, vertauschte Kennungen, der Deskriptor an der falschen Stelle des Tokens.
      *

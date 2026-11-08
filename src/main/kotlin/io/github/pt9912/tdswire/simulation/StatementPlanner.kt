@@ -164,7 +164,8 @@ internal class StatementPlanner(private val catalogs: () -> SimCatalog) {
                     if (SimNames.fold(it.name) in keyed) it.copy(nullable = false) else it
                 }
                 val names = key.orEmpty().map { known.getValue(SimNames.fold(it)).name }
-                PlanResult.Structure(StructurePlan(schema, statement.table.name, columns, names, StatementKind.CREATE_TABLE))
+                val plan = StructurePlan(schema, statement.table.name, columns, names, StatementKind.CREATE_TABLE)
+                PlanResult.Structure(plan)
             }
         }
     }

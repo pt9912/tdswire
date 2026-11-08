@@ -124,13 +124,14 @@ internal enum class SequenceOutcome {
  * - `curCmd` folgt der Form des Ereignisses und der Art des Änderungszählers ([DoneCommand], Messprotokoll W-6):
  *   `ResultEnd` und ein Fehler bei offenem Ergebnis `0x00c1`, ein Fehler ohne offenes Ergebnis und ein Strom ohne
  *   Ereignis `0x00fd`, DONEPROC `0x00e0`; `UpdateCount` trägt die Kennung seiner [StatementKind] (INSERT `0x00c3`,
- *   DELETE `0x00c4`, UPDATE `0x00c5`) und bei `UNKNOWN` die Kennung 0. Die Zeilenzahl steht mit dem Bit `COUNT`, wenn
- *   das Ereignis eine Zahl trägt, sonst steht 0 ohne das Bit (Festlegung des Implementers). Im Batch schließen die Arten
+ *   DELETE `0x00c4`, UPDATE `0x00c5`) und bei `UNKNOWN` die Kennung 0. Die Zeilenzahl steht mit dem Bit `COUNT`,
+ *   wenn das Ereignis eine Zahl trägt, sonst steht 0 ohne das Bit (Festlegung des Implementers). Im Batch schließen die
+ *   Arten
  *   `CREATE_TABLE` `0x00c6`, `ALTER_TABLE` `0x00d8`, `IMPLICIT_TRANSACTIONS_ON` `0x00b9`, `IMPLICIT_TRANSACTIONS_OFF`
  *   `0x00ba` und `COMMIT_IF_OPEN` `0x00c0` ohne `COUNT` und ohne Zeilenzahl (Messprotokoll M-20); in den Formen RPC und
- *   BULK gelten sie nicht. Der [SessionTransaction] der Verbindung führt der Batch nach und schreibt ENVCHANGE Typ 8 vor
- *   das DONE des beginnenden `CREATE_TABLE` sowie DONE `MORE` `0x00c0`, ENVCHANGE Typ 9 und DONE `0x00d5` für
- *   `COMMIT_IF_OPEN` bei offener Transaktion.
+ *   BULK gelten sie nicht. Im Batch führt der Lauf den [SessionTransaction] der Verbindung nach und schreibt ENVCHANGE
+ *   Typ 8 vor das DONE des beginnenden `CREATE_TABLE` sowie DONE `MORE` `0x00c0`, ENVCHANGE Typ 9 und DONE `0x00d5` für
+ *   `COMMIT_IF_OPEN` bei offener Transaktion ([Completion]).
  * - „Ausnahme“ heißt jedes `Throwable` außer einer [CancellationException]; die Ausnahme geht an
  *   [ErrorMapping.internal]. Eine [CancellationException] läuft aus `execute()` wie aus dem Strom
  *   nach außen, auch wenn die Coroutine nicht abgebrochen ist (etwa ein Zeitlimit im Backend).
@@ -143,15 +144,16 @@ internal enum class SequenceOutcome {
  *   aus `close()` oder `cancel()`, laufen nach `close()` unverändert nach außen; dafür gibt es keine
  *   Zusage.
  */
-internal class ResponseSequencer(private val errors: ErrorMapping) {
+internal class ResponseSequencer(
+    private val errors: ErrorMapping,
+    private val transaction: SessionTransaction = SessionTransaction(),
+) {
     /**
-     * Führt [request] auf [backend] aus und schreibt die Tokens der Antwortform [form] in [sink]; [layout] sagt, wo
-     * die Parameter der Anfrage in der Aufrufliste des RPC stehen (Ordinal der RETURNVALUE); [transaction] ist der Zustand
-     * der Verbindung, den die Arten der Transaktion nachführen (nur in der Form BATCH). `close()`
-     * der Ausführung läuft in jedem Ausgang, auch beim Abbruch der Coroutine. Endet das Lesen durch den Abbruch der
-     * Coroutine, durch eine Senke, die ein Token nicht annimmt, oder durch eine Ausnahme der Senke,
-     * ruft der Lauf zuvor genau einmal `cancel()` des Backends; kein weiteres Ereignis wird danach
-     * gelesen.
+     * Führt [request] auf [backend] aus und schreibt die Tokens der Antwortform [form] in [sink]; [layout] sagt, wo die
+     * Parameter der Anfrage in der Aufrufliste des RPC stehen (Ordinal der RETURNVALUE). `close()` der Ausführung läuft
+     * in jedem Ausgang, auch beim Abbruch der Coroutine. Endet das Lesen durch den Abbruch der Coroutine, durch eine
+     * Senke, die ein Token nicht annimmt, oder durch eine Ausnahme der Senke, ruft der Lauf zuvor genau einmal
+     * `cancel()` des Backends; kein weiteres Ereignis wird danach gelesen.
      */
     suspend fun run(
         backend: QueryBackend,
@@ -159,7 +161,6 @@ internal class ResponseSequencer(private val errors: ErrorMapping) {
         sink: TokenSink,
         form: ResponseForm = ResponseForm.BATCH,
         layout: CallLayout = CallLayout.PROCEDURE,
-        transaction: SessionTransaction = SessionTransaction(),
     ): SequenceOutcome {
         val run = ResponseRun(errors, sink, form, RpcOutputs(layout, request.parameters), transaction)
         val started = runCatching { backend.execute(request) }

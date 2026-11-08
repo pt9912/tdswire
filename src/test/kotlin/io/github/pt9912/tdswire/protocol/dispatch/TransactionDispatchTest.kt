@@ -19,9 +19,9 @@ private const val IN_TRANSACTION = "16 00 00 00  12 00 00 00  02 00  $DESCRIPTOR
 /**
  * Der Transaktionszustand liegt bei der Schleife einer Sitzung (`SPEC-031`, ADR-0042 Entscheidung 5): die Antworten
  * einer Folge von Anfragen tragen ENVCHANGE Typ 8 und 9 wie am echten SQL Server (Messprotokoll M-20, Szenario
- * `katalog-struktur`), die Anfragen nach dem Beginn tragen den Deskriptor im Kopf der Nachricht zurück (so sendet es der
- * Referenzclient, `1600000012000000 0200 0100000035000000 01000000`) und werden wie jede andere bedient. Die Antwort
- * kommt vom Fake-Backend (`ScriptedBackend`), das die Art meldet.
+ * `katalog-struktur`), die Anfragen nach dem Beginn tragen den Deskriptor im Kopf der Nachricht zurück (so sendet es
+ * der Referenzclient, `1600000012000000 0200 0100000035000000 01000000`) und werden wie jede andere bedient. Die
+ * Antwort kommt vom Fake-Backend (`ScriptedBackend`), das die Art meldet.
  */
 class TransactionDispatchTest {
     private fun create() = listOf<QueryEvent>(QueryEvent.UpdateCount(0, StatementKind.CREATE_TABLE))
@@ -40,11 +40,11 @@ class TransactionDispatchTest {
     private fun hexOf(text: String) = hex(text).toHex()
 
     /**
-     * Die gemessene Folge, Anfrage für Anfrage über die Schleife: `set implicit_transactions on`, `CREATE TABLE` (ENVCHANGE
-     * Typ 8), `ALTER TABLE … ADD` und der bedingte `COMMIT` mit dem zurückgesendeten Deskriptor im Kopf (normale Antwort,
-     * der `COMMIT` mit Typ 9 und dem Deskriptor als altem Wert), dann `set implicit_transactions off IF …` und ein
-     * `CREATE TABLE` ohne ENVCHANGE. Wächter: eine Schleife, die den Zustand nicht über Anfragen hält (jede Antwort ohne
-     * Typ 8), ein Kopf mit Deskriptor, den der Parser oder die Schleife ablehnt.
+     * Die gemessene Folge, Anfrage für Anfrage über die Schleife: `set implicit_transactions on`, `CREATE TABLE`
+     * (ENVCHANGE Typ 8), `ALTER TABLE … ADD` und der bedingte `COMMIT` mit dem zurückgesendeten Deskriptor im Kopf
+     * (normale Antwort, der `COMMIT` mit Typ 9 und dem Deskriptor als altem Wert), dann `set implicit_transactions off
+     * IF …` und ein `CREATE TABLE` ohne ENVCHANGE. Wächter: eine Schleife, die den Zustand nicht über Anfragen hält
+     * (jede Antwort ohne Typ 8), ein Kopf mit Deskriptor, den der Parser oder die Schleife ablehnt.
      *
      * @spec SPEC-031
      * @spec TDS-QA-07
