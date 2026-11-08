@@ -8,7 +8,7 @@
 
 **Eingangs-Kontext** (die Verträge, gegen die geprüft wurde):
 
-- Slice [slice-sp-execute-unbekanntes-handle-bauen](../plan/planning/in-progress/slice-sp-execute-unbekanntes-handle-bauen.md) (Plan §3, DoD, Risiken §6)
+- Slice [slice-sp-execute-unbekanntes-handle-bauen](../plan/planning/done/slice-sp-execute-unbekanntes-handle-bauen.md) (Plan §3, DoD, Risiken §6)
 - [ADR-0045](../plan/adr/0045-sp-execute-unbekanntes-handle-ergibt-fehler-8179-state-4.md) (Accepted, Option A), [ADR-0037](../plan/adr/0037-sp-unprepare-unbekanntes-handle-ergibt-fehler-8179.md), [ADR-0036](../plan/adr/0036-handle-freigabe-und-grenze-je-sitzung.md)
 - [TDS-FA-04](../../spec/lastenheft.md#tds-fa-04--parametrisierte-abfragen-über-rpc), [TDS-QA-01](../../spec/lastenheft.md#tds-qa-01--kompatibilität); Abschnitt 4 der [Spezifikation](../../spec/spezifikation.md#4-fehler-codes-und-logging-felder) (`SPEC-057`, `SPEC-060`), [SPEC-030](../../spec/spezifikation.md#spec-030--rpc-varianten-und-parameter-metadaten)
 - Messprotokoll `docs/messungen/referenzabgleich.md` (M-4, M-6, M-7, M-22, M-23) und die Rohbytes unter `referenztest-dotnet/Mitschnitt/messung/`
@@ -57,7 +57,7 @@ Die Mutationen M2, M4 bis M6 des Implementers habe ich nicht nachgefahren (Stich
 
 * kategorie: MEDIUM
 * quelle: Reviewer-Skill „Plan-Tabelle nennt die berührten Dateien nicht“; `AGENTS.md` §3.8
-* pfad: `docs/plan/planning/in-progress/slice-sp-execute-unbekanntes-handle-bauen.md` · „**Berührte Spec-Stellen:** SPEC-057 · SPEC-030 (Absätze `sp_execute` und `RESETCONNECTION`) · SPEC-060“; `spec/spezifikation.md` · „`SPEC-057` trägt die SQL-Server-Nummer 8179 und hat nach dieser Regel den RETURNSTATUS 8179“
+* pfad: `docs/plan/planning/done/slice-sp-execute-unbekanntes-handle-bauen.md` · „**Berührte Spec-Stellen:** SPEC-057 · SPEC-030 (Absätze `sp_execute` und `RESETCONNECTION`) · SPEC-060“; `spec/spezifikation.md` · „`SPEC-057` trägt die SQL-Server-Nummer 8179 und hat nach dieser Regel den RETURNSTATUS 8179“
 * befund: Der Diff ändert einen Absatz im Vertrag zum Query-Backend ([SPEC-022](../../spec/spezifikation.md#query-backend-vertrag-zu-spec-022), „RPC im Backend-Vertrag“, Satz zu Ablehnungen vor dem Backend) und in `SPEC-030` außerdem die Zeile `sp_execute` der RPC-Tabelle und den Satz „zum Fehlerfall (unbekanntes Handle …)“ (der Kopf nennt dort nur die Absätze `sp_execute` und `RESETCONNECTION`); `SPEC-022` steht weder im Kopf noch dieser Absatz in §3. Ebenso fehlen in §3: `docs/plan/spec-abdeckung.md` (regeneriert), `docs/plan/planning/welle-testserver-manuell.md`, die Roadmap, das Register `…/sp-execute-unbekanntes-handle-spec-057-widerspricht-messung/state.md`, `done/slice-adr-sp-execute-unbekanntes-handle.md` und `open/slice-massenladen-atomar-bauen.md` (Verweis-Nachzug, `956c46fc`).
 * Failure-Szenario: Ein Leser des Plans (oder der Planner beim Merge mit dem Slice `slice-massenladen-atomar-bauen`, der dieselbe Spezifikation und dieselbe Slice-Datei berührt) hält `SPEC-022` für unberührt; der Merge-Konflikt in drei dieser Dateien ist bereits eingetreten (F-6).
 * verifizierbar: ja (Diff gegen §3)
