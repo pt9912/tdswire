@@ -216,3 +216,9 @@ ist der Rollenwechsel, kein Abschluss: Bericht → Handoff an Reviewer
 Verifier. Kein Self-Review — anderer Kontext findet andere Findings,
 derselbe Kontext dieselben blinden Flecken (Baseline-Regelwerk
 `modul-08-agentenrollen.md`).
+
+Welche Sensoren je Art der Änderung Pflicht sind, steht in der Tabelle
+[`harness/README.md`](harness/README.md) §Minimal agent workflow; keine Rolle
+fährt mehr, als die Tabelle für die Änderungsart vorsieht. Agenten fahren Läufe
+im Vordergrund und nennen in ihrem Bericht die Gesamtlaufzeit und die größten
+Zeitposten.
