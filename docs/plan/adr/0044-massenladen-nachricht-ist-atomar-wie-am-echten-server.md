@@ -1,10 +1,10 @@
 # ADR-0044: Eine Nachricht des Massenladens wird ganz oder gar nicht übernommen (Option A: Zusage des Stapel-Callbacks, der Einzelzeilen-Rückfall entfällt); Fehlercode des Callbacks bleibt Sammelcode 2627 als benannte Grenze
 
-**Status:** Proposed (Entscheid des Nutzers steht aus)
+**Status:** Accepted (vom Nutzer entschieden)
 
 **Datum:** 2026-11-08
 
-**Autor:** Architect (Entwurf); Entscheidung: pt9912 (Nutzer), offen
+**Autor:** Architect (Entwurf); Entscheidung: pt9912 (Nutzer), 2026-11-08
 
 **Bezug:** [TDS-FA-11](../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-FA-12](../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), [TDS-QA-01](../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [ADR-0033](0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md), [ADR-0021](0021-oeffentlicher-integrations-einstieg.md), [ADR-0008](0008-dotnet-kompatibilitaetstests.md)
 
@@ -87,5 +87,6 @@ Es bleiben: alle übrigen Nummern und Sätze von ADR-0033, insbesondere Nr. 5 (i
 |---|---|---|
 | 2026-11-07 | Zielbild-Konflikt aus den Messungen M-11, M-12; Nutzerentscheid: Folge-ADR schreiben lassen | [Register-Eintrag](../planning/observations/BEO-TDS/folge-adr-zu-adr-0033-massenladen-verstoss-und-teilbestand/state.md) |
 | 2026-11-08 | Proposed (Option A empfohlen, Entscheid offen) | Planungsauftrag zur Atomarität des Massenladens |
+| 2026-11-08 | Accepted (Entscheidung des Nutzers: Option A, Sammelcode 2627 als Grenze; erweiterte Messung folgt als Trigger) | Nutzerentscheid vom 2026-11-08 |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit `Supersedes ADR-0044`.

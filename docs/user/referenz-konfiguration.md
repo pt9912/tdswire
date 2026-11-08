@@ -66,7 +66,7 @@ Jeder Fehler des Servers erreicht den Client als ERROR (feste englische Meldung,
 | `TDS_SIM_UNKNOWN_PREPARED_HANDLE` | 8179 | 16 | offen |
 | `TDS_LOGIN_FAILED` | 18456 | 14 | schließt |
 
-Die Antworten auf das Massenladen sind an `SqlBulkCopy` am echten SQL Server 2022 und 2025 gemessen (Form von `INSERT BULK` und der Nachricht, Schlüsselverstoß; [Messprotokoll](../messungen/referenzabgleich.md), M-8 bis M-12); gemessen ist nur der Schlüsselverstoß, die Zuordnung jedes Fehlers des Einfügens zu 2627 ist Setzung.
+Die Antworten auf das Massenladen und die Nachrichten des Referenzclients sind an `SqlBulkCopy` am echten SQL Server 2022 und 2025 gemessen (Katalog-Batch, Form von `INSERT BULK` und der Nachricht, Schlüsselverstoß; [Messprotokoll](../messungen/referenzabgleich.md), M-8 bis M-12); gemessen ist nur der Schlüsselverstoß, die Zuordnung jedes Fehlers des Einfügens zu 2627 ist Setzung.
 
 Die Anmeldung mit falschem Kennwort und mit unbekanntem Benutzer ergibt dieselbe Antwort (Nummer 18456, Class 14, State 1, Text `Login failed.` ohne Kennung). Am echten SQL Server (2022 und 2025) nennt der Text den Benutzernamen; diese Abweichung ist gewollt ([Messprotokoll](../messungen/referenzabgleich.md), A-1). `TDS_SIM_UNKNOWN_OBJECT` sendet Class 20 und schließt die Verbindung, der echte Server sendet Class 16 und lässt sie offen (A-3).
 
@@ -81,6 +81,7 @@ Die Anmeldung mit falschem Kennwort und mit unbekanntem Benutzer ergibt dieselbe
 | Fehler in der Anfrage | `ERROR` und `DONE` mit Fehlerstatus (im RPC `DONEPROC`); der Abschluss nach einem Fehler trägt die Befehlskennung nach der Form des Abschlusses (`SPEC-031`) |
 | erste Anfrage nach `RESETCONNECTION` | beginnt mit `ENVCHANGE` Typ 18 (leerer neuer und alter Wert), gleich welche Antwort folgt (`SPEC-001`) |
 | `INSERT BULK` (Massenladen, Form B) | `DONE` mit Befehl `0x00fd`, ohne Zähler und ohne Statusbits; danach erwartet die Sitzung die Nachricht `0x07` |
+| Probe der Zieltabelle von `SqlBulkCopy` (vor `INSERT BULK`) | vier Ergebnisse wie am echten Server: `@@TRANCOUNT`, die Spalten der Tabelle ohne Zeile, je Spalte die Kollation, die leere Alias-Tabelle; dazwischen `DONE`, `DONEINPROC` und `DONEPROC` der Anweisungen des Batches (`SPEC-036`) |
 | Nachricht `0x07` mit den Zeilen | `DONE` mit `COUNT` (Zahl der geladenen Zeilen) und Befehl `0x00f0` |
 | Fehler beim Laden (Schlüsselverstoß) | `ERROR` 2627 (Class 14, State 1, gekürzter Text), `INFO` 3621 „The statement has been terminated.“ und `DONE` mit `ERROR`, Befehl `0x00f0`, ohne Zähler; die ganze Nachricht ist abgewiesen |
 | Abbruch (ATTENTION) | `DONE` mit `ATTN`; der Server antwortet mit einer Nachricht, der echte Server im Stream mit zwei |

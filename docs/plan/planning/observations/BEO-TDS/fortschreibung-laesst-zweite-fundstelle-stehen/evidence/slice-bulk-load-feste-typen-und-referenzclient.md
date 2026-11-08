@@ -1,0 +1,2 @@
+**Vorgang:** [slice-bulk-load-feste-typen-und-referenzclient](../../../../done/slice-bulk-load-feste-typen-und-referenzclient.md)
+**Fund:** [Review](../../../../../../reviews/2026-11-08-dcb5196b-review-slice-bulk-load-feste-typen-und-referenzclient.md): F-12 (INFO) und V-4: vier Zustandszellen des Planners (Roadmap, zwei Register-Einträge, §7 des Vorgänger-Slice) nannten nach der Lieferung noch die Grenze „die Nutzlast des Referenzclients liest der Testserver nicht“; `make slice-mv` zieht Pfade nach, keine Zustandssätze. Nachgezogen in der Closure.
