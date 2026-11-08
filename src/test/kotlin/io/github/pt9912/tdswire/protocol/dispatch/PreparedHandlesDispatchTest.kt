@@ -21,6 +21,7 @@ import io.github.pt9912.tdswire.protocol.token.ReturnValueToken
 import io.github.pt9912.tdswire.protocol.token.ServerMessage
 import io.github.pt9912.tdswire.testsupport.blocking
 import io.github.pt9912.tdswire.transport.framing.PacketType
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 import kotlin.test.Test
@@ -318,6 +319,29 @@ class PreparedHandlesDispatchTest {
         assertEquals(unsupportedRpc, session.tokens(2).errorMessage())
         assertEquals(prepReply(2), session.hex(3))
         assertEquals(listOf("select boom", "select 2"), backend.requests.map { it.sql })
+    }
+
+    /**
+     * Bricht ATTENTION ein `sp_prepexec` ab, bevor das Handle den Client erreicht hat, gibt die Sitzung das Handle
+     * frei: die Antwort ist `DONE[ATTN]` allein, die Tabelle ist danach leer. Wächter: ein abgebrochener Lauf, der das
+     * Handle gehalten lässt.
+     *
+     * @spec SPEC-030
+     * @spec SPEC-029
+     */
+    @Test
+    fun `Ein abgebrochenes sp_prepexec ohne gesendetes Handle gibt es frei`() = blocking {
+        val backend = FlowBackend(suspendedAfter(CompletableDeferred()))
+        val session = Session.login(rpc(prepExec(-1, "select 1", "")))
+        val loop = session.loop(backend)
+        val serving = launch { loop.run() }
+        backend.collecting.await()
+        assertEquals(1, loop.handles.size())
+        session.channel.feed(BatchVectors.attention())
+        session.channel.feed(Inbound.EndOfStream)
+        serving.join()
+        assertEquals(BatchVectors.DONE_ATTN, session.hex(0))
+        assertEquals(0, loop.handles.size())
     }
 
     /**

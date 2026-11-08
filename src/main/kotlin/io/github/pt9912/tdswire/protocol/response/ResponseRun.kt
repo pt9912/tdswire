@@ -51,11 +51,18 @@ internal fun failedDone(form: ResponseForm = ResponseForm.BATCH, resultOpen: Boo
  * der Form. Im RPC steht vor dem DONEPROC der RETURNSTATUS mit der Nummer der letzten Meldung, wenn sie eine
  * SQL-Server-Nummer ist (unter 50000); sonst keiner (Setzung der Entscheidung zum Abschluss im Fehlerfall).
  */
-internal fun errorAnswer(form: ResponseForm, messages: List<ServerMessage>): List<Token> {
-    val status = messages.last().number.takeIf { form == ResponseForm.RPC && it < FIRST_OWN_ERROR_NUMBER }
+internal fun errorAnswer(form: ResponseForm, messages: List<ServerMessage>): List<Token> =
+    messages.map { ErrorToken(it) } + errorAnswerTail(form, messages.last())
+
+/**
+ * Die Tokens einer Fehlerantwort nach ihren ERROR: die Meldung [last] ist die letzte der Antwort und bestimmt den
+ * RETURNSTATUS der Form RPC; danach der Abschluss der Form.
+ */
+internal fun errorAnswerTail(form: ResponseForm, last: ServerMessage): List<Token> {
+    val status = last.number.takeIf { form == ResponseForm.RPC && it < FIRST_OWN_ERROR_NUMBER }
     val info = listOfNotNull(BULK_TERMINATED.takeIf { form == ResponseForm.BULK })
     val returned = listOfNotNull(status?.let { ReturnStatusToken(it) })
-    return messages.map { ErrorToken(it) } + info + returned + failedDone(form)
+    return info + returned + failedDone(form)
 }
 
 /**

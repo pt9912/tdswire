@@ -3,6 +3,7 @@ package io.github.pt9912.tdswire.protocol.error
 import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.protocol.response.ResponseForm
 import io.github.pt9912.tdswire.protocol.response.SequenceOutcome
+import io.github.pt9912.tdswire.protocol.response.TokenSink
 import io.github.pt9912.tdswire.protocol.session.LoginResponses
 import io.github.pt9912.tdswire.protocol.token.DoneCommand
 import io.github.pt9912.tdswire.protocol.token.DoneKind
@@ -11,12 +12,15 @@ import io.github.pt9912.tdswire.protocol.token.DoneToken
 import io.github.pt9912.tdswire.protocol.token.ErrorToken
 import io.github.pt9912.tdswire.protocol.token.InfoToken
 import io.github.pt9912.tdswire.protocol.token.ReturnStatusToken
+import io.github.pt9912.tdswire.protocol.token.TokenEncoder
 import io.github.pt9912.tdswire.protocol.wire.ProtocolError
 import io.github.pt9912.tdswire.protocol.wire.ProtocolFailure
+import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
 import io.github.pt9912.tdswire.testsupport.TokenDecoder
 import io.github.pt9912.tdswire.testsupport.hex
 import io.github.pt9912.tdswire.testsupport.toHex
 import io.github.pt9912.tdswire.transport.framing.PacketType
+import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -153,6 +157,14 @@ class ErrorMapperTest {
         assertTrue(message.payload.toHex().endsWith(tail))
     }
 
+    /** Die Bytes der Antwort von [ErrorMapper.unknownHandles], von einer Senke gesammelt. */
+    private fun unknownHandlesAnswer(errors: ErrorMapper, handles: List<Int>): ByteArray {
+        val encoder = TokenEncoder()
+        val sink = TokenSink { token -> encoder.write(token) is ProtocolResult.Ok }
+        assertTrue(runBlocking { errors.unknownHandles(handles, "unknown-prepared-handle", sink) })
+        return encoder.toByteArray()
+    }
+
     /**
      * Die Strukturabweisung ist ERROR 2714 (State 6), 2705 (State 4) und 4902 (State 1), je Class 16, danach DONE mit
      * `ERROR`, Befehl `0x00fd`, ohne Zähler; die Verbindung bleibt offen. Nummer, Class, State, die offene Verbindung
@@ -193,9 +205,9 @@ class ErrorMapperTest {
      * `TDS_SIM_UNKNOWN_PREPARED_HANDLE` ist ERROR 8179, State 8, Class 16 mit dem Text „Could not find prepared
      * statement with handle <n>.“ und bleibt offen. Nummer, Class, State und Wortlaut für Handle 1 sind am
      * Referenzclient gegen den echten SQL Server gemessen (Zeile M-4); die Bytes sind Handvektor. Zwei Nummern
-     * ergeben zwei ERROR vor dem einen DONE mit Fehlerstatus, je ein Log-Eintrag mit der festen Marke. Wächter:
+     * ergeben zwei ERROR vor dem einen DONE mit Fehlerstatus, ein Log-Eintrag mit der festen Marke je Antwort. Wächter:
      * State 1 statt 8, eine andere Nummer, ein Text ohne Handle, ein ERROR nur für die erste Nummer, ein fehlender
-     * Log-Eintrag.
+     * Log-Eintrag, ein Log-Eintrag je Nummer.
      *
      * @spec SPEC-060
      */
@@ -204,8 +216,7 @@ class ErrorMapperTest {
         val entries = mutableListOf<ErrorLogEntry>()
         val logging = ErrorMapper { entries += it }
         val code = ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE
-        val one = assertNotNull(logging.code(code, cause = "unknown-prepared-handle", handles = listOf(1)).message)
-        assertEquals(PacketType.TABULAR_RESULT, one.type)
+        val one = unknownHandlesAnswer(logging, listOf(1))
         assertEquals(
             hex(
                 "AA 6E 00 F3 1F 00 00 08 10 30 00 43 00 6F 00 75 00 6C 00 64 00 20 00 6E" +
@@ -214,9 +225,9 @@ class ErrorMapperTest {
                     " 00 6E 00 74 00 20 00 77 00 69 00 74 00 68 00 20 00 68 00 61 00 6E 00 64" +
                     " 00 6C 00 65 00 20 00 31 00 2E 00 00 00 00 00 00 00  $done",
             ).toHex(),
-            one.payload.toHex(),
+            one.toHex(),
         )
-        val two = logging.code(code, cause = "unknown-prepared-handle", handles = listOf(1, 12))
+        val two = unknownHandlesAnswer(logging, listOf(1, 12))
         assertEquals(
             hex(
                 "AA 6E 00 F3 1F 00 00 08 10 30 00 43 00 6F 00 75 00 6C 00 64 00 20 00 6E" +
@@ -230,13 +241,11 @@ class ErrorMapperTest {
                     " 00 6E 00 74 00 20 00 77 00 69 00 74 00 68 00 20 00 68 00 61 00 6E 00 64" +
                     " 00 6C 00 65 00 20 00 31 00 32 00 2E 00 00 00 00 00 00 00  $done",
             ).toHex(),
-            assertNotNull(two.message).payload.toHex(),
+            two.toHex(),
         )
-        assertEquals(ConnectionFate.OPEN, two.fate)
-        assertEquals(code, two.code)
         assertEquals(16, code.rule.severity)
         assertEquals(8, code.rule.state)
-        assertEquals(List(3) { ErrorLogEntry(code, "unknown-prepared-handle") }, entries)
+        assertEquals(List(2) { ErrorLogEntry(code, "unknown-prepared-handle") }, entries)
     }
 
     /**
@@ -251,7 +260,6 @@ class ErrorMapperTest {
         assertFailsWith<IllegalArgumentException> { ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE.rule.message() }
         assertFailsWith<IllegalArgumentException> { ErrorCode.TDS_UNKNOWN_HANDLE.rule.message(1) }
         assertFailsWith<IllegalArgumentException> { mapper.code(ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE) }
-        assertFailsWith<IllegalArgumentException> { mapper.code(ErrorCode.TDS_UNKNOWN_HANDLE, handles = listOf(1)) }
     }
 
     /** @spec SPEC-014 */
