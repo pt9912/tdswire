@@ -1,1 +1,1 @@
-**Stand:** offen
+**Stand:** offen — 3×, Schwelle erreicht (Evidence: `slice-oeffentliche-flaeche-verkleinern-und-belegen`, `slice-sql-batch-dispatch`, [slice-listener-annahmeschleife-bei-erschoepften-dateien](../../../done/slice-listener-annahmeschleife-bei-erschoepften-dateien.md)); der Lese-Schritt (Verkörperung oder Streichung) gehört in die Closure von [welle-betrieb-diagnose](../../../welle-betrieb-diagnose.md) und ist nicht ausgeführt. Das dritte Auftreten ist ein verwandter, nicht gleicher Fall (Vorbereitung mit Produktnutzen, `internal`, Verifikation).

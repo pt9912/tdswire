@@ -111,11 +111,13 @@ internal class TelemetryWiringTest : RuntimeTestBase() {
      * Scheitert das Annehmen am Betriebssystem (die Kind-JVM hat 128 offene Dateien und wird mit gehaltenen
      * Verbindungen erschöpft), entsteht `ACCEPT_FAILED` mit dem Typnamen der Ausnahme, der Ebene `ERROR`, ohne
      * Verbindung und Sitzung und mit dem Profil `unknown`. Der Server nimmt nach dem Schließen der Verbindungen wieder
-     * an und beantwortet PRELOGIN. Beides gilt unter der Bedingung, dass [AcceptChild] die Klassen der Kind-JVM
-     * vorlädt: ohne Vorladen kann die JVM unter erschöpftem Limit die Klasse des Fehlerpfads nicht laden, die
-     * Meldestelle des Listeners endet mit `NoClassDefFoundError`, und weder ein Ereignis noch ein Wiederannehmen ist
-     * belegt (gemessen, siehe `preloadClasses` in [AcceptChild]). Die Grenze von 128 Dateien ist eine Setzung des
-     * Tests.
+     * an und beantwortet PRELOGIN. Die Kind-JVM lädt keine Klassen vor, sie arbeitet mit den Klassen, die der Start des
+     * Servers vorbereitet (`ADR-0043`). Gemessen ist das in einer Kind-JVM aus Klassenverzeichnissen (nicht aus einem
+     * Jar): 128 Dateien für `ACCEPT_FAILED` und das Wiederannehmen, 160 für `ACCEPT_FAILED`
+     * (`TelemetryRedactionTest`). Rot wird der Test, wenn die Vorbereitung der Listener-Klassen, die des Weges bis
+     * zum Ereignis oder die der Ergebniswerte des Lesens entfällt (je einzeln gesehen; der Lesepfad ist nur
+     * für das Ende gehaltener, vom Client geschlossener Verbindungen belegt). Die Grenze von 128 Dateien ist
+     * eine Setzung des Tests.
      *
      * @spec SPEC-048
      * @spec TDS-FA-09
@@ -127,7 +129,8 @@ internal class TelemetryWiringTest : RuntimeTestBase() {
             val port = child.port()
             val lines = child.provokeAcceptFailure(port)
             val failed = lines.filter { "Kind=ACCEPT_FAILED" in it }
-            assertTrue(failed.isNotEmpty(), "kein ACCEPT_FAILED: ${child.output.map { it.take(DIAGNOSTIC_CHARS) }}")
+            val shown = child.output.map { it.take(DIAGNOSTIC_CHARS) }
+            assertTrue(failed.isNotEmpty(), "kein ACCEPT_FAILED, fehlt: ${missingClasses(child.output)}; $shown")
             failed.forEach { line ->
                 val fields = line.removePrefix(EVENT_PREFIX).split(" ")
                 assertEquals("AcceptFailed", fields.first(), line)
@@ -140,6 +143,9 @@ internal class TelemetryWiringTest : RuntimeTestBase() {
             assertTrue(serves(port), "der Server nimmt nach dem Schließen nicht mehr an: ${child.output}")
         }
     }
+
+    /** Die Zeilen der Kind-JVM mit `NoClassDefFoundError` (eine nicht ladbare Klasse); leer, wenn keine fehlt. */
+    private fun missingClasses(output: List<String>): List<String> = output.filter { "NoClassDefFoundError" in it }
 
     /** `true`, sobald der Server auf ein PRELOGIN antwortet; wartet bis zu zehn Sekunden auf freigegebene Dateien. */
     private fun serves(port: Int): Boolean {
