@@ -9,6 +9,8 @@ import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.protocol.error.ConnectionFate
 import io.github.pt9912.tdswire.protocol.error.ErrorCode
 import io.github.pt9912.tdswire.protocol.error.ErrorMapper
+import io.github.pt9912.tdswire.protocol.error.ErrorResponse
+import io.github.pt9912.tdswire.protocol.error.executeUnknownHandle
 import io.github.pt9912.tdswire.protocol.response.CallLayout
 import io.github.pt9912.tdswire.protocol.response.ResponseForm
 import io.github.pt9912.tdswire.protocol.response.ResponseSequencer
@@ -266,7 +268,10 @@ internal class RequestLoop(
         val span = session.request(requestId, kind)
         try {
             return when {
-                gate.begun -> refuse(ErrorCode.TDS_SHUTDOWN, "shutdown", formOf(message))
+                gate.begun -> refuse(
+                    ErrorCode.TDS_SHUTDOWN,
+                    errors.code(ErrorCode.TDS_SHUTDOWN, cause = "shutdown", form = formOf(message)),
+                )
 
                 message.type == PacketType.RPC -> {
                     bulk.clear()
@@ -367,7 +372,10 @@ internal class RequestLoop(
 
     private suspend fun prepare(bound: RpcBinding.Prepare): HandshakeEvent.RequestFinished? {
         val handle = handles.register(bound.sql)
-            ?: return refuse(ErrorCode.TDS_PREPARE_LIMIT, "handle-limit", ResponseForm.RPC)
+            ?: return refuse(
+                ErrorCode.TDS_PREPARE_LIMIT,
+                errors.code(ErrorCode.TDS_PREPARE_LIMIT, cause = "handle-limit", form = ResponseForm.RPC),
+            )
         val returning = HandleReturningBackend(backend, handle)
         return execute(bound.sql, bound.parameters, CallLayout.PREPARE_EXECUTE, returning) {
             if (it != SequenceOutcome.COMPLETED && !returning.returned) handles.release(handle)
@@ -375,21 +383,17 @@ internal class RequestLoop(
     }
 
     private suspend fun executePrepared(bound: RpcBinding.ExecutePrepared): HandshakeEvent.RequestFinished? {
-        val sql = handles.sql(bound.handle) ?: return refuseUnknownHandle(bound.handle)
+        val sql = handles.sql(bound.handle)
+            ?: return refuse(
+                ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE,
+                errors.executeUnknownHandle(bound.handle, "unknown-handle"),
+            )
         return execute(sql, bound.parameters, CallLayout.EXECUTE_PREPARED)
     }
 
-    /** Die Antwort auf `sp_execute` mit einem Handle, das die Sitzung nicht hält, ohne das Backend zu rufen. */
-    private fun refuseUnknownHandle(handle: Int): HandshakeEvent.RequestFinished {
-        queryOutcome = SpanOutcome.ERROR
-        val response = errors.executeUnknownHandle(handle, "unknown-handle")
-        return requestFinished(response.fate, response.message)
-    }
-
-    /** Die Antwort mit einem eigenen Fehlercode, ohne das Backend zu rufen; [cause] ist die feste Marke fürs Log. */
-    private fun refuse(code: ErrorCode, cause: String, form: ResponseForm): HandshakeEvent.RequestFinished {
+    /** Die Antwort [response] eines eigenen Fehlercodes, ohne das Backend zu rufen. */
+    private fun refuse(code: ErrorCode, response: ErrorResponse): HandshakeEvent.RequestFinished {
         queryOutcome = if (code == ErrorCode.TDS_SHUTDOWN) SpanOutcome.SHUTDOWN else SpanOutcome.ERROR
-        val response = errors.code(code, cause = cause, form = form)
         return requestFinished(response.fate, response.message)
     }
 

@@ -78,18 +78,6 @@ internal class ErrorMapper(internal val log: ErrorLog = ErrorLog.NONE) {
     ): ErrorResponse = response(code, streamSynchronous, cause, form)
 
     /**
-     * `sp_execute` mit einem Handle, das die Sitzung nicht hält: ERROR 8179 mit State [STATE_EXECUTE_UNKNOWN_HANDLE]
-     * und der Nummer des Handles im Text, in der Form RPC; [cause] ist die feste Marke für das Log. Der Strom ist
-     * synchron.
-     */
-    fun executeUnknownHandle(handle: Int, cause: String): ErrorResponse {
-        val code = ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE
-        log.record(ErrorLogEntry(code, cause))
-        val message = code.rule.message(handle, STATE_EXECUTE_UNKNOWN_HANDLE)
-        return ErrorResponse(code, serialize(listOf(message), ResponseForm.RPC), code.rule.fate)
-    }
-
-    /**
      * Ein erwarteter Fehler des Backends. Nur ein Code aus [BACKEND_CODES] ist eine erwartete
      * Ablehnung des Backends; jeder andere Code (fremd oder ein Code, den nur der Server selbst
      * erzeugt, etwa `TDS_LOGIN_FAILED` oder `TDS_SHUTDOWN`) erreicht den Client als

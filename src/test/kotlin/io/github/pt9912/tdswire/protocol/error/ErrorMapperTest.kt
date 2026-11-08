@@ -589,7 +589,7 @@ class ErrorMapperTest {
                 ErrorCode.TDS_PROTOCOL_ERROR,
                 ErrorCode.TDS_UNSUPPORTED_RPC,
                 ErrorCode.TDS_INTERNAL_ERROR,
-                    ErrorCode.TDS_PREPARE_LIMIT,
+                ErrorCode.TDS_PREPARE_LIMIT,
                 ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE,
             ),
             serverOnly.toSet(),
