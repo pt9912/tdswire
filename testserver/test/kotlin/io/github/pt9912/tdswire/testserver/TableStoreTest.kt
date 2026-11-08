@@ -18,12 +18,15 @@ import java.math.BigDecimal
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.CyclicBarrier
+import java.util.concurrent.Semaphore
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
+
+private const val READERS = 2
 
 /**
  * Der Bestand des Testservers (`TDS-FA-12`, `SPEC-035` „Katalog-Anbieter“): der Integrator hält die Tabellen, die
@@ -119,13 +122,14 @@ class TableStoreTest {
     }
 
     /**
-     * Happy: ein Leser, der `catalog()` in Schleife ruft, und mehrere Schreiber, die Tabellen anlegen und erweitern,
-     * laufen gleichzeitig; kein Aufruf wirft, und am Ende stehen alle angelegten Tabellen und alle angefügten
-     * Spalten im
-     * Bestand (keine Strukturänderung geht verloren). Belegt ist der einzelne Aufruf von `catalog()` und `replace`
-     * sowie die Folge „Planung, Callback“ über das Backend; ein Zugriff über mehrere Backends auf einen Bestand ist
-     * nicht belegt.
-     * Wächter: `catalog()` und `replace` ohne Sperre (der Leser läuft in die gleichzeitige Änderung der Tabellenliste
+     * Happy: zwei Leser, die `catalog()` rufen, und mehrere Schreiber, die Tabellen anlegen und erweitern, laufen
+     * gleichzeitig; kein Aufruf wirft, und am Ende stehen alle angelegten Tabellen und alle angefügten Spalten im
+     * Bestand (keine Strukturänderung geht verloren). Die Last ist begrenzt und hängt nicht von der Geschwindigkeit
+     * des Hosts ab: jeder Leser ruft `catalog()` genau einmal je Schritt der Schreiber (ein Schreiber gibt nach jeder
+     * Anweisung eine Marke frei), ein Leser dreht nie leer. Belegt ist der einzelne Aufruf von `catalog()` und
+     * `replace` sowie die Folge „Planung, Callback“ über das Backend; ein Zugriff über mehrere Backends auf einen
+     * Bestand ist nicht belegt.
+     * Wächter: `catalog()` und `replace` ohne Sperre (ein Leser läuft in die gleichzeitige Änderung der Tabellenliste
      * und wirft), ein Backend ohne Sperre um Planung und Callback (eine Spalte geht verloren).
      * @spec SPEC-035
      */
@@ -137,14 +141,21 @@ class TableStoreTest {
         val perWriter = 150
         val failures = ConcurrentLinkedQueue<Throwable>()
         val done = AtomicBoolean(false)
-        val reader = Thread {
-            try {
-                while (!done.get()) store.catalog().tables.size
-            } catch (e: ConcurrentModificationException) {
-                failures += e
+        val steps = Semaphore(0)
+        val readers = (0 until READERS).map {
+            Thread {
+                try {
+                    while (true) {
+                        steps.acquire()
+                        if (done.get()) break
+                        store.catalog().tables.size
+                    }
+                } catch (e: ConcurrentModificationException) {
+                    failures += e
+                }
             }
         }
-        reader.start()
+        readers.forEach { it.start() }
         val start = CountDownLatch(1)
         val threads = (0 until writers).map { w ->
             Thread {
@@ -152,7 +163,9 @@ class TableStoreTest {
                 for (n in 0 until perWriter) {
                     val events = ask(backend, "CREATE TABLE [t_${w}_$n] (a INT NOT NULL, PRIMARY KEY (a))")
                     if (events != listOf<QueryEvent>(QueryEvent.UpdateCount(0))) failures += AssertionError("$events")
+                    steps.release(READERS)
                     ask(backend, "ALTER TABLE [kunden] ADD [c_${w}_$n] INT")
+                    steps.release(READERS)
                 }
             }
         }
@@ -160,7 +173,8 @@ class TableStoreTest {
         start.countDown()
         threads.forEach { it.join() }
         done.set(true)
-        reader.join()
+        steps.release(READERS)
+        readers.forEach { it.join() }
 
         assertEquals(emptyList(), failures.toList())
         val catalog = store.catalog()

@@ -7,6 +7,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
@@ -24,7 +25,12 @@ import kotlin.time.Duration.Companion.seconds
 internal class ListenerAbortTest : ListenerTestBase() {
     private val grace = 7.seconds
     private val cancelTimeout = 3.seconds
-    private val shortTimeout = 3_000L
+
+    /**
+     * Schutzgrenze gegen einen hängenden Test, in Wanduhr. Keine Aussage des Tests über die Dauer des Beendens: die
+     * Fristen des Listeners (`SHUTDOWN_GRACE`, `CANCEL_TIMEOUT`) laufen in gesteuerter Zeit ([ManualDelayer]).
+     */
+    private val hangGuard = 60_000L
 
     /** Ein Handler mit laufender Anfrage und angemeldetem Abbruch; [stubborn] ignoriert den Abbruch der Coroutine. */
     private class AbortingHandler(private val answersAbort: Boolean, private val stubborn: Boolean = false) :
@@ -60,8 +66,11 @@ internal class ListenerAbortTest : ListenerTestBase() {
         return startOnLoopback(handler, events, times)
     }
 
-    private suspend fun awaitWaiting(delayer: ManualDelayer, frist: Duration) =
-        eventually("Beenden wartet auf $frist") { delayer.pending == listOf(frist) }
+    /** Kehrt zurück, sobald der Listener allein auf [frist] wartet; das Warten hängt am Ereignis. */
+    private suspend fun awaitWaiting(delayer: ManualDelayer, frist: Duration) {
+        withTimeoutOrNull(hangGuard) { delayer.awaitPending(frist) }
+            ?: throw AssertionError("nicht eingetreten: Beenden wartet auf $frist")
+    }
 
     /**
      * Nach Ablauf von `SHUTDOWN_GRACE` ruft der Listener den angemeldeten Abbruch genau einmal und trennt die
@@ -83,7 +92,7 @@ internal class ListenerAbortTest : ListenerTestBase() {
         awaitWaiting(delayer, grace)
         assertEquals(0, handler.aborts.get(), "vor Ablauf der Frist kein Abbruch")
         delayer.releaseAll()
-        withTimeout(shortTimeout) { shutdown.await() }
+        withTimeout(hangGuard) { shutdown.await() }
         assertEquals(1, handler.aborts.get())
         assertTrue(events.endsOf(ConnectionEnd.SHUTDOWN_GRACE_EXPIRED).isEmpty(), "der Abbruch genügte")
         assertEquals(1, events.closed().size)
@@ -114,7 +123,7 @@ internal class ListenerAbortTest : ListenerTestBase() {
         assertEquals(1, listener.activeConnections)
         assertTrue(events.closed().isEmpty())
         delayer.releaseAll()
-        withTimeout(shortTimeout) { shutdown.await() }
+        withTimeout(hangGuard) { shutdown.await() }
         assertEquals(1, events.endsOf(ConnectionEnd.SHUTDOWN_GRACE_EXPIRED).size)
         assertTrue(client.awaitClosedByPeer())
     }
@@ -142,7 +151,7 @@ internal class ListenerAbortTest : ListenerTestBase() {
             delayer.releaseAll()
             awaitWaiting(delayer, cancelTimeout)
             delayer.releaseAll()
-            withTimeout(shortTimeout) { shutdown.await() }
+            withTimeout(hangGuard) { shutdown.await() }
             assertTrue(client.awaitClosedByPeer(), "die Verbindung ist getrennt")
             assertFalse(handler.release.isCompleted)
             assertEquals(1, events.endsOf(ConnectionEnd.SHUTDOWN_GRACE_EXPIRED).size, "das Ende ist gemeldet")
@@ -171,7 +180,7 @@ internal class ListenerAbortTest : ListenerTestBase() {
         val shutdown = async { listener.shutdown() }
         awaitWaiting(delayer, grace)
         delayer.releaseAll()
-        withTimeout(shortTimeout) { shutdown.await() }
+        withTimeout(hangGuard) { shutdown.await() }
         assertEquals(1, events.endsOf(ConnectionEnd.SHUTDOWN_GRACE_EXPIRED).size)
         assertEquals(emptyList(), delayer.pending)
     }
@@ -193,6 +202,6 @@ internal class ListenerAbortTest : ListenerTestBase() {
         awaitWaiting(delayer, grace)
         assertTrue(handler.connections[0].shutdownBegun)
         delayer.releaseAll()
-        withTimeout(shortTimeout) { shutdown.await() }
+        withTimeout(hangGuard) { shutdown.await() }
     }
 }
