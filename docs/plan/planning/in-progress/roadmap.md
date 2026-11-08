@@ -10,7 +10,7 @@ gezeigt, nicht als Treiber.
 
 ## Offene Wellen
 
-Nichts in Arbeit.
+In Arbeit: [welle-qualitaet-grundlage](../welle-qualitaet-grundlage.md) mit [slice-listener-abort-test-ordnungswette](slice-listener-abort-test-ordnungswette.md).
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte — *Offene Wellen* ist **derivativ**: Der
