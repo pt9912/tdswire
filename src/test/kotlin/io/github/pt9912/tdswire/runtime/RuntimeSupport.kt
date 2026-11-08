@@ -31,6 +31,7 @@ private const val BYTE = 0xFF
 private const val BYTE_BITS = 8
 private const val EOM = 1
 private const val SOME_BYTES = 512
+private const val TAIL_BYTES = 32
 const val PRELOGIN_TYPE = 0x12
 const val LOGIN7_TYPE = 0x10
 const val BATCH_TYPE = 0x01
@@ -83,6 +84,9 @@ internal fun assertSettingsAreShapedAsNames(events: Iterable<TelemetryEvent>) {
     }
 }
 
+/** Eine gelesene und verworfene Nachricht ([RawClient.drainMessage]): Typ, Zahl der Nutzdatenbytes, deren Ende. */
+internal class DrainedMessage(val type: Int, val payloadBytes: Long, val tail: ByteArray)
+
 /** Eine vollständige Nachricht des Servers: Pakettyp, Nutzdaten und alle Bytes samt Paketköpfen. */
 internal class RawMessage(val type: Int, val payload: ByteArray, val bytes: ByteArray)
 
@@ -125,6 +129,29 @@ internal class RawClient(port: Int, host: String = LOOPBACK) : AutoCloseable {
             payload.write(body)
         } while (header[1].toInt() and EOM == 0)
         return RawMessage(type, payload.toByteArray(), all.toByteArray())
+    }
+
+    /**
+     * Liest die nächste Nachricht und wirft ihre Nutzdaten weg: der Typ, die Zahl der Nutzdatenbytes und die letzten
+     * [TAIL_BYTES] davon; `null`, wenn die Gegenstelle vor dem ersten Byte schließt. Für Antworten, die der Test nicht
+     * im Speicher halten kann.
+     */
+    fun drainMessage(): DrainedMessage? {
+        var type = -1
+        var total = 0L
+        var tail = ByteArray(0)
+        var first = true
+        do {
+            val header = readHeader() ?: return if (first) null else throw EOFException("Paket abgeschnitten")
+            first = false
+            type = header[0].toInt() and BYTE
+            val length = ((header[2].toInt() and BYTE) shl BYTE_BITS) or (header[3].toInt() and BYTE)
+            val body = input.readNBytes(length - HEADER_BYTES)
+            if (body.size != length - HEADER_BYTES) throw EOFException("Paket abgeschnitten")
+            total += body.size
+            tail = (tail + body).takeLast(TAIL_BYTES).toByteArray()
+        } while (header[1].toInt() and EOM == 0)
+        return DrainedMessage(type, total, tail)
     }
 
     private fun readHeader(): ByteArray? {

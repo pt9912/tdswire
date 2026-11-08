@@ -7,10 +7,8 @@ import io.github.pt9912.tdswire.protocol.response.ResponseForm
 import io.github.pt9912.tdswire.protocol.response.SequenceOutcome
 import io.github.pt9912.tdswire.protocol.response.errorAnswer
 import io.github.pt9912.tdswire.protocol.token.ServerMessage
-import io.github.pt9912.tdswire.protocol.token.TokenEncoder
 import io.github.pt9912.tdswire.protocol.wire.ProtocolError
 import io.github.pt9912.tdswire.protocol.wire.ProtocolErrorCategory
-import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
 import io.github.pt9912.tdswire.transport.framing.PacketType
 import io.github.pt9912.tdswire.transport.framing.TdsMessage
 
@@ -66,20 +64,17 @@ internal fun ErrorRule.message(handle: Int? = null): ServerMessage {
  * synchron, entfällt die Antwort (`SPEC-031`); der Sequenzierer
  * meldet denselben Fall als `CLOSE_WITHOUT_COMPLETION`, und [fateOf] bildet ihn auf `CLOSE_WITHOUT_REPLY` ab.
  */
-internal class ErrorMapper(private val log: ErrorLog = ErrorLog.NONE) {
+internal class ErrorMapper(internal val log: ErrorLog = ErrorLog.NONE) {
     /**
      * Ein Fehler mit eigenem Code; [cause] ist eine feste Marke für das Log, nie ein Wert. Ein Code, dessen Text die
-     * Nummer eines Handles nennt ([ErrorRule.namesHandle]), verlangt [handles], nicht leer: die Antwort trägt ein ERROR
-     * je Nummer in der Reihenfolge von [handles], danach ein DONE mit Fehlerstatus, und das Log einen Eintrag je ERROR.
-     * Für jeden anderen Code ist [handles] leer.
+     * Nummer eines Handles nennt ([ErrorRule.namesHandle]), hat eine eigene Antwort ([unknownHandles]).
      */
     fun code(
         code: ErrorCode,
         streamSynchronous: Boolean = true,
         cause: String? = null,
-        handles: List<Int> = emptyList(),
         form: ResponseForm = ResponseForm.BATCH,
-    ): ErrorResponse = response(code, streamSynchronous, cause, handles, form)
+    ): ErrorResponse = response(code, streamSynchronous, cause, form)
 
     /**
      * Ein erwarteter Fehler des Backends. Nur ein Code aus [BACKEND_CODES] ist eine erwartete
@@ -155,26 +150,19 @@ internal class ErrorMapper(private val log: ErrorLog = ErrorLog.NONE) {
         code: ErrorCode,
         streamSynchronous: Boolean,
         cause: String?,
-        handles: List<Int> = emptyList(),
         form: ResponseForm = ResponseForm.BATCH,
     ): ErrorResponse {
         val rule = code.rule
-        val messages = if (rule.namesHandle) handles.map { rule.message(it) } else listOf(rule.message())
-        require(messages.isNotEmpty() && (handles.isEmpty() || rule.namesHandle)) { "Nummern und Code passen nicht" }
-        repeat(messages.size) { log.record(ErrorLogEntry(code, cause)) }
+        require(!rule.namesHandle) { "Nummern und Code passen nicht" }
+        log.record(ErrorLogEntry(code, cause))
         if (!streamSynchronous) {
             return ErrorResponse(code, null, ConnectionFate.CLOSE_WITHOUT_REPLY)
         }
-        return ErrorResponse(code, serialize(messages, form), code.rule.fate)
+        return ErrorResponse(code, serialize(listOf(rule.message()), form), code.rule.fate)
     }
 
-    private fun serialize(messages: List<ServerMessage>, form: ResponseForm): TdsMessage {
-        val encoder = TokenEncoder()
-        errorAnswer(form, messages).forEach {
-            check(encoder.write(it) is ProtocolResult.Ok) { "Fehlerantwort nicht schreibbar" }
-        }
-        return TdsMessage(PacketType.TABULAR_RESULT, encoder.toByteArray())
-    }
+    private fun serialize(messages: List<ServerMessage>, form: ResponseForm): TdsMessage =
+        TdsMessage(PacketType.TABULAR_RESULT, encodeTokens(errorAnswer(form, messages)))
 
     companion object {
         /**

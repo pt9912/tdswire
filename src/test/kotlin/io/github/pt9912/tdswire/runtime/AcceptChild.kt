@@ -31,7 +31,6 @@ internal const val PORT_PREFIX = "PORT "
  * jedes Ereignis als Zeile auf die Standardausgabe schreibt, und läuft, bis der Elternprozess es beendet.
  */
 fun main(): Unit = runBlocking {
-    preloadClasses()
     val sink = TelemetrySink { println(EVENT_PREFIX + it.visibleText()) }
     when (val outcome = Bootstrap.launch(configOf(System.getenv()), Wiring(telemetry = sink))) {
         is StartOutcome.Running -> {
@@ -47,27 +46,11 @@ fun main(): Unit = runBlocking {
 }
 
 /**
- * Lädt jede Klasse der Verzeichnisse im Klassenpfad vor. Ist das Limit offener Dateien erschöpft, kann die JVM keine
- * Klassendatei mehr öffnen. Gemessen ohne dieses Vorladen: der `failed`-Callback von `TdsListener.acceptOne` endet mit
- * einem `NoClassDefFoundError` (Thread `tdswire-listener-io-1`), die Annahmeschleife steht, und es kommt kein Ereignis
- * an. Der Test belegt `ACCEPT_FAILED` also nur mit vorgeladenen Klassen; ob der Produktcode das ändert, ist offen
- * (Register `BEO-TDS/listener-annahmeschleife-steht-bei-erschoepftem-dateilimit-still`).
- */
-private fun preloadClasses() {
-    val loader = Thread.currentThread().contextClassLoader
-    val roots = System.getProperty("java.class.path").split(File.pathSeparator).map(::File).filter { it.isDirectory }
-    roots.forEach { root ->
-        root.walkTopDown().filter { it.extension == "class" }.forEach { file ->
-            val name = file.relativeTo(root).path.removeSuffix(".class").replace(File.separatorChar, '.')
-            runCatching { Class.forName(name, false, loader) }
-        }
-    }
-}
-
-/**
  * Der Server als Kind-JVM mit einem Limit für offene Dateien (`ulimit -n`): die Verbindungen, die ein Client hält,
  * erschöpfen es, und das Annehmen scheitert am Betriebssystem, ohne dass der Test eine Naht im Produktcode braucht.
- * Der Klassenpfad ist der der Test-JVM. Standard- und Fehlerausgabe des Kindes werden zeilenweise in [output]
+ * Die Kind-JVM lädt keine Klassen vor: ist das Limit erschöpft, kann sie keine Klassendatei öffnen, und der Test
+ * belegt damit die Vorbereitung im Produktcode (`ADR-0043`). Klassen der Senke dieser Datei liegen außerhalb der
+ * Vorbereitung. Der Klassenpfad ist der der Test-JVM. Standard- und Fehlerausgabe des Kindes werden zeilenweise in [output]
  * gesammelt.
  */
 internal class AcceptChild(environment: Map<String, String>, descriptors: Int) : AutoCloseable {

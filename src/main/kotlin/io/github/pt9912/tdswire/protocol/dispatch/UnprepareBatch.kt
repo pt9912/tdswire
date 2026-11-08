@@ -1,8 +1,10 @@
 package io.github.pt9912.tdswire.protocol.dispatch
 
 import io.github.pt9912.tdswire.protocol.error.ConnectionFate
-import io.github.pt9912.tdswire.protocol.error.ErrorCode
 import io.github.pt9912.tdswire.protocol.error.ErrorMapper
+import io.github.pt9912.tdswire.protocol.error.unknownHandles
+import io.github.pt9912.tdswire.protocol.response.SequenceOutcome
+import io.github.pt9912.tdswire.protocol.response.TokenSink
 import io.github.pt9912.tdswire.protocol.session.HandshakeEvent
 import io.github.pt9912.tdswire.protocol.token.DoneKind
 import io.github.pt9912.tdswire.protocol.token.DoneStatus
@@ -30,12 +32,6 @@ internal object UnprepareBatch {
     private const val SEPARATOR = ';'
     private const val MAX_DIGITS = 10
     private const val FAILED = -1
-
-    /**
-     * Die Obergrenze der Nummern, die eine Antwort mit einem ERROR (und das Log mit einem Eintrag) nennt (`SPEC-060`,
-     * Setzung, nicht gemessen); weitere unbekannte Nummern desselben Batches bleiben ohne eigenen ERROR.
-     */
-    const val MAX_REPORTED = 100
 
     /** Die feste Marke im Log für eine Nummer, die die Sitzung nicht hielt. */
     const val UNKNOWN_CAUSE = "unknown-prepared-handle"
@@ -73,25 +69,29 @@ internal object UnprepareBatch {
         return if (wellFormed) text.substring(from, to).toLong().takeIf { it <= Int.MAX_VALUE }?.toInt() else null
     }
 
+    /** Gibt die [numbers] der Reihe nach in [handles] frei; geliefert werden die nicht gehaltenen, der Reihe nach. */
+    suspend fun release(numbers: List<Int>, handles: PreparedHandles): List<Int> =
+        numbers.filterNot { handles.release(it) }
+
     /**
-     * Gibt jede der [numbers] der Reihe nach in [handles] frei und beantwortet den Batch, ohne ein Backend zu rufen:
-     * hielt die Sitzung jedes Handle, ein DONE ohne Bits und ohne Zeilenzahl, wie die Antwort eines Batches ohne
-     * Ergebnis (Festlegung, die Tokenfolge eines echten Servers ist nicht gemessen); sonst die Antwort des [errors]
-     * mit einem ERROR je Nummer, die die Sitzung nicht hielt, für höchstens die ersten [MAX_REPORTED] davon (alle
-     * Nummern werden bearbeitet; das Log trägt ebenso viele Einträge wie die Antwort ERROR). Die Verbindung bleibt in
-     * beiden Fällen offen.
+     * Schreibt die Antwort auf die Freigabe, deren nicht gehaltene Nummern [unknown] sind (nicht leer): ein ERROR je
+     * Nummer ohne Obergrenze (`SPEC-060`, gemessen: M-22) und der Abschluss, Token für Token in die [sink]. Die Antwort
+     * steht nie als Liste oder Puffer im Speicher. Der Ausgang ist [SequenceOutcome.FAILED], wenn die Antwort
+     * vollständig geschrieben ist, und [SequenceOutcome.CLOSE_WITHOUT_COMPLETION], wenn die [sink] ein Token nicht
+     * annimmt; die Verbindung endet dann ohne weitere Antwort.
      */
-    suspend fun answer(
-        numbers: List<Int>,
-        handles: PreparedHandles,
-        errors: ErrorMapper,
-    ): HandshakeEvent.RequestFinished {
-        val unknown = numbers.filterNot { handles.release(it) }.take(MAX_REPORTED)
-        if (unknown.isNotEmpty()) {
-            val code = ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE
-            val response = errors.code(code, cause = UNKNOWN_CAUSE, handles = unknown)
-            return requestFinished(response.fate, response.message)
+    suspend fun answer(unknown: List<Int>, sink: TokenSink, errors: ErrorMapper): SequenceOutcome =
+        if (errors.unknownHandles(unknown, UNKNOWN_CAUSE, sink)) {
+            SequenceOutcome.FAILED
+        } else {
+            SequenceOutcome.CLOSE_WITHOUT_COMPLETION
         }
+
+    /**
+     * Die Antwort, wenn die Sitzung jede Nummer hielt: ein DONE ohne Bits und ohne Zeilenzahl (Festlegung, die
+     * Tokenfolge eines echten Servers ist nicht gemessen).
+     */
+    fun completed(): HandshakeEvent.RequestFinished {
         val encoder = TokenEncoder()
         check(encoder.write(DoneToken(DoneKind.DONE, DoneStatus.FINAL, 0, 0)) is ProtocolResult.Ok) {
             "Antwort nicht schreibbar"

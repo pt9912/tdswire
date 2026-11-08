@@ -181,10 +181,13 @@ internal object Bootstrap {
             it.instruments = observer ?: Instruments.NONE
         }
 
-        private fun events(): ListenerEvents = ListenerEvents { event ->
-            wiring.events.onEvent(event)
-            telemetry.emit { at -> event.toEvent(at) }
-            telemetry.emit { at -> event.toStateEvent(at) }
+        private fun events(): ListenerEvents {
+            prepareAcceptFailure()
+            return ListenerEvents { event ->
+                wiring.events.onEvent(event)
+                telemetry.emit { at -> event.toEvent(at) }
+                telemetry.emit { at -> event.toStateEvent(at) }
+            }
         }
 
         private fun running(listener: TdsListener): StartOutcome {
