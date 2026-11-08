@@ -1,0 +1,107 @@
+# ADR-0042: Die Anweisungsart im Abschluss einer Antwort meldet das Backend über ein öffentliches Feld `kind` an `QueryEvent.UpdateCount`; die Bibliothek leitet daraus Befehlskennung, `COUNT` und Zustandswechsel ab
+
+**Status:** Accepted
+
+**Datum:** 2026-11-08
+
+**Autor:** Architect (Entwurf); Entscheidung: pt9912 (Nutzer)
+
+**Entscheidung des Nutzers (Quelle):** 2026-11-08, per Auswahl: Option A (öffentliches Feld bzw. Ereignis am Port für die Anweisungsart), nicht die Bibliotheks-interne Option C; `ENVCHANGE` 8/9 (Transaktionsdeskriptor) wird zuletzt gebaut und nur behalten, wenn ein Lauf mit d-migrate (`schema migrate --execute`, `compare`) danach unverändert ist, einschließlich eines Tests mit zurückgesendetem Deskriptor, sonst bleibt es eine benannte Grenze; beide Entwürfe (diese und [ADR-0041](0041-spaltentypen-der-katalogantworten-ueber-internen-weg.md)) sind angenommen.
+
+**Bezug:** [TDS-FA-10](../../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte), [TDS-FA-11](../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-FA-12](../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), [TDS-QA-01](../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [TDS-QA-07](../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität), [ADR-0021](0021-oeffentlicher-integrations-einstieg.md), [ADR-0026](0026-oeffentlichkeit-simulations-backend-und-katalog.md), [ADR-0033](0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md), [ADR-0036](0036-handle-freigabe-und-grenze-je-sitzung.md), [ADR-0038](0038-abschluss-einer-rpc-antwort-im-fehlerfall-folgt-dem-echten-server.md), [ADR-0041](0041-spaltentypen-der-katalogantworten-ueber-internen-weg.md)
+
+**Schärft:** [SPEC-031](../../../spec/spezifikation.md#spec-031--streaming-fehler-und-atomarität) (Absatz „Befehlskennung (`curCmd`)“: Abschluss eines Änderungszählers), [SPEC-035](../../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends) (Abschluss von `CREATE TABLE` und `ALTER TABLE … ADD`, Transaktionstexte), [SPEC-036](../../../spec/spezifikation.md#spec-036--erkannte-anweisungsformen-des-simulations-backends-vorläufig) (Form C), [SPEC-030](../../../spec/spezifikation.md#spec-030--rpc-varianten-und-parameter-metadaten) (Abschluss nach Änderung im RPC) und [SPEC-059](../../../spec/spezifikation.md#einstieg-des-integrators-vertrag-zu-spec-059) (die Liste wächst um `StatementKind`; `UpdateCount` bekommt das Feld `kind`).
+
+**Supersedes (teilweise), nur wörtlich benannt; die Datei des Vorgängers bleibt unverändert und `Accepted` ([AGENTS.md](../../../AGENTS.md) §3.5):** [ADR-0033](0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Entscheidung 3, **nur** die Klammer „(Setzung: mit dem Änderungszähler 0; gemessen ist der Zähler 0 nur für `ROLLBACK TRAN`, d1)“, soweit sie den Abschluss von `CREATE TABLE` und `ALTER TABLE … ADD` auf den Änderungszähler 0 festlegt; es gilt Entscheidung 2 dieser ADR. Es bleiben: der übrige Wortlaut von Entscheidung 3 (Erkennen, Callback, Fehler des Callbacks, Abweisung ohne Callback) und Entscheidung 6 (auch der Satz zu `ROLLBACK TRAN`: nicht gemessen, bleibt Setzung mit Zähler 0).
+
+**Regeln:** Baseline-Regelwerk `modul-04-adrs.md` §Ziel-Form: ADR (MADR).
+
+---
+
+## Kontext
+
+**Messung** ([Messreihe vom 2026-11-07](../../messungen/referenzabgleich.md#messreihe-zu-massenladen-merge-katalog-und-strukturänderung-messungen-vom-2026-11-07), Referenzclient, SQL Server 2022 und 2025). M-20: `CREATE TABLE` schließt mit `DONE` ohne `COUNT`, Befehl `0x00c6`; `ALTER TABLE … ADD` mit `0x00d8`; `set implicit_transactions on` mit `0x00b9`, bei `CREATE TABLE` danach `ENVCHANGE` Typ 8; `IF @@TRANCOUNT > 0 COMMIT TRAN` als `DONE MORE` `0x00c0`, `ENVCHANGE` Typ 9, `DONE` `0x00d5`. W-6 der [Messreihe am Draht](../../messungen/referenzabgleich.md#messreihe-am-draht-messungen-vom-2026-11-06): INSERT `0x00c3`, DELETE `0x00c4`, UPDATE `0x00c5`. Der Nutzer hat am 2026-11-07 entschieden, dass der Bau dem echten Server folgt.
+
+**Ist.** `QueryEvent.UpdateCount(affectedRows)` ist der Abschluss jeder Anweisung ohne Ergebnis; der Sequenzierer schreibt dazu `DONE` mit `COUNT` und der Befehlskennung 0, „weil der Port die Art der Anweisung nicht trägt“ ([SPEC-031](../../../spec/spezifikation.md#spec-031--streaming-fehler-und-atomarität)). Das Simulations-Backend kennt die Art dagegen schon: es hat die Form erkannt (W1 bis W3, D, C, `MERGE`, `INSERT BULK`). Sitzungszustand führt `RequestLoop` heute nur für die Prepared-Handles (frei mit der Verbindung, [ADR-0036](0036-handle-freigabe-und-grenze-je-sitzung.md)); `QueryBackend` hat keinen Hook für das Ende einer Sitzung außer `cancel`. [ADR-0033](0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Nr. 6 sagt: keine Transaktion; die Bibliothek nimmt nichts zurück.
+
+**Was die Frage betrifft und was nicht.** Vom Auftrag der beiden Bau-Slices hängen an dieser Entscheidung nur: (a) `curCmd` nach INSERT, UPDATE, DELETE, (b) Abschluss von `CREATE TABLE`/`ALTER TABLE … ADD` ohne `COUNT` mit eigener Kennung, (c) `ENVCHANGE` Typ 8 und 9. **Nicht** betroffen, weil Protokoll oder Sequenzierer sie allein bestimmen: das Flag-Feld der Ausgabewerte, `curCmd` `0x00c1` nach Fristablauf bei offenem Ergebnis, Tokenfolge und `0x00e0` von `EXEC sp_unprepare` (das erkennt `UnprepareBatch` im Protokoll).
+
+**Wirkung auf d-migrate: nicht gemessen** ([AGENTS.md](../../../AGENTS.md) §3.8). Alle Läufe gegen den Testserver (Spike, Katalog-Messung) endeten mit den heutigen Abschlüssen (Zähler 0, kein `ENVCHANGE`, `curCmd` 0) bei Exit 0; der Treiber (mssql-jdbc 13.4.0) zeigt der Anwendung nach meiner Kenntnis kein `curCmd`, das ist hier **Annahme**. Die Abweichungen und was sie bei einem Client ändern könnten:
+
+| Abweichung | verändert d-migrate? | Stand |
+|---|---|---|
+| `curCmd` 0 statt `0x00c3`/`0x00c4`/`0x00c5`/`0x00c6`/`0x00d8` | kein Hinweis | nicht gemessen; Zielbild ([TDS-QA-01](../../../spec/lastenheft.md#tds-qa-01--kompatibilität)) |
+| Zähler 0 mit `COUNT` statt `DONE` ohne `COUNT` bei DDL | möglich nur über `getUpdateCount`/`executeUpdate`; kein Hinweis | nicht gemessen |
+| `ENVCHANGE` 8/9 fehlt | **einzige Abweichung mit Zustand im Client**: ein Client kann aus Typ 8 einen Transaktionsdeskriptor übernehmen und ihn in späteren Anfragen zurücksenden; das Senden ist also die Änderung mit dem **größeren Risiko**, nicht das Weglassen | nicht gemessen, weder die Reaktion von mssql-jdbc noch die des Referenzclients auf einen Deskriptor des Testservers |
+| `CREATE TABLE` ohne Schlüssel abgewiesen (anderer Liefer-Punkt desselben Bau-Slices) | **ja**: `CREATE TABLE` ohne Schlüssel weist der Server heute ab, ein Soll mit schlüssellosen Tabellen kann `schema migrate --execute` damit nicht anlegen (Wirkung am Client nicht gemessen) | Folge der Spezifikation (`SPEC-035` Validierung verlangt einen Schlüssel); keine Fläche, keine Entscheidung dieser ADR |
+
+**Randbedingung.** [ADR-0033](0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Nr. 4 (jede neue öffentliche Fläche steht in einer Liste; neuer Name = Befund) und die Nutzerentscheidung vom 2026-11-05 („nur die Klassen, die man dafür braucht“). Ein Embedder braucht die Anweisungsart für seine Aufgabe nicht; der Bedarf ist ein Zielbild-Bedarf der Bibliothek.
+
+## Entscheidung
+
+Wir wählen **Option A**: Das Backend meldet die Anweisungsart öffentlich. `QueryEvent.UpdateCount` bekommt ein zweites Feld `kind` vom neuen öffentlichen Aufzählungstyp `StatementKind`; die Bibliothek leitet aus der Art Befehlskennung, das Bit `COUNT` und die Zustandswechsel der Sitzung ab. Es gibt keinen internen Weg neben dem Port und keinen Text-Klassifizierer im Protokoll.
+
+**Begründung.** Zielbild: die Spezifikation ist das Zielbild, die öffentliche Fläche trägt die Wahrheit des echten Servers; die Fläche wächst bewusst. Das Simulations-Backend benutzt denselben Port wie jedes eigene Backend, und die Zusage „der Server folgt dem echten Server“ gilt damit für alle Backends, die die Art melden.
+
+1. **Form: ein Feld, kein neues Ereignis.** `public data class UpdateCount @JvmOverloads constructor(val affectedRows: Long, val kind: StatementKind = StatementKind.UNKNOWN) : QueryEvent`. Gründe gegen ein eigenes Ereignis: die Art gehört zum Abschluss, den `UpdateCount` ohnehin ist; ein zusätzliches Ereignis brauchte Ordnungsregeln im Sequenzierer (Vorschau, Reihenfolgeprüfung) und eine weitere Unterklasse des `sealed` Typs `QueryEvent`, die ein Kotlin-`when` bei Integratoren bricht; das Feld bricht kein `when` über `QueryEvent`. Kompatibilität: der Standardwert `UNKNOWN` lässt bestehende Backends unverändert (Entscheidung 4); `@JvmOverloads` hält für Java den Aufruf `new UpdateCount(n)` (wie bei `Failure`); `copy`, `componentN` und `equals` ändern sich (Kotlin-Quelltext, der `UpdateCount(n)` baut oder `affectedRows` destrukturiert, übersetzt weiter; ein Vergleich `UpdateCount(1) == UpdateCount(1, INSERT)` ist ungleich). Binärkompatibilität ist vor `1.0` nicht zugesagt und nicht geprüft.
+2. **Mitglieder von `StatementKind` und ihre Abbildung (Setzung der Namen; Messwerte W-6 und M-20).**
+
+   | Mitglied | Befehlskennung | `COUNT` | Quelle |
+   |---|---|---|---|
+   | `UNKNOWN` | 0 | ja | heutiger Abschluss (Zähler `affectedRows`) |
+   | `INSERT` | `0x00c3` | ja | W-6 |
+   | `DELETE` | `0x00c4` | ja | W-6 |
+   | `UPDATE` | `0x00c5` | ja | W-6 |
+   | `CREATE_TABLE` | `0x00c6` | nein | M-20 |
+   | `ALTER_TABLE` | `0x00d8` | nein | M-20 |
+
+   Statt eines Mitglieds `DDL` stehen zwei Mitglieder, weil die gemessenen Kennungen verschieden sind. Die Mitglieder für die Transaktionstexte der Form C (`set implicit_transactions on` mit `0x00b9`, der bedingte `COMMIT TRAN` mit `DONE MORE` `0x00c0`, `ENVCHANGE` 9 und `DONE` `0x00d5`, Folge in M-20) legt der Bau an den gemessenen Fällen an; ihre Namen sind Setzung. Was nicht gemessen ist (`implicit_transactions off`, `ROLLBACK`, weitere Anweisungsarten), bekommt kein Mitglied, bis es gemessen ist, und endet als `UNKNOWN` (bei `ROLLBACK TRAN` mit Zähler 0, [ADR-0033](0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Entscheidung 6). Bei Arten ohne `COUNT` ignoriert die Bibliothek `affectedRows` (Setzung; das Backend meldet 0). Die Bibliothek schreibt nur die Folgen der Tabelle und keine Kombination, die nicht gemessen ist.
+3. **Kein Text-Klassifizierer im Protokoll.** Das Protokoll liest den SQL-Text eines Batches oder `sp_executesql` nicht, um eine Art abzuleiten. Ausnahme bleibt die bestehende Form `EXEC sp_unprepare`.
+4. **Eigene Backends** (`BackendSource.Custom`), die die Art nicht melden, bleiben bei `UNKNOWN`: `DONE` mit `COUNT` und Befehlskennung 0 wie heute (Setzung). Wer sie meldet, bekommt dieselben Antworten wie das Simulations-Backend. Die Art ist eine Zusage des Backends: eine falsche Art liefert die falsche Kennung oder den falschen Zustand an den Client; das gefährdet nicht den Rahmen der Antwort (die Bibliothek schreibt nur `DONE`-Felder und die gemessenen `ENVCHANGE`), aber die Aussage des Clients über seine Sitzung ([TDS-QA-07](../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität)). `SPEC-031` und `SPEC-059` nennen das als Grenze.
+5. **Zustand je Sitzung** (`implicit_transactions` an/aus, Transaktion offen) hält die Verbindung wie die Prepared-Handles ([ADR-0036](0036-handle-freigabe-und-grenze-je-sitzung.md)), nicht das Backend: das Backend meldet die Art, die Verbindung schreibt daraus `ENVCHANGE` 8 und 9 und führt den Zustand. Er endet mit der Verbindung. Gemessen ist Typ 8 nur bei `CREATE TABLE` nach `set implicit_transactions on` und Typ 9 nur beim `COMMIT` dieses Zustands (M-20); jede weitere Kombination (Typ 8 bei INSERT/UPDATE/DELETE, `ROLLBACK`, Ende der Sitzung) ist Setzung und wird nicht als Zusage geschrieben. Die Bytes des Deskriptors liefert ein Handvektor aus der Ablage der Messung ([AGENTS.md](../../../AGENTS.md) §3.8), nicht der Entwurf.
+6. **Zusage „keine Transaktion“ bleibt.** `ENVCHANGE` 8 meldet dem Client einen Zustand, den die Bibliothek nicht zurücknimmt ([ADR-0033](0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Entscheidung 6); die Spezifikation sagt das bei der Zusage zu `ENVCHANGE` ausdrücklich.
+7. **Öffentliche Fläche.** Neu ist der Typname `StatementKind` (Package `domain`) in der Liste von [SPEC-059](../../../spec/spezifikation.md#einstieg-des-integrators-vertrag-zu-spec-059), mit seinen Konstanten, und das Feld `UpdateCount.kind` als Mitglied. `make flaeche` fängt den Typnamen (öffentliche Deklaration ohne Eintrag; Eintrag ohne Beleg in `src/integrator` oder `testserver/kotlin`); das Feld und die Konstanten fängt der Sensor nicht, sie stehen in der Liste und der Einbettungstest nennt jede (Setzung des Baus). Änderungsprotokoll der Spezifikation: Eintrag zur Fläche.
+8. **Reihenfolge im Bau (Nutzerentscheid).** Die Teile ohne Frage am Port (Flag-Feld der Ausgabewerte, `0x00c1` nach Fristablauf, `sp_unprepare`) hängen nicht an dieser ADR. Danach: Port und Befehlskennungen (`kind`, INSERT/UPDATE/DELETE, `CREATE_TABLE`, `ALTER_TABLE`), dann die Transaktionstexte; **`ENVCHANGE` 8/9 wird zuletzt gebaut** und bleibt nur, wenn ein Lauf mit d-migrate (`schema migrate --execute`, `compare`) danach unverändert ist gegenüber einem Lauf unmittelbar davor, einschließlich eines Tests, der nach `ENVCHANGE` 8 eine Anfrage mit zurückgesendetem Deskriptor im Kopf der Nachricht bedient und eine normale Antwort erwartet ([TDS-QA-07](../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität)). Ändert der Lauf etwas, bleibt `ENVCHANGE` ungebaut und ist eine benannte Grenze der Spezifikation (Rückfall D für diesen Teil); das ist durch diese ADR vorentschieden und braucht keine weitere Entscheidung, die Grenze nennt den gemessenen Befund.
+
+## Verglichene Alternativen
+
+| Option | Pro | Contra |
+|---|---|---|
+| **A — öffentlich: Anweisungsart als Feld oder Ereignis am Port (gewählt, Entscheid 2026-11-08; Form: Feld an `UpdateCount`, Entscheidung 1)** | jedes Backend kann das Zielbild erreichen; nichts ist implizit; Antworten sind im Test aus Sicht des Ports prüfbar | mindestens ein neuer Typname plus Änderung von `UpdateCount` (Konstruktor, `copy`, `componentN`, für Java `@JvmOverloads` nötig) und für `ENVCHANGE` weitere Ereignisse; [ADR-0033](0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Nr. 4 und SPEC-059, `make flaeche` berührt; der Einbettende braucht es nicht („nur, was man dafür braucht“); jedes eigene Backend bekäme die Pflicht, die Art richtig zu melden (falsche Art = falscher Zustand beim Client, [TDS-QA-07](../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität)) |
+| B — Text-Klassifizierer plus Sitzungszustand im Protokoll (wie `UnprepareBatch`) | wirkt für alle Backends gleich; kein Weg vom Backend zum Sequenzierer | das Protokoll müsste SQL lesen (Scanner liegt im Package des Simulations-Backends; Schichtregeln von `make detekt`; sonst Doppelung); `sp_executesql` verpackt den Text in Parametern; eine Fehlklassifizierung bei eigenen Backends (z. B. `EXEC` einer Prozedur mit Zähler) schreibt falsche Kennung oder meldet einen Zustand, den der Client dann führt ([TDS-QA-07](../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität)); die Bibliothek nimmt für eigene Backends eine Semantik an, die sie nicht kennt; zweimal Erkennung derselben Formen (Backend und Protokoll) |
+| C — intern, nur die Bibliothek setzt die Art (verworfen, Entscheid 2026-11-08) | keine Fläche, kein Text-Lesen im Protokoll; die Art kommt aus der Erkennung, die das Backend ohnehin hat; Zustand lebt und stirbt mit der Verbindung; trägt beide Bau-Slices mit einem Mechanismus (gemeinsam mit [ADR-0041](0041-spaltentypen-der-katalogantworten-ueber-internen-weg.md)) | eigene Backends bleiben bei Kennung 0 (Grenze); zweiter Weg neben dem Port, der gepflegt und getestet werden muss; `ENVCHANGE` simuliert eine Transaktion, die es nicht gibt (Entscheidung 5) |
+| D — Teilmenge, Rest als Grenze: nur was d-migrate liest, hier: nichts von `curCmd` | kein Aufwand, kein Risiko durch `ENVCHANGE`; belegt ist, dass d-migrate mit den heutigen Abschlüssen bis Exit 0 läuft | widerspricht dem Zielbild und dem Nutzerentscheid vom 2026-11-07 für `curCmd` und DDL-Abschluss; als **Rückfallstufe für `ENVCHANGE`** ist D in Entscheidung 6 enthalten |
+
+**Bewertung nach den Kriterien** (Entscheidungsgrundlage des Entwurfs; der Nutzer hat nach Zielbild gewählt). Sicherheit/[TDS-QA-07](../../../spec/lastenheft.md#tds-qa-07--protokoll-synchronität): C setzt die Art nur dort, wo die Bibliothek sie selbst erkannt hat; A öffnet den Weg für eine falsche Art von einem Backend (Entscheidung 4), begrenzt durch die Tabelle der gemessenen Folgen; B öffnet ihn für Fehlklassifizierung. Neu ist das Risiko durch `ENVCHANGE` (Kontext, Tabelle), das Entscheidung 8 begrenzt. Öffentliche Fläche: A +1 Typname und ein Feld, B/C/D keine. Java-Lesart: A trifft den Konstruktor von `UpdateCount` (`@JvmOverloads`). Wartbarkeit: A verteilt die Pflicht auf jedes Backend, das die Art melden will, C hält die Erkennung an einer Stelle. Zielbild: A erreicht es für alle Backends, die die Art melden, C nur für das Simulations-Backend. Aufwand: D null, C mittel, A mittel bis groß, B groß.
+
+## Konsequenzen
+
+- Positiv: Zielbild für `curCmd`, DDL-Abschluss und Transaktionstexte, für das Simulations-Backend und für jedes Backend, das die Art meldet; kein zweiter Weg neben dem Port; die Antworten sind im Test aus Sicht des Ports prüfbar.
+- Negativ: die öffentliche Fläche wächst um `StatementKind` und `UpdateCount.kind`; `copy`, `componentN` und `equals` von `UpdateCount` ändern sich (vor der ersten Veröffentlichung, [ADR-0021](0021-oeffentlicher-integrations-einstieg.md) hält die Zusage vor `1.0` eng; Änderungsprotokoll der Spezifikation); Backends, die die Art nicht melden, sehen die Angleichung nicht (`UNKNOWN`, Grenze); `ENVCHANGE` 8 behauptet gegenüber dem Client eine Transaktion, die die Bibliothek nicht hat (verstärkt, was d-migrate schon in seinen Bericht schreibt, [ADR-0033](0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Konsequenzen); die Reaktion des Treibers auf den Deskriptor ist unbekannt und wird durch den Lauf nach Entscheidung 8 geprüft.
+- Folgepflicht Bau: der Bau zu den Zielbild-Lücken der Antwort-Tokens setzt Port und Kennungen für INSERT, UPDATE und DELETE um (Tests je Anweisungsart); der Bau zur Angleichung des Katalogs setzt `CREATE_TABLE`, `ALTER_TABLE` und die Transaktionstexte um und baut `ENVCHANGE` zuletzt (Entscheidung 8); wer von beiden Bauten zuerst kommt, legt `StatementKind` und das Feld an. Die Rückführungen „Fläche wächst“ beider Bauten sind für diese Punkte entschieden und entfallen; „Anweisungsart im Port braucht eine Entscheidung“ ist erfüllt.
+- Folgepflicht Spezifikation: `SPEC-031`, `SPEC-035`, `SPEC-036`, `SPEC-030` wie im Feld „Schärft“ und `SPEC-059` (Liste, Feld, Änderungsprotokoll); geändert wird `spec/` vom Bau, nicht von dieser ADR.
+
+## Fitness Function (falls maschinell prüfbar)
+
+| Tooling | Regel | Make-Target |
+|---|---|---|
+| Typnamen-Sensor der Fläche | `StatementKind` steht in der Liste von `SPEC-059` und ist im Einbettungstest oder Testserver belegt (Feld und Konstanten fängt er nicht) | `make flaeche` |
+| Tests des Sequenzierers und der Verbindung | je Art Kennung und `COUNT`-Bit gegen W-6 und M-20; `UNKNOWN` schreibt Kennung 0 mit `COUNT`; `ENVCHANGE` 8/9 nur in den gemessenen Fällen; Zustand endet mit der Verbindung | `make test` |
+| Einbettungstest im Source-Set `integrator` | ein eigenes Backend meldet `kind` und bekommt die Antwort des Simulations-Backends; ein altes Backend ohne `kind` bleibt bei Kennung 0; Anfrage mit zurückgesendetem Deskriptor wird bedient | `make test` |
+| Referenzclient gegen den Serverprozess (kein Gate) | Antworten auf `CREATE TABLE`, `ALTER TABLE … ADD` und die Transaktionstexte mit dem Referenzclient | `make kompatibilitaet` |
+
+## Re-Evaluierungs-Trigger
+
+Ein Lauf mit d-migrate oder dem Referenzclient zeigt, dass `curCmd`, `DONE` ohne `COUNT` oder `ENVCHANGE` das Verhalten ändert (zum Guten: Priorität; zum Schlechten: Rückfall D für den betroffenen Teil, für `ENVCHANGE` schon in Entscheidung 8 vorentschieden); die Messung zeigt `ENVCHANGE` 8 bei weiteren Anweisungen oder `ROLLBACK` (neue Mitglieder von `StatementKind`); ein Backend meldet eine Art falsch und der Client führt einen falschen Zustand (dann Prüfung der Kombination in der Bibliothek); [ADR-0033](0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Entscheidung 6 („keine Transaktion“) wird aufgegeben.
+
+## Geschichte
+
+| Datum | Ereignis | Verweis |
+|---|---|---|
+| 2026-11-07 | Proposed (Entwurf des Architects, Option C) | [Messprotokoll](../../messungen/referenzabgleich.md#messreihe-zu-massenladen-merge-katalog-und-strukturänderung-messungen-vom-2026-11-07), Zeilen M-20, M-23; [Messreihe am Draht](../../messungen/referenzabgleich.md#messreihe-am-draht-messungen-vom-2026-11-06), W-6 |
+| 2026-11-08 | Accepted (Entscheidung des Nutzers per Auswahl: Option A, Feld am Port; `ENVCHANGE` zuletzt mit Rückfall auf benannte Grenze) | Nutzerentscheid vom 2026-11-08 |
+
+Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
+Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit
+`Supersedes ADR-NNNN` (Baseline-Regelwerk `modul-04-adrs.md`
+§Hard Rule für Accepted-ADRs).

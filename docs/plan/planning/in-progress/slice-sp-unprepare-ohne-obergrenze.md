@@ -128,7 +128,7 @@ dasteht.
 
 - Der Server schreibt je Nummer einen ERROR, RETURNSTATUS und DONEPROC (nach [slice-antwort-tokens-zielbild-luecken-bauen](../open/slice-antwort-tokens-zielbild-luecken-bauen.md)); die Antwort wächst mit der Zahl der Nummern, die Größe der Nachricht begrenzt sie. — **Ausgang:** offen bis zur Closure.
 - Der Wert der echten Grenze (Nachrichtengröße des echten Servers) ist nicht gemessen; der Schutz des Servers dieses Repos ist eigene Setzung mit Messzeile. — **Ausgang:** offen bis zur Closure.
-- Der gemeinsame Pfad mit [slice-antwort-tokens-zielbild-luecken-bauen](../open/slice-antwort-tokens-zielbild-luecken-bauen.md) erzeugt bei gleichzeitigem Lauf Konflikte (Reihenfolge nicht festgelegt). — **Ausgang:** offen bis zur Closure.
+- Der gemeinsame Pfad mit [slice-antwort-tokens-zielbild-luecken-bauen](../open/slice-antwort-tokens-zielbild-luecken-bauen.md) erzeugt bei gleichzeitigem Lauf Konflikte (Reihenfolge, Setzung des Planners 2026-11-08: dieser Slice zuerst, [slice-antwort-tokens-zielbild-luecken-bauen](../open/slice-antwort-tokens-zielbild-luecken-bauen.md) startet nach seinem `done/` und zieht die Antwortform nach). — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
 
