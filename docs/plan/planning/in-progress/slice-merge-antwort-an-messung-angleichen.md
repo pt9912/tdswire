@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md), [ADR-0041](../../adr/0041-spaltentypen-der-katalogantworten-ueber-internen-weg.md), [ADR-0042](../../adr/0042-anweisungsart-und-zustandswechsel-nur-durch-die-bibliothek.md)
 
-**Berührte Spec-Stellen:** SPEC-036 (Form M: Typ von `$action`, Abschluss, Fehlernummern) · SPEC-031 (Abschluss der Antwort, `curCmd`) · SPEC-059 (Liste der öffentlichen Namen: `ResultColumn` mit optionalem Längenfeld; `StatementKind.MERGE`; Änderungsprotokoll). **Die Spezifikation ändert dieser Slice** (Zielbild: Wortlaut folgt dem Messwert).
+**Berührte Spec-Stellen:** SPEC-036 (Form M: Typ von `$action`, Abschluss, Fehlernummern) · SPEC-031 (Abschluss der Antwort, `curCmd`) · SPEC-059 (Liste der öffentlichen Namen: `ResultColumn` mit optionalem Längenfeld, `ResultStart.kind`; `StatementKind.MERGE`; Änderungsprotokoll) · SPEC-002 (Query-Vertrag: `ResultStart`, `ResultColumn`, `StatementKind`, Absatz zu `kind` und `maxLength`) · SPEC-003 (Typ `UnicodeText` und `maxLength`) · SPEC-035 (Prüfung von `SimColumn.maxLength` beim `MERGE`) · Vertrag zu SPEC-022 · [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend).a Schritt 11. **Die Spezifikation ändert dieser Slice** (Zielbild: Wortlaut folgt dem Messwert).
 
 **Verantwortlich:** — bis zur Priorisierung.
 
@@ -36,7 +36,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Reihenfolge.** Dieser Slice folgt [slice-antwort-tokens-zielbild-luecken-bauen](../done/slice-antwort-tokens-zielbild-luecken-bauen.md), das `StatementKind` anlegt ([ADR-0042](../../adr/0042-anweisungsart-und-zustandswechsel-nur-durch-die-bibliothek.md)); dieser Slice fügt das Mitglied `MERGE` hinzu und setzt es im Pfad der Form M.
 
-**Entscheid vorab (Rückführung an Architect und Nutzer).** Liefer-Punkt (b) ist ein neues Feld an einem öffentlichen Typ (`ResultColumn`, [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Nr. 4) und folgt der Linie von [ADR-0041](../../adr/0041-spaltentypen-der-katalogantworten-ueber-internen-weg.md) („Fläche wächst bewusst“). Empfehlung des Planners: **ja**, als optionales Längenfeld mit Vorgabewert (kein Bruch für bestehenden Quelltext). Der Slice startet erst, wenn der Nutzer entschieden hat; bei „nein“ bleibt (b) eine benannte Grenze in `SPEC-036` und der Slice schrumpft auf (a) und (c).
+**Entscheid vorab (Rückführung an Architect und Nutzer).** Liefer-Punkt (b) ist ein neues Feld an einem öffentlichen Typ (`ResultColumn`, [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Nr. 4) und folgt der Linie von [ADR-0041](../../adr/0041-spaltentypen-der-katalogantworten-ueber-internen-weg.md) („Fläche wächst bewusst“). Empfehlung des Planners: **ja**, als optionales Längenfeld mit Vorgabewert (kein Bruch für bestehenden Quelltext). Entschieden: der Nutzer hat am 2026-11-08 das Längenfeld bejaht (Entscheid des Nutzers); bei „nein“ wäre (b) eine benannte Grenze in `SPEC-036` geblieben.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -79,16 +79,18 @@ nicht die Antwort.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `src/main/kotlin/io/github/pt9912/tdswire/domain/QueryEvent.kt` (`ResultColumn.maxLength`, `ResultStart.kind`) | update | optionales Längenfeld (Entscheid des Nutzers 2026-11-08) und die Art am Beginn des Ergebnisses: der Fehler im offenen Ergebnis kennt die Art nur dort, `UpdateCount.kind` ([ADR-0042](../../adr/0042-anweisungsart-und-zustandswechsel-nur-durch-die-bibliothek.md)) reicht für ein Ergebnis nicht; **zweite Erweiterung der Fläche, vom Nutzer nicht ausdrücklich entschieden (Bericht)** |
+| `src/main/kotlin/io/github/pt9912/tdswire/domain/QueryEvent.kt` (`ResultColumn.maxLength`, `ResultStart.kind`) | update | optionales Längenfeld (Entscheid des Nutzers 2026-11-08) und die Art am Beginn des Ergebnisses: der Fehler im offenen Ergebnis kennt die Art nur dort, `UpdateCount.kind` ([ADR-0042](../../adr/0042-anweisungsart-und-zustandswechsel-nur-durch-die-bibliothek.md)) reicht für ein Ergebnis nicht; **zweite Erweiterung der Fläche; Entscheid des Nutzers am 2026-11-09 per Auswahl: das Feld bleibt in der öffentlichen Fläche** (Begründung: der Fehler im offenen Ergebnis braucht die Art am Ergebnisbeginn, `0x0117` für den Fehler M-15; keine Änderung der angenommenen [ADR-0042](../../adr/0042-anweisungsart-und-zustandswechsel-nur-durch-die-bibliothek.md), Klarstellung in `SPEC-002` und im Änderungsprotokoll von `SPEC-059`) |
 | `src/main/kotlin/io/github/pt9912/tdswire/domain/StatementKind.kt` | update | Mitglied `MERGE` |
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/token/Token.kt` (`DoneCommand`) | update | `0x0117`, `forResult`, `countsRows` |
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/response/` (`Completion.kt`, `ResponseRun.kt`, `RpcTrailer.kt`) | update | Kennung des Abschlusses und des Fehlers im Ergebnis nach der Art, INFO 3621 nach dem Fehler im Ergebnis eines `MERGE` |
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/result/ColumnMapping.kt` | update | `NVARCHAR(maxLength)` statt fest 4000 |
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/error/` (`ErrorCode.kt`, `ErrorMapper.kt`) | update | neuer Code `TDS_SIM_STRING_TRUNCATED` (2628) und seine Aufnahme in die Positivliste |
-| `src/main/kotlin/io/github/pt9912/tdswire/simulation/` (`SimulationMerges.kt`, `StatementPlanner.kt`) | update | `$action` mit Länge 10 und Art `MERGE`; Prüfung der Textlänge je Aktion (2628); Fehler von `onInsert` als 2627 |
+| `src/main/kotlin/io/github/pt9912/tdswire/simulation/` (`SimulationMerges.kt`, `StatementPlanner.kt`, `SimModel.kt`) | update | `$action` mit Länge 10 und Art `MERGE`; Prüfung der Textlänge je Aktion (2628); Fehler von `onInsert` als 2627; KDoc von `SimColumn.maxLength` nach der Prüfung beim `MERGE` |
 | `src/integrator/` (`MergeEmbeddingTest.kt`, `StatementKindEmbeddingTest.kt`, `RpcParams.kt`; `MergeFehlerEmbeddingTest.kt` neu) | update / neu | Beleg der Felder, Bytes der Spalte und des Abschlusses, Fehler 2628, 2627, 208 |
 | `src/test/` (`ResponseMergeTest.kt` neu, `SimulationBackendMergeTest.kt`, `ErrorMapperTest.kt`) | neu / update | Tokenfolge gegen die Bytes der Messung, Zuordnung der Fehler, Codeliste |
-| `spec/spezifikation.md` (`SPEC-003`, `SPEC-022`, `SPEC-031`, `SPEC-035`, `SPEC-036`, Abschnitt 4, `SPEC-059`, Änderungsprotokoll) | update | Zielbild, Fläche, Fehlertabelle |
+| `spec/spezifikation.md` (`SPEC-002`, `SPEC-003`, `SPEC-022`, `SPEC-031`, `SPEC-035`, `SPEC-036`, Abschnitt 4, `SPEC-059`, `TDS-FA-11.a` Schritt 11, Änderungsprotokoll) | update | Zielbild, Fläche, Fehlertabelle; Klarstellung zu `maxLength` (Zeile über der Länge wird abgewiesen) und `ResultStart.kind` |
+| `docs/plan/planning/in-progress/roadmap.md`, `docs/plan/planning/welle-testserver-manuell.md`, `docs/plan/spec-abdeckung.md`, `docs/messungen/merge-output-2026-11-07.md` | update | Wellenzeile und Zustandsfeld, Link-Nachzug, Abdeckungsmatrix (erzeugt, `make spec-abdeckung`), Link auf diesen Slice |
+| `docs/plan/planning/done/` (fünf Slices) und `docs/plan/planning/observations/BEO-TDS/` (Evidence, `state.md`) | update | Link-Nachzüge auf diesen Slice; Stand der Register |
 | `docs/messungen/referenzabgleich.md` | update | Zeilen M-15 und M-26 der Zuordnung auf „angeglichen“ mit den Grenzen |
 | `docs/plan/kompatibilitaetsmatrix.md` | update | Zeilen Befehlskennung, `UnicodeText`, Fehlerantwort; neue Zitate von `ResponseMergeTest` |
 | `docs/user/` (`einbettung-und-betrieb.md`, `referenz-konfiguration.md`, `testserver-manuell.md`) | update | Felder, Antwortform, Fehler; `README.md` und `referenz-ereignisse.md` gelesen, unverändert |
@@ -120,7 +122,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Offene Risiken werden bei Closure aufgelöst — **jedes** Risiko bekommt genau
 **einen** Ausgang.
 
-- **Entscheid zu `ResultColumn` steht aus** (öffentliche Fläche, Empfehlung ja). — **Ausgang:** offen bis zur Closure.
+- **Entscheid zu `ResultColumn`** (öffentliche Fläche): entschieden, Entscheid des Nutzers am 2026-11-08 (ja); ebenso `ResultStart.kind`, Entscheid des Nutzers am 2026-11-09 per Auswahl (das Feld bleibt). — **Ausgang:** entfallen (entschieden), zu bestätigen bei der Closure.
 - **`MERGE` auf eine Tabelle ohne Schlüssel** endet mit `TDS_UNSUPPORTED_SQL` (`comparesKey` verlangt den Schlüssel), am echten Server ist das `MERGE` möglich; `CREATE TABLE` ohne Schlüssel gelingt nach [slice-katalog-und-struktur-an-messung-angleichen](../done/slice-katalog-und-struktur-an-messung-angleichen.md) (M-19). — **Ausgang:** offen bis zur Closure.
 - **Reihenfolge der Antwort im Fehlerfall** (Zeile vor dem Fehler, M-15) hängt am Zerlegen in Lesen und einen Callback; ob sie ohne Umbau der Form M zu erreichen ist, ist nicht gemessen. — **Ausgang:** offen bis zur Closure.
 

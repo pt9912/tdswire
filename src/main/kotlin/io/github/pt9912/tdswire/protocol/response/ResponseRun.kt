@@ -29,7 +29,8 @@ private const val STATEMENT_TERMINATED = 3621
 /**
  * Das INFO, das auf den ERROR einer Nachricht des Massenladens und eines Fehlers im Ergebnis eines `MERGE` folgt
  * (Messprotokoll M-12 und M-15: Nummer 3621, State 0, Class 0, „The statement has been terminated.“); gemessen für den
- * Schlüsselverstoß beider und für 2628 des `MERGE`, für andere Fehler gesetzt.
+ * Schlüsselverstoß beider und für 2628 des `MERGE`, für andere Fehler gesetzt. Nur der Pfad, der den Lauf beendet
+ * (`report`), schreibt es; ein `Failure` mit `FailureScope.STATEMENT` hat kein INFO.
  */
 internal val BULK_TERMINATED =
     InfoToken(ServerMessage(STATEMENT_TERMINATED, 0, 0, "The statement has been terminated."))

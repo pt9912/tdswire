@@ -6,7 +6,9 @@ internal const val DEFAULT_TEXT_LENGTH = 4000
 /**
  * Eine Spalte eines Ergebnisses; [nullable] sagt, ob die Spalte NULL enthalten darf. [maxLength] ist die Länge in
  * Zeichen, die die Metadaten für [SqlType.UnicodeText] melden (`nvarchar(<maxLength>)`, 1 bis 4000, Vorgabe 4000); sie
- * wirkt auf keinen anderen Typ und prüft keine Zeile. Ein anderer Wert wirft [IllegalArgumentException].
+ * wirkt auf keinen anderen Typ. Ein Text einer [Row] über [maxLength] Zeichen weist die Bibliothek ab: die Antwort
+ * endet mit einem Fehler statt mit dem Ergebnis (geprüft im Test `ResponseMergeTest`). Ein Wert außerhalb 1 bis 4000
+ * wirft [IllegalArgumentException].
  */
 public data class ResultColumn @JvmOverloads constructor(
     val name: String,

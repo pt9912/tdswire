@@ -1,5 +1,6 @@
 package io.github.pt9912.tdswire.protocol.response
 
+import io.github.pt9912.tdswire.domain.FailureScope
 import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.domain.QueryRequest
 import io.github.pt9912.tdswire.domain.ResultColumn
@@ -257,5 +258,72 @@ class ResponseMergeTest {
         val done = assertIs<DoneToken>(tokens.last())
         assertEquals(DoneStatus.ERROR, done.status)
         assertEquals(0x0117, done.curCmd)
+    }
+
+    /**
+     * Ein Text einer Zeile über `ResultColumn.maxLength` endet in einem Fehler statt im Ergebnis (Probe: sechs Zeichen
+     * bei Länge 5, Tokenfolge COLMETADATA, ERROR, DONE, DONE). Wächter: eine Prüfung der Länge, die eine zu lange
+     * Zeile durchlässt; ein Text genau der Länge (fünf Zeichen) bleibt ein Ergebnis.
+     *
+     * @spec SPEC-002
+     * @spec SPEC-003
+     */
+    @Test
+    fun `Ein Text einer Zeile ueber der Laenge der Spalte endet in einem Fehler`() {
+        val narrow = ResultColumn("t", SqlType.UnicodeText, nullable = false, maxLength = 5)
+        val (failed, tokens) = run(
+            ResponseForm.BATCH,
+            FIXED_MAPPING,
+            QueryEvent.ResultStart(listOf(narrow)),
+            QueryEvent.Row(listOf("123456")),
+            QueryEvent.ResultEnd(1),
+        )
+        assertEquals(SequenceOutcome.FAILED, failed)
+        assertEquals(1, tokens.count { it is ErrorToken })
+        val (fits, _) = run(
+            ResponseForm.BATCH,
+            FIXED_MAPPING,
+            QueryEvent.ResultStart(listOf(narrow)),
+            QueryEvent.Row(listOf("12345")),
+            QueryEvent.ResultEnd(1),
+        )
+        assertEquals(SequenceOutcome.COMPLETED, fits)
+    }
+
+    /**
+     * Setzung (nicht gemessen): ein `Failure` mit `FailureScope.STATEMENT` im Ergebnis eines `MERGE` hat kein INFO
+     * 3621, der Abschluss ist DONEINPROC `MORE|ERROR` mit `0x0117`. Wächter: ein INFO auf diesem Pfad, die Kennung
+     * `0x00c1`.
+     *
+     * @spec SPEC-031
+     */
+    @Test
+    fun `Ein Fehler der Klasse STATEMENT im Ergebnis eines MERGE hat kein INFO`() {
+        val (_, tokens) = run(
+            ResponseForm.RPC,
+            mapping(TRUNCATED, CLASS_ERROR),
+            start,
+            QueryEvent.Failure("TDS_SIM_STRING_TRUNCATED", "Text", FailureScope.STATEMENT),
+        )
+        assertFalse(tokens.any { it is InfoToken })
+        val done = tokens.filterIsInstance<DoneToken>().first { it.kind == DoneKind.DONE_IN_PROC }
+        assertEquals(DoneStatus.MORE or DoneStatus.ERROR, done.status)
+        assertEquals(0x0117, done.curCmd)
+    }
+
+    /**
+     * Setzung (nicht gemessen): `UpdateCount(n, MERGE)` schließt mit `0x0117` und `COUNT`. Wächter: die Kennung 0,
+     * ein Abschluss ohne `COUNT`.
+     *
+     * @spec SPEC-031
+     * @spec SPEC-059
+     */
+    @Test
+    fun `Ein Aenderungszaehler der Art MERGE schliesst mit 0x0117 und COUNT`() {
+        val (_, tokens) = run(ResponseForm.RPC, FIXED_MAPPING, QueryEvent.UpdateCount(2, StatementKind.MERGE))
+        val done = tokens.filterIsInstance<DoneToken>().first { it.kind == DoneKind.DONE_IN_PROC }
+        assertEquals(0x0117, done.curCmd)
+        assertEquals(DoneStatus.COUNT, done.status and DoneStatus.COUNT)
+        assertEquals(2L, done.rowCount)
     }
 }
