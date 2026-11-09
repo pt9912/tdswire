@@ -74,14 +74,16 @@ nicht die Antwort.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `docs/plan/adr/` (neue ADR zu [ADR-0007](../../adr/0007-fehler-und-attention.md), nur wenn Liefer-Punkt 1 es verlangt) | neu | Schärfung der Zuordnung von Class und Verbindungsfolge; ADR-Index mitführen |
-| `src/main/kotlin/io/github/pt9912/tdswire/protocol/error/ErrorCode.kt` (`TDS_SIM_UNKNOWN_OBJECT`) | update | Class 16, Verbindung bleibt offen |
-| `src/test/` (`ErrorMapperTest`, `SimulationCodesTest`, `ResponseMergeTest`, Tests der Sichten, die Class 20 voraussetzen) | update | Erwartungswerte nach Liefer-Punkt 1 |
-| `src/integrator/` (`MergeFehlerEmbeddingTest`) | update | Class 16 und Folgeanfrage auf offener Verbindung |
-| `spec/spezifikation.md` (§4, `SPEC-038`, `SPEC-036`, `SPEC-001`) | update | Zielbild folgt dem Messwert |
-| `docs/messungen/referenzabgleich.md`, `docs/user/`, Register `BEO-TDS/unbekannte-tabelle-class-20-statt-16-am-server` | update | Zeile M-15, Ist-Zustand, Stand |
+| `docs/plan/adr/` (neue ADR zu [ADR-0007](../../adr/0007-fehler-und-attention.md)) | entfällt | [ADR-0007](../../adr/0007-fehler-und-attention.md) setzt Class 20 nur für `TDS_PROTOCOL_ERROR` und `TDS_INTERNAL_ERROR`; die Zuordnung jedes weiteren Codes legt sie dem Fehler-Mapping zu (Kontext „Class der eigenen Fehlercodes“, Offene Punkte); keine Schärfung nötig |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/error/ErrorCode.kt` (`TDS_SIM_UNKNOWN_OBJECT`, KDoc des Enum) | update | Class 16, Verbindung bleibt offen; Herkunftsstufe „gemessen“ (Zeile M-15, Schritt `fehler-vor-zeilen`), Text bleibt Festlegung |
+| `src/test/kotlin/.../protocol/error/ErrorMapperTest.kt` | update | Handvektor ERROR 208 Class 16, `OPEN`; Gruppen-Test führt den Code bei den offenen |
+| `src/integrator/kotlin/.../MergeFehlerEmbeddingTest.kt` | update | Class 16 im ERROR, Folgeanfrage auf derselben Verbindung |
+| `referenztest-dotnet/Kompatibilitaet/SzenarienTests.cs`, `SynchronitaetTests.cs` | update | 208 mit Class 16 und offener Verbindung; der Test „Fehler der Class 20“ nimmt den `xml`-Parameter (`TDS_UNSUPPORTED_TYPE`, 50003) als Auslöser |
+| `referenztest-dotnet/Vergleich/live-ausnahmen.tsv`, `mitschnitt-ausnahmen.tsv` | update | Ausnahme A-3 nur noch im Text; die Zeilen `fehler-vor-zeilen/02/*` entfallen |
+| `spec/spezifikation.md` (§4 Grundregel-Satz, Zeile `TDS_SIM_UNKNOWN_OBJECT`, `SPEC-038`, `SPEC-036` Form M, Änderungsverzeichnis) | update | Zielbild folgt dem Messwert |
+| `docs/messungen/referenzabgleich.md` (A-3, Zeile M-13 bis M-15 der Bewertung), `docs/plan/kompatibilitaetsmatrix.md`, `docs/plan/e2e-abdeckung.md`, `docs/user/` (`referenz-konfiguration.md`, `einbettung-und-betrieb.md`), Register `BEO-TDS/unbekannte-tabelle-class-20-statt-16-am-server` | update | Ist-Zustand, Stand |
 
-Die Liste ist im Lauf des Implementers gegen den Diff zu vervollständigen.
+Die Liste ist gegen den Diff vervollständigt.
 
 ## 4. Trigger
 
@@ -110,7 +112,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- **Tests oder Spezifikationsstellen setzen Class 20 für diesen Code voraus** (Liste ungeprüft; Class 20 schließt die Verbindung, Folgeanfragen setzen sie voraus) — **Ausgang:** offen bis zur Closure.
+- **Tests oder Spezifikationsstellen setzen Class 20 für diesen Code voraus** (Class 20 schließt die Verbindung, Folgeanfragen setzen sie voraus). Befund des Implementers: `ErrorMapperTest` (Handvektor, Gruppen-Test), `MergeFehlerEmbeddingTest`, `SzenarienTests.cs` und `SynchronitaetTests.cs` (der Class-20-Test nutzte 208 als Auslöser, jetzt den `xml`-Parameter), die Ausnahmelisten des Live- und des Mitschnitt-Laufs, Kompatibilitätsmatrix, `e2e-abdeckung.md` und `docs/user/`; Spezifikation §4, `SPEC-036`, `SPEC-038`. Die .NET-Tests und die Ausnahmelisten sind vom Implementer nicht gefahren (`make e2e`, `make vergleichslauf-d` gehören dem Verifier) — **Ausgang:** offen bis zur Closure.
 - **Verhalten der Clients nach Class 16:** der Referenzclient und mssql-jdbc sind für 208 nicht gemessen; die Messung R05 bezieht sich auf den Server, nicht auf die Clients — **Ausgang:** offen bis zur Closure.
 
 ## 7. Closure-Notiz
