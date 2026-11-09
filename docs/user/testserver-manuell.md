@@ -14,6 +14,7 @@ Der Testserver ist **kein Produkt**: er ist ein Serverprozess zur Prüfung der B
 | das Log lesen | [4](#4-das-log-lesen) |
 | den Server anders einstellen (Host, Benutzer, Tabellen, Verschlüsselung) | [5](#5-den-server-anders-einstellen) |
 | Zeilen in die Tabellen laden und wieder lesen | [6](#6-daten-laden-massenladen) |
+| Fremdschlüssel, Indizes, Standardwerte und Prüfbedingungen anlegen und lesen | [7](#7-fremdschlüssel-indizes-standardwerte-und-prüfbedingungen-anlegen-und-lesen) |
 
 ## 1. Den Testserver starten, prüfen und stoppen
 
@@ -203,9 +204,9 @@ Server=tcp:127.0.0.1,1433;User ID=alice;Password=secret;Encrypt=false;Pooling=fa
 
 **Eigenschaften des Katalogs.**
 
-- Der Server hält Tabellen im Arbeitsspeicher und ändert sie auf `CREATE TABLE` und `ALTER TABLE … ADD`; er beantwortet die Katalogabfragen für `schema reverse`, `schema compare` und `schema migrate` aus dem jeweils aktuellen Stand ([SPEC-036](../../spec/spezifikation.md#spec-036--erkannte-anweisungsformen-des-simulations-backends-vorläufig), Formen K und D). Der Katalog beschreibt die Struktur; Zeilen kommen über das Massenladen ([Aufgabe 6](#6-daten-laden-massenladen)).
+- Der Server hält Tabellen im Arbeitsspeicher und ändert sie auf `CREATE TABLE`, `ALTER TABLE … ADD` (Spalte oder `CONSTRAINT`) und `CREATE INDEX`; er beantwortet die Katalogabfragen für `schema reverse`, `schema compare` und `schema migrate` aus dem jeweils aktuellen Stand ([SPEC-036](../../spec/spezifikation.md#spec-036--erkannte-anweisungsformen-des-simulations-backends-vorläufig), Formen K und D). Der Katalog beschreibt die Struktur; Zeilen kommen über das Massenladen ([Aufgabe 6](#6-daten-laden-massenladen)).
 - Keine Transaktion: bricht `schema migrate --execute` in der Mitte ab, bleibt die erste Änderung stehen, auch wenn d-migrate `FULL_ROLLBACK_CONFIRMED` meldet.
-- Identität, Standardwerte, Fremdschlüssel, Indizes und Prüfbedingungen kennt der Katalog nicht; ein Soll mit dem Typ `identifier` zeigt bei `schema compare` einen Unterschied (`identifier -> biginteger`, Exit 1).
+- Standardwerte, Eindeutigkeiten, Fremdschlüssel, Indizes und Prüfbedingungen führt der Katalog ([Aufgabe 7](#7-fremdschlüssel-indizes-standardwerte-und-prüfbedingungen-anlegen-und-lesen)); eine Identität kennt er nicht, ein Soll mit dem Typ `identifier` zeigt bei `schema compare` einen Unterschied (`identifier -> biginteger`, Exit 1).
 - Eine Spalte, die ein Client mit `NVARCHAR(MAX)` anlegt, zeigt der Katalog als unbegrenzt (`max_length` -1); eine Spalte aus der Beschreibung ohne `max_length` zeigt er als 4000 Zeichen, sodass ein Soll mit `text` ohne `max_length` gegen sie einen Unterschied meldet.
 - Die Schlüssel der Beispiel-Tabellen sind `BIGINT`: ein INT-Schlüssel scheitert beim Massenladen im Treiber von d-migrate, bevor Zeilen den Server erreichen ([Messprotokoll zur Callback-Lösung](../messungen/callback-loesung-spike-2026-11-05.md), Messung b3).
 
@@ -339,6 +340,8 @@ Die folgenden Abschnitte fahren je eine Einstellung durch (Läufe vom 2026-11-07
            max_length: 80
        primary_key: [Nr]
    ```
+
+   Die Beschreibung kann außerdem Standardwerte, Eindeutigkeiten, Fremdschlüssel, Indizes und Prüfbedingungen führen (`default`, `unique` und `references` an einer Spalte, `indices` und `constraints` an einer Tabelle; Beispiel in [Aufgabe 7](#7-fremdschlüssel-indizes-standardwerte-und-prüfbedingungen-anlegen-und-lesen)); der Server meldet sie im Katalog und erzwingt sie nicht.
 
    `primary_key` ist optional. Eine Tabelle ohne das Feld oder mit leerer Liste hat einen leeren Schlüssel, so wie `CREATE TABLE` ohne Schlüssel sie anlegt und `schema reverse` sie zurückschreibt. Sie nimmt gleiche Zeilen mehrfach an, ein `UPDATE` ändert alle getroffenen Zeilen, und ein `MERGE` gegen sie endet mit `TDS_UNSUPPORTED_SQL` (der echte SQL Server nimmt es an).
 
@@ -488,6 +491,183 @@ Der Testserver bietet im TDS-7.4-Pfad höchstens TLS 1.2 an, der TDS-8.0-Pfad (`
 | Prozess endet mit `OutOfMemoryError` | der Heap des Containers trägt die Zeilen nicht | weniger Zeilen laden |
 | Fehler im Treiber vor dem Server (`INT`, ganzzahliger `DECIMAL`) | Spaltentyp der Beschreibung | `BIGINT` verwenden |
 
+## 7. Fremdschlüssel, Indizes, Standardwerte und Prüfbedingungen anlegen und lesen
+
+**Ziel.** d-migrate legt Eindeutigkeiten, Fremdschlüssel, Indizes, Standardwerte und Prüfbedingungen im Testserver an und liest sie zurück; `schema compare` meldet danach `IDENTICAL`.
+
+**Voraussetzungen.** Der Testserver läuft mit den Voreinstellungen ([Aufgabe 1](#1-den-testserver-starten-prüfen-und-stoppen)); Docker, das Verzeichnis `probe` und der Digest von d-migrate wie in [Aufgabe 3](#3-mit-d-migrate-struktur-lesen-und-ändern).
+
+**Schritte.**
+
+1. Das Soll schreiben, `probe/soll-elemente.yaml`: die Beispiel-Tabellen und zwei neue Tabellen mit Elementen (`lieferanten` mit einer Eindeutigkeit, `auftraege` mit Fremdschlüssel, Standardwerten, Index und Prüfbedingung):
+
+   ```yaml
+   schema_format: "1.0"
+   name: manuell
+   version: "1"
+   tables:
+     kunden:
+       columns:
+         Id:
+           type: biginteger
+           required: true
+         Name:
+           type: text
+           max_length: 100
+         Eintritt:
+           type: date
+       primary_key: [Id]
+     bestellungen:
+       columns:
+         Id:
+           type: biginteger
+           required: true
+         KundenId:
+           type: biginteger
+           required: true
+         Betrag:
+           type: decimal
+           precision: 10
+           scale: 2
+       primary_key: [Id]
+     lieferanten:
+       columns:
+         Id:
+           type: biginteger
+           required: true
+         Name:
+           type: text
+           max_length: 100
+           unique: true
+       primary_key: [Id]
+     auftraege:
+       columns:
+         Id:
+           type: biginteger
+           required: true
+         LieferantId:
+           type: biginteger
+           required: true
+           references:
+             table: lieferanten
+             column: Id
+             on_delete: cascade
+         Menge:
+           type: integer
+           required: true
+           default: 1
+         Status:
+           type: text
+           max_length: 20
+           required: true
+           default: neu
+       primary_key: [Id]
+       indices:
+         - name: ix_auftraege_status
+           columns: [Status]
+       constraints:
+         - name: ck_auftraege_menge
+           type: check
+           expression: "Menge > 0"
+   ```
+
+2. Vergleichen (Soll gegen den Server):
+
+   ```sh
+   docker run --rm --network host --user "$(id -u):$(id -g)" -v "$PWD/probe:/work" \
+     ghcr.io/pt9912/d-migrate@sha256:308f27753036c9cc423f716b9fc4c9e68016543a8003ecd2f8282e05a2ee6491 \
+   schema compare --source file:/work/soll-elemente.yaml --target 'db:mssql://alice:secret@127.0.0.1:1433/manuell?encrypt=false'
+   ```
+
+   Ergebnis (Lauf vom 2026-11-09, Exit 1): `Status: DIFFERENT`, `Tables removed: 2` (`auftraege`, `lieferanten`).
+3. Das Soll anwenden:
+
+   ```sh
+   docker run --rm --network host --user "$(id -u):$(id -g)" -v "$PWD/probe:/work" \
+     ghcr.io/pt9912/d-migrate@sha256:308f27753036c9cc423f716b9fc4c9e68016543a8003ecd2f8282e05a2ee6491 \
+   schema migrate --source /work/soll-elemente.yaml --target 'db:mssql://alice:secret@127.0.0.1:1433/manuell?encrypt=false' --execute --report /work/migrate-elemente.yaml
+   ```
+
+   Ergebnis (Exit 0, ohne Ausgabe auf dem Terminal): der Bericht hat `"status": "ok"`, `statementsAttempted` 3 und `transactionRolledBack` false; gesendet wurden `CREATE TABLE [lieferanten] (…)` mit `CONSTRAINT [uq_lieferanten_Name] UNIQUE`, `CREATE TABLE [auftraege] (…)` mit `CONSTRAINT [df_auftraege_Menge] DEFAULT 1`, `DEFAULT N'neu'`, `CONSTRAINT [ck_auftraege_menge] CHECK (Menge > 0)` und `CONSTRAINT [fk_auftraege_LieferantId] FOREIGN KEY … ON DELETE CASCADE` sowie `CREATE INDEX [ix_auftraege_status] ON [auftraege] ([Status])`.
+4. Erneut vergleichen (Schritt 2): `Status: IDENTICAL`, `No differences found.`, Exit 0.
+5. Zurücklesen:
+
+   ```sh
+   docker run --rm --network host --user "$(id -u):$(id -g)" -v "$PWD/probe:/work" \
+     ghcr.io/pt9912/d-migrate@sha256:308f27753036c9cc423f716b9fc4c9e68016543a8003ecd2f8282e05a2ee6491 \
+   schema reverse --source 'mssql://alice:secret@127.0.0.1:1433/manuell?encrypt=false' --output /work/ist-elemente.yaml
+   ```
+
+   Ergebnis (Exit 0): `probe/ist-elemente.yaml` führt für `auftraege` die Standardwerte `default: 1` und `default: neu`, den Index `ix_auftraege_status`, den Fremdschlüssel `fk_auftraege_LieferantId` (`references` auf `lieferanten`, `on_delete: cascade`) und die Prüfbedingung `ck_auftraege_menge` mit `expression: '"Menge">(0)'` (d-migrate schreibt die Form des Katalogs, `([Menge]>(0))`, in seiner Quotierung) und für `lieferanten.Name` `unique: true` mit `unique_constraint: uq_lieferanten_Name`.
+6. Elemente an vorhandenen Tabellen: den Server neu starten (`make testserver-down`, `make testserver-up`; der Bestand kehrt zur Beschreibung zurück) und `probe/soll-elemente2.yaml` schreiben, die Beispiel-Tabellen mit einer Eindeutigkeit an `kunden.Name`, einem Fremdschlüssel, einem Index und einer Prüfbedingung an `bestellungen`:
+
+   ```yaml
+   schema_format: "1.0"
+   name: manuell
+   version: "1"
+   tables:
+     kunden:
+       columns:
+         Id:
+           type: biginteger
+           required: true
+         Name:
+           type: text
+           max_length: 100
+           unique: true
+         Eintritt:
+           type: date
+       primary_key: [Id]
+     bestellungen:
+       columns:
+         Id:
+           type: biginteger
+           required: true
+         KundenId:
+           type: biginteger
+           required: true
+           references:
+             table: kunden
+             column: Id
+         Betrag:
+           type: decimal
+           precision: 10
+           scale: 2
+       primary_key: [Id]
+       indices:
+         - name: ix_bestellungen_kunde
+           columns: [KundenId]
+       constraints:
+         - name: ck_bestellungen_betrag
+           type: check
+           expression: "Betrag >= 0"
+   ```
+
+   Der Vergleich (Schritt 2 mit dieser Datei) endet mit Exit 1 und nennt Index, Fremdschlüssel und Prüfbedingung an `bestellungen` und die Eindeutigkeit an `kunden`. `schema migrate` (Schritt 3 mit dieser Datei) endet mit Exit 0: `"status": "ok"`, `statementsAttempted` 4 (`ALTER TABLE [bestellungen] WITH CHECK ADD CONSTRAINT …` für Fremdschlüssel und Prüfbedingung, `ALTER TABLE [kunden] WITH CHECK ADD CONSTRAINT … UNIQUE`, `CREATE INDEX`); danach meldet der Vergleich `IDENTICAL`.
+
+**Erwartetes Ergebnis.** Die Läufe der Schritte 2 bis 6 enden wie angegeben (Läufe vom 2026-11-09, Einzelläufe auf einem Host; Ausgaben und Zeiten im [Messprotokoll](../messungen/katalog-indizes-defaults-fremdschluessel-d-migrate-2026-11-09.md)). Gemessen ist das Verhalten von d-migrate gegen den **Testserver**; gegen einen echten SQL Server sind diese Soll-Dateien nicht gefahren.
+
+**Eigenschaften.**
+
+- Der Katalog führt Eindeutigkeiten, Fremdschlüssel, Indizes, Prüfbedingungen und die Standardwerte der Spalten, so wie sie angelegt wurden; die Zeilen der Antworten sind die des echten SQL Servers (Referenzclient, [Messprotokoll](../messungen/referenzabgleich.md), M-21). Der Standardwert steht als `((1))` (Zahl) oder `(N'neu')` (Text), eine Prüfbedingung, die ein Client anlegt, in der Form des Servers (`Menge > 0` als `([Menge]>(0))`; gemessen ist dieser eine Fall, die Form für mehrere Vergleiche und Texte ist Setzung).
+- Eine Eindeutigkeit erscheint auch in der Abfrage der Indizes; der Primärschlüssel nicht (wie am echten Server gemessen).
+- Der Testserver erzwingt nichts: ein Fremdschlüssel prüft keine Zeile, ein Index beschleunigt nichts, eine Prüfbedingung weist keine Zeile ab, und `INSERT` setzt keinen Standardwert ein.
+- Die Beschreibung des Testservers (Datei, [Aufgabe 5](#5-den-server-anders-einstellen)) liest dieselben Felder des Schema-Modells von d-migrate: `unique` und `default` und `references` an einer Spalte, `indices` und `constraints` (`unique`, `foreign_key`, `check`) an einer Tabelle. Der Text einer Prüfbedingung steht dann im Katalog so, wie die Datei ihn schreibt. Ein Funktionsaufruf als `default` und ein anderer Typ von `constraints` machen die Datei ungültig (der Start bricht ab).
+
+**Grenzen** (gemessen am Testserver mit d-migrate 1.12.0, [Messprotokoll](../messungen/katalog-indizes-defaults-fremdschluessel-d-migrate-2026-11-09.md)):
+
+- Ein Standardwert an einer **vorhandenen** Spalte ist nicht anlegbar: d-migrate sendet dafür einen Text mit `DECLARE @df sysname …`, den der Server nicht erkennt (`schema migrate --execute` endet mit Exit 5, im Bericht `Unsupported SQL.`). An einer neuen Spalte und in `CREATE TABLE` gelingt er.
+- Ein zweites `schema migrate` mit demselben Soll, das eine Prüfbedingung führt, endet mit Exit 5: d-migrate plant die vorhandene Prüfbedingung neu (`ALTER TABLE … DROP CONSTRAINT IF EXISTS`, danach `ADD CONSTRAINT`), und `DROP CONSTRAINT` erkennt der Server nicht. `schema compare` meldet dabei weiter `IDENTICAL`.
+- Ein Index mit `unique: true` im Soll endet bei `schema migrate --execute` mit Exit 5 („Post-execute compare detected drift“): d-migrate liest einen eindeutigen Index ohne Bedingung als Eindeutigkeit zurück. Eine Eindeutigkeit gehört als `unique: true` an die Spalte oder als `constraints`-Eintrag vom Typ `unique` ins Soll.
+
+**Typische Fehler.**
+
+| Beobachtung | Ursache | Abhilfe |
+|---|---|---|
+| `schema migrate` endet mit Exit 5, im Bericht `Unsupported SQL.` | das Soll gibt einer vorhandenen Spalte einen Standardwert, oder es führt eine Prüfbedingung, die schon im Server steht | den Standardwert an einer neuen Spalte oder in einer neuen Tabelle anlegen; das Soll für einen zweiten Lauf ohne die vorhandene Prüfbedingung schreiben |
+| `schema migrate` endet mit Exit 5 „Post-execute compare detected drift“ | ein Index mit `unique: true` im Soll | die Eindeutigkeit als `unique: true` an der Spalte schreiben |
+| Start bricht ab, „Beschreibung der Tabellen ungueltig“ mit `Zieltabelle nicht vorhanden` | `references` nennt eine Tabelle, die die Datei nicht führt | Namen prüfen |
+
 ## Referenz: Beispiel-Tabellen und Anfragen
 
 Die Beschreibung `testserver/resources/manuell/sim.yaml` gilt, solange `TESTSERVER_BESCHREIBUNG` fehlt:
@@ -503,7 +683,7 @@ Die Beschreibung `testserver/resources/manuell/sim.yaml` gilt, solange `TESTSERV
 
 Beide Tabellen haben beim Start keine Zeilen. Zeilen kommen über das Massenladen und über `MERGE` (`--on-conflict`) in den Arbeitsspeicher ([Aufgabe 6](#6-daten-laden-massenladen), auch für Tabellen, die ein Client mit `CREATE TABLE` angelegt hat); `INSERT` und `DELETE` als SQL-Text enden mit `TDS_UNSUPPORTED_SQL`, `UPDATE` ändert vorhandene Zeilen. Ein Neustart des Containers leert die Zeilen. Eine Zeilenquelle mit eigenen Daten und Callbacks braucht ein Einbettender im Code ([Anleitung](einbettung-und-betrieb.md#3-tabellen-vorgeben-simulations-backend)).
 
-Erkannt werden nach [SPEC-036](../../spec/spezifikation.md#spec-036--erkannte-anweisungsformen-des-simulations-backends-vorläufig) `SELECT <Spalten | *> FROM <Tabelle> [WHERE …]`, `INSERT`, `UPDATE`, `DELETE` einfacher Form, `SELECT 1`, `SET`-Anweisungen aus der Liste, die Transaktionstexte von d-migrate, die Katalogabfragen von d-migrate, `CREATE TABLE`/`ALTER TABLE … ADD`, `INSERT BULK` samt Nachricht `0x07` und der Probe der Zieltabelle von `SqlBulkCopy` (Form B) und `MERGE … OUTPUT $action` in der Gestalt von d-migrate (Form M; Einfügen oder Ändern genau einer Zeile mit dem Schlüssel der Tabelle). Verbund, Aggregat, `ORDER BY`, `TOP`, `OR`, `LIKE`, Unterabfragen und mehrere Anweisungen in einem Text enden mit `TDS_UNSUPPORTED_SQL`; dass die Liste abschließend ist, ist eine Setzung der Spezifikation (Lesart des Lastenhefts, vom Nutzer nicht bestätigt), nicht am Server gemessen. Für die Beispiel-Tabellen gilt nach der Spezifikation:
+Erkannt werden nach [SPEC-036](../../spec/spezifikation.md#spec-036--erkannte-anweisungsformen-des-simulations-backends-vorläufig) `SELECT <Spalten | *> FROM <Tabelle> [WHERE …]`, `INSERT`, `UPDATE`, `DELETE` einfacher Form, `SELECT 1`, `SET`-Anweisungen aus der Liste, die Transaktionstexte von d-migrate, die Katalogabfragen von d-migrate, `CREATE TABLE`/`ALTER TABLE … ADD`/`ALTER TABLE … ADD CONSTRAINT`/`CREATE INDEX`, `INSERT BULK` samt Nachricht `0x07` und der Probe der Zieltabelle von `SqlBulkCopy` (Form B) und `MERGE … OUTPUT $action` in der Gestalt von d-migrate (Form M; Einfügen oder Ändern genau einer Zeile mit dem Schlüssel der Tabelle). Verbund, Aggregat, `ORDER BY`, `TOP`, `OR`, `LIKE`, Unterabfragen und mehrere Anweisungen in einem Text enden mit `TDS_UNSUPPORTED_SQL`; dass die Liste abschließend ist, ist eine Setzung der Spezifikation (Lesart des Lastenhefts, vom Nutzer nicht bestätigt), nicht am Server gemessen. Für die Beispiel-Tabellen gilt nach der Spezifikation:
 
 ```sql
 SELECT Id, Name FROM kunden                     -- zwei Spalten, keine Zeile

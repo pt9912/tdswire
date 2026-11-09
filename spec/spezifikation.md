@@ -218,12 +218,13 @@ O(übertragene Bytes).
    (`TDS_BACKEND_ERROR`). Nach `ResultStart` gilt `SPEC-031`. Cancel und Disconnect beenden das
    Lesen und schließen die Zeilenquelle (`SPEC-029`).
 8. Katalogabfrage (Form K): die Antwort entsteht aus den Tabellen, die der Katalog-Anbieter bei dieser Anfrage
-   liefert (`SPEC-035`): Tabellen, Spalten und Schlüssel aus den Beschreibungen, alles andere als leeres
-   Ergebnis mit den Spalten der Abfrage. Es wird weder eine Zeilenquelle gelesen noch ein Callback gerufen.
-9. Strukturänderung (Form D): `CREATE TABLE` und `ALTER TABLE … ADD` werden gegen den Katalog dieser Anfrage
-   geprüft (Tabelle vorhanden oder nicht, Spalten, Schlüssel); hat der Integrator einen Strukturänderungs-Callback
+   liefert (`SPEC-035`): Tabellen, Spalten (mit Standardwert), Schlüssel, Eindeutigkeiten, Fremdschlüssel, Indizes und
+   Prüfbedingungen aus den Beschreibungen, alles andere als leeres Ergebnis mit den Spalten der Abfrage. Es wird weder eine Zeilenquelle gelesen noch ein Callback gerufen.
+9. Strukturänderung (Form D): `CREATE TABLE`, `ALTER TABLE … ADD` (Spalte oder `CONSTRAINT`) und `CREATE INDEX` werden gegen
+   den Katalog dieser Anfrage geprüft (Tabelle vorhanden oder nicht, Spalten, Schlüssel, Namen der Bedingungen und Indizes,
+   Zieltabelle eines Fremdschlüssels); hat der Integrator einen Strukturänderungs-Callback
    gesetzt (`SPEC-035`), bekommt er die Tabelle im Zustand nach der Anweisung, und die Antwort ist der Abschluss der Art
-   `CREATE_TABLE` bzw. `ALTER_TABLE` ohne Zeilenzahl (`SPEC-031`).
+   `CREATE_TABLE` bzw. `ALTER_TABLE` ohne Zeilenzahl (`SPEC-031`; `CREATE INDEX`: `UNKNOWN`).
    Ohne Callback endet die Anweisung mit `TDS_UNSUPPORTED_SQL`, ein Fehler des Callbacks mit `TDS_BACKEND_ERROR`.
    Die Bibliothek nimmt nichts zurück: `ROLLBACK TRAN` ist der Änderungszähler 0 (Form C). Beim Sammeln plant das
    Backend den Text unter einer Sperre erneut gegen den dann aktuellen Katalog und ruft den Callback mit diesem Stand:
@@ -806,14 +807,35 @@ data class SimTable(
     val onInsert: (suspend (values: Map<String, Any?>) -> Long)? = null,
     val onUpdate: (suspend (set: Map<String, Any?>, where: RowFilter?) -> Long)? = null,
     val onDelete: (suspend (where: RowFilter?) -> Long)? = null,
-    val onInsertBatch: (suspend (rows: List<Map<String, Any?>>) -> Long)? = null
+    val onInsertBatch: (suspend (rows: List<Map<String, Any?>>) -> Long)? = null,
+    val uniqueKeys: List<SimUniqueKey> = emptyList(),
+    val foreignKeys: List<SimForeignKey> = emptyList(),
+    val indexes: List<SimIndex> = emptyList(),
+    val checks: List<SimCheck> = emptyList()
 )
 data class SimColumn(
     val name: String,
     val type: SqlType,
     val nullable: Boolean = true,
-    val maxLength: Int = 4000
+    val maxLength: Int = 4000,
+    val defaultDefinition: String? = null
 )
+data class SimUniqueKey(val name: String, val columns: List<String>)
+data class SimForeignKey(
+    val name: String,
+    val columns: List<String>,
+    val referencedTable: String,
+    val referencedColumns: List<String>,
+    val onDelete: String = "NO_ACTION",
+    val onUpdate: String = "NO_ACTION"
+)
+data class SimIndex(
+    val name: String,
+    val columns: List<String>,
+    val unique: Boolean = false,
+    val included: List<String> = emptyList()
+)
+data class SimCheck(val name: String, val definition: String)
 data class SimQuery(val columns: List<SimColumn>, val filter: RowFilter?)
 data class RowFilter(val terms: List<FilterTerm>)
 sealed interface FilterTerm {
@@ -876,6 +898,25 @@ festgelegt sind; die Überführung der Werte, das Lesen der Zeilenquelle und die
   sind keine Transaktion, Nachrichten davor bleiben. Der Heap-Bedarf einer Nachricht ist mindestens ihre Größe (bis
   16 MiB, `SPEC-001`). Eine Tabelle ohne `onInsertBatch` lehnt `INSERT BULK` mit `TDS_UNSUPPORTED_SQL` ab; `onInsert`
   wird für das Massenladen nie gerufen.
+- **Elemente der Tabelle** (`uniqueKeys`, `foreignKeys`, `indexes`, `checks`, `SimColumn.defaultDefinition`; Messvermerk M-21 des
+  Referenzabgleichs, Referenzclient gegen SQL Server 2022 und 2025, je ein Fall je Element und Instanz; Mehrspaltiges, Reihenfolge
+  mehrerer Elemente, die Schreibweise von Namen und alles Weitere ist Setzung): sie beschreiben die Tabelle für die Katalogabfragen
+  (`SPEC-036`, Form K) und wirken weder auf das Resultset noch auf Callbacks; die Bibliothek erzwingt nichts und nutzt keinen
+  Index. `SimUniqueKey` ist eine Eindeutigkeitsbedingung (`UNIQUE`), `SimForeignKey` ein Fremdschlüssel auf Spalten einer Tabelle im
+  Schema der Tabelle (die Abfrage des Katalogs nennt kein Schema der Zieltabelle) mit den Aktionen `NO_ACTION`, `CASCADE`, `SET_NULL`
+  oder `SET_DEFAULT` für `ON DELETE` und `ON UPDATE` (Vorgabe `NO_ACTION`), `SimIndex` ein nicht gruppierter Index ohne Filter und
+  ohne absteigende Spalte mit Schlüsselspalten und eingeschlossenen Spalten (`included`), optional eindeutig, `SimCheck` eine
+  Prüfbedingung mit dem Namen und der Definition, **wie der Katalog sie meldet** (die Form des Servers, `([Menge]>(0))` für
+  `Menge > 0`, gemessen). `SimColumn.defaultDefinition` ist der Text, den der Katalog als `default_definition` meldet, mit den
+  Klammern des Servers (`((1))` für `DEFAULT 1`, `(N'neu')` für `DEFAULT N'neu'`, gemessen); `null` heißt ohne Standardwert. Ein
+  `INSERT` setzt den Standardwert nicht ein: eine Spalte, die der Text nicht nennt, fehlt weiter in der Abbildung. Die Eindeutigkeit
+  steht in der Abfrage der Eindeutigkeiten **und** in der Abfrage der Indizes (`is_unique` 1, `key_ordinal` ab 1, gemessen); der
+  Primärschlüssel steht nur in der Abfrage der Schlüssel. Ein Index mit eingeschlossener Spalte liefert die eingeschlossenen Spalten
+  zuerst (`key_ordinal` 0, `is_included_column` 1), dann die Schlüsselspalten (gemessen, ein Fall). Namen der Bedingungen sind in der
+  Tabelle ohne Beachtung der Schreibweise eindeutig, ebenso die Namen der Indizes (eine Eindeutigkeit zählt als Index), und jede
+  genannte Spalte ist in der Tabelle vorhanden (Setzung; die Zieltabelle und die Zielspalten eines Fremdschlüssels prüft die
+  Tabelle nicht, sondern die Anweisung `CREATE TABLE` bzw. `ALTER TABLE` der Bibliothek, `SPEC-036`). Der Konstruktor weist ab, was
+  sich widerspricht (`IllegalArgumentException`).
 - `primaryKey` nennt keine, eine oder mehrere Spalten der Tabelle (die Liste darf leer sein: `CREATE TABLE` ohne Schlüssel gelingt am Server, gemessen M-19); jede genannte
   Spalte muss vorhanden und nicht nullbar sein. Der Schlüssel ist nur Teil der Beschreibung: er wirkt weder auf das Resultset noch auf
   Callbacks, das Backend speichert nichts und prüft keine Eindeutigkeit. Als Metadatum zum Client wird
@@ -944,20 +985,21 @@ ist die formale Beschreibung
 fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, ist der Belegstand zu erneuern.
 
 - **Gelesen:** `schema_format` (muss `1.0` sein), `name` und `version` (Pflicht, nicht ausgewertet),
-  `tables`; je Tabelle `columns` (Pflicht) und `primary_key` (optional, auch als leere Liste: die Tabelle hat dann einen leeren
+  `tables`; je Tabelle `columns` (Pflicht), `primary_key` (optional, auch als leere Liste: die Tabelle hat dann einen leeren
   Schlüssel, wie `schema reverse` von d-migrate eine Tabelle ohne Schlüssel schreibt; jeder Eintrag des Schlüssels eine
-  vorhandene Spalte); je Spalte `type` (Pflicht), `required`, `max_length`, `precision`, `scale`,
-  `timezone`, `ordinal`. `tables` ist Pflicht, strenger als das Schema, das nur `schema_format`, `name`
+  vorhandene Spalte), `indices` und `constraints` (unten); je Spalte `type` (Pflicht), `required`, `max_length`, `precision`,
+  `scale`, `timezone`, `ordinal`, `unique`, `default` und `references` (unten). `tables` ist Pflicht, strenger als das Schema, das nur `schema_format`, `name`
   und `version` verlangt (Setzung, nicht gemessen). Sind alle Spalten einer Tabelle mit `ordinal` versehen, gilt diese Reihenfolge,
   sonst die im Dokument; nur bei einem Teil ist die Datei abzuweisen (Setzung nach der Kurzreferenz von
   d-migrate, an d-migrate nicht gemessen).
 - **Ignoriert** (im Schema bekannt, ohne Wirkung): `description`, `encoding`, `locale`, `custom_types`,
-  `procedures`, `functions`, `views`, `triggers`, `sequences` in der Datei; `description`, `indices`,
-  `constraints`, `partitioning`, `metadata` in der Tabelle; `unique`, `default`, `auto_increment`,
-  `generation`, `references` in der Spalte, dazu die typgebundenen Spaltenfelder `length`,
+  `procedures`, `functions`, `views`, `triggers`, `sequences` in der Datei; `description`,
+  `partitioning`, `metadata` in der Tabelle; `auto_increment`,
+  `generation` in der Spalte, dazu die typgebundenen Spaltenfelder `length`,
   `float_precision`, `values`, `ref_type`, `element_type`, `geometry_type` und `srid` (im Schema bekannt;
   Setzung, nicht gemessen: ignoriert, die Typen, zu denen sie gehören, weist die Typabbildung ab). Nicht
-  erzwungen werden `UNIQUE`, `DEFAULT`, `CHECK`, Fremdschlüssel, Indizes und Identität.
+  erzwungen werden `UNIQUE`, `DEFAULT`, `CHECK`, Fremdschlüssel, Indizes und Identität; die ersten fünf werden gelesen und im
+  Katalog gemeldet (Absatz „Elemente aus der Datei“), die Identität nicht.
   **Abgewiesen:** jedes Feld, das weder gelesen noch ignoriert wird.
 - **Nullbar** ist eine Spalte, die weder `required: true` trägt noch im Schlüssel steht noch den Typ
   `identifier` hat. Der Tabellenname ist der Schlüssel unter `tables`, wörtlich (ein Punkt bleibt Teil
@@ -971,6 +1013,24 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   (`SPEC-003`). Jeder andere Typ
   (`smallint`, `char`, `float`, `uuid`, `binary`, `xml`, `json`, `array`, `enum`, `geometry`,
   `fulltext`, `datetime` mit `timezone: true`) und eine Precision über 38 weisen die Datei ab.
+- **Elemente aus der Datei** (gemessen ist, dass `d-migrate schema generate` 1.12.0 die hier benutzten Felder und Formen annimmt und
+  die Namen `uq_<Tabelle>_<Spalte>` und `fk_<Tabelle>_<Spalte>` vergibt, Messprotokoll zu Fremdschlüssel, Index und Standardwert;
+  alle Fehler und alles Weitere ist Setzung): `unique: true` an einer Spalte ergibt die Eindeutigkeit `uq_<Tabelle>_<Spalte>`;
+  `default` einen Standardwert in der Form des Katalogs (`true` und `false` als `((1))` und `((0))`, eine Zahl in kanonischer
+  Schreibweise als `((n))`, jeder andere Skalar und jeder Skalar in Anführungszeichen als `(N'…')` mit verdoppeltem Hochkomma;
+  eine Abbildung, etwa ein Funktionsaufruf, ist ein Ladefehler); `references` an einer Spalte (`table`, `column`, `on_delete`,
+  `on_update`) einen Fremdschlüssel `fk_<Tabelle>_<Spalte>`; `indices` einer Tabelle (`name`, `columns`, `unique`; `type` ohne
+  Wirkung) Indizes; `constraints` (`name`, `type`, dazu `columns` für `unique` und `foreign_key`, `references` mit `table`,
+  `columns`, `on_delete`, `on_update` für `foreign_key`, `expression` für `check`) Eindeutigkeiten, Fremdschlüssel und
+  Prüfbedingungen; ein anderer `type` ist ein Ladefehler. Die Aktionen `cascade`, `set_null`, `set_default` und `no_action`
+  entsprechen den Namen des Katalogs, `restrict` gilt als `NO_ACTION` (so rendert d-migrate es für SQL Server), ohne Angabe gilt
+  `NO_ACTION`. Jede Spalte der Elemente ist in der Tabelle vorhanden, die Zieltabelle und die Zielspalten eines Fremdschlüssels
+  stehen in der Datei (geprüft nach allen Tabellen, die Zieltabelle darf hinter der Tabelle stehen), ein Name einer Bedingung oder
+  eines Index doppelt in einer Tabelle ist ein Ladefehler. **Der Text einer Prüfbedingung steht im Katalog so, wie die Datei ihn
+  schreibt** (`Menge > 0`); die Form des Servers (`([Menge]>(0))`) entsteht nur bei einer Strukturänderung über die Bibliothek
+  (`SPEC-036`). Gemessen mit d-migrate 1.12.0 gegen den Testserver: `schema reverse` liest aus einer Datei mit Standardwert,
+  Eindeutigkeit, Fremdschlüssel, Index und Prüfbedingung dieselben Elemente zurück, und `schema compare` mit der Datei als Soll
+  meldet `IDENTICAL` (Messprotokoll zu Fremdschlüssel, Index und Standardwert).
 - **Skalare und Dokument** (Setzung, nicht gemessen): `required` nur `true` oder `false`; Ganzzahlen
   nur in kanonischer Schreibweise (`010`, `0x10` und `yes` werden abgewiesen). Ein Dokument, UTF-8,
   kein Anker an einer Abbildung oder Liste, kein Alias, kein Tag und kein Merge-Schlüssel (ein Anker an
@@ -1013,22 +1073,26 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   `BackendSource.Custom` übergibt (etwa um es mit einem eigenen `QueryBackend` zu umhüllen), ist ein zweiter Weg
   neben `Simulation`, mit demselben Verhalten des Backends. Dieser Weg durchläuft die Namensprüfung des Einstiegs und
   das Kopieren der inneren Listen nicht: `SimCatalog` meldet einen doppelten Namen (ohne Beachtung der Schreibweise)
-  selbst mit `IllegalArgumentException` und kopiert nur die Liste der Tabellen, nicht deren `columns` und
-  `primaryKey` (aus dem Quelltext gelesen, Setzung). Die Namen `SimulationBackend` und `SimCatalog` stehen unter der
+  selbst mit `IllegalArgumentException` und kopiert nur die Liste der Tabellen, nicht deren `columns`,
+  `primaryKey` und Listen der Elemente (aus dem Quelltext gelesen, Setzung). Die Namen `SimulationBackend` und `SimCatalog` stehen unter der
   Zusage von `SPEC-059`.
 - **Katalog-Anbieter und Strukturänderung** (Namen und Form sind Setzung, nicht an einem Server gemessen): Neben
   `SimulationBackend(catalog: SimCatalog)` gibt es den zweiten Konstruktor `SimulationBackend(catalog: () -> SimCatalog,
-  onStructure: (suspend (schema: String, name: String, columns: List<SimColumn>, primaryKey: List<String>) -> Unit)? = null)`;
-  er fügt keinen Typnamen hinzu. Der Anbieter liefert bei **jeder** Anfrage die aktuelle Tabellenliste; das Backend hält
+  onStructure: (suspend (table: SimTable) -> Unit)? = null)`; er fügt keinen Typnamen hinzu. Der Anbieter liefert bei **jeder** Anfrage die aktuelle Tabellenliste; das Backend hält
   keinen Stand, und die Antworten auf Katalogabfragen (`SPEC-036` Form K) entstehen aus dem Stand dieser Anfrage. Wirft der
   Anbieter, endet die Anfrage mit `TDS_BACKEND_ERROR` und fester Meldung. Der Konstruktor mit festem Katalog gilt wie ein
   Anbieter, der immer denselben Katalog liefert, ohne Callback. Gemessen (d-migrate 1.12.0, mssql-jdbc 13.4.0, Testserver
   mit Bestand im Arbeitsspeicher, 2026-11-06): `schema migrate --execute` besteht die Nachprüfung, weil der Anbieter nach der
   Strukturänderung den neuen Stand liefert; ein fester Katalog zeigte im Spike dieselbe Nachprüfung als Abweichung
-  (Exit 5, Einzelmessung 2026-11-05). Der Callback `onStructure` bekommt für `CREATE TABLE` und `ALTER TABLE … ADD` die
-  Tabelle im Zustand **nach** der Anweisung (Schema, Name wie im Katalog, alle Spalten in der Reihenfolge, Schlüssel); er
-  wird beim Sammeln der Ausführung genau einmal gerufen, und die Antwort ist der Abschluss der Art `CREATE_TABLE` bzw.
-  `ALTER_TABLE`: `DONE` ohne `COUNT`, Befehl `0x00c6` bzw. `0x00d8` (gemessen, M-20; `SPEC-031`). Die Prüfung gegen den Katalog endet vor dem Callback und antwortet wie der echte Server
+  (Exit 5, Einzelmessung 2026-11-05). Der Callback `onStructure` bekommt für `CREATE TABLE`, `ALTER TABLE … ADD` (Spalte oder
+  `CONSTRAINT`) und `CREATE INDEX` die Tabelle im Zustand **nach** der Anweisung als `SimTable` (Schema, Name wie im Katalog, alle
+  Spalten in der Reihenfolge mit ihren Standardwerten, Schlüssel, Eindeutigkeiten, Fremdschlüssel, Indizes, Prüfbedingungen); die
+  Zeilenquelle der übergebenen Tabelle liefert keine Zeile, ihre Callbacks fehlen (`null`): sie ist eine Beschreibung, der
+  Integrator hält seine Zeilen und Callbacks selbst. Der Callback wird beim Sammeln der Ausführung genau einmal gerufen, und die
+  Antwort ist der Abschluss der Art `CREATE_TABLE` bzw. `ALTER_TABLE`: `DONE` ohne `COUNT`, Befehl `0x00c6` bzw. `0x00d8` (gemessen,
+  M-20; `SPEC-031`); `ALTER TABLE … ADD CONSTRAINT` meldet die Art `ALTER_TABLE` (Setzung: die Kennung von `ALTER TABLE` für die
+  Bedingung ist nicht gemessen), `CREATE INDEX` die Art `UNKNOWN` (`DONE` mit `COUNT` 0; die Kennung des Servers ist nicht
+  gemessen). Die Prüfung gegen den Katalog endet vor dem Callback und antwortet wie der echte Server
   (gemessen, M-19, 2022 und 2025, je ein Fall; ERROR und DONE mit `ERROR`, die Verbindung bleibt offen): `CREATE TABLE` einer
   vorhandenen Tabelle mit `TDS_SIM_OBJECT_EXISTS` (2714, State 6), `ADD` einer vorhandenen Spalte mit `TDS_SIM_COLUMN_EXISTS` (2705,
   State 4) und `ALTER TABLE` einer unbekannten Tabelle mit `TDS_SIM_OBJECT_NOT_FOUND` (4902, State 1), jeweils Class 16. Der Text ist
@@ -1049,8 +1113,8 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   `Int16` als `smallint` (2 Byte, Precision 5, Skala 0), `UInt8` als `tinyint` (1, 3, 0). Die Antwortspalten der Spaltenabfrage
   tragen die Typen des echten Servers: `max_length` ist `Int16` (am Draht `smallint`, nicht nullbar), `precision` und
   `scale` sind `UInt8` (`tinyint`, nicht nullbar), `is_nullable` und `is_computed` sind `Bool` nullbar (`BITN`),
-  `is_identity` ist `Bool` nicht nullbar (`bit`), `column_id` ist `Int32` (`int`). Messvermerk (2026-11-07, M-16 bis M-18 des Referenzabgleichs, beide Instanzen, ein Fall je Instanz, Abfragen von d-migrate 1.12.0 als Text vom Referenzclient): die Werte dieser Abbildung für `int`, `smallint`, `tinyint`, `bigint`, `bit`, `decimal`, `date`, `time`, `datetime2` und `nvarchar` (einschließlich -1 für `nvarchar(max)`) und die genannten Typen der Antwortspalten stimmen mit dem echten Server überein; abweichend vom Zielbild bleiben die Spalten `type_name` und `column_name` (am echten Server `nvarchar(256)`, hier `UnicodeText` mit 4000 Zeichen), `default_definition` und `computed_definition` (`nvarchar(max)`) sowie `seed_value` und `increment_value` (`sql_variant`, hier `Int64`): `SqlType` kennt diese Maße und Typen nicht. Die Antwortspalten der übrigen Katalogformen sind nicht gemessen; ihre Typen sind die nächsten von `SqlType`. Identität, Standardwert, Fremdschlüssel, Index, Prüfbedingung antworten am echten Server mit Zeilen (M-21). Eine Identität, ein Standardwert, eine berechnete
-  Spalte, ein Fremdschlüssel, ein Index (außer dem Schlüssel), eine Prüfbedingung, eine Sicht, eine Sequenz und eine
+  `is_identity` ist `Bool` nicht nullbar (`bit`), `column_id` ist `Int32` (`int`). Messvermerk (2026-11-07, M-16 bis M-18 des Referenzabgleichs, beide Instanzen, ein Fall je Instanz, Abfragen von d-migrate 1.12.0 als Text vom Referenzclient): die Werte dieser Abbildung für `int`, `smallint`, `tinyint`, `bigint`, `bit`, `decimal`, `date`, `time`, `datetime2` und `nvarchar` (einschließlich -1 für `nvarchar(max)`) und die genannten Typen der Antwortspalten stimmen mit dem echten Server überein; abweichend vom Zielbild bleiben die Textspalten (am echten Server `nvarchar` mit der Länge 256 Byte, bei `default_definition` und `computed_definition` `nvarchar(max)`, hier `UnicodeText` mit 4000 Zeichen) sowie `seed_value` und `increment_value` (`sql_variant`, hier `Int64`): `SqlType` kennt diese Maße und Typen nicht, und das Typmodell wächst dafür nicht (benannte Grenze). Die Nullbarkeit der Antwortspalten folgt der Messung: `column_name` ist nullbar (Flag im COLMETADATA beider Instanzen). Dasselbe gilt für die Spalten der Antworten auf die Abfragen der Schlüssel, Eindeutigkeiten, Fremdschlüssel, Indizes und Prüfbedingungen (Aufnahme `katalog-abfragen` beider Instanzen): `column_name`, `referenced_column` und die Aktionen sind nullbar, `type` und `key_ordinal` der Indexabfrage sind `UInt8` (`tinyint`, nicht nullbar), ihre `bit`-Spalten `Bool` nullbar (`BITN`), `constraint_column_id` ist `Int32`, `definition` der Prüfbedingungen nullbar. Die Antwortspalten der übrigen Katalogformen sind nicht angeglichen; ihre Typen sind die nächsten von `SqlType`. Die Abfragen der Standardwerte (`default_definition` der Spaltenabfrage), Schlüssel, Eindeutigkeiten, Fremdschlüssel, Indizes und Prüfbedingungen antworten aus der Beschreibung (die Zeilen sind die gemessenen, M-21). Eine Identität, eine berechnete
+  Spalte, eine Partitionierung, ein Volltextindex, eine Sicht, eine Sequenz und eine
   Routine kommen nicht vor: ihre Abfragen antworten leer, mit den Spalten der Abfrage. `is_identity` ist immer 0; ein Soll mit
   dem Typ `identifier` zeigt bei `schema compare` deshalb `identifier -> biginteger` (Exit 1, gemessen).
 - **Datei und Umgebungsvariable gehören dem Testserver:** Die Umgebungsvariable `SIMULATION_DESCRIPTION_FILE` nennt
@@ -1074,8 +1138,10 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
 | W3 | `DELETE FROM [<Schema>.]<Tabelle> [WHERE <Term> {AND <Term>}]` | Änderungszähler |
 | C | `SELECT 1`, oder eine oder mehrere `SET`-Anweisungen aus der Liste unten, durch `;` getrennt, oder ein Transaktionstext (unten) | `SELECT 1`: Resultset mit einer Spalte ohne Namen (`Int32`, nicht NULL) und der Zeile 1; `SET`: Änderungszähler 0, `set implicit_transactions on|off` allein mit der Art `IMPLICIT_TRANSACTIONS_ON` bzw. `_OFF`; Transaktionstext: siehe unten |
 | K | der Wortlaut einer Katalogabfrage von d-migrate 1.12.0 (Liste unten) | Resultset aus dem Katalog |
-| D1 | `CREATE TABLE [<Schema>.]<Tabelle> (<Spalte> {, <Spalte>} [, [CONSTRAINT <Name>] PRIMARY KEY (<Spalte> {, <Spalte>})])` | Abschluss der Art `CREATE_TABLE` (`0x00c6`, ohne `COUNT`) |
+| D1 | `CREATE TABLE [<Schema>.]<Tabelle> (<Eintrag> {, <Eintrag>})` mit Spalten (auch `CONSTRAINT <Name> DEFAULT <Literal>` und `CONSTRAINT <Name> UNIQUE`) und Bedingungen der Tabelle (`[CONSTRAINT <Name>] PRIMARY KEY`, `CONSTRAINT <Name> UNIQUE \| FOREIGN KEY \| CHECK`), höchstens ein Schlüssel | Abschluss der Art `CREATE_TABLE` (`0x00c6`, ohne `COUNT`) |
 | D2 | `ALTER TABLE [<Schema>.]<Tabelle> ADD <Spalte> {, <Spalte>}` | Abschluss der Art `ALTER_TABLE` (`0x00d8`, ohne `COUNT`) |
+| D3 | `ALTER TABLE [<Schema>.]<Tabelle> [WITH CHECK] ADD CONSTRAINT <Name> UNIQUE \| FOREIGN KEY \| CHECK \| DEFAULT <Literal> FOR <Spalte>` | Abschluss der Art `ALTER_TABLE` (`0x00d8`, ohne `COUNT`; für Bedingungen nicht gemessen) |
+| D4 | `CREATE [UNIQUE] INDEX <Name> ON [<Schema>.]<Tabelle> (<Spalten>) [INCLUDE (<Spalten>)]` | Abschluss der Art `UNKNOWN` (`DONE` mit `COUNT` 0; die Kennung des Servers ist nicht gemessen) |
 | B | `INSERT BULK [<Schema>.]<Tabelle> (<Spalte> <Typ> {, <Spalte> <Typ>}) [WITH (<Optionen>)]`, danach die Nachricht `0x07` (`SPEC-001`) | `INSERT BULK`: DONE ohne Zähler, Befehl `0x00fd`; die Nachricht: DONE mit Zähler der geladenen Zeilen, Befehl `0x00f0` (beides gemessen, `SPEC-001`) |
 | M | `MERGE INTO [<Schema>.]<Tabelle> AS <T> USING (VALUES (<Wert> {, <Wert>})) AS <Q> (<Spalte> {, <Spalte>}) ON <T>.<Spalte> = <Q>.<Spalte> {AND …} [WHEN MATCHED THEN UPDATE SET <T>.<Spalte> = <Q>.<Spalte> {, …}] WHEN NOT MATCHED THEN INSERT (<Spalte> {, <Spalte>}) VALUES (<Q>.<Spalte> {, <Q>.<Spalte>}) OUTPUT $action` | Resultset mit der Spalte `$action` (Text, nicht NULL) und je Aktion einer Zeile `INSERT` oder `UPDATE`, keine Zeile ohne Aktion (gemessen, Form M unten) |
 
@@ -1101,7 +1167,8 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   abschließend ist, eine Lesart des Lastenhefts, vom Nutzer nicht bestätigt):
   `JOIN` und weitere Relationen, Unterabfragen, `WITH`,
   Aggregate und `GROUP BY`, `DISTINCT`, `TOP`, `ORDER BY`, `OFFSET`/`FETCH`, Aliase für Tabellen (außer `AS <Alias>` der Form M) und
-  Spalten, Ausdrücke und Funktionen in Listen und Bedingungen, `OR`, `NOT`, `<`, `>`, `LIKE`, `BETWEEN`,
+  Spalten, Ausdrücke und Funktionen in Listen und Bedingungen, `OR`, `NOT`, `<`, `>`, `LIKE`, `BETWEEN` (in den Bedingungen von S1 bis W3; im
+  Ausdruck einer Prüfbedingung der Form D gelten `OR`, `<` und `>`, unten),
   `OUTPUT`-Klauseln (außer `OUTPUT $action` der Form M), mehrere Anweisungen in einem Text (außer Form C) und alles, was keine Form
   der Tabelle ist.
 - **Form C** (Setzung nach der Aufzeichnung von d-migrate 1.12.0 mit mssql-jdbc 13.4.0.jre11, 2026-11-05, gegen den
@@ -1130,7 +1197,7 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   `IF @@TRANCOUNT > 0 ROLLBACK TRAN` (Spike, Einzelmessung 2026-11-05). Erkannt ist genau dieser Wortlaut: optional
   `SET IMPLICIT_TRANSACTIONS ON|OFF`, dann `IF @@TRANCOUNT > 0`, dann `COMMIT` oder `ROLLBACK`, dann `TRAN`, getrennt durch
   Leerraum, ohne Kommentar und ohne weiteren Text, ASCII-Buchstaben ohne Beachtung der Schreibweise; `TRANSACTION`, ein anderer
-  Vergleich oder eine andere Option sind nicht erkannt. Das Erkennen liest den Text, ohne den Scanner (`@@` und `>` gehören
+  Vergleich oder eine andere Option sind nicht erkannt. Das Erkennen liest den Text, ohne den Scanner (`@@` gehört
   nicht zu seinen Zeichen); die Kombinationen, die d-migrate nicht gesendet hat, sind Setzung. Die Antwort ist der
   Änderungszähler 0 ohne Art, mit drei gemessenen Ausnahmen (M-20, Szenario `katalog-struktur`, 2022 und 2025): `IF
   @@TRANCOUNT > 0 COMMIT TRAN` meldet die Art `COMMIT_IF_OPEN`, `set implicit_transactions off IF @@TRANCOUNT > 0 COMMIT
@@ -1146,8 +1213,9 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   --include-all`, `schema compare` und `schema migrate --execute` vom 2026-11-06; 21 Formen, die 21. ist die Probe der Kollation unter Form B): `SELECT SCHEMA_NAME() AS
   schema_name`; Tabellen eines Schemas (`sys.tables`, `sys.schemas`); Spalten einer Tabelle (`sys.columns` mit
   `sys.types`, `sys.default_constraints`, `sys.identity_columns`, `sys.computed_columns`, Parameter `OBJECT_ID(?)`); Schlüssel
-  (`sys.key_constraints`, `kc.type = 'PK'`); und leer beantwortet: Eindeutigkeiten, Fremdschlüssel, Indizes, Volltextspalten,
-  Partitionierung, Prüfbedingungen, Sequenzen, Sichten und ihre Spalten, Identität (`TOP 1`), berechnete Spalten, Identitätsspalten,
+  (`sys.key_constraints`, `kc.type = 'PK'`); Eindeutigkeiten (`kc.type = 'UQ'`), Fremdschlüssel, Indizes (ohne den Schlüssel)
+  und Prüfbedingungen, aus der Beschreibung der Tabelle (`SPEC-035`, Zeilen der Messung M-21); und leer beantwortet: Volltextspalten,
+  Partitionierung, Sequenzen, Sichten und ihre Spalten, Identität (`TOP 1`), berechnete Spalten, Identitätsspalten,
   Objekte ohne Text, Routinen, Parameter und Abhängigkeiten von Routinen. Der Text einer Anfrage gilt als erkannt, wenn er
   nach der Normalisierung gleich dem Wortlaut einer Form ist: Leerraum (Leerzeichen, Tab, CR, LF) zu einem Leerzeichen,
   Anfang und Ende ohne Leerraum, ein abschließendes `;` entfernt, und ein Parameter `@P<n>` samt dem Leerzeichen davor und
@@ -1234,8 +1302,33 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   [NOT NULL | NULL]` mit `INT`, `BIGINT`, `BIT`, `DATE`, `TIME`, `DATETIME2`, `NVARCHAR(<n>)` (`n` von 1 bis 4000) oder
   `NVARCHAR(MAX)` (`maxLength` -1) und `DECIMAL(<p>, <s>)` (Precision bis 38); der Schlüssel heißt im gesendeten Text
   `CONSTRAINT [pk_<Tabelle>] PRIMARY KEY ([Id])` und ist optional (gemessen, M-19: `CREATE TABLE` ohne Schlüssel gelingt; Nr. 3 der Entscheidung „Callback-Lösung für Schreiben, Struktur und Massenladen“ (Verzeichnis der Entscheidungen, Dateiname `0033-callback-loesung-fuer-schreiben-struktur-und-massenladen`) nennt `CREATE TABLE` „mit Schlüssel“; das ist der damalige Umfang der Setzung, die Zusage der Entscheidung ist der Callback, und das Zielbild folgt der Messung; Träger der Klärung: `BEO-TDS/katalog-strukturabweisung-und-aenderungszaehler-weichen-vom-echten-server-ab`). Mehrere Spalten in `ADD` sind Setzung (Messvermerk 2026-11-07, M-19: `ADD [A] INT, [B] NVARCHAR(10)` gelingt am Server). Dieselbe Spalte zweimal in einem `ADD` (`ADD x INT, X BIT`) ist `TDS_UNSUPPORTED_SQL` (Grenze: der Server meldet dort vermutlich 2705, nicht gemessen). Ein anderer Typ (`SMALLINT`, `FLOAT`, …) oder
-  eine weitere Klausel (`DEFAULT`, `IDENTITY`, `UNIQUE`, `WITH`) macht den Text nicht erkannt. Ein abschließendes `;` ist erlaubt.
-  Die Prüfung gegen den Katalog und die Antwort stehen in `SPEC-035`.
+  eine weitere Klausel (`IDENTITY`, `WITH`, `CLUSTERED`, ein `DEFAULT` oder `UNIQUE` ohne `CONSTRAINT <Name>`) macht den Text nicht erkannt.
+  Ein abschließendes `;` ist erlaubt. Die Prüfung gegen den Katalog und die Antwort stehen in `SPEC-035`.
+- **Form D, Elemente** (Wortlaut gemessen mit `d-migrate schema generate` und `schema migrate --dry-run`, d-migrate 1.12.0, 2026-11-09,
+  und mit `schema migrate --execute` gegen den Testserver, Messprotokoll zu Fremdschlüssel, Index und Standardwert; alles Weitere ist
+  Setzung): eine Spalte trägt hinter dem Typ in beliebiger Reihenfolge, jede höchstens einmal, `NOT NULL` oder `NULL`, `CONSTRAINT
+  <Name> DEFAULT <Literal>` (Zahl, `'…'` oder `N'…'`) und `CONSTRAINT <Name> UNIQUE`. Die Tabellenliste von `CREATE TABLE` trägt neben
+  den Spalten `CONSTRAINT <Name> UNIQUE (<Spalten>)`, `CONSTRAINT <Name> FOREIGN KEY (<Spalten>) REFERENCES <Tabelle> (<Spalten>)
+  [ON DELETE <Aktion>] [ON UPDATE <Aktion>]` (die Zieltabelle ohne Schema; die Aktion `NO ACTION`, `CASCADE`, `SET NULL` oder `SET
+  DEFAULT`, jede Klausel höchstens einmal, die Tabelle selbst ist als Ziel erlaubt) und `CONSTRAINT <Name> CHECK (<Ausdruck>)`;
+  `ALTER TABLE … [WITH CHECK] ADD CONSTRAINT <Name>` trägt dieselben drei und `DEFAULT <Literal> FOR <Spalte>`; `CREATE [UNIQUE]
+  INDEX <Name> ON <Tabelle> (<Spalten>) [INCLUDE (<Spalten>)]` legt einen Index an. Eine Eindeutigkeit, ein Fremdschlüssel, eine
+  Prüfbedingung und ein Standardwert ohne Namen sind nicht erkannt (der Server vergäbe einen Namen; welchen, ist nicht gemessen),
+  ebenso `WITH NOCHECK`, eine Spaltenreihenfolge (`ASC`, `DESC`), ein Filter und `ADD PRIMARY KEY`. **Der Ausdruck einer
+  Prüfbedingung** besteht aus Vergleichen (`=`, `<`, `>`, `<=`, `>=`, `<>`) zwischen Spalten, Zahlen und Textliteralen, `IS [NOT]
+  NULL`, `AND`, `OR` und Klammern bis zur Tiefe 16; Funktionen, `IN`, `BETWEEN`, `LIKE`, `NOT` und Rechenzeichen machen den Text nicht
+  erkannt. Der Katalog meldet ihn in der Form des Servers: Bezeichner in `[…]`, Zahlen in Klammern, Vergleichszeichen ohne
+  Leerzeichen, `AND`, `OR` und `IS NULL` mit Leerzeichen, der Ausdruck in einem Klammerpaar (`Menge > 0` ergibt `([Menge]>(0))`,
+  gemessen, M-21; für mehrere Vergleiche, Texte und Klammern ist die Form Setzung nach dem Handbuch des Servers). Der Standardwert
+  steht als `((n))` (Zahl), `('…')` oder `(N'…')` im Katalog (gemessen `((1))` und `(N'neu')`). Die Prüfung gegen den Katalog: eine
+  Spalte, die nicht beschrieben ist, oder eine nicht beschriebene Zieltabelle oder -spalte endet mit `TDS_SIM_UNKNOWN_OBJECT`, ein
+  Name einer Bedingung oder eines Index, der in der Tabelle vergeben ist (auch durch einen Index gegenüber einer Eindeutigkeit), und
+  ein zweiter Standardwert derselben Spalte mit `TDS_SIM_OBJECT_EXISTS`, `ALTER TABLE` und `CREATE INDEX` einer unbekannten Tabelle
+  mit `TDS_SIM_OBJECT_NOT_FOUND`; die Nummern des Servers für diese Fälle sind nicht gemessen. **Grenze:** für eine vorhandene Spalte
+  sendet d-migrate einen Standardwert als Text mit `DECLARE @df sysname …` vor dem `ALTER TABLE … ADD CONSTRAINT … DEFAULT … FOR`;
+  der Text ist nicht erkannt (`schema migrate --execute` endet dann mit Exit 5, gemessen), ein Standardwert an einer neuen Spalte
+  oder in `CREATE TABLE` ist nicht betroffen. Ein eindeutiger Index ohne Bedingung (`CREATE UNIQUE INDEX`) liest d-migrate beim
+  Zurücklesen als Eindeutigkeit (gemessen am Testserver; am echten Server nicht gemessen).
 - **Scanner** (Setzungen, nicht am Server gemessen): Leerraum sind Leerzeichen, Tab, CR und LF.
   Blockkommentare dürfen sich schachteln; ein offenes Literal oder ein offener Kommentar ist nicht
   erkannt. `N'…'` gilt nur mit `N` unmittelbar vor dem Hochkomma; ein verdoppeltes Hochkomma steht für
@@ -1244,7 +1337,8 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   Buchstaben anschließen. Unquotierte Bezeichner bestehen aus Buchstaben, Ziffern, `_`, `#` und `$`;
   `SELECT`, `FROM`, `WHERE`, `AND`, `OR`, `NOT`, `IN`, `IS`, `NULL`, `INSERT`, `INTO`, `VALUES`,
   `UPDATE`, `SET` und `DELETE` sind nur quotiert Bezeichner; dreiteilige Namen sind nicht erkannt.
-  `INSERT` ohne Spaltenliste, `DELETE` ohne `FROM`, `<>`, `!=` und `NOT IN` sind nicht erkannt. Eine
+  `INSERT` ohne Spaltenliste, `DELETE` ohne `FROM`, `!=` und `NOT IN` sind nicht erkannt. `<` und `>` sind Symbole des Scanners
+  und gelten nur im Ausdruck einer Prüfbedingung der Form D; in einer Bedingung der Formen S1 bis W3 ist der Text nicht erkannt. Eine
   Spalte darf in Liste und Bedingungen mehrfach stehen. Datum, Zeit und Zeitpunkt als Literal nur im
   ISO-Format als `'…'`; Parameternamen werden ohne Beachtung der Groß-/Kleinschreibung verglichen. Eine
   Obergrenze für die Länge des Anweisungstextes ist nicht festgelegt.
@@ -1956,8 +2050,8 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | Einmal-Konfiguration | Eine `ServerConfig` gilt für einen Start: sobald der Start das TLS-Material lädt, löscht er das Passwort im Schlüsselmaterial; bricht er vorher ab (Prüfung), bleibt es lesbar (Festlegung, getestet für Prüfung und Bindefehler). Wer neu startet, baut eine neue `ServerConfig`. |
 | Nicht erreichbar | Der Authentifizierungsadapter lässt sich über den Einstieg nicht ersetzen. Der Einstieg schreibt nirgends hin; Log und Telemetrie gehen an die übergebene Senke (Abschnitt 5). |
 | Abhängigkeiten | Jar und `lib/` liegen auf dem Klassenpfad des Einbettenden (`SPEC-052`); `lib/` führt keine YAML-Bibliothek, die Bibliothek braucht keine (Festlegung). Gemessen: `gradle.lockfile` der Bibliothek führt kein Jackson, die Sperre des Moduls `testserver/gradle.lockfile` führt es (einmalige Zählung am 2026-11-06, kein Gate hält sie), und der Einbettungstest (`make test`) startet und bedient den Server ohne Jackson im Klassenpfad. |
-| Zusage | Bis zur ersten Version `1.0` ändert sich diese Fläche nur durch eine Änderung dieser Spezifikation (Setzung); ab `1.0` gilt semantische Versionierung. Gemeint ist: öffentlich ist genau diese Fläche, alles andere in der Bibliothek ist `internal`. Der Maßstab für einen Namen ist die Aufgabe des Einbettenden: Konfiguration, Start und Stop, Anbindung eines Backends, Anmeldung und Benutzerliste, Entgegennehmen von Telemetrie (Nutzerentscheidung vom 2026-11-05: nur die Klassen, die man dafür braucht). Belegt ist davon: `explicitApi` (Modus `strict`) verlangt im Hauptmodul für jede Deklaration eine ausdrückliche Sichtbarkeit (gilt nicht für das Source-Set `integrator` und nicht für das Modul `testserver`), und der Sensor `make flaeche` hält die Typnamen dieser Liste gegen die öffentlichen Typdeklarationen des Hauptmoduls und gegen die Verwendung in `src/integrator` und `testserver/kotlin`: ein Typname der Liste ohne öffentliche Deklaration, ohne Verwendung dort oder eine öffentliche Typdeklaration ohne Eintrag bricht ihn. Seine Grenzen: er vergleicht Typnamen, nicht Mitglieder (Felder, Konstanten, Funktionen, Konstruktoren); Namenssuche ist kein Aufrufbeleg; er liest Kotlin-Quellen, und `internal` ist im Bytecode öffentlich. Die Namen nach Package: `runtime`: `TdsServer`, `BackendSource` (`Custom`, `Simulation`, `None`), `StartOutcome` (`Running`, `Aborted`); `config`: `ServerConfig`, `ListenSettings`, `LoginSettings`, `RequestSettings`, `EncryptionSetting`, `TlsKeyMaterial`, `AuthSettings`, `ConfigIssue`, `IssueKind`; `config.auth`: `PasswordChars` (Konstruktor), `UserList` (`parse`, `plainTestModeFrom`), `UserListResult` (`Valid`, `Invalid`), `UserListError`, `UserListErrorKind`; `port`: `QueryBackend`, `QueryExecution`; `domain`: `QueryRequest`, `QueryParameter`, `ParameterDirection`, `QueryEvent` (`ResultStart`, `Row`, `ResultEnd`, `UpdateCount` mit dem Feld `kind`, `ReturnStatus`, `OutputParameter`, `Failure`), `FailureScope` (`STATEMENT`, `BATCH`), `StatementKind` (`UNKNOWN`, `INSERT`, `DELETE`, `UPDATE`, `CREATE_TABLE`, `ALTER_TABLE`, `IMPLICIT_TRANSACTIONS_ON`, `IMPLICIT_TRANSACTIONS_OFF`, `COMMIT_IF_OPEN`), `ResultColumn`, `SqlType` (`Int32`, `Int64`, `Bool`, `Decimal`, `Date`, `Time`, `DateTime`, `UnicodeText`, `Int16`, `UInt8`); `domain.telemetry`: `TelemetrySink` (`accept`, `NONE`), `TelemetryEvent` (`kind`, `at`, `level`, `connectionId`, `sessionId`, `clientProfile` und je Art `port`, `tables`, `reason`, `key`, `issueKind`, `part`, `form`, `address`, `exceptionType`, `principal`, `failure`, `errorCode`, `cause`), `EventKind` (die Arten des Ereignismodells, Abschnitt 4), `EventLevel`; `simulation`: `SimTable`, `SimColumn`, `SimQuery`, `RowFilter`, `FilterTerm` (`In`, `IsNull`), `RowSource`, `SimulationBackend(catalog: SimCatalog)` und der zweite Konstruktor `SimulationBackend(catalog: () -> SimCatalog, onStructure: (suspend (schema: String, name: String, columns: List<SimColumn>, primaryKey: List<String>) -> Unit)? = null)` (Katalog-Anbieter und Strukturänderungs-Callback, `SPEC-035`; er fügt keinen Typnamen hinzu) und `SimCatalog(tables: List<SimTable>)` mit `tables`; als Mitglieder von Typen der Liste das Feld `SimColumn.maxLength` (Länge eines Textes im Katalog, 1 bis 4000 oder -1 für `NVARCHAR(MAX)`, Vorgabe 4000) und der Parameter `SimTable.onInsertBatch` (Rahmen des Massenladens, am Ende von `SimTable`; die Bibliothek ruft ihn einmal je Nachricht des Massenladens). Für die Signaturen von `SimulationBackend` und `SimCatalog` (beide Konstruktoren von `SimulationBackend`, der von `SimCatalog`, `tables`) und für die Mitglieder `SimColumn.maxLength` und `SimTable.onInsertBatch` gilt dieselbe Zusage: Änderung nur durch eine Änderung dieser Spezifikation, im Änderungsprotokoll genannt; das Verhalten des Backends legt `SPEC-035` fest, die Zusage der Namen erweitert es nicht. Die Typnamen sind festgelegt und hält der Sensor. Die Felder von `TelemetryEvent` und die Konstanten von `EventKind` sind ebenfalls festgelegt (Setzung dieses Stands, die Nutzerentscheidung dazu steht aus); sie hält nur ein Test (`TelemetryEventTest`, `TelemetryEmbeddingTest`), kein Sensor. Dass die Ereignisarten nicht je ein öffentlicher Typ sind, ist der Zuschnitt des Ereignismodells (Abschnitt 4). Ein Sammler für Tests gehört nicht zur Fläche, jedes Source-Set bringt ihren eigenen mit. Nicht öffentlich sind `SimCatalog.find` und `SimTable.column` (Festlegung: Aufrufer ist der Planer des Hauptmoduls), `ConfigValidation` (die Prüfung läuft im Start; ihre Befunde erreichen den Einbettenden als `StartOutcome.Aborted.issues`), `Principal`, `PasswordChars.reveal` und die Aufzählungen der Gründe von Ereignissen (ihre Werte stehen als Text in `reason`). Authentifizierungsadapter (`AuthAdapter` und seine Typen) und Konfigurationsschlüssel (`ConfigKeys`) gehören nicht zur Fläche. Weitere Namen sind keine Zusage. |
-| Nachweis | Ein Test in einem eigenen Source-Set, das gegen die Klassen des Hauptmoduls übersetzt und keinen `internal`-Namen sieht, startet den Server mit einem In-Memory-Backend und mit einer Zeilenquelle des Integrators und beantwortet Anfragen mit Rohbytes (`java.net`, kein Referenzclient); er läuft im selben Prozess in `make test`. Dazu gehören ein Backend, das die Parameter eines `sp_executesql` liest und Änderungszähler, Rückgabestatus und Ausgabeparameter meldet, eine Tabelle, deren Callback die Bedingung eines `UPDATE` als Filter liest, ein Integrator, der über den zweiten Konstruktor von `SimulationBackend` mit Katalog-Anbieter und Strukturänderungs-Callback eine Tabelle anlegt und im Katalog sieht (mit `SimColumn.maxLength` und einer Tabelle mit `SimTable.onInsertBatch`), und eine ungültige Benutzerliste (Test: `FlaecheEmbeddingTest`), dazu eine Tabelle, deren `onInsertBatch` die Zusage „ganz oder gar nicht“ hält (eine Nachricht mit Verstoß in der Mitte lässt den Bestand unverändert), und eine Tabelle nur mit `onInsert`, die `INSERT BULK` ablehnt (Test: `MassenladenEmbeddingTest`), dazu ein eigenes Backend, das die Art der Anweisung mit `UpdateCount.kind` meldet und die Antwort des Simulations-Backends bekommt, und ein Backend ohne Angabe der Art, das bei der Kennung 0 bleibt (Test: `StatementKindEmbeddingTest`, auch die Konstanten von `StatementKind`, der Standardwert von `kind`, der Konstruktor mit einem Argument für Java, der Abschluss ohne `COUNT` von `CREATE TABLE`, `ALTER TABLE` und der Transaktionstexte und die Folge von `schema migrate` mit ENVCHANGE Typ 8 und 9 und dem zurückgesendeten Deskriptor); belegt ist, dass diese Namen von außen übersetzbar sind und ihre Werte ankommen, nicht die Vollständigkeit ihrer Felder. Grenze: `internal` ist im Bytecode öffentlich, der Nachweis gilt für Kotlin-Quellen. |
+| Zusage | Bis zur ersten Version `1.0` ändert sich diese Fläche nur durch eine Änderung dieser Spezifikation (Setzung); ab `1.0` gilt semantische Versionierung. Gemeint ist: öffentlich ist genau diese Fläche, alles andere in der Bibliothek ist `internal`. Der Maßstab für einen Namen ist die Aufgabe des Einbettenden: Konfiguration, Start und Stop, Anbindung eines Backends, Anmeldung und Benutzerliste, Entgegennehmen von Telemetrie (Nutzerentscheidung vom 2026-11-05: nur die Klassen, die man dafür braucht). Belegt ist davon: `explicitApi` (Modus `strict`) verlangt im Hauptmodul für jede Deklaration eine ausdrückliche Sichtbarkeit (gilt nicht für das Source-Set `integrator` und nicht für das Modul `testserver`), und der Sensor `make flaeche` hält die Typnamen dieser Liste gegen die öffentlichen Typdeklarationen des Hauptmoduls und gegen die Verwendung in `src/integrator` und `testserver/kotlin`: ein Typname der Liste ohne öffentliche Deklaration, ohne Verwendung dort oder eine öffentliche Typdeklaration ohne Eintrag bricht ihn. Seine Grenzen: er vergleicht Typnamen, nicht Mitglieder (Felder, Konstanten, Funktionen, Konstruktoren); Namenssuche ist kein Aufrufbeleg; er liest Kotlin-Quellen, und `internal` ist im Bytecode öffentlich. Die Namen nach Package: `runtime`: `TdsServer`, `BackendSource` (`Custom`, `Simulation`, `None`), `StartOutcome` (`Running`, `Aborted`); `config`: `ServerConfig`, `ListenSettings`, `LoginSettings`, `RequestSettings`, `EncryptionSetting`, `TlsKeyMaterial`, `AuthSettings`, `ConfigIssue`, `IssueKind`; `config.auth`: `PasswordChars` (Konstruktor), `UserList` (`parse`, `plainTestModeFrom`), `UserListResult` (`Valid`, `Invalid`), `UserListError`, `UserListErrorKind`; `port`: `QueryBackend`, `QueryExecution`; `domain`: `QueryRequest`, `QueryParameter`, `ParameterDirection`, `QueryEvent` (`ResultStart`, `Row`, `ResultEnd`, `UpdateCount` mit dem Feld `kind`, `ReturnStatus`, `OutputParameter`, `Failure`), `FailureScope` (`STATEMENT`, `BATCH`), `StatementKind` (`UNKNOWN`, `INSERT`, `DELETE`, `UPDATE`, `CREATE_TABLE`, `ALTER_TABLE`, `IMPLICIT_TRANSACTIONS_ON`, `IMPLICIT_TRANSACTIONS_OFF`, `COMMIT_IF_OPEN`), `ResultColumn`, `SqlType` (`Int32`, `Int64`, `Bool`, `Decimal`, `Date`, `Time`, `DateTime`, `UnicodeText`, `Int16`, `UInt8`); `domain.telemetry`: `TelemetrySink` (`accept`, `NONE`), `TelemetryEvent` (`kind`, `at`, `level`, `connectionId`, `sessionId`, `clientProfile` und je Art `port`, `tables`, `reason`, `key`, `issueKind`, `part`, `form`, `address`, `exceptionType`, `principal`, `failure`, `errorCode`, `cause`), `EventKind` (die Arten des Ereignismodells, Abschnitt 4), `EventLevel`; `simulation`: `SimTable`, `SimColumn`, `SimUniqueKey`, `SimForeignKey`, `SimIndex`, `SimCheck`, `SimQuery`, `RowFilter`, `FilterTerm` (`In`, `IsNull`), `RowSource`, `SimulationBackend(catalog: SimCatalog)` und der zweite Konstruktor `SimulationBackend(catalog: () -> SimCatalog, onStructure: (suspend (table: SimTable) -> Unit)? = null)` (Katalog-Anbieter und Strukturänderungs-Callback, `SPEC-035`; er fügt keinen Typnamen hinzu) und `SimCatalog(tables: List<SimTable>)` mit `tables`; als Mitglieder von Typen der Liste das Feld `SimColumn.maxLength` (Länge eines Textes im Katalog, 1 bis 4000 oder -1 für `NVARCHAR(MAX)`, Vorgabe 4000), das Feld `SimColumn.defaultDefinition` (Standardwert in der Form des Katalogs, Vorgabe `null`), der Parameter `SimTable.onInsertBatch` (Rahmen des Massenladens; die Bibliothek ruft ihn einmal je Nachricht des Massenladens) und die Felder `SimTable.uniqueKeys`, `SimTable.foreignKeys`, `SimTable.indexes` und `SimTable.checks` (Elemente der Tabelle für die Katalogabfragen, Vorgabe die leere Liste; die fünf Parameter stehen am Ende von `SimTable` in der Folge `onInsertBatch`, `uniqueKeys`, `foreignKeys`, `indexes`, `checks`). Für die Signaturen von `SimulationBackend` und `SimCatalog` (beide Konstruktoren von `SimulationBackend`, der von `SimCatalog`, `tables`), für die Signatur des Strukturänderungs-Callbacks und für die Mitglieder `SimColumn.maxLength`, `SimColumn.defaultDefinition`, `SimTable.onInsertBatch`, `SimTable.uniqueKeys`, `SimTable.foreignKeys`, `SimTable.indexes` und `SimTable.checks` gilt dieselbe Zusage: Änderung nur durch eine Änderung dieser Spezifikation, im Änderungsprotokoll genannt; das Verhalten des Backends legt `SPEC-035` fest, die Zusage der Namen erweitert es nicht. Die Typnamen sind festgelegt und hält der Sensor. Die Felder von `TelemetryEvent` und die Konstanten von `EventKind` sind ebenfalls festgelegt (Setzung dieses Stands, die Nutzerentscheidung dazu steht aus); sie hält nur ein Test (`TelemetryEventTest`, `TelemetryEmbeddingTest`), kein Sensor. Dass die Ereignisarten nicht je ein öffentlicher Typ sind, ist der Zuschnitt des Ereignismodells (Abschnitt 4). Ein Sammler für Tests gehört nicht zur Fläche, jedes Source-Set bringt ihren eigenen mit. Nicht öffentlich sind `SimCatalog.find` und `SimTable.column` (Festlegung: Aufrufer ist der Planer des Hauptmoduls), `ConfigValidation` (die Prüfung läuft im Start; ihre Befunde erreichen den Einbettenden als `StartOutcome.Aborted.issues`), `Principal`, `PasswordChars.reveal` und die Aufzählungen der Gründe von Ereignissen (ihre Werte stehen als Text in `reason`). Authentifizierungsadapter (`AuthAdapter` und seine Typen) und Konfigurationsschlüssel (`ConfigKeys`) gehören nicht zur Fläche. Weitere Namen sind keine Zusage. |
+| Nachweis | Ein Test in einem eigenen Source-Set, das gegen die Klassen des Hauptmoduls übersetzt und keinen `internal`-Namen sieht, startet den Server mit einem In-Memory-Backend und mit einer Zeilenquelle des Integrators und beantwortet Anfragen mit Rohbytes (`java.net`, kein Referenzclient); er läuft im selben Prozess in `make test`. Dazu gehören ein Backend, das die Parameter eines `sp_executesql` liest und Änderungszähler, Rückgabestatus und Ausgabeparameter meldet, eine Tabelle, deren Callback die Bedingung eines `UPDATE` als Filter liest, ein Integrator, der über den zweiten Konstruktor von `SimulationBackend` mit Katalog-Anbieter und Strukturänderungs-Callback eine Tabelle anlegt und im Katalog sieht (mit `SimColumn.maxLength` und einer Tabelle mit `SimTable.onInsertBatch`), ein Integrator, der Standardwert, Eindeutigkeit, Fremdschlüssel, Index und Prüfbedingung mit `SimColumn.defaultDefinition`, `SimUniqueKey`, `SimForeignKey`, `SimIndex` und `SimCheck` beschreibt und aus dem Callback zurückbekommt, und eine ungültige Benutzerliste (Test: `FlaecheEmbeddingTest`), dazu eine Tabelle, deren `onInsertBatch` die Zusage „ganz oder gar nicht“ hält (eine Nachricht mit Verstoß in der Mitte lässt den Bestand unverändert), und eine Tabelle nur mit `onInsert`, die `INSERT BULK` ablehnt (Test: `MassenladenEmbeddingTest`), dazu ein eigenes Backend, das die Art der Anweisung mit `UpdateCount.kind` meldet und die Antwort des Simulations-Backends bekommt, und ein Backend ohne Angabe der Art, das bei der Kennung 0 bleibt (Test: `StatementKindEmbeddingTest`, auch die Konstanten von `StatementKind`, der Standardwert von `kind`, der Konstruktor mit einem Argument für Java, der Abschluss ohne `COUNT` von `CREATE TABLE`, `ALTER TABLE` und der Transaktionstexte und die Folge von `schema migrate` mit ENVCHANGE Typ 8 und 9 und dem zurückgesendeten Deskriptor); belegt ist, dass diese Namen von außen übersetzbar sind und ihre Werte ankommen, nicht die Vollständigkeit ihrer Felder. Grenze: `internal` ist im Bytecode öffentlich, der Nachweis gilt für Kotlin-Quellen. |
 
 ## 7. Festlegungen der Harness-Werkzeuge
 
@@ -2042,3 +2136,4 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | 2026-11-08 | Abschluss von `CREATE TABLE` und `ALTER TABLE … ADD` und die Transaktionstexte der Form C an die Messung angeglichen (`TDS-FA-12`, `TDS-QA-01`, `TDS-QA-07`, M-20): öffentliche Fläche um die Konstanten `CREATE_TABLE`, `ALTER_TABLE`, `IMPLICIT_TRANSACTIONS_ON`, `IMPLICIT_TRANSACTIONS_OFF` und `COMMIT_IF_OPEN` von `StatementKind` erweitert (`SPEC-059`; `UpdateCount` unverändert); die Setzung „Änderungszähler 0“ für `CREATE TABLE` und `ALTER TABLE … ADD` entfällt, beide schließen im Batch mit `DONE` ohne `COUNT` und den Kennungen `0x00c6` und `0x00d8` (`SPEC-031`, `SPEC-035`, `SPEC-036`); die Transaktionstexte schließen mit `0x00b9`, `0x00ba`, `0x00c0`; die Verbindung führt den Transaktionszustand und schreibt ENVCHANGE Typ 8 und 9 (`SPEC-031`); `set implicit_transactions off` allein ist nicht gemessen und endet als `UNKNOWN`; **Inkompatibel** für ein Kotlin-`when` ohne `else` über `StatementKind` in fremdem Code: es übersetzt nicht mehr, bis es die fünf neuen Mitglieder nennt (vor der ersten Veröffentlichung, Setzung) |
 | 2026-11-08 | `sp_execute` mit unbekanntem Handle an die Messung angeglichen (`TDS-FA-04`, `TDS-QA-01`, `SPEC-057`, `SPEC-060`, `SPEC-030`): ERROR 8179, Class 16, State 4 und der Text „Could not find prepared statement with handle <n>.“ statt 50009 (Messprotokoll M-6, M-7); `TDS_SIM_UNKNOWN_PREPARED_HANDLE` trägt den State der Aufrufform (4 bei `sp_execute`, 8 bei der Batch-Freigabe); `TDS_UNKNOWN_HANDLE` entfällt, die Nummer 50009 wird nicht mehr gesendet; Tokenfolge (RETURNSTATUS 8179), leere Felder des ERROR und der Fall nach `RESETCONNECTION` bleiben Setzung |
 | 2026-11-08 | Massenladen ganz oder gar nicht (`TDS-FA-11`, `TDS-FA-12`, `TDS-QA-01`, M-12, `SPEC-035`, `SPEC-036`, `SPEC-001`, Schritt 10 von `TDS-FA-11.a`): der Aufruf von `SimTable.onInsertBatch` gilt ganz oder gar nicht (Zusage an den Integrator; gemessen ist ein Fall, Schlüsselverstoß, drei Zeilen, ein Paket, darüber hinaus Setzung), der Rückfall auf `onInsert` je Zeile entfällt, `INSERT BULK` ohne `onInsertBatch` ergibt `TDS_UNSUPPORTED_SQL`, die Nummer 2627 für andere Ursachen als den Schlüsselverstoß ist als Sammelcode benannt; die öffentliche Fläche nennt keinen neuen Namen, geändert ist die Zusage am Mitglied `SimTable.onInsertBatch` (`SPEC-059`). **Inkompatibel** für einen Integrator, der das Massenladen nur mit `onInsert` bediente: `INSERT BULK` ergibt für seine Tabelle `TDS_UNSUPPORTED_SQL`. Nachgezogen im selben Zug: die Zeile „Zusage“ der Tabelle `SPEC-059` sagte zu `onInsertBatch` „dieser Stand ruft ihn nicht“, seit dem Schreibpfad des Massenladens falsch; sie nennt jetzt den Aufruf einmal je Nachricht des Massenladens (nur die Aussage dem Ist-Zustand angeglichen, kein Name, keine Signatur) |
+| 2026-11-09 | Katalog für Standardwerte, Eindeutigkeiten, Fremdschlüssel, Indizes und Prüfbedingungen (`TDS-FA-11`, `TDS-FA-12`, `TDS-QA-01`, M-21, `SPEC-035`, `SPEC-036`): die öffentliche Fläche nennt vier neue Typnamen (`SimUniqueKey`, `SimForeignKey`, `SimIndex`, `SimCheck`) und die Mitglieder `SimColumn.defaultDefinition`, `SimTable.uniqueKeys`, `SimTable.foreignKeys`, `SimTable.indexes`, `SimTable.checks`; der Strukturänderungs-Callback des zweiten Konstruktors von `SimulationBackend` nimmt statt vier Parametern eine `SimTable` (Beschreibung nach der Anweisung, ohne Zeilen und Callbacks). **Inkompatibel** für einen Integrator mit Strukturänderungs-Callback (Lambda mit vier Parametern, vor der ersten Veröffentlichung, Setzung). Die Katalogabfragen der Eindeutigkeiten, Fremdschlüssel, Indizes, Prüfbedingungen und der Standardwerte antworten aus der Beschreibung (bisher leer); die Antwortspalten tragen die gemessenen Nullbarkeiten und `tinyint` für `type` und `key_ordinal`; die Formen D1 und D2 nehmen `CONSTRAINT … DEFAULT`, `UNIQUE`, `FOREIGN KEY` und `CHECK` an, neu sind D3 (`ALTER TABLE … ADD CONSTRAINT`) und D4 (`CREATE INDEX`); der Scanner kennt `<` und `>`; der Leser der Datei liest `unique`, `default`, `references`, `indices` und `constraints` (bisher ignoriert). |
