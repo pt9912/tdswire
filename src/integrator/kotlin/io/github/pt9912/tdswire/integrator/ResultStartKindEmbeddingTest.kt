@@ -33,9 +33,10 @@ private const val ROWS = 3L
 private const val ACTION_LENGTH = 10
 
 /**
- * `ResultStart.kind` und `UpdateCount(n, MERGE)` von außen am Draht (`SPEC-059`, `SPEC-031`, `SPEC-002`): das Source-Set
- * sieht nur die öffentliche Fläche; die Antworten stehen auf den Rohbytes. Die Kennung `0x0117` ist am echten SQL Server
- * gemessen (M-15, M-26) für das Ergebnis und den Fehler im Ergebnis; `UpdateCount(n, MERGE)` ist Setzung.
+ * `ResultStart.kind` und `UpdateCount(n, MERGE)` von außen am Draht (`SPEC-059`, `SPEC-031`, `SPEC-002`): das
+ * Source-Set sieht nur die öffentliche Fläche; die Antworten stehen auf den Rohbytes. Die Kennung `0x0117` ist am
+ * echten SQL Server gemessen (M-15, M-26) für das Ergebnis und den Fehler im Ergebnis; `UpdateCount(n, MERGE)` ist
+ * Setzung.
  */
 class ResultStartKindEmbeddingTest {
     private val running = CopyOnWriteArrayList<TdsServer>()
