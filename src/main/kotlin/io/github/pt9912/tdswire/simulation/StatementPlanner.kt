@@ -43,13 +43,13 @@ internal data class Plan(
     val resultColumns: List<SimColumn>,
 )
 
-/** Die Tabelle nach einer Strukturänderung (`CREATE TABLE`, `ALTER TABLE … ADD`), wie der Callback sie bekommt. */
+/**
+ * Die Tabelle nach einer Strukturänderung (`CREATE TABLE`, `ALTER TABLE … ADD`, `CREATE INDEX`), wie der Callback
+ * sie bekommt: als Beschreibung ohne Zeilen (die Zeilenquelle liefert keine Zeile, die Callbacks fehlen).
+ */
 internal data class StructurePlan(
-    val schema: String,
-    val name: String,
-    val columns: List<SimColumn>,
-    val primaryKey: List<String>,
-    /** [StatementKind.CREATE_TABLE] oder [StatementKind.ALTER_TABLE]: die Art, die der Abschluss meldet. */
+    val table: SimTable,
+    /** Die Art des Abschlusses: [StatementKind.CREATE_TABLE], [StatementKind.ALTER_TABLE] oder `UNKNOWN`. */
     val kind: StatementKind,
 )
 
@@ -123,8 +123,10 @@ internal class StatementPlanner(private val catalogs: () -> SimCatalog) {
     }
 
     private fun resolve(statement: Statement, catalog: SimCatalog): PlanResult = when (statement) {
-        is Statement.CreateTable -> create(statement, catalog)
-        is Statement.AddColumns -> addColumns(statement, catalog)
+        is Statement.CreateTable -> StructurePlanner.create(statement, catalog)
+        is Statement.AddColumns -> StructurePlanner.addColumns(statement, catalog)
+        is Statement.AddConstraint -> StructurePlanner.addConstraint(statement, catalog)
+        is Statement.CreateIndex -> StructurePlanner.createIndex(statement, catalog)
         else -> resolveTable(statement, catalog)
     }
 
@@ -142,57 +144,6 @@ internal class StatementPlanner(private val catalogs: () -> SimCatalog) {
         }
     }
 
-    /**
-     * `CREATE TABLE`: die Tabelle darf nicht beschrieben sein (sonst [SimCodes.OBJECT_EXISTS], gemessen M-19), der
-     * Schlüssel nennt vorhandene Spalten, und eine Schlüsselspalte ist nicht nullbar (Setzung nach dem Server, am
-     * Server dieses Repos nicht gemessen). Ohne Schlüssel gelingt die Anweisung, die Tabelle hat dann einen leeren
-     * Schlüssel (gemessen M-19).
-     */
-    private fun create(statement: Statement.CreateTable, catalog: SimCatalog): PlanResult {
-        val schema = statement.table.schema ?: DEFAULT_SCHEMA
-        val key = statement.key
-        val known = statement.cols.associateBy { SimNames.fold(it.name) }
-        return when {
-            catalog.find(schema, statement.table.name) != null ->
-                reject(SimCodes.OBJECT_EXISTS, "Tabelle ist schon beschrieben")
-
-            key != null && key.any { SimNames.fold(it) !in known } ->
-                reject(SimCodes.UNKNOWN_OBJECT, "Schlüsselspalte nicht beschrieben")
-
-            else -> {
-                val keyed = key.orEmpty().map { SimNames.fold(it) }.toSet()
-                val columns = statement.cols.map {
-                    if (SimNames.fold(it.name) in keyed) it.copy(nullable = false) else it
-                }
-                val names = key.orEmpty().map { known.getValue(SimNames.fold(it)).name }
-                val plan = StructurePlan(schema, statement.table.name, columns, names, StatementKind.CREATE_TABLE)
-                PlanResult.Structure(plan)
-            }
-        }
-    }
-
-    /**
-     * `ALTER TABLE … ADD`: die Tabelle ist beschrieben (sonst [SimCodes.OBJECT_NOT_FOUND]), die neuen Spalten nicht
-     * (sonst [SimCodes.COLUMN_EXISTS]); Schlüssel und Name bleiben. Beide Fehler sind gemessen (M-19).
-     */
-    private fun addColumns(statement: Statement.AddColumns, catalog: SimCatalog): PlanResult {
-        val table = catalog.find(statement.table.schema, statement.table.name)
-            ?: return reject(SimCodes.OBJECT_NOT_FOUND, "Tabelle nicht beschrieben")
-        return if (statement.columns.any { table.column(it.name) != null }) {
-            reject(SimCodes.COLUMN_EXISTS, "Spalte ist schon beschrieben")
-        } else {
-            PlanResult.Structure(
-                StructurePlan(
-                    table.schema,
-                    table.name,
-                    table.columns + statement.columns,
-                    table.primaryKey,
-                    StatementKind.ALTER_TABLE,
-                ),
-            )
-        }
-    }
-
     /** Alle Spaltennamen des Textes: Auswahlliste, Spalten von `INSERT` und `SET` zuerst, dann die Bedingung. */
     private fun namedColumns(statement: Statement): List<String> = when (statement) {
         is Statement.Select -> statement.columns.orEmpty() + whereColumns(statement.where)
@@ -207,7 +158,8 @@ internal class StatementPlanner(private val catalogs: () -> SimCatalog) {
             statement.on.map { it.target } + statement.update.orEmpty().map { it.target } +
                 statement.insert.map { it.target }
 
-        is Statement.CreateTable, is Statement.AddColumns -> emptyList()
+        is Statement.CreateTable, is Statement.AddColumns, is Statement.AddConstraint, is Statement.CreateIndex ->
+            emptyList()
     }
 
     /** Die Spalten der Bedingung; ein Konstantenterm nennt keine. */

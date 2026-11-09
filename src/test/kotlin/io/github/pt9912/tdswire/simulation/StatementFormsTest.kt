@@ -389,7 +389,7 @@ class StatementFormsTest {
             "SELECT a FROM t",
             "EXEC sp_who",
             "EXEC [sp_who]",
-            "CREATE INDEX i ON t (a)",
+            "CREATE CLUSTERED INDEX i ON t (a)",
             "DROP TABLE t",
             "TRUNCATE TABLE t",
             "MERGE t USING u ON a = b WHEN MATCHED THEN DELETE",

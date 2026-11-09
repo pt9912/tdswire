@@ -11,10 +11,11 @@ import java.math.BigDecimal
 /**
  * Der Bestand an Tabellen des Testservers im Arbeitsspeicher (`TDS-FA-12`): der Integrator der Bibliothek. Er hält die
  * Tabellen, die die Datei der Beschreibung nennt, und die, die ein Client mit `CREATE TABLE` anlegt oder mit
- * `ALTER TABLE … ADD` erweitert, samt ihren Zeilen; die Bibliothek fragt [catalog] bei jeder Anfrage, meldet jede
- * Strukturänderung an [replace] und gibt die Zeilen eines Massenladens an [insertBatch]. Der Testserver kennt keine
- * Katalog- und keine Parserlogik, nur diesen Bestand. Eine übergebene Tabelle behält Schema, Name, Spalten und
- * Schlüssel; ihre Zeilenquelle und ihre Callbacks ersetzt der Bestand durch die eigenen. Ein Neustart des Prozesses
+ * `ALTER TABLE … ADD` oder `CREATE INDEX` ändert, samt ihren Zeilen; die Bibliothek fragt [catalog] bei jeder Anfrage,
+ * meldet jede Strukturänderung an [replace] und gibt die Zeilen eines Massenladens an [insertBatch]. Der Testserver
+ * kennt keine Katalog- und keine Parserlogik, nur diesen Bestand. Eine übergebene Tabelle behält Schema, Name, Spalten,
+ * Schlüssel und die Elemente (Eindeutigkeiten, Fremdschlüssel, Indizes, Prüfbedingungen); ihre Zeilenquelle und ihre
+ * Callbacks ersetzt der Bestand durch die eigenen. Ein Neustart des Prozesses
  * leert den Bestand bis auf die Tabellen der Datei (ohne Zeilen). [catalog], [replace] und [insertBatch] sind je
  * Aufruf gegeneinander gesperrt; eine Strukturänderung ersetzt die Tabelle als Ganzes, ohne Rücknahme über mehrere
  * Anweisungen. Dass die Prüfung der Anweisung und das [replace] eine Einheit sind, trägt das Backend der Bibliothek (es
@@ -38,14 +39,12 @@ import java.math.BigDecimal
  * gemessen), und `ALTER TABLE … ADD` auf einer gefüllten Tabelle prüft sie nicht.
  */
 internal class TableStore(initial: List<SimTable>, private val cellLimit: Long = CELL_LIMIT) {
-    private class Stored(
-        val schema: String,
-        val name: String,
-        val columns: List<SimColumn>,
-        val primaryKey: List<String>,
-        val rows: MutableList<List<Any?>>,
-        val keys: MutableSet<List<Any?>>,
-    )
+    private class Stored(val shape: SimTable, val rows: MutableList<List<Any?>>, val keys: MutableSet<List<Any?>>) {
+        val schema: String get() = shape.schema
+        val name: String get() = shape.name
+        val columns: List<SimColumn> get() = shape.columns
+        val primaryKey: List<String> get() = shape.primaryKey
+    }
 
     private val tables = LinkedHashMap<String, Stored>()
 
@@ -53,25 +52,30 @@ internal class TableStore(initial: List<SimTable>, private val cellLimit: Long =
     private var cells = 0L
 
     init {
-        initial.forEach { tables[key(it.schema, it.name)] = stored(it.schema, it.name, it.columns, it.primaryKey) }
+        initial.forEach { tables[key(it.schema, it.name)] = stored(it) }
     }
 
     /** Der Stand der Tabellen jetzt; jeder Aufruf baut einen neuen Katalog. */
     @Synchronized
     fun catalog(): SimCatalog = SimCatalog(tables.values.map(::described))
 
-    /** Legt die Tabelle an oder ersetzt sie durch die Struktur nach der Anweisung (auch bei `ALTER TABLE … ADD`). */
+    /**
+     * Legt die Tabelle an oder ersetzt sie durch die Struktur nach der Anweisung (auch bei `ALTER TABLE … ADD` einer
+     * Spalte oder einer Bedingung und bei `CREATE INDEX`); Spalten, Schlüssel, Eindeutigkeiten, Fremdschlüssel,
+     * Indizes und Prüfbedingungen kommen aus [shape], die Zeilen aus dem bisherigen Stand.
+     */
     @Synchronized
-    fun replace(schema: String, name: String, columns: List<SimColumn>, primaryKey: List<String>) {
-        val old = tables[key(schema, name)]
-        val next = stored(schema, name, columns, primaryKey)
+    fun replace(shape: SimTable) {
+        val old = tables[key(shape.schema, shape.name)]
+        val next = stored(shape)
+        val columns = shape.columns
         if (old != null) {
             val index = old.columns.withIndex().associate { NameFold.fold(it.value.name) to it.index }
             val positions = columns.map { index[NameFold.fold(it.name)] }
             for (row in old.rows) next.rows.add(positions.map { at -> at?.let { row[it] } })
             next.rows.forEach { next.keys.add(keyOf(next, it)) }
         }
-        tables[key(schema, name)] = next
+        tables[key(shape.schema, shape.name)] = next
         cells = tables.values.sumOf { it.rows.size.toLong() * it.columns.size }
     }
 
@@ -132,18 +136,18 @@ internal class TableStore(initial: List<SimTable>, private val cellLimit: Long =
     }
 
     /** Das Backend der Bibliothek über diesen Bestand: Anbieter und Strukturänderung zeigen auf ihn. */
-    fun backend(): SimulationBackend =
-        SimulationBackend(::catalog) { schema, name, columns, key -> replace(schema, name, columns, key) }
+    fun backend(): SimulationBackend = SimulationBackend(::catalog, ::replace)
 
-    private fun stored(schema: String, name: String, columns: List<SimColumn>, primaryKey: List<String>) =
-        Stored(schema, name, columns.toList(), primaryKey.toList(), ArrayList(), HashSet())
+    private fun stored(shape: SimTable) = Stored(
+        shape.copy(columns = shape.columns.toList(), primaryKey = shape.primaryKey.toList()),
+        ArrayList(),
+        HashSet(),
+    )
 
-    private fun described(table: Stored): SimTable = SimTable(
-        schema = table.schema,
-        name = table.name,
-        columns = table.columns,
-        primaryKey = table.primaryKey,
+    private fun described(table: Stored): SimTable = table.shape.copy(
         rows = { rowsOf(table) },
+        onInsert = null,
+        onDelete = null,
         onInsertBatch = { batch -> insertBatch(table.schema, table.name, batch) },
         onUpdate = { set, where -> update(table.schema, table.name, set, where) },
     )

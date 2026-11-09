@@ -24,9 +24,13 @@ import io.github.pt9912.tdswire.simulation.FilterTerm
 import io.github.pt9912.tdswire.simulation.RowFilter
 import io.github.pt9912.tdswire.simulation.RowSource
 import io.github.pt9912.tdswire.simulation.SimCatalog
+import io.github.pt9912.tdswire.simulation.SimCheck
 import io.github.pt9912.tdswire.simulation.SimColumn
+import io.github.pt9912.tdswire.simulation.SimForeignKey
+import io.github.pt9912.tdswire.simulation.SimIndex
 import io.github.pt9912.tdswire.simulation.SimQuery
 import io.github.pt9912.tdswire.simulation.SimTable
+import io.github.pt9912.tdswire.simulation.SimUniqueKey
 import io.github.pt9912.tdswire.simulation.SimulationBackend
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
@@ -202,9 +206,10 @@ class FlaecheEmbeddingTest {
     fun einIntegratorLegtTabellenUeberAnbieterUndStrukturCallbackAn() {
         val store = CopyOnWriteArrayList<SimTable>()
         val calls = CopyOnWriteArrayList<List<String>>()
-        val backend = SimulationBackend({ SimCatalog(store.toList()) }) { schema, name, columns, key ->
-            calls += listOf(schema, name) + columns.map { "${it.name}:${it.type}:${it.maxLength}" } + key
-            store += SimTable(schema, name, columns, key, rows = { RowSource { null } }, onInsertBatch = { 0L })
+        val backend = SimulationBackend({ SimCatalog(store.toList()) }) { shape ->
+            calls += listOf(shape.schema, shape.name) + shape.columns.map { "${it.name}:${it.type}:${it.maxLength}" } +
+                shape.primaryKey
+            store += shape.copy(onInsertBatch = { 0L })
         }
         val server = start(BackendSource.Custom(backend))
         WireClient(server.port).use { client ->
@@ -220,6 +225,65 @@ class FlaecheEmbeddingTest {
         }
         val columns = listOf("Seriennummer:Int64:4000", "Name:UnicodeText:40")
         assertEquals(listOf(listOf("dbo", "geraete") + columns + "Seriennummer"), calls)
+    }
+
+    /**
+     * Ein Integrator beschreibt Standardwert, Eindeutigkeit, Fremdschlüssel, Index und Prüfbedingung mit den
+     * öffentlichen Namen `SimColumn.defaultDefinition`, `SimUniqueKey`, `SimForeignKey`, `SimIndex` und `SimCheck`; der
+     * Strukturänderungs-Callback bekommt die Tabelle samt Elementen (`CREATE TABLE`, `ALTER TABLE … ADD CONSTRAINT` und
+     * `CREATE INDEX` als SQL-Text auf den Rohbytes); jede Anweisung baut auf dem Stand der vorigen auf.
+     *
+     * @spec SPEC-059
+     * @spec SPEC-035
+     * @spec SPEC-036
+     */
+    @Test
+    fun einIntegratorBeschreibtElementeUndBekommtSieAusDemCallback() {
+        val kunden = SimTable(
+            name = "kunden",
+            columns = listOf(SimColumn("Id", SqlType.Int64, nullable = false)),
+            primaryKey = listOf("Id"),
+            rows = { RowSource { null } },
+        )
+        val described = SimTable(
+            name = "beschrieben",
+            columns = listOf(
+                SimColumn("Id", SqlType.Int64, nullable = false),
+                SimColumn("Menge", SqlType.Int32, defaultDefinition = "((1))"),
+            ),
+            primaryKey = listOf("Id"),
+            rows = { RowSource { null } },
+            uniqueKeys = listOf(SimUniqueKey("uq_beschrieben", listOf("Menge"))),
+            foreignKeys = listOf(SimForeignKey("fk_beschrieben", listOf("Id"), "kunden", listOf("Id"), "CASCADE")),
+            indexes = listOf(SimIndex("ix_beschrieben", listOf("Menge"), included = listOf("Id"))),
+            checks = listOf(SimCheck("ck_beschrieben", "([Menge]>(0))")),
+        )
+        val store = CopyOnWriteArrayList(listOf(kunden, described))
+        val shapes = CopyOnWriteArrayList<SimTable>()
+        val backend = SimulationBackend({ SimCatalog(store.toList()) }) { shape ->
+            shapes += shape
+            store.removeAll { it.name == shape.name }
+            store += shape
+        }
+        val server = start(BackendSource.Custom(backend))
+        WireClient(server.port).use { client ->
+            client.login()
+            val statements = listOf(
+                "CREATE TABLE neu (Id BIGINT NOT NULL, Menge INT CONSTRAINT df_neu DEFAULT 2, " +
+                    "CONSTRAINT fk_neu FOREIGN KEY (Id) REFERENCES kunden (Id) ON DELETE CASCADE, " +
+                    "CONSTRAINT ck_neu CHECK (Menge > 0), CONSTRAINT pk_neu PRIMARY KEY (Id))",
+                "ALTER TABLE neu ADD CONSTRAINT uq_neu UNIQUE (Menge)",
+                "CREATE INDEX ix_neu ON neu (Menge) INCLUDE (Id)",
+            )
+            for (sql in statements) assertEquals(0, client.batch(sql).doneStatus and DONE_ERROR, sql)
+        }
+        val last = shapes.last()
+        assertEquals(listOf("neu", "neu", "neu"), shapes.map { it.name })
+        assertEquals(listOf("((2))"), last.columns.mapNotNull { it.defaultDefinition })
+        assertEquals(listOf(SimForeignKey("fk_neu", listOf("Id"), "kunden", listOf("Id"), "CASCADE")), last.foreignKeys)
+        assertEquals(listOf(SimCheck("ck_neu", "([Menge]>(0))")), last.checks)
+        assertEquals(listOf(SimUniqueKey("uq_neu", listOf("Menge"))), last.uniqueKeys)
+        assertEquals(listOf(SimIndex("ix_neu", listOf("Menge"), included = listOf("Id"))), last.indexes)
     }
 
     /**

@@ -14,6 +14,7 @@ import io.github.pt9912.tdswire.simulation.SimCatalog
 import io.github.pt9912.tdswire.simulation.SimColumn
 import io.github.pt9912.tdswire.simulation.SimQuery
 import io.github.pt9912.tdswire.simulation.SimTable
+import io.github.pt9912.tdswire.simulation.SimUniqueKey
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import java.math.BigDecimal
@@ -29,6 +30,73 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 
 private const val READERS = 2
+
+/** Die Katalogabfragen von d-migrate 1.12.0 für die Elemente einer Tabelle (Wortlaut wie `DMigrateWire.kt`). */
+private const val COLUMNS = """
+    SELECT c.name AS column_name, ty.name AS type_name, c.max_length, c.precision, c.scale,
+           c.is_nullable, c.is_identity, c.is_computed, c.column_id,
+           dc.definition AS default_definition,
+           ic.seed_value, ic.increment_value,
+           cc.definition AS computed_definition, cc.is_persisted AS computed_persisted
+    FROM sys.columns c
+    JOIN sys.types ty ON ty.user_type_id = c.user_type_id
+    LEFT JOIN sys.default_constraints dc ON dc.object_id = c.default_object_id
+    LEFT JOIN sys.identity_columns ic
+        ON ic.object_id = c.object_id AND ic.column_id = c.column_id
+    LEFT JOIN sys.computed_columns cc
+        ON cc.object_id = c.object_id AND cc.column_id = c.column_id
+    WHERE c.object_id = OBJECT_ID(?)
+    ORDER BY c.column_id
+"""
+
+private const val UNIQUE_KEYS = """
+    SELECT kc.name AS constraint_name, col.name AS column_name
+    FROM sys.key_constraints kc
+    JOIN sys.index_columns ic
+        ON ic.object_id = kc.parent_object_id AND ic.index_id = kc.unique_index_id
+    JOIN sys.columns col
+        ON col.object_id = ic.object_id AND col.column_id = ic.column_id
+    WHERE kc.parent_object_id = OBJECT_ID(?) AND kc.type = 'UQ'
+    ORDER BY kc.name, ic.key_ordinal
+"""
+
+private const val FOREIGN_KEYS = """
+    SELECT fk.name AS constraint_name, pc.name AS column_name,
+           rt.name AS referenced_table, rc.name AS referenced_column,
+           fk.delete_referential_action_desc, fk.update_referential_action_desc,
+           fkc.constraint_column_id
+    FROM sys.foreign_keys fk
+    JOIN sys.foreign_key_columns fkc ON fkc.constraint_object_id = fk.object_id
+    JOIN sys.columns pc
+        ON pc.object_id = fkc.parent_object_id AND pc.column_id = fkc.parent_column_id
+    JOIN sys.columns rc
+        ON rc.object_id = fkc.referenced_object_id AND rc.column_id = fkc.referenced_column_id
+    JOIN sys.tables rt ON rt.object_id = fkc.referenced_object_id
+    WHERE fk.parent_object_id = OBJECT_ID(?)
+    ORDER BY fk.name, fkc.constraint_column_id
+"""
+
+private const val INDEXES = """
+    SELECT i.name AS index_name, i.is_unique, i.has_filter, i.filter_definition, i.type,
+           col.name AS column_name, ic.key_ordinal, ic.is_descending_key, ic.is_included_column
+    FROM sys.indexes i
+    JOIN sys.index_columns ic ON ic.object_id = i.object_id AND ic.index_id = i.index_id
+    JOIN sys.columns col ON col.object_id = ic.object_id AND col.column_id = ic.column_id
+    WHERE i.object_id = OBJECT_ID(?) AND i.type > 0
+      AND i.is_primary_key = 0 AND i.is_hypothetical = 0
+    ORDER BY i.name, ic.key_ordinal, ic.index_column_id
+"""
+
+private const val CHECKS = """
+    SELECT cc.name AS constraint_name, cc.definition
+    FROM sys.check_constraints cc
+    WHERE cc.parent_object_id = OBJECT_ID(?) AND cc.is_ms_shipped = 0
+    ORDER BY cc.name
+"""
+
+/** Die Strukturänderung wie früher mit Schema, Name, Spalten und Schlüssel: die Beschreibung ohne Zeilen. */
+private fun TableStore.replace(schema: String, name: String, columns: List<SimColumn>, primaryKey: List<String>) =
+    replace(SimTable(schema, name, columns, primaryKey, rows = { RowSource { null } }))
 
 /**
  * Der Bestand des Testservers (`TDS-FA-12`, `SPEC-035` „Katalog-Anbieter“): der Integrator hält die Tabellen, die
@@ -340,6 +408,57 @@ class TableStoreTest {
         assertEquals(listOf(listOf(1L, "Ada", null)), stored(store))
         assertEquals(1, insert(store, mapOf("Id" to 2L, "Email" to "a@b")))
         assertEquals(listOf(null, "a@b"), stored(store)[1].drop(1))
+    }
+
+    /**
+     * Happy: Standardwert, Eindeutigkeit, Fremdschlüssel, Prüfbedingung und Index überstehen die Strukturänderungen im
+     * Bestand: `CREATE TABLE` legt sie an, `ALTER TABLE … ADD` einer Spalte und `CREATE INDEX` behalten sie, die
+     * Katalogabfragen zeigen den Stand, und die Zeilen der Tabelle bleiben. Eine Tabelle der Datei trägt ihre Elemente
+     * in den Bestand.
+     * Wächter: ein Bestand, der beim Ersetzen die Elemente oder die Zeilen verwirft (der Katalog zeigte nach `ADD`
+     * keine mehr).
+     * @spec SPEC-035
+     */
+    @Test
+    fun `der Bestand haelt die Elemente der Tabelle`() {
+        val described = kunden.copy(uniqueKeys = listOf(SimUniqueKey("uq_kunden_name", listOf("Name"))))
+        val store = TableStore(listOf(described))
+        val backend = store.backend()
+        ask(
+            backend,
+            "CREATE TABLE [bestellung] ([Id] BIGINT NOT NULL, [KundeId] BIGINT NOT NULL, " +
+                "[Menge] INT NOT NULL CONSTRAINT [df_m] DEFAULT 1, " +
+                "CONSTRAINT [fk_k] FOREIGN KEY ([KundeId]) REFERENCES [kunden] ([Id]) ON DELETE CASCADE, " +
+                "CONSTRAINT [ck_m] CHECK (Menge > 0), CONSTRAINT [pk_b] PRIMARY KEY ([Id]))",
+        )
+        insert(store, mapOf("Id" to 1L, "Name" to "Ada"))
+        ask(backend, "CREATE INDEX [ix_m] ON [bestellung] ([Menge])")
+        ask(backend, "CREATE INDEX [ix_name] ON [kunden] ([Name])")
+        ask(backend, "ALTER TABLE [kunden] ADD CONSTRAINT [ck_id] CHECK (Id > 0)")
+        ask(backend, "ALTER TABLE [bestellung] ADD [Notiz] NVARCHAR(50)")
+
+        fun catalogRows(sql: String, table: String) = ask(
+            backend,
+            sql.replace("?", " @P0 "),
+            QueryParameter("@P0", SqlType.UnicodeText, table),
+        ).filterIsInstance<QueryEvent.Row>().map { it.values }
+        assertEquals(
+            listOf(listOf("fk_k", "KundeId", "kunden", "Id", "CASCADE", "NO_ACTION", 1)),
+            catalogRows(FOREIGN_KEYS, "bestellung"),
+        )
+        assertEquals(listOf(listOf("ck_m", "([Menge]>(0))")), catalogRows(CHECKS, "bestellung"))
+        assertEquals(
+            listOf("ix_m"),
+            catalogRows(INDEXES, "bestellung").map { it[0] },
+        )
+        assertEquals(
+            "((1))",
+            catalogRows(COLUMNS, "bestellung").single { it[0] == "Menge" }[9],
+        )
+        assertEquals(listOf(listOf("uq_kunden_name", "Name")), catalogRows(UNIQUE_KEYS, "kunden"))
+        assertEquals(listOf("ix_name", "uq_kunden_name"), catalogRows(INDEXES, "kunden").map { it[0] }.distinct())
+        assertEquals(listOf(listOf("ck_id", "([Id]>(0))")), catalogRows(CHECKS, "kunden"))
+        assertEquals(listOf(listOf(1L, "Ada")), stored(store))
     }
 
     /**

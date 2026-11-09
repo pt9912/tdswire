@@ -16,7 +16,18 @@ private fun long(name: String, nullable: Boolean = false) = ResultColumn(name, S
 private fun bool(name: String, nullable: Boolean = false) = ResultColumn(name, SqlType.Bool, nullable)
 
 /** Woher die Zeilen einer Katalogantwort kommen: aus den Tabellen des Katalogs oder gar nicht (leer). */
-internal enum class CatalogSource { TABLES, COLUMNS, PRIMARY_KEY, SCHEMA_NAME, COLLATIONS, EMPTY }
+internal enum class CatalogSource {
+    TABLES,
+    COLUMNS,
+    PRIMARY_KEY,
+    UNIQUE_KEYS,
+    FOREIGN_KEYS,
+    INDEXES,
+    CHECKS,
+    SCHEMA_NAME,
+    COLLATIONS,
+    EMPTY,
+}
 
 /**
  * Die Katalogabfragen, die d-migrate 1.12.0 (Treiber `driver-mssql-1.12.0`, mssql-jdbc 13.4.0) für `schema reverse`
@@ -25,10 +36,14 @@ internal enum class CatalogSource { TABLES, COLUMNS, PRIMARY_KEY, SCHEMA_NAME, C
  * Bytecode (`javap`), mit `?` für einen Parameter; [CatalogForms] vergleicht den Text einer Anfrage nach
  * [CatalogForms.normalize] mit ihm. [columns] sind die Spalten der Antwort in der Reihenfolge der Abfrage, [source]
  * sagt, woher die Zeilen kommen.
- * Die Antwortspalten von [COLUMNS] tragen die gemessenen Typen des Servers (M-16: `max_length` `Int16`, `precision`
- * und `scale` `UInt8`, `is_nullable` und `is_computed` nullbar). Die übrigen Formen sind nicht gemessen; ihre Typen
- * sind die nächsten von [SqlType] (`smallint`, `tinyint` und `char` des Servers heißen dort `Int32` und
- * `UnicodeText`, Setzung).
+ * Die Antwortspalten von [COLUMNS], [PRIMARY_KEY], [UNIQUE_KEYS], [FOREIGN_KEYS], [INDEXES] und [CHECKS] tragen die
+ * gemessenen Typen und Nullbarkeiten des Servers (M-16: `max_length` `Int16`, `precision` und `scale` `UInt8`,
+ * `is_nullable` und `is_computed` nullbar, `column_name` nullbar; die Aufnahme `katalog-abfragen` beider Instanzen
+ * zeigt dasselbe für die übrigen fünf Formen, etwa `type` und `key_ordinal` der Indizes als `tinyint`). Text steht
+ * als `UnicodeText`, also `nvarchar(4000)`, wo der Server `nvarchar(128)` (Namen) oder `nvarchar(max)` (Definitionen)
+ * sendet: die Länge ist eine benannte Grenze (`SqlType` wächst dafür nicht). Die übrigen Formen sind nicht gemessen
+ * oder nur leer beantwortet; ihre Typen sind die nächsten von [SqlType] (`char` des Servers heißt dort
+ * `UnicodeText`, `smallint` und `tinyint` dort `Int32`, Setzung).
  */
 internal enum class CatalogForm(val template: String, val source: CatalogSource, val columns: List<ResultColumn>) {
     COLLATIONS(
@@ -71,7 +86,8 @@ internal enum class CatalogForm(val template: String, val source: CatalogSource,
         """,
         CatalogSource.COLUMNS,
         listOf(
-            text("column_name"), text("type_name"), short("max_length"), byte("precision"), byte("scale"),
+            text("column_name", nullable = true), text("type_name"), short("max_length"), byte("precision"),
+            byte("scale"),
             bool("is_nullable", nullable = true), bool("is_identity"), bool("is_computed", nullable = true),
             int("column_id"),
             text("default_definition", nullable = true), long("seed_value", nullable = true),
@@ -91,7 +107,7 @@ internal enum class CatalogForm(val template: String, val source: CatalogSource,
         ORDER BY ic.key_ordinal
         """,
         CatalogSource.PRIMARY_KEY,
-        listOf(text("column_name")),
+        listOf(text("column_name", nullable = true)),
     ),
     UNIQUE_KEYS(
         """
@@ -104,8 +120,8 @@ internal enum class CatalogForm(val template: String, val source: CatalogSource,
         WHERE kc.parent_object_id = OBJECT_ID(?) AND kc.type = 'UQ'
         ORDER BY kc.name, ic.key_ordinal
         """,
-        CatalogSource.EMPTY,
-        listOf(text("constraint_name"), text("column_name")),
+        CatalogSource.UNIQUE_KEYS,
+        listOf(text("constraint_name"), text("column_name", nullable = true)),
     ),
     FOREIGN_KEYS(
         """
@@ -123,14 +139,14 @@ internal enum class CatalogForm(val template: String, val source: CatalogSource,
         WHERE fk.parent_object_id = OBJECT_ID(?)
         ORDER BY fk.name, fkc.constraint_column_id
         """,
-        CatalogSource.EMPTY,
+        CatalogSource.FOREIGN_KEYS,
         listOf(
             text("constraint_name"),
-            text("column_name"),
+            text("column_name", nullable = true),
             text("referenced_table"),
-            text("referenced_column"),
-            text("delete_referential_action_desc"),
-            text("update_referential_action_desc"),
+            text("referenced_column", nullable = true),
+            text("delete_referential_action_desc", nullable = true),
+            text("update_referential_action_desc", nullable = true),
             int("constraint_column_id"),
         ),
     ),
@@ -145,11 +161,12 @@ internal enum class CatalogForm(val template: String, val source: CatalogSource,
           AND i.is_primary_key = 0 AND i.is_hypothetical = 0
         ORDER BY i.name, ic.key_ordinal, ic.index_column_id
         """,
-        CatalogSource.EMPTY,
+        CatalogSource.INDEXES,
         listOf(
-            text("index_name", nullable = true), bool("is_unique"), bool("has_filter"),
-            text("filter_definition", nullable = true), int("type"), text("column_name"), int("key_ordinal"),
-            bool("is_descending_key"), bool("is_included_column"),
+            text("index_name", nullable = true), bool("is_unique", nullable = true),
+            bool("has_filter", nullable = true), text("filter_definition", nullable = true), byte("type"),
+            text("column_name", nullable = true), byte("key_ordinal"), bool("is_descending_key", nullable = true),
+            bool("is_included_column", nullable = true),
         ),
     ),
     FULLTEXT_COLUMNS(
@@ -192,7 +209,7 @@ internal enum class CatalogForm(val template: String, val source: CatalogSource,
         WHERE cc.parent_object_id = OBJECT_ID(?) AND cc.is_ms_shipped = 0
         ORDER BY cc.name
         """,
-        CatalogSource.EMPTY,
+        CatalogSource.CHECKS,
         listOf(text("constraint_name"), text("definition", nullable = true)),
     ),
     SEQUENCES(

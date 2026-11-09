@@ -1,122 +1,105 @@
 package io.github.pt9912.tdswire.simulation
 
-import io.github.pt9912.tdswire.domain.SqlType
-
 /**
- * Die Formen D1 und D2 von `SPEC-036`: `CREATE TABLE [<Schema>.]<Tabelle> (<Spalte> {, <Spalte>} [, [CONSTRAINT
- * <Name>] PRIMARY KEY (<Spalten>)])` und `ALTER TABLE [<Schema>.]<Tabelle> ADD <Spalte> {, <Spalte>}`. Eine Spalte ist
- * `<Name> <Typ> [NOT NULL | NULL]`; der Typ ist `INT`, `BIGINT`, `BIT`, `DATE`, `TIME`, `DATETIME2`,
- * `NVARCHAR(<n>)` mit `n` von 1 bis 4000 oder `MAX`, oder `DECIMAL(<p>, <s>)`. `NVARCHAR(MAX)` ist `maxLength` -1
- * (der Katalog meldet `max_length` -1). Gemessen ist der Wortlaut von d-migrate 1.12.0 (`CREATE TABLE`
- * mit `CONSTRAINT [pk_…] PRIMARY KEY ([Id])`, `ALTER TABLE … ADD [Email] NVARCHAR(4000)`); mehrere Spalten in `ADD`
- * sind Setzung. Ein anderer Typ oder eine weitere Klausel (`DEFAULT`, `IDENTITY`, `UNIQUE`) macht den Text nicht
- * erkannt.
+ * Die Formen D1 bis D4 von `SPEC-036`:
+ * - D1 `CREATE TABLE [<Schema>.]<Tabelle> (<Eintrag> {, <Eintrag>})`: ein Eintrag ist eine Spalte ([ColumnParts]) oder
+ *   eine Bedingung der Tabelle ([ConstraintParts]), höchstens ein Schlüssel,
+ * - D2 `ALTER TABLE [<Schema>.]<Tabelle> ADD <Spalte> {, <Spalte>}`,
+ * - D3 `ALTER TABLE [<Schema>.]<Tabelle> [WITH CHECK] ADD CONSTRAINT <Name> …` ([ConstraintParts]),
+ * - D4 `CREATE [UNIQUE] INDEX <Name> ON [<Schema>.]<Tabelle> (<Spalten>) [INCLUDE (<Spalten>)]`.
+ * `NVARCHAR(MAX)` ist `maxLength` -1 (der Katalog meldet `max_length` -1). Gemessen ist der Wortlaut von d-migrate
+ * 1.12.0 (`CREATE TABLE` mit `CONSTRAINT [pk_…] PRIMARY KEY ([Id])`, `ALTER TABLE … ADD [Email] NVARCHAR(4000)`,
+ * `ALTER TABLE … WITH CHECK ADD CONSTRAINT …`, `CREATE INDEX …`); mehrere Spalten in `ADD` sind Setzung. Eine weitere
+ * Klausel (`IDENTITY`, `WITH NOCHECK`, `CLUSTERED`) macht den Text nicht erkannt.
  */
 internal class StructureParts(private val stream: TokenStream, private val parts: Parts) {
-    fun createTable(): Statement {
-        stream.keyword("TABLE")
-        val table = parts.tableRef()
-        stream.symbol('(')
+    private val columns = ColumnParts(stream, parts)
+    private val constraints = ConstraintParts(stream, parts)
+
+    /** Die Einträge einer Tabellenliste von `CREATE TABLE`, nach Art gesammelt. */
+    private class Collected {
         val columns = ArrayList<SimColumn>()
         var key: List<String>? = null
+        val unique = ArrayList<SimUniqueKey>()
+        val foreign = ArrayList<SimForeignKey>()
+        val checks = ArrayList<SimCheck>()
+    }
+
+    /** Hinter `CREATE`: `TABLE …` oder `[UNIQUE] INDEX …`. */
+    fun create(): Statement {
+        if (stream.acceptKeyword("TABLE")) return createTable()
+        val unique = stream.acceptKeyword("UNIQUE")
+        stream.keyword("INDEX")
+        return createIndex(unique)
+    }
+
+    private fun createTable(): Statement {
+        val table = parts.tableRef()
+        stream.symbol('(')
+        val collected = Collected()
         do {
-            if (isKeyDefinition()) {
-                if (key != null) throw unexpected()
-                key = primaryKey()
-            } else {
-                columns += column()
-            }
+            entry(collected)
         } while (stream.acceptSymbol(','))
         stream.symbol(')')
-        if (columns.isEmpty() || SimNames.firstDuplicate(columns.map { it.name }) != null) {
+        if (collected.columns.isEmpty() || SimNames.firstDuplicate(collected.columns.map { it.name }) != null) {
             throw Reject(Unrecognized.DUPLICATE_COLUMN)
         }
-        return Statement.CreateTable(table, columns, key)
+        val elements = TableElements(collected.unique, collected.foreign, collected.checks)
+        return Statement.CreateTable(table, collected.columns, collected.key, elements)
     }
 
-    fun addColumns(): Statement {
+    private fun entry(collected: Collected) {
+        if (!constraints.isStart()) {
+            val parsed = columns.column()
+            collected.columns += parsed.column
+            parsed.unique?.let { collected.unique += it }
+            return
+        }
+        when (val level = constraints.tableLevel()) {
+            is TableLevel.PrimaryKey -> {
+                if (collected.key != null) throw unexpected()
+                collected.key = level.columns
+            }
+
+            is TableLevel.Element -> when (val element = level.constraint) {
+                is NewConstraint.Unique -> collected.unique += element.key
+                is NewConstraint.Foreign -> collected.foreign += element.key
+                is NewConstraint.Check -> collected.checks += element.check
+                is NewConstraint.Default -> throw unexpected()
+            }
+        }
+    }
+
+    /** Hinter `ALTER`: `TABLE <Tabelle> [WITH CHECK] ADD …`. */
+    fun alter(): Statement {
         stream.keyword("TABLE")
         val table = parts.tableRef()
+        val withCheck = stream.acceptKeyword("WITH")
+        if (withCheck) stream.keyword("CHECK")
         stream.keyword("ADD")
-        val columns = parts.list { column() }
-        if (SimNames.firstDuplicate(columns.map { it.name }) != null) throw Reject(Unrecognized.DUPLICATE_COLUMN)
-        return Statement.AddColumns(table, columns)
+        if (stream.peek()?.isKeyword("CONSTRAINT") == true) {
+            return Statement.AddConstraint(table, constraints.added())
+        }
+        if (withCheck) throw unexpected()
+        return Statement.AddColumns(table, addedColumns())
     }
 
-    private fun isKeyDefinition(): Boolean {
-        val next = stream.peek()
-        return next != null && (next.isKeyword("CONSTRAINT") || next.isKeyword("PRIMARY"))
+    /** Die Spalten hinter `ADD`; eine Eindeutigkeit an der Spalte gibt es dort nicht. */
+    private fun addedColumns(): List<SimColumn> {
+        val added = parts.list { columns.column() }
+        val list = added.map { it.column }
+        if (added.any { it.unique != null }) throw unexpected()
+        if (SimNames.firstDuplicate(list.map { it.name }) != null) throw Reject(Unrecognized.DUPLICATE_COLUMN)
+        return list
     }
 
-    private fun primaryKey(): List<String> {
-        if (stream.acceptKeyword("CONSTRAINT")) parts.identifier()
-        stream.keyword("PRIMARY")
-        stream.keyword("KEY")
-        stream.symbol('(')
-        val names = parts.list { parts.identifier() }
-        stream.symbol(')')
-        if (SimNames.firstDuplicate(names) != null) throw Reject(Unrecognized.DUPLICATE_COLUMN)
-        return names
-    }
-
-    private fun column(): SimColumn {
+    private fun createIndex(unique: Boolean): Statement {
         val name = parts.identifier()
-        val head = stream.next()
-        if (head !is Token.Word) throw unexpected()
-        var length = MAX_TEXT_LENGTH
-        val type = when (asciiUpper(head.text)) {
-            "INT" -> SqlType.Int32
-            "BIGINT" -> SqlType.Int64
-            "BIT" -> SqlType.Bool
-            "DATE" -> SqlType.Date
-            "TIME" -> SqlType.Time
-            "DATETIME2" -> SqlType.DateTime
-            "NVARCHAR" -> SqlType.UnicodeText.also { length = textLength() }
-            "DECIMAL" -> decimal()
-            else -> throw unexpected()
-        }
-        return SimColumn(name, type, nullable(), length)
-    }
-
-    private fun textLength(): Int {
-        stream.symbol('(')
-        val token = stream.next()
-        val length = if (token.isKeyword("MAX")) UNBOUNDED_TEXT else whole(token)
-        stream.symbol(')')
-        if (length != UNBOUNDED_TEXT && length !in 1..MAX_TEXT_LENGTH) throw Reject(Unrecognized.MALFORMED_NUMBER)
-        return length
-    }
-
-    private fun decimal(): SqlType {
-        stream.symbol('(')
-        val precision = whole()
-        stream.symbol(',')
-        val scale = whole()
-        stream.symbol(')')
-        if (precision !in 1..MAX_PRECISION || scale !in 0..precision) throw Reject(Unrecognized.MALFORMED_NUMBER)
-        return SqlType.Decimal(precision, scale)
-    }
-
-    private fun whole(token: Token = stream.next()): Int =
-        (token as? Token.Number)?.let { small(it) } ?: throw Reject(Unrecognized.MALFORMED_NUMBER)
-
-    /** Die Ganzzahl höchstens fünf Ziffern lang oder `null`. */
-    private fun small(token: Token.Number): Int? =
-        token.text.takeIf { it.length <= MAX_DIGITS && it.all { c -> c in '0'..'9' } }?.toInt()
-
-    private fun nullable(): Boolean = when {
-        stream.acceptKeyword("NOT") -> {
-            stream.keyword("NULL")
-            false
-        }
-
-        stream.acceptKeyword("NULL") -> true
-
-        else -> true
-    }
-
-    private companion object {
-        const val MAX_PRECISION = 38
-        const val MAX_DIGITS = 5
+        stream.keyword("ON")
+        val table = parts.tableRef()
+        val keys = constraints.columnList()
+        val included = if (stream.acceptKeyword("INCLUDE")) constraints.columnList() else emptyList()
+        if (SimNames.firstDuplicate(keys + included) != null) throw Reject(Unrecognized.DUPLICATE_COLUMN)
+        return Statement.CreateIndex(table, SimIndex(name, keys, unique, included))
     }
 }

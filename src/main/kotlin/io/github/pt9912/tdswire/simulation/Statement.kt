@@ -59,12 +59,23 @@ internal sealed interface Statement {
 
     /**
      * D1: `CREATE TABLE` mit den Spalten in der Reihenfolge des Textes; [key] ist `null`, wenn der Text keinen
-     * Schlüssel nennt.
+     * Schlüssel nennt. [elements] sind die Eindeutigkeiten, Fremdschlüssel und Prüfbedingungen des Textes.
      */
-    data class CreateTable(override val table: TableRef, val cols: List<SimColumn>, val key: List<String>?) : Statement
+    data class CreateTable(
+        override val table: TableRef,
+        val cols: List<SimColumn>,
+        val key: List<String>?,
+        val elements: TableElements = TableElements(),
+    ) : Statement
 
     /** D2: `ALTER TABLE … ADD` mit den neuen Spalten. */
     data class AddColumns(override val table: TableRef, val columns: List<SimColumn>) : Statement
+
+    /** D3: `ALTER TABLE … ADD CONSTRAINT` mit Eindeutigkeit, Fremdschlüssel, Prüfbedingung oder Standardwert. */
+    data class AddConstraint(override val table: TableRef, val constraint: NewConstraint) : Statement
+
+    /** D4: `CREATE [UNIQUE] INDEX … ON … (…) [INCLUDE (…)]`. */
+    data class CreateIndex(override val table: TableRef, val index: SimIndex) : Statement
 
     /**
      * M: `MERGE … OUTPUT $action` (`SPEC-036` Form M). [sourceColumns] benennt die Werte der einen `VALUES`-Zeile
@@ -79,6 +90,25 @@ internal sealed interface Statement {
         val update: List<MergeLink>?,
         val insert: List<MergeLink>,
     ) : Statement
+}
+
+/** Die Elemente eines `CREATE TABLE` außer Spalten und Schlüssel (Form D1). */
+internal data class TableElements(
+    val uniqueKeys: List<SimUniqueKey> = emptyList(),
+    val foreignKeys: List<SimForeignKey> = emptyList(),
+    val checks: List<SimCheck> = emptyList(),
+)
+
+/** Das Element, das `ALTER TABLE … ADD CONSTRAINT` anlegt (Form D3). */
+internal sealed interface NewConstraint {
+    data class Unique(val key: SimUniqueKey) : NewConstraint
+
+    data class Foreign(val key: SimForeignKey) : NewConstraint
+
+    data class Check(val check: SimCheck) : NewConstraint
+
+    /** `DEFAULT <Literal> FOR <Spalte>`: [definition] ist die Form des Katalogs, [name] der Name der Bedingung. */
+    data class Default(val name: String, val column: String, val definition: String) : NewConstraint
 }
 
 /** Eine Zuordnung `<Alias der Tabelle>.<Spalte> = <Alias der Quelle>.<Spalte>` oder die Paarung von `INSERT`. */

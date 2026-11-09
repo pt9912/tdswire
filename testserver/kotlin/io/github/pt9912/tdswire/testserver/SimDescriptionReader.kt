@@ -15,11 +15,13 @@ private val DOCUMENT_READ = setOf("schema_format", "name", "version", "tables")
 private val DOCUMENT_IGNORED = setOf(
     "description", "encoding", "locale", "custom_types", "procedures", "functions", "views", "triggers", "sequences",
 )
-private val TABLE_READ = setOf("columns", "primary_key")
-private val TABLE_IGNORED = setOf("description", "indices", "constraints", "partitioning", "metadata")
-private val COLUMN_READ = setOf("type", "required", "max_length", "precision", "scale", "timezone", "ordinal")
+private val TABLE_READ = setOf("columns", "primary_key", "indices", "constraints")
+private val TABLE_IGNORED = setOf("description", "partitioning", "metadata")
+private val COLUMN_READ = setOf(
+    "type", "required", "max_length", "precision", "scale", "timezone", "ordinal", "unique", "default", "references",
+)
 private val COLUMN_IGNORED = setOf(
-    "unique", "default", "auto_increment", "generation", "references",
+    "auto_increment", "generation",
     "length", "float_precision", "values", "ref_type", "element_type", "geometry_type", "srid",
 )
 
@@ -33,7 +35,14 @@ private class RawColumn(
     val notNull: Boolean,
     val ordinal: Pair<Int, SimPosition>?,
     val maxLength: Int,
+    val elements: ColumnElement,
 )
+
+/** Standardwert, Eindeutigkeit und Fremdschlüssel, die die Datei an einer Spalte nennt. */
+private class ColumnElement(val defaultDefinition: String?, val unique: Boolean, val reference: PendingForeignKey?)
+
+/** Eine gelesene Tabelle mit den Fremdschlüsseln, deren Ziel erst nach allen Tabellen geprüft wird. */
+private class ReadTable(val table: SimTable, val pending: List<PendingForeignKey>)
 
 /**
  * Der Leser der Tabellenbeschreibung (`SPEC-035` „Beschreibung als Datei“): macht aus einem [SimNode]-Baum
@@ -61,7 +70,12 @@ object SimDescriptionReader {
         val tablesPath = child(path, "tables")
         val tables = asMap(required(doc, "tables", map, path).value, tablesPath)
         checkNames(tables.entries, tablesPath)
-        return tables.entries.map { readTable(it, tablesPath) }
+        val read = tables.entries.map { readTable(it, tablesPath) }
+        val known = read.associate { item ->
+            NameFold.fold(item.table.name) to item.table.columns.map { NameFold.fold(it.name) }.toSet()
+        }
+        SimElementReader.checkTargets(read.flatMap { it.pending }, known)
+        return read.map { it.table }
     }
 
     private fun checkNames(entries: List<SimEntry>, path: String) {
@@ -72,7 +86,7 @@ object SimDescriptionReader {
         }
     }
 
-    private fun readTable(entry: SimEntry, tablesPath: String): SimTable {
+    private fun readTable(entry: SimEntry, tablesPath: String): ReadTable {
         val path = child(tablesPath, entry.key)
         val map = asMap(entry.value, path)
         val f = fields(map, path, TABLE_READ, TABLE_IGNORED)
@@ -80,20 +94,52 @@ object SimDescriptionReader {
         val columnsPath = child(path, "columns")
         val columnsMap = asMap(columnsEntry.value, columnsPath)
         if (columnsMap.entries.isEmpty()) fail(columnsPath, columnsMap.position, "mindestens eine Spalte erforderlich")
-        val raw = readColumns(columnsMap, columnsPath)
+        val raw = readColumns(columnsMap, columnsPath, entry.key)
         val key = f["primary_key"]
             ?.let { readKey(asList(it.value, child(path, "primary_key")), child(path, "primary_key"), raw) }
             .orEmpty()
         val keySet = key.map { NameFold.fold(it) }.toSet()
         val columns = raw.map {
-            SimColumn(it.name, it.type, nullable = !(it.notNull || NameFold.fold(it.name) in keySet), it.maxLength)
+            val nullable = !(it.notNull || NameFold.fold(it.name) in keySet)
+            SimColumn(it.name, it.type, nullable, it.maxLength, it.elements.defaultDefinition)
         }
-        return SimTable(name = entry.key, columns = columns, primaryKey = key, rows = { RowSource { null } })
+        val elements = readElements(entry.key, f, path, raw)
+        val table = runCatching {
+            SimTable(
+                name = entry.key,
+                columns = columns,
+                primaryKey = key,
+                rows = { RowSource { null } },
+                uniqueKeys = elements.uniqueKeys,
+                foreignKeys = elements.foreignKeys.map { it.key },
+                indexes = elements.indexes,
+                checks = elements.checks,
+            )
+        }.getOrElse { fail(path, map.position, "Name einer Bedingung oder eines Index doppelt") }
+        return ReadTable(table, elements.foreignKeys)
     }
 
-    private fun readColumns(map: SimMap, path: String): List<RawColumn> {
+    /** Eindeutigkeiten, Fremdschlüssel, Indizes und Prüfbedingungen: die der Spalten zuerst, dann die der Tabelle. */
+    private fun readElements(
+        table: String,
+        f: Map<String, SimEntry>,
+        path: String,
+        raw: List<RawColumn>,
+    ): TableElementsRead {
+        val into = TableElementsRead()
+        for (column in raw) {
+            if (column.elements.unique) into.uniqueKeys += SimElementReader.columnUnique(table, column.name)
+            column.elements.reference?.let { into.foreignKeys += it }
+        }
+        val names = raw.map { NameFold.fold(it.name) }.toSet()
+        f["indices"]?.let { SimElementReader.indexes(it.value, child(path, "indices"), names, into) }
+        f["constraints"]?.let { SimElementReader.constraints(it.value, child(path, "constraints"), names, into) }
+        return into
+    }
+
+    private fun readColumns(map: SimMap, path: String, table: String): List<RawColumn> {
         checkNames(map.entries, path)
-        val raw = map.entries.map { readColumn(it, path) }
+        val raw = map.entries.map { readColumn(it, path, table) }
         val withOrdinal = raw.count { it.ordinal != null }
         return when (withOrdinal) {
             0 -> raw
@@ -113,7 +159,7 @@ object SimDescriptionReader {
         return raw.sortedBy { it.ordinal?.first }
     }
 
-    private fun readColumn(entry: SimEntry, columnsPath: String): RawColumn {
+    private fun readColumn(entry: SimEntry, columnsPath: String, tableName: String): RawColumn {
         val path = child(columnsPath, entry.key)
         val map = asMap(entry.value, path)
         val f = fields(map, path, COLUMN_READ, COLUMN_IGNORED)
@@ -125,10 +171,16 @@ object SimDescriptionReader {
         val scale = number(f, "scale", path, 0)
         val timezone = f["timezone"]?.let { SimTreeAccess.boolean(it.value, child(path, "timezone")) } ?: false
         val ordinal = number(f, "ordinal", path, 1)
+        val default = f["default"]?.let { SimElementReader.defaultDefinition(it.value, child(path, "default")) }
+        val unique = f["unique"]?.let { SimTreeAccess.boolean(it.value, child(path, "unique")) } ?: false
+        val reference = f["references"]?.let {
+            SimElementReader.columnReference(tableName, entry.key, it.value, child(path, "references"))
+        }
         val fieldsOfType = ColumnTypeFields(typeName, typeEntry.value.position, precision, scale, timezone)
         val type = SimColumnTypes.map(fieldsOfType, path, map.position)
         val length = minOf(maxLength ?: TEXT_LENGTH_LIMIT, TEXT_LENGTH_LIMIT)
-        return RawColumn(entry.key, type, notNull || SimColumnTypes.isIdentifier(typeName), ordinal, length)
+        val notNullType = notNull || SimColumnTypes.isIdentifier(typeName)
+        return RawColumn(entry.key, type, notNullType, ordinal, length, ColumnElement(default, unique, reference))
     }
 
     private fun number(f: Map<String, SimEntry>, key: String, path: String, min: Int): Pair<Int, SimPosition>? =
