@@ -1,1 +1,1 @@
-**Stand:** offen — 2×, unter der Schwelle; Träger: Architect, kein Slice. Für diesen Vorgang nicht Bedingung der Closure (Verifikation, Abschnitt „Öffentliche Fläche“).
+**Stand:** offen — 3×, Schwelle erreicht; Träger: Architect, kein Slice; Lese-Schritt (Verkörperung oder Streichung) in der Closure von [welle-testserver-manuell](../../../welle-testserver-manuell.md). Für diesen Vorgang nicht Bedingung der Closure (Verifikation, Abschnitt „Öffentliche Fläche“).
