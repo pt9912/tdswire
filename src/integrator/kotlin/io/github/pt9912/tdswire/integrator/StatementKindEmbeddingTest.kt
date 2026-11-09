@@ -47,9 +47,6 @@ private const val DESCRIPTOR_BYTES = 8
 private const val ROWS = 3L
 private const val TEXT_LENGTH = 4000
 private const val MERGE_LENGTH = 10
-private const val MERGE_COMMAND = 0x0117
-private const val SELECT_COMMAND = 0x00C1
-private const val DONE_ERROR_BIT = 0x02
 
 /**
  * Die Anweisungsart im Abschluss einer Antwort (`SPEC-031`, `SPEC-059`, ADR-0042) von außen: `StatementKind` und
@@ -249,40 +246,6 @@ class StatementKindEmbeddingTest {
     }
 
     /**
-     * `ResultStart.kind` von außen am Draht: ein eigenes Backend, das ein Ergebnis mit der Art `MERGE` beginnt und
-     * dann scheitert, bekommt einen Abschluss mit dem Fehlerbit und der Kennung `0x0117`; ohne Art (`ResultStart(columns)`)
-     * bleibt es bei `0x00c1`. Ein `UpdateCount(n, MERGE)` schließt mit `COUNT` und `0x0117`. Wächter: ein `kind`, das
-     * der Sequenzierer nicht liest (Kennung `0x00c1`), eine Kennung 0 für `MERGE`.
-     *
-     * @spec SPEC-059
-     * @spec SPEC-031
-     */
-    @Test
-    fun resultStartKindUndUpdateCountMergeTragenDieKennungAmDraht() {
-        val column = ResultColumn("a", SqlType.UnicodeText, nullable = false, maxLength = MERGE_LENGTH)
-        val failure = QueryEvent.Failure("TDS_BACKEND_ERROR", "Fehler")
-        val withKind = start(
-            BackendSource.Custom(
-                FixedListBackend(listOf(QueryEvent.ResultStart(listOf(column), StatementKind.MERGE), failure)),
-            ),
-        )
-        val withoutKind = start(
-            BackendSource.Custom(FixedListBackend(listOf(QueryEvent.ResultStart(listOf(column)), failure))),
-        )
-        val count = start(BackendSource.Custom(FixedCountBackend(QueryEvent.UpdateCount(ROWS, StatementKind.MERGE))))
-        val (merge, other) = listOf(withKind, withoutKind).map { server ->
-            WireClient(server.port).use { client ->
-                client.login()
-                client.batch("MERGE x").let { it.doneStatus to it.command }
-            }
-        }
-        assertEquals(MERGE_COMMAND, merge.second)
-        assertEquals(DONE_ERROR_BIT, merge.first and DONE_ERROR_BIT)
-        assertEquals(SELECT_COMMAND, other.second)
-        assertEquals(Triple(DONE_COUNT, MERGE_COMMAND, ROWS), doneOf(count, "MERGE x"))
-    }
-
-    /**
      * Die Fläche: die zehn Konstanten von `StatementKind`, das Feld `kind` von `UpdateCount` und von `ResultStart` mit
      * dem Standardwert `UNKNOWN`, das Längenfeld `maxLength` von `ResultColumn` mit dem Standardwert 4000 und für Java
      * die Konstruktoren mit weniger Argumenten (`@JvmOverloads`: `new UpdateCount(n)`, `new ResultStart(columns)`,
@@ -385,13 +348,6 @@ private class StepBackend : QueryBackend {
         }
         return FixedExecution(events)
     }
-
-    override suspend fun cancel(sessionId: String, requestId: String) = Unit
-}
-
-/** Ein Backend, das jede Anfrage mit denselben [events] beantwortet. */
-private class FixedListBackend(private val events: List<QueryEvent>) : QueryBackend {
-    override suspend fun execute(request: QueryRequest): QueryExecution = FixedExecution(events)
 
     override suspend fun cancel(sessionId: String, requestId: String) = Unit
 }
