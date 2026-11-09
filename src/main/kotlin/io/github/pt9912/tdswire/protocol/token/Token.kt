@@ -96,6 +96,7 @@ internal object DoneCommand {
     private const val IMPLICIT_TRANSACTIONS_ON = 0x00B9
     private const val IMPLICIT_TRANSACTIONS_OFF = 0x00BA
     private const val COMMIT_IF_OPEN = 0x00C0
+    private const val MERGE = 0x0117
 
     /** Der Abschluss des `COMMIT` hinter einer offenen Transaktion (Messprotokoll M-20). */
     const val COMMIT_TRAN = 0x00D5
@@ -114,14 +115,22 @@ internal object DoneCommand {
         StatementKind.IMPLICIT_TRANSACTIONS_ON -> IMPLICIT_TRANSACTIONS_ON
         StatementKind.IMPLICIT_TRANSACTIONS_OFF -> IMPLICIT_TRANSACTIONS_OFF
         StatementKind.COMMIT_IF_OPEN -> COMMIT_IF_OPEN
+        StatementKind.MERGE -> MERGE
     }
+
+    /**
+     * Die Kennung des Abschlusses eines Ergebnisses der Art [kind], auch eines Fehlers im offenen Ergebnis: `MERGE`
+     * `0x0117` (Messprotokoll M-13, M-15 und M-26), jede andere Art [SELECT]; gemessen ist nur `MERGE`.
+     */
+    fun forResult(kind: StatementKind): Int = if (kind == StatementKind.MERGE) MERGE else SELECT
 
     /**
      * Wahr, wenn der Abschluss der Art [kind] im SQL_BATCH eine Zeilenzahl trägt (Bit `COUNT`): `UNKNOWN` und die
      * Änderungen (W-6); die Arten aus M-20 schließen ohne.
      */
     fun countsRows(kind: StatementKind): Boolean = when (kind) {
-        StatementKind.UNKNOWN, StatementKind.INSERT, StatementKind.DELETE, StatementKind.UPDATE -> true
+        StatementKind.UNKNOWN, StatementKind.INSERT, StatementKind.DELETE, StatementKind.UPDATE, StatementKind.MERGE ->
+            true
 
         StatementKind.CREATE_TABLE,
         StatementKind.ALTER_TABLE,

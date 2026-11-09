@@ -83,12 +83,13 @@ internal const val UNBOUNDED_TEXT = -1
  *
  * [maxLength] ist die Länge eines Textes in Zeichen, wie der Katalog sie meldet (`nvarchar(<maxLength>)`); sie
  * gilt nur für [SqlType.UnicodeText], liegt zwischen 1 und 4000 oder ist -1 (`nvarchar(max)`, der Katalog meldet
- * `max_length` -1) und wirkt weder auf Zeilen noch auf die Metadaten eines Ergebnisses (dort gilt `SPEC-003`).
+ * `max_length` -1) und ändert die Metadaten eines Ergebnisses nicht (dort gilt `ResultColumn.maxLength`). Geprüft
+ * wird sie nur beim `MERGE` (ein Text darüber ist 2628, `SPEC-036`); die Zeilen der Zeilenquelle und das Massenladen
+ * prüft sie nicht (`SPEC-035`).
  *
  * [defaultDefinition] ist der Text, den der Katalog als `default_definition` der Spalte meldet, mit den Klammern des
  * Servers (`((1))` für `DEFAULT 1`, `(N'neu')` für `DEFAULT N'neu'`, Messprotokoll M-21); `null` heißt: ohne
- * Standardwert.
- * Die Bibliothek setzt den Wert nicht ein: ein `INSERT` ohne die Spalte bleibt ohne sie (`SPEC-035`).
+ * Standardwert. Die Bibliothek setzt den Wert nicht ein: ein `INSERT` ohne die Spalte bleibt ohne sie (`SPEC-035`).
  */
 public data class SimColumn(
     val name: String,

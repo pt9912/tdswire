@@ -23,3 +23,21 @@ internal fun ByteArray.containsUtf16(text: String): Boolean {
     val needle = utf16(text)
     return (0..size - needle.size).any { at -> needle.indices.all { this[at + it] == needle[it] } }
 }
+
+/** Wahr, wenn die Bytes aus [text] (Hex) irgendwo in der Antwort stehen. */
+internal fun ByteArray.containsBytes(text: String): Boolean {
+    val needle = hex(text)
+    return (0..size - needle.size).any { at -> needle.indices.all { this[at + it] == needle[it] } }
+}
+
+/** Wahr, wenn die Antwort mit den Bytes aus [text] (Hex) endet. */
+internal fun ByteArray.endsWithBytes(text: String): Boolean {
+    val tail = hex(text)
+    return size >= tail.size && copyOfRange(size - tail.size, size).contentEquals(tail)
+}
+
+/** INFO 3621 „The statement has been terminated.“ ab der Nummer, ohne Token und Länge (Messprotokoll M-15). */
+internal const val INFO_TERMINATED = "25 0E 00 00 00 00 22 00 54 00 68 00 65 00"
+
+/** DONEPROC ohne Fehlerbit, Befehl `0x00e0`: das Ende der Antwort auf einen RPC (Messprotokoll M-15). */
+internal const val DONEPROC_OK = "FE 00 00 E0 00 00 00 00 00 00 00 00 00"

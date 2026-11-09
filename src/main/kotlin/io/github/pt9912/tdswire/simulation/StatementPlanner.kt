@@ -31,6 +31,9 @@ internal object SimCodes {
     /** `ALTER TABLE` einer Tabelle, die der Katalog nicht führt (4902, Messprotokoll M-19). */
     const val OBJECT_NOT_FOUND = "TDS_SIM_OBJECT_NOT_FOUND"
 
+    /** Ein Text über der Länge der Spalte beim Einfügen oder Ändern eines `MERGE` (2628, Messprotokoll M-15). */
+    const val STRING_TRUNCATED = "TDS_SIM_STRING_TRUNCATED"
+
     /** Die Zeilenquelle ist fehlgeschlagen (`TDS-FA-11.a` Schritt 7). */
     const val BACKEND_ERROR = "TDS_BACKEND_ERROR"
 }

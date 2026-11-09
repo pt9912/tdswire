@@ -40,7 +40,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Der Bau der Atomarität und der Weitergabe der Zeilen — [slice-schreibpfad-bulk-load](../done/slice-schreibpfad-bulk-load.md); er richtet sich nach `Accepted` (Setzung des Planners: der Bau beginnt nicht vor dem Entscheid, sonst baut er gegen den Wortlaut, den die Messung widerlegt).
 - Eine Änderung von [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) selbst — sie ist `Accepted` und unveränderlich; die neue ADR schärft über `Supersedes (teilweise)`.
 - Messungen mit mssql-jdbc (Treiber von d-migrate) — Folgepflicht 2 der ADR hat ihren Träger in [slice-schreibpfad-merge-output](../done/slice-schreibpfad-merge-output.md) (Messauftrag).
-- Die Fehlernummern 2628, 2627 und 208 des `MERGE` (M-15) — [slice-merge-antwort-an-messung-angleichen](../open/slice-merge-antwort-an-messung-angleichen.md); dieser Slice trägt die Zuordnung der Codes je Fehlerursache **des Massenladens** (ein Punkt gehört genau einem Slice).
+- Die Fehlernummern 2628, 2627 und 208 des `MERGE` (M-15) — [slice-merge-antwort-an-messung-angleichen](../done/slice-merge-antwort-an-messung-angleichen.md); dieser Slice trägt die Zuordnung der Codes je Fehlerursache **des Massenladens** (ein Punkt gehört genau einem Slice).
 
 ## 2. Definition of Done
 

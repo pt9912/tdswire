@@ -8,6 +8,7 @@ import io.github.pt9912.tdswire.config.auth.UserList
 import io.github.pt9912.tdswire.config.auth.UserListResult
 import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.domain.QueryRequest
+import io.github.pt9912.tdswire.domain.ResultColumn
 import io.github.pt9912.tdswire.domain.SqlType
 import io.github.pt9912.tdswire.domain.StatementKind
 import io.github.pt9912.tdswire.port.QueryBackend
@@ -27,6 +28,7 @@ import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 
 private const val DONE_COUNT = 0x10
@@ -43,6 +45,8 @@ private const val ENVCHANGE_TYPE_OFFSET = 3
 private const val DESCRIPTOR_OFFSET = 5
 private const val DESCRIPTOR_BYTES = 8
 private const val ROWS = 3L
+private const val TEXT_LENGTH = 4000
+private const val MERGE_LENGTH = 10
 
 /**
  * Die Anweisungsart im Abschluss einer Antwort (`SPEC-031`, `SPEC-059`, ADR-0042) von außen: `StatementKind` und
@@ -242,9 +246,11 @@ class StatementKindEmbeddingTest {
     }
 
     /**
-     * Die Fläche: die neun Konstanten von `StatementKind`, das Feld `kind` mit dem Standardwert `UNKNOWN`, und für Java
-     * der Konstruktor mit einem Argument (`@JvmOverloads`: `new UpdateCount(n)`). Wächter: ein fehlendes Mitglied, ein
-     * anderer Standardwert, ein Konstruktor ohne Überladung für Java.
+     * Die Fläche: die zehn Konstanten von `StatementKind`, das Feld `kind` von `UpdateCount` und von `ResultStart` mit
+     * dem Standardwert `UNKNOWN`, das Längenfeld `maxLength` von `ResultColumn` mit dem Standardwert 4000 und für Java
+     * die Konstruktoren mit weniger Argumenten (`@JvmOverloads`: `new UpdateCount(n)`, `new ResultStart(columns)`,
+     * `new ResultColumn(name, type, nullable)`). Wächter: ein fehlendes Mitglied, ein anderer Standardwert, ein
+     * Konstruktor ohne Überladung für Java, ein Längenfeld außerhalb von 1 bis 4000.
      *
      * @spec SPEC-059
      */
@@ -261,6 +267,7 @@ class StatementKindEmbeddingTest {
                 "IMPLICIT_TRANSACTIONS_ON",
                 "IMPLICIT_TRANSACTIONS_OFF",
                 "COMMIT_IF_OPEN",
+                "MERGE",
             ),
             StatementKind.entries.map { it.name },
         )
@@ -268,6 +275,21 @@ class StatementKindEmbeddingTest {
         assertEquals(StatementKind.UPDATE, QueryEvent.UpdateCount(1, StatementKind.UPDATE).kind)
         val oneArgument = QueryEvent.UpdateCount::class.java.getConstructor(Long::class.javaPrimitiveType)
         assertEquals(QueryEvent.UpdateCount(ROWS), oneArgument.newInstance(ROWS))
+        val column = ResultColumn("a", SqlType.UnicodeText, nullable = false)
+        assertEquals(TEXT_LENGTH, column.maxLength)
+        assertEquals(MERGE_LENGTH, ResultColumn("a", SqlType.UnicodeText, false, MERGE_LENGTH).maxLength)
+        assertEquals(StatementKind.UNKNOWN, QueryEvent.ResultStart(listOf(column)).kind)
+        assertEquals(StatementKind.MERGE, QueryEvent.ResultStart(listOf(column), StatementKind.MERGE).kind)
+        val columnConstructor = ResultColumn::class.java
+            .getConstructor(String::class.java, SqlType::class.java, Boolean::class.javaPrimitiveType)
+        assertEquals(column, columnConstructor.newInstance("a", SqlType.UnicodeText, false))
+        val startConstructor = QueryEvent.ResultStart::class.java.getConstructor(List::class.java)
+        assertEquals(QueryEvent.ResultStart(listOf(column)), startConstructor.newInstance(listOf(column)))
+        for (length in listOf(0, TEXT_LENGTH + 1, -1)) {
+            assertFailsWith<IllegalArgumentException>("Länge $length") {
+                ResultColumn("a", SqlType.UnicodeText, false, length)
+            }
+        }
     }
 }
 

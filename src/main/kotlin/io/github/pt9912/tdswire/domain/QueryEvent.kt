@@ -1,7 +1,25 @@
 package io.github.pt9912.tdswire.domain
 
-/** Eine Spalte eines Ergebnisses; [nullable] sagt, ob die Spalte NULL enthalten darf. */
-public data class ResultColumn(val name: String, val type: SqlType, val nullable: Boolean)
+/** Die Länge von [SqlType.UnicodeText] in Zeichen, wenn eine Spalte keine nennt (`SPEC-003`). */
+internal const val DEFAULT_TEXT_LENGTH = 4000
+
+/**
+ * Eine Spalte eines Ergebnisses; [nullable] sagt, ob die Spalte NULL enthalten darf. [maxLength] ist die Länge in
+ * Zeichen, die die Metadaten für [SqlType.UnicodeText] melden (`nvarchar(<maxLength>)`, 1 bis 4000, Vorgabe 4000); sie
+ * wirkt auf keinen anderen Typ. Ein Text einer [Row] über [maxLength] Zeichen weist die Bibliothek ab: die Antwort
+ * endet mit einem Fehler statt mit dem Ergebnis (geprüft im Test `ResponseMergeTest`). Ein Wert außerhalb 1 bis 4000
+ * wirft [IllegalArgumentException].
+ */
+public data class ResultColumn @JvmOverloads constructor(
+    val name: String,
+    val type: SqlType,
+    val nullable: Boolean,
+    val maxLength: Int = DEFAULT_TEXT_LENGTH,
+) {
+    init {
+        require(maxLength in 1..DEFAULT_TEXT_LENGTH) { "Spalte $name: maxLength außerhalb 1..$DEFAULT_TEXT_LENGTH" }
+    }
+}
 
 /**
  * Ein Ereignis im Ergebnisstrom eines Backend-Aufrufs (`SPEC-002`). Das Backend kennt weder
@@ -11,8 +29,16 @@ public data class ResultColumn(val name: String, val type: SqlType, val nullable
  * Ereignis und prüft die Ereignisreihenfolge. Die Klasse eines Fehlers trägt [FailureScope].
  */
 public sealed interface QueryEvent {
-    /** Beginn eines Ergebnisses mit seinen Spalten; kommt vor den [Row] dieses Ergebnisses. */
-    public data class ResultStart(val columns: List<ResultColumn>) : QueryEvent
+    /**
+     * Beginn eines Ergebnisses mit seinen Spalten; kommt vor den [Row] dieses Ergebnisses. [kind] ist die Art der
+     * Anweisung, deren Antwort das Ergebnis ist; die Bibliothek leitet daraus die Befehlskennung des Abschlusses ab,
+     * auch eines Fehlers im offenen Ergebnis (`SPEC-031`). Gemessen ist nur [StatementKind.MERGE]; jede andere Art
+     * behandelt die Bibliothek wie [StatementKind.UNKNOWN], der Abschluss trägt die Kennung `0x00c1`.
+     */
+    public data class ResultStart @JvmOverloads constructor(
+        val columns: List<ResultColumn>,
+        val kind: StatementKind = StatementKind.UNKNOWN,
+    ) : QueryEvent
 
     /**
      * Eine Zeile. Die Darstellung ist `List<Any?>` mit festen JVM-Klassen je Spaltenart
