@@ -166,8 +166,10 @@ class ErrorMapperTest {
      * Die Strukturabweisung ist ERROR 2714 (State 6), 2705 (State 4) und 4902 (State 1), je Class 16, danach DONE mit
      * `ERROR`, Befehl `0x00fd`, ohne Zähler; die Verbindung bleibt offen. Nummer, Class, State, die offene Verbindung
      * und der Abschluss sind am Referenzclient gegen den echten SQL Server gemessen (Zeile M-19, 2022 und 2025), der
-     * Text ist ein Auszug des gemessenen Textes ohne die Namen (Setzung). Wächter: Class 20 mit schließender
-     * Verbindung (der Code `TDS_SIM_UNKNOWN_OBJECT`), State 1 für alle drei, eine andere Nummer, ein anderer Text.
+     * Text ist ein Auszug des gemessenen Textes ohne die Namen (Setzung). Ebenso `TDS_SIM_STRING_TRUNCATED`: ERROR
+     * 2628, State 1, Class 16, offene Verbindung (Zeile M-15; der Abschluss im Ergebnis steht in `ResponseMergeTest`).
+     * Wächter: Class 20 mit schließender Verbindung (der Code `TDS_SIM_UNKNOWN_OBJECT`), State 1 für alle drei, eine
+     * andere Nummer, ein anderer Text.
      *
      * @spec SPEC-036
      * @spec TDS-QA-01
@@ -178,12 +180,14 @@ class ErrorMapperTest {
             ErrorCode.TDS_SIM_OBJECT_EXISTS to listOf(2714, 6, 16),
             ErrorCode.TDS_SIM_COLUMN_EXISTS to listOf(2705, 4, 16),
             ErrorCode.TDS_SIM_OBJECT_NOT_FOUND to listOf(4902, 1, 16),
+            ErrorCode.TDS_SIM_STRING_TRUNCATED to listOf(2628, 1, 16),
         )
         val texts = mapOf(
             ErrorCode.TDS_SIM_OBJECT_EXISTS to "There is already an object named in the database.",
             ErrorCode.TDS_SIM_COLUMN_EXISTS to "Column names in each table must be unique.",
             ErrorCode.TDS_SIM_OBJECT_NOT_FOUND to
                 "Cannot find the object because it does not exist or you do not have permissions.",
+            ErrorCode.TDS_SIM_STRING_TRUNCATED to "String or binary data would be truncated.",
         )
         for ((code, numbers) in expected) {
             val response = mapper.code(code)
@@ -386,7 +390,7 @@ class ErrorMapperTest {
             "TDS_BACKEND_ERROR", "TDS_TIMEOUT", "TDS_UNSUPPORTED_SQL", "TDS_SIM_UNKNOWN_OBJECT",
             "TDS_SIM_INVALID_VALUE", "TDS_INTERNAL_ERROR", "TDS_SHUTDOWN", "TDS_PREPARE_LIMIT",
             "TDS_SIM_UNKNOWN_PREPARED_HANDLE", "TDS_SIM_KEY_VIOLATION",
-            "TDS_SIM_OBJECT_EXISTS", "TDS_SIM_COLUMN_EXISTS", "TDS_SIM_OBJECT_NOT_FOUND",
+            "TDS_SIM_OBJECT_EXISTS", "TDS_SIM_COLUMN_EXISTS", "TDS_SIM_OBJECT_NOT_FOUND", "TDS_SIM_STRING_TRUNCATED",
         )
         assertEquals(expected, ErrorCode.entries.map { it.name }.toSet())
         assertEquals(expected.size, ErrorCode.entries.map { it.rule.number }.toSet().size)
@@ -428,6 +432,7 @@ class ErrorMapperTest {
             ErrorCode.TDS_SIM_OBJECT_EXISTS,
             ErrorCode.TDS_SIM_COLUMN_EXISTS,
             ErrorCode.TDS_SIM_OBJECT_NOT_FOUND,
+            ErrorCode.TDS_SIM_STRING_TRUNCATED,
             ErrorCode.TDS_TIMEOUT,
         )
         ErrorCode.entries.forEach {

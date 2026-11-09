@@ -4,6 +4,7 @@ import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.domain.QueryParameter
 import io.github.pt9912.tdswire.domain.ResultColumn
 import io.github.pt9912.tdswire.domain.SqlType
+import io.github.pt9912.tdswire.domain.StatementKind
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
@@ -50,6 +51,9 @@ class SimulationBackendMergeTest {
         val result: Long = 1,
         val keyType: SqlType = SqlType.Int64,
     ) {
+        /** Die Länge der Spalte `Name` in Zeichen für die Tabelle, die [simTable] beim nächsten Zugriff baut. */
+        var nameLength: Int = MAX_TEXT_LENGTH
+
         var opens = 0
         var closes = 0
         var inserts = 0
@@ -64,9 +68,11 @@ class SimulationBackendMergeTest {
             return result
         }
 
-        val simTable = SimTable(
+        val simTable get() = SimTable(
             name = "kunden",
-            columns = listOf(SimColumn("Id", keyType, nullable = false)) + columns.drop(1),
+            columns = listOf(SimColumn("Id", keyType, nullable = false)) + columns.drop(1).map {
+                if (it.name == "Name") it.copy(maxLength = nameLength) else it
+            },
             primaryKey = listOf("Id"),
             rows = { q ->
                 opens++
@@ -136,7 +142,10 @@ class SimulationBackendMergeTest {
     private fun run(table: Fixture, sql: String, params: List<QueryParameter> = parameters()) =
         collectEvents(table.backend, sql, params)
 
-    private val actionStart = QueryEvent.ResultStart(listOf(ResultColumn("\$action", SqlType.UnicodeText, false)))
+    private val actionStart = QueryEvent.ResultStart(
+        listOf(ResultColumn("\$action", SqlType.UnicodeText, nullable = false, maxLength = 10)),
+        StatementKind.MERGE,
+    )
 
     private fun existingRow(id: Long) = listOf<Any?>(id, "vorhanden", LocalDate.of(2020, 2, 2))
 
@@ -345,27 +354,73 @@ class SimulationBackendMergeTest {
     }
 
     /**
-     * Negative: ein Fehler des Callbacks steht hinter dem Beginn des Ergebnisses als `TDS_BACKEND_ERROR` mit fester
-     * Meldung; eine negative Zahl ebenso. Meldet der Callback 0, bleibt die Antwort ohne Zeile.
+     * Negative: ein Fehler von `onInsert` steht hinter dem Beginn des Ergebnisses als `TDS_SIM_KEY_VIOLATION` (2627,
+     * Sammelcode wie beim Massenladen) mit fester Meldung, ohne den Text der Ausnahme; ein Fehler von `onUpdate` ist
+     * `TDS_BACKEND_ERROR`; eine negative Zahl ebenso. Meldet der Callback 0, bleibt die Antwort ohne Zeile. Wächter:
+     * derselbe Code für beide Callbacks, ein Fehler vor dem Beginn des Ergebnisses.
+     * @spec SPEC-036
      * @spec SPEC-037
      */
     @Test
-    fun `Fehler des Callbacks und negative Zahl sind TDS_BACKEND_ERROR, null ergibt keine Zeile`() {
+    fun `Fehler von onInsert ist 2627, Fehler von onUpdate und negative Zahl sind TDS_BACKEND_ERROR`() {
         val thrown = Fixture(failure = Failing.CALLBACK)
+        val updating = Fixture(existing = listOf(existingRow(1)), failure = Failing.CALLBACK)
         val negative = Fixture(result = -1)
         val none = Fixture(result = 0)
 
         val first = run(thrown, skip)
-        val second = run(negative, skip)
-        val third = run(none, skip)
+        val second = run(updating, update)
+        val third = run(negative, skip)
+        val fourth = run(none, skip)
 
-        for (events in listOf(first, second)) {
+        val codes = listOf(first, second, third).map { events ->
             assertEquals(actionStart, events[0])
-            assertEquals("TDS_BACKEND_ERROR", assertIs<QueryEvent.Failure>(events[1]).code)
+            assertEquals(2, events.size)
+            assertIs<QueryEvent.Failure>(events[1]).code
+        }
+        assertEquals(listOf("TDS_SIM_KEY_VIOLATION", "TDS_BACKEND_ERROR", "TDS_BACKEND_ERROR"), codes)
+        assertFalse(assertIs<QueryEvent.Failure>(first[1]).message.contains("Geheimnis"))
+        assertFalse(assertIs<QueryEvent.Failure>(second[1]).message.contains("Geheimnis"))
+        assertEquals(1, updating.updates)
+        assertEquals(listOf(actionStart, QueryEvent.ResultEnd(0)), fourth)
+    }
+
+    /**
+     * Negative (Messprotokoll M-15, 2628): ein Text über der Länge seiner Spalte endet hinter dem Beginn des
+     * Ergebnisses mit `TDS_SIM_STRING_TRUNCATED`, ohne Callback, beim Einfügen wie beim Ändern; die Zeilenquelle wurde
+     * gelesen. Boundary: ein Text genau in der Länge der Spalte geht an den Callback; eine Spalte mit `maxLength` -1
+     * hat keine Grenze. Der Wert zählt nur in der Aktion, die ausgeführt wird: bei vorhandenem Schlüssel ohne Zweig
+     * `WHEN MATCHED` bleibt ein zu langer Text ohne Fehler. Wächter: eine Prüfung vor dem Beginn des Ergebnisses, eine
+     * Prüfung für die nicht ausgeführte Aktion, ein Callback trotz Fehler, eine Grenze von 4000 statt der Spalte.
+     * @spec SPEC-036
+     * @spec SPEC-035
+     */
+    @Test
+    fun `ein Text ueber der Laenge der Spalte endet mit 2628 ohne Callback`() {
+        val tooLong = parameters(name = "x".repeat(6))
+        val exact = parameters(name = "x".repeat(5))
+        val inserting = Fixture().apply { nameLength = 5 }
+        val updating = Fixture(existing = listOf(existingRow(1))).apply { nameLength = 5 }
+        val skipping = Fixture(existing = listOf(existingRow(1))).apply { nameLength = 5 }
+        val unbounded = Fixture().apply { nameLength = UNBOUNDED_TEXT }
+
+        val inserted = run(inserting, skip, tooLong)
+        val changed = run(updating, update, tooLong)
+        val skipped = run(skipping, skip, tooLong)
+        val fits = run(Fixture().apply { nameLength = 5 }, skip, exact)
+        val free = run(unbounded, skip, parameters(name = "x".repeat(MAX_TEXT_LENGTH)))
+
+        for (events in listOf(inserted, changed)) {
+            assertEquals(actionStart, events[0])
+            assertEquals("TDS_SIM_STRING_TRUNCATED", assertIs<QueryEvent.Failure>(events[1]).code)
             assertEquals(2, events.size)
         }
-        assertFalse(assertIs<QueryEvent.Failure>(first[1]).message.contains("Geheimnis"))
-        assertEquals(listOf(actionStart, QueryEvent.ResultEnd(0)), third)
+        assertEquals(1, inserting.opens)
+        assertEquals(1, updating.opens)
+        assertEquals(0, inserting.calls + updating.calls)
+        assertEquals(listOf(actionStart, QueryEvent.ResultEnd(0)), skipped)
+        assertEquals(QueryEvent.Row(listOf("INSERT")), fits[1])
+        assertEquals(QueryEvent.Row(listOf("INSERT")), free[1])
     }
 
     /**

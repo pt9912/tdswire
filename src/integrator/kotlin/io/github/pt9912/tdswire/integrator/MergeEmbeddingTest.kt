@@ -102,8 +102,10 @@ class MergeEmbeddingTest {
      * überführten Werten aus `bigint`, `nvarchar` und `date` und antwortet mit dem Ergebnis `$action` und der Zeile
      * `INSERT`; der vorhandene Schlüssel 1 ruft `onUpdate` mit `set` ohne Schlüssel und antwortet `UPDATE`; derselbe
      * Text
-     * ohne Zweig `WHEN MATCHED` ruft bei vorhandenem Schlüssel nichts und antwortet ohne Zeile. Wächter: ein
-     * `MERGE`, das als nicht erkannt endet; Parameter, die nicht ankommen; eine Antwort ohne `$action`.
+     * ohne Zweig `WHEN MATCHED` ruft bei vorhandenem Schlüssel nichts und antwortet ohne Zeile. Die Spalte `$action`
+     * ist `nvarchar(10)` mit Flags 0 und der Abschluss trägt die Kennung `0x0117` mit dem Zähler (Messprotokoll M-26).
+     * Wächter: ein `MERGE`, das als nicht erkannt endet; Parameter, die nicht ankommen; eine Antwort ohne `$action`;
+     * die Länge 4000 der Spalte; die Kennung `0x00c1` des Abschlusses.
      *
      * @spec SPEC-036
      * @spec SPEC-035
@@ -126,6 +128,8 @@ class MergeEmbeddingTest {
             )
             assertTrue(insert.containsUtf16("\$action") && insert.containsUtf16("INSERT"))
             assertFalse(insert.containsUtf16("UPDATE"))
+            assertTrue(insert.containsBytes(ACTION_COLUMN), "nvarchar(10), Flags 0")
+            assertTrue(insert.containsBytes("FF 11 00 17 01 01 00 00 00 00 00 00 00"), "MORE|COUNT, 0x0117, Zähler 1")
             val update = client.executeSql(
                 merge(withUpdate = true),
                 declarations,
@@ -144,6 +148,7 @@ class MergeEmbeddingTest {
             )
             assertTrue(skipped.containsUtf16("\$action"))
             assertFalse(skipped.containsUtf16("UPDATE") || skipped.containsUtf16("INSERT"))
+            assertTrue(skipped.containsBytes("FF 11 00 17 01 00 00 00 00 00 00 00 00"), "0x0117, Zähler 0")
         }
         val expected = mapOf<String, Any?>("Id" to FIVE, "Name" to "Ada Ünï", "Eintritt" to joined)
         assertEquals(listOf(expected), inserted.toList())
@@ -261,9 +266,11 @@ class MergeEmbeddingTest {
     }
 
     /**
-     * Ein Fehler des Callbacks steht hinter dem Ergebnis `$action` (COLMETADATA, dann ERROR), die Verbindung bleibt
-     * offen und beantwortet die nächste Anfrage ohne Fehler. Wächter: ein Fehler vor dem Beginn des Ergebnisses, eine
-     * geschlossene Verbindung nach dem Fehler.
+     * Ein Fehler von `onInsert` steht hinter dem Ergebnis `$action` (COLMETADATA, dann ERROR 2627, INFO 3621,
+     * DONEINPROC
+     * `MORE|ERROR` mit der Kennung `0x0117`, RETURNSTATUS 2627, DONEPROC; Messprotokoll M-15), ohne den Text der
+     * Ausnahme; die Verbindung bleibt offen und beantwortet die nächste Anfrage ohne Fehler. Wächter: ein Fehler vor
+     * dem Beginn des Ergebnisses, eine geschlossene Verbindung nach dem Fehler, `TDS_BACKEND_ERROR` (50004) statt 2627.
      *
      * @spec SPEC-036
      * @spec SPEC-037
@@ -288,13 +295,18 @@ class MergeEmbeddingTest {
                 inputDate("", null),
             )
             assertTrue(failed.containsUtf16("\$action"), "COLMETADATA vor dem Fehler")
-            assertTrue(failed.containsUtf16("Backend error."), "ERROR")
+            assertTrue(failed.containsBytes("AA"), "ERROR")
+            assertTrue(failed.containsBytes("43 0A 00 00 01 0E"), "Nummer 2627, State 1, Class 14")
             assertFalse(failed.containsUtf16("Geheimnis"), "kein Text der Ausnahme")
+            assertTrue(failed.containsBytes(INFO_TERMINATED), "INFO 3621")
+            assertTrue(failed.endsWithBytes("FF 03 00 17 01 00 00 00 00 00 00 00 00  79 43 0A 00 00  $DONEPROC_OK"))
             assertEquals(0, client.batch("SELECT Id FROM kunden WHERE 1 = 0").doneStatus and DONE_ERROR)
         }
     }
 
     private companion object {
+        /** Die Spalte `$action`: `nvarchar(10)` (Länge 20 Byte), Kollation, Flags 0 (Messprotokoll M-26). */
+        const val ACTION_COLUMN = "00 00 E7 14 00 09 04 D0 00 34 07 24 00 61 00 63 00 74 00 69 00 6F 00 6E 00"
         const val FIVE = 5L
         val CLOCK: LocalTime = LocalTime.of(13, 14, 15)
         val DAY: LocalDate = LocalDate.of(2026, 1, 2)

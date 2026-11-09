@@ -182,6 +182,7 @@ internal class ErrorMapper(internal val log: ErrorLog = ErrorLog.NONE) {
             ErrorCode.TDS_SIM_OBJECT_EXISTS,
             ErrorCode.TDS_SIM_COLUMN_EXISTS,
             ErrorCode.TDS_SIM_OBJECT_NOT_FOUND,
+            ErrorCode.TDS_SIM_STRING_TRUNCATED,
             ErrorCode.TDS_TIMEOUT,
         )
 

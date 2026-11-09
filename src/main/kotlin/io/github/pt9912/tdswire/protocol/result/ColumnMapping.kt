@@ -15,8 +15,10 @@ import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
  * einziger Fehler macht das Ergebnis zu [ProtocolResult.Failed], eine Teilliste gibt es nicht. Die
  * leere Liste ist gültig.
  *
- * Festlegungen ohne Messung am Referenzclient oder echten SQL Server: Unicode-Text ist
- * `NVARCHAR(4000)` mit der Kollation [COLLATION], weil [SqlType.UnicodeText] kein Längenlimit trägt;
+ * Unicode-Text ist `NVARCHAR(<ResultColumn.maxLength>)`, ohne Angabe `NVARCHAR(4000)` (gemessen: Länge 10 und Flags 0
+ * an der Spalte `$action`, Messprotokoll M-26).
+ *
+ * Festlegungen ohne Messung am Referenzclient oder echten SQL Server: Unicode-Text trägt die Kollation [COLLATION];
  * [SqlType.UInt8] und [SqlType.Int16] sind `tinyint` und `smallint` (fest, nullbar als `INTN` mit 1 und 2 Byte, wie
  * [SqlType.Int32]); [SqlType.Time] und [SqlType.DateTime] haben Scale 7, weil das Modell keinen Scale trägt;
  * [SqlType.Decimal] wird DECIMALN, nicht NUMERICN; doppelte und leere Spaltennamen sind gültig. Eine
@@ -25,7 +27,6 @@ import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
 internal object ColumnMapping {
     const val MAX_COLUMNS = 0xFFFE
     const val MAX_NAME_CHARS = 255
-    const val TEXT_CHARS = TypeInfoWriter.MAX_NVARCHAR_CHARS
     const val TIME_SCALE = TypeInfoWriter.MAX_SCALE
     const val MAX_PRECISION = TypeInfoWriter.MAX_PRECISION
     val COLLATION: Collation = Collation.LATIN1_GENERAL_CI_AS
@@ -52,20 +53,27 @@ internal object ColumnMapping {
             !TextMapping.isWellFormed(name) ->
                 failed(ProtocolFailure.VALUE_OUT_OF_RANGE, "Spalte $index: Name mit unpaarem Surrogat")
 
-            else -> when (val type = tdsType(index, column.type, column.nullable)) {
+            else -> when (val type = tdsType(index, column)) {
                 is ProtocolResult.Ok -> ProtocolResult.Ok(ColumnDef(name, type.value, column.nullable))
                 is ProtocolResult.Failed -> type
             }
         }
     }
 
-    private fun tdsType(index: Int, type: SqlType, nullable: Boolean): ProtocolResult<TdsType> = when (type) {
-        SqlType.UInt8, SqlType.Int16, SqlType.Int32, SqlType.Int64 -> ProtocolResult.Ok(integer(type, nullable))
-        SqlType.Bool -> ProtocolResult.Ok(if (nullable) TdsType.BitNType else TdsType.BitType)
-        SqlType.UnicodeText -> ProtocolResult.Ok(TdsType.NVarcharType(TEXT_CHARS, COLLATION))
+    private fun tdsType(index: Int, column: ResultColumn): ProtocolResult<TdsType> = when (val type = column.type) {
+        SqlType.UInt8, SqlType.Int16, SqlType.Int32, SqlType.Int64 ->
+            ProtocolResult.Ok(integer(type, column.nullable))
+
+        SqlType.Bool -> ProtocolResult.Ok(if (column.nullable) TdsType.BitNType else TdsType.BitType)
+
+        SqlType.UnicodeText -> ProtocolResult.Ok(TdsType.NVarcharType(column.maxLength, COLLATION))
+
         is SqlType.Decimal -> decimal(index, type)
+
         SqlType.Date -> ProtocolResult.Ok(TdsType.DateType)
+
         SqlType.Time -> ProtocolResult.Ok(TdsType.TimeType(TIME_SCALE))
+
         SqlType.DateTime -> ProtocolResult.Ok(TdsType.DateTime2Type(TIME_SCALE))
     }
 

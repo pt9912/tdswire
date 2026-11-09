@@ -55,6 +55,7 @@ private const val STATE_OBJECT_EXISTS = 6
 private const val N_COLUMN_EXISTS = 2705
 private const val STATE_COLUMN_EXISTS = 4
 private const val N_OBJECT_NOT_FOUND = 4902
+private const val N_STRING_TRUNCATED = 2628
 
 /**
  * Die eigenen Fehlercodes (`SPEC-011` bis `SPEC-016`, `SPEC-037` bis `SPEC-039`, `SPEC-048`,
@@ -84,6 +85,9 @@ private const val N_OBJECT_NOT_FOUND = 4902
  *   Class 16 und State von `TDS_SIM_OBJECT_EXISTS` (2714, State 6), `TDS_SIM_COLUMN_EXISTS` (2705, State 4) und
  *   `TDS_SIM_OBJECT_NOT_FOUND` (4902, State 1) sowie die offene Verbindung; der Text ist ein Auszug des gemessenen
  *   Textes ohne die Namen (Setzung: der Text eines Backends erreicht den Client nie).
+ * - Gemessen am Referenzclient gegen einen echten SQL Server (Zeile M-15 des Messprotokolls, 2022 und 2025): Nummer,
+ *   Class 16, State 1 und die offene Verbindung von `TDS_SIM_STRING_TRUNCATED` (2628, `MERGE` mit einem Text über der
+ *   Länge der Spalte); der Text ist ein Auszug des gemessenen Textes ohne die Namen (Setzung).
  * - Grundregel (im Zweifel schließen): nur die Folge der Codes ohne Gruppe. Die Class 20 dieser
  *   Codes ist Festlegung, nicht Grundregel.
  * - Festlegung (nicht gemessen): alle übrigen Werte, nämlich die Nummern ohne Vorschlag, jeder State
@@ -205,6 +209,20 @@ internal enum class ErrorCode(val rule: ErrorRule) {
             REQUEST,
             STATE,
             "Cannot find the object because it does not exist or you do not have permissions.",
+            ConnectionFate.OPEN,
+        ),
+    ),
+
+    /**
+     * Ein Text über der Länge der Spalte beim Einfügen oder Ändern eines `MERGE`. Nummer, Class 16, State 1 und die
+     * offene Verbindung sind gemessen (M-15); der Text lässt Tabelle, Spalte und Wert aus.
+     */
+    TDS_SIM_STRING_TRUNCATED(
+        ErrorRule(
+            N_STRING_TRUNCATED,
+            REQUEST,
+            STATE,
+            "String or binary data would be truncated.",
             ConnectionFate.OPEN,
         ),
     ),

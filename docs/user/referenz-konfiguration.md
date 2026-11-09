@@ -43,7 +43,7 @@ Eine Sitzung hält höchstens `MAX_PREPARED_HANDLES` Handles zugleich (`SPEC-061
 
 ## Fehlercodes und Antwortformen
 
-Jeder Fehler des Servers erreicht den Client als ERROR (feste englische Meldung; State 1, außer bei Nummern mit dem State des echten SQL Servers, zum Beispiel 8179: State 8 bei der Freigabe, State 4 bei `sp_execute`) und einen Abschluss mit Fehlerstatus; der Text einer Backend-Meldung oder Ausnahme erreicht den Client nie. Zuordnung nach [Abschnitt 4 der Spezifikation](../../spec/spezifikation.md#4-fehler-codes-und-logging-felder); am echten SQL Server beobachtet sind die Nummern 18456, 8179, 2627, 2714, 2705, 4902 und 208 (dieses mit Class 16), die übrigen Nummern sind Festlegungen:
+Jeder Fehler des Servers erreicht den Client als ERROR (feste englische Meldung; State 1, außer bei Nummern mit dem State des echten SQL Servers, zum Beispiel 8179: State 8 bei der Freigabe, State 4 bei `sp_execute`) und einen Abschluss mit Fehlerstatus; der Text einer Backend-Meldung oder Ausnahme erreicht den Client nie. Zuordnung nach [Abschnitt 4 der Spezifikation](../../spec/spezifikation.md#4-fehler-codes-und-logging-felder); am echten SQL Server beobachtet sind die Nummern 18456, 8179, 2627, 2628, 2714, 2705, 4902 und 208 (dieses mit Class 16), die übrigen Nummern sind Festlegungen:
 
 | Code | Nummer | Class | Folge |
 |---|---|---|---|
@@ -59,13 +59,14 @@ Jeder Fehler des Servers erreicht den Client als ERROR (feste englische Meldung;
 | `TDS_SIM_UNKNOWN_OBJECT` | 208 | 20 | schließt |
 | `TDS_SIM_INVALID_VALUE` | 245 | 16 | offen |
 | `TDS_SIM_KEY_VIOLATION` | 2627 | 14 | offen |
+| `TDS_SIM_STRING_TRUNCATED` | 2628 | 16 | offen |
 | `TDS_SIM_OBJECT_EXISTS` | 2714 | 16 | offen |
 | `TDS_SIM_COLUMN_EXISTS` | 2705 | 16 | offen |
 | `TDS_SIM_OBJECT_NOT_FOUND` | 4902 | 16 | offen |
 | `TDS_SIM_UNKNOWN_PREPARED_HANDLE` | 8179 | 16 | offen |
 | `TDS_LOGIN_FAILED` | 18456 | 14 | schließt |
 
-Die Antworten auf das Massenladen und die Nachrichten des Referenzclients sind an `SqlBulkCopy` am echten SQL Server 2022 und 2025 gemessen (Katalog-Batch, Form von `INSERT BULK` und der Nachricht, Schlüsselverstoß; [Messprotokoll](../messungen/referenzabgleich.md), M-8 bis M-12); gemessen ist nur der Schlüsselverstoß, die Zuordnung jedes Fehlers des Einfügens zu 2627 ist Setzung.
+Die Antworten auf das Massenladen und die Nachrichten des Referenzclients sind an `SqlBulkCopy` am echten SQL Server 2022 und 2025 gemessen (Katalog-Batch, Form von `INSERT BULK` und der Nachricht, Schlüsselverstoß; [Messprotokoll](../messungen/referenzabgleich.md), M-8 bis M-12); gemessen ist nur der Schlüsselverstoß, die Zuordnung jedes Fehlers des Einfügens zu 2627 ist Setzung, ebenso beim Fehler von `onInsert` eines `MERGE`.
 
 Die Anmeldung mit falschem Kennwort und mit unbekanntem Benutzer ergibt dieselbe Antwort (Nummer 18456, Class 14, State 1, Text `Login failed.` ohne Kennung). Am echten SQL Server (2022 und 2025) nennt der Text den Benutzernamen; diese Abweichung ist gewollt ([Messprotokoll](../messungen/referenzabgleich.md), A-1). `TDS_SIM_UNKNOWN_OBJECT` sendet Class 20 und schließt die Verbindung, der echte Server sendet Class 16 und lässt sie offen (A-3).
 
@@ -89,6 +90,8 @@ Die Anmeldung mit falschem Kennwort und mit unbekanntem Benutzer ergibt dieselbe
 | Probe der Zieltabelle von `SqlBulkCopy` (vor `INSERT BULK`) | vier Ergebnisse wie am echten Server: `@@TRANCOUNT`, die Spalten der Tabelle ohne Zeile, je Spalte die Kollation, die leere Alias-Tabelle; dazwischen `DONE`, `DONEINPROC` und `DONEPROC` der Anweisungen des Batches (`SPEC-036`) |
 | Nachricht `0x07` mit den Zeilen | `DONE` mit `COUNT` (Zahl der geladenen Zeilen) und Befehl `0x00f0` |
 | Fehler beim Laden (Schlüsselverstoß) | `ERROR` 2627 (Class 14, State 1, gekürzter Text), `INFO` 3621 „The statement has been terminated.“ und `DONE` mit `ERROR`, Befehl `0x00f0`, ohne Zähler; die ganze Nachricht ist abgewiesen |
+| `MERGE … OUTPUT $action` | `COLMETADATA` mit der Spalte `$action` (`nvarchar(10)`, nicht nullbar), je Aktion eine `ROW` mit `INSERT` oder `UPDATE`, `DONEINPROC` `MORE\|COUNT` mit Befehl `0x0117` und der Zahl der Zeilen (ohne Aktion keine `ROW`, Zähler 0), `RETURNSTATUS`, `DONEPROC` (`SPEC-031`, `SPEC-036`) |
+| Fehler im Ergebnis eines `MERGE` | `COLMETADATA`, `ERROR` (2628 bei einem Text über der Länge seiner Spalte, 2627 bei einem Fehler von `onInsert`, sonst 50004), `INFO` 3621, `DONEINPROC` `MORE\|ERROR` mit Befehl `0x0117` ohne Zähler, `RETURNSTATUS` mit der Nummer, `DONEPROC` ohne Fehlerbit; das `INFO` ist für 2628 und 2627 gemessen, für andere Fehler gesetzt. Eine unbekannte Tabelle endet vor dem Ergebnis mit `ERROR` 208, `RETURNSTATUS 208` und `DONEPROC` mit `ERROR` (`SPEC-036`) |
 | Abbruch (ATTENTION) | `DONE` mit `ATTN`; der Server antwortet mit einer Nachricht, der echte Server im Stream mit zwei |
 
 Der Fehlerabschluss laut Festlegung (`SPEC-031`): ein Fehler nach teilweise übertragenen Zeilen wird als ERROR plus Abschluss mit Fehlerstatus gemeldet, wenn der Strom synchron bleibt („synchron“ heißt: der Transport hat jedes bisher erzeugte Token vollständig angenommen); andernfalls schließt die Verbindung ohne ERROR und Abschluss. `FailureScope.STATEMENT` lässt die Folgeanweisung des Batches laufen (das DONE des Fehlers trägt dann `MORE|ERROR`, gemessen am echten Server für Division durch null), `FailureScope.BATCH` beendet den Lauf (`ERROR` ohne `MORE`). Welche Fehler welcher Klasse angehören, bestimmt das Backend; die Fehler des Servers selbst sind batch-abbrechend (Setzung). Ordinal der RETURNVALUE ist die Position des Parameters in der Aufrufliste (gemessen: der dritte Parameter von `sp_executesql` hat Ordinal 2, ein Fall je Instanz); das Flag-Feld jedes RETURNVALUE ist `0x0000`. Nach Ablauf von `QUERY_TIMEOUT` trägt das DONE der Fehlerantwort im Batch die Befehlskennung `0x00c1`, wenn ein Ergebnis begonnen und nicht abgeschlossen ist (aus dem Fehler im Ergebnis übertragen, die Frist ist nicht gemessen), sonst `0x00fd`.
