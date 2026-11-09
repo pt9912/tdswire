@@ -124,14 +124,16 @@ public class SynchronitaetTests
     }
 
     // Der Client schließt bei Class 20 und höher selbst (ADR-0007, Messung S03/S04 am Testserver); dass der Server die
-    // Verbindung ebenfalls schließt, sieht dieser Test nicht, das prüft `SynchronitaetWiringTest` am Socket.
+    // Verbindung ebenfalls schließt, sieht dieser Test nicht, das prüft `SynchronitaetWiringTest` am Socket. Den Fehler
+    // der Class 20 liefert ein `xml`-Parameter (`TDS_UNSUPPORTED_TYPE`, Number 50003).
     [Fact]
     public void Ein_Fehler_der_Class_20_laesst_die_naechste_Anfrage_derselben_Verbindung_ohne_Antwort()
     {
         using var verbindung = Ziel.Oeffnen();
-        using (var fehler = new SqlCommand("SELECT Id FROM gibtesnicht", verbindung))
+        using (var fehler = new SqlCommand("SELECT Id FROM person WHERE Name = @x", verbindung))
         {
-            var ausnahme = Assert.Throws<SqlException>(() => { fehler.ExecuteReader().Dispose(); });
+            fehler.Parameters.Add("@x", SqlDbType.Xml).Value = "<a>1</a>";
+            var ausnahme = Assert.Throws<SqlException>(() => { fehler.ExecuteScalar(); });
             Assert.Equal(20, ausnahme.Class);
         }
 

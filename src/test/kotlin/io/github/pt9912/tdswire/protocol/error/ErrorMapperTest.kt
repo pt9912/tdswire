@@ -168,7 +168,7 @@ class ErrorMapperTest {
      * und der Abschluss sind am Referenzclient gegen den echten SQL Server gemessen (Zeile M-19, 2022 und 2025), der
      * Text ist ein Auszug des gemessenen Textes ohne die Namen (Setzung). Ebenso `TDS_SIM_STRING_TRUNCATED`: ERROR
      * 2628, State 1, Class 16, offene Verbindung (Zeile M-15; der Abschluss im Ergebnis steht in `ResponseMergeTest`).
-     * Wächter: Class 20 mit schließender Verbindung (der Code `TDS_SIM_UNKNOWN_OBJECT`), State 1 für alle drei, eine
+     * Wächter: Class 20 mit schließender Verbindung, State 1 für alle drei, eine
      * andere Nummer, ein anderer Text.
      *
      * @spec SPEC-036
@@ -336,14 +336,21 @@ class ErrorMapperTest {
         ConnectionFate.OPEN,
     )
 
-    /** @spec SPEC-038 */
+    /**
+     * Nummer 208, State 1, Class 16 und die offene Verbindung sind am Referenzclient gegen den echten SQL Server
+     * gemessen (Zeile M-15 und Schritt `fehler-vor-zeilen` des Messprotokolls); der Text ist Festlegung, die Bytes
+     * sind Handvektor. Wächter: Class 20 mit schließender Verbindung, eine andere Nummer.
+     *
+     * @spec SPEC-038
+     * @spec TDS-QA-01
+     */
     @Test
-    fun `TDS_SIM_UNKNOWN_OBJECT ist ERROR 208 Class 20 und schliesst`() = assertBytes(
+    fun `TDS_SIM_UNKNOWN_OBJECT ist ERROR 208 Class 16 und bleibt offen`() = assertBytes(
         ErrorCode.TDS_SIM_UNKNOWN_OBJECT,
-        "AA 2C 00  D0 00 00 00  01  14  0F 00  55 00 6E 00 6B 00 6E 00 6F 00 77 00 6E 00 20 00 6F 00 62 00" +
+        "AA 2C 00  D0 00 00 00  01  10  0F 00  55 00 6E 00 6B 00 6E 00 6F 00 77 00 6E 00 20 00 6F 00 62 00" +
             " 6A 00 65 00 63 00 74 00 2E 00  00  00  00 00 00 00",
-        20,
-        ConnectionFate.CLOSE_AFTER_REPLY,
+        16,
+        ConnectionFate.OPEN,
     )
 
     /** @spec SPEC-039 */
@@ -426,6 +433,7 @@ class ErrorMapperTest {
             ErrorCode.TDS_BACKEND_ERROR,
             ErrorCode.TDS_UNSUPPORTED_RPC,
             ErrorCode.TDS_SIM_INVALID_VALUE,
+            ErrorCode.TDS_SIM_UNKNOWN_OBJECT,
             ErrorCode.TDS_PREPARE_LIMIT,
             ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE,
             ErrorCode.TDS_SIM_KEY_VIOLATION,

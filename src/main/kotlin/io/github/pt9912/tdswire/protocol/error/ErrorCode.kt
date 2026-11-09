@@ -66,7 +66,7 @@ private const val N_STRING_TRUNCATED = 2628
  * (Abschnitt 4):
  * - Gemessen am Referenzclient gegen den Spike-Testserver, nicht am Produkt: nur "genau ein ERROR
  *   vor DONE" beim abgelehnten Login (`SPEC-012`).
- * - Vorschlag der Spezifikation, nicht am echten SQL Server gemessen: die Nummern 208 und 245 und
+ * - Vorschlag der Spezifikation, nicht am echten SQL Server gemessen: die Nummer 245 und
  *   der Benutzerbereich ab 50001 für Codes ohne SQL-Server-Entsprechung.
  * - Setzung des Nutzers (2026-10-30): Class und Folge von `TDS_PROTOCOL_ERROR`, `TDS_BACKEND_ERROR`,
  *   `TDS_UNSUPPORTED_SQL` und `TDS_INTERNAL_ERROR`; die Folge von `TDS_SHUTDOWN` und `TDS_LOGIN_FAILED`.
@@ -88,13 +88,15 @@ private const val N_STRING_TRUNCATED = 2628
  * - Gemessen am Referenzclient gegen einen echten SQL Server (Zeile M-15 des Messprotokolls, 2022 und 2025): Nummer,
  *   Class 16, State 1 und die offene Verbindung von `TDS_SIM_STRING_TRUNCATED` (2628, `MERGE` mit einem Text über der
  *   Länge der Spalte); der Text ist ein Auszug des gemessenen Textes ohne die Namen (Setzung).
+ * - Gemessen am Referenzclient gegen einen echten SQL Server (Zeile M-15 und Schritt `fehler-vor-zeilen` des
+ *   Messprotokolls): Nummer 208, Class 16, State 1 und die offene Verbindung von `TDS_SIM_UNKNOWN_OBJECT`; der Text
+ *   „Unknown object.“ weicht vom gemessenen („Invalid object name '<Name>'.“) ab und ist Festlegung.
  * - Grundregel (im Zweifel schließen): nur die Folge der Codes ohne Gruppe. Die Class 20 dieser
  *   Codes ist Festlegung, nicht Grundregel.
  * - Festlegung (nicht gemessen): alle übrigen Werte, nämlich die Nummern ohne Vorschlag, jeder State
  *   (1, außer bei `TDS_SIM_UNKNOWN_PREPARED_HANDLE`), jeder Text und die Class 20 der Codes ohne Gruppe.
  *
- * Offen und nicht entschieden: die Zuordnung von [TDS_UNSUPPORTED_TYPE] und [TDS_SIM_UNKNOWN_OBJECT] zu einer
- * Gruppe; `slice-fehler-mapping` §6.
+ * Offen und nicht entschieden: die Zuordnung von [TDS_UNSUPPORTED_TYPE] zu einer Gruppe.
  */
 internal enum class ErrorCode(val rule: ErrorRule) {
     /** Class und Folge: Setzung des Nutzers; die Nummer aus dem Benutzerbereich ist Festlegung. */
@@ -119,10 +121,11 @@ internal enum class ErrorCode(val rule: ErrorRule) {
     TDS_UNSUPPORTED_SQL(ErrorRule(N_SQL, REQUEST, STATE, "Unsupported SQL.", ConnectionFate.OPEN)),
 
     /**
-     * Ohne Gruppe: die Folge (schließt) ist Grundregel, Class 20 ist Festlegung. Nummer 208 ist
-     * Vorschlag; 207 (Spalte) bildet das Mapping nicht ab. Der echte Server sendet 208 mit Class 16.
+     * Anfragefehler-Gruppe, am Referenzclient gegen den echten SQL Server gemessen (Zeile M-15 des Messprotokolls):
+     * Nummer 208, Class 16, State 1, die Verbindung bleibt offen. 207 (Spalte) bildet das Mapping nicht ab; der Text
+     * ist Festlegung.
      */
-    TDS_SIM_UNKNOWN_OBJECT(ErrorRule(N_OBJECT, FATAL, STATE, "Unknown object.", ConnectionFate.CLOSE_AFTER_REPLY)),
+    TDS_SIM_UNKNOWN_OBJECT(ErrorRule(N_OBJECT, REQUEST, STATE, "Unknown object.", ConnectionFate.OPEN)),
 
     /** Anfragefehler-Gruppe nach Voreinstellung. Nummer 245 ist Vorschlag; 8115 (Überlauf) fehlt im Mapping. */
     TDS_SIM_INVALID_VALUE(ErrorRule(N_VALUE, REQUEST, STATE, "Invalid value.", ConnectionFate.OPEN)),
