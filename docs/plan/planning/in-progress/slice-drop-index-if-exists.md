@@ -35,8 +35,8 @@ Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - `ALTER TABLE … DROP CONSTRAINT [IF EXISTS]` (Form D5) — liegt in [slice-drop-constraint-form-d5](../done/slice-drop-constraint-form-d5.md); dieser Slice setzt dessen Ergebnis voraus und ändert dieselben Dateien.
-- Der Text mit `DECLARE @df … EXEC sp_executesql` für einen Standardwert an einer vorhandenen Spalte — größer und zurückgestellt: [slice-declare-df-standardwert-vorhandene-spalte](slice-declare-df-standardwert-vorhandene-spalte.md).
-- Die Abnahme mit d-migrate über alle Funktionen — [slice-abnahme-d-migrate](slice-abnahme-d-migrate.md); dieser Slice liegt davor, weil der Validator bei einem geänderten Index sofort auf die Form trifft.
+- Der Text mit `DECLARE @df … EXEC sp_executesql` für einen Standardwert an einer vorhandenen Spalte — größer und zurückgestellt: [slice-declare-df-standardwert-vorhandene-spalte](../open/slice-declare-df-standardwert-vorhandene-spalte.md).
+- Die Abnahme mit d-migrate über alle Funktionen — [slice-abnahme-d-migrate](../open/slice-abnahme-d-migrate.md); dieser Slice liegt davor, weil der Validator bei einem geänderten Index sofort auf die Form trifft.
 - Die alte Schreibweise `DROP INDEX <t>.<ix>` — d-migrate sendet sie nicht (Setzung des Planners, am Mitschnitt zu prüfen); sie bleibt unerkannt, bis ein Client sie verlangt.
 - Referentielle Integrität im Bestand und Nutzung von Indizes — der Katalog beschreibt, der Testserver prüft nichts.
 
@@ -87,7 +87,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-drop-constraint-form-d5](../done/slice-drop-constraint-form-d5.md) liegt in `done/` (gleiche Dateien `StructureParts`, `StructurePlanner`, `StatementPlanner`); die EULA für das gepinnte Developer-Image ist vom Nutzer für diesen Lauf bestätigt; ein Verantwortlicher ist eingetragen. Der Slice steht vor [slice-abnahme-d-migrate](slice-abnahme-d-migrate.md).
+**Start** (`next` → `in-progress`): [slice-drop-constraint-form-d5](../done/slice-drop-constraint-form-d5.md) liegt in `done/` (gleiche Dateien `StructureParts`, `StructurePlanner`, `StatementPlanner`); die EULA für das gepinnte Developer-Image ist vom Nutzer für diesen Lauf bestätigt; ein Verantwortlicher ist eingetragen. Der Slice steht vor [slice-abnahme-d-migrate](../open/slice-abnahme-d-migrate.md).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
