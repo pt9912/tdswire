@@ -43,6 +43,22 @@ Soll-Dateien: `soll-elemente.yaml` ist die Beschreibung des Testservers (`sim.ya
 | d1 | `schema migrate` mit einem Index `unique: true` auf `kunden.Name` | **5** | 3 s | `POST_EXECUTE_DRIFT`; `statementsAttempted` 1 (`CREATE UNIQUE INDEX`) |
 | d2 | `schema compare` danach | 1 | 2 s | `DIFFERENT`: im Soll `index ux_kunden_name [btree,unique]`, im Server `constraint _unique_Name (unique on [Name])` |
 
+### Lauf am End-Stand `1b824ba3` (Verifikation, 2026-11-11)
+
+Die Läufe oben gelten für den Stand `c285cf21`. Der Verifier fuhr den Roundtrip am End-Stand `1b824ba3` (nach der Nachbesserung des Lesers: `unique_constraint`, Namensraum von Index und Eindeutigkeit) noch einmal; Quelle: [Verifikationsbericht](../reviews/2026-11-11-1b824ba3-verifikation-slice-katalog-indizes-defaults-fremdschluessel.md), Abschnitt „Roundtrip“. Bedingungen: dieselben d-migrate- und Treiber-Versionen (Digest wie oben), Testserver-Image frisch aus dem End-Stand (`tdswire-testserver:verif-katalog`), `make testserver-up` mit `TESTSERVER_NAME=verif-ts-a` und `-b`, Ports 24931 und 24932, `--network host --user 1000:1000`, Soll `soll-elemente.yaml` wie oben; Host Linux 6.8.0-147, Load Average (1 Minute) 4 bis 5 laut `uptime`. Zeiten nicht erhoben.
+
+| Nr | Befehl (gekürzt) | Exit | Ergebnis |
+|---|---|---|---|
+| f1 | Server A (Beschreibung `sim.yaml`): `schema compare --source file:soll-elemente.yaml` | 1 | `DIFFERENT`, zwei Tabellen fehlen |
+| f2 | `schema migrate --execute --report` | 0 | `status: ok`, `statementsAttempted` 3, `transactionRolledBack` false |
+| f3 | `schema compare` | 0 | `IDENTICAL` |
+| f4 | `schema reverse --output ist-elemente.yaml` | 0 | `default: 1`, `default: neu`, Index, `fk_auftraege_LieferantId` (`on_delete: cascade`), Prüfbedingung `'"Menge">(0)'`, `lieferanten.Name` mit `unique: true` und `unique_constraint: uq_lieferanten_Name` |
+| f5 | Server B startet mit `TESTSERVER_BESCHREIBUNG=ist-elemente.yaml` | 0 | bereit |
+| f6 | `schema compare` gegen B mit `soll-elemente.yaml` und mit `ist-elemente.yaml` | 0, 0 | `IDENTICAL` beide |
+| f7 | `schema reverse` gegen B, `diff` mit der Datei aus f4 | 0 | byte-gleich |
+
+Zeile f5 ist der Start des Testservers mit der von `schema reverse` geschriebenen Datei; er brach vor der Nachbesserung ab („Feld unbekannt“, Review F-7). Zeile b3 oben beschreibt dagegen `reverse` und `compare`, nicht diesen Start.
+
 ## Befunde
 
 - **Zurücklesen und Vergleich bestehen** für Standardwert (`((1))`, `(N'neu')`), Eindeutigkeit, Fremdschlüssel mit Aktion, Index und Prüfbedingung, sowohl für Tabellen, die `schema migrate --execute` anlegt (a3, a4), als auch für solche aus der Beschreibungsdatei (b1, b3) und für Elemente, die `ALTER TABLE … ADD CONSTRAINT` und `CREATE INDEX` an vorhandenen Tabellen anlegen (e2, e3).
