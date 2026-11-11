@@ -55,11 +55,13 @@ Nachweis-Pflichten für alle Punkte:
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `src/main/kotlin/io/github/pt9912/tdswire/simulation/BulkCopyForms.kt` | update | Erkennung nach der Messung |
-| `referenztest-dotnet/Integration/SqlBulkCopyTests.cs`, `testserver/kotlin/io/github/pt9912/tdswire/testserver/IntegrationServer.kt` | update | Szenario mit Schema |
-| `spec/spezifikation.md` (`SPEC-036`), `docs/user/testserver-manuell.md`, `docs/messungen/` | update | Grenze entfällt, Messprotokoll |
-
-Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
+| `src/main/kotlin/io/github/pt9912/tdswire/simulation/BulkCopyForms.kt` | update | Erkennung nach der Messung: ein oder zwei Teile, `]]` und `''`, Leerraum außerhalb der Namen; Suche im genannten Schema |
+| `src/test/kotlin/io/github/pt9912/tdswire/simulation/BulkCopyFormsTest.kt`, `src/test/resources/messung/bulk-referenzclient/probe-*.sql` (neun Texte, aus der Ablage der Instanz 2022) | update, new | Test mit den aufgezeichneten Texten und den Varianten (Liefer-Punkt 2) |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/bulk/BulkColumnType.kt`, `BulkLoadReader.kt` (nur KDoc) | update | die festen Typen INT, SMALLINT, TINYINT und BIT sind gemessen (M-36), nicht Handvektor |
+| `src/test/kotlin/io/github/pt9912/tdswire/protocol/bulk/BulkLoadReaderReferenceClientTest.kt`, `src/test/resources/messung/bulk-referenzclient/typen-fest.hex` | update, new | die gemessene Nachricht 0x07 für INT, SMALLINT, TINYINT und BIT liest der Leser (Liefer-Punkt 1 und 2) |
+| `referenztest-dotnet/Integration/SqlBulkCopyTests.cs`, `testserver/kotlin/io/github/pt9912/tdswire/testserver/IntegrationServer.kt`, `tools/simulationstest.sh` | update | Szenario mit Schema und mit `s1.bulk]ziel'x` im Integrationslauf (zweite Tabelle, Zahl der Tests 13 und der Tabellen 7 im Skript) |
+| `referenztest-dotnet/Vergleich/MessungBulkTests.cs`, `referenztest-dotnet/Mitschnitt/MessungBulkBelegTests.cs`, `referenztest-dotnet/Mitschnitt/messung/bulk-merge-katalog/{2022,2025}/bulk-name-*.messung` (sechs Dateien), `tools/mk/vergleichslauf-d.mk` (Kommentar) | update, new | drei Szenarien der Messreihe (Liefer-Punkt 1), Belege ohne Instanz, Ablage |
+| `spec/spezifikation.md` (`SPEC-036`, `SPEC-040`), `docs/user/` (`testserver-manuell.md`, `einbettung-und-betrieb.md`, `referenz-konfiguration.md`), `docs/plan/kompatibilitaetsmatrix.md`, `docs/messungen/referenzabgleich.md` (M-33 bis M-36) | update | Grenze entfällt, Messprotokoll (Liefer-Punkt 3) |
 
 ## 4. Trigger
 
