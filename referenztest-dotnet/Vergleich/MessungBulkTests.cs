@@ -18,7 +18,7 @@ namespace TdsWire.Referenztests.Vergleich;
 /// PRELOGIN, LOGIN7 (redigiert) und jede Nachricht (<see cref="MessDatei"/>) unter `Mitschnitt/messung/bulk-merge-katalog/&lt;Stufe&gt;/`.
 /// Gegenstand: (1) `SqlBulkCopy` (Paket 0x07 nach `INSERT BULK`), (2) `MERGE … OUTPUT $action` mit Parametern, (3) die Katalogabfragen
 /// von d-migrate 1.12.0 (<see cref="DMigrateTexte"/>) und die Strukturänderung, (4) `EXEC sp_unprepare` mit vielen unbekannten Nummern
-/// und `curCmd`, (5) das Flag-Feld der RETURNVALUE von Ausgabewerten.
+/// und `curCmd`, (5) das Flag-Feld der RETURNVALUE von Ausgabewerten, (6) die Tabellennamen im Massenladen (`bulk-name-schema`, `bulk-name-sonderzeichen`: die Probe der Zieltabelle und `INSERT BULK` bei Namen mit Schema, mit `]`, `'`, Leerzeichen und Punkt; `bulk-name-feste-typen`: die Nachricht 0x07 für nicht nullbare INT, SMALLINT, TINYINT und BIT; Datenbank `tdswire_namen`).
 /// Grenzen: Einzelmessung je Szenario und Instanz; der Client ist `Microsoft.Data.SqlClient`, nicht mssql-jdbc von d-migrate (der
 /// Treiber sendet für `DATE`, `TIME` und `DATETIME2` im `INSERT BULK` die Typen `VARCHAR(n)`, der Referenzclient die Typen der
 /// Zieltabelle); der Wortlaut des `MERGE` folgt der Sonde (`MERGE INTO … AS tgt USING (VALUES (@P0,@P1,@P2)) … OUTPUT $action;`), die
@@ -31,6 +31,7 @@ public class MessungBulkTests
     private const string DbMessung = "tdswire_messung";
     private const string DbKatalog = "tdswire_katalog";
     private const string DbStruktur = "tdswire_struktur";
+    private const string DbNamen = "tdswire_namen";
     private readonly ITestOutputHelper _ausgabe;
 
     public MessungBulkTests(ITestOutputHelper ausgabe) => _ausgabe = ausgabe;
@@ -70,11 +71,25 @@ public class MessungBulkTests
         "CREATE TABLE [kunden] ([Id] INT NOT NULL, [Name] NVARCHAR(200) NOT NULL, CONSTRAINT [pk_kunden] PRIMARY KEY ([Id]))",
     };
 
+    private static readonly string[] AufbauNamen =
+    {
+        "CREATE SCHEMA s1",
+        "CREATE TABLE bulk_ns (Id bigint NOT NULL, [Text] nvarchar(20) NULL, CONSTRAINT pk_bulk_ns PRIMARY KEY (Id))",
+        "CREATE TABLE s1.bulk_s1 (Id bigint NOT NULL, [Text] nvarchar(20) NULL, CONSTRAINT pk_bulk_s1 PRIMARY KEY (Id))",
+        "CREATE TABLE [bulk]]x] (Id bigint NOT NULL, [Text] nvarchar(20) NULL, CONSTRAINT pk_bulk_klammer PRIMARY KEY (Id))",
+        "CREATE TABLE [bulk'x] (Id bigint NOT NULL, [Text] nvarchar(20) NULL, CONSTRAINT pk_bulk_apostroph PRIMARY KEY (Id))",
+        "CREATE TABLE [bulk x] (Id bigint NOT NULL, [Text] nvarchar(20) NULL, CONSTRAINT pk_bulk_leerzeichen PRIMARY KEY (Id))",
+        "CREATE TABLE [bulk.x] (Id bigint NOT NULL, [Text] nvarchar(20) NULL, CONSTRAINT pk_bulk_punkt PRIMARY KEY (Id))",
+        "CREATE TABLE [bulk  y] (Id bigint NOT NULL, [Text] nvarchar(20) NULL, CONSTRAINT pk_bulk_leerzeichen2 PRIMARY KEY (Id))",
+        "CREATE TABLE bulk_fest (A int NOT NULL, B smallint NOT NULL, C tinyint NOT NULL, D bit NOT NULL)",
+    };
+
     private static readonly (string Datenbank, string[] Anweisungen)[] Aufbau =
     {
         (DbMessung, AufbauMessung),
         (DbKatalog, AufbauKatalog),
         (DbStruktur, AufbauStruktur),
+        (DbNamen, AufbauNamen),
     };
 
     private static void AufbauAusfuehren()
@@ -104,8 +119,10 @@ public class MessungBulkTests
         }
     }
 
-    private static string AufbauHash() =>
-        "sha256:" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join("\n", Aufbau.SelectMany(a => a.Anweisungen.Prepend(a.Datenbank)))))).ToLowerInvariant();
+    /// <summary>Der Hash des Aufbaus der Gruppe der Datenbank: die Datenbank der Tabellennamen (<see cref="DbNamen"/>) hat einen eigenen, alle anderen teilen den Hash ihrer drei Datenbanken.</summary>
+    private static string AufbauHash(string datenbank) =>
+        "sha256:" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join("\n",
+            Aufbau.Where(a => (a.Datenbank == DbNamen) == (datenbank == DbNamen)).SelectMany(a => a.Anweisungen.Prepend(a.Datenbank)))))).ToLowerInvariant();
 
     // ---- Bausteine --------------------------------------------------------------------------------------------------
 
@@ -254,6 +271,15 @@ public class MessungBulkTests
         return t;
     }
 
+    /// <summary>Zwei Zeilen mit den Schlüsseln <paramref name="ab"/> und <paramref name="ab"/> + 1; jeder Aufruf einer Tabelle nimmt andere Schlüssel, damit der Schlüssel keinen Verstoß ergibt.</summary>
+    private static DataTable NameQuelle(long ab)
+    {
+        var t = Tabelle(("Id", typeof(long)), ("Text", typeof(string)));
+        t.Rows.Add(ab, "a");
+        t.Rows.Add(ab + 1, "b");
+        return t;
+    }
+
     private static (string, string, Action<Lauf, SqlConnection>)[] Erzeugen()
     {
         return new (string, string, Action<Lauf, SqlConnection>)[]
@@ -318,6 +344,57 @@ public class MessungBulkTests
                 Bulk(l, v, "Schlüssel 2 ist vorhanden, Zeile 2 von 3", "bulk_schluessel", q);
                 Mit(l, v, "Kontrolle", "SELECT COUNT_BIG(*) FROM bulk_schluessel");
                 Mit(l, v, "Folgeabfrage", "SELECT 1 AS eins");
+            }),
+
+            // ---- Tabellennamen im Massenladen (Probe und INSERT BULK) ---------------------------------------------
+            ("bulk-name-schema", DbNamen, (l, v) =>
+            {
+                long schluessel = 1;
+                foreach (var (ziel, kontrolle) in new (string, string?)[]
+                {
+                    ("dbo.bulk_ns", "[dbo].[bulk_ns]"),
+                    ("[dbo].[bulk_ns]", "[dbo].[bulk_ns]"),
+                    ("\"dbo\".\"bulk_ns\"", "[dbo].[bulk_ns]"),
+                    ("tdswire_namen.dbo.bulk_ns", "[dbo].[bulk_ns]"),
+                    ("s1.bulk_s1", "[s1].[bulk_s1]"),
+                    ("dbo.gibtesnicht", null),
+                    ("s2.bulk_ns", null),
+                })
+                {
+                    Bulk(l, v, $"Ziel {ziel}, zwei Zeilen", ziel, NameQuelle(schluessel));
+                    schluessel += 10;
+                    if (kontrolle is null) Mit(l, v, $"Folgeabfrage nach {ziel}", "SELECT 1 AS eins");
+                    else Mit(l, v, $"Kontrolle {ziel}", $"SELECT COUNT_BIG(*) FROM {kontrolle}");
+                }
+            }),
+            ("bulk-name-sonderzeichen", DbNamen, (l, v) =>
+            {
+                long schluessel = 1;
+                foreach (var (ziel, kontrolle) in new (string, string?)[]
+                {
+                    ("[bulk]]x]", "[bulk]]x]"),
+                    ("bulk]x", null),
+                    ("[bulk'x]", "[bulk'x]"),
+                    ("bulk'x", "[bulk'x]"),
+                    ("[bulk x]", "[bulk x]"),
+                    ("[bulk.x]", "[bulk.x]"),
+                    ("dbo.[bulk x]", "[bulk x]"),
+                    ("[bulk  y]", "[bulk  y]"),
+                })
+                {
+                    Bulk(l, v, $"Ziel {ziel}, zwei Zeilen", ziel, NameQuelle(schluessel));
+                    schluessel += 10;
+                    if (kontrolle is null) Mit(l, v, $"Folgeabfrage nach {ziel}", "SELECT 1 AS eins");
+                    else Mit(l, v, $"Kontrolle {ziel}", $"SELECT COUNT_BIG(*) FROM {kontrolle}");
+                }
+            }),
+            ("bulk-name-feste-typen", DbNamen, (l, v) =>
+            {
+                var q = Tabelle(("A", typeof(int)), ("B", typeof(short)), ("C", typeof(byte)), ("D", typeof(bool)));
+                q.Rows.Add(1, (short)2, (byte)3, true);
+                q.Rows.Add(-1, (short)-2, (byte)255, false);
+                Bulk(l, v, "INT, SMALLINT, TINYINT und BIT, alle nicht nullbar, zwei Zeilen", "bulk_fest", q);
+                Mit(l, v, "Kontrolle", "SELECT COUNT_BIG(*) FROM bulk_fest");
             }),
 
             // ---- Liefer-Punkt 1b: MERGE ---------------------------------------------------------------------------
@@ -615,7 +692,7 @@ public class MessungBulkTests
             datei.Herkunft.Add(new("instanz", Herkunft("TDSWIRE_HERKUNFT_INSTANZ")));
             datei.Herkunft.Add(new("image", Herkunft("TDSWIRE_HERKUNFT_IMAGE")));
             datei.Herkunft.Add(new("client", $"Microsoft.Data.SqlClient {typeof(SqlConnection).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion?.Split('+')[0]} auf {RuntimeInformation.FrameworkDescription}"));
-            datei.Herkunft.Add(new("schema", "Aufbau der Messreihe " + AufbauHash() + ", Datenbank " + datenbank));
+            datei.Herkunft.Add(new("schema", "Aufbau der Messreihe " + AufbauHash(datenbank) + ", Datenbank " + datenbank));
             datei.Herkunft.Add(new("methode", $"TLS-beendender Proxy im Container des Clients, Encrypt=Mandatory, TLS 1.2, ConnectRetryCount=0, Pooling=aus, PacketSize {packetSize}; LOGIN7 redigiert (Rechnername, Benutzer, Kennwort, Servername, SSPI, ClientID, Prozess-ID)"));
             datei.Herkunft.Add(new("aufnahme", DateTime.UtcNow.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)));
             datei.Nachrichten.AddRange(nachrichten.Select(n => n.Richtung == 's' ? n with { Daten = Redaktion.NameErsetzen(n.Daten, servername) } : n));
