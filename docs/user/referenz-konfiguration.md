@@ -43,7 +43,7 @@ Eine Sitzung hält höchstens `MAX_PREPARED_HANDLES` Handles zugleich (`SPEC-061
 
 ## Fehlercodes und Antwortformen
 
-Jeder Fehler des Servers erreicht den Client als ERROR (feste englische Meldung; State 1, außer bei Nummern mit dem State des echten SQL Servers, zum Beispiel 8179: State 8 bei der Freigabe, State 4 bei `sp_execute`) und einen Abschluss mit Fehlerstatus; der Text einer Backend-Meldung oder Ausnahme erreicht den Client nie. Zuordnung nach [Abschnitt 4 der Spezifikation](../../spec/spezifikation.md#4-fehler-codes-und-logging-felder); am echten SQL Server beobachtet sind die Nummern 18456, 8179, 2627, 2628, 2714, 2705, 4902 und 208 (dieses mit Class 16), die übrigen Nummern sind Festlegungen:
+Jeder Fehler des Servers erreicht den Client als ERROR (feste englische Meldung; State 1, außer bei Nummern mit dem State des echten SQL Servers, zum Beispiel 8179: State 8 bei der Freigabe, State 4 bei `sp_execute`) und einen Abschluss mit Fehlerstatus; der Text einer Backend-Meldung oder Ausnahme erreicht den Client nie. Zuordnung nach [Abschnitt 4 der Spezifikation](../../spec/spezifikation.md#4-fehler-codes-und-logging-felder); am echten SQL Server beobachtet sind die Nummern 18456, 8179, 2627, 2628, 2714, 2705, 4902, 3728, 3733 und 208 (dieses mit Class 16), die übrigen Nummern sind Festlegungen:
 
 | Code | Nummer | Class | Folge |
 |---|---|---|---|
@@ -63,6 +63,8 @@ Jeder Fehler des Servers erreicht den Client als ERROR (feste englische Meldung;
 | `TDS_SIM_OBJECT_EXISTS` | 2714 | 16 | offen |
 | `TDS_SIM_COLUMN_EXISTS` | 2705 | 16 | offen |
 | `TDS_SIM_OBJECT_NOT_FOUND` | 4902 | 16 | offen |
+| `TDS_SIM_NOT_A_CONSTRAINT` | 3728 | 16 | offen |
+| `TDS_SIM_CONSTRAINT_OTHER_TABLE` | 3733 | 16 | offen |
 | `TDS_SIM_UNKNOWN_PREPARED_HANDLE` | 8179 | 16 | offen |
 | `TDS_LOGIN_FAILED` | 18456 | 14 | schließt |
 
@@ -80,7 +82,7 @@ Die Anmeldung mit falschem Kennwort und mit unbekanntem Benutzer ergibt dieselbe
 | `sp_prepexec` | `RETURNSTATUS 0` vor dem `RETURNVALUE` mit dem Handle (Ordinal 0) |
 | Fehler in der Anfrage | `ERROR` und `DONE` mit Fehlerstatus (im RPC `DONEPROC`); der Abschluss nach einem Fehler trägt die Befehlskennung nach der Form des Abschlusses (`SPEC-031`) |
 | Änderung (`INSERT`, `UPDATE`, `DELETE`) | `DONE` mit `COUNT`, der Zeilenzahl und der Befehlskennung der Art, die das Backend im `UpdateCount` meldet: `0x00c3`, `0x00c5`, `0x00c4` (im RPC `DONEINPROC` mit `MORE\|COUNT`); ohne Angabe der Art steht die Kennung 0 (`SPEC-031`) |
-| `CREATE TABLE`, `ALTER TABLE … ADD` (Batch) | `DONE` ohne `COUNT` und ohne Zeilenzahl, Befehl `0x00c6` bzw. `0x00d8`, wenn das Backend die Art `CREATE_TABLE` bzw. `ALTER_TABLE` meldet (das Simulations-Backend tut es, auch für `ALTER TABLE … ADD CONSTRAINT`, dort ist die Kennung nicht gemessen); im RPC und ohne Angabe der Art steht die Kennung 0 mit `COUNT` (`SPEC-031`) |
+| `CREATE TABLE`, `ALTER TABLE … ADD`, `ALTER TABLE … DROP CONSTRAINT` (Batch) | `DONE` ohne `COUNT` und ohne Zeilenzahl, Befehl `0x00c6` bzw. `0x00d8`, wenn das Backend die Art `CREATE_TABLE` bzw. `ALTER_TABLE` meldet (das Simulations-Backend tut es, auch für `ALTER TABLE … ADD CONSTRAINT`, dort ist die Kennung nicht gemessen; für `DROP CONSTRAINT` ist `0x00d8` am echten Server gemessen); im RPC und ohne Angabe der Art steht die Kennung 0 mit `COUNT` (`SPEC-031`) |
 | `CREATE INDEX` (Batch, Simulations-Backend) | `DONE` mit `COUNT` 0 und der Kennung 0 (Art `UNKNOWN`; die Kennung des echten Servers ist nicht gemessen) |
 | Transaktionstexte (Batch) | `set implicit_transactions on`: `DONE` ohne `COUNT`, Befehl `0x00b9`; `set implicit_transactions off IF @@TRANCOUNT > 0 COMMIT TRAN`: `DONE MORE` `0x00ba`, dann `DONE` `0x00c0`; `IF @@TRANCOUNT > 0 COMMIT TRAN`: `DONE` `0x00c0`; `set implicit_transactions off` allein: Änderungszähler 0 ohne Art (nicht gemessen) (`SPEC-031`, `SPEC-036`) |
 | `CREATE TABLE` bei `set implicit_transactions on` | `ENVCHANGE` Typ 8 mit dem Deskriptor der Transaktion vor dem `DONE`; der bedingte `COMMIT` bei offener Transaktion: `DONE MORE` `0x00c0`, `ENVCHANGE` Typ 9, `DONE` `0x00d5`. Die Bibliothek hat keine Transaktion: `ROLLBACK TRAN` nimmt nichts zurück und schreibt kein `ENVCHANGE`; `ENVCHANGE` Typ 8 bei anderen Anweisungen als `CREATE TABLE` und im RPC schreibt der Server nicht, der echte SQL Server schon (`SPEC-031`) |

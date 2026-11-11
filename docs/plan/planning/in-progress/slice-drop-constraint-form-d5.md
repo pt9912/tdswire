@@ -69,12 +69,16 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `src/main/kotlin/io/github/pt9912/tdswire/simulation/Statement.kt`, `StatementParser.kt`, `StructureParts.kt`, `ConstraintParts.kt`, `StatementPlanner.kt`, `StructurePlanner.kt`, `StructureChecks.kt` | update | Form D5: Erkennung, Planung gegen den Katalog, Abweisung unbekannter Namen |
-| `src/main/kotlin/io/github/pt9912/tdswire/simulation/SimModel.kt`, `SimElements.kt` | update | Tabelle ohne das benannte Element |
-| `src/test/kotlin/.../simulation/` (Strukturtests, Formen-Tests), `src/integrator/kotlin/` (Einbettungstest) | update / neu | Handvektoren und Zeilen der Messung, Mutationen |
-| `docs/messungen/` — Messprotokoll der Form am echten Server <!-- d-check:ignore (geplant: neue Datei) --> | neu | Eingang des Baus; Antwort auf die Frage zu Punkt 3 |
-| `spec/spezifikation.md` (`SPEC-036`, `SPEC-035`, Änderungsprotokoll), `docs/user/testserver-manuell.md`, `docs/user/einbettung-und-betrieb.md` | update | Zusage und Grenzen |
-| `docs/plan/planning/observations/BEO-TDS/katalog-elemente-grenzen-der-angleichung/` | update | Zustand und Beleg der Punkte 2 und 3 |
+| `src/main/kotlin/io/github/pt9912/tdswire/simulation/Statement.kt`, `StructureParts.kt`, `StructureChecks.kt`, `StructurePlanner.kt`, `StatementPlanner.kt`, `SimulationChanges.kt` | update | Form D5: Erkennung (`Statement.DropConstraint`), Planung gegen den Katalog (Bedingung entfernen, `IF EXISTS` ohne Treffer, Name einer anderen Tabelle, unbekannte Tabelle), die zwei neuen Namen in `SimCodes` |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/error/ErrorCode.kt`, `ErrorMapper.kt` | update | `TDS_SIM_NOT_A_CONSTRAINT` (3728) und `TDS_SIM_CONSTRAINT_OTHER_TABLE` (3733) als Codes und in der Positivliste der Backends; intern, keine Änderung der öffentlichen Fläche |
+| `src/main/kotlin/.../simulation/SimModel.kt`, `SimElements.kt`, `ConstraintParts.kt` | unverändert | das Modell führt keinen Namen für Standardwert und Schlüssel; die öffentliche Fläche wächst nicht (Grenze in `SPEC-036`, Register Punkt 2) |
+| `src/test/kotlin/.../simulation/SimulationBackendDropConstraintTest.kt` (neu), `DMigrateWire.kt`, `src/test/kotlin/.../protocol/error/ErrorMapperTest.kt`, `src/integrator/kotlin/.../FlaecheEmbeddingTest.kt` | neu / update | Handvektoren (Texte von d-migrate am Draht, Zeilen der Messung), Fehlercodes, Einbettungstest auf den Rohbytes |
+| `referenztest-dotnet/Vergleich/MessungBulkTests.cs` (Szenario `struktur-drop-constraint`), `referenztest-dotnet/Mitschnitt/MessungBulkBelegTests.cs`, `referenztest-dotnet/Mitschnitt/messung/bulk-merge-katalog/{2022,2025}/struktur-drop-constraint.messung` | update / neu | Messung der Antworten des echten Servers auf `DROP CONSTRAINT` und ihre Belege ohne Instanz |
+| `tools/vergleichslauf-d.sh` (Lauf `schema-2022`, `schema-2025`, Funktion `schemalauf`), `tools/mk/vergleichslauf-d.mk`, `harness/README.md`, `referenztest-dotnet/Mitschnitt/messung/jdbc-d-migrate/{2022,2025}.schema.aufnahme.txt` | update / neu | d-migrate (`schema migrate`, `compare`, `reverse`) gegen den echten Server mit Mitschnitt der Antworten; beantwortet die Frage zu Punkt 3 |
+| `docs/messungen/drop-constraint-d-migrate-2026-11-11.md` (neu), `docs/messungen/referenzabgleich.md` | neu / update | Messprotokoll der Form am echten Server und Antwort auf die Frage zu Punkt 3 |
+| `spec/spezifikation.md` (`SPEC-036` Form D5 und Grenzen, Fehlertabelle, Ablaufpunkt 9, Änderungsprotokoll), `docs/user/testserver-manuell.md`, `docs/user/einbettung-und-betrieb.md`, `docs/user/referenz-konfiguration.md` | update | Zusage und Grenzen; `docs/user/README.md` und `referenz-ereignisse.md` gelesen, unverändert |
+| `docs/plan/planning/observations/BEO-TDS/katalog-elemente-grenzen-der-angleichung/` (`observation.md`, `state.md`) | update | Zustand der Punkte 2 und 3, neuer Punkt 9 (`DROP INDEX IF EXISTS`) |
+| `docs/plan/spec-abdeckung.md` | erzeugt | `make spec-abdeckung` einmal, Tests geändert |
 
 ## 4. Trigger
 

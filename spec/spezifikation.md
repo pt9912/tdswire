@@ -220,7 +220,7 @@ O(übertragene Bytes).
 8. Katalogabfrage (Form K): die Antwort entsteht aus den Tabellen, die der Katalog-Anbieter bei dieser Anfrage
    liefert (`SPEC-035`): Tabellen, Spalten (mit Standardwert), Schlüssel, Eindeutigkeiten, Fremdschlüssel, Indizes und
    Prüfbedingungen aus den Beschreibungen, alles andere als leeres Ergebnis mit den Spalten der Abfrage. Es wird weder eine Zeilenquelle gelesen noch ein Callback gerufen.
-9. Strukturänderung (Form D): `CREATE TABLE`, `ALTER TABLE … ADD` (Spalte oder `CONSTRAINT`) und `CREATE INDEX` werden gegen
+9. Strukturänderung (Form D): `CREATE TABLE`, `ALTER TABLE … ADD` (Spalte oder `CONSTRAINT`), `ALTER TABLE … DROP CONSTRAINT` und `CREATE INDEX` werden gegen
    den Katalog dieser Anfrage geprüft (Tabelle vorhanden oder nicht, Spalten, Schlüssel, Namen der Bedingungen und Indizes,
    Zieltabelle eines Fremdschlüssels); hat der Integrator einen Strukturänderungs-Callback
    gesetzt (`SPEC-035`), bekommt er die Tabelle im Zustand nach der Anweisung, und die Antwort ist der Abschluss der Art
@@ -754,7 +754,7 @@ trägt die Kennung der Art, die das Backend im Feld `kind` meldet (`StatementKin
 `0x00c4`, `UPDATE` `0x00c5`, je mit dem Bit `COUNT` und der Zeilenzahl, im RPC am DONEINPROC `MORE|COUNT`; `UNKNOWN`
 (die Voreinstellung, ein Backend ohne Angabe der Art) trägt die Kennung 0 mit `COUNT` (keine Aussage). Fünf Arten
 schließen im SQL_BATCH ohne `COUNT` (Status 0, Zeilenzahl 0; eine Zahl, die das Backend im Ereignis meldet, ignoriert
-die Bibliothek): `CREATE_TABLE` `0x00c6`, `ALTER_TABLE` `0x00d8` (`CREATE TABLE`, `ALTER TABLE … ADD`),
+die Bibliothek): `CREATE_TABLE` `0x00c6`, `ALTER_TABLE` `0x00d8` (`CREATE TABLE`, `ALTER TABLE … ADD`, `ALTER TABLE … DROP CONSTRAINT`),
 `IMPLICIT_TRANSACTIONS_ON` `0x00b9` (`set implicit_transactions on`), `IMPLICIT_TRANSACTIONS_OFF` `0x00ba` (erster Abschluss von `set implicit_transactions off IF … COMMIT TRAN`) und
 `COMMIT_IF_OPEN` `0x00c0` (der Abschluss der Bedingung `IF @@TRANCOUNT > 0 COMMIT TRAN`); alle gemessen (Messprotokoll,
 Messreihe zu Massenladen, `MERGE`, Katalog und Strukturänderung, M-20, je ein Fall je Instanz 2022 und 2025). Im
@@ -1098,13 +1098,13 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   mit Bestand im Arbeitsspeicher, 2026-11-06): `schema migrate --execute` besteht die Nachprüfung, weil der Anbieter nach der
   Strukturänderung den neuen Stand liefert; ein fester Katalog zeigte im Spike dieselbe Nachprüfung als Abweichung
   (Exit 5, Einzelmessung 2026-11-05). Der Callback `onStructure` bekommt für `CREATE TABLE`, `ALTER TABLE … ADD` (Spalte oder
-  `CONSTRAINT`) und `CREATE INDEX` die Tabelle im Zustand **nach** der Anweisung als `SimTable` (Schema, Name wie im Katalog, alle
+  `CONSTRAINT`), `ALTER TABLE … DROP CONSTRAINT` und `CREATE INDEX` die Tabelle im Zustand **nach** der Anweisung als `SimTable` (Schema, Name wie im Katalog, alle
   Spalten in der Reihenfolge mit ihren Standardwerten, Schlüssel, Eindeutigkeiten, Fremdschlüssel, Indizes, Prüfbedingungen); die
   Zeilenquelle der übergebenen Tabelle liefert keine Zeile, ihre Callbacks fehlen (`null`): sie ist eine Beschreibung, der
   Integrator hält seine Zeilen und Callbacks selbst. Der Callback wird beim Sammeln der Ausführung genau einmal gerufen, und die
   Antwort ist der Abschluss der Art `CREATE_TABLE` bzw. `ALTER_TABLE`: `DONE` ohne `COUNT`, Befehl `0x00c6` bzw. `0x00d8` (gemessen,
   M-20; `SPEC-031`); `ALTER TABLE … ADD CONSTRAINT` meldet die Art `ALTER_TABLE` (Setzung: die Kennung von `ALTER TABLE` für die
-  Bedingung ist nicht gemessen), `CREATE INDEX` die Art `UNKNOWN` (`DONE` mit `COUNT` 0; die Kennung des Servers ist nicht
+  Bedingung ist nicht gemessen), `ALTER TABLE … DROP CONSTRAINT` ebenfalls (`0x00d8`, gemessen, `SPEC-036` Form D5), `CREATE INDEX` die Art `UNKNOWN` (`DONE` mit `COUNT` 0; die Kennung des Servers ist nicht
   gemessen). Die Prüfung gegen den Katalog endet vor dem Callback und antwortet wie der echte Server
   (gemessen, M-19, 2022 und 2025, je ein Fall; ERROR und DONE mit `ERROR`, die Verbindung bleibt offen): `CREATE TABLE` einer
   vorhandenen Tabelle mit `TDS_SIM_OBJECT_EXISTS` (2714, State 6), `ADD` einer vorhandenen Spalte mit `TDS_SIM_COLUMN_EXISTS` (2705,
@@ -1155,6 +1155,7 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
 | D2 | `ALTER TABLE [<Schema>.]<Tabelle> ADD <Spalte> {, <Spalte>}` | Abschluss der Art `ALTER_TABLE` (`0x00d8`, ohne `COUNT`) |
 | D3 | `ALTER TABLE [<Schema>.]<Tabelle> [WITH CHECK] ADD CONSTRAINT <Name> UNIQUE \| FOREIGN KEY \| CHECK \| DEFAULT <Literal> FOR <Spalte>` | Abschluss der Art `ALTER_TABLE` (`0x00d8`, ohne `COUNT`; für Bedingungen nicht gemessen) |
 | D4 | `CREATE [UNIQUE] INDEX <Name> ON [<Schema>.]<Tabelle> (<Spalten>) [INCLUDE (<Spalten>)]` | Abschluss der Art `UNKNOWN` (`DONE` mit `COUNT` 0; Kennung und Zähler des Servers sind nicht gemessen, die gemessenen Abschlüsse von `CREATE TABLE` und `ALTER TABLE … ADD` tragen keinen `COUNT`) |
+| D5 | `ALTER TABLE [<Schema>.]<Tabelle> DROP CONSTRAINT [IF EXISTS] <Name>` (ein Name) | Abschluss der Art `ALTER_TABLE` (`0x00d8`, ohne `COUNT`; gemessen am echten Server, 2022 und 2025); die Bedingung fällt aus der Tabelle, die der Callback bekommt; Fehler und Grenzen unten |
 | B | `INSERT BULK [<Schema>.]<Tabelle> (<Spalte> <Typ> {, <Spalte> <Typ>}) [WITH (<Optionen>)]`, danach die Nachricht `0x07` (`SPEC-001`) | `INSERT BULK`: DONE ohne Zähler, Befehl `0x00fd`; die Nachricht: DONE mit Zähler der geladenen Zeilen, Befehl `0x00f0` (beides gemessen, `SPEC-001`) |
 | M | `MERGE INTO [<Schema>.]<Tabelle> AS <T> USING (VALUES (<Wert> {, <Wert>})) AS <Q> (<Spalte> {, <Spalte>}) ON <T>.<Spalte> = <Q>.<Spalte> {AND …} [WHEN MATCHED THEN UPDATE SET <T>.<Spalte> = <Q>.<Spalte> {, …}] WHEN NOT MATCHED THEN INSERT (<Spalte> {, <Spalte>}) VALUES (<Q>.<Spalte> {, <Q>.<Spalte>}) OUTPUT $action` | Resultset mit der Spalte `$action` (Text, nicht NULL) und je Aktion einer Zeile `INSERT` oder `UPDATE`, keine Zeile ohne Aktion (gemessen, Form M unten) |
 
@@ -1353,12 +1354,24 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   sendet d-migrate einen Standardwert als Text mit `DECLARE @df sysname …` vor dem `ALTER TABLE … ADD CONSTRAINT … DEFAULT … FOR`;
   der Text ist nicht erkannt (`schema migrate --execute` endet dann mit Exit 5, gemessen), ein Standardwert an einer neuen Spalte
   oder in `CREATE TABLE` ist nicht betroffen. Eine vorhandene Prüfbedingung plant `schema migrate` bei jedem Lauf neu mit
-  `ALTER TABLE … DROP CONSTRAINT IF EXISTS` und `ADD CONSTRAINT`; `DROP CONSTRAINT` ist keine Form dieser Tabelle, ein zweites
-  `schema migrate --execute` mit einer Prüfbedingung im Soll endet deshalb mit `Unsupported SQL.` und Exit 5 (gemessen am
-  Testserver; am echten Server nicht gemessen, dort ist die Neuplanung nach der Hilfe von d-migrate ebenfalls zu erwarten). Ein eindeutiger Index ohne Bedingung (`CREATE UNIQUE INDEX`) liest d-migrate beim
-  Zurücklesen als Eindeutigkeit; ein Soll mit `unique: true` im Index endet daher mit `POST_EXECUTE_DRIFT` und Exit 5 (gemessen am
-  Testserver; am echten Server nicht gemessen). Die Prüfbedingung aus der Beschreibungsdatei steht im Katalog roh, nicht in der Form
+  `ALTER TABLE … DROP CONSTRAINT IF EXISTS` und `ADD CONSTRAINT` (gemessen am echten Server und am Testserver, Form D5 unten); ein zweites
+  `schema migrate --execute` mit einer Prüfbedingung im Soll endet mit Exit 0 und `IDENTICAL`. Ein eindeutiger Index ohne Bedingung (`CREATE UNIQUE INDEX`) liest d-migrate beim
+  Zurücklesen als Eindeutigkeit (`_unique_<Spalte>`); ein Soll mit `unique: true` im Index endet daher mit `POST_EXECUTE_DRIFT` und Exit 5 —
+  am echten Server (2022 und 2025) ebenso wie am Testserver, das Verhalten liegt bei d-migrate und ist keine Abweichung des Testservers. Ändert das Soll einen vorhandenen Index, sendet d-migrate vor
+  `CREATE INDEX` den Text `DROP INDEX IF EXISTS <Name> ON <Tabelle>` (am echten Server mit dem Befehl `0x00c9` beantwortet); er ist keine Form dieser
+  Tabelle (`Unsupported SQL.`, Exit 5). Die Prüfbedingung aus der Beschreibungsdatei steht im Katalog roh, nicht in der Form
   des Servers (`SPEC-035`).
+- **Form D5, `DROP CONSTRAINT`** (Wortlaut `ALTER TABLE [t] DROP CONSTRAINT IF EXISTS [name];` gemessen mit `schema migrate --execute`, d-migrate 1.12.0, am echten Server
+  2022 und 2025, Lauf `schema` des Vergleichslaufs; die Antworten gemessen mit dem Referenzclient am echten Server, Szenario `struktur-drop-constraint`): der Name einer
+  Eindeutigkeit, eines Fremdschlüssels oder einer Prüfbedingung der Tabelle fällt aus der Tabelle, die der Callback bekommt; der Name gilt ohne Beachtung der Schreibweise.
+  `IF EXISTS` ohne Treffer (auch bei dem Namen einer Bedingung einer anderen Tabelle) ist ein Erfolg ohne Änderung, der Callback bekommt die unveränderte
+  Tabelle. Ohne `IF EXISTS` ist ein Name ohne Treffer `TDS_SIM_NOT_A_CONSTRAINT` (3728, State 1), der Name einer Bedingung einer anderen Tabelle desselben Schemas
+  `TDS_SIM_CONSTRAINT_OTHER_TABLE` (3733, State 2); eine unbekannte Tabelle ist mit und ohne `IF EXISTS` `TDS_SIM_OBJECT_NOT_FOUND` (4902, gemessen). Der Server sendet nach 3728
+  und 3733 ein zweites ERROR (3727, „Could not drop constraint. See previous errors.“); die Bibliothek sendet nur das erste (Grenze). **Grenzen** (Träger:
+  `BEO-TDS/katalog-elemente-grenzen-der-angleichung`): der Name eines Standardwerts und der des Schlüssels sind im Modell nicht geführt, `DROP CONSTRAINT <Name>` trifft sie nicht
+  (am echten Server fällt die Bedingung); d-migrate sendet den Standardwert nur im Text mit `DECLARE @df …` (oben). Ein Fremdschlüssel, der einen Schlüssel der Tabelle
+  referenziert, hindert das Entfernen nicht (der Server meldet 3725; die Bibliothek prüft keine referentielle Integrität). Die Namen gelten je Tabelle, der Server führt sie je Schema (`SPEC-035`). Mehrere
+  Namen in einem Text (`DROP CONSTRAINT a, b`), `DROP COLUMN` und `WITH CHECK` vor `DROP` sind nicht erkannt.
 - **Scanner** (Setzungen, nicht am Server gemessen): Leerraum sind Leerzeichen, Tab, CR und LF.
   Blockkommentare dürfen sich schachteln; ein offenes Literal oder ein offener Kommentar ist nicht
   erkannt. `N'…'` gilt nur mit `N` unmittelbar vor dem Hochkomma; ein verdoppeltes Hochkomma steht für
@@ -1553,6 +1566,8 @@ Text fest und englisch (bei `TDS_SIM_UNKNOWN_PREPARED_HANDLE` endet er mit der N
 | `TDS_SIM_OBJECT_EXISTS` | 2714 | 16 | offen | Nummer, Class, State 6 und die offene Verbindung: gemessen am echten SQL Server (2022 und 2025, `CREATE TABLE` einer vorhandenen Tabelle, M-19); der Text ist ein Auszug des gemessenen Textes „There is already an object named '<Name>' in the database.“ ohne den Namen (Setzung) |
 | `TDS_SIM_COLUMN_EXISTS` | 2705 | 16 | offen | Nummer, Class, State 4 und die offene Verbindung: gemessen am echten SQL Server (2022 und 2025, `ADD` einer vorhandenen Spalte, M-19); der Text ist der erste Satz des gemessenen Textes, ohne den zweiten Satz mit den Namen von Tabelle und Spalte (Setzung) |
 | `TDS_SIM_OBJECT_NOT_FOUND` | 4902 | 16 | offen | Nummer, Class, State 1 und die offene Verbindung: gemessen am echten SQL Server (2022 und 2025, `ALTER TABLE` einer unbekannten Tabelle, M-19); der Text ist ein Auszug des gemessenen Textes ohne den Namen in den Anführungszeichen (Setzung) |
+| `TDS_SIM_NOT_A_CONSTRAINT` | 3728 | 16 | offen | Nummer, Class, State 1 und die offene Verbindung: gemessen am echten SQL Server (2022 und 2025, `ALTER TABLE … DROP CONSTRAINT` eines Namens ohne Treffer, Szenario `struktur-drop-constraint`); der Text ist ein Auszug des gemessenen Textes „'<Name>' is not a constraint.“ ohne den Namen (Setzung); das zweite ERROR 3727 des Servers sendet die Bibliothek nicht |
+| `TDS_SIM_CONSTRAINT_OTHER_TABLE` | 3733 | 16 | offen | Nummer, Class, State 2 und die offene Verbindung: gemessen am echten SQL Server (2022 und 2025, `DROP CONSTRAINT` des Namens einer Bedingung einer anderen Tabelle); der Text ist ein Auszug ohne die Namen (Setzung); das zweite ERROR 3727 des Servers sendet die Bibliothek nicht |
 | `TDS_SIM_STRING_TRUNCATED` | 2628 | 16 | offen | Nummer, Class, State 1 und die offene Verbindung: gemessen am echten SQL Server (2022 und 2025, `MERGE` mit einem Text über der Länge der Spalte, M-15); der Text ist gekürzt ohne Tabelle, Spalte und Wert (Setzung); nach dem ERROR folgt INFO 3621 (`SPEC-031`) |
 | `TDS_SIM_UNKNOWN_PREPARED_HANDLE` | 8179 | 16 | offen | Nummer, Class, State (8 bei der Batch-Freigabe, 4 bei `sp_execute`) und Text für Handle 1 (Batch-Freigabe) und 999999 (`sp_execute`): gemessen am echten SQL Server (2022 und 2025), die Verbindung bleibt offen; der Text für andere Nummern: Setzung |
 
@@ -1563,7 +1578,7 @@ Referenzclient es so annimmt, ist nicht am Produkt gemessen. Die Antwort an die 
 Class 20 und 25 zusätzlich das Statusbit `SRVERR` und es folgen weitere ERROR-Token (Messung R10); das
 Mapping sendet für jeden Code nur ERROR und DONE mit `ERROR`, diese Abweichung ist nicht am Produkt
 gemessen. Ein Backend meldet als `Failure` nur `TDS_BACKEND_ERROR`, `TDS_UNSUPPORTED_SQL`,
-`TDS_UNSUPPORTED_TYPE`, `TDS_SIM_UNKNOWN_OBJECT`, `TDS_SIM_INVALID_VALUE`, `TDS_SIM_KEY_VIOLATION`, `TDS_SIM_OBJECT_EXISTS`, `TDS_SIM_COLUMN_EXISTS`, `TDS_SIM_OBJECT_NOT_FOUND`, `TDS_SIM_STRING_TRUNCATED` und `TDS_TIMEOUT`
+`TDS_UNSUPPORTED_TYPE`, `TDS_SIM_UNKNOWN_OBJECT`, `TDS_SIM_INVALID_VALUE`, `TDS_SIM_KEY_VIOLATION`, `TDS_SIM_OBJECT_EXISTS`, `TDS_SIM_COLUMN_EXISTS`, `TDS_SIM_OBJECT_NOT_FOUND`, `TDS_SIM_NOT_A_CONSTRAINT`, `TDS_SIM_CONSTRAINT_OTHER_TABLE`, `TDS_SIM_STRING_TRUNCATED` und `TDS_TIMEOUT`
 (Festlegung); jeder andere Code, auch ein anderer eigener wie `TDS_LOGIN_FAILED` oder `TDS_SHUTDOWN`,
 erreicht den Client als `TDS_INTERNAL_ERROR`. Ist der Strom nicht synchron, entfällt die
 Antwort und die Verbindung schließt (`SPEC-031`). Der Log-Eintrag einer unerwarteten Ausnahme trägt den
@@ -2170,3 +2185,4 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | 2026-11-08 | Antwort des `MERGE … OUTPUT $action` an die Messung angeglichen (`TDS-FA-11`, `TDS-FA-12`, `TDS-QA-01`, M-15, M-26): öffentliche Fläche um das Feld `ResultColumn.maxLength` (Vorgabe 4000, für Java der Konstruktor mit drei Argumenten bleibt), das Feld `ResultStart.kind` (Vorgabe `UNKNOWN`, für Java der Konstruktor mit einem Argument bleibt) und die Konstante `MERGE` von `StatementKind` erweitert (`SPEC-059`; `copy`, `componentN` und `equals` von `ResultColumn` und `ResultStart` ändern sich); `$action` ist `nvarchar(10)`, der Abschluss trägt `0x0117` (`SPEC-031`, `SPEC-036`); neuer Code `TDS_SIM_STRING_TRUNCATED` (2628), 2627 für den Fehler von `onInsert`, INFO 3621 nach dem Fehler im Ergebnis; die Grenze „nicht gebaut“ zu Länge und Befehl entfällt; **Inkompatibel** für ein Kotlin-`when` ohne `else` über `StatementKind` in fremdem Code: es übersetzt nicht mehr, bis es `MERGE` nennt (vor der ersten Veröffentlichung, Setzung); Entscheid des Nutzers am 2026-11-09 per Auswahl: das Feld `ResultStart.kind` bleibt in der öffentlichen Fläche, weil der Fehler im offenen Ergebnis die Art am Beginn des Ergebnisses braucht (`0x0117` für den Fehler im `MERGE`, M-15); Klarstellung zu `ResultColumn.maxLength`: ein Text einer `Row` über der Länge weist die Bibliothek ab |
 | 2026-11-09 | Katalog für Standardwerte, Eindeutigkeiten, Fremdschlüssel, Indizes und Prüfbedingungen (`TDS-FA-11`, `TDS-FA-12`, `TDS-QA-01`, M-21, `SPEC-035`, `SPEC-036`): die öffentliche Fläche nennt vier neue Typnamen (`SimUniqueKey`, `SimForeignKey`, `SimIndex`, `SimCheck`) und die Mitglieder `SimColumn.defaultDefinition`, `SimTable.uniqueKeys`, `SimTable.foreignKeys`, `SimTable.indexes`, `SimTable.checks`; der Strukturänderungs-Callback des zweiten Konstruktors von `SimulationBackend` nimmt statt vier Parametern eine `SimTable` (Beschreibung nach der Anweisung, ohne Zeilen und Callbacks). **Inkompatibel** für einen Integrator mit Strukturänderungs-Callback (Lambda mit vier Parametern, vor der ersten Veröffentlichung, Setzung). Entscheid des Nutzers am 2026-11-11 per Auswahl: die Fläche bleibt wie hier genannt. Die Katalogabfragen der Eindeutigkeiten, Fremdschlüssel, Indizes, Prüfbedingungen und der Standardwerte antworten aus der Beschreibung (bisher leer); die Antwortspalten tragen die gemessenen Nullbarkeiten und `tinyint` für `type` und `key_ordinal`; die Formen D1 und D2 nehmen `CONSTRAINT … DEFAULT`, `UNIQUE`, `FOREIGN KEY` und `CHECK` an, neu sind D3 (`ALTER TABLE … ADD CONSTRAINT`) und D4 (`CREATE INDEX`); der Scanner kennt `<` und `>`; der Leser der Datei liest `unique`, `unique_constraint`, `default`, `references`, `indices` und `constraints` (bisher ignoriert). |
 | 2026-11-09 | Antwort auf eine unbekannte Tabelle (208) an die Messung angeglichen (`TDS-FA-11`, `TDS-FA-12`, `TDS-QA-01`, M-15): `TDS_SIM_UNKNOWN_OBJECT` gehört zur Anfragefehler-Gruppe, Class 16 und die Verbindung bleibt offen (Abschnitt 4, `SPEC-038`, `SPEC-036`); die Einzelzuordnung von `TDS_UNSUPPORTED_TYPE` bleibt offen; der Text „Unknown object.“ bleibt Festlegung |
+| 2026-11-11 | `ALTER TABLE … DROP CONSTRAINT [IF EXISTS]` als Form D5 erkannt und am echten Server gemessen (`TDS-FA-11`, `TDS-FA-12`, `TDS-QA-01`, `SPEC-035`, `SPEC-036`): die Bedingung (Eindeutigkeit, Fremdschlüssel, Prüfbedingung) fällt aus der Tabelle, die der Callback bekommt; `IF EXISTS` ohne Treffer ist ein Erfolg ohne Änderung; ohne `IF EXISTS` sind ein Name ohne Treffer `TDS_SIM_NOT_A_CONSTRAINT` (3728) und der Name einer Bedingung einer anderen Tabelle `TDS_SIM_CONSTRAINT_OTHER_TABLE` (3733), eine unbekannte Tabelle `TDS_SIM_OBJECT_NOT_FOUND`; zwei neue Fehlercodes in Abschnitt 4 und in der Positivliste der Backends (intern, keine Änderung der öffentlichen Fläche); die Grenze zu `DROP CONSTRAINT IF EXISTS` und zum Index mit `unique: true` ist gemessen (kein Unterschied des Testservers zum echten Server beim eindeutigen Index; `DROP INDEX IF EXISTS` bleibt keine Form) |
