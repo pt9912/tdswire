@@ -26,6 +26,10 @@
 #   und `data transfer` mit --on-conflict skip und update, Standardpfad mit BIGINT- und INT-Spalte, `data export`; die Zeilen
 #   `aufnahme:` der Ausgabe sind die Messwerte, die das Messprotokoll zitiert; die Datei ersetzt
 #   referenztest-dotnet/Mitschnitt/messung/jdbc-d-migrate/<stufe>.aufnahme.txt im Arbeitsbaum (der Lauf schreibt dorthin, committet nichts).
+#   schema-2022 | schema-2025 | schema (beide): d-migrate 1.12.0 (`schema migrate --execute`, `schema compare`, `schema reverse`) gegen die
+#   Referenzinstanz ueber denselben mitschneidenden Durchlauf: Soll mit Eindeutigkeit, Fremdschluessel, Standardwert, Pruefbedingung und
+#   Index; zweiter Lauf mit demselben Soll (Neuplanung), Aenderung je Elementart, Index mit `unique: true`. Die Zeilen `aufnahme:` der Ausgabe
+#   sind die Messwerte; die Datei ersetzt referenztest-dotnet/Mitschnitt/messung/jdbc-d-migrate/<stufe>.schema.aufnahme.txt im Arbeitsbaum.
 #   MESSUNG_NUR=<Szenarien> waehlt eine Teilmenge ohne Ablage; mit MESSUNG_WIEDERHOLEN=<N> (Exit 0 bei gruenem Test, ohne Ablage) faehrt jedes gewaehlte Szenario N-mal ueber
 #   einen frisch aufgebauten Bestand und nennt die Rate roter Laeufe (MESSUNG_DIREKT=1: der Client verbindet sich ohne Proxy).
 # Je Lauf: Image der Referenzinstanz bauen (Dockerfile-Stufe `referenzinstanz-<jahr>` in referenztest-dotnet, Digest
@@ -150,6 +154,7 @@ MITSCHNITT="mitschnitt-2022 mitschnitt-2025"
 WIRE="wire-2022 wire-2025"
 BULK="bulk-2022 bulk-2025"
 JDBC="jdbc-2022 jdbc-2025"
+SCHEMA="schema-2022 schema-2025"
 
 # parameter <Lauf>: setzt STUFE, KATEGORIE, FORCESTRICT, ERWARTE_STRICT, ERWARTE_SONDE und ERWARTE_MANDATORY (gelingt|scheitert|-).
 parameter() {
@@ -173,6 +178,8 @@ parameter() {
     bulk-2025) STUFE=2025 KATEGORIE=MessungBulk FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
     jdbc-2022) STUFE=2022 KATEGORIE=JdbcDMigrate FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
     jdbc-2025) STUFE=2025 KATEGORIE=JdbcDMigrate FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
+    schema-2022) STUFE=2022 KATEGORIE=SchemaDMigrate FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
+    schema-2025) STUFE=2025 KATEGORIE=SchemaDMigrate FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
     *) return 1 ;;
   esac
 }
@@ -191,10 +198,12 @@ elif [ "$LAUFNAME" = bulk ]; then
   LISTE="$BULK"
 elif [ "$LAUFNAME" = jdbc ]; then
   LISTE="$JDBC"
+elif [ "$LAUFNAME" = schema ]; then
+  LISTE="$SCHEMA"
 elif parameter "$LAUFNAME"; then
   LISTE="$LAUFNAME"
 else
-  echo "vergleichslauf-d: LAUF muss alle, live, aufnahme, mitschnitt, wire, bulk, jdbc oder einer von [$ALLE $LIVE $MESSUNG $AUFNAHME $MITSCHNITT $WIRE $BULK $JDBC] sein (war '$LAUFNAME')" >&2
+  echo "vergleichslauf-d: LAUF muss alle, live, aufnahme, mitschnitt, wire, bulk, jdbc, schema oder einer von [$ALLE $LIVE $MESSUNG $AUFNAHME $MITSCHNITT $WIRE $BULK $JDBC $SCHEMA] sein (war '$LAUFNAME')" >&2
   exit 2
 fi
 if [ -n "${CI:-}${GITHUB_ACTIONS:-}" ]; then
@@ -699,6 +708,148 @@ jdbclauf() {
   return 0
 }
 
+# schemalauf <Name>: d-migrate 1.12.0 (`schema migrate --execute`, `schema compare`, `schema reverse`) gegen die Referenzinstanz (Stufe), ADR-0033 Folgepflicht 2. Aufbau wie `jdbclauf`
+# (mitschneidender Durchlauf, `encrypt=false`); die Datenbank `schemadb` ist beim Start leer, die Soll-Dateien schreibt der Lauf selbst. Gemessen werden die Texte, die d-migrate
+# fuer die Elementarten sendet, und die Antworten der Instanz, darunter die Neuplanung eines unveraenderten Soll (`DROP CONSTRAINT IF EXISTS`) und der Index mit `unique: true`.
+# Grenze: gemessen ist d-migrate 1.12.0 mit seinen Voreinstellungen an diesen Soll-Dateien.
+SCHEMA_TABELLEN_KOPF='schema_format: "1.0"
+name: schemadb
+version: "1"
+tables:'
+schema_soll() { # schema_soll <Datei> <Name-unique 0|1> <fk-aktion> <default-menge> <check-ausdruck> <index-unique 0|1> <index-name> : schreibt das Soll der Schritte
+  local datei="$1" uq="$2" aktion="$3" menge="$4" ausdruck="$5" ixuniq="$6" ixname="$7"
+  {
+    echo "$SCHEMA_TABELLEN_KOPF"
+    echo "  lieferanten:"
+    echo "    columns:"
+    echo "      Id:"
+    echo "        type: biginteger"
+    echo "        required: true"
+    echo "      Name:"
+    echo "        type: text"
+    echo "        max_length: 100"
+    [ "$uq" = 0 ] || echo "        unique: true"
+    echo "    primary_key: [Id]"
+    echo "  auftraege:"
+    echo "    columns:"
+    echo "      Id:"
+    echo "        type: biginteger"
+    echo "        required: true"
+    echo "      LieferantId:"
+    echo "        type: biginteger"
+    echo "        required: true"
+    echo "        references:"
+    echo "          table: lieferanten"
+    echo "          column: Id"
+    [ -z "$aktion" ] || echo "          on_delete: $aktion"
+    echo "      Menge:"
+    echo "        type: integer"
+    echo "        required: true"
+    echo "        default: $menge"
+    echo "      Status:"
+    echo "        type: text"
+    echo "        max_length: 20"
+    echo "        required: true"
+    echo "        default: neu"
+    echo "    primary_key: [Id]"
+    echo "    indices:"
+    echo "      - name: $ixname"
+    echo "        columns: [Status]"
+    [ "$ixuniq" = 0 ] || echo "        unique: true"
+    echo "    constraints:"
+    echo "      - name: ck_auftraege_menge"
+    echo "        type: check"
+    echo "        expression: \"$ausdruck\""
+  } >"$datei"
+  chmod 666 "$datei"
+}
+schemalauf() {
+  local name="$1" proxy klassen work url ziel gesehen=0 ziel_verzeichnis sqlcmd
+  parameter "$name" || return 1
+  echo "vergleichslauf-d: --- Lauf $name (Stufe $STUFE, d-migrate schema ueber mssql-jdbc) ---"
+  referenz_hochfahren "$name" || return 1
+  proxy="$LAUF-$name-proxy"
+  CLIENT="$proxy"
+  klassen="$SCRATCH/klassen"
+  work="$SCRATCH/work"
+  mkdir -p "$klassen" "$work" && chmod 777 "$klassen" "$work" || return 1
+  docker run --rm -v "$PWD/tools/jdbc-messung:/messung:ro" -v "$klassen:/klassen" --entrypoint javac "$JDK_IMAGE" \
+    --release 21 -d /klassen /messung/Aufnahme.java || return 1
+  sqlcmd=/opt/mssql-tools18/bin/sqlcmd
+  docker exec "$SERVER" test -x "$sqlcmd" || sqlcmd=/opt/mssql-tools/bin/sqlcmd
+  docker exec "$SERVER" "$sqlcmd" -C -S localhost -U sa -P "$KENNWORT" -b -Q "CREATE DATABASE schemadb;" >/dev/null \
+    || { echo "vergleichslauf-d: FEHLER Datenbank nicht angelegt"; return 1; }
+  docker run -d --name "$proxy" --network "$NETZ" --network-alias proxy -v "$klassen:/klassen:ro" -e AUFNAHME_PAKETE="${AUFNAHME_PAKETE:-}" --entrypoint java "$JDBC_IMAGE" \
+    -cp /klassen Aufnahme 1433 referenz 1433 >/dev/null || return 1
+  for i in $(seq 1 30); do docker logs "$proxy" 2>&1 | grep -q 'aufnahme: bereit' && break; sleep 1; done
+  ziel=proxy
+  [ -z "${MESSUNG_DIREKT:-}" ] || ziel=referenz
+  url="mssql://sa:$KENNWORT@$ziel:1433/schemadb?encrypt=false"
+  : >"$SCRATCH/aufnahme.txt"
+  schritt() { # schritt <Kennung> <Befehl von d-migrate...>: Exit und neue Zeilen des Durchlaufs
+    local kennung="$1" ausgang zeilen
+    shift
+    if [ -n "${MESSUNG_NUR:-}" ] && ! printf ',%s,' "$MESSUNG_NUR" | grep -q ",$kennung,"; then return 0; fi
+    docker run --rm --network "$NETZ" --user 1000:1000 -v "$work:/work" "$JDBC_IMAGE" "$@" >"$SCRATCH/dm-$kennung.txt" 2>&1
+    ausgang=$?
+    sleep 1
+    zeilen=$(docker logs "$proxy" 2>&1 | wc -l)
+    {
+      echo "aufnahme: === $kennung | d-migrate $(printf '%s ' "$@" | sed "s/$KENNWORT/***/g") | Exit $ausgang"
+      sed "s/$KENNWORT/***/g" "$SCRATCH/dm-$kennung.txt" | tail -14 | sed 's/^/aufnahme: ausgabe: /'
+      [ ! -s "$work/bericht.yaml" ] || { sed "s/$KENNWORT/***/g" "$work/bericht.yaml" | sed 's/^/aufnahme: bericht: /'; rm -f "$work/bericht.yaml"; }
+      docker logs "$proxy" 2>&1 | sed -n "$((gesehen + 1)),${zeilen}p" | grep -v -E 'PRELOGIN|LOGIN7|LOGINACK'
+    } >>"$SCRATCH/aufnahme.txt"
+    gesehen=$zeilen
+  }
+  migrate() { # migrate <Kennung> <Soll>
+    schritt "$1" schema migrate --source "/work/$2" --target "db:$url" --execute --report /work/bericht.yaml
+    chmod 666 "$work/bericht.yaml" 2>/dev/null
+  }
+  vergleich() { schritt "$1" schema compare --source "file:/work/$2" --target "db:$url"; }
+  # schema_soll <Datei> <unique-Name> <fk-aktion, leer = keine> <default-Menge> <Ausdruck> <index-unique> <index-name>
+  schema_soll "$work/a.yaml" 1 cascade 1 "Menge > 0" 0 ix_auftraege_status
+  schema_soll "$work/b-check.yaml" 1 cascade 1 "Menge > 1" 0 ix_auftraege_status
+  schema_soll "$work/c-fk.yaml" 1 "" 1 "Menge > 1" 0 ix_auftraege_status
+  schema_soll "$work/d-unique.yaml" 0 "" 1 "Menge > 1" 0 ix_auftraege_status
+  schema_soll "$work/e-default.yaml" 0 "" 2 "Menge > 1" 0 ix_auftraege_status
+  schema_soll "$work/f-index.yaml" 0 "" 2 "Menge > 1" 1 ix_auftraege_status
+  migrate s01-anlegen a.yaml
+  vergleich s02-vergleich-a a.yaml
+  migrate s03-zweiter-lauf a.yaml
+  vergleich s04-vergleich-a-nach-zweitem a.yaml
+  schritt s05-reverse schema reverse --source "$url" --output /work/ist.yaml
+  [ ! -f "$work/ist.yaml" ] || { sed 's/^/aufnahme: datei ist.yaml: /' "$work/ist.yaml"; echo; } >>"$SCRATCH/aufnahme.txt"
+  migrate s06-pruefbedingung-geaendert b-check.yaml
+  vergleich s07-vergleich-b b-check.yaml
+  migrate s08-fremdschluessel-geaendert c-fk.yaml
+  vergleich s09-vergleich-c c-fk.yaml
+  migrate s10-eindeutigkeit-entfernt d-unique.yaml
+  vergleich s11-vergleich-d d-unique.yaml
+  migrate s12-standardwert-geaendert e-default.yaml
+  vergleich s13-vergleich-e e-default.yaml
+  migrate s14-index-unique f-index.yaml
+  vergleich s15-vergleich-f f-index.yaml
+  schritt s16-reverse-f schema reverse --source "$url" --output /work/ist-f.yaml
+  [ ! -f "$work/ist-f.yaml" ] || { sed 's/^/aufnahme: datei ist-f.yaml: /' "$work/ist-f.yaml"; echo; } >>"$SCRATCH/aufnahme.txt"
+  if grep -qF -e "$KENNWORT" "$SCRATCH/aufnahme.txt"; then
+    echo "vergleichslauf-d: Aufnahme nennt das Kennwort der Instanz; sie wird nicht gedruckt"
+    FEHLER=1
+    return 1
+  fi
+  cat "$SCRATCH/aufnahme.txt"
+  if [ -z "${MESSUNG_NUR:-}" ]; then
+    ziel_verzeichnis="referenztest-dotnet/Mitschnitt/messung/jdbc-d-migrate"
+    mkdir -p "$ziel_verzeichnis" && cp "$SCRATCH/aufnahme.txt" "$ziel_verzeichnis/$STUFE.schema.aufnahme.txt" || return 1
+    echo "vergleichslauf-d: messung: Aufnahme $name in $ziel_verzeichnis/$STUFE.schema.aufnahme.txt"
+  fi
+  docker rm -f "$proxy" "$SERVER" >/dev/null 2>&1
+  docker network rm "$NETZ" >/dev/null 2>&1
+  docker rmi -f "$SERVER_IMAGE" >/dev/null 2>&1
+  CLIENT="" SERVER="" NETZ="" SERVER_IMAGE=""
+  return 0
+}
+
 gesamt=$SECONDS
 # shellcheck disable=SC2086
 docker build ${BUILDER_FLAGS:-} --load --target vergleich -t "$CLIENT_IMAGE" referenztest-dotnet || exit 1
@@ -710,6 +861,7 @@ for lauf in $LISTE; do
     mitschnitt-*) mitschnittlauf "$lauf" || FEHLER=1 ;;
     wire-* | bulk-*) wirelauf "$lauf" || FEHLER=1 ;;
     jdbc-*) jdbclauf "$lauf" || FEHLER=1 ;;
+    schema-*) schemalauf "$lauf" || FEHLER=1 ;;
     *) einzellauf "$lauf" || FEHLER=1 ;;
   esac
   [ "$FEHLER" -eq 0 ] || break

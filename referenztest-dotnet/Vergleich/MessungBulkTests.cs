@@ -364,6 +364,34 @@ public class MessungBulkTests
                 KatalogAbfrage(l, v, 4, "Schlüssel von produkte", DMigrateTexte.Katalog[4], "[dbo].[produkte]");
                 KatalogAbfrage(l, v, 2, "Spalten von kunden", DMigrateTexte.Katalog[2], "[dbo].[kunden]");
             }),
+            // Form D5 (`ALTER TABLE … DROP CONSTRAINT [IF EXISTS]`): die Form mit `IF EXISTS` sendet d-migrate 1.12.0 (Lauf `schema-*`); die Form ohne
+            // `IF EXISTS`, der Fall eines Namens ohne Treffer, einer unbekannten Tabelle und eines Namens an einer anderen Tabelle sind Messung dieses Codes.
+            ("struktur-drop-constraint", DbStruktur, (l, v) =>
+            {
+                Mit(l, v, "Aufbau eltern", "CREATE TABLE [drop_eltern] ([Id] INT NOT NULL, CONSTRAINT [pk_drop_eltern] PRIMARY KEY ([Id]));");
+                Mit(l, v, "Aufbau kind", "CREATE TABLE [drop_kind] ([Id] INT NOT NULL, [ElternId] INT NOT NULL, [Name] NVARCHAR(20) NULL CONSTRAINT [uq_drop_name] UNIQUE, [Menge] INT NOT NULL CONSTRAINT [df_drop_menge] DEFAULT 1, CONSTRAINT [pk_drop_kind] PRIMARY KEY ([Id]), CONSTRAINT [ck_drop_menge] CHECK (Menge > 0), CONSTRAINT [fk_drop_eltern] FOREIGN KEY ([ElternId]) REFERENCES [drop_eltern]([Id]));");
+                Mit(l, v, "Schluessel der Eltern, von einem Fremdschluessel referenziert", "ALTER TABLE [drop_eltern] DROP CONSTRAINT [pk_drop_eltern];");
+                Mit(l, v, "Pruefbedingung, Name in anderer Schreibweise, ohne IF EXISTS", "ALTER TABLE [drop_kind] DROP CONSTRAINT [CK_DROP_MENGE];");
+                Mit(l, v, "Pruefbedingung, kein Treffer, ohne IF EXISTS", "ALTER TABLE [drop_kind] DROP CONSTRAINT [ck_drop_menge];");
+                Mit(l, v, "Pruefbedingung, kein Treffer, mit IF EXISTS", "ALTER TABLE [drop_kind] DROP CONSTRAINT IF EXISTS [ck_drop_menge];");
+                Mit(l, v, "Eindeutigkeit an der falschen Tabelle, mit IF EXISTS", "ALTER TABLE [drop_eltern] DROP CONSTRAINT IF EXISTS [uq_drop_name];");
+                Mit(l, v, "Eindeutigkeit an der falschen Tabelle, ohne IF EXISTS", "ALTER TABLE [drop_eltern] DROP CONSTRAINT [uq_drop_name];");
+                Mit(l, v, "Eindeutigkeit, Treffer, mit IF EXISTS", "ALTER TABLE [drop_kind] DROP CONSTRAINT IF EXISTS [uq_drop_name];");
+                Mit(l, v, "Eindeutigkeit, kein Treffer, ohne IF EXISTS", "ALTER TABLE [drop_kind] DROP CONSTRAINT [uq_drop_name];");
+                Mit(l, v, "Eindeutigkeit, kein Treffer, mit IF EXISTS", "ALTER TABLE [drop_kind] DROP CONSTRAINT IF EXISTS [uq_drop_name];");
+                Mit(l, v, "Fremdschluessel, Treffer, mit IF EXISTS", "ALTER TABLE [drop_kind] DROP CONSTRAINT IF EXISTS [fk_drop_eltern];");
+                Mit(l, v, "Fremdschluessel, kein Treffer, ohne IF EXISTS", "ALTER TABLE [drop_kind] DROP CONSTRAINT [fk_drop_eltern];");
+                Mit(l, v, "Fremdschluessel, kein Treffer, mit IF EXISTS", "ALTER TABLE [drop_kind] DROP CONSTRAINT IF EXISTS [fk_drop_eltern];");
+                Mit(l, v, "Standardwert, Treffer, ohne IF EXISTS", "ALTER TABLE [drop_kind] DROP CONSTRAINT [df_drop_menge];");
+                Mit(l, v, "Standardwert, kein Treffer, ohne IF EXISTS", "ALTER TABLE [drop_kind] DROP CONSTRAINT [df_drop_menge];");
+                Mit(l, v, "Standardwert, kein Treffer, mit IF EXISTS", "ALTER TABLE [drop_kind] DROP CONSTRAINT IF EXISTS [df_drop_menge];");
+                Mit(l, v, "nie vorhandener Name, mit IF EXISTS", "ALTER TABLE [drop_kind] DROP CONSTRAINT IF EXISTS [gibtesnicht];");
+                Mit(l, v, "nie vorhandener Name, ohne IF EXISTS", "ALTER TABLE [drop_kind] DROP CONSTRAINT [gibtesnicht];");
+                Mit(l, v, "unbekannte Tabelle, mit IF EXISTS", "ALTER TABLE [drop_gibtesnicht] DROP CONSTRAINT IF EXISTS [x];");
+                Mit(l, v, "unbekannte Tabelle, ohne IF EXISTS", "ALTER TABLE [drop_gibtesnicht] DROP CONSTRAINT [x];");
+                Mit(l, v, "Primaerschluessel des Kindes, ohne Fremdschluessel darauf", "ALTER TABLE [drop_kind] DROP CONSTRAINT [pk_drop_kind];");
+                Mit(l, v, "Folgeabfrage", "SELECT 1 AS eins");
+            }),
             ("katalog-abfragen", DbKatalog, (l, v) =>
             {
                 Katalog(l, v, "katalog_typen", true);
