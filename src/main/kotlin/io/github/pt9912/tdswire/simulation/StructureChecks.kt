@@ -2,10 +2,11 @@ package io.github.pt9912.tdswire.simulation
 
 /**
  * Die Prüfungen der Planung von Strukturänderungen gegen den Katalog ([StructurePlanner]): Namen von Bedingungen und
- * Indizes sind in der Tabelle vergeben, die Zieltabelle eines Fremdschlüssels ist beschrieben, eine Bedingung wird
- * entfernt. Namen gelten ohne
- * Beachtung der Schreibweise: gemessen für den Namen einer Prüfbedingung in `DROP CONSTRAINT` (Voreinstellung der
- * Kollation der Instanz, nicht eigens erhoben), für die übrigen Prüfungen Setzung.
+ * Indizes sind in der Tabelle vergeben, die Zieltabelle eines Fremdschlüssels ist beschrieben, eine Bedingung oder ein
+ * Index wird entfernt. Namen gelten ohne
+ * Beachtung der Schreibweise: gemessen für den Namen einer Prüfbedingung in `DROP CONSTRAINT` und den eines eindeutigen
+ * Index in `DROP INDEX` (Voreinstellung der Kollation der Instanz, nicht eigens erhoben), für die übrigen Prüfungen
+ * Setzung.
  */
 internal object StructureChecks {
     fun same(left: String, right: String): Boolean = SimNames.fold(left) == SimNames.fold(right)
@@ -38,6 +39,14 @@ internal object StructureChecks {
         )
         return shortened.takeIf { constraintNameTaken(table, name) }
     }
+
+    /** Die Tabelle ohne den Index [name] oder `null` ohne ihn; die Eindeutigkeit einer Bedingung ist kein Index. */
+    fun withoutIndex(table: SimTable, name: String): SimTable? =
+        table.copy(indexes = table.indexes.filterNot { same(it.name, name) })
+            .takeIf { table.indexes.any { same(it.name, name) } }
+
+    /** Der Name ist der einer Eindeutigkeit der Tabelle, deren Index kein `DROP INDEX` entfernt. */
+    fun constraintIndex(table: SimTable, name: String): Boolean = table.uniqueKeys.any { same(it.name, name) }
 
     /** Eine andere Tabelle desselben Schemas (Setzung, gemessen nur in `dbo`) führt eine Bedingung namens [name]. */
     fun belongsToOther(catalog: SimCatalog, table: SimTable, name: String): Boolean = catalog.tables.any {

@@ -191,8 +191,7 @@ class SimulationBackendDropConstraintTest {
     /**
      * Negativ: Texte außerhalb der Form sind nicht erkannt (`TDS_UNSUPPORTED_SQL`): mehrere Namen (Setzung, nicht
      * von d-migrate gesendet), kein Name, `DROP COLUMN`, `DROP` ohne `CONSTRAINT`, `IF` ohne `EXISTS`, `WITH CHECK`
-     * vor `DROP`, ein weiteres Wort hinter dem Namen und `DROP INDEX IF EXISTS` (den d-migrate vor einem geänderten
-     * Index sendet, am echten Server mit dem Befehl `0x00c9` beantwortet; keine Form der Bibliothek).
+     * vor `DROP` und ein weiteres Wort hinter dem Namen.
      * Wächter: ein Parser, der eine dieser Formen rät oder nur den ersten Namen nimmt.
      * @spec SPEC-036
      */
@@ -209,7 +208,6 @@ class SimulationBackendDropConstraintTest {
             "ALTER TABLE [bestellung] DROP CONSTRAINT IF [ck_bestellung_menge]",
             "ALTER TABLE [bestellung] WITH CHECK DROP CONSTRAINT [ck_bestellung_menge]",
             "ALTER TABLE [bestellung] DROP CONSTRAINT [ck_bestellung_menge] WITH (ONLINE = ON)",
-            "DROP INDEX IF EXISTS [ix_kunden_email] ON [kunden];",
         )
         for (sql in texts) assertEquals(SimCodes.UNSUPPORTED_SQL, failureCode(store, sql), sql)
         assertTrue(store.shapes.isEmpty())

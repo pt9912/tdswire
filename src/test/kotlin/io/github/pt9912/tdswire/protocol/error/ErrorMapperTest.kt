@@ -163,21 +163,23 @@ class ErrorMapperTest {
     }
 
     /**
-     * Die Strukturabweisung ist ERROR 2714 (State 6), 2705 (State 4), 4902 (State 1), 3728 (State 1) und 3733
-     * (State 2), je Class 16, danach DONE mit `ERROR`, Befehl `0x00fd`, ohne Zähler; die Verbindung bleibt offen.
+     * Die Strukturabweisung ist ERROR 2714 (State 6), 2705 (State 4), 4902 (State 1), 3728 (State 1), 3733 (State 2)
+     * und 3723 (State 5), je Class 16, und 3701 (State 7, Class 11), danach DONE mit `ERROR`, Befehl `0x00fd`, ohne
+     * Zähler; die Verbindung bleibt offen.
      * Nummer, Class, State, die offene Verbindung und der Abschluss sind am Referenzclient gegen den echten SQL Server
      * gemessen (Zeile M-19, 2022 und 2025; 3728 und 3733: Szenario `struktur-drop-constraint`, wo ein zweites ERROR
-     * 3727 folgt, das die Bibliothek nicht sendet), der Text ist ein Auszug des gemessenen Textes ohne die Namen
+     * 3727 folgt, das die Bibliothek nicht sendet; 3701 und 3723: Szenario `struktur-drop-index`, wo das DONE nach
+     * 3701 den Befehl `0x00c9` trägt), der Text ist ein Auszug des gemessenen Textes ohne die Namen
      * (Setzung). Ebenso `TDS_SIM_STRING_TRUNCATED`: ERROR 2628, State 1, Class 16, offene Verbindung (Zeile M-15; der
      * Abschluss im Ergebnis steht in `ResponseMergeTest`).
-     * Wächter: Class 20 mit schließender Verbindung, State 1 für alle sechs, eine
+     * Wächter: Class 20 mit schließender Verbindung, State 1 für alle acht, Class 16 für 3701, eine
      * andere Nummer, ein anderer Text.
      *
      * @spec SPEC-036
      * @spec TDS-QA-01
      */
     @Test
-    fun `Strukturabweisung ist ERROR 2714, 2705, 4902, 3728 und 3733 mit gemessenem State und offener Verbindung`() {
+    fun `Strukturabweisung ist ERROR 2714, 2705, 4902, 3728, 3733, 3701 und 3723 mit gemessenem State, offen`() {
         val expected = mapOf(
             ErrorCode.TDS_SIM_OBJECT_EXISTS to listOf(2714, 6, 16),
             ErrorCode.TDS_SIM_COLUMN_EXISTS to listOf(2705, 4, 16),
@@ -185,6 +187,8 @@ class ErrorMapperTest {
             ErrorCode.TDS_SIM_STRING_TRUNCATED to listOf(2628, 1, 16),
             ErrorCode.TDS_SIM_NOT_A_CONSTRAINT to listOf(3728, 1, 16),
             ErrorCode.TDS_SIM_CONSTRAINT_OTHER_TABLE to listOf(3733, 2, 16),
+            ErrorCode.TDS_SIM_NOT_AN_INDEX to listOf(3701, 7, 11),
+            ErrorCode.TDS_SIM_INDEX_OF_CONSTRAINT to listOf(3723, 5, 16),
         )
         val texts = mapOf(
             ErrorCode.TDS_SIM_OBJECT_EXISTS to "There is already an object named in the database.",
@@ -194,6 +198,9 @@ class ErrorMapperTest {
             ErrorCode.TDS_SIM_STRING_TRUNCATED to "String or binary data would be truncated.",
             ErrorCode.TDS_SIM_NOT_A_CONSTRAINT to "Name is not a constraint.",
             ErrorCode.TDS_SIM_CONSTRAINT_OTHER_TABLE to "Constraint does not belong to table.",
+            ErrorCode.TDS_SIM_NOT_AN_INDEX to
+                "Cannot drop the index because it does not exist or you do not have permission.",
+            ErrorCode.TDS_SIM_INDEX_OF_CONSTRAINT to "An explicit DROP INDEX is not allowed on the index.",
         )
         for ((code, numbers) in expected) {
             val response = mapper.code(code)
@@ -405,6 +412,7 @@ class ErrorMapperTest {
             "TDS_SIM_UNKNOWN_PREPARED_HANDLE", "TDS_SIM_KEY_VIOLATION",
             "TDS_SIM_OBJECT_EXISTS", "TDS_SIM_COLUMN_EXISTS", "TDS_SIM_OBJECT_NOT_FOUND", "TDS_SIM_STRING_TRUNCATED",
             "TDS_SIM_NOT_A_CONSTRAINT", "TDS_SIM_CONSTRAINT_OTHER_TABLE",
+            "TDS_SIM_NOT_AN_INDEX", "TDS_SIM_INDEX_OF_CONSTRAINT",
         )
         assertEquals(expected, ErrorCode.entries.map { it.name }.toSet())
         assertEquals(expected.size, ErrorCode.entries.map { it.rule.number }.toSet().size)
@@ -450,13 +458,17 @@ class ErrorMapperTest {
             ErrorCode.TDS_SIM_STRING_TRUNCATED,
             ErrorCode.TDS_SIM_NOT_A_CONSTRAINT,
             ErrorCode.TDS_SIM_CONSTRAINT_OTHER_TABLE,
+            ErrorCode.TDS_SIM_NOT_AN_INDEX,
+            ErrorCode.TDS_SIM_INDEX_OF_CONSTRAINT,
             ErrorCode.TDS_TIMEOUT,
         )
         ErrorCode.entries.forEach {
             val expectedFate = if (it in open) ConnectionFate.OPEN else ConnectionFate.CLOSE_AFTER_REPLY
             assertEquals(expectedFate, it.rule.fate, it.name)
         }
-        (open - ErrorCode.TDS_SIM_KEY_VIOLATION).forEach { assertEquals(16, it.rule.severity, it.name) }
+        (open - ErrorCode.TDS_SIM_KEY_VIOLATION - ErrorCode.TDS_SIM_NOT_AN_INDEX)
+            .forEach { assertEquals(16, it.rule.severity, it.name) }
+        assertEquals(11, ErrorCode.TDS_SIM_NOT_AN_INDEX.rule.severity)
         assertEquals(14, ErrorCode.TDS_SIM_KEY_VIOLATION.rule.severity)
         assertEquals(20, ErrorCode.TDS_PROTOCOL_ERROR.rule.severity)
         assertEquals(20, ErrorCode.TDS_INTERNAL_ERROR.rule.severity)

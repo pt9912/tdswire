@@ -184,6 +184,8 @@ internal class ErrorMapper(internal val log: ErrorLog = ErrorLog.NONE) {
             ErrorCode.TDS_SIM_OBJECT_NOT_FOUND,
             ErrorCode.TDS_SIM_NOT_A_CONSTRAINT,
             ErrorCode.TDS_SIM_CONSTRAINT_OTHER_TABLE,
+            ErrorCode.TDS_SIM_NOT_AN_INDEX,
+            ErrorCode.TDS_SIM_INDEX_OF_CONSTRAINT,
             ErrorCode.TDS_SIM_STRING_TRUNCATED,
             ErrorCode.TDS_TIMEOUT,
         )

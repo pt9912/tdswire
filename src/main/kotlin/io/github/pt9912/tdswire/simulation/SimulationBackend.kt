@@ -41,11 +41,13 @@ import java.util.concurrent.atomic.AtomicBoolean
  * Form K (`SPEC-036`) beantwortet die Katalogabfragen von d-migrate aus dem Katalog ([CatalogAnswers]); der Katalog
  * kommt bei jeder Anfrage frisch aus dem Anbieter des Konstruktors, das Backend hält keinen Stand. Form D (`CREATE
  * TABLE`, `ALTER TABLE … ADD` einer Spalte oder einer Bedingung, `ALTER TABLE … DROP CONSTRAINT` einer Bedingung,
- * `CREATE INDEX`) ruft den Strukturänderungs-Callback
- * mit der Tabelle nach der Anweisung und meldet die Art `CREATE_TABLE`, `ALTER_TABLE` oder, für `CREATE INDEX`,
- * `UNKNOWN` (die Kennung ist nicht gemessen); das Backend nimmt nichts zurück, mehrere Callbacks sind keine Transaktion
- * (`ADR-0033`). Der Konstruktor mit festem Katalog hat keinen Callback: Form D ist dort abgewiesen
- * (`TDS_UNSUPPORTED_SQL`), ebenso mit dem Anbieter und ohne Callback.
+ * `CREATE INDEX`, `DROP INDEX [IF EXISTS]` eines Index) ruft den Strukturänderungs-Callback
+ * mit der Tabelle nach der Anweisung und meldet die Art `CREATE_TABLE`, `ALTER_TABLE` oder, für `CREATE INDEX` und
+ * `DROP INDEX`, `UNKNOWN` (die Kennung des Servers ist für `DROP INDEX` `0x00c9` ohne Zeilenzahl, die Aufzählung der
+ * Arten führt sie nicht; `DROP INDEX IF EXISTS` an einer unbekannten Tabelle ist ein Erfolg ohne Callback); das
+ * Backend nimmt nichts zurück, mehrere Callbacks sind keine Transaktion (`ADR-0033`). Der Konstruktor mit festem
+ * Katalog hat keinen Callback: Form D ist dort abgewiesen (`TDS_UNSUPPORTED_SQL`), ebenso mit dem Anbieter und ohne
+ * Callback.
  *
  * Form M (`SPEC-036`, `MERGE … OUTPUT $action`) zerlegt das Backend in ein Lesen über die Zeilenquelle und höchstens
  * einen Callback ([SimulationMerges]); die Antwort ist das Ergebnis `$action` mit der Zeile `INSERT` oder `UPDATE`.
@@ -93,6 +95,7 @@ public class SimulationBackend(
             is PlanResult.Fixed -> events(FixedAnswers.of(result.form))
             is PlanResult.Catalog -> events(CatalogAnswers.of(result.form, result.catalog, parameters(result, request)))
             is PlanResult.Structure -> structure(result.plan, request)
+            is PlanResult.Unchanged -> events(listOf(QueryEvent.UpdateCount(0, result.kind)))
             is PlanResult.Bulk -> events(bulkAnswer(result.result))
         }
 
