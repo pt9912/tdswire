@@ -45,7 +45,7 @@ A1 bis A3 liefen in einem Bau; die roten Tests sind je Mutation verschieden und 
 | F-8 LOW „zwei Tabellen“ | behoben | „sechs Tabellen ohne Schema“ in KDoc, `SPEC-036`; Grep nach „zwei Tabellen“ in `spec/` und `docs/user/` ohne Treffer |
 | F-9 LOW Messzeile ohne Bedingung | behoben, knapp | Zelle nennt „Einzelmessung 2026-11-07, Last unbekannt“; Länge der Zelle „Tut was“ 199 Zeichen (Grenze 200) |
 | F-10 INFO Abschneide-Erkennung | zur Kenntnis | in `SPEC-001`, KDoc `done`, Test benannt |
-| F-11 INFO Namen mit Schema ohne Träger | behoben im Entwurf | neuer Slice `open/slice-bulkcopy-tabellenname-mit-schema-und-sonderzeichen.md`; §6 des Slice verweist darauf (Formprüfung unten) |
+| F-11 INFO Namen mit Schema ohne Träger | behoben im Entwurf | neuer Slice `next/slice-bulkcopy-tabellenname-mit-schema-und-sonderzeichen.md`; §6 des Slice verweist darauf (Formprüfung unten) |
 | F-12 INFO Zustandsfelder, Merge mit `main` | **offen beim Planner** | siehe V-3 und V-4 |
 
 ## DoD-Prüfung, Zeile für Zeile (Haken setzt der Planner)
@@ -79,7 +79,7 @@ A1 bis A3 liefen in einem Bau; die roten Tests sind je Mutation verschieden und 
 ## Lifecycle, Träger-Slice, Plan-Tabelle
 
 * Lifecycle: der Slice liegt in `in-progress/`, `roadmap.md` führt ihn dort, `welle-testserver-manuell.md` zeigt auf den neuen Pfad; die Moves sind eigene reine Commits (`027c8221`, `77f7894f`).
-* Neuer Slice `open/slice-bulkcopy-tabellenname-mit-schema-und-sonderzeichen.md` (**Formprüfung, Entwurf; der Planner bestätigt**): Lifecycle `open/`, alle acht Abschnitte, drei Liefer-Punkte (Messung, Erkennung und Antwort, Nachzug), Nachweis-Pflichten, Trigger mit Rückführungen, Closure-Trigger, Risiko mit Ausgang offen, §7 leer („Wird bei der Closure gefüllt“), §8 mit Beobachtungs-Zeiger. Er sagt, die Messung am echten Server verlange die Freigabe des Nutzers (EULA), und legt sie nicht selbst fest. Der Autor ist als Entwurf des Implementers gekennzeichnet. Es fehlt: Verantwortlicher (ausdrücklich „bis zur Priorisierung“), Eintrag in die Slice-Tabelle von `welle-testserver-manuell.md` und in die Kantenliste (V-3).
+* Neuer Slice `next/slice-bulkcopy-tabellenname-mit-schema-und-sonderzeichen.md` (**Formprüfung, Entwurf; der Planner bestätigt**): Lifecycle `open/`, alle acht Abschnitte, drei Liefer-Punkte (Messung, Erkennung und Antwort, Nachzug), Nachweis-Pflichten, Trigger mit Rückführungen, Closure-Trigger, Risiko mit Ausgang offen, §7 leer („Wird bei der Closure gefüllt“), §8 mit Beobachtungs-Zeiger. Er sagt, die Messung am echten Server verlange die Freigabe des Nutzers (EULA), und legt sie nicht selbst fest. Der Autor ist als Entwurf des Implementers gekennzeichnet. Es fehlt: Verantwortlicher (ausdrücklich „bis zur Priorisierung“), Eintrag in die Slice-Tabelle von `welle-testserver-manuell.md` und in die Kantenliste (V-3).
 * Plan-Tabelle §3 gegen Diff: stimmt (F-3).
 * `harness/README.md`: nur die Zeile von `make simulations-integration` geändert; die Zelle „Tut was“ hat 199 Zeichen; Verweis-/Bindungsspalte unverändert.
 
