@@ -9,11 +9,16 @@ internal data class CatalogType(val typeName: String, val maxLength: Int, val pr
 
 /**
  * Die Antworten auf die Katalogabfragen (`SPEC-036`, Form K), abgeleitet aus dem Katalog, den der Integrator der
- * Bibliothek mitteilt: Tabellen, Spalten und Schlüssel kommen aus den [SimTable]-Werten, alles andere (Sichten,
- * Sequenzen, Routinen, Fremdschlüssel, Indizes, Prüfbedingungen) ist ein leeres Ergebnis mit den Spalten der Abfrage.
- * Eine Identität, eine Berechnung und ein Standardwert kommen nicht vor (`is_identity` ist 0, `default_definition`
- * NULL; Setzung, `SimColumn` trägt keine). Ein unbekanntes Schema oder eine unbekannte Tabelle ist ein leeres
- * Ergebnis, kein Fehler (`OBJECT_ID` des Servers liefert dann NULL).
+ * Bibliothek mitteilt: Tabellen, Spalten, Standardwerte, Schlüssel, Eindeutigkeiten, Fremdschlüssel, Indizes und
+ * Prüfbedingungen kommen aus den [SimTable]-Werten, alles andere (Sichten, Sequenzen, Routinen, Partitionen,
+ * Volltext) ist ein leeres Ergebnis mit den Spalten der Abfrage. Eine Identität und eine Berechnung kommen nicht vor
+ * (`is_identity` ist 0; Setzung, `SimColumn` trägt keine). Ein unbekanntes Schema oder eine unbekannte Tabelle ist
+ * ein leeres Ergebnis, kein Fehler (`OBJECT_ID` des Servers liefert dann NULL).
+ *
+ * Die Reihenfolge der Zeilen folgt dem `ORDER BY` der Abfrage; Namen ordnet die Bibliothek ohne Beachtung der
+ * Schreibweise (Setzung, die Collation eines echten Servers ist nicht gemessen). Ein Eindeutigkeitsschlüssel steht
+ * in der Abfrage der Indizes mit `is_unique` 1 (M-21); die Indizes sind nicht gruppiert (`type` 2) und haben weder
+ * Filter noch absteigende Spalte (Setzung, am Server ist je ein Fall gemessen).
  *
  * Der Server meldet `max_length` in Byte: ein `nvarchar(n)` hat `2 * n` (Setzung, am Server nicht gemessen; gemessen
  * ist der Lauf mit d-migrate, der 4000 Zeichen als `max_length: 4000` liest). Die Typen und Maße von `bigint`, `bit`,
@@ -66,6 +71,7 @@ internal object CatalogAnswers {
         CatalogSource.COLUMNS -> columns(tableOf(catalog, arg))
         CatalogSource.PRIMARY_KEY -> tableOf(catalog, arg)?.primaryKey.orEmpty().map { listOf(it) }
         CatalogSource.COLLATIONS -> tableOf(catalog, arg)?.columns.orEmpty().map { listOf(collationOf(it), false) }
+        else -> ElementAnswers.rows(form.source, tableOf(catalog, arg), catalog)
     }
 
     private fun tables(catalog: SimCatalog, schema: String?): List<List<Any?>> {
@@ -85,7 +91,7 @@ internal object CatalogAnswers {
         val type = typeOf(column)
         listOf(
             column.name, type.typeName, type.maxLength, type.precision, type.scale, column.nullable, false, false,
-            index + 1, null, null, null, null, null,
+            index + 1, column.defaultDefinition, null, null, null, null,
         )
     }
 

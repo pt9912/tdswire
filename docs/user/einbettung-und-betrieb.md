@@ -185,7 +185,7 @@ Ein Start, der gelingt, meldet vor `SERVER_STARTED` genau ein Ereignis `CONFIG_E
 
 **Schritte.**
 
-1. Eine `SimTable` beschreiben: `schema` (Voreinstellung `dbo`), `name`, `columns` (`SimColumn`: Name, `SqlType`, nullbar, `maxLength` für Textspalten, Voreinstellung 4000, -1 für `NVARCHAR(MAX)`; ein `MERGE` weist einen längeren Text mit 2628 ab), `primaryKey`, die Zeilenquelle `rows` und optional die Callbacks `onInsert`, `onUpdate`, `onDelete` ([Schnittstelle](../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends)):
+1. Eine `SimTable` beschreiben: `schema` (Voreinstellung `dbo`), `name`, `columns` (`SimColumn`: Name, `SqlType`, nullbar, `maxLength` für Textspalten, Voreinstellung 4000, -1 für `NVARCHAR(MAX)`; ein `MERGE` weist einen längeren Text mit 2628 ab; optional `defaultDefinition`), `primaryKey`, die Zeilenquelle `rows` und optional die Callbacks `onInsert`, `onUpdate`, `onDelete` und die Elemente für die Katalogabfragen (`uniqueKeys`, `foreignKeys`, `indexes`, `checks`) ([Schnittstelle](../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends)):
 
    ```kotlin
    import io.github.pt9912.tdswire.domain.SqlType
@@ -227,16 +227,35 @@ Ein Start, der gelingt, meldet vor `SERVER_STARTED` genau ein Ereignis `CONFIG_E
    `speichere` ist Code der Anwendung; die Zahl, die der Callback liefert, ist die Zahl der geladenen Zeilen. Eine Tabelle ohne `onInsertBatch` weist `INSERT BULK` mit `TDS_UNSUPPORTED_SQL` ab, auch wenn sie `onInsert` hat: für das Massenladen ruft die Bibliothek `onInsert` nie. Zuerst werden alle Werte der Nachricht geprüft, dann wird gerufen.
 
    Der Stapel-Callback gilt ganz oder gar nicht: bei Erfolg liefert er die Zahl der übernommenen Zeilen, bei einem Fehler wirft er, ohne eine Zeile der Nachricht übernommen zu haben. Die Bibliothek nimmt nichts zurück und kann die Zusage nicht prüfen; wer sie bricht, erzeugt einen Teilbestand (der Bestand des Testservers hält sie). Die Antwort auf einen Fehler des Callbacks ist `TDS_SIM_KEY_VIOLATION` (Nummer 2627, Class 14); gemessen am echten SQL Server ist die Nummer für den Schlüsselverstoß, für jede andere Ursache ist sie ein Sammelcode (Setzung). Ebenso ist gemessen, dass der echte Server in einem Fall (Schlüsselverstoß in der Mitte einer Nachricht von drei Zeilen) keine Zeile der Nachricht aufnimmt; dass jede Nachricht so gilt, ist eine Setzung. Mehrere Nachrichten sind keine Transaktion: Nachrichten davor bleiben.
-4. Mit `BackendSource.Simulation(tables)` an `TdsServer.start` übergeben (oder `SimulationBackend(SimCatalog(tables))` als `Custom`).
+4. Optional: Eindeutigkeiten, Fremdschlüssel, Indizes, Prüfbedingungen und Standardwerte beschreiben, damit die Katalogabfragen von Prüfwerkzeugen wie d-migrate sie zeigen. Die Bibliothek erzwingt sie nicht und setzt einen Standardwert beim Einfügen nicht ein. Ein Auszug (Fragment, kein Block des Tests):
+
+   ```kotlin
+   SimTable(
+       name = "bestellung",
+       columns = listOf(
+           SimColumn("Id", SqlType.Int64, nullable = false),
+           SimColumn("KundeId", SqlType.Int64, nullable = false),
+           SimColumn("Menge", SqlType.Int32, defaultDefinition = "((1))"),
+       ),
+       primaryKey = listOf("Id"),
+       rows = { query -> /* RowSource wie oben */ },
+       foreignKeys = listOf(SimForeignKey("fk_bestellung_kunde", listOf("KundeId"), "kunden", listOf("Id"), "CASCADE")),
+       indexes = listOf(SimIndex("ix_bestellung_menge", listOf("Menge"))),
+       checks = listOf(SimCheck("ck_bestellung_menge", "([Menge]>(0))")),
+   )
+   ```
+
+   `defaultDefinition` und `SimCheck.definition` sind die Texte, die der Katalog meldet, in der Form des Servers (`((1))` für `DEFAULT 1`, `(N'neu')` für `DEFAULT N'neu'`, `([Menge]>(0))` für `Menge > 0`). `SimUniqueKey(name, columns)` beschreibt eine Eindeutigkeit (der Katalog zeigt sie auch als Index), `SimForeignKey` einen Fremdschlüssel auf eine Tabelle im Schema der Tabelle mit den Aktionen `NO_ACTION`, `CASCADE`, `SET_NULL` oder `SET_DEFAULT`, `SimIndex` einen nicht gruppierten Index mit optional eingeschlossenen Spalten (`included`).
+5. Mit `BackendSource.Simulation(tables)` an `TdsServer.start` übergeben (oder `SimulationBackend(SimCatalog(tables))` als `Custom`).
 
 **Erwartetes Ergebnis.** `SELECT Name FROM kunden` liefert eine Zeile (Test `dasEinbettungsbeispielStartetBedientUndStoppt`). Der Referenzclient liest Auswahl und leere Ergebnisse gegen das Simulations-Backend (`make simulations-integration`, `make kompatibilitaet`); der Beleg-Typ ist der Lauf am Referenzclient gegen den Server dieses Repos, nicht gegen einen echten SQL Server als Gegenstelle der Tabellen.
 
-**Was das Backend erkennt.** Eine feste Liste von Anweisungsformen ([`SPEC-036`](../../spec/spezifikation.md#spec-036--erkannte-anweisungsformen-des-simulations-backends-vorläufig)): `SELECT` mit einfacher Bedingung (`=`, `IN`, `IS [NOT] NULL`, mit `AND`), `INSERT`, `UPDATE`, `DELETE` einfacher Form, `SELECT 1`, `SET`-Anweisungen aus der Liste der Spezifikation, die Transaktionstexte von d-migrate (`SET IMPLICIT_TRANSACTIONS ON|OFF`, `IF @@TRANCOUNT > 0 COMMIT TRAN` und `… ROLLBACK TRAN`), die Katalogabfragen von d-migrate 1.12.0, `CREATE TABLE` sowie `ALTER TABLE … ADD`, das Massenladen `INSERT BULK` mit der Nachricht `0x07` samt der Probe der Zieltabelle von `SqlBulkCopy` (Form B) und `MERGE … OUTPUT $action` in der Gestalt, die d-migrate mit `--on-conflict skip|update` sendet (Form M). Die Transaktionstexte beantwortet das Backend mit der Art `IMPLICIT_TRANSACTIONS_ON`, `IMPLICIT_TRANSACTIONS_OFF` (nur im gemessenen Text `set implicit_transactions off IF @@TRANCOUNT > 0 COMMIT TRAN`) und `COMMIT_IF_OPEN` (`ROLLBACK TRAN` und `set implicit_transactions off` allein mit dem Änderungszähler 0 ohne Art); die Bibliothek hat keine Transaktion und nimmt nichts zurück. Alles andere endet mit `TDS_UNSUPPORTED_SQL`; dass die Liste abschließend ist, ist eine Setzung. Die Liste steht nur in der Spezifikation.
+**Was das Backend erkennt.** Eine feste Liste von Anweisungsformen ([`SPEC-036`](../../spec/spezifikation.md#spec-036--erkannte-anweisungsformen-des-simulations-backends-vorläufig)): `SELECT` mit einfacher Bedingung (`=`, `IN`, `IS [NOT] NULL`, mit `AND`), `INSERT`, `UPDATE`, `DELETE` einfacher Form, `SELECT 1`, `SET`-Anweisungen aus der Liste der Spezifikation, die Transaktionstexte von d-migrate (`SET IMPLICIT_TRANSACTIONS ON|OFF`, `IF @@TRANCOUNT > 0 COMMIT TRAN` und `… ROLLBACK TRAN`), die Katalogabfragen von d-migrate 1.12.0, `CREATE TABLE`, `ALTER TABLE … ADD` (Spalte oder `CONSTRAINT`) sowie `CREATE INDEX`, das Massenladen `INSERT BULK` mit der Nachricht `0x07` samt der Probe der Zieltabelle von `SqlBulkCopy` (Form B) und `MERGE … OUTPUT $action` in der Gestalt, die d-migrate mit `--on-conflict skip|update` sendet (Form M). Die Transaktionstexte beantwortet das Backend mit der Art `IMPLICIT_TRANSACTIONS_ON`, `IMPLICIT_TRANSACTIONS_OFF` (nur im gemessenen Text `set implicit_transactions off IF @@TRANCOUNT > 0 COMMIT TRAN`) und `COMMIT_IF_OPEN` (`ROLLBACK TRAN` und `set implicit_transactions off` allein mit dem Änderungszähler 0 ohne Art); die Bibliothek hat keine Transaktion und nimmt nichts zurück. Alles andere endet mit `TDS_UNSUPPORTED_SQL`; dass die Liste abschließend ist, ist eine Setzung. Die Liste steht nur in der Spezifikation.
 
 **Eigenschaften.**
 
 - `primaryKey` darf leer sein (so legt `CREATE TABLE` ohne Schlüssel eine Tabelle an). Er wirkt nicht auf das Resultset einer Auswahl und prüft keine Eindeutigkeit; nur das `MERGE` liest ihn: der Vergleich des `MERGE` muss genau den Schlüssel nennen, und gegen eine Tabelle mit leerem Schlüssel endet jedes `MERGE` mit `TDS_UNSUPPORTED_SQL` (der echte SQL Server nimmt es an). Das Backend speichert nichts.
-- Namen sind ohne Beachtung der Groß-/Kleinschreibung eindeutig; jede Tabelle hat mindestens eine Spalte, eine Dezimalspalte höchstens Precision 38; der Schlüssel darf leer sein. Ein Verstoß ist beim Bau der `SimTable` eine `IllegalArgumentException`.
+- Namen sind ohne Beachtung der Groß-/Kleinschreibung eindeutig; jede Tabelle hat mindestens eine Spalte, eine Dezimalspalte höchstens Precision 38; der Schlüssel darf leer sein. Ein Verstoß ist beim Bau der `SimTable` eine `IllegalArgumentException`. Das gilt auch für die Elemente: ein Name einer Bedingung oder eines Index doppelt in der Tabelle, eine Spalte, die die Tabelle nicht hat, ungleich viele Spalten und Zielspalten eines Fremdschlüssels.
 - Ohne Callback endet Einfügen, Ändern und Löschen mit `TDS_UNSUPPORTED_SQL`; für das Massenladen (`INSERT BULK`) ist der Callback `onInsertBatch`, `onInsert` genügt dort nicht.
 - Das Massenladen des Referenzclients (`SqlBulkCopy`) sucht die Tabelle mit dem Schema, das der Client nennt (ohne Angabe `dbo`), und mit dem Namen ohne Klammern: ein Name mit `]`, `'`, Leerzeichen oder Punkt trifft die `SimTable` mit genau diesem Namen. Ein Name mit drei Teilen (Datenbank, Schema, Tabelle) ist nicht erkannt; eine Tabelle oder ein Schema, das der Katalog nicht führt, endet mit `TDS_SIM_UNKNOWN_OBJECT`.
 - Eine Spalte vom Typ `Int16` oder `UInt8` nimmt ein Zahlenliteral und einen Wert des Massenladens (`Int`, `Long`) nur im Wertebereich an (`Int16` -32768 bis 32767, `UInt8` 0 bis 255); ein Wert außerhalb ist `TDS_SIM_INVALID_VALUE`. Ein Parameter mit `INSERT`, `UPDATE` oder `WHERE` nimmt in einer solchen Spalte keinen Wert an: ein Client kann keinen Parameter mit 1 oder 2 Byte schicken, und ein `int`- oder `bigint`-Parameter ist für sie ungültig. Der echte SQL Server konvertiert einen `int`-Parameter in eine `smallint`-Spalte; dieses Backend tut es nicht (nach dem Handbuch des Servers, in diesem Repo nicht gemessen). Wer das braucht, nimmt `Int32` für die Spalte oder schreibt die Werte als Literal.
@@ -256,16 +275,15 @@ Ein Start, der gelingt, meldet vor `SERVER_STARTED` genau ein Ereignis `CONFIG_E
 
 ## 4. Strukturänderungen zulassen (veränderlicher Bestand)
 
-**Ziel.** Clients legen mit `CREATE TABLE` Tabellen an und erweitern sie mit `ALTER TABLE … ADD`; Katalogabfragen (etwa von d-migrate) sehen den jeweils aktuellen Stand.
+**Ziel.** Clients legen mit `CREATE TABLE` Tabellen an und erweitern sie mit `ALTER TABLE … ADD` (Spalten und Bedingungen) und `CREATE INDEX`; Katalogabfragen (etwa von d-migrate) sehen den jeweils aktuellen Stand.
 
 **Voraussetzungen.** Ein `SimulationBackend` als `BackendSource.Custom`; der Bestand liegt bei der Anwendung.
 
 **Schritte.**
 
-1. Das Backend mit einem Katalog-Anbieter und dem Strukturänderungs-Callback bauen: `SimulationBackend(catalog = { … }, onStructure = { schema, name, spalten, schluessel -> … })`. Der Anbieter liefert bei jeder Anfrage die aktuelle Tabellenliste; das Backend hält keinen Stand. `onStructure` bekommt die Tabelle im Zustand nach der Anweisung (Schema, Name, alle Spalten in der Reihenfolge, Schlüssel):
+1. Das Backend mit einem Katalog-Anbieter und dem Strukturänderungs-Callback bauen: `SimulationBackend(catalog = { … }, onStructure = { neu -> … })`. Der Anbieter liefert bei jeder Anfrage die aktuelle Tabellenliste; das Backend hält keinen Stand. `onStructure` bekommt die Tabelle im Zustand nach der Anweisung als `SimTable` (Schema, Name, alle Spalten in der Reihenfolge, Schlüssel, Eindeutigkeiten, Fremdschlüssel, Indizes, Prüfbedingungen); ihre Zeilenquelle liefert keine Zeile und ihre Callbacks fehlen, die Zeilen und Callbacks hält der Integrator selbst:
 
    ```kotlin
-   import io.github.pt9912.tdswire.simulation.RowSource
    import io.github.pt9912.tdswire.simulation.SimCatalog
    import io.github.pt9912.tdswire.simulation.SimTable
    import io.github.pt9912.tdswire.simulation.SimulationBackend
@@ -276,15 +294,11 @@ Ein Start, der gelingt, meldet vor `SERVER_STARTED` genau ein Ereignis `CONFIG_E
        val bestand = CopyOnWriteArrayList<SimTable>()
        return SimulationBackend(
            catalog = { SimCatalog(bestand.toList()) },
-           onStructure = { schema, name, spalten, schluessel ->
-               bestand.removeAll { it.schema.equals(schema, ignoreCase = true) && it.name.equals(name, ignoreCase = true) }
-               bestand += SimTable(
-                   schema = schema,
-                   name = name,
-                   columns = spalten,
-                   primaryKey = schluessel,
-                   rows = { RowSource { null } },
-               )
+           onStructure = { neu ->
+               bestand.removeAll {
+                   it.schema.equals(neu.schema, ignoreCase = true) && it.name.equals(neu.name, ignoreCase = true)
+               }
+               bestand += neu
            },
        )
    }
@@ -296,12 +310,12 @@ Ein Start, der gelingt, meldet vor `SERVER_STARTED` genau ein Ereignis `CONFIG_E
 
 **Eigenschaften.**
 
-- Erkannt sind Spalten der Form `<Name> <Typ> [NOT NULL | NULL]` mit `INT`, `BIGINT`, `BIT`, `DATE`, `TIME`, `DATETIME2`, `NVARCHAR(<n>)` (`n` von 1 bis 4000) oder `NVARCHAR(MAX)` (`maxLength` -1) und `DECIMAL(<p>, <s>)` (Precision bis 38). Eine Schlüsselspalte ist nach der Anweisung nicht nullbar; `CREATE TABLE` ohne Schlüssel gelingt, der Callback bekommt dann einen leeren Schlüssel. Ein anderer Typ oder eine weitere Klausel (`DEFAULT`, `IDENTITY`, `UNIQUE`, `WITH`) macht den Text nicht erkannt (`TDS_UNSUPPORTED_SQL`).
+- Erkannt sind Spalten der Form `<Name> <Typ> [NOT NULL | NULL]` mit `INT`, `BIGINT`, `BIT`, `DATE`, `TIME`, `DATETIME2`, `NVARCHAR(<n>)` (`n` von 1 bis 4000) oder `NVARCHAR(MAX)` (`maxLength` -1) und `DECIMAL(<p>, <s>)` (Precision bis 38). Eine Schlüsselspalte ist nach der Anweisung nicht nullbar; `CREATE TABLE` ohne Schlüssel gelingt, der Callback bekommt dann einen leeren Schlüssel. Hinter dem Typ stehen `NOT NULL`, `NULL`, `CONSTRAINT <Name> DEFAULT <Literal>` und `CONSTRAINT <Name> UNIQUE`. Neben den Spalten trägt `CREATE TABLE` `CONSTRAINT <Name> UNIQUE (…)`, `FOREIGN KEY (…) REFERENCES <Tabelle> (…) [ON DELETE <Aktion>] [ON UPDATE <Aktion>]` und `CHECK (<Ausdruck>)`; `ALTER TABLE <Tabelle> [WITH CHECK] ADD CONSTRAINT <Name> …` legt dieselben drei und `DEFAULT <Literal> FOR <Spalte>` an, `CREATE [UNIQUE] INDEX <Name> ON <Tabelle> (…) [INCLUDE (…)]` einen Index. Der Ausdruck einer Prüfbedingung besteht aus Vergleichen zwischen Spalten, Zahlen und Textliteralen, `IS [NOT] NULL`, `AND`, `OR` und Klammern. Ein anderer Typ oder eine weitere Klausel (`IDENTITY`, `WITH NOCHECK`, `CLUSTERED`, ein `DEFAULT` oder eine Bedingung ohne `CONSTRAINT <Name>`, eine Funktion im Ausdruck) macht den Text nicht erkannt (`TDS_UNSUPPORTED_SQL`).
 - Ohne `onStructure`, und mit dem Konstruktor `SimulationBackend(SimCatalog(tables))` mit festem Katalog, endet jede Strukturänderung mit `TDS_UNSUPPORTED_SQL`.
 - `MERGE … OUTPUT $action` (Form M, `--on-conflict skip` und `update` von d-migrate): die Bibliothek überführt die Werte, liest die Zeilenquelle mit dem Schlüssel als Hinweis zum Vorfiltern, vergleicht den Schlüssel der gelieferten Zeilen selbst und ruft dann höchstens einen Callback: fehlt der Schlüssel, `onInsert` (ersatzweise `onInsertBatch` mit einer Zeile; die Antwort ist die Zeile `INSERT`), ist er da und hat die Anweisung den Zweig `WHEN MATCHED`, `onUpdate` mit den Zuweisungen als `set` und dem Schlüssel als `where` (Antwort `UPDATE`), sonst keinen (Antwort ohne Zeile). Fehlt der nötige Callback, endet die Anweisung mit `TDS_UNSUPPORTED_SQL`. Die Spalte `$action` ist `nvarchar(10)` und der Abschluss trägt den Befehl `0x0117`. Ein Fehler steht hinter dem Beginn des Ergebnisses: ein Text, der länger ist als `maxLength` seiner Spalte, in der Aktion, die ausgeführt wird, endet mit 2628 (`TDS_SIM_STRING_TRUNCATED`) ohne Callback; ein Fehler von `onInsert` ist 2627 (`TDS_SIM_KEY_VIOLATION`, die Bibliothek unterscheidet die Ursache nicht); ein Fehler der Quelle oder von `onUpdate` ist `TDS_BACKEND_ERROR`. Mehrere `VALUES`-Zeilen sind nicht erkannt (`TDS_UNSUPPORTED_SQL`), und eine unbekannte Tabelle endet mit 208 (Class 16) vor dem Ergebnis, die Verbindung bleibt offen. Prüfen und Ändern eines `MERGE` laufen unter einer Sperre je Backend: gleichzeitige `MERGE` laufen nacheinander, das zweite sieht die Änderung des ersten. Die Sperre ist nicht reentrant (aus dem Quelltext gelesen, nicht gemessen): ein Callback, der dasselbe Backend aufruft und die Antwort abwartet, hängt, und ein hängender Callback blockiert alle weiteren `MERGE` dieses Backends; ein Schreiber außerhalb dieses Backends bekommt die Sperre nicht. Ob ein Abbruch am Draht mitten im Warten auf die Sperre wirkt, ist nicht getestet.
 - Prüfen und Ändern sind je Backend atomar: gleichzeitige Strukturänderungen laufen nacheinander, die zweite sieht die erste (`CREATE TABLE` derselben Tabelle ist dann mit `TDS_SIM_OBJECT_EXISTS` abgewiesen). Die Sperre gilt für dieses Backend; ein Bestand, den ein anderer Schreiber ändert, bekommt sie nicht. Die Sperre ist ein nicht reentranter `Mutex` (aus dem Quelltext gelesen, nicht gemessen): ein Callback, der dasselbe Backend aufruft und die Antwort abwartet, hängt, und ein hängender Callback blockiert alle weiteren Strukturänderungen dieses Backends.
 - Keine Transaktion (Zusage): mehrere Callbacks sind keine Transaktion; bricht eine Folge in der Mitte ab, bleibt die erste Änderung beim Integrator stehen. `ROLLBACK TRAN` ist der Änderungszähler 0 und schreibt kein `ENVCHANGE`; hat der Client eine Transaktion mit `ENVCHANGE` Typ 8 begonnen, bleibt sie für ihn offen, bis ein bedingter `COMMIT` sie mit Typ 9 beendet. Der Server beginnt eine Transaktion nur bei `CREATE TABLE`; der echte SQL Server schreibt Typ 8 auch bei anderen Anweisungen und im RPC (gemessen, nicht gebaut: [`SPEC-031`](../../spec/spezifikation.md#spec-031--streaming-fehler-und-atomarität)), ein `data import` von d-migrate sieht deshalb kein Typ 8. d-migrate meldet nach einem Fehler des Callbacks `FULL_ROLLBACK_CONFIRMED`, obwohl die erste Änderung bleibt (Einzelmessung 2026-11-05, [Messprotokoll](../messungen/callback-loesung-spike-2026-11-05.md)).
-- Der Katalog zeigt Typ, Länge und Nullbarkeit der Spalten und den Schlüssel; in der Antwort auf die Spaltenabfrage ist `max_length` ein `smallint`, sind `precision` und `scale` ein `tinyint` und `is_nullable` ein nullbares `bit`, wie am echten SQL Server gemessen; eine Spalte vom Typ `Int16` meldet der Katalog als `smallint` (Länge 2, Precision 5), eine vom Typ `UInt8` als `tinyint` (Länge 1, Precision 3). Identität, Standardwerte, Fremdschlüssel, Indizes und Prüfbedingungen kennt er nicht, ihre Abfragen antworten leer. Ein Soll mit dem Typ `identifier` zeigt bei `schema compare` einen Unterschied (Exit 1).
+- Der Katalog zeigt Typ, Länge, Nullbarkeit und Standardwert der Spalten, den Schlüssel, die Eindeutigkeiten, Fremdschlüssel, Indizes und Prüfbedingungen, wie der Callback sie geliefert hat (die Prüfbedingung in der Form des Servers: `Menge > 0` ergibt `([Menge]>(0))`, der Standardwert `DEFAULT 1` ergibt `((1))`); in der Antwort auf die Spaltenabfrage ist `max_length` ein `smallint`, sind `precision` und `scale` ein `tinyint` und `is_nullable` ein nullbares `bit`, wie am echten SQL Server gemessen; eine Spalte vom Typ `Int16` meldet der Katalog als `smallint` (Länge 2, Precision 5), eine vom Typ `UInt8` als `tinyint` (Länge 1, Precision 3). Identität und berechnete Spalten kennt er nicht, die Abfragen von Sichten, Sequenzen, Routinen, Partitionen und Volltextindizes antworten leer. Ein Soll mit dem Typ `identifier` zeigt bei `schema compare` einen Unterschied (Exit 1).
 - Belegt am Prüfclient d-migrate 1.12.0 gegen den Testserver ([Messprotokoll](../messungen/katalog-und-ddl-zustand-2026-11-06.md), 2026-11-06, ein Host): `schema reverse`, `schema compare` und `schema migrate --execute` enden mit Exit 0; die Schrittfolge steht in [Testserver, Aufgabe 3](testserver-manuell.md#3-mit-d-migrate-struktur-lesen-und-ändern). Die Typnamen und Maße des Katalogs für `bigint`, `bit`, `time` und `datetime2` sind wie die für `smallint` und `tinyint` am echten SQL Server gemessen (2022 und 2025, [Messprotokoll zum Referenzabgleich](../messungen/referenzabgleich.md), M-17); ebenso gemessen (M-1) sind die Spaltentypen der Katalogsichten, die d-migrate liest.
 
 **Typische Fehler.**
@@ -312,6 +326,7 @@ Ein Start, der gelingt, meldet vor `SERVER_STARTED` genau ein Ereignis `CONFIG_E
 | `TDS_SIM_STRING_TRUNCATED` (2628) beim `MERGE`, die Verbindung bleibt offen | ein Text ist länger als `maxLength` der Spalte | `maxLength` der Spalte oder den Text prüfen; der echte SQL Server antwortet mit derselben Nummer |
 | `TDS_SIM_OBJECT_EXISTS` (2714), `TDS_SIM_COLUMN_EXISTS` (2705), `TDS_SIM_OBJECT_NOT_FOUND` (4902), die Verbindung bleibt offen | `CREATE TABLE` einer Tabelle, die der Katalog führt; `ADD` einer vorhandenen Spalte; `ALTER TABLE` einer Tabelle, die er nicht führt | Namen prüfen; der echte SQL Server antwortet mit denselben Nummern |
 | `schema migrate` endet mit Exit 5 („Post-execute compare detected drift“) | der Anbieter liefert nach der Änderung den alten Stand | den Bestand im Callback ändern, bevor er zurückkehrt |
+| `schema migrate` endet mit Exit 5, im Bericht `Unsupported SQL`, wenn das Soll einer vorhandenen Spalte einen Standardwert gibt | d-migrate sendet dafür einen Text mit `DECLARE @df sysname …`, den das Backend nicht erkennt | den Standardwert in `CREATE TABLE` oder an einer neuen Spalte anlegen |
 | `schema compare` zeigt `text -> text(4000)` | `NVARCHAR(MAX)` ist als 4000 beschrieben | `maxLength = -1` setzen |
 
 ## 5. Ereignisse lesen (Senke)

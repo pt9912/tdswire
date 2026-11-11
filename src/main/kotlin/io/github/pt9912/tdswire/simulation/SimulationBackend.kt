@@ -40,8 +40,9 @@ import java.util.concurrent.atomic.AtomicBoolean
  *
  * Form K (`SPEC-036`) beantwortet die Katalogabfragen von d-migrate aus dem Katalog ([CatalogAnswers]); der Katalog
  * kommt bei jeder Anfrage frisch aus dem Anbieter des Konstruktors, das Backend hält keinen Stand. Form D (`CREATE
- * TABLE`, `ALTER TABLE … ADD`) ruft den Strukturänderungs-Callback mit der Tabelle nach der Anweisung und meldet die
- * Art `CREATE_TABLE` oder `ALTER_TABLE`; das Backend nimmt nichts zurück, mehrere Callbacks sind keine Transaktion
+ * TABLE`, `ALTER TABLE … ADD` einer Spalte oder einer Bedingung, `CREATE INDEX`) ruft den Strukturänderungs-Callback
+ * mit der Tabelle nach der Anweisung und meldet die Art `CREATE_TABLE`, `ALTER_TABLE` oder, für `CREATE INDEX`,
+ * `UNKNOWN` (die Kennung ist nicht gemessen); das Backend nimmt nichts zurück, mehrere Callbacks sind keine Transaktion
  * (`ADR-0033`). Der Konstruktor mit festem Katalog hat keinen Callback: Form D ist dort abgewiesen
  * (`TDS_UNSUPPORTED_SQL`), ebenso mit dem Anbieter und ohne Callback.
  *
@@ -69,10 +70,11 @@ public class SimulationBackend(
     /** Liefert bei jeder Anfrage die aktuelle Tabellenliste; wirft er, endet die Anfrage mit `TDS_BACKEND_ERROR`. */
     internal val catalog: () -> SimCatalog,
     /**
-     * Nimmt die Tabelle nach einer Strukturänderung entgegen: Schema, Name, Spalten in der Reihenfolge und Schlüssel;
-     * ohne ihn ist jede Strukturänderung abgewiesen.
+     * Nimmt die Tabelle nach einer Strukturänderung entgegen, als Beschreibung ohne Zeilen: Schema, Name, Spalten in
+     * der Reihenfolge, Schlüssel und die Elemente (Eindeutigkeiten, Fremdschlüssel, Indizes, Prüfbedingungen); die
+     * Zeilenquelle liefert keine Zeile, die Callbacks fehlen. Ohne ihn ist jede Strukturänderung abgewiesen.
      */
-    private val onStructure: (suspend (String, String, List<SimColumn>, List<String>) -> Unit)? = null,
+    private val onStructure: (suspend (SimTable) -> Unit)? = null,
 ) : QueryBackend {
     /** Das Backend mit festem Katalog; es nimmt weder Strukturänderungen an noch ändert sich sein Katalog. */
     public constructor(catalog: SimCatalog) : this({ catalog })
@@ -169,7 +171,8 @@ public class SimulationBackend(
 
     /**
      * Form D (`SPEC-036`): ruft den Strukturänderungs-Callback genau einmal beim Sammeln und antwortet mit dem
-     * Abschluss der Art `CREATE_TABLE` oder `ALTER_TABLE` (die Bibliothek schreibt ihn ohne Zeilenzahl, SQL_BATCH).
+     * Abschluss der Art `CREATE_TABLE`, `ALTER_TABLE` oder `UNKNOWN` (die beiden ersten schreibt die Bibliothek ohne
+     * Zeilenzahl, SQL_BATCH).
      * Ohne Callback ist die Anweisung abgewiesen. Prüfen und Ändern sind je Backend atomar: beim
      * Sammeln plant das Backend den Text unter einer Sperre gegen den dann aktuellen Katalog erneut und ruft den
      * Callback mit diesem Stand; zwei gleichzeitige Strukturänderungen laufen nacheinander, die zweite sieht die
@@ -187,7 +190,7 @@ public class SimulationBackend(
             structureLock.withLock {
                 when (val again = planner.plan(request.sql)) {
                     is PlanResult.Structure -> {
-                        callback(again.plan.schema, again.plan.name, again.plan.columns, again.plan.primaryKey)
+                        callback(again.plan.table)
                         0L
                     }
 

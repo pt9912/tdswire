@@ -189,12 +189,12 @@ class SimDescriptionReaderTest {
             "description", "encoding", "locale", "custom_types", "procedures", "functions", "views", "triggers",
             "sequences",
         )
-        val table = listOf("description", "indices", "constraints", "partitioning", "metadata")
+        val table = listOf("description", "partitioning", "metadata")
         val column = listOf(
-            "unique", "default", "auto_increment", "generation", "references",
+            "auto_increment", "generation",
             "length", "float_precision", "values", "ref_type", "element_type", "geometry_type", "srid",
         )
-        assertEquals(26, document.size + table.size + column.size)
+        assertEquals(21, document.size + table.size + column.size)
         val base = one(mapOf("c" to "integer"), listOf("c"))
         for (key in document) {
             val tree = b.doc(b.m("t" to b.table(b.m("c" to b.col("integer")), b.keys("c"))), key to b.s("x"))

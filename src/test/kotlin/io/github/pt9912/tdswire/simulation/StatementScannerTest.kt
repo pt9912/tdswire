@@ -330,8 +330,22 @@ class StatementScannerTest {
      */
     @Test
     fun `lehnt fremde Zeichen ab`() {
-        for (c in "<>!+/%&|^~:{}\\?`§€") {
+        for (c in "!+/%&|^~:{}\\?`§€") {
             assertNotRecognized("SELECT a FROM t WHERE a = $c", Unrecognized.UNSUPPORTED_CHARACTER)
+        }
+    }
+
+    /**
+     * `<` und `>` sind Symbole des Scanners (sie tragen den Ausdruck einer Prüfbedingung, Form D): in einer Bedingung
+     * der Formen S1 bis W3 stehen sie am falschen Ort, und der Text ist wegen des Tokens nicht erkannt, nicht wegen des
+     * Zeichens.
+     * Wächter: ein Scanner, der `<` oder `>` wieder als fremdes Zeichen meldet.
+     * @spec SPEC-036
+     */
+    @Test
+    fun `liest Kleiner und Groesser als Symbole`() {
+        for (c in "<>") {
+            assertNotRecognized("SELECT a FROM t WHERE a = $c", Unrecognized.UNEXPECTED_TOKEN)
         }
     }
 

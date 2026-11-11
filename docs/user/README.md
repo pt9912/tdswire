@@ -22,6 +22,7 @@ Die Anleitungen sind nach Aufgaben geordnet. Sie bilden den Ist-Zustand ab (`AGE
 | das Log des Testservers lesen | [Testserver, Aufgabe 4](testserver-manuell.md#4-das-log-lesen) |
 | den Testserver anders einstellen (Benutzer, Tabellen, Verschlüsselung, Host) | [Testserver, Aufgabe 5](testserver-manuell.md#5-den-server-anders-einstellen) |
 | Zeilen in den Testserver laden und lesen | [Testserver, Aufgabe 6](testserver-manuell.md#6-daten-laden-massenladen) |
+| Fremdschlüssel, Indizes, Standardwerte und Prüfbedingungen im Testserver anlegen und lesen | [Testserver, Aufgabe 7](testserver-manuell.md#7-fremdschlüssel-indizes-standardwerte-und-prüfbedingungen-anlegen-und-lesen) |
 
 ## Referenz
 

@@ -20,9 +20,16 @@ internal const val DEFAULT_SCHEMA = "dbo"
  * gemessen am echten Server ist ein Fall (Schlüsselverstoß, drei Zeilen, ein Paket), darüber hinaus ist sie eine
  * Setzung; die Fehlernummer 2627 ist für den Schlüsselverstoß gemessen und für jede andere Ursache ein Sammelcode.
  *
- * `columns` und `primaryKey` werden nicht kopiert: ein Konstruktor mit neun Parametern erlaubt die Regel
- * `LongParameterList` nur an einer `data class`, und deren Konstruktor kann die Listen nicht ersetzen. Der Aufrufer
- * ändert sie nach der Übergabe nicht; [column] liest einen Index, der bei der Übergabe gebaut wurde.
+ * [uniqueKeys], [foreignKeys], [indexes] und [checks] beschreiben die Elemente der Tabelle für die Katalogabfragen
+ * (`SPEC-035`); sie wirken weder auf Resultset noch auf Callbacks. Namen von Bedingungen sind in der Tabelle ohne
+ * Beachtung der Schreibweise eindeutig, ebenso Namen von Indizes (eine Eindeutigkeit zählt als Index); jede genannte
+ * Spalte ist in der Tabelle vorhanden (Setzung, nicht am Server gemessen). Ob die Zieltabelle eines Fremdschlüssels
+ * beschrieben ist, prüft der Katalog nicht, nur die Anweisung `CREATE TABLE` und `ALTER TABLE` der Bibliothek.
+ *
+ * `columns`, `primaryKey` und die Listen der Elemente werden nicht kopiert: ein Konstruktor mit dreizehn Parametern
+ * erlaubt die Regel `LongParameterList` nur an einer `data class`, und deren Konstruktor kann die Listen nicht
+ * ersetzen. Der Aufrufer ändert sie nach der Übergabe nicht; [column] liest einen Index, der bei der Übergabe gebaut
+ * wurde.
  */
 public data class SimTable(
     val schema: String = DEFAULT_SCHEMA,
@@ -34,6 +41,10 @@ public data class SimTable(
     val onUpdate: (suspend (set: Map<String, Any?>, where: RowFilter?) -> Long)? = null,
     val onDelete: (suspend (where: RowFilter?) -> Long)? = null,
     val onInsertBatch: (suspend (rows: List<Map<String, Any?>>) -> Long)? = null,
+    val uniqueKeys: List<SimUniqueKey> = emptyList(),
+    val foreignKeys: List<SimForeignKey> = emptyList(),
+    val indexes: List<SimIndex> = emptyList(),
+    val checks: List<SimCheck> = emptyList(),
 ) {
     private val byName: Map<String, SimColumn>
 
@@ -50,6 +61,7 @@ public data class SimTable(
             requireNotNull(column) { "Schlüsselspalte $entry ist in Tabelle $name nicht vorhanden" }
             require(!column.nullable) { "Schlüsselspalte $entry von Tabelle $name darf nicht nullbar sein" }
         }
+        SimElementChecks.validate(this)
     }
 
     /** Die Spalte namens [columnName] ohne Beachtung der Schreibweise oder `null`. */
@@ -74,12 +86,17 @@ internal const val UNBOUNDED_TEXT = -1
  * `max_length` -1) und ändert die Metadaten eines Ergebnisses nicht (dort gilt `ResultColumn.maxLength`). Geprüft
  * wird sie nur beim `MERGE` (ein Text darüber ist 2628, `SPEC-036`); die Zeilen der Zeilenquelle und das Massenladen
  * prüft sie nicht (`SPEC-035`).
+ *
+ * [defaultDefinition] ist der Text, den der Katalog als `default_definition` der Spalte meldet, mit den Klammern des
+ * Servers (`((1))` für `DEFAULT 1`, `(N'neu')` für `DEFAULT N'neu'`, Messprotokoll M-21); `null` heißt: ohne
+ * Standardwert. Die Bibliothek setzt den Wert nicht ein: ein `INSERT` ohne die Spalte bleibt ohne sie (`SPEC-035`).
  */
 public data class SimColumn(
     val name: String,
     val type: SqlType,
     val nullable: Boolean = true,
     val maxLength: Int = MAX_TEXT_LENGTH,
+    val defaultDefinition: String? = null,
 ) {
     init {
         require(name.isNotEmpty()) { "Spaltenname darf nicht leer sein" }
@@ -88,6 +105,9 @@ public data class SimColumn(
         }
         require(maxLength == UNBOUNDED_TEXT || maxLength in 1..MAX_TEXT_LENGTH) {
             "Spalte $name: maxLength außerhalb 1..$MAX_TEXT_LENGTH und nicht $UNBOUNDED_TEXT"
+        }
+        require(defaultDefinition == null || defaultDefinition.isNotEmpty()) {
+            "Spalte $name: defaultDefinition darf nicht leer sein"
         }
     }
 }

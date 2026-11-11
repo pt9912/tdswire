@@ -93,9 +93,9 @@ class StatementKindEmbeddingTest {
     /** Das Simulations-Backend mit Katalog und Strukturänderungs-Callback, der die Tabelle einträgt. */
     private fun structureBackend(): SimulationBackend {
         val tables = CopyOnWriteArrayList<SimTable>()
-        return SimulationBackend({ SimCatalog(tables.toList()) }) { schema, name, columns, key ->
-            tables.removeAll { it.schema == schema && it.name == name }
-            tables += SimTable(schema, name, columns, key, rows = { RowSource { null } })
+        return SimulationBackend({ SimCatalog(tables.toList()) }) { shape ->
+            tables.removeAll { it.schema == shape.schema && it.name == shape.name }
+            tables += shape
         }
     }
 
