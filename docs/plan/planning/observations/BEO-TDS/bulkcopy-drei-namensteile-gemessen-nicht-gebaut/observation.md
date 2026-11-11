@@ -6,4 +6,4 @@
 
 ## Benannt, nicht gezählt
 
-Review `2026-11-11-d4331dc4` des Slice [slice-bulkcopy-tabellenname-mit-schema-und-sonderzeichen](../../../in-progress/slice-bulkcopy-tabellenname-mit-schema-und-sonderzeichen.md), Finding F-6 (LOW): die Grenze steht in der Spezifikation, im Messprotokoll und in der Nutzer-Doku, ein Träger fehlte.
+Review `2026-11-11-d4331dc4` des Slice [slice-bulkcopy-tabellenname-mit-schema-und-sonderzeichen](../../../done/slice-bulkcopy-tabellenname-mit-schema-und-sonderzeichen.md), Finding F-6 (LOW): die Grenze steht in der Spezifikation, im Messprotokoll und in der Nutzer-Doku, ein Träger fehlte.
