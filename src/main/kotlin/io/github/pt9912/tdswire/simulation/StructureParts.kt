@@ -76,7 +76,10 @@ internal class StructureParts(private val stream: TokenStream, private val parts
     fun alter(): Statement {
         stream.keyword("TABLE")
         val table = parts.tableRef()
-        if (stream.acceptKeyword("DROP")) return dropConstraint(table)
+        return if (stream.acceptKeyword("DROP")) dropConstraint(table) else add(table)
+    }
+
+    private fun add(table: TableRef): Statement {
         val withCheck = stream.acceptKeyword("WITH")
         if (withCheck) stream.keyword("CHECK")
         stream.keyword("ADD")

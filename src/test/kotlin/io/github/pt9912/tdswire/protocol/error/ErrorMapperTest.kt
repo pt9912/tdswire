@@ -163,13 +163,13 @@ class ErrorMapperTest {
     }
 
     /**
-     * Die Strukturabweisung ist ERROR 2714 (State 6), 2705 (State 4), 4902 (State 1), 3728 (State 1) und 3733 (State 2),
-     * je Class 16, danach DONE mit
-     * `ERROR`, Befehl `0x00fd`, ohne Zähler; die Verbindung bleibt offen. Nummer, Class, State, die offene Verbindung
-     * und der Abschluss sind am Referenzclient gegen den echten SQL Server gemessen (Zeile M-19, 2022 und 2025; 3728 und
-     * 3733: Szenario `struktur-drop-constraint`, wo ein zweites ERROR 3727 folgt, das die Bibliothek nicht sendet), der
-     * Text ist ein Auszug des gemessenen Textes ohne die Namen (Setzung). Ebenso `TDS_SIM_STRING_TRUNCATED`: ERROR
-     * 2628, State 1, Class 16, offene Verbindung (Zeile M-15; der Abschluss im Ergebnis steht in `ResponseMergeTest`).
+     * Die Strukturabweisung ist ERROR 2714 (State 6), 2705 (State 4), 4902 (State 1), 3728 (State 1) und 3733
+     * (State 2), je Class 16, danach DONE mit `ERROR`, Befehl `0x00fd`, ohne Zähler; die Verbindung bleibt offen.
+     * Nummer, Class, State, die offene Verbindung und der Abschluss sind am Referenzclient gegen den echten SQL Server
+     * gemessen (Zeile M-19, 2022 und 2025; 3728 und 3733: Szenario `struktur-drop-constraint`, wo ein zweites ERROR
+     * 3727 folgt, das die Bibliothek nicht sendet), der Text ist ein Auszug des gemessenen Textes ohne die Namen
+     * (Setzung). Ebenso `TDS_SIM_STRING_TRUNCATED`: ERROR 2628, State 1, Class 16, offene Verbindung (Zeile M-15; der
+     * Abschluss im Ergebnis steht in `ResponseMergeTest`).
      * Wächter: Class 20 mit schließender Verbindung, State 1 für alle drei, eine
      * andere Nummer, ein anderer Text.
      *
