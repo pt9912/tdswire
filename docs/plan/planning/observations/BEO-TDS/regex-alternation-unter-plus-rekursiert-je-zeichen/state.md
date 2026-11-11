@@ -1,0 +1,1 @@
+**Stand:** offen — 1× (Vorgang `slice-bulkcopy-tabellenname-mit-schema-und-sonderzeichen`); keine Regel verkörpert, der Test `lange Namen … ohne Fehler` in `BulkCopyFormsTest` hält die eine Stelle. **Re-Evaluierungs-Trigger:** ein weiterer Regex mit Alternation unter `+` oder `*` im Eingangspfad (Zähler 3 löst den Lese-Schritt aus).

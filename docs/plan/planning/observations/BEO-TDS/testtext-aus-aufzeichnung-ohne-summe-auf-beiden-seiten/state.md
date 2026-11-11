@@ -1,0 +1,1 @@
+**Stand:** offen — 1× (Vorgang `slice-bulkcopy-tabellenname-mit-schema-und-sonderzeichen`); Sensor für diese Dateien geliefert, keine allgemeine Regel verkörpert. **Re-Evaluierungs-Trigger:** ein weiterer Slice, dessen Test Texte oder Bytes „aus der Aufzeichnung“ als Datei führt (Zähler 3 löst den Lese-Schritt aus).
