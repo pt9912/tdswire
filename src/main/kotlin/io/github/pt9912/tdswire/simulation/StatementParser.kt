@@ -187,8 +187,8 @@ internal object StatementParser {
             first.isKeyword("INSERT") -> insert(stream, parts)
             first.isKeyword("UPDATE") -> update(stream, parts)
             first.isKeyword("DELETE") -> delete(stream, parts)
-            first.isKeyword("CREATE") -> StructureParts(stream, parts).createTable()
-            first.isKeyword("ALTER") -> StructureParts(stream, parts).addColumns()
+            first.isKeyword("CREATE") -> StructureParts(stream, parts).create()
+            first.isKeyword("ALTER") -> StructureParts(stream, parts).alter()
             first.isKeyword("MERGE") -> MergeParts(stream, parts).merge()
             else -> throw unexpected()
         }

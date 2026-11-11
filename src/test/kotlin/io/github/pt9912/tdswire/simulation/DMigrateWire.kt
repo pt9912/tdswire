@@ -221,3 +221,45 @@ val dMigrateStructureTexts: List<String> = listOf(
         "set implicit_transactions off IF @@TRANCOUNT > 0 COMMIT TRAN ",
     ),
 )
+
+/**
+ * Die Texte, die d-migrate 1.12.0 (derselbe Digest; `schema generate --target mssql` und `schema migrate --target
+ * file:<ist.yaml> --dialect mssql --dry-run`, Läufe vom 2026-11-09) für ein Soll mit Eindeutigkeit, Standardwert,
+ * Fremdschlüssel, Prüfbedingung und Index rendert; Zeilenumbrüche und Leerzeichen wie ausgegeben. Dass
+ * `schema migrate --execute` dieselben Anweisungen sendet, belegt der Lauf gegen den Testserver (Messprotokoll
+ * `docs/messungen/katalog-indizes-defaults-fremdschluessel-d-migrate-2026-11-09.md`); die Texte hier sind die der
+ * Ausgabe, nicht des Drahts. Die erste Tabelle des Solls.
+ */
+val dMigrateElementKunden: String = wire(
+    "CREATE TABLE [kunden] (",
+    "    [Id] BIGINT NOT NULL,",
+    "    [Email] NVARCHAR(200) CONSTRAINT [uq_kunden_Email] UNIQUE,",
+    "    CONSTRAINT [pk_kunden] PRIMARY KEY ([Id])",
+    ");",
+)
+
+/** Die zweite Tabelle des Solls: Standardwerte, Fremdschlüssel mit `ON DELETE CASCADE`, Prüfbedingung. */
+val dMigrateElementBestellung: String = wire(
+    "CREATE TABLE [bestellung] (",
+    "    [Id] BIGINT NOT NULL,",
+    "    [KundeId] BIGINT NOT NULL,",
+    "    [Menge] INT NOT NULL CONSTRAINT [df_bestellung_Menge] DEFAULT 1,",
+    "    [Status] NVARCHAR(20) NOT NULL CONSTRAINT [df_bestellung_Status] DEFAULT N'neu',",
+    "    CONSTRAINT [fk_bestellung_KundeId] FOREIGN KEY ([KundeId]) REFERENCES [kunden] ([Id]) ON DELETE CASCADE,",
+    "    CONSTRAINT [ck_bestellung_menge] CHECK (Menge > 0),",
+    "    CONSTRAINT [pk_bestellung] PRIMARY KEY ([Id])",
+    ");",
+)
+
+/** Der Index des Solls. */
+const val DMIGRATE_ELEMENT_INDEX: String = "CREATE INDEX [ix_bestellung_status] ON [bestellung] ([Status]);"
+
+/** `schema migrate` gegen vorhandene Tabellen: die Bedingungen als `ALTER TABLE`, der Standardwert mit `FOR`. */
+val dMigrateElementAlterTexts: List<String> = listOf(
+    "ALTER TABLE [bestellung] ADD CONSTRAINT [df_bestellung_Menge] DEFAULT 1 FOR [Menge];",
+    "ALTER TABLE [bestellung] ADD CONSTRAINT [df_bestellung_Status] DEFAULT N'neu' FOR [Status];",
+    "ALTER TABLE [bestellung] WITH CHECK ADD CONSTRAINT [_fk_KundeId] FOREIGN KEY ([KundeId]) " +
+        "REFERENCES [kunden]([Id]) ON DELETE CASCADE;",
+    "ALTER TABLE [bestellung] WITH CHECK ADD CONSTRAINT [ck_bestellung_menge] CHECK (Menge > 0);",
+    "ALTER TABLE [kunden] WITH CHECK ADD CONSTRAINT [_unique_Email] UNIQUE ([Email]);",
+)

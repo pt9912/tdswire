@@ -32,7 +32,7 @@ internal sealed interface Token {
     /** Ein Parameter `@name` ohne das `@`. */
     data class Param(val name: String) : Token
 
-    /** Eines von `, ( ) . * = ;`. */
+    /** Eines von `, ( ) . * = < > ;`. */
     data class Symbol(val char: Char) : Token
 }
 
@@ -87,7 +87,7 @@ internal class SqlScanner(private val text: String) {
 
             '@' -> parameter()
 
-            ',', '(', ')', '.', '*', '=', ';' -> {
+            ',', '(', ')', '.', '*', '=', '<', '>', ';' -> {
                 tokens += Token.Symbol(c)
                 advance(1)
             }

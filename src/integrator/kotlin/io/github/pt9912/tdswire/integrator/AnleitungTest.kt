@@ -255,15 +255,11 @@ internal fun anleitungVeraenderlich(): SimulationBackend {
     val bestand = CopyOnWriteArrayList<SimTable>()
     return SimulationBackend(
         catalog = { SimCatalog(bestand.toList()) },
-        onStructure = { schema, name, spalten, schluessel ->
-            bestand.removeAll { it.schema.equals(schema, ignoreCase = true) && it.name.equals(name, ignoreCase = true) }
-            bestand += SimTable(
-                schema = schema,
-                name = name,
-                columns = spalten,
-                primaryKey = schluessel,
-                rows = { RowSource { null } },
-            )
+        onStructure = { neu ->
+            bestand.removeAll {
+                it.schema.equals(neu.schema, ignoreCase = true) && it.name.equals(neu.name, ignoreCase = true)
+            }
+            bestand += neu
         },
     )
 }

@@ -209,8 +209,8 @@ class SimulationBackendCatalogTest {
     }
 
     /**
-     * Happy: alle Formen ohne Quelle im Katalog (Eindeutigkeiten, Fremdschlüssel, Indizes, Volltext, Partitionen,
-     * Prüfbedingungen, Sequenzen, Sichten, Identität, Berechnung, Routinen) antworten mit ihren Spalten und ohne Zeile,
+     * Happy: alle Formen ohne Quelle im Katalog (Volltext, Partitionen, Sequenzen, Sichten, Identität, Berechnung,
+     * Routinen) antworten mit ihren Spalten und ohne Zeile,
      * auch für eine Tabelle, die es gibt; `SELECT SCHEMA_NAME()` ist eine Zeile `dbo`.
      * Wächter: eine leere Form, die nur `ResultEnd(0)` sendet (die Sitzung schließt, `SPEC-036`), oder Spalten, die
      * von der Abfrage abweichen.
@@ -219,7 +219,7 @@ class SimulationBackendCatalogTest {
     @Test
     fun `Formen ohne Quelle sind leer mit Spalten`() {
         val empty = CatalogForm.entries.filter { it.source == CatalogSource.EMPTY }
-        assertEquals(16, empty.size)
+        assertEquals(12, empty.size)
         for (form in empty) {
             val events = ask(form, text("kunden"), kunden)
             assertEquals(

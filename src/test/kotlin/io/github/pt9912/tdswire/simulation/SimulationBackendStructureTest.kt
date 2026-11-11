@@ -32,11 +32,10 @@ class SimulationBackendStructureTest {
     private class Store(var tables: List<SimTable>, private val failure: Throwable? = null) {
         val calls = mutableListOf<Call>()
 
-        val backend = SimulationBackend({ SimCatalog(tables) }) { schema, name, columns, key ->
-            calls += Call(schema, name, columns, key)
+        val backend = SimulationBackend({ SimCatalog(tables) }) { shape ->
+            calls += Call(shape.schema, shape.name, shape.columns, shape.primaryKey)
             failure?.let { throw it }
-            tables = tables.filterNot { it.schema == schema && it.name == name } +
-                SimTable(schema, name, columns, key, rows = { RowSource { null } })
+            tables = tables.filterNot { it.schema == shape.schema && it.name == shape.name } + shape
         }
     }
 
@@ -192,7 +191,9 @@ class SimulationBackendStructureTest {
             "CREATE TABLE t (a INT, PRIMARY KEY (a), PRIMARY KEY (a))",
             "CREATE TABLE t (PRIMARY KEY (a))",
             "CREATE TABLE t (a INT, PRIMARY KEY (a)) WITH (DATA_COMPRESSION = PAGE)",
-            "CREATE INDEX i ON kunden (Name)",
+            "CREATE CLUSTERED INDEX i ON kunden (Name)",
+            "CREATE INDEX i ON kunden (Name DESC)",
+            "CREATE INDEX i ON kunden (Name) WHERE Name IS NOT NULL",
             "ALTER TABLE kunden ADD x INT, X BIT",
             "ALTER TABLE kunden DROP COLUMN Name",
             "ALTER TABLE kunden ADD",
@@ -322,11 +323,10 @@ class SimulationBackendStructureTest {
         var tables: List<SimTable> = emptyList()
         var calls = 0
 
-        val backend = SimulationBackend({ SimCatalog(tables) }) { schema, name, columns, key ->
+        val backend = SimulationBackend({ SimCatalog(tables) }) { shape ->
             calls++
             delay(50)
-            tables = tables.filterNot { it.schema == schema && it.name == name } +
-                SimTable(schema, name, columns, key, rows = { RowSource { null } })
+            tables = tables.filterNot { it.schema == shape.schema && it.name == shape.name } + shape
         }
     }
 
