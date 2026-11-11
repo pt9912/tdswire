@@ -15,7 +15,8 @@
 # Folgeabfrage und Cancel einer laufenden Anfrage (Quelle `laufend` ohne Ende) mit Folgeabfrage am Referenzclient
 # (Microsoft.Data.SqlClient), TDS 7.4 ohne Verschluesselung und ohne Pool; die Quelle von `laufend` wird nach dem
 # Cancel genau einmal geschlossen (eine Zeile des Testservers je Schliessen); dazu das Massenladen mit `SqlBulkCopy` in die
-# Tabelle `bulk_ziel` (Zeilen und Zaehler, mehrere Nachrichten, Schluesselverstoss 2627). Nicht belegt: echter SQL Server, TDS 8.0,
+# Tabelle `bulk_ziel` (Zeilen und Zaehler, mehrere Nachrichten, Schluesselverstoss 2627), mit Schema (`dbo.bulk_ziel`) und in die Tabelle
+# `bulk]ziel'x` des Schemas `s1` sowie gegen ein unbekanntes Schema. Nicht belegt: echter SQL Server, TDS 8.0,
 # Last. Der Lauf ist Stufe 3 von `make e2e` und kein Gate.
 set -u
 . "$(dirname "$0")/log-muster.sh" || { echo "log-muster.sh nicht lesbar" >&2; exit 1; }
@@ -62,12 +63,12 @@ gestartet() {
   return 1
 }
 pruefe "Server im Container meldet 'gestartet, Port 1433'" gestartet
-# Die 6 Tabellen sind die fuenf von `IntegrationTables.all()` (IntegrationServer.kt: person, gross, kaputt, laufend, bulk_ziel) und `leer` aus
+# Die 7 Tabellen sind die sechs von `IntegrationTables.all()` (IntegrationServer.kt: person, gross, kaputt, laufend, bulk_ziel, s1.bulk]ziel'x) und `leer` aus
 # testserver/resources/integration/sim.yaml (Kopplung: ein Wechsel der Tabellenzahl dort aendert diese Zahl).
 simulations_backend_verdrahtet() {
-  docker logs "$SERVER" 2>&1 | log_nennt_ereignis simulation_backend_ready '"tables":6'
+  docker logs "$SERVER" 2>&1 | log_nennt_ereignis simulation_backend_ready '"tables":7'
 }
-pruefe "Log nennt das Ereignis simulation_backend_ready mit 6 Tabellen" simulations_backend_verdrahtet
+pruefe "Log nennt das Ereignis simulation_backend_ready mit 7 Tabellen" simulations_backend_verdrahtet
 
 # Der Text der Tabelle `gross` muss groesser sein als der Heap: sonst belegt der Lauf nicht, dass die Zeilen
 # einzeln gelesen werden.
@@ -81,8 +82,8 @@ pruefe "Text von gross ($text Zeichen) ist groesser als der Heap ($heap Bytes)" 
 docker run --rm --network "$NETZ" -e "TDSWIRE_ZIEL=$SERVER:1433" "$CLIENT_IMAGE" >"$SCRATCH/client" 2>&1
 client_ok=$?
 cat "$SCRATCH/client"
-pruefe "Alle 8 Tests des Referenzclients bestanden" \
-  sh -c "[ $client_ok -eq 0 ] && grep -q 'Test Run Successful' '$SCRATCH/client' && grep -q 'Total tests: 8' '$SCRATCH/client' && grep -q 'Passed: 8' '$SCRATCH/client'"
+pruefe "Alle 13 Tests des Referenzclients bestanden" \
+  sh -c "[ $client_ok -eq 0 ] && grep -q 'Test Run Successful' '$SCRATCH/client' && grep -q 'Total tests: 13' '$SCRATCH/client' && grep -q 'Passed: 13' '$SCRATCH/client'"
 fertig=$(date +%s)
 
 quelle_einmal_geschlossen() { [ "$(docker logs "$SERVER" 2>&1 | grep -cx 'integrationsserver: Quelle laufend geschlossen')" = 1 ]; }

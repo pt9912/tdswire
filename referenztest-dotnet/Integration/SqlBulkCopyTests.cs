@@ -11,9 +11,9 @@ namespace TdsWire.Referenztests.Integration;
 /// `make simulations-integration`, Stufe 3 von `make e2e`). Das Ziel steht in TDSWIRE_ZIEL (host:port); die Tabelle
 /// `bulk_ziel` steht in `IntegrationTables.bulkTarget()` (`testserver/kotlin/.../IntegrationServer.kt`) mit einem
 /// Stapel-Callback im Arbeitsspeicher (Id BIGINT nicht nullbar als Schlüssel, Text NVARCHAR(10), Zahl INT, Preis
-/// DECIMAL(10,2)). Belegt ist das Verhalten des
+/// DECIMAL(10,2)); ebenso die Tabelle `s1.bulk]ziel'x` (Schema `s1`, Name mit `]` und `'`). Belegt ist das Verhalten des
 /// Referenzclients gegen den Server dieses Repos in TDS 7.4 ohne Verschlüsselung und ohne Pool, nicht gegen einen
-/// echten SQL Server (dort: Messreihe M-8 bis M-12, `make vergleichslauf-d`) und nicht TDS 8.0.
+/// echten SQL Server (dort: Messreihe M-8 bis M-12 und M-33 bis M-36, `make vergleichslauf-d`) und nicht TDS 8.0.
 /// </summary>
 [Trait("Kategorie", "Integration")]
 public class SqlBulkCopyTests
@@ -49,9 +49,9 @@ public class SqlBulkCopyTests
         return tabelle;
     }
 
-    private static SqlBulkCopy Kopierer(SqlConnection verbindung)
+    private static SqlBulkCopy Kopierer(SqlConnection verbindung, string ziel = "bulk_ziel")
     {
-        var kopierer = new SqlBulkCopy(verbindung) { DestinationTableName = "bulk_ziel" };
+        var kopierer = new SqlBulkCopy(verbindung) { DestinationTableName = ziel };
         foreach (var spalte in new[] { "Id", "Text", "Zahl", "Preis" })
         {
             kopierer.ColumnMappings.Add(spalte, spalte);
@@ -60,11 +60,14 @@ public class SqlBulkCopyTests
         return kopierer;
     }
 
-    private static List<(long Id, string? Text, int? Zahl, decimal? Preis)> Lesen(SqlConnection verbindung, params long[] ids)
+    private static List<(long Id, string? Text, int? Zahl, decimal? Preis)> Lesen(SqlConnection verbindung, params long[] ids) =>
+        Lesen(verbindung, "bulk_ziel", ids);
+
+    private static List<(long Id, string? Text, int? Zahl, decimal? Preis)> Lesen(SqlConnection verbindung, string tabelle, params long[] ids)
     {
         var gelesen = new List<(long, string?, int?, decimal?)>();
         using var befehl = new SqlCommand(
-            $"SELECT Id, Text, Zahl, Preis FROM bulk_ziel WHERE Id IN ({string.Join(", ", ids)})", verbindung);
+            $"SELECT Id, Text, Zahl, Preis FROM {tabelle} WHERE Id IN ({string.Join(", ", ids)})", verbindung);
         using var leser = befehl.ExecuteReader();
         while (leser.Read())
         {
@@ -134,5 +137,36 @@ public class SqlBulkCopyTests
         Assert.Equal(2627, ausnahme.Number);
         Assert.Equal(System.Data.ConnectionState.Open, verbindung.State);
         Assert.Equal(new long[] { 20 }, Lesen(verbindung, 20, 21).Select(zeile => zeile.Id).ToArray());
+    }
+
+    [Theory]
+    [InlineData("dbo.bulk_ziel", "dbo.bulk_ziel", 30)]
+    [InlineData("[dbo].[bulk_ziel]", "[dbo].[bulk_ziel]", 32)]
+    [InlineData("s1.[bulk]]ziel'x]", "[s1].[bulk]]ziel'x]", 40)]
+    [InlineData("[s1].[bulk]]ziel'x]", "[s1].[bulk]]ziel'x]", 42)]
+    public void Massenladen_nimmt_einen_Namen_mit_Schema_und_einen_Namen_mit_Klammer_und_Hochkomma_an(string ziel, string lesen, long ab)
+    {
+        using var verbindung = Verbinden();
+        using var kopierer = Kopierer(verbindung, ziel);
+
+        kopierer.WriteToServer(Zeilen((ab, "Äpfel", 10, 12.34m), (ab + 1, null, null, null)));
+
+        _ausgabe.WriteLine($"{ziel}: {kopierer.RowsCopied} Zeilen kopiert");
+        Assert.Equal(
+            new List<(long, string?, int?, decimal?)> { (ab, "Äpfel", 10, 12.34m), (ab + 1, null, null, null) },
+            Lesen(verbindung, lesen, ab, ab + 1));
+    }
+
+    [Fact]
+    public void Eine_Tabelle_in_einem_unbekannten_Schema_ist_dem_Client_nicht_zugaenglich_und_die_Verbindung_bleibt_nutzbar()
+    {
+        using var verbindung = Verbinden();
+        using var kopierer = Kopierer(verbindung, "s2.bulk_ziel");
+
+        var ausnahme = Assert.Throws<InvalidOperationException>(() => kopierer.WriteToServer(Zeilen((50, "x", 1, 1.00m))));
+
+        _ausgabe.WriteLine($"unbekanntes Schema: {ausnahme.Message}");
+        Assert.Equal(System.Data.ConnectionState.Open, verbindung.State);
+        Assert.Empty(Lesen(verbindung, 50));
     }
 }
