@@ -10,6 +10,7 @@ import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.util.HexFormat
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -33,6 +34,22 @@ class BulkLoadReaderReferenceClientTest {
 
     private fun failure(bytes: ByteArray): ProtocolFailure =
         assertIs<ProtocolResult.Failed>(BulkLoadReader.read(bytes)).error.failure
+
+    /**
+     * Die Datei `typen-fest.hex` ist die Nachricht 0x07 der Ablage `bulk-name-feste-typen` (`MessungBulkBelegTests` in
+     * `referenztest-dotnet` hält dieselbe Hexfolge gegen beide Instanzen). Wächter: eine Änderung an der Datei, die der
+     * Aussage „aufgezeichnet“ nicht mehr entspricht.
+     *
+     * @spec SPEC-036
+     */
+    @Test
+    fun `typen-fest gleicht der aufgezeichneten Nachricht der Ablage`() {
+        assertEquals(
+            "810400000000000000080038014100000000000800340142000000000008003001430000000000080032014400d101000000" +
+                "02000301d1fffffffffeffff00fd0000000000000000",
+            HexFormat.of().formatHex(message("typen-fest")),
+        )
+    }
 
     /**
      * `bulk-typen-null`: neun Spalten (`Id` BIGINT fest, `Zahl` und `Klein` INTN, `Flag` BITN, `Preis` NUMERICN(10,2),

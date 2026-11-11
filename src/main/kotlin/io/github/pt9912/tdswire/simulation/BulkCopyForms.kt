@@ -14,7 +14,10 @@ import io.github.pt9912.tdswire.port.BulkProbeResult
  * `OBJECT_ID` und `FROM` gleich, ein `'` ist an allen drei Stellen als `''` geschrieben (sie stehen in Literalen); der
  * Kollationsname ist `.[<Tabelle>]` ohne und `[<Schema>].[<Tabelle>]` mit Schema. Erkannt ist der Text, wenn er bis auf
  * Leerraum dem Wortlaut gleicht und die Namen an den drei Stellen zusammenpassen; die Namen innerhalb der Klammern
- * bleiben unverändert (auch Leerzeichenfolgen). Ein Name mit drei Teilen (Datenbank, Schema, Tabelle) ist gemessen,
+ * bleiben unverändert (auch Leerzeichenfolgen). Der Leerraum ist Setzung, nicht aufgezeichnet: eine beliebige Folge aus
+ * Leerzeichen, Tabulator und Zeilenumbruch gilt an jeder Lücke des Wortlauts (auch innerhalb seiner Literale), und
+ * Leerraum sowie ein `;` am Ende des Textes sind erlaubt. Die 128-Zeichen-Grenze des Servers für Namen ist nicht
+ * gemessen; die Erkennung prüft die Länge nicht. Ein Name mit drei Teilen (Datenbank, Schema, Tabelle) ist gemessen,
  * aber nicht erkannt: der Text geht dann den üblichen Weg und ist `TDS_UNSUPPORTED_SQL`.
  */
 internal object BulkCopyForms {
@@ -82,8 +85,12 @@ internal object BulkCopyForms {
         DROP TABLE #Column_Aliases
     """
 
-    /** Ein Teil des Namens in Klammern; `]]` steht für `]`, `''` für `'`; die Gruppe ist der Teil im Text. */
-    private const val PART = "\\[((?:[^\\]']|\\]\\]|'')+)\\]"
+    /**
+     * Ein Teil des Namens in Klammern; `]]` steht für `]`, `''` für `'`; die Gruppe ist der Teil im Text. Die
+     * Wiederholung ist besitzend (`++`): sie probiert keine Rückschritte und rekursiert nicht je Zeichen, ein Name von
+     * einer Million Zeichen wird ohne `StackOverflowError` erkannt (`BulkCopyFormsTest`).
+     */
+    private const val PART = "\\[((?:[^\\]']++|\\]\\]|'')++)\\]"
     private const val BLANK = "[ \t\r\n]+"
 
     /** Der Wortlaut ohne Leerraum an den Enden, mit Leerraum als `[ \t\r\n]+`, um die Namen eingesetzt. */

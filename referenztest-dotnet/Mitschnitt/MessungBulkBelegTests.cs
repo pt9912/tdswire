@@ -196,6 +196,39 @@ public class MessungBulkBelegTests
         Assert.Equal("DONE Status COUNT, Befehl 0x00f0, Zeilen 2", F(stufe, "bulk-name-feste-typen/03/done"));
     }
 
+    // ---- Bindung der Testtexte des Kotlin-Moduls an die Ablage --------------------------------------------------------------
+
+    // SHA-256 der Dateien probe-*.sql unter src/test/resources/messung/bulk-referenzclient/ (Test des Kotlin-Moduls
+    // BulkCopyFormsTest, gleiche Tabelle dort), die Messung und die Stelle der Probe in der Messung (Index unter den Batches mit
+    // `DECLARE @Object_ID INT = OBJECT_ID(`). Die Kotlin-Stage sieht diese Ablage nicht, diese Stage nicht die Dateien: die
+    // Bindung ist die gleiche Summe auf beiden Seiten.
+    private static readonly (string Datei, string Szenario, int Index, string Sha256)[] KotlinProben =
+    {
+        ("probe-bulk_typen", "bulk-typen-null", 0, "3aa31cbadb2b4761aa36ed4bab799823e155314f2839aa43460c86ce4cc166bc"),
+        ("probe-dbo-bulk_ns", "bulk-name-schema", 0, "9ba79d968258edb6de9cefa14613803748b55e88a46682064afc4656554345f7"),
+        ("probe-dreiteilig", "bulk-name-schema", 3, "04d9c887d2d31fd977b341eb649c0a67b2c0f318b5439159cf36a6b99f6975b2"),
+        ("probe-s1-bulk_s1", "bulk-name-schema", 4, "44ea3ebb26471704148fc3549594992c14a8f3dd378518df4e076862cdead150"),
+        ("probe-dbo-gibtesnicht", "bulk-name-schema", 5, "7d0ee1e651bb7a00e1119424f4e8a07dd009652708ac21dc062743d8f0c00e1e"),
+        ("probe-klammer", "bulk-name-sonderzeichen", 0, "7570d7a806599788e4947449fff7e322fae58bb53f13539a9aab3f0f672827a8"),
+        ("probe-apostroph", "bulk-name-sonderzeichen", 1, "4cba397a365cbffdba869a410d0b82d6b4f0e60db030ca8bd6d0a692dc541cd9"),
+        ("probe-punkt", "bulk-name-sonderzeichen", 4, "a2521e614e79357673f2e0f3bc61374de3bb8fec3f63db63365883c036b5864b"),
+        ("probe-dbo-leerzeichen", "bulk-name-sonderzeichen", 5, "c61c8fb6e61dc8d2b832e9fb74aad02ad75135c97903d47ad9bb40c6df23f877"),
+        ("probe-leerzeichen2", "bulk-name-sonderzeichen", 6, "15ee9740f6f94e1e087f668b1f173997840ab352d6bf2034792e6833ee078aab"),
+    };
+
+    // @spec SPEC-036
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void Die_Probetexte_der_Tests_des_Kotlin_Moduls_sind_Zeichen_fuer_Zeichen_die_aufgezeichneten_Proben(string stufe)
+    {
+        foreach (var (datei, szenario, index, summe) in KotlinProben)
+        {
+            var probe = Proben(stufe, szenario)[index];
+            var gefunden = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(probe))).ToLowerInvariant();
+            Assert.True(summe == gefunden, $"{stufe} {szenario}[{index}] ({datei}): {gefunden}");
+        }
+    }
+
     // ---- Liefer-Punkt 1a: Massenladen -----------------------------------------------------------------------------------
 
     // @spec SPEC-045

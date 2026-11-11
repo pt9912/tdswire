@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md)
 
-**Berührte Spec-Stellen:** SPEC-036 (Form B, Probe der Zieltabelle von `SqlBulkCopy`: Grenze „Tabelle ohne Schema, Name ohne `]` und `'`“) · SPEC-001 (Absatz Massenladen, Verweis auf die Probe).
+**Berührte Spec-Stellen:** SPEC-036 (Form B, Probe der Zieltabelle von `SqlBulkCopy`: Grenze „Tabelle ohne Schema, Name ohne `]` und `'`“) · SPEC-001 (Absatz Massenladen, Verweis auf die Probe) · SPEC-040 (Zeile der Simulations-Tests: Erkennung der Probe, Bindung der Testtexte).
 
 **Verantwortlich:** — bis zur Priorisierung.
 
@@ -55,12 +55,17 @@ Nachweis-Pflichten für alle Punkte:
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `src/main/kotlin/io/github/pt9912/tdswire/simulation/BulkCopyForms.kt` | update | Erkennung nach der Messung: ein oder zwei Teile, `]]` und `''`, Leerraum außerhalb der Namen; Suche im genannten Schema |
-| `src/test/kotlin/io/github/pt9912/tdswire/simulation/BulkCopyFormsTest.kt`, `src/test/resources/messung/bulk-referenzclient/probe-*.sql` (neun Texte, aus der Ablage der Instanz 2022) | update, new | Test mit den aufgezeichneten Texten und den Varianten (Liefer-Punkt 2) |
+| `src/main/kotlin/io/github/pt9912/tdswire/simulation/BulkCopyForms.kt` | update | Erkennung nach der Messung: ein oder zwei Teile, `]]` und `''`, Leerraum außerhalb der Namen; Suche im genannten Schema; besitzende Wiederholung im Namensteil (Namen von 100 000 Zeichen ohne `StackOverflowError`) |
+| `src/test/kotlin/io/github/pt9912/tdswire/simulation/BulkCopyFormsTest.kt`, `src/test/resources/messung/bulk-referenzclient/probe-*.sql` (neun Texte, aus der Ablage der Instanz 2022) | update, new | Test mit den aufgezeichneten Texten und den Varianten, mit langen Namen, mit der Setzung zu Leerraum und Schreibweise und mit der Summe je Textdatei (Liefer-Punkt 2) |
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/bulk/BulkColumnType.kt`, `BulkLoadReader.kt` (nur KDoc) | update | die festen Typen INT, SMALLINT, TINYINT und BIT sind gemessen (M-36), nicht Handvektor |
 | `src/test/kotlin/io/github/pt9912/tdswire/protocol/bulk/BulkLoadReaderReferenceClientTest.kt`, `src/test/resources/messung/bulk-referenzclient/typen-fest.hex` | update, new | die gemessene Nachricht 0x07 für INT, SMALLINT, TINYINT und BIT liest der Leser (Liefer-Punkt 1 und 2) |
 | `referenztest-dotnet/Integration/SqlBulkCopyTests.cs`, `testserver/kotlin/io/github/pt9912/tdswire/testserver/IntegrationServer.kt`, `tools/simulationstest.sh` | update | Szenario mit Schema und mit `s1.bulk]ziel'x` im Integrationslauf (zweite Tabelle, Zahl der Tests 13 und der Tabellen 7 im Skript) |
 | `referenztest-dotnet/Vergleich/MessungBulkTests.cs`, `referenztest-dotnet/Mitschnitt/MessungBulkBelegTests.cs`, `referenztest-dotnet/Mitschnitt/messung/bulk-merge-katalog/{2022,2025}/bulk-name-*.messung` (sechs Dateien), `tools/mk/vergleichslauf-d.mk` (Kommentar) | update, new | drei Szenarien der Messreihe (Liefer-Punkt 1), Belege ohne Instanz, Ablage |
+| `referenztest-dotnet/Mitschnitt/MessungBulkBelegTests.cs` (Tabelle der Summen), `BulkCopyFormsTest.kt` (gleiche Tabelle) | update | Bindung: die Textdateien `probe-*.sql` gleichen der Probe in der Ablage beider Instanzen (SHA-256 auf beiden Seiten) |
+| `docs/plan/planning/in-progress/roadmap.md`, `docs/plan/planning/welle-testserver-manuell.md`, `docs/plan/planning/observations/BEO-TDS/messung-am-echten-sql-server-fehlt/state.md`, `docs/plan/planning/observations/BEO-TDS/mitschnitt-luecken-ohne-traeger/state.md`, `docs/plan/planning/done/slice-bulk-load-feste-typen-und-referenzclient.md` | update | Zeiger auf den Slice und seinen Ort (`make slice-mv`), Zustand der Zelle |
+| `docs/reviews/2026-11-08-6c0f7f62-verifikation-slice-bulk-load-feste-typen-und-referenzclient.md` | update | Zeiger auf den Slice nachgezogen (`make slice-mv`), der Satz zum Ort angeglichen |
+| `docs/plan/spec-abdeckung.md` | update | erzeugt von `make spec-abdeckung` (Tests geändert) |
+| `docs/plan/planning/observations/BEO-TDS/bulkcopy-drei-namensteile-gemessen-nicht-gebaut/` | new | Träger der Grenze „drei Namensteile gemessen, nicht gebaut“ (Register, kein Slice) |
 | `spec/spezifikation.md` (`SPEC-036`, `SPEC-040`), `docs/user/` (`testserver-manuell.md`, `einbettung-und-betrieb.md`, `referenz-konfiguration.md`), `docs/plan/kompatibilitaetsmatrix.md`, `docs/messungen/referenzabgleich.md` (M-33 bis M-36) | update | Grenze entfällt, Messprotokoll (Liefer-Punkt 3) |
 
 ## 4. Trigger

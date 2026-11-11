@@ -1265,14 +1265,20 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   ein `]` als `]]`: `<Name>` ist `[<Tabelle>]` oder `[<Schema>].[<Tabelle>]` und steht in `OBJECT_ID` und `FROM` gleich; ein `'` im Namen steht an
   allen drei Stellen als `''` (alle drei stehen in Literalen); `<Kollationsname>` ist `.[<Tabelle>]` ohne Schema und `[<Schema>].[<Tabelle>]` mit
   Schema. Erkannt ist der Text, wenn er bis auf den Leerraum außerhalb der Namen dem aufgezeichneten Wortlaut gleicht und die Namen an den drei
-  Stellen zusammenpassen; die Namen innerhalb der Klammern bleiben unverändert (auch eine Folge von Leerzeichen). Das Backend sucht die Tabelle
-  im genannten Schema, ohne Schema in `dbo`, mit dem Namen ohne die Auszeichnung (`]]` als `]`, `''` als `'`). Ein Name mit drei Teilen
+  Stellen zusammenpassen; die Namen innerhalb der Klammern bleiben unverändert (auch eine Folge von Leerzeichen). Setzung, nicht aufgezeichnet:
+  der Leerraum an den Lücken des Wortlauts ist beliebig (auch innerhalb seiner Literale), und Leerraum sowie ein `;` am Ende des Textes sind erlaubt;
+  die Länge der Namen wird nicht geprüft (die Grenze des Servers von 128 Zeichen ist nicht gemessen). Das Backend sucht die Tabelle
+  im genannten Schema, ohne Schema in `dbo`, mit dem Namen ohne die Auszeichnung (`]]` als `]`, `''` als `'`), Schema und Name ohne Beachtung der
+  Schreibweise wie im Katalog (Setzung, am echten Server nicht gemessen). Ein Name mit drei Teilen
   (Datenbank, Schema, Tabelle; gemessen mit `[<Datenbank>]..sp_tablecollations_100`) ist nicht erkannt, ebenso jede andere Abweichung: der Text geht
   den üblichen Weg und ist `TDS_UNSUPPORTED_SQL`. Ein Name mit einem einzelnen `]` (`bulk]x`) sendet der Client nicht; er endet ohne Verkehr mit einer
   `InvalidOperationException` (M-35). Die Antwort bildet der Sitzungsrahmen, nicht das Backend,
   weil sie eine binäre Spalte (`tds_collation`, `BINARY(5)`) trägt, die das Typmodell des Backends nicht kennt; das Backend liefert nur die Spalten
-  der Tabelle (`TDS_SIM_UNKNOWN_OBJECT`, wenn sie nicht beschrieben ist; Setzung, die Antwort des Servers auf eine unbekannte Tabelle ist nicht
-  aufgezeichnet). Die Antwort hat vier Ergebnisse in der Folge der Aufzeichnung: `@@TRANCOUNT` (INT, Wert 0); die Spalten der Tabelle ohne Zeile
+  der Tabelle (`TDS_SIM_UNKNOWN_OBJECT`, wenn sie nicht beschrieben ist). Der echte Server antwortet auf eine unbekannte Tabelle oder ein
+  unbekanntes Schema mit `ERROR` 208 (Class 16, State 1, „Invalid object name …“) mitten im Batch, nach den Ergebnissen der ersten Anweisungen
+  (M-35, `bulk-name-schema`, Instanz 2022 und 2025); die Antwort dieses Servers trägt den Fehler vor den Ergebnissen und den festen Text „Tabelle nicht
+  beschrieben“ (Setzung, Abweichung vom Zielbild, Grenze). Für `mssql-jdbc` (d-migrate) sind Namen mit Schema oder Sonderzeichen nicht gemessen;
+  belegt ist dort `INSERT BULK` für `[dbo].[kunden]` (M-28). Die Antwort hat vier Ergebnisse in der Folge der Aufzeichnung: `@@TRANCOUNT` (INT, Wert 0); die Spalten der Tabelle ohne Zeile
   (Flags `0x0008`, nullbar `0x0009`; Text mit der Länge der Beschreibung; Dezimalzahlen mit Größe 17; aufgezeichnet ist nur `DECIMALN(10,2)`, die Größe 17 für andere Precisionen ist Setzung, gestützt darauf,
   dass der Referenzclient die Werte immer mit 17 Byte schreibt); je Spalte `colid`, `name`, `tds_collation` und `collation` (für Text die fünf Bytes
   der Kollation und ihr Name, Setzung `SQL_Latin1_General_CP1_CI_AS`, sonst NULL als NBCROW) mit ORDER auf `colid`; die leere Tabelle

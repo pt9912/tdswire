@@ -4,6 +4,8 @@ import io.github.pt9912.tdswire.domain.ResultColumn
 import io.github.pt9912.tdswire.domain.SqlType
 import io.github.pt9912.tdswire.port.BulkProbeColumn
 import io.github.pt9912.tdswire.port.BulkProbeResult
+import java.security.MessageDigest
+import java.util.HexFormat
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -88,6 +90,75 @@ class BulkCopyFormsTest {
         assertNotRecognized("SELECT 1")
     }
 
+    /**
+     * Setzung, nicht aufgezeichnet: Leerraum und ein `;` am Ende des Textes sowie mehrere Leerzeichen an einer Lücke
+     * des Wortlauts (auch in einem Literal) ändern die Erkennung nicht. Wächter: eine Erkennung, die den Text an den
+     * Enden nicht beschneidet.
+     *
+     * @spec SPEC-036
+     */
+    @Test
+    fun `Leerraum und Semikolon am Ende und mehrere Leerzeichen im Wortlaut sind erkannt`() {
+        val expected = TableRef(null, "bulk_typen")
+        assertEquals(expected, BulkCopyForms.recognize("$recorded\r\n"))
+        assertEquals(expected, BulkCopyForms.recognize("  \t$recorded;"))
+        assertEquals(expected, BulkCopyForms.recognize("$recorded ;\n"))
+        assertEquals(expected, BulkCopyForms.recognize(recorded.replace("'', ''", "'',  ''")))
+    }
+
+    private fun escaped(raw: String): String = raw.replace("]", "]]").replace("'", "''")
+
+    /**
+     * Lange Namen (10 000 und 100 000 Zeichen, mit `]`, `'`, `.` und Leerzeichen, ohne und mit Schema, auch das Schema
+     * lang) sind erkannt und liefern den unausgezeichneten Namen; ein langer Name mit einem einzelnen `]` in der Mitte
+     * ist nicht erkannt. Beides ohne Fehler. Die Länge, die der Server annimmt (128 Zeichen), ist nicht gemessen und
+     * hier nicht geprüft. Wächter: eine Erkennung, die je Zeichen des Namens rekursiert (`StackOverflowError` ab etwa
+     * 3000 Zeichen).
+     *
+     * @spec SPEC-036
+     */
+    @Test
+    fun `lange Namen mit Sonderzeichen sind erkannt, ohne und mit Schema, ohne Fehler`() {
+        for (length in listOf(10_000, 100_000)) {
+            val raw = "a]b'c. ".repeat(length / 7)
+            val plain = recorded.replace("bulk_typen", escaped(raw))
+            assertEquals(TableRef(null, raw), BulkCopyForms.recognize(plain))
+            val both = text("probe-dbo-bulk_ns").replace("bulk_ns", escaped(raw)).replace("dbo", escaped(raw))
+            assertEquals(TableRef(raw, raw), BulkCopyForms.recognize(both))
+            val onlyChars = recorded.replace("bulk_typen", "x".repeat(length))
+            assertEquals(TableRef(null, "x".repeat(length)), BulkCopyForms.recognize(onlyChars))
+            assertNotRecognized(recorded.replace("bulk_typen", escaped(raw) + "]" + escaped(raw)))
+        }
+    }
+
+    /**
+     * Die Summe SHA-256 jeder Datei `probe-*.sql` gleicht der Summe der Probe in der Ablage (`MessungBulkBelegTests` in
+     * `referenztest-dotnet`, gleiche Tabelle dort, beide Instanzen). Wächter: eine Änderung an einer Datei (Zeichen,
+     * Zeilenende), die der Aussage „aufgezeichnete Texte“ nicht mehr entspricht.
+     *
+     * @spec SPEC-036
+     */
+    @Test
+    fun `die Dateien der Probetexte tragen die Summen der aufgezeichneten Proben`() {
+        val expected = mapOf(
+            "probe-bulk_typen" to "3aa31cbadb2b4761aa36ed4bab799823e155314f2839aa43460c86ce4cc166bc",
+            "probe-dbo-bulk_ns" to "9ba79d968258edb6de9cefa14613803748b55e88a46682064afc4656554345f7",
+            "probe-dreiteilig" to "04d9c887d2d31fd977b341eb649c0a67b2c0f318b5439159cf36a6b99f6975b2",
+            "probe-s1-bulk_s1" to "44ea3ebb26471704148fc3549594992c14a8f3dd378518df4e076862cdead150",
+            "probe-dbo-gibtesnicht" to "7d0ee1e651bb7a00e1119424f4e8a07dd009652708ac21dc062743d8f0c00e1e",
+            "probe-klammer" to "7570d7a806599788e4947449fff7e322fae58bb53f13539a9aab3f0f672827a8",
+            "probe-apostroph" to "4cba397a365cbffdba869a410d0b82d6b4f0e60db030ca8bd6d0a692dc541cd9",
+            "probe-punkt" to "a2521e614e79357673f2e0f3bc61374de3bb8fec3f63db63365883c036b5864b",
+            "probe-dbo-leerzeichen" to "c61c8fb6e61dc8d2b832e9fb74aad02ad75135c97903d47ad9bb40c6df23f877",
+            "probe-leerzeichen2" to "15ee9740f6f94e1e087f668b1f173997840ab352d6bf2034792e6833ee078aab",
+        )
+        for ((name, sum) in expected) {
+            val bytes = requireNotNull(javaClass.getResource("/messung/bulk-referenzclient/$name.sql")).readBytes()
+            val found = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes))
+            assertEquals(sum, found, name)
+        }
+    }
+
     private fun backend(vararg tables: SimTable) = SimCatalog(tables.toList())
 
     private fun table(schema: String, name: String, vararg columns: SimColumn) = SimTable(
@@ -162,5 +233,20 @@ class BulkCopyFormsTest {
         }
         val unknown = assertIs<BulkProbeResult.Rejected>(BulkCopyForms.probe(text("probe-dbo-gibtesnicht")) { catalog })
         assertEquals(SimCodes.UNKNOWN_OBJECT, unknown.code)
+    }
+
+    /**
+     * Setzung, am echten Server nicht gemessen: Schema und Name der Probe gelten ohne Beachtung der Schreibweise, wie
+     * im Katalog (`SimCatalog.find`). Wächter: eine Suche, die das Schema oder den Namen exakt vergleicht.
+     *
+     * @spec SPEC-036
+     */
+    @Test
+    fun `die Probe sucht Schema und Namen ohne Beachtung der Schreibweise`() {
+        val catalog = backend(table("dbo", "bulk_ns", *columns))
+        val upper = text("probe-dbo-bulk_ns").replace("[dbo]", "[DBO]")
+        assertIs<BulkProbeResult.Ready>(BulkCopyForms.probe(upper) { catalog })
+        val upperName = text("probe-dbo-bulk_ns").replace("bulk_ns", "BULK_NS")
+        assertIs<BulkProbeResult.Ready>(BulkCopyForms.probe(upperName) { catalog })
     }
 }

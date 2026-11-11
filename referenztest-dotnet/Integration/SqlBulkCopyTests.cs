@@ -13,7 +13,7 @@ namespace TdsWire.Referenztests.Integration;
 /// Stapel-Callback im Arbeitsspeicher (Id BIGINT nicht nullbar als Schlüssel, Text NVARCHAR(10), Zahl INT, Preis
 /// DECIMAL(10,2)); ebenso die Tabelle `s1.bulk]ziel'x` (Schema `s1`, Name mit `]` und `'`). Belegt ist das Verhalten des
 /// Referenzclients gegen den Server dieses Repos in TDS 7.4 ohne Verschlüsselung und ohne Pool, nicht gegen einen
-/// echten SQL Server (dort: Messreihe M-8 bis M-12, `make vergleichslauf-d`) und nicht TDS 8.0.
+/// echten SQL Server (dort: Messreihe M-8 bis M-12 und M-33 bis M-36, `make vergleichslauf-d`) und nicht TDS 8.0.
 /// </summary>
 [Trait("Kategorie", "Integration")]
 public class SqlBulkCopyTests
