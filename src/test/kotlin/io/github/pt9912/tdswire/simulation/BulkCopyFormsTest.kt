@@ -56,6 +56,8 @@ class BulkCopyFormsTest {
         assertEquals(TableRef("dbo", "gibtesnicht"), BulkCopyForms.recognize(text("probe-dbo-gibtesnicht")))
     }
 
+    private fun assertNotRecognized(sql: String) = assertNull(BulkCopyForms.recognize(sql))
+
     /**
      * Nicht erkannt sind: ein Name, der an einer der drei Stellen abweicht (auch die Kollationsform ohne Schema bei
      * einem Namen mit Schema und umgekehrt); der aufgezeichnete Text mit drei Teilen (Datenbank, Schema, Tabelle); ein
@@ -66,24 +68,24 @@ class BulkCopyFormsTest {
      * @spec SPEC-036
      */
     @Test
-    fun `ein abweichender Name, drei Teile, eine unverdoppelte Auszeichnung, ein Zusatz oder ein anderer Text sind nicht erkannt`() {
-        assertNull(BulkCopyForms.recognize(recorded.replaceFirst("OBJECT_ID('[bulk_typen]')", "OBJECT_ID('[andere]')")))
-        assertNull(BulkCopyForms.recognize(recorded.replaceFirst("FROM [bulk_typen]", "FROM [andere]")))
-        assertNull(BulkCopyForms.recognize(recorded.replaceFirst("N'.[bulk_typen]'", "N'.[andere]'")))
+    fun `abweichende Namen, drei Teile, unverdoppelte Zeichen, Zusätze und andere Texte sind nicht erkannt`() {
+        assertNotRecognized(recorded.replaceFirst("OBJECT_ID('[bulk_typen]')", "OBJECT_ID('[andere]')"))
+        assertNotRecognized(recorded.replaceFirst("FROM [bulk_typen]", "FROM [andere]"))
+        assertNotRecognized(recorded.replaceFirst("N'.[bulk_typen]'", "N'.[andere]'"))
         val schema = text("probe-dbo-bulk_ns")
-        assertNull(BulkCopyForms.recognize(schema.replaceFirst("OBJECT_ID('[dbo].[bulk_ns]')", "OBJECT_ID('[dbo].[andere]')")))
-        assertNull(BulkCopyForms.recognize(schema.replaceFirst("FROM [dbo].[bulk_ns]", "FROM [dbo].[andere]")))
-        assertNull(BulkCopyForms.recognize(schema.replaceFirst("FROM [dbo].[bulk_ns]", "FROM [s1].[bulk_ns]")))
-        assertNull(BulkCopyForms.recognize(schema.replaceFirst("N'[dbo].[bulk_ns]'", "N'[dbo].[andere]'")))
-        assertNull(BulkCopyForms.recognize(schema.replaceFirst("N'[dbo].[bulk_ns]'", "N'.[bulk_ns]'")))
-        assertNull(BulkCopyForms.recognize(schema.replaceFirst("N'[dbo].[bulk_ns]'", "N'[s1].[bulk_ns]'")))
-        assertNull(BulkCopyForms.recognize(recorded.replaceFirst("N'.[bulk_typen]'", "N'[dbo].[bulk_typen]'")))
-        assertNull(BulkCopyForms.recognize(text("probe-dreiteilig")))
-        assertNull(BulkCopyForms.recognize(recorded.replace("bulk_typen", "bulk'typen")))
-        assertNull(BulkCopyForms.recognize(recorded.replace("bulk_typen", "bulk]typen")))
-        assertNull(BulkCopyForms.recognize(recorded.replace("[bulk_typen]", "[a].[b]")))
-        assertNull(BulkCopyForms.recognize("$recorded; SELECT 1"))
-        assertNull(BulkCopyForms.recognize("SELECT 1"))
+        assertNotRecognized(schema.replaceFirst("OBJECT_ID('[dbo].[bulk_ns]')", "OBJECT_ID('[dbo].[andere]')"))
+        assertNotRecognized(schema.replaceFirst("FROM [dbo].[bulk_ns]", "FROM [dbo].[andere]"))
+        assertNotRecognized(schema.replaceFirst("FROM [dbo].[bulk_ns]", "FROM [s1].[bulk_ns]"))
+        assertNotRecognized(schema.replaceFirst("N'[dbo].[bulk_ns]'", "N'[dbo].[andere]'"))
+        assertNotRecognized(schema.replaceFirst("N'[dbo].[bulk_ns]'", "N'.[bulk_ns]'"))
+        assertNotRecognized(schema.replaceFirst("N'[dbo].[bulk_ns]'", "N'[s1].[bulk_ns]'"))
+        assertNotRecognized(recorded.replaceFirst("N'.[bulk_typen]'", "N'[dbo].[bulk_typen]'"))
+        assertNotRecognized(text("probe-dreiteilig"))
+        assertNotRecognized(recorded.replace("bulk_typen", "bulk'typen"))
+        assertNotRecognized(recorded.replace("bulk_typen", "bulk]typen"))
+        assertNotRecognized(recorded.replace("[bulk_typen]", "[a].[b]"))
+        assertNotRecognized("$recorded; SELECT 1")
+        assertNotRecognized("SELECT 1")
     }
 
     private fun backend(vararg tables: SimTable) = SimCatalog(tables.toList())

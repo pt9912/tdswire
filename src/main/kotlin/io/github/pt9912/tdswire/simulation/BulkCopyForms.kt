@@ -82,17 +82,17 @@ internal object BulkCopyForms {
         DROP TABLE #Column_Aliases
     """
 
-    /** Ein Teil des Namens in Klammern; `]]` steht für `]`, `''` für `'`; die Gruppe ist der Teil samt Schreibung im Text. */
+    /** Ein Teil des Namens in Klammern; `]]` steht für `]`, `''` für `'`; die Gruppe ist der Teil im Text. */
     private const val PART = "\\[((?:[^\\]']|\\]\\]|'')+)\\]"
     private const val BLANK = "[ \t\r\n]+"
 
     /** Der Wortlaut ohne Leerraum an den Enden, mit Leerraum als `[ \t\r\n]+`, um die Namen eingesetzt. */
     private fun pattern(name: String, from: String, collation: String): Regex {
         val template = CatalogForms.normalize(TEMPLATE)
-        val parts = template.split(NAME, COLLATION).map { piece ->
+        val pieces = template.split(NAME, COLLATION).map { piece ->
             piece.split(" ").joinToString(BLANK) { Regex.escape(it) }
         }
-        return Regex(parts[0] + name + parts[1] + from + parts[2] + collation + parts[3])
+        return Regex(pieces.first() + name + pieces[1] + from + pieces[2] + collation + pieces.last())
     }
 
     private val withoutSchema: Regex = pattern(PART, "\\[\\1\\]", "\\.\\[\\1\\]")
