@@ -922,7 +922,11 @@ festgelegt sind; die Überführung der Werte, das Lesen der Zeilenquelle und die
   Tabelle ohne Beachtung der Schreibweise eindeutig, ebenso die Namen der Indizes (eine Eindeutigkeit zählt als Index), und jede
   genannte Spalte ist in der Tabelle vorhanden (Setzung; die Zieltabelle und die Zielspalten eines Fremdschlüssels prüft die
   Tabelle nicht, sondern die Anweisung `CREATE TABLE` bzw. `ALTER TABLE` der Bibliothek, `SPEC-036`). Der Konstruktor weist ab, was
-  sich widerspricht (`IllegalArgumentException`).
+  sich widerspricht (`IllegalArgumentException`). **Grenzen dieser Setzungen** (nicht gemessen): der SQL Server führt die Namen von
+  Bedingungen nach seiner Dokumentation je Schema, nicht je Tabelle, und d-migrate vergibt in `ALTER TABLE` Namen ohne die Tabelle
+  (`_fk_KundeId`); zwei Tabellen mit gleich benannten Bedingungen nimmt der Testserver an, der echte Server vermutlich nicht. Die
+  Antworten der Katalogabfragen ordnen Namen ohne Beachtung der Schreibweise, der Server nach der Kollation der Datenbank; für
+  Namen mit Ziffern und `_` kann die Reihenfolge abweichen.
 - `primaryKey` nennt keine, eine oder mehrere Spalten der Tabelle (die Liste darf leer sein: `CREATE TABLE` ohne Schlüssel gelingt am Server, gemessen M-19); jede genannte
   Spalte muss vorhanden und nicht nullbar sein. Der Schlüssel ist nur Teil der Beschreibung: er wirkt weder auf das Resultset noch auf
   Callbacks, das Backend speichert nichts und prüft keine Eindeutigkeit. Als Metadatum zum Client wird
@@ -994,7 +998,7 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   `tables`; je Tabelle `columns` (Pflicht), `primary_key` (optional, auch als leere Liste: die Tabelle hat dann einen leeren
   Schlüssel, wie `schema reverse` von d-migrate eine Tabelle ohne Schlüssel schreibt; jeder Eintrag des Schlüssels eine
   vorhandene Spalte), `indices` und `constraints` (unten); je Spalte `type` (Pflicht), `required`, `max_length`, `precision`,
-  `scale`, `timezone`, `ordinal`, `unique`, `default` und `references` (unten). `tables` ist Pflicht, strenger als das Schema, das nur `schema_format`, `name`
+  `scale`, `timezone`, `ordinal`, `unique`, `unique_constraint`, `default` und `references` (unten). `tables` ist Pflicht, strenger als das Schema, das nur `schema_format`, `name`
   und `version` verlangt (Setzung, nicht gemessen). Sind alle Spalten einer Tabelle mit `ordinal` versehen, gilt diese Reihenfolge,
   sonst die im Dokument; nur bei einem Teil ist die Datei abzuweisen (Setzung nach der Kurzreferenz von
   d-migrate, an d-migrate nicht gemessen).
@@ -1021,7 +1025,10 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   `fulltext`, `datetime` mit `timezone: true`) und eine Precision über 38 weisen die Datei ab.
 - **Elemente aus der Datei** (gemessen ist, dass `d-migrate schema generate` 1.12.0 die hier benutzten Felder und Formen annimmt und
   die Namen `uq_<Tabelle>_<Spalte>` und `fk_<Tabelle>_<Spalte>` vergibt, Messprotokoll zu Fremdschlüssel, Index und Standardwert;
-  alle Fehler und alles Weitere ist Setzung): `unique: true` an einer Spalte ergibt die Eindeutigkeit `uq_<Tabelle>_<Spalte>`;
+  alle Fehler und alles Weitere ist Setzung): `unique: true` an einer Spalte ergibt die Eindeutigkeit `uq_<Tabelle>_<Spalte>`, oder mit
+  `unique_constraint: <Name>` (so schreibt `schema reverse` von d-migrate 1.12.0 sie, gemessen am Testserver, Messprotokoll zu
+  Fremdschlüssel, Index und Standardwert, Zeile a5) die Eindeutigkeit dieses Namens; `unique_constraint` ohne `unique: true` ist ein
+  Ladefehler;
   `default` einen Standardwert in der Form des Katalogs (`true` und `false` als `((1))` und `((0))`, eine Zahl in kanonischer
   Schreibweise als `((n))`, jeder andere Skalar und jeder Skalar in Anführungszeichen als `(N'…')` mit verdoppeltem Hochkomma;
   eine Abbildung, etwa ein Funktionsaufruf, ist ein Ladefehler); `references` an einer Spalte (`table`, `column`, `on_delete`,
@@ -1147,7 +1154,7 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
 | D1 | `CREATE TABLE [<Schema>.]<Tabelle> (<Eintrag> {, <Eintrag>})` mit Spalten (auch `CONSTRAINT <Name> DEFAULT <Literal>` und `CONSTRAINT <Name> UNIQUE`) und Bedingungen der Tabelle (`[CONSTRAINT <Name>] PRIMARY KEY`, `CONSTRAINT <Name> UNIQUE \| FOREIGN KEY \| CHECK`), höchstens ein Schlüssel | Abschluss der Art `CREATE_TABLE` (`0x00c6`, ohne `COUNT`) |
 | D2 | `ALTER TABLE [<Schema>.]<Tabelle> ADD <Spalte> {, <Spalte>}` | Abschluss der Art `ALTER_TABLE` (`0x00d8`, ohne `COUNT`) |
 | D3 | `ALTER TABLE [<Schema>.]<Tabelle> [WITH CHECK] ADD CONSTRAINT <Name> UNIQUE \| FOREIGN KEY \| CHECK \| DEFAULT <Literal> FOR <Spalte>` | Abschluss der Art `ALTER_TABLE` (`0x00d8`, ohne `COUNT`; für Bedingungen nicht gemessen) |
-| D4 | `CREATE [UNIQUE] INDEX <Name> ON [<Schema>.]<Tabelle> (<Spalten>) [INCLUDE (<Spalten>)]` | Abschluss der Art `UNKNOWN` (`DONE` mit `COUNT` 0; die Kennung des Servers ist nicht gemessen) |
+| D4 | `CREATE [UNIQUE] INDEX <Name> ON [<Schema>.]<Tabelle> (<Spalten>) [INCLUDE (<Spalten>)]` | Abschluss der Art `UNKNOWN` (`DONE` mit `COUNT` 0; Kennung und Zähler des Servers sind nicht gemessen, die gemessenen Abschlüsse von `CREATE TABLE` und `ALTER TABLE … ADD` tragen keinen `COUNT`) |
 | B | `INSERT BULK [<Schema>.]<Tabelle> (<Spalte> <Typ> {, <Spalte> <Typ>}) [WITH (<Optionen>)]`, danach die Nachricht `0x07` (`SPEC-001`) | `INSERT BULK`: DONE ohne Zähler, Befehl `0x00fd`; die Nachricht: DONE mit Zähler der geladenen Zeilen, Befehl `0x00f0` (beides gemessen, `SPEC-001`) |
 | M | `MERGE INTO [<Schema>.]<Tabelle> AS <T> USING (VALUES (<Wert> {, <Wert>})) AS <Q> (<Spalte> {, <Spalte>}) ON <T>.<Spalte> = <Q>.<Spalte> {AND …} [WHEN MATCHED THEN UPDATE SET <T>.<Spalte> = <Q>.<Spalte> {, …}] WHEN NOT MATCHED THEN INSERT (<Spalte> {, <Spalte>}) VALUES (<Q>.<Spalte> {, <Q>.<Spalte>}) OUTPUT $action` | Resultset mit der Spalte `$action` (Text, nicht NULL) und je Aktion einer Zeile `INSERT` oder `UPDATE`, keine Zeile ohne Aktion (gemessen, Form M unten) |
 
@@ -1328,22 +1335,30 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   DEFAULT`, jede Klausel höchstens einmal, die Tabelle selbst ist als Ziel erlaubt) und `CONSTRAINT <Name> CHECK (<Ausdruck>)`;
   `ALTER TABLE … [WITH CHECK] ADD CONSTRAINT <Name>` trägt dieselben drei und `DEFAULT <Literal> FOR <Spalte>`; `CREATE [UNIQUE]
   INDEX <Name> ON <Tabelle> (<Spalten>) [INCLUDE (<Spalten>)]` legt einen Index an. Eine Eindeutigkeit, ein Fremdschlüssel, eine
-  Prüfbedingung und ein Standardwert ohne Namen sind nicht erkannt (der Server vergäbe einen Namen; welchen, ist nicht gemessen),
+  Prüfbedingung und ein Standardwert ohne Namen sind nicht erkannt (der Server vergibt selbst einen Namen; welchen, ist nicht gemessen),
   ebenso `WITH NOCHECK`, eine Spaltenreihenfolge (`ASC`, `DESC`), ein Filter und `ADD PRIMARY KEY`. **Der Ausdruck einer
   Prüfbedingung** besteht aus Vergleichen (`=`, `<`, `>`, `<=`, `>=`, `<>`) zwischen Spalten, Zahlen und Textliteralen, `IS [NOT]
   NULL`, `AND`, `OR` und Klammern bis zur Tiefe 16; Funktionen, `IN`, `BETWEEN`, `LIKE`, `NOT` und Rechenzeichen machen den Text nicht
   erkannt. Der Katalog meldet ihn in der Form des Servers: Bezeichner in `[…]`, Zahlen in Klammern, Vergleichszeichen ohne
   Leerzeichen, `AND`, `OR` und `IS NULL` mit Leerzeichen, der Ausdruck in einem Klammerpaar (`Menge > 0` ergibt `([Menge]>(0))`,
-  gemessen, M-21; für mehrere Vergleiche, Texte und Klammern ist die Form Setzung nach dem Handbuch des Servers). Der Standardwert
+  gemessen, M-21; für mehrere Vergleiche, Texte und Klammern ist die Form Setzung nach dem Handbuch des Servers). Ein Vergleichszeichen aus
+  zwei Symbolen mit Leerraum dazwischen (`< =`, `> =`, `< >`) gilt als `<=`, `>=`, `<>` (Setzung: der Scanner liest einzelne
+  Symbole; die Grammatik von T-SQL ist dazu nicht gemessen, der Server nimmt den Text vermutlich nicht an). Die Spalten im Ausdruck
+  prüft die Bibliothek nicht gegen die Tabelle (`CHECK ([Nix] > 0)` gelingt; am Server ist das ein Fehler, nicht gemessen). Der Standardwert
   steht als `((n))` (Zahl), `('…')` oder `(N'…')` im Katalog (gemessen `((1))` und `(N'neu')`). Die Prüfung gegen den Katalog: eine
   Spalte, die nicht beschrieben ist, oder eine nicht beschriebene Zieltabelle oder -spalte endet mit `TDS_SIM_UNKNOWN_OBJECT`, ein
   Name einer Bedingung oder eines Index, der in der Tabelle vergeben ist (auch durch einen Index gegenüber einer Eindeutigkeit), und
   ein zweiter Standardwert derselben Spalte mit `TDS_SIM_OBJECT_EXISTS`, `ALTER TABLE` und `CREATE INDEX` einer unbekannten Tabelle
-  mit `TDS_SIM_OBJECT_NOT_FOUND`; die Nummern des Servers für diese Fälle sind nicht gemessen. **Grenze:** für eine vorhandene Spalte
+  mit `TDS_SIM_OBJECT_NOT_FOUND`; die Nummern des Servers für diese Fälle sind nicht gemessen. **Grenzen** (Träger: `BEO-TDS/katalog-elemente-grenzen-der-angleichung`): für eine vorhandene Spalte
   sendet d-migrate einen Standardwert als Text mit `DECLARE @df sysname …` vor dem `ALTER TABLE … ADD CONSTRAINT … DEFAULT … FOR`;
   der Text ist nicht erkannt (`schema migrate --execute` endet dann mit Exit 5, gemessen), ein Standardwert an einer neuen Spalte
-  oder in `CREATE TABLE` ist nicht betroffen. Ein eindeutiger Index ohne Bedingung (`CREATE UNIQUE INDEX`) liest d-migrate beim
-  Zurücklesen als Eindeutigkeit (gemessen am Testserver; am echten Server nicht gemessen).
+  oder in `CREATE TABLE` ist nicht betroffen. Eine vorhandene Prüfbedingung plant `schema migrate` bei jedem Lauf neu mit
+  `ALTER TABLE … DROP CONSTRAINT IF EXISTS` und `ADD CONSTRAINT`; `DROP CONSTRAINT` ist keine Form dieser Tabelle, ein zweites
+  `schema migrate --execute` mit einer Prüfbedingung im Soll endet deshalb mit `Unsupported SQL.` und Exit 5 (gemessen am
+  Testserver; am echten Server nicht gemessen, dort ist die Neuplanung nach der Hilfe von d-migrate ebenfalls zu erwarten). Ein eindeutiger Index ohne Bedingung (`CREATE UNIQUE INDEX`) liest d-migrate beim
+  Zurücklesen als Eindeutigkeit; ein Soll mit `unique: true` im Index endet daher mit `POST_EXECUTE_DRIFT` und Exit 5 (gemessen am
+  Testserver; am echten Server nicht gemessen). Die Prüfbedingung aus der Beschreibungsdatei steht im Katalog roh, nicht in der Form
+  des Servers (`SPEC-035`).
 - **Scanner** (Setzungen, nicht am Server gemessen): Leerraum sind Leerzeichen, Tab, CR und LF.
   Blockkommentare dürfen sich schachteln; ein offenes Literal oder ein offener Kommentar ist nicht
   erkannt. `N'…'` gilt nur mit `N` unmittelbar vor dem Hochkomma; ein verdoppeltes Hochkomma steht für
@@ -2153,4 +2168,4 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | 2026-11-08 | `sp_execute` mit unbekanntem Handle an die Messung angeglichen (`TDS-FA-04`, `TDS-QA-01`, `SPEC-057`, `SPEC-060`, `SPEC-030`): ERROR 8179, Class 16, State 4 und der Text „Could not find prepared statement with handle <n>.“ statt 50009 (Messprotokoll M-6, M-7); `TDS_SIM_UNKNOWN_PREPARED_HANDLE` trägt den State der Aufrufform (4 bei `sp_execute`, 8 bei der Batch-Freigabe); `TDS_UNKNOWN_HANDLE` entfällt, die Nummer 50009 wird nicht mehr gesendet; Tokenfolge (RETURNSTATUS 8179), leere Felder des ERROR und der Fall nach `RESETCONNECTION` bleiben Setzung |
 | 2026-11-08 | Massenladen ganz oder gar nicht (`TDS-FA-11`, `TDS-FA-12`, `TDS-QA-01`, M-12, `SPEC-035`, `SPEC-036`, `SPEC-001`, Schritt 10 von `TDS-FA-11.a`): der Aufruf von `SimTable.onInsertBatch` gilt ganz oder gar nicht (Zusage an den Integrator; gemessen ist ein Fall, Schlüsselverstoß, drei Zeilen, ein Paket, darüber hinaus Setzung), der Rückfall auf `onInsert` je Zeile entfällt, `INSERT BULK` ohne `onInsertBatch` ergibt `TDS_UNSUPPORTED_SQL`, die Nummer 2627 für andere Ursachen als den Schlüsselverstoß ist als Sammelcode benannt; die öffentliche Fläche nennt keinen neuen Namen, geändert ist die Zusage am Mitglied `SimTable.onInsertBatch` (`SPEC-059`). **Inkompatibel** für einen Integrator, der das Massenladen nur mit `onInsert` bediente: `INSERT BULK` ergibt für seine Tabelle `TDS_UNSUPPORTED_SQL`. Nachgezogen im selben Zug: die Zeile „Zusage“ der Tabelle `SPEC-059` sagte zu `onInsertBatch` „dieser Stand ruft ihn nicht“, seit dem Schreibpfad des Massenladens falsch; sie nennt jetzt den Aufruf einmal je Nachricht des Massenladens (nur die Aussage dem Ist-Zustand angeglichen, kein Name, keine Signatur) |
 | 2026-11-08 | Antwort des `MERGE … OUTPUT $action` an die Messung angeglichen (`TDS-FA-11`, `TDS-FA-12`, `TDS-QA-01`, M-15, M-26): öffentliche Fläche um das Feld `ResultColumn.maxLength` (Vorgabe 4000, für Java der Konstruktor mit drei Argumenten bleibt), das Feld `ResultStart.kind` (Vorgabe `UNKNOWN`, für Java der Konstruktor mit einem Argument bleibt) und die Konstante `MERGE` von `StatementKind` erweitert (`SPEC-059`; `copy`, `componentN` und `equals` von `ResultColumn` und `ResultStart` ändern sich); `$action` ist `nvarchar(10)`, der Abschluss trägt `0x0117` (`SPEC-031`, `SPEC-036`); neuer Code `TDS_SIM_STRING_TRUNCATED` (2628), 2627 für den Fehler von `onInsert`, INFO 3621 nach dem Fehler im Ergebnis; die Grenze „nicht gebaut“ zu Länge und Befehl entfällt; **Inkompatibel** für ein Kotlin-`when` ohne `else` über `StatementKind` in fremdem Code: es übersetzt nicht mehr, bis es `MERGE` nennt (vor der ersten Veröffentlichung, Setzung); Entscheid des Nutzers am 2026-11-09 per Auswahl: das Feld `ResultStart.kind` bleibt in der öffentlichen Fläche, weil der Fehler im offenen Ergebnis die Art am Beginn des Ergebnisses braucht (`0x0117` für den Fehler im `MERGE`, M-15); Klarstellung zu `ResultColumn.maxLength`: ein Text einer `Row` über der Länge weist die Bibliothek ab |
-| 2026-11-09 | Katalog für Standardwerte, Eindeutigkeiten, Fremdschlüssel, Indizes und Prüfbedingungen (`TDS-FA-11`, `TDS-FA-12`, `TDS-QA-01`, M-21, `SPEC-035`, `SPEC-036`): die öffentliche Fläche nennt vier neue Typnamen (`SimUniqueKey`, `SimForeignKey`, `SimIndex`, `SimCheck`) und die Mitglieder `SimColumn.defaultDefinition`, `SimTable.uniqueKeys`, `SimTable.foreignKeys`, `SimTable.indexes`, `SimTable.checks`; der Strukturänderungs-Callback des zweiten Konstruktors von `SimulationBackend` nimmt statt vier Parametern eine `SimTable` (Beschreibung nach der Anweisung, ohne Zeilen und Callbacks). **Inkompatibel** für einen Integrator mit Strukturänderungs-Callback (Lambda mit vier Parametern, vor der ersten Veröffentlichung, Setzung). Die Katalogabfragen der Eindeutigkeiten, Fremdschlüssel, Indizes, Prüfbedingungen und der Standardwerte antworten aus der Beschreibung (bisher leer); die Antwortspalten tragen die gemessenen Nullbarkeiten und `tinyint` für `type` und `key_ordinal`; die Formen D1 und D2 nehmen `CONSTRAINT … DEFAULT`, `UNIQUE`, `FOREIGN KEY` und `CHECK` an, neu sind D3 (`ALTER TABLE … ADD CONSTRAINT`) und D4 (`CREATE INDEX`); der Scanner kennt `<` und `>`; der Leser der Datei liest `unique`, `default`, `references`, `indices` und `constraints` (bisher ignoriert). |
+| 2026-11-09 | Katalog für Standardwerte, Eindeutigkeiten, Fremdschlüssel, Indizes und Prüfbedingungen (`TDS-FA-11`, `TDS-FA-12`, `TDS-QA-01`, M-21, `SPEC-035`, `SPEC-036`): die öffentliche Fläche nennt vier neue Typnamen (`SimUniqueKey`, `SimForeignKey`, `SimIndex`, `SimCheck`) und die Mitglieder `SimColumn.defaultDefinition`, `SimTable.uniqueKeys`, `SimTable.foreignKeys`, `SimTable.indexes`, `SimTable.checks`; der Strukturänderungs-Callback des zweiten Konstruktors von `SimulationBackend` nimmt statt vier Parametern eine `SimTable` (Beschreibung nach der Anweisung, ohne Zeilen und Callbacks). **Inkompatibel** für einen Integrator mit Strukturänderungs-Callback (Lambda mit vier Parametern, vor der ersten Veröffentlichung, Setzung). Entscheid des Nutzers am 2026-11-11 per Auswahl: die Fläche bleibt wie hier genannt. Die Katalogabfragen der Eindeutigkeiten, Fremdschlüssel, Indizes, Prüfbedingungen und der Standardwerte antworten aus der Beschreibung (bisher leer); die Antwortspalten tragen die gemessenen Nullbarkeiten und `tinyint` für `type` und `key_ordinal`; die Formen D1 und D2 nehmen `CONSTRAINT … DEFAULT`, `UNIQUE`, `FOREIGN KEY` und `CHECK` an, neu sind D3 (`ALTER TABLE … ADD CONSTRAINT`) und D4 (`CREATE INDEX`); der Scanner kennt `<` und `>`; der Leser der Datei liest `unique`, `unique_constraint`, `default`, `references`, `indices` und `constraints` (bisher ignoriert). |

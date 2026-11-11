@@ -31,7 +31,8 @@ internal class TableElementsRead {
 /**
  * Der Teil des Lesers der Tabellenbeschreibung (`SPEC-035`) für Standardwerte, Eindeutigkeiten, Fremdschlüssel, Indizes
  * und Prüfbedingungen des neutralen Schema-Modells von d-migrate. Die Namen, die d-migrate beim Anlegen vergibt, gelten
- * auch hier: `uq_<Tabelle>_<Spalte>` für `unique: true`, `fk_<Tabelle>_<Spalte>` für `references` an einer Spalte.
+ * auch hier: `uq_<Tabelle>_<Spalte>` für `unique: true` ohne `unique_constraint`, `fk_<Tabelle>_<Spalte>` für
+ * `references` an einer Spalte.
  * Ein Standardwert ist ein Wahrheitswert (`1` oder `0`), eine Zahl oder ein Text; eine Abbildung (Funktionsaufruf)
  * weist die Datei ab. Der Text einer Prüfbedingung steht im Katalog so, wie die Datei ihn schreibt (die Form des
  * Servers entsteht nur bei einer Strukturänderung über die Bibliothek). Die Aktion `restrict` gilt als `NO_ACTION`, wie
@@ -51,8 +52,9 @@ internal object SimElementReader {
         }
     }
 
-    /** `unique: true` an einer Spalte. */
-    fun columnUnique(table: String, column: String): SimUniqueKey = SimUniqueKey("uq_${table}_$column", listOf(column))
+    /** `unique: true` an einer Spalte; [name] ist `unique_constraint`, ohne ihn gilt der Name von d-migrate. */
+    fun columnUnique(table: String, column: String, name: String?): SimUniqueKey =
+        SimUniqueKey(name ?: "uq_${table}_$column", listOf(column))
 
     /** `references` an einer Spalte. */
     fun columnReference(table: String, column: String, node: SimNode, path: String): PendingForeignKey {

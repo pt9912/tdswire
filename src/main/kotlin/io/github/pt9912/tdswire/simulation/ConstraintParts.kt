@@ -18,8 +18,8 @@ internal sealed interface TableLevel {
  *   `SET NULL` oder `SET DEFAULT`,
  * - `CONSTRAINT <Name> CHECK (<Ausdruck>)` mit dem Ausdruck nach [CheckExpressions],
  * - `CONSTRAINT <Name> DEFAULT <Literal> FOR <Spalte>` (nur in `ALTER TABLE`).
- * Eine Bedingung ohne Namen außer dem Schlüssel macht den Text nicht erkannt (der Server vergäbe einen Namen; welchen,
- * ist nicht gemessen). Gemessen ist der Wortlaut von d-migrate 1.12.0 (`schema generate` und `schema migrate
+ * Eine Bedingung ohne Namen außer dem Schlüssel macht den Text nicht erkannt (der Server vergibt selbst einen Namen;
+ * welchen, ist nicht gemessen). Gemessen ist der Wortlaut von d-migrate 1.12.0 (`schema generate` und `schema migrate
  * --dry-run`).
  */
 internal class ConstraintParts(private val stream: TokenStream, private val parts: Parts) {

@@ -1,0 +1,2 @@
+**Vorgang:** slice-katalog-indizes-defaults-fremdschluessel
+**Fund:** Review F-3, F-4, F-6, F-9, F-10, F-14 und F-15 von [slice-katalog-indizes-defaults-fremdschluessel](../../../../in-progress/slice-katalog-indizes-defaults-fremdschluessel.md): die Grenzen standen nur in der Nutzer-Doku und im Messprotokoll, nicht in der Spezifikation und ohne Träger. Die Spezifikation führt sie jetzt als Grenze; der Folge-Slice für Punkt 1 und 2 ist nicht angelegt.

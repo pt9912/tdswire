@@ -55,6 +55,30 @@ class SimDescriptionElementsTest {
     }
 
     /**
+     * Happy: `unique_constraint` benennt die Eindeutigkeit von `unique: true`, so wie `schema reverse` von d-migrate
+     * 1.12.0 sie schreibt (Messprotokoll Zeile a5: `unique: true` mit `unique_constraint: uq_lieferanten_Name`); ohne
+     * `unique_constraint` gilt `uq_<Tabelle>_<Spalte>`. `unique_constraint` ohne `unique: true` und ein leerer Name
+     * sind Ladefehler (Festlegung).
+     * Wächter: ein Leser, der `unique_constraint` als unbekanntes Feld abweist (der Start bräche an der Datei, die
+     * `schema reverse` schreibt), oder den Namen ignoriert.
+     * @spec SPEC-035
+     */
+    @Test
+    fun `liest unique_constraint als Namen der Eindeutigkeit`() {
+        val named = b.col("text", "unique" to b.s("true"), "unique_constraint" to b.s("uq_lieferanten_Name"))
+        val read = load(doc(b.m("Id" to id(), "Name" to named)))
+        assertEquals(
+            listOf(SimUniqueKey("uq_lieferanten_Name", listOf("Name"))),
+            read.single { it.name == "t" }.uniqueKeys,
+        )
+        val alone = failure(doc(b.m("Id" to id(), "Name" to b.col("text", "unique_constraint" to b.s("uq_x")))))
+        assertEquals("unique_constraint ohne unique: true", alone.reason)
+        assertEquals("tables.t.columns.Name.unique_constraint", alone.path)
+        val empty = b.col("text", "unique" to b.s("true"), "unique_constraint" to b.s(""))
+        assertEquals("tables.t.columns.Name.unique_constraint", failure(doc(b.m("Id" to id(), "Name" to empty))).path)
+    }
+
+    /**
      * Happy: `default` ergibt die Form des Katalogs: ein Wahrheitswert `((1))` oder `((0))`, eine Zahl `((n))`, ein
      * anderer Skalar `(N'…')` mit verdoppeltem Hochkomma; ein Skalar in Anführungszeichen ist Text, auch wenn er wie
      * eine Zahl aussieht. Gemessen am Server sind `((1))` und `(N'neu')`. Eine Abbildung (Funktionsaufruf) ist ein

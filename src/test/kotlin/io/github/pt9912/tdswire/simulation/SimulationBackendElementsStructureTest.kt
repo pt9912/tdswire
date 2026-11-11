@@ -205,7 +205,8 @@ class SimulationBackendElementsStructureTest {
      * Negativ: die Abweisung gegen den Katalog. Eine Zieltabelle oder Zielspalte, die es nicht gibt, eine Spalte der
      * Eindeutigkeit, die es nicht gibt, und ein Standardwert für eine unbekannte Spalte sind `TDS_SIM_UNKNOWN_OBJECT`;
      * ein doppelter Name einer Bedingung, ein zweiter Standardwert der Spalte und ein doppelter Name eines Index sind
-     * `TDS_SIM_OBJECT_EXISTS`; ein `ALTER TABLE` und ein `CREATE INDEX` auf eine unbekannte Tabelle sind
+     * `TDS_SIM_OBJECT_EXISTS` (auch ein Index, dessen Name der einer vorhandenen Eindeutigkeit ist, und umgekehrt);
+     * ein `ALTER TABLE` und ein `CREATE INDEX` auf eine unbekannte Tabelle sind
      * `TDS_SIM_OBJECT_NOT_FOUND`. Die Codes für Bedingungen sind Setzung (nur 2714, 2705 und 4902 sind für Tabelle und
      * Spalte gemessen). Der Callback bleibt ungerufen.
      * Wächter: eine Abweisung als `TDS_UNSUPPORTED_SQL` (die Verbindung bliebe, aber der Code wäre falsch) oder eine
@@ -214,7 +215,9 @@ class SimulationBackendElementsStructureTest {
      */
     @Test
     fun `Elemente gegen den Katalog werden abgewiesen`() {
-        val store = Store(listOf(kunden, bestellung.copy(checks = listOf(SimCheck("c1", "([Id]>(0))")))))
+        val unique = SimUniqueKey("uq_email", listOf("Email"))
+        val checked = bestellung.copy(checks = listOf(SimCheck("c1", "([Id]>(0))")))
+        val store = Store(listOf(kunden.copy(uniqueKeys = listOf(unique)), checked))
         val unknown = SimCodes.UNKNOWN_OBJECT
         val exists = SimCodes.OBJECT_EXISTS
         val missing = SimCodes.OBJECT_NOT_FOUND
@@ -227,6 +230,7 @@ class SimulationBackendElementsStructureTest {
             "ALTER TABLE bestellung ADD CONSTRAINT C1 CHECK (Id > 1)" to exists,
             "ALTER TABLE bestellung ADD CONSTRAINT c1 UNIQUE (Id)" to exists,
             "ALTER TABLE gibtes ADD CONSTRAINT u UNIQUE (Id)" to missing,
+            "CREATE INDEX UQ_Email ON kunden (Id)" to exists,
             "CREATE INDEX i ON gibtes (Id)" to missing,
             "CREATE INDEX i ON kunden (Nix)" to unknown,
             "CREATE INDEX i ON kunden (Id) INCLUDE (Nix)" to unknown,
@@ -238,6 +242,7 @@ class SimulationBackendElementsStructureTest {
         for ((sql, code) in cases) assertEquals(code, failureCode(store, sql), sql)
         run(store, "CREATE INDEX i ON kunden (Id)")
         assertEquals(exists, failureCode(store, "CREATE INDEX I ON kunden (Email)"))
+        assertEquals(exists, failureCode(store, "ALTER TABLE kunden ADD CONSTRAINT I UNIQUE (Email)"))
         run(store, "ALTER TABLE bestellung ADD CONSTRAINT d DEFAULT 1 FOR Menge")
         assertEquals(exists, failureCode(store, "ALTER TABLE bestellung ADD CONSTRAINT d2 DEFAULT 2 FOR menge"))
         assertEquals(2, store.shapes.size)

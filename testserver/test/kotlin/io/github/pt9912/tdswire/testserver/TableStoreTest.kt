@@ -94,7 +94,7 @@ private const val CHECKS = """
     ORDER BY cc.name
 """
 
-/** Die Strukturänderung wie früher mit Schema, Name, Spalten und Schlüssel: die Beschreibung ohne Zeilen. */
+/** Die Strukturänderung aus Schema, Name, Spalten und Primärschlüssel: die Tabelle ohne Zeilen und ohne Elemente. */
 private fun TableStore.replace(schema: String, name: String, columns: List<SimColumn>, primaryKey: List<String>) =
     replace(SimTable(schema, name, columns, primaryKey, rows = { RowSource { null } }))
 

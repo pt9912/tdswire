@@ -62,7 +62,7 @@ internal class TableStore(initial: List<SimTable>, private val cellLimit: Long =
     /**
      * Legt die Tabelle an oder ersetzt sie durch die Struktur nach der Anweisung (auch bei `ALTER TABLE … ADD` einer
      * Spalte oder einer Bedingung und bei `CREATE INDEX`); Spalten, Schlüssel, Eindeutigkeiten, Fremdschlüssel,
-     * Indizes und Prüfbedingungen kommen aus [shape], die Zeilen aus dem bisherigen Stand.
+     * Indizes und Prüfbedingungen kommen aus [shape], die Zeilen aus dem Stand vor der Änderung.
      */
     @Synchronized
     fun replace(shape: SimTable) {

@@ -18,7 +18,8 @@ private val DOCUMENT_IGNORED = setOf(
 private val TABLE_READ = setOf("columns", "primary_key", "indices", "constraints")
 private val TABLE_IGNORED = setOf("description", "partitioning", "metadata")
 private val COLUMN_READ = setOf(
-    "type", "required", "max_length", "precision", "scale", "timezone", "ordinal", "unique", "default", "references",
+    "type", "required", "max_length", "precision", "scale", "timezone", "ordinal", "unique", "unique_constraint",
+    "default", "references",
 )
 private val COLUMN_IGNORED = setOf(
     "auto_increment", "generation",
@@ -39,7 +40,10 @@ private class RawColumn(
 )
 
 /** Standardwert, Eindeutigkeit und Fremdschlüssel, die die Datei an einer Spalte nennt. */
-private class ColumnElement(val defaultDefinition: String?, val unique: Boolean, val reference: PendingForeignKey?)
+private class ColumnElement(val defaultDefinition: String?, val unique: UniqueRead?, val reference: PendingForeignKey?)
+
+/** `unique: true` an einer Spalte, mit dem Namen aus `unique_constraint`, wenn die Datei ihn nennt. */
+private class UniqueRead(val name: String?)
 
 /** Eine gelesene Tabelle mit den Fremdschlüsseln, deren Ziel erst nach allen Tabellen geprüft wird. */
 private class ReadTable(val table: SimTable, val pending: List<PendingForeignKey>)
@@ -128,7 +132,9 @@ object SimDescriptionReader {
     ): TableElementsRead {
         val into = TableElementsRead()
         for (column in raw) {
-            if (column.elements.unique) into.uniqueKeys += SimElementReader.columnUnique(table, column.name)
+            column.elements.unique?.let {
+                into.uniqueKeys += SimElementReader.columnUnique(table, column.name, it.name)
+            }
             column.elements.reference?.let { into.foreignKeys += it }
         }
         val names = raw.map { NameFold.fold(it.name) }.toSet()
@@ -172,7 +178,7 @@ object SimDescriptionReader {
         val timezone = f["timezone"]?.let { SimTreeAccess.boolean(it.value, child(path, "timezone")) } ?: false
         val ordinal = number(f, "ordinal", path, 1)
         val default = f["default"]?.let { SimElementReader.defaultDefinition(it.value, child(path, "default")) }
-        val unique = f["unique"]?.let { SimTreeAccess.boolean(it.value, child(path, "unique")) } ?: false
+        val unique = readUnique(f, path)
         val reference = f["references"]?.let {
             SimElementReader.columnReference(tableName, entry.key, it.value, child(path, "references"))
         }
@@ -181,6 +187,17 @@ object SimDescriptionReader {
         val length = minOf(maxLength ?: TEXT_LENGTH_LIMIT, TEXT_LENGTH_LIMIT)
         val notNullType = notNull || SimColumnTypes.isIdentifier(typeName)
         return RawColumn(entry.key, type, notNullType, ordinal, length, ColumnElement(default, unique, reference))
+    }
+
+    /** `unique` und `unique_constraint`, wie `schema reverse` sie schreibt; der Name allein ist ein Ladefehler. */
+    private fun readUnique(f: Map<String, SimEntry>, path: String): UniqueRead? {
+        val flag = f["unique"]?.let { SimTreeAccess.boolean(it.value, child(path, "unique")) } ?: false
+        val named = f["unique_constraint"]
+        val name = named?.let { SimTreeAccess.text(it.value, child(path, "unique_constraint")) }
+        if (named != null && !flag) {
+            fail(child(path, "unique_constraint"), named.value.position, "unique_constraint ohne unique: true")
+        }
+        return if (flag) UniqueRead(name) else null
     }
 
     private fun number(f: Map<String, SimEntry>, key: String, path: String, min: Int): Pair<Int, SimPosition>? =
