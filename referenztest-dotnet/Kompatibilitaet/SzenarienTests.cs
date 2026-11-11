@@ -173,7 +173,7 @@ public class SzenarienTests
     }
 
     [Fact]
-    public void Unbekannte_Tabelle_ist_ein_Fehler_vor_den_Zeilen_und_schliesst_die_Verbindung()
+    public void Unbekannte_Tabelle_ist_ein_Fehler_vor_den_Zeilen_und_die_Verbindung_bleibt_offen()
     {
         using var verbindung = Ziel.Oeffnen();
         using var befehl = new SqlCommand("SELECT Id FROM gibtesnicht", verbindung);
@@ -182,9 +182,9 @@ public class SzenarienTests
 
         Ziel.Messung(_ausgabe, "Unbekannte Tabelle: " + Ziel.Beschreibung(ausnahme) + $"; Verbindung danach {verbindung.State}");
         Assert.Equal(208, ausnahme.Number);
-        Assert.Equal(20, ausnahme.Class);
-        using var neu = Ziel.Oeffnen();
-        using var folge = new SqlCommand("SELECT Id FROM person WHERE Id = 1", neu);
+        Assert.Equal(16, ausnahme.Class);
+        Assert.Equal(ConnectionState.Open, verbindung.State);
+        using var folge = new SqlCommand("SELECT Id FROM person WHERE Id = 1", verbindung);
         Assert.Equal(1, folge.ExecuteScalar());
     }
 
