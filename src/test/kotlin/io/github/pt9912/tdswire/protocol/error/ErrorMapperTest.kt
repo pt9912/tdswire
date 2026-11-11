@@ -170,7 +170,7 @@ class ErrorMapperTest {
      * 3727 folgt, das die Bibliothek nicht sendet), der Text ist ein Auszug des gemessenen Textes ohne die Namen
      * (Setzung). Ebenso `TDS_SIM_STRING_TRUNCATED`: ERROR 2628, State 1, Class 16, offene Verbindung (Zeile M-15; der
      * Abschluss im Ergebnis steht in `ResponseMergeTest`).
-     * Wächter: Class 20 mit schließender Verbindung, State 1 für alle drei, eine
+     * Wächter: Class 20 mit schließender Verbindung, State 1 für alle sechs, eine
      * andere Nummer, ein anderer Text.
      *
      * @spec SPEC-036

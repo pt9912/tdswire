@@ -1363,13 +1363,16 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   des Servers (`SPEC-035`).
 - **Form D5, `DROP CONSTRAINT`** (Wortlaut `ALTER TABLE [t] DROP CONSTRAINT IF EXISTS [name];` gemessen mit `schema migrate --execute`, d-migrate 1.12.0, am echten Server
   2022 und 2025, Lauf `schema` des Vergleichslaufs; die Antworten gemessen mit dem Referenzclient am echten Server, Szenario `struktur-drop-constraint`): der Name einer
-  Eindeutigkeit, eines Fremdschlüssels oder einer Prüfbedingung der Tabelle fällt aus der Tabelle, die der Callback bekommt; der Name gilt ohne Beachtung der Schreibweise.
+  Eindeutigkeit, eines Fremdschlüssels oder einer Prüfbedingung der Tabelle fällt aus der Tabelle, die der Callback bekommt. Der Name gilt ohne Beachtung der Schreibweise:
+  gemessen ist der Name einer Prüfbedingung in anderer Schreibweise ohne `IF EXISTS` (Kollation der Datenbank ist die Voreinstellung der Instanz, nicht eigens erhoben), für die übrigen
+  Elemente ist es Setzung. Ein Treffer ohne `IF EXISTS` ist für Prüfbedingung, Standardwert und Schlüssel gemessen; für Eindeutigkeit und Fremdschlüssel ist nur der Treffer mit `IF EXISTS`
+  gemessen, ohne `IF EXISTS` Setzung.
   `IF EXISTS` ohne Treffer (auch bei dem Namen einer Bedingung einer anderen Tabelle) ist ein Erfolg ohne Änderung, der Callback bekommt die unveränderte
-  Tabelle. Ohne `IF EXISTS` ist ein Name ohne Treffer `TDS_SIM_NOT_A_CONSTRAINT` (3728, State 1), der Name einer Bedingung einer anderen Tabelle desselben Schemas
+  Tabelle. Ohne `IF EXISTS` ist ein Name ohne Treffer `TDS_SIM_NOT_A_CONSTRAINT` (3728, State 1), der Name einer Bedingung einer anderen Tabelle desselben Schemas (Setzung; gemessen sind nur Tabellen im Schema `dbo`)
   `TDS_SIM_CONSTRAINT_OTHER_TABLE` (3733, State 2); eine unbekannte Tabelle ist mit und ohne `IF EXISTS` `TDS_SIM_OBJECT_NOT_FOUND` (4902, gemessen). Der Server sendet nach 3728
-  und 3733 ein zweites ERROR (3727, „Could not drop constraint. See previous errors.“); die Bibliothek sendet nur das erste (Grenze). **Grenzen** (Träger:
+  und 3733 ein zweites ERROR (3727, „Could not drop constraint. See previous errors.“); die Bibliothek sendet nur das erste (Grenze). **Grenzen** (Träger je Punkt:
   `BEO-TDS/katalog-elemente-grenzen-der-angleichung`): der Name eines Standardwerts und der des Schlüssels sind im Modell nicht geführt, `DROP CONSTRAINT <Name>` trifft sie nicht
-  (am echten Server fällt die Bedingung); d-migrate sendet den Standardwert nur im Text mit `DECLARE @df …` (oben). Ein Fremdschlüssel, der einen Schlüssel der Tabelle
+  (am echten Server fällt die Bedingung); die öffentliche Fläche (`SPEC-059`) wächst dafür nicht, eine Erweiterung um diese Namen ist nicht gebaut; d-migrate sendet den Standardwert nur im Text mit `DECLARE @df …` (oben). Ein Fremdschlüssel, der einen Schlüssel der Tabelle
   referenziert, hindert das Entfernen nicht (der Server meldet 3725; die Bibliothek prüft keine referentielle Integrität). Die Namen gelten je Tabelle, der Server führt sie je Schema (`SPEC-035`). Mehrere
   Namen in einem Text (`DROP CONSTRAINT a, b`), `DROP COLUMN` und `WITH CHECK` vor `DROP` sind nicht erkannt.
 - **Scanner** (Setzungen, nicht am Server gemessen): Leerraum sind Leerzeichen, Tab, CR und LF.

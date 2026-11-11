@@ -104,8 +104,9 @@ internal object StructurePlanner {
     /**
      * D5: die Bedingung (Eindeutigkeit, Fremdschlüssel oder Prüfbedingung) mit dem Namen fällt aus der Tabelle. Ohne
      * Treffer ist `IF EXISTS` ein Erfolg ohne Änderung (die Tabelle im Callback unverändert), ohne `IF EXISTS` trägt
-     * der Name einer Bedingung einer anderen Tabelle desselben Schemas `CONSTRAINT_OTHER_TABLE`, jeder andere Name
-     * `NOT_A_CONSTRAINT`. Eine unbekannte Tabelle ist auch mit `IF EXISTS` `OBJECT_NOT_FOUND` (4902, gemessen).
+     * der Name einer Bedingung einer anderen Tabelle desselben Schemas (Setzung, gemessen nur in `dbo`)
+     * `CONSTRAINT_OTHER_TABLE`, jeder andere Name `NOT_A_CONSTRAINT`. Eine unbekannte Tabelle ist auch mit `IF EXISTS`
+     * `OBJECT_NOT_FOUND` (4902, gemessen).
      */
     fun dropConstraint(statement: Statement.DropConstraint, catalog: SimCatalog): PlanResult {
         val table = catalog.find(statement.table.schema, statement.table.name)

@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md), [ADR-0046](../../adr/0046-oeffentliche-flaeche-der-katalog-elemente.md)
 
-**Berührte Spec-Stellen:** SPEC-036 (erkannte Anweisungsformen, Form D, Absatz Grenzen) · SPEC-035 (Katalog der Elemente) · `TDS-FA-11.a` (Ablaufpunkt 9, Strukturänderung)
+**Berührte Spec-Stellen:** SPEC-036 (erkannte Anweisungsformen, Form D, Absatz Grenzen, Form D5) · SPEC-035 (Katalog der Elemente) · SPEC-031 (Abschlussbefehl `0x00d8` für `DROP CONSTRAINT`) · Abschnitt 4 (Fehlertabelle, Positivliste der Backends) · `TDS-FA-11.a` (Ablaufpunkt 9, Strukturänderung)
 
 **Verantwortlich:** — bis zur Priorisierung.
 
@@ -70,6 +70,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `src/main/kotlin/io/github/pt9912/tdswire/simulation/Statement.kt`, `StructureParts.kt`, `StructureChecks.kt`, `StructurePlanner.kt`, `StatementPlanner.kt`, `SimulationChanges.kt` | update | Form D5: Erkennung (`Statement.DropConstraint`), Planung gegen den Katalog (Bedingung entfernen, `IF EXISTS` ohne Treffer, Name einer anderen Tabelle, unbekannte Tabelle), die zwei neuen Namen in `SimCodes` |
+| `src/main/kotlin/io/github/pt9912/tdswire/simulation/SimulationBackend.kt`, `src/main/kotlin/io/github/pt9912/tdswire/domain/StatementKind.kt` | update (nur KDoc) | die öffentliche KDoc nennt `DROP CONSTRAINT` als Form, die den Callback ruft, und als Art `ALTER_TABLE` (Befund F-1 des Reviews); keine Änderung des Verhaltens und der Fläche |
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/error/ErrorCode.kt`, `ErrorMapper.kt` | update | `TDS_SIM_NOT_A_CONSTRAINT` (3728) und `TDS_SIM_CONSTRAINT_OTHER_TABLE` (3733) als Codes und in der Positivliste der Backends; intern, keine Änderung der öffentlichen Fläche |
 | `src/main/kotlin/.../simulation/SimModel.kt`, `SimElements.kt`, `ConstraintParts.kt` | unverändert | das Modell führt keinen Namen für Standardwert und Schlüssel; die öffentliche Fläche wächst nicht (Grenze in `SPEC-036`, Register Punkt 2) |
 | `src/test/kotlin/.../simulation/SimulationBackendDropConstraintTest.kt` (neu), `DMigrateWire.kt`, `src/test/kotlin/.../protocol/error/ErrorMapperTest.kt`, `src/integrator/kotlin/.../DropConstraintEmbeddingTest.kt` | neu / update | Handvektoren (Texte von d-migrate am Draht, Zeilen der Messung), Fehlercodes, Einbettungstest auf den Rohbytes |
@@ -78,7 +79,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 | `docs/messungen/drop-constraint-d-migrate-2026-11-11.md` (neu), `docs/messungen/referenzabgleich.md` | neu / update | Messprotokoll der Form am echten Server und Antwort auf die Frage zu Punkt 3 |
 | `spec/spezifikation.md` (`SPEC-036` Form D5 und Grenzen, Fehlertabelle, Ablaufpunkt 9, Änderungsprotokoll), `docs/user/testserver-manuell.md`, `docs/user/einbettung-und-betrieb.md`, `docs/user/referenz-konfiguration.md` | update | Zusage und Grenzen; `docs/user/README.md` und `referenz-ereignisse.md` gelesen, unverändert |
 | `docs/plan/planning/observations/BEO-TDS/katalog-elemente-grenzen-der-angleichung/` (`observation.md`, `state.md`) | update | Zustand der Punkte 2 und 3, neuer Punkt 9 (`DROP INDEX IF EXISTS`) |
-| `docs/plan/spec-abdeckung.md` | erzeugt | `make spec-abdeckung` einmal, Tests geändert |
+| `docs/plan/planning/done/slice-katalog-indizes-defaults-fremdschluessel.md`, `open/slice-abnahme-d-migrate.md`, `open/slice-declare-df-standardwert-vorhandene-spalte.md`, `open/slice-drop-index-if-exists.md`, `welle-testserver-manuell.md`, `in-progress/roadmap.md` | update | Zeiger auf den Slice (`open/` → `in-progress/`) und Zustandsfeld der Roadmap; keine inhaltliche Änderung der Pläne |
+| `docs/plan/spec-abdeckung.md` | update | `make spec-abdeckung` einmal nach den Korrekturen des Reviews (Matrix führte `DropConstraintEmbeddingTest` nicht) |
 
 ## 4. Trigger
 
@@ -107,6 +109,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 - Die Form am echten Server weicht von der Lesart ab (zum Beispiel `IF EXISTS` ohne Treffer meldet eine Information statt Erfolg). — **Ausgang:** offen bis zur Closure.
 - Punkt 1 und 3 des Registers sind durch Punkt 2 maskiert und erst nach diesem Slice an einem Server mit Prüfbedingung belegbar. — **Ausgang:** offen bis zur Closure.
 - Die Frage zu `unique: true` im Index lässt sich nur am echten Server beantworten (EULA, Nutzer). — **Ausgang:** offen bis zur Closure.
+- Der Name eines Standardwerts und der des Schlüssels fehlen im Modell; `DROP CONSTRAINT <df-/pk-Name>` trifft deshalb am Testserver nicht (3728), am echten Server fällt die Bedingung. Entscheid zur öffentlichen Fläche (Standardantwort des Orchestrators, **umkehrbar**, Entscheid des Nutzers steht aus): die Fläche wird nicht erweitert, die Grenze bleibt benannt (`SPEC-036` Form D5, Register Punkt 11); nur wenn [slice-declare-df-standardwert-vorhandene-spalte](../open/slice-declare-df-standardwert-vorhandene-spalte.md) die Namen braucht, entscheidet der Nutzer dort über eine Erweiterung (Folge-Entscheid zu [ADR-0046](../../adr/0046-oeffentliche-flaeche-der-katalog-elemente.md)). — **Ausgang:** weiter offen, Träger der zurückgestellte Slice.
+- Zwei weitere Abweichungen vom Zielbild haben keinen Slice: das zweite ERROR 3727 nach 3728 und 3733 (Register Punkt 10) und die fehlende Prüfung des Verweises, 3725 (Punkt 12). — **Ausgang:** weiter offen, im Register mit Trigger geführt.
 
 ## 7. Closure-Notiz
 
@@ -114,7 +118,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Das Beobachtungs-Register; `grundlagen-traceability.md` §Herkunfts-Anker für Steering-Loop-Regeln.
 
 - **Was hat funktioniert:** —
-- **Was ging anders als geplant:** —
+- **Was ging anders als geplant:** — (Vermerk des Implementers: Nachbesserung nach dem Review ohne zweiten Review: KDoc und Kommentare in `src/main` und `ErrorMapperTest` (F-1, F-3, F-5), Testcode `DropConstraintEmbeddingTest` mit Nummer und Befehl auf den Rohbytes (F-6, vier Mutationen rot gesehen))
 - **Steering-Loop-Eintrag:** —
 - **Beobachtungs-Register (`../observations/`):** —
 - **Folge-Slices:** —

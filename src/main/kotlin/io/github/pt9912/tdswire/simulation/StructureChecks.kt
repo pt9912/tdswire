@@ -4,7 +4,8 @@ package io.github.pt9912.tdswire.simulation
  * Die Prüfungen der Planung von Strukturänderungen gegen den Katalog ([StructurePlanner]): Namen von Bedingungen und
  * Indizes sind in der Tabelle vergeben, die Zieltabelle eines Fremdschlüssels ist beschrieben, eine Bedingung wird
  * entfernt. Namen gelten ohne
- * Beachtung der Schreibweise (Setzung, nicht am Server gemessen).
+ * Beachtung der Schreibweise: gemessen für den Namen einer Prüfbedingung in `DROP CONSTRAINT` (Voreinstellung der
+ * Kollation der Instanz, nicht eigens erhoben), für die übrigen Prüfungen Setzung.
  */
 internal object StructureChecks {
     fun same(left: String, right: String): Boolean = SimNames.fold(left) == SimNames.fold(right)
@@ -38,7 +39,7 @@ internal object StructureChecks {
         return shortened.takeIf { constraintNameTaken(table, name) }
     }
 
-    /** Eine andere Tabelle desselben Schemas führt eine Bedingung namens [name]. */
+    /** Eine andere Tabelle desselben Schemas (Setzung, gemessen nur in `dbo`) führt eine Bedingung namens [name]. */
     fun belongsToOther(catalog: SimCatalog, table: SimTable, name: String): Boolean = catalog.tables.any {
         same(it.schema, table.schema) && !same(it.name, table.name) && constraintNameTaken(it, name)
     }

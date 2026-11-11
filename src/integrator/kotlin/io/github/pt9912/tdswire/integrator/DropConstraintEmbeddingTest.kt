@@ -67,7 +67,14 @@ class DropConstraintEmbeddingTest {
             uniqueKeys = listOf(SimUniqueKey("uq_beschrieben", listOf("Menge"))),
             checks = listOf(SimCheck("ck_beschrieben", "([Menge]>(0))")),
         )
-        val store = CopyOnWriteArrayList(listOf(described))
+        val other = SimTable(
+            name = "andere",
+            columns = listOf(SimColumn("Id", SqlType.Int64, nullable = false), SimColumn("Menge", SqlType.Int32)),
+            primaryKey = listOf("Id"),
+            rows = { RowSource { null } },
+            checks = listOf(SimCheck("ck_andere", "([Menge]>(1))")),
+        )
+        val store = CopyOnWriteArrayList(listOf(described, other))
         val shapes = CopyOnWriteArrayList<SimTable>()
         val backend = SimulationBackend({ SimCatalog(store.toList()) }) { shape ->
             shapes += shape
@@ -79,15 +86,42 @@ class DropConstraintEmbeddingTest {
             client.login()
             val dropped = client.batch("ALTER TABLE beschrieben DROP CONSTRAINT ck_beschrieben")
             assertEquals(0, dropped.doneStatus and DONE_ERROR)
+            assertEquals(ALTER_TABLE_COMMAND, dropped.command, "Erfolg: Befehl 0x00d8")
+            assertEquals(0L, dropped.rowCount, "Erfolg: ohne COUNT")
             val none = client.batch("ALTER TABLE beschrieben DROP CONSTRAINT IF EXISTS ck_beschrieben")
             assertEquals(0, none.doneStatus and DONE_ERROR)
+            assertEquals(ALTER_TABLE_COMMAND, none.command, "IF EXISTS ohne Treffer: Befehl 0x00d8")
             val missing = client.batch("ALTER TABLE beschrieben DROP CONSTRAINT ck_beschrieben")
             assertEquals(DONE_ERROR, missing.doneStatus and DONE_ERROR)
+            assertEquals(NOT_A_CONSTRAINT, errorNumber(missing), "Name ohne Treffer: 3728")
+            val other = client.batch("ALTER TABLE beschrieben DROP CONSTRAINT ck_andere")
+            assertEquals(DONE_ERROR, other.doneStatus and DONE_ERROR)
+            assertEquals(OTHER_TABLE, errorNumber(other), "Name einer anderen Tabelle: 3733")
+            val unknown = client.batch("ALTER TABLE gibtesnicht DROP CONSTRAINT IF EXISTS x")
+            assertEquals(DONE_ERROR, unknown.doneStatus and DONE_ERROR)
+            assertEquals(OBJECT_NOT_FOUND, errorNumber(unknown), "unbekannte Tabelle: 4902")
         }
         assertEquals(2, shapes.size)
         assertEquals(emptyList(), shapes.first().checks)
         assertEquals(described.uniqueKeys, shapes.first().uniqueKeys)
         assertEquals(shapes.first().checks, shapes.last().checks)
         assertEquals(shapes.first().uniqueKeys, shapes.last().uniqueKeys)
+    }
+
+    /** Die Nummer des ersten ERROR-Tokens der Antwort (Token `0xAA`, Länge 2 Bytes, danach die Nummer als Int32). */
+    private fun errorNumber(answer: Answer): Int {
+        assertEquals(ERROR_TOKEN, answer.payload.first().toInt() and BYTE_MASK, "die Antwort beginnt mit ERROR")
+        return (0 until INT_BYTES).fold(0) { sum, index ->
+            sum or ((answer.payload[ERROR_NUMBER_OFFSET + index].toInt() and BYTE_MASK) shl (BYTE_BITS * index))
+        }
+    }
+
+    private companion object {
+        const val ALTER_TABLE_COMMAND = 0x00d8
+        const val NOT_A_CONSTRAINT = 3728
+        const val OTHER_TABLE = 3733
+        const val OBJECT_NOT_FOUND = 4902
+        const val ERROR_NUMBER_OFFSET = 3
+        const val BYTE_BITS = 8
     }
 }
