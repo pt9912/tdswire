@@ -52,10 +52,10 @@ public class MessungBulkBelegTests
     // @spec SPEC-045
     [Theory]
     [MemberData(nameof(Stufen))]
-    public void Die_Ablage_hat_16_Messungen_mit_Anmeldung_und_alle_Auswertungen_ohne_Zerlegungsproblem(string stufe)
+    public void Die_Ablage_hat_19_Messungen_mit_Anmeldung_und_alle_Auswertungen_ohne_Zerlegungsproblem(string stufe)
     {
         var dateien = Directory.GetFiles(Verzeichnis(stufe), "*.messung");
-        Assert.Equal(16, dateien.Length);
+        Assert.Equal(19, dateien.Length);
         Assert.DoesNotContain(Z(stufe), z => z.Value.Contains("PROBLEM", StringComparison.Ordinal) || z.Value.Contains("ZERLEGUNG-ABGEBROCHEN", StringComparison.Ordinal));
         foreach (var pfad in dateien)
         {
@@ -100,6 +100,100 @@ public class MessungBulkBelegTests
                 }
             }
         }
+    }
+
+    // ---- Tabellennamen im Massenladen (M-33 bis M-36) ----------------------------------------------------------------------
+
+    private static List<string> Batches(string stufe, string szenario) =>
+        MessDatei.Lesen(File.ReadAllText(Path.Combine(Verzeichnis(stufe), szenario + ".messung"), Encoding.UTF8)).Nachrichten
+            .Where(n => n.Richtung == 'c' && n.Typ == TdsPaket.Batch).Select(n => MessAuswertung.BatchText(n.Daten)).ToList();
+
+    private static List<string> Proben(string stufe, string szenario) =>
+        Batches(stufe, szenario).Where(t => t.Contains("DECLARE @Object_ID INT = OBJECT_ID(", StringComparison.Ordinal)).ToList();
+
+    private static List<string> Einfuegungen(string stufe, string szenario) =>
+        Batches(stufe, szenario).Where(t => t.StartsWith("insert bulk ", StringComparison.Ordinal)).ToList();
+
+    private static void ProbeNennt(string probe, string objekt, string von, string kollation, string? prozedur = null)
+    {
+        Assert.Contains($"OBJECT_ID('{objekt}');", probe, StringComparison.Ordinal);
+        Assert.Contains($"N' FROM {von}');", probe, StringComparison.Ordinal);
+        Assert.Contains($"EXEC {prozedur ?? ".."}sp_tablecollations_100 N'{kollation}';", probe, StringComparison.Ordinal);
+    }
+
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void Die_Probe_der_Zieltabelle_nennt_einen_Namen_mit_Schema_in_Klammern_und_den_Kollationsnamen_ohne_Punkt_davor(string stufe)
+    {
+        var proben = Proben(stufe, "bulk-name-schema");
+        var einfuegungen = Einfuegungen(stufe, "bulk-name-schema");
+        Assert.Equal(7, proben.Count);
+        Assert.Equal(5, einfuegungen.Count);
+        foreach (var i in new[] { 0, 1, 2 })
+        {
+            ProbeNennt(proben[i], "[dbo].[bulk_ns]", "[dbo].[bulk_ns]", "[dbo].[bulk_ns]");
+            Assert.StartsWith("insert bulk [dbo].[bulk_ns] (", einfuegungen[i], StringComparison.Ordinal);
+        }
+
+        ProbeNennt(proben[3], "[tdswire_namen].[dbo].[bulk_ns]", "[tdswire_namen].[dbo].[bulk_ns]", "[dbo].[bulk_ns]", "[tdswire_namen]..");
+        Assert.StartsWith("insert bulk [tdswire_namen].[dbo].[bulk_ns] (", einfuegungen[3], StringComparison.Ordinal);
+        ProbeNennt(proben[4], "[s1].[bulk_s1]", "[s1].[bulk_s1]", "[s1].[bulk_s1]");
+        Assert.StartsWith("insert bulk [s1].[bulk_s1] (", einfuegungen[4], StringComparison.Ordinal);
+        ProbeNennt(proben[5], "[dbo].[gibtesnicht]", "[dbo].[gibtesnicht]", "[dbo].[gibtesnicht]");
+        ProbeNennt(proben[6], "[s2].[bulk_ns]", "[s2].[bulk_ns]", "[s2].[bulk_ns]");
+        Assert.Equal("DONE Status COUNT, Befehl 0x00f0, Zeilen 2", F(stufe, "bulk-name-schema/03/done"));
+        Assert.Equal("DONE Status COUNT, Befehl 0x00f0, Zeilen 2", F(stufe, "bulk-name-schema/19/done"));
+    }
+
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void Die_Probe_der_Zieltabelle_schreibt_ein_Klammerzeichen_als_zwei_und_ein_Hochkomma_als_zwei_und_laesst_Leerraum_im_Namen(string stufe)
+    {
+        var proben = Proben(stufe, "bulk-name-sonderzeichen");
+        var einfuegungen = Einfuegungen(stufe, "bulk-name-sonderzeichen");
+        Assert.Equal(7, proben.Count);
+        Assert.Equal(7, einfuegungen.Count);
+        ProbeNennt(proben[0], "[bulk]]x]", "[bulk]]x]", ".[bulk]]x]");
+        Assert.StartsWith("insert bulk [bulk]]x] (", einfuegungen[0], StringComparison.Ordinal);
+        foreach (var i in new[] { 1, 2 })
+        {
+            ProbeNennt(proben[i], "[bulk''x]", "[bulk''x]", ".[bulk''x]");
+            Assert.StartsWith("insert bulk [bulk'x] (", einfuegungen[i], StringComparison.Ordinal);
+        }
+
+        ProbeNennt(proben[3], "[bulk x]", "[bulk x]", ".[bulk x]");
+        ProbeNennt(proben[4], "[bulk.x]", "[bulk.x]", ".[bulk.x]");
+        ProbeNennt(proben[5], "[dbo].[bulk x]", "[dbo].[bulk x]", "[dbo].[bulk x]");
+        ProbeNennt(proben[6], "[bulk  y]", "[bulk  y]", ".[bulk  y]");
+        Assert.StartsWith("insert bulk [bulk  y] (", einfuegungen[6], StringComparison.Ordinal);
+    }
+
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void Eine_unbekannte_Tabelle_endet_in_der_Probe_mit_208_und_ein_Name_mit_einzelnem_Klammerzeichen_kommt_nicht_auf_den_Draht(string stufe)
+    {
+        Assert.StartsWith("Fehler Nummer 208, Class 16, State 1, Meldung 'Invalid object name 'dbo.gibtesnicht'.'", F(stufe, "bulk-name-schema/21/fehler"), StringComparison.Ordinal);
+        Assert.StartsWith("Fehler Nummer 208, Class 16, State 1, Meldung 'Invalid object name 's2.bulk_ns'.'", F(stufe, "bulk-name-schema/23/fehler"), StringComparison.Ordinal);
+        Assert.Equal("Art 1 Status 0x01: SELECT 1 AS eins", F(stufe, "bulk-name-schema/22/anfrage"));
+        Assert.Equal("Art 1 Status 0x01: SELECT 1 AS eins", F(stufe, "bulk-name-sonderzeichen/05/anfrage"));
+    }
+
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void Die_Probe_einer_Tabelle_aus_INT_SMALLINT_TINYINT_und_BIT_meldet_sie_nicht_nullbar_und_die_Nachricht_7_sendet_feste_Typen(string stufe)
+    {
+        Assert.Contains("[A:int(laenge=4,genauigkeit=0,skala=0) nullbar=nein; B:smallint(laenge=2,genauigkeit=0,skala=0) nullbar=nein; C:tinyint(laenge=1,genauigkeit=0,skala=0) nullbar=nein; D:bit(laenge=1,genauigkeit=0,skala=0) nullbar=nein]", F(stufe, "bulk-name-feste-typen/01/colmetadata"), StringComparison.Ordinal);
+        Assert.Contains("insert bulk [bulk_fest] ([A] Int, [B] SmallInt, [C] TinyInt, [D] Bit) with (", F(stufe, "bulk-name-feste-typen/02/anfrage"), StringComparison.Ordinal);
+        var datei = MessDatei.Lesen(File.ReadAllText(Path.Combine(Verzeichnis(stufe), "bulk-name-feste-typen.messung"), Encoding.UTF8));
+        var nachricht7 = datei.Nachrichten.Single(n => n.Richtung == 'c' && n.Typ == TdsPaket.Bulk).Daten;
+        Assert.Equal(
+            "810400000000000000080038014100000000000800340142000000000008003001430000000000080032014400d10100000002000301d1fffffffffeffff00fd0000000000000000",
+            Convert.ToHexString(nachricht7).ToLowerInvariant());
+        Assert.Equal("DONE Status COUNT, Befehl 0x00f0, Zeilen 2", F(stufe, "bulk-name-feste-typen/03/done"));
     }
 
     // ---- Liefer-Punkt 1a: Massenladen -----------------------------------------------------------------------------------
