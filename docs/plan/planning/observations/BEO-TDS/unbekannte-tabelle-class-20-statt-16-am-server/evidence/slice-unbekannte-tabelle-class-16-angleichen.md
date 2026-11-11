@@ -1,0 +1,2 @@
+**Vorgang:** slice-unbekannte-tabelle-class-16-angleichen
+**Fund:** Verifikation (`fcf680d3`): Class 16 und offene Verbindung für 208 gebaut und am Referenzclient gemessen (`SzenarienTests`, `make e2e` 8 Stufen grün; Mitschnitt-Lauf 2022 Exit 0, `fehler-vor-zeilen/02/*` gleich); fünf Mutationen rot. Als Lücke bleibt der feste Text „Unknown object.“; mssql-jdbc nach Class 16 und Live-Lauf nach der Angleichung sind nicht gemessen.

@@ -107,17 +107,19 @@ class MergeFehlerEmbeddingTest {
     }
 
     /**
-     * Eine unbekannte Tabelle endet vor dem Ergebnis mit ERROR 208, RETURNSTATUS 208 und DONEPROC `ERROR`
-     * (Messprotokoll M-15: `ERROR RETURNSTATUS DONEPROC`, ohne COLMETADATA, INFO und DONEINPROC). Class und Folge
-     * weichen vom echten Server ab (dort Class 16 und offene Verbindung; hier die Zuordnung `TDS_SIM_UNKNOWN_OBJECT`:
-     * Class 20, die Verbindung schließt). Wächter: ein COLMETADATA oder INFO vor dem Fehler, eine andere Nummer.
+     * Eine unbekannte Tabelle endet vor dem Ergebnis mit ERROR 208 (State 1, Class 16), RETURNSTATUS 208 und DONEPROC
+     * `ERROR` (Messprotokoll M-15: `ERROR RETURNSTATUS DONEPROC`, ohne COLMETADATA, INFO und DONEINPROC); die
+     * Verbindung bleibt offen, eine Folgeanfrage auf ihr erhält ihre eigene Antwort. Wächter: ein COLMETADATA oder
+     * INFO vor dem Fehler, eine andere Nummer, Class 20, eine schließende Verbindung.
      *
      * @spec SPEC-036
      * @spec SPEC-038
+     * @spec TDS-QA-01
      */
     @Test
-    fun eineUnbekannteTabelleEndetMit208OhneErgebnis() {
-        val server = start(BackendSource.Simulation(listOf(kunden(nameLength = FIVE, mutableListOf()))))
+    fun eineUnbekannteTabelleEndetMit208OhneErgebnisUndLaesstDieVerbindungOffen() {
+        val inserted = CopyOnWriteArrayList<Map<String, Any?>>()
+        val server = start(BackendSource.Simulation(listOf(kunden(nameLength = FIVE, inserted))))
         WireClient(server.port).use { client ->
             client.login()
             val failed = client.executeSql(
@@ -127,10 +129,19 @@ class MergeFehlerEmbeddingTest {
                 inputText("", "x"),
                 inputDate("", null),
             )
-            assertTrue(failed.containsBytes("D0 00 00 00 01 14"), "Nummer 208, State 1, Class 20 (Zuordnung)")
+            assertTrue(failed.containsBytes("D0 00 00 00 01 10"), "Nummer 208, State 1, Class 16")
             assertFalse(failed.containsUtf16("\$action"), "kein Ergebnis")
             assertFalse(failed.containsBytes(INFO_TERMINATED), "kein INFO")
             assertTrue(failed.endsWithBytes("79 D0 00 00 00  FE 02 00 E0 00 00 00 00 00 00 00 00 00"))
+            val next = client.executeSql(
+                merge("kunden"),
+                declarations,
+                inputBigint("", 1),
+                inputText("", "12345"),
+                inputDate("", null),
+            )
+            assertTrue(next.containsUtf16("INSERT"))
+            assertEquals(1, inserted.size)
         }
     }
 

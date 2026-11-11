@@ -76,7 +76,7 @@ Stand: 49 von 59 Festlegungen mit mindestens einem bestandenen Test, 4 Gate-Fest
 | `SPEC-015` | `TDS_BACKEND_ERROR` | 6 | 0 | 0 | 0 | ErrorMapperTest, ResponseErrorMapperTest | mindestens ein bestandener getaggter Test |
 | `SPEC-016` | `TDS_TIMEOUT` | 13 | 0 | 0 | 0 | CancelTimeoutTest, DispatchFailureTest, QueryTimeoutTest, AbbruchWiringTest | mindestens ein bestandener getaggter Test |
 | `SPEC-037` | `TDS_UNSUPPORTED_SQL` | 15 | 0 | 0 | 0 | MergeEmbeddingTest, ErrorMapperTest, SimulationCodesTest, SimulationBackendChangeTest, SimulationBackendFixedTest, SimulationBackendMergeTest, SimulationBackendSelectTest, StatementPlannerTest | mindestens ein bestandener getaggter Test |
-| `SPEC-038` | `TDS_SIM_UNKNOWN_OBJECT` | 9 | 0 | 0 | 0 | MergeFehlerEmbeddingTest, SimulationCodesTest, SimulationBackendChangeTest, SimulationBackendFixedTest, SimulationBackendSelectTest, StatementPlannerTest | mindestens ein bestandener getaggter Test |
+| `SPEC-038` | `TDS_SIM_UNKNOWN_OBJECT` | 10 | 0 | 0 | 0 | MergeFehlerEmbeddingTest, ErrorMapperTest, SimulationCodesTest, SimulationBackendChangeTest, SimulationBackendFixedTest, SimulationBackendSelectTest, StatementPlannerTest | mindestens ein bestandener getaggter Test |
 | `SPEC-039` | `TDS_SIM_INVALID_VALUE` | 14 | 0 | 0 | 0 | ErrorMapperTest, SimulationCodesTest, SimulationBackendChangeTest, SimulationBackendSelectTest, SimValuesTest | mindestens ein bestandener getaggter Test |
 | `SPEC-048` | `TDS_INTERNAL_ERROR` | 46 | 0 | 0 | 0 | AnswerFormsDispatchTest, DispatchClosingTest, DispatchFailureTest, DispatchFateTest, RpcBinderTest, RpcDispatchTest, StreamingDispatchTest, ErrorMapperTest, ResponseErrorMapperTest, ResponseFailureTest, ResponseOrderTest, ResponseRpcTest, HandshakeDriverTest, HandshakeWiringTest, LoginLogInspectionTest, MetricsTracingWiringTest, RequestWiringTest, SynchronitaetWiringTest, TelemetryRedactionTest, TelemetryWiringTest | mindestens ein bestandener getaggter Test |
 | `SPEC-049` | `TDS_SHUTDOWN` | 5 | 0 | 0 | 0 | ShutdownDispatchTest, ShutdownWiringTest | mindestens ein bestandener getaggter Test |
@@ -127,6 +127,7 @@ Stand: 49 von 59 Festlegungen mit mindestens einem bestandenen Test, 4 Gate-Fest
 
 | Tag | Test |
 | --- | --- |
+| `TDS-QA-01` | `io.github.pt9912.tdswire.integrator.MergeFehlerEmbeddingTest.eineUnbekannteTabelleEndetMit208OhneErgebnisUndLaesstDieVerbindungOffen` |
 | `TDS-QA-07` | `io.github.pt9912.tdswire.integrator.StatementKindEmbeddingTest.dieFolgeVonSchemaMigrateTraegtEnvchangeTypAchtUndNeunUndBedientDenDeskriptor` |
 | `TDS-QA-03` | `io.github.pt9912.tdswire.observability.ObserverTest.Die Zahl der Schluessel haengt nicht von den Anfragen ab` |
 | `TDS-QA-02` | `io.github.pt9912.tdswire.observability.ObserverTest.Das Ende eines Spans ist unter Nebenlaeufigkeit atomar` |
@@ -174,6 +175,7 @@ Stand: 49 von 59 Festlegungen mit mindestens einem bestandenen Test, 4 Gate-Fest
 | `TDS-QA-07` | `io.github.pt9912.tdswire.protocol.dispatch.UnprepareDispatchTest.ATTENTION nach der vollstaendigen Antwort der Freigabe wiederholt das ENVCHANGE nicht` |
 | `TDS-QA-01` | `io.github.pt9912.tdswire.protocol.error.ErrorMapperTest.TDS_SIM_KEY_VIOLATION ist in der Form des Massenladens ERROR 2627 INFO 3621 und DONE 0xf0` |
 | `TDS-QA-01` | `io.github.pt9912.tdswire.protocol.error.ErrorMapperTest.Strukturabweisung ist ERROR 2714 State 6, 2705 State 4 und 4902 State 1 mit offener Verbindung` |
+| `TDS-QA-01` | `io.github.pt9912.tdswire.protocol.error.ErrorMapperTest.TDS_SIM_UNKNOWN_OBJECT ist ERROR 208 Class 16 und bleibt offen` |
 | `TDS-QA-01` | `io.github.pt9912.tdswire.protocol.response.ResponseMergeTest.Ein MERGE mit einer Zeile schliesst mit 0x0117 und der Spalte nvarchar 10` |
 | `TDS-QA-01` | `io.github.pt9912.tdswire.protocol.response.ResponseMergeTest.Ein MERGE ohne Aktion schliesst ohne Zeile mit 0x0117 und Zaehler 0` |
 | `TDS-QA-01` | `io.github.pt9912.tdswire.protocol.response.ResponseMergeTest.Ein Fehler 2628 im Ergebnis hat INFO 3621 und den Abschluss 0x0117` |
