@@ -20,10 +20,11 @@ import io.github.pt9912.tdswire.protocol.wire.violation
  * Gedeckt durch einen Mitschnitt sind die Spaltentypen `INTN` mit 8 Byte, `NVARCHAR` und `BIGVARCHAR` (d-migrate
  * 1.12.0 mit mssql-jdbc 13.4.0, Messprotokoll des Massenladens; Datum, Zeit und Zeitpunkt sendet d-migrate als
  * `VARCHAR`) und, mit dem Referenzclient `SqlBulkCopy` (Messreihe M-8 bis M-12, 10 Nachrichten in
- * `referenztest-dotnet/Mitschnitt/messung/bulk-merge-katalog/`), der feste Typ BIGINT (`0x7f`) sowie `NVARCHAR`,
- * `INTN` mit 2 und 4 Byte, `BITN`, `NUMERICN`, `DATEN`, `TIMEN` und `DATETIME2N`. `INTN` mit 1 Byte, `DECIMALN`,
- * `NCHAR`, `BIGCHAR` und die festen Typen INT, SMALLINT, TINYINT und BIT ([BulkFixedType]) liest der Leser nach
- * Handvektoren aus der Beschreibung von `MS-TDS`, ohne Mitschnitt eines Clients. Die Typen sind abgebildet auf
+ * `referenztest-dotnet/Mitschnitt/messung/bulk-merge-katalog/`), die festen Typen BIGINT (`0x7f`), INT (`0x38`),
+ * SMALLINT (`0x34`), TINYINT (`0x30`) und BIT (`0x32`) ([BulkFixedType]; die vier letzten in der Messreihe M-36) sowie
+ * `NVARCHAR`, `INTN` mit 2 und 4 Byte, `BITN`, `NUMERICN`, `DATEN`, `TIMEN` und `DATETIME2N`. `INTN` mit 1 Byte,
+ * `DECIMALN`, `NCHAR` und `BIGCHAR` liest der Leser nach Handvektoren aus der Beschreibung von `MS-TDS`, ohne
+ * Mitschnitt eines Clients. Die Typen sind abgebildet auf
  * [SqlType] (`INTN` mit 8 Byte und BIGINT sind `Int64`, jede andere Ganzzahl `Int32`). Jede andere Typkennung (auch
  * die festen Typen für Gleitkomma, Geld und Datum-Zeit alter Form), ein PLP-Typ (MAX) und ein anderes Token als ROW und
  * DONE (auch NBCROW) weist der Leser mit einem [ProtocolFailure] ab, ebenso eine Nachricht ohne COLMETADATA, mit

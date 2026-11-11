@@ -7,20 +7,24 @@ import io.github.pt9912.tdswire.port.BulkProbeResult
 /**
  * Die Probe der Zieltabelle, die `SqlBulkCopy` (`Microsoft.Data.SqlClient` 7.1.1, der Referenzclient) vor `INSERT BULK`
  * als SQL_BATCH stellt (`SPEC-036`, Form B): ein Text von rund 2 KB, der `@@TRANCOUNT`, den Namen der Tabelle in
- * `OBJECT_ID('[<Name>]')`, `FROM [<Name>]` und `sp_tablecollations_100 N'.[<Name>]'` und sonst feste Anweisungen trägt.
- * Gemessen an zwei Instanzen (SQL Server 2022 und 2025, Messreihe M-8 bis M-12, `bulk-merge-katalog`) für sechs
- * Tabellen ohne Schema; der Wortlaut war in allen Aufzeichnungen bis auf den Namen gleich. Erkannt ist der Text, wenn
- * er nach [CatalogForms.normalize] dem Wortlaut gleicht und der Name an allen drei Stellen derselbe ist; ein Name mit
- * `]` oder `'` und ein Name mit Schema sind nicht aufgezeichnet und nicht erkannt (der Text geht dann den üblichen Weg
- * und ist `TDS_UNSUPPORTED_SQL`).
+ * `OBJECT_ID('<Name>')`, `FROM <Name>` und `sp_tablecollations_100 N'<Kollationsname>'` und sonst feste Anweisungen
+ * trägt. Gemessen an zwei Instanzen (SQL Server 2022 und 2025, Messreihe M-8 bis M-12, `bulk-merge-katalog`, und
+ * M-33 bis M-35, `bulk-name-schema` und `bulk-name-sonderzeichen`): der Client zerlegt `DestinationTableName` und
+ * setzt jeden Teil in eckige Klammern, `]` als `]]`; der Name `[<Schema>].[<Tabelle>]` oder `[<Tabelle>]` steht in
+ * `OBJECT_ID` und `FROM` gleich, ein `'` ist an allen drei Stellen als `''` geschrieben (sie stehen in Literalen); der
+ * Kollationsname ist `.[<Tabelle>]` ohne und `[<Schema>].[<Tabelle>]` mit Schema. Erkannt ist der Text, wenn er bis auf
+ * Leerraum dem Wortlaut gleicht und die Namen an den drei Stellen zusammenpassen; die Namen innerhalb der Klammern
+ * bleiben unverändert (auch Leerzeichenfolgen). Ein Name mit drei Teilen (Datenbank, Schema, Tabelle) ist gemessen,
+ * aber nicht erkannt: der Text geht dann den üblichen Weg und ist `TDS_UNSUPPORTED_SQL`.
  */
 internal object BulkCopyForms {
     private const val NAME = "@NAME@"
+    private const val COLLATION = "@COLLATION@"
 
     private const val TEMPLATE = """
         SELECT @@TRANCOUNT;
 
-        DECLARE @Object_ID INT = OBJECT_ID('[@NAME@]');
+        DECLARE @Object_ID INT = OBJECT_ID('@NAME@');
         DECLARE @Column_Name_Query_SELECT NVARCHAR(MAX);
         DECLARE @Column_Name_Query_FILTER NVARCHAR(MAX);
         DECLARE @Column_Name_Query_SORT NVARCHAR(MAX);
@@ -66,10 +70,10 @@ internal object BulkCopyForms {
         SELECT @Column_Names = COALESCE(@Column_Names, '*');
 
         SET FMTONLY ON;
-        EXEC(N'SELECT ' + @Column_Names + N' FROM [@NAME@]');
+        EXEC(N'SELECT ' + @Column_Names + N' FROM @NAME@');
         SET FMTONLY OFF;
 
-        EXEC ..sp_tablecollations_100 N'.[@NAME@]';
+        EXEC ..sp_tablecollations_100 N'@COLLATION@';
 
         SELECT [Canonical_Column_Name], [Aliased_Column_Name]
         FROM #Column_Aliases
@@ -78,13 +82,33 @@ internal object BulkCopyForms {
         DROP TABLE #Column_Aliases
     """
 
-    private val pattern: Regex = run {
-        val parts = CatalogForms.normalize(TEMPLATE).split("[$NAME]").map { Regex.escape(it) }
-        Regex(parts[0] + "\\[([^\\]']+)\\]" + parts[1] + "\\[\\1\\]" + parts[2] + "\\[\\1\\]" + parts[3])
+    /** Ein Teil des Namens in Klammern; `]]` steht für `]`, `''` für `'`; die Gruppe ist der Teil samt Schreibung im Text. */
+    private const val PART = "\\[((?:[^\\]']|\\]\\]|'')+)\\]"
+    private const val BLANK = "[ \t\r\n]+"
+
+    /** Der Wortlaut ohne Leerraum an den Enden, mit Leerraum als `[ \t\r\n]+`, um die Namen eingesetzt. */
+    private fun pattern(name: String, from: String, collation: String): Regex {
+        val template = CatalogForms.normalize(TEMPLATE)
+        val parts = template.split(NAME, COLLATION).map { piece ->
+            piece.split(" ").joinToString(BLANK) { Regex.escape(it) }
+        }
+        return Regex(parts[0] + name + parts[1] + from + parts[2] + collation + parts[3])
     }
 
-    /** Der Name der Tabelle, wenn [sql] die Probe ist, sonst `null`. */
-    fun recognize(sql: String): String? = pattern.matchEntire(CatalogForms.normalize(sql))?.groupValues?.get(1)
+    private val withoutSchema: Regex = pattern(PART, "\\[\\1\\]", "\\.\\[\\1\\]")
+    private val withSchema: Regex = pattern(PART + "\\." + PART, "\\[\\1\\]\\.\\[\\2\\]", "\\[\\1\\]\\.\\[\\2\\]")
+
+    private fun unescape(part: String): String = part.replace("]]", "]").replace("''", "'")
+
+    /**
+     * Die Tabelle, wenn [sql] die Probe ist, sonst `null`; ohne Schema ist [TableRef.schema] `null`. Die Namen sind in
+     * der Schreibung des Katalogs (ohne die Auszeichnung mit Klammern und `''`).
+     */
+    fun recognize(sql: String): TableRef? {
+        val text = sql.trim(' ', '\t', '\r', '\n').removeSuffix(";").trimEnd(' ', '\t', '\r', '\n')
+        withoutSchema.matchEntire(text)?.let { return TableRef(null, unescape(it.groupValues[1])) }
+        return withSchema.matchEntire(text)?.let { TableRef(unescape(it.groupValues[1]), unescape(it.groupValues[2])) }
+    }
 
     /**
      * Die Spalten der Tabelle, die [sql] nennt, in der Reihenfolge der Beschreibung; eine nicht beschriebene Tabelle
@@ -93,8 +117,8 @@ internal object BulkCopyForms {
      * `SPEC-003`.
      */
     fun probe(sql: String, catalog: () -> SimCatalog): BulkProbeResult? {
-        val name = recognize(sql) ?: return null
-        val found = guarded { catalog().find(null, name) }
+        val target = recognize(sql) ?: return null
+        val found = guarded { catalog().find(target.schema, target.name) }
         val table = found.getOrNull()
         return when {
             found.isFailure -> BulkProbeResult.Rejected(SimCodes.BACKEND_ERROR, "Katalog nicht lieferbar")

@@ -6,8 +6,8 @@ import io.github.pt9912.tdswire.protocol.rpc.RpcType
 /**
  * Die Typen fester Länge in COLMETADATA der Nachricht BULK_LOAD (`MS-TDS`, Typen ohne Längenpräfix): [code] ist die
  * Typkennung, [size] die Zahl der Wertebytes, [sqlType] die Abbildung auf [SqlType]. Ein Wert fester Länge trägt kein
- * NULL. Gemessen mit dem Referenzclient (`SqlBulkCopy`, Messreihe M-8 bis M-12) ist nur [INT8]; die anderen vier sind
- * Handvektoren nach der Beschreibung von `MS-TDS`, ohne Mitschnitt eines Clients.
+ * NULL. Gemessen mit dem Referenzclient (`SqlBulkCopy`, nicht nullbare Spalten, Messreihe M-8 bis M-12 und M-36) sind
+ * alle fünf Typen: [INT8] in M-8 bis M-12, [INT4], [INT2], [INT1] und [BIT] in M-36.
  */
 internal enum class BulkFixedType(val code: Int, val size: Int, val sqlType: SqlType) {
     INT1(code = 0x30, size = 1, sqlType = SqlType.Int32),

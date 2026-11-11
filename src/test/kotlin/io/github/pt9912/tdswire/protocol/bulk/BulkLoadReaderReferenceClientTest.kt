@@ -18,11 +18,11 @@ import kotlin.test.assertIs
  * [BulkLoadReader] gegen die Nutzlast des Referenzclients `SqlBulkCopy` (`Microsoft.Data.SqlClient` 7.1.1, `SPEC-036`,
  * Form B): die 5 verschiedenen Nachrichten 0x07 der Messreihe M-8 bis M-12 (`referenztest-dotnet/Mitschnitt/messung/
  * bulk-merge-katalog/{2022,2025}/`, Dateien `bulk-typen-null`, `bulk-mehrere-nachrichten`, `bulk-verstoss-schluessel`;
- * die 10 aufgezeichneten Nachrichten beider Instanzen sind je Paar byte-gleich) als Hex-Dateien unter
- * `src/test/resources/messung/bulk-referenzclient/`. Sie enthalten den festen Typ BIGINT (`0x7f`), zwei Nullbyte hinter
- * der
- * Spaltenzahl und ein DONE von 8 Byte. Die Handvektoren der übrigen festen Typen sind von Hand nach der Beschreibung
- * von `MS-TDS` gebaut (Typkennungen `0x30`, `0x32`, `0x34`, `0x38`), ohne Mitschnitt eines Clients.
+ * die 10 aufgezeichneten Nachrichten beider Instanzen sind je Paar byte-gleich) und die Nachricht `typen-fest` der
+ * Messreihe M-36 (`bulk-name-feste-typen`) als Hex-Dateien unter `src/test/resources/messung/bulk-referenzclient/`. Sie
+ * enthalten die festen Typen BIGINT (`0x7f`), INT (`0x38`), SMALLINT (`0x34`), TINYINT (`0x30`) und BIT (`0x32`), zwei
+ * Nullbyte hinter der Spaltenzahl und ein DONE von 8 Byte. Die Handvektoren in der Form von mssql-jdbc sind von Hand
+ * nach der Beschreibung von `MS-TDS` gebaut, ohne Mitschnitt eines Clients.
  */
 class BulkLoadReaderReferenceClientTest {
     private fun message(name: String): ByteArray =
@@ -118,6 +118,30 @@ class BulkLoadReaderReferenceClientTest {
             loaded.columns,
         )
         assertEquals(listOf(listOf(1L, "neu"), listOf(2L, "doppelt"), listOf(3L, "neu")), loaded.rows)
+    }
+
+    /**
+     * `bulk-name-feste-typen`: vier nicht nullbare Spalten INT, SMALLINT, TINYINT und BIT (feste Typen `0x38`, `0x34`,
+     * `0x30`, `0x32`, Messreihe M-36, Instanz 2022 und 2025 byte-gleich), zwei Zeilen mit den Randwerten (1, 2, 3, wahr
+     * und -1, -2, 255, falsch). Wächter: ein TINYINT mit Vorzeichen (255 als -1), ein SMALLINT oder INT ohne
+     * Vorzeichen, eine falsche Byte-Zahl eines Typs, eine Spalte, die nullbar gemeldet wird.
+     *
+     * @spec SPEC-036
+     * @spec TDS-QA-01
+     */
+    @Test
+    fun `bulk-name-feste-typen ergibt vier feste Spalten und zwei Zeilen`() {
+        val loaded = read(message("typen-fest"))
+        assertEquals(
+            listOf(
+                ResultColumn("A", SqlType.Int32, nullable = false),
+                ResultColumn("B", SqlType.Int32, nullable = false),
+                ResultColumn("C", SqlType.Int32, nullable = false),
+                ResultColumn("D", SqlType.Bool, nullable = false),
+            ),
+            loaded.columns,
+        )
+        assertEquals(listOf(listOf(1, 2, 3, true), listOf(-1, -2, 255, false)), loaded.rows)
     }
 
     /**
