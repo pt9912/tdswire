@@ -52,10 +52,10 @@ public class MessungBulkBelegTests
     // @spec SPEC-045
     [Theory]
     [MemberData(nameof(Stufen))]
-    public void Die_Ablage_hat_20_Messungen_mit_Anmeldung_und_alle_Auswertungen_ohne_Zerlegungsproblem(string stufe)
+    public void Die_Ablage_hat_21_Messungen_mit_Anmeldung_und_alle_Auswertungen_ohne_Zerlegungsproblem(string stufe)
     {
         var dateien = Directory.GetFiles(Verzeichnis(stufe), "*.messung");
-        Assert.Equal(20, dateien.Length);
+        Assert.Equal(21, dateien.Length);
         Assert.DoesNotContain(Z(stufe), z => z.Value.Contains("PROBLEM", StringComparison.Ordinal) || z.Value.Contains("ZERLEGUNG-ABGEBROCHEN", StringComparison.Ordinal));
         foreach (var pfad in dateien)
         {
@@ -525,6 +525,98 @@ public class MessungBulkBelegTests
             Assert.Equal("DONE Status ERROR, Befehl 0x00fd, Zeilen -", F(stufe, $"struktur-drop-constraint/{nr}/done"));
             Assert.StartsWith("Fehler Nummer 4902, Class 16, State 1, Meldung 'Cannot find the object \"drop_gibtesnicht\"", F(stufe, $"struktur-drop-constraint/{nr}/fehler"), StringComparison.Ordinal);
         }
+    }
+
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void DROP_INDEX_mit_Treffer_und_mit_IF_EXISTS_ohne_Treffer_auch_an_einer_unbekannten_Tabelle_antwortet_mit_DONE_ohne_COUNT_und_dem_Befehl_0xc9(string stufe)
+    {
+        // 03 bis 06: CREATE INDEX (Befehl 0xc8). Treffer: 07, 12 (eindeutiger Index, Name in anderer Schreibweise, ohne IF EXISTS), 20 (ohne IF EXISTS), 21 (mit Schema dbo);
+        // IF EXISTS ohne Treffer: 08, 11 (Name des Index einer anderen Tabelle), 18 (unbekannte Tabelle).
+        foreach (var nr in new[] { "03", "04", "05", "06" })
+        {
+            Assert.Equal("DONE Status -, Befehl 0x00c8, Zeilen -", F(stufe, $"struktur-drop-index/{nr}/done"));
+        }
+
+        foreach (var nr in new[] { "07", "08", "11", "12", "18", "20", "21" })
+        {
+            Assert.Equal("DONE", F(stufe, $"struktur-drop-index/{nr}/tokenfolge"));
+            Assert.Equal("DONE Status -, Befehl 0x00c9, Zeilen -", F(stufe, $"struktur-drop-index/{nr}/done"));
+            Assert.Equal("-", F(stufe, $"struktur-drop-index/{nr}/fehler"));
+        }
+
+        Assert.StartsWith("Art 1 Status 0x01: DROP INDEX IF EXISTS [ix_idx_name] ON [idx_kind];", F(stufe, "struktur-drop-index/07/anfrage"), StringComparison.Ordinal);
+        Assert.StartsWith("Art 1 Status 0x01: DROP INDEX [UX_IDX_MENGE] ON [idx_kind];", F(stufe, "struktur-drop-index/12/anfrage"), StringComparison.Ordinal);
+        Assert.StartsWith("Art 1 Status 0x01: DROP INDEX IF EXISTS [x] ON [idx_gibtesnicht];", F(stufe, "struktur-drop-index/18/anfrage"), StringComparison.Ordinal);
+        Assert.StartsWith("Art 1 Status 0x01: DROP INDEX IF EXISTS [ix_idx_nur_eltern] ON [dbo].[idx_eltern];", F(stufe, "struktur-drop-index/21/anfrage"), StringComparison.Ordinal);
+    }
+
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void DROP_INDEX_ohne_Treffer_und_ohne_IF_EXISTS_nennt_3701_mit_Class_11_State_7_und_bei_unbekannter_Tabelle_State_6_und_den_Befehl_0xc9_im_DONE(string stufe)
+    {
+        foreach (var nr in new[] { "09", "10", "13", "19" })
+        {
+            Assert.Equal("ERROR DONE", F(stufe, $"struktur-drop-index/{nr}/tokenfolge"));
+            Assert.Equal("DONE Status ERROR, Befehl 0x00c9, Zeilen -", F(stufe, $"struktur-drop-index/{nr}/done"));
+        }
+
+        Assert.StartsWith("Fehler Nummer 3701, Class 11, State 7, Meldung 'Cannot drop the index 'idx_kind.ix_idx_name', because it does not exist or you do not have permission.'", F(stufe, "struktur-drop-index/09/fehler"), StringComparison.Ordinal);
+        Assert.StartsWith("Fehler Nummer 3701, Class 11, State 7, Meldung 'Cannot drop the index 'idx_kind.ix_idx_nur_eltern'", F(stufe, "struktur-drop-index/10/fehler"), StringComparison.Ordinal);
+        Assert.StartsWith("Fehler Nummer 3701, Class 11, State 7, Meldung 'Cannot drop the index 'idx_kind.ux_idx_menge'", F(stufe, "struktur-drop-index/13/fehler"), StringComparison.Ordinal);
+        Assert.StartsWith("Fehler Nummer 3701, Class 11, State 6, Meldung 'Cannot drop the index 'idx_gibtesnicht.x'", F(stufe, "struktur-drop-index/19/fehler"), StringComparison.Ordinal);
+    }
+
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void DROP_INDEX_auf_den_Index_einer_Eindeutigkeit_nennt_3723_State_5_und_eines_Schluessels_State_4_mit_und_ohne_IF_EXISTS(string stufe)
+    {
+        foreach (var nr in new[] { "14", "15", "16", "17" })
+        {
+            Assert.Equal("ERROR DONE", F(stufe, $"struktur-drop-index/{nr}/tokenfolge"));
+            Assert.Equal("DONE Status ERROR, Befehl 0x00fd, Zeilen -", F(stufe, $"struktur-drop-index/{nr}/done"));
+        }
+
+        foreach (var nr in new[] { "14", "15" })
+        {
+            Assert.StartsWith("Fehler Nummer 3723, Class 16, State 5, Meldung 'An explicit DROP INDEX is not allowed on index 'idx_kind.uq_idx_code'. It is being used for UNIQUE KEY constraint enforcement.'", F(stufe, $"struktur-drop-index/{nr}/fehler"), StringComparison.Ordinal);
+        }
+
+        foreach (var nr in new[] { "16", "17" })
+        {
+            Assert.StartsWith("Fehler Nummer 3723, Class 16, State 4, Meldung 'An explicit DROP INDEX is not allowed on index 'idx_kind.pk_idx_kind'. It is being used for PRIMARY KEY constraint enforcement.'", F(stufe, $"struktur-drop-index/{nr}/fehler"), StringComparison.Ordinal);
+        }
+    }
+
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void Der_Text_von_d_migrate_vor_einem_geaenderten_Index_wird_mit_DONE_und_dem_Befehl_0xc9_beantwortet(string stufe)
+    {
+        // Ablage des Laufs `schema` (Schritt s14): die Zeilen `C->S` und `S->C` derselben Nummer folgen aufeinander, danach das neue CREATE INDEX (0xc8).
+        var pfad = Path.Combine(AppContext.BaseDirectory, "Mitschnitt", "messung", "jdbc-d-migrate", stufe + ".schema.aufnahme.txt");
+        var zeilen = File.ReadAllLines(pfad, Encoding.UTF8);
+        var treffer = Enumerable.Range(0, zeilen.Length).Where(i => zeilen[i].Contains("Batch: DROP INDEX IF EXISTS [ix_auftraege_status] ON [auftraege];", StringComparison.Ordinal)).ToList();
+        Assert.Single(treffer);
+        var i = treffer[0];
+        Assert.Contains("S->C #10 DONE(status=0x0 cmd=0x00c9 zaehler=0)", zeilen[i + 1], StringComparison.Ordinal);
+        Assert.Contains("Batch: CREATE UNIQUE INDEX [ix_auftraege_status] ON [auftraege] ([Status]);", zeilen[i + 2], StringComparison.Ordinal);
+        Assert.Contains("DONE(status=0x0 cmd=0x00c8 zaehler=0)", zeilen[i + 3], StringComparison.Ordinal);
+    }
+
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void Zwei_DROP_INDEX_in_einem_Text_antworten_mit_zwei_DONE_und_ein_Fehler_der_ersten_Anweisung_hindert_die_zweite_nicht(string stufe)
+    {
+        Assert.Equal("DONE DONE", F(stufe, "struktur-drop-index/22/tokenfolge"));
+        Assert.Equal("DONE Status MORE, Befehl 0x00c9, Zeilen - ; DONE Status -, Befehl 0x00c9, Zeilen -", F(stufe, "struktur-drop-index/22/done"));
+        Assert.Equal("ERROR DONE DONE", F(stufe, "struktur-drop-index/23/tokenfolge"));
+        Assert.Equal("DONE Status MORE|ERROR, Befehl 0x00c9, Zeilen - ; DONE Status -, Befehl 0x00c9, Zeilen -", F(stufe, "struktur-drop-index/23/done"));
+        Assert.StartsWith("Fehler Nummer 3701, Class 11, State 7, Meldung 'Cannot drop the index 'idx_kind.zwei_a'", F(stufe, "struktur-drop-index/23/fehler"), StringComparison.Ordinal);
     }
 
     // @spec SPEC-045
