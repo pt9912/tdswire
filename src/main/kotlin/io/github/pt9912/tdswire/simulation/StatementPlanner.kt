@@ -31,6 +31,12 @@ internal object SimCodes {
     /** `ALTER TABLE` einer Tabelle, die der Katalog nicht führt (4902, Messprotokoll M-19). */
     const val OBJECT_NOT_FOUND = "TDS_SIM_OBJECT_NOT_FOUND"
 
+    /** `ALTER TABLE … DROP CONSTRAINT <Name>` ohne Bedingung dieses Namens in der Tabelle (3728). */
+    const val NOT_A_CONSTRAINT = "TDS_SIM_NOT_A_CONSTRAINT"
+
+    /** `ALTER TABLE … DROP CONSTRAINT <Name>`, der Name gehört einer Bedingung einer anderen Tabelle (3733). */
+    const val CONSTRAINT_OTHER_TABLE = "TDS_SIM_CONSTRAINT_OTHER_TABLE"
+
     /** Ein Text über der Länge der Spalte beim Einfügen oder Ändern eines `MERGE` (2628, Messprotokoll M-15). */
     const val STRING_TRUNCATED = "TDS_SIM_STRING_TRUNCATED"
 
@@ -130,6 +136,7 @@ internal class StatementPlanner(private val catalogs: () -> SimCatalog) {
         is Statement.AddColumns -> StructurePlanner.addColumns(statement, catalog)
         is Statement.AddConstraint -> StructurePlanner.addConstraint(statement, catalog)
         is Statement.CreateIndex -> StructurePlanner.createIndex(statement, catalog)
+        is Statement.DropConstraint -> StructurePlanner.dropConstraint(statement, catalog)
         else -> resolveTable(statement, catalog)
     }
 
@@ -161,8 +168,9 @@ internal class StatementPlanner(private val catalogs: () -> SimCatalog) {
             statement.on.map { it.target } + statement.update.orEmpty().map { it.target } +
                 statement.insert.map { it.target }
 
-        is Statement.CreateTable, is Statement.AddColumns, is Statement.AddConstraint, is Statement.CreateIndex ->
-            emptyList()
+        is Statement.CreateTable, is Statement.AddColumns, is Statement.AddConstraint, is Statement.CreateIndex,
+        is Statement.DropConstraint,
+        -> emptyList()
     }
 
     /** Die Spalten der Bedingung; ein Konstantenterm nennt keine. */

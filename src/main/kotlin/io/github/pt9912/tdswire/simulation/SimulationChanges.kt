@@ -58,8 +58,9 @@ internal object SimulationChanges {
 
             is Statement.Merge -> error("MERGE bereitet SimulationMerges vor")
 
-            is Statement.CreateTable, is Statement.AddColumns, is Statement.AddConstraint, is Statement.CreateIndex ->
-                error("eine Strukturänderung hat keinen Callback")
+            is Statement.CreateTable, is Statement.AddColumns, is Statement.AddConstraint, is Statement.CreateIndex,
+            is Statement.DropConstraint,
+            -> error("eine Strukturänderung hat keinen Callback")
         }
     }
 

@@ -30,11 +30,11 @@ Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks.
 
 **Ziel:** Ein zweites `schema migrate --execute` von d-migrate, dessen Soll einen vorhandenen Index ändert, endet gegen den Testserver wie gegen den echten SQL Server. Heute sendet d-migrate in diesem Fall zuerst `DROP INDEX IF EXISTS [ix] ON [t];`. Der echte Server antwortet mit `DONE 0x00c9` (beide Instanzen, 2022 und 2025); der Testserver erkennt die Form nicht (`Unsupported SQL.`, Exit 5). Maßstab des Nutzers: die Spezifikation ist Zielbild, der echte SQL Server die Referenz.
 
-**Herkunft.** Punkt 9 des Registers [katalog-elemente-grenzen-der-angleichung](../observations/BEO-TDS/katalog-elemente-grenzen-der-angleichung/state.md), Fund der Messung zu [slice-drop-constraint-form-d5](slice-drop-constraint-form-d5.md). Entscheid des Nutzers vom 2026-11-11: der Fund bekommt einen eigenen Folge-Slice.
+**Herkunft.** Punkt 9 des Registers [katalog-elemente-grenzen-der-angleichung](../observations/BEO-TDS/katalog-elemente-grenzen-der-angleichung/state.md), Fund der Messung zu [slice-drop-constraint-form-d5](../done/slice-drop-constraint-form-d5.md). Entscheid des Nutzers vom 2026-11-11: der Fund bekommt einen eigenen Folge-Slice.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- `ALTER TABLE … DROP CONSTRAINT [IF EXISTS]` (Form D5) — liegt in [slice-drop-constraint-form-d5](slice-drop-constraint-form-d5.md); dieser Slice setzt dessen Ergebnis voraus und ändert dieselben Dateien.
+- `ALTER TABLE … DROP CONSTRAINT [IF EXISTS]` (Form D5) — liegt in [slice-drop-constraint-form-d5](../done/slice-drop-constraint-form-d5.md); dieser Slice setzt dessen Ergebnis voraus und ändert dieselben Dateien.
 - Der Text mit `DECLARE @df … EXEC sp_executesql` für einen Standardwert an einer vorhandenen Spalte — größer und zurückgestellt: [slice-declare-df-standardwert-vorhandene-spalte](slice-declare-df-standardwert-vorhandene-spalte.md).
 - Die Abnahme mit d-migrate über alle Funktionen — [slice-abnahme-d-migrate](slice-abnahme-d-migrate.md); dieser Slice liegt davor, weil der Validator bei einem geänderten Index sofort auf die Form trifft.
 - Die alte Schreibweise `DROP INDEX <t>.<ix>` — d-migrate sendet sie nicht (Setzung des Planners, am Mitschnitt zu prüfen); sie bleibt unerkannt, bis ein Client sie verlangt.
@@ -87,7 +87,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-drop-constraint-form-d5](slice-drop-constraint-form-d5.md) liegt in `done/` (gleiche Dateien `StructureParts`, `StructurePlanner`, `StatementPlanner`); die EULA für das gepinnte Developer-Image ist vom Nutzer für diesen Lauf bestätigt; ein Verantwortlicher ist eingetragen. Der Slice steht vor [slice-abnahme-d-migrate](slice-abnahme-d-migrate.md).
+**Start** (`next` → `in-progress`): [slice-drop-constraint-form-d5](../done/slice-drop-constraint-form-d5.md) liegt in `done/` (gleiche Dateien `StructureParts`, `StructurePlanner`, `StatementPlanner`); die EULA für das gepinnte Developer-Image ist vom Nutzer für diesen Lauf bestätigt; ein Verantwortlicher ist eingetragen. Der Slice steht vor [slice-abnahme-d-migrate](slice-abnahme-d-migrate.md).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

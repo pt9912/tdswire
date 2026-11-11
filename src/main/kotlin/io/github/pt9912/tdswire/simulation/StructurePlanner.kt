@@ -3,7 +3,7 @@ package io.github.pt9912.tdswire.simulation
 import io.github.pt9912.tdswire.domain.StatementKind
 
 /**
- * Die Planung der Strukturformen D1 bis D4 (`SPEC-036`) gegen den Katalog: Tabelle und Spalten sind beschrieben oder
+ * Die Planung der Strukturformen D1 bis D5 (`SPEC-036`) gegen den Katalog: Tabelle und Spalten sind beschrieben oder
  * neu, Namen kommen nicht doppelt vor, ein Fremdschlüssel zeigt auf eine beschriebene Tabelle und ihre Spalten. Das
  * Ergebnis ist die Tabelle nach der Anweisung als Beschreibung ohne Zeilen ([StructurePlan]). Die Fehlercodes
  * `OBJECT_EXISTS`, `COLUMN_EXISTS` und `OBJECT_NOT_FOUND` sind für `CREATE TABLE` und `ALTER TABLE … ADD` einer Spalte
@@ -98,6 +98,29 @@ internal object StructurePlanner {
                 reject(SimCodes.OBJECT_EXISTS, "Index ist schon beschrieben")
 
             else -> result(table.copy(indexes = table.indexes + index), StatementKind.UNKNOWN)
+        }
+    }
+
+    /**
+     * D5: die Bedingung (Eindeutigkeit, Fremdschlüssel oder Prüfbedingung) mit dem Namen fällt aus der Tabelle. Ohne
+     * Treffer ist `IF EXISTS` ein Erfolg ohne Änderung (die Tabelle im Callback unverändert), ohne `IF EXISTS` trägt
+     * der Name einer Bedingung einer anderen Tabelle desselben Schemas (Setzung, gemessen nur in `dbo`)
+     * `CONSTRAINT_OTHER_TABLE`, jeder andere Name `NOT_A_CONSTRAINT`. Eine unbekannte Tabelle ist auch mit `IF EXISTS`
+     * `OBJECT_NOT_FOUND` (4902, gemessen).
+     */
+    fun dropConstraint(statement: Statement.DropConstraint, catalog: SimCatalog): PlanResult {
+        val table = catalog.find(statement.table.schema, statement.table.name)
+            ?: return reject(SimCodes.OBJECT_NOT_FOUND, "Tabelle nicht beschrieben")
+        val shortened = StructureChecks.without(table, statement.name)
+        return when {
+            shortened != null -> result(shortened, StatementKind.ALTER_TABLE)
+
+            statement.ifExists -> result(table, StatementKind.ALTER_TABLE)
+
+            StructureChecks.belongsToOther(catalog, table, statement.name) ->
+                reject(SimCodes.CONSTRAINT_OTHER_TABLE, "Bedingung gehört zu einer anderen Tabelle")
+
+            else -> reject(SimCodes.NOT_A_CONSTRAINT, "Name ist keine Bedingung der Tabelle")
         }
     }
 

@@ -1,0 +1,4 @@
+**Vorgang:** slice-drop-constraint-form-d5
+**Fund:** Punkt 2 des Registers ist als Form D5 gebaut und am echten Server gemessen ([Messprotokoll](../../../../../../messungen/drop-constraint-d-migrate-2026-11-11.md)); Punkt 3 ist beantwortet (kein Unterschied des Testservers beim eindeutigen Index). Neu im Register: Punkt 9 (`DROP INDEX IF EXISTS`), Punkt 10 (zweites ERROR 3727), Punkt 11 (Name von Standardwert und Schlüssel), Punkt 12 (Prüfung des Verweises, 3725).
+
+**Fund des Reviews und der Verifikation:** F-2 (Abweichungen ohne Träger) ist mit Trigger je Punkt behoben; V-1 (die Zusage in `docs/user/einbettung-und-betrieb.md` ohne die gemessene Bedingung) ist in der Closure angeglichen. Der Entscheid des Nutzers zur Fläche (Punkt 11) steht aus; geführt ist die Standardantwort „nicht erweitert“, umkehrbar.

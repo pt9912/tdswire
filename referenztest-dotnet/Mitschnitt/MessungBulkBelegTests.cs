@@ -52,10 +52,10 @@ public class MessungBulkBelegTests
     // @spec SPEC-045
     [Theory]
     [MemberData(nameof(Stufen))]
-    public void Die_Ablage_hat_19_Messungen_mit_Anmeldung_und_alle_Auswertungen_ohne_Zerlegungsproblem(string stufe)
+    public void Die_Ablage_hat_20_Messungen_mit_Anmeldung_und_alle_Auswertungen_ohne_Zerlegungsproblem(string stufe)
     {
         var dateien = Directory.GetFiles(Verzeichnis(stufe), "*.messung");
-        Assert.Equal(19, dateien.Length);
+        Assert.Equal(20, dateien.Length);
         Assert.DoesNotContain(Z(stufe), z => z.Value.Contains("PROBLEM", StringComparison.Ordinal) || z.Value.Contains("ZERLEGUNG-ABGEBROCHEN", StringComparison.Ordinal));
         foreach (var pfad in dateien)
         {
@@ -474,6 +474,57 @@ public class MessungBulkBelegTests
         Assert.StartsWith("Art 1 Status 0x01: ALTER TABLE [kunden] ADD [Email]", F(stufe, "katalog-struktur/05/anfrage"), StringComparison.Ordinal);
         Assert.Equal("DONE Status -, Befehl 0x00d8, Zeilen -", F(stufe, "katalog-struktur/05/done"));
         Assert.Equal("DONE", F(stufe, "katalog-struktur/05/tokenfolge"));
+    }
+
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void DROP_CONSTRAINT_mit_Treffer_und_mit_IF_EXISTS_ohne_Treffer_antwortet_mit_DONE_ohne_COUNT_und_dem_Befehl_0xd8(string stufe)
+    {
+        // Treffer: 04 (Name in anderer Schreibweise), 09, 12, 15 (ohne IF EXISTS), 22; IF EXISTS ohne Treffer: 06, 07 (Name an der anderen Tabelle), 11, 14, 17, 18.
+        foreach (var nr in new[] { "04", "06", "07", "09", "11", "12", "14", "15", "17", "18", "22" })
+        {
+            Assert.Equal("DONE", F(stufe, $"struktur-drop-constraint/{nr}/tokenfolge"));
+            Assert.Equal("DONE Status -, Befehl 0x00d8, Zeilen -", F(stufe, $"struktur-drop-constraint/{nr}/done"));
+            Assert.Equal("-", F(stufe, $"struktur-drop-constraint/{nr}/fehler"));
+        }
+
+        Assert.StartsWith("Art 1 Status 0x01: ALTER TABLE [drop_kind] DROP CONSTRAINT [CK_DROP_MENGE];", F(stufe, "struktur-drop-constraint/04/anfrage"), StringComparison.Ordinal);
+        Assert.StartsWith("Art 1 Status 0x01: ALTER TABLE [drop_kind] DROP CONSTRAINT IF EXISTS [ck_drop_menge];", F(stufe, "struktur-drop-constraint/06/anfrage"), StringComparison.Ordinal);
+        Assert.StartsWith("Art 1 Status 0x01: ALTER TABLE [drop_eltern] DROP CONSTRAINT IF EXISTS [uq_drop_name];", F(stufe, "struktur-drop-constraint/07/anfrage"), StringComparison.Ordinal);
+    }
+
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void DROP_CONSTRAINT_ohne_Treffer_nennt_3728_und_3727_mit_IF_EXISTS_ist_es_ein_Erfolg_und_an_der_falschen_Tabelle_3733(string stufe)
+    {
+        foreach (var nr in new[] { "05", "10", "13", "16", "19" })
+        {
+            Assert.Equal("ERROR ERROR DONE", F(stufe, $"struktur-drop-constraint/{nr}/tokenfolge"));
+            Assert.Equal("DONE Status ERROR, Befehl 0x00fd, Zeilen -", F(stufe, $"struktur-drop-constraint/{nr}/done"));
+            Assert.StartsWith("Fehler Nummer 3728, Class 16, State 1, Meldung ''", F(stufe, $"struktur-drop-constraint/{nr}/fehler"), StringComparison.Ordinal);
+            Assert.Contains(" is not a constraint.', Server vorhanden, Prozedur '', Zeile 1 ; Fehler Nummer 3727, Class 16, State 0, Meldung 'Could not drop constraint. See previous errors.'", F(stufe, $"struktur-drop-constraint/{nr}/fehler"), StringComparison.Ordinal);
+        }
+
+        Assert.StartsWith("Fehler Nummer 3728, Class 16, State 1, Meldung ''ck_drop_menge' is not a constraint.'", F(stufe, "struktur-drop-constraint/05/fehler"), StringComparison.Ordinal);
+        Assert.StartsWith("Fehler Nummer 3728, Class 16, State 1, Meldung ''gibtesnicht' is not a constraint.'", F(stufe, "struktur-drop-constraint/19/fehler"), StringComparison.Ordinal);
+        Assert.StartsWith("Fehler Nummer 3733, Class 16, State 2, Meldung 'Constraint 'uq_drop_name' does not belong to table 'drop_eltern'.'", F(stufe, "struktur-drop-constraint/08/fehler"), StringComparison.Ordinal);
+        Assert.Equal("ERROR ERROR DONE", F(stufe, "struktur-drop-constraint/08/tokenfolge"));
+        Assert.StartsWith("Fehler Nummer 3725, Class 16, State 0, Meldung 'The constraint 'pk_drop_eltern' is being referenced by table 'drop_kind', foreign key constraint 'fk_drop_eltern'.'", F(stufe, "struktur-drop-constraint/03/fehler"), StringComparison.Ordinal);
+    }
+
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void DROP_CONSTRAINT_an_einer_unbekannten_Tabelle_nennt_4902_auch_mit_IF_EXISTS(string stufe)
+    {
+        foreach (var nr in new[] { "20", "21" })
+        {
+            Assert.Equal("ERROR DONE", F(stufe, $"struktur-drop-constraint/{nr}/tokenfolge"));
+            Assert.Equal("DONE Status ERROR, Befehl 0x00fd, Zeilen -", F(stufe, $"struktur-drop-constraint/{nr}/done"));
+            Assert.StartsWith("Fehler Nummer 4902, Class 16, State 1, Meldung 'Cannot find the object \"drop_gibtesnicht\"", F(stufe, $"struktur-drop-constraint/{nr}/fehler"), StringComparison.Ordinal);
+        }
     }
 
     // @spec SPEC-045

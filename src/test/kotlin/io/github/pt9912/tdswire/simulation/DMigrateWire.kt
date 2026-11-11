@@ -263,3 +263,16 @@ val dMigrateElementAlterTexts: List<String> = listOf(
     "ALTER TABLE [bestellung] WITH CHECK ADD CONSTRAINT [ck_bestellung_menge] CHECK (Menge > 0);",
     "ALTER TABLE [kunden] WITH CHECK ADD CONSTRAINT [_unique_Email] UNIQUE ([Email]);",
 )
+
+/**
+ * `schema migrate --execute` gegen vorhandene Tabellen: die Texte mit `DROP CONSTRAINT IF EXISTS`, wie der Durchlauf
+ * sie am Draht sah (`make vergleichslauf-d LAUF=schema-2022` und `schema-2025`, 2026-11-11, echter Server; Ablage
+ * `referenztest-dotnet/Mitschnitt/messung/jdbc-d-migrate/<stufe>.schema.aufnahme.txt`): die Prüfbedingung bei jedem
+ * Lauf (Schritte s03 und s06), der Fremdschlüssel und die Eindeutigkeit, wenn das Soll sie ändert oder wegnimmt
+ * (s08 und s10). Die Namen sind die der Tabellen dieser Tests.
+ */
+val dMigrateDropTexts: List<String> = listOf(
+    "ALTER TABLE [bestellung] DROP CONSTRAINT IF EXISTS [ck_bestellung_menge];",
+    "ALTER TABLE [bestellung] DROP CONSTRAINT IF EXISTS [fk_bestellung_KundeId];",
+    "ALTER TABLE [kunden] DROP CONSTRAINT IF EXISTS [uq_kunden_Email];",
+)

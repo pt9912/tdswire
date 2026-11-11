@@ -24,7 +24,10 @@ public enum class StatementKind {
     /** `CREATE TABLE`: Kennung `0x00c6`, ohne Zeilenzahl (Messprotokoll M-20). */
     CREATE_TABLE,
 
-    /** `ALTER TABLE … ADD`: Kennung `0x00d8`, ohne Zeilenzahl (Messprotokoll M-20). */
+    /**
+     * `ALTER TABLE … ADD` und `ALTER TABLE … DROP CONSTRAINT`: Kennung `0x00d8`, ohne Zeilenzahl (Messprotokoll M-20;
+     * `DROP CONSTRAINT`: Szenario `struktur-drop-constraint`).
+     */
     ALTER_TABLE,
 
     /** `set implicit_transactions on`: Kennung `0x00b9`, ohne Zeilenzahl (Messprotokoll M-20). */
