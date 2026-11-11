@@ -77,6 +77,9 @@ internal sealed interface Statement {
     /** D4: `CREATE [UNIQUE] INDEX … ON … (…) [INCLUDE (…)]`. */
     data class CreateIndex(override val table: TableRef, val index: SimIndex) : Statement
 
+    /** D5: `ALTER TABLE … DROP CONSTRAINT [IF EXISTS] <Name>`; [ifExists] ist wahr mit `IF EXISTS`. */
+    data class DropConstraint(override val table: TableRef, val name: String, val ifExists: Boolean) : Statement
+
     /**
      * M: `MERGE … OUTPUT $action` (`SPEC-036` Form M). [sourceColumns] benennt die Werte der einen `VALUES`-Zeile
      * [values]; [on] vergleicht Spalten der Tabelle mit Quellspalten, [update] ist `null` ohne Zweig `WHEN MATCHED`,

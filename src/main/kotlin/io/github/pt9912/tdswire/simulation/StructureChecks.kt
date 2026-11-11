@@ -2,7 +2,8 @@ package io.github.pt9912.tdswire.simulation
 
 /**
  * Die Prüfungen der Planung von Strukturänderungen gegen den Katalog ([StructurePlanner]): Namen von Bedingungen und
- * Indizes sind in der Tabelle vergeben, die Zieltabelle eines Fremdschlüssels ist beschrieben. Namen gelten ohne
+ * Indizes sind in der Tabelle vergeben, die Zieltabelle eines Fremdschlüssels ist beschrieben, eine Bedingung wird
+ * entfernt. Namen gelten ohne
  * Beachtung der Schreibweise (Setzung, nicht am Server gemessen).
  */
 internal object StructureChecks {
@@ -25,6 +26,21 @@ internal object StructureChecks {
         is NewConstraint.Check -> constraintNameTaken(table, constraint.check.name)
 
         is NewConstraint.Default -> table.column(constraint.column)?.defaultDefinition != null
+    }
+
+    /** Die Tabelle ohne die Bedingung [name] (Eindeutigkeit, Fremdschlüssel, Prüfbedingung) oder `null` ohne sie. */
+    fun without(table: SimTable, name: String): SimTable? {
+        val shortened = table.copy(
+            uniqueKeys = table.uniqueKeys.filterNot { same(it.name, name) },
+            foreignKeys = table.foreignKeys.filterNot { same(it.name, name) },
+            checks = table.checks.filterNot { same(it.name, name) },
+        )
+        return shortened.takeIf { constraintNameTaken(table, name) }
+    }
+
+    /** Eine andere Tabelle desselben Schemas führt eine Bedingung namens [name]. */
+    fun belongsToOther(catalog: SimCatalog, table: SimTable, name: String): Boolean = catalog.tables.any {
+        same(it.schema, table.schema) && !same(it.name, table.name) && constraintNameTaken(it, name)
     }
 
     fun columnsOf(elements: TableElements): List<String> =

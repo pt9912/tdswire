@@ -56,6 +56,9 @@ private const val N_COLUMN_EXISTS = 2705
 private const val STATE_COLUMN_EXISTS = 4
 private const val N_OBJECT_NOT_FOUND = 4902
 private const val N_STRING_TRUNCATED = 2628
+private const val N_NOT_A_CONSTRAINT = 3728
+private const val N_CONSTRAINT_OTHER_TABLE = 3733
+private const val STATE_CONSTRAINT_OTHER_TABLE = 2
 
 /**
  * Die eigenen Fehlercodes (`SPEC-011` bis `SPEC-016`, `SPEC-037` bis `SPEC-039`, `SPEC-048`,
@@ -85,6 +88,9 @@ private const val N_STRING_TRUNCATED = 2628
  *   Class 16 und State von `TDS_SIM_OBJECT_EXISTS` (2714, State 6), `TDS_SIM_COLUMN_EXISTS` (2705, State 4) und
  *   `TDS_SIM_OBJECT_NOT_FOUND` (4902, State 1) sowie die offene Verbindung; der Text ist ein Auszug des gemessenen
  *   Textes ohne die Namen (Setzung: der Text eines Backends erreicht den Client nie).
+ * - Gemessen am Referenzclient gegen einen echten SQL Server (Messprotokoll `drop-constraint-d-migrate-2026-11-11`,
+ *   2022 und 2025): Nummer, Class 16, State und die offene Verbindung von `TDS_SIM_NOT_A_CONSTRAINT` (3728, State 1)
+ *   und `TDS_SIM_CONSTRAINT_OTHER_TABLE` (3733, State 2); der Text ist ein Auszug ohne die Namen (Setzung).
  * - Gemessen am Referenzclient gegen einen echten SQL Server (Zeile M-15 des Messprotokolls, 2022 und 2025): Nummer,
  *   Class 16, State 1 und die offene Verbindung von `TDS_SIM_STRING_TRUNCATED` (2628, `MERGE` mit einem Text über der
  *   Länge der Spalte); der Text ist ein Auszug des gemessenen Textes ohne die Namen (Setzung).
@@ -212,6 +218,31 @@ internal enum class ErrorCode(val rule: ErrorRule) {
             REQUEST,
             STATE,
             "Cannot find the object because it does not exist or you do not have permissions.",
+            ConnectionFate.OPEN,
+        ),
+    ),
+
+    /**
+     * `ALTER TABLE … DROP CONSTRAINT <Name>` ohne `IF EXISTS`, der Name ist keine Bedingung der Tabelle. Nummer 3728,
+     * Class 16, State 1 und die offene Verbindung sind gemessen (2022 und 2025, Szenario `struktur-drop-constraint`);
+     * der Server sendet danach ein zweites ERROR (3727, „Could not drop constraint. See previous errors.“), das die
+     * Bibliothek nicht sendet (Grenze, `SPEC-036`). Der Text ist ein Auszug des gemessenen Textes ohne den Namen.
+     */
+    TDS_SIM_NOT_A_CONSTRAINT(
+        ErrorRule(N_NOT_A_CONSTRAINT, REQUEST, STATE, "Name is not a constraint.", ConnectionFate.OPEN),
+    ),
+
+    /**
+     * `ALTER TABLE … DROP CONSTRAINT <Name>` ohne `IF EXISTS`, der Name gehört einer Bedingung einer anderen Tabelle.
+     * Nummer 3733, Class 16, State 2 und die offene Verbindung sind gemessen (wie [TDS_SIM_NOT_A_CONSTRAINT]); das
+     * zweite ERROR 3727 sendet die Bibliothek nicht. Der Text ist ein Auszug ohne die Namen.
+     */
+    TDS_SIM_CONSTRAINT_OTHER_TABLE(
+        ErrorRule(
+            N_CONSTRAINT_OTHER_TABLE,
+            REQUEST,
+            STATE_CONSTRAINT_OTHER_TABLE,
+            "Constraint does not belong to table.",
             ConnectionFate.OPEN,
         ),
     ),

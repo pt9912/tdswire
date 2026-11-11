@@ -1,15 +1,17 @@
 package io.github.pt9912.tdswire.simulation
 
 /**
- * Die Formen D1 bis D4 von `SPEC-036`:
+ * Die Formen D1 bis D5 von `SPEC-036`:
  * - D1 `CREATE TABLE [<Schema>.]<Tabelle> (<Eintrag> {, <Eintrag>})`: ein Eintrag ist eine Spalte ([ColumnParts]) oder
  *   eine Bedingung der Tabelle ([ConstraintParts]), höchstens ein Schlüssel,
  * - D2 `ALTER TABLE [<Schema>.]<Tabelle> ADD <Spalte> {, <Spalte>}`,
  * - D3 `ALTER TABLE [<Schema>.]<Tabelle> [WITH CHECK] ADD CONSTRAINT <Name> …` ([ConstraintParts]),
- * - D4 `CREATE [UNIQUE] INDEX <Name> ON [<Schema>.]<Tabelle> (<Spalten>) [INCLUDE (<Spalten>)]`.
+ * - D4 `CREATE [UNIQUE] INDEX <Name> ON [<Schema>.]<Tabelle> (<Spalten>) [INCLUDE (<Spalten>)]`,
+ * - D5 `ALTER TABLE [<Schema>.]<Tabelle> DROP CONSTRAINT [IF EXISTS] <Name>` (ein Name).
  * `NVARCHAR(MAX)` ist `maxLength` -1 (der Katalog meldet `max_length` -1). Gemessen ist der Wortlaut von d-migrate
  * 1.12.0 (`CREATE TABLE` mit `CONSTRAINT [pk_…] PRIMARY KEY ([Id])`, `ALTER TABLE … ADD [Email] NVARCHAR(4000)`,
- * `ALTER TABLE … WITH CHECK ADD CONSTRAINT …`, `CREATE INDEX …`); mehrere Spalten in `ADD` sind Setzung. Eine weitere
+ * `ALTER TABLE … WITH CHECK ADD CONSTRAINT …`, `CREATE INDEX …`, `ALTER TABLE … DROP CONSTRAINT IF EXISTS …`);
+ * mehrere Spalten in `ADD` sind Setzung, `DROP CONSTRAINT` mehrerer Namen ist nicht erkannt. Eine weitere
  * Klausel (`IDENTITY`, `WITH NOCHECK`, `CLUSTERED`) macht den Text nicht erkannt.
  */
 internal class StructureParts(private val stream: TokenStream, private val parts: Parts) {
@@ -70,10 +72,11 @@ internal class StructureParts(private val stream: TokenStream, private val parts
         }
     }
 
-    /** Hinter `ALTER`: `TABLE <Tabelle> [WITH CHECK] ADD …`. */
+    /** Hinter `ALTER`: `TABLE <Tabelle> [WITH CHECK] ADD …` oder `TABLE <Tabelle> DROP CONSTRAINT …`. */
     fun alter(): Statement {
         stream.keyword("TABLE")
         val table = parts.tableRef()
+        if (stream.acceptKeyword("DROP")) return dropConstraint(table)
         val withCheck = stream.acceptKeyword("WITH")
         if (withCheck) stream.keyword("CHECK")
         stream.keyword("ADD")
@@ -82,6 +85,13 @@ internal class StructureParts(private val stream: TokenStream, private val parts
         }
         if (withCheck) throw unexpected()
         return Statement.AddColumns(table, addedColumns())
+    }
+
+    private fun dropConstraint(table: TableRef): Statement {
+        stream.keyword("CONSTRAINT")
+        val ifExists = stream.acceptKeyword("IF")
+        if (ifExists) stream.keyword("EXISTS")
+        return Statement.DropConstraint(table, parts.identifier(), ifExists)
     }
 
     /** Die Spalten hinter `ADD`; eine Eindeutigkeit an der Spalte gibt es dort nicht. */

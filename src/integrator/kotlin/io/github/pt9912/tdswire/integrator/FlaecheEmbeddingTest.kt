@@ -287,6 +287,48 @@ class FlaecheEmbeddingTest {
     }
 
     /**
+     * Auf den Rohbytes nimmt `ALTER TABLE … DROP CONSTRAINT` (Form D5) die Bedingung aus der Tabelle, die der
+     * Strukturänderungs-Callback bekommt; `IF EXISTS` ohne Treffer gelingt mit unveränderter Tabelle, ohne `IF EXISTS`
+     * trägt die Antwort das Fehlerbit und der Callback bleibt ungerufen (gemessen am echten Server, Szenario
+     * `struktur-drop-constraint`).
+     *
+     * @spec SPEC-059
+     * @spec SPEC-036
+     */
+    @Test
+    fun einIntegratorBekommtNachDropConstraintDieTabelleOhneDieBedingung() {
+        val described = SimTable(
+            name = "beschrieben",
+            columns = listOf(SimColumn("Id", SqlType.Int64, nullable = false), SimColumn("Menge", SqlType.Int32)),
+            primaryKey = listOf("Id"),
+            rows = { RowSource { null } },
+            uniqueKeys = listOf(SimUniqueKey("uq_beschrieben", listOf("Menge"))),
+            checks = listOf(SimCheck("ck_beschrieben", "([Menge]>(0))")),
+        )
+        val store = CopyOnWriteArrayList(listOf(described))
+        val shapes = CopyOnWriteArrayList<SimTable>()
+        val backend = SimulationBackend({ SimCatalog(store.toList()) }) { shape ->
+            shapes += shape
+            store.removeAll { it.name == shape.name }
+            store += shape
+        }
+        val server = start(BackendSource.Custom(backend))
+        WireClient(server.port).use { client ->
+            client.login()
+            val dropped = client.batch("ALTER TABLE beschrieben DROP CONSTRAINT ck_beschrieben")
+            assertEquals(0, dropped.doneStatus and DONE_ERROR)
+            val none = client.batch("ALTER TABLE beschrieben DROP CONSTRAINT IF EXISTS ck_beschrieben")
+            assertEquals(0, none.doneStatus and DONE_ERROR)
+            val missing = client.batch("ALTER TABLE beschrieben DROP CONSTRAINT ck_beschrieben")
+            assertEquals(DONE_ERROR, missing.doneStatus and DONE_ERROR)
+        }
+        assertEquals(2, shapes.size)
+        assertEquals(emptyList(), shapes.first().checks)
+        assertEquals(described.uniqueKeys, shapes.first().uniqueKeys)
+        assertEquals(shapes.first().checks, shapes.last().checks)
+    }
+
+    /**
      * Eine ungültige Benutzerliste ergibt `UserListResult.Invalid` mit einem `UserListError`: Art
      * (`UserListErrorKind`) und Zeilennummer, ohne Benutzernamen oder Prüfwert.
      *
