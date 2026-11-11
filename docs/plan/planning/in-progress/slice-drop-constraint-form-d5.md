@@ -34,8 +34,8 @@ Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Der Text mit `DECLARE @df … EXEC sp_executesql` für einen Standardwert an einer vorhandenen Spalte (Punkt 1 des Registers) — größer (Variablen und dynamisches SQL im Scanner) und nur nötig, wenn der Validator den Fall verlangt: [slice-declare-df-standardwert-vorhandene-spalte](slice-declare-df-standardwert-vorhandene-spalte.md).
-- Die Abnahme mit d-migrate über alle Funktionen — [slice-abnahme-d-migrate](slice-abnahme-d-migrate.md); dieser Slice liegt davor, weil der Validator bei der Idempotenzprobe Punkt 2 sofort trifft.
+- Der Text mit `DECLARE @df … EXEC sp_executesql` für einen Standardwert an einer vorhandenen Spalte (Punkt 1 des Registers) — größer (Variablen und dynamisches SQL im Scanner) und nur nötig, wenn der Validator den Fall verlangt: [slice-declare-df-standardwert-vorhandene-spalte](../open/slice-declare-df-standardwert-vorhandene-spalte.md).
+- Die Abnahme mit d-migrate über alle Funktionen — [slice-abnahme-d-migrate](../open/slice-abnahme-d-migrate.md); dieser Slice liegt davor, weil der Validator bei der Idempotenzprobe Punkt 2 sofort trifft.
 - Referentielle Integrität im Bestand und Nutzung von Indizes — der Katalog beschreibt, der Testserver prüft nichts.
 
 ## 2. Definition of Done
@@ -81,7 +81,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-katalog-indizes-defaults-fremdschluessel](../done/slice-katalog-indizes-defaults-fremdschluessel.md) liegt in `done/`; die EULA für das gepinnte Developer-Image ist vom Nutzer für diesen Lauf bestätigt; ein Verantwortlicher ist eingetragen. Der Slice steht vor [slice-abnahme-d-migrate](slice-abnahme-d-migrate.md).
+**Start** (`next` → `in-progress`): [slice-katalog-indizes-defaults-fremdschluessel](../done/slice-katalog-indizes-defaults-fremdschluessel.md) liegt in `done/`; die EULA für das gepinnte Developer-Image ist vom Nutzer für diesen Lauf bestätigt; ein Verantwortlicher ist eingetragen. Der Slice steht vor [slice-abnahme-d-migrate](../open/slice-abnahme-d-migrate.md).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

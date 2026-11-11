@@ -34,7 +34,7 @@ Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- `ALTER TABLE … DROP CONSTRAINT [IF EXISTS]` (Punkt 2 des Registers) — kleiner, trifft den Validator zuerst: [slice-drop-constraint-form-d5](slice-drop-constraint-form-d5.md).
+- `ALTER TABLE … DROP CONSTRAINT [IF EXISTS]` (Punkt 2 des Registers) — kleiner, trifft den Validator zuerst: [slice-drop-constraint-form-d5](../in-progress/slice-drop-constraint-form-d5.md).
 - Allgemeines T-SQL (Variablen, Verzweigungen, Auswahl aus Katalogsichten) — der Slice erkennt den Text, den d-migrate 1.12.0 rendert, als feste Form; ein Interpreter für T-SQL ist nicht Gegenstand der Zusage in `TDS-FA-11`.
 - Identität und berechnete Spalten — Grenze von [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md), Entscheidung des Nutzers.
 
@@ -80,7 +80,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): Auslösung über das Register [katalog-elemente-grenzen-der-angleichung](../observations/BEO-TDS/katalog-elemente-grenzen-der-angleichung/state.md) (Punkt 1) oder über [slice-abnahme-d-migrate](slice-abnahme-d-migrate.md), wenn der Validator einen Standardwert an einer vorhandenen Spalte verlangt; [slice-drop-constraint-form-d5](slice-drop-constraint-form-d5.md) liegt in `done/` (Konflikte am Planer); die EULA für das gepinnte Developer-Image ist für diesen Lauf bestätigt; ein Verantwortlicher ist eingetragen.
+**Start** (`next` → `in-progress`): Auslösung über das Register [katalog-elemente-grenzen-der-angleichung](../observations/BEO-TDS/katalog-elemente-grenzen-der-angleichung/state.md) (Punkt 1) oder über [slice-abnahme-d-migrate](slice-abnahme-d-migrate.md), wenn der Validator einen Standardwert an einer vorhandenen Spalte verlangt; [slice-drop-constraint-form-d5](../in-progress/slice-drop-constraint-form-d5.md) liegt in `done/` (Konflikte am Planer); die EULA für das gepinnte Developer-Image ist für diesen Lauf bestätigt; ein Verantwortlicher ist eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
