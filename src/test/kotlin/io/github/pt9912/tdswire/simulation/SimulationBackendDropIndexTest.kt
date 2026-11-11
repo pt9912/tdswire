@@ -15,9 +15,9 @@ import kotlin.test.assertTrue
  * Zähler; ohne `IF EXISTS` ist ein Name ohne Treffer ERROR 3701, auch bei dem Index einer anderen Tabelle und an einer
  * unbekannten Tabelle; der Index einer Eindeutigkeit ist ERROR 3723, mit und ohne `IF EXISTS`; der Name gilt ohne
  * Beachtung der Schreibweise (gemessen am eindeutigen Index). Der Wortlaut von d-migrate steht in
- * [dMigrateDropIndexText]. Setzung (nicht gemessen): der Server führt Namen je Tabelle, die Bibliothek ebenso; die Art
- * des Abschlusses ist `UNKNOWN`, weil die Aufzählung der Arten keine für `DROP INDEX` führt; der Name des Schlüssels
- * ist im Modell nicht geführt und trifft deshalb nicht.
+ * [D_MIGRATE_DROP_INDEX_TEXT]. Setzung (nicht gemessen): Tabellen in einem anderen Schema als `dbo`; die Art des
+ * Abschlusses ist `UNKNOWN`, weil die Aufzählung der Arten keine für `DROP INDEX` führt; der Name des Schlüssels ist im
+ * Modell nicht geführt und trifft deshalb nicht.
  */
 class SimulationBackendDropIndexTest {
     private val rowless: suspend (SimQuery) -> RowSource = { RowSource { null } }
@@ -82,7 +82,7 @@ class SimulationBackendDropIndexTest {
     @Test
     fun `der Text von d-migrate nimmt den Index aus der Tabelle`() {
         val store = store()
-        assertEquals(StatementKind.UNKNOWN, kind(run(store, dMigrateDropIndexText)))
+        assertEquals(StatementKind.UNKNOWN, kind(run(store, D_MIGRATE_DROP_INDEX_TEXT)))
 
         assertEquals(1, store.shapes.size)
         val customers = store.table("kunden")
@@ -254,7 +254,7 @@ class SimulationBackendDropIndexTest {
     fun `die Form D6 wird mit Tabelle Name und IF EXISTS erkannt`() {
         assertRecognized(
             Statement.DropIndex(tableRef("kunden"), "ix_kunden_email", ifExists = true),
-            dMigrateDropIndexText,
+            D_MIGRATE_DROP_INDEX_TEXT,
         )
         assertRecognized(Statement.DropIndex(tableRef("t", "s"), "i", ifExists = false), "DROP INDEX i ON s.t")
         assertRecognized(

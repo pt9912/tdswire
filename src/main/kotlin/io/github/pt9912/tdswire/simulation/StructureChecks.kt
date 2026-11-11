@@ -41,9 +41,10 @@ internal object StructureChecks {
     }
 
     /** Die Tabelle ohne den Index [name] oder `null` ohne ihn; die Eindeutigkeit einer Bedingung ist kein Index. */
-    fun withoutIndex(table: SimTable, name: String): SimTable? =
-        table.copy(indexes = table.indexes.filterNot { same(it.name, name) })
-            .takeIf { table.indexes.any { same(it.name, name) } }
+    fun withoutIndex(table: SimTable, name: String): SimTable? {
+        val named = table.indexes.any { same(it.name, name) }
+        return if (named) table.copy(indexes = table.indexes.filterNot { same(it.name, name) }) else null
+    }
 
     /** Der Name ist der einer Eindeutigkeit der Tabelle, deren Index kein `DROP INDEX` entfernt. */
     fun constraintIndex(table: SimTable, name: String): Boolean = table.uniqueKeys.any { same(it.name, name) }
