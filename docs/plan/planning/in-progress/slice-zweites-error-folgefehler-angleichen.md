@@ -67,8 +67,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `src/main/kotlin/io/github/pt9912/tdswire/simulation/StructurePlanner.kt`, `SimulationChanges.kt` und die Fehlerregeln des Sequenzierers (Ort vom Implementer zu bestimmen) | update | Folge-Fehler nach dem ersten ERROR, Mechanismus wie INFO 3621 nach 2628 (`SPEC-031`); keine öffentliche Änderung erwartet |
-| `src/test/kotlin/io/github/pt9912/tdswire/simulation/` (enge Testklassen der Formen D3, D5, D7) | update | Handvektoren der Ablagen `struktur-standardwert-ersetzen.messung` und `struktur-drop-constraint.messung`, Mutationen je Zusage |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/error/ErrorCode.kt`, `ErrorMapper.kt`, `protocol/response/ResponseRun.kt`, `ResponseSequencer.kt`, `simulation/StatementPlanner.kt`, `StructurePlanner.kt`, `StructureChecks.kt` | update | Folge-Fehler nach dem ersten ERROR (`ErrorRule.followUp`, `MappedError.followUp`), Mechanismus wie INFO 3621 nach 2628 (`SPEC-031`); neuer Code `TDS_SIM_COLUMN_HAS_DEFAULT`; keine öffentliche Änderung |
+| `src/test/kotlin/io/github/pt9912/tdswire/protocol/error/ErrorMapperTest.kt`, `protocol/response/ResponseFollowUpTest.kt` (neu), `simulation/SimulationBackendDropDefaultTest.kt`, `SimulationBackendElementsStructureTest.kt`, `src/integrator/kotlin/io/github/pt9912/tdswire/integrator/DropConstraintEmbeddingTest.kt`, `DropDefaultEmbeddingTest.kt`, `WireClient.kt` | update | Handvektoren der Ablagen `struktur-standardwert-ersetzen.messung` und `struktur-drop-constraint.messung`, Mutationen je Zusage |
 | `spec/spezifikation.md` (`SPEC-035`, `SPEC-036`, Änderungsprotokoll), `docs/user/`, Register `BEO-TDS/katalog-elemente-grenzen-der-angleichung` | update | Zusage statt Grenze, Punkte 10 und 15 (b) |
 
 ## 4. Trigger

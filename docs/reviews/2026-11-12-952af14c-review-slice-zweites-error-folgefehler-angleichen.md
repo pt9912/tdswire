@@ -9,7 +9,7 @@
 **Eingangs-Kontext** (die Verträge, gegen die geprüft wurde):
 
 - Slice `slice-zweites-error-folgefehler-angleichen` (Plan §3, DoD, Risiken §6)
-- [ADR-0033](../plan/adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) (Accepted, im Diff unverändert), ADR-0038 (RETURNSTATUS im Fehlerfall), SPEC-031, SPEC-035, SPEC-036, SPEC-059
+- [ADR-0033](../plan/adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) (Accepted, im Diff unverändert), [ADR-0038](../plan/adr/0038-abschluss-einer-rpc-antwort-im-fehlerfall-folgt-dem-echten-server.md) (RETURNSTATUS im Fehlerfall), SPEC-031, SPEC-035, SPEC-036, SPEC-059
 - Ablagen `struktur-standardwert-ersetzen.messung` und `struktur-drop-constraint.messung` (2022, 2025), Messprotokolle `standardwert-ersetzen-d-migrate-2026-11-12` und `drop-constraint-d-migrate-2026-11-11`
 - `AGENTS.md` §3.1 bis §3.8; vorherige Reports am Modul: `2026-11-12-a70e06ef` (Form D7), `2026-11-11-e5c345aa` (Form D5)
 
@@ -49,7 +49,7 @@ Gesamtlaufzeit des Laufs rund 30 Minuten; größte Posten: Lesen von Diff, Spezi
 - `src/main/kotlin/…/protocol/response/`: `ResponseRun.kt`, `ResponseSequencer.kt` — geprüft, ohne Befund außer F-4 (INFO)
 - `src/main/kotlin/…/simulation/`: `StatementPlanner.kt`, `StructurePlanner.kt`, `StructureChecks.kt` — geprüft, ohne Befund (Reihenfolge Spalte unbekannt vor Standardwert vor Namensprüfung; der Zweig `Default -> false` in `exists` ist erreichbar, aber ohne Wirkung)
 - `src/test/`, `src/integrator/`: geprüft, ohne Befund außer F-5 (Lücken benannt)
-- `spec/spezifikation.md`: Schichtregel (keine `ADR-`/`ARC-` im Zugefügten, keine neue Zusage ohne Lastenheft-Anker `TDS-FA-11`, `TDS-QA-01`), ADR-0033 unverändert — geprüft, ohne Befund
+- `spec/spezifikation.md`: Schichtregel (keine `ADR-`/`ARC-` im Zugefügten, keine neue Zusage ohne Lastenheft-Anker `TDS-FA-11`, `TDS-QA-01`), [ADR-0033](../plan/adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) unverändert — geprüft, ohne Befund
 - `docs/user/` (`einbettung-und-betrieb.md`, `testserver-manuell.md`): Ist-Zustand ohne „bisher/noch nicht/Zielzustand“ im Zugefügten — geprüft, ohne Befund; `referenz-konfiguration.md` siehe F-1
 - Register `BEO-TDS/katalog-elemente-grenzen-der-angleichung`: Stand nennt Zustand und Träger; Haken der DoD im Slice nicht gesetzt (Slice nicht im Diff) — geprüft, ohne Befund (Plan-Tabelle siehe F-2)
 - Hard Rules §3.1 (Docker), §3.2 (Suppression), §3.5 (ADR immutable), §3.6 (Gates): nicht berührt — geprüft, ohne Befund

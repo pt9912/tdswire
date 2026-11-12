@@ -131,4 +131,27 @@ class ResponseFollowUpTest {
         )
         assertEquals(listOf<Token>(ErrorToken(FIRST)), sink.tokens)
     }
+
+    /**
+     * Festlegung „synchron“ im Pfad der Anweisung (`FailureScope.STATEMENT`): nimmt die Senke das zweite ERROR nicht
+     * an, folgt weder der Abschluss der Anweisung noch das nächste Ereignis. Wächter: ein Pfad der Anweisung, der das
+     * Ergebnis des zweiten Schreibens ignoriert.
+     *
+     * @spec SPEC-031
+     */
+    @Test
+    fun `Ein abgelehntes zweites ERROR im Pfad der Anweisung schliesst ohne DONE`() {
+        val sink = RecordingSink(rejectAt = 2)
+        assertEquals(
+            SequenceOutcome.CLOSE_WITHOUT_COMPLETION,
+            run(
+                withFollowUp,
+                ResponseForm.BATCH,
+                sink,
+                QueryEvent.Failure("x", "m", FailureScope.STATEMENT),
+                QueryEvent.UpdateCount(1),
+            ),
+        )
+        assertEquals(listOf<Token>(ErrorToken(FIRST)), sink.tokens)
+    }
 }

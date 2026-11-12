@@ -234,7 +234,7 @@ internal class ResponseRun(
         resultKind = StatementKind.UNKNOWN
         val written = mapped.errors.all { write(it) }
         if (written) {
-            trailer.record((mapped.followUp ?: mapped.message).number, continued = true)
+            trailer.record(mapped.message.number, continued = true)
             begun = true
             val rpc = form == ResponseForm.RPC
             val command = when {
