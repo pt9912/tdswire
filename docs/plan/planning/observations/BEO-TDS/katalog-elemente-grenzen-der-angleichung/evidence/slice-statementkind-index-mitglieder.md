@@ -1,2 +1,2 @@
-**Vorgang:** [slice-statementkind-index-mitglieder](../../../../in-progress/slice-statementkind-index-mitglieder.md)
+**Vorgang:** [slice-statementkind-index-mitglieder](../../../../done/slice-statementkind-index-mitglieder.md)
 **Fund:** Punkt 13 (a) ist gebaut und verifiziert: `StatementKind.CREATE_INDEX` (`0x00c8`) und `DROP_INDEX` (`0x00c9`), beide ohne `COUNT`, am Ende der Aufzählung; [Verifikation](../../../../../../reviews/2026-11-12-7d8bb877-verifikation-slice-statementkind-index-mitglieder.md), [Messprotokoll](../../../../../../messungen/statementkind-index-d-migrate-2026-11-12.md). Offen bleiben: `ENVCHANGE` Typ 8 und 9 bei diesen Arten (ungemessen, ungebaut), `INCLUDE` (Setzung), Filter und absteigende Spalte (nicht erkannt), Punkt 13 (b) und Punkt 14.
