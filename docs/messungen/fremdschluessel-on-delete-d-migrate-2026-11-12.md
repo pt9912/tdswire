@@ -4,7 +4,7 @@ Messprotokoll zu [TDS-FA-12](../../spec/lastenheft.md#tds-fa-12--testserver-mit-
 
 ## Ergebnis
 
-**Einordnung (a): Verhalten von d-migrate, keine Abweichung des Testservers.** Der echte SQL Server 2022 und der Testserver liefern in allen sieben Läufen je Seite denselben Exit-Code, dieselbe Katalogzeile und dieselbe Ausgabe von `schema compare`. Der Katalog meldet für `ON DELETE NO ACTION` am echten Server `delete_referential_action_desc = NO_ACTION` (`delete_referential_action = 0`); d-migrate liest `NO_ACTION` als „kein `on_delete`“ und vergleicht das mit dem Soll `no_action` oder `restrict`, das es zugleich als `ON DELETE NO ACTION` sendet.
+**Art (d) des Abnahmeprotokolls, Verhalten des Clients d-migrate, keine Abweichung des Testservers.** Gemessen mit d-migrate 1.12.0, nur `on_delete`, SQL Server 2022, je Fall ein Lauf: der echte SQL Server 2022 und der Testserver liefern in allen sieben Läufen je Seite denselben Exit-Code, dieselbe Katalogzeile und dieselbe Ausgabe von `schema compare`. Der Katalog meldet für `ON DELETE NO ACTION` am echten Server `delete_referential_action_desc = NO_ACTION` (`delete_referential_action = 0`); d-migrate liest `NO_ACTION` als „kein `on_delete`“ und vergleicht das mit dem Soll `no_action` oder `restrict`, das es zugleich als `ON DELETE NO ACTION` sendet.
 
 ## Bedingungen
 
@@ -50,9 +50,9 @@ Echter Server, wörtlich: `COLMETADATA[constraint_name:NVARCHAR(128)/flags=0x8, 
 ## Vorschlag für den Planner (setzt der Planner, nicht dieser Lauf)
 
 1. **Register** `BEO-TDS/katalog-elemente-grenzen-der-angleichung`, neuer Punkt 16: „**Fremdschlüssel mit `on_delete: restrict` oder `no_action` bei d-migrate:** keine Abweichung des Testservers. d-migrate sendet `ON DELETE NO ACTION`, der Katalog meldet `NO_ACTION` (echter Server und Testserver gleich, Messprotokoll `docs/messungen/fremdschluessel-on-delete-d-migrate-2026-11-12.md`, im Register als Link vom Ruheort zu schreiben), d-migrate liest es ohne `on_delete`; `schema migrate --execute` endet mit `POST_EXECUTE_DRIFT` und Exit 5, `compare` mit `DIFFERENT`. Dieselbe Art wie Punkt 3 (eindeutiger Index). Träger: Hinweis in der Anleitung.“ Alternativ eigene Beobachtung; sie hat keinen Träger im Code.
-2. **Anleitung** `docs/user/testserver-manuell.md`, Aufgabe 7: als Grenze neben dem eindeutigen Index nennen: „Ein Fremdschlüssel mit `on_delete: restrict` oder `no_action` im Soll endet bei `schema migrate --execute` mit Exit 5 und `compare` mit `DIFFERENT`, am echten SQL Server ebenso (d-migrate 1.12.0): d-migrate liest `NO ACTION` ohne `on_delete`. Lösung im Soll: `on_delete` weglassen (Standard ist `NO ACTION`).“ Beleg dafür: Lauf s1 und s2 „ohne“ (`IDENTICAL`).
+2. **Anleitung** `docs/user/testserver-manuell.md`, Aufgabe 7: als Grenze neben dem eindeutigen Index nennen: „Ein Fremdschlüssel mit `on_delete: restrict` oder `no_action` im Soll endet bei `schema migrate --execute` mit Exit 5 und `compare` mit `DIFFERENT`, am echten SQL Server 2022 ebenso (d-migrate 1.12.0, nur `on_delete`, je Fall ein Lauf): d-migrate liest `NO ACTION` ohne `on_delete`. Lösung im Soll: `on_delete` weglassen (Standard ist `NO ACTION`).“ Beleg dafür: Lauf s1 und s2 „ohne“ (`IDENTICAL`).
 3. **Spezifikation:** keine neue Setzung nötig; die Angleichung an den Katalog stimmt (`NO_ACTION` für `restrict`, `no_action` und ohne Angabe). Falls die Spezifikation `restrict` als `NO_ACTION` führt, ist sie durch diese Messung am echten Server (nur d-migrate 1.12.0, SQL Server 2022 `16.0.4305.5`) gestützt.
-4. **Abnahmeprotokoll:** Fund F3 von „(b), (c) offen“ auf „(a) Client, am echten Server gleich“ stellen und auf dieses Protokoll verweisen (Abschnitt „Grenzen“ dort, „kein Lauf gegen einen echten SQL Server“, trifft für F3 nicht mehr zu).
+4. **Abnahmeprotokoll:** Fund F3 von „(b), (c) offen“ auf Art „(d) Verhalten des Clients, am echten Server gleich“ stellen und auf dieses Protokoll verweisen (Abschnitt „Grenzen“ dort, „kein Lauf gegen einen echten SQL Server“, trifft für F3 nicht mehr zu).
 
 ## Grenzen dieses Protokolls
 

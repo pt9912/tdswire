@@ -96,16 +96,16 @@ Die Zeilen „Prüfbedingung neu“ bis „Eindeutigkeit neu“ sind in der Wirk
 
 ## E. Funde
 
-Nummern: F1 bis F4, getrennt nach (a) Fehler im Server, (b) Lücke oder Fehler der Anleitung, (c) Verhalten gegen den echten SQL Server abweichend, aber Setzung der Spezifikation.
+Nummern: F1 bis F4, getrennt nach (a) Fehler im Server, (b) Lücke oder Fehler der Anleitung, (c) Verhalten gegen den echten SQL Server abweichend, aber Setzung der Spezifikation, (d) Verhalten des Clients (d-migrate): Server, Testserver und echter SQL Server verhalten sich gleich.
 
 | Nr | Art | Befund | Befehl, Exit, Auszug | Erwartung nach der Anleitung |
 |---|---|---|---|---|
 | F1 | (b) | Aufgabe 6 setzt die Beispiel-Tabellen im Anfangsstand voraus; wer Aufgabe 3 bis Schritt 4 gefahren hat, hat die Spalte `Email` in `kunden`, und `data import` mit der Datei der Anleitung endet mit Exit 5 | `data import --source /work/kunden-ein.json --table kunden`, Exit 5, `Error: Import failed: Source and destination schemas do not match.` | Aufgabe 6 Schritt 2: Exit 0, `2 inserted`; die Anleitung sagt „Server läuft mit den Voreinstellungen, `kunden` leer“ und nennt keinen Neustart nach Aufgabe 3 |
 | F2 | (b) | `data transfer` kommt in der Anleitung nur in Eigenschaften vor, ohne Schritte: nötig sind zwei Server (zwei Ports, zwei Container) und gleiche Struktur; sonst bricht der Vorabtest ab | `data transfer --source <Server 1> --target <Server 2> --tables kunden`, Exit 3, `Error […]: Preflight: Column 'kunden.Email' missing in target` | Aufgabe 6 „`data transfer` mit `--on-conflict` läuft ebenso“; Exit 3 und die Voraussetzung stehen nirgends |
-| F3 | Verhalten von d-migrate, am echten Server gleich (Nachmessung) | Ein Fremdschlüssel mit `on_delete: restrict` oder `no_action` im Soll endet bei `schema migrate --execute` mit Exit 5, danach `DIFFERENT`: d-migrate sendet `ON DELETE NO ACTION`, liest den Fremdschlüssel ohne `on_delete` zurück; der Name wird dabei `_fk_<Spalte>` statt des Namens der ersten Anlage. Der echte SQL Server 2022 liefert dasselbe (Exit 5): d-migrate liest `NO_ACTION` ohne `on_delete`, keine Abweichung des Testservers, siehe [Messprotokoll zu F3](fremdschluessel-on-delete-d-migrate-2026-11-12.md) | `schema migrate --execute`, Exit 5, `Post-execute compare detected drift`; `compare`: `constraint _fk_LieferantId (… on_delete=no_action) -> _fk_LieferantId (…)` | Aufgabe 7 nennt als Grenze nur den eindeutigen Index; ein Soll mit `restrict` oder `no_action` ist nicht erwähnt |
+| F3 | (d) | Ein Fremdschlüssel mit `on_delete: restrict` oder `no_action` im Soll endet bei `schema migrate --execute` mit Exit 5, danach `DIFFERENT`: d-migrate sendet `ON DELETE NO ACTION`, liest den Fremdschlüssel ohne `on_delete` zurück; der Name wird dabei `_fk_<Spalte>` statt des Namens der ersten Anlage. Der echte SQL Server 2022 liefert dasselbe (Exit 5): d-migrate liest `NO_ACTION` ohne `on_delete`, keine Abweichung des Testservers, siehe [Messprotokoll zu F3](fremdschluessel-on-delete-d-migrate-2026-11-12.md) | `schema migrate --execute`, Exit 5, `Post-execute compare detected drift`; `compare`: `constraint _fk_LieferantId (… on_delete=no_action) -> _fk_LieferantId (…)` | Aufgabe 7 nennt als Grenze nur den eindeutigen Index; ein Soll mit `restrict` oder `no_action` ist nicht erwähnt |
 | F4 | (b) | Kleinigkeiten: die Verbindungszeichenfolgen der Anleitung tragen fest Port 1433, obwohl Aufgabe 1 für einen belegten Port `TESTSERVER_PORT` nennt; der Fremdschlüssel erscheint in `ist-elemente.yaml` als Eintrag in `constraints`, nicht als `references` an der Spalte | alle Befehle der Aufgaben 3, 6, 7 | Hinweis, den Port in `--source`/`--target` mitzuführen |
 
-Funde der Art (a): keine. Der Server hat in keinem Lauf eine Zusage der Anleitung verfehlt.
+Funde der Art (a): keine; F3 ist Art (d). Der Server hat in keinem Lauf eine Zusage der Anleitung verfehlt.
 
 ## F. Zuordnung zum Register (nach dem Lauf gelesen)
 
