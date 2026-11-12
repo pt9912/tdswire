@@ -168,20 +168,23 @@ class ErrorMapperTest {
      * Zähler; die Verbindung bleibt offen.
      * Nummer, Class, State, die offene Verbindung und der Abschluss sind am Referenzclient gegen den echten SQL Server
      * gemessen (Zeile M-19, 2022 und 2025; 3728 und 3733: Szenario `struktur-drop-constraint`, wo ein zweites ERROR
-     * 3727 folgt, das die Bibliothek nicht sendet; 3701 und 3723: Szenario `struktur-drop-index`, wo das DONE nach
-     * 3701 den Befehl `0x00c9` trägt), der Text ist ein Auszug des gemessenen Textes ohne die Namen
-     * (Setzung). Ebenso `TDS_SIM_STRING_TRUNCATED`: ERROR 2628, State 1, Class 16, offene Verbindung (Zeile M-15; der
+     * 3727 folgt, das [ErrorRule.followUp] trägt; 1781: Szenario `struktur-standardwert-ersetzen`, wo 1750 folgt; 3701
+     * und 3723: Szenario `struktur-drop-index`, wo das DONE nach 3701 den Befehl `0x00c9` trägt), der Text ist ein
+     * Auszug des gemessenen Textes ohne die Namen (Setzung); die Texte von 1781, 1750 und 3727 sind vollständig.
+     * Die Folge-ERROR stehen unmittelbar hinter dem ersten und vor dem DONE; die anderen Codes haben keines.
+     * Ebenso `TDS_SIM_STRING_TRUNCATED`: ERROR 2628, State 1, Class 16, offene Verbindung (Zeile M-15; der
      * Abschluss im Ergebnis steht in `ResponseMergeTest`).
-     * Wächter: Class 20 mit schließender Verbindung, State 1 für alle acht, Class 16 für 3701, eine
-     * andere Nummer, ein anderer Text.
+     * Wächter: Class 20 mit schließender Verbindung, State 1 für alle neun, Class 16 für 3701, eine
+     * andere Nummer, ein anderer Text, ein fehlendes oder überzähliges Folge-ERROR.
      *
      * @spec SPEC-036
      * @spec TDS-QA-01
      */
     @Test
-    fun `Strukturabweisung ist ERROR 2714, 2705, 4902, 3728, 3733, 3701 und 3723 mit gemessenem State, offen`() {
+    fun `Strukturabweisung ist ERROR 2714, 2705, 1781, 4902, 3728, 3733, 3701 und 3723 mit gemessenem State, offen`() {
         val expected = mapOf(
             ErrorCode.TDS_SIM_OBJECT_EXISTS to listOf(2714, 6, 16),
+            ErrorCode.TDS_SIM_COLUMN_HAS_DEFAULT to listOf(1781, 1, 16),
             ErrorCode.TDS_SIM_COLUMN_EXISTS to listOf(2705, 4, 16),
             ErrorCode.TDS_SIM_OBJECT_NOT_FOUND to listOf(4902, 1, 16),
             ErrorCode.TDS_SIM_STRING_TRUNCATED to listOf(2628, 1, 16),
@@ -192,6 +195,7 @@ class ErrorMapperTest {
         )
         val texts = mapOf(
             ErrorCode.TDS_SIM_OBJECT_EXISTS to "There is already an object named in the database.",
+            ErrorCode.TDS_SIM_COLUMN_HAS_DEFAULT to "Column already has a DEFAULT bound to it.",
             ErrorCode.TDS_SIM_COLUMN_EXISTS to "Column names in each table must be unique.",
             ErrorCode.TDS_SIM_OBJECT_NOT_FOUND to
                 "Cannot find the object because it does not exist or you do not have permissions.",
@@ -202,17 +206,102 @@ class ErrorMapperTest {
                 "Cannot drop the index because it does not exist or you do not have permission.",
             ErrorCode.TDS_SIM_INDEX_OF_CONSTRAINT to "An explicit DROP INDEX is not allowed on the index.",
         )
+        val dropped = listOf(3727, 0, 16, "Could not drop constraint. See previous errors.")
+        val followUps = mapOf(
+            ErrorCode.TDS_SIM_COLUMN_HAS_DEFAULT to
+                listOf(1750, 0, 16, "Could not create constraint or index. See previous errors."),
+            ErrorCode.TDS_SIM_NOT_A_CONSTRAINT to dropped,
+            ErrorCode.TDS_SIM_CONSTRAINT_OTHER_TABLE to dropped,
+        )
         for ((code, numbers) in expected) {
             val response = mapper.code(code)
             assertEquals(ConnectionFate.OPEN, response.fate, code.name)
             val tokens = TokenDecoder(assertNotNull(response.message).payload).decodeAll()
-            assertEquals(2, tokens.size, code.name)
+            val followUp = followUps[code]
+            assertEquals(if (followUp == null) 2 else 3, tokens.size, code.name)
             val error = assertIs<ErrorToken>(tokens[0]).message
             assertEquals(numbers, listOf(error.number, error.state, error.severity), code.name)
             assertEquals(texts.getValue(code), error.text, code.name)
-            assertEquals(DoneToken(DoneKind.DONE, DoneStatus.ERROR, DoneCommand.BATCH, 0), tokens[1], code.name)
+            if (followUp != null) {
+                val second = assertIs<ErrorToken>(tokens[1]).message
+                assertEquals(followUp, listOf(second.number, second.state, second.severity, second.text), code.name)
+            }
+            assertEquals(
+                DoneToken(DoneKind.DONE, DoneStatus.ERROR, DoneCommand.BATCH, 0),
+                tokens.last(),
+                code.name,
+            )
             assertTrue(code in ErrorMapper.BACKEND_CODES, code.name)
         }
+    }
+
+    private val error1781 =
+        "AA 60 00 F5 06 00 00 01 10 29 00 43 00 6F 00 6C 00 75 00 6D 00 6E 00 20 00 61 00 6C 00 72 00 65 00 61 00 64" +
+            " 00 79 00 20 00 68 00 61 00 73 00 20 00 61 00 20 00 44 00 45 00 46 00 41 00 55 00 4C 00 54 00 20 00 62" +
+            " 00 6F 00 75 00 6E 00 64 00 20 00 74 00 6F 00 20 00 69 00 74 00 2E 00 00 00 00 00 00 00"
+
+    private val error1750 =
+        "AA 82 00 D6 06 00 00 00 10 3A 00 43 00 6F 00 75 00 6C 00 64 00 20 00 6E 00 6F 00 74 00 20 00 63 00 72 00 65" +
+            " 00 61 00 74 00 65 00 20 00 63 00 6F 00 6E 00 73 00 74 00 72 00 61 00 69 00 6E 00 74 00 20 00 6F 00 72" +
+            " 00 20 00 69 00 6E 00 64 00 65 00 78 00 2E 00 20 00 53 00 65 00 65 00 20 00 70 00 72 00 65 00 76 00 69" +
+            " 00 6F 00 75 00 73 00 20 00 65 00 72 00 72 00 6F 00 72 00 73 00 2E 00 00 00 00 00 00 00"
+
+    private val error3727 =
+        "AA 6C 00 8F 0E 00 00 00 10 2F 00 43 00 6F 00 75 00 6C 00 64 00 20 00 6E 00 6F 00 74 00 20 00 64 00 72 00 6F" +
+            " 00 70 00 20 00 63 00 6F 00 6E 00 73 00 74 00 72 00 61 00 69 00 6E 00 74 00 2E 00 20 00 53 00 65 00 65" +
+            " 00 20 00 70 00 72 00 65 00 76 00 69 00 6F 00 75 00 73 00 20 00 65 00 72 00 72 00 6F 00 72 00 73 00 2E" +
+            " 00 00 00 00 00 00 00"
+
+    private val error3728 =
+        "AA 40 00 90 0E 00 00 01 10 19 00 4E 00 61 00 6D 00 65 00 20 00 69 00 73 00 20 00 6E 00 6F 00 74 00 20 00 61" +
+            " 00 20 00 63 00 6F 00 6E 00 73 00 74 00 72 00 61 00 69 00 6E 00 74 00 2E 00 00 00 00 00 00 00"
+
+    private val error3733 =
+        "AA 56 00 95 0E 00 00 02 10 24 00 43 00 6F 00 6E 00 73 00 74 00 72 00 61 00 69 00 6E 00 74 00 20 00 64 00 6F" +
+            " 00 65 00 73 00 20 00 6E 00 6F 00 74 00 20 00 62 00 65 00 6C 00 6F 00 6E 00 67 00 20 00 74 00 6F 00 20" +
+            " 00 74 00 61 00 62 00 6C 00 65 00 2E 00 00 00 00 00 00 00"
+
+    /**
+     * Handvektor des zweiten ERROR: 1781 mit 1750 (Szenario `struktur-standardwert-ersetzen`, Zeile 04) und 3728
+     * beziehungsweise 3733 mit 3727 (Szenario `struktur-drop-constraint`, Zeilen 05, 08, 10, 13, 16, 19) sind am echten
+     * SQL Server (2022 und 2025) als `ERROR ERROR DONE` gemessen, `DONE` mit `ERROR`, Befehl `0x00fd`, ohne Zähler.
+     * Nummer, State, Class und Text von 1781, 1750 und 3727 sind die gemessenen (die Bytes sind die der Messung bis
+     * auf den Servernamen und die Zeilennummer, die der Server füllt und die Bibliothek leer lässt); der Text von 3728
+     * und 3733 ist der Auszug ohne Namen. Die Bytes der ganzen Antwort sind Handvektor.
+     * Wächter: kein zweites ERROR, das zweite ERROR hinter dem DONE, 1750 für 3727, ein anderer State des zweiten
+     * ERROR.
+     *
+     * @spec SPEC-036
+     * @spec TDS-QA-01
+     */
+    @Test
+    fun `Die Strukturabweisung mit zweitem ERROR ist ERROR ERROR DONE wie am echten Server`() {
+        val cases = mapOf(
+            ErrorCode.TDS_SIM_COLUMN_HAS_DEFAULT to "$error1781  $error1750",
+            ErrorCode.TDS_SIM_NOT_A_CONSTRAINT to "$error3728  $error3727",
+            ErrorCode.TDS_SIM_CONSTRAINT_OTHER_TABLE to "$error3733  $error3727",
+        )
+        for ((code, errors) in cases) {
+            val response = mapper.code(code)
+            assertEquals(hex("$errors  $done").toHex(), assertNotNull(response.message).payload.toHex(), code.name)
+        }
+    }
+
+    /**
+     * Setzung (nicht gemessen): in der Antwort auf einen RPC steht das zweite ERROR ebenso hinter dem ersten, der
+     * RETURNSTATUS trägt die Nummer des letzten ERROR (3727), und das DONEPROC trägt `ERROR`, Befehl `0x00e0`.
+     * Wächter: der RETURNSTATUS mit 3728, das zweite ERROR fehlt in der Form RPC.
+     *
+     * @spec SPEC-036
+     */
+    @Test
+    fun `Im RPC steht das zweite ERROR vor dem RETURNSTATUS mit seiner Nummer`() {
+        val response = mapper.code(ErrorCode.TDS_SIM_NOT_A_CONSTRAINT, form = ResponseForm.RPC)
+        val rpcDone = "FE 02 00 E0 00 00 00 00 00 00 00 00 00"
+        assertEquals(
+            hex("$error3728  $error3727  79 8F 0E 00 00  $rpcDone").toHex(),
+            assertNotNull(response.message).payload.toHex(),
+        )
     }
 
     /**
@@ -410,7 +499,8 @@ class ErrorMapperTest {
             "TDS_BACKEND_ERROR", "TDS_TIMEOUT", "TDS_UNSUPPORTED_SQL", "TDS_SIM_UNKNOWN_OBJECT",
             "TDS_SIM_INVALID_VALUE", "TDS_INTERNAL_ERROR", "TDS_SHUTDOWN", "TDS_PREPARE_LIMIT",
             "TDS_SIM_UNKNOWN_PREPARED_HANDLE", "TDS_SIM_KEY_VIOLATION",
-            "TDS_SIM_OBJECT_EXISTS", "TDS_SIM_COLUMN_EXISTS", "TDS_SIM_OBJECT_NOT_FOUND", "TDS_SIM_STRING_TRUNCATED",
+            "TDS_SIM_OBJECT_EXISTS", "TDS_SIM_COLUMN_EXISTS", "TDS_SIM_COLUMN_HAS_DEFAULT", "TDS_SIM_OBJECT_NOT_FOUND",
+            "TDS_SIM_STRING_TRUNCATED",
             "TDS_SIM_NOT_A_CONSTRAINT", "TDS_SIM_CONSTRAINT_OTHER_TABLE",
             "TDS_SIM_NOT_AN_INDEX", "TDS_SIM_INDEX_OF_CONSTRAINT",
         )
@@ -454,6 +544,7 @@ class ErrorMapperTest {
             ErrorCode.TDS_SIM_KEY_VIOLATION,
             ErrorCode.TDS_SIM_OBJECT_EXISTS,
             ErrorCode.TDS_SIM_COLUMN_EXISTS,
+            ErrorCode.TDS_SIM_COLUMN_HAS_DEFAULT,
             ErrorCode.TDS_SIM_OBJECT_NOT_FOUND,
             ErrorCode.TDS_SIM_STRING_TRUNCATED,
             ErrorCode.TDS_SIM_NOT_A_CONSTRAINT,

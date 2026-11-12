@@ -102,6 +102,9 @@ class DropDefaultEmbeddingTest {
             assertEquals(ALTER_TABLE_COMMAND, absent.command)
             val added = client.batch("ALTER TABLE beschrieben ADD CONSTRAINT df_menge DEFAULT 2 FOR Menge")
             assertEquals(0, added.doneStatus and DONE_ERROR, "ADD CONSTRAINT nach dem Text: Erfolg")
+            val twice = client.batch("ALTER TABLE beschrieben ADD CONSTRAINT df_menge2 DEFAULT 3 FOR Menge")
+            assertEquals(DONE_ERROR, twice.doneStatus and DONE_ERROR, "zweiter Standardwert: Fehlerbit")
+            assertEquals(listOf(COLUMN_HAS_DEFAULT, NOT_CREATED), twice.errorNumbers(), "gemessen: 1781, dann 1750")
         }
         assertEquals(STRUCTURE_CALLS, shapes.size)
         assertEquals(listOf(null, "(N'neu')"), shapes.first().columns.drop(1).map { it.defaultDefinition })
@@ -112,5 +115,7 @@ class DropDefaultEmbeddingTest {
     private companion object {
         const val ALTER_TABLE_COMMAND = 0x00d8
         const val STRUCTURE_CALLS = 3
+        const val COLUMN_HAS_DEFAULT = 1781
+        const val NOT_CREATED = 1750
     }
 }

@@ -130,7 +130,8 @@ internal class ErrorMapper(internal val log: ErrorLog = ErrorLog.NONE) {
         SequenceOutcome.CLOSE_WITHOUT_COMPLETION -> ConnectionFate.CLOSE_WITHOUT_REPLY
     }
 
-    private fun mapped(code: ErrorCode) = MappedError(code.rule.message(), code.rule.fate != ConnectionFate.OPEN)
+    private fun mapped(code: ErrorCode) =
+        MappedError(code.rule.message(), code.rule.fate != ConnectionFate.OPEN, code.rule.followUp)
 
     private class Classified(val code: ErrorCode, val cause: String?)
 
@@ -160,7 +161,7 @@ internal class ErrorMapper(internal val log: ErrorLog = ErrorLog.NONE) {
         if (!streamSynchronous) {
             return ErrorResponse(code, null, ConnectionFate.CLOSE_WITHOUT_REPLY)
         }
-        return ErrorResponse(code, serialize(listOf(rule.message()), form), code.rule.fate)
+        return ErrorResponse(code, serialize(listOfNotNull(rule.message(), rule.followUp), form), code.rule.fate)
     }
 
     private fun serialize(messages: List<ServerMessage>, form: ResponseForm): TdsMessage =
@@ -181,6 +182,7 @@ internal class ErrorMapper(internal val log: ErrorLog = ErrorLog.NONE) {
             ErrorCode.TDS_SIM_KEY_VIOLATION,
             ErrorCode.TDS_SIM_OBJECT_EXISTS,
             ErrorCode.TDS_SIM_COLUMN_EXISTS,
+            ErrorCode.TDS_SIM_COLUMN_HAS_DEFAULT,
             ErrorCode.TDS_SIM_OBJECT_NOT_FOUND,
             ErrorCode.TDS_SIM_NOT_A_CONSTRAINT,
             ErrorCode.TDS_SIM_CONSTRAINT_OTHER_TABLE,

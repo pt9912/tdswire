@@ -225,9 +225,10 @@ class SimulationBackendElementsStructureTest {
     /**
      * Negativ: die Abweisung gegen den Katalog. Eine Zieltabelle oder Zielspalte, die es nicht gibt, eine Spalte der
      * Eindeutigkeit, die es nicht gibt, und ein Standardwert für eine unbekannte Spalte sind `TDS_SIM_UNKNOWN_OBJECT`;
-     * ein doppelter Name einer Bedingung, ein zweiter Standardwert der Spalte und ein doppelter Name eines Index sind
-     * `TDS_SIM_OBJECT_EXISTS` (auch ein Index, dessen Name der einer vorhandenen Eindeutigkeit ist, und umgekehrt);
-     * ein `ALTER TABLE` und ein `CREATE INDEX` auf eine unbekannte Tabelle sind
+     * ein doppelter Name einer Bedingung und ein doppelter Name eines Index sind `TDS_SIM_OBJECT_EXISTS` (auch ein
+     * Index, dessen Name der einer vorhandenen Eindeutigkeit ist, und umgekehrt); ein zweiter Standardwert der Spalte
+     * ist `TDS_SIM_COLUMN_HAS_DEFAULT` (1781, gemessen); ein `ALTER TABLE` und ein `CREATE INDEX` auf eine unbekannte
+     * Tabelle sind
      * `TDS_SIM_OBJECT_NOT_FOUND`. Die Codes für Bedingungen sind Setzung (nur 2714, 2705 und 4902 sind für Tabelle und
      * Spalte gemessen). Der Callback bleibt ungerufen.
      * Wächter: eine Abweisung als `TDS_UNSUPPORTED_SQL` (die Verbindung bliebe, aber der Code wäre falsch) oder eine
@@ -265,7 +266,10 @@ class SimulationBackendElementsStructureTest {
         assertEquals(exists, failureCode(store, "CREATE INDEX I ON kunden (Email)"))
         assertEquals(exists, failureCode(store, "ALTER TABLE kunden ADD CONSTRAINT I UNIQUE (Email)"))
         run(store, "ALTER TABLE bestellung ADD CONSTRAINT d DEFAULT 1 FOR Menge")
-        assertEquals(exists, failureCode(store, "ALTER TABLE bestellung ADD CONSTRAINT d2 DEFAULT 2 FOR menge"))
+        assertEquals(
+            SimCodes.COLUMN_HAS_DEFAULT,
+            failureCode(store, "ALTER TABLE bestellung ADD CONSTRAINT d2 DEFAULT 2 FOR menge"),
+        )
         assertEquals(2, store.shapes.size)
     }
 

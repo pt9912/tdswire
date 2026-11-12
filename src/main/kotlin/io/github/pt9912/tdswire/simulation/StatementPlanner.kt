@@ -25,6 +25,9 @@ internal object SimCodes {
     /** `CREATE TABLE` einer vorhandenen Tabelle (2714, Messprotokoll M-19). */
     const val OBJECT_EXISTS = "TDS_SIM_OBJECT_EXISTS"
 
+    /** `ALTER TABLE … ADD CONSTRAINT … DEFAULT … FOR` einer Spalte mit Standardwert (1781, danach 1750). */
+    const val COLUMN_HAS_DEFAULT = "TDS_SIM_COLUMN_HAS_DEFAULT"
+
     /** `ALTER TABLE … ADD` einer vorhandenen Spalte (2705, Messprotokoll M-19). */
     const val COLUMN_EXISTS = "TDS_SIM_COLUMN_EXISTS"
 
