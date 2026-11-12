@@ -47,12 +47,14 @@ Echter Server, wörtlich: `COLMETADATA[constraint_name:NVARCHAR(128)/flags=0x8, 
 - **Quelltext von d-migrate nicht gelesen:** die Aussage „liest `NO_ACTION` als kein `on_delete`“ ist aus dem Verhalten (Eingabe gegen Ausgabe) geschlossen, nicht aus dem Quelltext.
 - **Testserver:** `SimElementFields.kt` bildet `restrict` und `no_action` auf `NO_ACTION` ab und ohne Angabe ebenso (`testserver/kotlin/io/github/pt9912/tdswire/testserver/SimElementFields.kt` Zeilen 13 bis 17 und 56); die Bibliothek meldet es mit dem Katalog (`src/main/kotlin/io/github/pt9912/tdswire/simulation/CatalogForms.kt` Zeilen 128 bis 150). Das entspricht dem Katalog des echten Servers; eine Abweichung ist nicht gefunden, ein Folge-Slice für den Testserver nicht nötig.
 
-## Vorschlag für den Planner (setzt der Planner, nicht dieser Lauf)
+## Stand der Vorschläge
 
-1. **Register** `BEO-TDS/katalog-elemente-grenzen-der-angleichung`, neuer Punkt 16: „**Fremdschlüssel mit `on_delete: restrict` oder `no_action` bei d-migrate:** keine Abweichung des Testservers. d-migrate sendet `ON DELETE NO ACTION`, der Katalog meldet `NO_ACTION` (echter Server und Testserver gleich, Messprotokoll `docs/messungen/fremdschluessel-on-delete-d-migrate-2026-11-12.md`, im Register als Link vom Ruheort zu schreiben), d-migrate liest es ohne `on_delete`; `schema migrate --execute` endet mit `POST_EXECUTE_DRIFT` und Exit 5, `compare` mit `DIFFERENT`. Dieselbe Art wie Punkt 3 (eindeutiger Index). Träger: Hinweis in der Anleitung.“ Alternativ eigene Beobachtung; sie hat keinen Träger im Code.
-2. **Anleitung** `docs/user/testserver-manuell.md`, Aufgabe 7: als Grenze neben dem eindeutigen Index nennen: „Ein Fremdschlüssel mit `on_delete: restrict` oder `no_action` im Soll endet bei `schema migrate --execute` mit Exit 5 und `compare` mit `DIFFERENT`, am echten SQL Server 2022 ebenso (d-migrate 1.12.0, nur `on_delete`, je Fall ein Lauf): d-migrate liest `NO ACTION` ohne `on_delete`. Lösung im Soll: `on_delete` weglassen (Standard ist `NO ACTION`).“ Beleg dafür: Lauf s1 und s2 „ohne“ (`IDENTICAL`).
-3. **Spezifikation:** keine neue Setzung nötig; die Angleichung an den Katalog stimmt (`NO_ACTION` für `restrict`, `no_action` und ohne Angabe). Falls die Spezifikation `restrict` als `NO_ACTION` führt, ist sie durch diese Messung am echten Server (nur d-migrate 1.12.0, SQL Server 2022 `16.0.4305.5`) gestützt.
-4. **Abnahmeprotokoll:** Fund F3 von „(b), (c) offen“ auf Art „(d) Verhalten des Clients, am echten Server gleich“ stellen und auf dieses Protokoll verweisen (Abschnitt „Grenzen“ dort, „kein Lauf gegen einen echten SQL Server“, trifft für F3 nicht mehr zu).
+Die vier Vorschläge dieses Laufs an den Planner sind umgesetzt; der Stand je Vorschlag:
+
+1. **Register** `BEO-TDS/katalog-elemente-grenzen-der-angleichung`, Punkt 16: umgesetzt mit der Closure von [slice-abnahme-d-migrate](../plan/planning/done/slice-abnahme-d-migrate.md); Träger ist der Hinweis in der Anleitung.
+2. **Anleitung** `docs/user/testserver-manuell.md`, Aufgabe 7: umgesetzt (Grenze neben dem eindeutigen Index; Lösung im Soll: `on_delete` weglassen oder `cascade`; Beleg: Läufe s1 und s2 „ohne“, `IDENTICAL`).
+3. **Spezifikation:** keine neue Setzung nötig; die Angleichung an den Katalog stimmt (`NO_ACTION` für `restrict`, `no_action` und ohne Angabe), gestützt durch diese Messung am echten Server (nur d-migrate 1.12.0, SQL Server 2022 `16.0.4305.5`).
+4. **Abnahmeprotokoll:** umgesetzt (Fund F3 als Art (d), Verweis auf dieses Protokoll).
 
 ## Grenzen dieses Protokolls
 
