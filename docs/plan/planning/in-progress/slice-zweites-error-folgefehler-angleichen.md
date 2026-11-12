@@ -44,21 +44,21 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 Liefer-Punkte (zwei):
 
-- [ ] **Bau** ([TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend)): der zweite Standardwert an derselben Spalte endet mit 1781 und 1750 (Class 16, Verbindung offen), `DROP CONSTRAINT` mit 3728 oder 3733 sendet danach das zweite ERROR 3727; Nummern, Class und State aus den Ablagen der Messung (Handvektoren), Tests je Zusage und Mutationen je Zusage; ob der Folge-Fehler im RPC gilt, ist zu messen oder als Setzung zu kennzeichnen.
-- [ ] **Fortschreibung und Beleg** ([TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität)): `SPEC-035`, `SPEC-036` (Form D3, D5, D7 (b)), Nutzer-Doku und Register (Punkte 10 und 15 (b)) nachgezogen; `schema migrate --execute` von d-migrate bleibt gegen den Testserver bei Exit 0 und `IDENTICAL`.
+- [x] **Bau** ([TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend)): der zweite Standardwert an derselben Spalte endet mit 1781 und 1750 (Class 16, Verbindung offen), `DROP CONSTRAINT` mit 3728 oder 3733 sendet danach das zweite ERROR 3727; Nummern, Class und State aus den Ablagen der Messung (Handvektoren), Tests je Zusage und Mutationen je Zusage; ob der Folge-Fehler im RPC gilt, ist zu messen oder als Setzung zu kennzeichnen.
+- [x] **Fortschreibung und Beleg** ([TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität)): `SPEC-035`, `SPEC-036` (Form D3, D5, D7 (b)), Nutzer-Doku und Register (Punkte 10 und 15 (b)) nachgezogen; `schema migrate --execute` von d-migrate bleibt gegen den Testserver bei Exit 0 und `IDENTICAL`.
 
 Nachweis-Pflichten für alle Punkte:
 
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Haken der Liefer-Punkte setzt der Planner nach der Verifikation, nicht der Implementer (`BEO-TDS/haken-vor-verifikation-gesetzt`).
-- [ ] Doku-Update, falls ein öffentlicher Vertrag berührt ist.
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen“ in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+- [x] Haken der Liefer-Punkte setzt der Planner nach der Verifikation, nicht der Implementer (`BEO-TDS/haken-vor-verifikation-gesetzt`).
+- [x] Doku-Update, falls ein öffentlicher Vertrag berührt ist.
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen“ in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
 
 ## 3. Plan (vor Code)
 
@@ -69,7 +69,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 |---|---|---|
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/error/ErrorCode.kt`, `ErrorMapper.kt`, `protocol/response/ResponseRun.kt`, `ResponseSequencer.kt`, `simulation/StatementPlanner.kt`, `StructurePlanner.kt`, `StructureChecks.kt` | update | Folge-Fehler nach dem ersten ERROR (`ErrorRule.followUp`, `MappedError.followUp`), Mechanismus wie INFO 3621 nach 2628 (`SPEC-031`); neuer Code `TDS_SIM_COLUMN_HAS_DEFAULT`; keine öffentliche Änderung |
 | `src/test/kotlin/io/github/pt9912/tdswire/protocol/error/ErrorMapperTest.kt`, `protocol/response/ResponseFollowUpTest.kt` (neu), `simulation/SimulationBackendDropDefaultTest.kt`, `SimulationBackendElementsStructureTest.kt`, `src/integrator/kotlin/io/github/pt9912/tdswire/integrator/DropConstraintEmbeddingTest.kt`, `DropDefaultEmbeddingTest.kt`, `WireClient.kt` | update | Handvektoren der Ablagen `struktur-standardwert-ersetzen.messung` und `struktur-drop-constraint.messung`, Mutationen je Zusage |
-| `spec/spezifikation.md` (`SPEC-035`, `SPEC-036`, Änderungsprotokoll), `docs/user/`, Register `BEO-TDS/katalog-elemente-grenzen-der-angleichung` | update | Zusage statt Grenze, Punkte 10 und 15 (b) |
+| `spec/spezifikation.md` (`SPEC-031`, `SPEC-035`, `SPEC-036`, Änderungsprotokoll), `docs/user/`, Register `BEO-TDS/katalog-elemente-grenzen-der-angleichung` | update | Zusage statt Grenze, Punkte 10 und 15 (b) |
 
 ## 4. Trigger
 
@@ -95,20 +95,23 @@ DoD vollständig, `make gates` grün, Review und Verifikation liegen vor, `make 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Offene Risiken werden bei Closure aufgelöst — jedes Risiko bekommt genau einen Ausgang.
 
-- Der Folge-Fehler ist nur als Batch gemessen (Punkt 10), im RPC nicht; ein Client im RPC sähe eine Folge, die nicht gemessen ist. — **Ausgang:** offen bis zur Closure.
-- Ein Client, der nur das erste ERROR kennt, sieht ein zusätzliches ERROR; d-migrate liest bisher das erste. — **Ausgang:** offen bis zur Closure.
+- Der Folge-Fehler ist nur als Batch gemessen (Punkt 10), im RPC nicht; ein Client im RPC sähe eine Folge, die nicht gemessen ist. — **Ausgang:** weiter offen als Setzung, so gekennzeichnet in `SPEC-031`, `SPEC-035` und `SPEC-036` (Form D5, D7 (b)), im Test `ResponseFollowUpTest` und im Register (Punkte 10 und 15 (b)); Trigger zum Wiederaufnehmen: eine Messung der Folge im RPC, im Massenladen oder im `MERGE` am echten Server.
+- Ein Client, der nur das erste ERROR kennt, sieht ein zusätzliches ERROR; d-migrate liest bisher das erste. — **Ausgang:** entfallen nach der Verifikation: d-migrate 1.12.0 gegen den Testserver aus dem Arbeitsbaum endet in den fünf Schritten a bis e mit Exit 0 und `IDENTICAL`; der Fehlerpfad selbst wird von d-migrate nicht ausgelöst (es sendet `IF EXISTS` und den Text mit `DECLARE @df`). Ein Client, der nur das erste ERROR liest, bleibt unberührt, weil das zweite ERROR vor dem Abschluss steht, wie am echten Server.
 
 ## 7. Closure-Notiz
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Das Beobachtungs-Register; `grundlagen-traceability.md` §Herkunfts-Anker für Steering-Loop-Regeln.
 
-- **Was hat funktioniert:** —
-- **Was ging anders als geplant:** —
-- **Steering-Loop-Eintrag:** —
-- **Beobachtungs-Register (`../observations/`):** —
-- **Folge-Slices:** —
-- **Risiken aus §6:** —
+- **Was hat funktioniert:** Die Messung lag vor dem Bau: die Ablagen `struktur-standardwert-ersetzen.messung` und `struktur-drop-constraint.messung` (2022 und 2025, gleiche Tokenfolge) lieferten Nummern, State, Class und Texte; der Verifier dekodierte die Rohbytes mit eigenem Dekoder und fand sie gleich den Handvektoren der Tests und den Konstanten in `ErrorCode.kt`. Der Mechanismus des Folge-Tokens (INFO 3621 nach 2628) trug die Angleichung als `ErrorRule.followUp` ohne neuen Typ; die öffentliche Fläche wuchs nicht (`make flaeche`). Verifikation auf `a62fbecf`: `make clean-build` Exit 0 (572 s, 1391 `PASSED`), `make e2e` Exit 0 (8 Stufen, 392 s), d-migrate 1.12.0 gegen den Testserver fünf Schritte Exit 0 und `IDENTICAL`.
+- **Was ging anders als geplant:** (1) Der Erst-Review fand zwei MEDIUM: die Referenzseite der Nutzer-Doku (`referenz-konfiguration.md`) nannte das zweite ERROR nicht (F-1), und die Plan-Tabelle §3 nannte berührte Dateien nicht und eine nicht berührte (F-2); beide behoben in `f37c39e6`, das Re-Review fand einen Rest (R-1, `SPEC-031` in der Tabelle), behoben in dieser Closure. (2) `RETURNSTATUS` = Nummer des letzten ERROR und die Folge im Massenladen und im `MERGE` sind Setzung (F-5 (b)); die Spezifikation kennzeichnet sie. (3) `docs/plan/spec-abdeckung.md` wurde erst in der Closure neu erzeugt (F-3). (4) V-1 (Zeilenzählung): gemeint-konsistent; die Zeilen 05, 08, 10, 13, 16, 19 in KDoc und `SPEC-036` sind die Zeilen des Messprotokolls (Nummer der Anfrage in der Ablage); in der Datei stehen die Antworten darauf an den Dateizeilen 12 + 2n (22, 28, 32, 38, 44, 50), nichts zu ändern. (5) Am Rand (V-2): der Mitschnitt zeigt ein 3727 auch hinter 3725 (Punkt 12 des Registers, nicht geplant); `SPEC-036` behauptet dazu nichts.
+- **Befunde von Review und Verifikation und ihr Ausgang:** Erst-Review: 0 HIGH, 2 MEDIUM (F-1, F-2), 1 LOW (F-3), 3 INFO (F-4 bis F-6). Re-Review: F-1, F-2, F-4, F-5 behoben, F-6 datiertes Protokoll bleibt Stand der Messung, neu R-1 (LOW), R-2 (INFO). Verifikation: konform, 0 HIGH, 0 MEDIUM, V-1 bis V-3 INFO. R-1 und F-3 (LOW): behoben in der Closure. R-2 (INFO, „gemessen, Form D7“ ohne „im SQL_BATCH“ in zwei Sätzen): Lesart belegt (Form D7 ist ein Batch), keine Änderung.
+- **Steering-Loop-Eintrag:** Kein Eintrag verkörpert, daher kein `liegt in`; gezählt, nicht verkörpert: *Fortschreibung lässt die zweite Fundstelle stehen* trat erneut auf: die Nachbesserung des Implementers zog `einbettung-und-betrieb.md`, `testserver-manuell.md` und die Spezifikation nach, nicht die Referenzseite `referenz-konfiguration.md` (Review F-1, MEDIUM); die Regel ist im Reviewer-Skill verkörpert und fing den Fund, es fehlt weiter der Wächter auf der Seite des Implementers (Suchschritt über `spec/` und `docs/user/` nach der Kernaussage, nicht nach den genannten Stellen). Neues Auftreten in `BEO-TDS/fortschreibung-laesst-zweite-fundstelle-stehen` (Evidence dieses Slice, die Zähler folgen aus den Dateien, den Lese-Schritt macht die Welle-Closure). Keine benannte Spec-Lücke: die RPC-Folge ist als Setzung in der Spezifikation geführt, nicht als Lücke.
+- **Beobachtungs-Register (`../observations/`):** [BEO-TDS/katalog-elemente-grenzen-der-angleichung](../observations/BEO-TDS/katalog-elemente-grenzen-der-angleichung/state.md): Punkte 10 und 15 (b) gegengelesen, gebaut und als Batch gemessen, im RPC Setzung; Punkt 11 bleibt offen (Entscheid des Nutzers: Namen führen oder Grenze in die Spezifikation). [BEO-TDS/fortschreibung-laesst-zweite-fundstelle-stehen](../observations/BEO-TDS/fortschreibung-laesst-zweite-fundstelle-stehen/state.md): Evidence `slice-zweites-error-folgefehler-angleichen.md`.
+- **Folge-Slices:** keine. Der Slice ist der letzte offene der Welle [welle-testserver-manuell](../welle-testserver-manuell.md); die Welle ist damit schließbar (Closure-Trigger: alle Slices in `done/`), `close-welle` steht aus.
+- **Risiken aus §6:** beide mit Ausgang eingetragen (weiter offen als Setzung: 1 (RPC-Folge); entfallen: 2 (Clients mit erstem ERROR, d-migrate Exit 0 und `IDENTICAL`)).
+- **Verifikation:** [Verifikationsbericht](../../../reviews/2026-11-12-c84d5579-verifikation-slice-zweites-error-folgefehler-angleichen.md) auf `c84d5579`: konform; `make clean-build` Exit 0 (572 s), `make e2e` Exit 0 (8 Stufen, 392 s), d-migrate Exit 0 und `IDENTICAL`; Erst-Review [952af14c](../../../reviews/2026-11-12-952af14c-review-slice-zweites-error-folgefehler-angleichen.md) (Dateiname) und [Re-Review](../../../reviews/2026-11-12-f37c39e6-review-slice-zweites-error-folgefehler-angleichen-nachbesserung.md). Nach der Verifikation geändert: nur diese Closure (Plan-Tabelle, `docs/plan/spec-abdeckung.md`, Slice, Register, Roadmap, Welle); `src/` unverändert.
+- **Drei Paarungen:** Das Repo führt Wellen; die Paarungen prüft die Closure von [welle-testserver-manuell](../welle-testserver-manuell.md). Hier geprüft: *Anker*: kein Anker gesetzt (kein `liegt in`). *Folge-Slice*: keiner nötig. *Register*: beide genannten Kennungen bestehen als Verzeichnis mit nicht leerem `evidence/`.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

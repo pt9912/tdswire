@@ -1,0 +1,2 @@
+**Vorgang:** [slice-zweites-error-folgefehler-angleichen](../../../../in-progress/slice-zweites-error-folgefehler-angleichen.md)
+**Fund:** [Review](../../../../../../reviews/2026-11-12-952af14c-review-slice-zweites-error-folgefehler-angleichen.md) F-1 (MEDIUM): die Fortschreibung des zweiten ERROR zog `einbettung-und-betrieb.md`, `testserver-manuell.md` und die Spezifikation nach und ließ `docs/user/referenz-konfiguration.md` (Satz zu den Fehlern, Codetabelle, Antwortformen) stehen; behoben in `f37c39e6`.
