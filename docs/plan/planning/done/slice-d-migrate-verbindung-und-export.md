@@ -130,7 +130,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 
 **Beobachtungs-Register (`../observations/`):** Evidence ergänzt in `BEO-TDS/zeile-oder-zweig-ohne-unterscheidenden-test/evidence/slice-d-migrate-verbindung-und-export.md` und `BEO-TDS/festlegung-gilt-nur-fuer-das-clientprofil/evidence/slice-d-migrate-verbindung-und-export.md`; `BEO-TDS/parametertyp-des-clients-passt-nicht-zur-spalte` hat seinen Träger im `state.md`. Die Beobachtung `festlegung-gilt-nur-fuer-das-clientprofil` steht damit auf 3 Evidence-Dateien (Schwelle erreicht); der Lese-Schritt gehört in die Closure von [welle-testserver-manuell](../welle-testserver-manuell.md).
 
-**Folge-Slices:** keine neuen. Die Start-Trigger von [slice-katalog-und-ddl-zustand](../done/slice-katalog-und-ddl-zustand.md) und den beiden Schreibpfad-Slices nennen diesen Slice nicht; [slice-abnahme-d-migrate](../in-progress/slice-abnahme-d-migrate.md) verlangt ihn in `done/`.
+**Folge-Slices:** keine neuen. Die Start-Trigger von [slice-katalog-und-ddl-zustand](../done/slice-katalog-und-ddl-zustand.md) und den beiden Schreibpfad-Slices nennen diesen Slice nicht; [slice-abnahme-d-migrate](../done/slice-abnahme-d-migrate.md) verlangt ihn in `done/`.
 
 **Risiken aus §6:** Risiko 1 entfallen (Lastenheft 0.7.1, [TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate)), Risiko 2 weiter offen (Träger im Register), Risiko 3 entfallen (gemessen).
 

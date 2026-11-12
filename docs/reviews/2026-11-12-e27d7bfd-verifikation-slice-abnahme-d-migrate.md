@@ -1,6 +1,6 @@
 # Verifikationsbericht: slice-abnahme-d-migrate (HEAD e27d7bfd)
 
-* Rolle: Verifier (Modul 11), frischer Kontext. Gegenstand: [slice-abnahme-d-migrate](../plan/planning/in-progress/slice-abnahme-d-migrate.md). Maßstab: DoD §2, Plan §3, [TDS-FA-12](../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), [TDS-QA-01](../../spec/lastenheft.md#tds-qa-01--kompatibilität), [ADR-0025](../plan/adr/0025-produktschnitt-bibliothek-und-testserver.md), `SPEC-040`, Hard Rules `AGENTS.md` §3.1 bis §3.8.
+* Rolle: Verifier (Modul 11), frischer Kontext. Gegenstand: [slice-abnahme-d-migrate](../plan/planning/done/slice-abnahme-d-migrate.md). Maßstab: DoD §2, Plan §3, [TDS-FA-12](../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), [TDS-QA-01](../../spec/lastenheft.md#tds-qa-01--kompatibilität), [ADR-0025](../plan/adr/0025-produktschnitt-bibliothek-und-testserver.md), `SPEC-040`, Hard Rules `AGENTS.md` §3.1 bis §3.8.
 * Stand: Zweig `worktree-agent-a21526b2fddb5451e`, HEAD `e27d7bfd`, Basis `main` `d348c1f2`; `git merge-tree --write-tree $(git rev-parse main) HEAD` liefert einen Baum (`d9200c8f`), konfliktfrei. Am Produktivcode nichts geändert. Haken in der DoD: keine gesetzt, und ich setze keine.
 * Eingang: Review [2026-11-12-3a276fae-review-slice-abnahme-d-migrate.md](2026-11-12-3a276fae-review-slice-abnahme-d-migrate.md) (0 HIGH, 2 MEDIUM, 2 LOW, 3 INFO); die Nachbesserung F-1 bis F-5 im Commit `e27d7bfd` habe ich gegen den Text geprüft (alle fünf umgesetzt, siehe unten).
 
@@ -85,7 +85,7 @@ Darüber hinaus keine Datei. Der Slice-Kopf trägt `Verantwortlich: pt9912` (Com
 
 ## (6) Folge-Slice
 
-`slice-zweites-error-folgefehler-angleichen` liegt in `open/`; im Diff nur der Pfad im Satz „Start“ (`../in-progress/slice-abnahme-d-migrate.md`). Der Trigger (Abnahme trifft den zweiten Standardwert an derselben Spalte oder das zweite ERROR 3727) ist nicht ausgelöst: Register 10 und 15(b) stehen im Protokoll als „nein“; ich habe weder Standardwert zweimal an einer Spalte noch `DROP CONSTRAINT` ohne Treffer gesehen (d-migrate sendet `IF EXISTS`). Er bleibt offen und spätestens bei der Wellen-Closure fällig.
+`slice-zweites-error-folgefehler-angleichen` liegt in `open/`; im Diff nur der Pfad im Satz „Start“ (`../done/slice-abnahme-d-migrate.md`). Der Trigger (Abnahme trifft den zweiten Standardwert an derselben Spalte oder das zweite ERROR 3727) ist nicht ausgelöst: Register 10 und 15(b) stehen im Protokoll als „nein“; ich habe weder Standardwert zweimal an einer Spalte noch `DROP CONSTRAINT` ohne Treffer gesehen (d-migrate sendet `IF EXISTS`). Er bleibt offen und spätestens bei der Wellen-Closure fällig.
 
 ## Befunde
 

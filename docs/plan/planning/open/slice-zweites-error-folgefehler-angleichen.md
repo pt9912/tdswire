@@ -76,7 +76,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`open` → `next` → `in-progress`): die Abnahme [slice-abnahme-d-migrate](../in-progress/slice-abnahme-d-migrate.md) trifft einen der beiden Fälle, oder spätestens die Closure der Welle [welle-testserver-manuell](../welle-testserver-manuell.md) (die Welle schließt erst, wenn dieser Slice in `done/` liegt); ein Verantwortlicher ist eingetragen.
+**Start** (`open` → `next` → `in-progress`): die Abnahme [slice-abnahme-d-migrate](../done/slice-abnahme-d-migrate.md) trifft einen der beiden Fälle, oder spätestens die Closure der Welle [welle-testserver-manuell](../welle-testserver-manuell.md) (die Welle schließt erst, wenn dieser Slice in `done/` liegt); ein Verantwortlicher ist eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
