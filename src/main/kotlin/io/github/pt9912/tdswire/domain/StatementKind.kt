@@ -27,7 +27,8 @@ public enum class StatementKind {
 
     /**
      * `ALTER TABLE … ADD` und `ALTER TABLE … DROP CONSTRAINT`: Kennung `0x00d8`, ohne Zeilenzahl (Messprotokoll M-20;
-     * `DROP CONSTRAINT`: Szenario `struktur-drop-constraint`).
+     * `DROP CONSTRAINT`: Szenario `struktur-drop-constraint`; der Text mit `DECLARE @df`, der den Standardwert einer
+     * Spalte entfernt: Szenario `struktur-standardwert-ersetzen`).
      */
     ALTER_TABLE,
 

@@ -3,7 +3,7 @@ package io.github.pt9912.tdswire.simulation
 import io.github.pt9912.tdswire.domain.StatementKind
 
 /**
- * Die Planung der Strukturformen D1 bis D6 (`SPEC-036`) gegen den Katalog: Tabelle und Spalten sind beschrieben oder
+ * Die Planung der Strukturformen D1 bis D7 (`SPEC-036`) gegen den Katalog: Tabelle und Spalten sind beschrieben oder
  * neu, Namen kommen nicht doppelt vor, ein Fremdschlüssel zeigt auf eine beschriebene Tabelle und ihre Spalten. Das
  * Ergebnis ist die Tabelle nach der Anweisung als Beschreibung ohne Zeilen ([StructurePlan]). Die Fehlercodes
  * `OBJECT_EXISTS`, `COLUMN_EXISTS` und `OBJECT_NOT_FOUND` sind für `CREATE TABLE` und `ALTER TABLE … ADD` einer Spalte
@@ -146,6 +146,21 @@ internal object StructurePlanner {
 
             else -> result(table, StatementKind.DROP_INDEX)
         }
+    }
+
+    /**
+     * D7: die Spalte verliert ihren Standardwert (der Text findet ihn ohne den Namen; gemessen am echten Server).
+     * Ohne Standardwert und an einer unbekannten Spalte ist der Text ein Erfolg ohne Änderung (gemessen), der Callback
+     * bekommt die unveränderte Tabelle; an einer unbekannten Tabelle ist er ebenfalls ein Erfolg (gemessen), dann
+     * bleibt der Callback ungerufen.
+     */
+    fun dropDefault(statement: Statement.DropDefault, catalog: SimCatalog): PlanResult {
+        val table = catalog.find(statement.table.schema, statement.table.name)
+            ?: return PlanResult.Unchanged(StatementKind.ALTER_TABLE)
+        val columns = table.columns.map {
+            if (StructureChecks.same(it.name, statement.column)) it.copy(defaultDefinition = null) else it
+        }
+        return result(table.copy(columns = columns), StatementKind.ALTER_TABLE)
     }
 
     private fun reject(code: String, message: String): PlanResult = PlanResult.Rejected(code, message)

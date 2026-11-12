@@ -52,10 +52,10 @@ public class MessungBulkBelegTests
     // @spec SPEC-045
     [Theory]
     [MemberData(nameof(Stufen))]
-    public void Die_Ablage_hat_21_Messungen_mit_Anmeldung_und_alle_Auswertungen_ohne_Zerlegungsproblem(string stufe)
+    public void Die_Ablage_hat_22_Messungen_mit_Anmeldung_und_alle_Auswertungen_ohne_Zerlegungsproblem(string stufe)
     {
         var dateien = Directory.GetFiles(Verzeichnis(stufe), "*.messung");
-        Assert.Equal(21, dateien.Length);
+        Assert.Equal(22, dateien.Length);
         Assert.DoesNotContain(Z(stufe), z => z.Value.Contains("PROBLEM", StringComparison.Ordinal) || z.Value.Contains("ZERLEGUNG-ABGEBROCHEN", StringComparison.Ordinal));
         foreach (var pfad in dateien)
         {
@@ -618,6 +618,79 @@ public class MessungBulkBelegTests
         Assert.Equal("ERROR DONE DONE", F(stufe, "struktur-drop-index/23/tokenfolge"));
         Assert.Equal("DONE Status MORE|ERROR, Befehl 0x00c9, Zeilen - ; DONE Status -, Befehl 0x00c9, Zeilen -", F(stufe, "struktur-drop-index/23/done"));
         Assert.StartsWith("Fehler Nummer 3701, Class 11, State 7, Meldung 'Cannot drop the index 'idx_kind.zwei_a'", F(stufe, "struktur-drop-index/23/fehler"), StringComparison.Ordinal);
+    }
+
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void Der_Text_mit_DECLARE_df_entfernt_den_Standardwert_und_antwortet_mit_der_Folge_der_Anweisungen_des_Textes(string stufe)
+    {
+        // Treffer: 05 (d-migrate-Wortlaut), 09 (neuer Standardwert), 12 (eigener Name, Spalte in Grossbuchstaben), 13 (Tabelle in Grossbuchstaben), 18 (andere Tabelle), 22 (unter IMPLICIT_TRANSACTIONS).
+        foreach (var nr in new[] { "05", "09", "12", "13", "18", "22" })
+        {
+            Assert.Equal("DONE DONE DONE DONEINPROC RETURNSTATUS DONEPROC", F(stufe, $"struktur-standardwert-ersetzen/{nr}/tokenfolge"));
+            Assert.Equal(
+                "DONE Status MORE|COUNT, Befehl 0x00c1, Zeilen 1 ; DONE Status MORE, Befehl 0x00c0, Zeilen - ; DONE Status MORE|COUNT, Befehl 0x00c1, Zeilen 1 ; DONEINPROC Status MORE, Befehl 0x00d8, Zeilen - ; DONEPROC Status -, Befehl 0x00e0, Zeilen -",
+                F(stufe, $"struktur-standardwert-ersetzen/{nr}/done"));
+            Assert.Equal("-", F(stufe, $"struktur-standardwert-ersetzen/{nr}/fehler"));
+        }
+
+        Assert.StartsWith("Art 1 Status 0x01: DECLARE @df sysname, @sql nvarchar(max); SELECT @df = dc.name FROM sys.default_constraints dc", F(stufe, "struktur-standardwert-ersetzen/05/anfrage"), StringComparison.Ordinal);
+        Assert.Equal("anzahl=4 [('df_kind.Menge=df_df_menge:((1))');('df_kind.Status=eigener_name:(N'neu')');('df_kind.Zahl=df_zahl:((7))');('df_kind.Impl=df_impl:((9))')]", F(stufe, "struktur-standardwert-ersetzen/03/zeilen"));
+        Assert.Equal("anzahl=3 [('df_kind.Status=eigener_name:(N'neu')');('df_kind.Zahl=df_zahl:((7))');('df_kind.Impl=df_impl:((9))')]", F(stufe, "struktur-standardwert-ersetzen/06/zeilen"));
+        Assert.Equal("anzahl=1 [('df_kind.Impl=df_impl:((9))')]", F(stufe, "struktur-standardwert-ersetzen/16/zeilen"));
+        Assert.Equal("anzahl=1 [('df_zwei.Menge=df_zwei_menge:((5))')]", F(stufe, "struktur-standardwert-ersetzen/17/zeilen"));
+        Assert.Equal("anzahl=0 []", F(stufe, "struktur-standardwert-ersetzen/19/zeilen"));
+        Assert.Equal("anzahl=0 []", F(stufe, "struktur-standardwert-ersetzen/26/zeilen"));
+    }
+
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void Der_Text_mit_DECLARE_df_ohne_Treffer_ist_ein_Erfolg_ohne_Aenderung_mit_zwei_DONE_und_dem_Befehl_0xc0(string stufe)
+    {
+        // Ohne Standardwert: 10 (Spalte ohne Standardwert), 11 (nach dem Entfernen); unbekannte Spalte: 14; unbekannte Tabelle: 15; unter IMPLICIT_TRANSACTIONS: 21 (Spalte ohne Standardwert), 23 (unbekannte Tabelle).
+        foreach (var nr in new[] { "10", "11", "14", "15", "23" })
+        {
+            Assert.Equal("DONE DONE", F(stufe, $"struktur-standardwert-ersetzen/{nr}/tokenfolge"));
+            Assert.Equal("DONE Status MORE|COUNT, Befehl 0x00c1, Zeilen 0 ; DONE Status -, Befehl 0x00c0, Zeilen -", F(stufe, $"struktur-standardwert-ersetzen/{nr}/done"));
+            Assert.Equal("-", F(stufe, $"struktur-standardwert-ersetzen/{nr}/fehler"));
+        }
+
+        Assert.Equal("ENVCHANGE DONE DONE", F(stufe, "struktur-standardwert-ersetzen/21/tokenfolge"));
+        Assert.Equal("ENVCHANGE Typ 8, neuer Wert vorhanden, alter Wert leer", F(stufe, "struktur-standardwert-ersetzen/21/envchange"));
+        Assert.Equal("DONE Status MORE|COUNT, Befehl 0x00c1, Zeilen 0 ; DONE Status -, Befehl 0x00c0, Zeilen -", F(stufe, "struktur-standardwert-ersetzen/21/done"));
+    }
+
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void Ein_zweiter_Standardwert_an_derselben_Spalte_ist_1781_und_1750_nach_dem_Text_gelingt_er(string stufe)
+    {
+        Assert.Equal("ERROR ERROR DONE", F(stufe, "struktur-standardwert-ersetzen/04/tokenfolge"));
+        Assert.Equal("DONE Status ERROR, Befehl 0x00fd, Zeilen -", F(stufe, "struktur-standardwert-ersetzen/04/done"));
+        Assert.StartsWith("Fehler Nummer 1781, Class 16, State 1, Meldung 'Column already has a DEFAULT bound to it.'", F(stufe, "struktur-standardwert-ersetzen/04/fehler"), StringComparison.Ordinal);
+        Assert.Contains("Fehler Nummer 1750, Class 16, State 0, Meldung 'Could not create constraint or index. See previous errors.'", F(stufe, "struktur-standardwert-ersetzen/04/fehler"), StringComparison.Ordinal);
+        Assert.Equal("DONE", F(stufe, "struktur-standardwert-ersetzen/07/tokenfolge"));
+        Assert.Equal("DONE Status -, Befehl 0x00d8, Zeilen -", F(stufe, "struktur-standardwert-ersetzen/07/done"));
+        Assert.Equal("anzahl=4 [('df_kind.Menge=df_df_menge:((2))');('df_kind.Status=eigener_name:(N'neu')');('df_kind.Zahl=df_zahl:((7))');('df_kind.Impl=df_impl:((9))')]", F(stufe, "struktur-standardwert-ersetzen/08/zeilen"));
+    }
+
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void Der_Text_von_d_migrate_mit_geaendertem_Standardwert_geht_dem_ADD_CONSTRAINT_voraus_und_wird_mit_Begin_der_Transaktion_beantwortet(string stufe)
+    {
+        // Ablage des Laufs `schema` (Schritt s12): die Zeilen `C->S` und `S->C` derselben Nummer folgen aufeinander, danach das ADD CONSTRAINT (DONE ohne Zaehler, 0xd8).
+        var pfad = Path.Combine(AppContext.BaseDirectory, "Mitschnitt", "messung", "jdbc-d-migrate", stufe + ".schema.aufnahme.txt");
+        var zeilen = File.ReadAllLines(pfad, Encoding.UTF8);
+        var treffer = Enumerable.Range(0, zeilen.Length).Where(i => zeilen[i].Contains("Batch: DECLARE @df sysname, @sql nvarchar(max);", StringComparison.Ordinal)).ToList();
+        Assert.Single(treffer);
+        var i = treffer[0];
+        Assert.Contains("DROP CONSTRAINT ' + QUOTENAME(@df);", zeilen[i], StringComparison.Ordinal);
+        Assert.Contains("S->C #8 ENVCHANGE(typ=8) DONE(status=0x11 cmd=0x00c1 zaehler=1) DONE(status=0x1 cmd=0x00c0 zaehler=0) DONE(status=0x11 cmd=0x00c1 zaehler=1) DONEINPROC(status=0x1 cmd=0x00d8 zaehler=0) RETURNSTATUS(0) SESSIONSTATE DONEPROC(status=0x0 cmd=0x00e0 zaehler=0)", zeilen[i + 1], StringComparison.Ordinal);
+        Assert.Contains("Batch: ALTER TABLE [auftraege] ADD CONSTRAINT [df_auftraege_Menge] DEFAULT 2 FOR [Menge];", zeilen[i + 2], StringComparison.Ordinal);
+        Assert.Contains("DONE(status=0x0 cmd=0x00d8 zaehler=0)", zeilen[i + 3], StringComparison.Ordinal);
     }
 
     // @spec SPEC-045

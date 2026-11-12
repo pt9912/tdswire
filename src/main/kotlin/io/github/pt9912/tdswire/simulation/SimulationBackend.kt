@@ -41,7 +41,8 @@ import java.util.concurrent.atomic.AtomicBoolean
  * Form K (`SPEC-036`) beantwortet die Katalogabfragen von d-migrate aus dem Katalog ([CatalogAnswers]); der Katalog
  * kommt bei jeder Anfrage frisch aus dem Anbieter des Konstruktors, das Backend hält keinen Stand. Form D (`CREATE
  * TABLE`, `ALTER TABLE … ADD` einer Spalte oder einer Bedingung, `ALTER TABLE … DROP CONSTRAINT` einer Bedingung,
- * `CREATE INDEX`, `DROP INDEX [IF EXISTS]` eines Index) ruft den Strukturänderungs-Callback mit der Tabelle nach
+ * `CREATE INDEX`, `DROP INDEX [IF EXISTS]` eines Index, der Text mit `DECLARE @df` für den Standardwert einer
+ * Spalte) ruft den Strukturänderungs-Callback mit der Tabelle nach
  * der Anweisung und meldet die Art `CREATE_TABLE`, `ALTER_TABLE`, `CREATE_INDEX` oder `DROP_INDEX` (`DROP INDEX IF
  * EXISTS` an einer unbekannten Tabelle ist ein Erfolg der Art `DROP_INDEX` ohne Callback); das Backend nimmt nichts
  * zurück, mehrere Callbacks sind keine Transaktion (`ADR-0033`). Der Konstruktor mit festem

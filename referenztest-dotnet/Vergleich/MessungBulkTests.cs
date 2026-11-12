@@ -216,6 +216,13 @@ public class MessungBulkTests
         return p;
     }
 
+    // ---- Standardwert ersetzen (Wortlaut nach dem Mitschnitt von d-migrate 1.12.0, Lauf `schema`, Schritt s12) -------------------------
+
+    private static string DeclareDf(string tabelle, string spalte) =>
+        "DECLARE @df sysname, @sql nvarchar(max);\nSELECT @df = dc.name FROM sys.default_constraints dc\n    JOIN sys.columns c ON c.object_id = dc.parent_object_id\n"
+        + "        AND c.column_id = dc.parent_column_id\n    WHERE dc.parent_object_id = OBJECT_ID('" + tabelle + "')\n        AND c.name = '" + spalte + "';\n"
+        + "IF @df IS NOT NULL\nBEGIN\n    SET @sql = 'ALTER TABLE [" + tabelle + "] DROP CONSTRAINT ' + QUOTENAME(@df);\n    EXEC sp_executesql @sql;\nEND;";
+
     // ---- MERGE (Wortlaut nach der Sonde, Klauseln dahinter Setzung dieses Messcodes) ---------------------------------
 
     private const string MergeSkip =
@@ -496,6 +503,40 @@ public class MessungBulkTests
                 Mit(l, v, "Index mit Schema dbo an Tabelle und Name, mit IF EXISTS", "DROP INDEX IF EXISTS [ix_idx_nur_eltern] ON [dbo].[idx_eltern];");
                 Mit(l, v, "zwei Anweisungen in einem Text, beide ohne Treffer, mit IF EXISTS", "DROP INDEX IF EXISTS [zwei_a] ON [idx_kind]; DROP INDEX IF EXISTS [zwei_b] ON [idx_kind];");
                 Mit(l, v, "zwei Anweisungen in einem Text, die erste ohne IF EXISTS ohne Treffer", "DROP INDEX [zwei_a] ON [idx_kind]; DROP INDEX IF EXISTS [zwei_b] ON [idx_kind];");
+                Mit(l, v, "Folgeabfrage", "SELECT 1 AS eins");
+            }),
+            // Form D7 (Standardwert an vorhandener Spalte): den Text mit `DECLARE @df` sendet d-migrate 1.12.0 (Lauf `schema-*`, Schritt s12, Tabelle `auftraege`, Spalte `Menge`); die Fälle ohne
+            // Treffer, mit anderer Schreibweise, mit unbekannter Tabelle oder Spalte, mit eigenem Namen des Standardwerts und unter `IMPLICIT_TRANSACTIONS` sind Messung dieses Codes.
+            ("struktur-standardwert-ersetzen", DbStruktur, (l, v) =>
+            {
+                string Lesen(string tabelle) => "SELECT OBJECT_NAME(dc.parent_object_id) + '.' + c.name + '=' + dc.name + ':' + dc.definition FROM sys.default_constraints dc "
+                    + "JOIN sys.columns c ON c.object_id = dc.parent_object_id AND c.column_id = dc.parent_column_id WHERE dc.parent_object_id = OBJECT_ID('" + tabelle + "') ORDER BY c.column_id";
+                Mit(l, v, "Aufbau kind", "CREATE TABLE [df_kind] ([Id] INT NOT NULL, [Menge] INT NOT NULL CONSTRAINT [df_df_menge] DEFAULT 1, [Status] NVARCHAR(20) NULL CONSTRAINT [eigener_name] DEFAULT N'neu', [Ohne] INT NULL, [Zahl] INT NULL CONSTRAINT [df_zahl] DEFAULT 7, [Impl] INT NULL CONSTRAINT [df_impl] DEFAULT 9, CONSTRAINT [pk_df_kind] PRIMARY KEY ([Id]));");
+                Mit(l, v, "Aufbau zwei", "CREATE TABLE [df_zwei] ([Id] INT NOT NULL, [Menge] INT NOT NULL CONSTRAINT [df_zwei_menge] DEFAULT 5, CONSTRAINT [pk_df_zwei] PRIMARY KEY ([Id]));");
+                Mit(l, v, "Standardwerte vor dem Entfernen", Lesen("df_kind"));
+                Mit(l, v, "Standardwert hinzufuegen an Spalte mit Standardwert", "ALTER TABLE [df_kind] ADD CONSTRAINT [df_df_menge2] DEFAULT 2 FOR [Menge];");
+                Mit(l, v, "Text von d-migrate, Spalte mit Standardwert", DeclareDf("df_kind", "Menge"));
+                Mit(l, v, "Standardwerte nach dem Entfernen", Lesen("df_kind"));
+                Mit(l, v, "Standardwert hinzufuegen nach dem Entfernen", "ALTER TABLE [df_kind] ADD CONSTRAINT [df_df_menge] DEFAULT 2 FOR [Menge];");
+                Mit(l, v, "Standardwerte nach dem Hinzufuegen", Lesen("df_kind"));
+                Mit(l, v, "Text, Spalte mit dem neuen Standardwert", DeclareDf("df_kind", "Menge"));
+                Mit(l, v, "Text, Spalte ohne Standardwert (Ohne)", DeclareDf("df_kind", "Ohne"));
+                Mit(l, v, "Text, Spalte ohne Standardwert (Menge, nach dem Entfernen)", DeclareDf("df_kind", "Menge"));
+                Mit(l, v, "Text, Spalte mit eigenem Namen des Standardwerts, Spaltenname in Grossbuchstaben", DeclareDf("df_kind", "STATUS"));
+                Mit(l, v, "Text, Tabellenname in Grossbuchstaben", DeclareDf("DF_KIND", "Zahl"));
+                Mit(l, v, "Text, unbekannte Spalte", DeclareDf("df_kind", "Gibtesnicht"));
+                Mit(l, v, "Text, unbekannte Tabelle", DeclareDf("df_gibtesnicht", "Menge"));
+                Mit(l, v, "Standardwerte der Kind-Tabelle nach allen Texten", Lesen("df_kind"));
+                Mit(l, v, "Standardwerte der anderen Tabelle", Lesen("df_zwei"));
+                Mit(l, v, "Text an der anderen Tabelle, Spalte mit Standardwert", DeclareDf("df_zwei", "Menge"));
+                Mit(l, v, "Standardwerte der anderen Tabelle nach dem Text", Lesen("df_zwei"));
+                Mit(l, v, "IMPLICIT_TRANSACTIONS ON", "SET IMPLICIT_TRANSACTIONS ON");
+                Mit(l, v, "Text unter IMPLICIT_TRANSACTIONS, Spalte ohne Standardwert (Ohne)", DeclareDf("df_kind", "Ohne"));
+                Mit(l, v, "Text unter IMPLICIT_TRANSACTIONS, Spalte mit Standardwert (Impl)", DeclareDf("df_kind", "Impl"));
+                Mit(l, v, "Text unter IMPLICIT_TRANSACTIONS, unbekannte Tabelle", DeclareDf("df_gibtesnicht", "Menge"));
+                Mit(l, v, "Abschluss der Transaktion", "IF @@TRANCOUNT > 0 COMMIT TRAN");
+                Mit(l, v, "IMPLICIT_TRANSACTIONS OFF", "SET IMPLICIT_TRANSACTIONS OFF");
+                Mit(l, v, "Standardwerte nach der Transaktion", Lesen("df_kind"));
                 Mit(l, v, "Folgeabfrage", "SELECT 1 AS eins");
             }),
             ("katalog-abfragen", DbKatalog, (l, v) =>
