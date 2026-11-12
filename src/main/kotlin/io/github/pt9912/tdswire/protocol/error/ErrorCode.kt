@@ -1,5 +1,7 @@
 package io.github.pt9912.tdswire.protocol.error
 
+import io.github.pt9912.tdswire.protocol.token.ServerMessage
+
 /** Was mit der Verbindung nach einem Fehler geschieht (`TDS-FA-06.a` Nr. 6, `ADR-0007`). */
 internal enum class ConnectionFate {
     /** ERROR und DONE mit Fehlerstatus (in der Antwort auf einen RPC DONEPROC), die Verbindung bleibt offen. */
@@ -15,7 +17,9 @@ internal enum class ConnectionFate {
 /**
  * Ein Eintrag der Zuordnungstabelle: was der Client als ERROR sieht und was danach mit der
  * Verbindung geschieht. [fate] ist [ConnectionFate.OPEN] oder [ConnectionFate.CLOSE_AFTER_REPLY];
- * `CLOSE_WITHOUT_REPLY` kommt aus dem Zustand des Stroms, nicht aus dem Code.
+ * `CLOSE_WITHOUT_REPLY` kommt aus dem Zustand des Stroms, nicht aus dem Code. [followUp] ist das zweite ERROR, das der
+ * Server nach dem ersten sendet (Zusammenfassung des Fehlers, Mechanismus wie INFO 3621 nach 2628); es steht
+ * unmittelbar hinter dem ersten und teilt dessen Abschluss.
  */
 internal data class ErrorRule(
     val number: Int,
@@ -24,6 +28,7 @@ internal data class ErrorRule(
     val text: String,
     val fate: ConnectionFate,
     val namesHandle: Boolean = false,
+    val followUp: ServerMessage? = null,
 )
 
 private const val REQUEST = 16
@@ -59,11 +64,33 @@ private const val N_STRING_TRUNCATED = 2628
 private const val N_NOT_A_CONSTRAINT = 3728
 private const val N_CONSTRAINT_OTHER_TABLE = 3733
 private const val STATE_CONSTRAINT_OTHER_TABLE = 2
+private const val N_COLUMN_HAS_DEFAULT = 1781
+private const val N_CONSTRAINT_NOT_CREATED = 1750
+private const val N_CONSTRAINT_NOT_DROPPED = 3727
+private const val STATE_NONE = 0
 private const val N_NOT_AN_INDEX = 3701
 private const val CLASS_NOT_AN_INDEX = 11
 private const val STATE_NOT_AN_INDEX = 7
 private const val N_INDEX_OF_CONSTRAINT = 3723
 private const val STATE_INDEX_OF_UNIQUE = 5
+
+/**
+ * Das zweite ERROR nach 1781 (Class 16, State 0, Text vollständig, ohne Namen; gemessen am echten SQL Server, 2022 und
+ * 2025, Szenario `struktur-standardwert-ersetzen`, Zeile 04).
+ */
+private val CONSTRAINT_NOT_CREATED = ServerMessage(
+    N_CONSTRAINT_NOT_CREATED,
+    STATE_NONE,
+    REQUEST,
+    "Could not create constraint or index. See previous errors.",
+)
+
+/**
+ * Das zweite ERROR nach 3728 und 3733 (Class 16, State 0, Text vollständig, ohne Namen; gemessen am echten SQL Server,
+ * 2022 und 2025, Szenario `struktur-drop-constraint`, Zeilen 05, 08, 10, 13, 16 und 19).
+ */
+private val CONSTRAINT_NOT_DROPPED =
+    ServerMessage(N_CONSTRAINT_NOT_DROPPED, STATE_NONE, REQUEST, "Could not drop constraint. See previous errors.")
 
 /**
  * Die eigenen Fehlercodes (`SPEC-011` bis `SPEC-016`, `SPEC-037` bis `SPEC-039`, `SPEC-048`,
@@ -96,6 +123,10 @@ private const val STATE_INDEX_OF_UNIQUE = 5
  * - Gemessen am Referenzclient gegen einen echten SQL Server (Messprotokoll `drop-constraint-d-migrate-2026-11-11`,
  *   2022 und 2025): Nummer, Class 16, State und die offene Verbindung von `TDS_SIM_NOT_A_CONSTRAINT` (3728, State 1)
  *   und `TDS_SIM_CONSTRAINT_OTHER_TABLE` (3733, State 2); der Text ist ein Auszug ohne die Namen (Setzung).
+ * - Gemessen am Referenzclient gegen einen echten SQL Server (Messprotokoll
+ *   `standardwert-ersetzen-d-migrate-2026-11-12`, 2022 und 2025, Zeile 04): Nummer 1781, Class 16, State 1 und die
+ *   offene Verbindung von `TDS_SIM_COLUMN_HAS_DEFAULT` sowie das zweite ERROR 1750 (Class 16, State 0); der Text von
+ *   1781 ist der gemessene Text (er nennt keine Namen).
  * - Gemessen am Referenzclient gegen einen echten SQL Server (Messprotokoll `drop-index-d-migrate-2026-11-11`, 2022 und
  *   2025): Nummer, Class, State und die offene Verbindung von `TDS_SIM_NOT_AN_INDEX` (3701, Class 11, State 7) und
  *   `TDS_SIM_INDEX_OF_CONSTRAINT` (3723, Class 16, State 5); der Text ist ein Auszug ohne die Namen (Setzung).
@@ -203,6 +234,22 @@ internal enum class ErrorCode(val rule: ErrorRule) {
     ),
 
     /**
+     * `ALTER TABLE … ADD CONSTRAINT … DEFAULT … FOR` einer Spalte, die schon einen Standardwert hat. Nummer 1781,
+     * Class 16, State 1, der Text und die offene Verbindung sind gemessen (2022 und 2025, Szenario
+     * `struktur-standardwert-ersetzen`); danach folgt das zweite ERROR 1750 ([CONSTRAINT_NOT_CREATED], gemessen).
+     */
+    TDS_SIM_COLUMN_HAS_DEFAULT(
+        ErrorRule(
+            N_COLUMN_HAS_DEFAULT,
+            REQUEST,
+            STATE,
+            "Column already has a DEFAULT bound to it.",
+            ConnectionFate.OPEN,
+            followUp = CONSTRAINT_NOT_CREATED,
+        ),
+    ),
+
+    /**
      * `ALTER TABLE … ADD` einer Spalte, die die Tabelle schon führt. Nummer, Class 16, State 4 und die offene
      * Verbindung sind gemessen (M-19); der Text lässt die Namen aus.
      */
@@ -233,17 +280,24 @@ internal enum class ErrorCode(val rule: ErrorRule) {
     /**
      * `ALTER TABLE … DROP CONSTRAINT <Name>` ohne `IF EXISTS`, der Name ist keine Bedingung der Tabelle. Nummer 3728,
      * Class 16, State 1 und die offene Verbindung sind gemessen (2022 und 2025, Szenario `struktur-drop-constraint`);
-     * der Server sendet danach ein zweites ERROR (3727, „Could not drop constraint. See previous errors.“), das die
-     * Bibliothek nicht sendet (Grenze, `SPEC-036`). Der Text ist ein Auszug des gemessenen Textes ohne den Namen.
+     * danach folgt das zweite ERROR 3727 ([CONSTRAINT_NOT_DROPPED], gemessen). Der Text ist ein Auszug des gemessenen
+     * Textes ohne den Namen.
      */
     TDS_SIM_NOT_A_CONSTRAINT(
-        ErrorRule(N_NOT_A_CONSTRAINT, REQUEST, STATE, "Name is not a constraint.", ConnectionFate.OPEN),
+        ErrorRule(
+            N_NOT_A_CONSTRAINT,
+            REQUEST,
+            STATE,
+            "Name is not a constraint.",
+            ConnectionFate.OPEN,
+            followUp = CONSTRAINT_NOT_DROPPED,
+        ),
     ),
 
     /**
      * `ALTER TABLE … DROP CONSTRAINT <Name>` ohne `IF EXISTS`, der Name gehört einer Bedingung einer anderen Tabelle.
-     * Nummer 3733, Class 16, State 2 und die offene Verbindung sind gemessen (wie [TDS_SIM_NOT_A_CONSTRAINT]); das
-     * zweite ERROR 3727 sendet die Bibliothek nicht. Der Text ist ein Auszug ohne die Namen.
+     * Nummer 3733, Class 16, State 2 und die offene Verbindung sind gemessen (wie [TDS_SIM_NOT_A_CONSTRAINT]); danach
+     * folgt das zweite ERROR 3727. Der Text ist ein Auszug ohne die Namen.
      */
     TDS_SIM_CONSTRAINT_OTHER_TABLE(
         ErrorRule(
@@ -252,6 +306,7 @@ internal enum class ErrorCode(val rule: ErrorRule) {
             STATE_CONSTRAINT_OTHER_TABLE,
             "Constraint does not belong to table.",
             ConnectionFate.OPEN,
+            followUp = CONSTRAINT_NOT_DROPPED,
         ),
     ),
 

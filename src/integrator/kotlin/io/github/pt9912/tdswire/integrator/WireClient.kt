@@ -62,6 +62,24 @@ internal class Answer(val payload: ByteArray) {
             sum or ((done[DONE_COUNT_OFFSET + index].toLong() and BYTE_MASK.toLong()) shl (BYTE_BITS * index))
         }
 
+    /**
+     * Die Nummern der ERROR-Tokens am Anfang der Antwort in ihrer Reihenfolge (Token `0xAA`, Länge 2 Bytes, danach die
+     * Nummer als Int32); leer, wenn die Antwort nicht mit einem ERROR beginnt.
+     */
+    fun errorNumbers(): List<Int> {
+        val numbers = mutableListOf<Int>()
+        var at = 0
+        while (payload[at].toInt() and BYTE_MASK == ERROR_TOKEN) {
+            numbers += (0 until INT_BYTES).fold(0) { sum, index ->
+                sum or ((payload[at + 1 + SHORT_BYTES + index].toInt() and BYTE_MASK) shl (BYTE_BITS * index))
+            }
+            val length = (payload[at + 1].toInt() and BYTE_MASK) or
+                ((payload[at + 2].toInt() and BYTE_MASK) shl BYTE_BITS)
+            at += 1 + SHORT_BYTES + length
+        }
+        return numbers
+    }
+
     /** `true`, wenn [text] (ASCII) als UTF-16LE in den Nutzdaten steht. */
     fun contains(text: String): Boolean {
         val needle = utf16(text)

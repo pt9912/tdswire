@@ -81,7 +81,7 @@ class SimulationBackendDropDefaultTest {
     fun `der Text von d-migrate nimmt den Standardwert der Spalte aus der Tabelle`() {
         val store = store()
         val add = "ALTER TABLE [bestellung] ADD CONSTRAINT [df_bestellung_Menge] DEFAULT 2 FOR [Menge];"
-        assertEquals(SimCodes.OBJECT_EXISTS, failureCode(store, add), "Gegenprobe: Standardwert schon da")
+        assertEquals(SimCodes.COLUMN_HAS_DEFAULT, failureCode(store, add), "Gegenprobe: Standardwert schon da")
 
         assertEquals(StatementKind.ALTER_TABLE, kind(run(store, dMigrateDeclareDefaultText("bestellung", "Menge"))))
 

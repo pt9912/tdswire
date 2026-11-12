@@ -232,7 +232,7 @@ internal class ResponseRun(
         val resultCommand = DoneCommand.forResult(resultKind)
         columns = null
         resultKind = StatementKind.UNKNOWN
-        val written = write(ErrorToken(mapped.message))
+        val written = mapped.errors.all { write(it) }
         if (written) {
             trailer.record(mapped.message.number, continued = true)
             begun = true
@@ -258,8 +258,8 @@ internal class ResponseRun(
         val terminated = resultOpen && resultKind == StatementKind.MERGE
         columns = null
         resultKind = StatementKind.UNKNOWN
-        trailer.record(mapped.message.number, continued = false)
-        val written = write(ErrorToken(mapped.message)) && (!terminated || write(BULK_TERMINATED)) && when (form) {
+        trailer.record((mapped.followUp ?: mapped.message).number, continued = false)
+        val written = mapped.errors.all { write(it) } && (!terminated || write(BULK_TERMINATED)) && when (form) {
             ResponseForm.BATCH -> write(failedDone(form, resultOpen, resultCommand))
 
             ResponseForm.BULK -> write(BULK_TERMINATED) && write(failedDone(form, resultOpen))

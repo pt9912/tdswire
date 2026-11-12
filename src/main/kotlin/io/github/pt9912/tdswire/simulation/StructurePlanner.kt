@@ -75,6 +75,9 @@ internal object StructurePlanner {
             StructureChecks.columnsOf(constraint).any { SimNames.fold(it) !in known } ->
                 reject(SimCodes.UNKNOWN_OBJECT, "Spalte nicht beschrieben")
 
+            constraint is NewConstraint.Default && table.column(constraint.column)?.defaultDefinition != null ->
+                reject(SimCodes.COLUMN_HAS_DEFAULT, "Spalte hat schon einen Standardwert")
+
             StructureChecks.exists(table, constraint) ->
                 reject(SimCodes.OBJECT_EXISTS, "Bedingung ist schon beschrieben")
 

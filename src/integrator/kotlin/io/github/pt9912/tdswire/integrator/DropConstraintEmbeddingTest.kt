@@ -94,12 +94,15 @@ class DropConstraintEmbeddingTest {
             val missing = client.batch("ALTER TABLE beschrieben DROP CONSTRAINT ck_beschrieben")
             assertEquals(DONE_ERROR, missing.doneStatus and DONE_ERROR)
             assertEquals(NOT_A_CONSTRAINT, errorNumber(missing), "Name ohne Treffer: 3728")
+            assertEquals(listOf(NOT_A_CONSTRAINT, NOT_DROPPED), missing.errorNumbers(), "danach das zweite ERROR 3727")
             val other = client.batch("ALTER TABLE beschrieben DROP CONSTRAINT ck_andere")
             assertEquals(DONE_ERROR, other.doneStatus and DONE_ERROR)
             assertEquals(OTHER_TABLE, errorNumber(other), "Name einer anderen Tabelle: 3733")
+            assertEquals(listOf(OTHER_TABLE, NOT_DROPPED), other.errorNumbers(), "danach das zweite ERROR 3727")
             val unknown = client.batch("ALTER TABLE gibtesnicht DROP CONSTRAINT IF EXISTS x")
             assertEquals(DONE_ERROR, unknown.doneStatus and DONE_ERROR)
             assertEquals(OBJECT_NOT_FOUND, errorNumber(unknown), "unbekannte Tabelle: 4902")
+            assertEquals(listOf(OBJECT_NOT_FOUND), unknown.errorNumbers(), "gemessen: ohne zweites ERROR")
         }
         assertEquals(2, shapes.size)
         assertEquals(emptyList(), shapes.first().checks)
@@ -120,6 +123,7 @@ class DropConstraintEmbeddingTest {
         const val ALTER_TABLE_COMMAND = 0x00d8
         const val NOT_A_CONSTRAINT = 3728
         const val OTHER_TABLE = 3733
+        const val NOT_DROPPED = 3727
         const val OBJECT_NOT_FOUND = 4902
         const val ERROR_NUMBER_OFFSET = 3
         const val BYTE_BITS = 8

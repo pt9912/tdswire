@@ -5,6 +5,7 @@ import io.github.pt9912.tdswire.domain.QueryRequest
 import io.github.pt9912.tdswire.domain.StatementKind
 import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.protocol.token.DoneCommand
+import io.github.pt9912.tdswire.protocol.token.ErrorToken
 import io.github.pt9912.tdswire.protocol.token.ServerMessage
 import io.github.pt9912.tdswire.protocol.token.Token
 import io.github.pt9912.tdswire.protocol.wire.ProtocolError
@@ -23,8 +24,18 @@ internal fun interface TokenSink {
     suspend fun accept(token: Token): Boolean
 }
 
-/** Eine abgebildete Meldung und ob die Verbindung nach ihrer Antwort schließt (Folge ungleich „offen“). */
-internal class MappedError(val message: ServerMessage, val closesConnection: Boolean)
+/**
+ * Eine abgebildete Meldung, das zweite ERROR, das der Server unmittelbar danach sendet ([followUp], sonst `null`), und
+ * ob die Verbindung nach ihrer Antwort schließt (Folge ungleich „offen“).
+ */
+internal class MappedError(
+    val message: ServerMessage,
+    val closesConnection: Boolean,
+    val followUp: ServerMessage? = null,
+) {
+    /** Die ERROR-Tokens der Meldung in der Reihenfolge der Antwort: die Meldung, danach [followUp]. */
+    val errors: List<ErrorToken> get() = listOfNotNull(message, followUp).map { ErrorToken(it) }
+}
 
 /**
  * Die Fehlerabbildung als Funktionen, damit der Sequenzierer keinen Katalog kennt: [backend] bildet

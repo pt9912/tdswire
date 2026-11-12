@@ -43,7 +43,7 @@ Eine Sitzung hält höchstens `MAX_PREPARED_HANDLES` Handles zugleich (`SPEC-061
 
 ## Fehlercodes und Antwortformen
 
-Jeder Fehler des Servers erreicht den Client als ERROR (feste englische Meldung; State 1, außer bei Nummern mit dem State des echten SQL Servers, zum Beispiel 8179: State 8 bei der Freigabe, State 4 bei `sp_execute`; 3733 trägt State 2, 3723 State 5, 3701 State 7 mit Class 11) und einen Abschluss mit Fehlerstatus; der Text einer Backend-Meldung oder Ausnahme erreicht den Client nie. Zuordnung nach [Abschnitt 4 der Spezifikation](../../spec/spezifikation.md#4-fehler-codes-und-logging-felder); am echten SQL Server beobachtet sind die Nummern 18456, 8179, 2627, 2628, 2714, 2705, 4902, 3728, 3733, 3701, 3723 und 208 (dieses mit Class 16), die übrigen Nummern sind Festlegungen:
+Jeder Fehler des Servers erreicht den Client als ERROR (feste englische Meldung; State 1, außer bei Nummern mit dem State des echten SQL Servers, zum Beispiel 0 bei den zweiten ERROR 1750 und 3727, 8179: State 8 bei der Freigabe, State 4 bei `sp_execute`; 3733 trägt State 2, 3723 State 5, 3701 State 7 mit Class 11) und einen Abschluss mit Fehlerstatus; der Text einer Backend-Meldung oder Ausnahme erreicht den Client nie. Zuordnung nach [Abschnitt 4 der Spezifikation](../../spec/spezifikation.md#4-fehler-codes-und-logging-felder); am echten SQL Server beobachtet sind die Nummern 18456, 8179, 2627, 2628, 2714, 2705, 1781, 1750, 4902, 3728, 3733, 3727, 3701, 3723 und 208 (dieses mit Class 16; 1750 und 3727 sind die zweiten ERROR nach 1781 beziehungsweise 3728 und 3733, Class 16), die übrigen Nummern sind Festlegungen:
 
 | Code | Nummer | Class | Folge |
 |---|---|---|---|
@@ -62,9 +62,10 @@ Jeder Fehler des Servers erreicht den Client als ERROR (feste englische Meldung;
 | `TDS_SIM_STRING_TRUNCATED` | 2628 | 16 | offen |
 | `TDS_SIM_OBJECT_EXISTS` | 2714 | 16 | offen |
 | `TDS_SIM_COLUMN_EXISTS` | 2705 | 16 | offen |
+| `TDS_SIM_COLUMN_HAS_DEFAULT` | 1781 | 16 | offen; danach zweites ERROR 1750 |
 | `TDS_SIM_OBJECT_NOT_FOUND` | 4902 | 16 | offen |
-| `TDS_SIM_NOT_A_CONSTRAINT` | 3728 | 16 | offen |
-| `TDS_SIM_CONSTRAINT_OTHER_TABLE` | 3733 | 16 | offen |
+| `TDS_SIM_NOT_A_CONSTRAINT` | 3728 | 16 | offen; danach zweites ERROR 3727 |
+| `TDS_SIM_CONSTRAINT_OTHER_TABLE` | 3733 | 16 | offen; danach zweites ERROR 3727 |
 | `TDS_SIM_NOT_AN_INDEX` | 3701 | 11 | offen |
 | `TDS_SIM_INDEX_OF_CONSTRAINT` | 3723 | 16 | offen |
 | `TDS_SIM_UNKNOWN_PREPARED_HANDLE` | 8179 | 16 | offen |
@@ -82,7 +83,7 @@ Die Anmeldung mit falschem Kennwort und mit unbekanntem Benutzer ergibt dieselbe
 | RPC (`sp_executesql`, `sp_prepexec`) mit Ergebnis | `COLMETADATA ROW* DONEINPROC RETURNSTATUS [RETURNVALUE] DONEPROC` |
 | RPC ohne Ausgabewert | `RETURNSTATUS 0` vor `DONEPROC` (der Wert 0, wenn das Backend keinen `ReturnStatus` meldet) |
 | `sp_prepexec` | `RETURNSTATUS 0` vor dem `RETURNVALUE` mit dem Handle (Ordinal 0) |
-| Fehler in der Anfrage | `ERROR` und `DONE` mit Fehlerstatus (im RPC `DONEPROC`); der Abschluss nach einem Fehler trägt die Befehlskennung nach der Form des Abschlusses (`SPEC-031`) |
+| Fehler in der Anfrage | `ERROR` und `DONE` mit Fehlerstatus (im RPC `DONEPROC`); bei 1781, 3728 und 3733 folgt dem ersten ein zweites `ERROR` (1750 beziehungsweise 3727); der Abschluss nach einem Fehler trägt die Befehlskennung nach der Form des Abschlusses (`SPEC-031`) |
 | Änderung (`INSERT`, `UPDATE`, `DELETE`) | `DONE` mit `COUNT`, der Zeilenzahl und der Befehlskennung der Art, die das Backend im `UpdateCount` meldet: `0x00c3`, `0x00c5`, `0x00c4` (im RPC `DONEINPROC` mit `MORE\|COUNT`); ohne Angabe der Art steht die Kennung 0 (`SPEC-031`) |
 | `CREATE TABLE`, `ALTER TABLE … ADD`, `ALTER TABLE … DROP CONSTRAINT` (Batch) | `DONE` ohne `COUNT` und ohne Zeilenzahl, Befehl `0x00c6` bzw. `0x00d8`, wenn das Backend die Art `CREATE_TABLE` bzw. `ALTER_TABLE` meldet (das Simulations-Backend tut es, auch für `ALTER TABLE … ADD CONSTRAINT`, dort ist die Kennung nicht gemessen; für `DROP CONSTRAINT` ist `0x00d8` am echten Server gemessen); im RPC und ohne Angabe der Art steht die Kennung 0 mit `COUNT` (`SPEC-031`) |
 | Text mit `DECLARE @df …` (Standardwert einer vorhandenen Spalte ersetzen, Batch) | `DONE` ohne `COUNT` und ohne Zeilenzahl, Befehl `0x00d8`, wenn das Backend die Art `ALTER_TABLE` meldet (das Simulations-Backend tut es, auch ohne Treffer); der echte Server antwortet mit der Folge der Anweisungen des Textes (ohne Treffer zwei `DONE`, das zweite mit Befehl `0x00c0`; bei Treffer `DONE`, `DONE`, `DONE`, `DONEINPROC` mit `0x00d8`, `RETURNSTATUS` und `DONEPROC`), gemessen an 2022 und 2025; im RPC und ohne Angabe der Art steht die Kennung 0 mit `COUNT` (`SPEC-031`, `SPEC-036`) |

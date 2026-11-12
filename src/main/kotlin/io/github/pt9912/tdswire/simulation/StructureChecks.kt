@@ -18,7 +18,7 @@ internal object StructureChecks {
         (table.uniqueKeys.map { it.name } + table.foreignKeys.map { it.name } + table.checks.map { it.name })
             .any { same(it, name) }
 
-    /** Der Name der Bedingung ist in der Tabelle vergeben, oder die Spalte hat schon einen Standardwert. */
+    /** Der Name der Bedingung ist in der Tabelle vergeben; ein Standardwert trägt keinen Namen im Modell. */
     fun exists(table: SimTable, constraint: NewConstraint): Boolean = when (constraint) {
         is NewConstraint.Unique ->
             constraintNameTaken(table, constraint.key.name) || indexNameTaken(table, constraint.key.name)
@@ -27,7 +27,7 @@ internal object StructureChecks {
 
         is NewConstraint.Check -> constraintNameTaken(table, constraint.check.name)
 
-        is NewConstraint.Default -> table.column(constraint.column)?.defaultDefinition != null
+        is NewConstraint.Default -> false
     }
 
     /** Die Tabelle ohne die Bedingung [name] (Eindeutigkeit, Fremdschlüssel, Prüfbedingung) oder `null` ohne sie. */
