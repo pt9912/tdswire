@@ -758,7 +758,7 @@ trägt die Kennung der Art, die das Backend im Feld `kind` meldet (`StatementKin
 schließen im SQL_BATCH ohne `COUNT` (Status 0, Zeilenzahl 0; eine Zahl, die das Backend im Ereignis meldet, ignoriert
 die Bibliothek): `CREATE_TABLE` `0x00c6`, `ALTER_TABLE` `0x00d8` (`CREATE TABLE`, `ALTER TABLE … ADD`, `ALTER TABLE … DROP CONSTRAINT`),
 `IMPLICIT_TRANSACTIONS_ON` `0x00b9` (`set implicit_transactions on`), `IMPLICIT_TRANSACTIONS_OFF` `0x00ba` (erster Abschluss von `set implicit_transactions off IF … COMMIT TRAN`) und
-`COMMIT_IF_OPEN` `0x00c0` (der Abschluss der Bedingung `IF @@TRANCOUNT > 0 COMMIT TRAN`), `CREATE_INDEX` `0x00c8` (`CREATE INDEX`, `CREATE UNIQUE INDEX`; gemessen an einem gewöhnlichen, einem eindeutigen und einem Index mit zwei Spalten, nicht an `INCLUDE`, Filter und absteigender Spalte) und `DROP_INDEX` `0x00c9` (`DROP INDEX [IF EXISTS]`); alle gemessen (Messprotokoll,
+`COMMIT_IF_OPEN` `0x00c0` (der Abschluss der Bedingung `IF @@TRANCOUNT > 0 COMMIT TRAN`), `CREATE_INDEX` `0x00c8` (`CREATE INDEX`, `CREATE UNIQUE INDEX`; gemessen an einem gewöhnlichen, einem eindeutigen und einem Index mit zwei Spalten, nicht an `INCLUDE`, Filter und absteigender Spalte; `INCLUDE` meldet dieselbe Art als Setzung, Filter und absteigende Spalte sind nicht erkannt) und `DROP_INDEX` `0x00c9` (`DROP INDEX [IF EXISTS]`); alle gemessen (Messprotokoll,
 Messreihe zu Massenladen, `MERGE`, Katalog und Strukturänderung, M-20, je ein Fall je Instanz 2022 und 2025). Im
 RPC und in der Antwort auf eine Nachricht des Massenladens gilt die Kennung dieser Arten nicht: dort schreibt die
 Bibliothek `UNKNOWN` (Kennung 0 mit `COUNT` im RPC) bzw. `0x00f0` und führt keinen Zustand nach (der Abschluss im RPC ist
