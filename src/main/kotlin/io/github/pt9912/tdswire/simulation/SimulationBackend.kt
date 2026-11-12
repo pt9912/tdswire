@@ -41,11 +41,10 @@ import java.util.concurrent.atomic.AtomicBoolean
  * Form K (`SPEC-036`) beantwortet die Katalogabfragen von d-migrate aus dem Katalog ([CatalogAnswers]); der Katalog
  * kommt bei jeder Anfrage frisch aus dem Anbieter des Konstruktors, das Backend hält keinen Stand. Form D (`CREATE
  * TABLE`, `ALTER TABLE … ADD` einer Spalte oder einer Bedingung, `ALTER TABLE … DROP CONSTRAINT` einer Bedingung,
- * `CREATE INDEX`, `DROP INDEX [IF EXISTS]` eines Index) ruft den Strukturänderungs-Callback
- * mit der Tabelle nach der Anweisung und meldet die Art `CREATE_TABLE`, `ALTER_TABLE` oder, für `CREATE INDEX` und
- * `DROP INDEX`, `UNKNOWN` (die Kennung des Servers ist für `DROP INDEX` `0x00c9` ohne Zeilenzahl, die Aufzählung der
- * Arten führt sie nicht; `DROP INDEX IF EXISTS` an einer unbekannten Tabelle ist ein Erfolg ohne Callback); das
- * Backend nimmt nichts zurück, mehrere Callbacks sind keine Transaktion (`ADR-0033`). Der Konstruktor mit festem
+ * `CREATE INDEX`, `DROP INDEX [IF EXISTS]` eines Index) ruft den Strukturänderungs-Callback mit der Tabelle nach
+ * der Anweisung und meldet die Art `CREATE_TABLE`, `ALTER_TABLE`, `CREATE_INDEX` oder `DROP_INDEX` (`DROP INDEX IF
+ * EXISTS` an einer unbekannten Tabelle ist ein Erfolg der Art `DROP_INDEX` ohne Callback); das Backend nimmt nichts
+ * zurück, mehrere Callbacks sind keine Transaktion (`ADR-0033`). Der Konstruktor mit festem
  * Katalog hat keinen Callback: Form D ist dort abgewiesen (`TDS_UNSUPPORTED_SQL`), ebenso mit dem Anbieter und ohne
  * Callback.
  *
@@ -175,8 +174,8 @@ public class SimulationBackend(
 
     /**
      * Form D (`SPEC-036`): ruft den Strukturänderungs-Callback genau einmal beim Sammeln und antwortet mit dem
-     * Abschluss der Art `CREATE_TABLE`, `ALTER_TABLE` oder `UNKNOWN` (die beiden ersten schreibt die Bibliothek ohne
-     * Zeilenzahl, SQL_BATCH).
+     * Abschluss der Art `CREATE_TABLE`, `ALTER_TABLE`, `CREATE_INDEX` oder `DROP_INDEX` (die Bibliothek schreibt
+     * sie ohne Zeilenzahl, SQL_BATCH).
      * Ohne Callback ist die Anweisung abgewiesen. Prüfen und Ändern sind je Backend atomar: beim
      * Sammeln plant das Backend den Text unter einer Sperre gegen den dann aktuellen Katalog erneut und ruft den
      * Callback mit diesem Stand; zwei gleichzeitige Strukturänderungen laufen nacheinander, die zweite sieht die

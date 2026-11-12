@@ -174,6 +174,27 @@ class ResponseStatementKindTest {
     }
 
     /**
+     * Im SQL_BATCH schließen `CREATE INDEX` und `DROP INDEX` mit einem DONE ohne `COUNT`: Status 0, Kennung `0x00c8`
+     * bzw. `0x00c9`, Zeilenzahl 0 (Handvektoren: Antworten auf `CREATE INDEX` in den Zeilen 03 bis 06 und auf
+     * `DROP INDEX` in Zeile 07 der Ablage `referenztest-dotnet/Mitschnitt/messung/bulk-merge-katalog/2022/`
+     * `struktur-drop-index.messung`; 2025 zeigt dieselben Bytes). Das Backend meldet die Zahl 0 oder eine andere: die
+     * Bibliothek ignoriert sie. Wächter: das Bit `COUNT` bei einer der Arten, vertauschte Kennungen, die
+     * Kennung 0 (Art `UNKNOWN`), eine Zeilenzahl ungleich 0.
+     *
+     * @spec SPEC-031
+     * @spec TDS-QA-01
+     */
+    @Test
+    fun `Im Batch schliessen CREATE INDEX und DROP INDEX ohne COUNT`() {
+        val create = hexOf("FD 00 00 C8 00 00 00 00 00 00 00 00 00")
+        val drop = hexOf("FD 00 00 C9 00 00 00 00 00 00 00 00 00")
+        assertEquals(create, batch(QueryEvent.UpdateCount(0, StatementKind.CREATE_INDEX)))
+        assertEquals(drop, batch(QueryEvent.UpdateCount(0, StatementKind.DROP_INDEX)))
+        assertEquals(create, batch(QueryEvent.UpdateCount(7, StatementKind.CREATE_INDEX)))
+        assertEquals(drop, batch(QueryEvent.UpdateCount(7, StatementKind.DROP_INDEX)))
+    }
+
+    /**
      * Die Strukturänderungen sind nur im SQL_BATCH gemessen. Im RPC und in der Form des Massenladens schreibt die
      * Bibliothek sie wie `UNKNOWN` beziehungsweise mit `0x00f0`: Kennung 0 mit `COUNT` und der Zahl des Ereignisses
      * (Grenze, `SPEC-031`). Wächter: die Kennung `0x00c6` im DONEINPROC, das fehlende `COUNT` im RPC.
@@ -190,6 +211,14 @@ class ResponseStatementKindTest {
         assertEquals(
             hexOf("FF 11 00 00 00 00 00 00 00 00 00 00 00  $DONEPROC"),
             rpc(QueryEvent.UpdateCount(0, StatementKind.ALTER_TABLE)),
+        )
+        assertEquals(
+            hexOf("FF 11 00 00 00 00 00 00 00 00 00 00 00  $DONEPROC"),
+            rpc(QueryEvent.UpdateCount(0, StatementKind.CREATE_INDEX)),
+        )
+        assertEquals(
+            hexOf("FF 11 00 00 00 00 00 00 00 00 00 00 00  $DONEPROC"),
+            rpc(QueryEvent.UpdateCount(0, StatementKind.DROP_INDEX)),
         )
         val created = QueryEvent.UpdateCount(0, StatementKind.CREATE_TABLE)
         val bulk = answer(ResponseForm.BULK, CallLayout.PROCEDURE, created)

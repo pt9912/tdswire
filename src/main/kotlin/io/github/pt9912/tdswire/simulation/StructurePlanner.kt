@@ -97,7 +97,7 @@ internal object StructurePlanner {
             StructureChecks.indexNameTaken(table, index.name) ->
                 reject(SimCodes.OBJECT_EXISTS, "Index ist schon beschrieben")
 
-            else -> result(table.copy(indexes = table.indexes + index), StatementKind.UNKNOWN)
+            else -> result(table.copy(indexes = table.indexes + index), StatementKind.CREATE_INDEX)
         }
     }
 
@@ -125,27 +125,26 @@ internal object StructurePlanner {
     }
 
     /**
-     * D6: der Index mit dem Namen fällt aus der Tabelle; der Abschluss ist die Art `UNKNOWN` (die öffentliche
-     * Aufzählung der Arten kennt keine für `DROP INDEX`). Der Name einer Eindeutigkeit der Tabelle ist
-     * `INDEX_OF_CONSTRAINT` (3723), mit und ohne `IF EXISTS` (gemessen). Sonst ist `IF EXISTS` ohne Treffer ein Erfolg
-     * ohne Änderung (die Tabelle im Callback unverändert; der Name eines Index einer anderen Tabelle trifft nicht),
-     * auch an einer unbekannten Tabelle (gemessen), dann ohne Callback; ohne `IF EXISTS` ist es `NOT_AN_INDEX`
-     * (3701), auch an einer unbekannten Tabelle.
+     * D6: der Index mit dem Namen fällt aus der Tabelle; der Abschluss ist die Art `DROP_INDEX`. Der Name einer
+     * Eindeutigkeit der Tabelle ist `INDEX_OF_CONSTRAINT` (3723), mit und ohne `IF EXISTS` (gemessen). Sonst ist `IF
+     * EXISTS` ohne Treffer ein Erfolg ohne Änderung (die Tabelle im Callback unverändert; der Name eines Index einer
+     * anderen Tabelle trifft nicht), auch an einer unbekannten Tabelle (gemessen), dann ohne Callback; ohne `IF EXISTS`
+     * ist es `NOT_AN_INDEX` (3701), auch an einer unbekannten Tabelle.
      */
     fun dropIndex(statement: Statement.DropIndex, catalog: SimCatalog): PlanResult {
         val table = catalog.find(statement.table.schema, statement.table.name)
         val shortened = table?.let { StructureChecks.withoutIndex(it, statement.name) }
         return when {
-            shortened != null -> result(shortened, StatementKind.UNKNOWN)
+            shortened != null -> result(shortened, StatementKind.DROP_INDEX)
 
             table != null && StructureChecks.constraintIndex(table, statement.name) ->
                 reject(SimCodes.INDEX_OF_CONSTRAINT, "Index gehört zu einer Eindeutigkeit")
 
             !statement.ifExists -> reject(SimCodes.NOT_AN_INDEX, "Name ist kein Index der Tabelle")
 
-            table == null -> PlanResult.Unchanged(StatementKind.UNKNOWN)
+            table == null -> PlanResult.Unchanged(StatementKind.DROP_INDEX)
 
-            else -> result(table, StatementKind.UNKNOWN)
+            else -> result(table, StatementKind.DROP_INDEX)
         }
     }
 
