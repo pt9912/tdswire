@@ -38,7 +38,7 @@ Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks.
 - `ENVCHANGE` Typ 8 und 9 bei `CREATE INDEX` und `DROP INDEX` nach `set implicit_transactions on` — nicht gemessen und nicht gebaut (Setzung wie bei `ALTER_TABLE`, [ADR-0042](../../adr/0042-anweisungsart-und-zustandswechsel-nur-durch-die-bibliothek.md) Entscheidung 5): eine Zusage braucht einen Handvektor aus einer Messung.
 - `CREATE INDEX` mit `INCLUDE`, Filter und absteigender Spalte — nicht gemessen; die Form bleibt, wie sie ist, und meldet die Art mit dem Wortlaut „Setzung, nicht gemessen“ (§6).
 - Die zwei Abweichungen nach 3701 (State 7 statt 6 bei unbekannter Tabelle, Befehl `0x00fd` statt `0x00c9` im `DONE` nach dem Fehler) — Register Punkt 13 (b), intern, Trigger: ein Client wertet Befehl oder State aus.
-- Entfernen eines eindeutigen Index durch d-migrate (`DROP CONSTRAINT IF EXISTS <Index>`) — Register Punkt 14, Trigger: die Abnahme [slice-abnahme-d-migrate](slice-abnahme-d-migrate.md).
+- Entfernen eines eindeutigen Index durch d-migrate (`DROP CONSTRAINT IF EXISTS <Index>`) — Register Punkt 14, Trigger: die Abnahme [slice-abnahme-d-migrate](../open/slice-abnahme-d-migrate.md).
 - Mehrere Anweisungen in einem Text — Grenze (e) der Form D6 in [SPEC-036](../../../../spec/spezifikation.md#spec-036--erkannte-anweisungsformen-des-simulations-backends-vorläufig), ein eigener Vorgang.
 
 ## 2. Definition of Done
@@ -92,7 +92,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-drop-index-if-exists](../done/slice-drop-index-if-exists.md) liegt in `done/` (Form D6 und Messung der Ablage sind die Eingänge); ein Verantwortlicher ist eingetragen. Der Slice steht vor [slice-abnahme-d-migrate](slice-abnahme-d-migrate.md) als Reihenfolge, nicht als Voraussetzung: keine Funktion des Solls hängt an den Mitgliedern (der Abnahme-Slice führt ihn unter den Slices, die den Server dem echten SQL Server angleichen: Grenze, keine Voraussetzung); liegt er vor der Abnahme, misst der Lauf den Draht mit.
+**Start** (`next` → `in-progress`): [slice-drop-index-if-exists](../done/slice-drop-index-if-exists.md) liegt in `done/` (Form D6 und Messung der Ablage sind die Eingänge); ein Verantwortlicher ist eingetragen. Der Slice steht vor [slice-abnahme-d-migrate](../open/slice-abnahme-d-migrate.md) als Reihenfolge, nicht als Voraussetzung: keine Funktion des Solls hängt an den Mitgliedern (der Abnahme-Slice führt ihn unter den Slices, die den Server dem echten SQL Server angleichen: Grenze, keine Voraussetzung); liegt er vor der Abnahme, misst der Lauf den Draht mit.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
