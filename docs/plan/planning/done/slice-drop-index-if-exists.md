@@ -35,7 +35,7 @@ Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - `ALTER TABLE … DROP CONSTRAINT [IF EXISTS]` (Form D5) — liegt in [slice-drop-constraint-form-d5](../done/slice-drop-constraint-form-d5.md); dieser Slice setzt dessen Ergebnis voraus und ändert dieselben Dateien.
-- Der Text mit `DECLARE @df … EXEC sp_executesql` für einen Standardwert an einer vorhandenen Spalte — größer und zurückgestellt: [slice-declare-df-standardwert-vorhandene-spalte](../in-progress/slice-declare-df-standardwert-vorhandene-spalte.md).
+- Der Text mit `DECLARE @df … EXEC sp_executesql` für einen Standardwert an einer vorhandenen Spalte — größer und zurückgestellt: [slice-declare-df-standardwert-vorhandene-spalte](../done/slice-declare-df-standardwert-vorhandene-spalte.md).
 - Die Abnahme mit d-migrate über alle Funktionen — [slice-abnahme-d-migrate](../open/slice-abnahme-d-migrate.md); dieser Slice liegt davor, weil der Validator bei einem geänderten Index sofort auf die Form trifft.
 - Die alte Schreibweise `DROP INDEX <t>.<ix>` — d-migrate sendet sie nicht (Setzung des Planners, am Mitschnitt zu prüfen); sie bleibt unerkannt, bis ein Client sie verlangt.
 - Referentielle Integrität im Bestand und Nutzung von Indizes — der Katalog beschreibt, der Testserver prüft nichts.

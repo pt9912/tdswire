@@ -17,7 +17,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Verantwortlich:** — bis zur Priorisierung.
 
-**Autor:** pt9912 (Entwurf in der Planner-Rolle, Closure von [slice-declare-df-standardwert-vorhandene-spalte](../in-progress/slice-declare-df-standardwert-vorhandene-spalte.md), Entscheid des Nutzers 2026-11-12). **Datum:** 2026-11-12.
+**Autor:** pt9912 (Entwurf in der Planner-Rolle, Closure von [slice-declare-df-standardwert-vorhandene-spalte](../done/slice-declare-df-standardwert-vorhandene-spalte.md), Entscheid des Nutzers 2026-11-12). **Datum:** 2026-11-12.
 
 ---
 
