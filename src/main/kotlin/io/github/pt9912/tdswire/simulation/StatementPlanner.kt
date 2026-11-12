@@ -64,7 +64,10 @@ internal data class Plan(
  */
 internal data class StructurePlan(
     val table: SimTable,
-    /** Die Art des Abschlusses: [StatementKind.CREATE_TABLE], [StatementKind.ALTER_TABLE] oder `UNKNOWN`. */
+    /**
+     * Die Art des Abschlusses: [StatementKind.CREATE_TABLE], [StatementKind.ALTER_TABLE], [StatementKind.CREATE_INDEX]
+     * oder [StatementKind.DROP_INDEX].
+     */
     val kind: StatementKind,
 )
 

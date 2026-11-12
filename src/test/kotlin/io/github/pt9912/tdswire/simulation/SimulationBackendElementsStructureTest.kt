@@ -12,7 +12,8 @@ import kotlin.test.assertIs
  * `SPEC-035`): der Wortlaut von d-migrate 1.12.0 ([dMigrateElementKunden] und folgende) ruft den Callback mit der
  * Tabelle nach der Anweisung, Elemente eingeschlossen. Gemessen am echten Server ist die Form des Katalogs für die
  * Prüfbedingung `Menge > 0` (`([Menge]>(0))`), `DEFAULT 1` (`((1))`) und `DEFAULT N'neu'` (`(N'neu')`); alles darüber
- * hinaus (andere Ausdrücke, Fehlernummern, die Kennung von `CREATE INDEX`) ist Setzung.
+ * hinaus (andere Ausdrücke, Fehlernummern) ist Setzung; die Kennung `0x00c8` von `CREATE INDEX` ist für einen
+ * gewöhnlichen, einen eindeutigen und einen Index mit zwei Spalten gemessen.
  */
 class SimulationBackendElementsStructureTest {
     private val rowless: suspend (SimQuery) -> RowSource = { RowSource { null } }
@@ -59,9 +60,9 @@ class SimulationBackendElementsStructureTest {
      * Happy (Wortlaut von d-migrate): die beiden `CREATE TABLE` des Solls und der Index. Der Callback bekommt für
      * `kunden` die Eindeutigkeit `uq_kunden_Email` an der Spalte, für `bestellung` die Standardwerte `((1))` und
      * `(N'neu')`, den Fremdschlüssel mit `CASCADE` und `NO_ACTION` und die Prüfbedingung in der Form des Servers;
-     * `CREATE INDEX` meldet die Tabelle mit dem Index (Art `UNKNOWN`: die Kennung des Abschlusses ist nicht gemessen).
+     * `CREATE INDEX` meldet die Tabelle mit dem Index (Art `CREATE_INDEX`).
      * Wächter: ein Text, der die Klausel stumm überliest (die Elemente fehlten im Callback), eine Prüfbedingung im
-     * Wortlaut des Autors statt in der Form des Servers, eine Art `CREATE_TABLE` für den Index.
+     * Wortlaut des Autors statt in der Form des Servers, eine Art `CREATE_TABLE` oder `UNKNOWN` für den Index.
      * @spec SPEC-036
      */
     @Test
@@ -69,7 +70,7 @@ class SimulationBackendElementsStructureTest {
         val store = Store(emptyList())
         assertEquals(StatementKind.CREATE_TABLE, kind(run(store, dMigrateElementKunden)))
         assertEquals(StatementKind.CREATE_TABLE, kind(run(store, dMigrateElementBestellung)))
-        assertEquals(StatementKind.UNKNOWN, kind(run(store, DMIGRATE_ELEMENT_INDEX)))
+        assertEquals(StatementKind.CREATE_INDEX, kind(run(store, DMIGRATE_ELEMENT_INDEX)))
 
         val first = store.shapes[0]
         assertEquals(listOf(SimUniqueKey("uq_kunden_Email", listOf("Email"))), first.uniqueKeys)
@@ -147,6 +148,26 @@ class SimulationBackendElementsStructureTest {
             ),
             keys,
         )
+    }
+
+    /**
+     * Happy: `CREATE INDEX`, `CREATE UNIQUE INDEX` und ein Index mit zwei Spalten melden die Art `CREATE_INDEX`
+     * (Kennung `0x00c8`, an diesen drei Formen am echten Server gemessen); mit `INCLUDE` meldet die Bibliothek
+     * dieselbe Art (Setzung, nicht gemessen).
+     * Wächter: die Art `UNKNOWN` oder `CREATE_TABLE` für eine der Formen, eine Art, die nach der Eindeutigkeit oder
+     * der Zahl der Spalten wechselt.
+     * @spec SPEC-036
+     */
+    @Test
+    fun `CREATE INDEX meldet die Art CREATE_INDEX`() {
+        val store = Store(listOf(kunden, bestellung))
+        val texts = listOf(
+            "CREATE INDEX [i1] ON [bestellung] ([Status])",
+            "CREATE UNIQUE INDEX [i2] ON [bestellung] ([Menge])",
+            "CREATE INDEX [i3] ON [bestellung] ([Menge], [Status])",
+            "CREATE INDEX [i4] ON [bestellung] ([Status]) INCLUDE ([KundeId])",
+        )
+        for (text in texts) assertEquals(StatementKind.CREATE_INDEX, kind(run(store, text)), text)
     }
 
     /**

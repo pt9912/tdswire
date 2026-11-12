@@ -26,6 +26,12 @@ private const val CREATE_PLAIN = "FD 00 00 C6 00 $DONE_ZERO"
 /** `ALTER TABLE … ADD` in der offenen Transaktion: DONE `0x00d8`, kein ENVCHANGE. */
 private const val ALTER = "FD 00 00 D8 00 $DONE_ZERO"
 
+/** `CREATE INDEX`: DONE `0x00c8` ohne ENVCHANGE. */
+private const val INDEX_CREATE = "FD 00 00 C8 00 $DONE_ZERO"
+
+/** `DROP INDEX`: DONE `0x00c9` ohne ENVCHANGE. */
+private const val INDEX_DROP = "FD 00 00 C9 00 $DONE_ZERO"
+
 /** `IF @@TRANCOUNT > 0 COMMIT TRAN` bei offener Transaktion: DONE `MORE` `0x00c0`, ENVCHANGE Typ 9, DONE `0x00d5`. */
 private const val COMMIT_OPEN = "FD 01 00 C0 00 $DONE_ZERO  E3 0B 00 09 00 08 $DESCRIPTOR  FD 00 00 D5 00 $DONE_ZERO"
 
@@ -115,6 +121,25 @@ class ResponseTransactionTest {
         assertEquals(hexOf(COMMIT_OPEN), batch(StatementKind.COMMIT_IF_OPEN))
         assertEquals(hexOf(COMMIT_CLOSED), batch(StatementKind.COMMIT_IF_OPEN))
         assertEquals(hexOf(CREATE_BEGIN), batch(StatementKind.CREATE_TABLE))
+    }
+
+    /**
+     * `CREATE INDEX` und `DROP INDEX` beginnen bei `set implicit_transactions on` keine Transaktion und schreiben kein
+     * ENVCHANGE (Setzung, nicht gemessen); sie lassen eine offene Transaktion offen. Wächter: ein Typ 8 vor dem DONE
+     * einer der Arten, ein Zustand, der durch sie zurückgesetzt wird (der folgende `COMMIT` ohne Typ 9).
+     *
+     * @spec SPEC-031
+     * @spec TDS-QA-07
+     */
+    @Test
+    fun `CREATE INDEX und DROP INDEX beginnen keine Transaktion`() {
+        batch(StatementKind.IMPLICIT_TRANSACTIONS_ON)
+        assertEquals(hexOf(INDEX_CREATE), batch(StatementKind.CREATE_INDEX))
+        assertEquals(hexOf(INDEX_DROP), batch(StatementKind.DROP_INDEX))
+        assertEquals(hexOf(COMMIT_CLOSED), batch(StatementKind.COMMIT_IF_OPEN))
+        assertEquals(hexOf(CREATE_BEGIN), batch(StatementKind.CREATE_TABLE))
+        assertEquals(hexOf(INDEX_CREATE), batch(StatementKind.CREATE_INDEX))
+        assertEquals(hexOf(COMMIT_OPEN), batch(StatementKind.COMMIT_IF_OPEN))
     }
 
     /**

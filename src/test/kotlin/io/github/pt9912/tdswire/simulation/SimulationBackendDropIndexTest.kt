@@ -18,9 +18,9 @@ import kotlin.test.assertTrue
  * Zähler; ohne `IF EXISTS` ist ein Name ohne Treffer ERROR 3701, auch bei dem Index einer anderen Tabelle und an einer
  * unbekannten Tabelle; der Index einer Eindeutigkeit ist ERROR 3723, mit und ohne `IF EXISTS`; der Name gilt ohne
  * Beachtung der Schreibweise (gemessen am eindeutigen Index). Der Wortlaut von d-migrate steht in
- * [D_MIGRATE_DROP_INDEX_TEXT]. Setzung (nicht gemessen): Tabellen in einem anderen Schema als `dbo`; die Art des
- * Abschlusses ist `UNKNOWN`, weil die Aufzählung der Arten keine für `DROP INDEX` führt; der Name des Schlüssels ist im
- * Modell nicht geführt und trifft deshalb nicht.
+ * [D_MIGRATE_DROP_INDEX_TEXT]. Die Art des Abschlusses ist `DROP_INDEX` (Kennung `0x00c9`). Setzung (nicht gemessen):
+ * Tabellen in einem anderen Schema als `dbo`; der Name des Schlüssels ist im Modell nicht geführt und trifft deshalb
+ * nicht.
  */
 class SimulationBackendDropIndexTest {
     private val rowless: suspend (SimQuery) -> RowSource = { RowSource { null } }
@@ -77,7 +77,7 @@ class SimulationBackendDropIndexTest {
 
     /**
      * Happy (Wortlaut von d-migrate): der Text nimmt den Index aus der Tabelle; Spalten, Schlüssel, Eindeutigkeit und
-     * die übrigen Indizes bleiben; der Abschluss ist die Art `UNKNOWN`. Die Folge `DROP` und `CREATE UNIQUE INDEX`
+     * die übrigen Indizes bleiben; der Abschluss ist die Art `DROP_INDEX`. Die Folge `DROP` und `CREATE UNIQUE INDEX`
      * desselben Namens (Schritt s14 von d-migrate) endet mit dem eindeutigen Index.
      * Wächter: eine Planung, die den Namen ignoriert (alle bleiben), eine, die mehr entfernt als den einen Index.
      * @spec SPEC-036
@@ -85,7 +85,7 @@ class SimulationBackendDropIndexTest {
     @Test
     fun `der Text von d-migrate nimmt den Index aus der Tabelle`() {
         val store = store()
-        assertEquals(StatementKind.UNKNOWN, kind(run(store, D_MIGRATE_DROP_INDEX_TEXT)))
+        assertEquals(StatementKind.DROP_INDEX, kind(run(store, D_MIGRATE_DROP_INDEX_TEXT)))
 
         assertEquals(1, store.shapes.size)
         val customers = store.table("kunden")
@@ -136,7 +136,7 @@ class SimulationBackendDropIndexTest {
             "DROP INDEX IF EXISTS [ix_bestellung_menge] ON [kunden]",
             "DROP INDEX IF EXISTS [pk_kunden] ON [kunden]",
         )
-        for (text in texts) assertEquals(StatementKind.UNKNOWN, kind(run(store, text)), text)
+        for (text in texts) assertEquals(StatementKind.DROP_INDEX, kind(run(store, text)), text)
 
         assertEquals(texts.size, store.shapes.size)
         assertEquals(kunden.indexes, store.table("kunden").indexes)
@@ -173,7 +173,7 @@ class SimulationBackendDropIndexTest {
 
     /**
      * Happy (gemessen, Zeile 18): `IF EXISTS` an einer unbekannten Tabelle (auch in einem anderen Schema, dort
-     * Setzung) ist ein Erfolg der Art `UNKNOWN` ohne Zähler 0 Zeilen; der Callback bleibt ungerufen, weil es keine
+     * Setzung) ist ein Erfolg der Art `DROP_INDEX` ohne Zähler 0 Zeilen; der Callback bleibt ungerufen, weil es keine
      * Tabelle zu melden gibt.
      * Wächter: ein Fehler `TDS_SIM_OBJECT_NOT_FOUND` wie bei `DROP CONSTRAINT`, ein Aufruf des Callbacks.
      * @spec SPEC-036
@@ -187,7 +187,7 @@ class SimulationBackendDropIndexTest {
         )
         for (sql in texts) {
             val event = assertIs<QueryEvent.UpdateCount>(run(store, sql).single(), sql)
-            assertEquals(StatementKind.UNKNOWN, event.kind, sql)
+            assertEquals(StatementKind.DROP_INDEX, event.kind, sql)
             assertEquals(0L, event.affectedRows, sql)
         }
         assertTrue(store.shapes.isEmpty())
@@ -289,7 +289,7 @@ class SimulationBackendDropIndexTest {
         assertRecognized(Statement.DropIndex(tableRef(long), "i", ifExists = true), "DROP INDEX IF EXISTS i ON [$long]")
 
         val store = store()
-        assertEquals(StatementKind.UNKNOWN, kind(run(store, "DROP INDEX IF EXISTS [$long] ON [kunden]")))
+        assertEquals(StatementKind.DROP_INDEX, kind(run(store, "DROP INDEX IF EXISTS [$long] ON [kunden]")))
         assertEquals(SimCodes.NOT_AN_INDEX, failureCode(store, "DROP INDEX [$long] ON [kunden]"))
         assertEquals(kunden.indexes, store.table("kunden").indexes)
     }
@@ -321,7 +321,7 @@ class SimulationBackendDropIndexTest {
     /**
      * Ändert ein anderer Schreiber den Anbieter zwischen Planung und Sammeln (die Sperre bindet ihn nicht), gilt die
      * erneute Planung: fehlt die Tabelle dann, ist `DROP INDEX IF EXISTS` der Erfolg ohne Callback und ohne Änderung
-     * (Zähler 0, Art `UNKNOWN`), nicht `TDS_BACKEND_ERROR`; ohne `IF EXISTS` ist es `TDS_SIM_NOT_AN_INDEX` (3701).
+     * (Zähler 0, Art `DROP_INDEX`), nicht `TDS_BACKEND_ERROR`; ohne `IF EXISTS` ist es `TDS_SIM_NOT_AN_INDEX` (3701).
      * Wächter: eine erneute Planung, die `Unchanged` als Fehlschlag behandelt (`TDS_BACKEND_ERROR`), ein Callback für
      * eine Tabelle, die es nicht mehr gibt.
      * @spec SPEC-036
@@ -334,7 +334,7 @@ class SimulationBackendDropIndexTest {
         store.tables = store.tables.filterNot { it.name == "kunden" }
 
         val event = assertIs<QueryEvent.UpdateCount>(runBlocking { dropped.events.toList() }.single())
-        assertEquals(StatementKind.UNKNOWN, event.kind)
+        assertEquals(StatementKind.DROP_INDEX, event.kind)
         assertEquals(0L, event.affectedRows)
         val failure = assertIs<QueryEvent.Failure>(runBlocking { strict.events.toList() }.single())
         assertEquals(SimCodes.NOT_AN_INDEX, failure.code)

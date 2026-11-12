@@ -82,8 +82,11 @@ class DropIndexEmbeddingTest {
             client.login()
             val dropped = client.batch("DROP INDEX ix_menge ON beschrieben")
             assertEquals(0, dropped.doneStatus and DONE_ERROR, "Erfolg: ohne Fehlerbit")
+            assertEquals(DROP_INDEX_COMMAND, dropped.command, "Erfolg: Befehl 0x00c9")
+            assertEquals(0L, dropped.rowCount, "Erfolg: ohne Zeilenzahl")
             val none = client.batch("DROP INDEX IF EXISTS ix_menge ON beschrieben")
             assertEquals(0, none.doneStatus and DONE_ERROR, "IF EXISTS ohne Treffer: ohne Fehlerbit")
+            assertEquals(DROP_INDEX_COMMAND, none.command, "IF EXISTS ohne Treffer: Befehl 0x00c9")
             val missing = client.batch("DROP INDEX ix_menge ON beschrieben")
             assertEquals(DONE_ERROR, missing.doneStatus and DONE_ERROR)
             assertEquals(NOT_AN_INDEX, errorNumber(missing), "Name ohne Treffer: 3701")
@@ -95,6 +98,7 @@ class DropIndexEmbeddingTest {
             assertEquals(INDEX_OF_CONSTRAINT, errorNumber(constraint), "Index der Eindeutigkeit: 3723")
             val absent = client.batch("DROP INDEX IF EXISTS x ON gibtesnicht")
             assertEquals(0, absent.doneStatus and DONE_ERROR, "IF EXISTS an unbekannter Tabelle: Erfolg")
+            assertEquals(DROP_INDEX_COMMAND, absent.command, "IF EXISTS an unbekannter Tabelle: Befehl 0x00c9")
         }
         assertEquals(2, shapes.size)
         assertEquals(listOf(SimIndex("ix_zweiter", listOf("Id", "Menge"))), shapes.first().indexes)
@@ -112,6 +116,7 @@ class DropIndexEmbeddingTest {
     }
 
     private companion object {
+        const val DROP_INDEX_COMMAND = 0x00c9
         const val NOT_AN_INDEX = 3701
         const val INDEX_OF_CONSTRAINT = 3723
         const val ERROR_NUMBER_OFFSET = 3

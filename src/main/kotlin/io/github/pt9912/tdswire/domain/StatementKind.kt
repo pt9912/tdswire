@@ -5,8 +5,9 @@ package io.github.pt9912.tdswire.domain
  * (`SPEC-031`, `SPEC-059`).
  * Die Bibliothek leitet daraus die Befehlskennung (`curCmd`) des Abschlusses ab; die Kennungen sind am echten SQL
  * Server gemessen (Messprotokoll W-6 und M-20, Instanz 2022 und 2025, je ein Fall). Das Mitglied [UNKNOWN] ist der
- * Wert eines Backends, das keine Art meldet: Kennung 0 mit Zeilenzahl. Bei [CREATE_TABLE] und [ALTER_TABLE] schließt
- * der Server ohne Zeilenzahl ab; die Bibliothek ignoriert dort die Zahl des Ereignisses.
+ * Wert eines Backends, das keine Art meldet: Kennung 0 mit Zeilenzahl. Bei [CREATE_TABLE], [ALTER_TABLE],
+ * [CREATE_INDEX] und [DROP_INDEX] schließt der Server ohne Zeilenzahl ab; die Bibliothek ignoriert dort die Zahl des
+ * Ereignisses.
  */
 public enum class StatementKind {
     /** Keine Aussage über die Art: der Abschluss trägt die Kennung 0. */
@@ -52,4 +53,17 @@ public enum class StatementKind {
      * Ergebnis, kein Änderungszähler.
      */
     MERGE,
+
+    /**
+     * `CREATE INDEX` und `CREATE UNIQUE INDEX`: Kennung `0x00c8`, ohne Zeilenzahl (am echten SQL Server gemessen für
+     * einen gewöhnlichen, einen eindeutigen und einen Index mit zwei Spalten; `INCLUDE`, Filter und absteigende
+     * Spalte sind nicht gemessen). Messprotokoll `drop-index-d-migrate-2026-11-11`.
+     */
+    CREATE_INDEX,
+
+    /**
+     * `DROP INDEX` und `DROP INDEX IF EXISTS`: Kennung `0x00c9`, ohne Zeilenzahl, bei Treffer, bei `IF EXISTS` ohne
+     * Treffer und an einer unbekannten Tabelle mit `IF EXISTS` (Messprotokoll `drop-index-d-migrate-2026-11-11`).
+     */
+    DROP_INDEX,
 }

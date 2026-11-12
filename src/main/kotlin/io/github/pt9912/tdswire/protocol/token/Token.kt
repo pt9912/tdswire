@@ -97,6 +97,8 @@ internal object DoneCommand {
     private const val IMPLICIT_TRANSACTIONS_OFF = 0x00BA
     private const val COMMIT_IF_OPEN = 0x00C0
     private const val MERGE = 0x0117
+    private const val CREATE_INDEX = 0x00C8
+    private const val DROP_INDEX = 0x00C9
 
     /** Der Abschluss des `COMMIT` hinter einer offenen Transaktion (Messprotokoll M-20). */
     const val COMMIT_TRAN = 0x00D5
@@ -116,6 +118,8 @@ internal object DoneCommand {
         StatementKind.IMPLICIT_TRANSACTIONS_OFF -> IMPLICIT_TRANSACTIONS_OFF
         StatementKind.COMMIT_IF_OPEN -> COMMIT_IF_OPEN
         StatementKind.MERGE -> MERGE
+        StatementKind.CREATE_INDEX -> CREATE_INDEX
+        StatementKind.DROP_INDEX -> DROP_INDEX
     }
 
     /**
@@ -137,6 +141,8 @@ internal object DoneCommand {
         StatementKind.IMPLICIT_TRANSACTIONS_ON,
         StatementKind.IMPLICIT_TRANSACTIONS_OFF,
         StatementKind.COMMIT_IF_OPEN,
+        StatementKind.CREATE_INDEX,
+        StatementKind.DROP_INDEX,
         -> false
     }
 }

@@ -246,7 +246,7 @@ class StatementKindEmbeddingTest {
     }
 
     /**
-     * Die Fläche: die zehn Konstanten von `StatementKind`, das Feld `kind` von `UpdateCount` und von `ResultStart` mit
+     * Die Fläche: die zwölf Konstanten von `StatementKind`, das Feld `kind` von `UpdateCount` und von `ResultStart` mit
      * dem Standardwert `UNKNOWN`, das Längenfeld `maxLength` von `ResultColumn` mit dem Standardwert 4000 und für Java
      * die Konstruktoren mit weniger Argumenten (`@JvmOverloads`: `new UpdateCount(n)`, `new ResultStart(columns)`,
      * `new ResultColumn(name, type, nullable)`). Wächter: ein fehlendes Mitglied, ein anderer Standardwert, ein
@@ -268,6 +268,8 @@ class StatementKindEmbeddingTest {
                 "IMPLICIT_TRANSACTIONS_OFF",
                 "COMMIT_IF_OPEN",
                 "MERGE",
+                "CREATE_INDEX",
+                "DROP_INDEX",
             ),
             StatementKind.entries.map { it.name },
         )
