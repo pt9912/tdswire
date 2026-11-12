@@ -1,8 +1,11 @@
 package io.github.pt9912.tdswire.simulation
 
 import io.github.pt9912.tdswire.domain.QueryEvent
+import io.github.pt9912.tdswire.domain.QueryParameter
 import io.github.pt9912.tdswire.domain.SqlType
 import io.github.pt9912.tdswire.domain.StatementKind
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -245,7 +248,7 @@ class SimulationBackendDropIndexTest {
 
     /**
      * Der Text von d-migrate ist als Form D6 erkannt: Tabelle, Name und `IF EXISTS`; ohne `IF EXISTS`, mit Schema und
-     * in Kleinschreibung ebenso.
+     * in Kleinschreibung ebenso; das unquotierte `IF` hinter `IF EXISTS` ist ein Name (Setzung).
      * Wächter: ein Name mit den Klammern, ein verlorenes Schema, ein falsches `ifExists`, ein vertauschter Name und
      * Tabelle.
      * @spec SPEC-036
@@ -261,6 +264,8 @@ class SimulationBackendDropIndexTest {
             Statement.DropIndex(tableRef("t"), "i j", ifExists = true),
             "drop index if exists [i j] on [t];",
         )
+        // Setzung (nicht gemessen): hinter IF EXISTS ist auch ein unquotiertes IF der Name.
+        assertRecognized(Statement.DropIndex(tableRef("t"), "IF", ifExists = true), "DROP INDEX IF EXISTS IF ON t")
     }
 
     /**
@@ -287,6 +292,53 @@ class SimulationBackendDropIndexTest {
         assertEquals(StatementKind.UNKNOWN, kind(run(store, "DROP INDEX IF EXISTS [$long] ON [kunden]")))
         assertEquals(SimCodes.NOT_AN_INDEX, failureCode(store, "DROP INDEX [$long] ON [kunden]"))
         assertEquals(kunden.indexes, store.table("kunden").indexes)
+    }
+
+    /**
+     * Die Katalogabfrage der Indizes (Wortlaut von d-migrate) liest den Zustand aus dem Anbieter: vor `DROP INDEX`
+     * stehen `ix_kunden_email`, `ix_gemeinsam` und `ux_kunden_menge`, nach `IF EXISTS` und nach dem Entfernen ohne
+     * `IF EXISTS` nur noch die übrigen (Setzung der Reihenfolge: nach Namen; die Eindeutigkeit steht mit dem Index).
+     * Wächter: ein Entfernen, das den Katalog des Anbieters nicht erreicht, ein Callback ohne die gekürzte Tabelle.
+     * @spec SPEC-036
+     */
+    @Test
+    fun `die Katalogantwort nennt nach DROP INDEX den Index nicht mehr`() {
+        val store = store()
+        val query = dMigrateCatalogTexts.single { "i.is_unique" in it && "i.has_filter" in it }
+        val parameter = listOf(QueryParameter("@P0", SqlType.UnicodeText, "[dbo].[kunden]"))
+
+        fun indexNames(): List<Any?> = collectEvents(store.backend, query, parameter)
+            .filterIsInstance<QueryEvent.Row>().map { it.values[0] }.distinct()
+
+        assertEquals(listOf("ix_gemeinsam", "ix_kunden_email", "uq_kunden_Email", "ux_kunden_menge"), indexNames())
+        run(store, D_MIGRATE_DROP_INDEX_TEXT)
+        assertEquals(listOf("ix_gemeinsam", "uq_kunden_Email", "ux_kunden_menge"), indexNames())
+        run(store, "DROP INDEX [ix_gemeinsam] ON [kunden]")
+        run(store, "DROP INDEX [ux_kunden_menge] ON [kunden]")
+        assertEquals(listOf("uq_kunden_Email"), indexNames())
+    }
+
+    /**
+     * Ändert ein anderer Schreiber den Anbieter zwischen Planung und Sammeln (die Sperre bindet ihn nicht), gilt die
+     * erneute Planung: fehlt die Tabelle dann, ist `DROP INDEX IF EXISTS` der Erfolg ohne Callback und ohne Änderung
+     * (Zähler 0, Art `UNKNOWN`), nicht `TDS_BACKEND_ERROR`; ohne `IF EXISTS` ist es `TDS_SIM_NOT_AN_INDEX` (3701).
+     * Wächter: eine erneute Planung, die `Unchanged` als Fehlschlag behandelt (`TDS_BACKEND_ERROR`), ein Callback für
+     * eine Tabelle, die es nicht mehr gibt.
+     * @spec SPEC-036
+     */
+    @Test
+    fun `die erneute Planung an einer inzwischen fehlenden Tabelle ist mit IF EXISTS ein Erfolg ohne Callback`() {
+        val store = store()
+        val dropped = runBlocking { store.backend.execute(queryRequest(D_MIGRATE_DROP_INDEX_TEXT)) }
+        val strict = runBlocking { store.backend.execute(queryRequest("DROP INDEX [ix_kunden_email] ON [kunden]")) }
+        store.tables = store.tables.filterNot { it.name == "kunden" }
+
+        val event = assertIs<QueryEvent.UpdateCount>(runBlocking { dropped.events.toList() }.single())
+        assertEquals(StatementKind.UNKNOWN, event.kind)
+        assertEquals(0L, event.affectedRows)
+        val failure = assertIs<QueryEvent.Failure>(runBlocking { strict.events.toList() }.single())
+        assertEquals(SimCodes.NOT_AN_INDEX, failure.code)
+        assertTrue(store.shapes.isEmpty())
     }
 
     private companion object {

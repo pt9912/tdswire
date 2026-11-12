@@ -81,6 +81,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 | `spec/spezifikation.md` (`SPEC-036` Form D6 und Grenzen, Fehlertabelle, Ablaufpunkt 9, Änderungsprotokoll), `docs/user/testserver-manuell.md`, `docs/user/einbettung-und-betrieb.md`, `docs/user/referenz-konfiguration.md` | update | Zusage und Grenzen; `docs/user/README.md` und `referenz-ereignisse.md` gelesen, unverändert |
 | `docs/plan/planning/observations/BEO-TDS/katalog-elemente-grenzen-der-angleichung/` (`state.md`, `observation.md`) | update | Punkt 9: gebaut; neue Punkte 13 und 14; Punkt 11 ergänzt |
 | `docs/plan/planning/in-progress/roadmap.md` | update | Ruhe-Marker und Zustandsfeld der Welle (der Slice liegt in `in-progress/`) |
+| `docs/plan/planning/done/slice-drop-constraint-form-d5.md`, `docs/plan/planning/open/slice-abnahme-d-migrate.md`, `docs/plan/planning/welle-testserver-manuell.md` | update | Zeiger auf diesen Slice (drei im Slice zu D5, Verweise im Slice zur Abnahme), Tabellenzeile und Reihenfolge der Welle |
 | `docs/plan/spec-abdeckung.md` | erzeugt | `make spec-abdeckung` einmal, Tests geändert |
 
 ## 4. Trigger
@@ -112,6 +113,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 - Ein zweiter `ERROR`-Abschluss wie bei D5 (die Antwort auf einen Fehler im Lauf erscheint doppelt, wenn die Anweisung zweimal gemeldet wird). — **Ausgang:** offen bis zur Closure.
 - Die Form am echten Server weicht von der Lesart ab (zum Beispiel meldet `IF EXISTS` ohne Treffer eine Information statt Erfolg, oder `DROP INDEX` auf einen Schlüsselindex ist abgewiesen). — **Ausgang:** offen bis zur Closure.
 - Die öffentliche Fläche wächst (neuer Typ für den Index-Abwurf). Keine neue Fläche ist die Zusage dieses Plans; sonst entscheidet der Nutzer. — **Ausgang:** offen bis zur Closure.
+  Entscheid des Nutzers am 2026-11-12 per Auswahl: `StatementKind` bekommt `CREATE_INDEX` (`0x00c8`) und `DROP_INDEX` (`0x00c9`), beide ohne `COUNT` (Muster `CREATE_TABLE` und `ALTER_TABLE`); das ist nicht Teil dieses Slice, sondern ein eigener kleiner Folge-Slice `slice-statementkind-index-mitglieder` (Träger: der Planner legt ihn bei der Closure an); hier bleibt der Abschluss `UNKNOWN`.
 
 ## 7. Closure-Notiz
 
@@ -122,7 +124,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 - **Was ging anders als geplant:** —
 - **Steering-Loop-Eintrag:** —
 - **Beobachtungs-Register (`../observations/`):** —
-- **Folge-Slices:** —
+- **Folge-Slices:** — (Vorbereitung für die Closure, Entscheid des Nutzers am 2026-11-12 per Auswahl: `slice-statementkind-index-mitglieder` für die Mitglieder `CREATE_INDEX` (`0x00c8`) und `DROP_INDEX` (`0x00c9`) von `StatementKind`, beide ohne `COUNT`; der Planner legt ihn an.)
 - **Risiken aus §6:** —
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung

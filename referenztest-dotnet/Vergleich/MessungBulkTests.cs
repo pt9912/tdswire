@@ -493,7 +493,7 @@ public class MessungBulkTests
                 Mit(l, v, "unbekannte Tabelle, mit IF EXISTS", "DROP INDEX IF EXISTS [x] ON [idx_gibtesnicht];");
                 Mit(l, v, "unbekannte Tabelle, ohne IF EXISTS", "DROP INDEX [x] ON [idx_gibtesnicht];");
                 Mit(l, v, "Index an den Eltern, Treffer, ohne IF EXISTS", "DROP INDEX [ix_idx_name] ON [idx_eltern];");
-                Mit(l, v, "Index mit Schema dbo an Tabelle und Name, Treffer, mit IF EXISTS", "DROP INDEX IF EXISTS [ix_idx_nur_eltern] ON [dbo].[idx_eltern];");
+                Mit(l, v, "Index mit Schema dbo an Tabelle und Name, mit IF EXISTS", "DROP INDEX IF EXISTS [ix_idx_nur_eltern] ON [dbo].[idx_eltern];");
                 Mit(l, v, "zwei Anweisungen in einem Text, beide ohne Treffer, mit IF EXISTS", "DROP INDEX IF EXISTS [zwei_a] ON [idx_kind]; DROP INDEX IF EXISTS [zwei_b] ON [idx_kind];");
                 Mit(l, v, "zwei Anweisungen in einem Text, die erste ohne IF EXISTS ohne Treffer", "DROP INDEX [zwei_a] ON [idx_kind]; DROP INDEX IF EXISTS [zwei_b] ON [idx_kind];");
                 Mit(l, v, "Folgeabfrage", "SELECT 1 AS eins");

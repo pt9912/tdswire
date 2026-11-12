@@ -181,7 +181,9 @@ public class SimulationBackend(
      * Sammeln plant das Backend den Text unter einer Sperre gegen den dann aktuellen Katalog erneut und ruft den
      * Callback mit diesem Stand; zwei gleichzeitige Strukturänderungen laufen nacheinander, die zweite sieht die
      * erste (`CREATE TABLE` derselben Tabelle ist dann abgewiesen wie bei einer schon beschriebenen Tabelle). Die
-     * Sperre gilt für dieses Backend; ein Anbieter, den ein anderer Schreiber ändert, bekommt sie nicht.
+     * Sperre gilt für dieses Backend; ein Anbieter, den ein anderer Schreiber ändert, bekommt sie nicht. Ändert so
+     * ein Schreiber den Katalog zwischen Planung und Sammeln, gilt die erneute Planung: ergibt sie `Unchanged` (etwa
+     * `DROP INDEX IF EXISTS` an einer nun unbekannten Tabelle), antwortet die Ausführung mit dem Erfolg ohne Callback.
      *
      * Grenze (Lesen des Codes, nicht gemessen): die Sperre ist ein [Mutex] und nicht reentrant. Ein Callback, der
      * dasselbe Backend aufruft und die Antwort abwartet, hängt; ein hängender Callback hält die Sperre und blockiert
@@ -199,6 +201,8 @@ public class SimulationBackend(
                     }
 
                     is PlanResult.Rejected -> throw ChangeRejected(again.code, again.message)
+
+                    is PlanResult.Unchanged -> 0L
 
                     else -> -1L
                 }

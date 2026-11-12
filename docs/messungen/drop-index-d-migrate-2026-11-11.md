@@ -24,7 +24,7 @@ Szenario `struktur-drop-index`, Referenzclient, beide Instanzen mit demselben Er
 | 08 | derselbe Text (kein Treffer mehr, der Name steht noch an den Eltern) | Erfolg |
 | 09 | `DROP INDEX [ix_idx_name] ON [idx_kind];` (kein Treffer, ohne `IF EXISTS`) | 3701 (Class 11, State 7, „Cannot drop the index 'idx_kind.ix_idx_name', because it does not exist or you do not have permission.“) |
 | 10 | `DROP INDEX [ix_idx_nur_eltern] ON [idx_kind];` (Index der anderen Tabelle) | 3701 (Class 11, State 7) |
-| 11 | `DROP INDEX IF EXISTS [ix_idx_nur_eltern] ON [idx_kind];` | Erfolg; der Index der Eltern bleibt (Zeile 21 entfernt ihn) |
+| 11 | `DROP INDEX IF EXISTS [ix_idx_nur_eltern] ON [idx_kind];` | Erfolg (kein Lesen danach: ob der Index der Eltern bleibt, ist nicht gelesen) |
 | 12 | `DROP INDEX [UX_IDX_MENGE] ON [idx_kind];` (eindeutiger Index, Name in anderer Schreibweise, ohne `IF EXISTS`) | Erfolg |
 | 13 | `DROP INDEX [ux_idx_menge] ON [idx_kind];` (kein Treffer mehr) | 3701 (Class 11, State 7) |
 | 14 | `DROP INDEX IF EXISTS [uq_idx_code] ON [idx_kind];` (Index der Eindeutigkeit) | 3723 (Class 16, State 5, „An explicit DROP INDEX is not allowed on index 'idx_kind.uq_idx_code'. It is being used for UNIQUE KEY constraint enforcement.“) |
@@ -34,7 +34,7 @@ Szenario `struktur-drop-index`, Referenzclient, beide Instanzen mit demselben Er
 | 18 | `DROP INDEX IF EXISTS [x] ON [idx_gibtesnicht];` (unbekannte Tabelle) | **Erfolg** |
 | 19 | `DROP INDEX [x] ON [idx_gibtesnicht];` | 3701 (Class 11, **State 6**, „Cannot drop the index 'idx_gibtesnicht.x', because it does not exist or you do not have permission.“) |
 | 20 | `DROP INDEX [ix_idx_name] ON [idx_eltern];` (gewöhnlicher Index, Treffer, ohne `IF EXISTS`; der gleichnamige Index am Kind ist da schon entfernt) | Erfolg |
-| 21 | `DROP INDEX IF EXISTS [ix_idx_nur_eltern] ON [dbo].[idx_eltern];` (Tabelle mit Schema `dbo`, Treffer) | Erfolg |
+| 21 | `DROP INDEX IF EXISTS [ix_idx_nur_eltern] ON [dbo].[idx_eltern];` (Tabelle mit Schema `dbo`) | Erfolg (kein Lesen danach: ob der Index fiel, ist nicht gelesen) |
 | 22 | `DROP INDEX IF EXISTS [zwei_a] ON [idx_kind]; DROP INDEX IF EXISTS [zwei_b] ON [idx_kind];` (zwei Anweisungen in einem Text, beide ohne Treffer) | zwei `DONE`: das erste mit Status `MORE`, beide Befehl `0x00c9` |
 | 23 | `DROP INDEX [zwei_a] ON [idx_kind]; DROP INDEX IF EXISTS [zwei_b] ON [idx_kind];` (die erste ohne `IF EXISTS` und ohne Treffer) | `ERROR DONE DONE`: 3701 (State 7), das erste `DONE` `MORE\|ERROR`, das zweite ohne Bits; die zweite Anweisung läuft |
 | 24 | `SELECT 1 AS eins` (Folgeabfrage) | Ergebnis mit einer Zeile; die Verbindung bleibt offen |
@@ -61,11 +61,12 @@ Die Schritte t12 bis t14 sind **nicht am echten Server gemessen**: ob `ALTER TAB
 
 ## Befunde
 
+- `CREATE INDEX` antwortet am echten Server mit `DONE`, Status 0, Befehl `0x00c8`, ohne `COUNT` (Zeilen 03 bis 06, beide Instanzen; vier Anweisungen: gewöhnlich, eindeutig, mit zwei Spalten; `INCLUDE`, Filter und absteigende Spalte nicht gemessen).
 - `DROP INDEX [IF EXISTS] <Name> ON <Tabelle>` antwortet am echten Server bei Treffer und bei `IF EXISTS` ohne Treffer mit `DONE`, Befehl `0x00c9`, ohne `COUNT`, ohne weitere Token; ohne Treffer und ohne `IF EXISTS` mit 3701 (Class 11, State 7), nicht mit 3728 oder 3733 wie `DROP CONSTRAINT` (Tabelle A).
-- Der Name des Index einer anderen Tabelle trifft nicht; Indexnamen gelten je Tabelle: derselbe Name an zwei Tabellen, `DROP INDEX … ON` der einen lässt die andere unberührt (Zeilen 07, 08, 20).
+- Treffer sind gelesen in den Zeilen 07 (danach 3701 in Zeile 09), 12 (danach 3701 in Zeile 13) und 20 (ohne `IF EXISTS`, sonst 3701); die Zeilen 08, 11, 18 und 21 antworten wie ein Treffer, ob der Index fiel, ist nicht gelesen. Der Name des Index einer anderen Tabelle trifft nicht (Zeile 10, 3701 ohne `IF EXISTS`); Indexnamen gelten je Tabelle: derselbe Name an zwei Tabellen, `DROP INDEX … ON` der einen lässt die andere unberührt (Zeilen 07, 09, 20).
 - Eine unbekannte Tabelle ist mit `IF EXISTS` ein Erfolg (anders als bei `DROP CONSTRAINT`, dort 4902), ohne `IF EXISTS` 3701 mit State 6 (Zeilen 18, 19).
 - Der Index einer Eindeutigkeit und der eines Schlüssels sind mit und ohne `IF EXISTS` abgewiesen, 3723, State 5 bzw. 4, Class 16, Befehl des `DONE` `0x00fd` (Zeilen 14 bis 17); ein eindeutiger Index aus `CREATE UNIQUE INDEX` ist entfernbar (Zeile 12).
 - Der Name des eindeutigen Index gilt ohne Beachtung der Schreibweise (Zeile 12; Kollation der Datenbank `tdswire_struktur` ist die Voreinstellung der Instanz, nicht eigens erhoben).
 - Zwei Anweisungen in einem Text antworten mit zwei `DONE`; ein 3701 der ersten hindert die zweite nicht (Zeilen 22, 23).
 - Der Testserver mit Form D6: ein zweites `schema migrate` mit geändertem oder umbenanntem Index endet mit Exit 0 und `IDENTICAL` (Tabelle C, t05 und t07).
-- **Nicht gemessen:** ein gruppierter Index (außer dem Schlüssel), ein Index mit `INCLUDE`, mit Filter oder mit absteigender Spalte; `DROP INDEX` in einem anderen Schema als `dbo` und für Tabellen eines anderen Schemas; die Schreibweise für den gewöhnlichen Index und für `IF EXISTS` mit anderer Schreibweise; die Wirkung auf eine Tabelle mit Zeilen und innerhalb einer Transaktion; `DROP INDEX` mehrerer Namen (`DROP INDEX a ON t, b ON t`), mit `WITH (…)`, die alte Schreibweise `DROP INDEX <Tabelle>.<Name>`; Namen mit Sonderzeichen oder über 128 Zeichen; der Name eines Index, der eine Eindeutigkeit oder einen Schlüssel trägt, an einer Tabelle ohne dieses Element; d-migrate gegen den echten Server mit den Schritten t05, t07 und t12 (nur s14 ist am echten Server gefahren).
+- **Nicht gemessen:** ein gruppierter Index (außer dem Schlüssel), ein Index mit `INCLUDE`, mit Filter oder mit absteigender Spalte; `DROP INDEX` in einem anderen Schema als `dbo` und für Tabellen eines anderen Schemas, dazu ob die Zeilen 11 und 21 den Index entfernten oder ließen (nach beiden folgt kein Lesen; die Zeile 21 trägt als einzige das Schema `dbo` im Text); die Schreibweise für den gewöhnlichen Index und für `IF EXISTS` mit anderer Schreibweise; die Wirkung auf eine Tabelle mit Zeilen und innerhalb einer Transaktion; `DROP INDEX` mehrerer Namen (`DROP INDEX a ON t, b ON t`), mit `WITH (…)`, die alte Schreibweise `DROP INDEX <Tabelle>.<Name>`; Namen mit Sonderzeichen oder über 128 Zeichen; der Name eines Index, der eine Eindeutigkeit oder einen Schlüssel trägt, an einer Tabelle ohne dieses Element; d-migrate gegen den echten Server mit den Schritten t05, t07 und t12 (nur s14 ist am echten Server gefahren).

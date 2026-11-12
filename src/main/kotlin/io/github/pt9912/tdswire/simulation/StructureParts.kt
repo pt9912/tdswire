@@ -109,7 +109,10 @@ internal class StructureParts(private val stream: TokenStream, private val parts
         return list
     }
 
-    /** Hinter `DROP`: `INDEX [IF EXISTS] <Name> ON <Tabelle>`. */
+    /**
+     * Hinter `DROP`: `INDEX [IF EXISTS] <Name> ON <Tabelle>`. Setzung (nicht gemessen): nach `IF EXISTS` ist auch ein
+     * unquotiertes `IF` ein Name (`DROP INDEX IF EXISTS IF ON t`); ob der Server das Schlüsselwort abweist, ist offen.
+     */
     fun drop(): Statement {
         stream.keyword("INDEX")
         val ifExists = stream.acceptKeyword("IF")

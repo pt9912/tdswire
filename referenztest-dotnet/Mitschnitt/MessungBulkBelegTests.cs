@@ -532,8 +532,9 @@ public class MessungBulkBelegTests
     [MemberData(nameof(Stufen))]
     public void DROP_INDEX_mit_Treffer_und_mit_IF_EXISTS_ohne_Treffer_auch_an_einer_unbekannten_Tabelle_antwortet_mit_DONE_ohne_COUNT_und_dem_Befehl_0xc9(string stufe)
     {
-        // 03 bis 06: CREATE INDEX (Befehl 0xc8). Treffer: 07, 12 (eindeutiger Index, Name in anderer Schreibweise, ohne IF EXISTS), 20 (ohne IF EXISTS), 21 (mit Schema dbo);
-        // IF EXISTS ohne Treffer: 08, 11 (Name des Index einer anderen Tabelle), 18 (unbekannte Tabelle).
+        // 03 bis 06: CREATE INDEX (Befehl 0xc8; gewoehnlich, eindeutig, zwei Spalten). Treffer, an einer Folgeantwort gelesen: 07 (danach 09 mit 3701), 12 (eindeutiger Index, Name in anderer Schreibweise, danach 13 mit 3701),
+        // 20 (ohne IF EXISTS). IF EXISTS ohne Treffer: 08, 11 (Name des Index einer anderen Tabelle), 18 (unbekannte Tabelle).
+        // 21 (mit Schema dbo) antwortet wie ein Treffer; ob der Index fiel, liest kein Schritt danach.
         foreach (var nr in new[] { "03", "04", "05", "06" })
         {
             Assert.Equal("DONE Status -, Befehl 0x00c8, Zeilen -", F(stufe, $"struktur-drop-index/{nr}/done"));
