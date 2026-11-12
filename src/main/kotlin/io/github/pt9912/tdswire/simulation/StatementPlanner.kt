@@ -37,6 +37,12 @@ internal object SimCodes {
     /** `ALTER TABLE … DROP CONSTRAINT <Name>`, der Name gehört einer Bedingung einer anderen Tabelle (3733). */
     const val CONSTRAINT_OTHER_TABLE = "TDS_SIM_CONSTRAINT_OTHER_TABLE"
 
+    /** `DROP INDEX <Name> ON <Tabelle>` ohne `IF EXISTS` und ohne Index dieses Namens in der Tabelle (3701). */
+    const val NOT_AN_INDEX = "TDS_SIM_NOT_AN_INDEX"
+
+    /** `DROP INDEX <Name> ON <Tabelle>`, der Name ist der Index einer Eindeutigkeit der Tabelle (3723). */
+    const val INDEX_OF_CONSTRAINT = "TDS_SIM_INDEX_OF_CONSTRAINT"
+
     /** Ein Text über der Länge der Spalte beim Einfügen oder Ändern eines `MERGE` (2628, Messprotokoll M-15). */
     const val STRING_TRUNCATED = "TDS_SIM_STRING_TRUNCATED"
 
@@ -53,8 +59,8 @@ internal data class Plan(
 )
 
 /**
- * Die Tabelle nach einer Strukturänderung (`CREATE TABLE`, `ALTER TABLE … ADD`, `CREATE INDEX`), wie der Callback
- * sie bekommt: als Beschreibung ohne Zeilen (die Zeilenquelle liefert keine Zeile, die Callbacks fehlen).
+ * Die Tabelle nach einer Strukturänderung (`CREATE TABLE`, `ALTER TABLE …`, `CREATE INDEX`, `DROP INDEX`), wie der
+ * Callback sie bekommt: als Beschreibung ohne Zeilen (die Zeilenquelle liefert keine Zeile, die Callbacks fehlen).
  */
 internal data class StructurePlan(
     val table: SimTable,
@@ -77,6 +83,9 @@ internal sealed interface PlanResult {
 
     /** Eine Strukturänderung; die Tabelle ist im Zustand nach der Anweisung beschrieben. */
     data class Structure(val plan: StructurePlan) : PlanResult
+
+    /** Der Erfolg der Art [kind] ohne Tabelle und ohne Callback (`DROP INDEX IF EXISTS`, Tabelle unbekannt). */
+    data class Unchanged(val kind: StatementKind) : PlanResult
 
     /** Ein Text der Form C: keine Tabelle, die Antwort steht fest. */
     data class Fixed(val form: FixedForm) : PlanResult
@@ -137,6 +146,7 @@ internal class StatementPlanner(private val catalogs: () -> SimCatalog) {
         is Statement.AddConstraint -> StructurePlanner.addConstraint(statement, catalog)
         is Statement.CreateIndex -> StructurePlanner.createIndex(statement, catalog)
         is Statement.DropConstraint -> StructurePlanner.dropConstraint(statement, catalog)
+        is Statement.DropIndex -> StructurePlanner.dropIndex(statement, catalog)
         else -> resolveTable(statement, catalog)
     }
 
@@ -169,7 +179,7 @@ internal class StatementPlanner(private val catalogs: () -> SimCatalog) {
                 statement.insert.map { it.target }
 
         is Statement.CreateTable, is Statement.AddColumns, is Statement.AddConstraint, is Statement.CreateIndex,
-        is Statement.DropConstraint,
+        is Statement.DropConstraint, is Statement.DropIndex,
         -> emptyList()
     }
 

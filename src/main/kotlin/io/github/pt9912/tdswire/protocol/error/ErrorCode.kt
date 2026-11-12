@@ -59,6 +59,11 @@ private const val N_STRING_TRUNCATED = 2628
 private const val N_NOT_A_CONSTRAINT = 3728
 private const val N_CONSTRAINT_OTHER_TABLE = 3733
 private const val STATE_CONSTRAINT_OTHER_TABLE = 2
+private const val N_NOT_AN_INDEX = 3701
+private const val CLASS_NOT_AN_INDEX = 11
+private const val STATE_NOT_AN_INDEX = 7
+private const val N_INDEX_OF_CONSTRAINT = 3723
+private const val STATE_INDEX_OF_UNIQUE = 5
 
 /**
  * Die eigenen Fehlercodes (`SPEC-011` bis `SPEC-016`, `SPEC-037` bis `SPEC-039`, `SPEC-048`,
@@ -91,6 +96,9 @@ private const val STATE_CONSTRAINT_OTHER_TABLE = 2
  * - Gemessen am Referenzclient gegen einen echten SQL Server (Messprotokoll `drop-constraint-d-migrate-2026-11-11`,
  *   2022 und 2025): Nummer, Class 16, State und die offene Verbindung von `TDS_SIM_NOT_A_CONSTRAINT` (3728, State 1)
  *   und `TDS_SIM_CONSTRAINT_OTHER_TABLE` (3733, State 2); der Text ist ein Auszug ohne die Namen (Setzung).
+ * - Gemessen am Referenzclient gegen einen echten SQL Server (Messprotokoll `drop-index-d-migrate-2026-11-11`, 2022 und
+ *   2025): Nummer, Class, State und die offene Verbindung von `TDS_SIM_NOT_AN_INDEX` (3701, Class 11, State 7) und
+ *   `TDS_SIM_INDEX_OF_CONSTRAINT` (3723, Class 16, State 5); der Text ist ein Auszug ohne die Namen (Setzung).
  * - Gemessen am Referenzclient gegen einen echten SQL Server (Zeile M-15 des Messprotokolls, 2022 und 2025): Nummer,
  *   Class 16, State 1 und die offene Verbindung von `TDS_SIM_STRING_TRUNCATED` (2628, `MERGE` mit einem Text über der
  *   Länge der Spalte); der Text ist ein Auszug des gemessenen Textes ohne die Namen (Setzung).
@@ -243,6 +251,38 @@ internal enum class ErrorCode(val rule: ErrorRule) {
             REQUEST,
             STATE_CONSTRAINT_OTHER_TABLE,
             "Constraint does not belong to table.",
+            ConnectionFate.OPEN,
+        ),
+    ),
+
+    /**
+     * `DROP INDEX <Name> ON <Tabelle>` ohne `IF EXISTS`, der Name ist kein Index der Tabelle. Nummer 3701, Class 11 und
+     * die offene Verbindung sind gemessen (2022 und 2025, Szenario `struktur-drop-index`), State 7 für eine bekannte
+     * Tabelle; für eine unbekannte Tabelle sendet der Server State 6, die Bibliothek State 7 (Grenze, `SPEC-036`). Das
+     * DONE nach dem ERROR trägt beim Server den Befehl `0x00c9`, bei der Bibliothek `0x00fd` (Grenze). Der Text ist ein
+     * Auszug des gemessenen Textes ohne den Namen.
+     */
+    TDS_SIM_NOT_AN_INDEX(
+        ErrorRule(
+            N_NOT_AN_INDEX,
+            CLASS_NOT_AN_INDEX,
+            STATE_NOT_AN_INDEX,
+            "Cannot drop the index because it does not exist or you do not have permission.",
+            ConnectionFate.OPEN,
+        ),
+    ),
+
+    /**
+     * `DROP INDEX <Name> ON <Tabelle>` mit dem Namen einer Eindeutigkeit der Tabelle, mit und ohne `IF EXISTS`. Nummer
+     * 3723, Class 16, State 5 und die offene Verbindung sind gemessen (2022 und 2025, Szenario `struktur-drop-index`,
+     * `UNIQUE KEY`); der Text ist ein Auszug des gemessenen Textes ohne den Namen.
+     */
+    TDS_SIM_INDEX_OF_CONSTRAINT(
+        ErrorRule(
+            N_INDEX_OF_CONSTRAINT,
+            REQUEST,
+            STATE_INDEX_OF_UNIQUE,
+            "An explicit DROP INDEX is not allowed on the index.",
             ConnectionFate.OPEN,
         ),
     ),

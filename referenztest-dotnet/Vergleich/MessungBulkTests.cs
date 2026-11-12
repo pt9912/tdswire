@@ -469,6 +469,35 @@ public class MessungBulkTests
                 Mit(l, v, "Primaerschluessel des Kindes, ohne Fremdschluessel darauf", "ALTER TABLE [drop_kind] DROP CONSTRAINT [pk_drop_kind];");
                 Mit(l, v, "Folgeabfrage", "SELECT 1 AS eins");
             }),
+            // Form D6 (`DROP INDEX [IF EXISTS] <Name> ON <Tabelle>`): die Form mit `IF EXISTS` sendet d-migrate 1.12.0 (Lauf `schema-*`, Schritt s14); die Form ohne `IF EXISTS`, die Fälle ohne Treffer,
+            // eines Namens an einer anderen Tabelle, einer unbekannten Tabelle, der Index einer Eindeutigkeit und eines Schlüssels, die Schreibweise und zwei Anweisungen in einem Text sind Messung dieses Codes.
+            ("struktur-drop-index", DbStruktur, (l, v) =>
+            {
+                Mit(l, v, "Aufbau eltern", "CREATE TABLE [idx_eltern] ([Id] INT NOT NULL, [Name] NVARCHAR(20) NULL, CONSTRAINT [pk_idx_eltern] PRIMARY KEY ([Id]));");
+                Mit(l, v, "Aufbau kind", "CREATE TABLE [idx_kind] ([Id] INT NOT NULL, [Name] NVARCHAR(20) NULL, [Menge] INT NOT NULL, [Code] NVARCHAR(10) NULL CONSTRAINT [uq_idx_code] UNIQUE, CONSTRAINT [pk_idx_kind] PRIMARY KEY ([Id]));");
+                Mit(l, v, "Index am Kind", "CREATE INDEX [ix_idx_name] ON [idx_kind] ([Name]);");
+                Mit(l, v, "eindeutiger Index am Kind", "CREATE UNIQUE INDEX [ux_idx_menge] ON [idx_kind] ([Menge]);");
+                Mit(l, v, "Index gleichen Namens an den Eltern", "CREATE INDEX [ix_idx_name] ON [idx_eltern] ([Name]);");
+                Mit(l, v, "Index nur an den Eltern", "CREATE INDEX [ix_idx_nur_eltern] ON [idx_eltern] ([Name], [Id]);");
+                Mit(l, v, "Index, Treffer, mit IF EXISTS", "DROP INDEX IF EXISTS [ix_idx_name] ON [idx_kind];");
+                Mit(l, v, "Index, kein Treffer (Name an den Eltern), mit IF EXISTS", "DROP INDEX IF EXISTS [ix_idx_name] ON [idx_kind];");
+                Mit(l, v, "Index, kein Treffer (Name an den Eltern), ohne IF EXISTS", "DROP INDEX [ix_idx_name] ON [idx_kind];");
+                Mit(l, v, "Index nur an den Eltern, am Kind, ohne IF EXISTS", "DROP INDEX [ix_idx_nur_eltern] ON [idx_kind];");
+                Mit(l, v, "Index nur an den Eltern, am Kind, mit IF EXISTS", "DROP INDEX IF EXISTS [ix_idx_nur_eltern] ON [idx_kind];");
+                Mit(l, v, "eindeutiger Index, Name in anderer Schreibweise, Treffer, ohne IF EXISTS", "DROP INDEX [UX_IDX_MENGE] ON [idx_kind];");
+                Mit(l, v, "eindeutiger Index, kein Treffer mehr, ohne IF EXISTS", "DROP INDEX [ux_idx_menge] ON [idx_kind];");
+                Mit(l, v, "Index der Eindeutigkeit, mit IF EXISTS", "DROP INDEX IF EXISTS [uq_idx_code] ON [idx_kind];");
+                Mit(l, v, "Index der Eindeutigkeit, ohne IF EXISTS", "DROP INDEX [uq_idx_code] ON [idx_kind];");
+                Mit(l, v, "Index des Schluessels, ohne IF EXISTS", "DROP INDEX [pk_idx_kind] ON [idx_kind];");
+                Mit(l, v, "Index des Schluessels, mit IF EXISTS", "DROP INDEX IF EXISTS [pk_idx_kind] ON [idx_kind];");
+                Mit(l, v, "unbekannte Tabelle, mit IF EXISTS", "DROP INDEX IF EXISTS [x] ON [idx_gibtesnicht];");
+                Mit(l, v, "unbekannte Tabelle, ohne IF EXISTS", "DROP INDEX [x] ON [idx_gibtesnicht];");
+                Mit(l, v, "Index an den Eltern, Treffer, ohne IF EXISTS", "DROP INDEX [ix_idx_name] ON [idx_eltern];");
+                Mit(l, v, "Index mit Schema dbo an Tabelle und Name, mit IF EXISTS", "DROP INDEX IF EXISTS [ix_idx_nur_eltern] ON [dbo].[idx_eltern];");
+                Mit(l, v, "zwei Anweisungen in einem Text, beide ohne Treffer, mit IF EXISTS", "DROP INDEX IF EXISTS [zwei_a] ON [idx_kind]; DROP INDEX IF EXISTS [zwei_b] ON [idx_kind];");
+                Mit(l, v, "zwei Anweisungen in einem Text, die erste ohne IF EXISTS ohne Treffer", "DROP INDEX [zwei_a] ON [idx_kind]; DROP INDEX IF EXISTS [zwei_b] ON [idx_kind];");
+                Mit(l, v, "Folgeabfrage", "SELECT 1 AS eins");
+            }),
             ("katalog-abfragen", DbKatalog, (l, v) =>
             {
                 Katalog(l, v, "katalog_typen", true);

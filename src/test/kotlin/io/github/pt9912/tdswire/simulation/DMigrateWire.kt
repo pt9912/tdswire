@@ -276,3 +276,10 @@ val dMigrateDropTexts: List<String> = listOf(
     "ALTER TABLE [bestellung] DROP CONSTRAINT IF EXISTS [fk_bestellung_KundeId];",
     "ALTER TABLE [kunden] DROP CONSTRAINT IF EXISTS [uq_kunden_Email];",
 )
+
+/**
+ * `schema migrate --execute` mit geändertem Index: der Text vor dem neuen `CREATE INDEX`, wie der Durchlauf ihn am
+ * Draht sah (`make vergleichslauf-d LAUF=schema-2022` und `schema-2025`, 2026-11-11, echter Server, Schritt s14; am
+ * echten Server mit DONE, Befehl `0x00c9`, beantwortet). Name und Tabelle sind die der Tabellen dieser Tests.
+ */
+const val D_MIGRATE_DROP_INDEX_TEXT: String = "DROP INDEX IF EXISTS [ix_kunden_email] ON [kunden];"

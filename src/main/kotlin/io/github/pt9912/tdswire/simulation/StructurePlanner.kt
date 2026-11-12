@@ -3,7 +3,7 @@ package io.github.pt9912.tdswire.simulation
 import io.github.pt9912.tdswire.domain.StatementKind
 
 /**
- * Die Planung der Strukturformen D1 bis D5 (`SPEC-036`) gegen den Katalog: Tabelle und Spalten sind beschrieben oder
+ * Die Planung der Strukturformen D1 bis D6 (`SPEC-036`) gegen den Katalog: Tabelle und Spalten sind beschrieben oder
  * neu, Namen kommen nicht doppelt vor, ein Fremdschlüssel zeigt auf eine beschriebene Tabelle und ihre Spalten. Das
  * Ergebnis ist die Tabelle nach der Anweisung als Beschreibung ohne Zeilen ([StructurePlan]). Die Fehlercodes
  * `OBJECT_EXISTS`, `COLUMN_EXISTS` und `OBJECT_NOT_FOUND` sind für `CREATE TABLE` und `ALTER TABLE … ADD` einer Spalte
@@ -121,6 +121,31 @@ internal object StructurePlanner {
                 reject(SimCodes.CONSTRAINT_OTHER_TABLE, "Bedingung gehört zu einer anderen Tabelle")
 
             else -> reject(SimCodes.NOT_A_CONSTRAINT, "Name ist keine Bedingung der Tabelle")
+        }
+    }
+
+    /**
+     * D6: der Index mit dem Namen fällt aus der Tabelle; der Abschluss ist die Art `UNKNOWN` (die öffentliche
+     * Aufzählung der Arten kennt keine für `DROP INDEX`). Der Name einer Eindeutigkeit der Tabelle ist
+     * `INDEX_OF_CONSTRAINT` (3723), mit und ohne `IF EXISTS` (gemessen). Sonst ist `IF EXISTS` ohne Treffer ein Erfolg
+     * ohne Änderung (die Tabelle im Callback unverändert; der Name eines Index einer anderen Tabelle trifft nicht),
+     * auch an einer unbekannten Tabelle (gemessen), dann ohne Callback; ohne `IF EXISTS` ist es `NOT_AN_INDEX`
+     * (3701), auch an einer unbekannten Tabelle.
+     */
+    fun dropIndex(statement: Statement.DropIndex, catalog: SimCatalog): PlanResult {
+        val table = catalog.find(statement.table.schema, statement.table.name)
+        val shortened = table?.let { StructureChecks.withoutIndex(it, statement.name) }
+        return when {
+            shortened != null -> result(shortened, StatementKind.UNKNOWN)
+
+            table != null && StructureChecks.constraintIndex(table, statement.name) ->
+                reject(SimCodes.INDEX_OF_CONSTRAINT, "Index gehört zu einer Eindeutigkeit")
+
+            !statement.ifExists -> reject(SimCodes.NOT_AN_INDEX, "Name ist kein Index der Tabelle")
+
+            table == null -> PlanResult.Unchanged(StatementKind.UNKNOWN)
+
+            else -> result(table, StatementKind.UNKNOWN)
         }
     }
 

@@ -1,0 +1,4 @@
+
+**Vorgang:** [slice-drop-index-if-exists](../../../../done/slice-drop-index-if-exists.md)
+**Fund:** [Review](../../../../../../reviews/2026-11-11-5b045ff9-review-slice-drop-index-if-exists.md) F-1 (MEDIUM: das Messprotokoll nannte Zeile 21 „Treffer“ und Zeile 11 „der Index der Eltern bleibt“, die Ablage hat nach beiden kein Lesen, das Treffer von Nichttreffer trennt; die Spezifikation nannte das Schema `dbo` „gemessen“), F-5 (LOW: die Nutzer-Doku nannte die Bedingung `dbo` nicht im selben Satz) und F-9 (INFO: unquotiertes `IF` als Name ist Setzung); behoben in `93097c4d`, der Verifier las die Rohbytes beider Instanzen selbst ([Verifikation](../../../../../../reviews/2026-11-12-93097c4d-verifikation-slice-drop-index-if-exists.md) Abschnitt 1).
+**Stand:** weiteres Auftreten; Zähler folgt aus den Dateien.

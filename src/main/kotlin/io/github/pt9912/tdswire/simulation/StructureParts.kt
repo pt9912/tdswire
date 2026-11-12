@@ -1,18 +1,21 @@
 package io.github.pt9912.tdswire.simulation
 
 /**
- * Die Formen D1 bis D5 von `SPEC-036`:
+ * Die Formen D1 bis D6 von `SPEC-036`:
  * - D1 `CREATE TABLE [<Schema>.]<Tabelle> (<Eintrag> {, <Eintrag>})`: ein Eintrag ist eine Spalte ([ColumnParts]) oder
  *   eine Bedingung der Tabelle ([ConstraintParts]), höchstens ein Schlüssel,
  * - D2 `ALTER TABLE [<Schema>.]<Tabelle> ADD <Spalte> {, <Spalte>}`,
  * - D3 `ALTER TABLE [<Schema>.]<Tabelle> [WITH CHECK] ADD CONSTRAINT <Name> …` ([ConstraintParts]),
  * - D4 `CREATE [UNIQUE] INDEX <Name> ON [<Schema>.]<Tabelle> (<Spalten>) [INCLUDE (<Spalten>)]`,
- * - D5 `ALTER TABLE [<Schema>.]<Tabelle> DROP CONSTRAINT [IF EXISTS] <Name>` (ein Name).
+ * - D5 `ALTER TABLE [<Schema>.]<Tabelle> DROP CONSTRAINT [IF EXISTS] <Name>` (ein Name),
+ * - D6 `DROP INDEX [IF EXISTS] <Name> ON [<Schema>.]<Tabelle>` (ein Name, ein Text; `DROP INDEX <Tabelle>.<Name>` ist
+ *   nicht erkannt).
  * `NVARCHAR(MAX)` ist `maxLength` -1 (der Katalog meldet `max_length` -1). Gemessen ist der Wortlaut von d-migrate
  * 1.12.0 (`CREATE TABLE` mit `CONSTRAINT [pk_…] PRIMARY KEY ([Id])`, `ALTER TABLE … ADD [Email] NVARCHAR(4000)`,
- * `ALTER TABLE … WITH CHECK ADD CONSTRAINT …`, `CREATE INDEX …`, `ALTER TABLE … DROP CONSTRAINT IF EXISTS …`);
- * mehrere Spalten in `ADD` sind Setzung, `DROP CONSTRAINT` mehrerer Namen ist nicht erkannt. Eine weitere
- * Klausel (`IDENTITY`, `WITH NOCHECK`, `CLUSTERED`) macht den Text nicht erkannt.
+ * `ALTER TABLE … WITH CHECK ADD CONSTRAINT …`, `CREATE INDEX …`, `ALTER TABLE … DROP CONSTRAINT IF EXISTS …`,
+ * `DROP INDEX IF EXISTS … ON …`); mehrere Spalten in `ADD` sind Setzung, `DROP CONSTRAINT` und `DROP INDEX` mehrerer
+ * Namen sind nicht erkannt. Eine weitere Klausel (`IDENTITY`, `WITH NOCHECK`, `CLUSTERED`, `WITH (ONLINE = ON)`) macht
+ * den Text nicht erkannt.
  */
 internal class StructureParts(private val stream: TokenStream, private val parts: Parts) {
     private val columns = ColumnParts(stream, parts)
@@ -104,6 +107,19 @@ internal class StructureParts(private val stream: TokenStream, private val parts
         if (added.any { it.unique != null }) throw unexpected()
         if (SimNames.firstDuplicate(list.map { it.name }) != null) throw Reject(Unrecognized.DUPLICATE_COLUMN)
         return list
+    }
+
+    /**
+     * Hinter `DROP`: `INDEX [IF EXISTS] <Name> ON <Tabelle>`. Setzung (nicht gemessen): nach `IF EXISTS` ist auch ein
+     * unquotiertes `IF` ein Name (`DROP INDEX IF EXISTS IF ON t`); ob der Server das Schlüsselwort abweist, ist offen.
+     */
+    fun drop(): Statement {
+        stream.keyword("INDEX")
+        val ifExists = stream.acceptKeyword("IF")
+        if (ifExists) stream.keyword("EXISTS")
+        val name = parts.identifier()
+        stream.keyword("ON")
+        return Statement.DropIndex(parts.tableRef(), name, ifExists)
     }
 
     private fun createIndex(unique: Boolean): Statement {
