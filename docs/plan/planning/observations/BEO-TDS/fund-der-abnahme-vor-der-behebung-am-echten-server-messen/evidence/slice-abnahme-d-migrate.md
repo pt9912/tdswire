@@ -1,0 +1,2 @@
+**Vorgang:** [slice-abnahme-d-migrate](../../../../done/slice-abnahme-d-migrate.md)
+**Fund:** F3 des [Abnahmeprotokolls](../../../../../../messungen/abnahme-d-migrate-2026-11-12.md) wurde durch die [Messung am echten Server](../../../../../../messungen/fremdschluessel-on-delete-d-migrate-2026-11-12.md) (14 Läufe, SQL Server 2022) als Art (d) eingeordnet, nicht als Fehler des Testservers; der Verifier fand die Einordnung gegen eigene Läufe gleich.
