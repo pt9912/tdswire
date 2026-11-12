@@ -9,7 +9,7 @@
 **Eingangs-Kontext:**
 
 - Slice `slice-abnahme-d-migrate` (Plan §3, §4, DoD, Risiken §6), Register `BEO-TDS/katalog-elemente-grenzen-der-angleichung` (Punkte 3, 9 bis 15)
-- `TDS-FA-12`, `TDS-QA-01`, `ADR-0025`; `SPEC-040`; `AGENTS.md` §3.1 bis §3.8, §5 Regel 5 bis 7
+- `TDS-FA-12`, `TDS-QA-01`, [ADR-0025](../plan/adr/0025-produktschnitt-bibliothek-und-testserver.md); `SPEC-040`; `AGENTS.md` §3.1 bis §3.8, §5 Regel 5 bis 7
 - Messprotokolle `docs/messungen/abnahme-d-migrate-2026-11-12.md` und `docs/messungen/fremdschluessel-on-delete-d-migrate-2026-11-12.md`, Anleitung `docs/user/testserver-manuell.md` (vollständig)
 
 ## Selbst gefahren
