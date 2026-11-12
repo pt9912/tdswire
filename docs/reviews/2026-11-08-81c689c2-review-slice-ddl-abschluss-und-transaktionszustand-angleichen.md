@@ -90,7 +90,7 @@ Der Wortlaut „die Wirkung“ steht damit gemessen: rot oder grün wie in der T
 
 ## Merge-Probe gegen `main`
 
-`git merge-tree --write-tree HEAD main` (`e8757e09`): drei Inhaltskonflikte, alle in Dokumenten: `docs/plan/planning/in-progress/roadmap.md`, `docs/plan/planning/next/slice-abnahme-d-migrate.md`, `docs/plan/planning/welle-testserver-manuell.md`. `main` hat seit der Basis `d4d80aac` weder `src/`, `testserver/` noch `spec/` geändert; `docs/plan/spec-abdeckung.md`, `docs/messungen/referenzabgleich.md` und `spec/spezifikation.md` fügen sich ohne Konflikt. Nach dem Auflösen der Dokumente ist die Abdeckungsmatrix nur neu zu erzeugen, wenn die Fassung von `main` Tests oder Tags des Slice nicht kennt (Regel der Tabelle in `harness/README.md`).
+`git merge-tree --write-tree HEAD main` (`e8757e09`): drei Inhaltskonflikte, alle in Dokumenten: `docs/plan/planning/in-progress/roadmap.md`, `docs/plan/planning/in-progress/slice-abnahme-d-migrate.md`, `docs/plan/planning/welle-testserver-manuell.md`. `main` hat seit der Basis `d4d80aac` weder `src/`, `testserver/` noch `spec/` geändert; `docs/plan/spec-abdeckung.md`, `docs/messungen/referenzabgleich.md` und `spec/spezifikation.md` fügen sich ohne Konflikt. Nach dem Auflösen der Dokumente ist die Abdeckungsmatrix nur neu zu erzeugen, wenn die Fassung von `main` Tests oder Tags des Slice nicht kennt (Regel der Tabelle in `harness/README.md`).
 
 ## Negativbefunde
 

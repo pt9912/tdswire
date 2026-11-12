@@ -140,7 +140,7 @@ Der Lauf ist gegenüber dem Lauf unmittelbar davor **unverändert**; die Rückf�
 
 1. `docs/plan/planning/in-progress/roadmap.md`
 2. `docs/plan/planning/done/slice-katalogspalten-smallint-tinyint-angleichen.md`
-3. `docs/plan/planning/next/slice-abnahme-d-migrate.md`
+3. `docs/plan/planning/in-progress/slice-abnahme-d-migrate.md`
 4. `docs/plan/planning/open/slice-antwort-tokens-zielbild-luecken-bauen.md`
 5. `docs/plan/planning/welle-testserver-manuell.md`
 
