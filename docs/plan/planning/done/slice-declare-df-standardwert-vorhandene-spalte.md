@@ -83,7 +83,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): Auslösung über das Register [katalog-elemente-grenzen-der-angleichung](../observations/BEO-TDS/katalog-elemente-grenzen-der-angleichung/state.md) (Punkt 1) oder über [slice-abnahme-d-migrate](../open/slice-abnahme-d-migrate.md), wenn der Validator einen Standardwert an einer vorhandenen Spalte verlangt; [slice-drop-constraint-form-d5](../done/slice-drop-constraint-form-d5.md) liegt in `done/` (Konflikte am Planer); die EULA für das gepinnte Developer-Image ist für diesen Lauf bestätigt; ein Verantwortlicher ist eingetragen.
+**Start** (`next` → `in-progress`): Auslösung über das Register [katalog-elemente-grenzen-der-angleichung](../observations/BEO-TDS/katalog-elemente-grenzen-der-angleichung/state.md) (Punkt 1) oder über [slice-abnahme-d-migrate](../next/slice-abnahme-d-migrate.md), wenn der Validator einen Standardwert an einer vorhandenen Spalte verlangt; [slice-drop-constraint-form-d5](../done/slice-drop-constraint-form-d5.md) liegt in `done/` (Konflikte am Planer); die EULA für das gepinnte Developer-Image ist für diesen Lauf bestätigt; ein Verantwortlicher ist eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -102,7 +102,7 @@ DoD vollständig, `make gates` grün, das `schema migrate --execute` mit Standar
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Offene Risiken werden bei Closure aufgelöst — jedes Risiko bekommt genau einen Ausgang.
 
-- Der Text hängt an der Version von d-migrate (1.12.0); eine andere Version rendert ihn anders. — **Ausgang:** **weiter offen:** der Wortlaut ist der von 1.12.0 (Digest des Werkzeugs gepinnt, Test mit dem Wortlaut des Mitschnitts, Belegtests am echten Server); rendert eine andere Version den Text anders, endet der Lauf mit `TDS_UNSUPPORTED_SQL` (Exit 5). Träger: Register `BEO-TDS/katalog-elemente-grenzen-der-angleichung` Punkt 15 (d) und (e), Trigger: eine neue Version von d-migrate in der Spezifikation oder die Abnahme [slice-abnahme-d-migrate](../open/slice-abnahme-d-migrate.md).
+- Der Text hängt an der Version von d-migrate (1.12.0); eine andere Version rendert ihn anders. — **Ausgang:** **weiter offen:** der Wortlaut ist der von 1.12.0 (Digest des Werkzeugs gepinnt, Test mit dem Wortlaut des Mitschnitts, Belegtests am echten Server); rendert eine andere Version den Text anders, endet der Lauf mit `TDS_UNSUPPORTED_SQL` (Exit 5). Träger: Register `BEO-TDS/katalog-elemente-grenzen-der-angleichung` Punkt 15 (d) und (e), Trigger: eine neue Version von d-migrate in der Spezifikation oder die Abnahme [slice-abnahme-d-migrate](../next/slice-abnahme-d-migrate.md).
 - Die feste Form trägt nur den Text von d-migrate; ein anderer Client mit eigenem `DECLARE` bleibt abgewiesen. — **Ausgang:** **weiter offen** als Zusage: ein fremder Text mit `DECLARE` ist nicht erkannt und endet mit `TDS_UNSUPPORTED_SQL` (in der Nutzer-Doku genannt, `SPEC-036` Form D7 (d)); ein Interpreter für T-SQL ist nicht Gegenstand von [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend). Träger: Punkt 15 (d) des Registers.
 
 ## 7. Closure-Notiz

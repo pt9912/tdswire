@@ -98,7 +98,7 @@ Danach `make testserver-down` (Container entfernt), `docker rmi tdswire-testserv
 2. **Folge-Slice `slice-statementkind-index-mitglieder` anlegen** (`StatementKind` bekommt `CREATE_INDEX` `0x00c8` und `DROP_INDEX` `0x00c9`, beide ohne `COUNT`; Entscheid des Nutzers 2026-11-12), und die Paarung Folge-Slice ↔ Register Punkt 13 (a) ↔ Spezifikation Form D6 Grenze (a) schließen; die Datei ist heute noch nicht angelegt, die Verweise im Register zeigen auf einen noch nicht vorhandenen Slice (kann der `docs-check` heute nicht rot machen, weil sie als Name in Backticks stehen, nicht als Link; beim Anlegen in Link umstellen).
 3. §6: jedes Risiko bekommt genau einen Ausgang (Vorschlag V-1); §7 ausfüllen (Closure-Notiz, Steering-Loop-Eintrag mit `liegt in <Zielort>` oder „keine“, Register-Zeile, Folge-Slices, Risiken).
 4. Merge-Probe erneut gegen den dann aktuellen `main` (heute konfliktfrei gegen `d019cf2d`), reine `git mv`-Commits nach `done/` getrennt vom Inhalt (`AGENTS.md` §3.3), Roadmap-Ruhe-Marker und Wellenzeile, `make gates` auf dem Merge-Stand.
-5. Offene Grenzen im Register bleiben Trigger-Punkte, keine Blocker: Punkt 13 (b) State 6/`0x00c9` nach 3701, Punkt 14 (d-migrate entfernt eindeutigen Index; am echten Server nicht gemessen) → [slice-abnahme-d-migrate](../plan/planning/open/slice-abnahme-d-migrate.md).
+5. Offene Grenzen im Register bleiben Trigger-Punkte, keine Blocker: Punkt 13 (b) State 6/`0x00c9` nach 3701, Punkt 14 (d-migrate entfernt eindeutigen Index; am echten Server nicht gemessen) → [slice-abnahme-d-migrate](../plan/planning/next/slice-abnahme-d-migrate.md).
 
 ## Laufzeit
 
