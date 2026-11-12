@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** SPEC-036 (erkannte Anweisungsformen, Form D, Absatz Grenzen) · SPEC-035 (Standardwert im Katalog) · `TDS-FA-11.a` (Ablaufpunkt 9, Strukturänderung)
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** pt9912.
 
 **Autor:** pt9912 (Entwurf in der Planner-Rolle, Closure von [slice-katalog-indizes-defaults-fremdschluessel](../done/slice-katalog-indizes-defaults-fremdschluessel.md)). **Datum:** 2026-11-11.
 
@@ -28,7 +28,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 ist einzeln lieferbar. **§1 nennt Ziel und Abgrenzung**; die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks.
 
-**Zurückgestellt.** Der Slice startet nur über das Register oder die Abnahme (Start-Trigger in §4), nicht von selbst. Anlage als Folge-Slice: Standardantwort auf die Empfehlung des Verifiers, **umkehrbar** (Entscheid des Nutzers steht aus; der Planner hat sie als Standard gesetzt).
+**Gestartet** am 2026-11-12 auf Freigabe des Nutzers. Die öffentliche Fläche wird nicht erweitert: Namen von Standardwert und Schlüssel bleiben intern.
 
 **Ziel:** `schema migrate --execute` von d-migrate mit einem Standardwert an einer vorhandenen Spalte endet gegen den Testserver mit Exit 0 wie gegen den echten SQL Server. Heute sendet d-migrate dafür einen Text, der mit `DECLARE @df sysname, @sql nvarchar(max); SELECT @df = dc.name FROM sy…` beginnt und über `EXEC sp_executesql` ein `ALTER TABLE … ADD CONSTRAINT [df_…] DEFAULT …` ausführt; der Text ist nicht erkannt, der Lauf endet mit Exit 5 (`Unsupported SQL.`, Messprotokoll [Zeile c1](../../../messungen/katalog-indizes-defaults-fremdschluessel-d-migrate-2026-11-09.md), im Verifikationsbericht zu [slice-katalog-indizes-defaults-fremdschluessel](../done/slice-katalog-indizes-defaults-fremdschluessel.md) reproduziert). Ein Standardwert in `CREATE TABLE` oder an einer neuen Spalte ist nicht betroffen.
 
