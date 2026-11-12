@@ -796,7 +796,7 @@ Zustand, den die Bibliothek nicht zurücknimmt. **Grenze, gemessen und nicht geb
 erstes Token, auch die auf einen RPC (`sp_executesql` mit `MERGE … OUTPUT $action`, Katalogabfrage `SELECT TOP 1
 c.name …`), und der spätere bedingte `COMMIT` dann Typ 9 (Aufnahme `jdbc-d-migrate/{2022,2025}.aufnahme.txt` von
 mssql-jdbc 13.4.0 mit d-migrate 1.12.0: je Instanz 27 Typ 8 und 26 Typ 9, davon Typ 8 als `#14` des `MERGE` und `#19` der
-Katalogabfrage). Die Bibliothek beginnt eine Transaktion nur bei `CREATE_TABLE` im Batch (nicht bei `CREATE_INDEX` und `DROP_INDEX`: ENVCHANGE bei diesen Arten nach `set implicit_transactions on` ist nicht gemessen, Setzung wie bei `ALTER_TABLE`): ein `data import` von d-migrate
+Katalogabfrage). Die Bibliothek beginnt eine Transaktion nur bei `CREATE_TABLE` im Batch (nicht bei `CREATE_INDEX` und `DROP_INDEX`: ENVCHANGE bei diesen Arten nach `set implicit_transactions on` ist nicht gemessen, Setzung wie bei `ALTER_TABLE`, soweit nicht der Text der Form D7 betroffen ist, dessen `ENVCHANGE` Typ 8 gemessen ist, Form D7 (c)): ein `data import` von d-migrate
 bekommt keinen Typ 8, und der bedingte `COMMIT` schließt dort nur mit `DONE` `0x00c0`. Nicht gemessen und deshalb nicht
 gebaut: ENVCHANGE bei `ALTER TABLE` ohne offene Transaktion, `ROLLBACK` (der Zustand bleibt offen, kein Typ 10), das Ende der
 Sitzung mit offener Transaktion, `set implicit_transactions off` allein (die Art `UNKNOWN`, der Zustand bleibt). d-migrate (`schema migrate --execute`, `compare`, `reverse`) verhält sich mit ENVCHANGE gegen
@@ -1100,7 +1100,7 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   mit Bestand im Arbeitsspeicher, 2026-11-06): `schema migrate --execute` besteht die Nachprüfung, weil der Anbieter nach der
   Strukturänderung den neuen Stand liefert; ein fester Katalog zeigte im Spike dieselbe Nachprüfung als Abweichung
   (Exit 5, Einzelmessung 2026-11-05). Der Callback `onStructure` bekommt für `CREATE TABLE`, `ALTER TABLE … ADD` (Spalte oder
-  `CONSTRAINT`), `ALTER TABLE … DROP CONSTRAINT`, `CREATE INDEX` und `DROP INDEX [IF EXISTS]` die Tabelle im Zustand **nach** der Anweisung als `SimTable` (Schema, Name wie im Katalog, alle
+  `CONSTRAINT`), `ALTER TABLE … DROP CONSTRAINT`, `CREATE INDEX`, `DROP INDEX [IF EXISTS]` und den Text mit `DECLARE @df` (Form D7) die Tabelle im Zustand **nach** der Anweisung als `SimTable` (Schema, Name wie im Katalog, alle
   Spalten in der Reihenfolge mit ihren Standardwerten, Schlüssel, Eindeutigkeiten, Fremdschlüssel, Indizes, Prüfbedingungen); die
   Zeilenquelle der übergebenen Tabelle liefert keine Zeile, ihre Callbacks fehlen (`null`): sie ist eine Beschreibung, der
   Integrator hält seine Zeilen und Callbacks selbst. Der Callback wird beim Sammeln der Ausführung genau einmal gerufen, und die
@@ -1186,7 +1186,7 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   Aggregate und `GROUP BY`, `DISTINCT`, `TOP`, `ORDER BY`, `OFFSET`/`FETCH`, Aliase für Tabellen (außer `AS <Alias>` der Form M) und
   Spalten, Ausdrücke und Funktionen in Listen und Bedingungen, `OR`, `NOT`, `<`, `>`, `LIKE`, `BETWEEN` (in den Bedingungen von S1 bis W3; im
   Ausdruck einer Prüfbedingung der Form D gelten `OR`, `<` und `>`, unten),
-  `OUTPUT`-Klauseln (außer `OUTPUT $action` der Form M), mehrere Anweisungen in einem Text (außer Form C) und alles, was keine Form
+  `OUTPUT`-Klauseln (außer `OUTPUT $action` der Form M), mehrere Anweisungen in einem Text (außer Form C und dem Text der Form D7, der aus mehreren Anweisungen besteht und als Ganzes erkannt ist) und alles, was keine Form
   der Tabelle ist.
 - **Form C** (Setzung nach der Aufzeichnung von d-migrate 1.12.0 mit mssql-jdbc 13.4.0.jre11, 2026-11-05, gegen den
   Testserver; für den Referenzclient ist keine Anweisung der Form gemessen): `SELECT 1` ist der Verbindungstest des
@@ -1370,7 +1370,7 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   Spalte, die nicht beschrieben ist, oder eine nicht beschriebene Zieltabelle oder -spalte endet mit `TDS_SIM_UNKNOWN_OBJECT`, ein
   Name einer Bedingung oder eines Index, der in der Tabelle vergeben ist (auch durch einen Index gegenüber einer Eindeutigkeit), und
   ein zweiter Standardwert derselben Spalte mit `TDS_SIM_OBJECT_EXISTS`, `ALTER TABLE` und `CREATE INDEX` einer unbekannten Tabelle
-  mit `TDS_SIM_OBJECT_NOT_FOUND`; die Nummern des Servers für diese Fälle sind nicht gemessen. **Grenzen** (Träger: `BEO-TDS/katalog-elemente-grenzen-der-angleichung`): für eine vorhandene Spalte
+  mit `TDS_SIM_OBJECT_NOT_FOUND`; die Nummern des Servers für diese Fälle sind nicht gemessen, außer für den zweiten Standardwert derselben Spalte (1781 und 1750, Form D7 (b)). **Grenzen** (Träger: `BEO-TDS/katalog-elemente-grenzen-der-angleichung`): für eine vorhandene Spalte
   sendet d-migrate einen Standardwert als Text mit `DECLARE @df sysname …` vor dem `ALTER TABLE … ADD CONSTRAINT … DEFAULT … FOR`;
   der Text ist Form D7 unten (`schema migrate --execute` endet damit mit Exit 0 und `IDENTICAL`, gemessen am Testserver), ein Standardwert an einer neuen Spalte
   oder in `CREATE TABLE` braucht ihn nicht. Eine vorhandene Prüfbedingung plant `schema migrate` bei jedem Lauf neu mit
@@ -1412,16 +1412,16 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   oder nimmt ihn weg, sendet d-migrate einen Text (419 Zeichen für Tabelle `auftraege` und Spalte `Menge`) und danach, wenn das Soll einen Wert verlangt, `ALTER TABLE [t] ADD CONSTRAINT [df_t_c] DEFAULT <Wert> FOR [c]` (Form D3).
   Der Text ist `DECLARE @df sysname, @sql nvarchar(max);`, `SELECT @df = dc.name FROM sys.default_constraints dc JOIN sys.columns c ON c.object_id = dc.parent_object_id AND c.column_id = dc.parent_column_id
   WHERE dc.parent_object_id = OBJECT_ID('<Tabelle>') AND c.name = '<Spalte>';` und `IF @df IS NOT NULL BEGIN SET @sql = 'ALTER TABLE [<Tabelle>] DROP CONSTRAINT ' + QUOTENAME(@df); EXEC sp_executesql @sql; END;`
-  (Zeilenumbrüche und Einrückung wie im Mitschnitt; erkannt ist der Wortlaut bis auf den Leerraum, der Leerraum ist Setzung). Der Text entfernt den Standardwert der Spalte aus der Tabelle, die der Callback bekommt; die
+  (Zeilenumbrüche und Einrückung wie im Mitschnitt; das Feld `sqlLength` im Bericht von d-migrate nennt 418, das Feld `sql` und der Batch auf dem Draht haben 419 Zeichen, maßgeblich ist der Wortlaut des Batches; erkannt ist der Wortlaut bis auf den Leerraum, der Leerraum ist Setzung). Der Text entfernt den Standardwert der Spalte aus der Tabelle, die der Callback bekommt; die
   übrigen Spalten, Standardwerte und Elemente bleiben. Der Name des Standardwerts spielt keine Rolle (der Text findet ihn im Katalog; gemessen auch mit eigenem Namen). Tabelle und Spalte gelten ohne Beachtung der
   Schreibweise (gemessen, Kollation der Datenbank ist die Voreinstellung der Instanz, nicht eigens erhoben). Ohne Standardwert an der Spalte, an einer unbekannten Spalte und an einer unbekannten Tabelle ist der Text ein Erfolg ohne
   Änderung (gemessen); der Callback bekommt die unveränderte Tabelle, an einer unbekannten Tabelle läuft kein Callback. Die Tabelle steht ohne Schema und besteht aus Buchstaben, Ziffern, `_`, `#` und `$`; die Spalte ist ein
   Textliteral, `''` steht für `'`; die Tabelle muss an beiden Stellen gleich geschrieben sein. Die Antwort ist der Abschluss der Art `ALTER_TABLE` (`0x00d8`, ohne `COUNT`). Danach gelingt `ADD CONSTRAINT … DEFAULT … FOR` an der Spalte;
   ohne den Text ist er mit `TDS_SIM_OBJECT_EXISTS` abgewiesen (Form D3). **Grenzen** (Träger je Punkt: `BEO-TDS/katalog-elemente-grenzen-der-angleichung`): (a) der Server antwortet mit der Folge der Anweisungen des Textes: bei einem
   Treffer `DONE` (`MORE|COUNT`, `0x00c1`, Zähler 1), `DONE` (`MORE`, `0x00c0`), `DONE` (`MORE|COUNT`, `0x00c1`, Zähler 1), `DONEINPROC` (`0x00d8`), `RETURNSTATUS` 0 und `DONEPROC`, ohne Treffer `DONE` (`MORE|COUNT`, `0x00c1`, Zähler 0) und
-  `DONE` (`0x00c0`); die Bibliothek sendet den einen Abschluss, auch ohne Treffer (die Antwortform des Servers verlangte eine Erweiterung der öffentlichen Fläche); (b) der zweite Standardwert an derselben Spalte endet am Server mit 1781
-  und danach 1750 (Class 16), die Bibliothek meldet `TDS_SIM_OBJECT_EXISTS` (2714); (c) ein anderer Aufbau des Textes (ein Schema, Sonderzeichen im Namen der Tabelle, eine abweichende Anweisung) ist nicht erkannt (`Unsupported SQL.`):
-  wie d-migrate Namen mit Sonderzeichen schreibt, ist nicht aufgezeichnet; (d) nicht gemessen sind der Text in einem RPC, an einer Tabelle mit Zeilen und in einer Transaktion des Referenzclients, und d-migrate am echten Server mit einem Soll, das
+  `DONE` (`0x00c0`); die Bibliothek sendet den einen Abschluss, auch ohne Treffer (Entscheid des Nutzers: die öffentliche Fläche wächst dafür nicht, Option A; ob ein Backend die Folge mit den vorhandenen Mitteln ausdrücken kann, ist nicht untersucht); (b) der zweite Standardwert an derselben Spalte (`ADD CONSTRAINT … DEFAULT … FOR` ohne vorherigen Text) endet am Server mit 1781
+  und danach 1750 (Class 16), die Bibliothek meldet `TDS_SIM_OBJECT_EXISTS` (2714); (c) unter `IMPLICIT_TRANSACTIONS` schreibt der Server bei dem ersten Text `ENVCHANGE` Typ 8 (gemessen, mit und ohne Treffer), die Bibliothek beginnt eine Transaktion nur bei `CREATE_TABLE`; (d) ein anderer Aufbau des Textes (ein Schema, Sonderzeichen im Namen der Tabelle, eine abweichende Anweisung) ist nicht erkannt (`Unsupported SQL.`):
+  wie d-migrate Namen mit Sonderzeichen schreibt, ist nicht aufgezeichnet; (e) nicht gemessen sind der Text in einem RPC, an einer Tabelle mit Zeilen und in einer Transaktion des Referenzclients, und d-migrate am echten Server mit einem Soll, das
   einen Standardwert neu gibt oder wegnimmt (gemessen ist die Änderung eines vorhandenen Werts).
 - **Scanner** (Setzungen, nicht am Server gemessen): Leerraum sind Leerzeichen, Tab, CR und LF.
   Blockkommentare dürfen sich schachteln; ein offenes Literal oder ein offener Kommentar ist nicht

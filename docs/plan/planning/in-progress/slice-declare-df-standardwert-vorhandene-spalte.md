@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate), [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md), [ADR-0046](../../adr/0046-oeffentliche-flaeche-der-katalog-elemente.md)
 
-**Berührte Spec-Stellen:** SPEC-036 (erkannte Anweisungsformen, Form D, Absatz Grenzen) · SPEC-035 (Standardwert im Katalog) · `TDS-FA-11.a` (Ablaufpunkt 9, Strukturänderung)
+**Berührte Spec-Stellen:** SPEC-036 (erkannte Anweisungsformen, Form D, Absatz Grenzen) · SPEC-035 (Standardwert im Katalog) · SPEC-031 (ENVCHANGE bei `ALTER_TABLE`) · SPEC-045 und SPEC-059 (nur Zähler und Tags der Abdeckungsmatrix) · `TDS-FA-11.a` (Ablaufpunkt 9, Strukturänderung)
 
 **Verantwortlich:** pt9912.
 
@@ -30,7 +30,7 @@ Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks.
 
 **Gestartet** am 2026-11-12 auf Freigabe des Nutzers. Die öffentliche Fläche wird nicht erweitert: Namen von Standardwert und Schlüssel bleiben intern.
 
-**Ziel:** `schema migrate --execute` von d-migrate mit einem Standardwert an einer vorhandenen Spalte endet gegen den Testserver mit Exit 0 wie gegen den echten SQL Server. Heute sendet d-migrate dafür einen Text, der mit `DECLARE @df sysname, @sql nvarchar(max); SELECT @df = dc.name FROM sy…` beginnt und über `EXEC sp_executesql` ein `ALTER TABLE … ADD CONSTRAINT [df_…] DEFAULT …` ausführt; der Text ist nicht erkannt, der Lauf endet mit Exit 5 (`Unsupported SQL.`, Messprotokoll [Zeile c1](../../../messungen/katalog-indizes-defaults-fremdschluessel-d-migrate-2026-11-09.md), im Verifikationsbericht zu [slice-katalog-indizes-defaults-fremdschluessel](../done/slice-katalog-indizes-defaults-fremdschluessel.md) reproduziert). Ein Standardwert in `CREATE TABLE` oder an einer neuen Spalte ist nicht betroffen.
+**Ziel:** `schema migrate --execute` von d-migrate mit einem Standardwert an einer vorhandenen Spalte endet gegen den Testserver mit Exit 0 wie gegen den echten SQL Server. Heute sendet d-migrate dafür einen Text, der mit `DECLARE @df sysname, @sql nvarchar(max); SELECT @df = dc.name FROM sy…` beginnt und über `EXEC sp_executesql` ein `ALTER TABLE … DROP CONSTRAINT` mit dem gefundenen Namen des vorhandenen Standardwerts ausführt (das `ALTER TABLE … ADD CONSTRAINT [df_…] DEFAULT … FOR …` sendet d-migrate danach als eigenen Text, Form D3); der Text ist nicht erkannt, der Lauf endet mit Exit 5 (`Unsupported SQL.`, Messprotokoll [Zeile c1](../../../messungen/katalog-indizes-defaults-fremdschluessel-d-migrate-2026-11-09.md), im Verifikationsbericht zu [slice-katalog-indizes-defaults-fremdschluessel](../done/slice-katalog-indizes-defaults-fremdschluessel.md) reproduziert). Ein Standardwert in `CREATE TABLE` oder an einer neuen Spalte ist nicht betroffen.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -46,7 +46,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 Liefer-Punkte (drei):
 
 - [ ] **Messung** ([TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität)): der vollständige Text, den d-migrate 1.12.0 für einen Standardwert an einer vorhandenen Spalte sendet (Mitschnitt), und die Antwort des echten SQL Servers darauf (Developer-Image, gepinnter Digest, EULA bestätigt, nur lokal): Tokenfolge, Zählung, Verhalten bei vorhandenem und fehlendem Standardwert; Messprotokoll in `docs/messungen/`.
-- [ ] **Bau** ([TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend)): der Text wird als feste Form erkannt (Parameter: Tabelle, Spalte, Standardwert), plant gegen den Katalog (Tabelle und Spalte vorhanden, ein vorhandener Standardwert wird ersetzt wie am Server gemessen) und geht an den Integrator; Tests mit dem Handvektor des Mitschnitts und den Zeilen der Messung; Mutationen je Zusage.
+- [ ] **Bau** ([TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend)): der Text wird als feste Form erkannt (Parameter: Tabelle und Spalte), plant gegen den Katalog (der Standardwert der Spalte fällt; ohne Standardwert und an unbekannter Spalte oder Tabelle ein Erfolg ohne Änderung, wie am Server gemessen) und geht an den Integrator; Tests mit dem Handvektor des Mitschnitts und den Zeilen der Messung; Mutationen je Zusage.
 - [ ] **Beleg und Fortschreibung** ([TDS-FA-12](../../../../spec/lastenheft.md#tds-fa-12--testserver-mit-veränderlichem-arbeitsspeicher-bestand-und-prüfclient-d-migrate)): `schema migrate --execute` mit `default` an einer vorhandenen Spalte endet gegen den Testserver mit Exit 0 und `IDENTICAL`; `SPEC-036`, Nutzer-Doku und das Register [katalog-elemente-grenzen-der-angleichung](../observations/BEO-TDS/katalog-elemente-grenzen-der-angleichung/state.md) (Punkt 1) nachgezogen.
 
 Nachweis-Pflichten für alle Punkte:
@@ -74,6 +74,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 | `referenztest-dotnet/Vergleich/MessungBulkTests.cs`, `referenztest-dotnet/Mitschnitt/MessungBulkBelegTests.cs`, `referenztest-dotnet/Mitschnitt/messung/bulk-merge-katalog/<stufe>/struktur-standardwert-ersetzen.messung`, `tools/mk/vergleichslauf-d.mk` | update / neu | Szenario `struktur-standardwert-ersetzen` am echten Server (2022, 2025), Belegtests, Zahl der Szenarien |
 | `docs/messungen/standardwert-ersetzen-d-migrate-2026-11-12.md`, `docs/messungen/referenzabgleich.md` | neu / update | Messprotokoll, Eingang des Baus |
 | `spec/spezifikation.md` (`SPEC-036` Form D7, Änderungsprotokoll), `docs/user/testserver-manuell.md`, `docs/user/einbettung-und-betrieb.md`, `docs/user/referenz-konfiguration.md` | update | Zusage und Grenzen |
+| `docs/plan/spec-abdeckung.md` | update (erzeugt) | `make spec-abdeckung`: Zähler SPEC-036, SPEC-045, SPEC-059 und Testklassen |
 | `docs/plan/planning/observations/BEO-TDS/katalog-elemente-grenzen-der-angleichung/`, `docs/plan/planning/in-progress/roadmap.md` | update | Zustand und Beleg von Punkt 1, neuer Punkt 15 (Grenzen der Form), Marker der Roadmap |
 
 ## 4. Trigger
