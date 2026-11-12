@@ -80,7 +80,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): Auslösung über das Register [katalog-elemente-grenzen-der-angleichung](../observations/BEO-TDS/katalog-elemente-grenzen-der-angleichung/state.md) (Punkt 1) oder über [slice-abnahme-d-migrate](slice-abnahme-d-migrate.md), wenn der Validator einen Standardwert an einer vorhandenen Spalte verlangt; [slice-drop-constraint-form-d5](../done/slice-drop-constraint-form-d5.md) liegt in `done/` (Konflikte am Planer); die EULA für das gepinnte Developer-Image ist für diesen Lauf bestätigt; ein Verantwortlicher ist eingetragen.
+**Start** (`next` → `in-progress`): Auslösung über das Register [katalog-elemente-grenzen-der-angleichung](../observations/BEO-TDS/katalog-elemente-grenzen-der-angleichung/state.md) (Punkt 1) oder über [slice-abnahme-d-migrate](../open/slice-abnahme-d-migrate.md), wenn der Validator einen Standardwert an einer vorhandenen Spalte verlangt; [slice-drop-constraint-form-d5](../done/slice-drop-constraint-form-d5.md) liegt in `done/` (Konflikte am Planer); die EULA für das gepinnte Developer-Image ist für diesen Lauf bestätigt; ein Verantwortlicher ist eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
