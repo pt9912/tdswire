@@ -69,11 +69,12 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `src/main/kotlin/io/github/pt9912/tdswire/simulation/Statement.kt`, `StatementParser.kt`, `SqlScanner.kt`, `StructureParts.kt`, `ColumnParts.kt`, `StatementPlanner.kt`, `StructurePlanner.kt` | update / neu | feste Form für den Text mit `DECLARE @df`, Planung gegen den Katalog |
-| `src/test/kotlin/.../simulation/` (`DMigrateWire.kt`, Formen- und Strukturtests), `src/integrator/kotlin/` | update / neu | Handvektor des Mitschnitts, Zeilen der Messung, Mutationen |
-| `docs/messungen/` — Messprotokoll des Textes am echten Server <!-- d-check:ignore (geplant: neue Datei) --> | neu | Eingang des Baus |
-| `spec/spezifikation.md` (`SPEC-036`, Änderungsprotokoll), `docs/user/testserver-manuell.md`, `docs/user/einbettung-und-betrieb.md` | update | Zusage und Grenzen |
-| `docs/plan/planning/observations/BEO-TDS/katalog-elemente-grenzen-der-angleichung/` | update | Zustand und Beleg von Punkt 1 |
+| `src/main/kotlin/io/github/pt9912/tdswire/simulation/DefaultDropForms.kt`, `Statement.kt`, `StatementParser.kt`, `StatementPlanner.kt`, `StructurePlanner.kt`, `SimulationChanges.kt` | neu / update | Form D7: Erkennung des Textes mit `DECLARE @df` (Textvergleich, kein Scanner), `Statement.DropDefault`, Planung gegen den Katalog; keine öffentliche Änderung |
+| `src/test/kotlin/io/github/pt9912/tdswire/simulation/SimulationBackendDropDefaultTest.kt`, `DMigrateWire.kt`, `src/integrator/kotlin/io/github/pt9912/tdswire/integrator/DropDefaultEmbeddingTest.kt` | neu / update | Handvektor des Mitschnitts, Zeilen der Messung, Einbettungstest auf den Rohbytes, Mutationen je Zusage |
+| `referenztest-dotnet/Vergleich/MessungBulkTests.cs`, `referenztest-dotnet/Mitschnitt/MessungBulkBelegTests.cs`, `referenztest-dotnet/Mitschnitt/messung/bulk-merge-katalog/<stufe>/struktur-standardwert-ersetzen.messung`, `tools/mk/vergleichslauf-d.mk` | update / neu | Szenario `struktur-standardwert-ersetzen` am echten Server (2022, 2025), Belegtests, Zahl der Szenarien |
+| `docs/messungen/standardwert-ersetzen-d-migrate-2026-11-12.md`, `docs/messungen/referenzabgleich.md` | neu / update | Messprotokoll, Eingang des Baus |
+| `spec/spezifikation.md` (`SPEC-036` Form D7, Änderungsprotokoll), `docs/user/testserver-manuell.md`, `docs/user/einbettung-und-betrieb.md`, `docs/user/referenz-konfiguration.md` | update | Zusage und Grenzen |
+| `docs/plan/planning/observations/BEO-TDS/katalog-elemente-grenzen-der-angleichung/`, `docs/plan/planning/in-progress/roadmap.md` | update | Zustand und Beleg von Punkt 1, neuer Punkt 15 (Grenzen der Form), Marker der Roadmap |
 
 ## 4. Trigger
 

@@ -84,6 +84,12 @@ internal sealed interface Statement {
     data class DropIndex(override val table: TableRef, val name: String, val ifExists: Boolean) : Statement
 
     /**
+     * D7: der Text von d-migrate mit `DECLARE @df …` ([DefaultDropForms]); er entfernt den Standardwert der Spalte
+     * [column] (Name, wie der Text ihn nennt), wenn sie einen hat, und ändert sonst nichts.
+     */
+    data class DropDefault(override val table: TableRef, val column: String) : Statement
+
+    /**
      * M: `MERGE … OUTPUT $action` (`SPEC-036` Form M). [sourceColumns] benennt die Werte der einen `VALUES`-Zeile
      * [values]; [on] vergleicht Spalten der Tabelle mit Quellspalten, [update] ist `null` ohne Zweig `WHEN MATCHED`,
      * [insert] bildet die Spalten der Tabelle aus Quellspalten.

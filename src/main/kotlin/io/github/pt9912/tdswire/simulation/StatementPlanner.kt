@@ -87,7 +87,9 @@ internal sealed interface PlanResult {
     /** Eine Strukturänderung; die Tabelle ist im Zustand nach der Anweisung beschrieben. */
     data class Structure(val plan: StructurePlan) : PlanResult
 
-    /** Der Erfolg der Art [kind] ohne Tabelle und ohne Callback (`DROP INDEX IF EXISTS`, Tabelle unbekannt). */
+    /**
+     * Der Erfolg der Art [kind] ohne Tabelle und ohne Callback (Tabelle unbekannt: `DROP INDEX IF EXISTS`, Form D7).
+     */
     data class Unchanged(val kind: StatementKind) : PlanResult
 
     /** Ein Text der Form C: keine Tabelle, die Antwort steht fest. */
@@ -150,6 +152,7 @@ internal class StatementPlanner(private val catalogs: () -> SimCatalog) {
         is Statement.CreateIndex -> StructurePlanner.createIndex(statement, catalog)
         is Statement.DropConstraint -> StructurePlanner.dropConstraint(statement, catalog)
         is Statement.DropIndex -> StructurePlanner.dropIndex(statement, catalog)
+        is Statement.DropDefault -> StructurePlanner.dropDefault(statement, catalog)
         else -> resolveTable(statement, catalog)
     }
 
@@ -182,7 +185,7 @@ internal class StatementPlanner(private val catalogs: () -> SimCatalog) {
                 statement.insert.map { it.target }
 
         is Statement.CreateTable, is Statement.AddColumns, is Statement.AddConstraint, is Statement.CreateIndex,
-        is Statement.DropConstraint, is Statement.DropIndex,
+        is Statement.DropConstraint, is Statement.DropIndex, is Statement.DropDefault,
         -> emptyList()
     }
 

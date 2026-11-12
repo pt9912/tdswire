@@ -283,3 +283,27 @@ val dMigrateDropTexts: List<String> = listOf(
  * echten Server mit DONE, Befehl `0x00c9`, beantwortet). Name und Tabelle sind die der Tabellen dieser Tests.
  */
 const val D_MIGRATE_DROP_INDEX_TEXT: String = "DROP INDEX IF EXISTS [ix_kunden_email] ON [kunden];"
+
+/**
+ * `schema migrate --execute` mit geändertem Standardwert einer vorhandenen Spalte: der Text vor dem
+ * `ALTER TABLE … ADD CONSTRAINT … DEFAULT … FOR …`, wie der Durchlauf ihn am Draht sah (`make vergleichslauf-d
+ * LAUF=schema-2022` und `schema-2025`, Schritt s12; Ablage `referenztest-dotnet/Mitschnitt/messung/jdbc-d-migrate/`
+ * `<stufe>.schema.aufnahme.txt`, Tabelle `auftraege`, Spalte `Menge`). Tabelle und Spalte sind die
+ * Parameter.
+ */
+fun dMigrateDeclareDefaultText(table: String, column: String): String = listOf(
+    "DECLARE @df sysname, @sql nvarchar(max);",
+    "SELECT @df = dc.name FROM sys.default_constraints dc",
+    "    JOIN sys.columns c ON c.object_id = dc.parent_object_id",
+    "        AND c.column_id = dc.parent_column_id",
+    "    WHERE dc.parent_object_id = OBJECT_ID('$table')",
+    "        AND c.name = '$column';",
+    "IF @df IS NOT NULL",
+    "BEGIN",
+    "    SET @sql = 'ALTER TABLE [$table] DROP CONSTRAINT ' + QUOTENAME(@df);",
+    "    EXEC sp_executesql @sql;",
+    "END;",
+).joinToString("\n")
+
+/** Die Länge des Textes im Feld `sql` des Berichts von `schema migrate` (Mitschnitt) für `auftraege` und `Menge`. */
+const val D_MIGRATE_DECLARE_DEFAULT_LENGTH: Int = 419

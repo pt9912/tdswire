@@ -149,16 +149,15 @@ internal object StatementParser {
         val transaction = if (catalog == null && literal == null) TransactionForms.recognize(sql) else null
         return when {
             catalog != null -> Recognition.Catalog(catalog)
-
             literal != null -> Recognition.Catalog(literal.first, literal.second)
-
             transaction != null -> Recognition.Fixed(transaction)
-
-            else -> when (val scanned = SqlScanner(sql).scan()) {
-                is ScanResult.Failed -> Recognition.NotRecognized(scanned.reason)
-                is ScanResult.Tokens -> parse(scanned.tokens)
-            }
+            else -> DefaultDropForms.recognize(sql)?.let { Recognition.Recognized(it) } ?: scan(sql)
         }
+    }
+
+    private fun scan(sql: String): Recognition = when (val scanned = SqlScanner(sql).scan()) {
+        is ScanResult.Failed -> Recognition.NotRecognized(scanned.reason)
+        is ScanResult.Tokens -> parse(scanned.tokens)
     }
 
     private fun parse(scanned: List<Token>): Recognition {
