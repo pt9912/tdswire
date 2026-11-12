@@ -106,7 +106,7 @@ Server=tcp:127.0.0.1,1433;User ID=alice;Password=secret;Encrypt=false;Pooling=fa
 
 **Ziel.** d-migrate liest die Struktur des Testservers, vergleicht sie mit einem Soll und legt Tabellen und Spalten an.
 
-**Voraussetzungen.** Der Testserver läuft mit den Voreinstellungen. Docker kann das Image `ghcr.io/pt9912/d-migrate` per Digest ziehen (d-migrate 1.12.0, mssql-jdbc 13.4.0). Das Verzeichnis `probe` im Wurzelverzeichnis des Repos (`mkdir -p probe`; `.gitignore` führt es) nimmt die Dateien der Schritte auf; es enthält keine Datei namens `soll.yaml`, `ist.yaml` oder `kunden.json`. Die Befehle verwenden den Digest `sha256:308f27753036c9cc423f716b9fc4c9e68016543a8003ecd2f8282e05a2ee6491`; die Verbindung ist `mssql://alice:secret@127.0.0.1:1433/manuell?encrypt=false`.
+**Voraussetzungen.** Der Testserver läuft mit den Voreinstellungen. Docker kann das Image `ghcr.io/pt9912/d-migrate` per Digest ziehen (d-migrate 1.12.0, mssql-jdbc 13.4.0). Das Verzeichnis `probe` im Wurzelverzeichnis des Repos (`mkdir -p probe`; `.gitignore` führt es) nimmt die Dateien der Schritte auf; es enthält keine Datei namens `soll.yaml`, `ist.yaml` oder `kunden.json`. Die Befehle verwenden den Digest `sha256:308f27753036c9cc423f716b9fc4c9e68016543a8003ecd2f8282e05a2ee6491`; die Verbindung ist `mssql://alice:secret@127.0.0.1:1433/manuell?encrypt=false`. Läuft der Server mit `TESTSERVER_PORT=<Port>`, steht `<Port>` statt `1433` in jeder Verbindungszeichenfolge dieser Anleitung.
 
 **Schritte.**
 
@@ -439,7 +439,7 @@ Der Testserver bietet im TDS-7.4-Pfad höchstens TLS 1.2 an, der TDS-8.0-Pfad (`
 
 **Ziel.** Zeilen aus einer JSON-Datei kommen mit `data import` von d-migrate in den Arbeitsspeicher des Testservers, und `data export` liefert sie zurück.
 
-**Voraussetzungen.** Der Testserver läuft mit den Voreinstellungen ([Aufgabe 1](#1-den-testserver-starten-prüfen-und-stoppen)); die Tabelle `kunden` ist leer. Docker, das Verzeichnis `probe` und der Digest von d-migrate wie in [Aufgabe 3](#3-mit-d-migrate-struktur-lesen-und-ändern).
+**Voraussetzungen.** Der Testserver läuft mit den Voreinstellungen ([Aufgabe 1](#1-den-testserver-starten-prüfen-und-stoppen)); die Tabelle `kunden` ist leer und hat nur die Spalten `Id`, `Name`, `Eintritt`. Hat [Aufgabe 3](#3-mit-d-migrate-struktur-lesen-und-ändern) vorher `Email` angelegt, den Server vorher neu starten (`make testserver-down`, `make testserver-up`): sonst endet Schritt 2 mit Exit 5 und `Error: Import failed: Source and destination schemas do not match.` (gefahren am 2026-11-12, [Messprotokoll](../messungen/abnahme-d-migrate-2026-11-12.md)). Docker, das Verzeichnis `probe` und der Digest von d-migrate wie in Aufgabe 3.
 
 **Schritte.**
 
@@ -470,6 +470,8 @@ Der Testserver bietet im TDS-7.4-Pfad höchstens TLS 1.2 an, der TDS-8.0-Pfad (`
    Ergebnis (Exit 0): `Exported table 'kunden' | 2 rows | 1 chunks | 0.00 MB`; `probe/kunden-aus.json` enthält die beiden Zeilen (`{"Id": 1,"Name": "Ada","Eintritt": "2020-01-31"}` und `{"Id": 2,"Name": "Bob","Eintritt": null}`).
 4. Dieselbe Datei noch einmal laden (Schritt 2): der Schlüssel `Id` kommt doppelt vor. Ergebnis: `Error: Import failed: Violation of PRIMARY KEY constraint. Cannot insert duplicate key.`, Exit 5; der Export zeigt unverändert die beiden Zeilen.
 
+**`data transfer`.** Quelle und Ziel sind zwei Server mit gleicher Struktur: ein zweiter Container auf einem anderen Port (`TESTSERVER_NAME=ziel TESTSERVER_PORT=14578 TESTSERVER_BAUEN=0 make testserver-up`), und `schema migrate --execute` bringt das Ziel auf die Struktur der Quelle. Dann überträgt `data transfer --source 'mssql://alice:secret@127.0.0.1:1433/manuell?encrypt=false' --target 'mssql://alice:secret@127.0.0.1:14578/manuell?encrypt=false' --tables kunden` (Aufruf von d-migrate wie in Schritt 2) im Standardpfad, mit `--on-conflict skip` (vorhandene Schlüssel bleiben) und mit `--on-conflict update` (vorhandene Schlüssel werden überschrieben); alle drei enden mit Exit 0 und `Transfer complete`, ebenso `--tables bestellungen` mit `DECIMAL` im Standardpfad und mit `update` (gefahren am 2026-11-12, [Messprotokoll](../messungen/abnahme-d-migrate-2026-11-12.md)). Fehlt dem Ziel eine Spalte, endet der Befehl vor dem Laden mit Exit 3 und `Preflight: Column 'kunden.Email' missing in target`.
+
 **Erwartetes Ergebnis.** Nach Schritt 3 liefert der Export die geladenen Zeilen; ein Neustart des Containers (`make testserver-down`, `make testserver-up`) leert den Bestand, der Export liefert wieder `[]` (gefahren am 2026-11-07). Beleg-Typ: Einzelläufe am Testserver mit d-migrate 1.12.0, ein Host; die Messungen des Massenladens stehen im [Messprotokoll](../messungen/bulk-load-2026-11-07.md).
 
 **Eigenschaften** (Setzungen, soweit nicht anders gesagt nicht am echten SQL Server gemessen; [SPEC-036](../../spec/spezifikation.md#spec-036--erkannte-anweisungsformen-des-simulations-backends-vorläufig) Form B, [SPEC-001](../../spec/spezifikation.md#spec-001--zustandsautomat-einer-verbindung)):
@@ -490,6 +492,8 @@ Der Testserver bietet im TDS-7.4-Pfad höchstens TLS 1.2 an, der TDS-8.0-Pfad (`
 | die Verbindung wird beim Laden geschlossen | die Nachricht ist größer als 16 MiB, hat mehr als 1024 Spalten oder mehr als 262 144 Zellen | `--chunk-size` kleiner wählen |
 | Prozess endet mit `OutOfMemoryError` | der Heap des Containers trägt die Zeilen nicht | weniger Zeilen laden |
 | Fehler im Treiber vor dem Server (`INT`, ganzzahliger `DECIMAL`) | Spaltentyp der Beschreibung | `BIGINT` verwenden |
+| `Import failed: Source and destination schemas do not match.` (Exit 5) | die Tabelle hat andere Spalten als die Datei (etwa `Email` aus Aufgabe 3) | Server neu starten oder die Spalte in die Datei aufnehmen |
+| `Preflight: Column '<Tabelle>.<Spalte>' missing in target` (Exit 3) bei `data transfer` | dem Ziel fehlt eine Spalte der Quelle | das Ziel mit `schema migrate --execute` auf die Struktur der Quelle bringen |
 
 ## 7. Fremdschlüssel, Indizes, Standardwerte und Prüfbedingungen anlegen und lesen
 
@@ -598,7 +602,7 @@ Der Testserver bietet im TDS-7.4-Pfad höchstens TLS 1.2 an, der TDS-8.0-Pfad (`
    schema reverse --source 'mssql://alice:secret@127.0.0.1:1433/manuell?encrypt=false' --output /work/ist-elemente.yaml
    ```
 
-   Ergebnis (Exit 0): `probe/ist-elemente.yaml` führt für `auftraege` die Standardwerte `default: 1` und `default: neu`, den Index `ix_auftraege_status`, den Fremdschlüssel `fk_auftraege_LieferantId` (`references` auf `lieferanten`, `on_delete: cascade`) und die Prüfbedingung `ck_auftraege_menge` mit `expression: '"Menge">(0)'` (d-migrate schreibt die Form des Katalogs, `([Menge]>(0))`, in seiner Quotierung) und für `lieferanten.Name` `unique: true` mit `unique_constraint: uq_lieferanten_Name`.
+   Ergebnis (Exit 0): `probe/ist-elemente.yaml` führt für `auftraege` die Standardwerte `default: 1` und `default: neu`, den Index `ix_auftraege_status`, den Fremdschlüssel `fk_auftraege_LieferantId` (Eintrag in `constraints` mit `type: foreign_key`, `references` auf `lieferanten`, `on_delete: cascade`) und die Prüfbedingung `ck_auftraege_menge` mit `expression: '"Menge">(0)'` (d-migrate schreibt die Form des Katalogs, `([Menge]>(0))`, in seiner Quotierung) und für `lieferanten.Name` `unique: true` mit `unique_constraint: uq_lieferanten_Name`.
 6. Elemente an vorhandenen Tabellen: den Server neu starten (`make testserver-down`, `make testserver-up`; der Bestand kehrt zur Beschreibung zurück) und `probe/soll-elemente2.yaml` schreiben, die Beispiel-Tabellen mit einer Eindeutigkeit an `kunden.Name`, einem Fremdschlüssel, einem Index und einer Prüfbedingung an `bestellungen`:
 
    ```yaml
@@ -662,6 +666,7 @@ Der Testserver bietet im TDS-7.4-Pfad höchstens TLS 1.2 an, der TDS-8.0-Pfad (`
 
 - Ein Index mit `unique: true` im Soll endet bei `schema migrate --execute` mit Exit 5 („Post-execute compare detected drift“): d-migrate liest einen eindeutigen Index ohne Bedingung als Eindeutigkeit zurück. Das tut es auch gegen einen echten SQL Server (2022 und 2025, gleicher Exit und gleicher Unterschied im Vergleich); der Testserver weicht hier nicht ab. Eine Eindeutigkeit gehört als `unique: true` an die Spalte oder als `constraints`-Eintrag vom Typ `unique` ins Soll.
 - Nimmt das Soll einen eindeutigen Index weg (`unique: true`, siehe oben), sendet d-migrate `ALTER TABLE [<Tabelle>] DROP CONSTRAINT IF EXISTS [<Name>];`, weil es ihn als Eindeutigkeit gelesen hat; der Server führt den Namen als Index, `IF EXISTS` ohne Treffer gelingt, der Index bleibt, und `schema migrate --execute` endet mit Exit 5 („Post-execute compare detected drift“). Ob der echte Server den Index dabei entfernt, ist nicht gemessen.
+- Ein Fremdschlüssel mit `on_delete: restrict` oder `no_action` im Soll endet bei `schema migrate --execute` mit Exit 5 („Post-execute compare detected drift“): d-migrate sendet `ON DELETE NO ACTION` und `ADD CONSTRAINT [_fk_<Spalte>]`, liest den Fremdschlüssel ohne `on_delete` zurück, und `schema compare` meldet `on_delete=no_action` gegen keinen Wert. Ohne `on_delete` oder mit `cascade` konvergiert das Soll (Exit 0, `IDENTICAL`). Ob der echte SQL Server dieselbe Rückgabe liefert, ist nicht gemessen (gefahren am 2026-11-12, [Messprotokoll](../messungen/abnahme-d-migrate-2026-11-12.md)).
 - `ALTER TABLE … DROP CONSTRAINT` mit dem Namen eines Standardwerts oder des Schlüssels trifft nicht: der Server führt diese Namen nicht (am echten Server fällt die Bedingung). d-migrate sendet den Namen eines Standardwerts nicht, sondern den Text mit `DECLARE @df …` (Eigenschaften oben).
 - Namen von Bedingungen sind hier je Tabelle eindeutig; der SQL Server führt sie nach seiner Dokumentation je Schema (nicht gemessen). Zwei Tabellen mit gleich benannten Bedingungen, wie d-migrate sie in `ALTER TABLE` vergibt (`_fk_KundeId`), nimmt der Testserver an, der echte Server vermutlich nicht.
 - Der Ausdruck einer Prüfbedingung wird nicht gegen die Spalten der Tabelle geprüft (`CHECK ([Nix] > 0)` gelingt), und `< =`, `> =`, `< >` mit Leerraum gelten als `<=`, `>=`, `<>`; der echte Server weist beides vermutlich ab (nicht gemessen).
@@ -671,6 +676,7 @@ Der Testserver bietet im TDS-7.4-Pfad höchstens TLS 1.2 an, der TDS-8.0-Pfad (`
 | Beobachtung | Ursache | Abhilfe |
 |---|---|---|
 | `schema migrate` endet mit Exit 5 „Post-execute compare detected drift“ | ein Index mit `unique: true` im Soll | die Eindeutigkeit als `unique: true` an der Spalte schreiben |
+| `schema migrate` endet mit Exit 5 „Post-execute compare detected drift“, `compare` nennt `on_delete=no_action` | ein Fremdschlüssel mit `on_delete: restrict` oder `no_action` im Soll | `on_delete` weglassen oder `cascade` wählen |
 | Start bricht ab, „Beschreibung der Tabellen ungueltig“ mit `Zieltabelle nicht vorhanden` | `references` nennt eine Tabelle, die die Datei nicht führt | Namen prüfen |
 
 ## Referenz: Beispiel-Tabellen und Anfragen
