@@ -43,7 +43,7 @@ Eine Sitzung hält höchstens `MAX_PREPARED_HANDLES` Handles zugleich (`SPEC-061
 
 ## Fehlercodes und Antwortformen
 
-Jeder Fehler des Servers erreicht den Client als ERROR (feste englische Meldung; State 1, außer bei Nummern mit dem State des echten SQL Servers, zum Beispiel 8179: State 8 bei der Freigabe, State 4 bei `sp_execute`; 3733 trägt State 2, 3723 State 5, 3701 State 7 mit Class 11) und einen Abschluss mit Fehlerstatus; der Text einer Backend-Meldung oder Ausnahme erreicht den Client nie. Zuordnung nach [Abschnitt 4 der Spezifikation](../../spec/spezifikation.md#4-fehler-codes-und-logging-felder); am echten SQL Server beobachtet sind die Nummern 18456, 8179, 2627, 2628, 2714, 2705, 4902, 3728, 3733, 3701, 3723 und 208 (dieses mit Class 16), die übrigen Nummern sind Festlegungen:
+Jeder Fehler des Servers erreicht den Client als ERROR (feste englische Meldung; State 1, außer bei Nummern mit dem State des echten SQL Servers, zum Beispiel 8179: State 8 bei der Freigabe, State 4 bei `sp_execute`; 3733 trägt State 2, 3723 State 5, 3701 State 7 mit Class 11) und einen Abschluss mit Fehlerstatus; der Text einer Backend-Meldung oder Ausnahme erreicht den Client nie. Zuordnung nach [Abschnitt 4 der Spezifikation](../../spec/spezifikation.md#4-fehler-codes-und-logging-felder); am echten SQL Server beobachtet sind die Nummern 18456, 8179, 2627, 2628, 2714, 2705, 1781, 4902, 3728, 3733, 3701, 3723 und 208 (dieses mit Class 16), die übrigen Nummern sind Festlegungen:
 
 | Code | Nummer | Class | Folge |
 |---|---|---|---|
@@ -62,6 +62,7 @@ Jeder Fehler des Servers erreicht den Client als ERROR (feste englische Meldung;
 | `TDS_SIM_STRING_TRUNCATED` | 2628 | 16 | offen |
 | `TDS_SIM_OBJECT_EXISTS` | 2714 | 16 | offen |
 | `TDS_SIM_COLUMN_EXISTS` | 2705 | 16 | offen |
+| `TDS_SIM_COLUMN_HAS_DEFAULT` | 1781 | 16 | offen |
 | `TDS_SIM_OBJECT_NOT_FOUND` | 4902 | 16 | offen |
 | `TDS_SIM_NOT_A_CONSTRAINT` | 3728 | 16 | offen |
 | `TDS_SIM_CONSTRAINT_OTHER_TABLE` | 3733 | 16 | offen |
