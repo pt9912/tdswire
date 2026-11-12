@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** SPEC-036 (Form D3, Form D5 Grenze 3727, Form D7 (b)) · SPEC-035 (Fehlernummern der Strukturabweisung) · SPEC-031 (Folge-Token nach einem Fehler, INFO 3621 nach 2628)
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** pt9912 (Start am 2026-11-12 angeordnet).
 
 **Autor:** pt9912 (Entwurf in der Planner-Rolle, Closure von [slice-declare-df-standardwert-vorhandene-spalte](../done/slice-declare-df-standardwert-vorhandene-spalte.md), Entscheid des Nutzers 2026-11-12). **Datum:** 2026-11-12.
 

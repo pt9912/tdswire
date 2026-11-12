@@ -72,7 +72,7 @@ F3 in der Begrenzung (Art (d); 14 Läufe, nur SQL Server 2022, nur `on_delete`, 
 | `abnahme-d-migrate-2026-11-12.md`, neu | 127 Zeilen, neu | ok |
 | `testserver-manuell.md`, update | 12 Zeilen | ok |
 | `fremdschluessel-on-delete-d-migrate-2026-11-12.md`, neu | 59 Zeilen, neu | ok (Nachbesserung F-2 des Reviews) |
-| `docs/plan/planning/` (Moves, Roadmap, Verweise), `docs/reviews/` | Moves `open`/`next` nach `in-progress`, Verweis-Nachzüge in `done/`, `observations/`, `welle-testserver-manuell.md`, `open/slice-zweites-error-folgefehler-angleichen.md` (nur der Pfad), Roadmap, Reviews, Review-Report | ok |
+| `docs/plan/planning/` (Moves, Roadmap, Verweise), `docs/reviews/` | Moves `open`/`next` nach `in-progress`, Verweis-Nachzüge in `done/`, `observations/`, `welle-testserver-manuell.md`, `in-progress/slice-zweites-error-folgefehler-angleichen.md` (nur der Pfad), Roadmap, Reviews, Review-Report | ok |
 | optional `tools/` | nicht berührt | ok |
 
 Darüber hinaus keine Datei. Der Slice-Kopf trägt `Verantwortlich: pt9912` (Commit `acd70a20`) und die Plan-Tabelle; §7 ist leer, Haken ungesetzt (Planner).
