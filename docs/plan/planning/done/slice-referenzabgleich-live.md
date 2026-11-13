@@ -191,7 +191,7 @@ Hälften.
 
 - `BEO-TDS/messung-am-echten-sql-server-fehlt` — 9×, Stand *geplant* (Träger [slice-qa-vergleichslauf-d](../done/slice-qa-vergleichslauf-d.md)). Träger der Server-Seite für den Teil, den der Client beobachtet; die Wire-Messung trägt [slice-referenzabgleich-mitschnitt](../done/slice-referenzabgleich-mitschnitt.md).
 - `BEO-TDS/vergleichslauf-d-ungeklaert` — 1×, offen (Träger [slice-qa-vergleichslauf-d](../done/slice-qa-vergleichslauf-d.md)). Betrifft CI-Machbarkeit, EULA und Häufigkeit des Laufs: Träger bleibt [slice-qa-vergleichslauf-d](../done/slice-qa-vergleichslauf-d.md), dieser Slice wartet auf deren Ergebnis.
-- `BEO-TDS/tds-8-0-und-pooling-nicht-gemessen` — 7×, Stand *geplant* (Träger [slice-qa-kompatibilitaet](../done/slice-qa-kompatibilitaet.md)). Betrifft die Grenze des Laufs: TDS 8.0 ist an der Referenzinstanz nicht abgleichbar.
+- `BEO-TDS/tds-8-0-und-pooling-nicht-gemessen` — 7×, Stand *geplant* (Träger [slice-qa-kompatibilitaet](../done/slice-qa-kompatibilitaet.md)). Betrifft die Grenze des Laufs: TDS 8.0 ist an `2022-latest` nicht erreicht (B-3), an `2025-latest` als Sonde gemessen (B-4), im Live-Lauf nicht abgeglichen.
 - `BEO-TDS/aussagen-ueber-messung-hinaus` — 16×, Stand *verkörpert* (`AGENTS.md` §3.8, Reviewer-Skill). Betrifft diesen Slice: Jede Aussage über „gleich wie die Referenz“ nennt Instanz, Version und Szenario (§6).
 - `BEO-TDS/strukturtest-ohne-variation-der-eingabe` — 1×, offen. Betrifft den Test der Ausnahmeliste: verschiedene Abweichungen statt einer (§2).
 - `BEO-TDS/test-stage-cache-verdeckt-wiederholung` — 2×, offen. Betrifft Tests in der Docker-Stage: gecachte grüne Läufe belegen Wiederholung nicht.

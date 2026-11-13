@@ -9,7 +9,7 @@ Baseline-Regelwerk `modul-05-planning-harness.md` §Lifecycle als State Machine.
 
 **Bezug:** [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md), [ADR-0028](../../adr/0028-referenzinstanz-fuer-tds-8-0.md)
 
-**Berührte Spec-Stellen:** SPEC-045
+**Berührte Spec-Stellen:** SPEC-045, SPEC-050
 
 **Verantwortlich:** pt9912 (Zweig slice-referenzabgleich-adr-0028-nachzug)
 
@@ -39,7 +39,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 Liefer-Punkte (drei):
 
-- [ ] **Spezifikation:** `SPEC-045` in `spec/spezifikation.md` (Absatz „Grenzen“, Satz „Gemessen ist nur eine Instanz der Version 2022 … der Abgleich beider Pfade entfällt dort“) nennt die gemessene Lage mit Bedingung im Satz (Instanz, Digest, Einzelmessung, Zertifikatsvarianten) und die zweite Referenzinstanz; die Spezifikation nennt dabei weder ADR noch Slice noch Datum einer Messreihe (`AGENTS.md` §3.4 gilt dem Sinn nach für die Stratumsgrenze).
+- [ ] **Spezifikation:** `SPEC-045` in `spec/spezifikation.md` und die Tabellenzeile `SPEC-050` (Referenzinstanzen) (Absatz „Grenzen“, Satz „Gemessen ist nur eine Instanz der Version 2022 … der Abgleich beider Pfade entfällt dort“) nennt die gemessene Lage mit Bedingung im Satz (Instanz, Digest, Einzelmessung, Zertifikatsvarianten) und die zweite Referenzinstanz; die Spezifikation nennt dabei weder ADR noch Slice noch Datum einer Messreihe (`AGENTS.md` §3.4 gilt dem Sinn nach für die Stratumsgrenze).
 - [ ] **Pläne:** [slice-referenzabgleich-live](../done/slice-referenzabgleich-live.md) §1 (Punkt „Der TDS-8.0-Pfad“: „gefolgert, nicht gemessen“, „der Abgleich entfällt dort“) und [slice-referenzabgleich-mitschnitt](../done/slice-referenzabgleich-mitschnitt.md) §1 (Punkt „Verschlüsselte Mitschnitte und der TDS-8.0-Pfad“: „bietet TDS 8.0 nicht an“) tragen die gemessene Lage statt der Folgerung.
 - [ ] **Messwerkzeug wird Entscheidung:** Kommentar von `referenztest-dotnet/Dockerfile` (Stufe `referenzinstanz-2025`) und Kopf von `tools/mk/vergleichslauf-d.mk` nennen die Stufe als angenommene Referenzinstanz; Befund B-6 in [Ausnahmeliste](../../../messungen/referenzabgleich.md) ist mit Verweis auf die Annahme geschlossen.
 
@@ -58,7 +58,7 @@ Nachweis-Pflichten für alle drei Punkte:
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `spec/spezifikation.md` (`SPEC-045`) | update | Grenzen-Absatz, siehe Liefer-Punkt Spezifikation |
+| `spec/spezifikation.md` (`SPEC-045`, Tabellenzeile `SPEC-050`) | update | Grenzen-Absatz von `SPEC-045` und Referenzinstanzen in `SPEC-050`, siehe Liefer-Punkt Spezifikation |
 | `docs/plan/planning/done/slice-referenzabgleich-live.md`, `…/slice-referenzabgleich-mitschnitt.md` | update | Aussage über die Referenzinstanz |
 | `referenztest-dotnet/Dockerfile`, `tools/mk/vergleichslauf-d.mk`, `docs/messungen/referenzabgleich.md` | update | Status der Stufe `referenzinstanz-2025`, Befund B-6 |
 
