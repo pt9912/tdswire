@@ -1728,10 +1728,11 @@ soweit nicht anders genannt; sie gelten für das Modell der Bibliothek und damit
   (gleich dem `requestId` der `QueryRequest`, Test: `MetricsTracingWiringTest`) und in `REQUEST_FAILED`, wenn die
   Antwort mit Fehlercode zu einer Anfrage einer angemeldeten Sitzung gehört (gleich der Kennung im Ende von
   `tds.query` derselben Anfrage, Test: `RequestFailedRequestIdTest`); ein Ereignis, das keiner Anfrage gehört, trägt
-  `null` (Grenze: das Modell kennt den Fall; der Server ruft das Fehler-Mapping nur während einer Anfrage, ein Befund
-  aus dem Code und nicht durch einen Test belegt; ein Auswertender liest `null` nicht als Fehler). Auch der späte
-  Fehler eines Backends, das den Abbruch ignoriert und nach `CANCEL_TIMEOUT` mit einer Ausnahme zurückkehrt, trägt die
-  Kennung seiner Anfrage (Test: `AbandonedFaultRequestIdTest`). Kein anderes Ereignis trägt sie. Mehrere Server in einer JVM mit einer gemeinsamen Senke unterscheidet das Ereignis nicht
+  `null` (Grenze: das Modell kennt den Fall; der Server ruft das Fehler-Mapping nur für die Antwort einer Anfrage, ein
+  Befund aus dem Code und nicht durch einen Test belegt; ein Auswertender liest `null` nicht als Fehler). Dazu zählt
+  der späte Fehler eines Backends, das den Abbruch ignoriert und nach `CANCEL_TIMEOUT` mit einer Ausnahme
+  zurückkehrt: er trägt die Kennung seiner Anfrage, obwohl die Schleife sie schon aufgegeben hat (Test:
+  `AbandonedFaultRequestIdTest`, belegt für Anfragen an das Backend). Kein anderes Ereignis trägt sie. Mehrere Server in einer JVM mit einer gemeinsamen Senke unterscheidet das Ereignis nicht
   (Grenze, gebaut); wer eine Senke teilt, übergibt jedem Server eine Hülle, die den Server kennzeichnet.
 - **Redaktion durch Bauart:** Passwort, Prüfwert, Parameterwert, SQL-Text, Pfad und Ausnahmetext
   haben im Modell kein Feld; es gibt keinen Schalter, der Parameterwerte zuließe. Zeichenketten

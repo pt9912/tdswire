@@ -195,9 +195,13 @@ internal class RequestLoop(
     private var requestId = ""
 
     /**
-     * Wahr, wenn die Anfrage aufgegeben ist ([RunEnd.Abandoned]): das Backend läuft weiter und kann nach dem Ende von
-     * `answer` mit einer Ausnahme zurückkehren; sein Fehler gehört zu dieser Anfrage, die Kennung im `ErrorMapper`
-     * bleibt bis dahin stehen. Die Verbindung endet mit dem Aufgeben, eine weitere Anfrage folgt nicht.
+     * Wahr, wenn die Anfrage in `execute` aufgegeben ist ([RunEnd.Abandoned]): das Backend läuft weiter und kann nach
+     * dem Ende von `answer` mit einer Ausnahme zurückkehren, `ResponseRun.fault` ruft dann den `ErrorMapper`; die
+     * Kennung dort gehört zu dieser Anfrage und bleibt stehen. Die Freigabe (`answerRelease`) braucht das Feld nicht:
+     * `ErrorMapper.releaseAnswer` schreibt seinen Eintrag vor dem ersten Token, also vor dem Aufgeben, und der
+     * abgelöste Lauf ruft den Mapper danach nicht mehr. Kopplung: die Verbindung endet mit dem Aufgeben
+     * (`RunConclusion.conclude`, `HandshakeSession.abandon`), eine weitere Anfrage folgt nicht; fällt das, braucht die
+     * Kennung eine andere Bindung.
      */
     private var abandoned = false
 
@@ -370,7 +374,6 @@ internal class RequestLoop(
             active = null
         }
         if (end !is RunEnd.Finished) queryOutcome = end.spanOutcome()
-        abandoned = end is RunEnd.Abandoned
         return conclusion.conclude(end, reply, ResponseForm.BATCH)
     }
 

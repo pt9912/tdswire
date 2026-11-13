@@ -28,7 +28,7 @@ internal class ErrorResponse(val code: ErrorCode, val message: TdsMessage?, val 
  * Log-Eintrag des Mappings (`SPEC-048`). Trägt den Code und, wenn eine Ausnahme oder ein fremder
  * Code der Anlass war, deren Typnamen, oder die feste Marke des Anlasses (Ablehnungsgrund eines RPC);
  * weder den Text einer Ausnahme noch Parameterwerte. [requestId] ist die Kennung der Anfrage, zu der die Antwort
- * gehört (`TDS-FA-09.a`); `null`, wo keine Anfrage läuft.
+ * gehört (`TDS-FA-09.a`); `null`, wo die Antwort zu keiner Anfrage gehört.
  */
 internal data class ErrorLogEntry(val code: ErrorCode, val cause: String?, val requestId: String? = null)
 
@@ -76,7 +76,8 @@ internal class ErrorMapper(internal val log: ErrorLog = ErrorLog.NONE) {
     /**
      * Die Kennung der Anfrage, die gerade beantwortet wird; jeder Log-Eintrag dieses Mappings trägt sie. Die Schleife
      * der Anfragen setzt sie vor der Antwort und löscht sie danach, außer die Anfrage ist aufgegeben: dann bleibt sie
-     * für den späten Fehler des Backends stehen (die Verbindung endet). Ohne Anfrage ist sie `null`.
+     * für den späten Fehler des Backends stehen (die Verbindung endet). Gehört die Antwort zu keiner
+     * Anfrage, ist sie `null`.
      */
     @Volatile
     internal var requestId: String? = null

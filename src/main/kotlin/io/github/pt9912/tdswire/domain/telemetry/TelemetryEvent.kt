@@ -135,7 +135,7 @@ public enum class EventKind {
      * Eine Anfrage ist mit dem Fehler [TelemetryEvent.errorCode] (`TDS_*`) beantwortet worden;
      * [TelemetryEvent.cause] ist der Typname der Ausnahme oder eine feste Marke des Anlasses, sonst `null`, nie der
      * Text einer Ausnahme und nie ein Wert. [TelemetryEvent.requestId] ist die Kennung der Anfrage, zu der die Antwort
-     * gehört, und `null`, wo keine Anfrage läuft. Ebene `WARN`.
+     * gehört, und `null`, wo die Antwort zu keiner Anfrage gehört. Ebene `WARN`.
      */
     REQUEST_FAILED,
 
