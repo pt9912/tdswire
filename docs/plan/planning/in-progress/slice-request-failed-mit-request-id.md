@@ -27,7 +27,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Ziel-Form: Slice — Schnitt nach Lieferwert, nicht nach Schichten; jeder Slice
 ist einzeln lieferbar.
 
-**Ziel:** Das Ereignis `REQUEST_FAILED` trägt die Kennung der Anfrage (`requestId`, dieselbe wie im Ende der Spans `tds.query` und `backend.execute`), sodass ein Fehler (`errorCode`) einer Anfrage ohne Schluss über Verbindung, Sitzung und Reihenfolge zugeordnet werden kann, auch bei einer Ebene über `DEBUG`, auf der das Ende der Spans fehlt.
+**Ziel:** Das Ereignis `REQUEST_FAILED` trägt die Kennung der Anfrage (`requestId`, dieselbe wie im Ende der Spans `tds.query` und `backend.execute`), sodass ein Fehler (`errorCode`) einer Anfrage ohne Schluss über Verbindung, Sitzung und Reihenfolge zugeordnet werden kann, auch dann, wenn der Adapter `DEBUG` nicht zulässt (etwa `LOG_LEVEL=INFO`) und das Ende der Spans deshalb fehlt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
