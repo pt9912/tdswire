@@ -151,8 +151,9 @@ Betriebsdaten.
 3. Sitzungs- und Fehlerereignisse mit `connection_id` und `session_id` als Ereignisse an die Senke der
    Bibliothek geben (die Diagnoseausgabe des Lastenhefts; Felder und Zugang in den Abschnitten 4 und 5
    dieser Spezifikation; gebaut); ohne übergebene Senke schreibt die Bibliothek nichts (gebaut).
-   Gebaut: das Ende der Spans mit `request_id` und der Schnappschuss der Metriken (Abschnitt 5). **Zielzustand, nicht
-   gebaut:** `request_id` in den übrigen Ereignissen und ein Ereignis „Anfrage beendet“. Passwörter werden nie geloggt, auch nicht gekürzt oder
+   Gebaut: das Ende der Spans und das Ereignis `REQUEST_FAILED` mit `request_id` und der Schnappschuss der Metriken
+   (Abschnitt 5). **Zielzustand, nicht gebaut:** ein Ereignis „Anfrage beendet“; Ereignisse der Anmeldung und der
+   Verbindung gehören keiner Anfrage und tragen keine `request_id`. Passwörter werden nie geloggt, auch nicht gekürzt oder
    verschleiert; Parameterwerte nie. Die Anmeldekennung erscheint in keiner Antwort an den Client
    und im Log nur im Feld `principal` des Ereignisses „Anmeldung angenommen“ (Abschnitt 4).
 
@@ -1649,10 +1650,10 @@ Pflicht-Logfelder: `ts`, `level`, `connection_id`, `session_id` (falls vorhanden
 Ereignis „Anmeldung angenommen“. Keine Zugangsdaten, keine Anmeldekennung abgelehnter Anmeldungen
 und keine Parameterwerte im Log. Gebaut sind im Modell der Bibliothek (`SPEC-059`) `ts` (Feld `at`), `level`,
 `connection_id` (`connectionId`), `session_id` (`sessionId`), `client_profile` (`clientProfile`), `error_code`
-(`errorCode`, in der Art `REQUEST_FAILED`), `principal`, `request_id` (`requestId`) und `duration_ms` (`durationMs`),
-beide nur in der Art `SPAN_ENDED` (Abschnitt 5); `event` ist die Art des Ereignisses (`kind`). **Zielzustand, nicht
-gebaut:** `request_id` in `REQUEST_FAILED` und ein Ereignis „Anfrage beendet“; `duration_ms` trägt nur das Ende eines
-Spans.
+(`errorCode`, in der Art `REQUEST_FAILED`), `principal`, `request_id` (`requestId`, in den Arten `SPAN_ENDED` und
+`REQUEST_FAILED`) und `duration_ms` (`durationMs`, nur in der Art `SPAN_ENDED`, Abschnitt 5); `event` ist die Art des
+Ereignisses (`kind`). **Zielzustand, nicht gebaut:** ein Ereignis „Anfrage beendet“; `duration_ms` trägt nur das Ende
+eines Spans.
 
 Der Server schreibt kein Log; er gibt Ereignisse an die Senke, die `TdsServer.start` übergeben bekommt (Abschnitt 5,
 `SPEC-059`). Ohne Senke entsteht kein Ereignis. Die folgenden Festlegungen sind Setzungen, nicht gemessen,
@@ -1693,7 +1694,7 @@ soweit nicht anders genannt; sie gelten für das Modell der Bibliothek und damit
   (`ENCRYPTION_NOT_OFFERED`); TLS ab dem ersten Byte nicht angeboten (`TLS_FIRST_NOT_OFFERED`: `reason` ist
   `NO_TLS_MATERIAL` oder `POLICY_NOT_REQUIRED`); TLS-Handschlag gescheitert (`TLS_HANDSHAKE_FAILED`: `failure`);
   Ausnahme des Handlers einer Verbindung (`CONNECTION_FAILED`: `exceptionType`); Annehmen gescheitert
-  (`ACCEPT_FAILED`: `exceptionType`); Anfrage mit Fehler beantwortet (`REQUEST_FAILED`: `errorCode` und `cause`);
+  (`ACCEPT_FAILED`: `exceptionType`); Anfrage mit Fehler beantwortet (`REQUEST_FAILED`: `errorCode`, `cause` und `requestId`);
   Schnappschuss der Metriken (`METRICS`: `metrics`); Ende eines Spans (`SPAN_ENDED`: `span`, `outcome`, `durationMs`,
   dazu je Span `requestId`, `phase` oder `requestKind`, Abschnitt 5).
   Die Ebene ist je Art fest (Setzung): `ERROR` für die Abbrüche des Starts, `ACCEPT_FAILED`, `CONNECTION_FAILED` und
@@ -1724,15 +1725,21 @@ soweit nicht anders genannt; sie gelten für das Modell der Bibliothek und damit
 - **Herkunft der IDs:** `connection_id` ist der Zähler des Listeners (ab 1 je Server; er wiederholt sich nach einem
   Neustart, Logs über Neustarts trennt `ts`); `session_id` ist eine zufällige UUID und steht nur in Ereignissen
   nach der Annahme der Anmeldung; `request_id` ist eine zufällige UUID je Anfrage und steht im Ende der Spans `tds.query` und `backend.execute`
-  (gleich dem `requestId` der `QueryRequest`, Test: `MetricsTracingWiringTest`; **Zielzustand, nicht gebaut:** kein
-  anderes Ereignis trägt sie). Mehrere Server in einer JVM mit einer gemeinsamen Senke unterscheidet das Ereignis nicht
+  (gleich dem `requestId` der `QueryRequest`, Test: `MetricsTracingWiringTest`) und in `REQUEST_FAILED`, wenn die
+  Antwort mit Fehlercode zu einer Anfrage einer angemeldeten Sitzung gehört (gleich der Kennung im Ende von
+  `tds.query` derselben Anfrage, Test: `RequestFailedRequestIdTest`); ein Ereignis, das keiner Anfrage gehört, trägt
+  `null` (Grenze: das Modell kennt den Fall; der Server ruft das Fehler-Mapping nur für die Antwort einer Anfrage, ein
+  Befund aus dem Code und nicht durch einen Test belegt; ein Auswertender liest `null` nicht als Fehler). Dazu zählt
+  der späte Fehler eines Backends, das den Abbruch ignoriert und nach `CANCEL_TIMEOUT` mit einer Ausnahme
+  zurückkehrt: er trägt die Kennung seiner Anfrage, obwohl die Schleife sie schon aufgegeben hat (Test:
+  `AbandonedFaultRequestIdTest`, belegt für Anfragen an das Backend). Kein anderes Ereignis trägt sie. Mehrere Server in einer JVM mit einer gemeinsamen Senke unterscheidet das Ereignis nicht
   (Grenze, gebaut); wer eine Senke teilt, übergibt jedem Server eine Hülle, die den Server kennzeichnet.
 - **Redaktion durch Bauart:** Passwort, Prüfwert, Parameterwert, SQL-Text, Pfad und Ausnahmetext
   haben im Modell kein Feld; es gibt keinen Schalter, der Parameterwerte zuließe. Zeichenketten
   stehen in `principal`, in der Adresse des Bindefehlers und in der Bind-Adresse von `SERVER_STARTED` (Konfigurationswert, Betriebsangabe), in Schlüsseln und Werten von `settings` (Zahlen, Namen von Aufzählungen, `true`/`false`, `SET`/`UNSET`), im Typnamen einer Ausnahme oder der festen Marke des
   Anlasses (`cause`), im Schlüsselnamen und der Art der Konfiguration, in Teil und Form der TLS-Diagnose und in der
   Art des Handschlag-Fehlers und, im Ende eines Spans, in `span`, `outcome`, `requestId`, `phase` und `requestKind`
-  (feste Marken und Kennungen der Anfrage, kein Text aus Eingabe); die Wertemengen von `part`, `issueKind`, `failure` und `errorCode` sind die Namen interner
+  und, in `REQUEST_FAILED`, in `requestId` (feste Marken und Kennungen der Anfrage, kein Text aus Eingabe); die Wertemengen von `part`, `issueKind`, `failure` und `errorCode` sind die Namen interner
   Konstanten und nicht zugesagt; das ist keine geschlossene Menge (ob weitere Felder, etwa die Quelladresse der
   Gegenstelle, hinzukommen, ist nicht festgelegt). Jedes Zeichenketten-Feld ist auf 256 UTF-16-Einheiten begrenzt
   (Setzung, darüber wird abgeschnitten, ein getrenntes Paar aus Ersatzzeichen entfällt ganz). Gebaut und geprüft:
@@ -2246,3 +2253,4 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | 2026-11-12 | Zweites ERROR an den echten Server angeglichen (`TDS-FA-11`, `TDS-QA-01`, `SPEC-031`, `SPEC-035`, `SPEC-036`): ein zweiter Standardwert an derselben Spalte endet mit 1781 und 1750 statt mit 2714 (neuer Code `TDS_SIM_COLUMN_HAS_DEFAULT`, Form D3 und D7 (b)); `DROP CONSTRAINT` mit 3728 oder 3733 sendet danach das zweite ERROR 3727 (Form D5); Nummern, States, Classes und Texte der drei Folge-ERROR sind gemessen (SQL_BATCH, 2022 und 2025), für den RPC gilt dieselbe Folge als Setzung (`SPEC-031`); die öffentliche Fläche wächst nicht, ein Backend darf den neuen Code als `Failure` melden |
 | 2026-11-13 | Namen von Standardwert und Schlüssel als Grenze der Zusage entschieden (`TDS-FA-11`, `TDS-QA-01`, `SPEC-036`; Entscheid des Nutzers 2026-11-13, Weg 2), **das Zielbild ändert sich dafür an einer Stelle, nicht still**: die Bibliothek führt keinen Namen für einen Standardwert und für den Schlüssel; `DROP CONSTRAINT <Name>` trifft sie nicht (3728, am echten Server fällt die Bedingung) und `DROP INDEX <Schlüssel> ON …` meldet 3701 statt 3723 (Form D5, Form D6 (c)); Trigger zum Wiederaufnehmen: ein Client, der diese Namen sendet; die öffentliche Fläche wächst nicht (`SPEC-059`); begründet: die Abnahme mit d-migrate und Form D7 brauchten die Namen nicht (der Text findet den Standardwert im Katalog); das Lastenheft ist nicht berührt (`TDS-FA-11`, `TDS-QA-01` fordern keine Namen von Standardwerten und Schlüsseln) |
 | 2026-11-13 | Einstellungen der Anfragen in drei benannten Gruppen (`TDS-QA-05`, `TDS-FA-09`, `SPEC-059`, `SPEC-062`; Auftrag des Nutzers 2026-11-07, Bündelung statt langer Liste gleichartiger Ganzzahlen): `RequestSettings` besteht aus `RequestTimeouts`, `RequestLimits` und `ObservationSettings`, jede Gruppe und jedes Feld mit Voreinstellung, für Java die Konstruktoren mit weniger Argumenten; die öffentliche Fläche nennt drei neue Typnamen, der Konstruktor von `RequestSettings` mit Ganzzahlen entfällt und `copy` und `componentN` ändern sich. Die inkompatible Änderung ist vor der ersten Veröffentlichung zulässig (Zusage in `SPEC-059`: bis `1.0` ändert sich die Fläche durch eine Änderung dieser Spezifikation); Bereiche, Voreinstellungen und Umgebungsnamen bleiben. |
+| 2026-11-13 | `REQUEST_FAILED` trägt die Kennung der Anfrage (`TDS-FA-09`, `SPEC-018`, Abschnitt 1 und 4; Entscheid des Nutzers 2026-11-07, Option (b)): `requestId` am Ereignis ist dieselbe Kennung wie im Ende von `tds.query`; ohne Anfrage ist sie `null`. Der Zielzustand „`request_id` in den übrigen Ereignissen“ entfällt, weil die übrigen Ereignisse keiner Anfrage gehören; ein Ereignis „Anfrage beendet“ bleibt Zielzustand. Kein neuer öffentlicher Name (`SPEC-059`). |

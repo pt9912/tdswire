@@ -162,7 +162,7 @@ class UnprepareDispatchTest {
         assertEquals(unknownHandle(2), session.errors(6).single())
         assertEquals(listOf("select 1", "select 2"), backend.requests.map { it.sql })
         assertEquals(
-            List(3) { ErrorLogEntry(ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE, RELEASE_CAUSE) },
+            listOf(3, 5, 6).map { ErrorLogEntry(ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE, RELEASE_CAUSE, "r$it") },
             logged.filter { it.cause == RELEASE_CAUSE },
         )
         assertTrue(session.channel.exhausted)
@@ -277,7 +277,7 @@ class UnprepareDispatchTest {
             assertEquals(unknownHandle(1), session.errors(2).single(), "$count Nummern: Handle 1 frei")
         }
         assertEquals(
-            List(counts.size) { ErrorLogEntry(ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE, RELEASE_CAUSE) },
+            List(counts.size) { ErrorLogEntry(ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE, RELEASE_CAUSE, "r2") },
             logged.filter { it.cause == RELEASE_CAUSE },
         )
     }

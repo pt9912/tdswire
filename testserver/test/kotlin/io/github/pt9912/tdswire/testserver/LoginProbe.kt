@@ -11,6 +11,7 @@ private const val HEADER_BYTES = 8
 private const val BYTE_BITS = 8
 private const val BYTE_MASK = 0xFF
 private const val TYPE_RESPONSE = 4
+private const val TYPE_BATCH = 1
 private const val TYPE_LOGIN7 = 0x10
 private const val TYPE_PRELOGIN = 0x12
 private const val STATUS_EOM = 1
@@ -23,6 +24,9 @@ private const val INT_BYTES = 4
 private const val SHORT_BYTES = 2
 private const val CLIENT_ID_BYTES = 6
 private const val HEX_RADIX = 16
+private const val HEADERS_BEFORE_DESCRIPTOR = "16 00 00 00  12 00 00 00  02 00"
+private const val DESCRIPTOR_BYTES = 8
+private const val HEADERS_AFTER_DESCRIPTOR = "01 00 00 00"
 
 /**
  * Ein Rohbytes-Client, der nur anmeldet: PRELOGIN ohne Verschlüsselung und LOGIN7 mit Benutzer und Passwort (MS-TDS
@@ -44,6 +48,15 @@ internal class LoginProbe(port: Int) : AutoCloseable {
         val (type, payload) = readMessage()
         check(type == TYPE_RESPONSE) { "LOGIN7 ohne Antwort" }
         return payload.any { it.toInt() and BYTE_MASK == LOGINACK_TOKEN }
+    }
+
+    /** Sendet [sql] als SQL_BATCH (MS-TDS 2.2.6.7) und liest die Antwort bis zum Ende der Nachricht. */
+    fun batch(sql: String) {
+        send(
+            TYPE_BATCH,
+            hex(HEADERS_BEFORE_DESCRIPTOR) + ByteArray(DESCRIPTOR_BYTES) + hex(HEADERS_AFTER_DESCRIPTOR) + utf16(sql),
+        )
+        check(readMessage().first == TYPE_RESPONSE) { "SQL_BATCH ohne Antwort" }
     }
 
     override fun close() = socket.close()

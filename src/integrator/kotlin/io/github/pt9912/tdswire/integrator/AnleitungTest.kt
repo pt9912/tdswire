@@ -296,6 +296,7 @@ internal fun anleitungZeile(event: TelemetryEvent): String = listOfNotNull(
     event.connectionId?.let { "connection_id=$it" },
     event.reason?.let { "reason=$it" },
     event.errorCode?.let { "error_code=$it" },
+    event.requestId?.let { "request_id=$it" },
     event.principal?.let { "principal=$it" },
 ).joinToString(" ")
 

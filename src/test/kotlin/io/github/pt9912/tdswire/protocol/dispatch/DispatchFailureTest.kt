@@ -30,6 +30,7 @@ import kotlinx.coroutines.yield
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -316,7 +317,8 @@ class DispatchFailureTest {
 
     /**
      * Die Fehlerabbildung ist der übergebene `ErrorMapper`: sein Log erhält den Code des Fehlers
-     * (Backend-Fehler ohne Ursache, fremder Code mit dem festen Marker, Typfehler ohne Ursache).
+     * (Backend-Fehler ohne Ursache, fremder Code mit dem festen Marker, Typfehler ohne Ursache) und die Kennung der
+     * Anfrage; nach der Anfrage trägt der `ErrorMapper` keine Kennung mehr.
      *
      * @spec SPEC-048
      */
@@ -324,17 +326,19 @@ class DispatchFailureTest {
     fun `Die Fehler gehen durch den uebergebenen ErrorMapper`() = blocking {
         val cases = listOf(
             listOf<QueryEvent>(QueryEvent.Failure("TDS_UNSUPPORTED_SQL", "x")) to
-                ErrorLogEntry(ErrorCode.TDS_UNSUPPORTED_SQL, null),
+                ErrorLogEntry(ErrorCode.TDS_UNSUPPORTED_SQL, null, "r1"),
             listOf<QueryEvent>(QueryEvent.Failure("NOPE", "x")) to
-                ErrorLogEntry(ErrorCode.TDS_INTERNAL_ERROR, "unknown-failure-code"),
+                ErrorLogEntry(ErrorCode.TDS_INTERNAL_ERROR, "unknown-failure-code", "r1"),
             listOf<QueryEvent>(QueryEvent.ReturnStatus(1)) to
-                ErrorLogEntry(ErrorCode.TDS_UNSUPPORTED_TYPE, null),
+                ErrorLogEntry(ErrorCode.TDS_UNSUPPORTED_TYPE, null, "r1"),
         )
         cases.forEach { (events, expected) ->
             val entries = mutableListOf<ErrorLogEntry>()
             val session = Session.login(BatchVectors.message("q"), Inbound.EndOfStream)
-            session.serve(ScriptedBackend.ofList(*events.toTypedArray()), ErrorMapper { entries += it })
+            val errors = ErrorMapper { entries += it }
+            session.serve(ScriptedBackend.ofList(*events.toTypedArray()), errors)
             assertEquals(listOf(expected), entries, "$events")
+            assertNull(errors.requestId, "Nach der Anfrage gilt keine Kennung mehr: $events")
         }
     }
 }

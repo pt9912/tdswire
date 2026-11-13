@@ -1,0 +1,2 @@
+**Vorgang:** [slice-request-failed-mit-request-id](../../../../done/slice-request-failed-mit-request-id.md)
+**Fund:** [Review 1](../../../../../../reviews/2026-11-13-3029d9c8-review-slice-request-failed-mit-request-id.md) F-2 (LOW): die Plan-Tabelle nannte `ErrorAnswers.kt` nicht und führte `TelemetryJson.kt` als `update`, obwohl unverändert; der Kopf nannte SPEC-048 und SPEC-052 nicht; behoben im Nachgang.

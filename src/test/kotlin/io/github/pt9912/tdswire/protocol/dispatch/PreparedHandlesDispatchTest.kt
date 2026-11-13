@@ -226,7 +226,10 @@ class PreparedHandlesDispatchTest {
         assertEquals(limit + 2, backend.requests.size)
         assertEquals("select 1", backend.requests[limit].sql)
         assertEquals("select $limit", backend.requests[limit + 1].sql)
-        assertEquals(List(2) { ErrorLogEntry(ErrorCode.TDS_PREPARE_LIMIT, "handle-limit") }, logged)
+        assertEquals(
+            listOf(limit + 1, limit + 4).map { ErrorLogEntry(ErrorCode.TDS_PREPARE_LIMIT, "handle-limit", "r$it") },
+            logged,
+        )
         assertTrue(session.channel.exhausted)
     }
 
@@ -265,7 +268,10 @@ class PreparedHandlesDispatchTest {
         }
         assertEquals(oneRowReply, session.hex(4))
         assertEquals(2, backend.requests.size)
-        assertEquals(List(3) { ErrorLogEntry(ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE, "unknown-handle") }, logged)
+        assertEquals(
+            listOf(2, 3, 4).map { ErrorLogEntry(ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE, "unknown-handle", "r$it") },
+            logged,
+        )
         assertTrue(session.channel.exhausted)
     }
 

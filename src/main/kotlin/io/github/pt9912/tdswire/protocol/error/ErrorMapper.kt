@@ -27,9 +27,16 @@ internal class ErrorResponse(val code: ErrorCode, val message: TdsMessage?, val 
 /**
  * Log-Eintrag des Mappings (`SPEC-048`). Trägt den Code und, wenn eine Ausnahme oder ein fremder
  * Code der Anlass war, deren Typnamen, oder die feste Marke des Anlasses (Ablehnungsgrund eines RPC);
- * weder den Text einer Ausnahme noch Parameterwerte.
+ * weder den Text einer Ausnahme noch Parameterwerte. [requestId] ist die Kennung der Anfrage, zu der die Antwort
+ * gehört (`TDS-FA-09.a`); `null`, wo die Antwort zu keiner Anfrage gehört.
  */
-internal data class ErrorLogEntry(val code: ErrorCode, val cause: String?)
+internal data class ErrorLogEntry(val code: ErrorCode, val cause: String?, val requestId: String? = null)
+
+/**
+ * Schreibt den Eintrag für [code] mit der Kennung der laufenden Anfrage ([ErrorMapper.requestId]); die einzige Stelle,
+ * die einen [ErrorLogEntry] des Mappings bildet.
+ */
+internal fun ErrorMapper.record(code: ErrorCode, cause: String?) = log.record(ErrorLogEntry(code, cause, requestId))
 
 /** Anschluss für [ErrorLogEntry]; der Aufruf wirft nicht und blockiert nicht. */
 internal fun interface ErrorLog {
@@ -66,6 +73,15 @@ internal fun ErrorRule.message(handle: Int? = null, state: Int = this.state): Se
  * meldet denselben Fall als `CLOSE_WITHOUT_COMPLETION`, und [fateOf] bildet ihn auf `CLOSE_WITHOUT_REPLY` ab.
  */
 internal class ErrorMapper(internal val log: ErrorLog = ErrorLog.NONE) {
+    /**
+     * Die Kennung der Anfrage, die gerade beantwortet wird; jeder Log-Eintrag dieses Mappings trägt sie. Die Schleife
+     * der Anfragen setzt sie vor der Antwort und löscht sie danach, außer die Anfrage ist aufgegeben: dann bleibt sie
+     * für den späten Fehler des Backends stehen (die Verbindung endet). Gehört die Antwort zu keiner
+     * Anfrage, ist sie `null`.
+     */
+    @Volatile
+    internal var requestId: String? = null
+
     /**
      * Ein Fehler mit eigenem Code; [cause] ist eine feste Marke für das Log, nie ein Wert. Ein Code, dessen Text die
      * Nummer eines Handles nennt ([ErrorRule.namesHandle]), hat eigene Antworten ([releaseAnswer] für die
@@ -109,12 +125,12 @@ internal class ErrorMapper(internal val log: ErrorLog = ErrorLog.NONE) {
     fun sequencerMapping(): ErrorMapping = ErrorMapping(
         backend = { failure ->
             val classified = classify(failure)
-            log.record(ErrorLogEntry(classified.code, classified.cause))
+            record(classified.code, classified.cause)
             mapped(classified.code)
         },
         typeMapping = { error ->
             val code = protocolCode(error)
-            log.record(ErrorLogEntry(code, null))
+            record(code, null)
             mapped(code)
         },
         internal = { cause ->
@@ -157,7 +173,7 @@ internal class ErrorMapper(internal val log: ErrorLog = ErrorLog.NONE) {
     ): ErrorResponse {
         val rule = code.rule
         require(!rule.namesHandle) { "Nummern und Code passen nicht" }
-        log.record(ErrorLogEntry(code, cause))
+        record(code, cause)
         if (!streamSynchronous) {
             return ErrorResponse(code, null, ConnectionFate.CLOSE_WITHOUT_REPLY)
         }

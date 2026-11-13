@@ -194,6 +194,17 @@ internal class RequestLoop(
     /** Die Kennung der Anfrage, die gerade beantwortet wird. */
     private var requestId = ""
 
+    /**
+     * Wahr, wenn die Anfrage in `execute` aufgegeben ist ([RunEnd.Abandoned]): das Backend läuft weiter und kann nach
+     * dem Ende von `answer` mit einer Ausnahme zurückkehren, `ResponseRun.fault` ruft dann den `ErrorMapper`; die
+     * Kennung dort gehört zu dieser Anfrage und bleibt stehen. Die Freigabe (`answerRelease`) braucht das Feld nicht:
+     * `ErrorMapper.releaseAnswer` schreibt seinen Eintrag vor dem ersten Token, also vor dem Aufgeben, und der
+     * abgelöste Lauf ruft den Mapper danach nicht mehr. Kopplung: die Verbindung endet mit dem Aufgeben
+     * (`RunConclusion.conclude`, `HandshakeSession.abandon`), eine weitere Anfrage folgt nicht; fällt das, braucht die
+     * Kennung eine andere Bindung.
+     */
+    private var abandoned = false
+
     /** Das `outcome` des Spans der Anfrage, sobald die bestimmende Stelle es kennt. */
     private var queryOutcome: SpanOutcome? = null
 
@@ -272,6 +283,8 @@ internal class RequestLoop(
     /** Das Ereignis, das die Anfrage beendet; `null`, wenn die Sitzung beim Schreiben der Antwort geschlossen wurde. */
     private suspend fun answer(message: TdsMessage): HandshakeEvent.RequestFinished? {
         requestId = requestIds()
+        errors.requestId = requestId
+        abandoned = false
         queryOutcome = null
         val kind = if (message.type == PacketType.RPC) RequestKind.RPC else RequestKind.SQL_BATCH
         val span = session.request(requestId, kind)
@@ -306,6 +319,7 @@ internal class RequestLoop(
                 else -> answerBatch(message)
             }
         } finally {
+            if (!abandoned) errors.requestId = null
             span.end(queryOutcome ?: SpanOutcome.CLOSED)
         }
     }
@@ -433,6 +447,7 @@ internal class RequestLoop(
             active = null
         }
         queryOutcome = end.spanOutcome()
+        abandoned = end is RunEnd.Abandoned
         return conclusion.conclude(end, reply, form, sink.open, onOutcome)
     }
 }

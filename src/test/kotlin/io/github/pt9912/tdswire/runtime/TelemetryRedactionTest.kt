@@ -57,7 +57,7 @@ private val STRINGS_BY_KIND = mapOf(
     "AdapterFailed" to setOf("exceptionType"),
     "TlsFirstNotOffered" to setOf("reason"),
     "TlsHandshakeFailed" to setOf("failure"),
-    "RequestFailed" to setOf("errorCode", "cause"),
+    "RequestFailed" to setOf("errorCode", "cause", "requestId"),
     "SpanEnded" to setOf("span", "outcome", "requestId", "phase", "requestKind"),
 )
 private val MAPS = setOf("metrics", "settings")
