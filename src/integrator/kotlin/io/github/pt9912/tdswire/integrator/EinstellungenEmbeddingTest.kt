@@ -107,7 +107,8 @@ class EinstellungenEmbeddingTest {
     /**
      * Gruppen aus dem Konstruktor mit weniger Argumenten gehen in die Prüfung des Starts wie die aus Kotlin: eine
      * Frist von 20 s ist gültig, die Grenze 0 der Prepared-Handles ergibt genau einen Befund, der Start bricht ab.
-     * Wächter: eine Gruppe, die der Start nicht liest, ein Befund für die gültige Gruppe.
+     * Wächter: eine Gruppe `limits`, die der Start nicht liest (der Start liefert dann `Running`); die Gruppe
+     * `timeouts` hält `ConfigValidationTest`.
      *
      * @spec SPEC-059
      * @spec SPEC-062

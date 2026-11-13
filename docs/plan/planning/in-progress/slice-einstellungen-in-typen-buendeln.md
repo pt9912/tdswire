@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [TDS-QA-05](../../../../spec/lastenheft.md#tds-qa-05--wartbarkeit), [TDS-FA-09](../../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose), [ADR-0021](../../adr/0021-oeffentlicher-integrations-einstieg.md) (`Accepted`, Zusage vor 1.0 eng, Liste der Namen in `SPEC-059`), [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Nr. 4 (jeder neue öffentliche Name steht in einer Liste), [ADR-0040](../../adr/0040-wirksame-konfiguration-im-ereignis-aus-typisiertem-wertobjekt.md) (`EffectiveSettings`, zwölf Schlüssel)
 
-**Berührte Spec-Stellen:** SPEC-059 · SPEC-062 · SPEC-007 · SPEC-009 · SPEC-033 · SPEC-047 · SPEC-052 · spezifikation.md §3 (Defaults und Konstanten) und §5 (Abstand der Schnappschüsse)
+**Berührte Spec-Stellen:** SPEC-059 · SPEC-062 · SPEC-007 · SPEC-009 · SPEC-033 · SPEC-047 · SPEC-052 · SPEC-058 · SPEC-061 · spezifikation.md §3 (Defaults und Konstanten) und §5 (Abstand der Schnappschüsse)
 
 **Verantwortlich:** pt9912 (Start am 2026-11-13 angeordnet).
 
@@ -76,6 +76,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 | `testserver/kotlin/io/github/pt9912/tdswire/testserver/ConfigLoader.kt` | update | Aufbau der Gruppen aus den Umgebungsnamen, Namen unverändert |
 | `src/test/kotlin/` (`ConfigValidationTest`, `EnvironmentConfig`, `ZustandsereignisseTest`), `src/integrator/` (`HandleLimitEmbeddingTest`, `TelemetryFelderEmbeddingTest`, `AnleitungTest`), `testserver/test/` (`ConfigLoaderTest`) | update | Aufrufe benannt; neuer Test mit Vertauschung als Mutation; Java-Lesart im Einbettungstest |
 | `spec/spezifikation.md` (`SPEC-059` Liste, §3, §5), `docs/user/` (alle Dateien), `docs/plan/spec-abdeckung.md` | update | Namen in der Liste vor dem Bau; Nutzer-Doku komplett gelesen; Matrix mit `make spec-abdeckung` |
+
+Ergänzung des Implementers: weitere berührte Dateien. `src/main/kotlin/.../runtime/Bootstrap.kt` und `runtime/ConnectionWiring.kt` (Zugriff auf die Gruppen), `protocol/dispatch/PreparedHandles.kt` und `RequestLoop.kt` (nur KDoc-Namen), `src/test/kotlin/.../runtime/EnvironmentConfig.kt`, `AbbruchWiringTest.kt` (Frist der Anfrage gegen Frist des Abbruchs), `TdsServerLifecycleTest.kt`, `ZustandsereignisseTest.kt` (benannte Aufrufe), neu `runtime/RequestSettingsTest.kt` und `src/integrator/.../EinstellungenEmbeddingTest.kt`, dazu die übrigen Einbettungstests mit benanntem `ListenSettings`-Aufruf und `testserver/test/.../ConfigUsersFileTest.kt`.
 
 Der Implementer erweitert die Liste in seinem ersten Lauf; Schnitt und Namen der Gruppen schlägt er im Plan vor und begründet sie.
 
