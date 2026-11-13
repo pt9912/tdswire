@@ -1,0 +1,2 @@
+**Vorgang:** [slice-referenzabgleich-adr-0028-nachzug](../../../../in-progress/slice-referenzabgleich-adr-0028-nachzug.md)
+**Fund:** [Review](../../../../../../reviews/2026-11-13-0acbaf39-review-slice-referenzabgleich-adr-0028-nachzug.md) F-1 (MEDIUM): der Diff setzt `SPEC-050` um, der Slice-Kopf „Berührte Spec-Stellen“ nannte nur `SPEC-045`; behoben in `0a518989`. Gleiche Klasse (Plan nennt die berührte Stelle nicht), hier im Kopf statt in der Datei-Tabelle.

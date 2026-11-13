@@ -1,0 +1,2 @@
+**Vorgang:** [slice-referenzabgleich-adr-0028-nachzug](../../../../in-progress/slice-referenzabgleich-adr-0028-nachzug.md)
+**Fund:** Der Slice trägt die gemessene Lage zu TDS 8.0 (Einzelmessung 2026-11-01, `2022-latest` lehnt `Encrypt=Strict` ab, `2025-latest` nimmt es an) statt der Folgerung in `SPEC-045`, `SPEC-050` und zwei Pläne ein; gemessen wird nicht, Pooling, mehrpaketiges LOGIN7 und die Konfiguration an 2022 bleiben ungemessen.

@@ -1,0 +1,2 @@
+**Vorgang:** [slice-referenzabgleich-adr-0028-nachzug](../../../../in-progress/slice-referenzabgleich-adr-0028-nachzug.md)
+**Fund:** [Review](../../../../../../reviews/2026-11-13-0acbaf39-review-slice-referenzabgleich-adr-0028-nachzug.md) F-2 (LOW): „Gemessen ist das als Einzelmessung“ stand an einer Rollenverteilung der Instanzen, die [ADR-0028](../../../../../../plan/adr/0028-referenzinstanz-fuer-tds-8-0.md) setzt, und die Aufteilung war enger als der Lauf; behoben in `0a518989` (Setzung ausdrücklich, „gemessen“ nur für `Strict`).
