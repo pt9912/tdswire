@@ -357,14 +357,14 @@ class RpcDispatchTest {
         val bad = executeSql("select '$secret'", "d", param("@pw", nvarchar(secret)), param("@pw", nvarchar(secret)))
         val session = Session.login(rpc(bad), Inbound.EndOfStream)
         session.serve(backend, errors = ErrorMapper(ErrorLog { entries += it }))
-        assertEquals(listOf(ErrorLogEntry(ErrorCode.TDS_UNSUPPORTED_RPC, "PARAMETER_NAME")), entries)
+        assertEquals(listOf(ErrorLogEntry(ErrorCode.TDS_UNSUPPORTED_RPC, "PARAMETER_NAME", "r1")), entries)
         assertFalse(entries.toString().contains(secret))
         assertEquals(0, backend.requests.size)
 
         entries.clear()
         val parserSession = Session.login(rpc(bad.copyOf(bad.size - 2)), Inbound.EndOfStream)
         parserSession.serve(backend, errors = ErrorMapper(ErrorLog { entries += it }))
-        assertEquals(listOf(ErrorLogEntry(ErrorCode.TDS_PROTOCOL_ERROR, null)), entries)
+        assertEquals(listOf(ErrorLogEntry(ErrorCode.TDS_PROTOCOL_ERROR, null, "r1")), entries)
     }
 
     /**

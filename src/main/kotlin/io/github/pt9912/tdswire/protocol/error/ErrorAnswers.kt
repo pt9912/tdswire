@@ -30,7 +30,7 @@ internal fun encodeTokens(tokens: List<Token>): ByteArray {
  */
 internal fun ErrorMapper.executeUnknownHandle(handle: Int, cause: String): ErrorResponse {
     val code = ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE
-    log.record(ErrorLogEntry(code, cause))
+    record(code, cause)
     val message = code.rule.message(handle, STATE_EXECUTE_UNKNOWN_HANDLE)
     val answer = TdsMessage(PacketType.TABULAR_RESULT, encodeTokens(errorAnswer(ResponseForm.RPC, listOf(message))))
     return ErrorResponse(code, answer, code.rule.fate)
@@ -52,7 +52,7 @@ internal suspend fun ErrorMapper.releaseAnswer(
     sink: TokenSink,
 ): Boolean {
     val code = ErrorCode.TDS_SIM_UNKNOWN_PREPARED_HANDLE
-    if (!unknown.isEmpty) log.record(ErrorLogEntry(code, cause))
+    if (!unknown.isEmpty) record(code, cause)
     for ((at, number) in numbers.withIndex()) {
         val more = if (at == numbers.lastIndex) DoneStatus.FINAL else DoneStatus.MORE
         val tokens = if (unknown[at]) {

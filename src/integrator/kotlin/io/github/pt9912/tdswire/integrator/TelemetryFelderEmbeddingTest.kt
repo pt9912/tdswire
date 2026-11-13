@@ -137,7 +137,7 @@ class TelemetryFelderEmbeddingTest {
     /**
      * Ein Start mit einer Tabelle meldet `SIMULATION_BACKEND_READY` mit der Zahl der Tabellen, eine falsche Anmeldung
      * `LOGIN_REJECTED` mit der Marke `WRONG_PASSWORD` und ohne Kennung, eine Anfrage, die das Backend mit einem Fehler
-     * beantwortet, `REQUEST_FAILED` mit dem Code der Antwort.
+     * beantwortet, `REQUEST_FAILED` mit dem Code der Antwort und der Kennung der Anfrage; `LOGIN_REJECTED` trägt keine.
      *
      * @spec SPEC-059
      * @spec SPEC-012
@@ -159,6 +159,8 @@ class TelemetryFelderEmbeddingTest {
         val failed = awaitKind(EventKind.REQUEST_FAILED)
         assertEquals("TDS_BACKEND_ERROR", failed.errorCode)
         assertNotNull(failed.connectionId)
+        assertTrue(assertNotNull(failed.requestId).isNotEmpty())
+        assertNull(rejected.requestId)
     }
 
     /**

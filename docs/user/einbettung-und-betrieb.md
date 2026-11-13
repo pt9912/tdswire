@@ -356,6 +356,7 @@ Ein Start, der gelingt, meldet vor `SERVER_STARTED` genau ein Ereignis `CONFIG_E
        event.connectionId?.let { "connection_id=$it" },
        event.reason?.let { "reason=$it" },
        event.errorCode?.let { "error_code=$it" },
+       event.requestId?.let { "request_id=$it" },
        event.principal?.let { "principal=$it" },
    ).joinToString(" ")
    ```
@@ -605,10 +606,10 @@ Dateirechte und Besitzer der Benutzerliste setzt die Bibliothek nicht; sie liest
    requests = RequestSettings(observation = ObservationSettings(metricsIntervalSeconds = 10))
    ```
 
-2. In der Senke nach der Art unterscheiden: `EventKind.METRICS` trägt `metrics` (ganze Zahlen nach Schlüssel), `EventKind.SPAN_ENDED` trägt `span`, `outcome`, `durationMs`, `requestId`, `requestKind` und `phase`. Das Ende eines Spans hat die Ebene `DEBUG`, der Schnappschuss `INFO`.
+2. In der Senke nach der Art unterscheiden: `EventKind.METRICS` trägt `metrics` (ganze Zahlen nach Schlüssel), `EventKind.SPAN_ENDED` trägt `span`, `outcome`, `durationMs`, `requestId`, `requestKind` und `phase`. Das Ende eines Spans hat die Ebene `DEBUG`, der Schnappschuss `INFO`. `EventKind.REQUEST_FAILED` trägt neben `errorCode` und `cause` dieselbe `requestId`; damit ordnet die Senke einen Fehler seiner Anfrage zu, auch bei einer Ebene über `DEBUG`, auf der das Ende der Spans fehlt.
 3. Raten (Anfragen je Sekunde, Quote der Anmeldungen) aus zwei Schnappschüssen bilden: die Zähler `*_total` wachsen seit dem Start.
 
-**Erwartetes Ergebnis** (Handlauf des Testservers mit `LOG_LEVEL=DEBUG`, Rohbytes-Client, 2026-11-07; der Client stellte keine Anfrage, deshalb fehlen Spans `tds.query`; siehe die Zeilen in der [Referenz](referenz-ereignisse.md#log-des-testservers)): nach der Anmeldung ein `span_ended` mit `span` = `tds.connection`, `outcome` = `ok`, `phase` = `session`, danach ein `metrics` mit `metrics.logins_succeeded_total` = 1 und `metrics.spans_open` = 0. `tds.query` und `backend.execute` tragen dieselbe `requestId` wie die `QueryRequest` des Backends (Test `MetricsTracingWiringTest`).
+**Erwartetes Ergebnis** (Handlauf des Testservers mit `LOG_LEVEL=DEBUG`, Rohbytes-Client, 2026-11-07; der Client stellte keine Anfrage, deshalb fehlen Spans `tds.query`; siehe die Zeilen in der [Referenz](referenz-ereignisse.md#log-des-testservers)): nach der Anmeldung ein `span_ended` mit `span` = `tds.connection`, `outcome` = `ok`, `phase` = `session`, danach ein `metrics` mit `metrics.logins_succeeded_total` = 1 und `metrics.spans_open` = 0. `tds.query` und `backend.execute` tragen dieselbe `requestId` wie die `QueryRequest` des Backends (Test `MetricsTracingWiringTest`); `REQUEST_FAILED` trägt die `requestId` des `tds.query` derselben Anfrage (Test `RequestFailedRequestIdTest`).
 
 **Was die Werte bedeuten.**
 
@@ -620,7 +621,7 @@ Dateirechte und Besitzer der Benutzerliste setzt die Bibliothek nicht; sie liest
 
 - Eine Senke, die blockiert, hält den Anfragepfad an, auch am Ende eines Spans; `stop` wartet auf einen laufenden Schnappschuss und kehrt erst nach der Senke zurück.
 - Wirft die Senke beim Schnappschuss einen `Error` oder eine `CancellationException`, endet der Zeitgeber, und es folgt bis zum nächsten Start kein `METRICS` mehr; Anfragen laufen weiter.
-- Overhead und Kosten der Aggregation unter Last sind nicht gemessen. Ein Bulk-Load-Paket erscheint als `sql_batch` (Setzung); die Kennung der Anfrage trägt nur das Ende der Spans, nicht `REQUEST_FAILED`.
+- Overhead und Kosten der Aggregation unter Last sind nicht gemessen. Ein Bulk-Load-Paket erscheint als `sql_batch` (Setzung); die Kennung der Anfrage tragen nur das Ende der Spans und `REQUEST_FAILED`, kein anderes Ereignis.
 
 **Typische Fehler.**
 

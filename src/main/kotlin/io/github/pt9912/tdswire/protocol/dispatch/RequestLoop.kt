@@ -272,6 +272,7 @@ internal class RequestLoop(
     /** Das Ereignis, das die Anfrage beendet; `null`, wenn die Sitzung beim Schreiben der Antwort geschlossen wurde. */
     private suspend fun answer(message: TdsMessage): HandshakeEvent.RequestFinished? {
         requestId = requestIds()
+        errors.requestId = requestId
         queryOutcome = null
         val kind = if (message.type == PacketType.RPC) RequestKind.RPC else RequestKind.SQL_BATCH
         val span = session.request(requestId, kind)
@@ -306,6 +307,7 @@ internal class RequestLoop(
                 else -> answerBatch(message)
             }
         } finally {
+            errors.requestId = null
             span.end(queryOutcome ?: SpanOutcome.CLOSED)
         }
     }

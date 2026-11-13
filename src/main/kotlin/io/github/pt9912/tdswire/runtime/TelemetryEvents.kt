@@ -50,7 +50,7 @@ private fun LoginRejection.reason(): LoginRejectionReason = when (this) {
 }
 
 internal fun ErrorLogEntry.toEvent(at: Instant, context: EventContext): TelemetryEvent =
-    RequestFailed(at, context, code.name, cause)
+    RequestFailed(at, context, code.name, cause, requestId)
 
 /**
  * Das Fehlerereignis zu einem Ereignis des Listeners; `null`, wo der Listener ohne Fehler meldet (Annahme und Ende

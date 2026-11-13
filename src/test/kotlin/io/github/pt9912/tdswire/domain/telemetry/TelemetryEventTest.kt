@@ -130,6 +130,9 @@ internal class TelemetryEventTest {
         assertEquals(cut, TlsHandshakeFailed(at, context, long).failure)
         assertEquals(cut, RequestFailed(at, context, long, long).errorCode)
         assertEquals(cut, RequestFailed(at, context, long, long).cause)
+        assertEquals(cut, RequestFailed(at, context, long, long, long).requestId)
+        assertNull(RequestFailed(at, context, "TDS_INTERNAL_ERROR", null).requestId)
+        assertEquals("r1", RequestFailed(at, context, "TDS_INTERNAL_ERROR", null, "r1").requestId)
         val hostile = "a\"b\u0000\n\\c"
         assertEquals(hostile, LoginAccepted(at, context, hostile).principal)
     }

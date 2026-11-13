@@ -134,7 +134,8 @@ public enum class EventKind {
     /**
      * Eine Anfrage ist mit dem Fehler [TelemetryEvent.errorCode] (`TDS_*`) beantwortet worden;
      * [TelemetryEvent.cause] ist der Typname der Ausnahme oder eine feste Marke des Anlasses, sonst `null`, nie der
-     * Text einer Ausnahme und nie ein Wert. Ebene `WARN`.
+     * Text einer Ausnahme und nie ein Wert. [TelemetryEvent.requestId] ist die Kennung der Anfrage, zu der die Antwort
+     * gehört, und `null`, wo keine Anfrage läuft. Ebene `WARN`.
      */
     REQUEST_FAILED,
 
@@ -257,8 +258,8 @@ internal enum class TlsFirstRefusal {
  * ist der Zähler des Listeners (ab 1 je Server) und fehlt bei Ereignissen ohne Verbindung. [sessionId] ist die
  * zufällige UUID der Sitzung und fehlt vor der Annahme der Anmeldung. [clientProfile] ist `unknown`,
  * `tds-8.0:strict` oder `tds-7.4:<mode>` mit `<mode>` aus `off`, `on`, `not_supported`, `required`; bei einer
- * Verbindung im Pfad TDS 7.4 vor der Annahme der Anmeldung ist es `unknown`. Eine Anfrage-Kennung trägt nur das Ende
- * eines Spans ([requestId]), keine andere Art.
+ * Verbindung im Pfad TDS 7.4 vor der Annahme der Anmeldung ist es `unknown`. Eine Anfrage-Kennung tragen das Ende
+ * eines Spans und der Fehler einer Anfrage ([requestId]), keine andere Art.
  *
  * Die Felder der Arten sind in dieser Klasse Zugriffe, die `null` liefern; die internen Unterklassen überschreiben
  * die Zugriffe ihrer Art.
@@ -324,7 +325,11 @@ public sealed class TelemetryEvent protected constructor(
     /** Das Ende des Spans, eine feste Marke je Span ([EventKind.SPAN_ENDED]). */
     public open val outcome: String? get() = null
 
-    /** Die Kennung der Anfrage ([EventKind.SPAN_ENDED] der Spans `tds.query` und `backend.execute`). */
+    /**
+     * Die Kennung der Anfrage ([EventKind.SPAN_ENDED] der Spans `tds.query` und `backend.execute`;
+     * [EventKind.REQUEST_FAILED] einer Antwort, die zu einer Anfrage gehört, sonst `null`). Dieselbe Anfrage trägt
+     * in jeder dieser Stellen dieselbe Kennung.
+     */
     public open val requestId: String? get() = null
 
     /** Die Dauer des Spans in Millisekunden ([EventKind.SPAN_ENDED]). */
@@ -431,8 +436,14 @@ internal class TlsHandshakeFailed(at: Instant, context: EventContext, failure: S
     override val failure: String = bounded(failure)
 }
 
-internal class RequestFailed(at: Instant, context: EventContext, errorCode: String, cause: String?) :
-    TelemetryEvent(EventKind.REQUEST_FAILED, at, EventLevel.WARN, context) {
+internal class RequestFailed(
+    at: Instant,
+    context: EventContext,
+    errorCode: String,
+    cause: String?,
+    requestId: String? = null,
+) : TelemetryEvent(EventKind.REQUEST_FAILED, at, EventLevel.WARN, context) {
     override val errorCode: String = bounded(errorCode)
     override val cause: String? = cause?.let(::bounded)
+    override val requestId: String? = requestId?.let(::bounded)
 }

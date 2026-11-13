@@ -116,6 +116,40 @@ internal class TelemetryJsonTest : TempFilesTest() {
     }
 
     /**
+     * Eine Anfrage, die der Server mit einem Fehlercode beantwortet, an einem Start im Prozess: die Zeile
+     * `request_failed` trägt `error_code` und `request_id`, und `request_id` ist die Kennung im Ende von `tds.query`
+     * derselben Anfrage; das Ereignis der Anmeldung trägt keines. Wächter: das Feld fehlt in der Zeile, oder die
+     * Zeile nennt eine andere Kennung.
+     *
+     * @spec SPEC-052
+     * @spec SPEC-018
+     */
+    @Test
+    fun `Die Zeile request_failed traegt request_id`() {
+        val recorder = RealEvents.collect(
+            environment(
+                "alice\t{plain}secret\n",
+                EnvKeys.SIMULATION_DESCRIPTION_FILE to file("sim.yaml", PERSON_YAML),
+            ),
+            listOf(EventKind.REQUEST_FAILED),
+        ) { port ->
+            LoginProbe(port).use {
+                assertTrue(it.login("alice", "secret"))
+                it.batch("dieser Text ist kein SQL")
+            }
+        }
+        val failed = recorder.ofKind(EventKind.REQUEST_FAILED).single()
+        val query = recorder.events.single { it.kind == EventKind.SPAN_ENDED && it.span == "tds.query" }
+        val parsed = assertWellFormed(TelemetryJson.line(failed))
+        assertEquals("request_failed", parsed["event"])
+        assertTrue(parsed["error_code"] is String, parsed.toString())
+        assertEquals(query.requestId, parsed["request_id"])
+        assertTrue(checkNotNull(query.requestId).isNotEmpty())
+        val accepted = assertWellFormed(TelemetryJson.line(recorder.ofKind(EventKind.LOGIN_ACCEPTED).single()))
+        assertFalse(accepted.containsKey("request_id"))
+    }
+
+    /**
      * Die Felder eines Ereignisses der Annahme, an einem Start im Prozess: Kennung mit Anführungszeichen, Rückstrich,
      * Steuerzeichen, Unicode und Paar aus Ersatzzeichen steht in `principal` unverändert, `connection_id` und
      * `session_id` stehen da, und die Zeile bleibt gültiges JSON.
