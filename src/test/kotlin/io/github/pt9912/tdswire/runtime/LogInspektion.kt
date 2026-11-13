@@ -46,13 +46,17 @@ internal object LogInspektion {
 
     private val KNOWN = HEAD + EVENT_FIELDS + SETTINGS + METRIC_KEYS + "dropped"
 
-    /** Die Arten, deren Zeile `connection_id` trägt. */
+    /** Die Arten, die `TelemetryJson` mit `connection_id` schreibt (Unterklassen von `TelemetryEvent` mit Kontext). */
     private val WITH_CONNECTION = setOf(
         "connection_opened",
         "connection_closed",
         "encryption_not_offered",
         LOGIN_ACCEPTED,
         "login_rejected",
+        "adapter_failed",
+        "connection_failed",
+        "tls_first_not_offered",
+        "tls_handshake_failed",
         REQUEST_FAILED,
         SPAN_ENDED,
     )

@@ -220,14 +220,16 @@ internal class TestserverLaufInspektionTest : TempFilesTest() {
 
     /**
      * Der Prüfwert aus der Benutzerdatei des Laufs ohne Passwort und seine Teile: die Marke, das Salz und der Hash in
-     * der Form der Datei (Base64) und als Hex.
+     * der Form der Datei (Base64 mit Padding), als Base64URL ohne Padding und als Hex.
+     * Grenze: ein Teilstück oder ein auf mehrere Felder verteilter Wert wird nicht gefunden.
      */
     private fun checkValueParts(): List<String> {
         val value = pbkdf2Value(BOB_PASSWORD)
         val parts = value.substringAfter('}').split('$')
         val bytes = listOf(parts.first(), parts.last()).map { Base64.getDecoder().decode(it) }
         val hex = bytes.map { HexFormat.of().formatHex(it) }
-        return listOf(value, value.substringBefore('}') + "}", "pbkdf2") + parts.first() + parts.last() + hex
+        val urlForm = listOf(parts.first(), parts.last()).map { it.trimEnd('=').replace('+', '-').replace('/', '_') }
+        return listOf(value, value.substringBefore('}') + "}", "pbkdf2") + parts.first() + parts.last() + hex + urlForm
     }
 
     private fun inspectEvents(events: List<Map<String, Any>>, port: Int) {
