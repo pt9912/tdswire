@@ -1,1 +1,3 @@
 **Stand:** offen — 3×, Schwelle erreicht; Träger: Architect, kein Slice; Lese-Schritt (Verkörperung oder Streichung) in der Closure von [welle-testserver-manuell](../../../welle-testserver-manuell.md). Für diesen Vorgang nicht Bedingung der Closure (Verifikation, Abschnitt „Öffentliche Fläche“).
+
+**Lese-Schritt welle-testserver-manuell (2026-11-13):** 3× gelesen, über der Schwelle, nicht verkörpert und nicht gestrichen; Entscheidung beim Architect und beim Nutzer, ob `make flaeche` um Mitglieder wächst (Frage 2 in `welle-testserver-manuell-results.md`). Die Closure ändert weder Regel noch Gate. Der Stand `offen` bleibt.

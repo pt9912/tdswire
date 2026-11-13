@@ -175,6 +175,17 @@ ist eine Lifecycle-Rücksprungkante (11).
     Gegenstellen (Aufgabenliste, Referenzseiten, Beispielcode im Einbettungstest) gehören in dieselbe
     Änderung  (Auftrag des Nutzers 2026-11-07; Beobachtung `planung-und-register-zeiger-in-nutzer-doku`, 2×, ohne Anker).
 
+20c. **Vor dem Handoff jede Aussage, die der Slice berichtigt, ablöst oder neu entscheidet, über das
+    ganze Repo suchen.** Die Kernaussage in ihrer alten Lesart per Grep über `spec/`, `docs/user/`
+    (alle Seiten, auch Referenz- und Aufgabenseiten), `docs/plan/` (Register, Abdeckungs- und
+    Messdokumente), `harness/`, `tools/` und die Kommentare in Code und Konfiguration; der Bericht
+    nennt die Suchbegriffe, und jeder Treffer steht in der Änderungsliste oder trägt den Grund, warum er
+    bleibt. Suche nach der Aussage, nicht nach den Zeilen, die ein Review oder eine frühere
+    Nachbesserung genannt hat; eine angenommene ADR wird nicht umgeschrieben, ihr widersprechende
+    Stellen gehen als Folge-ADR an den Architect (`AGENTS.md` §3.5). Das ist die Seite des Implementers
+    zur Prüfung „Fortschreibung lässt die zweite Fundstelle stehen“ im Reviewer-Skill
+    (seit welle-testserver-manuell).
+
 Hier endet die Implementation. Die übrigen Rollen laufen in **getrennten Kontexten** (Modul 8).
 
 ## Übergaben an nachgelagerte Rollen (Modul 8 → 10 → 11)
