@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [TDS-FA-09](../../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose), [TDS-QA-03](../../../../spec/lastenheft.md#tds-qa-03--sicherheit), [ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md) (`Accepted`, Ereignisse an die Senke), [ADR-0021](../../adr/0021-oeffentlicher-integrations-einstieg.md) (öffentliche Fläche)
 
-**Berührte Spec-Stellen:** SPEC-017 · SPEC-018 · SPEC-059 · spezifikation.md §4 (Herkunft der IDs, Zielzustand `request_id`) · spezifikation.md §1 (Diagnoseausgabe)
+**Berührte Spec-Stellen:** SPEC-017 · SPEC-018 · SPEC-048 · SPEC-052 · SPEC-059 · spezifikation.md §4 (Herkunft der IDs, Zielzustand `request_id`) · spezifikation.md §1 (Diagnoseausgabe)
 
 **Verantwortlich:** pt9912
 
@@ -68,11 +68,11 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `src/main/kotlin/io/github/pt9912/tdswire/protocol/error/ErrorMapper.kt` | update | `ErrorLogEntry` (heute `code`, `cause`) bekommt die Kennung der Anfrage; die drei Aufrufe von `log.record` reichen sie weiter (Zeile 115, 120, 164); `ErrorLogEntry` ist `internal` |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/error/ErrorMapper.kt`, `.../ErrorAnswers.kt` | update | `ErrorLogEntry` bekommt `requestId`; der `ErrorMapper` hält die Kennung der laufenden Anfrage in einem Feld, und alle Einträge entstehen über `ErrorMapper.record` (statt die Kennung an den drei Aufrufen von `log.record` weiterzureichen; Begründung in der Fortschreibung unten); `ErrorLogEntry` ist `internal` |
 | `src/main/kotlin/io/github/pt9912/tdswire/domain/telemetry/TelemetryEvent.kt` | update | `RequestFailed` überschreibt `requestId` (gekürzt wie bei `SpanEnded`); KDoc von `requestId` nennt beide Arten |
 | `src/main/kotlin/io/github/pt9912/tdswire/runtime/TelemetryEvents.kt` | update | `ErrorLogEntry.toEvent` reicht die Kennung an `RequestFailed` |
-| `src/main/kotlin/io/github/pt9912/tdswire/protocol/dispatch/RequestLoop.kt` | update | die Kennung der Anfrage (heute je Anfrage in `step`) steht dem Fehlerpfad zur Verfügung; nur durchgereicht, keine Entscheidung (ARC-009) |
-| `testserver/kotlin/io/github/pt9912/tdswire/testserver/TelemetryJson.kt` | update | `request_id` in der Zeile |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/dispatch/RequestLoop.kt` | update | setzt die Kennung der Anfrage im `ErrorMapper` in `answer` und löscht sie danach, außer die Anfrage ist aufgegeben (`RunEnd.Abandoned`); keine Entscheidung (ARC-009) |
+| `testserver/kotlin/io/github/pt9912/tdswire/testserver/TelemetryJson.kt` | unverändert | die Feldtabelle führt `request_id` schon; belegt durch `TelemetryJsonTest` |
 | `src/test/kotlin/` (`ZustandsereignisseTest` oder neuer Test am Server, `TelemetryRedactionTest`, `TelemetryEventTest`), `src/integrator/` (`TelemetryFelderEmbeddingTest`), `testserver/test/` (`TelemetryJsonTest`) | update, neu | Kennung gleich der des Spans; Typliste der Redaktion; Zeile des Adapters; `@spec`-Tag SPEC-018 |
 | `spec/spezifikation.md` (Abschnitt 1, 4), `docs/user/` (alle Dateien), `docs/plan/spec-abdeckung.md` | update | Zielzustand-Sätze zu `request_id` in `REQUEST_FAILED`; Nutzer-Doku; Matrix mit `make spec-abdeckung` |
 
@@ -83,6 +83,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 - `TelemetryJson.kt` braucht keine Änderung: die Tabelle der Felder führt `requestId` schon (`request_id`) und gibt es für jede Art aus, die es füllt; belegt wird das mit einem neuen Test in `TelemetryJsonTest` (ein Rohbytes-Client `LoginProbe.batch`).
 - Tests: neu `RequestFailedRequestIdTest` (Server am Socket: Backend-Fehler, abgewiesener RPC, Freigabe eines unbekannten Handles, Frist, Parser), `TelemetryJsonTest`, `TelemetryEventTest`, `TelemetryRedactionTest` (Feldliste), `TelemetryFelderEmbeddingTest` (nur öffentliche Fläche); die Erwartungen von fünf Dispatch-Tests an `ErrorLogEntry` tragen jetzt die Kennung (`r1`, ... aus dem Zähler des Testaufbaus).
 - Nutzer-Doku: `docs/user/referenz-ereignisse.md` und `docs/user/einbettung-und-betrieb.md` (Aufgabe 5 samt Beispielcode in `AnleitungTest`, Aufgabe 10 samt Grenzen); die übrigen Dateien unter `docs/user/` nennen `REQUEST_FAILED` und `requestId` nicht.
+
+**Nacharbeit nach dem Review (F-1, 2026-11-13).** Der Test `AbandonedFaultRequestIdTest` fuhr den Pfad „Backend ignoriert den Abbruch (`RunEnd.Abandoned`) und kehrt nach `CANCEL_TIMEOUT` mit einer Ausnahme zurück“ und fand `requestId = null` im `REQUEST_FAILED`: `answer` hatte die Kennung im `finally` schon gelöscht, der späte Fehler läuft in der abgelösten Coroutine des Laufs. Behoben in der `RequestLoop`: bei `RunEnd.Abandoned` bleibt die Kennung im `ErrorMapper` stehen. Das ist tragfähig, weil das Aufgeben die Verbindung schließt (`live.abandon`) und die Schleife keine weitere Anfrage beantwortet; ein späterer Fehler kann also nur zu der aufgegebenen Anfrage gehören. Verworfen: die Kennung am Lauf statt am Mapper zu führen (`ErrorMapping` und `ResponseSequencer` bekämen die Kennung als Parameter jeder Funktion, eine Änderung an mehreren Signaturen für denselben Wert, solange eine Schleife nur eine Anfrage zugleich beantwortet). Die implizite Kopplung zwischen Schleife und Mapper (F-5 des Reviews) bleibt und ist hier mit ihrem Rand begründet. F-4: die Frist-Anfrage läuft in einem eigenen Test, die fünf übrigen Anfragen laufen mit der Voreinstellung von 30 s.
 
 **Zuschnitt der Fläche (vorab).** Es entsteht kein Typname und kein Zugriff: `TelemetryEvent.requestId` besteht. Braucht der Bau dennoch ein neues Mitglied der öffentlichen Fläche (zum Beispiel ein eigenes Feld statt `requestId`), gilt die Rückführung unten.
 

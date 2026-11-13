@@ -56,13 +56,12 @@ internal class RequestFailedRequestIdTest : RuntimeTestBase() {
         sink.events.filter { it.kind == EventKind.SPAN_ENDED && it.span == name }
 
     /**
-     * Sechs Anfragen einer Sitzung, eine davon mit Erfolg: Fehler des Backends, Erfolg, abgewiesener RPC (doppelter
-     * Parametername), Freigabe eines unbekannten Handles, Ablauf der Frist und abgewiesene Nachricht (Parser, sie
-     * schließt die Verbindung und steht deshalb zuletzt). Jedes
-     * `REQUEST_FAILED` trägt die Kennung der Anfrage, die auch das Ende von `tds.query` trägt (beim Fehler des Backends
-     * und beim Ablauf der Frist auch die des Backend-Aufrufs); die Kennung der Anfrage mit Erfolg erscheint in keinem
-     * `REQUEST_FAILED`, und keines trägt `null`. Wächter: eine andere Kennung als die der Anfrage, die Kennung der
-     * Vorgängerin, `null`.
+     * Fünf Anfragen einer Sitzung, eine davon mit Erfolg: Fehler des Backends, Erfolg, abgewiesener RPC (doppelter
+     * Parametername), Freigabe eines unbekannten Handles und abgewiesene Nachricht (Parser, sie schließt die
+     * Verbindung und steht deshalb zuletzt). Jedes `REQUEST_FAILED` trägt die Kennung der Anfrage, die auch das Ende
+     * von `tds.query` trägt (beim Fehler des Backends auch die des Backend-Aufrufs); die Kennung der Anfrage mit
+     * Erfolg erscheint in keinem `REQUEST_FAILED`, und keines trägt `null`. Wächter: eine andere Kennung als die der
+     * Anfrage, die Kennung der Vorgängerin, `null`. Keine Frist läuft ab (Voreinstellung 30 s).
      *
      * @spec SPEC-018
      * @spec SPEC-048
@@ -70,17 +69,12 @@ internal class RequestFailedRequestIdTest : RuntimeTestBase() {
      */
     @Test
     fun `REQUEST_FAILED traegt die Kennung der Anfrage, die auch tds_query traegt`() = blocking {
-        val gate = CompletableDeferred<Unit>()
         val failure = QueryEvent.Failure("TDS_BACKEND_ERROR", "kein Text fuer den Client")
         val backend = FlowBackend(
             delivering(failure),
             delivering(resultStart(), QueryEvent.Row(listOf(7)), QueryEvent.ResultEnd(1)),
-            suspendedAfter(gate),
         )
-        val server = running(
-            environment(ConfigKeys.QUERY_TIMEOUT to "1"),
-            Wiring(telemetry = sink, requests = RequestSource(backend)),
-        )
+        val server = running(environment(), Wiring(telemetry = sink, requests = RequestSource(backend)))
         val duplicate = RpcWire.executeSql(
             "select 1",
             "d",
@@ -97,11 +91,9 @@ internal class RequestFailedRequestIdTest : RuntimeTestBase() {
             client.reply("rpc")
             client.send(batch("EXEC sp_unprepare 99"))
             client.reply("handle")
-            client.send(batch("haengt"))
-            client.reply("timeout")
             client.send(handMessage(BATCH_TYPE, ByteArray(3), 4000))
             client.reply("parser")
-            eventually("sechs Anfragen beendet") { spans("tds.query").size == 6 }
+            eventually("fünf Anfragen beendet") { spans("tds.query").size == 5 }
         }
         val queries = spans("tds.query")
         val failed = sink.of<RequestFailed>()
@@ -110,16 +102,43 @@ internal class RequestFailedRequestIdTest : RuntimeTestBase() {
                 "TDS_BACKEND_ERROR",
                 "TDS_UNSUPPORTED_RPC",
                 "TDS_SIM_UNKNOWN_PREPARED_HANDLE",
-                "TDS_TIMEOUT",
                 "TDS_PROTOCOL_ERROR",
             ),
             failed.map { it.errorCode },
         )
-        assertEquals(listOf(0, 2, 3, 4, 5).map { queries[it].requestId }, failed.map { it.requestId })
-        assertEquals(6, queries.map { it.requestId }.toSet().size)
+        assertEquals(listOf(0, 2, 3, 4).map { queries[it].requestId }, failed.map { it.requestId })
+        assertEquals(5, queries.map { it.requestId }.toSet().size)
         assertTrue(failed.none { it.requestId == queries[1].requestId })
         assertEquals(backend.requests[0].requestId, failed[0].requestId)
-        assertEquals(backend.requests[2].requestId, failed[3].requestId)
+    }
+
+    /**
+     * Läuft die Frist einer Anfrage ab (`QUERY_TIMEOUT` 1 Sekunde, nur diese eine Anfrage der Sitzung), trägt das
+     * `REQUEST_FAILED` mit `TDS_TIMEOUT` die Kennung der Anfrage, die auch `tds.query` und der Backend-Aufruf tragen.
+     * Der Ablauf hängt nicht von der Last ab: das Backend wartet auf einen Latch, den erst der Test am Ende löst.
+     *
+     * @spec SPEC-018
+     * @spec SPEC-009
+     * @spec TDS-FA-09
+     */
+    @Test
+    fun `Der Ablauf der Frist traegt die Kennung der Anfrage`() = blocking {
+        val gate = CompletableDeferred<Unit>()
+        val backend = FlowBackend(suspendedAfter(gate))
+        val server = running(
+            environment(ConfigKeys.QUERY_TIMEOUT to "1"),
+            Wiring(telemetry = sink, requests = RequestSource(backend)),
+        )
+        RawClient(server.port).use { client ->
+            login(client)
+            client.send(batch("haengt"))
+            client.reply("timeout")
+            eventually("Anfrage beendet") { spans("tds.query").size == 1 }
+        }
+        val failed = sink.of<RequestFailed>().single()
+        assertEquals("TDS_TIMEOUT", failed.errorCode)
+        assertEquals(spans("tds.query").single().requestId, failed.requestId)
+        assertEquals(backend.requests.single().requestId, failed.requestId)
         gate.complete(Unit)
     }
 }

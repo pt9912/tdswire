@@ -194,6 +194,13 @@ internal class RequestLoop(
     /** Die Kennung der Anfrage, die gerade beantwortet wird. */
     private var requestId = ""
 
+    /**
+     * Wahr, wenn die Anfrage aufgegeben ist ([RunEnd.Abandoned]): das Backend läuft weiter und kann nach dem Ende von
+     * `answer` mit einer Ausnahme zurückkehren; sein Fehler gehört zu dieser Anfrage, die Kennung im `ErrorMapper`
+     * bleibt bis dahin stehen. Die Verbindung endet mit dem Aufgeben, eine weitere Anfrage folgt nicht.
+     */
+    private var abandoned = false
+
     /** Das `outcome` des Spans der Anfrage, sobald die bestimmende Stelle es kennt. */
     private var queryOutcome: SpanOutcome? = null
 
@@ -273,6 +280,7 @@ internal class RequestLoop(
     private suspend fun answer(message: TdsMessage): HandshakeEvent.RequestFinished? {
         requestId = requestIds()
         errors.requestId = requestId
+        abandoned = false
         queryOutcome = null
         val kind = if (message.type == PacketType.RPC) RequestKind.RPC else RequestKind.SQL_BATCH
         val span = session.request(requestId, kind)
@@ -307,7 +315,7 @@ internal class RequestLoop(
                 else -> answerBatch(message)
             }
         } finally {
-            errors.requestId = null
+            if (!abandoned) errors.requestId = null
             span.end(queryOutcome ?: SpanOutcome.CLOSED)
         }
     }
@@ -362,6 +370,7 @@ internal class RequestLoop(
             active = null
         }
         if (end !is RunEnd.Finished) queryOutcome = end.spanOutcome()
+        abandoned = end is RunEnd.Abandoned
         return conclusion.conclude(end, reply, ResponseForm.BATCH)
     }
 
@@ -435,6 +444,7 @@ internal class RequestLoop(
             active = null
         }
         queryOutcome = end.spanOutcome()
+        abandoned = end is RunEnd.Abandoned
         return conclusion.conclude(end, reply, form, sink.open, onOutcome)
     }
 }

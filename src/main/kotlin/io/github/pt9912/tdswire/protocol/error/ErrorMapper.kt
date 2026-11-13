@@ -75,7 +75,8 @@ internal fun ErrorRule.message(handle: Int? = null, state: Int = this.state): Se
 internal class ErrorMapper(internal val log: ErrorLog = ErrorLog.NONE) {
     /**
      * Die Kennung der Anfrage, die gerade beantwortet wird; jeder Log-Eintrag dieses Mappings trägt sie. Die Schleife
-     * der Anfragen setzt sie vor der Antwort und löscht sie danach; ohne laufende Anfrage ist sie `null`.
+     * der Anfragen setzt sie vor der Antwort und löscht sie danach, außer die Anfrage ist aufgegeben: dann bleibt sie
+     * für den späten Fehler des Backends stehen (die Verbindung endet). Ohne Anfrage ist sie `null`.
      */
     @Volatile
     internal var requestId: String? = null
