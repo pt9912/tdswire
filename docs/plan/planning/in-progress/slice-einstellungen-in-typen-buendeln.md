@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** SPEC-059 · SPEC-062 · SPEC-007 · SPEC-009 · SPEC-033 · SPEC-047 · SPEC-052 · spezifikation.md §3 (Defaults und Konstanten) und §5 (Abstand der Schnappschüsse)
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** pt9912 (Start am 2026-11-13 angeordnet).
 
 **Autor:** Planner-Agent, Auftrag des Nutzers 2026-11-07. **Datum:** 2026-11-07.
 
