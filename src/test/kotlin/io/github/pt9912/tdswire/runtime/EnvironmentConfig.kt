@@ -5,7 +5,10 @@ import io.github.pt9912.tdswire.config.ConfigKeys
 import io.github.pt9912.tdswire.config.EncryptionSetting
 import io.github.pt9912.tdswire.config.ListenSettings
 import io.github.pt9912.tdswire.config.LoginSettings
+import io.github.pt9912.tdswire.config.ObservationSettings
+import io.github.pt9912.tdswire.config.RequestLimits
 import io.github.pt9912.tdswire.config.RequestSettings
+import io.github.pt9912.tdswire.config.RequestTimeouts
 import io.github.pt9912.tdswire.config.ServerConfig
 import io.github.pt9912.tdswire.config.TlsKeyMaterial
 import io.github.pt9912.tdswire.config.auth.PasswordChars
@@ -55,16 +58,27 @@ internal fun testModeEnvironment(usersFile: String, vararg more: Pair<String, St
     ConfigKeys.AUTH_USERS_FILE to usersFile,
 ) + more
 
-/** Die Fristen und die Handle-Grenze aus der Umgebung; fehlt ein Schlüssel, gilt die Voreinstellung. */
+/** Die Fristen, Grenzen und die Beobachtung aus der Umgebung; fehlt ein Schlüssel, gilt die Voreinstellung. */
 private fun requestsOf(environment: Map<String, String>): RequestSettings {
     val defaults = RequestSettings()
     return RequestSettings(
-        queryTimeoutSeconds = environment[ConfigKeys.QUERY_TIMEOUT]?.toInt() ?: defaults.queryTimeoutSeconds,
-        cancelTimeoutSeconds = environment[ConfigKeys.CANCEL_TIMEOUT]?.toInt() ?: defaults.cancelTimeoutSeconds,
-        shutdownGraceSeconds = environment[ConfigKeys.SHUTDOWN_GRACE]?.toInt() ?: defaults.shutdownGraceSeconds,
-        maxPreparedHandles = environment[ConfigKeys.MAX_PREPARED_HANDLES]?.toInt() ?: defaults.maxPreparedHandles,
-        maxMessageBytes = environment[ConfigKeys.MAX_MESSAGE_BYTES]?.toInt() ?: defaults.maxMessageBytes,
-        metricsIntervalSeconds = environment[ConfigKeys.METRICS_INTERVAL_SECONDS]?.toInt()
-            ?: defaults.metricsIntervalSeconds,
+        timeouts = RequestTimeouts(
+            queryTimeoutSeconds = environment[ConfigKeys.QUERY_TIMEOUT]?.toInt()
+                ?: defaults.timeouts.queryTimeoutSeconds,
+            cancelTimeoutSeconds = environment[ConfigKeys.CANCEL_TIMEOUT]?.toInt()
+                ?: defaults.timeouts.cancelTimeoutSeconds,
+            shutdownGraceSeconds = environment[ConfigKeys.SHUTDOWN_GRACE]?.toInt()
+                ?: defaults.timeouts.shutdownGraceSeconds,
+        ),
+        limits = RequestLimits(
+            maxPreparedHandles = environment[ConfigKeys.MAX_PREPARED_HANDLES]?.toInt()
+                ?: defaults.limits.maxPreparedHandles,
+            maxMessageBytes = environment[ConfigKeys.MAX_MESSAGE_BYTES]?.toInt()
+                ?: defaults.limits.maxMessageBytes,
+        ),
+        observation = ObservationSettings(
+            metricsIntervalSeconds = environment[ConfigKeys.METRICS_INTERVAL_SECONDS]?.toInt()
+                ?: defaults.observation.metricsIntervalSeconds,
+        ),
     )
 }

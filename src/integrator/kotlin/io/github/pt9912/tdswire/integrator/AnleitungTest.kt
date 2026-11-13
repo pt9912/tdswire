@@ -4,7 +4,9 @@ import io.github.pt9912.tdswire.config.AuthSettings
 import io.github.pt9912.tdswire.config.EncryptionSetting
 import io.github.pt9912.tdswire.config.ListenSettings
 import io.github.pt9912.tdswire.config.LoginSettings
+import io.github.pt9912.tdswire.config.RequestLimits
 import io.github.pt9912.tdswire.config.RequestSettings
+import io.github.pt9912.tdswire.config.RequestTimeouts
 import io.github.pt9912.tdswire.config.ServerConfig
 import io.github.pt9912.tdswire.config.TlsKeyMaterial
 import io.github.pt9912.tdswire.config.auth.PasswordChars
@@ -152,7 +154,7 @@ class AnleitungTest {
     fun einPruefwertMitPbkdf2MeldetDenBenutzerAn() {
         val wert = anleitungPruefwert("geheim")
         val config = ServerConfig(
-            listen = ListenSettings(LOOPBACK, 0),
+            listen = ListenSettings(host = LOOPBACK, port = 0),
             encryption = EncryptionSetting.TEST_UNENCRYPTED,
             auth = anleitungBenutzer("bob\t$wert\n", false),
         )
@@ -197,7 +199,7 @@ internal fun anleitungKonfiguration(port: Int, benutzerliste: String): ServerCon
         is UserListResult.Invalid -> error("Benutzerliste ungültig: ${parsed.error}")
     }
     return ServerConfig(
-        listen = ListenSettings("127.0.0.1", port),
+        listen = ListenSettings(host = "127.0.0.1", port = port),
         encryption = EncryptionSetting.TEST_UNENCRYPTED,
         auth = AuthSettings(users, plainTestMode = true),
     )
@@ -268,15 +270,13 @@ internal fun anleitungVeraenderlich(): SimulationBackend {
 
 /** Höchstens 50 Verbindungen, Anmeldefrist 5 s, Anfragefrist 10 s, 200 Handles je Sitzung, geordnetes Beenden 3 s. */
 internal fun anleitungGrenzen(auth: AuthSettings): ServerConfig = ServerConfig(
-    listen = ListenSettings("127.0.0.1", 0, maxConnections = 50),
+    listen = ListenSettings(host = "127.0.0.1", port = 0, maxConnections = 50),
     login = LoginSettings(timeoutSeconds = 5),
     encryption = EncryptionSetting.TEST_UNENCRYPTED,
     auth = auth,
     requests = RequestSettings(
-        queryTimeoutSeconds = 10,
-        cancelTimeoutSeconds = 2,
-        shutdownGraceSeconds = 3,
-        maxPreparedHandles = 200,
+        timeouts = RequestTimeouts(queryTimeoutSeconds = 10, cancelTimeoutSeconds = 2, shutdownGraceSeconds = 3),
+        limits = RequestLimits(maxPreparedHandles = 200),
     ),
 )
 
@@ -303,7 +303,7 @@ internal fun anleitungZeile(event: TelemetryEvent): String = listOfNotNull(
 
 /** `REQUIRED` mit dem PKCS#12-Speicher aus [speicher] und seinem Kennwort. */
 internal fun anleitungTls(speicher: Path, kennwort: String, auth: AuthSettings, port: Int): ServerConfig = ServerConfig(
-    listen = ListenSettings("127.0.0.1", port),
+    listen = ListenSettings(host = "127.0.0.1", port = port),
     encryption = EncryptionSetting.REQUIRED,
     tls = TlsKeyMaterial(Files.readAllBytes(speicher), PasswordChars(kennwort.toCharArray())),
     auth = auth,

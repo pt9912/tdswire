@@ -6,7 +6,10 @@ import io.github.pt9912.tdswire.config.EncryptionSetting
 import io.github.pt9912.tdswire.config.IssueKind
 import io.github.pt9912.tdswire.config.ListenSettings
 import io.github.pt9912.tdswire.config.LoginSettings
+import io.github.pt9912.tdswire.config.ObservationSettings
+import io.github.pt9912.tdswire.config.RequestLimits
 import io.github.pt9912.tdswire.config.RequestSettings
+import io.github.pt9912.tdswire.config.RequestTimeouts
 import io.github.pt9912.tdswire.config.ServerConfig
 import io.github.pt9912.tdswire.config.TlsKeyMaterial
 import io.github.pt9912.tdswire.config.auth.PasswordChars
@@ -54,7 +57,9 @@ internal object ConfigLoader {
     private val DIGITS = Regex("[0-9]{1,9}")
     private val DEFAULT_LISTEN = ListenSettings()
     private val DEFAULT_LOGIN = LoginSettings()
-    private val DEFAULT_REQUESTS = RequestSettings()
+    private val DEFAULT_TIMEOUTS = RequestTimeouts()
+    private val DEFAULT_LIMITS = RequestLimits()
+    private val DEFAULT_OBSERVATION = ObservationSettings()
 
     fun load(environment: Map<String, String>): ConfigResult {
         val issues = mutableListOf<ConfigIssue>()
@@ -67,16 +72,16 @@ internal object ConfigLoader {
             DEFAULT_LOGIN.maxPreloginMessageBytes,
             issues,
         )
-        val queryTimeout = number(environment, EnvKeys.QUERY_TIMEOUT, DEFAULT_REQUESTS.queryTimeoutSeconds, issues)
-        val cancelTimeout = number(environment, EnvKeys.CANCEL_TIMEOUT, DEFAULT_REQUESTS.cancelTimeoutSeconds, issues)
+        val queryTimeout = number(environment, EnvKeys.QUERY_TIMEOUT, DEFAULT_TIMEOUTS.queryTimeoutSeconds, issues)
+        val cancelTimeout = number(environment, EnvKeys.CANCEL_TIMEOUT, DEFAULT_TIMEOUTS.cancelTimeoutSeconds, issues)
         val maxConnections = number(environment, EnvKeys.MAX_CONNECTIONS, DEFAULT_LISTEN.maxConnections, issues)
-        val grace = number(environment, EnvKeys.SHUTDOWN_GRACE, DEFAULT_REQUESTS.shutdownGraceSeconds, issues)
-        val handles = number(environment, EnvKeys.MAX_PREPARED_HANDLES, DEFAULT_REQUESTS.maxPreparedHandles, issues)
-        val messageBytes = number(environment, EnvKeys.MAX_MESSAGE_BYTES, DEFAULT_REQUESTS.maxMessageBytes, issues)
+        val grace = number(environment, EnvKeys.SHUTDOWN_GRACE, DEFAULT_TIMEOUTS.shutdownGraceSeconds, issues)
+        val handles = number(environment, EnvKeys.MAX_PREPARED_HANDLES, DEFAULT_LIMITS.maxPreparedHandles, issues)
+        val messageBytes = number(environment, EnvKeys.MAX_MESSAGE_BYTES, DEFAULT_LIMITS.maxMessageBytes, issues)
         val metrics = number(
             environment,
             EnvKeys.METRICS_INTERVAL_SECONDS,
-            DEFAULT_REQUESTS.metricsIntervalSeconds,
+            DEFAULT_OBSERVATION.metricsIntervalSeconds,
             issues,
         )
         val encryption = encryption(environment, issues)
@@ -89,18 +94,19 @@ internal object ConfigLoader {
         } else {
             val auth = AuthSettings(checkNotNull(users), checkNotNull(plain))
             val config = ServerConfig(
-                ListenSettings(host, port, maxConnections),
-                LoginSettings(timeout, prelogin),
+                ListenSettings(host = host, port = port, maxConnections = maxConnections),
+                LoginSettings(timeoutSeconds = timeout, maxPreloginMessageBytes = prelogin),
                 checkNotNull(encryption),
                 tls,
                 auth,
                 RequestSettings(
-                    queryTimeoutSeconds = queryTimeout,
-                    cancelTimeoutSeconds = cancelTimeout,
-                    shutdownGraceSeconds = grace,
-                    maxPreparedHandles = handles,
-                    maxMessageBytes = messageBytes,
-                    metricsIntervalSeconds = metrics,
+                    timeouts = RequestTimeouts(
+                        queryTimeoutSeconds = queryTimeout,
+                        cancelTimeoutSeconds = cancelTimeout,
+                        shutdownGraceSeconds = grace,
+                    ),
+                    limits = RequestLimits(maxPreparedHandles = handles, maxMessageBytes = messageBytes),
+                    observation = ObservationSettings(metricsIntervalSeconds = metrics),
                 ),
             )
             ConfigResult.Loaded(config, simulation)

@@ -110,13 +110,13 @@ internal fun ServerConfig.effectiveSettings(): EffectiveSettings = EffectiveSett
     },
     keystore = if (tls != null) KeystoreState.SET else KeystoreState.UNSET,
     plainTestMode = auth.plainTestMode,
-    queryTimeoutSeconds = requests.queryTimeoutSeconds,
-    cancelTimeoutSeconds = requests.cancelTimeoutSeconds,
-    shutdownGraceSeconds = requests.shutdownGraceSeconds,
+    queryTimeoutSeconds = requests.timeouts.queryTimeoutSeconds,
+    cancelTimeoutSeconds = requests.timeouts.cancelTimeoutSeconds,
+    shutdownGraceSeconds = requests.timeouts.shutdownGraceSeconds,
     maxConnections = listen.maxConnections,
-    maxPreparedHandles = requests.maxPreparedHandles,
-    maxMessageBytes = requests.maxMessageBytes,
-    metricsIntervalSeconds = requests.metricsIntervalSeconds,
+    maxPreparedHandles = requests.limits.maxPreparedHandles,
+    maxMessageBytes = requests.limits.maxMessageBytes,
+    metricsIntervalSeconds = requests.observation.metricsIntervalSeconds,
 )
 
 /**

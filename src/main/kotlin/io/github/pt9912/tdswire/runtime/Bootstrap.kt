@@ -133,9 +133,9 @@ internal object Bootstrap {
                 port = config.listen.port,
                 times = ListenerTimes(
                     loginTimeout = config.login.timeoutSeconds.seconds,
-                    shutdownGrace = config.requests.shutdownGraceSeconds.seconds,
+                    shutdownGrace = config.requests.timeouts.shutdownGraceSeconds.seconds,
                     delayer = wiring.delayer,
-                    cancelTimeout = config.requests.cancelTimeoutSeconds.seconds,
+                    cancelTimeout = config.requests.timeouts.cancelTimeoutSeconds.seconds,
                 ),
                 tls = material?.let { TlsServerConfig(it, TlsParameters.SPEC_023) },
                 maxConnections = config.listen.maxConnections,
@@ -206,8 +206,8 @@ internal object Bootstrap {
          */
         private fun snapshots(dispatcher: CoroutineDispatcher = Dispatchers.Default): Job? {
             val source = observer
-            val interval = config.requests.metricsIntervalSeconds.seconds
-            if (source == null || config.requests.metricsIntervalSeconds == 0) return null
+            val interval = config.requests.observation.metricsIntervalSeconds.seconds
+            if (source == null || config.requests.observation.metricsIntervalSeconds == 0) return null
             return CoroutineScope(dispatcher).launch {
                 while (true) {
                     delay(interval)

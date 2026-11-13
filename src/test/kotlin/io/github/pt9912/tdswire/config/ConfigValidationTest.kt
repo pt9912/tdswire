@@ -25,6 +25,13 @@ class ConfigValidationTest {
         requests: RequestSettings = RequestSettings(),
     ) = ServerConfig(listen, login, EncryptionSetting.TEST_UNENCRYPTED, null, users(), requests)
 
+    private fun withTimeouts(timeouts: RequestTimeouts) = unencrypted(requests = RequestSettings(timeouts = timeouts))
+
+    private fun withLimits(limits: RequestLimits) = unencrypted(requests = RequestSettings(limits = limits))
+
+    private fun withObservation(observation: ObservationSettings) =
+        unencrypted(requests = RequestSettings(observation = observation))
+
     /**
      * Eine Konfiguration mit den Voreinstellungen und unverschlüsseltem Testmodus ist gültig; die Voreinstellungen sind
      * die der Spezifikation.
@@ -40,16 +47,17 @@ class ConfigValidationTest {
     fun `Voreinstellungen sind gueltig und entsprechen der Spezifikation`() {
         val config = unencrypted()
         assertEquals(emptyList(), ConfigValidation.check(config))
-        assertEquals(ListenSettings("0.0.0.0", 1433, 1000), config.listen)
-        assertEquals(LoginSettings(15, 65536), config.login)
+        assertEquals(ListenSettings(host = "0.0.0.0", port = 1433, maxConnections = 1000), config.listen)
+        assertEquals(LoginSettings(timeoutSeconds = 15, maxPreloginMessageBytes = 65536), config.login)
         assertEquals(
             RequestSettings(
-                queryTimeoutSeconds = 30,
-                cancelTimeoutSeconds = 5,
-                shutdownGraceSeconds = 10,
-                maxPreparedHandles = 1000,
-                maxMessageBytes = 16_777_216,
-                metricsIntervalSeconds = 60,
+                timeouts = RequestTimeouts(
+                    queryTimeoutSeconds = 30,
+                    cancelTimeoutSeconds = 5,
+                    shutdownGraceSeconds = 10,
+                ),
+                limits = RequestLimits(maxPreparedHandles = 1000, maxMessageBytes = 16_777_216),
+                observation = ObservationSettings(metricsIntervalSeconds = 60),
             ),
             config.requests,
         )
@@ -73,23 +81,24 @@ class ConfigValidationTest {
     fun `Bereichsgrenzen gelten auch ohne Lader`() {
         val cases = listOf(
             Triple(ConfigKeys.LISTEN_PORT, 0, 65535) to { v: Int -> unencrypted(listen = ListenSettings(port = v)) },
-            Triple(ConfigKeys.LOGIN_TIMEOUT, 1, 3600) to { v: Int -> unencrypted(login = LoginSettings(v, 65536)) },
+            Triple(ConfigKeys.LOGIN_TIMEOUT, 1, 3600) to
+                { v: Int -> unencrypted(login = LoginSettings(timeoutSeconds = v, maxPreloginMessageBytes = 65536)) },
             Triple(ConfigKeys.MAX_PRELOGIN_MESSAGE_BYTES, 512, 65536) to
-                { v: Int -> unencrypted(login = LoginSettings(15, v)) },
+                { v: Int -> unencrypted(login = LoginSettings(timeoutSeconds = 15, maxPreloginMessageBytes = v)) },
             Triple(ConfigKeys.QUERY_TIMEOUT, 1, 3600) to
-                { v: Int -> unencrypted(requests = RequestSettings(queryTimeoutSeconds = v)) },
+                { v: Int -> withTimeouts(RequestTimeouts(queryTimeoutSeconds = v)) },
             Triple(ConfigKeys.CANCEL_TIMEOUT, 1, 3600) to
-                { v: Int -> unencrypted(requests = RequestSettings(cancelTimeoutSeconds = v)) },
+                { v: Int -> withTimeouts(RequestTimeouts(cancelTimeoutSeconds = v)) },
             Triple(ConfigKeys.MAX_CONNECTIONS, 1, 100_000) to
                 { v: Int -> unencrypted(listen = ListenSettings(maxConnections = v)) },
             Triple(ConfigKeys.SHUTDOWN_GRACE, 0, 3600) to
-                { v: Int -> unencrypted(requests = RequestSettings(shutdownGraceSeconds = v)) },
+                { v: Int -> withTimeouts(RequestTimeouts(shutdownGraceSeconds = v)) },
             Triple(ConfigKeys.MAX_PREPARED_HANDLES, 1, 100_000) to
-                { v: Int -> unencrypted(requests = RequestSettings(maxPreparedHandles = v)) },
+                { v: Int -> withLimits(RequestLimits(maxPreparedHandles = v)) },
             Triple(ConfigKeys.MAX_MESSAGE_BYTES, 65535, 268_435_456) to
-                { v: Int -> unencrypted(requests = RequestSettings(maxMessageBytes = v)) },
+                { v: Int -> withLimits(RequestLimits(maxMessageBytes = v)) },
             Triple(ConfigKeys.METRICS_INTERVAL_SECONDS, 0, 86_400) to
-                { v: Int -> unencrypted(requests = RequestSettings(metricsIntervalSeconds = v)) },
+                { v: Int -> withObservation(ObservationSettings(metricsIntervalSeconds = v)) },
         )
         for ((bounds, build) in cases) {
             val (key, low, high) = bounds
@@ -134,7 +143,7 @@ class ConfigValidationTest {
         val secret = "geheim-wert-4711"
         val config = ServerConfig(
             listen = ListenSettings(host = " ", port = 70000),
-            login = LoginSettings(0, 1),
+            login = LoginSettings(timeoutSeconds = 0, maxPreloginMessageBytes = 1),
             auth = users(),
         )
         val issues = ConfigValidation.check(config)

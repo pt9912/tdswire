@@ -37,7 +37,7 @@ internal class ConfigUsersFileTest : TempFilesTest() {
     private fun users(path: String, testMode: String? = "true"): Boolean {
         val loaded = ConfigLoader.load(env(path, testMode)).loaded()
         val config = ServerConfig(
-            listen = ListenSettings(LOOPBACK, 0),
+            listen = ListenSettings(host = LOOPBACK, port = 0),
             encryption = loaded.encryption,
             tls = loaded.tls,
             auth = loaded.auth,

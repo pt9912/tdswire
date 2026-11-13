@@ -3,6 +3,7 @@ package io.github.pt9912.tdswire.integrator
 import io.github.pt9912.tdswire.config.AuthSettings
 import io.github.pt9912.tdswire.config.EncryptionSetting
 import io.github.pt9912.tdswire.config.ListenSettings
+import io.github.pt9912.tdswire.config.ObservationSettings
 import io.github.pt9912.tdswire.config.RequestSettings
 import io.github.pt9912.tdswire.config.ServerConfig
 import io.github.pt9912.tdswire.config.TlsKeyMaterial
@@ -63,8 +64,11 @@ class TelemetryFelderEmbeddingTest {
         return AuthSettings(parsed.list, plainTestMode = true)
     }
 
-    private fun unencrypted(port: Int = 0) =
-        ServerConfig(ListenSettings(LOOPBACK, port), encryption = EncryptionSetting.TEST_UNENCRYPTED, auth = users())
+    private fun unencrypted(port: Int = 0) = ServerConfig(
+        ListenSettings(host = LOOPBACK, port = port),
+        encryption = EncryptionSetting.TEST_UNENCRYPTED,
+        auth = users(),
+    )
 
     private fun start(config: ServerConfig, source: BackendSource): StartOutcome {
         val outcome = runBlocking { TdsServer.start(config, source, sink) }
@@ -116,7 +120,7 @@ class TelemetryFelderEmbeddingTest {
         }
         events.clear()
         val material = TlsKeyMaterial(byteArrayOf(1), PasswordChars(charArrayOf('x')))
-        val broken = ServerConfig(ListenSettings(LOOPBACK, 0), tls = material, auth = users())
+        val broken = ServerConfig(ListenSettings(host = LOOPBACK, port = 0), tls = material, auth = users())
         assertIs<StartOutcome.Aborted>(start(broken, BackendSource.None))
         val tls = only(EventKind.TLS_START_REJECTED)
         assertTrue(!tls.part.isNullOrEmpty() && !tls.form.isNullOrEmpty(), "part und form: $events")
@@ -192,7 +196,7 @@ class TelemetryFelderEmbeddingTest {
     }
 
     /**
-     * Mit `RequestSettings.metricsIntervalSeconds` von 1 liefert der Server nach einer Anmeldung und einer Anfrage
+     * Mit `ObservationSettings.metricsIntervalSeconds` von 1 liefert der Server nach einer Anmeldung und einer Anfrage
      * ein Ereignis `METRICS`, dessen Zugriff `metrics` die Zähler nennt (Anfragen, Anmeldungen, aktive Sitzungen) und
      * die Perzentile der Latenz, die erst mit der ersten beendeten Anfrage da sind; die Felder des Span-Endes
      * (`span`, `outcome`, `durationMs`, `requestId`, `requestKind`, `phase`) stehen nur an `SPAN_ENDED`, `metrics`
@@ -204,10 +208,10 @@ class TelemetryFelderEmbeddingTest {
     @Test
     fun dieMessungenTragenIhreFelder() {
         val config = ServerConfig(
-            ListenSettings(LOOPBACK, 0),
+            ListenSettings(host = LOOPBACK, port = 0),
             encryption = EncryptionSetting.TEST_UNENCRYPTED,
             auth = users(),
-            requests = RequestSettings(metricsIntervalSeconds = 1),
+            requests = RequestSettings(observation = ObservationSettings(metricsIntervalSeconds = 1)),
         )
         val running = assertIs<StartOutcome.Running>(start(config, BackendSource.Custom(FailingBackend())))
         WireClient(running.server.port).use {

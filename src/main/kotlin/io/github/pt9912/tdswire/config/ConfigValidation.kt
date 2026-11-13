@@ -37,18 +37,21 @@ internal object ConfigValidation {
     /** Alle Fehler von [config] in fester Reihenfolge; leer, wenn die Konfiguration gültig ist. */
     fun check(config: ServerConfig): List<ConfigIssue> {
         val keyMaterial = config.tls != null
+        val timeouts = config.requests.timeouts
+        val limits = config.requests.limits
+        val observation = config.requests.observation
         return listOfNotNull(
             host(config.listen.host),
             port(config.listen.port),
             loginTimeout(config.login.timeoutSeconds),
             preloginBytes(config.login.maxPreloginMessageBytes),
-            queryTimeout(config.requests.queryTimeoutSeconds),
-            cancelTimeout(config.requests.cancelTimeoutSeconds),
+            queryTimeout(timeouts.queryTimeoutSeconds),
+            cancelTimeout(timeouts.cancelTimeoutSeconds),
             maxConnections(config.listen.maxConnections),
-            shutdownGrace(config.requests.shutdownGraceSeconds),
-            range(ConfigKeys.MAX_PREPARED_HANDLES, config.requests.maxPreparedHandles, 1..MAX_PREPARED_HANDLE_LIMIT),
-            range(ConfigKeys.MAX_MESSAGE_BYTES, config.requests.maxMessageBytes, MIN_MESSAGE_BYTES..MAX_MESSAGE_LIMIT),
-            range(ConfigKeys.METRICS_INTERVAL_SECONDS, config.requests.metricsIntervalSeconds, 0..MAX_METRICS_INTERVAL),
+            shutdownGrace(timeouts.shutdownGraceSeconds),
+            range(ConfigKeys.MAX_PREPARED_HANDLES, limits.maxPreparedHandles, 1..MAX_PREPARED_HANDLE_LIMIT),
+            range(ConfigKeys.MAX_MESSAGE_BYTES, limits.maxMessageBytes, MIN_MESSAGE_BYTES..MAX_MESSAGE_LIMIT),
+            range(ConfigKeys.METRICS_INTERVAL_SECONDS, observation.metricsIntervalSeconds, 0..MAX_METRICS_INTERVAL),
         ) + pairing(config.encryption, hasKeystore = keyMaterial, hasPassword = keyMaterial)
     }
 

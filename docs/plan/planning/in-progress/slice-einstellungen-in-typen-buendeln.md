@@ -79,6 +79,21 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 
 Der Implementer erweitert die Liste in seinem ersten Lauf; Schnitt und Namen der Gruppen schlägt er im Plan vor und begründet sie.
 
+**Schnitt und Namen (Implementer, vor dem Bau).**
+
+Ist-Stand am 2026-11-13: `ServerConfig` führt schon `ListenSettings` (Host, Port, Verbindungen), `LoginSettings` (Frist, PRELOGIN-Größe), `EncryptionSetting`, `TlsKeyMaterial`, `AuthSettings` und `RequestSettings`; nur `RequestSettings` hat sechs gleichartige Ganzzahlen. Die übrigen Gruppen haben zwei bis drei Felder und bleiben als Typen unverändert; ihre Aufrufe werden benannt. Neu ist die Gliederung von `RequestSettings` in drei Gruppen, `ServerConfig.requests` und die Umgebungsnamen bleiben:
+
+| Typ | Felder | Grund des Schnitts |
+|---|---|---|
+| `RequestTimeouts` | `queryTimeoutSeconds`, `cancelTimeoutSeconds`, `shutdownGraceSeconds` | alle Fristen in ganzen Sekunden, gleiche Art des Wertes, ein Bereich 0 oder 1 bis 3600 |
+| `RequestLimits` | `maxPreparedHandles`, `maxMessageBytes` | Zählgrenzen und Größen je Sitzung und Nachricht |
+| `ObservationSettings` | `metricsIntervalSeconds` | die Einstellung der Beobachtung; eine Gruppe mit einem Feld, damit ein Wert der Fristen oder Grenzen nicht an ihrer Stelle übersetzt (der Anlass: `maxMessageBytes` und `metricsIntervalSeconds` vertauscht) |
+| `RequestSettings` | `timeouts`, `limits`, `observation` | drei Parameter dreier verschiedener Typen: positional nicht vertauschbar |
+
+Java-Lesart: `@JvmOverloads` an allen vier Typen, kein Erbauer. Begründung: jede Gruppe hat höchstens drei Felder, die Überladungen decken „nur die ersten Felder setzen“ ab, und ein Erbauer fügte drei weitere öffentliche Typnamen hinzu. Grenze: aus Java lässt sich ein späteres Feld nur setzen, wenn die früheren mitgegeben werden. Der Einbettungstest ruft die Konstruktoren per Reflection auf (derselbe Weg wie bei `UpdateCount` und `ResultColumn`; das Source-Set `integrator` hat keinen Java-Quelltext).
+
+Neue Namen in `SPEC-059`: `RequestTimeouts`, `RequestLimits`, `ObservationSettings` (Package `config`). Der Schnitt liegt im Rahmen von Abschnitt 1 (Beispiel „Limits, Zeiten, Beobachtung“), eine Architect-Entscheidung ist nicht nötig. Aufrufe der übrigen Gruppen (`ListenSettings`, `LoginSettings`) sind im Haupt-, Test-, Testserver- und Integrator-Code ebenfalls benannt.
+
 ## 4. Trigger
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`

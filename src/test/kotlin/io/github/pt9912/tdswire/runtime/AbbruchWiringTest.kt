@@ -88,7 +88,8 @@ internal class AbbruchWiringTest : RuntimeTestBase() {
      * `QUERY_TIMEOUT=1` aus der Umgebung des Prozesses: das Backend antwortet nicht, nach einer Sekunde kommt
      * ERROR 50005 mit Class 16 und DONE mit Fehlerstatus, und die folgende Anfrage derselben Verbindung erhält nur
      * ihre eigene Antwort. Die Frist, die das Backend sieht, liegt mindestens eine Sekunde hinter dem Senden
-     * der Anfrage.
+     * der Anfrage und weit vor `CANCEL_TIMEOUT` (60 s): die Frist der Anfrage und die des Abbruchs sind nicht
+     * vertauscht.
      *
      * @spec SPEC-009
      * @spec SPEC-016
@@ -98,7 +99,7 @@ internal class AbbruchWiringTest : RuntimeTestBase() {
     fun `QUERY_TIMEOUT aus der Umgebung endet in TDS_TIMEOUT bei offener Verbindung`() = blocking {
         val backend = FlowBackend(suspendedAfter(CompletableDeferred()), delivering(*oneRow))
         val server = running(
-            environment(ConfigKeys.QUERY_TIMEOUT to "1"),
+            environment(ConfigKeys.QUERY_TIMEOUT to "1", ConfigKeys.CANCEL_TIMEOUT to "60"),
             Wiring(telemetry = sink, requests = RequestSource(backend)),
         )
         RawClient(server.port).use { client ->
@@ -111,6 +112,7 @@ internal class AbbruchWiringTest : RuntimeTestBase() {
             assertEquals(DoneStatus.ERROR, tokens.filterIsInstance<DoneToken>().single().status)
             val deadline = assertNotNull(backend.requests.single().deadlineEpochMillis)
             assertTrue(deadline - before >= ONE_SECOND, "Frist: ${deadline - before} ms nach dem Senden")
+            assertTrue(deadline - before < HALF_CANCEL_TIMEOUT, "Frist: ${deadline - before} ms nach dem Senden")
             client.send(batch("danach"))
             assertEquals(rowAnswer, client.reply("Folgeanfrage").payload.toHex())
         }
@@ -119,5 +121,6 @@ internal class AbbruchWiringTest : RuntimeTestBase() {
 
     private companion object {
         const val ONE_SECOND = 1_000L
+        const val HALF_CANCEL_TIMEOUT = 30_000L
     }
 }

@@ -143,7 +143,7 @@ internal class HandshakeConnectionHandler(private val setup: HandlerSetup, priva
             preLoginLimits(setup.login.maxPreloginMessageBytes),
             onMidMessage = connection::messageInProgress,
         )
-        val sessionLimits = FramingLimits(maxMessageBytes = setup.requests.maxMessageBytes)
+        val sessionLimits = FramingLimits(maxMessageBytes = setup.requests.limits.maxMessageBytes)
         val channel = TransportHandshakeChannel(reader, MessageWriter(wire, PACKET_SIZE), wire, sessionLimits) {
             upgrade(peeked, wire, path, early)
         }
@@ -185,12 +185,12 @@ internal class HandshakeConnectionHandler(private val setup: HandlerSetup, priva
         admitted: Admitted,
     ) {
         val times = RequestTimes(
-            queryTimeout = setup.requests.queryTimeoutSeconds.seconds,
-            cancelTimeout = setup.requests.cancelTimeoutSeconds.seconds,
+            queryTimeout = setup.requests.timeouts.queryTimeoutSeconds.seconds,
+            cancelTimeout = setup.requests.timeouts.cancelTimeoutSeconds.seconds,
         )
         val hooks = RequestHooks(
             gate = ConnectionShutdownGate(connection),
-            handleLimit = setup.requests.maxPreparedHandles,
+            handleLimit = setup.requests.limits.maxPreparedHandles,
             session = admitted.session,
         )
         val served = SimulationBulk.of(backend)

@@ -26,7 +26,7 @@ internal class TdsServerLifecycleTest : RuntimeTestBase() {
 
     private fun config(port: Int, key: TlsKeyMaterial = freshKey()): ServerConfig {
         val users = assertIs<UserListResult.Valid>(UserList.parse("alice\t{plain}pw\n", true)).list
-        return ServerConfig(ListenSettings(LOOPBACK, port), tls = key, auth = AuthSettings(users, true))
+        return ServerConfig(ListenSettings(host = LOOPBACK, port = port), tls = key, auth = AuthSettings(users, true))
     }
 
     private fun freshKey() =

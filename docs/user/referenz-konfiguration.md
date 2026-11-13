@@ -16,12 +16,14 @@ Die Bibliothek liest keine Umgebung. Der Integrator baut eine `ServerConfig`; de
 | `encryption` | `ENCRYPTION_POLICY` | `REQUIRED` | `REQUIRED` oder `TEST_UNENCRYPTED` | `SPEC-010` |
 | `tls` (`TlsKeyMaterial`) | `TLS_KEYSTORE_FILE`, `TLS_KEYSTORE_PASSWORD_FILE` | keines | PKCS#12-Speicher und Passwort; bei `REQUIRED` Pflicht, bei `TEST_UNENCRYPTED` nicht zulässig | `SPEC-010` |
 | `auth` (`AuthSettings`) | `AUTH_USERS_FILE`, `AUTH_PLAIN_TESTMODE` | keine Liste | Benutzerliste (`UserList` aus `UserList.parse`), Verfahren `plain` nur im Testmodus | `SPEC-051` |
-| `requests.queryTimeoutSeconds` | `QUERY_TIMEOUT` | 30 s | 1 bis 3600 | `SPEC-009` |
-| `requests.cancelTimeoutSeconds` | `CANCEL_TIMEOUT` | 5 s | 1 bis 3600 | `SPEC-033` |
-| `requests.shutdownGraceSeconds` | `SHUTDOWN_GRACE` | 10 s | 0 bis 3600, 0 = sofort | `SPEC-047` |
-| `requests.maxPreparedHandles` | `MAX_PREPARED_HANDLES` | 1000 | 1 bis 100000 | `SPEC-061` |
-| `requests.maxMessageBytes` | `MAX_MESSAGE_BYTES` | 16 MiB | 65535 bis 268435456 Byte, Summe der Paketlängen einer Nachricht nach dem Login | `SPEC-007` |
-| `requests.metricsIntervalSeconds` | `METRICS_INTERVAL_SECONDS` | 60 s | 0 bis 86400, 0 = keine Schnappschüsse der Metriken; wirkt nur mit Senke | `SPEC-062` |
+| `requests.timeouts.queryTimeoutSeconds` | `QUERY_TIMEOUT` | 30 s | 1 bis 3600 | `SPEC-009` |
+| `requests.timeouts.cancelTimeoutSeconds` | `CANCEL_TIMEOUT` | 5 s | 1 bis 3600 | `SPEC-033` |
+| `requests.timeouts.shutdownGraceSeconds` | `SHUTDOWN_GRACE` | 10 s | 0 bis 3600, 0 = sofort | `SPEC-047` |
+| `requests.limits.maxPreparedHandles` | `MAX_PREPARED_HANDLES` | 1000 | 1 bis 100000 | `SPEC-061` |
+| `requests.limits.maxMessageBytes` | `MAX_MESSAGE_BYTES` | 16 MiB | 65535 bis 268435456 Byte, Summe der Paketlängen einer Nachricht nach dem Login | `SPEC-007` |
+| `requests.observation.metricsIntervalSeconds` | `METRICS_INTERVAL_SECONDS` | 60 s | 0 bis 86400, 0 = keine Schnappschüsse der Metriken; wirkt nur mit Senke | `SPEC-062` |
+
+`ServerConfig.requests` (`RequestSettings`) hat drei Gruppen: `timeouts` (`RequestTimeouts`), `limits` (`RequestLimits`) und `observation` (`ObservationSettings`); jede Gruppe und jedes Feld hat die Voreinstellung der Tabelle, wenn der Aufruf es nicht nennt. Felder werden mit Namen übergeben; Ganzzahlen einer Gruppe nach Position zu übergeben übersetzt in jeder Reihenfolge. Aus Java sind die Konstruktoren der Gruppen mit weniger Argumenten aufrufbar.
 
 Alle Bereiche und Voreinstellungen sind Festlegungen, nicht gemessen ([Abschnitt Defaults](../../spec/spezifikation.md#3-defaults-und-konstanten)); die Voreinstellungen stehen in `ServerConfig.kt`. Der Testserver liest zusätzlich `LOG_LEVEL` und `SIMULATION_DESCRIPTION_FILE` ([Log](referenz-ereignisse.md#log-des-testservers)). Die Namen der Umgebungsvariablen des Testservers pinnt `ConfigLoaderTest`; die Schlüsseltabelle und die Konfiguration im Code halten sich nur durch Lesen, kein Test vergleicht die Liste mit den Feldern von `ServerConfig`.
 

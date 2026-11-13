@@ -49,7 +49,7 @@ class ResultStartKindEmbeddingTest {
     private fun start(events: List<QueryEvent>): TdsServer {
         val parsed = assertIs<UserListResult.Valid>(UserList.parse("alice\t{plain}secret\n", true))
         val config = ServerConfig(
-            ListenSettings(LOOPBACK, 0),
+            ListenSettings(host = LOOPBACK, port = 0),
             encryption = EncryptionSetting.TEST_UNENCRYPTED,
             auth = AuthSettings(parsed.list, plainTestMode = true),
         )

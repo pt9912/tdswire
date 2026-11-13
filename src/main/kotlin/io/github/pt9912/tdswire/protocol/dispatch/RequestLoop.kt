@@ -444,7 +444,7 @@ internal class RequestLoop(
  * Grenzen); der Einhängepunkt erlaubt es einem Test, eine Senke zu stellen, die ein Token nicht annimmt (Ausgang
  * `CLOSE_WITHOUT_COMPLETION`). [gate] verbindet die Schleife mit dem geordneten Beenden des Servers ([ShutdownGate]);
  * die Voreinstellung kennt keines. [handleLimit] ist die Grenze der gleichzeitig gehaltenen Prepared-Handles einer
- * Sitzung (`RequestSettings.maxPreparedHandles`, `SPEC-058`). [session] beobachtet die Anfragen und Backend-Aufrufe
+ * Sitzung (`RequestLimits.maxPreparedHandles`, `SPEC-058`). [session] beobachtet die Anfragen und Backend-Aufrufe
  * der Sitzung (`SPEC-018`, `SPEC-019`); die Voreinstellung beobachtet nichts.
  */
 internal class RequestHooks(
