@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** SPEC-017 · SPEC-018 · SPEC-059 · spezifikation.md §4 (Herkunft der IDs, Zielzustand `request_id`) · spezifikation.md §1 (Diagnoseausgabe)
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** pt9912
 
 **Autor:** Planner-Agent, Auftrag des Nutzers 2026-11-07. **Datum:** 2026-11-07.
 
