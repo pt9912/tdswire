@@ -114,7 +114,7 @@ Ergänzt in der Closure (Planner, 2026-11-07; Abgleich Plan-Tabelle gegen Diff n
 | `docs/messungen/katalog-und-ddl-zustand-2026-11-06.md` | update | Gegenmessung liegt vor (Nachbarprotokoll) |
 | `docs/plan/planning/done/slice-schreibpfad-merge-output.md`, `…/slice-katalog-indizes-defaults-fremdschluessel.md`, `…/slice-abnahme-d-migrate.md` | update | Zeiger auf die Messzeilen, Messauftrag mit dem JDBC-Client, Abnahme-Bezug |
 | `docs/plan/planning/open/slice-{katalog-und-struktur-an-messung-angleichen,sp-unprepare-ohne-obergrenze,adr-massenladen-atomar-an-messung,antwort-tokens-zielbild-luecken-bauen}.md` | neu | Bau-Slices und ADR-Slice nach den Nutzerentscheiden 2026-11-07 |
-| `docs/plan/planning/welle-testserver-manuell.md`, `docs/plan/planning/in-progress/roadmap.md` | update | Slices der Welle, Drift-Log, Zustandsfelder |
+| `docs/plan/planning/done/welle-testserver-manuell.md`, `docs/plan/planning/in-progress/roadmap.md` | update | Slices der Welle, Drift-Log, Zustandsfelder |
 | `spec/spezifikation.md` (`SPEC-060`) | update | Messvermerk statt „Setzung, nicht gemessen“, Nutzerentscheid als Beleg im Register |
 
 ## 4. Trigger

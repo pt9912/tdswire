@@ -13,7 +13,7 @@ Bedingungen:
 * B-1: `make gates` grün, mit Ausgabe in der Closure-Notiz. Der DoD-Haken ist offen; ich habe `make gates` nicht reproduziert (nur `make docs-check`, grün).
 * B-2: Review-Befunde F-6 und F-7 des Reviews (Beleg-Ablage in §7; Verweis in `harness/README.md`) sind erledigt beziehungsweise zu schließen: F-7 durch `97b47e6` (siehe unten), F-6 durch die Ausgabe dieses Berichts und die Notiz in §7.
 * B-3: Closure-Notiz mit Steering-Loop-Lerneintrag, Register-Fortschreibung (Treffer `BEO-TDS/aussagen-ueber-messung-hinaus`), Ausgang für jedes der drei Risiken aus §6 (Ort `docs/user/`, Client-Wahl, nicht gemessene Clients) und die drei Paarungen. Alle noch nicht geschrieben („Noch nicht geschrieben“ in §7), kein Befund. Die zwei offenen Nutzerentscheidungen in §6 (Ort, Clients) sind dem Repo nicht als getroffen belegt; die Notiz nennt sie.
-* B-4: Der Nachvollzug von einem frischen Klon durch eine zweite Person (Closure-Trigger der Welle [welle-testserver-manuell](../plan/planning/welle-testserver-manuell.md)) bleibt offen und ist kein Befund dieses Slice.
+* B-4: Der Nachvollzug von einem frischen Klon durch eine zweite Person (Closure-Trigger der Welle [welle-testserver-manuell](../plan/planning/done/welle-testserver-manuell.md)) bleibt offen und ist kein Befund dieses Slice.
 
 ## DoD-Punkte (§2)
 

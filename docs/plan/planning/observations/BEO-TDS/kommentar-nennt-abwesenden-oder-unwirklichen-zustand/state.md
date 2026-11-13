@@ -8,3 +8,5 @@
 **Fläche slice-qa-vergleichslauf-d-messungen-bulk-merge (2026-11-07):** drei `Stand`-Zellen des Registers (Review F-1), 8× nach Dateien; Entscheidung weiter bei der Closure von `welle-testserver-manuell`.
 
 **Fläche slice-schreibpfad-bulk-load (2026-11-07):** 9× nach Dateien (V-3 (a): KDoc von `TableStore` sagte `TDS_BACKEND_ERROR` nach dem Wechsel auf 2627); Entscheidung weiter bei der Closure von `welle-testserver-manuell`.
+
+**Lese-Schritt welle-testserver-manuell (2026-11-13):** 10 Dateien, über der Schwelle, nicht verkörpert; Entscheidung beim Nutzer (Frage 2 in `welle-testserver-manuell-results.md`). Die Closure ändert weder Regel noch Gate. Der Stand `offen` bleibt.
