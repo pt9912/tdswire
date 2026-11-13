@@ -1,0 +1,2 @@
+**Vorgang:** [slice-betrieb-prozesslauf-logzeilen-inspektion](../../../../done/slice-betrieb-prozesslauf-logzeilen-inspektion.md)
+**Fund:** `4de389a1` (F-10, F-11, F-12) änderte Testcode nach dem zweiten Review ohne dritten; die [Verifikation](../../../../../../reviews/2026-11-13-4de389a1-verifikation-slice-betrieb-prozesslauf-logzeilen-inspektion.md) fuhr die Nacharbeit gezielt (Mutationen d, e, f); Vermerk in §7 der Closure-Notiz.

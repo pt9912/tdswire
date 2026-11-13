@@ -65,6 +65,22 @@ internal class ServerProcess(
         return found
     }
 
+    /**
+     * Wartet auf die erste Zeile ab dem Index [from], für die [match] gilt; liefert ihren Index in [output] oder
+     * `null`, wenn der Prozess vorher endet oder die Schranke von [WAIT_SECONDS] abläuft. Die Schranke ist keine
+     * Erwartung der Dauer: der Test wartet auf die Zeile.
+     */
+    fun awaitIndex(from: Int = 0, match: (String) -> Boolean): Int? {
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(WAIT_SECONDS)
+        while (true) {
+            val snapshot = output.toList()
+            val at = (from until snapshot.size).firstOrNull { match(snapshot[it]) }
+            if (at != null) return at
+            if (System.nanoTime() >= deadline || !running()) return null
+            Thread.sleep(POLL_MILLIS)
+        }
+    }
+
     private fun running(): Boolean = process.isAlive || reader.isAlive
 
     /** Der Port aus der Zeile `tdswire: gestartet, Port <n>`. */

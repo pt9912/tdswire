@@ -93,9 +93,12 @@ internal class RawMessage(val type: Int, val payload: ByteArray, val bytes: Byte
 /**
  * Ein Rohbytes-Client mit blockierendem Socket auf `host` (Voreinstellung `127.0.0.1`): sendet Bytes, wie der
  * Test sie baut, und liest Pakete des Servers, ohne den Codec des Produkts zu benutzen. Er ist kein Referenzclient.
+ * Ist [receiveBufferBytes] größer als 0, setzt der Client den Empfangspuffer vor dem Verbinden auf diesen Wert (der
+ * Kernel rundet ihn nach seinen Grenzen); ohne Wert gilt die Voreinstellung des Betriebssystems.
  */
-internal class RawClient(port: Int, host: String = LOOPBACK) : AutoCloseable {
+internal class RawClient(port: Int, host: String = LOOPBACK, receiveBufferBytes: Int = 0) : AutoCloseable {
     private val socket = Socket().apply {
+        if (receiveBufferBytes > 0) receiveBufferSize = receiveBufferBytes
         connect(InetSocketAddress(host, port), CONNECT_MILLIS)
         soTimeout = READ_MILLIS
         tcpNoDelay = true

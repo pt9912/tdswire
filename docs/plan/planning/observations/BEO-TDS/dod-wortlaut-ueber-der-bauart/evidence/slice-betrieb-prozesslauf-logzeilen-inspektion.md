@@ -1,0 +1,2 @@
+**Vorgang:** [slice-betrieb-prozesslauf-logzeilen-inspektion](../../../../done/slice-betrieb-prozesslauf-logzeilen-inspektion.md)
+**Fund:** [Verifikation](../../../../../../reviews/2026-11-13-4de389a1-verifikation-slice-betrieb-prozesslauf-logzeilen-inspektion.md) V-1 (LOW): die DoD sagte „die gesammelte Ausgabe steht in jeder Fehlermeldung“; der Test trägt sie nur an den Wartestellen auf Zeilen. Der Wortlaut ist in der Closure auf den Beleg zurückgenommen, mit der Grenze.

@@ -1,0 +1,2 @@
+**Vorgang:** [slice-betrieb-prozesslauf-logzeilen-inspektion](../../../../done/slice-betrieb-prozesslauf-logzeilen-inspektion.md)
+**Fund:** [Review](../../../../../../reviews/2026-11-13-5b2f9c60-review-slice-betrieb-prozesslauf-logzeilen-inspektion.md) F-7 und [Verifikation](../../../../../../reviews/2026-11-13-4de389a1-verifikation-slice-betrieb-prozesslauf-logzeilen-inspektion.md) V-6 (INFO): Annahme über die Puffer der Umgebung, Test grün auf einem Host, anderer Host nicht belegt; im Plan als Risiko benannt, in der Closure als weiter offen geführt.

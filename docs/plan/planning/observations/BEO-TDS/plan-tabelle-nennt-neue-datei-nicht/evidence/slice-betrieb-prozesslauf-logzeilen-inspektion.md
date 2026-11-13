@@ -1,0 +1,2 @@
+**Vorgang:** [slice-betrieb-prozesslauf-logzeilen-inspektion](../../../../done/slice-betrieb-prozesslauf-logzeilen-inspektion.md)
+**Fund:** [Review](../../../../../../reviews/2026-11-13-5b2f9c60-review-slice-betrieb-prozesslauf-logzeilen-inspektion.md) F-2 (MEDIUM): die Tabelle in Plan §3 nannte `docs/user/referenz-ereignisse.md`, `tools/e2e.sh` und `docs/plan/e2e-abdeckung.md` nicht, die der Diff berührt; vom Reviewer gefangen, im Plan behoben.
