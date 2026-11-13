@@ -211,6 +211,18 @@ Hier endet die Implementation. Die übrigen Rollen laufen in **getrennten Kontex
     (die Ablage, der Ort, die Zahl), meldet der Implementer es im Bericht; der Planner ändert den
     Wortlaut **vor** der Verifikation, nicht erst bei der Closure, sonst führt der Verifier den
     Haken als offen  (seit slice-rpc-executesql-parameter).
+22a. **Roter Lauf eines Wanduhr-Tests außerhalb des Diffs und Fix eines Flakes** (Verifier, dieser
+    Schritt, und Closure, Schritt 24; dieselbe Prüfung steht im Reviewer-Skill). Wird ein Test mit Wanduhr
+    oder Frist rot, den der Diff nicht berührt, wiederholt der Verifier den Lauf unter der natürlichen
+    Last des Hosts, bevor der Befund „Flake“ lautet; künstliche Last (`yes`, Stress auf dem Host) gehört
+    nicht dazu, die Lastunabhängigkeit belegt die Bauart des Tests. Der rote Testfall steht mit Namen im
+    Bericht; ein Lauf mit `-q` oder ohne Testfall-Namen belegt ihn nicht. Ein Fix, der ein Flackern
+    beheben soll, bringt einen reproduzierten Fehler mit (Lauf, der ohne den Fix rot ist, und mit dem Fix
+    grün); sonst steht in §7 der Closure-Notiz und im KDoc des Tests „aus der Reihenfolge begründet,
+    Wirkung nicht gemessen“, und der Haken „behoben“ wird nicht gesetzt. `docs/plan/spec-abdeckung.md`
+    wird nur aus einem Lauf ohne roten Test eingecheckt (Schritt 24). Ein Sensor dafür entfällt: die Last
+    des Hosts ist keine Eingabe eines Gates, und ein Fehler, der nicht reproduziert wird, lässt sich nicht
+    prüfen (seit welle-betrieb-diagnose).
 23. **→ Validator (Modul 8):** falls der Slice End-Nutzer-Wert liefert, gegen den realen Bedarf
     validieren („das Richtige bauen"). Meist n/a bei interner Wartung — dann explizit sagen statt
     still überspringen.

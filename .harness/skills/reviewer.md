@@ -145,10 +145,48 @@ bewusst kurz (Ergänzungs-Kanal, nicht Hauptkanal).
 - **Vertragstest belegt nur den Fake** — ein Test des Port-Vertrags gibt das Skript zurück, das er
   selbst in das Test-Backend gelegt hat; keine Änderung am Produktionscode macht ihn rot (Gegenprobe:
   ein Backend, das den Vertrag verletzt, muss die Suite röten)  (seit welle-backend-streaming)
+- **Redaktions- oder Inspektionstest sucht nur den bekannten Wert** — ein Test belegt, dass ein Wert
+  nicht in Log, Mitschnitt oder Ablage gelangt, füllt aber nicht jedes redaktionspflichtige Feld, oder
+  die Ersetzung nennt nur Kennwort und Prüfwert und nicht die Kennungen der Umgebung (Servername,
+  Hostname, Container-ID). Prüfung: Mutation „ein redaktionspflichtiges Feld entfernen“ muss den Test
+  röten; die Kennungen der Umgebung stehen in der Ersetzung. Grenze, kein Befund: Teilstücke und auf
+  mehrere Felder verteilte Werte (im KDoc des Tests benannt)  (seit welle-betrieb-diagnose)
+- **Zahl, Feldmenge oder Zuordnung steht an einem zweiten Ort ohne Sensor** — dieselbe Zahl, Menge von
+  Feldern oder Zuordnung steht außerdem in einer Kopie (Test), einem Skript, der Doku oder der
+  Spezifikation. Prüfung: ein Test oder Gate liest beide Orte, oder ein Kopplungskommentar steht auf
+  beiden Seiten (`AGENTS.md` §3.7, Klasse Kopplung); fehlt beides, ist es MEDIUM, und die Closure-Notiz
+  nennt den zweiten Ort  (seit welle-betrieb-diagnose)
+- **Roter Lauf eines Wanduhr-Tests außerhalb des Diffs, Fix eines Flakes ohne reproduzierten Fehler** —
+  ein Lauf war rot an einem Test mit Wanduhr oder Frist, den der Diff nicht berührt, und der Befund
+  gilt als Flake; oder ein Diff behebt ein Flackern. Prüfung: der Lauf wurde unter natürlicher Last
+  wiederholt (keine künstliche Last), der rote Testfall steht mit Namen im Bericht (kein `-q`); der Fix
+  bringt einen reproduzierten Fehler mit, sonst steht in §7 und im KDoc des Tests „aus der Reihenfolge
+  begründet, Wirkung nicht gemessen“, und der Haken „behoben“ ist nicht gesetzt;
+  `docs/plan/spec-abdeckung.md` im Diff stammt aus einem Lauf ohne roten Test. Kein Sensor: die Last
+  des Hosts ist keine Eingabe eines Gates, und ein Fehler, der nicht reproduziert wird, entzieht sich
+  ihm  (seit welle-betrieb-diagnose)
+- **Test-Naht im Produktivcode** — ein Parameter, den nur ein Test belegt (ein Ausgang einer Klasse ist
+  nur darüber erreichbar). Prüfung: der Parameter ist `internal`; das KDoc nennt ihn eine Naht und sagt,
+  dass sie die Reaktion der Klasse auf den Ausgang belegt, nicht dass ein echtes Ereignis ihn auslöst.
+  Eine Vorbereitung mit Produktnutzen, die zugleich den Test ermöglicht, ist keine Naht dieser Art
+  (seit welle-betrieb-diagnose)
+- **Mitglieder eines Typs der Liste in `SPEC-059` ohne Eintrag im Änderungsprotokoll** — der Slice
+  ergänzt oder ändert Felder, Konstanten, Funktionen oder Konstruktoren an einem Typ der Liste; `make
+  flaeche` hält nur Typnamen. Prüfung: die Mitglieder stehen im Änderungsprotokoll der Spezifikation.
+  Kein Sensor: ein Vergleich der Mitglieder bräuchte einen Parser der Signaturen und änderte die
+  Zusage von `SPEC-059` ([TDS-QA-05](../../spec/lastenheft.md#tds-qa-05--wartbarkeit)); ob er
+  kommt, entscheidet der Nutzer  (seit welle-betrieb-diagnose)
 
 **LOW** — *mit Konventions-Anker* (ADR, Hard Rule, Linter-Regel, Eintrag im
 Reviewer-Skill): stilistisch unschön ohne semantische Auswirkung, einmalige
 Tippfehler, unbenutzte Imports.
+
+- **Test-KDoc oder Slice-Plan nennt den abwesenden oder unwirklichen Zustand** (`AGENTS.md` §3.7) — das
+  KDoc eines Tests steht im Konjunktiv über den abwesenden Zustand („ohne die Adresse gäbe es keine
+  Wartezeit“), oder ein Slice-Plan nennt nach der Annahme einer ADR weiter `Proposed`. Gemeint ist der
+  Indikativ über den geltenden Zustand. LOW; MEDIUM, wenn derselbe Befund im selben Slice nach dem
+  Hinweis wiederkehrt. Der HIGH-Punkt „Kommentar trägt keine der Kommentar-Klassen“ gilt für Code,
+  Konfiguration und Skript unverändert  (seit welle-betrieb-diagnose)
 
 **INFO** — Hinweis ohne erwartete Aktion (z. B. „diese Stelle hat ein passendes
 ArchUnit-Pendant, das du nicht kennst").

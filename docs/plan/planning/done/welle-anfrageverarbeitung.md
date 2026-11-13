@@ -96,7 +96,7 @@ Träger der ausgeschlossenen Gegenstände (existierende Datei, sonst Zeiger auf 
 - Typen außerhalb des Mindestkatalogs im Backend (`SqlType`, Länge von `UnicodeText`; offene Punkte 1 und 2 von [ADR-0012](../../adr/0012-simulations-backend-beschreibung-und-formen.md)) — Setzung (Entscheidung des Nutzers 2026-10-31, nicht gemessen): Mindestkatalog und Länge bleiben unverändert; die Erweiterung geschieht ausschließlich in `slice-codec-datentypen-erweiterung` (§6 des Slice), gemessen am Referenzclient, bis dahin ein definierter Fehler. UDT, `json` und Table-Valued-Parameter bleiben auch im Codec ausgeschlossen (§1 des Slice).
 - Nachweis gegen den Referenzclient und einen echten SQL Server: Kompatibilitäts-Läufe, Mitschnitte, Tokenfolge und DONE-Statusbits, ordinale Zählung der RETURNVALUE, TDS 8.0, Pooling — `slice-qa-kompatibilitaet`, `slice-qa-reproduzierbarkeit`. Diese Welle belegt Dispatch und Antwortbytes mit Rohbytes gegen ein Test-Backend.
 - Last und Durchsatz — `slice-qa-performance`. Fuzz über ungültige Anfragen in einer angemeldeten Sitzung: `slice-qa-stabilitaet` (geschlossen) hat nur den Anmeldepfad und die Parser ohne Transport gefuzzt; ein Träger für den Anfragepfad besteht nicht (Register `BEO-TDS/fuzz-nach-verdrahtung-ohne-traeger`).
-- Observability-Adapter (ARC-009, SPEC-017): nur ein minimaler Log-Anschluss, der keine Parameterwerte und keinen Anfragetext ausgibt. Träger: Welle [welle-betrieb-diagnose](../welle-betrieb-diagnose.md).
+- Observability-Adapter (ARC-009, SPEC-017): nur ein minimaler Log-Anschluss, der keine Parameterwerte und keinen Anfragetext ausgibt. Träger: Welle [welle-betrieb-diagnose](welle-betrieb-diagnose.md).
 - Neue Anforderungen oder Änderungen am Lastenheft.
 
 ## 7. Closure-Notiz
