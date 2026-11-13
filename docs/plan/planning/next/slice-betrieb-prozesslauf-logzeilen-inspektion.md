@@ -41,7 +41,7 @@ ist einzeln lieferbar.
 - Keine neue öffentliche Fläche: kein Typname, kein Zugriff; `make flaeche` bleibt bei der Liste von `SPEC-059`.
 - Kein Ersatz der vorhandenen Einzeltests: `TestserverLogProcessTest` (abgebrochener Start, `LOG_LEVEL`, nie gelesener Kanal), `MetricsTracingWiringTest` und `TelemetryRedactionTest` (Redaktion durch Bauart) tragen Teilaussagen, die der eine Lauf nicht wiederholt; er ergänzt sie um die Zusammenschau.
 - Kein abgebrochener Start und kein belegter Port im Lauf: „Start“ heißt hier der erfolgreiche Start (`server_started`); die Diagnose eines abgebrochenen Starts belegt der bestehende Test.
-- Keine Messung des Overheads der Telemetrie und keine Last: [slice-qa-performance](slice-qa-performance.md) trägt sie; dieser Slice sagt nichts „unter Last“, seine Lastunabhängigkeit folgt aus der Bauart des Tests (§6).
+- Keine Messung des Overheads der Telemetrie und keine Last: [slice-qa-performance](../open/slice-qa-performance.md) trägt sie; dieser Slice sagt nichts „unter Last“, seine Lastunabhängigkeit folgt aus der Bauart des Tests (§6).
 - Kein TLS im Lauf (`TEST_UNENCRYPTED`, wie die bestehenden Prozesstests): die Zeilen des Handshakes mit TLS sind nicht Gegenstand des „Mehr“.
 
 ## 2. Definition of Done
