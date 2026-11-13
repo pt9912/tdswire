@@ -106,7 +106,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 4. **Öffentliche Fläche.** Voraussichtlich zwei neue Namen (Strukturänderungs-Callback, Katalog-Anbieter), jeder mit Begründung nach dem Kriterium von [slice-oeffentliche-flaeche-verkleinern-und-belegen](../done/slice-oeffentliche-flaeche-verkleinern-und-belegen.md); Katalog-Ableitung und Planer `internal`. Reihenfolge zu diesem Slice (Schnitt vorher oder nachher; dessen Plan sagt: vor einem Release). Zu klären, wie der Anbieter `SimCatalog` (öffentlich nach [ADR-0026](../../adr/0026-oeffentlichkeit-simulations-backend-und-katalog.md)) ersetzt oder ergänzt.
 5. **PRELOGIN-Wert und Clientprofil.** Wert (Setzung) für [slice-prelogin-serverversion](../done/slice-prelogin-serverversion.md); ob d-migrate als Prüfclient eine ADR zum Clientprofil von [ADR-0001](../../adr/0001-tds-version-und-clientprofil.md) braucht.
 6. **„Abschließend“ in SPEC-036.** Die Liste der Formen ist laut SPEC-036 eine unbestätigte Lesart; Katalogabfragen, MERGE und Massenladen weiten sie. Bestätigen oder die Lesart schärfen.
-7. **Reihenfolge der Folge-Slices.** Vorschlag zum Prüfen: Callbacks und Katalog vor Massenladen und MERGE; TLS unabhängig. Die Kanten stehen in [welle-testserver-manuell](../welle-testserver-manuell.md) §5.
+7. **Reihenfolge der Folge-Slices.** Vorschlag zum Prüfen: Callbacks und Katalog vor Massenladen und MERGE; TLS unabhängig. Die Kanten stehen in [welle-testserver-manuell](welle-testserver-manuell.md) §5.
 
 ### Ergebnis des Spikes und der ADR-Entwurf
 
@@ -147,7 +147,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): Die Welle [welle-testserver-manuell](../welle-testserver-manuell.md) läuft, der Wortlaut des Lastenhefts 0.7.0 ist vom Nutzer am 2026-11-05 freigegeben (erfüllt) und ein Verantwortlicher ist eingetragen.
+**Start** (`next` → `in-progress`): Die Welle [welle-testserver-manuell](welle-testserver-manuell.md) läuft, der Wortlaut des Lastenhefts 0.7.0 ist vom Nutzer am 2026-11-05 freigegeben (erfüllt) und ein Verantwortlicher ist eingetragen.
 
 **Folge der Entscheidung (2026-11-06):** Die Folge-Slices starten in dieser Reihenfolge: [slice-testserver-gradle-modul](../done/slice-testserver-gradle-modul.md) ([ADR-0034](../../adr/0034-testserver-als-gradle-modul.md), `Accepted`), Schnitt der öffentlichen Fläche, Katalog und Strukturänderung, danach MERGE und Massenladen. Dazu kommt der Folge-Slice [slice-adr-handle-grenze-ersatz](../done/slice-adr-handle-grenze-ersatz.md) für die neue ADR, die Entscheidung 1 und 4 von [ADR-0017](../../adr/0017-prepared-handles-grenzwert.md) (Handle-Grenze) ersetzt; er steht vor dem MERGE-Slice (angelegt bei der Closure dieses Slice).
 

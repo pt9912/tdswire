@@ -80,7 +80,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-prelogin-serverversion](../done/slice-prelogin-serverversion.md) liegt in `done/`; die Welle [welle-testserver-manuell](../welle-testserver-manuell.md) läuft; ein Verantwortlicher ist eingetragen.
+**Start** (`next` → `in-progress`): [slice-prelogin-serverversion](../done/slice-prelogin-serverversion.md) liegt in `done/`; die Welle [welle-testserver-manuell](welle-testserver-manuell.md) läuft; ein Verantwortlicher ist eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -128,7 +128,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 
 **Steering-Loop-Eintrag:** geschärfte Beobachtung, keine neue Regel: eine Festlegung für drei Aufrufstellen (`sp_executesql`, `sp_prepexec`, `sp_execute`) war nur an einer getestet; das Setzen von `nameInText = true` an den beiden anderen ließ jeden Test grün. Register: Evidence in [BEO-TDS/zeile-oder-zweig-ohne-unterscheidenden-test](../observations/BEO-TDS/zeile-oder-zweig-ohne-unterscheidenden-test/observation.md) (weiteres Auftreten, Klasse bereits verkörpert in `.harness/skills/reviewer.md`, kein neuer Zielort).
 
-**Beobachtungs-Register (`../observations/`):** Evidence ergänzt in `BEO-TDS/zeile-oder-zweig-ohne-unterscheidenden-test/evidence/slice-d-migrate-verbindung-und-export.md` und `BEO-TDS/festlegung-gilt-nur-fuer-das-clientprofil/evidence/slice-d-migrate-verbindung-und-export.md`; `BEO-TDS/parametertyp-des-clients-passt-nicht-zur-spalte` hat seinen Träger im `state.md`. Die Beobachtung `festlegung-gilt-nur-fuer-das-clientprofil` steht damit auf 3 Evidence-Dateien (Schwelle erreicht); der Lese-Schritt gehört in die Closure von [welle-testserver-manuell](../welle-testserver-manuell.md).
+**Beobachtungs-Register (`../observations/`):** Evidence ergänzt in `BEO-TDS/zeile-oder-zweig-ohne-unterscheidenden-test/evidence/slice-d-migrate-verbindung-und-export.md` und `BEO-TDS/festlegung-gilt-nur-fuer-das-clientprofil/evidence/slice-d-migrate-verbindung-und-export.md`; `BEO-TDS/parametertyp-des-clients-passt-nicht-zur-spalte` hat seinen Träger im `state.md`. Die Beobachtung `festlegung-gilt-nur-fuer-das-clientprofil` steht damit auf 3 Evidence-Dateien (Schwelle erreicht); der Lese-Schritt gehört in die Closure von [welle-testserver-manuell](welle-testserver-manuell.md).
 
 **Folge-Slices:** keine neuen. Die Start-Trigger von [slice-katalog-und-ddl-zustand](../done/slice-katalog-und-ddl-zustand.md) und den beiden Schreibpfad-Slices nennen diesen Slice nicht; [slice-abnahme-d-migrate](../done/slice-abnahme-d-migrate.md) verlangt ihn in `done/`.
 

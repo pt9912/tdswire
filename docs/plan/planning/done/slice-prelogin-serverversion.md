@@ -9,7 +9,7 @@ aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
 Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (§Ein Slice, dessen Gegenstand ein anderer übernimmt).
 
-**Welle:** welle-testserver-manuell — Begründung: Der Slice ist Hürde 1 der d-migrate-Sonde ([d-migrate-sonde-2026-11-05](../../../messungen/d-migrate-sonde-2026-11-05.md)), und die Welle [welle-testserver-manuell](../welle-testserver-manuell.md) führt nach dem Umschnitt vom 2026-11-05 d-migrate als fremden Client gegen den Testserver; ihre Out-of-Scope-Liste schließt Änderungen an `src/main` nicht mehr aus (der frühere Grund, sie auszuschließen, ist mit dem Umschnitt entfallen). Angelegt war der Slice in [welle-qualitaet-grundlage](../welle-qualitaet-grundlage.md); [welle-referenzabgleich-release](../welle-referenzabgleich-release.md) scheidet weiterhin aus, weil der Wert hier eine Setzung ist und der Abgleich mit dem echten SQL Server dort anderen Slices gehört.
+**Welle:** welle-testserver-manuell — Begründung: Der Slice ist Hürde 1 der d-migrate-Sonde ([d-migrate-sonde-2026-11-05](../../../messungen/d-migrate-sonde-2026-11-05.md)), und die Welle [welle-testserver-manuell](welle-testserver-manuell.md) führt nach dem Umschnitt vom 2026-11-05 d-migrate als fremden Client gegen den Testserver; ihre Out-of-Scope-Liste schließt Änderungen an `src/main` nicht mehr aus (der frühere Grund, sie auszuschließen, ist mit dem Umschnitt entfallen). Angelegt war der Slice in [welle-qualitaet-grundlage](../welle-qualitaet-grundlage.md); [welle-referenzabgleich-release](../welle-referenzabgleich-release.md) scheidet weiterhin aus, weil der Wert hier eine Setzung ist und der Abgleich mit dem echten SQL Server dort anderen Slices gehört.
 
 **Bezug:** [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität) (Kompatibilität), [TDS-FA-01](../../../../spec/lastenheft.md#tds-fa-01--verbindungsaufbau-und-protokollverhandlung) (PRELOGIN-Antwort), [ADR-0001](../../adr/0001-tds-version-und-clientprofil.md) (Clientprofil, siehe §6).
 
@@ -49,7 +49,7 @@ Auslöser ist die Messung vom 2026-11-05 (frischer Klon; d-migrate 1.12.0 aus `g
 
 ## 4. Trigger
 
-**Start** (`next` → `in-progress`): Die Welle [welle-testserver-manuell](../welle-testserver-manuell.md) läuft, und die Frage zum Wert (§6) ist entschieden oder der Slice setzt den Wert ausdrücklich als Setzung.
+**Start** (`next` → `in-progress`): Die Welle [welle-testserver-manuell](welle-testserver-manuell.md) läuft, und die Frage zum Wert (§6) ist entschieden oder der Slice setzt den Wert ausdrücklich als Setzung.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

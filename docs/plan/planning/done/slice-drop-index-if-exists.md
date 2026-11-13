@@ -81,7 +81,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 | `spec/spezifikation.md` (`SPEC-036` Form D6 und Grenzen, Fehlertabelle, Ablaufpunkt 9, Änderungsprotokoll), `docs/user/testserver-manuell.md`, `docs/user/einbettung-und-betrieb.md`, `docs/user/referenz-konfiguration.md` | update | Zusage und Grenzen; `docs/user/README.md` und `referenz-ereignisse.md` gelesen, unverändert |
 | `docs/plan/planning/observations/BEO-TDS/katalog-elemente-grenzen-der-angleichung/` (`state.md`, `observation.md`) | update | Punkt 9: gebaut; neue Punkte 13 und 14; Punkt 11 ergänzt |
 | `docs/plan/planning/in-progress/roadmap.md` | update | Ruhe-Marker und Zustandsfeld der Welle (der Slice liegt in `in-progress/`) |
-| `docs/plan/planning/done/slice-drop-constraint-form-d5.md`, `docs/plan/planning/done/slice-abnahme-d-migrate.md`, `docs/plan/planning/welle-testserver-manuell.md` | update | Zeiger auf diesen Slice (drei im Slice zu D5, Verweise im Slice zur Abnahme), Tabellenzeile und Reihenfolge der Welle |
+| `docs/plan/planning/done/slice-drop-constraint-form-d5.md`, `docs/plan/planning/done/slice-abnahme-d-migrate.md`, `docs/plan/planning/done/welle-testserver-manuell.md` | update | Zeiger auf diesen Slice (drei im Slice zu D5, Verweise im Slice zur Abnahme), Tabellenzeile und Reihenfolge der Welle |
 | `docs/plan/spec-abdeckung.md` | erzeugt | `make spec-abdeckung` einmal, Tests geändert |
 
 ## 4. Trigger

@@ -91,7 +91,7 @@ Ergänzt im Lauf des Implementers (gegen `git diff --name-only main...HEAD`):
 | `docs/plan/kompatibilitaetsmatrix.md` | update | Zeile `BULK_LOAD`: gemessen (ein Fall) getrennt von Festlegung |
 | `docs/messungen/bulk-load-2026-11-07.md` | update | Mutationstabelle und Stand der Zusage |
 | `docs/plan/spec-abdeckung.md` | update (erzeugt) | `make spec-abdeckung` nach den Testtags |
-| `docs/plan/planning/in-progress/roadmap.md`, `docs/plan/planning/welle-testserver-manuell.md` | update | Stand der Wellenzeile |
+| `docs/plan/planning/in-progress/roadmap.md`, `docs/plan/planning/done/welle-testserver-manuell.md` | update | Stand der Wellenzeile |
 | `docs/plan/planning/done/slice-adr-massenladen-atomar-an-messung.md`, `docs/plan/planning/done/slice-ddl-abschluss-und-transaktionszustand-angleichen.md`, `docs/plan/planning/done/slice-sp-execute-unbekanntes-handle-bauen.md` | update | Verweise auf den Slice nachgezogen |
 
 ## 4. Trigger
@@ -146,7 +146,7 @@ formulieren) · `grundlagen-traceability.md` §Herkunfts-Anker für Steering-Loo
 - **Beobachtungs-Register (`../observations/`):** Fortgeschrieben: [BEO-TDS/folge-adr-zu-adr-0033-massenladen-verstoss-und-teilbestand](../observations/BEO-TDS/folge-adr-zu-adr-0033-massenladen-verstoss-und-teilbestand/state.md) (Stand „Bau geliefert, Messung offen“, `observation.md` unverändert; Messung als Trigger 1 offen). Evidence ergänzt in [BEO-TDS/aussagen-ueber-messung-hinaus](../observations/BEO-TDS/aussagen-ueber-messung-hinaus/state.md), [BEO-TDS/fortschreibung-laesst-zweite-fundstelle-stehen](../observations/BEO-TDS/fortschreibung-laesst-zweite-fundstelle-stehen/state.md), [BEO-TDS/plan-tabelle-nennt-neue-datei-nicht](../observations/BEO-TDS/plan-tabelle-nennt-neue-datei-nicht/state.md) und [BEO-TDS/dod-wortlaut-ueber-der-bauart](../observations/BEO-TDS/dod-wortlaut-ueber-der-bauart/state.md) (je `evidence/slice-massenladen-atomar-bauen.md`). Haken erst nach der Verifikation gesetzt (`BEO-TDS/haken-vor-verifikation-gesetzt` eingehalten).
 - **Folge-Slices:** keiner angelegt. Die erweiterte Messung der Atomarität ist ein Mess-Slice auf Entscheid des Nutzers (Eingang: EULA für das gepinnte Image, lokal), nicht angelegt; ohne sie bleibt die Setzung offen (Register, Trigger 1). Messung des Treibers mssql-jdbc: [slice-abnahme-d-migrate](../done/slice-abnahme-d-migrate.md).
 - **Risiken aus §6:** alle 5 mit Ausgang eingetragen, gezählt in der Reihenfolge von §6 (weiter offen: 1 und 3; eingetreten: 2 (akzeptiertes Negativ der ADR) und 4 (in einem Rest, behoben); entfallen: 5).
-- **Drei Paarungen:** Das Repo führt Wellen; die Paarungen prüft die Closure von [welle-testserver-manuell](../welle-testserver-manuell.md). Hier geprüft: *Anker*: kein Anker gesetzt (kein `liegt in`). *Folge-Slice*: [slice-abnahme-d-migrate](../done/slice-abnahme-d-migrate.md) besteht als Datei in `open/`. *Register*: die fünf genannten Kennungen bestehen als Verzeichnis mit nicht leerem `evidence/`.
+- **Drei Paarungen:** Das Repo führt Wellen; die Paarungen prüft die Closure von [welle-testserver-manuell](welle-testserver-manuell.md). Hier geprüft: *Anker*: kein Anker gesetzt (kein `liegt in`). *Folge-Slice*: [slice-abnahme-d-migrate](../done/slice-abnahme-d-migrate.md) besteht als Datei in `open/`. *Register*: die fünf genannten Kennungen bestehen als Verzeichnis mit nicht leerem `evidence/`.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
