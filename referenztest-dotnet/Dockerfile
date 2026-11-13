@@ -81,7 +81,8 @@ CMD ["dotnet", "test", "--no-build", "--nologo", "--logger", "console;verbosity=
 # `vergleichslauf-d` (Entscheidung des Nutzers, ADR-0008 und tools/mk/vergleichslauf-d.mk). ---
 # 2022-latest: SQL Server 2022 (RTM-CU27-GDR) 16.0.4305.5, die Referenzinstanz der Messung D in ADR-0008.
 FROM mcr.microsoft.com/mssql/server:2022-latest@sha256:cf8f0ab2ebe61feec2eed2629061a07d247f791c2a8ddda74a4ac9f06a291718 AS referenzinstanz-2022
-# 2025-latest: SQL Server 2025, fuehrt `network.forcestrict` in `mssql-conf list` (das 2022-Image nicht).
+# 2025-latest: SQL Server 2025, die Referenzinstanz fuer den TDS-8.0-Pfad (ADR-0028); `Encrypt=Strict` gelingt mit selbst erzeugtem Zertifikat
+# und `tlscert`-Eintrag (Einzelmessung 2026-11-01, ein Host). Fuehrt `network.forcestrict` in `mssql-conf list` (das 2022-Image nicht).
 FROM mcr.microsoft.com/mssql/server:2025-latest@sha256:245f6b1c8903edae52cb20fa31419cefcde1a49938bb8c3447099011fc871ca3 AS referenzinstanz-2025
 
 # --- Audit: meldet bekannte Schwachstellen der Pakete aus der Datenbank der Quelle am Tag des Laufs.

@@ -36,7 +36,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 - Der Live-Lauf — [slice-referenzabgleich-live](../done/slice-referenzabgleich-live.md); ein Mitschnitt spielt die Anfragen des Clients ab, nicht den Client (SPEC-045): fragt der Client wegen einer anderen Antwort anders, zeigt das nur der Live-Lauf.
 - Referenzinstanz, Container, Make-Target des Vergleichslaufs und EULA — [slice-qa-vergleichslauf-d](../done/slice-qa-vergleichslauf-d.md).
-- Verschlüsselte Mitschnitte und der TDS-8.0-Pfad — die Referenzinstanz bietet TDS 8.0 nicht an ([ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md)); Mitschnitte entstehen unverschlüsselt (`Encrypt=false`), der verschlüsselte Pfad bleibt ohne Wire-Abgleich und steht so in der Closure.
+- Verschlüsselte Mitschnitte und der TDS-8.0-Pfad — `2022-latest` lehnt `Encrypt=Strict` unter vier selbst erzeugten Zertifikatsvarianten ab, `2025-latest` nimmt es mit selbst erzeugtem Zertifikat und `tlscert`-Eintrag an (Einzelmessungen 2026-11-01, ein Host; [ADR-0028](../../adr/0028-referenzinstanz-fuer-tds-8-0.md), `Accepted`, Nachtrag zu [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md)); Mitschnitte entstehen unverschlüsselt (`Encrypt=false`), der verschlüsselte Pfad bleibt ohne Wire-Abgleich und steht so in der Closure.
 - Fuzz und Fragmentierung — [slice-qa-stabilitaet](../done/slice-qa-stabilitaet.md); der Mitschnitt spielt gültige Nachrichten ab.
 - Das Beheben gefundener Abweichungen — je Befund ein Slice nach der Messung.
 
@@ -156,7 +156,7 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
   | `ConnectRetryCount=1` ist der Standard des Clients | Festlegung (Matrix, Setzung des Nutzers) | nicht vom Lauf erhoben (Verifikation) |
   | Aufnahme-Methode Proxy | Festlegung (Setzung des Planners) | vom Nutzer nicht bestätigt |
   | Anmeldung und ENVCHANGE nach der Anmeldung | nicht gemessen | Lücke, Register `BEO-TDS/anmeldung-am-draht-nicht-aufgenommen` |
-  | TDS 8.0, Pooling, `RESETCONNECTION` | nicht gemessen | [ADR-0028](../../adr/0028-referenzinstanz-fuer-tds-8-0.md) `Proposed`; Träger [slice-referenzabgleich-adr-0028-nachzug](../in-progress/slice-referenzabgleich-adr-0028-nachzug.md) |
+  | TDS 8.0, Pooling, `RESETCONNECTION` | nicht gemessen | [ADR-0028](../../adr/0028-referenzinstanz-fuer-tds-8-0.md) `Accepted` (seit 2026-11-13); Träger [slice-referenzabgleich-adr-0028-nachzug](../in-progress/slice-referenzabgleich-adr-0028-nachzug.md) |
 
 - **Vier offene Konflikte mit dem Zielbild (Nutzerentscheidungen, nicht entschieden).** Maßstab des Nutzers (2026-11-06): die Spezifikation ist Zielbild, der echte SQL Server die Referenz. Der Planner entscheidet keinen davon; er empfiehlt. Jeder ist als Beobachtung geführt (`BEO-TDS/spec-setzung-widerspricht-messung-am-echten-server`, für die Statusbits `BEO-TDS/done-more-statement-abbrechender-fehler-weicht-ab`).
   1. **Ordinal der RETURNVALUE** (Spec: nach der Reihenfolge der Ereignisse; gemessen: Position in der Aufrufliste, Ordinal 2). Empfehlung: Spec dem echten Server angleichen; vor dem Bau ein zweiter Fall mit mehreren Ausgabewerten (Messauftrag für [slice-qa-vergleichslauf-d-messungen](../done/slice-qa-vergleichslauf-d-messungen.md)), weil bisher ein Fall je Instanz vorliegt. **Entscheidung beim Nutzer.**

@@ -11,6 +11,9 @@
 # Quelle der Entscheidung: slice-qa-vergleichslauf-d §1 und ADR-0008 (Abschnitt EULA, 2026-10-30). Die Variable steht
 # nirgends sonst; tools/vergleichslauf-d.sh bricht ohne `Y` und in der CI (CI, GITHUB_ACTIONS) mit Exit 2 ab.
 #
+# Referenzinstanzen (ADR-0028): `2022-latest` fuer alle Schritte ausser TDS 8.0, die Dockerfile-Stage `referenzinstanz-2025` (`2025-latest`) fuer den TDS-8.0-Pfad;
+# gemessen als Einzelmessung am 2026-11-01 auf einem Host, Grenzen in docs/messungen/referenzabgleich.md.
+#
 # Bedarf: Einzelmessungen am 2026-11-01 auf einem Host (20 CPUs, 31 GiB Speicher, Docker 29.9.2, x86_64) unter Last
 # durch andere Laeufe (Lastmittel 6 bis 11); gilt fuer diesen Host, nicht fuer CI-Runner. Laufzeit: `make
 # vergleichslauf-d` (fuenf Laeufe) 113 s und 96 s in zwei Durchgaengen, ein Einzellauf 16 bis 27 s einschliesslich Bau und
