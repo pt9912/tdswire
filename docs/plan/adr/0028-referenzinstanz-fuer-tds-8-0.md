@@ -62,4 +62,4 @@ Ein neuer Digest von `2025-latest` oder `2022-latest` mit anderem Verhalten bei 
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-11-01 | Proposed (Empfehlung Option B, Entscheidung beim Nutzer) | Vergleichslauf D (Messung TDS-8.0-Tag) |
-| 2026-11-13 | Accepted (Entscheidung des Nutzers, Option B) | [slice-referenzabgleich-adr-0028-nachzug](../planning/open/slice-referenzabgleich-adr-0028-nachzug.md) |
+| 2026-11-13 | Accepted (Entscheidung des Nutzers, Option B) | `slice-referenzabgleich-adr-0028-nachzug` |
