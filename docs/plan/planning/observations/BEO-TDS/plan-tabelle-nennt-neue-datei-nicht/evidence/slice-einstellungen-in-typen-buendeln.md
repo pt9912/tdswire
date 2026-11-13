@@ -1,0 +1,2 @@
+**Vorgang:** [slice-einstellungen-in-typen-buendeln](../../../../done/slice-einstellungen-in-typen-buendeln.md)
+**Fund:** Review F-1 ([Review](../../../../../../reviews/2026-11-13-7582e1ef-review-slice-einstellungen-in-typen-buendeln.md)): die Tabelle §3 nannte `Bootstrap.kt`, `ConnectionWiring.kt`, `PreparedHandles.kt`, `RequestLoop.kt` und zwei Testdateien nicht; die Verifikation fand die Tabelle nach der Nachbesserung vollständig. Die Regel ist verkörpert (Reviewer-Skill); sie griff beim Reviewer.

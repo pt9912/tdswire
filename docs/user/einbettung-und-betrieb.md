@@ -56,7 +56,7 @@ Die Kotlin-Blöcke, die eine Funktion oder Klasse mit dem Namen `anleitung…` o
            is UserListResult.Invalid -> error("Benutzerliste ungültig: ${parsed.error}")
        }
        return ServerConfig(
-           listen = ListenSettings("127.0.0.1", port),
+           listen = ListenSettings(host = "127.0.0.1", port = port),
            encryption = EncryptionSetting.TEST_UNENCRYPTED,
            auth = AuthSettings(users, plainTestMode = true),
        )
@@ -514,7 +514,7 @@ Dateirechte und Besitzer der Benutzerliste setzt die Bibliothek nicht; sie liest
 
    /** `REQUIRED` mit dem PKCS#12-Speicher aus [speicher] und seinem Kennwort. */
    internal fun anleitungTls(speicher: Path, kennwort: String, auth: AuthSettings, port: Int): ServerConfig = ServerConfig(
-       listen = ListenSettings("127.0.0.1", port),
+       listen = ListenSettings(host = "127.0.0.1", port = port),
        encryption = EncryptionSetting.REQUIRED,
        tls = TlsKeyMaterial(Files.readAllBytes(speicher), PasswordChars(kennwort.toCharArray())),
        auth = auth,
@@ -546,24 +546,26 @@ Dateirechte und Besitzer der Benutzerliste setzt die Bibliothek nicht; sie liest
 
    ```kotlin
    import io.github.pt9912.tdswire.config.LoginSettings
+   import io.github.pt9912.tdswire.config.RequestLimits
    import io.github.pt9912.tdswire.config.RequestSettings
+   import io.github.pt9912.tdswire.config.RequestTimeouts
 
    /** Höchstens 50 Verbindungen, Anmeldefrist 5 s, Anfragefrist 10 s, 200 Handles je Sitzung, geordnetes Beenden 3 s. */
    internal fun anleitungGrenzen(auth: AuthSettings): ServerConfig = ServerConfig(
-       listen = ListenSettings("127.0.0.1", 0, maxConnections = 50),
+       listen = ListenSettings(host = "127.0.0.1", port = 0, maxConnections = 50),
        login = LoginSettings(timeoutSeconds = 5),
        encryption = EncryptionSetting.TEST_UNENCRYPTED,
        auth = auth,
        requests = RequestSettings(
-           queryTimeoutSeconds = 10,
-           cancelTimeoutSeconds = 2,
-           shutdownGraceSeconds = 3,
-           maxPreparedHandles = 200,
+           timeouts = RequestTimeouts(queryTimeoutSeconds = 10, cancelTimeoutSeconds = 2, shutdownGraceSeconds = 3),
+           limits = RequestLimits(maxPreparedHandles = 200),
        ),
    )
    ```
 
-   Der Listener nimmt höchstens `maxConnections` Verbindungen zugleich auf; eine weitere wird ohne Antwortbytes geschlossen, und nach dem Ende einer Verbindung nimmt er wieder auf. Eine Anfrage über `queryTimeoutSeconds` endet mit `TDS_TIMEOUT` (Verbindung offen). Eine Nachricht nach dem Login ist höchstens `requests.maxMessageBytes` groß (Voreinstellung 16 MiB, 65535 bis 268435456; die Summe der Paketlängen einer Nachricht); die Protokollgrenze eines Pakets (`MAX_TDS_PACKET_BYTES`, 65535) ist keine Einstellung. Eine Sitzung hält höchstens `maxPreparedHandles` Handles ([Referenz](referenz-konfiguration.md#prepared-handles)).
+   `RequestSettings` fasst die Einstellungen der Anfragen in drei Gruppen: `timeouts` (`RequestTimeouts`: `queryTimeoutSeconds`, `cancelTimeoutSeconds`, `shutdownGraceSeconds`), `limits` (`RequestLimits`: `maxPreparedHandles`, `maxMessageBytes`) und `observation` (`ObservationSettings`: `metricsIntervalSeconds`). Eine Gruppe, die der Aufruf nicht nennt, und ein Feld, das er nicht nennt, haben die Voreinstellung. Ein Konstruktor von `RequestSettings` mit Ganzzahlen besteht nicht; `copy` und `componentN` gelten für die Gruppen. Mehrere Ganzzahlen einer Gruppe nach Position zu übergeben übersetzt in jeder Reihenfolge; Felder benennen. Aus Java sind die Konstruktoren der Gruppen mit weniger Argumenten aufrufbar (`new RequestTimeouts(10)`, `new RequestSettings(timeouts, limits)`); die fehlenden Werte sind die Voreinstellungen, und gesetzt werden die ersten Felder in der Reihenfolge der Aufzählung (Test `EinstellungenEmbeddingTest`).
+
+   Der Listener nimmt höchstens `maxConnections` Verbindungen zugleich auf; eine weitere wird ohne Antwortbytes geschlossen, und nach dem Ende einer Verbindung nimmt er wieder auf. Eine Anfrage über `queryTimeoutSeconds` endet mit `TDS_TIMEOUT` (Verbindung offen). Eine Nachricht nach dem Login ist höchstens `requests.limits.maxMessageBytes` groß (Voreinstellung 16 MiB, 65535 bis 268435456; die Summe der Paketlängen einer Nachricht); die Protokollgrenze eines Pakets (`MAX_TDS_PACKET_BYTES`, 65535) ist keine Einstellung. Eine Sitzung hält höchstens `maxPreparedHandles` Handles ([Referenz](referenz-konfiguration.md#prepared-handles)).
 2. Beenden mit `server.stop()`. Das ist das geordnete Beenden ([`SPEC-044`](../../spec/spezifikation.md#spec-044--geordnetes-beenden)):
    - der Listener schließt zuerst;
    - eine Verbindung ohne laufende Anfrage und ohne unvollständig empfangene Nachricht endet sofort;
@@ -597,10 +599,10 @@ Dateirechte und Besitzer der Benutzerliste setzt die Bibliothek nicht; sie liest
 
 **Schritte.**
 
-1. Den Abstand der Schnappschüsse in `ServerConfig.requests` setzen (Voreinstellung 60 s, 0 schaltet die Schnappschüsse aus, Bereich 0 bis 86400). `RequestSettings` hat mehrere Ganzzahl-Felder; die Felder benennen, nicht nach Position übergeben:
+1. Den Abstand der Schnappschüsse in `ServerConfig.requests.observation` setzen (Voreinstellung 60 s, 0 schaltet die Schnappschüsse aus, Bereich 0 bis 86400). Die Gruppen von `RequestSettings` sind eigene Typen; ein Wert der Fristen oder Grenzen steht nicht an der Stelle der Beobachtung:
 
    ```kotlin
-   requests = RequestSettings(metricsIntervalSeconds = 10)
+   requests = RequestSettings(observation = ObservationSettings(metricsIntervalSeconds = 10))
    ```
 
 2. In der Senke nach der Art unterscheiden: `EventKind.METRICS` trägt `metrics` (ganze Zahlen nach Schlüssel), `EventKind.SPAN_ENDED` trägt `span`, `outcome`, `durationMs`, `requestId`, `requestKind` und `phase`. Das Ende eines Spans hat die Ebene `DEBUG`, der Schnappschuss `INFO`.
@@ -626,7 +628,7 @@ Dateirechte und Besitzer der Benutzerliste setzt die Bibliothek nicht; sie liest
 |---|---|---|
 | kein `METRICS` | keine Senke, Abstand 0, oder die Senke warf einen `Error` | Senke übergeben, `metricsIntervalSeconds` prüfen |
 | kein `SPAN_ENDED` im Log | Ebene unter `DEBUG` im Adapter | im Adapter `DEBUG` zulassen (Testserver: `LOG_LEVEL=DEBUG`) |
-| `RequestSettings` startet mit falschem Wert | Ganzzahlen nach Position übergeben | benannte Argumente verwenden |
+| eine Gruppe von `RequestSettings` startet mit einem Wert im Nachbarfeld | die Ganzzahlen einer Gruppe nach Position übergeben | benannte Argumente verwenden |
 
 ## Weiterführend
 

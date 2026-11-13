@@ -4,6 +4,7 @@ import io.github.pt9912.tdswire.config.AuthSettings
 import io.github.pt9912.tdswire.config.EncryptionSetting
 import io.github.pt9912.tdswire.config.IssueKind
 import io.github.pt9912.tdswire.config.ListenSettings
+import io.github.pt9912.tdswire.config.RequestLimits
 import io.github.pt9912.tdswire.config.RequestSettings
 import io.github.pt9912.tdswire.config.ServerConfig
 import io.github.pt9912.tdswire.config.auth.UserList
@@ -28,7 +29,7 @@ import kotlin.test.assertTrue
 
 /**
  * Die Grenze der Prepared-Handles und ihre Freigabe von außen (`TDS-FA-04`, `TDS-QA-02`, `SPEC-058`, `SPEC-059`):
- * die Grenze ist `RequestSettings.maxPreparedHandles` der öffentlichen Konfiguration, kein neuer Typname. Der Test
+ * die Grenze ist `RequestLimits.maxPreparedHandles` der öffentlichen Konfiguration, kein neuer Typname. Der Test
  * startet den Server über `TdsServer.start` und spricht Rohbytes (`sp_prepexec` als RPC, die Freigabe als SQL_BATCH
  * `EXEC sp_unprepare <n>`); der Rohbytes-Client ist kein Referenzclient, belegt ist die Antwort des Servers auf diese
  * Bytes.
@@ -44,7 +45,7 @@ class HandleLimitEmbeddingTest {
     private fun config(requests: RequestSettings): ServerConfig {
         val parsed = assertIs<UserListResult.Valid>(UserList.parse("alice\t{plain}secret\n", true))
         return ServerConfig(
-            ListenSettings(LOOPBACK, 0),
+            ListenSettings(host = LOOPBACK, port = 0),
             encryption = EncryptionSetting.TEST_UNENCRYPTED,
             auth = AuthSettings(parsed.list, plainTestMode = true),
             requests = requests,
@@ -81,7 +82,7 @@ class HandleLimitEmbeddingTest {
      */
     @Test
     fun dieEingestellteGrenzeUndDieBatchFreigabeWirkenUeberDenEinstieg() {
-        val server = start(RequestSettings(maxPreparedHandles = 2))
+        val server = start(RequestSettings(limits = RequestLimits(maxPreparedHandles = 2)))
         WireClient(server.port).use { client ->
             client.login()
             val first = client.rpc(prepExecPayload("select 1"))
@@ -119,11 +120,10 @@ class HandleLimitEmbeddingTest {
      */
     @Test
     fun nullUndNegativeGrenzenBrechenDenStartAbUndDieVoreinstellungIst1000() {
-        assertEquals(DEFAULT_LIMIT, RequestSettings().maxPreparedHandles)
+        assertEquals(DEFAULT_LIMIT, RequestSettings().limits.maxPreparedHandles)
         listOf(0, -1).forEach { value ->
-            val outcome = runBlocking {
-                TdsServer.start(config(RequestSettings(maxPreparedHandles = value)), BackendSource.None)
-            }
+            val requests = RequestSettings(limits = RequestLimits(maxPreparedHandles = value))
+            val outcome = runBlocking { TdsServer.start(config(requests), BackendSource.None) }
             val aborted = assertIs<StartOutcome.Aborted>(outcome)
             assertEquals(listOf(IssueKind.OUT_OF_RANGE), aborted.issues.map { it.kind }, "Wert $value")
         }

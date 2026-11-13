@@ -120,7 +120,7 @@ class EmbeddingTest {
     @Test
     fun eineUngueltigeKonfigurationBrichtDenStartAbOhnePort() {
         val port = freePort()
-        val onLoopback = ListenSettings(LOOPBACK, port)
+        val onLoopback = ListenSettings(host = LOOPBACK, port = port)
         val required = abortedBy(ServerConfig(onLoopback, auth = users()), BackendSource.None)
         assertEquals(listOf(IssueKind.MISSING, IssueKind.MISSING), required.issues.map { it.kind })
         assertEquals(2, required.issues.map { it.key }.toSet().size, "zwei verschiedene Schlüssel")
@@ -135,7 +135,7 @@ class EmbeddingTest {
             listOf(IssueKind.CONFLICT, IssueKind.CONFLICT),
             abortedBy(mixed, BackendSource.None).issues.map { it.kind },
         )
-        val outside = abortedBy(unencrypted(ListenSettings(LOOPBACK, MAX_PORT + 1)), BackendSource.None)
+        val outside = abortedBy(unencrypted(ListenSettings(host = LOOPBACK, port = MAX_PORT + 1)), BackendSource.None)
         assertEquals(listOf(IssueKind.OUT_OF_RANGE), outside.issues.map { it.kind })
         assertEquals("Konfiguration ungueltig", required.reason)
         ServerSocket(port, 1, InetAddress.getByName(LOOPBACK)).use { assertEquals(port, it.localPort) }
@@ -191,7 +191,7 @@ class EmbeddingTest {
         return AuthSettings(parsed.list, plainTestMode = true)
     }
 
-    private fun unencrypted(listen: ListenSettings = ListenSettings(LOOPBACK, 0)) =
+    private fun unencrypted(listen: ListenSettings = ListenSettings(host = LOOPBACK, port = 0)) =
         ServerConfig(listen, encryption = EncryptionSetting.TEST_UNENCRYPTED, auth = users())
 
     private fun freePort(): Int = ServerSocket(0, 1, InetAddress.getByName(LOOPBACK)).use { it.localPort }

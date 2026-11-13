@@ -39,12 +39,12 @@ internal class ConfigLoaderTest : TempFilesTest() {
         assertEquals("0.0.0.0", config.listen.host)
         assertEquals(15, config.login.timeoutSeconds)
         assertEquals(65536, config.login.maxPreloginMessageBytes)
-        assertEquals(30, config.requests.queryTimeoutSeconds)
-        assertEquals(5, config.requests.cancelTimeoutSeconds)
+        assertEquals(30, config.requests.timeouts.queryTimeoutSeconds)
+        assertEquals(5, config.requests.timeouts.cancelTimeoutSeconds)
         assertEquals(1000, config.listen.maxConnections)
-        assertEquals(10, config.requests.shutdownGraceSeconds)
-        assertEquals(1000, config.requests.maxPreparedHandles)
-        assertEquals(60, config.requests.metricsIntervalSeconds)
+        assertEquals(10, config.requests.timeouts.shutdownGraceSeconds)
+        assertEquals(1000, config.requests.limits.maxPreparedHandles)
+        assertEquals(60, config.requests.observation.metricsIntervalSeconds)
     }
 
     /**
@@ -76,13 +76,13 @@ internal class ConfigLoaderTest : TempFilesTest() {
         assertEquals(14330, config.listen.port)
         assertEquals(7, config.login.timeoutSeconds)
         assertEquals(4096, config.login.maxPreloginMessageBytes)
-        assertEquals(11, config.requests.queryTimeoutSeconds)
-        assertEquals(3, config.requests.cancelTimeoutSeconds)
+        assertEquals(11, config.requests.timeouts.queryTimeoutSeconds)
+        assertEquals(3, config.requests.timeouts.cancelTimeoutSeconds)
         assertEquals(17, config.listen.maxConnections)
-        assertEquals(2, config.requests.shutdownGraceSeconds)
-        assertEquals(250, config.requests.maxPreparedHandles)
-        assertEquals(70000, config.requests.maxMessageBytes)
-        assertEquals(9, config.requests.metricsIntervalSeconds)
+        assertEquals(2, config.requests.timeouts.shutdownGraceSeconds)
+        assertEquals(250, config.requests.limits.maxPreparedHandles)
+        assertEquals(70000, config.requests.limits.maxMessageBytes)
+        assertEquals(9, config.requests.observation.metricsIntervalSeconds)
         assertEquals(EncryptionSetting.TEST_UNENCRYPTED, config.encryption)
         assertTrue(config.auth.plainTestMode)
         assertNull(config.tls)
@@ -173,7 +173,7 @@ internal class ConfigLoaderTest : TempFilesTest() {
     fun `MAX_PREPARED_HANDLES null ist ausserhalb, negativ und nichtnumerisch ungueltig`() {
         assertEquals("MAX_PREPARED_HANDLES", EnvKeys.MAX_PREPARED_HANDLES)
         val one = ConfigLoader.load(base(EnvKeys.MAX_PREPARED_HANDLES to "1")).loaded()
-        assertEquals(1, one.requests.maxPreparedHandles)
+        assertEquals(1, one.requests.limits.maxPreparedHandles)
         assertEquals(
             listOf(ConfigIssue(EnvKeys.MAX_PREPARED_HANDLES, IssueKind.OUT_OF_RANGE)),
             rangeIssues(base(EnvKeys.MAX_PREPARED_HANDLES to "0")),
@@ -195,7 +195,7 @@ internal class ConfigLoaderTest : TempFilesTest() {
     fun `METRICS_INTERVAL_SECONDS null ist gueltig, andere Formen nicht`() {
         assertEquals("METRICS_INTERVAL_SECONDS", EnvKeys.METRICS_INTERVAL_SECONDS)
         val off = ConfigLoader.load(base(EnvKeys.METRICS_INTERVAL_SECONDS to "0")).loaded()
-        assertEquals(0, off.requests.metricsIntervalSeconds)
+        assertEquals(0, off.requests.observation.metricsIntervalSeconds)
         assertEquals(emptyList(), rangeIssues(base(EnvKeys.METRICS_INTERVAL_SECONDS to "0")))
         listOf("-1", "abc", "", "1.5", " 5").forEach { value ->
             val issue = singleIssue(base(EnvKeys.METRICS_INTERVAL_SECONDS to value))

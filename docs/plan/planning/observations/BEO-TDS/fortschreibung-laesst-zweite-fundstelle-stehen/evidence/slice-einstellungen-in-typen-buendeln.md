@@ -1,0 +1,2 @@
+**Vorgang:** [slice-einstellungen-in-typen-buendeln](../../../../done/slice-einstellungen-in-typen-buendeln.md)
+**Fund:** Review F-3 und F-4 ([Review](../../../../../../reviews/2026-11-13-7582e1ef-review-slice-einstellungen-in-typen-buendeln.md)): das Änderungsprotokoll der Spezifikation führte für die Änderung der öffentlichen Fläche keine Zeile, und der Satz zur Inkompatibilität stand nur im Plan, nicht in Spezifikation und Nutzer-Doku. Behoben in `b6ed24bb`.

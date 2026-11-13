@@ -212,7 +212,7 @@ internal class ZustandsereignisseTest : RuntimeTestBase() {
     fun `Die Einstellungen enthalten weder Schluesselinhalt noch Passwort noch Benutzerliste`() {
         val users = assertIs<UserListResult.Valid>(UserList.parse("kennung-$WERTPROBE\t{plain}pw-$WERTPROBE\n", true))
         val tls = TlsKeyMaterial("schluessel-$WERTPROBE".toByteArray(), PasswordChars("kw-$WERTPROBE".toCharArray()))
-        val listen = ListenSettings("host-$WERTPROBE", 0)
+        val listen = ListenSettings(host = "host-$WERTPROBE", port = 0)
         val config = ServerConfig(listen, tls = tls, auth = AuthSettings(users.list, true))
         val settings = config.effectiveSettings().asMap()
         assertEquals("SET", settings[ConfigKeys.TLS_KEYSTORE_FILE])

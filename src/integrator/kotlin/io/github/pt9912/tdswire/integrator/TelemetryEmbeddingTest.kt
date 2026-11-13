@@ -54,8 +54,11 @@ class TelemetryEmbeddingTest {
         return AuthSettings(parsed.list, plainTestMode = true)
     }
 
-    private fun unencrypted() =
-        ServerConfig(ListenSettings(LOOPBACK, 0), encryption = EncryptionSetting.TEST_UNENCRYPTED, auth = users())
+    private fun unencrypted() = ServerConfig(
+        ListenSettings(host = LOOPBACK, port = 0),
+        encryption = EncryptionSetting.TEST_UNENCRYPTED,
+        auth = users(),
+    )
 
     /** Führt [block] aus und gibt zurück, was der Prozess dabei auf Standardausgabe und Fehlerkanal schrieb. */
     private fun <T> captured(block: () -> T): Pair<T, String> {
@@ -168,7 +171,7 @@ class TelemetryEmbeddingTest {
     @Test
     fun eineUngueltigeKonfigurationWirdAlsEreignisGemeldet() {
         val events = CopyOnWriteArrayList<TelemetryEvent>()
-        val config = ServerConfig(ListenSettings(LOOPBACK, 0), auth = users())
+        val config = ServerConfig(ListenSettings(host = LOOPBACK, port = 0), auth = users())
         val (aborted, output) = captured {
             runBlocking { TdsServer.start(config, BackendSource.None, TelemetrySink { events += it }) }
         }

@@ -11,7 +11,7 @@ import kotlinx.coroutines.sync.withLock
  * Sitzungsrahmens (`HandshakeSession`), der Zustandsübergänge und das Schreiben der Antwort schützt.
  *
  * Festlegungen ohne Messung: Eine Sitzung hält höchstens [limit] Handles gleichzeitig (Setzung; Voreinstellung
- * [DEFAULT_MAX_HANDLES], einstellbar über `RequestSettings.maxPreparedHandles`). Gezählt werden die gleichzeitig
+ * [DEFAULT_MAX_HANDLES], einstellbar über `RequestLimits.maxPreparedHandles`). Gezählt werden die gleichzeitig
  * gehaltenen Handles: vergebene minus freigegebene. Die Handle-Werte zählen je Sitzung ab 1 aufwärts und werden nicht
  * wiederverwendet, auch nicht nach [release], außer nach RESETCONNECTION ([clear] beginnt bei 1 neu); `-1`, der Wert
  * des Clients vor dem ersten Prepare, wird nie vergeben. Gehalten wird nur der

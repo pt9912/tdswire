@@ -67,24 +67,49 @@ public data class LoginSettings(
 )
 
 /**
- * Fristen einer Anfrage in ganzen Sekunden, die Grenze der Prepared-Handles und die Größe einer Nachricht nach dem
- * Login (`SPEC-007`, `SPEC-009`, `SPEC-033`, `SPEC-047`, `SPEC-058`): [queryTimeoutSeconds] ist
+ * Fristen einer Anfrage in ganzen Sekunden (`SPEC-009`, `SPEC-033`, `SPEC-047`): [queryTimeoutSeconds] ist
  * `QUERY_TIMEOUT`, die Frist ab dem Beginn einer Anfrage; [cancelTimeoutSeconds] ist `CANCEL_TIMEOUT`, die Frist, die
  * ein Backend für den Abbruch hat, bevor die Verbindung schließt; [shutdownGraceSeconds] ist `SHUTDOWN_GRACE`, die
- * Frist, die eine laufende Anfrage beim geordneten Beenden hat (0 = sofort); [maxPreparedHandles] ist
- * `MAX_PREPARED_HANDLES`, die Zahl der Prepared-Handles, die eine Sitzung gleichzeitig hält; [maxMessageBytes] ist
- * `MAX_MESSAGE_BYTES`, die Summe der Paketlängen einer Nachricht des Clients samt Headern nach dem Login (vor dem
- * Login gilt `MAX_PRELOGIN_MESSAGE_BYTES`); [metricsIntervalSeconds] ist `METRICS_INTERVAL_SECONDS`, der Abstand der
- * Schnappschüsse der Metriken über diese Anfragen (Ereignis `metrics`, Abschnitt 5 der Spezifikation; 0 schaltet sie
- * aus, ohne Senke bei `TdsServer.start` entstehen sie nicht).
+ * Frist, die eine laufende Anfrage beim geordneten Beenden hat (0 = sofort). Aus Java sind Konstruktoren mit weniger
+ * Argumenten aufrufbar; die fehlenden Werte sind die Voreinstellungen. Kotlin ruft mit Namen auf.
  */
-public data class RequestSettings(
+public data class RequestTimeouts @JvmOverloads constructor(
     val queryTimeoutSeconds: Int = ConfigDefaults.QUERY_TIMEOUT_SECONDS,
     val cancelTimeoutSeconds: Int = ConfigDefaults.CANCEL_TIMEOUT_SECONDS,
     val shutdownGraceSeconds: Int = ConfigDefaults.SHUTDOWN_GRACE_SECONDS,
+)
+
+/**
+ * Zählgrenzen und Größen einer Sitzung (`SPEC-058`, `SPEC-007`): [maxPreparedHandles] ist `MAX_PREPARED_HANDLES`, die
+ * Zahl der Prepared-Handles, die eine Sitzung gleichzeitig hält; [maxMessageBytes] ist `MAX_MESSAGE_BYTES`, die Summe
+ * der Paketlängen einer Nachricht des Clients samt Headern nach dem Login (vor dem Login gilt
+ * `MAX_PRELOGIN_MESSAGE_BYTES`). Aus Java sind Konstruktoren mit weniger Argumenten aufrufbar; die fehlenden Werte
+ * sind die Voreinstellungen. Kotlin ruft mit Namen auf.
+ */
+public data class RequestLimits @JvmOverloads constructor(
     val maxPreparedHandles: Int = ConfigDefaults.MAX_PREPARED_HANDLES,
     val maxMessageBytes: Int = ConfigDefaults.MAX_MESSAGE_BYTES,
+)
+
+/**
+ * Einstellungen der Beobachtung: [metricsIntervalSeconds] ist `METRICS_INTERVAL_SECONDS`, der Abstand der
+ * Schnappschüsse der Metriken über die Anfragen (Ereignis `metrics`, Abschnitt 5 der Spezifikation; 0 schaltet sie
+ * aus, ohne Senke bei `TdsServer.start` entstehen sie nicht).
+ */
+public data class ObservationSettings @JvmOverloads constructor(
     val metricsIntervalSeconds: Int = ConfigDefaults.METRICS_INTERVAL_SECONDS,
+)
+
+/**
+ * Die Einstellungen der Anfragen in drei benannten Gruppen: [timeouts] (Fristen), [limits] (Grenzen) und [observation]
+ * (Beobachtung). Die Gruppen haben je eigene Typen, ein Wert der einen Gruppe lässt sich nicht an der Stelle einer
+ * anderen übergeben. Aus Java sind Konstruktoren mit weniger Argumenten aufrufbar; die fehlenden Gruppen sind die
+ * Voreinstellungen.
+ */
+public data class RequestSettings @JvmOverloads constructor(
+    val timeouts: RequestTimeouts = RequestTimeouts(),
+    val limits: RequestLimits = RequestLimits(),
+    val observation: ObservationSettings = ObservationSettings(),
 )
 
 /** Die validierte Benutzerliste und der Schalter für das Verfahren `plain` (`ADR-0011`). */
