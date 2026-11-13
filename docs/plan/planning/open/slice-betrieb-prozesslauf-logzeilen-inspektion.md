@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** SPEC-017 · SPEC-018 · SPEC-019 (Pflicht-Attribute der Spans) · SPEC-052 (Zeile des Log-Adapters, Eingänge des Testservers) · SPEC-043 (nur der erfolgreiche Start; der abgebrochene Start bleibt im bestehenden Test) · SPEC-048 (Typname statt Ausnahmetext im Fehlerereignis) · SPEC-012 (abgelehnte Anmeldung ohne Kennung) · SPEC-053 (nur als Grenze: Drosselung ab dem 6. Fehlversuch einer Adresse, der Lauf bleibt darunter) · spezifikation.md §4 (Pflicht-Logfelder, Herkunft der IDs, Redaktion durch Bauart) · spezifikation.md §5 (Spans, Metriken)
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** pt9912
 
 **Autor:** Planner-Agent, Auftrag des Nutzers 2026-11-13 (Entscheid: Weg B, „Code angleichen“; der Closure-Trigger der Welle bleibt im Wortlaut). **Datum:** 2026-11-13.
 
