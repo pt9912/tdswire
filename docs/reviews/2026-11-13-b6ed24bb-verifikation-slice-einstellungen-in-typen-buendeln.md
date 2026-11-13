@@ -1,6 +1,6 @@
 # Verifikationsbericht: slice-einstellungen-in-typen-buendeln (HEAD b6ed24bb)
 
-* Rolle: Verifier (Modul 11), frischer Kontext. Gegenstand: [slice-einstellungen-in-typen-buendeln](../plan/planning/in-progress/slice-einstellungen-in-typen-buendeln.md). Maßstab: DoD §2, Plan §3, [TDS-QA-05](../../spec/lastenheft.md#tds-qa-05--wartbarkeit), [TDS-FA-09](../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose), [ADR-0021](../plan/adr/0021-oeffentlicher-integrations-einstieg.md), [ADR-0040](../plan/adr/0040-wirksame-konfiguration-im-ereignis-aus-typisiertem-wertobjekt.md).
+* Rolle: Verifier (Modul 11), frischer Kontext. Gegenstand: [slice-einstellungen-in-typen-buendeln](../plan/planning/done/slice-einstellungen-in-typen-buendeln.md). Maßstab: DoD §2, Plan §3, [TDS-QA-05](../../spec/lastenheft.md#tds-qa-05--wartbarkeit), [TDS-FA-09](../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose), [ADR-0021](../plan/adr/0021-oeffentlicher-integrations-einstieg.md), [ADR-0040](../plan/adr/0040-wirksame-konfiguration-im-ereignis-aus-typisiertem-wertobjekt.md).
 * Stand: Zweig `worktree-agent-a2bd77169a720681a`, HEAD `b6ed24bb`, Basis `main` `013d2954`; Arbeitsbaum sauber. Am Produktivcode nichts geändert (die Mutationen sind zurückgesetzt, `git status` leer). Haken in der DoD: keine gesetzt, und ich setze keine.
 * Eingang: Review [2026-11-13-7582e1ef-review-slice-einstellungen-in-typen-buendeln.md](2026-11-13-7582e1ef-review-slice-einstellungen-in-typen-buendeln.md); Nachbesserung `b6ed24bb`.
 
@@ -70,7 +70,7 @@ Alle fünf Dateien auf `RequestSettings`, `requests.`, die sechs Feldnamen, Kons
 
 | ID | Kategorie | Befund | Pfad |
 |---|---|---|---|
-| V-1 | LOW | Die Zuordnung *Test | Festlegung*, die Benennung der inkompatiblen Änderung und der Steering-Loop-Lerneintrag fehlen noch in §7; §6 trägt noch keine Ausgänge. Closure-Aufgabe des Planners, kein Mangel des Stands. | `docs/plan/planning/in-progress/slice-einstellungen-in-typen-buendeln.md` §6, §7 |
+| V-1 | LOW | Die Zuordnung *Test | Festlegung*, die Benennung der inkompatiblen Änderung und der Steering-Loop-Lerneintrag fehlen noch in §7; §6 trägt noch keine Ausgänge. Closure-Aufgabe des Planners, kein Mangel des Stands. | `docs/plan/planning/done/slice-einstellungen-in-typen-buendeln.md` §6, §7 |
 | V-2 | INFO | Die Java-Aufrufbeispiele (`new RequestTimeouts(10)`) sind nicht übersetzt; belegt ist die Konstruktor-Signatur per Reflection. Aussage nicht breiter als der Beleg; ohne Aktion. | `docs/user/einbettung-und-betrieb.md` Aufgabe 6 |
 
 Eine Spec-Lücke oder DoD-Verletzung, die Tests und Review nicht sähen, fand ich nicht.
