@@ -27,7 +27,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Ziel-Form: Slice — Schnitt nach Lieferwert, nicht nach Schichten; jeder Slice
 ist einzeln lieferbar.
 
-**Ziel:** Das „Mehr“ des Closure-Triggers von [welle-betrieb-diagnose](../welle-betrieb-diagnose.md) §3 ist **ein** Lauf belegt: ein Rohbytes-Client spricht den Testserver-Prozess (Start, Login angenommen und abgelehnt, SQL_BATCH, parametrisierte Anfrage, Fehler, Cancel, Beenden), und ein Inspektionstest über alle JSON-Zeilen dieses einen Laufs findet weder Passwort noch Prüfwert noch Parameterwert noch SQL-Text, findet an jeder Zeile die Pflichtfelder und findet die drei Spans mit ihren Pflicht-Attributen. Heute belegen das nur getrennte Tests ([TestserverLogProcessTest](../../../../src/test/kotlin/io/github/pt9912/tdswire/runtime/TestserverLogProcessTest.kt): Anmeldung angenommen und abgelehnt, SQL_BATCH, Spans bei `DEBUG`, Metriken, SIGTERM; Cancel mit Spans nur im Prozess des Tests, `MetricsTracingWiringTest`); eine Parameterlast und ein Fehlerpfad der Zeilen fehlen am Prozess.
+**Ziel:** Das „Mehr“ des Closure-Triggers von [welle-betrieb-diagnose](welle-betrieb-diagnose.md) §3 ist **ein** Lauf belegt: ein Rohbytes-Client spricht den Testserver-Prozess (Start, Login angenommen und abgelehnt, SQL_BATCH, parametrisierte Anfrage, Fehler, Cancel, Beenden), und ein Inspektionstest über alle JSON-Zeilen dieses einen Laufs findet weder Passwort noch Prüfwert noch Parameterwert noch SQL-Text, findet an jeder Zeile die Pflichtfelder und findet die drei Spans mit ihren Pflicht-Attributen. Heute belegen das nur getrennte Tests ([TestserverLogProcessTest](../../../../src/test/kotlin/io/github/pt9912/tdswire/runtime/TestserverLogProcessTest.kt): Anmeldung angenommen und abgelehnt, SQL_BATCH, Spans bei `DEBUG`, Metriken, SIGTERM; Cancel mit Spans nur im Prozess des Tests, `MetricsTracingWiringTest`); eine Parameterlast und ein Fehlerpfad der Zeilen fehlen am Prozess.
 
 **Stand der Abklärung (Planner, aus dem Bestand gelesen, nicht gelaufen):**
 
@@ -36,7 +36,7 @@ ist einzeln lieferbar.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Kein Referenzclient und keine Stufe von `make e2e`: Die Aussage der Welle steht am Testserver-Prozess mit Rohbytes-Client ([welle-betrieb-diagnose](../welle-betrieb-diagnose.md) §1); ein Referenzclient gehört nach [ADR-0022](../../adr/0022-e2e-laeufe-nicht-in-den-gates.md) in den E2E-Durchgang und wäre kein Test der Stage `test`.
+- Kein Referenzclient und keine Stufe von `make e2e`: Die Aussage der Welle steht am Testserver-Prozess mit Rohbytes-Client ([welle-betrieb-diagnose](welle-betrieb-diagnose.md) §1); ein Referenzclient gehört nach [ADR-0022](../../adr/0022-e2e-laeufe-nicht-in-den-gates.md) in den E2E-Durchgang und wäre kein Test der Stage `test`.
 - Kein Produktcode: weder der Adapter noch die Bibliothek noch der Standard-Testserver (er bleibt unverändert) noch der Kompatibilitätsserver (auch im Rückfall A unverändert) werden geändert. Weg B gleicht den Code an die Spezifikation an, **soweit** er abweicht; dieser Slice belegt den Ist-Stand. Zeigt die Vorprüfung (§3) eine Abweichung des Produkts, ist sie ein eigener Slice (Rückführung in §4), nicht Teil dieses.
 - Keine neue öffentliche Fläche: kein Typname, kein Zugriff; `make flaeche` bleibt bei der Liste von `SPEC-059`.
 - Kein Ersatz der vorhandenen Einzeltests: `TestserverLogProcessTest` (abgebrochener Start, `LOG_LEVEL`, nie gelesener Kanal), `MetricsTracingWiringTest` und `TelemetryRedactionTest` (Redaktion durch Bauart) tragen Teilaussagen, die der eine Lauf nicht wiederholt; er ergänzt sie um die Zusammenschau.
@@ -135,7 +135,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Closure- und Lerneintrag-Regeln — zwei beobachtbare Kriterien **und** ein
 Lerneintrag; ohne ihn ist der Slice nur abgelegt.
 
-Die DoD ist vollständig (drei Liefer-Punkte mit Mutationsnachweis), `make gates` ist grün (einschließlich `make test`), der Review-Report liegt vor, und die Closure-Notiz trägt die Zuordnung *Test | Festlegung*, die Liste der Wartestellen mit ihren Signalen, die Laufzeit des Tests und den Steering-Loop-Lerneintrag. Mit diesem Slice in `done/` ist das „Mehr“ von [welle-betrieb-diagnose](../welle-betrieb-diagnose.md) §3 durch **einen** benannten Test belegt; die Closure-Notiz der Welle nennt ihn dort.
+Die DoD ist vollständig (drei Liefer-Punkte mit Mutationsnachweis), `make gates` ist grün (einschließlich `make test`), der Review-Report liegt vor, und die Closure-Notiz trägt die Zuordnung *Test | Festlegung*, die Liste der Wartestellen mit ihren Signalen, die Laufzeit des Tests und den Steering-Loop-Lerneintrag. Mit diesem Slice in `done/` ist das „Mehr“ von [welle-betrieb-diagnose](welle-betrieb-diagnose.md) §3 durch **einen** benannten Test belegt; die Closure-Notiz der Welle nennt ihn dort.
 
 ## 6. Risiken und offene Punkte
 

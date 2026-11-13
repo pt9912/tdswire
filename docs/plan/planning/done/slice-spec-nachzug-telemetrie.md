@@ -103,7 +103,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 1. [ADR-0020](../../adr/0020-logformat-und-observability-schnittstelle.md) steht im ADR-Index auf `Accepted` (erfüllt: Annahme am 2026-11-01).
 2. [slice-spec-nachzug-produktschnitt](../done/slice-spec-nachzug-produktschnitt.md) liegt in `done/`: dieselbe Datei, dieselben Festlegungen der Läufe gegen den Testserver; der Wortlaut „Eingänge des Testservers“ steht, bevor dieser Slice ihn ergänzt.
-3. Der Start-Trigger von [welle-betrieb-diagnose](../welle-betrieb-diagnose.md) ist eingetreten (erfüllt: die Wellen `welle-transport-tls` und `welle-handshake-login` liegen in `done/`).
+3. Der Start-Trigger von [welle-betrieb-diagnose](welle-betrieb-diagnose.md) ist eingetreten (erfüllt: die Wellen `welle-transport-tls` und `welle-handshake-login` liegen in `done/`).
 4. Ein Verantwortlicher ist im Kopf eingetragen.
 
 **Folge-Kante:** [slice-betrieb-log-schnittstelle](../done/slice-betrieb-log-schnittstelle.md) wartet auf diesen Slice (die Spezifikation führt, der Code folgt).

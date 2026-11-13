@@ -1,6 +1,6 @@
 # Verifikationsbericht: slice-betrieb-prozesslauf-logzeilen-inspektion (HEAD 4de389a1) und Welle-Beleg welle-betrieb-diagnose
 
-* Rolle: Verifier (Modul 11), frischer Kontext. Gegenstand: [slice-betrieb-prozesslauf-logzeilen-inspektion](../plan/planning/done/slice-betrieb-prozesslauf-logzeilen-inspektion.md). Maßstab: DoD §2, Plan §3 samt Fortschreibung, [TDS-FA-09](../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose), [TDS-QA-03](../../spec/lastenheft.md#tds-qa-03--sicherheit), [ADR-0020](../plan/adr/0020-logformat-und-observability-schnittstelle.md), [ADR-0022](../plan/adr/0022-e2e-laeufe-nicht-in-den-gates.md). Zugleich der repo-weite Beleg für den Closure-Trigger von [welle-betrieb-diagnose](../plan/planning/welle-betrieb-diagnose.md) §3 (Abschnitt „Welle-Beleg“).
+* Rolle: Verifier (Modul 11), frischer Kontext. Gegenstand: [slice-betrieb-prozesslauf-logzeilen-inspektion](../plan/planning/done/slice-betrieb-prozesslauf-logzeilen-inspektion.md). Maßstab: DoD §2, Plan §3 samt Fortschreibung, [TDS-FA-09](../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose), [TDS-QA-03](../../spec/lastenheft.md#tds-qa-03--sicherheit), [ADR-0020](../plan/adr/0020-logformat-und-observability-schnittstelle.md), [ADR-0022](../plan/adr/0022-e2e-laeufe-nicht-in-den-gates.md). Zugleich der repo-weite Beleg für den Closure-Trigger von [welle-betrieb-diagnose](../plan/planning/done/welle-betrieb-diagnose.md) §3 (Abschnitt „Welle-Beleg“).
 * Stand: Zweig `worktree-agent-a364f3d0e80dbeeb6`, HEAD `4de389a1`, Basis `main` `e7ca8929` (Merge `5f11ff2c`); Arbeitsbaum am Ende sauber, `git diff --stat e7ca8929..HEAD -- src/main testserver` leer (kein Produktcode). Haken in der DoD: keine gesetzt (`grep -c '^- \[x\]'` ergibt 0), und ich setze keine.
 * Eingang: Reviews [2026-11-13-5b2f9c60-review-slice-betrieb-prozesslauf-logzeilen-inspektion.md](2026-11-13-5b2f9c60-review-slice-betrieb-prozesslauf-logzeilen-inspektion.md) (F-1 bis F-9) und [2026-11-13-b5c4e276-review-2-slice-betrieb-prozesslauf-logzeilen-inspektion.md](2026-11-13-b5c4e276-review-2-slice-betrieb-prozesslauf-logzeilen-inspektion.md) (F-10 bis F-14). Die Nacharbeit `4de389a1` (F-10, F-11, F-12) hatte keinen eigenen Review und ist hier gezielt geprüft (Abschnitt „Nacharbeit 4de389a1“).
 
@@ -146,7 +146,7 @@ Kein Diff in `src/main` und `testserver` (`git diff --stat e7ca8929..HEAD -- src
 
 ## Welle-Beleg: Closure-Trigger welle-betrieb-diagnose §3, Schritt 1
 
-Maßstab: [welle-betrieb-diagnose](../plan/planning/welle-betrieb-diagnose.md) §3; Stand `main` `e7ca8929` plus dieser Zweig. Der Beleg ist erst mit dem Merge dieses Slice nach `done/` vollständig; er bezieht sich auf den Endstand `4de389a1`.
+Maßstab: [welle-betrieb-diagnose](../plan/planning/done/welle-betrieb-diagnose.md) §3; Stand `main` `e7ca8929` plus dieser Zweig. Der Beleg ist erst mit dem Merge dieses Slice nach `done/` vollständig; er bezieht sich auf den Endstand `4de389a1`.
 
 | Punkt | Aussage | Stand | Beleg |
 |---|---|---|---|

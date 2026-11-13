@@ -12,7 +12,7 @@
 - [Slice-Plan slice-qa-sicherheit](../plan/planning/done/slice-qa-sicherheit.md) (§1 bis §3, §6, §8), [Folge-Slice slice-qa-anmeldedrosselung](../plan/planning/done/slice-qa-anmeldedrosselung.md), [CO-003](../plan/carveouts/done/CO-003-anmeldedrosselung-fehlt.md)
 - [ADR-0002](../plan/adr/0002-tls-und-verschluesselung.md), [ADR-0009](../plan/adr/0009-authentifizierungsmodus.md) (§Offen), [ADR-0011](../plan/adr/0011-pruefwertformat.md); `SPEC-023`, `SPEC-051` (Spezifikation)
 - [TDS-QA-03](../../spec/lastenheft.md#tds-qa-03--sicherheit)
-- [welle-betrieb-diagnose](../plan/planning/welle-betrieb-diagnose.md) §1, §3, §5; [welle-qualitaet-grundlage](../plan/planning/welle-qualitaet-grundlage.md) §3
+- [welle-betrieb-diagnose](../plan/planning/done/welle-betrieb-diagnose.md) §1, §3, §5; [welle-qualitaet-grundlage](../plan/planning/welle-qualitaet-grundlage.md) §3
 - [AGENTS.md](../../AGENTS.md) §3.1 bis §3.8; Baseline-Regelwerk `modul-07-carveouts.md`
 
 **Eigene Läufe (Worktree, ein Docker-Build gleichzeitig, nichts gemountet):**
