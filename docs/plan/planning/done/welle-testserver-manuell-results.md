@@ -168,4 +168,10 @@ Anker (Hash, Lauf, Zahl).
 
 ## Archivierung und Roadmap
 
-(Wird im Abschluss dieser Closure ausgefüllt.)
+Regeln dieser Sektion: `close-welle` Schritte 4 und 6.
+
+**Archivierung (Schritt 4): nicht ausgeführt, Bedingung in diesem Arbeitsbaum nicht eingetreten.** `make archive-welle WELLE=welle-testserver-manuell` meldet in diesem Arbeitsbaum, dass der Träger (`.harness/state/bin/ai-harness-init`, gitignoriert) nicht liegt und das Repo „seine Wellen nicht archiviert“; er liegt im Haupt-Arbeitsbaum. Die Vorschau des dortigen Trägers (`ai-harness-init archive-welle --vorschau welle-testserver-manuell`, nichts geschrieben) nennt: 33 Mitglieder (Feld `Welle:`), 0 wellenlose seit der letzten Closure, 2 „bleibt liegen (nach der Grenze)“, 49 fremd, 65 Review-Reports (ohne Stub), 225 Dateien mit Verweisen auf Bewegtes (905 Präfix-Fundstellen). Nicht gelaufen, weil der Lauf 225 Dateien umschreibt, einen sauberen Arbeitsbaum verlangt und Verweise bricht, und weil auf anderen Zweigen parallel an Roadmap, Wellen und Spezifikation gearbeitet wird (so schon bei `welle-fehler-abbruch` und `welle-produktschnitt`, deren Archivierung ebenfalls aussteht). *Empfehlung:* nach dem Merge dieser und der parallelen Closures im Haupt-Arbeitsbaum `make archive-welle WELLE=welle-testserver-manuell`; bis dahin gilt die Welle als inhaltlich geschlossen, die Auditierbarkeit nach Schritt 4 steht aus.
+
+**Roadmap (Schritt 6):** die Welle verließ *Offene Wellen* (samt dem Block „In Arbeit“), *Abgeschlossene Wellen* trägt ihre Zeile mit Zeiger auf diese Notiz. Meilenstein: keiner (die Welle hat „kein Meilenstein-Bezug“). Keine Umplanung, daher kein Eintrag in *Historische Trigger-Verschiebungen*. Der Welle-Plan liegt per reinem Move in `done/`; die Verweise darauf (eigene `../`-Pfade, Roadmap, Register, Slices) sind nachgezogen.
+
+**Gates dieser Closure (nach dem Link-Commit):** `make docs-check` 0 Befunde (1394 Dateien), `make flaeche` und `make kopplung-zahlen` Exit 0, `make gates` Exit 0 (Stempel und Docker-Cache, keine neue Test-Ausführung).
