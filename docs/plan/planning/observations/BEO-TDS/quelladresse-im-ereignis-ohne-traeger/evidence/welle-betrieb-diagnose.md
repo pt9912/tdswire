@@ -1,0 +1,2 @@
+**Vorgang:** [welle-betrieb-diagnose](../../../../done/welle-betrieb-diagnose-results.md)
+**Fund:** Closure der Welle, Zuordnung der offenen Punkte von [ADR-0020](../../../../../adr/0020-logformat-und-observability-schnittstelle.md) zu Trägern: Punkt (e) hat in `slice-qa-anmeldedrosselung` §7 keine Zeile, die den Punkt trägt; geprüft wurden §7 des Slice, [ADR-0016](../../../../../adr/0016-anmeldedrosselung.md) und `TelemetryJson.PROPERTIES`.

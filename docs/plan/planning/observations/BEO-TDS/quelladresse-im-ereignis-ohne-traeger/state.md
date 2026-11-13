@@ -1,0 +1,1 @@
+**Stand:** offen — 1×, unter der Schwelle; kein Träger als Datei. Entscheidung beim Nutzer: Slice, Folge-ADR oder Streichung (Datenschutz, [TDS-FA-09](../../../../../../spec/lastenheft.md#tds-fa-09--konfiguration-und-diagnose)).
