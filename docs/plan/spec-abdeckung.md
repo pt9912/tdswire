@@ -83,9 +83,9 @@ Stand: 49 von 59 Festlegungen mit mindestens einem bestandenen Test, 4 Gate-Fest
 | `SPEC-057` | `TDS_SIM_UNKNOWN_PREPARED_HANDLE` | 8 | 0 | 0 | 0 | PreparedHandlesDispatchTest, RequestSequenceTest, ResetConnectionDispatchTest, ErrorMapperTest | mindestens ein bestandener getaggter Test |
 | `SPEC-058` | `TDS_PREPARE_LIMIT` | 11 | 0 | 0 | 0 | HandleLimitEmbeddingTest, PreparedHandlesDispatchTest, PreparedHandlesTest, ResetConnectionDispatchTest, UnprepareDispatchTest, ErrorMapperTest, RequestSettingsTest, ConfigLoaderTest | mindestens ein bestandener getaggter Test |
 | `SPEC-060` | `TDS_SIM_UNKNOWN_PREPARED_HANDLE` | 15 | 0 | 0 | 0 | UnprepareDispatchTest, ErrorMapperTest, RequestWiringTest, UnprepareLastProcessTest | mindestens ein bestandener getaggter Test |
-| `SPEC-017` | `tds.connection` | 16 | 0 | 0 | 0 | TelemetryFelderEmbeddingTest, ConfigValidationTest, TelemetryEventTest, ObserverTest, MetricsTracingWiringTest, TestserverLogProcessTest, ConfigLoaderTest, TelemetryJsonTest | mindestens ein bestandener getaggter Test |
-| `SPEC-018` | `tds.query` | 32 | 0 | 0 | 0 | TelemetryEventTest, LatencyHistogramTest, ObserverTest, AbandonedFaultRequestIdTest, SpanOutcomesBulkTest, SpanOutcomesDispatchTest, MetricsTracingWiringTest, RequestFailedRequestIdTest, TestserverLogProcessTest, TelemetryJsonTest | mindestens ein bestandener getaggter Test |
-| `SPEC-019` | `backend.execute` | 11 | 0 | 0 | 0 | TelemetryEventTest, ObserverTest, SpanOutcomesBulkTest, SpanOutcomesDispatchTest, MetricsTracingWiringTest, TestserverLogProcessTest | mindestens ein bestandener getaggter Test |
+| `SPEC-017` | `tds.connection` | 17 | 0 | 0 | 0 | TelemetryFelderEmbeddingTest, ConfigValidationTest, TelemetryEventTest, ObserverTest, MetricsTracingWiringTest, TestserverLaufInspektionTest, TestserverLogProcessTest, ConfigLoaderTest, TelemetryJsonTest | mindestens ein bestandener getaggter Test |
+| `SPEC-018` | `tds.query` | 33 | 0 | 0 | 0 | TelemetryEventTest, LatencyHistogramTest, ObserverTest, AbandonedFaultRequestIdTest, SpanOutcomesBulkTest, SpanOutcomesDispatchTest, MetricsTracingWiringTest, RequestFailedRequestIdTest, TestserverLaufInspektionTest, TestserverLogProcessTest, TelemetryJsonTest | mindestens ein bestandener getaggter Test |
+| `SPEC-019` | `backend.execute` | 12 | 0 | 0 | 0 | TelemetryEventTest, ObserverTest, SpanOutcomesBulkTest, SpanOutcomesDispatchTest, MetricsTracingWiringTest, TestserverLaufInspektionTest, TestserverLogProcessTest | mindestens ein bestandener getaggter Test |
 | `SPEC-020` | Microsoft TDS | 3 | 0 | 0 | 0 | Tds8WiringTest, Tds8ProcessTest | mindestens ein bestandener getaggter Test |
 | `SPEC-021` | .NET SQL-Client | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-022` | Query-Backend | 4 | 0 | 0 | 0 | EmbeddingTest, QueryTimeoutTest | mindestens ein bestandener getaggter Test |
@@ -99,7 +99,7 @@ Stand: 49 von 59 Festlegungen mit mindestens einem bestandenen Test, 4 Gate-Fest
 | `SPEC-040` | Simulations-Tests (`make simulations-integration` im E2E-Durchgang) | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
 | `SPEC-041` | Static-Analysis-Gate (`make detekt`, `make detekt-selbsttest`) | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
 | `SPEC-042` | Build-Gate (`make build`) | 0 | 0 | 0 | 0 | — | Gate-Festlegung, ungemessen |
-| `SPEC-052` | Bibliotheks-Artefakt und Lizenz (E2E-Durchgang: `make laufzeittest` mit dem Testserver; der Tag `@spec` nennt nur den Lizenztext) | 35 | 0 | 0 | 0 | LizenzTest, TestserverLogProcessTest, ZustandsereignisseProzessTest, LogAdapterTest, LogLevelSettingTest, LogStartTest, TelemetryJsonTest, TestserverStartTest | mindestens ein bestandener getaggter Test |
+| `SPEC-052` | Bibliotheks-Artefakt und Lizenz (E2E-Durchgang: `make laufzeittest` mit dem Testserver; der Tag `@spec` nennt nur den Lizenztext) | 36 | 0 | 0 | 0 | LizenzTest, TestserverLaufInspektionTest, TestserverLogProcessTest, ZustandsereignisseProzessTest, LogAdapterTest, LogLevelSettingTest, LogStartTest, TelemetryJsonTest, TestserverStartTest | mindestens ein bestandener getaggter Test |
 | `SPEC-050` | Referenzabgleich (vorläufig, E2E-Durchgang) | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 | `SPEC-032` | Kompatibilitätstest (E2E-Durchgang) | 0 | 0 | 0 | 0 | — | OHNE NACHWEIS |
 
