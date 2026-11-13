@@ -104,7 +104,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-request-failed-mit-request-id](../in-progress/slice-request-failed-mit-request-id.md) liegt in `done/`, und ein Verantwortlicher ist im Kopf eingetragen. Grund der Kante: Das Ereignis `request_failed` des Fehlerschritts trägt erst mit diesem Slice die `request_id` seiner Anfrage; die Inspektion (§2 Punkt 3) prüft, dass sie dieselbe ist wie im Ende von `tds.query`, und die Pflichtfelder je Art (§2 Punkt 2) nennen `request_id` dort. Ohne den Slice müsste der Test das Feld an dieser Art ausnehmen und bei seiner Lieferung nachziehen (zweimal anfassen). Beobachtbar: die Datei liegt in `done/`.
+**Start** (`next` → `in-progress`): [slice-request-failed-mit-request-id](../done/slice-request-failed-mit-request-id.md) liegt in `done/`, und ein Verantwortlicher ist im Kopf eingetragen. Grund der Kante: Das Ereignis `request_failed` des Fehlerschritts trägt erst mit diesem Slice die `request_id` seiner Anfrage; die Inspektion (§2 Punkt 3) prüft, dass sie dieselbe ist wie im Ende von `tds.query`, und die Pflichtfelder je Art (§2 Punkt 2) nennen `request_id` dort. Ohne den Slice müsste der Test das Feld an dieser Art ausnehmen und bei seiner Lieferung nachziehen (zweimal anfassen). Beobachtbar: die Datei liegt in `done/`.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

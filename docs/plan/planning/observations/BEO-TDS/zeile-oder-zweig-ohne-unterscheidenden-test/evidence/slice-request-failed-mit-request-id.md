@@ -1,2 +1,2 @@
-**Vorgang:** [slice-request-failed-mit-request-id](../../../../in-progress/slice-request-failed-mit-request-id.md)
+**Vorgang:** [slice-request-failed-mit-request-id](../../../../done/slice-request-failed-mit-request-id.md)
 **Fund:** [Review 2](../../../../../../reviews/2026-11-13-646bc0ad-review-2-slice-request-failed-mit-request-id.md) R2-1 (MEDIUM): `abandoned = end is RunEnd.Abandoned` in `RequestLoop.answerRelease` ist neu, seine Entfernung lässt alle Tests grün (Mutation M-C); aufgelöst durch Entfernung der Zeile in `50c80578`.
