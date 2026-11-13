@@ -11,7 +11,7 @@ Baseline-Regelwerk `modul-05-planning-harness.md` §Lifecycle als State Machine.
 
 **Berührte Spec-Stellen:** SPEC-045
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** pt9912 (Zweig slice-referenzabgleich-adr-0028-nachzug)
 
 **Autor:** pt9912. **Datum:** 2026-11-01.
 
