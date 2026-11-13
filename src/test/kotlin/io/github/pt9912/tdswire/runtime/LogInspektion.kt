@@ -13,9 +13,12 @@ private const val BACKEND_EXECUTE = "backend.execute"
 
 /**
  * Die Prüfung aller Zeilen der Standardausgabe eines Laufs gegen die Felder von `spezifikation.md` Abschnitt 4 und 5
- * (`TDS-QA-03`): die Tabellen dieser Datei sind eine Festlegung aus der Spezifikation, nicht gemessen. Die Menge der
- * erlaubten Felder ist eine zweite Fundstelle der Felder in `TelemetryJson` (Modul `testserver`, das `src/test` nicht
- * sieht); `TelemetryJsonTest` hält jene gleich dem Modell der Bibliothek, diese hält nichts.
+ * (`TDS-QA-03`): die Pflichtfelder je Art sind eine Festlegung aus der Spezifikation, nicht gemessen. Die Menge der
+ * erlaubten Felder und ihre Arten sind die Felder von `TelemetryJson` (`SPEC-052`; sie enthält auch `issue_kind` und
+ * `exception_type`, die die Spezifikation nicht führt) und damit eine zweite Fundstelle derselben Zahl: `TelemetryJson`
+ * liegt im Modul `testserver`, das `src/test` nicht sieht; `TelemetryJsonTest` hält jene gleich dem Modell der
+ * Bibliothek, diese hält nichts. Grenze: ein Feld dieser Menge, das der Adapter nie schreibt, und eine Art, die der
+ * Lauf nicht erzeugt (etwa `bind_failed`), bleiben unbemerkt; der Lauf prüft nur, was er auslöst.
  */
 internal object LogInspektion {
     private val HEAD = setOf("ts", "level", "event")
@@ -54,7 +57,10 @@ internal object LogInspektion {
         SPAN_ENDED,
     )
 
-    /** Das Feld und die Arten, in denen es stehen darf (`spezifikation.md` Abschnitt 4, Herkunft der IDs). */
+    /**
+     * Das Feld und die Arten, in denen es stehen darf: die Zuordnung, mit der `TelemetryJson` es aus `TelemetryEvent`
+     * schreibt (`spezifikation.md` Abschnitt 4, Herkunft der IDs). Ein Feld in einer anderen Art ist ein Befund.
+     */
     private val ONLY_IN = mapOf(
         "request_id" to setOf(SPAN_ENDED, REQUEST_FAILED),
         "principal" to setOf(LOGIN_ACCEPTED),
@@ -62,6 +68,27 @@ internal object LogInspektion {
         "error_code" to setOf(REQUEST_FAILED),
         "session_id" to setOf(LOGIN_ACCEPTED, REQUEST_FAILED, SPAN_ENDED),
         "connection_id" to WITH_CONNECTION,
+        "cause" to setOf(REQUEST_FAILED),
+        "reason" to setOf(
+            "security_weakened",
+            "login_rejected",
+            "connection_closed",
+            "start_refused",
+            "tls_first_not_offered",
+        ),
+        "failure" to setOf("tls_handshake_failed"),
+        "exception_type" to setOf("bind_failed", "adapter_failed", "connection_failed", "accept_failed"),
+        "issue_kind" to setOf("config_invalid"),
+        "key" to setOf("config_invalid"),
+        "part" to setOf("tls_start_rejected"),
+        "form" to setOf("tls_start_rejected"),
+        "address" to setOf("server_started", "bind_failed"),
+        "port" to setOf("server_started", "bind_failed"),
+        "tables" to setOf("simulation_backend_ready"),
+        "span" to setOf(SPAN_ENDED),
+        "outcome" to setOf(SPAN_ENDED),
+        "phase" to setOf(SPAN_ENDED),
+        "request_kind" to setOf(SPAN_ENDED),
     )
 
     /** Die Zeilen, die keine Ereignisse sind: die zwei Zeilen des Testservers. */

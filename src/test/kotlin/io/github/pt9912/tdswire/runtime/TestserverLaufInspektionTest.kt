@@ -8,6 +8,8 @@ import io.github.pt9912.tdswire.protocol.token.RowToken
 import io.github.pt9912.tdswire.protocol.token.Token
 import io.github.pt9912.tdswire.transport.listener.LOOPBACK
 import java.io.File
+import java.util.Base64
+import java.util.HexFormat
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -72,6 +74,7 @@ internal class TestserverLaufInspektionTest : TempFilesTest() {
             "alice\t{plain}$ALICE_PASSWORD\n$UNKNOWN_USER\t${pbkdf2Value(BOB_PASSWORD)}\n",
         ),
         ConfigKeys.METRICS_INTERVAL_SECONDS to "1",
+        ConfigKeys.QUERY_TIMEOUT to QUERY_TIMEOUT_SECONDS,
         "LOG_LEVEL" to "DEBUG",
         "SIMULATION_DESCRIPTION_FILE" to file("sim.yaml", DESCRIPTION),
     )
@@ -99,8 +102,9 @@ internal class TestserverLaufInspektionTest : TempFilesTest() {
      * mit Ergebnis, eine parametrisierte Anfrage, eine Anfrage auf eine unbekannte Tabelle, eine große Auswahl, deren
      * Antwort der Client nicht liest und die ATTENTION beendet, dann eine weitere Auswahl auf derselben Verbindung und
      * SIGTERM. Jede Zeile der Standardausgabe ist eine der zwei Zeilen des Testservers oder gültiges JSON mit den
-     * Pflichtfeldern ihrer Art; kein Feld liegt außerhalb der Felder der Spezifikation; weder Passwort noch Prüfwert
-     * noch Kennung der Ablehnung noch Parameterwert noch SQL-Text noch Text der Fehlermeldung steht in einer Zeile; die
+     * Pflichtfeldern ihrer Art; kein Feld liegt außerhalb der Felder von `TelemetryJson` und keines steht in einer
+     * Art, die es nicht trägt; weder Passwort noch Prüfwert (ganz und in seinen Teilen) noch Kennung der Ablehnung
+     * noch Parameterwert noch SQL-Text noch Text der Fehlermeldung steht in einer Zeile; die
      * drei Spans enden mit ihren Pflicht-Attributen, und die Metriken nennen die Anfragen, den Abbruch und keinen
      * offenen Span.
      *
@@ -205,13 +209,25 @@ internal class TestserverLaufInspektionTest : TempFilesTest() {
         assertEquals("server_stopped", events.last()["event"])
         LogInspektion.assertFields(events)
         val forbidden = listOf(
-            ALICE_PASSWORD, BOB_PASSWORD, WRONG_PASSWORD, UNKNOWN_USER, "pbkdf2", PARAMETER_VALUE, "zz_", "select",
+            ALICE_PASSWORD, BOB_PASSWORD, WRONG_PASSWORD, UNKNOWN_USER, PARAMETER_VALUE, "zz_", "select",
             "insert", "sp_executesql", "nvarchar", "@p", errorText,
-        )
+        ) + checkValueParts()
         LogInspektion.assertNoneOf(server, forbidden)
         inspectEvents(events, port)
         inspectSpans(events, loadSteps)
         inspectMetrics(events, requests)
+    }
+
+    /**
+     * Der Prüfwert aus der Benutzerdatei des Laufs ohne Passwort und seine Teile: die Marke, das Salz und der Hash in
+     * der Form der Datei (Base64) und als Hex.
+     */
+    private fun checkValueParts(): List<String> {
+        val value = pbkdf2Value(BOB_PASSWORD)
+        val parts = value.substringAfter('}').split('$')
+        val bytes = listOf(parts.first(), parts.last()).map { Base64.getDecoder().decode(it) }
+        val hex = bytes.map { HexFormat.of().formatHex(it) }
+        return listOf(value, value.substringBefore('}') + "}", "pbkdf2") + parts.first() + parts.last() + hex
     }
 
     private fun inspectEvents(events: List<Map<String, Any>>, port: Int) {
@@ -271,6 +287,9 @@ internal class TestserverLaufInspektionTest : TempFilesTest() {
 
     private companion object {
         const val CONNECTIONS = 2
+
+        /** Das Maximum von `QUERY_TIMEOUT`: die Frist des Servers liegt weit über jeder Schranke einer Wartestelle. */
+        const val QUERY_TIMEOUT_SECONDS = "3600"
         const val QUERIES_AFTER_LOAD = 5
         const val ERROR_AT = 2
     }
