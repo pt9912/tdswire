@@ -1,3 +1,5 @@
 **Stand:** verkörpert — `.harness/skills/reviewer.md` (MEDIUM, Prüfung „Fortschreibung lässt die zweite Fundstelle stehen“), Anker `seit slice-qa-dotnet-lieferkette-haerten`; Nachtrag in `slice-qa-dotnet-lieferkette-haerten.md` §7
 
 **Lese-Schritt welle-testserver-manuell (2026-11-13):** 38 Dateien, davon 16 aus Slices dieser Welle; die Prüfung im Reviewer-Skill fing jedes Auftreten, der Implementer hatte keinen Suchschritt. Zweite Verkörperung: Schritt 20c in `.claude/commands/implement-slice.md` (Grep der Kernaussage über das ganze Repo vor dem Handoff), Anker `seit welle-testserver-manuell`; Eintrag mit `liegt in` in `welle-testserver-manuell-results.md` §Steering-Loop-Einträge. Retirement-Check: bleibt das Auftreten nach dieser Welle aus?
+
+**Wiederauftreten (slice-referenzabgleich-adr-0028-nachzug):** Review F-4 und Verifikation V-5; der Review fand die zweite Fundstelle, die Verifikation grepte sie gegen die Zeitdokumente. Retirement-Check: die Beobachtung ist nach `welle-testserver-manuell` wieder aufgetreten, die Regel bleibt.
