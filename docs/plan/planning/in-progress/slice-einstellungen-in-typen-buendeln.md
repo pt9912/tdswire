@@ -46,23 +46,23 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 Liefer-Punkte (drei):
 
-- [ ] **Typen und Schnitt:** `RequestSettings` und gegebenenfalls weitere Einstellungsgruppen von `ServerConfig` sind in benannte, gruppierte Typen überführt; jeder hat Voreinstellungen, Aufrufe sind überall benannt (Haupt-, Test-, Testserver-, Integrator-Code), `ConfigLoader` des Testservers und `EnvironmentConfig` sind angeglichen; der Schnitt und die Namen stehen im Plan (§3) mit Begründung; die neuen Typnamen stehen vor dem Bau in der Liste von `SPEC-059` (Ergänzung der Liste durch den Slice selbst), `make flaeche` ist grün.
-- [ ] **Java-Lesart:** aus Java sind die Typen mit Voreinstellungen aufrufbar (`@JvmOverloads` oder Erbauer, Wahl begründet); ein Einbettungstest über die öffentliche Fläche (ohne Jackson, nur öffentliche Namen) belegt Kotlin- und Java-Aufruf; die inkompatible Änderung der Fläche ist im Slice benannt.
-- [ ] **Belege und Nachzug:** alle bisherigen Tests sind grün; Mutationen belegen die Unterscheidbarkeit (zwei vertauschte Werte machen mindestens einen Test rot; eine verlorene Voreinstellung ebenso); Spezifikation (Tabelle der Defaults, `SPEC-062`) und alle Dateien unter `docs/user/` (`referenz-konfiguration.md`, Aufgabe 10, Einbettungstest) sind komplett gegen den Stand nach dem Slice gelesen und auf den Ist-Zustand gebracht (`AGENTS.md` §5 Regel 5).
+- [x] **Typen und Schnitt:** `RequestSettings` und gegebenenfalls weitere Einstellungsgruppen von `ServerConfig` sind in benannte, gruppierte Typen überführt; jeder hat Voreinstellungen, Aufrufe sind überall benannt (Haupt-, Test-, Testserver-, Integrator-Code), `ConfigLoader` des Testservers und `EnvironmentConfig` sind angeglichen; der Schnitt und die Namen stehen im Plan (§3) mit Begründung; die neuen Typnamen stehen vor dem Bau in der Liste von `SPEC-059` (Ergänzung der Liste durch den Slice selbst), `make flaeche` ist grün.
+- [x] **Java-Lesart:** aus Java sind die Typen mit Voreinstellungen aufrufbar (`@JvmOverloads` oder Erbauer, Wahl begründet); ein Einbettungstest über die öffentliche Fläche (ohne Jackson, nur öffentliche Namen) belegt Kotlin- und Java-Aufruf; die inkompatible Änderung der Fläche ist im Slice benannt.
+- [x] **Belege und Nachzug:** alle bisherigen Tests sind grün; Mutationen belegen die Unterscheidbarkeit (zwei vertauschte Werte machen mindestens einen Test rot; eine verlorene Voreinstellung ebenso); Spezifikation (Tabelle der Defaults, `SPEC-062`) und alle Dateien unter `docs/user/` (`referenz-konfiguration.md`, Aufgabe 10, Einbettungstest) sind komplett gegen den Stand nach dem Slice gelesen und auf den Ist-Zustand gebracht (`AGENTS.md` §5 Regel 5).
 
 Nachweis-Pflichten für alle drei Punkte:
 
-- [ ] Jeder Test trägt im KDoc über der Testfunktion den Block-Tag `@spec SPEC-<NNN>`; die Tests laufen in `make test` und sind grün.
-- [ ] Jede Aussage steht an einem Test oder ist als Festlegung gekennzeichnet; die Zuordnung *Test | Festlegung* steht in der Closure-Notiz.
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] Jeder Test trägt im KDoc über der Testfunktion den Block-Tag `@spec SPEC-<NNN>`; die Tests laufen in `make test` und sind grün.
+- [x] Jede Aussage steht an einem Test oder ist als Festlegung gekennzeichnet; die Zuordnung *Test | Festlegung* steht in der Closure-Notiz.
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Doku-Update, falls ein öffentlicher Vertrag berührt ist.
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+- [x] Doku-Update, falls ein öffentlicher Vertrag berührt ist.
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
 
 ## 3. Plan (vor Code)
 
@@ -122,16 +122,55 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Offene Risiken werden bei Closure aufgelöst — **jedes** Risiko bekommt genau
 **einen** Ausgang.
 
-- Neue Typnamen weiten die Liste von `SPEC-059`; `make flaeche` vergleicht Typnamen, keine Mitglieder (`BEO-TDS/oeffentliche-flaeche-mitglieder-ohne-sensor`), eine vertauschte Reihenfolge der Mitglieder sieht er nicht. — **Ausgang:** offen bis zur Closure.
-- Der Umbau berührt viele Aufrufe (Haupt-, Test-, Testserver-, Integrator-Code, Beispielcode der Anleitung); ein positionaler Aufruf, der still kompiliert, ist die Gefahr, die der Slice beseitigen soll. — **Ausgang:** offen bis zur Closure (Sensor: Mutation mit vertauschten Werten).
-- Konflikte mit parallelen Zweigen, die `ServerConfig` oder `RequestSettings` ändern (frühere Merges: `RequestSettings` fünfter und sechster Parameter). — **Ausgang:** offen bis zur Closure.
+- Neue Typnamen weiten die Liste von `SPEC-059`; `make flaeche` vergleicht Typnamen, keine Mitglieder (`BEO-TDS/oeffentliche-flaeche-mitglieder-ohne-sensor`), eine vertauschte Reihenfolge der Mitglieder sieht er nicht. — **Ausgang:** weiter offen (Träger: Register `BEO-TDS/oeffentliche-flaeche-mitglieder-ohne-sensor`, 3×, Entscheid beim Architect); die Reihenfolge der sechs Felder hält `RequestSettingsTest` mit sechs verschiedenen Werten, die der übrigen Gruppen kein Sensor.
+- Der Umbau berührt viele Aufrufe (Haupt-, Test-, Testserver-, Integrator-Code, Beispielcode der Anleitung); ein positionaler Aufruf, der still kompiliert, ist die Gefahr, die der Slice beseitigen soll. — **Ausgang:** entfallen zwischen den Gruppen (drei Typen, nicht vertauschbar), **weiter offen innerhalb einer Gruppe** (`query`/`cancel`/`grace`, `handles`/`bytes` sind gleichartige Ints); Sensor: Mutationen mit vertauschten Werten sind rot (Tausch in `ConnectionWiring`, `effectiveSettings()`, `@JvmOverloads` entfernt; vom Verifier gefahren), die Doku nennt „Felder benennen“.
+- Konflikte mit parallelen Zweigen, die `ServerConfig` oder `RequestSettings` ändern (frühere Merges: `RequestSettings` fünfter und sechster Parameter). — **Ausgang:** nicht eingetreten (`main` stand bis zum Ende auf `013d2954`); bei einem späteren Merge gilt für `docs/plan/spec-abdeckung.md` die Fassung von `main` und Neuerzeugen (I-2 des Reviews).
 
 ## 7. Closure-Notiz
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Das Beobachtungs-Register · `grundlagen-traceability.md` §Herkunfts-Anker für Steering-Loop-Regeln.
 
-Wird bei der Closure gefüllt.
+Closure am 2026-11-13 (Planner).
+
+**Belege der Rollen.** Umsetzung `7582e1ef`; Review: [2026-11-13-7582e1ef-review-slice-einstellungen-in-typen-buendeln](../../../reviews/2026-11-13-7582e1ef-review-slice-einstellungen-in-typen-buendeln.md) (0 HIGH, 1 MEDIUM, 3 LOW, 4 INFO). Nachbesserung F-1 bis F-4: `b6ed24bb`. Verifikation: [2026-11-13-b6ed24bb-verifikation-slice-einstellungen-in-typen-buendeln](../../../reviews/2026-11-13-b6ed24bb-verifikation-slice-einstellungen-in-typen-buendeln.md) (konform, ohne HIGH und MEDIUM; `make clean-build` 571 s, 1397 Testfälle ohne Fehler; `make e2e` 328 s, acht Stufen grün; drei Mutationen je rot). Nachbesserung ohne zweiten Review: nur Plan, Spezifikation, Nutzer-Doku und ein KDoc geändert, von der Verifikation gelesen.
+
+**Inkompatible Änderung der öffentlichen Fläche (benannt).** `RequestSettings` nimmt statt sechs flacher Ganzzahl-Parameter drei Gruppen: `RequestSettings(timeouts: RequestTimeouts, limits: RequestLimits, observation: ObservationSettings)`. Der Ganzzahl-Konstruktor entfällt, ebenso ändern sich `copy` und `componentN`; Zugriffe wie `requests.queryTimeoutSeconds` heißen `requests.timeouts.queryTimeoutSeconds`. Neue öffentliche Namen: `RequestTimeouts`, `RequestLimits`, `ObservationSettings` (Liste von `SPEC-059`). Zulässig vor der ersten Veröffentlichung nach [ADR-0021](../../adr/0021-oeffentlicher-integrations-einstieg.md) (Zusage vor 1.0 eng); die Versionsnummer bleibt bei [slice-release-entscheidungen](../open/slice-release-entscheidungen.md). Die Änderung steht auch in der Spezifikation (Änderungsprotokoll 2026-11-13) und in `docs/user/einbettung-und-betrieb.md`. Die zwölf Schlüssel von `EffectiveSettings` ([ADR-0040](../../adr/0040-wirksame-konfiguration-im-ereignis-aus-typisiertem-wertobjekt.md)), Bereiche, Voreinstellungen und Umgebungsnamen sind unverändert.
+
+**Zuordnung Test | Festlegung.**
+
+| Aussage | Art | Stelle |
+|---|---|---|
+| Jeder Wert der sechs Felder steht unter seinem Schlüssel der wirksamen Konfiguration | **Test** (Mutation: Tausch zweier Felder in `effectiveSettings()` rot) | `RequestSettingsTest` |
+| Voreinstellungen 30, 5, 10 s, 1000, 16 MiB, 60 s; Bereiche je Schlüssel | **Festlegung** (unverändert aus den früheren Slices); Prüfung und Wert **Test** | `ConfigValidationTest`, `RequestSettingsTest`, `EinstellungenEmbeddingTest` |
+| Zuordnung Frist der Anfrage und Frist des Abbruchs, Handle-Grenze, Nachrichtengrenze an ihre Verbraucher | **Test** (Mutationen: Tausch `query`/`cancel` in `ConnectionWiring` rot, Tausch `handleLimit`/`maxMessageBytes` rot) | `AbbruchWiringTest`, `HandleLimitEmbeddingTest`, `MessageLimitWiringTest` |
+| Aufbau der Gruppen aus den Umgebungsnamen des Testservers | **Test** | `ConfigLoaderTest`, `ConfigUsersFileTest` |
+| Aus Java sind die Konstruktoren mit weniger Argumenten aufrufbar | **Test**, nur per Reflection (`getConstructor`), kein Java-Compiler im Source-Set `integrator`; Mutation `@JvmOverloads` entfernt rot | `EinstellungenEmbeddingTest` |
+| Wahl `@JvmOverloads` statt Erbauer; Schnitt in drei Gruppen (Fristen, Grenzen, Beobachtung) | **Festlegung** (Begründung in §3) | Plan §3 |
+| Gruppen sind zwischen den Typen nicht vertauschbar | **Test** (der Compiler; `RequestSettingsTest` mit verschiedenen Werten) | `RequestSettingsTest` |
+| Neue Typnamen in der Liste von `SPEC-059` | **Test** (`make flaeche`, Selbsttest 14 Fälle) | `make flaeche` |
+| Mitglieder und ihre Reihenfolge in der öffentlichen Fläche | **nicht durch einen Sensor gehalten** | `BEO-TDS/oeffentliche-flaeche-mitglieder-ohne-sensor` |
+
+**Restrisiken (benannt).**
+
+- *Vertauschbare Ints innerhalb einer Gruppe.* In `RequestTimeouts` (drei Sekundenwerte) und `RequestLimits` (Handle-Grenze, Byte-Grenze) bleiben gleichartige Ganzzahlen; ein positionaler Aufruf kann sie still vertauschen. Der Slice schließt die Gefahr zwischen den Gruppen, nicht innerhalb. Gegenmaßnahmen: Aufrufe im Repo sind benannt, Verdrahtungstests mit verschiedenen Werten, die Doku sagt „Felder benennen“. Kein Sensor erzwingt benannte Aufrufe von außen.
+- *Java-Lesart nur per Reflection belegt.* Belegt ist die Signatur der erzeugten Konstruktoren; ein Java-Quelltext wird nicht übersetzt (Verifikation V-2, Review I-1). Die Beispiele `new RequestTimeouts(10)` in der Nutzer-Doku sind nicht gegen einen Java-Compiler gelaufen. Aus Java lässt sich ein späteres Feld nur setzen, wenn die früheren mitgegeben werden.
+- *Mitglieder der Fläche* (siehe Tabelle): Reihenfolge der Felder der Gruppen mit zwei oder drei Feldern hält `make flaeche` nicht.
+
+**Nutzer-Doku komplett gelesen.** Alle Dateien unter `docs/user/` gegen den Stand nach dem Slice (Review und Verifikation je für sich): `einbettung-und-betrieb.md` und `referenz-konfiguration.md` angepasst, `referenz-ereignisse.md` und `testserver-manuell.md` ohne Änderung nötig.
+
+**Gelernt (Lerneintrag).**
+
+1. *Die Plan-Tabelle nannte die Verdrahtung nicht* (F-1: `Bootstrap.kt`, `ConnectionWiring.kt` und zwei KDoc-Dateien, genau die Stelle der Vertauschungsgefahr). Die Regel gilt bereits (Reviewer-Skill, MEDIUM); sie griff beim Reviewer, nicht beim Implementer. Register `BEO-TDS/plan-tabelle-nennt-neue-datei-nicht` ergänzt.
+2. *Eine Änderung der öffentlichen Fläche braucht eine Zeile im Änderungsprotokoll der Spezifikation und einen Satz zur Inkompatibilität in Spezifikation und Nutzer-Doku* (F-3, F-4); Namen älterer Protokollzeilen bleiben die des damaligen Standes. Gezählt im Register `BEO-TDS/fortschreibung-laesst-zweite-fundstelle-stehen`.
+3. *Ein Wächter-Satz im KDoc war breiter als sein Test* (F-2); `AGENTS.md` §3.8 gilt bereits.
+4. *Bündeln in Typen schließt die Vertauschung zwischen, nicht innerhalb der Gruppen*: Gruppen aus gleichartigen Werten behalten das Risiko; Gruppen verschiedener Typen beseitigen es. Das ist eine Entwurfsaussage dieses Schnitts, keine neue Regel.
+
+- **Steering-Loop-Eintrag:** keine Regel verkörpert, kein Feld `liegt in` gesetzt; die vier Klassen sind gezählt, die Regeln zu 1 und 3 gelten bereits (Reviewer-Skill, `AGENTS.md` §3.8). Zuordnung der Aussagen: Tabelle oben.
+- **Beobachtungs-Register (`../observations/`):** `BEO-TDS/sechster-requestsettings-parameter-ohne-entscheidung` aufgelöst (Stand *verkörpert*); `evidence/slice-einstellungen-in-typen-buendeln.md` ergänzt in `BEO-TDS/plan-tabelle-nennt-neue-datei-nicht` und `BEO-TDS/fortschreibung-laesst-zweite-fundstelle-stehen`; `BEO-TDS/oeffentliche-flaeche-mitglieder-ohne-sensor` unverändert offen (3×, Architect).
+- **Folge-Slices:** keine neuen; [slice-release-entscheidungen](../open/slice-release-entscheidungen.md) bleibt für die Versionsnummer.
+- **Risiken aus §6:** alle drei tragen einen Ausgang (§6).
+- **Gates:** siehe Commit-Bericht der Closure (`make docs-check`, `make flaeche`, `make kopplung-zahlen`, `make gates`); der frische Beleg der Tests ist die Verifikation (`make clean-build`, `make e2e`).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
