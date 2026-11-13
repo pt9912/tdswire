@@ -34,7 +34,7 @@ ist einzeln lieferbar.
 - Ein Ereignis „Anfrage beendet“ (Art, Dauer, Ergebnis) — bleibt Zielzustand der Spezifikation ohne Slice (Nutzerentscheid 2026-11-07); Art, Dauer und Ergebnis tragen heute die Enden der Spans, ein zweites Ereignis dafür wäre eine neue Art und braucht eigenen Anlass (Register `BEO-TDS/request-failed-ohne-request-id`, Re-Evaluierungs-Trigger dort).
 - `request_id` in weiteren Ereignissen (Anmeldung, Verbindung): sie gehören keiner Anfrage.
 - Ein eigenes Ereignis zum Abbruch durch ATTENTION — bleibt Zielzustand ohne Slice.
-- Die Bündelung der Einstellungen in Typen — [slice-einstellungen-in-typen-buendeln](slice-einstellungen-in-typen-buendeln.md).
+- Die Bündelung der Einstellungen in Typen — [slice-einstellungen-in-typen-buendeln](../in-progress/slice-einstellungen-in-typen-buendeln.md).
 
 ## 2. Definition of Done
 
