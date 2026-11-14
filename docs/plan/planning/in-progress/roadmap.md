@@ -10,7 +10,7 @@ gezeigt, nicht als Treiber.
 
 ## Offene Wellen
 
-Arbeit: [slice-maven-veroeffentlichung](slice-maven-veroeffentlichung.md) und [slice-inspektionstest-puffer-unabhaengig](slice-inspektionstest-puffer-unabhaengig.md) (parallele Läufe, ohne Welle).
+Arbeit: [slice-maven-veroeffentlichung](slice-maven-veroeffentlichung.md) (ohne Welle).
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte — *Offene Wellen* ist **derivativ**: Der
@@ -27,8 +27,7 @@ In Arbeit (Welle welle-qualitaet-grundlage):
 
 In Arbeit (ohne Welle):
 
-- in `in-progress/`: [slice-maven-veroeffentlichung](slice-maven-veroeffentlichung.md) ([TDS-RB-05](../../../../spec/lastenheft.md#tds-rb-05--lizenz), [ADR-0047](../../adr/0047-veroeffentlichung-ueber-github-packages.md)); zuletzt geschlossen: [slice-stempel-migration](../done/slice-stempel-migration.md) (Closure-Notiz in §7 des Slice; offene Nutzerpunkte: Pflichtmenge der Klasse `immer` ([ADR-0031](../../adr/0031-gates-ohne-stempel-klasse-immer.md) Frage (b)), Grenze `assume-unchanged`, Host-Gates ohne Stage-Paar, CI-Seite)
-- in `in-progress/`: [slice-inspektionstest-puffer-unabhaengig](slice-inspektionstest-puffer-unabhaengig.md) ([TDS-QA-03](../../../../spec/lastenheft.md#tds-qa-03--sicherheit), Anlass: rote `gates` auf `main`, siehe Plan)
+- in `in-progress/`: [slice-maven-veroeffentlichung](slice-maven-veroeffentlichung.md) ([TDS-RB-05](../../../../spec/lastenheft.md#tds-rb-05--lizenz), [ADR-0047](../../adr/0047-veroeffentlichung-ueber-github-packages.md)); zuletzt geschlossen: [slice-inspektionstest-puffer-unabhaengig](../done/slice-inspektionstest-puffer-unabhaengig.md) (Closure-Notiz in §7 des Slice; `TestserverLaufInspektionTest` mit fester Menge ohne Host-Wert, `gates` auf `main` `success` (Lauf 43590894587); Nachbesserung ohne zweiten Review; offen: Host mit Obergrenzen-Summe über 40 MiB, `BEO-TDS/annahme-ueber-puffer-der-umgebung`), davor [slice-stempel-migration](../done/slice-stempel-migration.md) (Closure-Notiz in §7 des Slice; offene Nutzerpunkte: Pflichtmenge der Klasse `immer` ([ADR-0031](../../adr/0031-gates-ohne-stempel-klasse-immer.md) Frage (b)), Grenze `assume-unchanged`, Host-Gates ohne Stage-Paar, CI-Seite)
 
 In Arbeit (Welle welle-referenzabgleich-release):
 

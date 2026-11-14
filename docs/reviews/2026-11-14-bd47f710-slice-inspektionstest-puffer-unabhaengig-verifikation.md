@@ -1,6 +1,6 @@
 # Verifikationsbericht: slice-inspektionstest-puffer-unabhaengig (HEAD bd47f710)
 
-* Rolle: Verifier (Modul 11), frischer Kontext. Gegenstand: [slice-inspektionstest-puffer-unabhaengig](../plan/planning/in-progress/slice-inspektionstest-puffer-unabhaengig.md). Maßstab: DoD §2, Plan §1, §3 und §5, [TDS-QA-06](../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [TDS-QA-03](../../spec/lastenheft.md#tds-qa-03--sicherheit), [ADR-0020](../plan/adr/0020-logformat-und-observability-schnittstelle.md).
+* Rolle: Verifier (Modul 11), frischer Kontext. Gegenstand: [slice-inspektionstest-puffer-unabhaengig](../plan/planning/done/slice-inspektionstest-puffer-unabhaengig.md). Maßstab: DoD §2, Plan §1, §3 und §5, [TDS-QA-06](../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [TDS-QA-03](../../spec/lastenheft.md#tds-qa-03--sicherheit), [ADR-0020](../plan/adr/0020-logformat-und-observability-schnittstelle.md).
 * Stand: Zweig `worktree-agent-a633f5b6d1101abf9`, HEAD `bd47f710`, Basis `4dafdba4`; Diff `4dafdba4..bd47f710`: der Test `TestserverLaufInspektionTest.kt` (+ der Review-Report). Arbeitsbaum vor dem Report sauber; die Mutation M1 lief mit einer gemounteten Kopie, am Baum nichts geändert. Haken in der DoD: keine gesetzt, und ich setze keine; der Slice wird nicht geschlossen.
 * Eingang: Review [2026-11-14-4641fb09-slice-inspektionstest-puffer-unabhaengig-review.md](2026-11-14-4641fb09-slice-inspektionstest-puffer-unabhaengig-review.md); Nachbesserung `bd47f710` (nur Kommentare, ohne zweiten Review; Diff `560b19f0..bd47f710` von mir gelesen: 8 Zeilen hinzu, 5 fort, alle in KDoc oder Kommentar, keine Code-Zeile).
 
@@ -57,3 +57,5 @@ Abfrage nach dem Merge und Push:
 1. CI-Lauf `gates` auf `main` mit `head_sha` = Merge-Commit `success` (Closure-Bedingung, DoD-Punkt 4, Risiko „Runner nicht reproduzierbar" in §6).
 2. Ob auf dem Runner H1 hält (Sendepuffer wächst nicht über die Menge): erst derselbe Lauf zeigt es; fällt H1, ist die Rückführung in §4 und die Entscheidung des Nutzers (§6, Optionen 2 und 4) dran. Der Plan nennt für ein Rot nach dem Merge keinen Ausgang (Review F-5).
 3. M2-Ergebnis (V-3), `make spec-abdeckung` oder Begründung (V-4), Zweitfundstellen (V-5), Closure-Notiz mit Lerneintrag, `state.md` und Evidence im Register, Ausgänge der Risiken in §6, Haken der DoD: Planner.
+
+**Nachtrag der Closure (Planner, 2026-11-14):** V-3 und V-5 ist bei der Closure bearbeitet: M2 (ohne `RECEIVE_BUFFER`) ist in beiden Umgebungen grün (Container mit Obergrenzen 150 994 944 und ohne Sysctl); die Zweitfundstellen sind im Plan und im Vorgänger-Slice mit Nachtrag versehen. Siehe [Closure-Notiz](../plan/planning/done/slice-inspektionstest-puffer-unabhaengig.md) §7.
