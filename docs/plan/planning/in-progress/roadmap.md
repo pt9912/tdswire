@@ -27,7 +27,7 @@ In Arbeit (Welle welle-qualitaet-grundlage):
 
 In Arbeit (ohne Welle):
 
-- in `in-progress/`: [slice-maven-veroeffentlichung](slice-maven-veroeffentlichung.md) ([TDS-RB-05](../../../spec/lastenheft.md#tds-rb-05--lizenz), [ADR-0047](../../adr/0047-veroeffentlichung-ueber-github-packages.md)); zuletzt geschlossen: [slice-stempel-migration](../done/slice-stempel-migration.md) (Closure-Notiz in §7 des Slice; offene Nutzerpunkte: Pflichtmenge der Klasse `immer` ([ADR-0031](../../adr/0031-gates-ohne-stempel-klasse-immer.md) Frage (b)), Grenze `assume-unchanged`, Host-Gates ohne Stage-Paar, CI-Seite)
+- in `in-progress/`: [slice-maven-veroeffentlichung](slice-maven-veroeffentlichung.md) ([TDS-RB-05](../../../../spec/lastenheft.md#tds-rb-05--lizenz), [ADR-0047](../../adr/0047-veroeffentlichung-ueber-github-packages.md)); zuletzt geschlossen: [slice-stempel-migration](../done/slice-stempel-migration.md) (Closure-Notiz in §7 des Slice; offene Nutzerpunkte: Pflichtmenge der Klasse `immer` ([ADR-0031](../../adr/0031-gates-ohne-stempel-klasse-immer.md) Frage (b)), Grenze `assume-unchanged`, Host-Gates ohne Stage-Paar, CI-Seite)
 
 In Arbeit (Welle welle-referenzabgleich-release):
 
