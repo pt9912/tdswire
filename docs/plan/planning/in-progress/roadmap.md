@@ -10,7 +10,7 @@ gezeigt, nicht als Treiber.
 
 ## Offene Wellen
 
-Arbeit: [slice-maven-veroeffentlichung](../done/slice-maven-veroeffentlichung.md) (ohne Welle).
+Arbeit: Nichts in Arbeit. Zuletzt geschlossen: [slice-maven-veroeffentlichung](../done/slice-maven-veroeffentlichung.md) (ohne Welle).
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte — *Offene Wellen* ist **derivativ**: Der
@@ -27,7 +27,7 @@ In Arbeit (Welle welle-qualitaet-grundlage):
 
 In Arbeit (ohne Welle):
 
-- in `in-progress/`: [slice-maven-veroeffentlichung](../done/slice-maven-veroeffentlichung.md) ([TDS-RB-05](../../../../spec/lastenheft.md#tds-rb-05--lizenz), [ADR-0047](../../adr/0047-veroeffentlichung-ueber-github-packages.md)); zuletzt geschlossen: [slice-inspektionstest-puffer-unabhaengig](../done/slice-inspektionstest-puffer-unabhaengig.md) (Closure-Notiz in §7 des Slice; `TestserverLaufInspektionTest` mit fester Menge ohne Host-Wert, `gates` auf `main` `success` (Lauf 43590894587); Nachbesserung ohne zweiten Review; offen: Host mit Obergrenzen-Summe über 40 MiB, `BEO-TDS/annahme-ueber-puffer-der-umgebung`), davor [slice-stempel-migration](../done/slice-stempel-migration.md) (Closure-Notiz in §7 des Slice; offene Nutzerpunkte: Pflichtmenge der Klasse `immer` ([ADR-0031](../../adr/0031-gates-ohne-stempel-klasse-immer.md) Frage (b)), Grenze `assume-unchanged`, Host-Gates ohne Stage-Paar, CI-Seite)
+- in `in-progress/`: keiner; zuletzt geschlossen: [slice-maven-veroeffentlichung](../done/slice-maven-veroeffentlichung.md) (Closure-Notiz in §7 des Slice; [TDS-RB-05](../../../../spec/lastenheft.md#tds-rb-05--lizenz), [ADR-0047](../../adr/0047-veroeffentlichung-ueber-github-packages.md); POM, Prüfung im Bau, `make publish-vorschau` und `make publish`, nichts nach GitHub geschrieben; zweiter Review nur auf `7b0add15`/`20078de0`, `fbce5d7d` ohne dritten Review; offene Nutzerpunkte: `read:packages`-Anleitung früher oder im Folge-Slice, `tools/publish-probe.sh` behalten oder entfernen; Folge: [slice-maven-erste-veroeffentlichung](../open/slice-maven-erste-veroeffentlichung.md)), davor [slice-inspektionstest-puffer-unabhaengig](../done/slice-inspektionstest-puffer-unabhaengig.md) (Closure-Notiz in §7 des Slice; `TestserverLaufInspektionTest` mit fester Menge ohne Host-Wert, `gates` auf `main` `success` (Lauf 43590894587); Nachbesserung ohne zweiten Review; offen: Host mit Obergrenzen-Summe über 40 MiB, `BEO-TDS/annahme-ueber-puffer-der-umgebung`), davor [slice-stempel-migration](../done/slice-stempel-migration.md) (Closure-Notiz in §7 des Slice; offene Nutzerpunkte: Pflichtmenge der Klasse `immer` ([ADR-0031](../../adr/0031-gates-ohne-stempel-klasse-immer.md) Frage (b)), Grenze `assume-unchanged`, Host-Gates ohne Stage-Paar, CI-Seite)
 
 In Arbeit (Welle welle-referenzabgleich-release):
 
