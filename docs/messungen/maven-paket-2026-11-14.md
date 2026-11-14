@@ -52,7 +52,7 @@ Aufbau: `publish-probe.sh token` erzeugt einen Platzhalter `PLATZHALTER-<24 Hexz
 | M4.3 | Suche nach dem Platzhalter in Log von `publish.sh` (enthält die Ausgabe von `docker build` und `gradle publish`), `docker history --no-trunc` und `docker image inspect` des Images `tdswire-publish:lokal` und im Log von M4.1 | **0 Treffer** in jeder der vier Dateien, je für den Klartext, für Base64 des Tokens und für Base64 von `Benutzer:Token` |
 | M4.4 | Positivprobe derselben Suche (`grep -F`) am `docker inspect` des Dummy-Containers, in dessen Umgebung der Platzhalter steht | 1 Treffer: die Suche findet ihn, wo er steht |
 
-Aussage, die M4 trägt: In diesem Aufbau steht der Platzhalter in keiner der vier durchsuchten Quellen, und ein leeres Token bricht vor dem Netz. M4.2 zeigt zugleich, dass der Platzhalter beim Server ankommt (`auth=ok`), nur die Umgebung des Containers trägt ihn. **Grenzen:** Gesucht sind drei Formen; andere abgeleitete Formen (URL-Kodierung, gekürzte Teile) findet die Suche nicht (`BEO-TDS/redaktion-sucht-nur-den-bekannten-wert`). Ein Lauf mit `--info` oder `--debug` ist nicht gemessen und im Werkzeug nicht vorgesehen. Das Token ist im laufenden Container per `docker inspect` und in `/proc` sichtbar (M4.4 zeigt es am Dummy-Container; von [ADR-0047](../plan/adr/0047-veroeffentlichung-ueber-github-packages.md) akzeptiert). Der Weg zu GitHub ist mit einem Dummy-Server nicht belegt: Anmeldeverfahren, TLS, die Antworten und die Regeln der Registry (zum Beispiel das Ablehnen einer vorhandenen Version) sind ungemessen. Gradle läuft im Veröffentlichungslauf **nicht** mit `--offline`: im Offline-Modus bricht der Upload mit `Cannot upload … in offline mode` (ein erster Lauf mit `--offline`, Exit 1).
+Aussage, die M4 trägt: In diesem Aufbau steht der Platzhalter in keiner der vier durchsuchten Quellen, und ein leeres Token bricht vor dem Netz. M4.2 zeigt zugleich, dass der Platzhalter beim Server ankommt (`auth=ok`), nur die Umgebung des Containers trägt ihn. **Grenzen:** Gesucht sind drei Formen; andere abgeleitete Formen (URL-Kodierung, gekürzte Teile) findet die Suche nicht (`BEO-TDS/redaktion-sucht-nur-den-bekannten-wert`). Ein Lauf mit `--info` oder `--debug` ist nicht gemessen und im Werkzeug nicht vorgesehen. M4.4 zeigt, dass der Platzhalter in der Umgebung eines laufenden Containers im `docker inspect` steht (am Dummy-Container; von [ADR-0047](../plan/adr/0047-veroeffentlichung-ueber-github-packages.md) akzeptiert); `/proc` ist nicht gelesen. Der Weg zu GitHub ist mit einem Dummy-Server nicht belegt: Anmeldeverfahren, TLS, die Antworten und die Regeln der Registry (zum Beispiel das Ablehnen einer vorhandenen Version) sind ungemessen. Ein anderes Ziel als GitHub Packages nimmt `tools/publish.sh` nur mit einem Token, das mit `PLATZHALTER-` beginnt (M6: Fälle `fremdes-ziel`, `fremdes-ziel-https`, `platzhalter-leer`); die Probe erzeugt einen solchen Platzhalter. Gesehen ist das am Selbsttest mit Docker-Stub, nicht an einem Lauf gegen ein fremdes Ziel. Gradle läuft im Veröffentlichungslauf **nicht** mit `--offline`: im Offline-Modus bricht der Upload mit `Cannot upload … in offline mode` (ein erster Lauf mit `--offline`, Exit 1).
 
 ## M5 — Sperre und Prüfsummen
 
@@ -83,8 +83,18 @@ Jede Mutation wurde an `tools/publish.sh` oder `tools/manifest-pruefung.sh` eing
 | Lizenzname in der POM beliebig | `pom-mit-nur-im-kommentar` |
 | URL der Lizenz beliebig | `pom-lizenz-url-ohne-schema` |
 | Meldung bei fehlender POM entfernt | `pom-fehlt` |
+| Bindung des Ziels an das Platzhalter-Token entfernt (Review F-1) | `fremdes-ziel` |
+| Muster `PLATZHALTER-?*` beliebig (Review F-1) | `fremdes-ziel` |
+| Suffix `^{commit}` der Tag-Auflösung entfernt, Fall mit annotiertem Tag (Review F-2) | `annotiert` |
+| Standardziel in `publish.sh` weicht von `build.gradle.kts` ab (Review F-3) | `Standardziel` |
+| Lizenz-URL in `build.gradle.kts` weicht von der guten POM des Selbsttests ab (Review F-3) | Kopplungsprüfung in `manifest-selbsttest` |
+| Zeile `version = ` in `build.gradle.kts` in anderer Form (Review F-3) | Kopplungsprüfung in `publish-selbsttest` |
 
 Zwei Mutationen waren beim ersten Lauf **grün** und wurden durch einen schärferen Fall rot: die Entfernung der Prüfung auf `-SNAPSHOT` (die Prüfung der Form fängt dieselbe Version ab; der Fall prüft jetzt die Meldung) und eine beliebige URL der Lizenz (der Fall mit der URL ohne Schema fehlte). Nicht per Mutation belegt: die Reihenfolge „alle Prüfungen vor Docker“ als Eigenschaft des Skripts (der Selbsttest prüft pro roten Fall, dass der Docker-Stub nicht gerufen wurde); die Abwesenheit von `publish` in Gate-Listen und in `tools/mk/e2e.mk` prüft der Selbsttest mit zwei Gegenproben an einer Kopie (eine Zeile `GATE_CHECKS += publish-vorschau`, eine Zeile in `e2e.mk`), nicht an den echten Dateien.
+
+## Vorgehen
+
+Beim Aufbau der Selbsttests lief `sh tools/manifest-selbsttest.sh` einmal auf dem Host mit dem dort vorhandenen `jar`, entgegen der Regel Docker-only (`AGENTS.md` §3.1): ein Fehler im Vorgehen, kein Fehler des Artefakts; das Skript läuft vorgesehen nur in der Stage `skript-selbsttest`, alle Belege dieses Protokolls stammen aus Docker.
 
 ## Nicht gemessen
 

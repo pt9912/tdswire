@@ -122,6 +122,8 @@ Pfade und Namen sind Vorschläge des Planners aus [ADR-0047](../../adr/0047-vero
 
 **Ablauf (Rollen, `/implement-slice`):** Implementer baut und belegt; Reviewer; Verifier fährt `make clean-build` und `make e2e` je einmal auf dem End-Stand (`harness/README.md` §Minimal agent workflow). Enthält die Behebung der Review- oder Verifikationsbefunde Code (Quelltext, Skripte, Make-, Build-, Konfigurationsdateien), folgt ein Re-Review in frischem Kontext; reine Doku-Korrekturen brauchen ihn nicht; unterbleibt er, führt die Closure den Vermerk „Nachbesserung ohne zweiten Review“. Höchstens zwei Gradle-Agenten gleichzeitig; keine künstliche Last auf dem Host; Läufe im Vordergrund mit Gesamtlaufzeit und größten Zeitposten im Bericht (`AGENTS.md` §6).
 
+**Abweichung bei der Umsetzung:** Die Eingangslisten `tools/stempel/*.eingaenge` sind nicht geändert; sie führen `tools`, `Dockerfile`, `harness/README.md` und `build.gradle.kts` als Ganzes und überdecken die neuen Dateien, `make stempel-eingaenge-pruefung` ist grün (Review F-5).
+
 **Erzeuger der Messzahlen (`/plan-welle` Schritt 6d):** `tools/publish-probe.sh`, die Stage `publish` und das Eingangsskript liegen im Repo; die Messungen sind damit wiederholbar. Läuft der Probe-Konsument ersatzweise außerhalb des Repos (Scratchpad), trägt seine Zahl nur als Größenordnung, und das Messprotokoll sagt es.
 
 ## 4. Trigger
