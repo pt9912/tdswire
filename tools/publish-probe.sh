@@ -43,7 +43,7 @@ grep -n "$scope(libs.kotlinx.coroutines.core)" build.gradle.kts > /dev/null || {
 gradle --no-daemon --offline -q publishToMavenLocal
 repo=$HOME/.m2/repository/io/github/pt9912/tdswire/0.1.0-SNAPSHOT
 echo "== Scope $scope: POM-Eintrag der Abhaengigkeit"
-grep -B3 -A1 'kotlinx-coroutines-core-jvm' "$repo/tdswire-0.1.0-SNAPSHOT.pom" | grep -E 'artifactId|scope'
+grep -B2 -A3 'kotlinx-coroutines-core-jvm' "$repo/tdswire-0.1.0-SNAPSHOT.pom" | grep -E 'artifactId|scope'
 echo "== Scope $scope: Class-Path im veroeffentlichten Jar und Verzeichnis daneben"
 unzip -p "$repo/tdswire-0.1.0-SNAPSHOT.jar" META-INF/MANIFEST.MF | tr -d '\r' | awk '/^ / { sub(/^ /, ""); buf = buf $0; next } { if (NR > 1) print buf; buf = $0 } END { print buf }' | grep '^Class-Path'
 ls "$repo"
