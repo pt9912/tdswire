@@ -25,7 +25,7 @@ ist einzeln lieferbar.
 
 **Ziel:** Die Entscheidungen des Nutzers, die [slice-release-doku-prozess](../done/slice-release-doku-prozess.md) in `docs/maintainer/releasing.md` als offen führt, sind getroffen und in der Anleitung als Schritte eingetragen. Der Slice liefert Entscheidungen, keine Erfindungen: Was der Nutzer nicht wählt, bleibt in der Anleitung offen.
 
-**Anschluss (2026-11-14, Verweis, keine Entscheidung dieses Slice):** [ADR-0047](../../adr/0047-veroeffentlichung-ueber-github-packages.md) steht auf `Accepted` und hat Versionsschema, Tag-Form, Registry und Signierung entschieden; offen für diesen Slice bleiben Software-Stückliste, der Weg, Jar und `lib/` ohne Registry aus dem Bau herauszugeben, `make e2e` im Release und die Form des Wächters für [ADR-0010](../../adr/0010-detekt-pre-release.md). Welche Punkte dieses Slice damit erledigt sind, entscheidet sein Plan beim Start; die Abgrenzung nennt [slice-maven-veroeffentlichung](../in-progress/slice-maven-veroeffentlichung.md) §1.
+**Anschluss (2026-11-14, Verweis, keine Entscheidung dieses Slice):** [ADR-0047](../../adr/0047-veroeffentlichung-ueber-github-packages.md) steht auf `Accepted` und hat Versionsschema, Tag-Form, Registry und Signierung entschieden; offen für diesen Slice bleiben Software-Stückliste, der Weg, Jar und `lib/` ohne Registry aus dem Bau herauszugeben, `make e2e` im Release und die Form des Wächters für [ADR-0010](../../adr/0010-detekt-pre-release.md). Welche Punkte dieses Slice damit erledigt sind, entscheidet sein Plan beim Start; die Abgrenzung nennt [slice-maven-veroeffentlichung](../done/slice-maven-veroeffentlichung.md) §1.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 

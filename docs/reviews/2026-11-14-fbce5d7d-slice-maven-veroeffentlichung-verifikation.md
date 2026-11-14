@@ -2,7 +2,7 @@
 
 **Rolle:** Verifier („Bauen wir es richtig?", gegen Plan, DoD und [ADR-0047](../plan/adr/0047-veroeffentlichung-ueber-github-packages.md)). **Modell:** claude-sonnet-5-5.
 
-**Gegenstand:** Zweig `worktree-agent-ad3bb353b929b3b87`, Stand `fbce5d7d` (Basis `e92c4b3e`), Plan `docs/plan/planning/in-progress/slice-maven-veroeffentlichung.md`, Reports [1](2026-11-14-287866a4-slice-maven-veroeffentlichung-review.md) und [2](2026-11-14-20078de0-slice-maven-veroeffentlichung-review-2.md), Messprotokoll [`maven-paket-2026-11-14.md`](../messungen/maven-paket-2026-11-14.md), [`releasing.md`](../maintainer/releasing.md).
+**Gegenstand:** Zweig `worktree-agent-ad3bb353b929b3b87`, Stand `fbce5d7d` (Basis `e92c4b3e`), Plan `docs/plan/planning/done/slice-maven-veroeffentlichung.md`, Reports [1](2026-11-14-287866a4-slice-maven-veroeffentlichung-review.md) und [2](2026-11-14-20078de0-slice-maven-veroeffentlichung-review-2.md), Messprotokoll [`maven-paket-2026-11-14.md`](../messungen/maven-paket-2026-11-14.md), [`releasing.md`](../maintainer/releasing.md).
 
 ## Ergebnis
 

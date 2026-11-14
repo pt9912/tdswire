@@ -1,0 +1,2 @@
+**Vorgang:** [slice-maven-veroeffentlichung](../../../../done/slice-maven-veroeffentlichung.md)
+**Fund:** Drei Aussagen breiter als ihr Beleg: F-4 (das Messprotokoll sagte „in `/proc` sichtbar“, gemessen war `docker inspect`; `SPEC-059` ohne die Bedingung des Protokolls im Satz), G-1 („ein echtes Token geht nie an ein anderes Ziel“, belegt ist die Präfixprüfung auf dem Weg über das Eingangsskript) und V-1 (M4 auf `edc7844c` gemessen, vor `7b0add15`, als Stand des Endes ausgegeben). Alle drei eingeschränkt; V-1 in der Closure mit der Zeile „Stand von M4“ im Messprotokoll.
