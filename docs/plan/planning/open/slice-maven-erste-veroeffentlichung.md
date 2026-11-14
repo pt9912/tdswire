@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [TDS-RB-01](../../../../spec/lastenheft.md#tds-rb-01--implementierungssprache) (Zielbild-Prüfung: Konsum aus der Registry), [TDS-RB-05](../../../../spec/lastenheft.md#tds-rb-05--lizenz), [TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) (Scope), [ADR-0047](../../adr/0047-veroeffentlichung-ueber-github-packages.md) (`Accepted` 2026-11-14, Folgepflicht „erste echte Veröffentlichung von Hand mit Messprotokoll“)
 
-**Berührte Spec-Stellen:** SPEC-052 · SPEC-059 (nur, wenn die Messung eine Aussage widerlegt; der Nachzug des Schemas liegt bei [slice-maven-veroeffentlichung](../open/slice-maven-veroeffentlichung.md))
+**Berührte Spec-Stellen:** SPEC-052 · SPEC-059 (nur, wenn die Messung eine Aussage widerlegt; der Nachzug des Schemas liegt bei [slice-maven-veroeffentlichung](../in-progress/slice-maven-veroeffentlichung.md))
 
 **Verantwortlich:** — bis zur Priorisierung.
 
@@ -29,11 +29,11 @@ ist einzeln lieferbar.
 
 **Ziel:** Die erste Version der Bibliothek (nach dem Schema `0.y.z` von [ADR-0047](../../adr/0047-veroeffentlichung-ueber-github-packages.md) Entscheidung 3a, erwartet `0.1.0`) liegt in GitHub Packages, und der Konsum aus der Registry ist gemessen, einschließlich der Anleitung für Konsumenten mit `read:packages`.
 
-**Warum ein eigener Slice:** Die Handlung schreibt nach außen und ist nicht rücknehmbar; sie ist **vom Nutzer ausdrücklich zu bestätigen**. Die Bestätigung ist die Start-Bedingung (§4), nicht ein Liefer-Punkt: Die DoD nennt nur das Lieferbare (`/plan-welle` Schritt 6b, Frage 2). Die Vorbereitung (POM, Prüfung im Bau, `make publish-vorschau`, Eingangsskript) liefert [slice-maven-veroeffentlichung](../open/slice-maven-veroeffentlichung.md) einzeln und ohne Wirkung nach außen.
+**Warum ein eigener Slice:** Die Handlung schreibt nach außen und ist nicht rücknehmbar; sie ist **vom Nutzer ausdrücklich zu bestätigen**. Die Bestätigung ist die Start-Bedingung (§4), nicht ein Liefer-Punkt: Die DoD nennt nur das Lieferbare (`/plan-welle` Schritt 6b, Frage 2). Die Vorbereitung (POM, Prüfung im Bau, `make publish-vorschau`, Eingangsskript) liefert [slice-maven-veroeffentlichung](../in-progress/slice-maven-veroeffentlichung.md) einzeln und ohne Wirkung nach außen.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Werkzeug, POM-Prüfung und Eingangsskript — [slice-maven-veroeffentlichung](../open/slice-maven-veroeffentlichung.md); dieser Slice **benutzt** sie und ändert sie nicht (ein Befund an ihnen ist ein Rückweg dorthin, kein Nebenbei).
+- Werkzeug, POM-Prüfung und Eingangsskript — [slice-maven-veroeffentlichung](../in-progress/slice-maven-veroeffentlichung.md); dieser Slice **benutzt** sie und ändert sie nicht (ein Befund an ihnen ist ein Rückweg dorthin, kein Nebenbei).
 - Ein zweites Veröffentlichen derselben Version oder ein Löschen — nach [ADR-0047](../../adr/0047-veroeffentlichung-ueber-github-packages.md) Entscheidung 3a wird eine veröffentlichte Version nie neu veröffentlicht; Korrektur ist eine neue Version, und die ist ein eigener Vorgang mit eigener Bestätigung.
 - Signierung, Maven Central, ein GitHub Release mit Dateien (Optionen 4b, 5b, 5c), ein Workflow bei Tag-Push (6c) — Trigger stehen in der ADR; keiner ist eingetreten.
 - Ein Java- oder Maven-Konsument — von der ADR als akzeptiertes Negativ geführt; der Probe-Konsument ist Kotlin und Gradle.
@@ -46,7 +46,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 Liefer-Punkte (drei):
 
 - [ ] **Veröffentlicht:** Die Version liegt in GitHub Packages unter `io.github.pt9912:tdswire` (Jar und POM), das Paket ist dem Repository `pt9912/tdswire` zugeordnet; der Release-Commit trägt die Version ohne `-SNAPSHOT` und den Tag `v<Version>`, danach steht `build.gradle.kts` wieder auf `-SNAPSHOT`. Der Lauf von `make publish` ist im Messprotokoll mit Datum, Host und Ausgang belegt, ohne Token.
-- [ ] **Konsum aus der Registry gemessen:** Der Probe-Konsument aus [slice-maven-veroeffentlichung](../open/slice-maven-veroeffentlichung.md) bindet die Bibliothek über die Registry mit einem Token (`read:packages`), übersetzt und läuft; das Messprotokoll nennt, was dabei gebraucht wurde (Setup des Konsumenten, Token) und was ungemessen bleibt. Die Zielbild-Prüfung zu [TDS-RB-01](../../../../spec/lastenheft.md#tds-rb-01--implementierungssprache) („Konsum aus der Registry“) ist damit geliefert; das Lastenheft bleibt unverändert.
+- [ ] **Konsum aus der Registry gemessen:** Der Probe-Konsument aus [slice-maven-veroeffentlichung](../in-progress/slice-maven-veroeffentlichung.md) bindet die Bibliothek über die Registry mit einem Token (`read:packages`), übersetzt und läuft; das Messprotokoll nennt, was dabei gebraucht wurde (Setup des Konsumenten, Token) und was ungemessen bleibt. Die Zielbild-Prüfung zu [TDS-RB-01](../../../../spec/lastenheft.md#tds-rb-01--implementierungssprache) („Konsum aus der Registry“) ist damit geliefert; das Lastenheft bleibt unverändert.
 - [ ] **Nutzer-Doku und Release-Anleitung:** `docs/user/einbettung-und-betrieb.md` führt das Setup eines Konsumenten (Registry-URL, Zugangsdaten mit `read:packages`, Koordinaten) im Ist-Zustand; alle Dateien unter `docs/user/` sind komplett gegen den Stand nach dem Slice gelesen (`AGENTS.md` §5 Regel 5); `docs/maintainer/releasing.md` führt Tag und Vermerk als Schritte, die gelaufen sind.
 
 Nachweis-Pflichten für alle drei Punkte:
@@ -80,7 +80,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): (1) [slice-maven-veroeffentlichung](../open/slice-maven-veroeffentlichung.md) liegt in `done/`. (2) **Der Nutzer bestätigt ausdrücklich** die Veröffentlichung nach Version und Zeitpunkt (Wortlaut der Bestätigung steht im Plan-Kopf; eine Annahme der ADR ist keine Bestätigung der Handlung) und stellt das Token (`write:packages`) bereit. (3) Ein Verantwortlicher ist eingetragen.
+**Start** (`next` → `in-progress`): (1) [slice-maven-veroeffentlichung](../in-progress/slice-maven-veroeffentlichung.md) liegt in `done/`. (2) **Der Nutzer bestätigt ausdrücklich** die Veröffentlichung nach Version und Zeitpunkt (Wortlaut der Bestätigung steht im Plan-Kopf; eine Annahme der ADR ist keine Bestätigung der Handlung) und stellt das Token (`write:packages`) bereit. (3) Ein Verantwortlicher ist eingetragen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -121,6 +121,6 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Vorgelagert — Sub-Area-Wahl prüfen:** Die Modus-Deklaration führt `*` als einzige Sub-Area (Greenfield).
 
-**Vorgelagert — offene Beobachtungen sichten:** Register (`../observations/BEO-TDS/`, Stand des gemergten `main` vom 2026-11-14) durchgegangen; Treffer: `nachweis-von-der-falschen-seite-der-grenze` (2×; dieser Slice liefert die Gegenseite zu den Belegen gegen das lokale Repository aus [slice-maven-veroeffentlichung](../open/slice-maven-veroeffentlichung.md)), `lizenzhinweise-der-bibliotheken-rechtsfrage` (offen, nicht Gegenstand) und `einmal-rot-ohne-gesicherte-ausgabe` (2×: die Ausgabe eines roten Laufs wird vor dem Neustart gesichert, eine Registry-Ablehnung ist nicht wiederholbar ohne neue Version).
+**Vorgelagert — offene Beobachtungen sichten:** Register (`../observations/BEO-TDS/`, Stand des gemergten `main` vom 2026-11-14) durchgegangen; Treffer: `nachweis-von-der-falschen-seite-der-grenze` (2×; dieser Slice liefert die Gegenseite zu den Belegen gegen das lokale Repository aus [slice-maven-veroeffentlichung](../in-progress/slice-maven-veroeffentlichung.md)), `lizenzhinweise-der-bibliotheken-rechtsfrage` (offen, nicht Gegenstand) und `einmal-rot-ohne-gesicherte-ausgabe` (2×: die Ausgabe eines roten Laufs wird vor dem Neustart gesichert, eine Registry-Ablehnung ist nicht wiederholbar ohne neue Version).
 
 Alle berührten Sub-Areas GF.
