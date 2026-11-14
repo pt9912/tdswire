@@ -1,1 +1,1 @@
-**Stand:** offen
+**Stand:** offen — der Trigger ist auf dem GitHub-Runner eingetreten (Beleg: `evidence/slice-inspektionstest-puffer-unabhaengig.md`); Träger der Behebung: [slice-inspektionstest-puffer-unabhaengig](../../../open/slice-inspektionstest-puffer-unabhaengig.md).
