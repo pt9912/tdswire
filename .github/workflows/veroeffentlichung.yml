@@ -17,7 +17,9 @@ on:
 # Rechte stehen je Job; der Kopf vergibt keine.
 permissions: {}
 
-# Je Ref ein Lauf; ein laufender Lauf wird nie abgebrochen, ein zweiter Lauf desselben Tags wartet.
+# Je Ref eine Gruppe; ein laufender Lauf wird nie abgebrochen (`cancel-in-progress: false`). Ein zweiter Lauf desselben
+# Tags wartet (gelesen, nicht gemessen). Grenze: nach der GitHub-Dokumentation (aus dem Gedaechtnis, nicht abgerufen) haelt
+# die Gruppe hoechstens einen wartenden Lauf; ein dritter Lauf kann den wartenden zweiten verdraengen.
 concurrency:
   group: veroeffentlichung-${{ github.ref }}
   cancel-in-progress: false
@@ -51,12 +53,13 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      # Der Klon ist vollstaendig (fetch-depth 0), origin/main liegt darin.
+      # Mit fetch-depth 0 liegt der Klon vollstaendig vor und enthaelt origin/main (gelesen, am Klon eines Tag-Push nicht
+      # gemessen). Fehlt origin/main, bricht der Schritt vor dem Token. Quelle der Kontrolle: Tag-Schutz, siehe releasing.md.
       - name: Tag-Commit liegt in origin/main
         run: |
           git merge-base --is-ancestor HEAD origin/main \
             || { echo "veroeffentlichung: FEHLER - der Tag-Commit liegt nicht in origin/main" >&2; exit 1; }
-      # GITHUB_ACTOR setzt der Runner; GITHUB_TOKEN steht nur hier im Schritt, kein Wert als Argument, kein --url.
+      # GITHUB_ACTOR ist laut Dokumentation eine Standardvariable des Runners (gelesen, nicht gemessen); GITHUB_TOKEN steht nur hier im Schritt, kein Wert als Argument, kein --url.
       - name: make publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
