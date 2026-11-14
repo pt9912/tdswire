@@ -110,7 +110,7 @@ POM=$(printf '%s\n' "$pom_gut" | sed 's|<licenses>|<!-- MIT --><licenses>|; s|MI
 erwarte pom-mit-nur-im-kommentar 1 tdswire.jar "Class-Path: lib/a.jar" a.jar
 POM="$pom_gut"
 
-# Zweite Fundstelle: Koordinaten, Lizenzname und Lizenz-URL der handkopierten guten POM stehen auch in build.gradle.kts.
+# Zweite Fundstelle: group, Lizenzname und Lizenz-URL der handkopierten guten POM stehen auch in build.gradle.kts und sind hier gekoppelt; artifactId, Projekt-URL und die Koordinaten in SPEC-052 haben keinen Sensor.
 bgk=$(dirname "$0")/../build.gradle.kts
 if [ -f "$bgk" ]; then
   gruppe=$(sed -n 's/^group = "\(.*\)"$/\1/p' "$bgk")

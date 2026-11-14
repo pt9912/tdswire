@@ -5,7 +5,9 @@
 # Aufruf: publish.sh [--url <registry-url>]
 # Ohne --url geht der Lauf an GitHub Packages (https://maven.pkg.github.com/pt9912/tdswire). --url ist der Weg der
 # Belegulaeufe auf ein anderes Ziel; alle Pruefungen gelten auch dann, und das Token muss ein Platzhalter sein (Beginn
-# PLATZHALTER-): ein echtes Token geht nie an ein anderes Ziel.
+# PLATZHALTER-). Grenze: das gilt nur fuer den Weg ueber dieses Skript (Praefixpruefung, am Docker-Stub gesehen); ein
+# direkter `gradle publish` im Container (build.gradle.kts erlaubt http:// ueber isAllowInsecureProtocol) und ein von Hand
+# so genanntes echtes Token umgehen sie.
 # Umgebung: GITHUB_ACTOR und GITHUB_TOKEN (Pflicht; nur der Name wird an `docker run` gegeben, nie der Wert);
 # BUILDER_FLAGS (wie die anderen Make-Targets); PUBLISH_WURZEL (Wurzel des Repos, Voreinstellung: das Verzeichnis ueber
 # tools/); PUBLISH_DOCKER_NETZ (Docker-Netz des Laufs, nur fuer Belegulaeufe).
