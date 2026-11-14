@@ -1,1 +1,3 @@
 **Stand:** offen — 2×; unter der Schwelle. Gemessen am `gradle.lockfile` (kein Jackson), an der Manifest-Prüfung im Bau und an der Rückfall-Mutation `integratorRuntimeOnly(libs.jackson.core)` (rot am Lock von Gradle, 2026-11-07, `welle-produktschnitt-results.md`); offen bleibt ein Test, der fällt, wenn Jackson im Klassenpfad von `integrator` läge.
+
+Nachtrag slice-maven-veroeffentlichung (2026-11-14, keine Evidence-Datei): Für die POM-Form ist der Anteil gelöst: `tools/manifest-pruefung.sh` liest die POM im Bau und weist Jackson ab (Mutation `pom-jackson`). Offen bleibt die `.module`-Datei ohne Prüfung (Verifikation V-4) und der Konsum aus der Registry ([slice-maven-erste-veroeffentlichung](../../../open/slice-maven-erste-veroeffentlichung.md)).

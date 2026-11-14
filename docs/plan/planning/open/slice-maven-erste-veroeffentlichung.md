@@ -37,6 +37,7 @@ ist einzeln lieferbar.
 - Ein zweites Veröffentlichen derselben Version oder ein Löschen — nach [ADR-0047](../../adr/0047-veroeffentlichung-ueber-github-packages.md) Entscheidung 3a wird eine veröffentlichte Version nie neu veröffentlicht; Korrektur ist eine neue Version, und die ist ein eigener Vorgang mit eigener Bestätigung.
 - Signierung, Maven Central, ein GitHub Release mit Dateien (Optionen 4b, 5b, 5c), ein Workflow bei Tag-Push (6c) — Trigger stehen in der ADR; keiner ist eingetreten.
 - Ein Java- oder Maven-Konsument — von der ADR als akzeptiertes Negativ geführt; der Probe-Konsument ist Kotlin und Gradle.
+- Aus der Closure von [slice-maven-veroeffentlichung](../in-progress/slice-maven-veroeffentlichung.md) übernommen (Verifikation V-4, Review F-7): die `.module`-Datei hat keine Prüfung auf Jackson und Testserver (im Bau wird nur die POM gelesen); ob dieser Slice sie nach der ersten Veröffentlichung am Registry-Artefakt liest, entscheidet sein Plan bei der Priorisierung, Java- und Maven-Konsumenten bleiben ungemessen.
 
 ## 2. Definition of Done
 
