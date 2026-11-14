@@ -57,3 +57,5 @@ Abfrage nach dem Merge und Push:
 1. CI-Lauf `gates` auf `main` mit `head_sha` = Merge-Commit `success` (Closure-Bedingung, DoD-Punkt 4, Risiko „Runner nicht reproduzierbar" in §6).
 2. Ob auf dem Runner H1 hält (Sendepuffer wächst nicht über die Menge): erst derselbe Lauf zeigt es; fällt H1, ist die Rückführung in §4 und die Entscheidung des Nutzers (§6, Optionen 2 und 4) dran. Der Plan nennt für ein Rot nach dem Merge keinen Ausgang (Review F-5).
 3. M2-Ergebnis (V-3), `make spec-abdeckung` oder Begründung (V-4), Zweitfundstellen (V-5), Closure-Notiz mit Lerneintrag, `state.md` und Evidence im Register, Ausgänge der Risiken in §6, Haken der DoD: Planner.
+
+**Nachtrag der Closure (Planner, 2026-11-14):** V-3 und V-5 ist bei der Closure bearbeitet: M2 (ohne `RECEIVE_BUFFER`) ist in beiden Umgebungen grün (Container mit Obergrenzen 150 994 944 und ohne Sysctl); die Zweitfundstellen sind im Plan und im Vorgänger-Slice mit Nachtrag versehen. Siehe [Closure-Notiz](../plan/planning/in-progress/slice-inspektionstest-puffer-unabhaengig.md) §7.

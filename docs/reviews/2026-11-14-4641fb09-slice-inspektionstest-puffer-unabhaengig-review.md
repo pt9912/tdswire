@@ -64,3 +64,5 @@
 **Merge-blockierend:** nein — die zwei MEDIUM-Befunde betreffen die Darstellung der Grenze (KDoc) und einen wirkungslosen, aber harmlosen Parameter; die Zusage auf dem Runner trägt die Rechnung 36 MiB < 40 MiB. Der Beleg am CI-Lauf bleibt Closure-Bedingung. Die Befunde gehen an den Implementer (F-1, F-2) und in die Closure-Notiz §7 (F-3, Zweitfundstellen).
 
 **Übergabe:** Findings an den Implementer; Finding-Klassen in die Slice-Closure §7. Dieser Report ersetzt keine Verifikation.
+
+**Nachtrag der Closure (Planner, 2026-11-14):** F-3 ist bei der Closure bearbeitet: M2 (ohne `RECEIVE_BUFFER`) ist in beiden Umgebungen grün (Container mit Obergrenzen 150 994 944 und ohne Sysctl); die Zweitfundstellen sind im Plan und im Vorgänger-Slice mit Nachtrag versehen. Siehe [Closure-Notiz](../plan/planning/in-progress/slice-inspektionstest-puffer-unabhaengig.md) §7.
