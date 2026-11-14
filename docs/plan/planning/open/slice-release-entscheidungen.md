@@ -27,7 +27,7 @@ ist einzeln lieferbar.
 
 **Entschieden (Nutzer, 2026-11-14):** (a) `make e2e` ([ADR-0022](../../adr/0022-e2e-laeufe-nicht-in-den-gates.md)) ist ein **Schritt der Anleitung**, kein Gate; (b) der Wächter für [ADR-0010](../../adr/0010-detekt-pre-release.md) bleibt der Schritt in `releasing.md`, **kein neues Target**; (c) Software-Stückliste und ein Weg für Jar und `lib/` ohne Registry werden **nicht jetzt** gebaut oder entschieden und **nach der ersten Veröffentlichung neu bewertet**.
 
-**Schon entschieden und nicht mehr Gegenstand (Anschluss, Verweis, keine Entscheidung dieses Slice):** Versionsschema, Tag-Form, Registry und Signierung — [ADR-0047](../../adr/0047-veroeffentlichung-ueber-github-packages.md) (Eintrag in `releasing.md` Schritte 5, 6, 8, 9 durch [slice-maven-veroeffentlichung](../done/slice-maven-veroeffentlichung.md)); der Weg der Veröffentlichung (CI bei Tag-Push) — [ADR-0048](../../adr/0048-veroeffentlichung-in-der-ci-bei-tag-push.md) mit [slice-ci-veroeffentlichung-workflow](../open/slice-ci-veroeffentlichung-workflow.md). Die frühere Abgrenzung von [slice-maven-veroeffentlichung](../done/slice-maven-veroeffentlichung.md) §1 zu diesem Slice gilt mit dieser Verkleinerung als aufgelöst.
+**Schon entschieden und nicht mehr Gegenstand (Anschluss, Verweis, keine Entscheidung dieses Slice):** Versionsschema, Tag-Form, Registry und Signierung — [ADR-0047](../../adr/0047-veroeffentlichung-ueber-github-packages.md) (Eintrag in `releasing.md` Schritte 5, 6, 8, 9 durch [slice-maven-veroeffentlichung](../done/slice-maven-veroeffentlichung.md)); der Weg der Veröffentlichung (CI bei Tag-Push) — [ADR-0048](../../adr/0048-veroeffentlichung-in-der-ci-bei-tag-push.md) mit [slice-ci-veroeffentlichung-workflow](../in-progress/slice-ci-veroeffentlichung-workflow.md). Die frühere Abgrenzung von [slice-maven-veroeffentlichung](../done/slice-maven-veroeffentlichung.md) §1 zu diesem Slice gilt mit dieser Verkleinerung als aufgelöst.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -37,7 +37,7 @@ ist einzeln lieferbar.
 - Ein Produkt-Image gegen [ADR-0025](../../adr/0025-produktschnitt-bibliothek-und-testserver.md) — Änderung des Produktschnitts wäre eine eigene ADR.
 - Bau einer Software-Stückliste und eines Weges, Jar und `lib/` ohne Registry herauszugeben — nicht jetzt (Entscheidung c); der Slice hält nur die Zurückstellung und den Trigger der Neubewertung in der Anleitung fest. Ein Bau wäre ein eigener Slice nach der Neubewertung.
 - Ein Werkzeug-Target für den Wächter von [ADR-0010](../../adr/0010-detekt-pre-release.md) — entschieden: keines (Entscheidung b).
-- Änderungen an Schritt 1, 8 und 9 und am Kopf von `releasing.md` — [slice-ci-veroeffentlichung-workflow](../open/slice-ci-veroeffentlichung-workflow.md).
+- Änderungen an Schritt 1, 8 und 9 und am Kopf von `releasing.md` — [slice-ci-veroeffentlichung-workflow](../in-progress/slice-ci-veroeffentlichung-workflow.md).
 
 ## 2. Definition of Done
 
@@ -64,13 +64,13 @@ Nachweis-Pflichten für beide Punkte:
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `docs/maintainer/releasing.md` | update | Schritt 2, Abschnitt Wächter, Schritt 6 (Satz zu Jar und `lib/`), „Nicht Teil dieses Ablaufs“ und „Offene Entscheidungen“; Schritte 1, 8, 9 und der Kopf gehören [slice-ci-veroeffentlichung-workflow](../open/slice-ci-veroeffentlichung-workflow.md) |
+| `docs/maintainer/releasing.md` | update | Schritt 2, Abschnitt Wächter, Schritt 6 (Satz zu Jar und `lib/`), „Nicht Teil dieses Ablaufs“ und „Offene Entscheidungen“; Schritte 1, 8, 9 und der Kopf gehören [slice-ci-veroeffentlichung-workflow](../in-progress/slice-ci-veroeffentlichung-workflow.md) |
 
-**Reihenfolge:** erst [slice-ci-veroeffentlichung-workflow](../open/slice-ci-veroeffentlichung-workflow.md), dann dieser Slice, beide ändern `releasing.md` (getrennte Abschnitte, aber eine Datei); [slice-maven-erste-veroeffentlichung](../open/slice-maven-erste-veroeffentlichung.md) berührt `releasing.md` ebenfalls und folgt nach beiden.
+**Reihenfolge:** erst [slice-ci-veroeffentlichung-workflow](../in-progress/slice-ci-veroeffentlichung-workflow.md), dann dieser Slice, beide ändern `releasing.md` (getrennte Abschnitte, aber eine Datei); [slice-maven-erste-veroeffentlichung](../open/slice-maven-erste-veroeffentlichung.md) berührt `releasing.md` ebenfalls und folgt nach beiden.
 
 ## 4. Trigger
 
-**Start** (`open` → `next`): [slice-release-doku-prozess](../done/slice-release-doku-prozess.md) liegt in `done/` (erfüllt), die Entscheidungen des Nutzers liegen vor (2026-11-14, oben), und [slice-ci-veroeffentlichung-workflow](../open/slice-ci-veroeffentlichung-workflow.md) liegt nicht in `in-progress/` (gleiche Datei); ein Verantwortlicher ist eingetragen.
+**Start** (`open` → `next`): [slice-release-doku-prozess](../done/slice-release-doku-prozess.md) liegt in `done/` (erfüllt), die Entscheidungen des Nutzers liegen vor (2026-11-14, oben), und [slice-ci-veroeffentlichung-workflow](../in-progress/slice-ci-veroeffentlichung-workflow.md) liegt nicht in `in-progress/` (gleiche Datei); ein Verantwortlicher ist eingetragen.
 
 **Rückführungen:**
 
