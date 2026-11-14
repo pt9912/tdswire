@@ -7,7 +7,6 @@ import io.github.pt9912.tdswire.protocol.token.ErrorToken
 import io.github.pt9912.tdswire.protocol.token.RowToken
 import io.github.pt9912.tdswire.protocol.token.Token
 import io.github.pt9912.tdswire.transport.listener.LOOPBACK
-import java.io.File
 import java.util.Base64
 import java.util.HexFormat
 import kotlin.test.Test
@@ -18,8 +17,15 @@ import kotlin.test.assertTrue
 
 private const val HEAP = "-Xmx512m"
 private const val RECEIVE_BUFFER = 4_096
-private const val BUFFER_FACTOR = 4L
-private const val MAX_VOLUME = 128L * 1024 * 1024
+
+/**
+ * Die Datenmenge der großen Auswahl: 40 MiB, eine Setzung (`TDS-QA-06`). Kein Wert des Hosts geht in sie ein; `HEAP`
+ * begrenzt sie nach oben, die Tabelle liegt im Speicher des Kindes. Grenze: die Anfrage bleibt offen, solange die
+ * Puffer die Menge nicht fassen; gemessen am lokalen Host (Obergrenzen 4 und 6 MiB) und in einem Container mit
+ * Obergrenzen von 144 MiB für beide Puffer, an keinem weiteren Host. Mit und ohne `RECEIVE_BUFFER` blieb sie in beiden
+ * Umgebungen offen: eine Wirkung des Parameters auf diese Hosts ist nicht gemessen.
+ */
+private const val VOLUME = 40L * 1024 * 1024
 private const val CHARS = 4_000
 private const val BYTES_PER_CHAR = 2L
 private const val ROWS_PER_MESSAGE = 1_000
@@ -79,13 +85,6 @@ internal class TestserverLaufInspektionTest : TempFilesTest() {
         "SIMULATION_DESCRIPTION_FILE" to file("sim.yaml", DESCRIPTION),
     )
 
-    /** Der dritte Wert (die Obergrenze) einer Datei unter `/proc/sys/net/ipv4/`; ohne Quelle bricht der Test ab. */
-    private fun upperLimit(name: String): Long {
-        val file = File("/proc/sys/net/ipv4/$name")
-        assertTrue(file.canRead(), "Obergrenze der Puffer nicht lesbar ($name): die Datenmenge ist nicht bestimmbar")
-        return file.readText().trim().split(Regex("\\s+"))[2].toLong()
-    }
-
     private fun metric(line: String): Map<String, Any>? =
         if (line.startsWith("{") && line.contains("\"event\":\"metrics\"")) FlatJson.parse(line) else null
 
@@ -115,16 +114,14 @@ internal class TestserverLaufInspektionTest : TempFilesTest() {
      */
     @Test
     fun `Ein Lauf ueber den Prozess ist vollstaendig erfasst und nennt nichts Verbotenes`() {
-        val volume = BUFFER_FACTOR * (upperLimit("tcp_wmem") + upperLimit("tcp_rmem"))
-        assertTrue(volume <= MAX_VOLUME, "Datenmenge $volume über der Grenze $MAX_VOLUME: Puffergrößen der Umgebung")
-        val bigRows = (volume / (CHARS * BYTES_PER_CHAR) + 1).toInt()
+        val bigRows = (VOLUME / (CHARS * BYTES_PER_CHAR) + 1).toInt()
         ServerProcess(environment(), jvmOptions = listOf(HEAP)).use { server ->
             val port = server.port()
             LaufClient(port).use { assertFalse(it.login(UNKNOWN_USER, WRONG_PASSWORD)) }
             val (requests, errorText) = LaufClient(port, RECEIVE_BUFFER).use { client ->
                 assertTrue(client.login("alice", ALICE_PASSWORD))
                 val loadSteps = load(client, bigRows)
-                val text = ask(server, client, volume)
+                val text = ask(server, client, VOLUME)
                 assertEquals(PERSON_ROWS, rows(client.batch("SELECT zz_nr, zz_name FROM $PERSON")), "offen nach Cancel")
                 assertEquals(loadSteps + QUERIES_AFTER_LOAD, client.requests)
                 client.requests to text
@@ -169,13 +166,13 @@ internal class TestserverLaufInspektionTest : TempFilesTest() {
         client.sendBatch("SELECT zz_nr, zz_daten FROM $STORE")
         val stuck = assertNotNull(
             server.awaitIndex(quiet + 1) { metric(it)?.get("metrics.backend_active") == 1L },
-            "keine offene Anfrage: ${server.output}",
+            "keine offene Anfrage (die Puffer der Umgebung fassen die Menge $volume Byte?): ${server.output}",
         )
         assertEquals(OPEN_WHILE_STUCK, metric(server.output[stuck])?.get("metrics.spans_open"))
         client.sendAttention()
         val (bytes, attention) = client.drainAnswer()
         assertTrue(attention, "die Antwort endet mit DONE und ATTENTION")
-        assertTrue(bytes < volume, "die Antwort ist abgebrochen: $bytes Byte von $volume")
+        assertTrue(bytes < volume, "die Antwort ist abgebrochen (Puffer größer als die Menge?): $bytes von $volume")
         return failed.message.text
     }
 
