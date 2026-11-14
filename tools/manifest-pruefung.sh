@@ -1,17 +1,23 @@
 #!/bin/sh
-# manifest-pruefung.sh — Manifest des Bibliotheks-Jars ohne Container pruefen (TDS-RB-01, TDS-QA-06, ADR-0025).
+# manifest-pruefung.sh — Manifest des Bibliotheks-Jars und POM des Maven-Pakets ohne Container pruefen (TDS-RB-01,
+# TDS-RB-05, TDS-QA-06, ADR-0025, ADR-0047).
 #
-# Aufruf: manifest-pruefung.sh <libs-verzeichnis>   (Dockerfile, Stage `build-jar`: build/libs)
+# Aufruf: manifest-pruefung.sh <libs-verzeichnis> <pom-datei>   (Dockerfile, Stage `build-jar`: build/libs und
+# build/publications/maven/pom-default.xml)
 # Exit 1 bei einem Befund, 2 bei falschem Aufruf. Geprueft wird: das Jar heisst tdswire.jar, sein
 # Manifest nennt keine Main-Class (die Bibliothek ist das Produkt, es gibt keine Startklasse), das Jar fuehrt keine
 # Klasse des Testservers, und der Class-Path ist nicht leer und besteht nur aus Eintraegen `lib/<name>` ohne `..`, zu
 # denen eine Datei in <libs-verzeichnis>/lib liegt; unter lib/ liegt kein Jackson (ADR-0025 Entscheidung 2).
+# Die POM ist vorhanden, nennt kein Jackson und keinen Testserver (weder als Abhaengigkeit noch sonst im Text) und fuehrt
+# im Block licenses eine Lizenz mit Namen MIT und einer http(s)-URL (ADR-0047 Entscheidung 2).
 # Grenze: geprueft wird das Manifest und die Namen im Jar und in lib/, nicht der Start und nicht der Inhalt der
-# Dateien; andere Bibliotheken der Testserver-Seite als Jackson erkennt die Pruefung nicht.
+# Dateien; andere Bibliotheken der Testserver-Seite als Jackson erkennt die Pruefung nicht; die POM wird als Text gelesen
+# (Namen und Zeilen, kein XML-Parser), geprueft wird nicht, ob ihre Abhaengigkeiten mit dem Class-Path uebereinstimmen.
 set -eu
 
-[ "$#" -eq 1 ] || { echo "Aufruf: $0 <libs-verzeichnis>" >&2; exit 2; }
+[ "$#" -eq 2 ] || { echo "Aufruf: $0 <libs-verzeichnis> <pom-datei>" >&2; exit 2; }
 libs="$1"
+pom="$2"
 jar="$libs/tdswire.jar"
 
 fehler=0
@@ -45,5 +51,16 @@ for eintrag in $cp_zeile; do
   esac
 done
 
+# POM: Text lesen, eine Zeile je Element (Gradle schreibt sie so).
+if [ ! -f "$pom" ]; then
+  melde "die POM $pom liegt nicht"
+else
+  if grep -qi 'jackson' "$pom"; then melde "die POM nennt Jackson"; fi
+  if grep -qi 'testserver' "$pom"; then melde "die POM nennt den Testserver"; fi
+  lizenzen=$(awk '/<licenses>/ { drin = 1 } drin { print } /<\/licenses>/ { drin = 0 }' "$pom")
+  printf '%s\n' "$lizenzen" | grep -Eq '<name>MIT( License)?</name>' || melde "die POM nennt keine Lizenz MIT im Block licenses"
+  printf '%s\n' "$lizenzen" | grep -Eq '<url>https?://[^<]+</url>' || melde "die Lizenz in der POM nennt keine URL"
+fi
+
 [ "$fehler" -eq 0 ] || exit 1
-echo "manifest-pruefung: ok (keine Main-Class, kein Testserver, kein Jackson, $(printf '%s\n' "$cp_zeile" | wc -w) Class-Path-Eintraege in lib/)"
+echo "manifest-pruefung: ok (keine Main-Class, kein Testserver, kein Jackson, $(printf '%s\n' "$cp_zeile" | wc -w) Class-Path-Eintraege in lib/, POM ohne Jackson und Testserver mit Lizenz MIT)"

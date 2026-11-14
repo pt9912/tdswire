@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.detekt)
+    `maven-publish`
 }
 
 group = "io.github.pt9912"
@@ -20,8 +21,10 @@ dependencies {
     // ktlint-Regelsatz (Abschnitt `ktlint:` in config/detekt/detekt.yml); die Version ist die des Plugins.
     detektPlugins(libs.detekt.ktlint)
 
-    // Laufzeit des Transports (ADR-0003); die Version steht nur im Katalog.
-    implementation(libs.kotlinx.coroutines.core)
+    // Laufzeit des Transports (ADR-0003); die Version steht nur im Katalog. `api`, weil `Flow` und `suspend` in der
+    // oeffentlichen Flaeche stehen (ADR-0021): mit `implementation` steht die Abhaengigkeit nur mit dem Scope runtime in
+    // der POM, und ein Konsument, der gegen die Flaeche uebersetzt, findet `Flow` nicht (Messprotokoll 2026-11-14).
+    api(libs.kotlinx.coroutines.core)
 
     // Unit-Tests: kotlin.test; die BOM gilt für Compile- und Laufzeit-Classpath, damit der Lock eine Version je Artefakt führt.
     testImplementation(libs.kotlin.test)
@@ -202,4 +205,46 @@ tasks.assemble { dependsOn(laufzeitBibliotheken) }
 tasks.register<JavaExec>("laufzeitClient") {
     classpath = sourceSets.test.get().runtimeClasspath
     mainClass.set("io.github.pt9912.tdswire.runtime.LaufzeitClientKt")
+}
+
+// Veroeffentlichte Form (ADR-0047): ein Maven-Paket aus dem Wurzelprojekt, `tdswire.jar` und eine POM mit den
+// Abhaengigkeiten statt `lib/`. Das Modul `:testserver` wendet `maven-publish` nicht an und wird nicht veroeffentlicht
+// (ADR-0034). Die POM entsteht ohne Netz und ohne Token (`generatePomFileForMavenPublication`, Stage `build-jar`);
+// tools/manifest-pruefung.sh liest sie. Das Ziel der Task `publish` ist GitHub Packages, ausser
+// `-PtdswireRegistryUrl` nennt ein anderes (Belegulaeufe, tools/publish.sh); Benutzer und Token kommen nur aus der
+// Umgebung des Laufs.
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            from(components["java"])
+            pom {
+                name.set("tdswire")
+                description.set("Kotlin-Bibliothek fuer die JVM mit einem Serverendpunkt fuer das SQL-Server-Protokoll TDS")
+                url.set("https://github.com/pt9912/tdswire")
+                licenses {
+                    license {
+                        name.set("MIT License")
+                        url.set("https://opensource.org/license/mit")
+                    }
+                }
+                scm {
+                    url.set("https://github.com/pt9912/tdswire")
+                    connection.set("scm:git:https://github.com/pt9912/tdswire.git")
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = "registry"
+            val registryUrl = providers.gradleProperty("tdswireRegistryUrl")
+                .getOrElse("https://maven.pkg.github.com/pt9912/tdswire")
+            url = uri(registryUrl)
+            isAllowInsecureProtocol = registryUrl.startsWith("http://")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR")
+                password = System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
 }
