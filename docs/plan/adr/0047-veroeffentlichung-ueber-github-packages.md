@@ -1,6 +1,6 @@
 # ADR-0047: Veröffentlichung der Bibliothek über GitHub Packages (Maven-Registry): Koordinaten, POM statt `lib/`, Versionsschema, Zugriff, Schreib-Token
 
-**Status:** Proposed (Empfehlungen unbestätigt, Entscheidung beim Nutzer)
+**Status:** Accepted
 
 **Datum:** 2026-11-13
 
@@ -198,6 +198,8 @@ Ein Konsument, der kein Token anlegen kann oder will (dann 5b oder 5c); der Ents
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-11-13 | Proposed – Auftrag des Nutzers: Veröffentlichung über GitHub Packages; Optionen mit Empfehlung, unbestätigt; Prämisse „[ADR-0025](0025-produktschnitt-bibliothek-und-testserver.md)/[ADR-0018](0018-laufzeit-artefakt.md) schließen den Registry-Weg aus“ gelesen und nicht bestätigt (siehe Kontext) | — |
+| 2026-11-14 | Accepted (Entscheidung des Nutzers: „ADR 0047 accepted“, gelesen als Annahme der jeweils empfohlenen Optionen 1a, 2a, 3a, 4a, 5a, 6a, 8a; bei 2a wird kein Satz der Vorgänger ersetzt) | — |
+
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit
