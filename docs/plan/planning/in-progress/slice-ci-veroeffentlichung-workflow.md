@@ -80,6 +80,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 
 **Bedingung des Jobs `publish` (Abweichung vom Wortlaut der ADR, Absicht des Planners, vom Review zu prüfen):** [ADR-0048](../../adr/0048-veroeffentlichung-in-der-ci-bei-tag-push.md) Entscheidung 2 nennt `if: github.ref_type == 'tag'`. Wird `workflow_dispatch` auf einem Tag-Ref ausgelöst, ist `ref_type` ebenfalls `tag`, und `publish` liefe. Der Plan verlangt deshalb `github.event_name == 'push' && github.ref_type == 'tag'`: ein Dispatch veröffentlicht nie, wie Entscheidung 4 es sagt. Das ist die engere Fassung derselben Aussage, keine Lockerung.
 
+**Nachbesserung nach dem Review:** Die LOW-Findings 1 bis 3 des Reviews zu 0144fb8a sind als reine Text- und Kommentaränderung behoben (Workflow-Kommentare, `releasing.md` Schritt 8 und 9), ohne Verhaltensänderung. Ein zweiter Review dazu fand nicht statt.
+
 **Reihenfolge mit den Nachbarn in `releasing.md`:** dieser Slice zuerst; [slice-release-entscheidungen](../open/slice-release-entscheidungen.md) beginnt erst, wenn dieser Slice nicht mehr in `in-progress/` liegt (gleiche Datei, getrennte Abschnitte), [slice-maven-erste-veroeffentlichung](../open/slice-maven-erste-veroeffentlichung.md) beginnt nach seiner Closure.
 
 ## 4. Trigger

@@ -1,0 +1,82 @@
+# Veroeffentlichung der Bibliothek in GitHub Packages bei Tag-Push `v*` (TDS-RB-05, TDS-QA-06, ADR-0048).
+# Kein Gate: `make publish` steht in keiner Gate-Liste, der Workflow ist kein Eingang von `make gates` (ADR-0048
+# Entscheidung 3). Rang-Zeiger: Ablauf und Tag-Schutz in docs/maintainer/releasing.md, Werkzeug-Zeile in
+# harness/README.md §Sensors.
+# Kopplung: Job `gates` wiederholt Checkout und Aufruf aus .github/workflows/gates.yml; aendert sich dort einer
+# von beiden, wird er hier nachgezogen.
+# Grenzen: `make workflow-lint` prueft Syntax und Ausdruecke, nicht die SHA-Pins und nicht die Reihenfolge `gates` vor
+# `publish`; beides prueft der Review. Der Dispatch-Lauf baut die Stage `publish` ohne Token und ohne Netz zu GitHub
+# Packages; das Schreiben mit GITHUB_TOKEN belegt erst die erste echte Veroeffentlichung.
+name: veroeffentlichung
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+# Rechte stehen je Job; der Kopf vergibt keine.
+permissions: {}
+
+# Je Ref eine Gruppe; ein laufender Lauf wird nie abgebrochen (`cancel-in-progress: false`). Ein zweiter Lauf desselben
+# Tags wartet (gelesen, nicht gemessen). Grenze: nach der GitHub-Dokumentation (aus dem Gedaechtnis, nicht abgerufen) haelt
+# die Gruppe hoechstens einen wartenden Lauf; ein dritter Lauf kann den wartenden zweiten verdraengen.
+concurrency:
+  group: veroeffentlichung-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  gates:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      # actions/checkout v6.1.0, per Commit festgelegt, wie in gates.yml.
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: make gates
+        run: make gates
+
+  # Nur der Tag-Push veroeffentlicht; ein Dispatch auf einem Tag-Ref hat ref_type `tag`, aber event_name `workflow_dispatch`.
+  publish:
+    needs: gates
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # Mit fetch-depth 0 liegt der Klon vollstaendig vor und enthaelt origin/main (gelesen, am Klon eines Tag-Push nicht
+      # gemessen). Fehlt origin/main, bricht der Schritt vor dem Token. Quelle der Kontrolle: Tag-Schutz, siehe releasing.md.
+      - name: Tag-Commit liegt in origin/main
+        run: |
+          git merge-base --is-ancestor HEAD origin/main \
+            || { echo "veroeffentlichung: FEHLER - der Tag-Commit liegt nicht in origin/main" >&2; exit 1; }
+      # GITHUB_ACTOR ist laut Dokumentation eine Standardvariable des Runners (gelesen, nicht gemessen); GITHUB_TOKEN steht nur hier im Schritt, kein Wert als Argument, kein --url.
+      - name: make publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: make publish
+
+  # Nur beim Dispatch: Bau der Stage `publish` und POM-Ausgabe, kein Token, nichts nach aussen.
+  vorschau:
+    needs: gates
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: make publish-vorschau
+        run: make publish-vorschau
