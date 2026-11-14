@@ -16,14 +16,17 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 private const val HEAP = "-Xmx512m"
+
+/** Empfangspuffer des Clients; seine Wirkung auf den Testfall ist nicht gemessen (der Lauf blieb ohne ihn grün). */
 private const val RECEIVE_BUFFER = 4_096
 
 /**
- * Die Datenmenge der großen Auswahl: 40 MiB, eine Setzung (`TDS-QA-06`). Kein Wert des Hosts geht in sie ein; `HEAP`
- * begrenzt sie nach oben, die Tabelle liegt im Speicher des Kindes. Grenze: die Anfrage bleibt offen, solange die
- * Puffer die Menge nicht fassen; gemessen am lokalen Host (Obergrenzen 4 und 6 MiB) und in einem Container mit
- * Obergrenzen von 144 MiB für beide Puffer, an keinem weiteren Host. Mit und ohne `RECEIVE_BUFFER` blieb sie in beiden
- * Umgebungen offen: eine Wirkung des Parameters auf diese Hosts ist nicht gemessen.
+ * Die Datenmenge der großen Auswahl: 40 MiB, eine Setzung (`TDS-QA-06`); kein Wert des Hosts geht in sie ein, `HEAP`
+ * begrenzt sie nach oben (die Tabelle liegt im Speicher des Kindes). Die Zusage (die Anfrage bleibt offen) trägt, wenn
+ * die Summe der Obergrenzen von `tcp_wmem` und `tcp_rmem` kleiner ist als diese Menge: dann fassen die Puffer sie nicht
+ * (Runner 36 MiB nach dem CI-Log, lokaler Host 10 MiB). Der wirksame Puffer wird nicht ausgelesen; gemessen ist ein
+ * Kernel mit zwei Einstellungen der Obergrenzen, kein Lauf auf dem Runner. Nicht belegt: Hosts, deren Summe der
+ * Obergrenzen über dieser Menge liegt.
  */
 private const val VOLUME = 40L * 1024 * 1024
 private const val CHARS = 4_000
