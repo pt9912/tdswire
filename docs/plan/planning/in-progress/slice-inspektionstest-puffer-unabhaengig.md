@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** — (der Slice ändert `src/test` und das Register; die Rückdruck-Aussage in `spezifikation.md` Schritt 5 der Auswahl, Zeilen 209 bis 214, und die Festlegung zum gebauten Stand der Backpressure in `spezifikation.md` Zeile 1957 bleiben Wort für Wort stehen)
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** pt9912 (paralleler Lauf, Zweig des Implementers)
 
 **Autor:** Planner-Agent, Auftrag des Nutzers 2026-11-14. **Datum:** 2026-11-14.
 
