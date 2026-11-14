@@ -1,12 +1,12 @@
 # ADR-0048: Veröffentlichen der Bibliothek in der CI bei Tag-Push mit `GITHUB_TOKEN` statt mit einem persönlichen Token (Option 6c)
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-11-14
 
-**Autor:** Architect (Entwurf); Entscheidung: pt9912 (Nutzer) steht aus
+**Autor:** Architect (Entwurf); Entscheidung: pt9912 (Nutzer), angenommen am 2026-11-14
 
-**Entscheidung des Nutzers (Quelle):** 2026-11-14, im Auftrag an den Architect: „6c, Architect soll die ADR vorbereiten“. Begründung des Nutzers: Veröffentlichen gehört üblicherweise in die CI; ein lokales *Personal Access Token (classic)* mit `write:packages` ist das größere Risiko. **Die Richtung hat der Nutzer entschieden; die Ausgestaltung unten ist Entwurf, unbestätigt, bis er diese ADR annimmt.**
+**Entscheidung des Nutzers (Quelle):** 2026-11-14, im Auftrag an den Architect: „6c, Architect soll die ADR vorbereiten“. Begründung des Nutzers: Veröffentlichen gehört üblicherweise in die CI; ein lokales *Personal Access Token (classic)* mit `write:packages` ist das größere Risiko. **Die Richtung hat der Nutzer entschieden; die Ausgestaltung unten hat er mit „Deine Empfehlung“ angenommen (siehe Geschichte).**
 
 **Bezug:** [TDS-RB-05](../../../spec/lastenheft.md#tds-rb-05--lizenz), [TDS-QA-06](../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [ADR-0047](0047-veroeffentlichung-ueber-github-packages.md), [ADR-0022](0022-e2e-laeufe-nicht-in-den-gates.md), [ADR-0024](0024-lokale-stempel-zwei-klassen.md), [ADR-0025](0025-produktschnitt-bibliothek-und-testserver.md), [AGENTS.md](../../../AGENTS.md) §3.1, §3.5, §3.6, §3.8
 
@@ -108,6 +108,7 @@ Die erste echte Veröffentlichung weist `GITHUB_TOKEN` ab oder ordnet das Paket 
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-11-14 | Proposed – Entscheidung des Nutzers für die Richtung 6c (Auftrag an den Architect); Ausgestaltung Entwurf, Empfehlungen unbestätigt; ersetzt nach Annahme nur Entscheidung 6 (Wahl 6a) von [ADR-0047](0047-veroeffentlichung-ueber-github-packages.md) | — |
+| 2026-11-14 | Accepted (Entscheidung des Nutzers: „Deine Empfehlung“ auf den Entwurf mit den Empfehlungen zu den vier offenen Fragen: Job `gates` im neuen Workflow, keine Sperre von `tools/publish.sh` außerhalb der CI, Tag-Push als Bestätigung ohne Umgebung mit Freigabe, Tag-Schutz `v*` vor dem ersten Tag durch den Nutzer); wirksam: Entscheidung 6 (Wahl 6a) von [ADR-0047](0047-veroeffentlichung-ueber-github-packages.md) ersetzt | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit
