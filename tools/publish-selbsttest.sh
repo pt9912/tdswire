@@ -2,7 +2,7 @@
 # publish-selbsttest.sh — belegt in einem Wegwerf-Repo, dass tools/publish.sh vor jedem Docker-Aufruf endet, wenn die
 # Version auf -SNAPSHOT steht oder nicht die Form <zahl>.<zahl>.<zahl> hat, fehlt, der Tag v<Version> fehlt oder nicht auf
 # HEAD liegt, der Baum unsauber ist (geaenderte und unversionierte Datei) oder GITHUB_ACTOR und GITHUB_TOKEN leer oder
-# nicht gesetzt sind, dass der gute Fall docker mit dem Ziel aufruft und den Wert des Tokens nirgends nennt, dass ein
+# nicht gesetzt sind, ein anderes Ziel als GitHub Packages mit einem Token ohne Platzhalter-Beginn gewaehlt wird, dass der gute Fall docker mit dem Ziel aufruft und den Wert des Tokens nirgends nennt, dass ein
 # falscher Aufruf mit Exit 2 endet, und dass `publish` in keiner Gate-Liste und nicht in tools/mk/e2e.mk steht
 # (TDS-RB-05, TDS-QA-06, ADR-0047 Entscheidungen 3 und 6).
 # Grenze: docker ist ein Stub; belegt ist die Reihenfolge der Pruefungen und die Form des Aufrufs, nicht das Veroeffentlichen.
@@ -46,6 +46,7 @@ neues() {
   v=$(printf '%s\n' "$zeile" | sed -n 's/^version = "\(.*\)"$/\1/p')
   case "$tag" in
     ja) git -C "$r" tag "v$v" ;;
+    annotiert) git -C "$r" tag -a "v$v" -m "Release $v" ;;
     alt) git -C "$r" tag "v$v"; echo x > "$r/zwei.txt"; git -C "$r" add zwei.txt; git -C "$r" commit -q -m zwei ;;
   esac
 }
@@ -79,9 +80,14 @@ if grep -q "$platzhalter" "$tmp/gut.docker" "$tmp/gut.aus"; then pruefe "gut: de
 
 # Ohne --url geht der Aufruf an GitHub Packages.
 neues standard 'version = "0.2.0"' ja
-lauf standard 0 "" aktor "$platzhalter"
+lauf standard 0 "" aktor "ghp_echtes-token-form"
+if grep -q "ghp_echtes-token-form" "$tmp/standard.docker" "$tmp/standard.aus"; then pruefe "standard: der Wert des Tokens steht in der Ausgabe oder im docker-Aufruf"; fi
 grep -q 'publish -PtdswireRegistryUrl=https://maven.pkg.github.com/pt9912/tdswire$' "$tmp/standard.docker" \
   || pruefe "standard: ohne --url ist das Ziel nicht GitHub Packages"
+
+# Ein annotierter Tag (eigenes Tag-Objekt) gilt wie ein leichter, wenn er auf HEAD zeigt.
+neues annotiert 'version = "0.3.0"' annotiert
+lauf annotiert 0 "Version 0.3.0" aktor "$platzhalter"
 
 # Docker-Netz fuer Belegulaeufe: wird an run gereicht.
 : > "$tmp/gut.docker"
@@ -122,10 +128,30 @@ grep -q "GITHUB_TOKEN ist leer" "$tmp/token-leer.aus" || pruefe "token-leer: Mel
 neues actor-fehlt 'version = "0.1.0"' ja
 lauf actor-fehlt 1 "GITHUB_ACTOR ist leer" "" "$platzhalter"
 
+# Ein echtes Token geht nicht an ein anderes Ziel: --url mit anderem Ziel und einem Token ohne Platzhalter bricht vor Docker.
+neues fremdes-ziel 'version = "0.1.0"' ja
+lauf fremdes-ziel 1 "dafuer gilt nur ein Platzhalter-Token" aktor "ghp_echtes-token-form" --url http://anderer-host.invalid/repo
+neues fremdes-ziel-https 'version = "0.1.0"' ja
+lauf fremdes-ziel-https 1 "dafuer gilt nur ein Platzhalter-Token" aktor "ghp_echtes-token-form" --url https://anderer-host.invalid/repo
+neues platzhalter-leer 'version = "0.1.0"' ja
+lauf platzhalter-leer 1 "dafuer gilt nur ein Platzhalter-Token" aktor "PLATZHALTER-" --url http://anderer-host.invalid/repo
+
 # Falscher Aufruf: Exit 2, kein docker.
 lauf aufruf-unbekannt 2 "Aufruf" aktor "$platzhalter" --unbekannt
 lauf aufruf-ohne-wert 2 "Aufruf" aktor "$platzhalter" --url
 lauf aufruf-kein-http 2 "keine http" aktor "$platzhalter" --url ftp://registry.invalid/repo
+
+# Zweite Fundstellen (Kopplung): das Standardziel in publish.sh gleich der Voreinstellung in build.gradle.kts, und die
+# Zeile `version = "..."` in build.gradle.kts hat die Form, die publish.sh liest.
+bgk="$wurzel_repo/build.gradle.kts"
+if [ -f "$bgk" ]; then
+  in_skript=$(sed -n 's/^standard_url="\(.*\)"$/\1/p' "$skript")
+  in_gradle=$(sed -n 's/.*getOrElse("\(https:[^"]*\)").*/\1/p' "$bgk")
+  { [ -n "$in_skript" ] && [ "$in_skript" = "$in_gradle" ]; } || pruefe "Standardziel: publish.sh [$in_skript] und build.gradle.kts [$in_gradle] unterscheiden sich"
+  [ -n "$(sed -n 's/^version = "\(.*\)"$/\1/p' "$bgk")" ] || pruefe "build.gradle.kts hat keine Zeile version = \"...\" in der Form, die publish.sh liest"
+else
+  pruefe "build.gradle.kts liegt nicht neben tools/ (die Stage skript-selbsttest kopiert sie)"
+fi
 
 # `publish` und `publish-vorschau` stehen in keiner Gate-Liste und nicht im E2E-Durchgang. abwesend <wurzel>: Befund-Zahl.
 abwesend() {
@@ -149,4 +175,4 @@ echo 'e2e-stufe: publish' > "$tmp/mk2/tools/mk/e2e.mk"
 [ "$(abwesend "$tmp/mk2")" -eq 1 ] || pruefe "Gegenprobe: publish in e2e.mk wird nicht gefunden"
 
 [ "$fehler" -eq 0 ] || exit 1
-echo "publish-selbsttest: ok (guter Fall und Standardziel, Docker-Netz, elf rote Faelle vor Docker, drei Aufruffehler, Abwesenheit in Gate-Listen und e2e.mk mit zwei Gegenproben)"
+echo "publish-selbsttest: ok (guter Fall und Standardziel, Docker-Netz, elf rote Faelle und drei Faelle mit fremdem Ziel vor Docker, annotierter Tag, drei Aufruffehler, Standardziel und Versionszeile gegen build.gradle.kts, Abwesenheit in Gate-Listen und e2e.mk mit zwei Gegenproben)"

@@ -110,6 +110,20 @@ POM=$(printf '%s\n' "$pom_gut" | sed 's|<licenses>|<!-- MIT --><licenses>|; s|MI
 erwarte pom-mit-nur-im-kommentar 1 tdswire.jar "Class-Path: lib/a.jar" a.jar
 POM="$pom_gut"
 
+# Zweite Fundstelle: Koordinaten, Lizenzname und Lizenz-URL der handkopierten guten POM stehen auch in build.gradle.kts.
+bgk=$(dirname "$0")/../build.gradle.kts
+if [ -f "$bgk" ]; then
+  gruppe=$(sed -n 's/^group = "\(.*\)"$/\1/p' "$bgk")
+  lname=$(sed -n 's/.*name\.set("\(MIT[^"]*\)").*/\1/p' "$bgk")
+  lurl=$(sed -n 's/.*url\.set("\(https:\/\/opensource[^"]*\)").*/\1/p' "$bgk")
+  for wert in "<groupId>$gruppe</groupId>" "<name>$lname</name>" "<url>$lurl</url>"; do
+    { [ -n "$gruppe" ] && [ -n "$lname" ] && [ -n "$lurl" ] && printf '%s\n' "$pom_gut" | grep -qF "$wert"; } \
+      || pruefe "die gute POM des Selbsttests und build.gradle.kts stimmen nicht ueberein ($wert)"
+  done
+else
+  pruefe "build.gradle.kts liegt nicht neben tools/ (die Stage skript-selbsttest kopiert sie)"
+fi
+
 # Ohne Argument und mit nur einem Argument: Exit 2.
 ist=0
 sh "$pruefung" > /dev/null 2>&1 || ist=$?

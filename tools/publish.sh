@@ -4,19 +4,24 @@
 #
 # Aufruf: publish.sh [--url <registry-url>]
 # Ohne --url geht der Lauf an GitHub Packages (https://maven.pkg.github.com/pt9912/tdswire). --url ist der Weg der
-# Belegulaeufe auf ein anderes Ziel; alle Pruefungen gelten auch dann.
+# Belegulaeufe auf ein anderes Ziel; alle Pruefungen gelten auch dann, und das Token muss ein Platzhalter sein (Beginn
+# PLATZHALTER-): ein echtes Token geht nie an ein anderes Ziel.
 # Umgebung: GITHUB_ACTOR und GITHUB_TOKEN (Pflicht; nur der Name wird an `docker run` gegeben, nie der Wert);
 # BUILDER_FLAGS (wie die anderen Make-Targets); PUBLISH_WURZEL (Wurzel des Repos, Voreinstellung: das Verzeichnis ueber
 # tools/); PUBLISH_DOCKER_NETZ (Docker-Netz des Laufs, nur fuer Belegulaeufe).
 # Exit 1 bei einem Befund vor Docker, 2 bei falschem Aufruf. Geprueft wird in dieser Folge: die Version in
 # build.gradle.kts hat die Form <zahl>.<zahl>.<zahl> und endet nicht auf -SNAPSHOT; der Tag v<Version> liegt auf HEAD; der
-# Arbeitsbaum ist sauber (auch ohne unversionierte Dateien); GITHUB_ACTOR und GITHUB_TOKEN sind nicht leer.
+# Arbeitsbaum ist sauber (auch ohne unversionierte Dateien); GITHUB_ACTOR und GITHUB_TOKEN sind nicht leer; bei --url mit
+# einem anderen Ziel als dem Standard beginnt das Token mit PLATZHALTER-.
+# Die Version steht in build.gradle.kts als Zeile `version = "..."` (so liest das Skript sie).
 # Grenzen: dass `make gates` auf diesem Stand gruen war, prueft das Skript nicht (Setzung von ADR-0047); der Wert des
 # Tokens wird nicht auf seine Gueltigkeit geprueft; der Tag wird auf HEAD gelesen, nicht gegen das Remote.
 set -eu
 
 wurzel="${PUBLISH_WURZEL:-$(cd "$(dirname "$0")/.." && pwd)}"
-url="https://maven.pkg.github.com/pt9912/tdswire"
+# Kopplung: derselbe Wert steht als Voreinstellung von tdswireRegistryUrl in build.gradle.kts; tools/publish-selbsttest.sh liest beide.
+standard_url="https://maven.pkg.github.com/pt9912/tdswire"
+url="$standard_url"
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -47,6 +52,15 @@ tag_commit=$(git -C "$wurzel" rev-parse -q --verify "refs/tags/v$version^{commit
 
 [ -n "${GITHUB_ACTOR:-}" ] || fehler "GITHUB_ACTOR ist leer oder nicht gesetzt"
 [ -n "${GITHUB_TOKEN:-}" ] || fehler "GITHUB_TOKEN ist leer oder nicht gesetzt"
+
+# Ein anderes Ziel als GitHub Packages nimmt nur ein Platzhalter-Token (Beginn PLATZHALTER-, wie ihn tools/publish-probe.sh
+# erzeugt); ein echtes Token geht nur an das feste Standardziel.
+if [ "$url" != "$standard_url" ]; then
+  case "$GITHUB_TOKEN" in
+    PLATZHALTER-?*) ;;
+    *) fehler "--url nennt ein anderes Ziel als $standard_url; dafuer gilt nur ein Platzhalter-Token (Beginn PLATZHALTER-)" ;;
+  esac
+fi
 
 echo "publish: Version $version, Tag v$version auf HEAD, Baum sauber, Zugangsdaten gesetzt; Ziel $url"
 image=tdswire-publish:lokal

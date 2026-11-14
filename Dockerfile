@@ -181,6 +181,7 @@ WORKDIR /src
 COPY Dockerfile Dockerfile
 COPY tools/e2e.sh tools/e2e-selbsttest.sh tools/manifest-pruefung.sh tools/manifest-selbsttest.sh tools/
 COPY tools/publish.sh tools/publish-selbsttest.sh tools/
+COPY build.gradle.kts build.gradle.kts
 COPY tools/vergleichslauf-d.sh tools/vergleichslauf-d-selbsttest.sh tools/
 COPY tools/log-muster.sh tools/log-muster-selbsttest.sh tools/
 COPY tools/test-lauf-selbsttest.sh tools/
