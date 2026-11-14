@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** SPEC-052 (veröffentlichte Form neben Jar und `lib/`) · SPEC-059 (Zeilen „Abhängigkeiten“ und „Zusage“: Versionsschema `0.y.z`, POM-Form)
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** pt9912
 
 **Autor:** Planner-Agent, Auftrag des Nutzers 2026-11-14. **Datum:** 2026-11-14.
 
