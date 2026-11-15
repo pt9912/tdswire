@@ -118,7 +118,7 @@ Closure am 2026-11-13 (Planner).
 
 - **Steering-Loop-Eintrag:** keine Regel verkörpert, kein Feld `liegt in` gesetzt; die Klassen 1 bis 3 sind gezählt und ihre Regeln gelten bereits, Klasse 4 ist unterhalb der Schwelle. Eine benannte Spec-Lücke entsteht nicht.
 - **Beobachtungs-Register (`../observations/`):** neu `BEO-TDS/accepted-adr-aussage-ausserhalb-der-supersedes-liste` (1×); Evidenz `slice-referenzabgleich-adr-0028-nachzug.md` ergänzt in `BEO-TDS/tds-8-0-und-pooling-nicht-gemessen` (Stand bleibt offen), `BEO-TDS/fortschreibung-laesst-zweite-fundstelle-stehen`, `BEO-TDS/plan-tabelle-nennt-neue-datei-nicht` und `BEO-TDS/aussagen-ueber-messung-hinaus`; `BEO-TDS/spec-nachzug-nach-messung-offen`: Stand fortgeschrieben (`SPEC-045` und `SPEC-050`, Zeile Referenzinstanzen, umgesetzt; der Rest bleibt ohne Träger offen), **kein Zähler gesetzt** (keine Evidenz-Datei, wie der Plan es vorsah).
-- **Folge-Slices:** keine neuen. [slice-release-entscheidungen](../in-progress/slice-release-entscheidungen.md) bleibt in `open/` und wartet auf Entscheidungen des Nutzers.
+- **Folge-Slices:** keine neuen. [slice-release-entscheidungen](../done/slice-release-entscheidungen.md) bleibt in `open/` und wartet auf Entscheidungen des Nutzers.
 - **Risiken aus §6:** beide tragen einen Ausgang (entfallen).
 - **Gates:** `make docs-check`, `make flaeche`, `make kopplung-zahlen`, `make gates` Exit 0 (siehe Commit-Bericht der Closure).
 

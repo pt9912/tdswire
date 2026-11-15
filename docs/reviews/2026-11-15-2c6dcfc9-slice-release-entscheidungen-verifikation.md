@@ -1,6 +1,6 @@
 # Verifikation: slice-release-entscheidungen — 2026-11-15
 
-**Rolle:** Verifier (Frage: bauen wir es richtig, gegen Plan und DoD). **Gegenstand:** Stand 2c6dcfc9, Basis `main` (`git diff main...2c6dcfc9`), Branch `worktree-agent-a231c5f47ad1cd322`. **Eingang:** Slice `docs/plan/planning/in-progress/slice-release-entscheidungen.md` (§1 bis §3, §6), Review-Report `2026-11-15-8f7a75f0-slice-release-entscheidungen-review.md`, [ADR-0010](../plan/adr/0010-detekt-pre-release.md), [ADR-0022](../plan/adr/0022-e2e-laeufe-nicht-in-den-gates.md), [ADR-0047](../plan/adr/0047-veroeffentlichung-ueber-github-packages.md), `AGENTS.md` §3.8, `docs/maintainer/releasing.md`. **Bezug:** [TDS-QA-06](../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [TDS-RB-05](../../spec/lastenheft.md#tds-rb-05--lizenz). **Modell:** claude-sonnet-5-5.
+**Rolle:** Verifier (Frage: bauen wir es richtig, gegen Plan und DoD). **Gegenstand:** Stand 2c6dcfc9, Basis `main` (`git diff main...2c6dcfc9`), Branch `worktree-agent-a231c5f47ad1cd322`. **Eingang:** Slice `docs/plan/planning/done/slice-release-entscheidungen.md` (§1 bis §3, §6), Review-Report `2026-11-15-8f7a75f0-slice-release-entscheidungen-review.md`, [ADR-0010](../plan/adr/0010-detekt-pre-release.md), [ADR-0022](../plan/adr/0022-e2e-laeufe-nicht-in-den-gates.md), [ADR-0047](../plan/adr/0047-veroeffentlichung-ueber-github-packages.md), `AGENTS.md` §3.8, `docs/maintainer/releasing.md`. **Bezug:** [TDS-QA-06](../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [TDS-RB-05](../../spec/lastenheft.md#tds-rb-05--lizenz). **Modell:** claude-sonnet-5-5.
 
 ## Urteil
 
@@ -63,7 +63,7 @@ Die Dauer im Vermerk (Schritt 8: „dazu die Dauer von `make e2e`“) ist durch 
 
 | ID | Kategorie | Befund | Pfad |
 |---|---|---|---|
-| V-1 | INFO | Slice §1 grenzt „Änderungen an Schritt 1, 8 und 9“ aus; die Dauer-Ergänzung in Schritt 8 weicht davon ab. Sie folgt der Nutzerentscheidung 2026-11-15 (Entscheidung (a) „Ergebnis und Dauer“) und der Anweisung des Auftrags; der Slice-Text nennt sie nicht. Bei der Closure in §7 vermerken oder §1 anpassen. | `docs/plan/planning/in-progress/slice-release-entscheidungen.md` §1 |
+| V-1 | INFO | Slice §1 grenzt „Änderungen an Schritt 1, 8 und 9“ aus; die Dauer-Ergänzung in Schritt 8 weicht davon ab. Sie folgt der Nutzerentscheidung 2026-11-15 (Entscheidung (a) „Ergebnis und Dauer“) und der Anweisung des Auftrags; der Slice-Text nennt sie nicht. Bei der Closure in §7 vermerken oder §1 anpassen. | `docs/plan/planning/done/slice-release-entscheidungen.md` §1 |
 | V-2 | INFO | Die Gruppen von `make gates` liefen per Stempel-Beleg, nicht frisch; für eine reine Doku-Änderung nach Tabelle ausreichend (die Stage `test` kopiert weder `spec/` noch `docs/`). | `make gates`-Ausgabe |
 | V-3 | INFO | Die Neubewertung „nach der ersten Veröffentlichung“ hat keinen Sensor und keinen Auslöser außer der Closure von `slice-maven-erste-veroeffentlichung` (Slice §6, offen bis zur Closure); die Anleitung sagt das selbst. | `releasing.md` „Offene Entscheidungen“ |
 
