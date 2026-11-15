@@ -1,10 +1,10 @@
 # ADR-0049: Cloudsmith als zweites, anonym lesbares Veröffentlichungsziel neben GitHub Packages (Konsumentenzugriff: ersetzt die alleinige Wahl 5a von ADR-0047)
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-11-15
 
-**Autor:** Architect (Entwurf); Entscheidung: pt9912 (Nutzer), offen
+**Autor:** Architect (Entwurf); Entscheidung: pt9912 (Nutzer), angenommen am 2026-11-15
 
 **Anlass (Quelle):** Nutzer, 2026-11-15, im Auftrag an den Architect: Maven Central ist ihm zu aufwendig; die Token-Pflicht von GitHub Packages für Konsumenten hält er für keine gute Lösung; das Cloudsmith-Repository `tdswire` unter dem Owner `pt9912` hat er angelegt. **Alle Empfehlungen unten sind unbestätigt; entschieden ist erst mit der Annahme durch den Nutzer.**
 
@@ -187,6 +187,7 @@ Der anonyme Abruf der veröffentlichten POM antwortet nicht mit 200 oder das Rep
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-11-15 | Proposed – Auftrag des Nutzers an den Architect (Cloudsmith als zweites, anonym lesbares Ziel; Maven Central abgelehnt); Optionen mit Empfehlung, unbestätigt; ersetzt nach Annahme nur die alleinige Wahl 5a von Entscheidung 5 in [ADR-0047](0047-veroeffentlichung-ueber-github-packages.md) | — |
+| 2026-11-15 | Accepted (Entscheidung des Nutzers: „Annehmen mit den Empfehlungen“ auf den Entwurf: Entscheidung 1 = 5b', 2 = 2a, 3 = 3a, 4 = 4a, `0.1.1` auf beiden Zielen über den CI-Weg; zu Frage 5 bleibt das Lastenheft ([TDS-RB-01](../../../spec/lastenheft.md#tds-rb-01--implementierungssprache) Nachweis) unverändert und die Lücke benannt); wirksam: die alleinige Wahl 5a von Entscheidung 5 in [ADR-0047](0047-veroeffentlichung-ueber-github-packages.md) ersetzt | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit
