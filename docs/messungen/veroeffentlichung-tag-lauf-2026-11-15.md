@@ -23,7 +23,7 @@ Messprotokoll zu [TDS-RB-05](../../spec/lastenheft.md#tds-rb-05--lizenz) und [TD
 | `publish` | success | 09:37:59 bis 09:39:58 | rund 1 min 59 s | Schritte unten |
 | `vorschau` | skipped | 09:37:58 bis 09:37:58 | 0 s | keine Schritte |
 
-Schritte von `publish` (Zeitstempel des Protokolls): Set up job ab 09:38:00; `actions/checkout` 09:38:02 bis 09:38:08 (rund 6 s); „Tag-Commit liegt in origin/main“ 09:38:08 (unter 1 s); `make publish` 09:38:08 bis 09:39:56 (rund 1 min 48 s); Complete job. Im Schritt `make publish`: `docker build` der Stage `publish` 09:38:13 bis 09:39:32 (rund 78 s; davon `abhaengigkeitenLaden` 31,0 s, `gradle classes` 33,0 s, `gradle --offline :jar` 6,0 s), danach `gradle publish` im Container 09:39:34 bis 09:39:56 (rund 22 s; Aufgabe `publishMavenPublicationToRegistryRepository` ab 09:39:39 bis 09:39:56). Zeitposten des Laufs ist `make gates` (rund 87 % der Laufzeit der beiden Jobs).
+Schritte von `publish` (Zeitstempel des Protokolls): Set up job ab 09:38:00; `actions/checkout` 09:38:02 bis 09:38:08 (rund 6 s); „Tag-Commit liegt in origin/main“ 09:38:08 (unter 1 s); `make publish` 09:38:08 bis 09:39:56 (rund 1 min 48 s); Complete job. Im Schritt `make publish`: `docker build` der Stage `publish` 09:38:13 bis 09:39:32 (rund 78 s; davon `abhaengigkeitenLaden` 31,0 s, `gradle classes` 33,0 s, `gradle --offline :jar` 6,0 s), danach `gradle publish` im Container 09:39:34 bis 09:39:56 (rund 22 s; Aufgabe `publishMavenPublicationToRegistryRepository`: ihre Kopfzeile steht im Log um 09:39:56, davor liefen `generatePomFile…` und weitere Aufgaben bis 09:39:39; der Beginn der Aufgabe liegt damit nur nach oben begrenzt vor 09:39:40, dem Zeitpunkt der Anlage des Pakets in der API). Zeitposten des Laufs ist `make gates` (rund 87 % der Laufzeit der beiden Jobs).
 
 ## Was das Protokoll zeigt
 
@@ -44,7 +44,7 @@ Abfrage am 2026-11-15 nach dem Lauf, nur lesend.
 | Paket | `io.github.pt9912.tdswire`, Typ `maven`, Besitzer `pt9912` (Konto), `visibility` `public` |
 | Zuordnung | Feld `repository`: `pt9912/tdswire` (`private: false`) |
 | Versionen | `version_count` 1; Version `0.1.0`, Lizenz `MIT` |
-| Zeit | Paket und Version `created_at` 2026-11-15 09:39:40 UTC, Version `updated_at` 09:39:41 UTC; das liegt in der Aufgabe `publishMavenPublicationToRegistryRepository` (09:39:39 bis 09:39:56) |
+| Zeit | Paket und Version `created_at` 2026-11-15 09:39:40 UTC, Version `updated_at` 09:39:41 UTC; das liegt in der Aufgabe `publishMavenPublicationToRegistryRepository`, die nach 09:39:39 beginnt (obere Schranke, nicht gemessen) und deren Kopfzeile im Log um 09:39:56 steht |
 | Dateiliste | **ungemessen**: die Abfrage der Version liefert keine Dateien (nur Name, Lizenz, Zeiten, `package_type`); dass die Version Jar und POM (und die `.module`-Datei) trägt, ist hier nicht gesehen |
 
 ## Was die Liste des Ungemessenen aus dem Dispatch-Protokoll jetzt trägt
