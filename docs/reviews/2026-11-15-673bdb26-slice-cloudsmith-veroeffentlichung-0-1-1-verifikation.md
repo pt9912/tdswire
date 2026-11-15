@@ -2,7 +2,7 @@
 
 **Rolle:** Verifier (Frage: bauen wir es richtig, gegen DoD, Plan und [ADR-0049](../plan/adr/0049-cloudsmith-als-zweites-veroeffentlichungsziel.md), [ADR-0047](../plan/adr/0047-veroeffentlichung-ueber-github-packages.md), [ADR-0048](../plan/adr/0048-veroeffentlichung-in-der-ci-bei-tag-push.md)). Kein Review, keine Reparatur.
 
-**Gegenstand:** Zweig `worktree-agent-ae8ee070bc730ad4b`, HEAD `673bdb26`; Basis `main` `9c7439f5` (Release-Commit, Tag `v0.1.1` zeigt darauf: `git ls-remote` und lokale Auflösung gleich). Slice: `docs/plan/planning/in-progress/slice-cloudsmith-veroeffentlichung-0-1-1.md`. Eingang: Review `docs/reviews/2026-11-15-f456e8a2-slice-cloudsmith-veroeffentlichung-0-1-1-review.md` und Nachbesserung `673bdb26`.
+**Gegenstand:** Zweig `worktree-agent-ae8ee070bc730ad4b`, HEAD `673bdb26`; Basis `main` `9c7439f5` (Release-Commit, Tag `v0.1.1` zeigt darauf: `git ls-remote` und lokale Auflösung gleich). Slice: `docs/plan/planning/done/slice-cloudsmith-veroeffentlichung-0-1-1.md`. Eingang: Review `docs/reviews/2026-11-15-f456e8a2-slice-cloudsmith-veroeffentlichung-0-1-1-review.md` und Nachbesserung `673bdb26`.
 
 **Änderungsart:** Doku, Messprotokoll, ein Kommentar im Workflow, `build.gradle.kts` (nur `version`). Kein Pfad unter `src/` oder `testserver/` (`git diff --stat 9c7439f5 673bdb26 -- src testserver` leer), daher kein `make clean-build`, kein `make e2e`.
 

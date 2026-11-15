@@ -1,3 +1,3 @@
-**Vorgang:** [slice-cloudsmith-veroeffentlichung-0-1-1](../../../../in-progress/slice-cloudsmith-veroeffentlichung-0-1-1.md)
+**Vorgang:** [slice-cloudsmith-veroeffentlichung-0-1-1](../../../../done/slice-cloudsmith-veroeffentlichung-0-1-1.md)
 **Fund:** [Review](../../../../../../reviews/2026-11-15-f456e8a2-slice-cloudsmith-veroeffentlichung-0-1-1-review.md) F-1 (MEDIUM) und F-6 (LOW): die Fortschreibung hob „gebaut, nicht gelaufen“ in `releasing.md`, ließ „nie gelaufen“ in zwei Zeilen von `harness/README.md` stehen und in `releasing.md` Schritt 6 sowie dem Absatz „Nicht Teil dieses Ablaufs“ den alten Vorbehalt; behoben in `673bdb26`. Der Verifier grepte `nie gelaufen` über `harness/`, `docs/`, `.github`, `tools`: kein Treffer.
 **Stand:** verkörpert wie in `state.md` der Klasse; hier ein weiteres Auftreten, vom Reviewer gefangen, nicht vom Implementer. Retirement-Check: die Beobachtung ist nach `welle-testserver-manuell` wieder aufgetreten, die Regel bleibt.
