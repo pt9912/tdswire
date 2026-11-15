@@ -6,7 +6,7 @@ Messprotokoll zu [TDS-RB-05](../../spec/lastenheft.md#tds-rb-05--lizenz), [TDS-Q
 
 ## Lauf und Versuche
 
-Lauf [43734101990](https://github.com/pt9912/tdswire/actions/runs/43734101990), Ereignis `push`, `headBranch` `v0.1.1`, `headSha` wie oben. **Der Lauf hat fünf Versuche, nicht zwei**: vier rote und einen grünen des Jobs `publish-cloudsmith`.
+Lauf [43734101990](https://github.com/pt9912/tdswire/actions/runs/43734101990), Ereignis `push`, `headBranch` `v0.1.1`, `headSha` wie oben. **Der Lauf hat sechs Versuche** (`run_attempt` 6, per `gh api` abgefragt): in den Versuchen 1 bis 4 war der Job `publish-cloudsmith` rot, in Versuch 5 grün, Versuch 6 führte keinen Job neu aus.
 
 | Versuch | Start des Versuchs | Job `publish-cloudsmith` | Ausgang | Auslöser |
 |---|---|---|---|---|
@@ -15,6 +15,7 @@ Lauf [43734101990](https://github.com/pt9912/tdswire/actions/runs/43734101990), 
 | 3 | 16:51:04 | 16:51:07 bis 16:52:50 | failure | Wiederholung durch den Nutzer |
 | 4 | 17:01:33 | 17:01:37 bis 17:03:26 | failure | Wiederholung durch den Nutzer |
 | 5 | 17:16:05 | 17:16:09 bis 17:17:58 | success | Wiederholung durch den Nutzer |
+| 6 | 17:21:45 | keiner neu; der Job trägt die Zeiten von Versuch 5 (17:16:09 bis 17:17:58) | success (Versuch 17:21:45 bis 17:21:48) | `triggering_actor` `pt9912`; Wiederholungsanfrage des Orchestrators, siehe unten |
 
 („Auslöser“: `triggering_actor` jedes Versuchs ist `pt9912`; dass es „Re-run failed jobs“ war und nicht „Re-run all jobs“, folgt aus dem Verhalten der anderen Jobs, siehe unten.)
 
@@ -36,7 +37,9 @@ Versuch 5, Job `publish-cloudsmith`: `make publish-cloudsmith` ab 17:16:12; der 
 
 ### Wirkung von „Re-run failed jobs“: nur der rote Job lief neu (gemessen)
 
-In den Versuchen 2 bis 5 tragen die Jobs `gates` und `publish` unverändert Start und Ende des ersten Versuchs (`gates` 16:11:53 bis 16:21:33, `publish` 16:21:35 bis 16:24:20), nur die Job-Kennung und das Feld `run_attempt` ändern sich; `vorschau` bleibt `skipped`. Das Protokoll des Jobs `publish` unter der Kennung des fünften Versuchs (132891254685) trägt Zeitstempel von 16:21 bis 16:24, nicht von 17:16. Die Pakete-API führt für `0.1.1` **eine** Anlage (`created_at` 16:23:51, `updated_at` 16:23:52). Gemessen ist damit: die Wiederholung betraf nur den roten Job, `publish` hat die veröffentlichte Version nicht ein zweites Mal geschrieben. Das entspricht der Lesart von [ADR-0049](../plan/adr/0049-cloudsmith-als-zweites-veroeffentlichungsziel.md) Entscheidung 2 (zuvor Dokumentationsstand aus dem Schwesterprojekt). Nicht gemessen: ob „Re-run all jobs“ dasselbe täte (es wurde nicht versucht).
+In den Versuchen 2 bis 6 tragen die Jobs `gates` und `publish` unverändert Start und Ende des ersten Versuchs (`gates` 16:11:53 bis 16:21:33, `publish` 16:21:35 bis 16:24:20), nur die Job-Kennung und das Feld `run_attempt` ändern sich; `vorschau` bleibt `skipped`. Das Protokoll des Jobs `publish` unter der Kennung des fünften Versuchs (132891254685) trägt Zeitstempel von 16:21 bis 16:24, nicht von 17:16. Die Pakete-API führt für `0.1.1` **eine** Anlage (`created_at` 16:23:51, `updated_at` 16:23:52). Gemessen ist damit: die Wiederholung betraf nur den roten Job, `publish` hat die veröffentlichte Version nicht ein zweites Mal geschrieben. Das entspricht der Lesart von [ADR-0049](../plan/adr/0049-cloudsmith-als-zweites-veroeffentlichungsziel.md) Entscheidung 2 (zuvor Dokumentationsstand aus dem Schwesterprojekt). Nicht gemessen: ob „Re-run all jobs“ dasselbe täte (es wurde nicht versucht).
+
+**Versuch 6:** Er startete 17:21:45 und endete 17:21:48 (`success`); alle Jobs tragen die Zeiten der früheren Versuche, `vorschau` ist `skipped`, `gates`, `publish` und `publish-cloudsmith` liefen nicht neu (gemessen an den Zeiten der Abfrage `…/attempts/6/jobs`). Nach Angabe des Orchestrators war dies eine Wiederholungsanfrage, die `gh` mit „cannot be rerun“ ablehnte; dass die Anfrage den Versuch 6 erzeugte, ist aus diesem Zusammentreffen (Zeit der Anfrage, Fehlen eines neuen Jobs) geschlossen, nicht an einer Ausgabe der API belegt: die Abfrage nennt `run_attempt` und Zeiten, nicht die Ursache. Das Protokoll des Versuchs 6 ist nicht gelesen. Ein Versuch 7 besteht nicht (HTTP 404). Der Gesamtausgang des Laufs ist `success`, `updatedAt` 17:21:48.
 
 Nach vier roten Versuchen trägt Cloudsmith genau ein Paket (`0.1.1`, siehe unten), kein Teilbestand aus den abgewiesenen PUTs: die API listet nur das Paket aus Versuch 5. Ob einzelne abgewiesene Dateien anderswo (etwa in einem Zwischenspeicher) verblieben wären, ist nicht gesehen; der 401 kam vor dem ersten Byte.
 
@@ -88,7 +91,7 @@ Belegt: Gradle bindet die Version ohne Zugangsdaten über Cloudsmith, mit und oh
 
 **Erzeuger nicht im Repo:** die Zählungen stammen aus einem Wegwerf-Skript (Python, reguläre Ausdrücke je Muster, Ausgabe nur Anzahlen) im Scratchpad der Messung, die `curl`-Tabelle aus einem Shell-Skript mit `curl -s -o /dev/null -w '%{http_code} %{size_download}'` je Pfad; beide liegen nicht im Repo. Die `curl`-Werte sind an der öffentlichen Registry wiederholbar (vom Reviewer fünf wiederholt, gleich), die Protokolle selbst liegen nur im Scratchpad und bei GitHub (Aufbewahrungsfrist); die Zählungen sind vom Reviewer mit eigenem Skript an den Einzelprotokollen wiederholt worden, gleich. Die Suche im Gesamtprotokoll des Laufs ist nicht nachgelesen worden.
 
-Gesucht in den Protokollen der fünf Versuche des Jobs `publish-cloudsmith`, im Protokoll des Jobs `publish` (fünfter Versuch) und im Gesamtprotokoll des Laufs (erster Versuch und Versuch 2), ohne je einen Wert auszugeben (nur Anzahlen):
+Gesucht in den Protokollen der Versuche 1 bis 5 des Jobs `publish-cloudsmith`, im Protokoll des Jobs `publish` (fünfter Versuch) und im Gesamtprotokoll des Laufs (erster Versuch und Versuch 2), ohne je einen Wert auszugeben (nur Anzahlen):
 
 - Im Schritt `make publish-cloudsmith` steht je Protokoll genau eine Zeile `CLOUDSMITH_USERNAME: ***` und eine `CLOUDSMITH_API_KEY: ***`; `GITHUB_TOKEN: ***` im Schritt `make publish`. Kein Protokoll führt `CLOUDSMITH_API_KEY:` oder `CLOUDSMITH_USERNAME:` mit etwas anderem als `***`.
 - Keine Treffer für die Präfixe `ghs_`, `ghp_`, `github_pat`, für `Bearer`, `Basic <Zeichen>`, `X-Api-Key`, `api_key=` mit Wert und für `token`/`key`/`secret`/`password` gefolgt von 32 oder mehr Base64-Zeichen. Der eine Treffer des Wortes „authorization“ je Protokoll ist die Zeile des Schrittes `actions/checkout`, die das Token von GitHub setzt: `AUTHORIZATION: basic ***`, maskiert.
