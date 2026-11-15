@@ -1,0 +1,3 @@
+**Vorgang:** [slice-cloudsmith-ziel-bauen](../../../../done/slice-cloudsmith-ziel-bauen.md)
+**Fund:** Commit `04cb30ae` nach der Verifikation ([Bericht](../../../../../../reviews/2026-11-15-85820481-slice-cloudsmith-ziel-bauen-verifikation.md), N2-1 und N2-2) berührt zwei Skripte (`tools/publish-selbsttest.sh`, `tools/publish-probe.sh`), nur einen Kommentar und zwei Beschriftungen, keine Logik. Kein dritter Review; Vermerk in §7 der Closure-Notiz, geprüft mit `make skript-selbsttest` und `make gates`. Die Regel nimmt reine Kommentar-Korrekturen aus; hier wegen des Skript-Pfads ausdrücklich geführt, die Entscheidung über einen dritten Review liegt beim Nutzer.
+**Stand:** verkörpert wie in `state.md` der Klasse; hier ein weiteres Auftreten.
