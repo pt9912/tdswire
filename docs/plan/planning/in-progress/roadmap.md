@@ -10,7 +10,7 @@ gezeigt, nicht als Treiber.
 
 ## Offene Wellen
 
-Nichts in Arbeit. Zuletzt geschlossen: [slice-maven-erste-veroeffentlichung](../done/slice-maven-erste-veroeffentlichung.md) (ohne Welle; `0.1.0` in GitHub Packages, Messprotokoll [Tag-Lauf](../../../messungen/veroeffentlichung-tag-lauf-2026-11-15.md)). Lieferslice: [slice-cloudsmith-veroeffentlichung-0-1-1](../open/slice-cloudsmith-veroeffentlichung-0-1-1.md) (Konsum, Dateiliste, Nutzer-Doku, Tag-Schutz; Vorbereitung [slice-cloudsmith-ziel-bauen](../open/slice-cloudsmith-ziel-bauen.md)).
+Arbeit: [slice-cloudsmith-ziel-bauen](../open/slice-cloudsmith-ziel-bauen.md) (Anspruch 2026-11-15). Zuletzt geschlossen: [slice-maven-erste-veroeffentlichung](../done/slice-maven-erste-veroeffentlichung.md) (ohne Welle; `0.1.0` in GitHub Packages, Messprotokoll [Tag-Lauf](../../../messungen/veroeffentlichung-tag-lauf-2026-11-15.md)). Lieferslice: [slice-cloudsmith-veroeffentlichung-0-1-1](../open/slice-cloudsmith-veroeffentlichung-0-1-1.md) (Konsum, Dateiliste, Nutzer-Doku, Tag-Schutz; Vorbereitung [slice-cloudsmith-ziel-bauen](../open/slice-cloudsmith-ziel-bauen.md)).
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte — *Offene Wellen* ist **derivativ**: Der
