@@ -32,7 +32,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Die Bibliothek ist als Maven-Paket veröffentlichungsfähig, und das Veröffentlichen ist als Werkzeug vorbereitet und belegt, **ohne dass etwas in die Registry geschrieben wird**: Der Bau erzeugt und prüft die POM, `make publish-vorschau` baut Jar und POM im Container in ein lokales Maven-Repository, und `make publish` bricht vor dem Netz, wenn Version, Tag, Baum oder Token nicht stimmen ([ADR-0047](../../adr/0047-veroeffentlichung-ueber-github-packages.md), Entscheidungen 1a, 2a, 3a, 4a, 5a, 6a, 8a, vom Nutzer am 2026-11-14 angenommen).
 
-**Abgrenzung zu [slice-release-entscheidungen](../open/slice-release-entscheidungen.md)** (dieser Plan entscheidet dessen Punkte nicht; er nennt, was [ADR-0047](../../adr/0047-veroeffentlichung-ueber-github-packages.md) zu ihnen schon gesagt hat und was offen bleibt):
+**Abgrenzung zu [slice-release-entscheidungen](../in-progress/slice-release-entscheidungen.md)** (dieser Plan entscheidet dessen Punkte nicht; er nennt, was [ADR-0047](../../adr/0047-veroeffentlichung-ueber-github-packages.md) zu ihnen schon gesagt hat und was offen bleibt):
 
 | Punkt in `slice-release-entscheidungen` | Stand nach [ADR-0047](../../adr/0047-veroeffentlichung-ueber-github-packages.md) | Träger |
 |---|---|---|
