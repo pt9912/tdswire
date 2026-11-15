@@ -174,7 +174,7 @@ RUN sh tools/spec-abdeckung-selbsttest.sh
 
 # --- Skript-Selbsttest: `make skript-selbsttest` - belegt ohne Gradle, dass tools/e2e.sh an der ersten roten
 # Stufe abbricht, dass tools/manifest-pruefung.sh seine Fehlerfaelle abweist und dass tools/vergleichslauf-d.sh ohne EULA-Variable,
-# in der CI und mit unbekanntem Namen vor jedem Docker-Aufruf endet und dass die Muster, mit denen die Laufskripte das Log des Testservers lesen (tools/log-muster.sh), gruen und rot werden, und dass referenztest-dotnet/test-lauf.sh seine Argumente abweist und seine Modi haelt (tools/test-lauf-selbsttest.sh, gegen einen dotnet-Stub), und dass das Eingangsskript tools/publish.sh von `make publish` vor Docker bricht (tools/publish-selbsttest.sh, gegen einen docker-Stub: Version, Tag, Baum, Token) (die Fragmente, das E2E-Skript und die Workflows sind dafuer Eingang); das Dockerfile selbst ist
+# in der CI und mit unbekanntem Namen vor jedem Docker-Aufruf endet und dass die Muster, mit denen die Laufskripte das Log des Testservers lesen (tools/log-muster.sh), gruen und rot werden, und dass referenztest-dotnet/test-lauf.sh seine Argumente abweist und seine Modi haelt (tools/test-lauf-selbsttest.sh, gegen einen dotnet-Stub), und dass das Eingangsskript tools/publish.sh von `make publish` vor Docker bricht (tools/publish-selbsttest.sh, gegen einen docker-Stub: Version, Tag, Baum, Zugangsdaten und Zielregel je Ziel) (die Fragmente, das E2E-Skript und die Workflows sind dafuer Eingang); das Dockerfile selbst ist
 # Eingang, weil der Test den Aufruf der Pruefung in der Stage `build-jar` liest. ------------------------
 FROM basis AS skript-selbsttest
 WORKDIR /src
@@ -259,7 +259,7 @@ RUN sh tools/manifest-pruefung.sh build/libs build/publications/maven/pom-defaul
 
 # --- Publish: `make publish-vorschau` und `make publish` - das Image des Veroeffentlichens (ADR-0047 Entscheidung 6): Jar,
 # Gradle und Abhaengigkeiten, kein Token. Zugangsdaten kommen nur zur Laufzeit als Umgebung des Containers (`docker run -e
-# GITHUB_ACTOR -e GITHUB_TOKEN`), nie als Build-Argument oder Datei; tools/publish.sh ruft den Lauf nach seinen Pruefungen.
+# GITHUB_ACTOR -e GITHUB_TOKEN` oder `-e CLOUDSMITH_USERNAME -e CLOUDSMITH_API_KEY`, je Ziel), nie als Build-Argument oder Datei; tools/publish.sh ruft den Lauf nach seinen Pruefungen.
 # Das Modul `:testserver` wendet `maven-publish` nicht an und geht nicht in das Paket. ----
 FROM compile AS publish
 COPY --chown=gradle:gradle LICENSE LICENSE

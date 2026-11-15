@@ -1,12 +1,18 @@
-# Veroeffentlichung der Bibliothek in GitHub Packages bei Tag-Push `v*` (TDS-RB-05, TDS-QA-06, ADR-0048).
-# Kein Gate: `make publish` steht in keiner Gate-Liste, der Workflow ist kein Eingang von `make gates` (ADR-0048
-# Entscheidung 3). Rang-Zeiger: Ablauf und Tag-Schutz in docs/maintainer/releasing.md, Werkzeug-Zeile in
-# harness/README.md §Sensors.
+# Veroeffentlichung der Bibliothek in GitHub Packages und Cloudsmith bei Tag-Push `v*` (TDS-RB-05, TDS-QA-06, ADR-0048,
+# ADR-0049). Kein Gate: `make publish` und `make publish-cloudsmith` stehen in keiner Gate-Liste, der Workflow ist kein
+# Eingang von `make gates` (ADR-0048 Entscheidung 3). Rang-Zeiger: Ablauf und Tag-Schutz in docs/maintainer/releasing.md,
+# Werkzeug-Zeilen in harness/README.md §Sensors.
+# Zwei Jobs veroeffentlichen, `publish` (GitHub Packages) und `publish-cloudsmith` (Cloudsmith); beide haengen an
+# `gates`, keiner an dem anderen, keiner hat `continue-on-error` (ADR-0049 Entscheidung 2a). Ein roter Job wird allein
+# wiederholt. `packages: write` steht nur in `publish`; die Werte von Cloudsmith stehen nur im `env:` des Schritts
+# `make publish-cloudsmith` (ADR-0049 Entscheidung 3a).
 # Kopplung: Job `gates` wiederholt Checkout und Aufruf aus .github/workflows/gates.yml; aendert sich dort einer
 # von beiden, wird er hier nachgezogen.
 # Grenzen: `make workflow-lint` prueft Syntax und Ausdruecke, nicht die SHA-Pins und nicht die Reihenfolge `gates` vor
-# `publish`; beides prueft der Review. Der Dispatch-Lauf baut die Stage `publish` ohne Token und ohne Netz zu GitHub
-# Packages; das Schreiben mit GITHUB_TOKEN belegt erst die erste echte Veroeffentlichung.
+# beiden Veroeffentlichungs-Jobs, nicht die Bedingung und nicht, welcher Job welches Secret und welche Rechte hat;
+# das prueft der Review. Der Dispatch-Lauf baut die Stage `publish` ohne Token und ohne Netz zu GitHub Packages oder
+# Cloudsmith und fuehrt den Job `publish-cloudsmith` nach seiner Bedingung nicht aus (gelesen, nicht gemessen); das Schreiben mit GITHUB_TOKEN belegt der Tag-Lauf
+# 43699125460, das Schreiben nach Cloudsmith erst die erste echte Veroeffentlichung dorthin.
 name: veroeffentlichung
 
 on:
@@ -64,6 +70,31 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: make publish
+
+  # Nur der Tag-Push veroeffentlicht, dieselbe Bedingung wie `publish`. Kein `needs: publish`: ein Fehler eines Ziels haelt
+  # das andere nicht zurueck. CLOUDSMITH_USERNAME und CLOUDSMITH_API_KEY sind Repository-Secrets und stehen nur im Schritt
+  # `make publish-cloudsmith`; ohne `packages: write`.
+  publish-cloudsmith:
+    needs: gates
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Tag-Commit liegt in origin/main
+        run: |
+          git merge-base --is-ancestor HEAD origin/main \
+            || { echo "veroeffentlichung: FEHLER - der Tag-Commit liegt nicht in origin/main" >&2; exit 1; }
+      - name: make publish-cloudsmith
+        env:
+          CLOUDSMITH_USERNAME: ${{ secrets.CLOUDSMITH_USERNAME }}
+          CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
+        run: make publish-cloudsmith
 
   # Nur beim Dispatch: Bau der Stage `publish` und POM-Ausgabe, kein Token, nichts nach aussen.
   vorschau:

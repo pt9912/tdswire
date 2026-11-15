@@ -213,6 +213,10 @@ tasks.register<JavaExec>("laufzeitClient") {
 // tools/manifest-pruefung.sh liest sie. Das Ziel der Task `publish` ist GitHub Packages, ausser
 // `-PtdswireRegistryUrl` nennt ein anderes (Belegulaeufe, tools/publish.sh); Benutzer und Token kommen nur aus der
 // Umgebung des Laufs.
+// Zweites Ziel (ADR-0049): das Repository `cloudsmith`, Standardziel https://maven.cloudsmith.io/pt9912/tdswire/, fuer
+// Belegulaeufe mit `-PtdswireCloudsmithUrl` ueberschreibbar; Benutzer und Schluessel nur aus CLOUDSMITH_USERNAME und
+// CLOUDSMITH_API_KEY. Die Task `publish` fuehrt beide Repositories aus und braucht dann beide Zugangsdaten; tools/publish.sh
+// ruft je Ziel die Einzel-Task (`publishMavenPublicationTo<Name>Repository`).
 publishing {
     publications {
         create<MavenPublication>("maven") {
@@ -244,6 +248,17 @@ publishing {
             credentials {
                 username = System.getenv("GITHUB_ACTOR")
                 password = System.getenv("GITHUB_TOKEN")
+            }
+        }
+        maven {
+            name = "cloudsmith"
+            val cloudsmithUrl = providers.gradleProperty("tdswireCloudsmithUrl")
+                .getOrElse("https://maven.cloudsmith.io/pt9912/tdswire/")
+            url = uri(cloudsmithUrl)
+            isAllowInsecureProtocol = cloudsmithUrl.startsWith("http://")
+            credentials {
+                username = System.getenv("CLOUDSMITH_USERNAME")
+                password = System.getenv("CLOUDSMITH_API_KEY")
             }
         }
     }
