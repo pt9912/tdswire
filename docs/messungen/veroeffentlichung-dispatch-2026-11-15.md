@@ -12,7 +12,7 @@ Messprotokoll zu [TDS-RB-05](../../spec/lastenheft.md#tds-rb-05--lizenz) und [TD
 | Ereignis, Ref | `workflow_dispatch` auf `main`, `headSha` `5058c91b18d1fd3ce45a6bcc35b76a0ebf416a09` |
 | Zeitraum | 2026-11-14, `createdAt` 17:09:51 UTC, `updatedAt` 17:24:47 UTC (rund 14 min 56 s) |
 | Runner | gehostet, Label `ubuntu-24.04`, Runner-Image Version `20261111.127.1`, Runner-Programm 2.338.2 |
-| Docker-Version | **nicht gemessen**: das Protokoll gibt sie nicht aus; die Liste der Software im Image ist nur verlinkt, nicht gelesen |
+| Docker-Version | nicht erhoben und nicht gefordert: das Laufprotokoll gibt sie nicht aus, die Liste der Software im Image ist nur verlinkt, nicht gelesen. Die Anforderung ist durch Entscheidung des Nutzers (2026-11-15) aus der DoD des Slice gestrichen; Runner-Label und Runner-Image-Version sind belegt, die Docker-Version ändert keine Aussage dieses Protokolls |
 | Klon | `actions/checkout` auf Commit-SHA `d23441a48e516b6c34aea4fa41551a30e30af803`, `fetch-depth: 0`, `persist-credentials: false` |
 
 ## Ausgang und Dauer je Job
@@ -35,7 +35,7 @@ Die Läufe haben nacheinander statt nebeneinander gerechnet: `vorschau` hat `nee
 
 ## Was dieser Lauf nicht belegt
 
-Ungemessen, weil `publish` nicht lief und kein Tag-Ref vorlag; jeder Punkt braucht eine echte Veröffentlichung oder einen Tag-Lauf ([ADR-0048](../plan/adr/0048-veroeffentlichung-in-der-ci-bei-tag-push.md) Entscheidung 4):
+Ungemessen, weil `publish` nicht lief und kein Tag-Ref vorlag (Punkt 9 ausgenommen, er entfällt als Anforderung); jeder übrige Punkt braucht eine echte Veröffentlichung oder einen Tag-Lauf ([ADR-0048](../plan/adr/0048-veroeffentlichung-in-der-ci-bei-tag-push.md) Entscheidung 4):
 
 1. dass `GITHUB_TOKEN` mit `permissions: packages: write` auf dem Runner ein Paket schreiben darf, auch das erste eines noch nicht bestehenden Pakets;
 2. die Zuordnung eines Pakets zum Repository;
@@ -45,7 +45,7 @@ Ungemessen, weil `publish` nicht lief und kein Tag-Ref vorlag; jeder Punkt brauc
 6. ob ein Bypass-Berechtigter trotz der Regel „Restrict creations“ einen Tag `v*` pushen kann (Einstellung bei GitHub, Anleitung in [`releasing.md`](../maintainer/releasing.md#tag-schutz-v));
 7. das Verhalten von `GITHUB_ACTOR` auf dem Runner (der Wert wird erst von `make publish` gelesen);
 8. ob die Einstellung „Workflow permissions“ des Repositories das Recht `packages: write` einschränkt: das Protokoll zeigt nur Jobs mit `contents: read`;
-9. die Docker-Version des Runners (siehe Bedingungen);
+9. *(entfallen)* die Docker-Version des Runners: keine Anforderung mehr, siehe Bedingungen; sie ist kein offener Punkt;
 10. die Wirkung von `concurrency` bei zwei Läufen desselben Tags.
 
 Der Lauf zeigt, dass der Workflow auf `main` syntaktisch angenommen wird, `gates` auf dem Runner grün durchläuft, `vorschau` die Stage `publish` ohne Token baut und die POM ausgibt, und dass `publish` bei `workflow_dispatch` nicht läuft.
