@@ -18,7 +18,7 @@ Produkts im Container gibt es nicht. Der Testserver in `testserver` ist ein ausf
 Serverprozess nur zur Prüfung der Bibliothek (E2E- und Kompatibilitätsläufe), kein Produkt.
 
 - `make gates` führt die Gates aus (Tests, detekt, Build, Dokumentreferenzen, vendored Baseline).
-- `make e2e` führt den E2E-Durchgang in acht Stufen aus, ein Gate ist er nicht.
+- `make e2e` führt den E2E-Durchgang in neun Stufen aus (die neunte ist der Lasttest in Probengröße, `make lasttest`), ein Gate ist er nicht.
 - `make testserver-up` startet den Testserver von Hand, `make testserver-down` stoppt ihn; Anleitung, Anmeldung und Grenzen: [`docs/user/testserver-manuell.md`](docs/user/testserver-manuell.md).
 - Anleitungen nach Aufgaben ("Ich möchte …"): [`docs/user/README.md`](docs/user/README.md).
 - Einbettung, Konfiguration, Log und Grenzen der Bibliothek: [`docs/user/einbettung-und-betrieb.md`](docs/user/einbettung-und-betrieb.md); Release-Schritte: [`docs/maintainer/releasing.md`](docs/maintainer/releasing.md).
