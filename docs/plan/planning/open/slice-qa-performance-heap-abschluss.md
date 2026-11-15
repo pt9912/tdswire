@@ -33,7 +33,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Der Heap des Serverprozesses beim Strom großer Ergebnisse (10 Mio Zeilen aus dem [Referenz-Workload](../../referenz-workload.md)) und die Verzögerung durch den zurückgehaltenen Abschluss in Millisekunden sind am Serverprozess gemessen und an die Zahlen des Spike in [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md) gestellt.
 
-**Übernimmt:** aus dem DoD-Punkt „Lasttest“ von [slice-qa-performance](slice-qa-performance.md) (Fassung vor der Zerlegung vom 2026-11-15) die Punkte Heap und Latenz des Abschlusses.
+**Übernimmt:** aus dem DoD-Punkt „Lasttest“ von [slice-qa-performance](../in-progress/slice-qa-performance.md) (Fassung vor der Zerlegung vom 2026-11-15) die Punkte Heap und Latenz des Abschlusses.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -72,7 +72,7 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| Szenarien des Werkzeugs aus [slice-qa-performance](slice-qa-performance.md) (Strom 10 Mio, Abstand Zeile/Abschluss) | update | Messung nach [TDS-QA-04](../../../../spec/lastenheft.md#tds-qa-04--performance) und [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md) |
+| Szenarien des Werkzeugs aus [slice-qa-performance](../in-progress/slice-qa-performance.md) (Strom 10 Mio, Abstand Zeile/Abschluss) | update | Messung nach [TDS-QA-04](../../../../spec/lastenheft.md#tds-qa-04--performance) und [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md) |
 | Backend mit einstellbarer Verzögerung des nächsten Ereignisses | neu | Erzeuger im Repo, Aufbau B |
 | `docs/messungen/performance-heap-abschluss-<datum>.md` | neu | Messprotokoll, Einzelmessung (`AGENTS.md` §5 Regel 7) |
 
@@ -84,7 +84,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-qa-performance](slice-qa-performance.md) in `done/`; nach [slice-qa-performance-durchsatz-sitzungen](slice-qa-performance-durchsatz-sitzungen.md) ist die Streuung des Hosts bekannt (Setzung der Reihenfolge). Die Reihenfolge zu [slice-qa-performance-rueckstau](slice-qa-performance-rueckstau.md) ist offen; beide dürfen nacheinander laufen, das WIP-Limit gilt.
+**Start** (`next` → `in-progress`): [slice-qa-performance](../in-progress/slice-qa-performance.md) in `done/`; nach [slice-qa-performance-durchsatz-sitzungen](slice-qa-performance-durchsatz-sitzungen.md) ist die Streuung des Hosts bekannt (Setzung der Reihenfolge). Die Reihenfolge zu [slice-qa-performance-rueckstau](slice-qa-performance-rueckstau.md) ist offen; beide dürfen nacheinander laufen, das WIP-Limit gilt.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

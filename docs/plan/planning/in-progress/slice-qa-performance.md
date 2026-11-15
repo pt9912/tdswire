@@ -37,10 +37,10 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 | Reihenfolge | Slice | Liefer-Punkte |
 |---|---|---|
 | 1 | `slice-qa-performance` (dieser) | 3: Workload-Dokument, Werkzeug mit Aufbauten A bis C, E2E-Stufe |
-| 2 | [slice-qa-performance-durchsatz-sitzungen](slice-qa-performance-durchsatz-sitzungen.md) | 3: Export, Import, Sitzungen mit p95 |
-| 3 | [slice-qa-performance-rueckstau](slice-qa-performance-rueckstau.md) | 3: Socket, blockierendes Backend, Simulations-Backend |
-| 3 | [slice-qa-performance-heap-abschluss](slice-qa-performance-heap-abschluss.md) | 2: Heap, Latenz des Abschlusses |
-| 4 | [slice-qa-performance-grenzwerte](slice-qa-performance-grenzwerte.md) | 2: Grenzwerte im Lastenheft, Spec-Nachzug |
+| 2 | [slice-qa-performance-durchsatz-sitzungen](../open/slice-qa-performance-durchsatz-sitzungen.md) | 3: Export, Import, Sitzungen mit p95 |
+| 3 | [slice-qa-performance-rueckstau](../open/slice-qa-performance-rueckstau.md) | 3: Socket, blockierendes Backend, Simulations-Backend |
+| 3 | [slice-qa-performance-heap-abschluss](../open/slice-qa-performance-heap-abschluss.md) | 2: Heap, Latenz des Abschlusses |
+| 4 | [slice-qa-performance-grenzwerte](../open/slice-qa-performance-grenzwerte.md) | 2: Grenzwerte im Lastenheft, Spec-Nachzug |
 
 Die Zeilen mit Reihenfolge 3 dürfen nacheinander laufen, jede ist nach Slice 2 startbar (Setzung: Slice 2 zuerst, damit die Streuung des Hosts an der einfacheren Messung bekannt wird).
 
@@ -48,7 +48,7 @@ Die Zeilen mit Reihenfolge 3 dürfen nacheinander laufen, jede ist nach Slice 2 
 
 - Optimierung — der Slice misst und legt Grenzwerte fest; eine Verbesserung ist ein eigener Slice, sobald ein Grenzwert verfehlt wird.
 - Die Messungen selbst (Durchsatz, Rückstau, Heap, zurückgehaltener Abschluss) — sie liegen bei den Folge-Slices der Tabelle oben; dieser Slice liefert höchstens eine Probe-Messzeile je Aufbau, damit das Werkzeug seine Trennung belegt.
-- Die Grenzwerte im Lastenheft — [slice-qa-performance-grenzwerte](slice-qa-performance-grenzwerte.md); sie brauchen die Messungen und die Bestätigung des Nutzers.
+- Die Grenzwerte im Lastenheft — [slice-qa-performance-grenzwerte](../open/slice-qa-performance-grenzwerte.md); sie brauchen die Messungen und die Bestätigung des Nutzers.
 - Die Entscheidung über die offenen Fragen des Workloads (Zielwerte, Zeilenzahl, wer misst) — sie ist Eingang (Start-Trigger), nicht Lieferung dieses Slice.
 
 ## 2. Definition of Done
@@ -115,7 +115,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 - Ohne freigegebenen Referenz-Workload sind die Grenzwerte nicht begründbar. — **Ausgang:** offen bis zur Closure.
-- Rückstau im Produktivbetrieb, Heap und zurückgehaltener Abschluss ([ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md)) sind bisher nur am Fake oder auf einer Maschine belegt (`BEO-TDS/rueckstau-im-produktivbetrieb-nicht-gemessen`); die Messung braucht dieses Werkzeug. — **Ausgang:** weiter offen → [slice-qa-performance-rueckstau](slice-qa-performance-rueckstau.md) und [slice-qa-performance-heap-abschluss](slice-qa-performance-heap-abschluss.md) (Träger der Messung, `BEO-TDS/rueckstau-im-produktivbetrieb-nicht-gemessen` und `BEO-TDS/rueckstau-zusage-nur-test-backend-traeger-unvollstaendig` im Register).
+- Rückstau im Produktivbetrieb, Heap und zurückgehaltener Abschluss ([ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md)) sind bisher nur am Fake oder auf einer Maschine belegt (`BEO-TDS/rueckstau-im-produktivbetrieb-nicht-gemessen`); die Messung braucht dieses Werkzeug. — **Ausgang:** weiter offen → [slice-qa-performance-rueckstau](../open/slice-qa-performance-rueckstau.md) und [slice-qa-performance-heap-abschluss](../open/slice-qa-performance-heap-abschluss.md) (Träger der Messung, `BEO-TDS/rueckstau-im-produktivbetrieb-nicht-gemessen` und `BEO-TDS/rueckstau-zusage-nur-test-backend-traeger-unvollstaendig` im Register).
 - Der Host läuft unter Last 5 bis 9 und swappt; ob `--memory-swap` und die Limits den Container von ihm trennen, ist ungemessen, und die Streuung kann Stufen unbrauchbar machen. — **Ausgang:** offen bis zur Closure.
 - Die Laufzeit einer Stufe mit 1 Mio Zeilen und 5 Wiederholungen auf diesem Host ist ungemessen; sie bestimmt die Staffel der Folge-Slices. — **Ausgang:** offen bis zur Closure.
 
