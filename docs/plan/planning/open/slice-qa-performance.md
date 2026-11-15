@@ -92,7 +92,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-qa-kompatibilitaet](../done/slice-qa-kompatibilitaet.md) in `done/` (erfüllt) und die Telemetrie (`SPEC-017`..`SPEC-019`) liefert Dauer je Schicht (erfüllt, Beleg in [Referenz-Workload](../../referenz-workload.md) Abschnitt 4: Spans mit `durationMs` gebaut, auf `DEBUG`, ganze Millisekunden) **und** der Nutzer hat die offenen Fragen O1 bis O7 des Workload-Dokuments beantwortet (Entscheidung und Lieferung getrennt: die Antworten sind Eingang, ihre Einarbeitung ist der erste Liefer-Punkt).
+**Start** (`next` → `in-progress`): [slice-qa-kompatibilitaet](../done/slice-qa-kompatibilitaet.md) in `done/` (erfüllt) und die Telemetrie (`SPEC-017`..`SPEC-019`) liefert Dauer je Schicht (erfüllt, Beleg in [Referenz-Workload](../../referenz-workload.md) Abschnitt 4: Spans mit `durationMs` gebaut, auf `DEBUG`, ganze Millisekunden) **und** der Nutzer hat die offenen Fragen O1 bis O7 des Workload-Dokuments beantwortet (erfüllt am 2026-11-15, Wortlaut „01-07 Deine Empfehlungen“, festgehalten im Workload-Dokument; die Freigabe des fertigen Dokuments ist nicht erteilt, sie folgt dem ersten Liefer-Punkt) (Entscheidung und Lieferung getrennt: die Antworten sind Eingang, ihre Einarbeitung ist der erste Liefer-Punkt).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
