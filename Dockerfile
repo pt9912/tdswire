@@ -185,12 +185,13 @@ COPY build.gradle.kts build.gradle.kts
 COPY tools/vergleichslauf-d.sh tools/vergleichslauf-d-selbsttest.sh tools/
 COPY tools/log-muster.sh tools/log-muster-selbsttest.sh tools/
 COPY tools/test-lauf-selbsttest.sh tools/
+COPY tools/lasttest-statistik.sh tools/lasttest-selbsttest.sh tools/
 COPY referenztest-dotnet/test-lauf.sh referenztest-dotnet/test-lauf.sh
 COPY tools/mk tools/mk
 COPY harness/mk harness/mk
 COPY Makefile repo.mk ./
 COPY .github/workflows .github/workflows
-RUN bash tools/e2e-selbsttest.sh && sh tools/manifest-selbsttest.sh && bash tools/vergleichslauf-d-selbsttest.sh && sh tools/log-muster-selbsttest.sh && sh tools/test-lauf-selbsttest.sh && bash tools/publish-selbsttest.sh
+RUN bash tools/e2e-selbsttest.sh && sh tools/manifest-selbsttest.sh && bash tools/vergleichslauf-d-selbsttest.sh && sh tools/log-muster-selbsttest.sh && sh tools/test-lauf-selbsttest.sh && bash tools/publish-selbsttest.sh && bash tools/lasttest-selbsttest.sh
 
 # --- Kopplung der Zahlen: `make kopplung-zahlen` - haelt Heap und Text von `gross` des Integrationslaufs (SPEC-040)
 # in testserver/build.gradle.kts, IntegrationServer.kt, dem .NET-Test, der Spezifikation und harness/README.md gleich und belegt
@@ -337,3 +338,21 @@ ENV LISTEN_HOST=0.0.0.0 LISTEN_PORT=1433 ENCRYPTION_POLICY=REQUIRED AUTH_PLAIN_T
     AUTH_USERS_FILE=/home/gradle/users.txt TLS_KEYSTORE_FILE=/home/gradle/gueltig.p12 \
     TLS_KEYSTORE_PASSWORD_FILE=/home/gradle/kennwort.txt
 CMD ["gradle", "--no-daemon", "--offline", "-q", "kompatibilitaetsServer"]
+
+# --- Lasttestserver: der Serverprozess des Lasttests (`make lasttest`, TDS-QA-04) als Container neben dem .NET-Referenzclient
+# (referenztest-dotnet, Stage `lasttest`) und, mit anderer Hauptklasse, der Prozess des Aufbaus A (Backend allein, ohne Draht).
+# Der Klassenpfad ist der des Moduls `:testserver` (wie Stage `testserver`); die Hauptklasse kommt als Argument
+# (`...LasttestServerKt` oder `...LasttestAlleinKt`), der Heap aus LASTTEST_XMX (Vorgabe 256m, Setzung; das Skript setzt und nennt ihn).
+# Aufbau, Zeilenzahl, Seed und Senke kommen aus LASTTEST_* (testserver/kotlin/.../LasttestServer.kt). Die Anmeldung alice/secret
+# ist ein Testwert im Testmodus ohne Verschluesselung; der Container erreicht nur sein internes Netzwerk. ----
+FROM deps AS lasttestserver
+COPY --chown=gradle:gradle LICENSE LICENSE
+COPY --chown=gradle:gradle src src
+COPY --chown=gradle:gradle testserver testserver
+RUN gradle --no-daemon --offline :testserver:testserverKlassenpfad \
+ && printf 'alice\t{plain}secret\n' > /home/gradle/users.txt
+ENV LISTEN_HOST=0.0.0.0 LISTEN_PORT=1433 ENCRYPTION_POLICY=TEST_UNENCRYPTED AUTH_PLAIN_TESTMODE=true \
+    AUTH_USERS_FILE=/home/gradle/users.txt
+EXPOSE 1433
+ENTRYPOINT ["sh", "-c", "exec java -Xmx${LASTTEST_XMX:-256m} -XX:+ExitOnOutOfMemoryError -cp \"$(cat /src/testserver/build/testserver-klassenpfad.txt)\" \"$@\"", "lasttest"]
+CMD ["io.github.pt9912.tdswire.testserver.LasttestServerKt"]

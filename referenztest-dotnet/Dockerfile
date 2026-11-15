@@ -98,3 +98,10 @@ RUN dotnet restore -p:LockErzeugen=true
 
 FROM scratch AS lock-export
 COPY --from=lock /src/packages.lock.json /
+
+# --- Lasttest: der Referenzclient gegen den Serverprozess des Lasttests (`make lasttest`, TDS-QA-04). Gebaut wird ohne Netz;
+# der Lauf braucht den Server im selben Netzwerk (TDSWIRE_ZIEL) und LASTTEST_* (Aufbau, Zeilen, Seed, Wiederholungen). ---
+FROM restore AS lasttest
+COPY Lasttest Lasttest
+RUN --network=none dotnet build --no-restore --nologo
+CMD ["dotnet", "test", "--no-build", "--nologo", "--logger", "console;verbosity=detailed"]

@@ -3,5 +3,5 @@
 # .github/workflows/e2e.yml ruft es beim Push.
 .PHONY: e2e
 
-e2e: ## E2E-Durchgang in acht Stufen: Smoke, Testserver-Container-Lauf, Referenzclient gegen Simulations-Backend, Kompatibilität (Szenarien, Anmeldung, Lücken, Synchronität), eigenes Backend — KEIN Gate
+e2e: ## E2E-Durchgang in neun Stufen: Smoke, Testserver-Container-Lauf, Referenzclient gegen Simulations-Backend, Kompatibilität (Szenarien, Anmeldung, Lücken, Synchronität), eigenes Backend, Lasttest in Probengröße — KEIN Gate
 	bash tools/e2e.sh
