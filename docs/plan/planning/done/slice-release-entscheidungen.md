@@ -66,7 +66,7 @@ Nachweis-Pflichten für beide Punkte:
 |---|---|---|
 | `docs/maintainer/releasing.md` | update | Schritt 2, Abschnitt Wächter, Schritt 6 (Satz zu Jar und `lib/`), „Nicht Teil dieses Ablaufs“ und „Offene Entscheidungen“; Schritte 1, 8, 9 und der Kopf gehören [slice-ci-veroeffentlichung-workflow](../done/slice-ci-veroeffentlichung-workflow.md) |
 
-**Reihenfolge:** erst [slice-ci-veroeffentlichung-workflow](../done/slice-ci-veroeffentlichung-workflow.md), dann dieser Slice, beide ändern `releasing.md` (getrennte Abschnitte, aber eine Datei); [slice-maven-erste-veroeffentlichung](../open/slice-maven-erste-veroeffentlichung.md) berührt `releasing.md` ebenfalls und folgt nach beiden.
+**Reihenfolge:** erst [slice-ci-veroeffentlichung-workflow](../done/slice-ci-veroeffentlichung-workflow.md), dann dieser Slice, beide ändern `releasing.md` (getrennte Abschnitte, aber eine Datei); [slice-maven-erste-veroeffentlichung](../in-progress/slice-maven-erste-veroeffentlichung.md) berührt `releasing.md` ebenfalls und folgt nach beiden.
 
 ## 4. Trigger
 
@@ -83,7 +83,7 @@ Alle Punkte der DoD erledigt, `make gates` grün, Review-Report liegt vor, Closu
 ## 6. Risiken und offene Punkte
 
 - Ein Release-Schritt wird als entschieden eingetragen, ohne dass der Nutzer ihn gewählt hat (Setzung statt Entscheidung); `AGENTS.md` §3.8 gilt für die Anleitung. Die drei Entscheidungen stehen oben mit Datum; mehr wird nicht eingetragen. — **Ausgang:** entfallen. Eingetragen ist nur, was die drei Entscheidungen tragen; Review und Verifikation fanden keine Setzung (F-3 „Release-Stand“ ist entfernt, Verifikation: nur Entschiedenes eingetragen).
-- „Nach der ersten Veröffentlichung neu bewerten“ hat keinen Auslöser außer der Closure von [slice-maven-erste-veroeffentlichung](../open/slice-maven-erste-veroeffentlichung.md), deren Notiz den Auftrag nennt; kein Sensor erinnert daran. — **Ausgang:** weiter offen. Träger ist die Closure von [slice-maven-erste-veroeffentlichung](../open/slice-maven-erste-veroeffentlichung.md) (ihr §5 nennt den Auftrag); ein Sensor entsteht nicht.
+- „Nach der ersten Veröffentlichung neu bewerten“ hat keinen Auslöser außer der Closure von [slice-maven-erste-veroeffentlichung](../in-progress/slice-maven-erste-veroeffentlichung.md), deren Notiz den Auftrag nennt; kein Sensor erinnert daran. — **Ausgang:** weiter offen. Träger ist die Closure von [slice-maven-erste-veroeffentlichung](../in-progress/slice-maven-erste-veroeffentlichung.md) (ihr §5 nennt den Auftrag); ein Sensor entsteht nicht.
 
 ## 7. Closure-Notiz
 
@@ -106,7 +106,7 @@ Geschlossen 2026-11-15 (Planner, Slice-Closure; die Welle [welle-referenzabgleic
 
 **Ungemessen, offen.**
 - Lizenzhinweise zu den Bibliotheken in `lib/` und Dateirechte der Benutzerliste: bewusst offen, Träger [ADR-0018](../../adr/0018-laufzeit-artefakt.md) §Offen (`Proposed`); Register `BEO-TDS/lizenzhinweise-der-bibliotheken-rechtsfrage` und `BEO-TDS/benutzerliste-dateirechte-im-betrieb-offen`. Nicht gemessen, nicht Teil dieses Slice.
-- **Neubewertung von Software-Stückliste und Jar ohne Registry nach der ersten Veröffentlichung:** hat keinen Sensor und keinen Auslöser außer der Closure von [slice-maven-erste-veroeffentlichung](../open/slice-maven-erste-veroeffentlichung.md); deren §5 trägt den Auftrag. Wer diese Closure ohne den Auftrag schreibt, wird nicht erwischt (Grenze der Deklaration). Weiter offen (§6).
+- **Neubewertung von Software-Stückliste und Jar ohne Registry nach der ersten Veröffentlichung:** hat keinen Sensor und keinen Auslöser außer der Closure von [slice-maven-erste-veroeffentlichung](../in-progress/slice-maven-erste-veroeffentlichung.md); deren §5 trägt den Auftrag. Wer diese Closure ohne den Auftrag schreibt, wird nicht erwischt (Grenze der Deklaration). Weiter offen (§6).
 - [ADR-0047](../../adr/0047-veroeffentlichung-ueber-github-packages.md) (`Accepted`) führt die Software-Stückliste weiter als „offen in `releasing.md`“; das stimmt nach diesem Slice nur noch als „zurückgestellt“ (Review F-5, Verifikation: richtig belassen, `AGENTS.md` §3.5).
 
 **Register.** Fortgeschrieben, kein Zähler und kein Ausgang gesetzt, Zählung folgt aus den Dateien:
@@ -119,7 +119,7 @@ Geschlossen 2026-11-15 (Planner, Slice-Closure; die Welle [welle-referenzabgleic
 
 - **Bestätigt, keine neue Regel:** eine Zahl, die aus einer Messzeile in eine Anleitung abgeschrieben wird, braucht den Verweis statt der Kopie; der Reviewer-Prüfpunkt „Zahl an zweitem Ort ohne Sensor“ hat sie gefunden, bevor ein Sensor nötig wurde. Gezählt im Register (Datei `evidence/slice-release-entscheidungen.md`), die Regel ist bereits verkörpert; kein `liegt in`.
 - **Benannte Planungslücke, nicht verkörpert:** der Plan grenzte nach Abschnitten einer gemeinsamen Datei ab (Schritt 8 gehört dem Vorgänger) und verlangte in der DoD einen Satz, der genau dort steht. Der Widerspruch fiel erst in der Verifikation auf (V-1). Kein Register-Eintrag angelegt; ob einer entsteht, entscheidet der Nutzer.
-- **Der Schnitt hat getragen:** Entscheidungen des Nutzers als eigener, kleiner Slice, der nur einträgt, was entschieden ist, und Zurückgestelltes mit Trigger und Träger benennt. Folge-Slice-Paarung: [slice-maven-erste-veroeffentlichung](../open/slice-maven-erste-veroeffentlichung.md) trägt die Neubewertung (§5, Zeile zur Closure-Notiz).
+- **Der Schnitt hat getragen:** Entscheidungen des Nutzers als eigener, kleiner Slice, der nur einträgt, was entschieden ist, und Zurückgestelltes mit Trigger und Träger benennt. Folge-Slice-Paarung: [slice-maven-erste-veroeffentlichung](../in-progress/slice-maven-erste-veroeffentlichung.md) trägt die Neubewertung (§5, Zeile zur Closure-Notiz).
 - Spec-Lücke: keine neue. Verkörpert wurde mit diesem Slice keine Regel, daher kein `liegt in` und kein Herkunfts-Anker.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
