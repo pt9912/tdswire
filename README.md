@@ -23,6 +23,7 @@ Serverprozess nur zur Prüfung der Bibliothek (E2E- und Kompatibilitätsläufe),
 - Anleitungen nach Aufgaben ("Ich möchte …"): [`docs/user/README.md`](docs/user/README.md).
 - Einbettung, Konfiguration, Log und Grenzen der Bibliothek: [`docs/user/einbettung-und-betrieb.md`](docs/user/einbettung-und-betrieb.md); Release-Schritte: [`docs/maintainer/releasing.md`](docs/maintainer/releasing.md).
 - `make help` listet alle vorhandenen Targets.
+- Kostenloses Hosting für Open Source: [Cloudsmith](https://cloudsmith.com) hostet ein Paket-Repository dieses Projekts.
 - Lastenheft, Spezifikation und Architektursicht liegen unter `spec/`.
 - Die Architekturentscheidungen mit ihrem Status stehen im [ADR-Index](docs/plan/adr/README.md).
 
