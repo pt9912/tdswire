@@ -16,11 +16,11 @@ Messprotokoll zu [TDS-RB-01](../../spec/lastenheft.md#tds-rb-01--implementierung
 
 ## M1 — Scope von `kotlinx-coroutines-core`: `api` oder `implementation`?
 
-Aufbau: Das Skript baut das Image der Stage `publish`, setzt in einer Kopie den Scope in `build.gradle.kts`, führt `publishToMavenLocal` aus und lässt einen Probe-Konsumenten (Gradle-Projekt mit Kotlin 2.4.10 und der Bibliothek als einziger Abhängigkeit, ohne eigene Angabe zu coroutines; der Quelltext `Probe.kt` steht im Skript) den Server über `TdsServer.start` mit einem eigenen `QueryBackend` starten. Das Backend nennt `Flow` und `emptyFlow` aus `kotlinx.coroutines`. Der Konsument liest das lokale Repository einmal mit den Gradle-Metadaten und einmal nur über die POM.
+Aufbau: Das Skript baut das Image der Stage `publish`, setzt in einer Kopie den Scope in `build.gradle.kts`, führt `publishToMavenLocal` aus und lässt einen Probe-Konsumenten (Gradle-Projekt mit Kotlin 2.4.10 und der Bibliothek als einziger Abhängigkeit, ohne eigene Angabe zu coroutines; der Quelltext `Probe.kt` steht im Skript) den Server über `TdsServer.start` mit einem eigenen `QueryBackend` starten. Das Backend nennt `Flow` und `emptyFlow` aus `kotlinx.coroutines`. Der Konsument liest das lokale Repository einmal mit den Gradle-Metadaten und einmal ohne `gradleMetadata()` in den Quellen („nur über die POM“; Gradle liest die `.module` dabei trotzdem, siehe die Grenze unter dieser Zeile).
 
-**Grenze der Spalte „nur über die POM“ (gemessen 2026-11-15, `tools/publish-probe.sh marker`, Einzellauf):** Der Konsument dieser Messung nennt `gradleMetadata()` nicht, und Gradle liest die `.module` aus `mavenLocal` trotzdem: mit Müll statt der `.module` bricht die Auflösung mit „Could not parse module metadata“, mit `ignoreGradleMetadataRedirection()` läuft sie. Die Spalte belegt damit „ohne `gradleMetadata()` in den Quellen“, nicht „ohne `.module`“. Die Zahlen der Tabelle bleiben, wie gemessen.
+**Grenze der Spalte „nur über die POM“ (gemessen 2026-11-15, `tools/publish-probe.sh marker`, Einzellauf):** Der Konsument dieser Messung nennt `gradleMetadata()` nicht, und Gradle liest die `.module` aus `mavenLocal` trotzdem: mit Müll statt der `.module` bricht die Auflösung mit „Could not parse module metadata“ (Ausgabe des Modus: `Could not parse module metadata tdswire-0.1.0-SNAPSHOT.module`), mit `ignoreGradleMetadataRedirection()` läuft sie. Die Spalte belegt damit „ohne `gradleMetadata()` in den Quellen“, nicht „ohne `.module`“. Die Zahlen der Tabelle bleiben, wie gemessen.
 
-| Nr. | Scope | POM-Eintrag | Konsument mit Gradle-Metadaten | Konsument nur über die POM |
+| Nr. | Scope | POM-Eintrag | Konsument mit Gradle-Metadaten | Konsument nur über die POM (ohne `gradleMetadata()`, liest die `.module` trotzdem) |
 |---|---|---|---|---|
 | M1.1 | `api` | `kotlinx-coroutines-core-jvm`, `<scope>compile</scope>` | übersetzt, läuft (`PROBE-OK`, Exit 0) | übersetzt, läuft (`PROBE-OK`, Exit 0) |
 | M1.2 | `implementation` | `kotlinx-coroutines-core-jvm`, `<scope>runtime</scope>` | **rot**: `Unresolved reference 'kotlinx'` und `'Flow'`, Exit 1 | **rot**: dieselben Fehler, Exit 1 |
@@ -39,9 +39,9 @@ Das veröffentlichte Jar ist dasselbe `tdswire.jar`; sein Manifest führt `Class
 
 M2.2 und M2.3 zeigen, dass der Lauf M2.1 den `Class-Path` unterscheiden kann: Er wäre rot, wenn die Abhängigkeiten nicht aus der POM kämen. Aussage, die M2 trägt: für einen Gradle-Konsumenten der eigenen Bauart stören die nicht auflösbaren Einträge nicht. Nicht gemessen: Java- und Maven-Konsumenten, ein Konsument, der das Jar in ein Fat-Jar verpackt, und das Verhalten gegen die Registry. Der Trigger zu den Optionen 2b und 2c in [ADR-0047](../plan/adr/0047-veroeffentlichung-ueber-github-packages.md) ist nicht eingetreten.
 
-## M3 — Probe-Konsument nur über `publishToMavenLocal` und die POM
+## M3 — Probe-Konsument nur über `publishToMavenLocal` und die POM (ohne `gradleMetadata()` in den Quellen; die `.module` wird trotzdem gelesen)
 
-M1.1 ist die Messung: der Konsument bindet `io.github.pt9912:tdswire:0.1.0-SNAPSHOT` aus dem lokalen Repository, einmal mit der Auswahl `gradleMetadata()` und einmal ohne sie (nur POM), übersetzt gegen die öffentliche Fläche und startet und beendet den Server (`StartOutcome.Running`, `stop`). Das belegt den **lokalen** Weg; der Konsum aus der Registry ist die Lücke zu `TDS-RB-01`, die [ADR-0047](../plan/adr/0047-veroeffentlichung-ueber-github-packages.md) benennt, und bleibt ungemessen.
+M1.1 ist die Messung: der Konsument bindet `io.github.pt9912:tdswire:0.1.0-SNAPSHOT` aus dem lokalen Repository, einmal mit der Auswahl `gradleMetadata()` und einmal ohne sie (nur POM, ohne `gradleMetadata()` in den Quellen; die `.module` wird dabei trotzdem gelesen), übersetzt gegen die öffentliche Fläche und startet und beendet den Server (`StartOutcome.Running`, `stop`). Das belegt den **lokalen** Weg; der Konsum aus der Registry ist die Lücke zu `TDS-RB-01`, die [ADR-0047](../plan/adr/0047-veroeffentlichung-ueber-github-packages.md) benennt, und bleibt ungemessen.
 
 ## M4 — Platzhalter-Token: Image, Log und Gradle-Lauf
 
@@ -105,5 +105,5 @@ Beim Aufbau der Selbsttests lief `sh tools/manifest-selbsttest.sh` einmal auf de
 - Veröffentlichen und Konsum gegen GitHub Packages (M3 und M4 gelten für das lokale Repository und einen Dummy-Server).
 - Ein Konsument aus Java oder Maven, ein Fat-Jar und eine Version, die mit `Class-Path` und Registry-Auflösung anders umgeht.
 - Das Verhalten der Registry bei einer vorhandenen Version und die Rechte des Tokens (`write:packages` als kleinster Scope ist Setzung der ADR).
-- Die `.module`-Datei (Gradle-Metadaten) neben der POM: die Prüfung im Bau liest nur die POM; die Datei enthält dieselben Abhängigkeiten (M1.1 liest sie), eine Prüfung auf Jackson gibt es für sie nicht.
+- Die `.module`-Datei (Gradle-Metadaten) neben der POM: die Prüfung im Bau liest nur die POM; die Datei enthält dieselben Abhängigkeiten (M1.1 liest sie, auch in der Spalte „nur über die POM“), eine Prüfung auf Jackson gibt es für sie nicht.
 - Byte-Gleichheit zweier Bauten des Jars (keine Zusage).

@@ -21,6 +21,11 @@ wurzel_repo=$(cd "$hier/.." && pwd)
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 
+# Bloecke der Workflow-Datei: job_block <datei> <job> gibt die Zeilen von `  <job>:` bis zum naechsten Job aus;
+# schritt_block <name> liest einen Job auf stdin und gibt die Zeilen des Schritts `      - name: <name>` bis zum naechsten Schritt aus.
+job_block() { awk -v j="  $2:" '$0 == j {b = 1; print; next} b && /^  [a-z#]/ {b = 0} b' "$1"; }
+schritt_block() { awk -v n="      - name: $1" '$0 == n {b = 1; print; next} b && /^      - / {b = 0} b'; }
+
 fehler=0
 pruefe() { echo "publish-selbsttest: FEHLER - $1" >&2; fehler=1; }
 
@@ -217,7 +222,7 @@ if [ -f "$bgk" ]; then
     grep -q "${t%%:*}" "$skript" && grep -q "${t#*:}" "$bgk" || pruefe "Aufgabe ${t%%:*}: publish.sh nennt sie nicht oder build.gradle.kts hat das Repository nicht (${t#*:})"
   done
   # Umgebungsnamen und Property-Namen: je Ziel stehen sie in publish.sh (Reihenfolge github, cloudsmith), im Repository-Block
-  # von build.gradle.kts und, die Namen der Umgebung, im env: des Workflows an der Zeile `<NAME>: ${{ secrets.<NAME> }}`.
+  # von build.gradle.kts; die Namen CLOUDSMITH_* und GITHUB_TOKEN stehen zusaetzlich im Schritt ihres Jobs im Workflow (unten).
   ben_s=$(sed -n 's/^ *benutzer_var=\([A-Z_]*\);.*/\1/p' "$skript" | tr '\n' ' ')
   geh_s=$(sed -n 's/.*geheim_var=\([A-Z_]*\)$/\1/p' "$skript" | tr '\n' ' ')
   prop_s=$(sed -n 's/.*gradle_property=\([A-Za-z]*\) ;;$/\1/p' "$skript" | tr '\n' ' ')
@@ -227,11 +232,38 @@ if [ -f "$bgk" ]; then
   { [ -n "$ben_s" ] && [ "$ben_s" = "$ben_g" ]; } || pruefe "Benutzer-Umgebung: publish.sh [$ben_s] und build.gradle.kts [$ben_g] unterscheiden sich"
   { [ -n "$geh_s" ] && [ "$geh_s" = "$geh_g" ]; } || pruefe "Schluessel-Umgebung: publish.sh [$geh_s] und build.gradle.kts [$geh_g] unterscheiden sich"
   { [ -n "$prop_s" ] && [ "$prop_s" = "$prop_g" ]; } || pruefe "URL-Property: publish.sh [$prop_s] und build.gradle.kts [$prop_g] unterscheiden sich"
+  # Zuordnung Ziel, Make-Target, Job und Schritt (Text, nicht Ausfuehrung): jedes Ziel steht in seinem Job, in dessen Schritt
+  # und in der Zeile seines Make-Targets; Rechte und Secrets je Job. Die Bloecke lesen job_block und schritt_block an den
+  # Einrueckungen der Datei (Job: zwei Leerzeichen, Schritt: sechs Leerzeichen und `- name:`).
+  mk="$wurzel_repo/tools/mk/publish.mk"
+  if [ -f "$mk" ]; then
+    mk_c=$(awk '/^publish-cloudsmith:/ {getline; print}' "$mk")
+    mk_g=$(awk '/^publish:/ {getline; print}' "$mk")
+    case "$mk_c" in *"publish.sh --ziel cloudsmith"*) ;; *) pruefe "publish.mk: das Target publish-cloudsmith ruft nicht publish.sh --ziel cloudsmith ($mk_c)" ;; esac
+    case "$mk_g" in *"publish.sh"*) ;; *) pruefe "publish.mk: das Target publish ruft publish.sh nicht ($mk_g)" ;; esac
+    case "$mk_g" in *"--ziel cloudsmith"*) pruefe "publish.mk: das Target publish ruft das Ziel cloudsmith" ;; esac
+  else
+    pruefe "tools/mk/publish.mk liegt nicht neben tools/"
+  fi
   wf="$wurzel_repo/.github/workflows/veroeffentlichung.yml"
   if [ -f "$wf" ]; then
+    gh_geheim=${geh_s%% *}
+    jc=$(job_block "$wf" publish-cloudsmith); jg=$(job_block "$wf" publish)
+    sc=$(schritt_block "make publish-cloudsmith" <<< "$jc"); sg=$(schritt_block "make publish" <<< "$jg")
+    [ -n "$jc" ] && [ -n "$sc" ] || pruefe "Workflow: Job publish-cloudsmith oder sein Schritt make publish-cloudsmith fehlt"
+    [ -n "$jg" ] && [ -n "$sg" ] || pruefe "Workflow: Job publish oder sein Schritt make publish fehlt"
+    grep -qx '        run: make publish-cloudsmith' <<< "$sc" || pruefe "Workflow: der Schritt make publish-cloudsmith ruft nicht make publish-cloudsmith"
+    grep -qx '        run: make publish' <<< "$sg" || pruefe "Workflow: der Schritt make publish ruft nicht make publish"
     for n in $(printf '%s' "$ben_s $geh_s" | tr ' ' '\n' | grep '^CLOUDSMITH_'); do
-      grep -q "^ *$n: \${{ secrets\.$n }}\$" "$wf" || pruefe "Workflow: der Schritt make publish-cloudsmith setzt $n nicht aus secrets.$n"
+      grep -qx "          $n: \${{ secrets\.$n }}" <<< "$sc" || pruefe "Workflow: der Schritt make publish-cloudsmith setzt $n nicht aus secrets.$n"
     done
+    grep -qx "          $gh_geheim: \${{ secrets\.$gh_geheim }}" <<< "$sg" || pruefe "Workflow: der Schritt make publish setzt $gh_geheim nicht aus secrets.$gh_geheim"
+    [ "$(grep -c 'CLOUDSMITH_' <<< "$jc")" -eq "$(grep -c 'CLOUDSMITH_' <<< "$sc")" ] || pruefe "Workflow: CLOUDSMITH_* steht im Job publish-cloudsmith ausserhalb des Schritts make publish-cloudsmith"
+    ! grep -q 'CLOUDSMITH_' <<< "$jg" || pruefe "Workflow: der Job publish nennt CLOUDSMITH_*"
+    ! grep -q "$gh_geheim" <<< "$jc" || pruefe "Workflow: der Job publish-cloudsmith nennt $gh_geheim"
+    grep -qx '      contents: read' <<< "$jc" || pruefe "Workflow: der Job publish-cloudsmith hat nicht contents: read"
+    ! grep -q 'packages:' <<< "$jc" || pruefe "Workflow: der Job publish-cloudsmith hat ein Recht packages"
+    grep -qx '      packages: write' <<< "$jg" || pruefe "Workflow: der Job publish hat nicht packages: write"
   else
     pruefe "veroeffentlichung.yml liegt nicht neben tools/ (die Stage skript-selbsttest kopiert die Workflows)"
   fi
@@ -265,4 +297,4 @@ echo 'e2e-stufe: publish' > "$tmp/mk2/tools/mk/e2e.mk"
 [ "$(abwesend "$tmp/mk2")" -eq 1 ] || pruefe "Gegenprobe: publish in e2e.mk wird nicht gefunden"
 
 [ "$fehler" -eq 0 ] || exit 1
-echo "publish-selbsttest: ok (Ziel github: guter Fall und Standardziel, Docker-Netz, elf rote Faelle und drei Faelle mit fremdem Ziel vor Docker, annotierter Tag, drei Aufruffehler; Ziel cloudsmith: guter Fall, Standardziel, Docker-Netz, acht rote Faelle, zwei Zugangsdaten des anderen Ziels, zwei Aufruffehler; Standardziele, Aufgaben, Umgebungsnamen, Properties und Versionszeile gegen build.gradle.kts, Umgebungsnamen gegen den Workflow, Abwesenheit in Gate-Listen und e2e.mk mit drei Gegenproben)"
+echo "publish-selbsttest: ok (Ziel github: guter Fall und Standardziel, Docker-Netz, elf rote Faelle und drei Faelle mit fremdem Ziel vor Docker, annotierter Tag, drei Aufruffehler; Ziel cloudsmith: guter Fall, Standardziel, Docker-Netz, acht rote Faelle, zwei Zugangsdaten des anderen Ziels, zwei Aufruffehler; Standardziele, Aufgaben, Umgebungsnamen, Properties und Versionszeile gegen build.gradle.kts, Make-Targets, Jobs, Schritte, Secrets und Rechte je Ziel gegen den Workflow, Abwesenheit in Gate-Listen und e2e.mk mit drei Gegenproben)"

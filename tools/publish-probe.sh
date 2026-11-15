@@ -29,8 +29,9 @@
 # gelesen: das Token ist ein Platzhalter, den das Skript selbst erzeugt, und GITHUB_TOKEN der Umgebung wird nicht gelesen.
 # Grenzen: Der Dummy (`ziele`, `registry`) ersetzt weder das Sammelfenster von Cloudsmith noch die asynchrone Verarbeitung noch die
 # Annahme der `.module` bei Cloudsmith; belegt ist der Ablauf von Gradle und Skript, nicht Cloudsmith. Im Modus `registry` ist `.module`
-# nur durch ignoreGradleMetadataRedirection() abgeschaltet: gemessen (Dummy-Server, Anfragen am Server) fragt Gradle die `.module` ohne
-# diese Zeile auch ohne gradleMetadata() an; fuer `mavenLocal` zeigt `marker` dasselbe (Einzellaeufe). Der Grund (Marker in der POM) ist nicht gemessen.
+# nur durch ignoreGradleMetadataRedirection() abgeschaltet: `registry` (Art `pom-ohne-schutz`, Anfragen am Dummy-Server) und `marker` (mavenLocal)
+# zeigen, ob Gradle die `.module` ohne diese Zeile auch ohne gradleMetadata() liest; die Ergebnisse stehen in der Ausgabe der Laeufe
+# (Einzellaeufe), nicht in diesem Kommentar. Der Grund (Marker in der POM) ist nicht gemessen.
 # Die Messung (c) und (d) sucht den Platzhalter im Klartext, als Base64 des Tokens und als Base64 von
 # `Benutzer:Token`; andere abgeleitete Formen findet sie nicht. Ein Weg zu GitHub ist damit nicht belegt (Ziel ist ein Dummy).
 set -eu
@@ -94,7 +95,8 @@ KOTLIN
 
 # Liest der Konsument aus `mavenLocal` die `.module`, wenn die Quellen sie nicht nennen? Die `.module` der veroeffentlichten Version wird
 # durch Muell ersetzt: liest Gradle sie, bricht die Aufloesung; liest es sie nicht, bleibt der Lauf gruen. Gemessen wird die
-# Konfiguration von `konsument` (ohne gradleMetadata()) und dieselbe mit ignoreGradleMetadataRedirection().
+# Konfiguration von `konsument` (ohne gradleMetadata()) und dieselbe mit ignoreGradleMetadataRedirection(). Liest Gradle die `.module`,
+# nennt die Ausgabe des ersten Laufs `Could not parse module metadata` mit dem Pfad der `.module` (gemessen 2026-11-15, Einzellauf).
 marker() {
   # shellcheck disable=SC2086
   docker build ${BUILDER_FLAGS:-} --target publish -t tdswire-publish-probe:lokal --progress=plain "$wurzel" > "$tmp/bau.log" 2>&1 \
@@ -136,7 +138,7 @@ lauf() { # <name> <gradle-argumente...>
   ist=0
   gradle --no-daemon --offline -q "$@" run > /tmp/lauf.log 2>&1 || ist=$?
   if [ "$ist" -eq 0 ] && grep -q '^PROBE-OK' /tmp/lauf.log; then echo "== $name: Exit 0, $(grep '^PROBE-OK' /tmp/lauf.log)"
-  else echo "== $name: Exit $ist"; grep -E 'module|Module|Could not|Error' /tmp/lauf.log | head -4 | cut -c1-240; fi
+  else echo "== $name: Exit $ist"; grep -E 'Could not parse module metadata' /tmp/lauf.log | head -1 | sed 's#/root/.m2/[^ ]*/##' | cut -c1-240; fi
 }
 lauf "mavenLocal ohne gradleMetadata(), .module durch Muell ersetzt"
 lauf "wie zuvor, mit ignoreGradleMetadataRedirection()" -PohneUmleitung
@@ -413,10 +415,11 @@ repositories {
                 password = System.getenv("REG_TOKEN")
             }
         }
-        // Ohne .module: erst ignoreGradleMetadataRedirection() haelt Gradle von der .module ab; gradleMetadata() wegzulassen reicht nicht
-        // (am Dummy-Server gemessen).
+        // Ohne .module: ignoreGradleMetadataRedirection() haelt Gradle von der .module ab; gradleMetadata() wegzulassen reicht nicht
+        // (Art `pom-ohne-schutz`: nur POM und Artefakt in den Quellen, ohne diese Zeile).
         metadataSources {
-            if (providers.gradleProperty("nurPom").isPresent) ignoreGradleMetadataRedirection() else gradleMetadata()
+            if (!providers.gradleProperty("nurPom").isPresent) gradleMetadata()
+            else if (!providers.gradleProperty("ohneSchutz").isPresent) ignoreGradleMetadataRedirection()
             mavenPom()
             artifact()
         }
@@ -440,7 +443,11 @@ lauf() { # <name> <gradle-argumente...>
     grep -E '^e: |Exception|Error|error:|NoClassDef|Could not|> ' /tmp/lauf.log | head -8 | cut -c1-240
   fi
 }
-if [ "$1" = "pom" ]; then lauf "nur POM" -PnurPom; else lauf "mit Gradle-Metadaten (.module)"; fi
+case "$1" in
+  pom) lauf "nur POM, ohne Umleitung auf die .module" -PnurPom ;;
+  pom-ohne-schutz) lauf "nur POM und Artefakt in den Quellen, ohne ignoreGradleMetadataRedirection()" -PnurPom -PohneSchutz ;;
+  *) lauf "mit Gradle-Metadaten (.module)" ;;
+esac
 CONTAINER
 }
 
@@ -471,7 +478,7 @@ registry() {
 
   konsument_registry_skript > "$tmp/konsument-registry.sh"
   echo "== Konsument gegen $REG_URL (lesen=$lesen); je Lauf ein frischer Container (Gradle-Cache des Images)"
-  for art in metadaten pom; do
+  for art in metadaten pom pom-ohne-schutz; do
     vorher=$(docker logs "$dummy" 2>&1 | grep -c -E '^REQ (GET|HEAD) ' || true)
     ist=0
     docker run --rm -i --network "$netz" -e REG_URL -e REG_VERSION -e REG_LESEN -e REG_USER -e REG_TOKEN -v "$tmp/Probe.kt:/Probe.kt:ro" \
