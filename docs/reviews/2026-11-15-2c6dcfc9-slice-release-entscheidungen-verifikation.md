@@ -50,7 +50,7 @@ Die Dauer im Vermerk (Schritt 8: „dazu die Dauer von `make e2e`“) ist durch 
 | F-2 LOW Stufe-8-Satz enger als Beleg | **ja** | Der Satz „für Stufe 8 und für andere Hosts ist die Dauer nicht gemessen“ ist entfallen; die Aussage über Umfang und Dauer liegt allein bei der Zeile in `harness/README.md`. |
 | F-3 LOW „Release-Stand“ als Zugabe | **ja** | „Er läuft auf dem Release-Stand“ steht nicht mehr; Schritt 8 nennt die Dauer. |
 | F-4 LOW Wortlaut (c) | **ja** | siehe DoD-Punkt 2: Kernsatz an drei Stellen wörtlich gleich. |
-| F-5 INFO ADR-0047 | **sinnvoll belassen** | [ADR-0047](../plan/adr/0047-veroeffentlichung-ueber-github-packages.md) ist `Accepted`, `AGENTS.md` §3.5; ihre Nachzugs-Zeilen (Z. 39, 162) beschreiben den Stand vor dem Nachzug und sind als „Nachzug im Folge-Slice“ geführt. Nicht geändert, richtig. |
+| F-5 INFO (ADR zu Software-Stückliste) | **sinnvoll belassen** | [ADR-0047](../plan/adr/0047-veroeffentlichung-ueber-github-packages.md) ist `Accepted`, `AGENTS.md` §3.5; ihre Nachzugs-Zeilen (Z. 39, 162) beschreiben den Stand vor dem Nachzug und sind als „Nachzug im Folge-Slice“ geführt. Nicht geändert, richtig. |
 | F-6 INFO Absatz „Zurückgestellt“ | **sinnvoll belassen** | Der Absatz ist als Zurückstellung gekennzeichnet, die Liste unter der Einleitung führt nur Offenes; folgt Plan §2. |
 
 ## Querverweise (Suche `Offene Entscheidungen`, `Nicht Teil dieses Ablaufs`, `Wächter` in `docs/`, `harness/`, `spec/`)
