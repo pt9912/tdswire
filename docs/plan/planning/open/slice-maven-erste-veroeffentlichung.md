@@ -15,9 +15,9 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** SPEC-052 · SPEC-059 (nur, wenn die Messung eine Aussage widerlegt; der Nachzug des Schemas liegt bei [slice-maven-veroeffentlichung](../done/slice-maven-veroeffentlichung.md))
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** pt9912.
 
-**Bestätigung des Nutzers:** steht aus. Der Wortlaut (Version, Zeitpunkt, Tag-Push als Handlung) wird hier eingetragen, bevor der Slice startet; eine Annahme der ADRs ist keine Bestätigung der Handlung.
+**Bestätigung des Nutzers:** 2026-11-15, Wortlaut: „v0.1.0 -- Zeitpunkt: so bald als möglich“. Version `0.1.0`; die Handlung ist der Tag-Push `v0.1.0` durch den Nutzer, sobald der Release-Commit in `main` und auf `origin` liegt. Der Tag-Schutz `v*` ist per API angelegt (Antwort der API gesehen); eine Gegenprobe an der GitHub-Oberfläche durch den Nutzer ist nicht eingetragen.
 
 **Autor:** Planner-Agent, Auftrag des Nutzers 2026-11-14; angepasst 2026-11-14 nach [ADR-0048](../../adr/0048-veroeffentlichung-in-der-ci-bei-tag-push.md). **Datum:** 2026-11-14.
 

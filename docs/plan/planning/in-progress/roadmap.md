@@ -10,7 +10,7 @@ gezeigt, nicht als Treiber.
 
 ## Offene Wellen
 
-Arbeit: Nichts in Arbeit. Zuletzt geschlossen: [slice-release-entscheidungen](../done/slice-release-entscheidungen.md) (Welle welle-referenzabgleich-release).
+Arbeit: [slice-maven-erste-veroeffentlichung](../open/slice-maven-erste-veroeffentlichung.md) (ohne Welle). Zuletzt geschlossen: [slice-release-entscheidungen](../done/slice-release-entscheidungen.md) (Welle welle-referenzabgleich-release).
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte — *Offene Wellen* ist **derivativ**: Der
