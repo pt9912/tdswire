@@ -205,8 +205,8 @@ lauf() { # <name> <gradle-argumente...>
   fi
 }
 lauf "Gradle-Metadaten"
-lauf "nur POM" -PnurPom
-lauf "nur POM, Bibliothek ohne transitive Abhaengigkeiten, coroutines nur zur Uebersetzung (Gegenfall: der Class-Path ersetzt sie nicht)" -PnurPom -PnichtTransitiv
+lauf "nur POM (die .module wird trotzdem angefragt, wenn die Umleitung nicht abgeschaltet ist)" -PnurPom
+lauf "nur POM, Bibliothek ohne transitive Abhaengigkeiten, coroutines nur zur Uebersetzung (Gegenfall: der Class-Path ersetzt sie nicht; die .module wird trotzdem angefragt, wenn die Umleitung nicht abgeschaltet ist)" -PnurPom -PnichtTransitiv
 (cd /src && gradle --no-daemon --offline -q laufzeitBibliotheken)
 cp -r /src/build/libs/lib "$repo/lib"
 lauf "wie zuvor, aber lib/ neben dem Jar im lokalen Repository (Gegenfall: der Class-Path greift, wenn lib/ liegt)" -PnurPom -PnichtTransitiv

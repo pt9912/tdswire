@@ -233,7 +233,7 @@ if [ -f "$bgk" ]; then
   { [ -n "$geh_s" ] && [ "$geh_s" = "$geh_g" ]; } || pruefe "Schluessel-Umgebung: publish.sh [$geh_s] und build.gradle.kts [$geh_g] unterscheiden sich"
   { [ -n "$prop_s" ] && [ "$prop_s" = "$prop_g" ]; } || pruefe "URL-Property: publish.sh [$prop_s] und build.gradle.kts [$prop_g] unterscheiden sich"
   # Zuordnung Ziel, Make-Target, Job und Schritt (Text, nicht Ausfuehrung): jedes Ziel steht in seinem Job, in dessen Schritt
-  # und in der Zeile seines Make-Targets; Rechte und Secrets je Job. Die Bloecke lesen job_block und schritt_block an den
+  # und in der Zeile seines Make-Targets; Rechte und Secrets der zwei Jobs publish und publish-cloudsmith (Secrets ausserhalb dieser Jobs bindet der Test nicht). Die Bloecke lesen job_block und schritt_block an den
   # Einrueckungen der Datei (Job: zwei Leerzeichen, Schritt: sechs Leerzeichen und `- name:`).
   mk="$wurzel_repo/tools/mk/publish.mk"
   if [ -f "$mk" ]; then
