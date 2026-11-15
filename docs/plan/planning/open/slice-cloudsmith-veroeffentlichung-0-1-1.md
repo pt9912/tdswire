@@ -15,9 +15,9 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** — (`spec/` nennt kein Veröffentlichungsziel; [ADR-0049](../../adr/0049-cloudsmith-als-zweites-veroeffentlichungsziel.md) hat das am 2026-11-15 per `grep` gelesen). SPEC-052 · SPEC-059 nur, wenn die Messung eine Aussage widerlegt.
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** pt9912 (Anspruch 2026-11-15).
 
-**Bestätigung des Nutzers:** steht aus. Die Annahme von [ADR-0049](../../adr/0049-cloudsmith-als-zweites-veroeffentlichungsziel.md) (2026-11-15, Entscheidung 4a: Version `0.1.1` auf beiden Zielen über den CI-Weg) ist keine Bestätigung der Handlung; Wortlaut, Version und Zeitpunkt trägt der Nutzer hier ein, bevor der Slice nach `in-progress` geht (§4).
+**Bestätigung des Nutzers:** am 2026-11-15 auf die Frage, ob der Slice beansprucht und der Release-Commit für Version `0.1.1` vorbereitet werden soll: „Ja, 0.1.1 jetzt“ (Version `0.1.1`, Zeitpunkt „so bald als möglich“). Das bestätigt Version und Zeitpunkt der Vorbereitung; die Handlung selbst ist der Tag-Push des Nutzers ([ADR-0048](../../adr/0048-veroeffentlichung-in-der-ci-bei-tag-push.md) Entscheidung 1). Die Voraussetzungen aus §4, die kein Agent sieht (Schreibrecht und Gültigkeit des Schlüssels, Gegenprobe des Tag-Schutzes), sind damit nicht bestätigt und vor dem Tag-Push Sache des Nutzers.
 
 **Autor:** Planner-Agent, Auftrag des Nutzers 2026-11-15 nach [ADR-0049](../../adr/0049-cloudsmith-als-zweites-veroeffentlichungsziel.md). **Datum:** 2026-11-15.
 
