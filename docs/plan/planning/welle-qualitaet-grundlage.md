@@ -58,7 +58,11 @@ Lifecycle-Verzeichnis und wird hier **nicht** gespiegelt.
 | slice-qa-stabilitaet | Stabilität: ungültige und getrennte Verbindungen | [TDS-QA-02](../../../spec/lastenheft.md#tds-qa-02--stabilität) |
 | slice-qa-sicherheit | Sicherheit: Zugangsdaten im Log und TLS-Modus | [TDS-QA-03](../../../spec/lastenheft.md#tds-qa-03--sicherheit) |
 | slice-qa-anmeldedrosselung | Drosselung wiederholter Anmeldeversuche entscheiden (Folge-Slice von [CO-003](../carveouts/done/CO-003-anmeldedrosselung-fehlt.md)) | [TDS-QA-03](../../../spec/lastenheft.md#tds-qa-03--sicherheit) |
-| slice-qa-performance | Performance: Referenz-Workload und Messung | [TDS-QA-04](../../../spec/lastenheft.md#tds-qa-04--performance) |
+| slice-qa-performance | Performance: Referenz-Workload festlegen und Lasttest-Werkzeug (verkleinert, Zerlegung vom 2026-11-15) | [TDS-QA-04](../../../spec/lastenheft.md#tds-qa-04--performance) |
+| slice-qa-performance-durchsatz-sitzungen | Performance: Durchsatz, p95-Latenz und gleichzeitige Sitzungen am Referenz-Workload | [TDS-QA-04](../../../spec/lastenheft.md#tds-qa-04--performance) |
+| slice-qa-performance-rueckstau | Performance: Rückstau am Socket, bei blockierendem Backend und beim Simulations-Backend | [TDS-QA-04](../../../spec/lastenheft.md#tds-qa-04--performance), [TDS-QA-02](../../../spec/lastenheft.md#tds-qa-02--stabilität), [ADR-0006](../adr/0006-backend-vertrag-und-streaming.md) |
+| slice-qa-performance-heap-abschluss | Performance: Heap beim Strom großer Ergebnisse und Latenz des zurückgehaltenen Abschlusses | [TDS-QA-04](../../../spec/lastenheft.md#tds-qa-04--performance), [ADR-0006](../adr/0006-backend-vertrag-und-streaming.md) |
+| slice-qa-performance-grenzwerte | Performance: Grenzwerte im Lastenheft festlegen | [TDS-QA-04](../../../spec/lastenheft.md#tds-qa-04--performance) |
 | slice-qa-wartbarkeit | Wartbarkeit: Modulgrenzen und Kompatibilitätsmatrix | [TDS-QA-05](../../../spec/lastenheft.md#tds-qa-05--wartbarkeit) |
 | slice-qa-reproduzierbarkeit | Reproduzierbarkeit: Clean-Build und Tests in CI | [TDS-QA-06](../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) |
 | slice-qa-vergleichslauf-d | Vergleichslauf D: Referenzabgleich gegen einen echten SQL Server | [TDS-QA-06](../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit), [TDS-QA-01](../../../spec/lastenheft.md#tds-qa-01--kompatibilität) |
@@ -85,6 +89,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 
 - Blockiert: keine weitere Welle.
 - Wird blockiert von: keiner Welle; die Entscheidungen, auf die einzelne Slices warteten ([ADR-0007](../adr/0007-fehler-und-attention.md), [ADR-0008](../adr/0008-dotnet-kompatibilitaetstests.md), [ADR-0009](../adr/0009-authentifizierungsmodus.md)), stehen auf `Accepted` und waren kein Welle-Inhalt. [ADR-0010](../adr/0010-detekt-pre-release.md) (`Accepted`) ist Bezug von `slice-qa-wartbarkeit` und `slice-qa-reproduzierbarkeit` und gehört damit zu dieser Welle; sie hat keinen eigenen Entscheidungs-Slice.
+
+- Reihenfolge der Performance-Slices (Zerlegung vom 2026-11-15, [TDS-QA-04](../../../spec/lastenheft.md#tds-qa-04--performance)): `slice-qa-performance` (Workload, Werkzeug) vor `slice-qa-performance-durchsatz-sitzungen`, dann `slice-qa-performance-rueckstau` und `slice-qa-performance-heap-abschluss`, zuletzt `slice-qa-performance-grenzwerte`; der Start von `slice-qa-performance` hängt an den Antworten des Nutzers zu den offenen Fragen des [Referenz-Workloads](../referenz-workload.md).
 
 - Startbarkeit nach `slice-qa-sicherheit`: Der Start-Trigger von [slice-qa-anmeldedrosselung](done/slice-qa-anmeldedrosselung.md) ist erfüllt, offen ist allein der Verantwortliche im Kopf; die Welle wartet auf ihn, weil [CO-003](../carveouts/done/CO-003-anmeldedrosselung-fehlt.md) erst mit ihm und einer `Accepted`-ADR zur Drosselung oder zum Verzicht aufgelöst ist. Die Welle schließt außerdem erst, wenn die übrigen Slices der Tabelle in `done/` liegen.
 
