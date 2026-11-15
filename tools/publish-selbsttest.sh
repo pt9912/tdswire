@@ -216,6 +216,25 @@ if [ -f "$bgk" ]; then
   for t in publishMavenPublicationToRegistryRepository:'name = "registry"' publishMavenPublicationToCloudsmithRepository:'name = "cloudsmith"'; do
     grep -q "${t%%:*}" "$skript" && grep -q "${t#*:}" "$bgk" || pruefe "Aufgabe ${t%%:*}: publish.sh nennt sie nicht oder build.gradle.kts hat das Repository nicht (${t#*:})"
   done
+  # Umgebungsnamen und Property-Namen: je Ziel stehen sie in publish.sh (Reihenfolge github, cloudsmith), im Repository-Block
+  # von build.gradle.kts und, die Namen der Umgebung, im env: des Workflows an der Zeile `<NAME>: ${{ secrets.<NAME> }}`.
+  ben_s=$(sed -n 's/^ *benutzer_var=\([A-Z_]*\);.*/\1/p' "$skript" | tr '\n' ' ')
+  geh_s=$(sed -n 's/.*geheim_var=\([A-Z_]*\)$/\1/p' "$skript" | tr '\n' ' ')
+  prop_s=$(sed -n 's/.*gradle_property=\([A-Za-z]*\) ;;$/\1/p' "$skript" | tr '\n' ' ')
+  ben_g=$(awk '/name = "(registry|cloudsmith)"/ {b=1} b && /username = System.getenv/ {match($0, /getenv\("[A-Z_]*"\)/); printf "%s ", substr($0, RSTART+8, RLENGTH-10); b=0}' "$bgk")
+  geh_g=$(awk '/name = "(registry|cloudsmith)"/ {b=1} b && /password = System.getenv/ {match($0, /getenv\("[A-Z_]*"\)/); printf "%s ", substr($0, RSTART+8, RLENGTH-10); b=0}' "$bgk")
+  prop_g=$(awk '/name = "(registry|cloudsmith)"/ {b=1} b && /gradleProperty\(/ {match($0, /gradleProperty\("[A-Za-z]*"\)/); printf "%s ", substr($0, RSTART+16, RLENGTH-18); b=0}' "$bgk")
+  { [ -n "$ben_s" ] && [ "$ben_s" = "$ben_g" ]; } || pruefe "Benutzer-Umgebung: publish.sh [$ben_s] und build.gradle.kts [$ben_g] unterscheiden sich"
+  { [ -n "$geh_s" ] && [ "$geh_s" = "$geh_g" ]; } || pruefe "Schluessel-Umgebung: publish.sh [$geh_s] und build.gradle.kts [$geh_g] unterscheiden sich"
+  { [ -n "$prop_s" ] && [ "$prop_s" = "$prop_g" ]; } || pruefe "URL-Property: publish.sh [$prop_s] und build.gradle.kts [$prop_g] unterscheiden sich"
+  wf="$wurzel_repo/.github/workflows/veroeffentlichung.yml"
+  if [ -f "$wf" ]; then
+    for n in $(printf '%s' "$ben_s $geh_s" | tr ' ' '\n' | grep '^CLOUDSMITH_'); do
+      grep -q "^ *$n: \${{ secrets\.$n }}\$" "$wf" || pruefe "Workflow: der Schritt make publish-cloudsmith setzt $n nicht aus secrets.$n"
+    done
+  else
+    pruefe "veroeffentlichung.yml liegt nicht neben tools/ (die Stage skript-selbsttest kopiert die Workflows)"
+  fi
   [ -n "$(sed -n 's/^version = "\(.*\)"$/\1/p' "$bgk")" ] || pruefe "build.gradle.kts hat keine Zeile version = \"...\" in der Form, die publish.sh liest"
 else
   pruefe "build.gradle.kts liegt nicht neben tools/ (die Stage skript-selbsttest kopiert sie)"
@@ -246,4 +265,4 @@ echo 'e2e-stufe: publish' > "$tmp/mk2/tools/mk/e2e.mk"
 [ "$(abwesend "$tmp/mk2")" -eq 1 ] || pruefe "Gegenprobe: publish in e2e.mk wird nicht gefunden"
 
 [ "$fehler" -eq 0 ] || exit 1
-echo "publish-selbsttest: ok (Ziel github: guter Fall und Standardziel, Docker-Netz, elf rote Faelle und drei Faelle mit fremdem Ziel vor Docker, annotierter Tag, drei Aufruffehler; Ziel cloudsmith: guter Fall, Standardziel, Docker-Netz, neun rote Faelle, zwei Zugangsdaten des anderen Ziels, zwei Aufruffehler; Standardziele, Aufgaben und Versionszeile gegen build.gradle.kts, Abwesenheit in Gate-Listen und e2e.mk mit drei Gegenproben)"
+echo "publish-selbsttest: ok (Ziel github: guter Fall und Standardziel, Docker-Netz, elf rote Faelle und drei Faelle mit fremdem Ziel vor Docker, annotierter Tag, drei Aufruffehler; Ziel cloudsmith: guter Fall, Standardziel, Docker-Netz, acht rote Faelle, zwei Zugangsdaten des anderen Ziels, zwei Aufruffehler; Standardziele, Aufgaben, Umgebungsnamen, Properties und Versionszeile gegen build.gradle.kts, Umgebungsnamen gegen den Workflow, Abwesenheit in Gate-Listen und e2e.mk mit drei Gegenproben)"

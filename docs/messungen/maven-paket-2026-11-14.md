@@ -18,6 +18,8 @@ Messprotokoll zu [TDS-RB-01](../../spec/lastenheft.md#tds-rb-01--implementierung
 
 Aufbau: Das Skript baut das Image der Stage `publish`, setzt in einer Kopie den Scope in `build.gradle.kts`, führt `publishToMavenLocal` aus und lässt einen Probe-Konsumenten (Gradle-Projekt mit Kotlin 2.4.10 und der Bibliothek als einziger Abhängigkeit, ohne eigene Angabe zu coroutines; der Quelltext `Probe.kt` steht im Skript) den Server über `TdsServer.start` mit einem eigenen `QueryBackend` starten. Das Backend nennt `Flow` und `emptyFlow` aus `kotlinx.coroutines`. Der Konsument liest das lokale Repository einmal mit den Gradle-Metadaten und einmal nur über die POM.
 
+**Grenze der Spalte „nur über die POM“ (gemessen 2026-11-15, `tools/publish-probe.sh marker`, Einzellauf):** Der Konsument dieser Messung nennt `gradleMetadata()` nicht, und Gradle liest die `.module` aus `mavenLocal` trotzdem: mit Müll statt der `.module` bricht die Auflösung mit „Could not parse module metadata“, mit `ignoreGradleMetadataRedirection()` läuft sie. Die Spalte belegt damit „ohne `gradleMetadata()` in den Quellen“, nicht „ohne `.module`“. Die Zahlen der Tabelle bleiben, wie gemessen.
+
 | Nr. | Scope | POM-Eintrag | Konsument mit Gradle-Metadaten | Konsument nur über die POM |
 |---|---|---|---|---|
 | M1.1 | `api` | `kotlinx-coroutines-core-jvm`, `<scope>compile</scope>` | übersetzt, läuft (`PROBE-OK`, Exit 0) | übersetzt, läuft (`PROBE-OK`, Exit 0) |

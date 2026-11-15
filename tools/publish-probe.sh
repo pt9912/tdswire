@@ -5,13 +5,15 @@
 # (ADR-0049) sind die Erzeuger der Messzahlen fuer das zweite Ziel.
 #
 # Aufruf: publish-probe.sh konsument   Messungen (a) und (b): ein Probe-Konsument bindet die Bibliothek nur ueber
-#                                      publishToMavenLocal (mit Gradle-Metadaten und nur ueber die POM), einmal mit dem Scope
+#                                      publishToMavenLocal (mit gradleMetadata() und ohne es in den Quellen; die `.module` liest Gradle auch
+#                                      dann, siehe `marker`), einmal mit dem Scope
 #                                      `api` und einmal mit `implementation` fuer kotlinx-coroutines-core; Gegenfall ohne
 #                                      transitive Abhaengigkeiten, mit und ohne lib/ neben dem Jar (der Class-Path greift nur, wenn
 #                                      lib/ liegt).
 #         publish-probe.sh token       Messungen (c) und (d): tools/publish.sh in einem Wegwerf-Repo (Version 0.0.1, Tag
 #                                      v0.0.1) gegen einen Dummy-Server in einem Docker-Netz ohne Zugang nach aussen, mit einem
 #                                      Platzhalter-Token; das Ziel ist nicht GitHub.
+#         publish-probe.sh marker      ob `mavenLocal` die `.module` bei Quellen ohne gradleMetadata() liest (Muell statt `.module`; Auswertung am Exit).
 #         publish-probe.sh ziele       beide Ziele (github, cloudsmith) ueber tools/publish.sh --ziel gegen den Dummy-Server: je Ziel ein
 #                                      Lauf mit leerem Schluessel (bricht vor dem Netz) und einer mit Platzhalter; gelesen werden der Name der
 #                                      Gradle-Task im Lauf, die am Dummy angekommenen Dateien (Jar, POM, `.module`, Pruefsummen,
@@ -27,7 +29,8 @@
 # gelesen: das Token ist ein Platzhalter, den das Skript selbst erzeugt, und GITHUB_TOKEN der Umgebung wird nicht gelesen.
 # Grenzen: Der Dummy (`ziele`, `registry`) ersetzt weder das Sammelfenster von Cloudsmith noch die asynchrone Verarbeitung noch die
 # Annahme der `.module` bei Cloudsmith; belegt ist der Ablauf von Gradle und Skript, nicht Cloudsmith. Im Modus `registry` ist `.module`
-# nur durch ignoreGradleMetadataRedirection() abgeschaltet (der Marker in der POM laesst Gradle die `.module` sonst lesen).
+# nur durch ignoreGradleMetadataRedirection() abgeschaltet: gemessen (Dummy-Server, Anfragen am Server) fragt Gradle die `.module` ohne
+# diese Zeile auch ohne gradleMetadata() an; fuer `mavenLocal` zeigt `marker` dasselbe (Einzellaeufe). Der Grund (Marker in der POM) ist nicht gemessen.
 # Die Messung (c) und (d) sucht den Platzhalter im Klartext, als Base64 des Tokens und als Base64 von
 # `Benutzer:Token`; andere abgeleitete Formen findet sie nicht. Ein Weg zu GitHub ist damit nicht belegt (Ziel ist ein Dummy).
 set -eu
@@ -87,6 +90,58 @@ suspend fun main() {
     }
 }
 KOTLIN
+}
+
+# Liest der Konsument aus `mavenLocal` die `.module`, wenn die Quellen sie nicht nennen? Die `.module` der veroeffentlichten Version wird
+# durch Muell ersetzt: liest Gradle sie, bricht die Aufloesung; liest es sie nicht, bleibt der Lauf gruen. Gemessen wird die
+# Konfiguration von `konsument` (ohne gradleMetadata()) und dieselbe mit ignoreGradleMetadataRedirection().
+marker() {
+  # shellcheck disable=SC2086
+  docker build ${BUILDER_FLAGS:-} --target publish -t tdswire-publish-probe:lokal --progress=plain "$wurzel" > "$tmp/bau.log" 2>&1 \
+    || { tail -20 "$tmp/bau.log" >&2; exit 1; }
+  probe_kt > "$tmp/Probe.kt"
+  cat > "$tmp/marker.sh" <<'CONTAINER'
+set -eu
+cd /src
+gradle --no-daemon --offline -q publishToMavenLocal
+repo=$HOME/.m2/repository/io/github/pt9912/tdswire/0.1.0-SNAPSHOT
+echo "== Dateien der Version: $(ls "$repo" | tr '\n' ' ')"
+echo 'KEIN-GRADLE-MODULE' > "$repo/tdswire-0.1.0-SNAPSHOT.module"
+mkdir -p /probe/src/main/kotlin
+cd /probe
+cp /Probe.kt src/main/kotlin/Probe.kt
+echo 'rootProject.name = "probe"' > settings.gradle.kts
+cat > build.gradle.kts <<'KTS'
+plugins {
+    kotlin("jvm") version "2.4.10"
+    application
+}
+repositories {
+    mavenLocal {
+        metadataSources {
+            if (providers.gradleProperty("ohneUmleitung").isPresent) ignoreGradleMetadataRedirection()
+            mavenPom()
+            artifact()
+        }
+    }
+    mavenCentral()
+}
+dependencies {
+    implementation("io.github.pt9912:tdswire:0.1.0-SNAPSHOT")
+}
+application { mainClass.set("ProbeKt") }
+KTS
+lauf() { # <name> <gradle-argumente...>
+  name="$1"; shift
+  ist=0
+  gradle --no-daemon --offline -q "$@" run > /tmp/lauf.log 2>&1 || ist=$?
+  if [ "$ist" -eq 0 ] && grep -q '^PROBE-OK' /tmp/lauf.log; then echo "== $name: Exit 0, $(grep '^PROBE-OK' /tmp/lauf.log)"
+  else echo "== $name: Exit $ist"; grep -E 'module|Module|Could not|Error' /tmp/lauf.log | head -4 | cut -c1-240; fi
+}
+lauf "mavenLocal ohne gradleMetadata(), .module durch Muell ersetzt"
+lauf "wie zuvor, mit ignoreGradleMetadataRedirection()" -PohneUmleitung
+CONTAINER
+  docker run --rm -i -v "$tmp/Probe.kt:/Probe.kt:ro" tdswire-publish-probe:lokal sh -s < "$tmp/marker.sh"
 }
 
 konsument() {
@@ -358,8 +413,8 @@ repositories {
                 password = System.getenv("REG_TOKEN")
             }
         }
-        // Ohne .module: die POM der Version traegt den Marker `published-with-gradle-metadata`, und Gradle liest dann die
-        // .module auch ohne gradleMetadata() in den Quellen; erst ignoreGradleMetadataRedirection() schaltet das ab.
+        // Ohne .module: erst ignoreGradleMetadataRedirection() haelt Gradle von der .module ab; gradleMetadata() wegzulassen reicht nicht
+        // (am Dummy-Server gemessen).
         metadataSources {
             if (providers.gradleProperty("nurPom").isPresent) ignoreGradleMetadataRedirection() else gradleMetadata()
             mavenPom()
@@ -458,9 +513,10 @@ grc_req() { grep -c '^REQ' || true; }
 
 case "${1:-}" in
   konsument) konsument ;;
+  marker) marker ;;
   token) token ;;
   ziele) ziele ;;
   registry) shift; registry "$@" ;;
   url) shift; url "$@" ;;
-  *) echo "Aufruf: $0 konsument|token|ziele|registry github|cloudsmith anonym|zugang|url <registry-url> <version> [anonym|zugang]" >&2; exit 2 ;;
+  *) echo "Aufruf: $0 konsument|token|marker|ziele|registry github|cloudsmith anonym|zugang|url <registry-url> <version> [anonym|zugang]" >&2; exit 2 ;;
 esac
