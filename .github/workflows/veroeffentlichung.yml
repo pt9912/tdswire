@@ -12,7 +12,7 @@
 # beiden Veroeffentlichungs-Jobs, nicht die Bedingung und nicht, welcher Job welches Secret und welche Rechte hat;
 # das prueft der Review. Der Dispatch-Lauf baut die Stage `publish` ohne Token und ohne Netz zu GitHub Packages oder
 # Cloudsmith und fuehrt den Job `publish-cloudsmith` nach seiner Bedingung nicht aus (gelesen, nicht gemessen); das Schreiben mit GITHUB_TOKEN belegt der Tag-Lauf
-# 43699125460, das Schreiben nach Cloudsmith erst die erste echte Veroeffentlichung dorthin.
+# 43699125460, das Schreiben nach Cloudsmith der Tag-Lauf 43734101990 (Version 0.1.1).
 name: veroeffentlichung
 
 on:

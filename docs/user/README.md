@@ -7,6 +7,7 @@ Die Anleitungen sind nach Aufgaben geordnet. Sie bilden den Ist-Zustand ab (`AGE
 | Ich möchte … | Anleitung |
 |---|---|
 | die Bibliothek in meine Anwendung einbinden, den Server starten und stoppen | [Einbettung, Abschnitt 1](einbettung-und-betrieb.md#1-den-server-in-die-anwendung-einbinden) |
+| die Bibliothek aus der Registry (Cloudsmith, ohne Konto) oder aus dem Bau beziehen | [Einbettung, Abschnitt 1, Schritt 1](einbettung-und-betrieb.md#1-den-server-in-die-anwendung-einbinden) |
 | mein eigenes Backend anschließen | [Einbettung, Abschnitt 2](einbettung-und-betrieb.md#2-ein-eigenes-backend-anschließen) |
 | Tabellen mit eigenen Zeilen vorgeben | [Einbettung, Abschnitt 3](einbettung-und-betrieb.md#3-tabellen-vorgeben-simulations-backend) |
 | Tabellen zur Laufzeit anlegen und ändern lassen | [Einbettung, Abschnitt 4](einbettung-und-betrieb.md#4-strukturänderungen-zulassen-veränderlicher-bestand) |

@@ -1,0 +1,3 @@
+**Vorgang:** [slice-cloudsmith-veroeffentlichung-0-1-1](../../../../done/slice-cloudsmith-veroeffentlichung-0-1-1.md)
+**Fund:** [Review](../../../../../../reviews/2026-11-15-f456e8a2-slice-cloudsmith-veroeffentlichung-0-1-1-review.md) F-2, F-3, F-5 (MEDIUM): Workflow-Kommentar „erst die erste echte Veröffentlichung“ nach deren Eintritt, Nutzer-Snippet „gemessen“ bei abweichender Probe-Konfiguration (`metadataSources`, `isAllowInsecureProtocol`), „Stunden später“ statt rund sechs Minuten; dazu V1 des Verifiers: Versuchszahl fünf statt sechs im Messprotokoll. Alle behoben (`673bdb26`, `9cb30d48`).
+**Stand:** verkörpert wie in `state.md` der Klasse (`AGENTS.md` §3.8); hier ein weiteres Auftreten.

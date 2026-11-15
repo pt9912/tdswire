@@ -25,11 +25,31 @@ Die Kotlin-Blöcke, die eine Funktion oder Klasse mit dem Namen `anleitung…` o
 
 **Ziel.** Ein Server der Bibliothek läuft im Prozess der Anwendung, nimmt Anmeldungen an und endet auf Aufruf.
 
-**Voraussetzungen.** Docker und GNU `make` zum Bauen (kein lokales JDK, [AGENTS.md](../../AGENTS.md) §3.1); Kotlin mit Coroutines in der Anwendung.
+**Voraussetzungen.** Kotlin mit Coroutines in der Anwendung und Gradle als Bauwerkzeug der Anwendung (für Weg A). Für den Handweg B: Docker und GNU `make` zum Bauen (kein lokales JDK im Repo, [AGENTS.md](../../AGENTS.md) §3.1).
 
 **Schritte.**
 
-1. Jar und `lib/` aus dem Bau holen. `make build` prüft das Jar (Lizenz, Manifest ohne `Main-Class`, `Class-Path` gegen `lib/`, kein Jackson), schreibt es aber nicht auf den Host; die Dateien liegen im Build-Image. Ein Weg aus dem Repo heraus ist kein Target; dieser Handweg mit Docker liefert sie (gefahren am 2026-11-07, Exit 0):
+1. Die Bibliothek beschaffen, auf einem von zwei Wegen.
+
+   **Weg A: aus der Registry (Gradle).** Die Version `0.1.1` liegt unter den Koordinaten `io.github.pt9912:tdswire` auf Cloudsmith und auf GitHub Packages; `0.1.0` nur auf GitHub Packages. Zuerst der Weg ohne Konto: Cloudsmith liefert anonym aus, ohne Token ([Messprotokoll](../messungen/veroeffentlichung-0-1-1-2026-11-15.md)). Im Gradle-Skript der Anwendung (Kotlin-DSL); die Abhängigkeiten der Bibliothek löst Maven Central auf, deshalb steht es daneben:
+
+   ```kotlin
+   repositories {
+       maven {
+           url = uri("https://dl.cloudsmith.io/public/pt9912/tdswire/maven/")
+           content { includeGroup("io.github.pt9912") }
+       }
+       mavenCentral()
+   }
+
+   dependencies {
+       implementation("io.github.pt9912:tdswire:0.1.1")
+   }
+   ```
+
+   Gemessen ist: der Probe-Konsument von `tools/publish-probe.sh url` löst `0.1.1` aus dieser URL ohne Zugangsdaten auf, übersetzt und startet den Server der Bibliothek (Exit 0 in beiden Läufen). Er führt den Eintrag mit ausdrücklichen `metadataSources` (einmal mit `gradleMetadata()`, die `.module` ist freigegeben, einmal nur über die POM) und mit `isAllowInsecureProtocol`; das Snippet oben mit den Voreinstellungen von Gradle ist nicht eigens gefahren. Nicht gemessen: Maven und Java als Konsumenten. Der zweite Weg ist GitHub Packages (`https://maven.pkg.github.com/pt9912/tdswire`): dort verlangt der Abruf eine Anmeldung, ohne Token antwortet die Registry mit 401, und der Konsum mit einem Token `read:packages` ist nicht gemessen; die Bibliothek ist dort veröffentlicht. Cloudsmith ist ein Dienst eines Drittanbieters für kostenloses Hosting von Open Source (<https://cloudsmith.com>); wer ihn nicht nutzen kann, nimmt Weg B. Eine Version wird nie neu veröffentlicht, eine Korrektur ist eine neue Version.
+
+   **Weg B: Jar und `lib/` aus dem Bau holen.** `make build` prüft das Jar (Lizenz, Manifest ohne `Main-Class`, `Class-Path` gegen `lib/`, kein Jackson), schreibt es aber nicht auf den Host; die Dateien liegen im Build-Image. Ein Weg aus dem Repo heraus ist kein Target; dieser Handweg mit Docker liefert sie (gefahren am 2026-11-07, Exit 0):
 
    ```sh
    docker build --target build-jar -t tdswire-build:lokal .
