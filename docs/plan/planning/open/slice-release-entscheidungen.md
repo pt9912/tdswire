@@ -11,7 +11,7 @@ Baseline-Regelwerk `modul-05-planning-harness.md` §Lifecycle als State Machine.
 
 **Berührte Spec-Stellen:** SPEC-041 · SPEC-042
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** pt9912.
 
 **Autor:** pt9912; verkleinert vom Planner-Agent nach den Entscheidungen des Nutzers 2026-11-14. **Datum:** 2026-11-06.
 
