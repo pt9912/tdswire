@@ -1,0 +1,3 @@
+**Vorgang:** [slice-ci-veroeffentlichung-workflow](../../../../done/slice-ci-veroeffentlichung-workflow.md)
+**Fund:** DoD Punkt 3 verlangte im Messprotokoll die Docker-Version des Runners; der Plan nannte keinen Messweg dafür (das Laufprotokoll von `actions/checkout` und `make gates` gibt sie nicht aus, die Software-Liste des Runner-Images ist nur verlinkt). Der Lauf lag vor, das Protokoll stand mit „nicht gemessen“, der Punkt war damit offen, ohne dass ein Lauf ihn schließen konnte. Nutzerentscheidung 2026-11-15: Anforderung aus der DoD gestrichen (Zielbild angepasst, Workflow nicht geändert), im Protokoll als bewusst entfallen geführt.
+**Stand:** offen — ein weiteres Auftreten (Messgröße in der DoD ohne Messweg im Plan); der Ausgang der Beobachtung ist nicht gesetzt.

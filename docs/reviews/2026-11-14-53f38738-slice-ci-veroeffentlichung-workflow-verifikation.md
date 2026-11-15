@@ -1,6 +1,6 @@
 # Verifikation: slice-ci-veroeffentlichung-workflow — 2026-11-14
 
-**Rolle:** Verifier (Frage: bauen wir es richtig, gegen Plan und DoD). **Gegenstand:** Stand 53f38738, Basis d7e558aa, Branch `impl-ci-veroeffentlichung-workflow`. **Eingang:** Slice `docs/plan/planning/in-progress/slice-ci-veroeffentlichung-workflow.md`, [ADR-0048](../plan/adr/0048-veroeffentlichung-in-der-ci-bei-tag-push.md), [ADR-0047](../plan/adr/0047-veroeffentlichung-ueber-github-packages.md), Review-Report `2026-11-14-0144fb8a-slice-ci-veroeffentlichung-workflow-review.md`, `.github/workflows/veroeffentlichung.yml`, `docs/maintainer/releasing.md`. **Bezug:** [TDS-RB-05](../../spec/lastenheft.md#tds-rb-05--lizenz), [TDS-QA-06](../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit). **Modell:** claude-sonnet-5-5.
+**Rolle:** Verifier (Frage: bauen wir es richtig, gegen Plan und DoD). **Gegenstand:** Stand 53f38738, Basis d7e558aa, Branch `impl-ci-veroeffentlichung-workflow`. **Eingang:** Slice `docs/plan/planning/done/slice-ci-veroeffentlichung-workflow.md`, [ADR-0048](../plan/adr/0048-veroeffentlichung-in-der-ci-bei-tag-push.md), [ADR-0047](../plan/adr/0047-veroeffentlichung-ueber-github-packages.md), Review-Report `2026-11-14-0144fb8a-slice-ci-veroeffentlichung-workflow-review.md`, `.github/workflows/veroeffentlichung.yml`, `docs/maintainer/releasing.md`. **Bezug:** [TDS-RB-05](../../spec/lastenheft.md#tds-rb-05--lizenz), [TDS-QA-06](../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit). **Modell:** claude-sonnet-5-5.
 
 ## Urteil
 
