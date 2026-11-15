@@ -2,7 +2,7 @@
 
 **Review-Art:** Code (Re-Review nach Reviewer-Skill „Nachbesserung mit Code ohne zweiten Review“): nur die Nachbesserung, Diff `2b62d0a9..9a9a681d`, gegen den Report `2026-11-15-2b62d0a9-slice-cloudsmith-ziel-bauen-review.md` (F-1 bis F-6), [ADR-0049](../plan/adr/0049-cloudsmith-als-zweites-veroeffentlichungsziel.md), [ADR-0047](../plan/adr/0047-veroeffentlichung-ueber-github-packages.md) und Hard Rules (`AGENTS.md` §3.7, §3.8)
 
-**Gegenstand:** Commit 9a9a681d (6 Dateien, +168/-7): `tools/publish-selbsttest.sh`, `tools/publish-probe.sh`, `docs/messungen/maven-paket-2026-11-14.md`, `docs/maintainer/releasing.md`, `docs/plan/planning/in-progress/slice-cloudsmith-ziel-bauen.md`, der Report des ersten Reviews. Die Dateien `.github/workflows/veroeffentlichung.yml`, `build.gradle.kts`, `tools/publish.sh`, `tools/mk/publish.mk`, `Dockerfile` und `harness/README.md` sind zwischen 2b62d0a9 und 9a9a681d unverändert (leerer Diff); der Workflow ist damit gegenüber dem ersten Review unverändert.
+**Gegenstand:** Commit 9a9a681d (6 Dateien, +168/-7): `tools/publish-selbsttest.sh`, `tools/publish-probe.sh`, `docs/messungen/maven-paket-2026-11-14.md`, `docs/maintainer/releasing.md`, `docs/plan/planning/done/slice-cloudsmith-ziel-bauen.md`, der Report des ersten Reviews. Die Dateien `.github/workflows/veroeffentlichung.yml`, `build.gradle.kts`, `tools/publish.sh`, `tools/mk/publish.mk`, `Dockerfile` und `harness/README.md` sind zwischen 2b62d0a9 und 9a9a681d unverändert (leerer Diff); der Workflow ist damit gegenüber dem ersten Review unverändert.
 
 **Skill:** `.harness/skills/reviewer.md` · **Modell:** claude-sonnet-5-5 · **Datum:** 2026-11-15
 
@@ -71,7 +71,7 @@ Der Absatz „Grenze der Spalte ‚nur über die POM‘“ ist die richtige Form
 | `tools/publish.sh`, `build.gradle.kts`, `tools/mk/publish.mk`, `Dockerfile`, `harness/README.md` | geprüft, ohne Befund (kein Diff in der Nachbesserung) |
 | `tools/publish-selbsttest.sh` (Kosmetik, Meldung „acht rote Faelle“) | geprüft, ohne Befund außer N-1 |
 | `docs/maintainer/releasing.md` | geprüft, ohne Befund (Schritt 8 nachgezogen; Treffer in Messprotokollen mit Grund) |
-| `docs/plan/planning/in-progress/slice-cloudsmith-ziel-bauen.md` | geprüft, ohne Befund (Tabellenzeile ergänzt, keine Haken) |
+| `docs/plan/planning/done/slice-cloudsmith-ziel-bauen.md` | geprüft, ohne Befund (Tabellenzeile ergänzt, keine Haken) |
 | `docs/user/`, `spec/`, `src/`, `testserver/` | geprüft, ohne Befund (nicht im Diff) |
 | Suppression, Host-statt-Docker, Schichtregel, Accepted-ADR geändert | geprüft, ohne Befund |
 
