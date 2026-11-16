@@ -1,0 +1,3 @@
+**Vorgang:** [slice-qa-performance](../../../../done/slice-qa-performance.md)
+**Fund:** [Review](../../../../../../reviews/2026-11-16-b163a5ce-slice-qa-performance-review.md) F-4 (MEDIUM): die Tabelle §3 nannte `Dockerfile`, `referenztest-dotnet/`, `tools/e2e-selbsttest.sh`, `tools/mk/e2e.mk`, `skript-selbsttest.mk`, `README.md` und das Messprotokoll nicht. Nachgezogen in `008bc6f4`; der Gegenabgleich gegen `git diff --stat` im [Re-Review](../../../../../../reviews/2026-11-16-77d485a6-slice-qa-performance-re-review.md) und in der Verifikation fand sie vollständig.
+**Stand:** verkörpert wie in `state.md` der Klasse; vom Reviewer gefangen, nicht vom Implementer.
