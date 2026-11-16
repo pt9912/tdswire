@@ -1,0 +1,32 @@
+tdswire @VERSION@
+
+Version `@VERSION@`, Tag `@TAG@`, Commit `@COMMIT@`.
+Maven-Koordinaten: `io.github.pt9912:tdswire:@VERSION@`
+
+Pakete dieser Version:
+- GitHub Packages, Maven-Repository https://maven.pkg.github.com/pt9912/tdswire
+@@CLOUDSMITH@@
+- Cloudsmith, Maven-Repository https://dl.cloudsmith.io/public/pt9912/tdswire/maven/
+@@ENDE@@
+
+@@MIT@@
+Dateien dieses Release:
+- `@ZIP@` (`tdswire.jar`, `lib/`, `LICENSE`, `lizenzen/lib/`)
+- `tdswire.jar`
+- `SHA256SUMS`
+
+Prüfsummen (SHA-256):
+
+```
+@SHA_ZIP@  @ZIP@
+@SHA_JAR@  tdswire.jar
+```
+
+Die Prüfsumme belegt Unverändertheit, nicht Herkunft.
+@@ENDE@@
+@@OHNE@@
+Für diese Version liegen keine Dateien an; die Version steht in den oben genannten Paketen.
+@@ENDE@@
+
+Lizenz: MIT, siehe `LICENSE` im Repository.
+Einbettung: Anleitung `docs/user/einbettung-und-betrieb.md` im Tag `@TAG@` des Repositories https://github.com/pt9912/tdswire.

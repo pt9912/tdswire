@@ -174,7 +174,7 @@ RUN sh tools/spec-abdeckung-selbsttest.sh
 
 # --- Skript-Selbsttest: `make skript-selbsttest` - belegt ohne Gradle, dass tools/e2e.sh an der ersten roten
 # Stufe abbricht, dass tools/manifest-pruefung.sh seine Fehlerfaelle abweist und dass tools/vergleichslauf-d.sh ohne EULA-Variable,
-# in der CI und mit unbekanntem Namen vor jedem Docker-Aufruf endet und dass die Muster, mit denen die Laufskripte das Log des Testservers lesen (tools/log-muster.sh), gruen und rot werden, und dass referenztest-dotnet/test-lauf.sh seine Argumente abweist und seine Modi haelt (tools/test-lauf-selbsttest.sh, gegen einen dotnet-Stub), und dass das Eingangsskript tools/publish.sh von `make publish` vor Docker bricht (tools/publish-selbsttest.sh, gegen einen docker-Stub: Version, Tag, Baum, Zugangsdaten und Zielregel je Ziel) (die Fragmente, das E2E-Skript und die Workflows sind dafuer Eingang); das Dockerfile selbst ist
+# in der CI und mit unbekanntem Namen vor jedem Docker-Aufruf endet und dass die Muster, mit denen die Laufskripte das Log des Testservers lesen (tools/log-muster.sh), gruen und rot werden, und dass referenztest-dotnet/test-lauf.sh seine Argumente abweist und seine Modi haelt (tools/test-lauf-selbsttest.sh, gegen einen dotnet-Stub), und dass das Eingangsskript tools/publish.sh von `make publish` vor Docker bricht (tools/publish-selbsttest.sh, gegen einen docker-Stub: Version, Tag, Baum, Zugangsdaten und Zielregel je Ziel) und dass das Eingangsskript tools/release-anlegen.sh des Jobs `release` vor `gh release create` bricht und der Workflow als Text die Rechte, `needs` und den Ort des Tokens haelt (tools/release-anlegen-selbsttest.sh, gegen einen gh-Stub, mit Mutationen) (die Fragmente, das E2E-Skript und die Workflows sind dafuer Eingang); das Dockerfile selbst ist
 # Die Selbsttests laufen in einer `&&`-Kette: nach dem ersten roten bricht sie, die folgenden laufen in diesem Lauf nicht und ihre
 # roten Faelle bleiben unsichtbar (das Gate bleibt rot; Grenze der Diagnose). Das Dockerfile selbst ist
 # Eingang, weil der Test den Aufruf der Pruefung in der Stage `build-jar` liest. ------------------------
@@ -184,6 +184,7 @@ COPY Dockerfile Dockerfile
 COPY tools/e2e.sh tools/e2e-selbsttest.sh tools/manifest-pruefung.sh tools/manifest-selbsttest.sh tools/
 COPY tools/publish.sh tools/publish-selbsttest.sh tools/
 COPY tools/release-dateien.sh tools/release-pruefung.sh tools/release-selbsttest.sh tools/
+COPY tools/release-anlegen.sh tools/release-anlegen-selbsttest.sh tools/release-notiz.vorlage tools/
 COPY lizenzen lizenzen
 COPY build.gradle.kts build.gradle.kts
 COPY tools/vergleichslauf-d.sh tools/vergleichslauf-d-selbsttest.sh tools/
@@ -195,7 +196,7 @@ COPY tools/mk tools/mk
 COPY harness/mk harness/mk
 COPY Makefile repo.mk ./
 COPY .github/workflows .github/workflows
-RUN bash tools/e2e-selbsttest.sh && sh tools/manifest-selbsttest.sh && bash tools/vergleichslauf-d-selbsttest.sh && sh tools/log-muster-selbsttest.sh && sh tools/test-lauf-selbsttest.sh && bash tools/publish-selbsttest.sh && sh tools/release-selbsttest.sh && bash tools/lasttest-selbsttest.sh
+RUN bash tools/e2e-selbsttest.sh && sh tools/manifest-selbsttest.sh && bash tools/vergleichslauf-d-selbsttest.sh && sh tools/log-muster-selbsttest.sh && sh tools/test-lauf-selbsttest.sh && bash tools/publish-selbsttest.sh && sh tools/release-selbsttest.sh && bash tools/release-anlegen-selbsttest.sh && bash tools/lasttest-selbsttest.sh
 
 # --- Kopplung der Zahlen: `make kopplung-zahlen` - haelt Heap und Text von `gross` des Integrationslaufs (SPEC-040)
 # in testserver/build.gradle.kts, IntegrationServer.kt, dem .NET-Test, der Spezifikation und harness/README.md gleich und belegt
