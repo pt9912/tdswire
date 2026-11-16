@@ -167,10 +167,11 @@ class RpcPlpTest {
     }
 
     /**
-     * Negativfall (Festlegung): überlange Längenangaben enden in einem Ergebniswert, bevor ein Puffer entsteht. Eine
-     * Gesamtlänge über `Int.MAX_VALUE` und eine negative (nicht `-1`, `-2`) ist `INVALID_LENGTH`; eine Gesamtlänge
-     * bis `Int.MAX_VALUE` und ein Stück bis 4 GiB, die die Nachricht nicht hält, sind `TRUNCATED`. Wächter: eine
-     * Prüfung, die erst nach dem Anlegen des Puffers greift, endet in `OutOfMemoryError`.
+     * Negativfall (Festlegung): überlange Längenangaben enden in einem Ergebniswert, ohne dass ein Puffer in der Größe
+     * der Angabe entsteht (der Leser kopiert nur Stücke, die in der Nachricht stehen). Eine Gesamtlänge über
+     * `Int.MAX_VALUE` und eine negative (nicht `-1`, `-2`) ist `INVALID_LENGTH`; eine Gesamtlänge bis `Int.MAX_VALUE`
+     * und ein Stück bis 4 GiB, die die Nachricht nicht hält, sind `TRUNCATED`. Wächter der Gesamtlänge: ohne ihre
+     * Prüfung endet eine Gesamtlänge über `Int.MAX_VALUE` nicht in `INVALID_LENGTH`.
      *
      * @spec SPEC-027
      * @spec SPEC-007

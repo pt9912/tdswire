@@ -10,10 +10,11 @@ import java.io.ByteArrayOutputStream
  * Terminator (ein Stück der Länge 0). Alle Bytes `0xFF` als Gesamtlänge sind NULL, `0xFE` mit sieben `0xFF` heißt
  * „Länge unbekannt“ (Lesart von MS-TDS, nicht gemessen); die Gesamtlänge ist sonst die Summe der Stücke.
  *
- * Festlegung: Der Leser legt kein Byte an, bevor die Länge gegen die Nachricht geprüft ist. Eine bekannte Gesamtlänge
- * über [Int.MAX_VALUE] ist `INVALID_LENGTH`, über dem Rest der Nachricht `TRUNCATED`; ein Stück über dem Rest der
- * Nachricht ist `TRUNCATED`, bevor es gelesen wird; Stücke, die die bekannte Gesamtlänge überschreiten oder nicht
- * erreichen, sind `INVALID_LENGTH`. Der Wert ist damit nie größer als die Nachricht (`SPEC-007` begrenzt sie).
+ * Festlegung: Der Leser legt kein Byte an, bevor die Länge gegen die Nachricht geprüft ist: der Puffer wächst nur um
+ * Stücke, die `ByteReader` als vorhanden gelesen hat, und die Gesamtlänge ist kein Größenhinweis. Eine bekannte
+ * Gesamtlänge über [Int.MAX_VALUE] ist `INVALID_LENGTH`, über dem Rest der Nachricht `TRUNCATED`; ein Stück über dem
+ * Rest der Nachricht ist `TRUNCATED`; eine Summe der Stücke, die nicht zur bekannten Gesamtlänge passt, ist
+ * `INVALID_LENGTH`. Der Wert ist damit nie größer als die Nachricht (`SPEC-007` begrenzt sie).
  */
 internal object PlpReader {
     private const val NULL_TOTAL = -1L
@@ -32,18 +33,12 @@ internal object PlpReader {
         if (known) {
             checkTotal(total, reader.remaining)
         }
-        val value = ByteArrayOutputStream(if (known) total.toInt() else 0)
+        val value = ByteArrayOutputStream()
         var sum = 0L
         while (true) {
             val chunk = reader.u32Le()
             if (chunk == 0L) {
                 break
-            }
-            if (chunk > reader.remaining) {
-                violation(ProtocolFailure.TRUNCATED, "PLP-Stück mit $chunk Byte, ${reader.remaining} vorhanden")
-            }
-            if (known && sum + chunk > total) {
-                violation(ProtocolFailure.INVALID_LENGTH, "PLP-Stücke über der Gesamtlänge $total")
             }
             value.write(reader.bytes(chunk.toInt()))
             sum += chunk
