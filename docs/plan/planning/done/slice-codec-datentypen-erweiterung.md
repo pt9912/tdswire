@@ -57,7 +57,7 @@ Nachweis-Pflichten für alle drei Punkte:
 - [x] Jeder Test trägt im KDoc über der Testfunktion den Block-Tag `@spec SPEC-<NNN>`; die Tests laufen in `make test` und sind grün.
 - [x] Jede Aussage steht an einem Test oder ist als Festlegung gekennzeichnet (KDoc des Elements); die Closure-Notiz trennt *gemessen*, *Handvektor*, *Selbstkonsistenz* und *Festlegung* wie `slice-codec-tds-paket`.
 - [x] Zerstückelte, überlange und zufällige Eingaben enden in einem Ergebniswert (SPEC-027, [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität)).
-- [ ] `make gates` grün.
+- [x] `make gates` grün.
 - [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
@@ -65,7 +65,7 @@ Nachweis-Pflichten für alle drei Punkte:
 - [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
 - [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
 - [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -154,7 +154,7 @@ Geschlossen 2026-11-16 (Planner, Slice-Closure ohne Welle). Geprüfter Stand: Zw
 - Nachweis 1 (`@spec`, Tests grün): `make clean-build` Exit 0 und `make spec-abdeckung` Exit 0, die Abdeckungsmatrix danach unverändert (Verifikation §1, §7); Review F-3 (falsches `SPEC-028`) in `dc91934f` behoben.
 - Nachweis 2 (Trennung der Aussagen): unten in dieser Notiz und in Matrix, Spec und KDoc.
 - Nachweis 3 (zerstückelte, überlange, zufällige Eingaben, `SPEC-027`, [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität)): `RpcPlpTest` (Stücke, Verkürzung jeder Nachricht, überlange Längen, zufällige Körper), `RpcFuzzTest`, `TokenRoundtripTest` (Verifikation §3). Grenze: der Encoder-Grenzfall von `limit` ist nur über die Prüf-Naht mit kleiner Grenze belegt (KDoc von `PlpValues`).
-- Nachweis 4 (`make gates`): siehe die Zeile „Gates“ unten.
+- Nachweis 4 (`make gates`): Exit 0, siehe „Gates“ unten.
 - Nachweis 5 (Review): Review, Re-Review und Verifikation liegen vor.
 - Nachweis 6 (Doku): Spec (`SPEC-003`, `SPEC-013`, Änderungsliste), Matrix, `referenzabgleich.md`; `make docs-check` Exit 0.
 - Nachweise 7 bis 10: diese Notiz, das Register (unten), die Ausgänge in §6, die Paarungen (unten).
@@ -170,7 +170,7 @@ Geschlossen 2026-11-16 (Planner, Slice-Closure ohne Welle). Geprüfter Stand: Zw
 
 **Nachbesserung ohne zweiten Review: kein Fall.** Nach dem Review `246f3f8c` folgten `dc91934f`, `5974fa68`, `f131a2c3` (vom Re-Review geprüft), danach `3514f32a` und `5ef12076`. Die Verifikation hat per Diff-Filter belegt: `git diff 246f3f8c..HEAD -U0 -- src`, jede geänderte Zeile gefiltert auf „beginnt nicht mit `/**`, `*`, `*/`, `//`“, ergibt keinen Treffer (11 Dateien, +38 −21: KDoc, Umbrüche darin und `@spec`-Tags); der Diff `f131a2c3..HEAD` berührt `src` nicht (Verifikation §5). Die Regel (`BEO-TDS/nachbesserung-ohne-zweiten-review`) verlangt den Re-Review für Quelltext, Testcode, Skripte und Konfiguration, nicht für Kommentar und Doku; sie greift hier nicht.
 
-**Gates.** Der Lauf von `make gates` auf dem End-Stand steht in der Zeile unter dieser Notiz (Schritt der Closure, nach dem Move).
+**Gates.** `make gates` Exit 0 auf dem End-Stand der Closure (Planner, 2026-11-16, Lauf 14 s): die Klassen `werkzeug`, `tests` und `stempel` sind übersprungen, weil ihre Eingaben seit dem grünen Lauf des Implementers unverändert sind (Stempel nach [ADR-0024](../../adr/0024-lokale-stempel-zwei-klassen.md), [ADR-0030](../../adr/0030-dritter-stempel-fuer-die-selbsttests-der-stempel.md); `src/` ist seit `5ef12076` unberührt); die Klasse `immer` (`docs-check`, `flaeche`, `gate-zuordnung` und weitere) lief frisch. Den frischen Lauf der Tests und von detekt belegt `make clean-build` des Verifiers (Exit 0) auf demselben `src/`-Stand, `make e2e` Exit 0 (Verifikation §7); die Stempel kennt die CI nicht, sie läuft voll ([ADR-0023](../../adr/0023-gate-klassen-und-stempel.md)).
 
 **Entscheidungen offen, Träger: Nutzer (Empfehlung des Planners ist ein Vorschlag, keine Setzung).**
 
@@ -188,6 +188,8 @@ Geschlossen 2026-11-16 (Planner, Slice-Closure ohne Welle). Geprüfter Stand: Zw
 **Lese-Schritt (Repo ohne Wellen-Betrieb, diese Closure löst ihn aus).** Gelesen, was in der Ablage 3× erreicht hat und von diesem Slice berührt wurde: `aussagen-ueber-messung-hinaus` (89), `fortschreibung-laesst-zweite-fundstelle-stehen` (45), `plan-tabelle-nennt-neue-datei-nicht` (23), `messung-am-echten-sql-server-fehlt` (37), `kommentar-nennt-abwesenden-oder-unwirklichen-zustand` (11), `dod-wortlaut-ueber-der-bauart` (10), `test-naht-im-produktivcode` (4), `mitschnitt-luecken-ohne-traeger` (4). Feststellung: alle acht tragen bereits einen Ausgang (verkörpert oder Träger entschieden, je in ihrem `state.md`); keine erreicht mit diesem Slice die Schwelle neu, und keine Zeile ist neu zuzuweisen. Retirement-Check der Klassen mit Herkunfts-Anker: die Klasse ist in diesem Slice wiedergekehrt, keine Lockerung. Kein Zähler außer 3× erreicht; `plan-nennt-falsche-spec-kennung-fuer-tests` steht bei 1×.
 
 **Folge-Slice:** [slice-antwortform-nbcrow](../open/slice-antwortform-nbcrow.md) (Sequenzierer schreibt NBCROW, A-12; Messung gegen den echten Server und Kompatibilitätstest als Beleg; ohne Welle, Verantwortlich —, ist eine Datei in `open/`).
+
+**Drei Paarungen** (Repo ohne Wellen-Betrieb, hier geprüft nach dem Move): *Anker* — diese Notiz verkörpert nichts und trägt kein Feld `liegt in`; nichts zu paaren. *Folge-Slice* — [slice-antwortform-nbcrow](../open/slice-antwortform-nbcrow.md) liegt als Datei in `open/`. *Register* — acht Dateien `evidence/slice-codec-datentypen-erweiterung.md` (sieben fortgeschrieben, eine in der neuen Beobachtung `plan-nennt-falsche-spec-kennung-fuer-tests`), jede mit auflösendem Zeiger auf diese Datei in `done/`; `make docs-check` Exit 0.
 
 **Lerneintrag (Steering Loop).**
 
