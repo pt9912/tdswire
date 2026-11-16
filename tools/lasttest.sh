@@ -37,6 +37,7 @@ senken="${LASTTEST_SENKEN:-mit ohne}"
 min_frei="${LASTTEST_MIN_FREI_MB:-4096}"
 last_max="${LASTTEST_LAST_MAX:-12}"
 swap_toleranz="${LASTTEST_SWAP_TOLERANZ_MB:-16}"
+proc="${LASTTEST_PROC:-/proc}" # nur der Selbsttest (tools/lasttest-selbsttest.sh) setzt es: eine Nachbildung von meminfo und loadavg
 statistik="$(dirname "$0")/lasttest-statistik.sh"
 klasse="io.github.pt9912.tdswire.testserver"
 
@@ -67,11 +68,11 @@ trap aufraeumen EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
-frei_mb() { awk '/^MemAvailable:/ {print int($2 / 1024)}' /proc/meminfo; }
-swap_mb() { awk '/^SwapTotal:/ {t=$2} /^SwapFree:/ {f=$2} END {print int((t - f) / 1024)}' /proc/meminfo; }
-last1() { awk '{print $1}' /proc/loadavg; }
-last_ganz() { awk '{print int($1)}' /proc/loadavg; }
-zustand() { echo "last $(awk '{print $1"/"$2"/"$3}' /proc/loadavg) swap_mb $(swap_mb) frei_mb $(frei_mb)"; }
+frei_mb() { awk '/^MemAvailable:/ {print int($2 / 1024)}' "$proc/meminfo"; }
+swap_mb() { awk '/^SwapTotal:/ {t=$2} /^SwapFree:/ {f=$2} END {print int((t - f) / 1024)}' "$proc/meminfo"; }
+last1() { awk '{print $1}' "$proc/loadavg"; }
+last_ganz() { awk '{print int($1)}' "$proc/loadavg"; }
+zustand() { echo "last $(awk '{print $1"/"$2"/"$3}' "$proc/loadavg") swap_mb $(swap_mb) frei_mb $(frei_mb)"; }
 
 # Vor jedem Container: genug Speicher auf dem Host, sonst Abbruch (Exit 3).
 speicherwacht() {
@@ -120,7 +121,7 @@ umgebung=(-e "LASTTEST_ZEILEN=$zeilen" -e "LASTTEST_WDH=$wdh" -e "LASTTEST_SEED=
 
 start=$(date +%s)
 speicherwacht
-echo "lasttest: Kopf $(date -u +%Y-%m-%dT%H:%M:%SZ) host kerne $(nproc) ram_mb $(awk '/^MemTotal:/ {print int($2 / 1024)}' /proc/meminfo) kernel $(uname -r) docker $(docker version --format '{{.Server.Version}}' 2>/dev/null) commit $(git rev-parse --short HEAD 2>/dev/null || echo unbekannt)$([ -n "$(git status --porcelain 2>/dev/null)" ] && echo "+geaendert")"
+echo "lasttest: Kopf $(date -u +%Y-%m-%dT%H:%M:%SZ) host kerne $(nproc) ram_mb $(awk '/^MemTotal:/ {print int($2 / 1024)}' "$proc/meminfo") kernel $(uname -r) docker $(docker version --format '{{.Server.Version}}' 2>/dev/null) commit $(git rev-parse --short HEAD 2>/dev/null || echo unbekannt)$([ -n "$(git status --porcelain 2>/dev/null)" ] && echo "+geaendert")"
 echo "lasttest: Kopf zeilen $zeilen wdh $wdh (nach einem Warmlauf) seed $seed aufbauten [$aufbauten] senken [$senken] server cpus $cpus memory $speicher memory-swap $speicher xmx $xmx client cpus $cpus memory $client_speicher"
 echo "lasttest: Kopf zustand vorher: $(zustand)"
 
