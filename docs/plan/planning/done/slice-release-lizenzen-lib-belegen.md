@@ -56,7 +56,7 @@ Liefer-Punkte (zwei):
 
 Nachweis-Pflichten für beide Punkte:
 
-- [ ] `make gates` grün; für die Doku-Teile `make docs-check`, `make flaeche`, `make kopplung-zahlen` ([`harness/README.md`](../../../../harness/README.md) §Minimal agent workflow, Zeile „Doku oder Spec“). Der Slice berührt weder `src/` noch `testserver/` noch Werkzeug; `make clean-build` und `make e2e` sind nicht erforderlich, `make spec-abdeckung` entfällt (keine `SPEC-*`-Kennung neu oder entfernt).
+- [x] `make gates` grün; für die Doku-Teile `make docs-check`, `make flaeche`, `make kopplung-zahlen` ([`harness/README.md`](../../../../harness/README.md) §Minimal agent workflow, Zeile „Doku oder Spec“). Der Slice berührt weder `src/` noch `testserver/` noch Werkzeug; `make clean-build` und `make e2e` sind nicht erforderlich, `make spec-abdeckung` entfällt (keine `SPEC-*`-Kennung neu oder entfernt).
 - [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow ([`AGENTS.md`](../../../../AGENTS.md) §6), kein Self-Review (Modul 8). Der Review prüft vor allem, ob jede Aussage des Belegs auf eine gelesene Fundstelle zeigt ([`AGENTS.md`](../../../../AGENTS.md) §3.8) und ob die Ablage byte-gleich ist (Hash). Enthält die Nachbesserung Code oder Skripte, folgt ein zweiter Review in frischem Kontext (§3, Ablauf).
@@ -64,7 +64,7 @@ Nachweis-Pflichten für beide Punkte:
 - [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
 - [x] Beobachtungs-Register (`../observations/`) fortgeschrieben; **kein Zaehler wird gesetzt**. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
 - [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
 
 ## 3. Plan (vor Code)
 
