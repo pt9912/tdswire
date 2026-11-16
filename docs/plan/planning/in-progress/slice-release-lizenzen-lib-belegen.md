@@ -78,6 +78,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `docs/messungen/` (neues Messprotokoll zu den Lizenzen von `lib/`) | neu | erster Punkt der DoD; Datum, Host, Bedingung, Quellen mit Abrufdatum, offene Fragen |
 | Ablage der Lizenzdateien (Ort wählt der Implementer, siehe DoD) | neu | zweiter Punkt der DoD; Eingang des Bau-Slice |
 | `docs/plan/planning/observations/BEO-TDS/lizenzhinweise-der-bibliotheken-rechtsfrage/` | update | `state.md` und eine Datei in `evidence/`; kein Zähler |
+| `docs/plan/planning/in-progress/slice-release-lizenzen-lib-belegen.md` (dieser Slice, §7) | update | der Ablageort der Lizenzdateien steht in §7 (DoD zweiter Punkt); sonst keine Änderung am Plan |
 
 **Ablauf:** (1) Implementer liest `lib/` am gebauten Artefakt (ein Lauf der Stage `build-jar`, Ausgabe gesichert; kein Eingriff in `make build`), liest die Lizenzdateien in den Jars und beim Projekt und legt Beleg und Dateien ab; er rät keine Lizenz aus dem Namen. (2) Review in frischem Kontext gegen die DoD. (3) Verifier prüft gegen die DoD, öffnet jede Quelle erneut und vergleicht die Hashes, fährt `make gates` auf dem End-Stand. (4) Nichts wird veröffentlicht, kein Tag gesetzt, nichts gepusht.
 
