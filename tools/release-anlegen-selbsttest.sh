@@ -11,9 +11,11 @@
 # Paket-Jobs; dieselbe Bedingung wie `publish`; kein `continue-on-error`; Checkout mit persist-credentials false; die Schritte
 # Tag-Commit, Bau und Pruefsummen ohne Secret; das Token steht nur im Schritt `gh release create`; kein `packages: write` und kein
 # Cloudsmith-Secret im Job; jede `uses:`-Zeile traegt eine 40-stellige Commit-SHA; `vorschau` baut mit VORSCHAU=1 ohne Secret und ohne
-# gh, `release` ohne VORSCHAU; `release-dateien` und das Skript stehen in keiner Gate-Liste und nicht in tools/mk/e2e.mk. Jede
-# dieser Pruefungen hat eine Gegenprobe: eine Aenderung an einer Kopie des Workflows macht genau sie rot (dieselbe Funktion
-# wf_pruefungen liest den echten Workflow und die Kopien).
+# gh, `release` ohne VORSCHAU; `release-dateien` und das Skript stehen in keiner Gate-Liste und nicht in tools/mk/e2e.mk. Gegenproben
+# je Pruefung der Funktion wf_pruefungen (dieselbe Funktion liest den echten Workflow und die Kopien): an einer Kopie des Workflows
+# wird die benannte Pruefung rot; bei einigen wird zusaetzlich eine zweite rot (die Gegenprobe prueft nur den Namen der benannten).
+# Ohne Gegenprobe ist keine der Pruefungen dieser Funktion. Die Abwesenheitspruefung der Gate-Listen hat eine Gegenprobe (GATE_CHECKS
+# an einer Kopie von release-dateien.mk), die fuer tools/mk/e2e.mk keine.
 # Grenze: gh ist ein Stub; belegt sind Reihenfolge der Pruefungen und Form des Aufrufs, nicht GitHub. Pins gegen echte Actions,
 # die Wirkung der Bedingung und der Rechte und die Reihenfolge der Jobs zur Laufzeit sieht der Test nicht (Text, kein Lauf); die
 # Abwesenheitspruefung liest Make-Dateien als Text und kennt weder Includes noch Variablen.
@@ -180,7 +182,7 @@ faelle() {
     [ "$(grep -c 'release create' "$tmp/o$t.log")" -eq 1 ] || g=0
     grep -q "release create $t --verify-tag --title ${t#v} --notes-file" "$tmp/o$t.log" || g=0
     ! grep -q -E 'release create [^ ]+ [^-]' "$tmp/o$t.log" || g=0
-    grep -q 'Für diese Version liegen keine Dateien an' "$tmp/o$t.notiz" || g=0
+    grep -q 'Für diese Version liegen keine Dateien an; die Pakete dieser Version stehen oben.' "$tmp/o$t.notiz" || g=0
     ! grep -q -E 'SHA256|tdswire.jar|Dateien dieses Release' "$tmp/o$t.notiz" || g=0
     ! grep -q -E '@[A-Z_]+@' "$tmp/o$t.notiz" || g=0
     grep -q "^Version \`${t#v}\`, Tag \`$t\`, Commit \`$(git -C "$tmp/f/ohne" rev-parse "$t^{commit}")\`" "$tmp/o$t.notiz" || g=0
@@ -292,6 +294,9 @@ mut; sed -i 's/^    runs-on: ubuntu-24.04$/    runs-on: ubuntu-24.04\n    contin
 mut; sed -i 's/GH_TOKEN: \${{ secrets.GITHUB_TOKEN }}/GH_TOKEN: x/' "$w"; gegenprobe token-im-anlegen "$w"
 mut; sed -i 's/^        run: cd release-dateien && sha256sum -c SHA256SUMS$/        run: true/' "$w"; gegenprobe pruefsummen "$w"
 mut; sed -i 's/tools\/release-anlegen.sh/tools\/anders.sh/' "$w"; gegenprobe skript-aufruf "$w"
+mut; awk '/^  release:/ {r=1} /^  vorschau:/ {r=0} r && /git merge-base --is-ancestor HEAD origin\/main/ {print "          true \\"; next} {print}' "$wf" > "$w"; gegenprobe tag-commit "$w"
+mut; awk '/^  release:/ {r=1} /^  vorschau:/ {r=0} r && /^        run: make release-dateien$/ {print "        run: true"; next} {print}' "$wf" > "$w"; gegenprobe bau-ohne-vorschau "$w"
+mut; awk '/^  release:/ {r=1} /^  vorschau:/ {r=0} r && /^      - name: gh release create$/ {print "        env:"; print "          CLOUDSMITH_API_KEY: x"} {print}' "$wf" > "$w"; gegenprobe cloudsmith-secret "$w"
 
 # Abwesenheit: release-dateien und das Skript in keiner Gate-Liste, nicht in e2e.mk
 gate_zeilen() { grep -E '^(GATE_CHECKS|GATE_KLASSE_[a-z]+|GATE_STAGE)[[:space:]]*(\+|:)?=' "$1" || true; }
@@ -301,6 +306,8 @@ for f in "$wurzel_repo"/tools/mk/*.mk "$wurzel_repo"/harness/mk/*.mk "$wurzel_re
 done
 ! grep -q -E 'release-dateien|release-anlegen' "$wurzel_repo/tools/mk/e2e.mk" || pruefe "tools/mk/e2e.mk nennt release-dateien oder release-anlegen"
 cp "$wurzel_repo/tools/mk/release-dateien.mk" "$tmp/gegen.mk"; printf 'GATE_CHECKS += release-anlegen\n' >> "$tmp/gegen.mk"
+cp "$wurzel_repo/tools/mk/e2e.mk" "$tmp/gegen-e2e.mk"; printf 'e2e: release-dateien\n' >> "$tmp/gegen-e2e.mk"
+grep -q -E 'release-dateien|release-anlegen' "$tmp/gegen-e2e.mk" || pruefe "die Pruefung auf e2e.mk wird an einer Kopie nicht rot"
 gate_zeilen "$tmp/gegen.mk" | grep -q -E 'release-dateien|release-anlegen' || pruefe "die Abwesenheitspruefung wird an einer Kopie mit GATE_CHECKS nicht rot"
 
 if [ "$fehler" -ne 0 ]; then exit 1; fi
