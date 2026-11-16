@@ -63,7 +63,8 @@ internal sealed interface RpcBinding {
  * unterstützte Form ist ohne Fehler abgelehnt (`TDS_UNSUPPORTED_RPC`, die Verbindung bleibt offen), auch
  * `varchar(max)` und `varbinary(max)` als Wertparameter (gelesen, dann [RpcRejection.TYPE]) und ein MAX-Typ mit fester
  * Form ([ProtocolFailure.UNSUPPORTED_PLP], als [RpcRejection.TYPE]); `nvarchar(max)` als Wertparameter ist
- * `UnicodeText` ([RpcParameters]), als SQL-Text und Deklaration gelesen. Parametername `@@x`: nur beim RPC per Prozedurname abgelehnt
+ * `UnicodeText` ([RpcParameters]), als SQL-Text und Deklaration gelesen. Parametername `@@x`: nur beim RPC per
+ * Prozedurname abgelehnt
  * ([RpcParameters]). Die Trennung nach Ursache ist eine Nutzerentscheidung vom 2026-10-31, nicht gemessen.
  */
 internal object RpcBinder {

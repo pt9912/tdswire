@@ -60,7 +60,8 @@ import kotlin.time.Duration.Companion.milliseconds
  * Referenzclient den Fehler einer Nachricht mit mehreren RPCs nicht, `make e2e` Stufe 6) und die Verbindung schließt:
  * ein Strukturfehler ergibt `TDS_PROTOCOL_ERROR`, eine Typkennung außerhalb der Typliste (`INVALID_TYPE`, etwa `FE 00`)
  * `TDS_UNSUPPORTED_TYPE` (50003, Class 20). Jede andere Ablehnung, auch `varchar(max)` und
- * `varbinary(max)` als Wertparameter und ein MAX-Typ mit fester Form (`UNSUPPORTED_PLP`), ergibt `TDS_UNSUPPORTED_RPC` (50002; ERROR und DONEPROC mit Fehlerstatus, `SPEC-013`) bei
+ * `varbinary(max)` als Wertparameter und ein MAX-Typ mit fester Form (`UNSUPPORTED_PLP`), ergibt
+ * `TDS_UNSUPPORTED_RPC` (50002; ERROR und DONEPROC mit Fehlerstatus, `SPEC-013`) bei
  * offener Verbindung; der Name des Grundes steht im Log.
  *
  * Prepared-Statements (`TDS-FA-04.a` Nr. 5, `SPEC-030`): `sp_prepexec` merkt den Text unter einem neuen Handle der

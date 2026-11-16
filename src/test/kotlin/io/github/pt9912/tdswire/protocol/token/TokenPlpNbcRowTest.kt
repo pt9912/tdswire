@@ -248,8 +248,8 @@ class TokenPlpNbcRowTest {
     /**
      * Handvektor (Lesart von MS-TDS). Gemessen ist die Lage der Bits für die Spalten 9 bis 13: die Bitmap `00 32` aus
      * `sql_variant mit Basistyp int …` unterscheidet die Bitreihenfolge (`00 3C` aus `NBCROW mit PLP-Wert …` ist als
-     * Bitmuster symmetrisch und tut es nicht). Ein Bit je Spalte, `ceil(n / 8)` Byte, Spalte 0 im niedrigsten Bit des ersten Bytes;
-     * ohne Spalten steht nur die Kennung. Die Werte NULL stehen nicht in der Zeile.
+     * Bitmuster symmetrisch und tut es nicht). Ein Bit je Spalte, `ceil(n / 8)` Byte, Spalte 0 im niedrigsten Bit des
+     * ersten Bytes; ohne Spalten steht nur die Kennung. Die Werte NULL stehen nicht in der Zeile.
      *
      * @spec SPEC-003
      */
