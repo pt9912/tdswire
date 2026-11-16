@@ -68,20 +68,25 @@ class RpcFailureTest {
     }
 
     /**
-     * Festlegung: `XML` (`F1`) und Typkennungen außerhalb des Katalogs (`62`, `E5`, `00`) sind
-     * `INVALID_TYPE` mit Kategorie `TDS_UNSUPPORTED_TYPE`; ihre Länge ist unbestimmt (Strukturfehler).
-     * PLP (MAX, höchste Länge `FF FF`) ist gültig kodiert und `UNSUPPORTED_PLP` mit derselben Kategorie.
+     * Festlegung: `XML` (`F1`), `text` (`23`), `ntext` (`63`), `image` (`22`), `sql_variant` (`62`) und
+     * Typkennungen außerhalb des Katalogs (`E5`, `00`) sind `INVALID_TYPE` mit Kategorie `TDS_UNSUPPORTED_TYPE`; ihre
+     * Länge ist unbestimmt (Strukturfehler). Ein MAX-Typ mit fester Form (`NCHAR`, `BIGCHAR`, `BIGBINARY` mit
+     * Länge `FF FF`) ist gültig kodiert und `UNSUPPORTED_PLP` mit derselben Kategorie; `NVARCHAR`, `BIGVARCHAR` und
+     * `BIGVARBINARY` mit `FF FF` sind PLP und werden gelesen (`RpcPlpTest`). Gemessen ist keiner dieser Typen als
+     * RPC-Parameter des Referenzclients (`SPEC-003`: nicht gemessen); `text`, `ntext`, `image` und `sql_variant`
+     * bleiben damit nicht unterstützt.
      *
      * @spec SPEC-003
+     * @spec SPEC-014
      */
     @Test
-    fun `PLP, XML und unbekannte Typen sind ein Ergebnisfehler der Kategorie unsupported`() {
-        listOf("E7 FF FF $coll", "A7 FF FF $coll", "A5 FF FF", "AD FF FF", "EF FF FF $coll").forEach {
+    fun `PLP-Formen, XML und unbekannte Typen sind ein Ergebniswert der Kategorie unsupported`() {
+        listOf("AD FF FF", "EF FF FF $coll", "AF FF FF $coll").forEach {
             val failure = byName(it)
             assertEquals(ProtocolFailure.UNSUPPORTED_PLP, failure, it)
             assertEquals(ProtocolErrorCategory.TDS_UNSUPPORTED_TYPE, failure.category)
         }
-        listOf("F1 00", "62", "E5", "00").forEach {
+        listOf("F1 00", "23", "63", "22", "62", "E5", "00").forEach {
             val failure = byName(it)
             assertEquals(ProtocolFailure.INVALID_TYPE, failure, it)
             assertEquals(ProtocolErrorCategory.TDS_UNSUPPORTED_TYPE, failure.category)
@@ -89,25 +94,25 @@ class RpcFailureTest {
     }
 
     /**
-     * Festlegung (Abweichung von ADR-0005, Träger `slice-codec-datentypen-erweiterung`): ein
-     * PLP-Parameter lehnt die ganze Nachricht ab, auch hinter gültigen Parametern und als SQL-Text
-     * oder Deklarationsliste; es gibt kein Teilergebnis und der Parameter wird nicht übersprungen.
+     * Festlegung: ein PLP-Parameter lehnt die Nachricht nicht ab; er wird gelesen, auch hinter gültigen Parametern
+     * und als SQL-Text oder Deklarationsliste von `sp_executesql` (Abweichung von ADR-0005 und SPEC-003 aufgehoben).
+     * Die Ablehnung eines MAX-Typs als Wertparameter ist Sache des Dispatch (`RpcBinderTest`), nicht des Parsers.
      *
      * @spec SPEC-003
      */
     @Test
-    fun `PLP lehnt die ganze Nachricht ab, auch als SQL-Text und Deklaration`() {
-        val plp = "00 00 E7 FF FF $coll"
+    fun `PLP wird gelesen, auch als SQL-Text und Deklaration`() {
+        val plp = "00 00 E7 FF FF $coll FF FF FF FF FF FF FF FF"
+        val text = "00 00 E7 FF FF $coll 04 00 00 00 00 00 00 00 04 00 00 00 61 00 62 00 00 00 00 00"
         val execSql = "$head FF FF 0A 00 00 00"
         val intParam = "00 00 26 04 04 01 00 00 00"
-        assertAll(
-            ProtocolFailure.UNSUPPORTED_PLP,
+        listOf(
             "${RpcVectors.NAME_HEAD} ${RpcVectors.PARAM_A_42} $plp",
             "${RpcVectors.NAME_HEAD} $plp ${RpcVectors.PARAM_A_42}",
-            "$execSql 00 00 E7 FF FF $coll  $intParam",
-            "$execSql 00 00 ${RpcVectors.STATEMENT}  $plp",
+            "$execSql $text  $text  $intParam",
+            "$execSql 00 00 ${RpcVectors.STATEMENT}  $text",
             "${RpcVectors.EXECUTE_SQL} $plp",
-        )
+        ).forEach { assertIs<ProtocolResult.Ok<RpcRequest>>(RpcParser.parse(hex(it)), it) }
     }
 
     /**

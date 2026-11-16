@@ -13,7 +13,8 @@ import io.github.pt9912.tdswire.protocol.wire.violation
  * mehrere RPCs wird nicht erkannt (der Katalog kennt es nicht). Ein Wert mit Längenbyte ist NULL
  * (Länge 0) oder genau so lang, wie die TYPE_INFO vorgibt; ein Zeichen- oder Binärwert ist NULL
  * (`0xFFFF`) oder höchstens so lang wie die höchste Länge der TYPE_INFO, Unicode-Text mit gerader
- * Byte-Zahl. Das Statusbyte wird unverändert übernommen, reservierte Bits werden nicht geprüft.
+ * Byte-Zahl. Ein MAX-Typ trägt seinen Wert als Stück-Folge ([PlpReader]). Das Statusbyte wird unverändert
+ * übernommen, reservierte Bits werden nicht geprüft.
  *
  * Obergrenze: höchstens [MAX_PARAMETERS] Parameter je Nachricht, sonst `INVALID_RPC_FORM`. Die
  * Zahl ist eine Festlegung ohne Messung (kein Client und kein Server wurde danach befragt); sie
@@ -57,9 +58,10 @@ internal object RpcParameterReader {
         return RpcParameter(name, status, type, readValue(reader, type))
     }
 
-    private fun readValue(reader: ByteReader, type: RpcType): RpcValue = when (type.kind) {
-        RpcTypeKind.NVARCHAR, RpcTypeKind.NCHAR -> readText(reader, type)
-        in bytesKinds -> readBytes(reader, type)
+    private fun readValue(reader: ByteReader, type: RpcType): RpcValue = when {
+        type.plp -> PlpReader.value(reader, type)
+        type.kind == RpcTypeKind.NVARCHAR || type.kind == RpcTypeKind.NCHAR -> readText(reader, type)
+        type.kind in bytesKinds -> readBytes(reader, type)
         else -> readPrefixed(reader, type)
     }
 

@@ -14,6 +14,8 @@ internal object TypeCode {
     const val INTN = 0x26
     const val BITN = 0x68
     const val NVARCHAR = 0xE7
+    const val BIGVARCHAR = 0xA7
+    const val BIGVARBINARY = 0xA5
     const val DECIMALN = 0x6A
     const val NUMERICN = 0x6C
     const val DATEN = 0x28
@@ -45,6 +47,7 @@ internal object TypeInfoWriter {
             is TdsType.IntNType -> writeIntN(out, type)
             TdsType.BitNType -> writeFixedSize(out, TypeCode.BITN, 1)
             is TdsType.NVarcharType -> writeNVarchar(out, type)
+            is TdsType.PlpType -> PlpValues.writeTypeInfo(out, type)
             is TdsType.DecimalType -> writeDecimal(out, type)
             TdsType.DateType -> out.u8(TypeCode.DATEN)
             is TdsType.TimeType -> writeScaled(out, TypeCode.TIMEN, type.scale)

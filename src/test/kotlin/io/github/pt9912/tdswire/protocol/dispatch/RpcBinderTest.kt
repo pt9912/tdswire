@@ -5,6 +5,7 @@ import io.github.pt9912.tdswire.domain.QueryParameter
 import io.github.pt9912.tdswire.domain.SqlType
 import io.github.pt9912.tdswire.protocol.dispatch.RpcWire.byName
 import io.github.pt9912.tdswire.protocol.dispatch.RpcWire.executeSql
+import io.github.pt9912.tdswire.protocol.dispatch.RpcWire.executeSqlMax
 import io.github.pt9912.tdswire.protocol.dispatch.RpcWire.int4
 import io.github.pt9912.tdswire.protocol.dispatch.RpcWire.int8
 import io.github.pt9912.tdswire.protocol.dispatch.RpcWire.nvarchar
@@ -559,10 +560,10 @@ class RpcBinderTest {
     }
 
     /**
-     * Ein gültig kodierter, nicht unterstützter PLP-Typ (`nvarchar(max)`, `varchar(max)`, `varbinary(max)`,
-     * `nchar`-Form) ist `TYPE` ohne Parserfehler (Verbindung bleibt offen), als Wertparameter, als SQL-Text
-     * und beim RPC per Name; dagegen bleibt die unbekannte Typkennung ein Parserfehler (Festlegung ohne
-     * Messung, Nutzerentscheidung vom 2026-10-31).
+     * Ein MAX-Typ als Wertparameter (`nvarchar(max)`, `varchar(max)`, `varbinary(max)`) ist gelesen und `TYPE`
+     * ohne Parserfehler (Verbindung bleibt offen), ebenso die `nchar`-Form mit `FF FF` (`UNSUPPORTED_PLP` des
+     * Parsers); dagegen bleibt die unbekannte Typkennung ein Parserfehler (Festlegung ohne Messung,
+     * Nutzerentscheidung vom 2026-10-31).
      *
      * @spec SPEC-013
      * @spec SPEC-030
@@ -570,7 +571,8 @@ class RpcBinderTest {
     @Test
     fun `Ein PLP-Typ ist nicht unterstuetzt aber nicht ungueltig kodiert`() {
         val coll = RpcVectors.COLLATION
-        listOf("E7 FF FF $coll 00 00", "A7 FF FF $coll 00 00", "A5 FF FF 00 00", "EF FF FF $coll 00 00")
+        val nullBody = "FF FF FF FF FF FF FF FF"
+        listOf("E7 FF FF $coll $nullBody", "A7 FF FF $coll $nullBody", "A5 FF FF $nullBody", "EF FF FF $coll 00 00")
             .forEach { typeAndValue ->
                 listOf(
                     executeSql("s", "d", param("@v", typeAndValue)),
@@ -587,10 +589,26 @@ class RpcBinderTest {
     }
 
     /**
+     * SQL-Text und Deklarationsliste als `nvarchar(max)` (der Text in mehreren Stücken) erreichen das Backend wie
+     * die Typen fester Höchstlänge: der Text unverändert als `sql`, die Wertparameter dahinter abgebildet. Das ist
+     * der Wechsel des Falls „PLP als SQL-Text“ von abgelehnt zu gelesen. Handvektor, nicht gemessen.
+     *
+     * @spec SPEC-003
+     * @spec SPEC-030
+     */
+    @Test
+    fun `SQL-Text als nvarchar(max) erreicht das Backend unveraendert`() {
+        val payload = executeSqlMax("select @a, N'\uD83D\uDE00'", "@a int", param("@a", int4(42)))
+        val query = assertIs<RpcBinding.Query>(RpcBinder.bind(payload))
+        assertEquals("select @a, N'\uD83D\uDE00'", query.sql)
+        assertEquals(listOf(QueryParameter("@a", SqlType.Int32, 42)), query.parameters)
+    }
+
+    /**
      * Eine Nachricht, die der Parser abweist, ist abgelehnt: leer, abgeschnitten an jeder Stelle der
      * Mustervektoren, ungerade Textlänge, falsche Wertlänge, Typkennung außerhalb des Katalogs (Länge des
-     * Wertes unbestimmt), Name der Länge 0. Ein PLP-Typ (MAX) gehört nicht dazu: er ist gültig kodiert (siehe
-     * den Test dazu).
+     * Wertes unbestimmt), Name der Länge 0. Ein PLP-Typ (MAX) gehört nicht dazu: er ist gültig kodiert und wird
+     * gelesen (siehe den Test dazu).
      *
      * @spec SPEC-030
      */

@@ -59,6 +59,7 @@ internal object ValueMapping {
         is TdsType.IntNType -> intN(type, raw)
         TdsType.BitType, TdsType.BitNType -> bit(raw)
         is TdsType.NVarcharType -> TextMapping.value(type, raw)
+        is TdsType.PlpType -> failed(ProtocolFailure.INVALID_TYPE, "MAX-Typ nicht im Backend-Vertrag")
         is TdsType.DecimalType -> DecimalMapping.value(type, raw)
         TdsType.DateType -> TemporalMapping.date(raw)
         is TdsType.TimeType -> TemporalMapping.time(raw)

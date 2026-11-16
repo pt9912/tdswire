@@ -31,6 +31,9 @@ internal class ByteReader(private val bytes: ByteArray) {
 
     fun i32Le(): Int = u32Le().toInt()
 
+    /** 8 Byte Little-Endian als vorzeichenbehaftete Zahl; acht Bytes `0xFF` sind `-1`. */
+    fun u64Le(): Long = u32Le() or (u32Le() shl INT_BITS)
+
     fun bytes(count: Int): ByteArray {
         need(count)
         val result = bytes.copyOfRange(position, position + count)
@@ -59,5 +62,6 @@ internal class ByteReader(private val bytes: ByteArray) {
         const val BYTE_MASK = 0xFF
         const val BYTE_BITS = 8
         const val SHORT_BITS = 16
+        const val INT_BITS = 32
     }
 }

@@ -19,7 +19,9 @@ internal data class Collation(val info: Int, val sortId: Int) {
 /**
  * Datentypen des Mindestkatalogs (`SPEC-003`) mit ihrer TYPE_INFO. Festlegung: Nullbare Spalten
  * tragen die N-Form des Typs (`IntNType`, `BitNType`); die festen Typen (`Int1Type`, `Int2Type`,
- * `Int4Type`, `Int8Type`, `BitType`) tragen kein NULL. PLP-Typen (MAX) gehören nicht zum Katalog.
+ * `Int4Type`, `Int8Type`, `BitType`) tragen kein NULL. Die PLP-Typen (MAX, [PlpType]) sind nullbar oder nicht wie jede
+ * Spalte und tragen ihren Wert als Stück-Folge ([PlpValues]); sie gehören nicht zum Typkatalog des Backend-Vertrags
+ * (`SPEC-003`), der Encoder schreibt sie auf Anweisung eines Aufrufers.
  */
 internal sealed interface TdsType {
     /** Ganzzahl fester Länge ohne Vorzeichen, 1 Byte (INT1, `0x30`). */
@@ -55,6 +57,21 @@ internal sealed interface TdsType {
     data class DecimalType(val precision: Int, val scale: Int, val numeric: Boolean = false, val bytes: Int = 0) :
         TdsType
 
+    /** Typen mit MAX-Länge: TYPE_INFO mit Länge `0xFFFF`, Wert als Stück-Folge mit Terminator (PLP). */
+    sealed interface PlpType : TdsType
+
+    /** `nvarchar(max)` (NVARCHAR, `0xE7`, Länge `0xFFFF`); Wert [TdsValue.TextValue]. */
+    data class NVarcharMaxType(val collation: Collation) : PlpType
+
+    /**
+     * `varchar(max)` (BIGVARCHAR, `0xA7`, Länge `0xFFFF`); Wert [TdsValue.BytesValue] in der Kodierung der
+     * Kollation, der Encoder übersetzt keinen Text.
+     */
+    data class VarcharMaxType(val collation: Collation) : PlpType
+
+    /** `varbinary(max)` (BIGVARBINARY, `0xA5`, Länge `0xFFFF`); Wert [TdsValue.BytesValue]. */
+    data object VarbinaryMaxType : PlpType
+
     /** Datum (DATEN, `0x28`). */
     data object DateType : TdsType
 
@@ -74,6 +91,15 @@ internal sealed interface TdsValue {
     data class BitValue(val value: Boolean) : TdsValue
 
     data class TextValue(val value: String) : TdsValue
+
+    /** Bytes eines `varchar(max)` oder `varbinary(max)`; gleich sind zwei Werte mit gleichem Inhalt. */
+    class BytesValue(val value: ByteArray) : TdsValue {
+        override fun equals(other: Any?): Boolean = other is BytesValue && value.contentEquals(other.value)
+
+        override fun hashCode(): Int = value.contentHashCode()
+
+        override fun toString(): String = "BytesValue(bytes=${value.size})"
+    }
 
     data class DecimalValue(val value: BigDecimal) : TdsValue
 

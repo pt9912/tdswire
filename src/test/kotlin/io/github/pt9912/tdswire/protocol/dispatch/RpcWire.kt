@@ -19,6 +19,18 @@ object RpcWire {
         return "E7 $MAX_BYTES_8000  ${RpcVectors.COLLATION}  ${u16(length)}  ${utf16(text)}"
     }
 
+    /** TYPE_INFO und PLP-Wert eines `nvarchar(max)` mit [text], in Stücken zu höchstens [chunkChars] Zeichen. */
+    fun nvarcharMax(text: String, chunkChars: Int = text.length.coerceAtLeast(1)): String {
+        val body = text.chunked(chunkChars).joinToString(" ") { "${le(it.length * 2L, 4)} ${utf16(it)}" }
+        return "E7 FF FF ${RpcVectors.COLLATION}  ${le(text.length * 2L, 8)} $body 00 00 00 00"
+    }
+
+    /** `sp_executesql` (ProcID 10) wie [executeSql], Text und Deklaration als `nvarchar(max)`. */
+    fun executeSqlMax(statement: String, declarations: String, vararg params: String): ByteArray = hex(
+        "${RpcVectors.HEADERS}  FF FF 0A 00  02 00  00 00 ${nvarcharMax(statement, 4)}  " +
+            "00 00 ${nvarcharMax(declarations)}  " + params.joinToString("  "),
+    )
+
     /** Ein Parameter: Namenslänge in Zeichen, Name, Statusbyte, TYPE_INFO und Wert. */
     fun param(name: String, typeAndValue: String, status: Int = 0): String =
         "${RpcVectors.hexByte(name.length)}  ${utf16(name)}  ${RpcVectors.hexByte(status)}  $typeAndValue"

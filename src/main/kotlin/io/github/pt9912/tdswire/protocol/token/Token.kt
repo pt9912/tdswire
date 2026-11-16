@@ -171,6 +171,13 @@ internal data class ColMetadataToken(val columns: List<ColumnDef>) : Token
 /** ROW (`0xD1`): ein Wert je Spalte des zuletzt geschriebenen COLMETADATA. */
 internal data class RowToken(val values: List<TdsValue>) : Token
 
+/**
+ * NBCROW (`0xD2`): eine Zeile mit Null-Bitmap. Das Bit `i` (niedrigstes Bit des ersten Bytes zuerst) steht für die
+ * Spalte `i` und ist gesetzt, wenn ihr Wert NULL ist; ein NULL-Wert steht dann nicht in der Zeile, die übrigen Werte
+ * stehen wie in [RowToken]. Der Encoder wählt zwischen ROW und NBCROW nicht selbst: er schreibt, was man ihm gibt.
+ */
+internal data class NullBitmapRowToken(val values: List<TdsValue>) : Token
+
 /** RETURNSTATUS (`0x79`): der Rückgabewert einer Prozedur. */
 internal data class ReturnStatusToken(val value: Int) : Token
 

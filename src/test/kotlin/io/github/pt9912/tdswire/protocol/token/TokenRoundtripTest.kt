@@ -21,6 +21,7 @@ class TokenRoundtripTest {
 
     private fun normalized(token: Token): Token = when (token) {
         is RowToken -> RowToken(token.values.map(::normalized))
+        is NullBitmapRowToken -> NullBitmapRowToken(token.values.map(::normalized))
         is ReturnValueToken -> token.copy(value = normalized(token.value))
         else -> token
     }
@@ -79,6 +80,9 @@ class TokenRoundtripTest {
             ColumnDef("dt", TdsType.DateType, nullable = true),
             ColumnDef("t", TdsType.TimeType(7), nullable = true),
             ColumnDef("dt2", TdsType.DateTime2Type(3), nullable = true),
+            ColumnDef("mt", TdsType.NVarcharMaxType(latin), nullable = true),
+            ColumnDef("mv", TdsType.VarcharMaxType(latin), nullable = true),
+            ColumnDef("mb", TdsType.VarbinaryMaxType, nullable = true),
         )
         val nulls = List(columns.size - FIXED_COLUMNS) { TdsValue.NullValue }
         val fixed = listOf(
@@ -99,6 +103,9 @@ class TokenRoundtripTest {
             TdsValue.DateValue(LocalDate.of(9999, 12, 31)),
             TdsValue.TimeValue(LocalTime.of(23, 59, 59, 999_999_900)),
             TdsValue.DateTime2Value(LocalDateTime.of(1, 1, 1, 0, 0, 0, 1_000_000)),
+            TdsValue.TextValue("€a😀".repeat(40_000)),
+            TdsValue.BytesValue(ByteArray(300) { it.toByte() }),
+            TdsValue.BytesValue(ByteArray(0)),
         )
         val output = ColumnDef("", TdsType.IntNType(4), nullable = false)
         roundtrip(
@@ -106,6 +113,8 @@ class TokenRoundtripTest {
                 ColMetadataToken(columns),
                 RowToken(full),
                 RowToken(fixed + nulls),
+                NullBitmapRowToken(full),
+                NullBitmapRowToken(fixed + nulls),
                 DoneToken(DoneKind.DONE_IN_PROC, DoneStatus.MORE or DoneStatus.COUNT, 193, 2),
                 ReturnValueToken(0, "@o", 1, output, TdsValue.IntegerValue(7)),
                 ReturnStatusToken(0),
@@ -129,10 +138,13 @@ class TokenRoundtripTest {
         var columns: List<ColumnDef>? = null
         repeat(RUNS) {
             val current = columns
-            val token: Token = if (current == null || random.nextInt(ROW_ONE_IN) == 0) {
-                ColMetadataToken(List(random.nextInt(0, 5)) { randomColumn(random) })
-            } else {
-                RowToken(randomRow(random, current))
+            val token: Token = when {
+                current == null || random.nextInt(ROW_ONE_IN) == 0 ->
+                    ColMetadataToken(List(random.nextInt(0, 5)) { randomColumn(random) })
+
+                random.nextBoolean() -> RowToken(randomRow(random, current))
+
+                else -> NullBitmapRowToken(randomRow(random, current))
             }
             if (encoder.write(token) is ProtocolResult.Ok) {
                 written += token
@@ -141,7 +153,10 @@ class TokenRoundtripTest {
         }
         assertEquals(written.map(::normalized), TokenDecoder(encoder.toByteArray()).decodeAll().map(::normalized))
         val rows = written.count { it is RowToken }
-        check(rows > MIN_ROWS) { "nur $rows gueltige Zeilen, der Erzeuger deckt zu wenig ab" }
+        val bitmapRows = written.count { it is NullBitmapRowToken }
+        check(rows > MIN_ROWS && bitmapRows > MIN_ROWS) {
+            "nur $rows ROW und $bitmapRows NBCROW gueltig, der Erzeuger deckt zu wenig ab"
+        }
     }
 
     private fun randomColumn(random: Random): ColumnDef {
@@ -149,9 +164,16 @@ class TokenRoundtripTest {
         return ColumnDef("c${random.nextInt(0, 9)}", type, nullable = random.nextInt(4) != 0)
     }
 
-    private fun randomType(random: Random): TdsType = when (random.nextInt(0, 12)) {
+    private fun randomMaxType(random: Random): TdsType = when (random.nextInt(0, 3)) {
+        0 -> TdsType.NVarcharMaxType(latin)
+        1 -> TdsType.VarcharMaxType(latin)
+        else -> TdsType.VarbinaryMaxType
+    }
+
+    private fun randomType(random: Random): TdsType = when (random.nextInt(0, 13)) {
         10 -> TdsType.Int1Type
         11 -> TdsType.Int2Type
+        12 -> randomMaxType(random)
         0 -> TdsType.Int4Type
         1 -> TdsType.Int8Type
         2 -> TdsType.BitType
@@ -182,6 +204,11 @@ class TokenRoundtripTest {
         TdsType.BitType, TdsType.BitNType -> TdsValue.BitValue(random.nextBoolean())
 
         is TdsType.NVarcharType -> TdsValue.TextValue(randomText(random, type.maxChars))
+
+        is TdsType.NVarcharMaxType -> TdsValue.TextValue(randomText(random, MAX_TEXT_CHARS))
+
+        is TdsType.VarcharMaxType, TdsType.VarbinaryMaxType ->
+            TdsValue.BytesValue(random.nextBytes(random.nextInt(0, MAX_BYTES)))
 
         is TdsType.DecimalType -> TdsValue.DecimalValue(randomDecimal(random, type))
 
@@ -225,5 +252,7 @@ class TokenRoundtripTest {
         const val WRONG_ONE_IN = 12
         const val MIN_ROWS = 500
         const val FIXED_COLUMNS = 5
+        const val MAX_TEXT_CHARS = 40
+        const val MAX_BYTES = 40
     }
 }

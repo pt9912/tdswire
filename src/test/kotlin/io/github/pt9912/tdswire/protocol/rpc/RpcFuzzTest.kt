@@ -14,6 +14,12 @@ class RpcFuzzTest {
         hex(RpcVectors.PREP_EXEC),
         hex(RpcVectors.EXECUTE),
         hex("${RpcVectors.NAME_HEAD} ${RpcVectors.NAME_PARAMS}"),
+        hex(
+            "${RpcVectors.HEADERS} FF FF 0A 00 00 00 00 00 E7 FF FF ${RpcVectors.COLLATION} " +
+                "04 00 00 00 00 00 00 00 02 00 00 00 61 00 02 00 00 00 62 00 00 00 00 00 " +
+                "00 00 E7 FF FF ${RpcVectors.COLLATION} FE FF FF FF FF FF FF FF 02 00 00 00 63 00 00 00 00 00 " +
+                "00 00 A5 FF FF 03 00 00 00 00 00 00 00 03 00 00 00 01 02 03 00 00 00 00",
+        ),
     )
 
     /** TYPE_INFO-Anfänge aller Typen des Katalogs, danach folgen Zufallsbytes als Wert. */
@@ -22,6 +28,7 @@ class RpcFuzzTest {
         "6C 11 12 02", "6A 05 09 00", "28", "29 03", "2A 07", "2B 07",
         "E7 08 00 ${RpcVectors.COLLATION}", "EF 08 00 ${RpcVectors.COLLATION}",
         "A7 08 00 ${RpcVectors.COLLATION}", "AF 08 00 ${RpcVectors.COLLATION}", "A5 08 00", "AD 08 00",
+        "E7 FF FF ${RpcVectors.COLLATION}", "A7 FF FF ${RpcVectors.COLLATION}", "A5 FF FF",
     )
 
     /** Ein Fehler ist ein Ergebniswert; ein Ok hat Wertarten, die zu ihrer TYPE_INFO passen. */
