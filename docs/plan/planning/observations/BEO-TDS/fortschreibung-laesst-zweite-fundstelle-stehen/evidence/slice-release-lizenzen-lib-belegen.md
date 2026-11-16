@@ -1,0 +1,3 @@
+**Vorgang:** [slice-release-lizenzen-lib-belegen](../../../../done/slice-release-lizenzen-lib-belegen.md)
+**Fund:** [Review](../../../../../../reviews/2026-11-16-7559de60-slice-release-lizenzen-lib-belegen-review.md) F-5 (LOW): `state.md` des Registers war fortgeschrieben (drei Bibliotheken), `observation.md` nannte weiter „Kotlin-Standardbibliothek, Coroutines“; die Aussage war unvollständig, nicht falsch. Behoben in `be26c4af`; der [Re-Review](../../../../../../reviews/2026-11-16-be26c4af-slice-release-lizenzen-lib-belegen-re-review.md) fand bei seinem Grep über Protokoll, Register, Slice, `spec/`, `docs/` und `harness/` keine weitere Fundstelle.
+**Stand:** verkörpert wie in `state.md` der Klasse; hier ein weiteres Auftreten, vom Reviewer gefangen.

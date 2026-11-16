@@ -1,0 +1,3 @@
+**Vorgang:** [slice-release-lizenzen-lib-belegen](../../../../done/slice-release-lizenzen-lib-belegen.md)
+**Fund:** [Review](../../../../../../reviews/2026-11-16-7559de60-slice-release-lizenzen-lib-belegen-review.md) F-4 (LOW): die Tabelle §3 nannte den Slice selbst (§7) nicht, nachgezogen in `be26c4af`; [Verifikation](../../../../../../reviews/2026-11-16-456df041-slice-release-lizenzen-lib-belegen-verifikation.md) F-1 (LOW): im Diff steht zusätzlich `observation.md` des Registers (Review F-5 verlangte sie), §3 nannte nur `state.md` und eine Datei in `evidence/`, nachgezogen bei der Closure.
+**Stand:** verkörpert wie in `state.md` der Klasse; hier ein weiteres Auftreten, von Reviewer und Verifier gefangen.
