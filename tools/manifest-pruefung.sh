@@ -4,6 +4,8 @@
 #
 # Aufruf: manifest-pruefung.sh <libs-verzeichnis> <pom-datei>   (Dockerfile, Stage `build-jar`: build/libs und
 # build/publications/maven/pom-default.xml)
+#         manifest-pruefung.sh --ohne-pom <libs-verzeichnis>     (tools/release-pruefung.sh: das entpackte ZIP hat
+# keine POM; sonst gelten dieselben Pruefungen, die der POM entfallen)
 # Exit 1 bei einem Befund, 2 bei falschem Aufruf. Geprueft wird: das Jar heisst tdswire.jar, sein
 # Manifest nennt keine Main-Class (die Bibliothek ist das Produkt, es gibt keine Startklasse), das Jar fuehrt keine
 # Klasse des Testservers, und der Class-Path ist nicht leer und besteht nur aus Eintraegen `lib/<name>` ohne `..`, zu
@@ -15,9 +17,18 @@
 # (Namen und Zeilen, kein XML-Parser), geprueft wird nicht, ob ihre Abhaengigkeiten mit dem Class-Path uebereinstimmen.
 set -eu
 
-[ "$#" -eq 2 ] || { echo "Aufruf: $0 <libs-verzeichnis> <pom-datei>" >&2; exit 2; }
-libs="$1"
-pom="$2"
+aufruf="Aufruf: $0 <libs-verzeichnis> <pom-datei> | --ohne-pom <libs-verzeichnis>"
+ohne_pom=0
+if [ "${1:-}" = "--ohne-pom" ]; then
+  [ "$#" -eq 2 ] || { echo "$aufruf" >&2; exit 2; }
+  ohne_pom=1
+  libs="$2"
+  pom=""
+else
+  [ "$#" -eq 2 ] || { echo "$aufruf" >&2; exit 2; }
+  libs="$1"
+  pom="$2"
+fi
 jar="$libs/tdswire.jar"
 
 fehler=0
@@ -52,7 +63,9 @@ for eintrag in $cp_zeile; do
 done
 
 # POM: Text lesen, eine Zeile je Element (Gradle schreibt sie so).
-if [ ! -f "$pom" ]; then
+if [ "$ohne_pom" -eq 1 ]; then
+  :
+elif [ ! -f "$pom" ]; then
   melde "die POM $pom liegt nicht"
 else
   if grep -qi 'jackson' "$pom"; then melde "die POM nennt Jackson"; fi
@@ -63,4 +76,8 @@ else
 fi
 
 [ "$fehler" -eq 0 ] || exit 1
-echo "manifest-pruefung: ok (keine Main-Class, kein Testserver, kein Jackson, $(printf '%s\n' "$cp_zeile" | wc -w) Class-Path-Eintraege in lib/, POM ohne Jackson und Testserver mit Lizenz MIT)"
+if [ "$ohne_pom" -eq 1 ]; then
+  echo "manifest-pruefung: ok (keine Main-Class, kein Testserver, kein Jackson, $(printf '%s\n' "$cp_zeile" | wc -w) Class-Path-Eintraege in lib/, ohne POM)"
+else
+  echo "manifest-pruefung: ok (keine Main-Class, kein Testserver, kein Jackson, $(printf '%s\n' "$cp_zeile" | wc -w) Class-Path-Eintraege in lib/, POM ohne Jackson und Testserver mit Lizenz MIT)"
+fi
