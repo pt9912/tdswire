@@ -1,0 +1,3 @@
+**Vorgang:** [slice-codec-datentypen-erweiterung](../../../../done/slice-codec-datentypen-erweiterung.md)
+**Fund:** [Review](../../../../../../reviews/2026-11-16-246f3f8c-slice-codec-datentypen-erweiterung-review.md) F-8 (LOW): Test-KDoc im Konjunktiv über den abwesenden Zustand („ohne ihre Prüfung endet eine Gesamtlänge über `Int.MAX_VALUE` nicht in `INVALID_LENGTH`“, „ein Parser, der den PLP-Wert nicht überspringt“) in `RpcPlpTest` und `RpcDispatchTest`; im Indikativ umgeschrieben (`dc91934f`, [Re-Review](../../../../../../reviews/2026-11-16-f131a2c3-slice-codec-datentypen-erweiterung-re-review.md) F-8 behoben).
+**Stand:** verkörpert wie in `state.md` der Klasse; hier ein weiteres Auftreten, vom Reviewer gefangen.

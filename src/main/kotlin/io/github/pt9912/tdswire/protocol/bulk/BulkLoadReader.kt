@@ -114,6 +114,9 @@ internal object BulkLoadReader {
         if (fixed != null) return BulkColumnType.Fixed(fixed)
         reader.seek(start)
         val type = RpcTypeInfoReader.read(reader)
+        if (type.plp) {
+            violation(ProtocolFailure.UNSUPPORTED_PLP, "Typ ${type.kind.name} mit PLP (MAX) nicht im Massenladen")
+        }
         if (type.kind !in supported) {
             violation(ProtocolFailure.INVALID_TYPE, "Typ ${type.kind.name} nicht im Katalog des Massenladens")
         }

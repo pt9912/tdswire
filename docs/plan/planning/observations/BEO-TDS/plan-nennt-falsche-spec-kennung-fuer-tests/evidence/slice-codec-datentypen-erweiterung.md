@@ -1,0 +1,3 @@
+**Vorgang:** [slice-codec-datentypen-erweiterung](../../../../done/slice-codec-datentypen-erweiterung.md)
+**Fund:** [Review](../../../../../../reviews/2026-11-16-246f3f8c-slice-codec-datentypen-erweiterung-review.md) F-3 (MEDIUM): drei Tests der PLP- und NBCROW-Zeilen trugen `@spec SPEC-028`, die Änderungsliste der Spec nannte `SPEC-028` für „MAX-Typen und NBCROW im Codec“; die Zuordnung stammte aus dem Plan (DoD und Kopf). Behoben in `dc91934f`, [Re-Review](../../../../../../reviews/2026-11-16-f131a2c3-slice-codec-datentypen-erweiterung-re-review.md) F-3 bestätigt behoben, [Verifikation](../../../../../../reviews/2026-11-16-5ef12076-slice-codec-datentypen-erweiterung-verifikation.md) §8 grept keinen Rest.
+**Stand:** offen wie in `state.md`; Erstauftreten.

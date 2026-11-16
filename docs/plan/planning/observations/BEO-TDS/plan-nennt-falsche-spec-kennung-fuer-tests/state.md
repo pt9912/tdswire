@@ -1,0 +1,1 @@
+**Stand:** offen — 1×; unter der Schwelle, nichts verkörpert. Behoben in `dc91934f` (Tags auf `SPEC-003`, Abdeckungsmatrix neu erzeugt: `SPEC-003` 72 auf 73, `SPEC-028` 135 auf 132). Ein Sensor, der das Tag gegen den Gegenstand des Tests prüft, ist nicht gebaut und nicht ohne Raten zu bauen (der Gegenstand steht nur im Wortlaut der Festlegung).

@@ -7,7 +7,8 @@ import io.github.pt9912.tdswire.protocol.wire.violation
 /**
  * Schreibt den Wert einer Spalte in der Form des Typs (TYPE_VARBYTE, Layout nach MS-TDS): feste Typen
  * ohne Längenbyte, nullbare Typen mit Längenbyte (0 = NULL), NVARCHAR mit 2-Byte-Länge in Byte
- * (`0xFFFF` = NULL). Ein Wert, der nicht zum Typ passt oder ihn sprengt, ist ein Verstoß.
+ * (`0xFFFF` = NULL), die MAX-Typen als PLP-Körper ([PlpValues]). Ein Wert, der nicht zum Typ passt oder ihn
+ * sprengt, ist ein Verstoß.
  *
  * Festlegung: Eine Dezimalzahl mit mehr Nachkommastellen als der Scale und eine Uhrzeit mit
  * feinerer Auflösung als der Scale werden abgewiesen, nicht gerundet.
@@ -25,13 +26,19 @@ internal object ValueWriter {
     }
 
     private fun writeNull(out: ByteWriter, column: ColumnDef) {
+        requireNullable(column)
+        when (column.type) {
+            is TdsType.NVarcharType -> out.u16Le(NULL_LENGTH_SHORT)
+            is TdsType.PlpType -> PlpValues.writeNull(out)
+            TdsType.SqlVariantType -> VariantValues.writeNull(out)
+            else -> out.u8(0)
+        }
+    }
+
+    /** NULL steht nur in einer nullbaren Spalte; sonst ist es ein Verstoß (auch im NBCROW, der den Wert auslässt). */
+    fun requireNullable(column: ColumnDef) {
         if (!column.nullable) {
             violation(ProtocolFailure.TYPE_MISMATCH, "Spalte ${column.name}: NULL in einer Spalte ohne NULL")
-        }
-        if (column.type is TdsType.NVarcharType) {
-            out.u16Le(NULL_LENGTH_SHORT)
-        } else {
-            out.u8(0)
         }
     }
 
@@ -44,11 +51,21 @@ internal object ValueWriter {
             TdsType.BitType -> out.u8(bit(value))
             is TdsType.IntNType -> ValueSupport.prefixed(out, intN(type.size, value))
             TdsType.BitNType -> ValueSupport.prefixed(out, byteArrayOf(bit(value).toByte()))
+            else -> writeVariable(out, type, value)
+        }
+    }
+
+    /** Die festen Typen behandelt [writeNonNull]; der letzte Zweig ist unerreichbar, Kotlin verlangt ihn. */
+    private fun writeVariable(out: ByteWriter, type: TdsType, value: TdsValue) {
+        when (type) {
             is TdsType.NVarcharType -> writeText(out, type, value)
+            is TdsType.PlpType -> PlpValues.write(out, type, value)
+            TdsType.SqlVariantType -> VariantValues.write(out, value)
             is TdsType.DecimalType -> ValueSupport.prefixed(out, DecimalValues.bytes(type, value))
             TdsType.DateType -> ValueSupport.prefixed(out, TemporalValues.dateBytes(value))
             is TdsType.TimeType -> ValueSupport.prefixed(out, TemporalValues.timeBytes(type.scale, value))
             is TdsType.DateTime2Type -> ValueSupport.prefixed(out, TemporalValues.dateTime2Bytes(type.scale, value))
+            else -> violation(ProtocolFailure.INVALID_TYPE, "Typ ohne Wertform")
         }
     }
 

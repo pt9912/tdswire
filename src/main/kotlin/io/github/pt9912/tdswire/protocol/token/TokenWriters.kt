@@ -13,6 +13,7 @@ internal object TokenCode {
     const val LOGINACK = 0xAD
     const val ENVCHANGE = 0xE3
     const val ROW = 0xD1
+    const val NBCROW = 0xD2
     const val RETURNSTATUS = 0x79
 }
 
@@ -20,6 +21,7 @@ internal object TokenCode {
 internal object TokenWriters {
     private const val MAX_SHORT = 0xFFFF
     private const val MAX_COLUMNS = 0xFFFE
+    private const val BITMAP_BITS = 8
 
     /**
      * Das Flag-Feld jedes RETURNVALUE ist `0x0000`, auch für den NULL-fähigen Typ eines Ausgabewerts des Backends
@@ -36,6 +38,7 @@ internal object TokenWriters {
             is DoneToken -> writeDone(out, token)
             is ColMetadataToken -> writeColMetadata(out, token)
             is RowToken -> writeRow(out, token, columns)
+            is NullBitmapRowToken -> writeNullBitmapRow(out, token, columns)
             is ReturnStatusToken -> writeReturnStatus(out, token)
             is ReturnValueToken -> writeReturnValue(out, token)
         }
@@ -73,14 +76,36 @@ internal object TokenWriters {
     }
 
     private fun writeRow(out: ByteWriter, token: RowToken, columns: List<ColumnDef>?) {
-        if (columns == null) {
-            violation(ProtocolFailure.NO_COLUMN_METADATA, "ROW ohne vorheriges COLMETADATA")
-        }
-        if (columns.size != token.values.size) {
-            violation(ProtocolFailure.TYPE_MISMATCH, "ROW mit ${token.values.size} Werten, ${columns.size} Spalten")
-        }
+        val known = rowColumns("ROW", token.values, columns)
         out.u8(TokenCode.ROW)
-        columns.zip(token.values).forEach { (column, value) -> ValueWriter.write(out, column, value) }
+        known.zip(token.values).forEach { (column, value) -> ValueWriter.write(out, column, value) }
+    }
+
+    /** Die Null-Bitmap (ein Bit je Spalte, `ceil(n / 8)` Byte), dann nur die Werte, die nicht NULL sind. */
+    private fun writeNullBitmapRow(out: ByteWriter, token: NullBitmapRowToken, columns: List<ColumnDef>?) {
+        val known = rowColumns("NBCROW", token.values, columns)
+        val bitmap = ByteArray((known.size + BITMAP_BITS - 1) / BITMAP_BITS)
+        known.zip(token.values).forEachIndexed { index, (column, value) ->
+            if (value is TdsValue.NullValue) {
+                ValueWriter.requireNullable(column)
+                val byte = index / BITMAP_BITS
+                bitmap[byte] = (bitmap[byte].toInt() or (1 shl index % BITMAP_BITS)).toByte()
+            }
+        }
+        out.u8(TokenCode.NBCROW)
+        out.bytes(bitmap)
+        known.zip(token.values).filter { (_, value) -> value !is TdsValue.NullValue }
+            .forEach { (column, value) -> ValueWriter.write(out, column, value) }
+    }
+
+    private fun rowColumns(name: String, values: List<TdsValue>, columns: List<ColumnDef>?): List<ColumnDef> {
+        if (columns == null) {
+            violation(ProtocolFailure.NO_COLUMN_METADATA, "$name ohne vorheriges COLMETADATA")
+        }
+        if (columns.size != values.size) {
+            violation(ProtocolFailure.TYPE_MISMATCH, "$name mit ${values.size} Werten, ${columns.size} Spalten")
+        }
+        return columns
     }
 
     private fun writeReturnValue(out: ByteWriter, token: ReturnValueToken) {

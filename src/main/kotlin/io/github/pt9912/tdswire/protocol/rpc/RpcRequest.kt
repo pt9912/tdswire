@@ -6,7 +6,9 @@ import io.github.pt9912.tdswire.protocol.token.Collation
  * Typ eines RPC-Parameters: die Art und die Angaben der TYPE_INFO. `length` ist die deklarierte
  * Größe in Byte (`INTN`, `FLTN`, `MONEYN`, `DATETIMN`, `GUID`, Dezimal) bzw. die höchste Länge in
  * Byte (Zeichen- und Binärtypen); `precision` und `scale` gelten für Dezimal-, `scale` auch für die
- * Zeittypen; nicht anwendbare Angaben sind 0, `collation` ist nur bei Zeichentypen gesetzt.
+ * Zeittypen; nicht anwendbare Angaben sind 0, `collation` ist nur bei Zeichentypen gesetzt. `plp` ist wahr bei
+ * den MAX-Typen (`nvarchar(max)`, `varchar(max)`, `varbinary(max)`): die höchste Länge ist `0xFFFF`, der Wert eine
+ * Stück-Folge mit Terminator ([PlpReader]).
  */
 internal data class RpcType(
     val kind: RpcTypeKind,
@@ -14,9 +16,10 @@ internal data class RpcType(
     val precision: Int = 0,
     val scale: Int = 0,
     val collation: Collation? = null,
+    val plp: Boolean = false,
 )
 
-/** Die Typen, die der RPC-Parser liest (Typliste in `SPEC-003`, ohne PLP); `code` ist die Typkennung der TYPE_INFO. */
+/** Die Typen, die der RPC-Parser liest (Typliste in `SPEC-003`); `code` ist die Typkennung der TYPE_INFO. */
 internal enum class RpcTypeKind(val code: Int) {
     GUID(RpcTypeCode.GUID),
     INTN(RpcTypeCode.INTN),
@@ -40,9 +43,9 @@ internal enum class RpcTypeKind(val code: Int) {
 
 /**
  * Wert eines Parameters. Der Parser deutet nur `INTN`, `BITN` und die Unicode-Texttypen; jeder
- * andere Typ liefert seine Wertbytes unverändert als [RawValue] (Festlegung: die Deutung gehört der
- * Datentypen-Erweiterung bzw. dem Backend-Vertrag, nicht diesem Parser). Die Textdarstellung
- * nennt nie den Inhalt: Parameter sind Nutzerdaten.
+ * andere Typ liefert seine Wertbytes unverändert als [RawValue] (Festlegung: die Deutung gehört dem
+ * Backend-Vertrag, nicht diesem Parser); bei `varchar(max)` und `varbinary(max)` sind es die Bytes der
+ * Stück-Folge. Die Textdarstellung nennt nie den Inhalt: Parameter sind Nutzerdaten.
  */
 internal sealed interface RpcValue {
     /** NULL-Sentinel des Typs. */
@@ -57,7 +60,10 @@ internal sealed interface RpcValue {
         override fun toString(): String = "RpcValue.BitValue(verborgen)"
     }
 
-    /** `NVARCHAR` und `NCHAR`: UTF-16-Einheiten unverändert übernommen, auch unpaarige Surrogate. */
+    /**
+     * `NVARCHAR` und `NCHAR`, auch als `nvarchar(max)`: UTF-16-Einheiten unverändert übernommen, auch unpaarige
+     * Surrogate.
+     */
     class TextValue(val value: String) : RpcValue {
         override fun toString(): String = "RpcValue.TextValue(chars=${value.length})"
     }

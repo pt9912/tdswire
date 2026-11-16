@@ -9,6 +9,7 @@ import io.github.pt9912.tdswire.protocol.token.EnvChange
 import io.github.pt9912.tdswire.protocol.token.ErrorToken
 import io.github.pt9912.tdswire.protocol.token.InfoToken
 import io.github.pt9912.tdswire.protocol.token.LoginAck
+import io.github.pt9912.tdswire.protocol.token.NullBitmapRowToken
 import io.github.pt9912.tdswire.protocol.token.ReturnStatusToken
 import io.github.pt9912.tdswire.protocol.token.ReturnValueToken
 import io.github.pt9912.tdswire.protocol.token.RowToken
@@ -16,6 +17,7 @@ import io.github.pt9912.tdswire.protocol.token.ServerMessage
 import io.github.pt9912.tdswire.protocol.token.TdsType
 import io.github.pt9912.tdswire.protocol.token.TdsValue
 import io.github.pt9912.tdswire.protocol.token.Token
+import java.io.ByteArrayOutputStream
 import java.math.BigDecimal
 import java.math.BigInteger
 import java.time.LocalDate
@@ -65,9 +67,20 @@ internal class TokenDecoder(private val bytes: ByteArray) {
         0xFD, 0xFE, 0xFF -> done(code)
         0x81 -> colMetadata()
         0xD1 -> RowToken(columns.map { value(it) })
+        0xD2 -> nullBitmapRow()
         0x79 -> ReturnStatusToken(i32())
         0xAC -> returnValue()
         else -> error("Tokenkennung $code")
+    }
+
+    /** NBCROW: die Bitmap (Bit `i` im Byte `i / 8`, niedrigstes Bit zuerst), dann die Werte ohne gesetztes Bit. */
+    private fun nullBitmapRow(): Token {
+        val bitmap = ByteArray((columns.size + 7) / 8) { u8().toByte() }
+        return NullBitmapRowToken(
+            columns.mapIndexed { index, column ->
+                if (bitmap[index / 8].toInt() shr (index % 8) and 1 == 1) TdsValue.NullValue else value(column)
+            },
+        )
     }
 
     private fun loginAck(): Token {
@@ -149,12 +162,64 @@ internal class TokenDecoder(private val bytes: ByteArray) {
     private fun variableType(code: Int): TdsType = when (code) {
         0x26 -> TdsType.IntNType(u8())
         0x68 -> TdsType.BitNType.also { check(u8() == 1) }
-        0xE7 -> TdsType.NVarcharType(u16() / 2, collation())
+        0xE7 -> nvarchar()
         0x6A, 0x6C -> decimalType(code)
         0x28 -> TdsType.DateType
         0x29 -> TdsType.TimeType(u8())
         0x2A -> TdsType.DateTime2Type(u8())
+        else -> largeType(code)
+    }
+
+    private fun largeType(code: Int): TdsType = when (code) {
+        0xA7 -> TdsType.VarcharMaxType(maxCollation())
+        0xA5 -> TdsType.VarbinaryMaxType.also { check(u16() == 0xFFFF) }
+        0x62 -> TdsType.SqlVariantType.also { check(i32() == 8009) }
         else -> error("Typkennung $code")
+    }
+
+    private fun nvarchar(): TdsType {
+        val length = u16()
+        return if (length == 0xFFFF) {
+            TdsType.NVarcharMaxType(collation())
+        } else {
+            TdsType.NVarcharType(length / 2, collation())
+        }
+    }
+
+    private fun maxCollation(): Collation {
+        check(u16() == 0xFFFF)
+        return collation()
+    }
+
+    /** Ein PLP-Körper: Gesamtlänge, Stücke bis zum Terminator; alle Bytes `0xFF` sind NULL. */
+    private fun plpBytes(): ByteArray? {
+        val total = i64()
+        if (total == -1L) return null
+        val data = ByteArrayOutputStream()
+        while (true) {
+            val chunk = i32()
+            if (chunk == 0) break
+            repeat(chunk) { data.write(u8()) }
+        }
+        check(data.size().toLong() == total) { "PLP-Stuecke ergeben ${data.size()}, Gesamtlaenge $total" }
+        return data.toByteArray()
+    }
+
+    private fun plpValue(type: TdsType.PlpType): TdsValue {
+        val bytes = plpBytes() ?: return TdsValue.NullValue
+        val units = CharArray(bytes.size / 2) { index ->
+            (((bytes[2 * index + 1].toInt() and 0xFF) shl 8) or (bytes[2 * index].toInt() and 0xFF)).toChar()
+        }
+        return if (type is TdsType.NVarcharMaxType) TdsValue.TextValue(String(units)) else TdsValue.BytesValue(bytes)
+    }
+
+    private fun largeValue(type: TdsType): TdsValue = if (type is TdsType.PlpType) plpValue(type) else variantValue()
+
+    private fun variantValue(): TdsValue {
+        val length = i32()
+        if (length == 0) return TdsValue.NullValue
+        check(length == 6 && u8() == 0x38 && u8() == 0) { "sql_variant ausserhalb von int" }
+        return TdsValue.VariantIntValue(i32())
     }
 
     private fun returnValue(): Token {
@@ -174,6 +239,7 @@ internal class TokenDecoder(private val bytes: ByteArray) {
         is TdsType.IntNType -> nullable { length -> TdsValue.IntegerValue(signed(length, type.size == 1)) }
         TdsType.BitNType -> nullable { TdsValue.BitValue(u8() != 0) }
         is TdsType.NVarcharType -> textValue()
+        is TdsType.PlpType, TdsType.SqlVariantType -> largeValue(type)
         is TdsType.DecimalType -> nullable { length -> decimal(length, type.scale) }
         TdsType.DateType -> nullable { TdsValue.DateValue(date()) }
         is TdsType.TimeType -> nullable { length -> TdsValue.TimeValue(time(length, type.scale)) }
