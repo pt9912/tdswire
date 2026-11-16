@@ -76,10 +76,11 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `src/main/kotlin/io/github/pt9912/tdswire/protocol/token/` | update | `TdsType`, `TypeInfoWriter`, `ValueWriter`, `TokenWriters` um PLP, NBCROW und weitere Typen; Zerlegung statt großer `when`-Blöcke |
-| `src/main/kotlin/io/github/pt9912/tdswire/protocol/rpc/` | update | Parameter-Leser für PLP (RPC-Parameter, SQL-Text und Deklaration als MAX); `slice-codec-rpc-parser` liegt in `done/` und lehnt PLP bis dahin ab |
-| `src/test/kotlin/io/github/pt9912/tdswire/protocol/token/`, `.../testsupport/` | update | Handvektoren, Test-Decoder (`TokenDecoder`) und Fuzz erweitern |
-| `spec/spezifikation.md` | update, falls nötig | Zeilen zu den Typen in `SPEC-003` (Lehre aus `slice-codec-tds-paket`: eine berührte Spec-Stelle steht in dieser Tabelle) |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/token/` | update | `TdsType` (`PlpType` mit drei MAX-Typen), `TdsValue.BytesValue`, `NullBitmapRowToken`, neu `PlpValues` (TYPE_INFO, Wert, Längenprüfung), `TypeInfoWriter`, `ValueWriter`, `TokenWriters`; die Zerlegung hält die `when`-Blöcke unter der Grenze von detekt |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/rpc/` | update | `RpcType.plp`, `RpcTypeInfoReader` (PLP für `NVARCHAR`, `BIGVARCHAR`, `BIGVARBINARY`), neu `PlpReader` (Körper, Text), `RpcParameterReader`; `RpcCatalog` bleibt unverändert und liest SQL-Text und Deklaration über denselben Weg |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/dispatch/RpcParameters.kt`, `.../result/ValueMapping.kt`, `.../bulk/BulkLoadReader.kt`, `.../wire/ByteReader.kt` | update | der Dispatch lehnt einen MAX-Typ als Wertparameter weiter ab; die Wertabbildung weist MAX-Spalten ab; das Massenladen lehnt PLP weiter ab; `ByteReader.u64Le` |
+| `src/test/kotlin/io/github/pt9912/tdswire/protocol/token/`, `.../rpc/`, `.../dispatch/`, `.../testsupport/` | update | Handvektoren (Bytes eines echten SQL Servers aus dem Mitschnitt), `TokenPlpNbcRowTest`, `RpcPlpTest`, Test-Decoder (`TokenDecoder`), Roundtrip und Fuzz erweitert; die Tests der Ablehnung von PLP wechseln auf „gelesen“ |
+| `spec/spezifikation.md`, `docs/plan/kompatibilitaetsmatrix.md` | update | `SPEC-003` (MAX-Typen und NBCROW im Codec), `SPEC-013` (MAX-Typ als Wertparameter), Änderungsliste; Zeilen und Lücken 2 und 6 der Matrix |
 
 Der Implementer liest den Stand des Token-Packages aus `done/` (`slice-codec-tds-paket`) und passt diese Tabelle an.
 
