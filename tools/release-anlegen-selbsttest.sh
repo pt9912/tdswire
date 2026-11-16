@@ -14,8 +14,10 @@
 # gh, `release` ohne VORSCHAU; `release-dateien` und das Skript stehen in keiner Gate-Liste und nicht in tools/mk/e2e.mk. Gegenproben
 # je Pruefung der Funktion wf_pruefungen (dieselbe Funktion liest den echten Workflow und die Kopien): an einer Kopie des Workflows
 # wird die benannte Pruefung rot; bei einigen wird zusaetzlich eine zweite rot (die Gegenprobe prueft nur den Namen der benannten).
-# Ohne Gegenprobe ist keine der Pruefungen dieser Funktion. Die Abwesenheitspruefung der Gate-Listen hat eine Gegenprobe (GATE_CHECKS
-# an einer Kopie von release-dateien.mk), die fuer tools/mk/e2e.mk keine.
+# Ohne Gegenprobe ist keine der Pruefungen dieser Funktion. Die Abwesenheitspruefung (Gate-Listen und tools/mk/e2e.mk) hat Gegenproben
+# an Kopien, die dieselben Funktionen gate_befund und e2e_befund lesen wie die echten Dateien: je eine Zeile in GATE_CHECKS,
+# GATE_KLASSE_*, GATE_STAGE und in e2e.mk. Nicht gebunden: Dateien ausserhalb von tools/mk, harness/mk, Makefile und repo.mk sowie
+# eine Gate-Liste, die ueber eine Variable oder ein Include gefuellt wird.
 # Grenze: gh ist ein Stub; belegt sind Reihenfolge der Pruefungen und Form des Aufrufs, nicht GitHub. Pins gegen echte Actions,
 # die Wirkung der Bedingung und der Rechte und die Reihenfolge der Jobs zur Laufzeit sieht der Test nicht (Text, kein Lauf); die
 # Abwesenheitspruefung liest Make-Dateien als Text und kennt weder Includes noch Variablen.
@@ -298,17 +300,22 @@ mut; awk '/^  release:/ {r=1} /^  vorschau:/ {r=0} r && /git merge-base --is-anc
 mut; awk '/^  release:/ {r=1} /^  vorschau:/ {r=0} r && /^        run: make release-dateien$/ {print "        run: true"; next} {print}' "$wf" > "$w"; gegenprobe bau-ohne-vorschau "$w"
 mut; awk '/^  release:/ {r=1} /^  vorschau:/ {r=0} r && /^      - name: gh release create$/ {print "        env:"; print "          CLOUDSMITH_API_KEY: x"} {print}' "$wf" > "$w"; gegenprobe cloudsmith-secret "$w"
 
-# Abwesenheit: release-dateien und das Skript in keiner Gate-Liste, nicht in e2e.mk
+# Abwesenheit: release-dateien und das Skript in keiner Gate-Liste, nicht in e2e.mk. gate_befund und e2e_befund lesen die echten Dateien
+# und die Kopien der Gegenproben (Exit 0: die Datei nennt eines der beiden in einer Gate-Liste bzw. in e2e.mk).
 gate_zeilen() { grep -E '^(GATE_CHECKS|GATE_KLASSE_[a-z]+|GATE_STAGE)[[:space:]]*(\+|:)?=' "$1" || true; }
+gate_befund() { gate_zeilen "$1" | grep -q -E 'release-dateien|release-anlegen'; }
+e2e_befund() { grep -q -E 'release-dateien|release-anlegen' "$1"; }
 for f in "$wurzel_repo"/tools/mk/*.mk "$wurzel_repo"/harness/mk/*.mk "$wurzel_repo/Makefile" "$wurzel_repo/repo.mk"; do
   [ -f "$f" ] || continue
-  if gate_zeilen "$f" | grep -q -E 'release-dateien|release-anlegen'; then pruefe "$f fuehrt release-dateien oder release-anlegen in einer Gate-Liste"; fi
+  if gate_befund "$f"; then pruefe "$f fuehrt release-dateien oder release-anlegen in einer Gate-Liste"; fi
 done
-! grep -q -E 'release-dateien|release-anlegen' "$wurzel_repo/tools/mk/e2e.mk" || pruefe "tools/mk/e2e.mk nennt release-dateien oder release-anlegen"
-cp "$wurzel_repo/tools/mk/release-dateien.mk" "$tmp/gegen.mk"; printf 'GATE_CHECKS += release-anlegen\n' >> "$tmp/gegen.mk"
+! e2e_befund "$wurzel_repo/tools/mk/e2e.mk" || pruefe "tools/mk/e2e.mk nennt release-dateien oder release-anlegen"
+for z in 'GATE_CHECKS += release-anlegen' 'GATE_KLASSE_werkzeug += release-dateien' 'GATE_STAGE += release-dateien=release-dateien' 'GATE_CHECKS := x release-dateien'; do
+  cp "$wurzel_repo/tools/mk/release-dateien.mk" "$tmp/gegen.mk"; printf '%s\n' "$z" >> "$tmp/gegen.mk"
+  gate_befund "$tmp/gegen.mk" || pruefe "die Pruefung der Gate-Listen wird an einer Kopie mit [$z] nicht rot"
+done
 cp "$wurzel_repo/tools/mk/e2e.mk" "$tmp/gegen-e2e.mk"; printf 'e2e: release-dateien\n' >> "$tmp/gegen-e2e.mk"
-grep -q -E 'release-dateien|release-anlegen' "$tmp/gegen-e2e.mk" || pruefe "die Pruefung auf e2e.mk wird an einer Kopie nicht rot"
-gate_zeilen "$tmp/gegen.mk" | grep -q -E 'release-dateien|release-anlegen' || pruefe "die Abwesenheitspruefung wird an einer Kopie mit GATE_CHECKS nicht rot"
+e2e_befund "$tmp/gegen-e2e.mk" || pruefe "die Pruefung auf e2e.mk wird an einer Kopie nicht rot"
 
 if [ "$fehler" -ne 0 ]; then exit 1; fi
 echo "release-anlegen-selbsttest: gruen"
