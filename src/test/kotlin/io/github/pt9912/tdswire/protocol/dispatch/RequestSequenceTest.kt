@@ -166,7 +166,8 @@ class RequestSequenceTest {
      * `sp_execute` mit dem gelieferten Handle, (6) ein unbekannter RPC, (7) `sp_execute` mit unbekanntem Handle,
      * (8) ein Batch, (9) `sp_executesql`, (10) `sp_execute` mit dem Handle aus (5). Die Schritte (9) und (10)
      * sind der Zusatz: sie prüfen die Handle-Tabelle nach `sp_executesql`. Der Lauf enthält keine PLP- und keine
-     * NBCROW-Form (nur Int32-Spalten und `D1`-ROW); deren Belege liegen bei der Datentyp-Erweiterung.
+     * NBCROW-Form (nur Int32-Spalten und `D1`-ROW, der Sequenzierer schreibt ROW); die Belege des Encoders liegen in
+     * `TokenPlpNbcRowTest` und `RpcPlpTest`.
      * Zählung: Schritte 1 bis 10; Antworten 0-basiert in der Reihenfolge der elf Nachrichten, Schritt 5 belegt die
      * Antworten 4 und 5, ab Schritt 6 ist der Antwortindex gleich der Schrittnummer; die neun Backend-Aufrufe
      * sind die Schritte 1 bis 5 (zwei Aufrufe), 8, 9 und 10 (Schritt 6 und 7 rufen es nicht).

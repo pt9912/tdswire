@@ -64,6 +64,7 @@ internal object ValueWriter {
             TdsType.DateType -> ValueSupport.prefixed(out, TemporalValues.dateBytes(value))
             is TdsType.TimeType -> ValueSupport.prefixed(out, TemporalValues.timeBytes(type.scale, value))
             is TdsType.DateTime2Type -> ValueSupport.prefixed(out, TemporalValues.dateTime2Bytes(type.scale, value))
+            // Die festen Typen behandelt writeNonNull; Kotlin verlangt den Zweig für die versiegelte Hierarchie.
             else -> violation(ProtocolFailure.INVALID_TYPE, "Typ ohne Wertform")
         }
     }

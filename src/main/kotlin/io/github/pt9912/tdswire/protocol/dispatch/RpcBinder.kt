@@ -60,9 +60,10 @@ internal sealed interface RpcBinding {
  * ausgewertet. Ein Struktur- oder Kodierfehler des Parsers (Format, Länge, unbekannte Typkennung,
  * TYPE_INFO, ALL_HEADERS) ist [RpcRejection.ENCODING] und trägt dessen `ProtocolError`; er wird wie ein
  * SQL_BATCH mit Parserfehler beantwortet, die Verbindung schließt. Jede gültig kodierte, aber nicht
- * unterstützte Form ist ohne Fehler abgelehnt (`TDS_UNSUPPORTED_RPC`, die Verbindung bleibt offen), auch ein
- * PLP-Typ (`nvarchar(max)`, [ProtocolFailure.UNSUPPORTED_PLP], als [RpcRejection.TYPE]). Der Rest einer Nachricht
- * hinter einer PLP-Typangabe ist nicht gelesen. Parametername `@@x`: nur beim RPC per Prozedurname abgelehnt
+ * unterstützte Form ist ohne Fehler abgelehnt (`TDS_UNSUPPORTED_RPC`, die Verbindung bleibt offen), auch
+ * `varchar(max)` und `varbinary(max)` als Wertparameter (gelesen, dann [RpcRejection.TYPE]) und ein MAX-Typ mit fester
+ * Form ([ProtocolFailure.UNSUPPORTED_PLP], als [RpcRejection.TYPE]); `nvarchar(max)` als Wertparameter ist
+ * `UnicodeText` ([RpcParameters]), als SQL-Text und Deklaration gelesen. Parametername `@@x`: nur beim RPC per Prozedurname abgelehnt
  * ([RpcParameters]). Die Trennung nach Ursache ist eine Nutzerentscheidung vom 2026-10-31, nicht gemessen.
  */
 internal object RpcBinder {

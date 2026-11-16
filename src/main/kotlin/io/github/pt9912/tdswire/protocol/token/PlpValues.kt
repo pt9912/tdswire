@@ -14,6 +14,13 @@ import io.github.pt9912.tdswire.protocol.wire.violation
  * Grenze (Festlegung): Ein Wert, dessen Bytes samt Rahmen nicht mehr in den Puffer des Tokens passen
  * ([MAX_BUFFERED_BYTES]), ist `TOO_LONG`. Die Prüfung läuft aus der Länge des Werts, bevor ein Byte geschrieben ist:
  * der Puffer des Tokens bleibt unverändert und wächst nicht auf ein Ergebnis zu, das er nicht halten kann.
+ * [MAX_BUFFERED_BYTES] ist die Grenze der Arrays von `ByteArrayOutputStream`, keine Grenze des Heaps: ein Wert
+ * zwischen der Heap-Größe und dieser Grenze endet in `OutOfMemoryError`. Kein Aufrufer des Produktivcodes erreicht
+ * sie heute, weil `SqlType` keinen MAX-Typ führt und `ColumnMapping` nie auf [TdsType.PlpType] abbildet.
+ *
+ * Prüf-Naht (Kopplung): `limit` in [write] und [checkLength] ist im Produktivcode immer [MAX_BUFFERED_BYTES]; nur
+ * `TokenPlpNbcRowTest` setzt eine kleine Grenze, weil sich ein Wert nahe 2 GiB nicht anlegen lässt. Der Test belegt
+ * damit die Reaktion des Encoders auf die Grenze (Verstoß, Puffer unverändert), nicht ein Ereignis nahe 2 GiB.
  */
 internal object PlpValues {
     private const val ARRAY_RESERVE = 8

@@ -14,7 +14,8 @@ import java.io.ByteArrayOutputStream
  * Stücke, die `ByteReader` als vorhanden gelesen hat, und die Gesamtlänge ist kein Größenhinweis. Eine bekannte
  * Gesamtlänge über [Int.MAX_VALUE] ist `INVALID_LENGTH`, über dem Rest der Nachricht `TRUNCATED`; ein Stück über dem
  * Rest der Nachricht ist `TRUNCATED`; eine Summe der Stücke, die nicht zur bekannten Gesamtlänge passt, ist
- * `INVALID_LENGTH`. Der Wert ist damit nie größer als die Nachricht (`SPEC-007` begrenzt sie).
+ * `INVALID_LENGTH`; die Summe prüft der Leser erst am Terminator, die Stücke sind bis dahin gepuffert. Der Puffer ist
+ * damit nie größer als die Nachricht (`SPEC-007` begrenzt sie).
  */
 internal object PlpReader {
     private const val NULL_TOTAL = -1L

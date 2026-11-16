@@ -607,7 +607,8 @@ class RpcBinderTest {
     /**
      * `nvarchar(max)` als Wertparameter ist `UnicodeText` wie `nvarchar(n)`: ein Text über 4000 Zeichen in mehreren
      * Stücken, NULL und ein OUTPUT-Parameter (NULL, `OUTPUT`); eine eigene Obergrenze gibt es nicht (Festlegung, die
-     * Nachricht begrenzt `SPEC-007`). Handvektor, nicht gemessen.
+     * Nachricht begrenzt `SPEC-007`). Handvektor, nicht gemessen. Nicht belegt ist die Antwort für einen
+     * OUTPUT-Wert über 4000 Zeichen (die Spalte der Antwort trägt `maxLength`, Vorgabe 4000); sie ist nicht getestet.
      *
      * @spec SPEC-003
      * @spec SPEC-013

@@ -71,7 +71,6 @@ class TokenPlpNbcRowTest {
      * Encoder schreibt dieselben Bytes wie der Server.
      *
      * @spec SPEC-003
-     * @spec SPEC-028
      */
     @Test
     fun `NBCROW mit PLP-Wert gibt die Bytes des echten Servers wieder`() {
@@ -247,11 +246,12 @@ class TokenPlpNbcRowTest {
     }
 
     /**
-     * Handvektor (Lesart von MS-TDS, die Bitmap des echten Servers in `NBCROW mit PLP-Wert …` bestätigt Bit und Byte
-     * für die Spalten 9 bis 13): ein Bit je Spalte, `ceil(n / 8)` Byte, Spalte 0 im niedrigsten Bit des ersten Bytes;
+     * Handvektor (Lesart von MS-TDS). Gemessen ist die Lage der Bits für die Spalten 9 bis 13: die Bitmap `00 32` aus
+     * `sql_variant mit Basistyp int …` unterscheidet die Bitreihenfolge (`00 3C` aus `NBCROW mit PLP-Wert …` ist als
+     * Bitmuster symmetrisch und tut es nicht). Ein Bit je Spalte, `ceil(n / 8)` Byte, Spalte 0 im niedrigsten Bit des ersten Bytes;
      * ohne Spalten steht nur die Kennung. Die Werte NULL stehen nicht in der Zeile.
      *
-     * @spec SPEC-028
+     * @spec SPEC-003
      */
     @Test
     fun `NBCROW legt die Bitmap je Spalte an`() {
@@ -312,7 +312,6 @@ class TokenPlpNbcRowTest {
      * Bitmap `00 32` (die Spalten 9, 12 und 13 sind NULL und stehen nicht in der Zeile).
      *
      * @spec SPEC-003
-     * @spec SPEC-028
      */
     @Test
     fun `sql_variant mit Basistyp int gibt die Bytes des echten Servers wieder`() {

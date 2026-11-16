@@ -232,8 +232,8 @@ class RpcDispatchTest {
     /**
      * Ein PLP-Typ in der Mitte der Parameterliste (vor ihm ein gültiger, hinter ihm ein weiterer Parameter)
      * ist dieselbe offene Ablehnung: ERROR 50002, kein Backend-Aufruf, die Verbindung bleibt offen, der
-     * Folge-RPC wird beantwortet. Die Parameter hinter dem PLP-Typ sind gelesen. Wächter: Schließen bei einem
-     * Parameter hinter dem PLP-Typ oder ein Parser, der den PLP-Wert nicht überspringt.
+     * Folge-RPC wird beantwortet. Die Parameter hinter dem PLP-Typ sind gelesen; ein Parameter hinter dem
+     * PLP-Typ schließt die Verbindung nicht.
      *
      * @spec SPEC-013
      */

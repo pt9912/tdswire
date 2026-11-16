@@ -17,8 +17,8 @@ import kotlin.test.assertIs
  * Messung eines Clients; *gemessen (Layout)* heißt, dass die Bytes des PLP-Körpers ein echter SQL Server in der
  * Antwortrichtung geschrieben hat (`referenztest-dotnet/Mitschnitt/messung/bulk-merge-katalog/2022/
  * katalog-abfragen.messung`, Zeile 64; ein Client sendet in dieser Richtung nicht gemessen); *Festlegung* ist eine
- * Setzung dieses Parsers. Welche Typen ein Referenzclient in den Szenarien als MAX sendet, ist nicht gemessen
- * (`SPEC-003`: `nvarchar(max)`, `varchar(max)`, `varbinary(max)` und `xml` tragen Länge `0xFFFF`).
+ * Setzung dieses Parsers. Die TYPE_INFO mit Länge `0xFFFF` ist am Referenzclient beobachtet (`SPEC-003`: `nvarchar(max)`, `varchar(max)`,
+ * `varbinary(max)` und `xml`); der Wertkörper in Anfragerichtung ist nicht gemessen.
  */
 class RpcPlpTest {
     private val coll = RpcVectors.COLLATION
@@ -170,8 +170,8 @@ class RpcPlpTest {
      * Negativfall (Festlegung): überlange Längenangaben enden in einem Ergebniswert, ohne dass ein Puffer in der Größe
      * der Angabe entsteht (der Leser kopiert nur Stücke, die in der Nachricht stehen). Eine Gesamtlänge über
      * `Int.MAX_VALUE` und eine negative (nicht `-1`, `-2`) ist `INVALID_LENGTH`; eine Gesamtlänge bis `Int.MAX_VALUE`
-     * und ein Stück bis 4 GiB, die die Nachricht nicht hält, sind `TRUNCATED`. Wächter der Gesamtlänge: ohne ihre
-     * Prüfung endet eine Gesamtlänge über `Int.MAX_VALUE` nicht in `INVALID_LENGTH`.
+     * und ein Stück bis 4 GiB, die die Nachricht nicht hält, sind `TRUNCATED`. Die Prüfung der Gesamtlänge
+     * (`checkTotal`) trennt `INVALID_LENGTH` (über `Int.MAX_VALUE`) von `TRUNCATED`.
      *
      * @spec SPEC-027
      * @spec SPEC-007
