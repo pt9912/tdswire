@@ -3,3 +3,5 @@
 **Wiederauftreten (slice-release-lizenzen-lib-belegen):** Review F-1 (MEDIUM), F-3 und Re-Review N-1, N-2: eine Verneinung („keine NOTICE“) trug weiter als der gelesene Suchraum, ein Tag galt als unveränderlich. Der Review fing es, nicht der Implementer. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
 
 **Wiederauftreten (slice-release-dateien-bauen):** Review F-2 (MEDIUM): eine Setzung (Form der Lizenzdateien im ZIP) stand ohne Kennzeichnung als entschieden da; der Review fing es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
+
+**Wiederauftreten (slice-release-job-im-workflow-bauen):** Re-Review R-1 (MEDIUM), R-2, F-3, R-6: Kopfkommentare und Notiz sagten mehr als der Beleg („jede“, „genau“, Plural, Schritt als Tatsache neben dem Lauf davor). Der Reviewer fing es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.

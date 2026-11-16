@@ -1,0 +1,3 @@
+**Vorgang:** [slice-release-job-im-workflow-bauen](../../../../done/slice-release-job-im-workflow-bauen.md)
+**Fund:** [Re-Review](../../../../../../reviews/2026-11-16-a1b762f7-slice-release-job-im-workflow-bauen-re-review.md) R-1 (MEDIUM), R-2 (LOW), F-3, R-6: der Kopf des Selbsttests sagte „jede dieser Pruefungen hat eine Gegenprobe“ und „macht genau sie rot“, belegt waren weniger; die Notiz sagte „Pakete“ im Plural für eine Version mit einem Paket; ein Dispatch-Schritt stand als Tatsache neben einem Lauf, der vor ihm lag. Der Reviewer fing es, der Implementer nicht; behoben durch Einschränken.
+**Stand:** offen, siehe `state.md` der Klasse.
