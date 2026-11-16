@@ -33,7 +33,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Die Grenzwerte für Durchsatz, p95-Latenz und gleichzeitige Sitzungen stehen mit der Umgebung, für die sie gelten, in [TDS-QA-04](../../../../spec/lastenheft.md#tds-qa-04--performance) im Lastenheft, abgeleitet aus den Messzeilen von [slice-qa-performance-durchsatz-sitzungen](slice-qa-performance-durchsatz-sitzungen.md), [slice-qa-performance-rueckstau](slice-qa-performance-rueckstau.md) und [slice-qa-performance-heap-abschluss](slice-qa-performance-heap-abschluss.md) und vom Nutzer bestätigt.
 
-**Übernimmt:** aus dem DoD-Punkt „Grenzwerte im Lastenheft festgelegt“ von [slice-qa-performance](../in-progress/slice-qa-performance.md) (Fassung vor der Zerlegung vom 2026-11-15).
+**Übernimmt:** aus dem DoD-Punkt „Grenzwerte im Lastenheft festgelegt“ von [slice-qa-performance](../done/slice-qa-performance.md) (Fassung vor der Zerlegung vom 2026-11-15).
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 

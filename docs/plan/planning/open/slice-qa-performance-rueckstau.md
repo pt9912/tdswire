@@ -33,7 +33,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Der Rückstau ist im Serverprozess über einen Socket mit mehreren Verbindungen, mit einem blockierenden Backend und mit dem Simulations-Backend gemessen; jeder der drei Punkte trägt eine Messzeile oder ist mit Begründung als nicht lieferbar benannt (`BEO-TDS/rueckstau-zusage-nur-test-backend-traeger-unvollstaendig`, `BEO-TDS/rueckstau-im-produktivbetrieb-nicht-gemessen`).
 
-**Übernimmt:** aus dem DoD-Punkt „Lasttest“ von [slice-qa-performance](../in-progress/slice-qa-performance.md) (Fassung vor der Zerlegung vom 2026-11-15) die Punkte Socket, blockierendes Backend und Simulations-Backend; die Träger-Zuweisung der beiden Beobachtungen bleibt bei diesem Gegenstand.
+**Übernimmt:** aus dem DoD-Punkt „Lasttest“ von [slice-qa-performance](../done/slice-qa-performance.md) (Fassung vor der Zerlegung vom 2026-11-15) die Punkte Socket, blockierendes Backend und Simulations-Backend; die Träger-Zuweisung der beiden Beobachtungen bleibt bei diesem Gegenstand.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -73,7 +73,7 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| Szenarien des Werkzeugs aus [slice-qa-performance](../in-progress/slice-qa-performance.md) (langsamer Leser, blockierendes Backend, Stufe 256) | update | Messung nach [TDS-QA-04](../../../../spec/lastenheft.md#tds-qa-04--performance) und [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md) |
+| Szenarien des Werkzeugs aus [slice-qa-performance](../done/slice-qa-performance.md) (langsamer Leser, blockierendes Backend, Stufe 256) | update | Messung nach [TDS-QA-04](../../../../spec/lastenheft.md#tds-qa-04--performance) und [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md) |
 | Messende Backends (blockierend, zählend) im Testserver-Modul | neu | Aufbau mit Zähler, Erzeuger im Repo |
 | `docs/messungen/performance-rueckstau-<datum>.md` | neu | Messprotokoll, Einzelmessung (`AGENTS.md` §5 Regel 7) |
 | `spec/spezifikation.md`, Abschnitt „Pflichten des Backends“ | update | Aussage trägt höchstens so weit wie der Beleg (`AGENTS.md` §3.8) |
@@ -86,7 +86,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-qa-performance](../in-progress/slice-qa-performance.md) in `done/` (Werkzeug und Aufbauten). Die Reihenfolge nach [slice-qa-performance-durchsatz-sitzungen](slice-qa-performance-durchsatz-sitzungen.md) ist eine Setzung, damit die Streuung des Hosts zuerst an der einfacheren Messung bekannt ist; formal genügt der Start nach [slice-qa-performance](../in-progress/slice-qa-performance.md).
+**Start** (`next` → `in-progress`): [slice-qa-performance](../done/slice-qa-performance.md) in `done/` (Werkzeug und Aufbauten). Die Reihenfolge nach [slice-qa-performance-durchsatz-sitzungen](slice-qa-performance-durchsatz-sitzungen.md) ist eine Setzung, damit die Streuung des Hosts zuerst an der einfacheren Messung bekannt ist; formal genügt der Start nach [slice-qa-performance](../done/slice-qa-performance.md).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

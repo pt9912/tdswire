@@ -1,12 +1,12 @@
 #!/bin/sh
 # e2e-selbsttest.sh — belegt, dass tools/e2e.sh an der ersten roten Stufe mit Exit 1 abbricht, die Stufe
-# nennt und keine folgende Stufe startet, und dass acht gruene Stufen Exit 0 ergeben (ADR-0022,
+# nennt und keine folgende Stufe startet, und dass neun gruene Stufen Exit 0 ergeben (ADR-0022,
 # TDS-QA-06). Die Stufen sind ein Ersatz fuer `make` (E2E_MAKE), der seine Aufrufe protokolliert; es laeuft
 # kein Docker. Aufgerufen von der Dockerfile-Stage `skript-selbsttest`; braucht bash, sh, mktemp, grep, tr.
 set -eu
 
 e2e=$(dirname "$0")/e2e.sh
-stufen=8 # Zahl der Stufen in e2e.sh; bei einer neuen Stufe hier, in der Schlusszeile von e2e.sh und in der Aufrufliste mitziehen
+stufen=9 # Zahl der Stufen in e2e.sh; bei einer neuen Stufe hier, in der Schlusszeile von e2e.sh und in der Aufrufliste mitziehen
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 
@@ -21,7 +21,7 @@ fehler=0
 pruefe() { echo "e2e-selbsttest: FEHLER - $1" >&2; fehler=1; }
 aufrufe() { tr '\n' ' ' < "$tmp/log"; }
 
-# Rot in Stufe 2: Exit 1, die Meldung nennt Stufe 2, Stufe 3 bis 8 laufen nicht.
+# Rot in Stufe 2: Exit 1, die Meldung nennt Stufe 2, Stufe 3 bis 9 laufen nicht.
 : > "$tmp/log"
 status=0
 E2E_MAKE="$tmp/fake-make" FAKE_LOG="$tmp/log" FAKE_ROT=laufzeittest bash "$e2e" > "$tmp/aus" 2> "$tmp/fehl" || status=$?
@@ -72,12 +72,24 @@ case "$(aufrufe)" in
   *) pruefe "rote Stufe 8: aufgerufen wurde [$(aufrufe)]" ;;
 esac
 
-# Alles gruen: Exit 0, acht Stufen in der Reihenfolge.
+# Rot in Stufe 9 (Lasttest): Exit 1, die Meldung nennt Stufe 9; Stufe 8 lief, die Parameter der Probengroesse stehen im Aufruf.
+: > "$tmp/log"
+status=0
+E2E_MAKE="$tmp/fake-make" FAKE_LOG="$tmp/log" FAKE_ROT=lasttest bash "$e2e" > "$tmp/aus" 2> "$tmp/fehl" || status=$?
+[ "$status" -eq 1 ] || pruefe "rote Stufe 9: Exit $status statt 1"
+grep -q 'e2e: ROT - Stufe 9' "$tmp/fehl" || pruefe "rote Stufe 9: die Meldung nennt die Stufe nicht"
+if grep -q '^e2e: gruen' "$tmp/aus"; then pruefe "rote Stufe 9: der Durchgang meldet gruen"; fi
+case "$(aufrufe)" in
+  *"eigenes-backend lasttest LASTTEST_ZEILEN=20000 LASTTEST_WDH=3 ") ;;
+  *) pruefe "rote Stufe 9: aufgerufen wurde [$(aufrufe)]" ;;
+esac
+
+# Alles gruen: Exit 0, neun Stufen in der Reihenfolge.
 : > "$tmp/log"
 status=0
 E2E_MAKE="$tmp/fake-make" FAKE_LOG="$tmp/log" bash "$e2e" > "$tmp/aus" 2> /dev/null || status=$?
 [ "$status" -eq 0 ] || pruefe "alles gruen: Exit $status statt 0"
-[ "$(aufrufe)" = "smoke laufzeittest simulations-integration kompatibilitaet KATEGORIE=Szenario kompatibilitaet KATEGORIE=Anmeldung kompatibilitaet KATEGORIE=Luecken kompatibilitaet KATEGORIE=Synchronitaet eigenes-backend " ] || pruefe "alles gruen: aufgerufen wurde [$(aufrufe)]"
+[ "$(aufrufe)" = "smoke laufzeittest simulations-integration kompatibilitaet KATEGORIE=Szenario kompatibilitaet KATEGORIE=Anmeldung kompatibilitaet KATEGORIE=Luecken kompatibilitaet KATEGORIE=Synchronitaet eigenes-backend lasttest LASTTEST_ZEILEN=20000 LASTTEST_WDH=3 " ] || pruefe "alles gruen: aufgerufen wurde [$(aufrufe)]"
 grep -q "^e2e: gruen ($stufen Stufen" "$tmp/aus" || pruefe "alles gruen: die Schlusszeile fehlt"
 
 # Jede Deklaration traegt den Teil "Nicht belegt:" mit nichtleerem Rest im zweiten Feld (Kurzbeschreibung).
@@ -88,4 +100,4 @@ mit=$(grep '^e2e_abdeckung "' "$e2e" | awk -F'" "' 'NF == 3 && $2 ~ /Nicht beleg
 [ "$mit" -eq "$zeilen" ] || pruefe "Deklarationen: $((zeilen - mit)) von $zeilen Stufen ohne Teil 'Nicht belegt:' mit Rest"
 
 [ "$fehler" -eq 0 ] || exit 1
-echo "e2e-selbsttest: ok (Abbruch an Stufe 1, 2, 5, 7 und 8, alle gruen, Teil Nicht belegt in $stufen Stufen)"
+echo "e2e-selbsttest: ok (Abbruch an Stufe 1, 2, 5, 7, 8 und 9, alle gruen, Teil Nicht belegt in $stufen Stufen)"
