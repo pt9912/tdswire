@@ -131,7 +131,7 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-Wird bei der Closure gefüllt.
+Ablageort der Lizenzdateien (Eingang für [slice-release-dateien-bauen](../open/slice-release-dateien-bauen.md)): `lizenzen/lib/<Gruppe>-<Artefakt>-<Version>/`, Beleg: [Messprotokoll](../../../messungen/lizenzen-lib-2026-11-16.md). Der Rest wird bei der Closure gefüllt.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
