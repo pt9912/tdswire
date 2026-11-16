@@ -122,7 +122,7 @@ Keine.
 
 **L-2 — Lücke 15: der Träger trägt den Typkatalog, nicht ausdrücklich den Dispatch-Pfad, und steht nicht in der DoD**
 * quelle: `AGENTS.md` §3.8; Definition „Kein Träger“ im Abschnitt 5 der Matrix („keine Slice-Datei führt den Punkt in DoD oder Risiko“)
-* pfad: `docs/plan/kompatibilitaetsmatrix.md` Abschnitt 5 Zeile 15; `docs/plan/planning/open/slice-codec-datentypen-erweiterung.md` §6 Zeile 113
+* pfad: `docs/plan/kompatibilitaetsmatrix.md` Abschnitt 5 Zeile 15; `docs/plan/planning/in-progress/slice-codec-datentypen-erweiterung.md` §6 Zeile 113
 * befund: Der Slice führt `smallint`, `char`, `float`, GUID, binär und Zonenzeit als **Risiko** (§6, Ausgang „weiter offen“, „Aufnahme in die Liefer-Punkte folgt erst, wenn der Referenzclient-Beleg vorliegt“), nicht in der DoD (§2 Punkt „Weitere Typen“ nennt nur `text`, `ntext`, `image`, `sql_variant`). Nach der eigenen Definition der Matrix ist der Träger damit vorhanden, aber schwach; die Matrix sagt nur „nennt … als Erweiterung des Typkatalogs“. Dass die Aufnahme in `SqlType` auch die Dispatch-Ablehnung der RPC-Parameter aufhebt, ist eine Folge, die der Slice nicht nennt. Ein Leser, der die Matrix liest, könnte „Träger = geliefert in der DoD“ annehmen.
 
 **L-3 — Wächter: Fremdform nur mit Suffix `Test`**
