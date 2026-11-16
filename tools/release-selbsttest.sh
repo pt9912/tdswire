@@ -17,8 +17,8 @@
 # Modus --vorschau (ADR-0050 Entscheidung 6): erlaubt -SNAPSHOT, nennt das ZIP immer ...-vorschau.zip, auch bei einer Release-Version;
 # Fall mit Jackson bleibt rot; ohne den Modus bricht -SNAPSHOT weiter; --nur-version prueft nur die Version; das Make-Target ruft
 # diese Pruefung vor `docker build`. Zwei Zeilen `version =` in build.gradle.kts und eine Klasse des Testservers im Jar sind rote Faelle.
-# Die Sollmenge der sieben Dateien ist ein Vorschlag des Implementers (offene Fragen 2a bis 2c des Belegs unbeantwortet, der Nutzer
-# entscheidet vor dem Messslice); der Test haelt sie nur gegen das Verzeichnis lizenzen/lib, nicht gegen eine Entscheidung.
+# Die Sollmenge der sieben Dateien ist ein Vorschlag (offene Fragen 2a bis 2c des Belegs unbeantwortet, die Entscheidung liegt
+# beim Nutzer); der Test haelt sie nur gegen das Verzeichnis lizenzen/lib, nicht gegen eine Entscheidung.
 # Grenze: der Lauf der Stage selbst (Export, Version aus dem echten build.gradle.kts, Docker) ist nicht Gegenstand; ihn belegt
 # `make release-dateien`. Ob die Lizenzdateien rechtlich genuegen, sieht der Test nicht.
 #
@@ -207,6 +207,7 @@ archivlauf zip-kaputt "laesst sich nicht entpacken"
 # Ausgabe eines Vorschau-Laufs: die Pruefung ohne --vorschau weist das ZIP mit Marker ab, mit --vorschau nimmt sie es an.
 ist=0; sh "$pruefung" "$tmp/vorschau-release-version/aus" "$tmp/vorschau-release-version/LICENSE" 1.2.3 > "$tmp/vorschau-ohne-flag.txt" 2>&1 || ist=$?
 [ "$ist" -eq 1 ] || pruefe "Vorschau-Ausgabe ohne --vorschau geprueft: Exit $ist statt 1"
+grep -qF "Vorschau-ZIP" "$tmp/vorschau-ohne-flag.txt" || pruefe "Vorschau-Ausgabe ohne --vorschau: die Meldung nennt das Vorschau-ZIP nicht ($(tr '\n' ' ' < "$tmp/vorschau-ohne-flag.txt"))"
 ist=0; sh "$pruefung" --vorschau "$tmp/vorschau-release-version/aus" "$tmp/vorschau-release-version/LICENSE" 1.2.3 > /dev/null 2>&1 || ist=$?
 [ "$ist" -eq 0 ] || pruefe "Vorschau-Ausgabe mit --vorschau geprueft: Exit $ist statt 0"
 ist=0; sh "$pruefung" --vorschau "$tmp/gut/aus" "$tmp/gut/LICENSE" 1.2.3 > /dev/null 2>&1 || ist=$?
@@ -243,6 +244,31 @@ sed 's|--output type=local,dest=|--output type=tar,dest=|' "$mk" > "$tmp/mk-ohne
 sed 's|docker build|docker run -v $(PWD):/x docker build|' "$mk" > "$tmp/mk-mount"
 [ -n "$(fragment_fehler "$tmp/mk-mount")" ] || pruefe "Gegenprobe: ein Mount wird nicht gefunden"
 
+# VORSCHAU im Make-Fragment: nur 1 und leer sind erlaubt. Das Fragment laeuft in einem Wegwerf-Verzeichnis mit Stub fuer `docker build`
+# und `ls`; geprueft wird, ob die Recipe-Zeilen den Modus nur bei 1 anschalten und jeden anderen Wert abweisen.
+mkdir -p "$tmp/mk-lauf/tools/mk"
+cp "$dateien" "$tmp/mk-lauf/tools/release-dateien.sh"
+sed 's|^\tdocker build|\t@echo docker build|; s|^\t@ls -l.*$|\t@true|' "$mk" > "$tmp/mk-lauf/tools/mk/release-dateien.mk"
+makelauf() {
+  # makelauf <name> <version> <VORSCHAU-Argument oder -> <Exit> <Muster oder -> <Muster, das fehlen muss oder ->
+  printf 'version = "%s"\n' "$2" > "$tmp/mk-lauf/build.gradle.kts"
+  ist=0
+  if [ "$3" = "-" ]; then
+    (cd "$tmp/mk-lauf" && make -s -f tools/mk/release-dateien.mk release-dateien) > "$tmp/mk-$1.txt" 2>&1 || ist=$?
+  else
+    (cd "$tmp/mk-lauf" && make -s -f tools/mk/release-dateien.mk release-dateien "VORSCHAU=$3") > "$tmp/mk-$1.txt" 2>&1 || ist=$?
+  fi
+  if [ "$4" -eq 0 ]; then [ "$ist" -eq 0 ] || pruefe "make $1: Exit $ist statt 0 ($(tr '\n' ' ' < "$tmp/mk-$1.txt"))"; else [ "$ist" -ne 0 ] || pruefe "make $1: Exit 0 statt Fehler"; fi
+  if [ "$5" != "-" ]; then grep -qF -- "$5" "$tmp/mk-$1.txt" || pruefe "make $1: die Ausgabe nennt [$5] nicht ($(tr '\n' ' ' < "$tmp/mk-$1.txt"))"; fi
+  if [ "$6" != "-" ]; then ! grep -qF -- "$6" "$tmp/mk-$1.txt" || pruefe "make $1: die Ausgabe nennt [$6]"; fi
+}
+makelauf vorschau-eins 1.2.3-SNAPSHOT 1 0 "RELEASE_VORSCHAU=--vorschau" -
+makelauf vorschau-null 1.2.3-SNAPSHOT 0 1 "VORSCHAU ist 1 oder leer" "docker build"
+makelauf vorschau-null-release 1.2.3 0 1 "VORSCHAU ist 1 oder leer" "docker build"
+makelauf vorschau-ja 1.2.3 ja 1 "VORSCHAU ist 1 oder leer" "docker build"
+makelauf vorschau-leer 1.2.3 "" 0 "docker build" "RELEASE_VORSCHAU"
+makelauf ohne-vorschau-snapshot 1.2.3-SNAPSHOT - 1 "endet auf -SNAPSHOT" "docker build"
+
 # Abwesenheit in den Gate-Listen und in e2e.mk.
 abwesend() {
   w="$1"; n=0
@@ -265,4 +291,4 @@ for fall in checks stage e2e; do
 done
 
 [ "$fehler" -eq 0 ] || exit 1
-echo "release-selbsttest: ok (ein Gutfall mit drei Dateien, fuenfzehn rote Faelle am Eingang, acht am fertigen Archiv, vier Faelle des Modus --vorschau, vier der Option --nur-version, zwei Aufruffehler, Sollmenge gegen lizenzen/lib, Stage und Export im Dockerfile, Make-Fragment ohne Mount mit zwei Gegenproben, Abwesenheit in Gate-Listen und e2e.mk mit drei Gegenproben)"
+echo "release-selbsttest: ok (ein Gutfall mit drei Dateien, fuenfzehn rote Faelle am Eingang, acht am fertigen Archiv, vier Faelle des Modus --vorschau, vier der Option --nur-version, sechs Aufrufe des Make-Fragments mit VORSCHAU, zwei Aufruffehler, Sollmenge gegen lizenzen/lib, Stage und Export im Dockerfile, Make-Fragment ohne Mount mit zwei Gegenproben, Abwesenheit in Gate-Listen und e2e.mk mit drei Gegenproben)"

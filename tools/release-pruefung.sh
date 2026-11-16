@@ -14,9 +14,8 @@
 #  - die Sollmenge der Lizenz- und Hinweisdateien (sieben, Liste unten) liegt im ZIP unter lizenzen/lib/ und ist nicht leer;
 #  - zu jedem Jar in lib/ gibt es ein Verzeichnis lizenzen/lib/<Gruppe>-<Name ohne .jar> mit einer nicht leeren LICENSE.txt:
 #    eine neue Bibliothek ohne Verzeichnis bricht den Lauf.
-# Die Sollmenge ist ein Vorschlag des Implementers: sie umfasst alle sieben Dateien der Ablage lizenzen/lib/ des Belegs
-# docs/messungen/lizenzen-lib-2026-11-16.md; die offenen Fragen 2a bis 2c des Belegs sind unbeantwortet, der Nutzer entscheidet
-# vor dem Messslice. Die Liste steht hier von Hand, und tools/release-selbsttest.sh haelt sie gegen das Verzeichnis lizenzen/lib des Repos.
+# Die Sollmenge ist ein Vorschlag: sie umfasst alle sieben Dateien der Ablage lizenzen/lib/ des Belegs
+# docs/messungen/lizenzen-lib-2026-11-16.md; dessen offene Fragen 2a bis 2c sind unbeantwortet, die Entscheidung liegt beim Nutzer. Die Liste steht hier von Hand, und tools/release-selbsttest.sh haelt sie gegen das Verzeichnis lizenzen/lib des Repos.
 # Grenze: geprueft werden Namen, Gleichheit und Nicht-Leere der Dateien, nicht ihr Inhalt und nicht, ob die Lizenz die
 # Weitergabe so erlaubt (Rechtsfrage, ADR-0050 Entscheidung 3); andere Hinweisdateien als die der Sollmenge sieht die Pruefung
 # nicht; ob zwei Laeufe dasselbe ZIP liefern, ist nicht zugesagt.
@@ -37,6 +36,11 @@ melde() { echo "release-pruefung: FEHLER - $1" >&2; fehler=1; }
 
 [ -d "$aus" ] || { echo "release-pruefung: FEHLER - $aus ist kein Verzeichnis" >&2; exit 1; }
 [ -f "$lizenz" ] || { echo "release-pruefung: FEHLER - $lizenz liegt nicht" >&2; exit 1; }
+
+# Ein Vorschau-ZIP gehoert in keine Release-Ausgabe.
+if [ -z "$marke" ] && ls "$aus" | grep -q -- '-vorschau\.zip$'; then
+  echo "release-pruefung: FEHLER - $aus fuehrt ein Vorschau-ZIP ($(ls "$aus" | grep -- '-vorschau\.zip$' | tr '\n' ' ')), das keine Release-Ausgabe ist" >&2; exit 1
+fi
 
 # Genau drei Dateien: keine fehlende, keine zusaetzliche.
 ist=$(ls -A "$aus" | sort | tr '\n' ' ')

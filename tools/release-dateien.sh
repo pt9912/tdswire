@@ -13,8 +13,8 @@
 # --vorschau (ADR-0050 Entscheidung 6, Nutzerentscheidung 2026-11-16): erlaubt auch eine Version <zahl>.<zahl>.<zahl>-SNAPSHOT und
 # nennt das ZIP immer tdswire-<version>-vorschau.zip, auch bei einer Release-Version; alle Pruefungen am entpackten ZIP bleiben.
 # Nur der Dispatch-Lauf der CI nutzt den Modus, ein Release nie.
-# Die Lizenz- und Hinweisdateien unter lizenzen/lib/ sind ein Vorschlag des Implementers; die offenen Fragen 2a bis 2c des Belegs
-# docs/messungen/lizenzen-lib-2026-11-16.md sind unbeantwortet, der Nutzer entscheidet vor dem Messslice.
+# Die Lizenz- und Hinweisdateien unter lizenzen/lib/ im ZIP sind ein Vorschlag; die offenen Fragen 2a bis 2c des Belegs
+# docs/messungen/lizenzen-lib-2026-11-16.md sind unbeantwortet, die Entscheidung liegt beim Nutzer.
 # Erst nach gruener tools/release-pruefung.sh am entpackten ZIP kommen die Dateien in <ausgabe>; bei einem Befund entsteht dort
 # nichts. <ausgabe> darf nicht oder nur leer bestehen. Exit 1 bei einem Befund, 2 bei falschem Aufruf.
 # Grenze: ohne Netz, ohne Token, nichts nach aussen; ob zwei Laeufe dasselbe ZIP liefern, ist nicht zugesagt und nicht gemessen.

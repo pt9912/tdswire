@@ -175,6 +175,8 @@ RUN sh tools/spec-abdeckung-selbsttest.sh
 # --- Skript-Selbsttest: `make skript-selbsttest` - belegt ohne Gradle, dass tools/e2e.sh an der ersten roten
 # Stufe abbricht, dass tools/manifest-pruefung.sh seine Fehlerfaelle abweist und dass tools/vergleichslauf-d.sh ohne EULA-Variable,
 # in der CI und mit unbekanntem Namen vor jedem Docker-Aufruf endet und dass die Muster, mit denen die Laufskripte das Log des Testservers lesen (tools/log-muster.sh), gruen und rot werden, und dass referenztest-dotnet/test-lauf.sh seine Argumente abweist und seine Modi haelt (tools/test-lauf-selbsttest.sh, gegen einen dotnet-Stub), und dass das Eingangsskript tools/publish.sh von `make publish` vor Docker bricht (tools/publish-selbsttest.sh, gegen einen docker-Stub: Version, Tag, Baum, Zugangsdaten und Zielregel je Ziel) (die Fragmente, das E2E-Skript und die Workflows sind dafuer Eingang); das Dockerfile selbst ist
+# Die Selbsttests laufen in einer `&&`-Kette: nach dem ersten roten bricht sie, die folgenden laufen in diesem Lauf nicht und ihre
+# roten Faelle bleiben unsichtbar (das Gate bleibt rot; Grenze der Diagnose). Das Dockerfile selbst ist
 # Eingang, weil der Test den Aufruf der Pruefung in der Stage `build-jar` liest. ------------------------
 FROM basis AS skript-selbsttest
 WORKDIR /src
@@ -272,8 +274,8 @@ RUN gradle --no-daemon --offline :jar
 # (tdswire.jar, lib/, LICENSE, lizenzen/lib/ mit den Lizenz- und Hinweisdateien), das einzelne tdswire.jar und SHA256SUMS. Die
 # Version steht in build.gradle.kts (Form <zahl>.<zahl>.<zahl>, nicht -SNAPSHOT; das Build-Argument RELEASE_VORSCHAU=--vorschau erlaubt -SNAPSHOT und nennt das ZIP ...-vorschau.zip). tools/release-dateien.sh baut das ZIP mit
 # `jar` und ruft tools/release-pruefung.sh am entpackten ZIP; erst danach liegen die Dateien in build/release-dateien, bei einem
-# Befund bricht der Bau. Die Form `lizenzen/lib/` im ZIP ist ein Vorschlag des Implementers (offene Fragen 2a bis 2c des Belegs
-# unbeantwortet, der Nutzer entscheidet vor dem Messslice). `release-dateien-export` gibt sie per `--output type=local` heraus (nichts gemountet, auf dem Host entsteht
+# Befund bricht der Bau. Die Form `lizenzen/lib/` im ZIP ist ein Vorschlag (offene Fragen 2a bis 2c des Belegs
+# unbeantwortet, die Entscheidung liegt beim Nutzer). `release-dateien-export` gibt sie per `--output type=local` heraus (nichts gemountet, auf dem Host entsteht
 # kein build/). Die Stage ist kein Gate und steht in keiner Eingangsliste einer Klasse; tools/release-selbsttest.sh
 # (Stage `skript-selbsttest`) belegt die Pruefungen an Mutationen. Grenze: kein Netz ausser dem Bau von `build-jar`, kein Token. ----
 FROM build-jar AS release-dateien
