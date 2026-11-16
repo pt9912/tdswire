@@ -11,7 +11,9 @@
 # Umgebung (Vorgaben sind Setzungen, S2 bis S11): LASTTEST_ZEILEN=100000, LASTTEST_WDH=5 (Laeufe je Stufe nach einem Warmlauf),
 # LASTTEST_SEED=42, LASTTEST_CPUS=2, LASTTEST_MEMORY=4g (Server und Aufbau A; --memory-swap gleich --memory),
 # LASTTEST_CLIENT_MEMORY=2g (Client, gleiche CPUs), LASTTEST_XMX=256m (Heap des Serverprozesses), LASTTEST_AUFBAUTEN="A B C",
-# LASTTEST_SENKEN="mit ohne", LASTTEST_MIN_FREI_MB=4096 (unter dieser verfuegbaren Menge des Hosts bricht der Lauf ab, Exit 3),
+# LASTTEST_SENKEN="mit ohne", LASTTEST_MIN_FREI_MB=4096 (unter dieser verfuegbaren Menge des Hosts bricht der Lauf vor jedem Container ab, Exit 3;
+# die Grenze gilt je Container, nicht fuer die Summe der Limits von Server und Client; gemessen sind nur Serverspitzen von 101 bis 178 MB,
+# eine Spitze des Clients ist nicht gemessen),
 # LASTTEST_LAST_MAX=12 (Last 1 Minute des Hosts, ueber der eine Messzeile "last-hoch" traegt), LASTTEST_SWAP_TOLERANZ_MB=16 (Wachstum des
 # Swap des Hosts waehrend der Stufe, ab dem sie "swap-gewachsen" traegt).
 #
@@ -19,7 +21,7 @@
 # Millisekunden, Zeilen/s (Median), Bytes je Zeile (Zaehler der Netzwerkschnittstelle des Clients, mit IP- und TCP-Kopf),
 # Streuung (ok oder zu-gross: Maximum mehr als das Doppelte des Minimums, dann ist die Stufe nicht belegt) und Last und
 # Swap des Hosts vor und nach der Stufe. Der Kopf nennt Host, Docker, Commit, Image-IDs und Limits. Ein Lauf mit hoher Last
-# oder wachsendem Swap des Hosts wird in der Zeile vermerkt, nicht verworfen und wiederholt (Grenze, siehe Abschnitt 5 des
+# oder wachsendem Swap des Hosts wird in jeder Messzeile (Aufbau A, B und C) vermerkt, nicht verworfen und wiederholt (Grenze, siehe Abschnitt 5 des
 # Workload-Dokuments). Exit 0 nur, wenn jede Stufe vollstaendig und ohne Fehler lief; die Streuung ist kein Fehler.
 set -u
 
@@ -37,6 +39,14 @@ last_max="${LASTTEST_LAST_MAX:-12}"
 swap_toleranz="${LASTTEST_SWAP_TOLERANZ_MB:-16}"
 statistik="$(dirname "$0")/lasttest-statistik.sh"
 klasse="io.github.pt9912.tdswire.testserver"
+
+# Zahlenwerte vor dem Bau pruefen (Exit 2): nur Ziffern, ZEILEN und WDH mindestens 1; der Seed darf ein Minus tragen.
+for angabe in "LASTTEST_ZEILEN=$zeilen" "LASTTEST_WDH=$wdh" "LASTTEST_CPUS=$cpus" "LASTTEST_MIN_FREI_MB=$min_frei" \
+	"LASTTEST_LAST_MAX=$last_max" "LASTTEST_SWAP_TOLERANZ_MB=$swap_toleranz"; do
+	[[ ${angabe#*=} =~ ^[0-9]+$ ]] || { echo "lasttest: ${angabe%%=*} muss eine nichtnegative ganze Zahl sein, nicht '${angabe#*=}'" >&2; exit 2; }
+done
+[[ $seed =~ ^-?[0-9]+$ ]] || { echo "lasttest: LASTTEST_SEED muss eine ganze Zahl sein, nicht '$seed'" >&2; exit 2; }
+{ [ "$zeilen" -ge 1 ] && [ "$wdh" -ge 1 ]; } || { echo "lasttest: LASTTEST_ZEILEN und LASTTEST_WDH muessen mindestens 1 sein" >&2; exit 2; }
 
 lauf="tdswire-lt-$$"
 netz="$lauf-netz"
@@ -73,10 +83,18 @@ speicherwacht() {
 }
 
 
+# vermerke <Zustand vorher>: " last-hoch" und " swap-gewachsen" fuer jede Messzeile (Stufen von B, C und Aufbau A).
+vermerke() {
+	local v=""
+	[ "$(last_ganz)" -le "$last_max" ] || v=" last-hoch"
+	[ "$(swap_mb)" -le $(($(echo "$1" | awk '{print $4}') + swap_toleranz)) ] || v="$v swap-gewachsen"
+	echo "$v"
+}
+
 # Eine Stufe auswerten: stufe <Datei> <Muster> <Aufbau> <Senke> <Richtung> <Byte-Feldname> <Zustand vorher>
 stufe() {
 	local datei="$1" muster="$2" aufbau="$3" senke="$4" richtung="$5" byte_feld="$6" vorher="$7"
-	local ms zeilen_je_s bytes st nachher median min max streuung vermerk=""
+	local ms zeilen_je_s bytes st nachher median min max streuung vermerk
 	ms="$(grep -E "$muster" "$datei" | awk '{for (i = 1; i <= NF; i++) if ($i == "lauf" && $(i + 1) >= 1) { for (j = i; j <= NF; j++) if ($j == "ms") print $(j + 1) }}')"
 	[ -n "$ms" ] || { echo "lasttest: FEHLER $aufbau $senke $richtung: keine Messläufe" >&2; fehler=1; return; }
 	st="$(printf '%s\n' "$ms" | bash "$statistik")" || { fehler=1; return; }
@@ -88,11 +106,10 @@ stufe() {
 	zeilen_je_s=$((median > 0 ? zeilen * 1000 / median : 0))
 	bytes="-"
 	if [ -n "$byte_feld" ]; then
-		bytes="$(grep -E "$muster" "$datei" | awk -v b="$byte_feld" '{for (i = 1; i <= NF; i++) if ($i == "lauf" && $(i + 1) >= 1) for (j = i; j <= NF; j++) if ($j == b) print $(j + 1)}' | sort -n | awk '{a[NR] = $1} END {if (NR) print int(a[int((NR + 1) / 2)] / '"$zeilen"')}')"
+		bytes="$(grep -E "$muster" "$datei" | awk -v b="$byte_feld" '{for (i = 1; i <= NF; i++) if ($i == "lauf" && $(i + 1) >= 1) for (j = i; j <= NF; j++) if ($j == b) print $(j + 1)}' | sort -n | awk -v z="$zeilen" '{a[NR] = $1} END {if (NR) print int(a[int((NR + 1) / 2)] / z)}')"
 	fi
 	nachher="$(zustand)"
-	[ "$(last_ganz)" -le "$last_max" ] || vermerk=" last-hoch"
-	[ "$(swap_mb)" -le $(($(echo "$vorher" | awk '{print $4}') + swap_toleranz)) ] || vermerk="$vermerk swap-gewachsen"
+	vermerk="$(vermerke "$vorher")"
 	echo "messung: $(date -u +%Y-%m-%dT%H:%M:%SZ) aufbau $aufbau senke $senke richtung $richtung zeilen $zeilen wdh $wdh median_ms $median min_ms $min max_ms $max zeilen_je_s $zeilen_je_s bytes_je_zeile $bytes streuung $streuung vorher [$vorher] nachher [$nachher]$vermerk"
 }
 
@@ -125,12 +142,12 @@ for aufbau in $aufbauten; do
 			ms="$(grep "^lasttest: a $backend lauf " "$scratch/a" | awk '$5 >= 1 {print $9}')"
 			st="$(printf '%s\n' "$ms" | bash "$statistik")" || { fehler=1; continue; }
 			median="${st#*median=}"; median="${median%% *}"
-			echo "messung: $(date -u +%Y-%m-%dT%H:%M:%SZ) aufbau A backend $backend senke - richtung export zeilen $zeilen wdh $wdh $(echo "$st" | sed 's/n=[0-9]* //; s/median=/median_ms /; s/min=/min_ms /; s/max=/max_ms /; s/streuung=/streuung /') zeilen_je_s $((median > 0 ? zeilen * 1000 / median : 0)) bytes_je_zeile - vorher [$vorher] nachher [$(zustand)]"
+			echo "messung: $(date -u +%Y-%m-%dT%H:%M:%SZ) aufbau A backend $backend senke - richtung export zeilen $zeilen wdh $wdh $(echo "$st" | sed 's/n=[0-9]* //; s/median=/median_ms /; s/min=/min_ms /; s/max=/max_ms /; s/streuung=/streuung /') zeilen_je_s $((median > 0 ? zeilen * 1000 / median : 0)) bytes_je_zeile - vorher [$vorher] nachher [$(zustand)]$(vermerke "$vorher")"
 		done
 		ms="$(grep "^lasttest: a simulation-import lauf " "$scratch/a" | awk '$5 >= 1 {print $9}')"
 		if st="$(printf '%s\n' "$ms" | bash "$statistik")"; then
 			median="${st#*median=}"; median="${median%% *}"
-			echo "messung: $(date -u +%Y-%m-%dT%H:%M:%SZ) aufbau A backend simulation senke - richtung import zeilen $zeilen wdh $wdh $(echo "$st" | sed 's/n=[0-9]* //; s/median=/median_ms /; s/min=/min_ms /; s/max=/max_ms /; s/streuung=/streuung /') zeilen_je_s $((median > 0 ? zeilen * 1000 / median : 0)) bytes_je_zeile - vorher [$vorher] nachher [$(zustand)]"
+			echo "messung: $(date -u +%Y-%m-%dT%H:%M:%SZ) aufbau A backend simulation senke - richtung import zeilen $zeilen wdh $wdh $(echo "$st" | sed 's/n=[0-9]* //; s/median=/median_ms /; s/min=/min_ms /; s/max=/max_ms /; s/streuung=/streuung /') zeilen_je_s $((median > 0 ? zeilen * 1000 / median : 0)) bytes_je_zeile - vorher [$vorher] nachher [$(zustand)]$(vermerke "$vorher")"
 		else
 			fehler=1
 		fi
@@ -169,7 +186,7 @@ for aufbau in $aufbauten; do
 				gezaehlt="$(docker logs "$server" 2>&1 | grep -c '^lasttest: import ')"
 				[ "$gezaehlt" -eq $((wdh + 1)) ] || { echo "lasttest: FEHLER Aufbau C Senke $senke: das Backend meldet $gezaehlt von $((wdh + 1)) vollständigen Importen" >&2; fehler=1; }
 			else
-				grep -E 'import aufbau B abgewiesen' "$scratch/zeilen" | head -1 || { echo "lasttest: FEHLER Aufbau B: Import nicht abgewiesen" >&2; fehler=1; }
+				if grep -E 'import aufbau B abgewiesen' "$scratch/zeilen" | head -1 | grep -q .; then :; else echo "lasttest: FEHLER Aufbau B: Import nicht abgewiesen" >&2; fehler=1; fi
 			fi
 			running="$(docker inspect --format '{{.State.Running}}' "$server")"
 			[ "$running" = true ] || { echo "lasttest: FEHLER Server läuft nach Aufbau $aufbau Senke $senke nicht mehr" >&2; fehler=1; }

@@ -185,7 +185,7 @@ COPY build.gradle.kts build.gradle.kts
 COPY tools/vergleichslauf-d.sh tools/vergleichslauf-d-selbsttest.sh tools/
 COPY tools/log-muster.sh tools/log-muster-selbsttest.sh tools/
 COPY tools/test-lauf-selbsttest.sh tools/
-COPY tools/lasttest-statistik.sh tools/lasttest-selbsttest.sh tools/
+COPY tools/lasttest.sh tools/lasttest-statistik.sh tools/lasttest-selbsttest.sh tools/
 COPY referenztest-dotnet/test-lauf.sh referenztest-dotnet/test-lauf.sh
 COPY tools/mk tools/mk
 COPY harness/mk harness/mk

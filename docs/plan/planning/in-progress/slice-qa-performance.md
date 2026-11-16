@@ -58,9 +58,9 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [x] **Workload-Dokument:** `docs/plan/referenz-workload.md` ist vom Entwurf zum freigegebenen Stand überführt: die Antworten des Nutzers auf die offenen Fragen stehen im Dokument, jede Setzung, die eine Antwort ändert, ist angepasst, der Kopf nennt Datum und Entscheider.
-- [x] **Lasttest-Werkzeug im Repo:** ein `make`-Target außerhalb von `make gates` ruft den Lasttest in Docker (Images per Digest, `--cpus`, `--memory`, fester Seed, Wiederholungen mit Median, Minimum und Maximum, Messzeile mit Datum, Host, Last und Swap); es misst Protokollschicht und Backend getrennt über die Aufbauten A (Backend allein), B (eigenes Backend ohne Arbeit) und C (Simulations-Backend) und nennt je Aufbau eine Probe-Messzeile mit der Zeilengröße auf dem Draht und der Laufzeit der Stufen; der Erzeuger der Zahlen liegt im Repo. Die Zeile des Targets steht in `harness/README.md` §Sensors.
-- [x] **E2E-Stufe:** Der Lasttest ist als Stufe im Produkt-E2E ([slice-e2e-geruest](../done/slice-e2e-geruest.md)) mit der Kennung [TDS-QA-04](../../../../spec/lastenheft.md#tds-qa-04--performance) deklariert und ruft den Lauf über die Prozessgrenze (Referenzclient oder Rohbytes-Client gegen den Serverprozess), nicht über `internal`-Zugriff im Modul; `make e2e-abdeckung` zeigt sie danach in `docs/plan/e2e-abdeckung.md`. Ob die Stufe den Lasttest im `make e2e`-Lauf ausführt oder nur deklariert, folgt der Antwort zur Frage O5 im Workload-Dokument und [ADR-0022](../../adr/0022-e2e-laeufe-nicht-in-den-gates.md).
+- [ ] **Workload-Dokument:** `docs/plan/referenz-workload.md` ist vom Entwurf zum freigegebenen Stand überführt: die Antworten des Nutzers auf die offenen Fragen stehen im Dokument, jede Setzung, die eine Antwort ändert, ist angepasst, der Kopf nennt Datum und Entscheider.
+- [ ] **Lasttest-Werkzeug im Repo:** ein `make`-Target außerhalb von `make gates` ruft den Lasttest in Docker (Images per Digest, `--cpus`, `--memory`, fester Seed, Wiederholungen mit Median, Minimum und Maximum, Messzeile mit Datum, Host, Last und Swap); es misst Protokollschicht und Backend getrennt über die Aufbauten A (Backend allein), B (eigenes Backend ohne Arbeit) und C (Simulations-Backend) und nennt je Aufbau eine Probe-Messzeile mit der Zeilengröße auf dem Draht und der Laufzeit der Stufen; der Erzeuger der Zahlen liegt im Repo. Die Zeile des Targets steht in `harness/README.md` §Sensors.
+- [ ] **E2E-Stufe:** Der Lasttest ist als Stufe im Produkt-E2E ([slice-e2e-geruest](../done/slice-e2e-geruest.md)) mit der Kennung [TDS-QA-04](../../../../spec/lastenheft.md#tds-qa-04--performance) deklariert und ruft den Lauf über die Prozessgrenze (Referenzclient oder Rohbytes-Client gegen den Serverprozess), nicht über `internal`-Zugriff im Modul; `make e2e-abdeckung` zeigt sie danach in `docs/plan/e2e-abdeckung.md`. Ob die Stufe den Lasttest im `make e2e`-Lauf ausführt oder nur deklariert, folgt der Antwort zur Frage O5 im Workload-Dokument und [ADR-0022](../../adr/0022-e2e-laeufe-nicht-in-den-gates.md).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -83,7 +83,10 @@ Aussagen-Berührung steht hier gar nicht.
 | `docs/plan/referenz-workload.md` | update | Entwurf vom 2026-11-15 auf den freigegebenen Stand bringen (Antworten des Nutzers) |
 | Lasttest-Werkzeug (Skript und Make-Fragment unter `tools/`, Erzeuger der Zeilen und messende Backends im Testserver-Modul) | neu | Messung nach [TDS-QA-04](../../../../spec/lastenheft.md#tds-qa-04--performance); Aufbauten A bis C, Erzeuger im Repo |
 | `tools/e2e.sh` und `docs/plan/e2e-abdeckung.md` | update | Stufe mit der Kennung [TDS-QA-04](../../../../spec/lastenheft.md#tds-qa-04--performance) deklarieren, `make e2e-abdeckung` erzeugt die Sicht |
-| `harness/README.md` §Sensors | update | Zeile des neuen Targets (Werkzeug, kein Gate) |
+| `harness/README.md` §Sensors, `README.md` | update | Zeile des neuen Targets (Werkzeug, kein Gate); Stufenzahl von `make e2e` |
+| `Dockerfile` (Stages `lasttestserver`, `skript-selbsttest`), `referenztest-dotnet/Dockerfile` (Stage `lasttest`), `referenztest-dotnet/Lasttest/*.cs` | neu / update | Serverprozess und Client des Lasttests; Statistik und Prüfung der Umgebungswerte laufen im Skript-Selbsttest |
+| `tools/e2e-selbsttest.sh`, `tools/mk/e2e.mk`, `tools/mk/skript-selbsttest.mk`, `tools/mk/lasttest.mk` | update / neu | Stufe 9 im Selbsttest des E2E-Skripts, Hilfetexte und Kommentare der Fragmente, Make-Fragment des Werkzeugs |
+| `docs/messungen/lasttest-probe-2026-11-15.md` | neu | Probe-Messzeilen je Aufbau (Einzelmessung, kein Grenzwert) |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 

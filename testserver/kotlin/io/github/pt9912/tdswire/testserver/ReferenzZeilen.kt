@@ -38,7 +38,9 @@ private const val ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789"
 /**
  * Die Zeilen des Referenz-Workloads (S1 in `docs/plan/referenz-workload.md`): Tabelle `ref_zeilen` mit acht Spalten,
  * Zeile `n` allein aus Seed und `n` erzeugt (kein Zustand, gleiche Zeile bei jedem Lauf und in jedem Prozess). Der
- * Erzeuger rechnet mit SplitMix64; er ist der einzige Erzeuger der Zahlen des Lasttests (`make lasttest`).
+ * Erzeuger rechnet mit SplitMix64. Kopplung: `referenztest-dotnet/Lasttest/ReferenzZeilen.cs` rechnet dasselbe (Konstanten,
+ * Reihenfolge der Mischungen, Alphabet); `make lasttest` vergleicht im Export die erste und die letzte Zeile beider
+ * Seiten, im Import vergleicht nichts.
  */
 internal object ReferenzZeilen {
     val columns: List<SimColumn> = listOf(

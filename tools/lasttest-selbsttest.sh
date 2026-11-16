@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # tools/lasttest-selbsttest.sh - belegt, dass tools/lasttest-statistik.sh Median, Minimum, Maximum und die Streuungsregel
 # (Maximum mehr als das Doppelte des Minimums) richtig rechnet, Eingabefehler abweist, und dass drei Mutationen des Skripts
-# je rot werden (Median ohne Sortierung, Streuung ohne Faktor 2, Maximum als erster Wert). TDS-QA-04, TDS-QA-06.
-# Aufgerufen von der Dockerfile-Stage `skript-selbsttest`; braucht bash, sort, sed, mktemp, grep.
+# je rot werden (Median ohne Sortierung, Streuung ohne Faktor 2, Maximum als erster Wert) und dass tools/lasttest.sh falsche Zahlenwerte der Umgebung vor
+# jedem Docker-Aufruf mit Exit 2 abweist (docker-Stub; eine Mutation ohne die Pruefung wird rot). TDS-QA-04, TDS-QA-06.
+# Aufgerufen von der Dockerfile-Stage `skript-selbsttest`; braucht bash, sort, sed, mktemp, grep, awk.
 set -u
 statistik=$(dirname "$0")/lasttest-statistik.sh
 tmp=$(mktemp -d)
@@ -50,5 +51,30 @@ mutiere ohne-sortierung 's/| sort -n)/| cat)/'
 mutiere ohne-faktor-2 's/\$((2 \* min))/$((min))/'
 mutiere maximum-erster-wert 's/^max=.*/max=${sortiert[0]}/'
 
+# Zahlenwerte der Umgebung von tools/lasttest.sh: Exit 2 vor dem ersten docker-Aufruf.
+lasttest=$(dirname "$0")/lasttest.sh
+mkdir "$tmp/bin"
+printf '#!/bin/sh\necho gerufen >> "%s/docker-gerufen"\nexit 1\n' "$tmp" > "$tmp/bin/docker"
+chmod +x "$tmp/bin/docker"
+abweisung() { # abweisung <Skript> <Beschreibung> <VAR=Wert>
+	rm -f "$tmp/docker-gerufen"
+	local rc=0
+	env PATH="$tmp/bin:$PATH" "$3" bash "$1" > /dev/null 2>&1 || rc=$?
+	[ "$rc" -eq 2 ] || { echo "lasttest-selbsttest: FEHLER - $2: Exit $rc statt 2" >&2; return 1; }
+	[ ! -e "$tmp/docker-gerufen" ] || { echo "lasttest-selbsttest: FEHLER - $2: docker wurde gerufen" >&2; return 1; }
+}
+abweisungen() { # abweisungen <Skript>: 0, wenn jede Angabe abgewiesen wird
+	local ok=0
+	abweisung "$1" "ZEILEN Text" "LASTTEST_ZEILEN=abc" || ok=1
+	abweisung "$1" "ZEILEN null" "LASTTEST_ZEILEN=0" || ok=1
+	abweisung "$1" "WDH null" "LASTTEST_WDH=0" || ok=1
+	abweisung "$1" "CPUS mit Befehl" "LASTTEST_CPUS=2;x" || ok=1
+	abweisung "$1" "SEED Text" "LASTTEST_SEED=abc" || ok=1
+	return $ok
+}
+abweisungen "$lasttest" || fehler=1
+sed '/^# Zahlenwerte vor dem Bau/,/^lauf=/{/^lauf=/!d}' "$lasttest" > "$tmp/ohne-pruefung.sh"
+if cmp -s "$lasttest" "$tmp/ohne-pruefung.sh"; then pruefe "Mutation ohne-pruefung aenderte nichts"; elif abweisungen "$tmp/ohne-pruefung.sh" 2> /dev/null; then pruefe "Mutation ohne-pruefung blieb gruen"; fi
+
 [ "$fehler" -eq 0 ] || exit 1
-echo "lasttest-selbsttest: ok (6 Faelle, Eingabefehler, 3 Mutationen rot)"
+echo "lasttest-selbsttest: ok (6 Faelle, Eingabefehler, 3 Mutationen rot, fuenf abgewiesene Umgebungswerte, 1 Mutation rot)"
