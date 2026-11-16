@@ -33,3 +33,4 @@ testserver/kotlin/io/github/pt9912/tdswire/testserver/IntegrationServer.kt
 referenztest-dotnet/Integration/SimulationBackendTests.cs
 referenztest-dotnet/test-lauf.sh
 .github/workflows
+lizenzen

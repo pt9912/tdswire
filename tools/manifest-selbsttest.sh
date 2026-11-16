@@ -3,6 +3,7 @@
 # abweist (Jar-Name, vorhandene Main-Class, Klasse des Testservers im Jar, Jackson in lib/ (auch gross geschrieben), Class-Path leer, fehlend,
 # Eintrag ohne Datei, Eintrag ohne Form lib/<name>, Eintrag mit `..`; POM fehlt, nennt Jackson, nennt den Testserver,
 # fuehrt keine Lizenz, eine andere Lizenz als MIT oder eine Lizenz ohne URL) und ein gutes Jar mit guter POM annimmt
+# und im Modus `--ohne-pom` (ADR-0050) ein gutes Jar annimmt und Main-Class, Jackson und einen Class-Path-Eintrag ohne Datei abweist
 # (TDS-RB-01, TDS-RB-05, TDS-QA-06, ADR-0022, ADR-0025, ADR-0047). Er belegt auch, dass die
 # Stage `build-jar` des Dockerfile die Pruefung aufruft: ohne diese Zeile wuerde der Bau sie nie ausfuehren.
 # Grenze: der Aufruf im echten Bau ist die Textzeile, nicht ein Lauf gegen das echte Jar.
@@ -132,9 +133,29 @@ ist=0
 sh "$pruefung" "$tmp/gut" > /dev/null 2>&1 || ist=$?
 [ "$ist" -eq 2 ] || pruefe "ohne POM-Argument: Exit $ist statt 2"
 
+# Modus --ohne-pom: dieselben Jar-Faelle ohne POM; Main-Class und Jackson bleiben rot, ein gutes Jar bleibt gruen, ohne Verzeichnis Exit 2.
+ohne_pom() {
+  name="$1"; soll="$2"; jarname="$3"; zeilen="$4"; shift 4
+  bau "$name" "$jarname" "$zeilen" "$@"
+  ist=0
+  sh "$pruefung" --ohne-pom "$tmp/$name" > "$tmp/$name.aus" 2>&1 || ist=$?
+  [ "$ist" -eq "$soll" ] || pruefe "ohne-pom $name: Exit $ist statt $soll ($(tr '\n' ' ' < "$tmp/$name.aus"))"
+}
+ohne_pom opgut 0 tdswire.jar "Class-Path: lib/a.jar" a.jar
+ohne_pom opmain 1 tdswire.jar "$main
+Class-Path: lib/a.jar" a.jar
+ohne_pom opjackson 1 tdswire.jar "Class-Path: lib/a.jar lib/jackson-core-2.17.0.jar" a.jar jackson-core-2.17.0.jar
+ohne_pom opcp-ohne-datei 1 tdswire.jar "Class-Path: lib/a.jar lib/fehlt.jar" a.jar
+ist=0
+sh "$pruefung" --ohne-pom > /dev/null 2>&1 || ist=$?
+[ "$ist" -eq 2 ] || pruefe "--ohne-pom ohne Verzeichnis: Exit $ist statt 2"
+ist=0
+sh "$pruefung" --ohne-pom "$tmp/opgut" "$tmp/pomfremd" > /dev/null 2>&1 || ist=$?
+[ "$ist" -eq 2 ] || pruefe "--ohne-pom mit zwei Verzeichnissen: Exit $ist statt 2"
+
 # Die Stage build-jar ruft die Pruefung auf.
 aufruf=$(awk '/^FROM /{stage=$0} stage ~ / AS build-jar$/ && /^RUN sh tools\/manifest-pruefung\.sh build\/libs build\/publications\/maven\/pom-default\.xml$/ {n++} END {print n+0}' "$dockerfile")
 [ "$aufruf" -eq 1 ] || pruefe "das Dockerfile ruft die Pruefung in der Stage build-jar $aufruf mal auf statt einmal"
 
 [ "$fehler" -eq 0 ] || exit 1
-echo "manifest-selbsttest: ok (ein gutes Jar mit guter POM, dreizehn Fehlerfaelle am Jar, acht an der POM, Aufruf ohne Argument und ohne POM, Aufruf im Dockerfile)"
+echo "manifest-selbsttest: ok (ein gutes Jar mit guter POM, dreizehn Fehlerfaelle am Jar, acht an der POM, Aufruf ohne Argument und ohne POM, Modus --ohne-pom mit einem guten und drei roten Jars und zwei Aufruffehlern, Aufruf im Dockerfile)"

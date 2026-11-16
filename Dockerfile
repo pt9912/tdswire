@@ -181,6 +181,8 @@ WORKDIR /src
 COPY Dockerfile Dockerfile
 COPY tools/e2e.sh tools/e2e-selbsttest.sh tools/manifest-pruefung.sh tools/manifest-selbsttest.sh tools/
 COPY tools/publish.sh tools/publish-selbsttest.sh tools/
+COPY tools/release-dateien.sh tools/release-pruefung.sh tools/release-selbsttest.sh tools/
+COPY lizenzen lizenzen
 COPY build.gradle.kts build.gradle.kts
 COPY tools/vergleichslauf-d.sh tools/vergleichslauf-d-selbsttest.sh tools/
 COPY tools/log-muster.sh tools/log-muster-selbsttest.sh tools/
@@ -191,7 +193,7 @@ COPY tools/mk tools/mk
 COPY harness/mk harness/mk
 COPY Makefile repo.mk ./
 COPY .github/workflows .github/workflows
-RUN bash tools/e2e-selbsttest.sh && sh tools/manifest-selbsttest.sh && bash tools/vergleichslauf-d-selbsttest.sh && sh tools/log-muster-selbsttest.sh && sh tools/test-lauf-selbsttest.sh && bash tools/publish-selbsttest.sh && bash tools/lasttest-selbsttest.sh
+RUN bash tools/e2e-selbsttest.sh && sh tools/manifest-selbsttest.sh && bash tools/vergleichslauf-d-selbsttest.sh && sh tools/log-muster-selbsttest.sh && sh tools/test-lauf-selbsttest.sh && bash tools/publish-selbsttest.sh && sh tools/release-selbsttest.sh && bash tools/lasttest-selbsttest.sh
 
 # --- Kopplung der Zahlen: `make kopplung-zahlen` - haelt Heap und Text von `gross` des Integrationslaufs (SPEC-040)
 # in testserver/build.gradle.kts, IntegrationServer.kt, dem .NET-Test, der Spezifikation und harness/README.md gleich und belegt
@@ -265,6 +267,21 @@ RUN sh tools/manifest-pruefung.sh build/libs build/publications/maven/pom-defaul
 FROM compile AS publish
 COPY --chown=gradle:gradle LICENSE LICENSE
 RUN gradle --no-daemon --offline :jar
+
+# --- Release-Dateien: `make release-dateien` (ADR-0050 Entscheidungen 2 und 3) - aus dem Ergebnis von `build-jar`: tdswire-<Version>.zip
+# (tdswire.jar, lib/, LICENSE, lizenzen/lib/ mit den Lizenz- und Hinweisdateien), das einzelne tdswire.jar und SHA256SUMS. Die
+# Version steht in build.gradle.kts (Form <zahl>.<zahl>.<zahl>, nicht -SNAPSHOT). tools/release-dateien.sh baut das ZIP mit
+# `jar` und ruft tools/release-pruefung.sh am entpackten ZIP; erst danach liegen die Dateien in build/release-dateien, bei einem
+# Befund bricht der Bau. `release-dateien-export` gibt sie per `--output type=local` heraus (nichts gemountet, auf dem Host entsteht
+# kein build/). Die Stage ist kein Gate und steht in keiner Eingangsliste einer Klasse; tools/release-selbsttest.sh
+# (Stage `skript-selbsttest`) belegt die Pruefungen an Mutationen. Grenze: kein Netz ausser dem Bau von `build-jar`, kein Token. ----
+FROM build-jar AS release-dateien
+COPY --chown=gradle:gradle lizenzen lizenzen
+COPY --chown=gradle:gradle tools/release-dateien.sh tools/release-pruefung.sh tools/
+RUN sh tools/release-dateien.sh build/libs lizenzen/lib LICENSE build.gradle.kts build/release-dateien
+
+FROM scratch AS release-dateien-export
+COPY --from=release-dateien /src/build/release-dateien/ /
 
 # --- Laufzeit-Client: der Rohbytes-Client des Laufzeittests als zweiter Container im selben Netzwerk;
 # die Abhaengigkeiten liegen schon in `deps`, der Start braucht kein Netz. ----
