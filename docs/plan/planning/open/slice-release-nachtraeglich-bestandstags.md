@@ -30,7 +30,7 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Die Release-Seite des Repositories zeigt zu den bestehenden Tags `v0.1.0` und `v0.1.1` je ein Release mit Titel `0.1.0` bzw. `0.1.1`, **ohne Anhänge**, mit der festen Notiz aus der Vorlage ([slice-release-job-im-workflow-bauen](../in-progress/slice-release-job-im-workflow-bauen.md)) in der Variante ohne Dateizeilen und dem Satz, dass für diese Version keine Dateien anliegen und die Version in GitHub Packages (für `0.1.1` auch in Cloudsmith) steht. Es entsteht keine Version, kein Tag und kein Paket; nur die Seite zu einer vorhandenen Version.
+**Ziel:** Die Release-Seite des Repositories zeigt zu den bestehenden Tags `v0.1.0` und `v0.1.1` je ein Release mit Titel `0.1.0` bzw. `0.1.1`, **ohne Anhänge**, mit der festen Notiz aus der Vorlage ([slice-release-job-im-workflow-bauen](../done/slice-release-job-im-workflow-bauen.md)) in der Variante ohne Dateizeilen und dem Satz, dass für diese Version keine Dateien anliegen und die Version in GitHub Packages (für `0.1.1` auch in Cloudsmith) steht. Es entsteht keine Version, kein Tag und kein Paket; nur die Seite zu einer vorhandenen Version.
 
 **Warum ohne Anhänge (Setzung der ADR, hier nicht neu entschieden):** Die Jars der alten Tags müssten neu gebaut werden; ob sie den damals veröffentlichten Paket-Jars gleichen, ist nicht gemessen (Mess-Pflicht 4 bei [slice-release-im-tag-lauf-messen](slice-release-im-tag-lauf-messen.md)), und ein neu gebautes Jar an einer alten Version wäre eine Behauptung ohne Beleg. Nachträgliche Anhänge gibt es nicht, auch wenn Mess-Pflicht 4 gleiche Bytes belegt ([ADR-0050](../../adr/0050-github-release-im-tag-lauf.md) Entscheidung 5).
 
@@ -40,7 +40,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 - Anhänge, ZIP, `SHA256SUMS`, `lib/` für die alten Tags: Setzung der [ADR-0050](../../adr/0050-github-release-im-tag-lauf.md) Entscheidung 5, aus dem oben genannten Grund.
 - Ein neuer Tag, eine neue Version, ein Paket, ein Release-Commit: das Anlegen ist `gh release create <Tag> --verify-tag` auf den vorhandenen Tag, `--verify-tag` verhindert, dass ein Tag neu entsteht. Grund: die Versionen sind veröffentlicht und unveränderlich ([ADR-0047](../../adr/0047-veroeffentlichung-ueber-github-packages.md) Entscheidung 3).
-- Änderung der Notiz-Vorlage, des Skripts oder des Workflows: [slice-release-job-im-workflow-bauen](../in-progress/slice-release-job-im-workflow-bauen.md); ein Fehler dort ist eine Nachbesserung dort. Grund: dieser Slice wendet nur an.
+- Änderung der Notiz-Vorlage, des Skripts oder des Workflows: [slice-release-job-im-workflow-bauen](../done/slice-release-job-im-workflow-bauen.md); ein Fehler dort ist eine Nachbesserung dort. Grund: dieser Slice wendet nur an.
 - Messungen am Workflow (Mess-Pflichten 1 bis 4, 6, 7): [slice-release-im-tag-lauf-messen](slice-release-im-tag-lauf-messen.md). Grund: kein Workflow-Lauf; beobachtet wird allein die Seite.
 - Löschen oder Ändern eines vorhandenen Releases: kein Weg des Plans (kein `--clobber`, kein `delete`). Grund: [ADR-0050](../../adr/0050-github-release-im-tag-lauf.md) Entscheidung 1.
 
@@ -53,7 +53,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 Liefer-Punkte (zwei):
 
-- [ ] **Beide Releases angelegt:** je ein Release zu `v0.1.0` und `v0.1.1` über den Modus ohne Dateien des Eingangsskripts aus [slice-release-job-im-workflow-bauen](../in-progress/slice-release-job-im-workflow-bauen.md) (`gh release create <Tag> --verify-tag`, Titel `0.1.0` bzw. `0.1.1`), Notiz aus der Vorlage ohne Dateizeilen, mit dem Hinweis; Commit und Pakete der Notiz stammen aus dem Tag und den Messprotokollen ([Messprotokoll 0.1.1](../../../messungen/veroeffentlichung-0-1-1-2026-11-15.md), [Messprotokoll 0.1.0](../../../messungen/veroeffentlichung-tag-lauf-2026-11-15.md)), kein Link ohne belegtes Ziel. Der Aufruf ist die Handlung des Nutzers (oder, auf seine ausdrückliche Bestätigung, des Implementers); jede der beiden Seiten braucht die Bestätigung, bevor sie entsteht.
+- [ ] **Beide Releases angelegt:** je ein Release zu `v0.1.0` und `v0.1.1` über den Modus ohne Dateien des Eingangsskripts aus [slice-release-job-im-workflow-bauen](../done/slice-release-job-im-workflow-bauen.md) (`gh release create <Tag> --verify-tag`, Titel `0.1.0` bzw. `0.1.1`), Notiz aus der Vorlage ohne Dateizeilen, mit dem Hinweis; Commit und Pakete der Notiz stammen aus dem Tag und den Messprotokollen ([Messprotokoll 0.1.1](../../../messungen/veroeffentlichung-0-1-1-2026-11-15.md), [Messprotokoll 0.1.0](../../../messungen/veroeffentlichung-tag-lauf-2026-11-15.md)), kein Link ohne belegtes Ziel. Der Aufruf ist die Handlung des Nutzers (oder, auf seine ausdrückliche Bestätigung, des Implementers); jede der beiden Seiten braucht die Bestätigung, bevor sie entsteht.
 - [ ] **Beleg an der Seite, nicht am Aufruf:** `gh release view` (oder die API) zeigt je Release Tag, Titel, Notiz, **keine** Assets; die SHA beider Tags (`git rev-parse v0.1.0 v0.1.1` und am Remote) ist vor und nach dem Anlegen gleich; ein Messprotokoll unter `docs/messungen/` hält Datum, Aufrufe (ohne Token) und die Ausgaben fest.
 
 Nachweis-Pflichten für beide Punkte:
@@ -80,7 +80,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `docs/messungen/` (kurzes Messprotokoll zu den zwei Seiten) | neu | zweiter Punkt der DoD |
 | `docs/maintainer/releasing.md` | update | Zustand der Release-Seiten, soweit die Anleitung ihn nennt |
 
-**Ablauf:** (1) Implementer bereitet die beiden Aufrufe vor (Modus ohne Dateien, Probelauf am Stub ist schon in [slice-release-job-im-workflow-bauen](../in-progress/slice-release-job-im-workflow-bauen.md) belegt) und nennt dem Nutzer Tag, Titel, Notiz je Version zur Bestätigung. (2) Nach der Bestätigung legt der Nutzer die beiden Seiten selbst an (`gh release create`; Entscheidung des Nutzers 2026-11-16); die Ausgabe wird gesichert. (3) Review in frischem Kontext, danach Verifier: liest die Seiten über die API, vergleicht die Tag-SHA. (4) Das Skript, die Vorlage und der Workflow bleiben unverändert.
+**Ablauf:** (1) Implementer bereitet die beiden Aufrufe vor (Modus ohne Dateien, Probelauf am Stub ist schon in [slice-release-job-im-workflow-bauen](../done/slice-release-job-im-workflow-bauen.md) belegt) und nennt dem Nutzer Tag, Titel, Notiz je Version zur Bestätigung. (2) Nach der Bestätigung legt der Nutzer die beiden Seiten selbst an (`gh release create`; Entscheidung des Nutzers 2026-11-16); die Ausgabe wird gesichert. (3) Review in frischem Kontext, danach Verifier: liest die Seiten über die API, vergleicht die Tag-SHA. (4) Das Skript, die Vorlage und der Workflow bleiben unverändert.
 
 ## 4. Trigger
 

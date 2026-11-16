@@ -1,18 +1,22 @@
-# Veroeffentlichung der Bibliothek in GitHub Packages und Cloudsmith bei Tag-Push `v*` (TDS-RB-05, TDS-QA-06, ADR-0048,
-# ADR-0049). Kein Gate: `make publish` und `make publish-cloudsmith` stehen in keiner Gate-Liste, der Workflow ist kein
-# Eingang von `make gates` (ADR-0048 Entscheidung 3). Rang-Zeiger: Ablauf und Tag-Schutz in docs/maintainer/releasing.md,
-# Werkzeug-Zeilen in harness/README.md §Sensors.
+# Veroeffentlichung der Bibliothek in GitHub Packages und Cloudsmith und Release auf GitHub bei Tag-Push `v*` (TDS-RB-05,
+# TDS-QA-06, ADR-0048, ADR-0049, ADR-0050). Kein Gate: `make publish`, `make publish-cloudsmith` und `make release-dateien`
+# stehen in keiner Gate-Liste, der Workflow ist kein Eingang von `make gates` (ADR-0048 Entscheidung 3). Rang-Zeiger: Ablauf
+# und Tag-Schutz in docs/maintainer/releasing.md, Werkzeug-Zeilen in harness/README.md §Sensors.
 # Zwei Jobs veroeffentlichen, `publish` (GitHub Packages) und `publish-cloudsmith` (Cloudsmith); beide haengen an
 # `gates`, keiner an dem anderen, keiner hat `continue-on-error` (ADR-0049 Entscheidung 2a). Ein roter Job wird allein
 # wiederholt. `packages: write` steht nur in `publish`; die Werte von Cloudsmith stehen nur im `env:` des Schritts
-# `make publish-cloudsmith` (ADR-0049 Entscheidung 3a).
+# `make publish-cloudsmith` (ADR-0049 Entscheidung 3a). Der Job `release` haengt an beiden (`needs`) und legt das GitHub Release
+# an (ADR-0050 Entscheidung 1); das Schreibrecht auf Inhalte steht nur dort, das Token nur im `env:` des Schritts `gh release create`.
 # Kopplung: Job `gates` wiederholt Checkout und Aufruf aus .github/workflows/gates.yml; aendert sich dort einer
 # von beiden, wird er hier nachgezogen.
 # Grenzen: `make workflow-lint` prueft Syntax und Ausdruecke, nicht die SHA-Pins und nicht die Reihenfolge `gates` vor
-# beiden Veroeffentlichungs-Jobs, nicht die Bedingung und nicht, welcher Job welches Secret und welche Rechte hat;
-# das prueft der Review. Der Dispatch-Lauf baut die Stage `publish` ohne Token und ohne Netz zu GitHub Packages oder
-# Cloudsmith und fuehrt den Job `publish-cloudsmith` nach seiner Bedingung nicht aus (gelesen, nicht gemessen); das Schreiben mit GITHUB_TOKEN belegt der Tag-Lauf
-# 43699125460, das Schreiben nach Cloudsmith der Tag-Lauf 43734101990 (Version 0.1.1).
+# beiden Veroeffentlichungs-Jobs und beide vor `release`, nicht die Bedingung und nicht, welcher Job welches Secret und welche
+# Rechte hat; das prueft der Review, die Rechte, `needs` und den Ort des Tokens liest tools/release-anlegen-selbsttest.sh als Text.
+# Der Dispatch-Lauf baut die Stage `publish` ohne Token und ohne Netz zu GitHub Packages oder Cloudsmith und fuehrt die Jobs
+# `publish-cloudsmith` und `release` nach ihrer Bedingung nicht aus (gelesen, nicht gemessen); er fuehrt ausserdem
+# `make release-dateien VORSCHAU=1` aus, ohne Token und ohne `gh` (in der CI nicht gelaufen). Das Schreiben mit GITHUB_TOKEN belegt der
+# Tag-Lauf 43699125460, das Schreiben nach Cloudsmith der Tag-Lauf 43734101990 (Version 0.1.1).
+# Der Job `release` ist nie gelaufen: das Schreibrecht auf Inhalte, `gh` auf dem Runner und das Anlegen sind ungemessen.
 name: veroeffentlichung
 
 on:
@@ -96,7 +100,35 @@ jobs:
           CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
         run: make publish-cloudsmith
 
-  # Nur beim Dispatch: Bau der Stage `publish` und POM-Ausgabe, kein Token, nichts nach aussen.
+  # Nur der Tag-Push legt ein Release an, dieselbe Bedingung wie `publish`. Erst nach beiden Paketen; ein roter Paket-Job laesst
+  # den Job uebersprungen. Kein `continue-on-error`. Nur hier steht das Schreibrecht auf Inhalte; weder `packages: write` noch ein
+  # Cloudsmith-Secret. Bau und Pruefsummen laufen ohne Token; das Token steht nur im Schritt `gh release create`.
+  release:
+    needs: [publish, publish-cloudsmith]
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Tag-Commit liegt in origin/main
+        run: |
+          git merge-base --is-ancestor HEAD origin/main \
+            || { echo "veroeffentlichung: FEHLER - der Tag-Commit liegt nicht in origin/main" >&2; exit 1; }
+      - name: make release-dateien
+        run: make release-dateien
+      - name: Pruefsummen
+        run: cd release-dateien && sha256sum -c SHA256SUMS
+      - name: gh release create
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash tools/release-anlegen.sh --tag "$GITHUB_REF_NAME" --dateien release-dateien
+
+  # Nur beim Dispatch: Bau der Stage `publish` und POM-Ausgabe, Bau der Release-Dateien im Vorschau-Modus, kein Token, kein gh, nichts nach aussen.
   vorschau:
     needs: gates
     if: github.event_name == 'workflow_dispatch'
@@ -111,3 +143,5 @@ jobs:
           persist-credentials: false
       - name: make publish-vorschau
         run: make publish-vorschau
+      - name: make release-dateien VORSCHAU=1
+        run: make release-dateien VORSCHAU=1

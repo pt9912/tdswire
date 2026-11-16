@@ -1,1 +1,3 @@
 **Stand:** offen — 1×; unter der Schwelle, keine Regel. Gelernt und im Slice behoben (Selbsttest der Muster); die Grenze der Beispielzeilen steht in §7 der Closure-Notiz von [slice-betrieb-log-adapter-testserver](../../../done/slice-betrieb-log-adapter-testserver.md).
+
+**Wiederauftreten (slice-release-job-im-workflow-bauen):** Review F-1 (MEDIUM), Re-Review R-1 (MEDIUM), Re-Review 2 S-1 (LOW), Re-Review 3 T-1 (INFO): Mutationen am Workflow-Text liefen an einer zweiten Fassung der Prüfungen, drei Prüfungen hatten keine Gegenprobe, eine Probe konnte nie rot werden; die Schleife über die echten Dateien der Abwesenheitsprüfung bleibt ohne Gegenprobe. Stand `offen`; 2×, unter der Schwelle, nichts verkörpert.

@@ -91,7 +91,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Start** (`next` → `in-progress`): (1) [ADR-0050](../../adr/0050-github-release-im-tag-lauf.md) ist `Accepted` (erfüllt, 2026-11-16, in `main` gemergt). (2) Ein Verantwortlicher ist eingetragen. (3) Keine weitere Bedingung: der Slice schreibt nur ins Repo und liest Quellen im Netz.
 
-Reihenfolge der Reihe (die Abhängigkeiten stehen in jedem Slice in §4): **[slice-release-lizenzen-lib-belegen](slice-release-lizenzen-lib-belegen.md) → [slice-release-dateien-bauen](../done/slice-release-dateien-bauen.md) → [slice-release-job-im-workflow-bauen](../in-progress/slice-release-job-im-workflow-bauen.md) → [slice-release-im-tag-lauf-messen](../open/slice-release-im-tag-lauf-messen.md) → [slice-release-nachtraeglich-bestandstags](../open/slice-release-nachtraeglich-bestandstags.md)**. Dieser Slice ist der erste, weil [slice-release-dateien-bauen](../done/slice-release-dateien-bauen.md) seine Dateien als Eingang liest.
+Reihenfolge der Reihe (die Abhängigkeiten stehen in jedem Slice in §4): **[slice-release-lizenzen-lib-belegen](slice-release-lizenzen-lib-belegen.md) → [slice-release-dateien-bauen](../done/slice-release-dateien-bauen.md) → [slice-release-job-im-workflow-bauen](../done/slice-release-job-im-workflow-bauen.md) → [slice-release-im-tag-lauf-messen](../open/slice-release-im-tag-lauf-messen.md) → [slice-release-nachtraeglich-bestandstags](../open/slice-release-nachtraeglich-bestandstags.md)**. Dieser Slice ist der erste, weil [slice-release-dateien-bauen](../done/slice-release-dateien-bauen.md) seine Dateien als Eingang liest.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
