@@ -2,7 +2,7 @@
 
 **Lesung, keine Rechtsauskunft.** Dieser Beleg liest Lizenztexte und Projektangaben und legt die Lizenzdateien ab. Er sagt nicht, ob die Weitergabe im ZIP rechtlich genügt. Die Rechtsfrage aus [ADR-0018](../plan/adr/0018-laufzeit-artefakt.md) (Abschnitt „Offen“, Lizenzhinweise der gelieferten Bibliotheken) besteht weiter; Träger ist das Register [`BEO-TDS/lizenzhinweise-der-bibliotheken-rechtsfrage`](../plan/planning/observations/BEO-TDS/lizenzhinweise-der-bibliotheken-rechtsfrage/observation.md).
 
-Messprotokoll zu [TDS-RB-05](../../spec/lastenheft.md#tds-rb-05--lizenz) und [TDS-QA-06](../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) (`AGENTS.md` §5 Regel 7), Eingang des Anhangs von `lib/` nach [ADR-0050](../plan/adr/0050-github-release-im-tag-lauf.md) Entscheidung 3 und Mess-Pflicht 8; Slice [slice-release-lizenzen-lib-belegen](../plan/planning/in-progress/slice-release-lizenzen-lib-belegen.md). Die Aussagen tragen so weit wie die genannte Fundstelle ([`AGENTS.md`](../../AGENTS.md) §3.8); was nicht gelesen wurde, steht als „nicht gelesen“ da.
+Messprotokoll zu [TDS-RB-05](../../spec/lastenheft.md#tds-rb-05--lizenz) und [TDS-QA-06](../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) (`AGENTS.md` §5 Regel 7), Eingang des Anhangs von `lib/` nach [ADR-0050](../plan/adr/0050-github-release-im-tag-lauf.md) Entscheidung 3 und Mess-Pflicht 8; Slice [slice-release-lizenzen-lib-belegen](../plan/planning/done/slice-release-lizenzen-lib-belegen.md). Die Aussagen tragen so weit wie die genannte Fundstelle ([`AGENTS.md`](../../AGENTS.md) §3.8); was nicht gelesen wurde, steht als „nicht gelesen“ da.
 
 ## Bedingung der Messung
 

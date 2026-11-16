@@ -78,7 +78,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `docs/messungen/` (neues Messprotokoll zu den Lizenzen von `lib/`) | neu | erster Punkt der DoD; Datum, Host, Bedingung, Quellen mit Abrufdatum, offene Fragen |
 | Ablage der Lizenzdateien (Ort wählt der Implementer, siehe DoD) | neu | zweiter Punkt der DoD; Eingang des Bau-Slice |
 | `docs/plan/planning/observations/BEO-TDS/lizenzhinweise-der-bibliotheken-rechtsfrage/` | update | `state.md` und eine Datei in `evidence/`; kein Zähler |
-| `docs/plan/planning/in-progress/slice-release-lizenzen-lib-belegen.md` (dieser Slice, §7) | update | der Ablageort der Lizenzdateien steht in §7 (DoD zweiter Punkt); sonst keine Änderung am Plan |
+| `docs/plan/planning/done/slice-release-lizenzen-lib-belegen.md` (dieser Slice, §7) | update | der Ablageort der Lizenzdateien steht in §7 (DoD zweiter Punkt); sonst keine Änderung am Plan |
 | `docs/plan/planning/observations/BEO-TDS/lizenzhinweise-der-bibliotheken-rechtsfrage/observation.md` | update | die Aufzählung der gelieferten Bibliotheken nennt die dritte (annotations), nachgezogen nach Review F-5; Verifikation F-1 |
 | `docs/reviews/` (Review, Re-Review, Verifikation zu diesem Slice) | neu | Rollen-Berichte, keine Lieferung des Slice |
 

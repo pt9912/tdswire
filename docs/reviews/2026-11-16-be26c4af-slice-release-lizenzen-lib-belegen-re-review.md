@@ -8,7 +8,7 @@
 
 **Eingangs-Kontext:**
 
-- Slice [slice-release-lizenzen-lib-belegen](../plan/planning/in-progress/slice-release-lizenzen-lib-belegen.md) (§2, §3)
+- Slice [slice-release-lizenzen-lib-belegen](../plan/planning/done/slice-release-lizenzen-lib-belegen.md) (§2, §3)
 - [ADR-0050](../plan/adr/0050-github-release-im-tag-lauf.md) (Entscheidung 3, Mess-Pflicht 8), [ADR-0018](../plan/adr/0018-laufzeit-artefakt.md) (Offen)
 - [TDS-RB-05](../../spec/lastenheft.md#tds-rb-05--lizenz), [TDS-QA-06](../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit)
 - `AGENTS.md` 3.7, 3.8, 5; Erst-Review [2026-11-16-7559de60-slice-release-lizenzen-lib-belegen-review](2026-11-16-7559de60-slice-release-lizenzen-lib-belegen-review.md)
