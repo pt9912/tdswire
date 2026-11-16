@@ -56,7 +56,7 @@ Die Aussage ist ehrlich und im Skript, im Dokument (S8) genannt: Grenze je Conta
 | `tools/lasttest.sh`, `tools/lasttest-selbsttest.sh` | Host-Lauf des Selbsttests ok; keine Docker-Änderung außer COPY; Aufräumen und Wächter unverändert; geprüft, N-3 und N-4 |
 | `docs/messungen/lasttest-probe-2026-11-15.md` | alle neuen Zahlen mit Zeile oder Ableitung im Protokoll (63 s, 92 s, 3 %, 8,7 bis 10); kein neuer Erzeuger außerhalb des Repos; geprüft, ohne Befund |
 | `docs/plan/referenz-workload.md` | Kopf unverändert „Freigabe steht aus“, kein Haken in der DoD, Laufzeitzeile mit Belegzeilen; geprüft, N-1 |
-| `docs/plan/planning/in-progress/slice-qa-performance.md` | Haken zurückgenommen, Tabelle vollständig gegen `git diff --stat`; geprüft, ohne Befund |
+| `docs/plan/planning/done/slice-qa-performance.md` | Haken zurückgenommen, Tabelle vollständig gegen `git diff --stat`; geprüft, ohne Befund |
 | Zweite Fundstellen (Grep „Faktor 8“, „8 bis 9“, „63 s“, „einzige Erzeuger“, „gleich teuer“, „C gegen A-Import“) | keine alte Lesart außerhalb von `docs/reviews/` übrig, außer N-1; geprüft |
 | `docs/user/`, ADR-Bestand | im Diff nicht berührt; geprüft, ohne Befund |
 

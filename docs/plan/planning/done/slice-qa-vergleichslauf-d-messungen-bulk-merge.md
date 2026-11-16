@@ -43,7 +43,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Eine Änderung des Katalogs im Server dieses Repos nach dem Befund — der Befund ist Eingang eines Bau-Slice; ein Widerspruch zum Zielbild geht als Auftrag an den Nutzer (Spezifikation ist Zielbild).
 - Der Bau von Massenladen und MERGE im Server dieses Repos — [slice-schreibpfad-bulk-load](../done/slice-schreibpfad-bulk-load.md) und [slice-schreibpfad-merge-output](../done/slice-schreibpfad-merge-output.md); dieser Slice misst, er ändert weder Quelltext von `src/` noch die Spezifikation.
 - Ein Gate oder eine Aufnahme in `make gates` — der Vergleichslauf D bleibt lokal, ohne CI, mit EULA-Entscheidung des Nutzers ([ADR-0022](../../adr/0022-e2e-laeufe-nicht-in-den-gates.md): kein Gate); die Messdateien sind Belege, kein Sensor.
-- Last, Durchsatz und große Mengen — [slice-qa-performance](../in-progress/slice-qa-performance.md); die Messung trägt Form und Zähler, nicht Zeit.
+- Last, Durchsatz und große Mengen — [slice-qa-performance](../done/slice-qa-performance.md); die Messung trägt Form und Zähler, nicht Zeit.
 - Eine Aussage über andere Clients als den Referenzclient — der Referenzclient (`Microsoft.Data.SqlClient`) ist nicht d-migrate; die Messung trägt die Antwort auf den Text und die Pakete, die sie sendet.
 
 ## 2. Definition of Done

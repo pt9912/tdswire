@@ -31,9 +31,9 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Der freigegebene [Referenz-Workload](../../referenz-workload.md) läuft mit dem Werkzeug aus [slice-qa-performance](../in-progress/slice-qa-performance.md) in den Aufbauten B (Protokollschicht) und C (Gesamt): Zeilen/s je Richtung, p95 der Punktabfrage und die Staffel gleichzeitiger Sitzungen sind als Messzeilen mit Streuung und Bedingungen festgehalten.
+**Ziel:** Der freigegebene [Referenz-Workload](../../referenz-workload.md) läuft mit dem Werkzeug aus [slice-qa-performance](../done/slice-qa-performance.md) in den Aufbauten B (Protokollschicht) und C (Gesamt): Zeilen/s je Richtung, p95 der Punktabfrage und die Staffel gleichzeitiger Sitzungen sind als Messzeilen mit Streuung und Bedingungen festgehalten.
 
-**Übernimmt:** aus dem DoD-Punkt „Lasttest“ von [slice-qa-performance](../in-progress/slice-qa-performance.md) (Fassung vor der Zerlegung vom 2026-11-15) den Teil Durchsatz, p95-Latenz und gleichzeitige Sitzungen; der Rest liegt bei [slice-qa-performance-rueckstau](slice-qa-performance-rueckstau.md), [slice-qa-performance-heap-abschluss](slice-qa-performance-heap-abschluss.md) und [slice-qa-performance-grenzwerte](slice-qa-performance-grenzwerte.md).
+**Übernimmt:** aus dem DoD-Punkt „Lasttest“ von [slice-qa-performance](../done/slice-qa-performance.md) (Fassung vor der Zerlegung vom 2026-11-15) den Teil Durchsatz, p95-Latenz und gleichzeitige Sitzungen; der Rest liegt bei [slice-qa-performance-rueckstau](slice-qa-performance-rueckstau.md), [slice-qa-performance-heap-abschluss](slice-qa-performance-heap-abschluss.md) und [slice-qa-performance-grenzwerte](slice-qa-performance-grenzwerte.md).
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -73,7 +73,7 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| Läufe des Werkzeugs aus [slice-qa-performance](../in-progress/slice-qa-performance.md) (Stufen, Staffel, Wiederholungen) | update | Messung nach [TDS-QA-04](../../../../spec/lastenheft.md#tds-qa-04--performance), keine neue Mechanik |
+| Läufe des Werkzeugs aus [slice-qa-performance](../done/slice-qa-performance.md) (Stufen, Staffel, Wiederholungen) | update | Messung nach [TDS-QA-04](../../../../spec/lastenheft.md#tds-qa-04--performance), keine neue Mechanik |
 | `docs/messungen/performance-durchsatz-<datum>.md` | neu | Messprotokoll, Einzelmessung mit Datum, Host, Last (`AGENTS.md` §5 Regel 7) |
 | `docs/plan/referenz-workload.md` | update | Messzeilen und Zeilengröße auf dem Draht nachtragen, Setzungen, die die Messung widerlegt, ändern |
 
@@ -85,12 +85,12 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-qa-performance](../in-progress/slice-qa-performance.md) in `done/` (Werkzeug, Aufbauten A bis C, freigegebener Workload).
+**Start** (`next` → `in-progress`): [slice-qa-performance](../done/slice-qa-performance.md) in `done/` (Werkzeug, Aufbauten A bis C, freigegebener Workload).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): mehr als drei Liefer-Punkte in §2.
-- `in-progress` → `open` (blockiert — Carveout?): Das Werkzeug aus [slice-qa-performance](../in-progress/slice-qa-performance.md) liefert für eine Stufe keine wiederholbare Zahl (die Streuung überschreitet die Schwelle der Setzung S11 auf diesem Host, auch nach Verwerfen der Läufe unter Swap); dann steht die Stufe als „nicht belegt“ mit der Streuung im Protokoll, und ein Carveout oder ein Folge-Slice trägt die Umgebung (fester Runner, offene Frage O6 im Workload).
+- `in-progress` → `open` (blockiert — Carveout?): Das Werkzeug aus [slice-qa-performance](../done/slice-qa-performance.md) liefert für eine Stufe keine wiederholbare Zahl (die Streuung überschreitet die Schwelle der Setzung S11 auf diesem Host, auch nach Verwerfen der Läufe unter Swap); dann steht die Stufe als „nicht belegt“ mit der Streuung im Protokoll, und ein Carveout oder ein Folge-Slice trägt die Umgebung (fester Runner, offene Frage O6 im Workload).
 
 ## 5. Closure-Trigger
 

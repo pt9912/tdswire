@@ -1,6 +1,6 @@
 # Lasttest des Referenz-Workloads: Probe-Messzeilen vom 2026-11-15
 
-Messprotokoll zu [TDS-QA-04](../../spec/lastenheft.md#tds-qa-04--performance) (`AGENTS.md` §5 Regel 7), Träger: [slice-qa-performance](../plan/planning/in-progress/slice-qa-performance.md). Es ist eine **Einzelmessung eines Tages auf einem Host** und belegt nur, dass das Werkzeug `make lasttest` seine Aufbauten trennt und läuft. **Es ist kein Grenzwert und keine Messreihe**: die Messungen der Folge-Slices ([Referenz-Workload](../plan/referenz-workload.md) Abschnitt 7) stehen aus.
+Messprotokoll zu [TDS-QA-04](../../spec/lastenheft.md#tds-qa-04--performance) (`AGENTS.md` §5 Regel 7), Träger: [slice-qa-performance](../plan/planning/done/slice-qa-performance.md). Es ist eine **Einzelmessung eines Tages auf einem Host** und belegt nur, dass das Werkzeug `make lasttest` seine Aufbauten trennt und läuft. **Es ist kein Grenzwert und keine Messreihe**: die Messungen der Folge-Slices ([Referenz-Workload](../plan/referenz-workload.md) Abschnitt 7) stehen aus.
 
 ## Bedingungen
 

@@ -10,7 +10,7 @@ gezeigt, nicht als Treiber.
 
 ## Offene Wellen
 
-Arbeit: [slice-qa-performance](slice-qa-performance.md) (`welle-qualitaet-grundlage`; Workload, Werkzeug, E2E-Stufe; Worktree `slice-qa-performance`). Zuletzt geschlossen: [slice-cloudsmith-veroeffentlichung-0-1-1](../done/slice-cloudsmith-veroeffentlichung-0-1-1.md) (ohne Welle; `0.1.1` auf GitHub Packages und Cloudsmith aus Tag-Lauf 43734101990, anonymer Konsum über Cloudsmith gemessen, Konsum mit Token vom Nutzer 2026-11-15 nicht gewollt, ungemessen; Verifikation [2026-11-15-673bdb26](../../../reviews/2026-11-15-673bdb26-slice-cloudsmith-veroeffentlichung-0-1-1-verifikation.md)), davor [slice-cloudsmith-ziel-bauen](../done/slice-cloudsmith-ziel-bauen.md).
+Arbeit: [slice-qa-performance](../done/slice-qa-performance.md) (`welle-qualitaet-grundlage`; Workload, Werkzeug, E2E-Stufe; Worktree `slice-qa-performance`). Zuletzt geschlossen: [slice-cloudsmith-veroeffentlichung-0-1-1](../done/slice-cloudsmith-veroeffentlichung-0-1-1.md) (ohne Welle; `0.1.1` auf GitHub Packages und Cloudsmith aus Tag-Lauf 43734101990, anonymer Konsum über Cloudsmith gemessen, Konsum mit Token vom Nutzer 2026-11-15 nicht gewollt, ungemessen; Verifikation [2026-11-15-673bdb26](../../../reviews/2026-11-15-673bdb26-slice-cloudsmith-veroeffentlichung-0-1-1-verifikation.md)), davor [slice-cloudsmith-ziel-bauen](../done/slice-cloudsmith-ziel-bauen.md).
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte — *Offene Wellen* ist **derivativ**: Der
