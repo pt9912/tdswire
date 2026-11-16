@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** `SPEC-052` nur lesend (Manifest, `lib/`, Lizenz im Jar; die Spezifikation führt die Release-Form nicht, [ADR-0050](../../adr/0050-github-release-im-tag-lauf.md) schärft keine Spec-Stelle, am 2026-11-16 gelesen). Keine Spec-Änderung geplant.
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912.
 
 **Autor:** Planner-Agent, Auftrag des Nutzers 2026-11-16 nach [ADR-0050](../../adr/0050-github-release-im-tag-lauf.md) (`Accepted` 2026-11-16, Folgepflicht). **Datum:** 2026-11-16.
 
