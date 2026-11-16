@@ -44,7 +44,7 @@ Selbst gefahren (nur lesend): `make docs-check` (Exit 0, 1511 Dateien, 0 Befunde
 
 **Haken (Reviewer-Skill).** Im Diff steht kein `- [x]`; die DoD des Slice ist unverändert.
 
-**Plan-Tabelle §3 gegen `git diff --stat` (Frage 6).** Messprotokoll, Ablage (sechs Dateien unter `lizenzen/lib/`) und Register (`state.md`, eine Datei in `evidence/`) stehen in der Tabelle; zusätzlich der Slice selbst (F-4). Keine weitere Datei im Diff; `Dockerfile`, `tools/`, `releasing.md`, `harness/README.md`, `LICENSE`, `README.md`, `docs/user/` sind nicht berührt, wie Slice §1 und §2 sagen. Zweite Fundstelle der Kernaussagen („Artefakt führt keine Hinweise“ in `releasing.md` Schritt 7, ADR-0018 Offen, [slice-release-dateien-bauen](../plan/planning/open/slice-release-dateien-bauen.md)): Der Slice lässt sie nach Plan stehen (`releasing.md` wahr bis zum Bau; die ADR ist `Accepted` und bleibt); einzige Lücke F-5.
+**Plan-Tabelle §3 gegen `git diff --stat` (Frage 6).** Messprotokoll, Ablage (sechs Dateien unter `lizenzen/lib/`) und Register (`state.md`, eine Datei in `evidence/`) stehen in der Tabelle; zusätzlich der Slice selbst (F-4). Keine weitere Datei im Diff; `Dockerfile`, `tools/`, `releasing.md`, `harness/README.md`, `LICENSE`, `README.md`, `docs/user/` sind nicht berührt, wie Slice §1 und §2 sagen. Zweite Fundstelle der Kernaussagen („Artefakt führt keine Hinweise“ in `releasing.md` Schritt 7, [ADR-0018](../plan/adr/0018-laufzeit-artefakt.md) Offen, [slice-release-dateien-bauen](../plan/planning/open/slice-release-dateien-bauen.md)): Der Slice lässt sie nach Plan stehen (`releasing.md` wahr bis zum Bau; die ADR ist `Accepted` und bleibt); einzige Lücke F-5.
 
 ## Negativbefunde
 
