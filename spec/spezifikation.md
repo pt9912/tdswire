@@ -508,7 +508,7 @@ verifizieren.
   `TDS_UNSUPPORTED_TYPE`: kein gemessener Client sendet sie als RPC-Parameter, und kein gemessener Server beantwortet
   eine Anfrage dieses Servers mit ihnen.
 
-**RPC-Parametertypen (Eingabe, vom Referenzclient beobachtet):** `tinyint`/`smallint`/`int`/`bigint`
+**RPC-Parametertypen (Eingabe; vom Referenzclient beobachtet, MAX-Typen nur wie am Ende des Absatzes eingeschränkt):** `tinyint`/`smallint`/`int`/`bigint`
 als `INTN` (Länge 1/2/4/8); `float`/`real` als `FLTN`; `money`/`smallmoney` als `MONEYN`; `bit` als
 `BITN`; `decimal` als `NUMERICN` (Precision/Scale am Parameter, Vorzeichenbyte plus 16 Byte);
 `datetime`/`smalldatetime` als `DATETIMN`; `date`, `time`, `datetime2`, `datetimeoffset` als
@@ -2287,3 +2287,4 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | 2026-11-14 | Veröffentlichte Form der Bibliothek als Maven-Paket vorbereitet (`TDS-RB-05`, `TDS-QA-06`, `SPEC-052`, `SPEC-059`): Jar und POM mit den Abhängigkeiten neben `lib/` (`kotlinx-coroutines-core` mit dem Scope `compile`), POM im Bau erzeugt und geprüft (kein Jackson, kein Testserver, Lizenz MIT), Werkzeug `make publish-vorschau` und `make publish` außerhalb der Gates; Versionen vor `1.0` als `0.y.z` (Setzung); die Messungen am Probe-Konsumenten stehen im Messprotokoll vom 2026-11-14 (Einzelmessung, nicht gegen eine Registry); veröffentlicht ist noch nichts. |
 | 2026-11-16 | MAX-Typen (PLP) und NBCROW im Codec (`TDS-FA-05`, `TDS-QA-02`, `SPEC-003`, `SPEC-013`): der Encoder schreibt `nvarchar(max)`, `varchar(max)` und `varbinary(max)` in COLMETADATA, ROW und RETURNVALUE und NBCROW auf Anweisung des Aufrufers; der RPC-Parser liest die drei Typen als Parameter, SQL-Text und Deklarationsliste von `sp_executesql` und `sp_prepexec` als MAX sind gelesen (vorher als `SPEC-013` abgelehnt), `nvarchar(max)` als Wertparameter ist `UnicodeText`, `varchar(max)` und `varbinary(max)` als Wertparameter bleiben `SPEC-013`; `text`, `ntext` und `image` bleiben `TDS_UNSUPPORTED_TYPE` (kein gemessener Sender), `sql_variant` folgt in der nächsten Zeile |
 | 2026-11-16 | `sql_variant` im Encoder (Basistyp `int`, am echten Server gemessen) und `nvarchar(max)` als Wertparameter auf `UnicodeText` (`TDS-FA-05`, `SPEC-003`, `SPEC-013`; Entscheid des Nutzers 2026-11-16); `varchar(max)`, `varbinary(max)`, `text`, `ntext` und `image` bleiben `TDS_UNSUPPORTED_TYPE` beziehungsweise `SPEC-013` |
+| 2026-11-16 | Absatz „RPC-Parametertypen“: die Überschrift führt `beobachtet` nur mit der Einschränkung der MAX-Typen auf das Aufgezeichnete (Zielbild an den Beleg, Nutzerentscheidung 2026-11-16) |
