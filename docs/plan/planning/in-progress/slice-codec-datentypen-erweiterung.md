@@ -116,6 +116,7 @@ dasteht.
 - Es ist offen, ob der Referenzclient diese Formen in den gemessenen Szenarien sendet oder erwartet: das Clientprofil nennt sie als nicht gesendet oder ungemessen. Ohne Beleg ist der Slice Vorrat. — **Ausgang:** offen bis zur Closure; Träger `slice-qa-kompatibilitaet`.
 - Handvektoren für PLP und NBCROW sind eine Lesart von MS-TDS, keine Messung (`BEO-TDS/messung-am-echten-sql-server-fehlt`, `BEO-TDS/aussagen-ueber-messung-hinaus`). — **Ausgang:** offen bis zur Closure.
 - Strenge der statischen Analyse: weitere Typen vergrößern die `when`-Blöcke des Encoders; die Abhilfe ist Zerlegung im Code. — **Ausgang:** offen bis zur Closure.
+- Zielbild-Anpassung nach Nutzerentscheidung 2026-11-16: als in Anfragen des Referenzclients beobachtet führen Spec (`SPEC-003`, Absatz „RPC-Parametertypen“) und Matrix nur `nvarchar(max)` (TYPE_INFO `E7 FF FF`, `zusatz-unprepare-curcmd`); `varchar(max)`, `varbinary(max)` und `xml` sind Handvektor. — **Ausgang:** entfallen (entschieden und nachgezogen).
 - Größe: drei Liefer-Punkte. — **Ausgang:** offen bis zur Closure; Rückführung und Schnitt in §4.
 
 ## 7. Closure-Notiz

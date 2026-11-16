@@ -515,8 +515,10 @@ als `INTN` (Länge 1/2/4/8); `float`/`real` als `FLTN`; `money`/`smallmoney` als
 `DATEN`/`TIMEN`/`DATETIME2N`/`DATETIMEOFFSETN` (Scale 7); `uniqueidentifier` als `GUID`;
 `char`/`varchar` als `BIGCHAR`/`BIGVARCHAR` mit Collation; `nchar`/`nvarchar` als `NCHAR`/`NVARCHAR`
 mit Collation (`maxlen` = 2 × Zeichenzahl der Deklaration); `binary`/`varbinary` als
-`BIGBINARY`/`BIGVARBINARY`; `xml` als `XML` ohne Schema. MAX-Typen (`nvarchar(max)`, `varchar(max)`,
-`varbinary(max)`, `xml`) tragen Länge `0xFFFF` und PLP. NULL ist der Sentinel des Typs (Länge 0 bei
+`BIGBINARY`/`BIGVARBINARY`. `nvarchar(max)` trägt Länge `0xFFFF` und PLP (aufgezeichnet ist die TYPE_INFO `E7 FF FF`,
+16-mal in `zusatz-unprepare-curcmd`, Instanzen 2022 und 2025; der Wertkörper in Anfragerichtung ist nicht gemessen).
+Nicht aufgezeichnet und Handvektor nach `MS-TDS`: `varchar(max)` und `varbinary(max)` (Länge `0xFFFF`, PLP) und `xml`
+(`XML` ohne Schema); die Einschränkung ist eine Anpassung des Zielbilds an den Beleg (Nutzerentscheidung 2026-11-16). NULL ist der Sentinel des Typs (Länge 0 bei
 `INTN`, `NUMERICN`, `GUID`, `DATETIME2N`; `0xFFFF` bei `NVARCHAR`, `BIGVARBINARY`); ein leerer String
 hat Länge 0 und ist nicht NULL. Nicht gemessen: `text`, `ntext`, `image`, `sql_variant`, UDT, `json`,
 Table-Valued-Parameter und OUTPUT für `varchar(max)`, `xml` und Datumstypen.
