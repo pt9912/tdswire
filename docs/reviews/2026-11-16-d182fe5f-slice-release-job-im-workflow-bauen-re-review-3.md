@@ -6,7 +6,7 @@
 
 **Skill:** `.harness/skills/reviewer.md` · **Modell:** claude-sonnet-5-5 · **Datum:** 2026-11-16
 
-**Eingangs-Kontext:** Slice [slice-release-job-im-workflow-bauen](../plan/planning/in-progress/slice-release-job-im-workflow-bauen.md); [ADR-0050](../plan/adr/0050-github-release-im-tag-lauf.md), [ADR-0024](../plan/adr/0024-lokale-stempel-zwei-klassen.md); [TDS-RB-05](../../spec/lastenheft.md#tds-rb-05--lizenz), [TDS-QA-06](../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit); `AGENTS.md` 3.7, 3.8.
+**Eingangs-Kontext:** Slice [slice-release-job-im-workflow-bauen](../plan/planning/done/slice-release-job-im-workflow-bauen.md); [ADR-0050](../plan/adr/0050-github-release-im-tag-lauf.md), [ADR-0024](../plan/adr/0024-lokale-stempel-zwei-klassen.md); [TDS-RB-05](../../spec/lastenheft.md#tds-rb-05--lizenz), [TDS-QA-06](../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit); `AGENTS.md` 3.7, 3.8.
 
 **Selbst gefahren (nur enge Läufe, nichts nach außen):** `docker build --no-cache --target skript-selbsttest .` (Exit 0, `release-anlegen-selbsttest: gruen`, frisch); `make workflow-lint` (Exit 0); `bash tools/release-anlegen-selbsttest.sh` im Scratchpad (grün); acht Mutationen einer Kopie des Selbsttests (unten); `make docs-check` nach diesem Report. Kein `clean-build`, kein `e2e`, keine Last, kein `gh`.
 
