@@ -7,3 +7,5 @@
 **Kein Sensor, akzeptiertes Negativ:** Ob ein Commit Code ändert oder nur Doku korrigiert, folgt nicht aus dem Pfad (ein Skript unter `tools/`, ein Kommentar im Quelltext, eine Doku im Code-Verzeichnis); ob ein Re-Review „in frischem Kontext“ lief, steht in keinem maschinenlesbaren Feld. Ein Abgleich Commit-Liste gegen Review-Reports wäre ein Wächter, der entweder alles meldet oder die Entscheidung rät. Die Regel ruht auf dem Reviewer-Punkt und dem Vermerk der Closure; wer den Vermerk nicht schreibt, wird nicht erwischt.
 
 **Steering-Loop-Eintrag:** Der Herkunfts-Anker lautet `seit slice-antwort-tokens-an-messung-angleichen` (die Welle-Closure ist nicht abgewartet; der Lese-Schritt ist durch den Nutzerentscheid vorgezogen). Die Anker-Paarung sucht die Ziele ab Repo-Wurzel und findet den Anker in allen drei Dateien. Grenze: der Sensor erzwingt den Anker nur für deklarierte Regeln.
+
+**Wiederauftreten (slice-release-dateien-bauen):** Verifikation F-2: `08fba8d3` ändert Skripte nach dem Re-Review ohne dritten Review; Vermerk in §7. Die Regel bleibt (der Verifier fing den Fall, Retirement-Check: wieder aufgetreten).

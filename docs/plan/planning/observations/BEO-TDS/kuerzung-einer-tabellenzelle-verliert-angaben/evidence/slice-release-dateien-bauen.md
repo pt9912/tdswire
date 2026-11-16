@@ -1,0 +1,3 @@
+**Vorgang:** [slice-release-dateien-bauen](../../../../done/slice-release-dateien-bauen.md)
+**Fund:** [Review](../../../../../../reviews/2026-11-16-b50561eb-slice-release-dateien-bauen-review.md) F-4 (MEDIUM); [Re-Review](../../../../../../reviews/2026-11-16-bc7a8343-slice-release-dateien-bauen-re-review.md) F-4 (fünf Angaben wiederhergestellt, zwei Kürzungen offen, N-6); [Verifikation](../../../../../../reviews/2026-11-16-08fba8d3-slice-release-dateien-bauen-verifikation.md) F-3 (LOW): die Kürzung von „`e2e.sh` bricht an roter Stufe“ ist geblieben, Entscheidung beim Nutzer oder Planner.
+**Stand:** offen, siehe `state.md` der Klasse.
