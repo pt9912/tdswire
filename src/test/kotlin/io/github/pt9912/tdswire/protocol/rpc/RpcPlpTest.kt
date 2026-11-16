@@ -17,8 +17,9 @@ import kotlin.test.assertIs
  * Messung eines Clients; *gemessen (Layout)* heißt, dass die Bytes des PLP-Körpers ein echter SQL Server in der
  * Antwortrichtung geschrieben hat (`referenztest-dotnet/Mitschnitt/messung/bulk-merge-katalog/2022/
  * katalog-abfragen.messung`, Zeile 64; ein Client sendet in dieser Richtung nicht gemessen); *Festlegung* ist eine
- * Setzung dieses Parsers. Die TYPE_INFO mit Länge `0xFFFF` ist am Referenzclient beobachtet (`SPEC-003`:
- * `nvarchar(max)`, `varchar(max)`, `varbinary(max)` und `xml`); der Wertkörper in Anfragerichtung ist nicht gemessen.
+ * Setzung dieses Parsers. In Anfragen des Referenzclients aufgezeichnet ist nur die TYPE_INFO `E7 FF FF` von
+ * `nvarchar(max)` (`zusatz-unprepare-curcmd.messung`, beide Instanzen); `varchar(max)` und `varbinary(max)` sind
+ * Handvektor, der Wertkörper in Anfragerichtung ist nicht gemessen.
  */
 class RpcPlpTest {
     private val coll = RpcVectors.COLLATION
