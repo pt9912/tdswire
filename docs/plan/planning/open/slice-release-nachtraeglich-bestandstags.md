@@ -80,7 +80,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `docs/messungen/` (kurzes Messprotokoll zu den zwei Seiten) | neu | zweiter Punkt der DoD |
 | `docs/maintainer/releasing.md` | update | Zustand der Release-Seiten, soweit die Anleitung ihn nennt |
 
-**Ablauf:** (1) Implementer bereitet die beiden Aufrufe vor (Modus ohne Dateien, Probelauf am Stub ist schon in [slice-release-job-im-workflow-bauen](slice-release-job-im-workflow-bauen.md) belegt) und nennt dem Nutzer Tag, Titel, Notiz je Version zur Bestätigung. (2) Nach der Bestätigung legt der Nutzer (oder auf seine Anweisung der Implementer) die Seiten an; die Ausgabe wird gesichert. (3) Review in frischem Kontext, danach Verifier: liest die Seiten über die API, vergleicht die Tag-SHA. (4) Das Skript, die Vorlage und der Workflow bleiben unverändert.
+**Ablauf:** (1) Implementer bereitet die beiden Aufrufe vor (Modus ohne Dateien, Probelauf am Stub ist schon in [slice-release-job-im-workflow-bauen](slice-release-job-im-workflow-bauen.md) belegt) und nennt dem Nutzer Tag, Titel, Notiz je Version zur Bestätigung. (2) Nach der Bestätigung legt der Nutzer die beiden Seiten selbst an (`gh release create`; Entscheidung des Nutzers 2026-11-16); die Ausgabe wird gesichert. (3) Review in frischem Kontext, danach Verifier: liest die Seiten über die API, vergleicht die Tag-SHA. (4) Das Skript, die Vorlage und der Workflow bleiben unverändert.
 
 ## 4. Trigger
 
