@@ -14,6 +14,11 @@
 # Dazu: das echte lizenzen/lib fuehrt genau die sieben Dateien der Sollmenge; die Stage `release-dateien` des Dockerfile
 # ruft die Skripte auf; das Make-Fragment exportiert per --output type=local und mountet nichts; `release-dateien` steht in
 # keiner Gate-Liste und nicht in tools/mk/e2e.mk (je eine Gegenprobe an einer Kopie).
+# Modus --vorschau (ADR-0050 Entscheidung 6): erlaubt -SNAPSHOT, nennt das ZIP immer ...-vorschau.zip, auch bei einer Release-Version;
+# Fall mit Jackson bleibt rot; ohne den Modus bricht -SNAPSHOT weiter; --nur-version prueft nur die Version; das Make-Target ruft
+# diese Pruefung vor `docker build`. Zwei Zeilen `version =` in build.gradle.kts und eine Klasse des Testservers im Jar sind rote Faelle.
+# Die Sollmenge der sieben Dateien ist ein Vorschlag des Implementers (offene Fragen 2a bis 2c des Belegs unbeantwortet, der Nutzer
+# entscheidet vor dem Messslice); der Test haelt sie nur gegen das Verzeichnis lizenzen/lib, nicht gegen eine Entscheidung.
 # Grenze: der Lauf der Stage selbst (Export, Version aus dem echten build.gradle.kts, Docker) ist nicht Gegenstand; ihn belegt
 # `make release-dateien`. Ob die Lizenzdateien rechtlich genuegen, sieht der Test nicht.
 #
@@ -41,21 +46,26 @@ anzahl=$(find "$echtes_lizenzen" -type f | wc -l)
 VERSION=1.2.3
 MANIFEST_EXTRA=
 JAR_LIZENZ=
+JAR_EXTRA=
+FLAG=
+GRADLE_ZUSATZ=
 LIBS="kotlin-stdlib-2.4.10.jar kotlinx-coroutines-core-jvm-1.10.1.jar annotations-23.0.0.jar"
 CLASS_PATH="lib/kotlin-stdlib-2.4.10.jar lib/kotlinx-coroutines-core-jvm-1.10.1.jar lib/annotations-23.0.0.jar"
 eingang() {
   d="$tmp/$1"
   mkdir -p "$d/libs/lib" "$d/inhalt/META-INF"
   printf 'MIT License, Testtext\n' > "$d/LICENSE"
+  if [ -n "$JAR_EXTRA" ]; then mkdir -p "$d/inhalt/$(dirname "$JAR_EXTRA")"; : > "$d/inhalt/$JAR_EXTRA"; fi
   if [ -n "$JAR_LIZENZ" ]; then printf '%s\n' "$JAR_LIZENZ" > "$d/inhalt/META-INF/LICENSE"; else cp "$d/LICENSE" "$d/inhalt/META-INF/LICENSE"; fi
   { printf 'Class-Path: %s\n' "$CLASS_PATH"; [ -z "$MANIFEST_EXTRA" ] || printf '%s\n' "$MANIFEST_EXTRA"; } > "$d/mf"
   jar --create --file "$d/libs/tdswire.jar" --manifest "$d/mf" -C "$d/inhalt" . > /dev/null
   for j in $LIBS; do : > "$d/libs/lib/$j"; done
   cp -R "$echtes_lizenzen" "$d/lizenzen"
   if [ -n "$VERSION" ]; then printf 'group = "x"\nversion = "%s"\n' "$VERSION" > "$d/build.gradle.kts"; else printf 'group = "x"\n' > "$d/build.gradle.kts"; fi
+  if [ -n "$GRADLE_ZUSATZ" ]; then printf '%s\n' "$GRADLE_ZUSATZ" >> "$d/build.gradle.kts"; fi
 }
 zuruecksetzen() {
-  VERSION=1.2.3; MANIFEST_EXTRA=; JAR_LIZENZ=
+  VERSION=1.2.3; MANIFEST_EXTRA=; JAR_LIZENZ=; JAR_EXTRA=; FLAG=; GRADLE_ZUSATZ=
   LIBS="kotlin-stdlib-2.4.10.jar kotlinx-coroutines-core-jvm-1.10.1.jar annotations-23.0.0.jar"
   CLASS_PATH="lib/kotlin-stdlib-2.4.10.jar lib/kotlinx-coroutines-core-jvm-1.10.1.jar lib/annotations-23.0.0.jar"
 }
@@ -65,7 +75,7 @@ zuruecksetzen() {
 lauf() {
   name="$1"; soll="$2"; muster="$3"; d="$tmp/$name"
   ist=0
-  sh "$dateien" "$d/libs" "$d/lizenzen" "$d/LICENSE" "$d/build.gradle.kts" "$d/aus" > "$d/ausgabe.txt" 2>&1 || ist=$?
+  sh "$dateien" $FLAG "$d/libs" "$d/lizenzen" "$d/LICENSE" "$d/build.gradle.kts" "$d/aus" > "$d/ausgabe.txt" 2>&1 || ist=$?
   [ "$ist" -eq "$soll" ] || pruefe "$name: Exit $ist statt $soll ($(tr '\n' ' ' < "$d/ausgabe.txt"))"
   if [ "$soll" -eq 1 ]; then
     grep -qF -- "$muster" "$d/ausgabe.txt" || pruefe "$name: die Meldung nennt [$muster] nicht ($(tr '\n' ' ' < "$d/ausgabe.txt"))"
@@ -115,6 +125,33 @@ eingang version-fehlt; lauf version-fehlt 1 "nennt keine Version"
 zuruecksetzen; eingang ausgabe-belegt
 mkdir "$tmp/ausgabe-belegt/aus"; : > "$tmp/ausgabe-belegt/aus/alt"
 lauf ausgabe-belegt 1 "nicht leer"
+zuruecksetzen; JAR_EXTRA=io/github/pt9912/tdswire/testserver/MainKt.class
+eingang testserver-im-jar; lauf testserver-im-jar 1 "Klassen des Testservers"
+zuruecksetzen; GRADLE_ZUSATZ='version = "1.2.4"'
+eingang version-doppelt; lauf version-doppelt 1 "mehr als eine Zeile version"
+
+# Modus --vorschau.
+zuruecksetzen; VERSION=1.2.3-SNAPSHOT; FLAG=--vorschau
+eingang vorschau-snapshot; lauf vorschau-snapshot 0 ""
+[ -f "$tmp/vorschau-snapshot/aus/tdswire-1.2.3-SNAPSHOT-vorschau.zip" ] || pruefe "vorschau-snapshot: tdswire-1.2.3-SNAPSHOT-vorschau.zip liegt nicht in der Ausgabe"
+[ "$(ls "$tmp/vorschau-snapshot/aus" | wc -l)" -eq 3 ] || pruefe "vorschau-snapshot: die Ausgabe fuehrt nicht drei Dateien"
+grep -q 'VORSCHAU' "$tmp/vorschau-snapshot/ausgabe.txt" || pruefe "vorschau-snapshot: die Ausgabe nennt die Vorschau nicht"
+zuruecksetzen; FLAG=--vorschau
+eingang vorschau-release-version; lauf vorschau-release-version 0 ""
+[ -f "$tmp/vorschau-release-version/aus/tdswire-1.2.3-vorschau.zip" ] || pruefe "vorschau-release-version: der Marker fehlt bei einer Release-Version"
+[ ! -f "$tmp/vorschau-release-version/aus/tdswire-1.2.3.zip" ] || pruefe "vorschau-release-version: ein ZIP ohne Marker liegt in der Ausgabe"
+zuruecksetzen; VERSION=1.2; FLAG=--vorschau
+eingang vorschau-form; lauf vorschau-form 1 "nicht die Form"
+zuruecksetzen; FLAG=--vorschau; VERSION=1.2.3-SNAPSHOT; LIBS="$LIBS jackson-core-2.17.0.jar"; CLASS_PATH="$CLASS_PATH lib/jackson-core-2.17.0.jar"
+eingang vorschau-jackson; lauf vorschau-jackson 1 "lib/ fuehrt Jackson"
+zuruecksetzen; VERSION=1.2.3-SNAPSHOT
+eingang ohne-vorschau-snapshot; lauf ohne-vorschau-snapshot 1 "endet auf -SNAPSHOT"
+# --nur-version: Version pruefen, ohne Archiv.
+nurv() { ist=0; sh "$dateien" $2 --nur-version "$tmp/$1/build.gradle.kts" > "$tmp/$1/nurv.txt" 2>&1 || ist=$?; [ "$ist" -eq "$3" ] || pruefe "--nur-version $1 $2: Exit $ist statt $3"; }
+nurv gut "" 0
+nurv ohne-vorschau-snapshot "" 1
+nurv ohne-vorschau-snapshot --vorschau 0
+nurv version-form --vorschau 1
 
 # Rote Faelle am fertigen Archiv.
 # archiv <name>: kopiert die Ausgabe des Gutfalls nach $tmp/<name>/aus.
@@ -167,6 +204,14 @@ archiv zip-kaputt
 printf 'kein zip' > "$tmp/zip-kaputt/aus/tdswire-1.2.3.zip"; summen zip-kaputt
 archivlauf zip-kaputt "laesst sich nicht entpacken"
 
+# Ausgabe eines Vorschau-Laufs: die Pruefung ohne --vorschau weist das ZIP mit Marker ab, mit --vorschau nimmt sie es an.
+ist=0; sh "$pruefung" "$tmp/vorschau-release-version/aus" "$tmp/vorschau-release-version/LICENSE" 1.2.3 > "$tmp/vorschau-ohne-flag.txt" 2>&1 || ist=$?
+[ "$ist" -eq 1 ] || pruefe "Vorschau-Ausgabe ohne --vorschau geprueft: Exit $ist statt 1"
+ist=0; sh "$pruefung" --vorschau "$tmp/vorschau-release-version/aus" "$tmp/vorschau-release-version/LICENSE" 1.2.3 > /dev/null 2>&1 || ist=$?
+[ "$ist" -eq 0 ] || pruefe "Vorschau-Ausgabe mit --vorschau geprueft: Exit $ist statt 0"
+ist=0; sh "$pruefung" --vorschau "$tmp/gut/aus" "$tmp/gut/LICENSE" 1.2.3 > /dev/null 2>&1 || ist=$?
+[ "$ist" -eq 1 ] || pruefe "Ausgabe ohne Marker mit --vorschau geprueft: Exit $ist statt 1"
+
 # Aufruffehler.
 ist=0; sh "$dateien" > /dev/null 2>&1 || ist=$?
 [ "$ist" -eq 2 ] || pruefe "release-dateien.sh ohne Argument: Exit $ist statt 2"
@@ -175,7 +220,7 @@ ist=0; sh "$pruefung" > /dev/null 2>&1 || ist=$?
 
 # Dockerfile: die Stage ruft das Eingangsskript, der Export steht in einer eigenen Stage von scratch.
 dockerfile="$wurzel/Dockerfile"
-aufruf=$(awk '/^FROM /{stage=$0} stage ~ / AS release-dateien$/ && /^RUN sh tools\/release-dateien\.sh build\/libs lizenzen\/lib LICENSE build\.gradle\.kts build\/release-dateien$/ {n++} END {print n+0}' "$dockerfile")
+aufruf=$(awk '/^FROM /{stage=$0} stage ~ / AS release-dateien$/ && /^RUN sh tools\/release-dateien\.sh \$RELEASE_VORSCHAU build\/libs lizenzen\/lib LICENSE build\.gradle\.kts build\/release-dateien$/ {n++} END {print n+0}' "$dockerfile")
 [ "$aufruf" -eq 1 ] || pruefe "das Dockerfile ruft tools/release-dateien.sh in der Stage release-dateien $aufruf mal auf statt einmal"
 grep -q '^FROM build-jar AS release-dateien$' "$dockerfile" || pruefe "die Stage release-dateien erbt nicht von build-jar"
 grep -q '^FROM scratch AS release-dateien-export$' "$dockerfile" || pruefe "die Stage release-dateien-export fehlt oder erbt nicht von scratch"
@@ -187,7 +232,11 @@ fragment_fehler() {
   grep -q -- '--target release-dateien-export' "$1" || echo "nicht --target release-dateien-export"
   if grep -Eq -- '(^|[[:space:]])(-v|--volume|--mount)([[:space:]=]|$)|docker (run|cp|create)' "$1"; then echo "mountet oder kopiert aus einem Container"; fi
 }
+reihenfolge() { awk '/^\t.*--nur-version/ && !v { v = NR } /^\t.*docker build/ && !d { d = NR } END { if (v && d && v < d) print "ok" }' "$1"; }
 [ -f "$mk" ] || pruefe "tools/mk/release-dateien.mk liegt nicht"
+[ "$(reihenfolge "$mk")" = ok ] || pruefe "tools/mk/release-dateien.mk prueft die Version nicht vor docker build"
+sed 's|--nur-version|--version-egal|' "$mk" > "$tmp/mk-ohne-version"
+[ "$(reihenfolge "$tmp/mk-ohne-version")" != ok ] || pruefe "Gegenprobe: eine fehlende Versionspruefung vor docker build wird nicht gefunden"
 [ -z "$(fragment_fehler "$mk")" ] || pruefe "tools/mk/release-dateien.mk: $(fragment_fehler "$mk")"
 sed 's|--output type=local,dest=|--output type=tar,dest=|' "$mk" > "$tmp/mk-ohne-output"
 [ -n "$(fragment_fehler "$tmp/mk-ohne-output")" ] || pruefe "Gegenprobe: ein Export ohne type=local wird nicht gefunden"
@@ -216,4 +265,4 @@ for fall in checks stage e2e; do
 done
 
 [ "$fehler" -eq 0 ] || exit 1
-echo "release-selbsttest: ok (ein Gutfall mit drei Dateien, dreizehn rote Faelle am Eingang, acht am fertigen Archiv, zwei Aufruffehler, Sollmenge gegen lizenzen/lib, Stage und Export im Dockerfile, Make-Fragment ohne Mount mit zwei Gegenproben, Abwesenheit in Gate-Listen und e2e.mk mit drei Gegenproben)"
+echo "release-selbsttest: ok (ein Gutfall mit drei Dateien, fuenfzehn rote Faelle am Eingang, acht am fertigen Archiv, vier Faelle des Modus --vorschau, vier der Option --nur-version, zwei Aufruffehler, Sollmenge gegen lizenzen/lib, Stage und Export im Dockerfile, Make-Fragment ohne Mount mit zwei Gegenproben, Abwesenheit in Gate-Listen und e2e.mk mit drei Gegenproben)"

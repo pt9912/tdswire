@@ -2,8 +2,9 @@
 # release-pruefung.sh — prueft die Release-Dateien am ENTPACKTEN ZIP, nicht am Baum davor (TDS-RB-05, TDS-QA-06, ADR-0050
 # Entscheidungen 2 und 3, Mess-Pflichten 5 und 8). Aufrufer: tools/release-dateien.sh (Dockerfile, Stage `release-dateien`).
 #
-# Aufruf: release-pruefung.sh <ausgabe-verzeichnis> <LICENSE-datei> <version>
-# Das Ausgabe-Verzeichnis fuehrt genau drei Dateien: tdswire-<version>.zip, tdswire.jar und SHA256SUMS. Exit 1 bei einem
+# Aufruf: release-pruefung.sh [--vorschau] <ausgabe-verzeichnis> <LICENSE-datei> <version>
+# Das Ausgabe-Verzeichnis fuehrt genau drei Dateien: tdswire-<version>.zip, tdswire.jar und SHA256SUMS; mit --vorschau heisst das
+# ZIP tdswire-<version>-vorschau.zip (der Modus aendert sonst nichts an den Pruefungen). Exit 1 bei einem
 # Befund, 2 bei falschem Aufruf. Geprueft wird:
 #  - SHA256SUMS nennt genau tdswire-<version>.zip und tdswire.jar, und `sha256sum -c` ist gruen;
 #  - das ZIP wird in ein leeres Verzeichnis entpackt, dort laeuft tools/manifest-pruefung.sh --ohne-pom (keine Main-Class,
@@ -13,20 +14,23 @@
 #  - die Sollmenge der Lizenz- und Hinweisdateien (sieben, Liste unten) liegt im ZIP unter lizenzen/lib/ und ist nicht leer;
 #  - zu jedem Jar in lib/ gibt es ein Verzeichnis lizenzen/lib/<Gruppe>-<Name ohne .jar> mit einer nicht leeren LICENSE.txt:
 #    eine neue Bibliothek ohne Verzeichnis bricht den Lauf.
-# Die Sollmenge ist die Lizenz- und Hinweisdateien-Liste des Belegs docs/messungen/lizenzen-lib-2026-11-16.md (Ablage
-# lizenzen/lib/); sie steht hier von Hand, und tools/release-selbsttest.sh haelt sie gegen das Verzeichnis lizenzen/lib des Repos.
+# Die Sollmenge ist ein Vorschlag des Implementers: sie umfasst alle sieben Dateien der Ablage lizenzen/lib/ des Belegs
+# docs/messungen/lizenzen-lib-2026-11-16.md; die offenen Fragen 2a bis 2c des Belegs sind unbeantwortet, der Nutzer entscheidet
+# vor dem Messslice. Die Liste steht hier von Hand, und tools/release-selbsttest.sh haelt sie gegen das Verzeichnis lizenzen/lib des Repos.
 # Grenze: geprueft werden Namen, Gleichheit und Nicht-Leere der Dateien, nicht ihr Inhalt und nicht, ob die Lizenz die
 # Weitergabe so erlaubt (Rechtsfrage, ADR-0050 Entscheidung 3); andere Hinweisdateien als die der Sollmenge sieht die Pruefung
 # nicht; ob zwei Laeufe dasselbe ZIP liefern, ist nicht zugesagt.
 # Braucht sh, unzip, sha256sum, cmp, mktemp, ls, sort (die Stage erbt sie von `basis`).
 set -eu
 
-[ "$#" -eq 3 ] || { echo "Aufruf: $0 <ausgabe-verzeichnis> <LICENSE-datei> <version>" >&2; exit 2; }
+marke=
+if [ "${1:-}" = "--vorschau" ]; then marke=-vorschau; shift; fi
+[ "$#" -eq 3 ] || { echo "Aufruf: $0 [--vorschau] <ausgabe-verzeichnis> <LICENSE-datei> <version>" >&2; exit 2; }
 aus="$1"
 lizenz="$2"
 version="$3"
 skript=$(dirname "$0")
-zip="tdswire-$version.zip"
+zip="tdswire-$version$marke.zip"
 
 fehler=0
 melde() { echo "release-pruefung: FEHLER - $1" >&2; fehler=1; }

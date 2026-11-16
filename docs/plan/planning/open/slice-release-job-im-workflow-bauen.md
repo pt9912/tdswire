@@ -48,7 +48,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 | Stelle | Code angleichen | Zielbild anpassen | Entscheid |
 |---|---|---|---|
-| [`releasing.md`](../../../maintainer/releasing.md) Schritt 8 und 9, §Veröffentlichen in der CI (Jobs, Rechte, Teilfehler), §Tag-Schutz (neues Recht `contents: write`), §Offene Entscheidungen („Weg für Jar und `lib/` ohne Registry zurückgestellt“) | Sätze nachziehen, im Zustand „gebaut, nicht gelaufen“; die Teilfehler-Anleitung für `release` steht als Absicht, nicht als Messung | — | Nachzug, nichts zu entscheiden |
+| [`releasing.md`](../../../maintainer/releasing.md) Schritt 8 und 9, §Veröffentlichen in der CI (Jobs, Rechte, Teilfehler), §Tag-Schutz (neues Recht `contents: write`), §Offene Entscheidungen (der Satz „Weg für Jar und `lib/` ohne Registry zurückgestellt“ ist durch [slice-release-dateien-bauen](../in-progress/slice-release-dateien-bauen.md) schon ersetzt: dort steht nur noch die Software-Stückliste als zurückgestellt, und „Nicht Teil dieses Ablaufs“ nennt das Anlegen des GitHub Release als „nicht gebaut“; hier nur noch auf „gebaut, nicht gelaufen“ heben) | Sätze nachziehen, im Zustand „gebaut, nicht gelaufen“; die Teilfehler-Anleitung für `release` steht als Absicht, nicht als Messung | — | Nachzug, nichts zu entscheiden |
 | [`harness/README.md`](../../../../harness/README.md) §Sensors: Zeile `.github/workflows/veroeffentlichung.yml` (Job `release`, nie gelaufen), Zeile `make skript-selbsttest`, neue Zeile für das Eingangsskript, falls es ein Make-Target bekommt | Zeilen nachziehen, Bindung [ADR-0050](../../adr/0050-github-release-im-tag-lauf.md) | — | Nachzug, nichts zu entscheiden |
 | [TDS-QA-06](../../../../spec/lastenheft.md#tds-qa-06--reproduzierbarkeit) (Veröffentlichen braucht Netz und Schlüssel, ist nicht wiederholbar) | Veröffentlichen bleibt Werkzeug außerhalb der Gates, Bau in Docker | — | unverändert |
 
@@ -88,7 +88,7 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `.github/workflows/veroeffentlichung.yml` | update | Job `release`, Schritt in `vorschau`, Kopfkommentar um das dritte Ziel und die Grenze des Linters |
+| `.github/workflows/veroeffentlichung.yml` | update | Job `release`, Schritt in `vorschau` (ruft `make release-dateien VORSCHAU=1`: der Modus erlaubt `-SNAPSHOT` auf `main` und nennt das ZIP `tdswire-<Version>-vorschau.zip`; der Job `release` ruft ihn nie), Kopfkommentar um das dritte Ziel und die Grenze des Linters |
 | Eingangsskript (Name und Ort wählt der Implementer) | neu | Prüfungen vor `gh`, Wiederholbarkeit, Notiz, ein Aufruf `gh release create`, Modus ohne Dateien |
 | Notiz-Vorlage (Ort wählt der Implementer; liegt nicht dort, wo das Doku-Gate Platzhalter als Links liest) | neu | feste Notiz nach [ADR-0050](../../adr/0050-github-release-im-tag-lauf.md) Entscheidung 4 mit Variante ohne Dateizeilen |
 | `tools/publish-selbsttest.sh` oder neuer Selbsttest, `tools/mk/skript-selbsttest.mk`, `Dockerfile` (Stage `skript-selbsttest`) | update | dritter Punkt; neue Dateien in die `COPY`-Zeilen der Stage |

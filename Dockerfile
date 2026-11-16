@@ -270,15 +270,17 @@ RUN gradle --no-daemon --offline :jar
 
 # --- Release-Dateien: `make release-dateien` (ADR-0050 Entscheidungen 2 und 3) - aus dem Ergebnis von `build-jar`: tdswire-<Version>.zip
 # (tdswire.jar, lib/, LICENSE, lizenzen/lib/ mit den Lizenz- und Hinweisdateien), das einzelne tdswire.jar und SHA256SUMS. Die
-# Version steht in build.gradle.kts (Form <zahl>.<zahl>.<zahl>, nicht -SNAPSHOT). tools/release-dateien.sh baut das ZIP mit
+# Version steht in build.gradle.kts (Form <zahl>.<zahl>.<zahl>, nicht -SNAPSHOT; das Build-Argument RELEASE_VORSCHAU=--vorschau erlaubt -SNAPSHOT und nennt das ZIP ...-vorschau.zip). tools/release-dateien.sh baut das ZIP mit
 # `jar` und ruft tools/release-pruefung.sh am entpackten ZIP; erst danach liegen die Dateien in build/release-dateien, bei einem
-# Befund bricht der Bau. `release-dateien-export` gibt sie per `--output type=local` heraus (nichts gemountet, auf dem Host entsteht
+# Befund bricht der Bau. Die Form `lizenzen/lib/` im ZIP ist ein Vorschlag des Implementers (offene Fragen 2a bis 2c des Belegs
+# unbeantwortet, der Nutzer entscheidet vor dem Messslice). `release-dateien-export` gibt sie per `--output type=local` heraus (nichts gemountet, auf dem Host entsteht
 # kein build/). Die Stage ist kein Gate und steht in keiner Eingangsliste einer Klasse; tools/release-selbsttest.sh
 # (Stage `skript-selbsttest`) belegt die Pruefungen an Mutationen. Grenze: kein Netz ausser dem Bau von `build-jar`, kein Token. ----
 FROM build-jar AS release-dateien
+ARG RELEASE_VORSCHAU=
 COPY --chown=gradle:gradle lizenzen lizenzen
 COPY --chown=gradle:gradle tools/release-dateien.sh tools/release-pruefung.sh tools/
-RUN sh tools/release-dateien.sh build/libs lizenzen/lib LICENSE build.gradle.kts build/release-dateien
+RUN sh tools/release-dateien.sh $RELEASE_VORSCHAU build/libs lizenzen/lib LICENSE build.gradle.kts build/release-dateien
 
 FROM scratch AS release-dateien-export
 COPY --from=release-dateien /src/build/release-dateien/ /
