@@ -78,15 +78,22 @@ Die Hashes lassen sich mit `cd lizenzen/lib && find . -type f | sort | xargs sha
 
 1. **Keine der drei Dateien in lib/ führt eine Lizenzdatei im Jar.** Die Lizenzen müssen von den Projekten kommen und von Hand (Hash, Quelle) belegt sein; der Beleg ist das hier.
 2. **kotlin-stdlib führt Dritt-Code unter anderen Lizenzen** (BSD, Boost, GWT/Guava unter Apache 2) nach der Angabe des Projekts und nach den Copyright-Zeilen im Quell-Jar; die Texte von BSD und Boost sind abgelegt.
-3. **Anforderung „Lizenztext (und gefundene NOTICE) mitführen“ ist erfüllbar**, wenn das ZIP die Dateien unter `lizenzen/lib/` mitnimmt, einschließlich der NOTICE.txt von kotlinx-coroutines (ohne sie fehlte sie im ZIP, ohne dass ein Sensor es meldet); keine gelesene Anforderung verlangt etwas, das das ZIP nach seinem geplanten Inhalt (Jar, `lib/`, `LICENSE`, Lizenzdateien) nicht tragen kann. Das ist eine Lesung, keine Auskunft, ob das genügt.
+3. **Anforderung „Lizenztext (und gefundene NOTICE) mitführen“ ist erfüllbar**, wenn das ZIP die Dateien unter `lizenzen/lib/` mitnimmt, einschließlich der NOTICE.txt von kotlinx-coroutines (liegt sie nicht unter `lizenzen/lib/`, fehlt sie im ZIP; der Bau von [slice-release-dateien-bauen](../plan/planning/open/slice-release-dateien-bauen.md) legt nur aus diesem Verzeichnis ab, und ein Sensor, der eine zu wenig abgelegte NOTICE meldet, besteht nicht); keine gelesene Anforderung verlangt etwas, das das ZIP nach seinem geplanten Inhalt (Jar, `lib/`, `LICENSE`, Lizenzdateien) nicht tragen kann. Das ist eine Lesung, keine Auskunft, ob das genügt.
 
 ## Offene Fragen an den Nutzer
 
 1. Genügt es für die Weitergabe der drei Jars im ZIP, die Lizenzdateien (Apache 2.0 je Bibliothek) beizulegen, oder soll die Rechtsfrage aus [ADR-0018](../plan/adr/0018-laufzeit-artefakt.md) vor dem Anhang von `lib/` durch Dritte beantwortet werden (Alternative L3 aus [ADR-0050](../plan/adr/0050-github-release-im-tag-lauf.md))? Dieser Beleg beantwortet es nicht.
-2. Soll das ZIP die Dritt-Lizenzen der Kotlin-Standardbibliothek (BSD für kotlin/time, Boost für MathJVM) und die NOTICE.txt des Kotlin-Projekts (für die „Kotlin Compiler distribution“ geschrieben, Zuordnung zur stdlib nicht belegt) sowie die NOTICE.txt von kotlinx-coroutines mitführen (wie abgelegt vorgeschlagen), und in welcher Form (eine Datei oder das Verzeichnis `lizenzen/lib` im Archiv)? Offen ist auch, ob die Boost-Ausnahme für „machine-executable object code“ ein Jar umfasst; das Protokoll entscheidet das nicht.
+2. Dritt-Lizenzen und Hinweisdateien im ZIP; einzeln zu beantworten:
+   - 2a. Sollen die Dritt-Lizenzen der Kotlin-Standardbibliothek (BSD für kotlin/time, Boost für MathJVM) ins ZIP?
+   - 2b. Sollen die NOTICE.txt des Kotlin-Projekts (für die „Kotlin Compiler distribution“ geschrieben, Zuordnung zur stdlib nicht belegt) und die NOTICE.txt von kotlinx-coroutines ins ZIP (wie abgelegt vorgeschlagen)?
+   - 2c. In welcher Form: eine Datei oder das Verzeichnis `lizenzen/lib` im Archiv?
+   - 2d. Umfasst die Boost-Ausnahme „machine-executable object code“ ein Jar? Das Protokoll entscheidet das nicht.
 3. Die Lizenzdatei von annotations 23.0.0 nennt „Copyright 2000-2016“, die Quell-Dateien „2000-2020/2021“; die Datei ist byte-gleich der Quelle abgelegt und nicht verändert. Ist das für die Weitergabe unerheblich oder soll beim Projekt nachgefragt werden?
-4. (Beantwortet durch Nachlesen, keine Entscheidung nötig; zur Kenntnis.) Wurzel und, wo vorhanden, license/ der Tags von Coroutines 1.10.1 und Annotations 23.0.0 gelesen: Coroutines führt license/NOTICE.txt (abgelegt), Annotations keine Hinweisdatei. Offen bleibt nur, ob der Verifier die Listen erneut abruft (`api.github.com`, Stand des Tags kann sich nicht ändern, der Abruf ist wiederholbar).
+
+## Durch Nachlesen beantwortet (keine Entscheidung nötig)
+
+Wurzel und, wo vorhanden, license/ der Tags von Coroutines 1.10.1 und Annotations 23.0.0 sind gelesen (`api.github.com`, 2026-11-16): Coroutines führt license/NOTICE.txt (abgelegt), Annotations keine Hinweisdatei. **Stand der Tags am 2026-11-16** (`git ls-remote` und `api.github.com/repos/<Projekt>/git/ref/tags/<Tag>`): kotlin v2.4.10 zeigt auf Commit `5687445832cd835b4509b9fbc264cdf1a8201093`; kotlinx.coroutines 1.10.1 auf Commit `ee92d16c4b48345648dcd8bb15f11ab9c3747f67`; java-annotations 23.0.0 ist ein annotierter Tag (Tag-Objekt `9a67a73e9da8de4321c97ba0cf9071839a5abf8e`) auf Commit `5d06c0c48e0a4fe44b2bc0d5d3e8b113c7a57de2`. Ein Git-Tag lässt sich verschieben; belegt ist der Abruf an diesem Tag, nicht, dass der Tag unverändert bleibt. Ein späterer Abruf, dessen Commit abweicht, ist ein Befund.
 
 ## Nicht belegt
 
-Rechtliche Wirkung der Beilage; ob das ZIP „Derivative Work“ im Sinn der Lizenz ist; die Zuordnung der Klassen im Jar zu den Dritt-Quelldateien; Lizenzen von Test-Bibliotheken und des Testservers (außerhalb von lib/, nicht Gegenstand).
+Rechtliche Wirkung der Beilage; ob das ZIP „Derivative Work“ im Sinn der Lizenz ist; die Zuordnung der Klassen im Jar zu den Dritt-Quelldateien; Hinweisdateien unter anderem Namen als NOTICE.txt (gelesen sind nur die Wurzel und license/ der Tags von Coroutines und Annotations, nicht ihre Unterverzeichnisse, und für kotlin-stdlib nur die abgelegten Dateien); Lizenzen von Test-Bibliotheken und des Testservers (außerhalb von lib/, nicht Gegenstand).
