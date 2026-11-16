@@ -70,6 +70,8 @@ abweisungen() { # abweisungen <Skript>: 0, wenn jede Angabe abgewiesen wird
 	abweisung "$1" "WDH null" "LASTTEST_WDH=0" || ok=1
 	abweisung "$1" "CPUS mit Befehl" "LASTTEST_CPUS=2;x" || ok=1
 	abweisung "$1" "SEED Text" "LASTTEST_SEED=abc" || ok=1
+	abweisung "$1" "ZEILEN fuehrende Null" "LASTTEST_ZEILEN=08" || ok=1
+	abweisung "$1" "ZEILEN zu lang" "LASTTEST_ZEILEN=12345678901234567890" || ok=1
 	return $ok
 }
 abweisungen "$lasttest" || fehler=1
@@ -77,4 +79,4 @@ sed '/^# Zahlenwerte vor dem Bau/,/^lauf=/{/^lauf=/!d}' "$lasttest" > "$tmp/ohne
 if cmp -s "$lasttest" "$tmp/ohne-pruefung.sh"; then pruefe "Mutation ohne-pruefung aenderte nichts"; elif abweisungen "$tmp/ohne-pruefung.sh" 2> /dev/null; then pruefe "Mutation ohne-pruefung blieb gruen"; fi
 
 [ "$fehler" -eq 0 ] || exit 1
-echo "lasttest-selbsttest: ok (6 Faelle, Eingabefehler, 3 Mutationen rot, fuenf abgewiesene Umgebungswerte, 1 Mutation rot)"
+echo "lasttest-selbsttest: ok (6 Faelle, Eingabefehler, 3 Mutationen rot, sieben abgewiesene Umgebungswerte, 1 Mutation rot)"

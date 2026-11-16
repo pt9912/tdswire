@@ -40,12 +40,13 @@ swap_toleranz="${LASTTEST_SWAP_TOLERANZ_MB:-16}"
 statistik="$(dirname "$0")/lasttest-statistik.sh"
 klasse="io.github.pt9912.tdswire.testserver"
 
-# Zahlenwerte vor dem Bau pruefen (Exit 2): nur Ziffern, ZEILEN und WDH mindestens 1; der Seed darf ein Minus tragen.
+# Zahlenwerte vor dem Bau pruefen (Exit 2): ganze Zahlen ohne fuehrende Nullen, hoechstens 9 Stellen (Seed 18, mit Minus erlaubt),
+# ZEILEN und WDH mindestens 1.
 for angabe in "LASTTEST_ZEILEN=$zeilen" "LASTTEST_WDH=$wdh" "LASTTEST_CPUS=$cpus" "LASTTEST_MIN_FREI_MB=$min_frei" \
 	"LASTTEST_LAST_MAX=$last_max" "LASTTEST_SWAP_TOLERANZ_MB=$swap_toleranz"; do
-	[[ ${angabe#*=} =~ ^[0-9]+$ ]] || { echo "lasttest: ${angabe%%=*} muss eine nichtnegative ganze Zahl sein, nicht '${angabe#*=}'" >&2; exit 2; }
+	[[ ${angabe#*=} =~ ^(0|[1-9][0-9]{0,8})$ ]] || { echo "lasttest: ${angabe%%=*} muss eine nichtnegative ganze Zahl ohne fuehrende Nullen mit hoechstens 9 Stellen sein, nicht '${angabe#*=}'" >&2; exit 2; }
 done
-[[ $seed =~ ^-?[0-9]+$ ]] || { echo "lasttest: LASTTEST_SEED muss eine ganze Zahl sein, nicht '$seed'" >&2; exit 2; }
+[[ $seed =~ ^-?(0|[1-9][0-9]{0,17})$ ]] || { echo "lasttest: LASTTEST_SEED muss eine ganze Zahl sein, nicht '$seed'" >&2; exit 2; }
 { [ "$zeilen" -ge 1 ] && [ "$wdh" -ge 1 ]; } || { echo "lasttest: LASTTEST_ZEILEN und LASTTEST_WDH muessen mindestens 1 sein" >&2; exit 2; }
 
 lauf="tdswire-lt-$$"
