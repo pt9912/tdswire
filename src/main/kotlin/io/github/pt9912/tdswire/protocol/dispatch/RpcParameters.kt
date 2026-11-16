@@ -30,7 +30,7 @@ internal enum class RpcRejection {
     /** Statusbyte mit einem anderen Bit als OUTPUT (Bit 0). */
     STATUS,
 
-    /** Typ ohne Entsprechung in `SqlType`, auch ein MAX-Typ (`nvarchar(max)`) als Wertparameter. */
+    /** Typ ohne Entsprechung in `SqlType`, auch `varchar(max)` und `varbinary(max)` als Wertparameter. */
     TYPE,
 
     /** Wert außerhalb des Bereichs seines Typs. */
@@ -50,8 +50,9 @@ internal class RpcRejected(val reason: RpcRejection) : RuntimeException(reason.n
  * unverändert); `DECIMALN` und `NUMERICN` sind `Decimal(precision, scale)` (`BigDecimal`); `DATEN`,
  * `TIMEN` und `DATETIME2N` sind `Date`, `Time` und `DateTime` (`LocalDate`, `LocalTime`,
  * `LocalDateTime`); `DATETIMN` mit 8 Byte ist `DateTime` (`datetime`: Tage seit 1900-01-01 und Ticks zu 1/300 s;
- * mssql-jdbc sendet so die Zeit einer `time`-Spalte mit dem Datum 1970-01-01, gemessen am echten SQL Server). Jeder
- * MAX-Typ (`nvarchar(max)`, `varchar(max)`, `varbinary(max)`) und jeder andere Typ (`INTN` mit 1 und 2 Byte,
+ * mssql-jdbc sendet so die Zeit einer `time`-Spalte mit dem Datum 1970-01-01, gemessen am echten SQL Server).
+ * `nvarchar(max)` ist wie `NVARCHAR` `UnicodeText`, ohne eigene Obergrenze der Länge (die Nachricht begrenzt
+ * `SPEC-007`; Setzung, nicht gemessen). Jeder andere Typ (`varchar(max)`, `varbinary(max)`, `INTN` mit 1 und 2 Byte,
  * Gleitkomma, Geld, GUID, Binär, `varchar`, `DATETIMN` mit 4 Byte, `DATETIMEOFFSETN`) ist [RpcRejection.TYPE].
  * `INTN` mit 1 und 2 Byte entspricht `Int16` und `UInt8`, die `SqlType` als Spaltentypen der Antworten führt; als
  * Parameter bleibt er abgewiesen (Setzung), und für die übrigen Typen entsteht
@@ -117,7 +118,11 @@ internal object RpcParameters {
         if (!valid) throw RpcRejected(RpcRejection.PARAMETER_NAME)
     }
 
-    private fun sqlType(type: RpcType): SqlType = if (type.plp) throw RpcRejected(RpcRejection.TYPE) else kindType(type)
+    private fun sqlType(type: RpcType): SqlType = if (type.plp) plpType(type) else kindType(type)
+
+    /** `nvarchar(max)` ist `UnicodeText`; `varchar(max)` und `varbinary(max)` haben keinen `SqlType`. */
+    private fun plpType(type: RpcType): SqlType =
+        if (type.kind == RpcTypeKind.NVARCHAR) SqlType.UnicodeText else throw RpcRejected(RpcRejection.TYPE)
 
     private fun kindType(type: RpcType): SqlType = when (type.kind) {
         RpcTypeKind.INTN -> integerType(type.length)

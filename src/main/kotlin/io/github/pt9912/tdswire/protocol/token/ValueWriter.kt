@@ -30,6 +30,7 @@ internal object ValueWriter {
         when (column.type) {
             is TdsType.NVarcharType -> out.u16Le(NULL_LENGTH_SHORT)
             is TdsType.PlpType -> PlpValues.writeNull(out)
+            TdsType.SqlVariantType -> VariantValues.writeNull(out)
             else -> out.u8(0)
         }
     }
@@ -50,12 +51,20 @@ internal object ValueWriter {
             TdsType.BitType -> out.u8(bit(value))
             is TdsType.IntNType -> ValueSupport.prefixed(out, intN(type.size, value))
             TdsType.BitNType -> ValueSupport.prefixed(out, byteArrayOf(bit(value).toByte()))
+            else -> writeVariable(out, type, value)
+        }
+    }
+
+    private fun writeVariable(out: ByteWriter, type: TdsType, value: TdsValue) {
+        when (type) {
             is TdsType.NVarcharType -> writeText(out, type, value)
             is TdsType.PlpType -> PlpValues.write(out, type, value)
+            TdsType.SqlVariantType -> VariantValues.write(out, value)
             is TdsType.DecimalType -> ValueSupport.prefixed(out, DecimalValues.bytes(type, value))
             TdsType.DateType -> ValueSupport.prefixed(out, TemporalValues.dateBytes(value))
             is TdsType.TimeType -> ValueSupport.prefixed(out, TemporalValues.timeBytes(type.scale, value))
             is TdsType.DateTime2Type -> ValueSupport.prefixed(out, TemporalValues.dateTime2Bytes(type.scale, value))
+            else -> violation(ProtocolFailure.INVALID_TYPE, "Typ ohne Wertform")
         }
     }
 

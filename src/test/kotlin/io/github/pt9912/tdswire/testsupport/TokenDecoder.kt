@@ -163,12 +163,17 @@ internal class TokenDecoder(private val bytes: ByteArray) {
         0x26 -> TdsType.IntNType(u8())
         0x68 -> TdsType.BitNType.also { check(u8() == 1) }
         0xE7 -> nvarchar()
-        0xA7 -> TdsType.VarcharMaxType(maxCollation())
-        0xA5 -> TdsType.VarbinaryMaxType.also { check(u16() == 0xFFFF) }
         0x6A, 0x6C -> decimalType(code)
         0x28 -> TdsType.DateType
         0x29 -> TdsType.TimeType(u8())
         0x2A -> TdsType.DateTime2Type(u8())
+        else -> largeType(code)
+    }
+
+    private fun largeType(code: Int): TdsType = when (code) {
+        0xA7 -> TdsType.VarcharMaxType(maxCollation())
+        0xA5 -> TdsType.VarbinaryMaxType.also { check(u16() == 0xFFFF) }
+        0x62 -> TdsType.SqlVariantType.also { check(i32() == 8009) }
         else -> error("Typkennung $code")
     }
 
@@ -208,6 +213,15 @@ internal class TokenDecoder(private val bytes: ByteArray) {
         return if (type is TdsType.NVarcharMaxType) TdsValue.TextValue(String(units)) else TdsValue.BytesValue(bytes)
     }
 
+    private fun largeValue(type: TdsType): TdsValue = if (type is TdsType.PlpType) plpValue(type) else variantValue()
+
+    private fun variantValue(): TdsValue {
+        val length = i32()
+        if (length == 0) return TdsValue.NullValue
+        check(length == 6 && u8() == 0x38 && u8() == 0) { "sql_variant ausserhalb von int" }
+        return TdsValue.VariantIntValue(i32())
+    }
+
     private fun returnValue(): Token {
         val ordinal = u16()
         val name = bVarchar()
@@ -225,7 +239,7 @@ internal class TokenDecoder(private val bytes: ByteArray) {
         is TdsType.IntNType -> nullable { length -> TdsValue.IntegerValue(signed(length, type.size == 1)) }
         TdsType.BitNType -> nullable { TdsValue.BitValue(u8() != 0) }
         is TdsType.NVarcharType -> textValue()
-        is TdsType.PlpType -> plpValue(type)
+        is TdsType.PlpType, TdsType.SqlVariantType -> largeValue(type)
         is TdsType.DecimalType -> nullable { length -> decimal(length, type.scale) }
         TdsType.DateType -> nullable { TdsValue.DateValue(date()) }
         is TdsType.TimeType -> nullable { length -> TdsValue.TimeValue(time(length, type.scale)) }

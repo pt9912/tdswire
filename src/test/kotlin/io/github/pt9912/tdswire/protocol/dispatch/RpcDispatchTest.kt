@@ -209,7 +209,7 @@ class RpcDispatchTest {
     }
 
     /**
-     * Ein PLP-Typ (`nvarchar(max)`) als Wertparameter ist gelesen, aber nicht unterstützt:
+     * Ein PLP-Typ ohne `SqlType` (`varchar(max)`) als Wertparameter ist gelesen, aber nicht unterstützt:
      * ERROR `TDS_UNSUPPORTED_RPC` (50002, Class 16) und DONE mit Fehlerstatus, das Backend wird nicht
      * gerufen, die Verbindung bleibt offen und die Folgenachricht wird beantwortet (Nutzerentscheidung vom
      * 2026-10-31, nicht gemessen).
@@ -219,7 +219,7 @@ class RpcDispatchTest {
     @Test
     fun `Ein PLP-Typ wird offen abgelehnt und die Verbindung bleibt offen`() = blocking {
         val backend = ScriptedBackend.ofList(*oneRow.toTypedArray())
-        val plp = "E7 FF FF ${RpcVectors.COLLATION} FF FF FF FF FF FF FF FF"
+        val plp = "A7 FF FF ${RpcVectors.COLLATION} FF FF FF FF FF FF FF FF"
         val session = Session.login(rpc(executeSql("s", "d", param("@a", plp))), rpc(goodRpc), Inbound.EndOfStream)
         session.serve(backend)
         assertEquals(unsupportedRpc, session.tokens(0).errorMessage())
@@ -240,7 +240,7 @@ class RpcDispatchTest {
     @Test
     fun `Ein PLP-Typ in der Mitte der Parameterliste wird offen abgelehnt`() = blocking {
         val backend = ScriptedBackend.ofList(*oneRow.toTypedArray())
-        val plp = "E7 FF FF ${RpcVectors.COLLATION} FF FF FF FF FF FF FF FF"
+        val plp = "A7 FF FF ${RpcVectors.COLLATION} FF FF FF FF FF FF FF FF"
         val middle = executeSql("s", "d", param("@a", int4(1)), param("@b", plp), param("@c", int4(3)))
         val session = Session.login(rpc(middle), rpc(goodRpc), Inbound.EndOfStream)
         session.serve(backend)
@@ -262,7 +262,7 @@ class RpcDispatchTest {
      */
     @Test
     fun `Ein mehrpaketiger RPC mit PLP-Typ und ein zweiter RPC werden beide beantwortet`() = blocking {
-        val plp = "E7 FF FF ${RpcVectors.COLLATION} FF FF FF FF FF FF FF FF"
+        val plp = "A7 FF FF ${RpcVectors.COLLATION} FF FF FF FF FF FF FF FF"
         val wire = listOf(executeSql("s", "d", param("@a", int4(1)), param("@b", plp)), goodRpc).map { payload ->
             val packets = assertIs<FramingResult.Ok<List<ByteArray>>>(
                 PacketWriter.split(PacketType.RPC, payload, PacketHeader.SIZE + 3),

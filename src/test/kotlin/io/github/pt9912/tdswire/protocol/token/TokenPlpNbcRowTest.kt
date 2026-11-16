@@ -304,4 +304,89 @@ class TokenPlpNbcRowTest {
         assertIs<ProtocolResult.Ok<Unit>>(write(encoder, NullBitmapRowToken(listOf(TdsValue.IntegerValue(7)))))
         assertEquals("$before D2 00 07 00 00 00", encoder.toByteArray().toHex())
     }
+
+    /**
+     * Gemessen (Mitschnitt `katalog-abfragen`, Zeile 64 und die Zeile der Katalogabfrage mit Werten, beide Instanzen):
+     * `sql_variant` ist `62` mit der größten Länge 8009 (`49 1F 00 00`), Flags `0x0021`; der Wert ist die Länge 6, der
+     * Basistyp `int` (`38`), kein Eigenschaftsbyte und 4 Byte Wert. Die Zeile ist der NBCROW des echten Servers mit
+     * Bitmap `00 32` (die Spalten 9, 12 und 13 sind NULL und stehen nicht in der Zeile).
+     *
+     * @spec SPEC-003
+     * @spec SPEC-028
+     */
+    @Test
+    fun `sql_variant mit Basistyp int gibt die Bytes des echten Servers wieder`() {
+        val encoder = TokenEncoder()
+        val variant = ColumnDef("seed_value", TdsType.SqlVariantType, nullable = true, extraFlags = 0x20)
+        encoder.write(ColMetadataToken(listOf(variant)))
+        assertEquals(
+            "81 01 00 00 00 00 00 21 00 62 49 1F 00 00 0A 73 00 65 00 65 00 64 00 5F 00 76 00 61 00 6C 00 75 00 65 00",
+            encoder.toByteArray().toHex(),
+        )
+        val name = ColumnDef("n", TdsType.NVarcharType(128, latin))
+        val bit = ColumnDef("b", TdsType.BitNType, nullable = true)
+        val columns = listOf(
+            name,
+            name,
+            ColumnDef("max_length", TdsType.Int2Type),
+            ColumnDef("precision", TdsType.Int1Type),
+            ColumnDef("scale", TdsType.Int1Type),
+            bit,
+            ColumnDef("is_identity", TdsType.BitType),
+            bit,
+            ColumnDef("column_id", TdsType.Int4Type),
+            maxText,
+            variant,
+            variant,
+            maxText,
+            bit,
+        )
+        val one = TdsValue.VariantIntValue(1)
+        val values = listOf(
+            TdsValue.TextValue("Id"),
+            TdsValue.TextValue("int"),
+            TdsValue.IntegerValue(4),
+            TdsValue.IntegerValue(10),
+            TdsValue.IntegerValue(0),
+            TdsValue.BitValue(false),
+            TdsValue.BitValue(true),
+            TdsValue.BitValue(false),
+            TdsValue.IntegerValue(1),
+            TdsValue.NullValue,
+            one,
+            one,
+            TdsValue.NullValue,
+            TdsValue.NullValue,
+        )
+        assertEquals(
+            "D2 00 32 04 00 49 00 64 00 06 00 69 00 6E 00 74 00 04 00 0A 00 01 00 01 01 00 01 00 00 00 " +
+                "06 00 00 00 38 00 01 00 00 00 06 00 00 00 38 00 01 00 00 00",
+            row(columns, NullBitmapRowToken(values)),
+        )
+    }
+
+    /**
+     * Handvektor (nicht gemessen): `sql_variant` in ROW trägt denselben Wert; NULL ist die Länge 0. Festlegung: jeder
+     * andere Wert (Text, Zahl, Bytes) und jeder andere Basistyp ist `TYPE_MISMATCH`, Kategorie
+     * `TDS_UNSUPPORTED_TYPE`; `sql_variant` ohne Nullbarkeit lässt NULL nicht zu.
+     *
+     * @spec SPEC-003
+     * @spec SPEC-014
+     */
+    @Test
+    fun `sql_variant in ROW, NULL und andere Werte`() {
+        val variant = ColumnDef("v", TdsType.SqlVariantType, nullable = true)
+        assertEquals(
+            "D1 06 00 00 00 38 00 FF FF FF FF",
+            row(listOf(variant), RowToken(listOf(TdsValue.VariantIntValue(-1)))),
+        )
+        assertEquals("D1 00 00 00 00", row(listOf(variant), RowToken(listOf(TdsValue.NullValue))))
+        listOf(TdsValue.TextValue("x"), TdsValue.IntegerValue(1), TdsValue.BytesValue(ByteArray(1))).forEach {
+            assertEquals(ProtocolFailure.TYPE_MISMATCH, failureOf(listOf(variant), RowToken(listOf(it))), "$it")
+        }
+        val strict = ColumnDef("s", TdsType.SqlVariantType)
+        assertEquals(ProtocolFailure.TYPE_MISMATCH, failureOf(listOf(strict), RowToken(listOf(TdsValue.NullValue))))
+        val result = ValueMapping.value(variant, 1)
+        assertEquals(ProtocolFailure.INVALID_TYPE, assertIs<ProtocolResult.Failed>(result).error.failure)
+    }
 }

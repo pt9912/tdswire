@@ -560,7 +560,7 @@ class RpcBinderTest {
     }
 
     /**
-     * Ein MAX-Typ als Wertparameter (`nvarchar(max)`, `varchar(max)`, `varbinary(max)`) ist gelesen und `TYPE`
+     * Ein MAX-Typ ohne `SqlType` als Wertparameter (`varchar(max)`, `varbinary(max)`) ist gelesen und `TYPE`
      * ohne Parserfehler (Verbindung bleibt offen), ebenso die `nchar`-Form mit `FF FF` (`UNSUPPORTED_PLP` des
      * Parsers); dagegen bleibt die unbekannte Typkennung ein Parserfehler (Festlegung ohne Messung,
      * Nutzerentscheidung vom 2026-10-31).
@@ -572,7 +572,7 @@ class RpcBinderTest {
     fun `Ein PLP-Typ ist nicht unterstuetzt aber nicht ungueltig kodiert`() {
         val coll = RpcVectors.COLLATION
         val nullBody = "FF FF FF FF FF FF FF FF"
-        listOf("E7 FF FF $coll $nullBody", "A7 FF FF $coll $nullBody", "A5 FF FF $nullBody", "EF FF FF $coll 00 00")
+        listOf("A7 FF FF $coll $nullBody", "A5 FF FF $nullBody", "EF FF FF $coll 00 00")
             .forEach { typeAndValue ->
                 listOf(
                     executeSql("s", "d", param("@v", typeAndValue)),
@@ -602,6 +602,36 @@ class RpcBinderTest {
         val query = assertIs<RpcBinding.Query>(RpcBinder.bind(payload))
         assertEquals("select @a, N'\uD83D\uDE00'", query.sql)
         assertEquals(listOf(QueryParameter("@a", SqlType.Int32, 42)), query.parameters)
+    }
+
+    /**
+     * `nvarchar(max)` als Wertparameter ist `UnicodeText` wie `nvarchar(n)`: ein Text über 4000 Zeichen in mehreren
+     * Stücken, NULL und ein OUTPUT-Parameter (NULL, `OUTPUT`); eine eigene Obergrenze gibt es nicht (Festlegung, die
+     * Nachricht begrenzt `SPEC-007`). Handvektor, nicht gemessen.
+     *
+     * @spec SPEC-003
+     * @spec SPEC-013
+     */
+    @Test
+    fun `nvarchar(max) als Wertparameter ist UnicodeText`() {
+        val text = "ab\uD83D\uDE00".repeat(2000)
+        val nullMax = "E7 FF FF ${RpcVectors.COLLATION} FF FF FF FF FF FF FF FF"
+        val payload = executeSql(
+            "s",
+            "d",
+            param("@t", RpcWire.nvarcharMax(text, 1500)),
+            param("@n", nullMax),
+            param("@o", nullMax, 1),
+        )
+        val query = assertIs<RpcBinding.Query>(RpcBinder.bind(payload))
+        assertEquals(
+            listOf(
+                QueryParameter("@t", SqlType.UnicodeText, text),
+                QueryParameter("@n", SqlType.UnicodeText, null),
+                QueryParameter("@o", SqlType.UnicodeText, null, ParameterDirection.OUTPUT),
+            ),
+            query.parameters,
+        )
     }
 
     /**

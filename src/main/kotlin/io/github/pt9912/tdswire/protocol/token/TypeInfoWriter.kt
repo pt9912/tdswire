@@ -48,6 +48,7 @@ internal object TypeInfoWriter {
             TdsType.BitNType -> writeFixedSize(out, TypeCode.BITN, 1)
             is TdsType.NVarcharType -> writeNVarchar(out, type)
             is TdsType.PlpType -> PlpValues.writeTypeInfo(out, type)
+            TdsType.SqlVariantType -> VariantValues.writeTypeInfo(out)
             is TdsType.DecimalType -> writeDecimal(out, type)
             TdsType.DateType -> out.u8(TypeCode.DATEN)
             is TdsType.TimeType -> writeScaled(out, TypeCode.TIMEN, type.scale)

@@ -72,6 +72,9 @@ internal sealed interface TdsType {
     /** `varbinary(max)` (BIGVARBINARY, `0xA5`, Länge `0xFFFF`); Wert [TdsValue.BytesValue]. */
     data object VarbinaryMaxType : PlpType
 
+    /** `sql_variant` (SSVARIANT, `0x62`, größte Länge 8009); Wert [TdsValue.VariantIntValue], nur Basistyp `int`. */
+    data object SqlVariantType : TdsType
+
     /** Datum (DATEN, `0x28`). */
     data object DateType : TdsType
 
@@ -91,6 +94,9 @@ internal sealed interface TdsValue {
     data class BitValue(val value: Boolean) : TdsValue
 
     data class TextValue(val value: String) : TdsValue
+
+    /** Ein `int` als Wert eines `sql_variant` (Basistyp `0x38`). */
+    data class VariantIntValue(val value: Int) : TdsValue
 
     /** Bytes eines `varchar(max)` oder `varbinary(max)`; gleich sind zwei Werte mit gleichem Inhalt. */
     class BytesValue(val value: ByteArray) : TdsValue {
