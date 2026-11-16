@@ -1,0 +1,3 @@
+**Vorgang:** [slice-release-lizenzen-lib-belegen](../../../../in-progress/slice-release-lizenzen-lib-belegen.md)
+**Fund:** [Verifikation](../../../../../../reviews/2026-11-16-456df041-slice-release-lizenzen-lib-belegen-verifikation.md) F-2 (LOW): im Repo meldet kein Sensor, dass ein Verzeichnis unter `lizenzen/lib/` eine Datei weniger führt als der Beleg (`make gates` fasst `lizenzen/` nicht an); die im Plan von `slice-release-dateien-bauen` geplante Prüfung „Lizenzdatei je Jar“ meldete eine fehlende NOTICE von kotlinx-coroutines nicht. Träger: der Plan von `slice-release-dateien-bauen` (Sollmenge der sieben Dateien, Mutation „NOTICE entfernt“), beim Bau zu belegen.
+**Stand:** offen, siehe `state.md` der Klasse.
