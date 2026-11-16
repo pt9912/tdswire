@@ -109,4 +109,28 @@ internal class LasttestTest {
         assertFailsWith<IllegalStateException> { LasttestEinstellung.of(mapOf("LASTTEST_SENKE" to "manchmal")) }
         assertFailsWith<IllegalArgumentException> { LasttestEinstellung.of(mapOf("LASTTEST_AUFBAU" to "D")) }
     }
+
+    /**
+     * Der Import am Callback ruft ihn in Stapeln zu [IMPORT_BATCH] Zeilen, die Summe stimmt, die Zeilen sind die des
+     * Erzeugers, und der Zähler meldet nur ganze Vielfache der Zeilenzahl.
+     */
+    @Test
+    fun `der Import am Callback liefert alle Zeilen in Stapeln`() = runBlocking {
+        val rows = IMPORT_BATCH * 2L + 5
+        val sizes = mutableListOf<Int>()
+        val seen = mutableListOf<Map<String, Any?>>()
+        val table = referenzTabelle(rows, SEED) {}.let { base ->
+            base.copy(
+                onInsertBatch = { batch ->
+                    sizes += batch.size
+                    seen += batch.first()
+                    (base.onInsertBatch ?: error("onInsertBatch fehlt"))(batch)
+                },
+            )
+        }
+        assertEquals(rows, importBatches(table, rows, SEED))
+        assertEquals(listOf(IMPORT_BATCH, IMPORT_BATCH, 5), sizes)
+        assertEquals(1L, seen.first()["Id"])
+        assertEquals(ReferenzZeilen.row(SEED, IMPORT_BATCH + 1L)[2], seen[1]["Betrag"])
+    }
 }

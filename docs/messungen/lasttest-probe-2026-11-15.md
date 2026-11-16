@@ -37,8 +37,26 @@ Der Lauf trug an den Zeilen von B ohne Senke und von C den Vermerk `swap-gewachs
 - **Backend gegen Protokollschicht:** C gegen B liegt im Median innerhalb der Streuung der Läufe (1125 gegen 1025 ms mit Senke, 1131 gegen 1183 ms ohne). Aus dieser Probe folgt kein Anteil des Simulations-Backends.
 - **Senke:** der Unterschied mit gegen ohne Senke geht in B in die eine, in C in keine eindeutige Richtung; die Probe belegt keinen Einfluss der Telemetrie.
 - **Import gegen Export:** der Import ist in dieser Probe etwa doppelt so schnell wie der Export derselben Zeilen; Ursache nicht untersucht.
-- **Massenladen gegen ein eigenes Backend (Aufbau B):** der Client endet mit `InvalidOperationException` und der Meldung `Cannot access destination table 'ref_zeilen'.` (kein SQL-Fehler mit Nummer). Ein eigenes Backend trägt die Fähigkeit zum Massenladen nicht (Quelltext `BulkLoading.kt`, [ADR-0033](../plan/adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Nr. 5); die Probe der Zieltabelle schlägt dort fehl.
+- **Massenladen gegen ein eigenes Backend (Aufbau B), Folge:** der Import wird deshalb über den Callback getrennt (Nachtrag unten). Die Messung selbst: der Client endet mit `InvalidOperationException` und der Meldung `Cannot access destination table 'ref_zeilen'.` (kein SQL-Fehler mit Nummer). Ein eigenes Backend trägt die Fähigkeit zum Massenladen nicht (Quelltext `BulkLoading.kt`, [ADR-0033](../plan/adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Nr. 5); die Probe der Zieltabelle schlägt dort fehl.
 - **Speicher:** die Spitze des Serverprozesses (cgroup `memory.peak`) lag in den Läufen von B und C zwischen 101 und 134 MB bei `-Xmx256m`; für die Heap-Aussagen der Folge-Slices reicht sie nicht (cgroup-Spitze, nicht Live-Größe nach GC).
+
+## Nachtrag 2026-11-16: Aufbau A für den Import
+
+Der Aufbau A trägt seit diesem Nachtrag auch den Import: der Stapel-Callback von `ref_zeilen` wird in Stapeln zu 1000 Zeilen direkt gerufen (kein Draht, kein Client, keine Senke), damit der Import von C getrennt von der Protokollschicht gelesen werden kann. Zweiter Lauf von `make lasttest` mit denselben Vorgaben (100 000 Zeilen, 5 Läufe nach einem Warmlauf, Limits wie oben), 2026-11-16 04:31 bis 04:32 UTC, Last 8,2/5,7/3,4 bis 7,1/5,8/3,6, Swap des Hosts 13 974 MiB unverändert, verfügbar vor 10 927 MiB, nach 11 111 MiB; Laufzeit 92 s (Bau 36 s, Messung 56 s). Der Lauf trug keinen Vermerk `last-hoch` oder `swap-gewachsen`; die Streuung war in jeder Zeile `ok`.
+
+| Aufbau | Senke | Richtung | Median ms | Min ms | Max ms | Zeilen/s (Median) |
+|---|---|---|---|---|---|---|
+| A, eigenes Backend | | Export | 114 | 108 | 117 | 877 192 |
+| A, Simulations-Backend | | Export | 129 | 120 | 165 | 775 193 |
+| A, Simulations-Backend (Callback) | | Import | 125 | 124 | 130 | 800 000 |
+| B eigenes Backend | mit | Export | 1035 | 1000 | 1144 | 96 618 |
+| B eigenes Backend | ohne | Export | 1008 | 962 | 1089 | 99 206 |
+| C Simulations-Backend | mit | Export | 1028 | 958 | 1447 | 97 276 |
+| C Simulations-Backend | mit | Import | 478 | 447 | 619 | 209 205 |
+| C Simulations-Backend | ohne | Export | 1046 | 989 | 1114 | 95 602 |
+| C Simulations-Backend | ohne | Import | 464 | 422 | 577 | 215 517 |
+
+Lesart, nur so weit die Zeilen tragen: C-Import liegt im Median bei rund dem Vierfachen von A-Import (478 gegen 125 ms mit Senke, 464 gegen 125 ms ohne). Die Differenz von rund 340 bis 350 ms je 100 000 Zeilen ist der Aufwand von Codec, Sitzung, Transport und Referenzclient für den Import; sie trennt den Client nicht ab. Der Callback ist in A und C derselbe, A-Import baut die Zeilen aber selbst als Maps, der Server baut sie nach dem Dekodieren; ob beide Schritte gleich teuer sind, ist ungemessen. Mit und ohne Senke liegen B-Export, C-Export und C-Import zwischen den zwei Läufen vom 2026-11-15 und diesem in keiner festen Richtung; ein Einfluss der Senke ist weiter nicht belegt. Zeilen und Zeilen/s der Tabelle oben vom 2026-11-15 und dieser Tabelle sind zwei Einzelmessungen an zwei Tagen; ihr Unterschied (zum Beispiel C-Import 571 gegen 478 ms) zeigt die Streuung zwischen den Läufen, keine Änderung des Servers.
 
 ## Größere Probe (Laufzeit der Hauptstufe)
 

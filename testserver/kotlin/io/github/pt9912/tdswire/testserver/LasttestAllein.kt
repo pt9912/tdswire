@@ -29,7 +29,8 @@ private suspend fun pull(backend: QueryBackend): Long {
  * der Aufbauten B und C: das eigene ([ZeilenBackend]) und das Simulations-Backend über [referenzTabelle]. Je Lauf eine
  * Zeile `lasttest: a <Backend> lauf <n> zeilen <Zahl> ms <Millisekunden>`; der erste Lauf je Backend ist der Warmlauf
  * der JVM und steht als `lauf 0`. Umgebung: `LASTTEST_ZEILEN`, `LASTTEST_SEED`, `LASTTEST_WDH` (Vorgabe 5 Läufe nach
- * dem Warmlauf).
+ * dem Warmlauf). Dazu der Import: der Stapel-Callback der Tabelle `ref_zeilen` wird in Stapeln zu 1000 Zeilen direkt
+ * gerufen (`simulation-import`, kein Draht, kein Client).
  */
 fun main() {
     val setting = LasttestEinstellung.of(System.getenv())
@@ -50,5 +51,13 @@ fun main() {
             check(rows == setting.rows) { "Aufbau A $name: $rows statt ${setting.rows} Zeilen" }
             println("$LASTTEST_PREFIX a $name lauf $run zeilen $rows ms $millis")
         }
+    }
+    val importTable = referenzTabelle(setting.rows, setting.seed) {}
+    for (run in 0..repeats) {
+        val start = System.nanoTime()
+        val rows = runBlocking { importBatches(importTable, setting.rows, setting.seed) }
+        val millis = (System.nanoTime() - start) / NANOS_PER_MILLI
+        check(rows == setting.rows) { "Aufbau A Import: $rows statt ${setting.rows} Zeilen" }
+        println("$LASTTEST_PREFIX a simulation-import lauf $run zeilen $rows ms $millis")
     }
 }

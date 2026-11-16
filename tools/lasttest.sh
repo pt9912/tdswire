@@ -127,6 +127,13 @@ for aufbau in $aufbauten; do
 			median="${st#*median=}"; median="${median%% *}"
 			echo "messung: $(date -u +%Y-%m-%dT%H:%M:%SZ) aufbau A backend $backend senke - richtung export zeilen $zeilen wdh $wdh $(echo "$st" | sed 's/n=[0-9]* //; s/median=/median_ms /; s/min=/min_ms /; s/max=/max_ms /; s/streuung=/streuung /') zeilen_je_s $((median > 0 ? zeilen * 1000 / median : 0)) bytes_je_zeile - vorher [$vorher] nachher [$(zustand)]"
 		done
+		ms="$(grep "^lasttest: a simulation-import lauf " "$scratch/a" | awk '$5 >= 1 {print $9}')"
+		if st="$(printf '%s\n' "$ms" | bash "$statistik")"; then
+			median="${st#*median=}"; median="${median%% *}"
+			echo "messung: $(date -u +%Y-%m-%dT%H:%M:%SZ) aufbau A backend simulation senke - richtung import zeilen $zeilen wdh $wdh $(echo "$st" | sed 's/n=[0-9]* //; s/median=/median_ms /; s/min=/min_ms /; s/max=/max_ms /; s/streuung=/streuung /') zeilen_je_s $((median > 0 ? zeilen * 1000 / median : 0)) bytes_je_zeile - vorher [$vorher] nachher [$(zustand)]"
+		else
+			fehler=1
+		fi
 		;;
 	B | C)
 		for senke in $senken; do

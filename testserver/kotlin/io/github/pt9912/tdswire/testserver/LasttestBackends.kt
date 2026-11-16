@@ -80,3 +80,25 @@ private class ZeilenQuelle(
         return query.columns.map { full[names.indexOf(it.name)] }
     }
 }
+
+/** Zeilen je Stapel des Imports in Aufbau A; wie `BatchSize` des Clients (Setzung S3, 1000). */
+internal const val IMPORT_BATCH = 1000
+
+/**
+ * Aufbau A für den Import: ruft den Stapel-Callback [table] in Stapeln zu [IMPORT_BATCH] Zeilen aus [ReferenzZeilen]
+ * direkt auf, ohne Server, Draht und Client; gibt die Summe zurück, die der Callback meldet. Die Zeilen entstehen je
+ * Stapel, nichts wird gehalten.
+ */
+internal suspend fun importBatches(table: SimTable, rows: Long, seed: Long): Long {
+    val insert = table.onInsertBatch ?: error("onInsertBatch fehlt")
+    val names = ReferenzZeilen.columns.map { it.name }
+    var total = 0L
+    var next = 1L
+    while (next <= rows) {
+        val last = minOf(next + IMPORT_BATCH - 1, rows)
+        val batch = (next..last).map { n -> names.zip(ReferenzZeilen.row(seed, n)).toMap() }
+        total += insert(batch)
+        next = last + 1
+    }
+    return total
+}
