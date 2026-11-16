@@ -12,7 +12,7 @@
 # Grenzen: `make workflow-lint` prueft Syntax und Ausdruecke, nicht die SHA-Pins und nicht die Reihenfolge `gates` vor
 # beiden Veroeffentlichungs-Jobs und beide vor `release`, nicht die Bedingung und nicht, welcher Job welches Secret und welche
 # Rechte hat; das prueft der Review, die Rechte, `needs` und den Ort des Tokens liest tools/release-anlegen-selbsttest.sh als Text.
-# Der Dispatch-Lauf baut die Stage `publish` ohne Token und ohne Netz zu GitHub Packages oder
+# Der Dispatch-Lauf baut die Stage `publish` und fuehrt `make release-dateien VORSCHAU=1` aus, ohne Token und ohne Netz zu GitHub Packages oder
 # Cloudsmith und fuehrt die Jobs `publish-cloudsmith` und `release` nach ihrer Bedingung nicht aus (gelesen, nicht gemessen); das
 # Schreiben mit GITHUB_TOKEN belegt der Tag-Lauf 43699125460, das Schreiben nach Cloudsmith der Tag-Lauf 43734101990 (Version 0.1.1).
 # Der Job `release` ist nie gelaufen: das Schreibrecht auf Inhalte, `gh` auf dem Runner und das Anlegen sind ungemessen.

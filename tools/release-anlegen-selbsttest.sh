@@ -11,9 +11,9 @@
 # Paket-Jobs; dieselbe Bedingung wie `publish`; kein `continue-on-error`; Checkout mit persist-credentials false; die Schritte
 # Tag-Commit, Bau und Pruefsummen ohne Secret; das Token steht nur im Schritt `gh release create`; kein `packages: write` und kein
 # Cloudsmith-Secret im Job; jede `uses:`-Zeile traegt eine 40-stellige Commit-SHA; `vorschau` baut mit VORSCHAU=1 ohne Secret und ohne
-# gh, `release` ohne VORSCHAU; `release-dateien` und das Skript stehen in keiner Gate-Liste und nicht in tools/mk/e2e.mk. Je vier
-# Aenderungen an Kopien des Workflows (needs, Recht im falschen Job, Token im falschen Schritt, continue-on-error) muessen die
-# Kernpruefungen ausloesen.
+# gh, `release` ohne VORSCHAU; `release-dateien` und das Skript stehen in keiner Gate-Liste und nicht in tools/mk/e2e.mk. Jede
+# dieser Pruefungen hat eine Gegenprobe: eine Aenderung an einer Kopie des Workflows macht genau sie rot (dieselbe Funktion
+# wf_pruefungen liest den echten Workflow und die Kopien).
 # Grenze: gh ist ein Stub; belegt sind Reihenfolge der Pruefungen und Form des Aufrufs, nicht GitHub. Pins gegen echte Actions,
 # die Wirkung der Bedingung und der Rechte und die Reihenfolge der Jobs zur Laufzeit sieht der Test nicht (Text, kein Lauf); die
 # Abwesenheitspruefung liest Make-Dateien als Text und kennt weder Includes noch Variablen.
@@ -229,36 +229,69 @@ if cmp -s "$tmp/m-clobber/release-anlegen.sh" "$hier/release-anlegen.sh"; then p
 faelle "$tmp/m-clobber/release-anlegen.sh"
 case "$rot" in *" gut "*) ;; *) pruefe "die Mutation mit --clobber macht den Gutfall nicht rot" ;; esac
 
-# 3. Der Workflow als Text.
+# 3. Der Workflow als Text. wf_pruefungen <datei> nennt die Namen der Pruefungen, die rot sind (leer: alle gruen); dieselbe Funktion
+# liest den echten Workflow und die mutierten Kopien.
 wf="$wurzel_repo/.github/workflows/veroeffentlichung.yml"
 job_block() { awk -v j="  $2:" '$0 == j {b = 1; print; next} b && /^  [a-z#]/ {b = 0} b' "$1"; }
 schritt_block() { awk -v n="      - name: $1" '$0 == n {b = 1; print; next} b && /^      - / {b = 0} b'; }
 ausser_anlegen() { awk -v n='      - name: gh release create' '$0 == n {b = 1; next} b && /^      - / {b = 0} !b'; }
-[ -f "$wf" ] || { pruefe "$wf fehlt"; exit 1; }
-rel=$(job_block "$wf" release)
-[ -n "$rel" ] || pruefe "der Workflow fuehrt keinen Job release"
-[ "$(grep -v '^ *#' "$wf" | grep -c 'contents: write')" -eq 1 ] || pruefe "contents: write steht nicht genau einmal im Workflow"
-printf '%s\n' "$rel" | grep -q '^      contents: write$' || pruefe "contents: write steht nicht im Job release"
-printf '%s\n' "$rel" | grep -q '^    needs: \[publish, publish-cloudsmith\]$' || pruefe "needs des Jobs release nennt nicht genau publish und publish-cloudsmith"
+ohne_kommentar() { grep -v '^ *#' "$1" || true; }
 bed="if: github.event_name == 'push' && github.ref_type == 'tag'"
-printf '%s\n' "$rel" | grep -qF "    $bed" || pruefe "der Job release hat nicht die Bedingung des Tag-Push"
-job_block "$wf" publish | grep -qF "    $bed" || pruefe "der Job publish hat nicht dieselbe Bedingung"
-! grep -v '^ *#' "$wf" | grep -q 'continue-on-error' || pruefe "der Workflow nutzt continue-on-error"
-printf '%s\n' "$rel" | grep -q 'persist-credentials: false' || pruefe "der Checkout des Jobs release setzt persist-credentials nicht auf false"
-! printf '%s\n' "$rel" | grep -q 'packages: write' || pruefe "der Job release hat packages: write"
-! printf '%s\n' "$rel" | grep -q 'CLOUDSMITH' || pruefe "der Job release nennt ein Cloudsmith-Secret"
-printf '%s\n' "$rel" | schritt_block 'Tag-Commit liegt in origin/main' | grep -q 'git merge-base --is-ancestor HEAD origin/main' || pruefe "der Job release hat den Schritt Tag-Commit liegt in origin/main nicht"
-printf '%s\n' "$rel" | schritt_block 'make release-dateien' | grep -q '^        run: make release-dateien$' || pruefe "der Job release ruft make release-dateien nicht auf"
-! printf '%s\n' "$rel" | grep -q 'VORSCHAU' || pruefe "der Job release nennt VORSCHAU"
-printf '%s\n' "$rel" | schritt_block 'Pruefsummen' | grep -q 'sha256sum -c SHA256SUMS' || pruefe "der Job release prueft die Pruefsummen nicht vor dem Anlegen"
-anlegen=$(printf '%s\n' "$rel" | schritt_block 'gh release create')
-printf '%s\n' "$anlegen" | grep -q 'GH_TOKEN: \${{ secrets.GITHUB_TOKEN }}' || pruefe "der Schritt gh release create fuehrt das Token nicht"
-printf '%s\n' "$anlegen" | grep -q 'tools/release-anlegen.sh' || pruefe "der Schritt gh release create ruft tools/release-anlegen.sh nicht"
-! printf '%s\n' "$rel" | ausser_anlegen | grep -q -E 'secrets\.|GH_TOKEN|GITHUB_TOKEN|env:' || pruefe "ein Token oder ein env: steht im Job release ausserhalb des Schritts gh release create"
-[ "$(grep -v '^ *#' "$wf" | grep -c -E 'secrets\.GITHUB_TOKEN')" -eq 2 ] || pruefe "secrets.GITHUB_TOKEN steht nicht genau zweimal im Workflow (Jobs publish und release)"
-! job_block "$wf" vorschau | grep -q -E 'secrets\.|GH_TOKEN|gh release|release-anlegen' || pruefe "der Job vorschau nennt ein Secret oder gh"
-job_block "$wf" vorschau | grep -q '^        run: make release-dateien VORSCHAU=1$' || pruefe "der Job vorschau ruft make release-dateien VORSCHAU=1 nicht auf"
-if grep -E '^\s+(- )?uses:' "$wf" | grep -v -E '@[0-9a-f]{40}$'; then pruefe "eine uses:-Zeile traegt keine 40-stellige Commit-SHA"; fi
+wf_pruefungen() {
+  local w="$1" r a v out=""
+  r=$(job_block "$w" release); v=$(job_block "$w" vorschau)
+  rot_() { out="$out $1"; }
+  [ -n "$r" ] || rot_ job-release
+  [ "$(ohne_kommentar "$w" | grep -c 'contents: write')" -eq 1 ] || rot_ recht-einmal
+  printf '%s\n' "$r" | grep -q '^      contents: write$' || rot_ recht-im-job
+  printf '%s\n' "$r" | grep -q '^    needs: \[publish, publish-cloudsmith\]$' || rot_ needs
+  printf '%s\n' "$r" | grep -qF "    $bed" || rot_ bedingung-release
+  job_block "$w" publish | grep -qF "    $bed" || rot_ bedingung-publish
+  ohne_kommentar "$w" | grep -q 'continue-on-error' && rot_ continue-on-error
+  printf '%s\n' "$r" | grep -q 'persist-credentials: false' || rot_ persist-credentials
+  ! printf '%s\n' "$r" | grep -q 'packages: write' || rot_ packages-write
+  ! printf '%s\n' "$r" | grep -q 'CLOUDSMITH' || rot_ cloudsmith-secret
+  printf '%s\n' "$r" | schritt_block 'Tag-Commit liegt in origin/main' | grep -q 'git merge-base --is-ancestor HEAD origin/main' || rot_ tag-commit
+  printf '%s\n' "$r" | schritt_block 'make release-dateien' | grep -q '^        run: make release-dateien$' || rot_ bau-ohne-vorschau
+  ! printf '%s\n' "$r" | grep -q 'VORSCHAU' || rot_ vorschau-nur-in-vorschau
+  printf '%s\n' "$r" | schritt_block 'Pruefsummen' | grep -q 'sha256sum -c SHA256SUMS' || rot_ pruefsummen
+  a=$(printf '%s\n' "$r" | schritt_block 'gh release create')
+  printf '%s\n' "$a" | grep -q 'GH_TOKEN: \${{ secrets.GITHUB_TOKEN }}' || rot_ token-im-anlegen
+  printf '%s\n' "$a" | grep -q 'tools/release-anlegen.sh' || rot_ skript-aufruf
+  ! printf '%s\n' "$r" | ausser_anlegen | grep -q -E 'secrets\.|GH_TOKEN|GITHUB_TOKEN|env:' || rot_ token-nur-im-anlegen
+  [ "$(ohne_kommentar "$w" | grep -c -E 'secrets\.GITHUB_TOKEN')" -eq 2 ] || rot_ token-zweimal
+  ! printf '%s\n' "$v" | grep -q -E 'secrets\.|GH_TOKEN|gh release|release-anlegen' || rot_ vorschau-ohne-secret
+  printf '%s\n' "$v" | grep -q '^        run: make release-dateien VORSCHAU=1$' || rot_ vorschau-baut
+  ! grep -E '^\s+(- )?uses:' "$w" | grep -q -v -E '@[0-9a-f]{40}$' || rot_ sha-form
+  echo "$out"
+}
+[ -f "$wf" ] || { pruefe "$wf fehlt"; exit 1; }
+echt=$(wf_pruefungen "$wf")
+[ -z "${echt# }" ] || pruefe "Pruefungen am echten Workflow rot:$echt"
+# Gegenprobe je Pruefung: eine Aenderung an einer Kopie muss genau diese Pruefung rot machen.
+gegenprobe() { # <name> <Kopie>
+  case " $(wf_pruefungen "$2") " in *" $1 "*) ;; *) pruefe "die Gegenprobe $1 macht die Pruefung nicht rot" ;; esac
+}
+w="$tmp/w.yml"
+mut() { cp "$wf" "$w"; }
+mut; sed -i 's/^    needs: \[publish, publish-cloudsmith\]$/    needs: gates/' "$w"; gegenprobe needs "$w"
+mut; sed -i 's/^  release:$/  freigabe:/' "$w"; gegenprobe job-release "$w"
+mut; awk '/^  release:/ {r=1} r && /^    if: / {r=0; print "    if: github.event_name == '"'"'push'"'"'"; next} {print}' "$wf" > "$w"; gegenprobe bedingung-release "$w"
+mut; awk '/^  publish:/ {r=1} r && /^    if: / {r=0; print "    if: github.event_name == '"'"'push'"'"'"; next} {print}' "$wf" > "$w"; gegenprobe bedingung-publish "$w"
+mut; awk '/^  release:/ {r=1} /^  vorschau:/ {r=0} r && /persist-credentials: false/ {print "          persist-credentials: true"; next} {print}' "$wf" > "$w"; gegenprobe persist-credentials "$w"
+mut; awk '/^  vorschau:/ {v=1} v && /^      contents: read$/ {print "      contents: write"; next} {print}' "$wf" > "$w"; gegenprobe recht-einmal "$w"
+mut; awk '/^  release:/ {r=1} /^  vorschau:/ {r=0} r && /^      contents: write$/ {print "      contents: read"; next} {print}' "$wf" > "$w"; gegenprobe recht-im-job "$w"
+mut; awk '/^  release:/ {r=1} /^  vorschau:/ {r=0} r && /^      contents: write$/ {print; print "      packages: write"; next} {print}' "$wf" > "$w"; gegenprobe packages-write "$w"
+mut; awk '/^  release:/ {r=1} /^  vorschau:/ {r=0} r && /^        run: make release-dateien$/ {print "        run: make release-dateien VORSCHAU=1"; next} {print}' "$wf" > "$w"; gegenprobe vorschau-nur-in-vorschau "$w"
+mut; awk '/^  release:/ {r=1} /^  vorschau:/ {r=0} r && /^        run: make release-dateien$/ {print "        env:"; print "          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}"} {print}' "$wf" > "$w"; gegenprobe token-nur-im-anlegen "$w"
+mut; awk '/^  vorschau:/ {v=1} v && /^        run: make publish-vorschau$/ {print "        env:"; print "          X: ${{ secrets.CLOUDSMITH_API_KEY }}"} {print}' "$wf" > "$w"; gegenprobe vorschau-ohne-secret "$w"
+mut; awk '/^  vorschau:/ {v=1} v && /^        run: make publish-vorschau$/ {print "        env:"; print "          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}"} {print}' "$wf" > "$w"; gegenprobe token-zweimal "$w"
+mut; sed -i 's/^        run: make release-dateien VORSCHAU=1$/        run: make release-dateien/' "$w"; gegenprobe vorschau-baut "$w"
+mut; sed -i '0,/actions\/checkout@[0-9a-f]\{40\}/s//actions\/checkout@v6/' "$w"; gegenprobe sha-form "$w"
+mut; sed -i 's/^    runs-on: ubuntu-24.04$/    runs-on: ubuntu-24.04\n    continue-on-error: true/' "$w"; gegenprobe continue-on-error "$w"
+mut; sed -i 's/GH_TOKEN: \${{ secrets.GITHUB_TOKEN }}/GH_TOKEN: x/' "$w"; gegenprobe token-im-anlegen "$w"
+mut; sed -i 's/^        run: cd release-dateien && sha256sum -c SHA256SUMS$/        run: true/' "$w"; gegenprobe pruefsummen "$w"
+mut; sed -i 's/tools\/release-anlegen.sh/tools\/anders.sh/' "$w"; gegenprobe skript-aufruf "$w"
 
 # Abwesenheit: release-dateien und das Skript in keiner Gate-Liste, nicht in e2e.mk
 gate_zeilen() { grep -E '^(GATE_CHECKS|GATE_KLASSE_[a-z]+|GATE_STAGE)[[:space:]]*(\+|:)?=' "$1" || true; }
@@ -269,26 +302,6 @@ done
 ! grep -q -E 'release-dateien|release-anlegen' "$wurzel_repo/tools/mk/e2e.mk" || pruefe "tools/mk/e2e.mk nennt release-dateien oder release-anlegen"
 cp "$wurzel_repo/tools/mk/release-dateien.mk" "$tmp/gegen.mk"; printf 'GATE_CHECKS += release-anlegen\n' >> "$tmp/gegen.mk"
 gate_zeilen "$tmp/gegen.mk" | grep -q -E 'release-dateien|release-anlegen' || pruefe "die Abwesenheitspruefung wird an einer Kopie mit GATE_CHECKS nicht rot"
-
-# Gegenproben des Workflow-Textes an Kopien: je eine Aenderung muss die Kernpruefungen ausloesen.
-wf_befunde() { # <datei>: Zahl der Befunde der Kernpruefungen
-  n=0; w="$1"
-  [ "$(grep -v '^ *#' "$w" | grep -c 'contents: write')" -eq 1 ] || n=$((n+1))
-  job_block "$w" release | grep -q '^      contents: write$' || n=$((n+1))
-  job_block "$w" release | grep -q '^    needs: \[publish, publish-cloudsmith\]$' || n=$((n+1))
-  ! grep -v '^ *#' "$w" | grep -q 'continue-on-error' || n=$((n+1))
-  ! job_block "$w" release | ausser_anlegen | grep -q -E 'secrets\.|GH_TOKEN|env:' || n=$((n+1))
-  echo "$n"
-}
-[ "$(wf_befunde "$wf")" = 0 ] || pruefe "die Kernpruefungen des Workflows sind am echten Workflow nicht gruen"
-sed 's/^    needs: \[publish, publish-cloudsmith\]$/    needs: gates/' "$wf" > "$tmp/w1.yml"
-[ "$(wf_befunde "$tmp/w1.yml")" != 0 ] || pruefe "needs: gates im Job release wird nicht erkannt"
-awk '/^  vorschau:/ {v=1} v && /^      contents: read$/ {print "      contents: write"; next} {print}' "$wf" > "$tmp/w2.yml"
-[ "$(wf_befunde "$tmp/w2.yml")" != 0 ] || pruefe "contents: write im Job vorschau wird nicht erkannt"
-awk '/^  release:/ {r=1} r && /^        run: make release-dateien$/ {print "        env:"; print "          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}"} {print}' "$wf" > "$tmp/w3.yml"
-[ "$(wf_befunde "$tmp/w3.yml")" != 0 ] || pruefe "das Token in einem Schritt vor gh release create wird nicht erkannt"
-sed 's/^    runs-on: ubuntu-24.04$/    runs-on: ubuntu-24.04\n    continue-on-error: true/' "$wf" > "$tmp/w4.yml"
-[ "$(wf_befunde "$tmp/w4.yml")" != 0 ] || pruefe "continue-on-error wird nicht erkannt"
 
 if [ "$fehler" -ne 0 ]; then exit 1; fi
 echo "release-anlegen-selbsttest: gruen"
