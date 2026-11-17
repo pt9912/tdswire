@@ -45,7 +45,7 @@ internal class RueckstauTest {
 
     /** Das Backend zählt, was es dem Strom übergibt; ein Leser, der früher aufhört, lässt den Rest ungezählt. */
     @Test
-    fun `das Backend zaehlt nur die Zeilen, die der Strom gezogen hat`() = runBlocking {
+    fun `das Backend zaehlt nur die Zeilen, die der Strom gezogen hat`() = runBlocking<Unit> {
         val zaehler = RueckstauZaehler()
         Wartender(1).use { wartender ->
             val events = backend(zaehler, wartender).execute(request("SELECT * FROM ref_zeilen")).events
@@ -74,7 +74,7 @@ internal class RueckstauTest {
 
     /** Die Tabelle der Zähler liefert eine Zeile mit acht Feldern, die Werte folgen dem Zähler. */
     @Test
-    fun `die Tabelle der Zaehler liefert eine Zeile`() = runBlocking {
+    fun `die Tabelle der Zaehler liefert eine Zeile`() = runBlocking<Unit> {
         val zaehler = RueckstauZaehler()
         zaehler.erzeugt.addAndGet(11)
         Wartender(1).use { wartender ->
@@ -89,7 +89,7 @@ internal class RueckstauTest {
 
     /** Ein unterbrechbarer Aufruf endet mit dem Abbruch, lange vor dem Ende der Wartezeit. */
     @Test
-    fun `ein unterbrechbarer Aufruf endet mit dem Abbruch`() = runBlocking {
+    fun `ein unterbrechbarer Aufruf endet mit dem Abbruch`() = runBlocking<Unit> {
         Wartender(1).use { wartender ->
             val job = launch(threads) { wartender.warte(Warten.UNTERBRECHBAR, LONG_BLOCK_MS) }
             delay(HEAD_START_MS)
@@ -101,7 +101,7 @@ internal class RueckstauTest {
 
     /** Ein nicht unterbrechbarer Aufruf hält den Abbruch bis zum Ende seiner Wartezeit auf. */
     @Test
-    fun `ein nicht unterbrechbarer Aufruf haelt den Abbruch auf`() = runBlocking {
+    fun `ein nicht unterbrechbarer Aufruf haelt den Abbruch auf`() = runBlocking<Unit> {
         Wartender(1).use { wartender ->
             val start = System.nanoTime()
             val job = launch(threads, CoroutineStart.UNDISPATCHED) {
@@ -113,19 +113,31 @@ internal class RueckstauTest {
         }
     }
 
-    /** Der direkte Aufruf schläft im Thread des Aufrufers: der Aufrufer kehrt erst nach der Wartezeit zurück. */
+    /**
+     * Der direkte Aufruf schläft im Thread des Aufrufers: eine zweite Coroutine auf demselben Thread läuft erst
+     * nach der Wartezeit, bei `suspendierend` (Kontrolle) sofort.
+     */
     @Test
-    fun `der direkte Aufruf blockiert den Aufrufer`() = runBlocking {
+    fun `der direkte Aufruf blockiert den Thread des Aufrufers`() = runBlocking<Unit> {
+        val single = Executors.newSingleThreadExecutor { task -> Thread(task).apply { isDaemon = true } }
+            .asCoroutineDispatcher()
         Wartender(1).use { wartender ->
-            val start = System.nanoTime()
-            async(threads) { wartender.warte(Warten.DIREKT, SHORT_BLOCK_MS) }.await()
-            assertTrue((System.nanoTime() - start) / NANOS_PER_MILLI >= SHORT_BLOCK_MS)
+            for ((modus, blockiert) in listOf(Warten.DIREKT to true, Warten.SUSPENDIEREND to false)) {
+                val start = System.nanoTime()
+                val first = launch(single) { wartender.warte(modus, SHORT_BLOCK_MS) }
+                val second = async(single) { (System.nanoTime() - start) / NANOS_PER_MILLI }
+                val secondRanAfterMs = second.await()
+                first.join()
+                val message = "$modus: zweite Coroutine nach $secondRanAfterMs ms"
+                assertEquals(blockiert, secondRanAfterMs >= SHORT_BLOCK_MS, message)
+            }
         }
+        single.close()
     }
 
     /** Die Quelle von `ref_zeilen` zählt beim Ziehen, der Stapel-Callback den Import; Abbruch steht im Zähler. */
     @Test
-    fun `die Tabellen des Aufbaus C zaehlen Quelle und Import`() = runBlocking {
+    fun `die Tabellen des Aufbaus C zaehlen Quelle und Import`() = runBlocking<Unit> {
         val zaehler = RueckstauZaehler()
         Wartender(1).use { wartender ->
             val table = rueckstauTabellen(ROWS, SEED, zaehler, wartender, Callback(Warten.SUSPENDIEREND, 0)).first()

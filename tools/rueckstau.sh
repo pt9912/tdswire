@@ -23,14 +23,13 @@ min_frei="${RUECKSTAU_MIN_FREI_MB:-4096}"
 alle="leser-eigen-1 leser-eigen-8 leser-eigen-64 leser-eigen-256 leser-eigen-256halb leser-sim-1 leser-sim-8 leser-sim-64 leser-sim-256 blk-suspendierend-64 blk-unterbrechbar-8 blk-unterbrechbar-64 blk-unterbrechbar-256 blk-nicht-unterbrechbar-64 blk-nicht-unterbrechbar-256 blk-direkt-8 abbruch-unterbrechbar abbruch-nicht-unterbrechbar imp-1-schnell imp-1-callback imp-8-callback imp-8-callback-direkt imp-8-callback-unterbrechbar imp-1-sender"
 zellen="${RUECKSTAU_ZELLEN:-$alle}"
 klasse="io.github.pt9912.tdswire.testserver"
-proc="${RUECKSTAU_PROC:-/proc}"
+proc="${RUECKSTAU_PROC:-/proc}" # nur der Selbsttest (tools/rueckstau-selbsttest.sh) setzt es: eine Nachbildung von meminfo, loadavg und stat
 
 lauf="tdswire-rs-$$"
 netz="$lauf-netz"
 server="$lauf-server"
 server_image="tdswire-rueckstauserver:$lauf"
 client_image="tdswire-rueckstauclient:$lauf"
-scratch="$(mktemp -d)"
 fehler=0
 
 aufraeumen() {
@@ -39,9 +38,6 @@ aufraeumen() {
 	docker rmi -f "$server_image" "$client_image" >/dev/null 2>&1
 	rm -rf "$scratch"
 }
-trap aufraeumen EXIT
-trap 'exit 130' INT
-trap 'exit 143' TERM
 
 frei_mb() { awk '/^MemAvailable:/ {print int($2 / 1024)}' "$proc/meminfo"; }
 swap_mb() { awk '/^SwapTotal:/ {t=$2} /^SwapFree:/ {f=$2} END {print int((t - f) / 1024)}' "$proc/meminfo"; }
@@ -123,6 +119,19 @@ zelle() {
 	echo "zelle: $name $(date -u +%Y-%m-%dT%H:%M:%SZ) vorher [$vorher] nachher [$nachher] fremdlast $(fremdlast_summe "$probe")"
 	docker rm -f "$server" >/dev/null 2>&1
 }
+
+# Mit `source` geladen (tools/rueckstau-selbsttest.sh) endet das Skript hier: nur die Funktionen stehen dann zur Verfuegung.
+[ "${BASH_SOURCE[0]}" = "$0" ] || return 0
+
+# Zellennamen vor dem Bau pruefen (Exit 2); dieselben Namen wie die Auswahl unten.
+zellen_muster='^(leser-eigen-(1|8|64|256|256halb)|leser-sim-(1|8|64|256)|leser-frist|blk-(suspendierend|unterbrechbar|nicht-unterbrechbar|direkt)-[0-9]+|abbruch-(suspendierend|unterbrechbar|nicht-unterbrechbar)(-ohnelast)?|imp-(1-schnell|1-callback|8-callback|8-callback-direkt|8-callback-unterbrechbar|1-sender))$'
+for z in $zellen; do
+	[[ $z =~ $zellen_muster ]] || { echo "rueckstau: unbekannte Zelle '$z'" >&2; exit 2; }
+done
+scratch="$(mktemp -d)"
+trap aufraeumen EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 start=$(date +%s)
 speicherwacht
