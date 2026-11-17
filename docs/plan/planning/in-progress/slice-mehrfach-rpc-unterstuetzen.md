@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** SPEC-011 (Parserfehler) · SPEC-030 (RPC-Varianten, Trennlinie des Abschlusses, Zuordnung des Mehrfach-RPC) · SPEC-013 · Abschnitt „RPC im Backend-Vertrag“ (eine Nachricht, mehrere Aufrufe: Reihenfolge der Antworten und Ordinal je Aufruf). Die Spezifikation ändert dieser Slice bei der Umsetzung, nicht der Plan.
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** pt9912
 
 **Autor:** pt9912 (Entwurf in der Planner-Rolle). **Datum:** 2026-11-07.
 
