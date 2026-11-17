@@ -8,6 +8,7 @@ import io.github.pt9912.tdswire.protocol.token.ColMetadataToken
 import io.github.pt9912.tdswire.protocol.token.DoneStatus
 import io.github.pt9912.tdswire.protocol.token.DoneToken
 import io.github.pt9912.tdswire.protocol.token.ErrorToken
+import io.github.pt9912.tdswire.protocol.token.NullBitmapRowToken
 import io.github.pt9912.tdswire.protocol.token.RowToken
 import io.github.pt9912.tdswire.protocol.token.Token
 import io.github.pt9912.tdswire.protocol.token.TokenEncoder
@@ -215,9 +216,10 @@ class ResponseOrderTest {
             }
         }
 
+    /** Die Form eines Tokens für das Modell; „ROW“ steht für eine Zeile in beiden Formen (`ResponseRowFormTest`). */
     private fun shape(token: Token): String = when (token) {
         is ColMetadataToken -> "META"
-        is RowToken -> "ROW"
+        is RowToken, is NullBitmapRowToken -> "ROW"
         is DoneToken -> "DONE:${token.status}:${token.rowCount}"
         is ErrorToken -> "ERROR:${token.message.number}"
         else -> "?"

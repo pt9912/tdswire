@@ -21,10 +21,10 @@ internal object RpcCatalog {
     private const val EXECUTESQL_FIXED = 2
     private const val PREPEXEC_FIXED = 3
 
-    fun bind(procId: Int, reader: ByteReader): RpcCall = when (procId) {
-        RpcParser.PROC_ID_EXECUTE_SQL -> executeSql(RpcParameterReader.readAll(reader))
-        RpcParser.PROC_ID_PREP_EXEC -> prepExec(RpcParameterReader.readAll(reader))
-        RpcParser.PROC_ID_EXECUTE -> execute(RpcParameterReader.readAll(reader))
+    fun bind(procId: Int, reader: ByteReader, budget: ParameterBudget): RpcCall = when (procId) {
+        RpcParser.PROC_ID_EXECUTE_SQL -> executeSql(RpcParameterReader.readAll(reader, budget))
+        RpcParser.PROC_ID_PREP_EXEC -> prepExec(RpcParameterReader.readAll(reader, budget))
+        RpcParser.PROC_ID_EXECUTE -> execute(RpcParameterReader.readAll(reader, budget))
         else -> RpcCall.UnknownProcedure(procId)
     }
 

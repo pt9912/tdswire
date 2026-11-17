@@ -161,10 +161,11 @@ internal class ResponseSequencer(
 ) {
     /**
      * Führt [request] auf [backend] aus und schreibt die Tokens der Antwortform [form] in [sink]; [layout] sagt, wo die
-     * Parameter der Anfrage in der Aufrufliste des RPC stehen (Ordinal der RETURNVALUE). `close()` der Ausführung läuft
-     * in jedem Ausgang, auch beim Abbruch der Coroutine. Endet das Lesen durch den Abbruch der Coroutine, durch eine
-     * Senke, die ein Token nicht annimmt, oder durch eine Ausnahme der Senke, ruft der Lauf zuvor genau einmal
-     * `cancel()` des Backends; kein weiteres Ereignis wird danach gelesen.
+     * Parameter der Anfrage in der Aufrufliste des RPC stehen (Ordinal der RETURNVALUE). Die Antwort ist die eines
+     * einzelnen Aufrufs ([AnswerShape.more] ist falsch). `close()` der Ausführung läuft in jedem Ausgang, auch beim
+     * Abbruch der Coroutine. Endet das Lesen durch den Abbruch der Coroutine, durch eine Senke, die ein Token nicht
+     * annimmt, oder durch eine Ausnahme der Senke, ruft der Lauf zuvor genau einmal `cancel()` des Backends; kein
+     * weiteres Ereignis wird danach gelesen.
      */
     suspend fun run(
         backend: QueryBackend,
@@ -172,8 +173,17 @@ internal class ResponseSequencer(
         sink: TokenSink,
         form: ResponseForm = ResponseForm.BATCH,
         layout: CallLayout = CallLayout.PROCEDURE,
+    ): SequenceOutcome = run(backend, request, sink, AnswerShape(form, layout))
+
+    /** Wie [run] mit Form, Aufrufliste und der Angabe, ob ein weiterer RPC derselben Nachricht folgt ([shape]). */
+    suspend fun run(
+        backend: QueryBackend,
+        request: QueryRequest,
+        sink: TokenSink,
+        shape: AnswerShape,
     ): SequenceOutcome {
-        val run = ResponseRun(errors, sink, form, RpcOutputs(layout, request.parameters), transaction)
+        val outputs = RpcOutputs(shape.layout, request.parameters)
+        val run = ResponseRun(errors, sink, shape.form, outputs, transaction, shape.more)
         val started = runCatching { backend.execute(request) }
         val cause = started.exceptionOrNull()
         if (cause != null) {
@@ -221,3 +231,9 @@ internal class ResponseSequencer(
     private fun rethrowCancellation(cause: Throwable): Throwable =
         if (cause is CancellationException) throw cause else cause
 }
+
+/**
+ * Die Gestalt der Antwort eines Aufrufs: die [form], die [layout] der Aufrufliste und [more], wahr, wenn ein weiterer
+ * RPC derselben Nachricht folgt und die Antwort auf ihn in dieselbe Senke geschrieben wird ([RpcTrailer]).
+ */
+internal class AnswerShape(val form: ResponseForm, val layout: CallLayout, val more: Boolean = false)

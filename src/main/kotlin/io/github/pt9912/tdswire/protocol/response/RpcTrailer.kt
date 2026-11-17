@@ -12,14 +12,26 @@ import io.github.pt9912.tdswire.protocol.token.Token
  * Reihenfolge der Aufrufliste und das DONEPROC. [sink] schreibt ein Token in die Senke des Laufs und meldet, ob sie es
  * annahm. Der Wert des RETURNSTATUS hängt am letzten Fehler ([record]): hat er die Ausführung beendet, ist es seine
  * SQL-Server-Nummer (eigene Nummern ab [FIRST_OWN_ERROR_NUMBER]: kein RETURNSTATUS, auch nicht der des Backends);
- * sonst der `ReturnStatus` des Backends, ohne ihn 0.
+ * sonst der `ReturnStatus` des Backends, ohne ihn 0. Folgt ein weiterer RPC derselben Nachricht ([more]), trägt das
+ * DONEPROC die Bits `MORE` und `RPC_IN_BATCH` (gemessen mit `UpdateBatchSize` 2, Messreihe am Draht `rpc-batch-*`,
+ * 2022 und 2025: `MORE|0x80` am DONEPROC jedes Aufrufs außer dem letzten, keine Bits am letzten; ein DONEPROC mit
+ * `ERROR` vor dem ersten Ergebnis trägt sie ebenso, Setzung ohne Messung).
  */
-internal class RpcTrailer(private val outputs: RpcOutputs, private val sink: suspend (Token) -> Boolean) {
+internal class RpcTrailer(
+    private val outputs: RpcOutputs,
+    private var more: Boolean = false,
+    private val sink: suspend (Token) -> Boolean,
+) {
     /** Nummer des letzten ERROR und ob die Ausführung danach weiterlief; `null` ohne Fehler. */
     private var lastError: Pair<Int, Boolean>? = null
 
     /** Wahr, sobald ein ERROR geschrieben wurde. */
     val failed: Boolean get() = lastError != null
+
+    /** Die Antwort endet hier, auch wenn weitere RPCs folgen sollten (die Verbindung schließt): kein `MORE` mehr. */
+    fun endsMessage() {
+        more = false
+    }
 
     /** Merkt den ERROR mit der Nummer [number]; [continued] ist wahr, wenn die Ausführung danach weiterläuft. */
     fun record(number: Int, continued: Boolean) {
@@ -38,8 +50,13 @@ internal class RpcTrailer(private val outputs: RpcOutputs, private val sink: sus
 
     /** RETURNSTATUS, RETURNVALUE und DONEPROC, mit `ERROR` am DONEPROC, wenn [errorBit] gesetzt ist. */
     suspend fun finish(errorBit: Boolean): Boolean {
-        val doneProc =
-            DoneToken(DoneKind.DONE_PROC, if (errorBit) DoneStatus.ERROR else DoneStatus.FINAL, DoneCommand.PROC, 0)
+        val batch = if (more) DoneStatus.MORE or DoneStatus.RPC_IN_BATCH else DoneStatus.FINAL
+        val doneProc = DoneToken(
+            DoneKind.DONE_PROC,
+            (if (errorBit) DoneStatus.ERROR else DoneStatus.FINAL) or batch,
+            DoneCommand.PROC,
+            0,
+        )
         val tokens = listOfNotNull<Token>(statusValue()?.let { ReturnStatusToken(it) }) + outputs.returnValues() +
             doneProc
         return tokens.all { sink(it) }

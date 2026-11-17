@@ -1,0 +1,2 @@
+**Vorgang:** [slice-antwortform-nbcrow](../../../../done/slice-antwortform-nbcrow.md)
+**Fund:** Die Wahl zwischen ROW und NBCROW ist am Referenzclient `Microsoft.Data.SqlClient` 7.1.1 gemessen und gebaut; ob mssql-jdbc (d-migrate) die NBCROW-Zeilen dieses Servers liest, ist nicht gemessen (Verifikation V-1; der echte Server schickt dem Treiber dasselbe NBCROW, das ist kein Beleg am gebauten Stand). Folge-Messauftrag, Träger Nutzer: mssql-jdbc gegen den Testserver mit NULL-Zeilen.

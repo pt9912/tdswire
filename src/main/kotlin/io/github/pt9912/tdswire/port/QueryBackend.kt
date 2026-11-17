@@ -16,7 +16,8 @@ public interface QueryBackend {
      * Die Abbruchausnahme der Coroutine ([kotlinx.coroutines.CancellationException]) bleibt davon
      * unberührt. Vertragspflicht (ADR-0013): Backend und Zeilenquelle sind suspendierend und
      * blockieren den Thread des Aufrufers nicht; einen blockierenden Treiber legt der Integrator hinter
-     * einen eigenen, begrenzten Pool und ruft ihn unterbrechbar auf.
+     * einen eigenen, begrenzten Pool und ruft ihn unterbrechbar auf. Ein Aufruf je RPC: eine Nachricht mit mehreren
+     * RPCs ruft diese Funktion mehrfach nacheinander mit derselben `requestId` ([QueryRequest]).
      */
     public suspend fun execute(request: QueryRequest): QueryExecution
 

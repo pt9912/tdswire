@@ -46,10 +46,10 @@ public class MessungBelegTests
     // @spec SPEC-045
     [Theory]
     [MemberData(nameof(Stufen))]
-    public void Die_Ablage_hat_22_Messungen_mit_Anmeldung_und_alle_Auswertungen_ohne_Zerlegungsproblem(string stufe)
+    public void Die_Ablage_hat_26_Messungen_mit_Anmeldung_und_alle_Auswertungen_ohne_Zerlegungsproblem(string stufe)
     {
         var dateien = Directory.GetFiles(Verzeichnis(stufe), "*.messung");
-        Assert.Equal(22, dateien.Length);
+        Assert.Equal(26, dateien.Length);
         Assert.DoesNotContain(Z(stufe), z => z.Value.Contains("PROBLEM", StringComparison.Ordinal) || z.Value.Contains("ZERLEGUNG-ABGEBROCHEN", StringComparison.Ordinal));
         foreach (var pfad in dateien)
         {
@@ -353,5 +353,80 @@ public class MessungBelegTests
             .Where(k => !k.Contains("/00/prelogin-", StringComparison.Ordinal) && !k.EndsWith("/00/login7", StringComparison.Ordinal) && !k.EndsWith("/00/einzelheiten", StringComparison.Ordinal))
             .Order(StringComparer.Ordinal).ToList();
         Assert.Equal(new[] { "sitzung-crc1/06/einzelheiten", "sitzung-crc1/06/tokenfolge", "sitzung-crc1/07/einzelheiten", "sitzung-crc1/07/tokenfolge" }, abweichend);
+    }
+    // ---- Mehrere RPCs in einer Nachricht (slice-mehrfach-rpc-unterstuetzen) ------------------------------------------
+
+    private const string EinAufruf = "sp_ExecuteSql(#10) [0]- nvarchar 53 Zeichen | [1]- nvarchar 26 Zeichen | [2]@Id int {0} | [3]@Text nvarchar 4 Zeichen";
+
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void Zwei_RPCs_einer_Nachricht_sind_am_Trennbyte_0xFF_getrennt_und_eine_Antwortnachricht_folgt(string stufe)
+    {
+        Assert.Equal(
+            "Art 3 Status 0x01: " + string.Format(EinAufruf, 200) + " || Batchflag 0xff || " + string.Format(EinAufruf, 201),
+            F(stufe, "rpc-batch-dml/01/anfrage"));
+        Assert.Equal("1", F(stufe, "rpc-batch-dml/01/nachrichten"));
+        // Die Folgeabfrage auf derselben Verbindung gelingt.
+        Assert.Equal("COLMETADATA ROW+ DONE", F(stufe, "rpc-batch-dml/02/tokenfolge"));
+    }
+
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void Die_Antwort_auf_mehrere_RPCs_trennt_die_Aufrufe_durch_DONEPROC_mit_MORE_und_Bit_0x80_ausser_am_letzten(string stufe)
+    {
+        Assert.Equal("DONEINPROC RETURNSTATUS DONEPROC DONEINPROC RETURNSTATUS DONEPROC", F(stufe, "rpc-batch-dml/01/tokenfolge"));
+        Assert.Equal(
+            "DONEINPROC Status MORE|COUNT, Befehl 0x00c3, Zeilen 1 ; DONEPROC Status MORE|0x80, Befehl 0x00e0, Zeilen - ; " +
+            "DONEINPROC Status MORE|COUNT, Befehl 0x00c3, Zeilen 1 ; DONEPROC Status -, Befehl 0x00e0, Zeilen -",
+            F(stufe, "rpc-batch-dml/01/done"));
+        Assert.Equal("RETURNSTATUS 0 ; RETURNSTATUS 0", F(stufe, "rpc-batch-dml/01/rueckgabe"));
+    }
+
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void Drei_Zeilen_mit_UpdateBatchSize_2_gehen_in_zwei_Nachrichten_und_die_zweite_hat_kein_Trennbyte(string stufe)
+    {
+        Assert.Contains("|| Batchflag 0xff ||", F(stufe, "rpc-batch-drei/01/anfrage"), StringComparison.Ordinal);
+        Assert.Equal("Art 3 Status 0x01: " + string.Format(EinAufruf, 212), F(stufe, "rpc-batch-drei/02/anfrage"));
+        Assert.Equal("DONEINPROC RETURNSTATUS DONEPROC", F(stufe, "rpc-batch-drei/02/tokenfolge"));
+        Assert.EndsWith("DONEPROC Status -, Befehl 0x00e0, Zeilen -", F(stufe, "rpc-batch-drei/02/done"), StringComparison.Ordinal);
+    }
+
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void Das_Ordinal_der_RETURNVALUE_zaehlt_in_jedem_Aufruf_der_Nachricht_von_vorn(string stufe)
+    {
+        Assert.Equal(
+            "DONEINPROC DONEINPROC RETURNSTATUS RETURNVALUE DONEPROC DONEINPROC DONEINPROC RETURNSTATUS RETURNVALUE DONEPROC",
+            F(stufe, "rpc-batch-ausgabewert/01/tokenfolge"));
+        Assert.Equal(
+            "RETURNSTATUS 0 ; RETURNVALUE Ordinal 4, Name '@N', Status 1, Typ intn, Wert 1220 ; RETURNSTATUS 0 ; RETURNVALUE Ordinal 4, Name '@N', Status 1, Typ intn, Wert 1221",
+            F(stufe, "rpc-batch-ausgabewert/01/rueckgabe"));
+        Assert.Contains("[4]@N OUTPUT int NULL || Batchflag 0xff ||", F(stufe, "rpc-batch-ausgabewert/01/anfrage"), StringComparison.Ordinal);
+    }
+
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void Ein_Fehler_im_zweiten_Aufruf_beendet_nur_diesen_Aufruf_und_der_dritte_laeuft(string stufe)
+    {
+        Assert.Equal(
+            "DONEINPROC RETURNSTATUS DONEPROC ERROR INFO DONEINPROC RETURNSTATUS DONEPROC DONEINPROC RETURNSTATUS DONEPROC",
+            F(stufe, "rpc-batch-fehler/03/tokenfolge"));
+        Assert.Equal(
+            "DONEINPROC Status MORE|COUNT, Befehl 0x00c3, Zeilen 1 ; DONEPROC Status MORE|0x80, Befehl 0x00e0, Zeilen - ; " +
+            "DONEINPROC Status MORE|ERROR, Befehl 0x00c3, Zeilen - ; DONEPROC Status MORE|0x80, Befehl 0x00e0, Zeilen - ; " +
+            "DONEINPROC Status MORE|COUNT, Befehl 0x00c3, Zeilen 1 ; DONEPROC Status -, Befehl 0x00e0, Zeilen -",
+            F(stufe, "rpc-batch-fehler/03/done"));
+        Assert.Equal("RETURNSTATUS 0 ; RETURNSTATUS 2627 ; RETURNSTATUS 0", F(stufe, "rpc-batch-fehler/03/rueckgabe"));
+        Assert.StartsWith("Fehler Nummer 2627, Class 14, State 1,", F(stufe, "rpc-batch-fehler/03/fehler"), StringComparison.Ordinal);
+        Assert.Contains("PK_wire_batch", F(stufe, "rpc-batch-fehler/03/fehler"), StringComparison.Ordinal);
+        // Die Zeilen 230 und 231 stehen nach dem Fehler im Bestand, die vorab angelegte 240 einmal.
+        Assert.Equal("anzahl=3 [(230);(231);(240)]", F(stufe, "rpc-batch-fehler/04/zeilen"));
+        Assert.Equal("COLMETADATA ROW+ DONE", F(stufe, "rpc-batch-fehler/05/tokenfolge"));
     }
 }

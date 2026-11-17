@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** `SPEC-022` · `SPEC-035` (Rückstau-Zusage in `spec/spezifikation.md`, Abschnitt „Pflichten des Backends“: „gilt für das Test-Backend an einem Draht ohne Netz, nicht für einen Socket, ein blockierendes Backend oder das Simulations-Backend“)
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** pt9912
 
 **Autor:** pt9912. **Datum:** 2026-11-15.
 
@@ -37,7 +37,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Heap beim Strom und Latenz des zurückgehaltenen Abschlusses — liegen bei [slice-qa-performance-heap-abschluss](slice-qa-performance-heap-abschluss.md).
+- Heap beim Strom und Latenz des zurückgehaltenen Abschlusses — liegen bei [slice-qa-performance-heap-abschluss](../open/slice-qa-performance-heap-abschluss.md).
 - Durchsatz und p95 der Staffel — liegen bei [slice-qa-performance-durchsatz-sitzungen](../in-progress/slice-qa-performance-durchsatz-sitzungen.md); hier zählt, wie weit das Backend dem Leser vorausläuft und was ein langsamer Leser den übrigen Sitzungen nimmt.
 - Wirkung einer blockierenden Senke der Telemetrie auf den Anfragepfad — ein anderer Gegenstand (Senke, nicht Backend); `BEO-TDS/rueckstau-im-produktivbetrieb-nicht-gemessen` führt sie weiter, sie bleibt dort offen, bis ein Slice sie übernimmt.
 - Ein Schreibvorgang, der am Rückstau die Sitzungssperre hält und damit Frist und Abbruch aufschiebt (`SPEC-009`, `SPEC-033`): er wird beobachtet, wo er in den Läufen auftritt, die Behebung ist kein Teil — eine Behebung wäre „Code angleichen“ oder „Zielbild anpassen“ und ein eigener Slice.

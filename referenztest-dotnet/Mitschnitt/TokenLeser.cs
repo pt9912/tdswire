@@ -15,6 +15,9 @@ internal sealed class Antwort
 
     public int ZeilenAnzahl { get; set; }
 
+    /// <summary>Je Zeile Tokenname und Bytes des Tokens vom Kennbyte bis zum Ende der Zeile (`ROW:d1…`, `NBCROW:d2…`), in der Reihenfolge der Antwort; Ablage der Messung, nicht Teil des Vergleichs.</summary>
+    public List<string> ZeilenToken { get; } = new();
+
     public List<string> Fertig { get; } = new();
 
     public List<string> Fehler { get; } = new();
@@ -153,6 +156,7 @@ internal sealed class TokenLeser
         string? letzterZeilenName = null;
         while (_p < _b.Length)
         {
+            var start = _p;
             var kennung = (byte)U8();
             string name;
             switch (kennung)
@@ -229,6 +233,7 @@ internal sealed class TokenLeser
 
             if (name is "ROW" or "NBCROW")
             {
+                a.ZeilenToken.Add(name + ":" + Convert.ToHexString(_b, start, _p - start).ToLowerInvariant());
                 if (letzterZeilenName == name) continue;
                 a.Folge.Add(name + "+");
                 letzterZeilenName = name;

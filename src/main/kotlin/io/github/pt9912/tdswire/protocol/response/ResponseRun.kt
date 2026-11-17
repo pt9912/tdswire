@@ -14,7 +14,6 @@ import io.github.pt9912.tdswire.protocol.token.DoneToken
 import io.github.pt9912.tdswire.protocol.token.ErrorToken
 import io.github.pt9912.tdswire.protocol.token.InfoToken
 import io.github.pt9912.tdswire.protocol.token.ReturnStatusToken
-import io.github.pt9912.tdswire.protocol.token.RowToken
 import io.github.pt9912.tdswire.protocol.token.ServerMessage
 import io.github.pt9912.tdswire.protocol.token.Token
 import io.github.pt9912.tdswire.protocol.wire.ProtocolError
@@ -78,7 +77,8 @@ internal fun errorAnswerTail(form: ResponseForm, last: ServerMessage, resultOpen
  * Zustand eines Laufs des [ResponseSequencer]: die Spalten des offenen Ergebnisses (`null` ohne
  * offenes Ergebnis), der zurückgehaltene Abschluss, die gesammelten RPC-Ausgaben und der
  * Ausgang. Ein Lauf gehört einer Coroutine und ist nicht threadsicher. Die [form] bestimmt die Art der
- * Abschlüsse und ob `ReturnStatus` und `OutputParameter` abgebildet werden.
+ * Abschlüsse und ob `ReturnStatus` und `OutputParameter` abgebildet werden. [more] sagt in der Form RPC, dass ein
+ * weiterer RPC derselben Nachricht folgt ([RpcTrailer]); ein Fehler, der die Verbindung schließt, nimmt es zurück.
  */
 internal class ResponseRun(
     private val errors: ErrorMapping,
@@ -86,14 +86,18 @@ internal class ResponseRun(
     private val form: ResponseForm = ResponseForm.BATCH,
     private val outputs: RpcOutputs = RpcOutputs(CallLayout.PROCEDURE, emptyList()),
     private val transaction: SessionTransaction = SessionTransaction(),
+    more: Boolean = false,
 ) {
     private var outcome: SequenceOutcome? = null
     private var columns: List<ColumnDef>? = null
 
+    /** Die Größe eines NULL im ROW je Spalte des offenen Ergebnisses ([RowForm]). */
+    private var nullSizes: List<Int> = emptyList()
+
     /** Die Art des offenen Ergebnisses; bestimmt die Kennung seines Abschlusses und eines Fehlers in ihm. */
     private var resultKind = StatementKind.UNKNOWN
     private var held: DoneToken? = null
-    private val trailer = RpcTrailer(outputs) { write(it) }
+    private val trailer = RpcTrailer(outputs, more) { write(it) }
 
     /** Wahr, sobald ein Ergebnis begonnen oder eine Anweisung abgeschlossen ist (RPC: Fehlerbit am DONEINPROC). */
     private var begun = false
@@ -164,6 +168,7 @@ internal class ResponseRun(
 
             is ProtocolResult.Ok -> {
                 columns = mapped.value
+                nullSizes = RowForm.nullSizes(mapped.value)
                 resultKind = event.kind
                 begun = true
                 !write(ColMetadataToken(mapped.value))
@@ -175,7 +180,7 @@ internal class ResponseRun(
         val defs = columns ?: return report(violation)
         return when (val mapped = ValueMapping.row(defs, event.values)) {
             is ProtocolResult.Failed -> report(errors.typeMapping(mapped.error))
-            is ProtocolResult.Ok -> !write(RowToken(mapped.value))
+            is ProtocolResult.Ok -> !write(RowForm.token(mapped.value, nullSizes))
         }
     }
 
@@ -259,6 +264,7 @@ internal class ResponseRun(
         columns = null
         resultKind = StatementKind.UNKNOWN
         trailer.record((mapped.followUp ?: mapped.message).number, continued = false)
+        if (mapped.closesConnection) trailer.endsMessage()
         val written = mapped.errors.all { write(it) } && (!terminated || write(BULK_TERMINATED)) && when (form) {
             ResponseForm.BATCH -> write(failedDone(form, resultOpen, resultCommand))
 

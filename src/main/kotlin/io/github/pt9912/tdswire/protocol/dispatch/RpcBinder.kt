@@ -4,6 +4,7 @@ import io.github.pt9912.tdswire.domain.QueryParameter
 import io.github.pt9912.tdswire.protocol.response.CallLayout
 import io.github.pt9912.tdswire.protocol.rpc.RpcCall
 import io.github.pt9912.tdswire.protocol.rpc.RpcParser
+import io.github.pt9912.tdswire.protocol.rpc.RpcRequest
 import io.github.pt9912.tdswire.protocol.wire.ProtocolError
 import io.github.pt9912.tdswire.protocol.wire.ProtocolFailure
 import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
@@ -32,6 +33,14 @@ internal sealed interface RpcBinding {
      */
     class ExecutePrepared(val handle: Int, val parameters: List<QueryParameter>) : RpcBinding {
         override fun toString(): String = "ExecutePrepared(handle=$handle, parameters=$parameters)"
+    }
+
+    /**
+     * Mehrere RPCs einer Nachricht, in der Reihenfolge der Nachricht; jeder ist eine [Query] (`sp_executesql` oder RPC
+     * per Prozedurname). Mindestens zwei.
+     */
+    class Sequence(val queries: List<Query>) : RpcBinding {
+        override fun toString(): String = "Sequence(queries=$queries)"
     }
 
     /**
@@ -71,7 +80,7 @@ internal object RpcBinder {
     fun bind(payload: ByteArray): RpcBinding = try {
         when (val parsed = RpcParser.parse(payload)) {
             is ProtocolResult.Failed -> rejectedByParser(parsed.error)
-            is ProtocolResult.Ok -> bind(parsed.value.call)
+            is ProtocolResult.Ok -> bind(parsed.value)
         }
     } catch (rejected: RpcRejected) {
         RpcBinding.Rejected(rejected.reason)
@@ -81,6 +90,23 @@ internal object RpcBinder {
     private fun rejectedByParser(error: ProtocolError): RpcBinding = when (error.failure) {
         ProtocolFailure.UNSUPPORTED_PLP -> RpcBinding.Rejected(RpcRejection.TYPE)
         else -> RpcBinding.Rejected(RpcRejection.ENCODING, error)
+    }
+
+    /**
+     * Eine Nachricht mit mehreren RPCs wird ganz gebunden: lehnt die Bindung einen Aufruf ab, erreicht keiner das
+     * Backend (Festlegung). Nur `sp_executesql` und der RPC per Prozedurname sind in einer solchen Nachricht gebaut;
+     * `sp_prepexec` und `sp_execute` ergeben [RpcRejection.BATCH_FORM].
+     */
+    private fun bind(request: RpcRequest): RpcBinding {
+        if (request.following.isEmpty()) return bind(request.call)
+        val bound = request.invocations.map { bind(it.call) }
+        val rejected = bound.filterIsInstance<RpcBinding.Rejected>().firstOrNull()
+        val queries = bound.filterIsInstance<RpcBinding.Query>()
+        return when {
+            rejected != null -> rejected
+            queries.size != bound.size -> RpcBinding.Rejected(RpcRejection.BATCH_FORM)
+            else -> RpcBinding.Sequence(queries)
+        }
     }
 
     private fun bind(call: RpcCall): RpcBinding = when (call) {

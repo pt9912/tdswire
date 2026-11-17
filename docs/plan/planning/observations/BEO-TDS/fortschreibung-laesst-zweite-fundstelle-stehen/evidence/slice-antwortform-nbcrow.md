@@ -1,0 +1,2 @@
+**Vorgang:** [slice-antwortform-nbcrow](../../../../done/slice-antwortform-nbcrow.md)
+**Fund:** Review F-1 und F-3: die Bedingungen der Messung standen zuerst nur im Messprotokoll, nicht in Spec, Matrix und Nutzer-Doku; das Ziel in Slice §1 und der Plantext in §6 trugen den abgelösten Zustand („Zeile mit NULL als NBCROW“, gemessen ist: eine NULL in `INTN` bleibt ROW). Behoben an allen Fundstellen in `853239d5`.

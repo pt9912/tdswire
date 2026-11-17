@@ -11,6 +11,7 @@ import io.github.pt9912.tdswire.protocol.error.ErrorCode
 import io.github.pt9912.tdswire.protocol.error.ErrorMapper
 import io.github.pt9912.tdswire.protocol.error.ErrorResponse
 import io.github.pt9912.tdswire.protocol.error.executeUnknownHandle
+import io.github.pt9912.tdswire.protocol.response.AnswerShape
 import io.github.pt9912.tdswire.protocol.response.CallLayout
 import io.github.pt9912.tdswire.protocol.response.ResponseForm
 import io.github.pt9912.tdswire.protocol.response.ResponseSequencer
@@ -56,13 +57,19 @@ import kotlin.time.Duration.Companion.milliseconds
  * Form [ResponseForm.RPC] (DONEINPROC, RETURNSTATUS, RETURNVALUE, DONEPROC), die auf einen Batch die Form
  * [ResponseForm.BATCH]. Lehnt die
  * Bindung den RPC ab ([RpcRejection]), wird das Backend nicht gerufen. Weist der Parser die Nachricht ab,
- * gilt der Fehler des Parsers (`ErrorMapper.protocol`, ERROR und DONE, auch beim RPC: bei einem DONEPROC meldet der
- * Referenzclient den Fehler einer Nachricht mit mehreren RPCs nicht, `make e2e` Stufe 6) und die Verbindung schließt:
+ * gilt der Fehler des Parsers (`ErrorMapper.protocol`, ERROR und DONE, auch beim RPC; Trennlinie der ADR-0039) und die
+ * Verbindung schließt:
  * ein Strukturfehler ergibt `TDS_PROTOCOL_ERROR`, eine Typkennung außerhalb der Typliste (`INVALID_TYPE`, etwa `FE 00`)
  * `TDS_UNSUPPORTED_TYPE` (50003, Class 20). Jede andere Ablehnung, auch `varchar(max)` und
  * `varbinary(max)` als Wertparameter und ein MAX-Typ mit fester Form (`UNSUPPORTED_PLP`), ergibt
  * `TDS_UNSUPPORTED_RPC` (50002; ERROR und DONEPROC mit Fehlerstatus, `SPEC-013`) bei
  * offener Verbindung; der Name des Grundes steht im Log.
+ *
+ * Mehrere RPCs in einer Nachricht (`SPEC-030`, gemessen am echten SQL Server mit `UpdateBatchSize`): `RpcBinder` bindet
+ * die ganze Nachricht ([RpcBinding.Sequence]); die Schleife ruft das Backend je Aufruf, der Reihe nach, mit derselben
+ * Kennung der Anfrage und derselben Frist und schreibt die Antworten hintereinander in eine Antwort. Ein Fehler, der
+ * die Verbindung offen lässt, beendet nur seinen Aufruf. `sp_prepexec` und `sp_execute` in einer solchen Nachricht
+ * ergeben `TDS_UNSUPPORTED_RPC` ([RpcRejection.BATCH_FORM]).
  *
  * Prepared-Statements (`TDS-FA-04.a` Nr. 5, `SPEC-030`): `sp_prepexec` merkt den Text unter einem neuen Handle der
  * Sitzung ([PreparedHandles]), führt ihn mit den Parametern der Nachricht über das [backend] aus und
@@ -184,8 +191,8 @@ internal class RequestLoop(
     @Volatile
     private var active: AbortableRun? = null
 
-    /** Was die Schleife dem [gate] zuletzt gemeldet hat; es bekommt nur Wechsel. */
-    private var announced = false
+    /** Meldet dem [gate], ob eine Anfrage läuft; es bekommt nur Wechsel. */
+    private val announcer = Announcer(gate)
 
     /** Wahr, solange die Antwort auf eine Anfrage mit `RESETCONNECTION` ihr ENVCHANGE Typ 18 noch nicht trägt. */
     private var resetPending = false
@@ -238,16 +245,10 @@ internal class RequestLoop(
                 }
             }
         } finally {
-            announce(false)
+            announcer.report(false)
             handles.clear()
             channel.close()
         }
-    }
-
-    private fun announce(running: Boolean) {
-        if (announced == running) return
-        announced = running
-        gate.requestRunning(running)
     }
 
     /** Eine Nachricht; `false`, wenn die Schleife endet. */
@@ -269,13 +270,13 @@ internal class RequestLoop(
             state != ConnectionState.RUNNING -> false
 
             else -> {
-                announce(true)
+                announcer.report(true)
                 resetPending = event.message.resetConnection
                 val finished = answer(event.message)
                 (if (resetPending) withResetFirst(finished) else finished)?.let { live.dispatch(it) }
                 resetPending = false
                 val open = live.context.state == ConnectionState.READY
-                if (!(open && gate.begun)) announce(false)
+                if (!(open && gate.begun)) announcer.report(false)
                 open
             }
         }
@@ -389,6 +390,9 @@ internal class RequestLoop(
 
             is RpcBinding.Query -> execute(bound.sql, bound.parameters, bound.layout)
 
+            is RpcBinding.Sequence ->
+                carryOut(bound.queries.map { BackendCall(it.sql, it.parameters, it.layout, backend) })
+
             is RpcBinding.Prepare -> prepare(bound)
 
             is RpcBinding.ExecutePrepared -> executePrepared(bound)
@@ -428,13 +432,25 @@ internal class RequestLoop(
         layout: CallLayout?,
         via: QueryBackend = backend,
         onOutcome: suspend (SequenceOutcome) -> Unit = {},
+    ): HandshakeEvent.RequestFinished? = carryOut(listOf(BackendCall(text, parameters, layout, via)), onOutcome)
+
+    /**
+     * Der Rahmen jeder Antwort auf eine Anfrage an das Backend: Antwort öffnen, Frist setzen, die [calls] unter
+     * [AbortableRun] der Reihe nach ausführen und das Ende in das Ereignis der Anfrage übersetzen. Alle Aufrufe
+     * schreiben in dieselbe Senke und tragen Sitzungs-ID, Kennung der Anfrage und Frist der Nachricht; sie laufen nie
+     * gleichzeitig (`SPEC-030`). Ein Ausgang, der die Verbindung offen lässt, beendet nur seinen Aufruf (gemessen am
+     * echten SQL Server); ein Ausgang, der sie schließt, beendet die Nachricht. Der Ausgang der Anfrage ist der
+     * schwerste der Aufrufe.
+     */
+    private suspend fun carryOut(
+        calls: List<BackendCall>,
+        onOutcome: suspend (SequenceOutcome) -> Unit = {},
     ): HandshakeEvent.RequestFinished? {
-        val form = forms.take(layout)
+        val form = forms.take(calls.first().layout)
         val live = ready.live
         val reply = live.openReply(PacketType.TABULAR_RESULT)
         val response = StreamedResponse(reply) { live.dispatch(HandshakeEvent.StreamStarted) }
         val deadline = times.queryTimeout?.let { times.now() + it.inWholeMilliseconds }
-        val request = QueryRequest(ready.session.id, requestId, text, parameters, deadline)
         val remaining = deadline?.let { (it - times.now()).milliseconds }
         val run = AbortableRun(live, rig.tray, times, rig.detached)
         val sink = OpenResultTracker(LeadingToken(response, EnvChange.ResetConnection.takeIf { resetPending }))
@@ -442,7 +458,17 @@ internal class RequestLoop(
         active = run
         val end = try {
             run.run(remaining) {
-                sequencer.run(via.observed(session), request, sinkAround(sink), form, layout ?: CallLayout.PROCEDURE)
+                var combined = SequenceOutcome.COMPLETED
+                for ((index, call) in calls.withIndex()) {
+                    val request = QueryRequest(ready.session.id, requestId, call.text, call.parameters, deadline)
+                    val layout = call.layout ?: CallLayout.PROCEDURE
+                    val more = index < calls.lastIndex
+                    val shape = AnswerShape(form, layout, more)
+                    val outcome = sequencer.run(call.via.observed(session), request, sinkAround(sink), shape)
+                    combined = maxOf(combined, outcome)
+                    if (outcome > SequenceOutcome.FAILED) break
+                }
+                combined
             }
         } finally {
             active = null
@@ -450,6 +476,25 @@ internal class RequestLoop(
         queryOutcome = end.spanOutcome()
         abandoned = end is RunEnd.Abandoned
         return conclusion.conclude(end, reply, form, sink.open, onOutcome)
+    }
+}
+
+/** Ein Aufruf des Backends innerhalb einer Anfrage; [layout] ist `null` für einen SQL_BATCH. */
+private class BackendCall(
+    val text: String,
+    val parameters: List<QueryParameter>,
+    val layout: CallLayout?,
+    val via: QueryBackend,
+)
+
+/** Meldet dem [gate] nur Wechsel zwischen „eine Anfrage läuft“ und „keine läuft“. */
+private class Announcer(private val gate: ShutdownGate) {
+    private var announced = false
+
+    fun report(running: Boolean) {
+        if (announced == running) return
+        announced = running
+        gate.requestRunning(running)
     }
 }
 

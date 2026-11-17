@@ -35,6 +35,9 @@ internal enum class RpcRejection {
 
     /** Wert außerhalb des Bereichs seines Typs. */
     VALUE,
+
+    /** `sp_prepexec` oder `sp_execute` in einer Nachricht mit mehreren RPCs (nicht gebaut; kein Aufruf läuft). */
+    BATCH_FORM,
 }
 
 /** Interne Abkürzung des Kontrollflusses der Abbildung; wird an der Grenze von [RpcBinder] gefangen. */
