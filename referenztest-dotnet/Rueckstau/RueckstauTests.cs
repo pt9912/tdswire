@@ -206,8 +206,10 @@ public class RueckstauTests
             var s1 = LiesStand(probe);
             Thread.Sleep((int)nach);
             var s2 = LiesStand(probe);
+            var weiter = Stopwatch.StartNew();
             schnellFertig.Set();
             WarteAuf(langsameAufgaben);
+            var weiterMs = (long)weiter.Elapsed.TotalMilliseconds;
             gesamt.Stop();
             var s3 = LiesStand(probe, bereinigen: true);
             var vorlaufSumme = s1.Erzeugt - s0.Erzeugt - (long)schnell * zeilen - langsam;
@@ -218,7 +220,7 @@ public class RueckstauTests
             Zeile($"leser n {n} langsam {langsam} zeilen {zeilen} basis_ms {(long)basisMs} schnell_ms {(long)schnellMs} schnell_median_sitzung_ms {mediandauer} schnell_max_sitzung_ms {maxdauer}"
                 + $" basis_zeilen_je_s {(basisMs > 0 ? (long)(schnell * zeilen * 1000 / basisMs) : -1)} schnell_zeilen_je_s {(schnellMs > 0 ? (long)(schnell * zeilen * 1000 / schnellMs) : -1)}"
                 + $" vorlauf_summe {vorlaufSumme} vorlauf_je_langsam {vorlaufSumme / langsam} vorlauf_byte_je_langsam_gesch {vorlaufSumme / langsam * 329} plateau_zuwachs {vorlaufPlateau}"
-                + $" offen {s1.Offen} threads {s1.Threads} spitze_threads {s1.Spitze} heap_benutzt_mb {s1.HeapMb} heap_nach_gc_mb {s3.HeapMb} offen_ende {s3.Offen} beendet_delta {s3.Beendet - s0.Beendet} abgebrochen_delta {s3.Abgebrochen - s0.Abgebrochen} gesamt_ms {(long)gesamt.Elapsed.TotalMilliseconds}");
+                + $" offen {s1.Offen} threads {s1.Threads} spitze_threads {s1.Spitze} heap_benutzt_mb {s1.HeapMb} heap_nach_gc_mb {s3.HeapMb} offen_ende {s3.Offen} beendet_delta {s3.Beendet - s0.Beendet} abgebrochen_delta {s3.Abgebrochen - s0.Abgebrochen} weiterlesen_ms {weiterMs} gesamt_ms {(long)gesamt.Elapsed.TotalMilliseconds}");
             Assert.Equal(0, s3.Offen);
         }
         finally
@@ -252,14 +254,19 @@ public class RueckstauTests
             NachbarZeile($"blockierend modus {modus} ohne_last", leer.Zeiten, leer.Fehler);
             var s0 = LiesStand(nachbar);
             var dauern = new ConcurrentBag<double>();
+            var starts = new ConcurrentBag<double>();
             var uhr = Stopwatch.StartNew();
             var mit = MitNachbar(nachbar, () =>
-                Parallel.For(0, n, new ParallelOptions { MaxDegreeOfParallelism = n }, i => dauern.Add(LiesAlles(sitzungen[i], sql, zeilen, seed))));
+                Parallel.For(0, n, new ParallelOptions { MaxDegreeOfParallelism = n }, i =>
+                {
+                    starts.Add(uhr.Elapsed.TotalMilliseconds);
+                    dauern.Add(LiesAlles(sitzungen[i], sql, zeilen, seed));
+                }));
             var gesamtMs = (long)uhr.Elapsed.TotalMilliseconds;
             var s1 = LiesStand(nachbar);
             var sortiert = dauern.OrderBy(d => d).ToList();
             NachbarZeile($"blockierend modus {modus} mit_last", mit.Zeiten, mit.Fehler);
-            Zeile($"blockierend modus {modus} n {n} zeilen {zeilen} block_ms {block} jede {jede} gesamt_ms {gesamtMs} sitzung_median_ms {(long)sortiert[sortiert.Count / 2]} sitzung_max_ms {(long)sortiert[^1]}"
+            Zeile($"blockierend modus {modus} n {n} zeilen {zeilen} block_ms {block} jede {jede} gesamt_ms {gesamtMs} sitzung_median_ms {(long)sortiert[sortiert.Count / 2]} sitzung_max_ms {(long)sortiert[^1]} start_max_ms {(long)starts.Max()}"
                 + $" erwartet_je_sitzung_ms {zeilen / jede * block} threads_vorher {s0.Threads} spitze_threads {s1.Spitze} threads_nachher {s1.Threads} offen_nachher {s1.Offen} beendet_delta {s1.Beendet - s0.Beendet}");
         }
         finally
