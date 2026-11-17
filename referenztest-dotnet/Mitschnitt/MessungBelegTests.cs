@@ -165,10 +165,11 @@ public class MessungBelegTests
 
     // ---- Punkt 1 (b): COLMETADATA hinter RETURNVALUE -----------------------------------------------------------------
 
+    // Grenze: die Prüfung liest nur den Teil der Tokenfolge bis zum ersten `||` (die erste Antwortnachricht; ohne Cancel ist das die ganze Antwort); Antwortnachrichten nach einem `||` sind nicht geprüft.
     // @spec SPEC-045
     [Theory]
     [MemberData(nameof(Stufen))]
-    public void In_Einzel_RPCs_steht_nichts_hinter_RETURNVALUE_ausser_DONEPROC_und_in_Mehrfach_Nachrichten_folgt_jeder_RETURNVALUE_RETURNVALUE_oder_DONEPROC(string stufe)
+    public void In_Einzel_RPCs_steht_nichts_hinter_RETURNVALUE_ausser_DONEPROC_und_in_Mehrfach_Nachrichten_folgt_in_der_ersten_Antwortnachricht_jeder_RETURNVALUE_RETURNVALUE_oder_DONEPROC(string stufe)
     {
         var folgen = Z(stufe).Where(z => z.Key.EndsWith("/tokenfolge", StringComparison.Ordinal)).ToList();
         Assert.True(folgen.Count(z => z.Value.Contains("RETURNVALUE", StringComparison.Ordinal)) >= 12);
@@ -680,6 +681,7 @@ public class MessungBelegTests
     {
         var anfragen = Z(stufe).Where(z => z.Key.EndsWith("/anfrage", StringComparison.Ordinal)).ToList();
         // 24 Mehrfach-Nachrichten je Instanz tragen das Trennbyte 0xFF (Bestand der Ablage), 0x80 kommt nie vor.
+        // Wartung: eine neue Ablage mit Trennbyte 0xFF in einer Anfrage ändert diese Zahl; sie ist dann auf den neuen Bestand zu setzen.
         Assert.True(anfragen.Count(z => z.Value.Contains("Batchflag 0xff", StringComparison.Ordinal)) == 24);
         Assert.DoesNotContain(anfragen, z => z.Value.Contains("Batchflag 0x80", StringComparison.Ordinal));
     }
