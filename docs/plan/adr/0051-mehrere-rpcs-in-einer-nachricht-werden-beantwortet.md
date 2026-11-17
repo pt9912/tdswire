@@ -1,10 +1,10 @@
 # ADR-0051: Mehrere RPCs in einer Nachricht werden beantwortet
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-11-17
 
-**Autor:** Architect (Entwurf); Entscheidung: pt9912 (Nutzer), steht aus
+**Autor:** Architect (Entwurf); Entscheidung: pt9912 (Nutzer), angenommen 2026-11-17
 
 **Bezug:** [TDS-FA-04](../../../spec/lastenheft.md#tds-fa-04--parametrisierte-abfragen-über-rpc), [TDS-FA-10](../../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte), [TDS-FA-06](../../../spec/lastenheft.md#tds-fa-06--fehler-und-abschlusszustände), [TDS-QA-01](../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [ADR-0005](0005-rpc-und-prepared-statements.md), [ADR-0006](0006-backend-vertrag-und-streaming.md), [ADR-0038](0038-abschluss-einer-rpc-antwort-im-fehlerfall-folgt-dem-echten-server.md), [ADR-0039](0039-abschluss-der-antwort-auf-eine-rpc-nachricht-die-der-parser-abweist.md), [ADR-0036](0036-handle-freigabe-und-grenze-je-sitzung.md)
 
@@ -99,6 +99,7 @@ Eine Messung, die eine Festlegung widerlegt oder ergänzt (Trennbyte `0x80`, Gre
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-11-17 | Proposed – Entwurf zum Review-Befund F-1 des Bau-Slice; Entscheidung des Nutzers „Folge-ADR als Proposed“; Annahme steht aus | [ADR-0039](0039-abschluss-der-antwort-auf-eine-rpc-nachricht-die-der-parser-abweist.md) |
+| 2026-11-17 | Accepted – vom Nutzer angenommen („ADR-0051 annehmen“) | [ADR-0039](0039-abschluss-der-antwort-auf-eine-rpc-nachricht-die-der-parser-abweist.md) |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit
