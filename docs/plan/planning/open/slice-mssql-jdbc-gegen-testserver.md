@@ -34,7 +34,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 - d-migrate selbst (Lauf der Anwendung) — [slice-abnahme-d-migrate](../done/slice-abnahme-d-migrate.md) und die Messprotokolle zu d-migrate sind der Ort; dieser Slice misst den Treiber allein, wie `make messung-treiber-handles` (ob d-migrate dieselben Aufrufe sendet, ist damit nicht belegt).
 - Ein Lauf des Treibers gegen andere Instanzen als die gepinnten (2022, 2025) und gegen TLS-/TDS-8.0-Pfade — der Plan misst die Referenzinstanzen der Reihe `wire`; weitere Instanzen und Pfade haben keinen Träger.
 - Änderungen an `src/` und `testserver/` ohne Messbefund — Code nur, wenn die Messung eine Zusage widerlegt und der Nutzer „Code angleichen“ entschieden hat; das wäre ein eigener Slice.
-- Die Messlücken am echten Server zum Mehrfach-RPC (Fehler an den Rändern, Ergebnismengen, Grenzen) — [slice-mehrfach-rpc-messluecken](slice-mehrfach-rpc-messluecken.md).
+- Die Messlücken am echten Server zum Mehrfach-RPC (Fehler an den Rändern, Ergebnismengen, Grenzen) — [slice-mehrfach-rpc-messluecken](../in-progress/slice-mehrfach-rpc-messluecken.md).
 - Der Flake `ServerSmokeTest` — Register (`BEO-TDS/flake-ohne-namen-des-roten-testfalls`), kein Bezug zu einem Treiber.
 
 ## 2. Definition of Done
