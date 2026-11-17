@@ -17,7 +17,7 @@
 # LASTTEST_LAST_MAX=12 (Last 1 Minute des Hosts, ueber der eine Messzeile "last-hoch" traegt), LASTTEST_SWAP_TOLERANZ_MB=16 (Wachstum des
 # Swap des Hosts waehrend der Stufe, ab dem sie "swap-gewachsen" traegt).
 #
-# Sitzungen (TDS-QA-04, Slice der Staffel): LASTTEST_SITZUNGEN=1 (Zahl gleichzeitiger Sitzungen einer Stufe der Staffel; eine Stufe je Aufruf, weil
+# Sitzungen (TDS-QA-04, Staffel gleichzeitiger Sitzungen): LASTTEST_SITZUNGEN=1 (Zahl gleichzeitiger Sitzungen einer Stufe der Staffel; eine Stufe je Aufruf, weil
 # die Zeilenzahl je Stufe wechselt, `docs/plan/referenz-workload.md` S2 und S4), LASTTEST_PHASEN="export import" (je Server nacheinander: `export` und
 # `import` mit allen Sitzungen gemeinsam, `punkt-export` und `punkt-import` die Punktabfrage einer Sitzung, waehrend die uebrigen streamen oder
 # laden; `punkt-import` nur in Aufbau C), LASTTEST_ANFRAGEN=1000 (Anfragen je Lauf der Punktabfrage). Aufbau A kennt nur eine Sitzung.
@@ -234,7 +234,7 @@ for aufbau in $aufbauten; do
 				speicherwacht
 				vorher="$(zustand)"
 				logvor="$(docker logs "$server" 2>&1 | wc -l)"
-				docker run --rm --network "$netz" "${client_limits[@]}" -e "TDSWIRE_ZIEL=$server:1433" -e "LASTTEST_AUFBAU=$aufbau" -e "LASTTEST_PHASE=$phase" "${umgebung[@]}" \
+				docker run --rm --name "$lauf-client" --network "$netz" "${client_limits[@]}" -e "TDSWIRE_ZIEL=$server:1433" -e "LASTTEST_AUFBAU=$aufbau" -e "LASTTEST_PHASE=$phase" "${umgebung[@]}" \
 					"$client_image" >"$scratch/client" 2>&1
 				client_ok=$?
 				grep -E '^ *lasttest:|Passed!|Failed!|Failed |Error Message' "$scratch/client" | sed 's/^ *//' | head -40
