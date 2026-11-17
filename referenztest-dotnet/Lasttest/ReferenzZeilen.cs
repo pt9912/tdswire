@@ -71,14 +71,19 @@ internal sealed class ZeilenLeser : DbDataReader
 {
     private readonly long _seed;
     private readonly long _zeilen;
+    private readonly Func<bool>? _halt;
     private long _n;
     private object?[] _aktuell = new object?[ReferenzZeilen.Spalten];
 
-    public ZeilenLeser(long seed, long zeilen)
+    /// <summary>`halt` (wenn gesetzt) beendet die Quelle: `Read` gibt danach false zurück, auch vor der letzten Zeile.</summary>
+    public ZeilenLeser(long seed, long zeilen, Func<bool>? halt = null)
     {
         _seed = seed;
         _zeilen = zeilen;
+        _halt = halt;
     }
+
+    public long Gelesen => _n;
 
     public override int FieldCount => ReferenzZeilen.Spalten;
     public override bool HasRows => _zeilen > 0;
@@ -90,7 +95,7 @@ internal sealed class ZeilenLeser : DbDataReader
 
     public override bool Read()
     {
-        if (_n >= _zeilen)
+        if (_n >= _zeilen || (_halt?.Invoke() ?? false))
         {
             return false;
         }

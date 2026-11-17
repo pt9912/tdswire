@@ -5,7 +5,9 @@
 # jedem Docker-Aufruf mit Exit 2 abweist (docker-Stub; eine Mutation ohne die Pruefung wird rot). Ein Handlauf von tools/lasttest.sh
 # gegen einen docker-Stub und eine Nachbildung von meminfo und loadavg (LASTTEST_PROC) haelt (a) die Auswertung der Zeilen von
 # Aufbau A (Spalte der Millisekunden), (b) den Vermerk last-hoch und swap-gewachsen in allen drei Zeilen von Aufbau A (und sein
-# Fehlen bei ruhigem Host) und (c) den Fehler, wenn der Import in Aufbau B nicht abgewiesen wird; je Fall eine Mutation, die rot wird.
+# Fehlen bei ruhigem Host), (c) den Fehler, wenn der Import in Aufbau B nicht abgewiesen wird und (d) vier Sitzungen in Aufbau C
+# (Zeilen/s aller Sitzungen, Zeit der ersten Zeile, Perzentile der Punktabfrage ohne den Warmlauf, Dauer je Schicht nach Anfrageart aus dem
+# Log, Zaehlung der Importe je Sitzung, Vermerke an den Zeilen der Punktabfrage); je Fall mindestens eine Mutation, die rot wird.
 # TDS-QA-04, TDS-QA-06. Grenze: der Stub belegt die Auswertung der Skriptzeilen, nicht den Wortlaut der echten Ausgabe des Containers.
 # Aufgerufen von der Dockerfile-Stage `skript-selbsttest`; braucht bash, sh, sort, sed, cmp, mktemp, grep, awk (die Auswertung der
 # Zeilen von Aufbau A uebt awk; in der Stage liegt mawk, gemessen im Verifikationsbericht vom 2026-11-16).
@@ -77,6 +79,9 @@ abweisungen() { # abweisungen <Skript>: 0, wenn jede Angabe abgewiesen wird
 	abweisung "$1" "SEED Text" "LASTTEST_SEED=abc" || ok=1
 	abweisung "$1" "ZEILEN fuehrende Null" "LASTTEST_ZEILEN=08" || ok=1
 	abweisung "$1" "ZEILEN zu lang" "LASTTEST_ZEILEN=12345678901234567890" || ok=1
+	abweisung "$1" "SITZUNGEN null" "LASTTEST_SITZUNGEN=0" || ok=1
+	abweisung "$1" "ANFRAGEN Text" "LASTTEST_ANFRAGEN=x" || ok=1
+	abweisung "$1" "PHASEN unbekannt" "LASTTEST_PHASEN=export;x" || ok=1
 	return $ok
 }
 abweisungen "$lasttest" || fehler=1
@@ -92,7 +97,7 @@ d="$STUB_DIR"
 case "$1" in
 	version) echo 29.0.0; exit 0 ;;
 	image) echo sha256:stub; exit 0 ;;
-	logs) echo "tdswire: gestartet, Port 1433"; echo "lasttest: server aufbau=B stub"; exit 0 ;;
+	logs) echo "tdswire: gestartet, Port 1433"; echo "lasttest: server aufbau=B stub"; [ ! -f "$d/server-log" ] || cat "$d/server-log"; exit 0 ;;
 	inspect) echo true; exit 0 ;;
 	exec) echo 0; exit 0 ;;
 	run)
@@ -104,6 +109,8 @@ case "$1" in
 		esac
 		[ "$2" = "-d" ] && exit 0
 		cat "$d/client-ausgabe"
+		[ ! -f "$d/meminfo-nach" ] || cp "$d/meminfo-nach" "$d/proc/meminfo"
+		[ ! -f "$d/server-log-zusatz" ] || cat "$d/server-log-zusatz" >> "$d/server-log"
 		exit 0 ;;
 	*) exit 0 ;;
 esac
@@ -133,10 +140,11 @@ host() { # host <ruhig|heiss>: Nachbildung von meminfo und loadavg; heiss: Last 
 		echo "1.00 1.00 1.00 1/1 1" > "$stub/proc/loadavg"
 	fi
 }
+EXTRA=
 handlauf() { # handlauf <Skript> <Aufbau>: Ausgabe nach $tmp/aus, Fehlerausgabe nach $tmp/fehl, Exit-Code auf der Standardausgabe
 	local rc=0
 	env PATH="$tmp/sbin:$PATH" STUB_DIR="$stub" LASTTEST_PROC="$stub/proc" LASTTEST_ZEILEN=1000 LASTTEST_WDH=3 \
-		LASTTEST_AUFBAUTEN="$2" LASTTEST_SENKEN=mit bash "$1" > "$tmp/aus" 2> "$tmp/fehl" || rc=$?
+		LASTTEST_AUFBAUTEN="$2" LASTTEST_SENKEN=mit $EXTRA bash "$1" > "$tmp/aus" 2> "$tmp/fehl" || rc=$?
 	echo "$rc"
 }
 pruefung_a() { # die Mediane der drei A-Zeilen stehen in der richtigen Spalte
@@ -162,6 +170,57 @@ pruefung_c() { # B: ohne Abweisungszeile Exit 1 und die Meldung, mit der Zeile E
 	client_ausgabe mit
 	[ "$(handlauf "$1" B)" = 0 ] && grep -q '^lasttest: gruen' "$tmp/aus"
 }
+sitzungs_ausgabe() { # Client- und Serverzeilen von vier Sitzungen in Aufbau C (1000 Zeilen, 3 Laeufe nach dem Warmlauf)
+	rm -f "$stub/server-log"
+	{
+		for n in 0 1 2 3; do echo "lasttest: export lauf $n zeilen 1000 ms 100 erste_zeile_ms $((n + 5)) rx_bytes 1312000 sitzungen 4"; done
+		for n in 0 1 2 3; do echo "lasttest: import lauf $n zeilen 1000 ms 200 tx_bytes 1348000 sitzungen 4"; done
+		echo "lasttest: punkt lauf 0 anfragen 10 p50_us 999 p95_us 999 p99_us 999 min_us 1 max_us 999 sitzungen 4"
+		echo "lasttest: punkt lauf 1 anfragen 10 p50_us 100 p95_us 300 p99_us 700 min_us 1 max_us 700 sitzungen 4"
+		echo "lasttest: punkt lauf 2 anfragen 10 p50_us 120 p95_us 340 p99_us 800 min_us 1 max_us 800 sitzungen 4"
+		echo "lasttest: punkt lauf 3 anfragen 10 p50_us 110 p95_us 320 p99_us 900 min_us 1 max_us 900 sitzungen 4"
+	} > "$stub/client-ausgabe"
+	{
+		for n in $(seq 1 16); do echo "lasttest: import $((n * 1000))"; done
+		for id in a b c; do
+			echo "{\"event\":\"span_ended\",\"span\":\"backend.execute\",\"request_id\":\"$id\",\"duration_ms\":3}"
+			echo "{\"event\":\"span_ended\",\"span\":\"tds.query\",\"request_id\":\"$id\",\"duration_ms\":9,\"request_kind\":\"rpc\"}"
+		done
+		echo "{\"event\":\"span_ended\",\"span\":\"backend.execute\",\"request_id\":\"d\",\"duration_ms\":70}"
+		echo "{\"event\":\"span_ended\",\"span\":\"tds.query\",\"request_id\":\"d\",\"duration_ms\":80,\"request_kind\":\"sql_batch\"}"
+	} > "$stub/server-log-zusatz"
+}
+pruefung_d() { # vier Sitzungen: Zeilen/s je Wanduhr aller Sitzungen, Zeit der ersten Zeile, Perzentile ohne Warmlauf, Spans nach Art, Zaehlpruefung je Sitzung
+	host ruhig
+	sitzungs_ausgabe
+	EXTRA="LASTTEST_SITZUNGEN=4 LASTTEST_PHASEN=export\ import\ punkt-export\ punkt-import"
+	local rc
+	rc="$(env_handlauf "$1")"
+	EXTRA=
+	[ "$rc" = 0 ] || return 1
+	grep -q 'aufbau C senke mit richtung export zeilen 1000 sitzungen 4 .* median_ms 100 .* zeilen_je_s 40000 bytes_je_zeile 328 .* erste_zeile_ms_median 7 erste_zeile_ms_min 6 erste_zeile_ms_max 8 ' "$tmp/aus" \
+		&& grep -q 'aufbau C senke mit richtung import zeilen 1000 sitzungen 4 .* median_ms 200 .* zeilen_je_s 20000 bytes_je_zeile 337 ' "$tmp/aus" \
+		&& grep -q 'richtung punkt-export .* anfragen 10 p50_us_median 110 p50_us_min 100 p50_us_max 120 p95_us_median 320 p95_us_min 300 p95_us_max 340 p99_us_median 800 p99_us_min 700 p99_us_max 900 ' "$tmp/aus" \
+		&& grep -q 'richtung punkt-import ' "$tmp/aus" \
+		&& grep -q 'phase punkt-export span tds.query art rpc n=3 median=9 min=9 max=9$' "$tmp/aus" \
+		&& grep -q 'phase punkt-export span backend.execute art rpc n=3 median=3 min=3 max=3$' "$tmp/aus" \
+		&& grep -q 'phase punkt-export span backend.execute art sql_batch n=1 median=70 min=70 max=70$' "$tmp/aus"
+}
+pruefung_d_heiss() { # heisser Host: auch die Zeilen der Punktabfrage tragen beide Vermerke
+	host heiss
+	sitzungs_ausgabe
+	EXTRA="LASTTEST_SITZUNGEN=4 LASTTEST_PHASEN=punkt-export"
+	local rc
+	rc="$(env_handlauf "$1")"
+	EXTRA=
+	[ "$rc" = 0 ] || return 1
+	grep -q '^messung: .* richtung punkt-export .* last-hoch swap-gewachsen$' "$tmp/aus"
+}
+env_handlauf() { # wie handlauf, mit LASTTEST_ZEILEN=1000 und den Angaben aus $EXTRA (Leerzeichen als \ )
+	local rc=0
+	eval "env PATH=\"$tmp/sbin:\$PATH\" STUB_DIR=\"$stub\" LASTTEST_PROC=\"$stub/proc\" LASTTEST_ZEILEN=1000 LASTTEST_WDH=3 LASTTEST_ANFRAGEN=10 LASTTEST_AUFBAUTEN=C LASTTEST_SENKEN=mit $EXTRA bash \"$1\" > \"$tmp/aus\" 2> \"$tmp/fehl\"" || rc=$?
+	echo "$rc"
+}
 kopie() { # kopie <Name> <sed-Programm> [Zeile]: veraendertes lasttest.sh samt Statistik in $tmp/m/<Name>; druckt den Pfad
 	mkdir -p "$tmp/m/$1"
 	cp "$(dirname "$lasttest")/lasttest-statistik.sh" "$tmp/m/$1/"
@@ -172,13 +231,20 @@ kopie() { # kopie <Name> <sed-Programm> [Zeile]: veraendertes lasttest.sh samt S
 rot() { # rot <Pruefung> <Skript> <Name>: die Pruefung muss am veraenderten Skript scheitern
 	if "$1" "$2" 2> /dev/null; then pruefe "Mutation $3 blieb gruen"; fi
 }
-for fall in a b c; do "pruefung_$fall" "$lasttest" || pruefe "Handlauf $fall am unveraenderten Skript"; done
+for fall in a b c d d_heiss; do "pruefung_$fall" "$lasttest" || pruefe "Handlauf $fall am unveraenderten Skript"; done
 rot pruefung_a "$(kopie a-falsche-spalte 's/{print \$9}/{print $7}/g')" a-falsche-spalte
 for n in $(grep -n 'zustand)\]$(vermerke' "$lasttest" | cut -d: -f1); do
-	rot pruefung_b "$(kopie "b-ohne-vermerk-$n" 's/\[\$(zustand)\]\$(vermerke "\$vorher")"/[$(zustand)]"/' "${n}")" "b-ohne-vermerk-$n"
+	m="$(kopie "b-ohne-vermerk-$n" 's/\[\$(zustand)\]\$(vermerke "\$vorher")"/[$(zustand)]"/' "${n}")"
+	if pruefung_b "$m" 2> /dev/null && pruefung_d_heiss "$m" 2> /dev/null; then pruefe "Mutation b-ohne-vermerk-$n blieb gruen"; fi
 done
 rot pruefung_b "$(kopie b-vermerk-immer 's/^\t\[ "\$(last_ganz)" -le "\$last_max" \] || v=" last-hoch"/\tv=" last-hoch"/')" b-vermerk-immer
 rot pruefung_c "$(kopie c-ohne-pruefung 's/^\(\t*\)if grep -E .import aufbau B abgewiesen. .*; then :; else/\1if true; then :; else/')" c-ohne-pruefung
 
+rot pruefung_d "$(kopie d-ohne-sitzungsfaktor 's/zeilen \* sitzungen \* 1000 \/ median/zeilen * 1000 \/ median/')" d-ohne-sitzungsfaktor
+rot pruefung_d "$(kopie d-falsches-perzentil 's/for feld in p50_us p95_us p99_us; do/for feld in p50_us p50_us p99_us; do/')" d-falsches-perzentil
+rot pruefung_d "$(kopie d-ohne-warmlauf '/-v b="\$feld"/s/ \&\& \$(i + 1) >= 1//')" d-ohne-warmlauf
+rot pruefung_d "$(kopie d-span-ohne-art 's/if (id in art) print "backend.execute", art\[id\], dauer\[id\]/print "backend.execute", "rpc", dauer[id]/')" d-span-ohne-art
+rot pruefung_d "$(kopie d-ohne-sitzungszaehlung 's/-eq \$((sitzungen \* (wdh + 1)))/-eq $((wdh + 1))/')" d-ohne-sitzungszaehlung
+
 [ "$fehler" -eq 0 ] || exit 1
-echo "lasttest-selbsttest: ok (6 Faelle, Eingabefehler, 3 Mutationen rot, sieben abgewiesene Umgebungswerte, 1 Mutation rot; Handlaeufe a bis c, 5 Mutationen rot)"
+echo "lasttest-selbsttest: ok (6 Faelle, Eingabefehler, 3 Mutationen rot, zehn abgewiesene Umgebungswerte, 1 Mutation rot; Handlaeufe a bis d, 12 Mutationen rot)"

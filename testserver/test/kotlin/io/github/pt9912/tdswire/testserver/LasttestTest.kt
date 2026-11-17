@@ -1,7 +1,11 @@
 package io.github.pt9912.tdswire.testserver
 
 import io.github.pt9912.tdswire.domain.QueryEvent
+import io.github.pt9912.tdswire.domain.QueryParameter
 import io.github.pt9912.tdswire.domain.QueryRequest
+import io.github.pt9912.tdswire.domain.SqlType
+import io.github.pt9912.tdswire.simulation.FilterTerm
+import io.github.pt9912.tdswire.simulation.RowFilter
 import io.github.pt9912.tdswire.simulation.SimQuery
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
@@ -20,6 +24,7 @@ private const val OTHER_SEED = 43L
 private const val ROWS = 25L
 private const val NOTE_EVERY = 10L
 private const val BATCH = 10
+private const val POINT_ID = 7L
 
 /**
  * Die Bausteine des Lasttests (`make lasttest`, Aufbauten A bis C) ohne Server: der Erzeuger der Zeilen, das eigene
@@ -87,6 +92,47 @@ internal class LasttestTest {
         assertTrue(lines.isEmpty())
         insert(batch)
         assertContentEquals(listOf("$LASTTEST_PREFIX import 30"), lines)
+    }
+
+    /**
+     * Die Punktabfrage liefert in Aufbau B genau die Zeile des Parameters aus dem Erzeuger, keine Zeile außerhalb von 1
+     * bis `rows`, und weist ein anderes `WHERE` oder einen Parameter anderen Typs ab.
+     */
+    @Test
+    fun `die Punktabfrage liefert die eine Zeile der Id`() {
+        val sql = "SELECT * FROM ref_zeilen WHERE Id = @id"
+        fun point(id: Any?, text: String = sql): List<QueryEvent> = runBlocking {
+            val parameters = listOf(QueryParameter("id", SqlType.Int64, id))
+            ZeilenBackend(ROWS, SEED).execute(QueryRequest("s", "r", text, parameters, null)).events.toList()
+        }
+        val hit = point(POINT_ID)
+        val found = hit.filterIsInstance<QueryEvent.Row>().map { it.values }
+        assertEquals(listOf(ReferenzZeilen.row(SEED, POINT_ID)), found)
+        assertEquals(QueryEvent.ResultEnd(1L), hit.last())
+        for (outside in listOf(0L, ROWS + 1)) {
+            val miss = point(outside)
+            assertEquals(0, miss.count { it is QueryEvent.Row })
+            assertEquals(QueryEvent.ResultEnd(0L), miss.last())
+        }
+        assertIs<QueryEvent.Failure>(point(POINT_ID, "SELECT * FROM ref_zeilen WHERE Menge = @id").single())
+        assertIs<QueryEvent.Failure>(point("7").single())
+    }
+
+    /**
+     * Die Quelle des Aufbaus C liefert bei einem Vorfilter `Id = n` genau Zeile n, bei einer Id außerhalb keine und
+     * ohne Vorfilter alle Zeilen.
+     */
+    @Test
+    fun `die Quelle der Tabelle folgt dem Vorfilter auf die Id`() = runBlocking {
+        val table = referenzTabelle(ROWS, SEED) {}
+        suspend fun ids(filter: RowFilter?): List<Any?> {
+            val source = table.rows(SimQuery(listOf(table.columns[0]), filter))
+            return generateSequence { runBlocking { source.next() } }.map { it.single() }.toList()
+        }
+        assertEquals(listOf<Any?>(POINT_ID), ids(RowFilter(listOf(FilterTerm.In("Id", listOf(POINT_ID))))))
+        assertEquals(emptyList(), ids(RowFilter(listOf(FilterTerm.In("Id", listOf(ROWS + 1))))))
+        assertEquals((1..ROWS).toList(), ids(null))
+        assertEquals((1..ROWS).toList(), ids(RowFilter(listOf(FilterTerm.In("Id", listOf(1L, 2L))))))
     }
 
     /**
