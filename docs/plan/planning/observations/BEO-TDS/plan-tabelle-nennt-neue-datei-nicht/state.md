@@ -8,3 +8,8 @@
 
 
 **Wiederauftreten (slice-qa-performance-durchsatz-sitzungen):** Review F-9 und Re-Review 2 R-2: die Tabelle §3 gegen den Diff, zweimal in einem Slice; der Reviewer fing beide. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
+
+
+**Wiederauftreten (slice-qa-performance-rueckstau):** Review F-7 und Re-Review N-2: die Tabelle §3 gegen den Diff, dann ein Widerspruch zweier Zeilen; der Reviewer fing beide. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
+
+**Lese-Schritt welle-referenzabgleich-release (2026-11-17):** 28 Dateien, davon Beiträge aus Slices dieser Welle (Liste in `welle-referenzabgleich-release-results.md` §Steering-Loop-Einträge). Retirement-Check: die Klasse ist in Slices dieser Welle aufgetreten, die Regel bleibt, keine Lockerung; die Closure macht keine Aussage über die Wirkung der Regel. Ob ein Sensor über die Prosa hinaus entsteht, entscheidet der Nutzer.

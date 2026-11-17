@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** [SPEC-030](../../../../spec/spezifikation.md#spec-030--rpc-varianten-und-parameter-metadaten) (Abschnitt „Mehrere RPCs in einer Nachricht“: Messung und Setzung) · [SPEC-045](../../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig) (Messreihe am Draht). Die Spezifikation ändert dieser Slice nur dort, wo die Messung eine Setzung belegt oder widerlegt, und bei Widerspruch erst nach der Entscheidung des Nutzers (siehe §1).
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912
 
 **Autor:** pt9912 (Entwurf in der Planner-Rolle). **Datum:** 2026-11-17.
 
@@ -36,7 +36,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Abbruch und Frist mitten in der Nachricht am echten Server — schwer messbar (Setzung des Planners, nicht gemessen: der Zeitpunkt mitten in der Nachricht ist mit dem Referenzclient nicht gezielt zu treffen), bleibt Setzung ([ADR-0051](../../adr/0051-mehrere-rpcs-in-einer-nachricht-werden-beantwortet.md) Entscheidung 9) und ist am Skript-Backend des Serverprozesses durch Tests gedeckt (`RpcSequenceAbortTest`).
-- Andere Clients als `Microsoft.Data.SqlClient` 7.1.1 — Gegenstand von [slice-mssql-jdbc-gegen-testserver](slice-mssql-jdbc-gegen-testserver.md) (nur mssql-jdbc); ODBC, FreeTDS und `sqlcmd` haben keinen Träger und stehen auch dort nicht im Plan.
+- Andere Clients als `Microsoft.Data.SqlClient` 7.1.1 — Gegenstand von [slice-mssql-jdbc-gegen-testserver](../open/slice-mssql-jdbc-gegen-testserver.md) (nur mssql-jdbc); ODBC, FreeTDS und `sqlcmd` haben keinen Träger und stehen auch dort nicht im Plan.
 - Das Trennbyte `0x80` — der Referenzclient sendet es nicht (Setzung und Nutzerbestätigung vom 2026-11-17, [ADR-0051](../../adr/0051-mehrere-rpcs-in-einer-nachricht-werden-beantwortet.md) Entscheidung 6); ohne anderen Sender ist keine Messung herstellbar. Wird es im Lauf sichtbar, steht es im Protokoll, ist aber kein Liefer-Punkt.
 - Der Flake `ServerSmokeTest` — Träger ist das Register (`BEO-TDS/flake-ohne-namen-des-roten-testfalls`, 2×); er hat keinen Bezug zu einer Messung am echten Server.
 - Die Klarstellung der Entwurfssätze in [ADR-0051](../../adr/0051-mehrere-rpcs-in-einer-nachricht-werden-beantwortet.md) (V-2 der Verifikation) — Entscheidung des Nutzers; der Planner ändert eine `Accepted`-ADR nicht (`AGENTS.md` §3.5).

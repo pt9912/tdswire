@@ -11,3 +11,5 @@
 **Lese-Schritt welle-anfrageverarbeitung (2026-11-07):** 16× gelesen (Belege dieser Welle: `slice-rpc-executesql-parameter`, `slice-rpc-prepared-handles`, `slice-anfragefolge-gesamttest`), über der Schwelle, nicht verkörpert. Es gilt die Entscheidung des Nutzers vom 2026-11-06 oben: gelesen, ohne Regel, Sensor oder Träger-Slice. Die Lesarten dieser Welle (Rohbytes-Lauf als Nachrichten, eigener Mutex der Handle-Tabelle) stehen als Fragen 1 und 5 in `welle-anfrageverarbeitung-results.md` §Offene Fragen. Der Stand `offen` bleibt.
 
 **Lese-Schritt welle-produktschnitt (2026-11-07):** 16× gelesen (Beleg dieser Welle: `slice-jar-ohne-main-und-image`), über der Schwelle, nicht verkörpert. Es gilt die Entscheidung des Nutzers vom 2026-11-06 oben: gelesen, ohne Regel, Sensor oder Träger-Slice. Der Stand `offen` bleibt.
+
+**Lese-Schritt welle-referenzabgleich-release (2026-11-17):** 16× gelesen, über der Schwelle, nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung), siehe `welle-referenzabgleich-release-results.md` §Steering-Loop-Einträge. Die Closure ändert weder Regel noch Gate. Der Stand `offen` bleibt.

@@ -1,11 +1,11 @@
 # tools/mk/skript-selbsttest.mk — Selbsttest der Skripte tools/e2e.sh und tools/manifest-pruefung.sh
 # (Dockerfile-Stage `skript-selbsttest`, TDS-QA-06, ADR-0022), von tools/publish.sh (ADR-0047), von tools/vergleichslauf-d.sh und der Log-Muster der Laufskripte
-# (tools/log-muster.sh, TDS-FA-09) sowie der Statistik und der Zahlenwerte der Umgebung des Lasttests (tools/lasttest-statistik.sh, tools/lasttest.sh, TDS-QA-04) und der Tabellen aus den Rohzeilen (tools/lasttest-tabellen.sh). Repo-eigen, eingebunden von repo.mk; das Target
+# (tools/log-muster.sh, TDS-FA-09) sowie der Statistik und der Zahlenwerte der Umgebung des Lasttests (tools/lasttest-statistik.sh, tools/lasttest.sh, TDS-QA-04) und der Tabellen aus den Rohzeilen (tools/lasttest-tabellen.sh) sowie der Rueckstau-Messung (tools/rueckstau.sh: Waechter, Zellennamen; tools/rueckstau-tabellen.sh). Repo-eigen, eingebunden von repo.mk; das Target
 # hat seine Zeile in harness/README.md. Die Stage erbt von `basis` und kopiert Skripte, Dockerfile, `tools/mk`, `harness/mk`, `Makefile`, `repo.mk` und die Workflows:
 # eine Quelltext-Aenderung loest sie nicht aus, eine Aenderung an diesen Dateien schon; ein Lauf kostet Sekunden.
 .PHONY: skript-selbsttest
 
-skript-selbsttest: ## Abbruch von tools/e2e.sh, Argumente und Modi von test-lauf.sh (dotnet-Stub), Fehlerfaelle von tools/manifest-pruefung.sh gegen synthetische Jars und POMs, Pruefungen von tools/publish.sh je Ziel vor Docker, Log-Muster der Laufskripte, Statistik, Zahlenwerte von tools/lasttest.sh und Tabellen von tools/lasttest-tabellen.sh pruefen (Stage `skript-selbsttest`)
+skript-selbsttest: ## Abbruch von tools/e2e.sh, Argumente und Modi von test-lauf.sh (dotnet-Stub), Fehlerfaelle von tools/manifest-pruefung.sh gegen synthetische Jars und POMs, Pruefungen von tools/publish.sh je Ziel vor Docker, Log-Muster der Laufskripte, Statistik, Zahlenwerte von tools/lasttest.sh, Tabellen von tools/lasttest-tabellen.sh, Waechter und Zellennamen von tools/rueckstau.sh und Tabellen von tools/rueckstau-tabellen.sh pruefen (Stage `skript-selbsttest`)
 	docker build $(BUILDER_FLAGS) --target skript-selbsttest --progress=plain .
 
 GATE_CHECKS += skript-selbsttest

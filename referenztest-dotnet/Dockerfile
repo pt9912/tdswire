@@ -105,3 +105,12 @@ FROM restore AS lasttest
 COPY Lasttest Lasttest
 RUN --network=none dotnet build --no-restore --nologo
 CMD ["dotnet", "test", "--no-build", "--nologo", "--logger", "console;verbosity=detailed"]
+
+# --- Rueckstau: der Referenzclient gegen den Serverprozess der Rueckstau-Messung (`make rueckstau`, TDS-QA-04, ADR-0006). Gebaut wird
+# ohne Netz; der Lauf braucht den Server im selben Netzwerk (TDSWIRE_ZIEL) und RS_* (Szenario, Sitzungen, Zeilen); das Skript waehlt das
+# Szenario mit `--filter`. Der Erzeuger der Zeilen kommt aus dem Verzeichnis Lasttest (eine Datei). ---
+FROM restore AS rueckstau
+COPY Lasttest/ReferenzZeilen.cs Lasttest/ReferenzZeilen.cs
+COPY Rueckstau Rueckstau
+RUN --network=none dotnet build --no-restore --nologo
+CMD ["dotnet", "test", "--no-build", "--nologo", "--logger", "console;verbosity=detailed"]

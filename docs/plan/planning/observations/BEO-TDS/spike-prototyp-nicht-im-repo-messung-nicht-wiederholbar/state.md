@@ -8,3 +8,6 @@
 
 
 **Wiederauftreten (slice-qa-performance-durchsatz-sitzungen):** Review F-1 und Verifikation V-1: Tabellen und Fremdlast-Probe eines Messprotokolls aus Erzeugern außerhalb des Repos, gegen den DoD-Wortlaut „jede Zahl mit Erzeuger im Repo“. Die Tabellen setzt seit `fb0173fc` `tools/lasttest-tabellen.sh` (Selbsttest in `make skript-selbsttest`); die Probe bleibt außerhalb, benannt als nicht reproduzierbar. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
+
+
+**Wiederauftreten (slice-qa-performance-rueckstau):** Review F-2: Tabellen von Hand trotz DoD-Wortlaut „Erzeuger im Repo“, zwei Fehler der Handarbeit; behoben durch `tools/rueckstau-tabellen.sh`, die Fremdlast-Probe liegt im Repo. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.

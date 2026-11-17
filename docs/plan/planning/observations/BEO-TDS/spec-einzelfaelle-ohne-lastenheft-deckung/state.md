@@ -5,3 +5,5 @@
 
 
 **Lese-Schritt welle-fehler-abbruch (2026-11-06):** 4× gelesen, über der Schwelle, nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung), siehe `welle-fehler-abbruch-results.md` §Steering-Loop-Einträge und §Offene Fragen. Die Closure ändert weder Regel noch Gate. Der Stand `offen` bleibt.
+
+**Lese-Schritt welle-referenzabgleich-release (2026-11-17):** 4× gelesen, über der Schwelle, nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung), siehe `welle-referenzabgleich-release-results.md` §Steering-Loop-Einträge. Die Closure ändert weder Regel noch Gate. Der Stand `offen` bleibt.
