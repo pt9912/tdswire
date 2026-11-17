@@ -1,0 +1,3 @@
+**Vorgang:** [slice-qa-performance-rueckstau](../../../../done/slice-qa-performance-rueckstau.md)
+**Fund:** Teil „Socket mit mehreren Verbindungen“, „blockierendes Backend“ und „Simulations-Backend“ gemessen (614 bis 1499 Zeilen Vorlauf bei neun Leser-Zellen bis 256 Verbindungen, Pool begrenzt die Threads, Abbruch 9 ms gegen 2018 ms bei `CANCEL_TIMEOUT` 2 s, Massenladen höchstens ein Stapel je Sitzung Vorlauf); [Verifikation](../../../../../../reviews/2026-11-17-slice-qa-performance-rueckstau-verifikation.md).
+**Stand:** Teil gemessen; die Beobachtung bleibt offen für die Wirkung einer blockierenden Senke der Telemetrie und das Beenden unter Last, siehe `state.md`.

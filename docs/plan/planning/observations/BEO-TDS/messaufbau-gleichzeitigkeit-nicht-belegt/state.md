@@ -1,0 +1,1 @@
+**Stand:** offen — 1×; unter der Schwelle, keine Regel. Als Vorschlag der Closure von [slice-qa-performance-rueckstau](../../../done/slice-qa-performance-rueckstau.md) angelegt (Vorläufe 3 des Messprotokolls); ob jede Zeile einer Staffel ihre Startstreuung tragen soll, entscheidet der Nutzer.

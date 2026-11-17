@@ -103,7 +103,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Start** (`open` → `next` → `in-progress`):
 
-1. **Nutzerzeichen**, den Slice zu starten (die Entscheidung für die Fläche liegt mit [ADR-0052](../../adr/0052-oeffentliche-flaeche-fuer-massenladen-eigener-backends.md) vor; das Zeichen betrifft den Zeitpunkt und die Reihenfolge zu [slice-qa-performance-rueckstau](../in-progress/slice-qa-performance-rueckstau.md) und zu [slice-qa-performance-heap-abschluss](../open/slice-qa-performance-heap-abschluss.md); das WIP-Limit gilt).
+1. **Nutzerzeichen**, den Slice zu starten (die Entscheidung für die Fläche liegt mit [ADR-0052](../../adr/0052-oeffentliche-flaeche-fuer-massenladen-eigener-backends.md) vor; das Zeichen betrifft den Zeitpunkt und die Reihenfolge zu [slice-qa-performance-rueckstau](../done/slice-qa-performance-rueckstau.md) und zu [slice-qa-performance-heap-abschluss](../open/slice-qa-performance-heap-abschluss.md); das WIP-Limit gilt).
 2. **Ein Verantwortlicher** (`Verantwortlich:` ist bis dahin `—`).
 3. **Der Host ist frei für den Messteil** (Punkt 3): Der Messlauf läuft **nicht parallel** zu `make lasttest`-Läufen und zu Messslices der Welle `welle-qualitaet-grundlage` (zum Beispiel `slice-qa-performance-rueckstau`), und nicht parallel zu einem Messslice am echten SQL Server (`slice-mehrfach-rpc-messluecken`): Last verfälscht beide Messungen (im Vorgängerprotokoll tragen 18 von 48 Tabellenzeilen den Vermerk „gestört“). Der Bau der Punkte 1 und 2 braucht keinen freien Host und darf vor dem Messteil abgeschlossen sein; der Start verlangt den freien Host für den Messteil, nicht für den Bau.
 

@@ -37,7 +37,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Rückstau bei langsamen Lesern und blockierenden Backends — liegt bei [slice-qa-performance-rueckstau](../in-progress/slice-qa-performance-rueckstau.md); hier hat der Leser keine Pause.
+- Rückstau bei langsamen Lesern und blockierenden Backends — liegt bei [slice-qa-performance-rueckstau](../done/slice-qa-performance-rueckstau.md); hier hat der Leser keine Pause.
 - Durchsatz je Stufe der Staffel — liegt bei [slice-qa-performance-durchsatz-sitzungen](../done/slice-qa-performance-durchsatz-sitzungen.md); hier zählt die Heap-Linie, nicht die Zeilen/s.
 - Die Grenze des Testserver-Bestands am Heap (`BEO-TDS/testserver-bestand-nicht-am-heap-begrenzt`) — der Bestand speichert, der Strom nicht; die Messung des Bestands ist ein anderer Gegenstand und bleibt im Register offen.
 - Eine kompaktere Zeilendarstellung oder ein blockweise liefernder Iterator (im Spike von [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md) als „nicht gebaut“ benannt) — Optimierung, ausgeschlossen aus der Welle (§6).
@@ -84,7 +84,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-qa-performance](../done/slice-qa-performance.md) in `done/`; nach [slice-qa-performance-durchsatz-sitzungen](../done/slice-qa-performance-durchsatz-sitzungen.md) ist die Streuung des Hosts bekannt (Setzung der Reihenfolge). Die Reihenfolge zu [slice-qa-performance-rueckstau](../in-progress/slice-qa-performance-rueckstau.md) ist offen; beide dürfen nacheinander laufen, das WIP-Limit gilt.
+**Start** (`next` → `in-progress`): [slice-qa-performance](../done/slice-qa-performance.md) in `done/`; nach [slice-qa-performance-durchsatz-sitzungen](../done/slice-qa-performance-durchsatz-sitzungen.md) ist die Streuung des Hosts bekannt (Setzung der Reihenfolge). Die Reihenfolge zu [slice-qa-performance-rueckstau](../done/slice-qa-performance-rueckstau.md) ist offen; beide dürfen nacheinander laufen, das WIP-Limit gilt.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

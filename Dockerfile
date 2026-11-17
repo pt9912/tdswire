@@ -191,12 +191,13 @@ COPY tools/vergleichslauf-d.sh tools/vergleichslauf-d-selbsttest.sh tools/
 COPY tools/log-muster.sh tools/log-muster-selbsttest.sh tools/
 COPY tools/test-lauf-selbsttest.sh tools/
 COPY tools/lasttest.sh tools/lasttest-statistik.sh tools/lasttest-selbsttest.sh tools/lasttest-tabellen.sh tools/lasttest-tabellen-selbsttest.sh tools/
+COPY tools/rueckstau.sh tools/rueckstau-selbsttest.sh tools/rueckstau-tabellen.sh tools/rueckstau-tabellen-selbsttest.sh tools/
 COPY referenztest-dotnet/test-lauf.sh referenztest-dotnet/test-lauf.sh
 COPY tools/mk tools/mk
 COPY harness/mk harness/mk
 COPY Makefile repo.mk ./
 COPY .github/workflows .github/workflows
-RUN bash tools/e2e-selbsttest.sh && sh tools/manifest-selbsttest.sh && bash tools/vergleichslauf-d-selbsttest.sh && sh tools/log-muster-selbsttest.sh && sh tools/test-lauf-selbsttest.sh && bash tools/publish-selbsttest.sh && sh tools/release-selbsttest.sh && bash tools/release-anlegen-selbsttest.sh && bash tools/lasttest-selbsttest.sh && bash tools/lasttest-tabellen-selbsttest.sh
+RUN bash tools/e2e-selbsttest.sh && sh tools/manifest-selbsttest.sh && bash tools/vergleichslauf-d-selbsttest.sh && sh tools/log-muster-selbsttest.sh && sh tools/test-lauf-selbsttest.sh && bash tools/publish-selbsttest.sh && sh tools/release-selbsttest.sh && bash tools/release-anlegen-selbsttest.sh && bash tools/lasttest-selbsttest.sh && bash tools/lasttest-tabellen-selbsttest.sh && bash tools/rueckstau-selbsttest.sh && bash tools/rueckstau-tabellen-selbsttest.sh
 
 # --- Kopplung der Zahlen: `make kopplung-zahlen` - haelt Heap und Text von `gross` des Integrationslaufs (SPEC-040)
 # in testserver/build.gradle.kts, IntegrationServer.kt, dem .NET-Test, der Spezifikation und harness/README.md gleich und belegt
