@@ -72,9 +72,14 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| Szenarien des Werkzeugs aus [slice-qa-performance](../done/slice-qa-performance.md) (Strom 10 Mio, Abstand Zeile/Abschluss) | update | Messung nach [TDS-QA-04](../../../../spec/lastenheft.md#tds-qa-04--performance) und [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md) |
-| Backend mit einstellbarer Verzögerung des nächsten Ereignisses | neu | Erzeuger im Repo, Aufbau B |
-| `docs/messungen/performance-heap-abschluss-<datum>.md` | neu | Messprotokoll, Einzelmessung (`AGENTS.md` §5 Regel 7) |
+| `testserver/kotlin/io/github/pt9912/tdswire/testserver/HeapAbschlussServer.kt` | neu | Stichprobe des Live-Heaps nach GC im Serverprozess; Backend mit einstellbarer Verzögerung des nächsten Ereignisses (Erzeuger im Repo, Aufbau B und C) |
+| `testserver/kotlin/io/github/pt9912/tdswire/testserver/AbschlussClient.kt`, `RohbytesClient.kt` | neu | Rohbytes-Client der Abschluss-Messung (Pakete mit Wanduhr); `RohbytesClient` löst den Anmeldeteil von `LoginProbe.kt` ab |
+| `testserver/test/kotlin/io/github/pt9912/tdswire/testserver/HeapAbschlussTest.kt`, `LoginProbe.kt` | neu, update | Tests der Bausteine mit rot gesehenen Mutationen; `LoginProbe` ruft den Rohbytes-Client |
+| `referenztest-dotnet/Heap/HeapTests.cs`, `referenztest-dotnet/Dockerfile` | neu, update | Strom von 10 Mio Zeilen je Sitzung am Referenzclient, Stage `heap` |
+| `tools/heap-abschluss.sh`, `tools/mk/heap-abschluss.mk` | neu | Zellen, Wächter, Fremdlast-Probe (`make heap-abschluss`) |
+| `tools/heap-abschluss-tabellen.sh`, `tools/heap-abschluss-selbsttest.sh`, `tools/heap-abschluss-tabellen-selbsttest.sh`, `Dockerfile`, `tools/mk/skript-selbsttest.mk`, `harness/README.md` | neu, update | Tabellen aus den Rohzeilen, Selbsttests mit Mutationen in `make skript-selbsttest`, Zeilen der Sensors-Tabelle |
+| `docs/messungen/performance-heap-abschluss-2026-11-17.md`, `docs/messungen/performance-heap-abschluss-2026-11-17-rohzeilen.txt` | neu | Messprotokoll, Einzelmessung (`AGENTS.md` §5 Regel 7), und seine Rohzeilen |
+| `docs/plan/referenz-workload.md`, `spec/spezifikation.md`, `docs/user/einbettung-und-betrieb.md` | update | zweite Fundstellen: Zeilen der Metriken, die Verzögerung des zurückgehaltenen Abschlusses (nur wo die Spezifikation sie nennt), der Satz zum Rückstau in der Nutzer-Doku |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 

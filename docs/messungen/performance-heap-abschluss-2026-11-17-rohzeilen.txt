@@ -1,0 +1,260 @@
+# Rohzeilen von tools/heap-abschluss.sh, 2026-11-17 (Erzeuger im Repo; Messprotokoll: performance-heap-abschluss-2026-11-17.md)
+# Teil 1: die Zellen heap-eigen-{1,8,16} und heap-sim-{1,8,16}, je dreimal in frischem Serverprozess, Commit e90c2399 (Zeilen 'heap-abschluss: Kopf', 'heapabschluss:', 'heap:' und 'zelle:' sowie Laufzeit und Ergebnis je Aufruf, sonst unveraendert; ein Aufruf je Zelle)
+heap-abschluss: Kopf 2026-11-17T13:13:38Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit e90c2399
+heap-abschluss: Kopf server cpus 2 memory 4g memory-swap 4g xmx 256m client cpus 2 memory 2g zeilen 10000000 wdh 1 zellen [heap-eigen-1]
+heap-abschluss: Kopf zustand vorher: last 7.28/7.34/7.18 swap_mb 11438 frei_mb 17872 container_fremd 2
+heap-abschluss: Kopf images server sha256:472ed928adf8493c805b56d67f33c1e8b9fdf95de810f39b00aeaa56ebc60019 client sha256:f40e8f74d508ea414cfbbc653a6c985de07f8f7c4fa61a810d1f4ed8310a22bf
+heapabschluss: server aufbau=eigen zeilen=10000000 seed=42 intervall_ms=500 heap_max=268435456 prozessoren=2 gc=G1_Young_Generation+G1_Concurrent_GC+G1_Old_Generation swap_max 0
+heap: lauf n 1 zeilen 10000000 wdh 1 von 1 dauer_ms 93190 zeilen_je_s_gesamt 107307 proben_offen 185 proben_leer 0 min_kb 3097 median_kb 3567 p95_kb 3579 max_kb 3582 leerlauf_max_kb 2484 gc_ms 1727
+heapabschluss: server peak 92807168 Bytes (cgroup), laeuft true
+zelle: heap-eigen-1 2026-11-17T13:15:18Z vorher [last 7.28/7.34/7.18 swap_mb 11438 frei_mb 18184 container_fremd 2] nachher [last 4.33/6.44/6.88 swap_mb 11437 frei_mb 18183 container_fremd 2] fremdlast proben 8 ueber300 2 max 452%
+heap-abschluss: Kopf zustand nachher: last 4.33/6.44/6.88 swap_mb 11437 frei_mb 18225 container_fremd 2
+heap-abschluss: Laufzeit 100 s, davon Bau 2 s und Messung 98 s
+heap-abschluss: gruen
+heap-abschluss: Kopf 2026-11-17T13:15:19Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit e90c2399
+heap-abschluss: Kopf server cpus 2 memory 4g memory-swap 4g xmx 256m client cpus 2 memory 2g zeilen 10000000 wdh 1 zellen [heap-sim-1]
+heap-abschluss: Kopf zustand vorher: last 4.33/6.44/6.88 swap_mb 11437 frei_mb 18173 container_fremd 2
+heap-abschluss: Kopf images server sha256:8bb09f38b2dbf23dd4cc5cb3060f83c3015a4f746fbf466331c885ab633c59e7 client sha256:da2b3e7a55f2250f3d03f9ea1997db5d28756b9bc788edd45cbbe8ca1f488f1e
+heapabschluss: server aufbau=sim zeilen=10000000 seed=42 intervall_ms=500 heap_max=268435456 prozessoren=2 gc=G1_Young_Generation+G1_Concurrent_GC+G1_Old_Generation swap_max 0
+heap: lauf n 1 zeilen 10000000 wdh 1 von 1 dauer_ms 96359 zeilen_je_s_gesamt 103778 proben_offen 191 proben_leer 0 min_kb 3426 median_kb 3893 p95_kb 3908 max_kb 3916 leerlauf_max_kb 2514 gc_ms 1828
+heapabschluss: server peak 94773248 Bytes (cgroup), laeuft true
+zelle: heap-sim-1 2026-11-17T13:17:09Z vorher [last 4.71/6.48/6.89 swap_mb 11437 frei_mb 18058 container_fremd 2] nachher [last 4.22/5.68/6.55 swap_mb 11437 frei_mb 17901 container_fremd 2] fremdlast proben 8 ueber300 2 max 440%
+heap-abschluss: Kopf zustand nachher: last 4.22/5.68/6.55 swap_mb 11437 frei_mb 18304 container_fremd 2
+heap-abschluss: Laufzeit 111 s, davon Bau 2 s und Messung 109 s
+heap-abschluss: gruen
+heap-abschluss: Kopf 2026-11-17T13:17:10Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit e90c2399
+heap-abschluss: Kopf server cpus 2 memory 4g memory-swap 4g xmx 256m client cpus 2 memory 2g zeilen 10000000 wdh 1 zellen [heap-eigen-1]
+heap-abschluss: Kopf zustand vorher: last 4.22/5.68/6.55 swap_mb 11437 frei_mb 18220 container_fremd 2
+heap-abschluss: Kopf images server sha256:f7f717ff8130584484685cda6e2e9c5305ed9a4a57130c0522b0b2b8722729f2 client sha256:afc2184e3efd12886825afc85662296b815c39de7fc2dd382bf09d1eae69a895
+heapabschluss: server aufbau=eigen zeilen=10000000 seed=42 intervall_ms=500 heap_max=268435456 prozessoren=2 gc=G1_Young_Generation+G1_Concurrent_GC+G1_Old_Generation swap_max 0
+heap: lauf n 1 zeilen 10000000 wdh 1 von 1 dauer_ms 92518 zeilen_je_s_gesamt 108087 proben_offen 183 proben_leer 1 min_kb 3078 median_kb 3557 p95_kb 3571 max_kb 3593 leerlauf_max_kb 2501 gc_ms 1727
+heapabschluss: server peak 103444480 Bytes (cgroup), laeuft true
+zelle: heap-eigen-1 2026-11-17T13:18:50Z vorher [last 4.04/5.62/6.53 swap_mb 11437 frei_mb 18194 container_fremd 2] nachher [last 3.88/5.18/6.28 swap_mb 11437 frei_mb 17986 container_fremd 2] fremdlast proben 8 ueber300 0 max 269%
+heap-abschluss: Kopf zustand nachher: last 3.88/5.18/6.28 swap_mb 11437 frei_mb 18023 container_fremd 2
+heap-abschluss: Laufzeit 100 s, davon Bau 2 s und Messung 98 s
+heap-abschluss: gruen
+heap-abschluss: Kopf 2026-11-17T13:18:51Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit e90c2399
+heap-abschluss: Kopf server cpus 2 memory 4g memory-swap 4g xmx 256m client cpus 2 memory 2g zeilen 10000000 wdh 1 zellen [heap-sim-1]
+heap-abschluss: Kopf zustand vorher: last 3.88/5.18/6.28 swap_mb 11437 frei_mb 17921 container_fremd 2
+heap-abschluss: Kopf images server sha256:d8dbb6e4f9c386e3a2fe4649639a75d732049fee9877c61892270a71d2842de1 client sha256:a3962c00543a65aa8d8705c5ffa7a0c3dc420ea423e76185be6e529a5d79e412
+heapabschluss: server aufbau=sim zeilen=10000000 seed=42 intervall_ms=500 heap_max=268435456 prozessoren=2 gc=G1_Young_Generation+G1_Concurrent_GC+G1_Old_Generation swap_max 0
+heap: lauf n 1 zeilen 10000000 wdh 1 von 1 dauer_ms 94461 zeilen_je_s_gesamt 105863 proben_offen 187 proben_leer 0 min_kb 3431 median_kb 3742 p95_kb 3949 max_kb 3957 leerlauf_max_kb 2946 gc_ms 1893
+heapabschluss: server peak 107114496 Bytes (cgroup), laeuft true
+zelle: heap-sim-1 2026-11-17T13:20:42Z vorher [last 4.37/5.26/6.30 swap_mb 11437 frei_mb 18100 container_fremd 2] nachher [last 4.29/5.07/6.12 swap_mb 11436 frei_mb 17922 container_fremd 2] fremdlast proben 8 ueber300 0 max 181%
+heap-abschluss: Kopf zustand nachher: last 4.29/5.07/6.12 swap_mb 11436 frei_mb 17904 container_fremd 2
+heap-abschluss: Laufzeit 111 s, davon Bau 2 s und Messung 109 s
+heap-abschluss: gruen
+heap-abschluss: Kopf 2026-11-17T13:20:43Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit e90c2399
+heap-abschluss: Kopf server cpus 2 memory 4g memory-swap 4g xmx 256m client cpus 2 memory 2g zeilen 10000000 wdh 1 zellen [heap-eigen-1]
+heap-abschluss: Kopf zustand vorher: last 4.29/5.07/6.12 swap_mb 11436 frei_mb 18264 container_fremd 2
+heap-abschluss: Kopf images server sha256:82eba8a881f206bd7af47f9b9d22b520d4aa9c3f1d6f89edee0b4ec281141fe5 client sha256:124d7baa5f1ff0da7c443e88c8c4f6a5647e13bbe01f4f3bd829ab73c906e6a3
+heapabschluss: server aufbau=eigen zeilen=10000000 seed=42 intervall_ms=500 heap_max=268435456 prozessoren=2 gc=G1_Young_Generation+G1_Concurrent_GC+G1_Old_Generation swap_max 0
+heap: lauf n 1 zeilen 10000000 wdh 1 von 1 dauer_ms 90759 zeilen_je_s_gesamt 110181 proben_offen 179 proben_leer 0 min_kb 3091 median_kb 3562 p95_kb 3574 max_kb 3617 leerlauf_max_kb 2571 gc_ms 1588
+heapabschluss: server peak 109817856 Bytes (cgroup), laeuft true
+zelle: heap-eigen-1 2026-11-17T13:22:22Z vorher [last 4.29/5.07/6.12 swap_mb 11436 frei_mb 18119 container_fremd 2] nachher [last 4.79/5.02/5.99 swap_mb 11435 frei_mb 18057 container_fremd 2] fremdlast proben 7 ueber300 0 max 296%
+heap-abschluss: Kopf zustand nachher: last 4.79/5.02/5.99 swap_mb 11435 frei_mb 18127 container_fremd 2
+heap-abschluss: Laufzeit 99 s, davon Bau 2 s und Messung 97 s
+heap-abschluss: gruen
+heap-abschluss: Kopf 2026-11-17T13:22:22Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit e90c2399
+heap-abschluss: Kopf server cpus 2 memory 4g memory-swap 4g xmx 256m client cpus 2 memory 2g zeilen 10000000 wdh 1 zellen [heap-sim-1]
+heap-abschluss: Kopf zustand vorher: last 4.79/5.02/5.99 swap_mb 11435 frei_mb 18087 container_fremd 2
+heap-abschluss: Kopf images server sha256:879729828af782384c780a87b9e8c5a5c3aaf6e3dba59eead1a6d2a6ac797698 client sha256:0b0498887874ce9724971a0fd1b909fc3e9bb09d68a46e65c94dc11f2ffd8925
+heapabschluss: server aufbau=sim zeilen=10000000 seed=42 intervall_ms=500 heap_max=268435456 prozessoren=2 gc=G1_Young_Generation+G1_Concurrent_GC+G1_Old_Generation swap_max 0
+heap: lauf n 1 zeilen 10000000 wdh 1 von 1 dauer_ms 91700 zeilen_je_s_gesamt 109051 proben_offen 181 proben_leer 0 min_kb 3423 median_kb 3738 p95_kb 3922 max_kb 3954 leerlauf_max_kb 3096 gc_ms 1892
+heapabschluss: server peak 107618304 Bytes (cgroup), laeuft true
+zelle: heap-sim-1 2026-11-17T13:24:01Z vorher [last 4.79/5.02/5.99 swap_mb 11435 frei_mb 18221 container_fremd 2] nachher [last 4.08/4.71/5.78 swap_mb 11435 frei_mb 18073 container_fremd 2] fremdlast proben 7 ueber300 0 max 161%
+heap-abschluss: Kopf zustand nachher: last 4.16/4.72/5.78 swap_mb 11435 frei_mb 18132 container_fremd 2
+heap-abschluss: Laufzeit 100 s, davon Bau 3 s und Messung 97 s
+heap-abschluss: gruen
+heap-abschluss: Kopf 2026-11-17T13:24:02Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit e90c2399
+heap-abschluss: Kopf server cpus 2 memory 4g memory-swap 4g xmx 256m client cpus 2 memory 2g zeilen 10000000 wdh 1 zellen [heap-eigen-8]
+heap-abschluss: Kopf zustand vorher: last 4.16/4.72/5.78 swap_mb 11435 frei_mb 18092 container_fremd 2
+heap-abschluss: Kopf images server sha256:a06ded4006e858d0a9d3f977ea09791cf3a3135bf4aee1f98f4dfd912aa9ef10 client sha256:a22c4b06f51998845292ded67f4c2b1ff0baab12c0e8ac5ea653e2f08383ce14
+heapabschluss: server aufbau=eigen zeilen=10000000 seed=42 intervall_ms=500 heap_max=268435456 prozessoren=2 gc=G1_Young_Generation+G1_Concurrent_GC+G1_Old_Generation swap_max 0
+heap: lauf n 8 zeilen 10000000 wdh 1 von 1 dauer_ms 362913 zeilen_je_s_gesamt 220438 proben_offen 718 proben_leer 0 min_kb 3171 median_kb 3541 p95_kb 3850 max_kb 4122 leerlauf_max_kb 2639 gc_ms 9839
+heapabschluss: server peak 148004864 Bytes (cgroup), laeuft true
+zelle: heap-eigen-8 2026-11-17T13:30:19Z vorher [last 4.16/4.72/5.78 swap_mb 11435 frei_mb 18157 container_fremd 2] nachher [last 4.16/4.13/5.16 swap_mb 11433 frei_mb 18086 container_fremd 2] fremdlast proben 30 ueber300 0 max 178%
+heap-abschluss: Kopf zustand nachher: last 4.16/4.13/5.16 swap_mb 11433 frei_mb 18045 container_fremd 2
+heap-abschluss: Laufzeit 377 s, davon Bau 4 s und Messung 373 s
+heap-abschluss: gruen
+heap-abschluss: Kopf 2026-11-17T13:30:20Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit e90c2399
+heap-abschluss: Kopf server cpus 2 memory 4g memory-swap 4g xmx 256m client cpus 2 memory 2g zeilen 10000000 wdh 1 zellen [heap-sim-8]
+heap-abschluss: Kopf zustand vorher: last 4.16/4.13/5.16 swap_mb 11433 frei_mb 18289 container_fremd 2
+heap-abschluss: Kopf images server sha256:cb56fe99804d871e4c4016150688bafc7395e632939548f9ec46c26d4c5709aa client sha256:b9dfccebd6c0854ae336c91ed148afbc2709154a5c76f5c292e678cb10e11043
+heapabschluss: server aufbau=sim zeilen=10000000 seed=42 intervall_ms=500 heap_max=268435456 prozessoren=2 gc=G1_Young_Generation+G1_Concurrent_GC+G1_Old_Generation swap_max 0
+heap: lauf n 8 zeilen 10000000 wdh 1 von 1 dauer_ms 370971 zeilen_je_s_gesamt 215650 proben_offen 733 proben_leer 0 min_kb 3616 median_kb 3853 p95_kb 4225 max_kb 4675 leerlauf_max_kb 2628 gc_ms 10526
+heapabschluss: server peak 145899520 Bytes (cgroup), laeuft true
+zelle: heap-sim-8 2026-11-17T13:36:48Z vorher [last 4.23/4.14/5.16 swap_mb 11433 frei_mb 17826 container_fremd 2] nachher [last 4.29/4.38/4.90 swap_mb 11431 frei_mb 18066 container_fremd 2] fremdlast proben 31 ueber300 0 max 178%
+heap-abschluss: Kopf zustand nachher: last 4.29/4.38/4.90 swap_mb 11431 frei_mb 18107 container_fremd 2
+heap-abschluss: Laufzeit 388 s, davon Bau 2 s und Messung 386 s
+heap-abschluss: gruen
+heap-abschluss: Kopf 2026-11-17T13:36:49Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit e90c2399
+heap-abschluss: Kopf server cpus 2 memory 4g memory-swap 4g xmx 256m client cpus 2 memory 2g zeilen 10000000 wdh 1 zellen [heap-eigen-8]
+heap-abschluss: Kopf zustand vorher: last 4.29/4.38/4.90 swap_mb 11431 frei_mb 18082 container_fremd 2
+heap-abschluss: Kopf images server sha256:bae7b37dead3eb882e46d9c3a42f3869bc01f661155092ed65890e87ae5d9e2a client sha256:422a3acc177db509abb28cfde68bf03657adfc5d4d49c46c2371c488710acad4
+heapabschluss: server aufbau=eigen zeilen=10000000 seed=42 intervall_ms=500 heap_max=268435456 prozessoren=2 gc=G1_Young_Generation+G1_Concurrent_GC+G1_Old_Generation swap_max 0
+heap: lauf n 8 zeilen 10000000 wdh 1 von 1 dauer_ms 362634 zeilen_je_s_gesamt 220608 proben_offen 717 proben_leer 0 min_kb 3328 median_kb 3550 p95_kb 3852 max_kb 4361 leerlauf_max_kb 3012 gc_ms 9829
+heapabschluss: server peak 157851648 Bytes (cgroup), laeuft true
+zelle: heap-eigen-8 2026-11-17T13:43:04Z vorher [last 4.27/4.37/4.90 swap_mb 11431 frei_mb 18296 container_fremd 2] nachher [last 4.20/4.20/4.66 swap_mb 11431 frei_mb 18099 container_fremd 2] fremdlast proben 30 ueber300 0 max 167%
+heap-abschluss: Kopf zustand nachher: last 4.20/4.20/4.66 swap_mb 11431 frei_mb 18132 container_fremd 2
+heap-abschluss: Laufzeit 375 s, davon Bau 2 s und Messung 373 s
+heap-abschluss: gruen
+heap-abschluss: Kopf 2026-11-17T13:43:05Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit e90c2399
+heap-abschluss: Kopf server cpus 2 memory 4g memory-swap 4g xmx 256m client cpus 2 memory 2g zeilen 10000000 wdh 1 zellen [heap-sim-8]
+heap-abschluss: Kopf zustand vorher: last 4.20/4.20/4.66 swap_mb 11431 frei_mb 18032 container_fremd 2
+heap-abschluss: Kopf images server sha256:0b03f4e3e8e97113620997ec421f188228a1cbf869bfc65eb0c1874bf4f84649 client sha256:54b000e3f6521bc6a064f663a234a0586984fdca5c126424308281c3c382d27b
+heapabschluss: server aufbau=sim zeilen=10000000 seed=42 intervall_ms=500 heap_max=268435456 prozessoren=2 gc=G1_Young_Generation+G1_Concurrent_GC+G1_Old_Generation swap_max 0
+heap: lauf n 8 zeilen 10000000 wdh 1 von 1 dauer_ms 372290 zeilen_je_s_gesamt 214886 proben_offen 736 proben_leer 0 min_kb 3524 median_kb 3868 p95_kb 4172 max_kb 4386 leerlauf_max_kb 2515 gc_ms 10408
+heapabschluss: server peak 172953600 Bytes (cgroup), laeuft true
+zelle: heap-sim-8 2026-11-17T13:49:34Z vorher [last 4.18/4.20/4.65 swap_mb 11431 frei_mb 18176 container_fremd 2] nachher [last 3.80/3.99/4.41 swap_mb 11428 frei_mb 17832 container_fremd 2] fremdlast proben 31 ueber300 0 max 174%
+heap-abschluss: Kopf zustand nachher: last 3.80/3.99/4.41 swap_mb 11428 frei_mb 17847 container_fremd 2
+heap-abschluss: Laufzeit 389 s, davon Bau 4 s und Messung 385 s
+heap-abschluss: gruen
+heap-abschluss: Kopf 2026-11-17T13:49:35Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit e90c2399
+heap-abschluss: Kopf server cpus 2 memory 4g memory-swap 4g xmx 256m client cpus 2 memory 2g zeilen 10000000 wdh 1 zellen [heap-eigen-8]
+heap-abschluss: Kopf zustand vorher: last 3.80/3.99/4.41 swap_mb 11428 frei_mb 17802 container_fremd 2
+heap-abschluss: Kopf images server sha256:8307744c6200be78252c89479c617e2b94f036cad3c0f9d3d46857d337c23458 client sha256:2dcf3393c8b38013be98354a68936f2b072c34852652f4ed4cc6c02f766c2e94
+heapabschluss: server aufbau=eigen zeilen=10000000 seed=42 intervall_ms=500 heap_max=268435456 prozessoren=2 gc=G1_Young_Generation+G1_Concurrent_GC+G1_Old_Generation swap_max 0
+heap: lauf n 8 zeilen 10000000 wdh 1 von 1 dauer_ms 361244 zeilen_je_s_gesamt 221456 proben_offen 715 proben_leer 0 min_kb 3229 median_kb 3565 p95_kb 3825 max_kb 4162 leerlauf_max_kb 2484 gc_ms 9385
+heapabschluss: server peak 139472896 Bytes (cgroup), laeuft true
+zelle: heap-eigen-8 2026-11-17T13:55:51Z vorher [last 3.81/3.99/4.41 swap_mb 11428 frei_mb 18125 container_fremd 2] nachher [last 3.47/3.80/4.22 swap_mb 11428 frei_mb 17805 container_fremd 2] fremdlast proben 30 ueber300 0 max 184%
+heap-abschluss: Kopf zustand nachher: last 3.47/3.80/4.22 swap_mb 11428 frei_mb 17849 container_fremd 2
+heap-abschluss: Laufzeit 376 s, davon Bau 2 s und Messung 374 s
+heap-abschluss: gruen
+heap-abschluss: Kopf 2026-11-17T13:55:51Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit e90c2399
+heap-abschluss: Kopf server cpus 2 memory 4g memory-swap 4g xmx 256m client cpus 2 memory 2g zeilen 10000000 wdh 1 zellen [heap-sim-8]
+heap-abschluss: Kopf zustand vorher: last 3.47/3.80/4.22 swap_mb 11428 frei_mb 17758 container_fremd 2
+heap-abschluss: Kopf images server sha256:6de8a444aa1959feef0c2c73382c11237735980334706aaa6897a7abbac3fdc4 client sha256:30caa024fb9427fd6bcf173ab5a3dd8429e33084ab0d1aa6bd901c9b7876e0f2
+heapabschluss: server aufbau=sim zeilen=10000000 seed=42 intervall_ms=500 heap_max=268435456 prozessoren=2 gc=G1_Young_Generation+G1_Concurrent_GC+G1_Old_Generation swap_max 0
+heap: lauf n 8 zeilen 10000000 wdh 1 von 1 dauer_ms 371738 zeilen_je_s_gesamt 215205 proben_offen 735 proben_leer 0 min_kb 3614 median_kb 3852 p95_kb 4194 max_kb 4555 leerlauf_max_kb 2644 gc_ms 10396
+heapabschluss: server peak 142213120 Bytes (cgroup), laeuft true
+zelle: heap-sim-8 2026-11-17T14:02:21Z vorher [last 3.35/3.77/4.20 swap_mb 11428 frei_mb 17988 container_fremd 2] nachher [last 5.66/4.36/4.26 swap_mb 11427 frei_mb 17961 container_fremd 2] fremdlast proben 31 ueber300 0 max 184%
+heap-abschluss: Kopf zustand nachher: last 5.66/4.36/4.26 swap_mb 11427 frei_mb 17988 container_fremd 2
+heap-abschluss: Laufzeit 390 s, davon Bau 4 s und Messung 386 s
+heap-abschluss: gruen
+heap-abschluss: Kopf 2026-11-17T14:02:22Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit e90c2399
+heap-abschluss: Kopf server cpus 2 memory 4g memory-swap 4g xmx 256m client cpus 2 memory 2g zeilen 10000000 wdh 1 zellen [heap-eigen-16]
+heap-abschluss: Kopf zustand vorher: last 5.37/4.32/4.24 swap_mb 11427 frei_mb 17937 container_fremd 2
+heap-abschluss: Kopf images server sha256:f87ddb90862df3e64568abe534e6f0c660f2ebaf83e7473a1818f0e6bbf21b47 client sha256:a5b43c3b546f22ae91c6a4178c87c0d9d923784d7e9481e7686c151855247b6d
+heapabschluss: server aufbau=eigen zeilen=10000000 seed=42 intervall_ms=500 heap_max=268435456 prozessoren=2 gc=G1_Young_Generation+G1_Concurrent_GC+G1_Old_Generation swap_max 0
+heap: lauf n 16 zeilen 10000000 wdh 1 von 1 dauer_ms 726625 zeilen_je_s_gesamt 220196 proben_offen 1437 proben_leer 0 min_kb 3623 median_kb 3869 p95_kb 4168 max_kb 4638 leerlauf_max_kb 2484 gc_ms 21099
+heapabschluss: server peak 152035328 Bytes (cgroup), laeuft true
+zelle: heap-eigen-16 2026-11-17T14:14:39Z vorher [last 5.37/4.32/4.24 swap_mb 11427 frei_mb 18170 container_fremd 2] nachher [last 4.44/4.21/4.16 swap_mb 11425 frei_mb 17907 container_fremd 2] fremdlast proben 60 ueber300 0 max 182%
+heap-abschluss: Kopf zustand nachher: last 4.44/4.21/4.16 swap_mb 11425 frei_mb 17950 container_fremd 2
+heap-abschluss: Laufzeit 737 s, davon Bau 2 s und Messung 735 s
+heap-abschluss: gruen
+heap-abschluss: Kopf 2026-11-17T14:14:40Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit e90c2399
+heap-abschluss: Kopf server cpus 2 memory 4g memory-swap 4g xmx 256m client cpus 2 memory 2g zeilen 10000000 wdh 1 zellen [heap-sim-16]
+heap-abschluss: Kopf zustand vorher: last 4.44/4.21/4.16 swap_mb 11425 frei_mb 17936 container_fremd 2
+heap-abschluss: Kopf images server sha256:ba93c7889f7e8502eaef5e767c1a767029039663aabc000a74cff5dd83cfd971 client sha256:1b7c21c0b6d79881bbf4aa599577191e2b687ab9bf59e7eba88f6e839d993c65
+heapabschluss: server aufbau=sim zeilen=10000000 seed=42 intervall_ms=500 heap_max=268435456 prozessoren=2 gc=G1_Young_Generation+G1_Concurrent_GC+G1_Old_Generation swap_max 0
+heap: lauf n 16 zeilen 10000000 wdh 1 von 1 dauer_ms 742405 zeilen_je_s_gesamt 215515 proben_offen 1467 proben_leer 0 min_kb 3867 median_kb 4162 p95_kb 4495 max_kb 4959 leerlauf_max_kb 2685 gc_ms 22469
+heapabschluss: server peak 156098560 Bytes (cgroup), laeuft true
+zelle: heap-sim-16 2026-11-17T14:27:11Z vorher [last 4.49/4.22/4.16 swap_mb 11425 frei_mb 18225 container_fremd 2] nachher [last 2.79/3.68/3.93 swap_mb 11424 frei_mb 17896 container_fremd 2] fremdlast proben 62 ueber300 1 max 389%
+heap-abschluss: Kopf zustand nachher: last 2.79/3.68/3.93 swap_mb 11424 frei_mb 17942 container_fremd 2
+heap-abschluss: Laufzeit 751 s, davon Bau 4 s und Messung 747 s
+heap-abschluss: gruen
+heap-abschluss: Kopf 2026-11-17T14:27:12Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit e90c2399
+heap-abschluss: Kopf server cpus 2 memory 4g memory-swap 4g xmx 256m client cpus 2 memory 2g zeilen 10000000 wdh 1 zellen [heap-eigen-16]
+heap-abschluss: Kopf zustand vorher: last 2.72/3.65/3.92 swap_mb 11424 frei_mb 17905 container_fremd 2
+heap-abschluss: Kopf images server sha256:9696ef65cfc2dea348d976134384d137b8dfa5eedc3736b99543d939a57fc0bb client sha256:f0aa102b88531f51befb42fb310b985f7743c15783d85241a0838fe188d51271
+heapabschluss: server aufbau=eigen zeilen=10000000 seed=42 intervall_ms=500 heap_max=268435456 prozessoren=2 gc=G1_Young_Generation+G1_Concurrent_GC+G1_Old_Generation swap_max 0
+heap: lauf n 16 zeilen 10000000 wdh 1 von 1 dauer_ms 727080 zeilen_je_s_gesamt 220058 proben_offen 1438 proben_leer 0 min_kb 3596 median_kb 3806 p95_kb 4140 max_kb 4530 leerlauf_max_kb 2501 gc_ms 20575
+heapabschluss: server peak 146505728 Bytes (cgroup), laeuft true
+zelle: heap-eigen-16 2026-11-17T14:39:29Z vorher [last 2.72/3.65/3.92 swap_mb 11424 frei_mb 18190 container_fremd 2] nachher [last 3.99/4.19/4.07 swap_mb 11423 frei_mb 18015 container_fremd 2] fremdlast proben 60 ueber300 0 max 175%
+heap-abschluss: Kopf zustand nachher: last 3.99/4.19/4.07 swap_mb 11423 frei_mb 18023 container_fremd 2
+heap-abschluss: Laufzeit 737 s, davon Bau 3 s und Messung 734 s
+heap-abschluss: gruen
+heap-abschluss: Kopf 2026-11-17T14:39:30Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit e90c2399
+heap-abschluss: Kopf server cpus 2 memory 4g memory-swap 4g xmx 256m client cpus 2 memory 2g zeilen 10000000 wdh 1 zellen [heap-sim-16]
+heap-abschluss: Kopf zustand vorher: last 3.99/4.19/4.07 swap_mb 11423 frei_mb 17969 container_fremd 2
+heap-abschluss: Kopf images server sha256:a7d7214b9d9f849b8674182b6c5d715d30a6665f97ef1242c02c5246affb73ef client sha256:1f1a048301ee0812e627e13c60be07ee29c9c1aab54b054d283b631aec015249
+heapabschluss: server aufbau=sim zeilen=10000000 seed=42 intervall_ms=500 heap_max=268435456 prozessoren=2 gc=G1_Young_Generation+G1_Concurrent_GC+G1_Old_Generation swap_max 0
+heap: lauf n 16 zeilen 10000000 wdh 1 von 1 dauer_ms 746788 zeilen_je_s_gesamt 214250 proben_offen 1475 proben_leer 0 min_kb 3944 median_kb 4133 p95_kb 4452 max_kb 4790 leerlauf_max_kb 3064 gc_ms 22082
+heapabschluss: server peak 154857472 Bytes (cgroup), laeuft true
+zelle: heap-sim-16 2026-11-17T14:52:12Z vorher [last 4.15/4.22/4.08 swap_mb 11423 frei_mb 17979 container_fremd 2] nachher [last 3.84/4.23/4.20 swap_mb 11411 frei_mb 17715 container_fremd 2] fremdlast proben 62 ueber300 0 max 194%
+heap-abschluss: Kopf zustand nachher: last 5.54/4.58/4.31 swap_mb 11411 frei_mb 18083 container_fremd 2
+heap-abschluss: Laufzeit 762 s, davon Bau 4 s und Messung 758 s
+heap-abschluss: gruen
+heap-abschluss: Kopf 2026-11-17T14:52:13Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit e90c2399
+heap-abschluss: Kopf server cpus 2 memory 4g memory-swap 4g xmx 256m client cpus 2 memory 2g zeilen 10000000 wdh 1 zellen [heap-eigen-16]
+heap-abschluss: Kopf zustand vorher: last 5.54/4.58/4.31 swap_mb 11411 frei_mb 18049 container_fremd 2
+heap-abschluss: Kopf images server sha256:c81b5e2f2469091edbed034ff150a44d31fd50c86637b11b28364a81deb28fa0 client sha256:2b39f5783e56fc232e8310eb51ca7d05378bc8ec19753ae85011b22621de2a67
+heapabschluss: server aufbau=eigen zeilen=10000000 seed=42 intervall_ms=500 heap_max=268435456 prozessoren=2 gc=G1_Young_Generation+G1_Concurrent_GC+G1_Old_Generation swap_max 0
+heap: lauf n 16 zeilen 10000000 wdh 1 von 1 dauer_ms 727259 zeilen_je_s_gesamt 220004 proben_offen 1438 proben_leer 0 min_kb 3581 median_kb 3821 p95_kb 4123 max_kb 7679 leerlauf_max_kb 2868 gc_ms 20285
+heapabschluss: server peak 146026496 Bytes (cgroup), laeuft true
+zelle: heap-eigen-16 2026-11-17T15:04:28Z vorher [last 5.54/4.58/4.31 swap_mb 11411 frei_mb 17909 container_fremd 2] nachher [last 4.11/4.03/4.13 swap_mb 11410 frei_mb 18063 container_fremd 2] fremdlast proben 60 ueber300 0 max 194%
+heap-abschluss: Kopf zustand nachher: last 4.11/4.03/4.13 swap_mb 11410 frei_mb 18095 container_fremd 2
+heap-abschluss: Laufzeit 735 s, davon Bau 3 s und Messung 732 s
+heap-abschluss: gruen
+heap-abschluss: Kopf 2026-11-17T15:04:29Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit e90c2399
+heap-abschluss: Kopf server cpus 2 memory 4g memory-swap 4g xmx 256m client cpus 2 memory 2g zeilen 10000000 wdh 1 zellen [heap-sim-16]
+heap-abschluss: Kopf zustand vorher: last 4.11/4.03/4.13 swap_mb 11410 frei_mb 18046 container_fremd 2
+heap-abschluss: Kopf images server sha256:de9d14ec087ed90a481e1cc08ac08bb05e16de955cddfe669111ff6c2abdf000 client sha256:09b1d364fdb4543bc6fdfe20a3ab9d9d0d38b6e0a178556d5b5842e74725e419
+heapabschluss: server aufbau=sim zeilen=10000000 seed=42 intervall_ms=500 heap_max=268435456 prozessoren=2 gc=G1_Young_Generation+G1_Concurrent_GC+G1_Old_Generation swap_max 0
+heap: lauf n 16 zeilen 10000000 wdh 1 von 1 dauer_ms 742151 zeilen_je_s_gesamt 215589 proben_offen 1467 proben_leer 0 min_kb 3904 median_kb 4121 p95_kb 4425 max_kb 4895 leerlauf_max_kb 2515 gc_ms 21988
+heapabschluss: server peak 166215680 Bytes (cgroup), laeuft true
+zelle: heap-sim-16 2026-11-17T15:17:00Z vorher [last 4.02/4.01/4.12 swap_mb 11410 frei_mb 17793 container_fremd 2] nachher [last 3.99/4.00/4.08 swap_mb 11409 frei_mb 17989 container_fremd 2] fremdlast proben 62 ueber300 1 max 374%
+heap-abschluss: Kopf zustand nachher: last 3.99/4.00/4.08 swap_mb 11409 frei_mb 18018 container_fremd 2
+heap-abschluss: Laufzeit 751 s, davon Bau 4 s und Messung 747 s
+heap-abschluss: gruen
+# Teil 2: die Zelle abschluss, Commit ce8ff0ca (Zeilen 'heap-abschluss: Kopf', 'heapabschluss:', 'abschluss:' und 'zelle:' sowie Laufzeit und Ergebnis, sonst unveraendert)
+heap-abschluss: Kopf 2026-11-17T15:29:55Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit ce8ff0ca
+heap-abschluss: Kopf server cpus 2 memory 4g memory-swap 4g xmx 256m client cpus 2 memory 2g zeilen 10000000 wdh 1 zellen [abschluss]
+heap-abschluss: Kopf zustand vorher: last 2.91/4.24/4.43 swap_mb 11356 frei_mb 17717 container_fremd 2
+heap-abschluss: Kopf images server sha256:0713aebea7c8c3ca7c7e5a0df2be3f518cde28be1f9bc0cb34978782ca891b8e client 
+heapabschluss: server aufbau=eigen zeilen=10000000 seed=42 intervall_ms=500 heap_max=268435456 prozessoren=2 gc=G1_Young_Generation+G1_Concurrent_GC+G1_Old_Generation swap_max 0
+abschluss: kopf ziel=tdswire-hs-1778782-server:1433 zeilen=1000 wdh=5 packet_size=4096
+abschluss: lauf form ende verzoegerung_ms 0 wdh 0 zeilen 1000 ergebnisse 1 more_bit false pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 9858 erste_zeile_us 28529 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 9050 zeile_emit_bis_done_gesehen_us 9050 naechstes_bis_done_gesehen_us 7365 anfrage_bis_done_us 69752
+abschluss: lauf form ende verzoegerung_ms 0 wdh 1 zeilen 1000 ergebnisse 1 more_bit false pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 1129 erste_zeile_us 5057 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 765 zeile_emit_bis_done_gesehen_us 765 naechstes_bis_done_gesehen_us 733 anfrage_bis_done_us 12602
+abschluss: lauf form ende verzoegerung_ms 0 wdh 2 zeilen 1000 ergebnisse 1 more_bit false pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 1269 erste_zeile_us 1556 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 900 zeile_emit_bis_done_gesehen_us 900 naechstes_bis_done_gesehen_us 870 anfrage_bis_done_us 6988
+abschluss: lauf form ende verzoegerung_ms 0 wdh 3 zeilen 1000 ergebnisse 1 more_bit false pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 521 erste_zeile_us 3297 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 539 zeile_emit_bis_done_gesehen_us 539 naechstes_bis_done_gesehen_us 522 anfrage_bis_done_us 7669
+abschluss: lauf form ende verzoegerung_ms 0 wdh 4 zeilen 1000 ergebnisse 1 more_bit false pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 1243 erste_zeile_us 3085 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 865 zeile_emit_bis_done_gesehen_us 865 naechstes_bis_done_gesehen_us 831 anfrage_bis_done_us 11022
+abschluss: lauf form ende verzoegerung_ms 0 wdh 5 zeilen 1000 ergebnisse 1 more_bit false pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 542 erste_zeile_us 2854 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 556 zeile_emit_bis_done_gesehen_us 556 naechstes_bis_done_gesehen_us 538 anfrage_bis_done_us 8272
+abschluss: lauf form ende verzoegerung_ms 10 wdh 0 zeilen 1000 ergebnisse 1 more_bit false pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 11149 erste_zeile_us 1332 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 11049 zeile_emit_bis_done_gesehen_us 11049 naechstes_bis_done_gesehen_us 716 anfrage_bis_done_us 14787
+abschluss: lauf form ende verzoegerung_ms 10 wdh 1 zeilen 1000 ergebnisse 1 more_bit false pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 12153 erste_zeile_us 2846 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 12039 zeile_emit_bis_done_gesehen_us 12039 naechstes_bis_done_gesehen_us 1780 anfrage_bis_done_us 20246
+abschluss: lauf form ende verzoegerung_ms 10 wdh 2 zeilen 1000 ergebnisse 1 more_bit false pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 11507 erste_zeile_us 2865 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 11229 zeile_emit_bis_done_gesehen_us 11229 naechstes_bis_done_gesehen_us 912 anfrage_bis_done_us 19367
+abschluss: lauf form ende verzoegerung_ms 10 wdh 3 zeilen 1000 ergebnisse 1 more_bit false pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 11399 erste_zeile_us 2233 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 11191 zeile_emit_bis_done_gesehen_us 11191 naechstes_bis_done_gesehen_us 864 anfrage_bis_done_us 17275
+abschluss: lauf form ende verzoegerung_ms 10 wdh 4 zeilen 1000 ergebnisse 1 more_bit false pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 11214 erste_zeile_us 1657 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 11144 zeile_emit_bis_done_gesehen_us 11144 naechstes_bis_done_gesehen_us 758 anfrage_bis_done_us 14979
+abschluss: lauf form ende verzoegerung_ms 10 wdh 5 zeilen 1000 ergebnisse 1 more_bit false pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 11406 erste_zeile_us 2248 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 11165 zeile_emit_bis_done_gesehen_us 11165 naechstes_bis_done_gesehen_us 761 anfrage_bis_done_us 18324
+abschluss: lauf form ende verzoegerung_ms 100 wdh 0 zeilen 1000 ergebnisse 1 more_bit false pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 101456 erste_zeile_us 2136 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 101366 zeile_emit_bis_done_gesehen_us 101366 naechstes_bis_done_gesehen_us 852 anfrage_bis_done_us 107989
+abschluss: lauf form ende verzoegerung_ms 100 wdh 1 zeilen 1000 ergebnisse 1 more_bit false pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 101361 erste_zeile_us 1413 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 101348 zeile_emit_bis_done_gesehen_us 101348 naechstes_bis_done_gesehen_us 911 anfrage_bis_done_us 104468
+abschluss: lauf form ende verzoegerung_ms 100 wdh 2 zeilen 1000 ergebnisse 1 more_bit false pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 101146 erste_zeile_us 1375 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 101164 zeile_emit_bis_done_gesehen_us 101164 naechstes_bis_done_gesehen_us 801 anfrage_bis_done_us 103654
+abschluss: lauf form ende verzoegerung_ms 100 wdh 3 zeilen 1000 ergebnisse 1 more_bit false pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 101224 erste_zeile_us 1210 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 101147 zeile_emit_bis_done_gesehen_us 101147 naechstes_bis_done_gesehen_us 808 anfrage_bis_done_us 103784
+abschluss: lauf form ende verzoegerung_ms 100 wdh 4 zeilen 1000 ergebnisse 1 more_bit false pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 100980 erste_zeile_us 1103 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 101175 zeile_emit_bis_done_gesehen_us 101175 naechstes_bis_done_gesehen_us 721 anfrage_bis_done_us 103230
+abschluss: lauf form ende verzoegerung_ms 100 wdh 5 zeilen 1000 ergebnisse 1 more_bit false pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 101168 erste_zeile_us 1552 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 101062 zeile_emit_bis_done_gesehen_us 101062 naechstes_bis_done_gesehen_us 842 anfrage_bis_done_us 104397
+abschluss: lauf form ende verzoegerung_ms 1000 wdh 0 zeilen 1000 ergebnisse 1 more_bit false pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 1001490 erste_zeile_us 1226 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 1001455 zeile_emit_bis_done_gesehen_us 1001455 naechstes_bis_done_gesehen_us 1017 anfrage_bis_done_us 1004148
+abschluss: lauf form ende verzoegerung_ms 1000 wdh 1 zeilen 1000 ergebnisse 1 more_bit false pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 1001127 erste_zeile_us 894 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 1001071 zeile_emit_bis_done_gesehen_us 1001071 naechstes_bis_done_gesehen_us 690 anfrage_bis_done_us 1002925
+abschluss: lauf form ende verzoegerung_ms 1000 wdh 2 zeilen 1000 ergebnisse 1 more_bit false pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 1001285 erste_zeile_us 813 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 1001247 zeile_emit_bis_done_gesehen_us 1001247 naechstes_bis_done_gesehen_us 787 anfrage_bis_done_us 1002985
+abschluss: lauf form ende verzoegerung_ms 1000 wdh 3 zeilen 1000 ergebnisse 1 more_bit false pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 1001372 erste_zeile_us 1208 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 1001257 zeile_emit_bis_done_gesehen_us 1001257 naechstes_bis_done_gesehen_us 911 anfrage_bis_done_us 1003517
+abschluss: lauf form ende verzoegerung_ms 1000 wdh 4 zeilen 1000 ergebnisse 1 more_bit false pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 1001351 erste_zeile_us 1159 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 1001356 zeile_emit_bis_done_gesehen_us 1001356 naechstes_bis_done_gesehen_us 1014 anfrage_bis_done_us 1003620
+abschluss: lauf form ende verzoegerung_ms 1000 wdh 5 zeilen 1000 ergebnisse 1 more_bit false pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 1001389 erste_zeile_us 1255 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 1001343 zeile_emit_bis_done_gesehen_us 1001343 naechstes_bis_done_gesehen_us 843 anfrage_bis_done_us 1003334
+abschluss: lauf form folge verzoegerung_ms 0 wdh 0 zeilen 1000 ergebnisse 2 more_bit true pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 944 erste_zeile_us 1290 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 830 zeile_emit_bis_done_gesehen_us 830 naechstes_bis_done_gesehen_us 815 anfrage_bis_done_us 3629
+abschluss: lauf form folge verzoegerung_ms 0 wdh 1 zeilen 1000 ergebnisse 2 more_bit true pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 219 erste_zeile_us 1093 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 573 zeile_emit_bis_done_gesehen_us 573 naechstes_bis_done_gesehen_us 549 anfrage_bis_done_us 2950
+abschluss: lauf form folge verzoegerung_ms 0 wdh 2 zeilen 1000 ergebnisse 2 more_bit true pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 539 erste_zeile_us 819 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 526 zeile_emit_bis_done_gesehen_us 526 naechstes_bis_done_gesehen_us 514 anfrage_bis_done_us 2363
+abschluss: lauf form folge verzoegerung_ms 0 wdh 3 zeilen 1000 ergebnisse 2 more_bit true pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 266 erste_zeile_us 796 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 238 zeile_emit_bis_done_gesehen_us 238 naechstes_bis_done_gesehen_us 229 anfrage_bis_done_us 2174
+abschluss: lauf form folge verzoegerung_ms 0 wdh 4 zeilen 1000 ergebnisse 2 more_bit true pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 457 erste_zeile_us 704 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 390 zeile_emit_bis_done_gesehen_us 390 naechstes_bis_done_gesehen_us 378 anfrage_bis_done_us 2050
+abschluss: lauf form folge verzoegerung_ms 0 wdh 5 zeilen 1000 ergebnisse 2 more_bit true pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 325 erste_zeile_us 686 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 282 zeile_emit_bis_done_gesehen_us 282 naechstes_bis_done_gesehen_us 274 anfrage_bis_done_us 1656
+abschluss: lauf form folge verzoegerung_ms 10 wdh 0 zeilen 1000 ergebnisse 2 more_bit true pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 10691 erste_zeile_us 641 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 10641 zeile_emit_bis_done_gesehen_us 10641 naechstes_bis_done_gesehen_us 488 anfrage_bis_done_us 12494
+abschluss: lauf form folge verzoegerung_ms 10 wdh 1 zeilen 1000 ergebnisse 2 more_bit true pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 10610 erste_zeile_us 875 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 10559 zeile_emit_bis_done_gesehen_us 10559 naechstes_bis_done_gesehen_us 368 anfrage_bis_done_us 12273
+abschluss: lauf form folge verzoegerung_ms 10 wdh 2 zeilen 1000 ergebnisse 2 more_bit true pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 10605 erste_zeile_us 563 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 10571 zeile_emit_bis_done_gesehen_us 10571 naechstes_bis_done_gesehen_us 377 anfrage_bis_done_us 11797
+abschluss: lauf form folge verzoegerung_ms 10 wdh 3 zeilen 1000 ergebnisse 2 more_bit true pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 10341 erste_zeile_us 638 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 10521 zeile_emit_bis_done_gesehen_us 10521 naechstes_bis_done_gesehen_us 358 anfrage_bis_done_us 12180
+abschluss: lauf form folge verzoegerung_ms 10 wdh 4 zeilen 1000 ergebnisse 2 more_bit true pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 10454 erste_zeile_us 715 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 10411 zeile_emit_bis_done_gesehen_us 10411 naechstes_bis_done_gesehen_us 239 anfrage_bis_done_us 11873
+abschluss: lauf form folge verzoegerung_ms 10 wdh 5 zeilen 1000 ergebnisse 2 more_bit true pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 10444 erste_zeile_us 446 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 10413 zeile_emit_bis_done_gesehen_us 10413 naechstes_bis_done_gesehen_us 236 anfrage_bis_done_us 11502
+abschluss: lauf form folge verzoegerung_ms 100 wdh 0 zeilen 1000 ergebnisse 2 more_bit true pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 100885 erste_zeile_us 475 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 100855 zeile_emit_bis_done_gesehen_us 100855 naechstes_bis_done_gesehen_us 611 anfrage_bis_done_us 102170
+abschluss: lauf form folge verzoegerung_ms 100 wdh 1 zeilen 1000 ergebnisse 2 more_bit true pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 100938 erste_zeile_us 832 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 100941 zeile_emit_bis_done_gesehen_us 100941 naechstes_bis_done_gesehen_us 618 anfrage_bis_done_us 102529
+abschluss: lauf form folge verzoegerung_ms 100 wdh 2 zeilen 1000 ergebnisse 2 more_bit true pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 101242 erste_zeile_us 784 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 101280 zeile_emit_bis_done_gesehen_us 101280 naechstes_bis_done_gesehen_us 892 anfrage_bis_done_us 102922
+abschluss: lauf form folge verzoegerung_ms 100 wdh 3 zeilen 1000 ergebnisse 2 more_bit true pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 101011 erste_zeile_us 1166 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 101030 zeile_emit_bis_done_gesehen_us 101030 naechstes_bis_done_gesehen_us 632 anfrage_bis_done_us 103003
+abschluss: lauf form folge verzoegerung_ms 100 wdh 4 zeilen 1000 ergebnisse 2 more_bit true pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 100916 erste_zeile_us 1112 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 100968 zeile_emit_bis_done_gesehen_us 100968 naechstes_bis_done_gesehen_us 644 anfrage_bis_done_us 102967
+abschluss: lauf form folge verzoegerung_ms 100 wdh 5 zeilen 1000 ergebnisse 2 more_bit true pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 100843 erste_zeile_us 871 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 101138 zeile_emit_bis_done_gesehen_us 101138 naechstes_bis_done_gesehen_us 737 anfrage_bis_done_us 103091
+abschluss: lauf form folge verzoegerung_ms 1000 wdh 0 zeilen 1000 ergebnisse 2 more_bit true pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 1001741 erste_zeile_us 905 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 1001582 zeile_emit_bis_done_gesehen_us 1001582 naechstes_bis_done_gesehen_us 1052 anfrage_bis_done_us 1003587
+abschluss: lauf form folge verzoegerung_ms 1000 wdh 1 zeilen 1000 ergebnisse 2 more_bit true pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 1001448 erste_zeile_us 833 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 1001392 zeile_emit_bis_done_gesehen_us 1001392 naechstes_bis_done_gesehen_us 1019 anfrage_bis_done_us 1003513
+abschluss: lauf form folge verzoegerung_ms 1000 wdh 2 zeilen 1000 ergebnisse 2 more_bit true pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 1001955 erste_zeile_us 941 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 1001895 zeile_emit_bis_done_gesehen_us 1001895 naechstes_bis_done_gesehen_us 1050 anfrage_bis_done_us 1003952
+abschluss: lauf form folge verzoegerung_ms 1000 wdh 3 zeilen 1000 ergebnisse 2 more_bit true pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 1001616 erste_zeile_us 983 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 1001569 zeile_emit_bis_done_gesehen_us 1001569 naechstes_bis_done_gesehen_us 893 anfrage_bis_done_us 1003250
+abschluss: lauf form folge verzoegerung_ms 1000 wdh 4 zeilen 1000 ergebnisse 2 more_bit true pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 1001778 erste_zeile_us 1254 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 1001697 zeile_emit_bis_done_gesehen_us 1001697 naechstes_bis_done_gesehen_us 1268 anfrage_bis_done_us 1004691
+abschluss: lauf form folge verzoegerung_ms 1000 wdh 5 zeilen 1000 ergebnisse 2 more_bit true pakete 5 paket_nutzbytes 4088 zeile_und_done_im_selben_paket true zeilen_vor_dem_letzten_paket 960 zeilen_im_letzten_paket 40 vorletztes_paket_bis_done_us 1001216 erste_zeile_us 1092 zeile_bis_done_client_us 0 zeile_emit_bis_zeile_gesehen_us 1001308 zeile_emit_bis_done_gesehen_us 1001308 naechstes_bis_done_gesehen_us 859 anfrage_bis_done_us 1003139
+heapabschluss: server peak 67932160 Bytes (cgroup), laeuft true
+zelle: abschluss 2026-11-17T15:30:48Z vorher [last 3.91/4.36/4.46 swap_mb 11356 frei_mb 17850 container_fremd 2] nachher [last 3.57/4.24/4.42 swap_mb 11356 frei_mb 17909 container_fremd 2] fremdlast proben 1 ueber300 0 max 272%
+heap-abschluss: Kopf zustand nachher: last 3.57/4.24/4.42 swap_mb 11356 frei_mb 17908 container_fremd 2
+heap-abschluss: Laufzeit 53 s, davon Bau 29 s und Messung 24 s
+heap-abschluss: gruen
