@@ -396,7 +396,7 @@ messung-span: aufbau B senke mit phase punkt-export span tds.query art rpc n=600
 messung-span: aufbau B senke mit phase punkt-export span tds.query art sql_batch n=7 median=20874 min=20870 max=20920
 messung-span: aufbau B senke mit phase punkt-export span backend.execute art rpc n=6000 median=0 min=0 max=33
 messung-span: aufbau B senke mit phase punkt-export span backend.execute art sql_batch n=7 median=20870 min=20859 max=20899
-Probe: 729 Proben, 129 über 300 %, Höchstwert 1035 %
+Probe: nicht zugehörig (die Probe-Datei dieses Namens trug Proben eines früheren, abgebrochenen Aufrufs; die Zelle lief 25 s), nicht gewertet
 ## stufe8-B-mit-punkt-export-v2
 lasttest: Kopf 2026-11-17T06:05:26Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit e483d17b
 lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [B] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
@@ -545,7 +545,7 @@ messung: 2026-11-17T05:29:12Z aufbau B senke ohne richtung punkt-export zeilen 1
 messung: 2026-11-17T05:37:47Z aufbau C senke mit richtung import zeilen 1000000 sitzungen 1 wdh 5 median_ms 3982 min_ms 3888 max_ms 4768 zeilen_je_s 251130 bytes_je_zeile 336 streuung ok vorher [last 3.54/6.53/7.24 swap_mb 15902 frei_mb 11556] nachher [last 4.56/6.51/7.21 swap_mb 15902 frei_mb 11728]
 messung-span: aufbau C senke mit phase import span tds.query art sql_batch n=12006 median=0 min=0 max=68
 messung-span: aufbau C senke mit phase import span backend.execute art sql_batch n=12000 median=0 min=0 max=16
-## Stufe 8, B mit export, Standardfrist des Servers (30 s): Abbruch mit TDS_TIMEOUT
+## Stufe 8, B mit export, Standardfrist des Servers (30 s): Abbruch nach 30 s; der Fehlercode steht in keiner Zeile, TDS_TIMEOUT ist aus der Dauer geschlossen
 lasttest: FEHLER Client Aufbau B Senke mit Phase export (Exit 1)
 lasttest: FEHLER B mit export: keine Messläufe
 messung-span: aufbau B senke mit phase export span tds.query art sql_batch n=8 median=30009 min=30002 max=30044

@@ -31,7 +31,7 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Der freigegebene [Referenz-Workload](../../referenz-workload.md) läuft mit dem Werkzeug aus [slice-qa-performance](../done/slice-qa-performance.md) in den Aufbauten B (Protokollschicht) und C (Gesamt): Zeilen/s je Richtung, p95 der Punktabfrage und die Staffel gleichzeitiger Sitzungen sind als Messzeilen mit Streuung und Bedingungen festgehalten.
+**Ziel:** Der freigegebene [Referenz-Workload](../../referenz-workload.md) läuft mit dem Werkzeug aus [slice-qa-performance](../done/slice-qa-performance.md) in den Aufbauten B (Protokollschicht, Export) und C (Gesamt, Export und Import): Zeilen/s je Richtung, p95 der Punktabfrage und die Staffel gleichzeitiger Sitzungen sind als Messzeilen mit Streuung und Bedingungen festgehalten.
 
 **Übernimmt:** aus dem DoD-Punkt „Lasttest“ von [slice-qa-performance](../done/slice-qa-performance.md) (Fassung vor der Zerlegung vom 2026-11-15) den Teil Durchsatz, p95-Latenz und gleichzeitige Sitzungen; der Rest liegt bei [slice-qa-performance-rueckstau](../open/slice-qa-performance-rueckstau.md), [slice-qa-performance-heap-abschluss](../open/slice-qa-performance-heap-abschluss.md) und [slice-qa-performance-grenzwerte](../open/slice-qa-performance-grenzwerte.md).
 
@@ -40,6 +40,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Rückstau am Socket, blockierendes Backend und Simulations-Backend unter Last — liegen bei [slice-qa-performance-rueckstau](../open/slice-qa-performance-rueckstau.md); die Staffel hier misst Durchsatz, keinen Rückstau.
 - Heap beim Strom großer Ergebnisse und Latenz des zurückgehaltenen Abschlusses — liegen bei [slice-qa-performance-heap-abschluss](../open/slice-qa-performance-heap-abschluss.md) (anderer Aufbau, andere Zeilenzahl).
 - Grenzwerte im Lastenheft — liegen bei [slice-qa-performance-grenzwerte](../open/slice-qa-performance-grenzwerte.md); dieser Slice liefert Messzeilen, keine Zahl, die schon Grenzwert ist.
+- Import in ein zählendes eigenes Backend (Aufbau B) — setzt die öffentliche Fläche für das Massenladen eigener Backends voraus und liegt bei dem Slice zur Fläche nach [ADR-0052](../../adr/0052-oeffentliche-flaeche-fuer-massenladen-eigener-backends.md) oder einem Nachmess-Slice; hier gelten für den Import nur Aufbau C und die Staffel.
 - Optimierung bei einer verfehlten oder schlechten Zahl — ein Slice je Befund nach der Messung (Welle §6).
 
 ## 2. Definition of Done
@@ -51,7 +52,7 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] **Export:** Zeilen/s, erste Zeile und Dauer je Schicht (`tds.query`, `backend.execute`) für `SELECT * FROM ref_zeilen` in den Aufbauten B und C, je Stufe der Staffel, mit Median, Minimum und Maximum der Wiederholungen und den Bedingungen (Datum, Host, Last, Limits).
-- [ ] **Import:** Zeilen/s für `SqlBulkCopy` (`BatchSize` 1000) in das Simulations-Backend mit `onInsertBatch` (Aufbau C) und am Stapel-Callback ohne Draht (Aufbau A), Aufbau C je Stufe der Staffel, mit Streuung und Bedingungen. Das Ziel ist ein Zähler; der Bestand des Testservers mit seiner Grenze von 2 097 152 Zellen ist **nicht** das Ziel.
+- [ ] **Import:** Zeilen/s für `SqlBulkCopy` (`BatchSize` 1000) in das Simulations-Backend mit `onInsertBatch` (Aufbau C), je Stufe der Staffel, mit Streuung und Bedingungen. Das Ziel ist ein Zähler; der Bestand des Testservers mit seiner Grenze von 2 097 152 Zellen ist **nicht** das Ziel.
 - **Ausdrücklich offen, nicht Teil dieses Slice (Nutzerentscheidung 2026-11-17 „DoD teilen, B später“):** der Import in ein zählendes eigenes Backend (Aufbau B). Er wird Liefer-Punkt des Slice zur Fläche nach [ADR-0052](../../adr/0052-oeffentliche-flaeche-fuer-massenladen-eigener-backends.md) oder eines Nachmess-Slice; bis dahin ist der Aufbau B im Import nicht gemessen.
 - [ ] **Sitzungen und p95:** p50, p95 und p99 der Punktabfrage (aus der Messung des Clients) während die übrigen Sitzungen streamen oder laden, für die Staffel 1, 8, 16, 64; jede Stufe mit und ohne Senke für Telemetrie; Messprotokoll unter `docs/messungen/` nach `AGENTS.md` §5 Regel 7, jede Zahl mit Erzeuger im Repo.
 - [ ] `make gates` grün.
