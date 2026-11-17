@@ -8,6 +8,10 @@ package io.github.pt9912.tdswire.domain
  * sie ab, bricht er das Lesen des Stroms ab (`cancel()`, `close()`) und beantwortet die Anfrage mit `TDS_TIMEOUT`;
  * für ein Backend ist das Feld ein Hinweis, den es ignorieren darf. `null` heißt: keine Frist.
  *
+ * Sendet ein Client mehrere RPCs in einer Nachricht, ruft der Protokollkern [io.github.pt9912.tdswire.port.QueryBackend.execute]
+ * je Aufruf nacheinander mit derselben [requestId] und derselben [deadlineEpochMillis]: der nächste Aufruf beginnt, nachdem
+ * die Ausführung des vorigen geschlossen ist; `cancel` nennt die [requestId] des laufenden Aufrufs (`SPEC-030`).
+ *
  * Die Textdarstellung nennt vom [sql] nur die Länge: der Text kann Literale und Kennwörter tragen
  * (`TDS-QA-03`).
  */

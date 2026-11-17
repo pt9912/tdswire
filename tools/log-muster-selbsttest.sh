@@ -26,6 +26,9 @@ printf '%s\n' '{"event":"adapter_failed"}' > "$tmp/adapterfehler"
 printf '%s\n' 'Kennwort secret im Text' > "$tmp/kennwort"
 printf '%s\n' '{"event":"request_failed","error_code":"TDS_PREPARE_LIMIT","cause":"anderes"}' > "$tmp/andere_ursache"
 
+printf '%s\n' '{"event":"request_failed","error_code":"TDS_PROTOCOL_ERROR"}' > "$tmp/protokollfehler"
+printf '%s\n' '{"event":"login_rejected","error_code":"TDS_PROTOCOL_ERROR"}' > "$tmp/code_im_anderen_ereignis"
+
 # fall <Name> <erwartet: 0 = Muster meldet wahr, 1 = falsch> <Logdatei> <Funktion> [Argumente]; Rueckgabe 0, wenn wie erwartet
 fall() {
   name="$1"; soll="$2"; logdatei="$3"; shift 3
@@ -55,6 +58,10 @@ alle_faelle() {
     || rot=$((rot + 1))
   fall "Fehler mit Code und Ursache gezaehlt" 0 "$tmp/gut" log_zaehle_fehler TDS_PREPARE_LIMIT handle-limit || rot=$((rot + 1))
   fall "Andere Ursache zaehlt nicht" 1 "$tmp/andere_ursache" log_zaehle_fehler TDS_PREPARE_LIMIT handle-limit || rot=$((rot + 1))
+  fall "Log ohne Protokollfehler" 0 "$tmp/gut" log_ohne_fehlercode TDS_PROTOCOL_ERROR || rot=$((rot + 1))
+  fall "Protokollfehler macht rot" 1 "$tmp/protokollfehler" log_ohne_fehlercode TDS_PROTOCOL_ERROR || rot=$((rot + 1))
+  fall "Code in einem anderen Ereignis zaehlt nicht" 0 "$tmp/code_im_anderen_ereignis" log_ohne_fehlercode TDS_PROTOCOL_ERROR \
+    || rot=$((rot + 1))
   return "$rot"
 }
 
@@ -77,6 +84,9 @@ mutiere ohne-ereignis-ohne-negation '/^log_ohne_ereignis/,/^}/ s/^  ! grep/  gre
 mutiere ohne-ereignis-anderes-feld '/^log_ohne_ereignis/,/^}/ s/\\"event\\"/\\"evento\\"/'
 mutiere ohne-text-ohne-negation '/^log_ohne_text/,/^}/ s/^  ! grep/  grep/'
 mutiere text-nur-im-ereignis-ohne-filter '/^log_text_nur_im_ereignis/,/^}/ s/grep -v/grep/'
+mutiere ohne-fehlercode-ohne-negation '/^log_ohne_fehlercode/,/^}/ s/^  ! grep/  grep/'
+mutiere ohne-fehlercode-anderes-feld '/^log_ohne_fehlercode/,/^}/ s/\\"error_code\\"/\\"error_codx\\"/'
+mutiere ohne-fehlercode-ohne-ereignisfilter '/^log_ohne_fehlercode/,/^}/ s/grep -F "[^|]*" |/cat |/'
 mutiere zaehle-fehler-andere-ursache 's/\\"cause\\"/\\"causx\\"/'
 mutiere zaehle-fehler-anderer-code 's/\\"error_code\\"/\\"error_codx\\"/'
 

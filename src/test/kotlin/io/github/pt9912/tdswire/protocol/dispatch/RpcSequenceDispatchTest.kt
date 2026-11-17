@@ -197,4 +197,47 @@ class RpcSequenceDispatchTest {
         assertFalse(session.channel.sent.isEmpty())
         assertTrue(session.channel.closed)
     }
+
+    /**
+     * Alle Aufrufe einer Nachricht tragen dieselbe Sitzung und dieselbe Frist (Beginn der Nachricht plus
+     * `QUERY_TIMEOUT`), auch wenn die Uhr zwischen den Aufrufen weiterläuft (hier um 1000 ms je Lesen). Rot, wenn die Frist
+     * je Aufruf neu berechnet wird.
+     *
+     * @spec SPEC-009
+     * @spec SPEC-030
+     */
+    @Test
+    fun `Alle Aufrufe einer Nachricht tragen dieselbe Frist und Sitzung`() = blocking {
+        var tick = FIXED_NOW
+        val times = RequestTimes(now = { tick.also { tick += 1000 } })
+        val backend = ScriptedBackend.ofList(*update.toTypedArray())
+        val session = Session.login(rpc(joined(insert(1), insert(2), insert(3))), Inbound.EndOfStream)
+        session.serve(backend, times = times)
+        assertEquals(3, backend.requests.size)
+        assertEquals(listOf(DEFAULT_DEADLINE), backend.requests.map { it.deadlineEpochMillis }.distinct())
+        assertEquals(listOf("s1"), backend.requests.map { it.sessionId }.distinct())
+    }
+
+    /**
+     * Die gemessene Form eines Fehlers nach dem Beginn einer Anweisung (W-2 und W-13): ERROR, DONEINPROC `MORE|ERROR`,
+     * RETURNSTATUS mit der SQL-Server-Nummer des Fehlers (hier 2627), DONEPROC `MORE|0x80` ohne Fehlerbit; der Aufruf
+     * danach läuft. Rot, wenn der Fehlerpfad das Bit `0x80` oder `MORE` am DONEPROC nicht schreibt.
+     *
+     * @spec SPEC-030
+     */
+    @Test
+    fun `Ein Fehler nach dem Beginn einer Anweisung traegt die gemessene Form mit MORE und 0x80`() = blocking {
+        val key = QueryEvent.Failure("TDS_SIM_KEY_VIOLATION", "x")
+        val failing = listOf(resultStart(), QueryEvent.Row(listOf(7)), key)
+        val backend = ScriptedBackend.inSequence(update, failing, update)
+        val session = Session.login(rpc(joined(insert(1), insert(2), insert(3))), Inbound.EndOfStream)
+        session.serve(backend)
+        assertEquals(3, backend.requests.size)
+        val tokens = session.tokens(0)
+        assertEquals(listOf(0, 2627, 0), tokens.filterIsInstance<ReturnStatusToken>().map { it.value })
+        assertEquals(listOf(0x0081, 0x0081, 0x0000), doneProcs(session))
+        val inProc = tokens.filterIsInstance<DoneToken>().filter { it.kind == DoneKind.DONE_IN_PROC }.map { it.status }
+        val counted = DoneStatus.MORE or DoneStatus.COUNT
+        assertEquals(listOf(counted, DoneStatus.MORE or DoneStatus.ERROR, counted), inProc)
+    }
 }

@@ -165,8 +165,10 @@ if [ "$KATEGORIE" = Luecken ]; then
   pruefe "Log: login_rejected mit UNSUPPORTED_PASSWORD_CHANGE" grund login_rejected reason UNSUPPORTED_PASSWORD_CHANGE
   pruefe "Log: login_rejected mit UNSUPPORTED_FEDERATED_AUTHENTICATION" \
     grund login_rejected reason UNSUPPORTED_FEDERATED_AUTHENTICATION
-  kein_grund() { ! grund "$@"; }
-  pruefe "Log: kein request_failed mit TDS_PROTOCOL_ERROR (mehrere RPCs gelingen)" kein_grund request_failed error_code TDS_PROTOCOL_ERROR
+  # Negative Prüfung: das Muster `log_ohne_fehlercode` ist in `tools/log-muster-selbsttest.sh` grün und rot gesehen; der Lauf
+  # gegen den Serverprozess steht aus.
+  kein_protokollfehler() { docker logs "$SERVER" 2>&1 | log_ohne_fehlercode TDS_PROTOCOL_ERROR; }
+  pruefe "Log: kein request_failed mit TDS_PROTOCOL_ERROR (mehrere RPCs gelingen)" kein_protokollfehler
   pruefe "Log: request_failed mit TDS_UNSUPPORTED_TYPE (xml)" grund request_failed error_code TDS_UNSUPPORTED_TYPE
   # Pooling mit einer physischen Verbindung (RESETCONNECTION): der Client sieht nur Ergebnisse; dass alle Anfragen mit dem
   # Marker auf einer einzigen Sitzung des Servers liefen (eine physische Verbindung, ein LOGIN7), zeigt allein das Log.
