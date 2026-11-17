@@ -162,7 +162,7 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 - **Folge-Slices:** keine neuen. Träger: Betriebstext und Dateirechte in [slice-release-doku-prozess](../done/slice-release-doku-prozess.md) (Risiko ergänzt); Messung gegen den Referenzclient in [slice-qa-vergleichslauf-d](../done/slice-qa-vergleichslauf-d.md) und [slice-qa-kompatibilitaet](../done/slice-qa-kompatibilitaet.md).
 - **Risiken aus §6:** je ein Ausgang, siehe §6 (acht Risiken: sechs weiter offen mit Register, zwei entfallen).
 - **Offene Entscheidungen beim Nutzer:** Zusatzklasse für Lastenheft-Bindungen in `harness/conventions.md` (V-3); `SPEC-*`-Zeile für das Laufzeit-Artefakt (V-1); Nutzerbestätigung der Basis-Image-Wahl; Dateirechte der Benutzerliste; Lizenzhinweise der Bibliotheken.
-- **Drei Paarungen:** Das Repo führt Wellen; die Paarungen prüft die Closure von [welle-referenzabgleich-release](../welle-referenzabgleich-release.md). Anker ↔ Folge-Slice: kein Anker gesetzt; die Folge-Slices existieren als Dateien in `open/`. Register ↔ Closure-Notiz: getragen, alle zehn Kennungen existieren als Verzeichnis mit nicht leerem `evidence/`.
+- **Drei Paarungen:** Das Repo führt Wellen; die Paarungen prüft die Closure von [welle-referenzabgleich-release](welle-referenzabgleich-release.md). Anker ↔ Folge-Slice: kein Anker gesetzt; die Folge-Slices existieren als Dateien in `open/`. Register ↔ Closure-Notiz: getragen, alle zehn Kennungen existieren als Verzeichnis mit nicht leerem `evidence/`.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

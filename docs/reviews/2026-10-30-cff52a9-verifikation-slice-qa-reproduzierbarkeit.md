@@ -108,7 +108,7 @@ Diese Berichtsdatei kommt hinzu. Nicht committet, kein Push.
   Gate-Lockerung ([AGENTS.md](../../AGENTS.md) §3.6): `make gates` unverändert, `clean-build` und `workflow-lint` sind additiv.
 - **Zusagen ohne Träger:** NuGet-Audit und `trustedSigners` haben Träger und Carveouts mit Trigger. Der Slice
   [slice-qa-dotnet-lieferkette-haerten](../plan/planning/done/slice-qa-dotnet-lieferkette-haerten.md) trägt „ohne Welle" und fehlt in der Slice-Tabelle von
-  [welle-qualitaet-grundlage](../plan/planning/welle-qualitaet-grundlage.md); [welle-referenzabgleich-release](../plan/planning/welle-referenzabgleich-release.md) nennt ihn. Verweise sind vorhanden und lösen auf.
+  [welle-qualitaet-grundlage](../plan/planning/welle-qualitaet-grundlage.md); [welle-referenzabgleich-release](../plan/planning/done/welle-referenzabgleich-release.md) nennt ihn. Verweise sind vorhanden und lösen auf.
   Zusage von D ohne anderen Träger: siehe H-1.
 
 ## 6. Findings
@@ -118,7 +118,7 @@ Diese Berichtsdatei kommt hinzu. Nicht committet, kein Push.
 **H-1 — DoD-Punkt 3 (Vergleichslauf D) ist offen, hat keinen anderen Träger und eine nicht deklarierte Abhängigkeit.**
 D ist laut [slice-qa-kompatibilitaet](../plan/planning/done/slice-qa-kompatibilitaet.md) §1 dort ausdrücklich ausgeschlossen („Träger ist slice-qa-reproduzierbarkeit"),
 laut [slice-referenzabgleich-live](../plan/planning/done/slice-referenzabgleich-live.md), [slice-referenzabgleich-mitschnitt](../plan/planning/done/slice-referenzabgleich-mitschnitt.md) und
-[welle-referenzabgleich-release](../plan/planning/welle-referenzabgleich-release.md) die Voraussetzung ihrer Starts (Make-Target, Container, EULA, Messung, Image-Tag). Der Slice kann nur nach `done/`, wenn D geliefert ist;
+[welle-referenzabgleich-release](../plan/planning/done/welle-referenzabgleich-release.md) die Voraussetzung ihrer Starts (Make-Target, Container, EULA, Messung, Image-Tag). Der Slice kann nur nach `done/`, wenn D geliefert ist;
 D braucht Referenzclient-Szenarien (Anmelde-Szenario, Mehrfach-Resultset, RPC mit Ausgabewert), die erst `slice-qa-kompatibilitaet` schreibt. Die Rückführungen in §4 des Slice nennen nur „CI-Runner ohne Docker", nicht
 „Szenarien des Referenzclients fehlen". Die Kette ist damit nicht aufgelöst: live wartet auf reproduzierbarkeit, reproduzierbarkeit auf Szenarien, die in `slice-qa-kompatibilitaet` liegen, und dieser Slice wiederum hat keinen Eintrag in §4, der das benennt.
 Folge: „Alle Punkte der DoD erledigt" (§5) ist nicht erreichbar, solange der Slice in dieser Gestalt bleibt.
