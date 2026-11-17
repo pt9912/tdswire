@@ -23,7 +23,12 @@ public class RueckstauTests
     private const int Batch = 1000;
     private readonly ITestOutputHelper _ausgabe;
 
-    public RueckstauTests(ITestOutputHelper ausgabe) => _ausgabe = ausgabe;
+    public RueckstauTests(ITestOutputHelper ausgabe)
+    {
+        _ausgabe = ausgabe;
+        // Der Thread-Pool des Clients soll die Sitzungen nicht aufstauen: die Messung gilt dem Server, nicht dem Anlauf des Pools.
+        ThreadPool.SetMinThreads(1024, 1024);
+    }
 
     private static string Umg(string name, string vorgabe) => Environment.GetEnvironmentVariable(name) ?? vorgabe;
 
@@ -285,6 +290,7 @@ public class RueckstauTests
         var lastSql = "SELECT * FROM ref_zeilen" + Angaben(lastZeilen, "suspendierend", 0, 1);
         using var nachbar = Verbinden();
         using var haengend = Verbinden();
+        using var steuer = Verbinden();
         var lastSitzungen = ÖffneViele(last);
         try
         {
@@ -294,7 +300,6 @@ public class RueckstauTests
             string ende = "kein-fehler";
             var mit = MitNachbar(nachbar, () =>
             {
-                var lastAufgabe = Task.Run(() => Parallel.For(0, last, new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, last) }, i => LiesAlles(lastSitzungen[i], lastSql, lastZeilen, seed)));
                 var befehl = new SqlCommand(sql, haengend);
                 var leserAufgabe = Task.Run(() =>
                 {
@@ -311,6 +316,13 @@ public class RueckstauTests
                         ende = e.GetType().Name + ": " + e.Message.Replace("\n", " ");
                     }
                 });
+                var wartet = Stopwatch.StartNew();
+                while (LiesStand(steuer).Offen < 1 && wartet.Elapsed < TimeSpan.FromSeconds(30))
+                {
+                    Thread.Sleep(10);
+                }
+
+                var lastAufgabe = Task.Run(() => Parallel.For(0, last, new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, last) }, i => LiesAlles(lastSitzungen[i], lastSql, lastZeilen, seed)));
                 Thread.Sleep(nachMs);
                 var gelesenVorCancel = Interlocked.Read(ref gelesen);
                 var uhr = Stopwatch.StartNew();

@@ -6,9 +6,9 @@
 # des Referenzclients (referenztest-dotnet/Rueckstau/RueckstauTests.cs: Leser, Blockierend, Abbruch, Import). Server und Client sind
 # Container eines internen Docker-Netzes (kein Zugang nach aussen); Limits wie der Lasttest (Server --cpus 2 --memory 4g, -Xmx256m, Client
 # --cpus 2 --memory 2g). Zellen (RUECKSTAU_ZELLEN, durch Leerzeichen getrennt, Vorgabe alle):
-#   leser-eigen-{1,8,64,256,256halb}  leser-sim-{1,8,64,256}   langsamer Leser (ein langsamer, bei 256halb 128 langsame Sitzungen)
+#   leser-eigen-{1,8,64,256,256halb}  leser-sim-{1,8,64,256}   langsamer Leser (ein langsamer, bei 256halb 128 langsame Sitzungen), QUERY_TIMEOUT 3600 s
 #   blk-{suspendierend,unterbrechbar,nicht-unterbrechbar}-{8,64,256}, blk-direkt-8   Backend wartet je Zeile 10 ms
-#   abbruch-{unterbrechbar,nicht-unterbrechbar}   Cancel bei wartendem Backend, CANCEL_TIMEOUT 2 s, 8 Sitzungen lesen daneben
+#   abbruch-{suspendierend,unterbrechbar,nicht-unterbrechbar}[-ohnelast]   Cancel bei wartendem Backend, CANCEL_TIMEOUT 2 s, 8 Sitzungen lesen daneben
 #   imp-{1-schnell,1-callback,8-callback,8-callback-direkt,8-callback-unterbrechbar,1-sender}   Massenladen gegen das Simulations-Backend
 # Je Zelle: Zeile `zelle:` (Zustand des Hosts vorher und nachher, Fremdlast), die Zeilen `rueckstau:` des Clients, der Kopf des Servers.
 # Fremdlast: alle 10 s die CPU des Hosts (/proc/stat) abzueglich der CPU der beiden Container (docker stats); `proben` und `ueber300`
@@ -103,6 +103,7 @@ zelle() {
 		return
 	fi
 	echo "$(docker logs "$server" 2>&1 | grep -m1 '^rueckstau: server') swap_max $(docker exec "$server" cat /sys/fs/cgroup/memory.swap.max 2>/dev/null || echo unbekannt)"
+	docker exec "$server" sh -c 'echo "rueckstau: netz eth0_mtu $(cat /sys/class/net/eth0/mtu) lo_mtu $(cat /sys/class/net/lo/mtu) tcp_rmem [$(cat /proc/sys/net/ipv4/tcp_rmem)] tcp_wmem [$(cat /proc/sys/net/ipv4/tcp_wmem)]"' 2>/dev/null
 	probe="$scratch/probe-$name"
 	rm -f "$probe" "$probe.stop"
 	: >"$probe"
@@ -115,7 +116,7 @@ zelle() {
 	touch "$probe.stop"
 	wait "$probe_pid" 2>/dev/null
 	nachher="$(zustand)"
-	tr -d '\r' <"$scratch/client" | grep -E '^ *rueckstau: |Passed!|Failed!|Failed |Error Message|Assert' | sed 's/^ *//' | head -60
+	tr -d '\r' <"$scratch/client" | grep -E -A6 '^ *rueckstau: |Passed!|Failed!|Failed |Error Message' | grep -vE '^--$|Stack Trace' | sed 's/^ *//' | head -80
 	[ "$client_ok" -eq 0 ] || { echo "rueckstau: FEHLER Client der Zelle $name (Exit $client_ok)" >&2; fehler=1; }
 	echo "rueckstau: server peak $(docker exec "$server" cat /sys/fs/cgroup/memory.peak 2>/dev/null || echo unbekannt) Bytes (cgroup), laeuft $(docker inspect --format '{{.State.Running}}' "$server")"
 	echo "zelle: $name $(date -u +%Y-%m-%dT%H:%M:%SZ) vorher [$vorher] nachher [$nachher] fremdlast $(fremdlast_summe "$probe")"
@@ -137,15 +138,15 @@ docker network create --internal "$netz" >/dev/null || exit 1
 
 for z in $zellen; do
 	case "$z" in
-	leser-eigen-1) zelle "$z" Leser "RUECKSTAU_AUFBAU=eigen" "RS_N=1 RS_LANGSAM=1 RS_ZEILEN=100000" ;;
-	leser-eigen-8) zelle "$z" Leser "RUECKSTAU_AUFBAU=eigen" "RS_N=8 RS_LANGSAM=1 RS_ZEILEN=100000" ;;
-	leser-eigen-64) zelle "$z" Leser "RUECKSTAU_AUFBAU=eigen" "RS_N=64 RS_LANGSAM=1 RS_ZEILEN=100000" ;;
-	leser-eigen-256) zelle "$z" Leser "RUECKSTAU_AUFBAU=eigen" "RS_N=256 RS_LANGSAM=1 RS_ZEILEN=20000" ;;
-	leser-eigen-256halb) zelle "$z" Leser "RUECKSTAU_AUFBAU=eigen" "RS_N=256 RS_LANGSAM=128 RS_ZEILEN=20000" ;;
-	leser-sim-1) zelle "$z" Leser "RUECKSTAU_AUFBAU=sim RUECKSTAU_ZEILEN=100000" "RS_N=1 RS_LANGSAM=1 RS_ZEILEN=100000" ;;
-	leser-sim-8) zelle "$z" Leser "RUECKSTAU_AUFBAU=sim RUECKSTAU_ZEILEN=100000" "RS_N=8 RS_LANGSAM=1 RS_ZEILEN=100000" ;;
-	leser-sim-64) zelle "$z" Leser "RUECKSTAU_AUFBAU=sim RUECKSTAU_ZEILEN=100000" "RS_N=64 RS_LANGSAM=1 RS_ZEILEN=100000" ;;
-	leser-sim-256) zelle "$z" Leser "RUECKSTAU_AUFBAU=sim RUECKSTAU_ZEILEN=20000" "RS_N=256 RS_LANGSAM=1 RS_ZEILEN=20000" ;;
+	leser-eigen-1) zelle "$z" Leser "RUECKSTAU_AUFBAU=eigen QUERY_TIMEOUT=3600" "RS_N=1 RS_LANGSAM=1 RS_ZEILEN=100000" ;;
+	leser-eigen-8) zelle "$z" Leser "RUECKSTAU_AUFBAU=eigen QUERY_TIMEOUT=3600" "RS_N=8 RS_LANGSAM=1 RS_ZEILEN=100000" ;;
+	leser-eigen-64) zelle "$z" Leser "RUECKSTAU_AUFBAU=eigen QUERY_TIMEOUT=3600" "RS_N=64 RS_LANGSAM=1 RS_ZEILEN=100000" ;;
+	leser-eigen-256) zelle "$z" Leser "RUECKSTAU_AUFBAU=eigen QUERY_TIMEOUT=3600" "RS_N=256 RS_LANGSAM=1 RS_ZEILEN=20000" ;;
+	leser-eigen-256halb) zelle "$z" Leser "RUECKSTAU_AUFBAU=eigen QUERY_TIMEOUT=3600" "RS_N=256 RS_LANGSAM=128 RS_ZEILEN=20000" ;;
+	leser-sim-1) zelle "$z" Leser "RUECKSTAU_AUFBAU=sim RUECKSTAU_ZEILEN=100000 QUERY_TIMEOUT=3600" "RS_N=1 RS_LANGSAM=1 RS_ZEILEN=100000" ;;
+	leser-sim-8) zelle "$z" Leser "RUECKSTAU_AUFBAU=sim RUECKSTAU_ZEILEN=100000 QUERY_TIMEOUT=3600" "RS_N=8 RS_LANGSAM=1 RS_ZEILEN=100000" ;;
+	leser-sim-64) zelle "$z" Leser "RUECKSTAU_AUFBAU=sim RUECKSTAU_ZEILEN=100000 QUERY_TIMEOUT=3600" "RS_N=64 RS_LANGSAM=1 RS_ZEILEN=100000" ;;
+	leser-sim-256) zelle "$z" Leser "RUECKSTAU_AUFBAU=sim RUECKSTAU_ZEILEN=20000 QUERY_TIMEOUT=3600" "RS_N=256 RS_LANGSAM=1 RS_ZEILEN=20000" ;;
 	blk-*)
 		modus="${z#blk-}"
 		modus="${modus%-*}"
@@ -153,7 +154,10 @@ for z in $zellen; do
 		zelle "$z" Blockierend "RUECKSTAU_AUFBAU=eigen RUECKSTAU_POOL=64" "RS_N=$n RS_MODUS=$modus RS_ZEILEN=100 RS_BLOCK_MS=10 RS_JEDE=1"
 		;;
 	abbruch-*)
-		zelle "$z" Abbruch "RUECKSTAU_AUFBAU=eigen RUECKSTAU_POOL=64 CANCEL_TIMEOUT=2" "RS_MODUS=${z#abbruch-} RS_BLOCK_MS=10000 RS_JEDE=3 RS_ABBRUCH_NACH_MS=1500 RS_LAST=8 RS_ZEILEN=100000"
+		last=8
+		modus="${z#abbruch-}"
+		case "$modus" in *-ohnelast) last=0; modus="${modus%-ohnelast}" ;; esac
+		zelle "$z" Abbruch "RUECKSTAU_AUFBAU=eigen RUECKSTAU_POOL=64 CANCEL_TIMEOUT=2" "RS_MODUS=$modus RS_BLOCK_MS=10000 RS_JEDE=3 RS_ABBRUCH_NACH_MS=1500 RS_LAST=$last RS_ZEILEN=100000"
 		;;
 	imp-1-schnell) zelle "$z" Import "RUECKSTAU_AUFBAU=sim" "RS_N=1 RS_ZEILEN=100000" ;;
 	imp-1-callback) zelle "$z" Import "RUECKSTAU_AUFBAU=sim RUECKSTAU_CALLBACK_MODUS=suspendierend RUECKSTAU_CALLBACK_MS=50" "RS_N=1 RS_ZEILEN=100000" ;;
