@@ -77,11 +77,18 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `src/main/kotlin/io/github/pt9912/tdswire/protocol/response/ResponseRun.kt` | update | der Sequenzierer wählt zwischen `RowToken` und `NullBitmapRowToken` nach der gemessenen Regel |
-| `src/test/kotlin/io/github/pt9912/tdswire/protocol/response/` | update | Tests je gemessenem Fall; der Test-Decoder liest NBCROW bereits (`TokenDecoder`) |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/response/ResponseRun.kt` | update | der Sequenzierer wählt zwischen `RowToken` und `NullBitmapRowToken` nach der gemessenen Regel (ruft `RowForm`) |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/response/RowForm.kt` | neu | die Regel „NBCROW, wenn kürzer als ROW, sonst ROW“ an einer Stelle |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/token/ValueWriter.kt`, `.../token/Token.kt` | update | `ValueWriter.nullSize` (Bytes eines NULL im ROW, aus `writeNull`); KDoc von `NullBitmapRowToken` nennt den Sequenzierer als Ort der Wahl |
+| `src/test/kotlin/io/github/pt9912/tdswire/protocol/response/ResponseRowFormTest.kt`, `src/test/kotlin/io/github/pt9912/tdswire/protocol/token/ValueWriterNullSizeTest.kt` | neu | Tests je gemessenem Fall mit den Bytes der Messung als Orakel; Zufall, überlange und falsche Zeilen; Größe eines NULL je Typ |
+| `src/test/kotlin/io/github/pt9912/tdswire/protocol/response/ResponseOrderTest.kt`, `src/test/kotlin/io/github/pt9912/tdswire/runtime/KatalogSpaltenWireTest.kt`, `src/test/kotlin/io/github/pt9912/tdswire/protocol/dispatch/RequestSequenceTest.kt` | update | zählten Zeilen nur als ROW (`ResponseOrderTest`, `KatalogSpaltenWireTest`: rot nach der Änderung); KDoc von `RequestSequenceTest` |
+| `referenztest-dotnet/Vergleich/MessungBulkTests.cs` | update | Szenario `zeilenform-null` (Datenbank `tdswire_zeilen`, eigene Hash-Gruppe), 17 Austausche |
+| `referenztest-dotnet/Mitschnitt/TokenLeser.cs`, `referenztest-dotnet/Mitschnitt/MessAuswertung.cs`, `referenztest-dotnet/Mitschnitt/MessungBulkBelegTests.cs` | update | Bytes je Zeile in der Auswertung (`mitZeilenform`), Belegtests der Ablage (Hexfolgen, Regel an den Zeilen), Ablage 23 |
+| `referenztest-dotnet/Mitschnitt/messung/bulk-merge-katalog/{2022,2025}/zeilenform-null.messung` | neu | Ablage der Messung je Instanz |
 | `referenztest-dotnet/Vergleich/mitschnitt-ausnahmen.tsv` | update | die Regel A-12 entfällt |
-| `docs/messungen/` | neu | Messprotokoll der Zeilenform am echten Server |
-| `spec/spezifikation.md`, `docs/plan/kompatibilitaetsmatrix.md`, `docs/messungen/referenzabgleich.md`, `docs/plan/spec-abdeckung.md`, Register `BEO-TDS/mitschnitt-luecken-ohne-traeger` | update | Zielbild-Prüfung; Zeile NBCROW und Lücke 6 der Matrix; Zeile A-12; Abdeckungsmatrix nach geänderten Tags |
+| `tools/mk/vergleichslauf-d.mk` | update | Kopfzeile: 23 Szenarien der Messreihe |
+| `docs/messungen/zeilenform-nbcrow-2026-11-17.md` | neu | Messprotokoll der Zeilenform am echten Server (M-37 bis M-41) |
+| `spec/spezifikation.md`, `docs/plan/kompatibilitaetsmatrix.md`, `docs/messungen/referenzabgleich.md`, `docs/plan/spec-abdeckung.md`, Register `BEO-TDS/mitschnitt-luecken-ohne-traeger` (`state.md`) | update | Zielbild-Prüfung; Zeile NBCROW und Lücke 6 der Matrix; Zeile A-12 entfällt, Verweis auf das Messprotokoll; Abdeckungsmatrix nach geänderten Tags; Stand zu A-12 |
 
 Der Implementer liest den Stand von `ResponseRun` und passt diese Tabelle an; eine beim Bau entstandene Datei steht vor dem Handoff darin (`BEO-TDS/plan-tabelle-nennt-neue-datei-nicht`).
 
