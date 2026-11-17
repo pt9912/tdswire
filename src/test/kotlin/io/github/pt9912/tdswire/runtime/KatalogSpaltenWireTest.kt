@@ -4,6 +4,7 @@ import io.github.pt9912.tdswire.domain.SqlType
 import io.github.pt9912.tdswire.protocol.dispatch.RpcWire
 import io.github.pt9912.tdswire.protocol.session.SessionVectors
 import io.github.pt9912.tdswire.protocol.token.ColMetadataToken
+import io.github.pt9912.tdswire.protocol.token.NullBitmapRowToken
 import io.github.pt9912.tdswire.protocol.token.RowToken
 import io.github.pt9912.tdswire.protocol.token.TdsType
 import io.github.pt9912.tdswire.protocol.token.TdsValue
@@ -93,7 +94,7 @@ internal class KatalogSpaltenWireTest : RuntimeTestBase() {
         assertEquals(TdsType.BitNType to true, typeOf("is_computed"))
         assertEquals(TdsType.Int4Type to false, typeOf("column_id"))
 
-        val rows = tokens.filterIsInstance<RowToken>().map { it.values }
+        val rows = tokens.mapNotNull { (it as? RowToken)?.values ?: (it as? NullBitmapRowToken)?.values }
         fun text(value: String) = TdsValue.TextValue(value)
         fun number(value: Long) = TdsValue.IntegerValue(value)
         assertEquals(

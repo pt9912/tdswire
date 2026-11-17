@@ -4,3 +4,5 @@
 **Lese-Schritt welle-fehler-abbruch (2026-11-06):** 3× gelesen, über der Schwelle, nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung), siehe `welle-fehler-abbruch-results.md` §Steering-Loop-Einträge und §Offene Fragen. Die Closure ändert weder Regel noch Gate. Der Stand `offen` bleibt.
 
 **Lese-Schritt welle-testserver-manuell (2026-11-13):** 3× gelesen, über der Schwelle, nicht verkörpert; Entscheidung beim Nutzer, ob d-migrate 1.12.0 mit mssql-jdbc 13.4.0 ins Clientprofil gehört (Frage 1 in `welle-testserver-manuell-results.md`, Empfehlung dort). Die Closure ändert weder Regel noch Gate. Der Stand `offen` bleibt.
+
+**Wiederauftreten (slice-antwortform-nbcrow, 2026-11-17):** 4×. Die Wahl zwischen ROW und NBCROW ist am Referenzclient gemessen; mssql-jdbc ist gegen diesen Server nicht gemessen (Verifikation V-1). Die Klasse ist weder verkörpert noch geplant; Folge-Messauftrag und Entscheidung liegen beim Nutzer.
