@@ -124,8 +124,9 @@ zelle() {
 [ "${BASH_SOURCE[0]}" = "$0" ] || return 0
 
 # Zellennamen vor dem Bau pruefen (Exit 2); dieselben Namen wie die Auswahl unten.
-# Kopplung: dieselben Namen wie der Skriptkopf und die Zweige von `case "$z"` unten; tools/rueckstau-selbsttest.sh belegt, dass jeder Name des
-# Musters einen Zweig hat (ein Name ohne Zweig endete sonst erst nach dem Bau der Images in "unbekannte Zelle").
+# Kopplung: dieselben Namen wie der Skriptkopf und die Zweige von `case "$z"` unten. tools/rueckstau-selbsttest.sh belegt, dass jeder Name seiner
+# Liste `alle` das Muster passiert und einen Zweig hat; ein Name im Muster, der nicht in `alle` steht, ist nicht belegt (ein Name ohne Zweig
+# endete sonst erst nach dem Bau der Images in "unbekannte Zelle").
 zellen_muster='^(leser-eigen-(1|8|64|256|256halb)|leser-sim-(1|8|64|256)|leser-frist|blk-(suspendierend|unterbrechbar|nicht-unterbrechbar|direkt)-[0-9]+|abbruch-(suspendierend|unterbrechbar|nicht-unterbrechbar)(-ohnelast)?|imp-(1-schnell|1-callback|8-callback|8-callback-direkt|8-callback-unterbrechbar|1-sender))$'
 for z in $zellen; do
 	[[ $z =~ $zellen_muster ]] || { echo "rueckstau: unbekannte Zelle '$z'" >&2; exit 2; }

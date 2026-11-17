@@ -5,7 +5,7 @@
 # des Skripts muessen je rot werden. Docker ersetzt ein Stub im PATH, /proc eine Nachbildung (RUECKSTAU_PROC). Die Datei `fall` der Nachbildung
 # (der Stub schreibt seine Aufrufe nach `aufrufe`) laesst den Stub bauen und starten und den Speicher an einer Stelle sinken: bei `network` (der Waechter vor dem Server greift) oder beim Start
 # des Servers (der Waechter vor der Fremdlast-Probe greift); ohne die Datei scheitert der Stub-Bau, und das Skript endet vor `zelle()`. Aufgerufen von der
-# Dockerfile-Stage `skript-selbsttest`; braucht bash, awk, sed, grep, mktemp. Grenze: belegt den Anlauf des Skripts, keinen Lauf gegen Docker.
+# Dockerfile-Stage `skript-selbsttest`; braucht bash, awk, sed, grep, mktemp. Belegt: Anlauf (Zahl, Zellennamen), Speicherwaechter vor dem Bau und in `zelle()`, ein Zweig je Name der Liste `alle`. Grenze: kein Lauf gegen Docker; ein Name im Muster, der nicht in `alle` steht, bleibt unbelegt.
 set -u
 tool=$(cd "$(dirname "$0")" && pwd)/rueckstau.sh
 tmp=$(mktemp -d)
@@ -41,6 +41,7 @@ nachbildung "$tmp/proc-knapp" 1000
 nachbildung "$tmp/proc-genau" 4194304
 nachbildung "$tmp/proc-reichlich" 30000000
 
+# Kopplung: dieselben Namen wie `zellen_muster` und die Zweige von `case "$z"` in tools/rueckstau.sh; ein neuer Name dort gehoert auch hierher.
 alle="leser-eigen-1 leser-eigen-8 leser-eigen-64 leser-eigen-256 leser-eigen-256halb leser-sim-1 leser-sim-8 leser-sim-64 leser-sim-256 leser-frist blk-suspendierend-64 blk-unterbrechbar-8 blk-unterbrechbar-64 blk-unterbrechbar-256 blk-nicht-unterbrechbar-64 blk-nicht-unterbrechbar-256 blk-direkt-8 abbruch-suspendierend abbruch-unterbrechbar abbruch-nicht-unterbrechbar abbruch-nicht-unterbrechbar-ohnelast imp-1-schnell imp-1-callback imp-8-callback imp-8-callback-direkt imp-8-callback-unterbrechbar imp-1-sender"
 
 # erwarte <Meldung> <Exit erwartet> <Skript> [VAR=Wert ...]: Lauf mit Stub-Docker; zaehlt Abweichungen in $abweichungen
