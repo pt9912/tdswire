@@ -61,6 +61,10 @@ internal class AbschlussAntwort {
     val lastRows = ArrayList<AbschlussZeile>()
     val dones = ArrayList<AbschlussDone>()
 
+    /** Je Paket: Wanduhr des Empfangs und Zahl der Zeilen des ersten Ergebnisses, die danach vollständig waren. */
+    val packetArrivals = ArrayList<Long>()
+    val packetRows = ArrayList<Int>()
+
     /** Zahl der Pakete, die [feed] bekommen hat, und die Nutzdatenlänge des ersten. */
     var packets = 0
         private set
@@ -83,6 +87,8 @@ internal class AbschlussAntwort {
             if (used == 0) break
             buffer = buffer.copyOfRange(used, buffer.size)
         }
+        packetArrivals += micros
+        packetRows += rowsPerResult.firstOrNull() ?: 0
     }
 
     /** `true`, wenn kein Byte unverarbeitet im Puffer liegt. */
@@ -192,6 +198,8 @@ internal data class AbschlussMessung(
     val packets: Int,
     val packetBytes: Int,
     val samePacket: Boolean,
+    val rowsBeforeLastPacket: Int,
+    val previousPacketToDone: Long,
     val firstRowUs: Long,
     val zeileBisDoneClient: Long,
     val zeileEmitBisZeile: Long,
@@ -203,7 +211,10 @@ internal data class AbschlussMessung(
     fun line(repeat: Int): String =
         "$ABSCHLUSS_PREFIX lauf form ${form.schluessel} verzoegerung_ms $delayMillis wdh $repeat zeilen $rows " +
             "ergebnisse $results more_bit $moreBit pakete $packets paket_nutzbytes $packetBytes " +
-            "zeile_und_done_im_selben_paket $samePacket erste_zeile_us $firstRowUs " +
+            "zeile_und_done_im_selben_paket $samePacket zeilen_vor_dem_letzten_paket $rowsBeforeLastPacket " +
+            "zeilen_im_letzten_paket ${rows - rowsBeforeLastPacket} " +
+            "vorletztes_paket_bis_done_us $previousPacketToDone " +
+            "erste_zeile_us $firstRowUs " +
             "zeile_bis_done_client_us $zeileBisDoneClient zeile_emit_bis_zeile_gesehen_us $zeileEmitBisZeile " +
             "zeile_emit_bis_done_gesehen_us $zeileEmitBisDone naechstes_bis_done_gesehen_us $naechstesBisDone " +
             "anfrage_bis_done_us $requestBisDone"
@@ -252,6 +263,8 @@ internal fun messeAbschluss(
         packets = answer.packets,
         packetBytes = answer.firstPacketBytes,
         samePacket = lastRow.packet == done.packet,
+        rowsBeforeLastPacket = if (lastRow.packet > 1) answer.packetRows[lastRow.packet - 2] else 0,
+        previousPacketToDone = if (lastRow.packet > 1) done.micros - answer.packetArrivals[lastRow.packet - 2] else -1,
         firstRowUs = answer.firstRows[0].micros - sent,
         zeileBisDoneClient = done.micros - lastRow.micros,
         zeileEmitBisZeile = lastRow.micros - zeileEmit,

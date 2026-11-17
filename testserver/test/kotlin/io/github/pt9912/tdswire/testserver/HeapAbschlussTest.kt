@@ -16,6 +16,7 @@ private const val LOOPBACK = "127.0.0.1"
 private const val PACKET = 4096
 private const val READ_MILLIS = 30_000
 private const val ROWS = 40L
+private const val MANY_ROWS = 1000L
 private const val DELAY_MS = 400L
 private const val MICROS_PER_MILLI = 1000L
 private const val SEED = 42L
@@ -129,6 +130,8 @@ internal class HeapAbschlussTest : TempFilesTest() {
         assertEquals(listOf(1, 2), listOf(answer.firstRows[0].packet, answer.lastRows[0].packet))
         assertEquals(listOf(true, false), answer.dones.map { it.status and DONE_MORE != 0 })
         assertEquals(listOf(2, 2), answer.dones.map { it.packet })
+        assertEquals(listOf(1_000L, 2_000L), answer.packetArrivals)
+        assertEquals(listOf(1, 2), answer.packetRows)
         assertEquals(2, answer.packets)
     }
 
@@ -188,6 +191,29 @@ internal class HeapAbschlussTest : TempFilesTest() {
                 val later = prompt.zeileEmitBisDone < delayed.zeileEmitBisDone
                 assertTrue(later, "${form.schluessel}: $prompt gegen $delayed")
             }
+        }
+    }
+
+    /**
+     * Ein Ergebnis über mehrere Pakete: bis auf das letzte Paket kommen die Zeilen sofort, die Zeilen des letzten
+     * Pakets zusammen mit dem DONE nach der Verzögerung. Das vorletzte Paket kommt mindestens die halbe Verzögerung
+     * vor dem DONE an (Untergrenze; es muss nicht vor dem Ende des letzten Ereignisses ankommen, im Lauf dieses Tests
+     * kam es 25 ms danach an), und sein Stand ist die Zahl der Zeilen vor dem letzten Paket.
+     */
+    @Test
+    fun `die Zeilen des letzten Pakets warten mit dem Abschluss`() {
+        val port = startServer(stichprobe(listOf(1L), listOf(1)))
+        RohbytesClient(LOOPBACK, port, PACKET, READ_MILLIS).use { client ->
+            assertTrue(client.login("alice", "secret"))
+            val measured = messeAbschluss(client, AbschlussForm.ENDE, DELAY_MS, MANY_ROWS)
+            assertTrue(measured.packets > 2, "$measured")
+            assertTrue(measured.rowsBeforeLastPacket in 1 until MANY_ROWS.toInt(), "$measured")
+            assertTrue(measured.samePacket, "$measured")
+            assertTrue(measured.previousPacketToDone >= DELAY_MS * MICROS_PER_MILLI / 2, "$measured")
+            val single = messe(client, AbschlussForm.ENDE, 0)
+            assertEquals(1, single.packets)
+            assertEquals(0, single.rowsBeforeLastPacket)
+            assertEquals(-1L, single.previousPacketToDone)
         }
     }
 

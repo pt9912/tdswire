@@ -107,8 +107,8 @@ END {
 	}
 
 	print "\n### Abschluss\n"
-	print "| Form | Verzögerung ms | Läufe | Zeilen | Pakete | Nutzbytes des 1. Pakets | letzte Zeile und DONE im selben Paket | DONE_MORE | letzte Zeile → DONE am Client µs | Zeile emittiert → Zeile am Client µs | Zeile emittiert → DONE am Client µs | nächstes Ereignis emittiert → DONE am Client µs | Anfrage → DONE µs | Last 1 min vor → nach | Fremdlast (Proben, davon > 300 %, Höchstwert) |"
-	print "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"
+	print "| Form | Verzögerung ms | Läufe | Zeilen | Pakete | Nutzbytes des 1. Pakets | letzte Zeile und DONE im selben Paket | Zeilen im letzten Paket | DONE_MORE | letzte Zeile → DONE am Client µs | Zeile emittiert → Zeile am Client µs | Zeile emittiert → DONE am Client µs | nächstes Ereignis emittiert → DONE am Client µs | vorletztes Paket → DONE am Client µs | Anfrage → DONE µs | Last 1 min vor → nach | Fremdlast (Proben, davon > 300 %, Höchstwert) |"
+	print "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"
 	for (r = 1; r <= nr; r++) {
 		l = rl[r]
 		if (l !~ /^abschluss: lauf / || feld(l, "wdh") + 0 == 0) continue
@@ -120,12 +120,14 @@ END {
 		v[key "d", k] = feld(l, "zeile_emit_bis_done_gesehen_us") + 0
 		v[key "n", k] = feld(l, "naechstes_bis_done_gesehen_us") + 0
 		v[key "a", k] = feld(l, "anfrage_bis_done_us") + 0
+		v[key "p", k] = feld(l, "zeilen_im_letzten_paket") + 0
+		v[key "v", k] = feld(l, "vorletztes_paket_bis_done_us") + 0
 		if (feld(l, "zeile_und_done_im_selben_paket") == "true") ksel[key]++
 	}
 	for (o = 1; o <= nk; o++) {
 		key = korder[o]; m = kn[key]; i = kz[key]
-		printf "| %s | %s | %s | %s | %s | %s | %s von %s | %s | %s | %s | %s | %s | %s | %s | %s |\n", kform[key], kd[key], m, trenn(kzeilen[key]), kpakete[key], kbytes[key], ksel[key] + 0, m, kmore[key], \
-			dreier(key "c", m, 1, 1), dreier(key "z", m, 1, 1), dreier(key "d", m, 1, 1), dreier(key "n", m, 1, 1), dreier(key "a", m, 1, 1), lastpaar(zz[i]), fremd(zz[i])
+		printf "| %s | %s | %s | %s | %s | %s | %s von %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |\n", kform[key], kd[key], m, trenn(kzeilen[key]), kpakete[key], kbytes[key], ksel[key] + 0, m, dreier(key "p", m, 1, 1), kmore[key], \
+			dreier(key "c", m, 1, 1), dreier(key "z", m, 1, 1), dreier(key "d", m, 1, 1), dreier(key "n", m, 1, 1), dreier(key "v", m, 1, 1), dreier(key "a", m, 1, 1), lastpaar(zz[i]), fremd(zz[i])
 	}
 }
 ' "$datei"
