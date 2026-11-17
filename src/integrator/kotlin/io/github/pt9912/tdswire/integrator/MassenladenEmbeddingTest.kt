@@ -206,7 +206,7 @@ class MassenladenEmbeddingTest {
         assertEquals(emptyList(), calls)
     }
 
-    private companion object {
+    internal companion object {
         const val THREE = 3L
 
         /** Nutzlast der ersten Nachricht 0x07 von `data import`, siehe `BulkLoadReaderTest`. */

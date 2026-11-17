@@ -19,6 +19,12 @@ import io.github.pt9912.tdswire.domain.SqlType
 import io.github.pt9912.tdswire.domain.telemetry.EventKind
 import io.github.pt9912.tdswire.domain.telemetry.TelemetryEvent
 import io.github.pt9912.tdswire.domain.telemetry.TelemetrySink
+import io.github.pt9912.tdswire.port.BulkLoadingBackend
+import io.github.pt9912.tdswire.port.BulkProbeColumn
+import io.github.pt9912.tdswire.port.BulkProbeResult
+import io.github.pt9912.tdswire.port.BulkRows
+import io.github.pt9912.tdswire.port.BulkTarget
+import io.github.pt9912.tdswire.port.BulkTargetResult
 import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.port.QueryExecution
 import io.github.pt9912.tdswire.runtime.BackendSource
@@ -106,6 +112,27 @@ class AnleitungTest {
         } finally {
             runBlocking { server.stop() }
         }
+    }
+
+    @Test
+    fun einBackendMitDerFaehigkeitNimmtDasMassenladenAn() {
+        val geladen = CopyOnWriteArrayList<List<Any?>>()
+        val config = anleitungKonfiguration(port = 0, benutzerliste = "alice\t{plain}secret\n")
+        val outcome = runBlocking { TdsServer.start(config, BackendSource.Custom(AnleitungMassenladen(geladen))) }
+        val server = assertIs<StartOutcome.Running>(outcome).server
+        try {
+            WireClient(server.port).use { client ->
+                client.login()
+                assertEquals(emptyList(), client.batch(PROBE_TEXT).errorNumbers())
+                assertEquals(0, client.batch(INSERT_TEXT).doneStatus and DONE_ERROR)
+                val loaded = client.bulkLoad(hex(BULK_NUTZLAST.chunked(2).joinToString(" ")))
+                assertEquals(MassenladenEmbeddingTest.THREE, loaded.rowCount)
+            }
+        } finally {
+            runBlocking { server.stop() }
+        }
+        assertEquals(MassenladenEmbeddingTest.THREE.toInt(), geladen.size)
+        assertEquals(listOf(2L, null, null), geladen[1])
     }
 
     @Test
@@ -229,6 +256,10 @@ internal fun anleitungBefunde(outcome: StartOutcome): List<String> = when (outco
 
 // --- Beispiel: eigenes Backend --------------------------------------------------------------------------------------
 
+private const val PROBE_TEXT = "SELECT @@TRANCOUNT;\nDECLARE @Object_ID INT = OBJECT_ID('[dbo].[kunden]');\n"
+private const val INSERT_TEXT = "INSERT BULK [dbo].[kunden] ([Id] BIGINT , [Name] NVARCHAR(4000) )"
+private const val BULK_NUTZLAST = MassenladenEmbeddingTest.THREE_ROWS
+
 /** Ein Backend, das jede Anfrage mit zwei Zeilen einer Textspalte beantwortet. */
 internal class AnleitungBackend : QueryBackend {
     private val spalte = ResultColumn("Text", SqlType.UnicodeText, nullable = false)
@@ -249,6 +280,33 @@ internal class AnleitungBackend : QueryBackend {
 
     override suspend fun cancel(sessionId: String, requestId: String) = Unit
 }
+
+/** Ein Backend, das zusätzlich das Massenladen in die Tabelle `kunden` annimmt und ihre Zeilen in [ziel] sammelt. */
+internal class AnleitungMassenladen(private val ziel: MutableList<List<Any?>>) :
+    QueryBackend by AnleitungBackend(),
+    BulkLoadingBackend {
+    private val spalten = listOf(
+        BulkProbeColumn(ResultColumn("Id", SqlType.Int64, nullable = false), TEXT_ZEICHEN),
+        BulkProbeColumn(ResultColumn("Name", SqlType.UnicodeText, nullable = true), TEXT_ZEICHEN),
+    )
+
+    override fun bulkTarget(sql: String): BulkTargetResult? =
+        if (sql.trimStart().startsWith("insert bulk", ignoreCase = true)) {
+            BulkTargetResult.Ready(BulkTarget("dbo", "kunden"))
+        } else {
+            null
+        }
+
+    override fun bulkProbe(sql: String): BulkProbeResult? =
+        if (sql.startsWith("SELECT @@TRANCOUNT")) BulkProbeResult.Ready(spalten) else null
+
+    override suspend fun load(target: BulkTarget, rows: BulkRows): QueryEvent {
+        ziel.addAll(rows.rows)
+        return QueryEvent.UpdateCount(rows.rows.size.toLong())
+    }
+}
+
+private const val TEXT_ZEICHEN = 4000
 
 // --- Beispiel: Simulations-Backend mit veränderlichem Bestand -------------------------------------------------------
 
