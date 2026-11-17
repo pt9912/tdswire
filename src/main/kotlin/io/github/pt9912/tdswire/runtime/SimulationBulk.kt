@@ -11,9 +11,9 @@ import io.github.pt9912.tdswire.simulation.BulkCopyForms
 import io.github.pt9912.tdswire.simulation.SimulationBackend
 
 /**
- * Stellt dem Simulations-Backend die Fähigkeit des Massenladens bereit (`ADR-0052` Entscheidung 2): die Klasse
- * [SimulationBackend] trägt [BulkLoadingBackend] nicht selbst, weil seine drei Funktionen sonst öffentliche Mitglieder
- * der Klasse wären und `SPEC-059` für sie eine Zusage verlangte; die Verdrahtung hüllt sie deshalb vor der
+ * Stellt dem Simulations-Backend die Fähigkeit des Massenladens bereit (`ADR-0052` Entscheidung 2). Grenze:
+ * [SimulationBackend] trägt [BulkLoadingBackend] nicht selbst, weil `bulkTarget`, `bulkProbe` und `load` als Mitglieder
+ * der Klasse öffentlich und damit Zusage von `SPEC-059` würden. Die Verdrahtung hüllt es deshalb vor der
  * Anfrageschleife ein. Jedes andere [QueryBackend] bleibt unverändert: trägt es [BulkLoadingBackend] selbst, wählt der
  * Kern die Fähigkeit mit `is`.
  */

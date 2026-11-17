@@ -2,6 +2,7 @@ package io.github.pt9912.tdswire.integrator
 
 import java.io.ByteArrayOutputStream
 import java.io.IOException
+import java.io.PushbackInputStream
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.SocketTimeoutException
@@ -17,9 +18,9 @@ private const val CONNECT_MILLIS = 5_000
 private const val READ_MILLIS = 20_000
 private const val HEADER_BYTES = 8
 private const val BYTE_BITS = 8
-private const val TYPE_SQL_BATCH = 0x01
+internal const val TYPE_SQL_BATCH = 0x01
 private const val TYPE_RPC = 0x03
-private const val TYPE_BULK_LOAD = 0x07
+internal const val TYPE_BULK_LOAD = 0x07
 private const val TYPE_RESPONSE = 4
 private const val TYPE_LOGIN7 = 0x10
 private const val TYPE_PRELOGIN = 0x12
@@ -100,6 +101,7 @@ internal class WireClient(port: Int) : AutoCloseable {
         soTimeout = READ_MILLIS
         tcpNoDelay = true
     }
+    internal val input = PushbackInputStream(socket.getInputStream())
 
     /** PRELOGIN ohne Verschlüsselung, dann LOGIN7 des Benutzers `alice`; beides muss angenommen werden. */
     fun login() {
@@ -154,7 +156,7 @@ internal class WireClient(port: Int) : AutoCloseable {
             val status = if (index == chunks.lastIndex) STATUS_EOM else 0
             send(TYPE_BULK_LOAD, chunk.toByteArray(), status)
         }
-        socket.getInputStream().readAllBytes()
+        input.readAllBytes()
         true
     } catch (expectedTimeout: SocketTimeoutException) {
         false
@@ -170,14 +172,14 @@ internal class WireClient(port: Int) : AutoCloseable {
 
     /** `true`, wenn der Server schließt, ohne vorher ein weiteres Byte zu senden. */
     fun closedByServer(): Boolean = try {
-        socket.getInputStream().read() < 0
+        input.read() < 0
     } catch (reset: IOException) {
         reset.message?.contains("reset", ignoreCase = true) == true
     }
 
     override fun close() = socket.close()
 
-    private fun send(type: Int, payload: ByteArray, status: Int = STATUS_EOM) {
+    internal fun send(type: Int, payload: ByteArray, status: Int = STATUS_EOM) {
         val length = HEADER_BYTES + payload.size
         val header = byteArrayOf(
             type.toByte(),
@@ -193,17 +195,17 @@ internal class WireClient(port: Int) : AutoCloseable {
         socket.getOutputStream().flush()
     }
 
-    private fun readMessage(): Pair<Int, ByteArray> {
+    internal fun readMessage(): Pair<Int, ByteArray> {
         val payload = ByteArrayOutputStream()
         var type: Int
         var status: Int
         do {
-            val header = socket.getInputStream().readNBytes(HEADER_BYTES)
+            val header = input.readNBytes(HEADER_BYTES)
             assertEquals(HEADER_BYTES, header.size, "Paketkopf abgeschnitten")
             type = header[0].toInt() and BYTE_MASK
             status = header[1].toInt() and BYTE_MASK
             val length = ((header[2].toInt() and BYTE_MASK) shl BYTE_BITS) or (header[3].toInt() and BYTE_MASK)
-            payload.write(socket.getInputStream().readNBytes(length - HEADER_BYTES))
+            payload.write(input.readNBytes(length - HEADER_BYTES))
         } while (status and STATUS_EOM == 0)
         return type to payload.toByteArray()
     }

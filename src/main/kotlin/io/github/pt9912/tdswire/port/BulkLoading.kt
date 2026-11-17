@@ -26,6 +26,9 @@ import io.github.pt9912.tdswire.domain.ResultColumn
  * - **Fehler.** Ein Fehler des Backends erreicht den Client als `TDS_BACKEND_ERROR` (Nummer 50004), wenn [load] ihn als
  *   [QueryEvent.Failure] mit diesem Code meldet; die Verbindung bleibt offen.
  * - **Keine Transaktion.** Mehrere Nachrichten sind keine Transaktion; die Bibliothek nimmt nichts zurück.
+ * - **Eine Ausnahme der Funktionen** verletzt die Zusage und ist im Ist-Zustand gemessen (Einbettungstest): wirft
+ *   [bulkProbe] oder [bulkTarget], schließt der Server die Verbindung ohne Antwort; wirft [load], endet die Anfrage mit
+ *   `TDS_INTERNAL_ERROR` (50007). Der Server bleibt in beiden Fällen verfügbar.
  */
 public interface BulkLoadingBackend {
     /**
@@ -58,10 +61,13 @@ public sealed interface BulkTargetResult {
     public data class Ready(val target: BulkTarget) : BulkTargetResult
 
     /**
-     * Die Anweisung endet mit dem Fehler [code], ohne ein Ziel zu setzen. [code] ist der Name eines Fehlers, den ein
-     * Backend melden darf, wie bei [QueryEvent.Failure.code] (zum Beispiel `TDS_BACKEND_ERROR`, `TDS_UNSUPPORTED_SQL`,
-     * `TDS_SIM_UNKNOWN_OBJECT` mit der Nummer 208 und `TDS_SIM_INVALID_VALUE`); ein Name außerhalb der Liste des Kerns
-     * endet mit `TDS_INTERNAL_ERROR` (50007) und schließt die Verbindung. [message] erreicht den Client nicht.
+     * Die Anweisung endet mit dem Fehler [code], ohne ein Ziel zu setzen. [code] ist einer dieser Namen, wie bei
+     * [QueryEvent.Failure.code]: `TDS_BACKEND_ERROR`, `TDS_UNSUPPORTED_SQL`, `TDS_UNSUPPORTED_TYPE`,
+     * `TDS_SIM_UNKNOWN_OBJECT`, `TDS_SIM_INVALID_VALUE`, `TDS_SIM_KEY_VIOLATION`, `TDS_SIM_OBJECT_EXISTS`,
+     * `TDS_SIM_COLUMN_EXISTS`, `TDS_SIM_COLUMN_HAS_DEFAULT`, `TDS_SIM_OBJECT_NOT_FOUND`, `TDS_SIM_NOT_A_CONSTRAINT`,
+     * `TDS_SIM_CONSTRAINT_OTHER_TABLE`, `TDS_SIM_NOT_AN_INDEX`, `TDS_SIM_INDEX_OF_CONSTRAINT`,
+     * `TDS_SIM_STRING_TRUNCATED`, `TDS_TIMEOUT`; ein anderer Name endet mit `TDS_INTERNAL_ERROR` (50007) und schließt
+     * die Verbindung. [message] erreicht den Client nicht.
      */
     public data class Rejected(val code: String, val message: String) : BulkTargetResult
 }

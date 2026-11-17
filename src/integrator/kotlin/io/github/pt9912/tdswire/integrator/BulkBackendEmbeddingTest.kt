@@ -26,6 +26,7 @@ import io.github.pt9912.tdswire.runtime.TdsServer
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.runBlocking
+import java.io.IOException
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -42,6 +43,11 @@ private const val UNKNOWN_OBJECT_NUMBER = 208
 private const val LIMIT_BYTES = 65535
 private const val MANY_ROWS = 3000
 private const val INTERNAL_ERROR_NUMBER = 50007
+private val EXPECTED_OBSERVATION = listOf(
+    "geschlossen ohne Antwort",
+    "geschlossen ohne Antwort",
+    "Fehler [$INTERNAL_ERROR_NUMBER]",
+)
 private const val FIRST_ROW = "d10801"
 private const val SECOND_ROW = "d10802"
 private const val DONE_HEX_CHARS = 26
@@ -49,6 +55,8 @@ private const val LOAD_COMMAND = 0x00F0
 private const val FAIL_TABLE = "kaputt"
 private const val UNKNOWN_CODE_TABLE = "fremd"
 private const val MISSING_TABLE = "fehlt"
+private const val THROWING_TABLE = "wirft"
+private const val LOAD_THROWING_TABLE = "ladewirft"
 
 /** Ein Aufruf von `load`: das Ziel, die Namen der Spalten und die Zeilen. */
 private class Loaded(val target: BulkTarget, val columns: List<String>, val rows: List<List<Any?>>)
@@ -79,6 +87,7 @@ private class BulkBackend :
 
     override fun bulkTarget(sql: String): BulkTargetResult? {
         val name = INSERT_BULK.find(sql)?.groupValues?.get(1) ?: return null
+        check(name != THROWING_TABLE) { "bulkTarget wirft" }
         return when (name) {
             MISSING_TABLE -> BulkTargetResult.Rejected("TDS_SIM_UNKNOWN_OBJECT", "Tabelle nicht beschrieben")
             UNKNOWN_CODE_TABLE -> BulkTargetResult.Rejected("TDS_GIBT_ES_NICHT", "Name unbekannt")
@@ -88,6 +97,7 @@ private class BulkBackend :
 
     override fun bulkProbe(sql: String): BulkProbeResult? {
         val name = if (sql.startsWith("SELECT @@TRANCOUNT")) OBJECT_ID.find(sql)?.groupValues?.get(1) else null
+        check(name != THROWING_TABLE) { "bulkProbe wirft" }
         return when (name) {
             null -> null
 
@@ -108,6 +118,7 @@ private class BulkBackend :
 
     override suspend fun load(target: BulkTarget, rows: BulkRows): QueryEvent {
         loaded += Loaded(target, rows.columns.map { it.name }, rows.rows)
+        check(target.table != LOAD_THROWING_TABLE) { "load wirft" }
         return if (target.table == FAIL_TABLE) {
             QueryEvent.Failure("TDS_BACKEND_ERROR", "Text des Backends, nicht für den Client")
         } else {
@@ -136,6 +147,19 @@ private class PlainBackend : QueryBackend {
     }
 
     override suspend fun cancel(sessionId: String, requestId: String) = Unit
+}
+
+/** Sendet eine Nachricht vom Typ [type]; `null`, wenn der Server schließt, ohne zu antworten. */
+private fun WireClient.orClosed(type: Int, payload: ByteArray): Answer? {
+    send(type, payload)
+    val first = try {
+        input.read()
+    } catch (expectedReset: IOException) {
+        -1
+    }
+    if (first < 0) return null
+    input.unread(first)
+    return Answer(readMessage().second)
 }
 
 private fun bytes(compact: String): ByteArray = hex(compact.chunked(2).joinToString(" "))
@@ -357,4 +381,36 @@ class BulkBackendEmbeddingTest {
         }
         assertEquals(emptyList(), backend.loaded.map { it.target })
     }
+
+    /**
+     * Wirft eine der drei Funktionen des Backends (Verstoß des Autors gegen die Zusage), hält dieser Test den
+     * gemessenen Ist-Zustand je Funktion fest ([EXPECTED_OBSERVATION]); danach nimmt der Server wieder eine
+     * Verbindung an.
+     *
+     * @spec SPEC-059
+     */
+    @Test
+    fun eineAusnahmeInDenFunktionenDesBackendsIstImIstZustandFestgehalten() {
+        val backend = BulkBackend()
+        val server = start(backend)
+        val seen = listOf(
+            observe(server) { it.orClosed(TYPE_SQL_BATCH, allHeaders() + utf16(probe(THROWING_TABLE))) },
+            observe(server) { it.orClosed(TYPE_SQL_BATCH, allHeaders() + utf16(insert(THROWING_TABLE))) },
+            observe(server) {
+                assertEquals(0, it.batch(insert(LOAD_THROWING_TABLE)).doneStatus and DONE_ERROR)
+                it.orClosed(TYPE_BULK_LOAD, bytes(MassenladenEmbeddingTest.THREE_ROWS))
+            },
+        )
+        assertEquals(EXPECTED_OBSERVATION, seen)
+        WireClient(server.port).use { client ->
+            client.login()
+            assertEquals(0, client.batch(insert("kunden")).doneStatus and DONE_ERROR)
+        }
+    }
+
+    private fun observe(server: TdsServer, step: (WireClient) -> Answer?): String =
+        WireClient(server.port).use { client ->
+            client.login()
+            step(client)?.let { "Fehler ${it.errorNumbers()}" } ?: "geschlossen ohne Antwort"
+        }
 }
