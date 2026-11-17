@@ -1,4 +1,4 @@
-# ADR-0051: Öffentliche Fläche für das Massenladen eigener Backends (Entwurf; ersetzt bei Annahme Entscheidung 5 von ADR-0033 teilweise)
+# ADR-0052: Öffentliche Fläche für das Massenladen eigener Backends (Entwurf; ersetzt bei Annahme Entscheidung 5 von ADR-0033 teilweise)
 
 **Status:** Proposed (Entwurf des Architects; die Entscheidung trifft der Nutzer)
 
@@ -88,4 +88,4 @@ Ein Einbettender verlangt eine Fähigkeit, die die gewählte Fläche nicht träg
 |---|---|---|
 | 2026-11-17 | Proposed (Entwurf nach der Entscheidung „Code angleichen“ des Nutzers; Wahl der Option offen) | [ADR-0033](0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) |
 
-Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen entstehen als neue ADR mit `Supersedes ADR-0051` ([AGENTS.md](../../../AGENTS.md) §3.5).
+Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen entstehen als neue ADR mit `Supersedes ADR-0052` ([AGENTS.md](../../../AGENTS.md) §3.5).
