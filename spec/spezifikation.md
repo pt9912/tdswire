@@ -516,8 +516,10 @@ verifizieren.
   und im Batch wie im RPC. Gemessen ist die Wahl an Ergebnissen mit 2 bis 17 Spalten (Bitmap von ein bis drei Byte),
   einer NULL hinter der achten Spalte, acht Typen des Typmodells (`tinyint`, `smallint`, `int`, `bigint`, `bit`, `date`,
   `time`, `datetime2`; `decimal(10,2)` und `nvarchar` in anderen Ergebnissen) und an Zeilen aus zwei Text- und acht
-  Ganzzahlspalten (eine NULL im Text ist ROW, wenn die Bitmap zwei Byte hat); Setzung, nicht gemessen: die Rechnung
-  für mehr als 17 Spalten und für mehrere Dezimalspalten. Die Bytes von COLMETADATA und die Länge des Dezimaltyps sind nicht Teil
+  Ganzzahlspalten (eine NULL im Text ist ROW, wenn die Bitmap zwei Byte hat); gemessen mit einem Client
+  (`Microsoft.Data.SqlClient` 7.1.1) und an Antworten aus einem Paket; Setzung, nicht gemessen: die Rechnung für mehr als
+  17 Spalten, für mehrere Dezimalspalten, für einen anderen Client (etwa mssql-jdbc) und für Ergebnisse über mehrere
+  Pakete. Die Bytes von COLMETADATA und die Länge des Dezimaltyps sind nicht Teil
   dieser Aussage (Ausnahme A-11 des Referenzabgleichs).
 
 **RPC-Parametertypen (Eingabe; vom Referenzclient beobachtet, MAX-Typen nur wie am Ende des Absatzes eingeschränkt):** `tinyint`/`smallint`/`int`/`bigint`

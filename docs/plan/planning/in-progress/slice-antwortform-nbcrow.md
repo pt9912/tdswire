@@ -30,7 +30,7 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Der Sequenzierer schreibt eine Zeile mit NULL-Wert so als `NBCROW`, wie es der echte SQL Server in der Antwort tut, belegt an einer Messung gegen den echten Server und am Kompatibilitätstest; die Ausnahme A-12 des Referenzabgleichs entfällt. Der Encoder kann `NBCROW` seit `slice-codec-datentypen-erweiterung` auf Anweisung des Aufrufers schreiben ([Kompatibilitätsmatrix](../../kompatibilitaetsmatrix.md) Abschnitt 2, Lücke 6); hier entscheidet der Sequenzierer, wann er es anweist.
+**Ziel:** Der Sequenzierer wählt je Zeile zwischen `ROW` und `NBCROW` so, wie es der echte SQL Server in der Antwort tut (gemessen: `NBCROW` genau dann, wenn er kürzer ist als der `ROW` derselben Werte, bei Gleichstand `ROW`; eine NULL in `INTN` bleibt `ROW`), belegt an einer Messung gegen den echten Server und am Kompatibilitätstest; die Ausnahme A-12 des Referenzabgleichs entfällt. Der Encoder kann `NBCROW` seit `slice-codec-datentypen-erweiterung` auf Anweisung des Aufrufers schreiben ([Kompatibilitätsmatrix](../../kompatibilitaetsmatrix.md) Abschnitt 2, Lücke 6); hier entscheidet der Sequenzierer, wann er es anweist.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -88,6 +88,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `referenztest-dotnet/Vergleich/mitschnitt-ausnahmen.tsv` | update | die Regel A-12 entfällt |
 | `tools/mk/vergleichslauf-d.mk` | update | Kopfzeile: 23 Szenarien der Messreihe |
 | `docs/messungen/zeilenform-nbcrow-2026-11-17.md` | neu | Messprotokoll der Zeilenform am echten Server (M-37 bis M-41) |
+| `docs/user/referenz-konfiguration.md` | update | ein Absatz zur Zeilenform unter den Antwortformen |
 | `spec/spezifikation.md`, `docs/plan/kompatibilitaetsmatrix.md`, `docs/messungen/referenzabgleich.md`, `docs/plan/spec-abdeckung.md`, Register `BEO-TDS/mitschnitt-luecken-ohne-traeger` (`state.md`) | update | Zielbild-Prüfung; Zeile NBCROW und Lücke 6 der Matrix; Zeile A-12 entfällt, Verweis auf das Messprotokoll; Abdeckungsmatrix nach geänderten Tags; Stand zu A-12 |
 
 Der Implementer liest den Stand von `ResponseRun` und passt diese Tabelle an; eine beim Bau entstandene Datei steht vor dem Handoff darin (`BEO-TDS/plan-tabelle-nennt-neue-datei-nicht`).
@@ -119,7 +120,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Die Regel des echten Servers (wann NBCROW, wann ROW) ist aus einer Zeile des Mitschnitts `batch-typen` bekannt (Zeile mit NULL als NBCROW); ob sie für jede Zeile mit einer NULL gilt, ist nicht gemessen. — **Ausgang:** offen bis zur Closure; Liefer-Punkt 1 misst sie.
+- Die Regel des echten Servers (wann NBCROW, wann ROW) war vor dem Slice aus einer Zeile des Mitschnitts `batch-typen` bekannt (Zeile nur aus NULL als NBCROW); ob jede Zeile mit einer NULL NBCROW ist, war offen und ist gemessen: nein, die Regel ist „kürzer als ROW“. — **Ausgang:** offen bis zur Closure; Liefer-Punkt 1 misst sie.
 - Die Referenz (`SqlClient`) liest ROW und NBCROW; ob ein anderer Client NBCROW ablehnt, ist nicht gemessen. — **Ausgang:** offen bis zur Closure.
 - Größe: drei Liefer-Punkte. — **Ausgang:** offen bis zur Closure; Rückführung und Schnitt in §4.
 
