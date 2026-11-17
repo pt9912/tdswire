@@ -2,7 +2,10 @@ package io.github.pt9912.tdswire.testserver
 
 import kotlin.system.exitProcess
 
-/** Präfix der Zeilen des Abschluss-Clients; `tools/heap-abschluss.sh` und `tools/heap-abschluss-tabellen.sh` lesen sie. */
+/**
+ * Präfix der Zeilen des Abschluss-Clients; die Werkzeuge
+ * `tools/heap-abschluss.sh` und `tools/heap-abschluss-tabellen.sh` lesen sie.
+ */
 internal const val ABSCHLUSS_PREFIX = "abschluss:"
 
 private const val TOKEN_COLMETADATA = 0x81
@@ -15,8 +18,11 @@ private const val INT8_BYTES = 8
 private const val INT4_BYTES = 4
 private const val BYTE_MASK = 0xFF
 private const val BYTE_BITS = 8
+private const val HEX_RADIX = 16
 private const val COLUMN_FIXED_BYTES = 7
 private const val DONE_BYTES = 13
+private const val COUNT_BYTES = 2
+private const val USERTYPE_AND_FLAG_BYTES = 6
 private const val DONE_STATUS_AT = 1
 private const val DONE_COMMAND_AT = 3
 private const val DONE_ROWS_AT = 5
@@ -33,7 +39,7 @@ private const val READ_MILLIS = 60_000
 private const val EXIT_FAILED = 1
 private const val STAMP_COLUMNS = 3
 
-/** Ein DONE einer Antwort: Status, Befehlskennung, Zeilenzahl, Wanduhr des Pakets, in dem es vollständig war, und dessen Nummer. */
+/** Ein DONE einer Antwort: Status, Befehlskennung, Zeilenzahl, Wanduhr des vollständigen Pakets und dessen Nummer. */
 internal data class AbschlussDone(val status: Int, val command: Int, val rows: Long, val micros: Long, val packet: Int)
 
 /** Die Zeile eines Ergebnisses, die als letzte gelesen wurde: Werte (nur Ganzzahlen), Wanduhr und Paketnummer. */
@@ -41,7 +47,8 @@ internal data class AbschlussZeile(val values: List<Long>, val micros: Long, val
 
 /**
  * Liest die Tokens der Antwort auf einen SQL_BATCH aus den Paketen, die [feed] nacheinander bekommt: COLMETADATA mit
- * Spalten der Typen `INT8`, `INT4` und `INTN` (MS-TDS 2.2.7.4), ROW und DONE (2.2.7.6); jedes andere Token ist ein Fehler.
+ * Spalten der Typen `INT8`, `INT4` und `INTN` (MS-TDS 2.2.7.4), ROW und DONE (2.2.7.6); jedes andere Token ist ein
+ * Fehler.
  * Ein Token zählt mit der Wanduhr und der Nummer des Pakets, in dem sein letztes Byte ankam: ein Token, das ein Paket
  * überschreitet, gilt erst mit dem folgenden Paket als gelesen. Nicht threadsicher.
  */
@@ -63,7 +70,10 @@ internal class AbschlussAntwort {
     private var buffer = ByteArray(0)
     private var columnSizes: List<Int> = emptyList()
 
-    /** Nimmt die Nutzdaten des nächsten Pakets, empfangen zur Wanduhr [micros], und liest alle Tokens, die nun vollständig sind. */
+    /**
+     * Nimmt die Nutzdaten des nächsten Pakets, empfangen zur Wanduhr [micros], und liest alle Tokens, die nun
+     * vollständig sind.
+     */
     fun feed(payload: ByteArray, micros: Long) {
         packets++
         if (packets == 1) firstPacketBytes = payload.size
@@ -78,7 +88,14 @@ internal class AbschlussAntwort {
     /** `true`, wenn kein Byte unverarbeitet im Puffer liegt. */
     fun complete(): Boolean = buffer.isEmpty()
 
-    private fun u8(at: Int): Int = buffer[at].toInt() and BYTE_MASK
+    private fun need(end: Int) {
+        if (buffer.size < end) throw NotEnough()
+    }
+
+    private fun u8(at: Int): Int {
+        need(at + 1)
+        return buffer[at].toInt() and BYTE_MASK
+    }
 
     private fun u16(at: Int): Int = u8(at) or (u8(at + 1) shl BYTE_BITS)
 
@@ -89,35 +106,39 @@ internal class AbschlussAntwort {
     }
 
     /** Die Länge des Tokens am Anfang des Puffers, wenn es vollständig ist, sonst 0. */
-    private fun token(micros: Long): Int = when (val kind = u8(0)) {
-        TOKEN_COLMETADATA -> metadata()
-        TOKEN_ROW -> row(micros)
-        TOKEN_DONE -> done(micros)
-        else -> error("Token 0x${kind.toString(16)} nicht gelesen")
+    private fun token(micros: Long): Int = try {
+        when (val kind = u8(0)) {
+            TOKEN_COLMETADATA -> metadata()
+            TOKEN_ROW -> row(micros)
+            TOKEN_DONE -> done(micros)
+            else -> error("Token 0x${kind.toString(HEX_RADIX)} nicht gelesen")
+        }
+    } catch (_: NotEnough) {
+        0
     }
 
     private fun metadata(): Int {
-        if (buffer.size < 1 + 2) return 0
         val count = u16(1)
-        var at = 1 + 2
+        var at = 1 + COUNT_BYTES
         val sizes = ArrayList<Int>()
         repeat(count) {
-            if (buffer.size < at + COLUMN_FIXED_BYTES) return 0
-            val type = u8(at + 4 + 2)
+            val type = u8(at + USERTYPE_AND_FLAG_BYTES)
             at += COLUMN_FIXED_BYTES
             when (type) {
                 TYPE_INT8 -> sizes += INT8_BYTES
+
                 TYPE_INT4 -> sizes += INT4_BYTES
+
                 TYPE_INTN -> {
-                    if (buffer.size < at + 1) return 0
+                    u8(at)
                     sizes += 0
                     at += 1
                 }
-                else -> error("Spaltentyp 0x${type.toString(16)} nicht gelesen")
+
+                else -> error("Spaltentyp 0x${type.toString(HEX_RADIX)} nicht gelesen")
             }
-            if (buffer.size < at + 1) return 0
             at += 1 + NAME_UNIT_BYTES * u8(at)
-            if (buffer.size < at) return 0
+            need(at)
         }
         columnSizes = sizes
         rowsPerResult += 0
@@ -128,12 +149,8 @@ internal class AbschlussAntwort {
         var at = 1
         val values = ArrayList<Long>()
         for (size in columnSizes) {
-            var length = size
-            if (size == 0) {
-                if (buffer.size < at + 1) return 0
-                length = u8(at++)
-            }
-            if (buffer.size < at + length) return 0
+            val length = if (size > 0) size else u8(at++)
+            need(at + length)
             values += if (length == 0) 0L else le(at, length)
             at += length
         }
@@ -146,7 +163,7 @@ internal class AbschlussAntwort {
     }
 
     private fun done(micros: Long): Int {
-        if (buffer.size < DONE_BYTES) return 0
+        need(DONE_BYTES)
         dones += AbschlussDone(
             status = u16(DONE_STATUS_AT),
             command = u16(DONE_COMMAND_AT),
@@ -157,6 +174,9 @@ internal class AbschlussAntwort {
         return DONE_BYTES
     }
 }
+
+/** Die Antwort endet mitten in einem Token: der Rest kommt mit dem nächsten Paket. Ohne Stapelspur, kein Fehler. */
+private class NotEnough : RuntimeException(null, null, false, false)
 
 /**
  * Eine Messung des zurückgehaltenen Abschlusses (alle Zeiten in Mikrosekunden): [zeileBisDoneClient] ist der Abstand
@@ -195,7 +215,12 @@ internal data class AbschlussMessung(
  * was die Messung voraussetzt (Zeilenzahl, Zahl der Ergebnisse, `DONE_MORE` genau am ersten Abschluss der Form
  * `folge`, letztes DONE ohne `DONE_MORE`) und wirft sonst.
  */
-internal fun messeAbschluss(client: RohbytesClient, form: AbschlussForm, delayMillis: Long, rows: Long): AbschlussMessung {
+internal fun messeAbschluss(
+    client: RohbytesClient,
+    form: AbschlussForm,
+    delayMillis: Long,
+    rows: Long,
+): AbschlussMessung {
     val answer = AbschlussAntwort()
     val sent = client.batch(
         "SELECT * FROM $ABSCHLUSS_TABLE /*zeilen=$rows,form=${form.schluessel},verzoegerung=$delayMillis*/",
@@ -204,7 +229,8 @@ internal fun messeAbschluss(client: RohbytesClient, form: AbschlussForm, delayMi
     val expectedResults = if (form == AbschlussForm.FOLGE) 2 else 1
     check(answer.complete()) { "Antwort endet mitten in einem Token" }
     check(answer.rowsPerResult.size == expectedResults && answer.dones.size == expectedResults) {
-        "Form ${form.schluessel}: ${answer.rowsPerResult.size} Ergebnisse und ${answer.dones.size} DONE statt $expectedResults"
+        "Form ${form.schluessel}: ${answer.rowsPerResult.size} Ergebnisse und ${answer.dones.size} DONE " +
+            "statt $expectedResults"
     }
     check(answer.rowsPerResult[0].toLong() == rows) { "${answer.rowsPerResult[0]} Zeilen statt $rows" }
     val more = answer.dones.first().status and DONE_MORE != 0
@@ -235,12 +261,20 @@ internal fun messeAbschluss(client: RohbytesClient, form: AbschlussForm, delayMi
     )
 }
 
+/** Alle Verzögerungen einer Form: je Wert der Warmlauf (`wdh 0`) und [repeats] Wiederholungen, eine Zeile je Lauf. */
+private fun messeFolge(client: RohbytesClient, form: AbschlussForm, delays: List<Long>, rows: Long, repeats: Int) {
+    for (delay in delays) {
+        for (repeat in 0..repeats) println(messeAbschluss(client, form, delay, rows).line(repeat))
+    }
+}
+
 /**
  * Der Messclient der Abschluss-Messung (`tools/heap-abschluss.sh`, Image der Stage `lasttestserver`, diese Hauptklasse,
  * ein eigener Container neben dem Server). Umgebung: `ABSCHLUSS_ZIEL` (`host:port`), `ABSCHLUSS_VERZOEGERUNG_MS`
- * (Vorgabe `0,10,100,1000`), `ABSCHLUSS_FORMEN` (Vorgabe `ende,folge`), `ABSCHLUSS_ZEILEN` (Vorgabe 1000), `ABSCHLUSS_WDH`
- * (Vorgabe 5 Wiederholungen nach einem Warmlauf je Form und Verzögerung; der Warmlauf steht als `wdh 0`). Je Lauf eine
- * Zeile `abschluss: lauf …` ([AbschlussMessung.line]); Exit 1 bei jeder verletzten Voraussetzung.
+ * (Vorgabe `0,10,100,1000`), `ABSCHLUSS_FORMEN` (Vorgabe `ende,folge`), `ABSCHLUSS_ZEILEN` (Vorgabe 1000),
+ * `ABSCHLUSS_WDH` (Vorgabe 5 Wiederholungen nach einem Warmlauf je Form und Verzögerung; der Warmlauf steht als
+ * `wdh 0`). Je Lauf eine Zeile `abschluss: lauf …` ([AbschlussMessung.line]); Exit 1 bei jeder verletzten
+ * Voraussetzung.
  */
 fun main() {
     val environment = System.getenv()
@@ -251,15 +285,12 @@ fun main() {
     val repeats = environment["ABSCHLUSS_WDH"]?.toInt() ?: DEFAULT_REPEATS
     println("$ABSCHLUSS_PREFIX kopf ziel=$target zeilen=$rows wdh=$repeats packet_size=$DEFAULT_PACKET")
     try {
-        RohbytesClient(target.substringBeforeLast(':'), target.substringAfterLast(':').toInt(), DEFAULT_PACKET, READ_MILLIS)
-            .use { client ->
-                check(client.login("alice", "secret")) { "Anmeldung abgelehnt" }
-                for (form in forms) {
-                    for (delay in delays) {
-                        for (repeat in 0..repeats) println(messeAbschluss(client, form, delay, rows).line(repeat))
-                    }
-                }
-            }
+        val host = target.substringBeforeLast(':')
+        val port = target.substringAfterLast(':').toInt()
+        RohbytesClient(host, port, DEFAULT_PACKET, READ_MILLIS).use { client ->
+            check(client.login("alice", "secret")) { "Anmeldung abgelehnt" }
+            for (form in forms) messeFolge(client, form, delays, rows, repeats)
+        }
     } catch (e: IllegalStateException) {
         println("$ABSCHLUSS_PREFIX FEHLER ${e.message}")
         exitProcess(EXIT_FAILED)

@@ -116,7 +116,9 @@ internal class HeapStichprobe(
                 collect = { memory.gc() },
                 usedKb = { (runtime.totalMemory() - runtime.freeMemory()) / BYTES_PER_KIB },
                 openStreams = { zaehler.offen.get() },
-                gcMillis = { ManagementFactory.getGarbageCollectorMXBeans().sumOf { it.collectionTime.coerceAtLeast(0L) } },
+                gcMillis = {
+                    ManagementFactory.getGarbageCollectorMXBeans().sumOf { it.collectionTime.coerceAtLeast(0L) }
+                },
             )
         }
     }
@@ -144,7 +146,7 @@ internal enum class AbschlussForm(val schluessel: String) {
     }
 }
 
-/** Die Angaben einer Anfrage an [ABSCHLUSS_TABLE]: Zeilen des ersten Ergebnisses, Form und Verzögerung in Millisekunden. */
+/** Die Angaben einer Anfrage an [ABSCHLUSS_TABLE]: Zeilen des ersten Ergebnisses, Form, Verzögerung in ms. */
 internal data class AbschlussAnfrage(val rows: Long, val form: AbschlussForm, val delayMillis: Long) {
     companion object {
         fun of(angaben: String?): AbschlussAnfrage {
@@ -286,17 +288,18 @@ internal fun heapTabellen(
     zaehler: RueckstauZaehler,
     wartender: Wartender,
     heap: HeapStichprobe,
-): List<SimTable> =
-    rueckstauTabellen(rows, seed, zaehler, wartender, Callback(Warten.SUSPENDIEREND, 0)) +
-        einzeilTabelle(HEAP_TABLE, HEAP_COLUMNS) { heap.read().values() }
+): List<SimTable> {
+    val stand = einzeilTabelle(HEAP_TABLE, HEAP_COLUMNS) { heap.read().values() }
+    return rueckstauTabellen(rows, seed, zaehler, wartender, Callback(Warten.SUSPENDIEREND, 0)) + stand
+}
 
 /**
  * Der Serverprozess der Heap- und Abschluss-Messung (`tools/heap-abschluss.sh`, Image der Stage `lasttestserver`,
  * diese Hauptklasse). Umgebung: `HEAPABSCHLUSS_AUFBAU` (`eigen`: [HeapAbschlussBackend] über [RueckstauBackend],
  * `sim`: Simulations-Backend, [heapTabellen]; Vorgabe `eigen`), `HEAPABSCHLUSS_ZEILEN` (Zeilen je Export, Vorgabe
- * 10 000 000), `HEAPABSCHLUSS_SEED`, `HEAPABSCHLUSS_INTERVALL_MS` (Abstand der Stichproben, Vorgabe 500 wie im Spike). Ein
- * Thread nimmt alle Stichproben (Bereinigung, dann benutzter Heap); die erste Zeile nennt die Einstellung, den Heap, die
- * Prozessoren und die Speicherbereiniger der JVM.
+ * 10 000 000), `HEAPABSCHLUSS_SEED`, `HEAPABSCHLUSS_INTERVALL_MS` (Abstand der Stichproben, Vorgabe 500 wie im
+ * Spike). Ein Thread nimmt alle Stichproben (Bereinigung, dann benutzter Heap); die erste Zeile nennt die
+ * Einstellung, den Heap, die Prozessoren und die Speicherbereiniger der JVM.
  */
 fun main() {
     val environment = System.getenv()

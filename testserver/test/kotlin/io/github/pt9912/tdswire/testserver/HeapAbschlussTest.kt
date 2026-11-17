@@ -39,7 +39,11 @@ internal class HeapAbschlussTest : TempFilesTest() {
      * Eine Stichprobenreihe: der n-te Aufruf von `sample()` sieht `used[n]` und `open[n]`; `gc` ist die Zeit der
      * Speicherbereinigungen, die das Fenster liest (der letzte Wert zählt).
      */
-    private fun stichprobe(used: List<Long>, open: List<Int>, gc: MutableList<Long> = mutableListOf(0L)): HeapStichprobe {
+    private fun stichprobe(
+        used: List<Long>,
+        open: List<Int>,
+        gc: MutableList<Long> = mutableListOf(0L),
+    ): HeapStichprobe {
         var index = -1
         return HeapStichprobe(
             collect = { index++ },
@@ -51,7 +55,8 @@ internal class HeapAbschlussTest : TempFilesTest() {
 
     /**
      * Das Fenster zählt nur Stichproben mit offenem Strom für Minimum, Median, 95. Rang und Maximum (Rang aufgerundet,
-     * Median `sortiert[n / 2]`); eine Stichprobe ohne offenen Strom zählt getrennt; das Lesen beginnt ein neues Fenster.
+     * Median `sortiert[n / 2]`); eine Stichprobe ohne offenen Strom zählt getrennt; das Lesen beginnt ein neues
+     * Fenster.
      */
     @Test
     fun `das Fenster zaehlt nur Stichproben mit offenem Strom`() {
@@ -101,7 +106,8 @@ internal class HeapAbschlussTest : TempFilesTest() {
 
     private fun row(vararg values: Long): ByteArray = byteArrayOf(0xD1.toByte()) + values.flatMap { le(it, 8).toList() }
 
-    private fun done(status: Int): ByteArray = byteArrayOf(0xFD.toByte()) + le(status.toLong(), 2) + ByteArray(2) + ByteArray(8)
+    private fun done(status: Int): ByteArray =
+        byteArrayOf(0xFD.toByte()) + le(status.toLong(), 2) + ByteArray(2) + ByteArray(8)
 
     /**
      * Ein Token zählt mit dem Paket, in dem sein letztes Byte ankam: die zweite Zeile beginnt im ersten Paket und endet
@@ -109,7 +115,8 @@ internal class HeapAbschlussTest : TempFilesTest() {
      */
     @Test
     fun `ein Token zaehlt mit dem Paket seines letzten Bytes`() {
-        val all = metadata("Nr", "Wert") + row(1, 2) + row(3, 4) + done(0x11) + metadata("Nr", "Wert") + row(5, 6) + done(0x10)
+        val columns = metadata("Nr", "Wert")
+        val all = columns + row(1, 2) + row(3, 4) + done(0x11) + columns + row(5, 6) + done(0x10)
         val splitAt = metadata("Nr", "Wert").size + row(1, 2).size + 5
         val answer = AbschlussAntwort()
         answer.feed(all.copyOfRange(0, splitAt), 1_000L)
@@ -137,7 +144,8 @@ internal class HeapAbschlussTest : TempFilesTest() {
     @Test
     fun `die Angaben der Abschluss-Anfrage werden gelesen`() {
         assertEquals(AbschlussAnfrage(1000, AbschlussForm.ENDE, 0), AbschlussAnfrage.of(null))
-        assertEquals(AbschlussAnfrage(7, AbschlussForm.FOLGE, 100), AbschlussAnfrage.of("zeilen=7,form=folge,verzoegerung=100"))
+        val given = AbschlussAnfrage.of("zeilen=7,form=folge,verzoegerung=100")
+        assertEquals(AbschlussAnfrage(7, AbschlussForm.FOLGE, 100), given)
         assertFailsWith<IllegalStateException> { AbschlussAnfrage.of("form=spaeter") }
         assertFailsWith<IllegalArgumentException> { AbschlussAnfrage.of("zeilen=0") }
     }
@@ -156,7 +164,8 @@ internal class HeapAbschlussTest : TempFilesTest() {
         return running.server.port
     }
 
-    private fun messe(client: RohbytesClient, form: AbschlussForm, delay: Long) = messeAbschluss(client, form, delay, ROWS)
+    private fun messe(client: RohbytesClient, form: AbschlussForm, delay: Long) =
+        messeAbschluss(client, form, delay, ROWS)
 
     /**
      * Gegen einen Server im Prozess: die Form `folge` setzt `DONE_MORE` am ersten Abschluss, die Form `ende` nicht; das
@@ -176,7 +185,8 @@ internal class HeapAbschlussTest : TempFilesTest() {
                 assertTrue(delayed.zeileEmitBisDone >= DELAY_MS * MICROS_PER_MILLI, "${form.schluessel}: $delayed")
                 assertTrue(delayed.naechstesBisDone in 0 until delayed.zeileEmitBisDone, "${form.schluessel}: $delayed")
                 assertTrue(delayed.naechstesBisDone < DELAY_MS * MICROS_PER_MILLI / 2, "${form.schluessel}: $delayed")
-                assertTrue(prompt.zeileEmitBisDone < delayed.zeileEmitBisDone, "${form.schluessel}: $prompt gegen $delayed")
+                val later = prompt.zeileEmitBisDone < delayed.zeileEmitBisDone
+                assertTrue(later, "${form.schluessel}: $prompt gegen $delayed")
             }
         }
     }
