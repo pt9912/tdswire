@@ -58,6 +58,32 @@ Rechnungen sind Verhältnisse der Mediane der Tabelle (B gegen C, in Prozent der
 - **Senke:** mit gegen ohne Senke liegt bei B zwischen −5,5 % (Stufe 1) und +7,65 % (Stufe 16) und wechselt über die Stufen das Vorzeichen (+0,1 % bei Stufe 8, −2,7 % bei Stufe 64); bei C liegt mit Senke in allen vier Stufen unter ohne Senke (−1,4 %, −2,7 %, −8,3 %, −2,0 %; Zeilen/s je Stufe). Ein Einfluss der Telemetrie ist damit weder belegt noch ausgeschlossen.
 - **Gegen das Protokoll vom Vormittag:** die C-Zellen dieses Protokolls liegen bei Stufe 1 mit Senke bei 277 085 Zeilen/s, im Protokoll [performance-durchsatz-2026-11-17](performance-durchsatz-2026-11-17.md) bei 240 963 (damals neben anderen Läufen); beide sind Einzelmessungen unter verschiedener Fremdlast und nicht zu vergleichen.
 
+## Wiederholung auf dem End-Stand
+
+**Messstand.** Die Zahlen oben gelten für Commit `9f236f41`. Danach änderte der Commit `3d722337` `BulkDispatch.statement` und `BulkDispatch.probe` (Ausnahmen von `bulkTarget` und `bulkProbe` werden gefangen), also den Weg jedes `sql_batch` in B und C. Diese Wiederholung läuft auf Commit `358fcec2` (End-Stand, Arbeitsbaum sauber; die Kopfzeilen der Rohzeilen nennen ihn ohne `+geaendert`): Stufe 1, B und C, mit Senke, Phase `import`, 1 000 000 Zeilen, 5 Läufe nach Warmlauf, abwechselnd B, C, B, C in zwei Versuchen innerhalb von 3 Minuten (2026-11-17 12:28 bis 12:31 UTC, derselbe Host, Aufrufe wie oben). Rohzeilen: Abschnitte `endstand-stufe1-…` am Ende der [Rohzeilen](performance-import-b-2026-11-17-rohzeilen.txt); Tabellen aus `make lasttest-tabellen` je Versuch. Die Zahlen des Hauptlaufs bleiben mit ihrem Messstand stehen.
+
+**Fremdlast.** Die Probe (außerhalb des Repos, nicht reproduzierbar) nennt in dieser Wiederholung bei 9 von 11 Proben mehr als 300 % fremder CPU (je Zelle 1 bis 3 von 2 bis 3, Höchstwert 461 %), Last 1 min von 4,35 bis 6,57; die Werkzeugregel kennzeichnet drei der vier Zellen als „gestört“. Der Host war damit weniger ruhig als im Hauptlauf (dort höchstens eine Probe über 300 % je Zelle, Last 1 min bei Stufe 1 von 2,96 bis 3,48). Die Zeilen sind Größenordnungen.
+
+Versuch 1:
+
+| Stufe | Aufbau | Senke | Median ms | Min ms | Max ms | Zeilen/s gesamt | je Sitzung | Byte/Zeile | Streuung | Last 1 min vor/nach | Vermerk | Fremdlast, Probe außerhalb des Repos (Proben > 300 %, Höchstwert) | Versuch |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | B | mit | 3365 | 3116 | 3989 | 297176 | 297176 | 336 | ok | 4.84 / 4.35 | - | 1 / 322 % | 1 von 1 |
+| 1 | C | mit | 4379 | 4262 | 4648 | 228362 | 228362 | 336 | ok | 4.48 / 4.62 | - | 2 / 348 % | 1 von 1, gestört |
+
+Versuch 2:
+
+| Stufe | Aufbau | Senke | Median ms | Min ms | Max ms | Zeilen/s gesamt | je Sitzung | Byte/Zeile | Streuung | Last 1 min vor/nach | Vermerk | Fremdlast, Probe außerhalb des Repos (Proben > 300 %, Höchstwert) | Versuch |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | B | mit | 3867 | 3638 | 4495 | 258598 | 258598 | 336 | ok | 4.52 / 5.25 | - | 3 / 359 % | 1 von 1, gestört |
+| 1 | C | mit | 4936 | 4617 | 5343 | 202593 | 202593 | 336 | ok | 5.55 / 6.57 | - | 3 / 461 % | 1 von 1, gestört |
+
+**Lesart (nur so weit die Zeilen tragen).**
+
+- B liegt in beiden Versuchen über C: 297 176 gegen 228 362 Zeilen/s (+30,1 %) und 258 598 gegen 202 593 (+27,6 %); im Hauptlauf 315 258 gegen 277 085 (+13,8 %). Die Bereiche Minimum bis Maximum von B und C überlappen in keinem Versuch.
+- Alle vier Mediane liegen unter denen des Hauptlaufs: B bei −5,7 % (Versuch 1) und −18,0 % (Versuch 2), C bei −17,6 % und −26,9 % (Zeilen/s gegen die Zellen mit Senke des Hauptlaufs). Der Abstand zwischen den beiden Versuchen (B −13,0 %, C −11,3 % in den Zeilen/s) ist von der Größe des Abstands zum Hauptlauf; bei dieser Fremdlast **trägt die Wiederholung weder eine Aussage über Kosten des Schutzes in `BulkDispatch` noch den Ausschluss solcher Kosten**. Gleich geblieben ist die Größenordnung (200 000 bis 300 000 Zeilen/s bei einer Sitzung) und die Reihenfolge B vor C.
+- Nicht gemessen: der Anteil des Schutzes (ein Lauf mit und einer ohne Schutz auf ruhigem Host, mehrere Wiederholungen).
+
 ## Nicht belegt
 
 - Ein Grenzwert, die Streuung über mehrere Tage und Hosts, ein ruhiger Host: die Zellen laufen auf einem Host mit Werkzeugen anderer Prozesse (Probe je Zelle oben, außerhalb des Repos).
