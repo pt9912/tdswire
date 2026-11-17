@@ -9,3 +9,5 @@
 **Steering-Loop-Eintrag:** Der Herkunfts-Anker lautet `seit slice-antwort-tokens-an-messung-angleichen` (die Welle-Closure ist nicht abgewartet; der Lese-Schritt ist durch den Nutzerentscheid vorgezogen). Die Anker-Paarung sucht die Ziele ab Repo-Wurzel und findet den Anker in allen drei Dateien. Grenze: der Sensor erzwingt den Anker nur für deklarierte Regeln.
 
 **Wiederauftreten (slice-release-dateien-bauen):** Verifikation F-2: `08fba8d3` ändert Skripte nach dem Re-Review ohne dritten Review; Vermerk in §7. Die Regel bleibt (der Verifier fing den Fall, Retirement-Check: wieder aufgetreten).
+
+**Lese-Schritt welle-referenzabgleich-release (2026-11-17):** 17 Dateien, davon Beiträge aus Slices dieser Welle (Liste in `welle-referenzabgleich-release-results.md` §Steering-Loop-Einträge). Retirement-Check: die Klasse ist in Slices dieser Welle aufgetreten, die Regel bleibt, keine Lockerung; die Closure macht keine Aussage über die Wirkung der Regel. Ob ein Sensor über die Prosa hinaus entsteht, entscheidet der Nutzer.

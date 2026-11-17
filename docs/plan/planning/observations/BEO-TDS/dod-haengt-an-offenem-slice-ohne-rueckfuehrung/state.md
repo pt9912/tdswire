@@ -8,3 +8,5 @@
 
 
 **Lese-Schritt slice-qa-performance-durchsatz-sitzungen (2026-11-17):** 4× gelesen (vierte Datei: der DoD-Punkt „Import in Aufbau B“ hing an einer Fläche, die ein nicht gebauter Slice liefert; der Nutzer teilte die DoD). Nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung). Die Closure ändert weder Regel noch Gate. Der Stand `offen` bleibt.
+
+**Lese-Schritt welle-referenzabgleich-release (2026-11-17):** 4× gelesen, über der Schwelle, nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung), siehe `welle-referenzabgleich-release-results.md` §Steering-Loop-Einträge. Die Closure ändert weder Regel noch Gate. Der Stand `offen` bleibt.
