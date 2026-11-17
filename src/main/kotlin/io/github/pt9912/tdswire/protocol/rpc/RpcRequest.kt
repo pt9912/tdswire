@@ -143,12 +143,26 @@ internal sealed interface RpcCall {
     data class UnknownProcedure(val procId: Int) : RpcCall
 }
 
+/** Ein Aufruf einer RPC-Nachricht: die Optionsflags unverändert und die erkannte Form. */
+internal class RpcInvocation(val optionFlags: Int, val call: RpcCall) {
+    override fun toString(): String = "RpcInvocation(optionFlags=0x${Integer.toHexString(optionFlags)}, call=$call)"
+}
+
 /**
  * Das Ergebnis des RPC-Parsers: Felder und Form, keine Entscheidung. `headerTypes` sind die
- * Kennungen der ALL_HEADERS-Header, `optionFlags` die Optionsflags unverändert; der Parser deutet
- * keines ihrer Bits (die Bitnamen aus MS-TDS sind weder gemessen noch in ADR-0005 belegt).
+ * Kennungen der ALL_HEADERS-Header, `optionFlags` die Optionsflags des ersten Aufrufs unverändert; der Parser deutet
+ * keines ihrer Bits (die Bitnamen aus MS-TDS sind weder gemessen noch in ADR-0005 belegt). `call` ist der erste
+ * Aufruf der Nachricht, `following` die weiteren in der Reihenfolge der Nachricht (leer bei einem Aufruf).
  */
-internal class RpcRequest(val headerTypes: List<Int>, val optionFlags: Int, val call: RpcCall) {
+internal class RpcRequest(
+    val headerTypes: List<Int>,
+    val optionFlags: Int,
+    val call: RpcCall,
+    val following: List<RpcInvocation> = emptyList(),
+) {
+    /** Alle Aufrufe der Nachricht in ihrer Reihenfolge. */
+    val invocations: List<RpcInvocation> get() = listOf(RpcInvocation(optionFlags, call)) + following
+
     override fun toString(): String = "RpcRequest(headerTypes=$headerTypes, optionFlags=0x" +
-        "${Integer.toHexString(optionFlags)}, call=$call)"
+        "${Integer.toHexString(optionFlags)}, call=$call, following=$following)"
 }

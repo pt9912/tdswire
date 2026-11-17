@@ -77,7 +77,8 @@ internal fun errorAnswerTail(form: ResponseForm, last: ServerMessage, resultOpen
  * Zustand eines Laufs des [ResponseSequencer]: die Spalten des offenen Ergebnisses (`null` ohne
  * offenes Ergebnis), der zurückgehaltene Abschluss, die gesammelten RPC-Ausgaben und der
  * Ausgang. Ein Lauf gehört einer Coroutine und ist nicht threadsicher. Die [form] bestimmt die Art der
- * Abschlüsse und ob `ReturnStatus` und `OutputParameter` abgebildet werden.
+ * Abschlüsse und ob `ReturnStatus` und `OutputParameter` abgebildet werden. [more] sagt in der Form RPC, dass ein
+ * weiterer RPC derselben Nachricht folgt ([RpcTrailer]); ein Fehler, der die Verbindung schließt, nimmt es zurück.
  */
 internal class ResponseRun(
     private val errors: ErrorMapping,
@@ -85,6 +86,7 @@ internal class ResponseRun(
     private val form: ResponseForm = ResponseForm.BATCH,
     private val outputs: RpcOutputs = RpcOutputs(CallLayout.PROCEDURE, emptyList()),
     private val transaction: SessionTransaction = SessionTransaction(),
+    more: Boolean = false,
 ) {
     private var outcome: SequenceOutcome? = null
     private var columns: List<ColumnDef>? = null
@@ -95,7 +97,7 @@ internal class ResponseRun(
     /** Die Art des offenen Ergebnisses; bestimmt die Kennung seines Abschlusses und eines Fehlers in ihm. */
     private var resultKind = StatementKind.UNKNOWN
     private var held: DoneToken? = null
-    private val trailer = RpcTrailer(outputs) { write(it) }
+    private val trailer = RpcTrailer(outputs, more) { write(it) }
 
     /** Wahr, sobald ein Ergebnis begonnen oder eine Anweisung abgeschlossen ist (RPC: Fehlerbit am DONEINPROC). */
     private var begun = false
@@ -262,6 +264,7 @@ internal class ResponseRun(
         columns = null
         resultKind = StatementKind.UNKNOWN
         trailer.record((mapped.followUp ?: mapped.message).number, continued = false)
+        if (mapped.closesConnection) trailer.endsMessage()
         val written = mapped.errors.all { write(it) } && (!terminated || write(BULK_TERMINATED)) && when (form) {
             ResponseForm.BATCH -> write(failedDone(form, resultOpen, resultCommand))
 

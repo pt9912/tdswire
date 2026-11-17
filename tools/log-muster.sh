@@ -16,6 +16,12 @@ log_ohne_ereignis() {
   ! grep -Eq "\"event\":\"($1)\""
 }
 
+# log_ohne_fehlercode <error_code>: keine Zeile `request_failed` mit diesem Code. Auf einem leeren Log wahr; die Positivprobe
+# (login_accepted) steht in den Laufskripten.
+log_ohne_fehlercode() {
+  ! grep -F "\"event\":\"request_failed\"" | grep -qF -- "\"error_code\":\"$1\""
+}
+
 # log_ohne_text <ausdruck>: keine Zeile passt auf den erweiterten regulaeren Ausdruck.
 log_ohne_text() {
   ! grep -Eq -- "$1"

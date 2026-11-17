@@ -1,0 +1,2 @@
+**Vorgang:** [slice-mehrfach-rpc-unterstuetzen](../../../../done/slice-mehrfach-rpc-unterstuetzen.md)
+**Fund:** [Re-Review](../../../../../../reviews/2026-11-17-13ef2e4e-slice-mehrfach-rpc-unterstuetzen-re-review.md) N-3 (LOW): `docs/plan/spec-abdeckung.md` stand hinter den neuen Tests (`RpcSequenceAbortTest`, zwei Fälle in `RpcSequenceDispatchTest`); neu erzeugt in der Closure (`make spec-abdeckung`, zusammen mit den Tests von `slice-antwortform-nbcrow` nach dem Merge von `main`). Der Lauf kam wie vorgesehen erst in der Closure.

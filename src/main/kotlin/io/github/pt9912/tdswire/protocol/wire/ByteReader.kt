@@ -23,6 +23,13 @@ internal class ByteReader(private val bytes: ByteArray) {
         return bytes[position++].toInt() and BYTE_MASK
     }
 
+    /** Das nächste Byte, ohne die Position zu ändern; am Ende der Nachricht [ProtocolFailure.TRUNCATED]. */
+    val nextByte: Int
+        get() {
+            need(1)
+            return bytes[position].toInt() and BYTE_MASK
+        }
+
     fun u16Le(): Int = u8() or (u8() shl BYTE_BITS)
 
     fun u16Be(): Int = (u8() shl BYTE_BITS) or u8()
