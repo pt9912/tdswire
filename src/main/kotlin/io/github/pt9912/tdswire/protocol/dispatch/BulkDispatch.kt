@@ -15,6 +15,7 @@ import io.github.pt9912.tdswire.protocol.response.ResponseForm
 import io.github.pt9912.tdswire.protocol.wire.ProtocolError
 import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
 import io.github.pt9912.tdswire.transport.framing.TdsMessage
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
@@ -66,16 +67,18 @@ internal class BulkDispatch(backend: QueryBackend) {
     fun statement(text: String): QueryBackend? {
         target = null
         awaiting = false
-        val result = loading?.bulkTarget(text) ?: return null
-        return when (result) {
-            is BulkTargetResult.Ready -> {
-                target = result.target
-                awaiting = true
-                Fixed(null)
-            }
+        val outcome = guarded { loading?.bulkTarget(text) }
+        return outcome.exceptionOrNull()?.let { Raising(it) } ?: outcome.getOrNull()?.let(::targetAnswer)
+    }
 
-            is BulkTargetResult.Rejected -> Fixed(QueryEvent.Failure(result.code, result.message))
+    private fun targetAnswer(result: BulkTargetResult): QueryBackend = when (result) {
+        is BulkTargetResult.Ready -> {
+            target = result.target
+            awaiting = true
+            Fixed(null)
         }
+
+        is BulkTargetResult.Rejected -> Fixed(QueryEvent.Failure(result.code, result.message))
     }
 
     /** Der Ausgang von [probe]: die Spalten der Zieltabelle, aus denen die Antwort entsteht, oder die Ablehnung. */
@@ -90,12 +93,15 @@ internal class BulkDispatch(backend: QueryBackend) {
      * das Ziel (die Probe ist kein `INSERT BULK`) und der Ausgang sagt, wie sie beantwortet wird; sonst `null`.
      */
     fun probe(text: String): Probe? {
-        val result = loading?.bulkProbe(text) ?: return null
-        clear()
-        return when (result) {
-            is BulkProbeResult.Ready -> Probe.Columns(result.columns)
-            is BulkProbeResult.Rejected -> Probe.Rejected(Fixed(QueryEvent.Failure(result.code, result.message)))
-        }
+        val outcome = guarded { loading?.bulkProbe(text) }
+        val result = outcome.getOrNull()
+        if (result != null || outcome.isFailure) clear()
+        return outcome.exceptionOrNull()?.let { Probe.Rejected(Raising(it)) } ?: result?.let(::probeAnswer)
+    }
+
+    private fun probeAnswer(result: BulkProbeResult): Probe = when (result) {
+        is BulkProbeResult.Ready -> Probe.Columns(result.columns)
+        is BulkProbeResult.Rejected -> Probe.Rejected(Fixed(QueryEvent.Failure(result.code, result.message)))
     }
 
     /** Ein RPC oder eine andere Anfrage beendet das Massenladen. */
@@ -149,6 +155,20 @@ internal class BulkDispatch(backend: QueryBackend) {
     }
 
     private class Fixed(event: QueryEvent?) : QueryBackend by Loading({ event })
+
+    /**
+     * Ein Backend, dessen [execute] die Ausnahme [cause] einer Funktion von [BulkLoadingBackend] wirft: sie erreicht
+     * den Sequenzierer wie die Ausnahme von `QueryBackend.execute` und endet mit `TDS_INTERNAL_ERROR` (`SPEC-048`).
+     */
+    private class Raising(private val cause: Throwable) : QueryBackend {
+        override suspend fun execute(request: QueryRequest): QueryExecution = throw cause
+
+        override suspend fun cancel(sessionId: String, requestId: String) = Unit
+    }
+
+    /** Ruft [block]; jede Ausnahme außer der Abbruchausnahme der Coroutine ist das Ergebnis (wie im Sequenzierer). */
+    private inline fun <T> guarded(block: () -> T): Result<T> =
+        runCatching(block).onFailure { if (it is CancellationException) throw it }
 
     private companion object {
         /** Eine Nachricht 0x07 ohne vorangehendes `INSERT BULK` oder an einem Backend ohne Massenladen. */

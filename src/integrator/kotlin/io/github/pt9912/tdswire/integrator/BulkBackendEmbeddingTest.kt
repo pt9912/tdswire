@@ -43,11 +43,7 @@ private const val UNKNOWN_OBJECT_NUMBER = 208
 private const val LIMIT_BYTES = 65535
 private const val MANY_ROWS = 3000
 private const val INTERNAL_ERROR_NUMBER = 50007
-private val EXPECTED_OBSERVATION = listOf(
-    "geschlossen ohne Antwort",
-    "geschlossen ohne Antwort",
-    "Fehler [$INTERNAL_ERROR_NUMBER]",
-)
+private val EXPECTED_OBSERVATION = List(3) { "Fehler [$INTERNAL_ERROR_NUMBER]" }
 private const val FIRST_ROW = "d10801"
 private const val SECOND_ROW = "d10802"
 private const val DONE_HEX_CHARS = 26
@@ -383,14 +379,14 @@ class BulkBackendEmbeddingTest {
     }
 
     /**
-     * Wirft eine der drei Funktionen des Backends (Verstoß des Autors gegen die Zusage), hält dieser Test den
-     * gemessenen Ist-Zustand je Funktion fest ([EXPECTED_OBSERVATION]); danach nimmt der Server wieder eine
-     * Verbindung an.
+     * Wirft eine der drei Funktionen des Backends (Verstoß des Autors gegen die Zusage), endet die Anfrage mit
+     * `TDS_INTERNAL_ERROR` (50007, [EXPECTED_OBSERVATION]); der Server nimmt danach wieder eine Verbindung an.
+     * Wächter: eine Ausnahme in `bulkProbe` oder `bulkTarget` außerhalb des Schutzes von `execute`.
      *
      * @spec SPEC-059
      */
     @Test
-    fun eineAusnahmeInDenFunktionenDesBackendsIstImIstZustandFestgehalten() {
+    fun eineAusnahmeInDenFunktionenDesBackendsIstTdsInternalError() {
         val backend = BulkBackend()
         val server = start(backend)
         val seen = listOf(

@@ -26,9 +26,9 @@ import io.github.pt9912.tdswire.domain.ResultColumn
  * - **Fehler.** Ein Fehler des Backends erreicht den Client als `TDS_BACKEND_ERROR` (Nummer 50004), wenn [load] ihn als
  *   [QueryEvent.Failure] mit diesem Code meldet; die Verbindung bleibt offen.
  * - **Keine Transaktion.** Mehrere Nachrichten sind keine Transaktion; die Bibliothek nimmt nichts zurück.
- * - **Eine Ausnahme der Funktionen** verletzt die Zusage und ist im Ist-Zustand gemessen (Einbettungstest): wirft
- *   [bulkProbe] oder [bulkTarget], schließt der Server die Verbindung ohne Antwort; wirft [load], endet die Anfrage mit
- *   `TDS_INTERNAL_ERROR` (50007). Der Server bleibt in beiden Fällen verfügbar.
+ * - **Eine Ausnahme** in [bulkProbe], [bulkTarget] oder [load] endet wie die Ausnahme von [QueryBackend.execute] mit
+ *   `TDS_INTERNAL_ERROR` (50007, `SPEC-048`); der Text der Ausnahme erreicht den Client nicht, der Server bleibt
+ *   verfügbar.
  */
 public interface BulkLoadingBackend {
     /**
