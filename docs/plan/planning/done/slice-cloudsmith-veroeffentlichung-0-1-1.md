@@ -176,7 +176,7 @@ Geschlossen 2026-11-15 (Planner, Slice-Closure ohne Welle). Geprüfter Stand: Zw
 
 **Register.** Fortgeschrieben, kein Zähler gesetzt: `BEO-TDS/fortschreibung-laesst-zweite-fundstelle-stehen` und `BEO-TDS/aussagen-ueber-messung-hinaus` um je `evidence/slice-cloudsmith-veroeffentlichung-0-1-1.md` ergänzt (Review 1: `harness/README.md` sagte „nie gelaufen“, nachdem `releasing.md` gehoben war; Review 2, 3 und 5, V1: Kommentar, Snippet-Reichweite, „Stunden später“ und Versuchszahl breiter als die Messung); neu `BEO-TDS/dod-verlangt-messung-mit-geheimnis-des-nutzers` (1×). Gesichtet, kein neues Auftreten: `nachweis-von-der-falschen-seite-der-grenze` (dieser Slice liefert die Gegenseite zum Dummy-Beleg, mit der Lücke des Token-Konsums), `einmal-rot-ohne-gesicherte-ausgabe` (Ausgaben gesichert), `dod-nennt-nutzerentscheidung-als-lieferinhalt` (Bestätigung und Tag-Push standen im Start-Trigger), `lizenzhinweise-der-bibliotheken-rechtsfrage`.
 
-**Folge-Slice:** keiner (Entscheidung des Nutzers; die offenen Punkte tragen Nutzer oder die nächste Veröffentlichung). Die Welle [welle-referenzabgleich-release](../welle-referenzabgleich-release.md) wurde nur gelesen, nicht geschlossen.
+**Folge-Slice:** keiner (Entscheidung des Nutzers; die offenen Punkte tragen Nutzer oder die nächste Veröffentlichung). Die Welle [welle-referenzabgleich-release](welle-referenzabgleich-release.md) wurde nur gelesen, nicht geschlossen.
 
 **Lerneintrag (Steering Loop).**
 

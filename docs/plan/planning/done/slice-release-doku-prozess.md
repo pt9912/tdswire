@@ -155,7 +155,7 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 - **Folge-Slices:** keine neuen. Träger: [slice-release-entscheidungen](../done/slice-release-entscheidungen.md) (Entscheidungen, Wächter-Form; trägt auch das Risiko, dass das Release-Artefakt im Bau nur geprüft, nicht abgelegt wird).
 - **Risiken aus §6:** je ein Ausgang, siehe §6 (neun Risiken: eines eingetreten und behoben, zwei entfallen, sechs weiter offen mit Träger oder benannter Grenze).
 - **Offene Entscheidungen beim Nutzer:** Entscheidungen von [slice-release-entscheidungen](../done/slice-release-entscheidungen.md); Sensor Doku-Schlüsselliste gegen `ServerConfig`; Sensor für die Menge der öffentlichen Klassen und Stand von `Principal`; Werkzeug-Target für den Wächter; Lizenzhinweise und Dateirechte.
-- **Drei Paarungen:** Das Repo führt Wellen; die Paarungen prüft die Closure von [welle-referenzabgleich-release](../welle-referenzabgleich-release.md). Anker ↔ Folge-Slice: kein Anker gesetzt; der Folge-Slice existiert als Datei in `open/`. Register ↔ Closure-Notiz: getragen, alle sechs genannten Kennungen existieren als Verzeichnis mit nicht leerem `evidence/`.
+- **Drei Paarungen:** Das Repo führt Wellen; die Paarungen prüft die Closure von [welle-referenzabgleich-release](welle-referenzabgleich-release.md). Anker ↔ Folge-Slice: kein Anker gesetzt; der Folge-Slice existiert als Datei in `open/`. Register ↔ Closure-Notiz: getragen, alle sechs genannten Kennungen existieren als Verzeichnis mit nicht leerem `evidence/`.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

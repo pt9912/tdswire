@@ -17,3 +17,5 @@
 
 
 **Wiederauftreten (slice-qa-performance-rueckstau):** Review F-10 und Verifikation F-1: eine Tabellenzeile des Referenz-Workloads und die Zahl der Mutationen im Protokoll blieben nach der Fortschreibung stehen; Reviewer und Verifier fingen es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
+
+**Lese-Schritt welle-referenzabgleich-release (2026-11-17):** 51 Dateien, davon Beiträge aus Slices dieser Welle (Liste in `welle-referenzabgleich-release-results.md` §Steering-Loop-Einträge). Retirement-Check: die Klasse ist in Slices dieser Welle aufgetreten, die Regel bleibt, keine Lockerung; die Closure macht keine Aussage über die Wirkung der Regel. Ob ein Sensor über die Prosa hinaus entsteht, entscheidet der Nutzer.

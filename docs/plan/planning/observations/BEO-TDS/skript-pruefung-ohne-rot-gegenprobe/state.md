@@ -4,3 +4,5 @@
 
 
 **Wiederauftreten (slice-qa-performance-rueckstau):** Review F-6 und Re-Review N-1: ein Messwerkzeug ohne Selbsttest, dann zwei Wächteraufrufe ohne Gegenprobe. Mit diesem Auftreten 3 Dateien in `evidence/`, die Schwelle ist erreicht; Stand bleibt `offen`, Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung), die Closure ändert weder Regel noch Gate.
+
+**Lese-Schritt welle-referenzabgleich-release (2026-11-17):** 3× gelesen, über der Schwelle, nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung), siehe `welle-referenzabgleich-release-results.md` §Steering-Loop-Einträge. Die Closure ändert weder Regel noch Gate. Der Stand `offen` bleibt.
