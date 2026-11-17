@@ -1,1 +1,3 @@
 **Stand:** offen — kein Träger-Slice für die Backend-Seite, Entscheidung beim Nutzer (Matrix Lücke 16). Träger-Vorschlag des Planners (Setzung, zur Bestätigung durch den Nutzer): ein eigener Folge-Slice „Backend liefert mehrere Anweisungen je Text und Ausgabewerte“ (ohne Kennung, nicht angelegt); der Live-Lauf (Schritt `mehrteilig`, Ausnahme A-2) ist sein Sensor, die Ausnahme-Regel fällt mit dem Bau weg. Weder Slice angelegt noch Slice geändert.
+
+**Träger (2026-11-17):** Träger: [slice-simulation-mehrere-anweisungen-und-ausgabewert](../../../open/slice-simulation-mehrere-anweisungen-und-ausgabewert.md) (A-2 und Rest von A-16; `open/`, nicht gestartet, wartet auf die Entscheidung des Nutzers „Code angleichen / Zielbild anpassen“).
