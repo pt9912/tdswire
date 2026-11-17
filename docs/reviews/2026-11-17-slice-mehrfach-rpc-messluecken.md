@@ -80,7 +80,7 @@ Die von Implementer genannten ohne rote Mutation (Zahlen 1024 und 1025, Szenario
 | `docs/messungen/referenzabgleich.md` | geprüft, Befund F-2, F-6 |
 | `spec/spezifikation.md` (`SPEC-030`, Änderungsprotokoll) | geprüft, Befunde F-1, F-2 |
 | `docs/plan/kompatibilitaetsmatrix.md` | geprüft, ohne Befund (Widerspruch benannt, Zitate unverändert, `make matrix-zitate` nicht verlangt, weil keine Zitate geändert) |
-| `docs/plan/planning/in-progress/slice-mehrfach-rpc-messluecken.md` | geprüft, ohne Befund |
+| `docs/plan/planning/done/slice-mehrfach-rpc-messluecken.md` | geprüft, ohne Befund |
 | `docs/plan/adr/` | geprüft, ohne Befund (im Diff unberührt, `AGENTS.md` §3.5) |
 | `docs/user/`, KDoc `RpcParser`, `RequestLoop` | geprüft, Hinweis F-8 |
 | `tools/mk/vergleichslauf-d.mk`, `harness/README.md`, `tools/stempel`, `docs/plan/spec-abdeckung.md` | geprüft, ohne Befund |
