@@ -205,6 +205,8 @@ public class RueckstauTests
         var nach = Zahl("RS_NACH_MS", 1500);
         var sql = "SELECT * FROM ref_zeilen" + Angaben(zeilen, "suspendierend", 0, 1);
         var schnell = n - langsam;
+        var frist = Umg("RS_ERWARTE_FRIST", "0") == "1";
+        var fristEnde = new string[langsam];
         using var probe = Verbinden();
         var sitzungen = ÖffneViele(n);
         try
@@ -230,9 +232,17 @@ public class RueckstauTests
                 bereit.Signal();
                 Assert.True(schnellFertig.Wait(TimeSpan.FromMinutes(10)));
                 long gelesen = 1;
-                while (leser.Read())
+                try
                 {
-                    gelesen++;
+                    while (leser.Read())
+                    {
+                        gelesen++;
+                    }
+                }
+                catch (SqlException e) when (frist)
+                {
+                    fristEnde[k] = $"{e.Message.Replace("\n", " ")} nach {gelesen} Zeilen";
+                    return;
                 }
 
                 Assert.Equal(zeilen, gelesen);
@@ -264,7 +274,7 @@ public class RueckstauTests
             Zeile($"leser n {n} langsam {langsam} zeilen {zeilen} basis_ms {(long)basisMs} schnell_ms {(long)schnellMs} schnell_median_sitzung_ms {mediandauer} schnell_max_sitzung_ms {maxdauer}"
                 + $" basis_zeilen_je_s {(basisMs > 0 ? (long)(schnell * zeilen * 1000 / basisMs) : -1)} schnell_zeilen_je_s {(schnellMs > 0 ? (long)(schnell * zeilen * 1000 / schnellMs) : -1)}"
                 + $" vorlauf_summe {vorlaufSumme} vorlauf_je_langsam {vorlaufSumme / langsam} vorlauf_byte_je_langsam_gesch {vorlaufSumme / langsam * 329} plateau_zuwachs {vorlaufPlateau}"
-                + $" offen {s1.Offen} threads {s1.Threads} spitze_threads {s1.Spitze} heap_benutzt_mb {s1.HeapMb} heap_nach_gc_mb {s3.HeapMb} offen_ende {s3.Offen} beendet_delta {s3.Beendet - s0.Beendet} abgebrochen_delta {s3.Abgebrochen - s0.Abgebrochen} weiterlesen_ms {weiterMs} gesamt_ms {(long)gesamt.Elapsed.TotalMilliseconds}");
+                + $" offen {s1.Offen} threads {s1.Threads} spitze_threads {s1.Spitze} heap_benutzt_mb {s1.HeapMb} heap_nach_gc_mb {s3.HeapMb} offen_ende {s3.Offen} beendet_delta {s3.Beendet - s0.Beendet} abgebrochen_delta {s3.Abgebrochen - s0.Abgebrochen} weiterlesen_ms {weiterMs} frist_ende '{string.Join(";", fristEnde.Select(f => f ?? "-"))}' gesamt_ms {(long)gesamt.Elapsed.TotalMilliseconds}");
             Assert.Equal(0, s3.Offen);
         }
         finally

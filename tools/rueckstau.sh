@@ -6,7 +6,8 @@
 # des Referenzclients (referenztest-dotnet/Rueckstau/RueckstauTests.cs: Leser, Blockierend, Abbruch, Import). Server und Client sind
 # Container eines internen Docker-Netzes (kein Zugang nach aussen); Limits wie der Lasttest (Server --cpus 2 --memory 4g, -Xmx256m, Client
 # --cpus 2 --memory 2g). Zellen (RUECKSTAU_ZELLEN, durch Leerzeichen getrennt, Vorgabe alle):
-#   leser-eigen-{1,8,64,256,256halb}  leser-sim-{1,8,64,256}   langsamer Leser (ein langsamer, bei 256halb 128 langsame Sitzungen), QUERY_TIMEOUT 3600 s
+#   leser-eigen-{1,8,64,256,256halb}  leser-sim-{1,8,64,256}   langsamer Leser (ein langsamer, bei 256halb 128 langsame Sitzungen), QUERY_TIMEOUT 3600 s;
+#   leser-frist   ein langsamer Leser haelt den Strom laenger als QUERY_TIMEOUT (3 s), der Lauf haelt das Ende des Stroms fest (nicht in der Vorgabe)
 #   blk-{suspendierend,unterbrechbar,nicht-unterbrechbar}-{8,64,256}, blk-direkt-8   Backend wartet je Zeile 10 ms
 #   abbruch-{suspendierend,unterbrechbar,nicht-unterbrechbar}[-ohnelast]   Cancel bei wartendem Backend, CANCEL_TIMEOUT 2 s, 8 Sitzungen lesen daneben
 #   imp-{1-schnell,1-callback,8-callback,8-callback-direkt,8-callback-unterbrechbar,1-sender}   Massenladen gegen das Simulations-Backend
@@ -143,6 +144,7 @@ for z in $zellen; do
 	leser-eigen-64) zelle "$z" Leser "RUECKSTAU_AUFBAU=eigen QUERY_TIMEOUT=3600" "RS_N=64 RS_LANGSAM=1 RS_ZEILEN=100000" ;;
 	leser-eigen-256) zelle "$z" Leser "RUECKSTAU_AUFBAU=eigen QUERY_TIMEOUT=3600" "RS_N=256 RS_LANGSAM=1 RS_ZEILEN=20000" ;;
 	leser-eigen-256halb) zelle "$z" Leser "RUECKSTAU_AUFBAU=eigen QUERY_TIMEOUT=3600" "RS_N=256 RS_LANGSAM=128 RS_ZEILEN=20000" ;;
+	leser-frist) zelle "$z" Leser "RUECKSTAU_AUFBAU=eigen QUERY_TIMEOUT=3" "RS_N=1 RS_LANGSAM=1 RS_ZEILEN=100000 RS_NACH_MS=3000 RS_ERWARTE_FRIST=1" ;;
 	leser-sim-1) zelle "$z" Leser "RUECKSTAU_AUFBAU=sim RUECKSTAU_ZEILEN=100000 QUERY_TIMEOUT=3600" "RS_N=1 RS_LANGSAM=1 RS_ZEILEN=100000" ;;
 	leser-sim-8) zelle "$z" Leser "RUECKSTAU_AUFBAU=sim RUECKSTAU_ZEILEN=100000 QUERY_TIMEOUT=3600" "RS_N=8 RS_LANGSAM=1 RS_ZEILEN=100000" ;;
 	leser-sim-64) zelle "$z" Leser "RUECKSTAU_AUFBAU=sim RUECKSTAU_ZEILEN=100000 QUERY_TIMEOUT=3600" "RS_N=64 RS_LANGSAM=1 RS_ZEILEN=100000" ;;
