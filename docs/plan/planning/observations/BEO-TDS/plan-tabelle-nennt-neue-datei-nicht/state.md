@@ -8,3 +8,6 @@
 
 
 **Wiederauftreten (slice-qa-performance-durchsatz-sitzungen):** Review F-9 und Re-Review 2 R-2: die Tabelle §3 gegen den Diff, zweimal in einem Slice; der Reviewer fing beide. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
+
+
+**Wiederauftreten (slice-qa-performance-rueckstau):** Review F-7 und Re-Review N-2: die Tabelle §3 gegen den Diff, dann ein Widerspruch zweier Zeilen; der Reviewer fing beide. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.

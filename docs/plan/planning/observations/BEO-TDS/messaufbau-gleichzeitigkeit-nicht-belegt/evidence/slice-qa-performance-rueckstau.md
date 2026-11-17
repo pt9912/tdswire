@@ -1,0 +1,3 @@
+**Vorgang:** [slice-qa-performance-rueckstau](../../../../done/slice-qa-performance-rueckstau.md)
+**Fund:** Vorläufe 3 des [Messprotokolls](../../../../../../messungen/performance-rueckstau-2026-11-17.md): der Thread-Pool des Clients startete die Sitzungen gestaffelt (bei 256 Sitzungen bis zu 38 s nach der ersten), die Sitzungsdauern bei Stufe 256 und das Weiterlesen bei 128 langsamen Lesern (148 s) waren ein Artefakt; [Verifikation](../../../../../../reviews/2026-11-17-slice-qa-performance-rueckstau-verifikation.md) nennt `start_max_ms` nur für die Blockier-Zellen.
+**Stand:** behoben im Aufbau (ein Thread je Sitzung); die Beleg-Zahl fehlt in den Zeilen der Leser-, Abbruch- und Import-Zellen.

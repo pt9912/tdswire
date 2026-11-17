@@ -8,3 +8,6 @@
 
 
 **Wiederauftreten (slice-qa-performance-durchsatz-sitzungen):** Review F-3 bis F-5, F-10, Re-Review R-4, R-5, R-7, Verifikation V-2: Lesarten und Randzahlen des Messprotokolls breiter als die Rohzeilen. Reviewer, Re-Review und Verifier fingen es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
+
+
+**Wiederauftreten (slice-qa-performance-rueckstau):** Review F-3, F-4, F-8, F-9 und Verifikation F-2, F-3: Heap-Zeitpunkt, fehlende Bedingung im selben Satz, Randzahlen, eine Lesart an Zellen mit Fremdlast, Erklärungen als Feststellung. Reviewer und Verifier fingen es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.

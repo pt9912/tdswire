@@ -14,3 +14,6 @@
 
 
 **Wiederauftreten (slice-qa-performance-durchsatz-sitzungen):** Re-Review R-3, Re-Review 2 R-3 und R-5: §1 nach der Teilung der DoD, Kopplungszeiger und Hilfetext eines Make-Fragments; der Reviewer fing jede zweite Fundstelle. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
+
+
+**Wiederauftreten (slice-qa-performance-rueckstau):** Review F-10 und Verifikation F-1: eine Tabellenzeile des Referenz-Workloads und die Zahl der Mutationen im Protokoll blieben nach der Fortschreibung stehen; Reviewer und Verifier fingen es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
