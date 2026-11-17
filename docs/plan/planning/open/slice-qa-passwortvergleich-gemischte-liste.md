@@ -121,7 +121,7 @@ dasteht.
 
 - Gleiche Arbeit kostet Rechenzeit: Läuft für `plain`-Einträge dieselbe Ableitung wie für die Attrappe, verliert der `plain`-Testmodus seine Schnelligkeit; ob das für Tests tragbar ist, ist ungeklärt. — **Ausgang:** offen bis zur Closure.
 - Zeitgleichheit im Prozess ist nicht Zeitgleichheit am Draht; die Messung trägt nur den Adapter ([TDS-QA-03](../../../../spec/lastenheft.md#tds-qa-03--sicherheit)). — **Ausgang:** offen bis zur Closure.
-- Die Wahl zwischen (a) und (b) ist eine Setzung des Planners, nicht vom Nutzer bestätigt (`BEO-TDS/lesart-einer-nutzerentscheidung-unbestaetigt`). — **Ausgang:** offen bis zur Closure.
+- Die Wahl zwischen (a) und (b) ist eine Setzung des Planners, nicht vom Nutzer bestätigt (`BEO-TDS/lesart-einer-nutzerentscheidung-unbestaetigt`). — **Ausgang:** Nutzer 2026-11-17: „deine Empfehlungen“ — der Implementer misst beide Wege und schlägt einen vor, der Nutzer bestätigt in der Closure; die Wahl bleibt bis dahin offen.
 
 ## 7. Closure-Notiz
 

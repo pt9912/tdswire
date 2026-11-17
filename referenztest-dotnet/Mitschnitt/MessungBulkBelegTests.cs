@@ -52,10 +52,10 @@ public class MessungBulkBelegTests
     // @spec SPEC-045
     [Theory]
     [MemberData(nameof(Stufen))]
-    public void Die_Ablage_hat_22_Messungen_mit_Anmeldung_und_alle_Auswertungen_ohne_Zerlegungsproblem(string stufe)
+    public void Die_Ablage_hat_23_Messungen_mit_Anmeldung_und_alle_Auswertungen_ohne_Zerlegungsproblem(string stufe)
     {
         var dateien = Directory.GetFiles(Verzeichnis(stufe), "*.messung");
-        Assert.Equal(22, dateien.Length);
+        Assert.Equal(23, dateien.Length);
         Assert.DoesNotContain(Z(stufe), z => z.Value.Contains("PROBLEM", StringComparison.Ordinal) || z.Value.Contains("ZERLEGUNG-ABGEBROCHEN", StringComparison.Ordinal));
         foreach (var pfad in dateien)
         {
@@ -100,6 +100,253 @@ public class MessungBulkBelegTests
                 }
             }
         }
+    }
+
+    // ---- Zeilenform der Antworten: ROW oder NBCROW (M-37 bis M-41) -------------------------------------------------------
+
+    // Die Bytes je Zeile (Kennbyte `d1` oder `d2` bis zum Ende der Zeile) und die Tokenfolge je Austausch von `zeilenform-null`. Dieselben Hexfolgen stehen
+    // als Orakel in `ResponseRowFormTest` (Kotlin, `src/test/kotlin/.../protocol/response/`); die Austausche 10 (Typen außerhalb des Typmodells) und 14 haben dort keine Zeile.
+    private static readonly (int Austausch, string Tokenfolge, string[] Zeilen)[] ZeilenformOrakel =
+    {
+        (1, "COLMETADATA ORDER ROW+ NBCROW+ ROW+ DONE", new[]
+        {
+            "d101000000040a00000002007800",
+            "d1020000000002007900",
+            "d204030000000414000000",
+            "d20604000000",
+            "d105000000041e00000002007a00",
+        }),
+        (2, "COLMETADATA NBCROW+ DONE", new[]
+        {
+            "d203",
+        }),
+        (3, "COLMETADATA ORDER ROW+ NBCROW+ ROW+ DONE", new[]
+        {
+            "d104010000000402000000040300000004040000000405000000040600000004070000000408000000",
+            "d1000402000000040300000004040000000405000000040600000004070000000408000000",
+            "d203040300000004040000000405000000040600000004070000000408000000",
+            "d20704040000000405000000040600000004070000000408000000",
+            "d20f0405000000040600000004070000000408000000",
+            "d2ff",
+            "d104010000000402000000040300000004040000000405000000040600000004070000000408000000",
+            "d104010000000402000000040300000004040000000405000000040600000004070000000408000000",
+        }),
+        (4, "COLMETADATA ORDER ROW+ NBCROW+ ROW+ DONE", new[]
+        {
+            "d1040100000004020000000403000000040400000004050000000406000000040700000004080000000409000000",
+            "d10004020000000403000000040400000004050000000406000000040700000004080000000409000000",
+            "d100000403000000040400000004050000000406000000040700000004080000000409000000",
+            "d20700040400000004050000000406000000040700000004080000000409000000",
+            "d20f0004050000000406000000040700000004080000000409000000",
+            "d2ff01",
+            "d1040100000004020000000403000000040400000004050000000406000000040700000004080000000409000000",
+            "d10401000000040200000004030000000404000000040500000004060000000407000000040800000000",
+        }),
+        (5, "COLMETADATA ORDER ROW+ NBCROW+ ROW+ DONE", new[]
+        {
+            "d1040100000004020000000403000000040400000004050000000406000000040700000004080000000409000000040a0000" +
+                "00",
+            "d10004020000000403000000040400000004050000000406000000040700000004080000000409000000040a000000",
+            "d100000403000000040400000004050000000406000000040700000004080000000409000000040a000000",
+            "d20700040400000004050000000406000000040700000004080000000409000000040a000000",
+            "d20f0004050000000406000000040700000004080000000409000000040a000000",
+            "d2ff03",
+            "d104010000000402000000040300000004040000000405000000040600000004070000000408000000040900000000",
+            "d1040100000004020000000403000000040400000004050000000406000000040700000004080000000000",
+        }),
+        (6, "COLMETADATA ORDER ROW+ NBCROW+ ROW+ DONE", new[]
+        {
+            "d1040100000004020000000403000000040400000004050000000406000000040700000004080000000409000000040a0000" +
+                "00040b000000040c000000040d000000040e000000040f0000000410000000",
+            "d10004020000000403000000040400000004050000000406000000040700000004080000000409000000040a000000040b00" +
+                "0000040c000000040d000000040e000000040f0000000410000000",
+            "d100000403000000040400000004050000000406000000040700000004080000000409000000040a000000040b000000040c" +
+                "000000040d000000040e000000040f0000000410000000",
+            "d20700040400000004050000000406000000040700000004080000000409000000040a000000040b000000040c000000040d" +
+                "000000040e000000040f0000000410000000",
+            "d20f0004050000000406000000040700000004080000000409000000040a000000040b000000040c000000040d000000040e" +
+                "000000040f0000000410000000",
+            "d2ffff",
+            "d104010000000402000000040300000004040000000405000000040600000004070000000408000000040900000000040b00" +
+                "0000040c000000040d000000040e000000040f0000000410000000",
+            "d1040100000004020000000403000000040400000004050000000406000000040700000004080000000000040b000000040c" +
+                "000000040d000000040e000000040f0000000410000000",
+        }),
+        (7, "COLMETADATA ORDER ROW+ NBCROW+ ROW+ DONE", new[]
+        {
+            "d1040100000004020000000403000000040400000004050000000406000000040700000004080000000409000000040a0000" +
+                "00040b000000040c000000040d000000040e000000040f00000004100000000411000000",
+            "d10004020000000403000000040400000004050000000406000000040700000004080000000409000000040a000000040b00" +
+                "0000040c000000040d000000040e000000040f00000004100000000411000000",
+            "d100000403000000040400000004050000000406000000040700000004080000000409000000040a000000040b000000040c" +
+                "000000040d000000040e000000040f00000004100000000411000000",
+            "d1000000040400000004050000000406000000040700000004080000000409000000040a000000040b000000040c00000004" +
+                "0d000000040e000000040f00000004100000000411000000",
+            "d20f000004050000000406000000040700000004080000000409000000040a000000040b000000040c000000040d00000004" +
+                "0e000000040f00000004100000000411000000",
+            "d2ffff01",
+            "d104010000000402000000040300000004040000000405000000040600000004070000000408000000040900000000040b00" +
+                "0000040c000000040d000000040e000000040f00000004100000000411000000",
+            "d1040100000004020000000403000000040400000004050000000406000000040700000004080000000000040b000000040c" +
+                "000000040d000000040e000000040f00000004100000000411000000",
+        }),
+        (8, "COLMETADATA ORDER ROW+ NBCROW+ ROW+ DONE", new[]
+        {
+            "d1020061000200620004010000000402000000040300000004040000000405000000040600000004070000000408000000",
+            "d1ffff0200620004010000000402000000040300000004040000000405000000040600000004070000000408000000",
+            "d2030004010000000402000000040300000004040000000405000000040600000004070000000408000000",
+            "d20500020062000402000000040300000004040000000405000000040600000004070000000408000000",
+            "d21c00020061000200620004040000000405000000040600000004070000000408000000",
+            "d102006100020062000000040300000004040000000405000000040600000004070000000408000000",
+        }),
+        (9, "COLMETADATA ORDER ROW+ DONE", new[]
+        {
+            "d10100000064000000000000000800650069006e007300",
+            "d102000000c80000000000000008007a00770065006900",
+        }),
+        (10, "COLMETADATA ORDER ROW+ NBCROW+ DONE", new[]
+        {
+            "d101010501d20400000880ed97f46e21490b1033221100554477668899aabbccddeeff020001020800000000000000080000" +
+                "006c0061006e00670000000000",
+            "d1000501d20400000880ed97f46e21490b1033221100554477668899aabbccddeeff02000102080000000000000008000000" +
+                "6c0061006e00670000000000",
+            "d10101000880ed97f46e21490b1033221100554477668899aabbccddeeff020001020800000000000000080000006c006100" +
+                "6e00670000000000",
+            "d101010501d2040000001033221100554477668899aabbccddeeff020001020800000000000000080000006c0061006e0067" +
+                "0000000000",
+            "d101010501d20400000880ed97f46e21490b00020001020800000000000000080000006c0061006e00670000000000",
+            "d21001010501d20400000880ed97f46e21490b1033221100554477668899aabbccddeeff0800000000000000080000006c00" +
+                "61006e00670000000000",
+            "d22001010501d20400000880ed97f46e21490b1033221100554477668899aabbccddeeff02000102",
+            "d23f",
+        }),
+        (11, "COLMETADATA ORDER ROW+ NBCROW+ DONE", new[]
+        {
+            "d10101020200040300000008040000000000000001010321490b0580ed97f46e0880ed97f46e21490b",
+            "d100020200040300000008040000000000000001010321490b0580ed97f46e0880ed97f46e21490b",
+            "d1010100040300000008040000000000000001010321490b0580ed97f46e0880ed97f46e21490b",
+            "d101010202000008040000000000000001010321490b0580ed97f46e0880ed97f46e21490b",
+            "d1010102020004030000000001010321490b0580ed97f46e0880ed97f46e21490b",
+            "d101010202000403000000080400000000000000000321490b0580ed97f46e0880ed97f46e21490b",
+            "d1010102020004030000000804000000000000000101000580ed97f46e0880ed97f46e21490b",
+            "d10101020200040300000008040000000000000001010321490b000880ed97f46e21490b",
+            "d10101020200040300000008040000000000000001010321490b0580ed97f46e00",
+            "d230010102020004030000000804000000000000000580ed97f46e0880ed97f46e21490b",
+            "d2ff",
+        }),
+        (12, "COLMETADATA NBCROW+ DONE", new[]
+        {
+            "d203",
+        }),
+        (13, "COLMETADATA ROW+ DONE", new[]
+        {
+            "d10100000000",
+        }),
+        (14, "COLMETADATA ROW+ DONE", new[]
+        {
+            "d10100000002007800",
+        }),
+        (15, "COLMETADATA ROW+ DONEINPROC RETURNSTATUS DONEPROC", new[]
+        {
+            "d10002007900",
+        }),
+        (16, "COLMETADATA ROW+ DONEINPROC RETURNSTATUS DONEPROC", new[]
+        {
+            "d1040a00000002007800",
+        }),
+        (17, "COLMETADATA NBCROW+ DONEINPROC RETURNSTATUS DONEPROC", new[]
+        {
+            "d203",
+        }),
+    };
+
+    /// <summary>Die Zeilen `zeilenform` der Messung `zeilenform-null` (nicht Teil von <see cref="Z"/>: die Bytes der Zeilen sind kein Feld des Vergleichs beider Instanzen).</summary>
+    private static Dictionary<string, string> ZeilenformZeilen(string stufe)
+    {
+        var datei = MessDatei.Lesen(File.ReadAllText(Path.Combine(Verzeichnis(stufe), "zeilenform-null.messung"), Encoding.UTF8));
+        return MessAuswertung.Zeilen(datei, mitZeilenform: true).Where(z => z.Kennung.EndsWith("/zeilenform", StringComparison.Ordinal)).ToDictionary(z => z.Kennung, z => z.Text);
+    }
+
+    private static string Zeilenform(IEnumerable<string> zeilen) =>
+        string.Join(" ; ", zeilen.Select(h => (h.StartsWith("d1", StringComparison.Ordinal) ? "ROW:" : "NBCROW:") + h));
+
+    // @spec SPEC-003
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void Die_Zeilen_von_zeilenform_null_tragen_je_Austausch_die_Tokenfolge_und_die_Bytes_der_Orakel_des_Sequenzierers(string stufe)
+    {
+        Assert.Equal(17, ZeilenformOrakel.Length);
+        foreach (var (austausch, tokenfolge, zeilen) in ZeilenformOrakel)
+        {
+            var kennung = $"zeilenform-null/{austausch:D2}/";
+            Assert.Equal(tokenfolge, F(stufe, kennung + "tokenfolge"));
+            Assert.Equal(Zeilenform(zeilen), ZeilenformZeilen(stufe)[kennung + "zeilenform"]);
+        }
+    }
+
+    // @spec SPEC-003
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void In_zeilenform_null_ist_eine_Zeile_genau_dann_NBCROW_wenn_sie_kuerzer_ist_als_die_ROW_derselben_Werte(string stufe)
+    {
+        // Die Tabellen der Messung (Austausch 01, 03 bis 09, 11, 12): Größe der NULL im ROW je Spaltenart aus den Zeilen selbst
+        // (INTN, BITN, DATE, TIME, DATETIME2 ein Byte, NVARCHAR zwei Byte), Bitmap ceil(n / 8) Byte; die Zahl der NULL in der Zeile folgt aus der Bitmap
+        // (NBCROW) oder aus der Spalte mit Länge 0 (ROW), die Spaltenarten aus `colmetadata`.
+        foreach (var austausch in new[] { 1, 3, 4, 5, 6, 7, 8, 11 })
+        {
+            var kennung = $"zeilenform-null/{austausch:D2}/";
+            var spalten = F(stufe, kennung + "colmetadata").Trim('[', ']').Split("; ");
+            var kosten = spalten.Select(s => s.Contains(":nvarchar", StringComparison.Ordinal) ? 2 : 1).ToArray();
+            var bitmap = (spalten.Length + 7) / 8;
+            var zeilen = ZeilenformZeilen(stufe)[kennung + "zeilenform"].Split(" ; ");
+            foreach (var zeile in zeilen)
+            {
+                var nullen = NullSpalten(zeile, spalten);
+                var gespart = nullen.Sum(i => kosten[i]);
+                Assert.Equal(gespart > bitmap, zeile.StartsWith("NBCROW:", StringComparison.Ordinal));
+            }
+        }
+    }
+
+    /// <summary>Die Spalten mit NULL einer Zeile: aus der Bitmap eines NBCROW, aus der Länge 0 (`INTN`, `BITN` und die anderen Längenbyte) oder `ffff` (NVARCHAR) eines ROW.</summary>
+    private static List<int> NullSpalten(string zeile, string[] spalten)
+    {
+        var bytes = Convert.FromHexString(zeile[(zeile.IndexOf(':', StringComparison.Ordinal) + 1)..]);
+        var nullen = new List<int>();
+        if (bytes[0] == 0xD2)
+        {
+            for (var i = 0; i < spalten.Length; i++)
+                if ((bytes[1 + (i / 8)] & (1 << (i % 8))) != 0) nullen.Add(i);
+            return nullen;
+        }
+
+        var p = 1;
+        for (var i = 0; i < spalten.Length; i++)
+        {
+            var art = spalten[i];
+            if (art.Contains(":nvarchar", StringComparison.Ordinal))
+            {
+                var laenge = bytes[p] | (bytes[p + 1] << 8);
+                p += 2;
+                if (laenge == 0xFFFF) nullen.Add(i);
+                else p += laenge;
+            }
+            else if (art.Contains(":intn(", StringComparison.Ordinal) || art.Contains(":bitn(", StringComparison.Ordinal) || art.Contains(":date(", StringComparison.Ordinal)
+                || art.Contains(":time(", StringComparison.Ordinal) || art.Contains(":datetime2(", StringComparison.Ordinal))
+            {
+                var laenge = bytes[p++];
+                if (laenge == 0) nullen.Add(i);
+                p += laenge;
+            }
+            else if (art.Contains(":int(", StringComparison.Ordinal)) p += 4;
+            else if (art.Contains(":bigint(", StringComparison.Ordinal)) p += 8;
+            else throw new InvalidOperationException("Spaltenart nicht zerlegt: " + art);
+        }
+
+        Assert.Equal(bytes.Length, p);
+        return nullen;
     }
 
     // ---- Tabellennamen im Massenladen (M-33 bis M-36) ----------------------------------------------------------------------

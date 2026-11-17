@@ -25,6 +25,9 @@ internal object ValueWriter {
         }
     }
 
+    /** Die Zahl der Bytes, die ein NULL der Spalte im ROW belegt: das, was [write] für `NullValue` schreibt. */
+    fun nullSize(column: ColumnDef): Int = ByteWriter().also { writeNull(it, column) }.toByteArray().size
+
     private fun writeNull(out: ByteWriter, column: ColumnDef) {
         requireNullable(column)
         when (column.type) {

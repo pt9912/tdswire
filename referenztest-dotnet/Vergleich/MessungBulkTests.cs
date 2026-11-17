@@ -18,7 +18,7 @@ namespace TdsWire.Referenztests.Vergleich;
 /// PRELOGIN, LOGIN7 (redigiert) und jede Nachricht (<see cref="MessDatei"/>) unter `Mitschnitt/messung/bulk-merge-katalog/&lt;Stufe&gt;/`.
 /// Gegenstand: (1) `SqlBulkCopy` (Paket 0x07 nach `INSERT BULK`), (2) `MERGE … OUTPUT $action` mit Parametern, (3) die Katalogabfragen
 /// von d-migrate 1.12.0 (<see cref="DMigrateTexte"/>) und die Strukturänderung, (4) `EXEC sp_unprepare` mit vielen unbekannten Nummern
-/// und `curCmd`, (5) das Flag-Feld der RETURNVALUE von Ausgabewerten, (6) die Tabellennamen im Massenladen (`bulk-name-schema`, `bulk-name-sonderzeichen`: die Probe der Zieltabelle und `INSERT BULK` bei Namen mit Schema, mit `]`, `'`, Leerzeichen und Punkt; `bulk-name-feste-typen`: die Nachricht 0x07 für nicht nullbare INT, SMALLINT, TINYINT und BIT; Datenbank `tdswire_namen`).
+/// und `curCmd`, (5) das Flag-Feld der RETURNVALUE von Ausgabewerten, (7) die Zeilenform der Antworten (`zeilenform-null`: ROW oder NBCROW je Zeile, Datenbank `tdswire_zeilen`, die Zeilen `zeilenform` der Ausgabe tragen die Bytes je Zeile); (6) die Tabellennamen im Massenladen (`bulk-name-schema`, `bulk-name-sonderzeichen`: die Probe der Zieltabelle und `INSERT BULK` bei Namen mit Schema, mit `]`, `'`, Leerzeichen und Punkt; `bulk-name-feste-typen`: die Nachricht 0x07 für nicht nullbare INT, SMALLINT, TINYINT und BIT; Datenbank `tdswire_namen`).
 /// Grenzen: Einzelmessung je Szenario und Instanz; der Client ist `Microsoft.Data.SqlClient`, nicht mssql-jdbc von d-migrate (der
 /// Treiber sendet für `DATE`, `TIME` und `DATETIME2` im `INSERT BULK` die Typen `VARCHAR(n)`, der Referenzclient die Typen der
 /// Zieltabelle); der Wortlaut des `MERGE` folgt der Sonde (`MERGE INTO … AS tgt USING (VALUES (@P0,@P1,@P2)) … OUTPUT $action;`), die
@@ -32,6 +32,7 @@ public class MessungBulkTests
     private const string DbKatalog = "tdswire_katalog";
     private const string DbStruktur = "tdswire_struktur";
     private const string DbNamen = "tdswire_namen";
+    private const string DbZeilen = "tdswire_zeilen";
     private readonly ITestOutputHelper _ausgabe;
 
     public MessungBulkTests(ITestOutputHelper ausgabe) => _ausgabe = ausgabe;
@@ -84,12 +85,65 @@ public class MessungBulkTests
         "CREATE TABLE bulk_fest (A int NOT NULL, B smallint NOT NULL, C tinyint NOT NULL, D bit NOT NULL)",
     };
 
+    /// <summary>Spalten <c>C1</c> bis <c>C17</c> (alle <c>int NULL</c>) und Zeilen, deren NULL-Werte in den ersten Spalten stehen (eine bis vier, alle) oder allein in <c>C10</c>, in <c>C9</c> und <c>C10</c>.</summary>
+    private static IEnumerable<string> AufbauBreit()
+    {
+        yield return "CREATE TABLE z_breit (Id int NOT NULL, " + string.Join(", ", Enumerable.Range(1, 17).Select(i => $"C{i} int NULL")) + ", CONSTRAINT pk_z_breit PRIMARY KEY (Id))";
+        string Zeile(int id, Func<int, bool> istNull) => $"({id}, " + string.Join(", ", Enumerable.Range(1, 17).Select(i => istNull(i) ? "NULL" : i.ToString(System.Globalization.CultureInfo.InvariantCulture))) + ")";
+        yield return "INSERT INTO z_breit VALUES " + string.Join(", ", new[]
+        {
+            Zeile(1, _ => false),
+            Zeile(2, i => i <= 1),
+            Zeile(3, i => i <= 2),
+            Zeile(4, i => i <= 3),
+            Zeile(5, i => i <= 4),
+            Zeile(6, _ => true),
+            Zeile(7, i => i == 10),
+            Zeile(8, i => i is 9 or 10),
+        });
+    }
+
+    private static readonly string[] AufbauZeilen = new[]
+    {
+        "CREATE TABLE z_zwei (Id int NOT NULL, A int NULL, B nvarchar(20) NULL, CONSTRAINT pk_z_zwei PRIMARY KEY (Id))",
+        "INSERT INTO z_zwei (Id, A, B) VALUES (1, 10, N'x'), (2, NULL, N'y'), (3, 20, NULL), (4, NULL, NULL), (5, 30, N'z')",
+    }.Concat(AufbauBreit()).Concat(new[]
+    {
+        "CREATE TABLE z_gemischt (Id int NOT NULL, V1 nvarchar(20) NULL, V2 nvarchar(20) NULL, I1 int NULL, I2 int NULL, I3 int NULL, I4 int NULL, I5 int NULL, I6 int NULL, I7 int NULL, I8 int NULL, CONSTRAINT pk_z_gemischt PRIMARY KEY (Id))",
+        "INSERT INTO z_gemischt VALUES (1, N'a', N'b', 1, 2, 3, 4, 5, 6, 7, 8), (2, NULL, N'b', 1, 2, 3, 4, 5, 6, 7, 8), (3, NULL, NULL, 1, 2, 3, 4, 5, 6, 7, 8), "
+        + "(4, NULL, N'b', NULL, 2, 3, 4, 5, 6, 7, 8), (5, N'a', N'b', NULL, NULL, NULL, 4, 5, 6, 7, 8), (6, N'a', N'b', NULL, NULL, 3, 4, 5, 6, 7, 8)",
+        "CREATE TABLE z_fest (A int NOT NULL, B bigint NOT NULL, C nvarchar(10) NOT NULL, CONSTRAINT pk_z_fest PRIMARY KEY (A))",
+        "INSERT INTO z_fest VALUES (1, 100, N'eins'), (2, 200, N'zwei')",
+        "CREATE TABLE z_typ (Id int NOT NULL, Flag bit NULL, Preis decimal(10,2) NULL, Zeitpunkt datetime2 NULL, Kennung uniqueidentifier NULL, Binaer varbinary(16) NULL, Lang nvarchar(max) NULL, CONSTRAINT pk_z_typ PRIMARY KEY (Id))",
+        "INSERT INTO z_typ VALUES (0, 1, 12.34, '2026-01-02T13:14:15', '00112233-4455-6677-8899-aabbccddeeff', 0x0102, N'lang'), "
+        + "(1, NULL, 12.34, '2026-01-02T13:14:15', '00112233-4455-6677-8899-aabbccddeeff', 0x0102, N'lang'), "
+        + "(2, 1, NULL, '2026-01-02T13:14:15', '00112233-4455-6677-8899-aabbccddeeff', 0x0102, N'lang'), "
+        + "(3, 1, 12.34, NULL, '00112233-4455-6677-8899-aabbccddeeff', 0x0102, N'lang'), "
+        + "(4, 1, 12.34, '2026-01-02T13:14:15', NULL, 0x0102, N'lang'), "
+        + "(5, 1, 12.34, '2026-01-02T13:14:15', '00112233-4455-6677-8899-aabbccddeeff', NULL, N'lang'), "
+        + "(6, 1, 12.34, '2026-01-02T13:14:15', '00112233-4455-6677-8899-aabbccddeeff', 0x0102, NULL), "
+        + "(7, NULL, NULL, NULL, NULL, NULL, NULL)",
+        "CREATE TABLE z_typ2 (Id int NOT NULL, T tinyint NULL, S smallint NULL, I int NULL, G bigint NULL, F bit NULL, D date NULL, Tm time NULL, Z datetime2 NULL, CONSTRAINT pk_z_typ2 PRIMARY KEY (Id))",
+        "INSERT INTO z_typ2 VALUES (0, 1, 2, 3, 4, 1, '2026-01-02', '13:14:15', '2026-01-02T13:14:15'), "
+        + "(1, NULL, 2, 3, 4, 1, '2026-01-02', '13:14:15', '2026-01-02T13:14:15'), "
+        + "(2, 1, NULL, 3, 4, 1, '2026-01-02', '13:14:15', '2026-01-02T13:14:15'), "
+        + "(3, 1, 2, NULL, 4, 1, '2026-01-02', '13:14:15', '2026-01-02T13:14:15'), "
+        + "(4, 1, 2, 3, NULL, 1, '2026-01-02', '13:14:15', '2026-01-02T13:14:15'), "
+        + "(5, 1, 2, 3, 4, NULL, '2026-01-02', '13:14:15', '2026-01-02T13:14:15'), "
+        + "(6, 1, 2, 3, 4, 1, NULL, '13:14:15', '2026-01-02T13:14:15'), "
+        + "(7, 1, 2, 3, 4, 1, '2026-01-02', NULL, '2026-01-02T13:14:15'), "
+        + "(8, 1, 2, 3, 4, 1, '2026-01-02', '13:14:15', NULL), "
+        + "(9, 1, 2, 3, 4, NULL, NULL, '13:14:15', '2026-01-02T13:14:15'), "
+        + "(10, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)",
+    }).ToArray();
+
     private static readonly (string Datenbank, string[] Anweisungen)[] Aufbau =
     {
         (DbMessung, AufbauMessung),
         (DbKatalog, AufbauKatalog),
         (DbStruktur, AufbauStruktur),
         (DbNamen, AufbauNamen),
+        (DbZeilen, AufbauZeilen),
     };
 
     private static void AufbauAusfuehren()
@@ -119,10 +173,12 @@ public class MessungBulkTests
         }
     }
 
-    /// <summary>Der Hash des Aufbaus der Gruppe der Datenbank: die Datenbank der Tabellennamen (<see cref="DbNamen"/>) hat einen eigenen, alle anderen teilen den Hash ihrer drei Datenbanken.</summary>
+    /// <summary>Der Hash des Aufbaus der Gruppe der Datenbank: die Datenbank der Tabellennamen (<see cref="DbNamen"/>) und die der Zeilenform (<see cref="DbZeilen"/>) haben je einen eigenen, alle anderen teilen den Hash ihrer drei Datenbanken.</summary>
     private static string AufbauHash(string datenbank) =>
         "sha256:" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join("\n",
-            Aufbau.Where(a => (a.Datenbank == DbNamen) == (datenbank == DbNamen)).SelectMany(a => a.Anweisungen.Prepend(a.Datenbank)))))).ToLowerInvariant();
+            Aufbau.Where(a => Gruppe(a.Datenbank) == Gruppe(datenbank)).SelectMany(a => a.Anweisungen.Prepend(a.Datenbank)))))).ToLowerInvariant();
+
+    private static int Gruppe(string datenbank) => datenbank == DbNamen ? 1 : datenbank == DbZeilen ? 2 : 0;
 
     // ---- Bausteine --------------------------------------------------------------------------------------------------
 
@@ -402,6 +458,24 @@ public class MessungBulkTests
                 q.Rows.Add(-1, (short)-2, (byte)255, false);
                 Bulk(l, v, "INT, SMALLINT, TINYINT und BIT, alle nicht nullbar, zwei Zeilen", "bulk_fest", q);
                 Mit(l, v, "Kontrolle", "SELECT COUNT_BIG(*) FROM bulk_fest");
+            }),
+
+            // ---- Zeilenform der Antwort: ROW oder NBCROW (slice-antwortform-nbcrow) -------------------------------------
+            ("zeilenform-null", DbZeilen, (l, v) =>
+            {
+                Mit(l, v, "Batch, nullbare Spalten, Zeilen ohne, mit einer und mit nur NULL", "SELECT Id, A, B FROM z_zwei ORDER BY Id");
+                Mit(l, v, "Batch, nur nullbare Spalten, beide NULL", "SELECT A, B FROM z_zwei WHERE Id = 4");
+                foreach (var n in new[] { 8, 9, 10, 16, 17 })
+                    Mit(l, v, $"Batch, {n} nullbare Spalten int, NULL in den ersten Spalten und in C10", $"SELECT {string.Join(", ", Enumerable.Range(1, n).Select(i => "C" + i.ToString(System.Globalization.CultureInfo.InvariantCulture)))} FROM z_breit ORDER BY Id");
+                Mit(l, v, "Batch, zwei nvarchar und acht int, NULL in nvarchar und int", "SELECT V1, V2, I1, I2, I3, I4, I5, I6, I7, I8 FROM z_gemischt ORDER BY Id");
+                Mit(l, v, "Batch, keine nullbare Spalte", "SELECT A, B, C FROM z_fest ORDER BY A");
+                Mit(l, v, "Batch, sechs Typen, NULL je Zeile in einer anderen Spalte", "SELECT Flag, Preis, Zeitpunkt, Kennung, Binaer, Lang FROM z_typ ORDER BY Id");
+                Mit(l, v, "Batch, acht Typen des Typmodells, NULL je Zeile in einer anderen Spalte", "SELECT T, S, I, G, F, D, Tm, Z FROM z_typ2 ORDER BY Id");
+                Mit(l, v, "Batch, Ausdruck CAST(NULL), beide Spalten NULL", "SELECT CAST(NULL AS int) AS a, CAST(NULL AS nvarchar(20)) AS b");
+                Mit(l, v, "Batch, Literal und CAST(NULL)", "SELECT 1 AS a, CAST(NULL AS int) AS b");
+                Mit(l, v, "Batch, Literal ohne NULL", "SELECT 1 AS a, N'x' AS b");
+                foreach (var id in new[] { 2, 1, 4 })
+                    Mit(l, v, $"RPC sp_executesql, Id {id}", "SELECT A, B FROM z_zwei WHERE Id = @P0", ps => P(ps, "@P0", SqlDbType.Int, id));
             }),
 
             // ---- Liefer-Punkt 1b: MERGE ---------------------------------------------------------------------------
@@ -802,7 +876,7 @@ public class MessungBulkTests
             _ = MessDatei.Lesen(text);
             File.WriteAllText(Path.Combine(ausgabe, name + ".messung"), text, new UTF8Encoding(false));
             foreach (var b in beobachtungen) _ausgabe.WriteLine("messung: client " + b);
-            foreach (var (kennung, wert) in MessAuswertung.Zeilen(datei))
+            foreach (var (kennung, wert) in MessAuswertung.Zeilen(datei, mitZeilenform: true))
                 _ausgabe.WriteLine($"messung: {kennung}\t{(wert.Length > 1500 ? wert[..1500] + "..." : wert)}");
             foreach (var z in FehlerZaehlung(datei)) _ausgabe.WriteLine("messung: " + z);
             _ausgabe.WriteLine($"messung: {name} Groesse der Nachrichten {datei.Nachrichten.Sum(n => n.Daten.Length)} Bytes");

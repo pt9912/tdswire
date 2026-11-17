@@ -14,7 +14,6 @@ import io.github.pt9912.tdswire.protocol.token.DoneToken
 import io.github.pt9912.tdswire.protocol.token.ErrorToken
 import io.github.pt9912.tdswire.protocol.token.InfoToken
 import io.github.pt9912.tdswire.protocol.token.ReturnStatusToken
-import io.github.pt9912.tdswire.protocol.token.RowToken
 import io.github.pt9912.tdswire.protocol.token.ServerMessage
 import io.github.pt9912.tdswire.protocol.token.Token
 import io.github.pt9912.tdswire.protocol.wire.ProtocolError
@@ -92,6 +91,9 @@ internal class ResponseRun(
     private var outcome: SequenceOutcome? = null
     private var columns: List<ColumnDef>? = null
 
+    /** Die Größe eines NULL im ROW je Spalte des offenen Ergebnisses ([RowForm]). */
+    private var nullSizes: List<Int> = emptyList()
+
     /** Die Art des offenen Ergebnisses; bestimmt die Kennung seines Abschlusses und eines Fehlers in ihm. */
     private var resultKind = StatementKind.UNKNOWN
     private var held: DoneToken? = null
@@ -166,6 +168,7 @@ internal class ResponseRun(
 
             is ProtocolResult.Ok -> {
                 columns = mapped.value
+                nullSizes = RowForm.nullSizes(mapped.value)
                 resultKind = event.kind
                 begun = true
                 !write(ColMetadataToken(mapped.value))
@@ -177,7 +180,7 @@ internal class ResponseRun(
         val defs = columns ?: return report(violation)
         return when (val mapped = ValueMapping.row(defs, event.values)) {
             is ProtocolResult.Failed -> report(errors.typeMapping(mapped.error))
-            is ProtocolResult.Ok -> !write(RowToken(mapped.value))
+            is ProtocolResult.Ok -> !write(RowForm.token(mapped.value, nullSizes))
         }
     }
 

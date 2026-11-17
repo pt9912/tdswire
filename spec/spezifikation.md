@@ -52,7 +52,7 @@ Login, nicht unterstützte Authentifizierung, Ressourcenlimit (`SPEC-034`).
 1. Batchtext gemäß TDS-Unicodekodierung dekodieren.
 2. Unterstützte Sitzungs-/Headerinformationen prüfen und Anfrage mit Kontext an Backend übergeben.
 3. Ergebnis oder Fehler in eine geordnete Antwort überführen.
-4. COLMETADATA, ROW und DONE-Familie gemäß Profil serialisieren; der Encoder schreibt auch NBCROW, wenn ein Aufrufer es verlangt, die Antwort des Servers nutzt ROW (`SPEC-003`).
+4. COLMETADATA, ROW und DONE-Familie gemäß Profil serialisieren; je Zeile ROW oder NBCROW, wie der echte Server es wählt (`SPEC-003`, Absatz Zeilenform).
 
 **Komplexität:** O(n + Ergebnisgröße) ohne Backend-Rechenzeit. **Fehlermodi:** ungültige Kodierung,
 nicht unterstütztes SQL, Backend-Timeout.
@@ -490,8 +490,8 @@ verifizieren.
   Daten (bei Länge 0 kein Stück) und der Terminator aus 4 Nullbyte, NULL sind acht Bytes `0xFF`. Ein Wert, der mit
   seinem Rahmen nicht in den Puffer des Tokens passt (knapp 2 GiB), ist `TDS_UNSUPPORTED_TYPE`, bevor ein Byte
   geschrieben ist. NBCROW trägt eine Null-Bitmap (ein Bit je Spalte, Spalte 0 im niedrigsten Bit des ersten Bytes) und
-  lässt die NULL-Werte aus; der Encoder wählt nicht zwischen ROW und NBCROW, die Antwort des Servers schreibt weiter
-  ROW. `SqlType` führt keinen MAX-Typ; das Backend erreicht `nvarchar(max)` nur als Wertparameter (`UnicodeText`, s. u.). Als RPC-Parameter liest der Parser
+  lässt die NULL-Werte aus; der Encoder wählt nicht zwischen ROW und NBCROW, die Wahl trifft der Sequenzierer (nächster
+  Absatz). `SqlType` führt keinen MAX-Typ; das Backend erreicht `nvarchar(max)` nur als Wertparameter (`UnicodeText`, s. u.). Als RPC-Parameter liest der Parser
   `nvarchar(max)`, `varchar(max)` und `varbinary(max)` mit mehreren Stücken und mit unbekannter Gesamtlänge
   (Gesamtlänge `0xFFFFFFFFFFFFFFFE`); eine Gesamtlänge über 2 GiB − 1, über dem Rest der Nachricht oder eine Summe der
   Stücke, die nicht zu ihr passt, ist ein Fehler des Parsers, bevor ein Puffer entsteht. SQL-Text und Deklarationsliste
@@ -507,6 +507,20 @@ verifizieren.
   `TDS_UNSUPPORTED_TYPE` (Typkennung außerhalb der Typliste). `text`, `ntext` und `image` bleiben
   `TDS_UNSUPPORTED_TYPE`: kein gemessener Client sendet sie als RPC-Parameter, und kein gemessener Server beantwortet
   eine Anfrage dieses Servers mit ihnen.
+- Zeilenform ROW oder NBCROW (gemessen am 2026-11-17, Einzelmessung je Instanz 2022 und 2025, beide Instanzen byte-gleich,
+  Messprotokoll M-37 bis M-41): Der Sequenzierer schreibt jede Zeile als NBCROW genau
+  dann, wenn der NBCROW kürzer ist als der ROW derselben Werte, sonst als ROW. Der NBCROW kostet die Bitmap von
+  `ceil(n / 8)` Byte und spart die Bytes, die ein NULL im ROW belegt: ein Byte für `INTN`, `BITN`, `DECIMALN`, `DATE`,
+  `TIME` und `DATETIME2` (Länge 0), zwei Byte für `NVARCHAR` (`0xFFFF`); bei Gleichstand steht ROW, eine Zeile ohne NULL
+  ist immer ROW, eine Zeile nur aus NULL ist eine NBCROW aus der Bitmap allein. Die Wahl gilt je Zeile, nicht je Ergebnis,
+  und im Batch wie im RPC. Gemessen ist die Wahl an Ergebnissen mit 2 bis 17 Spalten (Bitmap von ein bis drei Byte),
+  einer NULL hinter der achten Spalte, acht Typen des Typmodells (`tinyint`, `smallint`, `int`, `bigint`, `bit`, `date`,
+  `time`, `datetime2`; `decimal(10,2)` und `nvarchar` in anderen Ergebnissen) und an Zeilen aus zwei Text- und acht
+  Ganzzahlspalten (eine NULL im Text ist ROW, wenn die Bitmap zwei Byte hat); gemessen mit einem Client
+  (`Microsoft.Data.SqlClient` 7.1.1) und an Antworten aus einem Paket; Setzung, nicht gemessen: die Rechnung für mehr als
+  17 Spalten, für mehrere Dezimalspalten, für einen anderen Client (etwa mssql-jdbc) und für Ergebnisse über mehrere
+  Pakete. Die Bytes von COLMETADATA und die Länge des Dezimaltyps sind nicht Teil
+  dieser Aussage (Ausnahme A-11 des Referenzabgleichs).
 
 **RPC-Parametertypen (Eingabe; vom Referenzclient beobachtet, MAX-Typen nur wie am Ende des Absatzes eingeschränkt):** `tinyint`/`smallint`/`int`/`bigint`
 als `INTN` (Länge 1/2/4/8); `float`/`real` als `FLTN`; `money`/`smallmoney` als `MONEYN`; `bit` als
@@ -2291,3 +2305,4 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | 2026-11-16 | `sql_variant` im Encoder (Basistyp `int`, am echten Server gemessen) und `nvarchar(max)` als Wertparameter auf `UnicodeText` (`TDS-FA-05`, `SPEC-003`, `SPEC-013`; Entscheid des Nutzers 2026-11-16); `varchar(max)`, `varbinary(max)`, `text`, `ntext` und `image` bleiben `TDS_UNSUPPORTED_TYPE` beziehungsweise `SPEC-013` |
 | 2026-11-16 | Absatz „RPC-Parametertypen“: die Überschrift führt `beobachtet` nur mit der Einschränkung der MAX-Typen auf das Aufgezeichnete (Zielbild an den Beleg, Nutzerentscheidung 2026-11-16) |
 | 2026-11-17 | Mehrere RPCs in einer Nachricht gebaut (`TDS-FA-04`, `TDS-QA-01`, `SPEC-030`, `SPEC-013`): Trennbyte `0xFF`, Antwort je Aufruf mit DONEPROC `MORE\|0x80` außer am letzten, Ordinal je Aufruf, Fehler beendet nur den Aufruf (am echten SQL Server gemessen, Messprotokoll W-10 bis W-13); die Zuordnung des Mehrfach-RPC zur Seite ERROR und DONE entfällt, `sp_prepexec` und `sp_execute` in einer solchen Nachricht ergeben `SPEC-013` (Setzung) |
+| 2026-11-17 | Zeilenform ROW oder NBCROW (`TDS-FA-05`, `TDS-QA-01`, `SPEC-003`, `SPEC-045`; Folge-Slice des Nutzerentscheids 2026-11-16): der Sequenzierer schreibt NBCROW, wenn er kürzer ist als der ROW derselben Werte, sonst ROW (am echten SQL Server 2022 und 2025 gemessen, Messprotokoll M-37 bis M-41); die Ausnahme A-12 des Referenzabgleichs entfällt |
