@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** `SPEC-002` · `SPEC-031` (Strom und Reihenfolge der Ereignisse; der zurückgehaltene Abschluss für `DONE_MORE`)
 
-**Verantwortlich:** — bis zur Priorisierung.
+**Verantwortlich:** pt9912
 
 **Autor:** pt9912. **Datum:** 2026-11-15.
 
