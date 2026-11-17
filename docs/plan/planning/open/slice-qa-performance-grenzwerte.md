@@ -31,13 +31,13 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Die Grenzwerte für Durchsatz, p95-Latenz und gleichzeitige Sitzungen stehen mit der Umgebung, für die sie gelten, in [TDS-QA-04](../../../../spec/lastenheft.md#tds-qa-04--performance) im Lastenheft, abgeleitet aus den Messzeilen von [slice-qa-performance-durchsatz-sitzungen](../in-progress/slice-qa-performance-durchsatz-sitzungen.md), [slice-qa-performance-rueckstau](../in-progress/slice-qa-performance-rueckstau.md) und [slice-qa-performance-heap-abschluss](slice-qa-performance-heap-abschluss.md) und vom Nutzer bestätigt.
+**Ziel:** Die Grenzwerte für Durchsatz, p95-Latenz und gleichzeitige Sitzungen stehen mit der Umgebung, für die sie gelten, in [TDS-QA-04](../../../../spec/lastenheft.md#tds-qa-04--performance) im Lastenheft, abgeleitet aus den Messzeilen von [slice-qa-performance-durchsatz-sitzungen](../done/slice-qa-performance-durchsatz-sitzungen.md), [slice-qa-performance-rueckstau](../in-progress/slice-qa-performance-rueckstau.md) und [slice-qa-performance-heap-abschluss](slice-qa-performance-heap-abschluss.md) und vom Nutzer bestätigt.
 
 **Übernimmt:** aus dem DoD-Punkt „Grenzwerte im Lastenheft festgelegt“ von [slice-qa-performance](../done/slice-qa-performance.md) (Fassung vor der Zerlegung vom 2026-11-15).
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Messungen — liegen bei [slice-qa-performance-durchsatz-sitzungen](../in-progress/slice-qa-performance-durchsatz-sitzungen.md), [slice-qa-performance-rueckstau](../in-progress/slice-qa-performance-rueckstau.md) und [slice-qa-performance-heap-abschluss](slice-qa-performance-heap-abschluss.md); dieser Slice misst nichts und ändert kein Messprotokoll.
+- Messungen — liegen bei [slice-qa-performance-durchsatz-sitzungen](../done/slice-qa-performance-durchsatz-sitzungen.md), [slice-qa-performance-rueckstau](../in-progress/slice-qa-performance-rueckstau.md) und [slice-qa-performance-heap-abschluss](slice-qa-performance-heap-abschluss.md); dieser Slice misst nichts und ändert kein Messprotokoll.
 - Optimierung bei einem verfehlten Grenzwert — ein Slice je Befund (Welle §6). Ob ein Wert „Code angleichen“ oder „Zielbild anpassen“ heißt, entscheidet der Nutzer mit dem Wert, nicht dieser Slice.
 - Eine Gate-Schwelle in `make gates` — der Lasttest bleibt außerhalb der Gates ([ADR-0022](../../adr/0022-e2e-laeufe-nicht-in-den-gates.md)); ein Gate aus dem Wächter-Wert wäre eine eigene Entscheidung.
 
@@ -83,7 +83,7 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [slice-qa-performance-durchsatz-sitzungen](../in-progress/slice-qa-performance-durchsatz-sitzungen.md), [slice-qa-performance-rueckstau](../in-progress/slice-qa-performance-rueckstau.md) und [slice-qa-performance-heap-abschluss](slice-qa-performance-heap-abschluss.md) in `done/` **und** der Nutzer hat die aus den Messzeilen abgeleiteten Zahlen bestätigt (Entscheidung und Lieferung getrennt: der Slice liefert den Eintrag, nicht die Entscheidung).
+**Start** (`next` → `in-progress`): [slice-qa-performance-durchsatz-sitzungen](../done/slice-qa-performance-durchsatz-sitzungen.md), [slice-qa-performance-rueckstau](../in-progress/slice-qa-performance-rueckstau.md) und [slice-qa-performance-heap-abschluss](slice-qa-performance-heap-abschluss.md) in `done/` **und** der Nutzer hat die aus den Messzeilen abgeleiteten Zahlen bestätigt (Entscheidung und Lieferung getrennt: der Slice liefert den Eintrag, nicht die Entscheidung).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
