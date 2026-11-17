@@ -9,8 +9,6 @@ import kotlin.test.assertEquals
  * [ErrorMapper.BACKEND_CODES] und `TDS_INTERNAL_ERROR` (die Folge eines anderen Namens). Gelesen werden die Quelltexte
  * im Projekt; Nutzer-Doku und Spezifikation liegen nicht in der Stage `test` und sind nicht gehalten.
  * Wächter: ein Name der Liste des Kerns, der in der KDoc fehlt, und ein Name in der KDoc, den der Kern nicht annimmt.
- *
- * @spec SPEC-059
  */
 class BackendCodesKdocTest {
     private val known = ErrorMapper.BACKEND_CODES.map { it.name }.toSet()
@@ -22,6 +20,11 @@ class BackendCodesKdocTest {
         return Regex("TDS_[A-Z_]+").findAll(block).map { it.value }.toSet()
     }
 
+    /**
+     * Die KDoc von `QueryEvent.Failure.code` nennt die Namen des Kerns.
+     *
+     * @spec SPEC-059
+     */
     @Test
     fun failureCodeNenntDieNamenDesKerns() {
         val found = names(
@@ -32,6 +35,11 @@ class BackendCodesKdocTest {
         assertEquals(known + "TDS_INTERNAL_ERROR", found)
     }
 
+    /**
+     * Die KDoc von `BulkTargetResult.Rejected.code` nennt die Namen des Kerns.
+     *
+     * @spec SPEC-059
+     */
     @Test
     fun rejectedCodeNenntDieNamenDesKerns() {
         val found = names(
