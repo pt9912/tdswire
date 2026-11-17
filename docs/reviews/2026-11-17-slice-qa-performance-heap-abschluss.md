@@ -6,7 +6,7 @@
 
 **Skill:** `.harness/skills/reviewer.md` @ `0fb14ce1` · **Modell:** claude-sonnet-5-5 · **Datum:** 2026-11-17
 
-**Eingangs-Kontext:** Slice [slice-qa-performance-heap-abschluss](../plan/planning/in-progress/slice-qa-performance-heap-abschluss.md) (§1 bis §6), [Referenz-Workload](../plan/referenz-workload.md), [TDS-QA-04](../../spec/lastenheft.md#tds-qa-04--performance), [ADR-0006](../plan/adr/0006-backend-vertrag-und-streaming.md) (`Accepted`, im Diff unverändert), [ADR-0022](../plan/adr/0022-e2e-laeufe-nicht-in-den-gates.md), [ADR-0024](../plan/adr/0024-lokale-stempel-zwei-klassen.md), `SPEC-002`, `SPEC-031`, `AGENTS.md` 3.2, 3.7, 3.8; Vorgänger-Reports `2026-11-17-slice-qa-performance-durchsatz-sitzungen*.md` und `2026-11-17-slice-qa-performance-rueckstau*.md` unter `docs/reviews/`.
+**Eingangs-Kontext:** Slice [slice-qa-performance-heap-abschluss](../plan/planning/done/slice-qa-performance-heap-abschluss.md) (§1 bis §6), [Referenz-Workload](../plan/referenz-workload.md), [TDS-QA-04](../../spec/lastenheft.md#tds-qa-04--performance), [ADR-0006](../plan/adr/0006-backend-vertrag-und-streaming.md) (`Accepted`, im Diff unverändert), [ADR-0022](../plan/adr/0022-e2e-laeufe-nicht-in-den-gates.md), [ADR-0024](../plan/adr/0024-lokale-stempel-zwei-klassen.md), `SPEC-002`, `SPEC-031`, `AGENTS.md` 3.2, 3.7, 3.8; Vorgänger-Reports `2026-11-17-slice-qa-performance-durchsatz-sitzungen*.md` und `2026-11-17-slice-qa-performance-rueckstau*.md` unter `docs/reviews/`.
 
 **Selbst gefahren** (Last 2,1 beim Start, 17 GiB verfügbar; keine künstliche Last, kein `make heap-abschluss`, kein `clean-build`, kein `e2e`, Messsperre nicht gebraucht):
 
