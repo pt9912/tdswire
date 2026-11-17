@@ -91,6 +91,18 @@ Aussagen-Berührung steht hier gar nicht.
 | `spec/spezifikation.md` (`SPEC-011`, `SPEC-030`, Backend-Vertrag), `docs/plan/kompatibilitaetsmatrix.md` | update | gemessene Lesart, Streichung der Zuordnung des Mehrfach-RPC |
 | `referenztest-dotnet/` (Lücke 4 der Matrix), `tools/e2e.sh` | update | Test mit `UpdateBatchSize` 2 gelingt; Messfall für das Messprotokoll |
 
+Weitere berührte Dateien (Stand des Diffs):
+
+| Datei / Komponente | Änderungs-Art | Begründung |
+|---|---|---|
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/rpc/` (`RpcParser.kt`, `RpcParameterReader.kt`, `RpcCatalog.kt`, `RpcRequest.kt`), `protocol/wire/ByteReader.kt`, `protocol/response/` (`ResponseRun.kt`, `ResponseSequencer.kt`, `RpcTrailer.kt`), `protocol/dispatch/` (`RpcBinder.kt`, `RpcParameters.kt`, `RequestLoop.kt`), `domain/QueryRequest.kt`, `port/QueryBackend.kt` | update | Trennbyte lesen, Parameterbudget je Nachricht, `MORE\|0x80` am DONEPROC, Folge von Aufrufen; KDoc der öffentlichen Fläche (dieselbe `requestId` nacheinander) |
+| `src/test/kotlin/` (`RpcCallSequenceTest`, `RpcSequenceDispatchTest`, `RpcSequenceAbortTest`) | neu | Parser, Dispatch, Fehler, Frist, Abbruch |
+| `docs/user/einbettung-und-betrieb.md`, `docs/user/referenz-konfiguration.md` | update | Backend-Vertrag und Antwortformen (`AGENTS.md` §5 Regel 5) |
+| `docs/messungen/referenzabgleich.md`, `referenztest-dotnet/Vergleich/MessungWireTests.cs`, `referenztest-dotnet/Mitschnitt/` (`MessAuswertung.cs`, Belege, `messung/{2022,2025}/rpc-batch-*.messung`), `tools/mk/vergleichslauf-d.mk` | update, neu | Messung W-10 bis W-13, Erzeuger im Repo |
+| `docs/plan/e2e-abdeckung.md`, `tools/e2e.sh`, `tools/kompatibilitaetstest.sh`, `tools/log-muster.sh`, `tools/log-muster-selbsttest.sh`, `docs/plan/spec-abdeckung.md` | update | Stufe 6 und ihre Log-Prüfung, Abdeckungssicht, Matrix der Spezifikation |
+
+Zusätzliche `SPEC-*` der Tests: `SPEC-001`, `SPEC-009`, `SPEC-027`, `SPEC-029`, `SPEC-045`, `SPEC-048`. Der Nutzer hat am 2026-11-17 bestätigt: nur `0xFF` trennt, die Parametergrenze 4096 gilt je Nachricht.
+
 **Optional: Ansatz als Liste, wenn eine Zeile pro Datei nicht trägt** — z. B.
 eine Schnittstellenänderung über viele gleichrangige Dateien mit derselben
 Begründung, oder ein Ansatz, der sich nicht auf eine Datei herunterbrechen
