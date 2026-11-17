@@ -91,12 +91,6 @@ internal class AbschlussAntwort {
         packetRows += rowsPerResult.firstOrNull() ?: 0
     }
 
-    /** Die Zeilen des ersten Ergebnisses, die vollständig waren, als das Paket vor [packet] (ab 1) ankam; ohne Vorgänger 0. */
-    fun rowsBefore(packet: Int): Int = if (packet > 1) packetRows[packet - 2] else 0
-
-    /** Die Wanduhr des Empfangs des Pakets vor [packet] (ab 1); ohne Vorgänger -1. */
-    fun arrivalBefore(packet: Int): Long = if (packet > 1) packetArrivals[packet - 2] else -1L
-
     /** `true`, wenn kein Byte unverarbeitet im Puffer liegt. */
     fun complete(): Boolean = buffer.isEmpty()
 
@@ -186,6 +180,12 @@ internal class AbschlussAntwort {
         return DONE_BYTES
     }
 }
+
+/** Die Zeilen des ersten Ergebnisses, die beim Paket vor [packet] (ab 1) vollständig waren; ohne Vorgänger 0. */
+internal fun AbschlussAntwort.rowsBefore(packet: Int): Int = if (packet > 1) packetRows[packet - 2] else 0
+
+/** Die Wanduhr des Empfangs des Pakets vor [packet] (ab 1); ohne Vorgänger -1. */
+internal fun AbschlussAntwort.arrivalBefore(packet: Int): Long = if (packet > 1) packetArrivals[packet - 2] else -1L
 
 /** Die Antwort endet mitten in einem Token: der Rest kommt mit dem nächsten Paket. Ohne Stapelspur, kein Fehler. */
 private class NotEnough : RuntimeException(null, null, false, false)
