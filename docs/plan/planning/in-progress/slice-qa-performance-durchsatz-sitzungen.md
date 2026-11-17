@@ -33,11 +33,11 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Der freigegebene [Referenz-Workload](../../referenz-workload.md) läuft mit dem Werkzeug aus [slice-qa-performance](../done/slice-qa-performance.md) in den Aufbauten B (Protokollschicht) und C (Gesamt): Zeilen/s je Richtung, p95 der Punktabfrage und die Staffel gleichzeitiger Sitzungen sind als Messzeilen mit Streuung und Bedingungen festgehalten.
 
-**Übernimmt:** aus dem DoD-Punkt „Lasttest“ von [slice-qa-performance](../done/slice-qa-performance.md) (Fassung vor der Zerlegung vom 2026-11-15) den Teil Durchsatz, p95-Latenz und gleichzeitige Sitzungen; der Rest liegt bei [slice-qa-performance-rueckstau](../open/slice-qa-performance-rueckstau.md), [slice-qa-performance-heap-abschluss](../open/slice-qa-performance-heap-abschluss.md) und [slice-qa-performance-grenzwerte](../open/slice-qa-performance-grenzwerte.md).
+**Übernimmt:** aus dem DoD-Punkt „Lasttest“ von [slice-qa-performance](../done/slice-qa-performance.md) (Fassung vor der Zerlegung vom 2026-11-15) den Teil Durchsatz, p95-Latenz und gleichzeitige Sitzungen; der Rest liegt bei [slice-qa-performance-rueckstau](../in-progress/slice-qa-performance-rueckstau.md), [slice-qa-performance-heap-abschluss](../open/slice-qa-performance-heap-abschluss.md) und [slice-qa-performance-grenzwerte](../open/slice-qa-performance-grenzwerte.md).
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Rückstau am Socket, blockierendes Backend und Simulations-Backend unter Last — liegen bei [slice-qa-performance-rueckstau](../open/slice-qa-performance-rueckstau.md); die Staffel hier misst Durchsatz, keinen Rückstau.
+- Rückstau am Socket, blockierendes Backend und Simulations-Backend unter Last — liegen bei [slice-qa-performance-rueckstau](../in-progress/slice-qa-performance-rueckstau.md); die Staffel hier misst Durchsatz, keinen Rückstau.
 - Heap beim Strom großer Ergebnisse und Latenz des zurückgehaltenen Abschlusses — liegen bei [slice-qa-performance-heap-abschluss](../open/slice-qa-performance-heap-abschluss.md) (anderer Aufbau, andere Zeilenzahl).
 - Grenzwerte im Lastenheft — liegen bei [slice-qa-performance-grenzwerte](../open/slice-qa-performance-grenzwerte.md); dieser Slice liefert Messzeilen, keine Zahl, die schon Grenzwert ist.
 - Optimierung bei einer verfehlten oder schlechten Zahl — ein Slice je Befund nach der Messung (Welle §6).
