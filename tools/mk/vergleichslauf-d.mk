@@ -25,8 +25,8 @@
 # Die Messzeilen jedes Laufs stehen in seiner Ausgabe (`vergleichslauf-d: messung:`).
 # Mitschnitt-Lauf (`LAUF=aufnahme`, `LAUF=mitschnitt`; SPEC-045): die Aufnahme braucht die Referenzinstanz (EULA wie oben), das Abspielen nur den Server dieses Repos
 # und das Client-Image; Einzelmessungen am 2026-11-06: Aufnahme beider Instanzen 90 s, Abspielen je Teillauf 14 bis 17 s.
-# Messreihe am Draht (`LAUF=wire`, `wire-2022`, `wire-2025`; SPEC-045): TLS-beendender Proxy im Client-Container, 26 Szenarien je Instanz (22 am 2026-11-06, vier `rpc-batch-*` am 2026-11-17); Einzelmessung am 2026-11-06:
-# beide Instanzen zusammen 70 s einschliesslich Bau und Start, am 2026-11-17 mit 26 Szenarien 53 s; Ablage in referenztest-dotnet/Mitschnitt/messung/; `MESSUNG_NUR=<Szenarien>` fuer eine Teilmenge ohne Ablage.
+# Messreihe am Draht (`LAUF=wire`, `wire-2022`, `wire-2025`; SPEC-045): TLS-beendender Proxy im Client-Container, 36 Szenarien je Instanz (22 am 2026-11-06, 14 `rpc-batch-*` am 2026-11-17); Einzelmessung am 2026-11-06:
+# beide Instanzen zusammen 70 s einschliesslich Bau und Start, am 2026-11-17 mit 26 Szenarien 53 s und mit 36 Szenarien 98 s (Lastmittel 7 bis 9); Ablage in referenztest-dotnet/Mitschnitt/messung/; `MESSUNG_NUR=<Szenarien>` fuer eine Teilmenge ohne Ablage.
 # Messreihe zu Massenladen, MERGE, Katalog, Strukturaenderung und Zeilenform (`LAUF=bulk`, `bulk-2022`, `bulk-2025`; SPEC-045, Kategorie MessungBulk): wie `wire`, 23 Szenarien je Instanz;
 # Einzelmessung am 2026-11-07: Laufzeit gesamt `bulk-2022` 56 s, `bulk-2025` 68 s (mit Cache); Ablage in referenztest-dotnet/Mitschnitt/messung/bulk-merge-katalog/.
 # `MESSUNG_NUR=<Szenarien>` fuer eine Teilmenge ohne Ablage; mit `MESSUNG_WIEDERHOLEN=<N>` faehrt jedes genannte Szenario N-mal ueber einen frischen Bestand und gibt die Rate

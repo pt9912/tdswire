@@ -1,0 +1,2 @@
+**Vorgang:** [slice-mehrfach-rpc-messluecken](../../../../done/slice-mehrfach-rpc-messluecken.md)
+**Fund:** [Verifikation](../../../../../../reviews/2026-11-17-93cde5fb-verifikation-slice-mehrfach-rpc-messluecken.md), Plan-vs-Code-Diff: der Diff berührt `SPEC-003`, das §3 nicht nannte, und §3 trug zwei Zeilen (`docs/plan/spec-abdeckung.md`, `tools/vergleichslauf-d.sh`) erst nach der Umsetzung. Der Verifier fing es; die Zeile zu `SPEC-003` steht seit der Closure in §3. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.

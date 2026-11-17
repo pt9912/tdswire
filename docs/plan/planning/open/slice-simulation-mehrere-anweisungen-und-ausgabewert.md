@@ -41,7 +41,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Neue Anweisungsformen (`OR`, Konstanten-`SELECT`, `WAITFOR`, Ausdrücke) und die Regel A-17 — [slice-simulation-anweisungsformen-erweitern](../open/slice-simulation-anweisungsformen-erweitern.md); sie hängen an der Lesart-Entscheidung des Nutzers und sind ein anderes Lieferziel. Dieser Slice ist deren Voraussetzung für die Zerlegung zweier Anweisungen.
-- Mehrere RPCs in einer Nachricht ([ADR-0051](../../adr/0051-mehrere-rpcs-in-einer-nachricht-werden-beantwortet.md)) und deren Messlücken — [slice-mehrfach-rpc-messluecken](../in-progress/slice-mehrfach-rpc-messluecken.md); anderer Gegenstand (mehrere Aufrufe einer Nachricht, nicht mehrere Anweisungen eines Textes).
+- Mehrere RPCs in einer Nachricht ([ADR-0051](../../adr/0051-mehrere-rpcs-in-einer-nachricht-werden-beantwortet.md)) und deren Messlücken — [slice-mehrfach-rpc-messluecken](../done/slice-mehrfach-rpc-messluecken.md); anderer Gegenstand (mehrere Aufrufe einer Nachricht, nicht mehrere Anweisungen eines Textes).
 - Mehrteilige Antworten für `sp_executesql` mit Parametern — im Referenzabgleich nicht abgespielt (Schritt und Szenario `mehrteilig` sind SQL_BATCH ohne Parameter, gelesen in der Ausnahmeliste); ohne Messung keine Zusage ([AGENTS.md](../../../../AGENTS.md) §3.8).
 - Eigene Backends des Integrators — sie senden `QueryEvent.OutputParameter` und mehrere Ergebnisse schon heute über den Port; es geht um das mitgelieferte Simulations-Backend.
 

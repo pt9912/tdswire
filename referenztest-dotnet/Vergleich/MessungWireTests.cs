@@ -17,7 +17,7 @@ namespace TdsWire.Referenztests.Vergleich;
 /// Fehler im RPC, Stellung von COLMETADATA hinter RETURNVALUE, Ordinal der RETURNVALUE mit mehreren Ausgabewerten, Befehlskennung
 /// `curCmd` für Abschlüsse mit Zeilenzahl, ENVCHANGE bei RESETCONNECTION, Anmeldung und SESSIONSTATE mit `ConnectRetryCount=0` und `1`.
 /// Jedes Szenario führt eine Verbindung des Referenzclients über den TLS-beendenden Proxy (<see cref="TlsAufnahme"/>) gegen die
-/// Referenzinstanz und legt PRELOGIN, LOGIN7 (redigiert) und alle Nachrichten ab (<see cref="MessDatei"/>). Verbunden wird mit
+/// Referenzinstanz und legt PRELOGIN, LOGIN7 (redigiert) und alle Nachrichten ab (<see cref="MessDatei"/>). Was der Client sah (Ausnahmen, Zahlen, Ausgabewerte, Handles), steht als Zeilen `# beobachtung:` im Kopf der Ablage. Verbunden wird mit
 /// `Encrypt=Mandatory`; der Client prüft das Zertifikat des Proxys nicht (`TrustServerCertificate=true` nur auf dieser Strecke,
 /// Setzung), der Proxy prüft das des Servers. Grenze: Einzelmessung je Szenario und Instanz; der Client ist `Microsoft.Data.SqlClient`
 /// in der angegebenen Version, ein anderer Client fragt anders; TLS 1.2 ist gesetzt.
@@ -149,6 +149,13 @@ public class MessungWireTests
         return p;
     }
 
+    private static SqlParameter Zeichen(SqlParameterCollection ps, string name, string wert)
+    {
+        var p = ps.Add(name, SqlDbType.NVarChar, 4000);
+        p.Value = wert;
+        return p;
+    }
+
     private static SqlParameter EinAus(SqlParameterCollection ps, string name, object wert)
     {
         var p = ps.Add(name, SqlDbType.Int);
@@ -164,7 +171,7 @@ public class MessungWireTests
     /// in einer Nachricht, am Draht an der Anfrage ablesbar); mit <paramref name="ausgabe"/> trägt jeder Aufruf einen OUTPUT-Parameter,
     /// den der Adapter in die Spalte N der Zeile zurückschreibt. Beschreibt, was der Client sah.
     /// </summary>
-    private static void Einfuegen(Lauf l, SqlConnection v, string beschreibung, int[] ids, int groesse, bool ausgabe, string ziel = "wire_dml")
+    private static void Einfuegen(Lauf l, SqlConnection v, string beschreibung, int[] ids, int groesse, bool ausgabe, string ziel = "wire_dml", bool weiter = false, bool vorbereiten = false)
     {
         using var tabelle = new DataTable();
         tabelle.Columns.Add("Id", typeof(int));
@@ -182,20 +189,91 @@ public class MessungWireTests
         }
 
         befehl.UpdatedRowSource = ausgabe ? UpdateRowSource.OutputParameters : UpdateRowSource.None;
-        using var adapter = new SqlDataAdapter { InsertCommand = befehl, UpdateBatchSize = groesse };
+        using var adapter = new SqlDataAdapter { InsertCommand = befehl, UpdateBatchSize = groesse, ContinueUpdateOnError = weiter };
         string ergebnis;
         try
         {
+            if (vorbereiten) befehl.Prepare();
             ergebnis = $"Update meldet {adapter.Update(tabelle)}";
         }
         catch (SqlException e)
         {
             ergebnis = $"Ausnahme: Number {e.Number}, Class {e.Class}, State {e.State}, Fehler {e.Errors.Count}";
         }
+        catch (InvalidOperationException e)
+        {
+            ergebnis = "Ausnahme " + e.GetType().Name;
+        }
 
         var werte = ausgabe ? "; N " + string.Join(",", tabelle.Rows.Cast<DataRow>().Select(r => r["N"] is DBNull ? "NULL" : r["N"].ToString())) : string.Empty;
-        l.Beobachtung($"{l.Name} {beschreibung}: UpdateBatchSize {groesse}, {ids.Length} Zeilen: {ergebnis}; Verbindung {v.State}{werte}");
+        var fehlerzeilen = weiter ? "; Zeilen mit Fehler (ContinueUpdateOnError) " + string.Join(",", tabelle.Rows.Cast<DataRow>().Where(r => r.HasErrors).Select(r => r["Id"].ToString())) : string.Empty;
+        l.Beobachtung($"{l.Name} {beschreibung}: UpdateBatchSize {groesse}, {ids.Length} Zeilen: {ergebnis}; Verbindung {v.State}{werte}{fehlerzeilen}");
     }
+
+    /// <summary>
+    /// Führt mehrere Befehle als <c>SqlBatch</c> aus (der Client sendet sie in einer RPC-Nachricht, am Draht an der Anfrage ablesbar) und
+    /// beschreibt, was der Client sah: Mengen und Zeilen je Aufruf in der Reihenfolge des Lesens, Ausnahmen mit allen Nummern, Ausgabewerte.
+    /// </summary>
+    private static void Stapel(Lauf l, SqlConnection v, string beschreibung, (string Text, CommandType Art, Action<SqlParameterCollection>? Parameter)[] befehle, bool vorbereiten = false, Action<SqlBatch>? nachher = null)
+    {
+        using var stapel = new SqlBatch(v);
+        foreach (var (text, art, parameter) in befehle)
+        {
+            var b = new SqlBatchCommand { CommandText = text, CommandType = art };
+            parameter?.Invoke(b.Parameters);
+            stapel.BatchCommands.Add(b);
+        }
+
+        var mengen = 0;
+        var zeilen = 0;
+        var ort = "ExecuteReader";
+        string ergebnis;
+        try
+        {
+            if (vorbereiten)
+            {
+                ort = "Prepare";
+                stapel.Prepare();
+                ort = "ExecuteReader";
+            }
+
+            using (var leser = stapel.ExecuteReader())
+            {
+                ort = "Read";
+                do
+                {
+                    mengen++;
+                    while (leser.Read()) zeilen++;
+                    ort = "NextResult";
+                }
+                while (leser.NextResult());
+            }
+
+            ergebnis = $"Mengen {mengen}, Zeilen {zeilen}, ohne Ausnahme";
+        }
+        catch (SqlException e)
+        {
+            ergebnis = $"Mengen {mengen}, Zeilen {zeilen}, Ausnahme bei {ort}: Number {string.Join("+", e.Errors.Cast<SqlError>().Select(x => x.Number))}, Class {e.Class}, State {e.State}, Fehler {e.Errors.Count}";
+        }
+        catch (Exception e) when (e is InvalidOperationException or NotSupportedException or ArgumentException)
+        {
+            ergebnis = $"Mengen {mengen}, Zeilen {zeilen}, Ausnahme bei {ort}: {e.GetType().Name}";
+        }
+
+        nachher?.Invoke(stapel);
+        var teile = new List<string>();
+        for (var i = 0; i < stapel.BatchCommands.Count; i++)
+        {
+            var werte = Parameterwerte(stapel.BatchCommands[i].Parameters);
+            if (werte.Length > 0) teile.Add($"Befehl {i + 1}: {werte}");
+        }
+
+        var ausgabe = string.Join("; ", teile);
+        l.Beobachtung($"{l.Name} {beschreibung}: SqlBatch mit {befehle.Length} Befehlen: {ergebnis}; Verbindung {v.State}{(ausgabe.Length > 0 ? "; Parameter " + ausgabe : string.Empty)}");
+    }
+
+    private static (string Text, CommandType Art, Action<SqlParameterCollection>? Parameter) Aufruf(string text, Action<SqlParameterCollection>? parameter = null) =>
+        (text, CommandType.Text, parameter);
 
     // ---- Szenarien --------------------------------------------------------------------------------------------------
 
@@ -352,6 +430,138 @@ public class MessungWireTests
                 Folgeabfrage(l, v);
             }),
 
+            // ---- Mehrere RPCs in einer Nachricht: Messlücken (slice-mehrfach-rpc-messluecken) ----
+            // Jedes Szenario legt seine Tabelle selbst an (kein Bestand der anderen Szenarien).
+            ("rpc-batch-fehler-erster", 1, false, (l, v) =>
+            {
+                Mit(l, v, "Tabelle mit benanntem Primaerschluessel", "CREATE TABLE wire_batch_e (Id int NOT NULL CONSTRAINT PK_wire_batch_e PRIMARY KEY, [Text] nvarchar(10) NULL)");
+                Mit(l, v, "Zeile vorab", "INSERT INTO wire_batch_e (Id, [Text]) VALUES (300, N'vorab')");
+                Einfuegen(l, v, "erster Aufruf verletzt den Primaerschluessel (Id 300 besteht)", new[] { 300, 301, 302 }, 3, false, "wire_batch_e");
+                Mit(l, v, "Zeilen nach dem Fehler", "SELECT Id FROM wire_batch_e WHERE Id IN (300, 301, 302) ORDER BY Id");
+                Folgeabfrage(l, v);
+            }),
+            ("rpc-batch-fehler-letzter", 1, false, (l, v) =>
+            {
+                Mit(l, v, "Tabelle mit benanntem Primaerschluessel", "CREATE TABLE wire_batch_l (Id int NOT NULL CONSTRAINT PK_wire_batch_l PRIMARY KEY, [Text] nvarchar(10) NULL)");
+                Mit(l, v, "Zeile vorab", "INSERT INTO wire_batch_l (Id, [Text]) VALUES (320, N'vorab')");
+                Einfuegen(l, v, "letzter Aufruf verletzt den Primaerschluessel (Id 320 besteht)", new[] { 310, 311, 320 }, 3, false, "wire_batch_l");
+                Mit(l, v, "Zeilen nach dem Fehler", "SELECT Id FROM wire_batch_l WHERE Id IN (310, 311, 320) ORDER BY Id");
+                Folgeabfrage(l, v);
+            }),
+            ("rpc-batch-fehler-weiter", 1, false, (l, v) =>
+            {
+                Mit(l, v, "Tabelle mit benanntem Primaerschluessel", "CREATE TABLE wire_batch_w (Id int NOT NULL CONSTRAINT PK_wire_batch_w PRIMARY KEY, [Text] nvarchar(10) NULL)");
+                Mit(l, v, "Zeile vorab", "INSERT INTO wire_batch_w (Id, [Text]) VALUES (340, N'vorab')");
+                Einfuegen(l, v, "ContinueUpdateOnError, zweiter Aufruf verletzt den Primaerschluessel (Id 340 besteht)", new[] { 330, 340, 331 }, 3, false, "wire_batch_w", weiter: true);
+                Mit(l, v, "Zeilen nach dem Fehler", "SELECT Id FROM wire_batch_w WHERE Id IN (330, 340, 331) ORDER BY Id");
+                Folgeabfrage(l, v);
+            }),
+            ("rpc-batch-fehler-vor-ergebnis", 1, false, (l, v) =>
+            {
+                Stapel(l, v, "erster Aufruf: Tabelle fehlt (Uebersetzungsfehler), zweiter liefert ein Ergebnis", new[]
+                {
+                    Aufruf("SELECT Id FROM gibtesnicht WHERE Id = 1"),
+                    Aufruf("SELECT 2 AS b"),
+                });
+                Stapel(l, v, "erster Aufruf: Division durch null, zweiter liefert ein Ergebnis", new[]
+                {
+                    Aufruf("SELECT 1/0 AS a"),
+                    Aufruf("SELECT 2 AS b"),
+                });
+                Stapel(l, v, "mittlerer von drei Aufrufen: Tabelle fehlt, der erste liefert ein Ergebnis", new[]
+                {
+                    Aufruf("SELECT 1 AS a"),
+                    Aufruf("SELECT Id FROM gibtesnicht WHERE Id = 1"),
+                    Aufruf("SELECT 3 AS c"),
+                });
+                Folgeabfrage(l, v);
+            }),
+            ("rpc-batch-ergebnismengen", 1, false, (l, v) =>
+            {
+                Mit(l, v, "Tabelle", "CREATE TABLE wire_batch_m (Id int NOT NULL PRIMARY KEY, [Text] nvarchar(10) NULL)");
+                Stapel(l, v, "je Aufruf Ergebnismengen (eine, zwei, eine)", new[]
+                {
+                    Aufruf("SELECT 1 AS x"),
+                    Aufruf("SELECT 2 AS y; SELECT 3 AS z"),
+                    Aufruf("SELECT 4 AS w"),
+                });
+                Stapel(l, v, "DML und Ergebnis gemischt", new[]
+                {
+                    Aufruf("INSERT INTO wire_batch_m (Id, [Text]) VALUES (1, N'a'), (2, N'b')"),
+                    Aufruf("SELECT Id FROM wire_batch_m ORDER BY Id"),
+                    Aufruf("UPDATE wire_batch_m SET [Text] = N'c' WHERE Id <= 2"),
+                });
+                Stapel(l, v, "Ausgabewert nach einem Ergebnis, in zwei Aufrufen", new[]
+                {
+                    Aufruf("SELECT 1 AS x; SET @o = 5; SELECT 2 AS y", p => Aus(p, "@o")),
+                    Aufruf("SET @o = 6; SELECT 3 AS z", p => Aus(p, "@o")),
+                });
+                Stapel(l, v, "Prozedur per Name mit Ausgabewert, danach ein Ergebnis", new[]
+                {
+                    ("wire_proc_ergebnis", CommandType.StoredProcedure, (Action<SqlParameterCollection>?)(p => Aus(p, "@o"))),
+                    Aufruf("SELECT 9 AS q"),
+                });
+                Folgeabfrage(l, v);
+            }),
+            ("rpc-batch-vorbereitet", 1, false, (l, v) =>
+            {
+                Mit(l, v, "Tabelle", "CREATE TABLE wire_batch_p (Id int NOT NULL PRIMARY KEY, [Text] nvarchar(10) NULL)");
+                Stapel(l, v, "SqlBatch.Prepare, zwei Befehle mit Parameter", new[]
+                {
+                    Aufruf("INSERT INTO wire_batch_p (Id) VALUES (@i)", p => Ein(p, "@i", 1)),
+                    Aufruf("INSERT INTO wire_batch_p (Id) VALUES (@i)", p => Ein(p, "@i", 2)),
+                }, vorbereiten: true);
+                Stapel(l, v, "SqlBatch.Prepare, zweiter Lauf desselben Texts", new[]
+                {
+                    Aufruf("INSERT INTO wire_batch_p (Id) VALUES (@i)", p => Ein(p, "@i", 3)),
+                    Aufruf("INSERT INTO wire_batch_p (Id) VALUES (@i)", p => Ein(p, "@i", 4)),
+                }, vorbereiten: true);
+                Einfuegen(l, v, "SqlCommand.Prepare vor dem Update des Adapters", new[] { 10, 11 }, 2, false, "wire_batch_p", vorbereiten: true);
+                // sp_prepexec und sp_execute per Prozedurname: der Client baut daraus keine Handle-Aufrufe selbst, nimmt sie aber als Prozeduraufruf an.
+                const string Anweisung = "INSERT INTO wire_batch_p (Id) VALUES (@i)";
+                var handles = new List<int>();
+                void Merken(SqlBatch s)
+                {
+                    foreach (var b in s.BatchCommands)
+                        if (b.Parameters.Contains("@handle") && b.Parameters["@handle"].Direction == ParameterDirection.Output && b.Parameters["@handle"].Value is int h) handles.Add(h);
+                }
+
+                (string, CommandType, Action<SqlParameterCollection>?) Prepexec(int i) =>
+                    ("sp_prepexec", CommandType.StoredProcedure, p => { Aus(p, "@handle"); Zeichen(p, "@params", "@i int"); Zeichen(p, "@stmt", Anweisung); Ein(p, "@i", i); });
+                (string, CommandType, Action<SqlParameterCollection>?) Execute(int handle, int i) =>
+                    ("sp_execute", CommandType.StoredProcedure, p => { Ein(p, "@handle", handle); Ein(p, "@i", i); });
+                Stapel(l, v, "sp_prepexec zweimal in einer Nachricht (Prozedur per Name)", new[] { Prepexec(30), Prepexec(31) }, nachher: Merken);
+                Stapel(l, v, "sp_prepexec allein (Handle merken)", new[] { Prepexec(32) }, nachher: Merken);
+                var letzter = handles.Count > 0 ? handles[^1] : 0;
+                l.Beobachtung($"{l.Name} Handles der drei Aufrufe: {string.Join(",", handles)}");
+                Stapel(l, v, $"sp_execute zweimal mit dem Handle {letzter} aus einem frueheren Aufruf", new[] { Execute(letzter, 40), Execute(letzter, 41) });
+                Stapel(l, v, $"sp_prepexec, danach sp_execute mit dem naechsten erwarteten Handle {letzter + 1} in derselben Nachricht", new[] { Prepexec(33), Execute(letzter + 1, 42) }, nachher: Merken);
+                l.Beobachtung($"{l.Name} Handles nach dem Aufruf mit Erwartung {letzter + 1}: {string.Join(",", handles)}");
+                Folgeabfrage(l, v);
+            }),
+
+            // ---- Grenzen der Festlegung (Aufrufe je Nachricht, Parameter je Nachricht) ----
+            ("rpc-batch-aufrufe-1024", 1, false, (l, v) =>
+            {
+                Stapel(l, v, "1024 Aufrufe ohne Parameter", Enumerable.Range(0, 1024).Select(_ => Aufruf("DECLARE @a int")).ToArray());
+                Folgeabfrage(l, v);
+            }),
+            ("rpc-batch-aufrufe-1025", 1, false, (l, v) =>
+            {
+                Stapel(l, v, "1025 Aufrufe ohne Parameter", Enumerable.Range(0, 1025).Select(_ => Aufruf("DECLARE @a int")).ToArray());
+                Folgeabfrage(l, v);
+            }),
+            ("rpc-batch-parameter-4086", 1, false, (l, v) =>
+            {
+                Stapel(l, v, "3 Aufrufe mit je 1360 Parametern (4086 mit Text und Deklaration)", Enumerable.Range(0, 3).Select(_ => Aufruf("SELECT 1 AS x", p => { for (var i = 0; i < 1360; i++) Ein(p, "@p" + i, i); })).ToArray());
+                Folgeabfrage(l, v);
+            }),
+            ("rpc-batch-parameter-4206", 1, false, (l, v) =>
+            {
+                Stapel(l, v, "3 Aufrufe mit je 1400 Parametern (4206 mit Text und Deklaration)", Enumerable.Range(0, 3).Select(_ => Aufruf("SELECT 1 AS x", p => { for (var i = 0; i < 1400; i++) Ein(p, "@p" + i, i); })).ToArray());
+                Folgeabfrage(l, v);
+            }),
+
             // ---- Punkt 2: ENVCHANGE bei RESETCONNECTION ----
             ("reset-ohne-zustand", 1, true, (l, v) =>
             {
@@ -503,6 +713,8 @@ public class MessungWireTests
                 datei.Herkunft.Add(new("schema", "testschema.sql " + Herkunft("TDSWIRE_HERKUNFT_SCHEMA") + ", Aufbau der Messreihe " + AufbauHash()));
                 datei.Herkunft.Add(new("methode", $"TLS-beendender Proxy im Container des Clients, Encrypt=Mandatory, TLS 1.2, ConnectRetryCount={crc}, Pooling={(pool ? "an" : "aus")}, PacketSize {packetSize}; LOGIN7 redigiert (Rechnername, Benutzer, Kennwort, Servername, SSPI, ClientID, Prozess-ID)"));
                 datei.Herkunft.Add(new("aufnahme", DateTime.UtcNow.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)));
+                // Was der Client sah (Ausnahmen, Zahlen, Ausgabewerte), steht neben den Bytes in der Ablage.
+                foreach (var b in beobachtungen) datei.Herkunft.Add(new("beobachtung", b));
                 // Der Servername (Name des Containers) steht in ERROR und INFO; er gehoert der Instanz, nicht dem Verhalten.
                 datei.Nachrichten.AddRange(nachrichten.Select(n => n.Richtung == 's' ? n with { Daten = Redaktion.NameErsetzen(n.Daten, servername) } : n));
                 Assert.True(datei.Nachrichten.Count >= 4, $"{name}: weniger als vier Nachrichten");

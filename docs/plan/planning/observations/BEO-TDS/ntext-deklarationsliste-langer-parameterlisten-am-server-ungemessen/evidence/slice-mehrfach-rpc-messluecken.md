@@ -1,0 +1,2 @@
+**Vorgang:** [slice-mehrfach-rpc-messluecken](../../../../done/slice-mehrfach-rpc-messluecken.md)
+**Fund:** Messprotokoll W-22 (Deklarationsliste als `ntext` bei 1360 und 1400 Parametern je Aufruf) und [Verifikation](../../../../../../reviews/2026-11-17-93cde5fb-verifikation-slice-mehrfach-rpc-messluecken.md) (Abschnitt „Entscheidungs-Konformität“, `ntext`): die Wirkung auf den Server dieser Bibliothek ist ungemessen.
