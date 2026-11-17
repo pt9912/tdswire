@@ -123,9 +123,29 @@ internal static class MessAuswertung
         return abstand > daten.Length ? "(Kopf ausserhalb)" : Encoding.Unicode.GetString(daten, abstand, (daten.Length - abstand) / 2 * 2);
     }
 
+    /// <summary>
+    /// Zerlegt die RPC-Nachricht: je Aufruf Name und Parameter; zwischen zwei Aufrufen steht das Byte `0x80` (BatchFlag) oder `0xFF`
+    /// (NoExecFlag), das der Zerleger als `Batchflag 0x..` führt und mit `||` abtrennt (MS-TDS, RPCRequest).
+    /// </summary>
     public static string Rpc(byte[] d)
     {
         var p = KopfAbstand(d);
+        var aufrufe = new List<string>();
+        while (true)
+        {
+            var aufruf = EinRpc(d, ref p, out var weiter);
+            aufrufe.Add(aufruf);
+            if (!weiter) break;
+            aufrufe.Add($"Batchflag 0x{d[p]:x2}");
+            p++;
+        }
+
+        return string.Join(" || ", aufrufe);
+    }
+
+    private static string EinRpc(byte[] d, ref int p, out bool weiter)
+    {
+        weiter = false;
         if (p + 2 > d.Length) return "(zu kurz)";
         string name;
         var laenge = d[p] | (d[p + 1] << 8);
@@ -149,6 +169,13 @@ internal static class MessAuswertung
         {
             while (p < d.Length)
             {
+                if (d[p] is 0x80 or 0xFF)
+                {
+                    weiter = p + 1 < d.Length;
+                    if (!weiter) parameter.Add("(Batchflag am Ende)");
+                    break;
+                }
+
                 var nl = d[p++];
                 var pname = Encoding.Unicode.GetString(d, p, nl * 2);
                 p += nl * 2;

@@ -476,6 +476,21 @@ public class MessungEinheitTests
 
     // @spec SPEC-045
     [Fact]
+    public void Die_Auswertung_trennt_mehrere_RPCs_einer_Nachricht_am_Trennbyte_0xFF()
+    {
+        var erster = Rpc(10, NvarcharParam("", "A"), IntParam("@i", 0, 1));
+        var zweiter = Cat(Bytes(0xFF, 0xFF), U16(10), U16(0), NvarcharParam("", "B"), IntParam("@i", 0, 2));
+        var rpc = Cat(erster, Bytes(0xFF), zweiter);
+
+        var text = MessAuswertung.Rpc(rpc);
+
+        Assert.Equal("sp_ExecuteSql(#10) [0]- nvarchar 1 Zeichen | [1]@i int 1 || Batchflag 0xff || sp_ExecuteSql(#10) [0]- nvarchar 1 Zeichen | [1]@i int 2", text);
+        Assert.EndsWith("(Batchflag am Ende)", MessAuswertung.Rpc(Cat(erster, Bytes(0xFF))), StringComparison.Ordinal);
+        Assert.DoesNotContain("||", MessAuswertung.Rpc(erster), StringComparison.Ordinal);
+    }
+
+    // @spec SPEC-045
+    [Fact]
     public void Die_Auswertung_bricht_bei_einem_unbekannten_Parametertyp_mit_Hinweis_ab_und_liest_Batch_und_PRELOGIN()
     {
         var rpc = Rpc(13, IntParam("@h", 1, null), Param("@x", 0, Bytes(0x7F), new byte[8]));

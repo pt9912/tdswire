@@ -159,6 +159,44 @@ public class MessungWireTests
 
     private static void Folgeabfrage(Lauf l, SqlConnection v) => Mit(l, v, "Folgeabfrage", "SELECT Id FROM person WHERE Id = 1");
 
+    /// <summary>
+    /// Fügt Zeilen mit einem <c>SqlDataAdapter</c> ein: <paramref name="groesse"/> ist <c>UpdateBatchSize</c> (mehr als 1: mehrere RPCs
+    /// in einer Nachricht, am Draht an der Anfrage ablesbar); mit <paramref name="ausgabe"/> trägt jeder Aufruf einen OUTPUT-Parameter,
+    /// den der Adapter in die Spalte N der Zeile zurückschreibt. Beschreibt, was der Client sah.
+    /// </summary>
+    private static void Einfuegen(Lauf l, SqlConnection v, string beschreibung, int[] ids, int groesse, bool ausgabe, string ziel = "wire_dml")
+    {
+        using var tabelle = new DataTable();
+        tabelle.Columns.Add("Id", typeof(int));
+        tabelle.Columns.Add("Text", typeof(string));
+        tabelle.Columns.Add("N", typeof(int));
+        foreach (var id in ids) tabelle.Rows.Add(id, "r" + id, DBNull.Value);
+        var text = $"INSERT INTO {ziel} (Id, [Text]) VALUES (@Id, @Text)" + (ausgabe ? "; SET @N = @Id + 1000" : string.Empty);
+        using var befehl = new SqlCommand(text, v);
+        befehl.Parameters.Add("@Id", SqlDbType.Int, 0, "Id");
+        befehl.Parameters.Add("@Text", SqlDbType.NVarChar, 10, "Text");
+        if (ausgabe)
+        {
+            var n = befehl.Parameters.Add("@N", SqlDbType.Int, 0, "N");
+            n.Direction = ParameterDirection.Output;
+        }
+
+        befehl.UpdatedRowSource = ausgabe ? UpdateRowSource.OutputParameters : UpdateRowSource.None;
+        using var adapter = new SqlDataAdapter { InsertCommand = befehl, UpdateBatchSize = groesse };
+        string ergebnis;
+        try
+        {
+            ergebnis = $"Update meldet {adapter.Update(tabelle)}";
+        }
+        catch (SqlException e)
+        {
+            ergebnis = $"Ausnahme: Number {e.Number}, Class {e.Class}, State {e.State}, Fehler {e.Errors.Count}";
+        }
+
+        var werte = ausgabe ? "; N " + string.Join(",", tabelle.Rows.Cast<DataRow>().Select(r => r["N"] is DBNull ? "NULL" : r["N"].ToString())) : string.Empty;
+        l.Beobachtung($"{l.Name} {beschreibung}: UpdateBatchSize {groesse}, {ids.Length} Zeilen: {ergebnis}; Verbindung {v.State}{werte}");
+    }
+
     // ---- Szenarien --------------------------------------------------------------------------------------------------
 
     private static readonly (string Name, int Crc, bool Pool, Action<Lauf, SqlConnection> Koerper)[] Szenarien = Erzeugen();
@@ -285,6 +323,33 @@ public class MessungWireTests
                 Mit(l, v, "sp_executesql DELETE", "DELETE FROM wire_dml WHERE Id >= @i", p => Ein(p, "@i", 10));
                 Mit(l, v, "Prozedur mit DML (DONEINPROC)", "wire_proc_dml", p => Ein(p, "@i", 60), CommandType.StoredProcedure);
                 Mit(l, v, "Prozedur mit Ergebnis und DML", "wire_proc_dml_ergebnis", p => Ein(p, "@i", 61), CommandType.StoredProcedure);
+            }),
+
+            // ---- Mehrere RPCs in einer Nachricht (slice-mehrfach-rpc-unterstuetzen) ----
+            ("rpc-batch-dml", 1, false, (l, v) =>
+            {
+                Einfuegen(l, v, "sp_executesql INSERT", new[] { 200, 201 }, 2, false);
+                Folgeabfrage(l, v);
+            }),
+            ("rpc-batch-drei", 1, false, (l, v) =>
+            {
+                Einfuegen(l, v, "drei Zeilen, Gruppen 2 und 1", new[] { 210, 211, 212 }, 2, false);
+                Folgeabfrage(l, v);
+            }),
+            ("rpc-batch-ausgabewert", 1, false, (l, v) =>
+            {
+                Einfuegen(l, v, "sp_executesql INSERT mit OUTPUT je Aufruf", new[] { 220, 221 }, 2, true);
+                Folgeabfrage(l, v);
+            }),
+            ("rpc-batch-fehler", 1, false, (l, v) =>
+            {
+                // Tabelle und Zeile, die der zweite Aufruf verletzt, legt das Szenario selbst an: andere Szenarien löschen Zeilen von
+                // wire_dml, und der Primärschlüssel dort trägt einen zufälligen Namen, der in der Fehlermeldung steht.
+                Mit(l, v, "Tabelle mit benanntem Primaerschluessel", "CREATE TABLE wire_batch (Id int NOT NULL CONSTRAINT PK_wire_batch PRIMARY KEY, [Text] nvarchar(10) NULL)");
+                Mit(l, v, "Zeile vorab", "INSERT INTO wire_batch (Id, [Text]) VALUES (240, N'vorab')");
+                Einfuegen(l, v, "zweiter Aufruf verletzt den Primaerschluessel (Id 240 besteht)", new[] { 230, 240, 231 }, 3, false, "wire_batch");
+                Mit(l, v, "Zeilen nach dem Fehler", "SELECT Id FROM wire_batch WHERE Id IN (230, 240, 231) ORDER BY Id");
+                Folgeabfrage(l, v);
             }),
 
             // ---- Punkt 2: ENVCHANGE bei RESETCONNECTION ----
