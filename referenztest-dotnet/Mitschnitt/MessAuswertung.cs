@@ -9,6 +9,7 @@ namespace TdsWire.Referenztests.Mitschnitt;
 /// aus <see cref="Ergebnis"/> (dieselbe Abbildung wie im Vergleich), dazu `anfrage` (Paketart, Status mit RESETCONNECTION, Text oder
 /// Aufruf mit Parametern in der Reihenfolge der Aufrufliste), `einzelheiten` (Werte, die der Vergleich nicht führt: LOGINACK,
 /// ENVCHANGE mit Werten, SESSIONSTATE, FEATUREEXTACK) und für die Anmeldung PRELOGIN-Optionen und die Zusammenfassung von LOGIN7.
+/// Mit <c>mitZeilenform</c> folgt je Austausch mit Zeilen die Zeile `zeilenform` (je Zeile Tokenname und Bytes vom Kennbyte bis zum Ende der Zeile); die Messreihe der Zeilenform nutzt sie, die Vergleiche zweier Instanzen nicht (Zeilenwerte wie Sitzungsnummern unterscheiden sich).
 /// Grenze: der RPC-Zerleger kennt nur die Parametertypen int und nvarchar (NVARCHAR-PLP eingeschlossen); bei einem anderen endet die
 /// Liste mit dem Hinweis `(weitere Parameter nicht zerlegt)`.
 /// </summary>
@@ -21,7 +22,7 @@ internal static class MessAuswertung
         [11] = "sp_Prepare", [12] = "sp_Execute", [13] = "sp_PrepExec", [14] = "sp_PrepExecRpc", [15] = "sp_Unprepare",
     };
 
-    public static IReadOnlyList<(string Kennung, string Text)> Zeilen(MessDatei datei)
+    public static IReadOnlyList<(string Kennung, string Text)> Zeilen(MessDatei datei, bool mitZeilenform = false)
     {
         var zeilen = new List<(string, string)>();
         string K(int nr, string feld) => $"{datei.Szenario}/{nr:D2}/{feld}";
@@ -67,6 +68,8 @@ internal static class MessAuswertung
 
             zeilen.Add((K(nummer, "anfrage"), Anfrage(anfrage)));
             zeilen.AddRange(Ergebnis.Zeilen(datei.Szenario, nummer, antworten, attention.Count).Where(z => !z.Kennung.EndsWith("/abspielen", StringComparison.Ordinal)));
+            var zeilenform = mitZeilenform ? antworten.SelectMany(a => TokenLeser.Lesen(a).ZeilenToken).ToList() : new List<string>();
+            if (zeilenform.Count > 0) zeilen.Add((K(nummer, "zeilenform"), string.Join(" ; ", zeilenform)));
             zeilen.Add((K(nummer, "einzelheiten"), Einzelheiten(antworten)));
         }
 
