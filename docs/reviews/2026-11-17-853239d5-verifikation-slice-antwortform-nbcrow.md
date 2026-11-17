@@ -40,7 +40,7 @@ Zum Ergebnis von `e2e` für die Änderung: die Stufen 4 bis 7 (Referenzclient, a
 
 ## Plan-vs-Code-Diff
 
-Dateien des Diffs `fbac7a7f..853239d5` (26) gegen die Tabelle §3: alle dort genannten Dateien sind berührt, `RowForm.kt`, `ResponseRowFormTest.kt`, `ValueWriterNullSizeTest.kt`, die zwei `.messung`-Ablagen und das Messprotokoll sind neu wie geplant. Zusätzlich im Diff und in der Tabelle nachgetragen: `referenz-konfiguration.md`. Nicht in der Tabelle, aber im Diff: der Review-Report selbst (`docs/reviews/`, kein Plan-Gegenstand). Kein Quelltext außerhalb des Plans; `src/main` berührt nur `ResponseRun.kt`, `RowForm.kt`, `Token.kt` (KDoc), `ValueWriter.kt` (`nullSize`) wie in §3. Keine Abweichung vom Plan, keine Entscheidung (ADR-0006) verletzt: der Encoder bleibt unverändert, der Sequenzierer wählt.
+Dateien des Diffs `fbac7a7f..853239d5` (26) gegen die Tabelle §3: alle dort genannten Dateien sind berührt, `RowForm.kt`, `ResponseRowFormTest.kt`, `ValueWriterNullSizeTest.kt`, die zwei `.messung`-Ablagen und das Messprotokoll sind neu wie geplant. Zusätzlich im Diff und in der Tabelle nachgetragen: `referenz-konfiguration.md`. Nicht in der Tabelle, aber im Diff: der Review-Report selbst (`docs/reviews/`, kein Plan-Gegenstand). Kein Quelltext außerhalb des Plans; `src/main` berührt nur `ResponseRun.kt`, `RowForm.kt`, `Token.kt` (KDoc), `ValueWriter.kt` (`nullSize`) wie in §3. Keine Abweichung vom Plan, keine Entscheidung ([ADR-0006](../plan/adr/0006-backend-vertrag-und-streaming.md)) verletzt: der Encoder bleibt unverändert, der Sequenzierer wählt.
 
 ## Ungemessen (so zu führen)
 
