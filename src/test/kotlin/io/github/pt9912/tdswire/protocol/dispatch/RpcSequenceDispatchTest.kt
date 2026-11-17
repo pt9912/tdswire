@@ -219,9 +219,12 @@ class RpcSequenceDispatchTest {
     }
 
     /**
-     * Die gemessene Form eines Fehlers nach dem Beginn einer Anweisung (W-2 und W-13): ERROR, DONEINPROC `MORE|ERROR`,
-     * RETURNSTATUS mit der SQL-Server-Nummer des Fehlers (hier 2627), DONEPROC `MORE|0x80` ohne Fehlerbit; der Aufruf
-     * danach läuft. Rot, wenn der Fehlerpfad das Bit `0x80` oder `MORE` am DONEPROC nicht schreibt.
+     * Ein Fehler nach einem Ergebnis mit Zeile (Form von W-2) in einem Aufruf einer Folge: ERROR, DONEINPROC
+     * `MORE|ERROR`, RETURNSTATUS mit der SQL-Server-Nummer des Fehlers (hier 2627), DONEPROC `MORE|0x80` ohne
+     * Fehlerbit; der Aufruf danach läuft. Die Bits `MORE|0x80` am DONEPROC sind in W-13 gemessen. Abweichung von W-13:
+     * dort war der Aufruf ein DML ohne Ergebnis und der Strom trug INFO 3621; ein Backend-Fehler ohne Vorereignis
+     * ergibt hier DONEPROC `ERROR` (Form von W-1), nicht DONEINPROC, und INFO 3621 prüft der Test nicht. Rot, wenn der
+     * Fehlerpfad das Bit `0x80` oder `MORE` am DONEPROC nicht schreibt.
      *
      * @spec SPEC-030
      */
