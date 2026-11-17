@@ -1,1 +1,3 @@
 **Stand:** verkörpert — `.claude/commands/plan-welle.md` (Schritt 6b), Anker `seit slice-referenzabgleich-mitschnitt`; Nachtrag in `slice-referenzabgleich-mitschnitt.md` §7. Eigene Zählung 1×; verkörpert als Entscheidung des Nutzers über die Familie der DoD-Wortlaut-Klassen (2026-11-06). Offen: Ausdehnung von `.claude/commands/implement-slice.md` Schritt 22 auf Befunde des Reviews.
+
+**Wiederauftreten (slice-qa-performance-heap-abschluss):** Verifikation, DoD-Punkt „Abstand letzte Zeile → DONE“: eine Messgröße, die die Bauart (Paketierung) auf 0 µs festlegt; der Verifier fing es, die Planung nicht. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
