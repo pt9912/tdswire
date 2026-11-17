@@ -62,7 +62,7 @@ Bewertet gegen die geteilte DoD (Nutzerentscheidung 2026-11-17 „DoD teilen, B 
 | `referenztest-dotnet/Lasttest/LasttestTests.cs`, `ReferenzZeilen.cs` | +433, +9 | vorhanden |
 | `LasttestBackends.kt`, `LasttestTest.kt` | +39, +46 | vorhanden, `clean-build` grün |
 | `harness/README.md` | 1 Zeile | vorhanden |
-| ADR-0052 und Index | „nicht dieser Slice“ | vorhanden, Architect, unbewertet |
+| [ADR-0052](../plan/adr/0052-oeffentliche-flaeche-fuer-massenladen-eigener-backends.md) und Index | „nicht dieser Slice“ | vorhanden, Architect, unbewertet |
 | nicht im Plan | Review und Re-Review (`docs/reviews/`) | erwartet (DoD) |
 
 Keine Datei im Diff außerhalb der Liste; kein `src/`, kein `Dockerfile`, kein `Makefile`, keine `tools/mk`-Änderung. Keine neue `SPEC-*`/`TDS-*`-Kennung, kein Gate gelockert (AGENTS §3.6), kein `@Suppress` (detekt grün).
@@ -82,7 +82,7 @@ Keine Datei im Diff außerhalb der Liste; kein `src/`, kein `Dockerfile`, kein `
 | V-1 | MEDIUM | Der DoD-Satz „jede Zahl mit Erzeuger im Repo“ ist für die Tabellen nicht erfüllt: sie sind mit einem Wegwerfskript außerhalb des Repos aus den Rohzeilen gesetzt, die Fremdlast-Probe (Spalte „Fremdlast“, Kennzeichnung „gestört“) und die Schleife mit Wiederholung bei Speicherabbruch liegen ebenfalls außerhalb. Das Protokoll sagt es offen und die Rohzeilen sind Beleg (ich habe 48 von 48 Zeilen neu nachgerechnet), der DoD-Wortlaut aber nicht. Entscheidung beim Planner: Aggregator ins Repo (oder `tools/`) legen oder den DoD-Wortlaut auf „Rohzahlen mit Erzeuger im Repo, Tabellen aus den Rohzeilen nachrechenbar“ einschränken. | Protokoll Kopf; Slice §2; Nachrechnung 2 |
 | V-2 | LOW | Die Lesart „Aufbau B und C liegen bei 1, 8 und 16 Sitzungen innerhalb von etwa 6 % beieinander“ trägt nicht für Export ohne Senke bei 8 Sitzungen: C 211 522 gegen B 198 029 Zeilen/s = +6,8 % (bei 1 und 16 und mit Senke ≤ 4,6 %). Mit „bis etwa 7 %“ trägt der Satz. | Rohzeilen `stufe8-B-ohne-export-v1`, `stufe8-C-ohne-export-v1` |
 | V-3 | LOW | Plan §3 nannte für `referenz-workload.md` „Messzeilen und Zeilengröße nachtragen“; die Datei trägt nur die Beschreibung der Phasen und der Stufe N. DoD-Zeile Doku-Update ist damit offen bis zur Closure oder der Plan-Wortlaut ist anzupassen. | Diff `referenz-workload.md` |
-| V-4 | LOW | Stufe 9 von `make e2e` fährt nur Export und Import mit einer Sitzung; die neuen Pfade (N Sitzungen, Punktabfrage, Prüfung jeder Zeile) laufen in keiner Stufe und in keinem Gate, belegt nur durch die einmaligen Messläufe vom 2026-11-17. Das Protokoll benennt nur die Prüfung der Zeile. Für künftige Änderungen am Client fehlt ein Wächter; ein Folge-Punkt oder eine Beobachtung (nicht Pflicht dieses Slice, ADR-0022 hält sie bewusst außerhalb der Gates). | `make e2e`-Log; `tools/lasttest.sh` Zeile 47 und 48 |
+| V-4 | LOW | Stufe 9 von `make e2e` fährt nur Export und Import mit einer Sitzung; die neuen Pfade (N Sitzungen, Punktabfrage, Prüfung jeder Zeile) laufen in keiner Stufe und in keinem Gate, belegt nur durch die einmaligen Messläufe vom 2026-11-17. Das Protokoll benennt nur die Prüfung der Zeile. Für künftige Änderungen am Client fehlt ein Wächter; ein Folge-Punkt oder eine Beobachtung (nicht Pflicht dieses Slice, [ADR-0022](../plan/adr/0022-e2e-laeufe-nicht-in-den-gates.md) hält sie bewusst außerhalb der Gates). | `make e2e`-Log; `tools/lasttest.sh` Zeile 47 und 48 |
 | V-5 | INFO | „Dauer je Schicht“ steht nur für „Senke mit“ (ohne Senke gibt es keine Spans); die DoD-Zeile Export nennt „je Stufe“ ohne diese Einschränkung; ein Satz im Protokoll würde es ausdrücklich machen. | Protokoll Tabelle „Dauer je Schicht (Senke mit)“ |
 | V-6 | INFO | `make gates` lief mit Stempel in 9 s (alle drei Gruppen übersprungen, Beleg gilt für den Stand); der Frischbeleg ist `FORCE=1 make gates` (31 s, Exit 0) plus der frische Selbsttest und `clean-build`. | Gate-Log |
 
@@ -90,7 +90,7 @@ Kein HIGH. Die Findings des Reviews sind nach Auftrag bis auf eine INFO-Position
 
 ## Ungemessen oder nicht belegt (Zusammenfassung)
 
-- **Import in Aufbau B:** nicht gemessen, ausdrücklich offen (Nutzerentscheidung „DoD teilen, B später“, Folge-Slice nach ADR-0052).
+- **Import in Aufbau B:** nicht gemessen, ausdrücklich offen (Nutzerentscheidung „DoD teilen, B später“, Folge-Slice nach [ADR-0052](../plan/adr/0052-oeffentliche-flaeche-fuer-massenladen-eigener-backends.md)).
 - **Aufbau A:** in diesem Protokoll nicht gemessen (nur die Probe vom 2026-11-16, eine Sitzung); nicht Teil der DoD dieses Slice.
 - **CPU des Clients und des Servers:** ungemessen; ob das Plateau ab 8 Sitzungen (198 000 bis 229 000 Zeilen/s Export, 436 000 bis 542 000 Import) am Server, am Client (2 CPUs für bis zu 64 Sitzungen) oder an beidem liegt, folgt aus den Zeilen nicht.
 - **Einfluss der Senke:** weder belegt noch ausgeschlossen (7 von 12 Paaren außerhalb der Spanne, wechselndes Vorzeichen); Kosten einer blockierenden Senke ungemessen.
