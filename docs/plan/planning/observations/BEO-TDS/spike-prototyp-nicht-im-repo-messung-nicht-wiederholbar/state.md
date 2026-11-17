@@ -5,3 +5,6 @@
 - liegt in `.claude/commands/implement-slice.md` (Schritt 20a: das Messprotokoll nennt, ob der Erzeuger im Repo liegt).
 
 **Steering-Loop-Eintrag der Welle:** Der Eintrag mit `liegt in` gehört in die `-results.md` der Wellen, die den Lese-Schritt tragen: `welle-testserver-manuell` (drei der vier Belege) und `welle-referenzabgleich-release` (`slice-referenzabgleich-live`), sobald sie schließen; beide haben noch keine Results-Notiz. Der Lese-Schritt von `welle-fehler-abbruch` (3×) blieb ohne Verkörperung (`welle-fehler-abbruch-results.md` bleibt unverändert). Die Anker-Paarung sucht die Ziele ab Repo-Wurzel und findet den Anker in allen drei Dateien. Grenze: der Sensor erzwingt den Anker nur für deklarierte Regeln.
+
+
+**Wiederauftreten (slice-qa-performance-durchsatz-sitzungen):** Review F-1 und Verifikation V-1: Tabellen und Fremdlast-Probe eines Messprotokolls aus Erzeugern außerhalb des Repos, gegen den DoD-Wortlaut „jede Zahl mit Erzeuger im Repo“. Die Tabellen setzt seit `fb0173fc` `tools/lasttest-tabellen.sh` (Selbsttest in `make skript-selbsttest`); die Probe bleibt außerhalb, benannt als nicht reproduzierbar. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
