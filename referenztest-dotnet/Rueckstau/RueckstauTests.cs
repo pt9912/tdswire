@@ -45,7 +45,51 @@ public class RueckstauTests
         return verbindung;
     }
 
-    private static void WarteAuf(Task[] aufgaben) => Task.WaitAll(aufgaben);
+    /// <summary>
+    /// Startet <paramref name="anzahl"/> Threads sofort, je einen je Sitzung (kein Thread-Pool: dessen Anlauf würde die
+    /// Sitzungen nacheinander starten); <see cref="Warten"/> wartet auf alle und wirft die Fehler gesammelt.
+    /// </summary>
+    private sealed class Gruppe
+    {
+        private readonly List<Thread> _threads = new();
+        private readonly ConcurrentBag<Exception> _fehler = new();
+
+        public Gruppe(int anzahl, Action<int> körper)
+        {
+            for (var i = 0; i < anzahl; i++)
+            {
+                var index = i;
+                var thread = new Thread(
+                    () =>
+                    {
+                        try
+                        {
+                            körper(index);
+                        }
+                        catch (Exception e)
+                        {
+                            _fehler.Add(e);
+                        }
+                    },
+                    512 * 1024);
+                _threads.Add(thread);
+                thread.Start();
+            }
+        }
+
+        public void Warten()
+        {
+            foreach (var thread in _threads)
+            {
+                thread.Join();
+            }
+
+            if (!_fehler.IsEmpty)
+            {
+                throw new AggregateException(_fehler);
+            }
+        }
+    }
 
     private void Zeile(string text) => _ausgabe.WriteLine("rueckstau: " + text);
 
@@ -169,7 +213,7 @@ public class RueckstauTests
             if (schnell > 0)
             {
                 var uhr = Stopwatch.StartNew();
-                Parallel.For(0, schnell, new ParallelOptions { MaxDegreeOfParallelism = n }, i => LiesAlles(sitzungen[i], sql, zeilen, seed));
+                new Gruppe(schnell, i => LiesAlles(sitzungen[i], sql, zeilen, seed)).Warten();
                 basisMs = uhr.Elapsed.TotalMilliseconds;
             }
 
@@ -178,9 +222,9 @@ public class RueckstauTests
             var bereit = new CountdownEvent(langsam);
             var schnellFertig = new ManualResetEventSlim(false);
             var gesamt = Stopwatch.StartNew();
-            var langsameAufgaben = Enumerable.Range(schnell, langsam).Select(i => Task.Run(() =>
+            var langsameAufgaben = new Gruppe(langsam, k =>
             {
-                using var befehl = new SqlCommand(sql, sitzungen[i]);
+                using var befehl = new SqlCommand(sql, sitzungen[schnell + k]);
                 using var leser = befehl.ExecuteReader();
                 Assert.True(leser.Read());
                 bereit.Signal();
@@ -192,13 +236,13 @@ public class RueckstauTests
                 }
 
                 Assert.Equal(zeilen, gelesen);
-            })).ToArray();
+            });
             bereit.Wait();
             double schnellMs = -1;
             if (schnell > 0)
             {
                 var uhr = Stopwatch.StartNew();
-                Parallel.For(0, schnell, new ParallelOptions { MaxDegreeOfParallelism = n }, i => dauern.Add(LiesAlles(sitzungen[i], sql, zeilen, seed)));
+                new Gruppe(schnell, i => dauern.Add(LiesAlles(sitzungen[i], sql, zeilen, seed))).Warten();
                 schnellMs = uhr.Elapsed.TotalMilliseconds;
             }
 
@@ -208,7 +252,7 @@ public class RueckstauTests
             var s2 = LiesStand(probe);
             var weiter = Stopwatch.StartNew();
             schnellFertig.Set();
-            WarteAuf(langsameAufgaben);
+            langsameAufgaben.Warten();
             var weiterMs = (long)weiter.Elapsed.TotalMilliseconds;
             gesamt.Stop();
             var s3 = LiesStand(probe, bereinigen: true);
@@ -257,11 +301,11 @@ public class RueckstauTests
             var starts = new ConcurrentBag<double>();
             var uhr = Stopwatch.StartNew();
             var mit = MitNachbar(nachbar, () =>
-                Parallel.For(0, n, new ParallelOptions { MaxDegreeOfParallelism = n }, i =>
+                new Gruppe(n, i =>
                 {
                     starts.Add(uhr.Elapsed.TotalMilliseconds);
                     dauern.Add(LiesAlles(sitzungen[i], sql, zeilen, seed));
-                }));
+                }).Warten());
             var gesamtMs = (long)uhr.Elapsed.TotalMilliseconds;
             var s1 = LiesStand(nachbar);
             var sortiert = dauern.OrderBy(d => d).ToList();
@@ -329,7 +373,7 @@ public class RueckstauTests
                     Thread.Sleep(10);
                 }
 
-                var lastAufgabe = Task.Run(() => Parallel.For(0, last, new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, last) }, i => LiesAlles(lastSitzungen[i], lastSql, lastZeilen, seed)));
+                var lastAufgabe = new Gruppe(last, i => LiesAlles(lastSitzungen[i], lastSql, lastZeilen, seed));
                 Thread.Sleep(nachMs);
                 var gelesenVorCancel = Interlocked.Read(ref gelesen);
                 var uhr = Stopwatch.StartNew();
@@ -337,7 +381,7 @@ public class RueckstauTests
                 Assert.True(leserAufgabe.Wait(TimeSpan.FromMinutes(2)));
                 abbruchBisEndeMs = uhr.Elapsed.TotalMilliseconds;
                 Zeile($"abbruch gelesen_vor_cancel {gelesenVorCancel}");
-                lastAufgabe.Wait();
+                lastAufgabe.Warten();
                 befehl.Dispose();
             });
             var s1 = LiesStand(nachbar);
@@ -420,7 +464,7 @@ public class RueckstauTests
                 });
                 try
                 {
-                    Parallel.For(0, n, new ParallelOptions { MaxDegreeOfParallelism = n }, i =>
+                    new Gruppe(n, i =>
                     {
                         using var kopierer = new SqlBulkCopy(sitzungen[i]) { DestinationTableName = "ref_zeilen", BatchSize = Batch, BulkCopyTimeout = 3600 };
                         for (var c = 0; c < ReferenzZeilen.Spalten; c++)
@@ -429,7 +473,7 @@ public class RueckstauTests
                         }
 
                         kopierer.WriteToServer(leser[i]);
-                    });
+                    }).Warten();
                 }
                 finally
                 {
