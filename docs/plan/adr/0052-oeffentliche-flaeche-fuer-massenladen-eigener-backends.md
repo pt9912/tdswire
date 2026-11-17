@@ -1,10 +1,10 @@
-# ADR-0052: Öffentliche Fläche für das Massenladen eigener Backends: die Fähigkeit am Backend (Option N1; Entwurf, ersetzt bei Annahme Entscheidung 5 von ADR-0033 teilweise)
+# ADR-0052: Öffentliche Fläche für das Massenladen eigener Backends: die Fähigkeit am Backend (Option N1; ersetzt Entscheidung 5 von ADR-0033 teilweise)
 
-**Status:** Proposed (Option N1 vom Nutzer gewählt am 2026-11-17; die ADR ist nicht angenommen, die Annahme steht aus)
+**Status:** Accepted (angenommen vom Nutzer am 2026-11-17, Option N1)
 
 **Datum:** 2026-11-17
 
-**Autor:** Architect (Entwurf); Wahl der Option: pt9912 (Nutzer, 2026-11-17); Annahme: offen
+**Autor:** Architect (Entwurf); Wahl der Option und Annahme: pt9912 (Nutzer, 2026-11-17)
 
 **Anlass (Quelle):** Entscheidung des Nutzers 2026-11-17 „Code angleichen“: das Zielbild (Spezifikation und Definition of Done des Messslices zum Durchsatz) verlangt den Import in ein zählendes **eigenes** Backend; die öffentliche Fläche soll dafür wachsen können, gegen die Empfehlung, die Definition of Done auf den Aufbau C zu kürzen. Ob und wie die Fläche wächst, entscheidet der Nutzer fallweise; diese ADR legt ihm die Wege mit Kosten vor.
 
@@ -12,7 +12,7 @@
 
 **Schärft (nach `Accepted`):** [SPEC-059](../../../spec/spezifikation.md#einstieg-des-integrators-vertrag-zu-spec-059) (Liste der öffentlichen Namen, `BackendSource`), [SPEC-035](../../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends) (Massenladen), [SPEC-036](../../../spec/spezifikation.md#spec-036--erkannte-anweisungsformen-des-simulations-backends-vorläufig) (Form `INSERT BULK`, bisher nur für das Simulations-Backend).
 
-**Supersedes (bei Annahme, teilweise, nur wörtlich benannt):** [ADR-0033](0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Entscheidung 5, **ausschließlich** die Aussage, dass die Fähigkeit des Massenladens dem Simulations-Backend vorbehalten ist (Weitergabe Z2, „ein neuer Port“, dort nicht gewählt), und, die Aufzählung der neuen öffentlichen Namen in Entscheidung 4 als abschließende Liste. Alles Übrige in ADR-0033 bleibt: die Festlegungen (i) bis (iv) zu Nachricht als Ganzes, IGNORE-Bit und Fehler eines Callbacks, die Zusage „keine Transaktion“ (Nr. 6) und die Fehlernummern (Nr. 7) gelten für den neuen Weg unverändert als Setzung. ADR-0033 bleibt unverändert und `Accepted` ([AGENTS.md](../../../AGENTS.md) §3.5); der Vermerk „teilweise ersetzt“ gehört erst bei Annahme in die Indexzeile. Wird die ADR nicht angenommen, entfällt das Supersedes.
+**Supersedes (seit der Annahme, teilweise, nur wörtlich benannt):** [ADR-0033](0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Entscheidung 5, **ausschließlich** die Aussage, dass die Fähigkeit des Massenladens dem Simulations-Backend vorbehalten ist (Weitergabe Z2, „ein neuer Port“, dort nicht gewählt), und, die Aufzählung der neuen öffentlichen Namen in Entscheidung 4 als abschließende Liste. Alles Übrige in ADR-0033 bleibt: die Festlegungen (i) bis (iv) zu Nachricht als Ganzes, IGNORE-Bit und Fehler eines Callbacks, die Zusage „keine Transaktion“ (Nr. 6) und die Fehlernummern (Nr. 7) gelten für den neuen Weg unverändert als Setzung. ADR-0033 bleibt unverändert und `Accepted` ([AGENTS.md](../../../AGENTS.md) §3.5); der Vermerk „teilweise ersetzt“ gehört erst bei Annahme in die Indexzeile. Wird die ADR nicht angenommen, entfällt das Supersedes.
 
 ---
 
@@ -32,7 +32,7 @@
 
 ## Entscheidung
 
-**Gewählt ist Option N1: die Fähigkeit am Backend wird öffentlich** (Entscheidung des Nutzers 2026-11-17; der Entwurf des Architects hatte N2 empfohlen). Die Option ist gewählt, die ADR **nicht angenommen**: sie bleibt `Proposed`, bis der Nutzer ausdrücklich „annehmen“ sagt. Die Aussagen unten gelten ab Annahme.
+**Gewählt ist Option N1: die Fähigkeit am Backend wird öffentlich** (Entscheidung des Nutzers 2026-11-17; der Entwurf des Architects hatte N2 empfohlen). Der Nutzer hat die ADR am 2026-11-17 ausdrücklich angenommen („ADR-0052 annehmen“); die Aussagen unten gelten ab dann.
 
 1. **Öffentlich werden** die bisher internen Namen des Massenladens (Z2 aus ADR-0033 Nr. 5): `BulkLoadingBackend` (`bulkTarget`, `bulkProbe`, `load`), `BulkTarget`, `BulkTargetResult` mit `Ready` und `Rejected`, `BulkProbeColumn`, `BulkProbeResult` mit `Ready` und `Rejected`, `BulkRows` — **10 Typnamen** nach der Zählung von `make flaeche` (geschachtelte Fälle als `Eltern.Name`; die Zählung ist die des Entwurfs, nichts davon ist gebaut). Die Namen sind die des Ist-Stands (Setzung: sie bleiben, Umbenennung ist Sache des Fläche-Slice).
 2. **Ein `QueryBackend`, das `BulkLoadingBackend` zusätzlich trägt, bekommt das Massenladen**; die Auswahl `backend as? BulkLoadingBackend` im Kern bleibt (gelesen: `BulkDispatch.kt`). Der Wrapper `SimulationBulk` ist für das Simulations-Backend nicht mehr nötig, sobald die Klasse die Schnittstelle selbst tragen darf (Folgerung; ob er bleibt, entscheidet der Bau).
@@ -66,7 +66,7 @@ Der Nutzer hat N1 gewählt; die folgenden Gründe sind die des Entwurfs, nicht A
 
 - Positiv: ein eigenes Backend nimmt `SqlBulkCopy` an; der Autor hat die Dekodierung zu `BulkRows` ohne Map-Bau und ohne Katalog des Simulations-Backends; Aufbau B für den Import ist möglich (Trennschärfe gegen C ungemessen); geringster Umbau des Codes (Sichtbarkeit).
 - Negativ: **+10 Typnamen** in `SPEC-059`; Texterkennung von `INSERT BULK` und Form der Probe werden Vertrag und müssen bei jeder Änderung von `SPEC-036` Form B nachgezogen werden; ein Backend-Autor muss beides selbst bauen (Aufwand, den heute die Bibliothek für das Simulations-Backend trägt); nach dem Wortlaut von `SPEC-059` (`0.y.z`, `y` steigt bei jeder Änderung der Fläche) die nächste Veröffentlichung eine neue `y`-Version (Folgerung, nicht gebaut). Heap-Bedarf mindestens die Größe der Nachricht (b12) trifft den Autor.
-- **Nachzieh-Liste für den Fläche-Slice** (Träger: eigener Slice; der Durchsatz-Slice wartet nur auf ihn, wenn B im Import gemessen werden soll): (1) `SPEC-059`: Liste um die 10 Namen, Zeile `BackendSource`/Custom und Zusage; (2) `SPEC-035` (Massenladen, Fähigkeit für fremde Backends) und `SPEC-036` (Form B: wer erkennt); (3) Sichtbarkeit `public` mit KDoc, `explicitApi` strict; (4) Beleg jedes der 10 Namen in `src/integrator` oder `testserver/kotlin` (sonst `make flaeche` rot) samt Einbettungstest (Rohbytes: Probe, `INSERT BULK`, Nachricht 0x07, Zahl, Fehler, IGNORE-Bit, Regressionsfall ohne Fähigkeit); (5) Aufbau B im Testserver (`LasttestBackends.kt`) mit zählendem `BulkLoadingBackend`; (6) [Referenz-Workload](../referenz-workload.md) 2 und 3.6 berichtigen; (7) Index: Vermerk „teilweise ersetzt durch ADR-0052“ bei ADR-0033 erst bei Annahme.
+- **Nachzieh-Liste für den Fläche-Slice** (Träger: eigener Slice; der Durchsatz-Slice wartet nur auf ihn, wenn B im Import gemessen werden soll): (1) `SPEC-059`: Liste um die 10 Namen, Zeile `BackendSource`/Custom und Zusage; (2) `SPEC-035` (Massenladen, Fähigkeit für fremde Backends) und `SPEC-036` (Form B: wer erkennt); (3) Sichtbarkeit `public` mit KDoc, `explicitApi` strict; (4) Beleg jedes der 10 Namen in `src/integrator` oder `testserver/kotlin` (sonst `make flaeche` rot) samt Einbettungstest (Rohbytes: Probe, `INSERT BULK`, Nachricht 0x07, Zahl, Fehler, IGNORE-Bit, Regressionsfall ohne Fähigkeit); (5) Aufbau B im Testserver (`LasttestBackends.kt`) mit zählendem `BulkLoadingBackend`; (6) [Referenz-Workload](../referenz-workload.md) 2 und 3.6 berichtigen; (7) Index: Vermerk „teilweise ersetzt durch ADR-0052“ in der Indexzeile von ADR-0033 (mit der Annahme gesetzt).
 - **Akzeptierte Negative** (kein eigener Träger, weil sie mit dem Bau sichtbar werden): ob `SqlBulkCopy` für ein fremdes Backend weitere Anfragen stellt, die nur ein Katalog beantwortet (das Backend antwortet über `execute` selbst); die Trennschärfe von B gegen C im Import (fällt B nicht unterscheidbar aus, ist das ein Negativ der Messung, kein Rückbau; ein Rückbau bräche die Zusage und braucht eine Folge-ADR); `-Xmx256m` bei 16 MiB je Nachricht (Setzung des Workloads).
 
 
@@ -92,6 +92,7 @@ Ein Einbettender verlangt Gegendruck innerhalb einer Nachricht oder Atomarität 
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-11-17 | Proposed (Entwurf nach der Entscheidung „Code angleichen“ des Nutzers) | [ADR-0033](0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) |
-| 2026-11-17 | Option N1 vom Nutzer gewählt (Entwurf hatte N2 empfohlen); Annahme der ADR steht aus | — |
+| 2026-11-17 | Option N1 vom Nutzer gewählt (Entwurf hatte N2 empfohlen) | — |
+| 2026-11-17 | Accepted (Nutzer: „ADR-0052 annehmen“) | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen entstehen als neue ADR mit `Supersedes ADR-0052` ([AGENTS.md](../../../AGENTS.md) §3.5).
