@@ -73,6 +73,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 | `spec/spezifikation.md` (`SPEC-030`) | update | belegte Setzungen als gemessen kennzeichnen (AGENTS §3.8); Widerspruch erst nach Nutzerentscheid |
 | `docs/plan/kompatibilitaetsmatrix.md` | update | Zeilen und Zitate zu den neuen Messungen |
 | `tools/mk/vergleichslauf-d.mk` | update | Kopfkommentar: Zahl der Szenarien und Laufzeit der Reihe `wire` |
+| `docs/plan/spec-abdeckung.md` | update (erzeugt) | `make spec-abdeckung` nach den Belegtests (Tests geändert) |
+| `tools/vergleichslauf-d.sh` | unverändert | der Lauf `wire` ersetzt die Ablage je Instanz als Ganzes; die 26 älteren Dateien stellt `git checkout` wieder her (nicht neu aufgenommen), die zehn neuen kommen hinzu |
 | `docs/plan/adr/0051-…md` | **nicht ändern** | `Accepted` (`AGENTS.md` §3.5); eine Abweichung ist eine Folge-ADR mit `Supersedes`, Entscheidung des Nutzers |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf. Mechanik: `make vergleichslauf-d LAUF=wire` (`wire-2022`, `wire-2025`; `MESSUNG_NUR=<Szenarien>` für eine Teilmenge ohne Ablage), EULA und Bedingungen im Kopf von `tools/mk/vergleichslauf-d.mk`.
