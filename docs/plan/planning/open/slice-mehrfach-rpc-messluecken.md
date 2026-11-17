@@ -27,7 +27,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Gegenstand der Messung** (je Punkt eine eigene Messaussage):
 
-1. Fehler im **ersten** und im **letzten** Aufruf einer Nachricht (gemessen ist bisher die Mitte von drei, W-13) sowie der **Fehler vor dem ersten Ergebnis eines nicht letzten Aufrufs** (ADR-0051 Entscheidung 3, Setzung; `BEO-TDS/fehler-vor-dem-ersten-ergebnis-im-mehrfach-rpc-ungemessen`; Aufnahme durch den Nutzer 2026-11-17).
+1. Fehler im **ersten** und im **letzten** Aufruf einer Nachricht (gemessen ist bisher die Mitte von drei, W-13) sowie der **Fehler vor dem ersten Ergebnis eines nicht letzten Aufrufs** ([ADR-0051](../../adr/0051-mehrere-rpcs-in-einer-nachricht-werden-beantwortet.md) Entscheidung 3, Setzung; `BEO-TDS/fehler-vor-dem-ersten-ergebnis-im-mehrfach-rpc-ungemessen`; Aufnahme durch den Nutzer 2026-11-17).
 2. **Ergebnismengen** in einem Aufruf einer Mehrfach-Nachricht (Stufe 6 hat keine; Antwortform, DONEPROC-Bits, Ordinal).
 3. **`sp_prepexec` und `sp_execute`** in einer Mehrfach-Nachricht am Referenzclient: sendet er sie überhaupt, und wie antwortet der echte Server ([ADR-0051](../../adr/0051-mehrere-rpcs-in-einer-nachricht-werden-beantwortet.md) Entscheidung 7 ist Setzung).
 4. Die **Grenzen 4096 Parameter und 1024 Aufrufe** am echten Server ([ADR-0051](../../adr/0051-mehrere-rpcs-in-einer-nachricht-werden-beantwortet.md) Entscheidung 5 ist Festlegung ohne Messung).
