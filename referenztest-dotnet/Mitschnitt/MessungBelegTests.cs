@@ -168,7 +168,7 @@ public class MessungBelegTests
     // @spec SPEC-045
     [Theory]
     [MemberData(nameof(Stufen))]
-    public void Kein_Szenario_stellt_COLMETADATA_hinter_RETURNVALUE_und_RETURNVALUE_steht_vor_DONEPROC(string stufe)
+    public void In_Einzel_RPCs_steht_nichts_hinter_RETURNVALUE_ausser_DONEPROC_und_in_Mehrfach_Nachrichten_folgt_jeder_RETURNVALUE_RETURNVALUE_oder_DONEPROC(string stufe)
     {
         var folgen = Z(stufe).Where(z => z.Key.EndsWith("/tokenfolge", StringComparison.Ordinal)).ToList();
         Assert.True(folgen.Count(z => z.Value.Contains("RETURNVALUE", StringComparison.Ordinal)) >= 12);
@@ -444,8 +444,6 @@ public class MessungBelegTests
         MessDatei.Lesen(File.ReadAllText(Path.Combine(Verzeichnis(stufe), szenario + ".messung"), Encoding.UTF8))
             .Herkunft.Where(h => h.Key == "beobachtung").Select(h => h.Value).ToList();
 
-    private const string KeinFehlerAmAnfang = "DONEINPROC Status MORE|COUNT, Befehl 0x00c3, Zeilen 1 ; DONEPROC Status MORE|0x80, Befehl 0x00e0, Zeilen -";
-
     // @spec SPEC-045
     [Theory]
     [MemberData(nameof(Stufen))]
@@ -492,6 +490,10 @@ public class MessungBelegTests
     {
         foreach (var feld in new[] { "tokenfolge", "done", "rueckgabe" })
             Assert.Equal(F(stufe, "rpc-batch-fehler/03/" + feld), F(stufe, "rpc-batch-fehler-weiter/03/" + feld));
+        // Auch die Anfrage ist gleich gebaut (drei Aufrufe, vier Parameter je Aufruf, Trennbyte 0xFF); es unterscheiden sich nur Tabellenname und Zahlen.
+        Assert.Equal(
+            Regex.Replace(F(stufe, "rpc-batch-fehler/03/anfrage"), @"\d+", "#"),
+            Regex.Replace(F(stufe, "rpc-batch-fehler-weiter/03/anfrage"), @"\d+", "#"));
         Assert.Equal("anzahl=3 [(330);(331);(340)]", F(stufe, "rpc-batch-fehler-weiter/04/zeilen"));
         Assert.Contains(
             Beobachtungen(stufe, "rpc-batch-fehler-weiter"),
@@ -677,8 +679,8 @@ public class MessungBelegTests
     public void Der_Referenzclient_trennt_in_keiner_Messung_mit_dem_Byte_0x80(string stufe)
     {
         var anfragen = Z(stufe).Where(z => z.Key.EndsWith("/anfrage", StringComparison.Ordinal)).ToList();
-        // Mindestens die Mehrfach-Nachrichten dieser Ablage: Trennbyte 0xFF kommt vor, 0x80 nie.
-        Assert.True(anfragen.Count(z => z.Value.Contains("Batchflag 0xff", StringComparison.Ordinal)) >= 17);
+        // 24 Mehrfach-Nachrichten je Instanz tragen das Trennbyte 0xFF (Bestand der Ablage), 0x80 kommt nie vor.
+        Assert.True(anfragen.Count(z => z.Value.Contains("Batchflag 0xff", StringComparison.Ordinal)) == 24);
         Assert.DoesNotContain(anfragen, z => z.Value.Contains("Batchflag 0x80", StringComparison.Ordinal));
     }
 }
