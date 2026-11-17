@@ -20,7 +20,9 @@
 # Sitzungen (TDS-QA-04, Staffel gleichzeitiger Sitzungen): LASTTEST_SITZUNGEN=1 (Zahl gleichzeitiger Sitzungen einer Stufe der Staffel; eine Stufe je Aufruf, weil
 # die Zeilenzahl je Stufe wechselt, `docs/plan/referenz-workload.md` S2 und S4), LASTTEST_PHASEN="export import" (je Server nacheinander: `export` und
 # `import` mit allen Sitzungen gemeinsam, `punkt-export` und `punkt-import` die Punktabfrage einer Sitzung, waehrend die uebrigen streamen oder
-# laden; `punkt-import` nur in Aufbau C), LASTTEST_ANFRAGEN=1000 (Anfragen je Lauf der Punktabfrage). Aufbau A kennt nur eine Sitzung.
+# laden; `punkt-import` nur in Aufbau C), LASTTEST_ANFRAGEN=1000 (Anfragen je Lauf der Punktabfrage), LASTTEST_QUERY_TIMEOUT (ganze Sekunden, an den
+# Server als QUERY_TIMEOUT gegeben; ohne Angabe gilt die Vorgabe des Servers von 30 s, `SPEC-009`: ein Strom, der laenger dauert, endet mit
+# TDS_TIMEOUT, und der Lauf ist rot). Aufbau A kennt nur eine Sitzung.
 #
 # Ausgabe: je Stufe eine Zeile `messung: ...` mit Datum, Aufbau, Senke, Richtung, Zeilen, Median, Minimum und Maximum der
 # Millisekunden, Zeilen/s (Median), Bytes je Zeile (Zaehler der Netzwerkschnittstelle des Clients, mit IP- und TCP-Kopf),
@@ -45,6 +47,7 @@ swap_toleranz="${LASTTEST_SWAP_TOLERANZ_MB:-16}"
 sitzungen="${LASTTEST_SITZUNGEN:-1}"
 phasen="${LASTTEST_PHASEN:-export import}"
 anfragen="${LASTTEST_ANFRAGEN:-1000}"
+query_timeout="${LASTTEST_QUERY_TIMEOUT:-}"
 proc="${LASTTEST_PROC:-/proc}" # nur der Selbsttest (tools/lasttest-selbsttest.sh) setzt es: eine Nachbildung von meminfo und loadavg
 statistik="$(dirname "$0")/lasttest-statistik.sh"
 klasse="io.github.pt9912.tdswire.testserver"
@@ -52,7 +55,7 @@ klasse="io.github.pt9912.tdswire.testserver"
 # Zahlenwerte vor dem Bau pruefen (Exit 2): ganze Zahlen ohne fuehrende Nullen, hoechstens 9 Stellen (Seed 18, mit Minus erlaubt),
 # ZEILEN und WDH mindestens 1.
 for angabe in "LASTTEST_ZEILEN=$zeilen" "LASTTEST_WDH=$wdh" "LASTTEST_CPUS=$cpus" "LASTTEST_MIN_FREI_MB=$min_frei" \
-	"LASTTEST_LAST_MAX=$last_max" "LASTTEST_SWAP_TOLERANZ_MB=$swap_toleranz" "LASTTEST_SITZUNGEN=$sitzungen" "LASTTEST_ANFRAGEN=$anfragen"; do
+	"LASTTEST_LAST_MAX=$last_max" "LASTTEST_SWAP_TOLERANZ_MB=$swap_toleranz" "LASTTEST_SITZUNGEN=$sitzungen" "LASTTEST_ANFRAGEN=$anfragen" "LASTTEST_QUERY_TIMEOUT=${query_timeout:-0}"; do
 	[[ ${angabe#*=} =~ ^(0|[1-9][0-9]{0,8})$ ]] || { echo "lasttest: ${angabe%%=*} muss eine nichtnegative ganze Zahl ohne fuehrende Nullen mit hoechstens 9 Stellen sein, nicht '${angabe#*=}'" >&2; exit 2; }
 done
 [[ $seed =~ ^-?(0|[1-9][0-9]{0,17})$ ]] || { echo "lasttest: LASTTEST_SEED muss eine ganze Zahl sein, nicht '$seed'" >&2; exit 2; }
@@ -177,7 +180,7 @@ umgebung=(-e "LASTTEST_ZEILEN=$zeilen" -e "LASTTEST_WDH=$wdh" -e "LASTTEST_SEED=
 start=$(date +%s)
 speicherwacht
 echo "lasttest: Kopf $(date -u +%Y-%m-%dT%H:%M:%SZ) host kerne $(nproc) ram_mb $(awk '/^MemTotal:/ {print int($2 / 1024)}' "$proc/meminfo") kernel $(uname -r) docker $(docker version --format '{{.Server.Version}}' 2>/dev/null) commit $(git rev-parse --short HEAD 2>/dev/null || echo unbekannt)$([ -n "$(git status --porcelain 2>/dev/null)" ] && echo "+geaendert")"
-echo "lasttest: Kopf zeilen $zeilen wdh $wdh (nach einem Warmlauf) seed $seed aufbauten [$aufbauten] senken [$senken] server cpus $cpus memory $speicher memory-swap $speicher xmx $xmx client cpus $cpus memory $client_speicher"
+echo "lasttest: Kopf zeilen $zeilen wdh $wdh (nach einem Warmlauf) seed $seed aufbauten [$aufbauten] senken [$senken] server cpus $cpus memory $speicher memory-swap $speicher xmx $xmx query_timeout ${query_timeout:-vorgabe} client cpus $cpus memory $client_speicher"
 echo "lasttest: Kopf zustand vorher: $(zustand)"
 
 # shellcheck disable=SC2086
@@ -214,7 +217,7 @@ for aufbau in $aufbauten; do
 			speicherwacht
 			vorher="$(zustand)"
 			docker run -d --name "$server" --network "$netz" "${limits[@]}" -e "LASTTEST_XMX=$xmx" -e "LASTTEST_AUFBAU=$aufbau" -e "LASTTEST_SENKE=$senke" \
-				-e LOG_LEVEL=DEBUG "${umgebung[@]}" "$server_image" >/dev/null || { fehler=1; continue; }
+				-e LOG_LEVEL=DEBUG ${query_timeout:+-e "QUERY_TIMEOUT=$query_timeout"} "${umgebung[@]}" "$server_image" >/dev/null || { fehler=1; continue; }
 			gestartet=0
 			for _ in $(seq 1 120); do
 				if docker logs "$server" 2>&1 | grep -q 'tdswire: gestartet, Port 1433'; then gestartet=1; break; fi

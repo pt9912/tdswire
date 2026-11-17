@@ -81,6 +81,7 @@ abweisungen() { # abweisungen <Skript>: 0, wenn jede Angabe abgewiesen wird
 	abweisung "$1" "ZEILEN zu lang" "LASTTEST_ZEILEN=12345678901234567890" || ok=1
 	abweisung "$1" "SITZUNGEN null" "LASTTEST_SITZUNGEN=0" || ok=1
 	abweisung "$1" "ANFRAGEN Text" "LASTTEST_ANFRAGEN=x" || ok=1
+	abweisung "$1" "QUERY_TIMEOUT Text" "LASTTEST_QUERY_TIMEOUT=x" || ok=1
 	abweisung "$1" "PHASEN unbekannt" "LASTTEST_PHASEN=export;x" || ok=1
 	return $ok
 }
@@ -247,4 +248,4 @@ rot pruefung_d "$(kopie d-span-ohne-art 's/if (id in art) print "backend.execute
 rot pruefung_d "$(kopie d-ohne-sitzungszaehlung 's/-eq \$((sitzungen \* (wdh + 1)))/-eq $((wdh + 1))/')" d-ohne-sitzungszaehlung
 
 [ "$fehler" -eq 0 ] || exit 1
-echo "lasttest-selbsttest: ok (6 Faelle, Eingabefehler, 3 Mutationen rot, zehn abgewiesene Umgebungswerte, 1 Mutation rot; Handlaeufe a bis d, 12 Mutationen rot)"
+echo "lasttest-selbsttest: ok (6 Faelle, Eingabefehler, 3 Mutationen rot, elf abgewiesene Umgebungswerte, 1 Mutation rot; Handlaeufe a bis d, 12 Mutationen rot)"
