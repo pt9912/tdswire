@@ -1,0 +1,1 @@
+**Stand:** offen — 1×; unter der Schwelle, keine Regel. Angelegt in der Closure von [slice-bulk-fuer-eigene-backends](../../../done/slice-bulk-fuer-eigene-backends.md); ob ein Messlauf nach der letzten Änderung am gemessenen Weg (Nachmess-Slice bei ruhigem Host) oder ein Satz im Protokoll genügt, entscheidet der Nutzer.
