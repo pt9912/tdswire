@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** [SPEC-059](../../../../spec/spezifikation.md#einstieg-des-integrators-vertrag-zu-spec-059) (Liste der Typnamen, Zeile `BackendSource`, Zusage) · [SPEC-035](../../../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends) (Massenladen) · [SPEC-036](../../../../spec/spezifikation.md#spec-036--erkannte-anweisungsformen-des-simulations-backends-vorläufig) (Form B: wer erkennt `INSERT BULK` und die Probe) · [SPEC-040](../../../../spec/spezifikation.md#7-festlegungen-der-harness-werkzeuge) (Beleg, falls ein Test benannt wird). Die Spezifikation ändert dieser Slice nur im Sinn der angenommenen [ADR-0052](../../adr/0052-oeffentliche-flaeche-fuer-massenladen-eigener-backends.md); ein Widerspruch zwischen Messung und Spezifikation geht als Frage an den Nutzer, nicht als stille Anpassung.
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912
 
 **Autor:** pt9912 (Entwurf in der Planner-Rolle). **Datum:** 2026-11-17.
 
