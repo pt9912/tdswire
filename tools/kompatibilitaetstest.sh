@@ -166,7 +166,7 @@ if [ "$KATEGORIE" = Luecken ]; then
   pruefe "Log: login_rejected mit UNSUPPORTED_FEDERATED_AUTHENTICATION" \
     grund login_rejected reason UNSUPPORTED_FEDERATED_AUTHENTICATION
   # Negative Prüfung: das Muster `log_ohne_fehlercode` ist in `tools/log-muster-selbsttest.sh` grün und rot gesehen; der Lauf
-  # gegen den Serverprozess steht aus.
+  # gegen den Serverprozess am 2026-11-17 grün (zwei Aufrufe plus einer, ohne Ergebnismenge).
   kein_protokollfehler() { docker logs "$SERVER" 2>&1 | log_ohne_fehlercode TDS_PROTOCOL_ERROR; }
   pruefe "Log: kein request_failed mit TDS_PROTOCOL_ERROR (mehrere RPCs gelingen)" kein_protokollfehler
   pruefe "Log: request_failed mit TDS_UNSUPPORTED_TYPE (xml)" grund request_failed error_code TDS_UNSUPPORTED_TYPE
