@@ -84,6 +84,7 @@ Die Anmeldung mit falschem Kennwort und mit unbekanntem Benutzer ergibt dieselbe
 | SQL-Batch mit Ergebnis | `COLMETADATA ROW* DONE` (Statusbit `COUNT`) |
 | RPC (`sp_executesql`, `sp_prepexec`) mit Ergebnis | `COLMETADATA ROW* DONEINPROC RETURNSTATUS [RETURNVALUE] DONEPROC` |
 | RPC ohne Ausgabewert | `RETURNSTATUS 0` vor `DONEPROC` (der Wert 0, wenn das Backend keinen `ReturnStatus` meldet) |
+| mehrere RPCs in einer Nachricht (`sp_executesql`, RPC per Name) | die Antwort jedes Aufrufs wie oben, hintereinander; `DONEPROC` mit `MORE` und dem Bit `0x0080` an jedem Aufruf außer dem letzten, das Ordinal der `RETURNVALUE` je Aufruf von vorn (am echten SQL Server gemessen mit `sp_executesql`) |
 | `sp_prepexec` | `RETURNSTATUS 0` vor dem `RETURNVALUE` mit dem Handle (Ordinal 0) |
 | Fehler in der Anfrage | `ERROR` und `DONE` mit Fehlerstatus (im RPC `DONEPROC`); bei 1781, 3728 und 3733 folgt dem ersten ein zweites `ERROR` (1750 beziehungsweise 3727); der Abschluss nach einem Fehler trägt die Befehlskennung nach der Form des Abschlusses (`SPEC-031`) |
 | Änderung (`INSERT`, `UPDATE`, `DELETE`) | `DONE` mit `COUNT`, der Zeilenzahl und der Befehlskennung der Art, die das Backend im `UpdateCount` meldet: `0x00c3`, `0x00c5`, `0x00c4` (im RPC `DONEINPROC` mit `MORE\|COUNT`); ohne Angabe der Art steht die Kennung 0 (`SPEC-031`) |

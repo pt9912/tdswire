@@ -9,14 +9,16 @@ import io.github.pt9912.tdswire.protocol.wire.violation
  * Liest die Parameter einer RPC-Nachricht (`SPEC-030`, `SPEC-003`): je Parameter Namenslänge in
  * Zeichen und Name, Statusbyte, TYPE_INFO ([RpcTypeInfoReader]) und Wert mit Längenpräfix.
  *
- * Festlegungen (ohne Orakel): Die Parameter reichen bis zum Ende der Nachricht; ein Batch-Flag für
- * mehrere RPCs wird nicht erkannt (der Katalog kennt es nicht). Ein Wert mit Längenbyte ist NULL
+ * Die Parameter eines Aufrufs reichen bis zum Ende der Nachricht oder bis zu einem Byte `0xFF` an der Stelle der
+ * nächsten Namenslänge; es trennt zwei Aufrufe einer Nachricht ([RpcParser]). Festlegungen (ohne Orakel): Ein
+ * Wert mit Längenbyte ist NULL
  * (Länge 0) oder genau so lang, wie die TYPE_INFO vorgibt; ein Zeichen- oder Binärwert ist NULL
  * (`0xFFFF`) oder höchstens so lang wie die höchste Länge der TYPE_INFO, Unicode-Text mit gerader
  * Byte-Zahl. Ein MAX-Typ trägt seinen Wert als Stück-Folge ([PlpReader]). Das Statusbyte wird unverändert
  * übernommen, reservierte Bits werden nicht geprüft.
  *
- * Obergrenze: höchstens [MAX_PARAMETERS] Parameter je Nachricht, sonst `INVALID_RPC_FORM`. Die
+ * Obergrenze: höchstens [MAX_PARAMETERS] Parameter je Nachricht, über alle Aufrufe gezählt ([ParameterBudget]), sonst
+ * `INVALID_RPC_FORM`. Die
  * Zahl ist eine Festlegung ohne Messung (kein Client und kein Server wurde danach befragt); sie
  * begrenzt die Objekte, die eine Nachricht erzeugt: ohne sie ließe eine Nachricht an der
  * Nachrichtengrenze Parameter von 5 Byte (Name leer, NULL) zu Millionen von Objekten werden. Der
@@ -39,13 +41,11 @@ internal object RpcParameterReader {
         RpcTypeKind.BIGBINARY,
     )
 
-    /** Liest alle Parameter bis zum Ende der Nachricht. */
-    fun readAll(reader: ByteReader): List<RpcParameter> {
+    /** Liest die Parameter eines Aufrufs bis zum Ende der Nachricht oder zum Byte, das den nächsten Aufruf trennt. */
+    fun readAll(reader: ByteReader, budget: ParameterBudget = ParameterBudget()): List<RpcParameter> {
         val parameters = mutableListOf<RpcParameter>()
-        while (reader.remaining > 0) {
-            if (parameters.size == MAX_PARAMETERS) {
-                violation(ProtocolFailure.INVALID_RPC_FORM, "mehr als $MAX_PARAMETERS Parameter")
-            }
+        while (reader.remaining > 0 && !RpcParser.isCallSeparator(reader.nextByte)) {
+            budget.take()
             parameters += read(reader)
         }
         return parameters
@@ -133,5 +133,18 @@ internal object RpcParameterReader {
             value = (value shl shift) shr shift
         }
         return value
+    }
+}
+
+/** Zählt die Parameter einer Nachricht über alle Aufrufe gegen [RpcParameterReader.MAX_PARAMETERS]. */
+internal class ParameterBudget {
+    private var used = 0
+
+    /** Zählt einen Parameter; der Parameter über der Obergrenze ist `INVALID_RPC_FORM`. */
+    fun take() {
+        if (used == RpcParameterReader.MAX_PARAMETERS) {
+            violation(ProtocolFailure.INVALID_RPC_FORM, "mehr als ${RpcParameterReader.MAX_PARAMETERS} Parameter")
+        }
+        used++
     }
 }
