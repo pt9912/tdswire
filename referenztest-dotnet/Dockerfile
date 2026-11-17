@@ -114,3 +114,12 @@ COPY Lasttest/ReferenzZeilen.cs Lasttest/ReferenzZeilen.cs
 COPY Rueckstau Rueckstau
 RUN --network=none dotnet build --no-restore --nologo
 CMD ["dotnet", "test", "--no-build", "--nologo", "--logger", "console;verbosity=detailed"]
+
+# --- Heap: der Referenzclient gegen den Serverprozess der Heap-Messung (`make heap-abschluss`, TDS-QA-04, ADR-0006). Gebaut wird
+# ohne Netz; der Lauf braucht den Server im selben Netzwerk (TDSWIRE_ZIEL) und HS_* (Sitzungen, Zeilen, Wiederholungen); das Skript waehlt
+# das Szenario mit `--filter`. Der Erzeuger der Zeilen kommt aus dem Verzeichnis Lasttest (eine Datei). ---
+FROM restore AS heap
+COPY Lasttest/ReferenzZeilen.cs Lasttest/ReferenzZeilen.cs
+COPY Heap Heap
+RUN --network=none dotnet build --no-restore --nologo
+CMD ["dotnet", "test", "--no-build", "--nologo", "--logger", "console;verbosity=detailed"]

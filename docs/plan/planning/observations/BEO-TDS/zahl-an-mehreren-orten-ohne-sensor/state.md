@@ -5,3 +5,5 @@
 
 
 **Wiederauftreten (slice-qa-performance-rueckstau):** Re-Review N-3 und Re-Review 2 M-1: Zellennamen an drei Orten, ein Kommentar behauptete einen Beleg der Kopplung, den der Selbsttest nicht hatte; der Re-Review fing es per Mutation. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
+
+**Wiederauftreten (slice-qa-performance-heap-abschluss):** Review F-6: die Grenzen des Laufs als Literal der Zeile `Kopf` und in den `docker run`; der Reviewer fing es per Mutation. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.

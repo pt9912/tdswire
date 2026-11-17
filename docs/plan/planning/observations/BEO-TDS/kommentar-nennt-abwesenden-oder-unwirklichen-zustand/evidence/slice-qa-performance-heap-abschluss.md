@@ -1,0 +1,3 @@
+**Vorgang:** [slice-qa-performance-heap-abschluss](../../../../done/slice-qa-performance-heap-abschluss.md)
+**Fund:** [Review](../../../../../../reviews/2026-11-17-slice-qa-performance-heap-abschluss.md) F-9: das KDoc des Tests `die Zeilen des letzten Pakets warten mit dem Abschluss` nannte die Einzelbeobachtung „im Lauf dieses Tests kam es 25 ms danach an“ (Chronik, `AGENTS.md` §3.7). Behoben, die Abgrenzung ersetzt die Beobachtung.
+**Stand:** verkörpert wie in `state.md` der Klasse; hier ein weiteres Auftreten, vom Reviewer gefangen. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.

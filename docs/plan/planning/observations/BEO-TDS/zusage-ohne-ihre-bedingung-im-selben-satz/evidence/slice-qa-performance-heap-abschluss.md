@@ -1,0 +1,3 @@
+**Vorgang:** [slice-qa-performance-heap-abschluss](../../../../done/slice-qa-performance-heap-abschluss.md)
+**Fund:** [Review](../../../../../../reviews/2026-11-17-slice-qa-performance-heap-abschluss.md) F-4: die Verzögerung „D plus im Median höchstens 1,6 ms“ stand in Spezifikation und Nutzer-Doku ohne den Rohbytes-Client mit `TCP_NODELAY` (der Server setzt es nicht) und ohne den Vorlauf von rund 40 ms; die Ursache stand als Tatsache, im Protokoll als „aus dem Quelltext gelesen“. Behoben; ein Vorfall mit Szenario: ein Client mit verzögerter Bestätigung.
+**Stand:** verkörpert wie in `state.md` der Klasse; hier ein weiteres Auftreten, vom Reviewer gefangen. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
