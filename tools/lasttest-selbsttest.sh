@@ -5,7 +5,7 @@
 # jedem Docker-Aufruf mit Exit 2 abweist (docker-Stub; eine Mutation ohne die Pruefung wird rot). Ein Handlauf von tools/lasttest.sh
 # gegen einen docker-Stub und eine Nachbildung von meminfo und loadavg (LASTTEST_PROC) haelt (a) die Auswertung der Zeilen von
 # Aufbau A (Spalte der Millisekunden), (b) den Vermerk last-hoch und swap-gewachsen in allen drei Zeilen von Aufbau A (und sein
-# Fehlen bei ruhigem Host), (c) den Fehler, wenn der Import in Aufbau B nicht abgewiesen wird und (d) vier Sitzungen in Aufbau C
+# Fehlen bei ruhigem Host), (c) den Fehler, wenn das Backend in Aufbau B weniger vollstaendige Importe meldet als Laeufe und (d) vier Sitzungen in Aufbau C
 # (Zeilen/s aller Sitzungen, Zeit der ersten Zeile, Perzentile der Punktabfrage ohne den Warmlauf, Dauer je Schicht nach Anfrageart aus dem
 # Log, Zaehlung der Importe je Sitzung, Vermerke an den Zeilen der Punktabfrage), (e) die Streuung des p95, (f) die Zaehlung der Laeufe der
 # Punktabfrage und (g) das Fehlen von punkt-import in Aufbau B; je Fall mindestens eine Mutation, die rot wird.
@@ -128,9 +128,9 @@ chmod +x "$tmp/sbin/docker"
 		for ms in "$@"; do echo "lasttest: a $name lauf $n zeilen 1000 ms $ms"; n=$((n + 1)); done
 	done
 } > "$stub/a-ausgabe"
-client_ausgabe() { # client_ausgabe <mit|ohne Abweisungszeile>
+client_ausgabe() { # client_ausgabe: Export- und Importzeilen von vier Laeufen (Warmlauf und drei) mit einer Sitzung
 	for n in 0 1 2 3; do echo "lasttest: export lauf $n zeilen 1000 ms 100 erste_zeile_ms 1 rx_bytes 328000"; done > "$stub/client-ausgabe"
-	[ "$1" = ohne ] || echo "lasttest: import aufbau B abgewiesen: InvalidOperationException Number  Meldung 'x'" >> "$stub/client-ausgabe"
+	for n in 0 1 2 3; do echo "lasttest: import lauf $n zeilen 1000 ms 200 tx_bytes 1348000 sitzungen 1"; done >> "$stub/client-ausgabe"
 }
 host() { # host <ruhig|heiss>: Nachbildung von meminfo und loadavg; heiss: Last 99 und der Swap waechst waehrend des Containers
 	printf 'MemTotal: 32000000 kB\nMemAvailable: 20000000 kB\nSwapTotal: 16000000 kB\nSwapFree: 2000000 kB\n' > "$stub/proc/meminfo"
@@ -165,12 +165,15 @@ pruefung_b() { # ruhiger Host: kein Vermerk; heisser Host: alle drei A-Zeilen tr
 	[ "$(handlauf "$1" A)" = 0 ] || return 1
 	[ "$(grep -c '^messung: .* aufbau A .* last-hoch swap-gewachsen$' "$tmp/aus")" = 3 ]
 }
-pruefung_c() { # B: ohne Abweisungszeile Exit 1 und die Meldung, mit der Zeile Exit 0
+pruefung_c() { # B: meldet das Backend 3 von 4 vollstaendigen Importen Exit 1 und die Meldung, bei 4 Exit 0
 	host ruhig
-	client_ausgabe ohne
-	[ "$(handlauf "$1" B)" = 1 ] && grep -q 'Import nicht abgewiesen' "$tmp/fehl" || return 1
-	client_ausgabe mit
-	[ "$(handlauf "$1" B)" = 0 ] && grep -q '^lasttest: gruen' "$tmp/aus"
+	client_ausgabe
+	rm -f "$stub/server-log"
+	for n in 1 2 3; do echo "lasttest: import $((n * 1000))"; done > "$stub/server-log-zusatz"
+	[ "$(handlauf "$1" B)" = 1 ] && grep -q 'Aufbau B Senke mit: das Backend meldet 3 von 4 vollständigen Importen' "$tmp/fehl" || return 1
+	rm -f "$stub/server-log"
+	for n in 1 2 3 4; do echo "lasttest: import $((n * 1000))"; done > "$stub/server-log-zusatz"
+	[ "$(handlauf "$1" B)" = 0 ] && grep -q '^lasttest: gruen' "$tmp/aus" && grep -q 'aufbau B senke mit richtung import zeilen 1000 ' "$tmp/aus"
 }
 sitzungs_ausgabe() { # Client- und Serverzeilen von vier Sitzungen in Aufbau C (1000 Zeilen, 3 Laeufe nach dem Warmlauf)
 	rm -f "$stub/server-log"
@@ -274,7 +277,7 @@ for n in $(grep -n 'zustand)\]$(vermerke' "$lasttest" | cut -d: -f1); do
 	if pruefung_b "$m" 2> /dev/null && pruefung_d_heiss "$m" 2> /dev/null; then pruefe "Mutation b-ohne-vermerk-$n blieb gruen"; fi
 done
 rot pruefung_b "$(kopie b-vermerk-immer 's/^\t\[ "\$(last_ganz)" -le "\$last_max" \] || v=" last-hoch"/\tv=" last-hoch"/')" b-vermerk-immer
-rot pruefung_c "$(kopie c-ohne-pruefung 's/^\(\t*\)if grep -E .import aufbau B abgewiesen. .*; then :; else/\1if true; then :; else/')" c-ohne-pruefung
+rot pruefung_c "$(kopie c-ohne-zaehlpruefung 's/^\(\t*\)\[ "\$gezaehlt" -eq .*$/\1:/')" c-ohne-zaehlpruefung
 
 rot pruefung_d "$(kopie d-ohne-sitzungsfaktor 's/zeilen \* sitzungen \* 1000 \/ median/zeilen * 1000 \/ median/')" d-ohne-sitzungsfaktor
 rot pruefung_d "$(kopie d-falsches-perzentil 's/for feld in p50_us p95_us p99_us; do/for feld in p50_us p50_us p99_us; do/')" d-falsches-perzentil

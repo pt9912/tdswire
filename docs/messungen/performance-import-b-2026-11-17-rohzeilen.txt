@@ -1,0 +1,421 @@
+# Rohzeilen von tools/lasttest.sh vom 2026-11-17 (Import in Aufbau B, C und A), je Zelle ein Aufruf von `make lasttest` mit LASTTEST_PHASEN=import (Abschnittsname = Stufe-Aufbau-Senke-Phase-Versuch)
+# je Zelle: die Zeilen `lasttest: Kopf`, `lasttest: server`, `lasttest: import lauf` (Aufbau A: `lasttest: a`), `messung:`, `messung-span:` aus der Ausgabe von tools/lasttest.sh und eine Zusammenfassung der Probe der Fremdlast.
+# Die Probe (Hilfsskript außerhalb des Repos, alle 8 s: CPU des Hosts aus /proc/stat minus CPU der Container dieses Laufs aus docker stats, nur während ein Container dieses Laufs läuft) ist nicht reproduzierbar; hier steht nur: Proben gesamt, Proben über 300 %, Höchstwert.
+# Die Abschnitte `verworfen-…` sind die ersten Läufe der Zellen Stufe 1, B, mit Senke und Stufe 1, C, mit Senke: ihre Probe zählte den Bau der Images mit (Fehler des Hilfsskripts); sie stehen in keiner Tabelle, die Zellen wurden wiederholt (Abschnitte `stufe1-B-mit-import-v1`, `stufe1-C-mit-import-v1`).
+## verworfen-stufe1-B-mit-import-v1
+lasttest: Kopf 2026-11-17T10:10:36Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit 9f236f41
+lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [B] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout vorgabe client cpus 2 memory 2g
+lasttest: Kopf zustand vorher: last 1.75/3.38/4.20 swap_mb 12085 frei_mb 15971
+lasttest: Kopf images server sha256:124d6b9894f7a0c3d773e2438db272cfaab5bf0192528916cea27108003f4608 client sha256:0676acba47c51765dad63ad5eed3ca8c0783c0cf92666161fd809a0cc5f82b7d
+lasttest: server aufbau=B zeilen=1000000 seed=42 senke=mit heap_max=268435456 swap_max 0 memory_max 4294967296
+lasttest: import lauf 0 zeilen 1000000 ms 3978 tx_bytes 336964130 sitzungen 1
+lasttest: import lauf 1 zeilen 1000000 ms 3265 tx_bytes 336966224 sitzungen 1
+lasttest: import lauf 2 zeilen 1000000 ms 3194 tx_bytes 336966620 sitzungen 1
+lasttest: import lauf 3 zeilen 1000000 ms 3185 tx_bytes 336967412 sitzungen 1
+lasttest: import lauf 4 zeilen 1000000 ms 3085 tx_bytes 336967412 sitzungen 1
+lasttest: import lauf 5 zeilen 1000000 ms 3050 tx_bytes 336967412 sitzungen 1
+lasttest: server peak 131600384 Bytes (cgroup, bis Ende Phase import, Aufbau B Senke mit)
+messung: 2026-11-17T10:11:32Z aufbau B senke mit richtung import zeilen 1000000 sitzungen 1 wdh 5 median_ms 3185 min_ms 3050 max_ms 3265 zeilen_je_s 313971 bytes_je_zeile 336 streuung ok vorher [last 2.70/3.45/4.19 swap_mb 12084 frei_mb 15844] nachher [last 2.99/3.47/4.18 swap_mb 12083 frei_mb 15819]
+messung-span: aufbau B senke mit phase import span tds.query art sql_batch n=12006 median=0 min=0 max=28
+messung-span: aufbau B senke mit phase import span backend.execute art sql_batch n=12000 median=0 min=0 max=9
+lasttest: Kopf zustand nachher: last 3.07/3.48/4.18 swap_mb 12083 frei_mb 15865
+lasttest: gruen
+Probe: 5 Proben, 3 über 300 %, Höchstwert 777 %
+## verworfen-stufe1-C-mit-import-v1
+lasttest: Kopf 2026-11-17T10:11:35Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit 9f236f41
+lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout vorgabe client cpus 2 memory 2g
+lasttest: Kopf zustand vorher: last 3.07/3.48/4.18 swap_mb 12083 frei_mb 15829
+lasttest: Kopf images server sha256:fd5c1762c7c3ce97dc530fae64b72c8e695af7c5fcd425e2e37861af2c2ea9e6 client sha256:0d9426c98cad41d893e3a9c56e1922a609887f5ef477928ca5cfe4f2168c8e56
+lasttest: server aufbau=C zeilen=1000000 seed=42 senke=mit heap_max=268435456 swap_max 0 memory_max 4294967296
+lasttest: import lauf 0 zeilen 1000000 ms 4676 tx_bytes 336965846 sitzungen 1
+lasttest: import lauf 1 zeilen 1000000 ms 3447 tx_bytes 336966686 sitzungen 1
+lasttest: import lauf 2 zeilen 1000000 ms 3460 tx_bytes 336967412 sitzungen 1
+lasttest: import lauf 3 zeilen 1000000 ms 3664 tx_bytes 336966950 sitzungen 1
+lasttest: import lauf 4 zeilen 1000000 ms 3540 tx_bytes 336966950 sitzungen 1
+lasttest: import lauf 5 zeilen 1000000 ms 3511 tx_bytes 336967214 sitzungen 1
+lasttest: server peak 139522048 Bytes (cgroup, bis Ende Phase import, Aufbau C Senke mit)
+messung: 2026-11-17T10:12:03Z aufbau C senke mit richtung import zeilen 1000000 sitzungen 1 wdh 5 median_ms 3511 min_ms 3447 max_ms 3664 zeilen_je_s 284819 bytes_je_zeile 336 streuung ok vorher [last 3.07/3.48/4.18 swap_mb 12083 frei_mb 15884] nachher [last 2.87/3.40/4.14 swap_mb 12083 frei_mb 15745]
+messung-span: aufbau C senke mit phase import span tds.query art sql_batch n=12006 median=0 min=0 max=31
+messung-span: aufbau C senke mit phase import span backend.execute art sql_batch n=12000 median=0 min=0 max=12
+lasttest: Kopf zustand nachher: last 2.96/3.41/4.14 swap_mb 12083 frei_mb 15686
+lasttest: gruen
+Probe: 3 Proben, 0 über 300 %, Höchstwert 278 %
+## stufe1-B-ohne-import-v1
+lasttest: Kopf 2026-11-17T10:12:05Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit 9f236f41
+lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [B] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout vorgabe client cpus 2 memory 2g
+lasttest: Kopf zustand vorher: last 2.96/3.41/4.14 swap_mb 12083 frei_mb 16154
+lasttest: Kopf images server sha256:3120a79d401bf08283c6e179d567ce456c060b85bab377830722e7b995ea0d30 client sha256:6072376ef230eb2e25151c63e7a630daa5543d0d87d4a86b67fd2431fb9fe135
+lasttest: server aufbau=B zeilen=1000000 seed=42 senke=ohne heap_max=268435456 swap_max 0 memory_max 4294967296
+lasttest: import lauf 0 zeilen 1000000 ms 3522 tx_bytes 336966110 sitzungen 1
+lasttest: import lauf 1 zeilen 1000000 ms 3301 tx_bytes 336967412 sitzungen 1
+lasttest: import lauf 2 zeilen 1000000 ms 2947 tx_bytes 336967148 sitzungen 1
+lasttest: import lauf 3 zeilen 1000000 ms 2997 tx_bytes 336967412 sitzungen 1
+lasttest: import lauf 4 zeilen 1000000 ms 2998 tx_bytes 336967412 sitzungen 1
+lasttest: import lauf 5 zeilen 1000000 ms 3051 tx_bytes 336966488 sitzungen 1
+lasttest: server peak 134467584 Bytes (cgroup, bis Ende Phase import, Aufbau B Senke ohne)
+messung: 2026-11-17T10:12:30Z aufbau B senke ohne richtung import zeilen 1000000 sitzungen 1 wdh 5 median_ms 2998 min_ms 2947 max_ms 3301 zeilen_je_s 333555 bytes_je_zeile 336 streuung ok vorher [last 2.96/3.41/4.13 swap_mb 12083 frei_mb 15769] nachher [last 3.14/3.43/4.12 swap_mb 12083 frei_mb 15798]
+lasttest: Kopf zustand nachher: last 3.14/3.43/4.12 swap_mb 12083 frei_mb 15935
+lasttest: gruen
+Probe: 2 Proben, 0 über 300 %, Höchstwert 118 %
+## stufe1-C-ohne-import-v1
+lasttest: Kopf 2026-11-17T10:12:30Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit 9f236f41
+lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout vorgabe client cpus 2 memory 2g
+lasttest: Kopf zustand vorher: last 3.14/3.43/4.12 swap_mb 12083 frei_mb 16001
+lasttest: Kopf images server sha256:def40d84406c0449496856d3a2090b9df950a4481f2e01452e0e5e0e9e43f5f8 client sha256:bffd9f944e847c4399a5bf01eb29073165d0898b9dde7818070974959f88d4a4
+lasttest: server aufbau=C zeilen=1000000 seed=42 senke=ohne heap_max=268435456 swap_max 0 memory_max 4294967296
+lasttest: import lauf 0 zeilen 1000000 ms 4487 tx_bytes 336965897 sitzungen 1
+lasttest: import lauf 1 zeilen 1000000 ms 3560 tx_bytes 336967412 sitzungen 1
+lasttest: import lauf 2 zeilen 1000000 ms 3669 tx_bytes 336964838 sitzungen 1
+lasttest: import lauf 3 zeilen 1000000 ms 3565 tx_bytes 336967412 sitzungen 1
+lasttest: import lauf 4 zeilen 1000000 ms 3353 tx_bytes 336967412 sitzungen 1
+lasttest: import lauf 5 zeilen 1000000 ms 3500 tx_bytes 336967148 sitzungen 1
+lasttest: server peak 143638528 Bytes (cgroup, bis Ende Phase import, Aufbau C Senke ohne)
+messung: 2026-11-17T10:12:58Z aufbau C senke ohne richtung import zeilen 1000000 sitzungen 1 wdh 5 median_ms 3560 min_ms 3353 max_ms 3669 zeilen_je_s 280898 bytes_je_zeile 336 streuung ok vorher [last 3.13/3.42/4.12 swap_mb 12083 frei_mb 15943] nachher [last 3.02/3.38/4.08 swap_mb 12083 frei_mb 15795]
+lasttest: Kopf zustand nachher: last 3.02/3.38/4.08 swap_mb 12083 frei_mb 15895
+lasttest: gruen
+Probe: 2 Proben, 0 über 300 %, Höchstwert 168 %
+## stufe8-B-mit-import-v1
+lasttest: Kopf 2026-11-17T10:12:59Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit 9f236f41
+lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [B] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
+lasttest: Kopf zustand vorher: last 3.02/3.37/4.08 swap_mb 12083 frei_mb 15917
+lasttest: Kopf images server sha256:7da2bd717515e39bf21a7f2647318ffea8a2baf7a7c24a7023895584cba4fed4 client sha256:4d6dfafa3043323a6bec4fe6c3b5e8e06a467a94bda3f7d967da877410334bbf
+lasttest: server aufbau=B zeilen=1000000 seed=42 senke=mit heap_max=268435456 swap_max 0 memory_max 4294967296
+lasttest: import lauf 0 zeilen 1000000 ms 16991 tx_bytes 2695815017 sitzungen 8
+lasttest: import lauf 1 zeilen 1000000 ms 15284 tx_bytes 2695795777 sitzungen 8
+lasttest: import lauf 2 zeilen 1000000 ms 14387 tx_bytes 2695789705 sitzungen 8
+lasttest: import lauf 3 zeilen 1000000 ms 14835 tx_bytes 2695789192 sitzungen 8
+lasttest: import lauf 4 zeilen 1000000 ms 14455 tx_bytes 2695790578 sitzungen 8
+lasttest: import lauf 5 zeilen 1000000 ms 14573 tx_bytes 2695792741 sitzungen 8
+lasttest: server peak 174260224 Bytes (cgroup, bis Ende Phase import, Aufbau B Senke mit)
+messung: 2026-11-17T10:14:36Z aufbau B senke mit richtung import zeilen 1000000 sitzungen 8 wdh 5 median_ms 14573 min_ms 14387 max_ms 15284 zeilen_je_s 548960 bytes_je_zeile 336 streuung ok vorher [last 3.02/3.37/4.08 swap_mb 12083 frei_mb 15891] nachher [last 1.77/2.86/3.83 swap_mb 12083 frei_mb 15581]
+messung-span: aufbau B senke mit phase import span tds.query art sql_batch n=96048 median=0 min=0 max=60
+messung-span: aufbau B senke mit phase import span backend.execute art sql_batch n=96000 median=0 min=0 max=5
+lasttest: Kopf zustand nachher: last 1.90/2.83/3.80 swap_mb 12083 frei_mb 15831
+lasttest: gruen
+Probe: 10 Proben, 1 über 300 %, Höchstwert 418 %
+## stufe8-C-mit-import-v1
+lasttest: Kopf 2026-11-17T10:14:50Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit 9f236f41
+lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
+lasttest: Kopf zustand vorher: last 1.90/2.83/3.80 swap_mb 12083 frei_mb 15816
+lasttest: Kopf images server sha256:040986a2b9b8eabbb280626906cf5197b0cd468775f5285cfa4443d8f14a3c00 client sha256:c00efe9034aee88e945f56ecdf0ba759c414ae48d44577104af79f64d04ae248
+lasttest: server aufbau=C zeilen=1000000 seed=42 senke=mit heap_max=268435456 swap_max 0 memory_max 4294967296
+lasttest: import lauf 0 zeilen 1000000 ms 17600 tx_bytes 2695983744 sitzungen 8
+lasttest: import lauf 1 zeilen 1000000 ms 15498 tx_bytes 2695804443 sitzungen 8
+lasttest: import lauf 2 zeilen 1000000 ms 14597 tx_bytes 2695796536 sitzungen 8
+lasttest: import lauf 3 zeilen 1000000 ms 15858 tx_bytes 2695816104 sitzungen 8
+lasttest: import lauf 4 zeilen 1000000 ms 14283 tx_bytes 2695793589 sitzungen 8
+lasttest: import lauf 5 zeilen 1000000 ms 15901 tx_bytes 2695810504 sitzungen 8
+lasttest: server peak 211148800 Bytes (cgroup, bis Ende Phase import, Aufbau C Senke mit)
+messung: 2026-11-17T10:16:31Z aufbau C senke mit richtung import zeilen 1000000 sitzungen 8 wdh 5 median_ms 15498 min_ms 14283 max_ms 15901 zeilen_je_s 516195 bytes_je_zeile 336 streuung ok vorher [last 1.90/2.83/3.80 swap_mb 12083 frei_mb 15865] nachher [last 1.80/2.66/3.65 swap_mb 12082 frei_mb 15794]
+messung-span: aufbau C senke mit phase import span tds.query art sql_batch n=96048 median=0 min=0 max=70
+messung-span: aufbau C senke mit phase import span backend.execute art sql_batch n=96000 median=0 min=0 max=59
+lasttest: Kopf zustand nachher: last 2.05/2.68/3.65 swap_mb 12082 frei_mb 15824
+lasttest: gruen
+Probe: 11 Proben, 1 über 300 %, Höchstwert 475 %
+## stufe8-B-ohne-import-v1
+lasttest: Kopf 2026-11-17T10:16:44Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit 9f236f41
+lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [B] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
+lasttest: Kopf zustand vorher: last 2.05/2.67/3.64 swap_mb 12082 frei_mb 15793
+lasttest: Kopf images server sha256:b5bf35aa1c88d4c07ff7397a28d18852e90510ff6885c742d30dd1bb19c6b6e6 client sha256:4290fc88ed61e55c9115194a24d4417e825c9fb1b92cf1f379adf5806fa4b2a4
+lasttest: server aufbau=B zeilen=1000000 seed=42 senke=ohne heap_max=268435456 swap_max 0 memory_max 4294967296
+lasttest: import lauf 0 zeilen 1000000 ms 16339 tx_bytes 2695904090 sitzungen 8
+lasttest: import lauf 1 zeilen 1000000 ms 14594 tx_bytes 2695786456 sitzungen 8
+lasttest: import lauf 2 zeilen 1000000 ms 14873 tx_bytes 2695779343 sitzungen 8
+lasttest: import lauf 3 zeilen 1000000 ms 14719 tx_bytes 2695779907 sitzungen 8
+lasttest: import lauf 4 zeilen 1000000 ms 13982 tx_bytes 2695779358 sitzungen 8
+lasttest: import lauf 5 zeilen 1000000 ms 14560 tx_bytes 2695784506 sitzungen 8
+lasttest: server peak 175116288 Bytes (cgroup, bis Ende Phase import, Aufbau B Senke ohne)
+messung: 2026-11-17T10:18:20Z aufbau B senke ohne richtung import zeilen 1000000 sitzungen 8 wdh 5 median_ms 14594 min_ms 13982 max_ms 14873 zeilen_je_s 548170 bytes_je_zeile 336 streuung ok vorher [last 2.05/2.67/3.64 swap_mb 12082 frei_mb 15858] nachher [last 1.54/2.35/3.43 swap_mb 12081 frei_mb 15753]
+lasttest: Kopf zustand nachher: last 1.54/2.35/3.43 swap_mb 12081 frei_mb 15905
+lasttest: gruen
+Probe: 9 Proben, 0 über 300 %, Höchstwert 174 %
+## stufe8-C-ohne-import-v1
+lasttest: Kopf 2026-11-17T10:18:20Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit 9f236f41
+lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
+lasttest: Kopf zustand vorher: last 1.54/2.35/3.43 swap_mb 12081 frei_mb 15880
+lasttest: Kopf images server sha256:951c1f2324d3c9b752cc9fa0c164576325dbd44eb5fee8b6ed18827a21666983 client sha256:424682a1c19a9d9b49c2ac1e0bebe7289d53a165ba0916cbfb067752f1e144a2
+lasttest: server aufbau=C zeilen=1000000 seed=42 senke=ohne heap_max=268435456 swap_max 0 memory_max 4294967296
+lasttest: import lauf 0 zeilen 1000000 ms 16679 tx_bytes 2695989884 sitzungen 8
+lasttest: import lauf 1 zeilen 1000000 ms 14898 tx_bytes 2695812526 sitzungen 8
+lasttest: import lauf 2 zeilen 1000000 ms 15324 tx_bytes 2695796085 sitzungen 8
+lasttest: import lauf 3 zeilen 1000000 ms 15074 tx_bytes 2695795640 sitzungen 8
+lasttest: import lauf 4 zeilen 1000000 ms 15941 tx_bytes 2695795930 sitzungen 8
+lasttest: import lauf 5 zeilen 1000000 ms 14956 tx_bytes 2695794812 sitzungen 8
+lasttest: server peak 197443584 Bytes (cgroup, bis Ende Phase import, Aufbau C Senke ohne)
+messung: 2026-11-17T10:19:59Z aufbau C senke ohne richtung import zeilen 1000000 sitzungen 8 wdh 5 median_ms 15074 min_ms 14898 max_ms 15941 zeilen_je_s 530715 bytes_je_zeile 336 streuung ok vorher [last 1.50/2.33/3.41 swap_mb 12081 frei_mb 15875] nachher [last 6.62/4.06/3.94 swap_mb 12081 frei_mb 15863]
+lasttest: Kopf zustand nachher: last 6.62/4.06/3.94 swap_mb 12081 frei_mb 15993
+lasttest: gruen
+Probe: 9 Proben, 0 über 300 %, Höchstwert 215 %
+## stufe16-B-mit-import-v1
+lasttest: Kopf 2026-11-17T10:20:00Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit 9f236f41
+lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [B] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
+lasttest: Kopf zustand vorher: last 6.62/4.06/3.94 swap_mb 12081 frei_mb 15971
+lasttest: Kopf images server sha256:6835ed87fcb18dfeb6d5ed82baa662491c45d35fed5655272e3770bcd31e1020 client sha256:af04be5489d0424f39a0d4ba439868908c55cf1a4e7505c6ca016298d8567e0d
+lasttest: server aufbau=B zeilen=100000 seed=42 senke=mit heap_max=268435456 swap_max 0 memory_max 4294967296
+lasttest: import lauf 0 zeilen 100000 ms 4362 tx_bytes 539311827 sitzungen 16
+lasttest: import lauf 1 zeilen 100000 ms 3203 tx_bytes 539254531 sitzungen 16
+lasttest: import lauf 2 zeilen 100000 ms 3509 tx_bytes 539269066 sitzungen 16
+lasttest: import lauf 3 zeilen 100000 ms 2995 tx_bytes 539259311 sitzungen 16
+lasttest: import lauf 4 zeilen 100000 ms 3390 tx_bytes 539246870 sitzungen 16
+lasttest: import lauf 5 zeilen 100000 ms 3009 tx_bytes 539250116 sitzungen 16
+lasttest: server peak 187293696 Bytes (cgroup, bis Ende Phase import, Aufbau B Senke mit)
+messung: 2026-11-17T10:20:27Z aufbau B senke mit richtung import zeilen 100000 sitzungen 16 wdh 5 median_ms 3203 min_ms 2995 max_ms 3509 zeilen_je_s 499531 bytes_je_zeile 337 streuung ok vorher [last 6.41/4.06/3.94 swap_mb 12081 frei_mb 15954] nachher [last 8.20/4.61/4.12 swap_mb 12081 frei_mb 15977]
+messung-span: aufbau B senke mit phase import span tds.query art sql_batch n=19296 median=0 min=0 max=64
+messung-span: aufbau B senke mit phase import span backend.execute art sql_batch n=19200 median=0 min=0 max=60
+lasttest: Kopf zustand nachher: last 7.70/4.56/4.11 swap_mb 12081 frei_mb 15907
+lasttest: gruen
+Probe: 3 Proben, 1 über 300 %, Höchstwert 435 %
+## stufe16-C-mit-import-v1
+lasttest: Kopf 2026-11-17T10:20:31Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit 9f236f41
+lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
+lasttest: Kopf zustand vorher: last 7.70/4.56/4.11 swap_mb 12081 frei_mb 15862
+lasttest: Kopf images server sha256:c7c8c723dba6788ed39984c039e4970ff78d6f438fbd018023a4f0a3dcf5f1cc client sha256:f57dc1821d203493c962191751556e24f5c89ab7cc745431e955eeaa8c2bfa3d
+lasttest: server aufbau=C zeilen=100000 seed=42 senke=mit heap_max=268435456 swap_max 0 memory_max 4294967296
+lasttest: import lauf 0 zeilen 100000 ms 4738 tx_bytes 539270896 sitzungen 16
+lasttest: import lauf 1 zeilen 100000 ms 3487 tx_bytes 539264481 sitzungen 16
+lasttest: import lauf 2 zeilen 100000 ms 3116 tx_bytes 539257890 sitzungen 16
+lasttest: import lauf 3 zeilen 100000 ms 3705 tx_bytes 539247581 sitzungen 16
+lasttest: import lauf 4 zeilen 100000 ms 3190 tx_bytes 539254490 sitzungen 16
+lasttest: import lauf 5 zeilen 100000 ms 3512 tx_bytes 539264513 sitzungen 16
+lasttest: server peak 222121984 Bytes (cgroup, bis Ende Phase import, Aufbau C Senke mit)
+messung: 2026-11-17T10:20:59Z aufbau C senke mit richtung import zeilen 100000 sitzungen 16 wdh 5 median_ms 3487 min_ms 3116 max_ms 3705 zeilen_je_s 458847 bytes_je_zeile 337 streuung ok vorher [last 7.41/4.55/4.11 swap_mb 12081 frei_mb 15939] nachher [last 7.48/4.81/4.21 swap_mb 12081 frei_mb 15850]
+messung-span: aufbau C senke mit phase import span tds.query art sql_batch n=19296 median=0 min=0 max=111
+messung-span: aufbau C senke mit phase import span backend.execute art sql_batch n=19200 median=0 min=0 max=61
+lasttest: Kopf zustand nachher: last 7.48/4.81/4.21 swap_mb 12081 frei_mb 15850
+lasttest: gruen
+Probe: 3 Proben, 1 über 300 %, Höchstwert 484 %
+## stufe16-B-ohne-import-v1
+lasttest: Kopf 2026-11-17T10:21:02Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit 9f236f41
+lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [B] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
+lasttest: Kopf zustand vorher: last 7.48/4.81/4.21 swap_mb 12081 frei_mb 15756
+lasttest: Kopf images server sha256:977ac94feefa3a9054de01a3e6b51d6058de86bb465100f4b9ac714a1efb1931 client sha256:7de0799c4004dd161e1b519ed63c7544b258f004a9fb2f3e306448bbe9d23b71
+lasttest: server aufbau=B zeilen=100000 seed=42 senke=ohne heap_max=268435456 swap_max 0 memory_max 4294967296
+lasttest: import lauf 0 zeilen 100000 ms 3961 tx_bytes 539294508 sitzungen 16
+lasttest: import lauf 1 zeilen 100000 ms 3272 tx_bytes 539247863 sitzungen 16
+lasttest: import lauf 2 zeilen 100000 ms 3620 tx_bytes 539255551 sitzungen 16
+lasttest: import lauf 3 zeilen 100000 ms 3448 tx_bytes 539227877 sitzungen 16
+lasttest: import lauf 4 zeilen 100000 ms 3053 tx_bytes 539228102 sitzungen 16
+lasttest: import lauf 5 zeilen 100000 ms 3483 tx_bytes 539236853 sitzungen 16
+lasttest: server peak 193138688 Bytes (cgroup, bis Ende Phase import, Aufbau B Senke ohne)
+messung: 2026-11-17T10:21:29Z aufbau B senke ohne richtung import zeilen 100000 sitzungen 16 wdh 5 median_ms 3448 min_ms 3053 max_ms 3620 zeilen_je_s 464037 bytes_je_zeile 337 streuung ok vorher [last 7.28/4.81/4.21 swap_mb 12081 frei_mb 15831] nachher [last 5.50/4.59/4.15 swap_mb 12081 frei_mb 15910]
+lasttest: Kopf zustand nachher: last 5.50/4.59/4.15 swap_mb 12081 frei_mb 16030
+lasttest: gruen
+Probe: 2 Proben, 0 über 300 %, Höchstwert 179 %
+## stufe16-C-ohne-import-v1
+lasttest: Kopf 2026-11-17T10:21:30Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit 9f236f41
+lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
+lasttest: Kopf zustand vorher: last 5.50/4.59/4.15 swap_mb 12081 frei_mb 15957
+lasttest: Kopf images server sha256:423ac7a552af708c470e640f24b2a95d49554520dee173548eb40a412178b37d client sha256:04d5744fc80944ca05b07c01611eaa6a3d0f8b4c5f0358cc8be7915c8abaec1f
+lasttest: server aufbau=C zeilen=100000 seed=42 senke=ohne heap_max=268435456 swap_max 0 memory_max 4294967296
+lasttest: import lauf 0 zeilen 100000 ms 4570 tx_bytes 539294954 sitzungen 16
+lasttest: import lauf 1 zeilen 100000 ms 3197 tx_bytes 539258390 sitzungen 16
+lasttest: import lauf 2 zeilen 100000 ms 3323 tx_bytes 539254494 sitzungen 16
+lasttest: import lauf 3 zeilen 100000 ms 3001 tx_bytes 539248139 sitzungen 16
+lasttest: import lauf 4 zeilen 100000 ms 3474 tx_bytes 539258039 sitzungen 16
+lasttest: import lauf 5 zeilen 100000 ms 3006 tx_bytes 539245118 sitzungen 16
+lasttest: server peak 209862656 Bytes (cgroup, bis Ende Phase import, Aufbau C Senke ohne)
+messung: 2026-11-17T10:21:57Z aufbau C senke ohne richtung import zeilen 100000 sitzungen 16 wdh 5 median_ms 3197 min_ms 3001 max_ms 3474 zeilen_je_s 500469 bytes_je_zeile 337 streuung ok vorher [last 5.50/4.59/4.15 swap_mb 12081 frei_mb 16124] nachher [last 4.28/4.38/4.10 swap_mb 12081 frei_mb 15682]
+lasttest: Kopf zustand nachher: last 4.28/4.38/4.10 swap_mb 12081 frei_mb 15840
+lasttest: gruen
+Probe: 2 Proben, 0 über 300 %, Höchstwert 164 %
+## stufe64-B-mit-import-v1
+lasttest: Kopf 2026-11-17T10:21:58Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit 9f236f41
+lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [B] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
+lasttest: Kopf zustand vorher: last 4.28/4.38/4.10 swap_mb 12081 frei_mb 16160
+lasttest: Kopf images server sha256:d81b126115c373c04923471e34424b0739aab94ff67392525b936dbb0b156bfd client sha256:e597bfd41f58de7f13ea85a0545434fa59268b2485982a76a30718d2144a485f
+lasttest: server aufbau=B zeilen=100000 seed=42 senke=mit heap_max=268435456 swap_max 0 memory_max 4294967296
+lasttest: import lauf 0 zeilen 100000 ms 21639 tx_bytes 2157524614 sitzungen 64
+lasttest: import lauf 1 zeilen 100000 ms 15246 tx_bytes 2157442310 sitzungen 64
+lasttest: import lauf 2 zeilen 100000 ms 14662 tx_bytes 2157419379 sitzungen 64
+lasttest: import lauf 3 zeilen 100000 ms 15110 tx_bytes 2157501274 sitzungen 64
+lasttest: import lauf 4 zeilen 100000 ms 14872 tx_bytes 2157495778 sitzungen 64
+lasttest: import lauf 5 zeilen 100000 ms 14695 tx_bytes 2157512012 sitzungen 64
+lasttest: server peak 279576576 Bytes (cgroup, bis Ende Phase import, Aufbau B Senke mit)
+messung: 2026-11-17T10:23:41Z aufbau B senke mit richtung import zeilen 100000 sitzungen 64 wdh 5 median_ms 14872 min_ms 14662 max_ms 15246 zeilen_je_s 430338 bytes_je_zeile 337 streuung ok vorher [last 4.09/4.34/4.08 swap_mb 12080 frei_mb 15799] nachher [last 2.84/3.95/3.98 swap_mb 12080 frei_mb 15733]
+messung-span: aufbau B senke mit phase import span tds.query art sql_batch n=77184 median=0 min=0 max=105
+messung-span: aufbau B senke mit phase import span backend.execute art sql_batch n=76800 median=0 min=0 max=47
+lasttest: Kopf zustand nachher: last 2.71/3.88/3.95 swap_mb 12080 frei_mb 15910
+lasttest: gruen
+Probe: 11 Proben, 1 über 300 %, Höchstwert 314 %
+## stufe64-C-mit-import-v1
+lasttest: Kopf 2026-11-17T10:23:52Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit 9f236f41
+lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
+lasttest: Kopf zustand vorher: last 2.71/3.88/3.95 swap_mb 12080 frei_mb 15914
+lasttest: Kopf images server sha256:d4f657c1a7f40a781728b8088b8919a30fa20e1bb74187e233ee7411efff1d93 client sha256:bbc9baaefa145215513867fd794a073ad92d6b4f0548d7214a79467a8a0db80d
+lasttest: server aufbau=C zeilen=100000 seed=42 senke=mit heap_max=268435456 swap_max 0 memory_max 4294967296
+lasttest: import lauf 0 zeilen 100000 ms 15589 tx_bytes 2157342505 sitzungen 64
+lasttest: import lauf 1 zeilen 100000 ms 14803 tx_bytes 2157554387 sitzungen 64
+lasttest: import lauf 2 zeilen 100000 ms 14886 tx_bytes 2157556839 sitzungen 64
+lasttest: import lauf 3 zeilen 100000 ms 15234 tx_bytes 2157556948 sitzungen 64
+lasttest: import lauf 4 zeilen 100000 ms 14458 tx_bytes 2157567396 sitzungen 64
+lasttest: import lauf 5 zeilen 100000 ms 14529 tx_bytes 2157494591 sitzungen 64
+lasttest: server peak 308727808 Bytes (cgroup, bis Ende Phase import, Aufbau C Senke mit)
+messung: 2026-11-17T10:25:28Z aufbau C senke mit richtung import zeilen 100000 sitzungen 64 wdh 5 median_ms 14803 min_ms 14458 max_ms 15234 zeilen_je_s 432344 bytes_je_zeile 337 streuung ok vorher [last 3.13/3.95/3.98 swap_mb 12080 frei_mb 15933] nachher [last 8.63/5.07/4.34 swap_mb 12079 frei_mb 15837]
+messung-span: aufbau C senke mit phase import span tds.query art sql_batch n=77184 median=1 min=0 max=115
+messung-span: aufbau C senke mit phase import span backend.execute art sql_batch n=76800 median=0 min=0 max=59
+lasttest: Kopf zustand nachher: last 7.61/4.97/4.32 swap_mb 12021 frei_mb 15714
+lasttest: gruen
+Probe: 10 Proben, 1 über 300 %, Höchstwert 373 %
+## stufe64-B-ohne-import-v1
+lasttest: Kopf 2026-11-17T10:25:39Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit 9f236f41
+lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [B] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
+lasttest: Kopf zustand vorher: last 7.00/4.89/4.29 swap_mb 12021 frei_mb 15888
+lasttest: Kopf images server sha256:0fbe96deba271f0663ef3f306c859d598a9e2cc4aaac2c65b73f9ea2fc452822 client sha256:168424f09938e4232582bdb03e04d54427af41516a67c3f8b1b31732ac04744b
+lasttest: server aufbau=B zeilen=100000 seed=42 senke=ohne heap_max=268435456 swap_max 0 memory_max 4294967296
+lasttest: import lauf 0 zeilen 100000 ms 15585 tx_bytes 2157461102 sitzungen 64
+lasttest: import lauf 1 zeilen 100000 ms 14644 tx_bytes 2157505136 sitzungen 64
+lasttest: import lauf 2 zeilen 100000 ms 15134 tx_bytes 2157476277 sitzungen 64
+lasttest: import lauf 3 zeilen 100000 ms 14470 tx_bytes 2157511635 sitzungen 64
+lasttest: import lauf 4 zeilen 100000 ms 14418 tx_bytes 2157586115 sitzungen 64
+lasttest: import lauf 5 zeilen 100000 ms 14299 tx_bytes 2157510687 sitzungen 64
+lasttest: server peak 285052928 Bytes (cgroup, bis Ende Phase import, Aufbau B Senke ohne)
+messung: 2026-11-17T10:27:13Z aufbau B senke ohne richtung import zeilen 100000 sitzungen 64 wdh 5 median_ms 14470 min_ms 14299 max_ms 15134 zeilen_je_s 442294 bytes_je_zeile 337 streuung ok vorher [last 7.00/4.89/4.29 swap_mb 12021 frei_mb 15768] nachher [last 2.99/4.08/4.06 swap_mb 12018 frei_mb 15754]
+lasttest: Kopf zustand nachher: last 2.99/4.08/4.06 swap_mb 12018 frei_mb 15979
+lasttest: gruen
+Probe: 9 Proben, 0 über 300 %, Höchstwert 205 %
+## stufe64-C-ohne-import-v1
+lasttest: Kopf 2026-11-17T10:27:14Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit 9f236f41
+lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
+lasttest: Kopf zustand vorher: last 2.91/4.04/4.05 swap_mb 12018 frei_mb 15894
+lasttest: Kopf images server sha256:420eddf637835cdb86c5110a44732b573bf36b96aea858eac48b130bc0192b65 client sha256:d204e494bb6aa29c752eb8b4e10f3a9bd25ac878cfa4b11a6f6d81f2c9d30bc9
+lasttest: server aufbau=C zeilen=100000 seed=42 senke=ohne heap_max=268435456 swap_max 0 memory_max 4294967296
+lasttest: import lauf 0 zeilen 100000 ms 21663 tx_bytes 2157575994 sitzungen 64
+lasttest: import lauf 1 zeilen 100000 ms 14658 tx_bytes 2157528705 sitzungen 64
+lasttest: import lauf 2 zeilen 100000 ms 14451 tx_bytes 2157529273 sitzungen 64
+lasttest: import lauf 3 zeilen 100000 ms 14943 tx_bytes 2157547807 sitzungen 64
+lasttest: import lauf 4 zeilen 100000 ms 14262 tx_bytes 2157554049 sitzungen 64
+lasttest: import lauf 5 zeilen 100000 ms 14509 tx_bytes 2157570806 sitzungen 64
+lasttest: server peak 285249536 Bytes (cgroup, bis Ende Phase import, Aufbau C Senke ohne)
+messung: 2026-11-17T10:28:55Z aufbau C senke ohne richtung import zeilen 100000 sitzungen 64 wdh 5 median_ms 14509 min_ms 14262 max_ms 14943 zeilen_je_s 441105 bytes_je_zeile 337 streuung ok vorher [last 2.91/4.04/4.05 swap_mb 12018 frei_mb 15908] nachher [last 3.82/4.19/4.10 swap_mb 12018 frei_mb 15999]
+lasttest: Kopf zustand nachher: last 3.82/4.19/4.10 swap_mb 12018 frei_mb 16199
+lasttest: gruen
+Probe: 10 Proben, 1 über 300 %, Höchstwert 344 %
+## stufe1-B-mit-import-v1
+lasttest: Kopf 2026-11-17T10:29:29Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit 9f236f41
+lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [B] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout vorgabe client cpus 2 memory 2g
+lasttest: Kopf zustand vorher: last 3.48/4.04/4.06 swap_mb 12018 frei_mb 16198
+lasttest: Kopf images server sha256:620c4fdbe2d9bd89500a87611f847ce479688e0e4f9f89f68212355777dc2d2f client sha256:09f0cf833a87c550caa0dd2be72ac4a53eb395d8dd6a5f27b161944f3a2d53bb
+lasttest: server aufbau=B zeilen=1000000 seed=42 senke=mit heap_max=268435456 swap_max 0 memory_max 4294967296
+lasttest: import lauf 0 zeilen 1000000 ms 4050 tx_bytes 336967539 sitzungen 1
+lasttest: import lauf 1 zeilen 1000000 ms 3192 tx_bytes 336967148 sitzungen 1
+lasttest: import lauf 2 zeilen 1000000 ms 3092 tx_bytes 336966026 sitzungen 1
+lasttest: import lauf 3 zeilen 1000000 ms 3307 tx_bytes 336967412 sitzungen 1
+lasttest: import lauf 4 zeilen 1000000 ms 3172 tx_bytes 336967280 sitzungen 1
+lasttest: import lauf 5 zeilen 1000000 ms 2953 tx_bytes 336976100 sitzungen 1
+lasttest: server peak 132374528 Bytes (cgroup, bis Ende Phase import, Aufbau B Senke mit)
+messung: 2026-11-17T10:29:56Z aufbau B senke mit richtung import zeilen 1000000 sitzungen 1 wdh 5 median_ms 3172 min_ms 2953 max_ms 3307 zeilen_je_s 315258 bytes_je_zeile 336 streuung ok vorher [last 3.48/4.04/4.06 swap_mb 12018 frei_mb 15839] nachher [last 3.38/3.98/4.03 swap_mb 12017 frei_mb 15659]
+messung-span: aufbau B senke mit phase import span tds.query art sql_batch n=12006 median=0 min=0 max=26
+messung-span: aufbau B senke mit phase import span backend.execute art sql_batch n=12000 median=0 min=0 max=6
+lasttest: Kopf zustand nachher: last 3.38/3.98/4.03 swap_mb 12017 frei_mb 16049
+lasttest: gruen
+Probe: 2 Proben, 0 über 300 %, Höchstwert 152 %
+## stufe1-C-mit-import-v1
+lasttest: Kopf 2026-11-17T10:29:58Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit 9f236f41
+lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout vorgabe client cpus 2 memory 2g
+lasttest: Kopf zustand vorher: last 3.38/3.98/4.03 swap_mb 12017 frei_mb 15960
+lasttest: Kopf images server sha256:d1aae5147b5d097f8e267e9b94931ce41a57acb7dea08454f56c371c8e9eccc7 client sha256:51e9e14a1544d2bcbd08e40b4076c09b86a1abe4564c243ccd85b3663f2efc45
+lasttest: server aufbau=C zeilen=1000000 seed=42 senke=mit heap_max=268435456 swap_max 0 memory_max 4294967296
+lasttest: import lauf 0 zeilen 1000000 ms 4434 tx_bytes 336966449 sitzungen 1
+lasttest: import lauf 1 zeilen 1000000 ms 3498 tx_bytes 336967412 sitzungen 1
+lasttest: import lauf 2 zeilen 1000000 ms 3867 tx_bytes 336967412 sitzungen 1
+lasttest: import lauf 3 zeilen 1000000 ms 3296 tx_bytes 336967412 sitzungen 1
+lasttest: import lauf 4 zeilen 1000000 ms 3609 tx_bytes 336967412 sitzungen 1
+lasttest: import lauf 5 zeilen 1000000 ms 3753 tx_bytes 336967412 sitzungen 1
+lasttest: server peak 135938048 Bytes (cgroup, bis Ende Phase import, Aufbau C Senke mit)
+messung: 2026-11-17T10:30:26Z aufbau C senke mit richtung import zeilen 1000000 sitzungen 1 wdh 5 median_ms 3609 min_ms 3296 max_ms 3867 zeilen_je_s 277085 bytes_je_zeile 336 streuung ok vorher [last 3.35/3.96/4.03 swap_mb 12017 frei_mb 15824] nachher [last 3.24/3.88/4.00 swap_mb 12017 frei_mb 15983]
+messung-span: aufbau C senke mit phase import span tds.query art sql_batch n=12006 median=0 min=0 max=31
+messung-span: aufbau C senke mit phase import span backend.execute art sql_batch n=12000 median=0 min=0 max=9
+lasttest: Kopf zustand nachher: last 3.24/3.88/4.00 swap_mb 12017 frei_mb 15909
+lasttest: gruen
+Probe: 2 Proben, 0 über 300 %, Höchstwert 165 %
+## stufe1-A-ohne-import-v1
+lasttest: Kopf 2026-11-17T10:29:05Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit 9f236f41
+lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [A] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout vorgabe client cpus 2 memory 2g
+lasttest: Kopf zustand vorher: last 3.54/4.12/4.08 swap_mb 12018 frei_mb 16007
+lasttest: Kopf images server sha256:3b7e9de348aa6ec2c4927b07f2ab52752414a01ea07e1ec80a60506e491225b5 client sha256:ced5cd2bb3eb0f8cb35fda3dde760132e35bc52299c6e0dcf32c4060525f22b1
+lasttest: a zeilen=1000000 seed=42 wdh=5 heap_max=268435456
+messung: 2026-11-17T10:29:29Z aufbau A backend erzeuger senke - richtung export zeilen 1000000 wdh 5 median_ms 1061 min_ms 1050 max_ms 1072 streuung ok zeilen_je_s 942507 bytes_je_zeile - vorher [last 3.54/4.12/4.08 swap_mb 12018 frei_mb 16056] nachher [last 3.17/3.99/4.04 swap_mb 12018 frei_mb 16241]
+messung: 2026-11-17T10:29:29Z aufbau A backend simulation senke - richtung export zeilen 1000000 wdh 5 median_ms 1172 min_ms 1162 max_ms 1181 streuung ok zeilen_je_s 853242 bytes_je_zeile - vorher [last 3.54/4.12/4.08 swap_mb 12018 frei_mb 16056] nachher [last 3.17/3.99/4.04 swap_mb 12018 frei_mb 16241]
+messung: 2026-11-17T10:29:29Z aufbau A backend simulation senke - richtung import zeilen 1000000 wdh 5 median_ms 1184 min_ms 1182 max_ms 1191 streuung ok zeilen_je_s 844594 bytes_je_zeile - vorher [last 3.54/4.12/4.08 swap_mb 12018 frei_mb 16056] nachher [last 3.17/3.99/4.04 swap_mb 12018 frei_mb 16241]
+lasttest: Kopf zustand nachher: last 3.17/3.99/4.04 swap_mb 12018 frei_mb 16241
+lasttest: gruen
+Probe: 2 Proben, 0 über 300 %, Höchstwert 162 %
+
+# Wiederholung auf dem End-Stand (Commit 358fcec2), 2026-11-17, Stufe 1, B und C, mit Senke: Versuch 1 = Abschnitte -v1, Versuch 2 = Abschnitte -v2, abwechselnd B, C, B, C
+# Die Probe dieser Abschnitte zählt nur, während ein Container dieses Laufs läuft (wie oben); Hilfsskript außerhalb des Repos, nicht reproduzierbar.
+## endstand-stufe1-B-mit-import-v1
+lasttest: Kopf 2026-11-17T12:28:29Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit 358fcec2
+lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [B] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout vorgabe client cpus 2 memory 2g
+lasttest: Kopf zustand vorher: last 3.00/3.53/4.64 swap_mb 11278 frei_mb 17123
+lasttest: Kopf images server sha256:8fad254c52f737f6993563ca8812699a5281a637c905290279da4fe589dda638 client sha256:6aa8dde1c339b6b147c8f77b5543ecdd607371b9d6352e4031ac66b23799f401
+lasttest: server aufbau=B zeilen=1000000 seed=42 senke=mit heap_max=268435456 swap_max 0 memory_max 4294967296
+lasttest: import lauf 0 zeilen 1000000 ms 3892 tx_bytes 336964460 sitzungen 1
+lasttest: import lauf 1 zeilen 1000000 ms 3365 tx_bytes 336964574 sitzungen 1
+lasttest: import lauf 2 zeilen 1000000 ms 3331 tx_bytes 336967082 sitzungen 1
+lasttest: import lauf 3 zeilen 1000000 ms 3116 tx_bytes 336967412 sitzungen 1
+lasttest: import lauf 4 zeilen 1000000 ms 3431 tx_bytes 336966686 sitzungen 1
+lasttest: import lauf 5 zeilen 1000000 ms 3989 tx_bytes 336966818 sitzungen 1
+lasttest: server peak 130433024 Bytes (cgroup, bis Ende Phase import, Aufbau B Senke mit)
+messung: 2026-11-17T12:29:27Z aufbau B senke mit richtung import zeilen 1000000 sitzungen 1 wdh 5 median_ms 3365 min_ms 3116 max_ms 3989 zeilen_je_s 297176 bytes_je_zeile 336 streuung ok vorher [last 4.84/3.95/4.74 swap_mb 11265 frei_mb 17349] nachher [last 4.35/3.90/4.71 swap_mb 11244 frei_mb 17373]
+messung-span: aufbau B senke mit phase import span tds.query art sql_batch n=12006 median=0 min=0 max=24
+messung-span: aufbau B senke mit phase import span backend.execute art sql_batch n=12000 median=0 min=0 max=9
+lasttest: Kopf zustand nachher: last 4.35/3.90/4.71 swap_mb 11244 frei_mb 17456
+lasttest: gruen
+Probe: 2 Proben, 1 über 300 %, Höchstwert 322 %
+## endstand-stufe1-C-mit-import-v1
+lasttest: Kopf 2026-11-17T12:29:30Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit 358fcec2
+lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout vorgabe client cpus 2 memory 2g
+lasttest: Kopf zustand vorher: last 4.35/3.90/4.71 swap_mb 11244 frei_mb 17420
+lasttest: Kopf images server sha256:d648b15bfc7b590e9a29904de2fff2c141053e367015053efb7b89c89c34e3f3 client sha256:979725e014db4b9d1b4f95b05228586a7dde3f45945b0f2bbc0dbb0a2c4b8aa4
+lasttest: server aufbau=C zeilen=1000000 seed=42 senke=mit heap_max=268435456 swap_max 0 memory_max 4294967296
+lasttest: import lauf 0 zeilen 1000000 ms 5791 tx_bytes 336973074 sitzungen 1
+lasttest: import lauf 1 zeilen 1000000 ms 4262 tx_bytes 336966554 sitzungen 1
+lasttest: import lauf 2 zeilen 1000000 ms 4648 tx_bytes 336963518 sitzungen 1
+lasttest: import lauf 3 zeilen 1000000 ms 4597 tx_bytes 336964706 sitzungen 1
+lasttest: import lauf 4 zeilen 1000000 ms 4268 tx_bytes 336965828 sitzungen 1
+lasttest: import lauf 5 zeilen 1000000 ms 4379 tx_bytes 336966488 sitzungen 1
+lasttest: server peak 132890624 Bytes (cgroup, bis Ende Phase import, Aufbau C Senke mit)
+messung: 2026-11-17T12:30:04Z aufbau C senke mit richtung import zeilen 1000000 sitzungen 1 wdh 5 median_ms 4379 min_ms 4262 max_ms 4648 zeilen_je_s 228362 bytes_je_zeile 336 streuung ok vorher [last 4.48/3.94/4.71 swap_mb 11244 frei_mb 17542] nachher [last 4.62/4.01/4.71 swap_mb 11244 frei_mb 17206]
+messung-span: aufbau C senke mit phase import span tds.query art sql_batch n=12006 median=0 min=0 max=34
+messung-span: aufbau C senke mit phase import span backend.execute art sql_batch n=12000 median=0 min=0 max=22
+lasttest: Kopf zustand nachher: last 4.65/4.03/4.72 swap_mb 11244 frei_mb 17488
+lasttest: gruen
+Probe: 3 Proben, 2 über 300 %, Höchstwert 348 %
+## endstand-stufe1-B-mit-import-v2
+lasttest: Kopf 2026-11-17T12:30:07Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit 358fcec2
+lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [B] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout vorgabe client cpus 2 memory 2g
+lasttest: Kopf zustand vorher: last 4.65/4.03/4.72 swap_mb 11244 frei_mb 17392
+lasttest: Kopf images server sha256:e0e3d448c0ed2fd2cb6f68429366c2ff7e34b7f92d6000368f290384e73e082f client sha256:270771d70f4c0e54dced75978d28c701f0c6ab5363c00823732a1e97568a3016
+lasttest: server aufbau=B zeilen=1000000 seed=42 senke=mit heap_max=268435456 swap_max 0 memory_max 4294967296
+lasttest: import lauf 0 zeilen 1000000 ms 4920 tx_bytes 336964496 sitzungen 1
+lasttest: import lauf 1 zeilen 1000000 ms 4126 tx_bytes 336965894 sitzungen 1
+lasttest: import lauf 2 zeilen 1000000 ms 3867 tx_bytes 336966950 sitzungen 1
+lasttest: import lauf 3 zeilen 1000000 ms 3638 tx_bytes 336964442 sitzungen 1
+lasttest: import lauf 4 zeilen 1000000 ms 3816 tx_bytes 336967412 sitzungen 1
+lasttest: import lauf 5 zeilen 1000000 ms 4495 tx_bytes 336962594 sitzungen 1
+lasttest: server peak 132825088 Bytes (cgroup, bis Ende Phase import, Aufbau B Senke mit)
+messung: 2026-11-17T12:30:38Z aufbau B senke mit richtung import zeilen 1000000 sitzungen 1 wdh 5 median_ms 3867 min_ms 3638 max_ms 4495 zeilen_je_s 258598 bytes_je_zeile 336 streuung ok vorher [last 4.52/4.01/4.71 swap_mb 11244 frei_mb 17480] nachher [last 5.25/4.22/4.76 swap_mb 11237 frei_mb 17442]
+messung-span: aufbau B senke mit phase import span tds.query art sql_batch n=12006 median=0 min=0 max=28
+messung-span: aufbau B senke mit phase import span backend.execute art sql_batch n=12000 median=0 min=0 max=7
+lasttest: Kopf zustand nachher: last 5.25/4.22/4.76 swap_mb 11235 frei_mb 17469
+lasttest: gruen
+Probe: 3 Proben, 3 über 300 %, Höchstwert 359 %
+## endstand-stufe1-C-mit-import-v2
+lasttest: Kopf 2026-11-17T12:30:41Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit 358fcec2
+lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout vorgabe client cpus 2 memory 2g
+lasttest: Kopf zustand vorher: last 5.55/4.30/4.78 swap_mb 11235 frei_mb 17337
+lasttest: Kopf images server sha256:f05273fc28d8e842890d8bd7bd2e4d26d6228d826eae6b7b51219ec9ea33b2ea client sha256:b585d0c53f367936403566b98d4506f95175f8b99b6a95c7987ab3b9040ebc76
+lasttest: server aufbau=C zeilen=1000000 seed=42 senke=mit heap_max=268435456 swap_max 0 memory_max 4294967296
+lasttest: import lauf 0 zeilen 1000000 ms 6206 tx_bytes 336988238 sitzungen 1
+lasttest: import lauf 1 zeilen 1000000 ms 5261 tx_bytes 336967067 sitzungen 1
+lasttest: import lauf 2 zeilen 1000000 ms 5343 tx_bytes 336974318 sitzungen 1
+lasttest: import lauf 3 zeilen 1000000 ms 4833 tx_bytes 336965086 sitzungen 1
+lasttest: import lauf 4 zeilen 1000000 ms 4936 tx_bytes 336971744 sitzungen 1
+lasttest: import lauf 5 zeilen 1000000 ms 4617 tx_bytes 336966488 sitzungen 1
+lasttest: server peak 140918784 Bytes (cgroup, bis Ende Phase import, Aufbau C Senke mit)
+messung: 2026-11-17T12:31:18Z aufbau C senke mit richtung import zeilen 1000000 sitzungen 1 wdh 5 median_ms 4936 min_ms 4617 max_ms 5343 zeilen_je_s 202593 bytes_je_zeile 336 streuung ok vorher [last 5.55/4.30/4.78 swap_mb 11234 frei_mb 17452] nachher [last 6.57/4.69/4.90 swap_mb 11217 frei_mb 16935]
+messung-span: aufbau C senke mit phase import span tds.query art sql_batch n=12006 median=0 min=0 max=44
+messung-span: aufbau C senke mit phase import span backend.execute art sql_batch n=12000 median=0 min=0 max=30
+lasttest: Kopf zustand nachher: last 6.57/4.69/4.90 swap_mb 11217 frei_mb 16908
+lasttest: gruen
+Probe: 3 Proben, 3 über 300 %, Höchstwert 461 %

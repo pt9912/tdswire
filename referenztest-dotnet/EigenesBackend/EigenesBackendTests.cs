@@ -15,6 +15,10 @@ namespace TdsWire.Referenztests.EigenesBackend;
 /// (`TDS_BACKEND_ERROR`, so meldet es ein nicht erreichbares Backend), ein Fehler nach Zeilen und ein `execute`, das
 /// eine Ausnahme wirft, ergeben je einen definierten Fehler beim Client, der Text des Backends erreicht ihn nicht,
 /// und der Server beantwortet danach Anfragen (dieselbe oder eine neue Verbindung).
+/// Das Massenladen (`SqlBulkCopy`, ADR-0052): das Backend trägt zusätzlich `BulkLoadingBackend` und erkennt die Probe
+/// der Zieltabelle und `INSERT BULK` selbst; geladen werden drei Zeilen in zwei Nachrichten (`BatchSize` 2, ein NULL) und
+/// eine weitere Nachricht auf derselben Verbindung, die Zeilen stehen danach im Backend, und ein Fehler des Backends in
+/// `load` ergibt `50004` bei offener Verbindung.
 /// Nicht belegt: ein Backend, das hängt (Frist des Servers: Stufe 7 an der Simulation), Cancel am eigenen Backend,
 /// parametrisierte Abfragen und Änderungsanweisungen, TLS und TDS 8.0, Pooling, ein Verbraucher außerhalb des
 /// Gradle-Projekts gegen das gebaute Jar, ein echtes externes Backend (Datenbank, Netz), das Schließen der Verbindung
@@ -147,5 +151,64 @@ public class EigenesBackendTests
             using var neu = Verbinden();
             ErwarteGefuellt(neu);
         }
+    }
+
+    private static DataTable Zeilen(params (int Id, string? Name)[] zeilen)
+    {
+        var tabelle = new DataTable();
+        tabelle.Columns.Add("Id", typeof(int));
+        tabelle.Columns.Add("Name", typeof(string));
+        foreach (var (id, name) in zeilen) tabelle.Rows.Add(id, (object?)name ?? DBNull.Value);
+        return tabelle;
+    }
+
+    private static List<(int, string?)> Gelesen(SqlConnection verbindung, string tabelle)
+    {
+        using var befehl = new SqlCommand($"SELECT Id, Name FROM {tabelle}", verbindung);
+        using var leser = befehl.ExecuteReader();
+        var gelesen = new List<(int, string?)>();
+        while (leser.Read()) gelesen.Add((leser.GetInt32(0), leser.IsDBNull(1) ? null : leser.GetString(1)));
+        return gelesen;
+    }
+
+    [Fact]
+    public void Das_Massenladen_mit_SqlBulkCopy_laedt_die_Zeilen_in_das_eigene_Backend()
+    {
+        using var verbindung = Verbinden();
+
+        using (var kopierer = new SqlBulkCopy(verbindung) { DestinationTableName = "ziel", BatchSize = 2 })
+        {
+            kopierer.WriteToServer(Zeilen((1, "Eins"), (2, null), (3, "Drei")));
+            Assert.Equal(3, kopierer.RowsCopied);
+        }
+
+        Assert.Equal(new List<(int, string?)> { (1, "Eins"), (2, null), (3, "Drei") }, Gelesen(verbindung, "ziel"));
+
+        using (var kopierer = new SqlBulkCopy(verbindung) { DestinationTableName = "ziel" })
+        {
+            kopierer.WriteToServer(Zeilen((4, "Vier")));
+            Assert.Equal(1, kopierer.RowsCopied);
+        }
+
+        Assert.Equal(
+            new List<(int, string?)> { (1, "Eins"), (2, null), (3, "Drei"), (4, "Vier") },
+            Gelesen(verbindung, "ziel"));
+        Assert.Equal(ConnectionState.Open, verbindung.State);
+    }
+
+    [Fact]
+    public void Ein_Fehler_des_Backends_beim_Massenladen_ist_ein_definierter_Fehler_und_die_Verbindung_bleibt_nutzbar()
+    {
+        using var verbindung = Verbinden();
+        using var kopierer = new SqlBulkCopy(verbindung) { DestinationTableName = "ziel_fehler" };
+
+        var ausnahme = Assert.Throws<SqlException>(() => kopierer.WriteToServer(Zeilen((1, "Eins"), (2, "Zwei"))));
+
+        Messung(ausnahme);
+        Assert.Equal(50004, ausnahme.Number);
+        Assert.Equal(16, ausnahme.Class);
+        Assert.DoesNotContain("Text des Backends", ausnahme.Message);
+        Assert.Equal(ConnectionState.Open, verbindung.State);
+        ErwarteGefuellt(verbindung);
     }
 }

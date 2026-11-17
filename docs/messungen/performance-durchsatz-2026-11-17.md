@@ -173,9 +173,9 @@ Millisekunden über die Zeilen je Sitzung; „Zeilen/s“ gesamt über alle Sitz
 
 Der erste Lauf von Stufe 1 (alle Zellen in einem Aufruf, 04:58 bis 05:04 UTC) lief zu 17 von 41 Proben mit mehr als 300 % fremder CPU; seine Zeilen (Export 93 000 bis 100 000 Zeilen/s, Import 168 000 bis 190 000 Zeilen/s) liegen in den Rohzeilen und tragen nicht. Die Wiederholung `stufe1b` oben ist mit weniger Fremdlast gelaufen (Probe höchstens 224 % in der Zelle C, mit Senke, `punkt-import`, Last 1 min vor den Zellen 4,13 bis 10,15).
 
-## Stand der DoD-Zeile Import in Aufbau B (Zustand, keine Entscheidung)
+## Stand der DoD-Zeile Import in Aufbau B
 
-Der Import in ein zählendes **eigenes** Backend (Aufbau B) ist **nicht gemessen und offen**. Der Nutzer hat am 2026-11-17 „Code angleichen“ (Fläche bauen) und danach „DoD teilen, B später“ (der Import in Aufbau B verlässt diesen Slice) entschieden; [ADR-0052](../plan/adr/0052-oeffentliche-flaeche-fuer-massenladen-eigener-backends.md) (Option N1, angenommen) macht die Fähigkeit am Backend öffentlich und nennt einen eigenen Slice für den Bau der Fläche; dieser Slice baut sie nicht. Bis dahin steht der Import nur in Aufbau C. Der Import am Stapel-Callback ohne Draht (Aufbau A) ist in diesem Protokoll nicht gemessen (nur die Probe vom 2026-11-16, eine Sitzung, [Messprotokoll](lasttest-probe-2026-11-15.md)) und bleibt offen; die Nutzerentscheidung „DoD teilen, B später“ betrifft nur Aufbau B. Der Befund des Probelaufs, dass ein eigenes Backend `SqlBulkCopy` abweist, gilt bis zum Bau fort.
+Der Import in ein zählendes eigenes Backend (Aufbau B) und der Import am Stapel-Callback ohne Draht (Aufbau A) stehen im Protokoll [performance-import-b-2026-11-17](performance-import-b-2026-11-17.md); die Zahlen von C in jenem Protokoll sind in einem anderen Zustand des Hosts gemessen und nicht mit denen dieses Protokolls zu vergleichen. In diesem Protokoll steht der Import nur in Aufbau C.
 
 ## Zellen nur in den Rohzeilen
 

@@ -1,0 +1,2 @@
+**Vorgang:** [slice-mehrfach-rpc-messluecken](../../../../done/slice-mehrfach-rpc-messluecken.md)
+**Fund:** Closure-Notiz §7: `93cde5fb` (Namen und Kommentare der Belegtests nach dem Re-Review, Wortlaut in Matrix und Protokoll; laut [Verifikation](../../../../../../reviews/2026-11-17-93cde5fb-verifikation-slice-mehrfach-rpc-messluecken.md) nur Namen, Kommentare, Doku) hat keinen eigenen Re-Review; geprüft hat sie der Verifier am Stand `93cde5fb`. Vermerk in §7 steht. Die Regel bleibt.

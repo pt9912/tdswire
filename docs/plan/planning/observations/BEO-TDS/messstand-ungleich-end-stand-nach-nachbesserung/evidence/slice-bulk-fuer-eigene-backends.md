@@ -1,0 +1,3 @@
+**Vorgang:** [slice-bulk-fuer-eigene-backends](../../../../done/slice-bulk-fuer-eigene-backends.md)
+**Fund:** [Verifikation](../../../../../../reviews/2026-11-17-slice-bulk-fuer-eigene-backends-verifikation.md) V-1 (MEDIUM): Messstand `9f236f41`, Änderung des Kerns in `3d722337`; Wirkung ungemessen. Das Protokoll trägt seitdem den Abschnitt „Wiederholung auf dem End-Stand“ (Commit `d9c6353d`), der die Wirkung weder belegt noch ausschließt.
+**Stand:** erstes Auftreten, vom Verifier gefangen, nicht vom Implementer und nicht vom Reviewer (der Re-Review prüfte Code und Mutationen, nicht den Messstand).

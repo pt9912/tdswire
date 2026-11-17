@@ -10,7 +10,7 @@
 # Fehlerpfade des Backends (Fehler am Start, Fehler nach Zeilen, `execute` wirft). Danach prueft der Lauf am Log des
 # Servers, dass jede Anfrage das eigene Backend erreicht hat (Zeilen `eigenes-backend: anfrage <Tabelle>`, gezaehlt je
 # Tabelle), dass der Server laeuft und dass weder Kennwort noch Text der Ausnahme oder des Fehlers in den Zeilen des Backends stehen.
-# Zusage: die vier Tests bestehen gegen den Serverprozess; nicht belegt steht im Kopf von
+# Zusage: die sechs Tests bestehen gegen den Serverprozess; nicht belegt steht im Kopf von
 # referenztest-dotnet/EigenesBackend/EigenesBackendTests.cs. Der Lauf ist Stufe 8 von `make e2e` und kein Gate (ADR-0022).
 set -u
 . "$(dirname "$0")/log-muster.sh" || { echo "log-muster.sh nicht lesbar" >&2; exit 1; }
@@ -66,12 +66,12 @@ client_ok=$?
 cat "$SCRATCH/client"
 fertig=$(date +%s)
 
-pruefe "Alle 4 Tests des Referenzclients bestanden" \
-  sh -c "[ $client_ok -eq 0 ] && grep -q 'Test Run Successful' '$SCRATCH/client' && grep -q 'Total tests: 4' '$SCRATCH/client' && grep -q 'Passed: 4' '$SCRATCH/client'"
+pruefe "Alle 6 Tests des Referenzclients bestanden" \
+  sh -c "[ $client_ok -eq 0 ] && grep -q 'Test Run Successful' '$SCRATCH/client' && grep -q 'Total tests: 6' '$SCRATCH/client' && grep -q 'Passed: 6' '$SCRATCH/client'"
 
 # Jede Anfrage der Tests erreicht das eigene Backend; die Simulation kennt keine dieser Tabellen. Erwartet (Kopplung:
 # EigenesBackendTests.cs): eigen 6 (gefuellt 1, Folgeabfrage nach fehler 1, nach fehler_nach_zeilen 1, drei neue Verbindungen
-# nach wirft 3), leer 1, fehler 1, fehler_nach_zeilen 1, wirft 1.
+# nach wirft 3, Folgeabfrage nach dem Fehler beim Massenladen 1 = 7), leer 1, fehler 1, fehler_nach_zeilen 1, wirft 1.
 anfragen_an() { docker logs "$SERVER" 2>&1 | grep -cx "eigenes-backend: anfrage $1"; }
 anfragen_je_tabelle() { # anfragen_je_tabelle <Tabelle> <erwartete Zahl>
   local ist
@@ -79,11 +79,25 @@ anfragen_je_tabelle() { # anfragen_je_tabelle <Tabelle> <erwartete Zahl>
   echo "eigenes-backend: Anfragen an $1: $ist (erwartet $2)"
   [ "$ist" = "$2" ]
 }
-pruefe "Backend: 6 Anfragen an eigen" anfragen_je_tabelle eigen 6
+pruefe "Backend: 7 Anfragen an eigen" anfragen_je_tabelle eigen 7
 pruefe "Backend: 1 Anfrage an leer" anfragen_je_tabelle leer 1
 pruefe "Backend: 1 Anfrage an fehler" anfragen_je_tabelle fehler 1
 pruefe "Backend: 1 Anfrage an fehler_nach_zeilen" anfragen_je_tabelle fehler_nach_zeilen 1
 pruefe "Backend: 1 Anfrage an wirft" anfragen_je_tabelle wirft 1
+# Massenladen (Kopplung: EigenesBackendTests.cs): die Probe der Zieltabelle und `INSERT BULK` erreichen `execute` nicht;
+# das Backend sieht nur die Auswahlen an `ziel` (2: nach dem ersten und nach dem zweiten Laden) und keinen Text, den es
+# nicht kennt (`unbekannt`), und `load` laeuft je Nachricht: ziel 2, 1 und 1 Zeilen, ziel_fehler 2 Zeilen.
+pruefe "Backend: 2 Anfragen an ziel" anfragen_je_tabelle ziel 2
+pruefe "Backend: keine Anfrage mit unbekanntem Text (SqlBulkCopy stellt nur Probe und INSERT BULK)" anfragen_je_tabelle unbekannt 0
+geladen_je_nachricht() { # geladen_je_nachricht <Tabelle> <Zahl der Zeilen> <erwartete Zahl der Nachrichten>
+  local ist
+  ist="$(docker logs "$SERVER" 2>&1 | grep -cx "eigenes-backend: laden $1 $2")"
+  echo "eigenes-backend: Nachrichten mit $2 Zeilen an $1: $ist (erwartet $3)"
+  [ "$ist" = "$3" ]
+}
+ziel_geladen() { geladen_je_nachricht ziel 2 1 && geladen_je_nachricht ziel 1 2; }
+pruefe "Backend: ziel erhielt eine Nachricht mit 2 Zeilen und zwei mit 1 Zeile" ziel_geladen
+pruefe "Backend: ziel_fehler erhielt eine Nachricht mit 2 Zeilen" geladen_je_nachricht ziel_fehler 2 1
 
 laeuft() { [ "$(docker inspect --format '{{.State.Running}}' "$SERVER")" = "true" ]; }
 pruefe "Server laeuft nach den Tests" laeuft

@@ -3,8 +3,8 @@
 # ueber `make lasttest`; BUILDER_FLAGS kommt aus der Umgebung. Kein Gate, nicht in `make gates`.
 #
 # Aufbauten (S6 und S7): A Backend allein (Kotlin-Prozess ohne Server und Draht, Strom bis zur Senke gezogen: eigenes
-# Backend und Simulations-Backend), B Server mit eigenem Backend (nur Export; Massenladen nimmt ein eigenes Backend nicht an,
-# der Lauf haelt den Fehler fest), C Server mit Simulations-Backend (Export und Import, das Backend zaehlt die Zeilen).
+# Backend und Simulations-Backend), B Server mit eigenem Backend, das BulkLoadingBackend traegt (Export und Import, sein
+# `load` zaehlt die Zeilen), C Server mit Simulations-Backend (Export und Import, dessen Callback zaehlt die Zeilen).
 # B und C laufen je mit und ohne Senke (O7). Server und Client sind Container eines internen Netzes (kein Zugang nach
 # aussen, nichts gemountet), Images aus Dockerfile und referenztest-dotnet/Dockerfile (Basis-Images dort per Digest).
 #
@@ -250,13 +250,9 @@ for aufbau in $aufbauten; do
 					stufe "$scratch/zeilen" '^lasttest: export lauf' "$aufbau" "$senke" export rx_bytes "$vorher"
 					;;
 				import)
-					if [ "$aufbau" = C ]; then
-						stufe "$scratch/zeilen" '^lasttest: import lauf' "$aufbau" "$senke" import tx_bytes "$vorher"
-						gezaehlt="$(grep -c '^lasttest: import ' "$scratch/serverlog")"
-						[ "$gezaehlt" -eq $((sitzungen * (wdh + 1))) ] || { echo "lasttest: FEHLER Aufbau C Senke $senke: das Backend meldet $gezaehlt von $((sitzungen * (wdh + 1))) vollständigen Importen" >&2; fehler=1; }
-					else
-						if grep -E 'import aufbau B abgewiesen' "$scratch/zeilen" | head -1 | grep -q .; then :; else echo "lasttest: FEHLER Aufbau B: Import nicht abgewiesen" >&2; fehler=1; fi
-					fi
+					stufe "$scratch/zeilen" '^lasttest: import lauf' "$aufbau" "$senke" import tx_bytes "$vorher"
+					gezaehlt="$(grep -c '^lasttest: import ' "$scratch/serverlog")"
+					[ "$gezaehlt" -eq $((sitzungen * (wdh + 1))) ] || { echo "lasttest: FEHLER Aufbau $aufbau Senke $senke: das Backend meldet $gezaehlt von $((sitzungen * (wdh + 1))) vollständigen Importen" >&2; fehler=1; }
 					;;
 				*)
 					punktstufe "$scratch/zeilen" "$aufbau" "$senke" "$phase" "$vorher"

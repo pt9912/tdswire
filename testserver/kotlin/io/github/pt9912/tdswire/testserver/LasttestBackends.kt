@@ -2,6 +2,11 @@ package io.github.pt9912.tdswire.testserver
 
 import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.domain.QueryRequest
+import io.github.pt9912.tdswire.port.BulkLoadingBackend
+import io.github.pt9912.tdswire.port.BulkProbeResult
+import io.github.pt9912.tdswire.port.BulkRows
+import io.github.pt9912.tdswire.port.BulkTarget
+import io.github.pt9912.tdswire.port.BulkTargetResult
 import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.port.QueryExecution
 import io.github.pt9912.tdswire.simulation.FilterTerm
@@ -26,10 +31,31 @@ internal const val LASTTEST_PREFIX = "lasttest:"
  * [rows] Zeilen aus [ReferenzZeilen] liefert, auf `SELECT * FROM ref_zeilen WHERE Id = @<Name>` mit einem Parameter
  * vom Typ `Int64` die eine Zeile dieser `Id` (keine, wenn sie außerhalb von 1 bis [rows] liegt) und sonst nichts tut.
  * Die Zeilen entstehen erst, wenn der Strom sie zieht (`ADR-0006`); es liest nichts voraus und hält keine Zeile.
- * Massenladen nimmt ein eigenes Backend nicht an: die Fähigkeit dazu hat die öffentliche Fläche nur für das
- * Simulations-Backend (Befund in der Spezifikation `SPEC-036`).
+ * Das Massenladen (`ADR-0052`, `docs/plan/referenz-workload.md` S6) nimmt es über [BulkLoadingBackend] an: die
+ * Erkennung von `INSERT BULK` und der Probe der Zieltabelle `ref_zeilen` ist [BulkErkennung]; `load` zählt die Zeilen
+ * und speichert keine. Erreicht der Zähler ein Vielfaches von [rows], schreibt es `lasttest: import <Summe>` nach
+ * [out]; `tools/lasttest.sh` prüft damit, dass jeder Lauf alle Zeilen erreicht hat.
  */
-internal class ZeilenBackend(private val rows: Long, private val seed: Long) : QueryBackend {
+internal class ZeilenBackend(
+    private val rows: Long,
+    private val seed: Long,
+    private val out: (String) -> Unit = ::println,
+) : QueryBackend,
+    BulkLoadingBackend {
+    private val counted = AtomicLong()
+    private val bulk = BulkErkennung(mapOf(REF_TABLE to ReferenzZeilen.resultColumns))
+
+    override fun bulkTarget(sql: String): BulkTargetResult? = bulk.target(sql)
+
+    override fun bulkProbe(sql: String): BulkProbeResult? = bulk.probe(sql)
+
+    override suspend fun load(target: BulkTarget, rows: BulkRows): QueryEvent {
+        val batch = rows.rows.size.toLong()
+        val total = counted.addAndGet(batch)
+        if (total / this.rows > (total - batch) / this.rows) out("$LASTTEST_PREFIX import $total")
+        return QueryEvent.UpdateCount(batch)
+    }
+
     override suspend fun execute(request: QueryRequest): QueryExecution {
         val sql = request.sql.trim()
         val point = request.parameters.singleOrNull()?.value as? Long

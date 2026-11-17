@@ -10,7 +10,7 @@ namespace TdsWire.Referenztests.Mitschnitt;
 /// Aufruf mit Parametern in der Reihenfolge der Aufrufliste), `einzelheiten` (Werte, die der Vergleich nicht führt: LOGINACK,
 /// ENVCHANGE mit Werten, SESSIONSTATE, FEATUREEXTACK) und für die Anmeldung PRELOGIN-Optionen und die Zusammenfassung von LOGIN7.
 /// Mit <c>mitZeilenform</c> folgt je Austausch mit Zeilen die Zeile `zeilenform` (je Zeile Tokenname und Bytes vom Kennbyte bis zum Ende der Zeile); die Messreihe der Zeilenform nutzt sie, die Vergleiche zweier Instanzen nicht (Zeilenwerte wie Sitzungsnummern unterscheiden sich).
-/// Grenze: der RPC-Zerleger kennt nur die Parametertypen int und nvarchar (NVARCHAR-PLP eingeschlossen); bei einem anderen endet die
+/// Grenze: der RPC-Zerleger kennt nur die Parametertypen int, nvarchar (NVARCHAR-PLP eingeschlossen) und ntext; bei einem anderen endet die
 /// Liste mit dem Hinweis `(weitere Parameter nicht zerlegt)`.
 /// </summary>
 internal static class MessAuswertung
@@ -191,6 +191,15 @@ internal static class MessAuswertung
                     var l = d[p++];
                     beschreibung = l == 0 ? "int NULL" : "int " + (max == l ? Ganz(d, p, l) : "?");
                     p += l;
+                }
+                else if (typ == 0x63)
+                {
+                    // ntext: Höchstlänge (4), Kollation (5), Länge (4), Daten; so steht die Deklaration von 1360 und 1400 Parametern in den Messungen rpc-batch-parameter-*.
+                    p += 4 + 5;
+                    var l = BitConverter.ToUInt32(d, p);
+                    p += 4;
+                    beschreibung = l == uint.MaxValue ? "ntext NULL" : $"ntext {l / 2} Zeichen";
+                    if (l != uint.MaxValue) p += (int)l;
                 }
                 else if (typ == 0xE7)
                 {
