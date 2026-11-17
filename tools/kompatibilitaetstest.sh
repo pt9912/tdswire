@@ -158,14 +158,15 @@ fi
 if [ "$KATEGORIE" = Luecken ]; then
   # Der Referenzclient sieht nur 18456 bzw. den Fehler; den Grund nennt allein das Log des Testservers:
   # - `login_rejected` mit `reason` UNSUPPORTED_PASSWORD_CHANGE und UNSUPPORTED_FEDERATED_AUTHENTICATION
-  # - `request_failed` mit `error_code` TDS_PROTOCOL_ERROR (mehrere RPCs) und TDS_UNSUPPORTED_TYPE (xml)
+  # - `request_failed` mit `error_code` TDS_UNSUPPORTED_TYPE (xml); ohne `error_code` TDS_PROTOCOL_ERROR (mehrere RPCs gelingen)
   grund() { # grund <event> <Feld> <Wert>: mindestens eine Zeile des Ereignisses mit diesem Feldwert
     docker logs "$SERVER" 2>&1 | log_nennt_ereignis "$1" "\"$2\":\"$3\""
   }
   pruefe "Log: login_rejected mit UNSUPPORTED_PASSWORD_CHANGE" grund login_rejected reason UNSUPPORTED_PASSWORD_CHANGE
   pruefe "Log: login_rejected mit UNSUPPORTED_FEDERATED_AUTHENTICATION" \
     grund login_rejected reason UNSUPPORTED_FEDERATED_AUTHENTICATION
-  pruefe "Log: request_failed mit TDS_PROTOCOL_ERROR (mehrere RPCs)" grund request_failed error_code TDS_PROTOCOL_ERROR
+  kein_grund() { ! grund "$@"; }
+  pruefe "Log: kein request_failed mit TDS_PROTOCOL_ERROR (mehrere RPCs gelingen)" kein_grund request_failed error_code TDS_PROTOCOL_ERROR
   pruefe "Log: request_failed mit TDS_UNSUPPORTED_TYPE (xml)" grund request_failed error_code TDS_UNSUPPORTED_TYPE
   # Pooling mit einer physischen Verbindung (RESETCONNECTION): der Client sieht nur Ergebnisse; dass alle Anfragen mit dem
   # Marker auf einer einzigen Sitzung des Servers liefen (eine physische Verbindung, ein LOGIN7), zeigt allein das Log.

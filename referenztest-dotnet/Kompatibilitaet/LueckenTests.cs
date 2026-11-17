@@ -8,11 +8,11 @@ namespace TdsWire.Referenztests.Kompatibilitaet;
 /// <summary>
 /// Messungen der Lücken 3, 4, 13 und 14 der Kompatibilitätsmatrix am Referenzclient (Microsoft.Data.SqlClient 7.1.1)
 /// gegen den Serverprozess (`make kompatibilitaet KATEGORIE=Luecken`, Stufe 6 von `make e2e`, ADR-0019, TDS-QA-01):
-/// `xml` als RPC-Parameter, mehrere RPCs in einer Nachricht (Batch-Flag, `SqlDataAdapter` mit `UpdateBatchSize`),
+/// `xml` als RPC-Parameter, mehrere RPCs in einer Nachricht (Batch-Flag, `SqlDataAdapter` mit `UpdateBatchSize`, gelingt),
 /// Kennwortwechsel und FeatureExt der Anmeldung (Zugriffstoken) sowie `RESETCONNECTION` bei Pooling (vorbereitete
 /// Befehle über mehrere Open-Phasen derselben physischen Verbindung). Jeder Test pinnt, was der Client sieht; die Zeilen
 /// `messung: ...` im Bericht sind die Werte, die die Matrix zitiert. Der Grund der Ablehnung (Kennwortwechsel,
-/// Zugriffstoken) und die Fehler von xml und Batch stehen nur im Log des Servers; ihre Prüfung liegt in
+/// Zugriffstoken) und der Fehler von xml stehen nur im Log des Servers, ebenso dass der Batch keinen Protokollfehler ergibt; ihre Prüfung liegt in
 /// `tools/kompatibilitaetstest.sh`, ein `dotnet test` allein belegt sie nicht. Nicht belegt: Windows-SSPI, ein echter
 /// SQL Server.
 /// </summary>
@@ -39,26 +39,26 @@ public class LueckenTests
     }
 
     [Fact]
-    public void Mehrere_RPCs_in_einer_Nachricht_enden_mit_Protokollfehler_und_geschlossener_Verbindung()
+    public void Mehrere_RPCs_in_einer_Nachricht_gelingen_mit_UpdateBatchSize_2()
     {
         using var verbindung = Ziel.Oeffnen();
         using var tabelle = new DataTable();
         tabelle.Columns.Add("Id", typeof(int));
         tabelle.Columns.Add("Name", typeof(string));
-        tabelle.Rows.Add(21, "Eva");
-        tabelle.Rows.Add(22, "Fred");
+        tabelle.Rows.Add(31, "Gerd");
+        tabelle.Rows.Add(32, "Hanna");
+        tabelle.Rows.Add(33, "Ida");
         using var einfuegen = new SqlCommand("INSERT INTO person (Id, Name) VALUES (@Id, @Name)", verbindung);
         einfuegen.Parameters.Add("@Id", SqlDbType.Int, 0, "Id");
         einfuegen.Parameters.Add("@Name", SqlDbType.NVarChar, 40, "Name");
         einfuegen.UpdatedRowSource = UpdateRowSource.None;
         using var adapter = new SqlDataAdapter { InsertCommand = einfuegen, UpdateBatchSize = 2 };
 
-        var ausnahme = Assert.Throws<SqlException>(() => adapter.Update(tabelle));
+        var zeilen = adapter.Update(tabelle);
 
-        Ziel.Messung(_ausgabe, "UpdateBatchSize 2: " + Ziel.Beschreibung(ausnahme) + $"; Verbindung danach {verbindung.State}");
-        Assert.Equal(50006, ausnahme.Number);
-        Assert.Equal(20, ausnahme.Class);
-        Assert.Equal(ConnectionState.Closed, verbindung.State);
+        Ziel.Messung(_ausgabe, $"UpdateBatchSize 2: Update meldet {zeilen}; Verbindung danach {verbindung.State}");
+        Assert.Equal(3, zeilen);
+        Assert.Equal(ConnectionState.Open, verbindung.State);
     }
 
     [Fact]
