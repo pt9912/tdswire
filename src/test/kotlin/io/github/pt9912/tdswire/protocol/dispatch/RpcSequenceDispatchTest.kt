@@ -200,8 +200,8 @@ class RpcSequenceDispatchTest {
 
     /**
      * Alle Aufrufe einer Nachricht tragen dieselbe Sitzung und dieselbe Frist (Beginn der Nachricht plus
-     * `QUERY_TIMEOUT`), auch wenn die Uhr zwischen den Aufrufen weiterläuft (hier um 1000 ms je Lesen). Rot, wenn die Frist
-     * je Aufruf neu berechnet wird.
+     * `QUERY_TIMEOUT`), auch wenn die Uhr zwischen den Aufrufen weiterläuft (hier um 1000 ms je Lesen). Rot, wenn die
+     * Frist je Aufruf neu berechnet wird.
      *
      * @spec SPEC-009
      * @spec SPEC-030
