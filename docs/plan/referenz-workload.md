@@ -90,7 +90,7 @@ Alle Typen sind für das Massenladen gedeckt (Zeilen 338-342). **Zeilengröße a
 | p95 (und p50, p99) der Punktabfrage in ms | Client: Zeit je Anfrage, mindestens 1000 Anfragen je Stufe (Setzung) | nein, Folge-Slice | nicht aus `METRICS` (Klassenobergrenze) |
 | gleichzeitige Sitzungen | Staffelstufe; Gegenprobe `sessions_active` aus `METRICS` | nein, Folge-Slice | |
 | Heap des Serverprozesses | Stichprobe der Live-Größe nach GC im Serverprozess (Mechanik wählt der Folge-Slice) | nein; nur die cgroup-Spitze des Containers (`memory.peak`) steht in der Ausgabe | Stichprobe, keine Spitze (Aussage wie im Spike, [ADR-0006](adr/0006-backend-vertrag-und-streaming.md)) |
-| Rückstau: Zeilen, die das Backend vorausläuft | Zähler am messenden Backend | nein, Folge-Slice | gegen den Zähler-Beleg am Test-Backend (`spec/spezifikation.md:1957`) |
+| Rückstau: Zeilen, die das Backend vorausläuft | Zähler am messenden Backend | nein (`make lasttest`); gemessen mit `make rueckstau`, [Messprotokoll](../messungen/performance-rueckstau-2026-11-17.md) | gegen den Zähler-Beleg am Test-Backend (`spec/spezifikation.md:1957`) |
 | Dauer je Schicht | `SPAN_ENDED`: `tds.query` und `backend.execute` | nein (Senke „mit“ schreibt sie ins Log, das Werkzeug liest sie nicht) | Auflösung 1 ms abgerundet: Anfragen unter 1 ms zeigen 0 |
 
 ### 3.6 Getrennte Messung Protokollschicht und Backend

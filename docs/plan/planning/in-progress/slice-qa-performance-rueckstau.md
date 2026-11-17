@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [TDS-QA-04](../../../../spec/lastenheft.md#tds-qa-04--performance), [TDS-QA-02](../../../../spec/lastenheft.md#tds-qa-02--stabilität), [TDS-FA-08](../../../../spec/lastenheft.md#tds-fa-08--backend-anbindung), [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md)
 
-**Berührte Spec-Stellen:** `SPEC-022` · `SPEC-035` (Rückstau-Zusage in `spec/spezifikation.md`, Abschnitt „Pflichten des Backends“: „gilt für das Test-Backend an einem Draht ohne Netz, nicht für einen Socket, ein blockierendes Backend oder das Simulations-Backend“)
+**Berührte Spec-Stellen:** `SPEC-022` · `SPEC-035` · `SPEC-009` · `SPEC-033` (Rückstau-Zusage in `spec/spezifikation.md`, Abschnitt „Pflichten des Backends“: „gilt für das Test-Backend an einem Draht ohne Netz, nicht für einen Socket, ein blockierendes Backend oder das Simulations-Backend“)
 
 **Verantwortlich:** pt9912
 
@@ -76,6 +76,10 @@ Aussagen-Berührung steht hier gar nicht.
 | Szenarien des Werkzeugs aus [slice-qa-performance](../done/slice-qa-performance.md) (langsamer Leser, blockierendes Backend, Stufe 256) | update | Messung nach [TDS-QA-04](../../../../spec/lastenheft.md#tds-qa-04--performance) und [ADR-0006](../../adr/0006-backend-vertrag-und-streaming.md) |
 | Messende Backends (blockierend, zählend) im Testserver-Modul | neu | Aufbau mit Zähler, Erzeuger im Repo |
 | `docs/messungen/performance-rueckstau-<datum>.md` | neu | Messprotokoll, Einzelmessung (`AGENTS.md` §5 Regel 7) |
+| `testserver/kotlin/.../RueckstauServer.kt` und `testserver/test/kotlin/.../RueckstauTest.kt` | neu | Serverprozess mit zählendem, wartendem Backend (eigen und Simulation) und seine Tests |
+| `referenztest-dotnet/Rueckstau/RueckstauTests.cs`, `referenztest-dotnet/Dockerfile` (Stage `rueckstau`) | neu, update | Szenarien Leser, Blockierend, Abbruch, Import am Referenzclient |
+| `tools/rueckstau.sh`, `tools/mk/rueckstau.mk`, `tools/rueckstau-tabellen.sh`, beide Selbsttests, `Dockerfile` (Stage `skript-selbsttest`) | neu, update | Lauf der Zellen mit Fremdlast-Probe, Tabellen aus den Rohzeilen, Selbsttests (kein Umbau des Werkzeugs von [slice-qa-performance](../done/slice-qa-performance.md): die Szenarien liegen in einem eigenen Werkzeug) |
+| `harness/README.md`, `docs/user/einbettung-und-betrieb.md`, `docs/plan/referenz-workload.md`, Rohzeilen unter `docs/messungen/` | update, neu | Zeilen der Targets, Rückstau-Aussage der Nutzer-Doku, Zeiger auf das Protokoll, Rohzeilen des Protokolls |
 | `spec/spezifikation.md`, Abschnitt „Pflichten des Backends“ | update | Aussage trägt höchstens so weit wie der Beleg (`AGENTS.md` §3.8) |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
