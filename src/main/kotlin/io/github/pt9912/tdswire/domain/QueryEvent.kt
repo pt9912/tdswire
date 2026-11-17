@@ -70,7 +70,13 @@ public sealed interface QueryEvent {
 
     /**
      * Ein Fehler des Backends, auch beim Start (siehe `QueryBackend.execute`). [scope] sagt, ob der Fehler nur
-     * die Anweisung oder den Batch abbricht (`SPEC-031`); ohne Angabe bricht er den Batch ab.
+     * die Anweisung oder den Batch abbricht (`SPEC-031`); ohne Angabe bricht er den Batch ab. [code] ist einer
+     * dieser Namen: `TDS_BACKEND_ERROR`, `TDS_UNSUPPORTED_SQL`, `TDS_UNSUPPORTED_TYPE`, `TDS_SIM_UNKNOWN_OBJECT`,
+     * `TDS_SIM_INVALID_VALUE`, `TDS_SIM_KEY_VIOLATION`, `TDS_SIM_OBJECT_EXISTS`, `TDS_SIM_COLUMN_EXISTS`,
+     * `TDS_SIM_COLUMN_HAS_DEFAULT`, `TDS_SIM_OBJECT_NOT_FOUND`, `TDS_SIM_NOT_A_CONSTRAINT`,
+     * `TDS_SIM_CONSTRAINT_OTHER_TABLE`, `TDS_SIM_NOT_AN_INDEX`, `TDS_SIM_INDEX_OF_CONSTRAINT`,
+     * `TDS_SIM_STRING_TRUNCATED`, `TDS_TIMEOUT`; ein anderer Name endet mit `TDS_INTERNAL_ERROR` (50007) und schließt
+     * die Verbindung.
      */
     public data class Failure @JvmOverloads constructor(
         val code: String,

@@ -21,8 +21,7 @@ namespace TdsWire.Referenztests.Lasttest;
 /// am Client (Mikrosekunden).
 /// Belegt: der Lesen jeder Sitzung liefert alle Zeilen, die erste und die letzte gleich dem Erzeuger dieser Seite; jede
 /// Punktabfrage liefert genau die Zeile der Id aus dem Erzeuger; der Import erreicht alle Zeilen (das Backend zählt, der
-/// Server schreibt `lasttest: import <Summe>`). Aufbau B nimmt kein Massenladen an: der Import endet dort mit einem Fehler,
-/// den der Test festhält.
+/// Server schreibt `lasttest: import <Summe>`, in Aufbau B und C).
 /// Nicht belegt: ein Grenzwert (der Test misst, er prüft keine Schwelle), Streuung über mehrere Tage, Rückstau, TLS und
 /// TDS 8.0, ein anderer Client.
 /// </summary>
@@ -240,8 +239,7 @@ public class LasttestTests
         var seed = long.Parse(Umgebung("LASTTEST_SEED", "42"));
         var zeilen = long.Parse(Umgebung("LASTTEST_ZEILEN", "100000"));
         var wiederholungen = int.Parse(Umgebung("LASTTEST_WDH", "5"));
-        var aufbau = Umgebung("LASTTEST_AUFBAU", "C");
-        var sitzungen = aufbau == "B" ? 1 : int.Parse(Umgebung("LASTTEST_SITZUNGEN", "1"));
+        var sitzungen = int.Parse(Umgebung("LASTTEST_SITZUNGEN", "1"));
         var verbindungen = VerbindenAlle(sitzungen);
         using var gruppe = new Gruppe(sitzungen);
         try
@@ -249,15 +247,6 @@ public class LasttestTests
             for (var lauf = 0; lauf <= wiederholungen; lauf++)
             {
                 var tx0 = Zaehler("tx_bytes");
-                if (aufbau == "B")
-                {
-                    using var kopierer = Kopierer(verbindungen[0]);
-                    using var quelle = new ZeilenLeser(seed, zeilen);
-                    var fehler = Assert.ThrowsAny<Exception>(() => kopierer.WriteToServer(quelle));
-                    _ausgabe.WriteLine($"lasttest: import aufbau B abgewiesen: {fehler.GetType().Name} Number {(fehler as SqlException)?.Number} Meldung '{fehler.Message.Replace("\n", " ")}'");
-                    return;
-                }
-
                 var ms = gruppe.Lauf(sitzung =>
                 {
                     using var kopierer = Kopierer(verbindungen[sitzung]);
