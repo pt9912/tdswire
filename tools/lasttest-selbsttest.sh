@@ -7,7 +7,8 @@
 # Aufbau A (Spalte der Millisekunden), (b) den Vermerk last-hoch und swap-gewachsen in allen drei Zeilen von Aufbau A (und sein
 # Fehlen bei ruhigem Host), (c) den Fehler, wenn der Import in Aufbau B nicht abgewiesen wird und (d) vier Sitzungen in Aufbau C
 # (Zeilen/s aller Sitzungen, Zeit der ersten Zeile, Perzentile der Punktabfrage ohne den Warmlauf, Dauer je Schicht nach Anfrageart aus dem
-# Log, Zaehlung der Importe je Sitzung, Vermerke an den Zeilen der Punktabfrage); je Fall mindestens eine Mutation, die rot wird.
+# Log, Zaehlung der Importe je Sitzung, Vermerke an den Zeilen der Punktabfrage), (e) die Streuung des p95, (f) die Zaehlung der Laeufe der
+# Punktabfrage und (g) das Fehlen von punkt-import in Aufbau B; je Fall mindestens eine Mutation, die rot wird.
 # TDS-QA-04, TDS-QA-06. Grenze: der Stub belegt die Auswertung der Skriptzeilen, nicht den Wortlaut der echten Ausgabe des Containers.
 # Aufgerufen von der Dockerfile-Stage `skript-selbsttest`; braucht bash, sh, sort, sed, cmp, mktemp, grep, awk (die Auswertung der
 # Zeilen von Aufbau A uebt awk; in der Stage liegt mawk, gemessen im Verifikationsbericht vom 2026-11-16).
@@ -222,6 +223,37 @@ env_handlauf() { # wie handlauf, mit LASTTEST_ZEILEN=1000 und den Angaben aus $E
 	eval "env PATH=\"$tmp/sbin:\$PATH\" STUB_DIR=\"$stub\" LASTTEST_PROC=\"$stub/proc\" LASTTEST_ZEILEN=1000 LASTTEST_WDH=3 LASTTEST_ANFRAGEN=10 LASTTEST_AUFBAUTEN=C LASTTEST_SENKEN=mit $EXTRA bash \"$1\" > \"$tmp/aus\" 2> \"$tmp/fehl\"" || rc=$?
 	echo "$rc"
 }
+pruefung_e() { # Streuung der Punktabfrage: gleiche p95 gelten als ok, p95 mit mehr als dem Doppelten Unterschied als zu-gross
+	host ruhig
+	sitzungs_ausgabe
+	EXTRA="LASTTEST_SITZUNGEN=4 LASTTEST_PHASEN=punkt-export"
+	[ "$(env_handlauf "$1")" = 0 ] || { EXTRA=; return 1; }
+	grep -q 'richtung punkt-export .* streuung_p95 ok vorher' "$tmp/aus" || { EXTRA=; return 1; }
+	sed -i 's/p95_us 340 /p95_us 900 /' "$stub/client-ausgabe"
+	[ "$(env_handlauf "$1")" = 0 ] || { EXTRA=; return 1; }
+	EXTRA=
+	grep -q 'richtung punkt-export .* streuung_p95 zu-gross vorher' "$tmp/aus"
+}
+pruefung_f() { # Laeufe der Punktabfrage: fehlt ein Lauf, endet der Lauf mit Exit 1 und der Meldung
+	host ruhig
+	sitzungs_ausgabe
+	sed -i '/punkt lauf 3 /d' "$stub/client-ausgabe"
+	EXTRA="LASTTEST_SITZUNGEN=4 LASTTEST_PHASEN=punkt-export"
+	local rc
+	rc="$(env_handlauf "$1")"
+	EXTRA=
+	[ "$rc" = 1 ] && grep -q 'statt 3 Läufe der Punktabfrage' "$tmp/fehl"
+}
+pruefung_g() { # Aufbau B hat keine Phase punkt-import: keine Zeile dafuer, Exit 0
+	host ruhig
+	sitzungs_ausgabe
+	EXTRA="LASTTEST_SITZUNGEN=4 LASTTEST_AUFBAUTEN=B LASTTEST_PHASEN=punkt-import"
+	local rc
+	rc="$(env_handlauf "$1")"
+	EXTRA=
+	[ "$rc" = 1 ] && return 1
+	! grep -q 'richtung punkt-import' "$tmp/aus"
+}
 kopie() { # kopie <Name> <sed-Programm> [Zeile]: veraendertes lasttest.sh samt Statistik in $tmp/m/<Name>; druckt den Pfad
 	mkdir -p "$tmp/m/$1"
 	cp "$(dirname "$lasttest")/lasttest-statistik.sh" "$tmp/m/$1/"
@@ -229,12 +261,15 @@ kopie() { # kopie <Name> <sed-Programm> [Zeile]: veraendertes lasttest.sh samt S
 	if cmp -s "$lasttest" "$tmp/m/$1/lasttest.sh"; then echo "lasttest-selbsttest: FEHLER - Mutation $1 aenderte nichts" >&2; fehler=1; fi
 	echo "$tmp/m/$1/lasttest.sh"
 }
+mutationen=0
 rot() { # rot <Pruefung> <Skript> <Name>: die Pruefung muss am veraenderten Skript scheitern
+	mutationen=$((mutationen + 1))
 	if "$1" "$2" 2> /dev/null; then pruefe "Mutation $3 blieb gruen"; fi
 }
-for fall in a b c d d_heiss; do "pruefung_$fall" "$lasttest" || pruefe "Handlauf $fall am unveraenderten Skript"; done
+for fall in a b c d d_heiss e f g; do "pruefung_$fall" "$lasttest" || pruefe "Handlauf $fall am unveraenderten Skript"; done
 rot pruefung_a "$(kopie a-falsche-spalte 's/{print \$9}/{print $7}/g')" a-falsche-spalte
 for n in $(grep -n 'zustand)\]$(vermerke' "$lasttest" | cut -d: -f1); do
+	mutationen=$((mutationen + 1))
 	m="$(kopie "b-ohne-vermerk-$n" 's/\[\$(zustand)\]\$(vermerke "\$vorher")"/[$(zustand)]"/' "${n}")"
 	if pruefung_b "$m" 2> /dev/null && pruefung_d_heiss "$m" 2> /dev/null; then pruefe "Mutation b-ohne-vermerk-$n blieb gruen"; fi
 done
@@ -246,6 +281,9 @@ rot pruefung_d "$(kopie d-falsches-perzentil 's/for feld in p50_us p95_us p99_us
 rot pruefung_d "$(kopie d-ohne-warmlauf '/-v b="\$feld"/s/ \&\& \$(i + 1) >= 1//')" d-ohne-warmlauf
 rot pruefung_d "$(kopie d-span-ohne-art 's/if (id in art) print "backend.execute", art\[id\], dauer\[id\]/print "backend.execute", "rpc", dauer[id]/')" d-span-ohne-art
 rot pruefung_d "$(kopie d-ohne-sitzungszaehlung 's/-eq \$((sitzungen \* (wdh + 1)))/-eq $((wdh + 1))/')" d-ohne-sitzungszaehlung
+rot pruefung_e "$(kopie e-ohne-streuung-p95 's/^\t\t\[ "\$feld" != p95_us \] || p95streuung=.*$/\t\tp95streuung=ok/')" e-ohne-streuung-p95
+rot pruefung_f "$(kopie f-ohne-laufzaehlung 's/^\t\[ "\$anzahl" -eq "\$wdh" \] || .*$/\t:/')" f-ohne-laufzaehlung
+rot pruefung_g "$(kopie g-punkt-import-in-b 's/if \[ "\$phase" = punkt-import \] \&\& \[ "\$aufbau" = B \]; then continue; fi/:/;s/\[ "\$phase" = punkt-import \] \&\& \[ "\$aufbau" = B \] \&\& continue/:/')" g-punkt-import-in-b
 
 [ "$fehler" -eq 0 ] || exit 1
-echo "lasttest-selbsttest: ok (6 Faelle, Eingabefehler, 3 Mutationen rot, elf abgewiesene Umgebungswerte, 1 Mutation rot; Handlaeufe a bis d, 12 Mutationen rot)"
+echo "lasttest-selbsttest: ok (6 Faelle, Eingabefehler, 3 Mutationen rot, elf abgewiesene Umgebungswerte, 1 Mutation rot; Handlaeufe a bis g, $mutationen Mutationen rot)"

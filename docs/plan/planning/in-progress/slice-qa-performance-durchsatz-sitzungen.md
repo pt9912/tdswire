@@ -51,7 +51,8 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] **Export:** Zeilen/s, erste Zeile und Dauer je Schicht (`tds.query`, `backend.execute`) für `SELECT * FROM ref_zeilen` in den Aufbauten B und C, je Stufe der Staffel, mit Median, Minimum und Maximum der Wiederholungen und den Bedingungen (Datum, Host, Last, Limits).
-- [ ] **Import:** Zeilen/s für `SqlBulkCopy` (`BatchSize` 1000) in ein zählendes Backend (Aufbau B) und in das Simulations-Backend mit `onInsertBatch` (Aufbau C), je Stufe der Staffel, mit Streuung und Bedingungen. Das Ziel ist ein Zähler; der Bestand des Testservers mit seiner Grenze von 2 097 152 Zellen ist **nicht** das Ziel.
+- [ ] **Import:** Zeilen/s für `SqlBulkCopy` (`BatchSize` 1000) in das Simulations-Backend mit `onInsertBatch` (Aufbau C) und am Stapel-Callback ohne Draht (Aufbau A), Aufbau C je Stufe der Staffel, mit Streuung und Bedingungen. Das Ziel ist ein Zähler; der Bestand des Testservers mit seiner Grenze von 2 097 152 Zellen ist **nicht** das Ziel.
+- **Ausdrücklich offen, nicht Teil dieses Slice (Nutzerentscheidung 2026-11-17 „DoD teilen, B später“):** der Import in ein zählendes eigenes Backend (Aufbau B). Er wird Liefer-Punkt des Slice zur Fläche nach [ADR-0052](../../adr/0052-oeffentliche-flaeche-fuer-massenladen-eigener-backends.md) oder eines Nachmess-Slice; bis dahin ist der Aufbau B im Import nicht gemessen.
 - [ ] **Sitzungen und p95:** p50, p95 und p99 der Punktabfrage (aus der Messung des Clients) während die übrigen Sitzungen streamen oder laden, für die Staffel 1, 8, 16, 64; jede Stufe mit und ohne Senke für Telemetrie; Messprotokoll unter `docs/messungen/` nach `AGENTS.md` §5 Regel 7, jede Zahl mit Erzeuger im Repo.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -76,6 +77,11 @@ Aussagen-Berührung steht hier gar nicht.
 | Läufe des Werkzeugs aus [slice-qa-performance](../done/slice-qa-performance.md) (Stufen, Staffel, Wiederholungen) | update | Messung nach [TDS-QA-04](../../../../spec/lastenheft.md#tds-qa-04--performance), keine neue Mechanik |
 | `docs/messungen/performance-durchsatz-<datum>.md` | neu | Messprotokoll, Einzelmessung mit Datum, Host, Last (`AGENTS.md` §5 Regel 7) |
 | `docs/plan/referenz-workload.md` | update | Messzeilen und Zeilengröße auf dem Draht nachtragen, Setzungen, die die Messung widerlegt, ändern |
+| `tools/lasttest.sh`, `tools/lasttest-selbsttest.sh` | update | das Werkzeug wächst um Sitzungen, Phasen (`export`, `import`, `punkt-export`, `punkt-import`), Punktabfrage, Dauer je Schicht aus dem Log und `LASTTEST_QUERY_TIMEOUT`; der Selbsttest hält die Auswertung (Handläufe, Mutationen) |
+| `referenztest-dotnet/Lasttest/LasttestTests.cs`, `referenztest-dotnet/Lasttest/ReferenzZeilen.cs` | update | Client mit N Sitzungen und der Punktabfrage; die Prüfung, dass die Punktabfrage genau die Zeile der Id liefert, läuft in keinem Gate, nur in `make lasttest` und Stufe 9 von `make e2e` ([ADR-0022](../../adr/0022-e2e-laeufe-nicht-in-den-gates.md)) |
+| `testserver/kotlin/io/github/pt9912/tdswire/testserver/LasttestBackends.kt`, `testserver/test/kotlin/io/github/pt9912/tdswire/testserver/LasttestTest.kt` | update | Punktabfrage `WHERE Id = @id` in Aufbau B und C, Tests |
+| `harness/README.md` | update | Zeile `make lasttest` (Parameter der Staffel) |
+| `docs/plan/adr/` ([ADR-0052](../../adr/0052-oeffentliche-flaeche-fuer-massenladen-eigener-backends.md) und Index) | nicht dieser Slice | vom Architect auf demselben Zweig angelegt (Nutzerentscheidung zum Import in Aufbau B) |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 
@@ -109,7 +115,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Die Importzahl gegen ein zählendes Backend trägt nicht für ein Backend, das Zeilen speichert; der Bestand des Testservers ist mit 2 097 152 Zellen begrenzt (`BEO-TDS/testserver-bestand-nicht-am-heap-begrenzt`). — **Ausgang:** offen bis zur Closure.
+- Die Importzahl gegen ein zählendes Backend trägt nicht für ein Backend, das Zeilen speichert; der Bestand des Testservers ist mit 2 097 152 Zellen begrenzt (`BEO-TDS/testserver-bestand-nicht-am-heap-begrenzt`). — **Ausgang:** weiter offen: der Import in Aufbau B ist aus diesem Slice herausgenommen (Nutzerentscheidung 2026-11-17) und liegt beim Slice zur Fläche nach [ADR-0052](../../adr/0052-oeffentliche-flaeche-fuer-massenladen-eigener-backends.md) oder einem Nachmess-Slice; das Register führt die Beobachtung weiter.
 - Der Host läuft unter Last 5 bis 9 und swappt; die Streuung kann jede Stufe unbrauchbar machen, ohne dass das Werkzeug fehlerhaft ist. — **Ausgang:** offen bis zur Closure.
 - Die Kosten der Telemetrie selbst sind ungemessen (Abschnitt 5 der Spezifikation); die Messung „mit und ohne Senke“ trennt sie nur für die Stufen, die sie fährt. — **Ausgang:** offen bis zur Closure.
 

@@ -1,281 +1,515 @@
-# Rohzeilen (messung:, messung-span:) von tools/lasttest.sh vom 2026-11-17, je Zelle ein Aufruf; Dateiname = Stufe-Aufbau-Senke-Phase-Versuch (stufe1b: Wiederholung von Stufe 1)
-# Der Kopf (host, commit, Limits, query_timeout) steht je Zelle in der ersten Zeile `Kopf`.
+# Rohzeilen von tools/lasttest.sh vom 2026-11-17, je Zelle ein Aufruf (Dateiname = Stufe-Aufbau-Senke-Phase-Versuch; stufe1b = Wiederholung von Stufe 1)
+# je Zelle: Kopf, messung:, messung-span:, lasttest: punkt (Läufe der Punktabfrage, last_zeilen = Zeilen der Last-Sitzungen im Lauf) und Zusammenfassung der Probe der Fremdlast.
+# Die Probe (Hilfsskript außerhalb des Repos, alle 10 s, CPU fremder Prozesse) ist nicht reproduzierbar; hier steht nur: Proben gesamt, Proben über 300 %, Höchstwert.
 ## stufe1-B-ohne-punkt-export-v1
 lasttest: Kopf 2026-11-17T05:29:02Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit e2b16d45+geaendert
 lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [B] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m client cpus 2 memory 2g
+lasttest: punkt lauf 0 anfragen 1000 p50_us 729 p95_us 1670 p99_us 4399 min_us 250 max_us 56763 lauf_ms 995 last_zeilen 0 sitzungen 1 last export
+lasttest: punkt lauf 1 anfragen 1000 p50_us 403 p95_us 642 p99_us 923 min_us 159 max_us 14618 lauf_ms 459 last_zeilen 0 sitzungen 1 last export
+lasttest: punkt lauf 2 anfragen 1000 p50_us 371 p95_us 559 p99_us 909 min_us 151 max_us 20125 lauf_ms 450 last_zeilen 0 sitzungen 1 last export
+lasttest: punkt lauf 3 anfragen 1000 p50_us 271 p95_us 472 p99_us 889 min_us 121 max_us 9127 lauf_ms 319 last_zeilen 0 sitzungen 1 last export
+lasttest: punkt lauf 4 anfragen 1000 p50_us 273 p95_us 389 p99_us 643 min_us 96 max_us 8568 lauf_ms 292 last_zeilen 0 sitzungen 1 last export
+lasttest: punkt lauf 5 anfragen 1000 p50_us 265 p95_us 389 p99_us 818 min_us 90 max_us 11438 lauf_ms 303 last_zeilen 0 sitzungen 1 last export
+lasttest: punkt gesamt ms 2911 last_zeilen 0 sitzungen 1 last export
 messung: 2026-11-17T05:29:12Z aufbau B senke ohne richtung punkt-export zeilen 1000000 sitzungen 1 wdh 5 anfragen 1000 p50_us_median 273 p50_us_min 265 p50_us_max 403 p95_us_median 472 p95_us_min 389 p95_us_max 642 p99_us_median 889 p99_us_min 643 p99_us_max 923 streuung_p95 ok vorher [last 9.16/7.50/7.30 swap_mb 15912 frei_mb 11026] nachher [last 9.47/7.59/7.33 swap_mb 15912 frei_mb 10996]
+Probe: 1 Proben, 1 über 300 %, Höchstwert 549 %
 ## stufe1-C-mit-import-v1
 lasttest: Kopf 2026-11-17T05:37:15Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit 0d24db9f
 lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m client cpus 2 memory 2g
 messung: 2026-11-17T05:37:47Z aufbau C senke mit richtung import zeilen 1000000 sitzungen 1 wdh 5 median_ms 3982 min_ms 3888 max_ms 4768 zeilen_je_s 251130 bytes_je_zeile 336 streuung ok vorher [last 3.54/6.53/7.24 swap_mb 15902 frei_mb 11556] nachher [last 4.56/6.51/7.21 swap_mb 15902 frei_mb 11728]
 messung-span: aufbau C senke mit phase import span tds.query art sql_batch n=12006 median=0 min=0 max=68
 messung-span: aufbau C senke mit phase import span backend.execute art sql_batch n=12000 median=0 min=0 max=16
+Probe: 3 Proben, 0 über 300 %, Höchstwert 189 %
 ## stufe16-B-mit-export-v1
 lasttest: Kopf 2026-11-17T06:25:45Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [B] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
 messung: 2026-11-17T06:26:40Z aufbau B senke mit richtung export zeilen 100000 sitzungen 16 wdh 5 median_ms 7559 min_ms 7529 max_ms 7729 zeilen_je_s 211668 bytes_je_zeile 329 streuung ok erste_zeile_ms_median 3 erste_zeile_ms_min 2 erste_zeile_ms_max 6 vorher [last 11.90/9.33/9.69 swap_mb 12163 frei_mb 12590] nachher [last 7.88/8.64/9.44 swap_mb 12157 frei_mb 15619]
 messung-span: aufbau B senke mit phase export span tds.query art sql_batch n=96 median=7562 min=7490 max=8449
 messung-span: aufbau B senke mit phase export span backend.execute art sql_batch n=96 median=7559 min=7471 max=8441
+Probe: 6 Proben, 1 über 300 %, Höchstwert 617 %
 ## stufe16-B-mit-punkt-export-v1
 lasttest: Kopf 2026-11-17T06:26:41Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [B] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
+lasttest: punkt lauf 0 anfragen 1000 p50_us 3744 p95_us 21925 p99_us 51133 min_us 1971 max_us 56864 lauf_ms 5830 last_zeilen 0 sitzungen 16 last export
+lasttest: punkt lauf 1 anfragen 1000 p50_us 3726 p95_us 6732 p99_us 36109 min_us 2110 max_us 48326 lauf_ms 4948 last_zeilen 1500000 sitzungen 16 last export
+lasttest: punkt lauf 2 anfragen 1000 p50_us 3495 p95_us 6544 p99_us 37388 min_us 1668 max_us 43492 lauf_ms 4753 last_zeilen 0 sitzungen 16 last export
+lasttest: punkt lauf 3 anfragen 1000 p50_us 3349 p95_us 5155 p99_us 28457 min_us 2461 max_us 46343 lauf_ms 4262 last_zeilen 1500000 sitzungen 16 last export
+lasttest: punkt lauf 4 anfragen 1000 p50_us 3408 p95_us 4854 p99_us 23938 min_us 1561 max_us 27523 lauf_ms 4266 last_zeilen 0 sitzungen 16 last export
+lasttest: punkt lauf 5 anfragen 1000 p50_us 3467 p95_us 5407 p99_us 29651 min_us 1849 max_us 46552 lauf_ms 4514 last_zeilen 1500000 sitzungen 16 last export
+lasttest: punkt gesamt ms 28652 last_zeilen 4500000 sitzungen 16 last export
 messung: 2026-11-17T06:27:19Z aufbau B senke mit richtung punkt-export zeilen 100000 sitzungen 16 wdh 5 anfragen 1000 p50_us_median 3467 p50_us_min 3349 p50_us_max 3726 p95_us_median 5407 p95_us_min 4854 p95_us_max 6732 p99_us_median 29651 p99_us_min 23938 p99_us_max 37388 streuung_p95 ok vorher [last 8.46/8.74/9.46 swap_mb 12157 frei_mb 15558] nachher [last 9.30/8.92/9.50 swap_mb 12157 frei_mb 14048]
 messung-span: aufbau B senke mit phase punkt-export span tds.query art rpc n=6000 median=2 min=0 max=54
 messung-span: aufbau B senke mit phase punkt-export span tds.query art sql_batch n=60 median=8341 min=2428 max=9615
 messung-span: aufbau B senke mit phase punkt-export span backend.execute art rpc n=6000 median=0 min=0 max=38
 messung-span: aufbau B senke mit phase punkt-export span backend.execute art sql_batch n=60 median=8338 min=2427 max=9605
+Probe: 4 Proben, 2 über 300 %, Höchstwert 506 %
 ## stufe16-B-ohne-export-v1
 lasttest: Kopf 2026-11-17T06:27:20Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [B] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
 messung: 2026-11-17T06:28:16Z aufbau B senke ohne richtung export zeilen 100000 sitzungen 16 wdh 5 median_ms 7309 min_ms 7093 max_ms 7863 zeilen_je_s 218908 bytes_je_zeile 328 streuung ok erste_zeile_ms_median 3 erste_zeile_ms_min 2 erste_zeile_ms_max 25 vorher [last 9.56/8.99/9.51 swap_mb 12154 frei_mb 13775] nachher [last 8.85/8.92/9.47 swap_mb 12153 frei_mb 14997]
+Probe: 6 Proben, 2 über 300 %, Höchstwert 638 %
 ## stufe16-B-ohne-punkt-export-v1
 lasttest: Kopf 2026-11-17T06:28:17Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [B] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
+lasttest: punkt lauf 0 anfragen 1000 p50_us 3982 p95_us 20603 p99_us 48703 min_us 2606 max_us 63646 lauf_ms 5911 last_zeilen 0 sitzungen 16 last export
+lasttest: punkt lauf 1 anfragen 1000 p50_us 3737 p95_us 5854 p99_us 29587 min_us 1895 max_us 44737 lauf_ms 4818 last_zeilen 1500000 sitzungen 16 last export
+lasttest: punkt lauf 2 anfragen 1000 p50_us 3475 p95_us 7922 p99_us 37152 min_us 1626 max_us 49090 lauf_ms 4562 last_zeilen 0 sitzungen 16 last export
+lasttest: punkt lauf 3 anfragen 1000 p50_us 3373 p95_us 5129 p99_us 19859 min_us 1706 max_us 41989 lauf_ms 4132 last_zeilen 1500000 sitzungen 16 last export
+lasttest: punkt lauf 4 anfragen 1000 p50_us 3336 p95_us 5046 p99_us 20369 min_us 1972 max_us 22097 lauf_ms 4036 last_zeilen 0 sitzungen 16 last export
+lasttest: punkt lauf 5 anfragen 1000 p50_us 3225 p95_us 4672 p99_us 27087 min_us 1710 max_us 43931 lauf_ms 4131 last_zeilen 1500000 sitzungen 16 last export
+lasttest: punkt gesamt ms 27672 last_zeilen 4500000 sitzungen 16 last export
 messung: 2026-11-17T06:28:54Z aufbau B senke ohne richtung punkt-export zeilen 100000 sitzungen 16 wdh 5 anfragen 1000 p50_us_median 3373 p50_us_min 3225 p50_us_max 3737 p95_us_median 5129 p95_us_min 4672 p95_us_max 7922 p99_us_median 27087 p99_us_min 19859 p99_us_max 37152 streuung_p95 ok vorher [last 8.85/8.92/9.46 swap_mb 12152 frei_mb 14282] nachher [last 9.07/8.99/9.47 swap_mb 12152 frei_mb 14421]
+Probe: 4 Proben, 2 über 300 %, Höchstwert 558 %
 ## stufe16-C-mit-export-v1
 lasttest: Kopf 2026-11-17T06:28:55Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
 messung: 2026-11-17T06:29:55Z aufbau C senke mit richtung export zeilen 100000 sitzungen 16 wdh 5 median_ms 7909 min_ms 7584 max_ms 8400 zeilen_je_s 202301 bytes_je_zeile 329 streuung ok erste_zeile_ms_median 4 erste_zeile_ms_min 3 erste_zeile_ms_max 7 vorher [last 8.91/8.95/9.45 swap_mb 12152 frei_mb 14168] nachher [last 7.96/8.73/9.35 swap_mb 12150 frei_mb 14644]
 messung-span: aufbau C senke mit phase export span tds.query art sql_batch n=96 median=8006 min=7568 max=9850
 messung-span: aufbau C senke mit phase export span backend.execute art sql_batch n=96 median=8004 min=7547 max=9798
+Probe: 6 Proben, 3 über 300 %, Höchstwert 697 %
 ## stufe16-C-mit-import-v1
 lasttest: Kopf 2026-11-17T06:29:56Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
 messung: 2026-11-17T06:30:26Z aufbau C senke mit richtung import zeilen 100000 sitzungen 16 wdh 5 median_ms 3195 min_ms 3100 max_ms 3553 zeilen_je_s 500782 bytes_je_zeile 337 streuung ok vorher [last 8.35/8.79/9.36 swap_mb 12150 frei_mb 14247] nachher [last 10.68/9.25/9.50 swap_mb 12150 frei_mb 14864]
 messung-span: aufbau C senke mit phase import span tds.query art sql_batch n=19296 median=1 min=0 max=157
 messung-span: aufbau C senke mit phase import span backend.execute art sql_batch n=19200 median=0 min=0 max=65
+Probe: 3 Proben, 1 über 300 %, Höchstwert 696 %
 ## stufe16-C-mit-punkt-export-v1
 lasttest: Kopf 2026-11-17T06:30:29Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
+lasttest: punkt lauf 0 anfragen 1000 p50_us 3945 p95_us 30660 p99_us 52279 min_us 2072 max_us 82182 lauf_ms 6795 last_zeilen 0 sitzungen 16 last export
+lasttest: punkt lauf 1 anfragen 1000 p50_us 3618 p95_us 5811 p99_us 35493 min_us 2135 max_us 46744 lauf_ms 4862 last_zeilen 1500000 sitzungen 16 last export
+lasttest: punkt lauf 2 anfragen 1000 p50_us 3841 p95_us 16531 p99_us 38009 min_us 2556 max_us 47169 lauf_ms 5127 last_zeilen 0 sitzungen 16 last export
+lasttest: punkt lauf 3 anfragen 1000 p50_us 3876 p95_us 7390 p99_us 26316 min_us 2416 max_us 40873 lauf_ms 4814 last_zeilen 1500000 sitzungen 16 last export
+lasttest: punkt lauf 4 anfragen 1000 p50_us 3918 p95_us 9203 p99_us 27326 min_us 1977 max_us 45666 lauf_ms 4930 last_zeilen 0 sitzungen 16 last export
+lasttest: punkt lauf 5 anfragen 1000 p50_us 3627 p95_us 6257 p99_us 27340 min_us 1716 max_us 44594 lauf_ms 4559 last_zeilen 1500000 sitzungen 16 last export
+lasttest: punkt gesamt ms 31173 last_zeilen 4500000 sitzungen 16 last export
 messung: 2026-11-17T06:31:09Z aufbau C senke mit richtung punkt-export zeilen 100000 sitzungen 16 wdh 5 anfragen 1000 p50_us_median 3841 p50_us_min 3618 p50_us_max 3918 p95_us_median 7390 p95_us_min 5811 p95_us_max 16531 p99_us_median 27340 p99_us_min 26316 p99_us_max 38009 streuung_p95 zu-gross vorher [last 10.18/9.20/9.48 swap_mb 12150 frei_mb 15578] nachher [last 8.42/8.86/9.35 swap_mb 12149 frei_mb 15608]
 messung-span: aufbau C senke mit phase punkt-export span tds.query art rpc n=6000 median=2 min=0 max=56
 messung-span: aufbau C senke mit phase punkt-export span tds.query art sql_batch n=60 median=8921 min=3012 max=10416
 messung-span: aufbau C senke mit phase punkt-export span backend.execute art rpc n=6000 median=0 min=0 max=47
 messung-span: aufbau C senke mit phase punkt-export span backend.execute art sql_batch n=60 median=8919 min=3011 max=10383
+Probe: 4 Proben, 2 über 300 %, Höchstwert 523 %
 ## stufe16-C-mit-punkt-import-v1
 lasttest: Kopf 2026-11-17T06:31:10Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
+lasttest: punkt lauf 0 anfragen 1000 p50_us 1362 p95_us 11810 p99_us 58974 min_us 284 max_us 137174 lauf_ms 4171 last_zeilen 0 sitzungen 16 last import
+lasttest: punkt lauf 1 anfragen 1000 p50_us 976 p95_us 5540 p99_us 60154 min_us 192 max_us 70041 lauf_ms 2995 last_zeilen 1500000 sitzungen 16 last import
+lasttest: punkt lauf 2 anfragen 1000 p50_us 696 p95_us 3543 p99_us 62260 min_us 139 max_us 69777 lauf_ms 2416 last_zeilen 1500000 sitzungen 16 last import
+lasttest: punkt lauf 3 anfragen 1000 p50_us 634 p95_us 3180 p99_us 59862 min_us 119 max_us 73768 lauf_ms 2374 last_zeilen 1500000 sitzungen 16 last import
+lasttest: punkt lauf 4 anfragen 1000 p50_us 689 p95_us 3271 p99_us 59857 min_us 141 max_us 69648 lauf_ms 2504 last_zeilen 1300000 sitzungen 16 last import
+lasttest: punkt lauf 5 anfragen 1000 p50_us 749 p95_us 3451 p99_us 61306 min_us 107 max_us 68812 lauf_ms 2598 last_zeilen 200000 sitzungen 16 last import
+lasttest: punkt gesamt ms 17212 last_zeilen 6000000 sitzungen 16 last import
 messung: 2026-11-17T06:31:36Z aufbau C senke mit richtung punkt-import zeilen 100000 sitzungen 16 wdh 5 anfragen 1000 p50_us_median 696 p50_us_min 634 p50_us_max 976 p95_us_median 3451 p95_us_min 3180 p95_us_max 5540 p99_us_median 60154 p99_us_min 59857 p99_us_max 62260 streuung_p95 ok vorher [last 8.05/8.76/9.32 swap_mb 12149 frei_mb 15036] nachher [last 8.56/8.84/9.33 swap_mb 12148 frei_mb 14837]
 messung-span: aufbau C senke mit phase punkt-import span tds.query art rpc n=6000 median=0 min=0 max=61
 messung-span: aufbau C senke mit phase punkt-import span tds.query art sql_batch n=14699 median=1 min=0 max=131
 messung-span: aufbau C senke mit phase punkt-import span backend.execute art rpc n=6000 median=0 min=0 max=57
 messung-span: aufbau C senke mit phase punkt-import span backend.execute art sql_batch n=14624 median=0 min=0 max=58
+Probe: 3 Proben, 0 über 300 %, Höchstwert 134 %
 ## stufe16-C-ohne-export-v1
 lasttest: Kopf 2026-11-17T06:31:40Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
 messung: 2026-11-17T06:32:35Z aufbau C senke ohne richtung export zeilen 100000 sitzungen 16 wdh 5 median_ms 7435 min_ms 7200 max_ms 7921 zeilen_je_s 215198 bytes_je_zeile 328 streuung ok erste_zeile_ms_median 6 erste_zeile_ms_min 4 erste_zeile_ms_max 12 vorher [last 7.78/8.65/9.26 swap_mb 12146 frei_mb 15444] nachher [last 7.43/8.46/9.17 swap_mb 12126 frei_mb 15358]
+Probe: 6 Proben, 0 über 300 %, Höchstwert 175 %
 ## stufe16-C-ohne-import-v1
 lasttest: Kopf 2026-11-17T06:32:36Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
 messung: 2026-11-17T06:33:05Z aufbau C senke ohne richtung import zeilen 100000 sitzungen 16 wdh 5 median_ms 3203 min_ms 3096 max_ms 3663 zeilen_je_s 499531 bytes_je_zeile 337 streuung ok vorher [last 7.05/8.35/9.13 swap_mb 12126 frei_mb 15052] nachher [last 10.37/9.05/9.34 swap_mb 12125 frei_mb 14378]
+Probe: 3 Proben, 0 über 300 %, Höchstwert 184 %
 ## stufe16-C-ohne-punkt-export-v1
 lasttest: Kopf 2026-11-17T06:33:06Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
+lasttest: punkt lauf 0 anfragen 1000 p50_us 3826 p95_us 24726 p99_us 52370 min_us 1958 max_us 103970 lauf_ms 6554 last_zeilen 0 sitzungen 16 last export
+lasttest: punkt lauf 1 anfragen 1000 p50_us 3390 p95_us 5033 p99_us 25805 min_us 1800 max_us 37103 lauf_ms 4270 last_zeilen 1500000 sitzungen 16 last export
+lasttest: punkt lauf 2 anfragen 1000 p50_us 3334 p95_us 5151 p99_us 29537 min_us 2049 max_us 46224 lauf_ms 4335 last_zeilen 0 sitzungen 16 last export
+lasttest: punkt lauf 3 anfragen 1000 p50_us 3350 p95_us 4884 p99_us 23508 min_us 1763 max_us 43936 lauf_ms 4236 last_zeilen 1500000 sitzungen 16 last export
+lasttest: punkt lauf 4 anfragen 1000 p50_us 3358 p95_us 5738 p99_us 19325 min_us 1653 max_us 43917 lauf_ms 4069 last_zeilen 0 sitzungen 16 last export
+lasttest: punkt lauf 5 anfragen 1000 p50_us 3314 p95_us 4977 p99_us 20805 min_us 1636 max_us 40627 lauf_ms 4068 last_zeilen 1500000 sitzungen 16 last export
+lasttest: punkt gesamt ms 27621 last_zeilen 4500000 sitzungen 16 last export
 messung: 2026-11-17T06:33:43Z aufbau C senke ohne richtung punkt-export zeilen 100000 sitzungen 16 wdh 5 anfragen 1000 p50_us_median 3350 p50_us_min 3314 p50_us_max 3390 p95_us_median 5033 p95_us_min 4884 p95_us_max 5738 p99_us_median 23508 p99_us_min 19325 p99_us_max 29537 streuung_p95 ok vorher [last 9.96/9.00/9.32 swap_mb 12125 frei_mb 14179] nachher [last 8.98/8.84/9.26 swap_mb 12124 frei_mb 15451]
+Probe: 4 Proben, 1 über 300 %, Höchstwert 643 %
 ## stufe16-C-ohne-punkt-import-v1
 lasttest: Kopf 2026-11-17T06:33:44Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
+lasttest: punkt lauf 0 anfragen 1000 p50_us 1340 p95_us 10132 p99_us 57537 min_us 176 max_us 116449 lauf_ms 4029 last_zeilen 0 sitzungen 16 last import
+lasttest: punkt lauf 1 anfragen 1000 p50_us 755 p95_us 3630 p99_us 60903 min_us 115 max_us 73905 lauf_ms 2590 last_zeilen 1500000 sitzungen 16 last import
+lasttest: punkt lauf 2 anfragen 1000 p50_us 818 p95_us 4139 p99_us 67354 min_us 120 max_us 76706 lauf_ms 3087 last_zeilen 1500000 sitzungen 16 last import
+lasttest: punkt lauf 3 anfragen 1000 p50_us 581 p95_us 3165 p99_us 64527 min_us 105 max_us 73263 lauf_ms 2400 last_zeilen 1500000 sitzungen 16 last import
+lasttest: punkt lauf 4 anfragen 1000 p50_us 528 p95_us 3939 p99_us 65087 min_us 102 max_us 79132 lauf_ms 2571 last_zeilen 1400000 sitzungen 16 last import
+lasttest: punkt lauf 5 anfragen 1000 p50_us 540 p95_us 2905 p99_us 65547 min_us 110 max_us 74746 lauf_ms 2310 last_zeilen 0 sitzungen 16 last import
+lasttest: punkt gesamt ms 17132 last_zeilen 6000000 sitzungen 16 last import
 messung: 2026-11-17T06:34:09Z aufbau C senke ohne richtung punkt-import zeilen 100000 sitzungen 16 wdh 5 anfragen 1000 p50_us_median 581 p50_us_min 528 p50_us_max 818 p95_us_median 3630 p95_us_min 2905 p95_us_max 4139 p99_us_median 65087 p99_us_min 60903 p99_us_max 67354 streuung_p95 ok vorher [last 8.82/8.81/9.25 swap_mb 12124 frei_mb 15509] nachher [last 7.64/8.55/9.15 swap_mb 12123 frei_mb 15483]
+Probe: 2 Proben, 0 über 300 %, Höchstwert 172 %
 ## stufe1b-B-mit-export-v1
 lasttest: Kopf 2026-11-17T07:04:58Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [B] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout vorgabe client cpus 2 memory 2g
 messung: 2026-11-17T07:06:04Z aufbau B senke mit richtung export zeilen 1000000 sitzungen 1 wdh 5 median_ms 9536 min_ms 9284 max_ms 9676 zeilen_je_s 104865 bytes_je_zeile 329 streuung ok erste_zeile_ms_median 1 erste_zeile_ms_min 0 erste_zeile_ms_max 2 vorher [last 10.15/9.15/8.23 swap_mb 12036 frei_mb 15231] nachher [last 6.01/8.15/7.95 swap_mb 12029 frei_mb 15005]
 messung-span: aufbau B senke mit phase export span tds.query art sql_batch n=6 median=9549 min=9282 max=10125
 messung-span: aufbau B senke mit phase export span backend.execute art sql_batch n=6 median=9548 min=9282 max=10113
+Probe: 7 Proben, 0 über 300 %, Höchstwert 174 %
 ## stufe1b-B-mit-punkt-export-v1
 lasttest: Kopf 2026-11-17T07:06:05Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [B] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout vorgabe client cpus 2 memory 2g
+lasttest: punkt lauf 0 anfragen 1000 p50_us 612 p95_us 1193 p99_us 2342 min_us 218 max_us 47239 lauf_ms 934 last_zeilen 0 sitzungen 1 last export
+lasttest: punkt lauf 1 anfragen 1000 p50_us 367 p95_us 575 p99_us 737 min_us 130 max_us 23212 lauf_ms 458 last_zeilen 0 sitzungen 1 last export
+lasttest: punkt lauf 2 anfragen 1000 p50_us 265 p95_us 369 p99_us 484 min_us 125 max_us 20088 lauf_ms 311 last_zeilen 0 sitzungen 1 last export
+lasttest: punkt lauf 3 anfragen 1000 p50_us 223 p95_us 355 p99_us 418 min_us 116 max_us 16299 lauf_ms 277 last_zeilen 0 sitzungen 1 last export
+lasttest: punkt lauf 4 anfragen 1000 p50_us 223 p95_us 338 p99_us 445 min_us 120 max_us 17855 lauf_ms 276 last_zeilen 0 sitzungen 1 last export
+lasttest: punkt lauf 5 anfragen 1000 p50_us 194 p95_us 323 p99_us 413 min_us 93 max_us 14150 lauf_ms 228 last_zeilen 0 sitzungen 1 last export
+lasttest: punkt gesamt ms 2556 last_zeilen 0 sitzungen 1 last export
 messung: 2026-11-17T07:06:16Z aufbau B senke mit richtung punkt-export zeilen 1000000 sitzungen 1 wdh 5 anfragen 1000 p50_us_median 223 p50_us_min 194 p50_us_max 367 p95_us_median 355 p95_us_min 323 p95_us_max 575 p99_us_median 445 p99_us_min 413 p99_us_max 737 streuung_p95 ok vorher [last 5.85/8.08/7.92 swap_mb 12027 frei_mb 15157] nachher [last 5.70/8.01/7.90 swap_mb 12027 frei_mb 15105]
 messung-span: aufbau B senke mit phase punkt-export span tds.query art rpc n=6000 median=0 min=0 max=34
 messung-span: aufbau B senke mit phase punkt-export span backend.execute art rpc n=6000 median=0 min=0 max=31
+Probe: 1 Proben, 0 über 300 %, Höchstwert 161 %
 ## stufe1b-B-ohne-export-v1
 lasttest: Kopf 2026-11-17T07:06:18Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [B] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout vorgabe client cpus 2 memory 2g
 messung: 2026-11-17T07:07:22Z aufbau B senke ohne richtung export zeilen 1000000 sitzungen 1 wdh 5 median_ms 9359 min_ms 9255 max_ms 9681 zeilen_je_s 106849 bytes_je_zeile 329 streuung ok erste_zeile_ms_median 1 erste_zeile_ms_min 0 erste_zeile_ms_max 2 vorher [last 5.29/7.85/7.85 swap_mb 12027 frei_mb 15510] nachher [last 4.48/7.16/7.61 swap_mb 12024 frei_mb 15220]
+Probe: 7 Proben, 0 über 300 %, Höchstwert 126 %
 ## stufe1b-B-ohne-punkt-export-v1
 lasttest: Kopf 2026-11-17T07:07:23Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [B] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout vorgabe client cpus 2 memory 2g
+lasttest: punkt lauf 0 anfragen 1000 p50_us 540 p95_us 1329 p99_us 2516 min_us 223 max_us 45914 lauf_ms 803 last_zeilen 0 sitzungen 1 last export
+lasttest: punkt lauf 1 anfragen 1000 p50_us 338 p95_us 492 p99_us 651 min_us 135 max_us 19774 lauf_ms 416 last_zeilen 0 sitzungen 1 last export
+lasttest: punkt lauf 2 anfragen 1000 p50_us 239 p95_us 364 p99_us 478 min_us 121 max_us 5877 lauf_ms 251 last_zeilen 0 sitzungen 1 last export
+lasttest: punkt lauf 3 anfragen 1000 p50_us 211 p95_us 326 p99_us 416 min_us 105 max_us 11325 lauf_ms 236 last_zeilen 0 sitzungen 1 last export
+lasttest: punkt lauf 4 anfragen 1000 p50_us 205 p95_us 301 p99_us 398 min_us 95 max_us 7536 lauf_ms 223 last_zeilen 0 sitzungen 1 last export
+lasttest: punkt lauf 5 anfragen 1000 p50_us 166 p95_us 275 p99_us 345 min_us 69 max_us 13879 lauf_ms 191 last_zeilen 0 sitzungen 1 last export
+lasttest: punkt gesamt ms 2212 last_zeilen 0 sitzungen 1 last export
 messung: 2026-11-17T07:07:34Z aufbau B senke ohne richtung punkt-export zeilen 1000000 sitzungen 1 wdh 5 anfragen 1000 p50_us_median 211 p50_us_min 166 p50_us_max 338 p95_us_median 326 p95_us_min 275 p95_us_max 492 p99_us_median 416 p99_us_min 345 p99_us_max 651 streuung_p95 ok vorher [last 4.45/7.10/7.59 swap_mb 12024 frei_mb 15115] nachher [last 4.41/7.05/7.57 swap_mb 12024 frei_mb 15211]
+Probe: 1 Proben, 0 über 300 %, Höchstwert 119 %
 ## stufe1b-C-mit-export-v1
 lasttest: Kopf 2026-11-17T07:07:35Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout vorgabe client cpus 2 memory 2g
 messung: 2026-11-17T07:08:41Z aufbau C senke mit richtung export zeilen 1000000 sitzungen 1 wdh 5 median_ms 9541 min_ms 9281 max_ms 9874 zeilen_je_s 104810 bytes_je_zeile 329 streuung ok erste_zeile_ms_median 1 erste_zeile_ms_min 1 erste_zeile_ms_max 2 vorher [last 4.30/6.98/7.55 swap_mb 12024 frei_mb 15203] nachher [last 3.96/6.39/7.31 swap_mb 12024 frei_mb 15282]
 messung-span: aufbau C senke mit phase export span tds.query art sql_batch n=6 median=9629 min=9281 max=10064
 messung-span: aufbau C senke mit phase export span backend.execute art sql_batch n=6 median=9628 min=9280 max=10028
+Probe: 7 Proben, 0 über 300 %, Höchstwert 126 %
 ## stufe1b-C-mit-import-v1
 lasttest: Kopf 2026-11-17T07:08:42Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout vorgabe client cpus 2 memory 2g
 messung: 2026-11-17T07:09:17Z aufbau C senke mit richtung import zeilen 1000000 sitzungen 1 wdh 5 median_ms 4150 min_ms 3901 max_ms 4352 zeilen_je_s 240963 bytes_je_zeile 336 streuung ok vorher [last 4.13/6.35/7.28 swap_mb 12023 frei_mb 15259] nachher [last 5.22/6.42/7.28 swap_mb 12022 frei_mb 15264]
 messung-span: aufbau C senke mit phase import span tds.query art sql_batch n=12006 median=0 min=0 max=43
 messung-span: aufbau C senke mit phase import span backend.execute art sql_batch n=12000 median=0 min=0 max=9
+Probe: 4 Proben, 0 über 300 %, Höchstwert 135 %
 ## stufe1b-C-mit-punkt-export-v1
 lasttest: Kopf 2026-11-17T07:09:19Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout vorgabe client cpus 2 memory 2g
+lasttest: punkt lauf 0 anfragen 1000 p50_us 728 p95_us 1349 p99_us 13154 min_us 294 max_us 68347 lauf_ms 1149 last_zeilen 0 sitzungen 1 last export
+lasttest: punkt lauf 1 anfragen 1000 p50_us 484 p95_us 736 p99_us 1245 min_us 211 max_us 25940 lauf_ms 618 last_zeilen 0 sitzungen 1 last export
+lasttest: punkt lauf 2 anfragen 1000 p50_us 322 p95_us 508 p99_us 638 min_us 148 max_us 19437 lauf_ms 388 last_zeilen 0 sitzungen 1 last export
+lasttest: punkt lauf 3 anfragen 1000 p50_us 327 p95_us 471 p99_us 565 min_us 138 max_us 14219 lauf_ms 367 last_zeilen 0 sitzungen 1 last export
+lasttest: punkt lauf 4 anfragen 1000 p50_us 264 p95_us 391 p99_us 485 min_us 141 max_us 14479 lauf_ms 315 last_zeilen 0 sitzungen 1 last export
+lasttest: punkt lauf 5 anfragen 1000 p50_us 269 p95_us 381 p99_us 432 min_us 132 max_us 16055 lauf_ms 310 last_zeilen 0 sitzungen 1 last export
+lasttest: punkt gesamt ms 3219 last_zeilen 0 sitzungen 1 last export
 messung: 2026-11-17T07:09:31Z aufbau C senke mit richtung punkt-export zeilen 1000000 sitzungen 1 wdh 5 anfragen 1000 p50_us_median 322 p50_us_min 264 p50_us_max 484 p95_us_median 471 p95_us_min 381 p95_us_max 736 p99_us_median 565 p99_us_min 432 p99_us_max 1245 streuung_p95 ok vorher [last 5.12/6.38/7.26 swap_mb 12022 frei_mb 15245] nachher [last 4.87/6.31/7.23 swap_mb 12022 frei_mb 15321]
 messung-span: aufbau C senke mit phase punkt-export span tds.query art rpc n=6000 median=0 min=0 max=48
 messung-span: aufbau C senke mit phase punkt-export span backend.execute art rpc n=6000 median=0 min=0 max=36
+Probe: 1 Proben, 0 über 300 %, Höchstwert 138 %
 ## stufe1b-C-mit-punkt-import-v1
 lasttest: Kopf 2026-11-17T07:09:32Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout vorgabe client cpus 2 memory 2g
+lasttest: punkt lauf 0 anfragen 1000 p50_us 805 p95_us 1577 p99_us 14140 min_us 360 max_us 103034 lauf_ms 1274 last_zeilen 0 sitzungen 1 last import
+lasttest: punkt lauf 1 anfragen 1000 p50_us 515 p95_us 939 p99_us 1866 min_us 203 max_us 38088 lauf_ms 686 last_zeilen 0 sitzungen 1 last import
+lasttest: punkt lauf 2 anfragen 1000 p50_us 331 p95_us 490 p99_us 665 min_us 139 max_us 18043 lauf_ms 399 last_zeilen 0 sitzungen 1 last import
+lasttest: punkt lauf 3 anfragen 1000 p50_us 268 p95_us 457 p99_us 606 min_us 121 max_us 28952 lauf_ms 353 last_zeilen 0 sitzungen 1 last import
+lasttest: punkt lauf 4 anfragen 1000 p50_us 274 p95_us 424 p99_us 514 min_us 119 max_us 16140 lauf_ms 327 last_zeilen 0 sitzungen 1 last import
+lasttest: punkt lauf 5 anfragen 1000 p50_us 323 p95_us 455 p99_us 545 min_us 141 max_us 16871 lauf_ms 382 last_zeilen 0 sitzungen 1 last import
+lasttest: punkt gesamt ms 3486 last_zeilen 0 sitzungen 1 last import
 messung: 2026-11-17T07:09:45Z aufbau C senke mit richtung punkt-import zeilen 1000000 sitzungen 1 wdh 5 anfragen 1000 p50_us_median 323 p50_us_min 268 p50_us_max 515 p95_us_median 457 p95_us_min 424 p95_us_max 939 p99_us_median 606 p99_us_min 514 p99_us_max 1866 streuung_p95 zu-gross vorher [last 5.06/6.30/7.22 swap_mb 12022 frei_mb 15124] nachher [last 5.38/6.34/7.23 swap_mb 12022 frei_mb 15191]
 messung-span: aufbau C senke mit phase punkt-import span tds.query art rpc n=6000 median=0 min=0 max=79
 messung-span: aufbau C senke mit phase punkt-import span backend.execute art rpc n=6000 median=0 min=0 max=59
+Probe: 1 Proben, 0 über 300 %, Höchstwert 224 %
 ## stufe1b-C-ohne-export-v1
 lasttest: Kopf 2026-11-17T07:09:46Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout vorgabe client cpus 2 memory 2g
 messung: 2026-11-17T07:10:52Z aufbau C senke ohne richtung export zeilen 1000000 sitzungen 1 wdh 5 median_ms 9505 min_ms 9337 max_ms 9776 zeilen_je_s 105207 bytes_je_zeile 329 streuung ok erste_zeile_ms_median 1 erste_zeile_ms_min 1 erste_zeile_ms_max 3 vorher [last 5.23/6.28/7.20 swap_mb 12022 frei_mb 15411] nachher [last 4.37/5.86/6.99 swap_mb 12019 frei_mb 15091]
+Probe: 7 Proben, 0 über 300 %, Höchstwert 103 %
 ## stufe1b-C-ohne-import-v1
 lasttest: Kopf 2026-11-17T07:10:53Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout vorgabe client cpus 2 memory 2g
 messung: 2026-11-17T07:11:26Z aufbau C senke ohne richtung import zeilen 1000000 sitzungen 1 wdh 5 median_ms 3684 min_ms 3414 max_ms 4026 zeilen_je_s 271444 bytes_je_zeile 336 streuung ok vorher [last 4.34/5.83/6.98 swap_mb 12019 frei_mb 15333] nachher [last 4.08/5.65/6.89 swap_mb 12019 frei_mb 15136]
+Probe: 3 Proben, 0 über 300 %, Höchstwert 97 %
 ## stufe1b-C-ohne-punkt-export-v1
 lasttest: Kopf 2026-11-17T07:11:26Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout vorgabe client cpus 2 memory 2g
+lasttest: punkt lauf 0 anfragen 1000 p50_us 736 p95_us 1371 p99_us 2713 min_us 286 max_us 75209 lauf_ms 957 last_zeilen 0 sitzungen 1 last export
+lasttest: punkt lauf 1 anfragen 1000 p50_us 444 p95_us 641 p99_us 841 min_us 158 max_us 16867 lauf_ms 495 last_zeilen 0 sitzungen 1 last export
+lasttest: punkt lauf 2 anfragen 1000 p50_us 275 p95_us 437 p99_us 543 min_us 136 max_us 10241 lauf_ms 308 last_zeilen 0 sitzungen 1 last export
+lasttest: punkt lauf 3 anfragen 1000 p50_us 298 p95_us 451 p99_us 569 min_us 120 max_us 11028 lauf_ms 330 last_zeilen 0 sitzungen 1 last export
+lasttest: punkt lauf 4 anfragen 1000 p50_us 269 p95_us 386 p99_us 527 min_us 119 max_us 9485 lauf_ms 292 last_zeilen 0 sitzungen 1 last export
+lasttest: punkt lauf 5 anfragen 1000 p50_us 254 p95_us 383 p99_us 505 min_us 111 max_us 12493 lauf_ms 285 last_zeilen 0 sitzungen 1 last export
+lasttest: punkt gesamt ms 2738 last_zeilen 0 sitzungen 1 last export
 messung: 2026-11-17T07:11:38Z aufbau C senke ohne richtung punkt-export zeilen 1000000 sitzungen 1 wdh 5 anfragen 1000 p50_us_median 275 p50_us_min 254 p50_us_max 444 p95_us_median 437 p95_us_min 383 p95_us_max 641 p99_us_median 543 p99_us_min 505 p99_us_max 841 streuung_p95 ok vorher [last 5.02/5.79/6.92 swap_mb 12019 frei_mb 14930] nachher [last 5.10/5.80/6.91 swap_mb 12018 frei_mb 15031]
+Probe: 1 Proben, 0 über 300 %, Höchstwert 167 %
 ## stufe1b-C-ohne-punkt-import-v1
 lasttest: Kopf 2026-11-17T07:11:39Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout vorgabe client cpus 2 memory 2g
+lasttest: punkt lauf 0 anfragen 1000 p50_us 666 p95_us 1327 p99_us 2101 min_us 318 max_us 65133 lauf_ms 894 last_zeilen 0 sitzungen 1 last import
+lasttest: punkt lauf 1 anfragen 1000 p50_us 332 p95_us 606 p99_us 840 min_us 159 max_us 18177 lauf_ms 418 last_zeilen 0 sitzungen 1 last import
+lasttest: punkt lauf 2 anfragen 1000 p50_us 258 p95_us 392 p99_us 511 min_us 111 max_us 9761 lauf_ms 286 last_zeilen 0 sitzungen 1 last import
+lasttest: punkt lauf 3 anfragen 1000 p50_us 260 p95_us 374 p99_us 488 min_us 110 max_us 14006 lauf_ms 269 last_zeilen 0 sitzungen 1 last import
+lasttest: punkt lauf 4 anfragen 1000 p50_us 248 p95_us 361 p99_us 504 min_us 115 max_us 11169 lauf_ms 265 last_zeilen 0 sitzungen 1 last import
+lasttest: punkt lauf 5 anfragen 1000 p50_us 203 p95_us 332 p99_us 400 min_us 102 max_us 9716 lauf_ms 230 last_zeilen 0 sitzungen 1 last import
+lasttest: punkt gesamt ms 2443 last_zeilen 0 sitzungen 1 last import
 messung: 2026-11-17T07:11:50Z aufbau C senke ohne richtung punkt-import zeilen 1000000 sitzungen 1 wdh 5 anfragen 1000 p50_us_median 258 p50_us_min 203 p50_us_max 332 p95_us_median 374 p95_us_min 332 p95_us_max 606 p99_us_median 504 p99_us_min 400 p99_us_max 840 streuung_p95 ok vorher [last 5.01/5.77/6.90 swap_mb 12018 frei_mb 15098] nachher [last 5.25/5.80/6.90 swap_mb 12018 frei_mb 14974]
+Probe: 1 Proben, 0 über 300 %, Höchstwert 133 %
 ## stufe64-B-mit-export-v1
 lasttest: Kopf 2026-11-17T06:34:10Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [B] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
 messung: 2026-11-17T06:37:09Z aufbau B senke mit richtung export zeilen 100000 sitzungen 64 wdh 5 median_ms 27989 min_ms 27708 max_ms 30360 zeilen_je_s 228661 bytes_je_zeile 328 streuung ok erste_zeile_ms_median 9 erste_zeile_ms_min 6 erste_zeile_ms_max 10 vorher [last 7.43/8.49/9.13 swap_mb 12122 frei_mb 15448] nachher [last 6.94/7.47/8.60 swap_mb 12109 frei_mb 13958]
 messung-span: aufbau B senke mit phase export span tds.query art sql_batch n=384 median=28004 min=27683 max=30356
 messung-span: aufbau B senke mit phase export span backend.execute art sql_batch n=384 median=27998 min=27667 max=30351
+Probe: 19 Proben, 0 über 300 %, Höchstwert 185 %
 ## stufe64-B-mit-punkt-export-v1
 lasttest: Kopf 2026-11-17T06:37:10Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [B] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
+lasttest: punkt lauf 0 anfragen 1000 p50_us 14644 p95_us 39413 p99_us 63151 min_us 7399 max_us 100444 lauf_ms 19109 last_zeilen 0 sitzungen 64 last export
+lasttest: punkt lauf 1 anfragen 1000 p50_us 12949 p95_us 31663 p99_us 46142 min_us 7096 max_us 62080 lauf_ms 15947 last_zeilen 6300000 sitzungen 64 last export
+lasttest: punkt lauf 2 anfragen 1000 p50_us 12882 p95_us 27395 p99_us 39827 min_us 6231 max_us 54129 lauf_ms 15128 last_zeilen 0 sitzungen 64 last export
+lasttest: punkt lauf 3 anfragen 1000 p50_us 12719 p95_us 27332 p99_us 32370 min_us 6607 max_us 53422 lauf_ms 14772 last_zeilen 6300000 sitzungen 64 last export
+lasttest: punkt lauf 4 anfragen 1000 p50_us 13138 p95_us 29138 p99_us 31491 min_us 8750 max_us 38822 lauf_ms 15392 last_zeilen 0 sitzungen 64 last export
+lasttest: punkt lauf 5 anfragen 1000 p50_us 12949 p95_us 29520 p99_us 33206 min_us 6524 max_us 51809 lauf_ms 15325 last_zeilen 6300000 sitzungen 64 last export
+lasttest: punkt gesamt ms 95775 last_zeilen 18900000 sitzungen 64 last export
 messung: 2026-11-17T06:38:55Z aufbau B senke mit richtung punkt-export zeilen 100000 sitzungen 64 wdh 5 anfragen 1000 p50_us_median 12949 p50_us_min 12719 p50_us_max 13138 p95_us_median 29138 p95_us_min 27332 p95_us_max 31663 p99_us_median 33206 p99_us_min 31491 p99_us_max 46142 streuung_p95 ok vorher [last 6.87/7.44/8.58 swap_mb 12109 frei_mb 13912] nachher [last 7.70/7.78/8.61 swap_mb 12102 frei_mb 13240]
 messung-span: aufbau B senke mit phase punkt-export span tds.query art rpc n=6000 median=6 min=5 max=74
 messung-span: aufbau B senke mit phase punkt-export span tds.query art sql_batch n=252 median=30080 min=1349 max=34436
 messung-span: aufbau B senke mit phase punkt-export span backend.execute art rpc n=6000 median=0 min=0 max=15
 messung-span: aufbau B senke mit phase punkt-export span backend.execute art sql_batch n=252 median=30073 min=1347 max=34418
+Probe: 11 Proben, 3 über 300 %, Höchstwert 679 %
 ## stufe64-B-ohne-export-v1
 lasttest: Kopf 2026-11-17T06:38:56Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [B] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
 messung: 2026-11-17T06:42:08Z aufbau B senke ohne richtung export zeilen 100000 sitzungen 64 wdh 5 median_ms 29802 min_ms 29351 max_ms 31559 zeilen_je_s 214750 bytes_je_zeile 328 streuung ok erste_zeile_ms_median 8 erste_zeile_ms_min 5 erste_zeile_ms_max 13 vorher [last 7.61/7.76/8.59 swap_mb 12102 frei_mb 13255] nachher [last 7.00/7.79/8.48 swap_mb 12066 frei_mb 15204]
+Probe: 21 Proben, 0 über 300 %, Höchstwert 270 %
 ## stufe64-B-ohne-punkt-export-v1
 lasttest: Kopf 2026-11-17T06:42:09Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [B] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
+lasttest: punkt lauf 0 anfragen 1000 p50_us 12784 p95_us 32396 p99_us 59215 min_us 11341 max_us 104350 lauf_ms 16482 last_zeilen 0 sitzungen 64 last export
+lasttest: punkt lauf 1 anfragen 1000 p50_us 12844 p95_us 29834 p99_us 39280 min_us 6530 max_us 55134 lauf_ms 15370 last_zeilen 6300000 sitzungen 64 last export
+lasttest: punkt lauf 2 anfragen 1000 p50_us 12666 p95_us 28680 p99_us 39551 min_us 6200 max_us 54375 lauf_ms 15064 last_zeilen 0 sitzungen 64 last export
+lasttest: punkt lauf 3 anfragen 1000 p50_us 12646 p95_us 28001 p99_us 31692 min_us 5968 max_us 77642 lauf_ms 14813 last_zeilen 6300000 sitzungen 64 last export
+lasttest: punkt lauf 4 anfragen 1000 p50_us 13127 p95_us 28216 p99_us 31479 min_us 7583 max_us 48890 lauf_ms 15317 last_zeilen 0 sitzungen 64 last export
+lasttest: punkt lauf 5 anfragen 1000 p50_us 13215 p95_us 29232 p99_us 31798 min_us 6575 max_us 40766 lauf_ms 15451 last_zeilen 6300000 sitzungen 64 last export
+lasttest: punkt gesamt ms 92589 last_zeilen 18900000 sitzungen 64 last export
 messung: 2026-11-17T06:43:49Z aufbau B senke ohne richtung punkt-export zeilen 100000 sitzungen 64 wdh 5 anfragen 1000 p50_us_median 12844 p50_us_min 12646 p50_us_max 13215 p95_us_median 28680 p95_us_min 28001 p95_us_max 29834 p99_us_median 31798 p99_us_min 31479 p99_us_max 39551 streuung_p95 ok vorher [last 7.24/7.83/8.49 swap_mb 12066 frei_mb 15096] nachher [last 7.55/7.72/8.38 swap_mb 12063 frei_mb 15243]
+Probe: 11 Proben, 0 über 300 %, Höchstwert 238 %
 ## stufe64-C-mit-export-v1
 lasttest: Kopf 2026-11-17T06:43:50Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
 messung: 2026-11-17T06:47:10Z aufbau C senke mit richtung export zeilen 100000 sitzungen 64 wdh 5 median_ms 32346 min_ms 30836 max_ms 33188 zeilen_je_s 197860 bytes_je_zeile 328 streuung ok erste_zeile_ms_median 13 erste_zeile_ms_min 9 erste_zeile_ms_max 54 vorher [last 7.16/7.63/8.34 swap_mb 12063 frei_mb 15459] nachher [last 8.79/8.13/8.39 swap_mb 12055 frei_mb 12539]
 messung-span: aufbau C senke mit phase export span tds.query art sql_batch n=384 median=31933 min=30809 max=33186
 messung-span: aufbau C senke mit phase export span backend.execute art sql_batch n=384 median=31901 min=30795 max=33184
+Probe: 22 Proben, 12 über 300 %, Höchstwert 853 %
 ## stufe64-C-mit-import-v1
 lasttest: Kopf 2026-11-17T06:47:11Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
 messung: 2026-11-17T06:48:43Z aufbau C senke mit richtung import zeilen 100000 sitzungen 64 wdh 5 median_ms 13634 min_ms 13302 max_ms 14194 zeilen_je_s 469414 bytes_je_zeile 337 streuung ok vorher [last 8.29/8.05/8.36 swap_mb 12055 frei_mb 12388] nachher [last 6.54/7.43/8.11 swap_mb 12054 frei_mb 15072]
 messung-span: aufbau C senke mit phase import span tds.query art sql_batch n=77184 median=1 min=0 max=120
 messung-span: aufbau C senke mit phase import span backend.execute art sql_batch n=76800 median=0 min=0 max=57
+Probe: 11 Proben, 4 über 300 %, Höchstwert 575 %
 ## stufe64-C-mit-punkt-export-v1
 lasttest: Kopf 2026-11-17T06:48:54Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
+lasttest: punkt lauf 0 anfragen 1000 p50_us 14669 p95_us 40367 p99_us 63537 min_us 8898 max_us 109064 lauf_ms 19236 last_zeilen 0 sitzungen 64 last export
+lasttest: punkt lauf 1 anfragen 1000 p50_us 14812 p95_us 33356 p99_us 47793 min_us 7081 max_us 59615 lauf_ms 17930 last_zeilen 6300000 sitzungen 64 last export
+lasttest: punkt lauf 2 anfragen 1000 p50_us 13546 p95_us 29189 p99_us 39830 min_us 8036 max_us 54710 lauf_ms 15920 last_zeilen 0 sitzungen 64 last export
+lasttest: punkt lauf 3 anfragen 1000 p50_us 12864 p95_us 27255 p99_us 32312 min_us 7047 max_us 49904 lauf_ms 14873 last_zeilen 6300000 sitzungen 64 last export
+lasttest: punkt lauf 4 anfragen 1000 p50_us 12843 p95_us 26718 p99_us 28811 min_us 6618 max_us 53031 lauf_ms 14721 last_zeilen 0 sitzungen 64 last export
+lasttest: punkt lauf 5 anfragen 1000 p50_us 12911 p95_us 26824 p99_us 30585 min_us 6417 max_us 54113 lauf_ms 14823 last_zeilen 6300000 sitzungen 64 last export
+lasttest: punkt gesamt ms 97604 last_zeilen 18900000 sitzungen 64 last export
 messung: 2026-11-17T06:50:41Z aufbau C senke mit richtung punkt-export zeilen 100000 sitzungen 64 wdh 5 anfragen 1000 p50_us_median 12911 p50_us_min 12843 p50_us_max 14812 p95_us_median 27255 p95_us_min 26718 p95_us_max 33356 p99_us_median 32312 p99_us_min 28811 p99_us_max 47793 streuung_p95 ok vorher [last 6.12/7.30/8.05 swap_mb 12053 frei_mb 14512] nachher [last 5.68/7.19/7.96 swap_mb 12051 frei_mb 12381]
 messung-span: aufbau C senke mit phase punkt-export span tds.query art rpc n=6000 median=7 min=0 max=82
 messung-span: aufbau C senke mit phase punkt-export span tds.query art sql_batch n=252 median=29886 min=1354 max=36584
 messung-span: aufbau C senke mit phase punkt-export span backend.execute art rpc n=6000 median=0 min=0 max=58
 messung-span: aufbau C senke mit phase punkt-export span backend.execute art sql_batch n=252 median=29879 min=1349 max=36552
+Probe: 11 Proben, 5 über 300 %, Höchstwert 687 %
 ## stufe64-C-mit-punkt-import-v1
 lasttest: Kopf 2026-11-17T06:50:43Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
+lasttest: punkt lauf 0 anfragen 1000 p50_us 12787 p95_us 97090 p99_us 107950 min_us 519 max_us 203916 lauf_ms 39634 last_zeilen 12600000 sitzungen 64 last import
+lasttest: punkt lauf 1 anfragen 1000 p50_us 9682 p95_us 92633 p99_us 100115 min_us 275 max_us 178486 lauf_ms 31710 last_zeilen 14000000 sitzungen 64 last import
+lasttest: punkt lauf 2 anfragen 1000 p50_us 11581 p95_us 95389 p99_us 104329 min_us 273 max_us 290768 lauf_ms 37204 last_zeilen 17200000 sitzungen 64 last import
+lasttest: punkt lauf 3 anfragen 1000 p50_us 11069 p95_us 95091 p99_us 102375 min_us 506 max_us 2282262 lauf_ms 39300 last_zeilen 17900000 sitzungen 64 last import
+lasttest: punkt lauf 4 anfragen 1000 p50_us 6364 p95_us 93183 p99_us 102095 min_us 180 max_us 193699 lauf_ms 27476 last_zeilen 10900000 sitzungen 64 last import
+lasttest: punkt lauf 5 anfragen 1000 p50_us 10880 p95_us 94544 p99_us 105052 min_us 258 max_us 181051 lauf_ms 36005 last_zeilen 16000000 sitzungen 64 last import
+lasttest: punkt gesamt ms 212538 last_zeilen 89000000 sitzungen 64 last import
 messung: 2026-11-17T06:54:24Z aufbau C senke mit richtung punkt-import zeilen 100000 sitzungen 64 wdh 5 anfragen 1000 p50_us_median 10880 p50_us_min 6364 p50_us_max 11581 p95_us_median 94544 p95_us_min 92633 p95_us_max 95389 p99_us_median 102375 p99_us_min 100115 p99_us_max 105052 streuung_p95 ok vorher [last 5.03/7.00/7.89 swap_mb 12051 frei_mb 12904] nachher [last 5.34/9.05/8.82 swap_mb 12044 frei_mb 15369]
 messung-span: aufbau C senke mit phase punkt-import span tds.query art rpc n=6000 median=0 min=0 max=90
 messung-span: aufbau C senke mit phase punkt-import span tds.query art sql_batch n=185225 median=1 min=0 max=115
 messung-span: aufbau C senke mit phase punkt-import span backend.execute art rpc n=6000 median=0 min=0 max=10
 messung-span: aufbau C senke mit phase punkt-import span backend.execute art sql_batch n=184272 median=0 min=0 max=54
+Probe: 27 Proben, 1 über 300 %, Höchstwert 316 %
 ## stufe64-C-ohne-export-v1
 lasttest: Kopf 2026-11-17T06:54:50Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
 messung: 2026-11-17T06:57:49Z aufbau C senke ohne richtung export zeilen 100000 sitzungen 64 wdh 5 median_ms 28070 min_ms 27976 max_ms 28475 zeilen_je_s 228001 bytes_je_zeile 328 streuung ok erste_zeile_ms_median 9 erste_zeile_ms_min 6 erste_zeile_ms_max 44 vorher [last 4.25/8.44/8.62 swap_mb 12044 frei_mb 15259] nachher [last 4.00/6.48/7.83 swap_mb 12041 frei_mb 15178]
+Probe: 19 Proben, 0 über 300 %, Höchstwert 96 %
 ## stufe64-C-ohne-import-v1
 lasttest: Kopf 2026-11-17T06:57:49Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
 messung: 2026-11-17T06:59:28Z aufbau C senke ohne richtung import zeilen 100000 sitzungen 64 wdh 5 median_ms 14668 min_ms 14156 max_ms 14995 zeilen_je_s 436323 bytes_je_zeile 337 streuung ok vorher [last 3.92/6.42/7.80 swap_mb 12041 frei_mb 15388] nachher [last 2.69/5.31/7.27 swap_mb 12039 frei_mb 15100]
+Probe: 10 Proben, 0 über 300 %, Höchstwert 100 %
 ## stufe64-C-ohne-punkt-export-v1
 lasttest: Kopf 2026-11-17T06:59:29Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
+lasttest: punkt lauf 0 anfragen 1000 p50_us 12742 p95_us 32084 p99_us 56870 min_us 8240 max_us 69029 lauf_ms 15956 last_zeilen 0 sitzungen 64 last export
+lasttest: punkt lauf 1 anfragen 1000 p50_us 12583 p95_us 27577 p99_us 37686 min_us 9567 max_us 56138 lauf_ms 14677 last_zeilen 6300000 sitzungen 64 last export
+lasttest: punkt lauf 2 anfragen 1000 p50_us 12618 p95_us 27226 p99_us 36413 min_us 7421 max_us 55253 lauf_ms 14653 last_zeilen 0 sitzungen 64 last export
+lasttest: punkt lauf 3 anfragen 1000 p50_us 12722 p95_us 26147 p99_us 28760 min_us 6795 max_us 53610 lauf_ms 14523 last_zeilen 6300000 sitzungen 64 last export
+lasttest: punkt lauf 4 anfragen 1000 p50_us 12642 p95_us 24953 p99_us 27929 min_us 9664 max_us 43099 lauf_ms 14263 last_zeilen 0 sitzungen 64 last export
+lasttest: punkt lauf 5 anfragen 1000 p50_us 12718 p95_us 25249 p99_us 29454 min_us 6486 max_us 51708 lauf_ms 14330 last_zeilen 6300000 sitzungen 64 last export
+lasttest: punkt gesamt ms 88480 last_zeilen 18900000 sitzungen 64 last export
 messung: 2026-11-17T07:01:07Z aufbau C senke ohne richtung punkt-export zeilen 100000 sitzungen 64 wdh 5 anfragen 1000 p50_us_median 12642 p50_us_min 12583 p50_us_max 12722 p95_us_median 26147 p95_us_min 24953 p95_us_max 27577 p99_us_median 29454 p99_us_min 27929 p99_us_max 37686 streuung_p95 ok vorher [last 3.04/5.33/7.26 swap_mb 12039 frei_mb 15212] nachher [last 3.83/4.98/6.95 swap_mb 12038 frei_mb 15375]
+Probe: 10 Proben, 0 über 300 %, Höchstwert 96 %
 ## stufe64-C-ohne-punkt-import-v1
 lasttest: Kopf 2026-11-17T07:01:07Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 100000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
+lasttest: punkt lauf 0 anfragen 1000 p50_us 11602 p95_us 96713 p99_us 103072 min_us 408 max_us 208543 lauf_ms 38352 last_zeilen 12600000 sitzungen 64 last import
+lasttest: punkt lauf 1 anfragen 1000 p50_us 10644 p95_us 95336 p99_us 102767 min_us 320 max_us 295407 lauf_ms 36105 last_zeilen 16900000 sitzungen 64 last import
+lasttest: punkt lauf 2 anfragen 1000 p50_us 10614 p95_us 93957 p99_us 102766 min_us 336 max_us 307034 lauf_ms 36000 last_zeilen 14300000 sitzungen 64 last import
+lasttest: punkt lauf 3 anfragen 1000 p50_us 11626 p95_us 93858 p99_us 102191 min_us 318 max_us 298059 lauf_ms 36901 last_zeilen 18100000 sitzungen 64 last import
+lasttest: punkt lauf 4 anfragen 1000 p50_us 10706 p95_us 95713 p99_us 102475 min_us 336 max_us 191571 lauf_ms 36400 last_zeilen 13500000 sitzungen 64 last import
+lasttest: punkt lauf 5 anfragen 1000 p50_us 10636 p95_us 95039 p99_us 104549 min_us 486 max_us 288978 lauf_ms 36374 last_zeilen 18000000 sitzungen 64 last import
+lasttest: punkt gesamt ms 221034 last_zeilen 93700000 sitzungen 64 last import
 messung: 2026-11-17T07:04:57Z aufbau C senke ohne richtung punkt-import zeilen 100000 sitzungen 64 wdh 5 anfragen 1000 p50_us_median 10644 p50_us_min 10614 p50_us_max 11626 p95_us_median 95039 p95_us_min 93858 p95_us_max 95713 p99_us_median 102766 p99_us_min 102191 p99_us_max 104549 streuung_p95 ok vorher [last 3.68/4.93/6.92 swap_mb 12038 frei_mb 15332] nachher [last 10.68/9.24/8.26 swap_mb 12036 frei_mb 15334]
+Probe: 25 Proben, 0 über 300 %, Höchstwert 94 %
 ## stufe8-B-mit-export-v1
 lasttest: Kopf 2026-11-17T06:00:22Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit e483d17b
 lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [B] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
 messung: 2026-11-17T06:05:26Z aufbau B senke mit richtung export zeilen 1000000 sitzungen 8 wdh 5 median_ms 39167 min_ms 38941 max_ms 41940 zeilen_je_s 204253 bytes_je_zeile 328 streuung ok erste_zeile_ms_median 2 erste_zeile_ms_min 1 erste_zeile_ms_max 4 vorher [last 13.93/12.69/10.24 swap_mb 16382 frei_mb 9194] nachher [last 11.39/12.64/10.85 swap_mb 13548 frei_mb 11037]
 messung-span: aufbau B senke mit phase export span tds.query art sql_batch n=48 median=39610 min=38849 max=43018
 messung-span: aufbau B senke mit phase export span backend.execute art sql_batch n=48 median=39609 min=38848 max=43007
+Probe: 33 Proben, 17 über 300 %, Höchstwert 949 %
 ## stufe8-B-mit-punkt-export-v1
 lasttest: Kopf 2026-11-17T06:00:11Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit e483d17b
 lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [B] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
+lasttest: punkt lauf 0 anfragen 1000 p50_us 2869 p95_us 9313 p99_us 51132 min_us 933 max_us 73235 lauf_ms 4806 last_zeilen 0 sitzungen 8 last export
+lasttest: punkt lauf 1 anfragen 1000 p50_us 2426 p95_us 5446 p99_us 38629 min_us 757 max_us 50255 lauf_ms 3606 last_zeilen 0 sitzungen 8 last export
+lasttest: punkt lauf 2 anfragen 1000 p50_us 2537 p95_us 6470 p99_us 36756 min_us 617 max_us 44458 lauf_ms 3630 last_zeilen 0 sitzungen 8 last export
+lasttest: punkt lauf 3 anfragen 1000 p50_us 2513 p95_us 6022 p99_us 19611 min_us 646 max_us 35920 lauf_ms 3168 last_zeilen 0 sitzungen 8 last export
+lasttest: punkt lauf 4 anfragen 1000 p50_us 2407 p95_us 5127 p99_us 13588 min_us 794 max_us 24779 lauf_ms 2819 last_zeilen 0 sitzungen 8 last export
+lasttest: punkt lauf 5 anfragen 1000 p50_us 2214 p95_us 4724 p99_us 17278 min_us 957 max_us 34561 lauf_ms 2717 last_zeilen 0 sitzungen 8 last export
+lasttest: punkt gesamt ms 20834 last_zeilen 0 sitzungen 8 last export
 messung: 2026-11-17T06:00:42Z aufbau B senke mit richtung punkt-export zeilen 1000000 sitzungen 8 wdh 5 anfragen 1000 p50_us_median 2426 p50_us_min 2214 p50_us_max 2537 p95_us_median 5446 p95_us_min 4724 p95_us_max 6470 p99_us_median 19611 p99_us_min 13588 p99_us_max 38629 streuung_p95 ok vorher [last 11.15/11.72/9.76 swap_mb 16350 frei_mb 4662] nachher [last 15.38/12.70/10.14 swap_mb 16383 frei_mb 3816] last-hoch swap-gewachsen
 messung-span: aufbau B senke mit phase punkt-export span tds.query art rpc n=6000 median=1 min=0 max=61
 messung-span: aufbau B senke mit phase punkt-export span tds.query art sql_batch n=7 median=20874 min=20870 max=20920
 messung-span: aufbau B senke mit phase punkt-export span backend.execute art rpc n=6000 median=0 min=0 max=33
 messung-span: aufbau B senke mit phase punkt-export span backend.execute art sql_batch n=7 median=20870 min=20859 max=20899
+Probe: 729 Proben, 129 über 300 %, Höchstwert 1035 %
 ## stufe8-B-mit-punkt-export-v2
 lasttest: Kopf 2026-11-17T06:05:26Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit e483d17b
 lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [B] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
+lasttest: punkt lauf 0 anfragen 1000 p50_us 2085 p95_us 5415 p99_us 51246 min_us 1030 max_us 76089 lauf_ms 3956 last_zeilen 0 sitzungen 8 last export
+lasttest: punkt lauf 1 anfragen 1000 p50_us 1918 p95_us 3543 p99_us 33949 min_us 1014 max_us 47432 lauf_ms 2878 last_zeilen 0 sitzungen 8 last export
+lasttest: punkt lauf 2 anfragen 1000 p50_us 1841 p95_us 3007 p99_us 43559 min_us 873 max_us 46086 lauf_ms 2837 last_zeilen 0 sitzungen 8 last export
+lasttest: punkt lauf 3 anfragen 1000 p50_us 1712 p95_us 2797 p99_us 20885 min_us 963 max_us 41496 lauf_ms 2295 last_zeilen 0 sitzungen 8 last export
+lasttest: punkt lauf 4 anfragen 1000 p50_us 1572 p95_us 2451 p99_us 19383 min_us 936 max_us 38478 lauf_ms 2064 last_zeilen 0 sitzungen 8 last export
+lasttest: punkt lauf 5 anfragen 1000 p50_us 1553 p95_us 2538 p99_us 25039 min_us 879 max_us 43206 lauf_ms 2113 last_zeilen 0 sitzungen 8 last export
+lasttest: punkt gesamt ms 16222 last_zeilen 0 sitzungen 8 last export
 messung: 2026-11-17T06:05:51Z aufbau B senke mit richtung punkt-export zeilen 1000000 sitzungen 8 wdh 5 anfragen 1000 p50_us_median 1712 p50_us_min 1553 p50_us_max 1918 p95_us_median 2797 p95_us_min 2451 p95_us_max 3543 p99_us_median 25039 p99_us_min 19383 p99_us_max 43559 streuung_p95 ok vorher [last 10.92/12.50/10.83 swap_mb 12907 frei_mb 10630] nachher [last 10.14/12.24/10.78 swap_mb 12761 frei_mb 11238]
 messung-span: aufbau B senke mit phase punkt-export span tds.query art rpc n=6000 median=1 min=0 max=58
 messung-span: aufbau B senke mit phase punkt-export span tds.query art sql_batch n=7 median=16255 min=16249 max=16295
 messung-span: aufbau B senke mit phase punkt-export span backend.execute art rpc n=6000 median=0 min=0 max=51
 messung-span: aufbau B senke mit phase punkt-export span backend.execute art sql_batch n=7 median=16253 min=16247 max=16284
+Probe: 2 Proben, 0 über 300 %, Höchstwert 157 %
 ## stufe8-B-ohne-export-v1
 lasttest: Kopf 2026-11-17T06:05:53Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit e483d17b
 lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [B] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
 messung: 2026-11-17T06:10:00Z aufbau B senke ohne richtung export zeilen 1000000 sitzungen 8 wdh 5 median_ms 40398 min_ms 38783 max_ms 41146 zeilen_je_s 198029 bytes_je_zeile 329 streuung ok erste_zeile_ms_median 2 erste_zeile_ms_min 2 erste_zeile_ms_max 28 vorher [last 9.97/12.17/10.76 swap_mb 12690 frei_mb 11445] nachher [last 9.81/10.49/10.36 swap_mb 13156 frei_mb 10715] swap-gewachsen
+Probe: 27 Proben, 13 über 300 %, Höchstwert 630 %
 ## stufe8-B-ohne-punkt-export-v1
 lasttest: Kopf 2026-11-17T06:10:01Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [B] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
+lasttest: punkt lauf 0 anfragen 1000 p50_us 2733 p95_us 8185 p99_us 48442 min_us 1103 max_us 86030 lauf_ms 4761 last_zeilen 0 sitzungen 8 last export
+lasttest: punkt lauf 1 anfragen 1000 p50_us 2373 p95_us 4925 p99_us 23352 min_us 999 max_us 44275 lauf_ms 3121 last_zeilen 0 sitzungen 8 last export
+lasttest: punkt lauf 2 anfragen 1000 p50_us 2155 p95_us 4259 p99_us 32725 min_us 969 max_us 42590 lauf_ms 3007 last_zeilen 0 sitzungen 8 last export
+lasttest: punkt lauf 3 anfragen 1000 p50_us 2003 p95_us 3698 p99_us 16069 min_us 645 max_us 43854 lauf_ms 2480 last_zeilen 0 sitzungen 8 last export
+lasttest: punkt lauf 4 anfragen 1000 p50_us 2067 p95_us 4124 p99_us 28801 min_us 946 max_us 43812 lauf_ms 2901 last_zeilen 0 sitzungen 8 last export
+lasttest: punkt lauf 5 anfragen 1000 p50_us 1778 p95_us 3119 p99_us 22074 min_us 951 max_us 37382 lauf_ms 2389 last_zeilen 0 sitzungen 8 last export
+lasttest: punkt gesamt ms 18757 last_zeilen 0 sitzungen 8 last export
 messung: 2026-11-17T06:10:30Z aufbau B senke ohne richtung punkt-export zeilen 1000000 sitzungen 8 wdh 5 anfragen 1000 p50_us_median 2067 p50_us_min 1778 p50_us_max 2373 p95_us_median 4124 p95_us_min 3119 p95_us_max 4925 p99_us_median 23352 p99_us_min 16069 p99_us_max 32725 streuung_p95 ok vorher [last 9.62/10.43/10.34 swap_mb 13159 frei_mb 10872] nachher [last 11.04/10.68/10.42 swap_mb 13162 frei_mb 9861]
+Probe: 3 Proben, 3 über 300 %, Höchstwert 989 %
 ## stufe8-C-mit-export-v1
 lasttest: Kopf 2026-11-17T06:10:31Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
 messung: 2026-11-17T06:14:37Z aufbau C senke mit richtung export zeilen 1000000 sitzungen 8 wdh 5 median_ms 39246 min_ms 36829 max_ms 41120 zeilen_je_s 203842 bytes_je_zeile 328 streuung ok erste_zeile_ms_median 2 erste_zeile_ms_min 2 erste_zeile_ms_max 8 vorher [last 11.41/10.77/10.46 swap_mb 13162 frei_mb 10118] nachher [last 8.39/10.33/10.39 swap_mb 13144 frei_mb 9901]
 messung-span: aufbau C senke mit phase export span tds.query art sql_batch n=48 median=39733 min=36759 max=41120
 messung-span: aufbau C senke mit phase export span backend.execute art sql_batch n=48 median=39724 min=36757 max=41119
+Probe: 27 Proben, 12 über 300 %, Höchstwert 838 %
 ## stufe8-C-mit-import-v1
 lasttest: Kopf 2026-11-17T06:14:38Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
 messung: 2026-11-17T06:16:21Z aufbau C senke mit richtung import zeilen 1000000 sitzungen 8 wdh 5 median_ms 15275 min_ms 14682 max_ms 15717 zeilen_je_s 523731 bytes_je_zeile 336 streuung ok vorher [last 8.03/10.22/10.36 swap_mb 13143 frei_mb 10308] nachher [last 12.90/11.15/10.67 swap_mb 13105 frei_mb 14543]
 messung-span: aufbau C senke mit phase import span tds.query art sql_batch n=96048 median=0 min=0 max=89
 messung-span: aufbau C senke mit phase import span backend.execute art sql_batch n=96000 median=0 min=0 max=57
+Probe: 12 Proben, 1 über 300 %, Höchstwert 464 %
 ## stufe8-C-mit-punkt-export-v1
 lasttest: Kopf 2026-11-17T06:16:34Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
+lasttest: punkt lauf 0 anfragen 1000 p50_us 2509 p95_us 9236 p99_us 52550 min_us 1193 max_us 63214 lauf_ms 4960 last_zeilen 0 sitzungen 8 last export
+lasttest: punkt lauf 1 anfragen 1000 p50_us 1773 p95_us 2987 p99_us 30362 min_us 1021 max_us 51325 lauf_ms 2527 last_zeilen 0 sitzungen 8 last export
+lasttest: punkt lauf 2 anfragen 1000 p50_us 1943 p95_us 3208 p99_us 38060 min_us 1021 max_us 45914 lauf_ms 2813 last_zeilen 0 sitzungen 8 last export
+lasttest: punkt lauf 3 anfragen 1000 p50_us 1879 p95_us 3099 p99_us 27220 min_us 982 max_us 44101 lauf_ms 2601 last_zeilen 0 sitzungen 8 last export
+lasttest: punkt lauf 4 anfragen 1000 p50_us 1887 p95_us 3171 p99_us 29786 min_us 981 max_us 45405 lauf_ms 2671 last_zeilen 0 sitzungen 8 last export
+lasttest: punkt lauf 5 anfragen 1000 p50_us 1780 p95_us 3130 p99_us 21058 min_us 993 max_us 42547 lauf_ms 2399 last_zeilen 0 sitzungen 8 last export
+lasttest: punkt gesamt ms 18049 last_zeilen 0 sitzungen 8 last export
 messung: 2026-11-17T06:18:46Z aufbau C senke mit richtung punkt-export zeilen 1000000 sitzungen 8 wdh 5 anfragen 1000 p50_us_median 1879 p50_us_min 1773 p50_us_max 1943 p95_us_median 3130 p95_us_min 2987 p95_us_max 3208 p99_us_median 29786 p99_us_min 21058 p99_us_max 38060 streuung_p95 ok vorher [last 7.81/9.78/10.22 swap_mb 13075 frei_mb 14550] nachher [last 8.36/9.77/10.20 swap_mb 13074 frei_mb 13498]
 messung-span: aufbau C senke mit phase punkt-export span tds.query art rpc n=6000 median=1 min=0 max=57
 messung-span: aufbau C senke mit phase punkt-export span tds.query art sql_batch n=7 median=18130 min=18102 max=18177
 messung-span: aufbau C senke mit phase punkt-export span backend.execute art rpc n=6000 median=0 min=0 max=50
 messung-span: aufbau C senke mit phase punkt-export span backend.execute art sql_batch n=7 median=18098 min=18091 max=18125
+Probe: 14 Proben, 9 über 300 %, Höchstwert 1108 %
 ## stufe8-C-mit-punkt-import-v1
 lasttest: Kopf 2026-11-17T06:18:47Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [mit] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
+lasttest: punkt lauf 0 anfragen 1000 p50_us 1112 p95_us 6352 p99_us 58205 min_us 263 max_us 100313 lauf_ms 3454 last_zeilen 0 sitzungen 8 last import
+lasttest: punkt lauf 1 anfragen 1000 p50_us 713 p95_us 2966 p99_us 47776 min_us 168 max_us 57285 lauf_ms 1874 last_zeilen 0 sitzungen 8 last import
+lasttest: punkt lauf 2 anfragen 1000 p50_us 518 p95_us 2494 p99_us 37495 min_us 150 max_us 49524 lauf_ms 1589 last_zeilen 0 sitzungen 8 last import
+lasttest: punkt lauf 3 anfragen 1000 p50_us 465 p95_us 2223 p99_us 43866 min_us 141 max_us 50330 lauf_ms 1363 last_zeilen 0 sitzungen 8 last import
+lasttest: punkt lauf 4 anfragen 1000 p50_us 412 p95_us 2146 p99_us 44264 min_us 118 max_us 48195 lauf_ms 1279 last_zeilen 0 sitzungen 8 last import
+lasttest: punkt lauf 5 anfragen 1000 p50_us 385 p95_us 2239 p99_us 43004 min_us 137 max_us 48668 lauf_ms 1269 last_zeilen 0 sitzungen 8 last import
+lasttest: punkt gesamt ms 10965 last_zeilen 0 sitzungen 8 last import
 messung: 2026-11-17T06:19:07Z aufbau C senke mit richtung punkt-import zeilen 1000000 sitzungen 8 wdh 5 anfragen 1000 p50_us_median 465 p50_us_min 385 p50_us_max 713 p95_us_median 2239 p95_us_min 2146 p95_us_max 2966 p99_us_median 43866 p99_us_min 37495 p99_us_max 47776 streuung_p95 ok vorher [last 8.39/9.73/10.19 swap_mb 13073 frei_mb 13620] nachher [last 8.70/9.73/10.18 swap_mb 13073 frei_mb 14138]
 messung-span: aufbau C senke mit phase punkt-import span tds.query art rpc n=6000 median=0 min=0 max=106
 messung-span: aufbau C senke mit phase punkt-import span tds.query art sql_batch n=7095 median=1 min=0 max=107
 messung-span: aufbau C senke mit phase punkt-import span backend.execute art rpc n=6000 median=0 min=0 max=57
 messung-span: aufbau C senke mit phase punkt-import span backend.execute art sql_batch n=7088 median=0 min=0 max=62
+Probe: 2 Proben, 1 über 300 %, Höchstwert 455 %
 ## stufe8-C-ohne-export-v1
 lasttest: Kopf 2026-11-17T06:19:10Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
 messung: 2026-11-17T06:23:12Z aufbau C senke ohne richtung export zeilen 1000000 sitzungen 8 wdh 5 median_ms 37821 min_ms 37106 max_ms 38907 zeilen_je_s 211522 bytes_je_zeile 329 streuung ok erste_zeile_ms_median 3 erste_zeile_ms_min 2 erste_zeile_ms_max 4 vorher [last 8.60/9.67/10.15 swap_mb 13073 frei_mb 13447] nachher [last 7.88/8.63/9.63 swap_mb 12166 frei_mb 14934]
+Probe: 26 Proben, 10 über 300 %, Höchstwert 695 %
 ## stufe8-C-ohne-import-v1
 lasttest: Kopf 2026-11-17T06:23:13Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
 messung: 2026-11-17T06:24:53Z aufbau C senke ohne richtung import zeilen 1000000 sitzungen 8 wdh 5 median_ms 14752 min_ms 14588 max_ms 15702 zeilen_je_s 542299 bytes_je_zeile 336 streuung ok vorher [last 8.61/8.77/9.67 swap_mb 12166 frei_mb 14532] nachher [last 8.73/8.42/9.44 swap_mb 12165 frei_mb 13685]
+Probe: 11 Proben, 4 über 300 %, Höchstwert 539 %
 ## stufe8-C-ohne-punkt-export-v1
 lasttest: Kopf 2026-11-17T06:24:54Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
+lasttest: punkt lauf 0 anfragen 1000 p50_us 2098 p95_us 6750 p99_us 49969 min_us 1050 max_us 54992 lauf_ms 3964 last_zeilen 0 sitzungen 8 last export
+lasttest: punkt lauf 1 anfragen 1000 p50_us 1783 p95_us 2930 p99_us 22974 min_us 1026 max_us 46793 lauf_ms 2360 last_zeilen 0 sitzungen 8 last export
+lasttest: punkt lauf 2 anfragen 1000 p50_us 2236 p95_us 4755 p99_us 32041 min_us 1108 max_us 42525 lauf_ms 3187 last_zeilen 0 sitzungen 8 last export
+lasttest: punkt lauf 3 anfragen 1000 p50_us 2267 p95_us 4163 p99_us 29170 min_us 1063 max_us 46704 lauf_ms 3085 last_zeilen 0 sitzungen 8 last export
+lasttest: punkt lauf 4 anfragen 1000 p50_us 2043 p95_us 3353 p99_us 26194 min_us 838 max_us 48155 lauf_ms 2784 last_zeilen 0 sitzungen 8 last export
+lasttest: punkt lauf 5 anfragen 1000 p50_us 1990 p95_us 3454 p99_us 23366 min_us 455 max_us 41929 lauf_ms 2616 last_zeilen 0 sitzungen 8 last export
+lasttest: punkt gesamt ms 18065 last_zeilen 0 sitzungen 8 last export
 messung: 2026-11-17T06:25:23Z aufbau C senke ohne richtung punkt-export zeilen 1000000 sitzungen 8 wdh 5 anfragen 1000 p50_us_median 2043 p50_us_min 1783 p50_us_max 2267 p95_us_median 3454 p95_us_min 2930 p95_us_max 4755 p99_us_median 26194 p99_us_min 22974 p99_us_max 32041 streuung_p95 ok vorher [last 8.46/8.38/9.41 swap_mb 12165 frei_mb 13390] nachher [last 10.56/8.87/9.56 swap_mb 12165 frei_mb 13075]
+Probe: 3 Proben, 3 über 300 %, Höchstwert 973 %
 ## stufe8-C-ohne-punkt-import-v1
 lasttest: Kopf 2026-11-17T06:25:24Z host kerne 20 ram_mb 31817 kernel 6.8.0-147-generic docker 29.9.3 commit a39bd9e4
 lasttest: Kopf zeilen 1000000 wdh 5 (nach einem Warmlauf) seed 42 aufbauten [C] senken [ohne] server cpus 2 memory 4g memory-swap 4g xmx 256m query_timeout 3600 client cpus 2 memory 2g
+lasttest: punkt lauf 0 anfragen 1000 p50_us 947 p95_us 7309 p99_us 54215 min_us 227 max_us 83790 lauf_ms 3225 last_zeilen 0 sitzungen 8 last import
+lasttest: punkt lauf 1 anfragen 1000 p50_us 548 p95_us 2576 p99_us 41877 min_us 150 max_us 50910 lauf_ms 1492 last_zeilen 0 sitzungen 8 last import
+lasttest: punkt lauf 2 anfragen 1000 p50_us 522 p95_us 2873 p99_us 45436 min_us 149 max_us 58016 lauf_ms 1682 last_zeilen 0 sitzungen 8 last import
+lasttest: punkt lauf 3 anfragen 1000 p50_us 393 p95_us 2307 p99_us 35130 min_us 144 max_us 70107 lauf_ms 1396 last_zeilen 0 sitzungen 8 last import
+lasttest: punkt lauf 4 anfragen 1000 p50_us 330 p95_us 2183 p99_us 32310 min_us 98 max_us 54559 lauf_ms 1178 last_zeilen 0 sitzungen 8 last import
+lasttest: punkt lauf 5 anfragen 1000 p50_us 312 p95_us 2029 p99_us 30265 min_us 86 max_us 54714 lauf_ms 1130 last_zeilen 0 sitzungen 8 last import
+lasttest: punkt gesamt ms 10194 last_zeilen 0 sitzungen 8 last import
 messung: 2026-11-17T06:25:44Z aufbau C senke ohne richtung punkt-import zeilen 1000000 sitzungen 8 wdh 5 anfragen 1000 p50_us_median 393 p50_us_min 312 p50_us_max 548 p95_us_median 2307 p95_us_min 2029 p95_us_max 2873 p99_us_median 35130 p99_us_min 30265 p99_us_max 45436 streuung_p95 ok vorher [last 10.54/8.92/9.57 swap_mb 12165 frei_mb 12921] nachher [last 11.14/9.11/9.62 swap_mb 12163 frei_mb 13021]
+Probe: 2 Proben, 2 über 300 %, Höchstwert 837 %
 
 # Frühere Läufe (Stufe 1, Lauf 1 unter Fremdlast und zwei Zellen von Lauf 2; Abbruch von Stufe 8 an der Frist von 30 s)
 ## Lauf 1, alle Zellen in einem Aufruf (Fremdlast: 17 von 41 Proben mit mehr als 300 % fremder CPU, Java anderer Builds ab 04:59:28Z)
