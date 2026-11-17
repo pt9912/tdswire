@@ -13,9 +13,9 @@ import io.github.pt9912.tdswire.simulation.SimulationBackend
 /**
  * Stellt dem Simulations-Backend die Fähigkeit des Massenladens bereit (`ADR-0052` Entscheidung 2). Grenze:
  * [SimulationBackend] trägt [BulkLoadingBackend] nicht selbst: als Mitglieder der Klasse wären `bulkTarget`,
- * `bulkProbe` und `load` öffentlich und Zusage von `SPEC-059`; sie bleiben `internal`. Die Verdrahtung hüllt die Klasse vor der
- * Anfrageschleife ein. Jedes andere [QueryBackend] bleibt unverändert: trägt es [BulkLoadingBackend] selbst, wählt der
- * Kern die Fähigkeit mit `is`.
+ * `bulkProbe` und `load` öffentlich und Zusage von `SPEC-059`; sie bleiben `internal`. Die Verdrahtung hüllt die
+ * Klasse vor der Anfrageschleife ein. Jedes andere [QueryBackend] bleibt unverändert: trägt es [BulkLoadingBackend]
+ * selbst, wählt der Kern die Fähigkeit mit `is`.
  */
 internal class SimulationBulk(private val backend: SimulationBackend) :
     QueryBackend by backend,
