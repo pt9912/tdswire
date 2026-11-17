@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tools/heap-abschluss-selbsttest.sh - belegt tools/heap-abschluss.sh vor jedem Docker-Aufruf (TDS-QA-04): die Pruefung von HEAP_MIN_FREI_MB
 # (Exit 2), der Speicherwaechter (Exit 3 unter der Grenze, kein Abbruch genau auf der Grenze), die Pruefung der Zellennamen (Exit 2 bei
-# einem unbekannten, alle bekannten Namen kommen durch) und die Summe der Fremdlast (`fremdlast_summe`, Proben ueber 300 %); dreizehn Mutationen
+# einem unbekannten, alle bekannten Namen kommen durch) und die Summe der Fremdlast (`fremdlast_summe`, Proben ueber 300 %); fünfzehn Mutationen
 # des Skripts muessen je rot werden. Docker ersetzt ein Stub im PATH, /proc eine Nachbildung (HEAP_PROC). Die Datei `fall` der Nachbildung
 # (der Stub schreibt seine Aufrufe nach `aufrufe`) laesst den Stub bauen und starten und den Speicher an einer Stelle sinken: bei `network` (der Waechter vor dem Server greift) oder beim Start
 # des Servers (der Waechter vor der Fremdlast-Probe greift); ohne die Datei scheitert der Stub-Bau, und das Skript endet vor `zelle()`. Aufgerufen von der
@@ -16,16 +16,19 @@ mkdir -p "$tmp/bin" "$tmp/proc-knapp" "$tmp/proc-genau" "$tmp/proc-reichlich" "$
 cat >"$tmp/bin/docker" <<'STUB'
 #!/bin/sh
 # Stub: ohne die Datei `fall` in HEAP_PROC scheitert `build`; mit ihr gelingen build, network, run -d und logs, und der Speicher
-# sinkt bei `network` (fall: vor-server) oder beim Start des Servers (fall: vor-client); `run` scheitert sonst (Client, andere Faelle).
+# sinkt bei `network` (fall: vor-server) oder beim Start des Servers (fall: vor-client); bei `ganz` gelingt auch der Client; `run` scheitert sonst.
 fall=$(cat "$HEAP_PROC/fall" 2>/dev/null)
 echo "$*" >>"$HEAP_PROC/aufrufe"
 senke() { printf 'MemTotal: 33000000 kB\nMemAvailable: 1000 kB\nSwapTotal: 100 kB\nSwapFree: 50 kB\n' >"$HEAP_PROC/meminfo"; }
 case "$1" in
 build) [ -n "$fall" ] || exit 1 ;;
 network) [ "$2" = create ] && [ "$fall" = vor-server ] && senke ;;
-run) [ "$2" = -d ] || exit 1
-	case "$fall" in vor-*) ;; *) exit 1 ;; esac
-	[ "$fall" = vor-client ] && senke ;;
+run) if [ "$2" = -d ]; then
+		case "$fall" in vor-* | ganz) ;; *) exit 1 ;; esac
+		[ "$fall" = vor-client ] && senke
+	else
+		[ "$fall" = ganz ] || exit 1
+	fi ;;
 logs) echo "tdswire: gestartet, Port 1433" ;;
 inspect) echo true ;;
 esac
@@ -95,6 +98,14 @@ pruefe_skript() { # pruefe_skript <Skript>: setzt $abweichungen
 		echo "heap-abschluss-selbsttest: ABWEICHUNG - eine Zelle des Musters hat keinen Zweig: $(grep 'unbekannte Zelle' "$tmp/aus" | head -1)" >&2
 		abweichungen=$((abweichungen + 1))
 	fi
+	# Die Grenzen der Container stehen am Aufruf von `docker run` und in der Zeile `Kopf server` (eine Quelle im Skript).
+	nachbildung "$tmp/proc-fall" 30000000
+	echo ganz >"$tmp/proc-fall/fall"
+	rm -f "$tmp/proc-fall/aufrufe"
+	erwarte "Lauf mit Server und Client" 0 "$skript" HEAP_PROC="$tmp/proc-fall" HEAP_PROBE_S=1 HEAP_ZELLEN=heap-eigen-1
+	grep -q '^run -d .*--cpus 2 --memory 4g --memory-swap 4g -e LASTTEST_XMX=256m' "$tmp/proc-fall/aufrufe" || { echo "heap-abschluss-selbsttest: ABWEICHUNG - Grenzen des Servers am docker run" >&2; abweichungen=$((abweichungen + 1)); }
+	grep -q '^run --rm .*--cpus 2 --memory 2g --memory-swap 2g -e TDSWIRE_ZIEL' "$tmp/proc-fall/aufrufe" || { echo "heap-abschluss-selbsttest: ABWEICHUNG - Grenzen des Clients am docker run" >&2; abweichungen=$((abweichungen + 1)); }
+	grep -q 'Kopf server \[--cpus 2 --memory 4g --memory-swap 4g\] xmx 256m client \[--cpus 2 --memory 2g --memory-swap 2g\]' "$tmp/aus" || { echo "heap-abschluss-selbsttest: ABWEICHUNG - Zeile Kopf server" >&2; abweichungen=$((abweichungen + 1)); }
 	printf '1 100 50 50\n2 400 100 300\n3 500 150 350\n4 900 100 800\n' >"$tmp/probe"
 	# shellcheck disable=SC1090
 	summe=$(HEAP_PROC="$tmp/proc-reichlich" bash -c 'source "$1"; fremdlast_summe "$2"' _ "$skript" "$tmp/probe" 2>&1)
@@ -132,6 +143,8 @@ mutiere fremdlast-ab-300 's/\$4 > 300/$4 >= 300/'
 mutiere waechter-zelle-beide-gestrichen 's/^\tspeicherwacht$/\t:/'
 mutiere waechter-zelle-erster-gestrichen '0,/^\tspeicherwacht$/s//\t:/'
 mutiere waechter-zelle-zweiter-gestrichen ':a;N;$!ba;s/\(\n\tspeicherwacht\n\(.*\)\)\n\tspeicherwacht\n/\1\n\t:\n/'
+mutiere grenzen-des-servers "s/--memory 4g --memory-swap 4g\"/--memory 8g --memory-swap 8g\"/"
+mutiere grenzen-des-clients "s/--memory 2g --memory-swap 2g\"/--memory 1g --memory-swap 1g\"/"
 mutiere zweig-heap-fehlt 's/^\theap-\*)/\theapx-*)/'
 mutiere zweig-abschluss-fehlt 's/^\tabschluss) /\tabschlussx) /'
 

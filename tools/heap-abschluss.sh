@@ -15,6 +15,7 @@
 # Je Zelle: Zeile `zelle:` (Zustand des Hosts vorher und nachher, Fremdlast), die Zeilen `heap:` oder `abschluss:` des Clients, der Kopf des Servers.
 # Fremdlast: alle 10 s die CPU des Hosts (/proc/stat) abzueglich der CPU der beiden Container (docker stats); `proben` und `ueber300`
 # (Proben mit mehr als 300 % fremder CPU) und `max` stehen in der Zeile `zelle:`. Der Lauf wartet nicht auf einen ruhigen Host.
+# Host: bash, awk, git, docker, nproc, mktemp, sed, grep, tr, seq, sleep.
 # Umgebung: HEAP_MIN_FREI_MB=4096 (unter dieser verfuegbaren Menge bricht der Lauf vor jedem Container ab, Exit 3), HEAP_ZELLEN, HEAP_ZEILEN, HEAP_WDH.
 set -u
 cd "$(dirname "$0")/.." || exit 1
@@ -28,7 +29,14 @@ wdh="${HEAP_WDH:-1}"
 alle="abschluss heap-eigen-1 heap-sim-1 heap-eigen-8 heap-sim-8 heap-eigen-16 heap-sim-16"
 zellen="${HEAP_ZELLEN:-$alle}"
 klasse="io.github.pt9912.tdswire.testserver"
+probe_s="${HEAP_PROBE_S:-10}" # Abstand der Fremdlast-Proben in Sekunden; nur der Selbsttest setzt ihn anders
 proc="${HEAP_PROC:-/proc}" # nur der Selbsttest (tools/heap-abschluss-selbsttest.sh) setzt es: eine Nachbildung von meminfo, loadavg und stat
+
+# Grenzen der Container: die einzige Quelle; `docker run` und die Zeile `Kopf server` der Rohzeilen lesen sie, tools/heap-abschluss-selbsttest.sh
+# belegt die Werte am Aufruf von `docker run`.
+server_grenzen="--cpus 2 --memory 4g --memory-swap 4g"
+client_grenzen="--cpus 2 --memory 2g --memory-swap 2g"
+xmx="256m"
 
 lauf="tdswire-hs-$$"
 netz="$lauf-netz"
@@ -62,12 +70,12 @@ cpu_host() {
 	awk '/^cpu / {idle = $5 + $6; total = 0; for (i = 2; i <= NF; i++) total += $i; print idle, total}' "$proc/stat"
 }
 
-# Fremdlast-Probe im Hintergrund: alle 10 s eine Zeile "t host_pct eigen_pct fremd_pct" in <Datei>, bis <Datei>.stop existiert.
+# Fremdlast-Probe im Hintergrund: alle $probe_s s (Vorgabe 10) eine Zeile "t host_pct eigen_pct fremd_pct" in <Datei>, bis <Datei>.stop existiert.
 fremdlast() {
 	local datei="$1" a b idle0 total0 idle1 total1 host eigen
 	a="$(cpu_host)"
 	while [ ! -e "$datei.stop" ]; do
-		sleep 10
+		sleep "$probe_s"
 		[ ! -e "$datei.stop" ] || break
 		eigen="$(docker stats --no-stream --format '{{.CPUPerc}}' "$server" "$lauf-client" 2>/dev/null | tr -d '%' | awk '{s += $1} END {printf "%.0f", s}')"
 		b="$(cpu_host)"
@@ -90,7 +98,7 @@ zelle() {
 	vorher="$(zustand)"
 	for e in $senv; do args+=(-e "$e"); done
 	for e in $cenv; do cargs+=(-e "$e"); done
-	docker run -d --name "$server" --network "$netz" --cpus 2 --memory 4g --memory-swap 4g -e LASTTEST_XMX=256m "${args[@]}" "$server_image" "$klasse.HeapAbschlussServerKt" >/dev/null || { fehler=1; return; }
+	docker run -d --name "$server" --network "$netz" $server_grenzen -e "LASTTEST_XMX=$xmx" "${args[@]}" "$server_image" "$klasse.HeapAbschlussServerKt" >/dev/null || { fehler=1; return; }
 	gestartet=0
 	for _ in $(seq 1 120); do
 		if docker logs "$server" 2>&1 | grep -q 'tdswire: gestartet, Port 1433'; then gestartet=1; break; fi
@@ -112,10 +120,10 @@ zelle() {
 	fremdlast "$probe" &
 	local probe_pid=$!
 	if [ "$art" = dotnet ]; then
-		docker run --rm --name "$lauf-client" --network "$netz" --cpus 2 --memory 2g --memory-swap 2g -e "TDSWIRE_ZIEL=$server:1433" "${cargs[@]}" \
+		docker run --rm --name "$lauf-client" --network "$netz" $client_grenzen -e "TDSWIRE_ZIEL=$server:1433" "${cargs[@]}" \
 			"$client_image" dotnet test --no-build --nologo --logger "console;verbosity=detailed" --filter "FullyQualifiedName~$ziel" >"$scratch/client" 2>&1
 	else
-		docker run --rm --name "$lauf-client" --network "$netz" --cpus 2 --memory 2g --memory-swap 2g -e LASTTEST_XMX=128m -e "ABSCHLUSS_ZIEL=$server:1433" "${cargs[@]}" \
+		docker run --rm --name "$lauf-client" --network "$netz" $client_grenzen -e LASTTEST_XMX=128m -e "ABSCHLUSS_ZIEL=$server:1433" "${cargs[@]}" \
 			"$server_image" "$klasse.$ziel" >"$scratch/client" 2>&1
 	fi
 	local client_ok=$?
@@ -150,7 +158,7 @@ trap 'exit 143' TERM
 start=$(date +%s)
 speicherwacht
 echo "heap-abschluss: Kopf $(date -u +%Y-%m-%dT%H:%M:%SZ) host kerne $(nproc) ram_mb $(awk '/^MemTotal:/ {print int($2 / 1024)}' "$proc/meminfo") kernel $(uname -r) docker $(docker version --format '{{.Server.Version}}' 2>/dev/null) commit $(git rev-parse --short HEAD 2>/dev/null || echo unbekannt)$([ -n "$(git status --porcelain 2>/dev/null)" ] && echo "+geaendert")"
-echo "heap-abschluss: Kopf server cpus 2 memory 4g memory-swap 4g xmx 256m client cpus 2 memory 2g zeilen $zeilen wdh $wdh zellen [$zellen]"
+echo "heap-abschluss: Kopf server [$server_grenzen] xmx $xmx client [$client_grenzen] zeilen $zeilen wdh $wdh zellen [$zellen]"
 echo "heap-abschluss: Kopf zustand vorher: $(zustand)"
 # shellcheck disable=SC2086
 docker build ${BUILDER_FLAGS:-} --load --target lasttestserver -t "$server_image" . || exit 1

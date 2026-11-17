@@ -2,6 +2,7 @@ package io.github.pt9912.tdswire.testserver
 
 import io.github.pt9912.tdswire.runtime.BackendSource
 import io.github.pt9912.tdswire.runtime.StartOutcome
+import io.github.pt9912.tdswire.simulation.SimQuery
 import kotlinx.coroutines.runBlocking
 import java.io.ByteArrayOutputStream
 import kotlin.test.AfterTest
@@ -10,6 +11,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 private const val LOOPBACK = "127.0.0.1"
@@ -197,8 +200,8 @@ internal class HeapAbschlussTest : TempFilesTest() {
     /**
      * Ein Ergebnis über mehrere Pakete: bis auf das letzte Paket kommen die Zeilen sofort, die Zeilen des letzten
      * Pakets zusammen mit dem DONE nach der Verzögerung. Das vorletzte Paket kommt mindestens die halbe Verzögerung
-     * vor dem DONE an (Untergrenze; es muss nicht vor dem Ende des letzten Ereignisses ankommen, im Lauf dieses Tests
-     * kam es 25 ms danach an), und sein Stand ist die Zahl der Zeilen vor dem letzten Paket.
+     * vor dem DONE an (Untergrenze; es muss nicht vor dem Ende des letzten Ereignisses ankommen, weil der Kanal es
+     * später senden darf), und sein Stand ist die Zahl der Zeilen vor dem letzten Paket.
      */
     @Test
     fun `die Zeilen des letzten Pakets warten mit dem Abschluss`() {
@@ -215,6 +218,40 @@ internal class HeapAbschlussTest : TempFilesTest() {
             assertEquals(0, single.rowsBeforeLastPacket)
             assertEquals(-1L, single.previousPacketToDone)
         }
+    }
+
+    /**
+     * Die Zeit des vorletzten Pakets und seine Zeilen kommen vom Paket vor dem letzten, nicht vom ersten: drei Pakete
+     * zu den Zeiten 1000, 2000 und 3000 µs mit je einer Zeile. Ohne Vorgänger liefern beide Werte den Leerwert.
+     */
+    @Test
+    fun `das Paket vor dem letzten bestimmt Zeit und Zeilen`() {
+        val columns = metadata("Nr", "Wert")
+        val answer = AbschlussAntwort()
+        answer.feed(columns + row(1, 2), 1_000L)
+        answer.feed(row(3, 4), 2_000L)
+        answer.feed(row(5, 6) + done(0x10), 3_000L)
+        assertEquals(2_000L, answer.arrivalBefore(3))
+        assertEquals(2, answer.rowsBefore(3))
+        assertEquals(1_000L, answer.arrivalBefore(2))
+        assertEquals(-1L, answer.arrivalBefore(1))
+        assertEquals(0, answer.rowsBefore(1))
+    }
+
+    /**
+     * Aufbau C: die Tabelle `heap_stand` des Simulations-Backends liefert das Fenster in der Reihenfolge der Spalten
+     * (Stichproben mit offenem Strom, ohne, Minimum, Median, 95. Rang, Maximum, Leerlauf, GC-Zeit).
+     */
+    @Test
+    fun `die Tabelle des Heap-Fensters im Aufbau C liefert das Fenster`() = runBlocking<Unit> {
+        val heap = stichprobe(listOf(777L, 100L, 300L), listOf(0, 1, 1))
+        repeat(3) { heap.sample() }
+        val tables = Wartender(1).use { heapTabellen(ROWS, SEED, RueckstauZaehler(), it, heap) }
+        val table = tables.single { it.name == HEAP_TABLE }
+        val source = table.rows(SimQuery(table.columns, null))
+        val values = assertNotNull(source.next())
+        assertEquals(listOf(2L, 1L, 100L, 300L, 300L, 300L, 777L, 0L), values)
+        assertNull(source.next())
     }
 
     /** Die Tabelle `heap_stand` liefert acht Felder und beginnt mit jedem Lesen ein neues Fenster. */

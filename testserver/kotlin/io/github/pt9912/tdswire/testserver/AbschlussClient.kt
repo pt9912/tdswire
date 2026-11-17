@@ -91,6 +91,12 @@ internal class AbschlussAntwort {
         packetRows += rowsPerResult.firstOrNull() ?: 0
     }
 
+    /** Die Zeilen des ersten Ergebnisses, die vollständig waren, als das Paket vor [packet] (ab 1) ankam; ohne Vorgänger 0. */
+    fun rowsBefore(packet: Int): Int = if (packet > 1) packetRows[packet - 2] else 0
+
+    /** Die Wanduhr des Empfangs des Pakets vor [packet] (ab 1); ohne Vorgänger -1. */
+    fun arrivalBefore(packet: Int): Long = if (packet > 1) packetArrivals[packet - 2] else -1L
+
     /** `true`, wenn kein Byte unverarbeitet im Puffer liegt. */
     fun complete(): Boolean = buffer.isEmpty()
 
@@ -263,8 +269,8 @@ internal fun messeAbschluss(
         packets = answer.packets,
         packetBytes = answer.firstPacketBytes,
         samePacket = lastRow.packet == done.packet,
-        rowsBeforeLastPacket = if (lastRow.packet > 1) answer.packetRows[lastRow.packet - 2] else 0,
-        previousPacketToDone = if (lastRow.packet > 1) done.micros - answer.packetArrivals[lastRow.packet - 2] else -1,
+        rowsBeforeLastPacket = answer.rowsBefore(lastRow.packet),
+        previousPacketToDone = if (lastRow.packet > 1) done.micros - answer.arrivalBefore(lastRow.packet) else -1,
         firstRowUs = answer.firstRows[0].micros - sent,
         zeileBisDoneClient = done.micros - lastRow.micros,
         zeileEmitBisZeile = lastRow.micros - zeileEmit,
