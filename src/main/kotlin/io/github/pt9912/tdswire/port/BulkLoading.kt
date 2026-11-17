@@ -8,7 +8,7 @@ import io.github.pt9912.tdswire.domain.ResultColumn
  * `SPEC-035`, `SPEC-059`). Ein [QueryBackend], das diese Schnittstelle zusätzlich trägt, bekommt das Massenladen; die
  * Bibliothek wählt sie mit `backend is BulkLoadingBackend`. Ein Backend ohne sie bekommt weder den Text `INSERT BULK`
  * als Besonderheit noch ein Paket 0x07 zu sehen: der Text geht an [QueryBackend.execute], das Paket ergibt einen
- * Fehler (`TDS_UNSUPPORTED_SQL`). Das Simulations-Backend trägt die Fähigkeit selbst.
+ * Fehler (`TDS_UNSUPPORTED_SQL`). Dem Simulations-Backend gibt die Verdrahtung des Servers die Fähigkeit.
  *
  * Ablauf: der Protokollkern fragt bei jedem SQL-Text mit [bulkProbe], ob er die Probe der Zieltabelle ist, und mit
  * [bulkTarget], ob er ein `INSERT BULK` ist, und merkt sich das Ziel für die folgenden Nachrichten vom Typ 0x07
