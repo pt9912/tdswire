@@ -1,6 +1,6 @@
 # Zeilenform der Antwort: ROW oder NBCROW (Messprotokoll vom 2026-11-17)
 
-Messprotokoll zu [TDS-FA-05](../../spec/lastenheft.md#tds-fa-05--resultsets-und-datentypen) und [TDS-QA-01](../../spec/lastenheft.md#tds-qa-01--kompatibilität) (`AGENTS.md` §5 Regel 7), Träger: [slice-antwortform-nbcrow](../plan/planning/in-progress/slice-antwortform-nbcrow.md). Es hält fest, was gemessen wurde, nicht, ob eine Anforderung belegt ist. Gegenstand: wann der echte SQL Server eine Zeile eines Ergebnisses als `ROW` (`0xD1`) und wann als `NBCROW` (`0xD2`) schreibt (Ausnahme A-12 in [referenzabgleich](referenzabgleich.md), Lücke 6 der [Kompatibilitätsmatrix](../plan/kompatibilitaetsmatrix.md)). Die Nummern `M-37` bis `M-41` setzen die Zählung des Messprotokolls [referenzabgleich](referenzabgleich.md) fort.
+Messprotokoll zu [TDS-FA-05](../../spec/lastenheft.md#tds-fa-05--resultsets-und-datentypen) und [TDS-QA-01](../../spec/lastenheft.md#tds-qa-01--kompatibilität) (`AGENTS.md` §5 Regel 7), Träger: [slice-antwortform-nbcrow](../plan/planning/done/slice-antwortform-nbcrow.md). Es hält fest, was gemessen wurde, nicht, ob eine Anforderung belegt ist. Gegenstand: wann der echte SQL Server eine Zeile eines Ergebnisses als `ROW` (`0xD1`) und wann als `NBCROW` (`0xD2`) schreibt (Ausnahme A-12 in [referenzabgleich](referenzabgleich.md), Lücke 6 der [Kompatibilitätsmatrix](../plan/kompatibilitaetsmatrix.md)). Die Nummern `M-37` bis `M-41` setzen die Zählung des Messprotokolls [referenzabgleich](referenzabgleich.md) fort.
 
 ## Bedingungen
 

@@ -2,7 +2,7 @@
 
 **Rolle:** Verifier (Modul 11), Frage „Bauen wir es richtig?" gegen Plan und DoD; kein Review, keine Reparatur, keine DoD-Haken, kein Schließen.
 
-**Gegenstand:** Branch `slice-antwortform-nbcrow`, Spitze `853239d5`, Basis `fbac7a7f`. Plan: [slice-antwortform-nbcrow](../plan/planning/in-progress/slice-antwortform-nbcrow.md). Bezug: [TDS-FA-05](../../spec/lastenheft.md#tds-fa-05--resultsets-und-datentypen), [TDS-QA-01](../../spec/lastenheft.md#tds-qa-01--kompatibilität), [ADR-0006](../plan/adr/0006-backend-vertrag-und-streaming.md), [SPEC-003](../../spec/spezifikation.md#spec-003--typmapping-initialer-mindestkatalog), SPEC-027. Messprotokoll: [zeilenform-nbcrow-2026-11-17](../messungen/zeilenform-nbcrow-2026-11-17.md). Vorangehendes Review: [2026-11-17-a40b50c3-slice-antwortform-nbcrow](2026-11-17-a40b50c3-slice-antwortform-nbcrow.md).
+**Gegenstand:** Branch `slice-antwortform-nbcrow`, Spitze `853239d5`, Basis `fbac7a7f`. Plan: [slice-antwortform-nbcrow](../plan/planning/done/slice-antwortform-nbcrow.md). Bezug: [TDS-FA-05](../../spec/lastenheft.md#tds-fa-05--resultsets-und-datentypen), [TDS-QA-01](../../spec/lastenheft.md#tds-qa-01--kompatibilität), [ADR-0006](../plan/adr/0006-backend-vertrag-und-streaming.md), [SPEC-003](../../spec/spezifikation.md#spec-003--typmapping-initialer-mindestkatalog), SPEC-027. Messprotokoll: [zeilenform-nbcrow-2026-11-17](../messungen/zeilenform-nbcrow-2026-11-17.md). Vorangehendes Review: [2026-11-17-a40b50c3-slice-antwortform-nbcrow](2026-11-17-a40b50c3-slice-antwortform-nbcrow.md).
 
 ## Selbst gefahrene Sensoren (End-Stand `853239d5`, je einmal)
 
