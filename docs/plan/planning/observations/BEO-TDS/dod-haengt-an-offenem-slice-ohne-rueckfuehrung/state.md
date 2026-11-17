@@ -5,3 +5,6 @@
 
 
 **Lese-Schritt welle-fehler-abbruch (2026-11-06):** 3× gelesen, über der Schwelle, nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung), siehe `welle-fehler-abbruch-results.md` §Steering-Loop-Einträge und §Offene Fragen. Die Closure ändert weder Regel noch Gate. Der Stand `offen` bleibt.
+
+
+**Lese-Schritt slice-qa-performance-durchsatz-sitzungen (2026-11-17):** 4× gelesen (vierte Datei: der DoD-Punkt „Import in Aufbau B“ hing an einer Fläche, die ein nicht gebauter Slice liefert; der Nutzer teilte die DoD). Nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung). Die Closure ändert weder Regel noch Gate. Der Stand `offen` bleibt.

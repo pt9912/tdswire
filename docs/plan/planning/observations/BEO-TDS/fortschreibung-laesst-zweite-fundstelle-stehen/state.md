@@ -11,3 +11,6 @@
 **Wiederauftreten (slice-release-lizenzen-lib-belegen):** Review F-5; der Reviewer fing die zweite Fundstelle (`observation.md` des Registers), der Re-Review fand nach der Behebung keine weitere. Ob der Implementer Schritt 20c fuhr, steht in keinem Bericht. Retirement-Check: die Klasse ist nach `welle-betrieb-diagnose` wieder aufgetreten, die Regel bleibt.
 
 **Wiederauftreten (slice-release-dateien-bauen):** Review F-5 und Re-Review N-3; beide Male fing der Reviewer die zweite Fundstelle im Plan des Folge-Slices. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
+
+
+**Wiederauftreten (slice-qa-performance-durchsatz-sitzungen):** Re-Review R-3, Re-Review 2 R-3 und R-5: §1 nach der Teilung der DoD, Kopplungszeiger und Hilfetext eines Make-Fragments; der Reviewer fing jede zweite Fundstelle. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.

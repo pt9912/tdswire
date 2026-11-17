@@ -17,6 +17,13 @@
 # LASTTEST_LAST_MAX=12 (Last 1 Minute des Hosts, ueber der eine Messzeile "last-hoch" traegt), LASTTEST_SWAP_TOLERANZ_MB=16 (Wachstum des
 # Swap des Hosts waehrend der Stufe, ab dem sie "swap-gewachsen" traegt).
 #
+# Sitzungen (TDS-QA-04, Staffel gleichzeitiger Sitzungen): LASTTEST_SITZUNGEN=1 (Zahl gleichzeitiger Sitzungen einer Stufe der Staffel; eine Stufe je Aufruf, weil
+# die Zeilenzahl je Stufe wechselt, `docs/plan/referenz-workload.md` S2 und S4), LASTTEST_PHASEN="export import" (je Server nacheinander: `export` und
+# `import` mit allen Sitzungen gemeinsam, `punkt-export` und `punkt-import` die Punktabfrage einer Sitzung, waehrend die uebrigen streamen oder
+# laden; `punkt-import` nur in Aufbau C), LASTTEST_ANFRAGEN=1000 (Anfragen je Lauf der Punktabfrage), LASTTEST_QUERY_TIMEOUT (ganze Sekunden, an den
+# Server als QUERY_TIMEOUT gegeben; ohne Angabe gilt die Vorgabe des Servers von 30 s, `SPEC-009`: ein Strom, der laenger dauert, endet mit
+# TDS_TIMEOUT, und der Lauf ist rot). Aufbau A kennt nur eine Sitzung.
+#
 # Ausgabe: je Stufe eine Zeile `messung: ...` mit Datum, Aufbau, Senke, Richtung, Zeilen, Median, Minimum und Maximum der
 # Millisekunden, Zeilen/s (Median), Bytes je Zeile (Zaehler der Netzwerkschnittstelle des Clients, mit IP- und TCP-Kopf),
 # Streuung (ok oder zu-gross: Maximum mehr als das Doppelte des Minimums, dann ist die Stufe nicht belegt) und Last und
@@ -37,6 +44,10 @@ senken="${LASTTEST_SENKEN:-mit ohne}"
 min_frei="${LASTTEST_MIN_FREI_MB:-4096}"
 last_max="${LASTTEST_LAST_MAX:-12}"
 swap_toleranz="${LASTTEST_SWAP_TOLERANZ_MB:-16}"
+sitzungen="${LASTTEST_SITZUNGEN:-1}"
+phasen="${LASTTEST_PHASEN:-export import}"
+anfragen="${LASTTEST_ANFRAGEN:-1000}"
+query_timeout="${LASTTEST_QUERY_TIMEOUT:-}"
 proc="${LASTTEST_PROC:-/proc}" # nur der Selbsttest (tools/lasttest-selbsttest.sh) setzt es: eine Nachbildung von meminfo und loadavg
 statistik="$(dirname "$0")/lasttest-statistik.sh"
 klasse="io.github.pt9912.tdswire.testserver"
@@ -44,11 +55,14 @@ klasse="io.github.pt9912.tdswire.testserver"
 # Zahlenwerte vor dem Bau pruefen (Exit 2): ganze Zahlen ohne fuehrende Nullen, hoechstens 9 Stellen (Seed 18, mit Minus erlaubt),
 # ZEILEN und WDH mindestens 1.
 for angabe in "LASTTEST_ZEILEN=$zeilen" "LASTTEST_WDH=$wdh" "LASTTEST_CPUS=$cpus" "LASTTEST_MIN_FREI_MB=$min_frei" \
-	"LASTTEST_LAST_MAX=$last_max" "LASTTEST_SWAP_TOLERANZ_MB=$swap_toleranz"; do
+	"LASTTEST_LAST_MAX=$last_max" "LASTTEST_SWAP_TOLERANZ_MB=$swap_toleranz" "LASTTEST_SITZUNGEN=$sitzungen" "LASTTEST_ANFRAGEN=$anfragen" "LASTTEST_QUERY_TIMEOUT=${query_timeout:-0}"; do
 	[[ ${angabe#*=} =~ ^(0|[1-9][0-9]{0,8})$ ]] || { echo "lasttest: ${angabe%%=*} muss eine nichtnegative ganze Zahl ohne fuehrende Nullen mit hoechstens 9 Stellen sein, nicht '${angabe#*=}'" >&2; exit 2; }
 done
 [[ $seed =~ ^-?(0|[1-9][0-9]{0,17})$ ]] || { echo "lasttest: LASTTEST_SEED muss eine ganze Zahl sein, nicht '$seed'" >&2; exit 2; }
-{ [ "$zeilen" -ge 1 ] && [ "$wdh" -ge 1 ]; } || { echo "lasttest: LASTTEST_ZEILEN und LASTTEST_WDH muessen mindestens 1 sein" >&2; exit 2; }
+{ [ "$zeilen" -ge 1 ] && [ "$wdh" -ge 1 ] && [ "$sitzungen" -ge 1 ] && [ "$anfragen" -ge 1 ]; } || { echo "lasttest: LASTTEST_ZEILEN, LASTTEST_WDH, LASTTEST_SITZUNGEN und LASTTEST_ANFRAGEN muessen mindestens 1 sein" >&2; exit 2; }
+for phase in $phasen; do
+	case "$phase" in export | import | punkt-export | punkt-import) ;; *) echo "lasttest: LASTTEST_PHASEN kennt export, import, punkt-export, punkt-import, nicht '$phase'" >&2; exit 2 ;; esac
+done
 
 lauf="tdswire-lt-$$"
 netz="$lauf-netz"
@@ -93,10 +107,14 @@ vermerke() {
 	echo "$v"
 }
 
+# statfeld <Ausgabe von lasttest-statistik.sh> <Name>: der Wert hinter <Name>=
+statfeld() { echo "$1" | tr ' ' '\n' | sed -n "s/^$2=//p"; }
+
 # Eine Stufe auswerten: stufe <Datei> <Muster> <Aufbau> <Senke> <Richtung> <Byte-Feldname> <Zustand vorher>
+# Zeilen/s sind die Zeilen aller Sitzungen durch die Wanduhr des Laufs (`ms` reicht von der Freigabe bis zur letzten Sitzung).
 stufe() {
 	local datei="$1" muster="$2" aufbau="$3" senke="$4" richtung="$5" byte_feld="$6" vorher="$7"
-	local ms zeilen_je_s bytes st nachher median min max streuung vermerk
+	local ms zeilen_je_s bytes st nachher median min max streuung vermerk erste ersteFeld=""
 	ms="$(grep -E "$muster" "$datei" | awk '{for (i = 1; i <= NF; i++) if ($i == "lauf" && $(i + 1) >= 1) { for (j = i; j <= NF; j++) if ($j == "ms") print $(j + 1) }}')"
 	[ -n "$ms" ] || { echo "lasttest: FEHLER $aufbau $senke $richtung: keine Messläufe" >&2; fehler=1; return; }
 	st="$(printf '%s\n' "$ms" | bash "$statistik")" || { fehler=1; return; }
@@ -105,24 +123,64 @@ stufe() {
 	max="${st#*max=}"; max="${max%% *}"
 	streuung="${st##*streuung=}"
 	[ "$(printf '%s\n' "$ms" | wc -l)" -eq "$wdh" ] || { echo "lasttest: FEHLER $aufbau $senke $richtung: $(printf '%s\n' "$ms" | wc -l) statt $wdh Läufe" >&2; fehler=1; }
-	zeilen_je_s=$((median > 0 ? zeilen * 1000 / median : 0))
+	zeilen_je_s=$((median > 0 ? zeilen * sitzungen * 1000 / median : 0))
 	bytes="-"
 	if [ -n "$byte_feld" ]; then
-		bytes="$(grep -E "$muster" "$datei" | awk -v b="$byte_feld" '{for (i = 1; i <= NF; i++) if ($i == "lauf" && $(i + 1) >= 1) for (j = i; j <= NF; j++) if ($j == b) print $(j + 1)}' | sort -n | awk -v z="$zeilen" '{a[NR] = $1} END {if (NR) print int(a[int((NR + 1) / 2)] / z)}')"
+		bytes="$(grep -E "$muster" "$datei" | awk -v b="$byte_feld" '{for (i = 1; i <= NF; i++) if ($i == "lauf" && $(i + 1) >= 1) for (j = i; j <= NF; j++) if ($j == b) print $(j + 1)}' | sort -n | awk -v z="$((zeilen * sitzungen))" '{a[NR] = $1} END {if (NR) print int(a[int((NR + 1) / 2)] / z)}')"
+	fi
+	if [ "$richtung" = export ]; then
+		erste="$(grep -E "$muster" "$datei" | awk '{for (i = 1; i <= NF; i++) if ($i == "lauf" && $(i + 1) >= 1) { for (j = i; j <= NF; j++) if ($j == "erste_zeile_ms") print $(j + 1) }}' | bash "$statistik")" \
+			|| { echo "lasttest: FEHLER $aufbau $senke $richtung: keine Zeit der ersten Zeile" >&2; fehler=1; return; }
+		ersteFeld=" erste_zeile_ms_median $(statfeld "$erste" median) erste_zeile_ms_min $(statfeld "$erste" min) erste_zeile_ms_max $(statfeld "$erste" max)"
 	fi
 	nachher="$(zustand)"
 	vermerk="$(vermerke "$vorher")"
-	echo "messung: $(date -u +%Y-%m-%dT%H:%M:%SZ) aufbau $aufbau senke $senke richtung $richtung zeilen $zeilen wdh $wdh median_ms $median min_ms $min max_ms $max zeilen_je_s $zeilen_je_s bytes_je_zeile $bytes streuung $streuung vorher [$vorher] nachher [$nachher]$vermerk"
+	echo "messung: $(date -u +%Y-%m-%dT%H:%M:%SZ) aufbau $aufbau senke $senke richtung $richtung zeilen $zeilen sitzungen $sitzungen wdh $wdh median_ms $median min_ms $min max_ms $max zeilen_je_s $zeilen_je_s bytes_je_zeile $bytes streuung $streuung$ersteFeld vorher [$vorher] nachher [$nachher]$vermerk"
+}
+
+# Die Punktabfrage auswerten: punktstufe <Datei> <Aufbau> <Senke> <Phase> <Zustand vorher>. Je Perzentil Median, Minimum und Maximum
+# der Perzentile der Laeufe (Mikrosekunden); die Streuung steht fuer p95.
+punktstufe() {
+	local datei="$1" aufbau="$2" senke="$3" phase="$4" vorher="$5" feld zeile="" st p95streuung="" anzahl
+	for feld in p50_us p95_us p99_us; do
+		st="$(grep -E '^lasttest: punkt lauf' "$datei" | awk -v b="$feld" '{for (i = 1; i <= NF; i++) if ($i == "lauf" && $(i + 1) >= 1) for (j = i; j <= NF; j++) if ($j == b) print $(j + 1)}' | bash "$statistik")" \
+			|| { echo "lasttest: FEHLER $aufbau $senke $phase: keine Läufe der Punktabfrage" >&2; fehler=1; return; }
+		zeile="$zeile ${feld}_median $(statfeld "$st" median) ${feld}_min $(statfeld "$st" min) ${feld}_max $(statfeld "$st" max)"
+		[ "$feld" != p95_us ] || p95streuung="$(statfeld "$st" streuung)"
+	done
+	anzahl="$(grep -E '^lasttest: punkt lauf' "$datei" | awk '{for (i = 1; i <= NF; i++) if ($i == "lauf" && $(i + 1) >= 1) print 1}' | wc -l)"
+	[ "$anzahl" -eq "$wdh" ] || { echo "lasttest: FEHLER $aufbau $senke $phase: $anzahl statt $wdh Läufe der Punktabfrage" >&2; fehler=1; }
+	echo "messung: $(date -u +%Y-%m-%dT%H:%M:%SZ) aufbau $aufbau senke $senke richtung $phase zeilen $zeilen sitzungen $sitzungen wdh $wdh anfragen $anfragen$zeile streuung_p95 $p95streuung vorher [$vorher] nachher [$(zustand)]$(vermerke "$vorher")"
+}
+
+# Dauer je Schicht aus dem Log des Servers (Senke mit, Ebene DEBUG): spanstufe <Logdatei> <Aufbau> <Phase>. Je Span (`tds.query`,
+# `backend.execute`) und Anfrageart (`request_kind` des `tds.query` mit derselben `request_id`; ein `backend.execute` ohne
+# zugehoeriges `tds.query` zaehlt nicht) Anzahl, Median, Minimum und Maximum von `duration_ms` (ganze Millisekunden, abgerundet).
+spanstufe() {
+	local datei="$1" aufbau="$2" phase="$3" span art werte st
+	awk -F'"' 'function feld(zeile, name,   m) { if (match(zeile, "\"" name "\":\"?[^,}\"]*")) { m = substr(zeile, RSTART, RLENGTH); sub(/^[^:]*:"?/, "", m); return m } return "" }
+		/"event":"span_ended"/ { span = feld($0, "span"); id = feld($0, "request_id"); ms = feld($0, "duration_ms")
+			if (span == "tds.query") art[id] = feld($0, "request_kind")
+			else if (span == "backend.execute") dauer[id] = ms
+			if (span == "tds.query") q[id] = ms }
+		END { for (id in q) print "tds.query", art[id], q[id]; for (id in dauer) if (id in art) print "backend.execute", art[id], dauer[id] }' "$datei" >"$scratch/spans"
+	for span in tds.query backend.execute; do
+		for art in $(awk -v s="$span" '$1 == s {print $2}' "$scratch/spans" | sort -u); do
+			werte="$(awk -v s="$span" -v a="$art" '$1 == s && $2 == a {print $3}' "$scratch/spans")"
+			st="$(printf '%s\n' "$werte" | bash "$statistik")" || continue
+			echo "messung-span: aufbau $aufbau senke mit phase $phase span $span art $art ${st% streuung=*}"
+		done
+	done
 }
 
 limits=(--cpus "$cpus" --memory "$speicher" --memory-swap "$speicher")
 client_limits=(--cpus "$cpus" --memory "$client_speicher" --memory-swap "$client_speicher")
-umgebung=(-e "LASTTEST_ZEILEN=$zeilen" -e "LASTTEST_WDH=$wdh" -e "LASTTEST_SEED=$seed")
+umgebung=(-e "LASTTEST_ZEILEN=$zeilen" -e "LASTTEST_WDH=$wdh" -e "LASTTEST_SEED=$seed" -e "LASTTEST_SITZUNGEN=$sitzungen" -e "LASTTEST_ANFRAGEN=$anfragen")
 
 start=$(date +%s)
 speicherwacht
 echo "lasttest: Kopf $(date -u +%Y-%m-%dT%H:%M:%SZ) host kerne $(nproc) ram_mb $(awk '/^MemTotal:/ {print int($2 / 1024)}' "$proc/meminfo") kernel $(uname -r) docker $(docker version --format '{{.Server.Version}}' 2>/dev/null) commit $(git rev-parse --short HEAD 2>/dev/null || echo unbekannt)$([ -n "$(git status --porcelain 2>/dev/null)" ] && echo "+geaendert")"
-echo "lasttest: Kopf zeilen $zeilen wdh $wdh (nach einem Warmlauf) seed $seed aufbauten [$aufbauten] senken [$senken] server cpus $cpus memory $speicher memory-swap $speicher xmx $xmx client cpus $cpus memory $client_speicher"
+echo "lasttest: Kopf zeilen $zeilen wdh $wdh (nach einem Warmlauf) seed $seed aufbauten [$aufbauten] senken [$senken] server cpus $cpus memory $speicher memory-swap $speicher xmx $xmx query_timeout ${query_timeout:-vorgabe} client cpus $cpus memory $client_speicher"
 echo "lasttest: Kopf zustand vorher: $(zustand)"
 
 # shellcheck disable=SC2086
@@ -159,7 +217,7 @@ for aufbau in $aufbauten; do
 			speicherwacht
 			vorher="$(zustand)"
 			docker run -d --name "$server" --network "$netz" "${limits[@]}" -e "LASTTEST_XMX=$xmx" -e "LASTTEST_AUFBAU=$aufbau" -e "LASTTEST_SENKE=$senke" \
-				-e LOG_LEVEL=DEBUG "${umgebung[@]}" "$server_image" >/dev/null || { fehler=1; continue; }
+				-e LOG_LEVEL=DEBUG ${query_timeout:+-e "QUERY_TIMEOUT=$query_timeout"} "${umgebung[@]}" "$server_image" >/dev/null || { fehler=1; continue; }
 			gestartet=0
 			for _ in $(seq 1 120); do
 				if docker logs "$server" 2>&1 | grep -q 'tdswire: gestartet, Port 1433'; then gestartet=1; break; fi
@@ -174,22 +232,38 @@ for aufbau in $aufbauten; do
 				continue
 			fi
 			echo "$(docker logs "$server" 2>&1 | grep -m1 '^lasttest: server') swap_max $(docker exec "$server" cat /sys/fs/cgroup/memory.swap.max 2>/dev/null || echo unbekannt) memory_max $(docker exec "$server" cat /sys/fs/cgroup/memory.max 2>/dev/null || echo unbekannt)"
-			speicherwacht
-			docker run --rm --network "$netz" "${client_limits[@]}" -e "TDSWIRE_ZIEL=$server:1433" -e "LASTTEST_AUFBAU=$aufbau" "${umgebung[@]}" \
-				"$client_image" >"$scratch/client" 2>&1
-			client_ok=$?
-			grep -E '^ *lasttest:|Passed!|Failed!|Failed |Error Message' "$scratch/client" | sed 's/^ *//' | head -40
-			[ "$client_ok" -eq 0 ] || { echo "lasttest: FEHLER Client Aufbau $aufbau Senke $senke (Exit $client_ok)" >&2; fehler=1; }
-			tr -d '\r' <"$scratch/client" | grep -E '^ *lasttest: ' | sed 's/^ *//' >"$scratch/zeilen"
-			echo "lasttest: server peak $(docker exec "$server" cat /sys/fs/cgroup/memory.peak 2>/dev/null || echo unbekannt) Bytes (cgroup, Aufbau $aufbau Senke $senke)"
-			stufe "$scratch/zeilen" '^lasttest: export lauf' "$aufbau" "$senke" export rx_bytes "$vorher"
-			if [ "$aufbau" = C ]; then
-				stufe "$scratch/zeilen" '^lasttest: import lauf' "$aufbau" "$senke" import tx_bytes "$vorher"
-				gezaehlt="$(docker logs "$server" 2>&1 | grep -c '^lasttest: import ')"
-				[ "$gezaehlt" -eq $((wdh + 1)) ] || { echo "lasttest: FEHLER Aufbau C Senke $senke: das Backend meldet $gezaehlt von $((wdh + 1)) vollständigen Importen" >&2; fehler=1; }
-			else
-				if grep -E 'import aufbau B abgewiesen' "$scratch/zeilen" | head -1 | grep -q .; then :; else echo "lasttest: FEHLER Aufbau B: Import nicht abgewiesen" >&2; fehler=1; fi
-			fi
+			for phase in $phasen; do
+				[ "$phase" = punkt-import ] && [ "$aufbau" = B ] && continue
+				speicherwacht
+				vorher="$(zustand)"
+				logvor="$(docker logs "$server" 2>&1 | wc -l)"
+				docker run --rm --name "$lauf-client" --network "$netz" "${client_limits[@]}" -e "TDSWIRE_ZIEL=$server:1433" -e "LASTTEST_AUFBAU=$aufbau" -e "LASTTEST_PHASE=$phase" "${umgebung[@]}" \
+					"$client_image" >"$scratch/client" 2>&1
+				client_ok=$?
+				grep -E '^ *lasttest:|Passed!|Failed!|Failed |Error Message' "$scratch/client" | sed 's/^ *//' | head -40
+				[ "$client_ok" -eq 0 ] || { echo "lasttest: FEHLER Client Aufbau $aufbau Senke $senke Phase $phase (Exit $client_ok)" >&2; fehler=1; }
+				tr -d '\r' <"$scratch/client" | grep -E '^ *lasttest: ' | sed 's/^ *//' >"$scratch/zeilen"
+				docker logs "$server" 2>&1 | tail -n +$((logvor + 1)) >"$scratch/serverlog"
+				echo "lasttest: server peak $(docker exec "$server" cat /sys/fs/cgroup/memory.peak 2>/dev/null || echo unbekannt) Bytes (cgroup, bis Ende Phase $phase, Aufbau $aufbau Senke $senke)"
+				case "$phase" in
+				export)
+					stufe "$scratch/zeilen" '^lasttest: export lauf' "$aufbau" "$senke" export rx_bytes "$vorher"
+					;;
+				import)
+					if [ "$aufbau" = C ]; then
+						stufe "$scratch/zeilen" '^lasttest: import lauf' "$aufbau" "$senke" import tx_bytes "$vorher"
+						gezaehlt="$(grep -c '^lasttest: import ' "$scratch/serverlog")"
+						[ "$gezaehlt" -eq $((sitzungen * (wdh + 1))) ] || { echo "lasttest: FEHLER Aufbau C Senke $senke: das Backend meldet $gezaehlt von $((sitzungen * (wdh + 1))) vollständigen Importen" >&2; fehler=1; }
+					else
+						if grep -E 'import aufbau B abgewiesen' "$scratch/zeilen" | head -1 | grep -q .; then :; else echo "lasttest: FEHLER Aufbau B: Import nicht abgewiesen" >&2; fehler=1; fi
+					fi
+					;;
+				*)
+					punktstufe "$scratch/zeilen" "$aufbau" "$senke" "$phase" "$vorher"
+					;;
+				esac
+				[ "$senke" != mit ] || spanstufe "$scratch/serverlog" "$aufbau" "$phase"
+			done
 			running="$(docker inspect --format '{{.State.Running}}' "$server")"
 			[ "$running" = true ] || { echo "lasttest: FEHLER Server läuft nach Aufbau $aufbau Senke $senke nicht mehr" >&2; fehler=1; }
 			docker rm -f "$server" >/dev/null 2>&1

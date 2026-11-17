@@ -5,3 +5,6 @@
 **Wiederauftreten (slice-release-dateien-bauen):** Review F-2 (MEDIUM): eine Setzung (Form der Lizenzdateien im ZIP) stand ohne Kennzeichnung als entschieden da; der Review fing es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
 
 **Wiederauftreten (slice-release-job-im-workflow-bauen):** Re-Review R-1 (MEDIUM), R-2, F-3, R-6: Kopfkommentare und Notiz sagten mehr als der Beleg („jede“, „genau“, Plural, Schritt als Tatsache neben dem Lauf davor). Der Reviewer fing es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
+
+
+**Wiederauftreten (slice-qa-performance-durchsatz-sitzungen):** Review F-3 bis F-5, F-10, Re-Review R-4, R-5, R-7, Verifikation V-2: Lesarten und Randzahlen des Messprotokolls breiter als die Rohzeilen. Reviewer, Re-Review und Verifier fingen es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
