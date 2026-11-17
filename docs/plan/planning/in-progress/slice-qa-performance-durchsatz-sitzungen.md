@@ -81,7 +81,8 @@ Aussagen-Berührung steht hier gar nicht.
 | `tools/lasttest.sh`, `tools/lasttest-selbsttest.sh` | update | das Werkzeug wächst um Sitzungen, Phasen (`export`, `import`, `punkt-export`, `punkt-import`), Punktabfrage, Dauer je Schicht aus dem Log und `LASTTEST_QUERY_TIMEOUT`; der Selbsttest hält die Auswertung (Handläufe, Mutationen) |
 | `referenztest-dotnet/Lasttest/LasttestTests.cs`, `referenztest-dotnet/Lasttest/ReferenzZeilen.cs` | update | Client mit N Sitzungen und der Punktabfrage; die Prüfung, dass die Punktabfrage genau die Zeile der Id liefert, läuft in keinem Gate, nur in `make lasttest` und Stufe 9 von `make e2e` ([ADR-0022](../../adr/0022-e2e-laeufe-nicht-in-den-gates.md)) |
 | `testserver/kotlin/io/github/pt9912/tdswire/testserver/LasttestBackends.kt`, `testserver/test/kotlin/io/github/pt9912/tdswire/testserver/LasttestTest.kt` | update | Punktabfrage `WHERE Id = @id` in Aufbau B und C, Tests |
-| `harness/README.md` | update | Zeile `make lasttest` (Parameter der Staffel) |
+| `tools/lasttest-tabellen.sh`, `tools/lasttest-tabellen-selbsttest.sh`, `tools/mk/lasttest.mk`, `Dockerfile` | neu bzw. update | Werkzeug, das die Tabellen des Messprotokolls aus den Rohzeilen setzt (`make lasttest-tabellen`, kein Gate), Selbsttest in der Stage `skript-selbsttest` |
+| `harness/README.md` | update | Zeilen `make lasttest` (Parameter der Staffel) und `make lasttest-tabellen` |
 | `docs/plan/adr/` ([ADR-0052](../../adr/0052-oeffentliche-flaeche-fuer-massenladen-eigener-backends.md) und Index) | nicht dieser Slice | vom Architect auf demselben Zweig angelegt (Nutzerentscheidung zum Import in Aufbau B) |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.

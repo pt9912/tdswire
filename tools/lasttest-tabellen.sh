@@ -11,7 +11,10 @@
 # Je Zelle gilt der erste Versuch mit hoechstens einer Probe ueber 300 %, sonst der letzte; "gestoert" heisst: kein Versuch dieser Art.
 # Millisekunden und Zeilen/s stehen wie in der Zeile `messung:`, Mikrosekunden der Punktabfrage in Millisekunden mit zwei Stellen. Die
 # Zeilen `messung-span:` stehen nur fuer Senke mit (ohne Senke gibt es keine Spans). Eingabefehler (Datei fehlt, keine Zelle) enden mit Exit 1.
-# Gehalten von tools/lasttest-selbsttest-tabellen.sh (Stage `skript-selbsttest`).
+# Host: bash und awk (gawk und mawk liefern dieselbe Ausgabe, gemessen an den Rohzeilen des Protokolls vom 2026-11-17). Grenzen: eine Zelle
+# ohne Zeile `messung:` fehlt ohne Meldung, gleichnamige Abschnitte ueberschreiben sich, und "gestoert" bei mindestens zwei Proben ueber 300 % in
+# allen Versuchen ist nur ueber "k. A." (Probe nicht zuzuordnen) belegt.
+# Gehalten von tools/lasttest-tabellen-selbsttest.sh (Stage `skript-selbsttest`).
 set -u
 export LC_ALL=C
 datei="${1:-}"
