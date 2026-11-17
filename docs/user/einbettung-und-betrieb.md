@@ -179,6 +179,52 @@ Ein Start, der gelingt, meldet vor `SERVER_STARTED` genau ein Ereignis `CONFIG_E
 
 **Erwartetes Ergebnis.** Ein Batch (`SELECT irgendwas`) liefert zwei Zeilen (Test `einEigenesBackendBeantwortetDieAnfrage`).
 
+**Das Massenladen annehmen (optional).** Ein Backend, das zusätzlich `BulkLoadingBackend` trägt (Package `io.github.pt9912.tdswire.port`), bekommt `INSERT BULK` und die Nachrichten des Massenladens (`SqlBulkCopy`, mssql-jdbc); ohne die Schnittstelle ist `INSERT BULK` ein gewöhnlicher Text für `execute`, und die Nachricht des Massenladens endet mit `TDS_UNSUPPORTED_SQL`. Die Schnittstelle hat drei Funktionen: `bulkTarget(sql)` erkennt den Text `INSERT BULK` und nennt das Ziel (`BulkTargetResult.Ready(BulkTarget(schema, table))` oder `Rejected(code, message)`; `null`, wenn der Text keiner ist), `bulkProbe(sql)` erkennt die Probe der Zieltabelle, die `SqlBulkCopy` davor stellt, und nennt die Spalten der Tabelle (`BulkProbeResult.Ready(columns)`, je Spalte eine `ResultColumn` und die Länge in Zeichen; `null`, wenn der Text keine Probe ist), und `load(target, rows)` bekommt alle Zeilen einer Nachricht als `BulkRows` und liefert `UpdateCount` mit der Zahl der geladenen Zeilen oder ein `Failure`. Das Beispiel nimmt das Massenladen in die Tabelle `kunden` an und sammelt die Zeilen:
+
+```kotlin
+import io.github.pt9912.tdswire.port.BulkLoadingBackend
+import io.github.pt9912.tdswire.port.BulkProbeColumn
+import io.github.pt9912.tdswire.port.BulkProbeResult
+import io.github.pt9912.tdswire.port.BulkRows
+import io.github.pt9912.tdswire.port.BulkTarget
+import io.github.pt9912.tdswire.port.BulkTargetResult
+
+/** Ein Backend, das zusätzlich das Massenladen in die Tabelle `kunden` annimmt und ihre Zeilen in [ziel] sammelt. */
+internal class AnleitungMassenladen(private val ziel: MutableList<List<Any?>>) :
+    QueryBackend by AnleitungBackend(),
+    BulkLoadingBackend {
+    private val spalten = listOf(
+        BulkProbeColumn(ResultColumn("Id", SqlType.Int64, nullable = false), TEXT_ZEICHEN),
+        BulkProbeColumn(ResultColumn("Name", SqlType.UnicodeText, nullable = true), TEXT_ZEICHEN),
+    )
+
+    override fun bulkTarget(sql: String): BulkTargetResult? =
+        if (sql.trimStart().startsWith("insert bulk", ignoreCase = true)) {
+            BulkTargetResult.Ready(BulkTarget("dbo", "kunden"))
+        } else {
+            null
+        }
+
+    override fun bulkProbe(sql: String): BulkProbeResult? =
+        if (sql.startsWith("SELECT @@TRANCOUNT")) BulkProbeResult.Ready(spalten) else null
+
+    override suspend fun load(target: BulkTarget, rows: BulkRows): QueryEvent {
+        ziel.addAll(rows.rows)
+        return QueryEvent.UpdateCount(rows.rows.size.toLong())
+    }
+}
+
+private const val TEXT_ZEICHEN = 4000
+```
+
+Der Test `einBackendMitDerFaehigkeitNimmtDasMassenladenAn` lädt drei Zeilen über Rohbytes in dieses Backend. Was die Schnittstelle zusagt:
+
+- **Die Erkennung der Texte liegt beim Backend.** Die Bibliothek reicht jeden SQL-Text an `bulkProbe` und `bulkTarget` und erkennt für ein fremdes Backend nichts. Die Texte sind die von [`SPEC-036`](../../spec/spezifikation.md#spec-036--erkannte-anweisungsformen-des-simulations-backends-vorläufig) Form B und nur für den Referenzclient (`SqlBulkCopy`) gemessen: `INSERT BULK [<Schema>].[<Tabelle>] (…)` und eine Probe von rund 2 KB, die mit `SELECT @@TRANCOUNT;` beginnt und den Namen der Tabelle in `OBJECT_ID('[<Schema>].[<Tabelle>]')` trägt. Das Beispiel des Testservers (`BulkErkennung`, `testserver/kotlin`) erkennt beide an diesen Merkmalen; mit anderen Clients als dem Referenzclient ist die Form der Texte nicht gemessen.
+- **Eine Nachricht ist eine Anweisung.** `load` bekommt alle Zeilen einer Nachricht in einem Aufruf (Obergrenze `MAX_MESSAGE_BYTES`, 16 MiB in der Voreinstellung; der Heap muss die Nachricht tragen); der Client sendet je Batch eine Nachricht, `BatchSize` 1000 ergibt Aufrufe zu 1000 Zeilen. Das IGNORE-Bit einer Nachricht verwirft sie ohne Aufruf von `load`. Mehrere Nachrichten sind keine Transaktion; die Bibliothek nimmt nichts zurück.
+- **Die Werte** tragen die Klassen der Zeilendarstellung wie bei `QueryEvent.Row` (`Long`, `Int`, `String`, `BigDecimal`, …); ein Text, den der Client für eine Datums- oder Zeitspalte als `VARCHAR` sendet, bleibt ein `String`.
+- **Fehler.** Ein `QueryEvent.Failure` mit `TDS_BACKEND_ERROR` aus `load` erreicht den Client als Fehler 50004 (Class 16), die Verbindung bleibt offen (Tests `einFehlerDesBackendsInLoadIstTdsBackendErrorBeiOffenerVerbindung` und, am Referenzclient, `Ein_Fehler_des_Backends_beim_Massenladen_ist_ein_definierter_Fehler_und_die_Verbindung_bleibt_nutzbar`). Der Name in `Rejected.code` ist einer aus der Liste der erlaubten Codes in der ersten Zeile der Tabelle „Typische Fehler“ dieser Aufgabe (zum Beispiel `TDS_SIM_UNKNOWN_OBJECT` für eine Tabelle, die das Backend nicht kennt: Nummer 208); ein anderer Name endet mit `TDS_INTERNAL_ERROR` und schließt die Verbindung.
+- **Mit dem Referenzclient belegt** ist das Massenladen einer Tabelle mit einer Ganzzahl- und einer Textspalte (NULL, mehrere Nachrichten, eine weitere Nachricht auf derselben Verbindung, `make eigenes-backend`); gemessen ist, dass `SqlBulkCopy` gegen ein solches Backend neben der Probe und `INSERT BULK` keinen weiteren Text stellt.
+
 **Regeln des Anschlusses.** Der Vertrag steht im [Query-Backend-Vertrag](../../spec/spezifikation.md#query-backend-vertrag-zu-spec-022) (`SPEC-022`; der Kotlin-Quelltext ist Setzung, gemessen ist das Ergebnismodell an einem Generator-Backend mit drei Spalten):
 
 - Ein Fehler beim Start ist ein `Failure` im Strom, keine Ausnahme von `execute`. `Failure.scope` (`FailureScope`) sagt, ob nur die Anweisung abbricht (`STATEMENT`: der Strom darf mit der Folgeanweisung weitergehen) oder der Batch (`BATCH`, die Voreinstellung: die Antwort endet am Fehler).

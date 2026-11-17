@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.net.InetSocketAddress
 import java.net.Socket
+import java.net.SocketTimeoutException
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -23,6 +24,8 @@ private const val TYPE_RESPONSE = 4
 private const val TYPE_LOGIN7 = 0x10
 private const val TYPE_PRELOGIN = 0x12
 private const val STATUS_EOM = 1
+private const val STATUS_IGNORE = 2
+private const val CHUNK_BYTES = 4096
 private const val LOGINACK_TOKEN = 0xAD
 private const val DONE_TOKEN = 0xFD
 private const val DONE_PROC_TOKEN = 0xFE
@@ -131,10 +134,32 @@ internal class WireClient(port: Int) : AutoCloseable {
         return readMessage().second
     }
 
-    /** Eine Nachricht vom Typ BULK_LOAD (0x07) mit der fertigen Nutzlast [payload] und die Antwort darauf. */
-    fun bulkLoad(payload: ByteArray): Answer {
-        send(TYPE_BULK_LOAD, payload)
+    /**
+     * Eine Nachricht vom Typ BULK_LOAD (0x07) mit der fertigen Nutzlast [payload] und die Antwort darauf; mit [ignore]
+     * trägt der Kopf das Statusbit IGNORE (MS-TDS 2.2.3.1.2).
+     */
+    fun bulkLoad(payload: ByteArray, ignore: Boolean = false): Answer {
+        send(TYPE_BULK_LOAD, payload, if (ignore) STATUS_EOM or STATUS_IGNORE else STATUS_EOM)
         return Answer(readMessage().second)
+    }
+
+    /**
+     * Sendet [payload] als eine Nachricht BULK_LOAD aus Paketen zu [CHUNK_BYTES] Byte und liest, bis der Server
+     * schließt; `true`, wenn er schließt, bevor der Lesetimeout abläuft. Ein Schreibfehler, weil der Server schon
+     * geschlossen hat, zählt als Schließen.
+     */
+    fun bulkLoadUntilClosed(payload: ByteArray): Boolean = try {
+        val chunks = payload.asList().chunked(CHUNK_BYTES)
+        for ((index, chunk) in chunks.withIndex()) {
+            val status = if (index == chunks.lastIndex) STATUS_EOM else 0
+            send(TYPE_BULK_LOAD, chunk.toByteArray(), status)
+        }
+        socket.getInputStream().readAllBytes()
+        true
+    } catch (expectedTimeout: SocketTimeoutException) {
+        false
+    } catch (expectedClose: IOException) {
+        true
     }
 
     /** Ein RPC mit dem fertigen Rumpf [payload]; die Antwort sind die rohen Nutzdaten. */
@@ -152,11 +177,11 @@ internal class WireClient(port: Int) : AutoCloseable {
 
     override fun close() = socket.close()
 
-    private fun send(type: Int, payload: ByteArray) {
+    private fun send(type: Int, payload: ByteArray, status: Int = STATUS_EOM) {
         val length = HEADER_BYTES + payload.size
         val header = byteArrayOf(
             type.toByte(),
-            STATUS_EOM.toByte(),
+            status.toByte(),
             (length ushr BYTE_BITS).toByte(),
             length.toByte(),
             0,

@@ -4,12 +4,18 @@ import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.domain.QueryRequest
 import io.github.pt9912.tdswire.domain.ResultColumn
 import io.github.pt9912.tdswire.domain.SqlType
+import io.github.pt9912.tdswire.port.BulkLoadingBackend
+import io.github.pt9912.tdswire.port.BulkProbeResult
+import io.github.pt9912.tdswire.port.BulkRows
+import io.github.pt9912.tdswire.port.BulkTarget
+import io.github.pt9912.tdswire.port.BulkTargetResult
 import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.port.QueryExecution
 import io.github.pt9912.tdswire.runtime.BackendSource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import java.io.IOException
+import java.util.concurrent.CopyOnWriteArrayList
 
 /** Präfix jeder Zeile von [EigenesBackend] auf der Standardausgabe; `tools/eigenes-backend-test.sh` zählt sie. */
 internal const val OWN_BACKEND_PREFIX = "eigenes-backend:"
@@ -18,6 +24,12 @@ internal const val OWN_BACKEND_PREFIX = "eigenes-backend:"
 internal const val OWN_BACKEND_ROWS_BEFORE_FAILURE = 3
 
 private val OWN_ANSWER = Regex("""SELECT Id, Name FROM (\w+)""")
+
+/** Die Tabelle, in die das Massenladen schreibt und aus der `SELECT Id, Name FROM ziel` liest. */
+private const val OWN_TARGET = "ziel"
+
+/** Die Tabelle, in die das Massenladen mit einem Fehler des Backends endet. */
+private const val OWN_TARGET_FAILING = "ziel_fehler"
 
 private val OWN_COLUMNS = listOf(
     ResultColumn("Id", SqlType.Int32, nullable = false),
@@ -33,12 +45,33 @@ private val OWN_COLUMNS = listOf(
  * - `fehler`: ein [QueryEvent.Failure] am Start (`TDS_BACKEND_ERROR`), so meldet ein nicht erreichbares Backend;
  * - `fehler_nach_zeilen`: [OWN_BACKEND_ROWS_BEFORE_FAILURE] Zeilen, dann ein [QueryEvent.Failure];
  * - `wirft`: `execute` wirft eine [IOException] (eine fehlerhafte Implementierung, der Port sieht das nicht vor);
+ * - `ziel`: die Zeilen, die das Massenladen geladen hat, in der Reihenfolge des Ladens;
  * - jeder andere Text: ein [QueryEvent.Failure] mit `TDS_UNSUPPORTED_SQL`.
  *
- * Jede Anfrage schreibt vor der Antwort eine Zeile `eigenes-backend: anfrage <Tabelle>`; der Text einer Ausnahme und
- * der Text eines Fehlers stehen nicht in der Ausgabe.
+ * Das Massenladen (`ADR-0052`) trägt es über [BulkLoadingBackend]: [BulkErkennung] erkennt `INSERT BULK` und die Probe
+ * für `ziel` und `ziel_fehler`; `load` hängt die Zeilen an `ziel` an, und `ziel_fehler` endet mit `TDS_BACKEND_ERROR`.
+ *
+ * Jede Anfrage schreibt vor der Antwort eine Zeile `eigenes-backend: anfrage <Tabelle>`, jede geladene Nachricht eine
+ * Zeile `eigenes-backend: laden <Tabelle> <Zahl der Zeilen>`; der Text einer Ausnahme und der Text eines Fehlers stehen
+ * nicht in der Ausgabe.
  */
-internal class EigenesBackend(private val out: (String) -> Unit = ::println) : QueryBackend {
+internal class EigenesBackend(private val out: (String) -> Unit = ::println) :
+    QueryBackend,
+    BulkLoadingBackend {
+    private val stored = CopyOnWriteArrayList<List<Any?>>()
+    private val bulk = BulkErkennung(mapOf(OWN_TARGET to OWN_COLUMNS, OWN_TARGET_FAILING to OWN_COLUMNS))
+
+    override fun bulkTarget(sql: String): BulkTargetResult? = bulk.target(sql)
+
+    override fun bulkProbe(sql: String): BulkProbeResult? = bulk.probe(sql)
+
+    override suspend fun load(target: BulkTarget, rows: BulkRows): QueryEvent {
+        out("$OWN_BACKEND_PREFIX laden ${target.table} ${rows.rows.size}")
+        if (target.table == OWN_TARGET_FAILING) return failure("TDS_BACKEND_ERROR")
+        stored.addAll(rows.rows)
+        return QueryEvent.UpdateCount(rows.rows.size.toLong())
+    }
+
     override suspend fun execute(request: QueryRequest): QueryExecution {
         val table = OWN_ANSWER.matchEntire(request.sql.trim())?.groupValues?.get(1)
         out("$OWN_BACKEND_PREFIX anfrage ${table ?: "unbekannt"}")
@@ -52,6 +85,8 @@ internal class EigenesBackend(private val out: (String) -> Unit = ::println) : Q
         "eigen" -> start() + row(1, "Eins") + row(2, "Zwei") + QueryEvent.ResultEnd(2)
 
         "leer" -> start() + QueryEvent.ResultEnd(0)
+
+        OWN_TARGET -> start() + stored.map { QueryEvent.Row(it) } + QueryEvent.ResultEnd(stored.size.toLong())
 
         "fehler" -> listOf(failure("TDS_BACKEND_ERROR"))
 
@@ -80,6 +115,6 @@ internal class EigenesBackend(private val out: (String) -> Unit = ::println) : Q
  */
 fun main() {
     val backend = EigenesBackend()
-    println("eigenes-backend-server: Tabellen eigen, leer, fehler, fehler_nach_zeilen, wirft")
+    println("eigenes-backend-server: Tabellen eigen, leer, fehler, fehler_nach_zeilen, wirft, ziel, ziel_fehler")
     runTestserver { fromFile -> BackendSource.Custom(backend).takeIf { fromFile.isEmpty() } }
 }

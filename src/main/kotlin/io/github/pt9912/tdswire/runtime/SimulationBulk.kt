@@ -11,10 +11,11 @@ import io.github.pt9912.tdswire.simulation.BulkCopyForms
 import io.github.pt9912.tdswire.simulation.SimulationBackend
 
 /**
- * Stellt dem Simulations-Backend die Fähigkeit des Massenladens bereit (`ADR-0033` Nr. 5): die Klasse
- * [SimulationBackend] ist öffentlich und darf die interne Schnittstelle [BulkLoadingBackend] nicht tragen, die
- * Verdrahtung hüllt sie deshalb vor der Anfrageschleife ein. Jedes andere [QueryBackend], auch ein Backend des
- * Integrators, bleibt ohne die Fähigkeit.
+ * Stellt dem Simulations-Backend die Fähigkeit des Massenladens bereit (`ADR-0052` Entscheidung 2): die Klasse
+ * [SimulationBackend] trägt [BulkLoadingBackend] nicht selbst, weil seine drei Funktionen sonst öffentliche Mitglieder
+ * der Klasse wären und `SPEC-059` für sie eine Zusage verlangte; die Verdrahtung hüllt sie deshalb vor der
+ * Anfrageschleife ein. Jedes andere [QueryBackend] bleibt unverändert: trägt es [BulkLoadingBackend] selbst, wählt der
+ * Kern die Fähigkeit mit `is`.
  */
 internal class SimulationBulk(private val backend: SimulationBackend) :
     QueryBackend by backend,
