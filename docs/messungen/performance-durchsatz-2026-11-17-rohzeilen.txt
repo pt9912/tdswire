@@ -1,0 +1,39 @@
+# Rohzeilen (messung:, messung-span:) von tools/lasttest.sh, 2026-11-17, Stufe 1 (1 Sitzung, 1 000 000 Zeilen)
+## Lauf 1, alle Zellen in einem Aufruf (Fremdlast: 17 von 41 Proben mit mehr als 300 % fremder CPU, Java anderer Builds ab 04:59:28Z)
+messung: 2026-11-17T04:59:03Z aufbau B senke mit richtung export zeilen 1000000 sitzungen 1 wdh 5 median_ms 9970 min_ms 9509 max_ms 10292 zeilen_je_s 100300 bytes_je_zeile 330 streuung ok erste_zeile_ms_median 1 erste_zeile_ms_min 0 erste_zeile_ms_max 3 vorher [last 2.92/5.81/6.77 swap_mb 16310 frei_mb 13854] nachher [last 3.22/5.35/6.54 swap_mb 16308 frei_mb 13912]
+messung-span: aufbau B senke mit phase export span tds.query art sql_batch n=6 median=9969 min=9509 max=10291
+messung-span: aufbau B senke mit phase export span backend.execute art sql_batch n=6 median=9968 min=9509 max=10290
+messung-span: aufbau B senke mit phase import span tds.query art sql_batch n=1 median=4 min=4 max=4
+messung-span: aufbau B senke mit phase import span backend.execute art sql_batch n=1 median=3 min=3 max=3
+messung: 2026-11-17T04:59:10Z aufbau B senke mit richtung punkt-export zeilen 1000000 sitzungen 1 wdh 5 anfragen 1000 p50_us_median 249 p50_us_min 226 p50_us_max 310 p95_us_median 348 p95_us_min 332 p95_us_max 468 p99_us_median 463 p99_us_min 406 p99_us_max 628 streuung_p95 ok vorher [last 3.21/5.31/6.52 swap_mb 16308 frei_mb 13822] nachher [last 3.59/5.35/6.53 swap_mb 16307 frei_mb 13910]
+messung-span: aufbau B senke mit phase punkt-export span tds.query art rpc n=6000 median=0 min=0 max=38
+messung-span: aufbau B senke mit phase punkt-export span backend.execute art rpc n=6000 median=0 min=0 max=32
+messung: 2026-11-17T05:00:17Z aufbau B senke ohne richtung export zeilen 1000000 sitzungen 1 wdh 5 median_ms 10077 min_ms 9895 max_ms 10374 zeilen_je_s 99235 bytes_je_zeile 330 streuung ok erste_zeile_ms_median 1 erste_zeile_ms_min 1 erste_zeile_ms_max 2 vorher [last 3.59/5.35/6.53 swap_mb 16307 frei_mb 14181] nachher [last 5.16/5.49/6.50 swap_mb 16301 frei_mb 14017]
+messung: 2026-11-17T05:00:23Z aufbau B senke ohne richtung punkt-export zeilen 1000000 sitzungen 1 wdh 5 anfragen 1000 p50_us_median 213 p50_us_min 155 p50_us_max 222 p95_us_median 305 p95_us_min 250 p95_us_max 381 p99_us_median 392 p99_us_min 350 p99_us_max 474 streuung_p95 ok vorher [last 5.16/5.49/6.50 swap_mb 16301 frei_mb 14185] nachher [last 5.30/5.52/6.50 swap_mb 16300 frei_mb 13935]
+messung: 2026-11-17T05:01:31Z aufbau C senke mit richtung export zeilen 1000000 sitzungen 1 wdh 5 median_ms 10619 min_ms 10091 max_ms 10870 zeilen_je_s 94170 bytes_je_zeile 329 streuung ok erste_zeile_ms_median 1 erste_zeile_ms_min 1 erste_zeile_ms_max 2 vorher [last 5.04/5.46/6.48 swap_mb 16300 frei_mb 14163] nachher [last 5.11/5.31/6.36 swap_mb 16296 frei_mb 12662]
+messung-span: aufbau C senke mit phase export span tds.query art sql_batch n=6 median=10612 min=10090 max=10869
+messung-span: aufbau C senke mit phase export span backend.execute art sql_batch n=6 median=10611 min=10089 max=10868
+messung: 2026-11-17T05:02:09Z aufbau C senke mit richtung import zeilen 1000000 sitzungen 1 wdh 5 median_ms 5939 min_ms 5566 max_ms 6493 zeilen_je_s 168378 bytes_je_zeile 336 streuung ok vorher [last 5.11/5.31/6.36 swap_mb 16296 frei_mb 12656] nachher [last 8.67/6.18/6.61 swap_mb 16352 frei_mb 11216] swap-gewachsen
+messung-span: aufbau C senke mit phase import span tds.query art sql_batch n=12006 median=1 min=0 max=40
+messung-span: aufbau C senke mit phase import span backend.execute art sql_batch n=12000 median=0 min=0 max=12
+messung: 2026-11-17T05:02:16Z aufbau C senke mit richtung punkt-export zeilen 1000000 sitzungen 1 wdh 5 anfragen 1000 p50_us_median 293 p50_us_min 237 p50_us_max 453 p95_us_median 702 p95_us_min 409 p95_us_max 1127 p99_us_median 1542 p99_us_min 787 p99_us_max 2380 streuung_p95 zu-gross vorher [last 8.70/6.23/6.62 swap_mb 16360 frei_mb 11263] nachher [last 9.04/6.34/6.66 swap_mb 16364 frei_mb 11665]
+messung-span: aufbau C senke mit phase punkt-export span tds.query art rpc n=6000 median=0 min=0 max=23
+messung-span: aufbau C senke mit phase punkt-export span backend.execute art rpc n=6000 median=0 min=0 max=22
+messung: 2026-11-17T05:02:21Z aufbau C senke mit richtung punkt-import zeilen 1000000 sitzungen 1 wdh 5 anfragen 1000 p50_us_median 227 p50_us_min 196 p50_us_max 259 p95_us_median 351 p95_us_min 298 p95_us_max 394 p99_us_median 436 p99_us_min 354 p99_us_max 458 streuung_p95 ok vorher [last 9.04/6.34/6.66 swap_mb 16364 frei_mb 11704] nachher [last 8.96/6.37/6.66 swap_mb 16362 frei_mb 12215]
+messung-span: aufbau C senke mit phase punkt-import span tds.query art rpc n=6000 median=0 min=0 max=1
+messung-span: aufbau C senke mit phase punkt-import span backend.execute art rpc n=6000 median=0 min=0 max=0
+messung: 2026-11-17T05:03:32Z aufbau C senke ohne richtung export zeilen 1000000 sitzungen 1 wdh 5 median_ms 10776 min_ms 10551 max_ms 10932 zeilen_je_s 92798 bytes_je_zeile 330 streuung ok erste_zeile_ms_median 1 erste_zeile_ms_min 1 erste_zeile_ms_max 4 vorher [last 8.96/6.37/6.66 swap_mb 16362 frei_mb 12057] nachher [last 8.04/6.78/6.80 swap_mb 16358 frei_mb 10849]
+messung: 2026-11-17T05:04:06Z aufbau C senke ohne richtung import zeilen 1000000 sitzungen 1 wdh 5 median_ms 5249 min_ms 5118 max_ms 5270 zeilen_je_s 190512 bytes_je_zeile 336 streuung ok vorher [last 8.04/6.78/6.80 swap_mb 16358 frei_mb 10841] nachher [last 8.01/6.89/6.83 swap_mb 16357 frei_mb 9496]
+messung: 2026-11-17T05:04:10Z aufbau C senke ohne richtung punkt-export zeilen 1000000 sitzungen 1 wdh 5 anfragen 1000 p50_us_median 268 p50_us_min 237 p50_us_max 316 p95_us_median 375 p95_us_min 341 p95_us_max 650 p99_us_median 523 p99_us_min 414 p99_us_max 2368 streuung_p95 ok vorher [last 8.01/6.89/6.83 swap_mb 16357 frei_mb 9117] nachher [last 8.01/6.89/6.83 swap_mb 16357 frei_mb 9645]
+messung: 2026-11-17T05:04:14Z aufbau C senke ohne richtung punkt-import zeilen 1000000 sitzungen 1 wdh 5 anfragen 1000 p50_us_median 193 p50_us_min 170 p50_us_max 208 p95_us_median 315 p95_us_min 267 p95_us_max 333 p99_us_median 390 p99_us_min 321 p99_us_max 407 streuung_p95 ok vorher [last 8.01/6.89/6.83 swap_mb 16357 frei_mb 9644] nachher [last 8.25/6.96/6.86 swap_mb 16357 frei_mb 9702]
+## Lauf 2, je Zelle ein Aufruf, Zelle B ohne punkt-export (1 Probe mit Fremdlast)
+messung: 2026-11-17T05:29:12Z aufbau B senke ohne richtung punkt-export zeilen 1000000 sitzungen 1 wdh 5 anfragen 1000 p50_us_median 273 p50_us_min 265 p50_us_max 403 p95_us_median 472 p95_us_min 389 p95_us_max 642 p99_us_median 889 p99_us_min 643 p99_us_max 923 streuung_p95 ok vorher [last 9.16/7.50/7.30 swap_mb 15912 frei_mb 11026] nachher [last 9.47/7.59/7.33 swap_mb 15912 frei_mb 10996]
+## Lauf 2, Zelle C mit import (keine Probe mit Fremdlast)
+messung: 2026-11-17T05:37:47Z aufbau C senke mit richtung import zeilen 1000000 sitzungen 1 wdh 5 median_ms 3982 min_ms 3888 max_ms 4768 zeilen_je_s 251130 bytes_je_zeile 336 streuung ok vorher [last 3.54/6.53/7.24 swap_mb 15902 frei_mb 11556] nachher [last 4.56/6.51/7.21 swap_mb 15902 frei_mb 11728]
+messung-span: aufbau C senke mit phase import span tds.query art sql_batch n=12006 median=0 min=0 max=68
+messung-span: aufbau C senke mit phase import span backend.execute art sql_batch n=12000 median=0 min=0 max=16
+## Stufe 8, B mit export, Standardfrist des Servers (30 s): Abbruch mit TDS_TIMEOUT
+lasttest: FEHLER Client Aufbau B Senke mit Phase export (Exit 1)
+lasttest: FEHLER B mit export: keine Messläufe
+messung-span: aufbau B senke mit phase export span tds.query art sql_batch n=8 median=30009 min=30002 max=30044
+messung-span: aufbau B senke mit phase export span backend.execute art sql_batch n=8 median=30003 min=29990 max=30007
