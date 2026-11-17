@@ -27,7 +27,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Gegenstand der Messung** (je Punkt eine eigene Messaussage):
 
-1. Fehler im **ersten** und im **letzten** Aufruf einer Nachricht (gemessen ist bisher die Mitte von drei, W-13).
+1. Fehler im **ersten** und im **letzten** Aufruf einer Nachricht (gemessen ist bisher die Mitte von drei, W-13) sowie der **Fehler vor dem ersten Ergebnis eines nicht letzten Aufrufs** (ADR-0051 Entscheidung 3, Setzung; `BEO-TDS/fehler-vor-dem-ersten-ergebnis-im-mehrfach-rpc-ungemessen`; Aufnahme durch den Nutzer 2026-11-17).
 2. **Ergebnismengen** in einem Aufruf einer Mehrfach-Nachricht (Stufe 6 hat keine; Antwortform, DONEPROC-Bits, Ordinal).
 3. **`sp_prepexec` und `sp_execute`** in einer Mehrfach-Nachricht am Referenzclient: sendet er sie überhaupt, und wie antwortet der echte Server ([ADR-0051](../../adr/0051-mehrere-rpcs-in-einer-nachricht-werden-beantwortet.md) Entscheidung 7 ist Setzung).
 4. Die **Grenzen 4096 Parameter und 1024 Aufrufe** am echten Server ([ADR-0051](../../adr/0051-mehrere-rpcs-in-einer-nachricht-werden-beantwortet.md) Entscheidung 5 ist Festlegung ohne Messung).
@@ -48,7 +48,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Ziel-Form: Slice — **≤ 3 Liefer-Punkte**; Gate-Läufe und Closure-Pflichten zählen nicht mit.
 
-- [ ] **Messreihe Antwortform:** Szenarien der Kategorie `MessungWire` für Fehler im ersten und im letzten Aufruf und für Ergebnismengen in einem Aufruf (Gegenstand 1 und 2), Einzelmessung je Instanz (2022, 2025), Ablage unter `referenztest-dotnet/Mitschnitt/messung/<Instanz>/`, Messzeilen und Grenzen im Messprotokoll; ein nicht herstellbarer Fall steht mit Begründung als „nicht lieferbar“.
+- [ ] **Messreihe Antwortform:** Szenarien der Kategorie `MessungWire` für Fehler im ersten und im letzten Aufruf, für den Fehler vor dem ersten Ergebnis eines nicht letzten Aufrufs und für Ergebnismengen in einem Aufruf (Gegenstand 1 und 2), Einzelmessung je Instanz (2022, 2025), Ablage unter `referenztest-dotnet/Mitschnitt/messung/<Instanz>/`, Messzeilen und Grenzen im Messprotokoll; ein nicht herstellbarer Fall steht mit Begründung als „nicht lieferbar“.
 - [ ] **Messreihe Clientform und Grenzen:** `sp_prepexec` und `sp_execute` in einer Mehrfach-Nachricht, `ContinueUpdateOnError`, die Grenzen 4096 und 1024 (Gegenstand 3 bis 5), je mit Messzeile je Instanz oder „nicht lieferbar“ mit Begründung (siehe §6: der Referenzclient muss die Form erzeugen können).
 - [ ] **Abgleich der Setzungen:** je Setzung in [SPEC-030](../../../../spec/spezifikation.md#spec-030--rpc-varianten-und-parameter-metadaten), Kompatibilitätsmatrix und [ADR-0051](../../adr/0051-mehrere-rpcs-in-einer-nachricht-werden-beantwortet.md) (Entscheidungen 3, 5, 7) belegt, widerlegt oder weiter ungemessen; Spec und Matrix führen den Beleg, bei Widerspruch steht die Frage „Code angleichen / Zielbild anpassen“ mit den Messzeilen in §7 und beim Nutzer (kein stilles Anpassen).
 - [ ] `make docs-check`, `make flaeche`, `make kopplung-zahlen` und `make gates` Exit 0 (Art der Änderung: Doku/Spec; Tests an Szenarien: `make spec-abdeckung` einmal, bei geänderten Zitaten der Matrix `make matrix-zitate`; `harness/README.md` §Minimal agent workflow). Ändert ein Nutzerentscheid `src/` oder `testserver/`, ist das ein Folge-Slice mit der Zeile „`src/` oder `testserver/`“ derselben Tabelle.
