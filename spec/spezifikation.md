@@ -463,7 +463,7 @@ beide Instanzen gleich, Messprotokoll W-23 und W-24):** Der Server schreibt im C
 `decimal` und `numeric`, unabhängig von der Precision. Gemessen ist das an Spalten einer Tabelle mit den Precisionen 1,
 9, 10, 19, 20, 28, 29 und 38 (je `decimal` und `numeric`, nullbar) und an Ausdrücken (`CAST` auf `decimal(10,2)`,
 `numeric(38,10)` und `decimal(20,4)`, Literal `1.5`, `SUM`); die Precision-Klassen dazwischen sind nicht einzeln
-gemessen. Ein Wert im ROW ist höchstens so lang wie die TYPE_INFO. Grenze: ein Client (`Microsoft.Data.SqlClient`
+gemessen. Dass ein Wert im ROW höchstens so lang ist wie die TYPE_INFO, ist Folgerung (gemessen sind Wertlängen von 5 und 9 Byte, W-25), nicht gemessen. Grenze: ein Client (`Microsoft.Data.SqlClient`
 7.1.1), Einzelmessung je Instanz.
 
 **Typabbildung (Setzungen vom 2026-10-30, nicht gemessen):**

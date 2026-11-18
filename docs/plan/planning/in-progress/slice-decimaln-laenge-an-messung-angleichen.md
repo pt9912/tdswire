@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [TDS-FA-05](../../../../spec/lastenheft.md#tds-fa-05--resultsets-und-datentypen) (Scope: Resultsets und Datentypen), [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md)
 
-**Berührte Spec-Stellen:** [SPEC-003](../../../../spec/spezifikation.md#spec-003--typmapping-initialer-mindestkatalog) (Typmapping, Absatz zur Rechnung der Antwortgröße: „die Bytes von COLMETADATA und die Länge des Dezimaltyps sind nicht Teil dieser Aussage (Ausnahme A-11)“) · [SPEC-045](../../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig) (Ausnahmeliste).
+**Berührte Spec-Stellen:** [SPEC-003](../../../../spec/spezifikation.md#spec-003--typmapping-initialer-mindestkatalog) (Typmapping, Absatz zur Rechnung der Antwortgröße: „die Bytes von COLMETADATA und die Länge des Dezimaltyps sind nicht Teil dieser Aussage (Ausnahme A-11)“) · [SPEC-045](../../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig) (Ausnahmeliste). · [SPEC-036](../../../../spec/spezifikation.md#spec-036--erkannte-anweisungsformen-des-simulations-backends-vorläufig) (Probe der Zieltabelle von `SqlBulkCopy`, Größe 17). Tatsächlich geändert: SPEC-003 und SPEC-036; SPEC-045 (Ausnahmeliste) nur über das Messprotokoll und die Datei der Regeln.
 
 **Verantwortlich:** pt9912
 
@@ -75,6 +75,13 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 | `referenztest-dotnet/Vergleich/MessungWireTests.cs`, `referenztest-dotnet/Mitschnitt/messung/` | update, neu | Messszenario und Ablage der Messdateien je Instanz |
 | `referenztest-dotnet/Vergleich/mitschnitt-ausnahmen.tsv` | update | zwei Regeln A-11 entfallen |
 | `spec/spezifikation.md`, `docs/messungen/referenzabgleich.md` | update | SPEC-003 (Länge im TYPE_INFO), Tabelle der Ausnahmen |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/dispatch/BulkCopyProbe.kt` | update | die eigene Größe 17 der Probe entfällt, der Default des Writers trägt sie (nicht im ersten Plan) |
+| `src/test/kotlin/io/github/pt9912/tdswire/protocol/{token,result,dispatch,response}/` (`TokenEncoderTest`, `DecimalValuesTest`, `ColumnMappingTest`, `BulkCopyProbeTest`, `ResponseRowFormTest`), `referenztest-dotnet/Mitschnitt/MessungBelegTests.cs` | update | Handvektor je Precision, Eigenschaft der ROW-Länge, Ablagezahl 38, Beleg der Ablage |
+| `docs/messungen/zeilenform-nbcrow-2026-11-17.md`, `docs/messungen/unterschiede-2022-2025-bestand-2026-11-17.md`, `docs/plan/kompatibilitaetsmatrix.md`, `docs/plan/spec-abdeckung.md`, `tools/mk/vergleichslauf-d.mk` | update | Verweise auf A-11, Testzitat, Szenarienzahl; erzeugte Matrix |
+| `docs/plan/planning/open/slice-simulation-schemaonly-keyinfo.md` | update (Text) | A-11 ist aufgelöst; Verweise berichtigt |
+| `docs/plan/planning/observations/BEO-TDS/mitschnitt-luecken-ohne-traeger/evidence/` | neu | Beleg W-25 ohne Träger |
+
+`ColumnMapping.kt` blieb unverändert: der Default im `TypeInfoWriter` trägt die Länge.
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf (Testdateien mit Kennung der Akzeptanzkriterien).
 
@@ -108,6 +115,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 ## 7. Closure-Notiz
 
 Wird bei der Closure gefüllt.
+
+**Offen, Träger Nutzer (Stand der Implementation):** die Länge der Dezimalwerte im ROW (Messprotokoll W-25: der Server schreibt nach dem Wert, der Encoder nach der Precision) hat weder Slice noch Regel der Ausnahmeliste; ob sie im Slice, als Folge-Slice oder als Ausnahme geführt wird, entscheidet der Nutzer. Beleg im Register: `BEO-TDS/mitschnitt-luecken-ohne-traeger`, `evidence/slice-decimaln-laenge-an-messung-angleichen.md`.
 
 **Herkunft:** Lücke A-11 der Ausnahmeliste, [Messprotokoll des Referenzabgleichs](../../../messungen/referenzabgleich.md); Register `BEO-TDS/mitschnitt-luecken-ohne-traeger` (A-11: „ohne Träger“, Verifikation 2026-11-16 von [slice-codec-datentypen-erweiterung](../done/slice-codec-datentypen-erweiterung.md)); [Results-Notiz von welle-referenzabgleich-release](../done/welle-referenzabgleich-release-results.md). Nutzerentscheidung 2026-11-17: „ja slices anlegen“ (Frage der Closure von `welle-referenzabgleich-release`, Punkt: die 14 Lücken-Nummern ohne Träger-Slice).
 
