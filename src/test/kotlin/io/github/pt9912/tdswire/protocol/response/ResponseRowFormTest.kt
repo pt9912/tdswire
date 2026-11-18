@@ -34,7 +34,7 @@ import kotlin.test.assertTrue
  * Instanzen sind je Zeile gleich; `MessungBulkBelegTests` in `referenztest-dotnet` hält dieselben Hexfolgen gegen beide
  * Ablagen. Die Folgen unten sind die Bytes je Zeile (Kennbyte `d1` oder `d2` bis zum Ende der Zeile) so, wie der Server
  * sie sendet; verglichen werden sie mit den Bytes, die der Encoder für die Tokens des Sequenzierers schreibt. Nicht
- * verglichen sind die Bytes von COLMETADATA (Längenwahl des Dezimaltyps, `docs/messungen/referenzabgleich.md` A-11) und
+ * verglichen sind die Länge der Dezimalwerte (`docs/messungen/referenzabgleich.md` W-25) und
  * die Typen außerhalb des Typmodells (`uniqueidentifier`, `varbinary`, `nvarchar(max)`): der Sequenzierer erreicht sie
  * nicht.
  */
@@ -436,7 +436,7 @@ class ResponseRowFormTest {
     /**
      * `z_typ` (Austausch 10) misst `decimal(10,2)` und `datetime2` mit einer NULL: ROW (ein NULL-Byte, ein Byte
      * Bitmap). Hier ist die Zeilenform der Spalten `Flag`, `Preis`, `Zeitpunkt` ohne die Bytes des Dezimalwerts geprüft
-     * (die Länge der Dezimalzahl ist A-11); eine NULL ist ROW, zwei sind NBCROW. Anwendung der gemessenen Regel auf den
+     * (die Länge der Dezimalzahl ist W-25); eine NULL ist ROW, zwei sind NBCROW. Anwendung der gemessenen Regel auf den
      * Typ `decimal` des Typmodells, ohne Messung der Tabelle mit nur diesen drei Spalten (Festlegung).
      *
      * @spec SPEC-003

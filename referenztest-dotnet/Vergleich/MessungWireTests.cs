@@ -562,6 +562,30 @@ public class MessungWireTests
                 Folgeabfrage(l, v);
             }),
 
+            // ---- Länge von DECIMALN und NUMERICN im TYPE_INFO je Precision (A-11): Spalten einer Temp-Tabelle und Ausdrücke, je ein Wert und NULL ----
+            ("decimal-laenge-tabelle", 1, false, (l, v) =>
+            {
+                var spalten = new List<string>();
+                var werte = new List<string>();
+                foreach (var art in new[] { "decimal", "numeric" })
+                    foreach (var p in new[] { 1, 9, 10, 19, 20, 28, 29, 38 })
+                    {
+                        var skala = p == 1 ? 0 : 1;
+                        spalten.Add($"{(art == "decimal" ? "d" : "n")}{p:D2} {art}({p},{skala}) NULL");
+                        werte.Add(skala == 0 ? "1" : "1." + new string('5', skala));
+                    }
+
+                Mit(l, v, "Tabelle mit 16 Spalten", $"CREATE TABLE #dez ({string.Join(", ", spalten)})");
+                Mit(l, v, "eine Zeile mit Werten", $"INSERT INTO #dez VALUES ({string.Join(", ", werte)})");
+                Mit(l, v, "eine Zeile mit NULL", $"INSERT INTO #dez VALUES ({string.Join(", ", werte.Select(_ => "NULL"))})");
+                Mit(l, v, "SELECT der Spalten", "SELECT * FROM #dez");
+            }),
+            ("decimal-laenge-ausdruck", 1, false, (l, v) =>
+            {
+                Mit(l, v, "CAST und Literal", "SELECT CAST(1.5 AS decimal(10,2)) AS c1, CAST(1.5 AS numeric(38,10)) AS c2, 1.5 AS lit, CAST(NULL AS decimal(20,4)) AS nul");
+                Mit(l, v, "Ausdruck mit Aggregat", "SELECT SUM(CAST(Id AS decimal(10,2))) AS s FROM person");
+            }),
+
             // ---- Punkt 2: ENVCHANGE bei RESETCONNECTION ----
             ("reset-ohne-zustand", 1, true, (l, v) =>
             {
