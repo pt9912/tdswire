@@ -31,7 +31,7 @@ Der Server schreibt eine Zeile genau dann als NBCROW, wenn der NBCROW **kürzer*
 ## Grenzen
 
 - **Nicht gemessen** und im Sequenzierer **gesetzt**: mehr als 17 Spalten (Bitmap von vier und mehr Byte: die Regel gilt dort nach `ceil(n / 8)`, belegt ist sie bis drei Byte), die Größe eines NULL im ROW für `varchar`, `char`, `binary`, `float`, `money`, `datetime`, `smalldatetime`, `sql_variant` und `xml` (Typen, die der Sequenzierer nicht erreicht: `SqlType` führt sie nicht); `decimal(10,2)` ist nur mit sechs Spalten gemessen (M-39 Austausch 10, eine NULL: ROW), dazu die Wahl an einem Ergebnis mit mehreren Dezimalspalten und mehreren NULL.
-- **Dezimalwert:** die Zeile des Austauschs 10 trägt `decimal(10,2)` als `05 01 d2040000` (fünf Byte Wert, TYPE_INFO mit Länge 17); sie ist keine Aussage über die Längenwahl des Dezimaltyps (Ausnahme A-11, ungeklärt) und keine Vorlage für den Encoder.
+- **Dezimalwert:** die Zeile des Austauschs 10 trägt `decimal(10,2)` als `05 01 d2040000` (fünf Byte Wert, TYPE_INFO mit Länge 17); sie ist keine Aussage über die Länge der Dezimalwerte im ROW (Messprotokoll W-25) und keine Vorlage für den Encoder; die Länge im TYPE_INFO ist 17 (W-23).
 - Ein Ergebnis über mehrere Pakete (große Zeilen) und mehrere Ergebnisse je Antwort sind nicht gemessen; die Wahl gilt je Zeile und ist an Antworten aus einem Paket belegt.
 - Der Client ist `Microsoft.Data.SqlClient` 7.1.1; dass er ROW und NBCROW liest, zeigt jeder Austausch (die Werte stehen in `zeilen`). Ein anderer Client (mssql-jdbc) ist hier nicht gemessen.
 - Die Aufteilung der Antwort in TDS-Pakete des echten Servers ist nicht Gegenstand (die Zeilen sind aus den Paketen zusammengesetzt).

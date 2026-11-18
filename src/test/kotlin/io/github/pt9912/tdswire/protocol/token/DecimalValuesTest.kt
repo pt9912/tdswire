@@ -29,6 +29,34 @@ class DecimalValuesTest {
     }
 
     /**
+     * Kein Wert ist länger als die Länge der TYPE_INFO (17, Messung `decimal-laenge-tabelle`): je Precision der Klassen
+     * 1 bis 9, 10 bis 19, 20 bis 28 und 29 bis 38 hat der größte Wert ein Längenbyte bis 17, ein NULL ist `D1 00`.
+     * Wächter: ein Längenbyte der Zeile über dem der TYPE_INFO.
+     *
+     * @spec SPEC-003
+     */
+    @Test
+    fun `Wertbytes sind hoechstens so lang wie die TYPE_INFO und NULL ist ein Nullbyte`() {
+        for (precision in listOf(1, 9, 10, 19, 20, 28, 29, 38)) {
+            val column = TdsType.DecimalType(precision, 0)
+            val largest = TdsValue.DecimalValue(BigDecimal("9".repeat(precision)))
+            for ((value, expectedLength) in listOf<Pair<TdsValue, Int?>>(largest to null, TdsValue.NullValue to 0)) {
+                val encoder = TokenEncoder()
+                val metadata = ColMetadataToken(listOf(ColumnDef("c", column, true)))
+                assertIs<ProtocolResult.Ok<Unit>>(encoder.write(metadata))
+                val before = encoder.toByteArray().size
+                assertIs<ProtocolResult.Ok<Unit>>(encoder.write(RowToken(listOf(value))))
+                val row = encoder.toByteArray().drop(before)
+                assertEquals(0xD1, row[0].toInt() and 0xFF)
+                val length = row[1].toInt() and 0xFF
+                assertEquals(row.size - 2, length, "decimal($precision) Zeilenlaenge")
+                assertTrue(length <= TypeInfoWriter.decimalBytes(38), "decimal($precision) Wert $length Byte")
+                if (expectedLength != null) assertEquals(expectedLength, length)
+            }
+        }
+    }
+
+    /**
      * Ein Wert mit extremem Exponent, der nicht in die Spalte passt, endet sofort in `VALUE_OUT_OF_RANGE`:
      * keine Ausnahme und keine Rechenzeit, die mit dem Exponenten wächst. Die Bereichsprüfung läuft vor der
      * Skalierung auf den Scale der Spalte.

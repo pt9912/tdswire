@@ -64,8 +64,9 @@ class BulkCopyProbeTest {
     }
 
     /**
-     * Eine Dezimalspalte meldet in der Beschreibung der Tabelle die Größe 17 (Aufzeichnung nur für
-     * `DECIMALN(10,2)` mit `6a 11 0a 02`, andere Precisionen sind Setzung), ein `INT` nullbar die N-Form (`26 04`).
+     * Eine Dezimalspalte meldet in der Beschreibung der Tabelle die Größe 17 (Aufzeichnung für
+     * `DECIMALN(10,2)` mit `6a 11 0a 02`; die Länge 17 gilt je Precision wie in jedem COLMETADATA), ein `INT` nullbar
+     * die N-Form (`26 04`).
      * Wächter: die Größe 9 aus der Precision, eine feste Form für eine nullbare Spalte.
      *
      * @spec SPEC-036

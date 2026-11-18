@@ -50,9 +50,12 @@ internal sealed interface TdsType {
 
     /**
      * Dezimalzahl (DECIMALN `0x6A`, mit `numeric` NUMERICN `0x6C`), Precision 1 bis 38, Scale bis Precision. [bytes]
-     * ist die Größe der Wertebytes in der TYPE_INFO; ohne Angabe (0) folgt sie aus der Precision (5, 9, 13 oder 17),
-     * mit Angabe gilt sie unverändert (die Probe der Zieltabelle von `SqlBulkCopy` sendet 17; aufgezeichnet ist nur
-     * `DECIMALN(10,2)`).
+     * ist die Größe der Wertebytes in der TYPE_INFO; ohne Angabe (0) schreibt der Encoder 17, mit Angabe gilt sie
+     * unverändert (mindestens die Länge, die die Precision für den Wert braucht, höchstens 17). Gemessen ist die 17
+     * für `decimal` und `numeric` der Precisionen 1, 9, 10, 19, 20, 28, 29 und 38 (Spalten einer Tabelle und
+     * Ausdrücke, SQL Server 2022 und 2025, Messreihe `decimal-laenge-*` in `referenztest-dotnet/Mitschnitt/messung`);
+     * die Wertbytes je Zeile schreibt der Encoder nach der Precision (5, 9, 13 oder 17); der echte Server schrieb in
+     * derselben Messung für Werte bis 4 Byte Betrag 5 Byte, auch bei Precision 38.
      */
     data class DecimalType(val precision: Int, val scale: Int, val numeric: Boolean = false, val bytes: Int = 0) :
         TdsType

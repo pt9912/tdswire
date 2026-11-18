@@ -69,7 +69,7 @@ internal object TypeInfoWriter {
     /** Die Spaltenflags: `fNullable` und die Bits, die der Aufrufer in `extraFlags` mitgibt. */
     fun flags(column: ColumnDef): Int = column.extraFlags or (if (column.nullable) FLAG_NULLABLE else 0)
 
-    /** Länge der Dezimalwerte in Byte einschließlich Vorzeichen, abhängig von der Precision. */
+    /** Länge der Wertbytes eines Dezimalwerts mit Vorzeichen nach der Precision (nicht die Länge im TYPE_INFO). */
     fun decimalBytes(precision: Int): Int = when {
         precision <= PRECISION_5 -> LENGTH_5
         precision <= PRECISION_9 -> LENGTH_9
@@ -109,7 +109,7 @@ internal object TypeInfoWriter {
         if (type.precision !in 1..MAX_PRECISION || type.scale !in 0..type.precision) {
             violation(ProtocolFailure.INVALID_TYPE, "DECIMAL(${type.precision}, ${type.scale})")
         }
-        val bytes = if (type.bytes == 0) decimalBytes(type.precision) else type.bytes
+        val bytes = if (type.bytes == 0) LENGTH_17 else type.bytes
         if (bytes < decimalBytes(type.precision) || bytes > LENGTH_17) {
             violation(ProtocolFailure.INVALID_TYPE, "DECIMAL(${type.precision}, ${type.scale}) mit $bytes Byte")
         }
