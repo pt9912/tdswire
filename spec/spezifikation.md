@@ -384,7 +384,12 @@ sealed interface QueryEvent {
     data class UpdateCount(val affectedRows: Long, val kind: StatementKind = StatementKind.UNKNOWN) : QueryEvent
     data class ReturnStatus(val value: Int) : QueryEvent
     data class OutputParameter(val name: String, val type: SqlType, val value: Any?) : QueryEvent
-    data class Failure(val code: String, val message: String, val scope: FailureScope = FailureScope.BATCH) : QueryEvent
+    data class Failure(
+        val code: String,
+        val message: String,
+        val scope: FailureScope = FailureScope.BATCH,
+        val objectName: String? = null,
+    ) : QueryEvent
 }
 data class ResultColumn(val name: String, val type: SqlType, val nullable: Boolean, val maxLength: Int = 4000)
 enum class FailureScope { STATEMENT, BATCH }
@@ -440,6 +445,15 @@ sagt, ob der Fehler nur die Anweisung abbricht (`STATEMENT`: die Antwort läuft 
 ausgeführt) oder den Batch (`BATCH`, Voreinstellung: die Antwort endet). Die Klasse bestimmt das Backend; ein
 Backend ohne Angabe meldet batch-abbrechende Fehler, und die zweistellige Form `Failure(code, message)` bleibt
 übersetzbar.
+
+**Name der unbekannten Tabelle (Nutzerentscheidung vom 2026-11-18, Messung am echten Server, Abschnitt 4):** `Failure.objectName`
+nennt bei `TDS_SIM_UNKNOWN_OBJECT` die Tabelle, die der Text nennt (`<Schema>.<Name>` oder `<Name>`, ohne Klammern und
+Anführungszeichen, in der Schreibung des Textes). Mit ihm lautet die Meldung `Invalid object name '<Name>'.`, ohne ihn (Voreinstellung
+`null`, eine Spalte, ein Name außerhalb der Grenzen) bleibt der feste Text `Unknown object.`. Die Bibliothek gibt den Namen
+unverändert weiter (Hochkomma und Zeilenumbruch wie beim echten Server), wenn er höchstens 515 Zeichen lang ist und kein Steuerzeichen
+außer dem Zeilenumbruch enthält; `message` erreicht den Client nie. Das Simulations-Backend nennt den Namen bei einer Auswahl, einem `INSERT`, `UPDATE`,
+`DELETE` und `MERGE`, wenn jeder Teil höchstens 128 Zeichen lang ist (die Grenze des echten Servers; darüber antwortet er mit 103, Class 15,
+das Mapping bildet 103 nicht ab). Die zweistellige und die dreistellige Form von `Failure(...)` bleiben übersetzbar.
 
 
 Lebensdauerregeln und alles, was über diesen Stand hinausgeht, bleiben Entwurf des Vertrags
@@ -1634,7 +1648,7 @@ Abnahmegrenzen.
 | `SPEC-015` | `TDS_BACKEND_ERROR` | Backend-Ausführung fehlgeschlagen | Fehlerabbildung in TDS |
 | `SPEC-016` | `TDS_TIMEOUT` | Frist überschritten (die Frist einer Anfrage, `QUERY_TIMEOUT`, `SPEC-009`) | Cancel an das Backend, Cleanup, ERROR und DONE mit Fehlerstatus (in der Antwort auf einen RPC DONEPROC), Verbindung offen (Class 16); ist der Strom nicht mehr sicher abzuschließen, schließt die Verbindung ohne ERROR und DONE (`SPEC-031`) |
 | `SPEC-037` | `TDS_UNSUPPORTED_SQL` | Anweisung oder Bedingung außerhalb von `SPEC-036`; Schreibzugriff ohne Callback | ERROR und DONE mit Fehlerstatus (in der Antwort auf einen RPC DONEPROC), Zeilenquelle nicht gelesen |
-| `SPEC-038` | `TDS_SIM_UNKNOWN_OBJECT` | Tabelle oder Spalte ist nicht beschrieben | ERROR und DONE mit Fehlerstatus (in der Antwort auf einen RPC DONEPROC); SQL-Server-Nummer 208 (Objekt) mit Class 16, die Verbindung bleibt offen (gemessen, M-15); vorgesehen ist 207 (Spalte), nicht abgebildet |
+| `SPEC-038` | `TDS_SIM_UNKNOWN_OBJECT` | Tabelle oder Spalte ist nicht beschrieben | ERROR und DONE mit Fehlerstatus (in der Antwort auf einen RPC DONEPROC); SQL-Server-Nummer 208 (Objekt) mit Class 16, die Verbindung bleibt offen (gemessen, M-15); der Text einer unbekannten Tabelle nennt ihren Namen (`Invalid object name '<Name>'.`, gemessen, Abschnitt 4); vorgesehen ist 207 (Spalte), nicht abgebildet |
 | `SPEC-039` | `TDS_SIM_INVALID_VALUE` | Wert nicht in den Spaltentyp überführbar | ERROR und DONE mit Fehlerstatus (in der Antwort auf einen RPC DONEPROC); vorgesehene SQL-Server-Nummern 245 (Konvertierung) und 8115 (Überlauf), an der Referenzinstanz zu messen |
 | `SPEC-048` | `TDS_INTERNAL_ERROR` | unerwartete Ausnahme im Server oder im Backend-Adapter, auch ein `OutOfMemoryError` beim Erzeugen oder Senden der Antwort (`SPEC-031`) | ERROR (Severity 20) und DONE mit Fehlerstatus (in der Antwort auf einen RPC DONEPROC), fester Text ohne den Text der Ausnahme, danach Verbindungsende; die Ausnahme geht nur als Typname ins Log, nie mit Text (Abschnitt 4). Gebaut: die Art `REQUEST_FAILED` trägt den Code und den vollqualifizierten Typnamen der Ausnahme oder eine feste Marke, nie den Text der Ausnahme (Abschnitt 4; Tests: `TelemetryRedactionTest`, `RequestWiringTest`) |
 | `SPEC-049` | `TDS_SHUTDOWN` | Anfrage nach Beginn des geordneten Beendens (`SPEC-044`) | ERROR und DONE mit Fehlerstatus (in der Antwort auf einen RPC DONEPROC), danach Verbindungsende; Herkunft des Schließens: ERROR und DONE werden vollständig gesendet, erst danach wird geschlossen (Setzung des Nutzers vom 2026-11-01, am Referenzclient wird „ERROR, DONE, dann Schließen“ gelesen, ein Herunterfahren am echten Server ist nicht gemessen); vorgesehen: die SQL-Server-Meldung für ein Herunterfahren, Nummer im Mapping nach `TDS-FA-06.a` festlegen |
@@ -1665,7 +1679,7 @@ Text fest und englisch (bei `TDS_SIM_UNKNOWN_PREPARED_HANDLE` endet er mit der N
 | `TDS_BACKEND_ERROR` | 50004 | 16 | offen | Class und Folge: Setzung des Nutzers; Nummer: Festlegung |
 | `TDS_TIMEOUT` | 50005 | 16 | offen | Gruppe und Class: Setzung des Nutzers 2026-11-01; Nummer: Festlegung |
 | `TDS_UNSUPPORTED_SQL` | 50001 | 16 | offen | Class und Folge: Setzung des Nutzers; Nummer: Vorschlag (Benutzerbereich) |
-| `TDS_SIM_UNKNOWN_OBJECT` | 208 | 16 | offen | Nummer, Class, State 1 und die offene Verbindung: gemessen am echten SQL Server (2022 und 2025, `MERGE` gegen eine unbekannte Tabelle, M-15); dieselbe Class und offene Verbindung zeigt der Schritt `fehler-vor-zeilen` des Live-Laufs (`SELECT`); der Text „Unknown object.“ weicht vom gemessenen („Invalid object name '<Name>'.“) ab (Festlegung); 207 für Spalten nicht abgebildet |
+| `TDS_SIM_UNKNOWN_OBJECT` | 208 | 16 | offen | Nummer, Class, State 1 und die offene Verbindung: gemessen am echten SQL Server (2022 und 2025, `MERGE` gegen eine unbekannte Tabelle, M-15); dieselbe Class und offene Verbindung zeigt der Schritt `fehler-vor-zeilen` des Live-Laufs (`SELECT`); der Text mit dem Namen der Tabelle ist gemessen: `Invalid object name '<Name>'.` (Szenario `fehler-tabelle-unbekannt`, 2022 und 2025, `SELECT`, `INSERT`, `UPDATE`, `DELETE`, `MERGE` und `sp_executesql`; der Name steht als `<Schema>.<Name>` ohne Klammern und Anführungszeichen, in der Schreibung des Textes, mit Hochkomma und Zeilenumbruch unverändert, ohne Standardschema, wenn der Text keines nennt); ohne Namen (eine unbekannte Spalte, ein Name über den Grenzen von `Failure.objectName`, `INSERT BULK` und die Probe des Massenladens) gilt der feste Text „Unknown object.“ (Festlegung); ein Bezeichner über 128 Zeichen endet am echten Server mit 103 (Class 15), die Bibliothek mit 208 (nicht abgebildet); Servername und Zeilennummer des ERROR sendet die Bibliothek nicht (leer, 0; der Server nennt seinen Namen und Zeile 1); 207 für Spalten nicht abgebildet |
 | `TDS_SIM_INVALID_VALUE` | 245 | 16 | offen | Nummer: Vorschlag (8115 für Überlauf nicht abgebildet); Gruppe: Voreinstellung |
 | `TDS_INTERNAL_ERROR` | 50007 | 20 | schließt | Class und Folge: Setzung des Nutzers; Nummer: Festlegung |
 | `TDS_SHUTDOWN` | 50008 | 20 | schließt | Folge: Setzung des Nutzers (`SPEC-049`); Nummer und Class: Festlegung (die SQL-Server-Nummer für ein Herunterfahren ist nicht gemessen) |
@@ -2322,3 +2336,4 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | 2026-11-17 | Zeilenform ROW oder NBCROW (`TDS-FA-05`, `TDS-QA-01`, `SPEC-003`, `SPEC-045`; Folge-Slice des Nutzerentscheids 2026-11-16): der Sequenzierer schreibt NBCROW, wenn er kürzer ist als der ROW derselben Werte, sonst ROW (am echten SQL Server 2022 und 2025 gemessen, Messprotokoll M-37 bis M-41); die Ausnahme A-12 des Referenzabgleichs entfällt |
 | 2026-11-17 | Mehrere RPCs in einer Nachricht, Messlücken (`TDS-FA-04`, `TDS-QA-01`, `SPEC-030`): am echten SQL Server 2022 und 2025 gemessen, Messprotokoll W-14 bis W-22: Fehler im ersten und letzten Aufruf, `ContinueUpdateOnError`, Fehler vor dem ersten Ergebnis (Übersetzungsfehler), Ergebnismengen und Ordinal im Aufruf sind belegt; **Widerspruch zu zwei Setzungen**, Entscheidung des Nutzers steht aus: der echte Server nimmt `sp_prepexec` und `sp_execute` (auch mit dem Handle desselben Aufrufs) in einer Nachricht mit mehreren RPCs an, und er nimmt 1025 Aufrufe und 4206 Parameter je Nachricht an (die Festlegungen 1024 und 4096 sind strenger); Text der Setzungen unverändert, die Messung steht daneben |
 | 2026-11-17 | Massenladen für eigene Backends (`TDS-FA-08`, `SPEC-059`, `SPEC-035`, `SPEC-036`): die Fähigkeit `BulkLoadingBackend` mit `BulkTarget`, `BulkTargetResult`, `BulkProbeColumn`, `BulkProbeResult` und `BulkRows` ist öffentlich (zehn Typnamen; Mitglieder: `BulkLoadingBackend.bulkTarget(sql)`, `bulkProbe(sql)`, `suspend load(target, rows)`, `BulkTarget.schema`, `table`, `BulkTargetResult.Ready.target`, `BulkTargetResult.Rejected.code`, `message`, `BulkProbeColumn.column`, `maxChars`, `BulkProbeResult.Ready.columns`, `BulkProbeResult.Rejected.code`, `message`, `BulkRows.columns`, `rows`); `Custom` mit der Fähigkeit am Backend bekommt `INSERT BULK`, die Probe der Zieltabelle und die Nachricht 0x07, die Erkennung der Texte liegt beim Backend; Backends ohne die Fähigkeit und das Simulations-Backend sind unverändert; die nächste veröffentlichte Version braucht nach dem Wortlaut von `SPEC-059` ein höheres `y` (Folgerung, nicht gebaut) |
+| 2026-11-18 | Text der Antwort auf eine unbekannte Tabelle an die Messung angeglichen (`TDS-FA-11`, `TDS-FA-06`, `TDS-QA-01`, `SPEC-038`, `SPEC-059`; Nutzerentscheidung 2026-11-18, Option „Code angleichen“): öffentliche Fläche um das Feld `Failure.objectName` erweitert (Voreinstellung `null`, für Java der Konstruktor mit drei Argumenten bleibt); `TDS_SIM_UNKNOWN_OBJECT` meldet mit dem Namen `Invalid object name '<Name>'.`, ohne ihn den festen Text (Abschnitt 4, `SPEC-002` Absatz „Name der unbekannten Tabelle“; Messprotokoll, Szenario `fehler-tabelle-unbekannt`) |

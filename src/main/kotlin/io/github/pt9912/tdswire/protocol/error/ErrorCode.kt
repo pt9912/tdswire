@@ -19,7 +19,8 @@ internal enum class ConnectionFate {
  * Verbindung geschieht. [fate] ist [ConnectionFate.OPEN] oder [ConnectionFate.CLOSE_AFTER_REPLY];
  * `CLOSE_WITHOUT_REPLY` kommt aus dem Zustand des Stroms, nicht aus dem Code. [followUp] ist das zweite ERROR, das der
  * Server nach dem ersten sendet (Zusammenfassung des Fehlers, Mechanismus wie INFO 3621 nach 2628); es steht
- * unmittelbar hinter dem ersten und teilt dessen Abschluss.
+ * unmittelbar hinter dem ersten und teilt dessen Abschluss. Eine Regel mit [namesObject] trägt, wenn der Fehler den
+ * Namen eines Objekts mitbringt, den Text `Invalid object name '<Name>'.` ([ErrorRule.message]); sonst steht [text].
  */
 internal data class ErrorRule(
     val number: Int,
@@ -28,6 +29,7 @@ internal data class ErrorRule(
     val text: String,
     val fate: ConnectionFate,
     val namesHandle: Boolean = false,
+    val namesObject: Boolean = false,
     val followUp: ServerMessage? = null,
 )
 
@@ -134,8 +136,11 @@ private val CONSTRAINT_NOT_DROPPED =
  *   Class 16, State 1 und die offene Verbindung von `TDS_SIM_STRING_TRUNCATED` (2628, `MERGE` mit einem Text über der
  *   Länge der Spalte); der Text ist ein Auszug des gemessenen Textes ohne die Namen (Setzung).
  * - Gemessen am Referenzclient gegen einen echten SQL Server (Zeile M-15 und Schritt `fehler-vor-zeilen` des
- *   Messprotokolls): Nummer 208, Class 16, State 1 und die offene Verbindung von `TDS_SIM_UNKNOWN_OBJECT`; der Text
- *   „Unknown object.“ weicht vom gemessenen („Invalid object name '<Name>'.“) ab und ist Festlegung.
+ *   Messprotokolls, Szenario `fehler-tabelle-unbekannt`, 2022 und 2025): Nummer 208, Class 16, State 1, die offene
+ *   Verbindung und der Text `Invalid object name '<Name>'.` von `TDS_SIM_UNKNOWN_OBJECT`, mit dem Namen in der
+ *   Schreibung des Textes (`<Schema>.<Name>`, ohne Klammern, Hochkomma und Zeilenumbruch unverändert, Teile bis 128
+ *   Zeichen); der Text „Unknown object.“ für einen Fehler ohne Namen (eine Spalte, ein Name außerhalb der Grenzen) ist
+ *   Festlegung.
  * - Grundregel (im Zweifel schließen): nur die Folge der Codes ohne Gruppe. Die Class 20 dieser
  *   Codes ist Festlegung, nicht Grundregel.
  * - Festlegung (nicht gemessen): alle übrigen Werte, nämlich die Nummern ohne Vorschlag, jeder State
@@ -167,10 +172,13 @@ internal enum class ErrorCode(val rule: ErrorRule) {
 
     /**
      * Anfragefehler-Gruppe, am Referenzclient gegen den echten SQL Server gemessen (Zeile M-15 des Messprotokolls):
-     * Nummer 208, Class 16, State 1, die Verbindung bleibt offen. 207 (Spalte) bildet das Mapping nicht ab; der Text
-     * ist Festlegung.
+     * Nummer 208, Class 16, State 1, die Verbindung bleibt offen. Mit dem Namen der Tabelle ist der Text gemessen
+     * (`Invalid object name '<Name>'.`); ohne ihn, etwa für eine Spalte, gilt der feste Text (Festlegung). 207 (Spalte)
+     * bildet das Mapping nicht ab.
      */
-    TDS_SIM_UNKNOWN_OBJECT(ErrorRule(N_OBJECT, REQUEST, STATE, "Unknown object.", ConnectionFate.OPEN)),
+    TDS_SIM_UNKNOWN_OBJECT(
+        ErrorRule(N_OBJECT, REQUEST, STATE, "Unknown object.", ConnectionFate.OPEN, namesObject = true),
+    ),
 
     /** Anfragefehler-Gruppe nach Voreinstellung. Nummer 245 ist Vorschlag; 8115 (Überlauf) fehlt im Mapping. */
     TDS_SIM_INVALID_VALUE(ErrorRule(N_VALUE, REQUEST, STATE, "Invalid value.", ConnectionFate.OPEN)),

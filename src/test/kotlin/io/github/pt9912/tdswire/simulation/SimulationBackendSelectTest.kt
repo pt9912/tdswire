@@ -251,6 +251,18 @@ class SimulationBackendSelectTest {
     }
 
     /**
+     * Das `Failure` einer unbekannten Tabelle trägt ihren Namen, das einer unbekannten Spalte keinen.
+     * @spec SPEC-038
+     */
+    @Test
+    fun `die Ablehnung einer unbekannten Tabelle nennt den Namen`() {
+        val table = collectEvents(Probe(all).backend, "SELECT * FROM [dbo].[Nothing]").single()
+        assertEquals("dbo.Nothing", assertIs<QueryEvent.Failure>(table).objectName)
+        val column = collectEvents(Probe(all).backend, "SELECT nothing FROM person").single()
+        assertNull(assertIs<QueryEvent.Failure>(column).objectName)
+    }
+
+    /**
      * Happy: die Zeilenquelle bekommt alle Spalten der Beschreibung und den Vorfilter als Hinweis (Spaltennamen der
      * Beschreibung, überführte Werte, NULL in der Liste erhalten); ohne `WHERE` ist der Hinweis `null`. Die
      * Quelle ignoriert ihn in diesem Test und das Ergebnis stimmt trotzdem.

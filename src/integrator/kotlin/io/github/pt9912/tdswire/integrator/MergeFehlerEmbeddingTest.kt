@@ -108,9 +108,10 @@ class MergeFehlerEmbeddingTest {
 
     /**
      * Eine unbekannte Tabelle endet vor dem Ergebnis mit ERROR 208 (State 1, Class 16), RETURNSTATUS 208 und DONEPROC
-     * `ERROR` (Messprotokoll M-15: `ERROR RETURNSTATUS DONEPROC`, ohne COLMETADATA, INFO und DONEINPROC); die
-     * Verbindung bleibt offen, eine Folgeanfrage auf ihr erhält ihre eigene Antwort. Wächter: ein COLMETADATA oder
-     * INFO vor dem Fehler, eine andere Nummer, Class 20, eine schließende Verbindung.
+     * `ERROR` (Messprotokoll M-15: `ERROR RETURNSTATUS DONEPROC`, ohne COLMETADATA, INFO und DONEINPROC) mit dem Text
+     * `Invalid object name '<Name>'.`; die Verbindung bleibt offen, eine Folgeanfrage auf ihr erhält ihre eigene
+     * Antwort. Wächter: ein COLMETADATA oder INFO vor dem Fehler, eine andere Nummer, Class 20, eine schließende
+     * Verbindung, der feste Text ohne den Namen.
      *
      * @spec SPEC-036
      * @spec SPEC-038
@@ -130,6 +131,7 @@ class MergeFehlerEmbeddingTest {
                 inputDate("", null),
             )
             assertTrue(failed.containsBytes("D0 00 00 00 01 10"), "Nummer 208, State 1, Class 16")
+            assertTrue(failed.containsUtf16("Invalid object name 'dbo.gibtesnicht'."), "Text mit dem Namen der Tabelle")
             assertFalse(failed.containsUtf16("\$action"), "kein Ergebnis")
             assertFalse(failed.containsBytes(INFO_TERMINATED), "kein INFO")
             assertTrue(failed.endsWithBytes("79 D0 00 00 00  FE 02 00 E0 00 00 00 00 00 00 00 00 00"))

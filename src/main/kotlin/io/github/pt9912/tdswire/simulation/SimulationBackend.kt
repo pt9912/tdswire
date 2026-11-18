@@ -90,7 +90,7 @@ public class SimulationBackend(
     override suspend fun execute(request: QueryRequest): QueryExecution =
         when (val result = guarded { planner.plan(request.sql) }.getOrNull()) {
             null -> failed(SimCodes.BACKEND_ERROR, "Katalog nicht lieferbar")
-            is PlanResult.Rejected -> failed(result.code, result.message)
+            is PlanResult.Rejected -> failed(result.code, result.message, result.objectName)
             is PlanResult.Planned -> start(result.plan, request)
             is PlanResult.Fixed -> events(FixedAnswers.of(result.form))
             is PlanResult.Catalog -> events(CatalogAnswers.of(result.form, result.catalog, parameters(result, request)))
@@ -211,11 +211,12 @@ public class SimulationBackend(
         return register(key, ChangeExecution(call) { running.remove(key, it) })
     }
 
-    private fun failed(code: String, message: String): QueryExecution = object : QueryExecution {
-        override val events: Flow<QueryEvent> = flowOf(QueryEvent.Failure(code, message))
+    private fun failed(code: String, message: String, objectName: String? = null): QueryExecution =
+        object : QueryExecution {
+            override val events: Flow<QueryEvent> = flowOf(QueryEvent.Failure(code, message, objectName = objectName))
 
-        override suspend fun close() = Unit
-    }
+            override suspend fun close() = Unit
+        }
 }
 
 /** Eine Auswahl: öffnet die Zeilenquelle beim Sammeln und liest sie Zeile für Zeile. */
