@@ -224,20 +224,34 @@ class TokenEncoderTest {
     }
 
     /**
-     * Orakel: DECIMALN `6A` / NUMERICN `6C` tragen Längenbyte, Precision und Scale; das Längenbyte folgt
-     * der Precision (1 bis 9: 5, 10 bis 19: 9, 20 bis 28: 13, 29 bis 38: 17).
+     * Handvektor aus der Messung am echten Server (SQL Server 2022 und 2025, `decimal-laenge-tabelle` in
+     * `referenztest-dotnet/Mitschnitt/messung/<Instanz>/`, Spalten einer Tabelle): DECIMALN `6A` / NUMERICN `6C` tragen
+     * Längenbyte, Precision und Scale, das Längenbyte ist **17** (`11`) für jede Precision, gemessen an 1, 9, 10, 19,
+     * 20, 28, 29 und 38 mit `decimal` und `numeric`. Ein Wächter gegen die Länge nach Precision (5, 9, 13).
      *
      * @spec SPEC-003
      */
     @Test
-    fun `COLMETADATA Dezimalzahlen`() {
-        fun meta(type: TdsType) = encoded(ColMetadataToken(listOf(ColumnDef("d", type))))
-        assertEquals("81 01 00 00 00 00 00 00 00 6A 09 0A 02 01 64 00", meta(TdsType.DecimalType(10, 2)))
-        assertEquals("81 01 00 00 00 00 00 00 00 6C 05 05 00 01 64 00", meta(TdsType.DecimalType(5, 0, numeric = true)))
-        assertEquals("6A 05 09", meta(TdsType.DecimalType(9, 0)).substring(27, 35))
-        assertEquals("6A 09 13", meta(TdsType.DecimalType(19, 0)).substring(27, 35))
-        assertEquals("6A 0D 1C", meta(TdsType.DecimalType(28, 0)).substring(27, 35))
-        assertEquals("6A 11 26 00", meta(TdsType.DecimalType(38, 0)).substring(27, 38))
+    fun `COLMETADATA Dezimalzahlen tragen die Laenge 17 je Precision`() {
+        fun meta(type: TdsType) = encoded(ColMetadataToken(listOf(ColumnDef("d", type, nullable = true))))
+        fun hex(value: Int) = Integer.toHexString(value).uppercase().padStart(2, '0')
+        fun expected(code: String, precision: Int, scale: Int) =
+            "81 01 00 00 00 00 00 01 00 $code 11 ${hex(precision)} ${hex(scale)} 01 64 00"
+        val precisions = listOf(1, 9, 10, 19, 20, 28, 29, 38)
+        for (precision in precisions) {
+            val scale = if (precision == 1) 0 else 1
+            assertEquals(
+                expected("6A", precision, scale),
+                meta(TdsType.DecimalType(precision, scale)),
+                "decimal($precision,$scale)",
+            )
+            assertEquals(
+                expected("6C", precision, scale),
+                meta(TdsType.DecimalType(precision, scale, numeric = true)),
+                "numeric($precision,$scale)",
+            )
+        }
+        assertEquals("81 01 00 00 00 00 00 01 00 6A 11 0A 02 01 64 00", meta(TdsType.DecimalType(10, 2)))
     }
 
     /**

@@ -478,6 +478,14 @@ zu `SPEC-022`.
 Konkrete Token-/Typkennungen, Kollation und Präzision sind anhand MS-TDS und des Referenzclients zu
 verifizieren.
 
+**Länge von `DECIMALN` und `NUMERICN` im TYPE_INFO (gemessen am 2026-11-18, Einzelmessung je Instanz 2022 und 2025,
+beide Instanzen gleich, Messprotokoll W-23 und W-24):** Der Server schreibt im COLMETADATA die Länge **17** für jedes
+`decimal` und `numeric`, unabhängig von der Precision. Gemessen ist das an Spalten einer Tabelle mit den Precisionen 1,
+9, 10, 19, 20, 28, 29 und 38 (je `decimal` und `numeric`, nullbar) und an Ausdrücken (`CAST` auf `decimal(10,2)`,
+`numeric(38,10)` und `decimal(20,4)`, Literal `1.5`, `SUM`); die Precision-Klassen dazwischen sind nicht einzeln
+gemessen. Dass ein Wert im ROW höchstens so lang ist wie die TYPE_INFO, ist Folgerung (gemessen sind Wertlängen von 5 und 9 Byte, W-25), nicht gemessen. Grenze: ein Client (`Microsoft.Data.SqlClient`
+7.1.1), Einzelmessung je Instanz.
+
 **Typabbildung (Setzungen vom 2026-10-30, nicht gemessen):**
 - `UInt8` und `Int16` sind `tinyint` (INT1, `0x30`) und `smallint` (INT2, `0x34`) in der festen Form; eine nullbare
   Spalte trägt INTN mit 1 und 2 Byte, wie `Int32` und `Int64` (Setzung nach der Form der Antwortspalten des Katalogs,
@@ -541,8 +549,8 @@ verifizieren.
   Ganzzahlspalten (eine NULL im Text ist ROW, wenn die Bitmap zwei Byte hat); gemessen mit einem Client
   (`Microsoft.Data.SqlClient` 7.1.1) und an Antworten aus einem Paket; Setzung, nicht gemessen: die Rechnung für mehr als
   17 Spalten, für mehrere Dezimalspalten, für einen anderen Client (etwa mssql-jdbc) und für Ergebnisse über mehrere
-  Pakete. Die Bytes von COLMETADATA und die Länge des Dezimaltyps sind nicht Teil
-  dieser Aussage (Ausnahme A-11 des Referenzabgleichs).
+  Pakete. Die Länge der Dezimalwerte im ROW ist nicht Teil dieser Aussage (der echte Server schreibt sie nach dem Wert,
+  der Encoder nach der Precision, Messprotokoll W-25).
 
 **RPC-Parametertypen (Eingabe; vom Referenzclient beobachtet, MAX-Typen nur wie am Ende des Absatzes eingeschränkt):** `tinyint`/`smallint`/`int`/`bigint`
 als `INTN` (Länge 1/2/4/8); `float`/`real` als `FLTN`; `money`/`smallmoney` als `MONEYN`; `bit` als
@@ -1360,8 +1368,7 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   (M-35, `bulk-name-schema`, Instanz 2022 und 2025); die Antwort dieses Servers trägt den Fehler vor den Ergebnissen und den festen Text „Tabelle nicht
   beschrieben“ (Setzung, Abweichung vom Zielbild, Grenze). Für `mssql-jdbc` (d-migrate) sind Namen mit Schema oder Sonderzeichen nicht gemessen;
   belegt ist dort `INSERT BULK` für `[dbo].[kunden]` (M-28). Die Antwort hat vier Ergebnisse in der Folge der Aufzeichnung: `@@TRANCOUNT` (INT, Wert 0); die Spalten der Tabelle ohne Zeile
-  (Flags `0x0008`, nullbar `0x0009`; Text mit der Länge der Beschreibung; Dezimalzahlen mit Größe 17; aufgezeichnet ist nur `DECIMALN(10,2)`, die Größe 17 für andere Precisionen ist Setzung, gestützt darauf,
-  dass der Referenzclient die Werte immer mit 17 Byte schreibt); je Spalte `colid`, `name`, `tds_collation` und `collation` (für Text die fünf Bytes
+  (Flags `0x0008`, nullbar `0x0009`; Text mit der Länge der Beschreibung; Dezimalzahlen mit Größe 17, wie in jedem COLMETADATA, Messprotokoll W-23); je Spalte `colid`, `name`, `tds_collation` und `collation` (für Text die fünf Bytes
   der Kollation und ihr Name, Setzung `SQL_Latin1_General_CP1_CI_AS`, sonst NULL als NBCROW) mit ORDER auf `colid`; die leere Tabelle
   `Canonical_Column_Name`, `Aliased_Column_Name`. Dazwischen stehen DONE, DONEINPROC, RETURNSTATUS und DONEPROC mit den Status und Befehlen der
   Aufzeichnung; die Zeilenzahl der beiden DONEINPROC nach den Spaltennamen und den Kollationen ist die Zahl der Spalten. Für die Tabelle
@@ -2344,3 +2351,4 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | 2026-11-17 | Mehrere RPCs in einer Nachricht, Messlücken (`TDS-FA-04`, `TDS-QA-01`, `SPEC-030`): am echten SQL Server 2022 und 2025 gemessen, Messprotokoll W-14 bis W-22: Fehler im ersten und letzten Aufruf, `ContinueUpdateOnError`, Fehler vor dem ersten Ergebnis (Übersetzungsfehler), Ergebnismengen und Ordinal im Aufruf sind belegt; **Widerspruch zu zwei Setzungen**, Entscheidung des Nutzers steht aus: der echte Server nimmt `sp_prepexec` und `sp_execute` (auch mit dem Handle desselben Aufrufs) in einer Nachricht mit mehreren RPCs an, und er nimmt 1025 Aufrufe und 4206 Parameter je Nachricht an (die Festlegungen 1024 und 4096 sind strenger); Text der Setzungen unverändert, die Messung steht daneben |
 | 2026-11-17 | Massenladen für eigene Backends (`TDS-FA-08`, `SPEC-059`, `SPEC-035`, `SPEC-036`): die Fähigkeit `BulkLoadingBackend` mit `BulkTarget`, `BulkTargetResult`, `BulkProbeColumn`, `BulkProbeResult` und `BulkRows` ist öffentlich (zehn Typnamen; Mitglieder: `BulkLoadingBackend.bulkTarget(sql)`, `bulkProbe(sql)`, `suspend load(target, rows)`, `BulkTarget.schema`, `table`, `BulkTargetResult.Ready.target`, `BulkTargetResult.Rejected.code`, `message`, `BulkProbeColumn.column`, `maxChars`, `BulkProbeResult.Ready.columns`, `BulkProbeResult.Rejected.code`, `message`, `BulkRows.columns`, `rows`); `Custom` mit der Fähigkeit am Backend bekommt `INSERT BULK`, die Probe der Zieltabelle und die Nachricht 0x07, die Erkennung der Texte liegt beim Backend; Backends ohne die Fähigkeit und das Simulations-Backend sind unverändert; die nächste veröffentlichte Version braucht nach dem Wortlaut von `SPEC-059` ein höheres `y` (Folgerung, nicht gebaut) |
 | 2026-11-18 | Text der Antwort auf eine unbekannte Tabelle an die Messung angeglichen (`TDS-FA-11`, `TDS-FA-06`, `TDS-QA-01`, `SPEC-038`, `SPEC-059`; Nutzerentscheidung 2026-11-18, Option „Code angleichen“): öffentliche Fläche um das Feld `Failure.objectName` erweitert (Voreinstellung `null`, für Java der Konstruktor mit drei Argumenten bleibt); `TDS_SIM_UNKNOWN_OBJECT` meldet mit dem Namen `Invalid object name '<Name>'.`, ohne ihn den festen Text (Abschnitt 4, `SPEC-002` Absatz „Name der unbekannten Tabelle“; Messprotokoll, Szenario `fehler-tabelle-unbekannt`) |
+| 2026-11-18 | Länge von `DECIMALN` und `NUMERICN` im COLMETADATA an die Messung angeglichen (`TDS-FA-05`, `TDS-QA-01`, `SPEC-003`, `SPEC-036`; Entscheid des Nutzers 2026-11-18, Code angleichen): am echten SQL Server 2022 und 2025 gemessen ist die Länge 17 für jede Precision (Messprotokoll W-23, W-24), der Encoder schreibt sie; die Ausnahme A-11 entfällt; die Länge der Dezimalwerte im ROW (der Server schreibt nach dem Wert, W-25) ist nicht Teil der Aussage zur Zeilenform |

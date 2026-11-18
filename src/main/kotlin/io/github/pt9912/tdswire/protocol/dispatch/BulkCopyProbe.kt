@@ -33,8 +33,8 @@ import io.github.pt9912.tdswire.transport.framing.TdsMessage
  * Aufzeichnung. Die Zeilenzahl von DONEINPROC nach der Abfrage der Spaltennamen und nach den Kollationen ist die Zahl
  * der Spalten.
  *
- * Eine Dezimalspalte meldet in (2) die Größe 17. Aufgezeichnet ist nur `DECIMALN(10,2)` mit `0x11` (Test
- * `BulkCopyProbeTest`); die Größe 17 für andere Precisionen ist Setzung. Die
+ * Eine Dezimalspalte meldet in (2) die Größe 17 (`DECIMALN(10,2)` aufgezeichnet, Test `BulkCopyProbeTest`; die Länge
+ * im TYPE_INFO ist je Precision 17, siehe [TdsType.DecimalType]). Die
  * Nachricht `0x07` der Aufzeichnung trägt Dezimalwerte mit Längenbyte 17 und 17 Byte. Text hat
  * in (2) die Länge der Beschreibung (`maxChars`).
  *
@@ -45,7 +45,6 @@ import io.github.pt9912.tdswire.transport.framing.TdsMessage
 internal object BulkCopyProbe {
     private const val FLAGS_COMPUTED = 0x0020
     private const val FLAGS_UPDATABLE_UNKNOWN = 0x0008
-    private const val DECIMAL_BYTES = 17
     private const val CMD_SET_FMTONLY_ON = 0x00B9
     private const val CMD_SET_FMTONLY_OFF = 0x00BA
     private const val CMD_DROP = 0x00C7
@@ -130,7 +129,6 @@ internal object BulkCopyProbe {
         val type = def.type
         val sized = when (type) {
             is TdsType.NVarcharType -> type.copy(maxChars = source.maxChars)
-            is TdsType.DecimalType -> type.copy(bytes = DECIMAL_BYTES)
             else -> type
         }
         return def.copy(type = sized, extraFlags = FLAGS_UPDATABLE_UNKNOWN)

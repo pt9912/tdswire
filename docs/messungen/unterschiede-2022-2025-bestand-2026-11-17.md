@@ -100,7 +100,7 @@ Die 5 Zeilen je Seite sind: die zwei Kopfzeilen `instanz` und `image`, die PRELO
 | Typnamen und Maße in `sys.columns`/`sys.types` (`time` 5/16/7, `datetime2` 8/27/7, `nvarchar(max)` -1, …) | gemessen | gleich | M-17, M-18 | gleich |
 | `INFORMATION_SCHEMA.COLUMNS` mit weiteren Spalten, Sichten außerhalb der gemessenen | nicht gemessen | nicht gemessen | Zeile 83 („Abfragen von `schema reverse` selbst … nicht im Repo“) | nicht verglichen |
 | Sichten für Sequenzen, Routinen, Sichten, Partitionen, Volltext | leer (kein Objekt angelegt) | leer | M-21 (Zeile 180) | nicht verglichen (kein Fall) |
-| TYPE_INFO `decimal(10,2)`: `DECIMALN` mit Länge 17 | 17 | 17 | A-11 (Zeile 65), `mitschnitt-ausnahmen.tsv` | gleich |
+| TYPE_INFO `decimal(10,2)`: `DECIMALN` mit Länge 17 | 17 | 17 | W-23, W-24 (A-11 ist aufgelöst) | gleich |
 | Massenladen `SqlBulkCopy`: Probe, `insert bulk`, Nachricht 7, `DONE` `0x00f0` mit Zähler, Status `0x04` im ersten Paket, leere Quelle, Verstoß (Client-seitig: ATTENTION; Schlüssel serverseitig: 2627, Class 14, Bestand unverändert) | M-8 bis M-12 | gleich | M-8 bis M-12 (Zeilen 167 bis 171); Zeile 163 | gleich |
 | Massenladen: abgebrochene Verbindung bei zusammengefassten oder geteilten Paketen im Proxy | `bulk-mehrere-nachrichten` bei Weitergabe je Paket 0 von 40 rot | je Lesevorgang 14 von 40 rot (nur an 2025 gemessen); je Paket 0 von 40 | Zeile 163 | nicht verglichen (Weitergabe je Lesevorgang nur an 2025 gemessen; Mechanismus nicht festgestellt) |
 | Namen mit Schema und Sonderzeichen im Massenladen (M-33 bis M-35), feste Typen in Nachricht 7 (M-36) | gemessen | gleich; Nachricht 7 byte-gleich (M-36) | Zeilen 184 bis 187 | gleich |

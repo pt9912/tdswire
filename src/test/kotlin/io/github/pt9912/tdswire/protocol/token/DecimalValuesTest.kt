@@ -9,6 +9,8 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
+private const val TYPE_INFO_LENGTH_INDEX = 10
+
 class DecimalValuesTest {
     private val type = TdsType.DecimalType(5, 2)
 
@@ -26,6 +28,36 @@ class DecimalValuesTest {
         worker.start()
         worker.join(DEADLINE_MILLIS)
         return if (worker.isAlive) null else outcome
+    }
+
+    /**
+     * Kein Wert ist länger als die Länge der TYPE_INFO, die der Encoder in dasselbe COLMETADATA schreibt (17 nach der
+     * Messung `decimal-laenge-tabelle`): je Precision der Klassen 1 bis 9, 10 bis 19, 20 bis 28 und 29 bis 38 hat der
+     * größte Wert ein Längenbyte bis zu dieser Länge, ein NULL ist `D1 00`. Wächter: ein Längenbyte der Zeile über dem
+     * der TYPE_INFO, auch bei verändertem Default der TYPE_INFO.
+     *
+     * @spec SPEC-003
+     */
+    @Test
+    fun `Wertbytes sind hoechstens so lang wie die TYPE_INFO und NULL ist ein Nullbyte`() {
+        for (precision in listOf(1, 9, 10, 19, 20, 28, 29, 38)) {
+            val column = TdsType.DecimalType(precision, 0)
+            val largest = TdsValue.DecimalValue(BigDecimal("9".repeat(precision)))
+            for ((value, expectedLength) in listOf<Pair<TdsValue, Int?>>(largest to null, TdsValue.NullValue to 0)) {
+                val encoder = TokenEncoder()
+                assertIs<ProtocolResult.Ok<Unit>>(encoder.write(ColMetadataToken(listOf(ColumnDef("c", column, true)))))
+                val metadata = encoder.toByteArray()
+                // COLMETADATA: 81, Anzahl (2), Benutzertyp (4), Flags (2), Typ (1), Länge (1): die Länge der TYPE_INFO.
+                val typeInfoLength = metadata[TYPE_INFO_LENGTH_INDEX].toInt() and 0xFF
+                assertIs<ProtocolResult.Ok<Unit>>(encoder.write(RowToken(listOf(value))))
+                val row = encoder.toByteArray().drop(metadata.size)
+                assertEquals(0xD1, row[0].toInt() and 0xFF)
+                val length = row[1].toInt() and 0xFF
+                assertEquals(row.size - 2, length, "decimal($precision) Zeilenlaenge")
+                assertTrue(length <= typeInfoLength, "decimal($precision) Wert $length Byte, TYPE_INFO $typeInfoLength")
+                if (expectedLength != null) assertEquals(expectedLength, length)
+            }
+        }
     }
 
     /**
