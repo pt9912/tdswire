@@ -48,14 +48,40 @@ internal fun interface ErrorLog {
 }
 
 /**
- * Die ERROR-Meldung der Regel: Nummer, State, Class und fester Text; die einzige Stelle, die sie bildet. Eine Regel mit
+ * Die ERROR-Meldung der Regel: Nummer, State, Class und Text; die einzige Stelle, die sie bildet. Eine Regel mit
  * [ErrorRule.namesHandle] verlangt [handle] und hängt ` <handle>.` an den Text; [state] ersetzt den State der Regel
- * für die Aufrufform, die einen anderen trägt.
+ * für die Aufrufform, die einen anderen trägt. [objectName] setzt `Invalid object name '<objectName>'.` an die
+ * Stelle des Textes und verlangt eine Regel mit [ErrorRule.namesObject].
  */
-internal fun ErrorRule.message(handle: Int? = null, state: Int = this.state): ServerMessage {
+internal fun ErrorRule.message(
+    handle: Int? = null,
+    state: Int = this.state,
+    objectName: String? = null,
+): ServerMessage {
     require((handle != null) == namesHandle) { "Handle und Regel passen nicht zusammen" }
-    return ServerMessage(number, state, severity, if (handle == null) text else "$text $handle.")
+    require(objectName == null || namesObject) { "Name und Regel passen nicht zusammen" }
+    val shown = when {
+        handle != null -> "$text $handle."
+        objectName != null -> "Invalid object name '$objectName'."
+        else -> text
+    }
+    return ServerMessage(number, state, severity, shown)
 }
+
+/**
+ * Der Name, den die Meldung nennt: der [QueryEvent.Failure.objectName], wenn die Regel Namen trägt, er höchstens
+ * [MAX_OBJECT_NAME] Zeichen lang ist und kein Steuerzeichen außer dem Zeilenumbruch enthält; sonst `null` (fester
+ * Text).
+ * Der Name stammt vom Client; die Grenzen schützen die Länge der Meldung, der echte Server gibt Hochkomma und
+ * Zeilenumbruch unverändert wieder (Messprotokoll, Szenario `fehler-tabelle-unbekannt`).
+ */
+internal fun ErrorRule.nameOf(failure: QueryEvent.Failure): String? = failure.objectName?.takeIf { name ->
+    val fits = name.isNotEmpty() && name.length <= MAX_OBJECT_NAME
+    namesObject && fits && name.none { it.isISOControl() && it != '\n' }
+}
+
+/** Vier Teile zu je 128 Zeichen (der Bezeichner endet beim echten Server darüber mit 103) und drei Punkte; Setzung. */
+internal const val MAX_OBJECT_NAME = 4 * 128 + 3
 
 /**
  * Das Fehler-Mapping (`TDS-FA-06.a`, `ADR-0007`): bildet einen Fehler auf ERROR und DONE mit
@@ -64,8 +90,10 @@ internal fun ErrorRule.message(handle: Int? = null, state: Int = this.state): Se
  * Regel ([ErrorRule]) ist die einzige Quelle von Meldung und Verbindungsfolge, die Folge eines
  * Ausgangs des Sequenzierers liefert [fateOf].
  *
- * Festlegung (nicht gemessen): Der Text jeder Antwort ist der feste Text der Regel; der Text einer
- * [QueryEvent.Failure] und der einer Ausnahme erreichen den Client nie. Der Abschluss der Antwort auf einen
+ * Festlegung (nicht gemessen): Der Text jeder Antwort ist der feste Text der Regel, bei einer Regel mit
+ * [ErrorRule.namesObject] und gültigem Namen `Invalid object name '<Name>'.`; der Text einer
+ * [QueryEvent.Failure] und der einer Ausnahme erreichen den Client nie. Die eine Eingabe im Text ist der Name einer
+ * unbekannten Tabelle ([ErrorRule.namesObject], [nameOf]). Der Abschluss der Antwort auf einen
  * SQL_BATCH ist `DONE` mit Statusbit `ERROR`, Befehlskennung `0x00fd` und Zeilenzahl 0 (gemessen: Fehler ohne offenes
  * Ergebnis, Messprotokoll W-6); der der Antwort auf einen RPC ist DONEPROC mit `ERROR` (W-1), davor steht der
  * RETURNSTATUS mit der Nummer des Fehlers, wenn sie eine SQL-Server-Nummer ist ([errorAnswer]). Ist der Strom nicht
@@ -102,7 +130,8 @@ internal class ErrorMapper(internal val log: ErrorLog = ErrorLog.NONE) {
      */
     fun failure(failure: QueryEvent.Failure, streamSynchronous: Boolean = true): ErrorResponse {
         val classified = classify(failure)
-        return response(classified.code, streamSynchronous, classified.cause)
+        val name = classified.code.rule.nameOf(failure)
+        return response(classified.code, streamSynchronous, classified.cause, objectName = name)
     }
 
     /** Eine Eingabe, die der Nachrichten-Codec abweist (`SPEC-011`, `SPEC-014`). */
@@ -126,7 +155,7 @@ internal class ErrorMapper(internal val log: ErrorLog = ErrorLog.NONE) {
         backend = { failure ->
             val classified = classify(failure)
             record(classified.code, classified.cause)
-            mapped(classified.code)
+            mapped(classified.code, classified.code.rule.nameOf(failure))
         },
         typeMapping = { error ->
             val code = protocolCode(error)
@@ -146,8 +175,11 @@ internal class ErrorMapper(internal val log: ErrorLog = ErrorLog.NONE) {
         SequenceOutcome.CLOSE_WITHOUT_COMPLETION -> ConnectionFate.CLOSE_WITHOUT_REPLY
     }
 
-    private fun mapped(code: ErrorCode) =
-        MappedError(code.rule.message(), code.rule.fate != ConnectionFate.OPEN, code.rule.followUp)
+    private fun mapped(code: ErrorCode, objectName: String? = null) = MappedError(
+        code.rule.message(objectName = objectName),
+        code.rule.fate != ConnectionFate.OPEN,
+        code.rule.followUp,
+    )
 
     private class Classified(val code: ErrorCode, val cause: String?)
 
@@ -170,6 +202,7 @@ internal class ErrorMapper(internal val log: ErrorLog = ErrorLog.NONE) {
         streamSynchronous: Boolean,
         cause: String?,
         form: ResponseForm = ResponseForm.BATCH,
+        objectName: String? = null,
     ): ErrorResponse {
         val rule = code.rule
         require(!rule.namesHandle) { "Nummern und Code passen nicht" }
@@ -177,7 +210,8 @@ internal class ErrorMapper(internal val log: ErrorLog = ErrorLog.NONE) {
         if (!streamSynchronous) {
             return ErrorResponse(code, null, ConnectionFate.CLOSE_WITHOUT_REPLY)
         }
-        return ErrorResponse(code, serialize(listOfNotNull(rule.message(), rule.followUp), form), code.rule.fate)
+        val messages = listOfNotNull(rule.message(objectName = objectName), rule.followUp)
+        return ErrorResponse(code, serialize(messages, form), code.rule.fate)
     }
 
     private fun serialize(messages: List<ServerMessage>, form: ResponseForm): TdsMessage =

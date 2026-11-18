@@ -1,3 +1,5 @@
 **Stand:** verkörpert — `.claude/commands/plan-welle.md` (Schritt 6b), Anker `seit slice-referenzabgleich-mitschnitt`; Nachtrag in `slice-referenzabgleich-mitschnitt.md` §7. Eigene Zählung 1×; verkörpert als Entscheidung des Nutzers über die Familie der DoD-Wortlaut-Klassen (2026-11-06). Offen: Ausdehnung von `.claude/commands/implement-slice.md` Schritt 22 auf Befunde des Reviews.
 
 **Wiederauftreten (slice-qa-performance-heap-abschluss):** Verifikation, DoD-Punkt „Abstand letzte Zeile → DONE“: eine Messgröße, die die Bauart (Paketierung) auf 0 µs festlegt; der Verifier fing es, die Planung nicht. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
+
+**Wiederauftreten (slice-fehlertext-unbekannte-tabelle-angleichen):** ein Lieferpunkt der DoD nannte zwei Ausgänge für eine Regel der Ausnahmeliste (entfallen oder *so gewollt*), die Lieferung war ein dritter (verkleinert), obwohl §1 die gebündelten Unterschiede nannte; Review und Verifier fingen es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt; nicht verkörpert ist die Schärfung „bündelt eine Regel mehrere Unterschiede, zählt die DoD sie einzeln“.

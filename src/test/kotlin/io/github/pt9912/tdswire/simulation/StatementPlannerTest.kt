@@ -6,6 +6,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
@@ -138,6 +139,70 @@ class StatementPlannerTest {
             assertEquals(SimCodes.UNKNOWN_OBJECT, result.code, sql)
             assertEquals("Tabelle nicht beschrieben", result.message, sql)
         }
+    }
+
+    /**
+     * Die unbekannte Tabelle trägt ihren Namen, wie der Text ihn nennt (Messprotokoll, Szenario
+     * `fehler-tabelle-unbekannt`): `<Schema>.<Name>` oder `<Name>`, ohne Klammern und Anführungszeichen, in der
+     * Schreibung des Textes, Hochkomma und Zeilenumbruch unverändert; für jede der fünf Formen. Der Text der Meldung
+     * bleibt „Tabelle nicht beschrieben“ (er erreicht den Client nie).
+     * Wächter: ein Name, der die Schreibweise ändert (klein geschrieben, mit Klammern, mit Standardschema `dbo`).
+     * @spec SPEC-038
+     * @spec TDS-QA-01
+     */
+    @Test
+    fun `die unbekannte Tabelle nennt ihren Namen wie der Text`() {
+        val names = mapOf(
+            "SELECT * FROM GibtEsNicht" to "GibtEsNicht",
+            "SELECT * FROM [gibtes nicht]" to "gibtes nicht",
+            "SELECT * FROM dbo.nothing" to "dbo.nothing",
+            "SELECT * FROM [S1].[Nothing]" to "S1.Nothing",
+            "SELECT * FROM \"x\".\"y\"" to "x.y",
+            "SELECT * FROM [gibtes'nicht]" to "gibtes'nicht",
+            "SELECT * FROM [gibtes''nicht]" to "gibtes''nicht",
+            "SELECT * FROM [gibtes]]nicht]" to "gibtes]nicht",
+            "SELECT * FROM [gibtes.nicht]" to "gibtes.nicht",
+            "SELECT * FROM [gibtes\nnicht]" to "gibtes\nnicht",
+            "INSERT INTO nothing (a) VALUES (1)" to "nothing",
+            "UPDATE nothing SET a = 1" to "nothing",
+            "DELETE FROM nothing" to "nothing",
+            "MERGE INTO [dbo].[nothing] AS tgt USING (VALUES ( @P0 )) AS src ([a]) ON tgt.[a] = src.[a] " +
+                "WHEN NOT MATCHED THEN INSERT ([a]) VALUES (src.[a]) OUTPUT \$action;" to "dbo.nothing",
+        )
+        for ((sql, name) in names) {
+            val result = rejected(sql)
+            assertEquals(SimCodes.UNKNOWN_OBJECT, result.code, sql)
+            assertEquals("Tabelle nicht beschrieben", result.message, sql)
+            assertEquals(name, result.objectName, sql)
+        }
+    }
+
+    /**
+     * Ein Bezeichner mit 128 Zeichen steht im Namen, einer mit 129 (die Grenze des echten Servers) und ein Name mit
+     * einem Steuerzeichen außer dem Zeilenumbruch stehen nicht darin; die Ablehnung bleibt `TDS_SIM_UNKNOWN_OBJECT`.
+     * Eine unbekannte Spalte nennt keinen Namen.
+     * Wächter: eine Grenze bei 127 oder 130, ein Steuerzeichen im Namen, ein Name bei der Spalte.
+     * @spec SPEC-038
+     */
+    @Test
+    fun `der Name ausserhalb der Grenzen und bei einer Spalte fehlt`() {
+        assertEquals("a".repeat(128), rejected("SELECT * FROM ${"a".repeat(128)}").objectName)
+        assertEquals("s.${"a".repeat(128)}", rejected("SELECT * FROM s.${"a".repeat(128)}").objectName)
+        assertEquals("${"b".repeat(128)}.t", rejected("SELECT * FROM [${"b".repeat(128)}].t").objectName)
+        for (sql in listOf(
+            "SELECT * FROM ${"a".repeat(129)}",
+            "SELECT * FROM [${"a".repeat(129)}]",
+            "SELECT * FROM [${"a".repeat(129)}].t",
+            "SELECT * FROM s.[${"a".repeat(129)}]",
+            "SELECT * FROM [gibtes\u0000nicht]",
+            "SELECT * FROM [gibtes\tnicht]",
+        )) {
+            val result = rejected(sql)
+            assertEquals(SimCodes.UNKNOWN_OBJECT, result.code, sql)
+            assertNull(result.objectName, sql)
+        }
+        assertNull(rejected("SELECT nope FROM person").objectName)
+        assertNull(rejected("INSERT INTO person (nope) VALUES (1)").objectName)
     }
 
     /**
