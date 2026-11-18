@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** Abschnitt 4 der Spezifikation „Fehler-Codes und Logging-Felder“, Zeile `TDS_SIM_UNKNOWN_OBJECT` ([Abschnitt 4](../../../../spec/spezifikation.md#4-fehler-codes-und-logging-felder)) · [SPEC-045](../../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig) (Ausnahmeliste).
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912
 
 **Autor:** pt9912 (Entwurf in der Planner-Rolle). **Datum:** 2026-11-17.
 
