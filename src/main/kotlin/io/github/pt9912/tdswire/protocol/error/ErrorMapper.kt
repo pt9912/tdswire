@@ -90,7 +90,8 @@ internal const val MAX_OBJECT_NAME = 4 * 128 + 3
  * Regel ([ErrorRule]) ist die einzige Quelle von Meldung und Verbindungsfolge, die Folge eines
  * Ausgangs des Sequenzierers liefert [fateOf].
  *
- * Festlegung (nicht gemessen): Der Text jeder Antwort ist der feste Text der Regel; der Text einer
+ * Festlegung (nicht gemessen): Der Text jeder Antwort ist der feste Text der Regel, bei einer Regel mit
+ * [ErrorRule.namesObject] und gültigem Namen `Invalid object name '<Name>'.`; der Text einer
  * [QueryEvent.Failure] und der einer Ausnahme erreichen den Client nie. Die eine Eingabe im Text ist der Name einer
  * unbekannten Tabelle ([ErrorRule.namesObject], [nameOf]). Der Abschluss der Antwort auf einen
  * SQL_BATCH ist `DONE` mit Statusbit `ERROR`, Befehlskennung `0x00fd` und Zeilenzahl 0 (gemessen: Fehler ohne offenes

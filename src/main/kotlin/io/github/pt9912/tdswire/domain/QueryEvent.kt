@@ -80,7 +80,9 @@ public sealed interface QueryEvent {
      * nennt (`<Schema>.<Name>` oder `<Name>`, ohne Klammern und Anführungszeichen, in der Schreibung des Textes); mit
      * ihm lautet die Meldung an den Client `Invalid object name '<objectName>'.`, ohne ihn `Unknown object.`. Die
      * Bibliothek gibt den Namen unverändert weiter, wenn er höchstens 515 Zeichen lang ist und kein Steuerzeichen
-     * außer dem Zeilenumbruch enthält, und sonst nicht; [message] erreicht den Client nie.
+     * außer dem Zeilenumbruch enthält, und sonst nicht (Setzung, nicht gemessen: die Prüfung ist `Char.isISOControl`
+     * und lässt etwa U+2028 und U+FEFF durch; das Simulations-Backend nennt den Namen zusätzlich nur bis 128 Zeichen je
+     * Teil, gemessen); [message] erreicht den Client nie.
      */
     public data class Failure @JvmOverloads constructor(
         val code: String,

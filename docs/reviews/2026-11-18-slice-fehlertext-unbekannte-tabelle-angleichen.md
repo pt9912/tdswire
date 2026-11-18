@@ -1,12 +1,12 @@
 # Review-Report: slice-fehlertext-unbekannte-tabelle-angleichen — 2026-11-18
 
-**Review-Art:** Code — gegen Plan, ADR-0007, ADR-0008 und die Hard Rules (`AGENTS.md` §3.1 bis §3.8).
+**Review-Art:** Code — gegen Plan, [ADR-0007](../plan/adr/0007-fehler-und-attention.md), [ADR-0008](../plan/adr/0008-dotnet-kompatibilitaetstests.md) und die Hard Rules (`AGENTS.md` §3.1 bis §3.8).
 
 **Gegenstand:** Diff `main...HEAD` des Zweigs `slice-fehlertext-unbekannte-tabelle-angleichen`, Commit f65df36c, 23 Dateien.
 
 **Skill:** `.harness/skills/reviewer.md` · **Modell:** claude-sonnet-5-5 · **Datum:** 2026-11-18
 
-**Eingangs-Kontext:** Slice `slice-fehlertext-unbekannte-tabelle-angleichen` (§1, DoD, §3), ADR-0007, ADR-0008, `AGENTS.md` §3, Spezifikation (Abschnitt 4, `SPEC-002`, `SPEC-038`, `SPEC-059`), Messprotokoll `docs/messungen/referenzabgleich.md` (M-37, A-3), Diff.
+**Eingangs-Kontext:** Slice `slice-fehlertext-unbekannte-tabelle-angleichen` (§1, DoD, §3), [ADR-0007](../plan/adr/0007-fehler-und-attention.md), [ADR-0008](../plan/adr/0008-dotnet-kompatibilitaetstests.md), `AGENTS.md` §3, Spezifikation (Abschnitt 4, `SPEC-002`, `SPEC-038`, `SPEC-059`), Messprotokoll `docs/messungen/referenzabgleich.md` (M-37, A-3), Diff.
 
 **Ausgeführte Sensoren:** `make test` (Exit 0, Ergebnis aus dem Layer-Cache, 2 s; der Stand der Quellen war schon gebaut; keine roten Tests). Nicht gefahren, weil nicht Teil der Reviewer-Pflicht für `src/`: `make clean-build`, `make e2e`, Messläufe (`make vergleichslauf-d`). Die Mutationen unten sind im Kopf an Code und Testdaten geprüft, nicht gefahren.
 

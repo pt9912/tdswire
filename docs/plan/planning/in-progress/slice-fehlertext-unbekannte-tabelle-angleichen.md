@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) (Negative: definierter SQL-Fehler), [TDS-FA-06](../../../../spec/lastenheft.md#tds-fa-06--fehler-und-abschlusszustände) (Fehler und Abschlusszustände), [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [ADR-0007](../../adr/0007-fehler-und-attention.md) (Fehler und Attention), [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md)
 
-**Berührte Spec-Stellen:** Abschnitt 4 der Spezifikation „Fehler-Codes und Logging-Felder“, Zeile `TDS_SIM_UNKNOWN_OBJECT` ([Abschnitt 4](../../../../spec/spezifikation.md#4-fehler-codes-und-logging-felder)) · [SPEC-045](../../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig) (Ausnahmeliste).
+**Berührte Spec-Stellen:** Abschnitt 4 der Spezifikation „Fehler-Codes und Logging-Felder“, Zeile `TDS_SIM_UNKNOWN_OBJECT` ([Abschnitt 4](../../../../spec/spezifikation.md#4-fehler-codes-und-logging-felder)) · [SPEC-045](../../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig) (Ausnahmeliste) · [SPEC-002](../../../../spec/spezifikation.md#spec-002--interner-query-vertrag) (Signatur `Failure`, Absatz „Name der unbekannten Tabelle“) · [SPEC-059](../../../../spec/spezifikation.md#einstieg-des-integrators-vertrag-zu-spec-059) (öffentliche Fläche: Mitglied `Failure.objectName`) · `SPEC-038` (Zeile der Tabelle) und Änderungsverlauf.
 
 **Verantwortlich:** pt9912
 
@@ -71,11 +71,15 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `src/main/kotlin/io/github/pt9912/tdswire/protocol/error/ErrorCode.kt`, `ErrorMapper.kt` | update, falls Option A | fester Text je Code; neu: ein Text mit Namen (Parametrisierung des Textes) |
-| `src/main/kotlin/io/github/pt9912/tdswire/simulation/StatementPlanner.kt` | update, falls Option A | erzeugt den Fehler `UNKNOWN_OBJECT`; reicht den Namen der Tabelle weiter |
-| `src/test/kotlin/io/github/pt9912/tdswire/simulation/SimulationBackendFixedTest.kt`, `SimulationBackendChangeTest.kt`, `SimulationBackendBulkTest.kt`, `BulkCopyFormsTest.kt` | update | vorhandene Tests der Abweisung (Treffer von `TDS_SIM_UNKNOWN_OBJECT` in `src/test`) auf den neuen Text; neue Fälle |
-| `referenztest-dotnet/Vergleich/live-ausnahmen.tsv`, `referenztest-dotnet/Vergleich/mitschnitt-ausnahmen.tsv` | update | zwei Regeln A-3 entfallen oder wechseln die Art |
-| `spec/spezifikation.md`, `docs/messungen/referenzabgleich.md` | update | Abschnitt 4 (Zeile `TDS_SIM_UNKNOWN_OBJECT`), Tabelle der Ausnahmen |
+| `src/main/kotlin/io/github/pt9912/tdswire/domain/QueryEvent.kt` | update | neues öffentliches Mitglied `Failure.objectName` (der Text einer Ausnahme erreicht den Client nie, der Name muss auf einem eigenen Weg laufen) |
+| `src/main/kotlin/io/github/pt9912/tdswire/protocol/error/ErrorCode.kt`, `ErrorMapper.kt` | update | Regel `namesObject`, Text `Invalid object name '<Name>'.`, Prüfung des Namens (`nameOf`, 515 Zeichen) |
+| `src/main/kotlin/io/github/pt9912/tdswire/simulation/StatementPlanner.kt`, `SimulationBackend.kt` | update | der Planer nennt den Namen (128 Zeichen je Teil), das Backend reicht ihn im `Failure` weiter |
+| `src/test/kotlin/io/github/pt9912/tdswire/protocol/error/ErrorMapperObjectNameTest.kt` | neu | Text, Grenzen, Wächter (die Tests liegen nicht in `ErrorMapperTest`, dessen Größe die detekt-Regel `LargeClass` sprengt) |
+| `src/test/kotlin/io/github/pt9912/tdswire/simulation/StatementPlannerTest.kt`, `SimulationBackendSelectTest.kt`, `src/integrator/kotlin/io/github/pt9912/tdswire/integrator/MergeFehlerEmbeddingTest.kt` | update | Name je Anweisungsform, Grenzen, Ende-zu-Ende-Text im Einbettungstest |
+| `SimulationBackendFixedTest.kt`, `SimulationBackendChangeTest.kt`, `SimulationBackendBulkTest.kt`, `BulkCopyFormsTest.kt` | nicht berührt | im Plan genannt, erwarten den festen Text nicht (Suche nach „Unknown object“ in `src/test` ohne Treffer) |
+| `referenztest-dotnet/Vergleich/MessungBulkTests.cs`, `referenztest-dotnet/Mitschnitt/MessungBulkBelegTests.cs`, `referenztest-dotnet/Mitschnitt/messung/bulk-merge-katalog/{2022,2025}/fehler-tabelle-unbekannt.messung` | update, neu | Messung M-42 (DoD 1) und ihre Belege |
+| `referenztest-dotnet/Vergleich/live-ausnahmen.tsv`, `referenztest-dotnet/Vergleich/mitschnitt-ausnahmen.tsv` | update | Live-Regel entfällt, Mitschnitt-Regel auf Servername und Zeilennummer verkleinert |
+| `spec/spezifikation.md`, `docs/messungen/referenzabgleich.md`, `docs/plan/kompatibilitaetsmatrix.md`, `docs/user/*.md`, Register `state.md`, `docs/plan/spec-abdeckung.md` | update | Nachzug (DoD 3 und Doku-Pflicht) |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf (Testdateien mit Kennung der Akzeptanzkriterien).
 
@@ -110,6 +114,17 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 ## 7. Closure-Notiz
 
 Wird bei der Closure gefüllt.
+
+**Vom Implementer vermerkt (kein Urteil, keine Haken):**
+
+- **Abweichung vom DoD-Wortlaut (DoD 2):** Die Mitschnitt-Regel `fehler-vor-zeilen/01/fehler` entfällt nicht, sondern bleibt verkleinert (Servername leer, Zeile 0 gegen vorhanden und 1); die Live-Regel `fehler-vor-zeilen` entfällt. Der Wortlaut ist vor der Verifikation anzupassen; der Haken bleibt ungesetzt.
+- **Kennung der Messung:** M-42 im Messprotokoll des Referenzabgleichs (M-37 bis M-41 führt das Messprotokoll der Zeilenform).
+- **Offene Fragen, Träger Nutzer (nicht entschieden):**
+  1. Servername und Zeilennummer im ERROR der Bibliothek (leer, 0): ein Name (welcher?) und `1` senden, oder bleibt die Lücke A-3 im Mitschnitt?
+  2. Das neue öffentliche Mitglied `Failure.objectName` (SPEC-059, `copy` und `component4` der `data class` ändern sich für Kotlin-Aufrufer): bestätigen oder an den Architect geben; steigt dabei die Version `y` von `0.y.z`?
+  3. `INSERT BULK` und die Probe des Massenladens senden weiter „Unknown object.“, der echte Server nennt den Namen (M-35): Folge-Slice (braucht ein Feld an den öffentlichen Typen `BulkTargetResult.Rejected` und `BulkProbeResult.Rejected`)?
+  4. Ein Bezeichner über 128 Zeichen endet am echten Server mit 103 (Class 15), hier mit 208 und festem Text: 103 abbilden?
+  5. Die Grenzen sind Setzungen: 515 Zeichen für jedes Backend, Prüfung mit `Char.isISOControl` ohne Zeilenumbruch (lässt U+2028, U+2029, Bidi-Steuerzeichen und U+FEFF durch; `NUL` und Tabulator nicht gemessen); 128 Zeichen je Teil gilt nur für das Simulations-Backend und ist gemessen.
 
 **Herkunft:** Lücke A-3 der Ausnahmeliste, [Messprotokoll des Referenzabgleichs](../../../messungen/referenzabgleich.md); Register `BEO-TDS/unbekannte-tabelle-class-20-statt-16-am-server` (Offen: der feste Text; „kein Träger“ in [Results-Notiz von welle-referenzabgleich-release](../done/welle-referenzabgleich-release-results.md)); [slice-unbekannte-tabelle-class-16-angleichen](../done/slice-unbekannte-tabelle-class-16-angleichen.md). Nicht im Gruppierungsvorschlag der Closure-Notiz (dort ohne Zeile), deshalb ein eigener Slice. Nutzerentscheidung 2026-11-17: „ja slices anlegen“ (Frage der Closure von `welle-referenzabgleich-release`, Punkt: die 14 Lücken-Nummern ohne Träger-Slice).
 
