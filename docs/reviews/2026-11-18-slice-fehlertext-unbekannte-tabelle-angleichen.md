@@ -39,7 +39,7 @@
 ### F-4 — MEDIUM
 - `kategorie`: MEDIUM
 - `quelle`: Reviewer-Skill „Plan-Tabelle nennt die berührten Dateien nicht“
-- `pfad`: `docs/plan/planning/in-progress/slice-fehlertext-unbekannte-tabelle-angleichen.md` · „Der Implementer-Agent erweitert die Liste in seinem ersten Lauf“
+- `pfad`: `docs/plan/planning/done/slice-fehlertext-unbekannte-tabelle-angleichen.md` · „Der Implementer-Agent erweitert die Liste in seinem ersten Lauf“
 - `befund`: §3 ist im Diff unverändert. Nicht in der Tabelle stehen `QueryEvent.kt`, `SimulationBackend.kt`, `ErrorMapperObjectNameTest.kt`, `StatementPlannerTest.kt`, `SimulationBackendSelectTest.kt`, `MergeFehlerEmbeddingTest.kt`, `MessungBulkTests.cs`, `MessungBulkBelegTests.cs`, die beiden `.messung`-Dateien, `kompatibilitaetsmatrix.md`, `docs/user/einbettung-und-betrieb.md`, `referenz-konfiguration.md` und das Register. Die genannten `SimulationBackendFixedTest.kt`, `SimulationBackendChangeTest.kt`, `SimulationBackendBulkTest.kt`, `BulkCopyFormsTest.kt` sind im Diff nicht berührt (der Plan nennt sie als „update“). Der Kopf „Berührte Spec-Stellen“ nennt `SPEC-059` und `SPEC-002` nicht, die der Diff berührt.
 - `verifizierbar`: ja (Abgleich Tabelle gegen `git diff --stat`)
 - `klasse`: Plan-Tabelle gegen Diff nicht abgeglichen
@@ -55,7 +55,7 @@
 ### F-6 — LOW
 - `kategorie`: LOW
 - `quelle`: `AGENTS.md` §3.7, Plan DoD („die Regeln … entfallen — oder Art *so gewollt*“)
-- `pfad`: `referenztest-dotnet/Vergleich/mitschnitt-ausnahmen.tsv` · „fehler-vor-zeilen/01/fehler“ und `docs/plan/planning/in-progress/slice-fehlertext-unbekannte-tabelle-angleichen.md` · DoD „entfallen“
+- `pfad`: `referenztest-dotnet/Vergleich/mitschnitt-ausnahmen.tsv` · „fehler-vor-zeilen/01/fehler“ und `docs/plan/planning/done/slice-fehlertext-unbekannte-tabelle-angleichen.md` · DoD „entfallen“
 - `befund`: Die Mitschnitt-Regel bleibt mit Servername leer und Zeile 0 und ändert ihren Inhalt (A-3 neu betitelt, Art `Luecke`); das ist sachlich richtig (der Unterschied besteht, M-37 misst Servername vorhanden und Zeile 1), weicht aber vom DoD-Wortlaut ab, und weder DoD noch §7 vermerken die Abweichung. Die Zeile der neuen Regel und das Entfallen der Live-Regel ruhen auf Ableitung aus dem Code; im Messprotokoll steht kein Lauf von `make vergleichslauf-d` (Live, `mitschnitt-2022/2025`) nach der Angleichung (die alte A-3-Zeile sagte es selbst).
 - `verifizierbar`: ja (Verifier, `make vergleichslauf-d`, ohne Docker-Image-Änderung)
 - `klasse`: DoD-Abweichung nicht vermerkt / Ausnahmeliste ohne Lauf nach Änderung
