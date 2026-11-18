@@ -4,7 +4,7 @@
 
 **Stand:** Branch `slice-decimaln-laenge-an-messung-angleichen`, Spitze `7dcd69df` (Commits `42d9e32c`, `09560bff`, `36529248`, `7dcd69df`); Arbeitsbaum sauber vor diesem Bericht.
 
-**Gegenstand:** [slice-decimaln-laenge-an-messung-angleichen](../plan/planning/in-progress/slice-decimaln-laenge-an-messung-angleichen.md) (A-11, Option A, Nutzerentscheidung 2026-11-18); [TDS-FA-05](../../spec/lastenheft.md#tds-fa-05--resultsets-und-datentypen), [TDS-QA-01](../../spec/lastenheft.md#tds-qa-01--kompatibilität), [ADR-0008](../plan/adr/0008-dotnet-kompatibilitaetstests.md). Reviews: [Review](2026-11-18-slice-decimaln-laenge-an-messung-angleichen.md), [Re-Review](2026-11-18-slice-decimaln-laenge-an-messung-angleichen-re-review.md).
+**Gegenstand:** [slice-decimaln-laenge-an-messung-angleichen](../plan/planning/done/slice-decimaln-laenge-an-messung-angleichen.md) (A-11, Option A, Nutzerentscheidung 2026-11-18); [TDS-FA-05](../../spec/lastenheft.md#tds-fa-05--resultsets-und-datentypen), [TDS-QA-01](../../spec/lastenheft.md#tds-qa-01--kompatibilität), [ADR-0008](../plan/adr/0008-dotnet-kompatibilitaetstests.md). Reviews: [Review](2026-11-18-slice-decimaln-laenge-an-messung-angleichen.md), [Re-Review](2026-11-18-slice-decimaln-laenge-an-messung-angleichen-re-review.md).
 
 ## Selbst gefahrene Sensoren (End-Stand `7dcd69df`, unter der Messsperre, Docker)
 
