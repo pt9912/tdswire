@@ -3,7 +3,6 @@ package io.github.pt9912.tdswire.simulation
 import io.github.pt9912.tdswire.domain.ParameterDirection
 import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.domain.QueryParameter
-import io.github.pt9912.tdswire.domain.ResultColumn
 import io.github.pt9912.tdswire.port.QueryExecution
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
@@ -90,13 +89,17 @@ internal class SelectExecution(
         stopped.get() -> false
 
         part.prepared.condition.never -> {
-            emit(QueryEvent.ResultStart(part.plan.resultColumns.map { ResultColumn(it.name, it.type, it.nullable) }))
+            emit(resultStart(part))
             emit(QueryEvent.ResultEnd(0))
             true
         }
 
         else -> readSource(part)
     }
+
+    /** Der Anfang des Ergebnisses einer Auswahl: die Spalten der Auswahlliste mit der Länge der Beschreibung. */
+    private fun resultStart(part: SelectPart) =
+        QueryEvent.ResultStart(part.plan.resultColumns.map { it.toResultColumn() })
 
     private suspend fun FlowCollector<QueryEvent>.readSource(part: SelectPart): Boolean {
         val table = part.plan.table
@@ -106,7 +109,7 @@ internal class SelectExecution(
             return false
         }
         return try {
-            emit(QueryEvent.ResultStart(part.plan.resultColumns.map { ResultColumn(it.name, it.type, it.nullable) }))
+            emit(resultStart(part))
             pump(part, opened)
         } finally {
             opened.close()

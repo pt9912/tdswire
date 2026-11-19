@@ -2,6 +2,7 @@ package io.github.pt9912.tdswire.testserver
 
 import io.github.pt9912.tdswire.simulation.FilterTerm
 import io.github.pt9912.tdswire.simulation.RowFilter
+import io.github.pt9912.tdswire.simulation.SimQuery
 import io.github.pt9912.tdswire.simulation.SimTable
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
@@ -55,5 +56,23 @@ internal class KompatibilitaetsTablesTest {
 
         assertTrue(running.columns.first { it.name == "Id" }.nullable)
         assertTrue(running.primaryKey.isEmpty())
+    }
+
+    /**
+     * `Text` von `kaputt` hat die Länge 10 wie `nvarchar(10)` der Ansicht der Referenz (`testschema.sql`); die Zeilen,
+     * die die Quelle liefert, passen hinein. Wächter: eine Beschreibung ohne Länge (4000) lässt die Länge im
+     * COLMETADATA der Auswahl vom Schema der Referenz abweichen, die Regel A-14 der Ausnahmeliste des Mitschnitts.
+     *
+     * @spec SPEC-045
+     * @spec SPEC-035
+     */
+    @Test
+    fun `kaputt beschreibt Text mit der Laenge der Ansicht der Referenz`() = runBlocking {
+        val broken = table("kaputt")
+
+        assertEquals(BROKEN_TEXT_CHARS, broken.columns.first { it.name == "Text" }.maxLength)
+        val source = broken.rows(SimQuery(broken.columns, null))
+        val delivered = (1..KOMPAT_BROKEN_AFTER).map { assertNotNull(source.next()) }
+        assertTrue(delivered.all { (it[1] as String).length <= BROKEN_TEXT_CHARS })
     }
 }

@@ -499,7 +499,7 @@ gemessen. Dass ein Wert im ROW höchstens so lang ist wie die TYPE_INFO, ist Fol
   sind nicht im Mindestkatalog und enden in `TDS_UNSUPPORTED_TYPE`. `Time` und `DateTime` haben Scale 7
   (100 ns); ein feinerer Wert wird abgewiesen, nicht gerundet. Das Jahr liegt zwischen 1 und 9999.
 - Unicode-Text ist `NVARCHAR(<ResultColumn.maxLength>)`, ohne Angabe `NVARCHAR(4000)` (gemessen: Länge 10 und Flags 0 der Spalte
-  `$action`, M-26), mit der Kollation `SQL_Latin1_General_CP1_CI_AS`, gezählt in UTF-16-Einheiten; ein unpaares Surrogat wird abgewiesen. Der leere String ist ein Wert, nicht NULL.
+  `$action`, M-26; die Auswahl des Simulations-Backends meldet die Länge der Tabellenbeschreibung, `SPEC-035`), mit der Kollation `SQL_Latin1_General_CP1_CI_AS`, gezählt in UTF-16-Einheiten; ein unpaares Surrogat wird abgewiesen. Der leere String ist ein Wert, nicht NULL.
 - Decimal wird nie gerundet: ein Wert mit mehr Nachkommastellen als der Scale der Spalte oder mit mehr
   Stellen als die Precision erlaubt wird abgewiesen. Lesart und Grenze sind Setzungen vom 2026-10-30,
   nicht gemessen und vom Nutzer nicht bestätigt: nachlaufende Nullen zählen nicht (1,500 passt in
@@ -971,9 +971,17 @@ festgelegt sind; die Überführung der Werte, das Lesen der Zeilenquelle und die
   Sonderwert -1 sind Setzung dieser Spezifikation (die Entscheidung zur Länge nennt Vorgabe 4000, aber keinen
   Sonderwert). Belegt ist -1 durch den Lauf mit d-migrate 1.12.0: ein Soll mit `NVARCHAR(MAX)` endet ohne -1 mit Exit 5,
   mit -1 mit Exit 0 und `IDENTICAL`.
-  Sie gilt nur für `UnicodeText` und ändert die Metadaten eines Ergebnisses nicht (dort gilt `ResultColumn.maxLength`,
-  Vorgabe `NVARCHAR(4000)`, `SPEC-003`). Geprüft wird sie nur beim `MERGE` (Form M, `SPEC-036`: Text über der Länge ist 2628);
-  Zeilen der Zeilenquelle und der Massenladen prüft sie nicht. Andere Werte weist der Konstruktor ab.
+  Sie gilt nur für `UnicodeText`. Das Ergebnis einer Auswahl (Formen S1 und S2, auch bei einer Bedingung, die nie wahr
+  ist) meldet sie als `ResultColumn.maxLength`: die Metadaten der Spalte sind `NVARCHAR(<maxLength>)`, ohne Angabe der
+  Beschreibung `NVARCHAR(4000)` (`SPEC-003`); gemessen ist `nvarchar(10)` (Länge 20) einer Ansicht am Referenzclient
+  (Messprotokoll A-14). Der Sonderwert -1 meldet das Ergebnis als 4000 (Setzung, nicht gemessen: wie der echte Server das
+  COLMETADATA einer `nvarchar(max)`-Spalte im Ergebnis schreibt, ist nicht aufgenommen). Das Backend prüft die Zeilen der
+  Zeilenquelle nicht gegen die Länge: ein Text einer Zeile über der Länge der Beschreibung endet in der Antwort im Fehler,
+  weil die Bibliothek ihn abweist (`SPEC-003`; Setzung, die Fehlernummer ist nicht gemessen, Test
+  `SpaltenlaengeAuswahlWireTest`); eine Zeile genau in der Länge ist ein Ergebnis. Am echten Server ist der Fall an einer
+  Tabellenspalte nicht erreichbar (der Server weist den Text schon beim Schreiben ab). Geprüft wird die Länge sonst nur
+  beim `MERGE` (Form M, `SPEC-036`: Text über der Länge ist 2628); der Massenladen prüft sie nicht. Andere Werte weist
+  der Konstruktor ab.
   `SimTable.onInsertBatch` nimmt die Zeilen einer Massenlade-Nachricht (`0x07`) als Liste: eine Nachricht ist eine Anweisung
   (Nutzer, 2026-11-06), ein Aufruf je Nachricht, jede Zeile eine Abbildung von Spaltennamen der Beschreibung auf überführte
   Werte (eine Spalte, die die Nachricht nicht nennt, fehlt). Zusage an den Integrator: der Aufruf gilt ganz oder gar nicht;
@@ -1045,9 +1053,10 @@ festgelegt sind; die Überführung der Werte, das Lesen der Zeilenquelle und die
   Überlauf
   (Int32, Int64, Stellen der Dezimalzahl) ist immer `TDS_SIM_INVALID_VALUE`. Dezimalwerte werden mit
   `compareTo` verglichen (1.0 gleich 1.00), Textwerte ohne Beachtung der Groß-/Kleinschreibung
-  (Setzung, wie die Bezeichner). Texte begrenzt das Backend selbst nicht; ein Text von mehr als 4000
-  UTF-16-Einheiten, den eine Zeilenquelle liefert, weist die Typabbildung mit `TDS_UNSUPPORTED_TYPE` ab
-  (Limit: `SPEC-003`; Code: `SPEC-014` und Typabbildung; Setzung, nicht gemessen).
+  (Setzung, wie die Bezeichner). Texte begrenzt das Backend selbst nicht; ein Text, den eine Zeilenquelle liefert und
+  der länger ist als die Länge seiner Spalte im Ergebnis (`SimColumn.maxLength`, höchstens 4000 UTF-16-Einheiten),
+  weist die Typabbildung mit `TDS_UNSUPPORTED_TYPE` ab (Limit: `SPEC-003`; Code: `SPEC-014` und Typabbildung; Setzung,
+  nicht gemessen).
   Weitere Festlegungen der Überführung (Setzung, Voreinstellung, nicht gemessen): eine Zahl gilt, wenn sie
   ohne Rest in den Zielwert passt (`1.0` und `100` in einer Ganzzahlspalte, `3.500` in `Decimal(10,2)`); die
   Zahlen `0` und `1` sind in einer Bool-Spalte falsch und wahr, jede andere Zahl ist ungültig; ein Text geht nur
@@ -1111,8 +1120,8 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   `Decimal(precision, scale)` bis Precision 38, `date` auf `Date`, `time` auf `Time`, `datetime` ohne
   `timezone: true` auf `DateTime`. `max_length` wird auf eine positive Ganzzahl geprüft und als
   `SimColumn.maxLength` gemeldet (der Katalog zeigt `nvarchar(<max_length>)`); ein Wert über 4000 gilt als 4000, ohne
-  Angabe gilt 4000 (Setzung); durchgesetzt wird er nicht, und das Metadatum eines Ergebnisses bleibt `NVARCHAR(4000)`
-  (`SPEC-003`). Jeder andere Typ
+  Angabe gilt 4000 (Setzung); das Backend setzt ihn bei den Zeilen nicht durch, das Metadatum eines Ergebnisses ist
+  `NVARCHAR(<max_length>)` (`SimColumn.maxLength`, `SPEC-003`). Jeder andere Typ
   (`smallint`, `char`, `float`, `uuid`, `binary`, `xml`, `json`, `array`, `enum`, `geometry`,
   `fulltext`, `datetime` mit `timezone: true`) und eine Precision über 38 weisen die Datei ab.
 - **Elemente aus der Datei** (gemessen ist, dass `d-migrate schema generate` 1.12.0 die hier benutzten Felder und Formen annimmt und
@@ -2359,3 +2368,4 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | 2026-11-18 | Text der Antwort auf eine unbekannte Tabelle an die Messung angeglichen (`TDS-FA-11`, `TDS-FA-06`, `TDS-QA-01`, `SPEC-038`, `SPEC-059`; Nutzerentscheidung 2026-11-18, Option „Code angleichen“): öffentliche Fläche um das Feld `Failure.objectName` erweitert (Voreinstellung `null`, für Java der Konstruktor mit drei Argumenten bleibt); `TDS_SIM_UNKNOWN_OBJECT` meldet mit dem Namen `Invalid object name '<Name>'.`, ohne ihn den festen Text (Abschnitt 4, `SPEC-002` Absatz „Name der unbekannten Tabelle“; Messprotokoll, Szenario `fehler-tabelle-unbekannt`) |
 | 2026-11-18 | Länge von `DECIMALN` und `NUMERICN` im COLMETADATA an die Messung angeglichen (`TDS-FA-05`, `TDS-QA-01`, `SPEC-003`, `SPEC-036`; Entscheid des Nutzers 2026-11-18, Code angleichen): am echten SQL Server 2022 und 2025 gemessen ist die Länge 17 für jede Precision (Messprotokoll W-23, W-24), der Encoder schreibt sie; die Ausnahme A-11 entfällt; die Länge der Dezimalwerte im ROW (der Server schreibt nach dem Wert, W-25) ist nicht Teil der Aussage zur Zeilenform |
 | 2026-11-19 | Zwei Auswahlen in einem Text (Form S2) und Ausgabewert des `InputOutput`-Parameters (`TDS-FA-10`, `TDS-FA-11`, `TDS-QA-01`, `SPEC-036`, `SPEC-030`, `TDS-FA-11.a`; Entscheid des Nutzers 2026-11-18, Code angleichen): das Simulations-Backend beantwortet zwei Auswahlen der Form S1 ohne Parameter mit zwei Ergebnissen und sendet für einen `InputOutput`-Parameter einer Auswahl seinen Eingabewert als RETURNVALUE; die Ausnahmen A-2 und A-16 des Referenzabgleichs entfallen, Grenzen und Festlegungen in `SPEC-036` und `SPEC-030` |
+| 2026-11-19 | Länge einer Textspalte im COLMETADATA einer Auswahl an die Messung angeglichen (`TDS-FA-11`, `TDS-FA-05`, `TDS-QA-01`, `SPEC-035`, `SPEC-003`; Entscheid des Nutzers 2026-11-19, Code angleichen): das Simulations-Backend meldet `SimColumn.maxLength` als `ResultColumn.maxLength` jeder Auswahl (Formen S1 und S2, auch bei einer Bedingung, die nie wahr ist), ohne Angabe bleibt 4000; -1 (`nvarchar(max)`) meldet es als 4000 (Setzung, nicht gemessen); ein Text einer Zeile über der Länge der Beschreibung endet in der Antwort im Fehler (Setzung, Fehlernummer nicht gemessen); die Ausnahme A-14 entfällt; keine neue öffentliche Fläche (`SPEC-059`), die Antwort einer Auswahl über eine Tabelle mit kürzerer Länge ändert sich |

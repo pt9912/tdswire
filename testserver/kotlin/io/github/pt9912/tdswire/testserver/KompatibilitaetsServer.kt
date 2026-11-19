@@ -19,6 +19,9 @@ import java.time.LocalTime
 /** Zeilen von `kaputt`, bevor die Quelle fehlschlägt; wie im .NET-Test festgehalten. */
 internal const val KOMPAT_BROKEN_AFTER = 3
 
+/** Länge von `kaputt.Text` in Zeichen, wie `nvarchar(10)` der Ansicht `kaputt` in `testschema.sql`. */
+internal const val BROKEN_TEXT_CHARS = 10
+
 /** Zeilen und Zeichen Text je Zeile von `breit`: Zeilen von rund 1200 Bytes, größer als die Paketgröße 512. */
 internal const val WIDE_ROWS = 10
 internal const val WIDE_TEXT_CHARS = 600
@@ -46,8 +49,9 @@ private val KEY = SimColumn("Id", SqlType.Int32, nullable = false)
  * Bestand ändert sich nicht), `typen` mit je einer Spalte der acht Typen von `SqlType` und zwei Zeilen (eine
  * gefüllt, eine mit NULL), `breit` mit [WIDE_ROWS] Zeilen zu [WIDE_TEXT_CHARS] Zeichen (Zeilen über der
  * Paketgröße 512; die Wirkung auf die Paketierung der Antworten ist nicht beobachtet, ein Server mit fester
- * Paketgröße ließ den Test grün), `kaputt`, dessen Quelle nach [KOMPAT_BROKEN_AFTER] Zeilen mit einer Ausnahme
- * endet, und `laufend` mit einer Quelle ohne Ende (`LaufendeQuelle.kt`).
+ * Paketgröße ließ den Test grün), `kaputt` mit `Text` der Länge [BROKEN_TEXT_CHARS], dessen Quelle nach
+ * [KOMPAT_BROKEN_AFTER] Zeilen mit einer Ausnahme endet, und `laufend` mit einer Quelle ohne Ende
+ * (`LaufendeQuelle.kt`).
  */
 internal object KompatibilitaetsTables {
     fun all(): List<SimTable> = listOf(person(), types(), wide(), broken(), running())
@@ -135,7 +139,7 @@ internal object KompatibilitaetsTables {
 
     private fun broken() = SimTable(
         name = "kaputt",
-        columns = listOf(KEY, SimColumn("Text", SqlType.UnicodeText)),
+        columns = listOf(KEY, SimColumn("Text", SqlType.UnicodeText, maxLength = BROKEN_TEXT_CHARS)),
         primaryKey = listOf("Id"),
         rows = {
             var next = 0

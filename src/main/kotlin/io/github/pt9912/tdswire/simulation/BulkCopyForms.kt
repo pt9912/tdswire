@@ -134,8 +134,6 @@ internal object BulkCopyForms {
         }
     }
 
-    private fun column(column: SimColumn): BulkProbeColumn {
-        val chars = if (column.maxLength == UNBOUNDED_TEXT) MAX_TEXT_LENGTH else column.maxLength
-        return BulkProbeColumn(ResultColumn(column.name, column.type, column.nullable), chars)
-    }
+    private fun column(column: SimColumn): BulkProbeColumn =
+        BulkProbeColumn(ResultColumn(column.name, column.type, column.nullable), column.reportedLength)
 }
