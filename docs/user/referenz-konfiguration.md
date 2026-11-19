@@ -82,7 +82,9 @@ Die Anmeldung mit falschem Kennwort und mit unbekanntem Benutzer ergibt dieselbe
 | Anfrage | Antwort |
 |---|---|
 | SQL-Batch mit Ergebnis | `COLMETADATA ROW* DONE` (Statusbit `COUNT`) |
+| SQL-Batch mit zwei `SELECT` (Simulations-Backend) | `COLMETADATA ROW* DONE COLMETADATA ROW* DONE`; das erste `DONE` mit `MORE` und `COUNT`, das zweite mit `COUNT` (gemessen an einem Text, je eine Zeile) |
 | RPC (`sp_executesql`, `sp_prepexec`) mit Ergebnis | `COLMETADATA ROW* DONEINPROC RETURNSTATUS [RETURNVALUE] DONEPROC` |
+| RPC mit `InputOutput`-Parameter an einer einfachen `SELECT`-Anweisung (Simulations-Backend) | `RETURNVALUE` mit dem Eingabewert des Parameters hinter dem `RETURNSTATUS 0` (gemessen mit `sp_executesql`, ein Parameter, `INTN` 4; für die anderen RPC-Formen Setzung); ein reiner `OUTPUT`-Parameter bekommt vom Simulations-Backend keinen Wert |
 | RPC ohne Ausgabewert | `RETURNSTATUS 0` vor `DONEPROC` (der Wert 0, wenn das Backend keinen `ReturnStatus` meldet) |
 | mehrere RPCs in einer Nachricht (`sp_executesql`, RPC per Name) | die Antwort jedes Aufrufs wie oben, hintereinander; `DONEPROC` mit `MORE` und dem Bit `0x0080` an jedem Aufruf außer dem letzten, das Ordinal der `RETURNVALUE` je Aufruf von vorn (am echten SQL Server gemessen mit `sp_executesql`) |
 | `sp_prepexec` | `RETURNSTATUS 0` vor dem `RETURNVALUE` mit dem Handle (Ordinal 0) |

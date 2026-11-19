@@ -23,3 +23,5 @@
 **Wiederauftreten (slice-qa-performance-heap-abschluss):** Review F-10 (b), (c) und F-12: zwei Sätze in `docs/plan/referenz-workload.md` blieben nach der Fortschreibung stehen; der Reviewer fing es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
 
 **Wiederauftreten (slice-kompatibilitaetsserver-an-referenz-angleichen):** Review F-1: fünf Stellen des Slice nannten nach dem Befund zu `kaputt.Text` das Gegenteil; der Reviewer fing es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
+
+**Wiederauftreten (slice-simulation-mehrere-anweisungen-und-ausgabewert):** Review F-5 und Re-Review N-4: zweite Fundstellen in `TDS-FA-11.a`, der Anleitung und im Slice blieben stehen; der Reviewer fing es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.

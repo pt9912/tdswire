@@ -13,6 +13,7 @@ internal enum class Unrecognized {
     UNEXPECTED_END,
     COUNT_MISMATCH,
     DUPLICATE_COLUMN,
+    TOO_MANY_STATEMENTS,
 }
 
 /** Ein Token des Zeichenscanners; Leerraum und Kommentare erzeugen keines. */

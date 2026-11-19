@@ -1,0 +1,1 @@
+**Stand:** offen — 2× gezählt (`slice-kompatibilitaetsserver-an-referenz-angleichen`, `slice-simulation-mehrere-anweisungen-und-ausgabewert`), unter der Schwelle, nicht verkörpert; die Zahl folgt aus den Dateien in `evidence/`.
