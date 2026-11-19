@@ -63,7 +63,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 - [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
 - [x] Beobachtungs-Register (`../observations/`) fortgeschrieben: `BEO-TDS/fa-10-mehrteilige-antwort-ohne-backend-traeger` (Ausgang nachführen), `BEO-TDS/mitschnitt-luecken-ohne-traeger` (A-16-Anteil); keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
 - [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
 
 ## 3. Plan (vor Code)
 
@@ -153,7 +153,7 @@ Geschlossen 2026-11-19 (Planner, Slice-Closure ohne Welle). Geprüfter Stand: Zw
 
 **Risiken aus §6.** Ausgänge je Risiko in §6: Zerlegung an `;` entfallen; Statusbits eines Falls weiter offen (Messauftrag); Echo-Wert nur gemessene Form weiter offen; Änderung der Zusage von [ADR-0012](../../adr/0012-simulations-backend-beschreibung-und-formen.md) und SPEC-036 eingetreten und durch [ADR-0055](../../adr/0055-zwei-auswahlen-ohne-parameter-in-einem-text-sind-erkannt.md) aufgelöst; Größe entfallen.
 
-**Drei Paarungen.** (a) Anker: kein Eintrag trägt `liegt in`, nichts zu prüfen. (b) Folge-Slice: [slice-simulation-anweisungsformen-erweitern](../open/slice-simulation-anweisungsformen-erweitern.md) existiert in `open/`. (c) Register: die zehn genannten Kennungen existieren als Verzeichnis und tragen ein nicht leeres `evidence/`. Geprüft nach dem `git mv` (Ergebnis im Commit der letzten Zeile der DoD).
+**Drei Paarungen.** (a) Anker: kein Eintrag trägt `liegt in`, nichts zu prüfen. (b) Folge-Slice: [slice-simulation-anweisungsformen-erweitern](../open/slice-simulation-anweisungsformen-erweitern.md) existiert in `open/`. (c) Register: die zehn genannten Kennungen existieren als Verzeichnis und tragen ein nicht leeres `evidence/`. Geprüft nach dem `git mv` am 2026-11-19: (a) nichts zu prüfen, (b) Datei vorhanden, (c) alle zehn Verzeichnisse mit `observation.md`, `state.md` und nicht leerem `evidence/`.
 
 **Herkunft:** Lücken A-2 und A-16 (Rest) der Ausnahmeliste, [Messprotokoll des Referenzabgleichs](../../../messungen/referenzabgleich.md); Register `BEO-TDS/fa-10-mehrteilige-antwort-ohne-backend-traeger` (Träger-Vorschlag des Planners dort, „Backend liefert mehrere Anweisungen je Text und Ausgabewerte“) und `BEO-TDS/mitschnitt-luecken-ohne-traeger` (Rest von A-16); [Results-Notiz von welle-referenzabgleich-release](../done/welle-referenzabgleich-release-results.md) (Abschnitt „Ausnahmeliste: Art je Regel und die offene Arbeit“); [slice-antwort-mehrteilig-output](../done/slice-antwort-mehrteilig-output.md). Nutzerentscheidung 2026-11-17: „ja slices anlegen“ (Frage der Closure von `welle-referenzabgleich-release`, Punkt: die 14 Lücken-Nummern ohne Träger-Slice).
 
