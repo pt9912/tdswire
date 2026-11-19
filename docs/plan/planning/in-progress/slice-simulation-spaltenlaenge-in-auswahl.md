@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** [SPEC-035](../../../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends) (Aussage „ändert die Metadaten eines Ergebnisses nicht“) · [SPEC-003](../../../../spec/spezifikation.md#spec-003--typmapping-initialer-mindestkatalog) (`ResultColumn.maxLength`) · [SPEC-045](../../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig) (Ausnahmeliste).
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912
 
 **Autor:** Planner. **Datum:** 2026-11-19.
 
