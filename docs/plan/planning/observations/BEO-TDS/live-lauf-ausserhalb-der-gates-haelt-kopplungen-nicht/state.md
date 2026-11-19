@@ -4,4 +4,4 @@
 
 **Lese-Schritt welle-referenzabgleich-release (2026-11-17):** 3× gelesen, über der Schwelle, nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung), siehe `welle-referenzabgleich-release-results.md` §Steering-Loop-Einträge. Die Closure ändert weder Regel noch Gate. Der Stand `offen` bleibt.
 
-**Träger (2026-11-17):** Träger der Angleichung A-14 (Pflegerückstand von `laufend` und `kaputt`): [slice-kompatibilitaetsserver-an-referenz-angleichen](../../../open/slice-kompatibilitaetsserver-an-referenz-angleichen.md) (`open/`); ein Sensor für die Kopplung bleibt ohne Träger, Entscheidung beim Nutzer.
+**Träger (2026-11-17):** Träger der Angleichung A-14 (Pflegerückstand von `laufend` und `kaputt`): [slice-kompatibilitaetsserver-an-referenz-angleichen](../../../in-progress/slice-kompatibilitaetsserver-an-referenz-angleichen.md) (`open/`); ein Sensor für die Kopplung bleibt ohne Träger, Entscheidung beim Nutzer.
