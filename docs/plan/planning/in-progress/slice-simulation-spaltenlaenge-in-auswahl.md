@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) (Scope: Tabellenbeschreibung des Simulations-Backends), [TDS-FA-05](../../../../spec/lastenheft.md#tds-fa-05--resultsets-und-datentypen) (Spaltenbeschreibung eines Ergebnisses), [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md), [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) (Entscheidung zu `SimColumn.maxLength`, Accepted, unverändert), [ADR-0012](../../adr/0012-simulations-backend-beschreibung-und-formen.md) (Entscheidung 7, Accepted, unverändert; teilweise ersetzt durch [ADR-0056](../../adr/0056-laenge-einer-textspalte-erreicht-das-colmetadata-einer-auswahl.md), `Accepted`)
 
-**Berührte Spec-Stellen:** [SPEC-035](../../../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends) (Aussage „ändert die Metadaten eines Ergebnisses nicht“) · [SPEC-003](../../../../spec/spezifikation.md#spec-003--typmapping-initialer-mindestkatalog) (`ResultColumn.maxLength`) · [SPEC-045](../../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig) (Ausnahmeliste).
+**Berührte Spec-Stellen:** [SPEC-035](../../../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends) (Aussage „ändert die Metadaten eines Ergebnisses nicht“) · [SPEC-003](../../../../spec/spezifikation.md#spec-003--typmapping-initialer-mindestkatalog) (`ResultColumn.maxLength`) · [SPEC-045](../../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig) (Ausnahmeliste; der Text der Spezifikation bleibt unverändert, die Liste steht im Messprotokoll und in `referenztest-dotnet/Vergleich/mitschnitt-ausnahmen.tsv`); dazu in SPEC-035 die Absätze zur Datei-Abbildung und zum Bestand des Testservers und der Änderungslog.
 
 **Verantwortlich:** pt9912
 
@@ -78,14 +78,23 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 | `src/main/kotlin/io/github/pt9912/tdswire/simulation/SelectExecution.kt` | update | beide `ResultColumn(...)` (Zeilen 93, 109) tragen `maxLength` aus `SimColumn`; -1 ergibt 4000 ([ADR-0056](../../adr/0056-laenge-einer-textspalte-erreicht-das-colmetadata-einer-auswahl.md) Entscheidung 3) |
 | `src/main/kotlin/io/github/pt9912/tdswire/simulation/SimModel.kt` | update | KDoc von `SimColumn.maxLength`: die Länge gilt auch im Ergebnis |
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/result/ColumnMapping.kt` | prüfen | bildet `ResultColumn.maxLength` auf `NVARCHAR` ab; erwartet keine Änderung |
-| `src/main/kotlin/io/github/pt9912/tdswire/simulation/BulkCopyForms.kt` | prüfen | liest `maxLength` bereits und bildet -1 auf 4000 ab; dieselbe Abbildung wie [ADR-0056](../../adr/0056-laenge-einer-textspalte-erreicht-das-colmetadata-einer-auswahl.md) Entscheidung 3 (gemeinsame Konstante oder Funktion statt zweiter Kopie) |
-| `spec/spezifikation.md` (SPEC-035, SPEC-003, Änderungslog) | update | Aussage „ändert die Metadaten eines Ergebnisses nicht“ ersetzen; Entscheidungen 2 und 3 von [ADR-0056](../../adr/0056-laenge-einer-textspalte-erreicht-das-colmetadata-einer-auswahl.md) als Setzung; Absatz der Datei-Abbildung („das Metadatum eines Ergebnisses bleibt `NVARCHAR(4000)`“) mitziehen |
+| `src/main/kotlin/io/github/pt9912/tdswire/simulation/BulkCopyForms.kt` | update | nutzt `SimColumn.reportedLength` statt der eigenen Abbildung von -1 auf 4000 (dieselbe Abbildung wie [ADR-0056](../../adr/0056-laenge-einer-textspalte-erreicht-das-colmetadata-einer-auswahl.md) Entscheidung 3, keine zweite Kopie) |
+| `spec/spezifikation.md` (SPEC-035 mit Absatz zu `SimColumn.maxLength`, Datei-Abbildung und Bestand des Testservers, SPEC-003, Änderungslog) | update | Aussage „ändert die Metadaten eines Ergebnisses nicht“ ersetzen; Entscheidungen 2 und 3 von [ADR-0056](../../adr/0056-laenge-einer-textspalte-erreicht-das-colmetadata-einer-auswahl.md) als Setzung; Absatz der Datei-Abbildung („das Metadatum eines Ergebnisses bleibt `NVARCHAR(4000)`“) mitziehen |
 | `testserver/kotlin/io/github/pt9912/tdswire/testserver/KompatibilitaetsServer.kt` | update | `kaputt.Text` mit `maxLength = 10` |
 | `referenztest-dotnet/Vergleich/mitschnitt-ausnahmen.tsv` | update | Regel `fehler-nach-zeilen/01/colmetadata` entfällt |
 | `docs/messungen/referenzabgleich.md` | update | A-14 geschlossen |
-| Tests unter `src/test/kotlin/…/simulation/` | neu / update | Länge im Ergebnis, Vorgabe 4000, -1, Bedingung nie wahr; Testdatei nennt die Anforderungs-Kennung |
+| `src/test/kotlin/io/github/pt9912/tdswire/simulation/SimulationBackendSelectLengthTest.kt` | neu | Länge im Ergebnis (S1, S2), Vorgabe 4000, -1, Bedingung nie wahr, Randwerte |
+| `src/test/kotlin/io/github/pt9912/tdswire/runtime/SpaltenlaengeAuswahlWireTest.kt` | neu | Länge im COLMETADATA und Text über und genau auf der Länge auf dem Draht, Batch und `sp_executesql` |
+| `testserver/test/kotlin/io/github/pt9912/tdswire/testserver/KompatibilitaetsTablesTest.kt` | update | Fixture `kaputt.Text` hat Länge 10 |
+| `testserver/kotlin/io/github/pt9912/tdswire/testserver/RowRules.kt`, `testserver/kotlin/io/github/pt9912/tdswire/testserver/TableStore.kt` | update | der Bestand weist beim Massenladen und beim `UPDATE` einen Text über der Länge ab (Nachbesserung zum Review: ein solcher Text endete sonst in jeder Auswahl im Fehler der Antwort) |
+| `testserver/test/kotlin/io/github/pt9912/tdswire/testserver/TableStoreTest.kt` | update | Texte bis zur Länge, darüber abgewiesen, `UPDATE` als SQL-Text, Auswahl danach |
+| `referenztest-dotnet/Vergleich/testschema.sql` | update | Kommentar: Länge des Unicode-Textes folgt der Beschreibung |
+| `docs/user/einbettung-und-betrieb.md`, `docs/user/testserver-manuell.md` | update | Länge im Ergebnis, Fehler 50003, Prüfung im Bestand |
+| `docs/messungen/spaltenlaenge-mutationen-2026-11-19.md` | neu | Mutationsbeleg zu den Zusagen des Slice |
+| `docs/plan/spec-abdeckung.md` | update | erzeugt von `make spec-abdeckung` (Tests geändert) |
+| `docs/plan/adr/README.md` | update | Vermerk zu [ADR-0012](../../adr/0012-simulations-backend-beschreibung-und-formen.md) und Zeile zu [ADR-0056](../../adr/0056-laenge-einer-textspalte-erreicht-das-colmetadata-einer-auswahl.md) (Planner, vor dem Bau) |
 
-Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
+Die Liste ist nach dem Bau gegen `git diff --stat` abgeglichen.
 
 ## 4. Trigger
 

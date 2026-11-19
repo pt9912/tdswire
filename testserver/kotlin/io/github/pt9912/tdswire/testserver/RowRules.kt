@@ -18,17 +18,28 @@ import java.time.LocalTime
 internal object RowRules {
     private const val UBYTE_MAX = 255
 
+    /** `SimColumn.maxLength` einer `nvarchar(max)`-Spalte. */
+    private const val UNBOUNDED_TEXT = -1
+
     /**
      * Wirft, wenn [value] nicht in [column] steht: NULL nur in nullbaren Spalten, sonst die Klasse der Spaltenart
-     * (`Int16` und `UInt8`: ein `Int` im Wertebereich).
+     * (`Int16` und `UInt8`: ein `Int` im Wertebereich); ein Text steht nur bis zu `SimColumn.maxLength` Zeichen in
+     * der Spalte (`nvarchar(max)`, -1, hat keine Grenze). Die Bibliothek meldet die Ausnahme beim Massenladen als 2627
+     * und beim `UPDATE` als `TDS_BACKEND_ERROR`; ein Text über der Länge erreicht so nie den Bestand, den eine
+     * Auswahl dann nicht mehr ausliefern könnte (Setzung, am echten Server nicht gemessen).
      */
     fun check(column: SimColumn, value: Any?) {
         if (value == null) {
             require(column.nullable) { "NULL in nicht nullbarer Spalte" }
         } else {
             require(hasClassOf(column.type, value)) { "Wert nicht vom Typ der Spalte" }
+            require(fitsLength(column, value)) { "Text länger als die Spalte" }
         }
     }
+
+    private fun fitsLength(column: SimColumn, value: Any): Boolean =
+        column.type != SqlType.UnicodeText || column.maxLength == UNBOUNDED_TEXT ||
+            (value as String).length <= column.maxLength
 
     /** Wahr, wenn [where] auf [row] (Werte in der Reihenfolge von [columns]) zutrifft; `null` trifft jede Zeile. */
     fun matches(columns: List<SimColumn>, row: List<Any?>, where: RowFilter?): Boolean =

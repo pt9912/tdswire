@@ -2,6 +2,7 @@ package io.github.pt9912.tdswire.runtime
 
 import io.github.pt9912.tdswire.domain.SqlType
 import io.github.pt9912.tdswire.protocol.dispatch.BatchVectors
+import io.github.pt9912.tdswire.protocol.dispatch.RpcWire
 import io.github.pt9912.tdswire.protocol.session.SessionVectors
 import io.github.pt9912.tdswire.protocol.token.ColMetadataToken
 import io.github.pt9912.tdswire.protocol.token.DoneStatus
@@ -23,6 +24,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 private const val TABULAR_TYPE = 4
+private const val RPC_TYPE = 0x03
 private const val LENGTH = 10
 private const val UNSUPPORTED_TYPE_NUMBER = 50003
 private const val CLASS_CLOSING = 20
@@ -54,7 +56,16 @@ internal class SpaltenlaengeAuswahlWireTest : RuntimeTestBase() {
         },
     )
 
-    private fun asked(sql: String, closes: ((Boolean) -> Unit)? = null): List<Token> {
+    private fun asked(sql: String, closes: ((Boolean) -> Unit)? = null): List<Token> =
+        exchange(handMessage(BATCH_TYPE, BatchVectors.payload(sql), 4000), closes)
+
+    /** Ein `sp_executesql` mit [statement] und dem Ganzzahl-Parameter `@P0` (der Weg des Referenzclients). */
+    private fun askedWithParameter(statement: String, value: Int): List<Token> {
+        val rpc = RpcWire.executeSql(statement, "@P0 int", RpcWire.param("@P0", RpcWire.int4(value)))
+        return exchange(handMessage(RPC_TYPE, rpc, 4000), null)
+    }
+
+    private fun exchange(request: ByteArray, closes: ((Boolean) -> Unit)?): List<Token> {
         var answer: List<Token> = emptyList()
         blocking {
             val users = file("users.txt", "alice\t{plain}secret\n")
@@ -69,9 +80,9 @@ internal class SpaltenlaengeAuswahlWireTest : RuntimeTestBase() {
                 }
                 client.send(handMessage(LOGIN7_TYPE, login, 4000))
                 assertEquals(TABULAR_TYPE, assertNotNull(client.readMessage()).type)
-                client.send(handMessage(BATCH_TYPE, BatchVectors.payload(sql), 4000))
-                val reply = assertNotNull(client.readMessage(), sql)
-                assertEquals(TABULAR_TYPE, reply.type, sql)
+                client.send(request)
+                val reply = assertNotNull(client.readMessage())
+                assertEquals(TABULAR_TYPE, reply.type)
                 answer = TokenDecoder(reply.payload).decodeAll()
                 closes?.invoke(client.closedByServerWithoutBytes())
             }
@@ -106,6 +117,22 @@ internal class SpaltenlaengeAuswahlWireTest : RuntimeTestBase() {
         val never = asked("SELECT text FROM kaputt WHERE 1 = 0")
         assertEquals(listOf(listOf(LENGTH)), lengths(never))
         assertEquals(0, rowCount(never))
+    }
+
+    /**
+     * Happy: auch die Auswahl mit Parameter über `sp_executesql` (der Weg des Referenzclients) trägt die Länge der
+     * Beschreibung im COLMETADATA (10, 4000, 4000 für `Text`, `Frei`, `Lang`) und liefert ihre Zeile. Wächter: ein
+     * Weg für Auswahlen mit Parameter, der die Spalten ohne Länge baut.
+     * @spec SPEC-035
+     * @spec SPEC-003
+     */
+    @Test
+    fun `die Auswahl mit Parameter ueber sp_executesql traegt die Laenge`() {
+        val tokens = askedWithParameter("SELECT text, frei, lang FROM kaputt WHERE id = @P0", 1)
+
+        assertEquals(listOf(listOf(LENGTH, 4000, 4000)), lengths(tokens))
+        assertEquals(1, rowCount(tokens))
+        assertTrue(tokens.none { it is ErrorToken }, tokens.toString())
     }
 
     /**

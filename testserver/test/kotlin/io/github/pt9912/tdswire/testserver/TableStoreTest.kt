@@ -30,6 +30,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 
 private const val READERS = 2
+private const val NAME_LENGTH = 5
 
 /** Die Katalogabfragen von d-migrate 1.12.0 für die Elemente einer Tabelle (Wortlaut wie `DMigrateWire.kt`). */
 private const val COLUMNS = """
@@ -715,5 +716,73 @@ class TableStoreTest {
             ask(backend, "UPDATE kunden SET Name = N'x' WHERE Id = 9"),
         )
         assertEquals(listOf(listOf<Any?>(1L, "Ada L.")), stored(store))
+    }
+
+    private val laengen = kunden.copy(
+        columns = listOf(
+            SimColumn("Id", SqlType.Int64, nullable = false),
+            SimColumn("Name", SqlType.UnicodeText, maxLength = NAME_LENGTH),
+            SimColumn("Frei", SqlType.UnicodeText),
+            SimColumn("Lang", SqlType.UnicodeText, maxLength = -1),
+        ),
+    )
+
+    /**
+     * Boundary und Negativ: ein Text genau in der Länge der Spalte (`maxLength` 5, Vorgabe 4000) wird beim Massenladen
+     * und beim `UPDATE` angenommen, einer um ein Zeichen darüber wirft und lässt den Bestand unverändert; eine Spalte
+     * mit `maxLength` -1 hat keine Grenze. Wächter: ein Bestand ohne Prüfung der Länge (er nähme 6 Zeichen an, und
+     * die Auswahl danach endete im Fehler der Antwort), eine Prüfung mit `>=`, eine Prüfung, die -1 als Grenze liest.
+     * @spec SPEC-035
+     */
+    @Test
+    fun `der Bestand nimmt Texte nur bis zur Laenge der Spalte an`() {
+        val store = TableStore(listOf(laengen))
+        assertEquals(1, insert(store, mapOf("Id" to 1L, "Name" to "x".repeat(NAME_LENGTH), "Lang" to "y".repeat(5000))))
+        assertEquals(2, insert(store, mapOf("Id" to 2L, "Frei" to "z".repeat(4000)), mapOf("Id" to 3L)))
+        val before = stored(store)
+
+        val tooLong = listOf(
+            mapOf("Id" to 4L, "Name" to "x".repeat(NAME_LENGTH + 1)),
+            mapOf("Id" to 5L, "Frei" to "z".repeat(4001)),
+        )
+        for (row in tooLong) {
+            assertFailsWith<IllegalArgumentException>("$row") { insert(store, row) }
+            assertFailsWith<IllegalArgumentException>("Nachricht mit $row") { insert(store, mapOf("Id" to 6L), row) }
+        }
+        assertEquals(before, stored(store))
+
+        assertEquals(1, change(store, mapOf("Name" to "12345"), key(2L)))
+        assertFailsWith<IllegalArgumentException> { change(store, mapOf("Name" to "123456"), key(2L)) }
+        assertFailsWith<IllegalArgumentException> { change(store, mapOf("Frei" to "z".repeat(4001)), key(2L)) }
+        assertEquals(1, change(store, mapOf("Lang" to "y".repeat(5000)), key(3L)))
+        assertEquals("12345", stored(store).first { it[0] == 2L }[1])
+    }
+
+    /**
+     * Negativ und Happy (Zusammenspiel): ein `UPDATE` als SQL-Text mit einem Text über der Länge endet als
+     * `TDS_BACKEND_ERROR` und ändert nichts; eines genau in der Länge gelingt. Die Auswahl danach liefert die Zeile
+     * als Ergebnis mit `nvarchar(5)` im `ResultStart`, nie einen Fehler der Antwort. Wächter: ein Bestand, der den
+     * Text über der Länge annimmt (das `UPDATE` meldete 1 und jede folgende Auswahl der Zeile endete im Fehler).
+     * @spec SPEC-035
+     * @spec SPEC-003
+     */
+    @Test
+    fun `ein UPDATE ueber der Laenge ist abgewiesen und die Auswahl liefert ein Ergebnis`() {
+        val store = TableStore(listOf(laengen))
+        insert(store, mapOf("Id" to 1L, "Name" to "Ada"))
+        val backend = store.backend()
+
+        val rejected = ask(backend, "UPDATE kunden SET Name = N'123456' WHERE Id = 1")
+        assertEquals("TDS_BACKEND_ERROR", assertIs<QueryEvent.Failure>(rejected.single()).code)
+        assertEquals(
+            listOf<QueryEvent>(QueryEvent.UpdateCount(1, StatementKind.UPDATE)),
+            ask(backend, "UPDATE kunden SET Name = N'12345' WHERE Id = 1"),
+        )
+
+        val selected = ask(backend, "SELECT Name FROM kunden WHERE Id = 1")
+        val start = assertIs<QueryEvent.ResultStart>(selected.first())
+        assertEquals(listOf(NAME_LENGTH), start.columns.map { it.maxLength })
+        assertEquals(listOf<Any?>("12345"), selected.filterIsInstance<QueryEvent.Row>().single().values)
+        assertEquals(QueryEvent.ResultEnd(1), selected.last())
     }
 }
