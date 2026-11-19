@@ -1,6 +1,6 @@
 # ADR-0055: Zwei Auswahlen ohne Parameter in einem Text sind eine erkannte Form des Simulations-Backends (ersetzt teilweise ADR-0033 Nr. 11 und ADR-0012 Entscheidung 14)
 
-**Status:** Proposed
+**Status:** Accepted (vom Nutzer entschieden, 2026-11-19)
 
 **Datum:** 2026-11-19
 
@@ -32,7 +32,7 @@ Der Nutzer hat am 2026-11-18 entschieden: **Code angleichen, begrenzt auf Formen
 
 ## Entscheidung
 
-1. **Deckung (Lesart des Lastenhefts, vom Nutzer zu bestätigen).** Für das Simulations-Backend gilt [TDS-FA-10](../../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte) („mehrere Ergebnisse“, Grenze zwischen zwei Ergebnissen) als Nennung, soweit ein Text aus **zwei bereits erkannten Auswahlen** zwei Ergebnismengen ergibt. Das ist dasselbe Muster, mit dem [ADR-0033](0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Nr. 11 `MERGE` über ein Akzeptanzkriterium deckt: eine Lesart des Nutzers, keine wörtliche Nennung. Das Lastenheft ändert diese ADR nicht.
+1. **Deckung (Lesart des Lastenhefts, vom Nutzer am 2026-11-19 bestätigt).** Für das Simulations-Backend gilt [TDS-FA-10](../../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte) („mehrere Ergebnisse“, Grenze zwischen zwei Ergebnissen) als Nennung, soweit ein Text aus **zwei bereits erkannten Auswahlen** zwei Ergebnismengen ergibt. Das ist dasselbe Muster, mit dem [ADR-0033](0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Nr. 11 `MERGE` über ein Akzeptanzkriterium deckt: eine Lesart des Nutzers, keine wörtliche Nennung. Das Lastenheft ändert diese ADR nicht.
 2. **Form S2.** Erkannt sind **genau zwei Auswahlen der Form S1, ohne Parameter, in einem Text** ([SPEC-036](../../../spec/spezifikation.md#spec-036--erkannte-anweisungsformen-des-simulations-backends-vorläufig), Zeile S2). Die Antwort sind zwei Ergebnismengen in der Reihenfolge des Textes.
 3. **Die Grenze ist die Messgrenze.** „Zwei, ohne Parameter“ ist gemessen nur am Mitschnitt `mehrteilig`, je 2022 und 2025, je ein Fall. Die Zulassung jeder Auswahl der Form S1 (andere Tabelle, Spalten oder Bedingung als im Messtext) ist eine **Setzung**, weil die Antwortform je Auswahl dieselbe ist wie bei einer einzelnen Form S1; am echten Server ist sie dafür nicht gemessen. Das Verhalten bei unbekannter Tabelle oder Spalte in einer der beiden Auswahlen (der ganze Text wird abgewiesen, bevor etwas gelesen wird) ist ebenfalls eine **Festlegung, nicht gemessen**.
 4. **Alles andere ist nicht Form S2 und endet mit `TDS_UNSUPPORTED_SQL`.** Drei Gruppen sind **nicht erkannt** und enden vor jeder Prüfung gegen die Beschreibung mit `TDS_UNSUPPORTED_SQL`, auch mit einem unbekannten Objekt im Text: eine dritte Auswahl, eine Folge mit einer anderen Anweisung als S1, ein leeres Stück zwischen zwei `;`. **Zwei Auswahlen mit Parametern** erkennt der Parser; das Backend weist sie **nach der Prüfung gegen die Beschreibung** ab (unbekanntes Objekt: `TDS_SIM_UNKNOWN_OBJECT`, sonst `TDS_UNSUPPORTED_SQL`), wie es [SPEC-036](../../../spec/spezifikation.md#spec-036--erkannte-anweisungsformen-des-simulations-backends-vorläufig) (Zeile S2 und Liste „Nicht erkannt“) führt. Die Abweisung ist eine Festlegung, nicht gemessen; gemessen ist nur der Text mit zwei Auswahlen ohne Parameter. Die Obergrenze zwei ist die Grenze der Messung, keine Eigenschaft, die der Server begründet; sie wächst nur durch eine Folge-ADR mit Messung (Alternative D).
@@ -75,6 +75,7 @@ Der Nutzer verwirft die Lesart von [TDS-FA-10](../../../spec/lastenheft.md#tds-f
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-11-19 | Proposed (Empfehlung Option C, Entscheidung beim Nutzer) | [Review-Report vom 2026-11-19](../../reviews/2026-11-19-slice-simulation-mehrere-anweisungen-und-ausgabewert.md), Befund F-1 |
+| 2026-11-19 | Accepted: der Nutzer pt9912 nimmt Option C an wie vorgeschlagen (Lesart von [TDS-FA-10](../../../spec/lastenheft.md#tds-fa-10--mehrteilige-antworten-und-ausgabewerte), zwei Auswahlen ohne Parameter, jedes Paar der Form S1 als Setzung); das Lastenheft bleibt unverändert | Entscheidung des Nutzers im Auftrag an den Architect vom 2026-11-19 |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit
