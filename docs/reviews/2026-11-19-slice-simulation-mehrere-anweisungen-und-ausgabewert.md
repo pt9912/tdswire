@@ -2,7 +2,7 @@
 
 **Review-Art:** Code — gegen Plan, [ADR-0012](../plan/adr/0012-simulations-backend-beschreibung-und-formen.md), [ADR-0033](../plan/adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md), [ADR-0008](../plan/adr/0008-dotnet-kompatibilitaetstests.md) und die Hard Rules (`AGENTS.md` §3.1 bis §3.8).
 
-**Gegenstand:** Diff `4cd1eed6...HEAD` des Zweigs `slice-simulation-mehrere-anweisungen-und-ausgabewert`, ein Commit `d9292a35`, 21 Dateien (Slice [slice-simulation-mehrere-anweisungen-und-ausgabewert](../plan/planning/in-progress/slice-simulation-mehrere-anweisungen-und-ausgabewert.md)).
+**Gegenstand:** Diff `4cd1eed6...HEAD` des Zweigs `slice-simulation-mehrere-anweisungen-und-ausgabewert`, ein Commit `d9292a35`, 21 Dateien (Slice [slice-simulation-mehrere-anweisungen-und-ausgabewert](../plan/planning/done/slice-simulation-mehrere-anweisungen-und-ausgabewert.md)).
 
 **Skill:** `.harness/skills/reviewer.md` · **Modell:** claude-sonnet-5-5 · **Datum:** 2026-11-19
 
@@ -15,7 +15,7 @@
 ### F-1 — MEDIUM
 - `kategorie`: MEDIUM
 - `quelle`: [ADR-0033](../plan/adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Nr. 11, [ADR-0012](../plan/adr/0012-simulations-backend-beschreibung-und-formen.md) Entscheidung 14, Slice §4 (Start) und §6 (Risiko 4), `AGENTS.md` §3.5
-- `pfad`: `spec/spezifikation.md` · „| S2 | zwei Auswahlen der Form S1 in einem Text“ gegen `docs/plan/planning/in-progress/slice-simulation-mehrere-anweisungen-und-ausgabewert.md` · „Folge-ADR und Spec-Änderung gehen dem Bau voraus (Start-Bedingung)“
+- `pfad`: `spec/spezifikation.md` · „| S2 | zwei Auswahlen der Form S1 in einem Text“ gegen `docs/plan/planning/done/slice-simulation-mehrere-anweisungen-und-ausgabewert.md` · „Folge-ADR und Spec-Änderung gehen dem Bau voraus (Start-Bedingung)“
 - `befund`: [ADR-0033](../plan/adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Nr. 11 (vom Nutzer am 2026-11-06 bestätigt) lässt die Formenliste „nur um Formen wachsen, die das Lastenheft nennt“; `TDS-FA-11` nennt zwei Auswahlen in einem Text nicht, `TDS-FA-10` nennt nur „mehrere Ergebnisse“ der Antwort. Die Entscheidung des Nutzers vom 2026-11-18 sagt „begrenzt auf Formen, die das Backend ohnehin erkennt“; S2 ist eine neue Kombination bekannter Formen, ihre Lesart ist im Slice als unbestätigte Setzung geführt. §4 und §6 verlangen die Folge-ADR vor dem Bau und sind im Diff nicht angepasst, §1 sagt dagegen „nicht geschrieben, entscheidet der Architect“: der Slice widerspricht sich, und die Start-Bedingung ist nicht erfüllt.
 - `verifizierbar`: nein (Entscheidung, kein Gate)
 - `klasse`: Formenliste wächst ohne ADR-Träger / Start-Bedingung des Slice nicht erfüllt
@@ -55,7 +55,7 @@
 ### F-6 — MEDIUM
 - `kategorie`: MEDIUM
 - `quelle`: Skill „Plan-Tabelle nennt die berührten Dateien nicht“
-- `pfad`: `docs/plan/planning/in-progress/slice-simulation-mehrere-anweisungen-und-ausgabewert.md` · „Der Implementer-Agent erweitert die Liste in seinem ersten Lauf“
+- `pfad`: `docs/plan/planning/done/slice-simulation-mehrere-anweisungen-und-ausgabewert.md` · „Der Implementer-Agent erweitert die Liste in seinem ersten Lauf“
 - `befund`: §3 ist im Diff unverändert. Nicht in der Tabelle stehen die neuen `SelectExecution.kt` und `SeriesForms.kt` (Zerlegung beim Bau), `StatementOracleTest.kt`, `StatementPlannerTest.kt`, `docs/user/referenz-konfiguration.md`, `docs/user/testserver-manuell.md`, `docs/plan/spec-abdeckung.md`; die Tabelle nennt `KompatibilitaetsServer.kt` und `ResponseRpcTest.kt`, die der Diff nicht berührt (ohne Vermerk, warum). Im Kopf „Berührte Spec-Stellen“ steht `SPEC-045`, deren Text der Diff nicht ändert (die Ausnahmeliste liegt im Messprotokoll).
 - `verifizierbar`: ja (Abgleich Tabelle gegen `git diff --stat`)
 - `klasse`: Plan-Tabelle gegen Diff nicht abgeglichen

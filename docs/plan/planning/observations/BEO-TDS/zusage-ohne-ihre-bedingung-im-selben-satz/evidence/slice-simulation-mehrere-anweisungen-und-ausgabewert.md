@@ -1,2 +1,2 @@
-**Vorgang:** [slice-simulation-mehrere-anweisungen-und-ausgabewert](../../../../in-progress/slice-simulation-mehrere-anweisungen-und-ausgabewert.md)
+**Vorgang:** [slice-simulation-mehrere-anweisungen-und-ausgabewert](../../../../done/slice-simulation-mehrere-anweisungen-und-ausgabewert.md)
 **Fund:** [Review](../../../../../../reviews/2026-11-19-slice-simulation-mehrere-anweisungen-und-ausgabewert.md) F-4 (b) (MEDIUM): der Ausgabewert ist nur für `sp_executesql` mit einem Parameter (`INTN` 4) gemessen, `echo` läuft aber für jede RPC-Form, die eine Form S1 mit `InputOutput`-Parameter an das Backend gibt; die Bedingung stand in Spezifikation und Nutzer-Doku nicht im Satz. Der Reviewer fing es; behoben in `b2d46e27`.

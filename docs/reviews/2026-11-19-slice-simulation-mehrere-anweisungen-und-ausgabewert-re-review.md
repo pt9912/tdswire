@@ -2,7 +2,7 @@
 
 **Review-Art:** Re-Review (Folgelauf, neue Datei) gegen den [ersten Report](2026-11-19-slice-simulation-mehrere-anweisungen-und-ausgabewert.md), den Plan, [ADR-0055](../plan/adr/0055-zwei-auswahlen-ohne-parameter-in-einem-text-sind-erkannt.md) (`Proposed`), [ADR-0012](../plan/adr/0012-simulations-backend-beschreibung-und-formen.md), [ADR-0033](../plan/adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md), [ADR-0008](../plan/adr/0008-dotnet-kompatibilitaetstests.md) und die Hard Rules (`AGENTS.md` §3.1 bis §3.8).
 
-**Gegenstand:** Diff `0e639555...HEAD` des Zweigs `slice-simulation-mehrere-anweisungen-und-ausgabewert` (HEAD `b2d46e27`): Merge `6aef21e9` von `main`, ADR-Commit `78676037` (Architect), Nachbesserung `b2d46e27`. Gelesen sind nur diese Commits, nicht der ganze Slice noch einmal (Slice [slice-simulation-mehrere-anweisungen-und-ausgabewert](../plan/planning/in-progress/slice-simulation-mehrere-anweisungen-und-ausgabewert.md)).
+**Gegenstand:** Diff `0e639555...HEAD` des Zweigs `slice-simulation-mehrere-anweisungen-und-ausgabewert` (HEAD `b2d46e27`): Merge `6aef21e9` von `main`, ADR-Commit `78676037` (Architect), Nachbesserung `b2d46e27`. Gelesen sind nur diese Commits, nicht der ganze Slice noch einmal (Slice [slice-simulation-mehrere-anweisungen-und-ausgabewert](../plan/planning/done/slice-simulation-mehrere-anweisungen-und-ausgabewert.md)).
 
 **Skill:** `.harness/skills/reviewer.md` · **Modell:** claude-sonnet-5-5 · **Datum:** 2026-11-19
 
@@ -32,7 +32,7 @@
 ### N-1 — MEDIUM
 - `kategorie`: MEDIUM
 - `quelle`: Skill „Plan-Tabelle nennt die berührten Dateien nicht“; [ADR-0055](../plan/adr/0055-zwei-auswahlen-ohne-parameter-in-einem-text-sind-erkannt.md)
-- `pfad`: `docs/plan/planning/in-progress/slice-simulation-mehrere-anweisungen-und-ausgabewert.md` · „Die Folge-ADR zu“ (§1, Satz über die Folge-ADR zu [ADR-0012](../plan/adr/0012-simulations-backend-beschreibung-und-formen.md), Entscheidung 14) und die Tabelle in §3
+- `pfad`: `docs/plan/planning/done/slice-simulation-mehrere-anweisungen-und-ausgabewert.md` · „Die Folge-ADR zu“ (§1, Satz über die Folge-ADR zu [ADR-0012](../plan/adr/0012-simulations-backend-beschreibung-und-formen.md), Entscheidung 14) und die Tabelle in §3
 - `befund`: Der Zweig trägt `docs/plan/adr/0055-zwei-auswahlen-ohne-parameter-in-einem-text-sind-erkannt.md` und `docs/plan/adr/README.md`; §3 nennt beide nicht, und der Slice nennt die Kennung [ADR-0055](../plan/adr/0055-zwei-auswahlen-ohne-parameter-in-einem-text-sind-erkannt.md) nirgends (§1, §4, §6 sagen „Folge-ADR … schreibt der Architect als `Proposed`“, `Bezug:` führt sie nicht). Wer bei der Closure den Plan liest, findet die offene Entscheidung nicht über die Kennung.
 - `verifizierbar`: ja (Abgleich Tabelle und `Bezug:` gegen `git diff --name-only`; Grep „0055“ im Slice ohne Treffer)
 - `klasse`: Plan-Tabelle gegen Diff nicht abgeglichen
@@ -56,7 +56,7 @@
 ### N-4 — LOW
 - `kategorie`: LOW
 - `quelle`: Skill „Fortschreibung lässt die zweite Fundstelle stehen“
-- `pfad`: `docs/plan/planning/in-progress/slice-simulation-mehrere-anweisungen-und-ausgabewert.md` · „die beiden Zeilen der Matrix (Nr. 16, Abschnitt 7) auf „gemessen“ gestellt“ (§1, Option A)
+- `pfad`: `docs/plan/planning/done/slice-simulation-mehrere-anweisungen-und-ausgabewert.md` · „die beiden Zeilen der Matrix (Nr. 16, Abschnitt 7) auf „gemessen“ gestellt“ (§1, Option A)
 - `befund`: Die Nachbesserung stellt die beiden Zeilen der Matrix gerade nicht auf „gemessen“ (7a trägt „Erwartung des Tests; Lauf … noch nicht gefahren“, Nr. 16 „am Mitschnitt gemessen“). Der Absatz der Option steht als Plan-Text weiter im Slice; ebenso „Offen für den Nutzer: welche Kombinationen gelten“, das §1 oben als Setzung beantwortet.
 - `verifizierbar`: ja (Grep „auf „gemessen“ gestellt“)
 - `klasse`: Fortschreibung lässt zweite Fundstelle stehen
@@ -88,7 +88,7 @@
 ### N-8 — INFO
 - `kategorie`: INFO
 - `quelle`: Slice §2 und §4, [ADR-0055](../plan/adr/0055-zwei-auswahlen-ohne-parameter-in-einem-text-sind-erkannt.md), `AGENTS.md` §3.4
-- `pfad`: `docs/plan/planning/in-progress/slice-simulation-mehrere-anweisungen-und-ausgabewert.md` · „(Stand: der Bau liegt im Zweig, die Entscheidung steht aus)“
+- `pfad`: `docs/plan/planning/done/slice-simulation-mehrere-anweisungen-und-ausgabewert.md` · „(Stand: der Bau liegt im Zweig, die Entscheidung steht aus)“
 - `befund`: Die Start-Bedingung „Folge-ADR vor dem Bau“ ist im Plan auf den tatsächlichen Ablauf umgeschrieben; die DoD hat keinen Liefer-Punkt, der die Entscheidung über [ADR-0055](../plan/adr/0055-zwei-auswahlen-ohne-parameter-in-einem-text-sind-erkannt.md) vor der Closure verlangt. Verwirft der Nutzer die Lesart, tragen [SPEC-036](../../spec/spezifikation.md#spec-036--erkannte-anweisungsformen-des-simulations-backends-vorläufig) (Zeile S2), Code und Tests eine Form ohne Träger. Zuständig: Planner (Closure-Reihenfolge), Nutzer (Entscheidung).
 - `verifizierbar`: nein
 - `klasse`: Entscheidung des Nutzers nicht als Closure-Bedingung geführt
