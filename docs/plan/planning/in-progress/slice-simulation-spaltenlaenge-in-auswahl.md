@@ -11,7 +11,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** ohne Welle (keine Closure-Bedingung außerhalb der DoD dieses Slice; Träger des Rests von A-14 der Ausnahmeliste des Referenzabgleichs, übergeben von [slice-kompatibilitaetsserver-an-referenz-angleichen](../done/slice-kompatibilitaetsserver-an-referenz-angleichen.md)).
 
-**Bezug:** [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) (Scope: Tabellenbeschreibung des Simulations-Backends), [TDS-FA-05](../../../../spec/lastenheft.md#tds-fa-05--resultsets-und-datentypen) (Spaltenbeschreibung eines Ergebnisses), [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md), [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) (Entscheidung zu `SimColumn.maxLength`, Accepted, unverändert)
+**Bezug:** [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) (Scope: Tabellenbeschreibung des Simulations-Backends), [TDS-FA-05](../../../../spec/lastenheft.md#tds-fa-05--resultsets-und-datentypen) (Spaltenbeschreibung eines Ergebnisses), [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md), [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) (Entscheidung zu `SimColumn.maxLength`, Accepted, unverändert), [ADR-0012](../../adr/0012-simulations-backend-beschreibung-und-formen.md) (Entscheidung 7, Accepted, unverändert; teilweise ersetzt durch [ADR-0056](../../adr/0056-laenge-einer-textspalte-erreicht-das-colmetadata-einer-auswahl.md), sobald diese `Accepted` ist)
 
 **Berührte Spec-Stellen:** [SPEC-035](../../../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends) (Aussage „ändert die Metadaten eines Ergebnisses nicht“) · [SPEC-003](../../../../spec/spezifikation.md#spec-003--typmapping-initialer-mindestkatalog) (`ResultColumn.maxLength`) · [SPEC-045](../../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig) (Ausnahmeliste).
 
@@ -32,17 +32,18 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Ist-Stand** (gelesen am 2026-11-19; was nicht als gemessen steht, ist aus Datei oder Code gelesen):
 
-- `SimulationBackend.kt` baut in zwei Stellen (Zeilen 248 und 257, Fall „Bedingung nie wahr“ und Normalfall) `ResultColumn(it.name, it.type, it.nullable)` ohne Länge; `ResultColumn.maxLength` hat dort den Vorgabewert 4000 (Länge 8000 im COLMETADATA, `ColumnMapping.kt` bildet `UnicodeText` auf `NVARCHAR(<ResultColumn.maxLength>)` ab).
+- `SelectExecution.kt` baut an zwei Stellen (Zeilen 93 und 109, Fall „Bedingung nie wahr“ und Normalfall; beide Formen S1 und S2) `ResultColumn(it.name, it.type, it.nullable)` ohne Länge; `ResultColumn.maxLength` hat dort den Vorgabewert 4000 (Länge 8000 im COLMETADATA, `ColumnMapping.kt` bildet `UnicodeText` auf `NVARCHAR(<ResultColumn.maxLength>)` ab).
 - Die KDoc von `SimColumn` und [SPEC-035](../../../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends) sagen ausdrücklich, die Länge „ändere die Metadaten eines Ergebnisses nicht“; diese Aussage ist die Setzung, die der Slice umkehrt. Sie steht in Spezifikation und KDoc, nicht in einer ADR (Befund zur ADR-Frage unten).
 - Wo `SimColumn.maxLength` bereits wirkt: Katalogantworten (`CatalogAnswers.kt`), `MERGE` (`SimulationMerges.kt`, Text über der Länge ist 2628) und die Probe des Massenladens (`BulkCopyForms.kt` liest `maxLength`, `UNBOUNDED_TEXT` gilt dort als 4000).
 - `SimColumn.maxLength` hat den Wertebereich 1 bis 4000 oder -1 (`nvarchar(max)`); `ResultColumn.maxLength` erlaubt nur 1 bis 4000. Die Abbildung von -1 ist offen (§6).
 - Fixture: `kaputt` in `KompatibilitaetsServer.kt` führt `Text` ohne Länge (Vorgabe 4000); der Mitschnitt vergleicht gegen die Aufnahme der Referenz (`nvarchar(10)`, Länge 20). Die Regel `fehler-nach-zeilen/01/colmetadata` in `referenztest-dotnet/Vergleich/mitschnitt-ausnahmen.tsv` benennt diese Lücke; die zweite Regel zu A-14 (`cancel-streaming/01/colmetadata`, `laufend.Id` nullbar) ist in [slice-kompatibilitaetsserver-an-referenz-angleichen](../done/slice-kompatibilitaetsserver-an-referenz-angleichen.md) erledigt.
 
-**Befund zur ADR-Frage (Planner, gelesen, keine Entscheidung):** Eine Folge-ADR ist nach Lage der Texte **nicht** nötig; dies prüft der Architect vor dem Start.
+**Urteil zur ADR-Frage (Architect, 2026-11-19, gelesen): eine Folge-ADR ist nötig, sie liegt als [ADR-0056](../../adr/0056-laenge-einer-textspalte-erreicht-das-colmetadata-einer-auswahl.md) vor (`Proposed`).**
 
-- Keine neue öffentliche Fläche: `ResultColumn.maxLength` ist öffentlich seit der Änderung vom 2026-11-08 (Änderungslog der Spezifikation, `SPEC-059`); `SimColumn.maxLength` seit [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md). `make flaeche` vergleicht Typnamen, keine Mitglieder; es ändert sich weder Typ noch Signatur.
-- [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) Nr. 2 (`Accepted`, unveränderlich) begründet das Feld mit „damit der Katalog die Länge der Beschreibung meldet“ und sagt nichts darüber, ob die Länge im Ergebnis erscheint; der Ausschluss der Ergebnis-Metadaten steht nur in SPEC-035 und in der KDoc. Die Spezifikation ist fortschreibbar (Rang 2), die Änderung ist eine Spec-Änderung mit Eintrag im Änderungslog, keine Überschreibung einer ADR.
-- Zu prüfen bleibt, ob die Abbildung von -1 auf 4000 und die Wirkung auf Zeilen über der Länge (siehe §6) eine Entscheidung tragen, die eine ADR braucht; sagt der Architect ja, ist die ADR ein Lieferpunkt vor dem Code (neue ADR, kein Überschreiben von [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md)).
+- Der Grund steht nicht in [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md), sondern in [ADR-0012](../../adr/0012-simulations-backend-beschreibung-und-formen.md) Entscheidung 7 (`Accepted`): `max_length` wird „nicht an den Client gemeldet“, der Client sieht `NVARCHAR(4000)`; die Alternative „`UnicodeText` um eine Länge erweitern“ nennt sie eine „eigene Folge-Entscheidung“. SPEC-035 und die KDoc von `SimColumn` tragen diese Aussage fort. Eine Spec-Änderung allein kehrt sie um, ohne dass die ADR es sagt; angenommene ADRs überschreibt niemand ([AGENTS.md](../../../../AGENTS.md) §3.5). Der Konflikt-Pfad ist die Ablösung per Folge-Entscheidung, begrenzt auf den Halbsatz und die Ausnahmelisten-Angabe zum COLMETADATA einer Auswahl.
+- Die beiden Fragen aus §6 brauchen **keine eigene** ADR: sie sind Setzungen in [ADR-0056](../../adr/0056-laenge-einer-textspalte-erreicht-das-colmetadata-einer-auswahl.md) (Entscheidung 2: Zeilen über der Länge enden unverändert in der Bibliothek im Fehler, die Grenze ist nun die der Beschreibung; Entscheidung 3: -1 wird im Ergebnis als 4000 gemeldet), gekennzeichnet als Setzung, nicht gemessen.
+- Keine neue öffentliche Fläche: `ResultColumn.maxLength` ist öffentlich seit der Änderung vom 2026-11-08 (Änderungslog der Spezifikation, `SPEC-059`); `SimColumn.maxLength` seit [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md). `make flaeche` vergleicht Typnamen, keine Mitglieder.
+- Was am echten Server **nicht gemessen** ist: das COLMETADATA einer `nvarchar(max)`-Spalte im Ergebnis (Entscheidung 3; zu messen wäre ein Mitschnitt einer Auswahl einer solchen Spalte, beide Instanzen) und ein Text über der Länge im Ergebnis (an einer Tabellenspalte nicht erreichbar, M-15, M-11). Beides sind akzeptierte Negative in [ADR-0056](../../adr/0056-laenge-einer-textspalte-erreicht-das-colmetadata-einer-auswahl.md); der Slice misst nicht.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -56,7 +57,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Ziel-Form: Slice — **≤ 3 Liefer-Punkte**; Gate-Läufe und Closure-Pflichten zählen nicht mit.
 
-- [ ] **Bibliothek:** `SimulationBackend` übergibt `SimColumn.maxLength` an `ResultColumn` (beide Stellen); die Abbildung von -1 ist festgelegt und belegt; `SimColumn`-KDoc, SPEC-035, SPEC-003 und das Änderungslog der Spezifikation sagen dasselbe; Tests je Zusage (Länge im COLMETADATA einer Auswahl, Vorgabe 4000 bleibt, -1, Bedingung nie wahr).
+- [ ] **Bibliothek:** `SelectExecution` übergibt `SimColumn.maxLength` an `ResultColumn` (beide Stellen) nach [ADR-0056](../../adr/0056-laenge-einer-textspalte-erreicht-das-colmetadata-einer-auswahl.md) (-1 ergibt 4000, Zeile über der Länge endet im Fehler der Antwort); `SimColumn`-KDoc, SPEC-035, SPEC-003 und das Änderungslog der Spezifikation sagen dasselbe; Tests je Zusage (Länge im COLMETADATA einer Auswahl, Vorgabe 4000 bleibt, -1, Bedingung nie wahr).
 - [ ] **Fixture und Ausnahmeliste:** `kaputt.Text` hat `maxLength = 10` in `KompatibilitaetsServer.kt`; die Regel `fehler-nach-zeilen/01/colmetadata` in `mitschnitt-ausnahmen.tsv` entfällt; A-14 im [Messprotokoll](../../../messungen/referenzabgleich.md) ist geschlossen.
 - [ ] **Nachweis:** Mitschnitt-Lauf (`LAUF=mitschnitt`) gegen die verkleinerte Liste grün; `make kompatibilitaet` (Nicht-Gate) auf dem End-Stand im Verifier-Lauf.
 - [ ] `make gates` Exit 0, dazu je Art der Änderung nach `harness/README.md` §Minimal agent workflow: engste Testklasse und Mutation je Zusage über enge Testklassen (`src/`, `testserver/`), `make test`, `make referenztest-dotnet` (Selbsttest der Liste), `make docs-check`, `make flaeche`, `make kopplung-zahlen` (Doku/Spec), `make spec-abdeckung` einmal (Tests oder `@spec`-Tags). Verifier fährt `make clean-build` und `make e2e` je einmal auf dem End-Stand; Implementer und Reviewer nicht.
@@ -74,11 +75,11 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `src/main/kotlin/io/github/pt9912/tdswire/simulation/SimulationBackend.kt` | update | beide `ResultColumn(...)` (Zeilen 248, 257) tragen `maxLength` aus `SimColumn`; Abbildung von -1 |
+| `src/main/kotlin/io/github/pt9912/tdswire/simulation/SelectExecution.kt` | update | beide `ResultColumn(...)` (Zeilen 93, 109) tragen `maxLength` aus `SimColumn`; -1 ergibt 4000 ([ADR-0056](../../adr/0056-laenge-einer-textspalte-erreicht-das-colmetadata-einer-auswahl.md) Entscheidung 3) |
 | `src/main/kotlin/io/github/pt9912/tdswire/simulation/SimModel.kt` | update | KDoc von `SimColumn.maxLength`: die Länge gilt auch im Ergebnis |
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/result/ColumnMapping.kt` | prüfen | bildet `ResultColumn.maxLength` auf `NVARCHAR` ab; erwartet keine Änderung |
-| `src/main/kotlin/io/github/pt9912/tdswire/simulation/BulkCopyForms.kt` | prüfen | liest `maxLength` bereits; Abgleich der Abbildung von -1 mit der Probe des Massenladens |
-| `spec/spezifikation.md` (SPEC-035, SPEC-003, Änderungslog) | update | Aussage „ändert die Metadaten eines Ergebnisses nicht“ ersetzen; Abbildung von -1 als Setzung |
+| `src/main/kotlin/io/github/pt9912/tdswire/simulation/BulkCopyForms.kt` | prüfen | liest `maxLength` bereits und bildet -1 auf 4000 ab; dieselbe Abbildung wie [ADR-0056](../../adr/0056-laenge-einer-textspalte-erreicht-das-colmetadata-einer-auswahl.md) Entscheidung 3 (gemeinsame Konstante oder Funktion statt zweiter Kopie) |
+| `spec/spezifikation.md` (SPEC-035, SPEC-003, Änderungslog) | update | Aussage „ändert die Metadaten eines Ergebnisses nicht“ ersetzen; Entscheidungen 2 und 3 von [ADR-0056](../../adr/0056-laenge-einer-textspalte-erreicht-das-colmetadata-einer-auswahl.md) als Setzung; Absatz der Datei-Abbildung („das Metadatum eines Ergebnisses bleibt `NVARCHAR(4000)`“) mitziehen |
 | `testserver/kotlin/io/github/pt9912/tdswire/testserver/KompatibilitaetsServer.kt` | update | `kaputt.Text` mit `maxLength = 10` |
 | `referenztest-dotnet/Vergleich/mitschnitt-ausnahmen.tsv` | update | Regel `fehler-nach-zeilen/01/colmetadata` entfällt |
 | `docs/messungen/referenzabgleich.md` | update | A-14 geschlossen |
@@ -91,12 +92,12 @@ Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`open` → `next` → `in-progress`): Nutzerzeichen und ein Verantwortlicher (`Verantwortlich:` ist bis dahin `—`; den Anspruch macht der Orchestrator); die Entscheidung „Code angleichen“ liegt vom 2026-11-19 vor. Vor dem Code urteilt der Architect über die ADR-Frage (§1) und die Fragen in §6.
+**Start** (`open` → `next` → `in-progress`): Nutzerzeichen und ein Verantwortlicher (`Verantwortlich:` ist bis dahin `—`; den Anspruch macht der Orchestrator); die Entscheidung „Code angleichen“ liegt vom 2026-11-19 vor. **Code beginnt erst, wenn [ADR-0056](../../adr/0056-laenge-einer-textspalte-erreicht-das-colmetadata-einer-auswahl.md) `Accepted` ist** (der Architect hat sie als `Proposed` geschrieben, die Wahl liegt beim Nutzer; Änderungen an `src/` vorher wären Bau gegen eine offene Entscheidung).
 
 **Rückführungen — vorab benennen:**
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): mehr als drei Liefer-Punkte in §2, etwa wenn eine ADR nötig wird.
-- `in-progress` → `open` (blockiert): die Abbildung von -1 oder die Wirkung auf Zeilen über der Länge ist ohne Entscheidung des Nutzers nicht setzbar.
+- `in-progress` → `open` (blockiert): der Nutzer wählt in [ADR-0056](../../adr/0056-laenge-einer-textspalte-erreicht-das-colmetadata-einer-auswahl.md) eine andere Option als C oder lehnt sie ab.
 
 ## 5. Closure-Trigger
 
@@ -108,10 +109,10 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Offene Risiken werden bei Closure aufgelöst — **jedes** Risiko bekommt genau
 **einen** Ausgang.
 
-- `SimColumn.maxLength` -1 (`nvarchar(max)`) ist als `ResultColumn.maxLength` nicht darstellbar (Bereich 1 bis 4000); die Abbildung auf 4000 ist eine Setzung, die einen echten `nvarchar(max)` im Ergebnis nicht trifft. — **Ausgang:** offen bis zur Closure; Architect setzt die Abbildung, SPEC-035 nennt sie als Setzung.
-- Ein Text einer Zeile über `ResultColumn.maxLength` weist die Bibliothek ab (KDoc `QueryEvent.kt`), während SPEC-035 die Zeilen der Zeilenquelle nicht gegen `SimColumn.maxLength` prüft: mit durchgereichter Länge kann eine bisher gelieferte Zeile in der Antwort scheitern. — **Ausgang:** offen bis zur Closure; Test mit Zeile über der Länge, Verhalten wird festgestellt und in SPEC-035 gesagt; fällt es nicht mit „unverändert“ zusammen, ist es eine Entscheidung des Nutzers.
+- `SimColumn.maxLength` -1 (`nvarchar(max)`) ist als `ResultColumn.maxLength` nicht darstellbar (Bereich 1 bis 4000); die Abbildung auf 4000 ist eine Setzung, die einen echten `nvarchar(max)` im Ergebnis nicht trifft. — **Ausgang:** offen bis zur Closure; Setzung in [ADR-0056](../../adr/0056-laenge-einer-textspalte-erreicht-das-colmetadata-einer-auswahl.md) Entscheidung 3, SPEC-035 nennt sie als Setzung; Nachweis: Test -1 ergibt 4000.
+- Ein Text einer Zeile über `ResultColumn.maxLength` weist die Bibliothek ab (KDoc `QueryEvent.kt`), während SPEC-035 die Zeilen der Zeilenquelle nicht gegen `SimColumn.maxLength` prüft: mit durchgereichter Länge kann eine bisher gelieferte Zeile in der Antwort scheitern. — **Ausgang:** offen bis zur Closure; Setzung in [ADR-0056](../../adr/0056-laenge-einer-textspalte-erreicht-das-colmetadata-einer-auswahl.md) Entscheidung 2 (Bibliothek weist unverändert ab, Grenze ist die der Beschreibung), die Wahl liegt beim Nutzer; Test mit Zeile über und genau auf der Länge, SPEC-035 sagt es.
 - Bestehende Tests und Einbettungstests, die eine Länge 4000 im Ergebnis voraussetzen, obwohl die Tabelle eine kürzere führt. — **Ausgang:** offen bis zur Closure; Suche in `src/test` und `src/integrator` zu Beginn.
-- Ob eine Folge-ADR nötig ist (§1). — **Ausgang:** offen bis zur Closure; Urteil des Architects vor dem Code.
+- Ob eine Folge-ADR nötig ist (§1). — **Ausgang:** eingetreten: [ADR-0056](../../adr/0056-laenge-einer-textspalte-erreicht-das-colmetadata-einer-auswahl.md) ist geschrieben (`Proposed`); der Slice hat damit weiter höchstens drei Liefer-Punkte, die ADR ist Eingang, kein Liefer-Punkt.
 - Größe: drei Liefer-Punkte. — **Ausgang:** offen bis zur Closure; Rückführung nach §4.
 
 ## 7. Closure-Notiz
