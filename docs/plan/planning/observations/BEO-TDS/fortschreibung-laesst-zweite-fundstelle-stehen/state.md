@@ -21,3 +21,5 @@
 **Lese-Schritt welle-referenzabgleich-release (2026-11-17):** 51 Dateien, davon Beiträge aus Slices dieser Welle (Liste in `welle-referenzabgleich-release-results.md` §Steering-Loop-Einträge). Retirement-Check: die Klasse ist in Slices dieser Welle aufgetreten, die Regel bleibt, keine Lockerung; die Closure macht keine Aussage über die Wirkung der Regel. Ob ein Sensor über die Prosa hinaus entsteht, entscheidet der Nutzer.
 
 **Wiederauftreten (slice-qa-performance-heap-abschluss):** Review F-10 (b), (c) und F-12: zwei Sätze in `docs/plan/referenz-workload.md` blieben nach der Fortschreibung stehen; der Reviewer fing es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
+
+**Wiederauftreten (slice-kompatibilitaetsserver-an-referenz-angleichen):** Review F-1: fünf Stellen des Slice nannten nach dem Befund zu `kaputt.Text` das Gegenteil; der Reviewer fing es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.

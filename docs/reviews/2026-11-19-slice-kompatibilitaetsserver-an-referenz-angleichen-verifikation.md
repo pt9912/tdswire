@@ -57,7 +57,7 @@ Gesamt rund 19 Minuten Messzeit, davor Wartezeit auf die Messsperre (der Lauf `i
 - **F-V3 · INFO · Mutationen nicht von mir gefahren.** Der Review hat drei Mutationen nur gelesen (sein Bericht sagt „gelesen, nicht gefahren“); der Slice-§7 und die Nachbesserung tragen keinen gefahrenen Beleg. Für Zusagen von `testserver/` verlangt die Tabelle Mutationen vom Implementer; die Planner-Closure sollte den Beleg des Implementers nennen oder die Lücke vermerken.
 - **F-V4 · INFO · Test „im_Batch“ ohne Trennschärfe.** Aus dem Review (F-9) bekannt: die drei Erwartungen sind alle 1; die Trennung leistet der neue Schwestertest. Kein Befund gegen die DoD.
 
-Kein Befund der Klasse HIGH oder MEDIUM, keine DoD-Verletzung, keine Abweichung von ADR-0008 oder den Spec-Stellen `SPEC-035`, `SPEC-045`.
+Kein Befund der Klasse HIGH oder MEDIUM, keine DoD-Verletzung, keine Abweichung von [ADR-0008](../plan/adr/0008-dotnet-kompatibilitaetstests.md) oder den Spec-Stellen `SPEC-035`, `SPEC-045`.
 
 ## Ergebnis
 

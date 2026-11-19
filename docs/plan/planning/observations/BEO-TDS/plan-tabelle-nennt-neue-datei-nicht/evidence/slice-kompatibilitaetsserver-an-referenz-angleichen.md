@@ -1,0 +1,2 @@
+**Vorgang:** [slice-kompatibilitaetsserver-an-referenz-angleichen](../../../../in-progress/slice-kompatibilitaetsserver-an-referenz-angleichen.md)
+**Fund:** [Review](../../../../../../reviews/2026-11-19-slice-kompatibilitaetsserver-an-referenz-angleichen.md) F-3 (MEDIUM): die Tabelle in §3 nannte die neue Testdatei `KompatibilitaetsTablesTest.kt` nicht und nicht den Grund für die unberührten `testschema.sql` und `LiveSzenarioTests.cs`; der Reviewer fing es beim Abgleich Tabelle gegen Diff, behoben in `0bdd8db4`.
