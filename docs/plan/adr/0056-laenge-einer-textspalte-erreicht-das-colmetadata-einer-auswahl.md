@@ -1,6 +1,6 @@
 # ADR-0056: Die Länge einer Textspalte der Tabellenbeschreibung erreicht das COLMETADATA einer Auswahl (ersetzt teilweise ADR-0012 Entscheidung 7)
 
-**Status:** Proposed (Empfehlung Option C, Entscheidung beim Nutzer)
+**Status:** Accepted (vom Nutzer entschieden, 2026-11-19)
 
 **Datum:** 2026-11-19
 
@@ -31,6 +31,8 @@ Der Nutzer hat am 2026-11-18 und 2026-11-19 entschieden: **Code angleichen**, `S
 
 ## Entscheidung
 
+Der Nutzer hat Option C angenommen (2026-11-19).
+
 1. **Die Länge erreicht das COLMETADATA.** Das Simulations-Backend setzt in jedem `ResultStart` einer Auswahl (Formen S1 und S2, auch im Fall „Bedingung nie wahr“) `ResultColumn.maxLength` aus `SimColumn.maxLength`. Ohne Angabe an der Spalte gilt weiter 4000. Die Länge im COLMETADATA ist `2 * maxLength` Byte wie bisher in der Abbildung von `ResultColumn.maxLength`.
 2. **Zeilen über der Länge: unverändert Sache der Bibliothek (Setzung).** Das Backend prüft die Zeilen der Zeilenquelle nicht gegen `SimColumn.maxLength` (SPEC-035 bleibt). Die Regel von `ResultColumn.maxLength` gilt unverändert: ein Text einer `Row` über der Länge endet in einem Fehler der Antwort statt im Ergebnis. **Neu ist die Grenze**: sie ist die Länge der Beschreibung, nicht mehr 4000. Eine Zeilenquelle, die über der Länge ihrer eigenen Beschreibung liefert, ist ein Fehler des Integrators und wird sichtbar; sie lieferte bisher bis 4000 Zeichen. Am echten Server ist der Fall an einer Tabellenspalte nicht erreichbar (siehe Kontext); die Wirkung ist Setzung, nicht gemessen.
 3. **`maxLength` -1 (`nvarchar(max)`) wird im Ergebnis als 4000 gemeldet (Setzung).** `ResultColumn.maxLength` bildet 1 bis 4000 ab; die Form `nvarchar(max)` im COLMETADATA ist nicht gebaut und nicht gemessen. Die Abbildung auf 4000 ist dieselbe wie in der Probe des Massenladens (`BulkCopyForms.kt`) und ändert das Verhalten gegenüber heute nicht (ein Text über 4000 endet schon heute in einem Fehler der Antwort). Sie trifft einen echten `nvarchar(max)` im Ergebnis nicht und ist die **bekannte Grenze** dieser Entscheidung.
@@ -42,18 +44,18 @@ Der Nutzer hat am 2026-11-18 und 2026-11-19 entschieden: **Code angleichen**, `S
 |---|---|---|
 | A — nichts tun, A-14 bleibt Ausnahme | kein Bau; ADR-0012 Nr. 7 gilt unverändert | widerspricht der Entscheidung des Nutzers (Code angleichen); die Abweichung zur Referenz bleibt |
 | B — Schema der Referenz angleichen (Ansicht `kaputt` mit `nvarchar(4000)`, neue Aufnahmen) | Bibliothek bleibt; nur Fixture und Aufnahmen | vom Nutzer abgelehnt; die Abweichung bliebe für jeden Integrator mit kürzerer Beschreibung |
-| **C — Länge durchreichen, -1 als 4000, Zeilen über der Länge enden in der Bibliothek im Fehler (gewählt, Empfehlung)** | kleinster Bau (zwei Stellen in `SelectExecution.kt`), keine neue Fläche, keine neue Codec-Form; -1 verhält sich wie heute | ein Integrator mit Zeilen über der eigenen Beschreibung bekommt Fehler statt Ergebnis; ein echter `nvarchar(max)` bleibt im Ergebnis `nvarchar(4000)` |
+| **C — Länge durchreichen, -1 als 4000, Zeilen über der Länge enden in der Bibliothek im Fehler (gewählt)** | kleinster Bau (zwei Stellen in `SelectExecution.kt`), keine neue Fläche, keine neue Codec-Form; -1 verhält sich wie heute | ein Integrator mit Zeilen über der eigenen Beschreibung bekommt Fehler statt Ergebnis; ein echter `nvarchar(max)` bleibt im Ergebnis `nvarchar(4000)` |
 | D — wie C, aber -1 als `nvarchar(max)` im COLMETADATA | trifft den echten Server in diesem Punkt | ändert Port und Protokoll (neue Typform, PLP-Werte); nicht gemessen, kein Fixture führt sie; größerer Bau als der Anlass |
 | E — wie C, aber das Backend prüft die Zeilen vorab und meldet eine eigene Fehlernummer | Fehler benennt Tabelle und Spalte (Setzung) | neue Zusage und neuer Code ohne Messung; der echte Server hat den Fall an einer Spalte nicht |
 
-Empfehlung: **Option C**. Die Wahl liegt beim Nutzer.
+Gewählt ist **Option C** (Empfehlung des Architects, vom Nutzer angenommen).
 
 ## Konsequenzen
 
 - Positiv: A-14 lässt sich durch Bau schließen (`kaputt.Text` mit `maxLength = 10`, die Regel `fehler-nach-zeilen/01/colmetadata` entfällt); die Aussage „der Client sieht `NVARCHAR(4000)`“ gilt nur noch für Spalten ohne Länge.
 - Negativ: Ein Integrator, dessen Zeilenquelle über der Länge seiner Beschreibung liefert (etwa eine Datei mit `max_length` kleiner als die Daten), bekommt Fehler statt Ergebnis (Entscheidung 2).
 - **Akzeptiertes Negativ:** Die Abbildung von -1 auf 4000 weicht für `nvarchar(max)` im Ergebnis vom echten Server ab. Kein Fixture und keine Aufnahme führt eine solche Spalte in einer Auswahl; deshalb steht keine Zeile auf der Ausnahmeliste. Zeigt ein Mitschnitt die Abweichung, ist es ein neuer Eintrag der Liste (Auslöser unten).
-- Folgepflicht nach Annahme (Implementer, Doku, im Slice zu A-14): `SimColumn`-KDoc, SPEC-035 (Aussage „ändert die Metadaten eines Ergebnisses nicht“ ersetzen; Entscheidungen 2 und 3 als Setzung kennzeichnen), SPEC-003 (Unicode-Text im Ergebnis der Auswahl), die Zeile ADR-0012 im ADR-Index („teilweise ersetzt durch ADR-0056“), das Änderungslog, die Beschreibung von `maxLength` in `docs/user/einbettung-und-betrieb.md` und die Zeile A-14 des Messprotokolls. Die zweite Fundstelle der Aussage steht in SPEC-035 (Absatz der Datei-Abbildung, „das Metadatum eines Ergebnisses bleibt `NVARCHAR(4000)`“) und im Eintrag (1) der Ausnahmeliste von ADR-0012; beide sind mitzuziehen.
+- Folgepflicht (Implementer, Doku, im Slice zu A-14): `SimColumn`-KDoc, SPEC-035 (Aussage „ändert die Metadaten eines Ergebnisses nicht“ ersetzen; Entscheidungen 2 und 3 als Setzung kennzeichnen), SPEC-003 (Unicode-Text im Ergebnis der Auswahl), die Zeile ADR-0012 im ADR-Index („teilweise ersetzt durch ADR-0056“), das Änderungslog, die Beschreibung von `maxLength` in `docs/user/einbettung-und-betrieb.md` und die Zeile A-14 des Messprotokolls. Die zweite Fundstelle der Aussage steht in SPEC-035 (Absatz der Datei-Abbildung, „das Metadatum eines Ergebnisses bleibt `NVARCHAR(4000)`“) und im Eintrag (1) der Ausnahmeliste von ADR-0012; beide sind mitzuziehen.
 - Zu messen, um Setzungen zu belegen (kein Messlauf in dieser ADR): (a) das COLMETADATA einer Auswahl einer `nvarchar(max)`-Spalte am Referenzclient (Mitschnitt, beide Instanzen) belegt oder widerlegt Entscheidung 3; (b) der Fall von Entscheidung 2 ist an einer Tabellenspalte nicht erreichbar; eine Messung über einen Ausdruck würde die Form S1 nicht betreffen.
 
 ## Fitness Function (falls maschinell prüfbar)
@@ -72,6 +74,7 @@ Ein Mitschnitt oder eine Messung des COLMETADATA einer `nvarchar(max)`-Spalte im
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-11-19 | Proposed (Empfehlung Option C, Entscheidung beim Nutzer); Auslöser: die Prüfung des Slice zu A-14 fand die Aussage von ADR-0012 Entscheidung 7, die der Slice umkehrt | Auftrag des Orchestrators vom 2026-11-19 |
+| 2026-11-19 | Accepted: der Nutzer pt9912 nimmt Option C an wie vorgeschlagen (Länge durchreichen, -1 als 4000, Zeilen über der Länge enden in der Bibliothek im Fehler); das Lastenheft bleibt unverändert | Entscheidung des Nutzers im Auftrag an den Architect vom 2026-11-19 |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit
