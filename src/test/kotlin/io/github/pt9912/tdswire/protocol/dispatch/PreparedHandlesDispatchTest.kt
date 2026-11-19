@@ -335,8 +335,8 @@ class PreparedHandlesDispatchTest {
 
     /**
      * Bricht ATTENTION ein `sp_prepexec` ab, bevor das Handle den Client erreicht hat, gibt die Sitzung das Handle
-     * frei: die Antwort ist `DONE[ATTN]` allein, die Tabelle ist danach leer. Wächter: ein abgebrochener Lauf, der das
-     * Handle gehalten lässt.
+     * frei: die Antwort ist DONEPROC mit `ERROR` (Form des RPC) und `DONE[ATTN]`, die Tabelle ist danach leer. Wächter:
+     * ein abgebrochener Lauf, der das Handle gehalten lässt.
      *
      * @spec SPEC-030
      * @spec SPEC-029
@@ -352,7 +352,8 @@ class PreparedHandlesDispatchTest {
         session.channel.feed(BatchVectors.attention())
         session.channel.feed(Inbound.EndOfStream)
         serving.join()
-        assertEquals(BatchVectors.DONE_ATTN, session.hex(0))
+        assertEquals(BatchVectors.DONEPROC_ERROR, session.hex(0))
+        assertEquals(BatchVectors.DONE_ATTN, session.hex(1))
         assertEquals(0, loop.handles.size())
     }
 

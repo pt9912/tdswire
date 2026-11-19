@@ -75,14 +75,15 @@ class RpcSequenceAbortTest {
     }
 
     /**
-     * Ein ATTENTION im zweiten Aufruf beendet die Antwort mit genau einem `DONE[ATTN]` hinter der Antwort des ersten
-     * Aufrufs (dessen DONEPROC `0x0081` trägt), ohne ERROR; genau ein `cancel()`, die Verbindung bleibt offen.
+     * Ein ATTENTION im zweiten Aufruf beendet die erste Nachricht hinter der Antwort des ersten Aufrufs (dessen
+     * DONEPROC `0x0081` trägt) mit DONEPROC `ERROR` ohne `MORE` und ohne ERROR-Token; die zweite Nachricht ist
+     * `DONE[ATTN]`. Genau ein `cancel()`, die Verbindung bleibt offen.
      *
      * @spec SPEC-029
      * @spec SPEC-030
      */
     @Test
-    fun `ATTENTION im zweiten Aufruf schliesst die Nachricht mit einem DONE ATTN`() = blocking {
+    fun `ATTENTION im zweiten Aufruf schliesst die Nachricht mit DONEPROC ERROR und DONE ATTN`() = blocking {
         val backend = FlowBackend(delivering(update), suspendedAfter(CompletableDeferred()))
         val session = Session.login(twoCalls())
         val serving = launch { session.serve(backend) }
@@ -90,11 +91,12 @@ class RpcSequenceAbortTest {
         session.channel.feed(BatchVectors.attention())
         session.channel.feed(Inbound.EndOfStream)
         serving.join()
-        assertEquals(1, session.replies.size)
+        assertEquals(2, session.replies.size)
         val tokens = session.tokens(0)
         assertTrue(tokens.none { it is ErrorToken })
-        assertEquals(DoneStatus.ATTENTION, tokens.lastDone().status)
-        assertEquals(listOf(DoneStatus.MORE or DoneStatus.RPC_IN_BATCH), doneProcs(session))
+        assertEquals(DoneStatus.ERROR, tokens.lastDone().status)
+        assertEquals(BatchVectors.DONE_ATTN, session.hex(1))
+        assertEquals(listOf(DoneStatus.MORE or DoneStatus.RPC_IN_BATCH, DoneStatus.ERROR), doneProcs(session))
         assertEquals(listOf("s1" to "r1"), backend.cancelled)
     }
 }

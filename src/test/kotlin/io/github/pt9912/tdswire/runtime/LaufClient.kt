@@ -160,16 +160,18 @@ internal class LaufClient(port: Int, receiveBufferBytes: Int = 0) : AutoCloseabl
     fun sendAttention() = client.send(handPacket(ATTENTION_TYPE, EOM_STATUS, ByteArray(0)))
 
     /**
-     * Liest und verwirft eine Antwort; die Zahl ihrer Nutzdatenbytes und `true`, wenn sie mit `DONE` endet, dessen
-     * Status das Bit `ATTENTION` (0x0020) trägt.
+     * Liest und verwirft die Antwort auf ein ATTENTION in laufender Anfrage, zwei Nachrichten (die abgebrochene Antwort
+     * mit `DONE[ERROR]`, dann `DONE[ATTN]`); die Zahl ihrer Nutzdatenbytes insgesamt und `true`, wenn die zweite mit
+     * `DONE` endet, dessen Status das Bit `ATTENTION` (0x0020) trägt.
      */
     fun drainAnswer(): Pair<Long, Boolean> {
-        val drained = assertNotNull(client.drainMessage(), "Antwort")
-        val tail = drained.tail
+        val first = assertNotNull(client.drainMessage(), "erste Nachricht der Antwort")
+        val second = assertNotNull(client.drainMessage(), "zweite Nachricht der Antwort")
+        val tail = second.tail
         val done = tail.size >= DONE_BYTES && tail[tail.size - DONE_BYTES].toInt() and BYTE == DONE_TOKEN
         val status = (tail[tail.size - STATUS_AT].toInt() and BYTE) or
             ((tail[tail.size - STATUS_AT + 1].toInt() and BYTE) shl BYTE_BITS)
-        return drained.payloadBytes to (done && (status and ATTENTION_BIT) != 0)
+        return (first.payloadBytes + second.payloadBytes) to (done && (status and ATTENTION_BIT) != 0)
     }
 
     private fun answer(wire: ByteArray): List<Token> {

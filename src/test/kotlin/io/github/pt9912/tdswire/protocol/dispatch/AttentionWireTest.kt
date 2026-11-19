@@ -12,6 +12,7 @@ import io.github.pt9912.tdswire.testsupport.TokenDecoder
 import io.github.pt9912.tdswire.testsupport.WireSession
 import io.github.pt9912.tdswire.testsupport.blocking
 import io.github.pt9912.tdswire.testsupport.handPacket
+import io.github.pt9912.tdswire.testsupport.toHex
 import io.github.pt9912.tdswire.transport.framing.PacketType
 import io.github.pt9912.tdswire.transport.framing.TdsMessage
 import kotlinx.coroutines.launch
@@ -46,17 +47,17 @@ class AttentionWireTest {
 
     /**
      * Ein ATTENTION, das ankommt, während der Schreibvorgang mitten in einem Paket steht (der Draht nimmt es nicht an):
-     * der Abbruch wartet, bis das Paket ganz auf dem Draht ist, kein halbes Paket bleibt, und die Bestätigung hängt
-     * als `DONE[ATTN]` an dieselbe Nachricht an, die mit dem EOM-Paket endet. Es gibt genau einen Cancel, danach keine
-     * Zeile mehr. Die Reihenfolge der folgenden Schritte ändert die Aussagen nicht; die Lage „mitten im Paket“ stellt
-     * der Halt des Drahts her.
+     * der Abbruch wartet, bis das Paket ganz auf dem Draht ist, kein halbes Paket bleibt, die erste Nachricht endet mit
+     * `DONE[ERROR]` im EOM-Paket und die zweite ist `DONE[ATTN]` in einem eigenen Paket mit EOM-Bit. Es gibt genau
+     * einen Cancel, danach keine Zeile mehr. Die Reihenfolge der folgenden Schritte ändert die Aussagen nicht; die Lage
+     * „mitten im Paket“ stellt der Halt des Drahts her.
      *
      * @spec SPEC-029
      * @spec SPEC-031
      * @spec TDS-FA-07
      */
     @Test
-    fun `ATTENTION mitten in einem Paket laesst kein halbes Paket und endet mit DONE ATTN`() = blocking {
+    fun `ATTENTION mitten in einem Paket laesst kein halbes Paket und endet mit DONE ERROR und DONE ATTN`() = blocking {
         val session = WireSession.login(packetSize, "big", retain = true) {
             stallAfterBytes = 3L * packetSize
             live = true
@@ -71,11 +72,14 @@ class AttentionWireTest {
         serving.join()
         val packets = split(session.wire.wireContent)
         assertTrue(packets.size >= 4, "Pakete: ${packets.size}")
-        packets.dropLast(1).forEach { assertEquals(packetSize, it.size, "unvollständiges Paket in der Nachricht") }
-        assertEquals(1, packets.last()[1].toInt() and 1, "das letzte Paket trägt das EOM-Bit")
-        assertTrue(packets.dropLast(1).all { it[1].toInt() and 1 == 0 })
+        val endOfMessage = packets.indices.filter { packets[it][1].toInt() and 1 == 1 }
+        assertEquals(listOf(packets.size - 2, packets.size - 1), endOfMessage, "zwei Nachrichten, je ein EOM-Paket")
+        packets.filterIndexed { index, _ -> index !in endOfMessage }
+            .forEach { assertEquals(packetSize, it.size, "unvollständiges Paket in der Nachricht") }
+        assertEquals(BatchVectors.DONE_ATTN, packets.last().copyOfRange(HEADER, packets.last().size).toHex())
         val tokens = TokenDecoder(session.wire.payload()).decodeAll()
-        assertEquals(1, tokens.count { it is DoneToken })
+        assertEquals(2, tokens.count { it is DoneToken })
+        assertEquals(DoneStatus.ERROR, (tokens[tokens.size - 2] as DoneToken).status)
         assertEquals(DoneStatus.ATTENTION, (tokens.last() as DoneToken).status)
         assertTrue(tokens.none { it is ErrorToken })
         assertEquals(1, backend.cancelled.size)
@@ -114,5 +118,6 @@ class AttentionWireTest {
 
     private companion object {
         const val HOPS = 8
+        const val HEADER = 8
     }
 }

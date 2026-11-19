@@ -86,7 +86,7 @@ import kotlin.time.Duration.Companion.milliseconds
  * (nie vergeben, schon freigegeben, vor RESETCONNECTION), ergibt einen ERROR `TDS_SIM_UNKNOWN_PREPARED_HANDLE` in
  * derselben Antwort; je Nummer folgen RETURNSTATUS und DONEPROC (Befehl `0x00e0`), ein DONE gibt es nicht; die
  * Verbindung bleibt offen. Die Antwort läuft
- * unter [AbortableRun] (ATTENTION unterbricht sie mit genau einem `DONE[ATTN]`, `SPEC-029`). Ein Text, der nicht
+ * unter [AbortableRun] (ATTENTION unterbricht sie mit `DONE[ERROR]` und `DONE[ATTN]`, `SPEC-029`). Ein Text, der nicht
  * ganz diese Form hat, geht wie jeder Batch an das Backend. Die Handles enden mit der Schleife und mit dem Bit
  * RESETCONNECTION (nächster Absatz).
  *
@@ -109,8 +109,9 @@ import kotlin.time.Duration.Companion.milliseconds
  * Abbruch (`SPEC-029`, `ADR-0027`): Während einer Anfrage liest die Schleife mit ([AbortableRun]). Ein ATTENTION in
  * `RUNNING` oder `STREAMING` und der Ablauf der Frist gehen denselben Weg: der erste Übergang nach `CANCELLING`
  * gewinnt, der Lauf des Sequencers wird abgebrochen (genau ein `cancel()` des Backends, `close()` der Ausführung, ein
- * zurückgehaltener Abschluss entfällt), und die Antwort endet bei ATTENTION mit genau einem `DONE[ATTN]` ohne ERROR,
- * bei der Frist mit ERROR `TDS_TIMEOUT` und DONE mit Fehlerstatus (in der Antwort auf einen RPC DONEPROC). Die
+ * zurückgehaltener Abschluss entfällt), und die Antwort endet bei ATTENTION in zwei Nachrichten ohne ERROR (die
+ * laufende Antwort mit `DONE[ERROR]`, danach `DONE[ATTN]`, `ADR-0054`, [AbortedAnswer]), bei der Frist mit ERROR
+ * `TDS_TIMEOUT` und DONE mit Fehlerstatus (in der Antwort auf einen RPC DONEPROC). Die
  * Verbindung bleibt in beiden Fällen offen und die folgende Anfrage bekommt nur ihre eigene Antwort. Ist die Antwort
  * beim Gewinn des Auslösers schon vollständig, entfällt der Abbruch: ATTENTION wird als eigene Nachricht bestätigt,
  * die Frist ändert nichts. Beendet das Backend den Abbruch nicht innerhalb von `CANCEL_TIMEOUT`, schließt die

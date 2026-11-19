@@ -509,11 +509,12 @@ class UnprepareDispatchTest {
             )
         }
         serving.join()
-        assertEquals(2, session.replies.size)
+        assertEquals(3, session.replies.size)
         assertEquals(listOf(notFound(91), notFound(92), notFound(93)), session.errors(0))
-        assertTrue(session.hex(0).endsWith(BatchVectors.DONE_ATTN), session.hex(0))
+        assertTrue(session.hex(0).endsWith(BatchVectors.DONE_ERROR), session.hex(0))
+        assertEquals(BatchVectors.DONE_ATTN, session.hex(1))
         assertEquals(4, session.tokens(0).count { it is DoneToken })
-        assertEquals(listOf(notFound(99)), session.errors(1))
+        assertEquals(listOf(notFound(99)), session.errors(2))
         assertEquals(ConnectionState.CLOSED, session.ready.live.context.state)
     }
 

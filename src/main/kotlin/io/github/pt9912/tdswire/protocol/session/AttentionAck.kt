@@ -10,10 +10,11 @@ import io.github.pt9912.tdswire.transport.framing.PacketType
 import io.github.pt9912.tdswire.transport.framing.TdsMessage
 
 /**
- * Die Bestätigung eines ATTENTION (`SPEC-029`, `ADR-0027` Entscheidung 1): genau ein DONE mit dem Statusbit
- * `ATTENTION`, Befehlskennung `0x00fd` und Zeilenzahl 0, ohne ERROR-Token und ohne zweite Nachricht. Die Bytes sind
- * als Handvektor belegt; am Testserver des Spike genügte diese Form dem Referenzclient (S11, S15, S17), an einem
- * Server dieses Repos ist sie nicht gemessen.
+ * Die Bestätigung eines ATTENTION (`SPEC-029`, `ADR-0027` Entscheidung 1, `ADR-0054`): ein DONE mit dem Statusbit
+ * `ATTENTION`, Befehlskennung `0x00fd` und Zeilenzahl 0, ohne ERROR-Token. Die Bytes sind der Handvektor der zweiten
+ * Nachricht der Aufnahmen `cancel-streaming` und `cancel-wartend` beider Referenzinstanzen (2022 und 2025). Als
+ * einzelne Nachricht bestätigt sie ein ATTENTION nach Ende der Antwort, im Leerlauf und im geordneten Beenden; auf ein
+ * ATTENTION in laufender Anfrage folgt sie als zweite Nachricht hinter dem `DONE[ERROR]` der abgebrochenen Antwort.
  */
 internal object AttentionAck {
     private val done = DoneToken(DoneKind.DONE, DoneStatus.ATTENTION, DoneCommand.BATCH, rowCount = 0)

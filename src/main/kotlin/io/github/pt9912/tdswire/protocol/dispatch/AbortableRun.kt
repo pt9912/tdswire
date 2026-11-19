@@ -135,10 +135,11 @@ internal class AbortableRun(
 
     /**
      * Die nächste Nachricht während des Laufs. Ein ATTENTION, das den Übergang gewinnt, ist verbraucht: der Abbruch
-     * bestätigt es. Ein ATTENTION, das verliert (der Abbruch läuft schon, etwa durch die Frist), bleibt im Eingang und
-     * wird nach dem Abbruch als „ATTENTION nach Ende der Antwort“ bestätigt (Setzung, nicht gemessen: ob ein Client
-     * jedes ATTENTION einzeln bestätigt haben will, zeigt erst das Cancel-Szenario am Referenzclient). Es entsteht
-     * nie ein zweiter Cancel. Jede andere Nachricht bleibt ebenfalls im Eingang und beendet das Beobachten. Nach einem
+     * beantwortet es mit dem Paar aus `DONE[ERROR]` und `DONE[ATTN]`. Ein ATTENTION, das verliert (der Abbruch läuft
+     * schon, etwa durch die Frist, oder es ist ein zweites in `CANCELLING`), bleibt im Eingang und wird nach dem
+     * Übergang nach `READY` als „ATTENTION nach Ende der Antwort“ einzeln mit `DONE[ATTN]` bestätigt; das Paar wird
+     * nicht verdoppelt (`ADR-0054` Entscheidung 4, Setzung, nicht gemessen). Es entsteht nie ein zweiter Cancel. Jede
+     * andere Nachricht bleibt ebenfalls im Eingang und beendet das Beobachten. Nach einem
      * gewonnenen ATTENTION liest [watch] ein weiteres Mal: kommt das Ende der Gegenstelle oder ein Lesefehler, schließt
      * [hangUp] die Sitzung, bevor die Bestätigung geschrieben wird.
      */

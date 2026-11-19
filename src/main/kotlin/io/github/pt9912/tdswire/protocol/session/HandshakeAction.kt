@@ -102,7 +102,7 @@ internal sealed interface HandshakeAction {
 
 /** Wer den Abbruch einer laufenden Anfrage ausgelöst hat (`ADR-0027` Entscheidung 2). */
 internal enum class CancelCause {
-    /** ATTENTION des Clients; die Antwort ist `DONE[ATTN]` ohne ERROR. */
+    /** ATTENTION des Clients; die Antwort sind zwei Nachrichten, `DONE[ERROR]` und `DONE[ATTN]`, ohne ERROR-Token. */
     ATTENTION,
 
     /** Ablauf der Frist der Anfrage: ERROR `TDS_TIMEOUT` und DONE (im RPC DONEPROC) mit Fehlerstatus. */
