@@ -677,8 +677,10 @@ vor dem Handle (Mitschnitte `prepare`, 2022 und 2025 der Referenzinstanz; ohne i
 Handle nicht, Messzeilen h2, h3 und t1); jede andere RPC-Antwort trägt ebenfalls einen RETURNSTATUS, mit dem Wert 0,
 wenn das Backend keinen liefert (gemessen: `sp_executesql` mit und ohne Ausgabewert, Mitschnitte `rpc-parameter` und
 `rpc-ausgabewert` und Messreihe am Draht, 2022 und 2025, Einzelmessung je Instanz; für `sp_execute` und den Prozedurnamen
-Setzung nach derselben Regel); den Ausgabewert des Backends liefert das Simulations-Backend nicht (Ausnahme A-16 des
-Referenzabgleichs, `SPEC-045`). Die Collation aus der
+Setzung nach derselben Regel); den Ausgabewert eines `InputOutput`-Parameters einer Auswahl (Form S1, `SPEC-036`) liefert das Simulations-Backend als
+seinen Eingabewert (gemessen: Mitschnitt `rpc-ausgabewert`, `@id` mit Wert 7, RETURNVALUE mit Ordinal 2, Status 1, Wert 7,
+eine Einzelmessung je Instanz); für einen reinen `OUTPUT`-Parameter und für jede andere Form ist kein Ausgabewert gemessen,
+das Simulations-Backend sendet dort keinen (ein eigenes Backend sendet ihn über `QueryEvent.OutputParameter`). Die Collation aus der
 Login-Antwort (ENVCHANGE Typ 7) ist Voraussetzung für jeden RPC mit Zeichenparametern. Alle anderen RPCs,
 auch `sp_prepare`, `sp_unprepare` und `sp_cursor*`, ergeben eine explizite Fehlermeldung ohne
 Verbindungsabbruch. **Messgrenzen:** Gemessen ist nur das Verhalten des Referenzclients gegen einen Testserver, nicht
@@ -1232,6 +1234,7 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
 | Form | Muster | Antwort |
 |---|---|---|
 | S1 | `SELECT <Spaltenliste \| *> FROM [<Schema>.]<Tabelle> [WHERE <Term> {AND <Term>}]` | Resultset |
+| S2 | zwei Auswahlen der Form S1 in einem Text, durch `;` getrennt, ohne Parameter (Setzung der Grenze: gemessen ist `SELECT Id FROM person WHERE Id = 1; SELECT Id FROM person WHERE Id = 2`, Mitschnitt `mehrteilig`, 2022 und 2025, je ein Fall) | zwei Resultsets in der Reihenfolge des Textes; das erste Abschluss `DONE` mit `MORE` und `COUNT`, das zweite `DONE` mit `COUNT` (gemessen, beide mit Befehl `0x00c1`); Tabelle oder Spalte der zweiten Auswahl nicht beschrieben: der ganze Text ist abgewiesen, bevor etwas gelesen wird (Festlegung, nicht gemessen) |
 | W1 | `INSERT INTO [<Schema>.]<Tabelle> (<Spalten>) VALUES (<Werte>)` | Änderungszähler |
 | W2 | `UPDATE [<Schema>.]<Tabelle> SET <Spalte> = <Wert> {, <Spalte> = <Wert>} [WHERE <Term> {AND <Term>}]` | Änderungszähler |
 | W3 | `DELETE FROM [<Schema>.]<Tabelle> [WHERE <Term> {AND <Term>}]` | Änderungszähler |
@@ -1271,7 +1274,7 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   Aggregate und `GROUP BY`, `DISTINCT`, `TOP`, `ORDER BY`, `OFFSET`/`FETCH`, Aliase für Tabellen (außer `AS <Alias>` der Form M) und
   Spalten, Ausdrücke und Funktionen in Listen und Bedingungen, `OR`, `NOT`, `<`, `>`, `LIKE`, `BETWEEN` (in den Bedingungen von S1 bis W3; im
   Ausdruck einer Prüfbedingung der Form D gelten `OR`, `<` und `>`, unten),
-  `OUTPUT`-Klauseln (außer `OUTPUT $action` der Form M), mehrere Anweisungen in einem Text (außer Form C und dem Text der Form D7, der aus mehreren Anweisungen besteht und als Ganzes erkannt ist) und alles, was keine Form
+  `OUTPUT`-Klauseln (außer `OUTPUT $action` der Form M), mehrere Anweisungen in einem Text (außer Form C, dem Text der Form D7, der aus mehreren Anweisungen besteht und als Ganzes erkannt ist, und Form S2: eine dritte Auswahl, eine Folge mit einer anderen Anweisung als S1, ein leeres Stück zwischen zwei `;` und zwei Auswahlen mit Parametern bleiben nicht erkannt, weil nur der Text mit zwei Auswahlen ohne Parameter gemessen ist) und alles, was keine Form
   der Tabelle ist.
 - **Form C** (Setzung nach der Aufzeichnung von d-migrate 1.12.0 mit mssql-jdbc 13.4.0.jre11, 2026-11-05, gegen den
   Testserver; für den Referenzclient ist keine Anweisung der Form gemessen): `SELECT 1` ist der Verbindungstest des

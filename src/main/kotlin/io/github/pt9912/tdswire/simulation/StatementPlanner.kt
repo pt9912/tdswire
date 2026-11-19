@@ -78,6 +78,9 @@ internal data class StructurePlan(
 internal sealed interface PlanResult {
     data class Planned(val plan: Plan) : PlanResult
 
+    /** Mehrere Auswahlen in einem Text (`SPEC-036`, Form S2): jede ist geplant, in der Reihenfolge des Textes. */
+    data class Series(val plans: List<Plan>) : PlanResult
+
     /**
      * Eine Katalogabfrage; [catalog] ist der Stand, den der Anbieter bei der Planung lieferte, [literal] das Argument,
      * das der Text selbst trägt (statt eines Parameters), sonst `null`.
@@ -126,6 +129,15 @@ internal class StatementPlanner(private val catalogs: () -> SimCatalog) {
         is Recognition.Bulk -> PlanResult.Bulk(bulk(recognition, catalogs()))
 
         is Recognition.Recognized -> resolve(recognition.statement, catalogs())
+
+        is Recognition.Series -> series(recognition.selects, catalogs())
+    }
+
+    /** Jede Auswahl gegen die Beschreibung prüfen; die erste Abweisung ist die Antwort auf den ganzen Text. */
+    private fun series(selects: List<Statement.Select>, catalog: SimCatalog): PlanResult {
+        val results = selects.map { resolveTable(it, catalog) }
+        return results.firstOrNull { it !is PlanResult.Planned }
+            ?: PlanResult.Series(results.map { (it as PlanResult.Planned).plan })
     }
 
     private fun reject(code: String, message: String): PlanResult = PlanResult.Rejected(code, message)

@@ -234,6 +234,24 @@ class StatementPlannerTest {
     }
 
     /**
+     * Form S2: zwei Auswahlen in einem Text sind zwei Pläne in der Reihenfolge des Textes; ist eine Tabelle oder
+     * Spalte der zweiten nicht beschrieben, ist der ganze Text abgewiesen, bevor etwas gelesen wird (Festlegung).
+     * @spec SPEC-036
+     */
+    @Test
+    fun `plant zwei Auswahlen und weist den Text bei einer unbekannten zweiten ab`() {
+        val planned = planner.plan("SELECT id FROM person WHERE id = 1; SELECT name FROM person")
+        val series = assertIs<PlanResult.Series>(planned)
+        assertEquals(listOf("Id", "Name"), series.plans.map { it.resultColumns.single().name })
+
+        val unknownTable = rejected("SELECT id FROM person; SELECT id FROM nothing")
+        assertEquals(SimCodes.UNKNOWN_OBJECT, unknownTable.code)
+        assertEquals("nothing", unknownTable.objectName)
+        val unknownColumn = rejected("SELECT id FROM person; SELECT nope FROM person")
+        assertEquals("Spalte nicht beschrieben", unknownColumn.message)
+    }
+
+    /**
      * Eine nicht erkannte Anweisung endet mit `TDS_UNSUPPORTED_SQL`, auch wenn Tabelle und Spalten unbekannt wären:
      * die Zuordnung zur Form kommt vor der Objektprüfung.
      * @spec SPEC-037
@@ -244,7 +262,8 @@ class StatementPlannerTest {
             "SELECT id FROM person ORDER BY id",
             "SELECT nope FROM nothing ORDER BY x",
             "SELECT COUNT(*) FROM person",
-            "SELECT id FROM person; SELECT id FROM person",
+            "SELECT id FROM person; SELECT id FROM person; SELECT id FROM person",
+            "SELECT id FROM person; DELETE FROM person",
             "SELECT id FROM person WHERE id = 1 OR id = 2",
             "EXEC sp_who",
             "",

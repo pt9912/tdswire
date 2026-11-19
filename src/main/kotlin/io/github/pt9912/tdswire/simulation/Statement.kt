@@ -150,6 +150,12 @@ internal sealed interface Recognition {
     data class Recognized(val statement: Statement) : Recognition
 
     /**
+     * Mehrere Auswahlen (`SPEC-036`, Form S2) in einem Text, in der Reihenfolge des Textes; höchstens
+     * [SERIES_LIMIT], mindestens zwei.
+     */
+    data class Series(val selects: List<Statement.Select>) : Recognition
+
+    /**
      * Eine Katalogabfrage (`SPEC-036`, Form K); ihre Parameter stehen in der Anfrage, nicht im Text. Nur wenn der Text
      * das Argument als Literal trägt (`OBJECT_ID('…')`), steht es in [literal].
      */

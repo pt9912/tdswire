@@ -357,15 +357,14 @@ class StatementFormsTest {
     }
 
     /**
-     * Zeile „mehrere Anweisungen in einem Text“: genau ein abschließendes `;` fällt weg, jedes andere macht den
-     * Text nicht erkannt.
+     * Zeile „mehrere Anweisungen in einem Text“: genau ein abschließendes `;` fällt weg; ein weiteres `;`, ein leeres
+     * Stück und jede Folge, die nicht aus zwei Auswahlen der Form S1 besteht, macht den Text nicht erkannt.
      * @spec SPEC-036
      */
     @Test
-    fun `lehnt mehrere Anweisungen ab`() {
+    fun `lehnt andere Folgen als zwei Auswahlen ab`() {
         assertOnlyExtensionFails(
             "SELECT a FROM t;",
-            "SELECT a FROM t; SELECT b FROM t",
             "SELECT a FROM t;;",
             "SELECT a FROM t; ;",
             "SELECT a FROM t ; /* c */ ;",
@@ -374,9 +373,35 @@ class StatementFormsTest {
             "SELECT a FROM t; -- c\nSELECT 1",
             "INSERT INTO t (a) VALUES (1); INSERT INTO t (a) VALUES (2)",
             "DELETE FROM t; DELETE FROM u",
+            "SELECT a FROM t; DELETE FROM u",
+            "DELETE FROM u; SELECT a FROM t",
+            "SELECT a FROM t; SELECT b FROM t; SELECT c FROM t",
+            "SELECT a FROM t; SELECT b FROM t;;",
             "UPDATE t SET a = 1;; ",
         )
         assertNotRecognized(";", Unrecognized.EMPTY_TEXT)
+        assertNotRecognized("SELECT a FROM t; SELECT b FROM t; SELECT c FROM t", Unrecognized.TOO_MANY_STATEMENTS)
+    }
+
+    /**
+     * Form S2: zwei Auswahlen der Form S1, durch `;` getrennt, mit oder ohne abschließendes `;`; ein `;` in Literal,
+     * Bezeichner oder Kommentar trennt nicht.
+     * @spec SPEC-036
+     */
+    @Test
+    fun `erkennt zwei Auswahlen in einem Text`() {
+        val expected = Recognition.Series(
+            listOf(
+                Statement.Select(TableRef(null, "t"), listOf("a"), listOf(Term.In("a", listOf(SimValue.Number("1"))))),
+                Statement.Select(TableRef(null, "t"), listOf("b"), listOf(Term.In("a", listOf(SimValue.Number("2"))))),
+            ),
+        )
+        assertEquals(expected, recognize("SELECT a FROM t WHERE a = 1; SELECT b FROM t WHERE a = 2"))
+        assertEquals(expected, recognize("SELECT a FROM t WHERE a = 1;SELECT b FROM t WHERE a = 2;"))
+        assertEquals(expected, recognize("SELECT a FROM t WHERE a = 1 -- ;\n; /* ; */ SELECT b FROM t WHERE a = 2"))
+
+        val literal = assertIs<Recognition.Series>(recognize("SELECT a FROM t WHERE a = 'x;y'; SELECT [b;c] FROM t"))
+        assertEquals(listOf("b;c"), literal.selects.last().columns)
     }
 
     /**

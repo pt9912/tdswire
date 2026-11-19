@@ -10,9 +10,7 @@ namespace TdsWire.Referenztests.Kompatibilitaet;
 /// (`make kompatibilitaet`, Stufe 4 von `make e2e`, ADR-0019, TDS-QA-01): Anmeldung, SELECT, parametrisierte Abfrage,
 /// NULL, Typkatalog, Einfügen/Ändern/Löschen, Fehler vor und nach Zeilen. Jede Verbindung läuft mit TLS in TDS 7.4
 /// (Encrypt=Mandatory, Kette und Name geprüft); die Tabellen und Zahlen stehen in `KompatibilitaetsServer.kt`.
-/// Nicht belegt: Cancel (steht in `SynchronitaetTests`), mehrteilige Antworten
-/// und Rückgabewerte von Ausgabeparametern (das Simulations-Backend liefert sie nicht; zwei Tests messen die
-/// Abweisung), ein echter SQL Server.
+/// Nicht belegt: Cancel (steht in `SynchronitaetTests`), ein echter SQL Server.
 /// </summary>
 [Trait("Kategorie", "Szenario")]
 public class SzenarienTests
@@ -205,21 +203,29 @@ public class SzenarienTests
     }
 
     [Fact]
-    public void Mehrere_Anweisungen_in_einem_Text_liefern_keine_mehrteilige_Antwort()
+    public void Zwei_Anweisungen_in_einem_Text_liefern_zwei_Ergebnismengen()
     {
         using var verbindung = Ziel.Oeffnen();
         using var befehl = new SqlCommand(
             "SELECT Id FROM person WHERE Id = 1; SELECT Id FROM person WHERE Id = 2", verbindung);
 
-        var ausnahme = Assert.Throws<SqlException>(() => { befehl.ExecuteReader().Dispose(); });
+        var ids = new List<int>();
+        using (var leser = befehl.ExecuteReader())
+        {
+            do
+            {
+                while (leser.Read()) ids.Add(leser.GetInt32(0));
+            }
+            while (leser.NextResult());
+        }
 
-        Ziel.Messung(_ausgabe, "Zwei Anweisungen in einem Text: " + Ziel.Beschreibung(ausnahme));
-        Assert.Equal(50001, ausnahme.Number);
+        Ziel.Messung(_ausgabe, "Zwei Anweisungen in einem Text: Ids " + string.Join(",", ids));
+        Assert.Equal(new[] { 1, 2 }, ids);
         Assert.Equal(ConnectionState.Open, verbindung.State);
     }
 
     [Fact]
-    public void InputOutput_Parameter_wird_angenommen_und_die_Antwort_traegt_keinen_Rueckgabewert()
+    public void InputOutput_Parameter_wird_angenommen_und_behaelt_den_Eingabewert()
     {
         using var verbindung = Ziel.Oeffnen();
         using var befehl = new SqlCommand("SELECT Id FROM person WHERE Id = @id", verbindung);
@@ -238,6 +244,8 @@ public class SzenarienTests
             ergebnis = Ziel.Beschreibung(ausnahme);
         }
 
+        // Der Client setzt den Wert aus dem RETURNVALUE, den die Antwort trägt; ohne ihn bliebe der Eingabewert
+        // stehen: das RETURNVALUE belegen der Mitschnitt `rpc-ausgabewert` und die Tests des Backends.
         Ziel.Messung(_ausgabe, $"InputOutput-Parameter @id: {ergebnis}; Wert danach '{ausgabe.Value}'");
         Assert.Equal("keine Ausnahme", ergebnis);
         Assert.Equal(7, ausgabe.Value);
