@@ -1,0 +1,5 @@
+# Der Plan nennt ein Mittel als ausführbar, weil das Feld existiert, ohne es bis zur Ausgabe am Draht zu verfolgen
+
+**Sub-Area:** `*` (Planung, Slice-Schnitt)
+
+Ein Plan sagt „ohne die Bibliothek zu ändern“ für eine Angleichung, die über ein Feld der Fixture läuft (hier `SimColumn.maxLength = 10` für `kaputt.Text`, „Mittel auf Seiten des Servers (gelesen)“). Gelesen ist, dass das Feld existiert; ob es das COLMETADATA einer Auswahl erreicht, ist nicht gelesen: `SimulationBackend` baut `ResultColumn(name, type, nullable)` ohne die Länge. Der Implementer findet es beim Bau, der Slice wird eingeengt, ein Folge-Slice entsteht. Prüfpunkt beim Schreiben des Plans: bei einer Aussage „ausführbar ohne Änderung von X“ den Weg vom Feld bis zur Ausgabe benennen oder die Aussage als „nicht bis zum Draht verfolgt“ kennzeichnen. Verwandt, eigener Mechanismus: `BEO-TDS/plan-nimmt-compilerzwang-an-when-mit-else-an` (dort: ein Zwang, der nicht besteht) und `BEO-TDS/aussagen-ueber-messung-hinaus` (dort ist die Aussage breiter als die Messung, hier breiter als das Lesen).
