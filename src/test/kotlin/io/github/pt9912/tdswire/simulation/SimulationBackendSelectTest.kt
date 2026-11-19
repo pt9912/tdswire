@@ -375,7 +375,8 @@ class SimulationBackendSelectTest {
     }
 
     /**
-     * Grenze: ein Text mit zwei Auswahlen und Parametern ist abgewiesen (im Referenzabgleich nicht abgespielt).
+     * Grenze: ein Text mit zwei Auswahlen und Parametern ist abgewiesen (im Referenzabgleich nicht abgespielt),
+     * nach der Prüfung gegen die Beschreibung: eine unbekannte Tabelle meldet `TDS_SIM_UNKNOWN_OBJECT`.
      * @spec SPEC-036
      */
     @Test
@@ -385,6 +386,9 @@ class SimulationBackendSelectTest {
         val events = collectEvents(Probe(all).backend, "SELECT id FROM person; SELECT id FROM person", parameters)
 
         assertEquals("TDS_UNSUPPORTED_SQL", assertIs<QueryEvent.Failure>(events.single()).code)
+
+        val unknown = collectEvents(Probe(all).backend, "SELECT id FROM person; SELECT id FROM nothing", parameters)
+        assertEquals("TDS_SIM_UNKNOWN_OBJECT", assertIs<QueryEvent.Failure>(unknown.single()).code)
     }
 
     /**
@@ -411,5 +415,44 @@ class SimulationBackendSelectTest {
             ),
             events,
         )
+    }
+
+    /**
+     * Fehler: ein Wert, den die Spalte nicht hält, in einer der beiden Auswahlen weist den ganzen Text mit
+     * `TDS_SIM_INVALID_VALUE` ab, bevor eine Quelle geöffnet wird (Festlegung, nicht gemessen).
+     * @spec SPEC-036
+     */
+    @Test
+    fun `ein nicht überführbarer Wert in einer Auswahl weist die Folge ab`() {
+        for (sql in listOf(
+            "SELECT id FROM person WHERE id = 'abc'; SELECT name FROM person",
+            "SELECT id FROM person; SELECT name FROM person WHERE id = 'abc'",
+        )) {
+            val probe = Probe(all)
+
+            val events = collectEvents(probe.backend, sql)
+
+            assertEquals("TDS_SIM_INVALID_VALUE", assertIs<QueryEvent.Failure>(events.single(), sql).code)
+            assertEquals(0, probe.opens, sql)
+        }
+    }
+
+    /**
+     * Fehler: scheitert die erste Quelle, ist der Fehler das einzige Ereignis; die zweite Auswahl öffnet keine
+     * Quelle, und der Ausgabewert eines `InputOutput`-Parameters folgt einem Fehler nicht.
+     * @spec SPEC-036
+     * @spec SPEC-030
+     */
+    @Test
+    fun `nach einem Fehler der ersten Quelle folgen weder die zweite Auswahl noch der Ausgabewert`() {
+        val series = Probe(all, openFailure = IllegalStateException("Geheimnis"))
+        val events = collectEvents(series.backend, "SELECT id FROM person; SELECT name FROM person")
+        assertEquals("TDS_BACKEND_ERROR", assertIs<QueryEvent.Failure>(events.single()).code)
+        assertEquals(1, series.opens)
+
+        val single = Probe(all, openFailure = IllegalStateException("Geheimnis"))
+        val id = QueryParameter("@id", SqlType.Int32, 1, ParameterDirection.INPUT_OUTPUT)
+        val echoed = collectEvents(single.backend, "SELECT id FROM person WHERE id = @id", listOf(id))
+        assertEquals("TDS_BACKEND_ERROR", assertIs<QueryEvent.Failure>(echoed.single()).code)
     }
 }

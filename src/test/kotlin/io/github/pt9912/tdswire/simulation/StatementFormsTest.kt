@@ -380,6 +380,8 @@ class StatementFormsTest {
             "UPDATE t SET a = 1;; ",
         )
         assertNotRecognized(";", Unrecognized.EMPTY_TEXT)
+        assertNotRecognized("SELECT a FROM t;;", Unrecognized.UNEXPECTED_TOKEN)
+        assertNotRecognized(";SELECT a FROM t", Unrecognized.UNEXPECTED_TOKEN)
         assertNotRecognized("SELECT a FROM t; SELECT b FROM t; SELECT c FROM t", Unrecognized.TOO_MANY_STATEMENTS)
     }
 

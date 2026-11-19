@@ -194,7 +194,7 @@ O(übertragene Bytes).
 1. Anweisungstext normalisieren: Leerraum und Kommentare außerhalb von Literalen und Bezeichnern
    überlesen, ein einzelnes abschließendes `;` entfernen. Mehrere Anweisungen in einem Text gelten
    als nicht erkannt, solange das Clientprofil sie nicht verlangt; die Texte, die d-migrate verlangt
-   (Form C, `SPEC-036`), sind die Ausnahme. Ein Text, der dem Wortlaut einer Katalogabfrage entspricht
+   (Form C, `SPEC-036`), der Text der Form D7 und zwei Auswahlen (Form S2) sind die Ausnahme. Ein Text, der dem Wortlaut einer Katalogabfrage entspricht
    (Form K), wird vor dem Zeichenscanner zugeordnet.
 2. Die Anweisung anhand ihres Textes genau einer Form aus `SPEC-036` zuordnen. Das geschieht mit
    einem Zeichenscanner, der Literale, Bezeichner und Kommentare erkennt, nicht mit einer
@@ -209,7 +209,7 @@ O(übertragene Bytes).
 5. Auswahl: `ResultStart` mit den Spalten der Auswahlliste (bei `*` alle, in der Reihenfolge der
    Beschreibung) senden, auch wenn keine Zeile passt. Danach Zeilen einzeln aus der Zeilenquelle
    lesen, die Bedingung auf jede Zeile anwenden, passende als `Row` senden und mit `ResultEnd` und
-   der Zeilenzahl abschließen. Das Backend wendet die Bedingung immer selbst an; ein Vorfilter der
+   der Zeilenzahl abschließen; bei zwei Auswahlen (Form S2) folgt das Ergebnis der zweiten auf das der ersten. Das Backend wendet die Bedingung immer selbst an; ein Vorfilter der
    Zeilenquelle ist nur eine Optimierung. Gelesen wird nur so schnell, wie der Transport Zeilen
    abnimmt (Backpressure, `TDS-FA-08.a`); das Resultset wird nicht vollständig gehalten.
 6. Einfügen, Ändern, Löschen: Werte nach Schritt 4 prüfen, den Callback der Tabelle rufen und dessen
@@ -678,9 +678,12 @@ Handle nicht, Messzeilen h2, h3 und t1); jede andere RPC-Antwort trägt ebenfall
 wenn das Backend keinen liefert (gemessen: `sp_executesql` mit und ohne Ausgabewert, Mitschnitte `rpc-parameter` und
 `rpc-ausgabewert` und Messreihe am Draht, 2022 und 2025, Einzelmessung je Instanz; für `sp_execute` und den Prozedurnamen
 Setzung nach derselben Regel); den Ausgabewert eines `InputOutput`-Parameters einer Auswahl (Form S1, `SPEC-036`) liefert das Simulations-Backend als
-seinen Eingabewert (gemessen: Mitschnitt `rpc-ausgabewert`, `@id` mit Wert 7, RETURNVALUE mit Ordinal 2, Status 1, Wert 7,
-eine Einzelmessung je Instanz); für einen reinen `OUTPUT`-Parameter und für jede andere Form ist kein Ausgabewert gemessen,
-das Simulations-Backend sendet dort keinen (ein eigenes Backend sendet ihn über `QueryEvent.OutputParameter`). Die Collation aus der
+seinen Eingabewert, für jede RPC-Form, die eine solche Auswahl an das Backend gibt; gemessen ist nur `sp_executesql` mit einem
+Parameter (Mitschnitt `rpc-ausgabewert`, `@id` mit Wert 7, `INTN` 4, RETURNVALUE mit Ordinal 2, Status 1, Wert 7, eine Einzelmessung je
+Instanz), für die übrigen Formen ist es Setzung. Für einen reinen `OUTPUT`-Parameter ist der Wert, den eine Auswahl der Form S1 ihm
+gäbe, nicht gemessen (M-24 misst nur das Flag-Feld der RETURNVALUE zugewiesener und nicht zugewiesener Ausgabewerte); das
+Simulations-Backend sendet für ihn und für jede andere Form keinen Wert (ein eigenes Backend sendet ihn über
+`QueryEvent.OutputParameter`). Die Collation aus der
 Login-Antwort (ENVCHANGE Typ 7) ist Voraussetzung für jeden RPC mit Zeichenparametern. Alle anderen RPCs,
 auch `sp_prepare`, `sp_unprepare` und `sp_cursor*`, ergeben eine explizite Fehlermeldung ohne
 Verbindungsabbruch. **Messgrenzen:** Gemessen ist nur das Verhalten des Referenzclients gegen einen Testserver, nicht
@@ -1234,7 +1237,7 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
 | Form | Muster | Antwort |
 |---|---|---|
 | S1 | `SELECT <Spaltenliste \| *> FROM [<Schema>.]<Tabelle> [WHERE <Term> {AND <Term>}]` | Resultset |
-| S2 | zwei Auswahlen der Form S1 in einem Text, durch `;` getrennt, ohne Parameter (Setzung der Grenze: gemessen ist `SELECT Id FROM person WHERE Id = 1; SELECT Id FROM person WHERE Id = 2`, Mitschnitt `mehrteilig`, 2022 und 2025, je ein Fall) | zwei Resultsets in der Reihenfolge des Textes; das erste Abschluss `DONE` mit `MORE` und `COUNT`, das zweite `DONE` mit `COUNT` (gemessen, beide mit Befehl `0x00c1`); Tabelle oder Spalte der zweiten Auswahl nicht beschrieben: der ganze Text ist abgewiesen, bevor etwas gelesen wird (Festlegung, nicht gemessen) |
+| S2 | zwei Auswahlen der Form S1 in einem Text, durch `;` getrennt, ohne Parameter (mit Parametern ist der Text abgewiesen, `TDS_UNSUPPORTED_SQL`, erst nach der Prüfung gegen die Beschreibung; Setzung der Grenze: gemessen ist `SELECT Id FROM person WHERE Id = 1; SELECT Id FROM person WHERE Id = 2`, Mitschnitt `mehrteilig`, 2022 und 2025, je ein Fall) | zwei Resultsets in der Reihenfolge des Textes; das erste Abschluss `DONE` mit `MORE` und `COUNT`, das zweite `DONE` mit `COUNT` (gemessen, beide mit Befehl `0x00c1`); Festlegungen, nicht gemessen: ist Tabelle oder Spalte einer der beiden Auswahlen nicht beschrieben oder ein Wert nicht in den Spaltentyp überführbar, ist der ganze Text abgewiesen, bevor etwas gelesen wird (`TDS_SIM_UNKNOWN_OBJECT`, `TDS_SIM_INVALID_VALUE`); scheitert die Zeilenquelle der zweiten Auswahl nach dem vollständigen ersten Ergebnis, ist der Fehler das letzte Ereignis (`TDS_BACKEND_ERROR`), nach einem Fehler der ersten Quelle folgt keine zweite Auswahl und kein Ausgabewert |
 | W1 | `INSERT INTO [<Schema>.]<Tabelle> (<Spalten>) VALUES (<Werte>)` | Änderungszähler |
 | W2 | `UPDATE [<Schema>.]<Tabelle> SET <Spalte> = <Wert> {, <Spalte> = <Wert>} [WHERE <Term> {AND <Term>}]` | Änderungszähler |
 | W3 | `DELETE FROM [<Schema>.]<Tabelle> [WHERE <Term> {AND <Term>}]` | Änderungszähler |
@@ -1274,7 +1277,7 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   Aggregate und `GROUP BY`, `DISTINCT`, `TOP`, `ORDER BY`, `OFFSET`/`FETCH`, Aliase für Tabellen (außer `AS <Alias>` der Form M) und
   Spalten, Ausdrücke und Funktionen in Listen und Bedingungen, `OR`, `NOT`, `<`, `>`, `LIKE`, `BETWEEN` (in den Bedingungen von S1 bis W3; im
   Ausdruck einer Prüfbedingung der Form D gelten `OR`, `<` und `>`, unten),
-  `OUTPUT`-Klauseln (außer `OUTPUT $action` der Form M), mehrere Anweisungen in einem Text (außer Form C, dem Text der Form D7, der aus mehreren Anweisungen besteht und als Ganzes erkannt ist, und Form S2: eine dritte Auswahl, eine Folge mit einer anderen Anweisung als S1, ein leeres Stück zwischen zwei `;` und zwei Auswahlen mit Parametern bleiben nicht erkannt, weil nur der Text mit zwei Auswahlen ohne Parameter gemessen ist) und alles, was keine Form
+  `OUTPUT`-Klauseln (außer `OUTPUT $action` der Form M), mehrere Anweisungen in einem Text (außer Form C, dem Text der Form D7, der aus mehreren Anweisungen besteht und als Ganzes erkannt ist, und Form S2: eine dritte Auswahl, eine Folge mit einer anderen Anweisung als S1, ein leeres Stück zwischen zwei `;` und zwei Auswahlen mit Parametern erkennt der Parser, das Backend weist sie nach der Prüfung gegen die Beschreibung mit `TDS_UNSUPPORTED_SQL` ab, weil nur der Text mit zwei Auswahlen ohne Parameter gemessen ist) und alles, was keine Form
   der Tabelle ist.
 - **Form C** (Setzung nach der Aufzeichnung von d-migrate 1.12.0 mit mssql-jdbc 13.4.0.jre11, 2026-11-05, gegen den
   Testserver; für den Referenzclient ist keine Anweisung der Form gemessen): `SELECT 1` ist der Verbindungstest des
@@ -2355,3 +2358,4 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | 2026-11-17 | Massenladen für eigene Backends (`TDS-FA-08`, `SPEC-059`, `SPEC-035`, `SPEC-036`): die Fähigkeit `BulkLoadingBackend` mit `BulkTarget`, `BulkTargetResult`, `BulkProbeColumn`, `BulkProbeResult` und `BulkRows` ist öffentlich (zehn Typnamen; Mitglieder: `BulkLoadingBackend.bulkTarget(sql)`, `bulkProbe(sql)`, `suspend load(target, rows)`, `BulkTarget.schema`, `table`, `BulkTargetResult.Ready.target`, `BulkTargetResult.Rejected.code`, `message`, `BulkProbeColumn.column`, `maxChars`, `BulkProbeResult.Ready.columns`, `BulkProbeResult.Rejected.code`, `message`, `BulkRows.columns`, `rows`); `Custom` mit der Fähigkeit am Backend bekommt `INSERT BULK`, die Probe der Zieltabelle und die Nachricht 0x07, die Erkennung der Texte liegt beim Backend; Backends ohne die Fähigkeit und das Simulations-Backend sind unverändert; die nächste veröffentlichte Version braucht nach dem Wortlaut von `SPEC-059` ein höheres `y` (Folgerung, nicht gebaut) |
 | 2026-11-18 | Text der Antwort auf eine unbekannte Tabelle an die Messung angeglichen (`TDS-FA-11`, `TDS-FA-06`, `TDS-QA-01`, `SPEC-038`, `SPEC-059`; Nutzerentscheidung 2026-11-18, Option „Code angleichen“): öffentliche Fläche um das Feld `Failure.objectName` erweitert (Voreinstellung `null`, für Java der Konstruktor mit drei Argumenten bleibt); `TDS_SIM_UNKNOWN_OBJECT` meldet mit dem Namen `Invalid object name '<Name>'.`, ohne ihn den festen Text (Abschnitt 4, `SPEC-002` Absatz „Name der unbekannten Tabelle“; Messprotokoll, Szenario `fehler-tabelle-unbekannt`) |
 | 2026-11-18 | Länge von `DECIMALN` und `NUMERICN` im COLMETADATA an die Messung angeglichen (`TDS-FA-05`, `TDS-QA-01`, `SPEC-003`, `SPEC-036`; Entscheid des Nutzers 2026-11-18, Code angleichen): am echten SQL Server 2022 und 2025 gemessen ist die Länge 17 für jede Precision (Messprotokoll W-23, W-24), der Encoder schreibt sie; die Ausnahme A-11 entfällt; die Länge der Dezimalwerte im ROW (der Server schreibt nach dem Wert, W-25) ist nicht Teil der Aussage zur Zeilenform |
+| 2026-11-19 | Zwei Auswahlen in einem Text (Form S2) und Ausgabewert des `InputOutput`-Parameters (`TDS-FA-10`, `TDS-FA-11`, `TDS-QA-01`, `SPEC-036`, `SPEC-030`, `TDS-FA-11.a`; Entscheid des Nutzers 2026-11-18, Code angleichen): das Simulations-Backend beantwortet zwei Auswahlen der Form S1 ohne Parameter mit zwei Ergebnissen und sendet für einen `InputOutput`-Parameter einer Auswahl seinen Eingabewert als RETURNVALUE; die Ausnahmen A-2 und A-16 des Referenzabgleichs entfallen, Grenzen und Festlegungen in `SPEC-036` und `SPEC-030` |
