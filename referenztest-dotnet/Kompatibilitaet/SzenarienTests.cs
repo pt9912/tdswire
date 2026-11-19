@@ -260,7 +260,8 @@ public class SzenarienTests
             ergebnis = Ziel.Beschreibung(ausnahme);
         }
 
-        // Dieser Test sieht das RETURNVALUE nicht: der Client lässt den Eingabewert auch ohne RETURNVALUE stehen.
+        // Dieser Test sieht das RETURNVALUE nicht (Setzung, am Referenzclient nicht gemessen): der Client lässt den
+        // Eingabewert auch ohne RETURNVALUE stehen.
         // Das RETURNVALUE belegen der Mitschnitt `rpc-ausgabewert` und die Tests des Backends.
         Ziel.Messung(_ausgabe, $"InputOutput-Parameter @id: {ergebnis}; Wert danach '{ausgabe.Value}'");
         Assert.Equal("keine Ausnahme", ergebnis);

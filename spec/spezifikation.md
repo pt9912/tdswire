@@ -681,7 +681,7 @@ Setzung nach derselben Regel); den Ausgabewert eines `InputOutput`-Parameters ei
 seinen Eingabewert, für jede RPC-Form, die eine solche Auswahl an das Backend gibt; gemessen ist nur `sp_executesql` mit einem
 Parameter (Mitschnitt `rpc-ausgabewert`, `@id` mit Wert 7, `INTN` 4, RETURNVALUE mit Ordinal 2, Status 1, Wert 7, eine Einzelmessung je
 Instanz), für die übrigen Formen ist es Setzung. Für einen reinen `OUTPUT`-Parameter ist der Wert, den eine Auswahl der Form S1 ihm
-gäbe, nicht gemessen (M-24 misst nur das Flag-Feld der RETURNVALUE zugewiesener und nicht zugewiesener Ausgabewerte); das
+gäbe, nicht gemessen (Lesart von M-24: die Zeile misst das Flag-Feld der RETURNVALUE zugewiesener und nicht zugewiesener Ausgabewerte, nicht den Wert einer Auswahl); das
 Simulations-Backend sendet für ihn und für jede andere Form keinen Wert (ein eigenes Backend sendet ihn über
 `QueryEvent.OutputParameter`). Die Collation aus der
 Login-Antwort (ENVCHANGE Typ 7) ist Voraussetzung für jeden RPC mit Zeichenparametern. Alle anderen RPCs,
