@@ -481,10 +481,10 @@ class UnprepareDispatchTest {
 
     /**
      * ATTENTION während der Antwort auf die Freigabe (`TDS-FA-07`, `SPEC-029`, Anfragezustand `RUNNING`): nach den
-     * Tokens der dritten Nummer (das neunte Token) trifft ATTENTION ein, die Antwort endet dort mit genau einem
-     * `DONE[ATTN]` (Handvektor) ohne weitere Nummer und ohne das DONEPROC der letzten; die Verbindung bleibt offen,
-     * die nächste Anfrage erhält nur ihre Antwort. Wächter: eine Antwort, die ohne `AbortableRun` ganz geschrieben
-     * wird.
+     * Tokens der dritten Nummer (das neunte Token) trifft ATTENTION ein, die erste Nachricht endet dort mit
+     * `DONE[ERROR]` (Befehl `0x00fd`, Form BATCH) und die zweite besteht aus `DONE[ATTN]` (Handvektoren), ohne weitere
+     * Nummer und ohne das DONEPROC der letzten; die Verbindung bleibt offen, die nächste Anfrage erhält nur ihre
+     * Antwort. Wächter: eine Antwort, die ohne `AbortableRun` ganz geschrieben wird.
      *
      * @spec SPEC-029
      * @spec SPEC-060
