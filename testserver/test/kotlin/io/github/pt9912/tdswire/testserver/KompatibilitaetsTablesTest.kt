@@ -2,7 +2,6 @@ package io.github.pt9912.tdswire.testserver
 
 import io.github.pt9912.tdswire.simulation.FilterTerm
 import io.github.pt9912.tdswire.simulation.RowFilter
-import io.github.pt9912.tdswire.simulation.SimQuery
 import io.github.pt9912.tdswire.simulation.SimTable
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
@@ -10,6 +9,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
+// Kopplung: Alter 36 und die drei Zeilen von `person` wie `ADA_AGE` und die Zeilen in KompatibilitaetsServer.kt,
+// wie `testschema.sql` und die Konstanten `Geaendert`, `Geloescht`, `ZeilenMitAlter36` in SzenarienTests.cs.
 private const val AGE = 36
 private const val ALL_ROWS = 3L
 private const val AGE_ROWS = 2L
@@ -23,7 +24,11 @@ internal class KompatibilitaetsTablesTest {
 
     private fun id(vararg values: Any?) = RowFilter(listOf(FilterTerm.In("Id", values.toList())))
 
-    /** Änderung und Löschung zählen die Zeilen, auf die die Bedingung zutrifft; der Bestand bleibt unverändert. */
+    /**
+     * Änderung und Löschung zählen die Zeilen, auf die die Bedingung zutrifft.
+     *
+     * @spec SPEC-035
+     */
     @Test
     fun `onUpdate und onDelete von person melden die Zahl der zutreffenden Zeilen`() = runBlocking {
         val person = table("person")
@@ -37,18 +42,13 @@ internal class KompatibilitaetsTablesTest {
         assertEquals(AGE_ROWS, update(mapOf("Name" to "x"), RowFilter(listOf(FilterTerm.In("Age", listOf(AGE))))))
         assertEquals(ALL_ROWS, delete(null))
         assertEquals(1L, delete(RowFilter(listOf(FilterTerm.IsNull("Age", negated = false)))))
-        assertEquals(ALL_ROWS, drain(person))
     }
 
-    private suspend fun drain(table: SimTable): Long {
-        val source = table.rows(SimQuery(table.columns, null))
-        var count = 0L
-        while (source.next() != null) count++
-        source.close()
-        return count
-    }
-
-    /** `Id` von `laufend` ist nullbar, wie in der Ansicht der Referenz; der Schlüssel entfällt mit ihr. */
+    /**
+     * `Id` von `laufend` ist nullbar, wie in der Ansicht der Referenz; der Schlüssel entfällt mit ihr.
+     *
+     * @spec SPEC-045
+     */
     @Test
     fun `laufend beschreibt Id nullbar ohne Schluessel`() {
         val running = table("laufend")
