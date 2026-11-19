@@ -16,7 +16,7 @@
 
 ### F-1 · MEDIUM · Slice §1 und §3 nennen weiter, was der Befund widerlegt
 * quelle: Reviewer-Skill (Fortschreibung lässt die zweite Fundstelle stehen), `AGENTS.md` §3.8
-* pfad: `docs/plan/planning/in-progress/slice-kompatibilitaetsserver-an-referenz-angleichen.md` · „`kaputt.Text` mit `maxLength = 10` beschreiben, ohne die Bibliothek zu ändern“
+* pfad: `docs/plan/planning/done/slice-kompatibilitaetsserver-an-referenz-angleichen.md` · „`kaputt.Text` mit `maxLength = 10` beschreiben, ohne die Bibliothek zu ändern“
 * befund: Der neue Absatz „Befund des Implementers“ sagt, `kaputt.Text` lasse sich ohne Bibliotheksänderung nicht angleichen. Fünf andere Stellen sagen das Gegenteil und bleiben unverändert: der Ist-Stand-Punkt „Mittel auf Seiten des Servers“, die Empfehlung („kein Verhalten der Bibliothek betroffen“, „nicht `src/main`“), der Absatz „Entscheidung des Nutzers“ („`kaputt.Text` mit `maxLength = 10` in der Fixture, ohne Bibliotheksänderung“), der Punkt „Ausdrücklich NICHT“ („keine der beiden Lücken ist ein Verhalten der Bibliothek“) und §4 („der Mitschnitt-Teil von A-14 (Option A)“). Ein Leser von §1 liest zwei Aussagen zur selben Frage.
 * verifizierbar: ja (Grep auf `ohne die Bibliothek`, `kein Verhalten der Bibliothek`, `maxLength = 10`)
 * klasse: Zweite Fundstelle nach Fortschreibung

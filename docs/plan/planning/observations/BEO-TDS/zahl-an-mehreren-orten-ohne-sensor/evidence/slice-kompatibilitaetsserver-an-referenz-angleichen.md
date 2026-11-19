@@ -1,2 +1,2 @@
-**Vorgang:** [slice-kompatibilitaetsserver-an-referenz-angleichen](../../../../in-progress/slice-kompatibilitaetsserver-an-referenz-angleichen.md)
+**Vorgang:** [slice-kompatibilitaetsserver-an-referenz-angleichen](../../../../done/slice-kompatibilitaetsserver-an-referenz-angleichen.md)
 **Fund:** [Review](../../../../../../reviews/2026-11-19-slice-kompatibilitaetsserver-an-referenz-angleichen.md) F-5 (LOW): Alter 36 und drei Zeilen von `person` stehen in `KompatibilitaetsServer.kt`, `testschema.sql`, `SzenarienTests.cs` und neu im Kotlin-Test `KompatibilitaetsTablesTest`, dort ohne Kopplungskommentar; der Reviewer fing es, behoben in `0bdd8db4`. Der Kotlin-Test wird bei Änderung von `ADA_AGE` rot (der Sensor der Instanz).

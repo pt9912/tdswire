@@ -9,7 +9,7 @@ aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
 Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (§Ein Slice, dessen Gegenstand ein anderer übernimmt).
 
-**Welle:** ohne Welle (keine Closure-Bedingung außerhalb der DoD dieses Slice; Träger des Rests von A-14 der Ausnahmeliste des Referenzabgleichs, übergeben von [slice-kompatibilitaetsserver-an-referenz-angleichen](../in-progress/slice-kompatibilitaetsserver-an-referenz-angleichen.md)).
+**Welle:** ohne Welle (keine Closure-Bedingung außerhalb der DoD dieses Slice; Träger des Rests von A-14 der Ausnahmeliste des Referenzabgleichs, übergeben von [slice-kompatibilitaetsserver-an-referenz-angleichen](../done/slice-kompatibilitaetsserver-an-referenz-angleichen.md)).
 
 **Bezug:** [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend) (Scope: Tabellenbeschreibung des Simulations-Backends), [TDS-FA-05](../../../../spec/lastenheft.md#tds-fa-05--resultsets-und-datentypen) (Spaltenbeschreibung eines Ergebnisses), [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität), [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md), [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) (Entscheidung zu `SimColumn.maxLength`, Accepted, unverändert)
 
@@ -28,7 +28,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Ziel:** Das COLMETADATA einer Auswahl des Simulations-Backends meldet für eine Textspalte die Länge der Tabellenbeschreibung (`SimColumn.maxLength`), so dass `kaputt.Text` mit `maxLength = 10` im Kompatibilitätsserver wie in der Referenz `nvarchar(10)` (Länge 20) ergibt und die Mitschnitt-Regel `fehler-nach-zeilen/01/colmetadata` entfällt.
 
-**Entscheidung des Nutzers (2026-11-19): Code angleichen, die Bibliothek wird geändert.** `SimColumn.maxLength` wird ins COLMETADATA der Auswahl durchgereicht (die Spezifikation ist das Zielbild, eine Abweichung des Servers ist Schuld; Fortsetzung der Entscheidung vom 2026-11-18 in [slice-kompatibilitaetsserver-an-referenz-angleichen](../in-progress/slice-kompatibilitaetsserver-an-referenz-angleichen.md) §1).
+**Entscheidung des Nutzers (2026-11-19): Code angleichen, die Bibliothek wird geändert.** `SimColumn.maxLength` wird ins COLMETADATA der Auswahl durchgereicht (die Spezifikation ist das Zielbild, eine Abweichung des Servers ist Schuld; Fortsetzung der Entscheidung vom 2026-11-18 in [slice-kompatibilitaetsserver-an-referenz-angleichen](../done/slice-kompatibilitaetsserver-an-referenz-angleichen.md) §1).
 
 **Ist-Stand** (gelesen am 2026-11-19; was nicht als gemessen steht, ist aus Datei oder Code gelesen):
 
@@ -36,7 +36,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 - Die KDoc von `SimColumn` und [SPEC-035](../../../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends) sagen ausdrücklich, die Länge „ändere die Metadaten eines Ergebnisses nicht“; diese Aussage ist die Setzung, die der Slice umkehrt. Sie steht in Spezifikation und KDoc, nicht in einer ADR (Befund zur ADR-Frage unten).
 - Wo `SimColumn.maxLength` bereits wirkt: Katalogantworten (`CatalogAnswers.kt`), `MERGE` (`SimulationMerges.kt`, Text über der Länge ist 2628) und die Probe des Massenladens (`BulkCopyForms.kt` liest `maxLength`, `UNBOUNDED_TEXT` gilt dort als 4000).
 - `SimColumn.maxLength` hat den Wertebereich 1 bis 4000 oder -1 (`nvarchar(max)`); `ResultColumn.maxLength` erlaubt nur 1 bis 4000. Die Abbildung von -1 ist offen (§6).
-- Fixture: `kaputt` in `KompatibilitaetsServer.kt` führt `Text` ohne Länge (Vorgabe 4000); der Mitschnitt vergleicht gegen die Aufnahme der Referenz (`nvarchar(10)`, Länge 20). Die Regel `fehler-nach-zeilen/01/colmetadata` in `referenztest-dotnet/Vergleich/mitschnitt-ausnahmen.tsv` benennt diese Lücke; die zweite Regel zu A-14 (`cancel-streaming/01/colmetadata`, `laufend.Id` nullbar) ist in [slice-kompatibilitaetsserver-an-referenz-angleichen](../in-progress/slice-kompatibilitaetsserver-an-referenz-angleichen.md) erledigt.
+- Fixture: `kaputt` in `KompatibilitaetsServer.kt` führt `Text` ohne Länge (Vorgabe 4000); der Mitschnitt vergleicht gegen die Aufnahme der Referenz (`nvarchar(10)`, Länge 20). Die Regel `fehler-nach-zeilen/01/colmetadata` in `referenztest-dotnet/Vergleich/mitschnitt-ausnahmen.tsv` benennt diese Lücke; die zweite Regel zu A-14 (`cancel-streaming/01/colmetadata`, `laufend.Id` nullbar) ist in [slice-kompatibilitaetsserver-an-referenz-angleichen](../done/slice-kompatibilitaetsserver-an-referenz-angleichen.md) erledigt.
 
 **Befund zur ADR-Frage (Planner, gelesen, keine Entscheidung):** Eine Folge-ADR ist nach Lage der Texte **nicht** nötig; dies prüft der Architect vor dem Start.
 
@@ -49,7 +49,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 - Die Prüfung der Zeilen der Zeilenquelle gegen `SimColumn.maxLength` — SPEC-035 nimmt sie aus der Prüfung aus; was mit einem Text über der Länge im Ergebnis geschieht, ist ein eigener Befund (§6), den der Slice nur belegen, nicht neu setzen soll.
 - Option B für A-14 (Ansicht `kaputt` in `testschema.sql`, neue Aufnahmen beider Instanzen) — vom Nutzer abgelehnt (Code angleichen); nicht nötig.
 - Die Antwort auf `SchemaOnly` und `KeyInfo` (A-8) — [slice-simulation-schemaonly-keyinfo](slice-simulation-schemaonly-keyinfo.md); anderer Gegenstand.
-- `laufend.Id` nullbar und A-9 — erledigt in [slice-kompatibilitaetsserver-an-referenz-angleichen](../in-progress/slice-kompatibilitaetsserver-an-referenz-angleichen.md).
+- `laufend.Id` nullbar und A-9 — erledigt in [slice-kompatibilitaetsserver-an-referenz-angleichen](../done/slice-kompatibilitaetsserver-an-referenz-angleichen.md).
 
 ## 2. Definition of Done
 
@@ -118,7 +118,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 Wird bei der Closure gefüllt.
 
-**Herkunft:** Rest von A-14 der Ausnahmeliste, [Messprotokoll des Referenzabgleichs](../../../messungen/referenzabgleich.md); Befund des Implementers in [slice-kompatibilitaetsserver-an-referenz-angleichen](../in-progress/slice-kompatibilitaetsserver-an-referenz-angleichen.md) §1 (Stand 2026-11-19: `SimColumn.maxLength` erreicht das COLMETADATA einer Auswahl nicht); Nutzerentscheidung 2026-11-19: Bibliothek ändern, Code angleichen; Register `BEO-TDS/live-lauf-ausserhalb-der-gates-haelt-kopplungen-nicht`.
+**Herkunft:** Rest von A-14 der Ausnahmeliste, [Messprotokoll des Referenzabgleichs](../../../messungen/referenzabgleich.md); Befund des Implementers in [slice-kompatibilitaetsserver-an-referenz-angleichen](../done/slice-kompatibilitaetsserver-an-referenz-angleichen.md) §1 (Stand 2026-11-19: `SimColumn.maxLength` erreicht das COLMETADATA einer Auswahl nicht); Nutzerentscheidung 2026-11-19: Bibliothek ändern, Code angleichen; Register `BEO-TDS/live-lauf-ausserhalb-der-gates-haelt-kopplungen-nicht`.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

@@ -1,2 +1,2 @@
-**Vorgang:** [slice-kompatibilitaetsserver-an-referenz-angleichen](../../../../in-progress/slice-kompatibilitaetsserver-an-referenz-angleichen.md)
+**Vorgang:** [slice-kompatibilitaetsserver-an-referenz-angleichen](../../../../done/slice-kompatibilitaetsserver-an-referenz-angleichen.md)
 **Fund:** [Review](../../../../../../reviews/2026-11-19-slice-kompatibilitaetsserver-an-referenz-angleichen.md) F-1 (MEDIUM): nach dem Befund zu `kaputt.Text` (kein Bau ohne Bibliotheksänderung) sagten fünf Stellen in §1, §3 und §4 des Slice weiter das Gegenteil; der Reviewer fing es, behoben in `0bdd8db4`. Ob der Implementer Schritt 20c fuhr, steht in keinem Bericht.
