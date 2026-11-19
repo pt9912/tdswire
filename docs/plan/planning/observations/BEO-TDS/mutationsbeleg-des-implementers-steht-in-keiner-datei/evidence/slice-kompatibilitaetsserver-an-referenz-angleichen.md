@@ -1,0 +1,2 @@
+**Vorgang:** [slice-kompatibilitaetsserver-an-referenz-angleichen](../../../../done/slice-kompatibilitaetsserver-an-referenz-angleichen.md)
+**Fund:** §7 „Mutationsbeleg des Implementers“: gefahren ist nur die Konstante in `onDelete` (Bericht des Implementers an den Auftraggeber, nicht als Datei im Repo); die drei Mutationen des Reviews sind nur gelesen. Benannte Lücke F-V3 der [Verifikation](../../../../../../reviews/2026-11-19-slice-kompatibilitaetsserver-an-referenz-angleichen-verifikation.md): dieser Beleg steht in keiner Datei.

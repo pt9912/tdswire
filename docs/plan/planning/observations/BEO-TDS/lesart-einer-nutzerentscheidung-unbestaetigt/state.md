@@ -15,3 +15,5 @@
 **Lese-Schritt welle-referenzabgleich-release (2026-11-17):** 16× gelesen, über der Schwelle, nicht verkörpert; Entscheidung beim Nutzer (Regel, Sensor, Träger-Slice oder Streichung), siehe `welle-referenzabgleich-release-results.md` §Steering-Loop-Einträge. Die Closure ändert weder Regel noch Gate. Der Stand `offen` bleibt.
 
 **Träger (2026-11-17):** Verweis: die Lesart „die Liste der positiven Formen ist abschließend“ ist Start-Bedingung von [slice-simulation-anweisungsformen-erweitern](../../../open/slice-simulation-anweisungsformen-erweitern.md) (`open/`); der Stand `offen` und der Zähler bleiben.
+
+**Wiederauftreten (slice-simulation-mehrere-anweisungen-und-ausgabewert):** Review F-1: die Lesart „Form S2 fällt unter ‚begrenzt auf erkannte Formen‘ und unter `TDS-FA-10`“ lag als Setzung in Spezifikation und Bau vor der Bestätigung; für diese eine Lesart ist sie am 2026-11-19 bestätigt ([ADR-0055](../../../../adr/0055-zwei-auswahlen-ohne-parameter-in-einem-text-sind-erkannt.md) Entscheidung 1). Der Stand `offen` der Klasse bleibt (17×, über der Schwelle, nicht verkörpert; Entscheidung des Nutzers vom 2026-11-06 unverändert).
