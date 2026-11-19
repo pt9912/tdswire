@@ -1,6 +1,6 @@
 # ADR-0054: Antwort auf ATTENTION in zwei Nachrichten wie am echten Server (ersetzt teilweise ADR-0027 Entscheidung 1)
 
-**Status:** Proposed
+**Status:** Accepted (vom Nutzer entschieden, 2026-11-19)
 
 **Datum:** 2026-11-18
 
@@ -41,7 +41,7 @@ Seither ist die Form des echten Servers am Draht gemessen (Messprotokoll, Abschn
 
 ## Entscheidung
 
-Wir wählen **Option A**: Der Server antwortet auf ATTENTION in `RUNNING` und `STREAMING` in **zwei Nachrichten** wie der echte Server (Nutzerentscheid 2026-11-18: Code angleichen). Die Annahme dieser ADR steht beim Nutzer.
+Wir wählen **Option A**: Der Server antwortet auf ATTENTION in `RUNNING` und `STREAMING` in **zwei Nachrichten** wie der echte Server (Nutzerentscheid 2026-11-18: Code angleichen). Angenommen am 2026-11-19 vom Nutzer, einschließlich der Bestätigung eines ATTENTION während `CANCELLING` als einzelnes `DONE[ATTN]` (Nr. 4, dritter Punkt).
 
 1. **Wire-Form** (M1, M2, M5).
    - *Im Stream* (mindestens ein Antwortpaket ist gesendet): erste Nachricht = das Ende der abgebrochenen Antwort als `DONE` mit Status `ERROR` (ohne `MORE`, ohne `COUNT`), Befehl nach der Form des Ereignisses wie in [SPEC-031](../../../spec/spezifikation.md#spec-031--streaming-fehler-und-atomarität); gemessen ist `0x00c1`. Zweite Nachricht = `DONE` mit Status `ATTN`, Befehl `0x00fd`.
@@ -80,9 +80,8 @@ Wir wählen **Option A**: Der Server antwortet auf ATTENTION in `RUNNING` und `S
 |---|---|---|
 | JVM-/Protokolltests, Mitschnitt-Abspielen, .NET-Referenzclient | ATTENTION im Stream und bei wartendem Befehl ergibt zwei Nachrichten (`DONE[ERROR]` ohne ERROR-Token, `DONE[ATTN]`); Race DONE gegen ATTENTION und Frist gegen ATTENTION schreibt nie zwei Abschlüsse derselben Antwort; wiederholtes ATTENTION löst keinen zweiten Cancel aus. Noch keine bestandenen Tests. | — (Tests mit dem Bau); Abspielen: `make vergleichslauf-d` (kein Gate) |
 
-## Offen (Nutzer, nicht entschieden)
+## Offen (nicht entschieden)
 
-- Soll ein ATTENTION während `CANCELLING` (Nr. 4, dritter Punkt) einzeln bestätigt werden (Setzung hier) oder nur das Paar antworten? Am Referenzclient nicht auslösbar gemessen.
 - Andere Clients als der Referenzclient bleiben ohne Beleg für die Zwei-Nachrichten-Form; mssql-jdbc ist nicht gemessen.
 
 ## Re-Evaluierungs-Trigger
@@ -94,6 +93,7 @@ Ein Client mit der Ein-Nachricht-Erwartung scheitert an der Zwei-Nachrichten-For
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-11-18 | Proposed; Option A auf Nutzerentscheid vom selben Tag (Code angleichen) | [ADR-0027](0027-abbruch-und-zuruecksetzen.md) |
+| 2026-11-19 | Accepted; ausdrückliche Annahme durch den Nutzer, einschließlich der einzelnen Bestätigung eines wiederholten ATTENTION | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit
