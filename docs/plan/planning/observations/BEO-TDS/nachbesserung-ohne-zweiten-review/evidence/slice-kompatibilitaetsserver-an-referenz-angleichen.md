@@ -1,0 +1,2 @@
+**Vorgang:** [slice-kompatibilitaetsserver-an-referenz-angleichen](../../../../done/slice-kompatibilitaetsserver-an-referenz-angleichen.md)
+**Fund:** [Verifikation](../../../../../../reviews/2026-11-19-slice-kompatibilitaetsserver-an-referenz-angleichen-verifikation.md): Commit `0bdd8db4` ändert nach dem Review Testcode und Tags (F-4, F-5, F-7) ohne zweiten Review; Vermerk in §7 der Closure-Notiz, stattdessen `make clean-build`, `make e2e` und `make kompatibilitaet` des Verifiers auf dem End-Stand; Mutationen auf dem Stand nach der Nachbesserung nicht gefahren.

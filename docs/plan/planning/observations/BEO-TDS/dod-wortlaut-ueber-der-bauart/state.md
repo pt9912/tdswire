@@ -2,4 +2,6 @@
 
 **Wiederauftreten (slice-qa-performance-heap-abschluss):** Verifikation, DoD-Punkt „Abstand letzte Zeile → DONE“: eine Messgröße, die die Bauart (Paketierung) auf 0 µs festlegt; der Verifier fing es, die Planung nicht. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
 
+**Wiederauftreten (slice-fehlertext-unbekannte-tabelle-angleichen):** ein Lieferpunkt der DoD nannte zwei Ausgänge für eine Regel der Ausnahmeliste (entfallen oder *so gewollt*), die Lieferung war ein dritter (verkleinert), obwohl §1 die gebündelten Unterschiede nannte; Review und Verifier fingen es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt; nicht verkörpert ist die Schärfung „bündelt eine Regel mehrere Unterschiede, zählt die DoD sie einzeln“.
+
 **Wiederauftreten (slice-cancel-antwort-zwei-nachrichten-angleichen):** Review F-8: ein Lieferpunkt der DoD war nach dem Messergebnis nicht erfüllbar (A-7 entfällt nicht, sondern bleibt als eine Regel); der Reviewer fing es, der Nutzer entschied am 2026-11-20. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.

@@ -52,10 +52,10 @@ public class MessungBulkBelegTests
     // @spec SPEC-045
     [Theory]
     [MemberData(nameof(Stufen))]
-    public void Die_Ablage_hat_23_Messungen_mit_Anmeldung_und_alle_Auswertungen_ohne_Zerlegungsproblem(string stufe)
+    public void Die_Ablage_hat_24_Messungen_mit_Anmeldung_und_alle_Auswertungen_ohne_Zerlegungsproblem(string stufe)
     {
         var dateien = Directory.GetFiles(Verzeichnis(stufe), "*.messung");
-        Assert.Equal(23, dateien.Length);
+        Assert.Equal(24, dateien.Length);
         Assert.DoesNotContain(Z(stufe), z => z.Value.Contains("PROBLEM", StringComparison.Ordinal) || z.Value.Contains("ZERLEGUNG-ABGEBROCHEN", StringComparison.Ordinal));
         foreach (var pfad in dateien)
         {
@@ -426,6 +426,64 @@ public class MessungBulkBelegTests
         Assert.StartsWith("Fehler Nummer 208, Class 16, State 1, Meldung 'Invalid object name 's2.bulk_ns'.'", F(stufe, "bulk-name-schema/23/fehler"), StringComparison.Ordinal);
         Assert.Equal("Art 1 Status 0x01: SELECT 1 AS eins", F(stufe, "bulk-name-schema/22/anfrage"));
         Assert.Equal("Art 1 Status 0x01: SELECT 1 AS eins", F(stufe, "bulk-name-sonderzeichen/05/anfrage"));
+    }
+
+    // ---- Text des Fehlers 208 bei einer unbekannten Tabelle (Szenario fehler-tabelle-unbekannt) ---------------------------------
+
+    private static string Invalid(string name) => $"Fehler Nummer 208, Class 16, State 1, Meldung 'Invalid object name '{name}'.', Server vorhanden, Prozedur '', Zeile 1";
+
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void Der_Text_der_unbekannten_Tabelle_nennt_den_Namen_in_der_Schreibung_des_Textes_ohne_Klammern_und_Anfuehrungszeichen_und_mit_Schema_nur_wenn_der_Text_es_nennt(string stufe)
+    {
+        var erwartet = new (int Nr, string Name)[]
+        {
+            (1, "gibtesnicht"), (2, "GibtEsNicht"), (3, "dbo.gibtesnicht"), (4, "s1.gibtesnicht"), (5, "s1.bulk_ns"), (6, "s9.gibtesnicht"),
+            (7, "tdswire_namen.dbo.gibtesnicht"), (8, "tdswire_namen..gibtesnicht"), (9, "keinedatenbank.dbo.gibtesnicht"),
+            (10, "dbo.gibtesnicht"), (11, "dbo.gibtesnicht"),
+        };
+        foreach (var (nr, name) in erwartet)
+        {
+            Assert.Equal("ERROR DONE", F(stufe, $"fehler-tabelle-unbekannt/{nr:D2}/tokenfolge"));
+            Assert.Equal(Invalid(name), F(stufe, $"fehler-tabelle-unbekannt/{nr:D2}/fehler"));
+        }
+    }
+
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void Der_Text_der_unbekannten_Tabelle_gibt_Hochkomma_Klammerzeichen_Leerraum_Punkt_Umlaut_und_Zeilenumbruch_des_Namens_unveraendert_wieder(string stufe)
+    {
+        var erwartet = new (int Nr, string Name)[]
+        {
+            (12, "gibtes'nicht"), (13, "gibtes''nicht"), (14, "gibtes]nicht"), (15, "gibtes nicht"), (16, "gibtes.nicht"), (17, "gibtes_\u00e4_nicht"), (18, "gibtes\\nnicht"),
+        };
+        foreach (var (nr, name) in erwartet) Assert.Equal(Invalid(name), F(stufe, $"fehler-tabelle-unbekannt/{nr:D2}/fehler"));
+    }
+
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void Ein_Name_mit_128_Zeichen_steht_im_Text_und_ein_Teil_mit_129_Zeichen_endet_mit_103_Class_15_ohne_208(string stufe)
+    {
+        Assert.Equal(Invalid(new string('a', 128)), F(stufe, "fehler-tabelle-unbekannt/19/fehler"));
+        foreach (var nr in new[] { 20, 21, 22 })
+        {
+            var fehler = F(stufe, $"fehler-tabelle-unbekannt/{nr}/fehler");
+            Assert.StartsWith($"Fehler Nummer 103, Class 15, State 4, Meldung 'The identifier that starts with '{new string('a', 128)}", fehler, StringComparison.Ordinal);
+            Assert.Contains("is too long. Maximum length is 128.", fehler, StringComparison.Ordinal);
+        }
+    }
+
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void Der_Text_der_unbekannten_Tabelle_ist_bei_INSERT_UPDATE_DELETE_MERGE_und_im_RPC_derselbe_und_die_Verbindung_bleibt_offen(string stufe)
+    {
+        foreach (var nr in new[] { 23, 24, 25, 26, 27 }) Assert.Equal(Invalid("gibtesnicht"), F(stufe, $"fehler-tabelle-unbekannt/{nr}/fehler"));
+        Assert.Equal("ERROR RETURNSTATUS DONEPROC", F(stufe, "fehler-tabelle-unbekannt/27/tokenfolge"));
+        Assert.Equal("COLMETADATA ROW+ DONE", F(stufe, "fehler-tabelle-unbekannt/28/tokenfolge"));
     }
 
     // @spec SPEC-045

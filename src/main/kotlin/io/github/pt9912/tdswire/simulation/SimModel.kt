@@ -1,5 +1,6 @@
 package io.github.pt9912.tdswire.simulation
 
+import io.github.pt9912.tdswire.domain.ResultColumn
 import io.github.pt9912.tdswire.domain.SqlType
 
 /** Schema, das gilt, wenn eine Anweisung oder die Datei keines nennt (`TDS-FA-11.a` Schritt 3). */
@@ -78,14 +79,24 @@ internal const val MAX_TEXT_LENGTH = 4000
 internal const val UNBOUNDED_TEXT = -1
 
 /**
+ * Die Länge in Zeichen, die das Ergebnis und die Probe des Massenladens für [SimColumn.maxLength] melden:
+ * `nvarchar(max)` (-1) meldet 4000, die Obergrenze von `SPEC-003`; jede andere Länge meldet sich selbst.
+ */
+internal val SimColumn.reportedLength: Int get() = if (maxLength == UNBOUNDED_TEXT) MAX_TEXT_LENGTH else maxLength
+
+/** Die Spalte im Ergebnis einer Auswahl: Name, Typ, Nullbarkeit und die Länge nach [reportedLength]. */
+internal fun SimColumn.toResultColumn(): ResultColumn = ResultColumn(name, type, nullable, reportedLength)
+
+/**
  * Eine Spalte; der Typ stammt aus dem Mindestkatalog von [SqlType], [nullable] sagt, ob NULL vorkommen darf.
  * Eine Dezimalzahl hat höchstens 38 Stellen (`SPEC-003`); die Grenze gilt für jede Spalte.
  *
  * [maxLength] ist die Länge eines Textes in Zeichen, wie der Katalog sie meldet (`nvarchar(<maxLength>)`); sie
- * gilt nur für [SqlType.UnicodeText], liegt zwischen 1 und 4000 oder ist -1 (`nvarchar(max)`, der Katalog meldet
- * `max_length` -1) und ändert die Metadaten eines Ergebnisses nicht (dort gilt `ResultColumn.maxLength`). Geprüft
- * wird sie nur beim `MERGE` (ein Text darüber ist 2628, `SPEC-036`); die Zeilen der Zeilenquelle und das Massenladen
- * prüft sie nicht (`SPEC-035`).
+ * gilt nur für [SqlType.UnicodeText] und liegt zwischen 1 und 4000 oder ist -1 (`nvarchar(max)`, der Katalog meldet
+ * `max_length` -1). Das Ergebnis einer Auswahl meldet sie als `ResultColumn.maxLength`; -1 meldet es als 4000
+ * (Setzung, `ADR-0056`). Das Backend prüft die Zeilen der Zeilenquelle nicht gegen sie: ein Text einer Zeile über der
+ * Länge endet in der Antwort im Fehler (die Bibliothek weist ihn ab, `ResultColumn`). Geprüft wird sie beim `MERGE`
+ * (ein Text darüber ist 2628, `SPEC-036`); das Massenladen prüft sie nicht (`SPEC-035`).
  *
  * [defaultDefinition] ist der Text, den der Katalog als `default_definition` der Spalte meldet, mit den Klammern des
  * Servers (`((1))` für `DEFAULT 1`, `(N'neu')` für `DEFAULT N'neu'`, Messprotokoll M-21); `null` heißt: ohne

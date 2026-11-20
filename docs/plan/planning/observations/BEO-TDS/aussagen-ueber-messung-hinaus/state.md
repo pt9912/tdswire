@@ -16,4 +16,8 @@
 
 **Wiederauftreten (slice-qa-performance-heap-abschluss):** Review F-4, F-5, F-8, F-10 und Verifikation V-2, V-3: fehlende Bedingungen im Satz, Zählung von Zellen, Genauigkeit ohne Rohzeile, ein Satz mit Widerspruch, „ohne Verzögerung“ gegen „vor dem Abschluss“, Differenz zweier Mediane. Reviewer und Verifier fingen es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
 
+**Wiederauftreten (slice-simulation-mehrere-anweisungen-und-ausgabewert):** Review F-2 bis F-4: Matrix-Zeile „gemessen“ über dem, was der Test sieht, ein nicht gefahrener Live-Lauf als Beleg zitiert, „kein Ausgabewert gemessen“ breiter als M-24; der Reviewer fing es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
+
+**Wiederauftreten (slice-simulation-spaltenlaenge-in-auswahl):** Review F-2, Re-Review R-7, Re-Review 2 N-2 und Verifikation V-3: eine Aussage zu „beim Schreiben“ trug über M-15 (nur `MERGE`) hinaus, die Bedingung von M-11 fehlte im Satz, „2628“ nannte die Ausnahme -1 nicht; der Reviewer und der Verifier fingen es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
+
 **Wiederauftreten (slice-cancel-antwort-zwei-nachrichten-angleichen):** Re-Review F-11 (Test-KDoc breiter als die Prüfung, N1 grün) und Verifikation F-6 (die genannte Stufe enthält keinen Cancel-Test); Reviewer und Verifier fingen es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.

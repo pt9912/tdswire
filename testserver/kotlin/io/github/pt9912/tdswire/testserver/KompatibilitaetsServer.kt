@@ -5,6 +5,7 @@ import io.github.pt9912.tdswire.domain.SqlType
 import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.port.QueryExecution
 import io.github.pt9912.tdswire.runtime.BackendSource
+import io.github.pt9912.tdswire.simulation.RowFilter
 import io.github.pt9912.tdswire.simulation.RowSource
 import io.github.pt9912.tdswire.simulation.SimCatalog
 import io.github.pt9912.tdswire.simulation.SimColumn
@@ -18,14 +19,15 @@ import java.time.LocalTime
 /** Zeilen von `kaputt`, bevor die Quelle fehlschlägt; wie im .NET-Test festgehalten. */
 internal const val KOMPAT_BROKEN_AFTER = 3
 
+/** Länge von `kaputt.Text` in Zeichen, wie `nvarchar(10)` der Ansicht `kaputt` in `testschema.sql`. */
+internal const val BROKEN_TEXT_CHARS = 10
+
 /** Zeilen und Zeichen Text je Zeile von `breit`: Zeilen von rund 1200 Bytes, größer als die Paketgröße 512. */
 internal const val WIDE_ROWS = 10
 internal const val WIDE_TEXT_CHARS = 600
 
-/** Zeilenzahlen, die die Callbacks von `person` melden; der .NET-Test erwartet dieselben Zahlen. */
+/** Zeilenzahl, die der Callback `onInsert` von `person` meldet; der .NET-Test erwartet dieselbe Zahl. */
 internal const val INSERTED_ROWS = 1L
-internal const val UPDATED_ROWS = 2L
-internal const val DELETED_ROWS = 3L
 
 /** Zeichen der Sitzungskennung in der Logzeile; die Kennung ist je Anmeldung zufällig. */
 private const val SESSION_CHARS = 8
@@ -43,36 +45,54 @@ private val KEY = SimColumn("Id", SqlType.Int32, nullable = false)
 
 /**
  * Die Tabellen des Kompatibilitätslaufs (`make kompatibilitaet`): `person` mit drei Zeilen und Callbacks für
- * Einfügen, Ändern und Löschen, `typen` mit je einer Spalte der acht Typen von `SqlType` und zwei Zeilen (eine
+ * Einfügen (feste Zahl [INSERTED_ROWS]), Ändern und Löschen (Zahl der Zeilen, auf die die Bedingung zutrifft; der
+ * Bestand ändert sich nicht), `typen` mit je einer Spalte der acht Typen von `SqlType` und zwei Zeilen (eine
  * gefüllt, eine mit NULL), `breit` mit [WIDE_ROWS] Zeilen zu [WIDE_TEXT_CHARS] Zeichen (Zeilen über der
  * Paketgröße 512; die Wirkung auf die Paketierung der Antworten ist nicht beobachtet, ein Server mit fester
- * Paketgröße ließ den Test grün), `kaputt`, dessen Quelle nach [KOMPAT_BROKEN_AFTER] Zeilen mit einer Ausnahme
- * endet, und `laufend` mit einer Quelle ohne Ende (`LaufendeQuelle.kt`).
+ * Paketgröße ließ den Test grün), `kaputt` mit `Text` der Länge [BROKEN_TEXT_CHARS], dessen Quelle nach
+ * [KOMPAT_BROKEN_AFTER] Zeilen mit einer Ausnahme endet, und `laufend` mit einer Quelle ohne Ende
+ * (`LaufendeQuelle.kt`).
  */
 internal object KompatibilitaetsTables {
-    fun all(): List<SimTable> = listOf(person(), types(), wide(), broken(), runningTable())
+    fun all(): List<SimTable> = listOf(person(), types(), wide(), broken(), running())
+
+    private val personColumns = listOf(
+        KEY,
+        SimColumn("Name", SqlType.UnicodeText),
+        SimColumn("Age", SqlType.Int32),
+        SimColumn("Score", SqlType.Decimal(MONEY_PRECISION, 2)),
+    )
+
+    private val personRows = listOf(
+        listOf(1, "Ada", ADA_AGE, BigDecimal("10.50")),
+        listOf(2, "Bob", null, BigDecimal("7.25")),
+        listOf(3, "Cy", ADA_AGE, null),
+    )
+
+    /** Die Zahl der Zeilen von `person`, auf die [where] zutrifft; der Bestand bleibt unverändert. */
+    private fun matching(where: RowFilter?): Long =
+        personRows.count { RowRules.matches(personColumns, it, where) }.toLong()
 
     private fun person() = SimTable(
         name = "person",
-        columns = listOf(
-            KEY,
-            SimColumn("Name", SqlType.UnicodeText),
-            SimColumn("Age", SqlType.Int32),
-            SimColumn("Score", SqlType.Decimal(MONEY_PRECISION, 2)),
-        ),
+        columns = personColumns,
         primaryKey = listOf("Id"),
         rows = {
-            val rows = listOf(
-                listOf(1, "Ada", ADA_AGE, BigDecimal("10.50")),
-                listOf(2, "Bob", null, BigDecimal("7.25")),
-                listOf(3, "Cy", ADA_AGE, null),
-            )
             var next = 0
-            RowSource { rows.getOrNull(next++) }
+            RowSource { personRows.getOrNull(next++) }
         },
         onInsert = { INSERTED_ROWS },
-        onUpdate = { _, _ -> UPDATED_ROWS },
-        onDelete = { DELETED_ROWS },
+        onUpdate = { _, where -> matching(where) },
+        onDelete = { where -> matching(where) },
+    )
+
+    /**
+     * `laufend` wie die Ansicht der Referenz: `Id` nullbar und ohne Schlüssel (der Schlüssel verlangt eine nicht
+     * nullbare Spalte).
+     */
+    private fun running() = runningTable().copy(
+        columns = listOf(SimColumn("Id", SqlType.Int32, nullable = true), SimColumn("Text", SqlType.UnicodeText)),
+        primaryKey = emptyList(),
     )
 
     private fun types() = SimTable(
@@ -119,7 +139,7 @@ internal object KompatibilitaetsTables {
 
     private fun broken() = SimTable(
         name = "kaputt",
-        columns = listOf(KEY, SimColumn("Text", SqlType.UnicodeText)),
+        columns = listOf(KEY, SimColumn("Text", SqlType.UnicodeText, maxLength = BROKEN_TEXT_CHARS)),
         primaryKey = listOf("Id"),
         rows = {
             var next = 0

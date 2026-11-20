@@ -10,18 +10,18 @@ namespace TdsWire.Referenztests.Kompatibilitaet;
 /// (`make kompatibilitaet`, Stufe 4 von `make e2e`, ADR-0019, TDS-QA-01): Anmeldung, SELECT, parametrisierte Abfrage,
 /// NULL, Typkatalog, Einfügen/Ändern/Löschen, Fehler vor und nach Zeilen. Jede Verbindung läuft mit TLS in TDS 7.4
 /// (Encrypt=Mandatory, Kette und Name geprüft); die Tabellen und Zahlen stehen in `KompatibilitaetsServer.kt`.
-/// Nicht belegt: Cancel (steht in `SynchronitaetTests`), mehrteilige Antworten
-/// und Rückgabewerte von Ausgabeparametern (das Simulations-Backend liefert sie nicht; zwei Tests messen die
-/// Abweisung), ein echter SQL Server.
+/// Nicht belegt: Cancel (steht in `SynchronitaetTests`), ein echter SQL Server.
 /// </summary>
 [Trait("Kategorie", "Szenario")]
 public class SzenarienTests
 {
-    // Kopplung: wie KOMPAT_BROKEN_AFTER, INSERTED_ROWS, UPDATED_ROWS und DELETED_ROWS in KompatibilitaetsServer.kt.
+    // Kopplung: wie KOMPAT_BROKEN_AFTER und INSERTED_ROWS in KompatibilitaetsServer.kt; Geaendert und Geloescht sind die
+    // Zahlen der Zeilen von person (drei Zeilen, Age 36, NULL, 36), auf die die Bedingung der Anweisung zutrifft.
     private const int ZeilenVorDemFehler = 3;
     private const int Eingefuegt = 1;
-    private const int Geaendert = 2;
-    private const int Geloescht = 3;
+    private const int Geaendert = 1;
+    private const int Geloescht = 1;
+    private const int ZeilenMitAlter36 = 2;
 
     private readonly ITestOutputHelper _ausgabe;
 
@@ -159,7 +159,7 @@ public class SzenarienTests
     }
 
     [Fact]
-    public void Einfuegen_Aendern_und_Loeschen_im_Batch_melden_die_Zeilenzahlen_der_Callbacks()
+    public void Einfuegen_Aendern_und_Loeschen_im_Batch_melden_die_Zeilenzahlen_der_Anweisungen()
     {
         using var verbindung = Ziel.Oeffnen();
 
@@ -170,6 +170,20 @@ public class SzenarienTests
         Assert.Equal(Eingefuegt, einfuegen.ExecuteNonQuery());
         Assert.Equal(Geaendert, aendern.ExecuteNonQuery());
         Assert.Equal(Geloescht, loeschen.ExecuteNonQuery());
+    }
+
+    [Fact]
+    public void Aendern_und_Loeschen_melden_die_Zahl_der_Zeilen_auf_die_die_Bedingung_zutrifft()
+    {
+        using var verbindung = Ziel.Oeffnen();
+
+        using var mehrere = new SqlCommand("UPDATE person SET Name = N'x' WHERE Age = 36", verbindung);
+        using var keine = new SqlCommand("DELETE FROM person WHERE Id = 99", verbindung);
+        using var liste = new SqlCommand("DELETE FROM person WHERE Id IN (1, 2, 3)", verbindung);
+
+        Assert.Equal(ZeilenMitAlter36, mehrere.ExecuteNonQuery());
+        Assert.Equal(0, keine.ExecuteNonQuery());
+        Assert.Equal(3, liste.ExecuteNonQuery());
     }
 
     [Fact]
@@ -205,21 +219,29 @@ public class SzenarienTests
     }
 
     [Fact]
-    public void Mehrere_Anweisungen_in_einem_Text_liefern_keine_mehrteilige_Antwort()
+    public void Zwei_Anweisungen_in_einem_Text_liefern_zwei_Ergebnismengen()
     {
         using var verbindung = Ziel.Oeffnen();
         using var befehl = new SqlCommand(
             "SELECT Id FROM person WHERE Id = 1; SELECT Id FROM person WHERE Id = 2", verbindung);
 
-        var ausnahme = Assert.Throws<SqlException>(() => { befehl.ExecuteReader().Dispose(); });
+        var ids = new List<int>();
+        using (var leser = befehl.ExecuteReader())
+        {
+            do
+            {
+                while (leser.Read()) ids.Add(leser.GetInt32(0));
+            }
+            while (leser.NextResult());
+        }
 
-        Ziel.Messung(_ausgabe, "Zwei Anweisungen in einem Text: " + Ziel.Beschreibung(ausnahme));
-        Assert.Equal(50001, ausnahme.Number);
+        Ziel.Messung(_ausgabe, "Zwei Anweisungen in einem Text: Ids " + string.Join(",", ids));
+        Assert.Equal(new[] { 1, 2 }, ids);
         Assert.Equal(ConnectionState.Open, verbindung.State);
     }
 
     [Fact]
-    public void InputOutput_Parameter_wird_angenommen_und_die_Antwort_traegt_keinen_Rueckgabewert()
+    public void InputOutput_Parameter_wird_angenommen_und_behaelt_den_Eingabewert()
     {
         using var verbindung = Ziel.Oeffnen();
         using var befehl = new SqlCommand("SELECT Id FROM person WHERE Id = @id", verbindung);
@@ -238,6 +260,9 @@ public class SzenarienTests
             ergebnis = Ziel.Beschreibung(ausnahme);
         }
 
+        // Dieser Test sieht das RETURNVALUE nicht (Setzung, am Referenzclient nicht gemessen): der Client lässt den
+        // Eingabewert auch ohne RETURNVALUE stehen.
+        // Das RETURNVALUE belegen der Mitschnitt `rpc-ausgabewert` und die Tests des Backends.
         Ziel.Messung(_ausgabe, $"InputOutput-Parameter @id: {ergebnis}; Wert danach '{ausgabe.Value}'");
         Assert.Equal("keine Ausnahme", ergebnis);
         Assert.Equal(7, ausgabe.Value);

@@ -1,5 +1,6 @@
 package io.github.pt9912.tdswire.simulation
 
+import io.github.pt9912.tdswire.domain.ParameterDirection
 import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.domain.QueryParameter
 import io.github.pt9912.tdswire.domain.ResultColumn
@@ -251,6 +252,18 @@ class SimulationBackendSelectTest {
     }
 
     /**
+     * Das `Failure` einer unbekannten Tabelle trägt ihren Namen, das einer unbekannten Spalte keinen.
+     * @spec SPEC-038
+     */
+    @Test
+    fun `die Ablehnung einer unbekannten Tabelle nennt den Namen`() {
+        val table = collectEvents(Probe(all).backend, "SELECT * FROM [dbo].[Nothing]").single()
+        assertEquals("dbo.Nothing", assertIs<QueryEvent.Failure>(table).objectName)
+        val column = collectEvents(Probe(all).backend, "SELECT nothing FROM person").single()
+        assertNull(assertIs<QueryEvent.Failure>(column).objectName)
+    }
+
+    /**
      * Happy: die Zeilenquelle bekommt alle Spalten der Beschreibung und den Vorfilter als Hinweis (Spaltennamen der
      * Beschreibung, überführte Werte, NULL in der Liste erhalten); ohne `WHERE` ist der Hinweis `null`. Die
      * Quelle ignoriert ihn in diesem Test und das Ergebnis stimmt trotzdem.
@@ -271,5 +284,175 @@ class SimulationBackendSelectTest {
         val unfiltered = Probe(all)
         collectEvents(unfiltered.backend, "SELECT id FROM person")
         assertNull(unfiltered.lastQuery?.filter)
+    }
+
+    /**
+     * Happy (Form S2): zwei Auswahlen in einem Text ergeben zwei Ergebnisse in der Reihenfolge des Textes, je mit
+     * `ResultStart`, ihren Zeilen und `ResultEnd`; die Zeilenquelle wird je Auswahl geöffnet und geschlossen. Gemessen
+     * ist die Antwort auf `SELECT Id FROM person WHERE Id = 1; SELECT Id FROM person WHERE Id = 2` (Mitschnitt
+     * `mehrteilig`); die Zeilen dieses Tests sind handgebaut.
+     * @spec SPEC-036
+     */
+    @Test
+    fun `zwei Auswahlen ergeben zwei Ergebnisse in der Reihenfolge des Textes`() {
+        val probe = Probe(all)
+
+        val sql = "SELECT id FROM person WHERE id = 1; SELECT name FROM person WHERE id = 2;"
+        val events = collectEvents(probe.backend, sql)
+
+        val id = ResultColumn("Id", SqlType.Int32, false)
+        val name = ResultColumn("Name", SqlType.UnicodeText, true)
+        val expected = listOf(
+            QueryEvent.ResultStart(listOf(id)),
+            QueryEvent.Row(listOf(1)),
+            QueryEvent.ResultEnd(1),
+            QueryEvent.ResultStart(listOf(name)),
+            QueryEvent.Row(listOf("bob")),
+            QueryEvent.ResultEnd(1),
+        )
+        assertEquals(expected, events)
+        assertEquals(2, probe.opens)
+        assertEquals(2, probe.closes)
+    }
+
+    /**
+     * Boundary: eine Auswahl mit `WHERE 1 = 0` als erste öffnet keine Quelle und liefert ihre Spalten; die zweite
+     * folgt. Eine dritte Auswahl ist nicht erkannt, kein Ergebnis kommt.
+     * @spec SPEC-036
+     */
+    @Test
+    fun `die Grenze der Anweisungszahl ist zwei`() {
+        val probe = Probe(all)
+
+        val sql = "SELECT id FROM person WHERE 1 = 0; SELECT id FROM person WHERE id = 3"
+        val events = collectEvents(probe.backend, sql)
+
+        assertEquals(2, events.filterIsInstance<QueryEvent.ResultStart>().size)
+        assertEquals(1, probe.opens)
+
+        val sql3 = "SELECT id FROM person; SELECT name FROM person; SELECT age FROM person"
+        val three = collectEvents(Probe(all).backend, sql3)
+        assertEquals("TDS_UNSUPPORTED_SQL", assertIs<QueryEvent.Failure>(three.single()).code)
+    }
+
+    /**
+     * Fehler: eine unbekannte Tabelle in der zweiten Auswahl weist den ganzen Text ab, ohne dass die erste gelesen wird
+     * (Festlegung, nicht gemessen); ein Fehler der Zeilenquelle der zweiten Auswahl ist das letzte Ereignis nach dem
+     * vollständigen ersten Ergebnis.
+     * @spec SPEC-036
+     */
+    @Test
+    fun `ein Fehler in der zweiten Auswahl`() {
+        val unknown = Probe(all)
+        val rejected = collectEvents(unknown.backend, "SELECT id FROM person; SELECT id FROM nothing")
+        assertEquals("TDS_SIM_UNKNOWN_OBJECT", assertIs<QueryEvent.Failure>(rejected.single()).code)
+        assertEquals(0, unknown.opens)
+
+        var opens = 0
+        val table = SimTable(
+            name = "person",
+            columns = personColumns,
+            primaryKey = listOf("Id"),
+            rows = {
+                check(++opens == 1) { "zweite Quelle" }
+                object : RowSource {
+                    private var done = false
+
+                    override suspend fun next(): List<Any?>? = if (done) null else ada.also { done = true }
+
+                    override fun close() = Unit
+                }
+            },
+        )
+        val sql = "SELECT id FROM person WHERE id = 1; SELECT id FROM person WHERE id = 1"
+        val events = collectEvents(SimulationBackend(SimCatalog(listOf(table))), sql)
+        val failure = assertIs<QueryEvent.Failure>(events.last())
+        assertIs<QueryEvent.ResultStart>(events[0])
+        assertEquals(QueryEvent.Row(listOf(1)), events[1])
+        assertEquals(QueryEvent.ResultEnd(1), events[2])
+        assertEquals(4, events.size)
+        assertEquals("TDS_BACKEND_ERROR", failure.code)
+    }
+
+    /**
+     * Grenze: ein Text mit zwei Auswahlen und Parametern ist abgewiesen (im Referenzabgleich nicht abgespielt),
+     * nach der Prüfung gegen die Beschreibung: eine unbekannte Tabelle meldet `TDS_SIM_UNKNOWN_OBJECT`.
+     * @spec SPEC-036
+     */
+    @Test
+    fun `zwei Auswahlen mit Parametern sind abgewiesen`() {
+        val parameters = listOf(QueryParameter("@id", SqlType.Int32, 1))
+
+        val events = collectEvents(Probe(all).backend, "SELECT id FROM person; SELECT id FROM person", parameters)
+
+        assertEquals("TDS_UNSUPPORTED_SQL", assertIs<QueryEvent.Failure>(events.single()).code)
+
+        val unknown = collectEvents(Probe(all).backend, "SELECT id FROM person; SELECT id FROM nothing", parameters)
+        assertEquals("TDS_SIM_UNKNOWN_OBJECT", assertIs<QueryEvent.Failure>(unknown.single()).code)
+    }
+
+    /**
+     * Happy (A-16): ein `InputOutput`-Parameter bekommt als Ausgabewert seinen Eingabewert, nach dem Ergebnis
+     * (Mitschnitt `rpc-ausgabewert`: `@id` mit Wert 7 an `SELECT Id FROM person WHERE Id = @id`, RETURNVALUE Wert 7).
+     * Ein `INPUT`-Parameter bekommt keinen; für einen reinen `OUTPUT`-Parameter ist keine Messung bekannt, er bekommt
+     * keinen.
+     * @spec SPEC-030
+     */
+    @Test
+    fun `ein InputOutput-Parameter bekommt seinen Eingabewert als Ausgabewert`() {
+        val id = QueryParameter("@id", SqlType.Int32, 1, ParameterDirection.INPUT_OUTPUT)
+        val plain = QueryParameter("@name", SqlType.UnicodeText, "x")
+        val out = QueryParameter("@o", SqlType.Int32, null, ParameterDirection.OUTPUT)
+
+        val events = select("SELECT id FROM person WHERE id = @id", parameters = listOf(id, plain, out))
+
+        assertEquals(
+            listOf(
+                QueryEvent.ResultStart(listOf(ResultColumn("Id", SqlType.Int32, false))),
+                QueryEvent.Row(listOf(1)),
+                QueryEvent.ResultEnd(1),
+                QueryEvent.OutputParameter("@id", SqlType.Int32, 1),
+            ),
+            events,
+        )
+    }
+
+    /**
+     * Fehler: ein Wert, den die Spalte nicht hält, in einer der beiden Auswahlen weist den ganzen Text mit
+     * `TDS_SIM_INVALID_VALUE` ab, bevor eine Quelle geöffnet wird (Festlegung, nicht gemessen).
+     * @spec SPEC-036
+     */
+    @Test
+    fun `ein nicht überführbarer Wert in einer Auswahl weist die Folge ab`() {
+        for (sql in listOf(
+            "SELECT id FROM person WHERE id = 'abc'; SELECT name FROM person",
+            "SELECT id FROM person; SELECT name FROM person WHERE id = 'abc'",
+        )) {
+            val probe = Probe(all)
+
+            val events = collectEvents(probe.backend, sql)
+
+            assertEquals("TDS_SIM_INVALID_VALUE", assertIs<QueryEvent.Failure>(events.single(), sql).code)
+            assertEquals(0, probe.opens, sql)
+        }
+    }
+
+    /**
+     * Fehler: scheitert die erste Quelle, ist der Fehler das einzige Ereignis; die zweite Auswahl öffnet keine
+     * Quelle, und der Ausgabewert eines `InputOutput`-Parameters folgt einem Fehler nicht.
+     * @spec SPEC-036
+     * @spec SPEC-030
+     */
+    @Test
+    fun `nach einem Fehler der ersten Quelle folgen weder die zweite Auswahl noch der Ausgabewert`() {
+        val series = Probe(all, openFailure = IllegalStateException("Geheimnis"))
+        val events = collectEvents(series.backend, "SELECT id FROM person; SELECT name FROM person")
+        assertEquals("TDS_BACKEND_ERROR", assertIs<QueryEvent.Failure>(events.single()).code)
+        assertEquals(1, series.opens)
+
+        val single = Probe(all, openFailure = IllegalStateException("Geheimnis"))
+        val id = QueryParameter("@id", SqlType.Int32, 1, ParameterDirection.INPUT_OUTPUT)
+        val echoed = collectEvents(single.backend, "SELECT id FROM person WHERE id = @id", listOf(id))
+        assertEquals("TDS_BACKEND_ERROR", assertIs<QueryEvent.Failure>(echoed.single()).code)
     }
 }

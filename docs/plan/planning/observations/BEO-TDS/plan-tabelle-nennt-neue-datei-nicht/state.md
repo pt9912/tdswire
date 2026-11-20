@@ -14,4 +14,10 @@
 
 **Lese-Schritt welle-referenzabgleich-release (2026-11-17):** 28 Dateien, davon Beiträge aus Slices dieser Welle (Liste in `welle-referenzabgleich-release-results.md` §Steering-Loop-Einträge). Retirement-Check: die Klasse ist in Slices dieser Welle aufgetreten, die Regel bleibt, keine Lockerung; die Closure macht keine Aussage über die Wirkung der Regel. Ob ein Sensor über die Prosa hinaus entsteht, entscheidet der Nutzer.
 
+**Wiederauftreten (slice-kompatibilitaetsserver-an-referenz-angleichen):** Review F-3: die Tabelle §3 nannte die neue Testdatei nicht; der Reviewer fing es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
+
+**Wiederauftreten (slice-simulation-mehrere-anweisungen-und-ausgabewert):** Review F-6 und Re-Review N-1: neue Dateien und die ADR-Dateien fehlten in der Tabelle; der Reviewer fing es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
+
+**Wiederauftreten (slice-simulation-spaltenlaenge-in-auswahl):** Review F-3 (acht berührte Dateien fehlten) und Verifikation V-1 (`SimulationMerges.kt`, nur KDoc, fehlte nach der Nachbesserung; der Grep des Re-Reviews 2 traf §1 statt §3); Reviewer und Verifier fingen es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
+
 **Wiederauftreten (slice-cancel-antwort-zwei-nachrichten-angleichen):** Review F-5 (16 Dateien und zwei Spec-Stellen fehlten, eine genannte war nicht berührt) und Verifikation F-3 (die Folge-ADR fehlte in Kopf, §3 und DoD); der Reviewer und der Verifier fingen es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.

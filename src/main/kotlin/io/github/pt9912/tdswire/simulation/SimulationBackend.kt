@@ -3,7 +3,6 @@ package io.github.pt9912.tdswire.simulation
 import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.domain.QueryParameter
 import io.github.pt9912.tdswire.domain.QueryRequest
-import io.github.pt9912.tdswire.domain.ResultColumn
 import io.github.pt9912.tdswire.domain.SqlType
 import io.github.pt9912.tdswire.port.BulkRows
 import io.github.pt9912.tdswire.port.BulkTarget
@@ -12,21 +11,20 @@ import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.port.QueryExecution
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Das Simulations-Backend hinter [QueryBackend] (`TDS-FA-11.a`): es beantwortet eine erkannte Auswahl (S1)
  * aus der Zeilenquelle der beschriebenen Tabelle und gibt Einfügen, Ändern und Löschen (W1 bis W3) an die Callbacks
  * der Tabelle weiter ([SimulationChanges]); es kennt weder Pakete noch Tokens. Eine Tabelle ohne Callback für die
  * Anweisung antwortet mit `TDS_UNSUPPORTED_SQL`.
+ *
+ * Form S2 (`SPEC-036`): zwei Auswahlen in einem Text ergeben zwei Ergebnisse in der Reihenfolge des Textes
+ * ([SelectSeries]); ein `InputOutput`-Parameter einer Auswahl bekommt seinen Eingabewert als Ausgabewert.
  *
  * Form C (`SPEC-036`) beantwortet das Backend ohne Tabelle: `SELECT 1` mit einer Spalte und einer Zeile, eine
  * `SET`-Anweisung und die Transaktionstexte mit dem Änderungszähler 0 und, wo gemessen, der Art des Textes
@@ -90,12 +88,28 @@ public class SimulationBackend(
     override suspend fun execute(request: QueryRequest): QueryExecution =
         when (val result = guarded { planner.plan(request.sql) }.getOrNull()) {
             null -> failed(SimCodes.BACKEND_ERROR, "Katalog nicht lieferbar")
-            is PlanResult.Rejected -> failed(result.code, result.message)
+
+            is PlanResult.Rejected -> failed(result.code, result.message, result.objectName)
+
             is PlanResult.Planned -> start(result.plan, request)
+
+            is PlanResult.Series -> when (val series = SelectSeries.prepare(result.plans, request.parameters)) {
+                is PreparedSeries.Rejected -> failed(series.code, series.message)
+
+                is PreparedSeries.Ready -> {
+                    val key = request.sessionId to request.requestId
+                    register(key, SelectExecution(series.parts, emptyList()) { running.remove(key, it) })
+                }
+            }
+
             is PlanResult.Fixed -> events(FixedAnswers.of(result.form))
+
             is PlanResult.Catalog -> events(CatalogAnswers.of(result.form, result.catalog, parameters(result, request)))
+
             is PlanResult.Structure -> structure(result.plan, request)
+
             is PlanResult.Unchanged -> events(listOf(QueryEvent.UpdateCount(0, result.kind)))
+
             is PlanResult.Bulk -> events(bulkAnswer(result.result))
         }
 
@@ -142,8 +156,11 @@ public class SimulationBackend(
                 when (val prepared = RowConditions.prepare(statement.where, plan.table, request.parameters)) {
                     is PreparedCondition.Invalid -> failed(SimCodes.INVALID_VALUE, prepared.reason)
 
-                    is PreparedCondition.Ready ->
-                        register(key, SelectExecution(plan, prepared) { running.remove(key, it) })
+                    is PreparedCondition.Ready -> {
+                        val parts = listOf(SelectPart(plan, prepared))
+                        val echo = SelectSeries.echo(request.parameters)
+                        register(key, SelectExecution(parts, echo) { running.remove(key, it) })
+                    }
                 }
 
             is Statement.Merge -> when (val prepared = SimulationMerges.prepare(plan, request.parameters)) {
@@ -211,111 +228,12 @@ public class SimulationBackend(
         return register(key, ChangeExecution(call) { running.remove(key, it) })
     }
 
-    private fun failed(code: String, message: String): QueryExecution = object : QueryExecution {
-        override val events: Flow<QueryEvent> = flowOf(QueryEvent.Failure(code, message))
+    private fun failed(code: String, message: String, objectName: String? = null): QueryExecution =
+        object : QueryExecution {
+            override val events: Flow<QueryEvent> = flowOf(QueryEvent.Failure(code, message, objectName = objectName))
 
-        override suspend fun close() = Unit
-    }
-}
-
-/** Eine Auswahl: öffnet die Zeilenquelle beim Sammeln und liest sie Zeile für Zeile. */
-private class SelectExecution(
-    private val plan: Plan,
-    private val prepared: PreparedCondition.Ready,
-    private val onEnd: (SelectExecution) -> Unit,
-) : QueryExecution,
-    Stoppable {
-    private val stopped = AtomicBoolean(false)
-    private val table = plan.table
-    private val projection = plan.resultColumns.map { table.columns.indexOf(it) }
-
-    override val events: Flow<QueryEvent> = flow { read() }.onCompletion { onEnd(this@SelectExecution) }
-
-    override suspend fun close() {
-        stop()
-        onEnd(this)
-    }
-
-    /** Beendet das Lesen vor der nächsten Zeile; geschlossen wird die Quelle vom Strom. */
-    override fun stop() {
-        stopped.set(true)
-    }
-
-    private suspend fun FlowCollector<QueryEvent>.read() {
-        if (stopped.get()) return
-        if (prepared.condition.never) {
-            emit(QueryEvent.ResultStart(plan.resultColumns.map { ResultColumn(it.name, it.type, it.nullable) }))
-            emit(QueryEvent.ResultEnd(0))
-            return
+            override suspend fun close() = Unit
         }
-        val opened = guarded { table.rows(SimQuery(table.columns, prepared.hint)) }.getOrNull()?.let { Opened(it) }
-        if (opened == null) {
-            emit(sourceFailure())
-        } else {
-            try {
-                emit(QueryEvent.ResultStart(plan.resultColumns.map { ResultColumn(it.name, it.type, it.nullable) }))
-                pump(opened)
-            } finally {
-                opened.close()
-            }
-        }
-    }
-
-    private suspend fun FlowCollector<QueryEvent>.pump(opened: Opened) {
-        var count = 0L
-        var finished = false
-        while (!finished && !stopped.get()) {
-            when (val step = step(opened.source)) {
-                is Step.Row -> if (prepared.condition.matches(step.values)) {
-                    emit(QueryEvent.Row(projection.map { step.values[it] }))
-                    count++
-                }
-
-                Step.End -> {
-                    opened.close()
-                    emit(QueryEvent.ResultEnd(count))
-                    finished = true
-                }
-
-                Step.Broken -> {
-                    opened.close()
-                    emit(sourceFailure())
-                    finished = true
-                }
-            }
-        }
-    }
-
-    private sealed interface Step {
-        data class Row(val values: List<Any?>) : Step
-
-        data object End : Step
-
-        data object Broken : Step
-    }
-
-    /** Liest die nächste Zeile; eine Zeile mit anderer Wertezahl als Spalten ist ein Fehler der Quelle. */
-    private suspend fun step(source: RowSource): Step = guarded { source.next() }.fold(
-        onSuccess = { values ->
-            when {
-                values == null -> Step.End
-                values.size == table.columns.size -> Step.Row(values)
-                else -> Step.Broken
-            }
-        },
-        onFailure = { Step.Broken },
-    )
-
-    /** Eine geöffnete Zeilenquelle; [close] schließt sie höchstens einmal und ignoriert einen Fehler von `close()`. */
-    private class Opened(val source: RowSource) {
-        private val closed = AtomicBoolean(false)
-
-        fun close() {
-            if (closed.compareAndSet(false, true)) guarded { source.close() }
-        }
-    }
-
-    private fun sourceFailure() = QueryEvent.Failure(SimCodes.BACKEND_ERROR, "Zeilenquelle fehlgeschlagen")
 }
 
 /**

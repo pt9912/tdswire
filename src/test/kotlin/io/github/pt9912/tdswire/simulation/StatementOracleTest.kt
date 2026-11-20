@@ -340,7 +340,8 @@ class StatementOracleTest {
     }
 
     /**
-     * Zwei erzeugte Anweisungen hintereinander sind nie eine Anweisung; ein Anhang aus der Liste „Nicht erkannt“
+     * Zwei erzeugte Anweisungen hintereinander sind nie eine Anweisung; sie sind erkannt als Folge (Form S2) genau
+     * dann, wenn beide Auswahlen sind und genau ein `;` sie trennt. Ein Anhang aus der Liste „Nicht erkannt“
      * an eine erzeugte Anweisung macht sie nicht erkannt, während die Anweisung ohne Anhang erkannt wird.
      * @spec SPEC-036
      */
@@ -351,15 +352,26 @@ class StatementOracleTest {
         assertEquals(7, suffixes.size)
         val connectors = listOf(" ", "; ", ";\n", " /* x */ ", " -- y\n")
         var cases = 0
+        var series = 0
         repeat(300) {
             val first = build(gen)
             val second = build(gen)
-            assertNotRecognized(first.sql + connectors[it % connectors.size] + second.sql)
+            val connector = connectors[it % connectors.size]
+            val separators = (if (first.sql != first.core) 1 else 0) + (if (';' in connector) 1 else 0)
+            val one = first.expected
+            val two = second.expected
+            if (separators == 1 && one is Statement.Select && two is Statement.Select) {
+                assertEquals(Recognition.Series(listOf(one, two)), recognize(first.sql + connector + second.sql))
+                series++
+            } else {
+                assertNotRecognized(first.sql + connector + second.sql)
+            }
             assertRecognized(first.expected, first.core)
             assertNotRecognized(first.core + suffixes[it % suffixes.size])
             assertNotRecognized(first.core + "/**/" + suffixes[(it + 1) % suffixes.size])
             cases++
         }
         assertEquals(300, cases)
+        assertTrue(series > 0, "keine erzeugte Folge von zwei Auswahlen")
     }
 }

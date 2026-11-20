@@ -460,6 +460,47 @@ public class MessungBulkTests
                 Mit(l, v, "Kontrolle", "SELECT COUNT_BIG(*) FROM bulk_fest");
             }),
 
+            // ---- Text des Fehlers 208 bei einer unbekannten Tabelle (slice-fehlertext-unbekannte-tabelle-angleichen) -----
+            ("fehler-tabelle-unbekannt", DbNamen, (l, v) =>
+            {
+                string Lang(int n) => new string('a', n);
+                foreach (var (beschreibung, text) in new (string, string)[]
+                {
+                    ("SELECT, Name ohne Schema", "SELECT Id FROM gibtesnicht"),
+                    ("SELECT, andere Schreibweise", "SELECT Id FROM GibtEsNicht"),
+                    ("SELECT, Schema dbo", "SELECT Id FROM dbo.gibtesnicht"),
+                    ("SELECT, Schema s1", "SELECT Id FROM s1.gibtesnicht"),
+                    ("SELECT, Schema vorhanden, Tabelle nur in dbo", "SELECT Id FROM s1.bulk_ns"),
+                    ("SELECT, Schema fehlt", "SELECT Id FROM s9.gibtesnicht"),
+                    ("SELECT, Datenbank, Schema und Name", "SELECT Id FROM tdswire_namen.dbo.gibtesnicht"),
+                    ("SELECT, Datenbank ohne Schema", "SELECT Id FROM tdswire_namen..gibtesnicht"),
+                    ("SELECT, Datenbank fehlt", "SELECT Id FROM keinedatenbank.dbo.gibtesnicht"),
+                    ("SELECT, Klammern", "SELECT Id FROM [dbo].[gibtesnicht]"),
+                    ("SELECT, Anfuehrungszeichen", "SELECT Id FROM \"dbo\".\"gibtesnicht\""),
+                    ("SELECT, Hochkomma im Namen", "SELECT Id FROM [gibtes'nicht]"),
+                    ("SELECT, zwei Hochkommas im Namen", "SELECT Id FROM [gibtes''nicht]"),
+                    ("SELECT, Klammerzeichen im Namen", "SELECT Id FROM [gibtes]]nicht]"),
+                    ("SELECT, Leerzeichen im Namen", "SELECT Id FROM [gibtes nicht]"),
+                    ("SELECT, Punkt im Namen", "SELECT Id FROM [gibtes.nicht]"),
+                    ("SELECT, Umlaut im Namen", "SELECT Id FROM [gibtes_ä_nicht]"),
+                    ("SELECT, Zeilenumbruch im Namen", "SELECT Id FROM [gibtes\nnicht]"),
+                    ("SELECT, Name mit 128 Zeichen", $"SELECT Id FROM {Lang(128)}"),
+                    ("SELECT, Name mit 129 Zeichen", $"SELECT Id FROM {Lang(129)}"),
+                    ("SELECT, Name in Klammern mit 129 Zeichen", $"SELECT Id FROM [{Lang(129)}]"),
+                    ("SELECT, Schema mit 129 Zeichen", $"SELECT Id FROM [{Lang(129)}].gibtesnicht"),
+                    ("INSERT", "INSERT INTO gibtesnicht (Id) VALUES (1)"),
+                    ("UPDATE", "UPDATE gibtesnicht SET Id = 1 WHERE Id = 2"),
+                    ("DELETE", "DELETE FROM gibtesnicht WHERE Id = 1"),
+                    ("MERGE", "MERGE INTO gibtesnicht AS t USING (VALUES (1)) AS q (Id) ON t.Id = q.Id WHEN NOT MATCHED THEN INSERT (Id) VALUES (q.Id);"),
+                })
+                {
+                    Mit(l, v, text.Length > 300 ? beschreibung : $"{beschreibung} ({text.Replace("\n", "\\n")})", text);
+                }
+
+                Mit(l, v, "RPC sp_executesql, Name ohne Schema", "SELECT Id FROM gibtesnicht WHERE Id = @P0", ps => P(ps, "@P0", SqlDbType.Int, 1));
+                Mit(l, v, "Folgeabfrage", "SELECT 1 AS eins");
+            }),
+
             // ---- Zeilenform der Antwort: ROW oder NBCROW (slice-antwortform-nbcrow) -------------------------------------
             ("zeilenform-null", DbZeilen, (l, v) =>
             {

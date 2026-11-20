@@ -27,8 +27,8 @@ class ColumnMappingTest {
      * dem Codec; eine Messung oder eine Quelle im Repo gibt es dafür nicht): feste Typen `38` (INT4), `7F` (INT8) und
      * `32` (BIT) nicht nullbar, `26 04`, `26 08` und `68 01` (INTN, BITN) nullbar; Unicode-Text ist `E7` mit
      * 8000 Byte (`40 1F`) und der Kollation `09 04 D0 00 34`; `28` (DATEN), `29 07` (TIMEN), `2A 07`
-     * (DATETIME2N); `6A 09 0A 02` ist DECIMALN, Länge 9 für Precision 10 bis 19. Das Bit `fNullable` ist
-     * Bit 0 der Flags. Die Kollation und die Scale 7 sind Festlegungen ohne Messung (Quelltext).
+     * (DATETIME2N); `6A 11 0A 02` ist DECIMALN, Länge 17 für jede Precision (Messung `decimal-laenge-tabelle`). Das Bit
+     * `fNullable` ist Bit 0 der Flags. Die Kollation und die Scale 7 sind Festlegungen ohne Messung (Quelltext).
      *
      * @spec SPEC-003
      */
@@ -47,7 +47,7 @@ class ColumnMappingTest {
             Triple(SqlType.Bool, true, "01" to "68 01"),
             Triple(SqlType.UnicodeText, false, "00" to latinNVarchar),
             Triple(SqlType.UnicodeText, true, "01" to latinNVarchar),
-            Triple(SqlType.Decimal(10, 2), true, "01" to "6A 09 0A 02"),
+            Triple(SqlType.Decimal(10, 2), true, "01" to "6A 11 0A 02"),
             Triple(SqlType.Date, true, "01" to "28"),
             Triple(SqlType.Time, true, "01" to "29 07"),
             Triple(SqlType.DateTime, false, "00" to "2A 07"),
@@ -110,7 +110,7 @@ class ColumnMappingTest {
     /**
      * Precision 1 bis 38 sind abbildbar, 39 nicht: der Widerspruch zwischen dem Modell (`Decimal` kennt
      * keine Obergrenze) und dem Encoder (1 bis 38) endet in `TDS_UNSUPPORTED_TYPE`, bevor ein Byte
-     * geschrieben wird. Handvektor `6A 11 26 26`: Länge 17 für Precision 20 bis 38.
+     * geschrieben wird. Handvektor `6A 11 26 26`: Länge 17.
      *
      * @spec SPEC-003
      * @spec SPEC-014

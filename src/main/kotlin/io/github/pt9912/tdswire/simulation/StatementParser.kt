@@ -172,7 +172,10 @@ internal object StatementParser {
         }
     }
 
-    private fun table(tokens: List<Token>): Recognition = try {
+    private fun table(tokens: List<Token>): Recognition =
+        if (Token.Symbol(';') in tokens) SeriesForms.recognize(tokens, ::single) else single(tokens)
+
+    private fun single(tokens: List<Token>): Recognition = try {
         Recognition.Recognized(statement(TokenStream(tokens)))
     } catch (reject: Reject) {
         Recognition.NotRecognized(reject.reason)

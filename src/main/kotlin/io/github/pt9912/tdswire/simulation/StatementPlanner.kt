@@ -78,6 +78,9 @@ internal data class StructurePlan(
 internal sealed interface PlanResult {
     data class Planned(val plan: Plan) : PlanResult
 
+    /** Mehrere Auswahlen in einem Text (`SPEC-036`, Form S2): jede ist geplant, in der Reihenfolge des Textes. */
+    data class Series(val plans: List<Plan>) : PlanResult
+
     /**
      * Eine Katalogabfrage; [catalog] ist der Stand, den der Anbieter bei der Planung lieferte, [literal] das Argument,
      * das der Text selbst trägt (statt eines Parameters), sonst `null`.
@@ -99,7 +102,7 @@ internal sealed interface PlanResult {
     data class Fixed(val form: FixedForm) : PlanResult
 
     /** Die Anfrage endet mit dem Fehler [code] (ein Wert von [SimCodes]), bevor etwas gelesen wird. */
-    data class Rejected(val code: String, val message: String) : PlanResult
+    data class Rejected(val code: String, val message: String, val objectName: String? = null) : PlanResult
 }
 
 /**
@@ -108,7 +111,9 @@ internal sealed interface PlanResult {
  * nur den Text und die Beschreibung. Ohne Schema gilt [DEFAULT_SCHEMA]. [catalogs] liefert bei jeder Planung den
  * aktuellen Stand der Tabellen; der Planer hält keinen.
  *
- * Die Meldungen nennen nie Teile des Anweisungstextes.
+ * Die Meldungen nennen nie Teile des Anweisungstextes; allein der Name einer unbekannten Tabelle steht in
+ * [PlanResult.Rejected.objectName], wenn jeder Teil die Grenze des Servers von 128 Zeichen einhält und keines ein
+ * Steuerzeichen außer dem Zeilenumbruch trägt (Messprotokoll, Szenario `fehler-tabelle-unbekannt`).
  */
 internal class StatementPlanner(private val catalogs: () -> SimCatalog) {
     constructor(catalog: SimCatalog) : this({ catalog })
@@ -124,6 +129,15 @@ internal class StatementPlanner(private val catalogs: () -> SimCatalog) {
         is Recognition.Bulk -> PlanResult.Bulk(bulk(recognition, catalogs()))
 
         is Recognition.Recognized -> resolve(recognition.statement, catalogs())
+
+        is Recognition.Series -> series(recognition.selects, catalogs())
+    }
+
+    /** Jede Auswahl gegen die Beschreibung prüfen; die erste Abweisung ist die Antwort auf den ganzen Text. */
+    private fun series(selects: List<Statement.Select>, catalog: SimCatalog): PlanResult {
+        val results = selects.map { resolveTable(it, catalog) }
+        return results.firstOrNull { it !is PlanResult.Planned }
+            ?: PlanResult.Series(results.map { (it as PlanResult.Planned).plan })
     }
 
     private fun reject(code: String, message: String): PlanResult = PlanResult.Rejected(code, message)
@@ -161,7 +175,11 @@ internal class StatementPlanner(private val catalogs: () -> SimCatalog) {
 
     private fun resolveTable(statement: Statement, catalog: SimCatalog): PlanResult {
         val table = catalog.find(statement.table.schema, statement.table.name)
-            ?: return reject(SimCodes.UNKNOWN_OBJECT, "Tabelle nicht beschrieben")
+            ?: return PlanResult.Rejected(
+                SimCodes.UNKNOWN_OBJECT,
+                "Tabelle nicht beschrieben",
+                shownName(statement.table),
+            )
         return when {
             namedColumns(statement).any { table.column(it) == null } ->
                 reject(SimCodes.UNKNOWN_OBJECT, "Spalte nicht beschrieben")
@@ -171,6 +189,15 @@ internal class StatementPlanner(private val catalogs: () -> SimCatalog) {
 
             else -> PlanResult.Planned(Plan(statement, table, resultColumns(statement, table)))
         }
+    }
+
+    /** Der Name, wie die Meldung ihn nennt: `<Schema>.<Name>` oder `<Name>`; `null` außerhalb der Grenzen. */
+    private fun shownName(table: TableRef): String? {
+        val parts = listOfNotNull(table.schema, table.name)
+        val fits = parts.all { part ->
+            part.isNotEmpty() && part.length <= MAX_IDENTIFIER && part.none { it.isISOControl() && it != '\n' }
+        }
+        return if (fits) parts.joinToString(".") else null
     }
 
     /** Alle Spaltennamen des Textes: Auswahlliste, Spalten von `INSERT` und `SET` zuerst, dann die Bedingung. */
@@ -201,3 +228,6 @@ internal class StatementPlanner(private val catalogs: () -> SimCatalog) {
         else -> statement.columns.mapNotNull { table.column(it) }
     }
 }
+
+/** Die längste Länge eines Bezeichners beim echten SQL Server; darüber endet er mit 103 (gemessen, 2022, 2025). */
+private const val MAX_IDENTIFIER = 128

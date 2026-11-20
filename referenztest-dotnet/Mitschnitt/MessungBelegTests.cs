@@ -46,10 +46,10 @@ public class MessungBelegTests
     // @spec SPEC-045
     [Theory]
     [MemberData(nameof(Stufen))]
-    public void Die_Ablage_hat_36_Messungen_mit_Anmeldung_und_alle_Auswertungen_ohne_Zerlegungsproblem(string stufe)
+    public void Die_Ablage_hat_38_Messungen_mit_Anmeldung_und_alle_Auswertungen_ohne_Zerlegungsproblem(string stufe)
     {
         var dateien = Directory.GetFiles(Verzeichnis(stufe), "*.messung");
-        Assert.Equal(36, dateien.Length);
+        Assert.Equal(38, dateien.Length);
         Assert.DoesNotContain(Z(stufe), z => z.Value.Contains("PROBLEM", StringComparison.Ordinal) || z.Value.Contains("ZERLEGUNG-ABGEBROCHEN", StringComparison.Ordinal));
         foreach (var pfad in dateien)
         {
@@ -672,6 +672,27 @@ public class MessungBelegTests
             Assert.Equal(2, Regex.Matches(F(stufe, szenario + "/01/done"), @"DONEPROC Status MORE\|0x80,").Count);
             Assert.Equal("COLMETADATA ROW+ DONE", F(stufe, szenario + "/02/tokenfolge"));
         }
+    }
+
+    // @spec SPEC-003
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void Der_echte_Server_schreibt_im_COLMETADATA_von_decimal_und_numeric_die_Laenge_17_je_Precision(string stufe)
+    {
+        var spalten = F(stufe, "decimal-laenge-tabelle/04/colmetadata").Trim('[', ']').Split("; ");
+        Assert.Equal(16, spalten.Length);
+        foreach (var precision in new[] { 1, 9, 10, 19, 20, 28, 29, 38 })
+        {
+            var skala = precision == 1 ? 0 : 1;
+            Assert.Contains($"d{precision:D2}:decimaln(laenge=17,genauigkeit={precision},skala={skala}) nullbar=ja", spalten);
+            Assert.Contains($"n{precision:D2}:numericn(laenge=17,genauigkeit={precision},skala={skala}) nullbar=ja", spalten);
+        }
+
+        var ausdruecke = F(stufe, "decimal-laenge-ausdruck/01/colmetadata");
+        Assert.Equal(4, Regex.Matches(ausdruecke, @"\(laenge=17,").Count);
+        Assert.Contains("lit:numericn(laenge=17,genauigkeit=2,skala=1) nullbar=nein", ausdruecke, StringComparison.Ordinal);
+        Assert.Equal("[s:decimaln(laenge=17,genauigkeit=38,skala=2) nullbar=ja]", F(stufe, "decimal-laenge-ausdruck/02/colmetadata"));
     }
 
     // @spec SPEC-045

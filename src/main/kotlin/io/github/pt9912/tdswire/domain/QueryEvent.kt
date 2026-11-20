@@ -76,12 +76,19 @@ public sealed interface QueryEvent {
      * `TDS_SIM_COLUMN_HAS_DEFAULT`, `TDS_SIM_OBJECT_NOT_FOUND`, `TDS_SIM_NOT_A_CONSTRAINT`,
      * `TDS_SIM_CONSTRAINT_OTHER_TABLE`, `TDS_SIM_NOT_AN_INDEX`, `TDS_SIM_INDEX_OF_CONSTRAINT`,
      * `TDS_SIM_STRING_TRUNCATED`, `TDS_TIMEOUT`; ein anderer Name endet mit `TDS_INTERNAL_ERROR` (50007) und schließt
-     * die Verbindung.
+     * die Verbindung. [objectName] nennt bei `TDS_SIM_UNKNOWN_OBJECT` die unbekannte Tabelle, wie der Text sie
+     * nennt (`<Schema>.<Name>` oder `<Name>`, ohne Klammern und Anführungszeichen, in der Schreibung des Textes); mit
+     * ihm lautet die Meldung an den Client `Invalid object name '<objectName>'.`, ohne ihn `Unknown object.`. Die
+     * Bibliothek gibt den Namen unverändert weiter, wenn er höchstens 515 Zeichen lang ist und kein Steuerzeichen
+     * außer dem Zeilenumbruch enthält, und sonst nicht (Setzung, nicht gemessen: die Prüfung ist `Char.isISOControl`
+     * und lässt etwa U+2028 und U+FEFF durch; das Simulations-Backend nennt den Namen zusätzlich nur bis 128 Zeichen je
+     * Teil, gemessen); [message] erreicht den Client nie.
      */
     public data class Failure @JvmOverloads constructor(
         val code: String,
         val message: String,
         val scope: FailureScope = FailureScope.BATCH,
+        val objectName: String? = null,
     ) : QueryEvent
 }
 

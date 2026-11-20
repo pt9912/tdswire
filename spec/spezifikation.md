@@ -194,7 +194,7 @@ O(übertragene Bytes).
 1. Anweisungstext normalisieren: Leerraum und Kommentare außerhalb von Literalen und Bezeichnern
    überlesen, ein einzelnes abschließendes `;` entfernen. Mehrere Anweisungen in einem Text gelten
    als nicht erkannt, solange das Clientprofil sie nicht verlangt; die Texte, die d-migrate verlangt
-   (Form C, `SPEC-036`), sind die Ausnahme. Ein Text, der dem Wortlaut einer Katalogabfrage entspricht
+   (Form C, `SPEC-036`), der Text der Form D7 und zwei Auswahlen (Form S2) sind die Ausnahme. Ein Text, der dem Wortlaut einer Katalogabfrage entspricht
    (Form K), wird vor dem Zeichenscanner zugeordnet.
 2. Die Anweisung anhand ihres Textes genau einer Form aus `SPEC-036` zuordnen. Das geschieht mit
    einem Zeichenscanner, der Literale, Bezeichner und Kommentare erkennt, nicht mit einer
@@ -209,7 +209,7 @@ O(übertragene Bytes).
 5. Auswahl: `ResultStart` mit den Spalten der Auswahlliste (bei `*` alle, in der Reihenfolge der
    Beschreibung) senden, auch wenn keine Zeile passt. Danach Zeilen einzeln aus der Zeilenquelle
    lesen, die Bedingung auf jede Zeile anwenden, passende als `Row` senden und mit `ResultEnd` und
-   der Zeilenzahl abschließen. Das Backend wendet die Bedingung immer selbst an; ein Vorfilter der
+   der Zeilenzahl abschließen; bei zwei Auswahlen (Form S2) folgt das Ergebnis der zweiten auf das der ersten. Das Backend wendet die Bedingung immer selbst an; ein Vorfilter der
    Zeilenquelle ist nur eine Optimierung. Gelesen wird nur so schnell, wie der Transport Zeilen
    abnimmt (Backpressure, `TDS-FA-08.a`); das Resultset wird nicht vollständig gehalten.
 6. Einfügen, Ändern, Löschen: Werte nach Schritt 4 prüfen, den Callback der Tabelle rufen und dessen
@@ -390,7 +390,12 @@ sealed interface QueryEvent {
     data class UpdateCount(val affectedRows: Long, val kind: StatementKind = StatementKind.UNKNOWN) : QueryEvent
     data class ReturnStatus(val value: Int) : QueryEvent
     data class OutputParameter(val name: String, val type: SqlType, val value: Any?) : QueryEvent
-    data class Failure(val code: String, val message: String, val scope: FailureScope = FailureScope.BATCH) : QueryEvent
+    data class Failure(
+        val code: String,
+        val message: String,
+        val scope: FailureScope = FailureScope.BATCH,
+        val objectName: String? = null,
+    ) : QueryEvent
 }
 data class ResultColumn(val name: String, val type: SqlType, val nullable: Boolean, val maxLength: Int = 4000)
 enum class FailureScope { STATEMENT, BATCH }
@@ -447,6 +452,21 @@ ausgeführt) oder den Batch (`BATCH`, Voreinstellung: die Antwort endet). Die Kl
 Backend ohne Angabe meldet batch-abbrechende Fehler, und die zweistellige Form `Failure(code, message)` bleibt
 übersetzbar.
 
+**Name der unbekannten Tabelle (Nutzerentscheidung vom 2026-11-18, Messung am echten Server, Abschnitt 4):** `Failure.objectName`
+nennt bei `TDS_SIM_UNKNOWN_OBJECT` die Tabelle, die der Text nennt (`<Schema>.<Name>` oder `<Name>`, ohne Klammern und
+Anführungszeichen, in der Schreibung des Textes). Mit ihm lautet die Meldung `Invalid object name '<Name>'.`, ohne ihn (Voreinstellung
+`null`, eine Spalte, ein Name außerhalb der Grenzen) bleibt der feste Text `Unknown object.`. Die Bibliothek gibt den Namen
+unverändert weiter (Hochkomma und Zeilenumbruch wie beim echten Server, gemessen), wenn er höchstens 515 Zeichen lang ist und kein
+Steuerzeichen außer dem Zeilenumbruch enthält; `message` erreicht den Client nie. **Setzung, nicht gemessen:** die Grenze von 515
+Zeichen (vier Teile zu je 128 Zeichen und drei Punkte; sie gilt für jedes Backend, auch ein eigenes, `BackendSource.Custom`) und die
+Zeichenmenge der Prüfung (`Char.isISOControl` der JVM ohne den Zeilenumbruch; sie lässt etwa U+2028, U+2029, Bidi-Steuerzeichen und
+U+FEFF durch; gemessen ist allein der Zeilenumbruch, `NUL` und Tabulator nicht). Das Simulations-Backend nennt den Namen bei einer
+Auswahl, einem `INSERT`, `UPDATE`, `DELETE` und `MERGE`, wenn jeder Teil höchstens 128 Zeichen lang ist (die Grenze des echten Servers,
+gemessen; darüber antwortet er mit 103, Class 15, das Mapping bildet 103 nicht ab); die 128 Zeichen je Teil gelten nur für das
+Simulations-Backend, ein eigenes Backend unterliegt allein den 515 Zeichen. Für Kotlin-Aufrufer ändern sich `copy` und `component4`
+der `data class` (neues viertes Mitglied `objectName`); die zweistellige und die dreistellige Form von `Failure(...)` bleiben für
+Kotlin und Java übersetzbar (`@JvmOverloads`).
+
 
 Lebensdauerregeln und alles, was über diesen Stand hinausgeht, bleiben Entwurf des Vertrags
 zu `SPEC-022`.
@@ -464,6 +484,14 @@ zu `SPEC-022`.
 Konkrete Token-/Typkennungen, Kollation und Präzision sind anhand MS-TDS und des Referenzclients zu
 verifizieren.
 
+**Länge von `DECIMALN` und `NUMERICN` im TYPE_INFO (gemessen am 2026-11-18, Einzelmessung je Instanz 2022 und 2025,
+beide Instanzen gleich, Messprotokoll W-23 und W-24):** Der Server schreibt im COLMETADATA die Länge **17** für jedes
+`decimal` und `numeric`, unabhängig von der Precision. Gemessen ist das an Spalten einer Tabelle mit den Precisionen 1,
+9, 10, 19, 20, 28, 29 und 38 (je `decimal` und `numeric`, nullbar) und an Ausdrücken (`CAST` auf `decimal(10,2)`,
+`numeric(38,10)` und `decimal(20,4)`, Literal `1.5`, `SUM`); die Precision-Klassen dazwischen sind nicht einzeln
+gemessen. Dass ein Wert im ROW höchstens so lang ist wie die TYPE_INFO, ist Folgerung (gemessen sind Wertlängen von 5 und 9 Byte, W-25), nicht gemessen. Grenze: ein Client (`Microsoft.Data.SqlClient`
+7.1.1), Einzelmessung je Instanz.
+
 **Typabbildung (Setzungen vom 2026-10-30, nicht gemessen):**
 - `UInt8` und `Int16` sind `tinyint` (INT1, `0x30`) und `smallint` (INT2, `0x34`) in der festen Form; eine nullbare
   Spalte trägt INTN mit 1 und 2 Byte, wie `Int32` und `Int64` (Setzung nach der Form der Antwortspalten des Katalogs,
@@ -477,7 +505,7 @@ verifizieren.
   sind nicht im Mindestkatalog und enden in `TDS_UNSUPPORTED_TYPE`. `Time` und `DateTime` haben Scale 7
   (100 ns); ein feinerer Wert wird abgewiesen, nicht gerundet. Das Jahr liegt zwischen 1 und 9999.
 - Unicode-Text ist `NVARCHAR(<ResultColumn.maxLength>)`, ohne Angabe `NVARCHAR(4000)` (gemessen: Länge 10 und Flags 0 der Spalte
-  `$action`, M-26), mit der Kollation `SQL_Latin1_General_CP1_CI_AS`, gezählt in UTF-16-Einheiten; ein unpaares Surrogat wird abgewiesen. Der leere String ist ein Wert, nicht NULL.
+  `$action`, M-26; die Auswahl des Simulations-Backends meldet die Länge der Tabellenbeschreibung, `SPEC-035`), mit der Kollation `SQL_Latin1_General_CP1_CI_AS`, gezählt in UTF-16-Einheiten; ein unpaares Surrogat wird abgewiesen. Der leere String ist ein Wert, nicht NULL.
 - Decimal wird nie gerundet: ein Wert mit mehr Nachkommastellen als der Scale der Spalte oder mit mehr
   Stellen als die Precision erlaubt wird abgewiesen. Lesart und Grenze sind Setzungen vom 2026-10-30,
   nicht gemessen und vom Nutzer nicht bestätigt: nachlaufende Nullen zählen nicht (1,500 passt in
@@ -527,8 +555,8 @@ verifizieren.
   Ganzzahlspalten (eine NULL im Text ist ROW, wenn die Bitmap zwei Byte hat); gemessen mit einem Client
   (`Microsoft.Data.SqlClient` 7.1.1) und an Antworten aus einem Paket; Setzung, nicht gemessen: die Rechnung für mehr als
   17 Spalten, für mehrere Dezimalspalten, für einen anderen Client (etwa mssql-jdbc) und für Ergebnisse über mehrere
-  Pakete. Die Bytes von COLMETADATA und die Länge des Dezimaltyps sind nicht Teil
-  dieser Aussage (Ausnahme A-11 des Referenzabgleichs).
+  Pakete. Die Länge der Dezimalwerte im ROW ist nicht Teil dieser Aussage (der echte Server schreibt sie nach dem Wert,
+  der Encoder nach der Precision, Messprotokoll W-25).
 
 **RPC-Parametertypen (Eingabe; vom Referenzclient beobachtet, MAX-Typen nur wie am Ende des Absatzes eingeschränkt):** `tinyint`/`smallint`/`int`/`bigint`
 als `INTN` (Länge 1/2/4/8); `float`/`real` als `FLTN`; `money`/`smallmoney` als `MONEYN`; `bit` als
@@ -675,8 +703,13 @@ vor dem Handle (Mitschnitte `prepare`, 2022 und 2025 der Referenzinstanz; ohne i
 Handle nicht, Messzeilen h2, h3 und t1); jede andere RPC-Antwort trägt ebenfalls einen RETURNSTATUS, mit dem Wert 0,
 wenn das Backend keinen liefert (gemessen: `sp_executesql` mit und ohne Ausgabewert, Mitschnitte `rpc-parameter` und
 `rpc-ausgabewert` und Messreihe am Draht, 2022 und 2025, Einzelmessung je Instanz; für `sp_execute` und den Prozedurnamen
-Setzung nach derselben Regel); den Ausgabewert des Backends liefert das Simulations-Backend nicht (Ausnahme A-16 des
-Referenzabgleichs, `SPEC-045`). Die Collation aus der
+Setzung nach derselben Regel); den Ausgabewert eines `InputOutput`-Parameters einer Auswahl (Form S1, `SPEC-036`) liefert das Simulations-Backend als
+seinen Eingabewert, für jede RPC-Form, die eine solche Auswahl an das Backend gibt; gemessen ist nur `sp_executesql` mit einem
+Parameter (Mitschnitt `rpc-ausgabewert`, `@id` mit Wert 7, `INTN` 4, RETURNVALUE mit Ordinal 2, Status 1, Wert 7, eine Einzelmessung je
+Instanz), für die übrigen Formen ist es Setzung. Für einen reinen `OUTPUT`-Parameter ist der Wert, den eine Auswahl der Form S1 ihm
+gäbe, nicht gemessen (Lesart von M-24: die Zeile misst das Flag-Feld der RETURNVALUE zugewiesener und nicht zugewiesener Ausgabewerte, nicht den Wert einer Auswahl); das
+Simulations-Backend sendet für ihn und für jede andere Form keinen Wert (ein eigenes Backend sendet ihn über
+`QueryEvent.OutputParameter`). Die Collation aus der
 Login-Antwort (ENVCHANGE Typ 7) ist Voraussetzung für jeden RPC mit Zeichenparametern. Alle anderen RPCs,
 auch `sp_prepare`, `sp_unprepare` und `sp_cursor*`, ergeben eine explizite Fehlermeldung ohne
 Verbindungsabbruch. **Messgrenzen:** Gemessen ist nur das Verhalten des Referenzclients gegen einen Testserver, nicht
@@ -964,9 +997,22 @@ festgelegt sind; die Überführung der Werte, das Lesen der Zeilenquelle und die
   Sonderwert -1 sind Setzung dieser Spezifikation (die Entscheidung zur Länge nennt Vorgabe 4000, aber keinen
   Sonderwert). Belegt ist -1 durch den Lauf mit d-migrate 1.12.0: ein Soll mit `NVARCHAR(MAX)` endet ohne -1 mit Exit 5,
   mit -1 mit Exit 0 und `IDENTICAL`.
-  Sie gilt nur für `UnicodeText` und ändert die Metadaten eines Ergebnisses nicht (dort gilt `ResultColumn.maxLength`,
-  Vorgabe `NVARCHAR(4000)`, `SPEC-003`). Geprüft wird sie nur beim `MERGE` (Form M, `SPEC-036`: Text über der Länge ist 2628);
-  Zeilen der Zeilenquelle und der Massenladen prüft sie nicht. Andere Werte weist der Konstruktor ab.
+  Sie gilt nur für `UnicodeText`. Das Ergebnis einer Auswahl (Formen S1 und S2, auch bei einer Bedingung, die nie wahr
+  ist) meldet sie als `ResultColumn.maxLength`: die Metadaten der Spalte sind `NVARCHAR(<maxLength>)`, ohne Angabe der
+  Beschreibung `NVARCHAR(4000)` (`SPEC-003`); gemessen ist `nvarchar(10)` (Länge 20) einer Ansicht am Referenzclient
+  (Messprotokoll A-14). Der Sonderwert -1 meldet das Ergebnis als 4000 (Setzung, nicht gemessen: wie der echte Server das
+  COLMETADATA einer `nvarchar(max)`-Spalte im Ergebnis schreibt, ist nicht aufgenommen). Das Backend prüft die Zeilen der
+  Zeilenquelle nicht gegen die Länge: ein Text einer Zeile über der Länge der Beschreibung endet in der Antwort im Fehler
+  `TDS_UNSUPPORTED_TYPE` (50003, Class 20; die Verbindung schließt, `SPEC-014`), weil die Bibliothek ihn abweist
+  (`SPEC-003`; Setzung, die Nummer ist nicht gemessen, Test `SpaltenlaengeAuswahlWireTest`); eine Zeile genau in der
+  Länge ist ein Ergebnis. Der 2628 des `MERGE` (unten) lässt die Verbindung dagegen offen. Am echten Server ist der Fall
+  an einer Tabellenspalte über `MERGE` nicht erreichbar (2628, Messprotokoll M-15); für `INSERT` und `UPDATE` liegt keine
+  Messung vor, und beim Massenladen erkennt der Referenzclient mit einer `DataTable`-Quelle den Verstoß vor dem Senden
+  (M-11, ein Fall mit 23 Zeichen in `nvarchar(5)`; ein serverseitiger Verstoß ist nicht hergestellt). Die Bibliothek prüft die Länge nur beim `MERGE` (Form M, `SPEC-036`: Text über der
+  Länge ist 2628, die Verbindung bleibt offen) und nicht bei `INSERT` (Callback `onInsert`), `UPDATE` (`onUpdate`) und
+  Massenladen (`onInsertBatch`); der Bestand des Testservers prüft sie dort (unten, Testserver). Offen: ob die Bibliothek
+  selbst auch dort abweist (etwa mit 2628), ist nicht entschieden und braucht eine Folge-Entscheidung zur
+  Durchsetzung der Länge; bis dahin sind die Nummern 2627 und 50004 des Bestands Setzung. Andere Werte weist der Konstruktor ab.
   `SimTable.onInsertBatch` nimmt die Zeilen einer Massenlade-Nachricht (`0x07`) als Liste: eine Nachricht ist eine Anweisung
   (Nutzer, 2026-11-06), ein Aufruf je Nachricht, jede Zeile eine Abbildung von Spaltennamen der Beschreibung auf überführte
   Werte (eine Spalte, die die Nachricht nicht nennt, fehlt). Zusage an den Integrator: der Aufruf gilt ganz oder gar nicht;
@@ -1038,9 +1084,10 @@ festgelegt sind; die Überführung der Werte, das Lesen der Zeilenquelle und die
   Überlauf
   (Int32, Int64, Stellen der Dezimalzahl) ist immer `TDS_SIM_INVALID_VALUE`. Dezimalwerte werden mit
   `compareTo` verglichen (1.0 gleich 1.00), Textwerte ohne Beachtung der Groß-/Kleinschreibung
-  (Setzung, wie die Bezeichner). Texte begrenzt das Backend selbst nicht; ein Text von mehr als 4000
-  UTF-16-Einheiten, den eine Zeilenquelle liefert, weist die Typabbildung mit `TDS_UNSUPPORTED_TYPE` ab
-  (Limit: `SPEC-003`; Code: `SPEC-014` und Typabbildung; Setzung, nicht gemessen).
+  (Setzung, wie die Bezeichner). Texte begrenzt das Backend selbst nicht; ein Text, den eine Zeilenquelle liefert und
+  der länger ist als die Länge seiner Spalte im Ergebnis (`SimColumn.maxLength`, höchstens 4000 UTF-16-Einheiten),
+  weist die Typabbildung mit `TDS_UNSUPPORTED_TYPE` ab (Limit: `SPEC-003`; Code: `SPEC-014` und Typabbildung; Setzung,
+  nicht gemessen).
   Weitere Festlegungen der Überführung (Setzung, Voreinstellung, nicht gemessen): eine Zahl gilt, wenn sie
   ohne Rest in den Zielwert passt (`1.0` und `100` in einer Ganzzahlspalte, `3.500` in `Decimal(10,2)`); die
   Zahlen `0` und `1` sind in einer Bool-Spalte falsch und wahr, jede andere Zahl ist ungültig; ein Text geht nur
@@ -1104,8 +1151,8 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   `Decimal(precision, scale)` bis Precision 38, `date` auf `Date`, `time` auf `Time`, `datetime` ohne
   `timezone: true` auf `DateTime`. `max_length` wird auf eine positive Ganzzahl geprüft und als
   `SimColumn.maxLength` gemeldet (der Katalog zeigt `nvarchar(<max_length>)`); ein Wert über 4000 gilt als 4000, ohne
-  Angabe gilt 4000 (Setzung); durchgesetzt wird er nicht, und das Metadatum eines Ergebnisses bleibt `NVARCHAR(4000)`
-  (`SPEC-003`). Jeder andere Typ
+  Angabe gilt 4000 (Setzung); das Backend setzt ihn bei den Zeilen nicht durch, das Metadatum eines Ergebnisses ist
+  `NVARCHAR(<max_length>)` (`SimColumn.maxLength`, `SPEC-003`). Jeder andere Typ
   (`smallint`, `char`, `float`, `uuid`, `binary`, `xml`, `json`, `array`, `enum`, `geometry`,
   `fulltext`, `datetime` mit `timezone: true`) und eine Precision über 38 weisen die Datei ab.
 - **Elemente aus der Datei** (gemessen ist, dass `d-migrate schema generate` 1.12.0 die hier benutzten Felder und Formen annimmt und
@@ -1164,9 +1211,14 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   (wie jeden Fehler des Callbacks einer Nachricht `0x07` meldet die Bibliothek das als 2627, `SPEC-036`; der Bestand bleibt unverändert), statt dass der Prozess mit `OutOfMemoryError` endet (Setzung,
   nicht am Server gemessen; der Wert ist nicht am Heap gemessen, ein kleinerer Heap als die Zellen brauchen endet weiter
   mit `OutOfMemoryError`; `ALTER TABLE … ADD` auf einer gefüllten Tabelle prüft die Grenze nicht; `TableStoreTest`).
-  `SimColumn.maxLength` wirkt nicht auf das Massenladen: ein Text über der Länge der Beschreibung wird angenommen, die
-  Länge begrenzt nur der Typ, den der Client in COLMETADATA nennt (Setzung; der echte Server weist ihn ab, nicht
-  gemessen).
+  `SimColumn.maxLength` gilt im Bestand für das Massenladen und das `UPDATE`: einen Text über der Länge der Beschreibung
+  (gezählt in UTF-16-Einheiten wie bei der Bibliothek) weist der Bestand ab und lässt sich unverändert; bei `maxLength`
+  -1 gilt die Länge 4000, die eine Auswahl für `nvarchar(max)` meldet. Der Bestand hält so nur Text, den eine Auswahl
+  ausliefert (der Text einer Zeile über der Länge endet in der Antwort im Fehler, siehe `SimColumn.maxLength` oben). Die
+  Bibliothek meldet die Abweisung beim Massenladen als 2627 und beim `UPDATE` als `TDS_BACKEND_ERROR`, nicht als 2628
+  des `MERGE`; `INSERT` als Text hat im Bestand keinen Callback (Setzung,
+  am echten Server nicht gemessen; gemessen ist nur 2628 beim `MERGE`, und der Referenzclient erkennt den Verstoß beim
+  Massenladen vor dem Senden, M-11; Test `TableStoreTest`). Die Bibliothek selbst prüft die Länge dort nicht.
 - **Weg `Custom`:** Wer ein Backend mit Katalog selbst baut (`SimulationBackend(SimCatalog(tables))`) und als
   `BackendSource.Custom` übergibt (etwa um es mit einem eigenen `QueryBackend` zu umhüllen), ist ein zweiter Weg
   neben `Simulation`, mit demselben Verhalten des Backends. Dieser Weg durchläuft die Namensprüfung des Einstiegs und
@@ -1230,6 +1282,7 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
 | Form | Muster | Antwort |
 |---|---|---|
 | S1 | `SELECT <Spaltenliste \| *> FROM [<Schema>.]<Tabelle> [WHERE <Term> {AND <Term>}]` | Resultset |
+| S2 | zwei Auswahlen der Form S1 in einem Text, durch `;` getrennt, ohne Parameter (zwei Auswahlen mit Parametern erkennt der Parser; das Backend weist sie nach der Prüfung gegen die Beschreibung ab, bei nicht beschriebenem Objekt mit `TDS_SIM_UNKNOWN_OBJECT`, sonst mit `TDS_UNSUPPORTED_SQL`; Setzung der Grenze: gemessen ist `SELECT Id FROM person WHERE Id = 1; SELECT Id FROM person WHERE Id = 2`, Mitschnitt `mehrteilig`, 2022 und 2025, je ein Fall) | zwei Resultsets in der Reihenfolge des Textes; das erste Abschluss `DONE` mit `MORE` und `COUNT`, das zweite `DONE` mit `COUNT` (gemessen, beide mit Befehl `0x00c1`); Festlegungen, nicht gemessen: ist Tabelle oder Spalte einer der beiden Auswahlen nicht beschrieben oder ein Wert nicht in den Spaltentyp überführbar, ist der ganze Text abgewiesen, bevor etwas gelesen wird (`TDS_SIM_UNKNOWN_OBJECT`, `TDS_SIM_INVALID_VALUE`); scheitert die Zeilenquelle der zweiten Auswahl nach dem vollständigen ersten Ergebnis, ist der Fehler das letzte Ereignis (`TDS_BACKEND_ERROR`), nach einem Fehler der ersten Quelle folgt keine zweite Auswahl und kein Ausgabewert |
 | W1 | `INSERT INTO [<Schema>.]<Tabelle> (<Spalten>) VALUES (<Werte>)` | Änderungszähler |
 | W2 | `UPDATE [<Schema>.]<Tabelle> SET <Spalte> = <Wert> {, <Spalte> = <Wert>} [WHERE <Term> {AND <Term>}]` | Änderungszähler |
 | W3 | `DELETE FROM [<Schema>.]<Tabelle> [WHERE <Term> {AND <Term>}]` | Änderungszähler |
@@ -1269,7 +1322,7 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   Aggregate und `GROUP BY`, `DISTINCT`, `TOP`, `ORDER BY`, `OFFSET`/`FETCH`, Aliase für Tabellen (außer `AS <Alias>` der Form M) und
   Spalten, Ausdrücke und Funktionen in Listen und Bedingungen, `OR`, `NOT`, `<`, `>`, `LIKE`, `BETWEEN` (in den Bedingungen von S1 bis W3; im
   Ausdruck einer Prüfbedingung der Form D gelten `OR`, `<` und `>`, unten),
-  `OUTPUT`-Klauseln (außer `OUTPUT $action` der Form M), mehrere Anweisungen in einem Text (außer Form C und dem Text der Form D7, der aus mehreren Anweisungen besteht und als Ganzes erkannt ist) und alles, was keine Form
+  `OUTPUT`-Klauseln (außer `OUTPUT $action` der Form M), mehrere Anweisungen in einem Text (außer Form C, dem Text der Form D7, der aus mehreren Anweisungen besteht und als Ganzes erkannt ist, und Form S2: eine dritte Auswahl, eine Folge mit einer anderen Anweisung als S1 und ein leeres Stück zwischen zwei `;` sind nicht erkannt und enden vor jeder Prüfung gegen die Beschreibung mit `TDS_UNSUPPORTED_SQL`, auch bei nicht beschriebenem Objekt; zwei Auswahlen mit Parametern erkennt der Parser, das Backend weist sie nach der Prüfung gegen die Beschreibung ab, mit `TDS_SIM_UNKNOWN_OBJECT` bei nicht beschriebenem Objekt, sonst mit `TDS_UNSUPPORTED_SQL`; beides, weil nur der Text mit zwei Auswahlen ohne Parameter gemessen ist) und alles, was keine Form
   der Tabelle ist.
 - **Form C** (Setzung nach der Aufzeichnung von d-migrate 1.12.0 mit mssql-jdbc 13.4.0.jre11, 2026-11-05, gegen den
   Testserver; für den Referenzclient ist keine Anweisung der Form gemessen): `SELECT 1` ist der Verbindungstest des
@@ -1366,8 +1419,7 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   (M-35, `bulk-name-schema`, Instanz 2022 und 2025); die Antwort dieses Servers trägt den Fehler vor den Ergebnissen und den festen Text „Tabelle nicht
   beschrieben“ (Setzung, Abweichung vom Zielbild, Grenze). Für `mssql-jdbc` (d-migrate) sind Namen mit Schema oder Sonderzeichen nicht gemessen;
   belegt ist dort `INSERT BULK` für `[dbo].[kunden]` (M-28). Die Antwort hat vier Ergebnisse in der Folge der Aufzeichnung: `@@TRANCOUNT` (INT, Wert 0); die Spalten der Tabelle ohne Zeile
-  (Flags `0x0008`, nullbar `0x0009`; Text mit der Länge der Beschreibung; Dezimalzahlen mit Größe 17; aufgezeichnet ist nur `DECIMALN(10,2)`, die Größe 17 für andere Precisionen ist Setzung, gestützt darauf,
-  dass der Referenzclient die Werte immer mit 17 Byte schreibt); je Spalte `colid`, `name`, `tds_collation` und `collation` (für Text die fünf Bytes
+  (Flags `0x0008`, nullbar `0x0009`; Text mit der Länge der Beschreibung; Dezimalzahlen mit Größe 17, wie in jedem COLMETADATA, Messprotokoll W-23); je Spalte `colid`, `name`, `tds_collation` und `collation` (für Text die fünf Bytes
   der Kollation und ihr Name, Setzung `SQL_Latin1_General_CP1_CI_AS`, sonst NULL als NBCROW) mit ORDER auf `colid`; die leere Tabelle
   `Canonical_Column_Name`, `Aliased_Column_Name`. Dazwischen stehen DONE, DONEINPROC, RETURNSTATUS und DONEPROC mit den Status und Befehlen der
   Aufzeichnung; die Zeilenzahl der beiden DONEINPROC nach den Spaltennamen und den Kollationen ist die Zahl der Spalten. Für die Tabelle
@@ -1663,7 +1715,7 @@ Abnahmegrenzen.
 | `SPEC-015` | `TDS_BACKEND_ERROR` | Backend-Ausführung fehlgeschlagen | Fehlerabbildung in TDS |
 | `SPEC-016` | `TDS_TIMEOUT` | Frist überschritten (die Frist einer Anfrage, `QUERY_TIMEOUT`, `SPEC-009`) | Cancel an das Backend, Cleanup, ERROR und DONE mit Fehlerstatus (in der Antwort auf einen RPC DONEPROC), Verbindung offen (Class 16); ist der Strom nicht mehr sicher abzuschließen, schließt die Verbindung ohne ERROR und DONE (`SPEC-031`) |
 | `SPEC-037` | `TDS_UNSUPPORTED_SQL` | Anweisung oder Bedingung außerhalb von `SPEC-036`; Schreibzugriff ohne Callback | ERROR und DONE mit Fehlerstatus (in der Antwort auf einen RPC DONEPROC), Zeilenquelle nicht gelesen |
-| `SPEC-038` | `TDS_SIM_UNKNOWN_OBJECT` | Tabelle oder Spalte ist nicht beschrieben | ERROR und DONE mit Fehlerstatus (in der Antwort auf einen RPC DONEPROC); SQL-Server-Nummer 208 (Objekt) mit Class 16, die Verbindung bleibt offen (gemessen, M-15); vorgesehen ist 207 (Spalte), nicht abgebildet |
+| `SPEC-038` | `TDS_SIM_UNKNOWN_OBJECT` | Tabelle oder Spalte ist nicht beschrieben | ERROR und DONE mit Fehlerstatus (in der Antwort auf einen RPC DONEPROC); SQL-Server-Nummer 208 (Objekt) mit Class 16, die Verbindung bleibt offen (gemessen, M-15); der Text einer unbekannten Tabelle nennt ihren Namen (`Invalid object name '<Name>'.`, gemessen, Abschnitt 4); vorgesehen ist 207 (Spalte), nicht abgebildet |
 | `SPEC-039` | `TDS_SIM_INVALID_VALUE` | Wert nicht in den Spaltentyp überführbar | ERROR und DONE mit Fehlerstatus (in der Antwort auf einen RPC DONEPROC); vorgesehene SQL-Server-Nummern 245 (Konvertierung) und 8115 (Überlauf), an der Referenzinstanz zu messen |
 | `SPEC-048` | `TDS_INTERNAL_ERROR` | unerwartete Ausnahme im Server oder im Backend-Adapter, auch ein `OutOfMemoryError` beim Erzeugen oder Senden der Antwort (`SPEC-031`) | ERROR (Severity 20) und DONE mit Fehlerstatus (in der Antwort auf einen RPC DONEPROC), fester Text ohne den Text der Ausnahme, danach Verbindungsende; die Ausnahme geht nur als Typname ins Log, nie mit Text (Abschnitt 4). Gebaut: die Art `REQUEST_FAILED` trägt den Code und den vollqualifizierten Typnamen der Ausnahme oder eine feste Marke, nie den Text der Ausnahme (Abschnitt 4; Tests: `TelemetryRedactionTest`, `RequestWiringTest`) |
 | `SPEC-049` | `TDS_SHUTDOWN` | Anfrage nach Beginn des geordneten Beendens (`SPEC-044`) | ERROR und DONE mit Fehlerstatus (in der Antwort auf einen RPC DONEPROC), danach Verbindungsende; Herkunft des Schließens: ERROR und DONE werden vollständig gesendet, erst danach wird geschlossen (Setzung des Nutzers vom 2026-11-01, am Referenzclient wird „ERROR, DONE, dann Schließen“ gelesen, ein Herunterfahren am echten Server ist nicht gemessen); vorgesehen: die SQL-Server-Meldung für ein Herunterfahren, Nummer im Mapping nach `TDS-FA-06.a` festlegen |
@@ -1683,7 +1735,7 @@ dieser Tabelle nicht. Die Spalte *Herkunft* trennt: *Vorschlag* (Nummer aus der 
 „an der Referenzinstanz zu messen“), *Setzung des Nutzers* (Gruppe und Class, 2026-10-30; `TDS_TIMEOUT` 2026-11-01),
 *Voreinstellung* (Gruppe nach der Voreinstellung vom 2026-10-30, nicht entschieden), *Festlegung* (vom Mapping gewählt, nicht
 gemessen), *Grundregel* (nur die Folge: kein Gruppenmitglied, im Zweifel schließen; die Class 20 dieser Codes ist Festlegung). State ist für jeden Code 1 (Ausnahmen, gemessen: `TDS_SIM_UNKNOWN_PREPARED_HANDLE` State 8 bei der Batch-Freigabe und State 4 bei `sp_execute`, `TDS_SIM_OBJECT_EXISTS` State 6, `TDS_SIM_COLUMN_EXISTS` State 4, `TDS_SIM_CONSTRAINT_OTHER_TABLE` State 2, `TDS_SIM_INDEX_OF_CONSTRAINT` State 5, `TDS_SIM_NOT_AN_INDEX` State 7 mit Class 11), der
-Text fest und englisch (bei `TDS_SIM_UNKNOWN_PREPARED_HANDLE` endet er mit der Nummer des Handles); der Text einer Backend-Meldung oder Ausnahme erreicht den Client nie.
+Text fest und englisch (bei `TDS_SIM_UNKNOWN_PREPARED_HANDLE` endet er mit der Nummer des Handles; bei `TDS_SIM_UNKNOWN_OBJECT` nennt er mit `Failure.objectName` den Namen der unbekannten Tabelle, siehe Abschnitt „Name der unbekannten Tabelle“ in `SPEC-002`); der Text einer Backend-Meldung oder Ausnahme erreicht den Client nie.
 
 | Code | Nummer | Class | Folge nach ERROR und DONE | Herkunft |
 |---|---|---|---|---|
@@ -1694,7 +1746,7 @@ Text fest und englisch (bei `TDS_SIM_UNKNOWN_PREPARED_HANDLE` endet er mit der N
 | `TDS_BACKEND_ERROR` | 50004 | 16 | offen | Class und Folge: Setzung des Nutzers; Nummer: Festlegung |
 | `TDS_TIMEOUT` | 50005 | 16 | offen | Gruppe und Class: Setzung des Nutzers 2026-11-01; Nummer: Festlegung |
 | `TDS_UNSUPPORTED_SQL` | 50001 | 16 | offen | Class und Folge: Setzung des Nutzers; Nummer: Vorschlag (Benutzerbereich) |
-| `TDS_SIM_UNKNOWN_OBJECT` | 208 | 16 | offen | Nummer, Class, State 1 und die offene Verbindung: gemessen am echten SQL Server (2022 und 2025, `MERGE` gegen eine unbekannte Tabelle, M-15); dieselbe Class und offene Verbindung zeigt der Schritt `fehler-vor-zeilen` des Live-Laufs (`SELECT`); der Text „Unknown object.“ weicht vom gemessenen („Invalid object name '<Name>'.“) ab (Festlegung); 207 für Spalten nicht abgebildet |
+| `TDS_SIM_UNKNOWN_OBJECT` | 208 | 16 | offen | Nummer, Class, State 1 und die offene Verbindung: gemessen am echten SQL Server (2022 und 2025, `MERGE` gegen eine unbekannte Tabelle, M-15); dieselbe Class und offene Verbindung zeigt der Schritt `fehler-vor-zeilen` des Live-Laufs (`SELECT`); der Text mit dem Namen der Tabelle ist gemessen: `Invalid object name '<Name>'.` (Szenario `fehler-tabelle-unbekannt`, 2022 und 2025, `SELECT`, `INSERT`, `UPDATE`, `DELETE`, `MERGE` und `sp_executesql`; der Name steht als `<Schema>.<Name>` ohne Klammern und Anführungszeichen, in der Schreibung des Textes, mit Hochkomma und Zeilenumbruch unverändert, ohne Standardschema, wenn der Text keines nennt); ohne Namen (eine unbekannte Spalte, ein Name über den Grenzen von `Failure.objectName`, `INSERT BULK` und die Probe des Massenladens) gilt der feste Text „Unknown object.“ (Festlegung); ein Bezeichner über 128 Zeichen endet am echten Server mit 103 (Class 15), die Bibliothek mit 208 (nicht abgebildet); Servername und Zeilennummer des ERROR sendet die Bibliothek nicht (leer, 0; der Server nennt seinen Namen und Zeile 1); 207 für Spalten nicht abgebildet |
 | `TDS_SIM_INVALID_VALUE` | 245 | 16 | offen | Nummer: Vorschlag (8115 für Überlauf nicht abgebildet); Gruppe: Voreinstellung |
 | `TDS_INTERNAL_ERROR` | 50007 | 20 | schließt | Class und Folge: Setzung des Nutzers; Nummer: Festlegung |
 | `TDS_SHUTDOWN` | 50008 | 20 | schließt | Folge: Setzung des Nutzers (`SPEC-049`); Nummer und Class: Festlegung (die SQL-Server-Nummer für ein Herunterfahren ist nicht gemessen) |
@@ -2244,6 +2296,7 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | Einmal-Konfiguration | Eine `ServerConfig` gilt für einen Start: sobald der Start das TLS-Material lädt, löscht er das Passwort im Schlüsselmaterial; bricht er vorher ab (Prüfung), bleibt es lesbar (Festlegung, getestet für Prüfung und Bindefehler). Wer neu startet, baut eine neue `ServerConfig`. |
 | Nicht erreichbar | Der Authentifizierungsadapter lässt sich über den Einstieg nicht ersetzen. Der Einstieg schreibt nirgends hin; Log und Telemetrie gehen an die übergebene Senke (Abschnitt 5). |
 | Abhängigkeiten | Jar und `lib/` liegen auf dem Klassenpfad des Einbettenden (`SPEC-052`); in der veröffentlichten Form führt die POM `kotlinx-coroutines-core` mit dem Scope `compile` (`api`, weil `Flow` und `suspend` in der Fläche stehen; gemessen am Probe-Konsumenten, Messprotokoll vom 2026-11-14, nur für einen Gradle-Konsumenten mit Kotlin, Java und Maven sind nicht gemessen: mit `implementation` findet er `Flow` bei der Übersetzung nicht) und `kotlin-stdlib`, kein Jackson (Prüfung im Bau, `SPEC-052`); `lib/` führt keine YAML-Bibliothek, die Bibliothek braucht keine (Festlegung). Gemessen: `gradle.lockfile` der Bibliothek führt kein Jackson, die Sperre des Moduls `testserver/gradle.lockfile` führt es (einmalige Zählung am 2026-11-06, kein Gate hält sie), und der Einbettungstest (`make test`) startet und bedient den Server ohne Jackson im Klassenpfad. |
+| Mitglied `Failure.objectName` | `QueryEvent.Failure` trägt als viertes Mitglied `objectName: String? = null` (Name der unbekannten Tabelle bei `TDS_SIM_UNKNOWN_OBJECT`, `SPEC-002` Absatz „Name der unbekannten Tabelle“); Festlegung auf Entscheidung des Nutzers vom 2026-11-18; ob die Version `y` steigt, ist offen |
 | Zusage | Bis zur ersten Version `1.0` ändert sich diese Fläche nur durch eine Änderung dieser Spezifikation (Setzung); ab `1.0` gilt semantische Versionierung. Die Versionen davor haben die Form `0.y.z` ohne Zusatz: `y` steigt bei jeder Änderung dieser Fläche, `z` sonst, `1.0.0` ist die erste Version mit der Zusage der semantischen Versionierung (Setzung); eine veröffentlichte Version wird nie neu veröffentlicht, eine Korrektur ist eine neue Version, und ein `-SNAPSHOT` wird nicht veröffentlicht (Setzung; das Eingangsskript von `make publish` prüft die Form und das Suffix). Ob ein Wechsel der Fläche den Zähler `y` hebt, ist Handarbeit: kein Werkzeug prüft Binärkompatibilität. Gemeint ist: öffentlich ist genau diese Fläche, alles andere in der Bibliothek ist `internal`. Der Maßstab für einen Namen ist die Aufgabe des Einbettenden: Konfiguration, Start und Stop, Anbindung eines Backends, Anmeldung und Benutzerliste, Entgegennehmen von Telemetrie (Nutzerentscheidung vom 2026-11-05: nur die Klassen, die man dafür braucht). Belegt ist davon: `explicitApi` (Modus `strict`) verlangt im Hauptmodul für jede Deklaration eine ausdrückliche Sichtbarkeit (gilt nicht für das Source-Set `integrator` und nicht für das Modul `testserver`), und der Sensor `make flaeche` hält die Typnamen dieser Liste gegen die öffentlichen Typdeklarationen des Hauptmoduls und gegen die Verwendung in `src/integrator` und `testserver/kotlin`: ein Typname der Liste ohne öffentliche Deklaration, ohne Verwendung dort oder eine öffentliche Typdeklaration ohne Eintrag bricht ihn. Seine Grenzen: er vergleicht Typnamen, nicht Mitglieder (Felder, Konstanten, Funktionen, Konstruktoren); Namenssuche ist kein Aufrufbeleg; er liest Kotlin-Quellen, und `internal` ist im Bytecode öffentlich. Die Namen nach Package: `runtime`: `TdsServer`, `BackendSource` (`Custom`, `Simulation`, `None`), `StartOutcome` (`Running`, `Aborted`); `config`: `ServerConfig`, `ListenSettings`, `LoginSettings`, `RequestSettings`, `RequestTimeouts`, `RequestLimits`, `ObservationSettings`, `EncryptionSetting`, `TlsKeyMaterial`, `AuthSettings`, `ConfigIssue`, `IssueKind`; `config.auth`: `PasswordChars` (Konstruktor), `UserList` (`parse`, `plainTestModeFrom`), `UserListResult` (`Valid`, `Invalid`), `UserListError`, `UserListErrorKind`; `port`: `QueryBackend`, `QueryExecution`, `BulkLoadingBackend` (`bulkTarget`, `bulkProbe`, `load`), `BulkTarget`, `BulkTargetResult` (`Ready`, `Rejected`), `BulkProbeColumn`, `BulkProbeResult` (`Ready`, `Rejected`), `BulkRows`; `domain`: `QueryRequest`, `QueryParameter`, `ParameterDirection`, `QueryEvent` (`ResultStart` mit dem Feld `kind`, `Row`, `ResultEnd`, `UpdateCount` mit dem Feld `kind`, `ReturnStatus`, `OutputParameter`, `Failure`), `FailureScope` (`STATEMENT`, `BATCH`), `StatementKind` (`UNKNOWN`, `INSERT`, `DELETE`, `UPDATE`, `CREATE_TABLE`, `ALTER_TABLE`, `IMPLICIT_TRANSACTIONS_ON`, `IMPLICIT_TRANSACTIONS_OFF`, `COMMIT_IF_OPEN`, `MERGE`, `CREATE_INDEX`, `DROP_INDEX`), `ResultColumn` mit dem Feld `maxLength` (Länge eines Textes in den Metadaten, 1 bis 4000, Vorgabe 4000), `SqlType` (`Int32`, `Int64`, `Bool`, `Decimal`, `Date`, `Time`, `DateTime`, `UnicodeText`, `Int16`, `UInt8`); `domain.telemetry`: `TelemetrySink` (`accept`, `NONE`), `TelemetryEvent` (`kind`, `at`, `level`, `connectionId`, `sessionId`, `clientProfile` und je Art `port`, `tables`, `reason`, `key`, `issueKind`, `part`, `form`, `address`, `exceptionType`, `principal`, `failure`, `errorCode`, `cause`), `EventKind` (die Arten des Ereignismodells, Abschnitt 4), `EventLevel`; `simulation`: `SimTable`, `SimColumn`, `SimUniqueKey`, `SimForeignKey`, `SimIndex`, `SimCheck`, `SimQuery`, `RowFilter`, `FilterTerm` (`In`, `IsNull`), `RowSource`, `SimulationBackend(catalog: SimCatalog)` und der zweite Konstruktor `SimulationBackend(catalog: () -> SimCatalog, onStructure: (suspend (table: SimTable) -> Unit)? = null)` (Katalog-Anbieter und Strukturänderungs-Callback, `SPEC-035`; er fügt keinen Typnamen hinzu) und `SimCatalog(tables: List<SimTable>)` mit `tables`; als Mitglieder von Typen der Liste das Feld `SimColumn.maxLength` (Länge eines Textes im Katalog, 1 bis 4000 oder -1 für `NVARCHAR(MAX)`, Vorgabe 4000), das Feld `SimColumn.defaultDefinition` (Standardwert in der Form des Katalogs, Vorgabe `null`), der Parameter `SimTable.onInsertBatch` (Rahmen des Massenladens; die Bibliothek ruft ihn einmal je Nachricht des Massenladens) und die Felder `SimTable.uniqueKeys`, `SimTable.foreignKeys`, `SimTable.indexes` und `SimTable.checks` (Elemente der Tabelle für die Katalogabfragen, Vorgabe die leere Liste; die fünf Parameter stehen am Ende von `SimTable` in der Folge `onInsertBatch`, `uniqueKeys`, `foreignKeys`, `indexes`, `checks`). Für die Signaturen von `SimulationBackend` und `SimCatalog` (beide Konstruktoren von `SimulationBackend`, der von `SimCatalog`, `tables`), für die Signatur des Strukturänderungs-Callbacks und für die Mitglieder `SimColumn.maxLength`, `SimColumn.defaultDefinition`, `SimTable.onInsertBatch`, `SimTable.uniqueKeys`, `SimTable.foreignKeys`, `SimTable.indexes` und `SimTable.checks` gilt dieselbe Zusage: Änderung nur durch eine Änderung dieser Spezifikation, im Änderungsprotokoll genannt; das Verhalten des Backends legt `SPEC-035` fest, die Zusage der Namen erweitert es nicht. Dieselbe Zusage gilt für die drei Funktionen von `BulkLoadingBackend` (`bulkTarget(sql: String)`, `bulkProbe(sql: String)`, `suspend load(target: BulkTarget, rows: BulkRows)`), die Felder von `BulkTarget` (`schema`, `table`), `BulkTargetResult.Ready` (`target`), `BulkTargetResult.Rejected` und `BulkProbeResult.Rejected` (`code`, `message`), `BulkProbeColumn` (`column`, `maxChars`), `BulkProbeResult.Ready` (`columns`) und `BulkRows` (`columns`, `rows`); sie stehen im Änderungsprotokoll (Abschnitt 8) und hält kein Sensor, nur der Einbettungstest. Nicht öffentlich bleibt `ErrorCode`: der Name in `Rejected.code` ist ein Text. Die Beschreibung von `QueryEvent.Failure.code` und von `BulkTargetResult.Rejected.code` nennt dieselben 16 Namen, die der Kern als Fehler eines Backends annimmt (ein Test hält beide Beschreibungen gleich der Liste des Kerns; die Nutzer-Doku führt dieselbe Liste, ohne dass ein Test sie hält); ein anderer Name endet mit `TDS_INTERNAL_ERROR` und schließt die Verbindung. Eine Ausnahme in `bulkProbe`, `bulkTarget` oder `load` endet wie die von `execute` mit `TDS_INTERNAL_ERROR` (Einbettungstest). Die Typnamen sind festgelegt und hält der Sensor. Die Felder von `TelemetryEvent` und die Konstanten von `EventKind` sind ebenfalls festgelegt (Setzung dieses Stands, die Nutzerentscheidung dazu steht aus); sie hält nur ein Test (`TelemetryEventTest`, `TelemetryEmbeddingTest`), kein Sensor. Dass die Ereignisarten nicht je ein öffentlicher Typ sind, ist der Zuschnitt des Ereignismodells (Abschnitt 4). Ein Sammler für Tests gehört nicht zur Fläche, jedes Source-Set bringt ihren eigenen mit. Nicht öffentlich sind `SimCatalog.find` und `SimTable.column` (Festlegung: Aufrufer ist der Planer des Hauptmoduls), `ConfigValidation` (die Prüfung läuft im Start; ihre Befunde erreichen den Einbettenden als `StartOutcome.Aborted.issues`), `Principal`, `PasswordChars.reveal` und die Aufzählungen der Gründe von Ereignissen (ihre Werte stehen als Text in `reason`). Authentifizierungsadapter (`AuthAdapter` und seine Typen) und Konfigurationsschlüssel (`ConfigKeys`) gehören nicht zur Fläche. Weitere Namen sind keine Zusage. |
 | Nachweis | Ein Test in einem eigenen Source-Set, das gegen die Klassen des Hauptmoduls übersetzt und keinen `internal`-Namen sieht, startet den Server mit einem In-Memory-Backend und mit einer Zeilenquelle des Integrators und beantwortet Anfragen mit Rohbytes (`java.net`, kein Referenzclient); er läuft im selben Prozess in `make test`. Dazu gehören ein Backend, das die Parameter eines `sp_executesql` liest und Änderungszähler, Rückgabestatus und Ausgabeparameter meldet, eine Tabelle, deren Callback die Bedingung eines `UPDATE` als Filter liest, ein Integrator, der über den zweiten Konstruktor von `SimulationBackend` mit Katalog-Anbieter und Strukturänderungs-Callback eine Tabelle anlegt und im Katalog sieht (mit `SimColumn.maxLength` und einer Tabelle mit `SimTable.onInsertBatch`), ein Integrator, der Standardwert, Eindeutigkeit, Fremdschlüssel, Index und Prüfbedingung mit `SimColumn.defaultDefinition`, `SimUniqueKey`, `SimForeignKey`, `SimIndex` und `SimCheck` beschreibt und aus dem Callback zurückbekommt, und eine ungültige Benutzerliste (Test: `FlaecheEmbeddingTest`), dazu eine Tabelle, deren `onInsertBatch` die Zusage „ganz oder gar nicht“ hält (eine Nachricht mit Verstoß in der Mitte lässt den Bestand unverändert), und eine Tabelle nur mit `onInsert`, die `INSERT BULK` ablehnt (Test: `MassenladenEmbeddingTest`), dazu ein eigenes Backend, das `BulkLoadingBackend` trägt (Probe der Zieltabelle, `INSERT BULK`, zwei Nachrichten 0x07 mit Ziel, Namen, Werten und Zahl der Zeilen, ein Fehler in `load` als 50004 bei offener Verbindung, eine Ausnahme in jeder der drei Funktionen als 50007, das IGNORE-Bit ohne Aufruf von `load`, Ablehnung mit einem bekannten und mit einem unbekannten Namen, eine Nachricht über `maxMessageBytes` mit dem Kleinstwert 65535 schließt die Verbindung) und ein Backend ohne die Fähigkeit (`INSERT BULK` geht an `execute`, die Nachricht 0x07 ist 50001; Test: `BulkBackendEmbeddingTest`; die Nachricht über 16 MiB der Voreinstellung ist nicht gemessen), dazu ein eigenes Backend, das die Art der Anweisung mit `UpdateCount.kind` meldet und die Antwort des Simulations-Backends bekommt, und ein Backend ohne Angabe der Art, das bei der Kennung 0 bleibt (Test: `StatementKindEmbeddingTest`, auch die Konstanten von `StatementKind`, der Standardwert von `kind` an `UpdateCount` und `ResultStart`, der Standardwert und die Grenzen von `ResultColumn.maxLength`, die Konstruktoren mit weniger Argumenten für Java, der Abschluss ohne `COUNT` von `CREATE TABLE`, `ALTER TABLE` und der Transaktionstexte und die Folge von `schema migrate` mit ENVCHANGE Typ 8 und 9 und dem zurückgesendeten Deskriptor), dazu der Abschluss ohne `COUNT` von `CREATE INDEX` und `DROP INDEX` beim Simulations-Backend und bei einem eigenen Backend, das `CREATE_INDEX` und `DROP_INDEX` meldet (Test: `IndexKindEmbeddingTest`), dazu ein `MERGE` über `sp_executesql`, dessen Antwort die Spalte `$action` als `nvarchar(10)`, den Abschluss `0x0117` und die Fehler 2628, 2627 und 208 trägt (Tests: `MergeEmbeddingTest`, `MergeFehlerEmbeddingTest`), dazu ein eigenes Backend, dessen `ResultStart` die Art `MERGE` trägt, mit dem Abschluss `0x0117` im Fehlerfall, und ein `UpdateCount` mit `MERGE` (Test: `ResultStartKindEmbeddingTest`), dazu die drei Gruppen der Einstellungen der Anfragen (`RequestTimeouts`, `RequestLimits`, `ObservationSettings`) mit ihren Voreinstellungen aus Kotlin und ihre Konstruktoren mit weniger Argumenten für Java, per Reflection aufgerufen (Test: `EinstellungenEmbeddingTest`); belegt ist, dass diese Namen von außen übersetzbar sind und ihre Werte ankommen, nicht die Vollständigkeit ihrer Felder. Grenze: `internal` ist im Bytecode öffentlich, der Nachweis gilt für Kotlin-Quellen. |
 
@@ -2351,5 +2404,9 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | 2026-11-17 | Zeilenform ROW oder NBCROW (`TDS-FA-05`, `TDS-QA-01`, `SPEC-003`, `SPEC-045`; Folge-Slice des Nutzerentscheids 2026-11-16): der Sequenzierer schreibt NBCROW, wenn er kürzer ist als der ROW derselben Werte, sonst ROW (am echten SQL Server 2022 und 2025 gemessen, Messprotokoll M-37 bis M-41); die Ausnahme A-12 des Referenzabgleichs entfällt |
 | 2026-11-17 | Mehrere RPCs in einer Nachricht, Messlücken (`TDS-FA-04`, `TDS-QA-01`, `SPEC-030`): am echten SQL Server 2022 und 2025 gemessen, Messprotokoll W-14 bis W-22: Fehler im ersten und letzten Aufruf, `ContinueUpdateOnError`, Fehler vor dem ersten Ergebnis (Übersetzungsfehler), Ergebnismengen und Ordinal im Aufruf sind belegt; **Widerspruch zu zwei Setzungen**, Entscheidung des Nutzers steht aus: der echte Server nimmt `sp_prepexec` und `sp_execute` (auch mit dem Handle desselben Aufrufs) in einer Nachricht mit mehreren RPCs an, und er nimmt 1025 Aufrufe und 4206 Parameter je Nachricht an (die Festlegungen 1024 und 4096 sind strenger); Text der Setzungen unverändert, die Messung steht daneben |
 | 2026-11-17 | Massenladen für eigene Backends (`TDS-FA-08`, `SPEC-059`, `SPEC-035`, `SPEC-036`): die Fähigkeit `BulkLoadingBackend` mit `BulkTarget`, `BulkTargetResult`, `BulkProbeColumn`, `BulkProbeResult` und `BulkRows` ist öffentlich (zehn Typnamen; Mitglieder: `BulkLoadingBackend.bulkTarget(sql)`, `bulkProbe(sql)`, `suspend load(target, rows)`, `BulkTarget.schema`, `table`, `BulkTargetResult.Ready.target`, `BulkTargetResult.Rejected.code`, `message`, `BulkProbeColumn.column`, `maxChars`, `BulkProbeResult.Ready.columns`, `BulkProbeResult.Rejected.code`, `message`, `BulkRows.columns`, `rows`); `Custom` mit der Fähigkeit am Backend bekommt `INSERT BULK`, die Probe der Zieltabelle und die Nachricht 0x07, die Erkennung der Texte liegt beim Backend; Backends ohne die Fähigkeit und das Simulations-Backend sind unverändert; die nächste veröffentlichte Version braucht nach dem Wortlaut von `SPEC-059` ein höheres `y` (Folgerung, nicht gebaut) |
+| 2026-11-18 | Text der Antwort auf eine unbekannte Tabelle an die Messung angeglichen (`TDS-FA-11`, `TDS-FA-06`, `TDS-QA-01`, `SPEC-038`, `SPEC-059`; Nutzerentscheidung 2026-11-18, Option „Code angleichen“): öffentliche Fläche um das Feld `Failure.objectName` erweitert (Voreinstellung `null`, für Java der Konstruktor mit drei Argumenten bleibt); `TDS_SIM_UNKNOWN_OBJECT` meldet mit dem Namen `Invalid object name '<Name>'.`, ohne ihn den festen Text (Abschnitt 4, `SPEC-002` Absatz „Name der unbekannten Tabelle“; Messprotokoll, Szenario `fehler-tabelle-unbekannt`) |
+| 2026-11-18 | Länge von `DECIMALN` und `NUMERICN` im COLMETADATA an die Messung angeglichen (`TDS-FA-05`, `TDS-QA-01`, `SPEC-003`, `SPEC-036`; Entscheid des Nutzers 2026-11-18, Code angleichen): am echten SQL Server 2022 und 2025 gemessen ist die Länge 17 für jede Precision (Messprotokoll W-23, W-24), der Encoder schreibt sie; die Ausnahme A-11 entfällt; die Länge der Dezimalwerte im ROW (der Server schreibt nach dem Wert, W-25) ist nicht Teil der Aussage zur Zeilenform |
+| 2026-11-19 | Zwei Auswahlen in einem Text (Form S2) und Ausgabewert des `InputOutput`-Parameters (`TDS-FA-10`, `TDS-FA-11`, `TDS-QA-01`, `SPEC-036`, `SPEC-030`, `TDS-FA-11.a`; Entscheid des Nutzers 2026-11-18, Code angleichen): das Simulations-Backend beantwortet zwei Auswahlen der Form S1 ohne Parameter mit zwei Ergebnissen und sendet für einen `InputOutput`-Parameter einer Auswahl seinen Eingabewert als RETURNVALUE; die Ausnahmen A-2 und A-16 des Referenzabgleichs entfallen, Grenzen und Festlegungen in `SPEC-036` und `SPEC-030` |
+| 2026-11-19 | Länge einer Textspalte im COLMETADATA einer Auswahl an die Messung angeglichen (`TDS-FA-11`, `TDS-FA-05`, `TDS-QA-01`, `SPEC-035`, `SPEC-003`; Entscheid des Nutzers 2026-11-19, Code angleichen): das Simulations-Backend meldet `SimColumn.maxLength` als `ResultColumn.maxLength` jeder Auswahl (Formen S1 und S2, auch bei einer Bedingung, die nie wahr ist), ohne Angabe bleibt 4000; -1 (`nvarchar(max)`) meldet es als 4000 (Setzung, nicht gemessen); ein Text einer Zeile über der Länge der Beschreibung endet in der Antwort im Fehler (Setzung, Fehlernummer nicht gemessen); die Ausnahme A-14 entfällt; der Bestand des Testservers weist einen Text über der Länge (bei -1 über 4000) beim Massenladen und beim `UPDATE` ab (Setzung, nicht gemessen); keine neue öffentliche Fläche (`SPEC-059`), die Antwort einer Auswahl über eine Tabelle mit kürzerer Länge ändert sich |
 | 2026-11-19 | Antwort auf ATTENTION in laufender Anfrage in zwei Nachrichten gebaut (`TDS-FA-07`, `TDS-QA-01`, `SPEC-029`, `SPEC-001`, `SPEC-060`, `SPEC-030`; Nutzerentscheid 2026-11-18: Code angleichen, Spezifikation als Zielbild, der echte Server als Referenz): erste Nachricht `DONE` mit `ERROR` (Befehl `0x00c1` bei offenem Ergebnis, sonst `0x00fd`), zweite `DONE` mit `ATTN`, kein ERROR-Token, beide unter einer Sperre; ersetzt die Setzung des Nutzers vom 2026-11-01 („genau ein `DONE` ohne zweite Nachricht“) für ATTENTION in `RUNNING` und `STREAMING`; die Regel „doppelte DONE-Tokens sind verboten“ meint den zweiten Abschluss derselben Antwort (Setzung der Lesart); ATTENTION nach Ende der Antwort, im Leerlauf und ein wiederholtes ATTENTION bleiben einzelne Bestätigungen, der Abbruch im geordneten Beenden endet weiter mit einem einzelnen `DONE` mit `ATTN`; gemessen am Referenzclient gegen SQL Server 2022 und 2025 (Stream und wartender Befehl, Messprotokoll des Referenzabgleichs, A-13 und Abschnitt „Antwort auf ATTENTION: Zwei-Nachrichten-Form des Servers dieses Repos“), Setzung: RPC, Massenladen, Race-Fälle |
 | 2026-11-20 | Abbruch im geordneten Beenden (`TDS-FA-07`, `SPEC-044` Nr. 4, `SPEC-029`; Nutzerentscheid 2026-11-20): die laufende Anfrage nach Ablauf von `SHUTDOWN_GRACE` endet mit demselben Paar wie bei ATTENTION, `DONE` mit `ERROR` und `DONE` mit `ATTN` ohne ERROR-Token, danach endet die Verbindung; Setzung, am echten Server nicht gemessen; ersetzt die Form eines einzelnen `DONE` mit `ATTN` aus dem Eintrag vom 2026-11-19 |
