@@ -4,7 +4,7 @@
 
 **Stand:** Branch `slice-kompatibilitaetsserver-an-referenz-angleichen`, Spitze `07eec886` (Commits `a659f3f8` Umsetzung, `0814b9bc` Review-Report, `0bdd8db4` Nachbesserung ohne zweiten Review, `1d5193a5` Folge-Slice angelegt, `07eec886` Slice eingeengt); Arbeitsbaum sauber vor diesem Bericht.
 
-**Gegenstand:** [slice-kompatibilitaetsserver-an-referenz-angleichen](../plan/planning/done/slice-kompatibilitaetsserver-an-referenz-angleichen.md), eingeengt auf A-9 und `laufend.Id` (Teil von A-14); `kaputt.Text` liegt bei [slice-simulation-spaltenlaenge-in-auswahl](../plan/planning/in-progress/slice-simulation-spaltenlaenge-in-auswahl.md) (Nutzerentscheidung 2026-11-19). Bezug: [TDS-FA-11](../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-QA-01](../../spec/lastenheft.md#tds-qa-01--kompatibilität), [ADR-0008](../plan/adr/0008-dotnet-kompatibilitaetstests.md).
+**Gegenstand:** [slice-kompatibilitaetsserver-an-referenz-angleichen](../plan/planning/done/slice-kompatibilitaetsserver-an-referenz-angleichen.md), eingeengt auf A-9 und `laufend.Id` (Teil von A-14); `kaputt.Text` liegt bei [slice-simulation-spaltenlaenge-in-auswahl](../plan/planning/done/slice-simulation-spaltenlaenge-in-auswahl.md) (Nutzerentscheidung 2026-11-19). Bezug: [TDS-FA-11](../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-QA-01](../../spec/lastenheft.md#tds-qa-01--kompatibilität), [ADR-0008](../plan/adr/0008-dotnet-kompatibilitaetstests.md).
 
 ## Selbst gefahrene Sensoren (End-Stand `07eec886`, unter der Messsperre, Docker)
 

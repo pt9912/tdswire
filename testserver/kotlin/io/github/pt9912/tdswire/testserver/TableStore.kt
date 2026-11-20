@@ -24,9 +24,10 @@ import java.math.BigDecimal
  *
  * Massenladen ([insertBatch], `ADR-0033` Nr. 5): eine Nachricht ist eine Anweisung und gilt ganz oder gar nicht. Der
  * Bestand prüft vor dem ersten Einfügen jede Zeile der Nachricht: jeder Wert hat die Klasse seiner Spalte
- * (`ValueMapping`), eine nicht nullbare Spalte, auch jede Schlüsselspalte, trägt keinen NULL, und der Schlüssel ist
+ * (`ValueMapping`), eine nicht nullbare Spalte, auch jede Schlüsselspalte, trägt keinen NULL, der Schlüssel ist
  * unter den Zeilen der Nachricht und des Bestands eindeutig (eine Tabelle ohne Schlüssel nimmt gleiche Zeilen an,
- * `CREATE TABLE` ohne Schlüssel gelingt am Server, M-19); sonst wirft er, und der Bestand bleibt unverändert (die
+ * `CREATE TABLE` ohne Schlüssel gelingt am Server, M-19) und kein Text ist länger als
+ * `SimColumn.maxLength` seiner Spalte (`RowRules`); sonst wirft er, und der Bestand bleibt unverändert (die
  * Bibliothek meldet jeden Fehler des Callbacks einer Nachricht 0x07 dem Client als 2627,
  * `TDS_SIM_KEY_VIOLATION`). Setzung, am Server nicht gemessen: Textschlüssel
  * vergleicht der Bestand ohne Beachtung der Schreibweise (wie die Namen), Dezimalschlüssel mit `compareTo`. Der
@@ -107,11 +108,11 @@ internal class TableStore(initial: List<SimTable>, private val cellLimit: Long =
     /**
      * Ändert die Zeilen der Tabelle [schema].[name], auf die der Filter [where] zutrifft (ohne Filter alle), und
      * liefert ihre Zahl. [set] nennt Spalten der Beschreibung mit ihren Werten. Der Bestand prüft jeden neuen Wert
-     * wie beim Einfügen (Klasse der Spalte, NULL nur in nullbaren Spalten, [RowRules]) und lässt keine Änderung zu,
-     * die den Schlüssel doppelt machte (eine Tabelle ohne Schlüssel prüft keine Eindeutigkeit und ändert beliebig viele
-     * Zeilen, Setzung nach der Semantik von `UPDATE`, am Server nicht gemessen); sonst wirft er, und der Bestand
-     * bleibt unverändert (die Bibliothek meldet das als `TDS_BACKEND_ERROR`). Der Filter gilt wie der Vorfilter der
-     * Zeilenquelle (Setzung, am Server nicht gemessen).
+     * wie beim Einfügen (Klasse und Länge der Spalte, NULL nur in nullbaren Spalten, [RowRules]) und lässt keine
+     * Änderung zu, die den Schlüssel doppelt machte (eine Tabelle ohne Schlüssel prüft keine Eindeutigkeit und ändert
+     * beliebig viele Zeilen, Setzung nach der Semantik von `UPDATE`, am Server nicht gemessen); sonst wirft er, und
+     * der Bestand bleibt unverändert (die Bibliothek meldet das als `TDS_BACKEND_ERROR`). Der Filter gilt wie der
+     * Vorfilter der Zeilenquelle (Setzung, am Server nicht gemessen).
      */
     @Synchronized
     fun update(schema: String, name: String, set: Map<String, Any?>, where: RowFilter?): Long {

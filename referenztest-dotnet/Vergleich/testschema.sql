@@ -2,7 +2,7 @@
 -- Gegenstueck zu den Tabellen des Simulations-Backends in testserver/kotlin/io/github/pt9912/tdswire/testserver/KompatibilitaetsServer.kt
 -- (person, typen, breit, kaputt, laufend); beide werden getrennt gepflegt und gemeinsam geaendert (SPEC-045). Die Typen
 -- folgen der Typabbildung des Servers (SPEC-003): Int32 -> int, Int64 -> bigint, Bool -> bit, Unicode-Text ->
--- nvarchar(4000), Decimal(10,2) -> decimal(10,2), Date -> date, Time -> time(7), DateTime -> datetime2(7).
+-- nvarchar(<maxLength> der Beschreibung, ohne Angabe 4000; kaputt.Text ist nvarchar(10)), Decimal(10,2) -> decimal(10,2), Date -> date, Time -> time(7), DateTime -> datetime2(7).
 -- Der Client fuehrt die Datei in Staplen aus, getrennt durch Zeilen `GO`; sie enthaelt nur Testdaten.
 CREATE DATABASE tdswire_live;
 GO

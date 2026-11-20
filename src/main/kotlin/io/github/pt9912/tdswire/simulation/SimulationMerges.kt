@@ -210,7 +210,11 @@ internal class MergeExecution(
         }
     }
 
-    /** Wahr, wenn ein Text der Werte von [action] länger ist als seine Spalte (`nvarchar(max)` hat keine Grenze). */
+    /**
+     * Wahr, wenn ein Text der Werte von [action] länger ist als seine Spalte (`nvarchar(max)` hat keine Grenze).
+     * Kopplung: der Bestand des Testservers prüft Massenladen und `UPDATE` nach derselben Zählung (UTF-16-Einheiten,
+     * `RowRules.fitsLength`, Modul `testserver`), meldet für -1 aber 4000, die Länge einer Auswahl.
+     */
     private fun truncates(action: String): Boolean {
         val values = if (action == ACTION_UPDATE) requireNotNull(prepared.update) else prepared.insert
         return values.any { (name, value) ->
