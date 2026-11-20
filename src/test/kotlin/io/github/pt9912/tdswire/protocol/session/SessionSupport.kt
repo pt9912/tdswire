@@ -107,6 +107,9 @@ internal class FakeHandshakeChannel(
     /** Die Stücke, die Antworten angenommen haben, in der Reihenfolge ihres Schreibens. */
     val writtenChunks = mutableListOf<ByteArray>()
 
+    /** Eine Nachricht, auf die [failSendIf] zutrifft, scheitert in `send` (sie steht danach trotzdem in [sent]). */
+    var failSendIf: (TdsMessage) -> Boolean = { false }
+
     /** Nach so vielen angenommenen Stücken scheitert das Schreiben einer Antwort. */
     var failReplyAfterWrites: Int = Int.MAX_VALUE
 
@@ -147,7 +150,7 @@ internal class FakeHandshakeChannel(
         onSend(message)
         if (sendDelayMillis > 0) delay(sendDelayMillis)
         trace += "send-end"
-        return sendResult
+        return sendResult && !failSendIf(message)
     }
 
     /** Die Packet Size, die der letzte Aufruf von `usePacketSize` setzte; `null` ohne Aufruf. */

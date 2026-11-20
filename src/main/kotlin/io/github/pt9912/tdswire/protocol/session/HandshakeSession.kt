@@ -76,6 +76,14 @@ internal class HandshakeSession(
          */
         suspend fun conclude(tail: ByteArray?): Boolean =
             guarded(CLOSED_ONLY) { (tail == null || inner.write(tail)) && inner.finish() }
+
+        /**
+         * Beendet die Antwort im Abbruch mit [tail] und schreibt danach [second] als eigene Nachricht, beides unter
+         * derselben Sperre: zwischen den beiden Nachrichten geht nichts anderes hinaus (`ADR-0054` Entscheidung 2).
+         * `false` bei `CLOSED` und wenn eines der Schreiben scheitert (die Sitzung schließt dann).
+         */
+        suspend fun concludeWith(tail: ByteArray, second: TdsMessage): Boolean =
+            guarded(CLOSED_ONLY) { inner.write(tail) && inner.finish() && channel.send(second) }
     }
 
     /**
@@ -83,7 +91,8 @@ internal class HandshakeSession(
      * einer Anfrage unterbricht kein Paket. Beide Auslöser des Abbruchs (ATTENTION, Frist) gehen über [dispatch] und
      * brauchen dieselbe Sperre; sie warten, bis das Paket im Schreiben ganz auf dem Draht ist, und erst danach, mit
      * dem Zustand `CANCELLING`, bricht die Anfrage ab. Danach beginnt kein reguläres Schreiben mehr
-     * ([GuardedReply.write] und [GuardedReply.finish]), und die Bestätigung hängt an ein vollständiges Paket an.
+     * ([GuardedReply.write] und [GuardedReply.finish]), und der Abschluss der Antwort hängt an ein vollständiges Paket
+     * an.
      * Ein abgebrochener Schreibvorgang schließt den Kanal (Vertrag von `SuspendingChannel`); den Abbruch der
      * Verbindung selbst (Disconnect, Beenden) unterbricht ein Paket weiterhin. Grenze: hängt ein Schreibvorgang am
      * Rückstau, hält er die Sperre; bis zu seiner Rückkehr wirken weder die Frist noch ATTENTION noch `CANCEL_TIMEOUT`

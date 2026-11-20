@@ -61,15 +61,16 @@ internal class AbbruchWiringTest : RuntimeTestBase() {
     }
 
     /**
-     * ATTENTION während einer Anfrage, die das Backend nicht beantwortet: die Antwort ist genau ein `DONE[ATTN]`, und
-     * die folgende Anfrage derselben Verbindung erhält nur ihre eigene Antwort.
+     * ATTENTION während einer Anfrage, die das Backend nicht beantwortet: die Antwort sind zwei Nachrichten auf dem
+     * Draht, `DONE[ERROR]` und `DONE[ATTN]`, und die folgende Anfrage derselben Verbindung erhält nur ihre eigene
+     * Antwort.
      *
      * @spec SPEC-029
      * @spec TDS-FA-07
      * @spec TDS-QA-07
      */
     @Test
-    fun `ATTENTION ueber den Socket wird mit DONE ATTN beantwortet und die Verbindung bleibt offen`() = blocking {
+    fun `ATTENTION ueber den Socket wird in zwei Nachrichten beantwortet und die Verbindung bleibt offen`() = blocking {
         val backend = FlowBackend(suspendedAfter(CompletableDeferred()), delivering(*oneRow))
         val server = running(environment(), Wiring(telemetry = sink, requests = RequestSource(backend)))
         RawClient(server.port).use { client ->
@@ -77,6 +78,7 @@ internal class AbbruchWiringTest : RuntimeTestBase() {
             client.send(batch("haengt"))
             backend.collecting.await()
             client.send(handMessage(PacketType.ATTENTION.code, ByteArray(0), 4000))
+            assertEquals(BatchVectors.DONE_ERROR, client.reply("Abschluss der Antwort").payload.toHex())
             assertEquals(BatchVectors.DONE_ATTN, client.reply("Bestaetigung").payload.toHex())
             client.send(batch("danach"))
             assertEquals(rowAnswer, client.reply("Folgeanfrage").payload.toHex())

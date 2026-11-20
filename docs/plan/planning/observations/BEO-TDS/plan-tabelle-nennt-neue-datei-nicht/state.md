@@ -19,3 +19,5 @@
 **Wiederauftreten (slice-simulation-mehrere-anweisungen-und-ausgabewert):** Review F-6 und Re-Review N-1: neue Dateien und die ADR-Dateien fehlten in der Tabelle; der Reviewer fing es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
 
 **Wiederauftreten (slice-simulation-spaltenlaenge-in-auswahl):** Review F-3 (acht berührte Dateien fehlten) und Verifikation V-1 (`SimulationMerges.kt`, nur KDoc, fehlte nach der Nachbesserung; der Grep des Re-Reviews 2 traf §1 statt §3); Reviewer und Verifier fingen es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
+
+**Wiederauftreten (slice-cancel-antwort-zwei-nachrichten-angleichen):** Review F-5 (16 Dateien und zwei Spec-Stellen fehlten, eine genannte war nicht berührt) und Verifikation F-3 (die Folge-ADR fehlte in Kopf, §3 und DoD); der Reviewer und der Verifier fingen es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.

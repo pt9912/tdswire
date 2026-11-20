@@ -142,6 +142,7 @@ internal class MetricsTracingWiringTest : RuntimeTestBase() {
             backend.collecting.await()
             client.send(handMessage(PacketType.ATTENTION.code, ByteArray(0), 4000))
             client.reply("cancel")
+            client.reply("Bestaetigung")
         }
         eventually("Verbindung beendet") { spans("tds.connection").size == 1 }
         val accepted = sink.events.single { it.kind == EventKind.LOGIN_ACCEPTED }

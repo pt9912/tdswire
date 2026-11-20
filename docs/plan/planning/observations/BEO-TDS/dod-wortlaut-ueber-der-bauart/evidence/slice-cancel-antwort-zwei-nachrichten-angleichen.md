@@ -1,0 +1,2 @@
+**Vorgang:** slice-cancel-antwort-zwei-nachrichten-angleichen
+**Fund:** Review F-8: der DoD-Wortlaut „die zwei Live-Regeln (A-7) entfallen oder werden auf A-18 verkleinert“ und der Closure-Trigger waren nach dem Messergebnis nicht erfüllbar (A-7 bleibt als eine Regel, die Folgerung des Plans war zur Hälfte widerlegt); der Nutzer entschied am 2026-11-20 und der Wortlaut wurde angepasst. Der Reviewer fing es, die Planung nicht.

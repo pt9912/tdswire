@@ -1,0 +1,2 @@
+**Vorgang:** slice-cancel-antwort-zwei-nachrichten-angleichen
+**Fund:** Review F-3: die Fehlerzweige des neuen Codes (scheiterndes Schreiben der zweiten Nachricht in `concludeWith`, Rückgabe `null` in `inTwoMessages`, Schreiben in CLOSED) hatten keinen Test, der ihre Entfernung unterscheidet (Mutationen R11, R12, R13 grün); behoben durch `PairConclusionTest`, im Re-Review rot gesehen. Der Reviewer fand es per Mutation, der Implementer nicht.

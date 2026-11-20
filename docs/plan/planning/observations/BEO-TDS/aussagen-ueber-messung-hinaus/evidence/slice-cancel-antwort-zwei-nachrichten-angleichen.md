@@ -1,0 +1,2 @@
+**Vorgang:** slice-cancel-antwort-zwei-nachrichten-angleichen
+**Fund:** Re-Review F-11: das KDoc des Prozess-Stop-Tests nannte das Paar, die Prüfung liest nur die letzten 13 Byte (Mutation N1 bleibt grün); Verifikation F-6: der Slice nannte die Stufe `Szenario` als Beleg für den Referenzclient, die keinen Cancel-Test enthält (die Cancel-Tests liegen in `Synchronitaet`). Beides auf das Geprüfte eingeschränkt beziehungsweise berichtigt.

@@ -227,8 +227,8 @@ class QueryTimeoutTest {
      * eindeutig (der zweite Auslöser wird erst ausgelöst, wenn der erste den Zustand `CANCELLING` hergestellt hat).
      * Gewinnt die Frist, besteht die Antwort aus dem Timeout-Fehler; das ATTENTION, das danach kommt, wird als eigene
      * Nachricht bestätigt (ATTENTION nach Ende der Antwort), damit der Client nicht wartet. Gewinnt ATTENTION, besteht
-     * die Antwort aus `DONE[ATTN]` allein, ohne Fehler; die abgelaufene Frist ändert nichts. Beide Male geht genau ein
-     * Cancel an das Backend.
+     * die Antwort aus dem Paar `DONE[ERROR]` und `DONE[ATTN]`, ohne ERROR-Token; die abgelaufene Frist ändert nichts.
+     * Beide Male geht genau ein Cancel an das Backend.
      *
      * @spec SPEC-029
      * @spec SPEC-016
@@ -241,8 +241,10 @@ class QueryTimeoutTest {
         assertEquals(DoneStatus.ERROR, deadline.session.tokens(0).lastDone().status)
         assertEquals(BatchVectors.DONE_ATTN, deadline.session.hex(1))
         val attention = crossing(deadlineFirst = false)
-        assertEquals(1, attention.session.replies.size)
-        assertEquals(BatchVectors.COLMETADATA_N + " " + BatchVectors.DONE_ATTN, attention.session.hex(0))
+        assertEquals(2, attention.session.replies.size)
+        assertEquals(BatchVectors.COLMETADATA_N + " " + BatchVectors.DONE_ERROR_OPEN, attention.session.hex(0))
+        assertEquals(BatchVectors.DONE_ATTN, attention.session.hex(1))
+        assertTrue(attention.session.tokens(0).none { it is ErrorToken })
         listOf(deadline, attention).forEach {
             assertEquals(1, it.backend.cancelled.size)
             assertEquals(1, it.backend.closeCalls)

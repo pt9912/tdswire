@@ -2,6 +2,7 @@ package io.github.pt9912.tdswire.protocol.dispatch
 
 import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.protocol.session.ConnectionState
+import io.github.pt9912.tdswire.protocol.session.HandshakeEvent
 import io.github.pt9912.tdswire.protocol.session.Inbound
 import io.github.pt9912.tdswire.protocol.token.ColMetadataToken
 import io.github.pt9912.tdswire.protocol.token.DoneStatus
@@ -22,9 +23,12 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
- * ATTENTION während der Anfrage, Cancel und Bestätigung (`TDS-FA-07`, `TDS-QA-07`, `SPEC-029`, `ADR-0027`
- * Entscheidung 1 und 2): Gegenstelle ohne Netz mit Rohbytes-Handvektoren gegen ein Fake-Backend. Die Tests belegen
- * nicht den Referenzclient. Die Reihenfolge der Ereignisse steuert der Test (Tore und Eingriffe zwischen zwei
+ * ATTENTION während der Anfrage, Cancel und Antwort (`TDS-FA-07`, `TDS-QA-07`, `SPEC-029`, `ADR-0027`
+ * Entscheidung 2, `ADR-0054`): Gegenstelle ohne Netz mit Rohbytes-Handvektoren gegen ein Fake-Backend. Die Antwort auf
+ * ATTENTION in laufender Anfrage sind zwei Nachrichten, `DONE[ERROR]` und `DONE[ATTN]`; die Bytes der beiden DONE sind
+ * die der Aufnahmen `cancel-streaming` und `cancel-wartend` beider Referenzinstanzen (`BatchVectors.DONE_ERROR_OPEN`,
+ * `DONE_ERROR`, `DONE_ATTN`; die Zuordnung zur Datei prüft `AbbruchAntwortBelegTests` im Referenztest). Die Tests
+ * belegen nicht den Referenzclient. Die Reihenfolge der Ereignisse steuert der Test (Tore und Eingriffe zwischen zwei
  * Schritten des Sequencers), nicht die Wiederholung bis zum Zufallsfund.
  */
 class AttentionCancelTest {
@@ -34,17 +38,22 @@ class AttentionCancelTest {
 
     private fun List<Token>.names() = map { it::class.simpleName }
 
+    private companion object {
+        const val HOPS = 8
+    }
+
     /**
-     * Ein ATTENTION in `RUNNING` (das Backend suspendiert vor dem ersten Ergebnis) löst genau einen Cancel aus; die
-     * Antwort ist genau ein `DONE[ATTN]` (Handvektor) ohne ERROR und ohne zweite Nachricht, die Verbindung bleibt
-     * offen, und die unmittelbar folgende Anfrage erhält nur ihre eigene Antwort.
+     * Ein ATTENTION in `RUNNING` (das Backend suspendiert vor dem ersten Ergebnis, ein wartender Befehl) löst genau
+     * einen Cancel aus; die Antwort sind zwei Nachrichten (Handvektoren): `DONE[ERROR]` mit Befehl `0x00fd` ohne
+     * ERROR-Token, dann `DONE[ATTN]`. Die Verbindung bleibt offen, und die unmittelbar folgende Anfrage erhält nur
+     * ihre eigene Antwort.
      *
      * @spec SPEC-029
      * @spec TDS-FA-07
      * @spec TDS-QA-07
      */
     @Test
-    fun `ATTENTION in RUNNING loest einen Cancel aus und wird mit DONE ATTN allein beantwortet`() = blocking {
+    fun `ATTENTION in RUNNING loest einen Cancel aus und wird in zwei Nachrichten beantwortet`() = blocking {
         val backend = FlowBackend(suspendedAfter(CompletableDeferred()), delivering(*oneRow))
         val session = Session.login(BatchVectors.message("slow"))
         val serving = launch { session.serve(backend) }
@@ -54,25 +63,27 @@ class AttentionCancelTest {
         session.channel.feed(BatchVectors.message("next"))
         session.channel.feed(Inbound.EndOfStream)
         serving.join()
-        assertEquals(2, session.replies.size)
-        assertEquals(BatchVectors.DONE_ATTN, session.hex(0))
-        assertTrue(session.tokens(0).none { it is ErrorToken })
-        assertEquals(oneRowReply, session.hex(1))
+        assertEquals(3, session.replies.size)
+        assertEquals(BatchVectors.DONE_ERROR, session.hex(0))
+        assertEquals(BatchVectors.DONE_ATTN, session.hex(1))
+        assertTrue(session.tokens(0).none { it is ErrorToken } && session.tokens(1).none { it is ErrorToken })
+        assertEquals(oneRowReply, session.hex(2))
         assertEquals(listOf("s1" to "r1"), backend.cancelled)
         assertEquals(listOf("slow", "next"), backend.requests.map { it.sql })
         assertEquals(2, backend.closeCalls)
     }
 
     /**
-     * Ein ATTENTION in `STREAMING` (zwei Zeilen sind geschrieben, das Backend liefert weiter): die Zeilen hören auf,
-     * die Antwort endet mit genau einem `DONE[ATTN]` hinter den schon gesendeten Tokens, ohne ERROR, und das
-     * Backend erzeugt nach dem Abbruch keine Zeile mehr.
+     * Ein ATTENTION in `STREAMING` (drei Zeilen sind geschrieben, das Backend liefert weiter): die Zeilen hören auf,
+     * die erste Nachricht endet hinter den schon gesendeten Tokens mit `DONE[ERROR]` bei offenem Ergebnis (Befehl
+     * `0x00c1`, Handvektor), die zweite ist `DONE[ATTN]`; kein ERROR-Token, und das Backend erzeugt nach dem Abbruch
+     * keine Zeile mehr.
      *
      * @spec SPEC-029
      * @spec TDS-FA-07
      */
     @Test
-    fun `ATTENTION in STREAMING stoppt die Zeilen und schliesst mit einem DONE ATTN ab`() = blocking {
+    fun `ATTENTION in STREAMING stoppt die Zeilen und endet mit DONE ERROR und DONE ATTN`() = blocking {
         var produced = 0
         val endless: (FlowBackend) -> Flow<QueryEvent> = { backend ->
             flow {
@@ -99,18 +110,19 @@ class AttentionCancelTest {
         assertTrue(tokens.drop(1).dropLast(1).all { it is RowToken }, "${tokens.names()}")
         assertTrue(tokens.count { it is RowToken } >= 3)
         assertEquals(1, tokens.count { it is DoneToken })
-        assertEquals(DoneStatus.ATTENTION, tokens.lastDone().status)
+        assertEquals(DoneStatus.ERROR, tokens.lastDone().status)
         assertTrue(tokens.none { it is ErrorToken })
-        assertTrue(session.hex(0).endsWith(BatchVectors.DONE_ATTN))
-        assertEquals(1, session.replies.size)
+        assertTrue(session.hex(0).endsWith(BatchVectors.DONE_ERROR_OPEN))
+        assertEquals(2, session.replies.size)
+        assertEquals(BatchVectors.DONE_ATTN, session.hex(1))
         assertEquals(1, backend.cancelled.size)
         assertEquals(1, backend.closeCalls)
     }
 
     /**
      * Ein Backend, das einen Thread blockiert (hinter dem Pool des Integrators, unterbrechbar, `ADR-0013`), wird vom
-     * Cancel erreicht: der Aufruf endet, die Antwort ist `DONE[ATTN]` allein. Der Test belegt nicht das Verhalten
-     * eines echten blockierenden Treibers.
+     * Cancel erreicht: der Aufruf endet, die Antwort sind `DONE[ERROR]` und `DONE[ATTN]`. Der Test belegt nicht das
+     * Verhalten eines echten blockierenden Treibers.
      *
      * @spec SPEC-029
      * @spec TDS-FA-07
@@ -124,8 +136,9 @@ class AttentionCancelTest {
         session.channel.feed(BatchVectors.attention())
         session.channel.feed(Inbound.EndOfStream)
         serving.join()
-        assertEquals(1, session.replies.size)
-        assertEquals(BatchVectors.DONE_ATTN, session.hex(0))
+        assertEquals(2, session.replies.size)
+        assertEquals(BatchVectors.DONE_ERROR, session.hex(0))
+        assertEquals(BatchVectors.DONE_ATTN, session.hex(1))
         assertEquals(1, backend.cancelled.size)
         assertEquals(1, backend.closeCalls)
     }
@@ -157,16 +170,16 @@ class AttentionCancelTest {
     }
 
     /**
-     * Gewinnt ATTENTION vor dem nächsten Token der Antwort, schreibt die reguläre Antwort nicht weiter: die Antwort
-     * besteht aus den schon geschriebenen Tokens und genau einem `DONE[ATTN]`, ohne die Zeile und ohne das gehaltene
-     * DONE; der Cancel geht genau einmal an das Backend, obwohl zwei Wege zu ihm führen (Abbruch der Coroutine und
-     * Senke, die das Token nicht annimmt).
+     * Gewinnt ATTENTION vor dem nächsten Token der Antwort, schreibt die reguläre Antwort nicht weiter: die erste
+     * Nachricht besteht aus den schon geschriebenen Tokens und `DONE[ERROR]`, ohne die Zeile und ohne das gehaltene
+     * DONE (nie zwei Abschlüsse derselben Antwort), die zweite aus `DONE[ATTN]`; der Cancel geht genau einmal an das
+     * Backend, obwohl zwei Wege zu ihm führen (Abbruch der Coroutine und Senke, die das Token nicht annimmt).
      *
      * @spec SPEC-029
      * @spec SPEC-031
      */
     @Test
-    fun `ATTENTION vor dem naechsten Token verwirft den Rest und bestaetigt einmal`() = blocking {
+    fun `ATTENTION vor dem naechsten Token verwirft den Rest und schreibt nur das Paar`() = blocking {
         val backend = FlowBackend(delivering(*oneRow))
         val session = Session.login(BatchVectors.message("q"))
         val hook = interposing({ index, _ -> index == 1 }) {
@@ -175,22 +188,23 @@ class AttentionCancelTest {
             session.ready.awaitState(ConnectionState.CANCELLING)
         }
         session.serve(backend, sinkAround = hook)
-        assertEquals(1, session.replies.size)
-        assertEquals(BatchVectors.COLMETADATA_N + " " + BatchVectors.DONE_ATTN, session.hex(0))
+        assertEquals(2, session.replies.size)
+        assertEquals(BatchVectors.COLMETADATA_N + " " + BatchVectors.DONE_ERROR_OPEN, session.hex(0))
+        assertEquals(BatchVectors.DONE_ATTN, session.hex(1))
         assertEquals(1, backend.cancelled.size)
         assertEquals(1, backend.closeCalls)
     }
 
     /**
-     * Ein wiederholtes ATTENTION löst keinen zweiten Cancel aus. Der erste Auslöser gewinnt; jedes weitere ATTENTION
-     * ist danach ein ATTENTION nach Ende der Antwort und wird einzeln mit `DONE[ATTN]` bestätigt, damit kein Client auf
-     * eine Bestätigung wartet: drei ATTENTION ergeben einen Cancel und drei Bestätigungen. Das ist eine Setzung ohne
-     * Messung; den Beleg liefert erst das Cancel-Szenario am Referenzclient.
+     * Ein wiederholtes ATTENTION löst keinen zweiten Cancel aus (`ADR-0054` Entscheidung 4, Setzung ohne Messung). Der
+     * erste Auslöser gewinnt und bekommt das Paar `DONE[ERROR]`, `DONE[ATTN]`; jedes weitere ATTENTION ist danach ein
+     * ATTENTION nach Ende der Antwort und wird einzeln mit `DONE[ATTN]` bestätigt, das Paar wird nicht verdoppelt:
+     * drei ATTENTION ergeben einen Cancel, ein Paar und zwei einzelne Bestätigungen.
      *
      * @spec SPEC-029
      */
     @Test
-    fun `Ein wiederholtes ATTENTION loest keinen zweiten Cancel aus (Setzung N Bestaetigungen)`() = blocking {
+    fun `Ein wiederholtes ATTENTION loest keinen zweiten Cancel aus und wird einzeln bestaetigt`() = blocking {
         val backend = FlowBackend(suspendedAfter(CompletableDeferred()))
         val session = Session.login(BatchVectors.message("slow"))
         val serving = launch { session.serve(backend) }
@@ -199,8 +213,76 @@ class AttentionCancelTest {
         session.channel.feed(Inbound.EndOfStream)
         serving.join()
         assertEquals(1, backend.cancelled.size)
-        assertEquals(3, session.replies.size)
-        session.replies.indices.forEach { assertEquals(BatchVectors.DONE_ATTN, session.hex(it), "Antwort $it") }
+        assertEquals(
+            listOf(BatchVectors.DONE_ERROR, BatchVectors.DONE_ATTN, BatchVectors.DONE_ATTN, BatchVectors.DONE_ATTN),
+            session.replies.indices.map { session.hex(it) },
+        )
+    }
+
+    /**
+     * Ein ATTENTION, das während `CANCELLING` eintrifft (der Cancel läuft, das Backend hat ihn noch nicht beendet),
+     * wird erst nach dem Übergang nach `READY` verarbeitet und dann einzeln mit `DONE[ATTN]` bestätigt: nie vor oder
+     * zwischen den beiden Nachrichten des Paares, nie ein zweites Paar, kein zweiter Cancel (`ADR-0054` Entscheidung
+     * 4). Den Zustand `CANCELLING` hält ein Backend, das den Cancel erst nach dem zweiten ATTENTION beendet.
+     *
+     * @spec SPEC-029
+     * @spec SPEC-001
+     */
+    @Test
+    fun `Ein ATTENTION waehrend CANCELLING wird nach dem Paar einzeln bestaetigt`() = blocking {
+        val release = CompletableDeferred<Unit>()
+        val backend = FlowBackend(ignoringCancel(release))
+        withGate(release) {
+            val session = Session.login(BatchVectors.message("slow"))
+            val serving = launch { session.serve(backend) }
+            backend.collecting.await()
+            session.channel.feed(BatchVectors.attention())
+            session.ready.awaitState(ConnectionState.CANCELLING)
+            session.channel.feed(BatchVectors.attention())
+            repeat(HOPS) { yield() }
+            assertEquals(emptyList(), session.replies, "vor dem Ende des Cancel geht nichts hinaus")
+            assertEquals(ConnectionState.CANCELLING, session.ready.live.context.state)
+            release.complete(Unit)
+            session.channel.feed(Inbound.EndOfStream)
+            serving.join()
+            assertEquals(1, backend.cancelled.size)
+            assertEquals(
+                listOf(BatchVectors.DONE_ERROR, BatchVectors.DONE_ATTN, BatchVectors.DONE_ATTN),
+                session.replies.indices.map { session.hex(it) },
+            )
+        }
+    }
+
+    /**
+     * Die beiden Nachrichten des Paares gehen unter derselben Sperre der Sitzung hinaus (`ADR-0054` Entscheidung 2):
+     * eine Coroutine, die während des Schreibens der ersten Nachricht die Sperre anfordert, bekommt sie erst, wenn
+     * auch die zweite auf dem Draht ist.
+     *
+     * @spec SPEC-029
+     * @spec SPEC-001
+     */
+    @Test
+    fun `Das Paar geht unter einer Sperre hinaus`() = blocking {
+        val backend = FlowBackend(suspendedAfter(CompletableDeferred()))
+        val session = Session.login(BatchVectors.message("slow"))
+        var seenWhenLockTaken: Int? = null
+        session.channel.onReplyWrite = {
+            if (seenWhenLockTaken == null && session.channel.sent.size == LOGIN_REPLIES) {
+                launch {
+                    session.ready.live.dispatch(HandshakeEvent.DeadlineExpired)
+                    seenWhenLockTaken = session.replies.size
+                }
+                repeat(HOPS) { yield() }
+            }
+        }
+        val serving = launch { session.serve(backend) }
+        backend.collecting.await()
+        session.channel.feed(BatchVectors.attention())
+        session.channel.feed(Inbound.EndOfStream)
+        serving.join()
+        yield()
+        assertEquals(2, session.replies.size)
+        assertEquals(2, seenWhenLockTaken, "die Sperre wurde zwischen den beiden Nachrichten frei")
     }
 
     /**

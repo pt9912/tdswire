@@ -8,6 +8,7 @@ import io.github.pt9912.tdswire.protocol.response.ErrorMapping
 import io.github.pt9912.tdswire.protocol.response.ResponseForm
 import io.github.pt9912.tdswire.protocol.response.SequenceOutcome
 import io.github.pt9912.tdswire.protocol.response.errorAnswer
+import io.github.pt9912.tdswire.protocol.response.failedDone
 import io.github.pt9912.tdswire.protocol.session.AttentionAck
 import io.github.pt9912.tdswire.protocol.session.CancelCause
 import io.github.pt9912.tdswire.protocol.session.HandshakeEvent.RequestFinished
@@ -16,14 +17,19 @@ import io.github.pt9912.tdswire.protocol.token.TokenEncoder
 import io.github.pt9912.tdswire.protocol.wire.ProtocolResult
 
 /**
- * Das Ende einer Antwort, die ein Auslöser des Abbruchs unterbrochen hat (`ADR-0027` Entscheidung 1 und 2):
- * - ATTENTION, Antwort unterbrochen: genau ein `DONE[ATTN]`, an die laufende Nachricht angehängt, kein ERROR.
+ * Das Ende einer Antwort, die ein Auslöser des Abbruchs unterbrochen hat (`ADR-0027` Entscheidung 1 und 2,
+ * `ADR-0054`):
+ * - ATTENTION, Antwort unterbrochen: zwei Nachrichten wie am echten Server (Messprotokoll, Mitschnitt-Lauf Ergebnis 5
+ *   und A-13). Die erste ist die laufende Antwort, beendet mit `DONE[ERROR]` ohne ERROR-Token (Befehlskennung `0x00c1`
+ *   bei offenem Ergebnis, sonst `0x00fd`; im RPC DONEPROC, in der Form des Massenladens `0x00f0`), die zweite
+ *   `DONE[ATTN]` ([AttentionAck]). Beide gehen unter derselben Sperre der Sitzung hinaus, ohne dass dazwischen etwas
+ *   anderes geschrieben wird.
  * - Ablauf der Frist, Antwort unterbrochen: ERROR `TDS_TIMEOUT` und DONE mit Fehlerstatus (im RPC DONEPROC), an die
  *   laufende Nachricht angehängt (Mapping des `ErrorMapper`, Class 16, Verbindung offen). Hat der Client ein Ergebnis
  *   ohne Abschluss, trägt das DONE die Befehlskennung `0x00c1`, sonst `0x00fd` (Messprotokoll W-6).
- * - Ablauf von `SHUTDOWN_GRACE` im geordneten Beenden, Antwort unterbrochen: wie bei ATTENTION genau ein `DONE[ATTN]`
- *   ohne ERROR (`SPEC-044` Nr. 4; die Form ist Festlegung, nicht gemessen); die Verbindung endet danach
- *   (`ADR-0027` Entscheidung 2c).
+ * - Ablauf von `SHUTDOWN_GRACE` im geordneten Beenden, Antwort unterbrochen: dasselbe Paar wie bei ATTENTION,
+ *   `DONE[ERROR]` und `DONE[ATTN]` ohne ERROR-Token (`SPEC-044` Nr. 4; Setzung des Nutzers vom 2026-11-20, am echten
+ *   Server nicht gemessen); die Verbindung endet danach (`ADR-0027` Entscheidung 2c).
  * - Die Antwort war schon vollständig, als der Auslöser gewann: sie wird beendet, wie ihr Ausgang es sagt. Ein
  *   ATTENTION wird danach als eigene Nachricht bestätigt („ATTENTION nach Ende der Antwort“, ohne Cancel), eine
  *   abgelaufene Frist ändert nichts, ein Ausgang, der die Verbindung schließt, schließt sie, und im Beenden endet die
@@ -43,9 +49,9 @@ internal class AbortedAnswer(private val errors: ErrorMapper, private val mappin
             outcome != null && outcome != SequenceOutcome.CLOSE_WITHOUT_COMPLETION ->
                 complete(end.cause, errors.fateOf(outcome), reply)
 
-            end.cause == CancelCause.ATTENTION -> appended(AttentionAck.bytes, reply, connectionOpen = true)
+            end.cause == CancelCause.ATTENTION -> inTwoMessages(reply, form, resultOpen, connectionOpen = true)
 
-            end.cause == CancelCause.SHUTDOWN -> appended(AttentionAck.bytes, reply, connectionOpen = false)
+            end.cause == CancelCause.SHUTDOWN -> inTwoMessages(reply, form, resultOpen, connectionOpen = false)
 
             else -> timedOut(reply, form, resultOpen)
         }
@@ -60,6 +66,18 @@ internal class AbortedAnswer(private val errors: ErrorMapper, private val mappin
         } else {
             written
         }
+    }
+
+    private suspend fun inTwoMessages(
+        reply: GuardedReply,
+        form: ResponseForm,
+        resultOpen: Boolean,
+        connectionOpen: Boolean,
+    ): RequestFinished? {
+        val encoder = TokenEncoder()
+        check(encoder.write(failedDone(form, resultOpen)) is ProtocolResult.Ok) { "Abschluss nicht schreibbar" }
+        val written = reply.concludeWith(encoder.toByteArray(), AttentionAck.message)
+        return if (written) RequestFinished(null, connectionOpen, replyWritten = true) else null
     }
 
     private suspend fun timedOut(reply: GuardedReply, form: ResponseForm, resultOpen: Boolean): RequestFinished? {

@@ -1,0 +1,2 @@
+**Vorgang:** slice-cancel-antwort-zwei-nachrichten-angleichen
+**Fund:** Review F-1, F-2, F-4, F-6: die Zwei-Nachrichten-Form wurde in Spezifikation und Code fortgeschrieben, die alte Lesart blieb an weiteren Stellen stehen (Form beim Beenden in SPEC-044 und Nutzer-Doku, drei Kommentare in `src/main` mit „genau ein DONE[ATTN]“, Zeile BULK_LOAD der Matrix, ein Testname); der Reviewer fand sie, die Grep-Runde des Re-Reviews und der Verifikation fand keine weitere. Die Prüfung im Reviewer-Skill hielt.

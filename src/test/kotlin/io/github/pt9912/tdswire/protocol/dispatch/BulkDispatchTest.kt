@@ -333,8 +333,9 @@ class BulkDispatchTest {
     }
 
     /**
-     * ATTENTION, während `load` läuft: der Lauf endet mit genau einem `DONE[ATTN]` (Handvektor) ohne ERROR, die
-     * Verbindung bleibt offen, und die folgende Anfrage bekommt ihre eigene Antwort. Nicht belegt: ein Stapel-Callback
+     * ATTENTION, während `load` läuft: der Lauf endet mit `DONE[ERROR]` (Befehl `0x00f0`, Setzung) und `DONE[ATTN]`
+     * (Handvektor) ohne ERROR-Token, die Verbindung bleibt offen, und die folgende Anfrage bekommt ihre eigene
+     * Antwort. Nicht belegt: ein Stapel-Callback
      * des Integrators, der mitten in der Weitergabe steht (das Backend hier hängt in `awaitCancellation`); die Antwort
      * des echten Servers auf ATTENTION während des Massenladens ist nicht gemessen.
      * Wächter: ein Massenladen, das ATTENTION nicht beachtet (die Schleife bliebe in `load`, der Test hinge) oder die
@@ -344,7 +345,7 @@ class BulkDispatchTest {
      * @spec TDS-QA-07
      */
     @Test
-    fun `ATTENTION waehrend des Ladens ergibt DONE ATTN bei offener Verbindung`() = blocking {
+    fun `ATTENTION waehrend des Ladens ergibt DONE ERROR und DONE ATTN bei offener Verbindung`() = blocking {
         val started = CompletableDeferred<Unit>()
         val backend = Loading(onLoad = {
             started.complete(Unit)
@@ -357,8 +358,9 @@ class BulkDispatchTest {
         session.channel.feed(batch("SELECT 1"))
         session.channel.feed(Inbound.EndOfStream)
         serving.join()
-        assertEquals(3, session.replies.size)
-        assertEquals(BatchVectors.DONE_ATTN, session.hex(1))
+        assertEquals(4, session.replies.size)
+        assertEquals(BatchVectors.DONE_ERROR_BULK, session.hex(1))
+        assertEquals(BatchVectors.DONE_ATTN, session.hex(2))
         assertEquals(1, backend.loads.size)
         assertEquals(listOf("SELECT 1"), backend.executed)
     }

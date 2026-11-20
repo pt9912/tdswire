@@ -53,14 +53,28 @@ internal object BatchVectors {
     /** DONE ohne Bits, curCmd 0 (keine Aussage), ohne Zeilenzahl. */
     const val DONE_FINAL = "FD 00 00 00 00 00 00 00 00 00 00 00 00"
 
-    /** DONE mit Fehlerstatus (`0x0002`), curCmd `0x00fd` (Fehler ohne offenes Ergebnis), Zeilenzahl 0. */
+    /**
+     * DONE mit Fehlerstatus (`0x0002`), curCmd `0x00fd` (Fehler ohne offenes Ergebnis), Zeilenzahl 0. Als erste
+     * Nachricht der Antwort auf ATTENTION bei wartendem Befehl sind es die Bytes der Aufnahmen `cancel-wartend` beider
+     * Instanzen (Messprotokoll, Mitschnitt-Lauf Ergebnis 5).
+     */
     const val DONE_ERROR = "FD 02 00 FD 00 00 00 00 00 00 00 00 00"
 
-    /** DONE mit Fehlerstatus bei offenem Ergebnis, curCmd `0x00c1`. */
+    /**
+     * DONE mit Fehlerstatus bei offenem Ergebnis, curCmd `0x00c1`. Als Ende der ersten Nachricht der Antwort auf
+     * ATTENTION im Stream sind es die letzten 13 Byte der Aufnahme `cancel-streaming` beider Instanzen (A-13).
+     */
     const val DONE_ERROR_OPEN = "FD 02 00 C1 00 00 00 00 00 00 00 00 00"
 
     /** DONEPROC mit Fehlerstatus, curCmd `0x00e0`: der Abschluss einer abgelehnten RPC-Antwort. */
     const val DONEPROC_ERROR = "FE 02 00 E0 00 00 00 00 00 00 00 00 00"
+
+    /**
+     * DONE mit Fehlerstatus, curCmd `0x00f0` (Befehl der Nachricht des Massenladens), Zeilenzahl 0: der Abschluss einer
+     * abgebrochenen Antwort auf das Massenladen (Setzung nach `ADR-0054` Entscheidung 1; am echten Server nicht
+     * gemessen, der Befehl folgt dem Fehlerabschluss M-12).
+     */
+    const val DONE_ERROR_BULK = "FD 02 00 F0 00 00 00 00 00 00 00 00 00"
 
     /** DONE, Status FINAL, curCmd `0x00c1`, Zeilenzahl 0: ein Ergebnis ohne gemeldete Zahl. */
     const val DONE_SELECT_FINAL = "FD 00 00 C1 00 00 00 00 00 00 00 00 00"
@@ -68,7 +82,10 @@ internal object BatchVectors {
     /** ENVCHANGE Typ 18, neuer und alter Wert leer: erstes Token der Antwort auf `RESETCONNECTION` (W-7). */
     const val ENVCHANGE_RESET = "E3 03 00 12 00 00"
 
-    /** DONE mit dem Statusbit ATTENTION (`0x0020`), curCmd `0x00fd`, Zeilenzahl 0: die Bestätigung eines Cancel. */
+    /**
+     * DONE mit dem Statusbit ATTENTION (`0x0020`), curCmd `0x00fd`, Zeilenzahl 0: die Bestätigung eines Cancel; die
+     * zweite Nachricht der Aufnahmen `cancel-streaming` und `cancel-wartend` beider Instanzen (A-13).
+     */
     const val DONE_ATTN = "FD 20 00 FD 00 00 00 00 00 00 00 00 00"
 
     /** Ein ATTENTION-Paket: leere Nutzlast. */

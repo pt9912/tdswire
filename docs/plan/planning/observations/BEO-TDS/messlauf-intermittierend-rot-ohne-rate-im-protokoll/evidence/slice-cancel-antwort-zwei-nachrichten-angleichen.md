@@ -1,0 +1,2 @@
+**Vorgang:** slice-cancel-antwort-zwei-nachrichten-angleichen
+**Fund:** Verifikation F-1, F-5: der Live-Lauf war in vier Läufen vom 2026-11-20 einmal rot (die Referenz zeigte den Zusatz, die Regel entfiel); das Messprotokoll nannte nur „der Fall trat in diesen 13 Läufen nicht ein“, die Rohausgabe der 13 Läufe liegt nicht im Repo. Die Rate (1 von 8, zusammen 1 von 21 Teilläufen) kam vom Verifier, nicht aus der Planung; im Messprotokoll nachgetragen.

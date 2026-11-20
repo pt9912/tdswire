@@ -1,1 +1,3 @@
-**Stand:** offen — 1×, unter der Schwelle; nichts verkörpert, kein Träger gesetzt. Behebung nur über eine Folge-ADR mit `Supersedes`, Entscheidung beim Nutzer.
+**Stand:** offen — 2×, unter der Schwelle; nichts verkörpert, kein Träger gesetzt. Behebung nur über eine Folge-ADR mit `Supersedes`, Entscheidung beim Nutzer.
+
+**Wiederauftreten (slice-cancel-antwort-zwei-nachrichten-angleichen):** Review F-9: [ADR-0027](../../../../adr/0027-abbruch-und-zuruecksetzen.md) trug nach [ADR-0054](../../../../adr/0054-antwort-auf-attention-in-zwei-nachrichten.md) weiter die Ein-Nachricht-Form in Entscheidung 2, Ausnahme (c) und der Fitness Function; behoben durch [ADR-0057](../../../../adr/0057-abbruch-beim-beenden-endet-im-paar.md) (Supersedes teilweise, wörtlich). Die Behebung erfolgte über eine Folge-ADR, nicht über die Liste von [ADR-0054](../../../../adr/0054-antwort-auf-attention-in-zwei-nachrichten.md).

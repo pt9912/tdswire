@@ -481,17 +481,17 @@ class UnprepareDispatchTest {
 
     /**
      * ATTENTION während der Antwort auf die Freigabe (`TDS-FA-07`, `SPEC-029`, Anfragezustand `RUNNING`): nach den
-     * Tokens der dritten Nummer (das neunte Token) trifft ATTENTION ein, die Antwort endet dort mit genau einem
-     * `DONE[ATTN]` (Handvektor) ohne weitere Nummer und ohne das DONEPROC der letzten; die Verbindung bleibt offen,
-     * die nächste Anfrage erhält nur ihre Antwort. Wächter: eine Antwort, die ohne `AbortableRun` ganz geschrieben
-     * wird.
+     * Tokens der dritten Nummer (das neunte Token) trifft ATTENTION ein, die erste Nachricht endet dort mit
+     * `DONE[ERROR]` (Befehl `0x00fd`, Form BATCH) und die zweite besteht aus `DONE[ATTN]` (Handvektoren), ohne weitere
+     * Nummer und ohne das DONEPROC der letzten; die Verbindung bleibt offen, die nächste Anfrage erhält nur ihre
+     * Antwort. Wächter: eine Antwort, die ohne `AbortableRun` ganz geschrieben wird.
      *
      * @spec SPEC-029
      * @spec SPEC-060
      * @spec TDS-FA-07
      */
     @Test
-    fun `ATTENTION waehrend der Antwort der Freigabe bricht sie mit einem DONE ATTN ab`() = blocking {
+    fun `ATTENTION waehrend der Antwort der Freigabe bricht sie mit DONE ERROR und DONE ATTN ab`() = blocking {
         val backend = ScriptedBackend.ofList(*oneRow.toTypedArray())
         val text = (1..10).joinToString(";") { "EXEC sp_unprepare ${it + 90}" }
         val session = Session.login(batch(text))
@@ -509,11 +509,12 @@ class UnprepareDispatchTest {
             )
         }
         serving.join()
-        assertEquals(2, session.replies.size)
+        assertEquals(3, session.replies.size)
         assertEquals(listOf(notFound(91), notFound(92), notFound(93)), session.errors(0))
-        assertTrue(session.hex(0).endsWith(BatchVectors.DONE_ATTN), session.hex(0))
+        assertTrue(session.hex(0).endsWith(BatchVectors.DONE_ERROR), session.hex(0))
+        assertEquals(BatchVectors.DONE_ATTN, session.hex(1))
         assertEquals(4, session.tokens(0).count { it is DoneToken })
-        assertEquals(listOf(notFound(99)), session.errors(1))
+        assertEquals(listOf(notFound(99)), session.errors(2))
         assertEquals(ConnectionState.CLOSED, session.ready.live.context.state)
     }
 

@@ -9,7 +9,7 @@ package io.github.pt9912.tdswire.protocol.dispatch
  * - [requestRunning]: die Schleife meldet, dass eine angenommene Anfrage läuft (`true`) oder beendet ist (`false`).
  *   Ohne laufende Anfrage endet die Verbindung im Beenden sofort, mit laufender nach deren Ende.
  * - [onGraceExpired]: die Schleife meldet, wie sie die laufende Anfrage nach Ablauf von `SHUTDOWN_GRACE` abbricht
- *   (Nr. 4: wie bei ATTENTION).
+ *   (Nr. 4: dasselbe Paar wie bei ATTENTION).
  */
 internal interface ShutdownGate {
     val begun: Boolean
