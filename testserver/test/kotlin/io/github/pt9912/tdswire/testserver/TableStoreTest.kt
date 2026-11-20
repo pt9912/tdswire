@@ -730,20 +730,21 @@ class TableStoreTest {
     /**
      * Boundary und Negativ: ein Text genau in der Länge der Spalte (`maxLength` 5, Vorgabe 4000) wird beim Massenladen
      * und beim `UPDATE` angenommen, einer um ein Zeichen darüber wirft und lässt den Bestand unverändert; eine Spalte
-     * mit `maxLength` -1 hat keine Grenze. Wächter: ein Bestand ohne Prüfung der Länge (er nähme 6 Zeichen an, und
-     * die Auswahl danach endete im Fehler der Antwort), eine Prüfung mit `>=`, eine Prüfung, die -1 als Grenze liest.
+     * mit `maxLength` -1 hat die Grenze 4000 der Auswahl (4000 Zeichen genommen, 4001 abgewiesen). Wächter: ein Bestand
+     * ohne Prüfung der Länge, eine Prüfung mit `>=`, eine Prüfung, die -1 als Grenze liest oder als unbegrenzt.
      * @spec SPEC-035
      */
     @Test
     fun `der Bestand nimmt Texte nur bis zur Laenge der Spalte an`() {
         val store = TableStore(listOf(laengen))
-        assertEquals(1, insert(store, mapOf("Id" to 1L, "Name" to "x".repeat(NAME_LENGTH), "Lang" to "y".repeat(5000))))
+        assertEquals(1, insert(store, mapOf("Id" to 1L, "Name" to "x".repeat(NAME_LENGTH), "Lang" to "y".repeat(4000))))
         assertEquals(2, insert(store, mapOf("Id" to 2L, "Frei" to "z".repeat(4000)), mapOf("Id" to 3L)))
         val before = stored(store)
 
         val tooLong = listOf(
             mapOf("Id" to 4L, "Name" to "x".repeat(NAME_LENGTH + 1)),
             mapOf("Id" to 5L, "Frei" to "z".repeat(4001)),
+            mapOf("Id" to 7L, "Lang" to "y".repeat(4001)),
         )
         for (row in tooLong) {
             assertFailsWith<IllegalArgumentException>("$row") { insert(store, row) }
@@ -754,7 +755,8 @@ class TableStoreTest {
         assertEquals(1, change(store, mapOf("Name" to "12345"), key(2L)))
         assertFailsWith<IllegalArgumentException> { change(store, mapOf("Name" to "123456"), key(2L)) }
         assertFailsWith<IllegalArgumentException> { change(store, mapOf("Frei" to "z".repeat(4001)), key(2L)) }
-        assertEquals(1, change(store, mapOf("Lang" to "y".repeat(5000)), key(3L)))
+        assertEquals(1, change(store, mapOf("Lang" to "y".repeat(4000)), key(3L)))
+        assertFailsWith<IllegalArgumentException> { change(store, mapOf("Lang" to "y".repeat(4001)), key(3L)) }
         assertEquals("12345", stored(store).first { it[0] == 2L }[1])
     }
 
@@ -784,5 +786,55 @@ class TableStoreTest {
         assertEquals(listOf(NAME_LENGTH), start.columns.map { it.maxLength })
         assertEquals(listOf<Any?>("12345"), selected.filterIsInstance<QueryEvent.Row>().single().values)
         assertEquals(QueryEvent.ResultEnd(1), selected.last())
+    }
+
+    /**
+     * Boundary: die Länge zählt UTF-16-Einheiten wie die Bibliothek (`SimulationMerges.truncates`, `TextMapping`):
+     * drei Zeichen außerhalb der Grundebene (je zwei Einheiten) passen nicht in `maxLength` 5, zwei (vier Einheiten)
+     * passen. Ein `UPDATE` mit mehreren Werten in `SET` prüft jeden: ein zu langer Text an erster oder zweiter Stelle
+     * weist die ganze Änderung ab und lässt die Zeile, auch als SQL-Text. Wächter: eine Zählung in Codepunkten (drei
+     * Zeichen passten), ein `UPDATE`, das nur den ersten Wert von `SET` prüft.
+     * @spec SPEC-035
+     */
+    @Test
+    fun `die Laenge zaehlt UTF-16-Einheiten und jeder Wert von SET wird geprueft`() {
+        val store = TableStore(listOf(laengen))
+        val smile = "\uD83D\uDE00"
+        assertEquals(1, insert(store, mapOf("Id" to 1L, "Name" to smile + smile)))
+        assertFailsWith<IllegalArgumentException> { insert(store, mapOf("Id" to 2L, "Name" to smile.repeat(3))) }
+        val before = stored(store)
+
+        val tooLong = "z".repeat(4001)
+        assertFailsWith<IllegalArgumentException> { change(store, mapOf("Name" to "ab", "Frei" to tooLong), key(1L)) }
+        assertFailsWith<IllegalArgumentException> { change(store, mapOf("Frei" to tooLong, "Name" to "ab"), key(1L)) }
+        assertFailsWith<IllegalArgumentException> { change(store, mapOf("Name" to smile.repeat(3)), key(1L)) }
+        assertEquals(before, stored(store))
+
+        val rejected = ask(store.backend(), "UPDATE kunden SET Name = N'ab', Frei = N'$tooLong' WHERE Id = 1")
+        assertEquals("TDS_BACKEND_ERROR", assertIs<QueryEvent.Failure>(rejected.single()).code)
+        assertEquals(before, stored(store))
+    }
+
+    /**
+     * Happy (Zusammenspiel): eine Spalte mit `maxLength` -1 nimmt 4000 Zeichen an, und die Auswahl danach liefert die
+     * Zeile als Ergebnis mit der Länge 4000 im `ResultStart` (`nvarchar(max)` meldet das Ergebnis als 4000); ein
+     * `UPDATE` auf 4001 Zeichen ist abgewiesen. Wächter: ein Bestand, der für -1 keine Grenze kennt (er nähme 4001 an,
+     * und jede Auswahl der Zeile endete im Fehler der Antwort).
+     * @spec SPEC-035
+     * @spec SPEC-003
+     */
+    @Test
+    fun `eine Spalte mit maxLength -1 haelt 4000 Zeichen und die Auswahl liefert sie`() {
+        val store = TableStore(listOf(laengen))
+        insert(store, mapOf("Id" to 1L, "Lang" to "l".repeat(4000)))
+        val backend = store.backend()
+
+        val rejected = ask(backend, "UPDATE kunden SET Lang = N'${"l".repeat(4001)}' WHERE Id = 1")
+        assertEquals("TDS_BACKEND_ERROR", assertIs<QueryEvent.Failure>(rejected.single()).code)
+
+        val selected = ask(backend, "SELECT Lang FROM kunden WHERE Id = 1")
+        val start = assertIs<QueryEvent.ResultStart>(selected.first())
+        assertEquals(listOf(4000), start.columns.map { it.maxLength })
+        assertEquals(listOf<Any?>("l".repeat(4000)), selected.filterIsInstance<QueryEvent.Row>().single().values)
     }
 }

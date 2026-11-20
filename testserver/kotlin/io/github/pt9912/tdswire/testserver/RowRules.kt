@@ -21,12 +21,15 @@ internal object RowRules {
     /** `SimColumn.maxLength` einer `nvarchar(max)`-Spalte. */
     private const val UNBOUNDED_TEXT = -1
 
+    /** Höchste Länge eines Textes im Ergebnis einer Auswahl; die Länge, die `nvarchar(max)` dort meldet. */
+    private const val RESULT_TEXT_LIMIT = 4000
+
     /**
      * Wirft, wenn [value] nicht in [column] steht: NULL nur in nullbaren Spalten, sonst die Klasse der Spaltenart
-     * (`Int16` und `UInt8`: ein `Int` im Wertebereich); ein Text steht nur bis zu `SimColumn.maxLength` Zeichen in
-     * der Spalte (`nvarchar(max)`, -1, hat keine Grenze). Die Bibliothek meldet die Ausnahme beim Massenladen als 2627
-     * und beim `UPDATE` als `TDS_BACKEND_ERROR`; ein Text über der Länge erreicht so nie den Bestand, den eine
-     * Auswahl dann nicht mehr ausliefern könnte (Setzung, am echten Server nicht gemessen).
+     * (`Int16` und `UInt8`: ein `Int` im Wertebereich); ein Text steht nur bis zu `SimColumn.maxLength`
+     * UTF-16-Einheiten in der Spalte, bei `nvarchar(max)` (-1) bis 4000, der Länge, die eine Auswahl dafür meldet. Die
+     * Bibliothek meldet die Ausnahme beim Massenladen als 2627 und beim `UPDATE` als `TDS_BACKEND_ERROR`; der Bestand
+     * hält so nur Text, den eine Auswahl ausliefert (Setzung, am echten Server nicht gemessen).
      */
     fun check(column: SimColumn, value: Any?) {
         if (value == null) {
@@ -37,9 +40,16 @@ internal object RowRules {
         }
     }
 
-    private fun fitsLength(column: SimColumn, value: Any): Boolean =
-        column.type != SqlType.UnicodeText || column.maxLength == UNBOUNDED_TEXT ||
-            (value as String).length <= column.maxLength
+    /**
+     * Kopplung: dieselbe Regel und Zählung wie `SimulationMerges.truncates` und `SimColumn.reportedLength` der
+     * Bibliothek (`internal`, aus diesem Modul nicht lesbar); ändert sich dort die Zählung oder die Länge für -1,
+     * ändert sich diese Stelle mit (`TableStoreTest`).
+     */
+    private fun fitsLength(column: SimColumn, value: Any): Boolean {
+        if (column.type != SqlType.UnicodeText) return true
+        val limit = if (column.maxLength == UNBOUNDED_TEXT) RESULT_TEXT_LIMIT else column.maxLength
+        return (value as String).length <= limit
+    }
 
     /** Wahr, wenn [where] auf [row] (Werte in der Reihenfolge von [columns]) zutrifft; `null` trifft jede Zeile. */
     fun matches(columns: List<SimColumn>, row: List<Any?>, where: RowFilter?): Boolean =

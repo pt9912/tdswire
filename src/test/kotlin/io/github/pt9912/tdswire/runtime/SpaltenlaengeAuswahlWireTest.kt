@@ -39,6 +39,7 @@ internal class SpaltenlaengeAuswahlWireTest : RuntimeTestBase() {
     private val content = listOf(
         listOf(1, "x".repeat(LENGTH), "frei", "lang"),
         listOf(2, "x".repeat(LENGTH + 1), "frei", "lang"),
+        listOf(3, "x", "frei", "l".repeat(4000)),
     )
 
     private val table = SimTable(
@@ -131,6 +132,21 @@ internal class SpaltenlaengeAuswahlWireTest : RuntimeTestBase() {
         val tokens = askedWithParameter("SELECT text, frei, lang FROM kaputt WHERE id = @P0", 1)
 
         assertEquals(listOf(listOf(LENGTH, 4000, 4000)), lengths(tokens))
+        assertEquals(1, rowCount(tokens))
+        assertTrue(tokens.none { it is ErrorToken }, tokens.toString())
+    }
+
+    /**
+     * Boundary: ein Text von 4000 Zeichen in einer Spalte mit `maxLength` -1 ist ein Ergebnis (die Länge, die das
+     * Ergebnis für `nvarchar(max)` meldet, ist 4000), ohne Fehler. Wächter: eine Abbildung von -1 auf weniger als 4000.
+     * @spec SPEC-035
+     * @spec SPEC-003
+     */
+    @Test
+    fun `ein Text von 4000 Zeichen in einer Spalte mit minus eins ist ein Ergebnis`() {
+        val tokens = asked("SELECT lang FROM kaputt WHERE id = 3")
+
+        assertEquals(listOf(listOf(4000)), lengths(tokens))
         assertEquals(1, rowCount(tokens))
         assertTrue(tokens.none { it is ErrorToken }, tokens.toString())
     }

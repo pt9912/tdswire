@@ -981,10 +981,12 @@ festgelegt sind; die Überführung der Werte, das Lesen der Zeilenquelle und die
   (`SPEC-003`; Setzung, die Nummer ist nicht gemessen, Test `SpaltenlaengeAuswahlWireTest`); eine Zeile genau in der
   Länge ist ein Ergebnis. Der 2628 des `MERGE` (unten) lässt die Verbindung dagegen offen. Am echten Server ist der Fall
   an einer Tabellenspalte über `MERGE` nicht erreichbar (2628, Messprotokoll M-15); für `INSERT` und `UPDATE` liegt keine
-  Messung vor, und beim Massenladen erkennt der Referenzclient den Verstoß vor dem Senden (M-11, ein serverseitiger
-  Verstoß ist nicht hergestellt). Die Bibliothek prüft die Länge nur beim `MERGE` (Form M, `SPEC-036`: Text über der
-  Länge ist 2628, die Verbindung bleibt offen) und nicht bei `INSERT`, `UPDATE` und Massenladen; der Bestand des
-  Testservers prüft sie dort (`SPEC-035`, Testserver). Andere Werte weist der Konstruktor ab.
+  Messung vor, und beim Massenladen erkennt der Referenzclient mit einer `DataTable`-Quelle den Verstoß vor dem Senden
+  (M-11, ein Fall mit 23 Zeichen in `nvarchar(5)`; ein serverseitiger Verstoß ist nicht hergestellt). Die Bibliothek prüft die Länge nur beim `MERGE` (Form M, `SPEC-036`: Text über der
+  Länge ist 2628, die Verbindung bleibt offen) und nicht bei `INSERT` (Callback `onInsert`), `UPDATE` (`onUpdate`) und
+  Massenladen (`onInsertBatch`); der Bestand des Testservers prüft sie dort (unten, Testserver). Offen: ob die Bibliothek
+  selbst auch dort abweist (etwa mit 2628), ist nicht entschieden und braucht eine Folge-Entscheidung zur
+  Durchsetzung der Länge; bis dahin sind die Nummern 2627 und 50004 des Bestands Setzung. Andere Werte weist der Konstruktor ab.
   `SimTable.onInsertBatch` nimmt die Zeilen einer Massenlade-Nachricht (`0x07`) als Liste: eine Nachricht ist eine Anweisung
   (Nutzer, 2026-11-06), ein Aufruf je Nachricht, jede Zeile eine Abbildung von Spaltennamen der Beschreibung auf überführte
   Werte (eine Spalte, die die Nachricht nicht nennt, fehlt). Zusage an den Integrator: der Aufruf gilt ganz oder gar nicht;
@@ -1184,9 +1186,11 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   nicht am Server gemessen; der Wert ist nicht am Heap gemessen, ein kleinerer Heap als die Zellen brauchen endet weiter
   mit `OutOfMemoryError`; `ALTER TABLE … ADD` auf einer gefüllten Tabelle prüft die Grenze nicht; `TableStoreTest`).
   `SimColumn.maxLength` gilt im Bestand für das Massenladen und das `UPDATE`: einen Text über der Länge der Beschreibung
-  weist der Bestand ab und lässt sich unverändert, weil eine Auswahl ihn nicht mehr ausliefern könnte (der Text einer
-  Zeile über der Länge endet in der Antwort im Fehler, siehe `SimColumn.maxLength` oben). Die Bibliothek meldet die
-  Abweisung beim Massenladen als 2627 und beim `UPDATE` als `TDS_BACKEND_ERROR`, nicht als 2628 des `MERGE` (Setzung,
+  (gezählt in UTF-16-Einheiten wie bei der Bibliothek) weist der Bestand ab und lässt sich unverändert; bei `maxLength`
+  -1 gilt die Länge 4000, die eine Auswahl für `nvarchar(max)` meldet. Der Bestand hält so nur Text, den eine Auswahl
+  ausliefert (der Text einer Zeile über der Länge endet in der Antwort im Fehler, siehe `SimColumn.maxLength` oben). Die
+  Bibliothek meldet die Abweisung beim Massenladen als 2627 und beim `UPDATE` als `TDS_BACKEND_ERROR`, nicht als 2628
+  des `MERGE`; `INSERT` als Text hat im Bestand keinen Callback (Setzung,
   am echten Server nicht gemessen; gemessen ist nur 2628 beim `MERGE`, und der Referenzclient erkennt den Verstoß beim
   Massenladen vor dem Senden, M-11; Test `TableStoreTest`). Die Bibliothek selbst prüft die Länge dort nicht.
 - **Weg `Custom`:** Wer ein Backend mit Katalog selbst baut (`SimulationBackend(SimCatalog(tables))`) und als
@@ -2374,4 +2378,4 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | 2026-11-18 | Text der Antwort auf eine unbekannte Tabelle an die Messung angeglichen (`TDS-FA-11`, `TDS-FA-06`, `TDS-QA-01`, `SPEC-038`, `SPEC-059`; Nutzerentscheidung 2026-11-18, Option „Code angleichen“): öffentliche Fläche um das Feld `Failure.objectName` erweitert (Voreinstellung `null`, für Java der Konstruktor mit drei Argumenten bleibt); `TDS_SIM_UNKNOWN_OBJECT` meldet mit dem Namen `Invalid object name '<Name>'.`, ohne ihn den festen Text (Abschnitt 4, `SPEC-002` Absatz „Name der unbekannten Tabelle“; Messprotokoll, Szenario `fehler-tabelle-unbekannt`) |
 | 2026-11-18 | Länge von `DECIMALN` und `NUMERICN` im COLMETADATA an die Messung angeglichen (`TDS-FA-05`, `TDS-QA-01`, `SPEC-003`, `SPEC-036`; Entscheid des Nutzers 2026-11-18, Code angleichen): am echten SQL Server 2022 und 2025 gemessen ist die Länge 17 für jede Precision (Messprotokoll W-23, W-24), der Encoder schreibt sie; die Ausnahme A-11 entfällt; die Länge der Dezimalwerte im ROW (der Server schreibt nach dem Wert, W-25) ist nicht Teil der Aussage zur Zeilenform |
 | 2026-11-19 | Zwei Auswahlen in einem Text (Form S2) und Ausgabewert des `InputOutput`-Parameters (`TDS-FA-10`, `TDS-FA-11`, `TDS-QA-01`, `SPEC-036`, `SPEC-030`, `TDS-FA-11.a`; Entscheid des Nutzers 2026-11-18, Code angleichen): das Simulations-Backend beantwortet zwei Auswahlen der Form S1 ohne Parameter mit zwei Ergebnissen und sendet für einen `InputOutput`-Parameter einer Auswahl seinen Eingabewert als RETURNVALUE; die Ausnahmen A-2 und A-16 des Referenzabgleichs entfallen, Grenzen und Festlegungen in `SPEC-036` und `SPEC-030` |
-| 2026-11-19 | Länge einer Textspalte im COLMETADATA einer Auswahl an die Messung angeglichen (`TDS-FA-11`, `TDS-FA-05`, `TDS-QA-01`, `SPEC-035`, `SPEC-003`; Entscheid des Nutzers 2026-11-19, Code angleichen): das Simulations-Backend meldet `SimColumn.maxLength` als `ResultColumn.maxLength` jeder Auswahl (Formen S1 und S2, auch bei einer Bedingung, die nie wahr ist), ohne Angabe bleibt 4000; -1 (`nvarchar(max)`) meldet es als 4000 (Setzung, nicht gemessen); ein Text einer Zeile über der Länge der Beschreibung endet in der Antwort im Fehler (Setzung, Fehlernummer nicht gemessen); die Ausnahme A-14 entfällt; der Bestand des Testservers weist einen Text über der Länge beim Massenladen und beim `UPDATE` ab (Setzung, nicht gemessen); keine neue öffentliche Fläche (`SPEC-059`), die Antwort einer Auswahl über eine Tabelle mit kürzerer Länge ändert sich |
+| 2026-11-19 | Länge einer Textspalte im COLMETADATA einer Auswahl an die Messung angeglichen (`TDS-FA-11`, `TDS-FA-05`, `TDS-QA-01`, `SPEC-035`, `SPEC-003`; Entscheid des Nutzers 2026-11-19, Code angleichen): das Simulations-Backend meldet `SimColumn.maxLength` als `ResultColumn.maxLength` jeder Auswahl (Formen S1 und S2, auch bei einer Bedingung, die nie wahr ist), ohne Angabe bleibt 4000; -1 (`nvarchar(max)`) meldet es als 4000 (Setzung, nicht gemessen); ein Text einer Zeile über der Länge der Beschreibung endet in der Antwort im Fehler (Setzung, Fehlernummer nicht gemessen); die Ausnahme A-14 entfällt; der Bestand des Testservers weist einen Text über der Länge (bei -1 über 4000) beim Massenladen und beim `UPDATE` ab (Setzung, nicht gemessen); keine neue öffentliche Fläche (`SPEC-059`), die Antwort einer Auswahl über eine Tabelle mit kürzerer Länge ändert sich |
