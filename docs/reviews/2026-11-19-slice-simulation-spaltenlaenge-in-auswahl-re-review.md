@@ -37,7 +37,7 @@ Nicht gefahren: `make gates`, `make clean-build`, `make e2e`, `make test` ganz (
 ### R-3 — LOW
 - `kategorie`: LOW
 - `quelle`: Baseline-Regelwerk `modul-05-planning-harness.md` §Offene Risiken werden bei Closure aufgelöst (Slice §6: jedes Risiko genau ein Ausgang)
-- `pfad`: `docs/plan/planning/in-progress/slice-simulation-spaltenlaenge-in-auswahl.md` · „Ein Text einer Zeile über `ResultColumn.maxLength` weist die Bibliothek ab“ (§6, zweites Risiko)
+- `pfad`: `docs/plan/planning/done/slice-simulation-spaltenlaenge-in-auswahl.md` · „Ein Text einer Zeile über `ResultColumn.maxLength` weist die Bibliothek ab“ (§6, zweites Risiko)
 - `befund`: Die offene Frage, ob die Bibliothek bei `INSERT`, `UPDATE` und Massenladen selbst abweist (etwa mit 2628) und das eine Folge-ADR zu [ADR-0012](../plan/adr/0012-simulations-backend-beschreibung-und-formen.md) Entscheidung 7 und [ADR-0056](../plan/adr/0056-laenge-einer-textspalte-erreicht-das-colmetadata-einer-auswahl.md) Entscheidung 2 verlangt, steht an keiner Stelle als offen: Spezifikation und Nutzer-Doku sagen nur den Ist-Zustand („Die Bibliothek selbst prüft die Länge dort nicht“, der Integrator prüft selbst), das zweite Risiko in §6 ist nicht fortgeschrieben, und kein Beobachtungs-Eintrag existiert. Entschieden wird die Frage hier nicht; benannt fehlt sie. Der Nutzer-Weg ist über die Nutzer-Doku abgedeckt, es ist ein Nachweis der Entscheidungslage, kein Fehler des Codes.
 - `verifizierbar`: nein
 - `klasse`: offene Entscheidung ohne Träger im Slice
@@ -109,7 +109,7 @@ Nicht wiederholt: Mut-12, Mut-13, Mut-14. Mut-12 und Mut-13 liegen in `fitsLengt
 - `docs/user/` (beide Dateien): die geänderten Absätze gegen Code und Spezifikation gelesen; Treffer auf „bisher“, „noch nicht“, „soll“, „vorläufig“, „Zielzustand“ im geänderten Text: keine.
 - `docs/messungen/spaltenlaenge-mutationen-2026-11-19.md`: Bedingungen und Grenze nennen den Erzeuger außerhalb des Repos; Mut-11, Mut-15, Mut-16 wiederholt und gleich; Kennungen `Mut-<n>` kollidieren nicht mit `M-<n>`.
 - `docs/plan/spec-abdeckung.md`: Zähler der vier geänderten Zeilen stimmen zu den vier neuen Fällen (SPEC-003 plus 2, SPEC-035 plus 3 mit dem Wire-Fall; Gegenprobe über die Klassen in der Spalte); Tabellenformat unverändert.
-- `docs/plan/planning/in-progress/slice-simulation-spaltenlaenge-in-auswahl.md`: Tabelle in §3 und Kopf „Berührte Spec-Stellen“ gegen den Diff abgeglichen; keine Haken gesetzt (kein `- [x]`).
+- `docs/plan/planning/done/slice-simulation-spaltenlaenge-in-auswahl.md`: Tabelle in §3 und Kopf „Berührte Spec-Stellen“ gegen den Diff abgeglichen; keine Haken gesetzt (kein `- [x]`).
 
 ## Urteil
 

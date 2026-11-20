@@ -17,7 +17,7 @@ Nicht gefahren: `make gates`, `make clean-build`, `make e2e`, `make test` ganz (
 ### N-1 — INFO
 - `kategorie`: INFO
 - `quelle`: Baseline-Regelwerk `modul-05-planning-harness.md` §Ausgang eines Risikos (Schablone `slice.template.md`: „weiter offen: → BEO-<KUERZEL>/<slug> im Register“), Vorgänger-R-3
-- `pfad`: `docs/plan/planning/in-progress/slice-simulation-spaltenlaenge-in-auswahl.md` · „**Ausgang:** weiter offen, Träger Nutzer und Architect; SPEC-035 nennt die Nummern als Setzung.“
+- `pfad`: `docs/plan/planning/done/slice-simulation-spaltenlaenge-in-auswahl.md` · „**Ausgang:** weiter offen, Träger Nutzer und Architect; SPEC-035 nennt die Nummern als Setzung.“
 - `befund`: Die offene Frage ist jetzt in Slice §6 und in [SPEC-035](../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends) („Offen: ob die Bibliothek selbst auch dort abweist (etwa mit 2628), ist nicht entschieden“) als offen benannt und nicht entschieden; der Vorgänger-R-3 ist damit behoben. Die Schablone führt für „weiter offen“ einen Zeiger auf einen Eintrag im Beobachtungs-Register, den die Zeile nicht trägt; das ist ein Schritt der Closure (Planner), kein Mangel des Diffs.
 - `verifizierbar`: nein
 - `klasse`: Ausgang „weiter offen“ ohne Register-Zeiger (Closure-Schritt)
@@ -67,7 +67,7 @@ Gelesen, nicht gefahren: Mut-18 (`RESULT_TEXT_LIMIT = 3999`: der Test legt 4000 
 - `spec/spezifikation.md` (SPEC-035, Änderungsprotokoll): Setzungen gekennzeichnet, Änderungsprotokoll nennt -1 über 4000; keine neue Zusage ohne Anker im Lastenheft.
 - `docs/user/` (beide Dateien): geänderte Absätze gegen Code und Spezifikation gelesen.
 - `docs/plan/spec-abdeckung.md`: Zähler SPEC-003 plus 2 und SPEC-035 plus 3 stimmen zu den drei neuen Fällen mit `@spec`-Tags (Tests: Wire-Fall plus Fall `Laenge zaehlt` plus Fall `maxLength -1 haelt`); Format unverändert.
-- `docs/plan/planning/in-progress/slice-simulation-spaltenlaenge-in-auswahl.md`: jede berührte Datei des Diffs steht in Slice §3 (Grep je Dateiname: `SimulationMerges`, `RowRules`, `TableStoreTest`, `SpaltenlaengeAuswahlWireTest`, beide Nutzer-Dokus, Mutationsbeleg).
+- `docs/plan/planning/done/slice-simulation-spaltenlaenge-in-auswahl.md`: jede berührte Datei des Diffs steht in Slice §3 (Grep je Dateiname: `SimulationMerges`, `RowRules`, `TableStoreTest`, `SpaltenlaengeAuswahlWireTest`, beide Nutzer-Dokus, Mutationsbeleg).
 - `docs/messungen/spaltenlaenge-mutationen-2026-11-19.md`: Mut-17, Mut-19, Mut-20 wiederholt und gleich; Mut-18 und Mut-21 gelesen (N-3).
 
 ## Urteil

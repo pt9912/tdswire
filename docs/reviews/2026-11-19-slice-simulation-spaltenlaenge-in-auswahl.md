@@ -2,7 +2,7 @@
 
 **Review-Art:** Code und Doku — gegen Plan, [ADR-0056](../plan/adr/0056-laenge-einer-textspalte-erreicht-das-colmetadata-einer-auswahl.md) (`Accepted`, Option C, Nutzer 2026-11-19), [ADR-0012](../plan/adr/0012-simulations-backend-beschreibung-und-formen.md) Entscheidung 7, [ADR-0033](../plan/adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md), [SPEC-003](../../spec/spezifikation.md#spec-003--typmapping-initialer-mindestkatalog), [SPEC-035](../../spec/spezifikation.md#spec-035--tabellenbeschreibung-und-zeilenquelle-des-simulations-backends) und die Hard Rules (`AGENTS.md` §3.1, §3.2, §3.5, §3.7, §3.8).
 
-**Gegenstand:** Diff `git diff main...HEAD` des Zweigs `slice-simulation-spaltenlaenge-in-auswahl` (HEAD `a3f964fb` auf `76d7cf84`; `main` und Merge-Basis sind beide `94a7cab5`, Probemerge `git merge-tree` sauber), 18 Dateien, ein Code-Commit (Slice [slice-simulation-spaltenlaenge-in-auswahl](../plan/planning/in-progress/slice-simulation-spaltenlaenge-in-auswahl.md)).
+**Gegenstand:** Diff `git diff main...HEAD` des Zweigs `slice-simulation-spaltenlaenge-in-auswahl` (HEAD `a3f964fb` auf `76d7cf84`; `main` und Merge-Basis sind beide `94a7cab5`, Probemerge `git merge-tree` sauber), 18 Dateien, ein Code-Commit (Slice [slice-simulation-spaltenlaenge-in-auswahl](../plan/planning/done/slice-simulation-spaltenlaenge-in-auswahl.md)).
 
 **Skill:** `.harness/skills/reviewer.md` · **Modell:** claude-sonnet-5-5 · **Datum:** 2026-11-19
 
@@ -36,7 +36,7 @@ Nicht gefahren: `make gates` (auf `HEAD` liegen die Stempel `werkzeug` und `test
 ### F-3 — MEDIUM
 - `kategorie`: MEDIUM
 - `quelle`: Skill „Plan-Tabelle nennt die berührten Dateien nicht“
-- `pfad`: `docs/plan/planning/in-progress/slice-simulation-spaltenlaenge-in-auswahl.md` · „Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.“
+- `pfad`: `docs/plan/planning/done/slice-simulation-spaltenlaenge-in-auswahl.md` · „Der Implementer-Agent erweitert die Liste in seinem ersten Lauf.“
 - `befund`: §3 ist nach dem Bau nicht erweitert (der Diff ändert an der Tabelle nur Zeilen der ADR-Nachzüge vom Planner). Berührt, aber nicht in der Tabelle: `referenztest-dotnet/Vergleich/testschema.sql` (Kommentar), `docs/user/einbettung-und-betrieb.md`, `docs/user/testserver-manuell.md`, `docs/plan/adr/README.md`, `docs/plan/spec-abdeckung.md`, `docs/messungen/spaltenlaenge-mutationen-2026-11-19.md` (neu), `testserver/test/…/KompatibilitaetsTablesTest.kt` und `src/test/…/runtime/SpaltenlaengeAuswahlWireTest.kt` (die Zeile „Tests unter `src/test/kotlin/…/simulation/`“ nennt den Ordner `runtime/` und das Modul `testserver` nicht). Die Zeile `ColumnMapping.kt` („prüfen“) ist unberührt, was stimmt. Im Kopf „Berührte Spec-Stellen“ steht `SPEC-045`, deren Text der Diff nicht ändert (die Ausnahmeliste liegt im Messprotokoll und in der `.tsv`); die Änderungsstellen in `SPEC-035` (Absatz der Datei-Abbildung, Satz zu Texten) und der Änderungslog-Eintrag stehen nur zum Teil im Kopf.
 - `verifizierbar`: ja (Abgleich Tabelle gegen `git diff --stat main...HEAD`)
 - `klasse`: Plan-Tabelle gegen Diff nicht abgeglichen
