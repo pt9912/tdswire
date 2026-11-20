@@ -79,7 +79,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 | `referenztest-dotnet/Mitschnitt/AbbruchAntwortBelegTests.cs` | neu | belegt, dass die Aufnahmen beider Instanzen die Bytes der Handvektoren tragen |
 | `referenztest-dotnet/Vergleich/live-ausnahmen.tsv`, `referenztest-dotnet/Vergleich/mitschnitt-ausnahmen.tsv` | update | Regeln entfallen, verkleinern oder wechseln die Art; der Lauf ist rot bei jeder Abweichung |
 | `spec/spezifikation.md`, `docs/plan/kompatibilitaetsmatrix.md`, `docs/messungen/referenzabgleich.md`, `docs/messungen/bulk-load-2026-11-07.md`, `docs/user/referenz-konfiguration.md`, `docs/user/einbettung-und-betrieb.md` | update | SPEC-029, SPEC-001, SPEC-030, SPEC-044, SPEC-060; Matrix Nr. 12; Tabelle der Ausnahmen; Nutzer-Doku |
-| `docs/plan/spec-abdeckung.md`, `docs/plan/adr/README.md` | update | erzeugte Abdeckungsmatrix; ADR-Index (Eintrag von ADR-0054) |
+| `docs/plan/spec-abdeckung.md`, `docs/plan/adr/README.md` | update | erzeugte Abdeckungsmatrix; ADR-Index (Eintrag von [ADR-0054](../../adr/0054-antwort-auf-attention-in-zwei-nachrichten.md)) |
 | `docs/messungen/mutationen-cancel-antwort-2026-11-20.md` | neu | Mutationsbeleg der Zusagen (F-10 des Reviews) |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf (Testdateien mit Kennung der Akzeptanzkriterien).
