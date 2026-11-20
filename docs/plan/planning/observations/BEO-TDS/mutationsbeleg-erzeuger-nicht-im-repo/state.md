@@ -1,0 +1,1 @@
+**Stand:** offen — 1×; unter der Schwelle, keine Regel. Der Beleg [mutationen-cancel-antwort-2026-11-20](../../../../../messungen/mutationen-cancel-antwort-2026-11-20.md) nennt Erzeuger und Grenze; der Verifier fuhr sieben Mutationen mit eigenem Setz-Skript im Scratchpad (nicht im Repo), alle Zahlen gleich.

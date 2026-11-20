@@ -12,3 +12,5 @@
 **Lese-Schritt welle-testserver-manuell (2026-11-13):** 10 Dateien, über der Schwelle, nicht verkörpert; Entscheidung beim Nutzer (Frage 2 in `welle-testserver-manuell-results.md`). Die Closure ändert weder Regel noch Gate. Der Stand `offen` bleibt.
 
 **Wiederauftreten (slice-qa-performance-heap-abschluss):** Review F-9: eine Beobachtung eines Laufs im KDoc eines Tests; der Reviewer fing es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
+
+**Wiederauftreten (slice-cancel-antwort-zwei-nachrichten-angleichen):** Review F-7 (Zustandsfeld der Ausnahmeliste und des Messprotokolls mit Chronik) und Re-Review F-12 (Test-KDoc im Konjunktiv); der Reviewer fing beides. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
