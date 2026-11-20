@@ -66,7 +66,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 - [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
 - [x] Beobachtungs-Register (`../observations/`) fortgeschrieben: `BEO-TDS/live-lauf-ausserhalb-der-gates-haelt-kopplungen-nicht` (A-14, Rest); keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
 - [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
 
 ## 3. Plan (vor Code)
 
@@ -164,7 +164,7 @@ Geschlossen 2026-11-20 (Planner, Slice-Closure ohne Welle). Geprüfter Stand: Zw
 
 **Risiken aus §6.** Ausgänge je Risiko in §6: -1 als 4000 weiter offen (`BEO-TDS/nvarchar-max-im-ergebnis-ungemessen`); Text über der Länge eingetreten, durch Bau am Bestand des Testservers aufgelöst, Setzung bleibt; Tests mit Länge 4000 entfallen; Folge-ADR eingetreten ([ADR-0056](../../adr/0056-laenge-einer-textspalte-erreicht-das-colmetadata-einer-auswahl.md) `Accepted`); Durchsetzung bei `INSERT`, `UPDATE`, Massenladen weiter offen (`BEO-TDS/laenge-einer-textspalte-durchsetzung-in-der-bibliothek-offen`); Größe entfallen.
 
-**Drei Paarungen.** (a) Anker: kein Eintrag trägt `liegt in`, nichts zu prüfen. (b) Folge-Slice: keiner genannt, nichts zu prüfen. (c) Register: jede genannte Kennung `BEO-TDS/<slug>` existiert als Verzeichnis und trägt ein nicht leeres `evidence/`. Geprüft nach dem `git mv` (Ergebnis im Commit der letzten Zeile der DoD).
+**Drei Paarungen.** (a) Anker: kein Eintrag trägt `liegt in`, nichts zu prüfen. (b) Folge-Slice: keiner genannt, nichts zu prüfen. (c) Register: jede genannte Kennung `BEO-TDS/<slug>` existiert als Verzeichnis und trägt ein nicht leeres `evidence/`. Geprüft nach dem `git mv` am 2026-11-20: (a) nichts zu prüfen, (b) nichts zu prüfen, (c) alle zwölf genannten Verzeichnisse mit `observation.md`, `state.md` und nicht leerem `evidence/`.
 
 **Roadmap.** Nicht angefasst; der Nachzug in der Roadmap (Zeile zur Arbeit an diesem Slice) bleibt dem Orchestrator beim Merge. `make slice-mv` zieht nur den Verweis auf die Datei nach.
 
