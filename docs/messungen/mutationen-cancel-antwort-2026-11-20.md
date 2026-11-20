@@ -1,6 +1,6 @@
 # Mutationsbeleg: Antwort auf ATTENTION in zwei Nachrichten (2026-11-20)
 
-Messprotokoll der Mutationen zum Bau von [ADR-0054](../plan/adr/0054-antwort-auf-attention-in-zwei-nachrichten.md) im Slice [slice-cancel-antwort-zwei-nachrichten-angleichen](../plan/planning/in-progress/slice-cancel-antwort-zwei-nachrichten-angleichen.md). Es sagt, welche Änderung am geprüften Code welchen Test rot machte; es sagt nicht, ob eine Anforderung belegt ist ([AGENTS.md](../../AGENTS.md) §5 Regel 7).
+Messprotokoll der Mutationen zum Bau von [ADR-0054](../plan/adr/0054-antwort-auf-attention-in-zwei-nachrichten.md) im Slice [slice-cancel-antwort-zwei-nachrichten-angleichen](../plan/planning/done/slice-cancel-antwort-zwei-nachrichten-angleichen.md). Es sagt, welche Änderung am geprüften Code welchen Test rot machte; es sagt nicht, ob eine Anforderung belegt ist ([AGENTS.md](../../AGENTS.md) §5 Regel 7).
 
 **Erzeuger.** Das Setz-Skript der Mutationen liegt **nicht im Repo**: je Mutation ersetzte ein Wegwerf-Skript eine Zeile der Quelle (Zeichenkette alt, Zeichenkette neu, genau ein Treffer), baute in einem Wegwerf-Image die Stage `deps` plus die Quellen und führte `gradle :test` mit den genannten Klassen aus (Filter `--tests '*<Klasse>'`), stellte die Datei danach wieder her. Die Zeile „Mutation“ unten nennt Ort und Änderung; ein Verifier wiederholt sie von Hand. Einzelläufe, ein Host, Last nicht erhoben; ein Lauf dauert 45 bis 75 s. „rot“ heißt mindestens ein Testfall des Laufs rot, „grün“ heißt alle Testfälle der genannten Klassen grün.
 

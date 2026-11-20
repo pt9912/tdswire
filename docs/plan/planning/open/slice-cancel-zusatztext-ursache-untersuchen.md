@@ -9,7 +9,7 @@ aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
 Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (§Ein Slice, dessen Gegenstand ein anderer übernimmt).
 
-**Welle:** ohne Welle (keine Closure-Bedingung außerhalb der DoD dieses Slice; Folge-Slice des Nutzerentscheids vom 2026-11-20 im Slice [slice-cancel-antwort-zwei-nachrichten-angleichen](../in-progress/slice-cancel-antwort-zwei-nachrichten-angleichen.md): A-7 bleibt als eine Regel, die Ursache des Zusatzes ist ein eigener Slice).
+**Welle:** ohne Welle (keine Closure-Bedingung außerhalb der DoD dieses Slice; Folge-Slice des Nutzerentscheids vom 2026-11-20 im Slice [slice-cancel-antwort-zwei-nachrichten-angleichen](../done/slice-cancel-antwort-zwei-nachrichten-angleichen.md): A-7 bleibt als eine Regel, die Ursache des Zusatzes ist ein eigener Slice).
 
 **Bezug:** [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität) (Scope: Abgleich mit dem echten Server), [TDS-FA-07](../../../../spec/lastenheft.md#tds-fa-07--abbruch-und-ressourcenfreigabe) (Abbruch), [ADR-0054](../../adr/0054-antwort-auf-attention-in-zwei-nachrichten.md) (Zwei-Nachrichten-Form, Erwartung zu A-7), [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md)
 
@@ -72,7 +72,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`open` → `next` → `in-progress`): Nutzerzeichen und ein Verantwortlicher (`Verantwortlich:` ist bis dahin `—`). Der Slice braucht die gepinnten Referenzinstanzen (EULA bestätigt 2026-11-01 und 2026-11-17), läuft **nicht parallel** zu Last-Messslices, und die Messsperre `/tmp/claude-1000/-Development-tdswire/messlock` gilt für Messläufe. Er hängt nicht an einem anderen Slice; [slice-cancel-antwort-zwei-nachrichten-angleichen](../in-progress/slice-cancel-antwort-zwei-nachrichten-angleichen.md) hat die Form gebaut und liegt vor diesem Start in `done/`.
+**Start** (`open` → `next` → `in-progress`): Nutzerzeichen und ein Verantwortlicher (`Verantwortlich:` ist bis dahin `—`). Der Slice braucht die gepinnten Referenzinstanzen (EULA bestätigt 2026-11-01 und 2026-11-17), läuft **nicht parallel** zu Last-Messslices, und die Messsperre `/tmp/claude-1000/-Development-tdswire/messlock` gilt für Messläufe. Er hängt nicht an einem anderen Slice; [slice-cancel-antwort-zwei-nachrichten-angleichen](../done/slice-cancel-antwort-zwei-nachrichten-angleichen.md) hat die Form gebaut und liegt vor diesem Start in `done/`.
 
 **Rückführungen — vorab benennen:**
 
@@ -98,7 +98,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 Wird bei der Closure gefüllt.
 
-**Herkunft:** Nutzerentscheid 2026-11-20 im Slice [slice-cancel-antwort-zwei-nachrichten-angleichen](../in-progress/slice-cancel-antwort-zwei-nachrichten-angleichen.md) (A-7 bleibt eine Regel, die Ursache des Zusatzes ist ein eigener Folge-Slice); Verifikation dieses Slice, Finding F-1 und F-4 ([Verifikationsbericht](../../../reviews/2026-11-20-slice-cancel-antwort-zwei-nachrichten-angleichen-verifikation.md)); Register `BEO-TDS/cancel-antwort-text-weicht-vom-echten-server-ab`; [Messprotokoll des Referenzabgleichs](../../../messungen/referenzabgleich.md), Abschnitt „Antwort auf ATTENTION: Zwei-Nachrichten-Form“.
+**Herkunft:** Nutzerentscheid 2026-11-20 im Slice [slice-cancel-antwort-zwei-nachrichten-angleichen](../done/slice-cancel-antwort-zwei-nachrichten-angleichen.md) (A-7 bleibt eine Regel, die Ursache des Zusatzes ist ein eigener Folge-Slice); Verifikation dieses Slice, Finding F-1 und F-4 ([Verifikationsbericht](../../../reviews/2026-11-20-slice-cancel-antwort-zwei-nachrichten-angleichen-verifikation.md)); Register `BEO-TDS/cancel-antwort-text-weicht-vom-echten-server-ab`; [Messprotokoll des Referenzabgleichs](../../../messungen/referenzabgleich.md), Abschnitt „Antwort auf ATTENTION: Zwei-Nachrichten-Form“.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
