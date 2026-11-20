@@ -17,3 +17,5 @@
 **Wiederauftreten (slice-kompatibilitaetsserver-an-referenz-angleichen):** Review F-3: die Tabelle §3 nannte die neue Testdatei nicht; der Reviewer fing es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
 
 **Wiederauftreten (slice-simulation-mehrere-anweisungen-und-ausgabewert):** Review F-6 und Re-Review N-1: neue Dateien und die ADR-Dateien fehlten in der Tabelle; der Reviewer fing es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
+
+**Wiederauftreten (slice-simulation-spaltenlaenge-in-auswahl):** Review F-3 (acht berührte Dateien fehlten) und Verifikation V-1 (`SimulationMerges.kt`, nur KDoc, fehlte nach der Nachbesserung; der Grep des Re-Reviews 2 traf §1 statt §3); Reviewer und Verifier fingen es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.

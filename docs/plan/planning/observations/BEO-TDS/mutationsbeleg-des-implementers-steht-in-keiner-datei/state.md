@@ -1,1 +1,3 @@
 **Stand:** offen — 2× gezählt (`slice-kompatibilitaetsserver-an-referenz-angleichen`, `slice-simulation-mehrere-anweisungen-und-ausgabewert`), unter der Schwelle, nicht verkörpert; die Zahl folgt aus den Dateien in `evidence/`.
+
+**Prüfpunkt eingehalten (slice-simulation-spaltenlaenge-in-auswahl):** der Mutationsbeleg liegt als Datei im Repo (`docs/messungen/spaltenlaenge-mutationen-2026-11-19.md`: Mut-1 bis Mut-21 mit Datei, Testklassen und roten Testfällen); Reviewer und Verifier haben zehn der 21 Mutationen nachgefahren. Das Skript, das die Mutation setzt, und die Wegwerf-Stage liegen weiter nicht im Repo. Kein Auftreten, keine Evidence-Datei; die Zahl bleibt 2×.
