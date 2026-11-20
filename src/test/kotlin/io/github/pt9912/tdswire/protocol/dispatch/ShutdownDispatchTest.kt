@@ -139,10 +139,10 @@ class ShutdownDispatchTest {
         }
 
     /**
-     * Nach Ablauf von `SHUTDOWN_GRACE` bricht der angemeldete Abbruch die laufende Anfrage ab (`SPEC-044` Nr. 4): genau
-     * ein `cancel()`, die Antwort besteht aus dem Paar wie bei ATTENTION (Setzung): die erste Nachricht endet hinter den
-     * schon gesendeten Tokens mit `DONE[ERROR]` bei offenem Ergebnis, die zweite ist `DONE[ATTN]`, ohne ERROR-Token;
-     * danach endet die Verbindung (`ADR-0027` Entscheidung 2c), und die Schleife kehrt zurück.
+     * Nach Ablauf von `SHUTDOWN_GRACE` bricht der angemeldete Abbruch die laufende Anfrage ab (`SPEC-044` Nr. 4):
+     * genau ein `cancel()`, die Antwort besteht aus dem Paar wie bei ATTENTION (Setzung): die erste Nachricht endet
+     * hinter den schon gesendeten Tokens mit `DONE[ERROR]` bei offenem Ergebnis, die zweite ist `DONE[ATTN]`, ohne
+     * ERROR-Token; danach endet die Verbindung (`ADR-0027` Entscheidung 2c), und die Schleife kehrt zurück.
      *
      * @spec SPEC-044
      * @spec SPEC-029
