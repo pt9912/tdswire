@@ -491,7 +491,7 @@ class UnprepareDispatchTest {
      * @spec TDS-FA-07
      */
     @Test
-    fun `ATTENTION waehrend der Antwort der Freigabe bricht sie mit einem DONE ATTN ab`() = blocking {
+    fun `ATTENTION waehrend der Antwort der Freigabe bricht sie mit DONE ERROR und DONE ATTN ab`() = blocking {
         val backend = ScriptedBackend.ofList(*oneRow.toTypedArray())
         val text = (1..10).joinToString(";") { "EXEC sp_unprepare ${it + 90}" }
         val session = Session.login(batch(text))

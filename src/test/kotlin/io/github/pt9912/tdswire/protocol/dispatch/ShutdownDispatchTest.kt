@@ -139,16 +139,17 @@ class ShutdownDispatchTest {
         }
 
     /**
-     * Nach Ablauf von `SHUTDOWN_GRACE` bricht der angemeldete Abbruch die laufende Anfrage wie ATTENTION ab (`SPEC-044`
-     * Nr. 4): genau ein `cancel()`, die Antwort endet mit genau einem `DONE[ATTN]` ohne ERROR, danach endet die
-     * Verbindung (`ADR-0027` Entscheidung 2c), und die Schleife kehrt zurück.
+     * Nach Ablauf von `SHUTDOWN_GRACE` bricht der angemeldete Abbruch die laufende Anfrage ab (`SPEC-044` Nr. 4): genau
+     * ein `cancel()`, die Antwort besteht aus dem Paar wie bei ATTENTION (Setzung): die erste Nachricht endet hinter den
+     * schon gesendeten Tokens mit `DONE[ERROR]` bei offenem Ergebnis, die zweite ist `DONE[ATTN]`, ohne ERROR-Token;
+     * danach endet die Verbindung (`ADR-0027` Entscheidung 2c), und die Schleife kehrt zurück.
      *
      * @spec SPEC-044
      * @spec SPEC-029
      * @spec TDS-FA-07
      */
     @Test
-    fun `Der Ablauf der Frist bricht die Anfrage wie ATTENTION ab und beendet die Verbindung`() = blocking {
+    fun `Der Ablauf der Frist beendet die Antwort mit DONE ERROR und DONE ATTN und die Verbindung`() = blocking {
         val backend = FlowBackend(suspendedAfter(CompletableDeferred(), *oneRow.take(2).toTypedArray()))
         val gate = FakeGate()
         val session = Session.login(BatchVectors.message("lang"), BatchVectors.message("nie"))
@@ -158,9 +159,10 @@ class ShutdownDispatchTest {
         gate.begun = true
         checkNotNull(gate.abort)()
         serving.join()
-        assertEquals(1, session.replies.size)
-        assertTrue(session.hex(0).endsWith(BatchVectors.DONE_ATTN), session.hex(0))
-        assertTrue(session.tokens(0).none { it is ErrorToken })
+        assertEquals(2, session.replies.size)
+        assertTrue(session.hex(0).endsWith(BatchVectors.DONE_ERROR_OPEN), session.hex(0))
+        assertEquals(BatchVectors.DONE_ATTN, session.hex(1))
+        assertTrue(session.tokens(0).none { it is ErrorToken } && session.tokens(1).none { it is ErrorToken })
         assertEquals(1, backend.cancelled.size)
         assertEquals(1, backend.closeCalls)
         assertEquals(1, backend.requests.size, "die zweite Anfrage wird nicht ausgeführt")

@@ -152,9 +152,9 @@ internal class ShutdownWiringTest : RuntimeTestBase() {
     }
 
     /**
-     * Nach Ablauf von `SHUTDOWN_GRACE` (eine Sekunde) wird die laufende Anfrage wie bei ATTENTION abgebrochen: ein
-     * `cancel()`, die Antwort endet mit genau einem `DONE[ATTN]` ohne ERROR, danach endet die Verbindung; der Stop
-     * kehrt nach der Frist zurück.
+     * Nach Ablauf von `SHUTDOWN_GRACE` (eine Sekunde) wird die laufende Anfrage abgebrochen: ein `cancel()`, die
+     * Antwort besteht aus den zwei Nachrichten `DONE[ERROR]` und `DONE[ATTN]` ohne ERROR-Token (Setzung), danach endet
+     * die Verbindung; der Stop kehrt nach der Frist zurück.
      *
      * @spec SPEC-044
      * @spec SPEC-029
@@ -172,6 +172,7 @@ internal class ShutdownWiringTest : RuntimeTestBase() {
             withTimeout(STOP_MILLIS) { server.stop() }
             val waited = (System.nanoTime() - before) / NANOS_PER_MILLI
             assertTrue(waited >= MILLIS_PER_SECOND, "der Stop wartet die Frist ab: $waited ms")
+            assertEquals(BatchVectors.DONE_ERROR, client.reply("Abschluss der Antwort").payload.toHex())
             assertEquals(BatchVectors.DONE_ATTN, client.reply("Bestätigung").payload.toHex())
             assertTrue(client.closedByServerWithoutBytes())
         }
@@ -180,8 +181,8 @@ internal class ShutdownWiringTest : RuntimeTestBase() {
     }
 
     /**
-     * `SHUTDOWN_GRACE` 0 heißt sofort: der Stop wartet nicht auf die laufende Anfrage, bricht sie ab (`DONE[ATTN]`) und
-     * beendet die Verbindung.
+     * `SHUTDOWN_GRACE` 0 heißt sofort: der Stop wartet nicht auf die laufende Anfrage, bricht sie ab (`DONE[ERROR]` und
+     * `DONE[ATTN]`) und beendet die Verbindung.
      *
      * @spec SPEC-044
      * @spec SPEC-047
@@ -195,6 +196,7 @@ internal class ShutdownWiringTest : RuntimeTestBase() {
             client.send(batch("haengt"))
             backend.collecting.await()
             withTimeout(STOP_MILLIS) { server.stop() }
+            assertEquals(BatchVectors.DONE_ERROR, client.reply("Abschluss der Antwort").payload.toHex())
             assertEquals(BatchVectors.DONE_ATTN, client.reply("Bestätigung").payload.toHex())
             assertTrue(client.closedByServerWithoutBytes())
         }
