@@ -220,9 +220,10 @@ internal class ServerSmokeTest : TempFilesTest() {
     /**
      * Prozess-Stop mit einer ruhenden Verbindung und einer laufenden Anfrage (Zeilen ohne Ende, `SHUTDOWN_GRACE` 1 s,
      * `CANCEL_TIMEOUT` 1 s): SIGTERM beendet den Prozess mit der Zeile `gestoppt`, die ruhende Verbindung ist
-     * getrennt, die laufende Anfrage endet nach der Frist mit dem Paar `DONE[ERROR]` und `DONE[ATTN]`; die Antwort
-     * endet mit `DONE[ATTN]`, ohne weitere Bytes danach. Gemessen ist der Prozess mit Rohbytes-Client, nicht der
-     * Referenzclient.
+     * getrennt, die Antwort der laufenden Anfrage endet nach der Frist mit `DONE[ATTN]` (die letzten 13 Byte), ohne
+     * weitere Bytes danach. Dass die Antwort aus dem Paar `DONE[ERROR]` und `DONE[ATTN]` besteht, belegen
+     * `ShutdownDispatchTest` und `ShutdownWiringTest`, nicht dieser Test. Gemessen ist der Prozess mit
+     * Rohbytes-Client, nicht der Referenzclient.
      *
      * @spec SPEC-044
      * @spec SPEC-047

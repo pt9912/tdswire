@@ -49,8 +49,8 @@ class PairConclusionTest {
 
     /**
      * Scheitert schon das Schreiben der ersten Nachricht, geht die zweite nicht hinaus, die Sitzung schließt mit
-     * `WRITE_FAILED`, und die Antwort der Schleife ist kein Ereignis `RequestFinished` mehr (ein solches in `CLOSED`
-     * wäre ein unzulässiger Übergang und änderte den Grund des Schließens).
+     * `WRITE_FAILED`, und die Antwort der Schleife ist kein Ereignis `RequestFinished` mehr: ein solches Ereignis in
+     * `CLOSED` ist ein unzulässiger Übergang und setzt den Grund des Schließens auf `PROTOCOL_VIOLATION`.
      *
      * @spec SPEC-029
      * @spec SPEC-031

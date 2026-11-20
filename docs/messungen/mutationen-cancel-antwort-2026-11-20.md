@@ -49,4 +49,6 @@ Neue Klasse `PairConclusionTest` (drei Fälle) und die Tests des Beendens im Paa
 | N1 | `AbortedAnswer.conclude`: `SHUTDOWN` wieder als einzelnes `DONE[ATTN]` angehängt | rot, 3 von 14: `ShutdownDispatchTest > Der Ablauf der Frist beendet die Antwort mit DONE ERROR und DONE ATTN und die Verbindung`, zwei in `ShutdownWiringTest` (Ablauf der Frist, `SHUTDOWN_GRACE` 0) |
 | N5 | `AbortedAnswer.conclude`: `SHUTDOWN` mit `connectionOpen = true` | rot, 1 von 14: `ShutdownDispatchTest > Der Ablauf der Frist beendet …` (Zustand `CLOSED` erwartet) |
 
+Die Nummern der Runde folgen der Reihenfolge des Laufs (N1, R11, R12, R13, N5); die Plätze N2 bis N4 hat R11 bis R13 belegt, eine eigene Mutation mit diesen Nummern wurde nicht gefahren.
+
 Die Form im Beenden (Paar statt einzelnem `DONE[ATTN]`) ist Setzung des Nutzers vom 2026-11-20 und am echten Server nicht gemessen; N1 belegt nur, dass die Tests sie unterscheiden.
