@@ -6,6 +6,10 @@ internal fun tableRef(name: String, schema: String? = null): TableRef = TableRef
 internal fun select(table: TableRef, columns: List<String>?, vararg where: Term): Statement =
     Statement.Select(table, columns, where.toList())
 
+/** Eine Auswahl, deren Terme durch `OR` verbunden sind (`ADR-0058` Entscheidung 3). */
+internal fun selectAny(table: TableRef, columns: List<String>?, vararg where: Term): Statement =
+    Statement.Select(table, columns, where.toList(), disjunction = true)
+
 internal fun insert(table: TableRef, columns: List<String>, vararg values: SimValue): Statement =
     Statement.Insert(table, columns, values.toList())
 

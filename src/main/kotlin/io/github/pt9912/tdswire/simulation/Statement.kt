@@ -1,5 +1,7 @@
 package io.github.pt9912.tdswire.simulation
 
+import kotlin.time.Duration
+
 /**
  * Ein Wert aus dem Anweisungstext, so wie er dort steht (`SPEC-036` Wert). Die Überführung in den
  * Spaltentyp (`SPEC-035`) ist nicht geschehen: [Number] trägt die Schreibweise, [Text] den entschachtelten Text.
@@ -45,8 +47,16 @@ internal data class Assignment(val column: String, val value: SimValue)
 internal sealed interface Statement {
     val table: TableRef
 
-    /** S1: `columns` ist `null` bei `*`. */
-    data class Select(override val table: TableRef, val columns: List<String>?, val where: List<Term>) : Statement
+    /**
+     * S1: `columns` ist `null` bei `*`. [disjunction] ist wahr, wenn die Terme von [where] durch `OR` statt durch `AND`
+     * verbunden sind (mindestens zwei Terme, keiner ein Konstantenterm).
+     */
+    data class Select(
+        override val table: TableRef,
+        val columns: List<String>?,
+        val where: List<Term>,
+        val disjunction: Boolean = false,
+    ) : Statement
 
     /** W1: Spalten und Werte gleich viele, in der Reihenfolge des Textes. */
     data class Insert(override val table: TableRef, val columns: List<String>, val values: List<SimValue>) : Statement
@@ -134,6 +144,9 @@ internal sealed interface FixedForm {
     /** `SELECT 1`: der Verbindungstest. */
     data object Probe : FixedForm
 
+    /** `SELECT <Ganzzahl>` im Bereich von `Int32` außer `SELECT 1` ([Probe]); [value] ist die Zahl. */
+    data class IntegerConstant(val value: Int) : FixedForm
+
     /** Eine oder mehrere `SET`-Anweisungen, durch `;` getrennt. */
     data class Settings(val options: List<SetOption>) : FixedForm
 
@@ -165,6 +178,9 @@ internal sealed interface Recognition {
     data class Bulk(val table: TableRef, val columns: List<String>) : Recognition
 
     data class Fixed(val form: FixedForm) : Recognition
+
+    /** `WAITFOR DELAY` (`SPEC-036`, Form Z): die Wartezeit des Textes. */
+    data class Wait(val delay: Duration) : Recognition
 
     data class NotRecognized(val reason: Unrecognized) : Recognition
 }

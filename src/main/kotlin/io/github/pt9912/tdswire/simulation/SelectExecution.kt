@@ -25,7 +25,7 @@ internal object SelectSeries {
      */
     fun prepare(plans: List<Plan>, parameters: List<QueryParameter>): PreparedSeries {
         val prepared = plans.map {
-            RowConditions.prepare((it.statement as Statement.Select).where, it.table, parameters)
+            RowConditions.prepare(it.statement as Statement.Select, it.table, parameters)
         }
         val invalid = prepared.filterIsInstance<PreparedCondition.Invalid>().firstOrNull()
         return when {

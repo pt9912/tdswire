@@ -39,6 +39,48 @@ class SimulationBackendFixedTest {
     }
 
     /**
+     * Happy und Boundary zu `ADR-0058` Entscheidung 4: `SELECT <Ganzzahl>` antwortet wie `SELECT 1` (eine Spalte ohne
+     * Namen vom Typ `Int32`, nicht NULL-fähig, eine Zeile, `ResultEnd(1)`), mit der Zahl als Wert; gemessen ist der
+     * Wert 2 (Setzung für die übrigen, auch die Grenzen von `Int32`). Die Zeilenquelle bleibt ungeöffnet.
+     * Wächter: ein Wert, der immer 1 ist, oder ein Vorzeichen, das verloren geht.
+     * @spec SPEC-036
+     */
+    @Test
+    fun `SELECT mit einer Ganzzahl liefert die Zahl wie SELECT 1`() {
+        val column = ResultColumn("", SqlType.Int32, false)
+        for (value in listOf(2, -2, 0, Int.MAX_VALUE, Int.MIN_VALUE)) {
+            val probe = Probe(rows)
+            val events = run("SELECT $value", probe)
+
+            assertEquals(
+                listOf(QueryEvent.ResultStart(listOf(column)), QueryEvent.Row(listOf(value)), QueryEvent.ResultEnd(1)),
+                events,
+                "SELECT $value",
+            )
+            assertEquals(0, probe.opens, "SELECT $value")
+        }
+    }
+
+    /**
+     * Negativ zu `ADR-0058` Entscheidung 4: jede Abwandlung endet als einziges `Failure` `TDS_UNSUPPORTED_SQL`, ohne
+     * die Zeilenquelle zu öffnen.
+     * @spec SPEC-036
+     * @spec SPEC-037
+     */
+    @Test
+    fun `SELECT mit Abwandlungen der Ganzzahl ist TDS_UNSUPPORTED_SQL`() {
+        val probe = Probe(rows)
+        listOf(
+            "SELECT 2147483648", "SELECT 1 + 1", "SELECT 1 / 0", "SELECT 1, 2", "SELECT 2 AS x", "SELECT 'a'",
+            "SELECT NULL", "SELECT 1.5", "SELECT @p", "SELECT @@VERSION", "SELECT 2; SELECT 2",
+        ).forEach { sql ->
+            val failure = assertIs<QueryEvent.Failure>(run(sql, probe).single(), sql)
+            assertEquals(SimCodes.UNSUPPORTED_SQL, failure.code, sql)
+        }
+        assertEquals(0, probe.opens)
+    }
+
+    /**
      * Happy: jede `SET`-Anweisung, auch der Text mit sieben, endet als Änderungszähler 0 und nicht als Ergebnis
      * ohne Anfang; die Zeilenquelle bleibt ungeöffnet. Keiner der Texte meldet eine Art; `set implicit_transactions
      * off` allein ist nicht gemessen und bleibt `UNKNOWN` (ADR-0042 Entscheidung 2).
@@ -61,12 +103,12 @@ class SimulationBackendFixedTest {
 
     /**
      * Negativ: Text außerhalb der Form C endet als einziges `Failure` `TDS_UNSUPPORTED_SQL`, auch ein `SET` mit
-     * unbekannter Option und `SELECT 2`.
+     * unbekannter Option und `SELECT 2.5`.
      * @spec SPEC-037
      */
     @Test
     fun `Text ausserhalb der Form C ist TDS_UNSUPPORTED_SQL`() {
-        listOf("SET FOO ON", "SET LOCK_TIMEOUT ON", "SELECT 2", "SET ANSI_NULLS ON; SELECT 1").forEach { sql ->
+        listOf("SET FOO ON", "SET LOCK_TIMEOUT ON", "SELECT 2.5", "SET ANSI_NULLS ON; SELECT 1").forEach { sql ->
             val failure = assertIs<QueryEvent.Failure>(run(sql).single(), sql)
             assertEquals(SimCodes.UNSUPPORTED_SQL, failure.code, sql)
         }

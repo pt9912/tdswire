@@ -3,6 +3,7 @@ package io.github.pt9912.tdswire.simulation
 import io.github.pt9912.tdswire.domain.StatementKind
 import io.github.pt9912.tdswire.port.BulkTarget
 import io.github.pt9912.tdswire.port.BulkTargetResult
+import kotlin.time.Duration
 
 /**
  * Namen der Fehlercodes, die das Simulations-Backend meldet (`SPEC-037`, `SPEC-038`, `SPEC-039`). `simulation` darf
@@ -101,6 +102,9 @@ internal sealed interface PlanResult {
     /** Ein Text der Form C: keine Tabelle, die Antwort steht fest. */
     data class Fixed(val form: FixedForm) : PlanResult
 
+    /** Ein Text der Form Z (`WAITFOR DELAY`): keine Tabelle, die Wartezeit steht fest. */
+    data class Wait(val delay: Duration) : PlanResult
+
     /** Die Anfrage endet mit dem Fehler [code] (ein Wert von [SimCodes]), bevor etwas gelesen wird. */
     data class Rejected(val code: String, val message: String, val objectName: String? = null) : PlanResult
 }
@@ -123,6 +127,8 @@ internal class StatementPlanner(private val catalogs: () -> SimCatalog) {
             reject(SimCodes.UNSUPPORTED_SQL, "Anweisung nicht erkannt: ${recognition.reason}")
 
         is Recognition.Fixed -> PlanResult.Fixed(recognition.form)
+
+        is Recognition.Wait -> PlanResult.Wait(recognition.delay)
 
         is Recognition.Catalog -> PlanResult.Catalog(recognition.form, catalogs(), recognition.literal)
 
