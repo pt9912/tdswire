@@ -50,9 +50,12 @@ internal object BulkForms {
     }
 
     /**
-     * Die Auswahl hinter `SET FMTONLY ON` liefert Spalten und nie eine Zeile; jede andere Form ist nicht erkannt. Eine
-     * `OR`-Folge der Auswahl wird zur UND-Folge mit dem Konstantenterm, der nie gilt: die Spalten der Bedingung bleiben
-     * geprüft, und die Zeilenquelle bleibt zu. `WAITFOR` ist nur als einziger Text erkannt, nicht hinter `FMTONLY`.
+     * Die Auswahl hinter `SET FMTONLY ON` liefert Spalten und nie eine Zeile. Eine `OR`-Folge der Auswahl wird zur
+     * UND-Folge mit dem Konstantenterm, der nie gilt: die Spalten der Bedingung bleiben geprüft, und die Zeilenquelle
+     * bleibt zu. Eine erkannte Änderung und `WAITFOR` (nur als einziger Text erkannt) sind hinter `FMTONLY` nicht
+     * erkannt; jede andere Erkennung (Folge, Konstantenauswahl, Katalogform, `INSERT BULK`) und jede Abweisung gibt die
+     * Funktion unverändert weiter, `SET FMTONLY ON SELECT 2` ist also die Form C und liefert die Zeile (Setzung des
+     * Baus, am Server nicht gemessen).
      */
     private fun metadataOnly(recognized: Recognition): Recognition {
         val select = (recognized as? Recognition.Recognized)?.statement as? Statement.Select
