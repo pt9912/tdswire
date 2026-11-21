@@ -1,6 +1,6 @@
 # ADR-0058: `OR` in der Auswahl, die Auswahl einer Ganzzahlkonstante und `WAITFOR DELAY` sind erkannte Formen des Simulations-Backends; die Division durch null bleibt Ausdruck (ersetzt teilweise ADR-0033 Nr. 11 und ADR-0012 Entscheidung 14 und Offen 12)
 
-**Status:** Proposed (Entscheidung des Nutzers je Form vom 2026-11-21; die Grenzen unten sind Vorschläge des Architect, die Annahme steht aus)
+**Status:** Accepted (vom Nutzer entschieden, 2026-11-21)
 
 **Datum:** 2026-11-21
 
@@ -118,6 +118,7 @@ Eine Messung am echten Server zu `WAITFOR` (Ende ohne Abbruch, andere Fristforme
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-11-21 | Proposed: Entscheidungen des Nutzers je Form (A-5 und A-4 und A-15 Code angleichen, Lesart verworfen, A-17 so gewollt); Grenzen als Setzungen des Architect | Auftrag an den Architect vom 2026-11-21, [Messprotokoll](../../messungen/referenzabgleich.md) |
+| 2026-11-21 | Accepted; Entscheidung des Nutzers pt9912: alle fünf offenen Fragen mit dem Vorschlag der ADR beantwortet (Lesart allgemein verworfen; `OR` nur in S1 als reine Folge; `batch-batch-abbrechend` bleibt abgewiesen, S2 wächst nicht; Setzungen passen; Lastenheft unverändert) | Nutzerentscheidung vom 2026-11-21 |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit
