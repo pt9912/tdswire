@@ -194,12 +194,15 @@ O(übertragene Bytes).
 1. Anweisungstext normalisieren: Leerraum und Kommentare außerhalb von Literalen und Bezeichnern
    überlesen, ein einzelnes abschließendes `;` entfernen. Mehrere Anweisungen in einem Text gelten
    als nicht erkannt, solange das Clientprofil sie nicht verlangt; die Texte, die d-migrate verlangt
-   (Form C, `SPEC-036`), der Text der Form D7 und zwei Auswahlen (Form S2) sind die Ausnahme. Ein Text, der dem Wortlaut einer Katalogabfrage entspricht
+   (Form C, `SPEC-036`), der Text der Form D7 und zwei Auswahlen (Form S2) sind die Ausnahme. `WAITFOR DELAY` (Form Z) ist
+   ein einzelner Text und steht nie in einer Folge. Ein Text, der dem Wortlaut einer Katalogabfrage entspricht
    (Form K), wird vor dem Zeichenscanner zugeordnet.
 2. Die Anweisung anhand ihres Textes genau einer Form aus `SPEC-036` zuordnen. Das geschieht mit
    einem Zeichenscanner, der Literale, Bezeichner und Kommentare erkennt, nicht mit einer
    Auswertung von SQL. Ohne Zuordnung endet die Anfrage mit `TDS_UNSUPPORTED_SQL`, bevor eine
-   Zeilenquelle gelesen oder ein Callback gerufen wird.
+   Zeilenquelle gelesen oder ein Callback gerufen wird. Die Liste der Formen ist keine Obergrenze des Lastenhefts, sondern die
+   Festlegung der Spezifikation (`SPEC-036`): was keine Form ist, ist nicht erkannt, auch wenn das Lastenheft es nicht
+   ausschließt.
 3. Tabelle (Schema, Name) und alle genannten Spalten gegen die Tabellenbeschreibungen (`SPEC-035`)
    prüfen. Unbekanntes endet mit `TDS_SIM_UNKNOWN_OBJECT`, ebenfalls vor dem Lesen. Ohne Schema gilt
    `dbo`.
@@ -209,8 +212,10 @@ O(übertragene Bytes).
 5. Auswahl: `ResultStart` mit den Spalten der Auswahlliste (bei `*` alle, in der Reihenfolge der
    Beschreibung) senden, auch wenn keine Zeile passt. Danach Zeilen einzeln aus der Zeilenquelle
    lesen, die Bedingung auf jede Zeile anwenden, passende als `Row` senden und mit `ResultEnd` und
-   der Zeilenzahl abschließen; bei zwei Auswahlen (Form S2) folgt das Ergebnis der zweiten auf das der ersten. Das Backend wendet die Bedingung immer selbst an; ein Vorfilter der
-   Zeilenquelle ist nur eine Optimierung. Gelesen wird nur so schnell, wie der Transport Zeilen
+   der Zeilenzahl abschließen; `SELECT <Ganzzahl>` (Form C) antwortet ohne Tabelle mit einer Zeile; `WAITFOR DELAY` (Form Z)
+   wartet die Zeit ab, ohne dass etwas gesendet wird, und endet dann mit dem Änderungszähler 0 (`SPEC-036`); bei zwei Auswahlen (Form S2) folgt das Ergebnis der zweiten auf das der ersten. Das Backend wendet die Bedingung immer selbst an; ein Vorfilter der
+   Zeilenquelle ist nur eine Optimierung, und bei einer `OR`-Folge (`SPEC-036`, Term) ist er `null`: `RowFilter` ist eine
+   Konjunktion, eine Disjunktion hat dort keine Form, und die Zeilenquelle liefert alle Zeilen. Gelesen wird nur so schnell, wie der Transport Zeilen
    abnimmt (Backpressure, `TDS-FA-08.a`); das Resultset wird nicht vollständig gehalten.
 6. Einfügen, Ändern, Löschen: Werte nach Schritt 4 prüfen, den Callback der Tabelle rufen und dessen
    Zahl als `UpdateCount` mit der Art der Anweisung (`INSERT`, `UPDATE`, `DELETE`) senden. Hat die Tabelle für die Anweisung keinen Callback, endet sie mit
@@ -638,7 +643,10 @@ trägt davor die schon geschriebenen Tokens), sonst `0x00fd` (wartender Befehl: 
 allein). Gemessen am Referenzclient `Microsoft.Data.SqlClient` 7.1.1 gegen SQL Server 2022 und 2025 (Messprotokoll des
 Referenzabgleichs, Mitschnitt-Lauf Ergebnis 5, A-13; Einzelmessung, je Szenario und Instanz eine Aufnahme): `Cancel()` im
 Stream (nach einem Antwortpaket) und bei einem wartenden Befehl (`WAITFOR`, Frist oder `Cancel()`) ergeben beide
-Instanzen diese Form, die Bytes beider `DONE` sind in den Aufnahmen gleich den Handvektoren der Tests. Nicht gemessen
+Instanzen diese Form, die Bytes beider `DONE` sind in den Aufnahmen gleich den Handvektoren der Tests. Der wartende Befehl
+des Servers dieses Repos ist `WAITFOR DELAY` (`SPEC-036`, Form Z): das Backend wartet suspendierend und beachtet den Cancel,
+ein ATTENTION in der Wartezeit endet im Paar (Test mit Handvektor: `WaitForWireTest`), und die vier Szenarien `WAITFOR` des
+Mitschnitt-Laufs spielen den Abbruch eines wartenden Befehls am Server ab. Nicht gemessen
 und Setzung dieses Servers: die Form in der Antwort auf einen RPC (erste Nachricht endet mit DONEPROC mit `ERROR`,
 Befehl `0x00e0`, ohne RETURNSTATUS; in der Antwort auf die Nachricht des Massenladens mit DONE `ERROR`, Befehl
 `0x00f0`), das Verhalten bei mehreren RPCs einer Nachricht (die Antwort der fertigen Aufrufe bleibt stehen) und
@@ -1281,12 +1289,13 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
 
 | Form | Muster | Antwort |
 |---|---|---|
-| S1 | `SELECT <Spaltenliste \| *> FROM [<Schema>.]<Tabelle> [WHERE <Term> {AND <Term>}]` | Resultset |
-| S2 | zwei Auswahlen der Form S1 in einem Text, durch `;` getrennt, ohne Parameter (zwei Auswahlen mit Parametern erkennt der Parser; das Backend weist sie nach der Prüfung gegen die Beschreibung ab, bei nicht beschriebenem Objekt mit `TDS_SIM_UNKNOWN_OBJECT`, sonst mit `TDS_UNSUPPORTED_SQL`; Setzung der Grenze: gemessen ist `SELECT Id FROM person WHERE Id = 1; SELECT Id FROM person WHERE Id = 2`, Mitschnitt `mehrteilig`, 2022 und 2025, je ein Fall) | zwei Resultsets in der Reihenfolge des Textes; das erste Abschluss `DONE` mit `MORE` und `COUNT`, das zweite `DONE` mit `COUNT` (gemessen, beide mit Befehl `0x00c1`); Festlegungen, nicht gemessen: ist Tabelle oder Spalte einer der beiden Auswahlen nicht beschrieben oder ein Wert nicht in den Spaltentyp überführbar, ist der ganze Text abgewiesen, bevor etwas gelesen wird (`TDS_SIM_UNKNOWN_OBJECT`, `TDS_SIM_INVALID_VALUE`); scheitert die Zeilenquelle der zweiten Auswahl nach dem vollständigen ersten Ergebnis, ist der Fehler das letzte Ereignis (`TDS_BACKEND_ERROR`), nach einem Fehler der ersten Quelle folgt keine zweite Auswahl und kein Ausgabewert |
+| S1 | `SELECT <Spaltenliste \| *> FROM [<Schema>.]<Tabelle> [WHERE <Term> {AND <Term>} \| WHERE <Term> OR <Term> {OR <Term>}]` (eine reine `AND`-Folge oder eine reine `OR`-Folge aus mindestens zwei Termen, Absatz „Term“) | Resultset |
+| S2 | zwei Auswahlen der Form S1 in einem Text, durch `;` getrennt, ohne Parameter (zwei Auswahlen mit Parametern erkennt der Parser; das Backend weist sie nach der Prüfung gegen die Beschreibung ab, bei nicht beschriebenem Objekt mit `TDS_SIM_UNKNOWN_OBJECT`, sonst mit `TDS_UNSUPPORTED_SQL`; Setzung der Grenze: gemessen ist `SELECT Id FROM person WHERE Id = 1; SELECT Id FROM person WHERE Id = 2`, Mitschnitt `mehrteilig`, 2022 und 2025, je ein Fall) | zwei Resultsets in der Reihenfolge des Textes; das erste Abschluss `DONE` mit `MORE` und `COUNT`, das zweite `DONE` mit `COUNT` (gemessen, beide mit Befehl `0x00c1`); Festlegungen, nicht gemessen: ist Tabelle oder Spalte einer der beiden Auswahlen nicht beschrieben oder ein Wert nicht in den Spaltentyp überführbar, ist der ganze Text abgewiesen, bevor etwas gelesen wird (`TDS_SIM_UNKNOWN_OBJECT`, `TDS_SIM_INVALID_VALUE`); scheitert die Zeilenquelle der zweiten Auswahl nach dem vollständigen ersten Ergebnis, ist der Fehler das letzte Ereignis (`TDS_BACKEND_ERROR`), nach einem Fehler der ersten Quelle folgt keine zweite Auswahl und kein Ausgabewert; jede der zwei Auswahlen trägt ihre eigene Bedingung, auch eine `OR`-Folge (Setzung, nicht gemessen); `SELECT <Ganzzahl>` gehört zu keiner Folge |
 | W1 | `INSERT INTO [<Schema>.]<Tabelle> (<Spalten>) VALUES (<Werte>)` | Änderungszähler |
 | W2 | `UPDATE [<Schema>.]<Tabelle> SET <Spalte> = <Wert> {, <Spalte> = <Wert>} [WHERE <Term> {AND <Term>}]` | Änderungszähler |
 | W3 | `DELETE FROM [<Schema>.]<Tabelle> [WHERE <Term> {AND <Term>}]` | Änderungszähler |
-| C | `SELECT 1`, oder eine oder mehrere `SET`-Anweisungen aus der Liste unten, durch `;` getrennt, oder ein Transaktionstext (unten) | `SELECT 1`: Resultset mit einer Spalte ohne Namen (`Int32`, nicht NULL) und der Zeile 1; `SET`: Änderungszähler 0, `set implicit_transactions on|off` allein mit der Art `IMPLICIT_TRANSACTIONS_ON` bzw. `_OFF`; Transaktionstext: siehe unten |
+| C | `SELECT <Ganzzahl>` (Ganzzahlliteral im Bereich von `Int32`, ohne `FROM`, `WHERE`, Alias und weitere Spalte), oder eine oder mehrere `SET`-Anweisungen aus der Liste unten, durch `;` getrennt, oder ein Transaktionstext (unten) | `SELECT <Ganzzahl>`: Resultset mit einer Spalte ohne Namen (`Int32`, nicht NULL) und der Zeile mit der Zahl (`SELECT 1` ist der Verbindungstest; gemessen ist der Wert 2 als zweite Anweisung eines Textes, Mitschnitt `batch-statement-abbrechend`, 2022 und 2025); `SET`: Änderungszähler 0, `set implicit_transactions on|off` allein mit der Art `IMPLICIT_TRANSACTIONS_ON` bzw. `_OFF`; Transaktionstext: siehe unten |
+| Z | `WAITFOR DELAY '<hh>:<mm>:<ss>'` als einziger Text (Absatz „Form Z“ unten) | wartet die Zeit ab, ohne ein Ereignis zu senden (ein wartender Befehl, `SPEC-029`); Abbruch durch ATTENTION: das Paar `DONE[ERROR]` mit Befehl `0x00fd` und `DONE[ATTN]` (gemessen, `'00:00:10'`); Ende der Wartezeit: Änderungszähler 0 ohne Art (Setzung, nicht gemessen) |
 | K | der Wortlaut einer Katalogabfrage von d-migrate 1.12.0 (Liste unten) | Resultset aus dem Katalog |
 | D1 | `CREATE TABLE [<Schema>.]<Tabelle> (<Eintrag> {, <Eintrag>})` mit Spalten (auch `CONSTRAINT <Name> DEFAULT <Literal>` und `CONSTRAINT <Name> UNIQUE`) und Bedingungen der Tabelle (`[CONSTRAINT <Name>] PRIMARY KEY`, `CONSTRAINT <Name> UNIQUE \| FOREIGN KEY \| CHECK`), höchstens ein Schlüssel | Abschluss der Art `CREATE_TABLE` (`0x00c6`, ohne `COUNT`) |
 | D2 | `ALTER TABLE [<Schema>.]<Tabelle> ADD <Spalte> {, <Spalte>}` | Abschluss der Art `ALTER_TABLE` (`0x00d8`, ohne `COUNT`) |
@@ -1298,7 +1307,17 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
 | B | `INSERT BULK [<Schema>.]<Tabelle> (<Spalte> <Typ> {, <Spalte> <Typ>}) [WITH (<Optionen>)]`, danach die Nachricht `0x07` (`SPEC-001`) | `INSERT BULK`: DONE ohne Zähler, Befehl `0x00fd`; die Nachricht: DONE mit Zähler der geladenen Zeilen, Befehl `0x00f0` (beides gemessen, `SPEC-001`) |
 | M | `MERGE INTO [<Schema>.]<Tabelle> AS <T> USING (VALUES (<Wert> {, <Wert>})) AS <Q> (<Spalte> {, <Spalte>}) ON <T>.<Spalte> = <Q>.<Spalte> {AND …} [WHEN MATCHED THEN UPDATE SET <T>.<Spalte> = <Q>.<Spalte> {, …}] WHEN NOT MATCHED THEN INSERT (<Spalte> {, <Spalte>}) VALUES (<Q>.<Spalte> {, <Q>.<Spalte>}) OUTPUT $action` | Resultset mit der Spalte `$action` (Text, nicht NULL) und je Aktion einer Zeile `INSERT` oder `UPDATE`, keine Zeile ohne Aktion (gemessen, Form M unten) |
 
-- **Term:** `<Spalte> = <Wert>`, `<Spalte> IN (<Wert> {, <Wert>})` oder `<Spalte> IS [NOT] NULL`. Nur in S1 zusätzlich
+- **Term:** `<Spalte> = <Wert>`, `<Spalte> IN (<Wert> {, <Wert>})` oder `<Spalte> IS [NOT] NULL`. Die Terme einer Bedingung
+  sind in `UPDATE` und `DELETE` durch `AND` verbunden; eine Auswahl (S1) darf stattdessen eine **reine `OR`-Folge** aus
+  mindestens zwei Termen tragen: alle Verbindungen sind `OR`, eine Zeile trifft, wenn mindestens ein Term gilt. Gemessen
+  ist nur `Id = 1 OR Id = 2` (zwei `=` auf derselben Spalte, nur der Erfolg, Live-Schritt `bedingung-mit-or`); die Zulassung
+  von `IN` und `IS [NOT] NULL` in der Folge und von mehr als zwei Termen ist Setzung. Ein `NULL` in `=` oder `IN` trifft nie
+  (wie bei `AND`; ohne `NOT` ist das Ergebnis mit zwei- und dreiwertiger Logik gleich, abgeleitet, nicht gemessen). Das
+  Backend wendet die `OR`-Bedingung selbst an; der Vorfilter der Zeilenquelle (`SimQuery.filter`) ist bei ihr `null`, weil
+  `RowFilter` eine Konjunktion ist, und die Zeilenquelle liefert alle Zeilen. Nicht erkannt sind eine Mischung aus `AND` und
+  `OR` (die Rangfolge wäre Auswertung von SQL, nicht gemessen), jede Klammer, der Konstantenterm in einer `OR`-Folge und
+  `OR` in `UPDATE` und `DELETE` (ein Callback läse eine Disjunktion als UND oder als „alle Zeilen“ und änderte die
+  falschen Zeilen; `RowFilter` ist Teil der öffentlichen Fläche, `SPEC-059`). Nur in S1 zusätzlich
   der Konstantenterm `<Ganzzahl> = <Ganzzahl>` (Ganzzahl: Ziffern mit optionalem führendem `-`): er gilt für jede Zeile,
   wenn beide Zahlen gleich sind, sonst für keine; `WHERE 1 = 0` liefert also die Spalten der Auswahl und keine Zeile,
   ohne dass die Zeilenquelle geöffnet wird, `WHERE 1 = 1` jede Zeile. Der Konstantenterm ist eine Setzung: gemessen ist
@@ -1316,19 +1335,27 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   Bezeichner setzt `QUOTED_IDENTIFIER ON` voraus; beides ist an der Referenzinstanz zu messen
   (`SPEC-045`).
 - **Nicht erkannt** (`TDS_UNSUPPORTED_SQL`; Verbund, Aggregat, Ausdruck, Unterabfrage und Sortierung
-  schließt das Lastenheft wörtlich aus; für die übrigen Fälle gilt die Setzung, dass die Liste der Formen
-  abschließend ist, eine Lesart des Lastenhefts, vom Nutzer nicht bestätigt):
+  schließt das Lastenheft wörtlich aus; die übrigen Fälle sind abgewiesen, weil sie nicht gebaut und nicht gemessen
+  sind, nicht weil das Lastenheft sie ausschlösse: die positive Aufzählung des Lastenhefts ist keine Obergrenze der
+  erkannten Formen, aber was keine Form dieser Liste ist, endet mit `TDS_UNSUPPORTED_SQL`, und die Liste wächst nur durch
+  eine Änderung dieser Spezifikation; ein einzelnes Ganzzahlliteral als Auswahlliste ist kein Ausdruck, jedes Rechenzeichen
+  zwischen Operanden, jede Funktion, Variable und Systemvariable ist einer):
   `JOIN` und weitere Relationen, Unterabfragen, `WITH`,
   Aggregate und `GROUP BY`, `DISTINCT`, `TOP`, `ORDER BY`, `OFFSET`/`FETCH`, Aliase für Tabellen (außer `AS <Alias>` der Form M) und
-  Spalten, Ausdrücke und Funktionen in Listen und Bedingungen, `OR`, `NOT`, `<`, `>`, `LIKE`, `BETWEEN` (in den Bedingungen von S1 bis W3; im
+  Spalten, Ausdrücke und Funktionen in Listen und Bedingungen (darunter `SELECT 1 + 1`, `SELECT 1 / 0`, `SELECT 1, 2`, `SELECT 2 AS x`, jede
+  andere Konstante als eine Ganzzahl im Bereich von `Int32`: Text, `NULL`, Dezimalzahl, `@p`, `@@VERSION`), `OR` außerhalb der reinen Folge in S1
+  (Mischung mit `AND`, Klammer, Konstantenterm in der Folge, `OR` in `UPDATE`, `DELETE` und jeder anderen Form), `NOT`, `<`, `>`, `<>`, `!=`, `NOT IN`, `LIKE`, `BETWEEN` (in den Bedingungen von S1 bis W3; im
   Ausdruck einer Prüfbedingung der Form D gelten `OR`, `<` und `>`, unten),
   `OUTPUT`-Klauseln (außer `OUTPUT $action` der Form M), mehrere Anweisungen in einem Text (außer Form C, dem Text der Form D7, der aus mehreren Anweisungen besteht und als Ganzes erkannt ist, und Form S2: eine dritte Auswahl, eine Folge mit einer anderen Anweisung als S1 und ein leeres Stück zwischen zwei `;` sind nicht erkannt und enden vor jeder Prüfung gegen die Beschreibung mit `TDS_UNSUPPORTED_SQL`, auch bei nicht beschriebenem Objekt; zwei Auswahlen mit Parametern erkennt der Parser, das Backend weist sie nach der Prüfung gegen die Beschreibung ab, mit `TDS_SIM_UNKNOWN_OBJECT` bei nicht beschriebenem Objekt, sonst mit `TDS_UNSUPPORTED_SQL`; beides, weil nur der Text mit zwei Auswahlen ohne Parameter gemessen ist) und alles, was keine Form
   der Tabelle ist.
 - **Form C** (Setzung nach der Aufzeichnung von d-migrate 1.12.0 mit mssql-jdbc 13.4.0.jre11, 2026-11-05, gegen den
-  Testserver; für den Referenzclient ist keine Anweisung der Form gemessen): `SELECT 1` ist der Verbindungstest des
+  Testserver; für den Referenzclient ist von der Form nur `SELECT 2` gemessen, als zweite Anweisung eines Textes (Mitschnitt
+  `batch-statement-abbrechend`) und als Live-Schritt `anweisung-ohne-tabelle` (nur: gelingt)): `SELECT 1` ist der Verbindungstest des
   Pools, `SET LOCK_TIMEOUT 30000` folgt jedem Verbindungsaufbau, und `data import` sendet in einem Text sieben
   `SET`-Anweisungen (`ANSI_NULLS ON`, `ANSI_PADDING ON`, `ANSI_WARNINGS ON`, `ARITHABORT ON`,
-  `CONCAT_NULL_YIELDS_NULL ON`, `NUMERIC_ROUNDABORT OFF`, `QUOTED_IDENTIFIER ON`). Erkannt ist `SELECT 1` genau (kein anderer Wert, kein `FROM`, keine Spaltenliste) und jede
+  `CONCAT_NULL_YIELDS_NULL ON`, `NUMERIC_ROUNDABORT OFF`, `QUOTED_IDENTIFIER ON`). Erkannt ist `SELECT <Ganzzahl>` (kein `FROM`, keine Spaltenliste, kein Alias, höchstens ein
+  abschließendes `;`; Ziffern mit optionalem führendem `-`, im Bereich von `Int32`; eine Ganzzahl außerhalb des Bereichs ist nicht erkannt, der
+  Typ der Konstante ist dort nicht gemessen) und jede
   Folge von `SET`-Anweisungen aus: `SET <Option> ON|OFF` mit `ANSI_NULLS`, `ANSI_PADDING`, `ANSI_WARNINGS`,
   `ARITHABORT`, `CONCAT_NULL_YIELDS_NULL`, `NUMERIC_ROUNDABORT`, `QUOTED_IDENTIFIER`, `IMPLICIT_TRANSACTIONS`, und
   `SET LOCK_TIMEOUT <Ganzzahl>`; die Liste ist eine Setzung (die ersten sieben und `LOCK_TIMEOUT` gemessen,
@@ -1344,6 +1371,24 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   mit weiteren `SET`-Anweisungen, `SET LOCK_TIMEOUT` (am Server `0x00f9`, hier nicht gebaut) und die übrigen Optionen sind der
   Änderungszähler 0 ohne Art und ändern den Zustand der Sitzung nicht. Die Wirkung der Optionen auf spätere Anweisungen ist nicht modelliert: `SET` ändert keinen Zustand der
   Sitzung. Form C nennt keine Tabelle; das Backend ruft weder Zeilenquelle noch Callback.
+- **Form Z, `WAITFOR DELAY`** (gemessen ist nur `WAITFOR DELAY '00:00:10'` und der Abbruch durch ATTENTION, vier Szenarien des
+  Mitschnitt-Laufs, Referenzclient `Microsoft.Data.SqlClient` 7.1.1, 2022 und 2025, ein Lauf je Szenario und Instanz; alles
+  Weitere ist Setzung): erkannt ist `WAITFOR DELAY '<hh>:<mm>:<ss>'` als einziger Text, mit höchstens einem abschließenden `;`;
+  die Schlüsselwörter ohne Beachtung der Schreibweise (ASCII), ein Zeichenliteral ohne `N`, je zwei ASCII-Ziffern, `hh` von 00 bis
+  23, `mm` und `ss` von 00 bis 59 (auch `00:00:00`). Nicht erkannt sind Bruchteile von Sekunden, `WAITFOR TIME`, eine Variable
+  oder ein Parameter als Frist, `WAITFOR` mit Folgeanweisung, in einer Folge oder hinter `SET FMTONLY ON`, und
+  `WAITFOR (RECEIVE …)`. Das Backend wartet die Zeit ab, suspendierend und ohne einen Thread zu blockieren (`SPEC-022`), und
+  beachtet den Cancel sofort; es nennt keine Tabelle und ruft weder Zeilenquelle noch Callback. Während der Wartezeit ist die
+  Anfrage `RUNNING`, es ist kein `ResultStart` gesendet: der Befehl ist ein wartender Befehl im Sinn von `SPEC-029`. Ein ATTENTION
+  in der Wartezeit endet mit dem Paar `DONE[ERROR]` (Befehl `0x00fd`, kein ERROR-Token) und `DONE[ATTN]` (gemessen); die
+  Verbindung bleibt offen. Ist `QUERY_TIMEOUT` (`SPEC-009`) kürzer als die Wartezeit, geht der Cancel an das Backend und die
+  Anfrage endet mit `TDS_TIMEOUT` (`SPEC-016`; Setzung: die Referenz kennt keine Frist des Servers, „wie die Referenz“ gilt
+  nur für Abbrüche durch den Client); `QUERY_TIMEOUT` begrenzt auch eine Wartezeit bis `23:59:59` auf höchstens 3600 s. Läuft
+  die Wartezeit ab, ist die Antwort der Änderungszähler 0 ohne Art, wie die auf `SET` (Setzung: am echten Server nicht
+  gemessen, kein Szenario erreicht den Pfad). Ein Wettlauf von ATTENTION und Ende der Wartezeit gehorcht „der erste
+  Übergang gewinnt“ (`SPEC-029`); eine wartende Anfrage wird beim geordneten Beenden nach `SHUTDOWN_GRACE` wie jede laufende
+  abgebrochen (`SPEC-044`). Die Dauer der Wartezeit ist in den Tests des Servers eine gesteuerte Uhr; ein Test wartet die Zeit
+  nicht ab.
 - **Transaktionstexte** (Form C, gemessen mit d-migrate 1.12.0, mssql-jdbc 13.4.0, 2026-11-06 und 2026-11-05): beim Schreiben
   einer Struktur sendet d-migrate `set implicit_transactions on`, danach `IF @@TRANCOUNT > 0 COMMIT TRAN` und
   `set implicit_transactions off IF @@TRANCOUNT > 0 COMMIT TRAN` (zwei Anweisungen ohne `;` in einem Text), bei einem Fehler
@@ -1664,7 +1709,8 @@ Schema beschreibt (`TDS-FA-11.a`). Es gibt zwei Läufe:
   Unicode, Decimal, Datum, leere und mehrteilige Ergebnisse, Fehler vor und nach Zeilen,
   OUTPUT/RETURNSTATUS (falls freigegeben) sowie Cancel mit Folgeabfrage. Grün ist der Lauf, wenn
   beide Ausgaben gleich sind oder genau der dokumentierten Abweichung entsprechen; eine kleinere
-  oder größere Abweichung macht ihn rot.
+  oder größere Abweichung macht ihn rot. Ein Schritt, der keine Ausnahme mehr hat, vergleicht Spaltentyp und Werte, nicht nur
+  „keine Ausnahme“ (zum Beispiel `SELECT 2` und `WHERE Id = 1 OR Id = 2`), sonst hieße „gleich“ nur „gelingt“.
 - **Mitschnitt-Lauf:** Redigierte Paketmitschnitte des Referenzclients gegen die Referenzinstanz
   (`SPEC-004`) werden gegen einen frisch gestarteten Server abgespielt und feldweise verglichen:
   Nachrichten- und Tokenfolge, COLMETADATA (Typ, Länge, Precision/Scale, Nullbarkeit), Zeilenwerte
@@ -2410,3 +2456,4 @@ Der Weg, auf dem ein Integrator den Server mit einem eigenen Backend oder eigene
 | 2026-11-19 | Länge einer Textspalte im COLMETADATA einer Auswahl an die Messung angeglichen (`TDS-FA-11`, `TDS-FA-05`, `TDS-QA-01`, `SPEC-035`, `SPEC-003`; Entscheid des Nutzers 2026-11-19, Code angleichen): das Simulations-Backend meldet `SimColumn.maxLength` als `ResultColumn.maxLength` jeder Auswahl (Formen S1 und S2, auch bei einer Bedingung, die nie wahr ist), ohne Angabe bleibt 4000; -1 (`nvarchar(max)`) meldet es als 4000 (Setzung, nicht gemessen); ein Text einer Zeile über der Länge der Beschreibung endet in der Antwort im Fehler (Setzung, Fehlernummer nicht gemessen); die Ausnahme A-14 entfällt; der Bestand des Testservers weist einen Text über der Länge (bei -1 über 4000) beim Massenladen und beim `UPDATE` ab (Setzung, nicht gemessen); keine neue öffentliche Fläche (`SPEC-059`), die Antwort einer Auswahl über eine Tabelle mit kürzerer Länge ändert sich |
 | 2026-11-19 | Antwort auf ATTENTION in laufender Anfrage in zwei Nachrichten gebaut (`TDS-FA-07`, `TDS-QA-01`, `SPEC-029`, `SPEC-001`, `SPEC-060`, `SPEC-030`; Nutzerentscheid 2026-11-18: Code angleichen, Spezifikation als Zielbild, der echte Server als Referenz): erste Nachricht `DONE` mit `ERROR` (Befehl `0x00c1` bei offenem Ergebnis, sonst `0x00fd`), zweite `DONE` mit `ATTN`, kein ERROR-Token, beide unter einer Sperre; ersetzt die Setzung des Nutzers vom 2026-11-01 („genau ein `DONE` ohne zweite Nachricht“) für ATTENTION in `RUNNING` und `STREAMING`; die Regel „doppelte DONE-Tokens sind verboten“ meint den zweiten Abschluss derselben Antwort (Setzung der Lesart); ATTENTION nach Ende der Antwort, im Leerlauf und ein wiederholtes ATTENTION bleiben einzelne Bestätigungen, der Abbruch im geordneten Beenden endet weiter mit einem einzelnen `DONE` mit `ATTN`; gemessen am Referenzclient gegen SQL Server 2022 und 2025 (Stream und wartender Befehl, Messprotokoll des Referenzabgleichs, A-13 und Abschnitt „Antwort auf ATTENTION: Zwei-Nachrichten-Form des Servers dieses Repos“), Setzung: RPC, Massenladen, Race-Fälle |
 | 2026-11-20 | Abbruch im geordneten Beenden (`TDS-FA-07`, `SPEC-044` Nr. 4, `SPEC-029`; Nutzerentscheid 2026-11-20): die laufende Anfrage nach Ablauf von `SHUTDOWN_GRACE` endet mit demselben Paar wie bei ATTENTION, `DONE` mit `ERROR` und `DONE` mit `ATTN` ohne ERROR-Token, danach endet die Verbindung; Setzung, am echten Server nicht gemessen; ersetzt die Form eines einzelnen `DONE` mit `ATTN` aus dem Eintrag vom 2026-11-19 |
+| 2026-11-21 | `OR` in der Auswahl, `SELECT <Ganzzahl>` und `WAITFOR DELAY` als erkannte Formen (`TDS-FA-11`, `TDS-FA-07`, `TDS-QA-01`, `SPEC-036`, `TDS-FA-11.a`, `SPEC-029`, `SPEC-045`; Entscheid des Nutzers 2026-11-21, Code angleichen): S1 nimmt eine reine `OR`-Folge aus mindestens zwei Termen (Vorfilter `null`, keine Mischung mit `AND`, keine Klammer, kein `OR` in `UPDATE` und `DELETE`), Form C nimmt jede `Int32`-Ganzzahl als Auswahlliste, neue Form Z `WAITFOR DELAY '<hh>:<mm>:<ss>'` mit Abbruch durch ATTENTION und `QUERY_TIMEOUT`; die Lesart „die positive Aufzählung des Lastenhefts ist abschließend“ entfällt (die Liste wächst nur durch diese Spezifikation); die Grenzen der Formen sind Setzung, gemessen sind `SELECT 2`, `Id = 1 OR Id = 2` (nur der Erfolg) und `WAITFOR DELAY '00:00:10'` mit Abbruch; A-4, A-5 und A-15 entfallen, A-17 ist so gewollt (Division durch null ist ein Ausdruck) |
