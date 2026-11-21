@@ -156,6 +156,47 @@ class SimulationBackendWaitTest {
     }
 
     /**
+     * Die Registrierung der wartenden Ausführung unter Sitzung und Anfrage (die `cancel` findet) endet mit jedem Ende
+     * der Ausführung: nach dem Ablauf der Wartezeit, nach dem Cancel, nach dem Abbruch des Sammlers und nach `close()`
+     * ohne Sammeln. Beobachtet wird die Zahl der Registrierungen des Backends, nicht ein Folgeverhalten von `cancel`.
+     * Wächter: eine Ausführung, die sich nicht austrägt (dann bliebe je `WAITFOR`-Anfrage ein Eintrag im Backend
+     * zurück), geprüft je Weg: `onCompletion` des Stroms (Ablauf, Cancel, Abbruch) und `close()`.
+     * @spec SPEC-029
+     */
+    @Test
+    fun `die Registrierung endet mit Ablauf Cancel Abbruch und close`() = blocking {
+        val pause = ManualPause()
+        val backend = backend(pause)
+        assertEquals(0, backend.registrations)
+
+        val ended = launch { execution(backend).events.toList() }
+        pause.awaitWaiting(10.seconds)
+        assertEquals(1, backend.registrations, "die wartende Anfrage ist registriert")
+        pause.fire(10.seconds)
+        ended.join()
+        assertEquals(0, backend.registrations, "nach dem Ablauf der Wartezeit")
+
+        val cancelled = launch { execution(backend).events.toList() }
+        pause.awaitWaiting(10.seconds)
+        assertEquals(1, backend.registrations)
+        backend.cancel("s1", "r1")
+        cancelled.join()
+        assertEquals(0, backend.registrations, "nach dem Cancel")
+
+        val aborted = launch { execution(backend).events.toList() }
+        pause.awaitWaiting(10.seconds)
+        assertEquals(1, backend.registrations)
+        aborted.cancel()
+        aborted.join()
+        assertEquals(0, backend.registrations, "nach dem Abbruch des Sammlers")
+
+        val unused = execution(backend)
+        assertEquals(1, backend.registrations, "ausgeführt, noch nicht gesammelt")
+        unused.close()
+        assertEquals(0, backend.registrations, "nach close() ohne Sammeln")
+    }
+
+    /**
      * Das Backend mit der öffentlichen Signatur wartet mit der Uhr der Coroutinen (`delay`): eine Frist von zehn
      * Sekunden endet nicht von selbst, und der Cancel beendet sie. Der Test wartet die Zeit nicht ab.
      * Wächter: eine Voreinstellung der Uhr, die nicht wartet (dann kämen Ereignisse vor dem Cancel).

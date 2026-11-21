@@ -79,7 +79,11 @@ import kotlin.time.Duration
 public class SimulationBackend internal constructor(
     internal val catalog: () -> SimCatalog,
     private val onStructure: (suspend (SimTable) -> Unit)?,
-    /** Wartet die Dauer von `WAITFOR DELAY` ab; die Voreinstellung ist `delay`, Tests setzen eine gesteuerte Uhr. */
+    /**
+     * Test-Naht: wartet die Dauer von `WAITFOR DELAY` ab. Der öffentliche Konstruktor setzt `delay` fest; Tests setzen
+     * eine gesteuerte Uhr und belegen damit die Reaktion der Klasse auf Ablauf und Cancel, nicht dass ein echtes
+     * Ereignis sie auslöst (das belegt der Test der Voreinstellung mit der echten Uhr).
+     */
     private val pause: suspend (Duration) -> Unit,
 ) : QueryBackend {
     /**
@@ -99,6 +103,10 @@ public class SimulationBackend internal constructor(
 
     private val planner = StatementPlanner(catalog)
     private val running = ConcurrentHashMap<Pair<String, String>, Stoppable>()
+
+    /** Test-Naht: Zahl der unter Sitzung und Anfrage registrierten Ausführungen (Kopplung an `cancel`). */
+    internal val registrations: Int get() = running.size
+
     private val structureLock = Mutex()
     private val mergeLock = Mutex()
 
