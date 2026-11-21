@@ -139,7 +139,7 @@ Geschlossen 2026-11-18 (Planner, Slice-Closure ohne Welle). Geprüfter Stand: Zw
 
 **Beobachtungs-Register (`../observations/`).** `BEO-TDS/mitschnitt-luecken-ohne-traeger`: `evidence/slice-fehlertext-unbekannte-tabelle-angleichen.md` angelegt, `state.md` fortgeschrieben (A-3 teilweise gebaut, Rest offen; über der Schwelle, `Träger entschieden`, nicht verkörpert, solange der Rest offen ist). `BEO-TDS/dod-wortlaut-ueber-der-bauart`: weiteres Auftreten als Evidenz, Retirement-Check wie oben. `BEO-TDS/unbekannte-tabelle-class-20-statt-16-am-server`: `state.md` vom Implementer nachgeführt (Text gebaut, Rest offen); keine neue Evidenz, der Text ist dieselbe Abweichung (Ausgang `offen`, 2×, unter der Schwelle).
 
-**Folge-Slices.** Keiner angelegt; die Nutzerentscheidung steht aus. Bestehende Dateien, die den Gegenstand berühren: [slice-abnahme-d-migrate](../done/slice-abnahme-d-migrate.md) (Client-Beleg für mssql-jdbc nach Class 16, geschlossen) und [slice-simulation-anweisungsformen-erweitern](../open/slice-simulation-anweisungsformen-erweitern.md) (gleiche Fehlerfamilie, A-15).
+**Folge-Slices.** Keiner angelegt; die Nutzerentscheidung steht aus. Bestehende Dateien, die den Gegenstand berühren: [slice-abnahme-d-migrate](../done/slice-abnahme-d-migrate.md) (Client-Beleg für mssql-jdbc nach Class 16, geschlossen) und [slice-simulation-anweisungsformen-erweitern](../in-progress/slice-simulation-anweisungsformen-erweitern.md) (gleiche Fehlerfamilie, A-15).
 
 **Offen, Träger Nutzer (nicht entschieden, nicht erledigt).**
 

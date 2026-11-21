@@ -37,7 +37,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 - Eine Änderung der Form der Antwort oder des Zeitpunkts, zu dem der Server die zweite Nachricht schreibt — die Form ist durch [ADR-0054](../../adr/0054-antwort-auf-attention-in-zwei-nachrichten.md) und [ADR-0057](../../adr/0057-abbruch-beim-beenden-endet-im-paar.md) entschieden; ein Befund, der sie berührt, ist eine Entscheidung des Nutzers und gegebenenfalls eine Folge-ADR, kein Liefer-Punkt dieses Slice.
 - Das Umbauen der Live-Liste auf eine Regel, die beide Texte annimmt — das wäre ein Lockern des Sensors ([AGENTS.md](../../../../AGENTS.md) §3.6) und braucht die Entscheidung des Nutzers; dieser Slice liefert nur den Befund und die Optionen.
 - Andere Clients als `Microsoft.Data.SqlClient` 7.1.1 (mssql-jdbc) — nicht gemessen und kein Gegenstand von [slice-mssql-jdbc-gegen-testserver](slice-mssql-jdbc-gegen-testserver.md).
-- SESSIONSTATE (A-18) und das Abspielen des Abbruchs eines `WAITFOR`-Befehls (A-15) — anderer Mechanismus beziehungsweise anderer Slice ([slice-simulation-anweisungsformen-erweitern](slice-simulation-anweisungsformen-erweitern.md)).
+- SESSIONSTATE (A-18) und das Abspielen des Abbruchs eines `WAITFOR`-Befehls (A-15) — anderer Mechanismus beziehungsweise anderer Slice ([slice-simulation-anweisungsformen-erweitern](../in-progress/slice-simulation-anweisungsformen-erweitern.md)).
 
 ## 2. Definition of Done
 

@@ -43,7 +43,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - SESSIONSTATE (A-18) — bewusst „kein Bau“ mit Re-Evaluierungs-Trigger „ein Treiber oder Pool zeigt Bedarf“ (Nutzerentscheid 2026-11-06, `BEO-TDS/mitschnitt-luecken-ohne-traeger`); steht in [Results-Notiz von welle-referenzabgleich-release](../done/welle-referenzabgleich-release-results.md) ausdrücklich ohne Slice.
-- Das Abspielen des Abbruchs eines `WAITFOR`-Befehls am Server (A-15) — [slice-simulation-anweisungsformen-erweitern](../open/slice-simulation-anweisungsformen-erweitern.md); die Antwortform bei wartendem Befehl gehört hierher, der Abspielschritt mit `WAITFOR` zu jenem Slice.
+- Das Abspielen des Abbruchs eines `WAITFOR`-Befehls am Server (A-15) — [slice-simulation-anweisungsformen-erweitern](../in-progress/slice-simulation-anweisungsformen-erweitern.md); die Antwortform bei wartendem Befehl gehört hierher, der Abspielschritt mit `WAITFOR` zu jenem Slice.
 - Der Ablauf der serverseitigen Frist `QUERY_TIMEOUT` (ERROR 50005, [ADR-0027](../../adr/0027-abbruch-und-zuruecksetzen.md)) — ein anderer Pfad (der Server entscheidet, nicht der Client); keine Regel der beiden Listen betrifft ihn.
 - Andere Clients als `Microsoft.Data.SqlClient` 7.1.1 — die Antwort auf ATTENTION ist für mssql-jdbc nicht gemessen und kein Gegenstand von [slice-mssql-jdbc-gegen-testserver](../open/slice-mssql-jdbc-gegen-testserver.md) (NBCROW und Mehrfach-RPC).
 
