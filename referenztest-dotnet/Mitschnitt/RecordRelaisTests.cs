@@ -178,4 +178,157 @@ public class RecordRelaisTests
         Assert.True(erstes < 100, $"erstes Byte nach {erstes} ms");
         Assert.True(alle >= 500, $"alle Bytes nach {alle} ms");
     }
+
+    private static void Schreiben(NetworkStream s, params byte[][] teile)
+    {
+        s.Write(teile.SelectMany(t => t).ToArray());
+        s.Flush();
+    }
+
+    // @spec SPEC-045
+    [Fact]
+    public void Eingriff_Buendeln_laesst_Bytes_vor_dem_ATTENTION_des_Clients_unberuehrt()
+    {
+        var vorher = TlsRecord(25);
+        var antwortAufAnmeldung = TlsRecord(23);
+        var anmeldung = TlsRecord(7);
+        using var strecke = new Strecke(Eingriff.Buendeln, antwortLaenge: TlsRecord(21).Length, verzoegerungMs: 0, halteGrenzeMs: 30000, server: s =>
+        {
+            // Der Server spricht, bevor der Client etwas gesendet hat (Antwort der Länge 30, nicht die der Antwort auf ATTENTION).
+            Schreiben(s, vorher);
+            s.ReadExactly(new byte[anmeldung.Length]);
+            Schreiben(s, antwortAufAnmeldung);
+            s.ReadExactly(new byte[TlsRecord(2).Length]);
+            Schreiben(s, TlsRecord(25), TlsRecord(21));
+        });
+
+        // Das Relais hält vor dem ATTENTION nichts (Bedingung `_attention`): `vorher` kommt vor der Haltegrenze von 30 s an, sonst wirft
+        // die Lesezeit von 5 s.
+        Assert.Equal(vorher, strecke.Lesen(vorher.Length));
+        // Ein Datenrecord des Clients vor `Scharf()` (die Anmeldung) ist kein ATTENTION (Tor `_scharf`): die Antwort darauf wird nicht
+        // gehalten.
+        strecke.Client.Write(anmeldung);
+        strecke.Client.Flush();
+        Assert.Equal(antwortAufAnmeldung, strecke.Lesen(antwortAufAnmeldung.Length));
+
+        strecke.Relais.Scharf();
+        strecke.Client.Write(TlsRecord(2));
+        strecke.Client.Flush();
+        Assert.Equal(TlsRecord(25).Concat(TlsRecord(21)).ToArray(), strecke.Lesen(TlsRecord(25).Length + TlsRecord(21).Length));
+    }
+
+    // @spec SPEC-045
+    [Fact]
+    public void Eingriff_Buendeln_gibt_gehaltene_Records_nach_der_Haltegrenze_frei_auch_ohne_Record_der_Antwortlaenge()
+    {
+        var erster = TlsRecord(25);
+        using var strecke = new Strecke(Eingriff.Buendeln, antwortLaenge: TlsRecord(21).Length, verzoegerungMs: 0, halteGrenzeMs: 300, server: s =>
+        {
+            s.ReadExactly(new byte[TlsRecord(2).Length]);
+            Schreiben(s, erster);
+        });
+        strecke.Relais.Scharf();
+
+        var uhr = System.Diagnostics.Stopwatch.StartNew();
+        strecke.Client.Write(TlsRecord(2));
+        strecke.Client.Flush();
+        // Der Server schreibt nie einen Record der Antwortlänge: der Zeitgeber der Haltegrenze gibt `erster` frei, sonst wirft die
+        // Lesezeit von 5 s. Die Untergrenze ist lastunabhängig: vor der Haltegrenze gibt das Relais nichts frei.
+        Assert.Equal(erster, strecke.Lesen(erster.Length));
+        Assert.True(uhr.Elapsed.TotalMilliseconds >= 250, $"erster Record nach {uhr.Elapsed.TotalMilliseconds} ms");
+    }
+
+    // @spec SPEC-045
+    [Fact]
+    public void Eingriff_Verzoegern_verzoegert_nur_den_ersten_Record_der_Antwortlaenge()
+    {
+        var antwort = TlsRecord(21);
+        using var strecke = new Strecke(Eingriff.Verzoegern, antwortLaenge: antwort.Length, verzoegerungMs: 1500, halteGrenzeMs: 500, server: s =>
+        {
+            s.ReadExactly(new byte[TlsRecord(2).Length]);
+            Schreiben(s, antwort, antwort);
+        });
+        strecke.Relais.Scharf();
+
+        strecke.Client.Write(TlsRecord(2));
+        strecke.Client.Flush();
+        strecke.Lesen(antwort.Length);
+        var uhr = System.Diagnostics.Stopwatch.StartNew();
+        strecke.Lesen(antwort.Length);
+        // Der zweite Record derselben Länge folgt dem ersten ohne die Verzögerung von 1500 ms (Einmaligkeit, `_wirkt = false`). Die
+        // Schwelle liegt bei zwei Dritteln der Verzögerung.
+        Assert.True(uhr.Elapsed.TotalMilliseconds < 1000, $"zweiter Record der Antwortlänge nach {uhr.Elapsed.TotalMilliseconds} ms");
+    }
+
+    // @spec SPEC-045
+    [Fact]
+    public void Eingriff_Einzeln_gibt_den_Rest_nach_einem_unbekannten_Byte_weiter()
+    {
+        var rest = new byte[] { 0x55, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
+        using var strecke = new Strecke(Eingriff.Einzeln, antwortLaenge: 0, verzoegerungMs: 0, halteGrenzeMs: 500, server: s =>
+            Schreiben(s, TlsRecord(25), rest));
+
+        // Das erste Byte 0x55 beendet die Zerlegung; das Relais gibt den nicht gedeuteten Rest trotzdem an den Client weiter.
+        Assert.Equal(TlsRecord(25).Concat(rest).ToArray(), strecke.Lesen(TlsRecord(25).Length + rest.Length));
+    }
+
+    /// <summary>
+    /// Ein Server aus der Hand, das Relais davor und ein Client dahinter. Die Lesezeit des Clients ist auf 5 s begrenzt: eine Antwort, die
+    /// das Relais nicht weitergibt, macht den Test mit einer Ausnahme rot, ohne dass eine Zeitschwelle im Spiel ist.
+    /// </summary>
+    private sealed class Strecke : IDisposable
+    {
+        private readonly TcpListener _ziel = new(IPAddress.Loopback, 0);
+        private readonly TcpClient _client = new() { NoDelay = true };
+
+        public Strecke(Eingriff eingriff, int antwortLaenge, int verzoegerungMs, int halteGrenzeMs, Action<NetworkStream> server)
+        {
+            _ziel.Start();
+            var zielPort = ((IPEndPoint)_ziel.LocalEndpoint).Port;
+            Server = Task.Run(() =>
+            {
+                using var verbindung = _ziel.AcceptTcpClient();
+                verbindung.NoDelay = true;
+                var s = verbindung.GetStream();
+                server(s);
+                while (s.Read(new byte[16]) > 0)
+                {
+                }
+            });
+            Relais = new RecordRelais("127.0.0.1", zielPort, eingriff, antwortLaenge, verzoegerungMs, halteGrenzeMs);
+            _client.Connect("127.0.0.1", Relais.Port);
+            Client = _client.GetStream();
+            Client.ReadTimeout = 5000;
+        }
+
+        public RecordRelais Relais { get; }
+
+        public NetworkStream Client { get; }
+
+        public Task Server { get; }
+
+        public byte[] Lesen(int laenge)
+        {
+            var bytes = new byte[laenge];
+            Client.ReadExactly(bytes);
+            return bytes;
+        }
+
+        public void Dispose()
+        {
+            _client.Close();
+            try
+            {
+                Server.Wait(TimeSpan.FromSeconds(10));
+            }
+            catch (AggregateException)
+            {
+                // Der Server aus der Hand endet mit einer Ausnahme, wenn der Client vor dem Ende seines Ablaufs schließt; die Ausnahme
+                // des Tests (Lesezeit, Vergleich) soll sichtbar bleiben.
+            }
+
+            Relais.Dispose();
+            _ziel.Stop();
+        }
+    }
 }

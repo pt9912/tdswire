@@ -17,7 +17,8 @@ internal sealed record StromRecord(char Art, byte Typ, int Laenge, long Ticks);
 /// Kopf). Jedes andere erste Byte beendet die Zerlegung (der Rest des Stroms wird nicht gedeutet). Die Zeit eines Abschnitts ist die
 /// des Lesevorgangs, der ihn vervollständigt hat; sie hängt an der Aufteilung des Stroms durch den Leser und ist keine Aussage über
 /// die Sendezeit. Ist <see cref="BeiRecord"/> gesetzt, gibt der Zerleger jeden vollständigen Abschnitt mit seinen Bytes heraus (und den
-/// nicht gedeuteten Rest mit <c>null</c> als Abschnitt).
+/// nicht gedeuteten Rest mit <c>null</c> als Abschnitt). Grenze: ein unbekanntes erstes Byte am Ende eines Lesevorgangs wird erst mit
+/// dem nächsten Lesevorgang herausgegeben.
 /// </summary>
 internal sealed class RecordZerleger
 {
@@ -100,8 +101,8 @@ internal sealed class RecordZerleger
 /// folgt (das ATTENTION des Messschritts). <see cref="Keiner"/>: Bytes unverändert in den Stücken des Lesevorgangs. Die anderen
 /// geben die Antworten Record für Record weiter: <see cref="Einzeln"/> jeden Record sofort in einem eigenen Schreibvorgang;
 /// <see cref="Verzoegern"/> wie Einzeln, der erste Record der Länge <c>antwortLaenge</c> aber erst nach der Verzögerung;
-/// <see cref="Buendeln"/> hält die Records, bis der erste der Länge <c>antwortLaenge</c> da ist (höchstens eine halbe Sekunde), und gibt
-/// alle zusammen in einem Schreibvorgang weiter.
+/// <see cref="Buendeln"/> hält die Records, bis der erste der Länge <c>antwortLaenge</c> da ist (höchstens <c>halteGrenzeMs</c>, Standard
+/// 500 ms) und gibt alle zusammen in einem Schreibvorgang weiter.
 /// </summary>
 internal enum Eingriff
 {
@@ -119,8 +120,6 @@ internal enum Eingriff
 /// </summary>
 internal sealed class RecordRelais : IDisposable
 {
-    private static readonly TimeSpan HalteGrenze = TimeSpan.FromMilliseconds(500);
-
     private readonly TcpListener _lauscher = new(IPAddress.Loopback, 0);
     private readonly RecordZerleger _vomClient;
     private readonly RecordZerleger _vomServer;
@@ -129,6 +128,7 @@ internal sealed class RecordRelais : IDisposable
     private readonly Eingriff _eingriff;
     private readonly int _antwortLaenge;
     private readonly int _verzoegerungMs;
+    private readonly TimeSpan _halteGrenze;
     private readonly List<byte> _gehalten = new();
     private volatile bool _scharf;
     private volatile bool _attention;
@@ -138,11 +138,13 @@ internal sealed class RecordRelais : IDisposable
     private TcpClient? _server;
     private Stream? _zumClient;
 
-    public RecordRelais(string host, int port, Eingriff eingriff = Eingriff.Keiner, int antwortLaenge = 0, int verzoegerungMs = 0)
+    public RecordRelais(string host, int port, Eingriff eingriff = Eingriff.Keiner, int antwortLaenge = 0, int verzoegerungMs = 0,
+        int halteGrenzeMs = 500)
     {
         _eingriff = eingriff;
         _antwortLaenge = antwortLaenge;
         _verzoegerungMs = verzoegerungMs;
+        _halteGrenze = TimeSpan.FromMilliseconds(halteGrenzeMs);
         _vomClient = new RecordZerleger { BeiRecord = BeiRecordDesClients };
         _vomServer = eingriff == Eingriff.Keiner ? new RecordZerleger() : new RecordZerleger { BeiRecord = BeiRecordDesServers };
         _lauscher.Start();
@@ -195,7 +197,7 @@ internal sealed class RecordRelais : IDisposable
         lock (_gehalten)
         {
             _gehalten.AddRange(roh);
-            if (_haltezeit == null && !freigeben) _haltezeit = new Timer(_ => Freigeben(), null, HalteGrenze, Timeout.InfiniteTimeSpan);
+            if (_haltezeit == null && !freigeben) _haltezeit = new Timer(_ => Freigeben(), null, _halteGrenze, Timeout.InfiniteTimeSpan);
             if (freigeben) FreigebenUnterSperre();
         }
     }
