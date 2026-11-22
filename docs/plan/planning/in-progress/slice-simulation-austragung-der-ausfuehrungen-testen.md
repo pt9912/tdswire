@@ -58,9 +58,11 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `src/test/kotlin/io/github/pt9912/tdswire/simulation/SimulationBackendSelectTest.kt`, `SimulationBackendWaitTest.kt` (Muster), `SimulationBackendMergeTest.kt`, `SimulationBackendChangeTest.kt` | update | Tests je Ausführung über `SimulationBackend.registrations` |
+| `src/test/kotlin/io/github/pt9912/tdswire/simulation/SimulationBackendRegistrationTest.kt` | create | ein Test je Form über `SimulationBackend.registrations` (S1, S1 mit Parameter, S2, Änderungen, Strukturänderung, `MERGE`, Form C) statt Änderungen in vier Testklassen: die Zusage steht an einer Stelle, die Vorlage bleibt `SimulationBackendWaitTest` |
 | `src/main/kotlin/io/github/pt9912/tdswire/simulation/SelectExecution.kt`, `SimulationChanges.kt`, `SimulationMerges.kt`, `SimulationBackend.kt` | update, nur falls ein Test ein Leck findet | Behebung |
-| `docs/messungen/` (Mutationsbeleg) | create | Mutation je Zusage als Datei im Repo |
+| `docs/messungen/mutationen-austragung-der-ausfuehrungen-2026-11-22.md` (Mutationsbeleg) | create | Mutation je Zusage als Datei im Repo |
+| `docs/messungen/mutationen-anweisungsformen-2026-11-21.md` | update | der Satz „Lücke benannt, nicht geschlossen“ zeigt auf den neuen Beleg |
+| `docs/plan/planning/observations/BEO-TDS/austragung-aus-der-registrierung-ohne-test-bei-select-change-merge/state.md` | update | Träger und Beleg nachgeführt |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf und gleicht sie am Ende gegen `git diff main...HEAD --stat` ab.
 
