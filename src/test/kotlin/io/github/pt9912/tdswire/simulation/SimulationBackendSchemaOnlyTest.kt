@@ -94,8 +94,10 @@ class SimulationBackendSchemaOnlyTest {
     /**
      * Fehler (Handvektor W-29, Anfrage 05 von `schemaonly-sonderfaelle`): die unbekannte Tabelle liefert beide
      * Abschlüsse der führenden `SET`, dann `TDS_SIM_UNKNOWN_OBJECT` mit dem Namen des Textes; das schließende `SET`
-     * gibt es nicht. Wächter: ein Fehler ohne die zwei Abschlüsse davor, ein Abschluss für das schließende `SET` nach
-     * dem Fehler, ein fehlender Name.
+     * gibt es nicht. Dass `FMTONLY` nach dem Fehler nicht im Zustand der Verbindung bleibt, ist Setzung ohne Messung am
+     * Server (W-29 zeigt die Folgeabfrage des Clients, nicht den Zustand der Bibliothek) und hier nicht getestet.
+     * Wächter: ein Fehler ohne die zwei Abschlüsse davor, ein Abschluss für das schließende `SET` nach dem Fehler, ein
+     * fehlender Name.
      * @spec SPEC-036
      * @spec SPEC-037
      * @spec TDS-QA-01
@@ -163,7 +165,8 @@ class SimulationBackendSchemaOnlyTest {
     /**
      * Setzung (ADR-0059 Entscheidung 4, nicht gemessen): eine unbekannte Spalte (Liste oder Bedingung) und ein Wert,
      * der nicht in den Spaltentyp passt, enden wie die unbekannte Tabelle: zwei Abschlüsse, dann der Fehler, kein
-     * schließendes `SET`. Wächter: ein Fehler vor den Abschlüssen.
+     * schließendes `SET`. Der Fehler der Auswahl im RPC folgt derselben Regel (zwei vorangehende `DONEINPROC`); das ist
+     * Setzung, nicht gemessen und nicht getestet (nur der Batch). Wächter: ein Fehler vor den Abschlüssen.
      * @spec SPEC-036
      * @spec SPEC-037
      */
@@ -212,7 +215,8 @@ class SimulationBackendSchemaOnlyTest {
      * ohne Abschluss der `SET`, ohne Zeilenquelle: die Texte von `KeyInfo` und `SchemaOnly|KeyInfo` (Messung,
      * `keyinfo-spalten` Anfrage 01, `schemaonly-und-keyinfo` Anfrage 01), kein führendes `SET FMTONLY OFF;`, kein `;`
      * hinter einem der führenden `SET`, die `SET` in anderer Reihenfolge, ein `;` vor dem schließenden `SET`, ein
-     * doppeltes schließendes `SET`, eine dritte `SET`-Anweisung. Wächter: eine Erkennung, die `NO_BROWSETABLE` mitnimmt
+     * doppeltes schließendes `SET`, eine dritte `SET`-Anweisung, ein `SET FMTONLY ON` vor der Form (die Probe der Form B
+     * liest ihren Rest nicht als Form F). Wächter: eine Erkennung, die `NO_BROWSETABLE` mitnimmt
      * oder die Reihenfolge nicht prüft.
      * @spec SPEC-036
      * @spec SPEC-037
@@ -237,6 +241,9 @@ class SimulationBackendSchemaOnlyTest {
             " SET FMTONLY OFF; SET FMTONLY ON; SET NOCOUNT ON;SELECT Id FROM person",
             " SET FMTONLY OFF; SET FMTONLY ON;",
             " SET FMTONLY OFF; SET FMTONLY ON; SET FMTONLY OFF;",
+            "SET FMTONLY ON SET FMTONLY OFF; SET FMTONLY ON;SELECT Id FROM person",
+            "SET FMTONLY ON SET FMTONLY OFF; SET FMTONLY ON;SELECT Id FROM person SET FMTONLY OFF;",
+            "EXEC sp_executesql N'SET FMTONLY ON SET FMTONLY OFF; SET FMTONLY ON; SELECT Id FROM person'",
         ).forEach { text ->
             val events = collectEvents(probe.backend, text)
             assertEquals(SimCodes.UNSUPPORTED_SQL, assertIs<QueryEvent.Failure>(events.single(), text).code, text)
@@ -298,7 +305,9 @@ class SimulationBackendSchemaOnlyTest {
     /**
      * Die Ausführung der Form F gibt die der Auswahl frei: nach `close()` ist keine Ausführung unter Sitzung und
      * Anfrage registriert, und ein Cancel vor dem Sammeln beendet die Auswahl vor dem Ergebnis (die Abschlüsse der
-     * `SET` stehen davor und danach, ein Ergebnis fehlt). Wächter: ein `close()`, das die Auswahl nicht schließt, ein
+     * `SET` stehen davor und danach, ein Ergebnis fehlt). Die Ereignisse nach einem Cancel sind Setzung, am Server
+     * nicht gemessen (`SPEC-036` Form F); belegt ist die Austragung nur für `close()` und Cancel, nicht für das normale
+     * Ende ohne `close()` und nicht für den Fehlerzweig. Wächter: ein `close()`, das die Auswahl nicht schließt, ein
      * Cancel, das die Auswahl nicht erreicht.
      * @spec SPEC-036
      */

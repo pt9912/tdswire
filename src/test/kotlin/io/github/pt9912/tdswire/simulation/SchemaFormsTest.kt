@@ -76,6 +76,26 @@ class SchemaFormsTest {
     }
 
     /**
+     * Die Probe der Zieltabelle liest den Rest hinter `SET FMTONLY ON` nicht als Form F (`ADR-0059` Entscheidung 2
+     * und 6): `SET FMTONLY ON` vor der Form, mit und ohne schließendes `SET`, im Text und als `sp_executesql`-Text, ist
+     * nicht erkannt; der Zwilling ohne das erste `SET FMTONLY ON` ist Form F. Wächter: eine Probe, die ihren Rest
+     * über die Erkennung mit Form F liest (das schließende `SET` fiele still weg, der Text würde beantwortet).
+     * @spec SPEC-036
+     */
+    @Test
+    fun `die Probe liest ihren Rest nicht als Form F`() {
+        assertOnlyVariantsFail(
+            "$head SELECT a FROM t SET FMTONLY OFF",
+            "SET FMTONLY ON $head SELECT a FROM t",
+            "SET FMTONLY ON $head SELECT a FROM t SET FMTONLY OFF",
+            "SET FMTONLY ON $head SELECT a FROM t;",
+            "EXEC sp_executesql N'SET FMTONLY ON $head SELECT a FROM t'",
+            "sp_executesql N'SET FMTONLY ON $head SELECT a FROM t SET FMTONLY OFF'",
+            "SET FMTONLY ON SET FMTONLY ON $head SELECT a FROM t",
+        )
+    }
+
+    /**
      * Negativ: jede andere Folge ist nicht erkannt (`ADR-0059` Entscheidung 2), auch die Texte von `KeyInfo`
      * (`NO_BROWSETABLE`); der Zwilling ist erkannt, jede Abwandlung nicht. Wächter: eine Erkennung, die ein `;` vor dem
      * schließenden `SET`, eine fehlende `;`-Klammer der führenden `SET`, eine weitere Option oder eine andere

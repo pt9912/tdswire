@@ -13,7 +13,8 @@ import kotlinx.coroutines.flow.flow
  * der Art `SET_FMTONLY_OFF` und `SET_FMTONLY_ON`. Schließt der Text mit `SET FMTONLY OFF` ([closed]), endet die Antwort
  * nach einer erfolgreichen Auswahl mit dem Zähler 0 der Art `SET_FMTONLY_OFF`; nach einem Fehler der Auswahl folgt
  * nichts. Cancel und `close()` wirken auf [inner], die Ausführung der Auswahl, die das Backend unter Sitzung und
- * Anfrage führt.
+ * Anfrage führt; ein Cancel gilt nicht als Fehler, das schließende `SET` folgt auch dann (Setzung, am Server nicht
+ * gemessen).
  */
 internal class SchemaOnlyExecution(private val inner: QueryExecution, private val closed: Boolean) : QueryExecution {
     override val events: Flow<QueryEvent> = flow { answer() }

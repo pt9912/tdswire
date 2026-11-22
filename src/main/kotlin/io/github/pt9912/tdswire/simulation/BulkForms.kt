@@ -36,7 +36,7 @@ internal object BulkForms {
 
     /**
      * Die Probe der Zieltabelle: die Auswahl hinter `SET FMTONLY ON` ohne Zeilen, oder `null`, wenn die Token nicht so
-     * beginnen. [read] liest die Token der Auswahl. `sp_executesql N'…'` gilt nur, wenn der Text mit `SET FMTONLY ON`
+     * beginnen. [read] liest die Token der Auswahl und kennt Form F nicht. `sp_executesql N'…'` gilt nur, wenn der Text mit `SET FMTONLY ON`
      * beginnt.
      */
     fun probe(tokens: List<Token>, read: (List<Token>) -> Recognition): Recognition? {
