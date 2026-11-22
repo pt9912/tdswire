@@ -1,1 +1,3 @@
 **Stand:** gestrichen — gedeckt: `.d-check.yml` führt Muster für `ADR-*` (`link-policy: always`) und `TDS-(FA|QA|RB)-NN` (`link-policy: prose`), `make docs-check` meldet `id-unlinked` und ist in `make gates`; die Beobachtung beschreibt Nacharbeit nach einem roten Lauf, keinen ungedeckten Fehler.
+
+**Wiederauftreten (slice-simulation-anweisungsformen-erweitern):** Verifikation F-1 (MEDIUM): der Re-Review-Bericht nannte [ADR-0058](../../../../adr/0058-or-in-der-auswahl-ganzzahlkonstante-und-waitfor-delay-sind-erkannt.md) in der Wiedergabe eines Zitats ohne Link, `make docs-check` und damit `make gates` waren rot; der Link wurde in der Closure gesetzt. Der Stand `gestrichen` bleibt (das Doku-Gate deckt die Klasse, es meldete sie).

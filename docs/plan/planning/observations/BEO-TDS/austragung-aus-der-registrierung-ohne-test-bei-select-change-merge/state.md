@@ -1,0 +1,1 @@
+**Stand:** offen — 1×, unter der Schwelle, nicht verkörpert; die Zahl folgt aus den Dateien in `evidence/`. Träger: [slice-simulation-austragung-der-ausfuehrungen-testen](../../../open/slice-simulation-austragung-der-ausfuehrungen-testen.md) (`open/`, nicht gestartet).
