@@ -1,2 +1,2 @@
-**Vorgang:** [slice-simulation-anweisungsformen-erweitern](../../../../in-progress/slice-simulation-anweisungsformen-erweitern.md)
+**Vorgang:** [slice-simulation-anweisungsformen-erweitern](../../../../done/slice-simulation-anweisungsformen-erweitern.md)
 **Fund:** [Review](../../../../../../reviews/2026-11-21-slice-simulation-anweisungsformen-erweitern.md) F-2 (MEDIUM): die Austragung der `WAITFOR`-Ausführung aus `running` hatte keinen unterscheidenden Test (Mutation R2 ließ 9 von 9 Tests grün); behoben in `0917eee2` über die interne Naht `SimulationBackend.registrations`, [Re-Review](../../../../../../reviews/2026-11-21-slice-simulation-anweisungsformen-erweitern-re-review.md): M22 bis M25 und R5 rot. Der Reviewer fand es per Mutation.

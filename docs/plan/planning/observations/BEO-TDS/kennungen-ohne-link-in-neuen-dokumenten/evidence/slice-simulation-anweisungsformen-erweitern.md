@@ -1,2 +1,2 @@
-**Vorgang:** [slice-simulation-anweisungsformen-erweitern](../../../../in-progress/slice-simulation-anweisungsformen-erweitern.md)
+**Vorgang:** [slice-simulation-anweisungsformen-erweitern](../../../../done/slice-simulation-anweisungsformen-erweitern.md)
 **Fund:** [Verifikation](../../../../../../reviews/2026-11-22-slice-simulation-anweisungsformen-erweitern-verifikation.md) F-1 (MEDIUM): `docs/reviews/2026-11-21-slice-simulation-anweisungsformen-erweitern-re-review.md` Zeile 44 nannte [ADR-0058](../../../../../adr/0058-or-in-der-auswahl-ganzzahlkonstante-und-waitfor-delay-sind-erkannt.md) ohne Link, `make docs-check` meldete `id-unlinked`; behoben in `ca7938af`. Der Verifier fand es, das Gate meldete es.

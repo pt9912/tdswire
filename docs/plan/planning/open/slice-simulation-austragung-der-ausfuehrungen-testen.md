@@ -9,7 +9,7 @@ aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
 Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (§Ein Slice, dessen Gegenstand ein anderer übernimmt).
 
-**Welle:** ohne Welle (keine Closure-Bedingung außerhalb der DoD dieses Slice; Folge-Slice der Closure von [slice-simulation-anweisungsformen-erweitern](../in-progress/slice-simulation-anweisungsformen-erweitern.md): dort trägt ein Test die Austragung der `WAITFOR`-Ausführung, für die übrigen Ausführungen fehlt er).
+**Welle:** ohne Welle (keine Closure-Bedingung außerhalb der DoD dieses Slice; Folge-Slice der Closure von [slice-simulation-anweisungsformen-erweitern](../done/slice-simulation-anweisungsformen-erweitern.md): dort trägt ein Test die Austragung der `WAITFOR`-Ausführung, für die übrigen Ausführungen fehlt er).
 
 **Bezug:** [TDS-FA-07](../../../../spec/lastenheft.md#tds-fa-07--abbruch-und-ressourcenfreigabe) (Ressourcenfreigabe), [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [ADR-0027](../../adr/0027-abbruch-und-zuruecksetzen.md) (Abbruch), [ADR-0033](../../adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md)
 
@@ -92,7 +92,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 Wird bei der Closure gefüllt.
 
-**Herkunft:** Review F-2 und Re-Review von [slice-simulation-anweisungsformen-erweitern](../in-progress/slice-simulation-anweisungsformen-erweitern.md) („die Lücke der Austragung bei `SelectExecution`, `ChangeExecution` und `MergeExecution` ist im Beleg benannt und kein Befund“); Register `BEO-TDS/austragung-aus-der-registrierung-ohne-test-bei-select-change-merge`.
+**Herkunft:** Review F-2 und Re-Review von [slice-simulation-anweisungsformen-erweitern](../done/slice-simulation-anweisungsformen-erweitern.md) („die Lücke der Austragung bei `SelectExecution`, `ChangeExecution` und `MergeExecution` ist im Beleg benannt und kein Befund“); Register `BEO-TDS/austragung-aus-der-registrierung-ohne-test-bei-select-change-merge`.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

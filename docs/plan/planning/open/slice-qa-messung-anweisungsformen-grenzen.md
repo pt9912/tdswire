@@ -9,7 +9,7 @@ aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
 Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (§Ein Slice, dessen Gegenstand ein anderer übernimmt).
 
-**Welle:** ohne Welle (keine Closure-Bedingung außerhalb der DoD dieses Slice; Folge-Slice der Closure von [slice-simulation-anweisungsformen-erweitern](../in-progress/slice-simulation-anweisungsformen-erweitern.md): die Grenzen der drei Formen sind dort als Setzung gebaut, nicht gemessen).
+**Welle:** ohne Welle (keine Closure-Bedingung außerhalb der DoD dieses Slice; Folge-Slice der Closure von [slice-simulation-anweisungsformen-erweitern](../done/slice-simulation-anweisungsformen-erweitern.md): die Grenzen der drei Formen sind dort als Setzung gebaut, nicht gemessen).
 
 **Bezug:** [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität) (Scope: Abgleich mit dem echten Server), [TDS-FA-11](../../../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-FA-07](../../../../spec/lastenheft.md#tds-fa-07--abbruch-und-ressourcenfreigabe), [ADR-0058](../../adr/0058-or-in-der-auswahl-ganzzahlkonstante-und-waitfor-delay-sind-erkannt.md) (Entscheidungen 3 bis 5: die Grenzen sind dort Setzung), [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md), [ADR-0022](../../adr/0022-e2e-laeufe-nicht-in-den-gates.md)
 
@@ -23,7 +23,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 ## 1. Ziel und Abgrenzung
 
-**Ziel:** Jede Grenze der drei Formen, die [slice-simulation-anweisungsformen-erweitern](../in-progress/slice-simulation-anweisungsformen-erweitern.md) als Setzung gebaut hat und die sich am echten Server messen lässt, ist an beiden Instanzen (2022, 2025) mit dem Referenzclient gemessen; wo die Messung der Setzung widerspricht, entscheidet der Nutzer „Code angleichen“ oder „Zielbild anpassen“ (die Spezifikation ist das Zielbild, eine Abweichung ist Schuld).
+**Ziel:** Jede Grenze der drei Formen, die [slice-simulation-anweisungsformen-erweitern](../done/slice-simulation-anweisungsformen-erweitern.md) als Setzung gebaut hat und die sich am echten Server messen lässt, ist an beiden Instanzen (2022, 2025) mit dem Referenzclient gemessen; wo die Messung der Setzung widerspricht, entscheidet der Nutzer „Code angleichen“ oder „Zielbild anpassen“ (die Spezifikation ist das Zielbild, eine Abweichung ist Schuld).
 
 **Ist-Stand** (aus [SPEC-036](../../../../spec/spezifikation.md#spec-036--erkannte-anweisungsformen-des-simulations-backends-vorläufig) und dem Messprotokoll, Stand 2026-11-22; was nicht als gemessen steht, ist Setzung):
 
@@ -99,7 +99,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 Wird bei der Closure gefüllt.
 
-**Herkunft:** Closure von [slice-simulation-anweisungsformen-erweitern](../in-progress/slice-simulation-anweisungsformen-erweitern.md) (2026-11-22): die „Ungemessenen Setzungen“ der Form C (Entscheidung des Nutzers 2026-11-22) und die Sätze „Setzung, nicht gemessen“ zu `OR` und `WAITFOR`; Register `BEO-TDS/setzungen-der-anweisungsformen-ungemessen`; [Verifikationsbericht](../../../reviews/2026-11-22-slice-simulation-anweisungsformen-erweitern-verifikation.md) (Frage 4: was der Lauf nicht trägt).
+**Herkunft:** Closure von [slice-simulation-anweisungsformen-erweitern](../done/slice-simulation-anweisungsformen-erweitern.md) (2026-11-22): die „Ungemessenen Setzungen“ der Form C (Entscheidung des Nutzers 2026-11-22) und die Sätze „Setzung, nicht gemessen“ zu `OR` und `WAITFOR`; Register `BEO-TDS/setzungen-der-anweisungsformen-ungemessen`; [Verifikationsbericht](../../../reviews/2026-11-22-slice-simulation-anweisungsformen-erweitern-verifikation.md) (Frage 4: was der Lauf nicht trägt).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

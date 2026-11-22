@@ -80,7 +80,7 @@ Kein HIGH, kein MEDIUM, kein LOW.
 
 - `src/main/kotlin/io/github/pt9912/tdswire/simulation/` (`SimulationBackend.kt`, `BulkForms.kt`): die Nachbesserung ändert nur KDoc und die Eigenschaft `registrations`; der KDoc von `metadataOnly` stimmt mit dem Code überein (`Wait` und Änderung hinter `SET FMTONLY ON` abgewiesen, jede andere Erkennung und jede Abweisung unverändert; `SET FMTONLY ON SELECT 2` als Setzung des Baus gekennzeichnet); kein `@Suppress`, `@SuppressWarnings`, `noqa`, `nolint` im Diff; `config/`, `Dockerfile`, `Makefile`, `tools/`, `build.gradle.kts` unberührt.
 - `src/test/kotlin/io/github/pt9912/tdswire/simulation/SimulationBackendWaitTest.kt`: ein neuer Testfall, trägt Austragung (R2, M22 bis M25, R5), keine Wanduhr, `@spec SPEC-029`.
-- `docs/plan/planning/in-progress/slice-simulation-anweisungsformen-erweitern.md`: Tabelle §3 gegen den Diff abgeglichen (F-1), kein Haken gesetzt.
+- `docs/plan/planning/done/slice-simulation-anweisungsformen-erweitern.md`: Tabelle §3 gegen den Diff abgeglichen (F-1), kein Haken gesetzt.
 - `docs/messungen/mutationen-anweisungsformen-2026-11-21.md`: M22 bis M25 und die Klassenliste stimmen mit meinen Läufen überein; die Mutationen beschreiben die gemessene Wirkung.
 - `docs/plan/spec-abdeckung.md`: eine Zeile (SPEC-029 52 auf 53), passt zum einen neuen getaggten Test.
 - `referenztest-dotnet/Vergleich/mitschnitt-ausnahmen.tsv`: nur die Grund-Spalte von vier Zeilen; Ergebnis-Spalten und Regeln unverändert.
