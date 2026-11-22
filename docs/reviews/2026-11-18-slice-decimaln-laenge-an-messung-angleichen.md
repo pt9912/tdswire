@@ -37,7 +37,7 @@
 
 ### F-4 · LOW · Veraltete Gegenstelle in offenem Slice
 * quelle: Reviewer-Skill (Fortschreibung lässt die zweite Fundstelle stehen)
-* pfad: `docs/plan/planning/open/slice-simulation-schemaonly-keyinfo.md` · „Vorbedingung A-11“
+* pfad: `docs/plan/planning/in-progress/slice-simulation-schemaonly-keyinfo.md` · „Vorbedingung A-11“
 * befund: Der Slice nennt A-11 als offen (Zeilen 33, 44, 104, Risiko „Ohne A-11 bleibt der Gleichlauf … verfehlt“). A-11 ist durch diesen Diff aufgelöst. Die Änderungsliste nennt die Stelle nicht und gibt keinen Grund zum Stehenlassen. Die Stellen in `done/` bleiben zu Recht.
 * verifizierbar: ja (`grep -rnw A-11`)
 * klasse: Zweite Fundstelle nach Fortschreibung

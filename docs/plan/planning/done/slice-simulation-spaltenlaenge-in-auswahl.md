@@ -49,7 +49,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 - Die Prüfung der Zeilen der Zeilenquelle gegen `SimColumn.maxLength` — SPEC-035 nimmt sie aus der Prüfung aus; was mit einem Text über der Länge im Ergebnis geschieht, ist ein eigener Befund (§6), den der Slice nur belegen, nicht neu setzen soll.
 - Option B für A-14 (Ansicht `kaputt` in `testschema.sql`, neue Aufnahmen beider Instanzen) — vom Nutzer abgelehnt (Code angleichen); nicht nötig.
-- Die Antwort auf `SchemaOnly` und `KeyInfo` (A-8) — [slice-simulation-schemaonly-keyinfo](../open/slice-simulation-schemaonly-keyinfo.md); anderer Gegenstand.
+- Die Antwort auf `SchemaOnly` und `KeyInfo` (A-8) — [slice-simulation-schemaonly-keyinfo](../in-progress/slice-simulation-schemaonly-keyinfo.md); anderer Gegenstand.
 - `laufend.Id` nullbar und A-9 — erledigt in [slice-kompatibilitaetsserver-an-referenz-angleichen](../done/slice-kompatibilitaetsserver-an-referenz-angleichen.md).
 
 ## 2. Definition of Done

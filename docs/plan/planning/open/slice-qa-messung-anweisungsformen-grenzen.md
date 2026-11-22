@@ -38,7 +38,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 - Neue Anweisungsformen (`NOT`, `<`, `>`, `LIKE`, `BETWEEN`, `<>`, `!=`, `NOT IN`, `OR` in `UPDATE` und `DELETE`): bleiben abgewiesen, [ADR-0058](../../adr/0058-or-in-der-auswahl-ganzzahlkonstante-und-waitfor-delay-sind-erkannt.md) Entscheidungen 1 und 3; eine neue Form braucht eine Entscheidung des Nutzers.
 - Andere Clients als `Microsoft.Data.SqlClient` 7.1.1 (mssql-jdbc, d-migrate): nicht gemessen, kein Träger ([AGENTS.md](../../../../AGENTS.md) §3.8).
-- Die Antwort von `SchemaOnly` und `KeyInfo` (`SET FMTONLY` als Text von `SchemaOnly`): [slice-simulation-schemaonly-keyinfo](slice-simulation-schemaonly-keyinfo.md); hier nur `SET FMTONLY ON SELECT 2` als Grenze der Form C.
+- Die Antwort von `SchemaOnly` und `KeyInfo` (`SET FMTONLY` als Text von `SchemaOnly`): [slice-simulation-schemaonly-keyinfo](../in-progress/slice-simulation-schemaonly-keyinfo.md); hier nur `SET FMTONLY ON SELECT 2` als Grenze der Form C.
 
 ## 2. Definition of Done
 
