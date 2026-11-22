@@ -1,0 +1,1 @@
+**Stand:** offen — 1×, unter der Schwelle, nicht verkörpert; die Zahl folgt aus den Dateien in `evidence/`. Benannte Spec-Lücke, Träger: Nutzer (Entscheidung, ob `SPEC-029` die Austragung benennt); kein Folge-Slice, die Spezifikation ist im Slice nicht geändert.

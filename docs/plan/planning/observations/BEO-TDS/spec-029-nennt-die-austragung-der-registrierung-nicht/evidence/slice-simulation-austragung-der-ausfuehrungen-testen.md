@@ -1,0 +1,2 @@
+**Vorgang:** [slice-simulation-austragung-der-ausfuehrungen-testen](../../../../done/slice-simulation-austragung-der-ausfuehrungen-testen.md)
+**Fund:** [Verifikation](../../../../../../reviews/2026-11-22-slice-simulation-austragung-der-ausfuehrungen-testen-verifikation.md) Frage 4 (INFO) und Offene Frage 3: `SPEC-029` nennt die Austragung nicht ausdrücklich; der Slice ordnet sie in seinem Kopf unter „Abbruch, Austragung der Ausführung“ ein.
