@@ -34,7 +34,7 @@ Nicht gefahren (Auftrag und Tabelle `harness/README.md` §Minimal agent workflow
 ### R-1 — LOW
 - `kategorie`: LOW
 - `quelle`: `AGENTS.md` §3.7 (Slice-Plan nennt den unwirklichen Zustand), Skill-LOW „Test-KDoc oder Slice-Plan nennt den abwesenden oder unwirklichen Zustand“
-- `pfad`: `docs/plan/planning/in-progress/slice-simulation-schemaonly-keyinfo.md` · „liest ihren Rest nicht als Form F (`parseInProbe`)“
+- `pfad`: `docs/plan/planning/done/slice-simulation-schemaonly-keyinfo.md` · „liest ihren Rest nicht als Form F (`parseInProbe`)“
 - `befund`: Die Plan-Tabelle §3 nennt eine Funktion `parseInProbe`, die es nicht gibt: der Umbau `3363fdd8` hat sie zugunsten von `parse(…, schemaOnly = false)` entfernt, den Mutationsbeleg zog `ee6d1c0c` nach, die Plan-Tabelle nicht (`grep parseInProbe` über `src/`, `docs/`, `spec/`: ein Treffer, nur dort). Eine Suche nach dem Namen führt ins Leere.
 - `verifizierbar`: ja (`grep -rn parseInProbe`)
 - `klasse`: Umbenennung zieht die zweite Fundstelle im Plan nicht nach
@@ -121,7 +121,7 @@ Texte der Erkennung (Auszug der gefahrenen 20; HEAD gegen M26):
 | `spec/spezifikation.md` | geprüft, ohne Befund (Setzungen gekennzeichnet; keine `ADR-`/`slice-`-Bezüge in den neuen Zeilen; alle Hunks im Kopf der Plan-Stellen) |
 | `docs/messungen/referenzabgleich.md`, `docs/plan/kompatibilitaetsmatrix.md`, `docs/plan/planning/observations/BEO-TDS/`, `docs/plan/planning/open/slice-simulation-spaltenflags-an-referenz-angleichen.md` | geprüft, ohne Befund (Form der Vorlage, Aussagen nicht breiter als der Beleg) |
 | `docs/messungen/mutationen-schemaonly-form-f-2026-11-22.md` | geprüft, Befund R-2 |
-| `docs/plan/planning/in-progress/slice-simulation-schemaonly-keyinfo.md` | geprüft, Befund R-1 |
+| `docs/plan/planning/done/slice-simulation-schemaonly-keyinfo.md` | geprüft, Befund R-1 |
 | `docs/plan/spec-abdeckung.md` | gelesen, ohne Befund (SPEC-036: 306 statt 305 Tests, der neue Fall); nicht neu erzeugt |
 | Suppression (`@Suppress`, `@SuppressWarnings`, `noqa`, `nolint`, `SuppressMessage`), Host-Aufrufe von `gradle`/`java`, Zeilen über 120 Zeichen in den geänderten `src/main`-Dateien | geprüft, ohne Befund |
 | Accepted-ADR (`docs/plan/adr/`), `spec/architecture.md`, `spec/lastenheft.md`, `docs/user/` | nicht berührt, geprüft, ohne Befund |

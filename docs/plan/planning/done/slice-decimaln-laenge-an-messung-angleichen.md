@@ -42,7 +42,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Die Antwort auf `SchemaOnly` und `KeyInfo` (A-8) — [slice-simulation-schemaonly-keyinfo](../in-progress/slice-simulation-schemaonly-keyinfo.md); sie zeigt `ColumnSize` und braucht diese Länge, ist aber ein eigener Bau.
+- Die Antwort auf `SchemaOnly` und `KeyInfo` (A-8) — [slice-simulation-schemaonly-keyinfo](../done/slice-simulation-schemaonly-keyinfo.md); sie zeigt `ColumnSize` und braucht diese Länge, ist aber ein eigener Bau.
 - Die Länge des Dezimaltyps in RPC-Parametern und im Massenladen (Eingabeseite, `RpcParameterReader`, `BulkValueReader`) — der Parser ist tolerant (Setzung, [SPEC-003](../../../../spec/spezifikation.md#spec-003--typmapping-initialer-mindestkatalog)), keine Regel der Listen betrifft ihn.
 - Andere Typen mit Längen im TYPE_INFO (`datetime2`, `time`, `date`, `float`) — keine Regel der Liste, Messung `batch-typen` zeigt sie gleich (nur `decimal(10,2)` wird in A-11 genannt, die übrigen Spalten der Zeile stehen gleich in der Regel).
 - Clients außer `Microsoft.Data.SqlClient` 7.1.1 — Gegenstand eines Messauftrags, nicht dieses Slice.
@@ -78,7 +78,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 | `src/main/kotlin/io/github/pt9912/tdswire/protocol/dispatch/BulkCopyProbe.kt` | update | die eigene Größe 17 der Probe entfällt, der Default des Writers trägt sie (nicht im ersten Plan) |
 | `src/test/kotlin/io/github/pt9912/tdswire/protocol/{token,result,dispatch,response}/` (`TokenEncoderTest`, `DecimalValuesTest`, `ColumnMappingTest`, `BulkCopyProbeTest`, `ResponseRowFormTest`), `referenztest-dotnet/Mitschnitt/MessungBelegTests.cs` | update | Handvektor je Precision, Eigenschaft der ROW-Länge, Ablagezahl 38, Beleg der Ablage |
 | `docs/messungen/zeilenform-nbcrow-2026-11-17.md`, `docs/messungen/unterschiede-2022-2025-bestand-2026-11-17.md`, `docs/plan/kompatibilitaetsmatrix.md`, `docs/plan/spec-abdeckung.md`, `tools/mk/vergleichslauf-d.mk` | update | Verweise auf A-11, Testzitat, Szenarienzahl; erzeugte Matrix |
-| `docs/plan/planning/in-progress/slice-simulation-schemaonly-keyinfo.md` | update (Text) | A-11 ist aufgelöst; Verweise berichtigt |
+| `docs/plan/planning/done/slice-simulation-schemaonly-keyinfo.md` | update (Text) | A-11 ist aufgelöst; Verweise berichtigt |
 | `docs/plan/planning/observations/BEO-TDS/mitschnitt-luecken-ohne-traeger/evidence/` | neu | Beleg W-25 ohne Träger |
 
 `ColumnMapping.kt` blieb unverändert: der Default im `TypeInfoWriter` trägt die Länge.

@@ -114,7 +114,7 @@ Der Mutationsbeleg `mutationen-schemaonly-keyinfo-messphase-2026-11-22.md` stimm
 | `referenztest-dotnet/Mitschnitt/messung/2022/`, `2025/` | geprüft, ohne Befund (44 Dateien je Stufe, seit dem Erstreview unverändert) |
 | `docs/messungen/mutationen-schemaonly-keyinfo-messphase-2026-11-22.md` | geprüft, Befund N-4 (INFO); gemessene Wirkung gleich meinen Läufen |
 | `docs/messungen/referenzabgleich.md` (W-36, Kopplung) | geprüft, ohne Befund (Aussage wahr) |
-| `docs/plan/planning/in-progress/slice-simulation-schemaonly-keyinfo.md` §1, §3 | geprüft, ohne Befund (F-4, F-6 behoben); Rest des Slice ist nicht Gegenstand (Planner) |
+| `docs/plan/planning/done/slice-simulation-schemaonly-keyinfo.md` §1, §3 | geprüft, ohne Befund (F-4, F-6 behoben); Rest des Slice ist nicht Gegenstand (Planner) |
 | `docs/plan/spec-abdeckung.md` | geprüft, ohne Befund (erzeugt, SPEC-045 146, Klasse in der Liste); `make spec-abdeckung` nicht gefahren |
 | Suppression (`#pragma warning disable`, `[SuppressMessage]`) in den geänderten C#-Dateien | geprüft, ohne Befund |
 | Quelltext außerhalb `referenztest-dotnet/Mitschnitt/` (`src/`, `testserver/`, `spec/`, `docs/user/`) | von den drei Commits nicht berührt |

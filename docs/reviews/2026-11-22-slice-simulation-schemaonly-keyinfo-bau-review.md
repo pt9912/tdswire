@@ -39,7 +39,7 @@ Nicht gefahren (Auftrag und Tabelle `harness/README.md` §Minimal agent workflow
 ### F-3 — MEDIUM
 - `kategorie`: MEDIUM
 - `quelle`: Skill „Plan-Tabelle nennt die berührten Dateien nicht“ (Klasse „Plan-Tabelle gegen Diff nicht abgeglichen“, im Report der Messphase F-4 schon einmal)
-- `pfad`: `docs/plan/planning/in-progress/slice-simulation-schemaonly-keyinfo.md` · „**Berührte Spec-Stellen:**“ und „`src/main/kotlin/io/github/pt9912/tdswire/simulation/StatementParser.kt`, `BulkForms.kt`, `StatementPlanner.kt`, `FixedForms.kt`, `FixedAnswers.kt`“
+- `pfad`: `docs/plan/planning/done/slice-simulation-schemaonly-keyinfo.md` · „**Berührte Spec-Stellen:**“ und „`src/main/kotlin/io/github/pt9912/tdswire/simulation/StatementParser.kt`, `BulkForms.kt`, `StatementPlanner.kt`, `FixedForms.kt`, `FixedAnswers.kt`“
 - `befund`: Abgleich gegen den Diff. Datei berührt, in keiner Tabelle: `src/main/kotlin/io/github/pt9912/tdswire/simulation/Statement.kt` (neues `Recognition.SchemaOnly`) und `docs/plan/planning/observations/BEO-TDS/schemaonly-keyinfo-fmtonly-ohne-traeger/state.md` (nur die DoD nennt das Register). In der Tabelle, unberührt: `FixedForms.kt`. Spec-Stellen berührt, im Kopf nicht genannt: SPEC-002 (Aufzählung `StatementKind`), SPEC-004 (Testprofil, Zeile „`SET`-Text bei KeyInfo“), SPEC-030 (der Absatz „Offen“ steht dort; der Kopf nennt ihn ohne Kennung), `TDS-FA-11.a` (Ablauf, zwei Hunks), „Offene Punkte des Backend-Vertrags“ (Befehlskennung des Update-Zählers). Im Kopf genannt, unberührt: SPEC-035. Der Negativbefund „keine Datei darüber hinaus“ gilt erst nach diesem Abgleich.
 - `verifizierbar`: ja (`git diff --stat 7def244b..HEAD` gegen §3; Hunk-Überschriften von `spec/spezifikation.md`)
 - `klasse`: Plan-Tabelle gegen Diff nicht abgeglichen

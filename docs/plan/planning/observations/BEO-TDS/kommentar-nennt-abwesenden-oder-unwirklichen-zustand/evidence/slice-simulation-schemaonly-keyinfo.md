@@ -1,2 +1,2 @@
-**Vorgang:** [slice-simulation-schemaonly-keyinfo](../../../../in-progress/slice-simulation-schemaonly-keyinfo.md)
+**Vorgang:** [slice-simulation-schemaonly-keyinfo](../../../../done/slice-simulation-schemaonly-keyinfo.md)
 **Fund:** [Review der Messphase](../../../../../../reviews/2026-11-22-slice-simulation-schemaonly-keyinfo-messung-review.md) F-6 (LOW): Zustand und Vorzustand im selben Satz einer Zustandszelle; [Review des Baus](../../../../../../reviews/2026-11-22-slice-simulation-schemaonly-keyinfo-bau-review.md) F-6 (LOW): zwei Zustandszellen (Matrix, Register-`state.md`) nannten, bei wem ein Lauf liegt („beim Verifier“), statt belegt oder nicht belegt; beide behoben, die Zellen nennen nach der Verifikation den belegten Stand mit Datum.

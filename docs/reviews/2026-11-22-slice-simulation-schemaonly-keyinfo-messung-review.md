@@ -48,7 +48,7 @@ Nicht gefahren (Auftrag und Tabelle `harness/README.md` §Minimal agent workflow
 ### F-4 — MEDIUM
 - `kategorie`: MEDIUM
 - `quelle`: Skill „Plan-Tabelle nennt die berührten Dateien nicht“ (die Klasse „Plan-Tabelle gegen Diff nicht abgeglichen“ steht schon in früheren Reports, zuletzt `slice-simulation-spaltenlaenge-in-auswahl`, `slice-simulation-anweisungsformen-erweitern`)
-- `pfad`: `docs/plan/planning/in-progress/slice-simulation-schemaonly-keyinfo.md` · „| `referenztest-dotnet/Vergleich/MessungWireTests.cs`, `referenztest-dotnet/Vergleich/LiveSzenarioTests.cs`, `referenztest-dotnet/Vergleich/live-ausnahmen.tsv` | update | Messszenarien für `SchemaOnly` und `KeyInfo`, drei Regeln entfallen |“ (§3)
+- `pfad`: `docs/plan/planning/done/slice-simulation-schemaonly-keyinfo.md` · „| `referenztest-dotnet/Vergleich/MessungWireTests.cs`, `referenztest-dotnet/Vergleich/LiveSzenarioTests.cs`, `referenztest-dotnet/Vergleich/live-ausnahmen.tsv` | update | Messszenarien für `SchemaOnly` und `KeyInfo`, drei Regeln entfallen |“ (§3)
 - `befund`: Der Abgleich der Tabelle gegen `git diff --stat main...HEAD` ergibt berührte Dateien ohne Zeile: `referenztest-dotnet/Mitschnitt/TokenLeser.cs`, `referenztest-dotnet/Mitschnitt/MessAuswertung.cs`, `referenztest-dotnet/Mitschnitt/MessungSchemaBelegTests.cs` (neu), `referenztest-dotnet/Mitschnitt/MessungEinheitTests.cs`, `referenztest-dotnet/Mitschnitt/MessungBelegTests.cs`, `referenztest-dotnet/Mitschnitt/messung/2022/` und `2025/` (je sechs neue Dateien), `tools/mk/vergleichslauf-d.mk`. Die Spec-Stelle SPEC-045 steht im Kopf; `LiveSzenarioTests.cs` und `live-ausnahmen.tsv` sind unverändert (nach Plan dem Bau vorbehalten).
 - `verifizierbar`: ja (`git diff --stat main...HEAD` gegen §3)
 - `klasse`: Plan-Tabelle gegen Diff nicht abgeglichen
@@ -64,7 +64,7 @@ Nicht gefahren (Auftrag und Tabelle `harness/README.md` §Minimal agent workflow
 ### F-6 — LOW
 - `kategorie`: LOW
 - `quelle`: `AGENTS.md` §3.7 (ein Kommentar beschreibt, was da ist; Zustandsfelder)
-- `pfad`: `docs/plan/planning/in-progress/slice-simulation-schemaonly-keyinfo.md` · „`KeyInfo` erst nach der Messung der Antwort am Draht, weil die Antwortform unbekannt ist (gemessen am 2026-11-22, siehe Ist-Stand: TABNAME und COLINFO)“ und „(gemessen am 2026-11-22, nächster Punkt)“ (§1)
+- `pfad`: `docs/plan/planning/done/slice-simulation-schemaonly-keyinfo.md` · „`KeyInfo` erst nach der Messung der Antwort am Draht, weil die Antwortform unbekannt ist (gemessen am 2026-11-22, siehe Ist-Stand: TABNAME und COLINFO)“ und „(gemessen am 2026-11-22, nächster Punkt)“ (§1)
 - `befund`: Die Empfehlung nennt die Antwortform „unbekannt“ und im selben Satz „gemessen“; der Zustand (Antwortform gemessen, Quelle W-26 bis W-36) steht an der Stelle nicht im Indikativ. „nächster Punkt“ ist ein Positionsverweis auf einen Absatz, kein auflösbarer Anker.
 - `verifizierbar`: nein
 - `klasse`: Zustand und Vorzustand im selben Satz
@@ -88,7 +88,7 @@ Nicht gefahren (Auftrag und Tabelle `harness/README.md` §Minimal agent workflow
 ### F-9 — INFO
 - `kategorie`: INFO
 - `quelle`: Skill „Haken vor der Verifikation gesetzt“ (Abgrenzung), `harness/README.md` §Minimal agent workflow
-- `pfad`: `docs/plan/planning/in-progress/slice-simulation-schemaonly-keyinfo.md` · „- [ ] **Messung am Draht:**“ (§2) und `docs/plan/spec-abdeckung.md`
+- `pfad`: `docs/plan/planning/done/slice-simulation-schemaonly-keyinfo.md` · „- [ ] **Messung am Draht:**“ (§2) und `docs/plan/spec-abdeckung.md`
 - `befund`: Kein DoD-Punkt trägt ein `- [x]` (richtig, Review und Verifikation stehen aus). `docs/plan/spec-abdeckung.md` ist nicht im Diff; die neuen Tests tragen `@spec SPEC-045`, die Tabelle `harness/README.md` verlangt `make spec-abdeckung` einmal bei neuen Tests; der Lauf steht in der DoD-Zeile der Gate-Läufe aus. `docs/user/` ist von der Messphase nicht berührt (kein Verhalten geändert).
 - `verifizierbar`: nein
 - `klasse`: Hinweis auf offenen Sensorlauf
@@ -148,7 +148,7 @@ Der Grundlauf ist grün (123). Die Belegtests der Ablage lesen die Dateien und r
 | `referenztest-dotnet/Mitschnitt/MessungBelegTests.cs` | geprüft, ohne Befund (44 Dateien je Stufe, Umbenennung des Tests) |
 | `tools/mk/vergleichslauf-d.mk` | geprüft, ohne Befund (Kommentar: 44 = 22 + 14 + 2 + 6; andere Fundstellen der alten Zahl 38 per `grep` nicht gefunden) |
 | `docs/messungen/referenzabgleich.md` (Zeile A-8, Abschnitt W-26 bis W-36, Rohzeilen) | geprüft, Befunde F-5 und F-8 |
-| `docs/plan/planning/in-progress/slice-simulation-schemaonly-keyinfo.md` §1, §2 | geprüft, Befund F-6; kein vorzeitiger Haken (F-9) |
+| `docs/plan/planning/done/slice-simulation-schemaonly-keyinfo.md` §1, §2 | geprüft, Befund F-6; kein vorzeitiger Haken (F-9) |
 | `src/`, `testserver/`, `spec/`, `docs/user/` | nicht berührt, geprüft, ohne Befund |
 | Suppression (`@Suppress`, `[SuppressMessage]`, `#pragma warning disable`) in den geänderten C#-Dateien | geprüft, ohne Befund |
 
