@@ -52,7 +52,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 - [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
 - [x] Beobachtungs-Register (`../observations/`) fortgeschrieben: `BEO-TDS/cancel-antwort-text-weicht-vom-echten-server-ab` (Ausgang nachführen); keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
 - [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
 
 ## 3. Plan (vor Code)
 
@@ -138,7 +138,7 @@ Geschlossen 2026-11-22 (Planner, Slice-Closure ohne Welle). Geprüfter Stand: Zw
 
 **Risiken aus §6.** Ausgänge je Risiko in §6: Seltenheit des Zusatzes entfallen; Ursache im Client entfallen (der Rest ist Beobachtung); `LAUF=live` gelegentlich rot eingetreten und entschieden; Lücken des Messwerkzeugs weiter offen (`BEO-TDS/zeile-oder-zweig-ohne-unterscheidenden-test`); Größe entfallen.
 
-**Drei Paarungen.** (a) Anker: kein Eintrag trägt `liegt in`, nichts zu prüfen. (b) Folge-Slice: der Slice nennt keinen Folge-Slice; die Beobachtung nennt als Träger-Slice diesen, er liegt als Datei im Lifecycle. (c) Register: jede genannte Kennung `BEO-TDS/<slug>` existiert als Verzeichnis und trägt ein nicht leeres `evidence/`. Geprüft nach dem `git mv`: Nachtrag folgt.
+**Drei Paarungen.** (a) Anker: kein Eintrag trägt `liegt in`, nichts zu prüfen. (b) Folge-Slice: der Slice nennt keinen Folge-Slice; die Beobachtung nennt als Träger-Slice diesen, er liegt als Datei im Lifecycle. (c) Register: jede genannte Kennung `BEO-TDS/<slug>` existiert als Verzeichnis und trägt ein nicht leeres `evidence/`. Geprüft nach dem `git mv` am 2026-11-22 am Dateisystem: (a) nichts zu prüfen, kein Eintrag trägt das Feld `liegt in` (die zwei Erwähnungen in diesem Abschnitt sind Prosa); (b) `done/slice-cancel-zusatztext-ursache-untersuchen.md` (der Träger-Slice der Beobachtung) liegt als Datei in `done/`, ebenso `slice-cancel-antwort-zwei-nachrichten-angleichen.md` und `slice-simulation-anweisungsformen-erweitern.md` (genannt), kein Folge-Slice genannt; (c) die zehn genannten Kennungen `BEO-TDS/<slug>` (acht mit neuer Evidence-Datei, zwei nur im Stand-Absatz oder gelesen) sind Verzeichnisse mit `observation.md`, `state.md` und nicht leerem `evidence/`; `BEO-TDS/cancel-antwort-text-weicht-vom-echten-server-ab` trägt vier Dateien. Der Lauf nach dem `git mv`: `make docs-check` Exit 0 (1766 Dateien, 0 Befunde) und `make gates` Exit 0.
 
 **Herkunft:** Nutzerentscheid 2026-11-20 im Slice [slice-cancel-antwort-zwei-nachrichten-angleichen](../done/slice-cancel-antwort-zwei-nachrichten-angleichen.md) (A-7 bleibt eine Regel, die Ursache des Zusatzes ist ein eigener Folge-Slice); Verifikation dieses Slice, Finding F-1 und F-4 ([Verifikationsbericht](../../../reviews/2026-11-20-slice-cancel-antwort-zwei-nachrichten-angleichen-verifikation.md)); Register `BEO-TDS/cancel-antwort-text-weicht-vom-echten-server-ab`; [Messprotokoll des Referenzabgleichs](../../../messungen/referenzabgleich.md), Abschnitt „Antwort auf ATTENTION: Zwei-Nachrichten-Form“.
 
