@@ -227,6 +227,8 @@ class SimulationBackendSchemaOnlyTest {
             " SET FMTONLY OFF; SET FMTONLY ON; SET NO_BROWSETABLE ON;SELECT Id FROM person",
             " SET FMTONLY ON;SELECT Id FROM person SET FMTONLY OFF;",
             " SET FMTONLY OFF SET FMTONLY ON;SELECT Id FROM person",
+            " SET FMTONLY OFF x SET FMTONLY ON;SELECT Id FROM person",
+            " SET FMTONLY OFF; SET FMTONLY ON x SELECT Id FROM person",
             " SET FMTONLY OFF; SET FMTONLY ON SELECT Id FROM person",
             " SET FMTONLY ON; SET FMTONLY OFF;SELECT Id FROM person",
             " SET FMTONLY OFF; SET FMTONLY OFF;SELECT Id FROM person",

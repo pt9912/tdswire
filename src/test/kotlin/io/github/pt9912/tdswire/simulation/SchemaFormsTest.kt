@@ -89,6 +89,8 @@ class SchemaFormsTest {
             "$head SELECT a FROM t; SET FMTONLY OFF",
             "$head SELECT a FROM t SET FMTONLY OFF SET FMTONLY OFF",
             "SET FMTONLY OFF SET FMTONLY ON; SELECT a FROM t",
+            "SET FMTONLY OFF x SET FMTONLY ON; SELECT a FROM t",
+            "SET FMTONLY OFF; SET FMTONLY ON x SELECT a FROM t",
             "SET FMTONLY OFF; SET FMTONLY ON SELECT a FROM t",
             "SET FMTONLY ON; SET FMTONLY OFF; SELECT a FROM t",
             "SET FMTONLY OFF; SET FMTONLY OFF; SELECT a FROM t",
