@@ -4,7 +4,7 @@
 
 **Stand:** Branch `slice-simulation-austragung-der-ausfuehrungen-testen`, End-Stand `fb68e9a1` (Nachbesserung F-1/F-2 des Reviews; danach nur dieser Bericht); Arbeitsbaum vor und nach allen Läufen sauber. Alle Läufe unten gelten für `fb68e9a1`.
 
-**Gegenstand:** Slice [slice-simulation-austragung-der-ausfuehrungen-testen](../plan/planning/in-progress/slice-simulation-austragung-der-ausfuehrungen-testen.md); [TDS-FA-11](../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-FA-07](../../spec/lastenheft.md#tds-fa-07--abbruch-und-ressourcenfreigabe), [TDS-QA-01](../../spec/lastenheft.md#tds-qa-01--kompatibilität); [ADR-0027](../plan/adr/0027-abbruch-und-zuruecksetzen.md) und [ADR-0033](../plan/adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) (Bezug des Slice), [ADR-0054](../plan/adr/0054-antwort-auf-attention-in-zwei-nachrichten.md) und [ADR-0006](../plan/adr/0006-backend-vertrag-und-streaming.md) (nicht Bezug des Slice, auf Wunsch des Auftrags mitgeprüft); [SPEC-029](../../spec/spezifikation.md#spec-029--attention-und-wiederverwendung-der-verbindung); Mutationsbeleg [mutationen-austragung-der-ausfuehrungen-2026-11-22.md](../messungen/mutationen-austragung-der-ausfuehrungen-2026-11-22.md); Review [2026-11-22-slice-simulation-austragung-der-ausfuehrungen-testen.md](2026-11-22-slice-simulation-austragung-der-ausfuehrungen-testen.md) (0 HIGH, 1 MEDIUM, 1 LOW, 4 INFO; F-1 und F-2 nachgebessert).
+**Gegenstand:** Slice [slice-simulation-austragung-der-ausfuehrungen-testen](../plan/planning/done/slice-simulation-austragung-der-ausfuehrungen-testen.md); [TDS-FA-11](../../spec/lastenheft.md#tds-fa-11--mitgeliefertes-simulations-backend), [TDS-FA-07](../../spec/lastenheft.md#tds-fa-07--abbruch-und-ressourcenfreigabe), [TDS-QA-01](../../spec/lastenheft.md#tds-qa-01--kompatibilität); [ADR-0027](../plan/adr/0027-abbruch-und-zuruecksetzen.md) und [ADR-0033](../plan/adr/0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md) (Bezug des Slice), [ADR-0054](../plan/adr/0054-antwort-auf-attention-in-zwei-nachrichten.md) und [ADR-0006](../plan/adr/0006-backend-vertrag-und-streaming.md) (nicht Bezug des Slice, auf Wunsch des Auftrags mitgeprüft); [SPEC-029](../../spec/spezifikation.md#spec-029--attention-und-wiederverwendung-der-verbindung); Mutationsbeleg [mutationen-austragung-der-ausfuehrungen-2026-11-22.md](../messungen/mutationen-austragung-der-ausfuehrungen-2026-11-22.md); Review [2026-11-22-slice-simulation-austragung-der-ausfuehrungen-testen.md](2026-11-22-slice-simulation-austragung-der-ausfuehrungen-testen.md) (0 HIGH, 1 MEDIUM, 1 LOW, 4 INFO; F-1 und F-2 nachgebessert).
 
 ## Urteil
 
@@ -44,7 +44,7 @@ Ausgang ohne Mutation: dreimal in Folge `BUILD SUCCESSFUL`, 7 von 7 `PASSED` (si
 
 ### (2) Die vier benannten Lücken in §6
 
-[Slice §6](../plan/planning/in-progress/slice-simulation-austragung-der-ausfuehrungen-testen.md) führt **eine** der vier: „zwei gleichzeitige Anfragen“ (Ausgang „offen bis zur Closure“). **Nicht in §6 geführt**, aber im Beleg beziehungsweise im Review benannt:
+[Slice §6](../plan/planning/done/slice-simulation-austragung-der-ausfuehrungen-testen.md) führt **eine** der vier: „zwei gleichzeitige Anfragen“ (Ausgang „offen bis zur Closure“). **Nicht in §6 geführt**, aber im Beleg beziehungsweise im Review benannt:
 
 | Lücke | Wo benannt | In §6 | Vorschlag Ausgang |
 |---|---|---|---|
@@ -74,7 +74,7 @@ Sieben Testfälle, jeder trägt genau ein `@spec SPEC-029` (gezählt: 7 Treffer 
 | `docs/messungen/mutationen-anweisungsformen-2026-11-21.md` | ja (update) |
 | `docs/plan/planning/observations/BEO-TDS/austragung-…/state.md` | ja (update) |
 | `docs/plan/spec-abdeckung.md` | ja (update; Review F-1 nachgeführt) |
-| `docs/plan/planning/in-progress/slice-simulation-austragung-der-ausfuehrungen-testen.md` | ja (update) |
+| `docs/plan/planning/done/slice-simulation-austragung-der-ausfuehrungen-testen.md` | ja (update) |
 | `docs/reviews/2026-11-22-slice-simulation-austragung-der-ausfuehrungen-testen.md` (neu) | ja (create) |
 
 Plan und Diff stimmen überein; die Zeile `SelectExecution.kt`, `SimulationChanges.kt`, `SimulationMerges.kt`, `SimulationBackend.kt` („update, nur falls ein Test ein Leck findet“) ist nicht ausgelöst, wie vorgesehen. Die ursprüngliche Zeile „vier Testklassen“ ist durch eine einzige neue Klasse ersetzt, mit Begründung in der Tabelle (die Zusage steht an einer Stelle). Dieser Bericht kommt hinzu. Register: `state.md` nennt Zustand (`offen — 1×`, unter der Schwelle), Träger (`in-progress/`) und Beleg als auflösbare Verweise, Formulierung „Urteil beim Verifier“ ist Zustand, keine Chronik; ein neuer Beleg unter `evidence/` ist nicht entstanden, die Beobachtung bleibt bei 1× (ihr Ausgang wird bei der Closure nachgeführt, wie die DoD sagt). `docs-check` löst alle Verweise auf.
