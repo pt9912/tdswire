@@ -1,0 +1,2 @@
+**Vorgang:** review-2026-11-22-slice-simulation-schemaonly-keyinfo-bau
+**Fund:** [Review des Baus von Form F](../../../../../../reviews/2026-11-22-slice-simulation-schemaonly-keyinfo-bau-review.md) F-2 (MEDIUM): die Tests der Antwort vergleichen das COLMETADATA der Bibliothek mit sich selbst, die Referenz schreibt `0x0008`/`0x0009` für jede Tabellenspalte ([Messprotokoll](../../../../../../messungen/referenzabgleich.md) W-27) und meldet `IsReadOnly=False`; Nutzerentscheidung 2026-11-22: Register-Eintrag und Folge-Slice, Form F bleibt gebaut.

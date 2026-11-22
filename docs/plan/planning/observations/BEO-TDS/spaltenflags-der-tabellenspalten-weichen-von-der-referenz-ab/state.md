@@ -1,0 +1,1 @@
+**Stand:** offen — 1×, unter der Schwelle, nicht verkörpert; die Zahl folgt aus den Dateien in `evidence/`. Träger: [slice-simulation-spaltenflags-an-referenz-angleichen](../../../open/slice-simulation-spaltenflags-an-referenz-angleichen.md) (`open/`, nicht gestartet; Messung am Server, dann Entscheidung: Code angleichen oder Ausnahme).

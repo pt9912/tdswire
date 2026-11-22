@@ -1,0 +1,5 @@
+# Die Spaltenflags der Tabellenspalten im COLMETADATA des Servers weichen von der Referenz ab (`0x0000`/`0x0001` gegen `0x0008`/`0x0009`), `IsReadOnly` in `GetSchemaTable()` ist nicht verglichen
+
+**Sub-Area:** `*` (Simulations-Backend, Encoder des COLMETADATA)
+
+Die Referenz (SQL Server 2022 und 2025) schreibt für jede Tabellenspalte die Flags `0x0008` und `0x0009` ([Messprotokoll](../../../../../messungen/referenzabgleich.md) W-27, Zeilen `spaltenform`); die Bibliothek schreibt `0x0000` und `0x0001` (das Bit `0x0001` trägt die Nullbarkeit, die Bedeutung von `0x0008` ist nicht gemessen). Der Referenzclient meldet in `GetSchemaTable()` für alle 16 Schemazeilen je Instanz `IsReadOnly=False` (Messdatei `referenztest-dotnet/Mitschnitt/messung/2022/schemaonly-spalten.messung`, ebenso `2025`); was er bei den Flags des Servers meldet, ist nicht gemessen, nach dem Muster von W-33 voraussichtlich `True`. Der Live-Lauf vergleicht das Feld nicht, die Abweichung steht in keiner Ausnahmeliste. Die Abweichung ist älter als der Bau von Form F und betrifft jede Auswahl aus einer Tabelle.
