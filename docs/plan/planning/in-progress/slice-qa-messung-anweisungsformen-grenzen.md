@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** [SPEC-036](../../../../spec/spezifikation.md#spec-036--erkannte-anweisungsformen-des-simulations-backends-vorläufig) (Abschnitt „Term“, Form C mit den „Ungemessenen Setzungen“, Form Z) · [SPEC-045](../../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig) (Ausnahmeliste, falls eine Messung eine Regel verlangt) · [Messprotokoll des Referenzabgleichs](../../../messungen/referenzabgleich.md) (Abschnitt „Anweisungsformen erweitert“).
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912
 
 **Autor:** pt9912 (Entwurf in der Planner-Rolle). **Datum:** 2026-11-22.
 
