@@ -218,8 +218,12 @@ public class LiveSzenarioTests
         });
 
         Schritt("fehler-vor-zeilen", () => FehlerSchritt("SELECT Id FROM gibtesnicht"));
-        Schritt("anweisung-ohne-tabelle", () => FehlerSchritt("SELECT 2"));
-        Schritt("bedingung-mit-or", () => FehlerSchritt("SELECT Id FROM person WHERE Id = 1 OR Id = 2"));
+        Schritt("anweisung-ohne-tabelle", () => { using var v = Oeffnen(); return Abfrage(v, "SELECT 2"); });
+        Schritt("bedingung-mit-or", () =>
+        {
+            using var v = Oeffnen();
+            return Abfrage(v, "SELECT Id FROM person WHERE Id = 1 OR Id = 2");
+        });
         Schritt("fehler-nach-zeilen", () =>
         {
             using var v = Oeffnen();

@@ -7,8 +7,9 @@ import kotlin.test.assertIs
 /**
  * Tests der Zuordnung zu S1, W1, W2 und W3 (`SPEC-036`) und der Liste „Nicht erkannt“: je Zeile der Liste ein
  * Negativtest, jeweils mit einem Zwilling, der erkannt wird, damit die Ablehnung nicht aus einem fremden Grund
- * geschieht. Die Erwartungen sind von Hand geschrieben und benutzen den Scanner nicht. Alles ist Festlegung
- * (Lesart des Lastenhefts, ADR-0012 Offen 12 (a), vom Nutzer nicht bestätigt): nichts ist an einem Server gemessen.
+ * geschieht. Die Erwartungen sind von Hand geschrieben und benutzen den Scanner nicht. Was keine Form der Liste ist,
+ * ist nicht erkannt (ADR-0033 Nr. 11, ADR-0058 Entscheidung 1); die Grenzen der Formen sind Festlegung, nichts ist an
+ * einem Server gemessen außer den in den Tests genannten Fällen (ADR-0058 Kontext).
  */
 class StatementFormsTest {
     private val t = tableRef("t")
@@ -243,7 +244,6 @@ class StatementFormsTest {
             "SELECT a + 1 FROM t",
             "SELECT UPPER(a) FROM t",
             "SELECT 1 FROM t",
-            "SELECT 2",
             "SELECT a FROM t WHERE a = 1 + 1",
             "SELECT a FROM t WHERE a = 'x' + 'y'",
             "SELECT a FROM t WHERE a = UPPER(b)",
@@ -259,18 +259,106 @@ class StatementFormsTest {
     }
 
     /**
-     * Zeile „OR“.
+     * Zeile „OR“ nach `ADR-0058` Entscheidung 3: nur in S1 und nur als reine Folge; jede Mischung mit `AND`, jede
+     * Klammer, der Konstantenterm in der Folge und `OR` in `UPDATE` und `DELETE` bleiben nicht erkannt.
      * @spec SPEC-036
      */
     @Test
-    fun `lehnt OR ab`() {
+    fun `lehnt OR ausserhalb der reinen Folge in S1 ab`() {
         assertOnlyExtensionFails(
-            "SELECT a FROM t WHERE a = 1 AND b = 2",
             "SELECT a FROM t WHERE a = 1 OR b = 2",
             "SELECT a FROM t WHERE a = 1 AND b = 2 OR c = 3",
+            "SELECT a FROM t WHERE a = 1 OR b = 2 AND c = 3",
+            "SELECT a FROM t WHERE a = 1 AND b = 2 OR c = 3 AND d = 4",
+            "SELECT a FROM t WHERE (a = 1 OR b = 2)",
+            "SELECT a FROM t WHERE a = 1 OR (b = 2)",
+            "SELECT a FROM t WHERE (a = 1) OR b = 2",
+            "SELECT a FROM t WHERE 1 = 1 OR a = 1",
+            "SELECT a FROM t WHERE a = 1 OR 1 = 1",
+            "SELECT a FROM t WHERE a = 1 OR 1 = 0",
+            "SELECT a FROM t WHERE a = 1 OR",
+            "SELECT a FROM t WHERE OR a = 1",
+            "SELECT a FROM t WHERE a = 1 OR OR b = 2",
+            "SELECT a FROM t WHERE a = 1 OR b",
+            "SELECT a FROM t WHERE a = 1 OR NOT b = 2",
+            "SELECT a FROM t WHERE a = 1 OR b < 2",
+            "SELECT a FROM t WHERE a = 1 OR b LIKE 'x'",
+            "SELECT a FROM t WHERE a = 1 OR b BETWEEN 1 AND 2",
+            "SELECT a FROM t WHERE a = 1 OR b <> 2",
+            "SELECT a FROM t WHERE a = 1 OR b != 2",
+            "SELECT a FROM t WHERE a = 1 OR b NOT IN (1, 2)",
             "UPDATE t SET a = 1 WHERE a = 1 OR a = 2",
+            "UPDATE t SET a = 1 WHERE a = 1 AND b = 1 OR a = 2",
             "DELETE FROM t WHERE a = 1 OR b = 2",
-            "select a from t where a = 1 or b = 2",
+            "DELETE FROM t WHERE a = 1 OR a = 2 OR a = 3",
+            "INSERT INTO t (a) VALUES (1) OR a = 2",
+        )
+    }
+
+    /**
+     * Happy und Boundary zu `ADR-0058` Entscheidung 3: eine reine `OR`-Folge aus zwei oder mehr Termen (`=`, `IN`,
+     * `IS [NOT] NULL`) in S1, in jeder Schreibweise der Schlüsselwörter; ein Term allein ist keine Folge, und `AND`
+     * bleibt UND. Wächter: ein Parser, der `OR` wie `AND` liest (dann fehlt das Kennzeichen der Folge).
+     * @spec SPEC-036
+     */
+    @Test
+    fun `ordnet S1 mit reiner OR-Folge zu`() {
+        assertRecognized(
+            selectAny(t, listOf("a"), eq("a", num("1")), eq("b", num("2"))),
+            "SELECT a FROM t WHERE a = 1 OR b = 2",
+        )
+        assertRecognized(
+            selectAny(t, null, eq("Id", num("1")), eq("Id", num("2"))),
+            "select * from t where Id = 1 or Id = 2",
+        )
+        assertRecognized(
+            selectAny(
+                t,
+                listOf("a"),
+                eq("a", num("1")),
+                inList("b", num("1"), SimValue.Null),
+                isNull("c"),
+                isNotNull("d"),
+            ),
+            "SELECT a FROM t WHERE a = 1 OR b IN (1, NULL) OR c IS NULL OR d IS NOT NULL;",
+        )
+        assertRecognized(
+            selectAny(t, listOf("a"), eq("a", param("p")), eq("a", txt("x"))),
+            "SELECT a FROM t WHERE a = @p OR a = 'x' /* c */",
+        )
+        assertRecognized(select(t, listOf("a"), eq("a", num("1"))), "SELECT a FROM t WHERE a = 1")
+        assertRecognized(
+            select(t, listOf("a"), eq("a", num("1")), eq("b", num("2"))),
+            "SELECT a FROM t WHERE a = 1 AND b = 2",
+        )
+    }
+
+    /**
+     * Form S2 (`ADR-0058` Entscheidung 3): jede der zwei Auswahlen darf eine `OR`-Folge tragen (Setzung), auch eine
+     * mit `AND`, jede für sich.
+     * @spec SPEC-036
+     */
+    @Test
+    fun `S2 erlaubt je Auswahl eine OR-Folge`() {
+        val first = select(t, listOf("a"), eq("a", num("1")), eq("b", num("2"))) as Statement.Select
+        val second = selectAny(t, listOf("b"), eq("a", num("1")), eq("a", num("2"))) as Statement.Select
+        assertEquals(
+            Recognition.Series(listOf(first, second)),
+            recognize("SELECT a FROM t WHERE a = 1 AND b = 2; SELECT b FROM t WHERE a = 1 OR a = 2"),
+        )
+        assertNotRecognized("SELECT a FROM t WHERE a = 1 OR b = 2; SELECT b FROM t WHERE a = 1 AND b = 2 OR c = 3")
+    }
+
+    /**
+     * Hinter `SET FMTONLY ON` ist eine `OR`-Folge die UND-Folge mit dem Konstantenterm, der nie gilt: die Auswahl
+     * liefert Spalten und nie eine Zeile.
+     * @spec SPEC-036
+     */
+    @Test
+    fun `OR-Folge hinter FMTONLY wird zur Auswahl ohne Zeile`() {
+        assertRecognized(
+            select(t, listOf("a"), eq("a", num("1")), eq("b", num("2")), Term.Constant(false)),
+            "SET FMTONLY ON SELECT a FROM t WHERE a = 1 OR b = 2",
         )
     }
 

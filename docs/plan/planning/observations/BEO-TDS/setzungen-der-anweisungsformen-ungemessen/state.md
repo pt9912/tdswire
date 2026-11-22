@@ -1,0 +1,1 @@
+**Stand:** offen — 1×, unter der Schwelle, nicht verkörpert; die Zahl folgt aus den Dateien in `evidence/`. Träger: [slice-qa-messung-anweisungsformen-grenzen](../../../open/slice-qa-messung-anweisungsformen-grenzen.md) (`open/`, nicht gestartet); `QUERY_TIMEOUT` bleibt Setzung (nicht messbar).

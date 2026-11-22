@@ -7,7 +7,8 @@ import io.github.pt9912.tdswire.domain.StatementKind
 
 /**
  * Die festen Antworten der Form C (`SPEC-036`, Setzung nach der Aufzeichnung mit d-migrate 1.12.0): `SELECT 1` ist
- * eine Spalte ohne Namen vom Typ `Int32`, nicht NULL-fähig, mit der Zeile `1`; eine `SET`-Anweisung ist der
+ * eine Spalte ohne Namen vom Typ `Int32`, nicht NULL-fähig, mit der Zeile `1`, `SELECT <Ganzzahl>` dieselbe Antwort mit
+ * der Zahl als Zeile (gemessen ist der Wert 2, `ADR-0058` Entscheidung 4); eine `SET`-Anweisung ist der
  * Änderungszähler 0, mit Ausnahmen für gemessene Texte (M-20): `set implicit_transactions on` allein meldet die Art
  * `IMPLICIT_TRANSACTIONS_ON`, `set implicit_transactions off IF @@TRANCOUNT > 0 COMMIT TRAN` meldet
  * `IMPLICIT_TRANSACTIONS_OFF` und dann `COMMIT_IF_OPEN`, und `IF @@TRANCOUNT > 0 COMMIT TRAN` allein meldet
@@ -19,16 +20,18 @@ import io.github.pt9912.tdswire.domain.StatementKind
  */
 internal object FixedAnswers {
     fun of(form: FixedForm): List<QueryEvent> = when (form) {
-        FixedForm.Probe -> listOf(
-            QueryEvent.ResultStart(listOf(ResultColumn("", SqlType.Int32, false))),
-            QueryEvent.Row(listOf(1)),
-            QueryEvent.ResultEnd(1),
-        )
-
+        FixedForm.Probe -> constant(1)
+        is FixedForm.IntegerConstant -> constant(form.value)
         is FixedForm.Settings -> listOf(QueryEvent.UpdateCount(0, implicitTransactions(form)))
-
         is FixedForm.Transaction -> transaction(form)
     }
+
+    /** Ein Ergebnis mit einer Spalte ohne Namen (`Int32`, nicht NULL) und der einen Zeile [value]. */
+    private fun constant(value: Int): List<QueryEvent> = listOf(
+        QueryEvent.ResultStart(listOf(ResultColumn("", SqlType.Int32, false))),
+        QueryEvent.Row(listOf(value)),
+        QueryEvent.ResultEnd(1),
+    )
 
     private fun transaction(form: FixedForm.Transaction): List<QueryEvent> = when {
         form.commit && form.implicit == null -> listOf(QueryEvent.UpdateCount(0, StatementKind.COMMIT_IF_OPEN))

@@ -1,10 +1,11 @@
 package io.github.pt9912.tdswire.simulation
 
 /**
- * Form C von `SPEC-036`: die Texte, die keine Tabelle nennen. Erkannt sind `SELECT 1` und eine oder mehrere
- * `SET`-Anweisungen, durch `;` getrennt, jeweils eine Option aus [ON_OFF_OPTIONS] mit `ON` oder `OFF` oder
- * `LOCK_TIMEOUT` mit einer Ganzzahl. Alles andere ist nicht Form C. Die Liste ist eine Setzung nach der Aufzeichnung
- * mit d-migrate 1.12.0 (mssql-jdbc 13.4.0), nicht nach dem Umfang von `SET` am Server.
+ * Form C von `SPEC-036`: die Texte, die keine Tabelle nennen. Erkannt sind `SELECT <Ganzzahl>` im Bereich von `Int32`
+ * (`SELECT 1` ist der Verbindungstest, `ADR-0058` Entscheidung 4) und eine oder mehrere `SET`-Anweisungen, durch `;`
+ * getrennt, jeweils eine Option aus [ON_OFF_OPTIONS] mit `ON` oder `OFF` oder `LOCK_TIMEOUT` mit einer Ganzzahl. Alles
+ * andere ist nicht Form C. Die Liste ist eine Setzung nach der Aufzeichnung mit d-migrate 1.12.0 (mssql-jdbc 13.4.0),
+ * nicht nach dem Umfang von `SET` am Server.
  */
 internal object FixedForms {
     private val ON_OFF_OPTIONS = setOf(
@@ -23,10 +24,22 @@ internal object FixedForms {
     private val INTEGER = Regex("-?[0-9]+")
 
     /** Die Form des Textes oder `null`, wenn er keine Form C ist; [tokens] ohne das abschließende `;`. */
-    fun recognize(tokens: List<Token>): FixedForm? = if (isProbe(tokens)) FixedForm.Probe else settings(tokens)
+    fun recognize(tokens: List<Token>): FixedForm? =
+        if (isProbe(tokens)) FixedForm.Probe else integerConstant(tokens) ?: settings(tokens)
 
     private fun isProbe(tokens: List<Token>): Boolean =
         tokens.size == 2 && tokens[0].isKeyword("SELECT") && tokens[1] == Token.Number("1")
+
+    /** `SELECT <Ganzzahl>`: ein Ganzzahlliteral im Bereich von `Int32`, sonst `null` (Dezimalzahl, größere Zahl). */
+    private fun integerConstant(tokens: List<Token>): FixedForm? {
+        val number = tokens.getOrNull(1) as? Token.Number
+        val value = number?.text?.takeIf { INTEGER.matches(it) }?.toIntOrNull()
+        return if (tokens.size == 2 && tokens[0].isKeyword("SELECT") && value != null) {
+            FixedForm.IntegerConstant(value)
+        } else {
+            null
+        }
+    }
 
     private fun settings(tokens: List<Token>): FixedForm? {
         val options = ArrayList<SetOption>()

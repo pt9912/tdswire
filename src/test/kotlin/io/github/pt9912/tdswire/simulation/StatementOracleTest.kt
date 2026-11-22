@@ -59,6 +59,8 @@ class StatementOracleTest {
         "SELECT * FROM t WHERE a = 'x;'" to yes(select(t, null, eq("a", txt("x;")))),
         "SELECT * FROM t WHERE a = 'x;';" to yes(select(t, null, eq("a", txt("x;")))),
         "SELECT * FROM t WHERE a = 'x' ; -- end" to yes(select(t, null, eq("a", txt("x")))),
+        "SELECT a FROM t WHERE a = '-- x' OR b = 1" to
+            yes(selectAny(t, listOf("a"), eq("a", txt("-- x")), eq("b", num("1")))),
         "INSERT INTO t (a) VALUES (';')" to yes(insert(t, listOf("a"), txt(";"))),
         "INSERT INTO t (a) VALUES ('--')" to yes(insert(t, listOf("a"), txt("--"))),
         "INSERT INTO t (a) VALUES ('/*')" to yes(insert(t, listOf("a"), txt("/*"))),
@@ -88,7 +90,7 @@ class StatementOracleTest {
         "SELECT a FROM t /* x" to no(Unrecognized.UNTERMINATED_COMMENT),
         "SELECT a FROM t WHERE a = 'x'; SELECT 1" to no(Unrecognized.UNEXPECTED_TOKEN),
         "SELECT a FROM t; /* x */ ;" to no(Unrecognized.UNEXPECTED_TOKEN),
-        "SELECT a FROM t WHERE a = '-- x' OR b = 1" to no(Unrecognized.UNEXPECTED_TOKEN),
+        "SELECT a FROM t WHERE a = '-- x' ORDER BY b" to no(Unrecognized.UNEXPECTED_TOKEN),
         "SELECT a FROM t WHERE a = 1; DROP TABLE t" to no(Unrecognized.UNEXPECTED_TOKEN),
         "SELECT a FROM t WHERE a = '1'; DROP TABLE t" to no(Unrecognized.UNEXPECTED_TOKEN),
         "SELECT a FROM t ORDER BY ';'" to no(Unrecognized.UNEXPECTED_TOKEN),
@@ -101,22 +103,22 @@ class StatementOracleTest {
     )
 
     /**
-     * 64 Grenzfälle mit `;`, `--`, Blockkommentar, `[…]`, `"…"` und `N'…'` an jeder Stelle, mit der
+     * 65 Grenzfälle mit `;`, `--`, Blockkommentar, `[…]`, `"…"` und `N'…'` an jeder Stelle, mit der
      * Erwartung des ganzen Ergebnisses.
      * @spec SPEC-036
      */
     @Test
-    fun `ordnet 64 Grenzfälle wie erwartet zu`() {
+    fun `ordnet 65 Grenzfälle wie erwartet zu`() {
         val cases = positiveCases + negativeCases
         assertTrue(cases.size >= 60, "Untergrenze der Fälle: ${cases.size}")
-        assertEquals(64, cases.size)
+        assertEquals(65, cases.size)
         for ((sql, expected) in cases) {
             when (expected) {
                 is Expect.Is -> assertRecognized(expected.statement, sql)
                 is Expect.No -> assertNotRecognized(sql, expected.reason)
             }
         }
-        assertEquals(46, cases.count { it.second is Expect.Is })
+        assertEquals(47, cases.count { it.second is Expect.Is })
     }
 
     // Erzeuger -------------------------------------------------------------------------------------------
@@ -138,6 +140,7 @@ class StatementOracleTest {
         var nastyNamesUsed = 0
         val payloadsUsed = HashSet<String>()
         val kinds = IntArray(4)
+        var disjunctions = 0
 
         fun <T> pick(list: List<T>): T = list[random.nextInt(list.size)]
     }
@@ -215,11 +218,12 @@ class StatementOracleTest {
         return TableRef(schema, name) to tokens
     }
 
-    private fun where(gen: Gen): Pair<List<Term>, List<String>> {
+    /** Die Bedingung: [connector] verbindet die Terme (`AND`, oder `OR` in einer Auswahl, `ADR-0058`). */
+    private fun where(gen: Gen, connector: String = "AND"): Pair<List<Term>, List<String>> {
         val terms = ArrayList<Term>()
         val tokens = ArrayList<String>()
         repeat(gen.random.nextInt(4)) { index ->
-            tokens += keyword(gen, if (index == 0) "WHERE" else "AND")
+            tokens += keyword(gen, if (index == 0) "WHERE" else connector)
             val column = randomName(gen)
             tokens += renderName(gen, column)
             when (gen.random.nextInt(3)) {
@@ -268,11 +272,19 @@ class StatementOracleTest {
     private fun commaList(items: List<String>): List<String> =
         items.flatMapIndexed { i, item -> if (i == 0) listOf(item) else listOf(",", item) }
 
+    /** Die Verbindung der Terme: eine Auswahl (Form 0) trägt gelegentlich `OR` (`ADR-0058`), jede andere Form `AND`. */
+    private fun connector(gen: Gen, kind: Int): String = if (kind == 0 && gen.random.nextInt(3) == 0) "OR" else "AND"
+
+    /** Wahr, wenn die erzeugte Bedingung eine `OR`-Folge ist: mit `OR` und mindestens zwei Termen. */
+    private fun isDisjunction(gen: Gen, connector: String, terms: List<Term>): Boolean =
+        (connector == "OR" && terms.size >= 2).also { if (it) gen.disjunctions++ }
+
     private fun build(gen: Gen): Built {
         val kind = gen.random.nextInt(4)
         gen.kinds[kind]++
         val (table, tableTokens) = table(gen)
-        val (terms, whereTokens) = where(gen)
+        val connector = connector(gen, kind)
+        val (terms, whereTokens) = where(gen, connector)
         val tokens = ArrayList<String>()
         val statement: Statement
         when (kind) {
@@ -283,7 +295,8 @@ class StatementOracleTest {
                 tokens += if (star) listOf("*") else commaList(cols.map { renderName(gen, it) })
                 tokens += keyword(gen, "FROM")
                 tokens += tableTokens + whereTokens
-                statement = Statement.Select(table, if (star) null else cols, terms)
+                val disjunction = isDisjunction(gen, connector, terms)
+                statement = Statement.Select(table, if (star) null else cols, terms, disjunction)
             }
 
             1 -> {
@@ -336,6 +349,7 @@ class StatementOracleTest {
         assertEquals(600, generated)
         assertTrue(gen.kinds.all { it >= 100 }, "jede Form mindestens 100 Mal: ${gen.kinds.toList()}")
         assertTrue(gen.nastyNamesUsed >= 200, "Bezeichner mit Sonderzeichen: ${gen.nastyNamesUsed}")
+        assertTrue(gen.disjunctions >= 20, "Auswahlen mit OR-Folge: ${gen.disjunctions}")
         assertEquals(textPayloads.toSet(), gen.payloadsUsed, "jedes Literal kam vor")
     }
 
@@ -348,7 +362,8 @@ class StatementOracleTest {
     @Test
     fun `lehnt erzeugte Anhänge und Verdopplungen ab`() {
         val gen = Gen(31_102_026L)
-        val suffixes = "ORDER BY a|OR a = 1|GROUP BY a|JOIN u ON a = b|x|AS x|OFFSET 1 ROWS".split("|").map { " $it" }
+        val suffixList = "ORDER BY a|OR NOT a = 1|GROUP BY a|JOIN u ON a = b|x|AS x|OFFSET 1 ROWS"
+        val suffixes = suffixList.split("|").map { " $it" }
         assertEquals(7, suffixes.size)
         val connectors = listOf(" ", "; ", ";\n", " /* x */ ", " -- y\n")
         var cases = 0

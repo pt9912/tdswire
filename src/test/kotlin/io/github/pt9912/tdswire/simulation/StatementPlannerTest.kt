@@ -264,7 +264,7 @@ class StatementPlannerTest {
             "SELECT COUNT(*) FROM person",
             "SELECT id FROM person; SELECT id FROM person; SELECT id FROM person",
             "SELECT id FROM person; DELETE FROM person",
-            "SELECT id FROM person WHERE id = 1 OR id = 2",
+            "SELECT id FROM person WHERE id = 1 AND id = 2 OR id = 3",
             "EXEC sp_who",
             "",
             "   ",

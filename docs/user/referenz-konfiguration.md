@@ -82,6 +82,8 @@ Die Anmeldung mit falschem Kennwort und mit unbekanntem Benutzer ergibt dieselbe
 | Anfrage | Antwort |
 |---|---|
 | SQL-Batch mit Ergebnis | `COLMETADATA ROW* DONE` (Statusbit `COUNT`) |
+| SQL-Batch `SELECT <Ganzzahl>` (Simulations-Backend) | `COLMETADATA ROW DONE`: eine Spalte ohne Namen (`int`, nicht nullbar), eine Zeile mit der Zahl, `DONE` mit `COUNT` und Befehl `0x00c1` (die Form des Wertes 2 ist als zweite Anweisung eines Textes am echten Server gemessen) |
+| SQL-Batch `WAITFOR DELAY` (Simulations-Backend) | bis zum Ende der Wartezeit kein Token; danach `DONE` mit `COUNT` 0 und Befehl 0 (Setzung, am echten Server nicht gemessen); ATTENTION in der Wartezeit: das Paar der Zeile „Abbruch“ unten (gemessen für `'00:00:10'`) |
 | SQL-Batch mit zwei `SELECT` (Simulations-Backend) | `COLMETADATA ROW* DONE COLMETADATA ROW* DONE`; das erste `DONE` mit `MORE` und `COUNT`, das zweite mit `COUNT` (gemessen an einem Text, je eine Zeile) |
 | RPC (`sp_executesql`, `sp_prepexec`) mit Ergebnis | `COLMETADATA ROW* DONEINPROC RETURNSTATUS [RETURNVALUE] DONEPROC` |
 | RPC mit `InputOutput`-Parameter an einer einfachen `SELECT`-Anweisung (Simulations-Backend) | `RETURNVALUE` mit dem Eingabewert des Parameters hinter dem `RETURNSTATUS 0` (gemessen mit `sp_executesql`, ein Parameter, `INTN` 4; für die anderen RPC-Formen Setzung); ein reiner `OUTPUT`-Parameter bekommt vom Simulations-Backend keinen Wert |

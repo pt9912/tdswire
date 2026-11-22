@@ -25,12 +25,16 @@ internal sealed interface RowTerm {
     }
 }
 
-/** Die Bedingung einer Auswahl: alle Terme gelten gemeinsam (UND), ohne Terme trifft jede Zeile. */
-internal class RowCondition(private val terms: List<RowTerm>) {
-    /** Wahr, wenn ein Konstantenterm nie gilt: keine Zeile trifft, die Zeilenquelle wird nicht geöffnet. */
-    val never: Boolean = terms.any { it is RowTerm.Constant && !it.holds }
+/**
+ * Die Bedingung einer Auswahl: alle Terme gelten gemeinsam (UND), mit [disjunction] genügt einer (`OR`); ohne Terme
+ * trifft jede Zeile. Ein unbekannter Term (NULL in der Zelle) trifft nie, ob die Logik zwei- oder dreiwertig ist.
+ */
+internal class RowCondition(private val terms: List<RowTerm>, private val disjunction: Boolean = false) {
+    /** Wahr, wenn ein Konstantenterm einer UND-Folge nie gilt: keine Zeile trifft, die Zeilenquelle bleibt zu. */
+    val never: Boolean = !disjunction && terms.any { it is RowTerm.Constant && !it.holds }
 
-    fun matches(values: List<Any?>): Boolean = terms.all { it.matches(values) }
+    fun matches(values: List<Any?>): Boolean =
+        if (disjunction) terms.any { it.matches(values) } else terms.all { it.matches(values) }
 }
 
 /** Das Ergebnis der Vorbereitung einer Bedingung (`TDS-FA-11.a` Schritt 4). */
@@ -53,7 +57,20 @@ internal object RowConditions {
         data class Failed(val reason: String) : Built
     }
 
-    fun prepare(where: List<Term>, table: SimTable, parameters: List<QueryParameter>): PreparedCondition {
+    /** Die Bedingung einer Auswahl samt ihrer Verbindung (`AND` oder `OR`). */
+    fun prepare(select: Statement.Select, table: SimTable, parameters: List<QueryParameter>): PreparedCondition =
+        prepare(select.where, table, parameters, select.disjunction)
+
+    /**
+     * Mit [disjunction] sind die Terme durch `OR` verbunden; der Vorfilter ist dann `null`, weil `RowFilter` eine
+     * Konjunktion ist und die Zeilenquelle alle Zeilen liefert (`ADR-0058` Entscheidung 3).
+     */
+    fun prepare(
+        where: List<Term>,
+        table: SimTable,
+        parameters: List<QueryParameter>,
+        disjunction: Boolean = false,
+    ): PreparedCondition {
         val terms = ArrayList<RowTerm>(where.size)
         val hints = ArrayList<FilterTerm>(where.size)
         for (term in where) {
@@ -66,7 +83,8 @@ internal object RowConditions {
                 is Built.Failed -> return PreparedCondition.Invalid(built.reason)
             }
         }
-        return PreparedCondition.Ready(RowCondition(terms), if (hints.isEmpty()) null else RowFilter(hints))
+        val hint = if (disjunction || hints.isEmpty()) null else RowFilter(hints)
+        return PreparedCondition.Ready(RowCondition(terms, disjunction), hint)
     }
 
     private fun of(term: Term, table: SimTable, given: List<QueryParameter>): Built = when (term) {

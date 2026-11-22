@@ -56,6 +56,9 @@ internal class TokenStream(private val tokens: List<Token>) {
     }
 }
 
+/** Die Bedingung einer Auswahl: [terms] sind durch `OR` verbunden, wenn [disjunction] wahr ist, sonst durch `AND`. */
+internal class SelectWhere(val terms: List<Term>, val disjunction: Boolean)
+
 /** Die Bausteine der Formen: Bezeichner, Wert, Tabelle, Bedingung, Liste. */
 internal class Parts(private val stream: TokenStream) {
     fun identifier(): String = when (val token = stream.next()) {
@@ -77,14 +80,28 @@ internal class Parts(private val stream: TokenStream) {
         return if (stream.acceptSymbol('.')) TableRef(first, identifier()) else TableRef(null, first)
     }
 
-    /** [constants] erlaubt den Konstantenterm `<Ganzzahl> = <Ganzzahl>`; nur eine Auswahl darf ihn tragen. */
-    fun whereClause(constants: Boolean = false): List<Term> {
+    /** Die Bedingung von `UPDATE` und `DELETE`: eine UND-Folge der Terme ohne Konstantenterm. */
+    fun whereClause(): List<Term> {
         if (!stream.acceptKeyword("WHERE")) return emptyList()
         val terms = ArrayList<Term>()
         do {
-            terms += if (constants) constantOrTerm() else term()
+            terms += term()
         } while (stream.acceptKeyword("AND"))
         return terms
+    }
+
+    /**
+     * Die Bedingung einer Auswahl: eine reine UND-Folge, die den Konstantenterm `<Ganzzahl> = <Ganzzahl>` tragen darf,
+     * oder eine reine `OR`-Folge von mindestens zwei Termen ohne Konstantenterm (`ADR-0058` Entscheidung 3). Eine
+     * Mischung der beiden Verbindungen lässt ein Token übrig; der Aufrufer weist es ab.
+     */
+    fun selectWhere(): SelectWhere {
+        if (!stream.acceptKeyword("WHERE")) return SelectWhere(emptyList(), false)
+        val terms = arrayListOf(constantOrTerm())
+        val disjunction = terms[0] !is Term.Constant && stream.peek()?.isKeyword("OR") == true
+        val connector = if (disjunction) "OR" else "AND"
+        while (stream.acceptKeyword(connector)) terms += if (disjunction) term() else constantOrTerm()
+        return SelectWhere(terms, disjunction)
     }
 
     private fun constantOrTerm(): Term {
@@ -137,8 +154,8 @@ internal class Parts(private val stream: TokenStream) {
  * auszuwerten. Ein einzelnes abschließendes `;` wird entfernt; jedes weitere Token, das die Form nicht
  * verlangt, macht den Text nicht erkannt.
  *
- * Festlegung (Lesart des Lastenhefts, vom Nutzer nicht bestätigt, ADR-0012 Offen 12 (a)): die Liste der
- * Formen ist abschließend; was keine Form ist, ist nicht erkannt. Ebenso festgelegt: `INSERT` hat genau eine
+ * Festlegung (ADR-0033 Nr. 11, ADR-0058 Entscheidung 1): was keine Form der Liste ist, ist nicht erkannt; die Liste
+ * wächst durch Änderung der Spezifikation. Ebenso festgelegt: `INSERT` hat genau eine
  * Wertezeile mit ebenso vielen Werten wie Spalten, und eine Spalte steht in einer Spaltenliste von `INSERT`
  * und `SET` höchstens einmal.
  */
@@ -163,13 +180,10 @@ internal object StatementParser {
     private fun parse(scanned: List<Token>): Recognition {
         val tokens = if (scanned.lastOrNull() == Token.Symbol(';')) scanned.dropLast(1) else scanned
         if (tokens.isEmpty()) return Recognition.NotRecognized(Unrecognized.EMPTY_TEXT)
-        val bulk = BulkForms.probe(tokens, ::parse) ?: BulkForms.insertBulk(tokens)
-        val fixed = if (bulk == null) FixedForms.recognize(tokens) else null
-        return when {
-            bulk != null -> bulk
-            fixed != null -> Recognition.Fixed(fixed)
-            else -> table(tokens)
-        }
+        return BulkForms.probe(tokens, ::parse) ?: BulkForms.insertBulk(tokens)
+            ?: FixedForms.recognize(tokens)?.let { Recognition.Fixed(it) }
+            ?: WaitForms.recognize(tokens)
+            ?: table(tokens)
     }
 
     private fun table(tokens: List<Token>): Recognition =
@@ -202,7 +216,9 @@ internal object StatementParser {
     private fun select(stream: TokenStream, parts: Parts): Statement {
         val columns = if (stream.acceptSymbol('*')) null else parts.list { parts.identifier() }
         stream.keyword("FROM")
-        return Statement.Select(parts.tableRef(), columns, parts.whereClause(constants = true))
+        val table = parts.tableRef()
+        val where = parts.selectWhere()
+        return Statement.Select(table, columns, where.terms, where.disjunction)
     }
 
     private fun insert(stream: TokenStream, parts: Parts): Statement {

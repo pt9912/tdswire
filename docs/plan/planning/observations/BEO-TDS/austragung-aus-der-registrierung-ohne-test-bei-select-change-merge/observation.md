@@ -1,0 +1,5 @@
+# Die Austragung der Ausführungen aus der Registrierung des Simulations-Backends hat für `SelectExecution`, `ChangeExecution` und `MergeExecution` keinen Test
+
+**Sub-Area:** `*` (Simulations-Backend, Abbruch und Ressourcenfreigabe)
+
+Das Simulations-Backend trägt jede Ausführung unter (Sitzung, Anfrage) in `running` ein und nach Ende, Fehler, `cancel` und `close()` wieder aus. Für `WaitExecution` beobachtet ein Test die Zahl der Registrierungen und wird bei Entfernung der Austragung rot (Mutationen M22 bis M25, R5). Für `SelectExecution`, `ChangeExecution` und `MergeExecution` gibt es keinen solchen Test: das Entfernen der Austragung lässt, soweit gelesen, jeden Test grün (die Naht `registrations` kommt nur in `SimulationBackendWaitTest` vor). Failure-Szenario: ein Server mit vielen Anfragen behielte je Anfrage einen Eintrag im `ConcurrentHashMap` des Backends. Verwandt: `BEO-TDS/zeile-oder-zweig-ohne-unterscheidenden-test` (dort allgemein; hier die benannte Lücke einer Familie von Ausführungen).

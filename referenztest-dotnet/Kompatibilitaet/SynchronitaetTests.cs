@@ -98,7 +98,7 @@ public class SynchronitaetTests
     {
         using var verbindung = Ziel.Oeffnen();
 
-        using (var batch = new SqlCommand("SELECT 2", verbindung))
+        using (var batch = new SqlCommand("SELECT 1 + 1", verbindung))
         {
             var imBatch = Assert.Throws<SqlException>(() => { batch.ExecuteScalar(); });
             Ziel.Messung(_ausgabe, "Anfragefehler im Batch: " + Ziel.Beschreibung(imBatch));

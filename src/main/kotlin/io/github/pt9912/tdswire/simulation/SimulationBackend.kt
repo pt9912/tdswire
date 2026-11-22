@@ -10,12 +10,14 @@ import io.github.pt9912.tdswire.port.BulkTargetResult
 import io.github.pt9912.tdswire.port.QueryBackend
 import io.github.pt9912.tdswire.port.QueryExecution
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.time.Duration
 
 /**
  * Das Simulations-Backend hinter [QueryBackend] (`TDS-FA-11.a`): es beantwortet eine erkannte Auswahl (S1)
@@ -26,11 +28,18 @@ import java.util.concurrent.ConcurrentHashMap
  * Form S2 (`SPEC-036`): zwei Auswahlen in einem Text ergeben zwei Ergebnisse in der Reihenfolge des Textes
  * ([SelectSeries]); ein `InputOutput`-Parameter einer Auswahl bekommt seinen Eingabewert als Ausgabewert.
  *
- * Form C (`SPEC-036`) beantwortet das Backend ohne Tabelle: `SELECT 1` mit einer Spalte und einer Zeile, eine
+ * Eine Auswahl darf als Bedingung eine reine `OR`-Folge tragen (`ADR-0058` Entscheidung 3): das Backend wendet sie
+ * selbst an, `SimQuery.filter` ist dann `null`, und die Zeilenquelle liefert alle Zeilen.
+ *
+ * Form C (`SPEC-036`) beantwortet das Backend ohne Tabelle: `SELECT <Ganzzahl>` mit einer Spalte und einer Zeile, eine
  * `SET`-Anweisung und die Transaktionstexte mit dem Änderungszähler 0 und, wo gemessen, der Art des Textes
  * (`IMPLICIT_TRANSACTIONS_ON`, `IMPLICIT_TRANSACTIONS_OFF`, `COMMIT_IF_OPEN`, siehe [FixedAnswers]). Eine Auswahl mit
  * einem Konstantenterm, der nie gilt (`WHERE 1 = 0`), liefert Spaltenmetadaten und keine Zeile, ohne die Zeilenquelle
  * zu öffnen.
+ *
+ * Form Z (`SPEC-036`, `WAITFOR DELAY '<hh>:<mm>:<ss>'`) wartet die Zeit ab, ohne einen Thread zu blockieren
+ * ([WaitExecution]); Cancel und die Frist der Anfrage beenden die Wartezeit, ohne dass ein Ereignis gesendet wurde
+ * (`ADR-0058` Entscheidung 5).
  *
  * Form B (`SPEC-036`, Massenladen) erkennt das Backend als `INSERT BULK` und als die Proben davor (`SET FMTONLY ON …`,
  * Kollation); die Nachrichten 0x07 lädt es über [BulkLoads] in `SimTable.onInsertBatch`, ohne etwas zu
@@ -67,21 +76,37 @@ import java.util.concurrent.ConcurrentHashMap
  * [QueryExecution.close]: bis dahin bleibt die Ausführung unter Sitzung und Anfrage registriert (für [cancel]); eine
  * zweite Ausführung mit demselben Schlüssel ersetzt die Registrierung der ersten.
  */
-public class SimulationBackend(
-    /** Liefert bei jeder Anfrage die aktuelle Tabellenliste; wirft er, endet die Anfrage mit `TDS_BACKEND_ERROR`. */
+public class SimulationBackend internal constructor(
     internal val catalog: () -> SimCatalog,
+    private val onStructure: (suspend (SimTable) -> Unit)?,
     /**
-     * Nimmt die Tabelle nach einer Strukturänderung entgegen, als Beschreibung ohne Zeilen: Schema, Name, Spalten in
-     * der Reihenfolge, Schlüssel und die Elemente (Eindeutigkeiten, Fremdschlüssel, Indizes, Prüfbedingungen); die
-     * Zeilenquelle liefert keine Zeile, die Callbacks fehlen. Ohne ihn ist jede Strukturänderung abgewiesen.
+     * Test-Naht: wartet die Dauer von `WAITFOR DELAY` ab. Der öffentliche Konstruktor setzt `delay` fest; Tests setzen
+     * eine gesteuerte Uhr und belegen damit die Reaktion der Klasse auf Ablauf und Cancel, nicht dass ein echtes
+     * Ereignis sie auslöst (das belegt der Test der Voreinstellung mit der echten Uhr).
      */
-    private val onStructure: (suspend (SimTable) -> Unit)? = null,
+    private val pause: suspend (Duration) -> Unit,
 ) : QueryBackend {
+    /**
+     * Das Backend mit Katalog-Anbieter. [catalog] liefert bei jeder Anfrage die aktuelle Tabellenliste; wirft er,
+     * endet die Anfrage mit `TDS_BACKEND_ERROR`. [onStructure] nimmt die Tabelle nach einer Strukturänderung entgegen,
+     * als Beschreibung ohne Zeilen: Schema, Name, Spalten in der Reihenfolge, Schlüssel und die Elemente
+     * (Eindeutigkeiten, Fremdschlüssel, Indizes, Prüfbedingungen); die Zeilenquelle liefert keine Zeile, die Callbacks
+     * fehlen. Ohne ihn ist jede Strukturänderung abgewiesen.
+     */
+    public constructor(
+        catalog: () -> SimCatalog,
+        onStructure: (suspend (SimTable) -> Unit)? = null,
+    ) : this(catalog, onStructure, { delay(it) })
+
     /** Das Backend mit festem Katalog; es nimmt weder Strukturänderungen an noch ändert sich sein Katalog. */
     public constructor(catalog: SimCatalog) : this({ catalog })
 
     private val planner = StatementPlanner(catalog)
     private val running = ConcurrentHashMap<Pair<String, String>, Stoppable>()
+
+    /** Test-Naht: Zahl der unter Sitzung und Anfrage registrierten Ausführungen (Kopplung an `cancel`). */
+    internal val registrations: Int get() = running.size
+
     private val structureLock = Mutex()
     private val mergeLock = Mutex()
 
@@ -103,6 +128,11 @@ public class SimulationBackend(
             }
 
             is PlanResult.Fixed -> events(FixedAnswers.of(result.form))
+
+            is PlanResult.Wait -> {
+                val key = request.sessionId to request.requestId
+                register(key, WaitExecution(result.delay, pause) { running.remove(key, it) })
+            }
 
             is PlanResult.Catalog -> events(CatalogAnswers.of(result.form, result.catalog, parameters(result, request)))
 
@@ -153,7 +183,7 @@ public class SimulationBackend(
         val key = request.sessionId to request.requestId
         return when (val statement = plan.statement) {
             is Statement.Select ->
-                when (val prepared = RowConditions.prepare(statement.where, plan.table, request.parameters)) {
+                when (val prepared = RowConditions.prepare(statement, plan.table, request.parameters)) {
                     is PreparedCondition.Invalid -> failed(SimCodes.INVALID_VALUE, prepared.reason)
 
                     is PreparedCondition.Ready -> {
