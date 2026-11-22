@@ -10,7 +10,7 @@
 | `f23030b9` | Plan-Tabelle und Zustandsfelder im Slice, Kopplungssatz in W-36, Mutationsbeleg `docs/messungen/mutationen-schemaonly-keyinfo-messphase-2026-11-22.md` | nein (nur Doku) |
 | `2a53e081` | `docs/plan/spec-abdeckung.md` (SPEC-045: 146 bestandene Tests, `MessungSchemaBelegTests` in der Liste) | nein (erzeugte Matrix) |
 
-Nicht bewertet (parallele Commits von Planner und Architect, `9dfb6ec0`, `a6d014e7`, `4992ef38`): ADR-0059, ADR-Index, Slice-Nachzug, Folge-Slice, `state.md` des Registers. `MessAuswertung.cs` und die 44 Ablagedateien je Stufe sind in den drei Commits nicht berührt (`git diff 032a325b..2a53e081 --stat`).
+Nicht bewertet (parallele Commits von Planner und Architect, `9dfb6ec0`, `a6d014e7`, `4992ef38`): [ADR-0059](../plan/adr/0059-schemaonly-ist-eine-erkannte-form-keyinfo-bleibt-abgewiesen.md), ADR-Index, Slice-Nachzug, Folge-Slice, `state.md` des Registers. `MessAuswertung.cs` und die 44 Ablagedateien je Stufe sind in den drei Commits nicht berührt (`git diff 032a325b..2a53e081 --stat`).
 
 **Skill:** `.harness/skills/reviewer.md` · **Modell:** claude-sonnet-5-5 · **Datum:** 2026-11-22
 
