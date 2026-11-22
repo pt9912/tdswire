@@ -460,6 +460,19 @@ public class MessungEinheitTests
     private static byte[] NvarcharParam(string name, string wert) =>
         Param(name, 0, Cat(Bytes(0xE7), U16(wert.Length * 2), Bytes(9, 4, 0xD0, 0, 52)), Cat(U16(wert.Length * 2), Text(wert)));
 
+    /// <summary>Ein nvarchar(max)-Parameter als PLP: Gesamtlänge (8 Bytes), Teile mit 4 Bytes Länge, Abschluss mit Länge 0.</summary>
+    private static byte[] NvarcharMaxParam(string name, string wert, int zeichenJeTeil)
+    {
+        var teile = new List<byte[]>();
+        for (var i = 0; i < wert.Length; i += zeichenJeTeil)
+        {
+            var teil = Text(wert.Substring(i, Math.Min(zeichenJeTeil, wert.Length - i)));
+            teile.Add(Cat(U32(teil.Length), teil));
+        }
+
+        return Param(name, 0, Cat(Bytes(0xE7), U16(0xFFFF), Bytes(9, 4, 0xD0, 0, 52)), Cat(BitConverter.GetBytes((ulong)(wert.Length * 2L)), Cat(teile.ToArray()), U32(0)));
+    }
+
     // @spec SPEC-045
     [Fact]
     public void Die_Auswertung_nennt_Parameter_in_der_Reihenfolge_der_Aufrufliste_mit_Richtung()
@@ -578,5 +591,73 @@ public class MessungEinheitTests
         Assert.EndsWith("...", mit["probe/01/anfrage"], StringComparison.Ordinal);
         Assert.Equal("=SELECT @i | =@i int", mit["probe/02/anfragetext"]);
         Assert.DoesNotContain(ohne.Keys, k => k.EndsWith("/anfragetext", StringComparison.Ordinal) || k.EndsWith("/spaltenform", StringComparison.Ordinal));
+    }
+
+    // @spec SPEC-045
+    [Fact]
+    public void Die_Auswertung_gibt_mit_mitSpaltenform_den_Text_eines_nvarchar_max_Parameters_aus_allen_PLP_Teilen_ungekuerzt_aus()
+    {
+        var text = "SELECT " + new string('x', 4993) + "\r\nFROM t";
+        var datei = new MessDatei { Szenario = "probe" };
+        datei.Nachrichten.Add(new Nachricht('c', TdsPaket.Prelogin, 1, 0, PreloginMitVerschluesselung(1)));
+        datei.Nachrichten.Add(new Nachricht('s', TdsPaket.Antwort, 1, 0, PreloginMitVerschluesselung(1)));
+        datei.Nachrichten.Add(new Nachricht('c', TdsPaket.Login7, 1, 0, Login7Redaktion.Redigieren(Login7("r", "u", Kennwort, "app", "s", "db"))));
+        datei.Nachrichten.Add(new Nachricht('s', TdsPaket.Antwort, 1, 0, Cat(Bytes(0xFD), U16(0), U16(0), U32(0), U32(0))));
+        datei.Nachrichten.Add(new Nachricht('c', TdsPaket.Rpc, 0x01, 0, Rpc(10, NvarcharMaxParam("", text, 3000), NvarcharParam("", "@i int"), IntParam("@i", 0, 1))));
+        datei.Nachrichten.Add(new Nachricht('s', TdsPaket.Antwort, 1, 0, Cat(Bytes(0xFD), U16(0), U16(0xC1), U32(0), U32(0))));
+
+        var zeilen = MessAuswertung.Zeilen(datei, mitSpaltenform: true).ToDictionary(z => z.Kennung, z => z.Text);
+
+        // Zwei Teile (3000 und 2008 Zeichen, zusammen 5008), Zeilenwechsel als Escape.
+        Assert.Equal("=" + text.Replace("\r", "\\r", StringComparison.Ordinal).Replace("\n", "\\n", StringComparison.Ordinal) + " | =@i int", zeilen["probe/01/anfragetext"]);
+        Assert.Contains("nvarchar(max) 5008 Zeichen", zeilen["probe/01/anfrage"], StringComparison.Ordinal);
+    }
+
+    // @spec SPEC-045
+    [Fact]
+    public void Ein_TABNAME_und_ein_COLINFO_die_ueber_das_Ende_der_Daten_lesen_ergeben_nicht_lesbar_und_kein_Zerlegungsproblem()
+    {
+        byte[] Token(int kennung, params int[] daten) => Cat(Bytes(kennung), U16(daten.Length), Bytes(daten));
+
+        // TABNAME: ein Namensteil mit 5 Zeichen, die Daten enden nach der Länge.
+        var tabname = TokenLeser.Lesen(Token(0xA4, 0x01, 0x05, 0x00));
+        Assert.Null(tabname.Problem);
+        Assert.Equal(new[] { "TABNAME" }, tabname.Folge);
+        Assert.Equal("TABNAME Tabellen [nicht lesbar] Bytes 0x010500", tabname.Spaltenform.Single());
+
+        // COLINFO: Status mit Bit 0x20, der Name soll 5 Zeichen lang sein, die Daten enden nach der Länge.
+        var colinfo = TokenLeser.Lesen(Token(0xA5, 0x01, 0x01, 0x20, 0x05));
+        Assert.Null(colinfo.Problem);
+        Assert.Equal(new[] { "COLINFO" }, colinfo.Folge);
+        Assert.Equal("COLINFO [nicht lesbar] Bytes 0x01012005", colinfo.Spaltenform.Single());
+    }
+
+    // @spec SPEC-045
+    [Fact]
+    public void TABNAME_und_COLINFO_lesen_nicht_ueber_ihre_Laenge_hinaus_auch_wenn_Folgebytes_da_sind()
+    {
+        byte[] Token(int kennung, params int[] daten) => Cat(Bytes(kennung), U16(daten.Length), Bytes(daten));
+        var done = Cat(Bytes(0xFD), U16(0), U16(0), U32(0), U32(0));
+
+        // Länge 5, Zähler 2: der zweite Namensteil läge hinter dem Token und würde aus den Bytes des DONE gelesen.
+        var zwei = TokenLeser.Lesen(Cat(Token(0xA4, 0x02, 0x01, 0x00, 0x61, 0x00), done));
+        Assert.Null(zwei.Problem);
+        Assert.Equal(new[] { "TABNAME", "DONE" }, zwei.Folge);
+        Assert.Equal("TABNAME Tabellen [nicht lesbar] Bytes 0x0201006100", zwei.Spaltenform.Single());
+
+        // Länge 3: der Namensteil von 2 Zeichen läge hinter dem Token.
+        var kurz = TokenLeser.Lesen(Cat(Token(0xA4, 0x01, 0x02, 0x00), done));
+        Assert.Null(kurz.Problem);
+        Assert.Equal("TABNAME Tabellen [nicht lesbar] Bytes 0x010200", kurz.Spaltenform.Single());
+
+        // COLINFO: der Name von 2 Zeichen läge hinter dem Token.
+        var colinfo = TokenLeser.Lesen(Cat(Token(0xA5, 0x01, 0x01, 0x20, 0x02), done));
+        Assert.Null(colinfo.Problem);
+        Assert.Equal(new[] { "COLINFO", "DONE" }, colinfo.Folge);
+        Assert.Equal("COLINFO [nicht lesbar] Bytes 0x01012002", colinfo.Spaltenform.Single());
+
+        // Gegenprobe: ein Namensteil, der genau bis zum Ende des Tokens reicht, ist lesbar.
+        var genau = TokenLeser.Lesen(Cat(Token(0xA4, 0x01, 0x01, 0x00, 0x61, 0x00), done));
+        Assert.Equal("TABNAME Tabellen [a] Bytes 0x0101006100", genau.Spaltenform.Single());
     }
 }

@@ -7,10 +7,14 @@ namespace TdsWire.Referenztests.Mitschnitt;
 /// Belege der Messung von `SchemaOnly`, `KeyInfo` und `GetSchemaTable()` (Slice slice-simulation-schemaonly-keyinfo, Lücke A-8, TDS-FA-11,
 /// SPEC-045): die abgelegten Messungen `schemaonly-*`, `keyinfo-*`, `schemaonly-und-keyinfo` und `getschematable-ohne-verhalten` unter
 /// <c>Mitschnitt/messung/&lt;2022|2025&gt;</c> (Einzelmessung je Szenario und Instanz vom 2026-11-22, `make vergleichslauf-d LAUF=wire`) gehen
-/// durch dieselbe Auswertung wie die Aufnahme (<see cref="MessAuswertung"/>, mit `mitSpaltenform` für Text, Spaltenflags, TABNAME und COLINFO);
-/// jede Aussage des Messprotokolls zu A-8 (<c>docs/messungen/referenzabgleich.md</c>) hat hier eine Zeile. Die Tests laufen ohne
-/// Referenzinstanz und belegen, dass die abgelegte Messung die Aussage trägt, nicht dass ein anderer Lauf sie wiederholt. Grenze: der
-/// Referenzclient ist `Microsoft.Data.SqlClient` 7.1.1; andere Clients senden andere Texte. Zuordnung `@spec SPEC-045` je Test als Kommentar.
+/// durch dieselbe Auswertung wie die Aufnahme (<see cref="MessAuswertung"/>, mit `mitSpaltenform` für Text, Spaltenflags, TABNAME und COLINFO).
+/// Die Asserts führen die Aussagen W-26 bis W-36 des Messprotokolls zu A-8 (<c>docs/messungen/referenzabgleich.md</c>): gesendeter Text, Tokenfolge,
+/// DONE-Befehle und Zähler, Spaltenflags, TABNAME- und COLINFO-Bytes, SESSIONSTATE, die Schemazeilen von `person` und `typen` (gleich der
+/// Abschrift der Zeilen `schema-person`, `schema-typen` und `schema-person-schluessel` der Referenz, siehe <see cref="Katalog"/>), die Ausnahmen des Clients, die
+/// Zahl der Anfragen je Szenario und die Gleichheit beider Instanzen. Nicht Gegenstand der Asserts: Laufzeit, Messsperre und Host der Aufnahme
+/// (Angaben des Messprotokolls), die Grenzen des Protokolls (nicht gemessene Formen). Die Tests laufen ohne Referenzinstanz und belegen, dass die
+/// abgelegte Messung die Aussage trägt, nicht dass ein anderer Lauf sie wiederholt. Grenze: der Referenzclient ist `Microsoft.Data.SqlClient` 7.1.1;
+/// andere Clients senden andere Texte. Zuordnung `@spec SPEC-045` je Test als Kommentar.
 /// </summary>
 [Trait("Kategorie", "MitschnittEinheit")]
 public class MessungSchemaBelegTests
@@ -56,6 +60,27 @@ public class MessungSchemaBelegTests
     private static string Ausgang(string stufe, string szenario, string beschreibung) =>
         Datei(stufe, szenario).Herkunft.Single(h => h.Key == "beobachtung" && h.Value.StartsWith($"{szenario} {beschreibung}: Mengen ", StringComparison.Ordinal)).Value;
 
+    /// <summary>
+    /// Die Schemazeilen im Wortlaut der Zeilen `schema-*` der Referenz in `Vergleich/live-ausnahmen.tsv`: `Name:Typ(ColumnSize,NumericPrecision,NumericScale) NULL=AllowDBNull`,
+    /// mit Schlüssel dahinter ` Schluessel=IsKey Tabelle=BaseTableName`. Die erwarteten Texte in den Tests sind Abschriften dieser Zeilen; die Datei liegt nicht im
+    /// Build-Kontext der Stage `test`, kein Test vergleicht beide (Kopplung von Hand).
+    /// </summary>
+    private static string Katalog(List<Dictionary<string, string>> zeilen, bool mitSchluessel) =>
+        string.Join("; ", zeilen.Select(z => $"{z["ColumnName"]}:{z["DataTypeName"]}({z["ColumnSize"]},{z["NumericPrecision"]},{z["NumericScale"]}) NULL={z["AllowDBNull"]}"
+            + (mitSchluessel ? $" Schluessel={z["IsKey"]} Tabelle={z["BaseTableName"]}" : string.Empty)));
+
+    private const string KatalogPerson = "Id:int(4,10,255) NULL=False; Name:nvarchar(4000,255,255) NULL=True; Age:int(4,10,255) NULL=True; Score:decimal(17,10,2) NULL=True";
+
+    private const string KatalogTypen =
+        "Id:int(4,10,255) NULL=False; Gross:bigint(8,19,255) NULL=True; Flag:bit(1,255,255) NULL=True; Text:nvarchar(4000,255,255) NULL=True; Preis:decimal(17,10,2) NULL=True; " +
+        "Tag:date(3,255,255) NULL=True; Uhr:time(5,255,7) NULL=True; Zeit:datetime2(8,255,7) NULL=True";
+
+    private const string KatalogPersonSchluessel =
+        "Id:int(4,10,255) NULL=False Schluessel=True Tabelle=person; Name:nvarchar(4000,255,255) NULL=True Schluessel=False Tabelle=person; " +
+        "Age:int(4,10,255) NULL=True Schluessel=False Tabelle=person; Score:decimal(17,10,2) NULL=True Schluessel=False Tabelle=person";
+
+    private static readonly string[] Browsefelder = { "IsKey", "BaseTableName", "IsAliased", "IsExpression", "IsHidden" };
+
     public static IEnumerable<object[]> Stufen => new[] { new object[] { "2022" }, new object[] { "2025" } };
 
     // ---- SchemaOnly ---------------------------------------------------------------------------------------------------
@@ -92,6 +117,7 @@ public class MessungSchemaBelegTests
         Assert.Equal(
             "COLMETADATA Flags [Id=0x0008; Gross=0x0009; Flag=0x0009; Text=0x0009; Preis=0x0009; Tag=0x0009; Uhr=0x0009; Zeit=0x0009]",
             F(stufe, "schemaonly-spalten/02/spaltenform"));
+        Assert.Equal(KatalogTypen, Katalog(Schemazeilen(stufe, "schemaonly-spalten", "typen, acht Spalten (SchemaOnly)"), mitSchluessel: false));
     }
 
     // @spec SPEC-045
@@ -152,6 +178,7 @@ public class MessungSchemaBelegTests
         Assert.Equal(new[] { "255", "255", "255", "2" }, zeilen.Select(z => z["NumericScale"]));
         Assert.Equal(new[] { "False", "True", "True", "True" }, zeilen.Select(z => z["AllowDBNull"]));
         Assert.Equal(new[] { "int", "nvarchar", "int", "decimal" }, zeilen.Select(z => z["DataTypeName"]));
+        Assert.Equal(KatalogPerson, Katalog(zeilen, mitSchluessel: false));
         Assert.All(zeilen, z =>
         {
             Assert.Equal("NULL", z["IsKey"]);
@@ -200,6 +227,8 @@ public class MessungSchemaBelegTests
     public void KeyInfo_auf_typen_liefert_je_Spalte_einen_COLINFO_Eintrag_und_Zeilen_als_ROW_und_NBCROW(string stufe)
     {
         Assert.Equal("DONE DONE COLMETADATA TABNAME COLINFO ROW+ NBCROW+ DONE DONE", F(stufe, "keyinfo-spalten/02/tokenfolge"));
+        Assert.Contains("DONE Status MORE|COUNT, Befehl 0x00c1, Zeilen 2 ;", F(stufe, "keyinfo-spalten/02/done"), StringComparison.Ordinal);
+        Assert.Equal(KatalogTypen, Katalog(Schemazeilen(stufe, "keyinfo-spalten", "typen, acht Spalten (KeyInfo)"), mitSchluessel: false));
         Assert.Equal(
             "COLMETADATA Flags [Id=0x0008; Gross=0x0009; Flag=0x0009; Text=0x0009; Preis=0x0009; Tag=0x0009; Uhr=0x0009; Zeit=0x0009] ; TABNAME Tabellen [typen] Bytes 0x01050074007900700065006e00 ; " +
             "COLINFO [Spalte 1 Tabelle 1 Status 0x08 Schluessel; Spalte 2 Tabelle 1 Status 0x00; Spalte 3 Tabelle 1 Status 0x00; Spalte 4 Tabelle 1 Status 0x00; Spalte 5 Tabelle 1 Status 0x00; " +
@@ -284,6 +313,8 @@ public class MessungSchemaBelegTests
     {
         Assert.Equal("DONE DONE ERROR SESSIONSTATE DONE", F(stufe, "keyinfo-sonderfaelle/10/tokenfolge"));
         Assert.StartsWith("Fehler Nummer 208, Class 16, State 1,", F(stufe, "keyinfo-sonderfaelle/10/fehler"), StringComparison.Ordinal);
+        Assert.Contains("SESSIONSTATE Laenge 16, Folge 1, wiederherstellbar 1, Zustaende [0:9=0x20608114ffe7ffff00]", F(stufe, "keyinfo-sonderfaelle/10/einzelheiten"), StringComparison.Ordinal);
+        Assert.Contains("Ausnahme bei ExecuteReader: Number 208, Class 16, State 1", Ausgang(stufe, "keyinfo-sonderfaelle", "Tabelle fehlt (KeyInfo)"), StringComparison.Ordinal);
         foreach (var nr in new[] { "11", "12" })
         {
             Assert.Equal("SELECT Id FROM person WHERE Id = 1", F(stufe, $"keyinfo-sonderfaelle/{nr}/anfragetext"));
@@ -308,6 +339,8 @@ public class MessungSchemaBelegTests
             F(stufe, "schemaonly-und-keyinfo/01/done"));
         Assert.Equal("anzahl=0 []", F(stufe, "schemaonly-und-keyinfo/01/zeilen"));
         Assert.Equal("DONE DONE DONE ERROR SESSIONSTATE DONE", F(stufe, "schemaonly-und-keyinfo/02/tokenfolge"));
+        Assert.Contains("SESSIONSTATE Laenge 16, Folge 1, wiederherstellbar 1, Zustaende [0:9=0x20608114ffe7ffff00]", F(stufe, "schemaonly-und-keyinfo/02/einzelheiten"), StringComparison.Ordinal);
+        Assert.Contains("Ausnahme bei ExecuteReader: Number 208, Class 16, State 1", Ausgang(stufe, "schemaonly-und-keyinfo", "Tabelle fehlt (SchemaOnly, KeyInfo)"), StringComparison.Ordinal);
         Assert.Equal("COLMETADATA TABNAME COLINFO ROW+ DONE", F(stufe, "schemaonly-und-keyinfo/03/tokenfolge"));
     }
 
@@ -317,6 +350,7 @@ public class MessungSchemaBelegTests
     public void Ein_Schluesselstatus_im_COLINFO_und_IsKey_der_Schemazeile_gehoeren_zusammen(string stufe)
     {
         var zeilen = Schemazeilen(stufe, "keyinfo-spalten", "person, vier Spalten (KeyInfo)");
+        Assert.Equal(KatalogPersonSchluessel, Katalog(zeilen, mitSchluessel: true));
         Assert.Equal(new[] { "True", "False", "False", "False" }, zeilen.Select(z => z["IsKey"]));
         Assert.All(zeilen, z => Assert.Equal("person", z["BaseTableName"]));
         Assert.All(zeilen, z => Assert.Equal("False", z["IsUnique"]));
@@ -327,18 +361,74 @@ public class MessungSchemaBelegTests
         var ausdruck = Schemazeilen(stufe, "keyinfo-sonderfaelle", "Ausdruck ohne Tabelle (KeyInfo)").Single();
         Assert.Equal("NULL", ausdruck["IsKey"]);
         Assert.Equal("NULL", ausdruck["BaseTableName"]);
+        Assert.Equal("NULL", ausdruck["IsExpression"]);
         Assert.Equal("True", ausdruck["IsReadOnly"]);
+    }
+
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void SchemaOnly_und_KeyInfo_unterscheiden_sich_in_der_Schemazeile_allein_in_fuenf_Feldern_und_ohne_Verhalten_ist_sie_gleich_SchemaOnly(string stufe)
+    {
+        var paare = new[]
+        {
+            ("schemaonly-spalten", "person, vier Spalten (SchemaOnly)", "keyinfo-spalten", "person, vier Spalten (KeyInfo)"),
+            ("schemaonly-spalten", "typen, acht Spalten (SchemaOnly)", "keyinfo-spalten", "typen, acht Spalten (KeyInfo)"),
+            ("schemaonly-spalten", "person, Stern (SchemaOnly)", "keyinfo-spalten", "person, Stern (KeyInfo)"),
+        };
+        foreach (var (szenarioA, beschreibungA, szenarioB, beschreibungB) in paare)
+        {
+            var schemaOnly = Schemazeilen(stufe, szenarioA, beschreibungA);
+            var keyInfo = Schemazeilen(stufe, szenarioB, beschreibungB);
+            Assert.NotEmpty(schemaOnly);
+            Assert.Equal(schemaOnly.Count, keyInfo.Count);
+            Assert.Equal(31, schemaOnly[0].Count);
+            var unterschiede = new SortedSet<string>(StringComparer.Ordinal);
+            for (var i = 0; i < schemaOnly.Count; i++)
+            {
+                Assert.Equal(schemaOnly[i].Keys, keyInfo[i].Keys);
+                foreach (var feld in schemaOnly[i].Keys.Where(f => schemaOnly[i][f] != keyInfo[i][f])) unterschiede.Add(feld);
+                Assert.All(Browsefelder, f => Assert.Equal("NULL", schemaOnly[i][f]));
+                Assert.All(Browsefelder, f => Assert.NotEqual("NULL", keyInfo[i][f]));
+            }
+
+            Assert.Equal(Browsefelder.OrderBy(f => f, StringComparer.Ordinal), unterschiede);
+        }
+
+        // Ohne Verhalten (Default) ist die Schemazeile gleich der von SchemaOnly, in allen Feldern.
+        Assert.Equal(
+            Schemazeilen(stufe, "schemaonly-spalten", "person, vier Spalten (SchemaOnly)"),
+            Schemazeilen(stufe, "getschematable-ohne-verhalten", "person, vier Spalten (Default)"));
+    }
+
+    // @spec SPEC-045
+    [Theory]
+    [MemberData(nameof(Stufen))]
+    public void GetSchemaTable_loest_keine_Anfrage_aus_jede_Anfrage_nach_der_Anmeldung_gehoert_zu_einem_Befehl_des_Szenarios(string stufe)
+    {
+        foreach (var szenario in new[] { "schemaonly-spalten", "schemaonly-sonderfaelle", "keyinfo-spalten", "keyinfo-sonderfaelle", "schemaonly-und-keyinfo", "getschematable-ohne-verhalten" })
+        {
+            var datei = Datei(stufe, szenario);
+            var anfragen = datei.Nachrichten.Skip(4).Count(n => n.Richtung == 'c');
+            var befehle = datei.Herkunft.Count(h => h.Key == "beobachtung" && h.Value.Contains(": Mengen ", StringComparison.Ordinal));
+            Assert.True(anfragen > 0, szenario);
+            Assert.Equal(befehle, anfragen);
+        }
     }
 
     // @spec SPEC-045
     [Fact]
     public void Beide_Instanzen_haben_in_allen_sechs_Szenarien_fuer_jeden_Austausch_nach_der_Anmeldung_dieselben_Auswertungszeilen()
     {
+        var auswertungszeilen = 0;
+        var beobachtungen = 0;
         foreach (var szenario in new[] { "schemaonly-spalten", "schemaonly-sonderfaelle", "keyinfo-spalten", "keyinfo-sonderfaelle", "schemaonly-und-keyinfo", "getschematable-ohne-verhalten" })
         {
             var a = Zeilen("2022", szenario).Where(z => !z.Key.StartsWith(szenario + "/00/", StringComparison.Ordinal)).OrderBy(z => z.Key, StringComparer.Ordinal).ToList();
             var b = Zeilen("2025", szenario).Where(z => !z.Key.StartsWith(szenario + "/00/", StringComparison.Ordinal)).OrderBy(z => z.Key, StringComparer.Ordinal).ToList();
             Assert.True(a.Count > 20, $"{szenario}: zu wenige Zeilen");
+            auswertungszeilen += a.Count;
+            beobachtungen += Datei("2022", szenario).Herkunft.Count(h => h.Key == "beobachtung");
             Assert.Equal(a, b);
             Assert.Equal(
                 Datei("2022", szenario).Herkunft.Where(h => h.Key == "beobachtung").Select(h => h.Value).ToList(),
@@ -351,5 +441,9 @@ public class MessungSchemaBelegTests
                 Assert.Contains(datei.Herkunft, h => h is { Key: "aufnahme", Value: "2026-11-22" });
             }
         }
+
+        // Die Zahlen des Messprotokolls (W-26 bis W-36, Kopf der Spalte „Befund“): je Instanz verglichen.
+        Assert.Equal(472, auswertungszeilen);
+        Assert.Equal(107, beobachtungen);
     }
 }
