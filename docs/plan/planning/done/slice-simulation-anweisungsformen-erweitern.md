@@ -66,7 +66,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 - [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
 - [x] Beobachtungs-Register (`../observations/`) fortgeschrieben: `BEO-TDS/anweisungsformen-des-simulations-backends-enger-als-der-server`, `BEO-TDS/lesart-einer-nutzerentscheidung-unbestaetigt`, `BEO-TDS/mitschnitt-luecken-ohne-traeger` (A-15); keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
 - [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
 
 ## 3. Plan (vor Code)
 
@@ -157,7 +157,7 @@ Geschlossen 2026-11-22 (Planner, Slice-Closure ohne Welle). Geprüfter Stand: Zw
 
 **Risiken aus §6.** Ausgänge je Risiko in §6: Grenze zur „SQL-Engine“ entfallen; je Szenario ein Lauf weiter offen (`BEO-TDS/setzungen-der-anweisungsformen-ungemessen`); Regel mit zwei Gründen entfallen; Clients weiter offen (`BEO-TDS/festlegung-gilt-nur-fuer-das-clientprofil`); ungemessene Setzungen der Form C entschieden, Messung als Folge-Slice bereit; Größe entfallen.
 
-**Drei Paarungen.** (a) Anker: kein Eintrag trägt `liegt in`, nichts zu prüfen. (b) Folge-Slice: jeder genannte Folge-Slice existiert als Datei im Planning-Lifecycle. (c) Register: jede genannte Kennung `BEO-TDS/<slug>` existiert als Verzeichnis und trägt ein nicht leeres `evidence/`. Geprüft nach dem `git mv` (unten).
+**Drei Paarungen.** (a) Anker: kein Eintrag trägt `liegt in`, nichts zu prüfen. (b) Folge-Slice: jeder genannte Folge-Slice existiert als Datei im Planning-Lifecycle. (c) Register: jede genannte Kennung `BEO-TDS/<slug>` existiert als Verzeichnis und trägt ein nicht leeres `evidence/`. Geprüft nach dem `git mv` am 2026-11-22: (a) nichts zu prüfen, (b) die drei genannten Folge-Slices (`slice-qa-messung-anweisungsformen-grenzen`, `slice-simulation-austragung-der-ausfuehrungen-testen`, `slice-cancel-zusatztext-ursache-untersuchen`) liegen als Dateien in `open/`, (c) alle 14 genannten Kennungen `BEO-TDS/<slug>` sind Verzeichnisse mit `observation.md`, `state.md` und nicht leerem `evidence/`.
 
 **Herkunft:** Lücken A-4, A-5, A-15 und A-17 der Ausnahmeliste, [Messprotokoll des Referenzabgleichs](../../../messungen/referenzabgleich.md); Register `BEO-TDS/anweisungsformen-des-simulations-backends-enger-als-der-server` (Träger-Vorschlag „erkannte Anweisungsformen erweitern“), `BEO-TDS/lesart-einer-nutzerentscheidung-unbestaetigt`, `BEO-TDS/mitschnitt-luecken-ohne-traeger` (A-15), `BEO-TDS/done-more-statement-abbrechender-fehler-weicht-ab` (A-17); [Results-Notiz von welle-referenzabgleich-release](../done/welle-referenzabgleich-release-results.md). Nutzerentscheidung 2026-11-17: „ja slices anlegen“ (Frage der Closure von `welle-referenzabgleich-release`, Punkt: die 14 Lücken-Nummern ohne Träger-Slice).
 
