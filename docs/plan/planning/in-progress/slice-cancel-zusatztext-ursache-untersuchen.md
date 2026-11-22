@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [TDS-QA-01](../../../../spec/lastenheft.md#tds-qa-01--kompatibilität) (Scope: Abgleich mit dem echten Server), [TDS-FA-07](../../../../spec/lastenheft.md#tds-fa-07--abbruch-und-ressourcenfreigabe) (Abbruch), [ADR-0054](../../adr/0054-antwort-auf-attention-in-zwei-nachrichten.md) (Zwei-Nachrichten-Form, Erwartung zu A-7), [ADR-0008](../../adr/0008-dotnet-kompatibilitaetstests.md)
 
-**Berührte Spec-Stellen:** [SPEC-045](../../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig) (Ausnahmeliste; nur, wenn die Regel nach dem Befund ihre Art ändert) · [SPEC-029](../../../../spec/spezifikation.md#spec-029--attention-und-wiederverwendung-der-verbindung) (nur, wenn der Befund die Form der Antwort ändert; das entscheidet der Nutzer, nicht dieser Slice) · [Kompatibilitätsmatrix](../../kompatibilitaetsmatrix.md) Abschnitt 5 Nr. 12.
+**Berührte Spec-Stellen:** [SPEC-045](../../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig) (Ausnahmeliste; nur, wenn die Regel nach dem Befund ihre Art ändert) · [SPEC-029](../../../../spec/spezifikation.md#spec-029--attention-und-wiederverwendung-der-verbindung) (nur, wenn der Befund die Form der Antwort ändert; das entscheidet der Nutzer, nicht dieser Slice) · [Kompatibilitätsmatrix](../../kompatibilitaetsmatrix.md) Abschnitt 7d (Zeile `Cancel()` nach 50 gelesenen Zeilen; Abschnitt 5 Nr. 12 bleibt unverändert). Die neuen Tests tragen `@spec SPEC-045`.
 
 **Verantwortlich:** pt9912
 
@@ -29,8 +29,8 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 - **Messung:** Schritt `cancel-mit-folgeabfrage` des Live-Laufs; der Server zeigt den Zusatz in 21 von 21 Teilläufen (13 Läufe am 2026-11-19, 4 Läufe am 2026-11-20), die Referenz in 1 von 21 (`live-2025`, 2026-11-20, Lauf 2); in früheren Läufen vom 2026-11-06 zeigten beide Instanzen beide Varianten (Zählung ohne abgelegte Ausgabe). `Number 0, Class 11, State 0` und der Grundtext sind in allen Fällen gleich.
 - **Was am Draht gemessen ist:** keine Nachricht der Referenz trägt einen ERROR-Token mit diesem Text; beide Texte entstehen im Client aus der Form der Antwort (zwei Nachrichten, `DONE[ERROR]` ohne ERROR-Token, `DONE[ATTN]`). Der Server dieses Repos sendet dieselbe Form (Mitschnitt-Lauf grün, Handvektoren aus den Aufnahmen beider Instanzen).
-- **Nicht untersucht:** *wann* der Client den Zusatz ergänzt. Zwei Vermutungen stehen im Messprotokoll, beide **ohne Beleg**: die zeitliche Lage der beiden Nachrichten beim Client (der Server schreibt sie unmittelbar hintereinander, bei der Referenz ist der Abstand nicht gemessen) und eine Eigenschaft der Form selbst.
-- **Folge für den Sensor:** die Live-Liste führt für den Schritt eine Regel (Referenz ohne, Server mit Zusatz); zeigt die Referenz den Zusatz, sind beide Texte gleich, die Regel entfällt und `LAUF=live` ist rot. `LAUF=live` war am 2026-11-20 in drei von vier Läufen grün.
+- **Untersucht (2026-11-22, [Messprotokoll](../../../messungen/referenzabgleich.md), Abschnitt „Zusatz der Antwort auf `Cancel()`“):** *wann* der Client den Zusatz ergänzt. Am Relais gemessen und in der Quelle des GitHub-Tags `v7.1.1` gelesen: der Zusatz steht, wenn das `DONE[ATTN]` beim Verarbeiten des `DONE[ERROR]` noch nicht im Eingangspuffer des Clients liegt; der Server schreibt es rund 40 ms nach der ersten Nachricht (Ursache nicht festgestellt), die Referenz im Abstand von Mikrosekunden und zeigt ihn in 21 bis 29 von 40 Durchläufen (Teil A) und 8 bis 9 von 30 (Teil B). Offen bleiben die Zahl der TLS-Records je `Read`, die Ursache der 40 ms und der Unterschied zu den Live-Läufen (1 von 21).
+- **Entscheidung des Nutzers (2026-11-22): „Regel bleibt“.** Kein Eingriff am Sensor; der Server wird jetzt nicht angeglichen, ein Bau am Server wird später entschieden. Die Live-Liste führt für den Schritt eine Regel (Referenz ohne, Server mit Zusatz); zeigt die Referenz den Zusatz, sind beide Texte gleich, die Regel entfällt und `LAUF=live` ist rot, ohne Befund des Servers. Die übrigen Optionen stehen im Messprotokoll als Dokumentation.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -45,10 +45,10 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Ziel-Form: Slice — **≤ 3 Liefer-Punkte**; Gate-Läufe und Closure-Pflichten zählen nicht mit.
 
 - [ ] **Messung der Bedingung:** das Messprotokoll nennt, in wie vielen Läufen je Instanz die Referenz den Zusatz zeigt und in wie vielen nicht (Zahl der Läufe, Datum, Host, Last, Rohausgabe der Läufe abgelegt oder die Lücke benannt), und was die Läufe mit und ohne Zusatz am Draht unterscheidet (Bytes und zeitliche Lage der beiden Nachrichten, soweit der mitschneidende Proxy sie zeigt).
-- [ ] **Ursache:** die Ursache des Zusatzes ist benannt und belegt (Messung oder Quelle des Clients mit Fundstelle), oder die Aussage „nicht festgestellt“ steht mit den Grenzen der Messung da; das Messprotokoll nennt die Optionen für den Nutzer (Ausnahmeliste, Server, nichts) mit je ihrer Wirkung auf den Lauf, ohne eine zu wählen.
+- [ ] **Ursache:** die Ursache des Zusatzes ist benannt und belegt (Messung oder Quelle des Clients mit Fundstelle), oder die Aussage „nicht festgestellt“ steht mit den Grenzen der Messung da; das Messprotokoll nennt die Optionen für den Nutzer (Ausnahmeliste, Server, nichts) mit je ihrer Wirkung auf den Lauf; die Wahl ist die des Nutzers („Regel bleibt“, 2026-11-22), nicht die dieses Slice.
 - [ ] `make gates` Exit 0, dazu je Art der Änderung nach `harness/README.md` §Minimal agent workflow: `make docs-check`, `make flaeche`, `make kopplung-zahlen` (Doku/Spec); `make spec-abdeckung` nur bei Änderung von Tests oder `@spec`-Tags. Die Läufe `make vergleichslauf-d` sind Messung und Nachweis, keine Gates ([ADR-0022](../../adr/0022-e2e-laeufe-nicht-in-den-gates.md)).
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor (`.harness/skills/reviewer.md`), kein Self-Review.
-- [ ] Doku-Update, falls ein öffentlicher Vertrag berührt: [Messprotokoll des Referenzabgleichs](../../../messungen/referenzabgleich.md) (A-7), `live-ausnahmen.tsv` (nur, wenn der Nutzer nach dem Befund eine Änderung entscheidet), [Kompatibilitätsmatrix](../../kompatibilitaetsmatrix.md) (Nr. 12).
+- [ ] Doku-Update, falls ein öffentlicher Vertrag berührt: [Messprotokoll des Referenzabgleichs](../../../messungen/referenzabgleich.md) (A-7), `live-ausnahmen.tsv` (Grund der Zeile; Ergebnispaare unverändert, die Entscheidung „Regel bleibt“ ändert die Regel nicht), [Kompatibilitätsmatrix](../../kompatibilitaetsmatrix.md) (Abschnitt 7d).
 - [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
 - [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben: `BEO-TDS/cancel-antwort-text-weicht-vom-echten-server-ab` (Ausgang nachführen); keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
 - [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
@@ -61,9 +61,12 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `docs/messungen/referenzabgleich.md` | update | Messreihe zur Bedingung des Zusatzes mit Zahl, Datum, Host, Last; Ursache oder „nicht festgestellt“; Optionen |
-| `referenztest-dotnet/Vergleich/` (Mitschnitt- und Live-Lauf), `tools/vergleichslauf-d.sh` | update (falls der Messweg es braucht) | Wiederholung des Schritts `cancel-mit-folgeabfrage` mit gesicherter Ausgabe je Lauf und der Bytes der beiden Nachrichten mit Zeitstempeln; kein Gate |
-| `docs/plan/kompatibilitaetsmatrix.md`, `referenztest-dotnet/Vergleich/live-ausnahmen.tsv` | update (nur nach Entscheidung des Nutzers) | Stand der Regel A-7 |
+| `docs/messungen/referenzabgleich.md` | update | Messreihe zur Bedingung des Zusatzes mit Zahl, Datum, Host, Last; Ursache oder „nicht festgestellt“; Optionen und Entscheidung |
+| `docs/messungen/cancel-zusatz-2026-11-22-rohzeilen.txt` | neu | Rohzeilen der Messung (920 Durchläufe), aus denen die Zählungen nachzurechnen sind |
+| `referenztest-dotnet/Vergleich/CancelZusatzMessungTests.cs`, `tools/vergleichslauf-d.sh`, `tools/mk/vergleichslauf-d.mk` | update / neu | Messweg: Lauf `LAUF=cancel` (Schritt `cancel-mit-folgeabfrage` wiederholt, Modi `direkt`, `relais` und drei Eingriffe), gesicherte Ausgabe je Durchlauf; kein Gate |
+| `referenztest-dotnet/Mitschnitt/RecordRelais.cs`, `referenztest-dotnet/Mitschnitt/RecordRelaisTests.cs` | neu | Relais ohne TLS-Beendigung mit Zerlegung in TLS-Records, Zeitstempeln und Eingriffen; Tests der Stage `test` (`@spec SPEC-045`) |
+| `docs/plan/spec-abdeckung.md`, `harness/README.md` | update | Matrix der Spec-Abdeckung (erzeugt, `make spec-abdeckung`); Zeile von `make vergleichslauf-d` nennt den Lauf `cancel` |
+| `docs/plan/kompatibilitaetsmatrix.md` (Abschnitt 7d), `referenztest-dotnet/Vergleich/live-ausnahmen.tsv` | update | Zelle der Matrix und Grund der Zeile `cancel-mit-folgeabfrage` tragen den Befund; die Entscheidung „Regel bleibt“ lässt Ergebnispaare und Art `Luecke` der Zeile unverändert |
 
 **Messweg (Vorschlag des Planners, keine Festlegung; der Implementer prüft, was der vorhandene Proxy hergibt):** (a) den Schritt `cancel-mit-folgeabfrage` an beiden Instanzen so oft wiederholen, dass eine Rate je Instanz angegeben werden kann, jede Ausgabe je Lauf gesichert; (b) in denselben Läufen den mitschneidenden TCP-Proxy der Mitschnitt-Läufe ([Methode](../../../messungen/referenzabgleich.md)) mitlaufen lassen und die Bytes und Ankunftszeiten der beiden Nachrichten im Fall mit und im Fall ohne Zusatz gegenüberstellen; (c) dieselbe Gegenüberstellung am Server dieses Repos, einschließlich des Abstands, mit dem er die zweite Nachricht schreibt; (d) falls (a) bis (c) nichts entscheiden, die Quelle des Clients (`Microsoft.Data.SqlClient` 7.1.1) auf die Stelle lesen, die den Text bildet, mit Fundstelle ([AGENTS.md](../../../../AGENTS.md) §3.8: keine Abschnittsnummer ohne belegbare Quelle).
 
@@ -81,7 +84,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 ## 5. Closure-Trigger
 
-Alle Punkte der DoD in §2 erledigt, `make gates` und `make docs-check` Exit 0, das Messprotokoll nennt Rate, Befund und Optionen mit Zahlen und Datum, die Entscheidung des Nutzers über die Folge ist eingeholt und im Slice festgehalten (nicht Liefer-Punkt, sondern Bedingung der Closure), und die Closure-Notiz mit Steering-Loop-Lerneintrag ist geschrieben.
+Alle Punkte der DoD in §2 erledigt, `make gates` und `make docs-check` Exit 0, das Messprotokoll nennt Rate, Befund und Optionen mit Zahlen und Datum, die Entscheidung des Nutzers über die Folge (2026-11-22: „Regel bleibt“, §1) ist im Slice festgehalten (nicht Liefer-Punkt, sondern Bedingung der Closure), und die Closure-Notiz mit Steering-Loop-Lerneintrag ist geschrieben.
 
 ## 6. Risiken und offene Punkte
 
