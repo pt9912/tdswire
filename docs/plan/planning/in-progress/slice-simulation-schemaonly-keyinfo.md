@@ -102,6 +102,17 @@ Bereits gelieferte Dateien der Messphase (Liefer-Punkt 1; Zustand der Dateien, n
 | `docs/messungen/mutationen-schemaonly-keyinfo-messphase-2026-11-22.md`, `docs/reviews/2026-11-22-slice-simulation-schemaonly-keyinfo-messung-review.md` | neu | Mutationsbeleg und Review der Messphase |
 | `docs/plan/adr/0059-schemaonly-ist-eine-erkannte-form-keyinfo-bleibt-abgewiesen.md`, `docs/plan/adr/README.md` | neu, update | Entscheidung nach der Messung (`Accepted`), Eintrag im ADR-Index |
 
+Dateien des Baus von Form F, die die Tabelle oben nicht nennt (Zustand der Dateien, nicht Chronik):
+
+| Datei / Komponente | Art | Begründung |
+|---|---|---|
+| `src/main/kotlin/io/github/pt9912/tdswire/simulation/SchemaForms.kt`, `SchemaOnlyExecution.kt` | neu | Erkennung der Form F; Antwort mit den Abschlüssen der `SET` um die Ausführung der Auswahl |
+| `src/main/kotlin/io/github/pt9912/tdswire/simulation/FixedAnswers.kt` | update | `bulk` aus `SimulationBackend` hierher (Funktionszahl der Klasse) |
+| `src/test/kotlin/io/github/pt9912/tdswire/simulation/SchemaFormsTest.kt`, `SimulationBackendSchemaOnlyTest.kt`, `src/test/kotlin/io/github/pt9912/tdswire/protocol/response/ResponseSchemaOnlyTest.kt`, `src/integrator/kotlin/io/github/pt9912/tdswire/integrator/SchemaOnlyEmbeddingTest.kt` | neu | Erkennung, Backend, Handvektoren der Messung, Einbettungstest |
+| `referenztest-dotnet/Kompatibilitaet/AnmeldungTests.cs`, `tools/kompatibilitaetstest.sh` | update | der Test `SchemaOnly` erwartet die Antwort statt `50001` (Lauf beim Verifier); Kommentar des Skripts |
+| `referenztest-dotnet/Mitschnitt/MessungSchemaBelegTests.cs` | update | Kommentar der Abschrift nach dem Entfernen der zwei Regeln |
+| `docs/messungen/mutationen-schemaonly-form-f-2026-11-22.md` | neu | Mutationsbeleg des Baus |
+
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf (Testdateien mit Kennung der Akzeptanzkriterien).
 
 ## 4. Trigger
