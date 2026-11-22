@@ -177,18 +177,15 @@ internal object StatementParser {
         is ScanResult.Tokens -> parse(scanned.tokens)
     }
 
-    private fun parse(scanned: List<Token>): Recognition = forms(scanned, schemaOnly = true)
-
     /**
-     * Die Auswahl hinter `SET FMTONLY ON` liest die Probe der Zieltabelle ohne Form F (`SPEC-036`): ein Text, der
-     * erst hinter dem `SET FMTONLY ON` mit `SET FMTONLY OFF; SET FMTONLY ON;` fortfährt, ist nicht erkannt.
+     * Die Auswahl hinter `SET FMTONLY ON` liest die Probe der Zieltabelle mit `schemaOnly = false`, ohne Form F
+     * (`SPEC-036`): ein Text, der hinter dem `SET FMTONLY ON` mit `SET FMTONLY OFF; SET FMTONLY ON;` fortfährt, ist
+     * nicht erkannt.
      */
-    private fun parseInProbe(scanned: List<Token>): Recognition = forms(scanned, schemaOnly = false)
-
-    private fun forms(scanned: List<Token>, schemaOnly: Boolean): Recognition {
+    private fun parse(scanned: List<Token>, schemaOnly: Boolean = true): Recognition {
         val tokens = if (scanned.lastOrNull() == Token.Symbol(';')) scanned.dropLast(1) else scanned
         if (tokens.isEmpty()) return Recognition.NotRecognized(Unrecognized.EMPTY_TEXT)
-        return BulkForms.probe(tokens, ::parseInProbe)
+        return BulkForms.probe(tokens) { parse(it, schemaOnly = false) }
             ?: (if (schemaOnly) SchemaForms.recognize(tokens, ::single) else null)
             ?: BulkForms.insertBulk(tokens)
             ?: FixedForms.recognize(tokens)?.let { Recognition.Fixed(it) }

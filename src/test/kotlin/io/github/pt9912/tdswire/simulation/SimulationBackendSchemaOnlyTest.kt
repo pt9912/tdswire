@@ -215,9 +215,9 @@ class SimulationBackendSchemaOnlyTest {
      * ohne Abschluss der `SET`, ohne Zeilenquelle: die Texte von `KeyInfo` und `SchemaOnly|KeyInfo` (Messung,
      * `keyinfo-spalten` Anfrage 01, `schemaonly-und-keyinfo` Anfrage 01), kein führendes `SET FMTONLY OFF;`, kein `;`
      * hinter einem der führenden `SET`, die `SET` in anderer Reihenfolge, ein `;` vor dem schließenden `SET`, ein
-     * doppeltes schließendes `SET`, eine dritte `SET`-Anweisung, ein `SET FMTONLY ON` vor der Form (die Probe der Form B
-     * liest ihren Rest nicht als Form F). Wächter: eine Erkennung, die `NO_BROWSETABLE` mitnimmt
-     * oder die Reihenfolge nicht prüft.
+     * doppeltes schließendes `SET`, eine dritte `SET`-Anweisung, ein `SET FMTONLY ON` vor der Form (die Probe der
+     * Form B liest ihren Rest nicht als Form F). Wächter: eine Erkennung, die `NO_BROWSETABLE` mitnimmt oder die
+     * Reihenfolge nicht prüft.
      * @spec SPEC-036
      * @spec SPEC-037
      */
