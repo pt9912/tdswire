@@ -296,10 +296,10 @@ class SimulationBackendSchemaOnlyTest {
     }
 
     /**
-     * Die Ausführung der Form F gibt die der Auswahl frei: nach `close()` ist keine Ausführung unter Sitzung und Anfrage
-     * registriert, und ein Cancel vor dem Sammeln beendet die Auswahl vor dem Ergebnis (die Abschlüsse der `SET` stehen
-     * davor und danach, ein Ergebnis fehlt). Wächter: ein `close()`, das die Auswahl nicht schließt, ein Cancel, das die
-     * Auswahl nicht erreicht.
+     * Die Ausführung der Form F gibt die der Auswahl frei: nach `close()` ist keine Ausführung unter Sitzung und
+     * Anfrage registriert, und ein Cancel vor dem Sammeln beendet die Auswahl vor dem Ergebnis (die Abschlüsse der
+     * `SET` stehen davor und danach, ein Ergebnis fehlt). Wächter: ein `close()`, das die Auswahl nicht schließt, ein
+     * Cancel, das die Auswahl nicht erreicht.
      * @spec SPEC-036
      */
     @Test
