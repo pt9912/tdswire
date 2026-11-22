@@ -1,6 +1,6 @@
 # ADR-0059: `ExecuteReader(SchemaOnly)` ist eine erkannte Form des Simulations-Backends (Form F: `SET FMTONLY OFF; SET FMTONLY ON;<Auswahl>`, Antwort mit den Abschlüssen der `SET`-Anweisungen); `KeyInfo` bleibt abgewiesen (ersetzt teilweise ADR-0012 Entscheidung 14)
 
-**Status:** Proposed (Entwurf in der Architect-Rolle; die Entscheidung des Nutzers vom 2026-11-22 zum Umfang liegt vor, die Setzungen unter „Offene Fragen zur Annahme“ warten auf die Annahme)
+**Status:** Accepted (vom Nutzer entschieden, 2026-11-22)
 
 **Datum:** 2026-11-22
 
@@ -10,7 +10,7 @@
 
 **Schärft:** [SPEC-036](../../../spec/spezifikation.md#spec-036--erkannte-anweisungsformen-des-simulations-backends-vorläufig) (Tabelle der Formen: neue Zeile F; Liste „Nicht erkannt“: die Texte von `KeyInfo`), [SPEC-031](../../../spec/spezifikation.md#spec-031--streaming-fehler-und-atomarität) (Befehlskennung der Abschlüsse: zwei neue Arten, in beiden Formen SQL_BATCH und RPC), [SPEC-059](../../../spec/spezifikation.md#einstieg-des-integrators-vertrag-zu-spec-059) (Liste der öffentlichen Fläche: zwei neue Konstanten von `StatementKind`), [SPEC-045](../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig) (Ausnahme A-8 verkleinert sich auf `KeyInfo`). Diese ADR ändert `spec/` nicht; der Nachzug steht unter Konsequenzen.
 
-**Supersedes (teilweise), nur wörtlich benannt, wirksam erst mit dem Status `Accepted`; die Datei von [ADR-0012](0012-simulations-backend-beschreibung-und-formen.md) bleibt unverändert und `Accepted` ([AGENTS.md](../../../AGENTS.md) §3.5):**
+**Supersedes (teilweise), nur wörtlich benannt, wirksam mit dem Status `Accepted`; die Datei von [ADR-0012](0012-simulations-backend-beschreibung-und-formen.md) bleibt unverändert und `Accepted` ([AGENTS.md](../../../AGENTS.md) §3.5):**
 
 - [ADR-0012](0012-simulations-backend-beschreibung-und-formen.md) Entscheidung 14 (Abschnitt „Setzungen“), **nur** der erste Satz „Gelesene Anweisungsformen bleiben die Tabelle S1, W1, W2, W3 und C aus SPEC-036“, soweit er die erkannten Formen begrenzt (von [ADR-0033](0033-callback-loesung-fuer-schreiben-struktur-und-massenladen.md), [ADR-0055](0055-zwei-auswahlen-ohne-parameter-in-einem-text-sind-erkannt.md) und [ADR-0058](0058-or-in-der-auswahl-ganzzahlkonstante-und-waitfor-delay-sind-erkannt.md) schon teilweise ersetzt); es gilt zusätzlich die Form F dieser ADR. Es bleiben die Scanner-Einzelheiten und alles Übrige von Entscheidung 14.
 
@@ -96,18 +96,18 @@ Jede Entscheidung trägt ihre Art: **Entscheidung des Nutzers (2026-11-22)** ode
 - **Folgepflicht, Spec-Nachzug** (Träger: der Slice zu `SchemaOnly` und `KeyInfo`; diese ADR ändert `spec/` nicht): [SPEC-036](../../../spec/spezifikation.md#spec-036--erkannte-anweisungsformen-des-simulations-backends-vorläufig) (neue Zeile F mit Text, Antwort und Grenzen; Absatz zur Probe: Abgrenzung zu Form F; Liste „Nicht erkannt“: `KeyInfo`, `SchemaOnly|KeyInfo`); [SPEC-031](../../../spec/spezifikation.md#spec-031--streaming-fehler-und-atomarität) (die zwei Arten und ihre Kennungen, im RPC wirksam); [SPEC-059](../../../spec/spezifikation.md#einstieg-des-integrators-vertrag-zu-spec-059) (Liste der Konstanten von `StatementKind`); der Absatz „Offen: die Behandlung der `SET`-Anweisungen im Batchtext von `ExecuteReader(SchemaOnly)` …“ der Spezifikation (`SchemaOnly` beantwortet, `KeyInfo` bleibt offen mit dem Folge-Slice als Träger); [SPEC-045](../../../spec/spezifikation.md#spec-045--referenzabgleich-ablauf-und-ausnahmeliste-vorläufig), das Messprotokoll (A-8 nur `KeyInfo`, mit Grund „nicht gebaut“), `live-ausnahmen.tsv` (die Regeln `schema-person` und `schema-typen` entfallen, `schema-person-schluessel` bleibt) und die [Kompatibilitätsmatrix](../kompatibilitaetsmatrix.md) Nr. 11 und die Zeilen zu `SchemaOnly` und `KeyInfo`.
 - **Folgepflicht, Träger der Lücke `KeyInfo`:** ein eigener Slice (TABNAME, COLINFO, die versteckte Spalte, die Persistenz von `NO_BROWSETABLE`) mit einer Folge-ADR zu [ADR-0012](0012-simulations-backend-beschreibung-und-formen.md) Entscheidung 7 und Offen 5; ohne ihn verschwände die Grenze von Entscheidung 1 spurlos, und `KeyInfo` ist ein Befehl, den ein Client sendet (wiederkehrend). Den Slice legt der Planner an.
 - **Folgepflicht, Beleg der Antwortform:** Die Zusage der Entscheidungen 2 und 3 trägt ein Test mit Handvektor aus der Ablage der Messung (Batch: `schemaonly-spalten/01`, `/02`, `schemaonly-sonderfaelle/03`; RPC: `schemaonly-sonderfaelle/04`; Fehler: `/05`), nicht der Entwurf ([AGENTS.md](../../../AGENTS.md) §3.8).
-- **Index:** Vermerk „teilweise ersetzt durch ADR-0059“ in der Indexzeile von [ADR-0012](0012-simulations-backend-beschreibung-und-formen.md) (mit dieser Fassung angelegt, Geltung erst mit `Accepted`).
+- **Index:** Vermerk „teilweise ersetzt durch ADR-0059“ in der Indexzeile von [ADR-0012](0012-simulations-backend-beschreibung-und-formen.md).
 - **Akzeptierte Negative (einmalig, mit Grund):** (1) Ein RPC **mit** schließendem `SET FMTONLY OFF` und eine Anfrage im Batch **ohne** es sind nicht gemessen; der Server beantwortet, was im Text steht (Entscheidung 2), und mehr als Handvektoren der gemessenen Fälle gibt es nicht. (2) `GetSchemaTable()` ist nur am Referenzclient gemessen; kein anderer Client sendet nach Kenntnis dieselben Texte, und keiner ist im Profil ([TDS-QA-01](../../../spec/lastenheft.md#tds-qa-01--kompatibilität)). (3) `SchemaOnly` gegen eine Tabelle mit Identitäts- oder berechneter Spalte ist nicht gemessen; die Beschreibung der Tabelle kennt beides nicht. Keiner der drei bekommt einen eigenen Folgeauftrag; der Re-Evaluierungs-Trigger fängt eine spätere Messung.
 
-## Offene Fragen zur Annahme
+## Fragen zur Annahme (vom Nutzer beantwortet)
 
-Der Nutzer bestätigt oder ändert vor der Annahme; die ADR nimmt den Default an.
+Der Nutzer pt9912 hat am 2026-11-22 alle fünf Fragen mit dem Default beantwortet; die Entscheidungen oben gelten wie geschrieben.
 
-1. **Zwei neue öffentliche Konstanten (Entscheidung 7).** Default: ja, `SET_FMTONLY_ON` und `SET_FMTONLY_OFF`. Bei „nein“ gilt der Rückfall C der Alternativen (Draht ohne die Abschlüsse der `SET`).
-2. **Die beiden Abschlüsse gehen einem Fehler der Auswahl voraus (Entscheidung 4).** Default: ja, wie W-29. Bei „nein“ antwortet der Server nur mit ERROR und `DONE`.
-3. **`WHERE`-Bedingungen von S1 (auch `OR`-Folgen und Parameter) in Form F (Entscheidung 2).** Default: ja, geprüft wie bei der Probe; gemessen ist nur `WHERE Id = @i`. Bei „nein“ ist nur eine Auswahl ohne `WHERE` erkannt.
-4. **Beide Arten gelten im RPC (Entscheidung 7).** Default: ja, wie W-28; sonst weicht der RPC von der Messung ab.
-5. **Das schließende `SET FMTONLY OFF` ist optional (Entscheidung 2).** Default: ja, weil der RPC es nicht trägt; bei „nein“ wäre der RPC-Text nicht erkannt und W-28 bliebe unbeantwortet.
+1. **Zwei neue öffentliche Konstanten (Entscheidung 7).** Antwort des Nutzers: ja, `SET_FMTONLY_ON` und `SET_FMTONLY_OFF`. Bei „nein“ gilt der Rückfall C der Alternativen (Draht ohne die Abschlüsse der `SET`).
+2. **Die beiden Abschlüsse gehen einem Fehler der Auswahl voraus (Entscheidung 4).** Antwort des Nutzers: ja, wie W-29. Bei „nein“ antwortet der Server nur mit ERROR und `DONE`.
+3. **`WHERE`-Bedingungen von S1 (auch `OR`-Folgen und Parameter) in Form F (Entscheidung 2).** Antwort des Nutzers: ja, geprüft wie bei der Probe; gemessen ist nur `WHERE Id = @i`, alle übrigen erkannten Bedingungen von S1 sind Setzung (ungemessen). Bei „nein“ ist nur eine Auswahl ohne `WHERE` erkannt.
+4. **Beide Arten gelten im RPC (Entscheidung 7).** Antwort des Nutzers: ja, wie W-28; sonst weicht der RPC von der Messung ab.
+5. **Das schließende `SET FMTONLY OFF` ist optional (Entscheidung 2).** Antwort des Nutzers: ja, weil der RPC es nicht trägt; bei „nein“ wäre der RPC-Text nicht erkannt und W-28 bliebe unbeantwortet.
 
 ## Fitness Function (falls maschinell prüfbar)
 
@@ -129,6 +129,7 @@ Eine Messung, die den Setzungen widerspricht (ein RPC mit schließendem `SET`, e
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-11-22 | Proposed: Entscheidung des Nutzers zum Umfang (Code angleichen nur für `SchemaOnly`, `KeyInfo` nicht gebaut, Folge-Slice); Form, Grenzen und Fläche als Setzungen des Architect; fünf offene Fragen mit Default | Auftrag an den Architect vom 2026-11-22, [Messprotokoll](../../messungen/referenzabgleich.md#schemaonly-keyinfo-und-getschematable-am-draht-messungen-vom-2026-11-22-ausnahme-a-8) |
+| 2026-11-22 | Accepted; Entscheidung des Nutzers pt9912: alle fünf Fragen mit dem Default beantwortet: (1) zwei neue öffentliche Konstanten `SET_FMTONLY_ON` und `SET_FMTONLY_OFF` ja; (2) beide Abschlüsse gehen einem Fehler der Auswahl voraus (wie W-29) ja; (3) Form F lässt alle erkannten Bedingungen von S1 zu, auch `OR`-Folgen und Parameter (ungemessen, Setzung); (4) beide Arten gelten im RPC (W-28) ja; (5) das schließende `SET FMTONLY OFF` ist optional ja; `KeyInfo` wird in diesem Slice nicht gebaut | Nutzerentscheidung vom 2026-11-22 |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit
