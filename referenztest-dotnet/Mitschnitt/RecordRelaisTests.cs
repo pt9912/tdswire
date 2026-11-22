@@ -262,6 +262,20 @@ public class RecordRelaisTests
 
     // @spec SPEC-045
     [Fact]
+    public void Eingriff_Verzoegern_laesst_den_Record_der_Antwortlaenge_vor_dem_ATTENTION_des_Clients_unverzoegert()
+    {
+        var antwort = TlsRecord(21);
+        // Die Verzögerung (8 s) liegt über der Lesezeit des Clients (5 s): wirkte sie vor dem ATTENTION (Bedingung `_attention`), wirft
+        // die Lesezeit, ohne dass eine Zeitschwelle im Spiel ist.
+        using var strecke = new Strecke(Eingriff.Verzoegern, antwortLaenge: antwort.Length, verzoegerungMs: 8000, halteGrenzeMs: 500, server: s =>
+            // Der Server spricht, bevor der Client etwas gesendet hat, mit einem Record der Länge der Antwort auf ATTENTION.
+            Schreiben(s, antwort));
+
+        Assert.Equal(antwort, strecke.Lesen(antwort.Length));
+    }
+
+    // @spec SPEC-045
+    [Fact]
     public void Eingriff_Einzeln_gibt_den_Rest_nach_einem_unbekannten_Byte_weiter()
     {
         var rest = new byte[] { 0x55, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
