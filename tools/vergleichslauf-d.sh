@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tools/vergleichslauf-d.sh - Vergleichslauf D: der .NET-Referenzclient gegen einen echten SQL Server im Container
 # (ADR-0008 Option D, SPEC-045, TDS-QA-01). Aufruf ueber `make vergleichslauf-d [LAUF=<Name>]`; BUILDER_FLAGS kommt
-# aus der Umgebung (leer ohne BUILDER). Kein Gate und keine Stufe von `make e2e` (ADR-0022). Nur die Laeufe `live-*`
+# aus der Umgebung (leer ohne BUILDER). Kein Gate und keine Stufe von `make e2e` (ADR-0022). Nur die Laeufe `live-*` und `cancel-*`
 # starten zusaetzlich den Server dieses Repos (Stufe `kompatibilitaetsserver`); alle anderen sprechen nur die Referenzinstanz an.
 #
 # Laeufe (Name = Image-Stufe, Kategorie, Einstellung `network.forcestrict`):
@@ -32,6 +32,12 @@
 #   sind die Messwerte; die Datei ersetzt referenztest-dotnet/Mitschnitt/messung/jdbc-d-migrate/<stufe>.schema.aufnahme.txt im Arbeitsbaum.
 #   MESSUNG_NUR=<Szenarien> waehlt eine Teilmenge ohne Ablage; mit MESSUNG_WIEDERHOLEN=<N> (Exit 0 bei gruenem Test, ohne Ablage) faehrt jedes gewaehlte Szenario N-mal ueber
 #   einen frisch aufgebauten Bestand und nennt die Rate roter Laeufe (MESSUNG_DIREKT=1: der Client verbindet sich ohne Proxy).
+#   cancel-2022 | cancel-2025 | cancel (beide): Messung zum Zusatz " Operation cancelled by user." der Antwort auf `Cancel()` im Strom (A-7; Kategorie
+#   MessungCancelZusatz, referenztest-dotnet/Vergleich/CancelZusatzMessungTests.cs, siehe `cancellauf`): der Schritt `cancel-mit-folgeabfrage` laeuft CANCEL_N-mal
+#   (Voreinstellung 100) je Modus (CANCEL_MODI, durch Komma getrennt; Voreinstellung `direkt,relais,relais-einzeln,relais-verzoegert,relais-buendeln`: ohne Zwischenstation, ueber
+#   ein Relais ohne TLS-Beendigung mit Aufzeichnung der TLS-Records, ohne und mit Eingriff in die Weitergabe der Antworten, siehe `Eingriff` in referenztest-dotnet/Mitschnitt/RecordRelais.cs;
+#   CANCEL_ANTWORTLAENGE, CANCEL_VERZOEGERUNG_MS; CANCEL_PROZESSE: Zahl der Prozesse des Clients, Voreinstellung 1) gegen die Referenzinstanz und gegen den Server dieses Repos;
+#   kein Urteil, keine Ablage, keine Ausnahmeliste: die Zeilen `cancelzusatz:` der Ausgabe sind die Messwerte.
 # Je Lauf: Image der Referenzinstanz bauen (Dockerfile-Stufe `referenzinstanz-<jahr>` in referenztest-dotnet, Digest
 # dort gepinnt) und Client-Image (Stufe `vergleich`); zwei Container in einem eigenen internen Netzwerk (kein Zugang
 # nach aussen, kein veroeffentlichter Port, nichts wird gemountet; Namen mit PID). Zertifikat und Schluessel (CN und SAN
@@ -155,6 +161,7 @@ WIRE="wire-2022 wire-2025"
 BULK="bulk-2022 bulk-2025"
 JDBC="jdbc-2022 jdbc-2025"
 SCHEMA="schema-2022 schema-2025"
+CANCEL="cancel-2022 cancel-2025"
 
 # parameter <Lauf>: setzt STUFE, KATEGORIE, FORCESTRICT, ERWARTE_STRICT, ERWARTE_SONDE und ERWARTE_MANDATORY (gelingt|scheitert|-).
 parameter() {
@@ -178,6 +185,8 @@ parameter() {
     bulk-2025) STUFE=2025 KATEGORIE=MessungBulk FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
     jdbc-2022) STUFE=2022 KATEGORIE=JdbcDMigrate FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
     jdbc-2025) STUFE=2025 KATEGORIE=JdbcDMigrate FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
+    cancel-2022) STUFE=2022 KATEGORIE=MessungCancelZusatz FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
+    cancel-2025) STUFE=2025 KATEGORIE=MessungCancelZusatz FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
     schema-2022) STUFE=2022 KATEGORIE=SchemaDMigrate FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
     schema-2025) STUFE=2025 KATEGORIE=SchemaDMigrate FORCESTRICT=0 ERWARTE_STRICT=- ERWARTE_SONDE=- ERWARTE_MANDATORY=- ;;
     *) return 1 ;;
@@ -200,10 +209,12 @@ elif [ "$LAUFNAME" = jdbc ]; then
   LISTE="$JDBC"
 elif [ "$LAUFNAME" = schema ]; then
   LISTE="$SCHEMA"
+elif [ "$LAUFNAME" = cancel ]; then
+  LISTE="$CANCEL"
 elif parameter "$LAUFNAME"; then
   LISTE="$LAUFNAME"
 else
-  echo "vergleichslauf-d: LAUF muss alle, live, aufnahme, mitschnitt, wire, bulk, jdbc, schema oder einer von [$ALLE $LIVE $MESSUNG $AUFNAHME $MITSCHNITT $WIRE $BULK $JDBC $SCHEMA] sein (war '$LAUFNAME')" >&2
+  echo "vergleichslauf-d: LAUF muss alle, live, aufnahme, mitschnitt, wire, bulk, jdbc, schema, cancel oder einer von [$ALLE $LIVE $MESSUNG $AUFNAHME $MITSCHNITT $WIRE $BULK $JDBC $SCHEMA $CANCEL] sein (war '$LAUFNAME')" >&2
   exit 2
 fi
 if [ -n "${CI:-}${GITHUB_ACTIONS:-}" ]; then
@@ -439,6 +450,79 @@ livelauf() {
   sed 's/^/vergleichslauf-d: live: server   /' "$SCRATCH/live-server.txt"
   pruefe "Live-Vergleich: gleich oder genau die gelistete Abweichung" \
     vergleichen "$SCRATCH/live-referenz.txt" "$SCRATCH/live-server.txt" referenztest-dotnet/Vergleich/live-ausnahmen.tsv "$STUFE"
+  t_fertig=$((SECONDS - START))
+  echo "vergleichslauf-d: messung: Lauf $name $t_fertig s (mit Bau und Start $T_BEREIT s)"
+
+  docker rm -f "$SIM_SERVER" "$SERVER" >/dev/null 2>&1
+  docker network rm "$NETZ" >/dev/null 2>&1
+  docker rmi -f "$SERVER_IMAGE" "$SIM_IMAGE" >/dev/null 2>&1
+  SERVER="" SIM_SERVER="" NETZ="" SERVER_IMAGE="" SIM_IMAGE=""
+  return 0
+}
+
+# cancel_client <Anzeigename> <Ziel> <Benutzer> <Kennwort> <Aufbau 0|1> <Zertifikat> <Ausgabedatei>: fuehrt die Messung der Kategorie MessungCancelZusatz
+# (referenztest-dotnet/Vergleich/CancelZusatzMessungTests.cs) in einem Client-Container gegen ein Ziel aus; die Zeilen `cancelzusatz:` landen in <Ausgabedatei>.
+cancel_client() {
+  local anzeige="$1" ziel="$2" benutzer="$3" kennwort="$4" aufbau="$5" zertifikat="$6" ausgabe="$7" ok leck=0
+  CLIENT="$LAUF-cancel-$anzeige-client"
+  docker create --name "$CLIENT" --network "$NETZ" -e "TDSWIRE_ZIEL=$ziel" -e "TDSWIRE_CANCEL_BENUTZER=$benutzer" -e "TDSWIRE_CANCEL_KENNWORT=$kennwort" \
+    -e "TDSWIRE_CANCEL_AUFBAU=$aufbau" -e "TDSWIRE_CANCEL_DATENBANK=$([ "$aufbau" = 1 ] && echo tdswire_cancel)" -e "TDSWIRE_CANCEL_N=${CANCEL_N:-100}" \
+    -e "TDSWIRE_CANCEL_MODI=${CANCEL_MODI:-}" -e "TDSWIRE_CANCEL_ANTWORTLAENGE=${CANCEL_ANTWORTLAENGE:-}" -e "TDSWIRE_CANCEL_VERZOEGERUNG_MS=${CANCEL_VERZOEGERUNG_MS:-}" \
+    -e "TDSWIRE_CANCEL_NAME=$anzeige-$STUFE" -e TDSWIRE_CANCEL_AUSGABE=/tmp/cancel.txt -e SSL_CERT_FILE=/tmp/server.pem \
+    "$CLIENT_IMAGE" dotnet test --no-build --nologo --filter "Kategorie=MessungCancelZusatz" --logger "console;verbosity=detailed" >/dev/null || return 1
+  docker cp "$zertifikat" "$CLIENT:/tmp/server.pem" >/dev/null || return 1
+  # CANCEL_PROZESSE (Voreinstellung 1): so oft startet derselbe Container neu; jeder Start ist ein frischer Prozess des Clients (die Zeilen tragen `p<Nr>`).
+  : >"$ausgabe"
+  ok=0
+  for k in $(seq 1 "${CANCEL_PROZESSE:-1}"); do
+    docker start -a "$CLIENT" >"$SCRATCH/client-cancel-$anzeige" 2>&1 || ok=1
+    if grep -qF -e "$kennwort" "$SCRATCH/client-cancel-$anzeige" && [ "$aufbau" = 1 ]; then
+      leck=1
+      echo "vergleichslauf-d: Ausgabe des Clients ($anzeige, Prozess $k) nennt das Kennwort des Servers; sie wird nicht gedruckt"
+    elif [ "$k" -eq 1 ] || [ "$ok" -ne 0 ]; then
+      cat "$SCRATCH/client-cancel-$anzeige"
+    fi
+    docker cp "$CLIENT:/tmp/cancel.txt" "$SCRATCH/cancel-teil" >/dev/null 2>&1 && sed "s/^cancelzusatz: /cancelzusatz: p$k /" "$SCRATCH/cancel-teil" >>"$ausgabe"
+    [ "$ok" -eq 0 ] || break
+  done
+  docker rm -f "$CLIENT" >/dev/null 2>&1
+  CLIENT=""
+  pruefe "Cancel-Messung gegen $anzeige: Client-Lauf bestanden, Ausgabedatei mit Zeilen" sh -c "[ $ok -eq 0 ] && [ -s '$ausgabe' ]"
+  pruefe "Ausgabe des Clients ($anzeige) nennt das Kennwort des Servers nicht" test "$leck" -eq 0
+}
+
+# cancellauf <Name>: die Messung zum Zusatz " Operation cancelled by user." (A-7). Aufbau wie `livelauf`: dieselbe Messung laeuft nacheinander gegen die Referenzinstanz
+# (Stufe) und gegen den Serverprozess mit Simulations-Backend (Stage `kompatibilitaetsserver`); ein Urteil faellt nicht, die Zeilen `cancelzusatz:` stehen in der Ausgabe.
+cancellauf() {
+  local name="$1" t_fertig
+  parameter "$name" || return 1
+  echo "vergleichslauf-d: --- Lauf $name (Stufe $STUFE, Kategorie $KATEGORIE, CANCEL_N ${CANCEL_N:-100}) ---"
+  referenz_hochfahren "$name" || return 1
+  cancel_client referenz referenz:1433 sa "$KENNWORT" 1 "$SCRATCH/server.pem" "$SCRATCH/cancel-referenz.txt" || return 1
+  [ "$FEHLER" -eq 0 ] || return 1
+
+  SIM_IMAGE="tdswire-live-server:$LAUF"
+  SIM_SERVER="$LAUF-$name-sim"
+  # shellcheck disable=SC2086
+  docker build ${BUILDER_FLAGS:-} --load --target kompatibilitaetsserver -t "$SIM_IMAGE" . || return 1
+  docker run -d --name "$SIM_SERVER" --network "$NETZ" --network-alias testserver "$SIM_IMAGE" >/dev/null || return 1
+  gestartet() {
+    local i
+    for i in $(seq 1 120); do
+      docker logs "$SIM_SERVER" 2>&1 | grep -q 'tdswire: gestartet, Port 1433' && return 0
+      [ "$(docker inspect --format '{{.State.Running}}' "$SIM_SERVER")" = "true" ] || return 1
+      sleep 1
+    done
+    return 1
+  }
+  pruefe "Server mit Simulations-Backend meldet 'gestartet, Port 1433'" gestartet
+  [ "$FEHLER" -eq 0 ] || { docker logs "$SIM_SERVER" 2>&1 | tail -20; return 1; }
+  docker cp "$SIM_SERVER:/home/gradle/server.pem" "$SCRATCH/sim.pem" >/dev/null || return 1
+  cancel_client server testserver:1433 alice secret 0 "$SCRATCH/sim.pem" "$SCRATCH/cancel-server.txt" || return 1
+  [ "$FEHLER" -eq 0 ] || return 1
+
+  sed 's/^/vergleichslauf-d: /' "$SCRATCH/cancel-referenz.txt"
+  sed 's/^/vergleichslauf-d: /' "$SCRATCH/cancel-server.txt"
   t_fertig=$((SECONDS - START))
   echo "vergleichslauf-d: messung: Lauf $name $t_fertig s (mit Bau und Start $T_BEREIT s)"
 
@@ -862,6 +946,7 @@ for lauf in $LISTE; do
     wire-* | bulk-*) wirelauf "$lauf" || FEHLER=1 ;;
     jdbc-*) jdbclauf "$lauf" || FEHLER=1 ;;
     schema-*) schemalauf "$lauf" || FEHLER=1 ;;
+    cancel-*) cancellauf "$lauf" || FEHLER=1 ;;
     *) einzellauf "$lauf" || FEHLER=1 ;;
   esac
   [ "$FEHLER" -eq 0 ] || break
