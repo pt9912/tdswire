@@ -31,6 +31,9 @@ internal sealed class Antwort
     /// <summary>Werte, die der Vergleich nicht führt (LOGINACK, ENVCHANGE mit Werten, SESSIONSTATE, FEATUREEXTACK, Flag-Feld der RETURNVALUE); Ablage der Messung.</summary>
     public List<string> Einzelheiten { get; } = new();
 
+    /// <summary>Spaltenflags von COLMETADATA, TABNAME und COLINFO (Browse-Angaben) mit den Bytes des Tokens; Ablage der Messung, nicht Teil des Vergleichs (`spaltenform`).</summary>
+    public List<string> Spaltenform { get; } = new();
+
     public bool AttnQuittung { get; set; }
 
     public string? Problem { get; set; }
@@ -205,11 +208,11 @@ internal sealed class TokenLeser
                     break;
                 case 0xA4:
                     name = "TABNAME";
-                    Nimm(U16());
+                    TabName(a);
                     break;
                 case 0xA5:
                     name = "COLINFO";
-                    Nimm(U16());
+                    ColInfo(a);
                     break;
                 case 0xAD:
                     name = "LOGINACK";
@@ -308,6 +311,7 @@ internal sealed class TokenLeser
             return;
         }
 
+        var flagsJeSpalte = new List<string>();
         for (var i = 0; i < anzahl; i++)
         {
             U32();
@@ -317,9 +321,94 @@ internal sealed class TokenLeser
             var info = TypInfo("", (flags & 0x01) != 0);
             var name = BVarchar();
             _spalten.Add(info with { Name = name });
+            flagsJeSpalte.Add($"{Sauber(name)}=0x{flags:x4}");
         }
 
         a.Metadaten.Add("[" + string.Join("; ", _spalten.Select(s => s.Beschreibung)) + "]");
+        a.Spaltenform.Add("COLMETADATA Flags [" + string.Join("; ", flagsJeSpalte) + "]");
+    }
+
+    /// <summary>Wirft, wenn das Lesen über das Ende des Tokens (`ende`) hinaus gelaufen ist: TABNAME und COLINFO lesen nur innerhalb ihrer Länge, ein Eintrag, der sie überschreitet, ist „nicht lesbar“.</summary>
+    private void BisEnde(int ende)
+    {
+        if (_p > ende) throw new IndexOutOfRangeException();
+    }
+
+    /// <summary>TABNAME: Länge (2 Bytes), je Tabelle die Zahl der Namensteile (1 Byte) und die Teile als Text mit 2 Bytes Länge. Die Bytes stehen daneben (Lesart des Auswerters, Setzung); ein Eintrag über die Länge hinaus ergibt „nicht lesbar“.</summary>
+    private void TabName(Antwort a)
+    {
+        var laenge = U16();
+        var anfang = _p;
+        var ende = _p + laenge;
+        var daten = Nimm(laenge);
+        _p = anfang;
+        var tabellen = new List<string>();
+        try
+        {
+            while (_p < ende)
+            {
+                var teile = U8();
+                var namen = new List<string>();
+                for (var i = 0; i < teile; i++)
+                {
+                    namen.Add(Sauber(UsVarchar()));
+                    BisEnde(ende);
+                }
+
+                tabellen.Add(string.Join(".", namen));
+            }
+        }
+        catch (Exception e) when (e is IndexOutOfRangeException or ArgumentException)
+        {
+            tabellen.Add("nicht lesbar");
+        }
+
+        _p = ende;
+        a.Spaltenform.Add($"TABNAME Tabellen [{string.Join("; ", tabellen)}] Bytes 0x{Convert.ToHexString(daten).ToLowerInvariant()}");
+    }
+
+    /// <summary>
+    /// COLINFO: Länge (2 Bytes), je Eintrag Spaltennummer, Tabellennummer und Status (je 1 Byte), bei gesetztem Bit 0x20 danach der Spaltenname (1 Byte Länge, Text).
+    /// Die Namen der Bits (0x04 Ausdruck, 0x08 Schlüssel, 0x10 versteckt, 0x20 anderer Name) sind die Lesart des Auswerters (Setzung); belegt ist die Zuordnung der Statuswerte 0x00, 0x08, 0x18
+    /// und 0x28 zu IsKey, IsHidden und IsAliased des Clients in denselben Messungen (`keyinfo-*`); 0x04 ist in keiner Messung beobachtet. Die Bytes stehen daneben; ein Name über die Länge hinaus ergibt „nicht lesbar“.
+    /// </summary>
+    private void ColInfo(Antwort a)
+    {
+        var laenge = U16();
+        var anfang = _p;
+        var ende = _p + laenge;
+        var daten = Nimm(laenge);
+        _p = anfang;
+        var eintraege = new List<string>();
+        try
+        {
+            while (_p + 3 <= ende)
+            {
+                var spalte = U8();
+                var tabelle = U8();
+                var status = U8();
+                var bits = new List<string>();
+                if ((status & 0x04) != 0) bits.Add("Ausdruck");
+                if ((status & 0x08) != 0) bits.Add("Schluessel");
+                if ((status & 0x10) != 0) bits.Add("versteckt");
+                if ((status & 0x20) != 0) bits.Add("anderer-Name");
+                var text = $"Spalte {spalte} Tabelle {tabelle} Status 0x{status:x2}{(bits.Count > 0 ? " " + string.Join("|", bits) : string.Empty)}";
+                if ((status & 0x20) != 0)
+                {
+                    text += $" Name '{Sauber(BVarchar())}'";
+                    BisEnde(ende);
+                }
+
+                eintraege.Add(text);
+            }
+        }
+        catch (Exception e) when (e is IndexOutOfRangeException or ArgumentException)
+        {
+            eintraege.Add("nicht lesbar");
+        }
+
+        _p = ende;
+        a.Spaltenform.Add($"COLINFO [{string.Join("; ", eintraege)}] Bytes 0x{Convert.ToHexString(daten).ToLowerInvariant()}");
     }
 
     private void Zeile(Antwort a, bool komprimiert)

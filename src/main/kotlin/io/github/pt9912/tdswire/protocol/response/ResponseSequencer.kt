@@ -139,8 +139,10 @@ internal enum class SequenceOutcome {
  *   wenn das Ereignis eine Zahl trägt, sonst steht 0 ohne das Bit (Festlegung des Implementers). Im Batch schließen die
  *   Arten `CREATE_TABLE` `0x00c6`, `ALTER_TABLE` `0x00d8`, `CREATE_INDEX` `0x00c8`, `DROP_INDEX` `0x00c9`,
  *   `IMPLICIT_TRANSACTIONS_ON` `0x00b9`, `IMPLICIT_TRANSACTIONS_OFF` `0x00ba` und `COMMIT_IF_OPEN` `0x00c0` ohne
- *   `COUNT` und ohne Zeilenzahl (Messprotokoll M-20); in den Formen RPC und BULK gelten sie nicht. Im Batch führt der
- *   Lauf den [SessionTransaction] der Verbindung nach und schreibt ENVCHANGE Typ 8 vor das DONE des beginnenden
+ *   `COUNT` und ohne Zeilenzahl (Messprotokoll M-20), ebenso `SET_FMTONLY_ON` `0x00b9` und `SET_FMTONLY_OFF` `0x00ba`
+ *   (W-27); in den Formen RPC und BULK gelten sie nicht, ausgenommen `SET_FMTONLY_ON` und `SET_FMTONLY_OFF` im RPC:
+ *   dort schließen sie als DONEINPROC `MORE` mit ihrer Kennung ohne `COUNT` (W-28). Im Batch führt der Lauf den
+ *   [SessionTransaction] der Verbindung nach und schreibt ENVCHANGE Typ 8 vor das DONE des beginnenden
  *   `CREATE_TABLE` sowie DONE `MORE` `0x00c0`, ENVCHANGE Typ 9 und DONE `0x00d5` für `COMMIT_IF_OPEN` bei offener
  *   Transaktion ([Completion]).
  * - „Ausnahme“ heißt jedes `Throwable` außer einer [CancellationException]; die Ausnahme geht an

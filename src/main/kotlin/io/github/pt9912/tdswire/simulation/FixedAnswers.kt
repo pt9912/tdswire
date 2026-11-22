@@ -4,6 +4,7 @@ import io.github.pt9912.tdswire.domain.QueryEvent
 import io.github.pt9912.tdswire.domain.ResultColumn
 import io.github.pt9912.tdswire.domain.SqlType
 import io.github.pt9912.tdswire.domain.StatementKind
+import io.github.pt9912.tdswire.port.BulkTargetResult
 
 /**
  * Die festen Antworten der Form C (`SPEC-036`, Setzung nach der Aufzeichnung mit d-migrate 1.12.0): `SELECT 1` ist
@@ -24,6 +25,12 @@ internal object FixedAnswers {
         is FixedForm.IntegerConstant -> constant(form.value)
         is FixedForm.Settings -> listOf(QueryEvent.UpdateCount(0, implicitTransactions(form)))
         is FixedForm.Transaction -> transaction(form)
+    }
+
+    /** `INSERT BULK` als Text: die Anweisung selbst ruft keinen Callback und zählt 0 (Setzung, nicht gemessen). */
+    fun bulk(result: BulkTargetResult): List<QueryEvent> = when (result) {
+        is BulkTargetResult.Ready -> listOf(QueryEvent.UpdateCount(0))
+        is BulkTargetResult.Rejected -> listOf(QueryEvent.Failure(result.code, result.message))
     }
 
     /** Ein Ergebnis mit einer Spalte ohne Namen (`Int32`, nicht NULL) und der einen Zeile [value]. */

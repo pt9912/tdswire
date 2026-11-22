@@ -114,7 +114,7 @@ if [ "$KATEGORIE" = Anmeldung ]; then
     [ -n "$a" ] && [ "$a" = "$b" ]
   }
   pruefe "Pooling: beide Anfragen laufen auf derselben Sitzung des Servers" gleiche_sitzung
-  # Die Texte, die der Referenzclient bei SchemaOnly und KeyInfo stellt (Form C von ADR-0012); das Log ist die Messung.
+  # Die Texte, die der Referenzclient bei SchemaOnly (beantwortet, Form F) und KeyInfo (nicht gebaut) stellt; das Log ist die Messung.
   set_texte() {
     docker logs "$SERVER" 2>&1 | grep -qF 'sql=[ SET FMTONLY OFF; SET FMTONLY ON;SELECT Id, Name FROM person SET FMTONLY OFF;]' &&
       docker logs "$SERVER" 2>&1 | grep -qF 'sql=[ SET FMTONLY OFF; SET NO_BROWSETABLE ON;SELECT Id, Name FROM person SET NO_BROWSETABLE OFF;]'

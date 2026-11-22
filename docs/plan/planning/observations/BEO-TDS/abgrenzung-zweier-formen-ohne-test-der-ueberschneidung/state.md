@@ -1,0 +1,1 @@
+**Stand:** offen — 1×, unter der Schwelle, nicht verkörpert; die Zahl folgt aus den Dateien in `evidence/`. Kandidat für die Slice-Planung (Sichtungs-Schritt): wo ein Plan eine Abgrenzung zweier Formen zusagt, je Überschneidungstext einen Negativtest im Plan §3 nennen.

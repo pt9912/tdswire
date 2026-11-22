@@ -93,8 +93,10 @@ internal object DoneCommand {
     private const val UPDATE = 0x00C5
     private const val CREATE_TABLE = 0x00C6
     private const val ALTER_TABLE = 0x00D8
-    private const val IMPLICIT_TRANSACTIONS_ON = 0x00B9
-    private const val IMPLICIT_TRANSACTIONS_OFF = 0x00BA
+
+    /** `SET … ON` und `SET … OFF`: dieselben Kennungen tragen `implicit_transactions` (M-20) und `FMTONLY` (W-27). */
+    private const val SET_ON = 0x00B9
+    private const val SET_OFF = 0x00BA
     private const val COMMIT_IF_OPEN = 0x00C0
     private const val MERGE = 0x0117
     private const val CREATE_INDEX = 0x00C8
@@ -105,7 +107,7 @@ internal object DoneCommand {
 
     /**
      * Die Kennung des Abschlusses der Art [kind] (Messprotokoll W-6 und M-20); [NONE] für `UNKNOWN`. Die Arten aus M-20
-     * sind im SQL_BATCH gemessen; die Form RPC wendet ihre Kennung nicht an (`ResponseRun`).
+     * sind im SQL_BATCH gemessen; die Form RPC wendet ihre Kennung nur für [inRpc] an (`Completion`).
      */
     fun forKind(kind: StatementKind): Int = when (kind) {
         StatementKind.UNKNOWN -> NONE
@@ -114,8 +116,8 @@ internal object DoneCommand {
         StatementKind.UPDATE -> UPDATE
         StatementKind.CREATE_TABLE -> CREATE_TABLE
         StatementKind.ALTER_TABLE -> ALTER_TABLE
-        StatementKind.IMPLICIT_TRANSACTIONS_ON -> IMPLICIT_TRANSACTIONS_ON
-        StatementKind.IMPLICIT_TRANSACTIONS_OFF -> IMPLICIT_TRANSACTIONS_OFF
+        StatementKind.IMPLICIT_TRANSACTIONS_ON, StatementKind.SET_FMTONLY_ON -> SET_ON
+        StatementKind.IMPLICIT_TRANSACTIONS_OFF, StatementKind.SET_FMTONLY_OFF -> SET_OFF
         StatementKind.COMMIT_IF_OPEN -> COMMIT_IF_OPEN
         StatementKind.MERGE -> MERGE
         StatementKind.CREATE_INDEX -> CREATE_INDEX
@@ -130,7 +132,7 @@ internal object DoneCommand {
 
     /**
      * Wahr, wenn der Abschluss der Art [kind] im SQL_BATCH eine Zeilenzahl trägt (Bit `COUNT`): `UNKNOWN` und die
-     * Änderungen (W-6); die Arten aus M-20 schließen ohne.
+     * Änderungen (W-6); die Arten aus M-20 und die zwei Arten von `SET FMTONLY` (W-27) schließen ohne.
      */
     fun countsRows(kind: StatementKind): Boolean = when (kind) {
         StatementKind.UNKNOWN, StatementKind.INSERT, StatementKind.DELETE, StatementKind.UPDATE, StatementKind.MERGE ->
@@ -140,11 +142,21 @@ internal object DoneCommand {
         StatementKind.ALTER_TABLE,
         StatementKind.IMPLICIT_TRANSACTIONS_ON,
         StatementKind.IMPLICIT_TRANSACTIONS_OFF,
+        StatementKind.SET_FMTONLY_ON,
+        StatementKind.SET_FMTONLY_OFF,
         StatementKind.COMMIT_IF_OPEN,
         StatementKind.CREATE_INDEX,
         StatementKind.DROP_INDEX,
         -> false
     }
+
+    /**
+     * Wahr für die zwei Arten, die auch im RPC ihre Kennung tragen: `SET_FMTONLY_ON` und `SET_FMTONLY_OFF`
+     * (Messprotokoll W-28, DONEINPROC `0x00ba` und `0x00b9` ohne `COUNT`); jede andere Art ohne Zeilenzahl ist dort
+     * nicht gemessen und zählt im RPC wie `UNKNOWN`.
+     */
+    fun inRpc(kind: StatementKind): Boolean =
+        kind == StatementKind.SET_FMTONLY_ON || kind == StatementKind.SET_FMTONLY_OFF
 }
 
 /** Die drei Formen des Abschlusstokens. */

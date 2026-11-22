@@ -246,9 +246,9 @@ class StatementKindEmbeddingTest {
     }
 
     /**
-     * Die Fläche: die zwölf Konstanten von `StatementKind`, das Feld `kind` von `UpdateCount` und von `ResultStart` mit
-     * dem Standardwert `UNKNOWN`, das Längenfeld `maxLength` von `ResultColumn` mit dem Standardwert 4000 und für Java
-     * die Konstruktoren mit weniger Argumenten (`@JvmOverloads`: `new UpdateCount(n)`, `new ResultStart(columns)`,
+     * Die Fläche: die vierzehn Konstanten von `StatementKind`, das Feld `kind` von `UpdateCount` und von `ResultStart`
+     * mit dem Standardwert `UNKNOWN`, das Längenfeld `maxLength` von `ResultColumn` mit dem Standardwert 4000 und für
+     * Java die Konstruktoren mit weniger Argumenten (`@JvmOverloads`: `new UpdateCount(n)`, `new ResultStart(columns)`,
      * `new ResultColumn(name, type, nullable)`). Wächter: ein fehlendes Mitglied, ein anderer Standardwert, ein
      * Konstruktor ohne Überladung für Java, ein Längenfeld außerhalb von 1 bis 4000.
      *
@@ -270,6 +270,8 @@ class StatementKindEmbeddingTest {
                 "MERGE",
                 "CREATE_INDEX",
                 "DROP_INDEX",
+                "SET_FMTONLY_ON",
+                "SET_FMTONLY_OFF",
             ),
             StatementKind.entries.map { it.name },
         )

@@ -41,6 +41,10 @@ import kotlin.time.Duration
  * ([WaitExecution]); Cancel und die Frist der Anfrage beenden die Wartezeit, ohne dass ein Ereignis gesendet wurde
  * (`ADR-0058` Entscheidung 5).
  *
+ * Form F (`SPEC-036`, `ExecuteReader(SchemaOnly)`: `SET FMTONLY OFF; SET FMTONLY ON; <Auswahl> [SET FMTONLY OFF]`)
+ * antwortet mit den Spalten der Auswahl und ohne Zeile, eingefasst von den Abschlüssen der `SET`
+ * ([SchemaOnlyExecution]); die Zeilenquelle bleibt zu.
+ *
  * Form B (`SPEC-036`, Massenladen) erkennt das Backend als `INSERT BULK` und als die Proben davor (`SET FMTONLY ON …`,
  * Kollation); die Nachrichten 0x07 lädt es über [BulkLoads] in `SimTable.onInsertBatch`, ohne etwas zu
  * speichern (`runtime` schaltet das Laden für dieses Backend ein, ohne dass der Integrator etwas tut).
@@ -113,45 +117,44 @@ public class SimulationBackend internal constructor(
     override suspend fun execute(request: QueryRequest): QueryExecution =
         when (val result = guarded { planner.plan(request.sql) }.getOrNull()) {
             null -> failed(SimCodes.BACKEND_ERROR, "Katalog nicht lieferbar")
-
-            is PlanResult.Rejected -> failed(result.code, result.message, result.objectName)
-
-            is PlanResult.Planned -> start(result.plan, request)
-
-            is PlanResult.Series -> when (val series = SelectSeries.prepare(result.plans, request.parameters)) {
-                is PreparedSeries.Rejected -> failed(series.code, series.message)
-
-                is PreparedSeries.Ready -> {
-                    val key = request.sessionId to request.requestId
-                    register(key, SelectExecution(series.parts, emptyList()) { running.remove(key, it) })
-                }
-            }
-
-            is PlanResult.Fixed -> events(FixedAnswers.of(result.form))
-
-            is PlanResult.Wait -> {
-                val key = request.sessionId to request.requestId
-                register(key, WaitExecution(result.delay, pause) { running.remove(key, it) })
-            }
-
-            is PlanResult.Catalog -> events(CatalogAnswers.of(result.form, result.catalog, parameters(result, request)))
-
-            is PlanResult.Structure -> structure(result.plan, request)
-
-            is PlanResult.Unchanged -> events(listOf(QueryEvent.UpdateCount(0, result.kind)))
-
-            is PlanResult.Bulk -> events(bulkAnswer(result.result))
+            else -> answer(result, request)
         }
+
+    private fun answer(result: PlanResult, request: QueryRequest): QueryExecution = when (result) {
+        is PlanResult.Rejected -> failed(result.code, result.message, result.objectName)
+
+        is PlanResult.SchemaOnly -> SchemaOnlyExecution(answer(result.select, request), result.closed)
+
+        is PlanResult.Planned -> start(result.plan, request)
+
+        is PlanResult.Series -> when (val series = SelectSeries.prepare(result.plans, request.parameters)) {
+            is PreparedSeries.Rejected -> failed(series.code, series.message)
+
+            is PreparedSeries.Ready -> {
+                val key = request.sessionId to request.requestId
+                register(key, SelectExecution(series.parts, emptyList()) { running.remove(key, it) })
+            }
+        }
+
+        is PlanResult.Fixed -> events(FixedAnswers.of(result.form))
+
+        is PlanResult.Wait -> {
+            val key = request.sessionId to request.requestId
+            register(key, WaitExecution(result.delay, pause) { running.remove(key, it) })
+        }
+
+        is PlanResult.Catalog -> events(CatalogAnswers.of(result.form, result.catalog, parameters(result, request)))
+
+        is PlanResult.Structure -> structure(result.plan, request)
+
+        is PlanResult.Unchanged -> events(listOf(QueryEvent.UpdateCount(0, result.kind)))
+
+        is PlanResult.Bulk -> events(FixedAnswers.bulk(result.result))
+    }
 
     /** Ein Katalogtext mit Literal statt Parameter (`SPEC-036`, Form K) trägt sein Argument als einzigen Parameter. */
     private fun parameters(result: PlanResult.Catalog, request: QueryRequest): List<QueryParameter> =
         result.literal?.let { listOf(QueryParameter("", SqlType.UnicodeText, it)) } ?: request.parameters
-
-    /** `INSERT BULK` als Text: die Anweisung selbst ruft keinen Callback und zählt 0 (Setzung, nicht gemessen). */
-    private fun bulkAnswer(result: BulkTargetResult): List<QueryEvent> = when (result) {
-        is BulkTargetResult.Ready -> listOf(QueryEvent.UpdateCount(0))
-        is BulkTargetResult.Rejected -> listOf(QueryEvent.Failure(result.code, result.message))
-    }
 
     /**
      * Erkennt `INSERT BULK` (Form B); die Fähigkeit `BulkLoadingBackend` stellt `runtime` darüber bereit. Nur ein Text

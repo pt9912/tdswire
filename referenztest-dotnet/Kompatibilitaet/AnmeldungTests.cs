@@ -9,9 +9,9 @@ namespace TdsWire.Referenztests.Kompatibilitaet;
 /// Anmeldemessungen und RPC-Messungen des Referenzclients (Microsoft.Data.SqlClient 7.1.1) am Serverprozess
 /// (`make kompatibilitaet KATEGORIE=Anmeldung`, Stufe 5 von `make e2e`, ADR-0019, TDS-QA-01, TDS-QA-03): TDS 8.0
 /// (`Encrypt=Strict`) mit SQL-Authentifizierung, Anmeldung mit den längsten Feldern und kleiner Paketgröße, Pooling,
-/// `Prepare` (sp_prepexec und Wiederholung, Grenze der Handles), die `SET`-Texte von `SchemaOnly` und `KeyInfo`, Transaktionen und die Größen der RPC-Parametertypen.
+/// `Prepare` (sp_prepexec und Wiederholung, Grenze der Handles), `SchemaOnly` (beantwortet) und `KeyInfo` (nicht gebaut, `Number 50001`), Transaktionen und die Größen der RPC-Parametertypen.
 /// Die Zeilen `messung: ...` im Bericht sind die Werte, die die Matrix zitiert. Dass beide Pooling-Anfragen auf
-/// derselben Sitzung liefen, die SET-Texte und dass keine unbekannte Prozedur (`sp_unprepare`) ankam, stehen nur im Log des Servers; ihre Prüfung liegt in
+/// derselben Sitzung liefen, die `SET`-Texte von `SchemaOnly` und `KeyInfo` und dass keine unbekannte Prozedur (`sp_unprepare`) ankam, stehen nur im Log des Servers; ihre Prüfung liegt in
 /// `tools/kompatibilitaetstest.sh`, ein `dotnet test` allein belegt sie nicht. Nicht belegt: Windows-SSPI (nicht
 /// lieferbar, ADR-0019); ob ein LOGIN7 in mehreren Paketen ankam (kein Mitschnitt, die Paketzahl ist nicht beobachtet);
 /// das RESETCONNECTION-Bit (seine Wirkung bei Pooling misst `LueckenTests`; hier ist die zweite Nutzung der gepoolten
@@ -241,15 +241,20 @@ public class AnmeldungTests
     }
 
     [Fact]
-    public void SchemaOnly_und_KeyInfo_senden_SET_Texte_die_der_Server_nicht_erkennt()
+    public void SchemaOnly_wird_beantwortet_und_KeyInfo_endet_mit_50001()
     {
         using var verbindung = Ziel.Oeffnen();
 
         using (var befehl = new SqlCommand("SELECT Id, Name FROM person", verbindung))
         {
-            var schema = Assert.Throws<SqlException>(() => { befehl.ExecuteReader(CommandBehavior.SchemaOnly).Dispose(); });
-            Ziel.Messung(_ausgabe, "SchemaOnly: " + Ziel.Beschreibung(schema));
-            Assert.Equal(50001, schema.Number);
+            using var leser = befehl.ExecuteReader(CommandBehavior.SchemaOnly);
+            var tabelle = leser.GetSchemaTable();
+            Assert.NotNull(tabelle);
+            var spalten = tabelle!.Rows.Cast<DataRow>().Select(zeile => (string)zeile["ColumnName"]).ToArray();
+            var hatZeile = leser.Read();
+            Ziel.Messung(_ausgabe, "SchemaOnly: Spalten " + string.Join(", ", spalten) + $"; Zeile gelesen {hatZeile}; Verbindung {verbindung.State}");
+            Assert.Equal(new[] { "Id", "Name" }, spalten);
+            Assert.False(hatZeile);
         }
 
         using (var befehl = new SqlCommand("SELECT Id, Name FROM person", verbindung))

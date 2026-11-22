@@ -4,8 +4,8 @@ package io.github.pt9912.tdswire.domain
  * Die Art einer Anweisung, die ein Backend im [QueryEvent.UpdateCount] meldet, bei [MERGE] im [QueryEvent.ResultStart]
  * (`SPEC-031`, `SPEC-059`).
  * Die Bibliothek leitet daraus die Befehlskennung (`curCmd`) des Abschlusses ab; die Kennungen sind am echten SQL
- * Server gemessen (Messprotokoll W-6 und M-20, Instanz 2022 und 2025, je ein Fall). Das Mitglied [UNKNOWN] ist der
- * Wert eines Backends, das keine Art meldet: Kennung 0 mit Zeilenzahl. Bei [CREATE_TABLE], [ALTER_TABLE],
+ * Server gemessen (Messprotokoll W-6, W-27, W-28 und M-20, Instanz 2022 und 2025, je ein Fall). Das Mitglied [UNKNOWN]
+ * ist der Wert eines Backends, das keine Art meldet: Kennung 0 mit Zeilenzahl. Bei [CREATE_TABLE], [ALTER_TABLE],
  * [CREATE_INDEX] und [DROP_INDEX] schließt der Server ohne Zeilenzahl ab; die Bibliothek ignoriert dort die Zahl des
  * Ereignisses.
  */
@@ -67,4 +67,19 @@ public enum class StatementKind {
      * Treffer und an einer unbekannten Tabelle mit `IF EXISTS` (Messprotokoll `drop-index-d-migrate-2026-11-11`).
      */
     DROP_INDEX,
+
+    /**
+     * `SET FMTONLY ON` als Teil des Textes von `ExecuteReader(SchemaOnly)`: Kennung `0x00b9`, ohne Zeilenzahl
+     * (Messprotokoll W-27 im SQL_BATCH, W-28 im RPC als DONEINPROC). Die Art ändert den Zustand der Verbindung nicht;
+     * dieselbe Kennung tragen am Draht auch `SET NO_BROWSETABLE ON` und `set implicit_transactions on`.
+     */
+    SET_FMTONLY_ON,
+
+    /**
+     * `SET FMTONLY OFF`, führend und schließend im Text von `ExecuteReader(SchemaOnly)`: Kennung `0x00ba`, ohne
+     * Zeilenzahl (Messprotokoll W-27 und W-29 im SQL_BATCH, W-28 im RPC als DONEINPROC). Die Art ändert den Zustand der
+     * Verbindung nicht; dieselbe Kennung tragen am Draht auch `SET NO_BROWSETABLE OFF` und `set implicit_transactions
+     * off`.
+     */
+    SET_FMTONLY_OFF,
 }

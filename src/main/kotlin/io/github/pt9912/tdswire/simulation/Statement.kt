@@ -179,6 +179,13 @@ internal sealed interface Recognition {
 
     data class Fixed(val form: FixedForm) : Recognition
 
+    /**
+     * `ExecuteReader(SchemaOnly)` (`SPEC-036`, Form F): die Auswahl [select] (S1 aus einer Tabelle, Bedingung wie die
+     * Probe ohne Zeilen) zwischen den Anweisungen `SET FMTONLY OFF` und `SET FMTONLY ON`; [closed] ist wahr, wenn der
+     * Text mit `SET FMTONLY OFF` schließt.
+     */
+    data class SchemaOnly(val select: Statement.Select, val closed: Boolean) : Recognition
+
     /** `WAITFOR DELAY` (`SPEC-036`, Form Z): die Wartezeit des Textes. */
     data class Wait(val delay: Duration) : Recognition
 

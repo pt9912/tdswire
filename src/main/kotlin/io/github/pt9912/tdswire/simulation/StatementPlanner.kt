@@ -102,6 +102,13 @@ internal sealed interface PlanResult {
     /** Ein Text der Form C: keine Tabelle, die Antwort steht fest. */
     data class Fixed(val form: FixedForm) : PlanResult
 
+    /**
+     * Ein Text der Form F (`ExecuteReader(SchemaOnly)`): [select] ist die geplante Auswahl ([Planned]) oder ihre
+     * Abweisung ([Rejected], etwa die unbekannte Tabelle); die zwei führenden `SET`-Anweisungen gehen beiden voraus,
+     * [closed] sagt, dass der Text mit `SET FMTONLY OFF` schließt.
+     */
+    data class SchemaOnly(val select: PlanResult, val closed: Boolean) : PlanResult
+
     /** Ein Text der Form Z (`WAITFOR DELAY`): keine Tabelle, die Wartezeit steht fest. */
     data class Wait(val delay: Duration) : PlanResult
 
@@ -137,6 +144,9 @@ internal class StatementPlanner(private val catalogs: () -> SimCatalog) {
         is Recognition.Recognized -> resolve(recognition.statement, catalogs())
 
         is Recognition.Series -> series(recognition.selects, catalogs())
+
+        is Recognition.SchemaOnly ->
+            PlanResult.SchemaOnly(resolveTable(recognition.select, catalogs()), recognition.closed)
     }
 
     /** Jede Auswahl gegen die Beschreibung prüfen; die erste Abweisung ist die Antwort auf den ganzen Text. */
