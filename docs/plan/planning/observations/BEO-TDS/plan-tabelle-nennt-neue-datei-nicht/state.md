@@ -23,3 +23,5 @@
 **Wiederauftreten (slice-cancel-antwort-zwei-nachrichten-angleichen):** Review F-5 (16 Dateien und zwei Spec-Stellen fehlten, eine genannte war nicht berührt) und Verifikation F-3 (die Folge-ADR fehlte in Kopf, §3 und DoD); der Reviewer und der Verifier fingen es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
 
 **Wiederauftreten (slice-simulation-anweisungsformen-erweitern):** Review F-1 (MEDIUM): die Tabelle §3 nannte berührte Dateien nicht (die Tabelle war nach dem Bau nicht gegen `git diff main...HEAD` abgeglichen); der Reviewer fing es, der Re-Review bestätigte den Abgleich, die Verifikation fand die Tabelle ohne Abweichung. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
+
+**Wiederauftreten (slice-cancel-zusatztext-ursache-untersuchen):** Review F-5 (MEDIUM): die Tabelle §3 nannte sechs berührte Dateien nicht; der Reviewer fing es, Re-Review und Verifikation bestätigten den Abgleich. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
