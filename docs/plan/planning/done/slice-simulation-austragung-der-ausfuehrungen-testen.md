@@ -49,7 +49,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 - [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
 - [x] Beobachtungs-Register (`../observations/`) fortgeschrieben: `BEO-TDS/austragung-aus-der-registrierung-ohne-test-bei-select-change-merge` (Ausgang nachführen); keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
 - [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
 
 ## 3. Plan (vor Code)
 
@@ -128,9 +128,9 @@ Geschlossen 2026-11-22 (Planner, Slice-Closure ohne Welle). Geprüfter Stand: Zw
 
 **Risiken aus §6.** Ausgänge je Risiko in §6: Leck entfallen; gleichzeitige Anfragen, Wirkung von `cancel`, Form C an zwei Texten, Fehler beim Öffnen weiter offen (`BEO-TDS/austragung-der-ausfuehrungen-test-grenzen-offen`); `SPEC-029` weiter offen (Nutzerentscheidung, `BEO-TDS/spec-029-nennt-die-austragung-der-registrierung-nicht`).
 
-**Drei Paarungen.** (a) Anker: kein Eintrag trägt `liegt in`, nichts zu prüfen. (b) Folge-Slice: kein Folge-Slice genannt, nichts zu prüfen. (c) Register: jede genannte Kennung `BEO-TDS/<slug>` existiert als Verzeichnis und trägt ein nicht leeres `evidence/`. Geprüft nach dem `git mv` (unten).
+**Drei Paarungen.** (a) Anker: kein Eintrag trägt `liegt in`, nichts zu prüfen. (b) Folge-Slice: kein Folge-Slice genannt, nichts zu prüfen. (c) Register: jede genannte Kennung `BEO-TDS/<slug>` existiert als Verzeichnis und trägt ein nicht leeres `evidence/`. Geprüft nach dem `git mv` am 2026-11-22: (a) und (b) nichts zu prüfen, (c) alle sieben genannten Kennungen `BEO-TDS/<slug>` (`austragung-aus-der-registrierung-ohne-test-bei-select-change-merge`, `austragung-der-ausfuehrungen-test-grenzen-offen`, `spec-029-nennt-die-austragung-der-registrierung-nicht`, `plan-tabelle-nennt-neue-datei-nicht`, `mutationsbeleg-erzeuger-nicht-im-repo`, `nachbesserung-ohne-zweiten-review`, `zeile-oder-zweig-ohne-unterscheidenden-test`) sind Verzeichnisse mit `observation.md`, `state.md` und nicht leerem `evidence/`.
 
-**Läufe des Planners** (auf `da3d51d8`, vor dem `git mv`; Docker, Einzelläufe, Wanduhr gemessen): `make docs-check` Exit 0 (1765 Dateien, 0 Befunde), `make flaeche` Exit 0, `make kopplung-zahlen` Exit 0 (zusammen 6 s), `make gates` Exit 0 (11 s; die Klassen `werkzeug`, `tests` und `stempel` mit Beleg übersprungen, `src/` und `testserver/` sind gegenüber `fb68e9a1` unverändert, der Beleg der Klasse `tests` stammt vom `make gates FORCE=1` des Verifiers; `immer` gelaufen, `gate-zuordnung` 33 Fälle, `stempel-eingaenge` ok). Der Lauf nach dem `git mv` steht im Commit der letzten DoD-Zeile.
+**Läufe des Planners** (auf `da3d51d8`, vor dem `git mv`; Docker, Einzelläufe, Wanduhr gemessen): `make docs-check` Exit 0 (1765 Dateien, 0 Befunde), `make flaeche` Exit 0, `make kopplung-zahlen` Exit 0 (zusammen 6 s), `make gates` Exit 0 (11 s; die Klassen `werkzeug`, `tests` und `stempel` mit Beleg übersprungen, `src/` und `testserver/` sind gegenüber `fb68e9a1` unverändert, `immer` gelaufen, `gate-zuordnung` 33 Fälle, `stempel-eingaenge` ok). Der Lauf nach dem `git mv` steht im Commit der letzten DoD-Zeile.
 
 **Herkunft:** Review F-2 und Re-Review von [slice-simulation-anweisungsformen-erweitern](../done/slice-simulation-anweisungsformen-erweitern.md) („die Lücke der Austragung bei `SelectExecution`, `ChangeExecution` und `MergeExecution` ist im Beleg benannt und kein Befund“); Register `BEO-TDS/austragung-aus-der-registrierung-ohne-test-bei-select-change-merge`.
 
