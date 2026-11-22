@@ -61,16 +61,15 @@ internal object BulkForms {
         val select = (recognized as? Recognition.Recognized)?.statement as? Statement.Select
         return when {
             recognized is Recognition.Wait -> Recognition.NotRecognized(Unrecognized.UNEXPECTED_TOKEN)
-
             recognized !is Recognition.Recognized -> recognized
-
             select == null -> Recognition.NotRecognized(Unrecognized.UNEXPECTED_TOKEN)
-
-            else -> Recognition.Recognized(
-                select.copy(where = select.where + Term.Constant(false), disjunction = false),
-            )
+            else -> Recognition.Recognized(withoutRows(select))
         }
     }
+
+    /** Die Auswahl, die Spalten und nie eine Zeile liefert (der Konstantenterm, der nie gilt, siehe [metadataOnly]). */
+    fun withoutRows(select: Statement.Select): Statement.Select =
+        select.copy(where = select.where + Term.Constant(false), disjunction = false)
 
     private fun List<Token>.withoutOff(): List<Token> =
         if (isFmtonly(this, size - FMTONLY_LENGTH, "OFF")) subList(0, size - FMTONLY_LENGTH) else this

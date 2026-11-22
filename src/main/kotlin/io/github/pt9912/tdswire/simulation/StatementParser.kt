@@ -180,7 +180,8 @@ internal object StatementParser {
     private fun parse(scanned: List<Token>): Recognition {
         val tokens = if (scanned.lastOrNull() == Token.Symbol(';')) scanned.dropLast(1) else scanned
         if (tokens.isEmpty()) return Recognition.NotRecognized(Unrecognized.EMPTY_TEXT)
-        return BulkForms.probe(tokens, ::parse) ?: BulkForms.insertBulk(tokens)
+        return BulkForms.probe(tokens, ::parse) ?: SchemaForms.recognize(tokens, ::single)
+            ?: BulkForms.insertBulk(tokens)
             ?: FixedForms.recognize(tokens)?.let { Recognition.Fixed(it) }
             ?: WaitForms.recognize(tokens)
             ?: table(tokens)

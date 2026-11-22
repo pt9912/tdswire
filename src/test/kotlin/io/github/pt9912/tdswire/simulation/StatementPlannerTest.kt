@@ -345,4 +345,26 @@ class StatementPlannerTest {
         assertEquals(listOf(1, 1, 1), listOf(person.inserts, person.updates, person.deletes))
         assertEquals(5, person.total)
     }
+
+    /**
+     * Form F (`ADR-0059`): der Planer prüft die Auswahl hinter den `SET` gegen die Beschreibung wie die Probe und ruft
+     * weder Zeilenquelle noch Callback; die unbekannte Tabelle und die unbekannte Spalte sind die Abweisung der
+     * Auswahl, der Rest bleibt `SchemaOnly` mit `closed`. Wächter: ein Aufruf der Zeilenquelle, eine Abweisung des
+     * ganzen Textes (ohne die Abschlüsse der `SET`).
+     * @spec SPEC-036
+     */
+    @Test
+    fun `Form F plant die Auswahl ohne die Quelle zu rufen`() {
+        val head = "SET FMTONLY OFF; SET FMTONLY ON;"
+        val ok = assertIs<PlanResult.SchemaOnly>(plan("$head SELECT Id, Name FROM person SET FMTONLY OFF"))
+        assertTrue(ok.closed)
+        assertEquals(listOf("Id", "Name"), assertIs<PlanResult.Planned>(ok.select).plan.resultColumns.map { it.name })
+        val open = assertIs<PlanResult.SchemaOnly>(plan("$head SELECT Id FROM person"))
+        assertFalse(open.closed)
+        val table = assertIs<PlanResult.SchemaOnly>(plan("$head SELECT Id FROM nothing SET FMTONLY OFF"))
+        assertEquals(SimCodes.UNKNOWN_OBJECT, assertIs<PlanResult.Rejected>(table.select).code)
+        val column = assertIs<PlanResult.SchemaOnly>(plan("$head SELECT Nothing FROM person"))
+        assertEquals(SimCodes.UNKNOWN_OBJECT, assertIs<PlanResult.Rejected>(column.select).code)
+        assertEquals(0, person.total)
+    }
 }

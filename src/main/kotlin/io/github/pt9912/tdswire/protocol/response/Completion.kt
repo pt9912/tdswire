@@ -17,8 +17,9 @@ internal class Completion(val before: List<Token>, val done: DoneToken) {
         /**
          * Der Abschluss eines Ergebnisses der Art [kind] ([resultEnd]; die Kennung folgt [DoneCommand.forResult]) oder
          * eines Änderungszählers der Art [kind] mit der Zahl [affectedRows] in der Antwortform [form] (`SPEC-031`,
-         * Messprotokoll W-6, M-20 und M-26): das Bit `COUNT` und die Kennung folgen der Art; die Arten ohne
-         * Zeilenzahl gelten nur im SQL_BATCH, in den Formen RPC und BULK gilt die Art wie `UNKNOWN`. Im SQL_BATCH führt
+         * Messprotokoll W-6, W-28, M-20 und M-26): das Bit `COUNT` und die Kennung folgen der Art; die Arten ohne
+         * Zeilenzahl gelten nur im SQL_BATCH, in den Formen RPC und BULK gilt die Art wie `UNKNOWN`; ausgenommen sind
+         * im RPC `SET_FMTONLY_ON` und `SET_FMTONLY_OFF` ([DoneCommand.inRpc]). Im SQL_BATCH führt
          * [transaction] den Zustand der Verbindung nach und bestimmt, ob ENVCHANGE Typ 8 oder Typ 9 zum Abschluss
          * gehört.
          */
@@ -45,9 +46,13 @@ internal class Completion(val before: List<Token>, val done: DoneToken) {
             return Completion(before(transition), done(doneKind, command, affectedRows, counted))
         }
 
-        /** Nur der SQL_BATCH kennt die Arten ohne Zeilenzahl (Messprotokoll M-20); die übrigen Formen: `UNKNOWN`. */
+        /**
+         * Nur der SQL_BATCH kennt die Arten ohne Zeilenzahl (Messprotokoll M-20), der RPC dazu die zwei Arten von
+         * `SET FMTONLY` (W-28); in den übrigen Fällen gilt `UNKNOWN`.
+         */
         private fun effectiveKind(form: ResponseForm, kind: StatementKind): StatementKind = when {
             form == ResponseForm.BATCH || DoneCommand.countsRows(kind) -> kind
+            form == ResponseForm.RPC && DoneCommand.inRpc(kind) -> kind
             else -> StatementKind.UNKNOWN
         }
 

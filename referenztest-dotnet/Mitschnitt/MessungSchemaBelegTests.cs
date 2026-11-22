@@ -10,7 +10,7 @@ namespace TdsWire.Referenztests.Mitschnitt;
 /// durch dieselbe Auswertung wie die Aufnahme (<see cref="MessAuswertung"/>, mit `mitSpaltenform` für Text, Spaltenflags, TABNAME und COLINFO).
 /// Die Asserts führen die Aussagen W-26 bis W-36 des Messprotokolls zu A-8 (<c>docs/messungen/referenzabgleich.md</c>): gesendeter Text, Tokenfolge,
 /// DONE-Befehle und Zähler, Spaltenflags, TABNAME- und COLINFO-Bytes, SESSIONSTATE, die Schemazeilen von `person` und `typen` (gleich der
-/// Abschrift der Zeilen `schema-person`, `schema-typen` und `schema-person-schluessel` der Referenz, siehe <see cref="Katalog"/>), die Ausnahmen des Clients, die
+/// Abschrift der Referenz-Ergebnisse der Live-Schritte `schema-person`, `schema-typen` und `schema-person-schluessel`, siehe <see cref="Katalog"/>), die Ausnahmen des Clients, die
 /// Zahl der Anfragen je Szenario und die Gleichheit beider Instanzen. Nicht Gegenstand der Asserts: Laufzeit, Messsperre und Host der Aufnahme
 /// (Angaben des Messprotokolls), die Grenzen des Protokolls (nicht gemessene Formen). Die Tests laufen ohne Referenzinstanz und belegen, dass die
 /// abgelegte Messung die Aussage trägt, nicht dass ein anderer Lauf sie wiederholt. Grenze: der Referenzclient ist `Microsoft.Data.SqlClient` 7.1.1;
@@ -61,9 +61,11 @@ public class MessungSchemaBelegTests
         Datei(stufe, szenario).Herkunft.Single(h => h.Key == "beobachtung" && h.Value.StartsWith($"{szenario} {beschreibung}: Mengen ", StringComparison.Ordinal)).Value;
 
     /// <summary>
-    /// Die Schemazeilen im Wortlaut der Zeilen `schema-*` der Referenz in `Vergleich/live-ausnahmen.tsv`: `Name:Typ(ColumnSize,NumericPrecision,NumericScale) NULL=AllowDBNull`,
-    /// mit Schlüssel dahinter ` Schluessel=IsKey Tabelle=BaseTableName`. Die erwarteten Texte in den Tests sind Abschriften dieser Zeilen; die Datei liegt nicht im
-    /// Build-Kontext der Stage `test`, kein Test vergleicht beide (Kopplung von Hand).
+    /// Die Schemazeilen im Wortlaut der Ergebnisse der Live-Schritte `schema-*` (`Name:Typ(ColumnSize,NumericPrecision,NumericScale) NULL=AllowDBNull`,
+    /// mit Schlüssel dahinter ` Schluessel=IsKey Tabelle=BaseTableName`). Die erwarteten Texte in den Tests sind Abschriften dieser Ergebnisse der Referenz; die Tests
+    /// halten sie gegen die gemessene Ablage beider Stufen. Ihre Gleichheit mit den Zeilen `schema-*` in `Vergleich/live-ausnahmen.tsv` ist am 2026-11-22 von Hand
+    /// geprüft, vor dem Entfernen der Regeln `schema-person` und `schema-typen`; `schema-person-schluessel` steht dort weiter. Die Datei liegt nicht im
+    /// Build-Kontext der Stage `test`, kein Test vergleicht beide.
     /// </summary>
     private static string Katalog(List<Dictionary<string, string>> zeilen, bool mitSchluessel) =>
         string.Join("; ", zeilen.Select(z => $"{z["ColumnName"]}:{z["DataTypeName"]}({z["ColumnSize"]},{z["NumericPrecision"]},{z["NumericScale"]}) NULL={z["AllowDBNull"]}"

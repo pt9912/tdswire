@@ -249,4 +249,69 @@ class ResponseStatementKindTest {
             ),
         )
     }
+
+    /**
+     * Die zwei Arten von `SET FMTONLY` schließen im SQL_BATCH ohne `COUNT` und tragen `0x00b9` (`ON`) und `0x00ba`
+     * (`OFF`), auch mit einer anderen Zahl im Ereignis (Handvektoren `schemaonly-spalten`, Messprotokoll W-27; die
+     * Bibliothek ignoriert die Zahl). Wächter: das Bit `COUNT`, vertauschte Kennungen, die Kennung 0.
+     *
+     * @spec SPEC-031
+     * @spec SPEC-059
+     * @spec TDS-QA-01
+     */
+    @Test
+    fun `Die Arten von SET FMTONLY schliessen im Batch ohne COUNT mit ihren Kennungen`() {
+        val on = hexOf("FD 00 00 B9 00 00 00 00 00 00 00 00 00")
+        val off = hexOf("FD 00 00 BA 00 00 00 00 00 00 00 00 00")
+        assertEquals(on, batch(QueryEvent.UpdateCount(0, StatementKind.SET_FMTONLY_ON)))
+        assertEquals(off, batch(QueryEvent.UpdateCount(0, StatementKind.SET_FMTONLY_OFF)))
+        assertEquals(on, batch(QueryEvent.UpdateCount(7, StatementKind.SET_FMTONLY_ON)))
+    }
+
+    /**
+     * Im RPC gelten die zwei Arten von `SET FMTONLY` (DONEINPROC `MORE` mit `0x00b9` und `0x00ba`, ohne `COUNT`;
+     * Handvektor `schemaonly-sonderfaelle` Anfrage 04, W-28); jede andere Art ohne Zeilenzahl zählt dort weiter wie
+     * `UNKNOWN`, in der Form des Massenladens bleibt `0x00f0`. Wächter: eine Ausnahme für alle Arten ohne Zeilenzahl im
+     * RPC, eine Ausnahme im Massenladen.
+     *
+     * @spec SPEC-030
+     * @spec SPEC-031
+     * @spec TDS-QA-01
+     */
+    @Test
+    fun `Im RPC gelten nur die zwei Arten von SET FMTONLY ohne Zeilenzahl`() {
+        val unknown = hexOf("FF 11 00 00 00 00 00 00 00 00 00 00 00  $DONEPROC")
+        assertEquals(
+            hexOf("FF 01 00 B9 00 00 00 00 00 00 00 00 00  $DONEPROC"),
+            rpc(QueryEvent.UpdateCount(0, StatementKind.SET_FMTONLY_ON)),
+        )
+        assertEquals(
+            hexOf("FF 01 00 BA 00 00 00 00 00 00 00 00 00  $DONEPROC"),
+            rpc(QueryEvent.UpdateCount(0, StatementKind.SET_FMTONLY_OFF)),
+        )
+        assertEquals(unknown, rpc(QueryEvent.UpdateCount(0, StatementKind.IMPLICIT_TRANSACTIONS_ON)))
+        assertEquals(unknown, rpc(QueryEvent.UpdateCount(0, StatementKind.IMPLICIT_TRANSACTIONS_OFF)))
+        assertEquals(unknown, rpc(QueryEvent.UpdateCount(0, StatementKind.COMMIT_IF_OPEN)))
+        val fmtonly = QueryEvent.UpdateCount(0, StatementKind.SET_FMTONLY_ON)
+        val bulk = answer(ResponseForm.BULK, CallLayout.PROCEDURE, fmtonly)
+        assertEquals(hexOf("FD 10 00 F0 00 00 00 00 00 00 00 00 00"), bulk)
+    }
+
+    /**
+     * Die zwei Arten ändern den Zustand der Verbindung nicht: ein `CREATE TABLE` nach `SET FMTONLY ON` beginnt keine
+     * Transaktion (kein ENVCHANGE Typ 8), anders als nach der Art `IMPLICIT_TRANSACTIONS_ON`. Wächter: eine Art, die
+     * `implicit_transactions` einschaltet.
+     *
+     * @spec SPEC-031
+     * @spec SPEC-059
+     */
+    @Test
+    fun `Die Arten von SET FMTONLY aendern die Transaktion der Verbindung nicht`() {
+        val create = QueryEvent.UpdateCount(0, StatementKind.CREATE_TABLE)
+        val withFmtonly = batch(QueryEvent.UpdateCount(0, StatementKind.SET_FMTONLY_ON), create)
+        val withImplicit = batch(QueryEvent.UpdateCount(0, StatementKind.IMPLICIT_TRANSACTIONS_ON), create)
+        val dones = "FD 01 00 B9 00 00 00 00 00 00 00 00 00  FD 00 00 C6 00 00 00 00 00 00 00 00 00"
+        assertEquals(hexOf(dones), withFmtonly)
+        assertEquals(true, withImplicit.contains(" E3 "), withImplicit)
+    }
 }
