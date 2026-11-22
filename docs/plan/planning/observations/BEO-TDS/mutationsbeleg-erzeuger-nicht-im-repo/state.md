@@ -1,3 +1,5 @@
 **Stand:** offen — 1×; unter der Schwelle, keine Regel. Der Beleg [mutationen-cancel-antwort-2026-11-20](../../../../../messungen/mutationen-cancel-antwort-2026-11-20.md) nennt Erzeuger und Grenze; der Verifier fuhr sieben Mutationen mit eigenem Setz-Skript im Scratchpad (nicht im Repo), alle Zahlen gleich.
 
 **Prüfpunkt eingehalten (slice-simulation-austragung-der-ausfuehrungen-testen):** der Mutationsbeleg liegt als Datei im Repo (`docs/messungen/mutationen-austragung-der-ausfuehrungen-2026-11-22.md`: N1 bis N18, E1, E2 mit Ort und gemessener Wirkung); Reviewer und Verifier haben zehn der 18 Mutationen rot an der Klasse nachgefahren, dazu N3 und N6 gegen das Paket ohne den Test, E1 und E2. Das Setz-Skript und die Wegwerf-Stage liegen weiter nicht im Repo, der Beleg sagt es (Review F-6, INFO). Kein Auftreten, keine Evidence-Datei; die Zahl bleibt 1×.
+
+**Wiederauftreten (slice-cancel-zusatztext-ursache-untersuchen):** die Mutationen am Messwerkzeug stehen als Text im Messprotokoll, ohne Setz-Skript und ohne Beleg-Datei; Re-Review und Verifier fuhren sie von Hand nach. Mit diesem Auftreten 2 Dateien, unter der Schwelle, keine Regel.

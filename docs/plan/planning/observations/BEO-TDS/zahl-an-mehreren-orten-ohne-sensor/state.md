@@ -9,3 +9,5 @@
 **Wiederauftreten (slice-qa-performance-heap-abschluss):** Review F-6: die Grenzen des Laufs als Literal der Zeile `Kopf` und in den `docker run`; der Reviewer fing es per Mutation. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
 
 **Wiederauftreten (slice-kompatibilitaetsserver-an-referenz-angleichen):** Review F-5: Alter 36 und drei Zeilen von `person` an einem vierten Ort ohne Kopplungskommentar; der Reviewer fing es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
+
+**Wiederauftreten (slice-cancel-zusatztext-ursache-untersuchen):** Review F-2: die Rate der Referenz an drei Orten mit verschiedenen Spannen, ohne Sensor; der Reviewer fing es. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.

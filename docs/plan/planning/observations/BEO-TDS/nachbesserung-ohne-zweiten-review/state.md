@@ -13,3 +13,5 @@
 **Lese-Schritt welle-referenzabgleich-release (2026-11-17):** 17 Dateien, davon Beiträge aus Slices dieser Welle (Liste in `welle-referenzabgleich-release-results.md` §Steering-Loop-Einträge). Retirement-Check: die Klasse ist in Slices dieser Welle aufgetreten, die Regel bleibt, keine Lockerung; die Closure macht keine Aussage über die Wirkung der Regel. Ob ein Sensor über die Prosa hinaus entsteht, entscheidet der Nutzer.
 
 **Wiederauftreten (slice-kompatibilitaetsserver-an-referenz-angleichen):** `0bdd8db4` ändert Testcode und Tags ohne zweiten Review; Vermerk in §7 der Closure-Notiz, Verifier fuhr `make clean-build`, `make e2e`, `make kompatibilitaet` auf dem End-Stand. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.
+
+**Wiederauftreten (slice-cancel-zusatztext-ursache-untersuchen):** `46de3417` ändert Testcode nach dem Re-Review ohne dritten Review; Vermerk in §7 der Closure-Notiz, Ersatzprüfung des Verifiers: Mutation M20 rot in genau einem Fall und dreimal 12 von 12 grün im Frischlauf. Mit diesem Auftreten 20 Dateien. Retirement-Check: die Klasse ist wiedergekehrt, die Regel bleibt.

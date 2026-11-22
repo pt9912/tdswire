@@ -38,6 +38,9 @@
 # d-migrate `schema migrate`, `schema compare` und `schema reverse` gegen die Referenzinstanz (`LAUF=schema`, `schema-2022`, `schema-2025`; Funktion `schemalauf` in `tools/vergleichslauf-d.sh`):
 # 16 Schritte (Soll mit allen Elementarten anlegen, vergleichen, zweiter Lauf mit demselben Soll, je Elementart eine Aenderung, Index mit `unique: true`) ueber den mitschneidenden Durchlauf;
 # Einzelmessungen am 2026-11-11 (Lastmittel 4 bis 8): 71 s (Instanz 2022) und 85 s (Instanz 2025) einschliesslich Bau; Ablage `<stufe>.schema.aufnahme.txt` neben den Dateien von `jdbc`.
+# Messung zum Zusatz " Operation cancelled by user." (`LAUF=cancel-2022`, `cancel-2025`, `cancel` fuer beide; A-7, Kategorie MessungCancelZusatz, Funktion `cancellauf` in `tools/vergleichslauf-d.sh`):
+# der Schritt `cancel-mit-folgeabfrage` CANCEL_N-mal (Voreinstellung 100) je Modus (direkt, ueber ein Relais ohne TLS-Beendigung) gegen die Referenzinstanz und gegen den Server dieses Repos; Kopf des Skripts.
+# Einzelmessungen am 2026-11-22 (Lastmittel 22 bis 36): CANCEL_N=40 mit fuenf Modi je Teillauf 526 s (2022) und 551 s (2025) einschliesslich Bau und Start; CANCEL_N=1 CANCEL_PROZESSE=30 CANCEL_MODI=direkt 314 s und 326 s.
 # Live-Lauf (`LAUF=live-2022`, `live-2025`, `live` fuer beide) und Gegenmessungen (`LAUF=messung-2022`, `messung-2025`) laufen
 # mit derselben EULA-Entscheidung und denselben Images (gepinnte Digests); der Live-Lauf baut zusaetzlich die Dockerfile-Stage
 # `kompatibilitaetsserver` (JVM). Einzelmessungen am 2026-11-06 auf demselben Host (Lastmittel 8 bis 9): ein Teillauf des
@@ -48,5 +51,5 @@
 VERGLEICH_ACCEPT_EULA = Y
 LAUF ?= alle
 
-vergleichslauf-d: ## Vergleichslauf D: Referenzclient gegen echten SQL Server (Developer-Image, EULA-Entscheidung des Nutzers), LAUF=alle|live|aufnahme|mitschnitt|wire|wire-2022|wire-2025|bulk|bulk-2022|bulk-2025|jdbc|jdbc-2022|jdbc-2025|schema|schema-2022|schema-2025|aufnahme-2022|aufnahme-2025|mitschnitt-2022|mitschnitt-2025|messung-2022|messung-2025|live-2022|live-2025|2022-anmeldung|2022-tds8|2025-anmeldung|2025-tds8|2025-tds8-forcestrict — KEIN Gate, nur lokal
+vergleichslauf-d: ## Vergleichslauf D: Referenzclient gegen echten SQL Server (Developer-Image, EULA-Entscheidung des Nutzers), LAUF=alle|live|aufnahme|mitschnitt|wire|wire-2022|wire-2025|bulk|bulk-2022|bulk-2025|jdbc|jdbc-2022|jdbc-2025|schema|schema-2022|schema-2025|cancel|cancel-2022|cancel-2025|aufnahme-2022|aufnahme-2025|mitschnitt-2022|mitschnitt-2025|messung-2022|messung-2025|live-2022|live-2025|2022-anmeldung|2022-tds8|2025-anmeldung|2025-tds8|2025-tds8-forcestrict — KEIN Gate, nur lokal
 	VERGLEICH_ACCEPT_EULA="$(VERGLEICH_ACCEPT_EULA)" BUILDER_FLAGS="$(BUILDER_FLAGS)" bash tools/vergleichslauf-d.sh "$(LAUF)"
