@@ -1452,10 +1452,13 @@ fest, was der Leser des Testservers daraus liest. Ändert sich das Format dort, 
   W-29: `DONE DONE ERROR DONE`, ERROR 208, Class 16, State 1, `DONE` mit `ERROR` und Befehl `0x00fd`, kein Abschluss für das schließende `SET`, kein
   SESSIONSTATE, die Verbindung bleibt offen; für eine unbekannte Spalte und einen Wert, der nicht in den Spaltentyp passt, Setzung): die beiden
   führenden Abschlüsse stehen vor dem ERROR (`TDS_SIM_UNKNOWN_OBJECT` mit dem Namen des Textes, `TDS_SIM_INVALID_VALUE`); die Antwort im RPC bei einem Fehler ist
-  nicht gemessen, es gilt die Regel von `SPEC-031` mit den zwei vorangehenden Abschlüssen. Der Server führt `FMTONLY` nicht als Zustand der Verbindung
-  (Setzung, gestützt auf W-29: nach dem Fehler bleibt `FMTONLY` nicht in der Sitzung; ob es nach einem RPC ohne schließendes `SET` am echten Server
-  bleibt, ist nicht gemessen); die Folgeabfrage ist eine gewöhnliche Anfrage. Die Probe der Zieltabelle (Form B) bleibt wie sie ist: sie beginnt mit
-  `SET FMTONLY ON`, überschneidet sich nicht mit Form F und antwortet ohne Abschlüsse der `SET`. Form C nimmt `SET FMTONLY` nicht in ihre Liste auf.
+  nicht gemessen (Setzung: es gilt die Regel von `SPEC-031` mit den zwei vorangehenden Abschlüssen). **Cancel** vor dem Sammeln der Antwort: Setzung, nicht
+  gemessen; das Backend meldet die zwei führenden Abschlüsse, kein Ergebnis und bei schließendem `SET` einen weiteren `UpdateCount(0, SET_FMTONLY_OFF)`.
+  Der Server führt `FMTONLY` nicht als Zustand der Verbindung (Setzung, am Server nicht gemessen; W-29 zeigt nur, dass die Folgeabfrage nach dem Fehler
+  eine gewöhnliche Antwort hat; ob `FMTONLY` nach einem RPC ohne schließendes `SET` am echten Server bleibt, ist nicht gemessen); die Folgeabfrage ist eine
+  gewöhnliche Anfrage. Die Probe der Zieltabelle (Form B) bleibt wie sie ist: sie beginnt mit
+  `SET FMTONLY ON`, überschneidet sich nicht mit Form F (der Rest hinter ihrem `SET FMTONLY ON` wird nicht als Form F gelesen: `SET FMTONLY ON SET FMTONLY OFF; SET FMTONLY ON;
+  <Auswahl>` ist nicht erkannt) und antwortet ohne Abschlüsse der `SET`. Form C nimmt `SET FMTONLY` nicht in ihre Liste auf.
   `GetSchemaTable()` löst keine weitere Anfrage aus (W-36); gemessen ist nur der Referenzclient, andere Clients (mssql-jdbc, ODBC, `SqlDataAdapter.FillSchema`)
   sind nicht gemessen. Ein eigenes Backend bekommt den Text unverändert und erkennt ihn selbst; die zwei Arten stehen ihm offen.
 - **Form K, Katalogabfragen** (Wortlaut aus `MssqlMetadataQueries` und `MssqlRoutineQueries` des Treibers

@@ -45,3 +45,17 @@ Messprotokoll der Mutationen zum Bau von [ADR-0059](../plan/adr/0059-schemaonly-
 - M25 ist ein Übersetzungsfehler, kein Testbefund; M20 führt dieselbe Zusage (Z8, `COUNT`) als roten Test vor.
 - Nicht mutiert: die Aufzählung in `StatementKindEmbeddingTest` (ein fehlendes oder vertauschtes Mitglied bricht den Vergleich der Namensliste; nicht gefahren); die Zusage, dass die Probe der Form B ihre eigene Erkennung (`isFmtonly`) behält (M16 färbt die Probe nur über die gemeinsame Funktion `withoutRows`); der Fehler der Auswahl im RPC (nicht gemessen, kein Test); die Abschlüsse im RPC bei einem Fehler.
 - Nicht in diesen Läufen enthalten: `AnmeldungTests > SchemaOnly_wird_beantwortet_und_KeyInfo_endet_mit_50001` (.NET, braucht den Serverprozess; Verifier), die Texte der Messung in der Ablage (`MessungSchemaBelegTests`, Beleg der Messphase), `make spec-abdeckung`.
+
+## Nachbesserung nach dem Review des Baus (F-1)
+
+Die Probe der Zieltabelle (Form B) las den Rest hinter `SET FMTONLY ON` mit der Erkennung, die Form F einschließt; `SET FMTONLY ON SET FMTONLY OFF; SET FMTONLY ON; <Auswahl>` war damit Form F ([Review](../reviews/2026-11-22-slice-simulation-schemaonly-keyinfo-bau-review.md) F-1). Der Rest wird jetzt über `StatementParser.parseInProbe` gelesen, das Form F nicht kennt.
+
+**Zusage Z11.** Der Rest der Probe der Form B (auch als `sp_executesql`-Text, auch verschachtelt) ist nicht Form F: ein Text mit `SET FMTONLY ON` vor der Form ist nicht erkannt und endet mit `TDS_UNSUPPORTED_SQL` ohne Abschluss.
+
+**Erzeuger und Lauf.** Wie oben: ein Wegwerf-Skript im Scratchpad (nicht im Repo) kopierte `src/`, `testserver/` und `LICENSE` in einen Wegwerf-Kontext, ersetzte eine Zeichenkette (genau ein Treffer) und führte `gradle :test` mit den Filtern `SchemaFormsTest`, `SimulationBackendSchemaOnlyTest` und `SimulationBackendBulkTest` sowie `integratorTest` mit `SchemaOnlyEmbeddingTest` aus (Image der Stufe `deps`, ohne Netz, `--continue`). Ein Lauf, ein Host. Ohne Mutation: alle grün (BUILD SUCCESSFUL, 1 m 2 s einschließlich Bau); die acht Klassen aus `:test` des Ausgangslaufs (ohne die zwei Einbettungstests) mit der Änderung: 67 Testfälle grün, 1 m 21 s.
+
+| Nr | Mutation (Ort) | Wirkung (gemessen) | Roter Testfall |
+|---|---|---|---|
+| M26 | `StatementParser.forms`: `BulkForms.probe(tokens, ::parseInProbe)` wieder mit `::parse` (der Rest der Probe wird mit Form F gelesen) | rot, 2 von 29 Testfällen des Tasks `:test` | `SchemaFormsTest > die Probe liest ihren Rest nicht als Form F`; `SimulationBackendSchemaOnlyTest > Texte ausserhalb der Form F sind TDS_UNSUPPORTED_SQL ohne Abschluss` |
+
+Die Probe selbst bleibt unverändert: `SimulationBackendBulkTest` ist in beiden Läufen unter den Klassen und mit der Änderung grün.
