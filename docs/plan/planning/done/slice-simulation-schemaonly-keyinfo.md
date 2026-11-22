@@ -65,7 +65,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 - [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
 - [x] Beobachtungs-Register (`../observations/`) fortgeschrieben: `BEO-TDS/schemaonly-keyinfo-fmtonly-ohne-traeger` (Ausgang nachführen: `SchemaOnly` beantwortet, `KeyInfo` beim Folge-Slice); keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
 - [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen; der Folge-Slice ist [slice-simulation-keyinfo-erkennen](../open/slice-simulation-keyinfo-erkennen.md).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen; der Folge-Slice ist [slice-simulation-keyinfo-erkennen](../open/slice-simulation-keyinfo-erkennen.md).
 
 ## 3. Plan (vor Code)
 
@@ -191,7 +191,7 @@ Geschlossen 2026-11-22 (Planner, Slice-Closure ohne Welle). Geprüfter Stand: Zw
 
 **Risiken aus §6.** Ausgänge je Risiko in §6: `KeyInfo`-Tokens eingetreten als Zerlegung; andere Clients weiter offen (`BEO-TDS/festlegung-gilt-nur-fuer-das-clientprofil`); A-11 entfallen; Bedingungen von S1 weiter offen (Setzung, Register); Überschneidung mit der Probe eingetreten und behoben; Spaltenflags weiter offen (Folge-Slice); drei Verhalten der Form F weiter offen (Setzung); Austragung weiter offen (Folge-Slice); Größe entfallen.
 
-**Drei Paarungen.** (a) Anker: kein Eintrag trägt `liegt in`, nichts zu prüfen. (b) Folge-Slice: jeder genannte Folge-Slice existiert als Datei im Planning-Lifecycle. (c) Register: jede genannte Kennung `BEO-TDS/<slug>` existiert als Verzeichnis und trägt ein nicht leeres `evidence/`. Geprüft nach dem `git mv` am 2026-11-22 (unten).
+**Drei Paarungen.** (a) Anker: kein Eintrag trägt `liegt in`, nichts zu prüfen. (b) Folge-Slice: jeder genannte Folge-Slice existiert als Datei im Planning-Lifecycle. (c) Register: jede genannte Kennung `BEO-TDS/<slug>` existiert als Verzeichnis und trägt ein nicht leeres `evidence/`. Geprüft nach dem `git mv` am 2026-11-22: (a) nichts zu prüfen; (b) die drei genannten Folge-Slices (`slice-simulation-keyinfo-erkennen`, `slice-simulation-spaltenflags-an-referenz-angleichen`, `slice-simulation-austragung-der-ausfuehrungen-testen`) liegen als Dateien in `open/`; (c) die 16 genannten Kennungen `BEO-TDS/<slug>` existieren als Verzeichnis, jedes mit nicht leerem `evidence/` (kleinste Zahl: eine Datei).
 
 **Herkunft:** Lücke A-8 der Ausnahmeliste, [Messprotokoll des Referenzabgleichs](../../../messungen/referenzabgleich.md); Register `BEO-TDS/schemaonly-keyinfo-fmtonly-ohne-traeger`; [Kompatibilitätsmatrix](../../kompatibilitaetsmatrix.md) Nr. 11; [Results-Notiz von welle-referenzabgleich-release](../done/welle-referenzabgleich-release-results.md); [ADR-0059](../../adr/0059-schemaonly-ist-eine-erkannte-form-keyinfo-bleibt-abgewiesen.md). Nutzerentscheidung 2026-11-17: „ja slices anlegen“ (Frage der Closure von `welle-referenzabgleich-release`, Punkt: die 14 Lücken-Nummern ohne Träger-Slice); Nutzerentscheidung 2026-11-22: nur `SchemaOnly` bauen, `KeyInfo` im Folge-Slice.
 
