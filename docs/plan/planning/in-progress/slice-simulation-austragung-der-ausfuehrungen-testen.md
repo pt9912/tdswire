@@ -63,6 +63,9 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
 | `docs/messungen/mutationen-austragung-der-ausfuehrungen-2026-11-22.md` (Mutationsbeleg) | create | Mutation je Zusage als Datei im Repo |
 | `docs/messungen/mutationen-anweisungsformen-2026-11-21.md` | update | der Satz „Lücke benannt, nicht geschlossen“ zeigt auf den neuen Beleg |
 | `docs/plan/planning/observations/BEO-TDS/austragung-aus-der-registrierung-ohne-test-bei-select-change-merge/state.md` | update | Träger und Beleg nachgeführt |
+| `docs/plan/spec-abdeckung.md` | update | `make spec-abdeckung` erzeugt die Matrix neu: die Tests des Slice tragen `@spec`-Tags, die Zählung je `SPEC-*` ändert sich |
+| `docs/plan/planning/in-progress/slice-simulation-austragung-der-ausfuehrungen-testen.md` | update | dieser Plan: Liste abgeglichen, DoD-Häkchen |
+| `docs/reviews/2026-11-22-slice-simulation-austragung-der-ausfuehrungen-testen.md` | create | Review-Report des Reviewers (frischer Kontext), nicht Teil der Implementer-Lieferung |
 
 Der Implementer-Agent erweitert die Liste in seinem ersten Lauf und gleicht sie am Ende gegen `git diff main...HEAD --stat` ab.
 

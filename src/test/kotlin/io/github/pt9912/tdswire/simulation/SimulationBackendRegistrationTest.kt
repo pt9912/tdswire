@@ -182,8 +182,8 @@ class SimulationBackendRegistrationTest {
 
     /**
      * `SelectExecution` der Form S1 trägt sich aus: Auswahl ohne Parameter, die Zeilenquelle scheitert oder hält.
-     * Wächter: eine Auswahl, die sich nicht austrägt (dann bliebe je Anfrage ein Eintrag im Backend), geprüft je Weg:
-     * `onCompletion` des Stroms (Ende, Fehler, Cancel, Abbruch) und `close()`.
+     * Zusage: jede Auswahl trägt ihre Registrierung im Backend aus, sodass nach der Anfrage kein Eintrag bleibt;
+     * geprüft je Weg: `onCompletion` des Stroms (Ende, Fehler, Cancel, Abbruch) und `close()`.
      * @spec SPEC-029
      */
     @Test
