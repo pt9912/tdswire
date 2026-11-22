@@ -44,7 +44,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 - [x] **Test je Ausführung:** `SelectExecution` (S1, S2, Form C), `ChangeExecution` (`INSERT`, `UPDATE`, `DELETE`, auch über RPC) und `MergeExecution`: die Zahl der Registrierungen sinkt nach Ende, Fehler der Zeilenquelle oder des Callbacks, `cancel`, Abbruch des Sammlers und `close()` ohne Sammeln auf den Stand vor der Anfrage; der Test wartet keine Wanduhr ab.
 - [x] **Mutation je Zusage:** die Austragung je Ausführung entfernt und je Verdrahtung in `SimulationBackend.kt` leer gesetzt macht je einen Test rot (Mutationsbeleg als Datei im Repo); findet ein Test ein Leck, ist die Behebung Teil dieses Slice.
-- [ ] `make gates` Exit 0, dazu je Art der Änderung nach `harness/README.md` §Minimal agent workflow: engste Testklasse und Mutation je Zusage über enge Testklassen (`src/`), `make spec-abdeckung` einmal (Tests oder `@spec`-Tags), `make flaeche`, `make docs-check` (Verifier fährt `make clean-build` und `make e2e` je einmal auf dem End-Stand; Implementer und Reviewer nicht).
+- [x] `make gates` Exit 0, dazu je Art der Änderung nach `harness/README.md` §Minimal agent workflow: engste Testklasse und Mutation je Zusage über enge Testklassen (`src/`), `make spec-abdeckung` einmal (Tests oder `@spec`-Tags), `make flaeche`, `make docs-check` (Verifier fährt `make clean-build` und `make e2e` je einmal auf dem End-Stand; Implementer und Reviewer nicht).
 - [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor (`.harness/skills/reviewer.md`), kein Self-Review.
 - [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
 - [x] Beobachtungs-Register (`../observations/`) fortgeschrieben: `BEO-TDS/austragung-aus-der-registrierung-ohne-test-bei-select-change-merge` (Ausgang nachführen); keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
@@ -129,6 +129,8 @@ Geschlossen 2026-11-22 (Planner, Slice-Closure ohne Welle). Geprüfter Stand: Zw
 **Risiken aus §6.** Ausgänge je Risiko in §6: Leck entfallen; gleichzeitige Anfragen, Wirkung von `cancel`, Form C an zwei Texten, Fehler beim Öffnen weiter offen (`BEO-TDS/austragung-der-ausfuehrungen-test-grenzen-offen`); `SPEC-029` weiter offen (Nutzerentscheidung, `BEO-TDS/spec-029-nennt-die-austragung-der-registrierung-nicht`).
 
 **Drei Paarungen.** (a) Anker: kein Eintrag trägt `liegt in`, nichts zu prüfen. (b) Folge-Slice: kein Folge-Slice genannt, nichts zu prüfen. (c) Register: jede genannte Kennung `BEO-TDS/<slug>` existiert als Verzeichnis und trägt ein nicht leeres `evidence/`. Geprüft nach dem `git mv` (unten).
+
+**Läufe des Planners** (auf `da3d51d8`, vor dem `git mv`; Docker, Einzelläufe, Wanduhr gemessen): `make docs-check` Exit 0 (1765 Dateien, 0 Befunde), `make flaeche` Exit 0, `make kopplung-zahlen` Exit 0 (zusammen 6 s), `make gates` Exit 0 (11 s; die Klassen `werkzeug`, `tests` und `stempel` mit Beleg übersprungen, `src/` und `testserver/` sind gegenüber `fb68e9a1` unverändert, der Beleg der Klasse `tests` stammt vom `make gates FORCE=1` des Verifiers; `immer` gelaufen, `gate-zuordnung` 33 Fälle, `stempel-eingaenge` ok). Der Lauf nach dem `git mv` steht im Commit der letzten DoD-Zeile.
 
 **Herkunft:** Review F-2 und Re-Review von [slice-simulation-anweisungsformen-erweitern](../done/slice-simulation-anweisungsformen-erweitern.md) („die Lücke der Austragung bei `SelectExecution`, `ChangeExecution` und `MergeExecution` ist im Beleg benannt und kein Befund“); Register `BEO-TDS/austragung-aus-der-registrierung-ohne-test-bei-select-change-merge`.
 
