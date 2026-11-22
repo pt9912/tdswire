@@ -524,4 +524,59 @@ public class MessungEinheitTests
         Assert.Equal("DONE Status COUNT, Befehl 0x00c1, Zeilen 1", zeilen["probe/01/done"]);
         Assert.False(zeilen.ContainsKey("probe/01/abspielen"));
     }
+
+    // @spec SPEC-045
+    [Fact]
+    public void Der_Leser_zerlegt_Spaltenflags_TABNAME_und_COLINFO_mit_den_Bytes_der_Messung()
+    {
+        byte[] Token(int kennung, params int[] daten) => Cat(Bytes(kennung), U16(daten.Length), Bytes(daten));
+        // Bytes aus der Messung `keyinfo-sonderfaelle` (Alias `Id AS Kennung`, Tabelle `dbo.person`), beide Instanzen.
+        var tabname = Token(0xA4, 0x02, 0x03, 0x00, 0x64, 0x00, 0x62, 0x00, 0x6f, 0x00, 0x06, 0x00, 0x70, 0x00, 0x65, 0x00, 0x72, 0x00, 0x73, 0x00, 0x6f, 0x00, 0x6e, 0x00);
+        var colinfo = Token(0xA5, 0x01, 0x01, 0x28, 0x02, 0x49, 0x00, 0x64, 0x00, 0x02, 0x01, 0x00);
+        var colmetadata = Cat(Bytes(0x81), U16(1), U32(0), U16(0x0008), Bytes(0x38, 7), Text("Kennung"));
+
+        var antwort = TokenLeser.Lesen(Cat(colmetadata, tabname, colinfo));
+
+        Assert.Null(antwort.Problem);
+        Assert.Equal(new[] { "COLMETADATA", "TABNAME", "COLINFO" }, antwort.Folge);
+        Assert.Equal(
+            new[]
+            {
+                "COLMETADATA Flags [Kennung=0x0008]",
+                "TABNAME Tabellen [dbo.person] Bytes 0x020300640062006f00060070006500720073006f006e00",
+                "COLINFO [Spalte 1 Tabelle 1 Status 0x28 Schluessel|anderer-Name Name 'Id'; Spalte 2 Tabelle 1 Status 0x00] Bytes 0x0101280249006400020100",
+            },
+            antwort.Spaltenform);
+        Assert.Equal("[Kennung:int(laenge=4,genauigkeit=0,skala=0) nullbar=nein]", antwort.Metadaten.Single());
+
+        var versteckt = TokenLeser.Lesen(Token(0xA5, 0x01, 0x01, 0x00, 0x02, 0x01, 0x00, 0x03, 0x01, 0x18));
+        Assert.Contains("Status 0x18 Schluessel|versteckt", versteckt.Spaltenform.Single(), StringComparison.Ordinal);
+
+        // Ein TABNAME, dessen Länge über das Ende der Daten reicht, ist ein Zerlegungsproblem, kein stilles Ende.
+        Assert.NotNull(TokenLeser.Lesen(Cat(Bytes(0xA4), U16(50), Bytes(1, 2))).Problem);
+    }
+
+    // @spec SPEC-045
+    [Fact]
+    public void Die_Auswertung_gibt_mit_mitSpaltenform_den_Text_des_Batches_und_der_nvarchar_Parameter_ungekuerzt_aus()
+    {
+        var lang = "SELECT " + new string('x', 200) + " FROM t";
+        var datei = new MessDatei { Szenario = "probe" };
+        datei.Nachrichten.Add(new Nachricht('c', TdsPaket.Prelogin, 1, 0, PreloginMitVerschluesselung(1)));
+        datei.Nachrichten.Add(new Nachricht('s', TdsPaket.Antwort, 1, 0, PreloginMitVerschluesselung(1)));
+        datei.Nachrichten.Add(new Nachricht('c', TdsPaket.Login7, 1, 0, Login7Redaktion.Redigieren(Login7("r", "u", Kennwort, "app", "s", "db"))));
+        datei.Nachrichten.Add(new Nachricht('s', TdsPaket.Antwort, 1, 0, Cat(Bytes(0xFD), U16(0), U16(0), U32(0), U32(0))));
+        datei.Nachrichten.Add(new Nachricht('c', TdsPaket.Batch, 0x01, 0, Cat(U32(22), U32(18), U16(2), new byte[8], U32(1), Text(" SET FMTONLY ON;\n" + lang))));
+        datei.Nachrichten.Add(new Nachricht('s', TdsPaket.Antwort, 1, 0, Cat(Bytes(0xFD), U16(0), U16(0xC1), U32(0), U32(0))));
+        datei.Nachrichten.Add(new Nachricht('c', TdsPaket.Rpc, 0x01, 0, Rpc(10, NvarcharParam("", "SELECT @i"), NvarcharParam("", "@i int"), IntParam("@i", 0, 1))));
+        datei.Nachrichten.Add(new Nachricht('s', TdsPaket.Antwort, 1, 0, Cat(Bytes(0xFD), U16(0), U16(0xC1), U32(0), U32(0))));
+
+        var mit = MessAuswertung.Zeilen(datei, mitSpaltenform: true).ToDictionary(z => z.Kennung, z => z.Text);
+        var ohne = MessAuswertung.Zeilen(datei).ToDictionary(z => z.Kennung, z => z.Text);
+
+        Assert.Equal(" SET FMTONLY ON;\\n" + lang, mit["probe/01/anfragetext"]);
+        Assert.EndsWith("...", mit["probe/01/anfrage"], StringComparison.Ordinal);
+        Assert.Equal("=SELECT @i | =@i int", mit["probe/02/anfragetext"]);
+        Assert.DoesNotContain(ohne.Keys, k => k.EndsWith("/anfragetext", StringComparison.Ordinal) || k.EndsWith("/spaltenform", StringComparison.Ordinal));
+    }
 }

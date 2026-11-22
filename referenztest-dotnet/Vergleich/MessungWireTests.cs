@@ -164,6 +164,55 @@ public class MessungWireTests
         return p;
     }
 
+    /// <summary>
+    /// Führt den Befehl mit dem Verhalten <paramref name="verhalten"/> aus (`SchemaOnly`, `KeyInfo` oder beide), liest `GetSchemaTable()` und
+    /// beschreibt, was der Client sah: Zahl der Mengen und Zeilen, je Spalte der Schemazeile alle Felder der Tabelle, bei einer Ausnahme Ort,
+    /// Nummer, Klasse und Zustand (Slice slice-simulation-schemaonly-keyinfo, TDS-FA-11). Der gesendete Text steht in der Ablage (Austausch).
+    /// </summary>
+    private static void Schema(Lauf l, SqlConnection v, string beschreibung, string text, CommandBehavior verhalten, Action<SqlParameterCollection>? parameter = null)
+    {
+        using var befehl = new SqlCommand(text, v);
+        parameter?.Invoke(befehl.Parameters);
+        var ort = "ExecuteReader";
+        var zeilen = 0;
+        var mengen = 0;
+        var spalten = new List<string>();
+        string ergebnis;
+        try
+        {
+            using var leser = befehl.ExecuteReader(verhalten);
+            ort = "GetSchemaTable";
+            var tabelle = leser.GetSchemaTable();
+            if (tabelle == null)
+            {
+                spalten.Add("GetSchemaTable liefert null");
+            }
+            else
+            {
+                spalten.Add("Felder der Schemazeile: " + string.Join(",", tabelle.Columns.Cast<DataColumn>().Select(c => c.ColumnName)));
+                foreach (DataRow z in tabelle.Rows)
+                    spalten.Add("Spalte " + string.Join("; ", tabelle.Columns.Cast<DataColumn>().Select(c => c.ColumnName + "=" + (z[c] is DBNull ? "NULL" : Convert.ToString(z[c], System.Globalization.CultureInfo.InvariantCulture)))));
+            }
+
+            ort = "Read";
+            do
+            {
+                mengen++;
+                while (leser.Read()) zeilen++;
+                ort = "NextResult";
+            }
+            while (leser.NextResult());
+            ergebnis = $"Mengen {mengen}, Zeilen {zeilen}, ohne Ausnahme";
+        }
+        catch (SqlException e)
+        {
+            ergebnis = $"Mengen {mengen}, Zeilen {zeilen}, Ausnahme bei {ort}: Number {e.Number}, Class {e.Class}, State {e.State}, Fehler {e.Errors.Count}";
+        }
+
+        l.Beobachtung($"{l.Name} {beschreibung} ({verhalten}): {ergebnis}; Verbindung {v.State}");
+        foreach (var s in spalten) l.Beobachtung($"{l.Name} {beschreibung} ({verhalten}): {s}");
+    }
+
     private static void Folgeabfrage(Lauf l, SqlConnection v) => Mit(l, v, "Folgeabfrage", "SELECT Id FROM person WHERE Id = 1");
 
     /// <summary>
@@ -586,6 +635,58 @@ public class MessungWireTests
                 Mit(l, v, "Ausdruck mit Aggregat", "SELECT SUM(CAST(Id AS decimal(10,2))) AS s FROM person");
             }),
 
+            // ---- SchemaOnly, KeyInfo und GetSchemaTable (slice-simulation-schemaonly-keyinfo, A-8): Text und Antwort je Verhalten; jedes Szenario legt seine Tabellen selbst an ----
+            ("schemaonly-spalten", 1, false, (l, v) =>
+            {
+                Schema(l, v, "person, vier Spalten", "SELECT Id, Name, Age, Score FROM person", CommandBehavior.SchemaOnly);
+                Schema(l, v, "typen, acht Spalten", "SELECT Id, Gross, Flag, Text, Preis, Tag, Uhr, Zeit FROM typen", CommandBehavior.SchemaOnly);
+                Schema(l, v, "person, Stern", "SELECT * FROM person", CommandBehavior.SchemaOnly);
+                Folgeabfrage(l, v);
+            }),
+            ("schemaonly-sonderfaelle", 1, false, (l, v) =>
+            {
+                Mit(l, v, "Tabelle ohne Schluessel", "CREATE TABLE wire_schema_ohne_s (A int NOT NULL, B nvarchar(10) NULL)");
+                Mit(l, v, "Zeile", "INSERT INTO wire_schema_ohne_s (A, B) VALUES (1, N'x')");
+                Schema(l, v, "Tabelle ohne Schluessel", "SELECT A, B FROM wire_schema_ohne_s", CommandBehavior.SchemaOnly);
+                Schema(l, v, "person mit Parameter", "SELECT Id, Name FROM person WHERE Id = @i", CommandBehavior.SchemaOnly, p => Ein(p, "@i", 1));
+                Schema(l, v, "Tabelle fehlt", "SELECT Id FROM gibtesnicht", CommandBehavior.SchemaOnly);
+                Folgeabfrage(l, v);
+            }),
+            ("keyinfo-spalten", 1, false, (l, v) =>
+            {
+                Schema(l, v, "person, vier Spalten", "SELECT Id, Name, Age, Score FROM person", CommandBehavior.KeyInfo);
+                Schema(l, v, "typen, acht Spalten", "SELECT Id, Gross, Flag, Text, Preis, Tag, Uhr, Zeit FROM typen", CommandBehavior.KeyInfo);
+                Schema(l, v, "person, Stern", "SELECT * FROM person", CommandBehavior.KeyInfo);
+                Schema(l, v, "person, Schluesselspalte nicht ausgewaehlt", "SELECT Name, Age FROM person", CommandBehavior.KeyInfo);
+                Folgeabfrage(l, v);
+            }),
+            ("keyinfo-sonderfaelle", 1, false, (l, v) =>
+            {
+                Mit(l, v, "Tabelle ohne Schluessel", "CREATE TABLE wire_schema_ohne_k (A int NOT NULL, B nvarchar(10) NULL)");
+                Mit(l, v, "Tabelle mit zusammengesetztem Schluessel", "CREATE TABLE wire_schema_zwei_k (A int NOT NULL, B int NOT NULL, C nvarchar(10) NULL, CONSTRAINT PK_wire_schema_zwei_k PRIMARY KEY (A, B))");
+                Mit(l, v, "Zeile", "INSERT INTO wire_schema_ohne_k (A, B) VALUES (1, N'x')");
+                Schema(l, v, "Tabelle ohne Schluessel", "SELECT A, B FROM wire_schema_ohne_k", CommandBehavior.KeyInfo);
+                Schema(l, v, "zusammengesetzter Schluessel", "SELECT A, B, C FROM wire_schema_zwei_k", CommandBehavior.KeyInfo);
+                Schema(l, v, "person mit Parameter", "SELECT Id, Name FROM person WHERE Id = @i", CommandBehavior.KeyInfo, p => Ein(p, "@i", 1));
+                Schema(l, v, "Spalte mit Alias", "SELECT Id AS Kennung, Name FROM person", CommandBehavior.KeyInfo);
+                Schema(l, v, "Tabelle mit Schemaname", "SELECT Id FROM dbo.person", CommandBehavior.KeyInfo);
+                Schema(l, v, "Ausdruck ohne Tabelle", "SELECT 1 AS eins", CommandBehavior.KeyInfo);
+                Schema(l, v, "Tabelle fehlt", "SELECT Id FROM gibtesnicht", CommandBehavior.KeyInfo);
+                Folgeabfrage(l, v);
+                Folgeabfrage(l, v);
+            }),
+            ("schemaonly-und-keyinfo", 1, false, (l, v) =>
+            {
+                Schema(l, v, "person, vier Spalten", "SELECT Id, Name, Age, Score FROM person", CommandBehavior.SchemaOnly | CommandBehavior.KeyInfo);
+                Schema(l, v, "Tabelle fehlt", "SELECT Id FROM gibtesnicht", CommandBehavior.SchemaOnly | CommandBehavior.KeyInfo);
+                Folgeabfrage(l, v);
+            }),
+            ("getschematable-ohne-verhalten", 1, false, (l, v) =>
+            {
+                Schema(l, v, "person, vier Spalten", "SELECT Id, Name, Age, Score FROM person", CommandBehavior.Default);
+                Folgeabfrage(l, v);
+            }),
+
             // ---- Punkt 2: ENVCHANGE bei RESETCONNECTION ----
             ("reset-ohne-zustand", 1, true, (l, v) =>
             {
@@ -661,6 +762,10 @@ public class MessungWireTests
 
         return s.ToArray();
     }
+
+    /// <summary>Die Szenarien zu `SchemaOnly` und `KeyInfo` geben zusätzlich Text, Spaltenflags, TABNAME und COLINFO aus.</summary>
+    private static bool SpaltenformNoetig(string szenario) =>
+        szenario.StartsWith("schemaonly-", StringComparison.Ordinal) || szenario.StartsWith("keyinfo-", StringComparison.Ordinal) || szenario.StartsWith("getschematable-", StringComparison.Ordinal);
 
     private static string Herkunft(string name) => Environment.GetEnvironmentVariable(name) ?? "nicht angegeben";
 
@@ -749,7 +854,7 @@ public class MessungWireTests
                 _ = MessDatei.Lesen(text);
                 File.WriteAllText(Path.Combine(ausgabe, name + ".messung"), text, new UTF8Encoding(false));
                 foreach (var b in beobachtungen) _ausgabe.WriteLine("messung: client " + b);
-                foreach (var (kennung, wert) in MessAuswertung.Zeilen(datei))
+                foreach (var (kennung, wert) in MessAuswertung.Zeilen(datei, mitSpaltenform: SpaltenformNoetig(name)))
                     _ausgabe.WriteLine($"messung: {kennung}\t{(wert.Length > 1500 ? wert[..1500] + "..." : wert)}");
             }
 

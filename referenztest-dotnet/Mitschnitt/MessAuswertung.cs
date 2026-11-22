@@ -9,6 +9,7 @@ namespace TdsWire.Referenztests.Mitschnitt;
 /// aus <see cref="Ergebnis"/> (dieselbe Abbildung wie im Vergleich), dazu `anfrage` (Paketart, Status mit RESETCONNECTION, Text oder
 /// Aufruf mit Parametern in der Reihenfolge der Aufrufliste), `einzelheiten` (Werte, die der Vergleich nicht führt: LOGINACK,
 /// ENVCHANGE mit Werten, SESSIONSTATE, FEATUREEXTACK) und für die Anmeldung PRELOGIN-Optionen und die Zusammenfassung von LOGIN7.
+/// Mit <c>mitSpaltenform</c> folgen je Austausch die Zeilen `anfragetext` (Text des Batches oder die Texte der nvarchar-Parameter des RPC, ungekürzt) und, wenn die Antwort COLMETADATA, TABNAME oder COLINFO trägt, `spaltenform` (Flags je Spalte, TABNAME, COLINFO mit den Bytes); die Messreihe zu `SchemaOnly` und `KeyInfo` nutzt sie, die Vergleiche zweier Instanzen nicht.
 /// Mit <c>mitZeilenform</c> folgt je Austausch mit Zeilen die Zeile `zeilenform` (je Zeile Tokenname und Bytes vom Kennbyte bis zum Ende der Zeile); die Messreihe der Zeilenform nutzt sie, die Vergleiche zweier Instanzen nicht (Zeilenwerte wie Sitzungsnummern unterscheiden sich).
 /// Grenze: der RPC-Zerleger kennt nur die Parametertypen int, nvarchar (NVARCHAR-PLP eingeschlossen) und ntext; bei einem anderen endet die
 /// Liste mit dem Hinweis `(weitere Parameter nicht zerlegt)`.
@@ -22,7 +23,7 @@ internal static class MessAuswertung
         [11] = "sp_Prepare", [12] = "sp_Execute", [13] = "sp_PrepExec", [14] = "sp_PrepExecRpc", [15] = "sp_Unprepare",
     };
 
-    public static IReadOnlyList<(string Kennung, string Text)> Zeilen(MessDatei datei, bool mitZeilenform = false)
+    public static IReadOnlyList<(string Kennung, string Text)> Zeilen(MessDatei datei, bool mitZeilenform = false, bool mitSpaltenform = false)
     {
         var zeilen = new List<(string, string)>();
         string K(int nr, string feld) => $"{datei.Szenario}/{nr:D2}/{feld}";
@@ -71,6 +72,12 @@ internal static class MessAuswertung
             var zeilenform = mitZeilenform ? antworten.SelectMany(a => TokenLeser.Lesen(a).ZeilenToken).ToList() : new List<string>();
             if (zeilenform.Count > 0) zeilen.Add((K(nummer, "zeilenform"), string.Join(" ; ", zeilenform)));
             zeilen.Add((K(nummer, "einzelheiten"), Einzelheiten(antworten)));
+            if (mitSpaltenform)
+            {
+                zeilen.Add((K(nummer, "anfragetext"), Anfragetext(anfrage)));
+                var spaltenform = antworten.SelectMany(a => TokenLeser.Lesen(a).Spaltenform).ToList();
+                if (spaltenform.Count > 0) zeilen.Add((K(nummer, "spaltenform"), string.Join(" ; ", spaltenform)));
+            }
         }
 
         return zeilen;
@@ -98,6 +105,22 @@ internal static class MessAuswertung
         return string.Join(" ", optionen);
     }
 
+    /// <summary>Der Text einer Anfrage ungekürzt: der Batch, oder je RPC-Parameter vom Typ nvarchar `Name=Text`.</summary>
+    private static string Anfragetext(Nachricht n)
+    {
+        switch (n.Typ)
+        {
+            case TdsPaket.Batch:
+                return Roh(BatchText(n.Daten));
+            case TdsPaket.Rpc:
+                var texte = new List<string>();
+                Rpc(n.Daten, texte);
+                return texte.Count == 0 ? "-" : string.Join(" | ", texte);
+            default:
+                return "-";
+        }
+    }
+
     public static string Anfrage(Nachricht n)
     {
         var kopf = $"Art {n.Typ} Status 0x{n.Status:x2}{(n.ResetConnection ? " RESETCONNECTION" : string.Empty)}";
@@ -113,6 +136,9 @@ internal static class MessAuswertung
                 return kopf;
         }
     }
+
+    /// <summary>Wie <see cref="Sauber"/>, aber Zeilenwechsel und Tabulator bleiben als Escape sichtbar (der Text steht ungekürzt und zeichengenau da).</summary>
+    private static string Roh(string t) => t.Replace("\r", "\\r", StringComparison.Ordinal).Replace("\n", "\\n", StringComparison.Ordinal).Replace("\t", "\\t", StringComparison.Ordinal);
 
     private static string Sauber(string t) => t.Replace("\r", " ", StringComparison.Ordinal).Replace("\n", " ", StringComparison.Ordinal).Replace("\t", " ", StringComparison.Ordinal);
 
@@ -130,13 +156,13 @@ internal static class MessAuswertung
     /// Zerlegt die RPC-Nachricht: je Aufruf Name und Parameter; zwischen zwei Aufrufen steht das Byte `0x80` (BatchFlag) oder `0xFF`
     /// (NoExecFlag), das der Zerleger als `Batchflag 0x..` führt und mit `||` abtrennt (MS-TDS, RPCRequest).
     /// </summary>
-    public static string Rpc(byte[] d)
+    public static string Rpc(byte[] d, List<string>? texte = null)
     {
         var p = KopfAbstand(d);
         var aufrufe = new List<string>();
         while (true)
         {
-            var aufruf = EinRpc(d, ref p, out var weiter);
+            var aufruf = EinRpc(d, ref p, out var weiter, texte);
             aufrufe.Add(aufruf);
             if (!weiter) break;
             aufrufe.Add($"Batchflag 0x{d[p]:x2}");
@@ -146,7 +172,7 @@ internal static class MessAuswertung
         return string.Join(" || ", aufrufe);
     }
 
-    private static string EinRpc(byte[] d, ref int p, out bool weiter)
+    private static string EinRpc(byte[] d, ref int p, out bool weiter, List<string>? texte)
     {
         weiter = false;
         if (p + 2 > d.Length) return "(zu kurz)";
@@ -211,23 +237,30 @@ internal static class MessAuswertung
                         var gesamt = BitConverter.ToUInt64(d, p);
                         p += 8;
                         l = 0;
+                        var plp = new List<byte>();
                         while (true)
                         {
                             var teil = (int)BitConverter.ToUInt32(d, p);
                             p += 4;
                             if (teil == 0) break;
                             l += teil;
+                            if (texte != null) plp.AddRange(d.AsSpan(p, teil).ToArray());
                             p += teil;
                         }
 
                         beschreibung = gesamt == ulong.MaxValue ? "nvarchar NULL" : $"nvarchar(max) {l / 2} Zeichen";
+                        if (gesamt != ulong.MaxValue) texte?.Add(pname + "=" + Roh(Encoding.Unicode.GetString(plp.ToArray())));
                     }
                     else
                     {
                         l = d[p] | (d[p + 1] << 8);
                         p += 2;
                         beschreibung = l == 0xFFFF ? "nvarchar NULL" : $"nvarchar {l / 2} Zeichen";
-                        if (l != 0xFFFF) p += l;
+                        if (l != 0xFFFF)
+                        {
+                            texte?.Add(pname + "=" + Roh(Encoding.Unicode.GetString(d, p, l)));
+                            p += l;
+                        }
                     }
                 }
                 else
